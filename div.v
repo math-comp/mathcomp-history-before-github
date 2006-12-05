@@ -58,18 +58,10 @@ Qed.
 Lemma edivn_eq : forall d q r, r <= d -> edivn (q * S d + r) d = (q, r).
 Proof.
 move=> d q r; case: edivnP => q' r'.
-assert (H: forall q q' r r', q <= q'-> 
-q * S d + r = q' * S d + r' -> r' <= d -> r <= d -> (q', r') = (q, r)).
-clear q q' r r'.
-move => q q' r r'.
-(* postpone *)
+wlog: q q' r r' / q <= q' by case (ltnP q q'); last symmetry; eauto.
 rewrite leq_eqVlt; case: eqP => [-> _|_] /=; first by move/addn_injl->.
 rewrite -(@leq_pmul2r (S d)) //=; move/leq_add2=> Hqr Eqr _; move/Hqr {Hqr}.
 by rewrite -addnA Eqr addSn ltnNge addnC addnA leq_addr.
-(*
-wlog: q q' r r' / q <= q' by case (ltnP q q'); last symmetry; eauto.
-*)
-by case (ltnP q q'); last symmetry; eauto.
 Qed.
 
 Definition divn m d := nosimpl (if d is S d' then fst (edivn m d') else 0).
@@ -567,20 +559,15 @@ Qed.
 Lemma chinese_remainder: forall a b m n, 0 < m -> 0 < n ->
   coprime m n -> (modn a (m*n) == modn b (m * n)) =
                  ((modn a m == modn b m) && (modn a n == modn b n)).
-(* should wlog *)
-have F1: forall a b m n, a <= b -> 0 < m -> 0 < n ->
-  coprime m n -> (modn a (m*n) == modn b (m * n)) =
-                 ((modn a m == modn b m) && (modn a n == modn b n)).
-  move => a b m n Hab Hm Hn Cmn.
-  apply/idP/andP => [H1 | [H1 H2]].
-    by split;
+move => a b m n Ham Hn Cmn.
+wlog: a b /a <= b => H.
+  case (ltnP b a) => H1; last by exact: H.
+  by rewrite !(eq_sym (modn a _)) H // leq_eqVlt H1 orbT.
+apply/idP/andP => [H1 | [H1 H2]]; first
+  by split;
       rewrite (divn_eq a (m * n)) (divn_eq b (m * n)) (eqP H1);
       first rewrite {2 5}(mulnC m); rewrite !mulnA !modn_addl_mul.
-  by rewrite -divn_mod // gauss_inv // !divn_mod // H1.
-move => a b m n Hm Hn Cmn; case (ltnP b a) => H; last apply F1 => //.
-rewrite !(fun x => eq_sym (modn a x)) andbC mulnC; apply F1 => //.
-  by rewrite leq_eqVlt H orbT.
-by rewrite coprime_sym.
+by rewrite -divn_mod // gauss_inv // !divn_mod // H1.
 Qed.
 
 Lemma chinese_remainderf: forall a m n, 0 < n -> 0 < m ->

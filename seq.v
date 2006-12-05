@@ -1036,21 +1036,11 @@ Lemma leq_size_perm : forall s1 s2 : seq d,
     s1 =1 s2 /\ size s1 = size s2.
 Proof.
 move=> s1 s2 Us1 Hs1 Hs12; have Us2: uniq s2 by exact: leq_size_uniq Hs12.
-assert (s1 =1 s2).
-(* postpone *)
+suff: s1 =1 s2 by split; last by apply/eqP; rewrite -uniq_size_uniq.
 move=> x; apply/idP/idP; auto=> Hxs2; apply/idPn=> Hxs1.
-assert (size (Adds x s1) <= size s2).
+suff: size (Adds x s1) <= size s2 by rewrite /= ltnNge Hs12.
 apply: uniq_leq_size; first by rewrite /= Hxs1.
 move=> y /=; case/setU1P=> [<-|Hys1]; auto.
-(* 
-suff: size (Adds x s1) <= size s2 by rewrite /= ltnNge Hs12.
-*)
- generalize H.
- by rewrite /= ltnNge Hs12.
-(*
-suff: s1 =1 s2 by split; last by apply/eqP; rewrite -uniq_size_uniq.
-*)
- by split; last by apply/eqP; rewrite -uniq_size_uniq.
 Qed.
 
 Lemma uniq_perm : forall s1 s2 : seq d,

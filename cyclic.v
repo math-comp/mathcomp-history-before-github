@@ -740,25 +740,21 @@ rewrite /cancel.
   move => [[x Hx1] Hx2]; apply: val_inj => /=.
   case (@cyclic_decomp a (a ^ x)) => /= x1.
   move/andP => [Hx3 Hx4]; apply val_inj => /=.
-(* wlog *)
-  have: forall n m, n <= m -> m < orderg a ->
-           a ^ n = a ^ m -> n = m; last by
-  (move => H1; case: (ltnP x x1) => H2; first symmetry;
-    apply: H1 => //;  
-    rewrite ?(eqP Hx4) //leq_eqVlt H2 orbT).
-  move => n m H1 H2 H3.
-  have F1: dvdn (orderg a) (m - n) by
-    rewrite orderg_dvd; apply/eqP;
-    apply: (mulg_injl (a ^ n)); 
-    rewrite mulg1 gexpn_add leq_add_sub //.
+  wlog: x1 x Hx1 Hx3 {Hx2}Hx4/ x1 <= x => H1; first by 
+    (case: (ltnP x x1) => H2; first symmetry;
+      apply: H1 => //;  
+      rewrite ?(eqP Hx4) //leq_eqVlt H2 orbT).
+  have F1: dvdn (orderg a) (x - x1); first
+    by rewrite orderg_dvd; apply/eqP;
+       apply: (mulg_injl (a ^ x1)); 
+       rewrite mulg1 gexpn_add leq_add_sub // (eqP Hx4).
   rewrite -(leq_add_sub H1).
-  case Eq1: (m - n) => [| n1] //; rewrite Eq1 in F1.
-  rewrite -Eq1.
+  case Eq1: (x - x1) => [| n1] //; rewrite Eq1 in F1.
   move: (dvdn_leq (is_true_true: 0 < S n1) F1).
   rewrite -Eq1 => H4.
-  have: orderg a <= m.
+  have: orderg a <= x.
     by apply: (leq_trans H4); apply leq_subr. 
-  by rewrite leqNgt H2. 
+  by rewrite leqNgt Hx1.
 move => [x Hx]; apply: val_inj => /=.
 by case (@cyclic_decomp a x) => /= x1; case/andP => _;move/eqP. 
 Qed.

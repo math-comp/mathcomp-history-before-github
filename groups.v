@@ -378,8 +378,7 @@ Theorem LaGrange : (card h * indexg k)%N = card k.
 Proof.
 pose a x := roots (rcoset h) x && k x.
 pose dha := prod_finType (sub_finType h) (sub_finType a); pose dk := sub_finType k.
-assert (card dha = card dk).
-(* postpone *)
+suff: card dha = card dk by rewrite /dha card_prod /dk !card_sub.
 have Hf: forall u : dha, k (let: EqPair ux uy := u in val ux * val uy).
   move=> [[x Hx] [y Hy]] /=; case/andP: Hy => _; move/HhkP: Hx; exact: groupM.
 have Hf'a: forall u : dk, a (root (rcoset h) (val u)).
@@ -391,14 +390,9 @@ apply: bij_eq_card_setA; exists (fun u => EqSig k _ (Hf u)).
 pose f' u := EqPair (EqSig h _ (Hf'h u)) (EqSig a _ (Hf'a u)).
 exists f' => [[[x Hx] [y Hy]] | [z Hz]]; last by apply: val_inj; exact: mulgKv.
 apply/eqP; do 2!rewrite /set1 /=; case/andP: Hy; move/eqP=> Dy _.
-assert (root (rcoset h) (x * y) = y).
-(* postpone *)
+suff ->: root (rcoset h) (x * y) = y by rewrite mulgK !set11.
 rewrite -{2}Dy; apply/(rootP rcoset_csym); apply connect1.
 by rewrite /rcoset invg_mul mulKgv groupV.
-(* suff ->: root (rcoset h) (x * y) = y by rewrite mulgK !set11. *)
-by rewrite H mulgK !set11.
-(* suff: card dha = card dk by rewrite /dha card_prod /dk !card_sub. *)
-by move: H; rewrite /dha card_prod /dk !card_sub.
 Qed.
 
 Lemma group_dvdn : dvdn (card h) (card k).

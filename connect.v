@@ -211,18 +211,13 @@ Lemma relU_sym : forall e e' : rel d,
   connect_sym e -> connect_sym e' -> connect_sym (relU e e').
 Proof.
 move=> e e' He He'.
-assert (Hsub: forall x y, connect (relU e e') x y -> connect (relU e e') y x).
-(* postpone *)
+suff Hsub: forall x y, connect (relU e e') x y -> connect (relU e e') y x.
+  move=> x y; apply/idP/idP; auto.
 move=> x y; move/connectP=> [p Hp <-] {y}.
 elim: p x Hp => [|y p Hrec] x /=; first by rewrite connect0.
 case/andP=> [Hxp Hp]; apply: {Hrec Hp}(connect_trans (Hrec _ Hp)).
 case/orP: Hxp; move/(@connect1 d); rewrite 1?He 1?He';
  apply: connect_sub y x => [x y Hy]; apply connect1; apply/orP; auto.
-(*
-suff Hsub: forall x y, connect (relU e e') x y -> connect (relU e e') y x.
-*)
-  move=> x y; apply/idP/idP; auto.
-
 Qed.
 
 Lemma eq_connect : forall e e' : rel d, e =2 e' -> connect e =2 connect e'.
@@ -263,17 +258,12 @@ Hypothesis He : connect_sym e.
 
 Lemma same_connect_rev : connect e =2 connect (fun x y => e y x).
 Proof.
-assert (Hrev: forall e',
-    sub_rel (connect (fun x y : d => e' y x)) (fun x y => connect e' y x)).
-(* postpone *)
+suff Hrev: forall e',
+    sub_rel (connect (fun x y : d => e' y x)) (fun x y => connect e' y x).
+  move=> x y; rewrite He; apply/idP/idP => [Hyx|Hxy]; apply: Hrev; auto.
 move=> e' x y; move/connectP=> [p Hp <-] {y}.
 elim: p x Hp => [|y p Hrec] x /=; first by rewrite connect0.
 move/andP=> [Hyx Hp]; exact (connect_trans (Hrec _ Hp) (connect1 Hyx)).
-(*
-suff Hrev: forall e',
-    sub_rel (connect (fun x y : d => e' y x)) (fun x y => connect e' y x).
-*)
-- move=> x y; rewrite He; apply/idP/idP => [Hyx|Hxy]; apply: Hrev; auto.
 Qed.
 
 Definition closed (a : set d) := forall x y, e x y -> a x = a y.
