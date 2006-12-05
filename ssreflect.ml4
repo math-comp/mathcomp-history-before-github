@@ -757,7 +757,9 @@ let tclBY tac = tclTHEN tac donetac
 
 (** Tactical arguments. *)
 
-(* We have three kinds: simple tactics, [|]-bracketed lists, and hints *)
+(* We have four kinds: simple tactics, [|]-bracketed lists, hints, and swaps *)
+(* The latter two are used in forward-chaining tactics (have, suffice, wlog) *)
+(* and subgoal reordering tacticals (; first & ; last), respectively.        *)
 
 let pr_ssrtacexp _ _ prt = prt tacltop
 
@@ -781,27 +783,39 @@ GEXTEND Gram
 END
 
 type ssrtac = glob_tactic_expr
-type ssrortacs = ssrtac list
+type ssrortacs = ssrtac option list
 
-let pr_orbar () = spc () ++ str "| "
-let pr_ortacs prt = pr_list pr_orbar (prt tacltop)
+let pr_ortacs prt = 
+  let rec pr_rec = function
+  | [None]           -> spc() ++ str "|" ++ spc()
+  | None :: tacs     -> spc() ++ str "|" ++ pr_rec tacs
+  | Some tac :: tacs -> spc() ++ str "| " ++ prt tacltop tac ++  pr_rec tacs
+  | []                -> mt() in
+  function
+  | [None]           -> spc()
+  | None :: tacs     -> pr_rec tacs
+  | Some tac :: tacs -> prt tacltop tac ++ pr_rec tacs
+  | []                -> mt()
 let pr_ssrortacs _ _ = pr_ortacs
 
-ARGUMENT EXTEND ssrortacs TYPED AS tactic list PRINTED BY pr_ssrortacs
-| [ ssrtacexp(tac) "|" ssrortacs(tacs) ] -> [ tac :: tacs ]
-| [ ssrtacexp(tac) ] -> [ [tac] ]
+ARGUMENT EXTEND ssrortacs TYPED AS tactic option list PRINTED BY pr_ssrortacs
+| [ ssrtacexp(tac) "|" ssrortacs(tacs) ] -> [ Some tac :: tacs ]
+| [ ssrtacexp(tac) "|" ] -> [ [Some tac; None] ]
+| [ ssrtacexp(tac) ] -> [ [Some tac] ]
+| [ "|" ssrortacs(tacs) ] -> [ None :: tacs ]
+| [ "|" ] -> [ [None; None] ]
 END
 
 type ssrtacarg = bool * (ssrortacs * ssrltacctx)
 
 let pr_tacarg prt = function
   | true, (tacs, _) -> hv 0 (str "[ " ++ pr_ortacs prt tacs ++ str " ]")
-  | false, ([tac], _) -> prt tacltop tac
-  | _ -> mt ()
+  | false, ([Some tac], _) -> prt tacltop tac
+  | _, _ -> mt()
 
 let pr_ssrtacarg _ _ = pr_tacarg
 
-let mk_tacarg tac = false, ([tac], rawltacctx)
+let mk_tacarg tac = false, ([Some tac], rawltacctx)
 let mk_ortacarg tacs = true, (tacs, rawltacctx)
 let nulltacarg = true, ([], noltacctx)
 let notacarg = false, ([], noltacctx)
@@ -820,21 +834,22 @@ ARGUMENT EXTEND ssrortacarg TYPED AS ssrtacarg PRINTED BY pr_ssrtacarg
 END
 
 ARGUMENT EXTEND ssrhintarg TYPED AS ssrtacarg PRINTED BY pr_ssrtacarg
-| [ "[" ssrortacs(tacs) "]" ] -> [ mk_ortacarg tacs ]
 | [ "[" "]" ] -> [ nulltacarg ]
+| [ "[" ssrortacs(tacs) "]" ] -> [ mk_ortacarg tacs ]
 | [ ssrtacarg(arg) ] -> [ arg ]
 END
 
 let argtac (_, (atacs, ctx)) =
   let gettac = get_ssrevaltac ctx in
+  let mktac = function Some atac -> gettac atac | _ -> tclIDTAC in
   match atacs with
-  | [atac] -> gettac atac
-  | _ -> tclFIRST (List.map gettac atacs)
+  | [atac] -> mktac atac
+  | _ -> tclFIRST (List.map mktac atacs)
 
 let hinttac (is_or, (atacs, ctx)) =
   if atacs = [] then if is_or then donetac else tclIDTAC else
   let gettac = get_ssrevaltac ctx in
-  let mktac atac = tclBY (gettac atac) in
+  let mktac = function Some atac -> tclBY (gettac atac) | _ -> donetac in
   match List.map mktac atacs with [tac] -> tac | tacs -> tclFIRST tacs
 
 (** The "-"/"+"/"*" tacticals. *)
@@ -1113,6 +1128,7 @@ type ssripat =
   | IpatCase of ssripats list
   | IpatRw of ssrdir
   | IpatAll
+  | IpatAnon
 and ssripats = ssripat list
 
 let rec ipat_of_intro_pattern = function
@@ -1120,7 +1136,7 @@ let rec ipat_of_intro_pattern = function
   | IntroWildcard -> IpatWild
   | IntroOrAndPattern iorpat ->
     IpatCase (List.map (List.map ipat_of_intro_pattern) iorpat)
-  | IntroAnonymous -> failwith "TODO"
+  | IntroAnonymous -> IpatAnon
 
 let rec pr_ipat = function
   | IpatId id -> pr_id id
@@ -1129,6 +1145,7 @@ let rec pr_ipat = function
   | IpatRw dir -> pr_dir dir
   | IpatAll -> str "*"
   | IpatWild -> str "_"
+  | IpatAnon -> str "?"
 and pr_ipats ipats = pr_list spc pr_ipat ipats
 and pr_iorpat iorpat = pr_list pr_bar pr_ipats iorpat
 
@@ -1145,7 +1162,7 @@ let rec add_ids_of_intro_pattern ipat ids = match ipat with
   | IntroWildcard -> ids
   | IntroOrAndPattern iorpat ->
     List.fold_right (List.fold_right add_ids_of_intro_pattern) iorpat ids
-  | IntroAnonymous -> failwith "TODO"
+  | IntroAnonymous -> []
 
 let wit_ipatrep, globwit_ipatrep, rawwit_ipatrep = add_genarg "ipatrep" pr_ipat
 
@@ -1165,6 +1182,7 @@ let rec interp_ipat ist gl garg =
 ARGUMENT EXTEND ssripat TYPED AS ipatrep PRINTED BY pr_ssripat
   INTERPRETED BY interp_ipat
   | [ "_" ] -> [ IpatWild ]
+  | [ "*" ] -> [ IpatAll ]
 END
 
 ARGUMENT EXTEND ssrspat TYPED AS ssripat PRINTED BY pr_ssripat
@@ -1183,9 +1201,7 @@ END
 
 ARGUMENT EXTEND ssripats_ne TYPED AS ssripats PRINTED BY pr_ssripats
   | [ ssripat(pat) ssripats(pats) ] -> [ pat :: pats ]
-  | [ "*" ] -> [ [IpatAll] ]
   | [ ssrspat(spat) ssripat(pat) ssripats(pats) ] -> [ spat :: pat :: pats ]
-  | [ ssrspat(spat) "*" ] -> [ [spat; IpatAll] ]
   | [ ssrspat(spat) ] -> [ [spat] ]
 END
 
@@ -1209,6 +1225,7 @@ END
 
 ARGUMENT EXTEND ssrvpat TYPED AS ssripat PRINTED BY pr_ssripat
   | [ ident(id) ] -> [ IpatId id ]
+  | [ "?" ] -> [ IpatAnon ]
   | [ ssrcpat(pat) ] -> [ pat ]
   | [ ssrrpat(pat) ] -> [ pat ]
 END
@@ -1273,6 +1290,12 @@ let intro_all gl =
   let anontac (x, _, _) = intro_using (anon_id x) in
   tclTHENLIST (List.map anontac (List.rev dc)) gl
 
+let rec intro_anon gl =
+  match Sign.decompose_prod_assum (pf_concl gl) with
+  | (x, _, _) :: _, _ -> intro_using (anon_id x) gl
+  | _ -> try tclTHEN red_in_concl intro_anon gl
+         with _ -> error "No product even after reduction"
+
 let top_id = id_of_tag "top assumption"
 
 let with_top tac =
@@ -1289,14 +1312,14 @@ let new_wild_id () =
   wild_ids := id :: !wild_ids;
   id
 
-let clear_wilds wids gl =
-  clear (List.filter (fun id -> List.mem id wids) (pf_ids_of_hyps gl)) gl
+let clear_wilds wilds gl =
+  clear (List.filter (fun id -> List.mem id wilds) (pf_ids_of_hyps gl)) gl
 
-let clear_with_wilds wids clr0 gl =
+let clear_with_wilds wilds clr0 gl =
   let extend_clr clr (id, _, _ as nd) =
-    if List.mem id clr || not (List.mem id wids) then clr else
+    if List.mem id clr || not (List.mem id wilds) then clr else
     let vars = global_vars_set_of_decl (pf_env gl) nd in
-    let occurs id = Idset.mem id vars in
+    let occurs id' = Idset.mem id' vars in
     if List.exists occurs clr then id :: clr else clr in
   clear (Sign.fold_named_context_reverse extend_clr ~init:clr0 (pf_hyps gl)) gl
 
@@ -1308,6 +1331,7 @@ let rec ipattac = function
   | IpatSimpl (clr, sim) ->
     tclTHEN (simpltac sim) (clear_with_wilds !wild_ids clr)
   | IpatAll -> intro_all
+  | IpatAnon -> intro_anon
 and tclIORPAT tac = function
   | [[]] -> tac
   | iorpat -> tclTHENS tac (mapLR ipatstac iorpat)
@@ -1355,7 +1379,7 @@ let ssrintros_sep =
     | TacArg (Reference _) -> mt
     | TacAtom (_, atom) -> atom_sep atom
     | _ -> spc in
-  function _, ([tac], _) -> tac_sep tac | _ -> spc
+  function _, ([Some tac], _) -> tac_sep tac | _ -> spc
 
 let pr_ssrintrosarg _ _ prt (tac, ipats) =
   pr_tacarg prt tac ++ pr_intros (ssrintros_sep tac) ipats
@@ -1513,12 +1537,16 @@ let ssrseqdir : ssrdir Gram.Entry.e = Gram.Entry.create "ssrseqdir"
 
 type ssrseqarg = ssrindex * (ssrtacarg * ssrtac option)
 
+let pr_seqtacarg prt = function
+  | (true, _), Some (TacAtom (_, TacLeft _)) -> str "first"
+  | (true, _), Some (TacAtom (_, TacRight _)) -> str "last"
+  | tac, Some dtac ->
+    hv 0 (pr_tacarg prt tac ++ spc() ++ str "|| " ++ prt tacltop dtac)
+  | tac, _ -> pr_tacarg prt tac
+
 let pr_ssrseqarg _ _ prt = function
-  | ArgArg 0, (tac, _) -> pr_tacarg prt tac
-  | i, (tac, None) -> pr_index i ++ str " " ++ pr_tacarg prt tac
-  | i, (tac1, Some tac2) ->
-    pr_index i ++ str " " ++
-    hv 0 (pr_tacarg prt tac1 ++ spc() ++ str "|| " ++ prt tacltop tac2)
+  | ArgArg 0, tac -> pr_seqtacarg prt tac
+  | i, tac -> pr_index i ++ str " " ++ pr_seqtacarg prt tac
 
 (* We must parse the index separately to resolve the conflict with *)
 (* an unindexed tactic.                                            *)
@@ -1527,7 +1555,7 @@ ARGUMENT EXTEND ssrseqarg TYPED AS ssrindex * (ssrtacarg * tactic option)
 | [ ssrtacarg3(i_tac) ] -> [ noindex, (i_tac, None) ]
 END
 
-let sq_brace_tacnames = ["first"; "solve"; "do"; "rewrite"; "have"; "suffice"]
+let sq_brace_tacnames = ["solve"; "do"; "rewrite"; "have"; "suffice"; "wlog"]
 let input_ssrseqvar strm =
   match Stream.npeek 1 strm with
   | ["IDENT", id] when not (List.mem id sq_brace_tacnames) ->
@@ -1536,30 +1564,103 @@ let input_ssrseqvar strm =
 
 let ssrseqvar = Gram.Entry.of_parser "ssrseqvar" input_ssrseqvar
 
+let swaptacarg dtac = mk_tacarg dtac, Some dtac
+
+let check_seqtacarg dir (_, ((is_or, _), atac3) as arg) = match atac3 with
+  | Some (TacAtom (loc, TacLeft _)) when dir = L2R && not is_or ->
+    loc_error loc "expected \"last\""
+  | Some (TacAtom (loc, TacRight _)) when dir = R2L && not is_or ->
+    loc_error loc "expected \"first\""
+  | _ -> arg
+
 let ssrorelse = Gram.Entry.create "ssrorelse"
 GEXTEND Gram
-  GLOBAL: ssrseqvar Prim.natural tactic_expr ssrseqarg ssrorelse;
-  ssr_seqindex: [
+  GLOBAL: ssrseqvar Prim.natural tactic_expr ssrorelse ssrseqarg;
+  ssrseqidx: [
     [ id = ssrseqvar -> ArgVar (loc, id)
     | n = Prim.natural -> ArgArg (check_index loc n)
     ] ];
+  ssrswaparg: [
+    [ IDENT "first" -> swaptacarg (TacAtom (loc, TacLeft NoBindings))
+    | IDENT "last" -> swaptacarg (TacAtom (loc, TacRight NoBindings))
+    ] ];
   ssrorelse: [[ "||"; tac = tactic_expr LEVEL "2" -> tac ]];
   ssrseqarg: [
-    [ i = ssr_seqindex; tac1 = ssrortacarg; tac2 = OPT ssrorelse ->
-      i, (tac1, tac2)
+    [ arg = ssrswaparg -> noindex, arg
+    | i = ssrseqidx; tac = ssrortacarg; def = OPT ssrorelse -> i, (tac, def)
+    | i = ssrseqidx; arg = ssrswaparg -> i, arg
     ] ];
 END
 
-let tclSEQAT atac1 dir (i, ((_, (atacs2, ctx)), atac3)) =
+let tclPERMsalt = ref 1
+
+let tclPERM perm tac gls =
+  let mkpft n g r =
+    {Proof_type.open_subgoals = n; Proof_type.goal = g; Proof_type.ref = r} in
+  let mkleaf g = mkpft 0 g None in
+  let mkprpft n g pr a = mkpft n g (Some (Proof_type.Prim pr, a)) in
+  let mkrpft n g c = mkprpft n g (Proof_type.Refine c) in
+  let mkipft n g =
+    let mki pft (id, _, _ as d) =
+      let g' = {g with evar_concl = mkNamedProd_or_LetIn d g.evar_concl} in
+      mkprpft n g' (Proof_type.Intro id) [pft] in
+    List.fold_left mki in
+  let gl = Refiner.sig_it gls in
+  let mklhyps =
+    let rhyps = List.rev (pf_hyps gls) in
+    let rec chop = function
+      | d1 :: h1, d2 :: h2 when d1 = d2 -> chop (h1, h2)
+      | _, h2 -> h2 in
+    fun subgl ->
+    let full_lhyps = Environ.named_context_of_val subgl.evar_hyps in
+    List.rev (chop (rhyps, List.rev full_lhyps)) in
+  let mkhyp subgl =
+    let salt = !tclPERMsalt in tclPERMsalt := salt mod 1000000000 + 1;
+    id_of_tag ("perm hyp" ^ string_of_int salt), subgl, mklhyps subgl in
+  let mkpfvar (hyp, subgl, lhyps) =
+    let mkarg args (lhyp, body, _) =
+      if body = None then mkVar lhyp :: args else args in
+    mkrpft 0 subgl (applist (mkVar hyp, List.fold_left mkarg [] lhyps)) [] in
+  let mkpfleaf (_, subgl, lhyps) = mkipft 1 gl (mkleaf subgl) lhyps in
+  let mkmeta _ = Evarutil.mk_new_meta () in
+  let mkhypdecl (hyp, subgl, lhyps) =
+    hyp, None, it_mkNamedProd_or_LetIn subgl.evar_concl lhyps in
+  let subgls, v as res0 = tac gls in
+  let sigma, subgll = Refiner.unpackage subgls in
+  let n = List.length subgll in if n = 0 then res0 else
+  let hyps = List.map mkhyp subgll in
+  let hyp_decls = List.map mkhypdecl (List.rev (perm hyps)) in
+  let c = applist (mkmeta (), List.map mkmeta subgll) in
+  let pft0 = mkipft 0 gl (v (List.map mkpfvar hyps)) hyp_decls in
+  let pft1 = mkrpft n gl c (pft0 :: List.map mkpfleaf (perm hyps)) in
+  let subgll', v' = Refiner.frontier pft1 in
+  Refiner.repackage sigma subgll', v'
+
+let tclREV = tclPERM List.rev
+
+let rot_hyps dir i hyps =
+  let n = List.length hyps in
+  if i = 0 then List.rev hyps else
+  if i > n then error "Not enough subgoals" else
+  let rec rot i l_hyps = function
+    | hyp :: hyps' when i > 0 -> rot (i - 1) (hyp :: l_hyps) hyps'
+    | hyps' -> hyps' @ (List.rev l_hyps) in
+  rot (match dir with L2R -> i | R2L -> n - i) [] hyps
+
+let tclSEQAT atac1 dir (ivar, ((is_or, (atacs2, ctx)), atac3)) =
+  let i = get_index ivar in
   let evtac = get_ssrevaltac ctx in
   let tac1 = evtac atac1 in
-  let tac3 = match atac3 with Some atac -> evtac atac | _ -> tclIDTAC in
+  if not is_or && atac3 <> None then tclPERM (rot_hyps dir i) tac1  else
+  let evotac = function Some atac -> evtac atac | _ -> tclIDTAC in
+  let tac3 = evotac atac3 in
   let rec mk_pad n = if n > 0 then tac3 :: mk_pad (n - 1) else [] in
-  match dir, mk_pad (get_index i - 1), List.map evtac atacs2 with
+  match dir, mk_pad (i - 1), List.map evotac atacs2 with
   | L2R, [], [tac2] when atac3 = None -> tclTHENFIRST tac1 tac2
   | L2R, [], [tac2] when atac3 = None -> tclTHENLAST tac1 tac2
   | L2R, pad, tacs2 -> tclTHENSFIRSTn tac1 (Array.of_list (pad @ tacs2)) tac3
   | R2L, pad, tacs2 -> tclTHENSLASTn tac1 tac3 (Array.of_list (tacs2 @ pad))
+
 
 TACTIC EXTEND ssrtclseq
 | [ "(**)" ssrtacexp(tac) ssrseqdir(dir) ssrseqarg(arg) ] ->
@@ -1570,7 +1671,7 @@ set_pr_ssrtac "tclseq" 5 [ArgSsr "tacexp"; ArgSsr "seqdir"; ArgSsr "seqarg"]
 let tclseq_expr loc tac dir arg =
   let arg1 = in_gen rawwit_ssrtacexp tac in
   let arg2 = in_gen rawwit_ssrseqdir dir in
-  let arg3 = in_gen rawwit_ssrseqarg arg in
+  let arg3 = in_gen rawwit_ssrseqarg (check_seqtacarg dir arg) in
   ssrtac_expr loc "tclseq" [arg1; arg2; arg3]
 
 let input_ssrseqvar strm =
@@ -1697,7 +1798,7 @@ let pf_fill_term gl = function
 type ssrdterm = identifier option * ssrterm
 
 let guard_dterm s i = match s.[i] with
-| '(' | '?' | '0'..'9' -> false
+| '(' | '?' | '0'..'9' | '@' -> false
 | '_' -> skip_wschars s (i + 1) < String.length s - 1
 | _ -> true
 
@@ -2794,7 +2895,7 @@ TACTIC EXTEND ssrunlock
     [  tclCLS (unlocktac args) cls ]
 END
 
-(** 8. Forward chaining tactics (pose, set, have, suffice) *)
+(** 8. Forward chaining tactics (pose, set, have, suffice, wlog) *)
 
 (** Defined identifier *)
 
@@ -3008,11 +3109,11 @@ let rec format_constr h0 c0 = match h0, kind_of_term c0 with
 (*   - Have: type option + value, no space before type     *)
 (*   - Pose: binders + value, space before binders.        *)
 
-type ssrfwdkind = FwdHint | FwdHave | FwdPose
+type ssrfwdkind = FwdHint of string | FwdHave | FwdPose
 
 type ssrfwdfmt = ssrfwdkind * ssrbindfmt list
 
-let pr_fwdkind = function FwdHint -> str ": " | _ -> str " :=" ++ spc ()
+let pr_fwdkind = function FwdHint s -> str (s ^ " ") | _ -> str " :=" ++ spc ()
 let pr_fwdfmt (fk, _ : ssrfwdfmt) = pr_fwdkind fk
 
 let wit_ssrfwdfmt, globwit_ssrfwdfmt, rawwit_ssrfwdfmt =
@@ -3026,7 +3127,8 @@ let mkFwdVal fk c = (fk, []), (ClosedTerm, c)
 
 let mkFwdCast fk loc t c = (fk, [BFcast]), (ClosedTerm, CCast (loc, c, dC, t))
 
-let mkFwdHint loc t = mkFwdCast FwdHint loc (mkCType loc) t
+let mkFwdHint s t =
+  let loc = constr_loc t in mkFwdCast (FwdHint s) loc (mkCType loc) t
 
 ARGUMENT EXTEND ssrfwd TYPED AS ssrfwdfmt * ssrterm PRINTED BY pr_ssrfwd
   | [ ":=" lconstr(c) ] -> [ mkFwdVal FwdPose c ]
@@ -3038,7 +3140,7 @@ END
 let pr_gen_fwd prval prc prlc fk (bs, c) =
   let prc s = str s ++ spc () ++ prval prc prlc c in
   match fk, bs with
-  | FwdHint, _ -> prc ":"
+  | FwdHint s, _ -> prc s
   | FwdHave, [Bcast t] -> str ":" ++ spc () ++ prlc t ++ prc " :="
   | _, [] -> prc " :="
   | _ -> spc () ++ pr_list spc (pr_binder prlc) bs ++ prc " :="
@@ -3242,7 +3344,7 @@ let settac id ((_, c0), (_, occ)) gl =
   let coq_cls = {onhyps = Some []; onconcl = true; concl_occs = occ'} in
   tclTHEN (convert_concl cl) (letin_tac true (Name id) c coq_cls) gl
 
-TACTIC EXTEND Ssrset
+TACTIC EXTEND ssrset
 | [ "set" ssrfwdid(id) ssrsetfwd(fwd) ssrcls(cls) ] ->
   [ tclCLS (settac id fwd) cls ]    
 END
@@ -3272,7 +3374,7 @@ ARGUMENT EXTEND ssrhavefwd
        TYPED AS ssrfwd * ssrhint      PRINTED BY pr_closed_ssrhavefwd
    RAW_TYPED AS ssrfwd * ssrhint  RAW_PRINTED BY pr_raw_ssrhavefwd
   GLOB_TYPED AS ssrfwd * ssrhint GLOB_PRINTED BY pr_glob_ssrhavefwd
-| [ ":" lconstr(t) ssrhint(hint) ] -> [ mkFwdHint (constr_loc t) t, hint ]
+| [ ":" lconstr(t) ssrhint(hint) ] -> [ mkFwdHint ":" t, hint ]
 | [ ":" lconstr(t) ":=" lconstr(c) ] -> [ mkFwdCast FwdHave loc t c, nohint ]
 | [ ":=" lconstr(c) ] -> [ mkFwdVal FwdHave c, nohint ]
 END
@@ -3287,7 +3389,7 @@ let havegentac c gl =
   apply_type (mkArrow (pf_type_of gl c') (pf_concl gl)) [c'] gl
 
 let havetac clr pats (((fk, _), c), hint) =
- let itac = tclTHEN (introstac pats) (clear clr) in
+ let itac = tclTHEN (clear clr) (introstac pats) in
  if fk = FwdHave then tclTHEN (havegentac c) itac else
  tclTHENS (basecuttac "ssr_have" c) [hinttac hint; itac]
 
@@ -3298,20 +3400,72 @@ END
 
 (** The "suffice" tactic *)
 
-ARGUMENT EXTEND ssrsufficefwd
+ARGUMENT EXTEND ssrsufffwd
        TYPED AS ssrhavefwd      PRINTED BY pr_closed_ssrhavefwd
    RAW_TYPED AS ssrhavefwd  RAW_PRINTED BY pr_raw_ssrhavefwd
   GLOB_TYPED AS ssrhavefwd GLOB_PRINTED BY pr_glob_ssrhavefwd
-| [ ":" lconstr(t) ssrhint(hint) ] ->[ mkFwdHint (constr_loc t) t, hint ]
+| [ ":" lconstr(t) ssrhint(hint) ] ->[ mkFwdHint ":" t, hint ]
 END
 
-let sufficetac clr pats ((_, c), hint) =
+let sufftac clr pats ((_, c), hint) =
   let htac = tclTHEN (introstac pats) (hinttac hint) in
-  tclTHENS (basecuttac "ssr_suffice" c) [htac; clear clr]
+  tclTHENS (basecuttac "ssr_suff" c) [htac; clear clr]
 
-TACTIC EXTEND Ssrsuffice
-| [ "suffice" ssrclear(clr) ssrhpats(pats) ssrsufficefwd(fwd) ] ->
-  [ sufficetac clr pats fwd ]
+TACTIC EXTEND ssrsuff
+| [ "suff" ssrclear(clr) ssrhpats(pats) ssrsufffwd(fwd) ] ->
+  [ sufftac clr pats fwd ]
+END
+
+TACTIC EXTEND ssrsuffices
+| [ "suffices" ssrclear(clr) ssrhpats(pats) ssrsufffwd(fwd) ] ->
+  [ sufftac clr pats fwd ]
+END
+
+(** The "wlog" (Without Loss Of Generality) tactic *)
+
+type ssrwgens = (ssrclear * identifier) list * ssrclear
+
+let pr_wgen (clr, id) = spc () ++ pr_clear mt clr ++ pr_id id
+let pr_ssrwgen _ _ _ = pr_wgen
+
+ARGUMENT EXTEND ssrwgen TYPED AS ssrclear * ident PRINTED BY pr_ssrwgen
+| [ ssrclear(clr) ident(id) ] -> [ clr, id ]
+END
+
+type ssrwlogfwd = ssrwgens * ssrfwd
+
+let pr_ssrwlogfwd pr_fwd prc prlc prt (gens, t) =
+  str ":" ++ pr_list mt pr_wgen gens ++ spc() ++ pr_fwd prc prlc prt t
+let pr_closed_ssrwlogfwd = pr_ssrwlogfwd pr_closed_ssrfwd
+let pr_glob_ssrwlogfwd   = pr_ssrwlogfwd pr_glob_ssrfwd
+let pr_raw_ssrwlogfwd    = pr_ssrwlogfwd pr_raw_ssrfwd
+
+ARGUMENT EXTEND ssrwlogfwd
+       TYPED AS ssrwgen list * ssrfwd      PRINTED BY pr_closed_ssrwlogfwd
+   RAW_TYPED AS ssrwgen list * ssrfwd  RAW_PRINTED BY pr_raw_ssrwlogfwd
+  GLOB_TYPED AS ssrwgen list * ssrfwd GLOB_PRINTED BY pr_glob_ssrwlogfwd
+| [ ":" ssrwgen_list(gens) "/" lconstr(t) ] -> [ gens, mkFwdHint "/" t]
+END
+
+let wlogtac clr0 pats (gens, (_, (_, t))) hint gl =
+  let mkabs (_, x) = mkNamedProd x (pf_get_hyp_typ gl x) in
+  let mkclr (clr, x) clrs = clr :: [x] :: clrs in
+  let mkpats (_, x) pats = IpatId x :: pats in
+  let c = ClosedTerm, List.fold_right mkabs gens (mkArrow t (pf_concl gl)) in
+  let tac2clr = List.map clear (List.fold_right mkclr gens [clr0]) in
+  let tac2ipat = introstac (List.fold_right mkpats gens pats) in
+  let tac2 = tclTHENLIST (List.rev (tac2ipat :: tac2clr)) in
+  tclTHENS (basecuttac "ssr_wlog" c) [hinttac hint; tac2] gl
+
+TACTIC EXTEND ssrwlog
+| [ "wlog" ssrclear(clr) ssrhpats(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
+  [ wlogtac clr pats fwd hint ]
+END
+
+TACTIC EXTEND ssrwithoutloss
+| [ "without" "loss"
+      ssrclear(clr) ssrhpats(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
+  [ wlogtac clr pats fwd hint ]
 END
 
 (** 9. Coq v8.1 compatibility fixes. *)
