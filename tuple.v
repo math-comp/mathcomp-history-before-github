@@ -173,8 +173,8 @@ Lemma tuple_prodP: forall u : tupleType d n,
 Proof.
 rewrite /tuple_prod -[a]/(fun i => a (0 + i)) => [[s /= <-]].
 elim: s 0 => [|x s IHs] i /=; first by left.
-rewrite -{2}[i]addn0. case Hx: (a _ x); last
-  by right=> Hs; case/idP: Hx; exact: (Hs 0).
+rewrite -{2}[i]addn0. case Hx: (a _ x); last first.
+  right=> Hs; case/idP: Hx; exact: (Hs 0).
 apply: {IHs}(iffP (IHs _)) => Hs j; last by rewrite -ltnS addSnnS; move/Hs.
 case: j => // j; rewrite -addSnnS; exact: Hs.
 Qed.
@@ -198,43 +198,74 @@ rewrite count_filter filter_maps size_maps -count_filter /comp /=.
 case: (a i x) => //=; exact: count_set0.
 Qed.
 
-Section FinGraph.
 
+Lemma can_eq: forall d : eqType, forall d1 : Type, forall f f1, 
+  cancel f f1 -> reflect_eq (fun (x y : d1) => f x == f y :> d).
+Proof.
+move => d d1 f f1 Hf x y; apply: (iffP eqP).
+  by apply: (can_inj Hf).
+by apply: f_equal.
+Qed.
+
+Lemma can_uniq:
+ forall d : finType, forall d1 : eqType, forall f f1, cancel f1 f ->
+ forall u : d1, count (set1 u) (undup (maps f (enum d))) = 1.
+Proof.
+move => d d1 f f1 Hf1 u.
+rewrite count_set1_uniq ?uniq_undup // mem_undup -[u]Hf1 (_ : maps _ _ _ = true) //.
+by apply/mapsP; exists (f1 u); first exact: mem_enum.
+Qed.
+
+Section FinGraph.
 Variable d1 d2 : finType.
 
 (* the graph of functions f from d1 to d2 : (f e1, f e2, ...) where (enum d1) = e1::e2::_ *)
-Definition fgraphType := tupleType d2 (size (enum d1)).
+CoInductive fgraphType : Type := Fgraph : tupleType d2 (card d1) -> fgraphType.
 
-Canonical Structure fgraph_eqType := @EqType fgraphType _ (@tuple_eqP _ _).
-Canonical Structure fgraph_finType :=
-  @FinType fgraph_eqType _ (@fintuple_enumP _ _).
+Definition gval (f : fgraphType) := match f with Fgraph t => t end.
 
-Definition graph_of_fun (f : d1 -> d2) : fgraphType := Tuple (size_maps f _).
+Lemma can_gval : cancel gval Fgraph.
+Proof. by rewrite /cancel; case => /=. Qed.
+
+Lemma gval_inj : injective gval. 
+Proof. exact: can_inj can_gval. Qed.
+
+Canonical Structure fgraph_eqType := EqType (can_eq can_gval). 
+
+Canonical Structure fgraph_finType := FinType (can_uniq can_gval).
+
+Definition graph_of_fun (f : d1 -> d2) : fgraphType := Fgraph (Tuple (size_maps f _)).
 
  (* if the domain is not empty the default is the first elem of the graph *)
 Lemma fgraph_default : d1 -> fgraphType -> d2.
-Proof. by move=> x [[|//]]; case: enum (mem_enum x). Qed.
+Proof. by move=> x [[[|//]]]; rewrite /card; case: enum (mem_enum x). Qed.
 
-Definition fun_of_graph g x := sub (fgraph_default x g) g (index x (enum d1)).
+Definition fun_of_graph g x := 
+  sub (fgraph_default x g) (gval g) (locked index x (enum d1)).
 
 Coercion fun_of_graph : fgraphType >-> Funclass.
 
 Lemma can_fun_of_graph : cancel fun_of_graph graph_of_fun.
 Proof.
-rewrite /fun_of_graph => g; case: {-1}g => s Hs; apply: tval_inj => /=.
-case De: (enum _) => [|x0 e]; first by case: s Hs; rewrite De. 
+rewrite /fun_of_graph => g.
+case: {-1}g => [[s Hs]]; congr Fgraph; apply: tval_inj => /=.  
+case De: (enum _) => [|x0 e]; first by case: s Hs; rewrite /card De. 
 rewrite -De; have y0 := fgraph_default x0 g.
 apply: (@eq_from_sub _ y0); rewrite size_maps // => i Hi.
+unfold locked; case master_key.
 by rewrite (sub_maps x0) // index_uniq ?uniq_enum ?(set_sub_default y0) ?Hs.
 Qed.
 
 Lemma can_graph_of_fun : forall f, graph_of_fun f =1 f.
 Proof.
 rewrite /fun_of_graph /= => f x.
+unfold locked; case master_key.
 by rewrite (sub_maps x) ?sub_index // ?index_mem mem_enum.
 Qed.
 
 End FinGraph.
+
+Implicit Arguments gval []. 
 
 (*m ^ n*)
 Definition expn m n := iter n (muln m) 1.
@@ -243,18 +274,22 @@ Section Tfunspace.
 
 Variables d1 d2 : finType.
 
-Variable a2 : set d2.
+Variable a2 : set d2. 
 
 (* total functions d1 -> d2, but codomains are restricted to a2 (included in d2) *)
-Definition tfunspace : set (fgraph_eqType d1 d2) := tuple_prod (fun _ => a2).
+Definition tfunspace : set (fgraph_eqType d1 d2) := 
+  (tuple_prod (fun _ => a2 )) \o (gval d1 d2).
 
 (* # (d1 -> a2) = #a2 ^ #d1 *)
 Lemma card_tfunspace : card tfunspace = expn (card a2) (card d1).
 Proof.
 rewrite /tfunspace. 
 have := card_tuple_prod.
-rewrite /tup_finType /fgraph_finType /tuple_eqType /fgraph_eqType /fgraphType.
-by move ->; rewrite -cardA; elim: (card d1) {2}0 => //= n IHn i; rewrite IHn.
+rewrite /tup_finType /fgraph_finType /tuple_eqType /fgraph_eqType /card /=.
+rewrite undup_uniq; last rewrite uniq_maps => [|? ? [] //]; last exact: uniq_enum. 
+rewrite -(@count_maps _ _ (gval d1 d2)) -maps_comp /comp /=. 
+rewrite (@eq_maps _ _ _ (fun x => x)) //; rewrite maps_id.
+by move=> H;rewrite (H d2 (count d1 (enum d1)));elim: (count d1) {2}0 => //= n IHn i; rewrite IHn.
 Qed.
 
 End Tfunspace.
@@ -272,7 +307,8 @@ Let a2' := set1 y0.
 (* notice that : sub false (maps a1 (enum d1)) i = a1 (sub _ (enum d1) i)  *)
 (* subset of fgraphs corresponding to a1 -> a2 functions *)
 Definition pfunspace :=
-  @tuple_prod _ (card d1) (fun i => if sub false (maps a1 (enum d1)) i then a2 else a2').
+  @tuple_prod _ (card d1) (fun i => if sub false (maps a1 (enum d1)) i then a2 else a2') 
+  \o (gval d1 d2).
 
 Lemma iota_addl : forall m1 m2 n,
   iota (m1 + m2) n = maps (addn m1) (iota m2 n).
@@ -280,10 +316,15 @@ Proof. by move=> m1 m2 n; elim: n m2 => //= n IHn m2; rewrite -addnS IHn. Qed.
 
 Lemma card_pfunspace: card pfunspace = expn (card a2) (card a1).
 Proof. 
-rewrite /pfunspace card_tuple_prod. rewrite {2 4}/card.
-elim: (enum d1) => //= x e IHe.
+rewrite /pfunspace /card /=.
+rewrite undup_uniq; last rewrite uniq_maps => [|? ? [] //]; last exact: uniq_enum. 
+rewrite -(@count_maps _ _ (gval d1 d2)) -maps_comp /comp /=. 
+rewrite (@eq_maps _ _ _ (fun x => x)) //; rewrite maps_id.
+have := card_tuple_prod; rewrite {1}/card /=; move ->.
+rewrite /card; elim: (enum d1) => //= x e IHe.
 rewrite -{2}add1n iota_addl foldr_maps /= {}IHe.
-by case: (a1 x) => //=; rewrite /a2' card1 mul1n.
+case: (a1 x) => //=; rewrite /a2'; have := card1; rewrite/card => ->. 
+by rewrite mul1n.
 Qed.
 
 Definition support f : set d1 := fun x => setC1 (f x) y0.
@@ -296,17 +337,21 @@ have He1 : index _ e1 < size e1 by move=> x1; rewrite index_mem /e1 mem_enum.
 move=> g; apply: (iffP (tuple_prodP y0 _ _)) => [Hg | [Hg1 Hg2] i Hi].
   split=> [x1 Hx1 | x2 Hx2].
     apply/negPf=> Hx1'; case/negP: Hx1; rewrite eq_sym /fun_of_graph.
+    unfold locked; case master_key.
     have Hi := He1 x1; rewrite (set_sub_default y0) ?tproof //.
     by move: {Hg}(Hg _ Hi); 
        rewrite (sub_maps x1) // sub_index /e1 ?mem_enum ?Hx1'.
   case/set0Pn: Hx2=> x1; case/andP; move/eqP=> -> {x2} Hx1.
   have Hi := He1 x1; rewrite /fun_of_graph (set_sub_default y0) ?tproof //.
+  unfold locked; case master_key.
   by move: {Hg}(Hg _ Hi); rewrite (sub_maps x1) // sub_index /e1 ?mem_enum ?Hx1.
+unfold locked; case master_key => //. 
 cut d1; last by move: Hi; rewrite /card; case: (enum d1); auto.
 move => x0.
 rewrite (sub_maps x0) //; set x1 := sub _ _ i.
-have <-: g x1 = sub y0 (@tval _ (card d1) g) i.
-  by rewrite /fun_of_graph (set_sub_default y0) /x1 ?index_uniq ?tproof ?uniq_enum.
+have <-: g x1 = sub y0 (gval _ _ g) i.
+  by rewrite /fun_of_graph (set_sub_default y0) /x1; 
+  unfold locked; case master_key; rewrite ?index_uniq ?tproof ?uniq_enum.
 case Hx1: (a1 x1).
   by apply: Hg2; apply/set0Pn; exists x1; rewrite /setI /preimage set11.
 by apply/idPn=> Hx1'; case/idP: Hx1; apply: Hg1; rewrite /support /setC1 eq_sym.
@@ -344,20 +389,16 @@ CoInductive FT: Type := A | B | C.
 Definition eqFT (x y:FT) : bool := 
   match x,y with A,A => true | B,B => true | C,C => true | _,_ => false end.
 Lemma eqFTP: reflect_eq eqFT. 
-Proof. 
-by rewrite /reflect_eq; case; case; constructor.
-Qed.
+Proof. by rewrite /reflect_eq; case; case; constructor. Qed.
 Canonical Structure FT_eqType := EqType eqFTP.
 Definition FT_enum : seq_eqType FT_eqType := Seq A B C.
 Lemma FT_enumP: forall x, count (set1 x) FT_enum = 1.
-Proof. 
-rewrite /FT_enum /=. 
-by case => /=; rewrite ?addn0 ?add0n.
-Qed.
+Proof. by rewrite /FT_enum /=; case => /=; rewrite ?addn0 ?add0n. Qed.
 Canonical Structure FT_finType := FinType FT_enumP.
-Check powerset.
-Let g : fgraphType FT_finType _ := <<true,true,false>>.
+Check powerset. Check @Fgraph.
+Let g := @Fgraph FT_finType _ <<true,true,false>>.
 Eval compute in powerset FT_eqType g.
+(* Since the locked trick, they do not evaluate any more :( *)
 Eval compute in g A.
 Eval compute in g C.
 

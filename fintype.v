@@ -504,7 +504,7 @@ move=> [x Hx]; rewrite count_set1_uniq /= /sub_enum.
 apply: uniq_subfilter; exact: uniq_enum.
 Qed.
 
-Definition sub_finType := FinType sub_enumP.
+Canonical Structure sub_finType := FinType sub_enumP.
 
 Lemma card_sub : card sub_finType = card a.
 Proof. by rewrite cardA /= /sub_enum size_subfilter. Qed.

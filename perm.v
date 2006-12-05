@@ -405,10 +405,10 @@ Lemma stab_in: forall n p,
   stab p -> exists e: sub_finType H,
    (val p) = prodn_id (S n) (valP e).
 Proof.
+move => n p H0; apply: permute_zp_id.
 have F1: stabilizer (enum (zp n)) (@gpermute_zp n) p (zp1 n).
   move: H0; rewrite /stab /SO => H1.
   by rewrite <- (eqP H1).
-apply: permute_zp_id.
 case/stabilizerP: F1.
 by rewrite /gpermute_zp can_graph_of_fun.
 Qed.
