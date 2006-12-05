@@ -18,7 +18,6 @@ Require Import fintype.
 Require Import paths.
 Require Import connect.
 Require Import div.
-Require Import  baux.
 Require Import  groups.
 
 
@@ -104,7 +103,8 @@ have F1:  dinjective (setI H K) (g z).
 have F2: image (g z) (setI H K) =1 
     (setI (preimage (@prodf G) (set1 (prodf z))) (prod_set H K)).
   case: z F1 Hz => z1 z2 F1.
-  case/andP => /= [Hz1 Hz2] [x1 x2];apply eqb_imp => /= H1.
+  case/andP => /= [Hz1 Hz2] [x1 x2]; 
+    rewrite [image]lock; apply/idP/idP; unlock => /= H1.
     rewrite /preimage /prodf /=; pose a:= (diinv H1).
     case/andP: (a_diinv H1); rewrite -/a => Ha Ka.
     case: (f_diinv H1); rewrite -/a => <- <-.
@@ -117,9 +117,9 @@ have F2: image (g z) (setI H K) =1
     by rewrite /g /a /=;congr EqPair;gsimpl;
        apply:(mulg_injl x1);gsimpl.
   apply  image_f_imp.
-  assert (z1^-1*x1 = z2*x2^-1).
+  have Ha: z1^-1*x1 = z2*x2^-1.
     apply: (mulg_injl z1); gsimpl; apply: (mulg_injr x2); gsimpl.
-    by rewrite /a /setI groupM //= ?groupV // H0 groupM // groupV.
+  by rewrite /a /setI groupM //= ?groupV // Ha groupM // groupV.
 apply trans_equal with (@card (prod_finType G G) (image (g z) (setI H K ))).
  by symmetry; apply: card_dimage;apply F1.
 by apply eq_card;exact: F2.

@@ -53,9 +53,19 @@ move Da': (Adds x a) => a'; case Hya': (a' y).
 have Hna': card d <= card a' + n.
   by rewrite -Da' /= cardU1 Hx /= add1n addSnnS.
 move Db: (filter (e x) (enum d)) => b.
-assert (Hrec':
-    reflect (exists2 x', b x' & dfs_path x' y a') (foldl (dfs n) a' b y)).
-(* Postpone *)
+suffices Hrec':
+    reflect (exists2 x', b x' & dfs_path x' y a') (foldl (dfs n) a' b y).
+- apply: {Hrec Hrec'}(iffP Hrec') => [[x' Hx' [p Hp Ep Hpa]] | [p Hp Ep Hpa]].
+    rewrite -Da' /= disjoint_sym disjointU1 in Hpa.
+    move/andP: Hpa => [Hpx Hpa].
+    exists (Adds x' p); try by rewrite //= disjointU1 Hx disjoint_sym.
+    by rewrite -Db filter_enum in Hx'; rewrite /= Hx'.
+  case/shortenP: Hp Ep => [[|y' p']] /= Hp' Up' Hp'p Dy.
+    by rewrite -Da' Dy /= setU11 in Hya'.
+  move/andP: Hp' => [Hxy' Hp']; move/andP: Up' => [Hp'x' _].
+  exists y'; [ by rewrite -Db filter_enum | exists p'; auto ].
+  rewrite disjoint_sym -Da' /= disjointU1 Hp'x' /= disjoint_sym.
+  by apply: disjoint_trans Hpa; apply/subsetP => z Hz; apply: setU1r; auto.
 elim: b a' Hya' Hna' {a x Da' Db Hy Hn Hx} => [|x b Hrecb] a Hy Hn /=.
   by rewrite Hy; right; case.
 have Ha := subset_dfs n a (Seq x); simpl in Ha.
@@ -85,22 +95,6 @@ move/andP=> [Hp1 Hp2] Ep2; case/andP=> [Hp1a Hp2a]; exists (cat q p2).
 - by rewrite path_cat Hq Eq.
 - by rewrite last_cat Eq.
 by rewrite -cat_adds disjoint_cat Hqa.
-(*
-suffices (Hrec':
-    reflect (exists2 x', b x' & dfs_path x' y a') (foldl (dfs n) a' b y));
-  last.
-*)
-- apply: {Hrec Hrec'}(iffP Hrec') => [[x' Hx' [p Hp Ep Hpa]] | [p Hp Ep Hpa]].
-    rewrite -Da' /= disjoint_sym disjointU1 in Hpa.
-    move/andP: Hpa => [Hpx Hpa].
-    exists (Adds x' p); try by rewrite //= disjointU1 Hx disjoint_sym.
-    by rewrite -Db filter_enum in Hx'; rewrite /= Hx'.
-  case/shortenP: Hp Ep => [[|y' p']] /= Hp' Up' Hp'p Dy.
-    by rewrite -Da' Dy /= setU11 in Hya'.
-  move/andP: Hp' => [Hxy' Hp']; move/andP: Up' => [Hp'x' _].
-  exists y'; [ by rewrite -Db filter_enum | exists p'; auto ].
-  rewrite disjoint_sym -Da' /= disjointU1 Hp'x' /= disjoint_sym.
-  by apply: disjoint_trans Hpa; apply/subsetP => z Hz; apply: setU1r; auto.
 Qed.
 
 Lemma connectP : forall x y,
@@ -473,15 +467,12 @@ Proof. exact (can_inj f_finv). Qed.
 
 Lemma fconnect_sym : forall x y, fconnect f x y = fconnect f y x.
 Proof.
-assert (forall x y, fconnect f x y -> fconnect f y x).
-(* Postpone *)
+suff: forall x y, fconnect f x y -> fconnect f y x.
+  move=> *; apply/idP/idP; auto.
 move=> x y; move/connectP=> [p Hp <-] {y}.
 elim: p x Hp => [|y p Hrec] x /=; first by rewrite connect0.
 move/andP=> [Hx Hp]; rewrite -(finv_f x) (eqP Hx).
 apply: (connect_trans _ (fconnect_finv _)); auto.
-(* 
-suff: forall x y, fconnect f x y -> fconnect f y x. *)
-  move=> *; apply/idP/idP; auto.
 Qed.
 
 Lemma iter_order : forall x, iter (order x) f x = x.
