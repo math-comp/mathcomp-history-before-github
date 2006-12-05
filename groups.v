@@ -213,6 +213,8 @@ Variable k : set g.
 
 Definition prodg : set g := fun z => ~~ disjoint k (fun y => rcoset y z).
 
+Definition prodf (z: prod_finType g g) := eq_pi1 z * eq_pi2 z.
+
 CoInductive mem_prodg (z : g) : Prop :=
   MemProdg x y : h x -> k y -> z = x * y -> mem_prodg z.
 
@@ -221,6 +223,19 @@ Proof.
 move=> z; apply: (iffP set0Pn) => [[y]|[x y Hx Hy ->]].
   by case/andP=> Hy; case/rcosetP=> x *; exists x y.
 by exists y; rewrite /setI Hy; apply/rcosetP; exists x.
+Qed.
+
+Lemma in_prodg : forall x y, h x -> k y -> prodg (x * y).
+Proof.
+move=> x y Hx Hy; apply/prodgP.
+exact: (MemProdg Hx Hy).
+Qed.
+
+Lemma prodg_image: prodg =1 image prodf (prod_set h k).
+move => x; apply/prodgP/imageP.
+  case => y z Hy Kz ->; exists (EqPair y z) => //.
+  by rewrite /prod_set /= Hy.
+by case => [[y z]] H1 H2; exists y z => //; case/andP: H1.
 Qed.
 
 End Prodg.
@@ -306,6 +321,15 @@ Hypothesis Hhk : subset h k.
 Let HhkP := subsetP Hhk.
 
 Open Scope group_scope.
+
+(* Intersection is a group *)
+Lemma setI_group : group (setI h k).
+Proof.
+apply/groupP; split; rewrite /setI.
+  by rewrite !group1.
+move => x y; case/andP => Hx Kx; case/andP => Hy Ky.
+rewrite !groupM //.
+Qed.
 
 Lemma prodg_subl : subset h (prodg h k).
 Proof.

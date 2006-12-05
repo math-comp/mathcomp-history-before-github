@@ -27,49 +27,16 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-Section Prod.
-
-Open Scope group_scope.
-
-Variables (G: finGroup) (H K : set G).
-
-(***********************************************************************)
-(*                                                                     *)
-(*  Definition of the product of two sets  H and K                     *)
-(*                                                                     *)
-(***********************************************************************)
-
-Definition prodf (z: prod_finType G G) := eq_pi1 z * eq_pi2 z.
-
-Definition prod := image prodf (prod_set H K).
-
-Lemma prodP: forall z, 
-  reflect (exists x, exists y, H x && K y && (z == x * y)) (prod z).
-move => z; apply: (iffP idP).
-  move => H1.
-  pose (a := diinv H1).
-  exists (eq_pi1 a); exists (eq_pi2 a).
-  by move: (a_diinv H1) (f_diinv H1); rewrite -/a /prodf /prod_set => -> -> /=.
-move => [x [y H1]]; case/andP: H1 => H1 H2; rewrite (eqP H2).
-exact: (@image_f_imp _ _ prodf _ (EqPair x y)).
-Qed.
-
-Lemma in_prod : forall h k, H h -> K k -> prod (h*k).
-Proof.
-by move=>  h k Hh Hk;apply/prodP;exists h; exists k;rewrite Hh Hk /=.
-Qed.
-
-End Prod.
 Section SubProd.
 Open Scope group_scope.
 
-Variable G: finGroup.
+Variable G: finGroupType.
 
 Section SubProd_subgrp.
 
 Variables (H K : set G).
-Hypothesis H_subgroup: subgrp H.
-Hypothesis K_subgroup: subgrp K.
+Hypothesis group_H: group H.
+Hypothesis group_K: group K.
 
 (***********************************************************************)
 (*                                                                     *)
@@ -77,59 +44,40 @@ Hypothesis K_subgroup: subgrp K.
 (*                                                                     *)
 (***********************************************************************)
 
-Lemma subprod_sbgrp: prod H K =1 prod K H -> subgrp (prod H K).
+Lemma prodg_sym_group: prodg H K =1 prodg K H -> group (prodg H K).
 Proof.
-move => prod_sym; apply: (@finstbl_sbgrp _ _ 1) => //.
-  apply/prodP; exists (Group.unit G); exists (Group.unit G).
-  by rewrite !subgrp1 // mul1g eq_refl.
+move => prod_sym; apply/groupP; split.
+  rewrite -(mulg1 1); apply in_prodg; exact: group1.
 move => x y.
-move/prodP => [x1 [y1 Hxy1]]; case (andP Hxy1);
-  move/andP => [H1 H2]; move/eqP => {Hxy1}H3; rewrite {}H3.
-move/prodP => [x2 [y2 Hxy2]]; case (andP Hxy2);
-  move/andP => [H4 H5]; move/eqP => {Hxy2}H6; rewrite {}H6.
+case/prodgP => x1 y1 Hx1 Hy1 ->. 
+case/prodgP => x2 y2 Hx2 Hy2 ->. 
 rewrite -[(x1 * _) * _]mulgA (mulgA y1).
-have P1: prod H K (y1 * x2).
-  rewrite prod_sym; apply/prodP; exists y1; exists x2.
-  by rewrite H2 H4 eq_refl.
-case/prodP: P1; move => x3 [y3 Hxy3].
-move:(andP Hxy3) => {Hxy3} [Hxy Hxy3].
-move: Hxy; move/andP => [Hxy1 Hxy2].
-rewrite (eqP Hxy3).
-apply/prodP; exists (x1 * x3); exists (y3 * y2).
-apply/andP; split; last by rewrite !mulgA eq_refl.
-by apply/andP; split; rewrite subgrpMl.
+have P1: prodg H K (y1 * x2) by rewrite prod_sym in_prodg.
+case/prodgP: P1 => x3 y3 Hx3 Hy3 ->.
+by rewrite -(mulgA x3) mulgA in_prodg // groupM.
 Qed.
 
-Lemma sbgrp_subprod: subgrp (prod H K) -> prod H K =1 prod K H.
+Lemma group_prodg_sym: group (prodg H K) -> prodg H K =1 prodg K H.
 Proof.
-move => Hprodsbgrp z; apply eqb_imp; 
-    [move/(subgrpV Hprodsbgrp) | 
-     move => H1; apply (subgrpVl Hprodsbgrp); move: H1];
-    case/prodP => x; case => y;
-    case/andP; case/andP => Hx Ky Eqz;
-    apply/prodP; exists (y^-1); exists (x^-1).
-  rewrite (subgrpV K_subgroup Ky) (subgrpV H_subgroup Hx) /=.
-  by apply/eqP; replace z with (z^-1^-1); first rewrite (eqP Eqz); 
-     gsimpl.
-rewrite (subgrpV H_subgroup Ky) (subgrpV K_subgroup Hx) /=.
-by apply/eqP; replace z with (z^-1^-1); first rewrite (eqP Eqz); 
-     gsimpl.
+move => group_prod z; rewrite [prodg]lock; apply/idP/idP; unlock => H1.
+ replace z with (z^-1^-1); last by gsimpl.
+ case/prodgP: (groupVr group_prod H1) => x y Hx Hy ->; gsimpl.
+ rewrite in_prodg ?groupV //.
+rewrite -groupV //.
+case/prodgP: H1 => x y Hx Hy ->; gsimpl.
+rewrite in_prodg ?groupV //.
 Qed.
 
 End SubProd_subgrp.
 
 Variables (H K : set G).
-Hypothesis H_subgroup: subgrp H.
-Hypothesis K_subgroup: subgrp K.
+Hypothesis group_H: group H.
+Hypothesis group_K: group K.
 
-Lemma sbgrphk_sbgrpkh: subgrpb (prod H K) =  subgrpb (prod K H).
+Lemma prodg_group_group: group (prodg H K) =  group (prodg K H).
 Proof.
-apply/idP/idP => [Hhk|Hkh];
-apply: subprod_sbgrp => //.
-  by move/(sbgrp_subprod H_subgroup K_subgroup): Hhk => Hkheq x; 
-     rewrite (Hkheq x).
-by move/(sbgrp_subprod K_subgroup H_subgroup): Hkh => Hkheq x; 
-   rewrite (Hkheq x).
+by apply/idP/idP => H1; apply: prodg_sym_group => // x;
+  rewrite (group_prodg_sym _ _ H1).
 Qed.
 
 End SubProd.
@@ -138,11 +86,11 @@ Section card_prod.
 
 Open Scope group_scope.
 
-Variable G: finGroup.
+Variable G: finGroupType.
 
 Variables (H K : set G).
-Hypothesis H_subgroup: subgrp H.
-Hypothesis K_subgroup: subgrp K.
+Hypothesis group_H: group H.
+Hypothesis group_K: group K.
 
 Lemma card_prodf_inv: forall z, prod_set  H K z ->
   card (setI H K) = card (setI (preimage (@prodf G) (set1 (prodf z))) (prod_set H K)).
@@ -161,7 +109,7 @@ have F2: image (g z) (setI H K) =1
     case/andP: (a_diinv H1); rewrite -/a => Ha Ka.
     case: (f_diinv H1); rewrite -/a => <- <-.
     by rewrite /setI /prod_set /=; apply/and3P; split => //; 
-       first gsimpl; rewrite subgrpM // subgrpV.
+       first gsimpl; rewrite groupM // groupV.
   move: H1; case/andP => /= => H1; case/andP => /= => Hx1 Hx2;
   move: H1;rewrite /preimage; rewrite /prodf /=.
   move/eqP => Hzx; pose a:= z1^-1*x1.
@@ -171,26 +119,11 @@ have F2: image (g z) (setI H K) =1
   apply  image_f_imp.
   assert (z1^-1*x1 = z2*x2^-1).
     apply: (mulg_injl z1); gsimpl; apply: (mulg_injr x2); gsimpl.
-    rewrite /a /setI subgrpM //=; last exact: subgrpV.
-    by rewrite H0 subgrpM // subgrpV.
+    by rewrite /a /setI groupM //= ?groupV // H0 groupM // groupV.
 apply trans_equal with (@card (prod_finType G G) (image (g z) (setI H K ))).
  by symmetry; apply: card_dimage;apply F1.
 by apply eq_card;exact: F2.
 Qed.
-
-Lemma image_prodf: image (@prodf G) (prod_set H K) =1 prod H K.
-Proof.
-move => x; apply eqb_imp.
-  move => H1; apply /prodP; pose a:= (diinv H1);
-  exists (eq_pi1 a);exists (eq_pi2 a).
-  assert (f1 := a_diinv H1); case/andP: f1; rewrite -/a.
-  move => -> -> /=.
-  by apply/eqP; symmetry; apply: (f_diinv H1).
-case/prodP => x1 [y1 H1]; replace x with (prodf (EqPair x1 y1)).
-  by apply image_f_imp;by case/andP :H1.
-by case/andP: H1=> _ h; symmetry; exact:(eqP h).
-Qed.
-
 
 (***********************************************************************)
 (*                                                                     *)
@@ -198,9 +131,9 @@ Qed.
 (*                                                                     *)
 (***********************************************************************)
 
-Theorem cardHK : (card H * card K = card (prod H K) * card (setI H K))%N.
+Theorem cardHK : (card H * card K = card (prodg H K) * card (setI H K))%N.
 Proof.
-rewrite -card_prod_set; rewrite -(eq_card image_prodf).
+rewrite -card_prod_set; rewrite (eq_card (prodg_image H K)).
 apply: (card_partition_id (partition_preimage (prod_set H K) (@prodf G))).
 move => x H1 ; symmetry.
 replace x with (prodf (diinv H1)).

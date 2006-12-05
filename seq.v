@@ -464,6 +464,14 @@ Proof. by move=> a1 a2 Ea; elim=> [|x s Hrec] //=; rewrite Ea Hrec. Qed.
 Lemma eq_filter : forall a1 a2, a1 =1 a2 -> filter a1 =1 filter a2.
 Proof. by move=> a1 a2 Ea; elim=> [|x s Hrec] //=; rewrite Ea Hrec. Qed.
 
+Lemma eqd_filter: forall a1 a2 (s: seq),
+  (forall x, s x -> a1 x = a2 x) -> filter a1 s = filter a2 s.
+Proof.
+move => a1 a2; elim => [| x s Hrec H1] //=.
+rewrite Hrec; first by rewrite H1 //= setU11.
+by move => x1 H2; apply: H1 => //=; rewrite /setU1 H2 orbT.
+Qed.
+
 Lemma eq_count : forall a1 a2, a1 =1 a2 -> count a1 =1 count a2.
 Proof. by move=> a1 a2 Ea s; rewrite !count_filter (eq_filter Ea). Qed.
 

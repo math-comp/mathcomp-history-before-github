@@ -365,7 +365,7 @@ Qed.
 
 Lemma coset_val : forall x, coset (val x) = x.
 Proof.
-move=> x; case:x => {x} z; rewrite/coset_set => Hz ; apply/val_eqP => /=.
+move => x; case:x => {x} z; rewrite/coset_set => Hz ; apply/val_eqP => /=.
 rewrite -(eqP Hz); apply/eqP; unlock coset =>/=; move :(coset_set_coset_repr z).
 rewrite/coset_set; exact: eqP.
 Qed.
@@ -457,14 +457,6 @@ Definition quotient : set coset_eqType := image coset K.
 Hypothesis group_K : group K.
 Hypothesis subset_K_N : subset K N.
 
-(* a bouger *)
-Lemma imageP : forall (d : finType) d' f (a : set d) y,
-  reflect (exists2 x, a x & y = f x) (@image d d' f a y).
-Proof.
-move=> d d' f a y; apply:(iffP set0Pn) => [[x Hx]| [x Hx ->]].
- case/andP : Hx; move/eqP; by exists x.
-by exists x; rewrite /setI /preimage eq_refl.
-Qed.
 
 Lemma group_quotient : group quotient.
 Proof.

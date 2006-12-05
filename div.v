@@ -758,7 +758,6 @@ Qed.
 Lemma dvdn_expS : forall n a b, dvdn a b -> dvdn a (b ^ (S n)).
 Proof. by simpl; auto. Qed.
 
-
 Lemma prime_coprime_expn: forall k p m, 
   prime p -> coprime p m = coprime (p ^ (S k)) m.
 Proof.

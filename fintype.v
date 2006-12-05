@@ -4,6 +4,7 @@ Require Import ssrbool.
 Require Import funs.
 Require Import eqtype.
 Require Import ssrnat.
+Require Import div.
 Require Import seq.
 
 Set Implicit Arguments.
@@ -12,7 +13,7 @@ Import Prenex Implicits.
 
 (*   A small theory of data sets of finite cardinal, based on sequences.     *)
 (* A finite data set is a data set plus a duplicate-free sequence of all its *)
-(* elements. This is equivalent to requiring only a list, and we do give a   *)
+(* elements. This is equivalent to reqiuiring only a list, and we do give a   *)
 (* construction of a finDomain from a list, but it is preferable to specify  *)
 (* the structure of the eqtype in general.                                   *)
 
@@ -313,6 +314,23 @@ Implicit Arguments set0Pn [d a].
 Implicit Arguments subset_eqP [d a b].
 Prenex Implicits card_uniqP subsetP set0P set0Pn subset_eqP.
 
+Section DInjective.
+
+Variable d d': eqType.
+Variable a: set d.
+Variable f: d -> d'.
+
+Definition dinjective:= 
+  forall x y, a x -> a y -> f x = f y -> x = y.
+
+Lemma inj_dinj: injective f -> dinjective.
+Proof.
+move => H x y H1 H2; exact: H.
+Qed.
+
+End DInjective.
+
+
 Section FunImage.
 
 Variables (d : finType) (d' : eqType) (f : d -> d').
@@ -351,6 +369,48 @@ Variable a : set d.
 
 Definition image : set d' := fun x' => ~~ disjoint (preimage f (set1 x')) a.
 
+Lemma imageP : forall y,
+  reflect (exists2 x, a x & y = f x) (image y).
+Proof.
+move=> y; apply:(iffP set0Pn) => [[x Hx]| [x Hx ->]].
+ case/andP : Hx; move/eqP; by exists x.
+by exists x; rewrite /setI /preimage eq_refl.
+Qed.
+
+Remark Hdiinv : forall x', image x' -> {x : d | (x' == f x) && a x}.
+Proof.
+move=> x' Hx'; pose b := fun x => (x' == f x) && a x.
+case: (pickP b) => [x Dx | Hnx']; first by exists x.
+by case/negP: Hx'; apply /set0P.
+Qed.
+
+Definition diinv x' (Hx' : image x') := let (x, _) := Hdiinv Hx' in x.
+
+Lemma f_diinv : forall x' (Hx' : image x'), f (diinv Hx') = x'.
+Proof.
+move=> x' Hx'; rewrite /diinv.
+by case: (Hdiinv Hx') => [x]; move/andP => [H1 _]; case/eqP: H1.
+Qed.
+
+Lemma a_diinv : forall x' (Hx' : image x'), a (diinv Hx').
+Proof.
+move=> x' Hx'; rewrite /diinv.
+by case: (Hdiinv Hx') => [x]; move/andP => [_ H2].
+Qed.
+
+Hypothesis Hfd : dinjective a f.
+
+Lemma diinv_f : forall x (Hfx : image (f x)), a x -> diinv Hfx = x.
+Proof. 
+move=> x Hfx Ha; apply Hfd => //; first exact: a_diinv.
+apply: f_diinv. 
+Qed.
+
+Lemma preimage_diinv : forall a' x' (Hx' : image x'),
+  preimage f a' (diinv Hx') = a' x'.
+Proof. by move=> *; rewrite /preimage f_diinv. Qed.
+
+
 (* This first lemma does not depend on Hf : (injective f). *)
 Lemma image_codom : forall x', image x' -> codom x'.
 Proof.
@@ -363,6 +423,12 @@ Proof.
 move=> x; apply/set0Pn/idP => [[y Hy]|Hx].
   by move/andP: Hy => [Dx Hy]; rewrite (Hf (eqP Dx)).
 by exists x; rewrite /setI /preimage set11.
+Qed.
+
+Lemma image_f_imp : forall x, a x -> image (f x).
+Proof.
+move => x H; apply/set0Pn.
+by exists x; rewrite /setI /preimage eq_refl.
 Qed.
 
 Lemma image_iinv : forall x' (Hx' : codom x'), image x' = a (iinv Hx').
@@ -477,6 +543,19 @@ Qed.
 
 Lemma eq_card_prod : forall b, b =1 prod_finType -> card b = card d1 * card d2.
 Proof. by have:= eq_card_trans card_prod. Qed.
+
+Variable a1: set d1.
+Variable a2: set d2.
+
+Definition prod_set: set prod_finType :=
+  fun z => a1 (eq_pi1 z) && a2 (eq_pi2 z).
+
+Lemma card_prod_set : card prod_set = card a1 * card a2.
+Proof.
+rewrite /card /= /prod_enum; elim: (enum d1) => //= x1 s1 IHs.
+rewrite count_cat {}IHs count_maps /comp /prod_set /=.
+by case: (a1 x1); rewrite // count_set0.
+Qed.
 
 End ProdFinType.
 
@@ -622,7 +701,525 @@ move=> a'; apply: etrans (esym (card_image _)) (eq_card _) => x'.
 by rewrite (image_pre Hf) /setI andbC.
 Qed.
 
+Lemma card_dimage : forall (a: set d), 
+(dinjective a f) -> card (image f a) = card a.
+Proof.
+move=> a Hfa; apply bij_eq_card.
+have Hf1: forall w : sub_eqType (image f a), a (diinv (valP w)).
+  by move=> [x' Hx'] /=; rewrite a_diinv.
+have Hf2: forall w : sub_eqType a, image f a (f (val w)).
+  by move=> [x Hx] /=; rewrite image_f_imp.
+exists (fun w => EqSig a _ (Hf1 w)); exists (fun w => EqSig (image f a) _ (Hf2 w)).
+  by move=> [x Hx]; apply: val_inj; rewrite /= f_diinv.
+by move=> [x Hx]; apply: val_inj; rewrite /= diinv_f.
+Qed.
+
 End CardFunImage.
+
+Section Disjoint.
+
+Variables d: finType.
+Variables d': eqType.
+Variable a: set d.
+Variable S:  d -> set d'.
+
+(**********************************************************************)
+(*                                                                    *)
+(*  Definition of being disjoint for indexed sets:                    *)
+(*    S_i inter S_j <> 0 -> i = j                                     *)
+(*                                                                    *)
+(**********************************************************************)
+
+Definition disjointn:= 
+  forall u v x, a u -> a v -> S u x -> S v x -> u = v.
+
+(**********************************************************************)
+(*                                                                    *)
+(*  Definition of being weak disjoint for indexed sets                *)
+(*    S_i inter S_j <> 0 -> S_i = S_j                                 *)
+(*                                                                    *)
+(**********************************************************************)
+
+Definition wdisjointn:= 
+  forall u v x, a u -> a v -> S u x -> S v x -> S u =1 S v.
+
+Lemma disjointnW: disjointn -> wdisjointn.
+  by move => H u v x H1 H2 H3 H4; 
+     rewrite (H _ _ _ H1 H2 H3 H4) => x1.
+Qed.
+
+End Disjoint.
+
+Section Sum.
+
+Variables d: finType.
+Variable a: set d.
+Variable N:  d -> nat.
+
+(**********************************************************************)
+(*                                                                    *)
+(*  Definition of the summation                                       *)
+(*                                                                    *)
+(**********************************************************************)
+
+Definition sum := 
+  foldr (fun z => (addn (N z))) 0 (filter a (enum d)).
+
+End Sum.
+
+Lemma sum0: forall (d: finType) (N: d -> nat),
+  sum set0 N = 0.
+Proof.
+by move => d N; rewrite /sum filter_set0.
+Qed.
+
+Lemma sumD1: forall (d: finType) x (a: set d) (N: d -> nat),
+  a x -> sum a N = N x + sum (setD1 a x) N.
+Proof.
+move => d x a N.
+have F1: (setD1 a x) =1 (setD1 (filter a (enum d)) x).
+  by move => x1; rewrite /setD1 filter_enum.
+rewrite /sum (eq_filter F1) -(filter_enum a x).
+elim: (enum d) (uniq_enum d) => [| x1 s1 Hrec] //=; rewrite /id.
+case/andP; move/negP => H1 H2.
+case E1: (a x1) => /=.
+  case/orP => H3.
+    rewrite -!(eqP H3) setD11; congr addn.
+    congr foldr.
+    apply: eqd_filter => x2 Hx2.
+    rewrite /setD1 /setU1.
+    case E2: (x1 == x2) => /=.
+      by case H1; rewrite (eqP E2).
+    by rewrite mem_filter /setI Hx2 andbT.
+  have F2: setD1 (setU1 x1 (filter a s1)) x x1.
+    rewrite mem_filter in H3; case/andP: H3 => H3 H4.
+    rewrite /setD1 /setU1 mem_filter /setI.
+    case E2: (x == x1) => /=; first by case H1; rewrite -(eqP E2).
+    by rewrite eq_refl.
+  rewrite F2 Hrec //= !addnA; congr addn; first exact: addnC.
+  congr foldr.
+  apply: eqd_filter => x2 Hx2.
+  rewrite /setD1 /setU1.
+  case E2: (x == x2) => //=; rewrite mem_filter /setI.
+  case (a x2) => //=; case E3: (x1 == x2) => //=.
+  by case H1; rewrite (eqP E3).
+move => H3; rewrite Hrec //.
+have F2: (setD1 (filter a s1) x x1) = false.
+  by rewrite /setD1 mem_filter /setI E1 /= andbF.
+rewrite F2.
+congr addn; congr foldr.
+Qed.
+
+Lemma eq_sum: forall (d: finType) a b (N: d -> nat),
+  a =1 b -> sum a N = sum b N.
+move => d a b N H.
+rewrite /sum; elim: (enum d) => [| x s Hrec] //=.
+by rewrite H; case (b x) => //=; congr addn.
+Qed.
+
+Lemma sum1: forall (d: finType) x (N: d -> nat),
+  sum (set1 x) N = N x.
+Proof.
+move => d x N.
+rewrite (@sumD1 _ x) //.
+have F1: setD1 (set1 x) x =1 set0.
+  by move => x1; rewrite /setD1; case (x == x1).
+by rewrite (eq_sum _ F1) sum0 addn0.
+Qed.
+
+Lemma sum_id: forall (d: finType) (a: set d) N l,
+  (forall x, a x -> N x = l) -> sum a N = card a * l.
+Proof.
+move => d a N l H.
+have F1: (forall x: d, (filter a (enum d) x) -> N x = l).
+  move => x; rewrite filter_enum; exact: H.
+rewrite -(eq_card (filter_enum a)).
+move: F1; rewrite /sum.
+elim: (enum d) (uniq_enum d) => 
+  [| x1 s1 Hrec] //=; rewrite /id /=; first by rewrite card0.
+case/andP => Hu1 Hu2.
+case E1: (a x1) => //= H1; last exact: Hrec.
+have F1: forall x, filter a s1 x -> N x = l.
+  by move => x Hx; apply: H1; rewrite /setU1 Hx orbT.
+by rewrite Hrec // cardU1 H ?E1 // mem_filter /setI (negbE Hu1)
+           andbF. 
+Qed.
+
+
+Lemma sum_setU: forall (d: finType) (a b: set d) (N: d -> nat),
+  disjoint a b -> sum (setU a b) N =  (sum a N) + (sum b N).
+move => d a b N.
+elim: {a}(card a) {-2}a (refl_equal (card a)) b =>
+   [| n Hrec] a Ha b Hab.
+  rewrite (eq_sum _ (card0_eq Ha)) sum0.
+  have F1: (setU a b) =1 b.
+    by move => x; rewrite /setU (card0_eq Ha). 
+  by rewrite (eq_sum _ F1).
+have F1: ~~set0b a.
+  by apply/set0P => H1; rewrite (eq_card0 H1) in Ha.
+case/set0Pn: F1 => x Hx.
+rewrite (@sumD1 _ x) ?(@sumD1 _ x a) //; last by rewrite /setU Hx.
+rewrite -!addnA; congr addn.
+have F0: card (setD1 a x) = n.
+  apply (@addn_injl 1%N).
+  by rewrite (add1n n) -Ha (cardD1 x a) Hx.
+have F1: setD1 (setU a b) x =1 (setU (setD1 a x) b).
+  move => x1; rewrite /setD1 /setU.
+  case E1: (x == x1) => //=.
+  rewrite /disjoint /set0b in Hab.
+  move: (card0_eq (eqP Hab)) => H1.
+  case E2: (b x1) => //; case (H1 x1).
+  by rewrite /setI E2 -(eqP E1) Hx.
+rewrite (eq_sum _ F1) Hrec //.
+rewrite /disjoint; apply/set0P => x1.
+rewrite /setI /setD1.
+case E1: (x == x1) => //=.
+rewrite /disjoint /set0b in Hab.
+case E2: (a x1) => //=.
+move: (card0_eq (eqP Hab)) => H1.
+by move: (H1 x1); rewrite /setI E2.
+Qed.
+
+Section Unions.
+
+Variables d: finType.
+Variables d': eqType.
+Variable a: set d.
+Variable S:  d -> set d'.
+
+(**********************************************************************)
+(*                                                                    *)
+(*  Definition of the union of indexed sets                           *)
+(*                                                                    *)
+(**********************************************************************)
+
+Definition setnU := 
+  foldr (fun z => setU (S z)) set0 (filter a (enum d)).
+
+Lemma setnUP: forall x,
+  reflect (exists y, a y && S y x) (setnU x).
+move => x; rewrite /setnU; apply: (iffP idP) => Hx.
+ have: (exists y, ((filter a (enum d) y) && S y x)).
+   elim: (enum d) Hx => [| x1 s1 Hx1] //=.
+   case: (a x1) => //=.
+     case/orP => H1; first 
+       by exists x1; rewrite /setU1 eq_refl.
+     case: Hx1 => // y; case/andP => Hy1 Hy2.
+     by exists y; rewrite /setU1 Hy1 orbT.
+ case => y; case/andP => Hy1 Hy2; exists y.
+ by rewrite -(filter_enum a) Hy1.
+have F1: (exists y, ((filter a (enum d) y) && S y x)).
+ case Hx => y; case/andP => Hy1 Hy2; exists y.
+ by rewrite filter_enum Hy1.
+elim: (enum d) F1 => [| x1 s1 Hx1] //=.
+  by case.
+case: (a x1) => //; case => y; case/andP => /=; 
+  case/orP => Hy1 Hy2; apply/orP => //.
+  by left; rewrite (eqP Hy1).
+by right; apply: Hx1; exists y; rewrite Hy1.
+Qed.
+
+End Unions.
+
+Lemma setnU0: forall (d: finType) d' (S: d -> set d'),
+  setnU set0 S =1 set0.
+Proof.
+by move => d d' S x; rewrite /setnU filter_set0.
+Qed.
+
+Lemma setnU1: forall (d: finType) d' x (S: d -> set d'),
+  setnU (set1 x) S =1 S x.
+Proof.
+move => d d' x S y; apply/idP/idP => H.
+  by case/setnUP: H => y1; case/andP => Hy1 Hy2;
+     rewrite (eqP Hy1).
+by apply/setnUP; exists x; rewrite eq_refl.
+Qed.
+
+Lemma eq_setnU: forall (d: finType) d' a b (S: d -> set d'),
+  a =1 b -> setnU a S =1 setnU b S.
+Proof.
+by move => d d' a b S H x; apply/setnUP/setnUP => [] [y Hy];
+   exists y; rewrite ?H // -H.
+Qed.
+
+Lemma setnU_setU: forall (d: finType) d' (a b: set d) (S: d -> set d'),
+  setnU (setU a b) S =1 setU (setnU a S) (setnU b S).
+move => d d' a b S x; apply/setnUP/orP.
+  case => y; case/andP; case/orP => H1 H2.
+    by left; apply/setnUP; exists y; rewrite H1.
+  by right; apply/setnUP; exists y; rewrite H1.
+by case; case/setnUP => y; case/andP => Hy1 Hy2;
+   exists y; rewrite /setU Hy1 // orbT.
+Qed.
+
+Lemma setnU_disjoint: forall (d d': finType) (a: set d) 
+                         (S: d -> set d') (A: set d'),
+  (forall x, a x -> disjoint A (S x)) ->
+  disjoint A (setnU a S).
+move => d d' a S A.
+elim: {a}(card a) {-2}a (refl_equal (card a)) =>
+   [| n Hrec a Hc Hp].
+  move => a H1 H2; rewrite /disjoint /set0b.
+  apply/eqP; apply: eq_card0 => x.
+  rewrite /setI /= (@eq_setnU _ _ _ set0 S).
+    by rewrite setnU0 andbF.
+  by apply card0_eq.
+have F1: ~~set0b a.
+  by apply/set0P => H1; rewrite (eq_card0 H1) in Hc.
+case/set0Pn: F1 => x Hx.
+rewrite /disjoint /set0b; apply/eqP; apply eq_card0 => x1.
+rewrite /setI (@eq_setnU _ _ _ (setU (set1 x) (setD1 a x)) S); last 
+ by move => x2; rewrite /set1 /setU; 
+    case E1: (EqType.eq x x2) => //=;
+    first (by rewrite -(eqP E1)); rewrite /setD1 /eqtype.set1 E1.
+rewrite setnU_setU /setU setnU1.
+apply/andP => [] [H1 H2].
+case/orP: H2 => H2.
+  move/set0P: (Hp _ Hx) => H3; move: (H3 x1).
+  by rewrite /setI H1 H2.
+have F1: card (setD1 a x) = n.
+  apply (@addn_injl 1%N).
+  by rewrite (add1n n) -Hc (cardD1 x a) Hx.
+have F2: forall x1, setD1 a x x1 -> disjoint A (S x1).
+  move => x2 Hx2; apply: Hp.
+  by case/andP: Hx2.
+move/set0P: (Hrec _ F1 F2) => H3; move: (H3 x1).
+by rewrite /setI H1 H2.
+Qed.
+
+Lemma card_disjoint: forall (d: finType) (a b: set d),
+  disjoint a b -> card (setU a b) = card a + card b.
+Proof.
+move => d a b Hab; rewrite -(cardIC b) addnC; congr addn;
+   apply eq_card => x1; rewrite /setI /setU /setC;
+   case E1: (a x1); case E2: (b x1) => //.
+rewrite /disjoint /set0b in Hab.
+move: (card0_eq (eqP Hab)) => H1.
+by move: (H1 x1); rewrite /setI E1 E2.
+Qed.
+
+Lemma card_setnU: forall (d d': finType) (a: set d) 
+                         (S: d -> set d'),
+  disjointn a S ->
+  card (setnU a S) = sum a (fun z => card (S z)) .
+move => d d' a S.
+elim: {a}(card a) {-2}a (refl_equal (card a)) =>
+   [| n Hrec] a Ha Da.
+  move: (card0_eq Ha) => Ha1.
+  rewrite (eq_sum _ Ha1) sum0; apply: eq_card0 => x.
+  by rewrite (eq_setnU _ Ha1) setnU0.
+have F1: ~~set0b a.
+  by apply/set0P => H1; rewrite (eq_card0 H1) in Ha.
+case/set0Pn: F1 => x Hx.
+have F2: a =1 setU (set1 x) (setD1 a x).
+  move => x1; rewrite /setU /setD1.
+  by case E1: (x == x1) => //=; rewrite -(eqP E1).
+have F3: card (setD1 a x) = n.
+  apply (@addn_injl 1%N).
+  by rewrite (add1n n) -Ha (cardD1 x a) Hx.
+have F4: disjoint (set1 x) (setD1 a x).
+  apply/set0P => x1; apply/negP; case/andP => H1. 
+  by rewrite (eqP H1) setD11.
+rewrite (eq_sum _ F2) sum_setU //.
+rewrite (eq_card (eq_setnU _ F2)).
+rewrite (eq_card (setnU_setU _ _ _)).
+rewrite sum1 -Hrec //.
+  rewrite card_disjoint; first by
+    rewrite (eq_card (setnU1 _ _)).
+  apply: setnU_disjoint => x2.
+  case/andP => Hx1 Hx2.
+  apply/set0P => x3; rewrite /setI setnU1. 
+  case E1: (S x x3) => //.
+  case E2: (S x2 x3) => //.
+  by case/negP: Hx1; rewrite (Da _ _ x3 Hx Hx2) // E2.
+move => x1 y1 z1 Hx1 Hy1 Hxy.
+apply: (Da x1 y1 z1) => //.
+  by case/andP: Hx1.
+by case/andP: Hy1.
+Qed.
+
+Lemma card_setnU_id: forall (d d': finType) (a: set d) 
+                         (S: d -> set d') l,
+  disjointn a S -> (forall x, a x -> card (S x) = l) ->
+  card (setnU a S) = card a * l.
+move => d d' a S l Ds Ch.
+rewrite card_setnU //; exact: sum_id.
+Qed.
+
+Lemma card_dvdn_setnU: forall (d d': finType) (a: set d) 
+                         (S: d -> set d') l,
+  wdisjointn a S -> (forall x, a x -> dvdn l (card (S x))) ->
+  dvdn l (card (setnU a S)).
+move => d d' a S l Ds Ch.
+elim: {a}(card a) {-2}a (refl_equal (card a)) Ds Ch =>
+   [| n Hrec] a Ds Ch In.
+  rewrite (eq_card (eq_setnU _ (card0_eq Ds))).
+  by rewrite (eq_card (setnU0 _)) card0 dvdn0.
+have F1: ~~set0b a.
+  by apply/set0P => H1; rewrite (eq_card0 H1) in Ds.
+case/set0Pn: F1 => x Hx.
+have F1: a =1 setU (set1 x) (setD1 a x).
+  move => x1; rewrite /setU /setD1.
+  by case E1: (x == x1) => //=; rewrite -(eqP E1).
+have F2: card (setD1 a x) = n.
+  apply (@addn_injl 1%N).
+  by rewrite (add1n n) -Ds (cardD1 x a) Hx.
+have F3: disjoint (set1 x) (setD1 a x).
+  apply/set0P => x1; apply/negP; case/andP => H1. 
+  by rewrite (eqP H1) setD11.
+rewrite (eq_card (eq_setnU _ F1)) (eq_card (setnU_setU _ _ _)).
+case F4: (disjoint (setnU (set1 x) S) (setnU (setD1 a x) S)).
+  rewrite card_disjoint // dvdn_addr.
+    apply: Hrec => //; first 
+      by move => x1 x2 s1 Hx1 Hx2 Hx12; apply: (Ch x1 x2 s1); 
+                case/andP: Hx1; case/andP: Hx2.
+    by move => x1 Hx1; apply In; case/andP: Hx1.
+  rewrite (eq_card (setnU1 _ _)). 
+  exact: In. 
+set S1 := (setnU _ _); set S2 := (setnU _ _).
+have F5: setU S1 S2 =1 S2.
+  move => x1; apply/orP/idP; last by right.
+  case => // => H1; case H2: (S2 x1) => //.
+  move/set0Pn: F4.
+  case => y; case/andP; rewrite setnU1 => H3.
+  case/setnUP => x2; case/andP => Hx2 Hx3.
+  case/negP: H2; apply/setnUP.
+  exists x2; rewrite Hx2 /=.
+  rewrite -(Ch x x2 y) //.
+    by move: H1; rewrite /S1 setnU1. 
+  by case/andP: Hx2.
+rewrite (eq_card F5) /S2.
+apply: Hrec => //; first 
+  by move => x1 x2 s1 Hx1 Hx2 Hx12; apply: (Ch x1 x2 s1); 
+             case/andP: Hx1; case/andP: Hx2.
+by move => x1 Hx1; apply In; case/andP: Hx1.
+Qed.
+
+Section Partition.
+
+Variables d: finType.
+Variables d': finType.
+Variable a: set d.
+Variable S:  d -> set d'.
+Variable A: set d'.
+
+(**********************************************************************)
+(*                                                                    *)
+(*  Definition of being a cover:                                      *)
+(*    union S_i = A                                                   *)
+(*                                                                    *)
+(**********************************************************************)
+
+Definition cover:= (subset (setnU a S) A) && (subset A (setnU a S)).
+
+Lemma coverP:
+  reflect ((forall x, a x -> subset (S x) A) /\
+           (forall x, A x -> exists i, a i && S i x))
+           cover.
+Proof.
+apply: (iffP idP).
+  case/andP; move/subsetP => H1; move/subsetP => H2; split.
+    move => x Hx; apply/subsetP => i Hi; apply: H1.
+    by apply/setnUP; exists x; rewrite Hx.
+  move => i Hi; case/setnUP: (H2 _ Hi) => x Hx.
+  by exists x.
+case => H1 H2; apply/andP; split; apply/subsetP => i Hi.
+  case/setnUP: Hi => x; case/andP => Hx1 Hx2. 
+  move/subsetP: (H1 _ Hx1) => H3; exact: H3.
+case: (H2 _ Hi) => x Hx.
+by apply/setnUP; exists x.
+Qed.
+
+Lemma eq_cover: 
+  reflect ((setnU a S) =1 A) cover.
+Proof.
+apply: (iffP idP) => H.
+  case/andP: H; move/subsetP => H1; move/subsetP => H2.
+  move => x; apply/idP/idP => Hx; first exact: H1.
+  exact: H2.
+by rewrite /cover (eq_subset H) (eq_subset_r H) !subset_refl.    
+Qed.
+
+(**********************************************************************)
+(*                                                                    *)
+(*  Definition of being a partition:                                  *)
+(*    indexed sets that are disjoint and form a cover                 *)
+(*                                                                    *)
+(**********************************************************************)
+
+Definition partition := disjointn a S /\ cover.
+
+Lemma card_partition: partition ->
+  card A = sum a (fun z => card (S z)).
+case => H1 H2.
+move/eq_cover: H2 => H2.
+rewrite -(eq_card H2).
+exact: card_setnU.
+Qed.
+
+Lemma card_partition_id: forall l, partition ->
+  (forall x, a x -> card (S x) = l) ->
+  card A = card a * l.
+move => l Hp He; rewrite card_partition //.
+exact: sum_id.
+Qed.
+
+(**********************************************************************)
+(*                                                                    *)
+(*  Definition of being a weakpartition:                              *)
+(*    indexed sets that are weakly disjoint and form a cover          *)
+(*                                                                    *)
+(**********************************************************************)
+
+Definition wpartition := wdisjointn a S /\ cover.
+
+Lemma partitionW:
+  partition -> wpartition.
+Proof.
+case => H1 H2; split => //; exact: disjointnW.
+Qed.
+
+Lemma card_dvdn_partition: forall l, wpartition ->
+  (forall x, a x -> dvdn l (card (S x))) ->
+  dvdn l (card A).
+Proof.
+move => l Hp He.
+case: Hp => H1 H2.
+move/eq_cover: H2 => H2.
+rewrite -(eq_card H2).
+exact: card_dvdn_setnU.
+Qed.
+
+End Partition.
+           
+(**********************************************************************)
+(*                                                                    *)
+(*  Preimage of elements of the image form a partition                *)
+(*                                                                    *)
+(**********************************************************************)
+
+Section fun_partition.
+
+Variable d: finType.
+Variable d': finType.
+Variable a: set d.
+Variable f: d -> d'.
+
+Lemma partition_preimage: 
+  partition (image f a) (fun x => setI (preimage f (set1 x)) a) a.
+Proof.
+split.
+  by rewrite /disjointn => u v x H1 H2;case/andP => H3 H4;
+     case/andP => H5 H6; rewrite (eqP H3) (eqP H5).
+apply/andP;split; apply/subsetP => x; last move => Hax.
+  by case/setnUP => y; case/andP => _ ;case /andP.
+apply /setnUP;exists (f x).
+by rewrite image_f_imp // /setI Hax andbT /preimage /=.
+Qed.
+
+End fun_partition.
+
 
 Unset Implicit Arguments.
 
