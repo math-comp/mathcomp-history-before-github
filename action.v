@@ -23,19 +23,20 @@ Variable (G: finGroupType) (H : seq G).
 Hypothesis group_H: group H.
 Variable S: finType.
 
-Variable to : G -> fgraphType S S.
-Hypothesis to_bij : forall x, H x -> bijective (to x).
+Variable to : G -> S -> S.
+Hypothesis to_1: forall x, to 1 x = x.
 Hypothesis to_morph : forall (x y:G) z,
   H x -> H y -> to (x * y) z = to x (to y z).
 
-Lemma to_1: forall x, to 1 x = x.
+Lemma to_bij : forall x, H x -> bijective (to x).
 Proof.
-move: (group1 group_H) => H1 x; apply: (bij_inj (to_bij H1)).
-by rewrite -to_morph // mul1g.
+move => x Hx.
+apply: fin_inj_bij.
+apply: (@can_inj _ _ (to x) (to x^-1)) => a.
+by rewrite -to_morph ?groupV // mulVg to_1.
 Qed.
 
 Definition orbit a := image (fun z => to z a) H.
-
 
 Lemma orbit_to: forall a x, H x -> orbit a (to x a).
 Proof.
@@ -269,14 +270,10 @@ Hypothesis group_H: group H.
 
 Definition to (u : G) : permType S := u.
 
-Lemma to_bij : forall x:permType S, H x -> bijective (to x).
+Lemma to_1 : forall x, to 1 x = x.
 Proof.
-move => x Hx; rewrite /bijective /=.
-exists (fun_of_perm (perm_inv (to x))) => y.
-  do 1!rewrite /fun_of_perm /= /comp can_graph_of_fun.
-  by rewrite finv_f // /to; apply: perm_inj.
-do 1!rewrite /fun_of_perm /= /comp can_graph_of_fun.
-by rewrite f_finv // /to; apply: perm_inj.
+move => x; rewrite /to /unitg /= /perm_unit /fun_of_perm /=.
+by rewrite /comp can_graph_of_fun.
 Qed.
 
 Lemma to_morph : forall (x y:permType S) z,
