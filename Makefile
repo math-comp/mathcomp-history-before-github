@@ -89,7 +89,7 @@ VFILES=connect.v\
   sylow.v\
   normal.v\
   baux.v\
-  leftTranslation.v\
+  rightTranslation.v\
   powerSet.v\
   center.v\
   frobenius.v\
