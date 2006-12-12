@@ -26,7 +26,7 @@ Require Import cyclic.
 Require Import zp.
 Require Import normal.
 Require Import baux.
-Require Import leftTranslation.
+Require Import rightTranslation.
 Require Import powerSet.
 
 Set Implicit Arguments.
