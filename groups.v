@@ -667,7 +667,7 @@ Section PermGroup.
 
 Variable d:finType.
 
-Definition permType := eq_sig (fun g : fgraphType d d => uniq (tval g)).
+Definition permType := eq_sig (fun g : fgraphType d d => uniq (tval (gval d d g))).
 
 Canonical Structure perm_eqType := @EqType permType _ (@val_eqP _ _).
 
@@ -677,11 +677,11 @@ Definition fun_of_perm := fun u : permType => (val u : fgraphType _ _) : d -> d.
 
 Coercion fun_of_perm : permType >-> Funclass.
 
-Lemma perm_uniqP : forall g : fgraphType d d, reflect (injective g) (uniq (tval g)).
+Lemma perm_uniqP : forall g : fgraphType d d, reflect (injective g) (uniq (gval  d d g)).
 Proof.
 move=> g; apply: (iffP idP) => Hg.
-  apply: can_inj (fun x => sub x (enum d) (index x (tval g))) _ => x.
-  by rewrite {2}/fun_of_graph index_uniq ?sub_index ?tproof ?index_mem // mem_enum.
+  apply: can_inj (fun x => sub x (enum d) (index x (tval (gval _ _ g)))) _ => x.
+  by rewrite {2}/fun_of_graph; unfold locked; case master_key; rewrite index_uniq ?sub_index ?tproof ?mem_enum /card // count_setA index_mem mem_enum.
 by rewrite -[g]can_fun_of_graph /= uniq_maps // uniq_enum.
 Qed.
 
@@ -690,17 +690,17 @@ Lemma eq_fun_of_perm: forall u v : permType, u =1 v -> u = v.
 Proof.
 move => u v Huv. apply: val_inj. 
 rewrite -(can_fun_of_graph (val u)) -(can_fun_of_graph (val v)).
-apply: tval_inj; exact: (eq_maps Huv).
+apply: gval_inj; apply: tval_inj; exact: (eq_maps Huv).
 Qed.
 
-Lemma perm_of_injP : forall f : d -> d, injective f -> uniq (tval (graph_of_fun f)).
+Lemma perm_of_injP : forall f : d -> d, injective f -> uniq (tval (gval d d (graph_of_fun f))).
 Proof.
 move=> f Hf; apply/perm_uniqP.
 by apply: eq_inj Hf _ => x; rewrite can_graph_of_fun.
 Qed.
 
 Definition perm_of_inj f (Hf : injective f) : permType :=
-  EqSig (fun g : fgraphType d d => uniq (tval g)) _ (perm_of_injP Hf).
+  EqSig (fun g : fgraphType d d => uniq (tval (gval d d g))) _ (perm_of_injP Hf).
 
 Lemma perm_inj : forall u : permType, injective u.
 Proof. by case=> g Hg; apply/perm_uniqP. Qed.
