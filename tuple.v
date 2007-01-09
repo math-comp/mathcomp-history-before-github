@@ -135,7 +135,7 @@ elim=> //= i IHi; elim: enum (uniq_enum d) => //= x e IHe.
 move/andP=> [Hx He]; rewrite uniq_cat {}IHe {He}// andbT.
 rewrite {1}/multes uniq_maps ?{}IHi; last move=> _ _ [] //.
 apply/hasP; case=> s Hs.
-by move/mapsP => [s' _ Ds]; rewrite mem_multss -Ds (negbE Hx) in Hs.
+by move/mapsP => [s' _ Ds]; rewrite mem_multss -Ds (negbET Hx) in Hs.
 Qed.
 
   (* good enumeration *)
@@ -371,6 +371,38 @@ Proof. exact: card_pfunspace. Qed.
 
 End FinPowerSet.
 
+
+Section SetOps.
+Variable G : finType.
+Definition setType := fgraph_finType G bool_finType.
+Variables A B : setType.
+
+Definition f2g := graph_of_fun.
+Definition g2f := can_graph_of_fun.
+(* Do we want this? in case we need to tag setType.
+Coercion fun_of_graph : setType >-> Funclass.
+*)
+
+Definition isub_set : Prop := forall x : G, A x -> B x.
+Definition isetU : setType := f2g (fun x => A x || B x).
+Definition isetU1 (x : G) : setType := f2g (fun y => (x == y) || A y).
+Definition isetI : setType := f2g (fun x => A x && B x).
+Definition isetC : setType := f2g (fun x => ~~ A x).
+Definition isetD : setType := f2g (fun x => ~~ B x && A x).
+
+(* testcase for 81gamma *)
+(*
+Lemma how_to_use_g2f: 
+  forall x, isetI x = setI ( A) (fun_of_graph B) x.
+Proof.
+move => x; apply/idP/idP.
+  by rewrite g2f /setI; move/andP => [-> ->].
+by rewrite g2f; move/andP => [-> ->].
+Qed. 
+*)
+
+End SetOps.
+
 (* Implicit Arguments powerset []. *)
 Notation "'<<' x , .. , y '>>'" := 
   (Tuple (refl_equal (size (Adds x .. (Adds y seq0) ..)))).
@@ -399,8 +431,10 @@ Check powerset. Check @Fgraph.
 Let g := @Fgraph FT_finType _ <<true,true,false>>.
 Eval compute in powerset FT_eqType g.
 (* Since the locked trick, they do not evaluate any more :( *)
+(*
 Eval compute in g A.
 Eval compute in g C.
+*)
 
 End Sample.
 

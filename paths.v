@@ -315,9 +315,10 @@ Proof.
 move=> x p Hp; elim: p x {1 2 5}x Hp (setU11 x p) => [|y2 p Hrec] y0 y1.
   by rewrite /setU1 orbF; move=> _ Dy1; rewrite (eqP Dy1); repeat split; move.
 rewrite /setU1 /= orbC; case/andP=> [Hy12 Hp].
-case Hpy0: (setU1 y2 p y0).
-case: (Hrec _ _ Hp Hpy0) => [p' Hp' Up' Hp'p] _; split; auto; simpl.
-  move=> z; move/Hp'p; apply: setU1r.
+(* coq v81gamma bug case Hpy0: (setU1 y2 p y0). *)
+move Hpy0: (setU1 y2 p y0) => b; case: b in Hpy0 *.
+  case: (Hrec _ _ Hp Hpy0) => [p' Hp' Up' Hp'p] _; split; auto; simpl.
+  move=> z; move/Hp'p; exact: setU1r.
 case: (Hrec _ _ Hp (setU11 y2 p)) => [p' Hp' Up' Hp'p] Dy1.
 have Hp'p2: sub_set (setU1 y2 p') (setU1 y2 p).
   move=> z; rewrite /= /setU1; case: (y2 == z) => [|] //; apply: Hp'p.
@@ -595,7 +596,7 @@ move=> p x Up Hx i y; congr (fun q => take (index y q) q); move: Up Hx {y}.
 rewrite -{1 2 5 6}(cat_take_drop i p) /rot uniq_cat; move/and3P=> [_ Hp _].
 rewrite !drop_cat !take_cat !index_cat mem_cat /setU orbC.
 case Hx: (drop i p x) => [|] /=.
-  clear 1; rewrite (negbE (hasPn Hp _ Hx)).
+  clear 1; rewrite (negbET (hasPn Hp _ Hx)).
   by rewrite index_mem Hx ltnNge leq_addr /= subn_addr catA.
 by move=> Hx'; rewrite Hx' index_mem Hx' ltnNge leq_addr /= subn_addr catA.
 Qed.
@@ -606,7 +607,7 @@ Proof.
 move=> x y p1 p2 p Up; rewrite /arc {1}/p /= set11 rot0.
 move: Up; rewrite /p -cat_adds uniq_cat index_cat; move: (Adds x p1) => xp1.
 rewrite /= negb_orb -!andbA; move/and3P=> [_ Hy _].
-by rewrite (negbE Hy) set11 addn0 take_size_cat.
+by rewrite (negbET Hy) set11 addn0 take_size_cat.
 Qed.
 
 Lemma right_arc : forall x y p1 p2, let p := Adds x (cat p1 (Adds y p2)) in
@@ -629,7 +630,7 @@ Lemma rot_to_arc : forall p x y,
   uniq p -> p x -> p y -> x != y -> rot_to_arc_spec p x y.
 Proof.
 move=> p x y Up Hx Hy Hxy; case: (rot_to Hx) (Hy) (Up) => [i p' Dp] Hy'.
-rewrite -(mem_rot i) (Dp) /= /setU1 (negbE Hxy) in Hy'; rewrite -(uniq_rot i) Dp.
+rewrite -(mem_rot i) (Dp) /= /setU1 (negbET Hxy) in Hy'; rewrite -(uniq_rot i) Dp.
 case/splitPr: p' / Hy' Dp => [p1 p2] Dp Up'; exists i p1 p2; auto.
   by rewrite -(arc_rot Up Hx i) Dp (left_arc Up').
 by rewrite -(arc_rot Up Hy i) Dp (right_arc Up').

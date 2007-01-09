@@ -71,7 +71,7 @@ move/orP => [H | H].
   rewrite {1}(Rec y) //.
   elim: s {HH2 Rec Hy}HH1 => [|a1 s Rec] //=.
   rewrite {1 2}/setU1 negb_orb; move/andP => [H H1].
-  by rewrite eq_sym (negbE H) //= -Rec. 
+  by rewrite eq_sym (negbET H) //= -Rec. 
 case Eq1: (mem x a); last by apply: Rec.
 case/negP: HH1.
 by exact: (powerSeq_subset H).
@@ -125,25 +125,25 @@ exact (Adds (EqSig _ _ F1) (liftp l2 F2)).
 Defined.
 
 Lemma size_liftp: forall (l1:seq d) (H: sub_set l1 l), 
-  size (liftp H) = size l1.
+  size (liftp l1 H) = size l1.
 Proof.
 elim => [| x l2 Rec H] //=.
 by rewrite Rec.
 Qed.
 
 Lemma subd_enumP_aux : forall (l1: seq d) (H: sub_set l1 l) (u: d'),
- uniq l1 ->  count (set1 u) (liftp H)  =  l1 (val u).
+ uniq l1 ->  count (set1 u) (liftp l1 H)  =  l1 (val u).
 Proof.
 elim => [| x l2 Rec H [u Hu]] //=.
 move/andP => [H1 H2].
 rewrite Rec //.
 rewrite -(@val_eqE d l) //= /setU1.
 rewrite eq_sym; case E1: (x == u) => //=.
-by rewrite -(eqP E1) (negbE H1).
+by rewrite -(eqP E1) (negbET H1).
 Qed.
 
-Lemma subd_enumP : forall u: d', 
-  count (set1 u) (liftp (@sub_set_refl _ l))  = 1.
+Lemma subd_enumP : forall (u: d'), 
+  count (set1 u) (liftp l (@sub_set_refl _ l))  = 1.
 Proof.
 move => u.
 replace 1%N with ((l (val u)): nat).
@@ -175,7 +175,7 @@ Let uniq_l := (powerSeq_uniq (uniq_enum d)).
 (*                                                                     *)
 (***********************************************************************)
 
-Definition powerSet := UniqListSet uniq_l.
+Definition powerSet := UniqListSet _ _ uniq_l.
 
 Lemma card_powerSet: card powerSet = 2 ^ (card d).
 Proof.

@@ -82,7 +82,7 @@ case: {2 4 6 8 10 12 14 16}x / {-3}Exx; case: (x =P x) => [E|[]]; auto.
 Qed.
 
 Lemma eq_irrelevance : forall (d : eqType) (x y : d) (E E' : x = y), E = E'.
-Proof. by move=> d x y; case: y / => E; rewrite eq_axiomK. Qed.
+Proof. by move=> d x y; case: y / => E; rewrite [E]eq_axiomK. Qed.
 
 (* Comparison for booleans. *)
 

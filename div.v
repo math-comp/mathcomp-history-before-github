@@ -299,7 +299,7 @@ have:= uniq_divisors p; have{Hn}: all (set2 1 p) (divisors p).
 rewrite /divisors -{3 5 7}[p](addn1 (S n)) iota_add -[1 + _]/p.
 rewrite -(uniq_rot 1) filter_cat /= dvd1n // dvdnn.
 case: filter => //= d s; rewrite -mem_seq2 -(mem_rot 1); case/andP=> Hd _.
-by rewrite -catA mem_cat; case/andP; case/norP=> _; case/idP.
+by rewrite -catA mem_cat; case/andP; case/norP=> _; case/negP.
 Qed.
 Implicit Arguments primeP [p].
 Prenex Implicits primeP.

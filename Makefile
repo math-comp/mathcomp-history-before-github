@@ -119,7 +119,7 @@ all: connect.vo\
   sylow.vo\
   normal.vo\
   baux.vo\
-  leftTranslation.vo\
+  rightTranslation.vo\
   powerSet.vo\
   center.vo\
   frobenius.vo\

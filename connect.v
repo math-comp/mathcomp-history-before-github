@@ -42,14 +42,14 @@ Lemma dfsP : forall n x y (a : seq d), card d <= card a + n ->
 Proof.
 elim=> [|n Hrec] x y a Hn Hy.
 case/idPn: (max_card (setU1 y a)).
-  by rewrite -ltnNge cardU1 (negbE Hy) /= addSn addnC.
+  by rewrite -ltnNge cardU1 (negbET Hy) /= addSn addnC.
 simpl; case Hx: (a x).
-  rewrite (negbE Hy); right; move=> [p Hp Ep Hpa].
+  rewrite (negbET Hy); right; move=> [p Hp Ep Hpa].
   by case/idP: (set0P Hpa x); rewrite /setI /= setU11.
 move Da': (Adds x a) => a'; case Hya': (a' y).
   rewrite (subsetP (subset_dfs n _ _) _ Hya'); left.
   exists (Seq0 d); repeat split; last by rewrite disjoint_has /= Hx.
-  by rewrite -Da' /= in Hya'; case/setU1P: Hya'; last by rewrite (negbE Hy).
+  by rewrite -Da' /= in Hya'; case/setU1P: Hya'; last by rewrite (negbET Hy).
 have Hna': card d <= card a' + n.
   by rewrite -Da' /= cardU1 Hx /= add1n addSnnS.
 move Db: (filter (e x) (enum d)) => b.
@@ -71,7 +71,7 @@ elim: b a' Hya' Hna' {a x Da' Db Hy Hn Hx} => [|x b Hrecb] a Hy Hn /=.
 have Ha := subset_dfs n a (Seq x); simpl in Ha.
 case Hdfs_y: (dfs n a x y).
   rewrite (subsetP (subset_dfs n _ b) _ Hdfs_y); left.
-  exists x; [ apply setU11 | apply: (Hrec _); auto; exact (negbI Hy) ].
+  exists x; [ apply setU11 | apply: (Hrec _); auto; exact (negbT Hy) ].
 have Hca := subset_leq_card Ha; rewrite -(leq_add2r n) in Hca.
 apply: {Hrecb Hca}(iffP (Hrecb _ Hdfs_y (leq_trans Hn Hca))).
   move=> [x' Hx' [p Hp Ep Hpa]]; rewrite disjoint_sym in Hpa.
@@ -82,14 +82,14 @@ case Hpa': (disjoint (Adds x' p) (dfs n a x)).
   case/orP: Hx' => [Dx'|Hx']; last by exists x'; auto; exists p.
   move: (set0P Hpa x') => Hax'; rewrite /setI /= setU11 /= in Hax'.
   case/idP: (set0P Hpa' x'); rewrite /setI /= setU11 /=.
-  apply/(Hrec _ _ _ Hn (negbI Hax')).
+  apply/(Hrec _ _ _ Hn (negbT Hax')).
   exists (Seq0 d); auto; first by apply: eqP.
   by rewrite disjoint_has /= (eqP Dx') Hax'.
-case/(Hrec _ _ _ Hn (negbI Hy)): Hdfs_y.
+case/(Hrec _ _ _ Hn (negbT Hy)): Hdfs_y.
 case/set0Pn: Hpa' => [x'' H]; case/andP: H => [Hpx'' Hdfs_x''].
 have Hax'' := set0P Hpa x''; rewrite /setI (Hpx'') /= in Hax''.
-case/(Hrec _ _ _ Hn (negbI Hax'')): Hdfs_x'' => [q Hq Eq Hqa].
-case/splitPl: {p Hpa'}Hpx'' Hp Ep Hpa => [p1 p2 Ep1].
+case/(Hrec _ _ _ Hn (negbT Hax'')): Hdfs_x'' => [q Hq Eq Hqa].
+case/splitPl: {p}Hpx'' Hp Ep Hpa => [p1 p2 Ep1].
 rewrite path_cat -cat_adds disjoint_cat last_cat Ep1.
 move/andP=> [Hp1 Hp2] Ep2; case/andP=> [Hp1a Hp2a]; exists (cat q p2).
 - by rewrite path_cat Hq Eq.
@@ -156,7 +156,7 @@ Proof.
 move=> x y He; apply introP=> [Hxy|Hxy Hr].
   rewrite /root -(eq_pick (same_connect He Hxy)).
   by case: (pickP (connect x)) => [H|Hx] //; case/idP: (Hx y).
-case/idP: Hxy; apply: (connect_trans (connect_root x)).
+case/negP: Hxy; apply: (connect_trans (connect_root x)).
 rewrite Hr He; apply connect_root.
 Qed.
 

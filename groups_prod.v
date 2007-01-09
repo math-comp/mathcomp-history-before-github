@@ -18,7 +18,7 @@ Require Import fintype.
 Require Import paths.
 Require Import connect.
 Require Import div.
-Require Import  groups.
+Require Import groups.
 
 
 
@@ -46,14 +46,14 @@ Hypothesis group_K: group K.
 Lemma prodg_sym_group: prodg H K =1 prodg K H -> group (prodg H K).
 Proof.
 move => prod_sym; apply/groupP; split.
-  rewrite -(mulg1 1); apply in_prodg; exact: group1.
+  rewrite -(mulg1 1); apply/prodgP; exists (1:G) (1:G)=> //; exact: group1.
 move => x y.
 case/prodgP => x1 y1 Hx1 Hy1 ->. 
 case/prodgP => x2 y2 Hx2 Hy2 ->. 
 rewrite -[(x1 * _) * _]mulgA (mulgA y1).
-have P1: prodg H K (y1 * x2) by rewrite prod_sym in_prodg.
+have P1: prodg H K (y1 * x2) by rewrite prod_sym; apply/prodgP; exists y1 x2.
 case/prodgP: P1 => x3 y3 Hx3 Hy3 ->.
-by rewrite -(mulgA x3) mulgA in_prodg // groupM.
+by rewrite -(mulgA x3) mulgA; apply/prodgP; exists (x1*x3) (y3*y2) => //; rewrite groupM.
 Qed.
 
 Lemma group_prodg_sym: group (prodg H K) -> prodg H K =1 prodg K H.
@@ -61,10 +61,10 @@ Proof.
 move => group_prod z; rewrite [prodg]lock; apply/idP/idP; unlock => H1.
  replace z with (z^-1^-1); last by gsimpl.
  case/prodgP: (groupVr group_prod H1) => x y Hx Hy ->; gsimpl.
- rewrite in_prodg ?groupV //.
+ by apply/prodgP; exists y^-1 x^-1; rewrite ?groupV //.
 rewrite -groupV //.
 case/prodgP: H1 => x y Hx Hy ->; gsimpl.
-rewrite in_prodg ?groupV //.
+apply/prodgP; exists y^-1 x^-1; rewrite ?groupV //.
 Qed.
 
 End SubProd_subgrp.
@@ -108,7 +108,7 @@ have F2: image (g z) (setI H K) =1
     rewrite /preimage /prodf /=; pose a:= (diinv H1).
     case/andP: (a_diinv H1); rewrite -/a => Ha Ka.
     case: (f_diinv H1); rewrite -/a => <- <-.
-    by rewrite /setI /prod_set /=; apply/and3P; split => //; 
+    by rewrite /setI /prod_set /=; apply/and3P; split => //;
        first gsimpl; rewrite groupM // groupV.
   move: H1; case/andP => /= => H1; case/andP => /= => Hx1 Hx2;
   move: H1;rewrite /preimage; rewrite /prodf /=.

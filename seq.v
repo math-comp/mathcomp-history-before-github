@@ -591,12 +591,12 @@ Proof. by move=> *; rewrite -cats1 uniq_catC. Qed.
 Lemma uniq_filter : forall s a, uniq s -> uniq (filter a s).
 Proof.
 move=> s a; elim: s => [|x s Hrec] //=; case/andP=> [Hx Hs]; case (a x); auto.
-by rewrite /= mem_filter /setI (negbE Hx) andbF; auto.
+by rewrite /= mem_filter /setI (negbET Hx) andbF; auto.
 Qed.
 
 Lemma count_set1_uniq : forall s x, uniq s -> count (set1 x) s = s x.
 Proof.
-move=> s x; elim: s => //= [y s IHs]; case/andP; move/negbE=> Hy Us.
+move=> s x; elim: s => //= [y s IHs]; case/andP; move/negbET => Hy Us.
 by rewrite {}IHs {Us}// /setU1 eq_sym; case: eqP => // <-; rewrite Hy.
 Qed.
 
@@ -622,7 +622,7 @@ by elim=> //= [x s IHs]; case Hx: (s x); rewrite //= mem_undup Hx.
 Qed.
 
 Lemma undup_uniq : forall s, uniq s -> undup s = s.
-Proof. by elim=> //= [x s IHs]; case/andP; move/negbE->; move/IHs->. Qed.
+Proof. by elim=> //= [x s IHs]; case/andP; move/negbET->; move/IHs->. Qed.
 
 Lemma ltn_size_undup : forall s, (size (undup s) < size s) = ~~ uniq s.
 Proof.
@@ -1015,7 +1015,7 @@ Proof.
 elim=> [|x s1 Hrec] s2 Hs1 Hs12; first by case s2.
 case: (@rot_to d s2 x); [ by apply: Hs12; apply: setU11 | move=> i s2' Ds2' ].
   rewrite -(size_rot i) -(uniq_rot i) (Ds2') /=; case Hs2': (s2' x).
-  rewrite ltnNge; case/idP; apply: (uniq_leq_size Hs1) => [y Hy].
+  rewrite ltnNge /=; case/negP; apply: (uniq_leq_size Hs1) => [y Hy].
   by move: (Hs12 _ Hy); rewrite -(mem_rot i) Ds2'; case/setU1P=> // [<-].
 simpl in Hs1; move/andP: Hs1 => [Hx Hs1]; apply: Hrec => // [y Hy].
 move: (Hs12 _ (setU1r _ Hy)); rewrite -(mem_rot i) Ds2'; case/setU1P=> //.
@@ -1202,7 +1202,7 @@ Lemma uniq_sieve : forall s, uniq s -> forall m, uniq (sieve m s).
 Proof.
 elim=> [|x s Hrec] /= Hs [|b m] //.
 move/andP: Hs b => [Hx Hs] [|] /=; rewrite {}Hrec // andbT.
-apply/idP => [Hmx]; case/idP: Hx; exact (mem_sieve Hmx).
+apply/negP => [Hmx]; case/negP: Hx; exact (mem_sieve Hmx).
 Qed.
 
 Lemma sieve_rot : forall m s, size m = size s ->
@@ -1310,7 +1310,7 @@ Qed.
 Lemma maps_uniq : forall s, uniq (maps s) -> uniq s.
 Proof.
 elim=> [|x s Hrec] //=; case/andP=> [Hsx Hs]; rewrite (Hrec Hs) andbT.
-by apply/idP => Hx; case/mapsP: Hsx; exists x.
+by apply/negP => Hx; case/mapsP: Hsx; exists x.
 Qed.
 
 Hypothesis Hf : injective f.
@@ -1377,7 +1377,7 @@ Fixpoint subfilter (s : seq d) : seq (sub_eqType a) :=
 
 Lemma val_subfilter : forall s, maps val (subfilter s) = filter a s.
 Proof.
-by elim=> //= [x s <-]; case: insubP => /= [_ -> -> // |]; move/negbE->.
+by elim=> //= [x s <-]; case: insubP => /= [_ -> -> // |]; move/negbET->.
 Qed.
 
 Lemma size_subfilter : forall s, size (subfilter s) = count a s.

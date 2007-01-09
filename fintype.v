@@ -198,7 +198,7 @@ Lemma subsetP : forall a b, reflect (sub_set a b) (subset a b).
 Proof.
 move=> a b; rewrite /subset /disjoint /setI /setC.
 apply: (iffP (set0P _)).
-  by move=> Hab x Ha; apply negbEf; rewrite -(Hab x) Ha.
+  by move=> Hab x Ha; apply negbEF; rewrite -(Hab x) Ha.
 by move=> Hab x; case Ha: (a x); try rewrite (Hab _ Ha).
 Qed.
 
@@ -527,7 +527,7 @@ move=> [x1 x2]; rewrite -[1]/(d1 x1 : nat) -mem_enum /prod_enum.
 elim: (enum d1) (uniq_enum d1) => [|y1 s1 Hrec] //=; move/andP=> [Hy1 Hs1].
 rewrite count_cat {Hrec Hs1}(Hrec Hs1) count_maps /setU1 /comp.
 case Hx1: (y1 == x1) => /=.
-  rewrite (eqP Hx1) in Hy1; rewrite (negbE Hy1) (eqP Hx1) addn0 -(card1 x2).
+  rewrite (eqP Hx1) in Hy1; rewrite (negbET Hy1) (eqP Hx1) addn0 -(card1 x2).
   by apply: eq_count => y2; rewrite {1}/set1 /= set11.
 rewrite addnC -{2}(addn0 (s1 x1)) -(card0 d2); congr addn.
 by apply: eq_count => y; rewrite eq_sym /set1 /= Hx1.
@@ -578,7 +578,7 @@ elim: (enum index) (uniq_enum index) => [|j s Hrec] //=; case/andP=> [Hj Hs].
 rewrite count_cat addnC /= {Hrec Hs}[count _ _](Hrec Hs) addnC.
 rewrite count_filter filter_maps size_maps /= /setU1 -count_filter.
 case Hi: (j == i); rewrite /= /comp.
-  rewrite (eqP Hi) in Hj; rewrite (negbE Hj) (eqP Hi) /= addn0 -(card1 x).
+  rewrite (eqP Hi) in Hj; rewrite (negbET Hj) (eqP Hi) /= addn0 -(card1 x).
   apply: eq_count => y; exact: sum_eq_tagged.
 rewrite addnC -{2}(addn0 (s i)) -(card0 (dom_at j)); congr addn.
 by apply: eq_count => y; apply/nandP; left; rewrite /= eq_sym Hi.
@@ -841,7 +841,7 @@ case/andP => Hu1 Hu2.
 case E1: (a x1) => //= H1; last exact: Hrec.
 have F1: forall x, filter a s1 x -> N x = l.
   by move => x Hx; apply: H1; rewrite /setU1 Hx orbT.
-by rewrite Hrec // cardU1 H ?E1 // mem_filter /setI (negbE Hu1)
+by rewrite Hrec // cardU1 H ?E1 // mem_filter /setI (negbET Hu1)
            andbF. 
 Qed.
 
