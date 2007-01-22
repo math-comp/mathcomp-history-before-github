@@ -18,6 +18,7 @@ Require Import fintype.
 Require Import paths.
 Require Import connect.
 Require Import div.
+Require Import tuple.
 Require Import groups.
 
 
@@ -33,7 +34,7 @@ Variable G: finGroupType.
 
 Section SubProd_subgrp.
 
-Variables (H K : set G).
+Variables (H K : setType G).
 Hypothesis group_H: group H.
 Hypothesis group_K: group K.
 
@@ -69,7 +70,7 @@ Qed.
 
 End SubProd_subgrp.
 
-Variables (H K : set G).
+Variables (H K : setType G).
 Hypothesis group_H: group H.
 Hypothesis group_K: group K.
 
@@ -87,7 +88,7 @@ Open Scope group_scope.
 
 Variable G: finGroupType.
 
-Variables (H K : set G).
+Variables (H K : setType G).
 Hypothesis group_H: group H.
 Hypothesis group_K: group K.
 

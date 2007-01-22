@@ -495,7 +495,7 @@ Qed.
 
 Lemma filter_set0 : forall s, filter set0 s = seq0. Proof. by elim. Qed.
 
-Lemma filter_setA : forall s, filter d s = s.
+Lemma filter_setA : forall s, filter (setA d) s = s.
 Proof. by elim=> [|x s Hrec] //=; rewrite Hrec. Qed.
 
 Lemma filter_setI : forall a1 a2 s,
@@ -508,7 +508,7 @@ Qed.
 Lemma count_set0 : forall s, count set0 s = 0.
 Proof. by move=> s; rewrite count_filter filter_set0. Qed.
 
-Lemma count_setA : forall s, count d s = size s.
+Lemma count_setA : forall s, count (setA d) s = size s.
 Proof. by move=> s; rewrite count_filter filter_setA. Qed.
 
 Lemma count_setUI : forall a1 a2 s,
@@ -527,7 +527,7 @@ Qed.
 Lemma has_set0 : forall s, has set0 s = false.
 Proof. by move=> s; rewrite has_count count_set0. Qed.
 
-Lemma has_setA : forall s, has d s = (0 < size s).
+Lemma has_setA : forall s, has (setA d) s = (0 < size s).
 Proof. by move=> s; rewrite has_count count_setA. Qed.
 
 Lemma has_setC : forall a s, has (setC a) s = ~~ all a s.
@@ -541,7 +541,7 @@ Qed.
 Lemma all_set0 : forall s, all set0 s = (size s == 0).
 Proof. by move=> *; rewrite all_count count_set0 eq_sym. Qed.
 
-Lemma all_setA : forall s, all d s = true.
+Lemma all_setA : forall s, all (setA d) s = true.
 Proof. by move=> *; rewrite all_count count_setA set11. Qed.
 
 Lemma all_setC : forall a s, all (setC a) s = ~~ has a s.

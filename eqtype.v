@@ -172,7 +172,9 @@ Prenex Implicits set1f set2 set3 set4 setU setD setD1 setI setC setC1.
 
 Notation set0 := (fun _ : EqType.sort _ => false).
 
-Coercion setA (d : eqType) : set d := fun x : d => true.
+(* Coercion setA (d : eqType) : set d := fun x : d => true. *)
+Definition setA (d : eqType) : set d := fun x : d => true.
+Implicit Arguments setA []. 
 
 Identity Coercion membership : set >-> Funclass.
 

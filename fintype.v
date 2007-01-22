@@ -57,7 +57,7 @@ Section FiniteSet.
 
 Variable d : finType.
 
-Lemma mem_enum : enum d =1 d.
+Lemma mem_enum : enum d =1 (setA d).
 Proof. by move=> x; rewrite -has_set1 has_count FinType.enumP. Qed.
 
 Lemma filter_enum : forall a : set d, filter a (enum d) =1 a.
@@ -108,12 +108,12 @@ Proof. move=> a b _ <-; exact: eq_card. Qed.
 
 Lemma card0 : card set0 = 0. Proof. exact: count_set0. Qed.
 
-Lemma cardA : card d = size (enum d). Proof. exact: count_setA. Qed.
+Lemma cardA : card (setA d) = size (enum d). Proof. exact: count_setA. Qed.
 
 Lemma eq_card0 : forall a, a =1 set0 -> card a = 0.
 Proof. by have:= eq_card_trans card0. Qed.
 
-Lemma eq_cardA : forall a, a =1 d -> card a = size (enum d).
+Lemma eq_cardA : forall a, a =1 (setA d) -> card a = size (enum d).
 Proof. by have:= eq_card_trans cardA. Qed.
 
 Lemma card1 : forall x, card (set1 x) = 1.
@@ -129,7 +129,7 @@ by move=> b a; apply: etrans _ (add0n _); rewrite -cardUI addnC -card0;
    case (a x); case (b x).
 Qed.
 
-Lemma cardC : forall a, card a + card (setC a) = card d.
+Lemma cardC : forall a, card a + card (setC a) = card (setA d).
 Proof. move=> a; apply: etrans (esym cardA); exact: count_setC. Qed.
 
 Lemma cardU1 : forall x a, card (setU1 x a) = negb (a x) + card a.
@@ -147,7 +147,7 @@ move=> x y /=; apply: (etrans (cardU1 x (set1 y))).
 by rewrite card1 addn1 eq_sym.
 Qed.
 
-Lemma cardC1 : forall x, card (setC1 x) = pred (card d).
+Lemma cardC1 : forall x, card (setC1 x) = pred (card (setA d)).
 Proof. by move=> x; rewrite -(cardC (set1 x)) card1. Qed.
 
 Lemma cardD1 : forall x a, card a = a x + card (setD1 a x).
@@ -158,7 +158,7 @@ symmetry; apply: etrans (congr1 (addn _) _) (cardC _).
 by apply: eq_card => y; rewrite /setC /setU1 /setD1 negb_andb negb_elim.
 Qed.
 
-Lemma max_card : forall a, card a <= card d.
+Lemma max_card : forall a, card a <= card (setA d).
 Proof. move=> a; rewrite -(cardC a); apply: leq_addr. Qed.
 
 Lemma card_size : forall s : seq d, card s <= size s.
@@ -222,10 +222,10 @@ Proof.
 by move=> b b' Ebb' a; congr eqn; apply: eq_card => x; rewrite /setI /setC Ebb'.
 Qed.
 
-Lemma subset_setA : forall a, subset a d.
+Lemma subset_setA : forall a, subset a (setA d).
 Proof. by move=> a; apply/subsetP. Qed.
 
-Lemma subsetA : forall a, subset d a -> forall x, a x.
+Lemma subsetA : forall a, subset (setA d) a -> forall x, a x.
 Proof. move=> a; move/subsetP=> Ha x; auto. Qed.
 
 Lemma subset_eqP : forall a b, reflect (a =1 b) (subset a b && subset b a).
@@ -481,7 +481,7 @@ Definition ordinal := FinType ord_enumP.
 Lemma ordinal_ltn : forall x : ordinal, val x < n.
 Proof. by case. Qed.
 
-Lemma card_ordinal : card ordinal = n.
+Lemma card_ordinal : card (setA ordinal) = n.
 Proof.
 rewrite cardA -(size_iota 0 n) /= /ord_enum size_subfilter.
 by apply/eqP; rewrite -all_count; apply/allP=> p; rewrite mem_iota.
@@ -506,10 +506,10 @@ Qed.
 
 Canonical Structure sub_finType := FinType sub_enumP.
 
-Lemma card_sub : card sub_finType = card a.
+Lemma card_sub : card (setA sub_finType) = card a.
 Proof. by rewrite cardA /= /sub_enum size_subfilter. Qed.
 
-Lemma eq_card_sub : forall b, b =1 sub_finType -> card b = card a.
+Lemma eq_card_sub : forall b, b =1 (setA sub_finType) -> card b = card a.
 Proof. by have:= eq_card_trans card_sub. Qed.
 
 End SubFinType.
@@ -523,7 +523,7 @@ Definition prod_enum :=
 
 Lemma prod_enumP : forall u, count (set1 u) prod_enum = 1.
 Proof.
-move=> [x1 x2]; rewrite -[1]/(d1 x1 : nat) -mem_enum /prod_enum.
+move=> [x1 x2]; rewrite -[1]/((setA d1) x1 : nat) -mem_enum /prod_enum.
 elim: (enum d1) (uniq_enum d1) => [|y1 s1 Hrec] //=; move/andP=> [Hy1 Hs1].
 rewrite count_cat {Hrec Hs1}(Hrec Hs1) count_maps /setU1 /comp.
 case Hx1: (y1 == x1) => /=.
@@ -535,13 +535,13 @@ Qed.
 
 Definition prod_finType := FinType prod_enumP.
 
-Lemma card_prod : card prod_finType = card d1 * card d2.
+Lemma card_prod : card (setA prod_finType) = card (setA d1) * card (setA d2).
 Proof.
 rewrite !cardA /= /prod_enum; elim: (enum d1) => [|x1 s1 IHs] //=.
 by rewrite size_cat {}IHs size_maps.
 Qed.
 
-Lemma eq_card_prod : forall b, b =1 prod_finType -> card b = card d1 * card d2.
+Lemma eq_card_prod : forall b, b =1 (setA prod_finType) -> card b = card (setA d1) * card (setA d2).
 Proof. by have:= eq_card_trans card_prod. Qed.
 
 Variable a1: set d1.
@@ -573,7 +573,7 @@ Fixpoint sum_enum (si : seq index) : seq d :=
 
 Lemma sum_enumP : forall u, count (set1 u) (sum_enum (enum index)) = 1.
 Proof.
-move=> [i x]; rewrite -[1]/(index i : nat) -mem_enum.
+move=> [i x]; rewrite -[1]/((setA index) i : nat) -mem_enum.
 elim: (enum index) (uniq_enum index) => [|j s Hrec] //=; case/andP=> [Hj Hs].
 rewrite count_cat addnC /= {Hrec Hs}[count _ _](Hrec Hs) addnC.
 rewrite count_filter filter_maps size_maps /= /setU1 -count_filter.
@@ -587,7 +587,7 @@ Qed.
 Definition sum_finType := FinType sum_enumP.
 
 Lemma card_sum :
-  card sum_finType = foldr (fun i m => card (dom_at i) + m) 0 (enum index).
+  card (setA sum_finType) = foldr (fun i m => card (setA (dom_at i)) + m) 0 (enum index).
 Proof.
 rewrite cardA /=; elim: (enum index) => //= [i s <-].
 by rewrite size_cat size_maps.
@@ -600,7 +600,7 @@ End SumFinType.
 Section BijectionCard.
 
 Lemma can_card_leq :  forall (d d' : finType) (f : d -> d') (g : d' -> d),
-  cancel f g -> card d <= card d'.
+  cancel f g -> card (setA d) <= card (setA d').
 Proof.
 move=> d d' f g Hfg; rewrite (cardA d') -(size_maps g).
 apply: (leq_trans (subset_leq_card _) (card_size _)).
@@ -608,13 +608,13 @@ by apply/subsetP => x _; apply/mapsP; exists (f x); rewrite ?mem_enum.
 Qed.
 
 Lemma bij_eq_card_setA : forall d d' : finType,
-  (exists f : d -> d', bijective f) -> card d = card d'.
+  (exists f : d -> d', bijective f) -> card (setA d) = card (setA d').
 Proof.
 move=> d d' [f [g Hfg Hgf]]; apply: eqP.
 by rewrite eqn_leq (can_card_leq Hfg) (can_card_leq Hgf).
 Qed.
 
-Lemma eq_card_setA : forall d d' : finType, d = d' :> Type -> card d = card d'.
+Lemma eq_card_setA : forall d d' : finType, d = d' :> Type -> card (setA d) = card (setA d').
 Proof.
 move=> d [[d' eqd' eqd'P] ed' Hed'] Hdd'; simpl in Hdd'.
 case: d' / Hdd' in eqd' eqd'P ed' Hed' *.
@@ -626,7 +626,7 @@ Lemma bij_eq_card : forall (d d' : finType) (a : set d) (a' : set d'),
 Proof. by move=> d d' a a'; move/bij_eq_card_setA; rewrite !card_sub. Qed.
 
 Lemma assoc_finType_default : forall d1 d2 : finType,
-  card d1 = card d2 -> d1 -> d2.
+  card (setA d1) = card (setA d2) -> d1 -> d2.
 Proof.
 rewrite /card => d1 d2 Ed12 x1.
 by case: (enum d2) Ed12; first case: (enum d1) (mem_enum x1).
@@ -645,7 +645,7 @@ by rewrite -cardA Ed21 cardA index_mem mem_enum.
 Qed.
 
 Lemma eq_card_setA_bij : forall d1 d2 : finType,
-  card d1 = card d2 -> {f : d1 -> d2 &  {g : d2 -> d1 | cancel f g &  cancel g f}}.
+  card (setA d1) = card (setA d2) -> {f : d1 -> d2 &  {g : d2 -> d1 | cancel f g &  cancel g f}}.
 Proof.
 move=> d d' E12; exists (assoc_finType E12).
 exists (assoc_finType (esym E12)); exact: assoc_finTypeK.
@@ -688,9 +688,9 @@ exists (fun w => EqSig a _ (Hf1 w)); exists (fun w => EqSig (image f a) _ (Hf2 w
 by move=> [x Hx]; apply: val_inj; rewrite /= iinv_f.
 Qed.
 
-Lemma card_codom : card (codom f) = card d.
+Lemma card_codom : card (codom f) = card (setA d).
 Proof.
-apply: etrans (card_image d); apply: eq_card => x'.
+apply: etrans (card_image (setA d)); apply: eq_card => x'.
 apply/idPn/idP; last exact: image_codom.
 by move=> Hx; rewrite -(f_iinv Hx) image_f.
 Qed.

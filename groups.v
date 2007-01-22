@@ -177,41 +177,41 @@ Open Scope group_scope.
 
 Variable g : finGroupType.
 
-Variable h : set g.
+Variable h : setType g.
 
 (* Cosets *)
 
-Definition lcoset x : set g := fun y => h (x^-1 * y).
-Definition rcoset x : set g := fun y => h (y * x^-1).
+Definition lcoset x : setType g := {y, h (x^-1 * y)}.
+Definition rcoset x : setType g := {y, h (y * x^-1)}.
 
 Lemma lcosetP : forall y z, reflect (exists2 x, h x & z = y * x) (lcoset y z).
 Proof.
-move=> y z; apply: (iffP idP) => [Hx | [x Hx ->]]; last by rewrite /lcoset mulKg.
-by exists (y^-1 * z); last rewrite /lcoset mulKgv.
+move=> y z; apply: (iffP idP) => [Hx | [x Hx ->]]; last by rewrite s2f mulKg.
+by exists (y^-1 * z); last rewrite mulKgv; rewrite s2f in Hx.
 Qed.
 
 Lemma rcosetP : forall y z, reflect (exists2 x, h x & z = x * y) (rcoset y z).
 Proof.
-move=> y z; apply: (iffP idP) => [Hx | [x Hx ->]]; last by rewrite /rcoset mulgK.
-by exists (z * y^-1); last rewrite /rcoset mulgKv.
+move=> y z; apply: (iffP idP) => [Hx | [x Hx ->]]; last by rewrite s2f mulgK.
+by exists (z * y^-1); last rewrite mulgKv; rewrite s2f in Hx.
 Qed.
 
 (* product *)
 
 Section Prodg.
 
-Variable k : set g.
+Variable k : setType g.
 
-Definition prodg : set g := fun z => ~~ disjoint k (fun y => rcoset y z).
+Definition prodg : setType g := {z, ~~ disjoint k {y, rcoset y z}}.
 
 CoInductive mem_prodg (z : g) : Prop :=
   MemProdg x y : h x -> k y -> z = x * y -> mem_prodg z.
 
 Lemma prodgP : forall z, reflect (mem_prodg z) (prodg z).
 Proof.
-move=> z; apply: (iffP set0Pn) => [[y]|[x y Hx Hy ->]].
-  by case/andP=> Hy; case/rcosetP=> x *; exists x y.
-by exists y; rewrite /setI Hy; apply/rcosetP; exists x.
+move => z; rewrite s2f; apply: (iffP set0Pn) => [[y]|[x y Hx Hy ->]].
+  by rewrite /setI s2f;case/andP=> Hy; case/rcosetP=> x *; exists x y.
+by exists y; rewrite /setI s2f Hy; apply/rcosetP; exists x.
 Qed.
 
 End Prodg.
@@ -270,7 +270,7 @@ Defined.
 Lemma pos_card_group : 0 < card h.
 Proof. rewrite lt0n; apply/set0Pn; exists (1 : g); exact: group1. Qed.
 
-Lemma prodg_subr : forall k, subset k (prodg k).
+Lemma prodg_subr : forall k : setType g, subset k (prodg k).
 Proof. 
 move=> k; apply/subsetP=> x Hx; apply/prodgP.
 by exists (1 : g) x; [exact group1 | | rewrite mul1g].
@@ -288,7 +288,7 @@ Section ConjugationSet.
 Open Scope group_scope.
 
 Variable g: finGroupType.
-Variable H : set g.
+Variable H : setType g.
 Hypothesis group_H  :group H.
 
 
@@ -296,43 +296,43 @@ Hypothesis group_H  :group H.
 
 
 (* x^-1 * y * x belongs to H *)
-Definition conjsg x y := H (y ^g x).
+Definition conjsg x := {y, H (y ^g x)}.
 
 Theorem conjsgE : forall x y, conjsg x y = H (y ^g x).
-Proof. done. Qed.
+Proof. by move => *; rewrite s2f. Qed.
 
 Theorem conjsg1: forall x, conjsg x 1.
-Proof. by move=> x; rewrite/conjsg conj1g; apply: group1. Qed.
+Proof. by move=> x; rewrite s2f conj1g; apply: group1. Qed.
 
 Theorem conjs1g: forall x, conjsg 1 x = H x.
-Proof. by move=> x; rewrite/conjsg conjg1. Qed.
+Proof. by move=> x; rewrite s2f conjg1. Qed.
 
 Theorem conjsg_inv: forall x y, conjsg x y -> conjsg x y^-1.
-Proof. move=> x y; rewrite/conjsg  conjg_invg; exact: groupVr. Qed.
+Proof. move=> x y; rewrite !s2f conjg_invg; exact: groupVr. Qed.
 
 Theorem conjsg_conj: forall x y z, conjsg (x * y) z = conjsg y (z ^g x).
-Proof. by move=> x y z;rewrite/conjsg conjg_conj. Qed.
+Proof. by move=> x y z;rewrite !s2f conjg_conj. Qed.
 
 Theorem conjsg_subgrp: forall x, group (conjsg x).
 Proof. 
   move=> x.
   apply/andP; split; first by apply: conjsg1.
-  apply/subsetP=> z; case/prodgP=> x1 x2 Hx1 Hx2 ->{z};rewrite /conjsg conjg_mul.
-  exact: groupM. 
+  apply/subsetP=> z; case/prodgP=> x1 x2 Hx1 Hx2 ->{z};rewrite /conjsg !s2f conjg_mul.
+  rewrite !s2f in Hx1 Hx2; exact: groupM. 
 Qed.
 
 (*  y in xHx^-1 iff x^-1yx is in H    *)
 Theorem conjsg_image: forall y,
   conjsg y =1 image (conjg y^-1) H.
 Proof.
-  move=> y x; rewrite {2} (_:x = conjg y^-1 (conjg y x )).
+  move=> y x; rewrite {2} (_:x = conjg y^-1 (conjg y x )) ?s2f.
     rewrite/conjsg image_f; by [rewrite /conjg | apply conjg_inj].
   by rewrite conjgK.
 Qed.
 
 Theorem conjsg_inv1: forall x,
   (conjsg x) =1 H -> (conjsg x^-1) =1 H.
-Proof. move=> x Hx y; by rewrite -conjs1g -(mulVg x) conjsg_conj Hx. Qed.
+Proof. by move=> x Hx y; rewrite -conjs1g -(mulVg x) conjsg_conj Hx s2f. Qed.
 
 Theorem conjsg_card: forall x,
   card (conjsg x) = card H.
@@ -341,21 +341,28 @@ Proof. move=>x; rewrite (eq_card (conjsg_image x)); apply card_image; exact: con
 End ConjugationSet.
 
 
-Theorem eq_conjsg: forall (G:finGroupType) a b (x: G),
+Theorem eq_conjsg: forall (G:finGroupType) (a b:setType G) (x: G),
   a =1 b -> conjsg a x =1 conjsg b x.
-Proof. by move=> G a b x H0 y; rewrite/(conjsg G) H0. Qed.
+Proof. by move=> G a b x H0 y; rewrite (iset_eq H0). Qed.
+(* rewrite/(conjsg G) H0. *)
 
 
-Lemma group_of_type : forall g : finGroupType, group g.
-Proof. move=> g; exact/subsetP. Qed.
+Definition group_of_type := fun g : finGroupType => {x:g,true}.
 
-Coercion group_of_type : finGroupType >-> is_true.
+(*
+Proof.  
+by move=> g; rewrite /group s2f /=; apply/subsetP => w; rewrite !s2f.
+Qed.
+*)
+
+Coercion group_of_type : finGroupType >-> setType.
+
 
 Hint Resolve pos_card_group.
 
 Section LaGrange.
 
-Variables (g : finGroupType) (h k : set g).
+Variables (g : finGroupType) (h k : setType g).
 Hypothesis Hh : group h.
 Hypothesis Hk : group k.
 Hypothesis Hhk : subset h k.
@@ -370,43 +377,58 @@ by exists x (1 : g); [ | exact: group1 | rewrite mulg1].
 Qed.
 
 Lemma rcoset_refl : forall x, rcoset h x x.
-Proof. by move=> x; rewrite /rcoset mulgV group1. Qed.
+Proof. by move=> x; rewrite /rcoset s2f mulgV group1. Qed.
 
 Lemma rcoset_sym : forall x y, rcoset h x y = rcoset h y x.
-Proof. by move=> *; apply/idP/idP; move/(groupVr Hh); rewrite invg_mul invgK. Qed.
+Proof. by move=> *; apply/idP/idP; rewrite !s2f; move/(groupVr Hh); rewrite invg_mul invgK. Qed.
 
 Lemma rcoset_trans : forall x y z, rcoset h x y -> rcoset h y z -> rcoset h x z.
-Proof. by move=> x y z Hxy; rewrite /rcoset -(groupMr Hh _ Hxy) -mulgA mulKg. Qed.
+Proof. by move=> x y z Hxy; rewrite s2f in Hxy; rewrite !s2f -(groupMr Hh _ Hxy) -mulgA mulKg. Qed.
 
 Lemma rcoset_trans1 : forall x y, rcoset h x y -> rcoset h x =1 rcoset h y.
-Proof. by move=> x y Hxy u; rewrite /rcoset -{1}(mulgKv y u) -mulgA groupMr. Qed.
+Proof. by move=> x y Hxy u; rewrite s2f in Hxy; rewrite !s2f -{1}(mulgKv y u) -mulgA groupMr. Qed.
 
 Lemma rcoset_trans1r : forall x y, 
   rcoset h x y -> forall z, rcoset h z x = rcoset h z y.
 Proof. move=> x y Hxy z; rewrite !(rcoset_sym z) //; exact: rcoset_trans1. Qed.
 
 Lemma connect_rcoset : connect (rcoset h) =2 rcoset h.
-Proof.
-move=> x y; apply/idP/idP; [move/connectP=> [p Hp <- {y}] | exact: connect1].
-elim: p x Hp => [|y p IHp] x /=; first by rewrite rcoset_refl.
-case/andP=> Hxy; move/IHp; exact: rcoset_trans.
+Proof. Print connect.connect.
+move=> x y; apply/idP/idP. 
+  move/connectP=> [p Hp <- {y}].
+  elim: p x Hp => [|y p IHp] x /=; first by rewrite rcoset_refl.
+  case/andP=> Hxy; move/IHp; exact: rcoset_trans.
+by rewrite s2f => H; apply: connect1; rewrite s2f.
 Qed.
 
 Lemma rcoset_csym : connect_sym (rcoset h).
 Proof. by move=> x y; rewrite !connect_rcoset rcoset_sym. Qed.
 
 Lemma rcoset1 : rcoset h 1 =1 h.
-Proof. by move=> x; rewrite /rcoset invg1 mulg1. Qed.
+Proof. by move=> x; rewrite s2f invg1 mulg1. Qed.
 
 Lemma card_rcoset : forall x, card (rcoset h x) = card h.
 Proof.
-move=> x; apply: etrans (card_preimage (mulg_injr x^-1) _) _; apply: eq_card=> y.
+move => x. 
+have:= (card_preimage (mulg_injr x^-1) h).
+cut (card (rcoset (g:=g) h x)=card (preimage (fun y : g => y * x^-1) h)).
+cut (card (setI (codom (fun y : g => y * x^-1)) h)=card h).
+move => H1 H2 H3.
+by rewrite -H1 H2.
+apply: eq_card=> y.
+rewrite /setI andbC; case Hy: (h y) => //=; apply/set0Pn; exists (y * x).
+by rewrite /preimage mulgK set11.
+by apply: eq_card => w; rewrite /preimage s2f.
+Qed.
+(* etrans: unable to make it work :(
+move=> x; apply: etrans (card_preimage (mulg_injr x^-1) _) _. apply: eq_card=> y.
 rewrite /setI andbC; case Hy: (h y) => //=; apply/set0Pn; exists (y * x).
 by rewrite /preimage mulgK set11.
 Qed.
+*)
 
 Lemma closed_rcoset : closed (rcoset h) k.
-Proof. by move=> x y; move/HhkP => Hy; rewrite -(mulgKv x y) groupMl. Qed.
+Proof. by move=> x y /=; rewrite s2f; move/HhkP => Hy; rewrite -(mulgKv x y) groupMl. Qed.
 
 Definition indexg := n_comp (rcoset h).
 
@@ -417,21 +439,25 @@ Theorem LaGrange : (card h * indexg k)%N = card k.
 Proof.
 pose a x := roots (rcoset h) x && k x.
 pose dha := prod_finType (sub_finType h) (sub_finType a); pose dk := sub_finType k.
-suff: card dha = card dk by rewrite /dha card_prod /dk !card_sub.
+suff: card (setA dha) = card (setA dk) by rewrite /dha card_prod /dk !card_sub. 
 have Hf: forall u : dha, k (let: EqPair ux uy := u in val ux * val uy).
-  move=> [[x Hx] [y Hy]] /=; case/andP: Hy => _; move/HhkP: Hx; exact: groupM.
+  move=> [[x Hx] [y Hy]] /=; case/andP: Hy => _;move/HhkP: Hx; exact: groupM.
 have Hf'a: forall u : dk, a (root (rcoset h) (val u)).
   move=> [z Hz]; rewrite /= /a (roots_root rcoset_csym).
   by rewrite -(closed_connect closed_rcoset (connect_root _ _)).
-have Hf'h: forall u : dk, rcoset h (root (rcoset h) (val u)) (val u).
-  by move=> u; rewrite rcoset_sym rcoset_root.
+have Hf'h: forall u : dk,
+  h ((val u) * (root (fun x : g => {y0 : g, h (y0 * x^-1)}) (val u))^-1).
+  move => u.
+  have tmp: rcoset h (root (rcoset h) (val u)) (val u).
+    by rewrite rcoset_sym rcoset_root.
+  by rewrite s2f in tmp.
 apply: bij_eq_card_setA; exists (fun u => EqSig k _ (Hf u)).
-pose f' u := EqPair (EqSig h _ (Hf'h u)) (EqSig a _ (Hf'a u)).
+pose f' u := (EqPair (EqSig h _ (Hf'h u)) (EqSig a _ (Hf'a u)):prod_finType _ _).
 exists f' => [[[x Hx] [y Hy]] | [z Hz]]; last by apply: val_inj; exact: mulgKv.
 apply/eqP; do 2!rewrite /set1 /=; case/andP: Hy; move/eqP=> Dy _.
 suff ->: root (rcoset h) (x * y) = y by rewrite mulgK !set11.
 rewrite -{2}Dy; apply/(rootP rcoset_csym); apply connect1.
-by rewrite /rcoset invg_mul mulKgv groupV.
+by rewrite s2f invg_mul mulKgv groupV.
 Qed.
 
 Lemma group_dvdn : dvdn (card h) (card k).
@@ -441,10 +467,10 @@ Lemma group_divn : divn (card k) (card h) = indexg k.
 Proof. by rewrite -LaGrange // divn_mulr; auto. Qed.
 
 Lemma lcoset_inv : forall x y, lcoset h x y = rcoset h x^-1 y^-1.
-Proof. by move=> x y; rewrite /rcoset -invg_mul groupV. Qed.
+Proof. by move=> x y; rewrite !s2f -invg_mul groupV. Qed.
 
 Lemma lcoset_refl : forall x, lcoset h x x.
-Proof. by move=> x; rewrite /lcoset mulVg group1. Qed.
+Proof. by move=> x; rewrite s2f mulVg group1. Qed.
 
 Lemma lcoset_sym : forall x y, lcoset h x y = lcoset h y x.
 Proof. by move=> x y; rewrite !lcoset_inv rcoset_sym. Qed.
@@ -454,16 +480,17 @@ Proof. move=> x y z; rewrite !lcoset_inv; exact: rcoset_trans. Qed.
 
 Lemma connect_lcoset : connect (lcoset h) =2 lcoset h.
 Proof.
-move=> x y; apply/idP/idP; [move/connectP=> [p Hp <- {y}] | exact: connect1].
-elim: p x Hp => [|y p IHp] x /=; first by rewrite lcoset_refl.
-case/andP=> Hxy; move/IHp; exact: lcoset_trans.
+move=> x y; apply/idP/idP; (*rewrite !s2f ;*) [move/connectP=> [p Hp <- {y}] |]; last first. 
+  by rewrite s2f; move => *; apply: connect1; rewrite s2f.
+elim: p x Hp => [|y p IHp] x /=; first by rewrite s2f mulVg // group1.
+by case/andP=> Hxy; move/IHp; apply: lcoset_trans.
 Qed.
 
 Lemma lcoset_csym : connect_sym (lcoset h).
 Proof. by move=> x y; rewrite !connect_lcoset lcoset_sym. Qed.
 
 Lemma lcoset1 : lcoset h 1 =1 h.
-Proof. by move=> x; rewrite /lcoset invg1 mul1g. Qed.
+Proof. by move=> x; rewrite s2f invg1 mul1g. Qed.
 
 Lemma card_lcoset : forall x, card (lcoset h x) = card h.
 Proof.
@@ -473,7 +500,7 @@ Qed.
 
 Lemma closed_lcoset : closed (lcoset h) k.
 Proof.
-by move=> x y; rewrite lcoset_inv; move/closed_rcoset; rewrite !groupV.
+by move=> x y /=; rewrite lcoset_inv; move/closed_rcoset; rewrite !groupV.
 Qed.
 
 Lemma lcoset_indexg : n_comp (lcoset h) k = indexg k.
@@ -482,7 +509,7 @@ rewrite (adjunction_n_comp invg lcoset_csym rcoset_csym closed_lcoset).
   by apply: eq_n_comp_r => x; rewrite /preimage groupV.
 apply: (strict_adjunction rcoset_csym closed_lcoset (@invg_inj _)).
   by apply/subsetP=> x _; rewrite -(invgK x) codom_f.
-by move=> x y _; rewrite lcoset_inv !invgK.
+by move=> x y _ /=; rewrite lcoset_inv !invgK.
 Qed.
 
 End LaGrange.
@@ -494,24 +521,26 @@ Open Scope group_scope.
 
 Variable g : finGroupType.
 
-Lemma eq_lcoset : forall a1 a2 : set g, a1 =1 a2 -> lcoset a1 =2 lcoset a2.
-Proof. move=> a1 a2 Da x y; exact: Da. Qed.
+Lemma eq_lcoset : forall a1 a2 : setType g, a1 =1 a2 -> lcoset a1 =2 lcoset a2.
+Proof. move=> a1 a2 Da x y /=; rewrite !s2f; exact: Da. Qed.
 
-Lemma eq_rcoset : forall a1 a2 : set g, a1 =1 a2 -> rcoset a1 =2 rcoset a2.
-Proof. move=> a1 a2 Da x y; exact: Da. Qed.
+Lemma eq_rcoset : forall a1 a2 : setType g, a1 =1 a2 -> rcoset a1 =2 rcoset a2.
+Proof. move=> a1 a2 Da x y; rewrite !s2f; exact: Da. Qed.
 
-Lemma eq_prodg_l : forall a1 a2 b : set g, a1 =1 a2 -> prodg a1 b =1 prodg a2 b.
+Lemma eq_prodg_l : forall a1 a2 b : setType g, a1 =1 a2 -> prodg a1 b =1 prodg a2 b.
 Proof.
-move=> a1 a2 b; move/eq_rcoset=> Da x; congr negb; rewrite !(disjoint_sym b).
-apply: eq_disjoint=> y; exact: Da.
+move=> a1 a2 b; move/eq_rcoset=> Da x; rewrite !s2f; congr negb; rewrite !(disjoint_sym b).
+apply: eq_disjoint=> y. 
+by have:=Da y x; rewrite !s2f.
 Qed.
 
-Lemma eq_prodg_r : forall a b1 b2 : set g, b1 =1 b2 -> prodg a b1 =1 prodg a b2.
-Proof. move=> a b1 b2 Db x; congr negb; apply: eq_disjoint=> y; exact: Db. Qed.
+Lemma eq_prodg_r : forall a b1 b2 : setType g, b1 =1 b2 -> prodg a b1 =1 prodg a b2.
+Proof. move=> a b1 b2 Db x; rewrite !s2f; congr negb; apply: eq_disjoint=> y; exact: Db. Qed.
 
-Lemma eq_group: forall a b : set g, a =1 b -> group a = group b.
+Lemma eq_group: forall a b : setType g, a =1 b -> group a = group b.
 Proof.
-move=> a b Da; rewrite /group Da (eq_subset_r Da); congr andb.
+move=> a b Da; rewrite /group Da (eq_subset_r Da). 
+congr andb. (* SLOW!! *)
 by apply: eq_subset=> x; rewrite (eq_prodg_l _ Da) (eq_prodg_r _ Da).
 Qed.
 
@@ -524,7 +553,7 @@ Open Scope group_scope.
 
 Variable g : finGroupType.
 
-Lemma prodgA : forall h1 h2 h3 : set g,
+Lemma prodgA : forall h1 h2 h3 : setType g,
   prodg h1 (prodg h2 h3) =1 prodg (prodg h1 h2) h3.
 Proof.
 move=> h1 h2 h3 x; apply/prodgP/prodgP.
@@ -536,7 +565,7 @@ Qed.
 
 Section GroupProdC.
 
-Variables h k : set g.
+Variables h k : setType g.
 Hypothesis Hh : group h.
 Hypothesis Hk : group k.
 
@@ -545,7 +574,7 @@ Proof.
 move=> Hhk; apply/andP; split.
   apply/prodgP; exists (1 : g) (1 : g); by [exact: group1 | rewrite mulg1].
 have Hhkh : prodg (prodg h h) k =1 (prodg (prodg h k) h).
-  move=> x; rewrite -!prodgA; exact: eq_prodg_r.
+  move=> x; rewrite -!prodgA; (* SLOW! *) exact: eq_prodg_r.
 apply/subsetP=> x; rewrite prodgA -(eq_prodg_l _ Hhkh) -prodgA.
 by rewrite (eq_prodg_l _ (prodgg Hh)) (eq_prodg_r _ (prodgg Hk)).
 Qed.
@@ -553,14 +582,14 @@ Qed.
 Lemma group_prodC : group (prodg h k) -> prodg h k =1 prodg k h.
 Proof.
 move=> Hhk x; rewrite -{Hhk}(groupV Hhk).
-by apply/idPn/idPn; case/prodgP=> y z;
+by apply/idP/idP; case/prodgP => y z;
   rewrite -(groupV Hh) -(groupV Hk) => Hy Hz Dx;
   apply/prodgP; exists z^-1 y^-1; rewrite // -invg_mul -Dx ?invgK.
 Qed.
 
 End GroupProdC.
 
-Variables h k : set g.
+Variables h k : setType g.
 Hypothesis Hh : group h.
 Hypothesis Hk : group k.
 
@@ -611,29 +640,31 @@ Section Normalizer.
 
 Open Scope group_scope.
 
-Variables (g: finGroupType) (H K: set g).
+Variables (g: finGroupType) (H K: setType g).
 Hypothesis group_H  :group H.
 
 
-Definition normaliser x := subset H (conjsg H x).
+Definition normaliser := {x, subset H (conjsg H x)}.
 
 Theorem norm_conjsg : forall x,
   normaliser x -> H =1 (conjsg H x).
-Proof. move=> x Hx;apply/subset_cardP; by [symmetry;apply conjsg_card|]. Qed.
-
+Proof. 
+by move=> x Hx;apply/subset_cardP; [symmetry;apply conjsg_card|rewrite s2f in Hx]. 
+Qed.
 
 Theorem normaliser_grp: group normaliser.
 Proof.
-  apply/andP; split; apply/subsetP => x Hx.
-    by rewrite /conjsg conjg1.
-  apply/subsetP => z Hz; case/prodgP: Hx => u v Hu Hv -> {x}.
+  apply/andP; split; [rewrite s2f|]; apply/subsetP => x Hx.
+    by rewrite s2f conjg1.
+  rewrite s2f; apply/subsetP => z Hz; case/prodgP: Hx => u v Hu Hv -> {x}.
+  rewrite s2f in Hv.
   by rewrite conjsg_conj; apply (subsetP Hv); rewrite -conjsgE -(norm_conjsg Hu z).
 Qed.
 
 Theorem subset_normaliser: subset H normaliser.
 Proof.
-apply/subsetP => x Hx;rewrite/normaliser;apply/subsetP => y Hy;rewrite/conjsg.
-repeat apply: groupM;gsimpl; exact: groupVr;gsimpl.
+apply/subsetP => x Hx;rewrite/normaliser s2f;apply/subsetP => y Hy;rewrite/conjsg.
+by rewrite s2f; apply: groupM;gsimpl;rewrite groupM // groupV. 
 Qed.
 
 Lemma normaliser_rcoset : closed (rcoset H) normaliser.
@@ -646,11 +677,14 @@ Hypothesis subset_HK: subset H K.
 
 Lemma normaliser_prodg : subset K normaliser -> prodg H K =1 prodg K H.
 Proof.
-move=> HK x; apply/idPn/idPn; case/prodgP => u v Hu Hv ->; apply/set0Pn; rewrite/setI.
- exists (conjg v u); rewrite/rcoset {2}/conjg ; gsimpl; rewrite Hv -conjsgE.
- by rewrite (subsetP (subsetP HK v _) u).
-exists u; rewrite /rcoset Hu -(invgK u) {2}(invgK u) -conjgE -conjsgE.
-by rewrite (subsetP (subsetP HK (u^-1) _) v) // groupV //.
+move=> HK x; apply/idP/idP; case/prodgP => u v Hu Hv ->; rewrite s2f in Hu Hv *; apply/set0Pn; rewrite/setI.
+ exists (conjg v u); rewrite !s2f {2}/conjg ; gsimpl; rewrite Hv -conjsgE.
+ have tmp :=  (subsetP HK v Hv); rewrite s2f in tmp.
+ by rewrite (subsetP tmp u).
+exists u; rewrite !s2f Hu -(invgK u) {2}(invgK u) -conjgE -conjsgE.
+rewrite -(groupV group_K) in Hu.
+have tmp:= (subsetP HK (u^-1) Hu); rewrite s2f in tmp.
+by rewrite (subsetP tmp v).
 Qed.
 
 Lemma normaliser_prodg_grp : subset K normaliser -> group (prodg H K).
@@ -667,7 +701,7 @@ Section PermGroup.
 
 Variable d:finType.
 
-Definition permType := eq_sig (fun g : fgraphType d d => uniq (tval (gval d d g))).
+Definition permType := eq_sig (fun g : fgraphType d d => uniq (@fval d d g)).
 
 Canonical Structure perm_eqType := @EqType permType _ (@val_eqP _ _).
 
@@ -677,30 +711,30 @@ Definition fun_of_perm := fun u : permType => (val u : fgraphType _ _) : d -> d.
 
 Coercion fun_of_perm : permType >-> Funclass.
 
-Lemma perm_uniqP : forall g : fgraphType d d, reflect (injective g) (uniq (gval  d d g)).
+Lemma perm_uniqP : forall g : fgraphType d d, reflect (injective g) (uniq (@fval  d d g)).
 Proof.
 move=> g; apply: (iffP idP) => Hg.
-  apply: can_inj (fun x => sub x (enum d) (index x (tval (gval _ _ g)))) _ => x.
-  by rewrite {2}/fun_of_graph; unfold locked; case master_key; rewrite index_uniq ?sub_index ?tproof ?mem_enum /card // count_setA index_mem mem_enum.
-by rewrite -[g]can_fun_of_graph /= uniq_maps // uniq_enum.
+  apply: can_inj (fun x => sub x (enum d) (index x (@fval _ _ g))) _ => x.
+  by rewrite {2}/fun_of_fgraph; unlock; rewrite index_uniq ?sub_index ?fproof ?mem_enum /card // count_setA index_mem mem_enum.
+by rewrite -[g]can_fun_of_fgraph /= uniq_maps // uniq_enum.
 Qed.
 
 
 Lemma eq_fun_of_perm: forall u v : permType, u =1 v -> u = v.
 Proof.
 move => u v Huv. apply: val_inj. 
-rewrite -(can_fun_of_graph (val u)) -(can_fun_of_graph (val v)).
-apply: gval_inj; apply: tval_inj; exact: (eq_maps Huv).
+rewrite -(can_fun_of_fgraph (val u)) -(can_fun_of_fgraph (val v)).
+apply: fval_inj; exact: (eq_maps Huv).
 Qed.
 
-Lemma perm_of_injP : forall f : d -> d, injective f -> uniq (tval (gval d d (graph_of_fun f))).
+Lemma perm_of_injP : forall f : d -> d, injective f -> uniq (@fval d d (fgraph_of_fun f)).
 Proof.
 move=> f Hf; apply/perm_uniqP.
-by apply: eq_inj Hf _ => x; rewrite can_graph_of_fun.
+by apply: eq_inj Hf _ => x; rewrite can_fgraph_of_fun.
 Qed.
 
 Definition perm_of_inj f (Hf : injective f) : permType :=
-  EqSig (fun g : fgraphType d d => uniq (tval (gval d d g))) _ (perm_of_injP Hf).
+  EqSig (fun g : fgraphType d d => uniq ((@fval d d g))) _ (perm_of_injP Hf).
 
 Lemma perm_inj : forall u : permType, injective u.
 Proof. by case=> g Hg; apply/perm_uniqP. Qed.
@@ -721,13 +755,13 @@ Definition perm_mul u v := perm_of_inj (inj_comp (@perm_inj u) (@perm_inj v)).
 Lemma perm_unitP : forall x, perm_mul perm_unit x = x.
 Proof.
 move=> u; apply eq_fun_of_perm => x.
-by do 2!rewrite /fun_of_perm /= /comp can_graph_of_fun.
+by do 2!rewrite /fun_of_perm /= /comp can_fgraph_of_fun.
 Qed.
 
 Lemma perm_invP : forall x, perm_mul (perm_inv x) x = perm_unit.
 Proof. 
 move=> u; apply: eq_fun_of_perm => x.
-do 3!rewrite /fun_of_perm /= /comp can_graph_of_fun. 
+do 3!rewrite /fun_of_perm /= /comp can_fgraph_of_fun. 
 by rewrite finv_f; last exact: perm_inj.
 Qed.
 
@@ -735,7 +769,7 @@ Lemma perm_mulP :
   forall x y z, perm_mul x (perm_mul y z) = perm_mul (perm_mul x y) z.
 Proof.
 move=> u v w; apply: eq_fun_of_perm => x.
-by do 4!rewrite /fun_of_perm /= /comp can_graph_of_fun. 
+by do 4!rewrite /fun_of_perm /= /comp can_fgraph_of_fun. 
 Qed.
 
 Canonical Structure perm_finGroupType := 
@@ -765,7 +799,7 @@ Open Scope group_scope.
 Lemma square_transperm : forall x y, let t := transperm x y in t * t = 1.
 Proof.
 move=> x y; apply: eq_fun_of_perm => z; rewrite /mulg /=.
-do 4!rewrite /fun_of_perm /= /comp can_graph_of_fun.
+do 4!rewrite /fun_of_perm /= /comp can_fgraph_of_fun.
 exact: transposeK.
 Qed.
 
@@ -787,9 +821,9 @@ move=> a; move Dn: (card a) => n; move/eqP: Dn; elim: n a => [|n IHn] a.
   move/set0P=> Da; rewrite /= -(card1 perm_unit); apply: eq_card=> u.
   apply/subsetP/eqP => [Hu | <- {u} x].
     apply: eq_fun_of_perm => x; apply: eqP. 
-    rewrite {1}/fun_of_perm /= can_graph_of_fun eq_sym.
+    rewrite {1}/fun_of_perm /= can_fgraph_of_fun eq_sym.
     by apply/idPn; move/Hu; rewrite Da.
-  by rewrite {1}/fun_of_perm /= can_graph_of_fun set11.
+  by rewrite {1}/fun_of_perm /= can_fgraph_of_fun set11.
 case: (pickP a) => [x Hx Ha|]; last by move/eq_card0->.
 move: (Ha); rewrite (cardD1 x) Hx; set a' := setD1 a x; move/(IHn a')=> {IHn} Ha'.
 pose h (u : permType) := EqPair (u x) (transperm x (u x) * u) : prod_finType _ _.
@@ -799,18 +833,18 @@ rewrite /fact -/fact -(eqP Ha) -Ha' mulnI -card_prod -(card_image Hh).
 apply: eq_card=> [[y v]]; apply/set0Pn/andP; rewrite /preimage /setI /=.
   case=> u; do 2!case/andP; do 2!move/eqP->; move=> Hu {y v}.
   split; first by rewrite perm_closed.
-  apply/subsetP=> z. do 2!rewrite /mulg /= /fun_of_perm /= can_graph_of_fun /comp.
+  apply/subsetP=> z. do 2!rewrite /mulg /= /fun_of_perm /= can_fgraph_of_fun /comp.
   rewrite /transpose -/(u x) -/(u z) (inj_eq (@perm_inj u)) /a' /setD1.
   case: (x =P z) => [<-|_]; first by case/eqP; case: eqP.
   case: (x =P u z) => [Dx | _]; first by rewrite -(perm_closed _ Hu) -Dx.
   exact: subsetP Hu z.
 rewrite /= in v *; move=> [Hy Hv]; pose u : permType := transperm x y * v.
 have Dy: y = u x.
-  do 2!rewrite /u /= /fun_of_perm /= can_graph_of_fun /comp.
+  do 2!rewrite /u /= /fun_of_perm /= can_fgraph_of_fun /comp.
   rewrite -/(v x) (_ : v x = x) /transpose ?set11 //.
   by apply/eqP; apply/idPn; move/(subsetP Hv); rewrite /a'/ setD1 set11.
 exists u; rewrite /h -Dy /u mulgA square_transperm mul1g set11.
-apply/subsetP=> z; do 2!rewrite /fun_of_perm /= can_graph_of_fun /comp.
+apply/subsetP=> z; do 2!rewrite /fun_of_perm /= can_fgraph_of_fun /comp.
 rewrite (inv_eq (transposeK x y)) /transpose -/(v z).
 by do 2!case: (_ =P z) => [<- //| _]; move/(subsetP Hv); case/andP.
 Qed.

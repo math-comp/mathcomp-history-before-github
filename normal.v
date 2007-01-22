@@ -18,6 +18,7 @@ Require Import seq.
 Require Import fintype.
 Require Import paths.
 Require Import connect.
+Require Import tuple.
 Require Import groups.
 
 
@@ -29,7 +30,7 @@ Section Normal.
 
 Open Scope group_scope.
 
-Variables (G: finGroupType) (H K: set G).
+Variables (G: finGroupType) (H K: setType G).
 
 Hypothesis group_H: group H.
 Hypothesis group_K: group K.
@@ -50,15 +51,16 @@ Theorem normalP:
   reflect (forall x y,  K x -> H y -> H (y ^g x)) normal.
 Proof.
 apply: (iffP idP).
-  move/subsetP => H0 x y H1 H2; exact: (subsetP (H0 x H1)).
-move => H0; apply/subsetP => x H1; apply/subsetP => y H2; exact: H0.
+  move/subsetP => H0 x y H1 H2; have:= H0 x H1; rewrite s2f; move/subsetP => Hsub.
+  by have := Hsub y H2; rewrite s2f.
+move => H0; apply/subsetP => x H1; rewrite s2f; apply/subsetP => y H2;rewrite s2f; exact: H0.
 Qed.
 
 Theorem conjsg_normal: forall x, 
   normal -> K x -> conjsg H x =1 H.
 Proof.
-move => x H0 H1 y; apply/idP/idP => H2; last exact: (normalP H0) => //.
-  rewrite /conjsg in H2; rewrite -conjs1g -(mulgV x) conjsg_conj; apply: (normalP H0) => //.
+move => x H0 H1 y; apply/idP/idP => H2; last by rewrite s2f; apply: (normalP H0). 
+  rewrite s2f in H2; rewrite -conjs1g -(mulgV x) conjsg_conj; rewrite s2f; apply: (normalP H0) => //.
   exact: groupVr => //.
 Qed.
 

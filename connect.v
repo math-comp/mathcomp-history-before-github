@@ -24,7 +24,7 @@ Fixpoint dfs (n : nat) (a : seq d) (x : d) {struct n} : seq d :=
     if a x then a else foldl (dfs n') (Adds x a) (filter (e x) (enum d))
   else a.
 
-Definition connect : rel d := fun x => dfs (card d) seq0 x.
+Definition connect : rel d := fun x => dfs (card (setA d)) seq0 x.
 
 Lemma subset_dfs : forall n (a b : seq d), subset a (foldl (dfs n) a b).
 Proof.
@@ -37,7 +37,7 @@ Qed.
 Inductive dfs_path (x y : d) (a : seq d) : Prop :=
   DfsPath p (_ : path e x p) (_ : last x p = y) (_ : disjoint (Adds x p) a).
 
-Lemma dfsP : forall n x y (a : seq d), card d <= card a + n ->
+Lemma dfsP : forall n x y (a : seq d), card (setA d) <= card a + n ->
   negb (a y) -> reflect (dfs_path x y a) (dfs n a x y).
 Proof.
 elim=> [|n Hrec] x y a Hn Hy.
@@ -50,7 +50,7 @@ move Da': (Adds x a) => a'; case Hya': (a' y).
   rewrite (subsetP (subset_dfs n _ _) _ Hya'); left.
   exists (Seq0 d); repeat split; last by rewrite disjoint_has /= Hx.
   by rewrite -Da' /= in Hya'; case/setU1P: Hya'; last by rewrite (negbET Hy).
-have Hna': card d <= card a' + n.
+have Hna': card (setA d) <= card a' + n.
   by rewrite -Da' /= cardU1 Hx /= add1n addSnnS.
 move Db: (filter (e x) (enum d)) => b.
 suffices Hrec':
@@ -231,7 +231,7 @@ Lemma eq_n_comp_r : forall a a' : set d, a =1 a' ->
   forall e, n_comp e a = n_comp e a'.
 Proof. by move=> a a' Ha e; apply: eq_card => x; rewrite /setI Ha. Qed.
 
-Lemma n_compC : forall a e, n_comp e d = n_comp e a + n_comp e (setC a).
+Lemma n_compC : forall a e, n_comp e (setA d) = n_comp e a + n_comp e (setC a).
 Proof.
 move=> a e; rewrite /n_comp cardIC.
 by apply: eq_card => x; rewrite /setI andbT.
@@ -405,7 +405,7 @@ Lemma findex0 : forall x, findex x x = 0.
 Proof. by move=> x; rewrite /findex /orbit -orderSpred /= set11. Qed.
 
 Lemma fconnect_invariant : forall (d' : eqType) (k : d -> d'),
-  invariant f k =1 d -> forall x y : d, fconnect f x y -> k x = k y.
+  invariant f k =1 (setA d) -> forall x y : d, fconnect f x y -> k x = k y.
 Proof.
 move=> d' k Hk x y; move/iter_findex=> <-; elim: {y}(findex x y) => //= n ->.
 exact (esym (eqP (Hk _))).

@@ -125,14 +125,14 @@ exact (Adds (EqSig _ _ F1) (liftp l2 F2)).
 Defined.
 
 Lemma size_liftp: forall (l1:seq d) (H: sub_set l1 l), 
-  size (liftp l1 H) = size l1.
+  size (liftp _ H) = size l1.
 Proof.
 elim => [| x l2 Rec H] //=.
 by rewrite Rec.
 Qed.
 
 Lemma subd_enumP_aux : forall (l1: seq d) (H: sub_set l1 l) (u: d'),
- uniq l1 ->  count (set1 u) (liftp l1 H)  =  l1 (val u).
+ uniq l1 ->  count (set1 u) (liftp _ H)  =  l1 (val u).
 Proof.
 elim => [| x l2 Rec H [u Hu]] //=.
 move/andP => [H1 H2].
@@ -143,7 +143,7 @@ by rewrite -(eqP E1) (negbET H1).
 Qed.
 
 Lemma subd_enumP : forall (u: d'), 
-  count (set1 u) (liftp l (@sub_set_refl _ l))  = 1.
+  count (set1 u) (liftp _ (@sub_set_refl _ l))  = 1.
 Proof.
 move => u.
 replace 1%N with ((l (val u)): nat).
@@ -177,7 +177,7 @@ Let uniq_l := (powerSeq_uniq (uniq_enum d)).
 
 Definition powerSet := UniqListSet _ _ uniq_l.
 
-Lemma card_powerSet: card powerSet = 2 ^ (card d).
+Lemma card_powerSet: card (setA powerSet) = 2 ^ (card (setA d)).
 Proof.
 by rewrite !cardA -powerSeq_size /powerSet //= size_liftp.
 Qed.
@@ -195,7 +195,7 @@ by move => h x; rewrite /setA mem_enum.
 Qed.
 
 Lemma powerSet_mem: forall (h: set d), 
- powerSet (EqSig _ _ (powerSeq_mem (enum d) h)).
+ (setA powerSet) (EqSig _ _ (powerSeq_mem (enum d) h)).
 Proof. done. Qed.
 
 End PowerSet.
