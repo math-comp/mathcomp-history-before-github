@@ -89,11 +89,12 @@ VFILES=connect.v\
   sylow.v\
   normal.v\
   baux.v\
-  leftTranslation.v\
+  rightTranslation.v\
   powerSet.v\
   center.v\
   frobenius.v\
-  groups_prod.v
+  groups_prod.v\
+  tuple.v
 VOFILES=$(VFILES:.v=.vo)
 VIFILES=$(VFILES:.v=.vi)
 GFILES=$(VFILES:.v=.g)
@@ -122,7 +123,8 @@ all: connect.vo\
   powerSet.vo\
   center.vo\
   frobenius.vo\
-  groups_prod.vo
+  groups_prod.vo\
+  tuple.vo
 
 spec: $(VIFILES)
 

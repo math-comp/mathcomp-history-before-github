@@ -46,7 +46,7 @@ OPT=
 COQFLAGS=-q $(OPT) $(COQLIBS) $(OTHERFLAGS) $(COQ_XML)
 COQC=$(COQBIN)coqtop
 GALLINA=gallina
-COQDOC=$(COQBIN)coqdoc
+COQDOC=coqdoc
 CAMLC=ocamlc -c
 CAMLOPTC=ocamlopt -c
 CAMLLINK=ocamlc
@@ -174,7 +174,7 @@ all-gal.ps: $(VFILES)
 	$(COQDOC) -html -g $< -o $@
 
 byte:
-	$(MAKE) all "OPT="
+	$(MAKE) all "OPT=-byte"
 
 opt:
 	$(MAKE) all "OPT=-opt"

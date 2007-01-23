@@ -817,6 +817,14 @@ rewrite /sum; elim: (enum d) => [| x s Hrec] //=.
 by rewrite H; case (b x) => //=; congr addn.
 Qed.
 
+Lemma eq_sumf: forall (d: finType) (a: set d) (N1 N2: d -> nat),
+  (forall x, a x -> N1 x = N2 x) -> sum a N1 = sum a N2.
+move => d a N1 N2 H.
+rewrite /sum; elim: (enum d) 0 => [| x s Hrec n] //=.
+case E1:(a x) => //=; congr addn => //.
+rewrite H //.
+Qed.
+
 Lemma sum1: forall (d: finType) x (N: d -> nat),
   sum (set1 x) N = N x.
 Proof.
@@ -845,6 +853,13 @@ by rewrite Hrec // cardU1 H ?E1 // mem_filter /setI (negbET Hu1)
            andbF. 
 Qed.
 
+Lemma sum_card: forall (d: finType) a,
+  card a = sum a (fun x:d => 1).
+Proof.
+move => d a.
+rewrite -(muln1 (card a)); symmetry.
+exact: sum_id.
+Qed.
 
 Lemma sum_setU: forall (d: finType) (a b: set d) (N: d -> nat),
   disjoint a b -> sum (setU a b) N =  (sum a N) + (sum b N).
@@ -988,6 +1003,46 @@ move/set0P: (Hrec _ F1 F2) => H3; move: (H3 x1).
 by rewrite /setI H1 H2.
 Qed.
 
+Lemma sum_setnU: forall (d d': finType) (a: set d) 
+                         (S: d -> set d') (N: d'-> nat),
+  disjointn a S ->
+  sum (setnU a S) N = 
+  sum a (fun z => sum (S z) N).
+move => d d' a S N.
+elim: {a}(card a) {-2}a (refl_equal (card a)) =>
+   [| n Hrec] a Ha Da.
+  move: (card0_eq Ha) => Ha1.
+  by rewrite (eq_sum N (eq_setnU S Ha1))
+             (eq_sum N (setnU0 _)) (eq_sum _ Ha1) !sum0.
+have F1: ~~set0b a.
+  by apply/set0P => H1; rewrite (eq_card0 H1) in Ha.
+case/set0Pn: F1 => x Hx.
+have F2: a =1 setU (set1 x) (setD1 a x).
+  move => x1; rewrite /setU /setD1.
+  by case E1: (x == x1) => //=; rewrite -(eqP E1).
+have F3: card (setD1 a x) = n.
+  apply (@addn_injl 1%N).
+  by rewrite (add1n n) -Ha (cardD1 x a) Hx.
+have F4: disjoint (set1 x) (setD1 a x).
+  apply/set0P => x1; apply/negP; case/andP => H1. 
+  by rewrite (eqP H1) setD11.
+rewrite (eq_sum _ F2) sum_setU //.
+rewrite (eq_sum N (eq_setnU S F2)).
+rewrite (eq_sum _ (setnU_setU _ _ _)) sum_setU.
+  congr addn; first by rewrite (eq_sum _ (setnU1 _ _)) sum1.
+  apply: Hrec => //.
+  move => x1 y1 z1 Hx1 Hy1 Hxy.
+  apply: (Da x1 y1 z1) => //.
+    by case/andP: Hx1.
+  by case/andP: Hy1.
+apply: setnU_disjoint => x2.
+case/andP => Hx1 Hx2.
+apply/set0P => x3; rewrite /setI setnU1. 
+  case E1: (S x x3) => //.
+  case E2: (S x2 x3) => //.
+  by case/negP: Hx1; rewrite (Da _ _ x3 Hx Hx2) // E2.
+Qed.
+
 Lemma card_disjoint: forall (d: finType) (a b: set d),
   disjoint a b -> card (setU a b) = card a + card b.
 Proof.
@@ -1003,40 +1058,9 @@ Lemma card_setnU: forall (d d': finType) (a: set d)
                          (S: d -> set d'),
   disjointn a S ->
   card (setnU a S) = sum a (fun z => card (S z)) .
-move => d d' a S.
-elim: {a}(card a) {-2}a (refl_equal (card a)) =>
-   [| n Hrec] a Ha Da.
-  move: (card0_eq Ha) => Ha1.
-  rewrite (eq_sum _ Ha1) sum0; apply: eq_card0 => x.
-  by rewrite (eq_setnU _ Ha1) setnU0.
-have F1: ~~set0b a.
-  by apply/set0P => H1; rewrite (eq_card0 H1) in Ha.
-case/set0Pn: F1 => x Hx.
-have F2: a =1 setU (set1 x) (setD1 a x).
-  move => x1; rewrite /setU /setD1.
-  by case E1: (x == x1) => //=; rewrite -(eqP E1).
-have F3: card (setD1 a x) = n.
-  apply (@addn_injl 1%N).
-  by rewrite (add1n n) -Ha (cardD1 x a) Hx.
-have F4: disjoint (set1 x) (setD1 a x).
-  apply/set0P => x1; apply/negP; case/andP => H1. 
-  by rewrite (eqP H1) setD11.
-rewrite (eq_sum _ F2) sum_setU //.
-rewrite (eq_card (eq_setnU _ F2)).
-rewrite (eq_card (setnU_setU _ _ _)).
-rewrite sum1 -Hrec //.
-  rewrite card_disjoint; first by
-    rewrite (eq_card (setnU1 _ _)).
-  apply: setnU_disjoint => x2.
-  case/andP => Hx1 Hx2.
-  apply/set0P => x3; rewrite /setI setnU1. 
-  case E1: (S x x3) => //.
-  case E2: (S x2 x3) => //.
-  by case/negP: Hx1; rewrite (Da _ _ x3 Hx Hx2) // E2.
-move => x1 y1 z1 Hx1 Hy1 Hxy.
-apply: (Da x1 y1 z1) => //.
-  by case/andP: Hx1.
-by case/andP: Hy1.
+move => d d' a S H.
+rewrite sum_card sum_setnU //.
+by apply: eq_sumf => x H1; rewrite sum_card.
 Qed.
 
 Lemma card_setnU_id: forall (d d': finType) (a: set d) 
