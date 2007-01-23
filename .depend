@@ -8,8 +8,8 @@ fintype.vo: fintype.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo div.vo
 fintype.vi: fintype.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo div.vo seq.vo
 funs.vo: funs.v ssreflect.vo
 funs.vi: funs.v ssreflect.vo
-groups.vo: groups.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo div.vo tuple.vo
-groups.vi: groups.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo div.vo tuple.vo
+groups.vo: groups.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo div.vo
+groups.vi: groups.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo div.vo
 paths.vo: paths.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo
 paths.vi: paths.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo
 seq.vo: seq.v ssreflect.vo funs.vo ssrbool.vo eqtype.vo ssrnat.vo
@@ -24,8 +24,8 @@ zp.vo: zp.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.v
 zp.vi: zp.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo groups.vo div.vo
 perm.vo: perm.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo groups.vo div.vo zp.vo action.vo cyclic.vo
 perm.vi: perm.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo groups.vo div.vo zp.vo action.vo cyclic.vo
-action.vo: action.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo div.vo seq.vo fintype.vo paths.vo connect.vo groups.vo tuple.vo
-action.vi: action.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo div.vo seq.vo fintype.vo paths.vo connect.vo groups.vo tuple.vo
+action.vo: action.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo div.vo seq.vo fintype.vo paths.vo connect.vo groups.vo
+action.vi: action.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo div.vo seq.vo fintype.vo paths.vo connect.vo groups.vo
 cyclic.vo: cyclic.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo groups.vo normal.vo div.vo zp.vo
 cyclic.vi: cyclic.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo groups.vo normal.vo div.vo zp.vo
 sylow.vo: sylow.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo groups.vo div.vo action.vo perm.vo cyclic.vo zp.vo normal.vo baux.vo rightTranslation.vo powerSet.vo
@@ -46,12 +46,14 @@ groups_prod.vo: groups_prod.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.v
 groups_prod.vi: groups_prod.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo div.vo groups.vo
 tuple.vo: tuple.v ssreflect.vo seq.vo eqtype.vo ssrnat.vo funs.vo ssrbool.vo fintype.vo connect.vo paths.vo
 tuple.vi: tuple.v ssreflect.vo seq.vo eqtype.vo ssrnat.vo funs.vo ssrbool.vo fintype.vo connect.vo paths.vo
+group_perm.vo: group_perm.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo div.vo groups.vo
+group_perm.vi: group_perm.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo div.vo groups.vo
 connect.html: connect.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html paths.html fintype.html
 eqtype.html: eqtype.v ssreflect.html ssrbool.html funs.html
 div.html: div.v ssreflect.html ssrbool.html ssrnat.html funs.html eqtype.html seq.html
 fintype.html: fintype.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html div.html seq.html
 funs.html: funs.v ssreflect.html
-groups.html: groups.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html paths.html connect.html div.html tuple.html
+groups.html: groups.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html paths.html connect.html div.html
 paths.html: paths.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html
 seq.html: seq.v ssreflect.html funs.html ssrbool.html eqtype.html ssrnat.html
 ssrbool.html: ssrbool.v ssreflect.html funs.html
@@ -59,7 +61,7 @@ ssreflect.html: ssreflect.v
 ssrnat.html: ssrnat.v ssreflect.html ssrbool.html funs.html eqtype.html
 zp.html: zp.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html groups.html div.html
 perm.html: perm.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html paths.html connect.html groups.html div.html zp.html action.html cyclic.html
-action.html: action.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html div.html seq.html fintype.html paths.html connect.html groups.html tuple.html
+action.html: action.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html div.html seq.html fintype.html paths.html connect.html groups.html
 cyclic.html: cyclic.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html paths.html connect.html groups.html normal.html div.html zp.html
 sylow.html: sylow.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html paths.html connect.html groups.html div.html action.html perm.html cyclic.html zp.html normal.html baux.html rightTranslation.html powerSet.html
 normal.html: normal.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html paths.html connect.html groups.html
@@ -70,3 +72,4 @@ center.html: center.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.h
 frobenius.html: frobenius.v baux.html ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html paths.html connect.html groups.html div.html zp.html cyclic.html normal.html center.html
 groups_prod.html: groups_prod.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html paths.html connect.html div.html groups.html
 tuple.html: tuple.v ssreflect.html seq.html eqtype.html ssrnat.html funs.html ssrbool.html fintype.html connect.html paths.html
+group_perm.html: group_perm.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html paths.html connect.html div.html groups.html
