@@ -383,9 +383,7 @@ by move => n k; exists (permute_zp (k^-1)) => x; rewrite -permute_zp_morph;
     rewrite ?mulgV ?mulVg permute_zp_1.
 Qed.
 
-Import tuple.
-
-Let gpermute_zp n (p: zp n) := graph_of_fun (permute_zp p).
+Let gpermute_zp n (p: zp n) := fgraph_of_fun (permute_zp p).
 
 Definition stab n := SO  (enum (zp n))  (@gpermute_zp n).
 

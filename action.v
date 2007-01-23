@@ -9,7 +9,6 @@ Require Import fintype.
 Require Import paths.
 Require Import connect.
 Require Import groups.
-Require Import tuple.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -36,22 +35,22 @@ apply: (@can_inj _ _ (to x) (to x^-1)) => a.
 by rewrite -to_morph ?groupV // mulVg to_1.
 Qed.
 
-Definition orbit a := image (fun z => to z a) H.
+Definition orbit a := iimage (fun z => to z a) H.
 
 Lemma orbit_to: forall a x, H x -> orbit a (to x a).
 Proof.
-by move => a x Hx; exact: image_f_imp.
+by move => a x Hx; rewrite s2f; exact: image_f_imp.
 Qed.
 
 Lemma orbit_refl : forall x, orbit x x.
 Proof.
-move=> x; rewrite /orbit -{2}(to_1 x).
+move=> x; rewrite /orbit -{2}(to_1 x) s2f.
 by apply: image_f_imp; rewrite group1.
 Qed.
 
 Lemma orbit_sym : forall x y, orbit x y = orbit y x.
 Proof.
-move => x y; rewrite /orbit [image]lock; apply/idP/idP; 
+move => x y; rewrite !s2f /orbit [image]lock; apply/idP/idP; 
   unlock => H1.
   rewrite -(to_1 x) -(mulVg (diinv H1)).
   by rewrite -{1}(f_diinv H1) to_morph; try apply: image_f_imp;
@@ -63,13 +62,13 @@ Qed.
 
 Lemma orbit_trans : forall x y, connect orbit x y = orbit x y.
 Proof.
-move=> x y; apply/idP/idP; last exact: connect1.
+move=> x y; apply/idP/idP; last by move =>*; apply: connect1.
 move/connectP=> [p Hp <- {y}]; rewrite orbit_sym.
 elim: p x Hp => [|y p IHp] x /=; first by rewrite orbit_refl.
 move/andP=> [Hxy Hp].
 move: (IHp _ Hp) => H1.
-rewrite orbit_sym in H1; rewrite -(f_diinv H1).
-rewrite orbit_sym in Hxy; rewrite -(f_diinv Hxy).
+rewrite orbit_sym s2f in H1; rewrite s2f -(f_diinv H1).
+rewrite orbit_sym s2f in Hxy; rewrite -(f_diinv Hxy).
 rewrite -{5}(to_1 y) -(mulVg (diinv H1)).
 set (k :=  (diinv H1)).
 set (k1 :=  (diinv Hxy)).
@@ -97,24 +96,25 @@ Qed.
 
 Lemma orbitP: forall x a, reflect (exists2 z, H z & to z a = x) (orbit a x).
 Proof.
-move => x a; apply: (iffP idP) => H1.
+move => x a; apply: (iffP idP);rewrite s2f => H1.
   exists (diinv H1); first exact: a_diinv.
   exact: (@f_diinv _ _ (fun z => to z a)).
 rewrite /orbit.
 by case: H1 => c Hc <-; apply: image_f_imp.
 Qed.
 
-Lemma SOP : forall a, reflect (orbit a =1 set1 a) (SO a).
+Lemma SOP : forall a, reflect (orbit a = iset1 a) (SO a).
 Proof.
 move => a; apply:(iffP eqP).
-  move => Hstab x; apply /orbitP.
+  move => Hstab;apply/eqP;apply/isetP=> x; apply /orbitP;rewrite s2f.
   case Dx: (a == x); first by exists (Group.unit G); rewrite ?to_1 ?group1 ?(eqP Dx).
   move => [c Hc Htoc]; rewrite Hstab in Hc; move/stabilizerP: Hc => [Htoc' Hx].
   by rewrite Htoc in Htoc'; rewrite Htoc' eq_refl in Dx.
-move => Ho; apply: iset_eq => x; rewrite s2f.
+move => Ho; apply/eqP; apply/isetP => x; rewrite s2f.
 case Hx: (H x) => //; rewrite andTb.
-rewrite eq_sym -(Ho (to x a)); symmetry; apply/orbitP.
-exists x => //.
+move/eqP: Ho;move/isetP=>Ho.
+have := ((Ho (to x a))); rewrite !s2f eq_sym=> <-; symmetry.
+apply/imageP;exists x => //.
 Qed.
 
 Lemma stab_1: forall a, stabilizer a 1.
@@ -133,10 +133,25 @@ Proof. by move => a; apply/subsetP => x; move/stabilizerP => [_ Hx]. Qed.
 
 Lemma card_orbit: forall a, card (orbit a) = indexg (stabilizer a) H.
 Proof.
-move => a. 
-rewrite -lcoset_indexg //; last exact: subset_stab;
-  last exact: group_stab.
-rewrite /n_comp; move: (group_stab a) => Hsb.
+move => a. rewrite /stabilizer /orbit /indexg /rcoset.
+rewrite -(@eq_card _ (iimage (G:=G) (G':=set_finType G)
+        (fun x : G => {y : G, H (y*x^-1) && (to (y*x^-1) a == a)}) H)).
+
+
+
+
+
+
+
+rewrite -lcoset_indexg //;last exact: group_stab.
+rewrite /stabilizer /orbit /lcoset.
+Check card_dimage.
+
+
+
+rewrite iimage_card /n_comp; move: (group_stab a) => Hsb.
+Check card_dimage.
+
 set c := (fun x : G => {y : G, stabilizer a (x^-1 * y)}).
 set rs := roots c.
 have F1: dinjective (setI rs H) (fun z => to z a).
@@ -144,7 +159,9 @@ have F1: dinjective (setI rs H) (fun z => to z a).
   case/andP: Hx => Hx1 Hx2.
   case/andP: Hy => Hy1 Hy2.
   rewrite -(eqP Hx1) -(eqP Hy1).
-  apply/rootP => //; first exact: lcoset_csym.
+  apply/rootP => //.
+
+    exact: lcoset_csym.
   rewrite /c connect_lcoset /lcoset; last exact: group_stab.  
   have F1: H (x^-1 * y) by rewrite groupM // groupV.
   rewrite s2f; apply/stabilizerP; split => //.

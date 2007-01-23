@@ -330,6 +330,510 @@ Qed.
 
 End DInjective.
 
+(* setType BEGIN *)
+
+Section PermGen.
+
+Variable d : finType.
+
+Let seq2 := seq (seq_eqType d). 
+
+(* Adds e to every element of s *)
+Let multes (e:d) s := maps (Adds e) s. 
+
+Let multss (s : seq d) (s1 : seq2) :=
+  foldr (fun x => cat (multes x s1)) seq0 s.
+
+(*
+Eval compute in multss (Seq x1 x2) (Seq (Seq x3 x4) (Seq x5 x6)).
+-> Seq (Seq x1 x3 x4) (Seq x1 x5 x6) (Seq x2 x3 x4) (Seq x2 x5 x6)
+*)
+
+(* the sequence of all the strings of length m on the d alphabet *)
+Definition mkpermr m := iter m (multss (enum d)) (Seq seq0).
+
+Lemma mem_multes : forall y s2,
+  multes y s2 =1 (fun s => if s is Adds x s' then (x == y) && s2 s' else false).
+Proof.
+move=> y s2 s; elim: s2 => [|s' s2 IHs2] /=; first by case: s => // *; rewrite andbF.
+by rewrite /setU1 {}IHs2; case: s => //= x s; rewrite (eq_sym x) demorgan1.
+Qed.
+
+Lemma mem_multss : forall s1 s2,
+  multss s1 s2 =1 (fun s => if s is Adds x s' then s1 x && s2 s' else false).
+Proof.
+move=> s1 s2 s; elim: s1 => [|y s1 IHs1] /=; first by case s.
+by rewrite mem_cat /setU {}IHs1 mem_multes; case: s => //= x s; rewrite -demorgan2 eq_sym.
+Qed.
+
+Lemma mem_mkpermr_size : forall m, mkpermr m =1 (fun s => size s == m).
+Proof. by elim=> [|i IHi] [|x s] //=; rewrite mem_multss // mem_enum IHi. Qed.
+
+Lemma uniq_mkpermr : forall m, uniq (mkpermr m).
+Proof.
+elim=> //= i IHi; elim: enum (uniq_enum d) => //= x e IHe.
+move/andP=> [Hx He]; rewrite uniq_cat {}IHe {He}// andbT.
+rewrite {1}/multes uniq_maps ?{}IHi; last move=> _ _ [] //.
+apply/hasP; case=> s Hs.
+by move/mapsP => [s' _ Ds]; rewrite mem_multss -Ds (negbET Hx) in Hs.
+Qed.
+
+End PermGen.
+
+
+Section FinGraph.
+Variable d1 d2 : finType.
+
+CoInductive fgraphType : Type := 
+  Fgraph (val:seq d2) : (size val) = (card (setA d1)) -> fgraphType.
+
+Definition fval : fgraphType -> seq d2 :=
+  fun x => match x with Fgraph val _ => val end.
+
+Definition fproof : forall u, size (fval u) = (card (setA d1)) :=
+  fun x => match x return size (fval x) = (card (setA d1)) with
+           | Fgraph _ proof => proof end.
+
+Lemma fgraph_eqP : reflect_eq (fun f1 f2 => fval f1 == fval f2).
+Proof.
+move=> [s1 Hs1] [s2 Hs2]; apply: (iffP eqP) => [/= Hs1s2|-> //].
+by rewrite Hs1s2 in Hs1 |- *; rewrite /= (nat_irrelevance Hs1 Hs2).
+Qed.
+
+Canonical Structure fgraph_eqType := EqType fgraph_eqP.
+
+Lemma fval_eqE : forall u v : fgraph_eqType, (fval u == fval v) = (u == v).
+Proof. done. Qed.
+
+Lemma fval_inj : injective fval.
+Proof. by move => u v; move/eqP; move/fgraph_eqP. Qed.
+
+Definition infgraph (s : seq d2) : option fgraphType :=
+  if size s =P (card (setA d1)) is Reflect_true Hs then Some (Fgraph Hs) else None.
+
+CoInductive infgraph_spec (s : seq d2) : option fgraphType -> Type :=
+  | Some_tup u : size s = (card (setA d1)) -> fval u = s -> infgraph_spec s (Some u)
+  | None_tup: ~~ (size s == (card (setA d1))) -> infgraph_spec s None.
+
+Lemma infgraphP : forall s, infgraph_spec s (infgraph s).
+Proof. by rewrite /infgraph => s; case: eqP; [left | right; exact/eqP]. Qed.
+
+Definition infgraphseq : seq (seq_eqType d2) -> seq fgraph_eqType:=
+  foldr (fun (s:seq d2) ts => if infgraph s is Some u then Adds u ts else ts) seq0.
+
+Lemma mem_infgraphseq : forall a, infgraphseq a =1 (fun u => a (fval u)).
+Proof.
+elim=> // s a IHa u /=.
+case: infgraphP => [v _ Dv | Hs]; rewrite /= /setU1 IHa -?Dv //.
+by case: eqP => // Ds; case/eqP: Hs; rewrite Ds fproof.
+Qed.
+
+Lemma uniq_infgraphseq : forall s, uniq s -> uniq (infgraphseq s).
+Proof.
+elim => // e s IH Hes. 
+rewrite uniq_adds in Hes;move/andP: Hes => [He Hs] /=;have:=IH Hs.
+case: infgraphP => // u Hu Du Hins; rewrite uniq_adds.
+by apply/andP; split => //; rewrite mem_infgraphseq Du.
+Qed.
+
+(* the sequence of all the n-tuples on the d alphabet *)
+Definition finfgraph_enum := infgraphseq (mkpermr d2 (card (setA d1))).
+
+Lemma maps_tval_fintuple_enum: 
+  maps fval finfgraph_enum = mkpermr d2 (card (setA d1)).
+Proof.
+rewrite /finfgraph_enum.
+have: all (fun s => size s == (card (setA d1))) (mkpermr d2 (card (setA d1))).
+  by apply/allP => s; rewrite mem_mkpermr_size.
+elim: (mkpermr d2 (card (setA d1))) => //= s s2 IHs; move/andP => [Hs Hs2].
+by case: infgraphP => [_ _ /= ->|]; [rewrite (IHs Hs2)|rewrite Hs].
+Qed.
+
+  (* good enumeration *)
+Lemma finfgraph_enumP : forall u, count (set1 u) finfgraph_enum = 1.
+Proof.
+move => [s ps]. 
+rewrite /finfgraph_enum count_set1_uniq; last exact (uniq_infgraphseq (uniq_mkpermr d2 (card (setA d1)))).
+by rewrite mem_infgraphseq /= mem_mkpermr_size ps set11.
+Qed.
+
+Canonical Structure fgraph_finType := FinType finfgraph_enumP.
+
+ (* if the domain is not empty the default is the first elem of the graph *)
+Lemma fgraph_default : d1 -> fgraphType -> d2.
+Proof. by move=> x [[|//]]; rewrite /card; case: enum (mem_enum x). Qed.
+
+End FinGraph.
+
+Definition fgraph_of_fun := 
+  locked (fun (d1 d2:finType) (f : d1 -> d2) => Fgraph (size_maps f _)).
+
+Definition fun_of_fgraph := 
+  locked 
+   (fun d1 d2 g x => 
+      sub (@fgraph_default d1 d2 x g) (fval g) (index x (enum d1))).
+
+Coercion fun_of_fgraph : fgraphType >-> Funclass. 
+
+Lemma can_fun_of_fgraph : forall d1 d2, 
+  cancel (@fun_of_fgraph d1 d2) (@fgraph_of_fun d1 d2).
+Proof.
+unlock fun_of_fgraph => d1 d2 g.
+case: {-1}g => [s Hs]; unlock fgraph_of_fun; apply fval_inj => /=.  
+case De: (enum _) => [|x0 e]; first by case: s Hs; rewrite /card De. 
+rewrite -De; have y0 := fgraph_default x0 g.
+apply: (@eq_from_sub _ y0); rewrite size_maps // => i Hi; unlock.
+by rewrite (sub_maps x0) // index_uniq ?uniq_enum ?(set_sub_default y0) ?Hs.
+Qed.
+
+Lemma can_fgraph_of_fun : 
+  forall (d1 d2:finType) (f:d1->d2), fgraph_of_fun f =1 f.
+Proof.
+unlock fun_of_fgraph fgraph_of_fun => /= d1 d2 f x.
+by rewrite (sub_maps x) ?sub_index // ?index_mem mem_enum.
+Qed.
+
+Lemma fgraph_size : forall (T1 T2:finType) (a b:fgraph_eqType T1 T2),
+  size (fval a) = size (fval b).
+Proof. by move => T1 T2 a b; case a; case b => sa Hsa sb Hsb /=; rewrite Hsa Hsb.
+Qed.
+
+
+Lemma can_eq: forall d : eqType, forall d1 : Type, forall f f1, 
+  cancel f f1 -> reflect_eq (fun (x y : d1) => f x == f y :> d).
+Proof.
+move => d d1 f f1 Hf x y; apply: (iffP eqP).
+  by apply: (can_inj Hf).
+by apply: f_equal.
+Qed.
+
+Lemma can_uniq:
+ forall d : finType, forall d1 : eqType, forall f f1, cancel f1 f ->
+ forall u : d1, count (set1 u) (undup (maps f (enum d))) = 1.
+Proof.
+move => d d1 f f1 Hf1 u.
+rewrite count_set1_uniq ?uniq_undup // mem_undup -[u]Hf1 (_ : maps _ _ _ = true) //.
+by apply/mapsP; exists (f1 u); first exact: mem_enum.
+Qed.
+
+
+Section SetType.
+
+Variable G : finType.
+
+CoInductive setType : Type := Sett : fgraphType G bool_finType -> setType.
+
+Definition sval (s : setType) := match s with Sett g => g end.
+
+Lemma can_sval : cancel sval Sett.
+Proof. by rewrite /cancel; case => /=. Qed.
+
+Lemma sval_inj : injective sval. 
+Proof. exact: can_inj can_sval. Qed.
+
+Canonical Structure set_eqType := EqType (can_eq can_sval). 
+
+Canonical Structure set_finType := FinType (can_uniq can_sval).
+
+Definition iset_of_fun (f : G -> bool_finType) : setType := 
+  locked Sett (fgraph_of_fun f).
+
+Definition s2s : setType -> set G := 
+  fun s => @fun_of_fgraph G bool_finType (sval s).
+
+Coercion s2s : setType >-> set.
+
+Lemma can_iset_of_fun : forall f, iset_of_fun f =1 f.
+Proof. 
+move => f; rewrite /s2s /iset_of_fun; unlock => /=; exact: can_fgraph_of_fun.
+Qed.
+
+Definition s2f := can_iset_of_fun.
+
+End SetType.
+
+Notation "{ x , P }" := (iset_of_fun (fun x => P)) (at level 0, x at level 99).
+Notation "{ x : T , P }" := (iset_of_fun (fun x : T => P)) (at level 0, x at level 99).
+
+Lemma iset_eqRENAMED : forall G:finType, forall A B:setType G, A =1 B -> A = B.
+Proof.
+move => G [t2] [t1]; have Hsize:= fgraph_size t1 t2; have Hg := fproof t2.
+rewrite /s2s /fun_of_fgraph /eqfun /=; unlock => H.
+apply: sval_inj; apply fval_inj => /=. 
+apply: (@eq_from_sub _ true) => // i Hi.
+cut G; last first.
+  case: G t2 Hg i Hi {H Hsize t1}=> G; case => // Hs t2 Hg i Hi.
+  by rewrite /card /= in Hg; rewrite Hg in Hi.
+move => e; have {H}:= H (sub e (enum G) i) => H.
+rewrite index_uniq in H; [idtac|by rewrite Hg in Hi|exact: uniq_enum].
+rewrite (@set_sub_default _ (fval t2) true _ i Hi) in H.
+rewrite -Hsize in Hi.
+by rewrite (@set_sub_default _ (fval t1) true _ i Hi) in H.
+Qed.
+
+Lemma isetP : forall G:finType, forall a b:setType G, reflect (a =1 b) (a == b).
+Proof.
+by move => G a b; apply:(iffP eqP); [move ->|move => H;apply: iset_eqRENAMED].
+Qed.
+
+Section setTypeOpsDefs.
+
+Variable G : finType.
+
+Definition iset1 x : setType G := {y, x==y}.
+Definition iset2 x1 x2 : setType G := {y, (x1 == y) || (x2 == y)}.
+Definition iset3 x1 x2 x3 : setType G := {y, or3b (x1 == y) (x2 == y) (x3 == y)}.
+Definition iset4 x1 x2 x3 x4 : setType G :=
+  {y, or4b (x1 == y) (x2 == y) (x3 == y) (x4 == y)}.
+Definition isetU (A B:setType G) : setType G := {x, A x || B x}.
+Definition isetU1 x A : setType G := {y, (x == y) || A y}.
+Definition isetI (A B : setType G): setType G := {x, A x && B x}.
+Definition isetC (A:setType G) : setType G := {x, ~~ A x}.
+Definition isetC1 x : setType G:= {y, x != y}.
+Definition isetD (A B:setType G) : setType G := {x, ~~ B x && A x}.
+Definition isetD1 (A:setType G) x : setType G := {y, (x != y) && A y}.
+Definition iset0 := {x : G, false}.
+
+End setTypeOpsDefs.
+
+Notation "A ':|' x" := (isetU1 x A) (at level 52, left associativity).
+Notation "A ':|:' B" := (isetU A B) (at level 52, left associativity).
+Notation "A ':\:' B" := (isetD A B) (at level 50).
+Notation "A ':\' x" := (isetD1 A x) (at level 50).
+Notation "A ':&:' B" := (isetI A B) (at level 48, left associativity).
+Notation "{ : x }" := (iset1 x) (at level 0, x at level 99, format"{ : x }").
+
+Section setTypeOps.
+
+Variable G : finType.
+
+Lemma iset11 : forall x:G, { : x} x. 
+Proof. move=> x; rewrite s2f; exact: eq_refl. Qed.
+
+Lemma isetU11 : forall (x:G) a, (a :| x) x.
+Proof. by move=> *; rewrite s2f eq_refl. Qed.
+
+Lemma isetU1r : forall (x:G) a, sub_set a (a :| x).
+Proof. by move=> x a y Hy; rewrite s2f Hy orbT. Qed.
+
+Lemma isetU1P : forall x (a : setType G) y, reflect (x = y \/ a y) ((a :| x) y).
+Proof.
+by move=>*;rewrite s2f;apply:(iffP orP);case;auto;left;[apply:eqP|apply/eqP].
+Qed.
+
+Lemma isetC11 : forall x:G, isetC1 x x = false.
+Proof. by move=> *; rewrite s2f eq_refl. Qed.
+
+Lemma isetD11 : forall (x:G) a, (a :\ x) x = false.
+Proof. by move=> *; rewrite s2f eq_refl. Qed.
+
+Lemma iset21 : forall (x1 x2:setType G), iset2 x1 x2 x1.
+Proof. by move=> *; rewrite s2f eq_refl. Qed.
+
+Lemma iset22 : forall (x1 x2:setType G), iset2 x1 x2 x2.
+Proof. by move=> *; rewrite s2f eq_refl orbT. Qed.
+
+Lemma iset31 : forall (x1 x2 x3:setType G), iset3 x1 x2 x3 x1.
+Proof. by move=> *; rewrite s2f eq_refl. Qed.
+
+Lemma iset32 : forall (x1 x2 x3:setType G), iset3 x1 x2 x3 x2.
+Proof. by move=> *; rewrite s2f eq_refl !orbT . Qed.
+
+Lemma iset33 : forall (x1 x2 x3:setType G), iset3 x1 x2 x3 x3.
+Proof. by move=> *; rewrite s2f eq_refl !orbT. Qed.
+
+Lemma isetIUr : forall b1 b2 b3 : setType G, 
+  b1 :&: (b2 :|: b3) = (b1 :&: b2) :|: (b1 :&: b3).
+Proof. move => a b c; apply/eqP; apply/isetP => x; rewrite !s2f; exact: demorgan1. Qed.
+
+Lemma isetIUl : forall b1 b2 b3:setType G,
+  isetI (isetU b1 b2) b3 = isetU (isetI b1 b3) (isetI b2 b3).
+Proof. move => a b c; apply/eqP;apply/isetP => x; rewrite !s2f; exact: demorgan2. Qed.
+
+Lemma isetUIr : forall b1 b2 b3:setType G, 
+  b1 :|: (b2 :&: b3) = (b1 :|: b2) :&: (b1 :|: b3).
+Proof. move => a b c; apply/eqP;apply/isetP => x; rewrite !s2f; exact: demorgan3. Qed.
+
+Lemma isetUIl : forall b1 b2 b3:setType G, 
+  (b1 :&: b2) :|: b3 = (b1 :|: b3) :&: (b2 :|: b3).
+Proof. move => a b c; apply/eqP;apply/isetP => x; rewrite !s2f; exact: demorgan4. Qed.
+
+Lemma isetCI : forall b1 b2:setType G,
+  isetC (b1 :&: b2) = (isetC b1) :|: (isetC b2).
+Proof. 
+by move => a b; apply/eqP;apply/isetP => x; rewrite !s2f; apply/idP/idP;
+  [move/nandP => H; apply/orP|move => H; apply/nandP; apply/orP].
+Qed.
+
+Lemma isetUs : forall a b1 b2 : setType G,
+  subset b1 b2 -> subset (a :|: b1) (a :|: b2).
+Proof.
+move => a b1 b2; move/subsetP => sb12; apply/subsetP=>x.
+rewrite !s2f; case: (a x) => H; apply/orP; [left|right] => //.
+rewrite orFb in H; exact: (sb12 x H).
+Qed.
+
+Lemma isetsU : forall a b1 b2 : setType G,
+  subset b1 b2 -> subset (b1 :|: a) (b2 :|: a).
+Proof.
+move => a b1 b2; move/subsetP => sb12; apply/subsetP=>x.
+rewrite !s2f; case: (a x) => H; apply/orP; [right|left] => //.
+rewrite orbF in H; exact: (sb12 x H).
+Qed.
+
+Lemma isetUA : forall a b c : setType G,
+  a :|: (b :|: c) = a :|: b :|: c.
+Proof.
+move => a b c; apply/eqP;apply/isetP => x;rewrite !s2f.
+by case: (a x); case: (b x); case: (c x).
+Qed.
+
+Lemma isetIP : forall x (a b : setType G), reflect (a x /\ b x) ((a :&: b) x).
+Proof. move => x a b; rewrite !s2f; exact: andP. Qed.
+
+Lemma isetUP : forall x (a b : setType G), reflect (a x \/ b x) ((a :|: b) x).
+Proof. move => x a b; rewrite !s2f; exact: orP. Qed.
+
+Lemma isetCP : forall x (a : setType G), reflect (~ a x) (isetC a x).
+Proof. move => x a; rewrite !s2f; exact: negP. Qed.
+
+Lemma isetIC : forall a b:setType G, a :&: (isetC b) = a :\: b.
+Proof. by move => a b; apply/eqP;apply/isetP => x; rewrite !s2f andbC. Qed.
+
+Lemma isetDU : forall a b c : setType G, a :\: (b :|: c) = (a :\: b) :&: (a :\: c).
+Proof.
+move => a b c; apply/eqP;apply/isetP=>x;rewrite !s2f.
+by case: (a x); case: (b x); case: (c x).
+Qed.
+
+Lemma isetDI : forall a b c : setType G, a :\: (b :&: c) = (a :\: b) :|: (a :\: c).
+Proof.
+move => a b c; apply/eqP;apply/isetP=>x;rewrite !s2f.
+by case: (a x); case: (b x); case: (c x).
+Qed.
+
+Lemma isetC_inj: forall a b:setType G, isetC a = isetC b -> a = b.
+Proof.
+move => a b; apply: (@can_inj _ _ _ (@isetC G)); rewrite /cancel => c.
+by apply/eqP;apply/isetP => x;rewrite !s2f; case: (c x). 
+Qed.
+
+Lemma isetCU : forall b1 b2:setType G,
+  (isetC b1) :&: (isetC b2) = isetC (b1 :|: b2).
+Proof. 
+by move => a b; apply/eqP;apply/isetP => x; rewrite !s2f; apply/idP/idP;
+  [move => H; apply/norP; apply/andP|move/norP => H; apply/andP].
+Qed.
+
+Lemma icard1 : forall x:G, card {:x} = 1.
+Proof.
+move => x; rewrite /card /iset1 -(@eq_count _ (set1 x)); 
+  [exact: FinType.enumP | by move => y; rewrite s2f].
+Qed.
+
+Lemma icardUI : forall a b:setType G, card (a :|: b) + card (a :&: b) = card a + card b.
+Proof. move=> a b. 
+rewrite -(@eq_card _ (setU a b)); last by move=>y;rewrite s2f.
+rewrite -[card (isetI _ _)](@eq_card _ (setI a b)); last by move=>y;rewrite s2f.
+exact: count_setUI. 
+Qed.
+
+Lemma icard0 : card (iset0 G) = 0.
+Proof.
+case: (pickP (iset0 G)); first by move => x; rewrite s2f.
+move => H; rewrite (eq_card H).
+exact: card0.
+Qed.
+
+Lemma icardIC : forall b a:setType G, card (a :&: b) + card (a :&: (isetC b)) = card a.
+Proof.
+move=> b a; rewrite -(add0n (card a)) -icardUI addnC -icard0.
+by congr (_ + _); apply: eq_card => x; rewrite !s2f;
+   case (a x); case (b x).
+Qed.
+
+Lemma icardC : forall a:setType G, card a + card (isetC a) = card (setA G).
+Proof. move=> a. 
+rewrite (cardA G) -(count_setC a) -[card (isetC _)](@eq_card _ (setC a)) //.
+by move=>y; rewrite s2f.
+Qed.
+
+Lemma icardU1 : forall (x:G) a, card (a :| x) = negb (a x) + card a.
+Proof.
+move => x a; rewrite -(@eq_card _ (setU1 x a)); last by move=>y; rewrite s2f.
+apply: addn_injr (etrans (cardUI _ _) _); symmetry.
+rewrite addnC addnA; congr addn; rewrite -(@eq_card _ (filter a (Seq x))).
+  simpl; case: (a x); last by rewrite /= card0 card1.
+  by rewrite addnC; apply: eq_card => y; exact: mem_seq1.
+by move=> y; rewrite mem_filter /setI mem_seq1 andbC.
+Qed.
+
+Lemma icard2 : forall x y:G, card (iset2 x y) = S (x != y).
+Proof.
+move=> x y /=; rewrite -(@eq_card _ (set2 x y)); last by move=>z;rewrite s2f.
+by apply: (etrans (cardU1 x (set1 y))); rewrite card1 addn1 eq_sym.
+Qed.
+
+Lemma icardC1 : forall x:G, card (isetC1 x) = pred (card (setA G)).
+Proof. 
+move=> x; rewrite -(icardC (iset1 x)) icard1.
+by apply: eq_card; move => y; rewrite !s2f.
+Qed.
+
+Lemma icardD1 : forall x (a:setType G), card a = a x + card (a :\ x).
+Proof.
+move=> x a; rewrite -(@eq_card _ (setD1 a x) (isetD1 _ _)); last by move=>y;rewrite s2f.
+rewrite addnC; apply: (addn_injr (etrans (cardC a) _)).
+rewrite -addnA (negb_intro (a x)) -[negb (a x)]/(setC a x) -cardU1.
+symmetry; apply: etrans (congr1 (addn _) _) (cardC _).
+by apply: eq_card => y; rewrite /setC /setU1 /setD1 negb_andb negb_elim.
+Qed.
+
+Lemma icard0_eq : forall (a:setType G), card a = 0 -> a = (iset0 G).
+Proof. 
+by move=> a Ha; apply/eqP;apply/isetP=>x; rewrite s2f; apply/idP => [Hx]; rewrite (icardD1 x) Hx in Ha. 
+Qed.
+
+(*
+Lemma iset0P : forall a:setType G, reflect (a = iset0 G) (set0b a).
+Proof. by move=> a; apply: (iffP eqP); [apply: icard0_eq | move ->; rewrite icard0 ]. Qed.
+
+Lemma iset0Pn : forall a : setType G, reflect (exists x, a x) (~~ set0b a).
+Proof.
+move=> a; case: (iset0P a) => [Ha|Hna]; constructor.
+  by move=> [x Hx]; rewrite Ha s2f in Hx.
+case: (pickP a); first by move => x ax; exists x.
+by move => Ha; case Hna; apply/eqP; apply/isetP => x; rewrite Ha s2f.
+Qed.
+*)
+
+Lemma subsetIl : forall (A B : setType G), subset (A :&: B) A.
+Proof.
+by move=> A B; apply/subsetP=> x; rewrite s2f; case/andP.
+Qed.
+
+Lemma subsetIr : forall (A B : setType G), subset (A :&: B) B.
+Proof.
+by move=> A B; apply/subsetP=> x; rewrite s2f; case/andP.
+Qed. 
+
+Lemma subsetUl : forall (A B : setType G), subset A (A :|: B).
+Proof. by move=> A B; apply/subsetP=> x; rewrite s2f => ->. Qed.
+
+Lemma subsetUr : forall (A B : setType G), subset B (A :|: B).
+Proof. by move=> A B; apply/subsetP=> x; rewrite s2f orbC => ->. Qed.
+
+(* to be moved to tuples *)
+Lemma subset_set1 : forall (A : setType G) x, subset {:x} A = A x.
+Proof.
+move=> A x; apply/subsetP/idP.
+by move=> xA; apply xA; rewrite s2f set11.
+by move=> Ax x'; rewrite s2f; move/eqP<-.
+Qed.
+
+End setTypeOps.
+
+(* setType END *)
 
 Section FunImage.
 
@@ -462,6 +966,26 @@ Qed.
 End FunImage.
 
 Prenex Implicits codom iinv image.
+
+Section FunIimage.
+
+Variable G G' : finType.
+Variable f : G -> G'.
+
+Definition iimage (A : set G) : setType G' := iset_of_fun (image f A).
+
+Lemma iimageP : forall (A : setType G) y,
+ reflect (exists2 x, A x & y = f x) (iimage A y).
+Proof. move=> A y; rewrite s2f; exact: imageP. Qed.
+
+Lemma iimage_set1 : forall x, iimage {: x } = {: f x}.
+Proof.
+move=> x; apply/eqP;apply/isetP => y; rewrite !s2f; apply/imageP/eqP.
+by case=>x'; rewrite s2f; move/eqP->.
+by exists x=> //; rewrite iset11.
+Qed.
+
+End FunIimage.
 
 Section Ordinal.
 
@@ -715,6 +1239,36 @@ by move=> [x Hx]; apply: val_inj; rewrite /= diinv_f.
 Qed.
 
 End CardFunImage.
+
+Section CardFunIimage.
+
+Variables (d d' : finType) (f : d -> d').
+
+Lemma iimage_card : forall a, card (iimage f a) = card (image f a).
+Proof.
+by move => a; apply: eq_card => x; rewrite !s2f.
+Qed.
+
+Lemma leq_iimage_card : forall a, card (iimage f a) <= card a.
+Proof.
+move => a; rewrite iimage_card; exact: leq_image_card.
+Qed.
+
+Hypothesis Hf : injective f.
+
+Lemma card_iimage : forall a, card (iimage f a) = card a.
+Proof.
+move=> a; rewrite iimage_card; exact:card_image.
+Qed.
+
+Lemma card_diimage : forall (a: set d), 
+(dinjective a f) -> card (iimage f a) = card a.
+Proof.
+move=> a Hfa; rewrite iimage_card; exact: card_dimage.
+Qed.
+
+End CardFunIimage.
+
 
 Section Disjoint.
 

@@ -18,7 +18,6 @@ Require Import fintype.
 Require Import paths.
 Require Import connect.
 Require Import div.
-Require Import tuple.
 Require Import groups.
 
 

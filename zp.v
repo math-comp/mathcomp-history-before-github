@@ -15,7 +15,6 @@ Require Import eqtype.
 Require Import ssrnat.
 Require Import seq.
 Require Import fintype.
-Require Import tuple.
 Require Import groups.
 Require Import div.
 
