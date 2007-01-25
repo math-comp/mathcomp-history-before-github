@@ -347,9 +347,10 @@ case/smulgP=> x1 x2 Hx1 Hx2 -> {z}.
 rewrite !s2f conjg_mul in Hx1 Hx2 *; exact: groupM. 
 Qed.
 
-Theorem sconjg_iimage : forall x, H :^ x = iimage (conjg x) H.
+Theorem sconjg_iimage : forall x, H :^ x = (conjg x) @: H.
 Proof.
- move=> x; apply/eqP;apply/isetP =>y; rewrite !s2f -{2}(conjgKv x y)  image_f ?s2f //; exact: conjg_inj.
+move=> x; apply/eqP;apply/isetP =>y; unlock iimage; rewrite !s2f. 
+rewrite -{2}(conjgKv x y) image_f ?s2f //; exact: conjg_inj.
 Qed.
 
 Lemma sconjg_coset : forall x, H :^ x = x^-1 *: H :* x.
@@ -514,7 +515,7 @@ Proof. by move=> x; rewrite -card_sinvg sinvg_lcoset card_rcoset. Qed.
 
 Lemma lcoset_indexg : card (iimage (fun x => lcoset x H) K) = indexg K.
 Proof.
-rewrite -(card_iimage (inv_inj sinvgK)); apply: eq_card => A; rewrite !s2f.
+rewrite -(card_iimage (inv_inj sinvgK)); apply: eq_card => A; unlock iimage; rewrite !s2f.
 apply/imageP/imageP=> [[B dB ->{A}] | [x Hx ->{A}]].
   rewrite s2f in dB.
   case/imageP: dB => x Kx ->{B}.
