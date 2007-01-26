@@ -305,9 +305,9 @@ Hypothesis gH': group H'.
 Lemma morph_preimage_grp : subset (f @^-1: H') H -> group (f @^-1: H').
 Proof.
 move/subsetP=>Hsubset; apply/andP.
-split; first by apply/ipreimageP; rewrite morph1 group1.
-apply/subsetP=> x Hx; case/smulgP:Hx => x1 x2; move/ipreimageP=> Hx1; move/ipreimageP=> Hx2 ->.
-by apply/ipreimageP; rewrite mf  ?groupM // Hsubset //; apply/ipreimageP.
+split; first by rewrite !s2f morph1 group1.
+apply/subsetP=> x Hx; case/smulgP:Hx => x1 x2; rewrite !s2f => H1 H2 ->.
+by rewrite mf  ?groupM // Hsubset // !s2f.
 Qed.
 
 Variable K : setType elt.
@@ -327,26 +327,20 @@ Section Ker.
 Definition ker :=  (f @^-1: {:1}) :&: H.
 
 Lemma ker1 : forall x, ker x -> f x = 1.
-Proof. by move=> x; rewrite !s2f ; case/andP; move/ipreimageP; move/iset1P; auto. Qed.
+Proof. by move=> x; rewrite !s2f ; case/andP;move/eqP=><-. Qed.
 
 Lemma ker_sub : forall x, ker x -> H x.
 Proof. by move=> x; rewrite !s2f ; case/andP. Qed.
 
 Lemma ker_grp : group ker.
 Proof.
-apply/andP; split.
- apply /isetIP; split; last by rewrite group1.
- by apply/ipreimageP; apply/iset1P; rewrite morph1.
+apply/andP; split; first by rewrite !s2f group1 ?morph1 ?eq_refl.
 apply/subsetP=> x; move/smulgP=>[y1 y2]; rewrite !s2f.
-move/andP=>[]; move/ipreimageP=> Hfy1 Hy1; move/andP=>[]; move/ipreimageP=> Hfy2 Hy2 ->.
+move/andP=> [Hfy1 Hy1];move/andP=>[Hfy2 Hy2] ->.
 apply/andP; split; last by rewrite groupM.
-apply/ipreimageP; apply/iset1P; rewrite mf //.
-by move/iset1P: Hfy1=><-;move/iset1P: Hfy2=><-;gsimpl.
+by rewrite mf // -(eqP Hfy1) -(eqP Hfy2);gsimpl.
 Qed.
 
-End Ker.
-End Morphism.
-(*
 Lemma normal_ker : normal ker H.
 Proof.
 apply/subsetP=> x Hx; rewrite !s2f; apply/subsetP=> y; rewrite !s2f.
@@ -432,7 +426,7 @@ Notation Local fquo' := (fun x : q'_elt => f (repr x)).
 
 Hypothesis sK'K : subset K' K.
 Hypothesis norm_HmodK' : normal K' H.
-
+(*
 Check normal_subset.
 Notation Local norm_KmodK' : normal K.
 
@@ -481,12 +475,12 @@ Qed.
 
 (* (preimage coset) definit une bijection entre les sous groupes de *)
 (* H/Ker et les sous groupes de H qui contiennent le ker *)
-
+*)
 
 End First_theorem.
 
 
-
+(*
 Section Third_theorem.
 
 Open Scope group_scope.
@@ -572,7 +566,7 @@ apply/imageP.
 SearchAbout coset.  
 rewrite /quotient; apply/imageP.
 
-
+*)
 
 End Isomporhism_theorems.
 
@@ -581,6 +575,4 @@ Unset Implicit Arguments.
 
 
 
-
-*)
 

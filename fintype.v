@@ -973,9 +973,8 @@ Prenex Implicits codom iinv image.
 Definition iimage := 
  locked (fun (G G':finType) (f:G -> G') (A : set G) => iset_of_fun (image f A) : setType G').
 
-Definition ipreimage :=
- locked (fun (d : finType) (d' : eqType) (k : d -> d') (a : set d') =>
-           iset_of_fun (preimage k a) : setType d).
+Definition ipreimage (d : finType) (d' : eqType) (k : d -> d') (a : set d') := 
+           {x, a (k x)}.
 
 Notation "f '@:' A" := (iimage f A) (at level 54).
 Notation "f '@^-1:' A" := (ipreimage f A) (at level 54).
@@ -989,10 +988,6 @@ Lemma iimageP : forall (A : setType G) y,
  reflect (exists2 x, A x & y = f x) ((f @: A) y).
 Proof. move=> A y; rewrite /iimage -lock s2f; exact: imageP. Qed.
 
-
-Lemma ipreimageP : forall (A : setType G') x,
-  reflect (A (f x)) ((f @^-1: A) x).
-Proof. move=> A x; rewrite /ipreimage -!lock !s2f /preimage; exact: idP. Qed.
 
 Lemma iimage_set1 : forall x, f @: {: x } = {: f x}.
 Proof.
