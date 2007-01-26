@@ -18,6 +18,7 @@ Require Import seq.
 Require Import fintype.
 Require Import paths.
 Require Import connect.
+(*Require Import tuple.*)
 Require Import groups.
 
 
@@ -44,17 +45,16 @@ Hypothesis subset_HK: subset H K.
 (********************************************************************)
 
 
-Definition normal := subset K (normaliser H). 
+Definition normal := subset K (normaliser H).
 
 
 Theorem normalP:
   reflect (forall x, K x -> (H :^ x) = H) normal.
 Proof.
 apply: (iffP idP).
- by rewrite/normal; move/subsetP=> H1 x Kx; apply norm_conjsg; apply H1.
-by move=> H1; apply/subsetP=> x Kx; rewrite/normaliser s2f H1 //; apply subset_refl.
+  by move/subsetP=> H1 x Kx; apply norm_sconjg; apply H1.
+  by move=> H1; apply/subsetP=> x Kx; rewrite/normaliser s2f H1 //; apply subset_refl.
 Qed.
-
 
 End Normal.
 
@@ -76,13 +76,15 @@ Proof. exact: subset_refl. Qed.
 
 Notation Local N := (normaliser H).
 
+
 Lemma rcoset_mul : forall x y, 
-  N x -> N y -> (H :* x) :*: (H :* y) = H :* (x * y).
+  N x  -> (H :* x) :*: (H :* y) = H :* (x * y).
 Proof.
-move=> x y Nx Ny.
-rewrite !rcoset_prod -prodgA (prodgA _ H) -lcoset_prod -norm_rcoset_lcoset //.
-by rewrite rcoset_prod -prodgA prodg_set1 prodgA prodgg.
+move=> x y Nx.
+rewrite !rcoset_smul -smulgA (smulgA _ H) -lcoset_smul -norm_rcoset_lcoset //.
+by rewrite rcoset_smul -smulgA smulg_set1 smulgA smulgg.
 Qed.
+
 
 End NormalProp.
 
@@ -94,7 +96,8 @@ Variables (elt : finGroupType) (H : setType elt).
 Hypothesis gH: group H.
 
 Notation Local N := (normaliser H).
-Let gN := group_norm H.
+
+Let gN := group_normaliser H.
 
 
 (* Definition of the cosets as the rcosets of elements of the normalizer *)
@@ -132,7 +135,7 @@ Definition coset_mul Hx Hy := Coset (EqSig _ _ (coset_mul_set Hx Hy)).
 Lemma coset_inv_set : forall Hx : cosetType, coset_set (Hx :^-1).
 Proof.
 rewrite /set_of_coset => [] [[A]] /=; move/imageP=> [x Nx ->{A}].
-rewrite norm_rcoset_lcoset // invsg_lcoset //.
+rewrite norm_rcoset_lcoset // sinvg_lcoset //.
 by apply/imageP; exists x^-1; first rewrite groupV.
 Qed.
 
@@ -141,15 +144,14 @@ Definition coset_inv Hx := Coset (EqSig _ _ (coset_inv_set Hx)).
 Lemma coset_unitP : forall Hx, coset_mul coset_unit Hx = Hx.
 Proof.
 move=> [[Hx nHx]]; apply: coset_set_inj; do 3!rewrite /set_of_coset /=.
-case/imageP: nHx => [x Nx ->{Hx}]; rewrite rcoset_prod prodgA.
-by rewrite [H :*: H]prodsgg //; [rewrite group1 | apply subset_refl].
+by case/imageP: nHx => [x Nx ->{Hx}]; rewrite rcoset_smul smulgA [H :*: H]smulgg.
 Qed.
 
 Lemma coset_invP : forall Hx, coset_mul (coset_inv Hx) Hx = coset_unit.
 Proof.
 move=> [[Hx nHx]]; apply: coset_set_inj; do 3!rewrite /set_of_coset /=.
 case/imageP: nHx => [x Nx ->{Hx}].
-by rewrite {1}norm_rcoset_lcoset ?invsg_lcoset ?rcoset_mul ?mulVg ?rcoset1 ?groupV.
+by rewrite {1}norm_rcoset_lcoset ?sinvg_lcoset ?rcoset_mul ?mulVg ?rcoset1 ?groupV.
 Qed.
 
 Lemma coset_mulP : forall Hx Hy Hz,
@@ -158,15 +160,14 @@ Proof.
 move=> [[Hx nHx]] [[Hy nHy]] [[Hz nHz]]; apply: coset_set_inj.
 do 3!rewrite /set_of_coset /=.
 case/imageP: nHx => [x Nx ->{Hx}]; case/imageP: nHy => [y Ny ->{Hy}].
-by case/imageP: nHz => [z Nz ->{Hz}]; rewrite prodgA.
+by case/imageP: nHz => [z Nz ->{Hz}]; rewrite smulgA.
 Qed.
 
 
 Canonical Structure coset_groupType :=
   FinGroupType coset_unitP coset_invP coset_mulP.
 
-
-Lemma val_morph : forall x y : coset_groupType,
+Lemma set_of_coset_morph : forall x y : coset_groupType,
   set_of_coset (x * y) = (set_of_coset x) :*: (set_of_coset y).
 Proof. by move=> *; constructor. Qed.
 
@@ -185,10 +186,10 @@ Lemma group_quotient : group quotient.
 Proof.
 apply/andP; split.
  rewrite !s2f; apply/imageP; exists (1:elt); first exact: group1.
- by rewrite rcoset_prod prodg1.
-apply/subsetP => x; move/prodgP=> [fy fz]; rewrite !s2f; move/imageP=>[y Hy Ey].
+ by rewrite rcoset_smul smulg1.
+apply/subsetP => x; move/smulgP=> [fy fz]; rewrite !s2f; move/imageP=>[y Hy Ey].
 move/imageP=>[z Hz Ez]->; apply/imageP; exists (y * z); first by rewrite groupM.
-by rewrite val_morph Ey Ez rcoset_mul //; apply (subsetP nK).
+by rewrite set_of_coset_morph Ey Ez rcoset_mul //; apply (subsetP nK).
 Qed.
 
 End Quotient.
@@ -196,6 +197,7 @@ End Quotient.
 End Cosets.
 
 Notation "H / K" := (quotient K H).
+
 Section Morphism.
 
 Open Scope group_scope.
@@ -225,42 +227,87 @@ Qed.
 Lemma morph_conjg : forall x y, H x -> H y -> f (x ^ y) = (f x) ^ (f y).
 Proof. move=> x y Hx Hy; rewrite/conjg -morphV // -!mf // ?groupM // groupV //. Qed.
 
-Lemma iimage_prod : forall A B : setType elt, 
-  subset A H -> subset B H -> iimage f (A :*: B) = (iimage f A) :*: (iimage f B).
+(*
+Definition gimage (A : setType elt) := iset_of_fun (image  f A).
+
+Lemma gimageP : forall (A : setType elt) y, 
+  reflect (exists2 x, A x & y = f x) (gimage A y).
+Proof. move=> A y; rewrite s2f; exact: imageP. Qed.
+
+Lemma gimage_set1 : forall x, gimage {: x } = {: f x}.
+Proof.
+move=> x; apply iset_eq => y; rewrite !s2f; apply/imageP/eqP.
+ by case=>x'; rewrite s2f; move/eqP->.
+by exists x=> //; rewrite iset11.
+Qed.
+
+Lemma gimage_smul : forall A B : setType elt, 
+  subset A H -> subset B H -> gimage (A :*: B) = (gimage A) :*: (gimage B).
 Proof.
 move=> A B; move/subsetP=> sAH; move/subsetP=> sBH.
-apply/eqP;apply/isetP=> u; apply/iimageP/prodgP.
- case=> xy; move/prodgP=> [x y Ax By ->{xy}] ->{u}; rewrite mf; auto.
+apply: iset_eq=> u; apply/gimageP/smulgP.
+ case=> xy; move/smulgP=> [x y Ax By ->{xy}] ->{u}; rewrite mf; auto.
+ by exists (f x) (f y) => //; apply/gimageP; [exists x | exists y].
+case=>fx fy; move/gimageP=>[x Ax ->]; move/gimageP=>[y By ->] ->; rewrite -mf; auto.
+by exists (x * y)=> //; apply/smulgP; exists x y.
+Qed.
+
+*)
+
+(* to be moved to tuples *)
+(*
+Lemma subset_set1 : forall (A : setType elt) x, subset {:x} A = A x.
+Proof.
+move=> A x; apply/subsetP/idP.
+ by move=> xA; apply xA; rewrite s2f set11.
+by move=> Ax x'; rewrite s2f; move/eqP<-.
+Qed.
+*)
+
+
+
+Lemma iimage_smul : forall A B : setType elt, 
+  subset A H -> subset B H -> f @: (A :*: B) = (f @: A) :*: (f @: B).
+Proof.
+move=> A B; move/subsetP=> sAH; move/subsetP=> sBH.
+apply/eqP; apply /isetP=> u; apply/iimageP/smulgP.
+ case=> xy; move/smulgP=> [x y Ax By ->{xy}] ->{u}; rewrite mf; auto.
  by exists (f x) (f y) => //; apply/iimageP; [exists x | exists y].
 case=>fx fy; move/iimageP=>[x Ax ->]; move/iimageP=>[y By ->] ->; rewrite -mf; auto.
-by exists (x * y)=> //; apply/prodgP; exists x y.
+by exists (x * y)=> //; apply/smulgP; exists x y.
 Qed.
+
 
 Lemma iimage_conj : forall (A : setType elt) x,
-  subset A H -> H x -> iimage f (A :^ x) = (iimage f A) :^ (f x).
+  subset A H -> H x -> f @: (A :^ x) = (f @: A) :^ (f x).
 Proof.
-move=> A x sAH => Hx; rewrite !conjsg_coset !rcoset_prod !lcoset_prod -morphV //.
-rewrite -!(iimage_set1 f) -!iimage_prod // ?subset_set1 ?groupVr // -(prodgg gH).
-by apply: subset_trans (prodgs _ sAH); apply: prodsg; rewrite subset_set1 groupVr.
+move=> A x sAH => Hx; rewrite !sconjg_coset !rcoset_smul !lcoset_smul -morphV //.
+rewrite -(iimage_set1 f) -!iimage_smul // ?subset_set1 ?groupVr //.
+rewrite ?iimage_smul ?(iimage_set1 f) // ?subset_set1 ?groupV // -(smulgg gH). 
+apply: (@subset_trans _ _ (H :*: A)); [apply smulsg |apply smulgs]; rewrite ?subset_set1 //.
+by rewrite ?groupV.
 Qed.
 
-Lemma morph_image_grp : group (iimage f H).
+
+Lemma morph_image_grp : group (f @: H).
 Proof.
 apply/andP; split.
  by apply/iimageP; exists (1:elt); [apply: group1=>//| symmetry; exact: morph1].
-by rewrite -iimage_prod ?prodgg // subset_refl.
+by rewrite -iimage_smul ?smulgg // subset_refl.
 Qed.
 
-Definition gpreimage (A : setType elt') := {x, A (f x)}.
 
+(*
+Definition gpreimage (A : setType elt') := {x, A (f x)}.
+*)
 Hypothesis gH': group H'.
 
-Lemma morph_preimage_grp : subset (gpreimage H') H -> group (gpreimage H').
+Lemma morph_preimage_grp : subset (f @^-1: H') H -> group (f @^-1: H').
 Proof.
 move/subsetP=>Hsubset; apply/andP.
-split; first by rewrite s2f morph1 group1.
-apply/subsetP=> x Hx; case/prodgP:Hx => x1 x2; rewrite !s2f => Hx1 Hx2 ->.
-by rewrite mf ?groupM ?Hsubset // s2f.
+split; first by apply/ipreimageP; rewrite morph1 group1.
+apply/subsetP=> x Hx; case/smulgP:Hx => x1 x2; move/ipreimageP=> Hx1; move/ipreimageP=> Hx2 ->.
+by apply/ipreimageP; rewrite mf  ?groupM // Hsubset //; apply/ipreimageP.
 Qed.
 
 Variable K : setType elt.
@@ -269,7 +316,7 @@ Hypothesis gK : group K.
 Hypothesis subset_KH : subset K H.
 
 
-Lemma morph_normal_im : normal K H -> normal (iimage f K) (iimage f H).
+Lemma morph_normal_im : normal K H -> normal (f @: K) (f @: H).
 Proof.
 move/normalP=> Hn; apply/normalP => x; move/iimageP=> [u Hu ->].
 by rewrite -iimage_conj // Hn.
@@ -277,36 +324,43 @@ Qed.
 
 Section Ker.
 
-Definition ker :=  gpreimage {:1} :&: H.
+Definition ker :=  (f @^-1: {:1}) :&: H.
 
 Lemma ker1 : forall x, ker x -> f x = 1.
-Proof. by move=> x; rewrite !s2f ; case/andP; move/eqP->. Qed.
+Proof. by move=> x; rewrite !s2f ; case/andP; move/ipreimageP; move/iset1P; auto. Qed.
 
 Lemma ker_sub : forall x, ker x -> H x.
 Proof. by move=> x; rewrite !s2f ; case/andP. Qed.
 
 Lemma ker_grp : group ker.
 Proof.
-apply/andP;split; first by rewrite !s2f morph1 eq_refl group1.
-apply/subsetP=> x; move/prodgP=>[y1 y2]; rewrite !s2f.
-move/andP=>[Hfy1 Hy1]; move/andP=> [Hfy2 Hy2 ->].
-by rewrite mf // -(eqP Hfy1) -(eqP Hfy2) mulg1 eq_refl groupM.
+apply/andP; split.
+ apply /isetIP; split; last by rewrite group1.
+ by apply/ipreimageP; apply/iset1P; rewrite morph1.
+apply/subsetP=> x; move/smulgP=>[y1 y2]; rewrite !s2f.
+move/andP=>[]; move/ipreimageP=> Hfy1 Hy1; move/andP=>[]; move/ipreimageP=> Hfy2 Hy2 ->.
+apply/andP; split; last by rewrite groupM.
+apply/ipreimageP; apply/iset1P; rewrite mf //.
+by move/iset1P: Hfy1=><-;move/iset1P: Hfy2=><-;gsimpl.
 Qed.
 
-
+End Ker.
+End Morphism.
+(*
 Lemma normal_ker : normal ker H.
 Proof.
 apply/subsetP=> x Hx; rewrite !s2f; apply/subsetP=> y; rewrite !s2f.
 move/andP=> [H1 Hy]; rewrite -(conjgKv x y) morph_conjg // -(eqP H1) conj1g.
-by rewrite eq_refl andTb /conjg groupM // groupM // groupV.
+by rewrite eq_refl groupJr ?groupV.
 Qed.
 
 
 Lemma kerP : 
   reflect (forall x y, H x -> H y -> (f x = f y -> x = y)) (trivg ker).
 Proof.
-apply: (iffP idP); rewrite /setI/gpreimage.
+apply: (iffP idP); rewrite /setI/ipreimage.
  move/subsetP=> H1 x y Hx Hy Hxy; apply (mulg_injl (y^-1)); rewrite mulVg.
+
  suff: {:1}(y ^-1 * x) by rewrite s2f; move/eqP; auto.
  by apply H1; rewrite !s2f mf ?morphV ?groupMl ?groupV // -Hxy mulVg eq_refl; auto.
 move=> H1; apply/subsetP=> x; rewrite !s2f; move/andP=>[Hx1 Hx]; apply/eqP. 
@@ -384,7 +438,7 @@ Notation Local norm_KmodK' : normal K.
 
 Lemma fquo_morph : morphism (H /K') fquo'.
 Proof.
-move=>fx fy; rewrite !s2f val_morph; move/imageP=>[x Hx ->]; move/imageP=>[y Hy ->].
+move=>fx fy; rewrite !s2f set_of_coset_morph; move/imageP=>[x Hx ->]; move/imageP=>[y Hy ->].
 have: normaliser K' x; first by exact: (subsetP norm_HmodK')=>//.
 have: normaliser K' y; first by exact: (subsetP norm_HmodK')=>//.
 have: sub_set K' H; first move=> u K'u. apply: ker_sub. apply: (subsetP sK'K _ K'u). ((subsetP sK'K) K'u)).
@@ -402,7 +456,7 @@ Qed.
 
 Lemma fquo_morph :  morphism (H /K) fquo.
 Proof.
-move=>fx fy; rewrite !s2f val_morph; move/imageP=>[x Hx ->]; move/imageP=>[y Hy ->].
+move=>fx fy; rewrite !s2f set_of_coset_morph; move/imageP=>[x Hx ->]; move/imageP=>[y Hy ->].
 rewrite rcoset_mul //; try apply (subsetP norm_HmodK)=>//.
 move/rcosetP: (rcoset_repr gK x)=>[kx Kx ->] {fx}.
 move/rcosetP: (rcoset_repr gK y)=>[ky Ky ->] {fy}.
@@ -493,7 +547,7 @@ done.
 apply (@morph_normal_im  _ _ _ coset _ _ _ subset_HK normal_HK)
 
 apply/normalP=> x y; rewrite /KoverH /GoverH /quotient; set Hcoset := coset gH.
-move/gimageP=> [x1 Hx1 ->]; move/imageP=> [x2 Hx2 ->].
+move/iimageP=> [x1 Hx1 ->]; move/imageP=> [x2 Hx2 ->].
 have : Hcoset x2 = 1.
 move=> i. rewrite/Hcoset.
 
@@ -528,5 +582,5 @@ Unset Implicit Arguments.
 
 
 
-
+*)
 
