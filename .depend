@@ -42,8 +42,6 @@ center.vo: center.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo f
 center.vi: center.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo groups.vo baux.vo normal.vo cyclic.vo div.vo
 frobenius.vo: frobenius.v baux.vo ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo groups.vo div.vo zp.vo cyclic.vo normal.vo center.vo
 frobenius.vi: frobenius.v baux.vo ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo groups.vo div.vo zp.vo cyclic.vo normal.vo center.vo
-groups_prod.vo: groups_prod.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo div.vo groups.vo
-groups_prod.vi: groups_prod.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo div.vo groups.vo
 group_perm.vo: group_perm.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo div.vo groups.vo
 group_perm.vi: group_perm.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo div.vo groups.vo
 tuple.vo: tuple.v ssreflect.vo seq.vo eqtype.vo ssrnat.vo funs.vo ssrbool.vo fintype.vo connect.vo paths.vo
@@ -70,6 +68,5 @@ rightTranslation.html: rightTranslation.v ssreflect.html ssrbool.html funs.html 
 powerSet.html: powerSet.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html div.html
 center.html: center.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html paths.html connect.html groups.html baux.html normal.html cyclic.html div.html
 frobenius.html: frobenius.v baux.html ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html paths.html connect.html groups.html div.html zp.html cyclic.html normal.html center.html
-groups_prod.html: groups_prod.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html paths.html connect.html div.html groups.html
 group_perm.html: group_perm.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html paths.html connect.html div.html groups.html
 tuple.html: tuple.v ssreflect.html seq.html eqtype.html ssrnat.html funs.html ssrbool.html fintype.html connect.html paths.html
