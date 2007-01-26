@@ -91,10 +91,7 @@ Qed.
 
 Definition zp_group := FinGroupType unit_zp invP_zp mulP_zp.
 
-Lemma card_zp: card zp_group = p.
-rewrite /group_of_type. 
-rewrite (@eq_card _ _ (setA _)); last first.
-  by move=> x /=; rewrite /setA /iset_of_fun s2f.
+Lemma card_zp: card (setA zp_group) = p.
 exact: card_ordinal.
 Qed.
 
