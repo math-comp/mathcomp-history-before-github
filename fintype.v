@@ -620,6 +620,9 @@ Section setTypeOps.
 
 Variable G : finType.
 
+Lemma iset1P : forall x y:G, reflect (x = y) ({:x} y).
+Proof. move=> x y; rewrite s2f; exact:eqP. Qed.
+
 Lemma iset11 : forall x:G, {: x} x. 
 Proof. move=> x; rewrite s2f; exact: eq_refl. Qed.
 
