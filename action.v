@@ -248,20 +248,22 @@ Let G := perm_finGroupType S.
 Variable H : setType G.
 Hypothesis group_H: group H.
 
-Definition to (u : G) : permType S := u.
+Definition to (u : G) := fun x:S => fun_of_perm u^-1 x.
 
 Lemma to_1 : forall x, to 1 x = x.
 Proof.
-move => x; rewrite /to /unitg /= /perm_unit /fun_of_perm /=.
-by rewrite /comp can_fgraph_of_fun.
+move => x. rewrite /to; gsimpl.
+rewrite /unitg /= /perm_unit /fun_of_perm /=.
+by rewrite /comp /perm_of_inj can_fgraph_of_fun /fgraph_of_fun.
 Qed.
 
 Lemma to_morph : forall (x y:permType S) z,
-  H x -> H y -> to (x * y) z = to x (to y z).
+  H x -> H y -> to (x * y) z = to y (to x z).
 Proof. 
 move => x y z Hx Hy /=.
-rewrite /perm_mul /to /=.
-by do 1!rewrite /fun_of_perm /= /comp can_fgraph_of_fun.
+rewrite /perm_mul /to /=; gsimpl.
+rewrite /fun_of_perm /= /comp !can_fgraph_of_fun.
+by do 1!rewrite /fun_of_perm /= /comp !can_fgraph_of_fun.
 Qed.
 
 End PermAction.
