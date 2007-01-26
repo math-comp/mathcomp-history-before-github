@@ -565,7 +565,7 @@ End SetType.
 Notation "{ x , P }" := (iset_of_fun (fun x => P)) (at level 0, x at level 99).
 Notation "{ x : T , P }" := (iset_of_fun (fun x : T => P)) (at level 0, x at level 99).
 
-Lemma iset_eqRENAMED : forall G:finType, forall A B:setType G, A =1 B -> A = B.
+Lemma iset_eq : forall G:finType, forall A B:setType G, A =1 B -> A = B.
 Proof.
 move => G [t2] [t1]; have Hsize:= fgraph_size t1 t2; have Hg := fproof t2.
 rewrite /s2s /fun_of_fgraph /eqfun /=; unlock => H.
@@ -581,9 +581,9 @@ rewrite -Hsize in Hi.
 by rewrite (@set_sub_default _ (fval t1) true _ i Hi) in H.
 Qed.
 
-Lemma isetP : forall G:finType, forall a b:setType G, reflect (a =1 b) (a == b).
+Lemma isetP : forall G:finType, forall a b:setType G, (a =1 b) <-> (a = b).
 Proof.
-by move => G a b; apply:(iffP eqP); [move ->|move => H;apply: iset_eqRENAMED].
+move => G a b; split;[exact: iset_eq| by move=>->]. 
 Qed.
 
 Section setTypeOpsDefs.
@@ -660,24 +660,24 @@ Proof. by move=> *; rewrite s2f eq_refl !orbT. Qed.
 
 Lemma isetIUr : forall b1 b2 b3 : setType G, 
   b1 :&: (b2 :|: b3) = (b1 :&: b2) :|: (b1 :&: b3).
-Proof. move => a b c; apply/eqP; apply/isetP => x; rewrite !s2f; exact: demorgan1. Qed.
+Proof. move => a b c; apply/isetP => x; rewrite !s2f; exact: demorgan1. Qed.
 
 Lemma isetIUl : forall b1 b2 b3:setType G,
   (b1 :|: b2) :&: b3 = (b1 :&: b3) :|: (b2 :&: b3).
-Proof. move => a b c; apply/eqP;apply/isetP => x; rewrite !s2f; exact: demorgan2. Qed.
+Proof. move => a b c; apply/isetP => x; rewrite !s2f; exact: demorgan2. Qed.
 
 Lemma isetUIr : forall b1 b2 b3:setType G, 
   b1 :|: (b2 :&: b3) = (b1 :|: b2) :&: (b1 :|: b3).
-Proof. move => a b c; apply/eqP;apply/isetP => x; rewrite !s2f; exact: demorgan3. Qed.
+Proof. move => a b c; apply/isetP => x; rewrite !s2f; exact: demorgan3. Qed.
 
 Lemma isetUIl : forall b1 b2 b3:setType G, 
   (b1 :&: b2) :|: b3 = (b1 :|: b3) :&: (b2 :|: b3).
-Proof. move => a b c; apply/eqP;apply/isetP => x; rewrite !s2f; exact: demorgan4. Qed.
+Proof. move => a b c; apply/isetP => x; rewrite !s2f; exact: demorgan4. Qed.
 
 Lemma isetCI : forall b1 b2:setType G,
   ~: (b1 :&: b2) = ~:b1 :|: ~:b2.
 Proof. 
-by move => a b; apply/eqP;apply/isetP => x; rewrite !s2f; apply/idP/idP;
+by move => a b; apply/isetP => x; rewrite !s2f; apply/idP/idP;
   [move/nandP => H; apply/orP|move => H; apply/nandP; apply/orP].
 Qed.
 
@@ -700,7 +700,7 @@ Qed.
 Lemma isetUA : forall a b c : setType G,
   a :|: (b :|: c) = a :|: b :|: c.
 Proof.
-move => a b c; apply/eqP;apply/isetP => x;rewrite !s2f.
+move => a b c; apply/isetP => x;rewrite !s2f.
 by case: (a x); case: (b x); case: (c x).
 Qed.
 
@@ -714,30 +714,30 @@ Lemma isetCP : forall x (a : setType G), reflect (~ a x) ((~:a) x).
 Proof. move => x a; rewrite !s2f; exact: negP. Qed.
 
 Lemma isetIC : forall a b:setType G, a :&: ~:b = a :\: b.
-Proof. by move => a b; apply/eqP;apply/isetP => x; rewrite !s2f andbC. Qed.
+Proof. by move => a b; apply/isetP => x; rewrite !s2f andbC. Qed.
 
 Lemma isetDU : forall a b c : setType G, a :\: (b :|: c) = (a :\: b) :&: (a :\: c).
 Proof.
-move => a b c; apply/eqP;apply/isetP=>x;rewrite !s2f.
+move => a b c; apply/isetP=>x;rewrite !s2f.
 by case: (a x); case: (b x); case: (c x).
 Qed.
 
 Lemma isetDI : forall a b c : setType G, a :\: (b :&: c) = (a :\: b) :|: (a :\: c).
 Proof.
-move => a b c; apply/eqP;apply/isetP=>x;rewrite !s2f.
+move => a b c; apply/isetP=>x;rewrite !s2f.
 by case: (a x); case: (b x); case: (c x).
 Qed.
 
 Lemma isetC_inj: forall a b:setType G, ~: a = ~: b -> a = b.
 Proof.
 move => a b; apply: (@can_inj _ _ _ (@isetC G)); rewrite /cancel => c.
-by apply/eqP;apply/isetP => x;rewrite !s2f; case: (c x). 
+by apply/isetP => x;rewrite !s2f; case: (c x). 
 Qed.
 
 Lemma isetCU : forall b1 b2:setType G,
   ~: b1 :&: ~: b2 = ~: (b1 :|: b2).
 Proof. 
-by move => a b; apply/eqP;apply/isetP => x; rewrite !s2f; apply/idP/idP;
+by move => a b; apply/isetP => x; rewrite !s2f; apply/idP/idP;
   [move => H; apply/norP; apply/andP|move/norP => H; apply/andP].
 Qed.
 
@@ -807,7 +807,7 @@ Qed.
 
 Lemma icard0_eq : forall (a:setType G), card a = 0 -> a = (iset0 G).
 Proof. 
-by move=> a Ha; apply/eqP;apply/isetP=>x; rewrite s2f; apply/idP => [Hx]; rewrite (icardD1 x) Hx in Ha. 
+by move=> a Ha; apply/isetP=>x; rewrite s2f; apply/idP => [Hx]; rewrite (icardD1 x) Hx in Ha. 
 Qed.
 
 Lemma subsetIl : forall (A B : setType G), subset (A :&: B) A.
@@ -996,7 +996,7 @@ Proof. move=> A x; rewrite /ipreimage -!lock !s2f /preimage; exact: idP. Qed.
 
 Lemma iimage_set1 : forall x, f @: {: x } = {: f x}.
 Proof.
-move=> x; apply/eqP;apply/isetP => y; unlock iimage; rewrite !s2f; apply/imageP/eqP.
+move=> x; apply/isetP => y; unlock iimage; rewrite !s2f; apply/imageP/eqP.
   by case=>x'; rewrite s2f; move/eqP->.
 by exists x=> //; rewrite iset11.
 Qed.

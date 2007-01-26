@@ -270,7 +270,7 @@ Lemma iimage_smul : forall A B : setType elt,
   subset A H -> subset B H -> f @: (A :*: B) = (f @: A) :*: (f @: B).
 Proof.
 move=> A B; move/subsetP=> sAH; move/subsetP=> sBH.
-apply/eqP; apply /isetP=> u; apply/iimageP/smulgP.
+apply /isetP=> u; apply/iimageP/smulgP.
  case=> xy; move/smulgP=> [x y Ax By ->{xy}] ->{u}; rewrite mf; auto.
  by exists (f x) (f y) => //; apply/iimageP; [exists x | exists y].
 case=>fx fy; move/iimageP=>[x Ax ->]; move/iimageP=>[y By ->] ->; rewrite -mf; auto.

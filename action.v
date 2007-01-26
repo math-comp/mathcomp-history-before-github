@@ -63,7 +63,7 @@ Definition SO := H == stabilizer.
 
 Lemma SOP : reflect (orbit = {:a}) SO.
 Proof.
-apply: (iffP eqP) => [fixH | fix_a]; apply/eqP; apply/isetP.
+apply: (iffP eqP) => [fixH | fix_a]; apply/isetP.
   move=> b; rewrite s2f; apply/idP/eqP=> [|<-]; last exact orbit_refl.
   by case/orbitP=> x; rewrite fixH s2f; case/andP=> _; move/eqP->.
 move=>x; rewrite s2f; apply/idP/andP=> [Hx | [] //]; split=> //.
@@ -98,10 +98,10 @@ rewrite -card_sub /indexg.
 set Sa := sub_finType _; pose f b := {x, H x && (to x a == b)}.
 have injf: injective (fun u : Sa => f (val u)).
   move=> [b Hb] [c Hc] /= eq_f; apply: val_inj => /=; apply: eqP.
-  case/orbitP: Hb {Hc} => [x Hx Dxa]; move/eqP: eq_f; move/isetP.
+  case/orbitP: Hb {Hc} => [x Hx Dxa]; move/isetP: eq_f.
   by move/(_ x); rewrite !s2f Dxa Hx eq_refl.
 have f_to: forall x, H x -> f (to x a) = stabilizer :* x. 
-  move=> x Hx; apply/eqP; apply/isetP=> y; have Hx1:= groupVr group_H Hx.
+  move=> x Hx; apply/isetP=> y; have Hx1:= groupVr group_H Hx.
   rewrite !s2f groupMr //; case Hy: (H y) => //=.
   rewrite -{4}(to_can Hx a) !to_morph // bij_eq //; exact: to_bij.
 rewrite -(card_image injf); apply: eq_card=> A.
@@ -118,7 +118,7 @@ Qed.
 
 Lemma card_orbit1 : card orbit = 1%N -> orbit = {:a}.
 Proof.
-move => CO; apply/eqP; apply/isetP=> x; rewrite s2f.
+move => CO; apply/isetP=> x; rewrite s2f.
 case ax: (a == x).
   by apply/orbitP; exists (Group.unit G); rewrite ?group1 ?(eqP ax).
 apply/negP; move=> Ox. 
@@ -191,11 +191,9 @@ have C1: closed (orbit H to) e.
  move => x y; rewrite /e /=.
  case Eq1: (x == y); first by rewrite (eqP Eq1).
  move => H1; apply/negP/negP => H2 H3; case: H2.
-   move: (SOP group_H to_1 _ H3) => H4.
-   move/eqP:H4;move/isetP=>H4.
+   move: (SOP group_H to_1 _ H3) => H4; move/isetP:H4=>H4.
    by move: (H4 x); rewrite orbit_sym H1 s2f eq_sym Eq1.
- move: (SOP group_H to_1 _ H3) => H4.
- move/eqP:H4;move/isetP=>H4.
+ move: (SOP group_H to_1 _ H3) => H4; move/isetP:H4=>H4.
  by move: (H4 y); rewrite H1 s2f Eq1.
 have C2: forall a, e a -> dvdn p (card (orbit H to a)).
   move => a Ha.
