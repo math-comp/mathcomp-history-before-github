@@ -973,7 +973,7 @@ End FunImage.
 
 Prenex Implicits codom iinv image.
 
-Definition iimage := 
+Definition iimage:= 
  locked (fun (G G':finType) (f:G -> G') (A : set G) => iset_of_fun (image f A) : setType G').
 
 Definition ipreimage (d : finType) (d' : eqType) (k : d -> d') (a : set d') := 
@@ -987,7 +987,7 @@ Section FunIimage.
 Variable G G' : finType.
 Variable f : G -> G'.
 
-Lemma iimageP : forall (A : setType G) y,
+Lemma iimageP : forall (A : set G) y,
  reflect (exists2 x, A x & y = f x) ((f @: A) y).
 Proof. move=> A y; rewrite /iimage -lock s2f; exact: imageP. Qed.
 

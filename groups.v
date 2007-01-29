@@ -430,6 +430,17 @@ Qed.
 Lemma rcoset1 : H :* 1 = H.
 Proof. by apply/isetP => x; rewrite s2f invg1 mulg1. Qed.
 
+Lemma rcoset_rcoset : forall a z, (H :* z) :* a = H :* (z * a).
+Proof.
+move=>a z.
+apply/isetP=>w;apply/idP/idP. 
+  move/rcosetP=> [q Hq Dq];move/rcosetP:Hq=>[e He De].
+  apply/rcosetP;exists (q*z^-1);gsimpl; rewrite De; gsimpl.
+move/rcosetP=> [q Hq Dq]. 
+apply/rcosetP; exists (q*z);gsimpl; rewrite -?mulgA //.
+by apply/rcosetP; exists q.
+Qed.
+
 Lemma card_rcoset : forall x, card (H :* x) = card H.
 Proof.
 move=> x; rewrite (eq_card (s2f _)) (card_preimage (mulg_injr x^-1) _).
