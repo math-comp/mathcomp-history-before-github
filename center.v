@@ -33,9 +33,9 @@ Section Center.
 
 Open Scope group_scope.
    
-Variables (G: finGroup) (H: set G).
+Variables (G: finGroupType) (H: setType G).
 
-Hypothesis subgrp_H: subgrp H.
+Hypothesis group_H: group H.
 
 (**********************************************************************)
 (*  Definition of the center                                          *)
@@ -43,12 +43,12 @@ Hypothesis subgrp_H: subgrp H.
 (*      x in C, if forall y in H, xy = yx                             *)
 (**********************************************************************)
 
-Definition center x := H x && (subset H (fun y => x* y == y * x)).
+Definition center := {x, H x && (subset H (fun y => x* y == y * x))}.
 
 Lemma centerP: forall x,
   reflect (H x /\ (forall y, H y -> x * y = y * x)) (center x).
 Proof.
-move => x; apply: (iffP idP).
+move => x; apply: (iffP idP);rewrite s2f.
   move/andP => [H1 H2]; split => // y Hy.
   by move/subsetP: H2 => H2; rewrite (eqP (H2 _ Hy)).
 move => [H1 H2]; rewrite /center H1 /=; apply/subsetP => y Hy.
@@ -60,34 +60,32 @@ Proof.
 by apply/subsetP => x; move/centerP => [H1 _].
 Qed.
 
-Lemma subgrp_center: subgrp center.
+Lemma subgrp_center: group center.
 Proof.
-apply: (@finstbl_sbgrp _ _ 1).
-  apply/centerP; split; first exact: subgrp1.
-  move => y _; by gsimpl.
-move => x y; move/centerP => [H1 H2]; move/centerP => [H3 H4].
-apply/centerP; split; first exact: subgrpM. 
-by move => y1 Hy1; rewrite mulgA -H2 // -!mulgA H4.
-Qed.  
+apply/groupP;rewrite !s2f group1 //.
+split; first by rewrite andTb; apply/subsetP=>x Hx; rewrite mulg1 mul1g.
+move => x y; move/centerP=>[Hx HHx];  move/centerP=>[Hy HHy].
+apply/centerP; split; first by rewrite groupM.
+by move=> z Hz; rewrite -mulgA (HHy z Hz) [z*(x*y)]mulgA -(HHx z Hz) mulgA.
+Qed.
 
   
-
 (*********************************************************************)
 (*              Definition of the centraliser                        *)
 (*    y is in the centraliser of x if y * x = y * x                  *)
 (*********************************************************************)
 
-Definition centraliser x y := (H x && H y) && (x * y == y * x).
+Definition centraliser x := {y, (H x && H y) && (x * y == y * x)}.
 
 Lemma centraliser_id: forall x, H x -> centraliser x x.
 Proof.
-by move => x Hx; rewrite /centraliser Hx // eq_refl.
+by move => x Hx; rewrite s2f Hx // eq_refl.
 Qed.
 
 Lemma centraliserP: forall x y,
-  reflect (H x /\ H y /\ x * y = y * x) (centraliser x y).
+  reflect (and3 (H x) (H y) (x * y = y * x)) (centraliser x y).
 Proof.
-move => x y; apply: (iffP idP).
+move => x y; apply: (iffP idP);rewrite s2f.
   move/andP => [H1 H3]; case/andP: H1 => H1 H2; repeat split => //.
   by apply/eqP.
 by move => [H1 [H2 H3]]; rewrite /centraliser H1 H2 /=; apply/eqP.
@@ -95,23 +93,23 @@ Qed.
 
 Lemma subset_centraliser: forall x, subset (centraliser x) H.
 Proof.
-by move => x; apply/subsetP => y; move/centraliserP => [_ [H1 _]].
+by move => x; apply/subsetP => y; move/centraliserP => [_ H1 _].
 Qed.
 
-Lemma subgrp_centraliser: forall x, H x -> subgrp (centraliser x).
+Lemma group_centraliser: forall x, H x -> group (centraliser x).
 Proof.
-move => x Hx; apply: (@finstbl_sbgrp _ _ 1).
-  apply/centraliserP; repeat split => //; first exact: subgrp1.
+move => x Hx; apply/groupP;split.
+  apply/centraliserP; repeat split => //; first exact: group1.
   by gsimpl.
-move => x1 y1; move/centraliserP => [H1 [H2 H3]]; 
-  move/centraliserP => [H4 [H5 H6]].
-apply/centraliserP; repeat split => //; first exact: subgrpM. 
+move => x1 y1; move/centraliserP => [H1 H2 H3]; 
+  move/centraliserP => [H4 H5 H6].
+apply/centraliserP; repeat split => //; first exact: groupM. 
 by rewrite mulgA H3 -mulgA H6 mulgA.
 Qed. 
 
 Lemma centraliserC: forall x y, centraliser x y -> centraliser y x.
 Proof.
-move => x y; move/centraliserP => [H1 [H2 H3]].
+move => x y; move/centraliserP => [H1 H2 H3].
 by apply/centraliserP; repeat split.
 Qed.
 
@@ -120,10 +118,10 @@ Lemma centraliserM: forall x y z, H x ->
   centraliser x (y * z). 
 Proof.
 move => x y z Hx.
-case/centraliserP => Hy [Hy1 Hy2].
-case/centraliserP => Hz [Hz1 Hz2].
+case/centraliserP => Hy Hy1 Hy2.
+case/centraliserP => Hz Hz1 Hz2.
 apply/centraliserP; repeat split => //.
-  by exact: subgrpM.
+  by exact: groupM.
 by rewrite mulgA Hy2 -mulgA Hz2; gsimpl.
 Qed.
 
@@ -131,44 +129,41 @@ Lemma centraliserV: forall x y, H x ->
   centraliser x y -> centraliser x (y^-1). 
 Proof.
 move => x y Hx.
-case/centraliserP => Hy [Hy1 Hy2].
+case/centraliserP => Hy Hy1 Hy2.
 apply/centraliserP; repeat split => //.
-  by exact: subgrpV.
+  by rewrite groupV.
 by apply: (mulg_injl y); apply: (mulg_injr y); gsimpl.
 Qed.
 
 Lemma centraliserEr: forall x y n, H x ->
-  centraliser x y -> centraliser x (y ^ n). 
+  centraliser x y -> centraliser x (y ** n). 
 Proof.
 move => x y n Hx; elim: n => [| n].
-  move => _; apply: subgrp1; exact: subgrp_centraliser.
+  move => _; apply: group1; exact: group_centraliser.
 move => H1 H2; move: (H1 H2).
-move/centraliserP => [H3 [H4 H5]].
-move/centraliserP: H2 => [H6 [H7 H8]].
-repeat (apply/andP; split) => //; rewrite !gexpnS; 
-  first exact: subgrpM.
+move/centraliserP => [H3 H4 H5].
+move/centraliserP: H2 => [H6 H7 H8].
+apply/centraliserP.
+repeat split => //; rewrite !gexpnS; first by rewrite groupM.
 by rewrite mulgA H8 -!mulgA H5.
 Qed.
 
 Lemma centraliserEl: forall x y n, H x ->
-  centraliser x y -> centraliser (x ^ n) y. 
+  centraliser x y -> centraliser (x ** n) y. 
 Proof.
 move => x y n Hx H1; apply: centraliserC.
 apply: centraliserEr; last exact: centraliserC.
-by case/andP: H1; case/andP.
+by move/centraliserP:H1 => [H2 H3 H4].
 Qed.
 
 Lemma normal_centraliser: forall x, H x ->
   normal (cyclic x) (centraliser x).
 Proof.
 move => x Hx; apply/normalP.
-move => x1 y1 H1.
-move/centraliserP: (H1) => [H2 [H3 H4]].
-move/cyclicP => [n Hn].
-move/centraliserP: (centraliserEl n H2 H1) => [H5 [H6 H7]].
-rewrite (eqP Hn) in H5.
-apply/cyclicP; exists n.
-by rewrite /conjg -(eqP Hn) -!mulgA H7 !mulgA; gsimpl.
+move => x1 H1.
+move/centraliserP: H1 => [H2 H3 H4].
+apply/isetP=>y. 
+rewrite -cyclic_conjgs /conjg -mulgA H4 mulgA; gsimpl.
 Qed.
 
 Lemma cyclic_subset_centraliser: forall x,
@@ -190,12 +185,12 @@ Section Kb.
 Variable x: G.
 Hypothesis Hx: H x.
 
-Notation KRG := (RG (subgrp_cyclic x)(subgrp_centraliser Hx)
+Notation KRG := (RG (subgrp_cyclic x)(group_centraliser Hx)
                     (cyclic_subset_centraliser Hx)
                     (normal_centraliser Hx)).
 
 Notation quotient :=
-  ((quotient (subgrp_cyclic x)(subgrp_centraliser Hx)
+  ((quotient (subgrp_cyclic x)(group_centraliser Hx)
            (cyclic_subset_centraliser Hx)
            (normal_centraliser Hx)): G -> KRG).
 
@@ -205,13 +200,13 @@ Lemma KRG1P: forall (y: KRG),
 Proof.
 move => y; apply: (iffP idP) => Hx1.
   apply: (@quotient1_inv _ _ _
-           (subgrp_cyclic x)(subgrp_centraliser Hx)
+           (subgrp_cyclic x)(group_centraliser Hx)
            (cyclic_subset_centraliser Hx)
            (normal_centraliser Hx)); first by
     case: {Hx1}y => /= y; case/andP.
   rewrite (eqP Hx1); exact: quotient_val.
 rewrite -(quotient_val
-           (subgrp_cyclic x)(subgrp_centraliser Hx)
+           (subgrp_cyclic x)(group_centraliser Hx)
            (cyclic_subset_centraliser Hx)
            (normal_centraliser Hx) y).
 by apply/eqP; apply: quotient1.
@@ -291,13 +286,13 @@ apply/andP; split.
 apply/eqP.
 rewrite quotient_mul //.
 rewrite (quotient_val
-           (subgrp_cyclic x)(subgrp_centraliser Hx)
+           (subgrp_cyclic x)(group_centraliser Hx)
            (cyclic_subset_centraliser Hx)
            (normal_centraliser Hx) y).
 rewrite -{2}(mul1g y); congr mulg.
 apply/eqP; apply/KRG1P.
 case: (val_quotient
-       (subgrp_cyclic x)(subgrp_centraliser Hx)
+       (subgrp_cyclic x)(group_centraliser Hx)
        (cyclic_subset_centraliser Hx)
        (normal_centraliser Hx) F4).
 intros k2; case/andP; case/cyclicP => k3.
@@ -323,7 +318,7 @@ move => p Hp l s H1 H2 x1; apply eqb_imp => H3.
   have F1: centraliser x (y ^ s).
     by apply: (centraliserEr _ _ _). 
   case: (val_quotient
-         (subgrp_cyclic x)(subgrp_centraliser Hx)
+         (subgrp_cyclic x)(group_centraliser Hx)
          (cyclic_subset_centraliser Hx)
          (normal_centraliser Hx) F1). 
   move => y2; case/andP; case/cyclicP => n1. 
