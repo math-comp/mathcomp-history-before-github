@@ -93,6 +93,7 @@ VFILES=connect.v\
   powerSet.v\
   center.v\
   frobenius.v\
+  frobenius_cauchy.v\
   groups_prod.v\
   tuple.v
 VOFILES=$(VFILES:.v=.vo)
