@@ -810,6 +810,9 @@ Proof.
 by move=> a Ha; apply/isetP=>x; rewrite s2f; apply/idP => [Hx]; rewrite (icardD1 x) Hx in Ha. 
 Qed.
 
+Lemma icard_card : forall s, card {x:G,s x} = card s.
+Proof. by move=> s; apply:eq_card=>x; rewrite s2f. Qed.
+
 Lemma subsetIl : forall (A B : setType G), subset (A :&: B) A.
 Proof.
 by move=> A B; apply/subsetP=> x; rewrite s2f; case/andP.
