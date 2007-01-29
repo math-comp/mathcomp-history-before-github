@@ -33,7 +33,7 @@ Section RightTrans.
 
 Open Scope group_scope.
 
-Variable (G : finGroupType) (H K L: set G).
+Variable (G : finGroupType) (H K L: setType G).
 
 Hypothesis group_K: group K.
 Hypothesis group_L: group L.
@@ -41,126 +41,32 @@ Hypothesis group_H: group H.
 Hypothesis subset_HK: subset H K.
 Hypothesis subset_LK: subset L K.
 
-Let repr := rcoset_repr L.
-Let repr_set := fun x:G => repr x == x. 
-Let repr_sig := eq_sig repr_set.
+Definition rcosetSet := (fun x => L :* x) @: (setA G).
+Definition repr_s := eq_sig rcosetSet.
 
-Lemma repr_in : forall x, K x -> K (repr x).
+Lemma  rtransP: forall (a:G) (s : repr_s), rcosetSet (val s :* a).
 Proof.
-move =>x Kx.
-rewrite /repr /rcoset_repr; case: pickP => //; last by rewrite if_same group1 //.
-move => y; move/rcosetP => [h Lh ->].
-case: (L x); first by rewrite group1 //.
-rewrite groupM //.
-exact: (subsetP subset_LK h Lh).
+move=> a [s] /=; rewrite /rcosetSet.
+move/iimageP=>[z _ ->].
+apply/iimageP; exists(z*a) => //.
+exact: rcoset_rcoset.
 Qed.
 
-Lemma th_rtrans1: repr_set (repr 1).
-Proof. by rewrite /repr_set /repr !rcoset_repr1. Qed.
-
-Lemma th_rtrans_gen: forall a b, H a -> repr_set b -> repr_set (repr (b*a^-1)).
-Proof.
-move => a b Ha; rewrite /repr_set /repr /= => rb.
-rewrite rcoset_repr_rcoset_repr //.
-Qed.
-
-(***********************************************************************)
-(*                                                                     *)
-(*  Definition of the left translation as an action on cosets          *)
-(*      a |->  [ bH |-> (ab)H]                                         *)
-(*                                                                     *)
-(***********************************************************************)
-
-Definition raLinK (a : G) (rp : repr_sig) : option repr_sig :=
-  let (r,p) := rp in
-  if H a =P true is Reflect_true Ha then Some (EqSig _ _ (th_rtrans_gen Ha p)) 
-  else None.
-
-Definition rtrans (a : G) (rp : repr_sig) : repr_sig :=
-  match raLinK a rp with
-  | None => EqSig _ _ th_rtrans1
-  | Some e => e
-  end.
-
-CoInductive raLinK_spec (a : G) (rp : repr_sig) : option repr_sig -> Type :=
-  | Translated rp1 : H a -> repr (val rp1) = repr (val rp * a^-1) -> raLinK_spec a rp (Some rp1)
-  | NotTranslated : ~~H a -> raLinK_spec a rp None.
-
-Lemma raLinKP : forall a r, raLinK_spec a r (raLinK a r).
-Proof.
-move => a [r p]; rewrite /raLinK. 
-case: eqP; last by move/negP => FHa; apply: (NotTranslated _ FHa).
-move => Ha.
-set rp1 := (EqSig _ (repr (r*a^-1)) (th_rtrans_gen Ha p)).
-set rp := (EqSig repr_set r p).
-cut (repr (val rp1) = repr (val rp * a^-1)); first move => XX2; last rewrite /rp1 /= /repr rcoset_repr_rcoset_repr //. 
-exact: (Translated Ha XX2).
-Qed.
+Definition rtrans (a : G) (s : repr_s) : repr_s := EqSig _ _ (rtransP a s).
 
 Lemma rtrans_1: forall x, rtrans 1 x = x.
 Proof.
 move => [r p]; rewrite /rtrans.
-case raLinKP; last by move/negP;have := (group1 group_H).
-gsimpl=> [[r1 p1 /= _ E]]; apply: val_inj => /=.
-by rewrite -(eqP p) -(eqP p1).
+apply:val_inj=> /=; exact : rcoset1.
 Qed.
-
-(* with the old definition of action, this was the needed proof:
-
-Lemma rtrans_bij: forall x, H x -> bijective (rtrans x).
-Proof.
-move => a Ha; exists (rtrans a^-1); rewrite/rtrans. 
-  move => [r p].
-  case raLinKP; last by move/negP=> Ha1; rewrite groupV in Ha1.
-  move=> [r1 p1] Ha1; case raLinKP; last by move/negP => *.
-  move => [r2 p2] _ /= Err2_rra Err1_rr2a.
-  apply: val_inj => /=; rewrite -(eqP p1) -(eqP p). 
-  apply/rcoset_reprP=>//; apply /rcosetP. 
-  have Hr1 : rcoset L (r2 * a^-1^-1) r1 by apply/rcoset_reprP=>//.
-  move/rcosetP:Hr1=>[l1 Ll1]; gsimpl => Dl1.
-  have Hr2 : rcoset L (r * a^-1) r2 by apply/rcoset_reprP=>//.
-  move/rcosetP:Hr2=>[l2 Ll2]; gsimpl => Dl2.
-  exists (r*r1^-1); last by gsimpl.
-  rewrite Dl1 Dl2; gsimpl.
-  by rewrite groupM // groupV //.
-move => [r p].
-case raLinKP; last by move/negP=> *.
-move=> [r1 p1] _; case raLinKP; last by move/negP => Ha1; rewrite groupV in Ha1.
-move => [r2 p2] _ /= Err2_rra Err1_rr2a.
-apply: val_inj => /=; rewrite -(eqP p1) -(eqP p).
-apply/rcoset_reprP=>//; apply /rcosetP.
-exists (r*r1^-1); last by gsimpl.
-have Hr1 : rcoset L (r2 * a^-1) r1 by apply/rcoset_reprP=>//.
-move/rcosetP:Hr1=>[l1 Ll1 ->]; gsimpl.
-have Hr2 : rcoset L r2 (r * a^-1^-1) by apply/rcoset_reprP=>//.
-move/rcosetP:Hr2=>[l2 Ll2]; gsimpl => ->; gsimpl.
-by rewrite groupM // groupV //.
-Qed.
-
-*)
 
 Lemma rtrans_morph: forall x y z,
-  H x -> H y -> rtrans (x * y) z = rtrans x (rtrans y z).
+  H x -> H y -> rtrans (x * y) z = rtrans y (rtrans x z).
 Proof.
 move => x y [r p] Hx Hy.
 rewrite /rtrans.
-case raLinKP; case raLinKP; try move/negP => //.
-  move=> [r1 p1]; case raLinKP; last by move/negP.
-  move=> [r2 p2] _ /= Err2_rry _ Err1_rr2x [r3 p3] /= Hxy Err3_rrxy.
-  apply: val_inj => /=; rewrite -(eqP p3) -(eqP p1).
-  apply/rcoset_reprP=>//; rewrite rcoset_sym //; apply /rcosetP.
-  exists (r3*r1^-1); last by gsimpl.
-  have :(rcoset L (r * y^-1) r2) by rewrite rcoset_sym //; apply/rcoset_reprP=>//.
-  move/rcosetP => [l2 Ll2 Dl2].
-  have :(rcoset L (r2 * x^-1)) r1 by apply/rcoset_reprP=>//.
-  move/rcosetP => [l1 Ll1 Dl1].
-  have :(rcoset L (r*(x * y)^-1) r3) by apply/rcoset_reprP=>//.
-  move/rcosetP => [l3 Ll3 Dl3].
-  rewrite Dl3 Dl1 Dl2; gsimpl.
-  by rewrite !groupM // groupV.
-move=> [r1 p1]; case raLinKP; last by move/negP.
-move=> [r2 p2] _ /= _ _ _; move/negP=> FHxy.
-by have : H (x*y) by rewrite groupM.
+apply:val_inj=> /=.
+symmetry; exact: rcoset_rcoset.
 Qed.
 
 End RightTrans.
@@ -169,22 +75,11 @@ Section Bij.
 
 Open Scope group_scope.
 
-Variable (G : finGroupType) (H K: set G).
+Variable (G : finGroupType) (H K: setType G).
 
 Hypothesis group_K: group K.
 Hypothesis group_H: group H.
 Hypothesis subset_HK: subset H K.
-
-Let repr := rcoset_repr H.
-Let repr_set := fun x:G => repr x == x. 
-Let repr_sig := eq_sig repr_set.
-
-Lemma repr_in2: forall x, K x ->
-  setI repr_set K (repr x).
-Proof.
-move => x H1; rewrite /setI (repr_in group_K subset_HK) // andbT.
-rewrite /repr_set /repr rcoset_repr_rcoset_repr //.
-Qed.
 
 (***********************************************************************)
 (*                                                                     *)
@@ -193,9 +88,7 @@ Qed.
 (*                                                                     *)
 (***********************************************************************)
 
-Let sH := filter H (enum G).
-
-Definition rSO := SO sH (rtrans G group_H).
+Definition rSO := {x, SO H (@rtrans _ H) x}.
 
 (***********************************************************************)
 (*                                                                     *)
