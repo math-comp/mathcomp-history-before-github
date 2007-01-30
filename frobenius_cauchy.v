@@ -38,17 +38,13 @@ rewrite (@card_partition d1  (prod_finType d1 d2) V  dproj1 S).
  have fdinj: (@dinjective _ _ a  f ).
   by move => x0 y0; rewrite /a /f => _ _ ;case/pair_eqP; case/andP => _ h;  by apply:(eqP h).
  symmetry; have: (fun y : prod_finType d1 d2 => S y && (eq_pi1 y == x)) =1 image f a.
-  move => z; apply eqb_imp.
-   case/andP=> [H3 H2];rewrite /f;apply/imageP.
-   move/subsetP:SsubsetVxW;rewrite  /sub_set=> HS.
-   move : (HS z H3);rewrite /prod_set; case/andP=>[HV HW].
-   exists (eq_pi2 z);rewrite /a;rewrite -(eqP H2).
-    have : z= EqPair(eq_pi1 z) (eq_pi2 z); first by case z.
-    by move => <-.
-   by case z.
-  by case/imageP;rewrite /f  => x0 Hx0 H3;apply/andP;split;  rewrite H3 => //; by apply:Hx0.
- by move => H1; rewrite (eq_card H1);apply:card_dimage => z ; rewrite /f =>  y hz hy; case/pair_eqP;
-move/andP=>[H3 H2]; apply: (eqP H2).
+  move => z; case:z => [z1 z2] /=;apply eqb_imp.
+   case/andP=> [H3 H2];rewrite /f;apply/imageP;   exists z2 ;rewrite /a;rewrite -(eqP H2) //.
+  case/imageP;rewrite /f  => x0 Hx0 H3;apply/andP;split.
+  rewrite H3 => //; by apply:Hx0.
+ apply/eqP;by case:H3.
+ move => H1; rewrite (eq_card H1);apply:card_dimage => z.
+ by rewrite /f =>  y hz hy; case/pair_eqP; case/andP => _ Hxy;exact:(eqP Hxy).
 rewrite/ partition/disjointn;split.
  by move => u v0 x Hu Hv0; unfold dproj1; case/andP => [H1 H2];case/andP => [H3 H4]; rewrite -(eqP H2) -(eqP H4).
 rewrite /cover;apply/andP;split.
@@ -68,15 +64,13 @@ rewrite (@card_partition d2  (prod_finType d1 d2) W  dproj2 S).
  have fdinj: (@dinjective _ _ a  f ).
   by move => x0 y0;rewrite /a /f  => _ _ ;case/pair_eqP; case/andP => h _;  by apply:(eqP h).
  symmetry;have: (fun y0 : prod_finType d1 d2 => S y0 && (eq_pi2 y0 == y)) =1 image f a.
-  move => z;apply eqb_imp.
-   case/andP=> [H3 H2];rewrite /f;apply/imageP;move/subsetP:SsubsetVxW; rewrite /sub_set=> HS.
-   move : (HS z H3);rewrite /prod_set;case/andP=>[HV HW];exists (eq_pi1 z);rewrite /a  -(eqP H2).
-    have : z= EqPair(eq_pi1 z) (eq_pi2 z); first by case z.
-    by move => <-.
-   by case z.
-  by case/imageP;rewrite /f => x0 Hx0 H3;apply/andP;split;   rewrite H3//;apply:Hx0.
- move => H1; rewrite (eq_card H1);apply:card_dimage.
- by move => z;rewrite /f =>  y0 hz hy0; case/pair_eqP;move/andP=>[H3 H2]; apply: (eqP H3).
+    move => z; case:z => [z1 z2] /=;apply eqb_imp.
+   case/andP=> [H3 H2];rewrite /f;apply/imageP;   exists z1 ;rewrite /a;rewrite -(eqP H2) //.
+  case/imageP;rewrite /f  => x0 Hx0 H3;apply/andP;split.
+  rewrite H3 => //; by apply:Hx0.
+ apply/eqP;by case:H3.
+ move => H1; rewrite (eq_card H1);apply:card_dimage => z.
+ rewrite /f =>  x hz hx; case/pair_eqP; case/andP =>  Hxy _;exact:(eqP Hxy).
 rewrite /partition /disjointn;split. 
  by move => u v0 x Hu Hv0; rewrite /dproj2;case/andP => [H1 H2];case/andP => [H3 H4]; rewrite -(eqP H2) -(eqP H4).
 rewrite/ cover;apply/andP;split.
@@ -100,10 +94,14 @@ Hypothesis group_H: group H.
 Hypothesis to_1: forall x, to x 1 = x.
 Hypothesis to_morph : forall (x y:G) z, H x -> H y -> to z (x * y) = to (to z x) y.
 
+
+(*Fg : x of S, left fixed by g *)
 Definition F (g:G): set  S := fun (x:S) =>H g && (to x g == x).
+(* pairs (g,x); g in stabilizer of x *)
 Definition B:set (prod_finType G S):= fun z => let (g, s) := z in (H g) && (to s g == s).
 
-Lemma subsetBS: (subset B  (prod_set (setA G) ( setA S))).
+
+Lemma subsetBS: subset B  (prod_set (setA G)( setA S)).
 Proof.
 by apply/subsetP  => z; rewrite /B /=;case z => g s Hgs //=;rewrite /prod_set;apply/andP;split => /=;  rewrite /setA /iset_of_fun // s2f.
 Qed.
@@ -122,8 +120,7 @@ Definition indexs := (roots (action.orbit H to)).
 
 Lemma indexs_partition: partition indexs  (action.orbit H to) (setA S).
 Proof.
-repeat constructor.
- move => u v x   Hu1 Hv1 H1 H2;  rewrite -(eqP Hu1) -(eqP Hv1); apply/rootP;first by exact:orbit_csym.
+split;first  (move => u v x   Hu1 Hv1 H1 H2;  rewrite -(eqP Hu1) -(eqP Hv1); apply/rootP;first by exact:orbit_csym).
  by apply connect_trans with (x2:=x);rewrite orbit_trans // orbit_sym //.
 apply/coverP;split => x Kx; first  by apply /subsetP => y Hy.
 exists (root  (action.orbit H to)x);rewrite /indexs roots_root//=; last exact:orbit_csym.
@@ -177,20 +174,11 @@ rewrite -card1_B /t  card2_B.
 rewrite (eq_sum (b:= (setnU indexs (action.orbit H to)) ));
  last by apply/subset_eqP;case:indexs_partition => _;case/andP=> [H1 H2];apply/andP;split.
 rewrite sum_setnU; last by case:indexs_partition.
-have Hos:  forall z , (sum (action.orbit H to z) (fun x => card (stabilizer H to  x)))= ((card (action.orbit H to z) *card (stabilizer H to  z)))%N.
- by move => z;apply: sum_id=> x Hx;apply: card_stab_eq;rewrite orbit_sym //.
-set f:= fun z => sum (d:=S) (action.orbit (G:=G) H (S:=S) to z)
-    (fun x : S => card (stabilizer (G:=G) H (S:=S) to x)).
-set g := fun z =>  ((card (action.orbit (G:=G) H (S:=S) to z) *
-         card (stabilizer (G:=G) H (S:=S) to z)))%N.
-have Hf_g: forall z,indexs  z ->  f z = g z; first by move => z _; apply:Hos.
-rewrite (eq_sumf Hf_g);rewrite /g.
-have HcardH: forall z,indexs  z ->   (fun z : S =>
-      (card (action.orbit (G:=G) H (S:=S) to z) *
-       card (stabilizer (G:=G) H (S:=S) to z))%N)  z = (fun z => card H) z .
- move => z _;rewrite mulnC; move:(LaGrange  (H:= stabilizer (G:=G) H (S:=S) to z) (K:= H)).
+rewrite (eq_sumf (N2:= (fun z =>  (card (action.orbit H  to z) * card (stabilizer  H  to z))%N))).
+rewrite (eq_sumf (N2:=(fun z => card H))); first by apply:sum_id.
+move => x _;rewrite mulnC; move:(LaGrange  (H:= stabilizer H  to x) (K:= H)).
  by rewrite card_orbit//;move=> -> =>//;first apply:group_stab => //;last apply : subset_stab => //.
-by rewrite (eq_sumf  HcardH) ; apply:sum_id.
+move => z _;apply: sum_id=> x Hx;apply: card_stab_eq;rewrite orbit_sym //.
 Qed.
 End  Frob_Cauchy.
 
