@@ -93,15 +93,15 @@ Variable G: finGroupType.
 Open Scope group_scope.
 
 Variable S: finType.
-Variable to : G -> S -> S.
+Variable to : S -> G -> S.
 Variable H: setType G.
 Hypothesis group_H: group H.
 
-Hypothesis to_1: forall x, to 1 x = x.
-Hypothesis to_morph : forall (x y:G) z, H x -> H y -> to (x * y) z = to y (to x z).
+Hypothesis to_1: forall x, to x 1 = x.
+Hypothesis to_morph : forall (x y:G) z, H x -> H y -> to z (x * y) = to (to z x) y.
 
-Definition F (g:G): set  S := fun (x:S) =>H g && (to g x == x).
-Definition B:set (prod_finType G S):= fun z => let (g, s) := z in (H g) && (to g s == s).
+Definition F (g:G): set  S := fun (x:S) =>H g && (to x g == x).
+Definition B:set (prod_finType G S):= fun z => let (g, s) := z in (H g) && (to s g == s).
 
 Lemma subsetBS: (subset B  (prod_set (setA G) ( setA S))).
 Proof.
@@ -130,7 +130,7 @@ exists (root  (action.orbit H to)x);rewrite /indexs roots_root//=; last exact:or
 by move: (connect_root (action.orbit H to) x);rewrite orbit_trans  // orbit_sym //.
 Qed.
 
-Definition t := (card indexs ).
+Definition t := (card indexs).
 
 Lemma orbit_eq :forall x y , (action.orbit H to x) y -> (action.orbit H to x) =1(action.orbit H to y).
 Proof.

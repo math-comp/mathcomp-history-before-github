@@ -52,16 +52,16 @@ apply/iimageP; exists(z*a) => //.
 exact: rcoset_rcoset.
 Qed.
 
-Definition rtrans (a : G) (s : repr_s) : repr_s := EqSig _ _ (rtransP a s).
+Definition rtrans (s : repr_s) (a:G) : repr_s := EqSig _ _ (rtransP a s).
 
-Lemma rtrans_1: forall x, rtrans 1 x = x.
+Lemma rtrans_1: forall x, rtrans x 1 = x.
 Proof.
 move => [r p]; rewrite /rtrans.
 apply:val_inj=> /=; exact : rcoset1.
 Qed.
 
 Lemma rtrans_morph: forall x y z,
-  H x -> H y -> rtrans (x * y) z = rtrans y (rtrans x z).
+  H x -> H y -> rtrans z (x * y) = rtrans (rtrans z x) y.
 Proof.
 move => x y [r p] Hx Hy.
 rewrite /rtrans.

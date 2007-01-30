@@ -43,7 +43,7 @@ Hypothesis group_H: group H.
 (*      x in C, if forall y in H, xy = yx                             *)
 (**********************************************************************)
 
-Definition center := {x, H x && (subset H (fun y => x* y == y * x))}.
+Definition center := {x, H x && (subset H (fun y => x * y == y * x))}.
 
 Lemma centerP: forall x,
   reflect (H x /\ (forall y, H y -> x * y = y * x)) (center x).
