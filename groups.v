@@ -474,6 +474,57 @@ split; last by apply/iimageP; exists x.
 case/rcosetP: (repr_rcoset x) => y' Hy' ->; gsimpl; exact: groupVr.
 Qed.
 
+(* An alternative way of proving LaGRange *)
+
+Require Import connect.
+
+Definition indexs := setI (roots (rcoset H)) K.
+
+Lemma rcoset_ctrans : forall x y, connect (rcoset H) x y = rcoset H x y.
+Proof.
+move=> x y; apply/idP/idP; last by move => H1; exact: connect1.
+move/connectP=> [p Hp <- {y}]; rewrite rcoset_sym.
+elim: p x Hp => [|y p IHp] x /=; first by rewrite rcoset_refl.
+move/andP=> [Hxy Hp].
+rewrite (rcoset_trans1r Hxy) IHp //.
+Qed.
+
+Lemma rcoset_csym : connect_sym (rcoset H).
+Proof. by move=> x y; rewrite !rcoset_ctrans rcoset_sym. Qed.
+
+
+Lemma indexs_partition: partition indexs (rcoset H) K.
+repeat constructor.
+  move => u v x; case/andP => Hu1 Hu2; case/andP => Hv1 Hv2 H1 H2.
+  rewrite -(eqP Hu1) -(eqP Hv1).
+  apply/rootP; first exact: rcoset_csym.
+  rewrite rcoset_ctrans.
+  by rewrite (rcoset_trans H1) // rcoset_sym.
+apply/coverP; split.
+  move => x; case/andP => _ Kx.
+  apply /subsetP => y Hy.
+  replace y with ((y * x^-1) * x); last by gsimpl.
+  rewrite groupMl // sHK //.
+  by move: Hy; rewrite s2f.
+move => x Kx.
+exists (root (rcoset H) x).
+move: (connect_root (rcoset H) x); rewrite rcoset_ctrans.
+set u := root _ _ => H1.
+rewrite /indexs/setI roots_root /=; last exact: rcoset_csym.
+rewrite rcoset_sym H1 andbT.
+replace u with ((u * x^-1) * x); last by gsimpl.
+rewrite groupMl // sHK //.
+by move: H1; rewrite s2f.
+Qed.
+
+Definition aindexg := card indexs.
+
+Theorem aLaGrange : (card H * aindexg)%N = card K.
+symmetry; rewrite mulnC; 
+  apply: (card_partition_id indexs_partition).
+move => x Hx; exact: card_rcoset.
+Qed.
+
 Lemma group_dvdn : dvdn (card H) (card K).
 Proof. by apply/dvdnP; exists (indexg K); rewrite mulnC LaGrange. Qed.
 
