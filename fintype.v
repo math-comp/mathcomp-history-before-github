@@ -603,6 +603,7 @@ Definition isetC1 x : setType G:= {y, x != y}.
 Definition isetD (A B:setType G) : setType G := {x, ~~ B x && A x}.
 Definition isetD1 (A:setType G) x : setType G := {y, (x != y) && A y}.
 Definition iset0 := {x : G, false}.
+Definition isetA := {x : G, true}.
 
 End setTypeOpsDefs.
 

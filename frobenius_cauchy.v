@@ -83,23 +83,19 @@ Qed.
 End prod.
 
 Section Frob_Cauchy.
-Variable G: finGroupType.
+
 Open Scope group_scope.
 
+Variable G: finGroupType.
 Variable S: finType.
-Variable to : S -> G -> S.
+Variable to : action G S.
 Variable H: setType G.
-Hypothesis group_H: group H.
-
-Hypothesis to_1: forall x, to x 1 = x.
-Hypothesis to_morph : forall (x y:G) z, H x -> H y -> to z (x * y) = to (to z x) y.
-
+Hypothesis gH: group H.
 
 (*Fg : x of S, left fixed by g *)
-Definition F (g:G): set  S := fun (x:S) =>H g && (to x g == x).
+Definition F (g:G): set  S := fun (x:S) => H g && (to x g == x).
 (* pairs (g,x); g in stabilizer of x *)
 Definition B:set (prod_finType G S):= fun z => let (g, s) := z in (H g) && (to s g == s).
-
 
 Lemma subsetBS: subset B  (prod_set (setA G)( setA S)).
 Proof.
@@ -111,25 +107,25 @@ Proof.
 by rewrite -(two_way_counting1 subsetBS).
 Qed.
 
-Lemma card2_B: card B = (sum (setA S) (fun x => card (stabilizer H to  x))).
+Lemma card2_B: card B = (sum (setA S) (fun x => card (stabilizer to H x))).
 Proof.
 by rewrite - (two_way_counting2 subsetBS)  /B /proj2 /stabilizer;apply: eq_sumf  =>x _;apply: eq_card =>y;rewrite s2f.
 Qed.
 
-Definition indexs := (roots (action.orbit H to)).
+Definition indexs := (roots (orbit to H)).
 
-Lemma indexs_partition: partition indexs  (action.orbit H to) (setA S).
+Lemma indexs_partition: partition indexs  (orbit to H) (setA S).
 Proof.
 split;first  (move => u v x   Hu1 Hv1 H1 H2;  rewrite -(eqP Hu1) -(eqP Hv1); apply/rootP;first by exact:orbit_csym).
  by apply connect_trans with (x2:=x);rewrite orbit_trans // orbit_sym //.
 apply/coverP;split => x Kx; first  by apply /subsetP => y Hy.
-exists (root  (action.orbit H to)x);rewrite /indexs roots_root//=; last exact:orbit_csym.
-by move: (connect_root (action.orbit H to) x);rewrite orbit_trans  // orbit_sym //.
+exists (root (orbit to H)x);rewrite /indexs roots_root//=; last exact:orbit_csym.
+by move: (connect_root (orbit to H) x);rewrite orbit_trans  // orbit_sym //.
 Qed.
 
 Definition t := (card indexs).
 
-Lemma orbit_eq :forall x y , (action.orbit H to x) y -> (action.orbit H to x) =1(action.orbit H to y).
+Lemma orbit_eq :forall x y , (orbit to H x) y -> (orbit to H x) =1(orbit to H y).
 Proof.
 move => x y Hxy z; apply eqb_imp;
  rewrite  orbit_sym // -orbit_trans // => H1;rewrite orbit_sym //.
@@ -139,46 +135,47 @@ move : Hxy ;rewrite orbit_sym // -orbit_trans // => Hxy; rewrite -orbit_trans //
 by apply connect_trans with (x2:=y).
 Qed.
 
-Lemma orbit_eq_card: forall x y , (action.orbit H to x) y -> card (action.orbit H to x) = card (action.orbit H to y).
+Lemma orbit_eq_card: forall x y , (orbit to H x) y -> card (orbit to H x) = card (orbit to H y).
 Proof.
 by move => x y Hxy;apply: eq_card;exact: orbit_eq.
 Qed.
 
-Lemma indexg_stab_eq: forall x y , (action.orbit H to x) y -> indexg (stabilizer H to  x) H=  indexg (stabilizer H to  y)H.
+Lemma indexg_stab_eq: forall x y , (orbit to H x) y -> indexg (stabilizer to H x) H=  indexg (stabilizer to H y) H.
 Proof.
 by move => x y Hxy;rewrite -!card_orbit//;exact:orbit_eq_card.
 Qed.
 
-Lemma indexg_gt0:  forall (g: finGroupType) h k ,  group (elt:=g) h ->  group (elt:=g) k ->  subset h k -> 0< indexg (elt:=g) h k.
+Lemma indexg_gt0: forall (g: finGroupType) h k ,  group h -> group k -> subset h k -> 0< indexg (elt:=g) h k.
 Proof.
-move => g h k h_group k_group h_k;move:(ltn_0mul (card h) (indexg (elt:=g) h k)) => H1.
-have: ((0<(card h))&&(0 < indexg (elt:=g) h k));last by case/andP.
+move => g h k h_group k_group h_k;move:(ltn_0mul (card h) (indexg h k)) => H1.
+have: ((0<(card h))&&(0 < indexg h k));last by case/andP.
 by rewrite -H1;rewrite LaGrange //;exact:(pos_card_group k_group).
 Qed.
 
-Lemma card_stab_eq: forall x y , (action.orbit H to x) y -> card (stabilizer H to  x) = card (stabilizer H to  y).
+Lemma card_stab_eq: forall x y , (orbit to H x) y -> card (stabilizer to H x) = card (stabilizer to H y).
 Proof.
 move => x y H1;
-set n1:= (stabilizer (G:=G) H (S:=S) to x) ;set n2:=  (stabilizer (G:=G) H (S:=S) to y);
-set i1 := indexg  (stabilizer H to  x) H.
+set n1:= (stabilizer to H x); set n2:= (stabilizer to H y);
+set i1 := indexg  (stabilizer to H x) H.
 apply/eqP;have  hi1: 0< i1.
- apply:  indexg_gt0 => //;try  apply:group_stab => //; apply : subset_stab => //.
-rewrite -(eqn_pmul2r (n1:=card n1) (n2:=card n2) hi1)  /i1 LaGrange //;try apply:group_stab => //; try apply:subset_stab => //.
- rewrite ( indexg_stab_eq H1) /n2 LaGrange//; try  apply:group_stab => //; apply : subset_stab => //.
- Qed.
+apply:  indexg_gt0 => //;try  apply:group_stab => //; apply : subset_stab => //.
+rewrite -(eqn_pmul2r hi1)  /i1 LaGrange //;try apply:group_stab => //; try apply:subset_stab => //.
+rewrite (indexg_stab_eq H1) /n2 LaGrange//; try  apply:group_stab => //; apply : subset_stab => //.
+Qed.
 
 Theorem Frobenius_Cauchy: 
  (sum (setA G) (fun x => card (F x))) = (t * (card H))%N.
 Proof.
 rewrite -card1_B /t  card2_B.
-rewrite (eq_sum (b:= (setnU indexs (action.orbit H to)) ));
+rewrite (eq_sum (b:= (setnU indexs (orbit to H)) ));
  last by apply/subset_eqP;case:indexs_partition => _;case/andP=> [H1 H2];apply/andP;split.
 rewrite sum_setnU; last by case:indexs_partition.
-rewrite (eq_sumf (N2:= (fun z =>  (card (action.orbit H  to z) * card (stabilizer  H  to z))%N))).
+rewrite (eq_sumf (N2:= (fun z =>  (card (orbit to H z) * card (stabilizer to H z))%N))).
 rewrite (eq_sumf (N2:=(fun z => card H))); first by apply:sum_id.
-move => x _;rewrite mulnC; move:(LaGrange  (H:= stabilizer H  to x) (K:= H)).
+move => x _;rewrite mulnC; move:(LaGrange  (H:= stabilizer to H x) (K:= H)).
  by rewrite card_orbit//;move=> -> =>//;first apply:group_stab => //;last apply : subset_stab => //.
 move => z _;apply: sum_id=> x Hx;apply: card_stab_eq;rewrite orbit_sym //.
 Qed.
+
 End  Frob_Cauchy.
 

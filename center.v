@@ -35,7 +35,7 @@ Open Scope group_scope.
    
 Variables (G: finGroupType) (H: setType G).
 
-Hypothesis group_H: group H.
+Hypothesis gH: group H.
 
 (**********************************************************************)
 (*  Definition of the center                                          *)

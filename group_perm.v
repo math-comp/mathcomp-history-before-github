@@ -59,16 +59,13 @@ Proof. by case=> g Hg; apply/perm_uniqP. Qed.
 
 Definition perm_elem := perm_finType.
 
-(* Axiom perm_unit : perm_elem. *)
 Lemma inj_id : @injective d _ id.
 Proof. done. Qed. 
 Definition perm_unit := perm_of_inj inj_id.
 
-(*Axiom perm_inv : perm_elem -> perm_elem.*)
-
 Definition perm_inv u := perm_of_inj (finv_inj (@perm_inj u)).
 
-Definition perm_mul u v := perm_of_inj (inj_comp (@perm_inj u) (@perm_inj v)).
+Definition perm_mul u v := perm_of_inj (inj_comp (@perm_inj v) (@perm_inj u)).
 
 Lemma perm_unitP : forall x, perm_mul perm_unit x = x.
 Proof.
@@ -77,10 +74,10 @@ by do 2!rewrite /fun_of_perm /= /comp can_fgraph_of_fun.
 Qed.
 
 Lemma perm_invP : forall x, perm_mul (perm_inv x) x = perm_unit.
-Proof. 
+Proof.
 move=> u; apply: eq_fun_of_perm => x.
 do 3!rewrite /fun_of_perm /= /comp can_fgraph_of_fun. 
-by rewrite finv_f; last exact: perm_inj.
+by rewrite f_finv; last exact: perm_inj.
 Qed.
 
 Lemma perm_mulP : 
@@ -132,24 +129,25 @@ move=> a; move Dn: (card a) => n; move/eqP: Dn; elim: n a => [|n IHn] a.
   by rewrite {1}/fun_of_perm /= can_fgraph_of_fun set11.
 case: (pickP a) => [x Hx Ha|]; last by move/eq_card0->.
 move: (Ha); rewrite (cardD1 x) Hx; set a' := setD1 a x; move/(IHn a')=> {IHn} Ha'.
-pose h (u : permType) := EqPair (u x) (transperm x (u x) * u) : prod_finType _ _.
+pose h (u : permType) := EqPair (u x) (u * transperm x (u x)) : prod_finType _ _.
 have Hh: injective h.
-  move=> u1 u2 H; case: H (congr1 (@eq_pi2 _ _) H) => /= -> _; exact: mulg_injl.
+  move=> u1 u2 H; case: H (congr1 (@eq_pi2 _ _) H) => /= -> _; exact: mulg_injr.
 rewrite /fact -/fact -(eqP Ha) -Ha' mulnI -card_prod -(card_image Hh).
 apply: eq_card=> [[y v]]; apply/set0Pn/andP; rewrite /preimage /setI /=.
   case=> u; do 2!case/andP; do 2!move/eqP->; move=> Hu {y v}.
   split; first by rewrite perm_closed.
-  apply/subsetP=> z. do 2!rewrite /mulg /= /fun_of_perm /= can_fgraph_of_fun /comp.
+  apply/subsetP=> z.
+  do 2!rewrite /mulg /= /fun_of_perm /= can_fgraph_of_fun /comp.
   rewrite /transpose -/(u x) -/(u z) (inj_eq (@perm_inj u)) /a' /setD1.
   case: (x =P z) => [<-|_]; first by case/eqP; case: eqP.
   case: (x =P u z) => [Dx | _]; first by rewrite -(perm_closed _ Hu) -Dx.
   exact: subsetP Hu z.
-rewrite /= in v *; move=> [Hy Hv]; pose u : permType := transperm x y * v.
+rewrite /= in v *; move=> [Hy Hv]; pose u : permType := v * transperm x y.
 have Dy: y = u x.
   do 2!rewrite /u /= /fun_of_perm /= can_fgraph_of_fun /comp.
   rewrite -/(v x) (_ : v x = x) /transpose ?set11 //.
   by apply/eqP; apply/idPn; move/(subsetP Hv); rewrite /a'/ setD1 set11.
-exists u; rewrite /h -Dy /u mulgA square_transperm mul1g set11.
+exists u; rewrite /h -Dy /u -mulgA square_transperm mulg1 set11.
 apply/subsetP=> z; do 2!rewrite /fun_of_perm /= can_fgraph_of_fun /comp.
 rewrite (inv_eq (transposeK x y)) /transpose -/(v z).
 by do 2!case: (_ =P z) => [<- //| _]; move/(subsetP Hv); case/andP.
