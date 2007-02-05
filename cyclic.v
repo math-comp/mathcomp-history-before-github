@@ -225,7 +225,7 @@ Lemma commg_expn: forall x y n,
 Proof.
 move => x y n H; elim: n => [| n Rec].
   by rewrite gexpn0 /commute mul1g mulg1.
-by rewrite /commute gexpnS mulgA H -mulgA Rec; gsimpl.
+by rewrite /commute gexpnS mulgA (eqP H) -mulgA (eqP Rec); gsimpl.
 Qed.
 
 Lemma gexpnC: forall x y n, commute x y ->
@@ -234,8 +234,8 @@ Proof.
 move => x y n H; elim: n => [| n Rec].
   by rewrite !gexpn0 mul1g.
 rewrite !gexpnS Rec; gsimpl; congr mulg.
-rewrite -!mulgA; congr mulg.
-by rewrite commg_expn.
+rewrite -!mulgA; congr mulg. 
+by apply/eqP; apply: commg_expn; rewrite commute_sym.
 Qed.
 
 Lemma subgrpE : forall H (Hv: group H) x n,

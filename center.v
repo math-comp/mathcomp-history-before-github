@@ -19,7 +19,6 @@ Require Import fintype.
 Require Import paths.
 Require Import connect.
 Require Import groups.
-Require Import baux.
 Require Import normal.
 Require Import cyclic.
 Require Import div.
@@ -43,7 +42,7 @@ Hypothesis gH: group H.
 (*      x in C, if forall y in H, xy = yx                             *)
 (**********************************************************************)
 
-Definition center := {x, H x && (subset H (fun y => x * y == y * x))}.
+Definition center := {x, H x && (subset H (commute x))}.
 
 Lemma centerP: forall x,
   reflect (H x /\ (forall y, H y -> x * y = y * x)) (center x).
@@ -52,18 +51,18 @@ move => x; apply: (iffP idP);rewrite s2f.
   move/andP => [H1 H2]; split => // y Hy.
   by move/subsetP: H2 => H2; rewrite (eqP (H2 _ Hy)).
 move => [H1 H2]; rewrite /center H1 /=; apply/subsetP => y Hy.
-by rewrite H2.
+by apply/eqP;rewrite H2.
 Qed.
 
 Lemma subset_center: subset center H.
 Proof.
-by apply/subsetP => x; move/centerP => [H1 _].
+by apply/subsetP => x; move/centerP => [Hx _].
 Qed.
 
-Lemma subgrp_center: group center.
+Lemma group_center: group center.
 Proof.
-apply/groupP;rewrite !s2f group1 //.
-split; first by rewrite andTb; apply/subsetP=>x Hx; rewrite mulg1 mul1g.
+apply/groupP;rewrite !s2f group1 //=.
+split; first by apply/subsetP=>x Hx; rewrite /commute mulg1 mul1g.
 move => x y; move/centerP=>[Hx HHx];  move/centerP=>[Hy HHy].
 apply/centerP; split; first by rewrite groupM.
 by move=> z Hz; rewrite -mulgA (HHy z Hz) [z*(x*y)]mulgA -(HHx z Hz) mulgA.
@@ -75,26 +74,21 @@ Qed.
 (*    y is in the centraliser of x if y * x = y * x                  *)
 (*********************************************************************)
 
-Definition centraliser x := {y, (H x && H y) && (x * y == y * x)}.
+Definition centraliser x := {y, and3b (H x) (H y) (commute x y)}.
 
 Lemma centraliser_id: forall x, H x -> centraliser x x.
-Proof.
-by move => x Hx; rewrite s2f Hx // eq_refl.
-Qed.
+Proof. by move => x Hx; rewrite s2f !Hx /commute eq_refl. Qed.
 
 Lemma centraliserP: forall x y,
   reflect (and3 (H x) (H y) (x * y = y * x)) (centraliser x y).
-Proof.
-move => x y; apply: (iffP idP);rewrite s2f.
-  move/andP => [H1 H3]; case/andP: H1 => H1 H2; repeat split => //.
-  by apply/eqP.
-by move => [H1 [H2 H3]]; rewrite /centraliser H1 H2 /=; apply/eqP.
+Proof. 
+move=> x y; rewrite /centraliser /commute s2f; apply: (iffP idP). 
+  by move/and3P=>[Hx Hy Hxy]; split => //; apply/eqP.
+by move=>[Hx Hy Hxy]; apply/and3P; split => //; apply/eqP.
 Qed.
 
 Lemma subset_centraliser: forall x, subset (centraliser x) H.
-Proof.
-by move => x; apply/subsetP => y; move/centraliserP => [_ H1 _].
-Qed.
+Proof. by move => x; apply/subsetP => y; move/centraliserP => [_ H1 _]. Qed.
 
 Lemma group_centraliser: forall x, H x -> group (centraliser x).
 Proof.
@@ -174,7 +168,6 @@ case/cyclicP: Hy => n Hn.
 by rewrite -(eqP Hn) ?centraliserEr // centraliser_id.
 Qed.
 
-
 (*********************************************************************)
 (*              Definition of the quotient of the centraliser        *)
 (*              by its cyclic group                                  *)
@@ -185,6 +178,7 @@ Section Kb.
 Variable x: G.
 Hypothesis Hx: H x.
 
+(*
 Notation KRG := (RG (subgrp_cyclic x)(group_centraliser Hx)
                     (cyclic_subset_centraliser Hx)
                     (normal_centraliser Hx)).
@@ -193,23 +187,16 @@ Notation quotient :=
   ((quotient (subgrp_cyclic x)(group_centraliser Hx)
            (cyclic_subset_centraliser Hx)
            (normal_centraliser Hx)): G -> KRG).
+*)
 
+Notation quotient := ((centraliser x) / (cyclic x)).
+Definition KRG := (coset_groupType (group_cyclic x)).
 
 Lemma KRG1P: forall (y: KRG),
-  reflect (cyclic x (val y)) (y == 1).
+  reflect (cyclic x = (val (sig_of_coset y))) (y == 1).
 Proof.
-move => y; apply: (iffP idP) => Hx1.
-  apply: (@quotient1_inv _ _ _
-           (subgrp_cyclic x)(group_centraliser Hx)
-           (cyclic_subset_centraliser Hx)
-           (normal_centraliser Hx)); first by
-    case: {Hx1}y => /= y; case/andP.
-  rewrite (eqP Hx1); exact: quotient_val.
-rewrite -(quotient_val
-           (subgrp_cyclic x)(group_centraliser Hx)
-           (cyclic_subset_centraliser Hx)
-           (normal_centraliser Hx) y).
-by apply/eqP; apply: quotient1.
+move=>y; apply: (iffP idP) => Hx1; first by rewrite (eqP Hx1).
+by apply/eqP; apply: coset_set_inj; rewrite /set_of_coset /=; symmetry.
 Qed.
 
 Lemma KRG_quotient1: forall y,

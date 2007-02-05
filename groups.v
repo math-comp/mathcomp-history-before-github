@@ -151,18 +151,18 @@ Proof. move=> y; exact: can_inj (conjgK y). Qed.
 
 Definition conjg_fp (y x : elt) := x ^ y == x.
 
-Definition commute (x y : elt) := x * y = y * x.
+Definition commute (x y : elt) := x * y == y * x.
 
 Lemma commute_sym : forall x y, commute x y -> commute y x.
-Proof. done. Qed.
+Proof. move=> x y; move/eqP => Hxy; apply/eqP; done. Qed.
 
 Lemma conjg_fpP : forall x y : elt, reflect (commute x y) (conjg_fp y x).
 Proof.
-move=> *; rewrite /conjg_fp conjgE -mulgA (canF_eq (mulKgv _)); exact: eqP.
+move=> *; rewrite /conjg_fp conjgE -mulgA (canF_eq (mulKgv _)); exact: idP.
 Qed.
 
 Lemma conjg_fp_sym : forall x y : elt, conjg_fp x y = conjg_fp y x.
-Proof. move=> x y; exact/conjg_fpP/conjg_fpP. Qed.
+Proof. move=> x y; apply/conjg_fpP/conjg_fpP; exact:commute_sym. Qed.
 
 End Conjugation.
 
@@ -527,7 +527,7 @@ Proof. by move=> x; rewrite -card_sinvg sinvg_lcoset card_rcoset. Qed.
 Lemma lcoset_indexg : card (iimage (fun x => lcoset x H) K) = indexg K.
 Proof.
 rewrite -(card_iimage (inv_inj sinvgK)); apply: eq_card => A; unlock iimage; rewrite !s2f.
-apply/imageP/imageP=> [[B dB ->{A}] | [x Hx ->{A}]].
+apply/imageP/imageP => [[B dB ->{A}] | [x Hx ->{A}]].
   rewrite s2f in dB.
   case/imageP: dB => x Kx ->{B}.
   exists x^-1; [exact: groupVr | exact: sinvg_lcoset].
