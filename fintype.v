@@ -1464,6 +1464,19 @@ move: (card0_eq (eqP Hab)) => H1.
 by move: (H1 x1); rewrite /setI E2.
 Qed.
 
+Section OpSet.
+
+Variables d: finType.
+Variables d': eqType.
+Variable a: set d.
+Variable S:  d -> set d'.
+Variable setOp : set d' -> set d' -> set d'.
+
+Definition setnOp := 
+  foldr (fun z => setOp (S z)) set0 (filter a (enum d)).
+
+End OpSet.
+
 Section Unions.
 
 Variables d: finType.
@@ -1477,12 +1490,15 @@ Variable S:  d -> set d'.
 (*                                                                    *)
 (**********************************************************************)
 
+Definition setnU := setnOp a S setU.
+(*
 Definition setnU := 
   foldr (fun z => setU (S z)) set0 (filter a (enum d)).
+*)
 
 Lemma setnUP: forall x,
   reflect (exists y, a y && S y x) (setnU x).
-move => x; rewrite /setnU; apply: (iffP idP) => Hx.
+move => x; rewrite / setnU / setnOp; apply: (iffP idP) => Hx.
  have: (exists y, ((filter a (enum d) y) && S y x)).
    elim: (enum d) Hx => [| x1 s1 Hx1] //=.
    case: (a x1) => //=.
@@ -1508,7 +1524,7 @@ End Unions.
 Lemma setnU0: forall (d: finType) d' (S: d -> set d'),
   setnU set0 S =1 set0.
 Proof.
-by move => d d' S x; rewrite /setnU filter_set0.
+by move => d d' S x; rewrite / setnU / setnOp filter_set0.
 Qed.
 
 Lemma setnU1: forall (d: finType) d' x (S: d -> set d'),

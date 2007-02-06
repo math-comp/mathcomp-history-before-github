@@ -310,6 +310,12 @@ Proof. by move=> [x1 x2] [y1 y2]; case/andP. Qed.
 Lemma pair_eq2 : forall u v : prod_eqType, u == v -> eq_pi2 u == eq_pi2 v.
 Proof. by move=> [x1 x2] [y1 y2]; case/andP. Qed.
 
+Variable a1: set d1.
+Variable a2: set d2.
+
+Definition prod_set_eqType: set prod_eqType :=
+  fun z => a1 (eq_pi1 z) && a2 (eq_pi2 z).
+
 End ProdEqType.
 
 Implicit Arguments pair_eqP [d1 d2].
