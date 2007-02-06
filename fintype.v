@@ -607,6 +607,8 @@ Definition isetA := {x : G, true}.
 
 End setTypeOpsDefs.
 
+Coercion isetA : finType >-> setType.
+
 Notation "A ':|' x" := (isetU1 x A) (at level 52, left associativity).
 Notation "A ':|:' B" := (isetU A B) (at level 52, left associativity).
 Notation "A ':\:' B" := (isetD A B) (at level 50).
@@ -616,6 +618,11 @@ Notation "'{:' x }" := (iset1 x) (at level 0, x at level 99, format"'{:' x }").
 Notation "'~:' A" := (isetC A) (at level 35).
 Notation "'{~:' x }" := (isetC1 x) (at level 0, x at level 99). 
 Notation "'{:' x , y }" := (iset2 x y) (at level 0, x at level 99, y at level 99).  
+
+Lemma isetAP : forall (G : finType) x, G x.
+Proof. by move=> G x; rewrite s2f. Qed.
+
+Hint Resolve isetAP.
 
 Section setTypeOps.
 
@@ -830,7 +837,7 @@ Proof. by move=> A B; apply/subsetP=> x; rewrite s2f => ->. Qed.
 Lemma subsetUr : forall (A B : setType G), subset B (A :|: B).
 Proof. by move=> A B; apply/subsetP=> x; rewrite s2f orbC => ->. Qed.
 
-(* to be moved to tuples *)
+
 Lemma subset_set1 : forall (A : setType G) x, subset {:x} A = A x.
 Proof.
 move=> A x; apply/subsetP/idP.
@@ -840,7 +847,6 @@ Qed.
 
 End setTypeOps.
 
-(* setType END *)
 
 Section FunImage.
 
