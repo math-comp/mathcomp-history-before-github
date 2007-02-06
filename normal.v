@@ -88,115 +88,6 @@ Qed.
 
 End NormalProp.
 
-Section Cosets.
-
-Open Scope group_scope.
-
-Variables (elt : finGroupType) (H : setType elt).
-Hypothesis gH: group H.
-
-Notation Local N := (normaliser H).
-
-Let gN := group_normaliser H.
-
-
-(* Definition of the cosets as the rcosets of elements of the normalizer *)
-
-Definition coset_set := image (rcoset H) N.
-
-CoInductive cosetType : Type := Coset of eq_sig coset_set.
-
-Definition sig_of_coset u := let: Coset v := u in v.
-
-Remark sig_of_cosetK : cancel sig_of_coset Coset. Proof. by case. Qed.
-
-Canonical Structure coset_eqType := EqType (can_eq sig_of_cosetK).
-Canonical Structure coset_finType := FinType (can_uniq sig_of_cosetK).
-
-Coercion set_of_coset u := val (sig_of_coset u) : setType elt.
-
-Lemma coset_set_inj : injective set_of_coset.
-Proof. exact: inj_comp (@val_inj _ _) (can_inj sig_of_cosetK). Qed.
-
-Lemma coset_unit_set : coset_set H.
-Proof. by apply/imageP; exists (1:elt); rewrite ?group1 // rcoset1. Qed.
-
-Definition coset_unit := Coset (EqSig _ _ coset_unit_set).
-
-Lemma coset_mul_set : forall Hx Hy : cosetType, coset_set (Hx :*: Hy).
-Proof.
-rewrite /set_of_coset => [] [[Hx nHx]] [[Hy nHy]] /=.
-case/imageP: nHx => [x Nx ->{Hx}]; case/imageP: nHy => [y Ny ->{Hy}].
-by apply/imageP; exists (x * y); [apply: groupM | rewrite rcoset_mul].
-Qed.
-
-Definition coset_mul Hx Hy := Coset (EqSig _ _ (coset_mul_set Hx Hy)).
-
-Lemma coset_inv_set : forall Hx : cosetType, coset_set (Hx :^-1).
-Proof.
-rewrite /set_of_coset => [] [[A]] /=; move/imageP=> [x Nx ->{A}].
-rewrite norm_rcoset_lcoset // sinvg_lcoset //.
-by apply/imageP; exists x^-1; first rewrite groupV.
-Qed.
-
-Definition coset_inv Hx := Coset (EqSig _ _ (coset_inv_set Hx)).
-
-Lemma coset_unitP : forall Hx, coset_mul coset_unit Hx = Hx.
-Proof.
-move=> [[Hx nHx]]; apply: coset_set_inj; do 3!rewrite /set_of_coset /=.
-by case/imageP: nHx => [x Nx ->{Hx}]; rewrite rcoset_smul smulgA [H :*: H]smulgg.
-Qed.
-
-Lemma coset_invP : forall Hx, coset_mul (coset_inv Hx) Hx = coset_unit.
-Proof.
-move=> [[Hx nHx]]; apply: coset_set_inj; do 3!rewrite /set_of_coset /=.
-case/imageP: nHx => [x Nx ->{Hx}].
-by rewrite {1}norm_rcoset_lcoset ?sinvg_lcoset ?rcoset_mul ?mulVg ?rcoset1 ?groupV.
-Qed.
-
-Lemma coset_mulP : forall Hx Hy Hz,
-  coset_mul Hx (coset_mul Hy Hz) = coset_mul (coset_mul Hx Hy) Hz.
-Proof.
-move=> [[Hx nHx]] [[Hy nHy]] [[Hz nHz]]; apply: coset_set_inj.
-do 3!rewrite /set_of_coset /=.
-case/imageP: nHx => [x Nx ->{Hx}]; case/imageP: nHy => [y Ny ->{Hy}].
-by case/imageP: nHz => [z Nz ->{Hz}]; rewrite smulgA.
-Qed.
-
-
-Canonical Structure coset_groupType :=
-  FinGroupType coset_unitP coset_invP coset_mulP.
-
-Lemma set_of_coset_morph : forall x y : coset_groupType,
-  set_of_coset (x * y) = (set_of_coset x) :*: (set_of_coset y).
-Proof. by move=> *; constructor. Qed.
-
-Section Quotient.
-
-Variable K : setType elt.
-
-(* This is in fact HK/H *)
-
-Definition quotient  :=  {u: coset_finType, (image (rcoset H) K) u}.
-
-Hypothesis gK : group K.
-Hypothesis nK : normal H K.
-
-Lemma group_quotient : group quotient.
-Proof.
-apply/andP; split.
- rewrite !s2f; apply/imageP; exists (1:elt); first exact: group1.
- by rewrite rcoset_smul smulg1.
-apply/subsetP => x; move/smulgP=> [fy fz]; rewrite !s2f; move/imageP=>[y Hy Ey].
-move/imageP=>[z Hz Ez]->; apply/imageP; exists (y * z); first by rewrite groupM.
-by rewrite set_of_coset_morph Ey Ez rcoset_mul //; apply (subsetP nK).
-Qed.
-
-End Quotient.
-
-End Cosets.
-
-Notation "H / K" := (quotient K H).
 
 Section Morphism.
 
@@ -329,8 +220,8 @@ Definition ker :=  (f @^-1: {:1}) :&: H.
 Lemma ker1 : forall x, ker x -> f x = 1.
 Proof. by move=> x; rewrite !s2f ; case/andP;move/eqP=><-. Qed.
 
-Lemma ker_sub : forall x, ker x -> H x.
-Proof. by move=> x; rewrite !s2f ; case/andP. Qed.
+Lemma subset_ker : subset ker H.
+Proof. by apply/subsetP=> x; rewrite !s2f ; case/andP; auto. Qed.
 
 Lemma ker_grp : group ker.
 Proof.
@@ -367,7 +258,6 @@ End Ker.
 
 End Morphism.
 
-
 Section MorphismRestriction.
 
 
@@ -390,10 +280,158 @@ Proof. by move=> x y Kx Ky; apply mfH; apply (subsetP sHK). Qed.
 
 End MorphismRestriction.
 
+
+Section Cosets.
+
+Open Scope group_scope.
+
+Variables (elt : finGroupType) (H : setType elt).
+Hypothesis gH: group H.
+
+Notation Local N := (normaliser H).
+
+Let gN := group_normaliser H.
+
+
+(* Definition of the cosets as the rcosets of elements of the normalizer *)
+
+Definition coset_set := image (rcoset H) N.
+
+CoInductive cosetType : Type := Coset of eq_sig coset_set.
+
+Definition sig_of_coset u := let: Coset v := u in v.
+
+Remark sig_of_cosetK : cancel sig_of_coset Coset. Proof. by case. Qed.
+
+Canonical Structure coset_eqType := EqType (can_eq sig_of_cosetK).
+Canonical Structure coset_finType := FinType (can_uniq sig_of_cosetK).
+
+Coercion set_of_coset u := val (sig_of_coset u) : setType elt.
+
+Lemma coset_set_inj : injective set_of_coset.
+Proof. exact: inj_comp (@val_inj _ _) (can_inj sig_of_cosetK). Qed.
+
+Lemma coset_unit_set : coset_set H.
+Proof. by apply/imageP; exists (1:elt); rewrite ?group1 // rcoset1. Qed.
+
+Definition coset_unit := Coset (EqSig _ _ coset_unit_set).
+
+
+Lemma coset_mul_set : forall Hx Hy : cosetType, coset_set (Hx :*: Hy).
+Proof.
+rewrite /set_of_coset => [] [[Hx nHx]] [[Hy nHy]] /=.
+case/imageP: nHx => [x Nx ->{Hx}]; case/imageP: nHy => [y Ny ->{Hy}].
+by apply/imageP; exists (x * y); [apply: groupM | rewrite rcoset_mul].
+Qed.
+
+Definition coset_mul Hx Hy := Coset (EqSig _ _ (coset_mul_set Hx Hy)).
+
+Lemma coset_inv_set : forall Hx : cosetType, coset_set (Hx :^-1).
+Proof.
+rewrite /set_of_coset => [] [[A]] /=; move/imageP=> [x Nx ->{A}].
+rewrite norm_rcoset_lcoset // sinvg_lcoset //.
+by apply/imageP; exists x^-1; first rewrite groupV.
+Qed.
+
+Definition coset_inv Hx := Coset (EqSig _ _ (coset_inv_set Hx)).
+
+Lemma coset_unitP : forall Hx, coset_mul coset_unit Hx = Hx.
+Proof.
+move=> [[Hx nHx]]; apply: coset_set_inj; do 3!rewrite /set_of_coset /=.
+by case/imageP: nHx => [x Nx ->{Hx}]; rewrite rcoset_smul smulgA [H :*: H]smulgg.
+Qed.
+
+Lemma coset_invP : forall Hx, coset_mul (coset_inv Hx) Hx = coset_unit.
+Proof.
+move=> [[Hx nHx]]; apply: coset_set_inj; do 3!rewrite /set_of_coset /=.
+case/imageP: nHx => [x Nx ->{Hx}].
+by rewrite {1}norm_rcoset_lcoset ?sinvg_lcoset ?rcoset_mul ?mulVg ?rcoset1 ?groupV.
+Qed.
+
+Lemma coset_mulP : forall Hx Hy Hz,
+  coset_mul Hx (coset_mul Hy Hz) = coset_mul (coset_mul Hx Hy) Hz.
+Proof.
+move=> [[Hx nHx]] [[Hy nHy]] [[Hz nHz]]; apply: coset_set_inj.
+do 3!rewrite /set_of_coset /=.
+case/imageP: nHx => [x Nx ->{Hx}]; case/imageP: nHy => [y Ny ->{Hy}].
+by case/imageP: nHz => [z Nz ->{Hz}]; rewrite smulgA.
+Qed.
+
+
+Canonical Structure coset_groupType :=
+  FinGroupType coset_unitP coset_invP coset_mulP.
+
+Lemma set_of_coset_morph : forall x y : coset_groupType,
+  set_of_coset (x * y) = (set_of_coset x) :*: (set_of_coset y).
+Proof. by move=> *; constructor. Qed.
+
+Section Quotient.
+
+Variable K : setType elt.
+
+(* This is in fact HK/H *)
+
+Definition quotient_canonical_proj x := if N x then rcoset H x else H.
+
+Notation proj := quotient_canonical_proj.
+
+Lemma coset_set_proj : forall x, coset_set (proj x).
+Proof.
+move=> x; rewrite/proj; case Nx: (N x); last by exact: coset_unit_set.
+by apply/imageP; exists x.
+Qed.
+
+Definition coset x := Coset (EqSig _ _ (coset_set_proj x)).
+
+Definition quotient := coset @: K.
+
+Lemma morphism_coset : morphism N coset.
+Proof.
+move=> x y Nx Ny; apply: coset_set_inj; rewrite  /set_of_coset /= /coset /set_of_coset /=.
+have Nxy : N (x * y) by rewrite groupM.
+by rewrite /proj Nx Ny Nxy rcoset_mul.
+Qed.
+
+Hypothesis gK : group K.
+Hypothesis nK : normal H K.
+
+
+Lemma group_quotient : group quotient.
+Proof. by apply: morph_image_grp=> //; apply: morph_r morphism_coset. Qed.
+
+End Quotient.
+
+End Cosets.
+
+Notation "H / K" := (quotient K H).
+
+Section TrivialQuotient.
+
+
+Open Scope group_scope.
+
+Variables (elt : finGroupType) (H : setType elt).
+
+Hypothesis gH: group H.
+
+
+Lemma trivial_quotient : H / H = {:(1 : coset_groupType gH)}.
+Proof.
+apply/isetP=> A; rewrite s2f /set1 /= /set1 /=; apply/iimageP/eqP.
+ case=> x Hx ->{A} /=; rewrite /quotient_canonical_proj.
+  suff ->: H :* x = H by rewrite if_same.
+  by rewrite -{1 3}(rcoset1 H) in Hx *; rewrite (rcoset_trans1 gH Hx).
+move=> dA; exists (1 : elt); first exact: group1.
+by apply: coset_set_inj; rewrite /set_of_coset /= /quotient_canonical_proj rcoset1 if_same.
+Qed.
+
+End TrivialQuotient.
+
+
 Section Isomporhism_theorems.
 
 
-Section First_theorem.
+Section FirstTheorem.
 
 Open Scope group_scope.
  
@@ -408,165 +446,138 @@ Notation Local K := (ker H f).
 
 Let gK := ker_grp mf gH.
 
-Notation Local q_elt := (coset_groupType gK).
+Notation Local modK := (coset_groupType gK).
 
 Let norm_HmodK := normal_ker mf gH.
 
 Let group_HmodK := group_quotient gK gH norm_HmodK.
 
-Notation Local fquo := (fun x : q_elt => f (repr x)).
+Definition fquo := (fun x : modK => f (repr x)).
+
+Section StrongFirstIsoTheorem.
 
 Variable K' : setType elt.
 Hypothesis gK' : group K'.
 
-Notation Local q'_elt := (coset_groupType gK').
+Notation Local modK' := (coset_groupType gK').
 
-Notation Local fquo' := (fun x : q'_elt => f (repr x)).
+Notation Local fquo' := (fun x : modK' => f (repr x)).
 
 
 Hypothesis sK'K : subset K' K.
 Hypothesis norm_HmodK' : normal K' H.
-(*
-Check normal_subset.
-Notation Local norm_KmodK' : normal K.
 
-Lemma fquo_morph : morphism (H /K') fquo'.
+
+Notation Local norm_KmodK' := (normal K).
+
+Lemma fquo'_coset : forall x, H x -> fquo' (coset K' x) = f x.
 Proof.
-move=>fx fy; rewrite !s2f set_of_coset_morph; move/imageP=>[x Hx ->]; move/imageP=>[y Hy ->].
-have: normaliser K' x; first by exact: (subsetP norm_HmodK')=>//.
-have: normaliser K' y; first by exact: (subsetP norm_HmodK')=>//.
-have: sub_set K' H; first move=> u K'u. apply: ker_sub. apply: (subsetP sK'K _ K'u). ((subsetP sK'K) K'u)).
-move=> N'x N'y.
-rewrite rcoset_mul //.
-move/rcosetP: (rcoset_repr gK' x)=>[k'x K'x ->] {fx}.
-move/rcosetP: (rcoset_repr gK' y)=>[k'y K'y ->] {fy}.
-move/rcosetP: (rcoset_repr gK' (x * y))=>[k'xy K'xy ->].
-rewrite !mf ?groupM // ?(ker1 (subsetP sK'K _ K'x)) ?(ker1 (subsetP sK'K _ K'y)) ?(ker1 (subsetP sK'K _ K'xy)).
-
- (ker1 K'y) (ker1 K'xy).
-by gsimpl.
+move=> x Hx; rewrite /set_of_coset /= /quotient_canonical_proj (subsetP norm_HmodK') //.
+move/rcosetP: (repr_rcoset gK' x)=> [y K'y ->].
+case/isetIP: (subsetP sK'K y K'y); rewrite !s2f; move/eqP=> Dfy Hy.
+by rewrite mf // -Dfy mul1g.
 Qed.
 
 
-Lemma fquo_morph :  morphism (H /K) fquo.
+Lemma morph_fquo : morphism (H /K') fquo'.
 Proof.
-move=>fx fy; rewrite !s2f set_of_coset_morph; move/imageP=>[x Hx ->]; move/imageP=>[y Hy ->].
-rewrite rcoset_mul //; try apply (subsetP norm_HmodK)=>//.
-move/rcosetP: (rcoset_repr gK x)=>[kx Kx ->] {fx}.
-move/rcosetP: (rcoset_repr gK y)=>[ky Ky ->] {fy}.
-move/rcosetP: (rcoset_repr gK (x * y))=>[kxy Kxy ->].
-rewrite !mf ?groupM // ?(@ker_sub _ _ H f) // (ker1 Kx) (ker1 Ky) (ker1 Kxy).
-by gsimpl.
+move=>fx fy; rewrite /quotient;  move/iimageP=>[x Hx ->]; move/iimageP=>[y Hy ->].
+by rewrite -morphism_coset ?(subsetP norm_HmodK') // !fquo'_coset ?groupM // mf.
 Qed.
 
 
-(* this proof is too long, do not understand
- why it is so complicated to remove all the layers*)
-
-Lemma fquo_ker : trivg (ker (H / K) fquo).
+Lemma ker_fquo : ker (H / K') fquo' = K / K'.
 Proof.
-apply/subsetP=> A; rewrite !s2f; case/andP=> [fA HKA]; apply/eqP; apply: coset_set_inj.
-case/imageP: HKA fA => [x Hx ->{A}]; move/rcosetP: (rcoset_repr gK x) => [y Ky ->] Dfxy.
-rewrite -(@rcoset_trans1 _ _ gK 1 x) rcoset1 // -(groupMl gK _ Ky) !s2f Dfxy groupM //.
-by rewrite s2f in Ky; case/andP: Ky.
+apply/isetP=> K'x; rewrite !s2f andbC; apply/andP/iimageP.
+ case; move/iimageP=> [x Hx ->]; rewrite fquo'_coset // => Kx;  exists x=> //.
+ by rewrite !s2f Kx Hx.
+case=> x; rewrite !s2f; move/andP=> [Kx Hx] ->; rewrite fquo'_coset //; split => //.
+by apply/iimageP; exists x.
 Qed.
 
+
+End StrongFirstIsoTheorem.
+
+Lemma fquo_isomorph :  isomorphism (H /K) fquo.
+Proof.
+rewrite/fquo; split; first by  apply: morph_fquo=>//; exact: subset_refl.
+by rewrite /trivg ker_fquo ?subset_refl // (trivial_quotient gK) subset_refl.
+Qed.
 
 
 (* (preimage coset) definit une bijection entre les sous groupes de *)
 (* H/Ker et les sous groupes de H qui contiennent le ker *)
-*)
 
-End First_theorem.
+End FirstTheorem.
+
+Section SecondTheorem.
 
 
-(*
+
+
+End SecondTheorem.
+
+
+
 Section Third_theorem.
 
 Open Scope group_scope.
 
  
-Variables (GT : finGroupType) (G H K : set GT).
+Variables (elt : finGroupType) (G H K : setType elt).
 
-Hypothesis G_grp : group G.
+Hypothesis gG : group G.
 Hypothesis gH : group H.
-Hypothesis K_grp : group K.
+Hypothesis gK : group K.
 
-Hypothesis subset_HK : subset H K.
-Hypothesis subset_KG : subset K G.
+Hypothesis sHK : subset H K.
+Hypothesis sKG : subset K G.
 
-Hypothesis normal_HG : normal H G.
-Hypothesis normal_KG : normal K G.
+Hypothesis nHG : normal H G.
+Hypothesis nKG : normal K G.
 
-Let KoverH := quotient gH K.
-Let GoverH := quotient gH G.
+Let KmodH := K / H.
+Let GmodH := G / H.
 
+Notation Local nHK := (normal_subset nHG sKG).
 
-Let normal_HK := normal_subset normal_HG subset_KG.
+Notation Local gKmodH := (group_quotient gH gK nHK).
 
-Let KovergH := group_quotient gH K_grp normal_HK.
-Let GovergH := group_quotient gH G_grp normal_HG.
+Notation Local gGH := (group_quotient gH gG nHG).
 
-Check morphism. 
-Let Hquo := coset_groupType gH.
+Let modH := coset_groupType gH.
 
+Notation Local Nh := (normaliser H).
 
-Lemma morphism_coset : morphism G (coset gH).
+Let gNh := group_normaliser H.
+
+Lemma nKmodH_GmodH : @normal modH KmodH GmodH.
+Proof. apply: morph_normal_im=> //; apply: (morph_r nHG); exact: morphism_coset. Qed.
+
+Let modK := coset_groupType gK.
+
+Definition third_grp_iso (u : coset_groupType gKmodH) : modK := coset K (repr (repr u)).
+
+Lemma morphism_third_grp_iso : morphism ((G / H) / (K / H)) third_grp_iso.
 Proof.
-move=> x y; do 2 move/(subsetP normal_HG)=> ?; exact: coset_morph. 
+have mKG := morph_r nKG (morphism_coset gK).
+have sKkK : subset K (@ker _ modK G (coset K)).
+  apply/subsetP=> x Hx; rewrite !s2f (subsetP sKG) // andbT.
+  suff: (K / K) (coset K x) by rewrite (trivial_quotient gK) !s2f.
+  by apply/iimageP; exists x.
+have sHkK := subset_trans sHK sKkK.
+apply: (@morph_fquo _ _ _ gGH (fun u : modH => coset K (repr u))) _ nKmodH_GmodH.
+  apply: morph_fquo=> //.
+rewrite ker_fquo //; apply/subsetP=> A; case/iimageP=> x Kx ->{A}.
+apply/iimageP; exists x=> //; exact: (subsetP sKkK).
 Qed.
 
-Lemma normal_KoH_GoH : normal KoverH GoverH.
-Proof. exact: (morph_normal_im morphism_coset). Qed.
-
-Definition third_grp_iso (u : coset_groupType KovergH) : coset_groupType K_grp :=
-  coset K_grp (val (val u)).
-
-(* Not Loc *)
-Let f (u : Hquo) := coset K_grp (val u).
-
-Let mf : morphism GoverH f.
-
-Lemma morphism_third_grp_iso : morphism (quotient KovergH GoverH) third_grp_iso.
-Proof.
-
-apply: fquo_morph.
-
-) : coset_groupType
-  KovergH :=
-
-G_grp _ _ _. subset_KG normal_KG.
-have:= morph_normal_im morphism_coset G_grp subset_KG normal_KG.
-done.
-apply (@morph_normal_im  _ _ _ coset _ _ _ subset_HK normal_HK)
-
-apply/normalP=> x y; rewrite /KoverH /GoverH /quotient; set Hcoset := coset gH.
-move/iimageP=> [x1 Hx1 ->]; move/imageP=> [x2 Hx2 ->].
-have : Hcoset x2 = 1.
-move=> i. rewrite/Hcoset.
-
-SearchAbout coset.
-have : (Hcoset x1)^-1 = Hcoset (x1 ^-1).
-rewrite /Hcoset=> i; rewrite
-SearchAbout coset_inv.
 
 
-rewrite /conjg.
+(* ker -> isomorphisme *)
 
-rewrite /invg /= /coset_inv /mulg /= /coset_mul /Hcoset !val_coset. !coset_mul_morph -/Hcoset.
+End Third_theorem.
 
-
- -coset_mul_morph.
-rewrite
-rewrite /coset_mul.
-apply/imageP.
-
-
- Print conjg. 
-SearchAbout coset.  
-rewrite /quotient; apply/imageP.
-
-*)
 
 End Isomporhism_theorems.
 
