@@ -599,20 +599,51 @@ Qed.
 Section GroupSmulSub.
 
 Variables H K : setType elt.
-Hypothesis gH : group H.
+
 Hypothesis gK : group K.
 
-Lemma smulsgg : H 1 -> subset H K -> H :*: K = K.
+Lemma smulsgg : forall x, H x -> subset H K -> H :*: K = K.
+move=> x Kx S; apply/isetP; apply/subset_eqP; apply/andP; split.
+ apply/subsetP=> u; case/smulgP=> h k Hh Kk ->; rewrite groupM //; exact: (subsetP S).
+apply/subsetP=> k Kk; apply/smulgP; exists x (x^-1 * k)=> //; last by gsimpl.
+  rewrite ?groupM ?groupV //; exact: (subsetP S).
+Qed.
+
+Lemma smulsgg1 : H 1 -> subset H K -> H :*: K = K.
+Proof. move=> H1 sHK ; exact: (smulsgg H1). Qed.
+
+
+(*
+Lemma smulsgg1 : H 1 -> subset H K -> H :*: K = K.
 Proof.
 move=> H1 sHK; apply/isetP; apply/subset_eqP.
 by rewrite smulg_subr // -{2}[K]smulgg // smulsg.
 Qed.
+*)
 
+Hypothesis gH : group H.
+
+
+Lemma smulgsg : forall x, K x -> subset K H -> H :*: K = H.
+Proof.
+move=> x Hx S; apply/isetP; apply/subset_eqP; apply/andP; split.
+ apply/subsetP=> u; case/smulgP=> h k Hh Kk ->; rewrite groupM //; exact: (subsetP S).
+apply/subsetP=> h Hh; apply/smulgP; exists (h * x^-1) x => //; last by gsimpl.
+by  rewrite groupM ?groupV //; exact: (subsetP S).
+Qed.
+
+
+Lemma smulgsg1 :  K 1 -> subset K H -> H :*: K = H.
+Proof. move=> K1 sHK ; exact: (smulgsg K1). Qed.
+
+
+(*
 Lemma smulgsg : K 1 -> subset K H -> H :*: K = H.
 Proof.
 move=> K1 sHK; apply/isetP; apply/subset_eqP.
 by rewrite smulg_subl // -{2}[H]smulgg // smulgs.
 Qed.
+*)
 
 End GroupSmulSub.
 
