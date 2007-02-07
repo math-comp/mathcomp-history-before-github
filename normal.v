@@ -18,7 +18,6 @@ Require Import seq.
 Require Import fintype.
 Require Import paths.
 Require Import connect.
-(*Require Import tuple.*)
 Require Import groups.
 
 
@@ -276,9 +275,45 @@ Hypothesis mfH : morphism H f.
 Lemma morph_r : morphism K f.
 Proof. by move=> x y Kx Ky; apply mfH; apply (subsetP sHK). Qed.
 
-(* et quoi d'autre? *)
 
 End MorphismRestriction.
+
+
+Section MorphismComposition.
+
+
+Open Scope group_scope.
+
+Variables (elt1 elt2 elt3 : finGroupType)(H : setType elt1).
+
+Variable f : elt1 -> elt2.
+Variable g : elt2 -> elt3.
+
+Hypothesis mf : morphism H f.
+Hypothesis mg : morphism (iimage f H) g.
+
+Lemma morph_c : morphism H (g \o f).
+Proof. 
+by move=> x y Hx Hy; rewrite /comp mf  ?mg //; apply/iimageP; [exists x | exists y] => //.
+Qed.
+
+Lemma im_morph_c : (g \o f) @: H = g @: (f @: H).
+Proof.
+apply/isetP=> x; rewrite/comp; apply/iimageP/iimageP.
+ by case=> y Hy ->; exists (f y)=> //; apply/iimageP; exists y.
+by case=> y; move/iimageP; case=> z Hz -> ->; exists z.
+Qed.
+
+Lemma ker_morph_c : ker H (g \o f) =  ( f @^-1: (ker (f @: H) g) ) :&: H.
+Proof.
+apply/isetP => x; rewrite !s2f; apply/andP/andP; rewrite /comp.
+ by case=> -> Hx; split=> //; apply/iimageP; exists x.
+by case; move/andP=> [-> _ ->].
+Qed.
+
+
+End MorphismComposition.
+
 
 
 Section Cosets.
@@ -543,7 +578,7 @@ Notation Local nHK := (normal_subset nHG sKG).
 
 Notation Local gKmodH := (group_quotient gH gK nHK).
 
-Notation Local gGH := (group_quotient gH gG nHG).
+Notation Local gGmodH := (group_quotient gH gG nHG).
 
 Let modH := coset_groupType gH.
 
@@ -556,7 +591,8 @@ Proof. apply: morph_normal_im=> //; apply: (morph_r nHG); exact: morphism_coset.
 
 Let modK := coset_groupType gK.
 
-Definition third_grp_iso (u : coset_groupType gKmodH) : modK := coset K (repr (repr u)).
+Definition third_grp_iso (u : coset_groupType gKmodH) : modK := 
+  coset K (repr (repr u)).
 
 Lemma morphism_third_grp_iso : morphism ((G / H) / (K / H)) third_grp_iso.
 Proof.
@@ -566,12 +602,24 @@ have sKkK : subset K (@ker _ modK G (coset K)).
   suff: (K / K) (coset K x) by rewrite (trivial_quotient gK) !s2f.
   by apply/iimageP; exists x.
 have sHkK := subset_trans sHK sKkK.
-apply: (@morph_fquo _ _ _ gGH (fun u : modH => coset K (repr u))) _ nKmodH_GmodH.
+apply: (@morph_fquo _ _ _ gGmodH (fun u : modH => coset K (repr u))) _ nKmodH_GmodH.
   apply: morph_fquo=> //.
 rewrite ker_fquo //; apply/subsetP=> A; case/iimageP=> x Kx ->{A}.
 apply/iimageP; exists x=> //; exact: (subsetP sKkK).
 Qed.
 
+Let modKmodH := coset_groupType gKmodH.
+
+Lemma ker_third_group_iso : trivg (ker ((G / H) / (K / H)) third_grp_iso).
+Proof.
+apply/subsetP=> x. 
+
+
+rewrite  (ker_fquo gKmodH).
+have mKG := morph_r nKG (morphism_coset gK).
+Check ker_fquo.
+
+ rewrite !s2f; case/andP=> H1x Hx.
 
 
 (* ker -> isomorphisme *)
