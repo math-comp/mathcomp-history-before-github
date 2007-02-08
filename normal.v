@@ -427,6 +427,18 @@ have Nxy : N (x * y) by rewrite groupM.
 by rewrite /proj Nx Ny Nxy rcoset_mul.
 Qed.
 
+
+
+
+Lemma ker_cosetP : forall x, N x -> reflect (H x) (coset x == 1).
+Proof.
+move=> x Nx; apply: (iffP idP).
+ move/eqP=>[]; rewrite /proj Nx => <-; exact: rcoset_refl.
+move=> Hx; apply/eqP; apply: coset_set_inj;  rewrite  /set_of_coset /= /proj Nx.
+by apply/rcoset_idP.
+Qed.
+
+
 Hypothesis gK : group K.
 Hypothesis nK : normal H K.
 
@@ -609,10 +621,55 @@ apply/iimageP; exists x=> //; exact: (subsetP sKkK).
 Qed.
 
 Let modKmodH := coset_groupType gKmodH.
+Let modGmodH := coset_groupType gGmodH.
+
 
 Lemma ker_third_group_iso : trivg (ker ((G / H) / (K / H)) third_grp_iso).
 Proof.
-apply/subsetP=> x. 
+
+apply/subsetP=> x; rewrite !s2f; move/andP; case; move/eqP.
+rewrite /third_grp_iso; case=> Kerx; move/iimageP=> [A].
+move/iimageP=>[y Gy] -> Exy. rewrite Exy.
+apply/eqP; rewrite /coset_set /=; apply coset_set_inj.
+do 3 rewrite /set_of_coset /= /quotient_canonical_proj.
+(* here no canonical proof of group H is painful 
+suff:  (K / H) :* coset (elt:=elt) H y = K / H by move ->; rewrite if_same.
+*)
+case: (s2s _ )=> //.
+rewrite Exy in Kerx.
+symmetry; apply/rcoset_idP. exact gKmodH.
+apply/iimageP.
+Admitted.
+
+
+(*
+pose u:= (repr (elt:=elt)
+              (repr (elt:=coset_groupType (elt:=elt) (H:=H) gH)
+                 (coset (elt:=coset_groupType (elt:=elt) (H:=H) gH) 
+                    (K / H) (coset (elt:=elt) H y)))).
+exists u.
+rewrite -/u in Kerx. rewrite /quotient_canonical_proj in Kerx.
+Print repr.
+
+
+
+
+
+apply/subsetP=> x; rewrite !s2f; move/andP=> [Kerx]; move/iimageP=> [A].
+move/iimageP=>[y Gy] -> Exy; rewrite Exy.
+apply/eqP; rewrite /coset_set /=; apply coset_set_inj.
+do 3 rewrite /set_of_coset /= /quotient_canonical_proj.
+(* here no canonical proof of group H
+suff:  (K / H) :* coset (elt:=elt) H y = K / H by move ->; rewrite if_same.
+*)
+case: (s2s _ )=> //.
+
+
+ case Ny: (normaliser H y). 
+ symmetry; apply/rcoset_idP=>//; first exact gKmodH.
+
+apply/iimageP. exists y => //. Check (subsetP nKG).
+
 
 
 rewrite  (ker_fquo gKmodH).
@@ -620,7 +677,7 @@ have mKG := morph_r nKG (morphism_coset gK).
 Check ker_fquo.
 
  rewrite !s2f; case/andP=> H1x Hx.
-
+*)
 
 (* ker -> isomorphisme *)
 
