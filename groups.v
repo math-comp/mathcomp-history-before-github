@@ -430,6 +430,12 @@ Qed.
 Lemma rcoset1 : H :* 1 = H.
 Proof. by apply/isetP => x; rewrite s2f invg1 mulg1. Qed.
 
+Lemma rcoset_idP : forall x, reflect ((H :* x) = H) (H x).
+Proof.
+move=> x; apply: (iffP idP); last by move=>  <-; rewrite rcoset_refl.
+by rewrite -{1}rcoset1 => Hx; rewrite -(rcoset_trans1 Hx) rcoset1.
+Qed.
+
 Lemma rcoset_rcoset : forall a z, (H :* z) :* a = H :* (z * a).
 Proof.
 move=>a z.
