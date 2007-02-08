@@ -623,24 +623,16 @@ Qed.
 Let modKmodH := coset_groupType gKmodH.
 Let modGmodH := coset_groupType gGmodH.
 
+Lemma cosetP : forall x : modH, exists y, set_of_coset x = H :* y.
+Proof.
+case=> [[e]]; rewrite /coset_set.
+
 
 Lemma ker_third_group_iso : trivg (ker ((G / H) / (K / H)) third_grp_iso).
 Proof.
 
-apply/subsetP=> x; rewrite !s2f; move/andP; case; move/eqP.
-rewrite /third_grp_iso; case=> Kerx; move/iimageP=> [A].
-move/iimageP=>[y Gy] -> Exy. rewrite Exy.
-apply/eqP; rewrite /coset_set /=; apply coset_set_inj.
-do 3 rewrite /set_of_coset /= /quotient_canonical_proj.
-(* here no canonical proof of group H is painful 
-suff:  (K / H) :* coset (elt:=elt) H y = K / H by move ->; rewrite if_same.
-*)
-case: (s2s _ )=> //.
-rewrite Exy in Kerx.
-symmetry; apply/rcoset_idP. exact gKmodH.
-apply/iimageP.
-Admitted.
 
+Admitted.
 
 (*
 pose u:= (repr (elt:=elt)
