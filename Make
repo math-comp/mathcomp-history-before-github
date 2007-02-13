@@ -23,7 +23,7 @@ frobenius.v
 groups_prod.v
 tuple.v
 frobenius_cauchy.v
-
+burnside_app.v
 
 	
 

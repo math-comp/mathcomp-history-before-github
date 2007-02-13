@@ -651,9 +651,6 @@ Proof. by move=> *; rewrite s2f eq_refl. Qed.
 Lemma isetD11 : forall (x:G) a, (a :\ x) x = false.
 Proof. by move=> *; rewrite s2f eq_refl. Qed.
 
-Lemma iset21g : forall (x1 x2: G), {:x1,x2} x1.
-Proof. by move=> *; rewrite s2f eq_refl. Qed.
-
 Lemma iset21 : forall (x1 x2:setType G), {:x1,x2} x1.
 Proof. by move=> *; rewrite s2f eq_refl. Qed.
 
