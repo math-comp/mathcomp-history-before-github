@@ -1,4 +1,3 @@
-
 Require Import ssreflect.
 Require Import ssrbool.
 Require Import funs.
@@ -56,15 +55,15 @@ match sc with EqSig 0 _ => c2 | EqSig 1 _ => c3 | EqSig 2 _ =>c0| EqSig (S (S (S
 Definition R3 (sc : square):square :=
 match sc with EqSig 0 _ => c3| EqSig 1 _ => c0| EqSig 2 _ => c1| EqSig (S (S (S _))) _ => c2 end.
 
-
-Definition op_inv := ( (R1,R3) ,(R2,R2) ,(R3,R1)).
-
 Ltac get_inv elt l :=
   match l with 
          (_, (elt, ?x))  => x
  |    (elt, ?x)  => x
  |        (?x, _) => get_inv elt x
  end.
+
+
+Definition op_inv := ( (R1,R3) ,(R2,R2) ,(R3,R1)).
 
 Ltac inj_tac :=
 move: (refl_equal op_inv); unfold op_inv;
@@ -78,7 +77,7 @@ Proof.
 inj_tac;repeat (destruct val => //=;rewrite /mk4 /=  //;first by apply /eqP).
 Qed.
 
-Lemma R2_inj: injective R2.
+Lemma R2_inj:  injective R2.
 Proof.
 inj_tac;repeat (destruct val => //=;rewrite /mk4 /=  //;first by apply /eqP).
 Qed.
@@ -89,58 +88,102 @@ Proof. inj_tac;repeat (destruct val => //=;rewrite /mk4 /=  //;first by apply /e
 Definition r1 := (perm_of_inj R1_inj).
 Definition r2 := (perm_of_inj R2_inj).
 Definition r3 := (perm_of_inj R3_inj).
+Definition id1:= (perm_unit square).
 
-Ltac rinj_tac :=
-match goal with |- perm_inv  ?x = _  =>
-apply:(mulg_injr x);rewrite mulVg ;apply:eq_fun_of_perm ;move => [ val H1];
-rewrite !perm_eqfun /= /comp/= !perm_eqfun
-end.
+Definition is_rot r:=  (r * r1 == r1 * r).
+Definition rot := {r, is_rot r}.
 
-Lemma r1_inv: perm_inv r1 = r3.
-Proof. rinj_tac;repeat (destruct val => //=;rewrite /mk4 /=  //;first by apply /eqP). Qed.
-
-Lemma r2_inv: perm_inv r2 = r2.
-Proof. rinj_tac;repeat (destruct val => //=;rewrite /mk4 /=  //;first by apply /eqP). Qed.
-
-Lemma r3_inv: perm_inv r3 = r1.
-Proof. rinj_tac;repeat (destruct val => //=;rewrite /mk4 /=  //;first by apply /eqP). Qed.
-
-Lemma r1_r1 : r2= r1*r1.
-Proof.
-apply:eq_fun_of_perm;move => [ val H1];rewrite  !perm_eqfun /= /comp/= !perm_eqfun/=;
-repeat (destruct val => //=;rewrite /mk4 /=  //).
+Lemma group_set_rot: group_set  rot.
+apply /groupP;split.
+ by rewrite /rot  s2f /is_rot mulg1 mul1g.
+move => x y; rewrite /rot !s2f /= /is_rot ;move/eqP => hx ; move/eqP => hy.
+by rewrite -mulgA hy !mulgA hx.
 Qed.
 
-Lemma r1_r2 : r3= r1*r2.
+Canonical Structure rot_group:= Group group_set_rot.
+
+Definition rotations:setType (perm_finType square):= iset4 id1 r1 r2 r3.
+
+Theorem ff: forall (d1 d2: finType) x1 x2,
+(fun_of_fgraph (x:= d1) (x0 := d2) x1) =1 (fun_of_fgraph x2)  -> x1 = x2.
 Proof.
-apply:eq_fun_of_perm;move => [ val H1];rewrite  !perm_eqfun /= /comp/= !perm_eqfun/=;
-repeat (destruct val => //=;rewrite /mk4 /=  //).
+move => d1 d2 x1 x2 H;rewrite -(can_fun_of_fgraph x1) -(can_fun_of_fgraph x2).
+by apply: fval_inj;unlock fgraph_of_fun;exact: (eq_maps H).
 Qed.
 
-Lemma r2_r1 : r3= r2*r1.
-Proof.
-apply:eq_fun_of_perm;move => [ val H1];rewrite  !perm_eqfun /= /comp/= !perm_eqfun/=;
-repeat (destruct val => //=;rewrite /mk4 /=  //).
+Lemma rot_eq_rot: forall r s, is_rot r -> is_rot s ->
+(fun_of_perm r) c0 = (fun_of_perm s) c0 -> r = s.
+rewrite /is_rot; move => r s  hr hs  hrs;apply :eq_fun_of_perm;move => z;
+destruct z;destruct val.
+ by have<-:(c0 = EqSig(fun m:nat_eqType => m < 4)0 valP);first by apply/val_eqP.
+(*1*)
+destruct val.
+ have ht : forall t,is_rot t ->  fun_of_perm t  (EqSig (fun m : nat_eqType => m < 4) 1%N valP)= fun_of_perm (r1 * t) c0;last first.
+rewrite (ht r hr) (ht s hs) -(eqP hr) -(eqP hs).
+rewrite /fun_of_perm/=/comp !(can_fgraph_of_fun (d1:= square)(d2:= square)).
+by congr fun_of_fgraph.
+move => t ht; rewrite {2}/fun_of_perm/= /comp!(can_fgraph_of_fun (d1:= square)(d2:= square)).
+ by congr fun_of_fgraph;rewrite /r1 perm_eqfun/=/c1;apply /val_eqP.
+(*2*)
+destruct val.
+have ht: forall t,is_rot t->fun_of_perm t  (EqSig (fun m : nat_eqType => m < 4) 2%N valP)= fun_of_perm (t * (r1 * r1)) c0.
+move=> t ;rewrite /is_rot => ht;rewrite mulgA (eqP ht)-mulgA(eqP ht).
+rewrite {2}/fun_of_perm/=/comp{2}/fun_of_perm/=/comp/=.
+rewrite !(can_fgraph_of_fun (d1:= square)(d2:= square)).
+congr fun_of_fgraph.
+by rewrite !perm_eqfun/R1/=;apply /val_eqP.
+rewrite (ht r hr) (ht s hs).
+rewrite /fun_of_perm/=/comp. 
+ rewrite !(can_fgraph_of_fun (d1:= square)(d2:= square))/comp.
+rewrite hrs !perm_eqfun/R1/=;apply/val_eqP;auto.
+(*3*)
+destruct val=>//.
+have ht : forall t, is_rot t -> fun_of_perm t  (EqSig (fun m : nat_eqType => m < 4) 3 valP)= fun_of_perm (t*( r1 * r1 * r1)) c0.
+move=> t ;rewrite /is_rot => ht.
+replace (t*(r1*r1*r1)) with ((r1*r1*r1)*t).
+rewrite {2}/fun_of_perm/=/comp  !(can_fgraph_of_fun (d1:= square)(d2:= square)).
+congr fun_of_fgraph.
+by rewrite /r1;repeat rewrite !perm_eqfun/comp;apply/val_eqP.
+by rewrite -!mulgA- (eqP ht) (mulgA r1 t r1) -(eqP ht) -(mulgA t r1 r1)  mulgA -(eqP ht)!mulgA.
+rewrite (ht r hr) (ht s hs) /fun_of_perm/=/comp !(can_fgraph_of_fun (d1:= square)(d2:= square)).
+by rewrite hrs.
 Qed.
 
-Lemma r2_r3 : r1= r2*r3.
-Proof.
-apply:eq_fun_of_perm;move => [ val H1];rewrite  !perm_eqfun /= /comp/= !perm_eqfun/=;
-repeat (destruct val => //=;rewrite /mk4 /=  //).
+Lemma rotations_is_rot: forall r, rotations  r -> is_rot r.
+move => r ;rewrite /rotations/is_rot s2f.
+case /or4P;move/eqP => <-//; first (by rewrite mulg1 mul1g);
+ apply/eqP;apply: eq_fun_of_perm;move =>z;rewrite !perm_eqfun /comp !perm_eqfun/R2/R1/R3;
+ destruct z;repeat (destruct val => //=).
 Qed.
 
-Lemma r3_r2 : r1= r3*r2.
+Lemma rot_is_rot: rot =1 rotations.
 Proof.
-apply:eq_fun_of_perm;move => [ val H1];
-rewrite  !perm_eqfun /= /comp/= !perm_eqfun/=.
-repeat (destruct val => //=;rewrite /mk4 /=  //).
+move => r;apply/idP/idP; last by rewrite /rot s2f;apply  rotations_is_rot.
+rewrite /rot  s2f /rotations s2f;move/eqP=> h;apply/or4P.
+case e: ((fun_of_perm r )c0)=> [val0 val0P].
+case e0: val0=>[|val].
+ rewrite (rot_eq_rot (r:=r) (s:= id1));first by rewrite eq_refl; apply/or4P.
+   by rewrite (eqP h).
+  by rewrite /is_rot/id1 mulg1 mul1g.
+ by rewrite e perm_eqfun;apply /val_eqP; apply /eqP=>/=;rewrite e0.
+destruct val.
+ rewrite (rot_eq_rot (r:=r) (s:= r1));first by rewrite eq_refl; apply/or4P;rewrite orbT.
+   by rewrite (eqP h).
+  apply  rotations_is_rot.
+  by rewrite /rotations s2f; rewrite eq_refl/=;apply/orP;right;auto.
+ by rewrite e /c0/mk4/r1 perm_eqfun/=;apply/val_eqP;apply/eqP=>/=;rewrite e0.
+destruct val.
+ rewrite (rot_eq_rot (r:=r) (s:= r2));first by rewrite eq_refl; apply/or4P;rewrite !orbT.
+   by rewrite (eqP h).
+  by apply  rotations_is_rot ;rewrite /rotations s2f; rewrite eq_refl/= !orbT.
+ by rewrite e /c0/mk4/r2 perm_eqfun/=;apply/val_eqP;apply/eqP=>/=; by rewrite e0.
+destruct val;last by  clear e;rewrite e0 in val0P;discriminate.
+rewrite (rot_eq_rot (r:=r) (s:= r3));first by rewrite eq_refl; apply/or4P;rewrite !orbT.
+  by rewrite (eqP h).
+ by apply  rotations_is_rot ;rewrite /rotations s2f; rewrite eq_refl/= !orbT.
+by rewrite e /c0/mk4/r3 perm_eqfun/=;apply/val_eqP;apply/eqP=>/=;rewrite e0.
 Qed.
 
-Lemma r3_r3 : r2= r3*r3.
-Proof.
-apply:eq_fun_of_perm;move => [ val H1];rewrite  !perm_eqfun /= /comp/= !perm_eqfun/=;
-repeat (destruct val => //=;rewrite /mk4 /=  //).
-Qed.
 
 (*symmetries*)
 Definition Sh (sc : square) : square:=
@@ -161,12 +204,14 @@ rewrite !perm_eqfun /= /comp/= !perm_eqfun;
 repeat (destruct val => //=;rewrite /mk4 /=  //;first by apply /eqP).
 Qed.
 
-Definition id1:= (perm_unit square).
+
 
 Lemma diff_id_sh: unitg (perm_finGroupType square) != sh.
-Proof. by rewrite /set1/= /fgraph_of_fun; unlock. Qed.
+Proof.
+by rewrite /set1/= /fgraph_of_fun;unlock.
+Qed.
 
-Definition isometries2 :=  iset2 1 (perm_of_inj Sh_inj).
+Definition isometries2 :setType (perm_finType square):=  iset2 1 (perm_of_inj Sh_inj).
 
 Lemma card_iso2: card isometries2 = 2.
 Proof. by rewrite icard2;rewrite/set1/= /fgraph_of_fun; unlock. Qed.
@@ -179,9 +224,7 @@ move => x y; rewrite !s2f;case /orP=> H1;case/orP=> H2; rewrite -(eqP H2) -(eqP 
 by rewrite -/sh -{1}sh_inv mulVg.
 Qed.
 Canonical Structure iso_group:= Group group_set_iso.
-
-
-Definition rotations:setType (perm_finType square):= iset4 id1 r1 r2 r3.
+(*Definition rotations:setType (perm_finType square):= iset4 id1 r1 r2 r3.
 
 Ltac magic := 
    match goal with h:?x==_=true|- _ => move:h ; 
@@ -189,9 +232,10 @@ Ltac magic :=
       let hh := fresh " hh" in
       (have hh: (x==y)=false ; first (by rewrite /set1/= /fgraph_of_fun;unlock) ; 
        rewrite (eqP h1) h  in hh) end end.
-
-Lemma card_rot: card rotations = 4.
+*)
+Lemma card_rot: card rot = 4.
 Proof.
+rewrite (eq_card rot_is_rot).
 rewrite (icardD1 id1)  (icardD1 r1) (icardD1 r2) (icardD1 r3)  /rotations/= !s2f  eq_refl !orTb;congr addn.
 repeat 
  match goal with |- context [?x != ?y] => have ->: (x != y);first by rewrite /set1/= /fgraph_of_fun;unlock end.
@@ -201,23 +245,16 @@ by move =>x ;rewrite !s2f;do 4! case: (_ ==x).
 Qed.
 
 
-Lemma group_set_rot: group_set  rotations.
+Lemma group_set_rotations: group_set  rotations.
 Proof.
-apply/groupP;split;first by rewrite s2f eq_refl.
-move => x y; rewrite !s2f;case /or4P=>H1;case/or4P=> H2;  rewrite -(eqP H1) -(eqP H2);
-[rewrite mul1g|rewrite mul1g|rewrite mul1g|rewrite mul1g|rewrite mulg1|rewrite  r1_r1
- |rewrite  r1_r2|rewrite -r1_inv mulgV|rewrite mulg1|rewrite  r2_r1| rewrite -{1}r2_inv  mulVg|rewrite r2_r3
- |rewrite mulg1|rewrite -r3_inv mulgV|rewrite r3_r2|rewrite r3_r3];rewrite eq_refl ?orbT ?orTb;done.
-Qed.
-Canonical Structure rot_group:= Group group_set_rot.
-
-Theorem ff: forall (d1 d2: finType) x1 x2,
-(fun_of_fgraph (x:= d1) (x0 := d2) x1) =1 (fun_of_fgraph x2)  -> x1 = x2.
-Proof.
-move => d1 d2 x1 x2 H;rewrite -(can_fun_of_fgraph x1) -(can_fun_of_fgraph x2).
-by apply: fval_inj;unlock fgraph_of_fun;exact: (eq_maps H).
+move/groupP: group_set_rot=> [h1 hs].
+apply/groupP;split.
+by rewrite -(rot_is_rot 1).
+move => x y; rewrite -!rot_is_rot.
+by apply hs.
 Qed.
 
+(*Canonical Structure rotations_group:= Group group_set_rotations.*)
 Definition col_squares: finType :=fgraph_finType  square  colors.
 
 Definition  act_f(sc: col_squares ) (perm:perm_square) :col_squares:= 
@@ -239,13 +276,12 @@ Qed.
 
 Definition to := Action  act_f_1 act_f_morph.
 
-
 Definition square_coloring_number2 := t to iso_group.
 Definition square_coloring_number4 := t to rot_group.
 
 Infix "^":= expn : dnat_scope.
 
-Lemma Fid:forall a: group (perm_finGroupType square), a 1-> (F to a 1)=1 (setA col_squares).
+Lemma Fid:forall a:group (perm_finGroupType square), a 1-> (F to a 1)=1 (setA col_squares).
 move => a Ha x;apply eqb_imp;rewrite/F//.
 by move => _;apply/andP;split =>//=;last by rewrite act_f_1.
 Qed.
@@ -283,11 +319,31 @@ rewrite can_fgraph_of_fun/= perm_eqfun;
 destruct z;repeat (destruct val0=>//=;first by rewrite /fun_of_fgraph;unlock=>/=).
 Qed.
 
+Ltac inv_tac :=
+match goal with |- perm_inv  ?x = _  =>
+apply:(mulg_injr x);rewrite mulVg ;apply:eq_fun_of_perm ;move => [ val H1];
+rewrite !perm_eqfun /= /comp/= !perm_eqfun
+end.
+
+Lemma r1_inv: perm_inv r1 = r3.
+Proof. inv_tac;repeat (destruct val => //=;rewrite /mk4 /=  //;first by apply /
+eqP). Qed.
+
+Lemma r2_inv: perm_inv r2 = r2.
+Proof. inv_tac;repeat (destruct val => //=;rewrite /mk4 /=  //;first by apply /
+eqP). Qed.
+
+Lemma r3_inv: perm_inv r3 = r1.
+Proof. inv_tac;repeat (destruct val => //=;rewrite /mk4 /=  //;first by apply /
+eqP). Qed.
+
+
 Lemma F_R2: forall a:group (perm_finGroupType square), a  r2 ->(F to a (perm_of_inj R2_inj))=1 
 {x:col_squares, (coin0 x == coin2 x) &&(coin1 x == coin3 x)}.
 Proof.
 rewrite /r2  => a Ha x;rewrite /F  !s2f  Ha /=   /to/=/act_f/=.
 destruct x;rewrite /coin0/c0/coin1/c1/coin2/c2/coin3/c3/=;do 4! destruct val=>//.
+
 rewrite r2_inv;apply/idP/idP=>/=.
  move/eqP=> H;rewrite /fun_of_fgraph/=; unlock=>/=.
  move:H;set f:= fgraph_of_fun _;set g:= Fgraph _ => H. 
@@ -486,17 +542,18 @@ rewrite (@sumD1 _ id1 )//=(@sumD1 _ r1 )//=.
      by rewrite card_Fid;last by move/groupP:group_set_rot;case.
     rewrite addnC addnA; congr addn; first congr addn.
       rewrite  card_FR2/=; first by rewrite muln1.
-      by rewrite /rotations !s2f  eq_refl  !orbT.
-     by rewrite  card_FR3//=;rewrite /rotations !s2f  eq_refl  !orbT.
+      by rewrite rot_is_rot /rot !s2f  eq_refl  !orbT.
+     by rewrite  card_FR3//=;rewrite rot_is_rot /rot !s2f  eq_refl  !orbT.
     rewrite card_FR1/=; first by rewrite addn0.
-    by rewrite /rotations !s2f  eq_refl  !orbT.
+    by rewrite rot_is_rot /rotations !s2f  eq_refl  !orbT.
    move => x;rewrite /F/eqtype.setD1.
    case/and5P=> Hx3 Hx2 Hx1 Hxid _;rewrite -(card0 col_squares).
    apply eq_card;move => z;apply eqb_imp => //.
-    by case/andP;rewrite /rotations s2f;case/or4P=> h1 h2; move : Hxid Hx1 Hx2 Hx3;
+    by case/andP;rewrite rot_is_rot /rotations s2f;case/or4P=> h1 h2; move : Hxid Hx1 Hx2 Hx3;
            rewrite -(eqP h1) /set1/= /fgraph_of_fun;unlock.
 by rewrite /setD1;apply/and4P;repeat split; rewrite /set1/= /fgraph_of_fun; unlock.
 by apply/and3P;repeat split; by rewrite /set1/= /fgraph_of_fun; unlock.
 by apply/andP;split=>//;rewrite  /set1/= /fgraph_of_fun;unlock.
 Qed.
+
 End square_colouring.
