@@ -132,7 +132,7 @@ move: (Ha); rewrite (cardD1 x) Hx; set a' := setD1 a x; move/(IHn a')=> {IHn} Ha
 pose h (u : permType) := EqPair (u x) (u * transperm x (u x)) : prod_finType _ _.
 have Hh: injective h.
   move=> u1 u2 H; case: H (congr1 (@eq_pi2 _ _) H) => /= -> _; exact: mulg_injr.
-rewrite /fact -/fact -(eqP Ha) -Ha' mulnI -card_prod -(card_image Hh).
+rewrite /fact -/fact -(eqP Ha) -Ha' mulnI -card_prod_set -(card_image Hh).
 apply: eq_card=> [[y v]]; apply/set0Pn/andP; rewrite /preimage /setI /=.
   case=> u; do 2!case/andP; do 2!move/eqP->; move=> Hu {y v}.
   split; first by rewrite perm_closed.

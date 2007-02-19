@@ -89,8 +89,7 @@ Open Scope group_scope.
 Variable G: finGroupType.
 Variable S: finType.
 Variable to : action G S.
-Variable H: setType G.
-Hypothesis gH: group H.
+Variable H: group G.
 
 (*Fg : x of S, left fixed by g *)
 Definition F (g:G): set  S := fun (x:S) => H g && (to x g == x).
@@ -140,23 +139,23 @@ Proof.
 by move => x y Hxy;apply: eq_card;exact: orbit_eq.
 Qed.
 
-Lemma indexg_stab_eq: forall x y , (orbit to H x) y -> indexg (stabilizer to H x) H=  indexg (stabilizer to H y) H.
+Lemma indexg_stab_eq: forall x y , (orbit to H x) y -> indexg (group_stab to H x) H=  indexg (group_stab to H y) H.
 Proof.
 by move => x y Hxy;rewrite -!card_orbit//;exact:orbit_eq_card.
 Qed.
 
-Lemma indexg_gt0: forall (g: finGroupType) h k ,  group h -> group k -> subset h k -> 0< indexg (elt:=g) h k.
+Lemma indexg_gt0: forall (g: finGroupType) (h k:group g),subset h k -> 0 < indexg h k.
 Proof.
-move => g h k h_group k_group h_k;move:(ltn_0mul (card h) (indexg h k)) => H1.
+move => g h k h_k;move:(ltn_0mul (card h) (indexg h k)) => H1.
 have: ((0<(card h))&&(0 < indexg h k));last by case/andP.
-by rewrite -H1;rewrite LaGrange //;exact:(pos_card_group k_group).
+by rewrite -H1;rewrite LaGrange. 
 Qed.
 
-Lemma card_stab_eq: forall x y , (orbit to H x) y -> card (stabilizer to H x) = card (stabilizer to H y).
+Lemma card_stab_eq: forall x y , (orbit to H x) y -> card (group_stab to H x) = card (group_stab to H y).
 Proof.
 move => x y H1;
-set n1:= (stabilizer to H x); set n2:= (stabilizer to H y);
-set i1 := indexg  (stabilizer to H x) H.
+set n1:= (group_stab to H x); set n2:= (group_stab to H y);
+set i1 := indexg  (group_stab to H x) H.
 apply/eqP;have  hi1: 0< i1.
 apply:  indexg_gt0 => //;try  apply:group_stab => //; apply : subset_stab => //.
 rewrite -(eqn_pmul2r hi1)  /i1 LaGrange //;try apply:group_stab => //; try apply:subset_stab => //.
@@ -170,10 +169,9 @@ rewrite -card1_B /t  card2_B.
 rewrite (eq_sum (b:= (setnU indexs (orbit to H)) ));
  last by apply/subset_eqP;case:indexs_partition => _;case/andP=> [H1 H2];apply/andP;split.
 rewrite sum_setnU; last by case:indexs_partition.
-rewrite (eq_sumf (N2:= (fun z =>  (card (orbit to H z) * card (stabilizer to H z))%N))).
-rewrite (eq_sumf (N2:=(fun z => card H))); first by apply:sum_id.
-move => x _;rewrite mulnC; move:(LaGrange  (H:= stabilizer to H x) (K:= H)).
- by rewrite card_orbit//;move=> -> =>//;first apply:group_stab => //;last apply : subset_stab => //.
+  rewrite (eq_sumf (N2:= (fun z =>  (card (orbit to H z) * card (stabilizer to H z))%N))).
+  rewrite (eq_sumf (N2:=(fun z => card H))); first by apply:sum_id.
+  by move => x _;rewrite mulnC card_orbit (LaGrange (subset_stab to H x)).
 move => z _;apply: sum_id=> x Hx;apply: card_stab_eq;rewrite orbit_sym //.
 Qed.
 

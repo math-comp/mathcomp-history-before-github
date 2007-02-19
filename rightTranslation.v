@@ -38,11 +38,16 @@ Variable (G : finGroupType).
 Lemma rtrans_1: forall s : setType G, s :* 1 = s.
 Proof. exact: rcoset1. Qed.
 
-Lemma rtrans_morph: forall x y (s : setType G),
+Lemma rcoset_morph: forall x y (s : setType G),
   s :* (x * y) = s :* x :* y.
-Proof. symmetry; exact: rcoset_rcoset. Qed.
+Proof.
+move=> x y s; rewrite !rcoset_smul -smulgA; congr smulg. 
+apply/isetP=> a; rewrite -rcoset_smul s2f.
+apply/eqP/rcosetP; first by move=> Da; exists x; rewrite ?iset11 ?Da.
+by move=> [z]; rewrite s2f; move/eqP => ->.
+Qed.
 
-Definition trans_action := Action rtrans_1 rtrans_morph.
+Definition trans_action := Action rtrans_1 rcoset_morph.
 
 End RightTrans.
 
@@ -50,9 +55,7 @@ Section Bij.
 
 Open Scope group_scope.
 
-Variable (G : finGroupType) (H: setType G).
-
-Hypothesis gH: group H.
+Variable (G : finGroupType) (H: group G).
 
 Definition rcoset_set := (rcoset H) @: (isetA G).
 
@@ -72,12 +75,12 @@ move=> x; rewrite /act_fix.
 apply/eqP/idP.
   rewrite -(groupV (group_normaliser H)) s2f => dH;apply/subsetP=> y.
   rewrite {1}dH !s2f /=; case/andP=> _; move/eqP=> dHx.
-  rewrite -(actK (trans_action G) x H) /= -{}dHx !rcoset_rcoset /conjg.
+  rewrite -(actK (trans_action G) x H) /= -{}dHx -!rcoset_morph /conjg.
   by gsimpl; exact: rcoset_refl.
 move=> Nx; apply/isetP=> y; rewrite s2f; symmetry.
 case Hy: (H y) => //=; apply/eqP; rewrite -(rcoset1 H) in Hy.
-rewrite (norm_rcoset_lcoset gH Nx) lcoset_smul rcoset_smul -smulgA.
-by congr smulg; rewrite -rcoset_smul -(rcoset_trans1 gH Hy) rcoset1.
+rewrite (norm_rlcoset Nx) lcoset_smul rcoset_smul -smulgA.
+by congr smulg; rewrite -rcoset_smul -(rcoset_trans1 Hy) rcoset1.
 Qed.
 
 Lemma rtrans_fix_norm : rtrans_fix = (rcoset H) @: (normaliser H).

@@ -32,15 +32,15 @@ Section Center.
 
 Open Scope group_scope.
    
-Variables (G: finGroupType) (H: setType G).
-
-Hypothesis gH: group H.
+Variables (G: finGroupType) (H: group G).
 
 (**********************************************************************)
 (*  Definition of the center                                          *)
 (*                                                                    *)
 (*      x in C, if forall y in H, xy = yx                             *)
 (**********************************************************************)
+
+Let commute := (fun x y : G => x * y == y * x).
 
 Definition center := {x, H x && (subset H (commute x))}.
 
@@ -55,11 +55,9 @@ by apply/eqP;rewrite H2.
 Qed.
 
 Lemma subset_center: subset center H.
-Proof.
-by apply/subsetP => x; move/centerP => [Hx _].
-Qed.
+Proof. by apply/subsetP => x; move/centerP => [Hx _]. Qed.
 
-Lemma group_center: group center.
+Lemma group_centerP: group_set center.
 Proof.
 apply/groupP;rewrite !s2f group1 //=.
 split; first by apply/subsetP=>x Hx; rewrite /commute mulg1 mul1g.
@@ -68,103 +66,75 @@ apply/centerP; split; first by rewrite groupM.
 by move=> z Hz; rewrite -mulgA (HHy z Hz) [z*(x*y)]mulgA -(HHx z Hz) mulgA.
 Qed.
 
+Canonical Structure group_center := Group group_centerP.
   
 (*********************************************************************)
 (*              Definition of the centraliser                        *)
 (*    y is in the centraliser of x if y * x = y * x                  *)
 (*********************************************************************)
 
-Definition centraliser x := {y, and3b (H x) (H y) (commute x y)}.
+Definition centraliser x := H :&: {y, commute x y}.
 
 Lemma centraliser_id: forall x, H x -> centraliser x x.
-Proof. by move => x Hx; rewrite s2f !Hx /commute eq_refl. Qed.
+Proof. by move => x Hx; rewrite !s2f /commute eq_refl; apply/andP. Qed.
 
 Lemma centraliserP: forall x y,
-  reflect (and3 (H x) (H y) (x * y = y * x)) (centraliser x y).
+  reflect (H y /\ x * y = y * x) (centraliser x y).
 Proof. 
-move=> x y; rewrite /centraliser /commute s2f; apply: (iffP idP). 
-  by move/and3P=>[Hx Hy Hxy]; split => //; apply/eqP.
-by move=>[Hx Hy Hxy]; apply/and3P; split => //; apply/eqP.
+move=> x y; rewrite /centraliser /commute !s2f. 
+by apply: (iffP andP); case; split => //; apply/eqP.
 Qed.
 
 Lemma subset_centraliser: forall x, subset (centraliser x) H.
-Proof. by move => x; apply/subsetP => y; move/centraliserP => [_ H1 _]. Qed.
+Proof. by move => x; apply/subsetP => y; case/centraliserP. Qed.
 
-Lemma group_centraliser: forall x, H x -> group (centraliser x).
+Lemma centraliser1 : forall x, centraliser x 1.
+Proof. by move=> x; apply/centraliserP; gsimpl. Qed.
+
+Lemma group_centraliserP: forall x, group_set (centraliser x).
 Proof.
-move => x Hx; apply/groupP;split.
-  apply/centraliserP; repeat split => //; first exact: group1.
-  by gsimpl.
-move => x1 y1; move/centraliserP => [H1 H2 H3]; 
-  move/centraliserP => [H4 H5 H6].
-apply/centraliserP; repeat split => //; first exact: groupM. 
-by rewrite mulgA H3 -mulgA H6 mulgA.
+move => x; apply/groupP; split; first exact: centraliser1.
+move => x1 y1; case/centraliserP=> Hy cxx1; case/centraliserP=> Hz cxy1. 
+apply/centraliserP; split; first by rewrite groupM.
+by rewrite mulgA cxx1 -mulgA cxy1 mulgA.
 Qed. 
 
-Lemma centraliserC: forall x y, centraliser x y -> centraliser y x.
-Proof.
-move => x y; move/centraliserP => [H1 H2 H3].
-by apply/centraliserP; repeat split.
-Qed.
+Canonical Structure group_centraliser x := Group (@group_centraliserP x).
 
-Lemma centraliserM: forall x y z, H x ->
-  centraliser x y -> centraliser x z -> 
-  centraliser x (y * z). 
-Proof.
-move => x y z Hx.
-case/centraliserP => Hy Hy1 Hy2.
-case/centraliserP => Hz Hz1 Hz2.
-apply/centraliserP; repeat split => //.
-  by exact: groupM.
-by rewrite mulgA Hy2 -mulgA Hz2; gsimpl.
-Qed.
+Lemma centraliserC: forall x y, H x -> centraliser x y -> centraliser y x.
+Proof. by move => x y Hx; case/centraliserP=> *; apply/centraliserP. Qed.
 
-Lemma centraliserV: forall x y, H x ->
+Lemma centraliserM: forall x y z, 
+  centraliser x y -> centraliser x z -> centraliser x (y * z). 
+Proof. move=> *; exact: groupM. Qed.
+
+Lemma centraliserV: forall x y,
   centraliser x y -> centraliser x (y^-1). 
-Proof.
-move => x y Hx.
-case/centraliserP => Hy Hy1 Hy2.
-apply/centraliserP; repeat split => //.
-  by rewrite groupV.
-by apply: (mulg_injl y); apply: (mulg_injr y); gsimpl.
-Qed.
+Proof. by move=> *; rewrite groupV. Qed.
 
-Lemma centraliserEr: forall x y n, H x ->
+Lemma centraliserEr: forall x y n,
   centraliser x y -> centraliser x (y ** n). 
-Proof.
-move => x y n Hx; elim: n => [| n].
-  move => _; apply: group1; exact: group_centraliser.
-move => H1 H2; move: (H1 H2).
-move/centraliserP => [H3 H4 H5].
-move/centraliserP: H2 => [H6 H7 H8].
-apply/centraliserP.
-repeat split => //; rewrite !gexpnS; first by rewrite groupM.
-by rewrite mulgA H8 -!mulgA H5.
-Qed.
+Proof. move=> *; exact: gexpn_h. Qed.
 
 Lemma centraliserEl: forall x y n, H x ->
   centraliser x y -> centraliser (x ** n) y. 
 Proof.
-move => x y n Hx H1; apply: centraliserC.
-apply: centraliserEr; last exact: centraliserC.
-by move/centraliserP:H1 => [H2 H3 H4].
+move => x y n Hx; case/centraliserP=> Hy cxy.
+by apply: centraliserC=>//; apply: centraliserEr; apply/centraliserP.
 Qed.
 
 Lemma normal_centraliser: forall x, H x ->
   normal (cyclic x) (centraliser x).
 Proof.
-move => x Hx; apply/normalP.
-move => x1 H1.
-move/centraliserP: H1 => [H2 H3 H4].
-apply/isetP=>y. 
-rewrite -cyclic_conjgs /conjg -mulgA H4 mulgA; gsimpl.
+move => x Hx; apply/normalP; move => y.
+case/centraliserP=> Hy cxy; apply/isetP=>z.
+by rewrite -cyclic_conjgs /conjg -mulgA cxy mulgA; gsimpl.
 Qed.
 
 Lemma cyclic_subset_centraliser: forall x,
      H x -> subset (cyclic x) (centraliser x).
 Proof.
-move => x H1; apply/subsetP => y Hy.
-case/cyclicP: Hy => n Hn.
+move => x Hx; apply/subsetP => y Hy; case/cyclicP: Hy => n Hn.
 by rewrite -(eqP Hn) ?centraliserEr // centraliser_id.
 Qed.
 
@@ -178,18 +148,6 @@ Section Kb.
 Variable x: G.
 Hypothesis Hx: H x.
 
-(*
-Notation KRG := (RG (subgrp_cyclic x)(group_centraliser Hx)
-                    (cyclic_subset_centraliser Hx)
-                    (normal_centraliser Hx)).
-
-Notation quotient :=
-  ((quotient (subgrp_cyclic x)(group_centraliser Hx)
-           (cyclic_subset_centraliser Hx)
-           (normal_centraliser Hx)): G -> KRG).
-*)
-
-Notation quotient := ((centraliser x) / (cyclic x)).
 Definition KRG := (coset_groupType (group_cyclic x)).
 
 Lemma KRG1P: forall (y: KRG),
@@ -199,32 +157,46 @@ move=>y; apply: (iffP idP) => Hx1; first by rewrite (eqP Hx1).
 by apply/eqP; apply: coset_set_inj; rewrite /set_of_coset /=; symmetry.
 Qed.
 
-Lemma KRG_quotient1: forall y,
-  centraliser x y -> quotient y = 1 -> exists i, y = x ^ i.
+Lemma centraliser_normaliser: 
+  forall y:G, centraliser x y -> normaliser (cyclic x) y.
 Proof.
-move => y Cxy Hy.
-case/cyclicP: (quotient1_inv Cxy Hy) => i Hi.
-by exists i; apply sym_equal; apply/eqP.
+move/subsetP:(cyclic_subset_centraliser Hx)=>Hcn.
+move=>y;case/centraliserP=> Hy cxy.
+rewrite s2f; apply/subsetP=> z; rewrite s2f=> Czy.
+have:=Czy; case/cyclicP=> n; rewrite /conjg; gsimpl; move/eqP=> dx.
+case/centraliserP: (Hcn (z ^ y^-1) Czy) => Hz cxzy.
+apply/cyclicP; exists n=>/=; apply/eqP.
+apply: (can_inj (conjgK y^-1)); rewrite dx /conjg; gsimpl.
+apply: (can_inj (mulgK x)).
+move:cxzy; rewrite /conjg; gsimpl=><-.
+rewrite -(@mulgA _ (x*y) z _) -(@mulgA _ x y _) (@mulgA _ y z _) -dx.
+rewrite -(@mulgA _ _ y^-1 x) -(@mulgA _ _ z y^-1) -(@mulgA _ y y _).
+rewrite (@mulgA _ y z _) -dx; gsimpl.
+have:= commg_expn n (sym_eq cxy); unfold groups.commute=>->; gsimpl.
+by elim n=> /=; gsimpl=>m Rec; rewrite -mulgA Rec.
+Qed.
+
+Lemma KRG_quotient1: forall y:G,
+  centraliser x y -> coset (cyclic x) y = (1:KRG) -> exists i, x ** i == y.
+Proof.
+move=> y cxy; move:(centraliser_normaliser cxy)=> Ny {cxy}.
+rewrite /coset Ny norm_grcoset //; move/isetP=> Cry {Ny}.
+have:= Cry 1; rewrite s2f mul1g =>d11 {Cry}.
+apply/cyclicP; apply: groupVl. rewrite d11; exact: group1.
 Qed.
 
 Lemma KRGE: forall (y: KRG),
-  exists i,  x ^ i ==  (val y) ^ (orderg y).
+  exists i,  coset (cyclic x) (x ** i) == y ** (orderg y).
 Proof.
-move => y.
-have F0: centraliser x (val y).
-  by case y => /= v; case/andP.
-case: (@KRG_quotient1 ((val y)^(orderg y))); first by
-  rewrite centraliserEr.
-  rewrite quotient_expn // quotient_val.
-  apply/eqP; exact: orderg_expn1.
-by move => i ->; exists i.
+move => y; rewrite (eqP (orderg_expn1 y)).
+by exists 0; rewrite /= coset1; apply/eqP.
 Qed.
 
 (* proof to be reworked *)
 Lemma orderg_krg: forall p (Hp: prime p) l (y: KRG),
   (orderg x = p ^ (S l))%N ->
   coprime (orderg x) (orderg y) -> exists z:G,
-     (coprime (orderg x) (orderg z)) && (quotient z == y) && 
+     (coprime (orderg x) (orderg z)) && (coset (cyclic x) z == y) && 
      (centraliser x z).
 move => p Hp l y Hox Hy.
 case: (KRGE y) => i Hi.
@@ -335,9 +307,9 @@ by rewrite gexpn_mul mulnC -gexpn_mul (eqP (orderg_expn1 _))
 Qed.
 
 Lemma KB_card_image: forall p (Hp: prime p) l s,
-  (orderg x = p ^ (S l))%N -> (coprime (orderg x) s) ->
-  card (fun z => (centraliser x z) && (divn (orderg z) s)) =
-  card (fun z: KRG => divn (orderg z) s).
+  (orderg x = (p ^ (S l))%N) -> (coprime (orderg x) s) ->
+  card (fun z => (centraliser x z) && (dvdn (orderg z) s)) =
+  card (fun z: KRG => dvdn (orderg z) s).
 Proof.
 move => p Hp l s Hx1 Hx2.
 apply: etrans (eq_card (KB_image Hp Hx1 Hx2)).

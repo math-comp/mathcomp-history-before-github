@@ -36,7 +36,7 @@ Section PConstituent.
 Variable p s: nat.
 Hypothesis primep: prime p.
 Hypothesis coprimeps: coprime p s.
-Variable G: finGroup.
+Variable G: finGroupType.
 
 Open Scope group_scope.
 

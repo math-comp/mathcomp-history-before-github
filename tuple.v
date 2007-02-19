@@ -154,8 +154,8 @@ Let domain := ordinal n.
 
 Definition tupleType := fgraphType domain d.
 
-Canonical Structure tule_eqType := EqType (@fgraph_eqP domain d).
-Canonical Structure tule_finType := FinType (@finfgraph_enumP domain d).
+Canonical Structure tuple_eqType := EqType (@fgraph_eqP domain d).
+Canonical Structure tuple_finType := FinType (@finfgraph_enumP domain d).
 
 End Tuple.
   

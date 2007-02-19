@@ -38,8 +38,7 @@ Proof. move=>x; rewrite -{2}(invgK x); exact:actK. Qed.
 Lemma inj_act : forall x, injective (fun e => to e x).
 Proof. move=> x; exact: (can_inj (actK x)). Qed.
 
-Variable H : setType G.
-Hypothesis gH : group H.
+Variable H : group G.
 Variable a : S.
 
 Definition orbit := (fun z => to a z) @: H.
@@ -62,7 +61,7 @@ Proof.
 by move=> x; rewrite s2f; apply: (iffP andP) => [] [Hx]; move/eqP.
 Qed.
 
-Definition act_fix := H == stabilizer.
+Definition act_fix := H == stabilizer :> setType _.
 
 Lemma act_fixP : reflect (orbit = {:a}) act_fix.
 Proof.
@@ -77,7 +76,7 @@ Qed.
 Lemma stab_1: stabilizer 1.
 Proof. by apply/stabilizerP; split; [ apply group1 | apply (act_1 to) ]. Qed.
 
-Lemma group_stab : group stabilizer.
+Lemma group_set_stab : group_set stabilizer.
 Proof.
 apply/groupP; split; first exact: stab_1.
 move=> x y; move/stabilizerP => [Hx Htox]; move/stabilizerP => [Hy Htoy].
@@ -85,18 +84,18 @@ apply/stabilizerP; split; first by rewrite groupMl.
 by rewrite act_morph // Htox // Htoy. 
 Qed.
 
+Canonical Structure group_stab := Group group_set_stab.
+
 Lemma subset_stab : subset stabilizer H.
 Proof. by apply/subsetP=> x; case/stabilizerP. Qed.
 
 Lemma to_repr_rcoset : forall z, H z -> to a (repr (stabilizer :* z)) = to a z.
 Proof.    
-move => z Hz; have:= repr_rcoset group_stab z.  
-move/rcosetP=> [h Stabh ->].
-move/stabilizerP: Stabh => [Hh Htoh].
-by rewrite act_morph // Htoh.
+move=> z Hz; case: (repr _) / (repr_rcosetP group_stab z) => y.
+by move/stabilizerP=> [Hy Dtoy]; rewrite act_morph Dtoy.
 Qed.
 
-Lemma card_orbit: card orbit = indexg stabilizer H.
+Lemma card_orbit: card orbit = indexg {stabilizer as group _} H.
 Proof.
 pose f b := {x, H x && (to a x == b)}.
 have injf: injective (fun u : sub_finType orbit => f (val u)).
@@ -104,10 +103,10 @@ have injf: injective (fun u : sub_finType orbit => f (val u)).
   case/orbitP: Hb {Hc} => [x Hx Dxa]; move/isetP: eq_f.
   by move/(_ x); rewrite !s2f Dxa Hx eq_refl.
 have f_to: forall x, H x -> f (to a x) = stabilizer :* x. 
-  move=> x Hx; apply/isetP=> y; have Hx1:= groupVr gH Hx.
-  rewrite !s2f groupMr //; case Hy: (H y) => //=.
+  move=> x Hx; apply/isetP=> y; have Hx1:= groupVr Hx.
+  rewrite !s2f groupMr; case Hy: (H y) => //=.
   by rewrite act_morph (canF_eq (actKv x)).
-rewrite -card_sub -(card_image injf); apply: eq_card=> A.
+rewrite /= -card_sub -(card_image injf); apply: eq_card=> A.
 apply/imageP/iimageP=> [[[b Hb] _] | [x Hx]] -> {A}/=.
   by case/orbitP: Hb => [x Hx <-]; exists x; rewrite // f_to.
 by exists (EqSig orbit _ (orbit_to Hx)); rewrite //= f_to.
@@ -115,8 +114,7 @@ Qed.
 
 Lemma card_orbit_div: dvdn (card orbit) (card H).
 Proof.
-rewrite -(LaGrange group_stab gH subset_stab).
-by rewrite -card_orbit dvdn_mull.
+by rewrite -(LaGrange subset_stab) -card_orbit dvdn_mull.
 Qed.
 
 Lemma card_orbit1 : card orbit = 1%N -> orbit = {:a}.
@@ -135,8 +133,7 @@ Variable (G: finGroupType) (S:finType).
 
 Variable to : action G S.
 
-Variable H : setType G. 
-Hypothesis gH : group H. 
+Variable H : group G. 
 
 (***********************************************************************)
 (*                                                                     *)
@@ -186,10 +183,9 @@ have C1: closed (orbit to H) e.
  move => x y; rewrite /e /=.
  case Eq1: (x == y); first by rewrite (eqP Eq1).
  move => H1; apply/negP/negP => H2 H3; case: H2.
-   move: (act_fixP to gH _ H3) => H4; move/isetP:H4=>H4.
-   by move: (H4 x); rewrite orbit_sym H1 s2f eq_sym Eq1.
- move: (act_fixP to gH _ H3) => H4; move/isetP:H4=>H4.
- by move: (H4 y); rewrite H1 s2f Eq1.
+   move/act_fixP: H3; move/isetP; move/(_ x).
+   by rewrite orbit_sym H1 s2f eq_sym Eq1.
+ by move/act_fixP: H3; move/isetP; move/(_ y); rewrite H1 s2f Eq1.
 have C2: forall a, e a -> dvdn p (card (orbit to H a)).
   move => a Ha.
   have F1: (dvdn (card (orbit to H a)) (p ^ n))

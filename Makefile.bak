@@ -44,14 +44,16 @@ COQSRC=-I $(COQTOP)/kernel -I $(COQTOP)/lib \
 ZFLAGS=$(OCAMLLIBS) $(COQSRC)
 OPT=
 COQFLAGS=-q $(OPT) $(COQLIBS) $(OTHERFLAGS) $(COQ_XML)
-COQC=$(COQBIN)coqtop
+#COQC=$(COQBIN)ssrcoq
+COQC=ssrcoq
 GALLINA=gallina
-COQDOC=$(COQBIN)coqdoc
+COQDOC=coqdoc
 CAMLC=ocamlc -c
 CAMLOPTC=ocamlopt -c
 CAMLLINK=ocamlc
 CAMLOPTLINK=ocamlopt
-COQDEP=$(COQBIN)coqdep -c
+#COQDEP=$(COQBIN)coqdep -c
+COQDEP=coqdep -c
 GRAMMARS=grammar.cma
 CAMLP4EXTEND=pa_extend.cmo pa_ifdef.cmo q_MLast.cmo
 PP=-pp "camlp4o -I . -I $(COQTOP)/parsing $(CAMLP4EXTEND) $(GRAMMARS) -impl"
@@ -93,6 +95,7 @@ VFILES=connect.v\
   powerSet.v\
   center.v\
   frobenius.v\
+  frobenius_cauchy.v\
   groups_prod.v\
   tuple.v
 VOFILES=$(VFILES:.v=.vo)
@@ -119,7 +122,7 @@ all: connect.vo\
   sylow.vo\
   normal.vo\
   baux.vo\
-  leftTranslation.vo\
+  rightTranslation.vo\
   powerSet.vo\
   center.vo\
   frobenius.vo\
@@ -174,7 +177,7 @@ all-gal.ps: $(VFILES)
 	$(COQDOC) -html -g $< -o $@
 
 byte:
-	$(MAKE) all "OPT="
+	$(MAKE) all "OPT=-byte"
 
 opt:
 	$(MAKE) all "OPT=-opt"

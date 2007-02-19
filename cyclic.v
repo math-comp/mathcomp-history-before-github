@@ -182,68 +182,57 @@ Qed.
 Lemma gexpnS: forall a n, a ** (S n) = a * (a ** n).
 Proof. by move => a. Qed.
 
-Lemma gexpn_h: forall n a h, group h -> h a -> h (a ** n).
+Lemma gexpn_h: forall n a (h: group G), h a -> h (a ** n).
 Proof.
-elim => [| n Rec] /= a h H1 Ha.
-  by rewrite group1.
-apply: groupM => //.
-exact: Rec.
+elim => [| n Rec] /= a h Ha; first exact: group1.
+by rewrite groupM; auto.
 Qed.
 
 Lemma gexpn_add: forall a n m, (a ** n) * (a ** m) = a ** (n + m).
 Proof.
-move => a n; elim: n a => [|n Rec] //= a m.
-  by rewrite mul1g add0n.
+move => a n; elim: n a => [|n Rec] //= a m; first by rewrite mul1g add0n.
 by rewrite -mulgA Rec.
 Qed.
 
 Lemma gexpn_mul: forall a n m, (a ** n) ** m = a ** (n * m).
 Proof.
-move => a n m; elim: m a n => [|m Rec] a n.
-  by rewrite muln0 gexpn0.
-rewrite gexpnS -addn1 muln_addr muln1 -gexpn_add.
-by rewrite Rec !gexpn_add addnC.
+move => a n m; elim: m a n => [|m Rec] a n; first by rewrite muln0 gexpn0.
+by rewrite gexpnS -addn1 muln_addr muln1 -gexpn_add Rec !gexpn_add addnC.
 Qed.
 
 Lemma gexpnV: forall a n, (a ^-1) ** n = (a ** n)^-1.
 Proof.
-move => a; elim => [| n Rec] /=.
-  by rewrite invg1.
+move => a; elim => [| n Rec] /=; first by rewrite invg1.
 by rewrite Rec -invg_mul -{2 3}(gexpn1 a) !gexpn_add addnC.
 Qed.
 
 Lemma gexpn_conjg: forall x y n,
   (y ^ x) ** n  = (y ** n)^ x.
 Proof.
-move => x y; elim => [| n Rec].
-  by rewrite !gexpn0 conj1g.
+move => x y; elim => [| n Rec]; first by rewrite !gexpn0 conj1g.
 by rewrite gexpnS Rec -conjg_mul -gexpnS.
 Qed.
 
 Lemma commg_expn: forall x y n,
   commute x y ->  commute x (y ** n).
 Proof.
-move => x y n H; elim: n => [| n Rec].
-  by rewrite gexpn0 /commute mul1g mulg1.
-by rewrite /commute gexpnS mulgA (eqP H) -mulgA (eqP Rec); gsimpl.
+rewrite /commute; move => x y n H; elim: n => /= [| n Rec]; gsimpl. 
+by rewrite H -mulgA Rec; gsimpl.
 Qed.
 
 Lemma gexpnC: forall x y n, commute x y ->
   (x * y) ** n  = (x ** n) * (y ** n).
 Proof.
-move => x y n H; elim: n => [| n Rec].
-  by rewrite !gexpn0 mul1g.
-rewrite !gexpnS Rec; gsimpl; congr mulg.
-rewrite -!mulgA; congr mulg. 
-by apply/eqP; apply: commg_expn; rewrite commute_sym.
+rewrite /commute; move => x y n H; elim: n => /= [| n Rec]; gsimpl.
+rewrite Rec. gsimpl. congr mulg. rewrite -!mulgA; congr mulg.
+suff: (commute y (x**n)) by rewrite /commute.
+by apply: commg_expn; rewrite /commute; symmetry.
 Qed.
 
-Lemma subgrpE : forall H (Hv: group H) x n,
-  H x -> H (x ** n).
+Lemma subgrpE : forall (H : group G) x n, H x -> H (x ** n).
 Proof.
-move => H Hv x n Hx; elim: n => [|n Hrec].
-  by rewrite gexpn0 group1.
-by rewrite gexpnS groupM.
+move => H x n Hx; elim: n => /= [|n Hrec]; first exact: group1.
+by rewrite groupM.
 Qed.
 
 End Expn.
@@ -297,11 +286,7 @@ Open Scope group_scope.
 Variable G : finGroupType.
 
 Lemma gexpn_compn: forall (a: G) n, a ** n = compn (fun x => a * x) n 1.
-Proof.
-move => a; elim => [| n Rec].
-  by rewrite gexpn0 compn0.
-by rewrite gexpnS compnS /comp Rec.
-Qed.
+Proof. by move=> a; elim=> /= [|n Rec]; [rewrite /id|rewrite /comp Rec]. Qed.
 
 (***********************************************************************)
 (*                                                                     *)
@@ -534,21 +519,18 @@ rewrite -(eqP H2) gexpn_compn.
 by apply seq_f_loop.
 Qed.
 
-Lemma cyclic_h: forall a h, 
-  group h -> h a -> subset (cyclic a) h.
+Lemma cyclic_h: forall a (h:group G), h a -> subset (cyclic a) h.
 Proof.
-move => a h Hh Ha; apply/subsetP => x.
-move/cyclicP => [k Hk].
-rewrite -(eqP Hk).
-exact: gexpn_h.
+move => a h Ha; apply/subsetP => x; move/cyclicP => [k Hk].
+rewrite -(eqP Hk); exact: gexpn_h.
 Qed.
 
-
-Lemma cyclic_decomp: forall a b, cyclic a b -> 
-  {m: nat | (m < orderg a) && (a ** m == b)}.
-move => a b; rewrite s2f=> H.
+Lemma cyclic_decomp: forall a b, 
+  cyclic a b -> {m: nat | (m < orderg a) && (a ** m == b)}.
+Proof.
+move=> a b; rewrite s2f => H.
 case: (@seq_f_in_rev (fun x => a * x) 1 b) => //.
-move => m; move/andP => [H1 H2]; exists m.
+move=> m; move/andP=> [H1 H2]; exists m.
 by rewrite /orderg /cyclic icard_card H1 gexpn_compn H2.
 Qed.
 
@@ -557,27 +539,22 @@ Lemma cyclicPmin: forall a b,
           (cyclic a b). 
 Proof.
 move => a b; apply: (iffP idP).
-  move => H; case: (cyclic_decomp H) => m Hm; by exists m.
-case => m; case/andP => H1 H2.
-by apply/cyclicP; exists m.
+  by move=> H; case: (cyclic_decomp H) => m Hm; exists m.
+by case=> m; case/andP=> H1 H2; apply/cyclicP; exists m.
 Qed.
 
 Lemma cyclic_in: forall a m, cyclic a (a ** m).
-Proof.
-by move => a m; apply/cyclicP; exists m; rewrite eq_refl.
-Qed.
+Proof. by move=> a m; apply/cyclicP; exists m; rewrite eq_refl. Qed.
 
 Lemma cyclic_gexpn: forall a b n,
   cyclic a b -> cyclic a (b ** n).
 Proof.
-move => a b n; case/cyclicP => x Hx.
+move => a b n; move/cyclicP => [x Hx].
 by rewrite -(eqP Hx) gexpn_mul cyclic_in.
 Qed.
 
 Lemma cyclicnn: forall a, cyclic a a.
-Proof.
-move => a; rewrite -{2}(gexpn1 a); exact: cyclic_in.
-Qed.
+Proof. move => a; rewrite -{2}(gexpn1 a); exact: cyclic_in. Qed.
 
 Lemma orderg1: orderg 1 = 1%N.
 Proof.
@@ -588,47 +565,40 @@ by case/negP: H1.
 Qed.
 
 Lemma orderg_pos: forall a, 0 < orderg a.
-Proof.
-by move => a; rewrite /orderg (cardD1 a) cyclicnn.
-Qed.
+Proof. by move => a; rewrite /orderg (cardD1 a) cyclicnn. Qed.
 
 Hint Resolve orderg_pos.
 
 Lemma cyclic_conjgs: forall a b,
    cyclic (a ^ b) =1 (cyclic a) :^ b. 
-move => a b x; apply/idP/idP.
-   move/cyclicP => [n Hn].
-  by rewrite /sconjg -(eqP Hn) gexpn_conjg s2f conjg_conj mulgV
-             conjg1 /id cyclic_in.
-rewrite s2f; move/cyclicP => [n Hn]; apply/cyclicP; exists n.
-by rewrite gexpn_conjg (eqP Hn) conjg_conj mulVg conjg1.
+Proof.
+move=> a b x; rewrite [(_:^ b)_]s2f; apply/cyclicP/idP=> [[n]|].
+  by move/eqP=> <-; rewrite /sconjg gexpn_conjg conjgK cyclic_in.
+by move/cyclicP => [n Hn]; exists n; rewrite gexpn_conjg (eqP Hn) conjgKv.
 Qed.
 
 Lemma orderg_conjg: forall a b, orderg (a ^ b) = orderg a.
 Proof.
-move => a b; rewrite /orderg -(card_iimage (conjg_inj b) (cyclic a)).
-apply eq_card => x.
-by rewrite cyclic_conjgs sconjg_iimage.
+move=> a b; rewrite /orderg -(card_iimage (conjg_inj b) (cyclic a)).
+by apply eq_card => x; rewrite cyclic_conjgs sconjg_iimage.
 Qed.
 
-Lemma group_cyclic: forall a, group (cyclic a).
+Lemma group_cyclicP: forall a, group_set (cyclic a).
 Proof.
-move => a.
-apply/groupP; split; first by apply cyclic1.
+move => a; apply/groupP; split; first by apply cyclic1.
 move => x y; move/cyclicP => [n Hn]; move/cyclicP => [m Hm].
-apply/cyclicP; exists (n + m); rewrite -gexpn_add.
-by apply/eqP; congr (Group.mul); apply/eqP. 
+by apply/cyclicP; exists (n + m); rewrite -gexpn_add (eqP Hn) (eqP Hm).
 Qed.
+
+Canonical Structure group_cyclic a := Group (group_cyclicP a). 
 
 Lemma orderg_expn1: forall a, a ** (orderg a) == 1.
 Proof.
 move => a; case/cyclicPmin: (cyclic_in a (orderg a)).
-case => [|n]; move/andP => [H1 H2].
-  by rewrite -(eqP H2) gexpn0 eq_refl.
+case => /= [|n]; move/andP => [H1 H2]; first by rewrite -(eqP H2).
 have F1: a ** (orderg a - (S n)) == 1.
   apply/eqP; apply: (mulg_injl (a ** (S n))).
-  rewrite gexpn_add mulg1 leq_add_sub  ?(eqP H2) //.
-  by rewrite (leq_trans _ H1) // leqnSn.
+  by rewrite gexpn_add mulg1 leq_add_sub -?(eqP H2) ?(leq_trans _ H1) ?leqnSn.
 rewrite -subSS leq_subS // gexpn_compn in F1.
 move: (seq_f_card F1).
 rewrite -leq_subS // subSS leqNgt -ltn_0sub -icard_card leq_sub_sub //=.
@@ -656,13 +626,12 @@ by rewrite seq_f_id.
 Qed.
 
 Lemma orderg_dvd_g:
-  forall a, dvdn (orderg a) (card (setA G)).
+  forall (H : group G) a, H a -> dvdn (orderg a) (card H).
 Proof.
-move => a.
-have gG : group {x, (setA G) x} by apply/groupP; split => [|x y]; rewrite !s2f //.
-rewrite -icard_card -(LaGrange (group_cyclic a) gG).
-  by rewrite dvdn_mulr.
-by apply/subsetP=>x;rewrite s2f.
+move => H a Ha. 
+have sCaH: subgroup (group_cyclic a) H. 
+  by apply/subsetP=> x; move/cyclicP=> [n Dx]; rewrite -(eqP Dx) gexpn_h. 
+by rewrite -(LaGrange sCaH) dvdn_mulr. 
 Qed.
 
 Lemma orderg_gcd: forall a n, 0 < n ->
@@ -776,11 +745,9 @@ Qed.
 Lemma cyclicV: forall a, cyclic a =1 cyclic a^-1.
 Proof.
 move => a x; apply/idP/idP; move/cyclicP => [n1 Hn1].
-  apply: (@groupVl G); first exact: group_cyclic.
-  apply/cyclicP; exists n1; apply/eqP; apply: invg_inj.
+  apply: groupVl; apply/cyclicP; exists n1; apply/eqP; apply: invg_inj.
   by rewrite gexpnV; gsimpl; apply/eqP.
-apply: (@groupVl G); first exact: group_cyclic.
-apply/cyclicP; exists n1; apply/eqP; apply: invg_inj.
+apply: groupVl; apply/cyclicP; exists n1; apply/eqP; apply: invg_inj.
 by gsimpl; rewrite -gexpnV (eqP Hn1).
 Qed.
 
