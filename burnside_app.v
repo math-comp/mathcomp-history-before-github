@@ -166,18 +166,20 @@ Definition id1:= (perm_unit square).
 Lemma diff_id_sh: unitg (perm_finGroupType square) != sh.
 Proof. by rewrite /set1/= /fgraph_of_fun; unlock. Qed.
 
-Definition isometries2 :setType (perm_finType square):=  iset2 1 (perm_of_inj Sh_inj).
+Definition isometries2 :=  iset2 1 (perm_of_inj Sh_inj).
 
 Lemma card_iso2: card isometries2 = 2.
 Proof. by rewrite icard2;rewrite/set1/= /fgraph_of_fun; unlock. Qed.
 
-Lemma Giso: group  isometries2.
+Lemma group_set_iso: group_set  isometries2.
 Proof.
 apply/groupP;split;first by rewrite s2f eq_refl.
 move => x y; rewrite !s2f;case /orP=> H1;case/orP=> H2; rewrite -(eqP H2) -(eqP H1);apply/orP;
  [left|right|right|left];gsimpl.
 by rewrite -/sh -{1}sh_inv mulVg.
 Qed.
+Canonical Structure iso_group:= Group group_set_iso.
+
 
 Definition rotations:setType (perm_finType square):= iset4 id1 r1 r2 r3.
 
@@ -199,7 +201,7 @@ by move =>x ;rewrite !s2f;do 4! case: (_ ==x).
 Qed.
 
 
-Lemma Grot: group  rotations.
+Lemma group_set_rot: group_set  rotations.
 Proof.
 apply/groupP;split;first by rewrite s2f eq_refl.
 move => x y; rewrite !s2f;case /or4P=>H1;case/or4P=> H2;  rewrite -(eqP H1) -(eqP H2);
@@ -207,6 +209,7 @@ move => x y; rewrite !s2f;case /or4P=>H1;case/or4P=> H2;  rewrite -(eqP H1) -(eq
  |rewrite  r1_r2|rewrite -r1_inv mulgV|rewrite mulg1|rewrite  r2_r1| rewrite -{1}r2_inv  mulVg|rewrite r2_r3
  |rewrite mulg1|rewrite -r3_inv mulgV|rewrite r3_r2|rewrite r3_r3];rewrite eq_refl ?orbT ?orTb;done.
 Qed.
+Canonical Structure rot_group:= Group group_set_rot.
 
 Theorem ff: forall (d1 d2: finType) x1 x2,
 (fun_of_fgraph (x:= d1) (x0 := d2) x1) =1 (fun_of_fgraph x2)  -> x1 = x2.
@@ -236,17 +239,18 @@ Qed.
 
 Definition to := Action  act_f_1 act_f_morph.
 
-Definition square_coloring_number2 := t to isometries2.
-Definition square_coloring_number4 := t to rotations.
+
+Definition square_coloring_number2 := t to iso_group.
+Definition square_coloring_number4 := t to rot_group.
 
 Infix "^":= expn : dnat_scope.
 
-Lemma Fid:forall a:setType(perm_finType square), a 1-> (F to a 1)=1 (setA col_squares).
+Lemma Fid:forall a: group (perm_finGroupType square), a 1-> (F to a 1)=1 (setA col_squares).
 move => a Ha x;apply eqb_imp;rewrite/F//.
 by move => _;apply/andP;split =>//=;last by rewrite act_f_1.
 Qed.
 
-Lemma card_Fid :forall a :setType(perm_finType square), a 1 -> card (F to a id1) = (n ^ 4)%N.
+Lemma card_Fid :forall a :group (perm_finGroupType square), a 1 -> card (F to a id1) = (n ^ 4)%N.
 move => a Ha;rewrite (eq_card (Fid Ha)) /col_squares.
 have <- : card (setA square) = 4; first by rewrite cardA.
 have <-: card (setA colors)=n;first by rewrite card_ordinal.
@@ -260,7 +264,7 @@ Definition coin2(sc : col_squares) : colors:=(fun_of_fgraph sc) c2.
 Definition coin3(sc : col_squares) : colors:=(fun_of_fgraph sc) c3.
 
 
-Lemma F_Sh: forall a:setType(perm_finType square), a sh -> (F to a (perm_of_inj Sh_inj))=1 
+Lemma F_Sh: forall a:group (perm_finGroupType square), a sh -> (F to a (perm_of_inj Sh_inj))=1 
 {x:col_squares, (coin0 x == coin1 x) &&(coin2 x == coin3 x)}.
 Proof.
 rewrite /sh => a Ha x. rewrite  /F   !s2f  Ha /=    /to/=/act_f/=.
@@ -279,7 +283,7 @@ rewrite can_fgraph_of_fun/= perm_eqfun;
 destruct z;repeat (destruct val0=>//=;first by rewrite /fun_of_fgraph;unlock=>/=).
 Qed.
 
-Lemma F_R2: forall a:setType(perm_finType square), a  r2 ->(F to a (perm_of_inj R2_inj))=1 
+Lemma F_R2: forall a:group (perm_finGroupType square), a  r2 ->(F to a (perm_of_inj R2_inj))=1 
 {x:col_squares, (coin0 x == coin2 x) &&(coin1 x == coin3 x)}.
 Proof.
 rewrite /r2  => a Ha x;rewrite /F  !s2f  Ha /=   /to/=/act_f/=.
@@ -298,7 +302,7 @@ rewrite can_fgraph_of_fun/= perm_eqfun;destruct z.
 repeat (destruct val0=>//=;first by rewrite /fun_of_fgraph;unlock=>/=).
 Qed.
 
-Lemma F_r1: forall a:setType(perm_finType square), a  r1 ->(F to a (perm_of_inj R1_inj))=1 
+Lemma F_r1: forall a:group (perm_finGroupType square), a  r1 ->(F to a (perm_of_inj R1_inj))=1 
 {x:col_squares,(coin0 x == coin1 x)&&(coin1 x == coin2 x)&&(coin2 x == coin3 x)}.
 rewrite /r1  => a Ha x;rewrite /F  !s2f  Ha /=   /to/=/act_f/=.
 destruct x;rewrite /coin0/c0/coin1/c1/coin2/c2/coin3/c3/=.
@@ -318,7 +322,7 @@ rewrite can_fgraph_of_fun/r3/= perm_eqfun;destruct z.
 repeat (destruct val0=>//=;first by rewrite /fun_of_fgraph;unlock=>/=).
 Qed.
 
-Lemma F_r3: forall a:setType(perm_finType square), a  r3 ->(F to a (perm_of_inj R3_inj))=1 
+Lemma F_r3: forall a:group (perm_finGroupType square), a  r3 ->(F to a (perm_of_inj R3_inj))=1 
 {x:col_squares,(coin0 x == coin1 x)&&(coin1 x == coin2 x)&&(coin2 x == coin3 x)}.
 rewrite /r3  => a Ha x;rewrite /F  !s2f  Ha /=   /to/=/act_f/=.
 destruct x;rewrite /coin0/c0/coin1/c1/coin2/c2/coin3/c3/=.
@@ -356,7 +360,7 @@ Definition c(col:colors) :col_squares:=
 
 Lemma c_inj: injective c.
 Proof.
-move => x y.;destruct x; destruct y;rewrite /f.
+move => x y;destruct x; destruct y;rewrite /f.
 move/fgraph_eqP=> H;case/and5P :H=>*.
 by apply /eqP.
 Qed.
@@ -380,7 +384,7 @@ have : image f (setA (prod_finType colors colors)) =1 {x : col_squares, (coin0 x
 by move => h1 <-;symmetry;apply:eq_card.
 Qed.
 
-Lemma card_FSh: forall a:setType(perm_finType square), a  sh ->card (F to a (perm_of_inj Sh_inj))= (n*n)%N.
+Lemma card_FSh: forall a:group (perm_finGroupType square), a  sh ->card (F to a (perm_of_inj Sh_inj))= (n*n)%N.
 move => a Ha;rewrite (eq_card (F_Sh Ha)).
 exact:bicolor.
 Qed.
@@ -421,7 +425,7 @@ by rewrite s2f;apply/andP;rewrite /coin0/coin1/coin2/coin3;split=>//;
 Qed.
 
 
-Lemma card_FR2: forall a:setType(perm_finType square), a  r2 ->card (F to a (perm_of_inj R2_inj))= (n*n)%N.
+Lemma card_FR2: forall a:group (perm_finGroupType square), a  r2 ->card (F to a (perm_of_inj R2_inj))= (n*n)%N.
 by move => a Ha;rewrite (eq_card (F_R2 Ha)) -bicolor
  -(card_image g_inj {x : col_squares, (coin0 x == coin2 x) && (coin1 x == coin3 x)}) (eq_card im_g_12).
 Qed.
@@ -442,21 +446,21 @@ apply/andP;split;last by rewrite/fun_of_fgraph;unlock.
 by apply/andP;split;by rewrite /fun_of_fgraph;unlock.
 Qed.
 
-Lemma card_FR1: forall a:setType(perm_finType square), 
+Lemma card_FR1: forall a:group (perm_finGroupType square), 
      a r1 ->card (F to a (perm_of_inj R1_inj))= n.
 Proof. by move => a Ha;rewrite (eq_card (F_r1 Ha));exact:unicolor. Qed.
 
-Lemma card_FR3: forall a:setType(perm_finType square), 
+Lemma card_FR3: forall a:group (perm_finGroupType square), 
      a r3 ->card (F to a (perm_of_inj R3_inj))= n.
 Proof. by move => a Ha;rewrite (eq_card (F_r3 Ha)); exact:unicolor. Qed.
 
 Lemma burnside_app2: (square_coloring_number2 *2= ( n^4) + n^2)%N.
 Proof.
-rewrite -{1}card_iso2 -(Frobenius_Cauchy to Giso)(@sumD1 _ id1 )//= 
+rewrite -{1}card_iso2 -(Frobenius_Cauchy to iso_group)(@sumD1 _ id1 )//= 
   (@sumD1 _ sh ).
  rewrite (@sum_id _ _ _ 0).
   rewrite muln0 addn0;congr addn.
-   apply card_Fid; first by move/groupP:Giso;case.
+   apply card_Fid; first by move/groupP:group_set_iso;case.
  rewrite /sh card_FSh/=; first by rewrite muln1.
  by rewrite /isometries2 !s2f -/sh eq_refl  orbT.
  move => x;rewrite /F/eqtype.setD1; case/and3P=> Hx1 Hx2 Hx.
@@ -473,13 +477,13 @@ Qed.
 Lemma burnside_app_rot: (square_coloring_number4 *4= ( n^4) + n^2 +2*n)%N.
 Proof.
 rewrite -{1}card_rot.
-rewrite -(Frobenius_Cauchy to Grot).
+rewrite -(Frobenius_Cauchy to rot_group).
 rewrite (@sumD1 _ id1 )//=(@sumD1 _ r1 )//=.
  rewrite (@sumD1 _ r2 )//=.
   rewrite (@sumD1 _ r3 )//=.
    rewrite (@sum_id _ _ _ 0).
     rewrite muln0 addn0 -!addnA ;congr addn.
-     by rewrite card_Fid;last by move/groupP:Grot;case.
+     by rewrite card_Fid;last by move/groupP:group_set_rot;case.
     rewrite addnC addnA; congr addn; first congr addn.
       rewrite  card_FR2/=; first by rewrite muln1.
       by rewrite /rotations !s2f  eq_refl  !orbT.
@@ -495,3 +499,4 @@ by rewrite /setD1;apply/and4P;repeat split; rewrite /set1/= /fgraph_of_fun; unlo
 by apply/and3P;repeat split; by rewrite /set1/= /fgraph_of_fun; unlock.
 by apply/andP;split=>//;rewrite  /set1/= /fgraph_of_fun;unlock.
 Qed.
+End square_colouring.
