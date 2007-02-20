@@ -217,14 +217,19 @@ Qed.
 Lemma diff_id_sh: unitg (perm_finGroupType square) != sh.
 Proof.
 rewrite /set1/= /fgraph_of_fun; unlock.
-apply/negP; move/eqP; move/fgraph_eqP => /=.
+apply/negP; move/eqP;move/fgraph_eqP => /=.
 by rewrite ord_enum4.
 Qed.
 
 Definition isometries2 :setType (perm_finType square):=  iset2 1 (perm_of_inj Sh_inj).
 
 Lemma card_iso2: card isometries2 = 2.
-Proof. by rewrite icard2;rewrite/set1/= /fgraph_of_fun; unlock. Qed.
+Proof. 
+rewrite icard2-/sh;congr S.
+have ->: (1 != sh) =>//.
+rewrite/set1/= /fgraph_of_fun; unlock;apply/negP; move/eqP;move/fgraph_eqP => /=;
+by rewrite ord_enum4.
+ Qed.
 
 Lemma group_set_iso: group_set  isometries2.
 Proof.
@@ -248,7 +253,9 @@ Proof.
 rewrite (eq_card rot_is_rot).
 rewrite (icardD1 id1)  (icardD1 r1) (icardD1 r2) (icardD1 r3)  /rotations/= !s2f  eq_refl !orTb;congr addn.
 repeat 
- match goal with |- context [?x != ?y] => have ->: (x != y);first by rewrite /set1/= /fgraph_of_fun;unlock end.
+ match goal with |- context [?x != ?y] => have ->: (x != y);
+first by rewrite/set1/= /fgraph_of_fun; unlock;apply/negP; move/eqP;
+   move/fgraph_eqP => /=;rewrite ord_enum4  end.
 repeat (rewrite eq_refl  ?orbT;congr addn).
 rewrite -(@eq_card _ set0 );first by apply card0.
 by move =>x ;rewrite !s2f;do 4! case: (_ ==x).
@@ -291,14 +298,16 @@ Definition square_coloring_number4 := t to rot_group.
 
 Infix "^":= expn : dnat_scope.
 
+
 Lemma Fid:forall a:group (perm_finGroupType square), a 1-> (F to a 1)=1 (setA col_squares).
-move => a Ha x;apply eqb_imp;rewrite/F//.
-by move => _;apply/andP;split =>//=;last by rewrite act_f_1.
+move => a Ha x.
+rewrite /F;apply/idP;apply/idP.
+apply/andP;split =>//=;last by rewrite act_f_1.
 Qed.
 
 Lemma card_Fid :forall a :group (perm_finGroupType square), a 1 -> card (F to a id1) = (n ^ 4)%N.
 move => a Ha;rewrite (eq_card (Fid Ha)) /col_squares.
-have <- : card (setA square) = 4; first by rewrite cardA.
+have <- : card (setA square) = 4;first by rewrite cardA /=ord_enum4.
 have <-: card (setA colors)=n;first by rewrite card_ordinal.
 rewrite -card_tfunspace; apply: eq_card=> f; symmetry.
 by move: (@fgraph_prodP square colors col0  (fun _ : nat => setA colors)f ) => h; apply/h.
@@ -314,8 +323,13 @@ Lemma F_Sh: forall a:group (perm_finGroupType square), a sh -> (F to a (perm_of_
 {x:col_squares, (coin0 x == coin1 x) &&(coin2 x == coin3 x)}.
 Proof.
 rewrite /sh => a Ha x. rewrite  /F   !s2f  Ha /=    /to/=/act_f/=.
-destruct x;do 4! destruct val=>//.
-rewrite /coin0/c0/coin1/c1/coin2/c2/coin3/c3/=sh_inv;apply/idP/idP=>/=.
+
+rewrite /coin0/c0/coin1/c1/coin2/c2/coin3/c3/=sh_inv.
+have: (card (setA square)=4);first by rewrite cardA /=ord_enum4.
+destruct x; do 4! (destruct val=>//=; first by rewrite -e=> *; discriminate).
+destruct val=>//=; last by rewrite -e=> *; discriminate.
+move => _.
+apply/idP/idP=>/=.
  move/eqP=> H;rewrite /fun_of_fgraph/=; unlock=>/=.
  move:H;set f:= fgraph_of_fun _;set g:= Fgraph _ =>H.
  have:((fun_of_fgraph f c0) = (fun_of_fgraph g c0));first by rewrite H.
@@ -323,10 +337,13 @@ rewrite /coin0/c0/coin1/c1/coin2/c2/coin3/c3/=sh_inv;apply/idP/idP=>/=.
  rewrite !can_fgraph_of_fun !perm_eqfun/= /fun_of_fgraph;unlock=>/=.
  by move=> -> ->;apply/andP;split;done.
 rewrite {1 2 3 4}/fun_of_fgraph;unlock=>/=.
+rewrite ord_enum4.
+simpl.
 case/andP=> h0 h1;rewrite (eqP h0)(eqP h1);
 apply/eqP;apply :(ff (d1:= square) (d2:= colors))=> z.
-rewrite can_fgraph_of_fun/= perm_eqfun;
-destruct z;repeat (destruct val0=>//=;first by rewrite /fun_of_fgraph;unlock=>/=).
+rewrite can_fgraph_of_fun/= perm_eqfun.
+destruct z;  
+repeat (destruct val=>//=;first by rewrite /fun_of_fgraph;unlock=>/=;unlock=>/=;rewrite ord_enum4).
 Qed.
 
 Ltac inv_tac :=
@@ -352,9 +369,12 @@ Lemma F_R2: forall a:group (perm_finGroupType square), a  r2 ->(F to a (perm_of_
 {x:col_squares, (coin0 x == coin2 x) &&(coin1 x == coin3 x)}.
 Proof.
 rewrite /r2  => a Ha x;rewrite /F  !s2f  Ha /=   /to/=/act_f/=.
-destruct x;rewrite /coin0/c0/coin1/c1/coin2/c2/coin3/c3/=;do 4! destruct val=>//.
+destruct x;rewrite /coin0/c0/coin1/c1/coin2/c2/coin3/c3/=.
+have: (card (setA square)=4);first by rewrite cardA /=ord_enum4.
+do 4! (destruct val=>//=; first by rewrite -e=> *; discriminate).
+destruct val=>//=; last by rewrite -e=> *; discriminate.
 
-rewrite r2_inv;apply/idP/idP=>/=.
+move =>_;rewrite r2_inv;apply /idP/idP =>/=.
  move/eqP=> H;rewrite /fun_of_fgraph/=; unlock=>/=.
  move:H;set f:= fgraph_of_fun _;set g:= Fgraph _ => H. 
  have:((fun_of_fgraph f c0) = (fun_of_fgraph g c0));first by rewrite H.
@@ -362,18 +382,21 @@ rewrite r2_inv;apply/idP/idP=>/=.
  rewrite /f /g/r2 !can_fgraph_of_fun !perm_eqfun/= /fun_of_fgraph;unlock=>/=.
  by move=> -> ->;apply/andP;split.
 rewrite {1 2 3 4}/fun_of_fgraph;unlock=>/=.
+rewrite ord_enum4 =>/=.
 case/andP=> h0 h1;rewrite (eqP h0 ) (eqP h1);
 apply/eqP;apply : (ff (d1:= square) (d2:= colors)) => z.
 rewrite can_fgraph_of_fun/= perm_eqfun;destruct z.
-repeat (destruct val0=>//=;first by rewrite /fun_of_fgraph;unlock=>/=).
+repeat (destruct val=>//=;first by rewrite /fun_of_fgraph;unlock=>/=;unlock=>/=;rewrite ord_enum4).
 Qed.
 
 Lemma F_r1: forall a:group (perm_finGroupType square), a  r1 ->(F to a (perm_of_inj R1_inj))=1 
 {x:col_squares,(coin0 x == coin1 x)&&(coin1 x == coin2 x)&&(coin2 x == coin3 x)}.
 rewrite /r1  => a Ha x;rewrite /F  !s2f  Ha /=   /to/=/act_f/=.
 destruct x;rewrite /coin0/c0/coin1/c1/coin2/c2/coin3/c3/=.
-do 4! destruct val=>//.
-rewrite r1_inv;apply/idP/idP=>/=.
+have: (card (setA square)=4);first by rewrite cardA /=ord_enum4.
+do 4! (destruct val=>//=; first by rewrite -e=> *; discriminate).
+destruct val=>//=; last by rewrite -e=> *; discriminate.
+move =>_;rewrite r1_inv;apply /idP/idP =>/=.
  move/eqP=> H;rewrite /fun_of_fgraph/=; unlock=>/=.
  move:H;set f:= fgraph_of_fun _;set g:= Fgraph _ => H.
  have:((fun_of_fgraph f c0) = (fun_of_fgraph g c0));first by rewrite H.
@@ -382,18 +405,21 @@ rewrite r1_inv;apply/idP/idP=>/=.
  rewrite /f /g!can_fgraph_of_fun !perm_eqfun/= /fun_of_fgraph;unlock=>/=.
  by move=> -> -> -> ;apply/andP;split =>//;apply/andP;split.
 rewrite {1 2 3 4 5 6}/fun_of_fgraph;unlock=>/=.
+rewrite ord_enum4 =>/=.
 case/andP=> h0 h1; move/andP: h0=> [h0 h2];rewrite (eqP h0 ) (eqP h2) (eqP h1).
 apply/eqP;apply : (ff (d1:= square) (d2:= colors))=> z.
 rewrite can_fgraph_of_fun/r3/= perm_eqfun;destruct z.
-repeat (destruct val0=>//=;first by rewrite /fun_of_fgraph;unlock=>/=).
+repeat (destruct val=>//=;first by rewrite /fun_of_fgraph;unlock=>/=;rewrite ord_enum4).
 Qed.
 
 Lemma F_r3: forall a:group (perm_finGroupType square), a  r3 ->(F to a (perm_of_inj R3_inj))=1 
 {x:col_squares,(coin0 x == coin1 x)&&(coin1 x == coin2 x)&&(coin2 x == coin3 x)}.
 rewrite /r3  => a Ha x;rewrite /F  !s2f  Ha /=   /to/=/act_f/=.
 destruct x;rewrite /coin0/c0/coin1/c1/coin2/c2/coin3/c3/=.
-do 4! destruct val=>//.
-rewrite r3_inv;apply/idP/idP=>/=.
+have: (card (setA square)=4);first by rewrite cardA /=ord_enum4.
+do 4! (destruct val=>//=; first by rewrite -e=> *; discriminate).
+destruct val=>//=; last by rewrite -e=> *; discriminate.
+move =>_;rewrite r3_inv;apply/idP/idP=>/=.
  move/eqP=> H;rewrite /fun_of_fgraph/=; unlock=>/=.
  move:H;set f:= fgraph_of_fun _;set g:= Fgraph _ => H.
  have:((fun_of_fgraph f c0) = (fun_of_fgraph g c0));first by rewrite H.
@@ -401,17 +427,20 @@ rewrite r3_inv;apply/idP/idP=>/=.
  have:((fun_of_fgraph f c2) = (fun_of_fgraph g c2));first by rewrite H.
  rewrite /f /g !can_fgraph_of_fun !perm_eqfun/= /fun_of_fgraph;unlock=>/=.
  by move=> -> -> -> ;apply/andP;split =>//;apply/andP;split.
-rewrite {1 2 3 4 5 6}/fun_of_fgraph;unlock=>/=.
+rewrite {1 2 3 4 5 6}/fun_of_fgraph;unlock=>/=;rewrite ord_enum4 =>/=.
 case/andP=> h0 h1; move/andP: h0=> [h0 h2];rewrite (eqP h0 ) (eqP h2) (eqP h1).
 apply/eqP;apply : (ff (d1:= square) (d2:= colors))=> z.
 rewrite can_fgraph_of_fun/r3/= perm_eqfun;destruct z.
-repeat (destruct val0=>//=;first by rewrite /fun_of_fgraph;unlock=>/=).
+repeat (destruct val=>//=;first by rewrite /fun_of_fgraph;unlock=>/= ;rewrite ord_enum4).
+Qed.
+ Lemma size4:  forall x y z t:colors ,  size (Seq x y z t ) = card (setA (ordinal 4)).
+by rewrite cardA/= ord_enum4.
 Qed.
 
 Definition f(col_pair:prod_finType colors colors) :col_squares:=
 match col_pair  with EqPair c1 c2 => 
     Fgraph (d1:=ordinal 4) (val:=Seq c1 c1 c2 c2)
-      (refl_equal (card (setA (ordinal 4))))
+      (size4 c1 c1 c2 c2)
 end.
 
 Lemma f_inj: injective f.
@@ -422,7 +451,7 @@ Qed.
 
 Definition c(col:colors) :col_squares:=
     Fgraph (d1:=ordinal 4) (val:=Seq col col col col)
-      (refl_equal (card (setA (ordinal 4)))).
+      (size4 col col col col).
 
 Lemma c_inj: injective c.
 Proof.
@@ -439,12 +468,16 @@ have <-: card(setA(prod_finType colors colors)) =
         (card (setA colors) * card (setA colors))%N;first by rewrite -card_prod.
 have : image f (setA (prod_finType colors colors)) =1 {x : col_squares, (coin0 x == coin1 x) && (coin2 x == coin3 x)}.
  move => z;rewrite s2f;destruct z.
- do 5! (destruct val;try discriminate);apply eqb_imp.
+have: (card (setA square)=4);first by rewrite cardA /=ord_enum4.
+do 4! (destruct val=>//=; first by rewrite -e=> *; discriminate).
+destruct val=>//=; last by rewrite -e=> *; discriminate.
+move => _;apply /idP/idP.
   case/imageP => x3  Hx3;case x3 => col1 col2;rewrite /f/=.
   case/fgraph_eqP;case/and5P=> h1 h2 h3 h4 _.
   rewrite (eqP h1)(eqP h2) (eqP h3)(eqP h4) /coin0/coin1/coin2/coin3/=.
-  by apply/andP;split;by rewrite /fun_of_fgraph;unlock.
- rewrite /coin1/coin0/coin2/coin3/=/fun_of_fgraph;unlock=>/=.
+  by apply/andP;split; rewrite /fun_of_fgraph;unlock=> /= ; rewrite ord_enum4.
+ rewrite /coin1/coin0/coin2/coin3/=/fun_of_fgraph;unlock=>/=;
+  rewrite ord_enum4/=.
  case/andP=> h1 h2;apply/imageP;exists (EqPair x x1) =>//=.
  by rewrite (eqP h1) (eqP h2) =>//=;apply/fgraph_eqP=>//=.
 by move => h1 <-;symmetry;apply:eq_card.
@@ -459,7 +492,7 @@ Definition g (sc: col_squares): col_squares:=
 match sc with
 | Fgraph val e => 
       match val as s return (size s = card (setA square) -> col_squares) with
-        (Seq  x0 x1 x2 x3) =>fun e4 : size (Seq x0 x2 x1 x3) = 4 =>
+        (Seq  x0 x1 x2 x3) =>fun e4 : size (Seq x0 x2 x1 x3) = card(setA square) =>
                         Fgraph (d1:=square) (val:=Seq x0 x2 x1 x3) e4
    | _=> fun _  => sc
     end e
@@ -467,8 +500,14 @@ end.
 
 Lemma g_inj: injective g.
 Proof.
-move => x y;destruct x; destruct y;rewrite /g/=.
-do 5! destruct val=>//;do 5! destruct val0=>//;
+move => x;destruct x.
+have: (card (setA square)=4);first by rewrite cardA /=ord_enum4.
+do 4! (destruct val=>//=; first by rewrite -e=> *; discriminate).
+destruct val=>//=; first move =>_;last by rewrite -e=> *; discriminate.
+move => y;destruct y.
+have: (card (setA square)=4);first by rewrite cardA /=ord_enum4.
+do 4! (destruct val; first by rewrite -e0=> *; discriminate).
+destruct val; first move =>_;last by rewrite -e0=> *; discriminate.
 move/fgraph_eqP=> H;case/and5P :H=>h1 h2 h3 h4 _;rewrite (eqP h1)(eqP h2 )(eqP h3) (eqP h4).
 by apply/fgraph_eqP.
 Qed.
@@ -477,17 +516,25 @@ Definition S2:= {x : col_squares, (coin0 x == coin1 x) && (coin2 x == coin3 x)}.
 
 Lemma im_g_12: image g S1 =1 S2.
 Proof.
-move => z;destruct z;rewrite !s2f; do 5!(destruct val=>//);apply eqb_imp.
- case/imageP=> x3;rewrite s2f;destruct x3;do 5! (destruct val=>//).
- rewrite /coin0/coin1/coin2/coin3/=;case/andP;rewrite/fun_of_fgraph;unlock=>/=.
+move => z;destruct z;rewrite !s2f.
+ have: (card (setA square)=4);first by rewrite cardA /=ord_enum4.
+do 4! (destruct val; first by rewrite -e=> *; discriminate).
+destruct val; first move =>_;last by rewrite -e=> *; discriminate.
+apply/idP/idP.
+case/imageP=> x3;rewrite s2f;destruct x3.
+ have: (card (setA square)=4);first by rewrite cardA /=ord_enum4.
+do 4! (destruct val; first by rewrite -e0=> *; try discriminate).
+destruct val; first move =>_;last by rewrite -e=> *; discriminate.
+ rewrite /coin0/coin1/coin2/coin3/=;case/andP;rewrite/fun_of_fgraph;
+  unlock=>/=;rewrite ord_enum4/=.
  do 2! (move/eqP => ->).  
  by case/fgraph_eqP;case/and5P; do 4! (move/eqP => ->); move=>_;apply/andP.
-case/andP;rewrite/coin0/coin1/coin2/coin3 {1 2 3 4}/fun_of_fgraph;unlock=>/=.
+case/andP;rewrite/coin0/coin1/coin2/coin3 {1 2 3 4}/fun_of_fgraph;unlock=>/=;rewrite ord_enum4/=.
 do 2! (move/eqP => ->);apply/imageP.
 have h:  size (Seq col0 col0 col0 col0) = card (setA square)=>//.
 exists (Fgraph (d1:=square) (val:=Seq x0 x2 x0 x2) h);last by apply/fgraph_eqP.
 by rewrite s2f;apply/andP;rewrite /coin0/coin1/coin2/coin3;split=>//;
- rewrite /fun_of_fgraph;unlock=>/=.
+ rewrite /fun_of_fgraph;unlock=>/=;rewrite ord_enum4.
 Qed.
 
 
@@ -501,9 +548,13 @@ Lemma unicolor: card {x : col_squares,
 have<-: card (setA colors) = n;first by rewrite card_ordinal.
 rewrite -(card_image c_inj (setA  colors));apply:eq_card.
  rewrite /coin1/coin0/coin3/coin2/=.
- move => z;rewrite s2f;destruct z;do 5!(destruct val=>//); apply/idP/idP. 
- rewrite/fun_of_fgraph;unlock=>/=.
- case/andP=> h1 h2;first move/andP:h1 =>[h1 h3].
+ move => z;rewrite s2f;destruct z.
+ have: (card (setA square)=4);first by rewrite cardA /=ord_enum4.
+do 4! (destruct val; first by rewrite -e=> *; try discriminate).
+destruct val; first move =>_;last by rewrite -e=> *; discriminate.
+ rewrite/fun_of_fgraph;unlock=>/=;rewrite ord_enum4/=.
+ apply/idP/idP.
+case/andP=> h1 h2;first move/andP:h1 =>[h1 h3].
  apply/imageP; exists x2 =>//.
  by rewrite (eqP h1) (eqP h3) (eqP h2)/c/=;apply/fgraph_eqP=>//=.
 case/imageP =>x3 Hx3;rewrite /c/=;case/fgraph_eqP;
@@ -531,12 +582,12 @@ rewrite -{1}card_iso2 -(Frobenius_Cauchy to iso_group)(@sumD1 _ id1 )//=
  by rewrite /isometries2 !s2f -/sh eq_refl  orbT.
  move => x;rewrite /F/eqtype.setD1; case/and3P=> Hx1 Hx2 Hx.
  rewrite -(card0 col_squares);apply eq_card.
- move => z;apply eqb_imp=>//.
- case/andP;rewrite /isometries2 s2f.
- case/orP=> h1 h2.
-  by move : Hx2; rewrite -(eqP h1)  /set1/= /fgraph_of_fun; unlock.
- move : Hx1;rewrite -(eqP h1)/fgraph_of_fun; unlock.
- by case/eqP;rewrite /fun_of_fgraph;unlock.
+ move => z. 
+ apply /idP;apply/negP; apply/nandP.
+left.
+
+rewrite /isometries2 s2f.
+apply/norP;split;auto.
 by rewrite /setD1;apply/andP;split=>//; apply: diff_id_sh.
 Qed.
 
@@ -558,12 +609,25 @@ rewrite (@sumD1 _ id1 )//=(@sumD1 _ r1 )//=.
     by rewrite rot_is_rot /rotations !s2f  eq_refl  !orbT.
    move => x;rewrite /F/eqtype.setD1.
    case/and5P=> Hx3 Hx2 Hx1 Hxid _;rewrite -(card0 col_squares).
-   apply eq_card;move => z;apply eqb_imp => //.
-    by case/andP;rewrite rot_is_rot /rotations s2f;case/or4P=> h1 h2; move : Hxid Hx1 Hx2 Hx3;
-           rewrite -(eqP h1) /set1/= /fgraph_of_fun;unlock.
-by rewrite /setD1;apply/and4P;repeat split; rewrite /set1/= /fgraph_of_fun; unlock.
-by apply/and3P;repeat split; by rewrite /set1/= /fgraph_of_fun; unlock.
-by apply/andP;split=>//;rewrite  /set1/= /fgraph_of_fun;unlock.
-Qed.
+   apply eq_card;move => z;apply /idP.
+apply/negP; apply/nandP.
+left.
+rewrite s2f.
+apply /negP.
+ move => h;have: rotations x.
+by rewrite -rot_is_rot /rot s2f.
+rewrite /rotations s2f.
+by case /or4P=> h1 ;move:Hxid Hx1 Hx2 Hx3;rewrite -(eqP h1);
+[|move =>_|move =>_ _|move=>_ _ _];case/eqP.
+ rewrite /setD1;apply/and4P;repeat split;
+repeat  (match goal with |- context [?x != ?y] =>apply/eqP =>heq;absurd (x c0 = y c0);
+last( by rewrite heq); red; rewrite !perm_eqfun/= =>*;discriminate end).
+apply/and3P;repeat split;
+repeat  (match goal with |- context [?x != ?y] =>apply/eqP =>heq;absurd (x c0 = y c0);
+last( by rewrite heq); red; rewrite !perm_eqfun/= =>*;discriminate end).
+apply/andP;split=>//.
+apply/eqP =>heq;absurd (id1 c0 = r1 c0);
+last( by rewrite heq); red; rewrite !perm_eqfun/= =>*;discriminate.
+ Qed.
 
 End square_colouring.
