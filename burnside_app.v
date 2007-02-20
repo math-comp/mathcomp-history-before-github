@@ -7,7 +7,6 @@ Require Import seq.
 Require Import fintype.
 Require Import connect.
 Require Import groups.
-Require Import baux.
 Require Import action.
 Require Import frobenius_cauchy.
 Require Import group_perm.
@@ -205,10 +204,21 @@ repeat (destruct val => //=;rewrite /mk4 /=  //;first by apply /eqP).
 Qed.
 
 
+Lemma ord_enum4: ord_enum 4 = Seq (make_ord (is_true_true:0 < 4))
+                                  (make_ord (is_true_true:1 < 4))
+                                  (make_ord (is_true_true:2 < 4))
+                                  (make_ord (is_true_true:3 < 4)).
+rewrite /ord_enum /subfilter /=.
+rewrite /insub.
+do 4 (case: idP; last by move => *; done).
+by move => i1 i2 i3 i4; repeat congr Adds; apply/val_eqP => //.
+Qed.
 
 Lemma diff_id_sh: unitg (perm_finGroupType square) != sh.
 Proof.
-by rewrite /set1/= /fgraph_of_fun;unlock.
+rewrite /set1/= /fgraph_of_fun; unlock.
+apply/negP; move/eqP; move/fgraph_eqP => /=.
+by rewrite ord_enum4.
 Qed.
 
 Definition isometries2 :setType (perm_finType square):=  iset2 1 (perm_of_inj Sh_inj).

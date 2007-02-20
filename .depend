@@ -44,10 +44,10 @@ frobenius.vo: frobenius.v baux.vo ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrn
 frobenius.vi: frobenius.v baux.vo ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo groups.vo div.vo zp.vo cyclic.vo normal.vo center.vo
 tuple.vo: tuple.v ssreflect.vo seq.vo eqtype.vo ssrnat.vo funs.vo ssrbool.vo fintype.vo connect.vo paths.vo
 tuple.vi: tuple.v ssreflect.vo seq.vo eqtype.vo ssrnat.vo funs.vo ssrbool.vo fintype.vo connect.vo paths.vo
-frobenius_cauchy.vo: frobenius_cauchy.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo connect.vo groups.vo baux.vo action.vo
-frobenius_cauchy.vi: frobenius_cauchy.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo connect.vo groups.vo baux.vo action.vo
-burnside_app.vo: burnside_app.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo connect.vo groups.vo baux.vo action.vo frobenius_cauchy.vo group_perm.vo tuple.vo
-burnside_app.vi: burnside_app.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo connect.vo groups.vo baux.vo action.vo frobenius_cauchy.vo group_perm.vo tuple.vo
+frobenius_cauchy.vo: frobenius_cauchy.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo connect.vo groups.vo action.vo
+frobenius_cauchy.vi: frobenius_cauchy.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo connect.vo groups.vo action.vo
+burnside_app.vo: burnside_app.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo connect.vo groups.vo action.vo frobenius_cauchy.vo group_perm.vo tuple.vo
+burnside_app.vi: burnside_app.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo connect.vo groups.vo action.vo frobenius_cauchy.vo group_perm.vo tuple.vo
 connect.html: connect.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html paths.html fintype.html
 eqtype.html: eqtype.v ssreflect.html ssrbool.html funs.html
 div.html: div.v ssreflect.html ssrbool.html ssrnat.html funs.html eqtype.html seq.html
@@ -71,5 +71,5 @@ powerSet.html: powerSet.v ssreflect.html ssrbool.html funs.html eqtype.html ssrn
 center.html: center.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html paths.html connect.html groups.html normal.html cyclic.html div.html
 frobenius.html: frobenius.v baux.html ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html paths.html connect.html groups.html div.html zp.html cyclic.html normal.html center.html
 tuple.html: tuple.v ssreflect.html seq.html eqtype.html ssrnat.html funs.html ssrbool.html fintype.html connect.html paths.html
-frobenius_cauchy.html: frobenius_cauchy.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html connect.html groups.html baux.html action.html
-burnside_app.html: burnside_app.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html connect.html groups.html baux.html action.html frobenius_cauchy.html group_perm.html tuple.html
+frobenius_cauchy.html: frobenius_cauchy.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html connect.html groups.html action.html
+burnside_app.html: burnside_app.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html connect.html groups.html action.html frobenius_cauchy.html group_perm.html tuple.html

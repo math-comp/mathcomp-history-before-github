@@ -8,7 +8,6 @@ Require Import seq.
 Require Import fintype.
 Require Import connect.
 Require Import groups.
-Require Import baux.
 Require Import action.
 
 Set Implicit Arguments.
@@ -38,7 +37,7 @@ rewrite (@card_partition d1  (prod_finType d1 d2) V  dproj1 S).
  have fdinj: (@dinjective _ _ a  f ).
   by move => x0 y0; rewrite /a /f => _ _ ;case/pair_eqP; case/andP => _ h;  by apply:(eqP h).
  symmetry; have: (fun y : prod_finType d1 d2 => S y && (eq_pi1 y == x)) =1 image f a.
-  move => z; case:z => [z1 z2] /=;apply eqb_imp.
+  move => z; case:z => [z1 z2] /=;apply/idP/idP.
    case/andP=> [H3 H2];rewrite /f;apply/imageP;   exists z2 ;rewrite /a;rewrite -(eqP H2) //.
   case/imageP;rewrite /f  => x0 Hx0 H3;apply/andP;split.
   rewrite H3 => //; by apply:Hx0.
@@ -64,7 +63,7 @@ rewrite (@card_partition d2  (prod_finType d1 d2) W  dproj2 S).
  have fdinj: (@dinjective _ _ a  f ).
   by move => x0 y0;rewrite /a /f  => _ _ ;case/pair_eqP; case/andP => h _;  by apply:(eqP h).
  symmetry;have: (fun y0 : prod_finType d1 d2 => S y0 && (eq_pi2 y0 == y)) =1 image f a.
-    move => z; case:z => [z1 z2] /=;apply eqb_imp.
+    move => z; case:z => [z1 z2] /=;apply/idP/idP.
    case/andP=> [H3 H2];rewrite /f;apply/imageP;   exists z1 ;rewrite /a;rewrite -(eqP H2) //.
   case/imageP;rewrite /f  => x0 Hx0 H3;apply/andP;split.
   rewrite H3 => //; by apply:Hx0.
@@ -126,7 +125,7 @@ Definition t := (card indexs).
 
 Lemma orbit_eq :forall x y , (orbit to H x) y -> (orbit to H x) =1(orbit to H y).
 Proof.
-move => x y Hxy z; apply eqb_imp;
+move => x y Hxy z; apply/idP/idP;
  rewrite  orbit_sym // -orbit_trans // => H1;rewrite orbit_sym //.
  move : Hxy ;rewrite -orbit_trans // => Hxy;rewrite -orbit_trans //.
  by apply connect_trans with (x2:=x).
