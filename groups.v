@@ -86,6 +86,7 @@ Notation "x1 * x2" := (mulg x1 x2): group_scope.
 Notation "1" := (unitg _) : group_scope.
 Notation "x '^-1'" := (invg x) (at level 9, format "x '^-1'") : group_scope.
 
+
 Section GroupIdentities.
 
 Open Scope group_scope.
@@ -406,6 +407,7 @@ Coercion sig_of_group G := let: Group A gA := G in EqSig group_set A gA.
 Lemma sig_of_groupK : cancel sig_of_group group_of_sig. Proof. by case. Qed.
 Canonical Structure group_eqType := EqType (can_eq sig_of_groupK).
 Canonical Structure group_finType := FinType (can_uniq sig_of_groupK).
+
 
 Section GroupProp.
 
@@ -814,20 +816,20 @@ Section NormSet.
 
 Variable A : setType elt.
 
-Definition normaliser := {x, subset (A :^ x) A}.
+Definition normaliser_set := {x, subset (A :^ x) A}.
 
-Theorem norm_sconjg : forall x, normaliser x -> A :^ x = A.
+Theorem norm_sconjg : forall x, normaliser_set x -> A :^ x = A.
 Proof. 
 by move=> x Ax; apply/isetP; apply/subset_cardP; [rewrite card_sconjg | rewrite s2f in Ax]. 
 Qed.
 
-Theorem group_set_normaliser : group_set normaliser.
+Theorem group_set_normaliser : group_set normaliser_set.
 Proof.
 apply/groupP; split=> [|x y Nx Ny]; first by rewrite s2f sconj1g subset_refl.
 by rewrite s2f; apply/subsetP => z; rewrite sconjgM !norm_sconjg.
 Qed.
 
-Canonical Structure group_normaliser := Group group_set_normaliser.
+Canonical Structure normaliser := Group group_set_normaliser.
 
 Definition normalized (B : setType elt) := subset B normaliser.
  
@@ -859,7 +861,7 @@ Qed.
 
 Lemma norm_rcoset : forall x, N x -> subset (H :* x) N.
 Proof.
-move=> x Nx; rewrite rcoset_smul -[N]smulgg /=.
+move=> x Nx; rewrite rcoset_smul. rewrite -(smulgg N) /=.
 by apply: subset_trans (smulsg _ norm_refl); apply: smulgs; rewrite subset_set1.
 Qed.
 
@@ -881,6 +883,20 @@ move=> elt H x y Nx.
 rewrite !rcoset_smul -smulgA (smulgA _ H) -lcoset_smul -norm_rlcoset //.
 by rewrite rcoset_smul -smulgA smulg_set1 smulgA smulgg.
 Qed.
+
+Lemma group_set_finGroupType : forall elt: finGroupType,
+  group_set elt.
+Proof.
+move=> elt; rewrite /group_set /=; apply/andP; split; first by done.
+by apply/subsetP=> u; case/smulgP=> x y Ex Ey ->.
+Qed.
+
+Canonical Structure GroupFinGroupType (elt : finGroupType) :=
+  Group (group_set_finGroupType elt).
+
+
+
+
 
 Unset Implicit Arguments.
 
