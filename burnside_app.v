@@ -310,7 +310,7 @@ move => a Ha;rewrite (eq_card (Fid Ha)) /col_squares.
 have <- : card (setA square) = 4;first by rewrite cardA /=ord_enum4.
 have <-: card (setA colors)=n;first by rewrite card_ordinal.
 rewrite -card_tfunspace; apply: eq_card=> f; symmetry.
-by move: (@fgraph_prodP square colors col0  (fun _ : nat => setA colors)f ) => h; apply/h.
+by move: (@fgraph_prodP square colors (fun _ => setA colors)f ) => h; apply/h.
 Qed.
 
 Definition coin0(sc : col_squares) : colors:=(fun_of_fgraph sc) c0.

@@ -15,43 +15,65 @@ Import Prenex Implicits.
 Section FgraphProd.
 
 Variables d1 d2 : finType.
-Variable x0 : d2.
-Variable a : nat -> set d2.
+Variable a : d1 -> set d2.
 
-Fixpoint prod_seq (i:nat) (s : seq d2) {struct s} : bool :=
-  if s is Adds x s' then (a i x && prod_seq (S i) s') else true.
+Fixpoint prod_seq (s1:seq d1) (s2 : seq d2) {struct s1} : bool :=
+  match s1, s2 with
+  | Adds x1 s1', Adds x2 s2' => a x1 x2 && prod_seq s1' s2'
+  | _,_ => true
+  end. 
 
 (* Characteristic function of (tuple_prod n a) over (seq d) *)
 Definition fgraph_prod : set (fgraph_eqType d1 d2) :=
-  fun u => prod_seq 0 (fval u).
+  fun u => prod_seq (enum d1) (fval u).
 
-Lemma fgraph_prodP: forall u : fgraphType d1 d2, 
-  reflect (forall i, i < (card (setA d1)) -> a i (sub x0 (fval u) i)) (fgraph_prod u).
+Lemma seq_ind2: forall t1 t2 P, 
+  (P seq0 seq0) ->
+  (forall e1 e2 s1 s2, P s1 s2 -> P (Adds e1 s1) (Adds e2 s2)) ->
+  forall (s1:seq t1) (s2 : seq t2), size s1 = size s2 -> P s1 s2.
 Proof.
-rewrite /fgraph_prod -[a]/(fun i => a (0 + i)) => [[s /= <-]].
-elim: s 0 => [|x s IHs] i /=; first by left.
-rewrite -{2}[i]addn0; case Hx: (a _ x); last first.
-  right=> Hs; case/idP: Hx; exact: (Hs 0).
-apply: {IHs}(iffP (IHs _)) => Hs j; last by rewrite -ltnS addSnnS; move/Hs.
-case: j => // j; rewrite -addSnnS; exact: Hs.
+move => g1 g2 P Hseq0 Hadds.
+elim => [[] //| e s IH [] // e1 s1 [Hsize1]].
+by apply: Hadds; apply: (IH s1).
+Qed.
+
+Lemma fgraph_prodP: forall u : fgraphType d1 d2,
+  reflect (forall x, a x (sub (fgraph_default x u) (fval u) (index x (enum d1))))
+          (fgraph_prod u).
+Proof.
+move=> u; have Hind: (size (enum d1) = size (fval u)) by case: u => /= s ->; rewrite cardA.
+rewrite /fgraph_prod /=; apply: (iffP idP).
+  move=> H x; have: (enum d1 x) by rewrite mem_enum.
+  move: (enum d1) (fval u) Hind H x; apply: seq_ind2 => //=.
+  move=> e1 e2 s1 s2 IH; rewrite /prod_seq /=; move/andP=> [ae Hs] x Hx.
+  case Dx: (x == e1); first by rewrite (eqP Dx).
+  by rewrite /setU1 eq_sym Dx orFb in Hx; move/(_ Hs x Hx): IH.
+suff: ((forall x : d1, (enum d1 x) -> a x (sub (fgraph_default x u) (fval u) (index x (enum d1)))) ->
+        prod_seq (enum d1) (fval u)) by auto.
+move: (enum d1) (fval u) Hind (uniq_enum d1); apply: seq_ind2 => //=.
+move=> e1 e2 s1 s2 IH Hf H; apply/andP; split.
+  by move/(_ e1): H; rewrite /setU1 eq_refl /=; auto.
+case/andP:Hf => He Us1; apply: (IH Us1) => x S1x.
+have Dx: x != e1 by apply/negP; move/eqP=> Dx; move/negP: He; rewrite -Dx; auto.
+by move/(_ x): H; rewrite (negbET Dx) /= /setU1 S1x orbT; auto.
 Qed.
 
 End FgraphProd.
 
 Lemma card_fgraph_prod: 
- forall t, forall c,
- forall a : nat -> set (FinType.sort t),
+ forall t c : finType,
+ forall a : c -> set t,
   card (@fgraph_prod c t a) = 
-    foldr (fun i m => card (a i) * m) 1 (iota 0 (card (setA c))).
+    foldr (fun i m => card (a i) * m) 1 (enum c).
 Proof.
 rewrite {1}/card => t c a /=. 
 rewrite count_filter /fgraph_prod -(size_maps (@fval _ _)).
-rewrite -(filter_maps (@fval c t) (prod_seq a 0)) -count_filter.
-rewrite maps_tval_fintuple_enum.
-elim: (card (setA c)) {-2}0 => //= n IH i; rewrite -{}IH {1}/card.
-elim: enum => //= x e IHe; rewrite muln_addl -{}IHe count_cat; congr addn.
+rewrite -(filter_maps (@fval c t) (prod_seq a _)) -count_filter.
+rewrite maps_tval_fintuple_enum cardA.
+elim: (enum c) => //= e s <-; rewrite /card.
+elim: (enum t) => //= e1 s1 IH; rewrite muln_addl -{}IH count_cat; congr addn.
 rewrite count_filter filter_maps size_maps -count_filter /comp /=.
-case: (a i x) => //=; exact: count_set0.
+case: (a _ _) => //=; exact: count_set0.
 Qed.
 
 (*m ^ n*)
@@ -74,7 +96,7 @@ rewrite /tfunspace.
 have := card_fgraph_prod. 
 rewrite /fgraph_finType /fgraph_eqType /card /fgraph_prod /=.
 move => H; rewrite (H d2 d1 (fun _ => a2)).
-by elim: (count (setA d1)) {2}0 => //= n IHn i; rewrite IHn.
+by elim: (enum d1) => //= e s ->.
 Qed.
 
 End Tfunspace.
@@ -92,7 +114,7 @@ Let a2' := set1 y0.
 (* notice that : sub false (maps a1 (enum d1)) i = a1 (sub _ (enum d1) i)  *)
 (* subset of fgraphs corresponding to a1 -> a2 functions *)
 Definition pfunspace :=
-  @fgraph_prod d1 _ (fun i => if sub false (maps a1 (enum d1)) i then a2 else a2').
+  @fgraph_prod d1 _ (fun i => if a1 i then a2 else a2').
 
 Lemma iota_addl : forall m1 m2 n,
   iota (m1 + m2) n = maps (addn m1) (iota m2 n).
@@ -102,8 +124,7 @@ Lemma card_pfunspace: card pfunspace = expn (card a2) (card a1).
 Proof. 
 rewrite /pfunspace /card /=.
 have := card_fgraph_prod; rewrite /card /=; move ->.
-rewrite /card; elim: (enum d1) => //= x e IHe.
-rewrite -{2}add1n iota_addl foldr_maps /= {}IHe.
+rewrite /card; elim: (enum d1) => //= x e /= ->.
 case: (a1 x) => //=; rewrite /a2'; have := card1; rewrite/card => ->. 
 by rewrite mul1n.
 Qed.
@@ -114,24 +135,19 @@ Lemma pfunspaceP : forall g : fgraphType d1 d2,
   reflect (sub_set (support g) a1 /\ sub_set (image g a1) a2) (pfunspace g).
 Proof.
 pose e1 := enum d1.
-have He1 : index _ e1 < size e1 by move=> x1; rewrite index_mem /e1 mem_enum.
-move=> g; apply: (iffP (fgraph_prodP y0 _ _)) => [Hg | [Hg1 Hg2] i Hi].
+move=> g; apply: (iffP idP).
+  move/fgraph_prodP => Hg.
   split=> [x1 Hx1 | x2 Hx2].
     apply/negPf=> Hx1'; case/negP: Hx1; rewrite eq_sym; unlock fun_of_fgraph.
-    have Hi := He1 x1; rewrite (set_sub_default y0) ?fproof //.
-    by move: {Hg}(Hg _ Hi); 
-       rewrite (sub_maps x1) // sub_index /e1 ?mem_enum ?Hx1'.
+    by move: {Hg}(Hg x1); rewrite Hx1' /a2'.
   case/set0Pn: Hx2=> x1; case/andP; move/eqP=> -> {x2} Hx1.
-  have Hi := He1 x1; unlock fun_of_fgraph ;rewrite (set_sub_default y0) ?fproof //.
-  by move: {Hg}(Hg _ Hi); rewrite (sub_maps x1) // sub_index /e1 ?mem_enum ?Hx1.
-have x0 : d1 by move: Hi; rewrite /card; case: (enum d1); auto.
-rewrite (sub_maps x0) //; set x1 := sub _ _ i.
-have <-: g x1 = sub y0 (fval g) i.
-  by unlock fun_of_fgraph;rewrite (set_sub_default y0) /x1; unlock;
-    rewrite ?index_uniq ?fproof ?uniq_enum.
-case Hx1: (a1 x1).
-  by apply: Hg2; apply/set0Pn; exists x1; rewrite /setI /preimage set11.
-by apply/idPn=> Hx1'; case/idP: Hx1; apply: Hg1; rewrite /support /setC1 eq_sym.
+  by move: {Hg}(Hg x1); rewrite {}Hx1 /fun_of_fgraph -lock.
+move=> [Hg1 Hg2]; apply/fgraph_prodP=>x.
+case Hx1: (a1 x).
+  apply: Hg2; apply/set0Pn; exists x.
+  by rewrite /setI /preimage Hx1 /fun_of_fgraph -lock eq_refl.
+apply/idPn=> Hx1'; case/idP: Hx1; apply: Hg1.
+by rewrite /support /setC1 eq_sym /fun_of_fgraph -lock.
 Qed.
 
 End Pfunspace.
