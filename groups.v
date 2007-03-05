@@ -43,17 +43,6 @@ Notation "{ c 'as' st }" :=
   (at level 0, c at level 99, s at level 200)
    : group_scope.
 
-
-(* patched in newer fintype *)
-(*
-Lemma isetP : forall elt (A B : setType elt), A = B <-> A =1 B.
-Proof. move=> elt A B; split=> [-> // | ]; exact: iset_eq. Qed.
-*)
-(*
-Lemma isetP : forall elt (A B : setType elt), A = B <-> A =1 B.
-Proof. move=> elt A B; split=> [-> // | ]; exact: iset_eqRENAMED. Qed.
-*)
-
 Module Group.
 
 Structure finGroupType : Type := FinGroupType {
