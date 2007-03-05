@@ -72,8 +72,8 @@ Lemma act_fix_norm : forall x,
   act_fix (trans_action G) H (H :* x) = normaliser H x.
 Proof.
 move=> x; rewrite /act_fix. 
-apply/eqP/idP.
-  rewrite -(groupV (group_normaliser H)) s2f => dH;apply/subsetP=> y.
+apply/eqP/idP. 
+  rewrite -(groupV (normaliser H)) s2f => dH;apply/subsetP=> y.
   rewrite {1}dH !s2f /=; case/andP=> _; move/eqP=> dHx.
   rewrite -(actK (trans_action G) x H) /= -{}dHx -!rcoset_morph /conjg.
   by gsimpl; exact: rcoset_refl.
