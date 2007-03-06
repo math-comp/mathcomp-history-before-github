@@ -99,6 +99,14 @@ move => H; rewrite (H d2 d1 (fun _ => a2)).
 by elim: (enum d1) => //= e s ->.
 Qed.
 
+Lemma tfunspaceP : 
+  forall u : fgraphType d1 d2, 
+  reflect (forall x : d1, a2 (u x)) (tfunspace u).
+Proof.
+rewrite /tfunspace/fun_of_fgraph -lock => u. 
+by apply: (iffP idP); [ move/fgraph_prodP | move=>*; apply/fgraph_prodP ].
+Qed.
+
 End Tfunspace.
 
 Section Pfunspace.
@@ -128,6 +136,19 @@ rewrite /card; elim: (enum d1) => //= x e /= ->.
 case: (a1 x) => //=; rewrite /a2'; have := card1; rewrite/card => ->. 
 by rewrite mul1n.
 Qed.
+
+(*
+Lemma pfunspaceP : 
+  forall u : fgraphType d1 d2, 
+  reflect (forall x : d1, (a1 x /\ a2 (u x)) \/ (~~ a1 x /\ a2' (u x))) (pfunspace u).
+Proof.
+rewrite /tfunspace/fun_of_fgraph -lock => u. 
+apply: (iffP idP). 
+  by move/fgraph_prodP => H x; move/(_ x):H; case: (a1 x)=>* ; [ left | right ].
+move=> H; apply/fgraph_prodP => x; move/(_ x): H.
+by case=>[[-> H //] | [Hx H]]; rewrite (negbET Hx).
+Qed.
+*)
 
 Definition support f : set d1 := fun x => setC1 (f x) y0.
 
