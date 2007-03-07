@@ -15,15 +15,15 @@ action.v
 cyclic.v
 sylow.v
 normal.v
-baux.v
 rightTranslation.v
 powerSet.v
 center.v
 frobenius.v
-groups_prod.v
 tuple.v
+group_perm.v
 frobenius_cauchy.v
 burnside_app.v
+
 
 	
 

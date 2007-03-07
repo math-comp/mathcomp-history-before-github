@@ -150,95 +150,6 @@ Qed.
 End Phi.
 
 
-Section Expn.
-
-Open Scope group_scope.
-
-Variable G: finGroupType.
-
-(***********************************************************************)
-(*                                                                     *)
-(*  Definition of the power function in  a multiplicative group        *)
-(*                                                                     *)
-(***********************************************************************)
-Fixpoint gexpn (a: G) (n: nat) {struct n} : G :=
-  if n is S n1 then a * (gexpn a n1) else 1.
-
-Notation "a '**' p" := (gexpn a p) (at level 50). 
-
-Lemma gexpn0: forall a, a ** 0 = 1.
-Proof. by done. Qed.
-
-Lemma gexpn1: forall a, a ** 1%N = a.
-Proof.
-by move => a //=; rewrite mulg1.
-Qed.
-
-Lemma gexp1n: forall n, 1 ** n = 1.
-Proof.
-by elim => [| n Rec] //=; rewrite mul1g.
-Qed.
-
-Lemma gexpnS: forall a n, a ** (S n) = a * (a ** n).
-Proof. by move => a. Qed.
-
-Lemma gexpn_h: forall n a (h: group G), h a -> h (a ** n).
-Proof.
-elim => [| n Rec] /= a h Ha; first exact: group1.
-by rewrite groupM; auto.
-Qed.
-
-Lemma gexpn_add: forall a n m, (a ** n) * (a ** m) = a ** (n + m).
-Proof.
-move => a n; elim: n a => [|n Rec] //= a m; first by rewrite mul1g add0n.
-by rewrite -mulgA Rec.
-Qed.
-
-Lemma gexpn_mul: forall a n m, (a ** n) ** m = a ** (n * m).
-Proof.
-move => a n m; elim: m a n => [|m Rec] a n; first by rewrite muln0 gexpn0.
-by rewrite gexpnS -addn1 muln_addr muln1 -gexpn_add Rec !gexpn_add addnC.
-Qed.
-
-Lemma gexpnV: forall a n, (a ^-1) ** n = (a ** n)^-1.
-Proof.
-move => a; elim => [| n Rec] /=; first by rewrite invg1.
-by rewrite Rec -invg_mul -{2 3}(gexpn1 a) !gexpn_add addnC.
-Qed.
-
-Lemma gexpn_conjg: forall x y n,
-  (y ^ x) ** n  = (y ** n)^ x.
-Proof.
-move => x y; elim => [| n Rec]; first by rewrite !gexpn0 conj1g.
-by rewrite gexpnS Rec -conjg_mul -gexpnS.
-Qed.
-
-Lemma commg_expn: forall x y n,
-  commute x y ->  commute x (y ** n).
-Proof.
-rewrite /commute; move => x y n H; elim: n => /= [| n Rec]; gsimpl. 
-by rewrite H -mulgA Rec; gsimpl.
-Qed.
-
-Lemma gexpnC: forall x y n, commute x y ->
-  (x * y) ** n  = (x ** n) * (y ** n).
-Proof.
-rewrite /commute; move => x y n H; elim: n => /= [| n Rec]; gsimpl.
-rewrite Rec. gsimpl. congr mulg. rewrite -!mulgA; congr mulg.
-suff: (commute y (x**n)) by rewrite /commute.
-by apply: commg_expn; rewrite /commute; symmetry.
-Qed.
-
-Lemma subgrpE : forall (H : group G) x n, H x -> H (x ** n).
-Proof.
-move => H x n Hx; elim: n => /= [|n Hrec]; first exact: group1.
-by rewrite groupM.
-Qed.
-
-End Expn.
-
-Notation "a '**' p" := (gexpn a p) (at level 50). 
-
 Section Comp.
 
 Variable A: Type.
@@ -522,7 +433,7 @@ Qed.
 Lemma cyclic_h: forall a (h:group G), h a -> subset (cyclic a) h.
 Proof.
 move => a h Ha; apply/subsetP => x; move/cyclicP => [k Hk].
-rewrite -(eqP Hk); exact: gexpn_h.
+rewrite -(eqP Hk); exact: groupE.
 Qed.
 
 Lemma cyclic_decomp: forall a b, 
@@ -630,7 +541,7 @@ Lemma orderg_dvd_g:
 Proof.
 move => H a Ha. 
 have sCaH: subgroup (group_cyclic a) H. 
-  by apply/subsetP=> x; move/cyclicP=> [n Dx]; rewrite -(eqP Dx) gexpn_h. 
+  by apply/subsetP=> x; move/cyclicP=> [n Dx]; rewrite -(eqP Dx) groupE. 
 by rewrite -(LaGrange sCaH) dvdn_mulr. 
 Qed.
 
@@ -835,5 +746,6 @@ by case (@cyclic_decomp a x) => /= x1; case/andP => _;move/eqP.
 Qed.
 
 End Cyclic.
+
 
 Unset Implicit Arguments.

@@ -37,7 +37,7 @@ Hypothesis subset_HK: subset H K.
 (********************************************************************)
 (*              Definition of a normal set                          *)
 (*    H is normal in K iff xHx^-1 = H forall x in K                 *)
-(*    it is sufficient that H is included in xHx^¯1                 *)
+(*    it is sufficient that H is included in xHx^Â¯1                 *)
 (*    since both sets have same cardinal                            *)
 (********************************************************************)
 
@@ -103,7 +103,14 @@ Hypothesis mf : morphism H.
 Lemma morph1 :  f 1 = 1.
 Proof. by apply: (mulg_injl (f 1)); rewrite -mf ?group1 // !mulg1. Qed.
 
-Lemma morphV : forall x, 
+Lemma morphE : forall x n, 
+  H x -> f (x ** n) = (f x) ** n.
+Proof.
+move=> x n Hx; elim: n => [| n Hrec]; first by rewrite !gexpn0 morph1.
+by rewrite !gexpnS mf // ?Hrec // groupE.
+Qed.
+
+Lemma morphV: forall x, 
   H x -> f (x ^-1) = (f x) ^-1.
 Proof.
 by move=> x Hx; apply: (mulg_injl (f x)); rewrite -mf ?groupV // !mulgV morph1.
@@ -365,6 +372,15 @@ Proof. by move=> A x Nx; rewrite /coset Nx. Qed.
 
 Definition cosets := iimage (coset H) elt.
 
+Lemma cosetsP: forall H1, reflect (exists x, coset H x = H1) (cosets H1).
+Proof.
+move => H1.
+apply: (iffP idP).
+  by move/iimageP => [x2 _ Hx2]; exists x2.
+by move => [x Hx]; apply/iimageP; exists x.
+Qed.
+
+
 CoInductive cosetType : Type := Coset of eq_sig cosets.
 
 Definition sig_of_coset u := let: Coset v := u in v.
@@ -382,11 +398,12 @@ Proof. exact: inj_comp (@val_inj _ _) (can_inj sig_of_cosetK). Qed.
 
 Lemma coset1 : H :** 1 = H.
 Proof.
-by rewrite /coset group1 -norm_gmulr -?rcoset_smul ?rcoset1 // -norm_normalized group1.
+by rewrite cosetN ?rcoset1 // s2f sconj1g subset_refl.
 Qed.
 
 Lemma coset_id : forall A: group elt, forall x,  A x -> coset A x = A.
-Proof. by move=> A x Hx; rewrite /coset (subsetP (norm_refl A)) ?grcoset_id. Qed.
+Proof. 
+by move=> A x Hx; rewrite /coset (subsetP (norm_refl A)) ?grcoset_id. Qed.
 
 
 Lemma cosets_unit : cosets H.
@@ -398,6 +415,42 @@ Definition coset_unit := Coset (EqSig _ _ cosets_unit).
 End Cosets.
 
 Notation "A ':**' x" := (coset A x) (at level 40) : group_scope.
+
+Section Repr.
+
+Variables (elt: finGroupType) (H: group elt).
+
+
+Lemma mem_coset_repr: forall H1, cosets H H1 -> H1 (repr H1).
+Proof.
+move => H1; case/cosetsP => x <-.
+case E1: (normaliser H x).
+  rewrite cosetN //.
+  apply: (@mem_repr _ x); exact: rcoset_refl.
+rewrite cosetD //.
+by apply: (@mem_repr _ 1%G); exact: group1.
+Qed.
+
+
+Theorem coset_repr: forall x, H :** (repr (H:** x)) = H:** x.
+Proof.
+move => x.
+case E1: (normaliser H x).
+  rewrite (@cosetN _ _ x) //.
+  have F1: normaliser H (repr (H :* x)).
+    move: E1; rewrite !s2f.
+    case: repr_rcosetP => y Hy.
+    rewrite sconjgM (@norm_sconjg _ _ y) //.
+    by apply: (subsetP (norm_refl _)).
+  by rewrite cosetN // rcoset_repr.
+rewrite (@cosetD _ _ x) // cosetN.
+  rewrite rcoset_id //.
+  by apply: (@mem_repr _ 1%G); exact: group1.
+apply: (subsetP (norm_refl H)).
+by apply: (@mem_repr _ 1%G); exact: group1.
+Qed.
+End Repr.
+
 
 Section CosetGroup.
 
@@ -464,13 +517,13 @@ Lemma set_of_coset_morph : forall x y : coset_groupType,
   set_of_coset (x * y) = (set_of_coset x) :*: (set_of_coset y).
 Proof. by move=> *; constructor. Qed.
 
-(*
-Lemma cosetP : forall x : coset_groupType, exists y, set_of_coset x = H :* y.
+Lemma cosetP : forall x : coset_groupType, exists y, set_of_coset x = H :** y.
 Proof.
-case=> [[e]]; rewrite /cosets; move => y; case: (imageP _ _ _ y)=> z _ He.
-exists z; rewrite /set_of_coset /=.
+case=> [[e]]; rewrite /cosets; move => y.
+by case: (iimageP _ _ _ y)=> z _ He; exists z; rewrite /set_of_coset.
 Qed.
-*)
+
+
 
 Section Quotient.
 
@@ -545,6 +598,60 @@ Canonical Structure group_quotient := Group group_set_quotient.
 End Quotient.
 
 End CosetGroup.
+
+Section Rep.
+
+Variable elt: finGroupType.
+Variable H: group elt.
+
+
+Lemma coset_group_repr: forall (y: coset_groupType H), y (repr y).
+Proof.
+move => y; case: (cosetP y).
+move => z1  ->.
+case E1: (normaliser H z1).
+  rewrite cosetN //.
+  apply: (@mem_repr _ z1).
+  by apply/rcosetP; exists (1:elt); rewrite ?group1; gsimpl.
+rewrite cosetD //.
+by apply: (@mem_repr _ 1); rewrite group1.
+Qed.
+
+Lemma coset_of_repr: forall (y: coset_groupType H), 
+  coset_of H (repr y) = y.
+Proof.
+move => y.
+case y; case => u Hu /=.
+apply: coset_set_inj.
+rewrite /coset_of /= /set_of_coset /=.
+move: (coset_repr H).
+by case/cosetsP: Hu => z <-.
+Qed.
+
+Lemma cosetM_repr: forall (x y: coset_groupType H), 
+  (x * y)%G  (repr x * repr y).
+Proof.
+move => x y; rewrite /coset_mul /=.
+rewrite /coset_of /= /set_of_coset /=.
+case: x; case: y => /=.
+case => /= x1 Hx1.
+case => /= x2 Hx2.
+apply/smulgP; exists (repr (x2)) (repr x1) => //;
+  by apply: (@mem_coset_repr _ H).
+Qed.
+
+Lemma cosetE_repr: forall (x: coset_groupType H) n, 
+  (x ** n)%G  (repr x ** n).
+Proof.
+move => x; elim => [|n Hrec].
+  rewrite !gexpn0; exact: group1.
+rewrite !gexpnS.
+rewrite /coset_of /= /set_of_coset /=.
+apply/smulgP; exists (repr x) (repr (elt:=elt) x ** n) => //.
+exact: coset_group_repr.
+Qed.
+
+End Rep.
 
 Notation "H / K" := (quotient H K).
 
