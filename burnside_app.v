@@ -60,10 +60,10 @@ Ltac get_inv elt l :=
  end.
 
 
-Definition op_inv := ( (R1,R3) ,(R2,R2) ,(R3,R1)).
+Definition rot_inv := ( (R1,R3) ,(R2,R2) ,(R3,R1)).
 
 Ltac inj_tac :=
-move: (refl_equal op_inv); unfold op_inv;
+move: (refl_equal rot_inv); unfold rot_inv;
 match goal with |- ?X = _ -> injective ?Y =>
   move => _;  let x := get_inv Y X in
   apply : (can_inj (g:=x)); move => [val H1] 
@@ -101,7 +101,7 @@ Canonical Structure rot_group:= Group group_set_rot.
 
 Definition rotations:setType (perm_finType square):= iset4 id1 r1 r2 r3.
 
-Theorem ff: forall (d1 d2: finType) x1 x2,
+Theorem fog_eq1: forall (d1 d2: finType) x1 x2,
 (fun_of_fgraph (x:= d1) (x0 := d2) x1) =1 (fun_of_fgraph x2)  -> x1 = x2.
 Proof.
 move => d1 d2 x1 x2 H;rewrite -(can_fun_of_fgraph x1) -(can_fun_of_fgraph x2).
@@ -289,7 +289,7 @@ by rewrite -/sh -{1}sh_inv mulVg.
 Qed.
 Canonical Structure iso2_group:= Group group_set_iso2.
 
-Definition cPair:= prod_finType (ordinal 4) (ordinal 4).
+(*Definition cPair:= prod_finType (ordinal 4) (ordinal 4).
 Definition e01:cPair:= (EqPair c0 c1).
 Definition e12:cPair:= (EqPair c1 c2).
 Definition e23:cPair:= (EqPair c2 c3).
@@ -297,7 +297,7 @@ Definition e30:cPair:= (EqPair c3 c0).
 Definition e10:cPair:= (EqPair c1 c0).
 Definition e21:cPair:= (EqPair c2 c1).
 Definition e32:cPair:= (EqPair c3 c2).
-Definition e03:cPair:= (EqPair c0 c3).
+Definition e03:cPair:= (EqPair c0 c3).*)
 
 Definition next (sc:square):=
 match sc with EqSig 0 _ => iset2 c3 c1
@@ -333,49 +333,55 @@ repeat (destruct val=>//; first by rewrite !s2f ).
 destruct val =>//;destruct val0=>//; first by rewrite  !next_nref //.
 Qed.
 
-Definition edges1:={e:cPair,(e== e01)||(e==e12)||(e==e23)||(e==e30)
+(*Definition edges1:={e:cPair,(e== e01)||(e==e12)||(e==e23)||(e==e30)
                          ||(e== e10)||(e==e21)||(e==e32)||(e==e03)}.
-Definition edges: setType cPair:= iset4 e01 e12 e23 e30.
+Definition edges: setType cPair:= iset4 e01 e12 e23 e30.*)
 
 Definition isometries := {p, (p==id1)|| ((p==r1)||((p==r2)||((p==r3)||((p==sh)||((p==sv)||((p==s1)||(p==s2)))))))}.
 
 Definition fop:= fun_of_perm.
 
-Definition is_iso p:= forall ci cj, next ci cj -> next (fop p ci) (fop p cj).
+Definition is_iso1 p:= forall ci cj, next ci cj -> next (fop p ci) (fop p cj).
 
+Definition opp (sc:square):=
+match sc with EqSig 0 _ => c2
+                      | EqSig 1 _ =>  c3
+                      | EqSig 2 _ =>  c0
+                      | EqSig (S (S (S _))) _  =>  c1 end.
+
+Definition is_iso p:= forall ci, (fop p (opp ci))=opp(fop p ci).
 Lemma is_iso_id: is_iso id1.
-by move => ci cj ;rewrite /fop !perm_eqfun/= => ->.
+by move => ci ;rewrite /fop !perm_eqfun/=.
+Qed.
+
+Lemma iso1_r1:is_iso1 r1.
+move => ci cj ;rewrite /fop !perm_eqfun/=.
+destruct ci as[vali valiP]; destruct cj as [valj valjP].
+repeat (destruct vali=>//;destruct valj=>//;
+first (rewrite next_nref//);
+first (by repeat (destruct valj=>//; first by rewrite !s2f));
+repeat (destruct vali=>//; first by rewrite !s2f)).
 Qed.
 
 Lemma iso_r1:is_iso r1.
-move => ci cj ;rewrite /fop !perm_eqfun/=.
-destruct ci as[vali valiP]; destruct cj as [valj valjP].
-repeat (destruct vali=>//;destruct valj=>//; first (rewrite next_nref//);
-first (by repeat (destruct valj=>//; first by rewrite !s2f));
-repeat (destruct vali=>//; first by rewrite !s2f)).
+move => ci  ;rewrite /fop !perm_eqfun/=.
+destruct ci as[vali valiP];repeat (destruct vali=>//=).
 Qed.
 
 Lemma isometries_iso: forall p, isometries p -> is_iso p.
 move  => p; rewrite s2f.
 case/or4P=> H; try rewrite (eqP H);
-first (by move => ci cj ;rewrite /fop !perm_eqfun/= => ->);
-try (move => ci cj ;rewrite /fop !perm_eqfun/=;
-destruct ci as[vali valiP]; destruct cj as [valj valjP];
-repeat (destruct vali=>//;destruct valj=>//; first (rewrite next_nref//);
-first (by repeat (destruct valj=>//; first by rewrite !s2f));
-repeat (destruct vali=>//; first by rewrite !s2f))).
+first (by move => ci ;rewrite /fop !perm_eqfun/=);
+try (move => ci  ;rewrite /fop !perm_eqfun/=;
+destruct ci as[vali valiP]; 
+repeat (destruct vali=>//=)).
 move/or4P:H ;case =>H;try rewrite (eqP H);
-try (move => ci cj ;rewrite /fop !perm_eqfun/=;
-destruct ci as[vali valiP]; destruct cj as [valj valjP];
-repeat (destruct vali=>//;destruct valj=>//; first (rewrite next_nref//);
-first (by repeat (destruct valj=>//; first by rewrite !s2f));
-repeat (destruct vali=>//; first by rewrite !s2f))).
+try (move => ci ;rewrite /fop !perm_eqfun/=;
+destruct ci as[vali valiP];
+repeat (destruct vali=>//=)).
 move/orP: H=>[H|H]; rewrite (eqP H);
-move => ci cj ;rewrite /fop !perm_eqfun/=;
-destruct ci as[vali valiP]; destruct cj as [valj valjP];
-repeat (destruct vali=>//;destruct valj=>//; first (rewrite next_nref//);
-first (by repeat (destruct valj=>//; first by rewrite !s2f));
-repeat (destruct vali=>//; first by rewrite !s2f)).
+move => ci  ;rewrite /fop !perm_eqfun/=;
+destruct ci as[vali valiP]; repeat (destruct vali=>//=).
 Qed.
 
 
@@ -384,438 +390,106 @@ Lemma  is_isoP:forall  p,reflect (is_iso p)
 move => p;
 apply :(iffP idP).
 apply:isometries_iso.
-
-case e0: ((fun_of_perm p )c0)=> [val0 val0P].
+move => Hpiso;case e0: ((fun_of_perm p )c0)=> [val0 val0P];
 case e1: ((fun_of_perm p )c1)=> [val1 val1P].
-destruct val0;destruct val1.
+destruct val0.
+destruct val1.
 absurd (p c0 = p c1);first (red; move=>h;by move:(perm_inj h)).
 by rewrite e0 e1;apply/eqP;done.
-destruct val1.
+repeat destruct val1=>//;move:(Hpiso c0) (Hpiso c1);rewrite/fop e0 e1/= => e2 e3.
 (*id1*)
-move => hpiso.
-have :next (p c1) (p c2).
-apply (hpiso c1 c2);rewrite s2f.
-by apply/orP;right.
-rewrite e1 s2f.
-case/orP.
-move => h.
-have : (p c0 = p c2).
-rewrite e0.
-rewrite /set1/=.
-rewrite -(eqP h);simpl.
-by apply/val_eqP.
-move => h1.
-have : c0 = c2;  first by apply: (perm_inj h1).
-move =>*;discriminate.
-move => h2.
-
-have :next (p c2) (p c3).
-apply (hpiso c2 c3);rewrite s2f.
-by apply/orP;right.
-rewrite - (eqP h2) s2f.
-case/orP.
-move => h.
-absurd (p c1 = p c3);first (red; move=>h1;by move:(perm_inj h1)).
-by rewrite e1 -(eqP h);apply/eqP.
-move => e3.
-have : p = id1.
-apply eq_fun_of_perm.
-move => z;destruct z.
-destruct val;rewrite perm_eqfun/=.
-rewrite /id/set1/=.
-apply: (etrans (y:= p c0)).
-
-congr fun_of_fgraph.
- by apply/eqP.
-rewrite e0;apply/eqP;done.
-destruct val.
-apply: (etrans (y:= p c1)).
-
-congr fun_of_fgraph.
- by apply/eqP.
-rewrite e1;apply/eqP;done.
-destruct val; first apply: (etrans (y:= p c2)).
-congr fun_of_fgraph;by apply/eqP.
-rewrite -(eqP h2);apply/eqP;done.
-destruct val=>//;apply : (etrans (y:= p c3)).
-congr fun_of_fgraph;by apply/eqP.
-rewrite -(eqP e3);apply/eqP;done.
-move => ->.
-rewrite s2f eq_refl;done.
-move => Hpiso;have: next (p c0)(p c1).
-apply: Hpiso.
-rewrite s2f;done.
-rewrite e0.
-simpl.
-rewrite s2f.
-case/orP ; last by rewrite e1.
-move => e3;have hs1: isometries s1; first by rewrite s2f eq_refl ?orbT.
-have: next (p c1)(p c2).
-apply: Hpiso.
-rewrite s2f;done.
-rewrite -(eqP e3).
-simpl.
-rewrite s2f.
-case/orP ; first last.
-move => h2;absurd (p c2 = p c0);first (red; move=>h1;by move:(perm_inj h1)).
-by rewrite e0 -(eqP h2);apply/eqP.
-move => e2.
-have: next (p c2)(p c3).
-apply: Hpiso.
-rewrite s2f;done.
-rewrite -(eqP e2).
-simpl.
-rewrite s2f.
-case/orP.
-have : p = s1.
-apply eq_fun_of_perm.
-move => z;destruct z.
-destruct val;rewrite perm_eqfun/=.
-rewrite /id/set1/=.
-apply: (etrans (y:= p c0)).
-
-congr fun_of_fgraph.
- by apply/eqP.
-rewrite e0;apply/eqP;done.
-destruct val.
-apply: (etrans (y:= p c1)).
-
-congr fun_of_fgraph.
- by apply/eqP.
-rewrite -(eqP e3);apply/eqP;done.
-destruct val; first apply: (etrans (y:= p c2)).
-congr fun_of_fgraph;by apply/eqP.
-rewrite -(eqP e2);apply/eqP;done.
-destruct val=>//;apply : (etrans (y:= p c3)).
-congr fun_of_fgraph;by apply/eqP.
-have: next (p c2)(p c3).
-apply: Hpiso.
-rewrite s2f;done.
-rewrite -(eqP e2).
-simpl.
-rewrite s2f.
-case/orP.
-move/eqP=>h3;by rewrite -h3.
-move => h3; absurd (p c1 = p c3);first (red; move=>h1;by move:(perm_inj h1)).
-by rewrite -(eqP e3)  -(eqP h3);apply/eqP.
-move => -> _.
-by rewrite s2f eq_refl !orbT.
-move =>h3; absurd (p c1 = p c3);first (red; move=>h1;by move:(perm_inj h1)).
-by rewrite -(eqP e3)  -(eqP h3);apply/eqP.
-
-move => Hpiso;have: next (p c1)(p c0).
-apply: Hpiso.
-rewrite s2f;done.
-rewrite e1.
-simpl.
-rewrite s2f.
-case/orP.
-move => e3;have hr3: isometries r3; first by rewrite s2f eq_refl ?orbT.
-have ->: p = r3;last by apply : hr3.
-rename e3 into f0.
-have: next (p c1)(p c2).
-apply: Hpiso.
-rewrite s2f;done.
-rewrite e1.
-simpl.
-rewrite s2f.
-case/orP.
-move => e2.
- absurd (p c2 = p c0);first (red; move=>h1;by move:(perm_inj h1)).
-by rewrite -(eqP e2)  -(eqP f0);apply/eqP.
-move => e2.
-
-have: next (p c2)(p c3).
-apply: Hpiso.
-rewrite s2f;done.
-rewrite -(eqP e2).
-simpl.
-rewrite s2f.
-case/orP.
-move => e3.
- absurd (p c3 = p c1);first (red; move=>h1;by move:(perm_inj h1)).
-by rewrite -(eqP e3)  e1;apply/eqP.
-move => e3.
-apply eq_fun_of_perm.
-move => z;destruct z.
-destruct val;rewrite perm_eqfun/=.
-rewrite /id/set1/=.
-apply: (etrans (y:= p c0)).
-
-congr fun_of_fgraph.
- by apply/eqP.
-rewrite (eqP f0);apply/eqP;done.
-destruct val.
-apply: (etrans (y:= p c1)).
-
-congr fun_of_fgraph.
- by apply/eqP.
-rewrite e1;apply/eqP;done.
-destruct val; first apply: (etrans (y:= p c2)).
-congr fun_of_fgraph;by apply/eqP.
-rewrite -(eqP e2);apply/eqP;done.
-destruct val=>//;apply : (etrans (y:= p c3)).
-congr fun_of_fgraph;by apply/eqP.
-rewrite -(eqP e3);apply/eqP;done.
-move => e3;have hr3: isometries sh; first by rewrite s2f eq_refl ?orbT.
-have ->: p = sh;last by apply : hr3.
-rename e3 into f0.
-have: next (p c1)(p c2).
-apply: Hpiso.
-rewrite s2f;done.
-rewrite e1.
-simpl.
-rewrite s2f.
-case/orP;first last.
-move => e2.
- absurd (p c2 = p c0);first (red; move=>h1;by move:(perm_inj h1)).
-by rewrite -(eqP e2)  -(eqP f0);apply/eqP.
-move => e2.
-
-have: next (p c2)(p c3).
-apply: Hpiso.
-rewrite s2f;done.
-rewrite -(eqP e2).
-simpl.
-rewrite s2f.
-case/orP;first last.
-move => e3.
- absurd (p c3 = p c1);first (red; move=>h1;by move:(perm_inj h1)).
-by rewrite -(eqP e3)  e1;apply/eqP.
-move => e3.
-apply eq_fun_of_perm.
-move => z;destruct z.
-destruct val;rewrite perm_eqfun/=.
-rewrite /id/set1/=.
-apply: (etrans (y:= p c0)).
-
-congr fun_of_fgraph.
- by apply/eqP.
-rewrite (eqP f0);apply/eqP;done.
-destruct val.
-apply: (etrans (y:= p c1)).
-
-congr fun_of_fgraph.
- by apply/eqP.
-rewrite e1;apply/eqP;done.
-destruct val; first apply: (etrans (y:= p c2)).
-congr fun_of_fgraph;by apply/eqP.
-rewrite -(eqP e2);apply/eqP;done.
-destruct val=>//;apply : (etrans (y:= p c3)).
-congr fun_of_fgraph;by apply/eqP.
-rewrite -(eqP e3);apply/eqP;done.
-
-(*next*)
-move => hpiso.
-destruct val0;destruct val1.
-have : (p c0 = p c1).
-rewrite e0.
-rewrite /set1/=.
-rewrite e1;simpl.
-by apply/val_eqP.
-move => h1.
-have : c0 = c1;  first by apply: (perm_inj h1).
-move =>*;discriminate.
-destruct val1.
-have :next (p c1) (p c2).
-apply (hpiso c1 c2);rewrite s2f.
-by apply/orP;right.
-rewrite e1 s2f.
-case/orP;move => h.
- absurd (p c0 = p c2);first (red; move=>h1;by move:(perm_inj h1)).
-by rewrite -(eqP h)  e0;apply/eqP.
-have :next (p c2) (p c3).
-apply (hpiso c2 c3);rewrite s2f.
-by apply/orP;right.
-rewrite - (eqP h) s2f.
-case/orP;move => e3.
-absurd (p c1 = p c3);first (red; move=>h1;by move:(perm_inj h1)).
-by rewrite e1 -(eqP e3);apply/eqP.
-have : p = r1.
-apply eq_fun_of_perm.
-move => z;destruct z.
-destruct val;rewrite perm_eqfun/=.
-rewrite /id/set1/=.
-apply: (etrans (y:= p c0)).
-
-congr fun_of_fgraph.
- by apply/eqP.
-rewrite e0;apply/eqP;done.
-destruct val.
-apply: (etrans (y:= p c1)).
-
-congr fun_of_fgraph.
- by apply/eqP.
-rewrite e1;apply/eqP;done.
-destruct val; first apply: (etrans (y:= p c2)).
-congr fun_of_fgraph;by apply/eqP.
-rewrite -(eqP h);apply/eqP;done.
-destruct val=>//;apply : (etrans (y:= p c3)).
-congr fun_of_fgraph;by apply/eqP.
-rewrite -(eqP e3);apply/eqP;done.
-move => ->.
-by rewrite s2f eq_refl ?orbT.
-destruct val1 =>//.
-have: next (p c0)(p c1).
-apply: hpiso.
-rewrite s2f;done.
-rewrite e0 e1.
-simpl.
-rewrite s2f.
-case/orP;move/eqP=>*;discriminate.
-destruct val0.
-have: next (p c1)(p c2).
-apply: hpiso.
-rewrite s2f;done.
-rewrite  e1.
-simpl.
-rewrite s2f.
-case/orP ; first last.
-move => h2;absurd (p c2 = p c0);first (red; move=>h1;by move:(perm_inj h1)).
-by rewrite e0 -(eqP h2);apply/eqP.
-move => e2.
-have: next (p c2)(p c3).
-apply: hpiso.
-rewrite s2f;done.
-rewrite -(eqP e2).
-simpl.
-rewrite s2f.
-case/orP => e3.
-
-have : p = s2.
-apply eq_fun_of_perm.
-move => z;destruct z.
-destruct val;rewrite perm_eqfun/=.
-rewrite /id/set1/=.
-apply: (etrans (y:= p c0)).
-
-congr fun_of_fgraph.
- by apply/eqP.
-rewrite e0;apply/eqP;done.
-destruct val.
-apply: (etrans (y:= p c1)).
-
-congr fun_of_fgraph.
- by apply/eqP.
-rewrite e1;apply/eqP;done.
-destruct val; first apply: (etrans (y:= p c2)).
-congr fun_of_fgraph;by apply/eqP.
-rewrite -(eqP e2);apply/eqP;done.
-destruct val=>//;apply : (etrans (y:= p c3)).
-congr fun_of_fgraph;by apply/eqP.
-by rewrite -(eqP e3).
-move => ->.
-by rewrite s2f eq_refl ?orbT.
-absurd (p c1 = p c3);first (red; move=>h1;by move:(perm_inj h1)).
-by rewrite e1 -(eqP e3)  ;apply/eqP.
+have ->: p = id1; last by rewrite s2f eq_refl.
+apply eq_fun_of_perm;move => z;destruct z;destruct val; rewrite perm_eqfun/set1.
+apply: (etrans (y:= p c0));[congr fun_of_fgraph|rewrite e0]; by  apply /eqP.
+destruct val ; first by apply: (etrans (y:= p c1));[congr fun_of_fgraph|rewrite e1]; by apply /eqP.
+destruct val ; first by apply: (etrans (y:= p c2));[congr fun_of_fgraph|rewrite e2]; by apply /eqP.
+destruct val=>//;apply : (etrans (y:= p c3));[congr fun_of_fgraph|rewrite e3]; by apply /eqP.
+absurd (p c3 = p c0);first (red; move=>h1;by move:(perm_inj h1)).
+by rewrite e0 e3;apply/eqP.
+have ->: p = s1; last by rewrite s2f eq_refl ?orbT.
+apply eq_fun_of_perm;move => z;destruct z;destruct val; rewrite perm_eqfun/set1.
+apply: (etrans (y:= p c0));[congr fun_of_fgraph|rewrite e0]; by  apply /eqP.
+destruct val ; first by apply: (etrans (y:= p c1));[congr fun_of_fgraph|rewrite e1]; by apply /eqP.
+destruct val ; first by apply: (etrans (y:= p c2));[congr fun_of_fgraph|rewrite e2]; by apply /eqP.
+destruct val=>//;apply : (etrans (y:= p c3));[congr fun_of_fgraph|rewrite e3]; by apply /eqP.
 destruct val0 =>//.
-have: next (p c1)(p c0).
-apply: hpiso.
-rewrite s2f;done.
-rewrite e1 e0.
-simpl.
-rewrite s2f.
-case/orP;move/eqP=>*;discriminate.
-destruct val0.
-destruct val1.
+destruct val1 =>//.
+move:(Hpiso c0) (Hpiso c1);rewrite/fop e0 e1/= => e2 e3.
+have ->: p = sh; last by rewrite s2f eq_refl ?orbT.
+apply eq_fun_of_perm;move => z;destruct z;destruct val; rewrite perm_eqfun/set1.
+apply: (etrans (y:= p c0));[congr fun_of_fgraph|rewrite e0]; by  apply /eqP.
+destruct val ; first by apply: (etrans (y:= p c1));[congr fun_of_fgraph|rewrite e1]; by apply /eqP.
+destruct val ; first by apply: (etrans (y:= p c2));[congr fun_of_fgraph|rewrite e2]; by apply /eqP.
+destruct val=>//;apply : (etrans (y:= p c3));[congr fun_of_fgraph|rewrite e3]; by apply /eqP.
+destruct val1 =>//.
+absurd (p c1 = p c0);first (red; move=>h1;by move:(perm_inj h1)).
+by rewrite e0 e1;apply/eqP.
+destruct val1 =>//.
+move:(Hpiso c0) (Hpiso c1);rewrite/fop e0 e1/= => e2 e3.
+have ->: p = r1; last by rewrite s2f eq_refl ?orbT.
+apply eq_fun_of_perm;move => z;destruct z;destruct val; rewrite perm_eqfun/set1.
+apply: (etrans (y:= p c0));[congr fun_of_fgraph|rewrite e0]; by  apply /eqP.
+destruct val ; first by apply: (etrans (y:= p c1));[congr fun_of_fgraph|rewrite e1]; by apply /eqP.
+destruct val ; first by apply: (etrans (y:= p c2));[congr fun_of_fgraph|rewrite e2]; by apply /eqP.
+destruct val=>//;apply : (etrans (y:= p c3));[congr fun_of_fgraph|rewrite e3]; by apply /eqP.
+destruct val1 =>//.
+move:(Hpiso c0) (Hpiso c1);rewrite/fop e0 e1/= => e2 e3.
+absurd (p c3 = p c0);first (red; move=>h1;by move:(perm_inj h1)).
+by rewrite e0 e3;apply/eqP.
+destruct val0 =>//.
+destruct val1 =>//.
+move:(Hpiso c0) (Hpiso c1);rewrite/fop e0 e1/= => e2 e3.
+absurd (p c1 = p c2);first (red; move=>h1;by move:(perm_inj h1)).
+by rewrite e1 e2;apply/eqP.
+destruct val1 =>//.
+move:(Hpiso c0) (Hpiso c1);rewrite/fop e0 e1/= => e2 e3.
+have ->: p = s2; last by rewrite s2f eq_refl ?orbT.
+apply eq_fun_of_perm;move => z;destruct z;destruct val; rewrite perm_eqfun/set1.
+apply: (etrans (y:= p c0));[congr fun_of_fgraph|rewrite e0]; by  apply /eqP.
+destruct val ; first by apply: (etrans (y:= p c1));[congr fun_of_fgraph|rewrite e1]; by apply /eqP.
+destruct val ; first by apply: (etrans (y:= p c2));[congr fun_of_fgraph|rewrite e2]; by apply /eqP.
+destruct val=>//;apply : (etrans (y:= p c3));[congr fun_of_fgraph|rewrite e3]; by apply /eqP.
+destruct val1 =>//.
 absurd (p c1 = p c0);first (red; move=>h1;by move:(perm_inj h1)).
 by rewrite e1 e0;apply/eqP.
 destruct val1 =>//.
-have hr2: isometries r2; first by rewrite s2f eq_refl ?orbT.
-have ->: p = r2;last by apply : hr2.
-have: next (p c1)(p c2).
-apply: hpiso.
-rewrite s2f;done.
-rewrite e1.
-simpl.
-rewrite s2f.
-case/orP;move => e2.
- absurd (p c2 = p c0);first (red; move=>h1;by move:(perm_inj h1)).
-by rewrite -(eqP e2)  e0;apply/eqP.
-have: next (p c2)(p c3).
-apply: hpiso.
-rewrite s2f;done.
-rewrite -(eqP e2).
-simpl.
-rewrite s2f.
-case/orP;move => e3.
- absurd (p c3 = p c1);first (red; move=>h1;by move:(perm_inj h1)).
-by rewrite -(eqP e3)  e1;apply/eqP.
-apply eq_fun_of_perm.
-move => z;destruct z.
-destruct val;rewrite perm_eqfun/=.
-rewrite /set1/=.
-apply: (etrans (y:= p c0)).
-congr fun_of_fgraph.
- by apply/eqP.
-rewrite e0;apply/eqP;done.
-destruct val.
-apply: (etrans (y:= p c1)).
-congr fun_of_fgraph.
- by apply/eqP.
-rewrite e1;apply/eqP;done.
-destruct val; first apply: (etrans (y:= p c2)).
-congr fun_of_fgraph;by apply/eqP.
-rewrite -(eqP e2);apply/eqP;done.
-destruct val=>//;apply : (etrans (y:= p c3)).
-congr fun_of_fgraph;by apply/eqP.
-rewrite -(eqP e3);apply/eqP;done.
-destruct val0=>//;destruct val1.
-have: next (p c1)(p c2).
-apply: hpiso.
-rewrite s2f;done.
-rewrite e1.
-simpl.
-rewrite s2f.
-case/orP;move => e2;first last.
- absurd (p c2 = p c0);first (red; move=>h1;by move:(perm_inj h1)).
-by rewrite -(eqP e2)  e0;apply/eqP.
-have: next (p c2)(p c3).
-apply: hpiso.
-rewrite s2f;done.
-rewrite -(eqP e2).
-simpl.
-rewrite s2f.
-case/orP;move => e3;first last.
- absurd (p c3 = p c1);first (red; move=>h1;by move:(perm_inj h1)).
-by rewrite -(eqP e3)  e1;apply/eqP.
-have -> : p = sv.
-apply eq_fun_of_perm.
-move => z;destruct z.
-destruct val;rewrite perm_eqfun/=.
-rewrite /set1/=.
-apply: (etrans (y:= p c0)).
-congr fun_of_fgraph; by apply/eqP.
-rewrite e0;apply/eqP;done.
-destruct val.
-apply: (etrans (y:= p c1)).
-congr fun_of_fgraph; by apply/eqP.
-rewrite e1;apply/eqP;done.
-destruct val; first apply: (etrans (y:= p c2)).
-congr fun_of_fgraph;by apply/eqP.
-rewrite -(eqP e2);apply/eqP;done.
-destruct val=>//;apply : (etrans (y:= p c3)).
-congr fun_of_fgraph;by apply/eqP.
-rewrite -(eqP e3);apply/eqP;done.
-by rewrite s2f eq_refl ?orbT.
-destruct val1=>//.
+move:(Hpiso c0) (Hpiso c1);rewrite/fop e0 e1/= => e2 e3.
+have ->: p = r2; last by rewrite s2f eq_refl ?orbT.
+apply eq_fun_of_perm;move => z;destruct z;destruct val; rewrite perm_eqfun/set1.
+apply: (etrans (y:= p c0));[congr fun_of_fgraph|rewrite e0]; by  apply /eqP.
+destruct val ; first by apply: (etrans (y:= p c1));[congr fun_of_fgraph|rewrite e1]; by apply /eqP.
+destruct val ; first by apply: (etrans (y:= p c2));[congr fun_of_fgraph|rewrite e2]; by apply /eqP.
+destruct val=>//;apply : (etrans (y:= p c3));[congr fun_of_fgraph|rewrite e3]; by apply /eqP.
+destruct val0 =>//.
+repeat destruct val1 =>//.
+move:(Hpiso c0) (Hpiso c1);rewrite/fop e0 e1/= => e2 e3.
+have ->: p = r3; last by rewrite s2f eq_refl ?orbT.
+apply eq_fun_of_perm;move => z;destruct z;destruct val; rewrite perm_eqfun/set1.
+apply: (etrans (y:= p c0));[congr fun_of_fgraph|rewrite e0]; by  apply /eqP.
+destruct val ; first by apply: (etrans (y:= p c1));[congr fun_of_fgraph|rewrite e1]; by apply /eqP.
+destruct val ; first by apply: (etrans (y:= p c2));[congr fun_of_fgraph|rewrite e2]; by apply /eqP.
+destruct val=>//;apply : (etrans (y:= p c3));[congr fun_of_fgraph|rewrite e3]; by apply /eqP.
+move:(Hpiso c0) (Hpiso c1);rewrite/fop e0 e1/= => e2 e3.
+absurd (p c1 = p c2);first (red; move=>h1;by move:(perm_inj h1)).
+by rewrite e1 e2;apply/eqP.
+move:(Hpiso c0) (Hpiso c1);rewrite/fop e0 e1/= => e2 e3.
+have ->: p = sv; last by rewrite s2f eq_refl ?orbT.
+apply eq_fun_of_perm;move => z;destruct z;destruct val; rewrite perm_eqfun/set1.
+apply: (etrans (y:= p c0));[congr fun_of_fgraph|rewrite e0]; by  apply /eqP.
+destruct val ; first by apply: (etrans (y:= p c1));[congr fun_of_fgraph|rewrite e1]; by apply /eqP.
+destruct val ; first by apply: (etrans (y:= p c2));[congr fun_of_fgraph|rewrite e2]; by apply /eqP.
+destruct val=>//;apply : (etrans (y:= p c3));[congr fun_of_fgraph|rewrite e3]; by apply /eqP.
 absurd (p c0 = p c1);first (red; move=>h1;by move:(perm_inj h1)).
-by rewrite  e0  e1;apply/eqP.
+by rewrite e0 e1;apply/eqP.
 Qed.
 
 Lemma group_set_iso: group_set  isometries.
 Proof.
 apply/groupP;split.
 by  rewrite s2f eq_refl/=.
-
-move => x y hx hy ; apply /is_isoP.
-move => ci cj.
-simpl.
-rewrite /fop.
-simpl.
-rewrite /fun_of_perm !(can_fgraph_of_fun (d1:= square)(d2:= square))/comp.
-move => hij;move : ((isometries_iso hx) _ _ hij).
-exact:  ((isometries_iso hy) (fop x ci) (fop x cj)).
+move => x y hx hy ; apply /is_isoP => ci;rewrite /fop/fun_of_perm !(can_fgraph_of_fun (d1:= square)(d2:= square))/comp.
+move:((isometries_iso hx) ci);rewrite /fop => ->.
+exact:  (isometries_iso hy).
 Qed.
 Canonical Structure iso_group:= Group group_set_iso.
 
@@ -851,13 +525,13 @@ fgraph_of_fun ( fun z => cs (permf z)).
 
 Lemma act_f_1:  forall x , act_f x 1 = x.
 Proof.
-move => x;rewrite /act_f;apply:ff;move => y.
+move => x;rewrite /act_f;apply:fog_eq1;move => y.
 have -> : (@perm_inv  square 1) = 1;first by exact :invg1.
 by rewrite can_fgraph_of_fun perm_eqfun.
 Qed.
 
 Lemma act_f_morph:  forall x y z, act_f z (x * y) = act_f (act_f z x) y.
-move => x y z;rewrite /act_f/=;apply :(ff (d1:= square) (d2:= colors)).
+move => x y z;rewrite /act_f/=;apply :(fog_eq1 (d1:= square) (d2:= colors)).
 have ->: (@perm_inv square (x*y))= (perm_inv y)*(perm_inv x);first by exact:invg_mul.
 by move => t;rewrite !(can_fgraph_of_fun (d1:= square) (d2:= colors))  perm_eqfun.
 Qed.
@@ -912,7 +586,7 @@ rewrite {1 2 3 4}/fun_of_fgraph;unlock=>/=.
 rewrite ord_enum4.
 simpl.
 case/andP=> h0 h1;rewrite (eqP h0)(eqP h1);
-apply/eqP;apply :(ff (d1:= square) (d2:= colors))=> z.
+apply/eqP;apply :(fog_eq1 (d1:= square) (d2:= colors))=> z.
 rewrite can_fgraph_of_fun/= perm_eqfun.
 destruct z;  
 repeat (destruct val=>//=;first by rewrite /fun_of_fgraph;unlock=>/=;unlock=>/=;rewrite ord_enum4).
@@ -939,7 +613,7 @@ rewrite {1 2 3 4}/fun_of_fgraph;unlock=>/=.
 rewrite ord_enum4.
 simpl.
 case/andP=> h0 h1;rewrite (eqP h0)(eqP h1);
-apply/eqP;apply :(ff (d1:= square) (d2:= colors))=> z.
+apply/eqP;apply :(fog_eq1 (d1:= square) (d2:= colors))=> z.
 rewrite can_fgraph_of_fun/= perm_eqfun.
 destruct z;  
 repeat (destruct val=>//=;first by rewrite /fun_of_fgraph;unlock=>/=;unlock=>/=;rewrite ord_enum4).
@@ -983,7 +657,7 @@ move =>_;rewrite r2_inv;apply /idP/idP =>/=.
 rewrite {1 2 3 4}/fun_of_fgraph;unlock=>/=.
 rewrite ord_enum4 =>/=.
 case/andP=> h0 h1;rewrite (eqP h0 ) (eqP h1);
-apply/eqP;apply : (ff (d1:= square) (d2:= colors)) => z.
+apply/eqP;apply : (fog_eq1 (d1:= square) (d2:= colors)) => z.
 rewrite can_fgraph_of_fun/= perm_eqfun;destruct z.
 repeat (destruct val=>//=;first by rewrite /fun_of_fgraph;unlock=>/=;unlock=>/=;rewrite ord_enum4).
 Qed.
@@ -1006,7 +680,7 @@ move =>_;rewrite r1_inv;apply /idP/idP =>/=.
 rewrite {1 2 3 4 5 6}/fun_of_fgraph;unlock=>/=.
 rewrite ord_enum4 =>/=.
 case/andP=> h0 h1; move/andP: h0=> [h0 h2];rewrite (eqP h0 ) (eqP h2) (eqP h1).
-apply/eqP;apply : (ff (d1:= square) (d2:= colors))=> z.
+apply/eqP;apply : (fog_eq1 (d1:= square) (d2:= colors))=> z.
 rewrite can_fgraph_of_fun/r3/= perm_eqfun;destruct z.
 repeat (destruct val=>//=;first by rewrite /fun_of_fgraph;unlock=>/=;rewrite ord_enum4).
 Qed.
@@ -1028,7 +702,7 @@ move =>_;rewrite r3_inv;apply/idP/idP=>/=.
  by move=> -> -> -> ;apply/andP;split =>//;apply/andP;split.
 rewrite {1 2 3 4 5 6}/fun_of_fgraph;unlock=>/=;rewrite ord_enum4 =>/=.
 case/andP=> h0 h1; move/andP: h0=> [h0 h2];rewrite (eqP h0 ) (eqP h2) (eqP h1).
-apply/eqP;apply : (ff (d1:= square) (d2:= colors))=> z.
+apply/eqP;apply : (fog_eq1 (d1:= square) (d2:= colors))=> z.
 rewrite can_fgraph_of_fun/r3/= perm_eqfun;destruct z.
 repeat (destruct val=>//=;first by rewrite /fun_of_fgraph;unlock=>/= ;rewrite ord_enum4).
 Qed.
@@ -1290,7 +964,7 @@ rewrite ord_enum4;by case/eqP.
 rewrite /fun_of_fgraph;unlock=>/=;rewrite ord_enum4 =>/=.
 move/eqP => ->.
 simpl.
-apply/eqP;apply : (ff (d1:= square) (d2:= colors))=> z.
+apply/eqP;apply : (fog_eq1 (d1:= square) (d2:= colors))=> z.
 rewrite can_fgraph_of_fun/s1/= perm_eqfun;destruct z.
 repeat (destruct val=>//=;first by rewrite /fun_of_fgraph;unlock=>/= ;rewrite ord_enum4).
 Qed.
@@ -1356,7 +1030,7 @@ by rewrite ord_enum4;case/eqP.
 rewrite /fun_of_fgraph;unlock=>/=;rewrite ord_enum4 =>/=.
 move/eqP => ->.
 simpl.
-apply/eqP;apply : (ff (d1:= square) (d2:= colors))=> z.
+apply/eqP;apply : (fog_eq1 (d1:= square) (d2:= colors))=> z.
 rewrite can_fgraph_of_fun/s2/= perm_eqfun;destruct z.
 repeat (destruct val=>//=;first by rewrite /fun_of_fgraph;unlock=>/= ;rewrite ord_enum4).
 Qed.
