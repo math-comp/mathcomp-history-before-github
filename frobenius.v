@@ -10,7 +10,6 @@
 (***********************************************************************)
 (***********************************************************************)
 
-Require Import baux.
 Require Import ssreflect.
 Require Import ssrbool.
 Require Import funs.
@@ -31,6 +30,101 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
+
+(***********************************************************************)
+(*   A function that computes the pair of bezout coefficient           *)
+(***********************************************************************)
+
+Fixpoint bezoutn_rec (m p n : nat) {struct n} : nat * nat :=
+  if n is S n' then 
+    if p is 0 then (1%nat,0) 
+    else let (u,v) := bezoutn_rec p (modn m p) n'  
+         in (v, u+ v * (divn m p))
+  else (1%nat, 0).
+
+Definition bezoutn m p := bezoutn_rec m p p.
+
+Lemma gcdn_bezoutn_if: forall m n,
+ let (u,v) := bezoutn m n in
+ if (u*m <= v*n) then
+   (gcdn m n + u * m = v * n)%N
+ else
+   (gcdn m n + v * n = u * m)%N.
+Proof.
+rewrite /bezoutn /gcdn.
+move => m n.
+elim: n m {-2 4 7 10}n (leqnn n) => [| n Hrec] /=.
+  by move => [|m1] [|n1].
+move => m1 [|n1] //.
+  by case: m1.
+move => HH.
+have F1: modn m1 (S n1) <= n.
+  rewrite -ltnS.
+  apply: leq_trans HH.
+  by rewrite ltn_mod.
+move: (Hrec (S n1) (modn m1 (S n1)) F1).
+case: bezoutn_rec => n2 n3.
+set k := gcdn_rec _ _ _ .
+replace (n3 * m1 <= (n2 + n3 * divn m1 (S n1)) * S n1) with
+     (n3 * modn m1 (S n1) <= n2 * S n1).
+  rewrite leq_eqVlt orbC (leqNgt (n3 * _)).
+  case: leq => /=.
+    move => HH1.
+    by rewrite muln_addl addnA HH1 -mulnA -muln_addr 
+               addnC -divn_eq.
+  case E1: (_ == _).
+    rewrite -(eqP E1) => HH1.
+    rewrite muln_addl (eqP E1) -mulnA -muln_addr
+             (addnC (modn _ _)) -divn_eq.
+    rewrite -{2}(add0n (n3 * m1)); congr addn.
+    by apply: (@addn_injr (n2 * S n1)); rewrite add0n.
+  move => HH1.
+  rewrite muln_addl -HH1 -addnA -mulnA -muln_addr.
+  by congr addn; rewrite addnC -divn_eq.
+by rewrite muln_addl {2}(divn_eq m1 (S n1)) muln_addr
+        addnC mulnA leq_add2r.
+Qed.  
+  
+Definition abezoutn n m :=
+ let (u,v) := bezoutn n m in
+ if (u * n <= v * m) then
+    (u * (m - 1), v)%N else
+    (u, v * (n - 1))%N.
+
+Lemma abezout_modn: forall n m, 
+ let (u,v) := abezoutn n m in
+   modn (u * n + v * m) (m * n) = modn (gcdn n m) (n * m).
+Proof.
+move => n m.
+rewrite /abezoutn.
+move: (gcdn_bezoutn_if n m); case: bezoutn => u v.
+case E1: (_ <= _) => <-.
+  rewrite addnC -addnA -muln_addl -{1}(muln1 u)
+          -muln_addr.
+  case: m E1 => [| m].
+    rewrite !muln0; case: u => [| u].
+      by rewrite addn0 mul0n.
+    by case: n => //; rewrite !muln0 addn0.
+  by move => _; rewrite leq_add_sub // -modn_add -mulnA
+                        modn_mull addn0 modn_mod mulnC.
+rewrite -addnA -muln_addl -{1}(muln1 v)
+          -muln_addr.
+case: n E1 => [| n].
+  by rewrite muln0.
+by move => _; rewrite (mulnC m) leq_add_sub // -modn_add -mulnA
+                       modn_mull addn0 modn_mod mulnC.
+Qed.
+
+Lemma abezout_coprime: forall n m, 
+   1 < n * m -> coprime n m -> 
+  (let (u,v) := abezoutn n m in  modn (u * n + v * m) (m * n) == 1%N).
+Proof.
+move => n m H; move: (abezout_modn n m); 
+  case (abezoutn n m) => u v H0.
+by rewrite {}H0 /coprime => H1; rewrite (eqP H1) modn_small.
+Qed.
+
+
 Section PConstituent.
 
 Variable p s: nat.
@@ -43,22 +137,22 @@ Open Scope group_scope.
 
 (***********************************************************************)
 (*                                                                     *)
-(*        p - constituent                                                     *)
+(*        p - constituent                                              *)
 (*                                                                     *)
 (***********************************************************************)
 
 Definition pconst (x: G) :=
-  let u := (p ^ (dlogn p (orderg x)))%N in
-  let v := edivn (orderg x) u in
-  let (k1,k2) := abezoutn u v in (x ^ (v * k2)).
+  let u := (p ^ (logn p (orderg x)))%N in
+  let v := divn (orderg x) u in
+  let (k1,k2) := abezoutn u v in (x ** (v * k2)).
   
 Definition prem (x: G) :=
-  let u := (p ^ (dlogn p (orderg x)))%N in
-  let v := edivn (orderg x) u in
-  let (k1,k2) := abezoutn u v in (x ^ (u * k1)).
+  let u := (p ^ (logn p (orderg x)))%N in
+  let v := divn (orderg x) u in
+  let (k1,k2) := abezoutn u v in (x ** (u * k1)).
 
 Lemma pconst_conjg: forall x y,
-  pconst (x ^g y) = (pconst x) ^g y.
+  pconst (x ^ y) = (pconst x) ^ y.
 Proof.
 move => x y; rewrite /pconst.
 rewrite orderg_conjg; case: abezoutn => _ n.
@@ -66,7 +160,7 @@ by rewrite gexpn_conjg.
 Qed.
 
 Lemma prem_conjg: forall x y,
-  prem (x ^g y) = (prem x) ^g y.
+  prem (x ^ y) = (prem x) ^ y.
 Proof.
 move => x y; rewrite /prem.
 rewrite orderg_conjg; case: abezoutn => n _.
@@ -76,66 +170,66 @@ Qed.
 Lemma pconst_rem: forall (x:G), (pconst x) * (prem x) = x.
 Proof.
 move => x; rewrite /pconst /prem.
-set (l := dlogn p (orderg x)).
-set (t := edivn (orderg x) (p ^ l)).
+set (l := logn p (orderg x)).
+set (t := divn (orderg x) (p ^ l)%N).
 have F0: (orderg x = (p ^ l * t)%N).
-  case/divnP: (dlogn_l p (orderg x)); rewrite -/l => k Hk.
-  rewrite /t {2}Hk (mulnC k) edivn_mull ?(mulnC _ k) //.
+  case/dvdnP: (dvdn_p_part p (orderg x)); rewrite /p_part -/l => k Hk.
+  rewrite /t {2}Hk (mulnC k) divn_mulr ?(mulnC _ k) //.
   by move: (orderg_pos x); rewrite Hk; case: (p ^ l)%N => //;
        rewrite muln0. 
 have F1: (coprime (p ^ l)  t).
   case Eq1: l => [| l1].
-    by rewrite expn0 /coprime gcdn1.
-  rewrite -prime_coprime_k //.
-  apply/negP => H1; case/divnP: H1 => k1 Hk1. 
-  have F1: (divn (p ^ (S l)) (orderg x)).
+    by rewrite expn0 /coprime gcdnC gcdnE /= modn1.
+  rewrite -prime_coprime_expn // prime_coprime //.
+  apply/negP => H1; case/dvdnP: H1 => k1 Hk1. 
+  have F1: (dvdn (p ^ (S l)) (orderg x)).
     rewrite F0 Hk1 (mulnC k1) mulnA (mulnC _ p) -expnS.
-    by apply divnMr.
-  rewrite /l dlogn_r in F1; last exact: prime_leq_2.
-  by move: (orderg_pos x); rewrite (eqP F1).
+    by apply dvdn_mulr.
+  move: (dvdn_leq_log primep (orderg_pos x) F1).
+  by rewrite logn_exp -/l // ltnn.
 case Eq1: (orderg x) => [| n1].
   by move: (orderg_pos x); rewrite Eq1.
 case: n1 Eq1 => [| n1] Eq1.
    move: (orderg_expn1 x); rewrite Eq1 gexpn1 => F2.
    by case: abezoutn => k1 k2; rewrite (eqP F2) !gexp1n mulg1.
 have F2: (1%N < p ^ l * t) by rewrite -F0 Eq1.
-move: (abezout_coprime _ _ F2 F1); case: abezoutn => k1 k2.
+move: (abezout_coprime F2 F1); case: abezoutn => k1 k2.
 rewrite (mulnC t) -!F0 => H1.
 by rewrite gexpn_add (mulnC _ k1) (mulnC t) addnC
-          (edivn_modn (k1 * p ^ l + k2 * t) (orderg x)) (eqP H1)
-          mulnC -gexpn_add gexpn1 -gexpn_mul (eqP (orderg_expn1 x))
-          gexp1n mul1g.
+          (divn_eq (k1 * p ^ l + k2 * t) (orderg x))
+          mulnC -gexpn_add (eqP H1) gexpn1
+          -gexpn_mul (eqP (orderg_expn1 x)) gexp1n mul1g.
 Qed.
 
-Lemma pconst_remC: forall (x:G), commg (pconst x) (prem x).
+Lemma pconst_remC: forall (x:G), commute (pconst x) (prem x).
 Proof.
-move => x; rewrite /commg /pconst /prem.
+move => x; rewrite /commute /pconst /prem.
 case: abezoutn => k1 k2.
 by rewrite !gexpn_add addnC.
 Qed.
 
-Lemma pconstC: forall (x:G), commg x (pconst x).
+Lemma pconstC: forall (x:G), commute x (pconst x).
 Proof.
-by move => x; rewrite /commg -{1 4}(pconst_rem x) 
-                     {2}pconst_remC !mulgA.
+by move => x; rewrite /commute -{1 4}(pconst_rem x)
+                     {2}(eqP (pconst_remC x)) !mulgA.
 Qed.
 
-Lemma premC: forall (x:G), commg x (prem x).
+Lemma premC: forall (x:G), commute x (prem x).
 Proof.
-by move => x; rewrite /commg -{1 4}(pconst_rem x)
-                      {1}pconst_remC !mulgA.
+by move => x; rewrite /commute -{1 4}(pconst_rem x)
+                      {1}(eqP (pconst_remC _)) !mulgA.
 Qed.
 
 
 Lemma orderg_pconst: forall (x:G), 
-  orderg (pconst x) = (p ^ (dlogn p (orderg x)))%N.
+  orderg (pconst x) = (p ^ (logn p (orderg x)))%N.
 Proof.
 move => x; move: (pconst_rem x); rewrite /pconst /prem.
-set (l := dlogn p (orderg x)).
-set (t := edivn (orderg x) (p ^ l)).
+set (l := logn p (orderg x)).
+set (t := divn (orderg x) (p ^ l)).
 have F0: (orderg x = (p ^ l * t)%N).
-  case/divnP: (dlogn_l p (orderg x)); rewrite -/l => k Hk.
-  rewrite /t {2}Hk (mulnC k) edivn_mull ?(mulnC _ k) //.
+  case/dvdnP: (dvdn_p_part p (orderg x)); rewrite /p_part -/l => k Hk.
+  rewrite /t {2}Hk (mulnC k) divn_mulr ?(mulnC _ k) //.
   by move: (orderg_pos x); rewrite Hk; case: (p ^ l)%N => //;
        rewrite muln0. 
 have P1: (0 < t) by
@@ -147,81 +241,74 @@ case E1: (abezoutn _ _) => [[| k1] [| k2]].
   move/eqP: (sym_equal F0); rewrite -H1 orderg1 eqn_mul1.
   by case/andP; move/eqP. 
 - rewrite muln0 gexpn0 mulg1 => H1. 
-  have F1: divn t (t * S k2 - 1).
-    apply: (divntrans _ (orderg x)); 
-      first by rewrite F0; exact: divnMl.
-    rewrite orderg_divn.
+  have F1: dvdn t (t * S k2 - 1).
+    apply: (@dvdn_trans (orderg x)); first
+      by rewrite F0; exact: dvdn_mull.
+    rewrite orderg_dvd.
     apply/eqP; apply: (mulg_injl x).
     rewrite -{1}(gexpn1 x) mulg1 gexpn_add leq_add_sub //.
     by move: P1; case t.
-  rewrite divn_minus_r in F1; last exact: divnMr.
+  rewrite dvdn_subr in F1; last by exact: dvdn_mulr.
   rewrite H1 F0 -{2}(muln1 (p ^ l)); congr muln.
-  case/orP: F1 => H2; last by apply/eqP; rewrite -divn1.
-  move: P1 H2; case: (t) => [| [| s1]] //=.
-  by case k2.
+  by apply/eqP; rewrite -dvdn1.
+  move: P1; case: (t) => [| [| s1]] //=.
 - rewrite muln0  gexpn0 mul1g => H1. 
-  have F1: divn (p ^ l) (p ^ l * S k1 - 1).
-    apply: (divntrans _ (orderg x)); 
-      first by rewrite F0; exact: divnMr.
-    rewrite orderg_divn.
+  have F1: dvdn (p ^ l) (p ^ l * S k1 - 1).
+    apply: (@dvdn_trans (orderg x)); 
+      first by rewrite F0; exact: dvdn_mulr.
+    rewrite orderg_dvd.
     apply/eqP; apply: (mulg_injl x).
     rewrite -{1}(gexpn1 x) mulg1 gexpn_add leq_add_sub //.
     by move: P2; case (p ^ l)%N.
-  rewrite divn_minus_r in F1; last exact: divnMr.
+  rewrite dvdn_subr in F1; last exact: dvdn_mulr.
   rewrite orderg1; apply sym_equal.
-  case/orP: F1 => H2; last by apply/eqP; rewrite -divn1.
-  move: P2 H2; case: (p ^ l)%N => [| [| s1]] //=.
-  by case k1.
+  by apply/eqP; rewrite -dvdn1.
+  move: P2; case: (p ^ l)%N => [| [| s1]] //=.
 have P3: 0 < t * S k2 by move: P1; case t.
 have P4: 0 < p ^ l * S k1 by move: P2; case (p ^ l)%N.
 have P5: 0 < gcdn t (S k1).
-  by move: (gcdn_0_inv t (S k1)); rewrite andbF;
-     case: gcdn.
+  by rewrite ltn_0gcd orbT.
 have P6: 0 < gcdn (p ^ l) (S k2).
-  by move: (gcdn_0_inv (p ^ l) (S k2)); rewrite andbF;
-     case: gcdn.
+  by rewrite ltn_0gcd orbT.
 have F1 := (@orderg_gcd _ x _ P3).
-rewrite F0 -(mulnC t) gcdn_mul2l edivn_mul2r in F1; last
-  by rewrite lt_mul0 P1 P6.
+rewrite F0 -(mulnC t) gcdn_mul2l divn_pmul2l // in F1.
 have F2 := (@orderg_gcd _ x _ P4).
-  rewrite F0 gcdn_mul2l edivn_mul2r in F2; last 
-  by rewrite lt_mul0 P2 P5.
+  rewrite F0 gcdn_mul2l divn_pmul2l // in F2.
 move => H1; rewrite F1.
-have F3:  x ^ (orderg (x ^ (t * S k2)) *
-                   orderg (x ^ (p ^ l * S k1))) = 1.
+have F3:  x ** (orderg (x ** (t * S k2)) *
+                   orderg (x ** (p ^ l * S k1))) = 1.
   rewrite -{1}H1 gexpn_add gexpn_mul muln_addl -gexpn_add.
   rewrite -!gexpn_mul (eqP (orderg_expn1 _)) gexp1n mul1g.
   by rewrite gexpn_mul mulnC -gexpn_mul (eqP (orderg_expn1 _))
               gexp1n.
-move/eqP: F3; rewrite -orderg_divn F0 F1 F2.
-rewrite -[(_ * edivn t _)%N]muln1.
-have G1 := gcdn_divl (p ^ l) (S k2). 
-rewrite divn_edivn in G1; rewrite -{1}(eqP G1) -mulnA (mulnC _ t).
-have G2 := gcdn_divl t (S k1). 
-rewrite divn_edivn in G2; rewrite -{1}(eqP G2) !mulnA.
-set u := (edivn _ _ * _)%N. 
-rewrite -mulnA divn_mul2r.
-case E2: (u == 0).
-  rewrite /u eqn_mul0 in E2; case/orP: E2 => H2.
-    rewrite (eqP H2) mul0n in G1.
-    by rewrite -(eqP G1) in P2.
-  rewrite (eqP H2) mul0n in G2.
-  by rewrite -(eqP G2) in P1.
-rewrite orFb divn1.
-rewrite eqn_mul1; case/andP => _ H2.
-by rewrite (eqP H2) edivn1.
+move/eqP: F3; rewrite -orderg_dvd F0 F1 F2.
+rewrite -[(_ * divn t _)%N]muln1.
+have G1 := dvdn_gcdl (p ^ l) (S k2). 
+rewrite dvdn_eq in G1; rewrite -{1}(eqP G1) -mulnA (mulnC _ t).
+have G2 := dvdn_gcdl t (S k1). 
+rewrite dvdn_eq in G2; rewrite -{1}(eqP G2) !mulnA.
+set u := (divn _ _ * _)%N. 
+rewrite -mulnA dvdn_pmul2l //.
+  rewrite dvdn1 eqn_mul1; case/andP => _ H2.
+  by rewrite (eqP H2) divn1.
+case E2: u =>//; move/eqP: E2.
+rewrite /u eqn_mul0; case/orP => E2.
+  rewrite (eqP E2) mul0n in G1.
+  by rewrite -(eqP G1) in P2.
+rewrite (eqP E2) mul0n in G2.
+by rewrite -(eqP G2) in P1.
 Qed.
 
 (* there should be a short cut better than this cut-and-paste *)
 Lemma orderg_prem: forall (x:G), 
-  (orderg (prem x) = edivn (orderg x) (p ^ (dlogn p (orderg x)))).
+  (orderg (prem x) = divn (orderg x) (p ^ (logn p (orderg x)))).
 Proof.
 move => x; move: (pconst_rem x); rewrite /pconst /prem.
-set (l := dlogn p (orderg x)).
-set (t := edivn (orderg x) (p ^ l)).
+set (l := logn p (orderg x)).
+set (t := divn (orderg x) (p ^ l)).
 have F0: (orderg x = (p ^ l * t)%N).
-  case/divnP: (dlogn_l p (orderg x)); rewrite -/l => k Hk.
-  rewrite /t {2}Hk (mulnC k) edivn_mull ?(mulnC _ k) //.
+  case/dvdnP: (dvdn_p_part p (orderg x)); rewrite /p_part -/l => k Hk.
+  rewrite /t {2}Hk (mulnC k) divn_mulr ?(mulnC _ k) //.
   by move: (orderg_pos x); rewrite Hk; case: (p ^ l)%N => //;
        rewrite muln0. 
 have P1: (0 < t) by
@@ -233,77 +320,75 @@ case E1: (abezoutn _ _) => [[| k1] [| k2]].
   move/eqP: (sym_equal F0); rewrite -H1 orderg1 eqn_mul1.
   by case/andP => _ H2; rewrite (eqP H2).
 - rewrite muln0 gexpn0 mulg1 => H1. 
-  have F1: divn t (t * S k2 - 1).
-    apply: (divntrans _ (orderg x)); 
-      first by rewrite F0; exact: divnMl.
-    rewrite orderg_divn.
+  have F1: dvdn t (t * S k2 - 1).
+    apply: (@dvdn_trans (orderg x)); first
+      by rewrite F0; exact: dvdn_mull.
+    rewrite orderg_dvd.
     apply/eqP; apply: (mulg_injl x).
     rewrite -{1}(gexpn1 x) mulg1 gexpn_add leq_add_sub //.
     by move: P1; case t.
-  rewrite divn_minus_r in F1; last exact: divnMr.
+  rewrite dvdn_subr in F1; last by exact: dvdn_mulr.
   rewrite orderg1; apply sym_equal.
-  case/orP: F1 => H2; last by apply/eqP; rewrite -divn1.
-  move: P1 H2; case: (t) => [| [| t1]] //=.
-  by case k2.
+  move: F1; rewrite dvdn1; try by move/eqP.
+  by move: P1; case: (t).
 - rewrite muln0  gexpn0 mul1g => H1. 
-  have F1: divn (p ^ l) (p ^ l * S k1 - 1).
-    apply: (divntrans _ (orderg x)); 
-      first by rewrite F0; exact: divnMr.
-    rewrite orderg_divn.
+  have F1: dvdn (p ^ l) (p ^ l * S k1 - 1).
+    apply: (@dvdn_trans (orderg x)); 
+      first by rewrite F0; exact: dvdn_mulr.
+    rewrite orderg_dvd.
     apply/eqP; apply: (mulg_injl x).
     rewrite -{1}(gexpn1 x) mulg1 gexpn_add leq_add_sub //.
     by move: P2; case (p ^ l)%N.
-  rewrite divn_minus_r in F1; last exact: divnMr.
+  rewrite dvdn_subr in F1; last exact: dvdn_mulr.
   rewrite H1 F0 -{2}(mul1n t); congr muln.
-  case/orP: F1 => H2; last by apply/eqP; rewrite -divn1.
-  move: P2 H2; case: (p ^ l)%N => [| [| s1]] //=.
-  by case k1.
+  move: F1; rewrite dvdn1; try by move/eqP.
+  by move: P2; case: (p ^ l)%N.
 have P3: 0 < t * S k2 by move: P1; case t.
 have P4: 0 < p ^ l * S k1 by move: P2; case (p ^ l)%N.
 have P5: 0 < gcdn t (S k1).
-  by move: (gcdn_0_inv t (S k1)); rewrite andbF;
-     case: gcdn.
+  by rewrite ltn_0gcd orbT.
 have P6: 0 < gcdn (p ^ l) (S k2).
-  by move: (gcdn_0_inv (p ^ l) (S k2)); rewrite andbF;
-     case: gcdn.
+  by rewrite ltn_0gcd orbT.
 have F1 := (@orderg_gcd _ x _ P3).
-rewrite F0 -(mulnC t) gcdn_mul2l edivn_mul2r in F1; last
-  by rewrite lt_mul0 P1 P6.
+rewrite F0 -(mulnC t) gcdn_mul2l divn_pmul2l // in F1.
 have F2 := (@orderg_gcd _ x _ P4).
-  rewrite F0 gcdn_mul2l edivn_mul2r in F2; last 
-  by rewrite lt_mul0 P2 P5.
+  rewrite F0 gcdn_mul2l divn_pmul2l // in F2.
 move => H1; rewrite F2.
-have F3:  x ^ (orderg (x ^ (t * S k2)) *
-                   orderg (x ^ (p ^ l * S k1))) = 1.
+have F3:  x ** (orderg (x ** (t * S k2)) *
+                   orderg (x ** (p ^ l * S k1))) = 1.
   rewrite -{1}H1 gexpn_add gexpn_mul muln_addl -gexpn_add.
   rewrite -!gexpn_mul (eqP (orderg_expn1 _)) gexp1n mul1g.
   by rewrite gexpn_mul mulnC -gexpn_mul (eqP (orderg_expn1 _))
               gexp1n.
-move/eqP: F3; rewrite -orderg_divn F0 F1 F2.
-rewrite -[(_ * edivn t _)%N]muln1.
-have G1 := gcdn_divl (p ^ l) (S k2). 
-rewrite divn_edivn in G1; rewrite -{1}(eqP G1) -mulnA (mulnC _ t).
-have G2 := gcdn_divl t (S k1). 
-rewrite divn_edivn in G2; rewrite -{1}(eqP G2) !mulnA.
-set u := (edivn _ _ * _)%N.
-rewrite -mulnA divn_mul2r.
-case E2: (u == 0).
-  rewrite /u eqn_mul0 in E2; case/orP: E2 => H2.
-    rewrite (eqP H2) mul0n in G1.
-    by rewrite -(eqP G1) in P2.
-  rewrite (eqP H2) mul0n in G2.
-  by rewrite -(eqP G2) in P1.
-rewrite orFb divn1.
-rewrite eqn_mul1; case/andP => H2 _.
-by rewrite (eqP H2) edivn1.
+move/eqP: F3; rewrite -orderg_dvd F0 F1 F2.
+rewrite -[(_ * divn t _)%N]muln1.
+have G1 := dvdn_gcdl (p ^ l) (S k2).
+rewrite dvdn_eq in G1; rewrite -{1}(eqP G1) -mulnA (mulnC _ t).
+have G2 := dvdn_gcdl t (S k1). 
+rewrite dvdn_eq in G2; rewrite -{1}(eqP G2) !mulnA.
+set u := (divn _ _ * _)%N. 
+rewrite -mulnA dvdn_pmul2l //.
+  rewrite dvdn1 eqn_mul1; case/andP => H2 _.
+  by rewrite (eqP H2) divn1.
+case E2: u =>//; move/eqP: E2.
+rewrite /u eqn_mul0; case/orP => E2.
+  rewrite (eqP E2) mul0n in G1.
+  by rewrite -(eqP G1) in P2.
+rewrite (eqP E2) mul0n in G2.
+by rewrite -(eqP G2) in P1.
 Qed.
 
 Lemma pconst_coprime: forall (x:G), 
  coprime (orderg (pconst x)) (orderg (prem x)).
 Proof.
 move => x.
-rewrite orderg_pconst orderg_prem dlogn_coprime //.
-exact: orderg_pos.
+rewrite orderg_pconst orderg_prem.
+case E1: (logn _ _) => [| n].
+  rewrite expn0 divn1 /coprime gcdnC //=.
+rewrite -prime_coprime_expn // -E1.
+case (@p_part_coprime p (orderg x)) => //; first exact: orderg_pos.
+move => xx Hxx Hr; rewrite {1}Hr divn_mull // ltn_0exp.
+by case: p primep.
 Qed.
 
 Lemma pconst_prem_orderg: forall (x:G), 
@@ -314,87 +399,86 @@ apply: orderg_mul; first exact: pconst_remC.
 exact: pconst_coprime.
 Qed.
 
-Definition spconst x y := 
-  (pconst y == x)  && (divn (orderg y) (orderg x * s)).
+Definition spconst x := 
+  {y,  (pconst y == x) && (dvdn (orderg y) (orderg x * s))}.
 
 Lemma spconst_uniq: forall x1 x2 y,
   spconst x1 y -> spconst x2 y -> x1 = x2.
 Proof.
-move => x1 x2 y; rewrite /spconst.
+move => x1 x2 y; rewrite /spconst !s2f.
 case/andP => H1 _; case/andP => H2 _.
 by rewrite -(eqP H1); apply/eqP.
 Qed.
 
 Lemma spconst_conjgs: forall a b,
-   spconst (a ^g b) =1 conjsg (spconst a) (b^-1).
+   spconst (a ^ b) = (spconst a) :^ b.
 Proof.
-move => a b x; apply/idP/idP.
-  rewrite /spconst; case/andP => H1 H2.
-  apply/andP; split; first
-     by rewrite pconst_conjg (eqP H1) conjg_conj
-                mulgV conjg1.
+move => a b; apply iset_eq => x; apply/idP/idP.
+  rewrite /spconst !s2f; case/andP => H1 H2.
+  apply/andP; split.
+    rewrite pconst_conjg (eqP H1) conjg_conj; gsimpl;
+    by rewrite conjg1.
   by move: H2; rewrite !orderg_conjg.
-rewrite /spconst /conjsg; case/andP => H1 H2.
+rewrite /spconst !s2f; case/andP => H1 H2.
 apply/andP; split.
   by rewrite -(eqP H1) pconst_conjg conjg_conj mulVg conjg1.
 by move: H2; rewrite !orderg_conjg.
 Qed.
 
 Lemma spconst_card: forall a b,
-  card (spconst (a ^g b)) = card (spconst a).
+  card (spconst (a ^ b)) = card (spconst a).
 Proof.
-move => a b; rewrite -(card_image (conjg_inj b) (spconst a)).
+move => a b; rewrite -(card_iimage (conjg_inj b) (spconst a)).
 apply eq_card => x.
-by rewrite spconst_conjgs conjsg_image invg_inv.
+by rewrite spconst_conjgs sconjg_iimage.
 Qed.
 
 Lemma pconst_subset_centralizer:  forall (y: G),
-  subset (spconst y) (centraliser G y).
+  subset (spconst y) (centraliser (group_of_fingroup G) y).
 Proof.
-move => y; rewrite /spconst; apply/subsetP => x.
+move => y; rewrite /spconst; apply/subsetP => x; rewrite !s2f.
 case/andP => Hx1 Hx2.
 rewrite /centraliser; repeat (apply/andP; split) => //.
 rewrite -(gexpn1 x) -(eqP Hx1) /pconst.
-by case: abezoutn => _ n; rewrite !gexpn_add addnC.
+by case: abezoutn => _ n; rewrite /commute !gexpn_add addnC.
 Qed.
 
-Lemma pconst_mul_in: forall y z l, commg y z ->
-  orderg y = (p ^ (S l))%N -> divn (orderg z) s ->
+Lemma pconst_mul_in: forall y z l, commute y z ->
+  orderg y = (p ^ (S l))%N -> dvdn (orderg z) s ->
   spconst y (y * z).
 Proof.
 move => y z l H H1 H2.
 have F0: coprime (orderg y) (orderg z).
-  rewrite H1 -prime_coprime_k // prime_coprime //.
-  case/divnP: H2 coprimeps => k ->.
+  rewrite H1 -prime_coprime_expn //.
+  case/dvdnP: H2 coprimeps => k ->.
   by rewrite coprime_mulr; case/andP.
 have F1: (orderg (y * z) = (p ^ (S l) * (orderg z))%N).
   by rewrite -H1; apply: orderg_mul.
-apply/andP; split; last
-  by rewrite orderg_mul // divn_mul2r H2 orbT.
+rewrite s2f; apply/andP; split; last
+  by rewrite orderg_mul // dvdn_pmul2l // orderg_pos.
 rewrite /spconst /pconst F1.
 rewrite -F1.
 have F2:  1 < orderg (y * z).
   rewrite F1.
   apply: (@leq_trans (S (orderg z))); first exact: orderg_pos. 
-  rewrite -{1}(mul1n (orderg z)) lt_mul2r; 
-    case: (orderg z) (orderg_pos z) => [| n _] //;
-    rewrite andbT.
-  apply: (@leq_trans (S (S l))) => //; apply: expn_lt.
-  exact: prime_leq_2.
-rewrite {1 3 5}F1 dlogn_mul_expn //; last (by exact: prime_leq_2);
-  last exact: orderg_pos.
-rewrite dlogn_ndiv ?addn0 -?H1; last 
-  by apply/negP; rewrite (prime_coprime_k l) // -H1.
-rewrite F1 -H1 edivn_mull; last exact: orderg_pos.
+  rewrite -{1}(mul1n (orderg z)) ltn_mul2r orderg_pos andTb.
+  by rewrite -(expn0 p) ltn_exp2l // prime_gt1.
+rewrite {1 3 5}F1 logn_mul // ?orderg_pos ?logn_exp //; last
+  by rewrite ?ltn_0exp; case: p primep.
+have FF: (dvdn p (orderg z)) = false.
+  apply/negP; apply/negP.
+  by rewrite -prime_coprime // (prime_coprime_expn l) // -H1.
+rewrite lognE primep orderg_pos FF [S l]lock /= addn0;  unlock.
+rewrite -H1 F1 -H1 divn_mulr ?orderg_pos //.
 have F3: (1 < orderg y * orderg z) by rewrite H1 -F1.
-move: (abezout_coprime _ _ F3 F0).
+move: (abezout_coprime F3 F0).
 case: abezoutn => k1 k2 H3; apply/eqP.
 rewrite gexpnC // -(gexpn_mul z) (eqP (orderg_expn1 _))
         gexp1n mulg1 mulnC.
 rewrite -(mul1g (gexpn _ _)) -(gexp1n G k1)
         -(eqP (orderg_expn1 y)) gexpn_mul mulnC
         gexpn_add.
-rewrite [_ + _](@edivn_modn _ (orderg z * orderg y)) (eqP H3).
+rewrite [_ + _](@divn_eq _ (orderg z * orderg y)) (eqP H3).
 by rewrite -gexpn_add  !mulnA (mulnC _ (orderg y))
            -gexpn_mul (eqP (orderg_expn1 _)) gexp1n gexpn1
            mul1g.
