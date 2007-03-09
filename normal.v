@@ -555,6 +555,17 @@ move=> x y Nx Ny; apply: coset_set_inj.
 by rewrite /set_of_coset /= /coset_of /set_of_coset /= !cosetN ?groupM // rcoset_mul.
 Qed.
 
+Lemma coset_ofE : forall x n, N x -> coset_of H (x ** n) = (coset_of H x) ** n.
+Proof.
+by move=> x n Hx; apply: (morphE (morph_coset_of)).
+Qed.
+
+
+Lemma coset_ofV : forall x, N x -> coset_of H (x ^-1) = (coset_of H x)^-1.
+Proof.
+by move=> x Hx; apply: (morphV (morph_coset_of)).
+Qed.
+
 Lemma ker_cosetP : forall x, N x -> reflect (H x) ((coset_of H) x == 1).
 Proof.
 move=> x Nx; apply: (iffP idP).
@@ -628,6 +639,16 @@ move: (coset_repr H).
 by case/cosetsP: Hu => z <-.
 Qed.
 
+Lemma repr_1: forall (y: coset_groupType H),
+  reflect (H (repr y)) (y == 1).
+Proof.
+move => y; apply: (iffP idP) => Hx1.
+  rewrite (eqP Hx1).
+  apply: (@mem_repr _ 1); exact: group1.
+rewrite -(coset_of_repr y).
+by apply/eqP; apply: coset_of_id.
+Qed.
+
 Lemma cosetM_repr: forall (x y: coset_groupType H), 
   (x * y)%G  (repr x * repr y).
 Proof.
@@ -650,6 +671,26 @@ rewrite /coset_of /= /set_of_coset /=.
 apply/smulgP; exists (repr x) (repr (elt:=elt) x ** n) => //.
 exact: coset_group_repr.
 Qed.
+
+Notation "H / K" := (quotient H K).
+
+Variable K: group elt.
+Hypothesis HK: subset K H.
+
+Lemma quotient_repr: forall x, (H/K) x -> H (repr x).
+Proof.
+move => x; rewrite /quotient.
+move/iimageP => [y Hy ->].
+rewrite /coset_of /= /set_of_coset /=.
+case E1: (normaliser K y).
+  rewrite cosetN //.
+  case: repr_rcosetP => y1 Hy1.
+  by apply: groupM  => //; apply: (subsetP HK).
+rewrite cosetD //.
+apply: (subsetP HK).
+apply: (@mem_repr _ 1); exact: group1.
+Qed.
+
 
 End Rep.
 

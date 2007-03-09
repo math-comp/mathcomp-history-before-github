@@ -181,18 +181,18 @@ Proof. move=> y; exact: can_inj (conjgK y). Qed.
 
 Definition conjg_fp (y x : elt) := x ^ y == x.
 
-Definition commute (x y : elt) := x * y = y * x.
+Definition commute (x y : elt) := x * y == y * x.
 
 Lemma commute_sym : forall x y, commute x y -> commute y x.
-Proof. done. Qed.
+Proof. by move => x y; rewrite /commute  eq_sym. Qed.
 
 Lemma conjg_fpP : forall x y : elt, reflect (commute x y) (conjg_fp y x).
 Proof.
-move=> *; rewrite /conjg_fp conjgE -mulgA (canF_eq (mulKgv _)); exact: eqP.
+move=> *; rewrite /conjg_fp conjgE -mulgA (canF_eq (mulKgv _)); exact: idP.
 Qed.
 
 Lemma conjg_fp_sym : forall x y : elt, conjg_fp x y = conjg_fp y x.
-Proof. move=> x y; exact/conjg_fpP/conjg_fpP. Qed.
+Proof. move=> x y; apply/conjg_fpP/conjg_fpP; exact:commute_sym. Qed.
 
 End Conjugation.
 
@@ -214,7 +214,7 @@ Variable G: finGroupType.
 Fixpoint gexpn (a: G) (n: nat) {struct n} : G :=
   if n is S n1 then a * (gexpn a n1) else 1.
 
-Notation "a '**' p" := (gexpn a p) (at level 50). 
+Notation "a '**' p" := (gexpn a p) (at level 30). 
 
 Lemma gexpn0: forall a, a ** 0 = 1.
 Proof. by done. Qed.
@@ -257,11 +257,11 @@ move => x y; elim => [| n Rec]; first by rewrite !gexpn0 conj1g.
 by rewrite gexpnS Rec -conjg_mul -gexpnS.
 Qed.
 
-Lemma commg_expn: forall x y n,
+Lemma commute_expn: forall x y n,
   commute x y ->  commute x (y ** n).
 Proof.
 rewrite /commute; move => x y n H; elim: n => /= [| n Rec]; gsimpl. 
-by rewrite H -mulgA Rec; gsimpl.
+by rewrite (eqP H) -mulgA (eqP Rec); gsimpl.
 Qed.
 
 Lemma gexpnC: forall x y n, commute x y ->
@@ -269,8 +269,9 @@ Lemma gexpnC: forall x y n, commute x y ->
 Proof.
 rewrite /commute; move => x y n H; elim: n => /= [| n Rec]; gsimpl.
 rewrite Rec. gsimpl. congr mulg. rewrite -!mulgA; congr mulg.
+apply/eqP.
 suff: (commute y (x**n)) by rewrite /commute.
-by apply: commg_expn; rewrite /commute; symmetry.
+by apply: commute_expn; rewrite /commute eq_sym.
 Qed.
 
 End Expn.
