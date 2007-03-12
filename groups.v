@@ -970,18 +970,6 @@ rewrite !rcoset_smul -smulgA (smulgA _ H) -lcoset_smul -norm_rlcoset //.
 by rewrite rcoset_smul -smulgA smulg_set1 smulgA smulgg.
 Qed.
 
-Lemma group_set_finGroupType : forall elt: finGroupType,
-  group_set elt.
-Proof.
-move=> elt; rewrite /group_set /=; apply/andP; split; first by done.
-by apply/subsetP=> u; case/smulgP=> x y Ex Ey ->.
-Qed.
-
-Canonical Structure GroupFinGroupType (elt : finGroupType) :=
-  Group (group_set_finGroupType elt).
-
-
-
 
 
 Unset Implicit Arguments.
