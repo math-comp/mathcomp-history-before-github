@@ -89,7 +89,14 @@ Qed.
 (*                                                                     *)
 (***********************************************************************)
 
-Definition zp_group := FinGroupType unit_zp invP_zp mulP_zp.
+Canonical Structure zp_group := FinGroupType unit_zp invP_zp mulP_zp.
+
+Open Scope group_scope.
+
+Lemma mul_zpC : forall x y : zp_group, commute x y.
+Proof.
+by rewrite /commute /mulg; case => n Hn /=; case => m Hm /=; rewrite addnC.
+Qed.
 
 Lemma card_zp: card (setA zp_group) = p.
 exact: card_ordinal.

@@ -18,12 +18,12 @@ Import Prenex Implicits.
 
 Section perm.
 
-Variable d: finType.
-Variable x: d ->d.
-Hypothesis h: injective x.
+Variables (d : finType) (x :d -> d) (h : injective x).
 
-Lemma perm_eqfun: forall z, (perm_of_inj h) z = x z.
-Proof. apply:can_fgraph_of_fun. Qed.
+Lemma perm_eqfun: 
+  forall z, (perm_of_inj h) z = x z.
+Proof. by rewrite /fun_of_perm => /=;apply:g2f. Qed.
+
 End perm.
 
 Section square_colouring.
@@ -93,8 +93,8 @@ Definition rot := {r, is_rot r}.
 Lemma group_set_rot: group_set  rot.
 apply /groupP;split.
  by rewrite /rot  s2f /is_rot mulg1 mul1g.
-move => x y; rewrite /rot !s2f /= /is_rot ;move/eqP => hx ; move/eqP => hy.
-by rewrite -mulgA hy !mulgA hx.
+move => x1 y; rewrite /rot !s2f /= /is_rot ;move/eqP => hx1 ; move/eqP => hy.
+by rewrite -mulgA hy !mulgA hx1.
 Qed.
 
 Canonical Structure rot_group:= Group group_set_rot.
@@ -117,39 +117,40 @@ destruct z;destruct val.
 destruct val.
  have ht : forall t,is_rot t ->  fun_of_perm t  (EqSig (fun m : nat_eqType => m < 4) 1%N valP)= fun_of_perm (r1 * t) c0;last first.
 rewrite (ht r hr) (ht s hs) -(eqP hr) -(eqP hs).
-rewrite /fun_of_perm/=/comp!(can_fgraph_of_fun (d1:= square)(d2:= square)).
+rewrite /fun_of_perm/=/comp !(g2f (d1:= square)(d2:= square)).
 by congr fun_of_fgraph.
-move => t ht; rewrite {2}/fun_of_perm/= /comp!(can_fgraph_of_fun (d1:= square)(d2:= square)).
- by congr fun_of_fgraph;rewrite /r1 perm_eqfun/=/c1;apply /val_eqP.
+move => t ht; rewrite {2}/fun_of_perm/= /comp!(g2f (d1:= square)(d2:= square)).
+ congr fun_of_fgraph; rewrite /r1; apply /val_eqP => /=; unlock perm_of_inj fun_of_perm.
+ by rewrite g2f /=. 
 (*2*)
 destruct val.
 have ht: forall t,is_rot t->fun_of_perm t  (EqSig (fun m : nat_eqType => m < 4) 2%N valP)= fun_of_perm (t * (r1 * r1)) c0.
 move=> t ;rewrite /is_rot => ht;rewrite mulgA (eqP ht)-mulgA(eqP ht).
 rewrite {2}/fun_of_perm/=/comp{2}/fun_of_perm/=/comp/=.
-rewrite !(can_fgraph_of_fun (d1:= square)(d2:= square)).
-congr fun_of_fgraph.
-by rewrite !perm_eqfun;apply /val_eqP.
+rewrite !(g2f (d1:= square)(d2:= square)).
+congr fun_of_fgraph. 
+ by rewrite /r1 /perm_of_inj /fun_of_perm !g2f; apply /val_eqP.
 rewrite (ht r hr) (ht s hs).
 rewrite /fun_of_perm/=/comp. 
- rewrite !(can_fgraph_of_fun (d1:= square)(d2:= square))/comp.
-rewrite hrs !perm_eqfun/R1/=;apply/val_eqP;auto.
+ rewrite !(g2f (d1:= square)(d2:= square))/comp.
+rewrite hrs /perm_of_inj /fun_of_perm g2f  /R1/=;apply/val_eqP;auto.
 (*3*)
 destruct val=>//.
 have ht : forall t, is_rot t -> fun_of_perm t  (EqSig (fun m : nat_eqType => m < 4) 3 valP)= fun_of_perm (t*( r1 * r1 * r1)) c0.
 move=> t ;rewrite /is_rot => ht.
 replace (t*(r1*r1*r1)) with ((r1*r1*r1)*t).
-rewrite {2}/fun_of_perm/=/comp  !(can_fgraph_of_fun (d1:= square)(d2:= square)).
-congr fun_of_fgraph.
-by rewrite /r1;repeat rewrite !perm_eqfun/comp;apply/val_eqP.
+rewrite {2}/fun_of_perm/=/comp  !(g2f (d1:= square)(d2:= square)).
+congr fun_of_fgraph. 
+ by apply:val_inj => /=; do 3 rewrite /r1 !perm_eqfun /comp.
 by rewrite -!mulgA- (eqP ht) (mulgA r1 t r1) -(eqP ht) -(mulgA t r1 r1)  mulgA -(eqP ht)!mulgA.
-rewrite (ht r hr) (ht s hs) /fun_of_perm/=/comp !(can_fgraph_of_fun (d1:= square)(d2:= square)).
+rewrite (ht r hr) (ht s hs) /fun_of_perm/=/comp !(g2f (d1:= square)(d2:= square)).
 by rewrite hrs.
 Qed.
 
 Lemma rotations_is_rot: forall r, rotations  r -> is_rot r.
 move => r ;rewrite /rotations/is_rot s2f.
 case /or4P;move/eqP => <-//; first (by rewrite mulg1 mul1g);
- apply/eqP;apply: eq_fun_of_perm;move =>z;rewrite !perm_eqfun /comp !perm_eqfun/R2/R1/R3;
+ apply/eqP;apply: eq_fun_of_perm;move =>z; rewrite !perm_eqfun /comp !perm_eqfun/R2/R1/R3;
  destruct z;repeat (destruct val => //=).
 Qed.
 
@@ -341,9 +342,10 @@ Qed.
 Lemma group_set_iso: group_set  isometries.
 Proof.
 apply/groupP;split; first by   rewrite s2f eq_refl/=.
-move => x y hx hy ; apply /is_isoP => ci;rewrite /fop/fun_of_perm !(can_fgraph_of_fun (d1:= square)(d2:= square))/comp.
+move => x y hx hy ; apply /is_isoP => ci;rewrite /fop/fun_of_perm !g2f /comp.
 move:((isometries_iso hx) ci);rewrite /fop => ->;exact:  (isometries_iso hy).
 Qed.
+
 Canonical Structure iso_group:= Group group_set_iso.
 
 Lemma card_rot: card rot = 4.
@@ -376,14 +378,14 @@ Lemma act_f_1:  forall x , act_f x 1 = x.
 Proof.
 move => x;rewrite /act_f;apply:fog_inj;move => y.
 have -> : (@perm_inv  square 1) = 1;first by exact :invg1.
-by rewrite can_fgraph_of_fun perm_eqfun.
+by rewrite g2f perm_eqfun.
 Qed.
 
 Lemma act_f_morph:  forall x y z, act_f z (x * y) = act_f (act_f z x) y.
 Proof.
 move => x y z;rewrite /act_f/=;apply :(fog_inj (d1:= square) (d2:= colors)).
 have ->: (@perm_inv square (x*y))= (perm_inv y)*(perm_inv x);first by exact:invg_mul.
-by move => t;rewrite !(can_fgraph_of_fun (d1:= square) (d2:= colors))  perm_eqfun.
+by move => t;rewrite !(g2f (d1:= square) (d2:= colors))  perm_eqfun.
 Qed.
 
 Definition to := Action  act_f_1 act_f_morph.
@@ -428,13 +430,13 @@ apply/idP/idP=>/=.
  move:H;set f:= fgraph_of_fun _;set g:= Fgraph _ =>H.
  have:((fun_of_fgraph f c0) = (fun_of_fgraph g c0));first by rewrite H.
  have:((fun_of_fgraph f c2) = (fun_of_fgraph g c2));first by rewrite H.
- rewrite !can_fgraph_of_fun !perm_eqfun/= /fun_of_fgraph;unlock=>/=.
+ rewrite !g2f !perm_eqfun/= /fun_of_fgraph;unlock=>/=.
  by move=> -> ->;apply/andP;split;done.
 rewrite {1 2 3 4}/fun_of_fgraph;unlock=>/=.
-rewrite ord_enum4/=.
-case/andP=> h0 h1;rewrite (eqP h0)(eqP h1);
+rewrite ord_enum4/=. 
+case/andP=> h0 h1;rewrite (eqP h0)(eqP h1).
 apply/eqP;apply :(fog_inj (d1:= square) (d2:= colors))=> z.
-rewrite can_fgraph_of_fun/= perm_eqfun;destruct z;  
+rewrite g2f /= perm_eqfun; destruct z;
 repeat (destruct val=>//=;first by rewrite /fun_of_fgraph;unlock=>/=;unlock=>/=;rewrite ord_enum4).
 Qed.
 
@@ -450,12 +452,12 @@ move => _;apply/idP/idP=>/=.
  move:H;set f:= fgraph_of_fun _;set g:= Fgraph _ =>H.
  have:((fun_of_fgraph f c0) = (fun_of_fgraph g c0));first by rewrite H.
  have:((fun_of_fgraph f c1) = (fun_of_fgraph g c1));first by rewrite H.
- rewrite !can_fgraph_of_fun !perm_eqfun/= /fun_of_fgraph;unlock=>/=.
+ rewrite !g2f !perm_eqfun/= /fun_of_fgraph;unlock=>/=.
  by move=> -> ->;apply/andP;split;done.
 rewrite {1 2 3 4}/fun_of_fgraph;unlock=>/=.
 rewrite ord_enum4/=;case/andP=> h0 h1;rewrite (eqP h0)(eqP h1);
 apply/eqP;apply :(fog_inj (d1:= square) (d2:= colors))=> z.
-rewrite can_fgraph_of_fun/= perm_eqfun;destruct z;  
+rewrite g2f /= perm_eqfun;destruct z;  
 repeat (destruct val=>//=;first by rewrite /fun_of_fgraph;unlock=>/=;unlock=>/=;rewrite ord_enum4).
 Qed.
 
@@ -487,13 +489,13 @@ move =>_;rewrite r2_inv;apply /idP/idP =>/=.
  move:H;set f:= fgraph_of_fun _;set g:= Fgraph _ => H. 
  have:((fun_of_fgraph f c0) = (fun_of_fgraph g c0));first by rewrite H.
  have:((fun_of_fgraph f c1) = (fun_of_fgraph g c1));first by rewrite H.
- rewrite /f /g/r2 !can_fgraph_of_fun !perm_eqfun/= /fun_of_fgraph;unlock=>/=.
+ rewrite /f /g/r2 !g2f !perm_eqfun/= /fun_of_fgraph;unlock=>/=.
  by move=> -> ->;apply/andP;split.
 rewrite {1 2 3 4}/fun_of_fgraph;unlock=>/=.
 rewrite ord_enum4 =>/=.
 case/andP=> h0 h1;rewrite (eqP h0 ) (eqP h1);
 apply/eqP;apply : (fog_inj (d1:= square) (d2:= colors)) => z.
-rewrite can_fgraph_of_fun/= perm_eqfun;destruct z.
+rewrite g2f/= perm_eqfun;destruct z.
 repeat (destruct val=>//=;first by rewrite /fun_of_fgraph;unlock=>/=;unlock=>/=;rewrite ord_enum4).
 Qed.
 
@@ -511,12 +513,12 @@ move =>_;rewrite r1_inv;apply /idP/idP =>/=.
  have:((fun_of_fgraph f c0) = (fun_of_fgraph g c0));first by rewrite H.
  have:((fun_of_fgraph f c1) = (fun_of_fgraph g c1));first by rewrite H.
  have:((fun_of_fgraph f c2) = (fun_of_fgraph g c2));first by rewrite H.
- rewrite /f /g!can_fgraph_of_fun !perm_eqfun/= /fun_of_fgraph;unlock=>/=.
+ rewrite /f /g!g2f !perm_eqfun/= /fun_of_fgraph;unlock=>/=.
  by move=> -> -> -> ;apply/andP;split =>//;apply/andP;split.
 rewrite {1 2 3 4 5 6}/fun_of_fgraph;unlock=>/=;rewrite ord_enum4 =>/=.
 case/andP=> h0 h1; move/andP: h0=> [h0 h2];rewrite (eqP h0 ) (eqP h2) (eqP h1).
 apply/eqP;apply : (fog_inj (d1:= square) (d2:= colors))=> z.
-rewrite can_fgraph_of_fun/r3/= perm_eqfun;destruct z.
+rewrite g2f/r3/= perm_eqfun;destruct z.
 repeat (destruct val=>//=;first by rewrite /fun_of_fgraph;unlock=>/=;rewrite ord_enum4).
 Qed.
 
@@ -534,12 +536,12 @@ move =>_;rewrite r3_inv;apply/idP/idP=>/=.
  have:((fun_of_fgraph f c0) = (fun_of_fgraph g c0));first by rewrite H.
  have:((fun_of_fgraph f c1) = (fun_of_fgraph g c1));first by rewrite H.
  have:((fun_of_fgraph f c2) = (fun_of_fgraph g c2));first by rewrite H.
- rewrite /f /g !can_fgraph_of_fun !perm_eqfun/= /fun_of_fgraph;unlock=>/=.
+ rewrite /f /g !g2f !perm_eqfun/= /fun_of_fgraph;unlock=>/=.
  by move=> -> -> -> ;apply/andP;split =>//;apply/andP;split.
 rewrite {1 2 3 4 5 6}/fun_of_fgraph;unlock=>/=;rewrite ord_enum4 =>/=.
 case/andP=> h0 h1; move/andP: h0=> [h0 h2];rewrite (eqP h0 ) (eqP h2) (eqP h1).
 apply/eqP;apply : (fog_inj (d1:= square) (d2:= colors))=> z.
-rewrite can_fgraph_of_fun/r3/= perm_eqfun;destruct z.
+rewrite g2f/r3/= perm_eqfun;destruct z.
 repeat (destruct val=>//=;first by rewrite /fun_of_fgraph;unlock=>/= ;rewrite ord_enum4).
 Qed.
 
@@ -789,11 +791,11 @@ move =>_;rewrite s1_inv;apply/idP/idP=>/=.
  move/eqP=>H;rewrite /s1/fun_of_fgraph/=; unlock=>/=.
 rewrite ord_enum4/=; move:H;set fff:= fgraph_of_fun _;set ggg:= Fgraph _ => H.
  have:((fun_of_fgraph fff c3) = (fun_of_fgraph ggg c3));first by rewrite H.
- rewrite /fff /ggg !can_fgraph_of_fun !perm_eqfun/= /fun_of_fgraph;unlock=>/=.
+ rewrite /fff /ggg !g2f !perm_eqfun/= /fun_of_fgraph;unlock=>/=.
 rewrite ord_enum4;by case/eqP.
 rewrite /fun_of_fgraph;unlock=>/=;rewrite ord_enum4 =>/=.
 move/eqP => ->/=;apply/eqP;apply : (fog_inj(d1:= square) (d2:= colors))=> z.
-rewrite can_fgraph_of_fun/s1/= perm_eqfun;destruct z.
+rewrite g2f/s1/= perm_eqfun;destruct z.
 repeat (destruct val=>//=;first by rewrite /fun_of_fgraph;unlock=>/= ;rewrite ord_enum4).
 Qed.
 
@@ -850,11 +852,11 @@ move =>_;rewrite s2_inv;apply/idP/idP=>/=.
  move/eqP=>H;rewrite /s2/fun_of_fgraph/=; unlock=>/=;rewrite ord_enum4/=.
  move:H;set fff:= fgraph_of_fun _;set ggg:= Fgraph _ => H.
  have:((fun_of_fgraph fff c2) = (fun_of_fgraph ggg c2));first by rewrite H.
- rewrite /fff /ggg !can_fgraph_of_fun !perm_eqfun/= /fun_of_fgraph;unlock=>/=.
+ rewrite /fff /ggg !g2f !perm_eqfun/= /fun_of_fgraph;unlock=>/=.
  by rewrite ord_enum4;case/eqP.
 rewrite /fun_of_fgraph;unlock=>/=;rewrite ord_enum4 =>/=.
 move/eqP => ->/=;apply/eqP;apply : (fog_inj (d1:= square) (d2:= colors))=> z.
-rewrite can_fgraph_of_fun/s2/= perm_eqfun;destruct z.
+rewrite g2f/s2/= perm_eqfun;destruct z.
 repeat (destruct val=>//=;first by rewrite /fun_of_fgraph;unlock=>/= ;rewrite ord_enum4).
 Qed.
 

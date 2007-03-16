@@ -493,14 +493,21 @@ apply: (@eq_from_sub _ y0); rewrite size_maps // => i Hi; unlock.
 by rewrite (sub_maps x0) // index_uniq ?uniq_enum ?(set_sub_default y0) ?Hs.
 Qed.
 
-Lemma can_fgraph_of_fun : 
+Lemma g2f : 
   forall (d1 d2:finType) (f:d1->d2), fgraph_of_fun f =1 f.
 Proof.
 unlock fun_of_fgraph fgraph_of_fun => /= d1 d2 f x.
 by rewrite (sub_maps x) ?sub_index // ?index_mem mem_enum.
 Qed.
 
-Lemma fgraph_size : forall (T1 T2:finType) (a b:fgraph_eqType T1 T2),
+Lemma fgraphP : forall (d1 d2 : finType) (f g : fgraphType d1 d2), f =1 g <-> f = g.
+Proof.
+move=> d1 d2 f g; split; last by move=>->. 
+move=> Efg; rewrite -(can_fun_of_fgraph f) -(can_fun_of_fgraph g).
+by apply: fval_inj; unlock fgraph_of_fun => /=; apply: eq_maps.
+Qed.
+
+Lemma fgraph_size : forall T1 T2 (a b:fgraphType T1 T2),
   size (fval a) = size (fval b).
 Proof. by move => T1 T2 a b; case a; case b => sa Hsa sb Hsb /=; rewrite Hsa Hsb.
 Qed.
@@ -555,7 +562,7 @@ Coercion s2s : setType >-> set.
 
 Lemma can_iset_of_fun : forall f, iset_of_fun f =1 f.
 Proof. 
-move => f; rewrite /s2s /iset_of_fun; unlock => /=; exact: can_fgraph_of_fun.
+move => f; rewrite /s2s /iset_of_fun; unlock => /=; exact: g2f.
 Qed.
 
 Definition s2f := can_iset_of_fun.
@@ -565,25 +572,9 @@ End SetType.
 Notation "{ x , P }" := (iset_of_fun (fun x => P)) (at level 0, x at level 99).
 Notation "{ x : T , P }" := (iset_of_fun (fun x : T => P)) (at level 0, x at level 99).
 
-Lemma iset_eq : forall G:finType, forall A B:setType G, A =1 B -> A = B.
+Lemma isetP : forall (G : finType) (a b : setType G), a =1 b <-> a = b.
 Proof.
-move => G [t2] [t1]; have Hsize:= fgraph_size t1 t2; have Hg := fproof t2.
-rewrite /s2s /fun_of_fgraph /eqfun /=; unlock => H.
-apply: sval_inj; apply fval_inj => /=. 
-apply: (@eq_from_sub _ true) => // i Hi.
-cut G; last first.
-  case: G t2 Hg i Hi {H Hsize t1}=> G; case => // Hs t2 Hg i Hi.
-  by rewrite /card /= in Hg; rewrite Hg in Hi.
-move => e; have {H}:= H (sub e (enum G) i) => H.
-rewrite index_uniq in H; [idtac|by rewrite Hg in Hi|exact: uniq_enum].
-rewrite (@set_sub_default _ (fval t2) true _ i Hi) in H.
-rewrite -Hsize in Hi.
-by rewrite (@set_sub_default _ (fval t1) true _ i Hi) in H.
-Qed.
-
-Lemma isetP : forall G:finType, forall a b:setType G, (a =1 b) <-> (a = b).
-Proof.
-move => G a b; split;[exact: iset_eq| by move=>->]. 
+by move => G a b; split => H; [apply: sval_inj | rewrite H]; apply/fgraphP.
 Qed.
 
 Section setTypeOpsDefs.

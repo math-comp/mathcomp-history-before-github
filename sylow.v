@@ -21,13 +21,11 @@ Require Import connect.
 Require Import groups.
 Require Import div.
 Require Import action.
-Require Import perm.
 Require Import cyclic.
 Require Import zp.
 Require Import normal.
-Require Import baux.
 Require Import rightTranslation.
-Require Import powerSet.
+Require Import tuple.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -37,76 +35,160 @@ Section Cauchy.
 
 Open Scope group_scope.
 
-Variable (G : finGroup) (H : set G).
-Hypothesis subgrp_H: subgrp H.
+Variable (elt : finGroupType) (H : group elt).
 
 Variable p: nat.
 Hypothesis prime_p: prime p.
-Hypothesis p_divides_H: divn p (card H).
+Hypothesis p_divides_H: dvdn p (card H).
 
 
 (**********************************************************************)
 (*               Cauchy theorem                                       *)
 (**********************************************************************)
 
+Let lt1p := prime_gt1 prime_p.
+Let zp := zp_group (ltnW lt1p).
+Definition make_zp : nat -> zp.
+move=> i; apply: make_ord (modn i p) _.
+abstract by rewrite ltn_mod ltnW ?lt1p.
+Defined.
+
+Let zp1 : zp := make_zp 1.
+
+Lemma make_zp_val : forall x : zp, make_zp (val x) = x.
+Proof. case=> i ltip; apply: val_inj => /=; exact: modn_small. Qed.
+
+Lemma zp_power_mul : forall (x : zp) m, x ** m = make_zp (m * val x)%N.
+Proof.
+move=> x; elim=> [|m IHm]; apply: val_inj => /=; first by rewrite mod0n.
+by rewrite -{1}[x]make_zp_val IHm /= modn_add.
+Qed.
+
+Lemma zp_power_p : forall x : zp, x ** p = 1.
+Proof.
+by move=> x; apply: val_inj; rewrite zp_power_mul /= mulnC modn_mull.
+Qed. 
+
+Lemma zp1_gen : forall x : zp, zp1 ** val x = x.
+Proof.
+by move=> x; rewrite zp_power_mul /= (modn_small lt1p) muln1 make_zp_val.
+Qed.
+
+Let prod_over_zp f :=
+  foldr (fun i x => f (zp1 ** i) * x) (1 : elt) (iota 0 p).
+
+Let X := {t, tfunspace H t && (prod_over_zp t == 1)}.
+
+Definition zprot (f : fgraphType zp elt) x :=
+  fgraph_of_fun (fun y => f (x * y)).
+
+Lemma rot1_prod_over_zp : forall f,
+  (prod_over_zp (zprot f zp1) == 1) = (prod_over_zp f == 1).
+Proof.
+move=> f; rewrite /prod_over_zp -(ltnSpred lt1p) -{2}add1n -addn1 !iota_add.
+rewrite !foldr_cat /= add0n addnC iota_addl foldr_maps.
+rewrite /= g2f.
+set y := f _ * 1; have->: f 1 = y; last clearbody y.
+  by rewrite -(zp_power_p zp1) -(ltnSpred lt1p) /y mulg1.
+rewrite -(eqtype.inj_eq (mulg_injr y^-1)).
+rewrite -(eqtype.inj_eq (mulg_injl y^-1) _ 1); gsimpl; congr set1.
+elim: (iota _ _) y => [|i s IHs] y /=; gsimpl.
+by rewrite g2f -mulgA IHs.
+Qed.
+
+Lemma zprot_to1 : forall f, zprot f 1 = f.
+Proof. by move=> f; apply/fgraphP=> i; rewrite /zprot g2f mul1g. Qed.
+
+Lemma zprot_to_morph : forall x y f, zprot f (x * y) = zprot (zprot f x) y.
+Proof. move=> x y f; apply/fgraphP=> i; rewrite /zprot !g2f; gsimpl. Qed.
+
+Canonical Structure zprot_action := Action zprot_to1 zprot_to_morph.
+
+Definition zp_group : group zp.
+exists (isetA zp).
+abstract by apply/groupP; split=> [|x y]; rewrite !s2f.
+Defined.
+
+Lemma zprot_acts_on_X : closed (orbit zprot_action zp_group) X.
+Proof.
+apply: intro_closed => f1 f2; first exact: orbit_csym.
+case/iimageP=> x _ -> {f2}.
+rewrite -(zp1_gen x) /=; elim: {x}(val x) f1 => [|i IHi] f /=.
+  by rewrite zprot_to1.
+rewrite zprot_to_morph s2f; case/andP; move/tfunspaceP=> Hfx prodf1.
+apply: IHi; rewrite s2f {i} rot1_prod_over_zp prodf1 andbT.
+by apply/tfunspaceP=> i; rewrite g2f Hfx.
+Qed.
+
+Lemma card_X : card X = expn (card H) (p - 1).
+Proof.
+pose Y := pfunspace 1 {~:(1 : zp)} H.
+transitivity (card Y); last first.
+  by rewrite card_pfunspace subn1 icardC1 card_ordinal.
+pose f t x := if x == 1 then (prod_over_zp t)^-1 else t x.
+pose F t := fgraph_of_fun (f t).
+have injF : dinjective Y F.
+  move=> t1 t2; move/pfunspaceP=> [Yt1 _]; move/pfunspaceP=> [Yt2 _].
+  move=> Ft12; apply/fgraphP=> u. 
+  have:= erefl (F t1 u); rewrite {2}Ft12 !g2f /f.
+  case: eqP => //= -> {u} _; transitivity (1 : elt); last symmetry.
+    by apply/eqP; apply/idPn; move/Yt1; rewrite isetC11.
+  by apply/eqP; apply/idPn; move/Yt2; rewrite isetC11.
+have prodF : forall t, prod_over_zp (F t) = (t 1)^-1 ^ (prod_over_zp t).
+  move=> t; rewrite /conjg {-2}/prod_over_zp -(ltnSpred lt1p) /=; gsimpl.
+  rewrite g2f /f set11; congr mulg. 
+  have: forall i, iota 1 (pred p) i -> (zp1 ** i == 1) = false.
+    move=> i; rewrite mem_iota add1n (ltnSpred lt1p).
+    move/andP=> [ipos ltip]; apply: negbET.
+    by rewrite (zp1_gen (make_ord ltip)) -lt0n.
+  elim: (iota _ _ ) => //= i s IHs zpsnot1.
+  rewrite g2f /f zpsnot1 ?setU11 ?IHs // => j sj.
+  apply zpsnot1; exact: setU1r.
+rewrite -(card_diimage injF); apply: eq_card => t; rewrite s2f.
+apply/andP/iimageP=> [[]|[t1 Yt1 ->{t}]].
+  move/tfunspaceP=> Xt; move/eqP=> Yt; exists (F t); last first.
+    apply/fgraphP=> u; rewrite !g2f /f prodF Yt conjg1 invgK.
+    by rewrite g2f /f; case: eqP => // ->.
+  apply/pfunspaceP; split=> u.
+    move/eqP=> dFtu; rewrite s2f; apply/eqP=> Du; case: dFtu.
+    by rewrite -{u}Du g2f /f set11 Yt invg1.
+  move/imageP=> [v vnot1 ->{u}]; rewrite g2f /f.
+  by rewrite s2f eq_sym in vnot1; rewrite (negbET vnot1).
+move/pfunspaceP: Yt1 => [Yt1 Xt1]. 
+case sup1: (support 1 t1 1); first by move/Yt1: sup1; rewrite isetC11.
+move/eqP: sup1 => Dt11; have{Xt1} Xt1: forall u, H (t1 u).
+  move=> u; case sup_u: (u == 1); first by rewrite (eqP sup_u) Dt11.
+  by apply Xt1; apply/imageP; exists u; rewrite // s2f eq_sym sup_u.
+split; last by rewrite prodF Dt11 invg1 conj1g set11.
+apply/tfunspaceP=> u; rewrite g2f /f; case: set1 => //.
+by rewrite groupV /prod_over_zp; elim: (iota _ _) => //= *; rewrite groupM.
+Qed.
+
 Theorem cauchy: exists a, H a && (card (cyclic a) == p).
 Proof.
-set mzp := (@zp_group (S (S (p - 2))) is_true_true).
-set mp := (@permute_zp _ _ subgrp_H (p - 2)).
-set e := (S0 mzp mp).
-have F1: (divn p (card e)).
-   have F2: card mzp = (p ^ 1)%N.
-     rewrite /mzp card_zp.
-     rewrite -!leq_subS ?subSS; last by apply prime_leq_2.
-       by rewrite subn0 expn1.
-     by case: p prime_p.
-  rewrite /e /divn -(mpl _ _ _ _ F2) //.
-   rewrite card_permSet.
-   by exact: divn_expn.
-   by exact: subgrp_of_group.
-   by move => x Hx; exact: permute_zp_bij.
-   by move => x y H0 Hx Hy; exact: permute_zp_morph.
-have F2: e (permSet1 subgrp_H (p - 2)).
-  by move: (stab1 subgrp_H (p - 2)) F1; rewrite /stab.
-have F3: card e >= 2.
-  move: F1.
-  rewrite (cardD1 (permSet1 subgrp_H (p - 2))) F2 //= add1n.
-  match goal with |- context[S ?x] => case x => //= end.
-  by rewrite divn1; move/eqP => H1; move: prime_p; rewrite H1.
-move: F3.
-rewrite (cardD1 (permSet1 subgrp_H (p - 2))) F2 //= add1n ltnS => F3.
-match type of F3 with is_true (_ < ?x)  => 
-  move: F3; set (u := x) => F3 end.
-have F4: u != 0.
-   by move: F3; case u.
-move/set0Pn: F4 => [[a Ha] Ha1].
-move/andP: Ha1 => [Ha1 Ha2].
-move: (stab_in Ha2) => [[e1 He1] He2].
-rewrite /val /valP in He2.
-exists e1; rewrite He1 /=.
-move/prime_div: prime_p => [Hp0 Hp].
-have F4: e1 ^ p == 1.
-  replace p with (S (S (p -2))).
-    apply/eqP.
-    rewrite -(prod_prodn_id (H:= H) _ He1) // -He2.
-    by rewrite -(f_iinv Ha) prod_add_inv.
-  case: p prime_p => //; case => //= n1 _.
-    by rewrite !subSS subn0.
-apply/eqP; case: (Hp (orderg e1)) => //.
-  by rewrite orderg_divn.
-move => H1.
-have F5: (set1 1) =1 (cyclic e1).
-  apply/subset_cardP.
-    by rewrite card1.
-  by apply/subsetP => x Hx; rewrite -(eqP Hx) cyclic1.
-move: (F5 e1).
-rewrite -{3}(gexpn1 e1) cyclic_in.
-move/eqP => H2.
-case (negP Ha1).
-do 2 apply/val_eqP => /=; rewrite He2.
-apply/eqP; congr EqPair.
-  by apply/val_eqP; apply/eqP.
-by apply: prodn_id_irr.
+have card_zp: card zp_group = (p ^ 1)%N.
+  by rewrite icard_card card_ordinal /= muln1.
+have:= mpl prime_p card_zp zprot_acts_on_X; set Z := setI _ _.
+rewrite card_X -{1}(leq_add_sub lt1p) /= -modn_mul (eqnP p_divides_H) /=.
+pose t1 := fgraph_of_fun (fun _ : zp => 1 : elt).
+have Zt1: Z t1.
+  apply/andP; split; [| rewrite s2f; apply/andP; split].
+    by apply/act_fixP=> x _; apply/fgraphP=> i; rewrite /zprot /t1 !g2f.
+    by apply/tfunspaceP=> u; rewrite g2f.
+  rewrite /prod_over_zp; apply/eqP; elim: (iota _ _) => //= i s -> {s}.
+  by rewrite g2f mul1g.
+case: (pickP (setD1 Z t1)) => [t | Z0]; last first.
+  by rewrite mod0n (cardD1 t1) Zt1 (eq_card0 Z0) modn_small.
+case/and3P=> tnot1; move/act_fixP=> fixt. 
+rewrite s2f; case/andP; move/tfunspaceP=> Ht prodt _.
+pose x := t 1; exists x; rewrite Ht /=.
+have Dt: t _ = x by move=> u; rewrite /x -{2}(fixt u (isetAP _)) g2f mulg1.
+have: dvdn (orderg x) p.
+  rewrite orderg_dvd -(eqP prodt) -(size_iota 0 p) /prod_over_zp.
+  by apply/eqP; elim: (iota _ _) => //= i s <-; rewrite Dt.
+case/primeP: prime_p => _ divp; move/divp; case/orP; rewrite eq_sym //.
+move/eqP=> Dx1; case/eqP: tnot1; apply/fgraphP=> i.
+by rewrite Dt -(gexpn1 x) /t1 g2f -Dx1 (eqP (orderg_expn1 _)).
 Qed.
 
 End Cauchy.
@@ -115,15 +197,21 @@ Section Sylow.
 
 Open Scope group_scope.
 
-Variable (G : finGroup) (K : set G).
-Hypothesis subgrp_K: subgrp K.
+Variable (elt : finGroupType) (K : group elt).
 
 Variable p: nat.
 Hypothesis prime_p: prime p.
 
-Let n:= dlogn p (card K).
+Let n := logn p (card K).
 
 Hypothesis n_pos: 0 < n.
+
+
+(*Let*) Lemma DivpCK : dvdn p (card K).
+Proof.
+apply: (@dvdn_trans (p ^ n)%N); last by rewrite dvdn_exp_max.
+by move: n_pos; case: n => // n1 _; rewrite dvdn_expS // dvdnn.
+Qed.
 
 (**********************************************************************)
 (*  Definition of a sylow group:                                      *)
@@ -131,79 +219,134 @@ Hypothesis n_pos: 0 < n.
 (*  that p^n divides card k                                           *)
 (**********************************************************************)
 
-Definition sylow L := 
-  (subgrpb L) && ((subset L K) && (card L == p ^ n)%N).
-
-Lemma eq_sylow: forall L1 L2, L1 =1 L2 -> sylow L1 = sylow L2.
-Proof.
-by (move => L1 L2 H0; apply/and3P/and3P => [] [H1 [H2 H3]]; repeat split);
- [rewrite -(eq_subgroup H0)|
-  rewrite -(eq_subset H0) |
-  rewrite -(eq_card H0) |
-  rewrite (eq_subgroup H0) |
-  rewrite (eq_subset H0) |
- rewrite (eq_card H0)].
-Qed.
-
+Definition sylow (L : setType  elt) := 
+  and3 (group_set L) (subset L K) (card L = p ^ n)%N.
 
 Lemma sylow_conjsg: forall L x, K x -> 
-  sylow L -> sylow (conjsg L x).
+  sylow L -> sylow (L :^ x).
 Proof.
-move => L x Hkx H.
-move/and3P: H => [H1 H2] H3.
-apply/and3P; repeat split; first by apply conjsg_subgrp.
-  apply/subsetP => y Hy.
-  replace y with (x * (x^-1 * y * x) * x^-1); last by gsimpl.
-  apply subgrpM => //; last by exact: subgrpV.
-  apply subgrpM => //.
-  by apply (subsetP H2).
-by rewrite conjsg_card.
+move => L x Kx [group_L sLK card_L]; split.
+- exact: (group_set_sconjg (Group group_L)).
+- apply/subsetP=> y; rewrite /sconjg s2f; gsimpl => Lyx.
+  move: (subsetP sLK _ Lyx) => Kxy.
+  by rewrite -groupV in Kx; rewrite -(groupJr y Kx).
+by rewrite card_sconjg card_L.
 Qed.
 
-Lemma sylow1_rec: forall i Hi, 0 < i -> i < n -> 
-  subgrp Hi -> subset Hi K -> (card Hi = p ^ i)%N ->
-  exists H: set G, subgrp H /\ subset Hi H /\ subset H K 
-                   /\ normal Hi H /\ (card H = p ^ (S i))%N.
+Lemma iimage_quotientP: 
+  forall A B: group elt, forall (t : finType) (f : _ -> t), 
+   (f @: (A/B) = f @: ((A :&: normaliser B)/B)).
 Proof.
-move => i Hi L0i Lin Hh1 Hh2 Hh3.
-have F1: divn p (lindex Hi K).
-  move/divnP: (dlogn_l p (card K)); rewrite -/n => [] [k1 Hk1].
-  apply/divnP; exists (muln k1 (p ^ (n - (S i))))%nat.
+move=> A B t f; apply/isetP=> x; apply/iimageP/iimageP;
+case=> By; case/iimageP=> y Ay dBy ->; case Ny: (normaliser B y);
+exists By => //; apply/iimageP.
+- by exists y => //; apply/isetIP.
+- exists (1:elt) => //; first by apply/isetIP.
+  rewrite dBy; apply: (can_inj (@sig_of_cosetK elt B)); apply: val_inj=> /=.
+  by rewrite cosetD // coset1.
+- by exists y => //; case/isetIP: Ay.
+by exists (1:elt) => //; case/isetIP: Ay; rewrite Ny.
+Qed.
+ 
+Lemma quotientP : forall (A : group elt) (B : setType elt) (C : cosetType B), 
+  reflect (exists x, and3 (A x) (normaliser B x) (C = coset_of B x))
+          (quotient A B C).
+Proof. 
+move=> A B Bx; rewrite (_:(A / B) Bx = (((normaliser B) :&: A) / B) Bx).
+  apply:(iffP (iimageP _ _ _)); case.
+    by move=> x; case/isetIP=> Nx Ax ->; exists x.
+  by move=> x [Ax Nx ->]; exists x => //; apply/isetIP.
+apply/iimageP/iimageP; case=> x.
+  move=> Ax; rewrite /coset_of /coset. 
+  case: Bx; case=> Be BeB=> [[C]]; move: C.
+  case Nx : (normaliser B x)=> dBe.
+    exists x; first by apply/isetIP.
+    apply: (can_inj (@sig_of_cosetK elt B)); apply: val_inj=> /=.
+    by rewrite Nx.
+  exists (1:elt); first by apply/isetIP. 
+  apply: (can_inj (@sig_of_cosetK elt B)); apply: val_inj=> /=.
+  by rewrite group1 gmulg1.
+by case/isetIP=> Nx Ax ->; exists x.
+Qed.
+
+Lemma norm_coset : 
+  forall (L : group elt) x y, 
+     normaliser L x -> L :* x = L :* y -> normaliser L y.
+Proof.
+move=> L x y Nx Lxy.
+have : (L :* x) y by rewrite Lxy rcoset_refl.
+case/rcosetP=> l Ll ->.
+rewrite groupM //.
+by apply: (subsetP (norm_refl L)); auto.
+Qed.
+
+Lemma sylow1_rec: forall i (L : group elt), 0 < i -> i < n -> 
+  subset L K -> (card L = p ^ i)%N ->
+  exists H: group elt, 
+    and4 (subset L H) (subset H K) (L <| H) (card H = p ^ (S i))%N.
+Proof.
+move=> i L lt0i ltin sLK CL.
+have F1: dvdn p (indexg L K).
+  case/dvdnP: (dvdn_p_part p (card K)); rewrite /p_part -/n => k1 Hk1.
+  apply/dvdnP; exists (muln k1 (p ^ (n - (S i))))%N.
   rewrite -{2}(expn1 p) -mulnA -expn_add addn1 -leq_subS //  subSS.
-  have F2: card Hi != 0.
-    rewrite (cardD1 1) subgrp1 //=.
-  apply: (muln_injl F2).
-  rewrite (lLaGrange Hh1 subgrp_K) // Hk1 Hh3.
+  have F2: card L > 0 by rewrite (cardD1 1) group1 //=.
+  apply/eqP; rewrite -(eqn_pmul2l F2); apply/eqP.
+  rewrite (LaGrange sLK) Hk1 CL.
   rewrite (mulnC (p ^ i)) -mulnA -expn_add addnC leq_add_sub //.
-  by apply: (leq_trans _ Lin); rewrite leqnSn.
-set (lS0 := (lS0 subgrp_K Hh1 Hh2)).
-have F2:
-  (modn (lindex Hi K) p =  modn (card lS0) p).
-  rewrite -card_rootSet.
-  apply: mpl Hh3 => //.
-    by move => x Hx; apply: ltrans_bij => //; apply (subsetP Hh2).
-  by move => x y z Hx Hy; apply: ltrans_morph => //; apply (subsetP Hh2).
-set (ng_q := (RGN subgrp_K Hh1 Hh2)).
+  exact : (ltnW ltin).
+set (lS0 := rtrans_fix L K).
+have F2: (modn (indexg L K) p =  modn (card lS0) p).
+  rewrite /lS0 /rtrans_fix /indexg.
+  rewrite (@mpl elt (set_finType elt) (trans_action elt) L i p prime_p CL (rcosets L K)).
+    by congr modn; apply:eq_card => Ha; rewrite !s2f /setI andbC.
+  apply: intro_closed=> A B.
+    exact: (orbit_csym (trans_action elt) L).
+  case/iimageP=> x Lx ->; case/iimageP=> y Ky ->.
+  apply/iimageP.
+  exists (y*x).
+    rewrite groupM //; exact: (subsetP sLK x).
+  by rewrite /= rcoset_morph.
+set (ng_q := K / L).
 have F3:card lS0 = card ng_q.
-  apply sym_equal; apply: bij_eq_card.
-  by exists (@to_RG_inv _ _ _ subgrp_K Hh1 Hh2);
-     apply: to_RG_inv_bij.
-have F4: divn p (card ng_q).
-  rewrite -F3 /divn -F2 -/divn; exact F1.
-case: (cauchy (subgrp_of_group _) prime_p F4) => sng.
-case/andP => Hsng1 Hsng2.
-set L :=
- (setI 
-   (preimage 
-    (quotient Hh1 (normaliser_grp Hi (subgrp_K)) 
-         (subset_normaliser Hh1 Hh2) (normaliser_normal Hh2))
-    (cyclic sng)) (normaliser Hi K)).
-have T0: (subgrp (cyclic sng)).
-  by apply: subgrp_cyclic.
-have T1: subgrp L.
-  exact: quotient_preimage_subgrp.
-have T2: subset Hi L.
-  exact: quotient_preimage_subset_h.
+  rewrite /lS0 rtrans_fix_norm.
+  rewrite -(card_iimage (@coset_set_inj _ L)).
+  apply: eq_card=> Lk.
+  rewrite iimage_quotientP.
+  apply/iimageP/idP; last first.
+    case/iimageP=> Lx QLx ->; case/iimageP: QLx=> x. 
+    by case/isetIP=> Kx NLx ->; exists x;
+      [ apply/isetIP; split | rewrite /set_of_coset /= cosetN].
+  case=> x; case/isetIP=> Nx Kx ->; apply/iimageP. 
+  exists (coset_of L x). 
+    by apply/iimageP; exists x => //; apply/isetIP.
+  by rewrite /set_of_coset /= cosetN //.
+have F4: dvdn p (card ng_q) by rewrite -F3 /dvdn -F2; apply: F1.
+have F5: dvdn p (card (group_quotient L K)) by rewrite /set_of_coset /=.
+case (cauchy prime_p F5) => {F1 F2 F3 F4 F5}.
+move=> sng; case/andP=> Hsng1 Hsng2.
+set H := (coset_of L @^-1: cyclic sng) :&: (normaliser L).
+have T0 := group_cyclicP sng.
+have T1 : group_set H.
+  apply/andP; split.
+    apply/isetIP; split; last exact: group1.
+    rewrite s2f.     case/quotientP: Hsng1=> y [Ky Ny ->].
+    apply/cyclicP. exists 0. rewrite -coset_ofE // gexpn0.
+  rewrite {1 2}/H. apply/subsetP => x.
+  unlock smulg smulg_def; rewrite s2f. move/set0Pn.
+  case. move=> y; case/andP; rewrite s2f.
+  case/rcosetP=> z; case/isetIP. rewrite s2f=> CLz Nz ->.
+  case/isetIP; rewrite s2f => CLy Ny.
+  apply/isetIP; split; last exact: groupM.
+  rewrite s2f. rewrite morph_coset_of //. exact: groupM.
+have T2: subset L H.
+  apply/subsetP => x Lx; apply/isetIP; split.
+    rewrite s2f coset_of_id //. exact: group1.
+  move: x Lx; apply/subsetP; exact: norm_refl.
+exists (Group T1); split => //=.
+STOP
+Admitted.
+(*
 exists L; repeat split => //.
     apply: (subset_trans _ (normaliser_subset Hi K)).
     by exact: quotient_preimage_subset_k.
@@ -220,40 +363,31 @@ rewrite (quotient_index Hh1 (normaliser_grp Hi (subgrp_K))
   by exact: (eqP Hsng2).
 by exact: quotient_preimage_subset_k.
 Qed.
+*)
 
 Lemma sylow1: forall i, 0 < i -> i <= n -> 
-  exists H: set G, subgrp H /\ subset H K /\ (card H = p ^ i)%N.
+  exists H: group elt, (subset H K) /\ (card H = p ^ i)%N.
 Proof.
-elim => [| i] //.
-case: i => [| i].
-  move => _ _ _; rewrite expn1.
-  case: (cauchy subgrp_K prime_p).
-     apply: divntrans _ (dlogn_l p (card K)).
-     rewrite -/n; move: n_pos; case: n => // n1 _.
-     by apply divn_expn; rewrite divnn.
-  move => a; case/andP => Ha1 Ha2.
-  exists (cyclic a: set G); repeat split => //; last exact: eqP.
-    by apply subgrp_cyclic.
-  apply: cyclic_h => //.
-move => Rec _ H; case: Rec => //.
-  by rewrite (leq_trans _ H) // leqnSn.
-move => H0 [Hh1 [Hh2 Hh3]].
-have F1: 0 < S i by done.
-case (sylow1_rec F1 H Hh1 Hh2 Hh3).
-by move => ngc [H1 [H2 [H3 [H4 H5]]]]; exists ngc; repeat split.
+elim=> //; case=> [_ _ _| i].
+  rewrite expn1; case: (@cauchy _ K _ prime_p DivpCK) => a.
+  case/andP => Ha1; move/eqP=> Ha2.
+  by exists (group_cyclic a); split; [exact: cyclic_h |].
+move => Rec _ H; case: (Rec _ (ltnW H)) => // g [Hg Cg] {Rec}.
+case: (sylow1_rec _ H Hg Cg) => // ngc [Sg_ngc Sngc_K Ng_ngc Cngc].
+by exists ngc; split.
 Qed.
 
 (**********************************************************************)
 (*               First Sylow theorem                                  *)
 (**********************************************************************)
 
-Theorem sylow1_cor: exists H: set G, sylow H.
+Theorem sylow1_cor: exists H: group elt, sylow H.
 Proof.
-case (@sylow1 n) => //.
-move => H [H1 [H2 H3]]; exists H.
-apply/and3P; repeat split => //.
-by apply/eqP.
+case (@sylow1 n) => // g [Sg Cg]; exists g; split=> //.
+exact: set_of_groupP.
 Qed.
+
+BELOW NOT EVEN PORTED TO setType
 
 Lemma sylow2: forall H L i,0 <i -> i <= n ->
  subgrp H -> subset H K ->  (card H = p ^ i)%N -> sylow L ->

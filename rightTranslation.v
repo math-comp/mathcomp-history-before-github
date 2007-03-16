@@ -55,42 +55,41 @@ Section Bij.
 
 Open Scope group_scope.
 
-Variable (G : finGroupType) (H: group G).
+Variable (G : finGroupType) (H K: group G).
 
-Definition rcoset_set := (rcoset H) @: (isetA G).
+Hypothesis subset_HK : subset H K.
 
 (***********************************************************************)
 (*                                                                     *)
 (*  Definition of the set of element of orbit 1 by the right           *)
-(*    translation  of rcoset of H in G                                 *)
+(*    translation  of rcoset of H in K                                 *)
 (*                                                                     *)
 (***********************************************************************)
 
-Definition rtrans_fix := rcoset_set :&: {s, act_fix (trans_action G) H s}.
+Definition rtrans_fix := rcosets H K :&: {s, act_fix (trans_action G) H s}.
 
 Lemma act_fix_norm : forall x,
   act_fix (trans_action G) H (H :* x) = normaliser H x.
 Proof.
-move=> x; rewrite /act_fix. 
-apply/eqP/idP. 
-  rewrite -(groupV (normaliser H)) s2f => dH;apply/subsetP=> y.
-  rewrite {1}dH !s2f /=; case/andP=> _; move/eqP=> dHx.
-  rewrite -(actK (trans_action G) x H) /= -{}dHx -!rcoset_morph /conjg.
-  by gsimpl; exact: rcoset_refl.
-move=> Nx; apply/isetP=> y; rewrite s2f; symmetry.
-case Hy: (H y) => //=; apply/eqP; rewrite -(rcoset1 H) in Hy.
-rewrite (norm_rlcoset Nx) lcoset_smul rcoset_smul -smulgA.
-by congr smulg; rewrite -rcoset_smul -(rcoset_trans1 Hy) rcoset1.
+move=> x; apply/act_fixP/idP.  
+   rewrite -(groupV (normaliser H)) s2f => dHx; apply/subsetP=> y. 
+   rewrite s2f /conjg; gsimpl => Hxy. 
+   rewrite -(actK (trans_action G) x H) /= -(dHx _ Hxy) /=. 
+   by rewrite -!rcoset_morph /conjg s2f; gsimpl; exact group1.
+move=> Nx y Hy => /=; rewrite (norm_rlcoset Nx).
+by apply/isetP=> a; rewrite !s2f mulgA groupMr ?groupV.
 Qed.
 
-Lemma rtrans_fix_norm : rtrans_fix = (rcoset H) @: (normaliser H).
+Lemma rtrans_fix_norm : rtrans_fix = (rcoset H) @: (normaliser H :&: K).
 Proof.
 apply/isetP=> Hx; apply/isetIP/iimageP.
-  case; rewrite s2f /rcoset_set;move/iimageP=> [x _ ->] af.
-  by exists x; rewrite act_fix_norm in af.
-case=> x Nx ->; split; first by apply/iimageP; exists x =>//; rewrite s2f.
-by rewrite s2f act_fix_norm.
+  case; rewrite s2f /rcosets;move/iimageP=> [x Kx ->] af.
+  by exists x => //; rewrite act_fix_norm in af; rewrite s2f Kx andbC /=.
+case=> x; case/isetIP=> Nx Kx dHx; split; last by rewrite s2f dHx act_fix_norm.
+by apply/iimageP; exists x.
 Qed.
+
+
 
 End Bij.
 

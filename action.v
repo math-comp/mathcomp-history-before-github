@@ -61,17 +61,25 @@ Proof.
 by move=> x; rewrite s2f; apply: (iffP andP) => [] [Hx]; move/eqP.
 Qed.
 
-Definition act_fix := H == stabilizer :> setType _.
+Definition act_fix := stabilizer == H :> setType _.
 
-Lemma act_fixP : reflect (orbit = {:a}) act_fix.
+Lemma act_fixP : reflect (forall x, H x -> to a x = a) act_fix.
 Proof.
-apply: (iffP eqP) => [fixH | fix_a]; apply/isetP.
-  move=> b; rewrite s2f; apply/idP/eqP=> [|<-]; last exact orbit_refl.
-  by case/orbitP=> x; rewrite fixH s2f; case/andP=> _; move/eqP->.
-move=>x; rewrite s2f; apply/idP/andP=> [Hx | [] //]; split=> //.
-by have:= orbit_to Hx; rewrite fix_a s2f eq_sym.
+apply: (iffP eqP). 
+  by move/isetP=> Hs x Hx; move/(_ x): Hs; rewrite Hx; case/stabilizerP.
+move=> Ha; apply/isetP=> x; move/(_ x): Ha. 
+by rewrite s2f; case: (H x) => //= ->; rewrite // set11.
 Qed.
 
+Lemma orbit1P : reflect ({:a} = orbit) act_fix.
+Proof.
+apply: (iffP idP).
+  move/act_fixP => Hto; apply/isetP=> x; rewrite s2f.
+  apply/eqP/orbitP; last by move=> [z Hz Htoz]; rewrite -(Hto z Hz).
+  by move=> <-; exists (1 : G); rewrite ?group1 ?act_1.
+move/isetP=> Horb; apply/act_fixP=> x Hx; move/(_ (to a x)): Horb.
+by rewrite s2f orbit_to // eq_sym; move/eqP=> ->.
+Qed.
 
 Lemma stab_1: stabilizer 1.
 Proof. by apply/stabilizerP; split; [ apply group1 | apply (act_1 to) ]. Qed.
@@ -173,57 +181,42 @@ Proof. by move=> x y; rewrite !orbit_trans orbit_sym. Qed.
 Variable n p: nat.
 Hypothesis prime_p: prime p.
 Hypothesis card_H: card H = (p ^ n)%N.
+Variable A : setType S.
 
-Lemma mpl: modn (card (setA S)) p = modn (card (act_fix to H)) p.
+
+
+
+Hypothesis HactsonA : closed (orbit to H) A.
+
+Lemma mpl: modn (card A) p = modn (card (setI (act_fix to H) A)) p.
 Proof.
-rewrite -(addn0 (card (act_fix _ H))) -(cardIC (act_fix to H) (setA S)) /setI.
-rewrite -modn_add -[modn (_ + 0) _]modn_add; congr modn; congr addn; rewrite mod0n.
-set (e := (fun x : S => (setA S) x && setC (act_fix to H) x)).
-have C1: closed (orbit to H) e.
- move => x y; rewrite /e /=.
- case Eq1: (x == y); first by rewrite (eqP Eq1).
- move => H1; apply/negP/negP => H2 H3; case: H2.
-   move/act_fixP: H3; move/isetP; move/(_ x).
-   by rewrite orbit_sym H1 s2f eq_sym Eq1.
- by move/act_fixP: H3; move/isetP; move/(_ y); rewrite H1 s2f Eq1.
-have C2: forall a, e a -> dvdn p (card (orbit to H a)).
-  move => a Ha.
-  have F1: (dvdn (card (orbit to H a)) (p ^ n))
-    by rewrite -card_H card_orbit_div.
-  move/(@dvdn_exp_prime _ _ _ prime_p): F1 => 
-      [] [|m] /= H1 H2; last by rewrite H2 dvdn_mulr.
-  unfold e in Ha; move/andP: Ha => [_ Ha].
-  move/negP: Ha => Ha; case Ha.
-  apply/act_fixP => //. 
-  exact: card_orbit1.
-move Dn: (n_comp (orbit to H) e) => n1. 
-elim: n1 e C1 C2 Dn => [|n1 Rec] e C1 C2.
-  move/eqP=> Hk0; rewrite -(mod0n p); congr modn.
-  apply: (appP set0P eqP) => x; apply/idP=> Hx.
-  case/idP: (set0P Hk0 (root (orbit to H) x)); rewrite /setI (roots_root orbit_csym).
-  by rewrite -(closed_connect C1 (connect_root _ _)).
-case: (pickP (setI (roots (orbit to H)) e));
- last by move => Hk; rewrite /n_comp (eq_card Hk) card0.
-move => x Dn.
-move: (andP Dn) => [H1 H2].
-rewrite /n_comp (cardD1 x) Dn => [] [Dn1].
-rewrite -(cardIC (orbit to H x) e).
-rewrite -modn_add -(mod0n p) -(add0n 0) -[modn (0 + _) _]modn_add;
-  congr modn; congr addn; rewrite mod0n.
-  move: (C2 x H2); rewrite /dvdn; move/eqP => H3.
-  rewrite -H3; congr modn.
-  apply eq_card => z; rewrite /setI.
-  case Eq1: (orbit to H x z); last by rewrite andbF.
-  rewrite andbT (C1 z x) //  ?H2.
-  by rewrite orbit_sym Eq1.
-rewrite -{Rec}(Rec (setD e (orbit to H x)));
- first by congr modn; apply: eq_card => y; exact: andbC.
- move=> y z Hyz; rewrite /setD (C1 _ _ Hyz) -!orbit_trans.
- by rewrite (same_connect_r orbit_csym (connect1 Hyz)).
- by move => a; move/andP => [_ Ha]; apply C2.
-apply: {n1}etrans Dn1; apply: eq_card => y; rewrite /setD1 /setI andbCA /setD.
-rewrite -orbit_trans (sameP (rootP orbit_csym) eqP).
-by case Dy: (roots (orbit to H) y) (andP Dn) => //= [] [Dx _]; rewrite (eqP Dy) (eqP Dx).
+elim: (Datatypes.S _) {-2}(A : set _) (ltnSn (card A)) HactsonA => // m IHm B.
+rewrite ltnS => leBm HactB.
+case: (pickP (setD B (act_fix to H))) => [a | fixB]; last first.
+  congr modn; apply: eq_card => a; rewrite /setI andbC; symmetry.
+  move/(_ a): fixB; rewrite /setD andbC; case: (B a) => //=.
+  by move/negbEF.
+pose C := orbit to H a.
+move/andP=> [nfixa Ba]; rewrite -(cardIC C B). 
+have [i ->]: exists i, card (setI B C) = (p * p ^ i)%N.
+  have ->: card (setI B C) = card C.
+    apply: eq_card => b; rewrite /setI andbC; case Cb: (C b) => //=.
+    by rewrite -(HactB a).
+  have: dvdn (card C) (p ^ n) by rewrite -card_H card_orbit_div.
+  case/dvdn_exp_prime=> //= [] [_ fixa|i]; last by exists i.
+  case/orbit1P: nfixa; symmetry; exact: card_orbit1.
+rewrite mulnC modn_addl_mul {}IHm; last first.
+- move=> b1 b2 orbHb12; rewrite /setI (HactB _ b2) //.
+  congr andb; congr negb.
+  rewrite /C -!orbit_trans in orbHb12 *; apply: same_connect_r => //.
+  exact: orbit_csym.
+- apply: leq_trans leBm => {m IHm}.
+  rewrite -(cardIC C B) -add1n leq_add2r lt0n.
+  by apply/set0Pn; exists a; rewrite /setI Ba /C orbit_refl.
+congr modn; apply: eq_card => b; rewrite /setI /setC.
+case fixb: (act_fix _ H b) => //=; case (B b) => //=.
+rewrite /C orbit_sym -(orbit1P _ _ _ fixb).
+by apply/iset1P=> Eba; rewrite -Eba fixb in nfixa.
 Qed.
 
 End ModP.
@@ -239,15 +232,15 @@ Definition to (x:S) (u : G) := fun_of_perm u x.
 
 Lemma to_1 : forall x, to x 1 = x.
 Proof.
-move => x. rewrite /to; gsimpl.
+move => x; rewrite /to; gsimpl.
 rewrite /unitg /= /perm_unit /fun_of_perm /=.
-by rewrite /comp /perm_of_inj can_fgraph_of_fun /fgraph_of_fun.
+by rewrite /comp /perm_of_inj g2f /fgraph_of_fun.
 Qed.
 
 Lemma to_morph : forall (x y:permType S) z,
   to z (x * y) = to (to z x) y.
 Proof. 
-by move=> *; rewrite /perm_mul /to /fun_of_perm /= /comp !can_fgraph_of_fun.
+by move=> *; rewrite /perm_mul /to /fun_of_perm /= /comp !g2f.
 Qed.
 
 Definition perm_act := Action to_1 to_morph.
@@ -267,13 +260,13 @@ Definition perm_of_act x := perm_of_inj (@inj_act _ _ to x).
 Lemma perm_of_op : forall x a, perm_of_act x a = to a x.
 Proof.
 move=> x a; rewrite /perm_of_act.
-by rewrite /fun_of_perm can_fgraph_of_fun.
+by rewrite /fun_of_perm g2f.
 Qed.
 
 Lemma perm_of_act_morph : forall x y,perm_of_act (x*y) = perm_of_act x * perm_of_act y.
 Proof.
 move=> x y; apply: eq_fun_of_perm => a.
-rewrite {2}/fun_of_perm !can_fgraph_of_fun /comp !perm_of_op ?groupM //.
+rewrite {2}/fun_of_perm !g2f /comp !perm_of_op ?groupM //.
 by rewrite act_morph.
 Qed.
 
