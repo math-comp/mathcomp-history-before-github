@@ -280,6 +280,9 @@ rewrite groupM //.
 by apply: (subsetP (norm_refl L)); auto.
 Qed.
 
+Lemma isetIA: forall A B C : setType elt , A :&: B :&: C = A :&: (B :&: C).
+Proof. by move=> A B C; apply/isetP=> x; rewrite !s2f andbA. Qed.
+
 Lemma sylow1_rec: forall i (L : group elt), 0 < i -> i < n -> 
   subset L K -> (card L = p ^ i)%N ->
   exists H: group elt, 
@@ -298,60 +301,53 @@ have F1: dvdn p (indexg L K).
 set (lS0 := rtrans_fix L K).
 have F2: (modn (indexg L K) p =  modn (card lS0) p).
   rewrite /lS0 /rtrans_fix /indexg.
-  rewrite (@mpl elt (set_finType elt) (trans_action elt) L i p prime_p CL (rcosets L K)).
+  rewrite (@mpl _ _ (trans_action elt) _ _ _ prime_p CL _).
     by congr modn; apply:eq_card => Ha; rewrite !s2f /setI andbC.
-  apply: intro_closed=> A B.
-    exact: (orbit_csym (trans_action elt) L).
-  case/iimageP=> x Lx ->; case/iimageP=> y Ky ->.
-  apply/iimageP.
-  exists (y*x).
-    rewrite groupM //; exact: (subsetP sLK x).
+  apply: intro_closed=> A B; first exact: orbit_csym.
+  case/iimageP=> x Lx ->; case/iimageP=> y Ky ->; apply/iimageP.
+  exists (y*x); first by rewrite groupM //; exact: (subsetP sLK x).
   by rewrite /= rcoset_morph.
 set (ng_q := K / L).
 have F3:card lS0 = card ng_q.
-  rewrite /lS0 rtrans_fix_norm.
-  rewrite -(card_iimage (@coset_set_inj _ L)).
-  apply: eq_card=> Lk.
-  rewrite iimage_quotientP.
+  rewrite /lS0 rtrans_fix_norm -(card_iimage (@coset_set_inj _ L)).
+  apply: eq_card=> Lk; rewrite iimage_quotientP.
   apply/iimageP/idP; last first.
     case/iimageP=> Lx QLx ->; case/iimageP: QLx=> x. 
-    by case/isetIP=> Kx NLx ->; exists x;
-      [ apply/isetIP; split | rewrite /set_of_coset /= cosetN].
+    case/isetIP=> Kx NLx ->; exists x; first by apply/isetIP.
+    by rewrite /set_of_coset /= cosetN.
   case=> x; case/isetIP=> Nx Kx ->; apply/iimageP. 
-  exists (coset_of L x). 
-    by apply/iimageP; exists x => //; apply/isetIP.
-  by rewrite /set_of_coset /= cosetN //.
+  exists (coset_of L x); first by apply/iimageP; exists x=> //; apply/isetIP.
+  by rewrite /set_of_coset /= cosetN.
 have F4: dvdn p (card ng_q) by rewrite -F3 /dvdn -F2; apply: F1.
 have F5: dvdn p (card (group_quotient L K)) by rewrite /set_of_coset /=.
 case (cauchy prime_p F5) => {F1 F2 F3 F4 F5}.
 move=> sng; case/andP=> Hsng1 Hsng2.
-set H := (coset_of L @^-1: cyclic sng) :&: (normaliser L).
+set H := (coset_of L @^-1: cyclic sng) :&: (normaliser L) :&: K.
 have T0 := group_cyclicP sng.
 have T1 : group_set H.
-  apply/andP; split.
-    apply/isetIP; split; last exact: group1.
-    rewrite s2f.     case/quotientP: Hsng1=> y [Ky Ny ->].
-    apply/cyclicP. exists 0. rewrite -coset_ofE // gexpn0.
-  rewrite {1 2}/H. apply/subsetP => x.
-  unlock smulg smulg_def; rewrite s2f. move/set0Pn.
-  case. move=> y; case/andP; rewrite s2f.
-  case/rcosetP=> z; case/isetIP. rewrite s2f=> CLz Nz ->.
-  case/isetIP; rewrite s2f => CLy Ny.
-  apply/isetIP; split; last exact: groupM.
-  rewrite s2f. rewrite morph_coset_of //. exact: groupM.
+  have: group_set ((coset_of L @^-1: cyclic sng) :&: (normaliser L)).
+    apply/andP; split.
+      apply/isetIP; split; last exact: group1.
+      rewrite s2f; case/quotientP: Hsng1=> y [Ky Ny ->].
+      by apply/cyclicP; exists 0; rewrite -coset_ofE // gexpn0.
+    apply/subsetP => x; unlock smulg smulg_def; rewrite s2f; move/set0Pn.
+    case=> y; case/andP; rewrite s2f.
+    case/rcosetP=> z; case/isetIP; rewrite s2f => CLz Nz ->.
+    case/isetIP; rewrite s2f => CLy Ny.
+    apply/isetIP; split; last exact: groupM.
+    by rewrite s2f morph_coset_of // groupM.
+  by move => gL; apply: (group_setI (Group gL) K).
 have T2: subset L H.
-  apply/subsetP => x Lx; apply/isetIP; split.
-    rewrite s2f coset_of_id //. exact: group1.
-  move: x Lx; apply/subsetP; exact: norm_refl.
-exists (Group T1); split => //=.
-STOP
+  apply/subsetP => x Lx. 
+  apply/isetIP; split; last by apply: (subsetP sLK x).
+  apply/isetIP; split; first by rewrite s2f coset_of_id // group1.
+  by move: x Lx; apply/subsetP; exact: norm_refl.
+exists (Group T1); split => //.
+- exact: subsetIr.
+- have sHN: subset H (normaliser L) by apply/subsetP=>x; do 2 case/isetIP.
+  exact: (normal_subset (norm_normal L) sHN).
 Admitted.
 (*
-exists L; repeat split => //.
-    apply: (subset_trans _ (normaliser_subset Hi K)).
-    by exact: quotient_preimage_subset_k.
-  apply (normal_subset  (normaliser_normal Hh2)) => //.
-  by exact: quotient_preimage_subset_k.
 rewrite -(lLaGrange Hh1) // Hh3.
 rewrite (quotient_index Hh1 (normaliser_grp Hi (subgrp_K)) 
          (subset_normaliser Hh1 Hh2) (normaliser_normal Hh2)) //.
@@ -368,13 +364,12 @@ Qed.
 Lemma sylow1: forall i, 0 < i -> i <= n -> 
   exists H: group elt, (subset H K) /\ (card H = p ^ i)%N.
 Proof.
-elim=> //; case=> [_ _ _| i].
-  rewrite expn1; case: (@cauchy _ K _ prime_p DivpCK) => a.
-  case/andP => Ha1; move/eqP=> Ha2.
-  by exists (group_cyclic a); split; [exact: cyclic_h |].
+elim=> //; case=> [_ _ _| i] => /=. 
+  case: (@cauchy _ K _ prime_p DivpCK) => a.
+  case/andP => Ha1; move/eqP=> Ha2; rewrite muln1.
+  by exists (group_cyclic a); split; first exact: cyclic_h.
 move => Rec _ H; case: (Rec _ (ltnW H)) => // g [Hg Cg] {Rec}.
-case: (sylow1_rec _ H Hg Cg) => // ngc [Sg_ngc Sngc_K Ng_ngc Cngc].
-by exists ngc; split.
+by case: (sylow1_rec _ H Hg Cg) => // ngc [] *; exists ngc. 
 Qed.
 
 (**********************************************************************)
