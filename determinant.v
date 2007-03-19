@@ -57,11 +57,6 @@ move: l0 => _ x l0 Hl0 l; elim l; first done.
 by move: l=>_ y l; move/eqP=>Hl; rewrite /= H0 H Hl; apply: Hl0 (Adds y seq0).
 Qed.
 
-Lemma perm_unit_id : forall x:d, perm_unit d x = x.
-Proof. 
-by move => x; rewrite /perm_unit /fun_of_perm /perm_of_inj /= g2f /id.
-Qed.
-
 Lemma sign_unit : signature (perm_unit d) == zero.
 Proof.
 rewrite /signature.
@@ -71,7 +66,7 @@ apply (all_zeros_foldr (fzp 2) d (add_zp zerolt2) zero
 by rewrite /zero; apply unit_zp. 
 move => i j; rewrite /inversion.
 case: (index i (FinType.enum d)<index j (FinType.enum d)); last done.
-by rewrite !perm_unit_id eq_refl. 
+by rewrite /fun_of_perm !g2f eq_refl. 
 Qed.
 
 (* to prove this lemma, I will need to partition the set over which the
