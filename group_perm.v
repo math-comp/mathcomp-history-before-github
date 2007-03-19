@@ -20,17 +20,26 @@ Section PermGroup.
 
 Variable d:finType.
 
-Definition permType := eq_sig (fun g : fgraphType d d => uniq (fval g)).
+CoInductive permType : Type := 
+  Perm : eq_sig (fun g : fgraphType d d => uniq (fval g)) -> permType.
 
-Canonical Structure perm_eqType := @EqType permType _ (@val_eqP _ _).
+Definition pval p := match p with Perm g => g end.
 
-Canonical Structure perm_finType := @FinType perm_eqType _ (@sub_enumP _ _).
+Lemma can_pval : cancel pval Perm.
+Proof. by rewrite /cancel; case => /=. Qed.
 
-Definition fun_of_perm := fun u : permType => (val u : fgraphType _ _) : d -> d.
+Lemma pval_inj : injective pval. 
+Proof. exact: can_inj can_pval. Qed.
+
+Canonical Structure perm_eqType := EqType (can_eq can_pval).
+
+Canonical Structure perm_finType := FinType (can_uniq can_pval).
+
+Definition fun_of_perm := fun u : permType => (val (pval u) : fgraphType _ _) : d -> d.
 
 Coercion fun_of_perm : permType >-> Funclass.
 
-Lemma perm_uniqP : forall g : fgraphType d d, reflect (injective g) (uniq (@fval  d d g)).
+Lemma perm_uniqP : forall g : fgraphType d d, reflect (injective g) (uniq (@fval d d g)).
 Proof.
 move=> g; apply: (iffP idP) => Hg.
   apply: can_inj (fun x => sub x (enum d) (index x (fval g))) _ => x.
@@ -40,8 +49,8 @@ Qed.
 
 Lemma eq_fun_of_perm: forall u v : permType, u =1 v -> u = v.
 Proof.
-move => u v Huv; apply: val_inj. 
-rewrite -(can_fun_of_fgraph (val u)) -(can_fun_of_fgraph (val v)).
+move => u v Huv; apply: pval_inj; apply: val_inj. 
+rewrite -(can_fun_of_fgraph (val (pval u))) -(can_fun_of_fgraph (val (pval v))).
 apply: fval_inj; unlock fgraph_of_fun; exact: (eq_maps Huv).
 Qed.
 
@@ -52,10 +61,13 @@ by apply: eq_inj Hf _ => x; rewrite g2f.
 Qed.
 
 Definition perm_of_inj f (Hf : injective f) : permType :=
-  EqSig (fun g : fgraphType d d => uniq (fval g)) _ (perm_of_injP Hf).
+  Perm (EqSig (fun g : fgraphType d d => uniq (fval g)) _ (perm_of_injP Hf)).
+
+Lemma p2f : forall f (Hf : injective f), perm_of_inj Hf =1 f.
+Proof. move=> *; exact: g2f. Qed.
 
 Lemma perm_inj : forall u : permType, injective u.
-Proof. by case=> g Hg; apply/perm_uniqP. Qed.
+Proof. by case=> H; apply/perm_uniqP; case: H => *. Qed.
 
 Definition perm_elem := perm_finType.
 
@@ -89,6 +101,9 @@ Qed.
 
 Canonical Structure perm_finGroupType := 
   FinGroupType perm_unitP perm_invP perm_mulP.
+
+Lemma perm1 : forall x, perm_unit x = id x.
+Proof. by move=> x; rewrite p2f. Qed.
 
 Definition perm a (u : permType) := subset (fun x => u x != x) a.
 

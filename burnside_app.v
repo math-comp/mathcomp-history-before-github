@@ -267,8 +267,8 @@ Qed.
 
 Lemma diff_id_sh: unitg (perm_finGroupType square) != sh.
 Proof.
-rewrite /set1/= /fgraph_of_fun; unlock;apply/negP; move/eqP;move/fgraph_eqP=>/=.
-by rewrite ord_enum4.
+apply/negP; rewrite /set1 /= /fgraph_of_fun; move/eqP; injection.  
+by unlock; injection; rewrite ord_enum4.
 Qed.
 
 Definition isometries2 :setType (perm_finType square):=  iset2 1 (perm_of_inj Sh_inj).
@@ -276,10 +276,9 @@ Definition isometries2 :setType (perm_finType square):=  iset2 1 (perm_of_inj Sh
 Lemma card_iso2: card isometries2 = 2.
 Proof. 
 rewrite icard2-/sh;congr S.
-have ->: (1 != sh) =>//.
-rewrite/set1/=/fgraph_of_fun; unlock;apply/negP; move/eqP;move/fgraph_eqP => /=;
-by rewrite ord_enum4.
- Qed.
+have ->: (1 != sh) =>//. 
+exact: diff_id_sh.
+Qed.
 
 Lemma group_set_iso2: group_set  isometries2.
 Proof.
@@ -351,9 +350,9 @@ Canonical Structure iso_group:= Group group_set_iso.
 Lemma card_rot: card rot = 4.
 Proof.
 rewrite (eq_card rot_is_rot);rewrite (icardD1 id1)  (icardD1 r1) (icardD1 r2) (icardD1 r3)  /rotations/= !s2f  eq_refl !orTb;congr addn.
-repeat 
+repeat
  match goal with |- context [?x != ?y] => have ->: (x != y);
-first by rewrite/set1/= /fgraph_of_fun; unlock;apply/negP; move/eqP;
+first by rewrite/set1/= /fgraph_of_fun; apply/negP; injection; move/eqP; injection; unlock;
    move/fgraph_eqP => /=;rewrite ord_enum4  end.
 repeat (rewrite eq_refl  ?orbT;congr addn).
 rewrite -(@eq_card _ set0 );first by apply card0.
@@ -914,7 +913,7 @@ have card_iso: card iso_group = 8.
  /isometries/= !s2f  eq_refl !orTb;congr addn.
   repeat 
    match goal with |- context [?x != ?y] => have ->: (x != y);
-   first by rewrite/set1/= /fgraph_of_fun; unlock;apply/negP; move/eqP;
+   first by rewrite/set1/= /fgraph_of_fun; apply/negP; injection; move/eqP; injection; unlock;
    move/fgraph_eqP => /=;rewrite ord_enum4  end.
   repeat (rewrite eq_refl  ?orbT;congr addn).
   rewrite -(@eq_card _ set0 );first by apply card0.
@@ -934,7 +933,7 @@ try do 3!(rewrite /setD1;try apply/and4P; try apply/and5P; try apply/and3P; try 
        rewrite -(card0 col_squares);   apply eq_card;move => z;apply /idP.
        apply/negP; apply/nandP;left;rewrite s2f;apply /negP.
 case /or4P; last case/or4P;last case/orP; by rewrite eq_sym; apply/negP.
- Qed.
+Qed.
 
 End square_colouring.
 
