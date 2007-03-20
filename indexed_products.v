@@ -102,6 +102,19 @@ move: H; case: (filter (set1 i) (enum d)) => //=.
 by move => x [|x' s'] //= ; rewrite /setU1 orbF => Heq; rewrite (eqP Heq) mulC unitP.
 Qed.
 
+Lemma iprod_mul : forall (d:finType)(a : set d)(f g:d->R),
+  iprod d a (fun x => f x * g x) = iprod d a f * iprod d a g.
+move => d a f g.
+elim: {a}(card a) {-2}a (refl_equal (card a)) => [| n Hrec] a Ha.
+ by rewrite !(eq_iprod_set _ _ _ _ (card0_eq Ha)) !iprod0.
+have F2: ~~set0b a by apply/set0P => H1; rewrite (eq_card0 H1) in Ha.
+case/set0Pn: F2 => x Hx.
+rewrite !(iprodD1 _ x a) // -(mulP (f x) (iprod d (setD1 a x) f)). 
+rewrite (mulP (iprod d (setD1 a x) f)) (mulC (iprod d (setD1 a x) f)) -!mulP -Hrec //.
+by rewrite (cardD1 x) Hx /= add1n in Ha; injection Ha.
+Qed.
+
+
 Lemma iprod_parts : forall (d:finType)(a : set d)(f:d->R)(g:d->d),
  disjoint a (image g a) -> dinjective a g ->
  iprod d (setU a (image g a)) f = iprod d a (fun x => f x * f (g x)).
@@ -163,5 +176,26 @@ rewrite /setD1 /setU; apply/andP; split.
  by apply/imageP; exists x => //.
 apply/orP;right;apply/imageP; exists x => //.
 Qed.
+
+Section distr.
+
+Variable m' : R -> R -> R.
+Hypothesis distr : forall x y z, m' (mulR x y) z = mulR (m' x z) (m' y z).
+Hypothesis m'1x : forall x, m' 1 x = 1.
+
+Lemma i_prod_distr :
+  forall (d:finType) (a:set d) alpha f,
+     iprod _ a (fun x => m' (f x) alpha) = m' (iprod _ a f) alpha.
+move => d a alpha f.
+elim: {a}(card a) {-2}a (refl_equal (card a)) => [| n Hrec] a Ha.
+ by rewrite !(eq_iprod_set _ _ _ _ (card0_eq Ha)) !iprod0 m'1x.
+have F2: ~~set0b a by apply/set0P => H1; rewrite (eq_card0 H1) in Ha.
+case/set0Pn: F2 => x Hx.
+rewrite (iprodD1 _ x) //=; rewrite (iprodD1 _ x a) //=. 
+rewrite distr; congr mulR; apply Hrec. 
+by rewrite (cardD1 x) Hx /= add1n in Ha; injection Ha.
+Qed.
+
+End distr.
 
 End indexed_products.
