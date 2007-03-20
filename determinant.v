@@ -60,11 +60,39 @@ rewrite (eq_iprod_f _ _ _ _ _ _ _ F4).
 by rewrite !multA distrR.
 Qed.
 
-Check prod_multilinear.
 Lemma determinant_multilinear :
  forall (range:set d) (a b c:d->d->R) i (beta gamma:R),
   range i ->
-  (forall k, range k -> ~i==k -> forall j, b k j = a k j /\ c k j = a k j) ->
+  (forall k, setD1 range i k -> forall j, range j -> b k j = a k j /\ c k j = a k j) ->
   (forall j, range j -> a i j = plus (mult beta (b i j))(mult gamma (c i j))) ->
  determinant range a = plus (mult beta (determinant range b))
     (mult gamma (determinant range c)).
+move => range a b c i beta gamma Hi; rewrite /determinant.
+have: forall x y, perm range x -> range (x y) = range y by exact: perm_closed.
+have F' : forall x, perm range x -> perm range x by done.
+elim: (card (perm range)) {-2 4}(perm range)(conj (refl_equal (card (perm range))) F'). 
+move => perm [Hperm Hperm'] Hclosed Hs Hl.
+ rewrite !(eq_iprod_set _ _ _ _ _ _ _ (card0_eq Hperm)) !iprod0 -!(multC zero).
+ by rewrite !mult0x plus0x.
+move => n Hrec perm_set [Hperm Hperm'] Hclosed Hs Hl.
+have F2: ~~set0b perm_set by apply/set0P => H1; rewrite (eq_card0 H1) in Hperm.
+case/set0Pn: F2 => sigma Hsigma.
+rewrite !(iprodD1 _ plus zero _ _ _ sigma perm_set) //.
+rewrite (multC beta)(multC gamma) !distrR -!(multC beta) -!(multC gamma).
+have F: forall x1 x2 x3 x4, plus (plus x1 x2) (plus x3 x4) = 
+          plus (plus x1 x3) (plus x2 x4).
+ by move => x1 x2 x3 x4; rewrite -!plusA; congr plus; rewrite !plusA (plusC x3). 
+have F1 : card (setD1 perm_set sigma) = n.
+ by rewrite (cardD1 sigma) /nat_of_bool Hsigma // in Hperm; injection Hperm.
+have F2 : forall x, setD1 perm_set sigma x -> perm range x.
+ by move => x H; move/andP: H => [_ H]; apply Hperm'.
+have F3 : forall x y, setD1 perm_set sigma x -> range (x y) = range y.
+ by move => x y H; move/andP: H => [_ H]; apply Hclosed.
+rewrite F; rewrite Hrec //.
+rewrite (prod_multilinear _ a b c i _ _ Hi Hs Hl) //.
+rewrite (multC (b2R (perm_signature d sigma))) distrR.
+rewrite -!(multC (b2R (perm_signature d sigma))) !multA. 
+rewrite -!(multC (b2R (perm_signature d sigma))).
+congr plus.
+by apply Hperm'.
+Qed.
