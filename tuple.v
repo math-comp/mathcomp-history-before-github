@@ -38,18 +38,18 @@ by apply: Hadds; apply: (IH s1).
 Qed.
 
 Lemma fgraph_prodP: forall u : fgraphType d1 d2,
-  reflect (forall x, a x (sub (fgraph_default x u) (fval u) (index x (enum d1))))
-          (fgraph_prod u).
+  reflect (forall x, a x (u x)) (fgraph_prod u).
 Proof.
 move=> u; have Hind: (size (enum d1) = size (fval u)) by case: u => /= s ->; rewrite cardA.
 rewrite /fgraph_prod /=; apply: (iffP idP).
   move=> H x; have: (enum d1 x) by rewrite mem_enum.
+  unlock fun_of_fgraph.
   move: (enum d1) (fval u) Hind H x; apply: seq_ind2 => //=.
   move=> e1 e2 s1 s2 IH; rewrite /prod_seq /=; move/andP=> [ae Hs] x Hx.
   case Dx: (x == e1); first by rewrite (eqP Dx).
   by rewrite /setU1 eq_sym Dx orFb in Hx; move/(_ Hs x Hx): IH.
 suff: ((forall x : d1, (enum d1 x) -> a x (sub (fgraph_default x u) (fval u) (index x (enum d1)))) ->
-        prod_seq (enum d1) (fval u)) by auto.
+        prod_seq (enum d1) (fval u)) by unlock fun_of_fgraph; auto.
 move: (enum d1) (fval u) Hind (uniq_enum d1); apply: seq_ind2 => //=.
 move=> e1 e2 s1 s2 IH Hf H; apply/andP; split.
   by move/(_ e1): H; rewrite /setU1 eq_refl /=; auto.
@@ -102,10 +102,7 @@ Qed.
 Lemma tfunspaceP : 
   forall u : fgraphType d1 d2, 
   reflect (forall x : d1, a2 (u x)) (tfunspace u).
-Proof.
-rewrite /tfunspace/fun_of_fgraph -lock => u. 
-by apply: (iffP idP); [ move/fgraph_prodP | move=>*; apply/fgraph_prodP ].
-Qed.
+Proof. by move => u; apply: (iffP idP); [move/fgraph_prodP | move=>*; apply/fgraph_prodP]. Qed.
 
 End Tfunspace.
 
@@ -159,16 +156,16 @@ pose e1 := enum d1.
 move=> g; apply: (iffP idP).
   move/fgraph_prodP => Hg.
   split=> [x1 Hx1 | x2 Hx2].
-    apply/negPf=> Hx1'; case/negP: Hx1; rewrite eq_sym; unlock fun_of_fgraph.
+    apply/negPf=> Hx1'; case/negP: Hx1; rewrite eq_sym.
     by move: {Hg}(Hg x1); rewrite Hx1' /a2'.
   case/set0Pn: Hx2=> x1; case/andP; move/eqP=> -> {x2} Hx1.
-  by move: {Hg}(Hg x1); rewrite {}Hx1 /fun_of_fgraph -lock.
+  by move: {Hg}(Hg x1); rewrite {}Hx1. 
 move=> [Hg1 Hg2]; apply/fgraph_prodP=>x.
 case Hx1: (a1 x).
   apply: Hg2; apply/set0Pn; exists x.
-  by rewrite /setI /preimage Hx1 /fun_of_fgraph -lock eq_refl.
+  by rewrite /setI /preimage Hx1 eq_refl.
 apply/idPn=> Hx1'; case/idP: Hx1; apply: Hg1.
-by rewrite /support /setC1 eq_sym /fun_of_fgraph -lock.
+by rewrite /support /setC1 eq_sym.
 Qed.
 
 End Pfunspace.
