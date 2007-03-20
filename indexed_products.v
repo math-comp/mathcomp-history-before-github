@@ -22,10 +22,18 @@ End iprod.
 Lemma iprod0 : forall (d:finType)(f:d->R), iprod d set0 f = 1.
 Proof. by move => d f; rewrite /iprod filter_set0. Qed.
 
-Lemma eq_iprod: forall (d:finType) a b (f:d->R),
+Lemma eq_iprod_set: forall (d:finType) a b (f:d->R),
   a =1 b -> iprod _ a f = iprod _ b f.
 move => d a b N H; rewrite /iprod; elim (enum d) => [| x s Hrec] //=.
 by rewrite H; case (b x) => //=; congr mulR.
+Qed.
+
+Lemma eq_iprod_f: forall (d:finType) (a:set d) (f g:d->R),
+  (forall x, a x -> f x = g x) ->
+  iprod _ a f = iprod _ a g.
+move => d a f g H; rewrite /iprod.
+elim: (enum d) => //=.
+by move => x s IHs; case E: (a x) => //=; rewrite H => //; congr mulR.
 Qed.
 
 Lemma iprodD1 : forall (d:finType) x (a:set d) (f:d->R),
@@ -62,9 +70,9 @@ Lemma iprod_setU : forall (d:finType)(a b: set d)(f:d->R),
  disjoint a b -> iprod _ (setU a b) f = iprod _ a f * iprod _ b f.
 move => d a b f.
 elim: {a}(card a) {-2}a (refl_equal (card a)) b => [| n Hrec] a Ha b Hab.
- rewrite (eq_iprod _ _ _ _ (card0_eq Ha)) iprod0 unitP.
+ rewrite (eq_iprod_set _ _ _ _ (card0_eq Ha)) iprod0 unitP.
  have F1: setU a b =1 b by move => x; rewrite /setU (card0_eq Ha).
- by rewrite (eq_iprod _ _ _ _  F1).
+ by rewrite (eq_iprod_set _ _ _ _  F1).
 have F2: ~~set0b a by apply/set0P => H1; rewrite (eq_card0 H1) in Ha.
 case/set0Pn: F2 => x Hx.
 rewrite (iprodD1 _ x) ?(iprodD1 _ x a) //; last by rewrite /setU Hx.
@@ -76,7 +84,7 @@ have F1: setD1 (setU a b) x =1 setU (setD1 a x) b.
  case E1: (x == x1) => //=; rewrite /disjoint /set0b in Hab.
  move: (card0_eq (eqP Hab)) => H1. 
  case E2: (b x1) => //; case (H1 x1); by rewrite /setI E2 -(eqP E1) Hx.
-rewrite (eq_iprod _ _ _ _ F1) Hrec // /disjoint; apply/set0P => x1.
+rewrite (eq_iprod_set _ _ _ _ F1) Hrec // /disjoint; apply/set0P => x1.
 rewrite /setI /setD1.
 case E1: (x==x1) => //=. 
 rewrite /disjoint /set0b in Hab; move: (card0_eq (eqP Hab)) => H1.
@@ -94,18 +102,17 @@ move: H; case: (filter (set1 i) (enum d)) => //=.
 by move => x [|x' s'] //= ; rewrite /setU1 orbF => Heq; rewrite (eqP Heq) mulC unitP.
 Qed.
 
-Lemma iprod_group : forall (d:finType)(a : set d)(f:d->R)(g:d->d),
+Lemma iprod_parts : forall (d:finType)(a : set d)(f:d->R)(g:d->d),
  disjoint a (image g a) -> dinjective a g ->
  iprod d (setU a (image g a)) f = iprod d a (fun x => f x * f (g x)).
 move => d a f g.
 elim: {a}(card a) {-2}a (refl_equal (card a)) => [| n Hrec] a Ha Hd Hi.
- rewrite (eq_iprod _ _ _ _ (card0_eq Ha)) iprod0.
- rewrite (eq_iprod d (setU a (image g a)) set0 f); first exact: iprod0.
+ rewrite (eq_iprod_set _ _ _ _ (card0_eq Ha)) iprod0.
+ rewrite (eq_iprod_set d (setU a (image g a)) set0 f); first exact: iprod0.
  move => x; rewrite /setU (card0_eq Ha) /=; apply/imageP.
  by move => [y Hay _]; rewrite (card0_eq Ha) in Hay.
 have F2: ~~set0b a by apply/set0P => H1; rewrite (eq_card0 H1) in Ha.
 case/set0Pn: F2 => x Hx.
-
 rewrite (iprodD1 _ x); last by rewrite /setU; apply/orP;left.
 rewrite (iprodD1 _ x a) //= -mulP; congr mulR.
 rewrite (iprodD1 _ (g x)).
@@ -140,7 +147,7 @@ rewrite (iprodD1 _ (g x)).
     by rewrite -(eqP Hxy).
    by apply/imageP; exists w => //.
   by apply/imageP; exists w => //.
-  rewrite (eq_iprod _ _ _ _ F1); apply Hrec.
+  rewrite (eq_iprod_set _ _ _ _ F1); apply Hrec.
    by apply: (@addn_injl 1%N); rewrite (add1n n) -Ha; rewrite (cardD1 x a) Hx => //=.
   apply/set0Pn; rewrite /setD1 /setI; move => [x0 H']; move/andP: H' => [Hdx Hidx].
   move/andP: Hdx => [_ Hax0].
