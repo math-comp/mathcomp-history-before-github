@@ -10,7 +10,6 @@ ssrbool.v
 ssreflect.v
 ssrnat.v
 zp.v
-perm.v
 action.v
 cyclic.v
 sylow.v
@@ -23,7 +22,9 @@ tuple.v
 group_perm.v
 frobenius_cauchy.v
 burnside_app.v
+signperm.v
+indexed_products.v
+determinant.v	
 
-
-	
-
+COQC = $(COQBIN)ssrcoq
+COQFLAGS = "-q $(OPT) $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -compile"
