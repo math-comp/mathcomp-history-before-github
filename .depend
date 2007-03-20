@@ -30,8 +30,6 @@ sylow.vo: sylow.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fin
 sylow.vi: sylow.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo groups.vo div.vo action.vo cyclic.vo zp.vo normal.vo rightTranslation.vo tuple.vo
 normal.vo: normal.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo groups.vo
 normal.vi: normal.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo groups.vo
-baux.vo: baux.v ssreflect.vo ssrbool.vo
-baux.vi: baux.v ssreflect.vo ssrbool.vo
 rightTranslation.vo: rightTranslation.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo groups.vo div.vo action.vo normal.vo baux.vo
 rightTranslation.vi: rightTranslation.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo groups.vo div.vo action.vo normal.vo baux.vo
 powerSet.vo: powerSet.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo div.vo
@@ -42,14 +40,18 @@ frobenius.vo: frobenius.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo se
 frobenius.vi: frobenius.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo groups.vo div.vo zp.vo cyclic.vo normal.vo center.vo
 tuple.vo: tuple.v ssreflect.vo seq.vo eqtype.vo ssrnat.vo funs.vo ssrbool.vo fintype.vo connect.vo paths.vo
 tuple.vi: tuple.v ssreflect.vo seq.vo eqtype.vo ssrnat.vo funs.vo ssrbool.vo fintype.vo connect.vo paths.vo
-frobenius_cauchy.vo: frobenius_cauchy.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo connect.vo groups.vo action.vo
-frobenius_cauchy.vi: frobenius_cauchy.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo connect.vo groups.vo action.vo
 group_perm.vo: group_perm.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo div.vo groups.vo
 group_perm.vi: group_perm.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo div.vo groups.vo
-tuple.vo: tuple.v ssreflect.vo seq.vo eqtype.vo ssrnat.vo funs.vo ssrbool.vo fintype.vo connect.vo paths.vo
-tuple.vi: tuple.v ssreflect.vo seq.vo eqtype.vo ssrnat.vo funs.vo ssrbool.vo fintype.vo connect.vo paths.vo
+frobenius_cauchy.vo: frobenius_cauchy.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo connect.vo groups.vo action.vo
+frobenius_cauchy.vi: frobenius_cauchy.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo connect.vo groups.vo action.vo
 burnside_app.vo: burnside_app.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo connect.vo groups.vo action.vo frobenius_cauchy.vo group_perm.vo tuple.vo
 burnside_app.vi: burnside_app.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo connect.vo groups.vo action.vo frobenius_cauchy.vo group_perm.vo tuple.vo
+signperm.vo: signperm.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo div.vo groups.vo group_perm.vo zp.vo action.vo
+signperm.vi: signperm.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo div.vo groups.vo group_perm.vo zp.vo action.vo
+indexed_products.vo: indexed_products.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo div.vo groups.vo group_perm.vo zp.vo
+indexed_products.vi: indexed_products.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo div.vo groups.vo group_perm.vo zp.vo
+determinant.vo: determinant.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo div.vo groups.vo group_perm.vo zp.vo signperm.vo indexed_products.vo
+determinant.vi: determinant.v ssreflect.vo ssrbool.vo funs.vo eqtype.vo ssrnat.vo seq.vo fintype.vo paths.vo connect.vo div.vo groups.vo group_perm.vo zp.vo signperm.vo indexed_products.vo
 connect.html: connect.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html paths.html fintype.html
 eqtype.html: eqtype.v ssreflect.html ssrbool.html funs.html
 div.html: div.v ssreflect.html ssrbool.html ssrnat.html funs.html eqtype.html seq.html
@@ -66,13 +68,14 @@ action.html: action.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.h
 cyclic.html: cyclic.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html paths.html connect.html groups.html normal.html div.html zp.html
 sylow.html: sylow.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html paths.html connect.html groups.html div.html action.html cyclic.html zp.html normal.html rightTranslation.html tuple.html
 normal.html: normal.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html paths.html connect.html groups.html
-baux.html: baux.v ssreflect.html ssrbool.html
 rightTranslation.html: rightTranslation.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html paths.html connect.html groups.html div.html action.html normal.html baux.html
 powerSet.html: powerSet.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html div.html
 center.html: center.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html paths.html connect.html groups.html normal.html cyclic.html div.html
 frobenius.html: frobenius.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html paths.html connect.html groups.html div.html zp.html cyclic.html normal.html center.html
 tuple.html: tuple.v ssreflect.html seq.html eqtype.html ssrnat.html funs.html ssrbool.html fintype.html connect.html paths.html
-frobenius_cauchy.html: frobenius_cauchy.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html connect.html groups.html action.html
 group_perm.html: group_perm.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html paths.html connect.html div.html groups.html
-tuple.html: tuple.v ssreflect.html seq.html eqtype.html ssrnat.html funs.html ssrbool.html fintype.html connect.html paths.html
+frobenius_cauchy.html: frobenius_cauchy.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html connect.html groups.html action.html
 burnside_app.html: burnside_app.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html connect.html groups.html action.html frobenius_cauchy.html group_perm.html tuple.html
+signperm.html: signperm.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html paths.html connect.html div.html groups.html group_perm.html zp.html action.html
+indexed_products.html: indexed_products.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html paths.html connect.html div.html groups.html group_perm.html zp.html
+determinant.html: determinant.v ssreflect.html ssrbool.html funs.html eqtype.html ssrnat.html seq.html fintype.html paths.html connect.html div.html groups.html group_perm.html zp.html signperm.html indexed_products.html
