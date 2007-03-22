@@ -198,4 +198,44 @@ Qed.
 
 End distr.
 
+Lemma image_set0 : forall (d d':finType)(g:d->d'), image (d:=d) g set0 =1 set0.
+by move => d d' g x; case E: (image g set0 x) => //; move/imageP: E=> [y H _].
+Qed.
+
+Lemma image_eq : forall (d d':finType)(a b:set d)(g f:d->d'), a =1 b ->
+     g =1 f -> image g a =1 image f b.
+move => d d' a b g f Ha Hg x; apply/imageP/imageP; move => [y Hin Heq].
+ by exists y; [rewrite -Ha | rewrite -Hg].
+by exists y; [rewrite Ha | rewrite Hg].
+Qed.
+
+Lemma i_prod_image :
+  forall (d:finType) (a:set d) (g:d->d) f, dinjective a g ->
+   iprod _ (image g a) f = iprod _ a (fun x => f (g x)).
+move => d a.
+elim: {a}(card a) {-2}a (refl_equal (card a)) => [| n Hrec] a Ha g f Hg.
+ have F1: a =1 set0 by apply card0_eq.
+ have F2: image g a =1 set0. 
+  by move => x; rewrite (image_eq _ _ a set0 g g) //; rewrite (image_set0 d d g x).
+ by rewrite (eq_iprod_set d _ _ _ F1) (eq_iprod_set d _ _ _ F2) !iprod0.
+have F2: ~~set0b a by apply/set0P => H1; rewrite (eq_card0 H1) in Ha.
+case/set0Pn: F2 => x Hx.
+rewrite (iprodD1 _ x a) => //.
+rewrite (iprodD1 _ (g x)); last by apply/imageP; exists x.
+congr mulR.
+have F3: setD1 (image g a) (g x) =1 image g (setD1 a x).
+ move => y;apply/andP/imageP.
+  move => [Hngx Hin]; move/imageP: Hin => [z Hin Heq];exists z =>//.
+  apply/andP; split => //; apply/negP; move => Heq'. 
+  by rewrite (eqP Heq') in Hngx; case/negP: Hngx; rewrite Heq.
+ move => [z Hin Heq]; move/andP: Hin => [Hzx Hin]; split.
+  apply/negP;move/eqP => Heq'.
+  by move/negP: Hzx => H; case H; apply/eqP; apply Hg => //; rewrite -Heq.
+ by apply/imageP; exists z.
+rewrite (eq_iprod_set d _ _ _ F3); apply Hrec => //.
+ by rewrite (cardD1 x) Hx /= add1n in Ha; injection Ha.
+move => x' y' Hx' Hy' Heq; move/andP:Hx'=>[_ Hx']; move/andP:Hy'=>[_ Hy']. 
+by apply Hg => //.
+Qed.
+
 End indexed_products.
