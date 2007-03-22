@@ -22,6 +22,12 @@ End iprod.
 Lemma iprod0 : forall (d:finType)(f:d->R), iprod d set0 f = 1.
 Proof. by move => d f; rewrite /iprod filter_set0. Qed.
 
+Lemma iprod_1 : forall (d:finType)(a:set d), iprod d a (fun x => 1) = 1.
+Proof.
+move => d a; rewrite /iprod.
+by elim: (filter a (enum d)) => //=; move => x s Hs; rewrite unitP.
+Qed.
+
 Lemma eq_iprod_set: forall (d:finType) a b (f:d->R),
   a =1 b -> iprod _ a f = iprod _ b f.
 move => d a b N H; rewrite /iprod; elim (enum d) => [| x s Hrec] //=.
