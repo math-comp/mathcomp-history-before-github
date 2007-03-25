@@ -22,7 +22,6 @@ Require Import groups.
 Require Import div.
 Require Import action.
 Require Import normal.
-Require Import baux.
 
 
 Set Implicit Arguments.

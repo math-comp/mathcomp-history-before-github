@@ -434,7 +434,7 @@ by rewrite spconst_conjgs sconjg_iimage.
 Qed.
 
 Lemma pconst_subset_centralizer:  forall (y: G),
-  subset (spconst y) (centraliser (group_of_fingroup G) y).
+  subset (spconst y) (centraliser (GroupFinGroupType G) y).
 Proof.
 move => y; rewrite /spconst; apply/subsetP => x; rewrite !s2f.
 case/andP => Hx1 Hx2.
@@ -487,10 +487,10 @@ Qed.
 Lemma pconst_image: forall y l, 
   orderg y = (p ^ (S l))%N -> coprime (orderg y) s -> 
   image prem (spconst y) =1
-        (fun z => centraliser G y z && divn (orderg z) s). 
+        (fun z => centraliser (GroupFinGroupType G) y z && dvdn (orderg z) s). 
 Proof.
-move => y l Hy Cy x1; apply eqb_imp => H1.
-  case: (Hdiinv H1) => y1; case/and3P => HH1 HH2 HH3.
+move => y l Hy Cy x1; apply/idP/idP => H1.
+  case: (Hdiinv H1) => y1. case/and3P => HH1 HH2 HH3.
   rewrite  -(eqP HH2) (eqP HH1); apply/andP; split.
     by apply/eqP; exact: pconst_remC.
   have F1: (orderg (pconst y1) == 0) = false.

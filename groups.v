@@ -475,11 +475,6 @@ Lemma sig_of_groupK : cancel sig_of_group group_of_sig. Proof. by case. Qed.
 Canonical Structure group_eqType := EqType (can_eq sig_of_groupK).
 Canonical Structure group_finType := FinType (can_uniq sig_of_groupK).
 
-Canonical Structure group_of_fingroup : group.
-exists ({x, true}: setType elt).
-by apply/groupP; split => [| x y]; rewrite !s2f.
-Defined.
-
 Section GroupProp.
 
 Variable H : group.

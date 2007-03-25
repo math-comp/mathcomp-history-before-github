@@ -43,7 +43,7 @@ COQSRC=-I $(COQTOP)/kernel -I $(COQTOP)/lib \
   -I $(CAMLP4LIB)
 ZFLAGS=$(OCAMLLIBS) $(COQSRC)
 OPT=
-COQFLAGS=-q $(OPT) $(COQLIBS) $(OTHERFLAGS) $(COQ_XML)
+COQFLAGS=-q $(OPT) $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -compile
 COQC=$(COQBIN)coqc
 GALLINA=gallina
 COQDOC=$(COQBIN)coqdoc
@@ -55,7 +55,7 @@ COQDEP=$(COQBIN)coqdep -c
 GRAMMARS=grammar.cma
 CAMLP4EXTEND=pa_extend.cmo pa_ifdef.cmo q_MLast.cmo
 PP=-pp "camlp4o -I . -I $(COQTOP)/parsing $(CAMLP4EXTEND) $(GRAMMARS) -impl"
-COQC=$(COQBIN)ssrcoq
+COQC=$(COQBIN)coqtop
 COQFLAGS=-q $(OPT) $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -compile
 
 #########################
