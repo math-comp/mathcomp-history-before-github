@@ -14,7 +14,7 @@ Import Prenex Implicits.
 
 Section FgraphProd.
 
-Variables d1 d2 : finType.
+Variables (d1 : finType) (d2 : eqType).
 Variable a : d1 -> set d2.
 
 Fixpoint prod_seq (s1:seq d1) (s2 : seq d2) {struct s1} : bool :=
@@ -183,13 +183,13 @@ Proof. exact: card_pfunspace. Qed.
 End FinPowerSet.
 
 Section Tuple.
-Variables (d:finType) (n:nat).
+Variables (d1:eqType) (d2:finType) (n:nat).
 Let domain := ordinal n.
 
-Definition tupleType := fgraphType domain d.
+Definition tupleType := fgraphType domain d1.
 
-Canonical Structure tuple_eqType := EqType (@fgraph_eqP domain d).
-Canonical Structure tuple_finType := FinType (@finfgraph_enumP domain d).
+Canonical Structure tule_eqType := EqType (@fgraph_eqP domain d1).
+Canonical Structure tule_finType := FinType (@finfgraph_enumP domain d2).
 
 End Tuple.
   
