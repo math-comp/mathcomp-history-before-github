@@ -660,6 +660,15 @@ Lemma index_last : forall x s,
   uniq (Adds x s) -> index (last x s) (Adds x s) = size s.
 Proof. by move=> *; rewrite -sub_last index_uniq //= leqnn. Qed.
 
+Lemma sub_uniq : forall (s : seq) (i j :nat),
+   (i < size s) -> (j < size s) -> uniq s -> ((sub s i == sub s j) = (i==j)).
+Proof.
+move => s i j Hi Hj Hs.
+case H1: (i==j); apply/eqP; move/eqP: H1 => H1; first (rewrite H1 //=).
+move: (@index_uniq i s Hi Hs) => H2.
+move => H3; rewrite H3 index_uniq//= in H2; auto.
+Qed.
+
 (* Surgery: drop, take, rot, rotr.                                              *)
 
 Fixpoint drop (n : nat) (s : seq) {struct s} : seq :=
