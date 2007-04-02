@@ -2,10 +2,18 @@ Require Import ssreflect ssrbool funs eqtype ssrnat seq fintype paths.
 Require Import connect div groups group_perm zp action.
 
 Import Prenex Implicits.
+Set Implicit Arguments.
+Unset Strict Implicit.
 
-Section sign.
+(* We don't use the bool group structure directly here, but we may need it to *)
+(* make the parity function is a morphism S_n -> bool, e.g., to define A_n as *)
+(* its kernel.                                                                *)
+Canonical Structure boolGroup :=
+  @FinGroupType _ _ (fun b => b) addb addFb addbb addbA.
 
-Variables (d:finType).
+(* Porting the eqType / finType structure of eq_pair to pairs *)
+(* To be complete we should also port the group structure, to *)
+(* get the direct product.                                    *)
 
 Section EqProd.
 
@@ -27,135 +35,241 @@ Canonical Structure prod_finType.
 Canonical Structure pair_finType (d1 d2 : finType) :=
    FinType (can_uniq (@eqpairK d1 d2)).
 
-Definition ordered_pair u := index (fst u) (enum d) < index (snd u) (enum d).
+Section PermutationComplements.
 
-Notation Local op := ordered_pair.
+Variable d : finType.
 
-Definition flip_pair A u : A * A := let: (x, y) := u in (y, x).
+(* This should really be in group_perm *)
 
-Notation Local fl := (@flip_pair d).
+(* This is a crutch: if permutations coerced to fgraphs, this *)
+(* wouln't be needed.                                         *)
+Lemma p2f : forall f Uf, @Perm d (EqSig _ (fgraph_of_fun f) Uf) =1 f.
+Proof. move=> *; exact: g2f. Qed.
 
-Lemma flip_pairK : involutive fl.
+Lemma perm1 : forall x, (1 : permType d) x = x.
+Proof. by move=> x; rewrite p2f. Qed.
+
+Lemma permM : forall (s1 s2 : permType d) x, (s1 * s2) x = s2 (s1 x).
+Proof. by move=> *; rewrite p2f. Qed.
+
+Lemma permK : forall s : permType d, cancel s s^-1.
+Proof. by move=> s x; rewrite -permM mulgV perm1. Qed. 
+
+Lemma permKv : forall s : permType d, cancel s^-1 s.
+Proof. by move=> s; have:= permK s^-1; rewrite invgK. Qed.
+
+Lemma permJ : forall (s t: permType d) x, (s ^ t) (t x) = t (s x).
+Proof. by move=> *; rewrite !permM permK. Qed.
+
+End PermutationComplements.
+
+(* Shorten the name for tranpositions, to improve usability *)
+
+Notation transp := (@transperm _).
+
+Section PermutationParity.
+
+Variable d : finType.
+
+(* Lifting permutations to pairs, with local shorthand. *)
+
+Definition perm_pair (s : permType d) p :=
+  let: (x, y) := p in (s x, s y).
+Notation Local permp := perm_pair.
+
+Lemma perm_pair1 : forall p, permp 1 p = p. 
+Proof. by move=> [x y] /=; rewrite !perm1. Qed.
+Notation Local permp1 := perm_pair1.
+ 
+Lemma perm_pairM : forall s t p, permp (s * t) p = permp t (permp s p).
+Proof. by move=> s t [x y] /=; rewrite !permM. Qed.
+Notation Local permpM := perm_pairM.
+
+Lemma perm_pairK : forall s, cancel (permp s) (permp s^-1).
+Proof. by move=> s p; rewrite -permpM mulgV permp1. Qed.
+Notation Local permpK := perm_pairK.
+
+Definition perm_pair_inj s := can_inj (permpK s).
+Notation Local permpI := (@perm_pair_inj).
+Hint Resolve perm_pair_inj.
+
+Lemma image_perm_pair : forall s A p, image (permp s) A p = A (permp s^-1 p).
+Proof. by move=> s A p; rewrite -{1}(permpK s^-1 p) invgK (image_f (permpI s)). Qed.
+Notation Local im_permp := image_perm_pair.
+
+(* Flipping components of a pair *)
+
+Definition flip_pair A p : A * A := let: (x, y) := p in (y, x).
+Notation Local flip := (@flip_pair d).
+
+Lemma flip_pairK : involutive flip.
 Proof. by case. Qed.
-Notation Local flK := flip_pairK.
-Definition flip_pair_inj := inv_inj flK.
-Notation Local flI := flip_pair_inj.
+Notation Local flipK := flip_pairK.
 
-Lemma image_flip_pair : forall u A, image fl A u = A (fl u).
-Proof. by move=> u A; rewrite -{1}(flK u) (image_f flI). Qed.
-Notation Local im_fl := image_flip_pair.
+Definition flip_pair_inj := inv_inj flipK.
+Notation Local flipI := flip_pair_inj.
 
-Lemma ordered_pair_flip : forall p, op (fl p) = ((fl p != p) && ~~ op p).
+Lemma image_flip_pair : forall p A, image flip A p = A (flip p).
+Proof. by move=> p A; rewrite -{1}(flipK p) (image_f flipI). Qed.
+Notation Local im_flip := image_flip_pair.
+
+Lemma perm_flip_pair : forall s p, permp s (flip p) = flip (permp s p).
+Proof. by move=> s [x y]. Qed.
+Notation Local permp_flip := perm_flip_pair.
+
+(* Inversions are defined abstractly in terms of an "ordered_pair" relation. *)
+(* The only required properties for that relation are antisymmetry and       *)
+(* antirelexivity, which are conveniently expressed in terms of the "flip"   *)
+(* operation. The actual definition compares indices, but we don't use the   *)
+(* transitivity, except in an alternate proof that transpositions are odd.   *)
+
+Definition ordered_pair p := index (fst p) (enum d) < index (snd p) (enum d).
+Notation Local opair := ordered_pair.
+
+Lemma ordered_pair_flip : forall p, opair (flip p) = (flip p != p) && ~~ opair p.
 Proof.
-case=> x y /=; rewrite /op ltn_neqAle -leqNgt; congr andb; congr negb.
+case=> x y /=; rewrite /opair ltn_neqAle -leqNgt; congr andb; congr negb.
 rewrite {2}/set1 /= {2}/set1 /= (eq_sym y) andbb; apply/eqP/eqP=> [|-> //].
 by rewrite -{2}(sub_index x (mem_enum y)) => ->; rewrite sub_index // mem_enum.
 Qed.
-Notation Local op_fl := ordered_pair_flip.
+Notation Local opair_flip := ordered_pair_flip.
 
-Definition perm_pair (sigma : permType d) u :=
-  let: (x, y) := u in (sigma x, sigma y).
-Notation Local p2 := perm_pair.
+Definition inversion s p := opair (flip (permp s p)).
+Notation Local invn := inversion.
 
-Lemma perm_flip_pair : forall sigma u, p2 sigma (fl u) = fl (p2 sigma u).
-Proof. by move=> ? []. Qed.
-Notation Local p2_fl := perm_flip_pair.
+Definition odd_perm s := odd (card (setI opair (inversion s))).
+Definition even_perm s := ~~ odd_perm s.
+Notation Local oddp := odd_perm.
 
-Lemma perm_pair1 : forall u, p2 1 u = u. 
-Proof. by move=> [x y]; rewrite /= /fun_of_perm !g2f. Qed.
-Notation Local p21 := perm_pair1.
- 
-Lemma perm_pairM : forall sigma tau u, p2 (sigma * tau) u = p2 tau (p2 sigma u).
-Proof. by move=> s t [x y] /=; rewrite /fun_of_perm !g2f. Qed.
-Notation Local p2M := perm_pairM.
-
-Lemma perm_pairK : forall sigma, cancel (p2 sigma) (p2 sigma^-1).
-Proof. by move=> sigma u; rewrite -p2M mulgV p21. Qed.
-Notation Local p2K := perm_pairK.
-Definition perm_pair_inj sigma := can_inj (p2K sigma).
-Notation Local p2I := perm_pair_inj.
-
-Definition inversion sigma u := op (fl (p2 sigma u)).
-Notation Local ivn := inversion.
-
-Definition perm_signature sigma := odd (card (setI op (ivn sigma))).
-Notation Local eps := perm_signature.
-
-Lemma image_perm_pair : forall sigma A u, image (p2 sigma) A u = A (p2 sigma^-1 u).
-Proof. by move=> s A u; rewrite -{1}(p2K s^-1 u) invgK (image_f (p2I s)). Qed.
-Notation Local im_p2 := image_perm_pair.
-
-Lemma perm_signatureM : forall sigma tau, eps (sigma * tau) = eps sigma (+) eps tau.
+Lemma odd_permM : forall s t, oddp (s * t) = oddp s (+) oddp t.
 Proof.
-move=> s t; rewrite /eps -(cardIC (ivn s)); symmetry; rewrite -(cardIC (ivn (s * t))).
-rewrite addbC -(card_image (p2I s^-1)) -(cardIC op) !odd_addn.
-set n1 := card (setI _ (setC _)); set n2 := card (setI _ (setC _)).
-have -> : n1 = n2.
-  rewrite /n2 -(card_image flI); apply: eq_card => u /=; rewrite /setI /setC im_fl im_p2.
-  rewrite invgK /ivn !p2_fl !flK -p2M !op_fl -p2_fl (inj_eq (@p2I _)) -!andbA; do !bool_congr.
-rewrite addbCA addKb; congr addb; congr odd; apply: eq_card=> u; rewrite /= /setI /setC.
-  by rewrite -!andbA; do !bool_congr.
-rewrite im_p2 invgK /ivn -p2M !op_fl -!p2_fl !(inj_eq (@p2I _)).
-case: (_ != u); rewrite ?andbF //= negbK -!andbA; do !bool_congr.
+move=> s t; rewrite /oddp -(cardIC (inversion s)); symmetry.
+rewrite -(cardIC (inversion (s * t))) addbC -(card_image (permpI s^-1)) -(cardIC opair).
+rewrite !odd_addn addbCA !addbA -addbA addbC -addbA; set n1 := card _; set n2 := card _.
+suffices -> : n2 = n1.
+  rewrite addbK /setI /setC; congr 2 (odd _ (+) odd _); apply: eq_card=> p /=.
+    by rewrite andbC andbCA andbA.
+  rewrite im_permp invgK /inversion -permpM !opair_flip -!permp_flip !(inj_eq (permpI _)).
+  by case: (_ != p); rewrite ?andbF //= negbK -andbA andbC -!andbA andbCA.
+rewrite /n2 -(card_image flipI); apply: eq_card => p /=.
+rewrite /setI /setC im_flip im_permp invgK /inversion !permp_flip !flipK -permpM.
+by rewrite !opair_flip -permp_flip (inj_eq (@permpI _)) -!andbA; do !bool_congr.
 Qed.
-Notation Local epsM := perm_signatureM.
+Notation Local oddpM := odd_permM.
 
-Lemma perm_signature1 : eps 1 = false.
-Proof. by rewrite -[1]mulg1 epsM addbb. Qed.
-Notation Local eps1 := perm_signature1.
+Lemma odd_perm1 : oddp 1 = false.
+Proof. by rewrite -[1]mulg1 oddpM addbb. Qed.
+Notation Local oddp1 := odd_perm1.
 
-Lemma perm_signatureV : forall sigma, eps sigma^-1 = eps sigma.
-Proof. by move=> sigma; rewrite -{2}(mulgK sigma sigma) !epsM addbb. Qed.
-Notation Local epsV := perm_signatureV.
+Lemma odd_permV : forall s, oddp s^-1 = oddp s.
+Proof. by move=> s; rewrite -{2}(mulgK s s) !oddpM addbb. Qed.
+Notation Local oddpV := odd_permV.
 
-Lemma perm_signatureJ : forall sigma tau, eps (sigma ^ tau) = eps sigma.
-Proof. by move=> *; rewrite /conjg !epsM epsV addbC addbA addbb. Qed.
+Lemma odd_permJ : forall s t, oddp (s ^ t) = oddp s.
+Proof. by move=> *; rewrite /conjg !oddpM oddpV addbC addbA addbb. Qed.
+Notation Local oddpJ := odd_permJ.
 
-CoInductive transperm_spec x y z : d -> Type :=
-| TranspermFirst : z = x -> transperm_spec x y z y
-| TranspermSecond : z = y -> transperm_spec x y z x
-| TranspermNone : z <> x -> z <> y -> transperm_spec x y z z.
+(* Complements on tranpositions, starting with a shorter prenex alias. *)
 
-Lemma transpermP : forall x y z, transperm_spec x y z (transperm x y z).
+CoInductive transp_spec (x y z : d) : d -> Type :=
+  | TranspFirst of z = x          : transp_spec x y z y
+  | TranspSecond of z = y         : transp_spec x y z x
+  | TranspNone of z <> x & z <> y : transp_spec x y z z.
+
+Lemma transpP : forall x y z, transp_spec x y z (transp x y z).
+Proof. by move=> x y z; rewrite p2f /transpose; do 2?[case: eqP => /=]; constructor; auto. Qed.
+
+Lemma transpL : forall x y : d, transp x y x = y.
+Proof. by move=> x y; case transpP. Qed.
+
+Lemma transpR : forall x y : d, transp x y y = x.
+Proof. by move=> x y; case transpP. Qed.
+
+Lemma transpC : forall x y : d, transp x y = transp y x.
+Proof. by move=> *; apply: eq_fun_of_perm => ?; do 2![case: transpP => //] => ->. Qed.
+
+Lemma transp1 : forall x : d, transp x x = 1.
+Proof. by move=> *; apply: eq_fun_of_perm => ?; rewrite perm1; case: transpP. Qed.
+
+Lemma transpK : forall x y : d, involutive (transp x y).
+Proof. by move=> x y z; do 2![case transpP => //] => ->. Qed.
+
+Lemma transpV : forall x y : d, (transp x y)^-1 = transp x y.
 Proof.
-move=> x y z; rewrite /fun_of_perm g2f /transpose; do 2?case: eqP => /=; constructor; auto.
+by move=> x y; apply: eq_fun_of_perm => z; rewrite -{1}(transpK x y z) permK.
 Qed.
 
-Lemma signature_transperm : forall x y, eps (transperm x y) = (x != y).
+Lemma transp2 : forall x y : d, transp x y * transp x y = 1.
+Proof. by move=> x y; rewrite -{1}transpV mulVg. Qed.
+
+Lemma inj_transp : forall (d' : finType) (f : d -> d') x y z,
+  injective f -> f (transp x y z) = transp (f x) (f y) (f z).
+Proof. by move=> d' f x y z injf; rewrite !p2f /transpose !(inj_eq injf) !(fun_if f). Qed.
+
+Lemma transpJ : forall x y (s : permType d), (transp x y)^s = transp (s x) (s y).
 Proof.
-move=> x y; move: (transperm x y) (transpermP x y) => t tP.
-have tK: involutive t by move=> z; do 2![case tP => //] => ->.
-have tV: t^-1 = t.
-  apply: eq_fun_of_perm => z; have:= p2M 1 t (z, z).
-  by rewrite mul1g -(mulVg t) p2M => [[-> _]].
-case Dxy: (x == y) => /=.
-  rewrite -eps1; congr eps; apply: eq_fun_of_perm => z.
-  by case: (p21 (z, z)) => -> _; case: tP; rewrite (eqP Dxy).
-without loss Oxy: x y tP Dxy / op (x, y).
-  case Oyx: (op (fl (y, x))) => Wxy; first exact: Wxy Oyx.
-  rewrite op_fl {2}/set1 /= {2}/set1 /= eq_sym in Dxy Oyx; rewrite Dxy in Oyx.
-  by move/negbEF: Oyx; apply: Wxy Dxy => z; case tP; constructor.
-have [Dtx Dty]: t x = y /\ t y = x by split; case tP.
-pose A z u := let: (x', y') := u : d * d in set2 x' y' z.
-pose B z u := op u && ivn t u && A z u.
+move=> x y s; apply: eq_fun_of_perm => z; rewrite -(permKv s z) permJ.
+apply: inj_transp; exact: perm_inj.
+Qed.
+
+Lemma odd_transp : forall x y, oddp (transp x y) = (x != y).
+Proof.
+move=> x y; case Dxy: (x == y); first by rewrite (eqP Dxy) transp1 oddp1.
+without loss Oxy: x y Dxy / opair (x, y).
+  case Oxy: (opair (x, y)); last rewrite transpC; apply=> //; first by rewrite eq_sym.
+  by rewrite (opair_flip (x, y)) Oxy andbT; apply/nandP; right; rewrite Dxy.
+pose A z p := let: (x', y') := p : d * d in set2 x' y' z.
+pose B z p := opair p && inversion (transp x y) p && A z p.
 have:= congr1 odd (cardUI (B x) (B y)); rewrite !odd_addn.
 have->: card (B x) = card (B y); last rewrite addbb.
-  rewrite -(card_image (p2I t)) -(card_image flI).
-  apply: eq_card => u; rewrite /= /setI im_fl im_p2 tV.
-  rewrite /B /ivn !p2_fl flK -{2}tV p2K -!andbA; do !bool_congr.
-  by case: u => x' y'; rewrite /A /= /set2 !(inv_eq tK) orbC Dtx.
+  rewrite -(card_image (permpI (transp x y))) -(card_image flipI).
+  apply: eq_card => p; rewrite /= /setI im_flip im_permp transpV.
+  rewrite /B /inversion !permp_flip flipK -permpM transp2 permp1 -!andbA; do !bool_congr.
+  by case: p => x' y'; rewrite /A /= /set2 !(inv_eq (transpK _ _)) orbC transpL.
 move/(fun H => canRL H (addKb _)) => /=.
-have{tP}->: odd (card (setU (B x) (B y))) = eps t; last move->.
-  congr odd; apply: eq_card=> u /=; rewrite /setI /setU /B.
-  case: (@andP (op u)) => //=; case; rewrite /ivn op_fl => Ou; case/andP=> _ Otu.
-  apply/norP; case; rewrite /A; case: u => [x' y'] /= in Ou Otu *.
-  do 2![case/norP; do 2!move/eqP=> ?]; case/negP: Otu; do 2![case tP => //].
+have->: odd (card (setU (B x) (B y))) = oddp (transp x y); last move->.
+  congr odd; apply: eq_card=> p /=; rewrite /setI /setU /B.
+  case: (@andP (opair p)) => //=; case; rewrite /inversion opair_flip => Op; case/andP=> _ Otp.
+  apply/norP; case; rewrite /A; case: p => [x' y'] /= in Op Otp *.
+  do 2![case/norP; do 2!move/eqP=> ?]; case/negP: Otp; do 2![case transpP => //].
 rewrite -[true]/(odd 1) -(card1 (x, y)); congr odd.
-apply: eq_card => [[x' y']]; rewrite /setI {}/B {}/A /ivn /= /set1 /= /set1 /=.
+apply: eq_card => [[x' y']]; rewrite /setI {}/B {}/A /inversion /= /set1 /= /set1 /=.
 rewrite /set2 !(eq_sym x) !(eq_sym y); case: eqP => [-> | _] /=.
-  by rewrite Dxy; case: eqP => [->|_]; [rewrite Dtx Dty Oxy | rewrite !andbF].
+  by rewrite Dxy; case: eqP => [->|_]; [rewrite transpL transpR Oxy | rewrite !andbF].
 apply/and3P; case; case/andP=> _; move/eqP=> -> Oxx'; rewrite Dxy orbF; move/eqP=> Dx'.
-by rewrite Dx' -(flK (y, x)) op_fl /= Oxy andbF in Oxx'.
+by rewrite Dx' -(flipK (y, x)) opair_flip /= Oxy andbF in Oxx'.
 Qed.
 
-End sign.
+(* An alternate proof, based on reduction by conjugation.
+   It's less abstract, since it depends on the way pairs are ordered.
+Lemma signature_transp' : forall x y, oddp (transp x y) = (x != y).
+Proof.
+move=> x y; have x0 := x; pose z i := sub x0 (enum d) i; pose n := size (enum d).
+wlog ->: x y / x = z 0.
+  pose p := transp x (z 0); rewrite -(inj_eq (@perm_inj _ p)) -(oddpJ _ p) transpJ.
+  apply; exact: transpL.
+case Dy0: (z 0 == y) {x} => /=.
+  rewrite -oddp1; congr oddp; apply: eq_fun_of_perm => x.
+  by rewrite (eqP Dy0) perm1; case transpP.
+have Ez: forall i, i < n -> index (z i) (enum d) = i.
+  move=> i ltid; exact: index_uniq ltid (uniq_enum d).
+have Iz: exists2 i, i < n & z i = _ by move=> t; apply/subP; exact: mem_enum.
+have eqz: forall i j, i < n -> j < n -> (z i == z j) = (i == j).
+  move=> i j; move/Ez=> Di; move/Ez=> Dj.
+  by apply/eqP/eqP=> [Dzi | -> //]; rewrite -Di Dzi Dj.
+have lt1n: 1 < n; last have lt0n := ltnW lt1n.
+  case: (Iz y) => [i ltin Dy]; rewrite -{}Dy in Dy0.
+  by apply: leq_trans ltin; case: i Dy0 => //; rewrite set11.
+wlog{Dy0} ->: y / y = z 1%nat.
+  rewrite -(oddpJ _ (transp y (z 1%nat))) transpJ => Wy.
+  case: transpP; by [move/eqP; rewrite ?Dy0 ?eqz | rewrite transpL Wy].
+rewrite -[true]/(odd 1) -{2}(card1 (z 0, z 1%nat)) {y}; congr odd.
+apply: eq_card=> [[u1 u2]]; case: (Iz u1) (Iz u2) => [i1 i1P <-] [i2 i2P <-] {u1 u2}.
+do 2!rewrite /set1 /=; rewrite /setI /inversion /opair /= !Ez //.
+rewrite /fun_of_perm !g2f /transpose -!(fun_if z) !eqz //.
+case: i2 i1 => [|[|i2]] [|[|i1]] //= in i1P i2P *; rewrite !Ez //= !ltnS.
+by apply/andP; case=> lti12; rewrite ltnNge ltnW.
+Qed.
+*)
+
+End PermutationParity.

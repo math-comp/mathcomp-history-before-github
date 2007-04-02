@@ -44,7 +44,7 @@ COQSRC=-I $(COQTOP)/kernel -I $(COQTOP)/lib \
 ZFLAGS=$(OCAMLLIBS) $(COQSRC)
 OPT=
 COQFLAGS=-q $(OPT) $(COQLIBS) $(OTHERFLAGS) $(COQ_XML)
-COQC=$(COQBIN)coqc
+COQC=../../ssrcoq
 GALLINA=gallina
 COQDOC=$(COQBIN)coqdoc
 CAMLC=ocamlc -c
@@ -93,10 +93,8 @@ VFILES=connect.v\
   powerSet.v\
   center.v\
   frobenius.v\
-  tuple.v\
-  group_perm.v\
-  frobenius_cauchy.v\
-  burnside_app.v
+  groups_prod.v\
+  tuple.v
 VOFILES=$(VFILES:.v=.vo)
 VIFILES=$(VFILES:.v=.vi)
 GFILES=$(VFILES:.v=.g)
@@ -125,10 +123,8 @@ all: connect.vo\
   powerSet.vo\
   center.vo\
   frobenius.vo\
-  tuple.vo\
-  group_perm.vo\
-  frobenius_cauchy.vo\
-  burnside_app.vo
+  groups_prod.vo\
+  tuple.vo
 
 spec: $(VIFILES)
 
@@ -157,7 +153,7 @@ all-gal.ps: $(VFILES)
 .SUFFIXES: .v .vo .vi .g .html .tex .g.tex .g.html
 
 .v.vo:
-	$(COQC) $(COQDEBUG) $(COQFLAGS) $*
+	$(COQC) $(COQDEBUG) $(COQFLAGS) -compile $*
 
 .v.vi:
 	$(COQC) -i $(COQDEBUG) $(COQFLAGS) $*
