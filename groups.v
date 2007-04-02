@@ -770,6 +770,9 @@ Qed.
 
 End LaGrange.
 
+
+Prenex Implicits repr.
+
 Section GroupInter.
 
 Open Scope group_scope.
@@ -903,6 +906,7 @@ Theorem norm_sconjg : forall x, normaliser_set x -> A :^ x = A.
 Proof. 
 by move=> x Ax; apply/isetP; apply/subset_cardP; [rewrite card_sconjg | rewrite s2f in Ax]. 
 Qed.
+
 
 Theorem group_set_normaliser : group_set normaliser_set.
 Proof.
