@@ -1,0 +1,7 @@
+To build the appropriate Coq Makefile, use the command:
+
+coq_makefile COQC = '$(COQBIN)ssrcoq -compile' -f Make > Makefile
+
+
+where ssrcoq is the name of the ssreflect top level, supposed to be
+placed in the $COQBIN directory.
