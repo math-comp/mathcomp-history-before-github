@@ -668,7 +668,7 @@ move => x; elim => [|n Hrec].
   rewrite !gexpn0; exact: group1.
 rewrite !gexpnS.
 rewrite /coset_of /= /set_of_coset /=.
-apply/smulgP; exists (repr x) (repr (elt:=elt) x ** n) => //.
+apply/smulgP; exists (repr x) (repr x ** n) => //.
 exact: coset_group_repr.
 Qed.
 
