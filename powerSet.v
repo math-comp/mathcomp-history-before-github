@@ -175,7 +175,7 @@ Let uniq_l := (powerSeq_uniq (uniq_enum d)).
 (*                                                                     *)
 (***********************************************************************)
 
-Definition powerSet := UniqListSet _ _ uniq_l.
+Canonical Structure powerSet := UniqListSet _ _ uniq_l.
 
 Lemma card_powerSet: card (setA powerSet) = 2 ^ (card (setA d)).
 Proof.
@@ -197,5 +197,47 @@ Qed.
 Lemma powerSet_mem: forall (h: set d), 
  (setA powerSet) (EqSig _ _ (powerSeq_mem (enum d) h)).
 Proof. done. Qed.
+
+Lemma max_powerSet :
+  forall s: (seq powerSet),
+  ~~ set0b s = ~~ set0b (setI s (fun x => (subset s (fun y => (size (val y) <= size (val x)))))).
+Proof.
+move => s.
+move: (@set0Pn powerSet s) => H.
+apply: (sameP H).
+clear H.
+apply: (iffP idP) => H; first (move/set0Pn: H => H; elim: H => x H;
+  exists x; move/andP: H => H; by elim: H).
+apply/set0Pn.
+elim: s H => [H| x s Hrec H].
+  rewrite //= in H.
+elim: s Hrec H => [Hrec H| xx s Hrec1 Hrec H];  last first.
+  elim: Hrec; last (rewrite //= / setU1; exists xx; apply/orP; by left).
+  move => x0 Hx0.
+  move/andP: Hx0 => Hx0.
+  elim: Hx0 => Hx0_1 Hx0_2.
+  move/subsetP: Hx0_2 => Hx0_2.
+  rewrite / sub_set in Hx0_2.
+  case HT1:( size (val x) <= size (val x0)); [exists x0| exists x]; apply/andP; split.
+        by rewrite //= in Hx0_1; rewrite //= {1}/ setU1; apply/orP; right.
+      apply/subsetP; rewrite / sub_set => x1 Hx1.
+      rewrite //= {1}/ setU1 in Hx1.
+      case HT2: (x==x1); first (by move/eqP: HT2 => <-).
+      rewrite HT2 //= in Hx1; apply: Hx0_2; exact: Hx1.
+    by rewrite //= {1}/ setU1; apply/orP; left.
+  apply/subsetP; rewrite / sub_set => x1 Hx1.
+  rewrite //= {1}/ setU1 in Hx1.
+  case HT2: (x==x1); first (by move/eqP: HT2 => <-).
+  rewrite HT2 //= in Hx1.
+  apply: (@leq_trans (size (val x0))); first (by apply: Hx0_2).
+  rewrite leqNgt in HT1; move/negbEF: HT1 => HT1.
+  by move/ltnW: HT1 => HT1.
+exists x.
+apply/andP; split; first (by rewrite //= / setU1; apply/orP; left).
+apply/subsetP.
+rewrite / sub_set => x0 Hx0.
+rewrite //= / setU1 orbF in Hx0.
+by move/eqP: Hx0 => ->.
+Qed.
 
 End PowerSet.
