@@ -307,6 +307,67 @@ Prenex Implicits primeP.
 Lemma prime_gt1 : forall p, prime p -> 1 < p.
 Proof. by case=> [|[|p]]. Qed.
 
+(***********************************************************************)
+(*   A function that computes a prime divisor of a number              *)
+(***********************************************************************)
+
+Definition pdiv p :=
+ if primes p is Adds q r then q else p.
+
+Lemma dvdn_pdiv: forall p, dvdn (pdiv p) p.
+Proof.
+case; first exact: dvdnn.
+case => [| p]; first exact: dvdnn.
+rewrite /pdiv /primes.
+move: (mem_filter prime (divisors (S (S p)))).
+case: filter => [| u1 s]; try by rewrite dvdnn.
+move => H; move: (sym_equal (H u1)) => /=.
+rewrite /setU1 eq_refl orTb /setI dvdn_divisors //.
+by case/andP.
+Qed.
+
+Lemma prime_pdiv: forall p, 1 < p -> prime (pdiv p).
+Proof.
+have F: forall p, 1 < p -> exists q, prime q /\ dvdn q p.
+  move => p; elim: p {-2}p (leqnn p); first by case.
+  move => q Hrec p H H1.
+  have Hp0: 0 < p.
+    by case: (p) H1.
+  case E0: (prime p).
+    by exists p; rewrite E0 dvdnn.
+  have E1: ~~ all (set2 1%N p) (divisors p).
+    apply/negP; move/allP => HH.
+    case/negP: E0.
+    apply/primeP; split => // d.
+    rewrite dvdn_divisors => // HH1.
+    exact: HH.
+  case/allPn: E1 => x; rewrite -dvdn_divisors => // Hx1 Hx2.
+  case: (Hrec x). 
+  move: (dvdn_leq Hp0 Hx1).
+  rewrite leq_eqVlt.
+  case E1: (x  == p) => /= E2.
+    by rewrite (eqP E1) /= /set2 eq_refl orbT in Hx2.
+  exact: (leq_trans E2 H).
+  case: x Hx1 Hx2; last by case.
+  by case/dvdnP => x ->; rewrite muln0 /set2 eq_refl orbT.
+  move => y [Hy1 Hy2]; exists y; split => //.
+  exact: (dvdn_trans Hy2).
+move => p Hp.
+have Hp0: 0 < p by case: (p) Hp.
+case (F p Hp) => x [Hx1 Hx2].
+rewrite /pdiv /primes.
+move: (mem_filter prime (divisors p)).
+  case: filter => [| u1 s] H; try by rewrite dvdnn.
+  suff: (seq0 x) => //.
+  by rewrite H /setI Hx1 -dvdn_divisors.
+suff: (Adds u1 s u1) by rewrite H; case/andP.
+by rewrite /= /setU1 eq_refl.
+Qed.
+
+(***********************************************************************)
+(*   A function that computes the gcd of 2 numbers                     *)
+(***********************************************************************)
+
 Fixpoint gcdn_rec (m p n : nat) {struct n} : nat :=
   if n is S n' then if p is 0 then m else gcdn_rec p (modn m p) n' else m.
 
@@ -505,6 +566,100 @@ Lemma coprime_mull: forall p m n,
   coprime (m * n) p = coprime m p && coprime n p.
 Proof.
 move => p m n; rewrite !(coprime_sym _ p); exact: coprime_mulr.
+Qed.
+
+
+(***********************************************************************)
+(*   A function that computes the pair of bezout coefficients          *)
+(***********************************************************************)
+
+Fixpoint bezoutn_rec (m p n : nat) {struct n} : nat * nat :=
+  if n is S n' then 
+    if p is 0 then (1%nat,0) 
+    else let (u,v) := bezoutn_rec p (modn m p) n'  
+         in (v, u+ v * (divn m p))
+  else (1%nat, 0).
+
+Definition bezoutn m p := bezoutn_rec m p p.
+
+Lemma gcdn_bezoutn_if: forall m n,
+ let (u,v) := bezoutn m n in
+ if (u*m <= v*n) then
+   (gcdn m n + u * m = v * n)%N
+ else
+   (gcdn m n + v * n = u * m)%N.
+Proof.
+rewrite /bezoutn /gcdn.
+move => m n.
+elim: n m {-2 4 7 10}n (leqnn n) => [| n Hrec] /=.
+  by move => [|m1] [|n1].
+move => m1 [|n1] //.
+  by case: m1.
+move => HH.
+have F1: modn m1 (S n1) <= n.
+  rewrite -ltnS.
+  apply: leq_trans HH.
+  by rewrite ltn_mod.
+move: (Hrec (S n1) (modn m1 (S n1)) F1).
+case: bezoutn_rec => n2 n3.
+set k := gcdn_rec _ _ _ .
+replace (n3 * m1 <= (n2 + n3 * divn m1 (S n1)) * S n1) with
+     (n3 * modn m1 (S n1) <= n2 * S n1).
+  rewrite leq_eqVlt orbC (leqNgt (n3 * _)).
+  case: leq => /=.
+    move => HH1.
+    by rewrite muln_addl addnA HH1 -mulnA -muln_addr 
+               addnC -divn_eq.
+  case E1: (_ == _).
+    rewrite -(eqP E1) => HH1.
+    rewrite muln_addl (eqP E1) -mulnA -muln_addr
+             (addnC (modn _ _)) -divn_eq.
+    rewrite -{2}(add0n (n3 * m1)); congr addn.
+    by apply: (@addn_injr (n2 * S n1)); rewrite add0n.
+  move => HH1.
+  rewrite muln_addl -HH1 -addnA -mulnA -muln_addr.
+  by congr addn; rewrite addnC -divn_eq.
+by rewrite muln_addl {2}(divn_eq m1 (S n1)) muln_addr
+        addnC mulnA leq_add2r.
+Qed.  
+  
+Definition abezoutn n m :=
+ let (u,v) := bezoutn n m in
+ if (u * n <= v * m) then
+    (u * (m - 1), v)%N else
+    (u, v * (n - 1))%N.
+
+Lemma abezout_modn: forall n m, 
+ let (u,v) := abezoutn n m in
+   modn (u * n + v * m) (m * n) = modn (gcdn n m) (n * m).
+Proof.
+move => n m.
+rewrite /abezoutn.
+move: (gcdn_bezoutn_if n m); case: bezoutn => u v.
+case E1: (_ <= _) => <-.
+  rewrite addnC -addnA -muln_addl -{1}(muln1 u)
+          -muln_addr.
+  case: m E1 => [| m].
+    rewrite !muln0; case: u => [| u].
+      by rewrite addn0 mul0n.
+    by case: n => //; rewrite !muln0 addn0.
+  by move => _; rewrite leq_add_sub // -modn_add -mulnA
+                        modn_mull addn0 modn_mod mulnC.
+rewrite -addnA -muln_addl -{1}(muln1 v)
+          -muln_addr.
+case: n E1 => [| n].
+  by rewrite muln0.
+by move => _; rewrite (mulnC m) leq_add_sub // -modn_add -mulnA
+                       modn_mull addn0 modn_mod mulnC.
+Qed.
+
+Lemma abezout_coprime: forall n m, 
+   1 < n * m -> coprime n m -> 
+  (let (u,v) := abezoutn n m in  modn (u * n + v * m) (m * n) == 1%N).
+Proof.
+move => n m H; move: (abezout_modn n m); 
+  case (abezoutn n m) => u v H0.
+by rewrite {}H0 /coprime => H1; rewrite (eqP H1) modn_small.
 Qed.
 
 (***********************************************************************)
