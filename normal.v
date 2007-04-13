@@ -649,6 +649,17 @@ rewrite -(coset_of_repr y).
 by apply/eqP; apply: coset_of_id.
 Qed.
 
+Lemma cosetV_repr: forall (x: coset_groupType H), 
+  (x^-1)%G  ((repr x)^-1).
+Proof.
+move => x; rewrite /coset_inv /=.
+rewrite /coset_of /= /set_of_coset /=.
+case: x => /=.
+case => /= x1 Hx1.
+rewrite /set_of_coset s2f /=; gsimpl.
+by apply: (@mem_coset_repr _ H).
+Qed.
+
 Lemma cosetM_repr: forall (x y: coset_groupType H), 
   (x * y)%G  (repr x * repr y).
 Proof.
@@ -691,10 +702,71 @@ apply: (subsetP HK).
 apply: (@mem_repr _ 1); exact: group1.
 Qed.
 
-
 End Rep.
 
 Notation "H / K" := (quotient H K).
+
+Section Card.
+
+Variable elt: finGroupType.
+Variable H K: group elt.
+Hypothesis HK: subset K H.
+Hypothesis nKH : K <| H.
+
+Lemma quotient_card:
+  card H = (card (H/K) * card K)%N.
+Proof.
+have F1: (partition (H/K) (fun x => K :* (repr x)) H).
+  split.
+    move => u v x Hu Hv /= Hsu Hsv.
+    apply: (@trans_equal _ _ (1 * u)); first gsimpl.
+    have F1:= (quotient_repr HK Hu).
+    have F2:= (quotient_repr HK Hv).
+    case/rcosetP: Hsu => k1 Hk1.
+    case/rcosetP: Hsv => k2 Hk2 -> HH.
+    have F3: K (repr v * (repr u)^-1) by 
+      rewrite -(mul1g (_ * _)) -(mulVg k2) -mulgA
+              (mulgA k2) HH -!mulgA mulgV mulg1 groupM // groupV.
+    have F4: normaliser K (repr v * (repr u)^-1).
+      by apply (subsetP nKH); rewrite groupM // groupV.
+    move/(ker_cosetP F4): F3.
+    rewrite morph_coset_of; try
+        (by apply (subsetP nKH); rewrite ?groupV).
+    rewrite coset_of_repr.
+    rewrite coset_ofV; last
+        (by apply (subsetP nKH); rewrite ?groupV).
+    rewrite coset_of_repr.
+    move => F5; rewrite -(eqP F5); gsimpl.
+  apply/coverP; split => x Hx.
+    apply/subsetP => y; case/rcosetP => z Kz ->.
+    rewrite groupM //; first exact: (subsetP HK).
+    by apply: quotient_repr.
+  exists (coset_of K x).
+  have F1: H (repr (coset_of K x)).
+    apply quotient_repr => //.
+    by apply/iimageP; exists x.
+  apply/andP; split; first by apply/iimageP; exists x.
+  apply/rcosetP.
+  exists (x * (repr (coset_of K x))^-1); last gsimpl.
+  apply/ker_cosetP; first 
+    by apply (subsetP nKH); rewrite groupM // groupV.
+  rewrite morph_coset_of; try 
+    by apply (subsetP nKH); rewrite // groupV.
+  rewrite coset_ofV; last by apply (subsetP nKH).
+  by rewrite coset_of_repr; gsimpl.
+apply: (card_partition_id F1) => x Hx.
+by rewrite card_rcoset.
+Qed.
+
+Lemma quotient_indexg: card (H/K) = indexg K H.
+Proof.
+have F1: card K == 0 = false by case: card (pos_card_group K).
+  by apply/eqP; rewrite -[_==_]orFb -F1 -eqn_mul2l
+                        LaGrange // quotient_card mulnC.
+Qed.
+
+End Card.
+
 
 Section TrivialQuotient.
 
