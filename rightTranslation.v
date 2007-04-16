@@ -58,6 +58,11 @@ Variable (G : finGroupType) (H K: group G).
 
 Hypothesis subset_HK : subset H K.
 
+Section LBij.
+
+Variable L: group G.
+Hypothesis subset_LK : subset L K.
+
 (***********************************************************************)
 (*                                                                     *)
 (*  Definition of the set of element of orbit 1 by the right           *)
@@ -65,7 +70,24 @@ Hypothesis subset_HK : subset H K.
 (*                                                                     *)
 (***********************************************************************)
 
-Definition rtrans_fix := rcosets H K :&: {s, act_fix (trans_action G) H s}.
+Definition rtrans_fix := rcosets H K :&: {s, act_fix (trans_action G) L s}.
+
+
+Lemma act_fix_sub : forall x,
+  act_fix (trans_action G) L (H :* x) -> subset L (H :^ x).
+Proof.
+move=> x; move/act_fixP => H1.
+apply/subsetP => y Hy.
+move: (H1 _ Hy) => /= H2.
+have F1: (H :* x) x.
+ by apply/rcosetP; exists (unitg G); rewrite ?group1 ?mul1g.
+rewrite -H2 in F1; case/rcosetP: F1 => x1.
+case/rcosetP => y1 Hy1 -> Hxy.
+replace y with (y1 ^x)^-1; first by rewrite sconjg_inv ?sconjg_conj.
+rewrite /conjg {1}Hxy; gsimpl.
+Qed.
+
+End LBij.
 
 Lemma act_fix_norm : forall x,
   act_fix (trans_action G) H (H :* x) = normaliser H x.
@@ -79,7 +101,7 @@ move=> Nx y Hy => /=; rewrite (norm_rlcoset Nx).
 by apply/isetP=> a; rewrite !s2f mulgA groupMr ?groupV.
 Qed.
 
-Lemma rtrans_fix_norm : rtrans_fix = (rcoset H) @: (normaliser H :&: K).
+Lemma rtrans_fix_norm : rtrans_fix H = (rcoset H) @: (normaliser H :&: K).
 Proof.
 apply/isetP=> Hx; apply/isetIP/iimageP.
   case; rewrite s2f /rcosets;move/iimageP=> [x Kx ->] af.
@@ -87,8 +109,6 @@ apply/isetP=> Hx; apply/isetIP/iimageP.
 case=> x; case/isetIP=> Nx Kx dHx; split; last by rewrite s2f dHx act_fix_norm.
 by apply/iimageP; exists x.
 Qed.
-
-
 
 End Bij.
 

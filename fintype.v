@@ -696,6 +696,9 @@ rewrite !s2f; case: (a x) => H; apply/orP; [right|left] => //.
 rewrite orbF in H; exact: (sb12 x H).
 Qed.
 
+Lemma isetIA: forall A B C: setType G, A :&: B :&: C = A :&: (B :&: C).
+Proof. by move=> A B C; apply/isetP=> x; rewrite !s2f andbA. Qed.
+
 Lemma isetUA : forall a b c : setType G,
   a :|: (b :|: c) = a :|: b :|: c.
 Proof.

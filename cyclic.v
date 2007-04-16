@@ -644,6 +644,15 @@ Proof.
 by move => a; apply/subset_eqP.
 Qed.
 
+Lemma generator_orderg: forall a b, 
+  generator (cyclic a) b -> orderg a = orderg b.
+Proof.
+move => a b; case/andP => H1 H2.
+apply: eq_card => x; apply/idP/idP => H3.
+  by apply: (subsetP H2).
+by apply: (subsetP H1).
+Qed.
+
 Lemma cyclic_subset: forall a n,
    subset (cyclic (a ** n)) (cyclic a).
 Proof.

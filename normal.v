@@ -53,11 +53,24 @@ apply: (iffP idP).
   by move=> H1; apply/subsetP=> x Kx; rewrite/normaliser s2f H1 //; apply subset_refl.
 Qed.
 
+
+Lemma norm_coset : 
+  forall (L : group elt) x y, 
+     L :* x = L :* y -> normaliser L x = normaliser L y.
+Proof.
+move=> L x y Lxy; apply/idP/idP => Ny.
+  have : (L :* x) y by rewrite Lxy rcoset_refl.
+  case/rcosetP=> l Ll ->.
+  by rewrite groupM // (subsetP (norm_refl L)).
+have : (L :* y) x by rewrite -Lxy rcoset_refl.
+case/rcosetP=> l Ll ->.
+by rewrite groupM // (subsetP (norm_refl L)).
+Qed.
+
 End Normal.
 
 (* restreindre aux groups *)
 Notation "H '<|' K" := (normal H K)(at level 50):group_scope.
-
 
 Section NormalProp.
 
@@ -584,13 +597,45 @@ Qed.
 
 Definition quotient (A B : setType elt) := (coset_of B) @: A.
 
-(*
-Lemma quotientP : forall (A B : setType elt) (C : cosetType B), 
-  reflect (exists2 x, (A x) /\ (normaliser B x) & (C = coset_of B x))
-          (quotient A B C).
-Proof. by move=> A B C; apply:(iffP (iimageP _ _ _)); case=> x; move/isetIP; exists x. Qed.
-*)
+Notation "H / K" := (quotient H K).
 
+Lemma quotientP : forall (A : group elt) (B : setType elt) (C : cosetType B), 
+  reflect (exists x, and3 (A x) (normaliser B x) (C = coset_of B x))
+          ((A/B) C).
+Proof. 
+move=> A B Bx; rewrite (_:(A / B) Bx = (((normaliser B) :&: A) / B) Bx).
+  apply:(iffP (iimageP _ _ _)); case.
+    by move=> x; case/isetIP=> Nx Ax ->; exists x.
+  by move=> x [Ax Nx ->]; exists x => //; apply/isetIP.
+apply/iimageP/iimageP; case=> x.
+  move=> Ax; rewrite /coset_of /coset. 
+  case: Bx; case=> Be BeB=> [[C]]; move: C.
+  case Nx : (normaliser B x)=> dBe.
+    exists x; first by apply/isetIP.
+    apply: (can_inj (@sig_of_cosetK elt B)); apply: val_inj=> /=.
+    by rewrite Nx.
+  exists (1:elt); first by apply/isetIP. 
+  apply: (can_inj (@sig_of_cosetK elt B)); apply: val_inj=> /=.
+  by rewrite group1 gmulg1.
+by case/isetIP=> Nx Ax ->; exists x.
+Qed.
+
+
+Lemma iimage_quotientP: 
+  forall A B: group elt, forall (t : finType) (f : _ -> t), 
+   (f @: (A/B) = f @: ((A :&: normaliser B)/B)).
+Proof.
+move=> A B t f; apply/isetP=> x; apply/iimageP/iimageP;
+case=> By; case/iimageP=> y Ay dBy ->; case Ny: (normaliser B y);
+exists By => //; apply/iimageP.
+- by exists y => //; apply/isetIP.
+- exists (1:elt) => //; first by apply/isetIP.
+  rewrite dBy; apply: (can_inj (@sig_of_cosetK elt B)); apply: val_inj=> /=.
+  by rewrite cosetD // coset1.
+- by exists y => //; case/isetIP: Ay.
+by exists (1:elt) => //; case/isetIP: Ay; rewrite Ny.
+Qed.
+ 
 Variable K : group elt.
 
 Lemma group_set_quotient : group_set (quotient K H).

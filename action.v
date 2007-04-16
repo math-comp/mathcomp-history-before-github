@@ -8,7 +8,7 @@ Require Import seq.
 Require Import fintype.
 Require Import paths.
 Require Import connect.
-Require Import groups.
+Require Import groups.  
 Require Import group_perm.
 
 Set Implicit Arguments.
@@ -220,6 +220,7 @@ by apply/iset1P=> Eba; rewrite -Eba fixb in nfixa.
 Qed.
 
 End ModP.
+
 
 Section PermAction.
 
