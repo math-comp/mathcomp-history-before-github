@@ -540,7 +540,8 @@ Lemma orderg_dvd_g:
   forall (H : group G) a, H a -> dvdn (orderg a) (card H).
 Proof.
 move => H a Ha. 
-have sCaH: subgroup (group_cyclic a) H. 
+(*have sCaH: subgroup (group_cyclic a) H. *)
+have sCaH: subset (group_cyclic a) H. 
   by apply/subsetP=> x; move/cyclicP=> [n Dx]; rewrite -(eqP Dx) groupE. 
 by rewrite -(LaGrange sCaH) dvdn_mulr. 
 Qed.

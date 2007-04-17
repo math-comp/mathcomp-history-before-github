@@ -645,8 +645,11 @@ Section LaGrange.
 
 Variables (elt : finGroupType) (H K : group elt).
 
+(*
 Definition subgroup := subset H K.
-Hypothesis subset_HK : subgroup.
+Hypothesis subset_HK : subgroup.*)
+
+Hypothesis subset_HK : subset H K.
 Let sHK := subsetP subset_HK.
 
 Open Scope group_scope.
@@ -808,7 +811,8 @@ End GroupSmulSub.
 Section GroupSmulSubGroup.
 
 Variables H K : group elt.
-Hypothesis subHK : subgroup H K.
+(*Hypothesis subHK : subgroup H K.*)
+Hypothesis subHK : subset H K.
 
 Definition smulSG := smulsG subHK (group1 H).
 Definition smulGS := smulGs subHK (group1 H).
@@ -873,7 +877,8 @@ symmetry; apply/isetP; apply/subset_cardP; first by rewrite icard1.
 apply/subsetP=> x; rewrite s2f; move/eqP <-; exact: group1.
 Qed.
 
-Lemma group_modularity : forall G, subgroup G K ->
+(*Lemma group_modularity : forall G, subgroup G K ->*)
+Lemma group_modularity : forall G : group elt, subset G K ->
   G :*: (H :&: K) = G :*: H :&: K.
 Proof.
 move=> G; move/subsetP=> sGK; apply/isetP => x.
