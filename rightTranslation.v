@@ -92,8 +92,8 @@ End LBij.
 Lemma act_fix_norm : forall x,
   act_fix (trans_action G) H (H :* x) = normaliser H x.
 Proof.
-move=> x; apply/act_fixP/idP.  
-   rewrite -(groupV (normaliser H)) s2f => dHx; apply/subsetP=> y. 
+move=> x; apply/act_fixP/idP.
+   rewrite -groupV s2f => dHx; apply/subsetP=> y. 
    rewrite s2f /conjg; gsimpl => Hxy. 
    rewrite -(actK (trans_action G) x H) /= -(dHx _ Hxy) /=. 
    by rewrite -!rcoset_morph /conjg s2f; gsimpl; exact group1.

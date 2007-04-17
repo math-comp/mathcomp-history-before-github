@@ -900,21 +900,21 @@ Section NormSet.
 
 Variable A : setType elt.
 
-Definition normaliser_set := {x, subset (A :^ x) A}.
+Definition normaliser := {x, subset (A :^ x) A}.
 
-Theorem norm_sconjg : forall x, normaliser_set x -> A :^ x = A.
+Theorem norm_sconjg : forall x, normaliser x -> A :^ x = A.
 Proof. 
 by move=> x Ax; apply/isetP; apply/subset_cardP; [rewrite card_sconjg | rewrite s2f in Ax]. 
 Qed.
 
 
-Theorem group_set_normaliser : group_set normaliser_set.
+Theorem group_set_normaliser : group_set normaliser.
 Proof.
 apply/groupP; split=> [|x y Nx Ny]; first by rewrite s2f sconj1g subset_refl.
 by rewrite s2f; apply/subsetP => z; rewrite sconjgM !norm_sconjg.
 Qed.
 
-Canonical Structure normaliser := Group group_set_normaliser.
+Canonical Structure group_normaliser := Group group_set_normaliser.
 
 Definition normalized (B : setType elt) := subset B normaliser.
  
@@ -946,7 +946,7 @@ Qed.
 
 Lemma norm_rcoset : forall x, N x -> subset (H :* x) N.
 Proof.
-move=> x Nx; rewrite rcoset_smul. rewrite -(smulgg N) /=.
+move=> x Nx; rewrite rcoset_smul; rewrite -[normaliser _]smulgg /=.
 by apply: subset_trans (smulsg _ norm_refl); apply: smulgs; rewrite subset_set1.
 Qed.
 
