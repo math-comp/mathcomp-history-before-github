@@ -735,7 +735,7 @@ have F3: card KRG = indexg (group_cyclic x) (centraliser G x).
 have F4: card (centraliser G x) = (card KRG * orderg x)%N.
   rewrite F3 /orderg.
   apply sym_equal; rewrite mulnC; apply: LaGrange => //=.
-    rewrite /subgroup; apply: cyclic_subset_centraliser => //.
+    apply: cyclic_subset_centraliser => //.
 have F5: cKRG <= k.
   rewrite (eqP Hx) in F4.
   have F5: dvdn (card (centraliser G x)) (card G).
