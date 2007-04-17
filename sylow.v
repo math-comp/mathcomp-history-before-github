@@ -301,7 +301,8 @@ exists (Group T1); split => //.
 - exact: subsetIr.
 - have sHN: subset H (normaliser L) by apply/subsetP=>x; do 2 case/isetIP.
   exact: (normal_subset (norm_normal L) sHN).
-have sgLH : subgroup L (Group T1) by exact: T2.
+have sgLH : subset L (Group T1) by exact: T2.
+(*have sgLH : subgroup L (Group T1) by exact: T2.*)
 rewrite -(LaGrange sgLH).
 rewrite (_: indexg L _ = card (coset_of L @: H)); last first.
   rewrite -(card_image (@coset_set_inj _ L)).
@@ -361,7 +362,7 @@ have F1: ~~(dvdn p (indexg (Group Hsl) K)).
   move/dvdnP: Fd => [u Hu].
   have F2: (dvdn (p ^ (S n)) (card K)).
     apply/dvdnP; exists u.
-    have sgLK : subgroup (Group Hsl) K by exact: Hsl1.   
+    have sgLK : subset (Group Hsl) K by exact: Hsl1.   
     rewrite -(LaGrange sgLK) Hu (eqP Hsl2) /= (mulnA u).
     exact: mulnC. 
   by move: F2; rewrite /n dvdn_p_p_part // (cardD1 1) group1.
@@ -502,17 +503,18 @@ have F6: forall x, S0 x -> x = H.
   move => L; case/andP; move/act_fixP.
   rewrite s2f /= => Hl Hl1.
   case/and3P: (Hl1) => Hl2 Hl3 Hl4.
-  set nLK := setI_group (normaliser L) K.
+  set nLK := isetI (normaliser L) K.
+(*  set nLK := setI_group (normaliser L) K.*)
   have F7: subset H nLK. 
     apply/subsetP => y Hy.
     rewrite s2f; apply/andP; split; last exact: (subsetP F2).    
     by rewrite s2f /= Hl // subset_refl.
-  have F8 : sylow nLK p H.
-    apply: (@sylow_subset _ _ K)  => //.
+  have F8 : sylow {nLK as group _} p H.
+    rewrite /=; apply: (@sylow_subset _ _ K)  => //.
     apply/subsetP => y.
     by rewrite s2f; case/andP.
-  have F9 : sylow nLK p L.
-    change (sylow nLK p (Group Hl2)).
+  have F9 : sylow {nLK as group _} p L.
+    change (sylow {nLK as group _} p (Group Hl2)).
     apply: (sylow_subset (K := K)) => //;
       last by apply/subsetP => y; rewrite s2f; case/andP.
     apply/subsetP => /= x Hx.

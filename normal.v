@@ -614,7 +614,7 @@ apply/iimageP/iimageP; case=> x.
     exists x; first by apply/isetIP.
     apply: (can_inj (@sig_of_cosetK elt B)); apply: val_inj=> /=.
     by rewrite Nx.
-  exists (1:elt); first by apply/isetIP. 
+  exists (1:elt); first by apply/isetIP; rewrite !group1.
   apply: (can_inj (@sig_of_cosetK elt B)); apply: val_inj=> /=.
   by rewrite group1 gmulg1.
 by case/isetIP=> Nx Ax ->; exists x.
@@ -629,7 +629,7 @@ move=> A B t f; apply/isetP=> x; apply/iimageP/iimageP;
 case=> By; case/iimageP=> y Ay dBy ->; case Ny: (normaliser B y);
 exists By => //; apply/iimageP.
 - by exists y => //; apply/isetIP.
-- exists (1:elt) => //; first by apply/isetIP.
+- exists (1:elt) => //; first by apply/isetIP; rewrite !group1.
   rewrite dBy; apply: (can_inj (@sig_of_cosetK elt B)); apply: val_inj=> /=.
   by rewrite cosetD // coset1.
 - by exists y => //; case/isetIP: Ay.
