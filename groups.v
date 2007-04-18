@@ -475,6 +475,9 @@ Lemma sig_of_groupK : cancel sig_of_group group_of_sig. Proof. by case. Qed.
 Canonical Structure group_eqType := EqType (can_eq sig_of_groupK).
 Canonical Structure group_finType := FinType (can_uniq sig_of_groupK).
 
+Lemma set_of_group_inj : injective set_of_group.
+Proof. move=> [G1 gG1] [G2 gG2]; move/eqP=> eG12; exact/eqP. Qed.
+
 Section GroupProp.
 
 Variable H : group.
