@@ -7,6 +7,8 @@ Require Import ssrbool.
 Require Import fintype.
 Require Import connect.
 Require Import paths.
+Require Import div.
+
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -77,7 +79,7 @@ case: (a _ _) => //=; exact: count_set0.
 Qed.
 
 (*m ^ n*)
-Definition expn m n := iter n (muln m) 1.
+(*Definition expn m n := iter n (muln m) 1.*)
  
 Section Tfunspace.
 

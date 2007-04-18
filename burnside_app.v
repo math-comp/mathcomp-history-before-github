@@ -11,6 +11,7 @@ Require Import action.
 Require Import frobenius_cauchy.
 Require Import group_perm.
 Require Import tuple.
+Require Import div.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
