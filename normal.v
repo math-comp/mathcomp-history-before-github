@@ -886,6 +886,48 @@ Notation "'preim_' ( G ) f B" := ((f @^-1: B) :&: G)
 
 
 
+Section FirstIsomorphism.
+
+
+Open Scope group_scope.
+
+Variables (elt1 elt2 : finGroupType) (f : morphism elt1 elt2).
+
+Variable H : group elt1.
+
+Hypothesis sHD : subset H (dom f).
+
+(* To avoid ugly implicit args at development time *)
+Notation Local fbar := (mquo f (ker f)).
+Notation Local D := (dom f).
+Notation Local K := (group_ker f).
+Notation Local NK := (normaliser K).
+Notation Local modK := (coset_groupType K).
+
+
+Lemma first_isom : ~~ trivm fbar -> isom fbar (H / (ker f)) (f @: H).
+Proof.
+move=> Hn; rewrite /isom; apply/andP; split.
+  apply/eqP; apply/isetP; apply/subset_eqP.
+    apply/andP; split; apply/subsetP=> x; case/iimageP=> y.
+    case/quotientP=> z=> [[Dz Nz ->]] ->.
+    by apply/iimageP; exists z; rewrite ?factor_mquo_norm //= subset_refl.
+  move=> Dy ->; apply/iimageP; exists (coset_of K y).
+    by apply/quotientP; exists y; rewrite Dy (subsetP (normal_ker _))// (subsetP sHD).
+  by rewrite factor_mquo_norm // ?subset_refl ?(subsetP (normal_ker _)) ?(subsetP sHD).
+apply/injmP=> xbar ybar. case/quotientP=> [x [Dx Nx ->]] {xbar}.
+case/quotientP=> [y [Dy Ny ->]] {ybar} /=.
+rewrite !factor_mquo_norm // ?subset_refl // => Heq.
+apply:set_of_coset_inj; rewrite !set_of_coset_of Nx Ny.
+apply rcoset_trans1; apply/rcosetP; exists (y * x^-1); last by gsimpl.
+apply/kerMP; rewrite ?groupM ?groupV ?(subsetP sHD) // morphM ?groupV ?(subsetP sHD) //.
+by rewrite -Heq morphV ?mulgV ?(subsetP sHD).
+Qed.
+
+
+
+End FirstIsomorphism.
+
+
+
 Unset Implicit Arguments.
-
-
