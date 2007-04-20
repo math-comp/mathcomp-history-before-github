@@ -107,7 +107,7 @@ Proof. exact: inj_comp (@val_inj _ _) (can_inj sig_of_cosetK). Qed.
 
 End Cosets.
 
-
+Prenex Implicits coset.
 (********************************************************************)
 (*  The domain of a morphism is inferred from the values of the     *)
 (*  function. A morphism is constant 1 outside its domain           *)
@@ -709,6 +709,7 @@ case Nx: (N x); [by exists x | exists (1 : elt); rewrite !group1 morph1; split=>
 by apply: set_of_coset_inj; rewrite set_of_coset_of Nx.
 Qed.
 
+
 Lemma set_of_coset_quotient :
   (@set_of_coset _ H) @: (K / H) = (rcoset H) @: (N :&: K).
 Proof.
@@ -803,7 +804,7 @@ Proof. by case/set0Pn=> x; rewrite /mquo; case: subset => //; case/eqP. Qed.
 Lemma ker_mquo_nt : ~~ trivm fq -> ker fq = ker f / H.
 Proof.
 move=> Hnt; have fqc := factor_mquo_norm (mquo_nt_subker Hnt).
-apply/isetP=> xbar; apply/kerP/quotientP=> [Kxbar | [x [Kx Nx ->{xbar}]] ybar].
+apply/isetP=> xbar; apply/kerP/quotientP => [Kxbar | [x [Kx Nx ->{xbar}]] ybar].
   case: (cosetP xbar) => x Nx -> {xbar} in Kxbar *; exists x; split=> //=.
   case/set0Pn: Hnt => zbar; case: (cosetP zbar) {Kxbar}(Kxbar zbar) => z Nz -> {zbar}.
   rewrite -morphM ?domN ?fqc ?groupMl // => fxz fz1; have Dz: dom f z by exact: dom_nu.
@@ -885,7 +886,6 @@ Notation "'preim_' ( G ) f B" := ((f @^-1: B) :&: G)
   (at level 10, format "'preim_' ( G )  f  B") : group_scope.
 
 
-
 Section FirstIsomorphism.
 
 
@@ -893,36 +893,65 @@ Open Scope group_scope.
 
 Variables (elt1 elt2 : finGroupType) (f : morphism elt1 elt2).
 
+
+Notation Local D := (dom f).
+Notation Local K := (group_ker f).
+
+
+Lemma subset_ker_r : forall g : elt1 -> elt2, forall A: setType elt1,
+  subset (ker_(A) f) (ker f).
+Proof. by move=> g A; apply/subsetP=> u; case/isetIP. Qed.
+
+
+
+(*Lemma ker_r_dom : {ker_(D) f as group _}= {ker f as group _}.*)
+Lemma ker_r_dom : ker_(D) f = ker f.
+Proof.
+apply/isetP; apply/subset_eqP; rewrite (subset_ker_r f) /=; apply/subsetP=> x Kx.
+by apply/isetIP; rewrite Kx dom_k.
+Qed.
+
+
 Variable H : group elt1.
 
 Hypothesis sHD : subset H (dom f).
 
-(* To avoid ugly implicit args at development time *)
-Notation Local fbar := (mquo f (ker f)).
-Notation Local D := (dom f).
-Notation Local K := (group_ker f).
-Notation Local NK := (normaliser K).
-Notation Local modK := (coset_groupType K).
 
-
-Lemma first_isom : ~~ trivm fbar -> isom fbar (H / (ker f)) (f @: H).
+Lemma normal_ker_r : (ker_(H) f) <| (dom_(H) f).
 Proof.
-move=> Hn; rewrite /isom; apply/andP; split.
+apply/subsetP=> d; case/isetIP=> Dd Hd; rewrite s2f; apply/subsetP=> x; rewrite s2f.
+case/isetIP=> Kxd Hxd; apply/isetIP.
+have : normaliser (ker f) d by rewrite (subsetP (normal_ker _)).
+rewrite s2f; move/subsetP; move/(_ x)=> ->; rewrite 1?s2f //.
+by rewrite -(@groupJr _ _ _ d^-1) ?groupV.
+Qed.
+
+Lemma sHDr : subset H (dom_(H) f).
+Proof. by apply/subsetP=> x Hx; apply/isetIP; rewrite (subsetP sHD). Qed.
+
+Notation Local fbar := (mquo f (ker_(H) f)).
+
+Lemma first_isom : isog (H / (ker_(H) f)) (f @: H).
+Proof.
+rewrite /isog; exists {fbar as morphism _ _}; apply/andP=> /=; split.
   apply/eqP; apply/isetP; apply/subset_eqP.
-    apply/andP; split; apply/subsetP=> x; case/iimageP=> y.
-    case/quotientP=> z=> [[Dz Nz ->]] ->.
-    by apply/iimageP; exists z; rewrite ?factor_mquo_norm //= subset_refl.
-  move=> Dy ->; apply/iimageP; exists (coset_of K y).
-    by apply/quotientP; exists y; rewrite Dy (subsetP (normal_ker _))// (subsetP sHD).
-  by rewrite factor_mquo_norm // ?subset_refl ?(subsetP (normal_ker _)) ?(subsetP sHD).
-apply/injmP=> xbar ybar. case/quotientP=> [x [Dx Nx ->]] {xbar}.
+  apply/andP; split; apply/subsetP=> x; case/iimageP=> y.
+    case/quotientP=> z=> [[Hz Nz ->]] ->.
+    by apply/iimageP; exists z; rewrite ?factor_mquo_norm //= (subset_ker_r f).
+  move=> Hy ->; apply/iimageP=> /=; exists (coset_of (ker_(H) f) y).
+    by apply/quotientP; exists y; rewrite Hy (subsetP normal_ker_r) ?(subsetP sHDr).
+  rewrite factor_mquo_norm //= ?(subset_ker_r f) // (subsetP normal_ker_r) //.
+  by rewrite (subsetP sHDr).
+apply/injmP=> xbar ybar; case/quotientP=> [x [Dx Nx ->]] {xbar}.
 case/quotientP=> [y [Dy Ny ->]] {ybar} /=.
-rewrite !factor_mquo_norm // ?subset_refl // => Heq.
+rewrite !factor_mquo_norm //= ?(subset_ker_r f) // => Heq.
 apply:set_of_coset_inj; rewrite !set_of_coset_of Nx Ny.
-apply rcoset_trans1; apply/rcosetP; exists (y * x^-1); last by gsimpl.
+apply rcoset_trans1; apply/rcosetP; exists (y * x^-1) => /= ; last by gsimpl.
+apply/isetIP; apply/andP; rewrite groupM ?groupV // andbT.
 apply/kerMP; rewrite ?groupM ?groupV ?(subsetP sHD) // morphM ?groupV ?(subsetP sHD) //.
 by rewrite -Heq morphV ?mulgV ?(subsetP sHD).
 Qed.
+
 
 
 
