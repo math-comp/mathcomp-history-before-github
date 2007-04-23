@@ -31,6 +31,164 @@ Unset Strict Implicit.
 Import Prenex Implicits.
 
 
+Section Kb.
+
+
+Open Scope group_scope.
+   
+Variables (elt: finGroupType) (H: group elt).
+Variable x: elt.
+Hypothesis Hx: H x.
+
+(* proof to be reworked *)
+Lemma orderg_krg: forall p (Hp: prime p) l y,
+  (centraliser H x / cyclic x) y ->
+  (orderg x = p ^ (S l))%N ->
+  coprime (orderg x) (orderg y) -> exists z:elt,
+     (coprime (orderg x) (orderg z)) && (coset_of (cyclic x) z == y) && 
+     (centraliser H x z).
+move => p Hp l y.
+case/quotientP => i [Hi1 Hi2 ->] Hox {y} Hy.
+case Hnt: (trivm (coset_of (cyclic x))).
+  exists (1: elt).
+  by rewrite !(trivm_is_cst Hnt) group1 orderg1 eq_refl 
+            /coprime gcdn_modl modn1 gcdnC gcdn0.
+set (y := coset_of (group_cyclic x) i).
+have F1: coset_of (cyclic x) (i ** (orderg y)) = 1.
+  rewrite coset_ofE.
+  apply/eqP; exact: orderg_expn1.
+  by rewrite dom_coset ?Hnt //.
+have F2: normaliser (cyclic x) (i ** (orderg y)).
+  by rewrite groupE.
+case/cyclicP: (coset_of_idr F2 F1) => j Hj.
+move: (Hy); rewrite coprime_sym {1}/coprime => Hy1.
+move:  (bezoutr (orderg x) (orderg_pos y)).
+rewrite gcdnC (eqP Hy1); case => u Hu.
+case/dvdnP => v Hv {Hy1}.
+have C1: centraliser H x (x ** v).
+  by apply: centraliserEr => //; exact: centraliser_id.
+have F0: commute x i.
+  by case/isetIP: Hi1 => /=; rewrite s2f.
+have F4: x ** (v * (orderg y)) = x.
+  by rewrite -Hv -gexpn_add gexpn1 mulnC -gexpn_mul
+             (eqP (orderg_expn1 x)) gexp1n mulg1.
+have F5: x ** ((j * v) * orderg y) = i ** (orderg y).
+  by rewrite -!mulnA mulnC -gexpn_mul F4 (eqP Hj).
+set k1 := ((j * v) * (orderg x - 1))%N.
+have F6: ((x ** k1) * i) ** (orderg y) = 1.
+  rewrite gexpnC; last by
+   apply: (commute_sym (commute_expn _ (commute_sym _))).
+  rewrite gexpn_mul -F5 gexpn_add. 
+  rewrite /k1 -!mulnA !(mulnA j) -muln_addr.
+  rewrite -{2}(mul1n (orderg y)) -muln_addl.
+  rewrite addnC leq_add_sub; last exact: orderg_pos.
+  by rewrite mulnC -!mulnA -gexpn_mul (eqP (orderg_expn1 _))
+         gexp1n.
+have F7: centraliser H x (x ** k1).
+  by apply: centraliserEr; exact: centraliser_id.
+exists ((x ** k1) * i).
+apply/andP; split; last
+  by apply: (centraliserM _ _).
+apply/andP; split.
+  move/eqP: F6; rewrite -orderg_dvd.
+  case/dvdnP => k Hk.
+  by move: Hy; rewrite Hk coprime_mulr; case/andP.
+rewrite coset_of_morphM -/y; last by rewrite ?dom_coset ?Hnt.
+  rewrite coset_of_id ?cyclic_in; gsimpl.
+by rewrite dom_coset ?Hnt // groupE //= (subsetP (norm_refl _))
+        // cyclicnn.
+Qed.
+
+Lemma KB_image: forall p (Hp: prime p) l s,
+  (orderg x = p ^ (S l))%N -> (coprime (orderg x) s) ->
+  image (coset_of (cyclic x))
+            (fun z => (centraliser H x z) && (dvdn (orderg z) s)) =1
+            (fun z => (centraliser H x/cyclic x) z && dvdn (orderg z) s).
+move => p Hp l s H1 H2 x1; apply/idP/idP => H3.
+  case: (Hdiinv H3) => y; case/and3P => HH1 HH2 HH3.
+  rewrite orderg_dvd.
+  apply/andP; split; first
+    by apply/iimageP; exists y => //; exact: (eqP HH1).
+  rewrite (eqP HH1).
+  case Ht: (trivm (coset_of (cyclic x))). 
+    by rewrite (trivm_is_cst Ht) gexp1n.
+  rewrite -coset_ofE.
+    replace (y ** s) with (1:elt); first by rewrite coset_of_id.
+    by symmetry; apply/eqP; rewrite -orderg_dvd.
+  by rewrite dom_coset ?Hnt // ?(subsetP (centraliser_normaliser Hx)) 
+          ?Ht.
+case/andP: H3 => H3 H4.
+have F1: coprime (orderg x) (orderg x1).
+  case/dvdnP: H4 => k1 Hk1.
+  by move: H2; rewrite Hk1 coprime_mulr; case/andP.
+case: (orderg_krg Hp H3 H1 F1) => x2.
+case/andP; case/andP => Hx1 Hx2 Hx3.
+  case Ht: (trivm (coset_of (cyclic x))). 
+    rewrite (trivm_is_cst Ht) in Hx2.
+    rewrite -(eqP Hx2); apply/imageP; exists (1:elt);
+      last by rewrite (trivm_is_cst Ht).
+    by rewrite group1 orderg1 dvd1n.
+have E1: x1 = coset_of (cyclic x) x2 by symmetry; apply/eqP.
+rewrite E1 image_f_imp //.
+rewrite Hx3 /=.
+apply: dvdn_trans H4.
+rewrite -(@gauss _ (orderg x)); last by rewrite coprime_sym.
+rewrite mulnC orderg_dvd.
+have K1: x1 ** (orderg x1) = 1.
+   by apply/eqP; rewrite orderg_expn1.
+move: K1; rewrite {1}E1.
+rewrite -coset_ofE; last
+  by rewrite dom_coset ?Hnt // 
+       ?(subsetP (centraliser_normaliser Hx)) // Ht.
+move => /= E2.
+have E3: (cyclic x) (x2 ** (orderg x1)).
+  apply: coset_of_idr => //; first 
+    by rewrite groupE ?(subsetP (centraliser_normaliser Hx)).
+case/cyclicP: E3 => i.
+rewrite -gexpn_mul; move/eqP => <-.
+by rewrite gexpn_mul mulnC -gexpn_mul (eqP (orderg_expn1 _))
+           gexp1n.
+Qed.
+
+Lemma KB_card_image: forall p (Hp: prime p) l s,
+  (orderg x = (p ^ (S l))%N) -> (coprime (orderg x) s) ->
+  card (fun z => (centraliser H x z) && (dvdn (orderg z) s)) =
+  card (fun z => (centraliser H x/cyclic x) z && dvdn (orderg z) s).
+Proof.
+move => p Hp l s Hx1 Hx2.
+apply: etrans (eq_card (KB_image Hp Hx1 Hx2)).
+apply: sym_equal; apply: card_dimage.
+move => y1 y2; case/andP => H1 H2; case/andP => H3 H4 H5.
+have: (cyclic x) (y1^-1 * y2).
+  apply: coset_of_idr; first
+    by rewrite (subsetP (centraliser_normaliser Hx)) // groupM // groupV.
+  case Ht: (trivm (coset_of (cyclic x))). 
+    by rewrite (trivm_is_cst Ht).
+  rewrite coset_of_morphM; try 
+    by rewrite dom_coset ?Ht // ?groupV ?(subsetP (centraliser_normaliser Hx)).
+  rewrite coset_ofV H5; gsimpl.
+case/cyclicP => i Hi.
+have F0: y1 * (x ** i) = y2 by rewrite (eqP Hi); gsimpl.
+have F1: dvdn (orderg x) (i * (orderg y1 * orderg y2)).
+  rewrite orderg_dvd -gexpn_mul; apply/eqP.
+  rewrite -(gexp1n _ (orderg y1)) -(eqP (orderg_expn1 y2))
+          !gexpn_mul -F0 gexpnC //; last
+    by apply: commute_expn; apply: commute_sym;
+       case/isetIP: H1; rewrite s2f.
+  by rewrite (mulnC _ (orderg y1)) -!gexpn_mul (eqP (orderg_expn1 _))
+             gexp1n mul1g.
+rewrite -F0 -{1}(mulg1 y1); congr mulg; apply sym_equal.
+apply/eqP; rewrite -orderg_dvd. 
+rewrite mulnC gauss // in F1.
+rewrite coprime_mulr; apply/andP; split.
+  case/dvdnP: H2 => k1 Hk1.
+  by rewrite Hk1 coprime_mulr in Hx2; case/andP: Hx2.
+case/dvdnP: H4 => k1 Hk1.
+by rewrite Hk1 coprime_mulr in Hx2; case/andP: Hx2.
+Qed.
+
+End Kb.
+
 
 Section PConstituent.
 
@@ -730,7 +888,7 @@ rewrite (card_spconstw _ _ _ (eqP Hx)) //.
 set KRG := (quotient _ _).
 set cKRG := card KRG.
 have F3: card KRG = indexg (group_cyclic x) (centraliser G x).
-  apply: quotient_indexg; first exact: cyclic_subset_centraliser.
+  apply: card_quotient.
   exact: normal_centraliser.
 have F4: card (centraliser G x) = (card KRG * orderg x)%N.
   rewrite F3 /orderg.
@@ -760,7 +918,7 @@ have F7: (fun z => KRG z  && (dvdn (orderg z) s)) =1
     by apply dvdn_gcd => //; exact: orderg_dvd_g.
   by apply: (dvdn_trans  H1).
 rewrite (eq_card F7).
-case/dvdnP: (Rec _ (group_quotient _ _) F5 _ F6) => c.
+case/dvdnP: (Rec _ (quotient_group _ _) F5 _ F6) => c.
 rewrite /f /cKRG => ->.
 set r := (indexg _ _).
 have F8: card G = (r *  card (centraliser G x))%N.

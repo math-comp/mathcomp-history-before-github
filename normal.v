@@ -38,7 +38,7 @@ Variables (elt: finGroupType) (H K: setType elt).
 (********************************************************************)
 (*              Definition of a normal set                          *)
 (*    H is normal in K iff xHx^-1 = H forall x in K                 *)
-(*    it is sufficient that xHx^¯1 is included in H                 *)
+(*    it is sufficient that xHx^Â¯1 is included in H                 *)
 (*    since both sets have same cardinal                            *)
 (********************************************************************)
 
@@ -674,6 +674,18 @@ move=> x Hx; apply: set_of_coset_inj; rewrite coset_ofN ?rcoset_id //.
 exact: (subsetP (norm_refl _)).
 Qed.
 
+
+Lemma coset_of_idr : forall x, 
+ N x -> coset_of H x = 1 -> H x.
+Proof.
+move => x Hx H1 /=.
+change ((H: setType _) x).
+rewrite -(rcoset1 H) rcoset_sym.
+move: (coset_ofN Hx); rewrite H1 => <-.
+by rewrite group1.
+Qed.
+
+
 Lemma coset_ofV : forall x, coset_of H (x ^-1) = (coset_of H x) ^-1.
 Proof.
 move=> x; apply: set_of_coset_inj.
@@ -740,6 +752,21 @@ case Hnt: (trivm (coset_of H)) => x y.
   by rewrite !(trivm_is_cst Hnt) mulg1.
 rewrite dom_coset ?Hnt // => Nx Ny; apply: set_of_coset_inj.
 by rewrite {2}/set_of_coset /= !coset_ofN ?groupM // rcoset_mul.
+Qed.
+
+Lemma coset_ofE : forall n x, 
+  dom (coset_of H) x -> coset_of H (x ** n) = (coset_of H x) ** n.
+Proof.
+case Hnt: (trivm (coset_of H)).
+  by move => x y; rewrite !(trivm_is_cst Hnt) gexp1n.elim => [| n Hrec] x Hx.
+  by rewrite coset_of_id // group1.
+rewrite !gexpnS coset_of_morphM // ?Hrec //.
+elim: n {Hrec} Hx => [| n Hrec] Hx.
+  by rewrite dom_coset ?Hnt // group1.
+rewrite gexpnS.
+move: Hx (Hrec Hx).
+rewrite !dom_coset ?Hnt // => Hx Hx1.
+exact: groupM.
 Qed.
 
 Canonical Structure coset_of_morphism :=
