@@ -475,10 +475,6 @@ End FinGraph.
 Definition fgraph_of_fun := 
   locked (fun (d1 :finType) (d2 :eqType) (f : d1 -> d2) => Fgraph (size_maps f _)).
 
-Definition fgraph_of_fun2 :=
-  locked (fun (d1 d2 : finType) (d3 : eqType) (f : d1 -> d2 -> d3) =>
-                  fgraph_of_fun (fun x : d1 => fgraph_of_fun (fun y : d2 => f x y))).
-
 Definition fun_of_fgraph := 
   locked 
    (fun d1 (d2:eqType) g x => 
@@ -486,7 +482,7 @@ Definition fun_of_fgraph :=
 
 Coercion fun_of_fgraph : fgraphType >-> Funclass.
 
-Lemma can_fun_of_fgraph : forall d1 d2 : finType,
+Lemma can_fun_of_fgraph : forall (d1 : finType) (d2 : eqType),
   cancel (@fun_of_fgraph d1 d2) (@fgraph_of_fun d1 d2).
 Proof.
 unlock fun_of_fgraph => d1 d2 g.
@@ -498,13 +494,13 @@ by rewrite (sub_maps x0) // index_uniq ?uniq_enum ?(set_sub_default y0) ?Hs.
 Qed.
 
 Lemma g2f : 
-  forall (d1 d2:finType) (f:d1->d2), fgraph_of_fun f =1 f.
+  forall (d1 :finType) (d2 :eqType) (f:d1->d2), fgraph_of_fun f =1 f.
 Proof.
 unlock fun_of_fgraph fgraph_of_fun => /= d1 d2 f x.
 by rewrite (sub_maps x) ?sub_index // ?index_mem mem_enum.
 Qed.
 
-Lemma fgraphP : forall (d1 d2 : finType) (f g : fgraphType d1 d2), f =1 g <-> f = g.
+Lemma fgraphP : forall (d1 : finType) (d2 :eqType) (f g : fgraphType d1 d2), f =1 g <-> f = g.
 Proof.
 move=> d1 d2 f g; split; last by move=>->. 
 move=> Efg; rewrite -(can_fun_of_fgraph f) -(can_fun_of_fgraph g).
@@ -1099,6 +1095,8 @@ rewrite /card /= /prod_enum; elim: (enum d1) => //= x1 s1 IHs.
 rewrite count_cat {}IHs count_maps /comp /prod_set /=.
 by case: (a1 x1); rewrite // count_set0.
 Qed.
+
+
 
 End ProdFinType.
 
