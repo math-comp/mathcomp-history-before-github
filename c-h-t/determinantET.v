@@ -229,7 +229,7 @@ Record rings : Type := Rings {
 *)
 
 
-Variable R : Type.
+Variable R : eqType.
 Variables plus mult : R -> R -> R.
 Variable opp : R -> R.
 Variables zero one : R.
@@ -405,34 +405,61 @@ Proof. move=> *; exact: eq_iprod. Qed.
 (* mostly inferred automatically; we may have to reconsider this design   *)
 (* if it proves too unwieldly for block decomposition theory.             *)
 
+
+CoInductive matrix (m n : nat) : Type := Matrix : fgraphType (prod_finType I_(m) I_(n)) R -> (matrix m n).
+
+(*
 Record matrix (m n : nat) : Type := Matrix {
-   matrix_entry :> I_(m) -> I_(n) -> R
+  matrix_entry :> fgraphType (prod_finType I_(m) I_(n)) R
 }.
+*)
 
 Notation "'M_' ( m , n )" := (matrix m n)
   (at level 9, m, n at level 50, format "'M_' ( m ,  n )") : local_scope.
 Notation "'M_' ( n )" := (matrix n n)
   (at level 9, m, n at level 50, format "'M_' ( n )") : local_scope.
 
-Notation "'\matrix_' ( i , j ) E" := (Matrix (fun i j => E))
+Definition mval (m n: nat) (x : M_(m,n)) := match x with Matrix g => g end.
+
+Lemma can_mval : forall m n, cancel (@mval m n) (@Matrix m n).
+Proof. move => m n; by rewrite /cancel; case => /=. Qed.
+
+Lemma mval_inj : forall m n, injective (@mval m n). 
+Proof. move => m n; exact: can_inj (@can_mval m n). Qed.
+
+Canonical Structure matrix_eqType (m n :nat) := EqType (can_eq (@can_mval m n)).
+
+Definition matrix_of_fun := locked (fun (m n :nat) (f : I_(m) -> I_(n) -> R) =>
+                  Matrix (fgraph_of_fun (fun x : (prod_finType I_(m) I_(n)) => (f (eq_pi1 x) (eq_pi2 x)) ))).
+
+Definition fun_of_matrix := 
+  locked
+   (fun (m n :nat) (g :(matrix m n)) x1 x2 => let x12 := EqPair x1 x2 in 
+     sub (@fgraph_default (prod_finType I_(m) I_(n)) R x12 (mval g))
+        (fval (mval g)) (index x12 (enum (prod_finType I_(m) I_(n))))).
+
+Coercion fun_of_matrix  : matrix >-> Funclass.
+
+Notation "'\matrix_' ( i , j ) E" := (matrix_of_fun (fun i j => E))
   (at level 35, E at level 35, i, j at level 50,
    format "'\matrix_' ( i ,  j )  E") : local_scope.
-Notation "'\matrix_' ( i < m , j < n ) E" := (@Matrix m n (fun i j => E))
+Notation "'\matrix_' ( i < m , j < n ) E" := (@matrix_of_fun m n (fun i j => E))
   (at level 35, E at level 35, i, m, j, n at level 50,
    only parsing) : local_scope.
-Notation "'\matrix_' ( i , j < n ) E" := (@Matrix _ n (fun i j => E))
+Notation "'\matrix_' ( i , j < n ) E" := (@matrix_of_fun _ n (fun i j => E))
   (at level 35, E at level 35, i, j, n at level 50,
    only parsing) : local_scope.
-Notation "'\matrix_' ( i < m , j ) E" := (@Matrix m _ (fun i j => E))
+Notation "'\matrix_' ( i < m , j ) E" := (@matrix_of_fun m _ (fun i j => E))
   (at level 35, E at level 35, i, m, j at level 50,
    only parsing) : local_scope.
 
-Definition matrix_plus m n (A B : M_(m, n)) := \matrix_(i, j) (A i j + B i j).
+Definition matrix_plus m n (A B : M_(m, n)) := 
+  \matrix_(i, j) (A i j + B i j).
 
 Definition matrix_scale m n x (A : M_(m, n)) := \matrix_(i, j) (x * A i j).
 
 Definition matrix_mul m n p (A : M_(m, n)) (B : M_(n, p)) :=
-  \matrix_(i, k) \sum_(j) A i j * B j k.
+  \matrix_(i, k) \sum_(j) (A i j * B j k).
 
 Definition matrix_transpose m n (A : M_(m, n)) := \matrix_(i, j) A j i.
 
@@ -497,6 +524,7 @@ Notation Local paste := matrix_paste.
 
 (* The extensional setoid for matrices (crippled by setoid bugs) *)
 
+(*
 Lemma matrix_eq_refl : forall m n, reflexive _ (@matrix_eq m n).
 Proof. done. Qed.
 
@@ -511,6 +539,7 @@ Add Relation matrix matrix_eq
     symmetry proved by matrix_eq_sym
     transitivity proved by matrix_eq_trans
   as matrix_extensionality.
+*)
 
 (* Broken! Thus, we'll have to segregate matrix equational reasoning. Bummer...
 Add Morphism matrix_entry with
@@ -519,6 +548,7 @@ Add Morphism matrix_entry with
 Proof. by move=> m n A1 A2 [A12]; split=> i j /=; rewrite A12. Qed.
 *)
 
+(*
 Add Morphism matrix_plus with
   signature matrix_eq ==> matrix_eq ==> matrix_eq
   as matrix_plus_extensional.
@@ -581,10 +611,56 @@ Proof.
 move=> m1 m2 n A1 A2 [A12] B1 B2 [B12]; split=> i j /=.
 case: split => s; [exact: A12 | exact: B12].
 Qed.
+*)
 
-Lemma perm_matrix1 : forall n, perm_matrix 1%G =m \1m_(n).
-Proof. by move=> n; split=> i j /=; rewrite perm1. Qed.
- 
+(* make matrix eqType *)
+
+Lemma can_fun_of_matrix : forall (m n :nat),
+  cancel (@fun_of_matrix m n) (@matrix_of_fun m n).
+Proof.
+unlock fun_of_matrix; unlock fun_of_fgraph => m n g.
+case: {-1}g => gg; unlock matrix_of_fun; unlock fgraph_of_fun; apply mval_inj => //=.
+case: gg => [s Hs]; unlock matrix_of_fun; unlock fgraph_of_fun; apply fval_inj => //=.
+case De: (enum (prod_finType I_(m) I_(n))) => [|x0 e] //=; rewrite //= in De; rewrite cardA //= De in Hs.
+rewrite De; case: s Hs => //=.
+have y0 := fgraph_default x0 (mval g).
+apply: (@eq_from_sub _ y0); rewrite size_maps De // => i Hi; unlock.
+rewrite (sub_maps x0) //; last rewrite -De //.
+rewrite -Hs in Hi.
+(* Need lemma for sub and index over prod_enum
+(index
+     (EqPair (d1:=sub_eqType (fun m0 : nat => m0 < m))
+        (d2:=sub_eqType (fun m0 : nat => m0 < n))
+        (eq_pi1 (sub x0 (prod_enum I_(m) I_(n)) i))
+        (eq_pi2 (sub x0 (prod_enum I_(m) I_(n)) i))) (prod_enum I_(m) I_(n))) = i
+*)
+Admitted.
+
+Lemma m2f : 
+  forall (m n :nat) (f:I_(m) -> I_(n) -> R), matrix_of_fun f =2 f.
+Proof.
+unlock fun_of_matrix matrix_of_fun => /= m n f x y.
+Admitted.
+
+Lemma matrix_eqP : forall m n (A B : M_(m,n)), A =m B <-> A = B.
+Proof.
+move=> m n A B; split; last by move=>->. 
+move=> EAB; rewrite -(can_fun_of_matrix A) -(can_fun_of_matrix B).
+apply: mval_inj; apply: fval_inj; unlock matrix_of_fun; unlock fgraph_of_fun => /=; apply: eq_maps.
+rewrite / eqfun => x. 
+by case: EAB => ->.
+Qed.
+
+Lemma perm_matrix1 : forall n, perm_matrix 1%G = \1m_(n).
+Proof. 
+move => n.
+rewrite / perm_matrix / unit_matrix //=.
+apply/matrix_eqP; apply: EqMatrix => x y.
+by rewrite !m2f perm1.
+Qed.
+
+(* Follow this proof not compile *)
+
 Lemma matrix_transposeK : forall m n (A : M_(m, n)), \^t (\^t A) =m A.
 Proof. done. Qed.
 
