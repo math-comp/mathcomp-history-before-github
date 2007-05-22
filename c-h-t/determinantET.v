@@ -614,7 +614,15 @@ Qed.
 *)
 
 (* make matrix eqType *)
-
+(*
+Lemma eqpair_sub : forall (d1 d2 :finType) x0 i, i < size (prod_enum d1 d2) -> 
+  EqPair (eq_pi1 (sub x0 (prod_enum d1 d2) i)) (eq_pi2 (sub x0 (prod_enum d1 d2) i))
+    = (sub x0 (prod_enum d1 d2) i).
+Proof.
+move => d1 d2 x0 i H.
+case: (sub x0 (prod_enum d1 d2) i) => //=.
+Qed.
+*)
 Lemma can_fun_of_matrix : forall (m n :nat),
   cancel (@fun_of_matrix m n) (@matrix_of_fun m n).
 Proof.
@@ -627,20 +635,21 @@ have y0 := fgraph_default x0 (mval g).
 apply: (@eq_from_sub _ y0); rewrite size_maps De // => i Hi; unlock.
 rewrite (sub_maps x0) //; last rewrite -De //.
 rewrite -Hs in Hi.
-(* Need lemma for sub and index over prod_enum
-(index
-     (EqPair (d1:=sub_eqType (fun m0 : nat => m0 < m))
-        (d2:=sub_eqType (fun m0 : nat => m0 < n))
-        (eq_pi1 (sub x0 (prod_enum I_(m) I_(n)) i))
-        (eq_pi2 (sub x0 (prod_enum I_(m) I_(n)) i))) (prod_enum I_(m) I_(n))) = i
-*)
-Admitted.
+set x:= (sub x0 (prod_enum I_(m) I_(n)) i).
+have H: (@EqPair I_(m) I_(n) (eq_pi1 x) (eq_pi2 x)) = x by case: x => //=.
+rewrite H; clear H.
+rewrite index_uniq; [apply: set_sub_default => //=|rewrite De -Hs //=|
+apply: (@uniq_enum (prod_finType I_(m) I_(n)))].
+Qed.
 
 Lemma m2f : 
   forall (m n :nat) (f:I_(m) -> I_(n) -> R), matrix_of_fun f =2 f.
 Proof.
-unlock fun_of_matrix matrix_of_fun => /= m n f x y.
-Admitted.
+unlock matrix_of_fun fun_of_matrix => m n f x y /=.
+unlock fgraph_of_fun fun_of_fgraph => /=.
+rewrite (sub_maps (EqPair x y)) ?sub_index // ?index_mem
+  (@mem_enum (prod_finType I_(m) I_(n))) //.
+Qed.
 
 Lemma matrix_eqP : forall m n (A B : M_(m,n)), A =m B <-> A = B.
 Proof.
@@ -651,70 +660,73 @@ rewrite / eqfun => x.
 by case: EAB => ->.
 Qed.
 
+Ltac mx2fun i j := (apply/matrix_eqP; apply: EqMatrix => i j; rewrite !m2f).
+
 Lemma perm_matrix1 : forall n, perm_matrix 1%G = \1m_(n).
-Proof. 
-move => n.
-rewrite / perm_matrix / unit_matrix //=.
-apply/matrix_eqP; apply: EqMatrix => x y.
-by rewrite !m2f perm1.
-Qed.
+Proof. by move => n; mx2fun i j; rewrite perm1. Qed.
 
-(* Follow this proof not compile *)
-
-Lemma matrix_transposeK : forall m n (A : M_(m, n)), \^t (\^t A) =m A.
-Proof. done. Qed.
+Lemma matrix_transposeK : forall m n (A : M_(m, n)), \^t (\^t A) = A.
+Proof. by move =>  m n A; mx2fun i j. Qed.
 
 Lemma matrix_transpose_inj : forall m n (A B : M_(m, n)),
-  \^t A =m \^t B -> A =m B.
+  \^t A = \^t B -> A = B.
 Proof.
 by move=> m n A B tAB; rewrite -(matrix_transposeK A) tAB matrix_transposeK.
 Qed.
 
 Lemma matrix_transpose_perm : forall n (s : S_(n)),
-  \^t (perm_matrix s) =m perm_matrix s^-1.
-Proof.
-by split=> i j /=; rewrite eq_sym -{1}(permKv s i) (inj_eq (@perm_inj _ s)).
+  \^t (perm_matrix s) = perm_matrix s^-1.
+Proof. 
+move=> n s; mx2fun i j.
+by rewrite eq_sym -{1}(permKv s i) (inj_eq (@perm_inj _ s)).
 Qed.
 
-Lemma matrix_transpose_unit : forall n, \^t \1m_(n) =m \1m.
-Proof. by split=> i j /=; rewrite eq_sym. Qed.
+Lemma matrix_transpose_unit : forall n, \^t \1m_(n) = \1m.
+Proof. by move => n; mx2fun i j; rewrite eq_sym. Qed.
 
 Lemma matrix_transpose_plus : forall m n (A B : M_(m, n)),
-  \^t (A +m B) =m \^t A +m \^t B.
-Proof. done. Qed.
+  \^t (A +m B) = \^t A +m \^t B.
+Proof. by move=> m n A B; mx2fun i j. Qed.
 
 Lemma matrix_transpose_scale : forall m n x (A : M_(m, n)),
-  \^t (x *sm A) =m x *sm \^t A.
-Proof. done. Qed.
+  \^t (x *sm A) = x *sm \^t A.
+Proof. by move=> m n x A; mx2fun i j. Qed.
 
 Lemma matrix_transpose_row : forall m n i0 (A : M_(m, n)),
   \^t (row i0 A) = col i0 (\^t A).
-Proof. done. Qed.
+Proof. by move=> m n i0 A; mx2fun i j. Qed.
 
 Lemma matrix_transpose_rem_row : forall m n i0 (A : M_(m, n)),
   \^t (row' i0 A) = col' i0 (\^t A).
-Proof. done. Qed.
+Proof. by move=> m n i0 A; mx2fun i j. Qed.
 
 Lemma matrix_transpose_col : forall m n j0 (A : M_(m, n)),
   \^t (col j0 A) = row j0 (\^t A).
-Proof. done. Qed.
+Proof. by move=> m n j0 A; mx2fun i j. Qed.
 
 Lemma matrix_transpose_rem_col : forall m n j0 (A : M_(m, n)),
   \^t (col' j0 A) = row' j0 (\^t A).
-Proof. done. Qed.
+Proof. by move=> m n j0 A; mx2fun i j. Qed.
 
 Lemma matrix_eq_row : forall m n i0 (A : M_(m, n)) B,
-  row i0 A =m B -> A i0 =1 B ord0.
-Proof. by move=> m n i0 A B [AB] j; rewrite -AB. Qed.
+  row i0 A = B -> A i0 =1 B ord0.
+Proof. move=> m n i0 A B [AB] j; by rewrite -AB !m2f. Qed.
+
+Ltac mx2fun_elim H := (move/matrix_eqP: H => H; case: H => H).
 
 Lemma matrix_eq_rem_row : forall m n i i0 (A B : M_(m, n)),
-  i0 != i -> row' i0 A =m row' i0 B -> A i =1 B i.
-Proof. move=> m n i i0 A B; case/unlift_some=> i' -> _  [AB] j; exact: AB. Qed.
+  i0 != i -> row' i0 A = row' i0 B -> A i =1 B i.
+Proof.
+move=> m n i i0 A B; case/unlift_some=> i' -> _  [AB] j.
+mx2fun_elim AB.
+by move: (AB i' j); rewrite !m2f.
+Qed.
 
 Lemma matrix_paste_cut : forall m1 m2 n (A : matrix (m1 + m2) n),
-  matrix_paste (matrix_lcut A) (matrix_rcut A) =m A.
+  matrix_paste (matrix_lcut A) (matrix_rcut A) = A.
 Proof.
-split=> i j /=; case: splitP => k Dk; congr matrix_entry; exact: val_inj.
+move => m1 m2 n A; mx2fun i j.
+case: splitP => k Dk //=; rewrite !m2f //=; congr fun_of_matrix; exact: val_inj.
 Qed.
 
 (* Determinants, in one line ! *)
@@ -726,6 +738,8 @@ Definition determinant n (A : M_(n)) :=
 
 Notation "'\det' A" := (determinant A)
   (at level 10, A at level 9) : local_scope.
+
+(* Compile not work after this point *)
 
 (*  Impossible : internal Coq assert failure !!!
 Add Morphism determinant with
