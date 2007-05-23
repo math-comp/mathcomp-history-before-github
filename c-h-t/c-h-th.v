@@ -1,14 +1,17 @@
 Add LoadPath "../".
 Require Import ssreflect ssrbool funs eqtype ssrnat seq fintype tuple.
-Require Import div groups group_perm zp signperm indexed_products determinant.
+Require Import div groups group_perm zp signperm indexed_products.
 Require Import Setoid.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-(* Section RingTheory.
+Delimit Scope local_scope with loc.
+Open Scope local_scope.
 
+(*
+Section RingTheory.
 Record isRings (R :Type) (plus mult : R->R->R) (opp : R->R) (zero one : R) : Prop := {
   mult1x : forall x, mult one x = x;
   mult0x : forall x : R, mult zero x = zero;
@@ -36,16 +39,28 @@ Variables plus mult : R -> R -> R.
 Variable opp : R -> R.
 Variables zero one : R.
 
-Notation "x1 + x2" := (plus x1 x2): local_scope.
+Notation "x1 + x2" := (plus x1 x2) : local_scope.
 Notation "- x" := (opp x): local_scope.
 Notation "x1 * x2" := (mult x1 x2): local_scope.
 Notation "1" := one (at level 0) : local_scope.
 Notation "0" := zero (at level 0): local_scope.
-Notation "- 1" := (- 1) (at level 0) : local_scope.
-Notation "x - y" := (x + (- y)) : local_scope.
+Notation "- 1" := (- 1) : local_scope.
+Notation "x - y" := (x + (opp y)) : local_scope.
+
+Hypothesis mult1x : forall x, 1 * x = x.
+Hypothesis mult0x : forall x : R, 0 * x = 0.
+Hypothesis plus0x : forall x : R, 0 + x = x.
+Hypothesis minusxx : forall x : R, x - x = 0.
+Hypothesis plusA : forall x1 x2 x3 : R, x1 + (x2 + x3) = x1 + x2 + x3.
+Hypothesis plusC : forall x1 x2 : R, x1 + x2 = x2 + x1.
+Hypothesis multA : forall x1 x2 x3 : R, x1 * (x2 * x3) = x1 * x2 * x3.
+Hypothesis multC : forall x1 x2 : R, x1 * x2 = x2 * x1.
+Hypothesis distrR : forall x1 x2 x3 : R, (x1 + x2) * x3 = x1 * x3 + x2 * x3.
 
 Section Polynomial.
 
+
+(* A polynomial is sequence, the firts element of the sequence is monome of low degree*)
 Definition polynomial := seq R.
 
 (*
@@ -57,15 +72,12 @@ Notation "'\poly_' ( i ) E" := (Polynomial (fun i => E))
    format "'\poly_' ( i )  E") : local_scope.
 *)
 
-Notation "00" := (@Seq0 R: polynomial) (at level 0): local_scope.
 
 Fixpoint plusP (p q: polynomial) {struct p}: polynomial :=
   if p is (Adds a p') then
     if q is (Adds b q') then Adds (a + b) (plusP p' q') 
    else p 
   else q.
-
-Notation "x1 '++' x2" := (plusP x1 x2) (at level 50) : local_scope.
 
 
 Definition eqP0 (p: polynomial) : bool :=
@@ -77,22 +89,14 @@ Fixpoint eqP (p q: polynomial) {struct p}: bool :=
    else eqP0 p 
   else eqP0 q.
 
-Notation "x1 '==' x2" := (eqP x1 x2) (at level 70) : local_scope.
-
-
 Definition opP (p : polynomial) : polynomial :=
   maps opp p.
-
-Notation "'--' x" := (opP x) (at level 10) : local_scope.
 
 (* 
 Multiplication by X
 *)
 
-Definition multPX (p : polynomial) := (Adds 0 p).
-
-Notation "'Xp' x" := (multPX x) (at level 40) : local_scope.
-
+Definition multPX (p : polynomial) := if p is (Adds _ _) then (Adds 0 p) else p.
 
 (* 
 Multiplication by a coefficient: 
@@ -101,19 +105,14 @@ Multiplication by a coefficient:
 Definition multRP (c : R) (p : polynomial): polynomial :=
   maps (mult c) p.
 
-Notation "c 'sp' x" := (multRP c x) (at level 40) : local_scope.
-
 (* 
 Multiplication
 *)
 
 Fixpoint multP (p q : polynomial) {struct p} : polynomial :=
-  if p is (Adds a p') then a sp q ++ Xp (multP p' q) 
+  if p is (Adds a p') then plusP (multRP a q) (multPX (multP p' q)) 
   else p.
 
-Notation "x1 '**' x2" := (multP x1 x2) : local_scope.
-
-End Polynomial.
 
 Notation "00" := (@Seq0 R: polynomial) (at level 0): local_scope.Notation "x1 '++' x2" := (plusP x1 x2) (at level 50) : local_scope.
 Notation "x1 '==' x2" := (eqP x1 x2) (at level 70) : local_scope.
@@ -124,28 +123,28 @@ Notation "x1 '**' x2" := (multP x1 x2) : local_scope.
 
 Section PolynomialProp.
 
-(* Commute *)
-Variable plusC: forall a b, a + b = b + a.
+Definition oneP : polynomial := (Adds 1 seq0).
 
-Lemma plusPC: forall p q, p ++ q = q ++ p.
+Notation "'\1p'" := oneP (at level 0) : local_scope.
+
+Lemma multP1 : forall p : polynomial, \1p ** p = p.
 Proof.
-by elim => [| a p1 Hrec] [| b q1] //; rewrite /= plusC Hrec.
+move => p.
+elim: p => [|x s Hrec] //=; rewrite mult1x; congr Adds.
+rewrite / multRP; case : s Hrec => //=.
 Qed.
 
-(* Zero Left *)
-Variable plus0l: forall a, 0 + a = a.
+Lemma multP0 : forall p : polynomial, 00 ** p = 00.
+Proof. move => p; elim: p => [|x s Hrec] //=. Qed.
 
-Lemma plusP0l: forall p, 00 ++ p = p.
-Proof. by done. Qed.
-
-(* Zero Right *)
-Variable plus0r: forall a, a + 0 = a.
+Lemma plusP0l : forall p: polynomial, 00 ++ p = p.
+Proof. move => p; elim: p => [|x s Hrec] //=. Qed.
 
 Lemma plusP0r: forall p, p ++ 00 = p.
 Proof. by move => [|a p1] //. Qed.
 
-(* Associativity *)
-Variable plusA: forall a b c, (a + b) + c = a + (b + c).
+Lemma plusPC : forall p q : polynomial,  p ++ q = q ++ p.
+Proof. by elim => [| a p1 Hrec] [| b q1] //; rewrite /= plusC Hrec. Qed.
 
 Lemma plusPA: forall p q r, (p ++ q) ++ r = p ++ (q ++ r).
 Proof.
@@ -153,10 +152,8 @@ elim => [| a p Hrec] // [| b q] // [| c r] //.
 by rewrite /= plusA Hrec.
 Qed.
 
-Lemma eqP0_eqP: forall p, eqP0 p -> p == 00.
-Proof.
-elim => [|a p Hrec] //.
-Qed.
+Lemma eqP0_eqP: forall p, eqP0 p -> (p == 00).
+Proof. elim => //= [a p Hrec H]. Qed.
 
 Lemma eqP_refl: forall p, p == p.
 Proof.
@@ -190,7 +187,7 @@ Lemma eqP0_plus: forall p q, eqP0 p -> eqP0 q -> eqP0 (p ++ q).
 Proof.
 elim => [|a p Hrec] // [|b q] //=.
 case/andP => H1 H2; case/andP => H3 H4.
-by rewrite -(eqtype.eqP H1) plus0l H3 Hrec.
+by rewrite -(eqtype.eqP H1) plus0x H3 Hrec.
 Qed.
 
 Lemma eqP0_eqP_plusl: forall p q, eqP0 p -> q == p ++ q.
@@ -198,7 +195,7 @@ Proof.
 elim => [|a p Hrec] // [|b q] //=.
   by rewrite eq_refl eqP_refl.
 case/andP => H1 H2.
-by rewrite -(eqtype.eqP H1) plus0l eq_refl Hrec.
+by rewrite -(eqtype.eqP H1) plus0x eq_refl Hrec.
 Qed.
 
 Lemma eqP0_eqP_plusr: forall p q, eqP0 p -> q == q ++ p.
@@ -206,7 +203,7 @@ Proof.
 elim => [|a p Hrec] // [|b q] //=.
   by rewrite eq_refl eqP_refl.
 case/andP => H1 H2.
-by rewrite -(eqtype.eqP H1) plus0r eq_refl Hrec.
+by rewrite -(eqtype.eqP H1) plusC plus0x eq_refl Hrec.
 Qed.
 
 Lemma eqpP_plus: forall p1 p2 q1 q2, 
@@ -232,28 +229,22 @@ rewrite /=; case/andP => H1 H2; case/andP => H3 H4.
 by rewrite (eqtype.eqP H1) (eqtype.eqP H3) Hrec // eq_refl.
 Qed.
 
-(* Opposite left *)
-Variable plus0pr: forall a, a + (-a) = 0.
-
 Lemma plusP0pr: forall p, p ++ (-- p) == 00.
 Proof.
 move => p; apply: eqP0_eqP. 
 elim  p => [| a p1 Hrec] //.
-by rewrite /= plus0pr Hrec eq_refl.
+by rewrite /= minusxx Hrec eq_refl.
 Qed.
-
-(* Opposite right *)
-Variable plus0pl: forall a, (-a) + a = 0.
 
 Lemma plusP0pl: forall p, (--p) ++ p == 00.
 Proof.
 move => p; apply: eqP0_eqP. 
 elim  p => [| a p1 Hrec] //.
-by rewrite /= plus0pl Hrec eq_refl.
+by rewrite plusPC /= plusPC minusxx Hrec eq_refl.
 Qed.
 
 Let opp_zero: -0 = 0.
-by rewrite -{2}(plus0pr 0) plus0l.
+by rewrite -[- 0]plus0x minusxx.
 Qed.
 
 Lemma eqP0_opp: forall p, eqP0 p -> eqP0 (-- p).
@@ -273,42 +264,40 @@ Qed.
 
 Lemma multPx_plus: forall p q, Xp (p ++ q) = (Xp p) ++ (Xp q).
 Proof.
-by elim => [|a p] //=; rewrite plus0l.
+move => p q.
+elim: p => // [x s Hrec].
+elim: q Hrec => // [y q Hrec1 Hrec].
+by rewrite / multPX /= plus0x.
 Qed.
 
 Lemma multPx_opp: forall p, Xp (--p) = --(Xp p).
 Proof.
-by move => [| a p ] /=; rewrite opp_zero.
+by move => [| a p ] //=; rewrite opp_zero.
 Qed.
 
 Lemma eqP0_multPx: forall p, eqP0 p -> eqP0 (Xp p).
 Proof.
-by move => p Hp; rewrite /= eq_refl.
+by elim => //= [x s]; rewrite eq_refl.
 Qed.
 
 Lemma eqP_multPx: forall p q, p == q -> Xp p == Xp q.
 Proof.
-by move => p Hp; rewrite /= eq_refl.
+move => p q.
+elim: p => // [|x s Hrec].
+  by elim: q => //= [y u Hrec1]; rewrite eq_refl.
+by elim: q Hrec => // [|y u Hrec1] //=; rewrite eq_refl.
 Qed.
-
-
-
-(* zero right *)
-Variable mult0r: forall a, a * 0 = 0.
 
 Lemma eqP0_multRP: forall c p, eqP0 p -> eqP0 (c sp p).
 Proof.
 move => c; elim => [|a p Hrec] //=.
-by case/andP => H1 H2; rewrite -(eqtype.eqP H1) mult0r eq_refl Hrec.
+by case/andP => H1 H2; rewrite -(eqtype.eqP H1) multC mult0x eq_refl Hrec.
 Qed.
 
-(* zero left *)
-Variable mult0l: forall a, 0 * a = 0.
- 
 Lemma eqP0_multRP0: forall p, eqP0 (0 sp p).
 Proof.
 elim => [|a p Hrec] //=.
-by rewrite mult0l eq_refl Hrec.
+by rewrite mult0x eq_refl Hrec.
 Qed.
 
 Lemma eqP_multRP: forall c p q, p == q -> c sp p == c sp q.
@@ -316,29 +305,32 @@ Proof.
 move => c; elim => [| a p Hrec] //=.
   exact: eqP0_multRP.
 move => [|b q] /=; case/andP => H1 H2; rewrite -(eqtype.eqP H1).
-  by rewrite mult0r eq_refl eqP0_multRP.
+  by rewrite multC mult0x eq_refl eqP0_multRP.
 by rewrite eq_refl Hrec.
 Qed.
 
-(* Distributivity r *)
-Variable plus_mult_r: forall a b c, (a + b) * c = (a * c) + (b * c).
-
 Lemma multRPl: forall c1 c2 p, (c1 + c2) sp p = (c1 sp p) ++ (c2 sp p).
 move => c1 c2; elim => [|a p Hrec] //=.
-by rewrite plus_mult_r Hrec.
+by rewrite distrR Hrec.
 Qed.
-
-(* Distributivity l *)
-Variable plus_mult_l: forall a b c, c * (a + b) = (c * a) + (c * b).
 
 Lemma multRPr: forall c p q, c sp (p ++ q) = (c sp p) ++ (c sp q).
 move => c; elim => [|a p Hrec] //= [|b q] //=.
-by rewrite plus_mult_l Hrec.
+by rewrite multC distrR Hrec; congr Adds; congr plus; rewrite multC.
 Qed.
 
 End PolynomialProp.
 
+
+Fixpoint evalP (p :polynomial) (x :R) {struct p} : R :=
+  (if p is (Adds a p') then a + x * (evalP p' x) else 0).
+
+
+End Polynomial.
+
 End Polynomials.
+
+
 
 Section MatrixOfPoly.
 
