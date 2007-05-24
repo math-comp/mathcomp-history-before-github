@@ -29,7 +29,9 @@ Variable plus0r: forall a, a + 0 = a.
 (* Zero Left *)
 Variable plus0l: forall a, 0 + a = a.
 (* Commute *)
-Variable plusC: forall a b, a + b = b + a.(* Opposite left *)
+Variable plusC: forall a b, a + b = b + a.
+(* Associative *)
+Variable plusA: forall a b c, (a + b) + c = a + (b + c).(* Opposite left *)
 Variable plus_opr: forall a, a + (-a) = 0.
 (* Opposite right *)
 Variable plus_opl: forall a, (-a) + a = 0.
@@ -145,8 +147,6 @@ Proof. by move => [|a p1] //. Qed.
 
 Lemma plusPC : forall p q : polynomial,  p ++ q = q ++ p.
 Proof. by elim => [| a p1 Hrec] [| b q1] //; rewrite /= plusC Hrec. Qed.
-
-Variable plusA: forall a b c, (a + b) + c = a + (b + c).
 
 Lemma plusPA: forall p q r, (p ++ q) ++ r = p ++ (q ++ r).
 Proof.
@@ -671,12 +671,73 @@ Qed.
 
 End PolynomialProp.
 
-
+Section MorphismEvaluation.
 
 Fixpoint evalP (p :polynomial) (x :R) {struct p} : R :=
   (if p is (Adds a p') then a + x * (evalP p' x) else 0).
 
+(* Proof that eval is morphisme *)
 
+Lemma evalP_plusP : forall p q x, evalP (p ++ q) x = (evalP p x) + (evalP q x).
+Proof.
+move => p q x.
+elim: p q => // [a s Hrec q].
+elim: q Hrec => // [b u Hrec2 Hrec] /=.
+  move: (Hrec u) => ->.
+  by rewrite !plusA; congr plus; rewrite ![b + x *_]plusC -plusA -plus_multl.
+Qed.
+
+Lemma evalP_multPX : forall p x, evalP (Xp p) x = x * (evalP p x).
+Proof. by elim => //= *; rewrite multC mult0x. Qed.
+
+Lemma evalP_multPR : forall p c x, (x * c = c * x) -> evalP (c sp p) x = c * (evalP p x).
+Proof. 
+elim => //= [a p1 Hrec c x H].
+rewrite plus_multl; congr plus; move: (Hrec c x H) => ->;
+  rewrite -multA H multA; congr mult.
+Qed.
+
+Definition com_coeff (p :polynomial) x := (forall y, p y -> x * y = y * x).
+
+Lemma evalP_multP : forall p q x, (com_coeff p x) -> (com_coeff q x) ->
+  evalP (p ** q) x = (evalP p x) * (evalP q x).
+Proof.
+move => p q x Hp Hq.
+elim: p q Hp Hq => // [a p1 Hrec q Hp Hq].
+elim: q p1 Hrec Hp Hq => // [b q1 Hrec2 p1 Hrec Hp Hq].
+rewrite adds_multl // evalP_plusP evalP_multPX.
+move: (Hrec (Adds b q1)) => -> //=.
+move: (Hp a) => Ha; move: (Hq b) => Hb.
+rewrite -multA plus_multr !plus_multl evalP_multPR;
+  last (rewrite Ha //= / setU1 eq_refl //=).
+rewrite !plusA; congr plus; congr plus.
+rewrite -multA Ha //= / setU1 eq_refl //=.
+Qed.
+
+Lemma evalP_11 : forall x, evalP 11 x = 1.
+Proof. by rewrite //= => *; rewrite mult0r plus0r. Qed.
+
+Lemma evalP_eqP0 : forall p x, eqP0 p -> evalP p x = 0.
+Proof.
+move => p x H.
+elim: p H => //= [a p1 Hrec H].
+move/andP: H => H; elim: H => H1 H2; move/eqtype.eqP: H1 => <-.
+move: (Hrec H2) => ->.
+by rewrite mult0r plus0l.
+Qed.
+
+Lemma evalP_eqP : forall p q x, (p == q) -> evalP p x = evalP q x.
+Proof.
+move => p q x H.
+elim: p q H => // [q H| a p1 Hrec q H].
+by move: (evalP_eqP0 x H) => ->.
+elim: q p1 Hrec H => //= [p1 Hrec H|b q1 _ p1 Hrec H];
+  move/andP: H => H; elim: H => H1 H2; move/eqtype.eqP: H1 => <-.
+  move: (evalP_eqP0 x H2) => ->; by rewrite mult0r plus0l.
+by move: (Hrec q1 H2) => ->.
+Qed.
+
+End MorphismEvaluation.
 
 End Polynomial.
 
