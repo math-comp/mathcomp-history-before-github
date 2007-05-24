@@ -47,6 +47,8 @@ Variable multC: forall a b, a * b = b * a.
 Variable multA: forall a b c, (a * b) * c = a * (b * c).
 (* one left *)
 Variable mult1l: forall a, 1 * a = a.
+(* one diff zero *)
+Variable one_diff_0: 1 <> 0.
 
 Let opp_zero: -0 = 0.
 by rewrite -{2}(plus_opr 0) plus0l.
@@ -104,7 +106,6 @@ Notation "'--' x" := (opP x) (at level 10) : local_scope.
 Notation "'Xp' x" := (multPX x) (at level 40) : local_scope.
 Notation "c 'sp' x" := (multRPl c x) (at level 40) : local_scope.
 Notation "x 'ps' c" := (multRPr c x) (at level 40) : local_scope.
-
 (* 
 Multiplication
 *)
@@ -116,6 +117,19 @@ Fixpoint multP (p q : polynomial) {struct p} : polynomial :=
     else 00 
   else 00.
 Notation "x1 '**' x2" := (multP x1 x2) : local_scope.
+
+(* A pol is normal if its last element is <> 0 *)
+Definition normal (p: polynomial) :=
+  last 1 p != 0.
+
+Fixpoint norm3 (p q r: polynomial) {struct p}: polynomial :=
+  if p is (Adds a p') then
+    if (a == 0)%EQ then norm3 p' q (Adds a r) 
+              else norm3 p' (Adds a r) (Adds a r)
+  else rev q.
+
+(* Normalizer *)
+Definition norm p := norm3 p (Seq0 _) (Seq0 _).
 
 Section PolynomialProp.
 
@@ -573,7 +587,90 @@ case => [|a p] //=.
 by rewrite !plusP0r mult1l multRP1.
 Qed.
 
+(* 00 is normal *)
+Lemma normal0: normal 00.
+Proof.
+rewrite /normal /=.
+by apply/negP => H1; case one_diff_0; apply/eqtype.eqP.
+Qed.
+
+(* 1 is normal *)
+Lemma normal1: normal 11.
+Proof.
+rewrite /normal /=.
+by apply/negP => H1; case one_diff_0; apply/eqtype.eqP.
+Qed.
+
+Lemma normal_inv: forall a p, normal (Adds a p) -> normal p.
+Proof.
+move => a [|b p] // _; exact: normal0.
+Qed.
+
+(* Equality on normal polynomials is structural *)
+Lemma normal_eq:
+  forall p q, normal p -> normal q -> p == q -> p = q.
+Proof.
+have F1: forall p, eqP0 p -> last 0 p = 0.
+  elim => [|a p] //= H.
+  by case/andP; move/eqtype.eqP => <-.
+elim => [|a p Hrec].
+  elim => [|b q Hrec] //=.
+  move => _ H; case/andP; move/eqtype.eqP => H1 H2.
+  case/negP: H; rewrite -H1 /=.
+  apply/eqtype.eqP; apply F1 => //.
+case => [|b q H1 H2] //=.
+  move => H _; case/andP; move/eqtype.eqP => H1 H2.
+  case/negP: H; rewrite -H1 /=.
+  apply/eqtype.eqP; apply F1 => //.
+case/andP; move/eqtype.eqP => -> H3.
+by rewrite (Hrec q)  ?(normal_inv H1) ?(normal_inv H2).
+Qed.
+
+Lemma norm3_eq:
+  forall p q r, 
+    (rev q) == (rev r) -> norm3 p q r == cat (rev r) p.
+Proof.
+elim => [|a p Hrec] q r H1 //=.
+  by rewrite cats0.
+case E1: (a == 0)%EQ.
+  rewrite (eqP_trans (Hrec q (Adds a r) _)) //=.
+    rewrite rev_adds.
+    rewrite {H1}(eqP_trans H1) //.
+    elim: (rev r) => [|b r1 Hrec1] //=.
+      by rewrite eq_sym E1.
+    by rewrite Hrec1 eq_refl.
+  by rewrite rev_adds cat_add_last eqP_refl.
+rewrite (eqP_trans (Hrec (Adds a r) (Adds a r) _)) //=.
+  by rewrite eqP_refl.
+by rewrite rev_adds cat_add_last eqP_refl.
+Qed.
+
+(* Normalizing returns an equal polynomial *)
+Lemma norm_eq: forall p, norm p == p.
+Proof.
+move => p; rewrite /norm.
+by rewrite (eqP_trans (norm3_eq _ _)) //= eqP_refl.
+Qed.
+
+Lemma norm3_normal:
+  forall p q r, 
+    normal (rev q) -> normal (norm3 p q r).
+Proof.
+elim => [|a p Hrec] q r H1 //=.
+case E1: (a == 0)%EQ; rewrite Hrec //.
+by rewrite /normal rev_adds last_add_last E1.
+Qed.
+
+(* Normalizing normalises *)
+Lemma norm_normal: forall p, normal (norm p).
+Proof.
+move => p; rewrite /norm.
+rewrite norm3_normal //; exact: normal0.
+Qed.
+
+
 End PolynomialProp.
+
 
 
 Fixpoint evalP (p :polynomial) (x :R) {struct p} : R :=
