@@ -1,7 +1,6 @@
 Add LoadPath "../".
 Require Import ssreflect ssrbool funs eqtype ssrnat seq fintype tuple.
-Require Import div groups group_perm zp signperm indexed_products.
-Require Import Setoid.
+Require Import div groups.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -9,27 +8,6 @@ Import Prenex Implicits.
 
 Delimit Scope local_scope with loc.
 Open Scope local_scope.
-
-(*
-Section RingTheory.
-Record isRings (R :Type) (plus mult : R->R->R) (opp : R->R) (zero one : R) : Prop := {
-  mult1x : forall x, mult one x = x;
-  mult0x : forall x : R, mult zero x = zero;
-  plus0x : forall x : R, plus zero x = x;
-  minusxx : forall x : R, plus x (opp x) = zero;
-  plusA : forall x1 x2 x3 : R, plus x1 (plus x2 x3) = plus (plus x1 x2) x3;
-  plusC : forall x1 x2 : R, plus x1 x2 = plus x2 x1;
-  multA : forall x1 x2 x3 : R, mult x1 (mult x2 x3) = mult (mult x1 x2) x3;
-  distrR : forall x1 x2 x3 : R, mult (plus x1 x2) x3 = plus (mult x1 x3) (mult x2 x3)
-}.
-
-Record isComRings (R :Type) (plus mult : R->R->R) (opp : R->R) (zero one : R) : Prop := {
-  isRingsP : isRings plus mult opp zero one;
-  multC : forall x1 x2 :R, (mult x1 x2) = (mult x2 x1)
-}.
-
-End RingTheory.
-*)
 
 
 Section Polynomials.
@@ -39,23 +17,40 @@ Variables plus mult : R -> R -> R.
 Variable opp : R -> R.
 Variables zero one : R.
 
-Notation "x1 + x2" := (plus x1 x2) : local_scope.
+Infix "+" := plus: local_scope.
 Notation "- x" := (opp x): local_scope.
-Notation "x1 * x2" := (mult x1 x2): local_scope.
+Infix "*" := mult: local_scope.
 Notation "1" := one (at level 0) : local_scope.
 Notation "0" := zero (at level 0): local_scope.
-Notation "- 1" := (- 1) : local_scope.
-Notation "x - y" := (x + (opp y)) : local_scope.
 
-Hypothesis mult1x : forall x, 1 * x = x.
-Hypothesis mult0x : forall x : R, 0 * x = 0.
-Hypothesis plus0x : forall x : R, 0 + x = x.
-Hypothesis minusxx : forall x : R, x - x = 0.
-Hypothesis plusA : forall x1 x2 x3 : R, x1 + (x2 + x3) = x1 + x2 + x3.
-Hypothesis plusC : forall x1 x2 : R, x1 + x2 = x2 + x1.
-Hypothesis multA : forall x1 x2 x3 : R, x1 * (x2 * x3) = x1 * x2 * x3.
-Hypothesis multC : forall x1 x2 : R, x1 * x2 = x2 * x1.
-Hypothesis distrR : forall x1 x2 x3 : R, (x1 + x2) * x3 = x1 * x3 + x2 * x3.
+
+(* Zero Right *)
+Variable plus0r: forall a, a + 0 = a.
+(* Zero Left *)
+Variable plus0l: forall a, 0 + a = a.
+(* Commute *)
+Variable plusC: forall a b, a + b = b + a.(* Opposite left *)
+Variable plus_opr: forall a, a + (-a) = 0.
+(* Opposite right *)
+Variable plus_opl: forall a, (-a) + a = 0.
+(* zero right *)
+Variable mult0r: forall a, a * 0 = 0.
+(* zero left *)
+Variable mult0l: forall a, 0 * a = 0.
+(* Distributivity r *)
+Variable plus_multr: forall a b c, (a + b) * c = (a * c) + (b * c).
+(* Distributivity l *)
+Variable plus_multl: forall a b c, c * (a + b) = (c * a) + (c * b).
+(* Commutative *)
+Variable multC: forall a b, a * b = b * a.
+(* Associative *)
+Variable multA: forall a b c, (a * b) * c = a * (b * c).
+(* one left *)
+Variable mult1l: forall a, 1 * a = a.
+
+Let opp_zero: -0 = 0.
+by rewrite -{2}(plus_opr 0) plus0l.
+Qed.
 
 Section Polynomial.
 
@@ -63,22 +58,11 @@ Section Polynomial.
 (* A polynomial is sequence, the firts element of the sequence is monome of low degree*)
 Definition polynomial := seq R.
 
-(*
-Notation "'PR_' ( n )" := (polynomial n)
-  (at level 9, n at level 50, format "'PR_' ( n )") : local_scope.
-
-Notation "'\poly_' ( i ) E" := (Polynomial (fun i => E))
-  (at level 35, E at level 35, i at level 50,
-   format "'\poly_' ( i )  E") : local_scope.
-*)
-
-
 Fixpoint plusP (p q: polynomial) {struct p}: polynomial :=
   if p is (Adds a p') then
     if q is (Adds b q') then Adds (a + b) (plusP p' q') 
    else p 
   else q.
-
 
 Definition eqP0 (p: polynomial) : bool :=
   all (set1 0) p.
@@ -96,43 +80,45 @@ Definition opP (p : polynomial) : polynomial :=
 Multiplication by X
 *)
 
+
 Definition multPX (p : polynomial) := if p is (Adds _ _) then (Adds 0 p) else p.
 
 (* 
 Multiplication by a coefficient: 
 *)
 
-Definition multRP (c : R) (p : polynomial): polynomial :=
+Definition multRPl (c : R) (p : polynomial): polynomial :=
   maps (mult c) p.
+
+Definition multRPr (c : R) (p : polynomial): polynomial :=
+  maps (fun x => mult x c) p.
+
+
+Open Scope local_scope.
+
+
+Notation "'11'" :=  (Adds 1 seq0) (at level 0): local_scope.
+Notation "00" := (@Seq0 R: polynomial) (at level 0): local_scope.Notation "x1 '++' x2" := (plusP x1 x2) (at level 50) : local_scope.
+Notation "x1 '==' x2" := (eqP x1 x2) (at level 70) : local_scope.
+Notation "'--' x" := (opP x) (at level 10) : local_scope.
+Notation "'Xp' x" := (multPX x) (at level 40) : local_scope.
+Notation "c 'sp' x" := (multRPl c x) (at level 40) : local_scope.
+Notation "x 'ps' c" := (multRPr c x) (at level 40) : local_scope.
 
 (* 
 Multiplication
 *)
 
 Fixpoint multP (p q : polynomial) {struct p} : polynomial :=
-  if p is (Adds a p') then plusP (multRP a q) (multPX (multP p' q)) 
-  else p.
-
-
-Notation "00" := (@Seq0 R: polynomial) (at level 0): local_scope.Notation "x1 '++' x2" := (plusP x1 x2) (at level 50) : local_scope.
-Notation "x1 '==' x2" := (eqP x1 x2) (at level 70) : local_scope.
-Notation "'--' x" := (opP x) (at level 10) : local_scope.
-Notation "'Xp' x" := (multPX x) (at level 40) : local_scope.
-Notation "c 'sp' x" := (multRP c x) (at level 40) : local_scope.
+  if p is (Adds a p') then 
+    if q is (Adds b q') then 
+       Adds (mult a b) ((a sp q') ++ (p' ps b) ++ Xp (multP p' q'))
+    else 00 
+  else 00.
 Notation "x1 '**' x2" := (multP x1 x2) : local_scope.
 
 Section PolynomialProp.
 
-Definition oneP : polynomial := (Adds 1 seq0).
-
-Notation "'\1p'" := oneP (at level 0) : local_scope.
-
-Lemma multP1 : forall p : polynomial, \1p ** p = p.
-Proof.
-move => p.
-elim: p => [|x s Hrec] //=; rewrite mult1x; congr Adds.
-rewrite / multRP; case : s Hrec => //=.
-Qed.
 
 Lemma multP0 : forall p : polynomial, 00 ** p = 00.
 Proof. move => p; elim: p => [|x s Hrec] //=. Qed.
@@ -145,6 +131,8 @@ Proof. by move => [|a p1] //. Qed.
 
 Lemma plusPC : forall p q : polynomial,  p ++ q = q ++ p.
 Proof. by elim => [| a p1 Hrec] [| b q1] //; rewrite /= plusC Hrec. Qed.
+
+Variable plusA: forall a b c, (a + b) + c = a + (b + c).
 
 Lemma plusPA: forall p q r, (p ++ q) ++ r = p ++ (q ++ r).
 Proof.
@@ -183,11 +171,13 @@ move => [|b q] // [|c r] //=; case/andP => H1 H2;
 by rewrite (eqtype.eqP H1) H3 (Hrec _ _ H2).
 Qed.
 
+
+
 Lemma eqP0_plus: forall p q, eqP0 p -> eqP0 q -> eqP0 (p ++ q).
 Proof.
 elim => [|a p Hrec] // [|b q] //=.
 case/andP => H1 H2; case/andP => H3 H4.
-by rewrite -(eqtype.eqP H1) plus0x H3 Hrec.
+by rewrite -(eqtype.eqP H1) plus0l H3 Hrec.
 Qed.
 
 Lemma eqP0_eqP_plusl: forall p q, eqP0 p -> q == p ++ q.
@@ -195,7 +185,7 @@ Proof.
 elim => [|a p Hrec] // [|b q] //=.
   by rewrite eq_refl eqP_refl.
 case/andP => H1 H2.
-by rewrite -(eqtype.eqP H1) plus0x eq_refl Hrec.
+by rewrite -(eqtype.eqP H1) plus0l eq_refl Hrec.
 Qed.
 
 Lemma eqP0_eqP_plusr: forall p q, eqP0 p -> q == q ++ p.
@@ -203,10 +193,16 @@ Proof.
 elim => [|a p Hrec] // [|b q] //=.
   by rewrite eq_refl eqP_refl.
 case/andP => H1 H2.
-by rewrite -(eqtype.eqP H1) plusC plus0x eq_refl Hrec.
+by rewrite -(eqtype.eqP H1) plusC plus0l eq_refl Hrec.
 Qed.
 
-Lemma eqpP_plus: forall p1 p2 q1 q2, 
+Lemma eqP_plus0l: forall p, 00 ++ p = p.
+Proof. done. Qed.
+
+Lemma eqP_plus0r: forall p, p ++ 00 = p.
+Proof. by case. Qed.
+
+Lemma eqP_plus: forall p1 p2 q1 q2, 
   p1 == p2 -> q1 == q2 -> (p1 ++ q1) == (p2 ++ q2).
 Proof.
 elim => [|a1 p1 Hrec] //.
@@ -233,18 +229,14 @@ Lemma plusP0pr: forall p, p ++ (-- p) == 00.
 Proof.
 move => p; apply: eqP0_eqP. 
 elim  p => [| a p1 Hrec] //.
-by rewrite /= minusxx Hrec eq_refl.
+by rewrite /=  Hrec plus_opr eq_refl.
 Qed.
 
 Lemma plusP0pl: forall p, (--p) ++ p == 00.
 Proof.
 move => p; apply: eqP0_eqP. 
 elim  p => [| a p1 Hrec] //.
-by rewrite plusPC /= plusPC minusxx Hrec eq_refl.
-Qed.
-
-Let opp_zero: -0 = 0.
-by rewrite -[- 0]plus0x minusxx.
+by rewrite plusPC /= plusPC plus_opr Hrec eq_refl.
 Qed.
 
 Lemma eqP0_opp: forall p, eqP0 p -> eqP0 (-- p).
@@ -262,61 +254,323 @@ move => [|b q] //=.
 by case/andP => H1 H2; rewrite (eqtype.eqP H1) eq_refl Hrec.
 Qed.
 
-Lemma multPx_plus: forall p q, Xp (p ++ q) = (Xp p) ++ (Xp q).
+Lemma multPX_plus: forall p q, Xp (p ++ q) = (Xp p) ++ (Xp q).
 Proof.
-move => p q.
-elim: p => // [x s Hrec].
-elim: q Hrec => // [y q Hrec1 Hrec].
-by rewrite / multPX /= plus0x.
+by case => [|a p] // [|b q] //=; rewrite plus0l.
 Qed.
 
-Lemma multPx_opp: forall p, Xp (--p) = --(Xp p).
+Lemma multPX_opp: forall p, Xp (--p) = --(Xp p).
 Proof.
 by move => [| a p ] //=; rewrite opp_zero.
 Qed.
 
-Lemma eqP0_multPx: forall p, eqP0 p -> eqP0 (Xp p).
+Lemma eqP0_multPX: forall p, eqP0 p -> eqP0 (Xp p).
 Proof.
-by elim => //= [x s]; rewrite eq_refl.
+by move => [| a p] Hp; rewrite //= eq_refl.
 Qed.
 
-Lemma eqP_multPx: forall p q, p == q -> Xp p == Xp q.
+Lemma eqP_multPX: forall p q, p == q -> Xp p == Xp q.
 Proof.
-move => p q.
-elim: p => // [|x s Hrec].
-  by elim: q => //= [y u Hrec1]; rewrite eq_refl.
-by elim: q Hrec => // [|y u Hrec1] //=; rewrite eq_refl.
+by move => [| a p] [|b q] Hp; rewrite //= eq_refl.
 Qed.
 
-Lemma eqP0_multRP: forall c p, eqP0 p -> eqP0 (c sp p).
+Lemma eqP0_multRPl: forall c p, eqP0 p -> eqP0 (c sp p).
 Proof.
 move => c; elim => [|a p Hrec] //=.
-by case/andP => H1 H2; rewrite -(eqtype.eqP H1) multC mult0x eq_refl Hrec.
+by case/andP => H1 H2; rewrite -(eqtype.eqP H1) multC mult0l eq_refl Hrec.
 Qed.
 
-Lemma eqP0_multRP0: forall p, eqP0 (0 sp p).
+Lemma eqP0_multRPl0: forall p, eqP0 (0 sp p).
 Proof.
 elim => [|a p Hrec] //=.
-by rewrite mult0x eq_refl Hrec.
+by rewrite mult0l eq_refl Hrec.
 Qed.
 
-Lemma eqP_multRP: forall c p q, p == q -> c sp p == c sp q.
+Lemma eqP_multRPl: forall c p q, p == q -> c sp p == c sp q.
 Proof.
 move => c; elim => [| a p Hrec] //=.
-  exact: eqP0_multRP.
+  exact: eqP0_multRPl.
 move => [|b q] /=; case/andP => H1 H2; rewrite -(eqtype.eqP H1).
-  by rewrite multC mult0x eq_refl eqP0_multRP.
+  by rewrite mult0r eq_refl eqP0_multRPl.
 by rewrite eq_refl Hrec.
 Qed.
 
-Lemma multRPl: forall c1 c2 p, (c1 + c2) sp p = (c1 sp p) ++ (c2 sp p).
-move => c1 c2; elim => [|a p Hrec] //=.
-by rewrite distrR Hrec.
+Lemma multRPl_multPX: forall c p, Xp (c sp p) = c sp (Xp p).
+Proof.
+by move => c [| a p] //=; rewrite mult0r.
 Qed.
 
-Lemma multRPr: forall c p q, c sp (p ++ q) = (c sp p) ++ (c sp q).
+Lemma multRPl_plusl: forall c1 c2 p, (c1 + c2) sp p = (c1 sp p) ++ (c2 sp p).
+move => c1 c2; elim => [|a p Hrec] //=.
+by rewrite plus_multr Hrec.
+Qed.
+
+Lemma multRPl_plusr: forall c p q, c sp (p ++ q) = (c sp p) ++ (c sp q).
 move => c; elim => [|a p Hrec] //= [|b q] //=.
-by rewrite multC distrR Hrec; congr Adds; congr plus; rewrite multC.
+by rewrite plus_multl Hrec.
+Qed.
+
+Lemma eqP0_multRPr: forall c p, eqP0 p -> eqP0 (p ps c).
+Proof.
+move => c; elim => [|a p Hrec] //=.
+by case/andP => H1 H2; rewrite -(eqtype.eqP H1) mult0l eq_refl Hrec.
+Qed.
+ 
+Lemma eqP0_multRPr0: forall p, eqP0 (p ps 0).
+Proof.
+elim => [|a p Hrec] //=.
+by rewrite mult0r eq_refl Hrec.
+Qed.
+
+Lemma eqP_multRPr: forall c p q, p == q -> p ps c == q ps c.
+Proof.
+move => c; elim => [| a p Hrec] //=.
+  exact: eqP0_multRPr.
+move => [|b q] /=; case/andP => H1 H2; rewrite -(eqtype.eqP H1).
+  by rewrite mult0l eq_refl eqP0_multRPr.
+by rewrite eq_refl Hrec.
+Qed.
+
+Lemma multRPr_multPX: forall c p, Xp (p ps c) = (Xp p) ps c.
+Proof.
+by move => c [| a p] //=; rewrite mult0l.
+Qed.
+
+Lemma multRPr_plusl: forall c1 c2 p, p ps (c1 + c2) = (p ps c1) ++ (p ps c2).
+move => c1 c2; elim => [|a p Hrec] //=.
+by rewrite plus_multl Hrec.
+Qed.
+
+Lemma multRPr_plusr: forall c p q, (p ++ q) ps c = (p ps c) ++ (q ps c).
+move => c; elim => [|a p Hrec] //= [|b q] //=.
+by rewrite plus_multr Hrec.
+Qed.
+
+
+
+Lemma eqP0_multPl: forall (p q: polynomial), eqP0 p -> eqP0 (p ** q).
+Proof.
+elim => [|a p Hrec] //= [|b q] //=.
+case/andP => H1 H2.
+rewrite -(eqtype.eqP H1) mult0l eq_refl !eqP0_plus //=.
+  by exact: eqP0_multRPl0.
+  by exact: eqP0_multRPr.
+by rewrite eqP0_multPX // Hrec.
+Qed.
+
+Lemma eqP0_multPr: forall (p q: polynomial), eqP0 p -> eqP0 (q ** p).
+Proof.
+elim => [|a p Hrec] [|b q] //=.
+case/andP => H1 H2; rewrite -(eqtype.eqP H1) mult0r eq_refl !eqP0_plus //=.
+  by exact: eqP0_multRPl.
+  by exact: eqP0_multRPr0.
+by rewrite eqP0_multPX // Hrec.
+Qed.
+
+Lemma eqpP_mult: forall p1 p2 q1 q2, 
+  p1 == p2 -> q1 == q2 -> (p1 ** q1) == (p2 ** q2).
+Proof.
+elim => [|a1 p1 Hrec].
+  move => p1 q1 q2 H1 H2.
+  by rewrite /= eqP0_multPl.
+move => [|a2 p2].
+  move => q1 q2 H1 H2.
+  by rewrite (@eqP_trans _ 00) ?eqP0_multPl // eqP_sym 
+             // /eqP eqP0_multPl.
+move => [|b1 q1].
+  move => q2 H1 H2.
+  by rewrite (@eqP_trans _ 00) // /eqP eqP0_multPr.
+move => [|b2 q2].
+  move => H1 H2.
+  by rewrite (@eqP_trans _ 00) // eqP_sym // /eqP eqP0_multPr.
+rewrite /=; case/andP => H1 H2; case/andP => H3 H4.
+rewrite (eqtype.eqP H1) (eqtype.eqP H3) eq_refl !eqP_plus //=
+           ?eqP_multPX // ?Hrec // ?eqP_multRPr ?eqP_multRPl // eq_refl.
+Qed.
+
+Lemma multP0l: forall p, 00 ** p = 00.
+Proof. done. Qed.
+
+Lemma multP0r: forall p, p ** 00 = 00.
+Proof. by case. Qed.
+
+Lemma multRPrlC: forall a b p, a sp (p ps b) = (a sp p) ps b.
+move => a b; elim => [|c  p Hrec] //=.
+by rewrite multA Hrec.
+Qed.
+
+Lemma multRPrl: forall a p, p ps a = a sp p.
+move => b; elim => [|a  p Hrec] //=.
+by rewrite multC Hrec.
+Qed.
+
+Lemma multPC: forall p q, p ** q = q ** p.
+Proof.
+elim => [|a p Hrec] // [|b q] //=.
+rewrite !multRPrl multC; congr Adds; congr plusP.
+  exact: plusPC.
+by rewrite Hrec.
+Qed.
+
+
+Lemma multRPl_multl: forall c1 c2 p, (c1 * c2) sp p = c1 sp (c2 sp p).
+Proof.
+move => c1 c2; elim => [|a p Hrec] //=.
+by rewrite multA Hrec.
+Qed.
+
+Lemma multRPl_multr: forall c p q, c sp (p ** q) = (c sp p) ** q.
+Proof.
+move => c; elim => [|a p Hrec] //= [|b q] //=.
+rewrite multA; congr Adds.
+by rewrite !multRPl_plusr multRPl_multl multRPrlC -Hrec multRPl_multPX.
+Qed.
+
+Lemma multRPr_multl: forall c1 c2 p, p ps (c1 * c2) = (p ps c1) ps c2.
+Proof.
+move => c1 c2; elim => [|a p Hrec] //=.
+by rewrite multA Hrec.
+Qed.
+
+Lemma multRPr_multr: forall c p q, (p ** q) ps c = p ** (q ps c).
+Proof.
+move => c; elim => [|a p Hrec] //= [|b q] //=.
+rewrite multA; congr Adds.
+by rewrite !multRPr_plusr multRPr_multl multRPrlC -Hrec multRPr_multPX.
+Qed.
+
+Lemma plusP_multr: forall p q r, 
+  (p ++ q) ** r = (p ** r) ++ (q ** r).
+Proof.
+elim => [|a p Hrec] // [|b q] //.
+  by move => r; rewrite multP0l !plusP0r.
+move => [|c r] //=.
+congr Adds.
+  by rewrite plus_multr.
+rewrite Hrec multPX_plus multRPl_plusl multRPr_plusr !plusPA.
+repeat (congr plusP; rewrite plusPC !plusPA).
+Qed.
+
+Lemma plusP_multl: forall p q r, 
+  r ** (p ++ q) = (r ** p) ++ (r ** q).
+Proof.
+elim => [|a p Hrec] //.
+ by move => q r; rewrite multP0r !plusP0l.
+move => [|b q] //.
+ by move => r; rewrite multP0r !plusP0r.
+move => [|c r] //=.
+congr Adds.
+  by rewrite plus_multl.
+rewrite Hrec multPX_plus multRPr_plusl multRPl_plusr !plusPA.
+repeat (congr plusP; rewrite plusPC !plusPA).
+Qed.
+
+Lemma adds_multl: forall a (p q: polynomial), 
+  (Adds a p) ** q = (a sp q) ++ Xp (p ** q).
+Proof.
+move => a p q; elim: q a p => [|b q Hrec] a.
+  by move => p;  rewrite !multP0r. 
+case => [|a1 p].
+  by rewrite multP0l /= !plusP0r.
+rewrite {1}[Adds a1 p]lock /=; unlock.
+congr Adds; first by rewrite plus0r.
+rewrite !plusPA; congr plusP.
+rewrite Hrec.
+rewrite (plusPC (p ps b)) -plusPA.
+case: (a1 sp _ ++ _) => // [a2 p1].
+rewrite {2}[Adds a2 _]lock /= plus0r plusPC.
+by unlock.
+Qed.
+
+
+Lemma multPX_multl: forall p q, (Xp p) ** q = Xp (p ** q).
+Proof.
+move => [|a p] // [|b q] //.
+change (Xp Adds a p) with (Adds 0 (Adds a p)).
+rewrite adds_multl /=.
+rewrite plus0r mult0l; congr Adds.
+rewrite plusPA.
+elim: q (p ps b ++ _) (a * b) => // c r Hrec [| c1 r1] // d.
+  rewrite /= mult0l plus0l.
+  by generalize (Hrec 00 (a * c)); rewrite !plusP0r => ->.
+by rewrite /= ?Hrec mult0l plus0l.
+Qed.
+
+
+Lemma adds_multr: forall a (p q: polynomial), 
+  q ** (Adds a p) = (q ps a) ++ Xp (q ** p).
+Proof.
+move => a p q; elim: q a p => [|b q Hrec] a.
+  by move => p;  rewrite !multP0l. 
+case => [|a1 p].
+  by rewrite multP0r /= multP0r /= !plusP0r.
+rewrite {1}[Adds a1 p]lock /=; unlock.
+congr Adds; first by rewrite plus0r.
+rewrite !plusPA plusPC plusPA; congr plusP.
+rewrite Hrec.
+case: (q ps _ ++ _) => [| a2 p1].
+  by rewrite /= plusP0r.
+rewrite /multPX.
+rewrite [Adds a2 p1]lock [b sp p ++ _]lock /=; unlock.
+by rewrite plus0l plusPC.
+Qed.
+
+Lemma multPX_multr: forall p q, q ** (Xp p) = Xp (q ** p).
+Proof.
+move => [|a p] // [|b q] //.
+change (Xp Adds a p) with (Adds 0 (Adds a p)).
+rewrite adds_multr /=.
+rewrite plus0r mult0r; congr Adds.
+rewrite plusPA.
+rewrite [b sp p ++ _]plusPC !plusPA.
+elim: q (Xp _ ++ _) (b * a) => // c r Hrec [| c1 r1] // d.
+  rewrite /= mult0r plus0l.
+  by generalize (Hrec 00 (c * a)); rewrite !plusP0r => ->.
+by rewrite /= ?Hrec mult0r plus0l.
+Qed.
+
+Lemma multP_sp_ps: forall a p q,
+  (p ps a) ** q = p ** (a sp q).
+Proof.
+move => c; elim => [|a p Hrec] // [|b q] //=.
+by rewrite multA Hrec multRPl_multl multRPr_multl.
+Qed.
+
+Lemma multPA: forall p q r, 
+  multP (multP p q) r = multP p (multP q r).
+Proof.
+elim => [|a p Hrec] // [|b q] // [|c r] //=.
+congr Adds => //.
+rewrite -!multPX_multl !multPX_plus.
+rewrite !plusP_multl !plusP_multr.
+rewrite !multRPl_plusr !multRPr_plusr.
+rewrite !plusPA.
+congr plusP; first by rewrite multRPl_multl.
+congr plusP; first by rewrite multRPrlC.
+apply sym_equal; rewrite plusPC !plusPA.
+congr plusP; first by rewrite multRPr_multl.
+rewrite -!multP_sp_ps.
+apply sym_equal; rewrite plusPC !plusPA plusPC !plusPA.
+congr plusP.
+  by rewrite multRPr_multPX.
+apply sym_equal; rewrite plusPC !plusPA.
+congr plusP.
+ by rewrite !multPX_multl !multPX_multr Hrec.
+rewrite plusPC; congr plusP.
+  by rewrite multRPr_multr.
+by rewrite multRPl_multr multRPl_multPX.
+Qed.
+
+Lemma multRP1 : forall p, 1 sp p = p.
+Proof.
+elim => [|a p Hrec] //=.
+by rewrite mult1l Hrec.
+Qed.
+
+Lemma multP1 : forall p : polynomial, 11 ** p = p.
+Proof.
+case => [|a p] //=.
+by rewrite !plusP0r mult1l multRP1.
 Qed.
 
 End PolynomialProp.
@@ -326,16 +580,8 @@ Fixpoint evalP (p :polynomial) (x :R) {struct p} : R :=
   (if p is (Adds a p') then a + x * (evalP p' x) else 0).
 
 
+
 End Polynomial.
 
 End Polynomials.
 
-
-
-Section MatrixOfPoly.
-
-End MatrixOfPoly.
-
-Section PolyOfMatrix.
-
-End PolyOfMatrix.
