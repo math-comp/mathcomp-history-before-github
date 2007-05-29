@@ -739,8 +739,6 @@ Definition determinant n (A : M_(n)) :=
 Notation "'\det' A" := (determinant A)
   (at level 10, A at level 9) : local_scope.
 
-(* Compile not work after this point *)
-
 (*  Impossible : internal Coq assert failure !!!
 Add Morphism determinant with
   signature matrix_eq ==> eq
@@ -870,8 +868,10 @@ Qed.
 Lemma sign_addb : forall b1 b2, (-1) ^ (b1 (+) b2) = (-1) ^ b1 * (-1) ^ b2.
 Proof. by do 2!case; rewrite //= ?multm1x ?mult1x ?oppK. Qed.
 
+Print Graph.
+
 Lemma sign_permM : forall d (s t : permType d),
-  (-1) ^ (s * t)%G = (-1) ^ s * (-1) ^ t.
+  (-1) ^ odd_perm ((s * t)%G) = (-1) ^ s * (-1) ^ t.
 Proof. by move=> *; rewrite odd_permM sign_addb. Qed.
 
 (* Instantiating and completing the set of lemmas lemmas for manipulating *)
@@ -1171,7 +1171,7 @@ Definition pfamily (d : finType) d' y0 (r : set d) (a' : d -> set d') :=
 Lemma distr_iprod_isum_dep :
   forall (d d': finType) j0 (r : set d) (r' : d -> set d') F,
   \prod_(i in r) (\sum_(in r' i) F i) =
-     \sum_(f in pfamily j0 r r') \prod_(i in r) F i (f i).
+     \sum_(f in pfamily j0 r r') \prod_(i in r) F i (fun_of_fgraph f i).
 Proof.
 move=> d d' j0 r r' F; pose df := fgraphType d d'.
 elim: {r}_`+1 {-2}r (ltnSn (card r)) => // m IHm r.
@@ -1201,11 +1201,11 @@ Qed.
 
 Lemma distr_iprod_isum : forall (d d' : finType) j0 r r' (F : d -> d' -> R),
   \prod_(i in r) (\sum_(in r') F i) =
-     \sum_(f in pfunspace j0 r r') \prod_(i in r) F i (f i).
+     \sum_(f in pfunspace j0 r r') \prod_(i in r) F i (fun_of_fgraph f i).
 Proof. move=> *; exact: distr_iprod_isum_dep. Qed.
 
 Lemma distr_iprodA_isum_dep : forall (d d': finType) (r' : d -> set d') F,
-  \prod_(i) (\sum_(in r' i) F i) = \sum_(f in family r') \prod_(i) F i (f i).
+  \prod_(i) (\sum_(in r' i) F i) = \sum_(f in family r') \prod_(i) F i (fun_of_fgraph f i).
 Proof.
 move=> d d' r' F; case: (pickP (setA d')) => [j0 _ | d'0].
   exact: (distr_iprod_isum_dep j0).
@@ -1221,7 +1221,7 @@ Qed.
 
 Lemma distr_iprodA_isum : forall (d d': finType) (r' : set d') F,
   \prod_(i : d) (\sum_(in r') F i) =
-    \sum_(f in tfunspace r') \prod_(i) F i (f i).
+    \sum_(f in tfunspace r') \prod_(i) F i (fun_of_fgraph f i).
 Proof. move=> *; exact: distr_iprodA_isum_dep. Qed.
 
 Lemma distr_iprodA_isumA : forall (d d': finType) F,
@@ -1232,65 +1232,70 @@ Qed.
 
 (* The matrix graded algebra, extensional. *)
 
-Lemma matrix_plus0x : forall m n (A : M_(m, n)), \0m +m A =m A.
-Proof. by split=> i j /=; rewrite plus0x. Qed.
+(* by move=> m n j0 A; mx2fun i j. *)
 
-Lemma matrix_plusC : forall m n (A B : M_(m, n)), A +m B =m B +m A.
-Proof. by split=> i j /=; rewrite plusC. Qed.
+Lemma matrix_plus0x : forall m n (A : M_(m, n)), \0m +m A = A.
+Proof. by move => *; mx2fun i j; rewrite plus0x. Qed.
+
+Lemma matrix_plusC : forall m n (A B : M_(m, n)), A +m B = B +m A.
+Proof. by move => *; mx2fun i j; rewrite plusC. Qed.
 
 Lemma matrix_plusA : forall m n (A B C : M_(m, n)),
-  A +m (B +m C) =m A +m B +m C.
-Proof. by split=> i j /=; rewrite plusA. Qed.
+  A +m (B +m C) = A +m B +m C.
+Proof. by move => *; mx2fun i j; rewrite plusA. Qed.
 
-Lemma matrix_scale_0 : forall m n (A : M_(m, n)), 0 *sm A =m \0m.
-Proof. by split=> i j /=; rewrite mult0x. Qed.
+Lemma matrix_scale_0 : forall m n (A : M_(m, n)), 0 *sm A = \0m.
+Proof. by move => *; mx2fun i j; rewrite mult0x. Qed.
 
-Lemma matrix_scale_1 : forall m n (A : M_(m, n)), 1 *sm A =m A.
-Proof. by split=> i j /=; rewrite mult1x. Qed.
+Lemma matrix_scale_1 : forall m n (A : M_(m, n)), 1 *sm A = A.
+Proof. by move => *; mx2fun i j; rewrite mult1x. Qed.
 
 Lemma matrix_scale_distrR : forall m n x1 x2 (A : M_(m, n)),
-  (x1 + x2) *sm A =m x1 *sm A +m x2 *sm A.
-Proof. by split=> i j /=; rewrite distrR. Qed.
+  (x1 + x2) *sm A = x1 *sm A +m x2 *sm A.
+Proof. by move => *; mx2fun i j; rewrite distrR. Qed.
 
 Lemma matrix_scale_distrL : forall m n x (A B : M_(m, n)),
-  x *sm (A +m B) =m x *sm A +m x *sm B.
-Proof. by move=> m n x A B; split=> i j /=; rewrite !(multC x) distrR. Qed.
+  x *sm (A +m B) = x *sm A +m x *sm B.
+Proof. by move=> m n x A B; mx2fun i j; rewrite !(multC x) distrR. Qed.
 
 Lemma matrix_scaleA : forall m n p x (A : M_(m, n)) (B : M_(n, p)),
-  x *sm (A *m B) =m (x *sm A) *m B.
+  x *sm (A *m B) = (x *sm A) *m B.
 Proof.
-by split=> i k /=; rewrite isum_distrL; apply: eq_isumR => j _; rewrite multA.
+by move => *; mx2fun i j; rewrite /= isum_distrL; apply: eq_isumR => jj _; rewrite multA m2f.
 Qed.
 
 Lemma matrix_scaleC : forall m n p x (A : M_(m, n)) (B : M_(n, p)),
-  A *m (x *sm B) =m (x *sm A) *m B.
-Proof. by split=> i k /=; apply: eq_isumR => j _; rewrite multCA multA. Qed.
-
-Lemma matrix_mult1x : forall m n (A : M_(m, n)), \1m *m A =m A.
+  A *m (x *sm B) = (x *sm A) *m B.
 Proof.
-move=> m n A; split=> i j /=; rewrite (isumD1 i) // set11 mult1x plusC.
-rewrite isum0 ?plus0x // => i'; rewrite andbT; move/negbET->; exact: mult0x.
+by move => *; mx2fun i j; apply: eq_isumR => jj _; rewrite m2f multCA m2f multA.
+Qed.
+
+Lemma matrix_mult1x : forall m n (A : M_(m, n)), \1m *m A = A.
+Proof.
+move=> m n A; mx2fun i j.
+rewrite (isumD1 i) // m2f set11 mult1x plusC.
+rewrite isum0 ?plus0x // => i'; rewrite andbT m2f; move/negbET->; exact: mult0x.
 Qed.
 
 Lemma matrix_transpose_mul : forall m n p (A : M_(m, n)) (B : M_(n, p)),
-   \^t (A *m B) =m \^t B *m \^t A.
-Proof. split=> k i; apply: eq_isumR => j _; exact: multC. Qed.
+   \^t (A *m B) = \^t B *m \^t A.
+Proof. by move=> *; mx2fun k i; apply: eq_isumR => j _; rewrite !m2f multC. Qed.
 
-Lemma matrix_multx1 : forall m n (A : M_(m, n)), A *m \1m =m A.
+Lemma matrix_multx1 : forall m n (A : M_(m, n)), A *m \1m = A.
 Proof.
 move=> m n A; apply: matrix_transpose_inj.
 by rewrite matrix_transpose_mul matrix_transpose_unit matrix_mult1x.
 Qed.
 
 Lemma matrix_distrR : forall m n p (A1 A2 : M_(m, n)) (B : M_(n, p)),
-  (A1 +m A2) *m B =m A1 *m B +m A2 *m B.
+  (A1 +m A2) *m B = A1 *m B +m A2 *m B.
 Proof.
-move=> m n p A1 A2 B; split=> i k /=; rewrite -isum_plus.
-by apply: eq_isumR => j _; rewrite -distrR.
+move=> m n p A1 A2 B; mx2fun i k; rewrite /= -isum_plus.
+by apply: eq_isumR => j _; rewrite m2f -distrR.
 Qed.
 
 Lemma matrix_distrL : forall m n p (A : M_(m, n)) (B1 B2 : M_(n, p)),
-  A *m (B1 +m B2) =m A *m B1 +m A *m B2.
+  A *m (B1 +m B2) = A *m B1 +m A *m B2.
 Proof.
 move=> m n p A B1 B2; apply: matrix_transpose_inj.
 rewrite matrix_transpose_plus !matrix_transpose_mul.
@@ -1299,38 +1304,41 @@ Qed.
 
 Lemma matrix_multA : forall m n p q
    (A : M_(m, n)) (B : M_(n, p)) (C : M_(p, q)),
-  A *m (B *m C) =m A *m B *m C.
+  A *m (B *m C) = A *m B *m C.
 Proof.
-move=> m n p q A B C; split=> i l /=.
+move=> m n p q A B C; mx2fun i l; rewrite /=.
 transitivity (\sum_(k) (\sum_(j) (A i j * B j k * C k l))).
-  rewrite exchange_isum; apply: eq_isumR => j _; rewrite isum_distrL.
+  rewrite exchange_isum; apply: eq_isumR => j _; rewrite m2f isum_distrL.
   by apply: eq_isumR => k _; rewrite multA.
-by apply: eq_isumR => j _; rewrite isum_distrR.
+by apply: eq_isumR => j _; rewrite m2f isum_distrR.
 Qed.
 
 Lemma perm_matrixM : forall n (s t : S_(n)),
-  perm_matrix (s * t)%G =m perm_matrix s *m perm_matrix t.
+  perm_matrix (s * t)%G = perm_matrix s *m perm_matrix t.
 Proof.
-move=> n; split=> i j /=; rewrite (isumD1 (s i)) // set11 mult1x -permM.
+move=> n s t; mx2fun i j; rewrite /= (isumD1 (s i)) // m2f set11 mult1x m2f -permM.
 rewrite isum0 => [|j']; first by rewrite plusC plus0x.
-by rewrite andbT; move/negbET->; rewrite mult0x.
+by rewrite andbT m2f; move/negbET->; rewrite mult0x.
 Qed.
  
 Lemma matrix_trace_plus : forall n (A B : M_(n)), \tr (A +m B) = \tr A + \tr B.
-Proof. by move=> n A B; rewrite -isum_plus. Qed.
+Proof. by move=> n A B; rewrite -isum_plus; apply: eq_iprod_f => i _; rewrite m2f. Qed.
 
 Lemma matrix_trace_scale : forall n x (A : M_(n)), \tr (x *sm A) = x * \tr A.
-Proof. by move=> *; rewrite isum_distrL. Qed.
+Proof. by move=> *; rewrite isum_distrL; apply: eq_iprod_f => i _; rewrite m2f. Qed.
 
 Lemma matrix_trace_transpose : forall n (A : M_(n)), \tr (\^t A) = \tr A.
-Proof. done. Qed.
+Proof. by move => *;  apply: eq_iprod_f => i _; rewrite m2f. Qed.
 
 Lemma matrix_trace_multC : forall m n (A : M_(m, n)) (B : M_(n, m)),
   \tr (A *m B) = \tr (B *m A).
 Proof.
+(*
 move=> m n A B; rewrite /(\tr _) exchange_isum.
 apply: eq_isumR => j _; apply: eq_isumR => i _; exact: multC.
 Qed.
+*)
+Admitted.
 
 (* And now, finally, the title feature. *)
 
@@ -1340,12 +1348,15 @@ Lemma determinant_multilinear : forall n (A B C : M_(n)) i0 b c,
   \det A = b * \det B + c * \det C.
 Proof.
 move=> n A B C i0 b c ABC.
-move/matrix_eq_rem_row=> BA; move/matrix_eq_rem_row=> CA.
+move/matrix_eqP=> BA; move/matrix_eqP=> CA.
+move/matrix_eq_rem_row: BA=> BA; move/matrix_eq_rem_row: CA=> CA.
 rewrite !isum_distrL -isum_plus; apply: eq_isumR => s _.
-rewrite -!(multCA (_ ^ s)) -distrL; congr (_ * _).
-rewrite !(@iprodD1 _ i0 (setA _)) // (matrix_eq_row ABC) distrR !multA.
-by congr (_ * _ + _ * _); apply: eq_iprodR => i;
-   rewrite andbT => ?; rewrite ?BA ?CA.
+rewrite -!(multCA (_ ^ (odd_perm s))) -distrL; congr (_ * _).
+rewrite !(@iprodD1 _ i0 (setA _)) //.
+move/matrix_eqP: ABC => ABC.
+rewrite (matrix_eq_row ABC) !m2f distrR !multA.
+by congr (_ * _ + _ * _); apply: eq_iprodR => i; rewrite andbT => ?;
+   rewrite ?BA ?CA.
 Qed.
 
 Lemma alternate_determinant : forall n (A : M_(n)) i1 i2,
@@ -1371,18 +1382,19 @@ Proof.
 move=> n A; pose r := I_(n); pose ip p : permType r := p^-1.
 rewrite /(\det _) (reindex_isum ip) /=; last first.
   by exists ip => s _; rewrite /ip invgK.
-apply: eq_isumR => s _; rewrite odd_permV /= (reindex_iprod s).
-  by congr (_ * _); apply: eq_iprodR => i _; rewrite permK.
-by exists (s^-1 : _ -> _) => i _; rewrite ?permK ?permKv.
+apply: eq_isumR => s _.
+rewrite !odd_permV /= (reindex_iprod (fun_of_perm s)).
+  by congr (_ * _); apply: eq_iprodR => i _; rewrite m2f permK.
+by exists ((fun_of_perm s^-1) : _ -> _) => i _; rewrite ?permK ?permKv.
 Qed.
 
 Lemma determinant_perm : forall n s, \det (@perm_matrix n s) = (-1) ^ s.
 Proof.
 move=> n s; rewrite /(\det _) (isumD1 s) //.
-rewrite iprod1 => [|i _]; last by rewrite /= set11.
+rewrite iprod1 => [|i _]; last by rewrite /= !m2f set11.
 rewrite isum0 => [|t Dst]; first by rewrite plusC plus0x multC mult1x.
-case: (pickP (fun i => s i != t i)) => [i ist | Est].
-  by rewrite (iprodD1 i) // multCA /= (negbET ist) mult0x.
+case: (pickP (fun i => s i != (fun_of_perm t) i)) => [i ist | Est].
+  by rewrite (iprodD1 i) // multCA /= m2f (negbET ist) mult0x.
 move: Dst; rewrite andbT; case/eqP.
 by apply: eq_fun_of_perm => i; move/eqP: (Est i).
 Qed.
@@ -1390,15 +1402,18 @@ Qed.
 Lemma determinant1 : forall n, \det (unit_matrix n) = 1.
 Proof.
 move=> n; have:= @determinant_perm n 1%G; rewrite odd_perm1 => /= <-.
-apply: determinant_extensional; symmetry; exact: perm_matrix1.
+apply: determinant_extensional; apply/matrix_eqP; symmetry; exact: perm_matrix1.
 Qed.
 
 Lemma determinant_scale : forall n x (A : M_(n)),
   \det (x *sm A) = x ^ n * \det A.
 Proof.
 move=> n x A; rewrite isum_distrL; apply: eq_isumR => s _.
-by rewrite multCA iprod_mult iprod_id card_ordinal.
+(*
+by rewrite multCA m2f iprod_mult iprod_id card_ordinal.
 Qed.
+*)
+Admitted.
 
 Lemma determinantM : forall n (A B : M_(n)), \det (A *m B) = \det A * \det B.
 Proof.
@@ -1406,6 +1421,7 @@ move=> n A B; rewrite isum_distrR.
 pose AB (f : F_(n)) (s : S_(n)) i := A i (f i) * B (f i) (s i).
 transitivity (\sum_(f) \sum_(s : S_(n)) (-1) ^ s * \prod_(i) AB f s i).
   rewrite exchange_isum; apply: eq_isumR => s _.
+(*
   by rewrite -isum_distrL distr_iprodA_isumA.
 rewrite (isumID (fun f => uniq (fval f))) plusC isum0 ?plus0x => /= [|f Uf].
   rewrite (reindex_isum (fun s => val (pval s))); last first.
@@ -1430,6 +1446,8 @@ case: (pickP (fun i1 => ~~ set0b (ninj i1))) => [i1| injf].
 case/(perm_uniqP f): Uf => i1 i2; move/eqP=> Dfi12; apply/eqP.
 by apply/idPn=> Di12; case/set0Pn: (injf i1); exists i2; apply/andP.
 Qed.
+*)
+Admitted.
 
 (* And now, the Laplace formula. *)
 
@@ -1441,7 +1459,7 @@ Add Morphism cofactor with
   signature matrix_eq ==> eq ==> eq ==> eq
   as cofactor_extensional. *)
 Lemma cofactor_extensional : forall n (A1 A2 : M_(n)),
-  A1 =m A2 -> cofactor A1 =2 cofactor A2.
+  A1 = A2 -> cofactor A1 =2 cofactor A2.
 Proof.
 move=> n A1 A2 A12 i j; apply: (congr1 (mult _)).
 by apply: determinant_extensional; rewrite A12.
@@ -1471,7 +1489,7 @@ have sign_ls: forall s i j, (-1)^(ls i s j) = (-1) ^ s * (-1)^(val i + val j).
   pose nfp (s : S_(n`-1)) k := s k != k.
   move=> s i j; elim: {s}_`+1 {-2}s (ltnSn (card (nfp s))) => // m IHm s Hm.
   case: (pickP (nfp s)) Hm => [k Dsk | s1 _ {m IHm}].
-    rewrite ltnS (cardD1 k) Dsk => Hm; pose t := transp k (s^-1 k).
+    rewrite ltnS (cardD1 k) Dsk => Hm; pose t := transp k (fun_of_perm s^-1 k).
     rewrite -(mulKg t s) transpV -(lsM _ _ i).
     rewrite 2!sign_permM -multA -{}IHm; last first.
       apply: {m} leq_trans Hm; apply: subset_leq_card; apply/subsetP=> k'.
@@ -1479,7 +1497,8 @@ have sign_ls: forall s i j, (-1)^(ls i s j) = (-1) ^ s * (-1)^(val i + val j).
       case: transpP=> [->|-> Ds|]; rewrite ?permKv; first by rewrite set11.
         by rewrite andbb; apply/eqP=> Dk; case/eqP: Ds; rewrite {1}Dk permKv.
       by move/eqP; rewrite eq_sym => ->.
-    suffices ->: ls i t i = transp (lift i k) (lift i (s^-1 k)).
+(* !!! The coercion fun_of_perm don't work !!! *)
+    suffices ->: ls i t i = transp (lift i k) (lift i (fun_of_perm s^-1 k)).
       by rewrite !odd_transp (inj_eq (@lift_inj _ _)).
     apply: eq_fun_of_perm=> i'; rewrite p2f.
     case: (unliftP i i') => [i''|] ->; rewrite lsfE.
@@ -1529,7 +1548,7 @@ case: (pickP (setA I_(n`-1))) => [k'0 _ | r'0]; last first.
   rewrite !iprod_set0 // => k; apply/idP; case/unlift_some=> k'.
   by have:= r'0 k'.
 rewrite (reindex_iprod (lift i0)).
-  by apply: eq_iprod => [k | k _ /=]; [rewrite neq_lift | rewrite p2f lsfE].
+  by apply: eq_iprod => [k | k _ /=]; [rewrite neq_lift // | rewrite !m2f p2f lsfE ].
 pose f k := if unlift i0 k is Some k' then k' else k'0.
 by exists f; rewrite /f => k; [rewrite liftK | case/unlift_some=> ? ? ->].
 Qed.
@@ -1546,29 +1565,36 @@ Qed.
 
 Lemma cofactor_transpose : forall n (A : M_(n)) i j,
   cofactor (\^t A) i j = cofactor A j i.
-Proof. by move=> n A i j; rewrite /cofactor addnC -determinant_transpose. Qed.
+Proof.
+(*
+move=> n A i j; rewrite /cofactor addnC -determinant_transpose //=.
+Qed.
+*)
+Admitted.
 
 Lemma expand_determinant_col : forall n (A : M_(n)) j0,
   \det A = \sum_(i) (A i j0 * cofactor A i j0).
 Proof.
 move=> n A j0; rewrite -determinant_transpose (expand_determinant_row _ j0).
-by apply: eq_isumR => i _; rewrite cofactor_transpose.
+by apply: eq_isumR => i _; rewrite cofactor_transpose m2f.
 Qed.
 
 (* The final flurry: adjugates. *)
 
 Definition adjugate n (A : M_(n)) := \matrix_(i, j) (cofactor A j i).
-
+(*
 Add Morphism adjugate with
   signature matrix_eq ==> matrix_eq
   as adjugate_extensional.
 Proof.
 by move=> n A1 A2 A12; split=> i j /=; rewrite (cofactor_extensional A12).
 Qed.
+*)
 
-Lemma mult_adugateR : forall n (A : M_(n)), A *m adjugate A =m \det A *sm \1m.
+Lemma mult_adugateR : forall n (A : M_(n)), A *m adjugate A = \det A *sm \1m.
 Proof.
-move=> n A; split=> i1 i2 /=; rewrite multC.
+move=> n A; mx2fun i1 i2; rewrite /= multC.
+(*
 case Di: (i1 == i2); first by rewrite (eqP Di) -expand_determinant_row mult1x.
 pose B := \matrix_(i, j) (if i == i2 then A i1 j else A i j).
 have EBi12: B i1 =1 B i2 by move=> j; rewrite /= set11 if_same.
@@ -1577,12 +1603,14 @@ rewrite (expand_determinant_row _ i2) /= set11.
 apply: eq_isumR => j _; do 2!apply: (congr1 (mult _)); apply: eq_isumR => s _.
 by congr (_ * _); apply: eq_iprodR => i _ /=; rewrite eq_sym -if_neg neq_lift.
 Qed.
+*)
+Admitted.
 
 Lemma transpose_adjugate : forall n (A : M_(n)),
-  \^t (adjugate A) =m adjugate (\^t A).
-Proof. split=> i j; symmetry; exact: cofactor_transpose. Qed.
+  \^t (adjugate A) = adjugate (\^t A).
+Proof. move => n A; mx2fun i j; symmetry; exact: cofactor_transpose. Qed.
 
-Lemma mult_adugateL : forall n (A : M_(n)), adjugate A *m A =m  \det A *sm \1m.
+Lemma mult_adugateL : forall n (A : M_(n)), adjugate A *m A =  \det A *sm \1m.
 Proof.
 move=> n A; apply: matrix_transpose_inj.
 rewrite matrix_transpose_mul transpose_adjugate mult_adugateR.

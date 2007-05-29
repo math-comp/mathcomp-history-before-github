@@ -737,6 +737,15 @@ elim: q p1 Hrec H => //= [p1 Hrec H|b q1 _ p1 Hrec H];
 by move: (Hrec q1 H2) => ->.
 Qed.
 
+Lemma com_coeff_multP_rev : forall p p1 p2 x,
+  (com_coeff p x) -> (com_coeff p1 x) -> (p == p1 ** p2) -> (com_coeff p2 x).
+Proof.
+move => p p1 p2 x Hp Hp1 H.
+elim: p p1 p2 Hp Hp1 H => // [p1 p2 Hp Hp1 H| a1 s1 Hrec1 p1 p2 Hp Hp1 H].
+elim: p2 H => // [a2 s2 Hrec2 H] //=.
+elim: p2 p1 Hrec1 Hp Hp1 H => // [p1 Hrec1 Hp Hp1 H| a2 s2 Hrec2 p1 Hrec1 Hp Hp1 H] //=.
+Qed.
+
 End MorphismEvaluation.
 
 End Polynomial.
