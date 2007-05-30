@@ -1,6 +1,7 @@
 Add LoadPath "../".
 Require Import ssreflect ssrbool funs eqtype ssrnat seq fintype tuple.
 Require Import div groups.
+Require Import determinantET.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -60,7 +61,16 @@ Section Polynomial.
 
 
 (* A polynomial is sequence, the firts element of the sequence is monome of low degree*)
-Definition polynomial := seq R.
+Definition polynomial := seq_eqType R.
+
+(* Injection from polynomial to R *)
+Definition R_to_poly (x :R) : polynomial := (Adds x seq0).
+
+Lemma inj_R_to_poly : injective R_to_poly.
+move => x y; rewrite / R_to_poly => H.
+move/eqseqP: H => //= H; move/andP: H => H; elim: H => H _.
+by apply/eqP.
+Qed.
 
 Fixpoint plusP (p q: polynomial) {struct p}: polynomial :=
   if p is (Adds a p') then
@@ -76,6 +86,12 @@ Fixpoint eqP (p q: polynomial) {struct p}: bool :=
     if q is (Adds b q') then (a == b) && (eqP p' q') 
    else eqP0 p 
   else eqP0 q.
+(*
+Lemma eqPP : reflect_eq eqP.
+Proof.
+move; elim=> [|x1 s1 Hrec] [|x2 s2]; first [ by constructor | simpl ].
+apply: (iffP idP).
+*)
 
 Definition opP (p : polynomial) : polynomial :=
   maps opp p.
@@ -668,7 +684,6 @@ move => p; rewrite /norm.
 rewrite norm3_normal //; exact: normal0.
 Qed.
 
-
 End PolynomialProp.
 
 Section MorphismEvaluation.
@@ -697,12 +712,25 @@ rewrite plus_multl; congr plus; move: (Hrec c x H) => ->;
   rewrite -multA H multA; congr mult.
 Qed.
 
-Definition com_coeff (p :polynomial) x := (forall y, p y -> x * y = y * x).
+Fixpoint com_coeff (p :polynomial) (x :R) {struct p} : bool := 
+  (if p is (Adds a p') then (a * x == x * a)%EQ && (com_coeff p' x) else true).
+
+Lemma com_coeffP : forall p x, 
+  reflect (forall y, (mem p) y -> x * y = y * x) (com_coeff p x).
+Proof. 
+move => p x.
+apply: (iffP idP) => H; first (elim: p H => //=).
+elim: p H => //= [a s Hrec H].
+rewrite / setU1 in H.
+move: (H a) => Ha; rewrite eq_refl //= in Ha; rewrite Ha //= eq_refl; apply Hrec.
+move=> y Hy; apply H; apply/orP; right; exact Hy.
+Qed.
 
 Lemma evalP_multP : forall p q x, (com_coeff p x) -> (com_coeff q x) ->
   evalP (p ** q) x = (evalP p x) * (evalP q x).
 Proof.
 move => p q x Hp Hq.
+move/com_coeffP: Hp => Hp; move/com_coeffP: Hq => Hq.
 elim: p q Hp Hq => // [a p1 Hrec q Hp Hq].
 elim: q p1 Hrec Hp Hq => // [b q1 Hrec2 p1 Hrec Hp Hq].
 rewrite adds_multl // evalP_plusP evalP_multPX.
@@ -741,9 +769,9 @@ Lemma com_coeff_multP_rev : forall p p1 p2 x,
   (com_coeff p x) -> (com_coeff p1 x) -> (p == p1 ** p2) -> (com_coeff p2 x).
 Proof.
 move => p p1 p2 x Hp Hp1 H.
+move/com_coeffP: Hp => Hp; move/com_coeffP: Hp1 => Hp1.
+apply/com_coeffP.
 elim: p p1 p2 Hp Hp1 H => // [p1 p2 Hp Hp1 H| a1 s1 Hrec1 p1 p2 Hp Hp1 H].
-elim: p2 H => // [a2 s2 Hrec2 H] //=.
-elim: p2 p1 Hrec1 Hp Hp1 H => // [p1 Hrec1 Hp Hp1 H| a2 s2 Hrec2 p1 Hrec1 Hp Hp1 H] //=.
 Qed.
 
 End MorphismEvaluation.
@@ -751,4 +779,115 @@ End MorphismEvaluation.
 End Polynomial.
 
 End Polynomials.
+
+Section Cayley.
+
+Variable R : eqType.
+Variables plus mult : R -> R -> R.
+Variable opp : R -> R.
+Variables zero one : R.
+
+Infix "+" := plus: local_scope.
+Notation "- x" := (opp x): local_scope.
+Infix "*" := mult: local_scope.
+Notation "1" := one (at level 0) : local_scope.
+Notation "0" := zero (at level 0): local_scope.
+
+
+(* Zero Right *)
+Variable plus0r: forall a, a + 0 = a.
+(* Zero Left *)
+Variable plus0l: forall a, 0 + a = a.
+(* Commute *)
+Variable plusC: forall a b, a + b = b + a.
+(* Associative *)
+Variable plusA: forall a b c, (a + b) + c = a + (b + c).(* Opposite left *)
+Variable plus_opr: forall a, a + (-a) = 0.
+(* Opposite right *)
+Variable plus_opl: forall a, (-a) + a = 0.
+(* zero right *)
+Variable mult0r: forall a, a * 0 = 0.
+(* zero left *)
+Variable mult0l: forall a, 0 * a = 0.
+(* Distributivity r *)
+Variable plus_multr: forall a b c, (a + b) * c = (a * c) + (b * c).
+(* Distributivity l *)
+Variable plus_multl: forall a b c, c * (a + b) = (c * a) + (c * b).
+(* Commutative *)
+Variable multC: forall a b, a * b = b * a.
+(* Associative *)
+Variable multA: forall a b c, (a * b) * c = a * (b * c).
+(* one left *)
+Variable mult1l: forall a, 1 * a = a.
+(* one diff zero *)
+Variable one_diff_0: 1 <> 0.
+
+Let opp_zero: -0 = 0.
+by rewrite -{2}(plus_opr 0) plus0l.
+Qed.
+
+
+Notation "\P[x]" := (polynomial R) : local_scope.
+
+Notation "'M_' ( n )" := (matrix R n n)
+  (at level 9, m, n at level 50, format "'M_' ( n )") : local_scope.
+
+
+Section MatrixPoly.
+
+Section MatrixOfPoly.
+
+Open Scope local_scope.
+
+Definition matrix_of_polynomial (n :nat) := (matrix (polynomial R) n n).
+
+Notation "'\M_(x)_' ( n )" := (matrix_of_polynomial n)
+  (at level 9, m, n at level 50, format "'\M_(x)_' ( n )") : local_scope.
+
+Definition mx_to_mx_of_poly (n :nat) (A :M_(n)): \M_(x)_( n ) := 
+   matrix_of_fun (fun i j => (R_to_poly (A i j))).
+
+Lemma inj_mx_to_mx_of_poly : forall n, injective (@mx_to_mx_of_poly n).
+Proof.
+Admitted.
+
+Definition poly_x : \P[x] := (Adds 1 (Adds 0 seq0)).
+
+Definition x_I n : \M_(x)_(n) := 
+  (@matrix_of_fun \P[x] n n (fun i j => (if i == j then poly_x else (@Seq0 R: (\P[x])) ))).
+
+Definition determinant_poly := determinant (plusP plus) (multP mult plus zero) (opP opp) (@Seq0 R: \P[x]) (Adds 1 seq0).
+
+Definition poly_car (n :nat) (A :M_(n)) : \P[x] :=
+  determinant_poly (matrix_plus (plusP plus) (x_I n) (mx_to_mx_of_poly (matrix_scale mult (-1) A))).
+
+End MatrixOfPoly.
+
+Section PolyOfMatrix.
+Open Scope local_scope.
+
+Definition polynomial_of_matrix (n :nat) := (@polynomial (matrix_eqType R n n)).
+
+Notation "'\M_[x]_' ( n )" := (polynomial_of_matrix n)
+  (at level 9, m, n at level 50, format "'\M_[x]_' ( n )") : local_scope.
+
+Definition R_to_mx (n :nat) (x :R) : M_(n) := (matrix_scale mult x (unit_matrix one zero n)).
+
+Definition poly_to_poly_of_mx (n :nat) (p : \P[x]) : \M_[x]_(n):= 
+  maps (R_to_mx n) p .
+
+End PolyOfMatrix.
+
+Notation "'\M_(x)_' ( n )" := (matrix_of_polynomial n)
+  (at level 9, m, n at level 50, format "'\M_(x)_' ( n )") : local_scope.
+Notation "'\M_[x]_' ( n )" := (polynomial_of_matrix n)
+  (at level 9, m, n at level 50, format "'\M_[x]_' ( n )") : local_scope.
+
+Variable (n :nat) (phi : \M_(x)_(n) -> \M_[x]_(n)).
+Hypothesis phi_iso : bijective phi.
+(* Hypothesis phi_plus : *)
+
+
+End MatrixPoly.
+
 
