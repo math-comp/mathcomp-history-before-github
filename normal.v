@@ -1277,24 +1277,6 @@ Proof. rewrite quotient_mulg; exact: second_isom. Qed.
 End SecondIsomorphism.
 
 
-
-Section ThirdIsomorphism.
-
-Variables (elt : finGroupType) (G H K : group elt).
-
-
-Hypothesis sHK : subset H K.
-Hypothesis sKG : subset K G.
-
-Notation Local sHG := (subset_trans sHK sKG).
-
-Hypothesis nHG : H <| G.
-Hypothesis nKG : K <| G.
-
-Notation Local nHK := (normal_subset nHG sKG).
-
-Notation Local f := (mquo (coset_of K) H).
-
 Lemma subset_iimage : forall (elt1 elt2 : finType) (A B: setType elt1)
   (f : elt1 -> elt2) , 
   subset A B -> subset (f @: A) (f @: B).
@@ -1303,23 +1285,31 @@ move=> elt1 elt2 A B f sAB; apply/subsetP=> y; case/iimageP=> x Ax ->.
 by apply/iimageP; exists x; rewrite ?(subsetP sAB).
 Qed.
   
+Section ThirdIsomorphism.
+
+Variables (elt : finGroupType) (G H K : group elt).
+
+Hypothesis sHK : subset H K.
+Hypothesis sKG : subset K G.
+Hypothesis nHG : H <| G.
+Hypothesis nKG : K <| G.
 
 Theorem third_iso  : isog ((G / H) / (K / H)) (G / K).
 Proof.
-rewrite -[(K / H)] /(set_of_group _).
-suff H1 : (((set_of_group K) / (set_of_group H)) = ker_(G / H) f).
-  rewrite (set_of_group_inj H1) /=.
-  suff -> : G / K = (f @: G / H).
-    apply: first_isom=> /=. 
-    apply: (subset_trans _ (subset_dom_mquo _ _)).
-    by apply: subset_iimage; rewrite (subset_trans nKG) // subset_dom_coset.
-  by rewrite factor_mquo_iim //= (subset_trans sHK) // subset_ker_coset.
-rewrite  ker_mquo_loc; last by rewrite (subset_trans nKG) // subset_dom_coset.
-  rewrite ker_coset_of_loc // (_ : K :&: G = K) //; apply/isetP=> x; rewrite s2f.
-  by case Kx : (K x)=> //=; rewrite (subsetP sKG).
-by rewrite (subset_trans sHK) // subset_ker_coset.
-Qed.
- 
+pose coK := {coset_of K as morphism _ _}.
+have sHker: subset H (ker coK).
+  by rewrite (subset_trans sHK) ?subset_ker_coset.
+have sGdom: subset G (dom coK).
+  by rewrite (subset_trans nKG) ?subset_dom_coset.
+have KH_ker : K / H = ker_(G / H) (mquo coK H).
+  rewrite ker_mquo_loc // ker_coset_of_loc //; congr (_ / H).
+  apply/isetP=> x; rewrite s2f.
+  by case Kx: (K x); rewrite //= (subsetP sKG).
+rewrite -[K / H]/(set_of_group _) {KH_ker}(set_of_group_inj KH_ker) /=.
+have -> : G / K = mquo coK H @: G / H by rewrite factor_mquo_iim.
+apply: first_isom=> /=.
+apply: subset_trans (subset_dom_mquo _ _); exact: subset_iimage.
+Qed.  
 
 End ThirdIsomorphism.
 
