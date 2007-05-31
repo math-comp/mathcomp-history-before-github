@@ -50,6 +50,8 @@ Variable multC: forall a b, a * b = b * a.
 Variable multA: forall a b c, (a * b) * c = a * (b * c).
 (* one left *)
 Variable mult1l: forall a, 1 * a = a.
+(* one right *)
+Variable mult1r: forall a, a * 1 = a.
 (* one diff zero *)
 Variable one_diff_0: 1 <> 0.
 
@@ -774,6 +776,24 @@ apply/com_coeffP.
 elim: p p1 p2 Hp Hp1 H => // [p1 p2 Hp Hp1 H| a1 s1 Hrec1 p1 p2 Hp Hp1 H].
 Qed.
 
+Lemma factor_th : forall p p1 x,
+  (com_coeff p x) -> p == (Adds (- x) (Adds 1 seq0)) ** p1 -> evalP p x = 0.
+Proof.
+move => p p1 x Hp.
+set Xx :polynomial := (Seq (- x) 1); move => H.
+have HXx : com_coeff Xx x.
+  rewrite //=.
+  apply/and3P; split => //=; last (by rewrite mult1l mult1r).
+  apply/eqtype.eqP.
+  by rewrite -(plus0r (- x * x)) -(plus0r (x * - x)) -(plus_opr (x * x)) 
+      -!plusA -plus_multr -plus_multl !plus_opl mult0r mult0l !plus0l.
+move: (com_coeff_multP_rev Hp HXx H) => Hp1.
+move: (evalP_eqP x H) => ->.
+move: (evalP_multP HXx Hp1) => ->.
+by rewrite //= mult0r plus0r mult1r plus_opl mult0l.
+Qed.
+
+
 End MorphismEvaluation.
 
 End Polynomial.
@@ -819,6 +839,8 @@ Variable multC: forall a b, a * b = b * a.
 Variable multA: forall a b c, (a * b) * c = a * (b * c).
 (* one left *)
 Variable mult1l: forall a, 1 * a = a.
+(* one right *)
+Variable mult1r: forall a, a * 1 = a.
 (* one diff zero *)
 Variable one_diff_0: 1 <> 0.
 
@@ -921,7 +943,7 @@ Definition plusPM (n :nat) : \M_[x]_(n) -> \M_[x]_(n) -> \M_[x]_(n) := plusP (@m
 Notation "x1 '+pm' x2" := (plusPM x1 x2) (at level 50) : local_scope.
 
 Definition multPM (n :nat) : \M_[x]_(n) -> \M_[x]_(n) -> \M_[x]_(n) :=
-  multP (@matrix_mul _ mult plus 0 n n n) (@matrix_plus _ plus n n) \0m_(n).
+  multP (@matrix_plus _ plus n n) (@matrix_mul _ plus mult 0 n n n) \0m_(n).
 Notation "x1 '*pm' x2" := (multPM x1 x2) (at level 50) : local_scope.
 
 Definition unitPM (n: nat) : \M_[x]_(n) := (Adds (@unit_matrix _ 0 1 n) seq0).
@@ -972,6 +994,9 @@ Notation "'\0pm_' ( n )" := (zeroPM n)
 Notation "'\0m_' ( n )" := (null_matrix 0 n n)
   (at level 0, format "'\0m_' ( n )") : local_scope.
 
+Notation "'\1m_' ( n )" := (unit_matrix 0 1 n)
+  (at level 0, format "'\1m_' ( n )") : local_scope.
+
 Notation "'Xpm' x" := (multXPM x) (at level 40) : local_scope.
 
 (* Definition plusPM : *)
@@ -985,6 +1010,41 @@ Hypothesis phi_one : (phi \1mp_(n)) = \1pm_(n).
 
 Definition evalPM : \M_[x]_(n) -> (mx_n_type n) -> (mx_n_type n) :=
   evalP (@matrix_plus R plus n n) (@matrix_mul R plus mult 0 n n n) \0m_(n).
+
+Lemma factor_th_RM : forall (p p1 :polynomial (matrix_eqType R n n)) A,
+  (com_coeff (@matrix_mul R plus mult 0 n n n) p A) -> 
+    (@eqP _ \0m_(n) p ((Adds (@matrix_scale R mult n n (-1) A) (Adds \1m_(n) seq0)) *pm p1)) ->
+        evalPM p A = \0m_(n).
+Proof.
+(* Check (@matrix_plus R plus n n).
+Check (@matrix_mul R plus mult 0 n n n). *)
+pose oppM := (@matrix_scale R mult n n (-1)).
+(* Check \0m_(n).
+Check \1m_(n). *)
+pose HF := (@factor_th (matrix_eqType R n n) (@matrix_plus R plus n n) 
+(@matrix_mul R plus mult 0 n n n) oppM \0m_(n) \1m_(n)).
+rewrite / evalPM / mx_n_type.
+move => p p1 A Hp H.
+apply: (HF _ _ _ _ _ _ _ _ _ _ _ _ _ _ p p1 A _ H); rewrite //=.
+move=> a; rewrite matrix_plusC; last (exact: plusC); apply: matrix_plus0x; exact: plus0l.
+move => a; apply: matrix_plus0x; exact: plus0l.
+apply: matrix_plusC; exact: plusC.
+symmetry; apply: matrix_plusA; symmetry; exact: plusA.
+apply: matrix_scale_oppr => //=.
+apply: matrix_scale_oppl => //=.
+apply: matrix_mult0rx => //=.
+apply: matrix_mult0lx => //=.
+(* 
+move => a; rewrite / oppM //= / matrix_plus / matrix_scale / null_matrix.
+apply/matrix_eqP.
+unlock matrix_of_fun.
+rewrite / matrix_eq.
+move => i j.
+
+apply: (@matrix_plusA R plus n n n a b c). exact: plusC. *)
+
+Admitted.
+
 
 Theorem Cayley_Hamilton : forall A : M_(n), 
   evalPM (poly_to_poly_of_mx n ( poly_car A)) A = \0m_(n).

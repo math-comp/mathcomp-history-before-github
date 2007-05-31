@@ -868,8 +868,6 @@ Qed.
 Lemma sign_addb : forall b1 b2, (-1) ^ (b1 (+) b2) = (-1) ^ b1 * (-1) ^ b2.
 Proof. by do 2!case; rewrite //= ?multm1x ?mult1x ?oppK. Qed.
 
-Print Graph.
-
 Lemma sign_permM : forall d (s t : permType d),
   (-1) ^ odd_perm ((s * t)%G) = (-1) ^ s * (-1) ^ t.
 Proof. by move=> *; rewrite odd_permM sign_addb. Qed.
@@ -1270,11 +1268,27 @@ Proof.
 by move => *; mx2fun i j; apply: eq_isumR => jj _; rewrite m2f multCA m2f multA.
 Qed.
 
+Lemma matrix_scale_oppr : forall m n (A : M_(m, n)), A +m (- 1 *sm A) = \0m_(m,n).
+Proof. move => m n A; mx2fun i j; by rewrite -{1}(mult1x (A i j)) -distrR minusxx mult0x. Qed.
+
+Lemma matrix_scale_oppl : forall m n (A : M_(m, n)), (- 1 *sm A) +m A = \0m_(m,n).
+Proof. move => m n A; mx2fun i j; by rewrite -{2}(mult1x (A i j)) -distrR plusC minusxx mult0x. Qed.
+
 Lemma matrix_mult1x : forall m n (A : M_(m, n)), \1m *m A = A.
 Proof.
 move=> m n A; mx2fun i j.
 rewrite (isumD1 i) // m2f set11 mult1x plusC.
 rewrite isum0 ?plus0x // => i'; rewrite andbT m2f; move/negbET->; exact: mult0x.
+Qed.
+
+Lemma matrix_mult0lx : forall n (A : M_(n)), \0m_(n) *m A = \0m.
+Proof.
+by move => n A; mx2fun i j; rewrite isum0 ?mult0x // => x _; rewrite m2f mult0x.
+Qed.
+
+Lemma matrix_mult0rx : forall n (A : M_(n)), A *m \0m_(n) = \0m.
+Proof.
+by move => n A; mx2fun i j; rewrite isum0 ?mult0x // => x _; rewrite m2f multC mult0x.
 Qed.
 
 Lemma matrix_transpose_mul : forall m n p (A : M_(m, n)) (B : M_(n, p)),
