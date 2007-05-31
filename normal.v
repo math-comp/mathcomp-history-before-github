@@ -873,7 +873,10 @@ apply/subsetP=> x Nx; suff: H :* x = H by move=> <-; rewrite rcoset_refl.
 by rewrite -coset_ofN // trivm_is_cst.
 Qed.
 
-Lemma kerI_coset_of : forall K : group elt,
+
+
+
+Lemma ker_coset_of_loc : forall K : group elt,
   H <| K -> ker_(K) (coset_of H) = H :&: K.
 Proof.
 move=> K nHK.
@@ -893,6 +896,7 @@ Lemma group_set_quotient : group_set (K / H).
 Proof. exact: set_of_groupP. Qed.
 
 Canonical Structure quotient_group := Group group_set_quotient.
+
 
 Lemma quotientP : forall xbar,
   reflect (exists x, and3 (K x) (N x) (xbar = coset_of H x)) ((K / H) xbar).
@@ -1091,22 +1095,17 @@ Qed.
 Canonical Structure mquo_morphism := Morphism group_set_dom_mquo mquoM.
 
 
-Lemma ker_mquo_loc :  subset H (ker f) -> forall G : group elt, subset G (dom f) ->
-  ker_(G / H) (mquo f H) = ((ker f) / H) :&: (G / H).
-Proof.
-move=> sHK G sGd; apply/isetP=> x; rewrite 2![(_ :&: _) x]s2f 2![_ && ((_ / _) x)]andbC.
-case GmodHx : ((G / H) x) => //=; case: (quotientP _ _ GmodHx)=> y [Gy Ny ->] {GmodHx}.
-apply/idP/idP.
-  move=> Kx; apply/iimageP; exists y=> //; apply/kerMP; rewrite ?(subsetP sGd) //.
-  by rewrite -factor_mquo_norm //; apply/kerMP; rewrite ?dom_k // -Exy.
-move=> Ky; apply/kerMP; rewrite /= ?factor_mquo_norm // ?dom_k ?(subsetP subset_ker_mquo) //.
-case/quotientP: Ky=> z [Kz Nz Exy]; rewrite (_ : f y = f z); first by apply: mker.
-apply/eqP; apply/ker_rcoset; rewrite ?(subsetP sGd y) // ?dom_k //.
-exists (y * z^-1); split; last by gsimpl.
-rewrite (subsetP sHK) // -rcosetE -(_ : H :* y = H :* z) ?rcoset_refl //.
-by rewrite -!coset_ofN // Exy.
-Qed.
 
+Lemma ker_mquo_loc :  subset H (ker f) -> forall G : group elt, subset G (dom f) ->
+  ker_(G / H) (mquo f H) = (ker_(G) f) / H.
+Proof.
+move=> sHK G sGd; apply/isetP=> Hx; apply/isetIP/quotientP.
+  case=> KHx; case/quotientP=> x [Gx Nx E1]; exists x; split => //=.
+  rewrite s2f Gx andbT; apply/kerMP; first exact:(subsetP sGd).
+  by rewrite -factor_mquo_norm // ?dom_k ?(subsetP subset_ker_mquo) // -E1 mker.
+case=> x []; case/isetIP=> Kx Gx Nx ->; split; last by apply/quotientP; exists x.
+by rewrite (subsetP subset_ker_mquo) //; apply/iimageP; exists x.
+Qed.
 
 
 
@@ -1256,7 +1255,7 @@ Notation Local f := (coset_of K).
 Lemma second_isom : isog (H / (K :&: H)) (H / K).
 Proof.
 rewrite -[K :&: H]/(set_of_group _).
-rewrite -(set_of_group_inj (kerI_coset_of nKH)) /=.
+rewrite -(set_of_group_inj (ker_coset_of_loc nKH)) /=.
 by apply: first_isom; apply: subset_trans _ (subset_dom_coset K).
 Qed.
 
@@ -1305,27 +1304,22 @@ by apply/iimageP; exists x; rewrite ?(subsetP sAB).
 Qed.
   
 
-(* shall we distinguish the triviality of /K ? *)
 Theorem third_iso  : isog ((G / H) / (K / H)) (G / K).
 Proof.
-case trivQuoK : (trivm (coset_of K)).
-  case/trivm_coset_of: trivQuoK=> trivNK.
-  have -> : G = K.
-    by apply set_of_group_inj; apply/isetP; apply /subset_eqP; rewrite sKG andbT -trivNK.
-  by rewrite !trivial_quotient; apply: trivial_isog; rewrite /trivg //= subset_refl.
 rewrite -[(K / H)] /(set_of_group _).
 suff H1 : (((set_of_group K) / (set_of_group H)) = ker_(G / H) f).
   rewrite (set_of_group_inj H1) /=.
   suff -> : G / K = (f @: G / H).
     apply: first_isom=> /=. 
     apply: (subset_trans _ (subset_dom_mquo _ _)).
-    by rewrite dom_coset ?trivQuoK //=; apply: subset_iimage.
-  by rewrite factor_mquo_iim //= ?ker_coset // ?dom_coset ?trivQuoK //.
-rewrite  ker_mquo_loc ?ker_coset ?dom_coset ?trivQuoK //.
-apply/isetP; apply/subset_eqP; rewrite subsetIl andbT; apply/subsetP=> x KmodHx.
-by apply/isetIP; split=> //; rewrite (subsetP (subset_iimage _ sKG)).
+    by apply: subset_iimage; rewrite (subset_trans nKG) // subset_dom_coset.
+  by rewrite factor_mquo_iim //= (subset_trans sHK) // subset_ker_coset.
+rewrite  ker_mquo_loc; last by rewrite (subset_trans nKG) // subset_dom_coset.
+  rewrite ker_coset_of_loc // (_ : K :&: G = K) //; apply/isetP=> x; rewrite s2f.
+  by case Kx : (K x)=> //=; rewrite (subsetP sKG).
+by rewrite (subset_trans sHK) // subset_ker_coset.
 Qed.
-
+ 
 
 End ThirdIsomorphism.
 
