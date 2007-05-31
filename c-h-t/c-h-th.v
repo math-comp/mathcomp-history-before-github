@@ -101,7 +101,7 @@ Multiplication by X
 *)
 
 
-Definition multPX (p : polynomial) := if p is (Adds _ _) then (Adds 0 p) else p.
+Definition multPX (p : polynomial) : polynomial := if p is (Adds _ _) then (Adds 0 p) else p.
 
 (* 
 Multiplication by a coefficient: 
@@ -851,41 +851,146 @@ Lemma inj_mx_to_mx_of_poly : forall n, injective (@mx_to_mx_of_poly n).
 Proof.
 Admitted.
 
-Definition poly_x : \P[x] := (Adds 1 (Adds 0 seq0)).
+(* Operation for Matrix of Poly *)
+Notation "'11'" :=  ((Adds 1 seq0) : \P[x] ) (at level 0): local_scope.
+Notation "00" := (@Seq0 R: \P[x] ) (at level 0): local_scope.
+Notation "x1 '++' x2" := (plusP plus x1 x2) (at level 50) : local_scope.
+Notation "x1 '=p' x2" := (eqP zero x1 x2) (at level 70) : local_scope.
+Notation "'--' x" := (opP opp x) (at level 10) : local_scope.
+Notation "'Xp' x" := (multPX zero x) (at level 40) : local_scope.
+Notation "c 'sp' x" := (multRPl mult c x) (at level 40) : local_scope.
+Notation "x 'ps' c" := (multRPr mult c x) (at level 40) : local_scope.
+
+Definition plusMP := matrix_plus (plusP plus).
+Notation "x1 '+mp' x2" := (plusMP x1 x2) (at level 50) : local_scope.
+
+Definition multMP := (matrix_mul (multP mult plus 0) (plusP plus) 00).
+Notation "x1 '*mp' x2" := (multMP x1 x2) (at level 50) : local_scope.
+
+Definition unitMP (n :nat) : \M_(x)_(n) := (unit_matrix 00 11 n).
+Notation "'\1mp_' ( n )" := (unitMP n)
+  (at level 0, format "'\1mp_' ( n )") : local_scope.
+
+Definition scaleMP := (matrix_scale (multP mult plus 0)).
+Notation "x '*smp' A" := (scaleMP x A) (at level 40) : local_scope.
+
+Definition adjugateMP := (adjugate (plusP plus) (multP mult plus 0) (opP opp) 00 11).
+
+(* ---- *)
+
+Notation "'X'" := ((Adds 1 00) : \P[x] ) (at level 0): local_scope.
 
 Definition x_I n : \M_(x)_(n) := 
-  (@matrix_of_fun \P[x] n n (fun i j => (if i == j then poly_x else (@Seq0 R: (\P[x])) ))).
+  (@matrix_of_fun \P[x] n n (fun i j => (if i == j then X else 00 ))).
 
-Definition determinant_poly := determinant (plusP plus) (multP mult plus zero) (opP opp) (@Seq0 R: \P[x]) (Adds 1 seq0).
+Definition det_MP := determinant (plusP plus) (multP mult plus 0) (opP opp) 00 11.
 
 Definition poly_car (n :nat) (A :M_(n)) : \P[x] :=
-  determinant_poly (matrix_plus (plusP plus) (x_I n) (mx_to_mx_of_poly (matrix_scale mult (-1) A))).
+  det_MP ((x_I n) +mp (mx_to_mx_of_poly (matrix_scale mult (-1) A))).
+
+
+Lemma mult_adugateR_MP : forall n (A : \M_(x)_(n)), A *mp adjugateMP A = det_MP A *smp \1mp_(n).
+Proof.
+
+Admitted.
 
 End MatrixOfPoly.
 
 Section PolyOfMatrix.
 Open Scope local_scope.
 
-Definition polynomial_of_matrix (n :nat) := (@polynomial (matrix_eqType R n n)).
+Definition mx_n_type n := (matrix_eqType R n n).
+Notation "'\M_' ( n )" := (mx_n_type n) 
+  (at level 9, m, n at level 50, format "'\M_' ( n )") : local_scope.
+
+Definition polynomial_of_matrix (n :nat) := (@polynomial \M_(n)).
 
 Notation "'\M_[x]_' ( n )" := (polynomial_of_matrix n)
   (at level 9, m, n at level 50, format "'\M_[x]_' ( n )") : local_scope.
 
-Definition R_to_mx (n :nat) (x :R) : M_(n) := (matrix_scale mult x (unit_matrix one zero n)).
+(* Operation for Poly of Matrix *)
+Notation "'\1m_' ( n )" := (unit_matrix 0 1 n)
+  (at level 0, format "'\1m_' ( n )") : local_scope.
+Notation "'\0m_' ( n )" := (null_matrix 0 n n)
+  (at level 0, format "'\0m_' ( n )") : local_scope.
+Notation "A '+m' B" := (matrix_plus plus A B) (at level 50) : local_scope.
+Notation "x '*sm' A" := (matrix_scale mult x A) (at level 40) : local_scope.
+Notation "A '*m' B" := (matrix_mul plus mult 0 A B) (at level 40) : local_scope.
+
+Definition plusPM (n :nat) : \M_[x]_(n) -> \M_[x]_(n) -> \M_[x]_(n) := plusP (@matrix_plus _ plus n n).
+Notation "x1 '+pm' x2" := (plusPM x1 x2) (at level 50) : local_scope.
+
+Definition multPM (n :nat) : \M_[x]_(n) -> \M_[x]_(n) -> \M_[x]_(n) :=
+  multP (@matrix_mul _ mult plus 0 n n n) (@matrix_plus _ plus n n) \0m_(n).
+Notation "x1 '*pm' x2" := (multPM x1 x2) (at level 50) : local_scope.
+
+Definition unitPM (n: nat) : \M_[x]_(n) := (Adds (@unit_matrix _ 0 1 n) seq0).
+Notation "'\1pm_' ( n )" := (unitPM n)
+  (at level 0, format "'\1pm_' ( n )") : local_scope.
+
+Definition zeroPM (n: nat) : \M_[x]_(n) := (@Seq0 \M_(n)).
+Notation "'\0pm_' ( n )" := (zeroPM n)
+  (at level 0, format "'\0pm_' ( n )") : local_scope.
+
+Definition multXPM (n :nat) : \M_[x]_(n) -> \M_[x]_(n) :=(multPX \0m_(n)).
+Notation "'Xpm' x" := (multXPM x) (at level 40) : local_scope.
+
+(* --- *)
+
+Definition R_to_mx (n :nat) (x :R) : M_(n) := (x *sm \1m_(n)).
 
 Definition poly_to_poly_of_mx (n :nat) (p : \P[x]) : \M_[x]_(n):= 
   maps (R_to_mx n) p .
 
+Lemma inj_poly_to_poly_of_mx : forall n, injective (poly_to_poly_of_mx n).
+Proof.
+
+Admitted.
+
 End PolyOfMatrix.
+
+Notation "'\M_' ( n )" := (mx_n_type n) 
+  (at level 9, m, n at level 50, format "'\M_' ( n )") : local_scope.
 
 Notation "'\M_(x)_' ( n )" := (matrix_of_polynomial n)
   (at level 9, m, n at level 50, format "'\M_(x)_' ( n )") : local_scope.
 Notation "'\M_[x]_' ( n )" := (polynomial_of_matrix n)
   (at level 9, m, n at level 50, format "'\M_[x]_' ( n )") : local_scope.
 
+Notation "x1 '+mp' x2" := (plusMP x1 x2) (at level 50) : local_scope.
+Notation "x1 '*mp' x2" := (multMP x1 x2) (at level 50) : local_scope.
+Notation "'\1mp_' ( n )" := (unitMP n)
+  (at level 0, format "'\1mp_' ( n )") : local_scope.
+Notation "x '*smp' A" := (scaleMP x A) (at level 40) : local_scope.
+Notation "x1 '+pm' x2" := (plusPM x1 x2) (at level 50) : local_scope.
+Notation "x1 '*pm' x2" := (multPM x1 x2) (at level 50) : local_scope.
+Notation "'\1pm_' ( n )" := (unitPM n)
+  (at level 0, format "'\1pm_' ( n )") : local_scope.
+Notation "'\0pm_' ( n )" := (zeroPM n)
+  (at level 0, format "'\0pm_' ( n )") : local_scope.
+
+Notation "'\0m_' ( n )" := (null_matrix 0 n n)
+  (at level 0, format "'\0m_' ( n )") : local_scope.
+
+Notation "'Xpm' x" := (multXPM x) (at level 40) : local_scope.
+
+(* Definition plusPM : *)
+
+
 Variable (n :nat) (phi : \M_(x)_(n) -> \M_[x]_(n)).
 Hypothesis phi_iso : bijective phi.
-(* Hypothesis phi_plus : *)
+Hypothesis phi_plus : forall Ax Bx, phi (Ax +mp Bx) = (phi Ax) +pm (phi Bx).
+Hypothesis phi_mult : forall Ax Bx, phi (Ax *mp Bx) = (phi Ax) *pm (phi Bx).
+Hypothesis phi_one : (phi \1mp_(n)) = \1pm_(n).
+
+Definition evalPM : \M_[x]_(n) -> (mx_n_type n) -> (mx_n_type n) :=
+  evalP (@matrix_plus R plus n n) (@matrix_mul R plus mult 0 n n n) \0m_(n).
+
+Theorem Cayley_Hamilton : forall A : M_(n), 
+  evalPM (poly_to_poly_of_mx n ( poly_car A)) A = \0m_(n).
+Proof.
+
+Admitted.
 
 
 End MatrixPoly.
