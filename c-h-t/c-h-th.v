@@ -1,7 +1,7 @@
 Add LoadPath "../".
 Require Import ssreflect ssrbool funs eqtype ssrnat seq fintype tuple.
 Require Import div groups.
-Require Import determinantET.
+Require Import determinantET rings.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -9,11 +9,12 @@ Import Prenex Implicits.
 
 Delimit Scope local_scope with loc.
 Open Scope local_scope.
-
+Open Scope rings_scope.
 
 Section Polynomials.
 
-Variable R : eqType.
+Variable R : ringsType.
+(*
 Variables plus mult : R -> R -> R.
 Variable opp : R -> R.
 Variables zero one : R.
@@ -23,8 +24,9 @@ Notation "- x" := (opp x): local_scope.
 Infix "*" := mult: local_scope.
 Notation "1" := one (at level 0) : local_scope.
 Notation "0" := zero (at level 0): local_scope.
+*)
 
-
+(*
 (* Zero Right *)
 Variable plus0r: forall a, a + 0 = a.
 (* Zero Left *)
@@ -58,6 +60,7 @@ Variable one_diff_0: 1 <> 0.
 Let opp_zero: -0 = 0.
 by rewrite -{2}(plus_opr 0) plus0l.
 Qed.
+*)
 
 Section Polynomial.
 
@@ -275,7 +278,7 @@ Lemma eqP0_opp: forall p, eqP0 p -> eqP0 (-- p).
 Proof.
 elim => [|a p] //=.
 move => H1; case/andP => H2 H3; rewrite H1 //.
-by rewrite -(eqtype.eqP H2) opp_zero eq_refl.
+by rewrite -(eqtype.eqP H2) opp0 eq_refl.
 Qed.
 
 Lemma eqP_opp: forall p q, p == q -> -- p == -- q.
@@ -293,7 +296,7 @@ Qed.
 
 Lemma multPX_opp: forall p, Xp (--p) = --(Xp p).
 Proof.
-by move => [| a p ] //=; rewrite opp_zero.
+by move => [| a p ] //=; rewrite opp0.
 Qed.
 
 Lemma eqP0_multPX: forall p, eqP0 p -> eqP0 (Xp p).
@@ -309,7 +312,7 @@ Qed.
 Lemma eqP0_multRPl: forall c p, eqP0 p -> eqP0 (c sp p).
 Proof.
 move => c; elim => [|a p Hrec] //=.
-by case/andP => H1 H2; rewrite -(eqtype.eqP H1) multC mult0l eq_refl Hrec.
+case/andP => H1 H2; rewrite -(eqtype.eqP H1) mult0r eq_refl Hrec //=.
 Qed.
 
 Lemma eqP0_multRPl0: forall p, eqP0 (0 sp p).
@@ -378,8 +381,6 @@ move => c; elim => [|a p Hrec] //= [|b q] //=.
 by rewrite plus_multr Hrec.
 Qed.
 
-
-
 Lemma eqP0_multPl: forall (p q: polynomial), eqP0 p -> eqP0 (p ** q).
 Proof.
 elim => [|a p Hrec] //= [|b q] //=.
@@ -431,17 +432,53 @@ move => a b; elim => [|c  p Hrec] //=.
 by rewrite multA Hrec.
 Qed.
 
-Lemma multRPrl: forall a p, p ps a = a sp p.
-move => b; elim => [|a  p Hrec] //=.
-by rewrite multC Hrec.
+(* commutative proprety *)
+
+Fixpoint com_coeff (p :polynomial) (x :R) {struct p} : bool := 
+  (if p is (Adds a p') then (a * x == x * a)%EQ && (com_coeff p' x) else true).
+
+Lemma com_coeffP : forall p x, 
+  reflect (forall y, (mem p) y -> x * y = y * x) (com_coeff p x).
+Proof. 
+move => p x.
+apply: (iffP idP) => H; first (elim: p H => //=).
+  move=> x0 s Hrec H y Hy.
+  case Hx: (x0==y)%EQ; elim: (andP H) => //=; first (move/eqtype.eqP: Hx => <-; 
+                                         move=> HH _; by move/eqtype.eqP: HH => HH).
+  move => _ HH; apply: Hrec => //=.
+  elim: (orP Hy) => HT //=; by rewrite Hx in HT.
+elim: p H => //= [a s Hrec H].
+rewrite / setU1 in H.
+move: (H a) => Ha; rewrite eq_refl //= in Ha; rewrite Ha //= eq_refl; apply Hrec.
+move=> y Hy; apply H; apply/orP; right; exact Hy.
 Qed.
 
-Lemma multPC: forall p q, p ** q = q ** p.
+(* ____ *)
+
+Lemma multRPrl: forall a p, com_coeff p a -> p ps a = a sp p.
+move => b; elim => //= [a  p Hrec H].
+elim: (andP H) => H1 H2; move/eqtype.eqP: H1 => ->; congr Adds.
+by apply: Hrec.
+Qed.
+
+Lemma multPC: forall p q, (forall x, (mem p) x -> com_coeff q x) -> p ** q = q ** p.
 Proof.
-elim => [|a p Hrec] // [|b q] //=.
-rewrite !multRPrl multC; congr Adds; congr plusP.
-  exact: plusPC.
-by rewrite Hrec.
+elim => //= [|a p Hrec] //= [|b q H] //=.
+move: (H a) => //= ; rewrite / setU1 eq_refl //=.
+move=> H1; move: (H1 is_true_true); clear H1; move=> H1.
+rewrite Hrec; first last.
+  move=> x Hx; move: (H x) => //=; rewrite /setU1 Hx orbT => H2.
+  move: (H2 is_true_true); clear H2; move=> H2; elim: (andP H2) => //=.
+rewrite !multRPrl; first (elim: (andP H1) => HH _; rewrite (eqtype.eqP HH)
+    ; congr Adds; congr plusP; by rewrite plusPC).
+  by elim: (andP H1).
+clear H1 Hrec; rewrite //= in H.
+elim: p H => //= [s p0 Hrec H].
+apply/andP; split; last (apply: Hrec).
+  move: (H s) => //=; rewrite / setU1 //= eq_refl orbT eq_sym => H1;
+      move: (H1 is_true_true); move/andP => H2; by elim: H2.
+move=> x Hx; apply: H; move: Hx; rewrite / setU1 //=.
+move=> H; elim: (orP H) => ->; rewrite ?orbT //=.
 Qed.
 
 
@@ -714,19 +751,7 @@ rewrite plus_multl; congr plus; move: (Hrec c x H) => ->;
   rewrite -multA H multA; congr mult.
 Qed.
 
-Fixpoint com_coeff (p :polynomial) (x :R) {struct p} : bool := 
-  (if p is (Adds a p') then (a * x == x * a)%EQ && (com_coeff p' x) else true).
 
-Lemma com_coeffP : forall p x, 
-  reflect (forall y, (mem p) y -> x * y = y * x) (com_coeff p x).
-Proof. 
-move => p x.
-apply: (iffP idP) => H; first (elim: p H => //=).
-elim: p H => //= [a s Hrec H].
-rewrite / setU1 in H.
-move: (H a) => Ha; rewrite eq_refl //= in Ha; rewrite Ha //= eq_refl; apply Hrec.
-move=> y Hy; apply H; apply/orP; right; exact Hy.
-Qed.
 
 Lemma evalP_multP : forall p q x, (com_coeff p x) -> (com_coeff q x) ->
   evalP (p ** q) x = (evalP p x) * (evalP q x).
@@ -1011,7 +1036,7 @@ Hypothesis phi_one : (phi \1mp_(n)) = \1pm_(n).
 Definition evalPM : \M_[x]_(n) -> (mx_n_type n) -> (mx_n_type n) :=
   evalP (@matrix_plus R plus n n) (@matrix_mul R plus mult 0 n n n) \0m_(n).
 
-Lemma factor_th_RM : forall (p p1 :polynomial (matrix_eqType R n n)) A,
+Lemma factor_th_PM : forall (p p1 :polynomial (matrix_eqType R n n)) A,
   (com_coeff (@matrix_mul R plus mult 0 n n n) p A) -> 
     (@eqP _ \0m_(n) p ((Adds (@matrix_scale R mult n n (-1) A) (Adds \1m_(n) seq0)) *pm p1)) ->
         evalPM p A = \0m_(n).
@@ -1034,6 +1059,12 @@ apply: matrix_scale_oppr => //=.
 apply: matrix_scale_oppl => //=.
 apply: matrix_mult0rx => //=.
 apply: matrix_mult0lx => //=.
+apply: matrix_distrR => //=.
+move => a b c; apply: matrix_distrL => //=.
+
+
+
+
 (* 
 move => a; rewrite / oppM //= / matrix_plus / matrix_scale / null_matrix.
 apply/matrix_eqP.
