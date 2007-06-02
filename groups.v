@@ -75,7 +75,6 @@ Notation "x1 * x2" := (mulg x1 x2): group_scope.
 Notation "1" := (unitg _) : group_scope.
 Notation "x '^-1'" := (invg x) (at level 9, format "x '^-1'") : group_scope.
 
-
 Section GroupIdentities.
 
 Open Scope group_scope.
