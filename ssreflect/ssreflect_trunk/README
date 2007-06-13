@@ -9,7 +9,7 @@ INSTALLATION
 the ssreflect toplevel:
 
   make ssreflect.cmx
-  coqmktop -opt -o bin/ssrcoq ssreflect.cmx
+  bin/coqmktop -opt -o bin/ssrcoq ssreflect.cmx
 
 
 USAGE
