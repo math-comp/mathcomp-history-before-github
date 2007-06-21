@@ -227,18 +227,23 @@ Record rings : Type := Rings {
   one : R  
 }.
 *)
+Require Import rings.
 
+Variable R : comRings.
 
-Variable R : eqType.
+Open Scope rings_scope.
+Open Scope local_scope.
+(*
 Variables plus mult : R -> R -> R.
 Variable opp : R -> R.
 Variables zero one : R.
+*)
 
 (*
 Definition minus := fun x y :R => plus x (opp y).
 
 Axiom A_ring : ring_theory zero one plus mult minus opp (eq(A:=R)).
-*)
+
 
 Notation "x + y" := (plus x y) : local_scope.
 Notation "- y" := (opp y) : local_scope.
@@ -247,12 +252,13 @@ Notation "1" := one (at level 0) : local_scope.
 Notation "0" := zero (at level 0): local_scope.
 Notation "- 1" := (- 1) (at level 0) : local_scope.
 Notation "x - y" := (x + (- y)) : local_scope.
+*)
 
 (* Injecting natural integers. *)
 
 (* Variable R : rings. *)
 
-Definition RofSn n := iter n (fun x => x + 1) 1.
+Definition RofSn n := iter n (fun x:R => x + 1) 1.
 
 Coercion R_of_nat n := if n is n'`+1 then RofSn n' else 0.
 
@@ -260,7 +266,7 @@ Coercion R_of_nat n := if n is n'`+1 then RofSn n' else 0.
 
 (* Integer powers. *)
 
-Definition RexpSn x n := iter n (fun y => y * x) x.
+Definition RexpSn x n := iter n (fun y: R => y * x) x.
 
 Definition Rexp_nat x n := if n is n'`+1 then RexpSn x n' else 1.
 
@@ -292,59 +298,59 @@ Implicit Arguments iprod [R d].
 (*  Note that, consistent with math conventions, \sum is tighter than  *)
 (* addition, and \prod tighter than multiplication.                    *)
 
-Notation "'\sum_' ( 'in' r ) F" := (iprod plus 0 r F)
+Notation "'\sum_' ( 'in' r ) F" := (iprod (@plus R) 0 r F)
    (at level 40, F at level 40,
    format "'\sum_' ( 'in'  r )  F") : local_scope.
-Notation "'\prod_' ( 'in' r ) F" := (iprod mult 1 r F)
+Notation "'\prod_' ( 'in' r ) F" := (iprod (@mult R) 1 r F)
    (at level 35, F at level 35,
    format "'\prod_' ( 'in'  r )  F") : local_scope.
 
-Notation "'\sum_' () F" := (iprod plus 0 (setA _) F)
+Notation "'\sum_' () F" := (iprod (@plus R) 0 (setA _) F)
    (at level 40, F at level 40, format "'\sum_' ()  F") : local_scope.
-Notation "'\prod_' () F" := (iprod mult 1 (setA _) F)
+Notation "'\prod_' () F" := (iprod (@mult R) 1 (setA _) F)
    (at level 35, F at level 35, format "'\prod_' () F") : local_scope.
 
-Notation "'\sum_' ( i 'in' r ) E" := (iprod plus 0 r (fun i => E))
+Notation "'\sum_' ( i 'in' r ) E" := (iprod (@plus R) 0 r (fun i => E))
    (at level 40, E at level 40, i at level 50,
     format "'\sum_' ( i  'in'  r )  E") : local_scope.
-Notation "'\prod_' ( i 'in' r ) E" := (iprod mult 1 r (fun i => E))
+Notation "'\prod_' ( i 'in' r ) E" := (iprod (@mult R) 1 r (fun i => E))
    (at level 35, E at level 35, i at level 50,
     format "'\prod_' ( i  'in'  r )  E") : local_scope.
 
-Notation "'\sum_' ( i : t 'in' r ) E" := (iprod plus 0 r (fun i : t => E))
+Notation "'\sum_' ( i : t 'in' r ) E" := (iprod (@plus R) 0 r (fun i : t => E))
    (at level 40, E at level 40, i at level 50, only parsing) : local_scope.
-Notation "'\prod_' ( i : t 'in' r ) E" := (iprod mult 1 r (fun i : t => E))
+Notation "'\prod_' ( i : t 'in' r ) E" := (iprod (@mult R) 1 r (fun i : t => E))
    (at level 35, E at level 35, i at level 50, only parsing) : local_scope.
 
-Notation "'\sum_' ( i | P ) E" := (iprod plus 0 (fun i => P) (fun i => E))
+Notation "'\sum_' ( i | P ) E" := (iprod (@plus R) 0 (fun i => P) (fun i => E))
    (at level 40, E at level 40, i at level 50, 
    format "'\sum_' ( i  |  P )  E") : local_scope.
-Notation "'\prod_' ( i | P ) E" := (iprod mult 1 (fun i => P) (fun i => E))
+Notation "'\prod_' ( i | P ) E" := (iprod (@mult R) 1 (fun i => P) (fun i => E))
    (at level 35, E at level 35, i at level 50,
    format "'\prod_' ( i  |  P )  E") : local_scope.
 
 Notation "'\sum_' ( i : t | P ) E" :=
-   (iprod plus 0 (fun i : t => P) (fun i : t => E))
+   (iprod (@plus R) 0 (fun i : t => P) (fun i : t => E))
    (at level 40, E at level 40, i at level 50, only parsing) : local_scope.
 Notation "'\prod_' ( i : t | P ) E" :=
-   (iprod mult 1 (fun i : t => P) (fun i : t => E))
+   (iprod (@mult R) 1 (fun i : t => P) (fun i : t => E))
    (at level 35, E at level 35, i at level 50, only parsing) : local_scope.
 
-Notation "'\sum_' ( i ) E" := (iprod plus 0 (setA _) (fun i => E))
+Notation "'\sum_' ( i ) E" := (iprod (@plus R) 0 (setA _) (fun i => E))
    (at level 40, E at level 40, i at level 50,
    format "'\sum_' ( i )  E") : local_scope.
-Notation "'\prod_' ( i ) E" := (iprod mult 1 (setA _) (fun i => E))
+Notation "'\prod_' ( i ) E" := (iprod (@mult R) 1 (setA _) (fun i => E))
    (at level 35, E at level 35, i at level 50 ,
    format "'\prod_' ( i )  E") : local_scope.
 
-Notation "'\sum_' ( i : t ) E" := (iprod plus 0 (setA _) (fun i : t => E))
+Notation "'\sum_' ( i : t ) E" := (iprod (@plus R) 0 (setA _) (fun i : t => E))
    (at level 40, E at level 40, i at level 50, only parsing) : local_scope.
-Notation "'\prod_' ( i : t ) E" := (iprod mult 1 (setA _) (fun i : t => E))
+Notation "'\prod_' ( i : t ) E" := (iprod (@mult R) 1 (setA _) (fun i : t => E))
    (at level 35, E at level 35, i at level 50, only parsing) : local_scope.
 
-Notation "'\sum_' ( i < n ) E" := (iprod plus 0 (setA _) (fun i : I_(n) => E))
+Notation "'\sum_' ( i < n ) E" := (iprod (@plus R) 0 (setA _) (fun i : I_(n) => E))
    (at level 40, E at level 40, i, n at level 50, only parsing) : local_scope.
-Notation "'\prod_' ( i < n ) E" := (iprod mult 1 (setA _) (fun i : I_(n) => E))
+Notation "'\prod_' ( i < n ) E" := (iprod (@mult R) 1 (setA _) (fun i : I_(n) => E))
    (at level 35, E at level 35, i, n at level 50, only parsing) : local_scope.
 
 (* Instantiating and (rationally) renaming, the "indexed product" lemmas. *)
@@ -352,6 +358,7 @@ Notation "'\prod_' ( i < n ) E" := (iprod mult 1 (setA _) (fun i : I_(n) => E))
 (* ring axioms down below.                                                *)
 
 (* Extensionality (i.e., congruence); all variants. *)
+
 
 Lemma eq_isum : forall (d : finType) (r r' : set d) F F',
   r =1 r' -> dfequal r F F' -> \sum_(in r) F = \sum_(in r') F'.
@@ -660,6 +667,16 @@ rewrite / eqfun => x.
 by case: EAB => ->.
 Qed.
 
+Lemma matrix_fun: forall m n (i :I_(m)) (j :I_(n)) (f : I_(m) -> I_(n) -> R),
+  (\matrix_(i0,j0) f i0 j0) i j = f i j.
+move => m n i j f.
+unlock matrix_of_fun => //.
+unlock matrix_of_fun fun_of_matrix => //=.
+unlock fgraph_of_fun fun_of_fgraph => //=.
+rewrite (sub_maps (EqPair i j)) ?sub_index // ?index_mem
+  (@mem_enum (prod_finType I_(m) I_(n))) //.
+Qed.
+
 Ltac mx2fun i j := (apply/matrix_eqP; apply: EqMatrix => i j; rewrite !m2f).
 
 Lemma perm_matrix1 : forall n, perm_matrix 1%G = \1m_(n).
@@ -770,7 +787,7 @@ Proof. by move=> n A B [A12]; apply: eq_isumR => i _. Qed.
 Section R_props.
 
 (* The ring axioms, and some useful basic corollaries. *)
-
+(* 
 Hypothesis mult1x : forall x, 1 * x = x.
 Hypothesis mult0x : forall x : R, 0 * x = 0.
 Hypothesis plus0x : forall x : R, 0 + x = x.
@@ -809,49 +826,54 @@ Proof.
 by move=> x1 x2; rewrite -multm1x multC distrR -!(multC -1) !multm1x.
 Qed.
 
+*)
+
 Lemma RofSnE : forall n, RofSn n = n + 1.
-Proof. by elim=> /= [|_ -> //]; rewrite plus0x. Qed.
+Proof. by elim=> /= [|_ -> //]; rewrite plus0l. Qed.
 
 Lemma Raddn : forall m n, (m + n)%N = m + n :> R.
 Proof.
-move=> m n; elim: m => /= [|m IHm]; first by rewrite plus0x.
-by rewrite !RofSnE IHm plusC plusCA plusA.
+move=> m n; elim: m => /= [|m IHm]; first by rewrite plus0l.
+by rewrite !RofSnE IHm plusC -plusA -[1+n]plusC plusC -plusA.
 Qed.
 
-Lemma Rsubn : forall m n, m >= n -> (m - n)%N = m - n :> R.
+Lemma Rsubn : forall m n, m >= n -> (m - n)%N = m + (- n) :> R.
 Proof.
 move=> m n; move/leq_add_sub=> Dm.
-by rewrite -{2}Dm Raddn -plusA plusCA minusxx plusC plus0x.
+by rewrite -{2}Dm Raddn -plusA plusC -plusA plus_opl plus0r.
 Qed.
 
 Lemma Rmuln : forall m n, (m * n)%N = m * n :> R.
 Proof.
-move=> m n; elim: m => /= [|m IHm]; first by rewrite mult0x.
-by rewrite Raddn RofSnE IHm distrR mult1x plusC.
+move=> m n; elim: m => /= [|m IHm]; first by rewrite mult0l.
+by rewrite Raddn RofSnE IHm plus_multr mult1l plusC.
 Qed.
 
 Lemma RexpSnE : forall x n, RexpSn x n = x ^ n * x.
-Proof. by move=> x; elim=> /= [|_ -> //]; rewrite mult1x. Qed.
+Proof. by move=> x; elim=> /= [|_ -> //]; rewrite mult1l. Qed.
 
 Lemma mult_exp : forall x1 x2 n, (x1 * x2) ^ n = x1 ^ n * x2 ^ n.
 Proof.
-by move=> x1 x2; elim=> //= n IHn; rewrite !RexpSnE IHn -!multA (multCA x1).
+move=> x1 x; elim=> //= [|n IHn]; first (by rewrite mult1l).
+rewrite !RexpSnE IHn -!multA; congr mult.
+rewrite multC -multA; congr mult; by rewrite multC.
 Qed.
 
 Lemma exp_addn : forall x n1 n2, x ^ (n1 + n2) = x ^ n1 * x ^ n2.
 Proof.
-move=> x n1 n2; elim: n1 => /= [|n1 IHn]; first by rewrite mult1x.
-by rewrite !RexpSnE IHn multC multCA multA.
+move=> x n1 n2; elim: n1 => /= [|n1 IHn]; first by rewrite mult1l.
+rewrite !RexpSnE IHn multC multC -!multA; congr mult.
+by rewrite multC.
 Qed.
 
 Lemma Rexpn : forall m n, (m ^ n)%N = m ^ n :> R.
 Proof. by move=> m; elim=> //= n IHn; rewrite Rmuln RexpSnE IHn multC. Qed.
 
 Lemma exp0n : forall n, 0 < n -> 0 ^ n = 0.
-Proof. by move=> [|[|n]] //= _; rewrite multC mult0x. Qed.
+Proof. by move=> [|[|n]] //= _; rewrite multC mult0l. Qed.
 
 Lemma exp1n : forall n, 1 ^ n = 1.
-Proof. by elim=> //= n IHn; rewrite RexpSnE IHn mult1x. Qed.
+Proof. by elim=> //= n IHn; rewrite RexpSnE IHn mult1l. Qed.
 
 Lemma exp_muln : forall x n1 n2, x ^ (n1 * n2) = (x ^ n1) ^ n2.
 Proof.
@@ -862,11 +884,13 @@ Qed.
 Lemma sign_odd : forall n, (-1) ^ odd n = (-1) ^ n.
 Proof.
 move=> n; rewrite -{2}[n]odd_double_half addnC double_mul2 exp_addn exp_muln.
-by rewrite /= multm1x oppK exp1n mult1x.
+by rewrite //= -mult_oppr mult1r oppK exp1n mult1l.
 Qed.
 
 Lemma sign_addb : forall b1 b2, (-1) ^ (b1 (+) b2) = (-1) ^ b1 * (-1) ^ b2.
-Proof. by do 2!case; rewrite //= ?multm1x ?mult1x ?oppK. Qed.
+Proof. 
+by do 2!case; rewrite //= ?multm1x ?mult1l ?oppK.
+Qed.
 
 Lemma sign_permM : forall d (s t : permType d),
   (-1) ^ odd_perm ((s * t)%G) = (-1) ^ s * (-1) ^ t.
@@ -893,7 +917,9 @@ Proof. move=> d r F; move/eq_iprodL->; exact: iprod_set0_eq. Qed.
 
 Lemma isum_set1_eq : forall (d : finType) (i0 : d) F,
   \sum_(in set1 i0) F = F i0.
-Proof. move=> d i0 F; exact: iprod_set1. Qed.
+Proof. move=> d i0 F. 
+apply: iprod_set1; [exact: plusC| exact: plus0l].
+Qed.
 
 Lemma isum_set1 : forall (d : finType) i0 (r : set d) F,
   r =1 set1 i0 -> \sum_(in r) F = F i0.
@@ -902,7 +928,7 @@ Implicit Arguments isum_set1 [d r F].
 
 Lemma iprod_set1_eq : forall (d : finType) (i0 : d) F,
   \prod_(in set1 i0) F = F i0.
-Proof. move=> d i0 F; exact: iprod_set1. Qed.
+Proof. move=> d i0 F; apply: iprod_set1; [exact: multC| exact: mult1l]. Qed.
 
 Lemma iprod_set1 : forall (d : finType) i (r : set d) F,
   r =1 set1 i -> \prod_(in r) F = F i.
@@ -911,12 +937,12 @@ Implicit Arguments iprod_set1 [d r F].
 
 Lemma isumD1 : forall (d : finType) i0 (r : set d) F,
   r i0 -> \sum_(in r) F = F i0 + \sum_(i | (i0 != i) && r i) F i.
-Proof. move=> *; exact: iprodD1. Qed.
+Proof. by move=> *; apply: iprodD1; [exact: plusA |exact: plusC|]. Qed.
 Implicit Arguments isumD1 [d r F].
 
 Lemma iprodD1 : forall (d : finType) i0 (r : set d) F,
   r i0 -> \prod_(in r) F = F i0 * \prod_(i | (i0 != i) && r i) F i.
-Proof. move=> *; exact: iprodD1. Qed.
+Proof. by move=> *; apply: iprodD1; [exact: multA |exact: multC|]. Qed.
 Implicit Arguments iprodD1 [d r F].
 
 (* The ID is easier to use than the setU one, because it avoids the messy *)
@@ -925,8 +951,11 @@ Implicit Arguments iprodD1 [d r F].
 Lemma isumID : forall (d : finType) c r F,
   \sum_(in r) F = \sum_(i : d | r i && c i) F i + \sum_(i | r i && ~~ c i) F i.
 Proof.
-move=> d c r F; rewrite -iprod_setU /setU //.
- by apply: eq_isumL=> i; case r; case c.
+move=> d c r F; rewrite -iprod_setU /setU //; 
+  [by apply: eq_isumL=> i; case r; case c|
+   apply: plusA|
+   apply: plusC|
+   apply: plus0l|].
 by apply/set0P=> i; rewrite /setI; case r; case c.
 Qed.
 
@@ -934,8 +963,11 @@ Lemma iprodID : forall (d : finType) c r F,
   \prod_(in r) F =
     \prod_(i : d | r i && c i) F i * \prod_(i | r i && ~~ c i) F i.
 Proof.
-move=> d c r F; rewrite -iprod_setU /setU //.
-  by apply: eq_iprodL=> i; case r; case c.
+move=> d c r F; rewrite -iprod_setU /setU //;
+  [by apply: eq_iprodL=> i; case r; case c|
+   apply: multA|
+   apply: multC|
+   apply: mult1l|].
 by apply/set0P=> i; rewrite /setI; case r; case c.
 Qed.
 
@@ -945,7 +977,7 @@ Qed.
 
 Lemma isum0_eq : forall (d : finType) (r : set d),
   \sum_(in r) (fun _ => 0) = 0.
-Proof. move=> d r; exact: iprod_1. Qed.
+Proof. move=> d r; apply: iprod_1; apply: plus0l. Qed.
 
 Lemma isum0 : forall (d : finType) (r : set d) F,
   dfequal r F (fun _ => 0) -> \sum_(in r) F = 0.
@@ -953,7 +985,7 @@ Proof. move=> d r F; move/eq_isumR->; exact: isum0_eq. Qed.
 
 Lemma iprod1_eq : forall (d : finType) (r : set d),
   \prod_(in r) (fun _ => 1) = 1.
-Proof. move=> d r; exact: iprod_1. Qed.
+Proof. move=> d r; apply: iprod_1; apply: mult1l. Qed.
 
 Lemma iprod1 : forall (d : finType) (r : set d) F,
   dfequal r F (fun _ => 1) -> \prod_(in r) F = 1.
@@ -961,15 +993,31 @@ Proof. move=> d r F; move/eq_iprodR->; exact: iprod1_eq. Qed.
 
 Lemma isum_plus : forall (d : finType) (r : set d) F1 F2,
   \sum_(i in r) (F1 i + F2 i) = \sum_(i in r) F1 i + \sum_(i in r) F2 i.
-Proof. by move=> d r F1 F2; rewrite iprod_mul. Qed.
+Proof. 
+move=> d r F1 F2; rewrite iprod_mul //; 
+  [apply: plusA|
+   apply: plusC|
+   apply: plus0l].
+Qed.
 
 Lemma iprod_mult : forall (d : finType) (r : set d) F1 F2,
   \prod_(i in r) (F1 i * F2 i) = \prod_(i in r) F1 i * \prod_(i in r) F2 i.
-Proof. by move=> d r F1 F2; rewrite iprod_mul. Qed.
+Proof. 
+move=> d r F1 F2; rewrite iprod_mul //;
+  [apply: multA|
+   apply: multC|
+   apply: mult1l].
+Qed.
 
 Lemma isum_distrR : forall (d : finType) x (r : set d) F,
   (\sum_(in r) F) * x = \sum_(i in r) F i * x.
-Proof. by move=> d x r F; rewrite isum_eta i_prod_distr. Qed.
+Proof. 
+move=> d x r F; rewrite isum_eta i_prod_distr //;
+  [apply: plusA|
+   apply: plusC|
+   apply: plus_multr|
+   apply: mult0l].
+Qed.
 
 Lemma isum_distrL : forall (d : finType) x (r : set d) F,
   x * (\sum_(in r) F) = \sum_(i in r) x * F i.
@@ -988,9 +1036,9 @@ Lemma isum_id : forall (d : finType) (r : set d) x,
   \sum_(i in r) x = card r * x.
 Proof.
 move=> d r x; elim: {r}_`+1 {-2}r (ltnSn (card r)) => // n IHn r.
-case: (pickP r) => [i ri | r0 _]; last by rewrite isum_set0 ?eq_card0.
+case: (pickP r) => [i ri | r0 _]; last by rewrite isum_set0 ?eq_card0 // mult0l.
 rewrite (cardD1 i) (isumD1 i) ri //=; move/IHn=> -> {n IHn}; rewrite RofSnE.
-by rewrite distrR mult1x plusC.
+by rewrite plus_multr mult1l plusC.
 Qed.
 
 Lemma iprod_id :  forall (d : finType) (r : set d) x,
@@ -1209,7 +1257,7 @@ move=> d d' r' F; case: (pickP (setA d')) => [j0 _ | d'0].
   exact: (distr_iprod_isum_dep j0).
 have d's0: (_ : set d') =1 set0 by move=> ? j; have:= d'0 j.
 case: (pickP (setA d)) => [i0 _ | d0].
-  rewrite (iprodD1 i0) // isum_set0 // mult0x isum_set0 // => f.
+  rewrite (iprodD1 i0) // isum_set0 // mult0l isum_set0 // => f.
   by apply/familyP; move/(_ i0); rewrite d's0.
 have f0: d -> d' by move=> i; have:= d0 i.
 rewrite iprod_set0 // (isum_set1 (fgraph_of_fun f0)) ?iprod_set0 // => f.
@@ -1233,7 +1281,7 @@ Qed.
 (* by move=> m n j0 A; mx2fun i j. *)
 
 Lemma matrix_plus0x : forall m n (A : M_(m, n)), \0m +m A = A.
-Proof. by move => *; mx2fun i j; rewrite plus0x. Qed.
+Proof. by move => *; mx2fun i j; rewrite plus0l. Qed.
 
 Lemma matrix_plusC : forall m n (A B : M_(m, n)), A +m B = B +m A.
 Proof. by move => *; mx2fun i j; rewrite plusC. Qed.
@@ -1243,52 +1291,59 @@ Lemma matrix_plusA : forall m n (A B C : M_(m, n)),
 Proof. by move => *; mx2fun i j; rewrite plusA. Qed.
 
 Lemma matrix_scale_0 : forall m n (A : M_(m, n)), 0 *sm A = \0m.
-Proof. by move => *; mx2fun i j; rewrite mult0x. Qed.
+Proof. by move => *; mx2fun i j; rewrite mult0l. Qed.
 
 Lemma matrix_scale_1 : forall m n (A : M_(m, n)), 1 *sm A = A.
-Proof. by move => *; mx2fun i j; rewrite mult1x. Qed.
+Proof. by move => *; mx2fun i j; rewrite mult1l. Qed.
 
 Lemma matrix_scale_distrR : forall m n x1 x2 (A : M_(m, n)),
   (x1 + x2) *sm A = x1 *sm A +m x2 *sm A.
-Proof. by move => *; mx2fun i j; rewrite distrR. Qed.
+Proof. by move => *; mx2fun i j; rewrite plus_multr. Qed.
 
 Lemma matrix_scale_distrL : forall m n x (A B : M_(m, n)),
   x *sm (A +m B) = x *sm A +m x *sm B.
-Proof. by move=> m n x A B; mx2fun i j; rewrite !(multC x) distrR. Qed.
+Proof. by move=> m n x A B; mx2fun i j; rewrite !(multC x) plus_multr. Qed.
 
 Lemma matrix_scaleA : forall m n p x (A : M_(m, n)) (B : M_(n, p)),
   x *sm (A *m B) = (x *sm A) *m B.
 Proof.
-by move => *; mx2fun i j; rewrite /= isum_distrL; apply: eq_isumR => jj _; rewrite multA m2f.
+by move => *; mx2fun i j; rewrite /= isum_distrL;
+  apply: eq_isumR => jj _; rewrite multA m2f.
 Qed.
 
 Lemma matrix_scaleC : forall m n p x (A : M_(m, n)) (B : M_(n, p)),
   A *m (x *sm B) = (x *sm A) *m B.
 Proof.
-by move => *; mx2fun i j; apply: eq_isumR => jj _; rewrite m2f multCA m2f multA.
+by move => *; mx2fun i j; apply: eq_isumR => jj _;
+  rewrite m2f multCA m2f multA.
 Qed.
 
-Lemma matrix_scale_oppr : forall m n (A : M_(m, n)), A +m (- 1 *sm A) = \0m_(m,n).
-Proof. move => m n A; mx2fun i j; by rewrite -{1}(mult1x (A i j)) -distrR minusxx mult0x. Qed.
+Lemma matrix_scale_oppr :
+  forall m n (A : M_(m, n)), A +m (- 1 *sm A) = \0m_(m,n).
+Proof. move => m n A; mx2fun i j; 
+  by rewrite -{1}(mult1l (A i j)) -plus_multr plus_opr  mult0l.
+Qed.
 
-Lemma matrix_scale_oppl : forall m n (A : M_(m, n)), (- 1 *sm A) +m A = \0m_(m,n).
-Proof. move => m n A; mx2fun i j; by rewrite -{2}(mult1x (A i j)) -distrR plusC minusxx mult0x. Qed.
+Lemma matrix_scale_oppl : 
+  forall m n (A : M_(m, n)), (- 1 *sm A) +m A = \0m_(m,n).
+Proof. move => m n A; mx2fun i j; 
+  by rewrite -{2}(mult1l (A i j)) -plus_multr plusC plus_opr mult0l. Qed.
 
 Lemma matrix_mult1x : forall m n (A : M_(m, n)), \1m *m A = A.
 Proof.
 move=> m n A; mx2fun i j.
-rewrite (isumD1 i) // m2f set11 mult1x plusC.
-rewrite isum0 ?plus0x // => i'; rewrite andbT m2f; move/negbET->; exact: mult0x.
+rewrite (isumD1 i) // m2f set11 mult1l plusC.
+rewrite isum0 ?plus0l // => i'; rewrite andbT m2f; move/negbET->; exact: mult0l.
 Qed.
 
 Lemma matrix_mult0lx : forall n (A : M_(n)), \0m_(n) *m A = \0m.
 Proof.
-by move => n A; mx2fun i j; rewrite isum0 ?mult0x // => x _; rewrite m2f mult0x.
+by move => n A; mx2fun i j; rewrite isum0 ?mult0l // => x _; rewrite m2f mult0l.
 Qed.
 
 Lemma matrix_mult0rx : forall n (A : M_(n)), A *m \0m_(n) = \0m.
 Proof.
-by move => n A; mx2fun i j; rewrite isum0 ?mult0x // => x _; rewrite m2f multC mult0x.
+by move => n A; mx2fun i j; rewrite isum0 ?mult0l // => x _; rewrite m2f multC mult0l.
 Qed.
 
 Lemma matrix_transpose_mul : forall m n p (A : M_(m, n)) (B : M_(n, p)),
@@ -1305,7 +1360,7 @@ Lemma matrix_distrR : forall m n p (A1 A2 : M_(m, n)) (B : M_(n, p)),
   (A1 +m A2) *m B = A1 *m B +m A2 *m B.
 Proof.
 move=> m n p A1 A2 B; mx2fun i k; rewrite /= -isum_plus.
-by apply: eq_isumR => j _; rewrite m2f -distrR.
+by apply: eq_isumR => j _; rewrite m2f -plus_multr.
 Qed.
 
 Lemma matrix_distrL : forall m n p (A : M_(m, n)) (B1 B2 : M_(n, p)),
@@ -1327,12 +1382,42 @@ transitivity (\sum_(k) (\sum_(j) (A i j * B j k * C k l))).
 by apply: eq_isumR => j _; rewrite m2f isum_distrR.
 Qed.
 
+Section MatrixRing.
+Variable n :nat.
+Hypothesis (Hn: 0 < n).
+
+Definition plusMn:=(@matrix_plus n n).
+Definition multMn:=(@matrix_mul n n n).
+Definition opMn:=(@matrix_scale n n (-1)).
+
+Definition matrixRings : ringsType.
+exists (matrix_eqType n n) \0m_(n) \1m_(n) plusMn multMn opMn.
+(*1*) move=> *; apply: matrix_plus0x.
+(*2*) move=> *; apply: matrix_scale_oppl.
+(*3*) move=> *; apply: matrix_plusA.
+(*4*) move=> *; apply: matrix_plusC.
+(*5*) move=> *; apply: matrix_mult1x.
+(*6*) move=> *; apply: matrix_multx1.
+(*7*) move=> *; apply: matrix_multA.
+(*8*) move=> *; apply: matrix_distrL.
+(*9*) move=> *; apply: matrix_distrR.
+pose nn:= make_ord Hn.
+move=> H.
+mx2fun_elim H.
+move: (H nn nn) => //=.
+rewrite !m2f //= => H1.
+move: (@one_diff_0 R) => H2.
+tauto.
+Defined.
+
+End MatrixRing.
+
 Lemma perm_matrixM : forall n (s t : S_(n)),
   perm_matrix (s * t)%G = perm_matrix s *m perm_matrix t.
 Proof.
-move=> n s t; mx2fun i j; rewrite /= (isumD1 (s i)) // m2f set11 mult1x m2f -permM.
-rewrite isum0 => [|j']; first by rewrite plusC plus0x.
-by rewrite andbT m2f; move/negbET->; rewrite mult0x.
+move=> n s t; mx2fun i j; rewrite /= (isumD1 (s i)) // m2f set11 mult1l m2f -permM.
+rewrite isum0 => [|j']; first by rewrite plusC plus0l.
+by rewrite andbT m2f; move/negbET->; rewrite mult0l.
 Qed.
  
 Lemma matrix_trace_plus : forall n (A B : M_(n)), \tr (A +m B) = \tr A + \tr B.
@@ -1344,15 +1429,24 @@ Proof. by move=> *; rewrite isum_distrL; apply: eq_iprod_f => i _; rewrite m2f. 
 Lemma matrix_trace_transpose : forall n (A : M_(n)), \tr (\^t A) = \tr A.
 Proof. by move => *;  apply: eq_iprod_f => i _; rewrite m2f. Qed.
 
+Lemma iprod_fun_of_matrix: 
+  forall p e m (f: I_(m) ->I_(m) -> R) S, iprod p e S (fun i: I_(m) => (@fun_of_matrix m m (@matrix_of_fun m m f)) i i) =
+   iprod p e S (fun i => f i i).
+by move => p e m f S; apply: eq_iprod_f => x Hx; apply: m2f.
+Qed.
+
 Lemma matrix_trace_multC : forall m n (A : M_(m, n)) (B : M_(n, m)),
   \tr (A *m B) = \tr (B *m A).
 Proof.
-(*
-move=> m n A B; rewrite /(\tr _) exchange_isum.
-apply: eq_isumR => j _; apply: eq_isumR => i _; exact: multC.
+move=> m n A B.
+rewrite /(\tr _).
+rewrite /matrix_mul // iprod_fun_of_matrix.
+rewrite exchange_isum.
+apply: eq_isumR => i _ //.
+rewrite m2f.
+apply: eq_isumR => j _ //.
+exact: multC.
 Qed.
-*)
-Admitted.
 
 (* And now, finally, the title feature. *)
 
@@ -1365,10 +1459,10 @@ move=> n A B C i0 b c ABC.
 move/matrix_eqP=> BA; move/matrix_eqP=> CA.
 move/matrix_eq_rem_row: BA=> BA; move/matrix_eq_rem_row: CA=> CA.
 rewrite !isum_distrL -isum_plus; apply: eq_isumR => s _.
-rewrite -!(multCA (_ ^ (odd_perm s))) -distrL; congr (_ * _).
+rewrite -!(multCA (_ ^ (odd_perm s))) -plus_multl; congr (_ * _).
 rewrite !(@iprodD1 _ i0 (setA _)) //.
 move/matrix_eqP: ABC => ABC.
-rewrite (matrix_eq_row ABC) !m2f distrR !multA.
+rewrite (matrix_eq_row ABC) !m2f plus_multr !multA.
 by congr (_ * _ + _ * _); apply: eq_iprodR => i; rewrite andbT => ?;
    rewrite ?BA ?CA.
 Qed.
@@ -1382,7 +1476,7 @@ have trK : involutive tr by move=> s; rewrite /tr mulgA transp2 mul1g.
 have Etr: forall s, odd_perm (tr s) = even_perm s.
   by move=> s; rewrite odd_permM odd_transp Di12.
 rewrite /(\det _) (isumID (@even_perm r)) /=; set S1 := \sum_(in _) _.
-rewrite -{2}(minusxx S1); congr (_ + _); rewrite {}/S1 -isum_opp.
+rewrite -{2}(plus_opl S1) plusC; congr (_ + _); rewrite {}/S1  -isum_opp.
 rewrite (reindex_isum tr); last by exists tr.
 symmetry; apply: eq_isum => [s | s seven]; first by rewrite negbK Etr.
 rewrite -multm1x multA Etr seven (negbET seven) multm1x; congr (_ * _).
@@ -1406,9 +1500,9 @@ Lemma determinant_perm : forall n s, \det (@perm_matrix n s) = (-1) ^ s.
 Proof.
 move=> n s; rewrite /(\det _) (isumD1 s) //.
 rewrite iprod1 => [|i _]; last by rewrite /= !m2f set11.
-rewrite isum0 => [|t Dst]; first by rewrite plusC plus0x multC mult1x.
+rewrite isum0 => [|t Dst]; first by rewrite plusC plus0l multC mult1l.
 case: (pickP (fun i => s i != (fun_of_perm t) i)) => [i ist | Est].
-  by rewrite (iprodD1 i) // multCA /= m2f (negbET ist) mult0x.
+  by rewrite (iprodD1 i) // multCA /= m2f (negbET ist) mult0l.
 move: Dst; rewrite andbT; case/eqP.
 by apply: eq_fun_of_perm => i; move/eqP: (Est i).
 Qed.
@@ -1423,11 +1517,13 @@ Lemma determinant_scale : forall n x (A : M_(n)),
   \det (x *sm A) = x ^ n * \det A.
 Proof.
 move=> n x A; rewrite isum_distrL; apply: eq_isumR => s _.
-(*
-by rewrite multCA m2f iprod_mult iprod_id card_ordinal.
+rewrite multCA; congr mult.
+move: (@iprod_id I_(n) (setA I_(n)) x); rewrite card_ordinal => H.
+rewrite -H; clear H.
+rewrite -iprod_mult.
+apply: eq_iprod_f => x0 Hx0.
+by rewrite m2f.
 Qed.
-*)
-Admitted.
 
 Lemma determinantM : forall n (A B : M_(n)), \det (A *m B) = \det A * \det B.
 Proof.
@@ -1435,9 +1531,13 @@ move=> n A B; rewrite isum_distrR.
 pose AB (f : F_(n)) (s : S_(n)) i := A i (f i) * B (f i) (s i).
 transitivity (\sum_(f) \sum_(s : S_(n)) (-1) ^ s * \prod_(i) AB f s i).
   rewrite exchange_isum; apply: eq_isumR => s _.
-(*
-  by rewrite -isum_distrL distr_iprodA_isumA.
-rewrite (isumID (fun f => uniq (fval f))) plusC isum0 ?plus0x => /= [|f Uf].
+  rewrite -isum_distrL; congr mult. 
+  rewrite / AB.
+  set F: I_(n) -> I_(n) -> R := fun i j => (A i j) * (B j (fun_of_perm s i)).
+  rewrite -(distr_iprodA_isumA F) //.
+  apply: eq_iprod_f => x Hx //.
+  rewrite / matrix_mul // m2f / F //=.
+rewrite (isumID (fun f => uniq (fval f))) plusC isum0 ?plus0l => /= [|f Uf].
   rewrite (reindex_isum (fun s => val (pval s))); last first.
     have s0 : S_(n) := 1%G; pose uf (f : F_(n)) := uniq (fval f).
     pose pf f := if insub uf f is Some s then Perm s else s0.
@@ -1446,22 +1546,21 @@ rewrite (isumID (fun f => uniq (fval f))) plusC isum0 ?plus0x => /= [|f Uf].
   rewrite (reindex_isum (mulg s)); last first.
     by exists (mulg s^-1) => t; rewrite ?mulKgv ?mulKg.
   apply: eq_isumR => t _; rewrite iprod_mult multA multCA multA multCA multA.
-  rewrite -sign_permM; congr (_ * _); rewrite (reindex_iprod s^-1); last first.
-    by exists (s : _ -> _) => i _; rewrite ?permK ?permKv.
+  rewrite -sign_permM; congr (_ * _); rewrite (reindex_iprod (fun_of_perm s^-1)); last first.
+    by exists ((fun_of_perm s) : _ -> _) => i _; rewrite ?permK ?permKv.
   by apply: eq_iprodR => i _; rewrite permM permKv ?set11 // -{3}[i](permKv s).
-transitivity (\det (\matrix_(i, j) B (f i) j) * \prod_(i) A i (f i)).
+transitivity (\det (\matrix_(i, j) B ((fun_of_fgraph f) i) j) * \prod_(i) A i ((fun_of_fgraph f) i)).
   rewrite multC isum_distrL; apply: eq_isumR=> s _.
-  by rewrite multCA iprod_mult.
-suffices [i1 [i2 Ef12 Di12]]: exists i1, exists2 i2, f i1 = f i2 & i1 != i2.
-  by rewrite (alternate_determinant Di12) ?mult0x => //= j; rewrite Ef12.
-pose ninj i1 i2 := (f i1 == f i2) && (i1 != i2).
+  rewrite multCA iprod_mult //=; congr mult; congr mult; apply: eq_iprod_f => x Hx.
+  by rewrite m2f.
+suffices [i1 [i2 Ef12 Di12]]: exists i1, exists2 i2, (fun_of_fgraph f) i1 = (fun_of_fgraph f) i2 & i1 != i2.
+  by rewrite (alternate_determinant Di12) ?mult0l => //= j; rewrite !m2f Ef12.
+pose ninj i1 i2 := ((fun_of_fgraph f) i1 == (fun_of_fgraph f) i2) && (i1 != i2).
 case: (pickP (fun i1 => ~~ set0b (ninj i1))) => [i1| injf].
   by case/set0Pn=> i2; case/andP; move/eqP; exists i1; exists i2.
 case/(perm_uniqP f): Uf => i1 i2; move/eqP=> Dfi12; apply/eqP.
 by apply/idPn=> Di12; case/set0Pn: (injf i1); exists i2; apply/andP.
 Qed.
-*)
-Admitted.
 
 (* And now, the Laplace formula. *)
 
@@ -1520,7 +1619,7 @@ have sign_ls: forall s i j, (-1)^(ls i s j) = (-1) ^ s * (-1)^(val i + val j).
     case transpP => //; move/eqP; case/idPn; exact: neq_lift.
   have ->: s = 1%G.
     by apply: eq_fun_of_perm=> k; rewrite perm1; move/eqP: (s1 k).
-  rewrite odd_perm1 mult1x; without loss: i {s s1} j / val j <= val i.
+  rewrite odd_perm1 mult1l; without loss: i {s s1} j / val j <= val i.
     case: (leqP (val j) (val i)); first by auto.
     move/ltnW=> ij; move/(_ _ _ ij)=> Wji.
     rewrite -(mulgK (ls j 1%G i) (ls i  _ j)) lsM !(ls1,mul1g).
@@ -1580,11 +1679,12 @@ Qed.
 Lemma cofactor_transpose : forall n (A : M_(n)) i j,
   cofactor (\^t A) i j = cofactor A j i.
 Proof.
-(*
-move=> n A i j; rewrite /cofactor addnC -determinant_transpose //=.
+move=> n A i j; rewrite /cofactor addnC; congr mult.
+rewrite -matrix_transpose_rem_row -matrix_transpose_rem_col determinant_transpose.
+congr determinant.
+rewrite / matrix_rem_col / matrix_rem_row //=.
+by mx2fun x y.
 Qed.
-*)
-Admitted.
 
 Lemma expand_determinant_col : forall n (A : M_(n)) j0,
   \det A = \sum_(i) (A i j0 * cofactor A i j0).
@@ -1607,18 +1707,21 @@ Qed.
 
 Lemma mult_adugateR : forall n (A : M_(n)), A *m adjugate A = \det A *sm \1m.
 Proof.
-move=> n A; mx2fun i1 i2; rewrite /= multC.
-(*
-case Di: (i1 == i2); first by rewrite (eqP Di) -expand_determinant_row mult1x.
+move=> n A; mx2fun i1 i2; rewrite // multC.
+case Di: (i1 == i2).
+  rewrite (eqP Di) mult1l (expand_determinant_row _ i2).
+  apply: eq_iprod_f => x Hx; congr mult.
+  by rewrite / adjugate m2f.
 pose B := \matrix_(i, j) (if i == i2 then A i1 j else A i j).
-have EBi12: B i1 =1 B i2 by move=> j; rewrite /= set11 if_same.
-rewrite mult0x -{2}(alternate_determinant (negbT Di) EBi12).
-rewrite (expand_determinant_row _ i2) /= set11.
-apply: eq_isumR => j _; do 2!apply: (congr1 (mult _)); apply: eq_isumR => s _.
-by congr (_ * _); apply: eq_iprodR => i _ /=; rewrite eq_sym -if_neg neq_lift.
+have EBi12: B i1 =1 B i2 by move=> j; rewrite /= !m2f Di eq_refl.
+rewrite mult0l -{2}(alternate_determinant (negbT Di) EBi12).
+rewrite (expand_determinant_row _ i2).
+apply: eq_iprod_f => x Hx.
+rewrite !m2f eq_refl; congr (_ * _).
+congr (_ * _); apply: eq_iprod_f => y Hy //; congr (_ * _).
+apply: eq_iprod_f => z Hz.
+by rewrite !m2f eq_sym -if_neg neq_lift.
 Qed.
-*)
-Admitted.
 
 Lemma transpose_adjugate : forall n (A : M_(n)),
   \^t (adjugate A) = adjugate (\^t A).

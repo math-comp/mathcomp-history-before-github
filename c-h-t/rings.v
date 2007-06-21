@@ -58,6 +58,7 @@ Notation "- x" := (opp x): rings_scope.
 Infix "*" := mult: rings_scope.
 Notation "1" := (one _) (at level 0) : rings_scope.
 Notation "0" := (zero _) (at level 0): rings_scope.
+(* Notation "x - y" := (x + (- y)) : rings_scope. *)
 
 Section RingsProp.
 Open Scope rings_scope.
@@ -154,6 +155,14 @@ Qed.
 Lemma one_diff_0 : (one elt) <> 0.
 Proof. exact: Rings.one_diff_zero. Qed.
 
+Lemma multm1x : forall x :elt, -1 * x = - x.
+Proof.
+by move => x; rewrite -mult_oppl mult1l.
+Qed.
+
+Lemma plusCA : forall x1 x2 x3 : elt, x1 + (x2 + x3) = x2 + (x1 + x3).
+Proof. move=> *; rewrite !plusA; congr (_ + _); exact: plusC. Qed.
+
 End RingsProp.
 
 Section CommutativeRings.
@@ -169,7 +178,8 @@ Variable elt : comRings.
 Lemma multC : forall x y :elt, x * y = y * x.
 Proof. exact: multCP. Qed.
 
+Lemma multCA : forall x1 x2 x3 : elt, x1 * (x2 * x3) = x2 * (x1 * x3).
+Proof. move=> *; rewrite !multA; congr (_ * _); exact: multC. Qed.
+
 End CommutativeRings.
-
-
 
