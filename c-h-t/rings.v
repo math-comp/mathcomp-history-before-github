@@ -183,3 +183,4 @@ Proof. move=> *; rewrite !multA; congr (_ * _); exact: multC. Qed.
 
 End CommutativeRings.
 
+Unset Implicit Arguments.

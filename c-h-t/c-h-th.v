@@ -14,68 +14,12 @@ Open Scope rings_scope.
 Section Polynomials.
 
 Variable R : ringsType.
-(*
-Variables plus mult : R -> R -> R.
-Variable opp : R -> R.
-Variables zero one : R.
-
-Infix "+" := plus: local_scope.
-Notation "- x" := (opp x): local_scope.
-Infix "*" := mult: local_scope.
-Notation "1" := one (at level 0) : local_scope.
-Notation "0" := zero (at level 0): local_scope.
-*)
-
-(*
-(* Zero Right *)
-Variable plus0r: forall a, a + 0 = a.
-(* Zero Left *)
-Variable plus0l: forall a, 0 + a = a.
-(* Commute *)
-Variable plusC: forall a b, a + b = b + a.
-(* Associative *)
-Variable plusA: forall a b c, (a + b) + c = a + (b + c).(* Opposite left *)
-Variable plus_opr: forall a, a + (-a) = 0.
-(* Opposite right *)
-Variable plus_opl: forall a, (-a) + a = 0.
-(* zero right *)
-Variable mult0r: forall a, a * 0 = 0.
-(* zero left *)
-Variable mult0l: forall a, 0 * a = 0.
-(* Distributivity r *)
-Variable plus_multr: forall a b c, (a + b) * c = (a * c) + (b * c).
-(* Distributivity l *)
-Variable plus_multl: forall a b c, c * (a + b) = (c * a) + (c * b).
-(* Commutative *)
-Variable multC: forall a b, a * b = b * a.
-(* Associative *)
-Variable multA: forall a b c, (a * b) * c = a * (b * c).
-(* one left *)
-Variable mult1l: forall a, 1 * a = a.
-(* one right *)
-Variable mult1r: forall a, a * 1 = a.
-(* one diff zero *)
-Variable one_diff_0: 1 <> 0.
-
-Let opp_zero: -0 = 0.
-by rewrite -{2}(plus_opr 0) plus0l.
-Qed.
-*)
 
 Section Polynomial.
 
 
 (* A polynomial is sequence, the firts element of the sequence is monome of low degree*)
 Definition polynomial := seq R.
-
-
-(*
-Fixpoint plusPnn (p q: polynomial) {struct p}: polynomial :=
-  if p is (Adds a p') then
-    if q is (Adds b q') then Adds (a + b) (plusPnn p' q') 
-   else p 
-  else q.
-*)
 
 Fixpoint plusP (p q: polynomial) {struct p}: polynomial := 
   if p is (Adds a p') then 
@@ -92,22 +36,12 @@ Fixpoint eqP (p q: polynomial) {struct p}: bool :=
    else eqP0 p 
   else eqP0 q.
 
-(* ---------------------------------  coef  --------------------------------- *)
-
-Fixpoint coeff_poly (p : polynomial) (i : nat) {struct i} : R := 
-  match p, i with
-    | seq0, _ => 0
-    | Adds a s, O => a
-    | Adds a s, S i' => coeff_poly s i'
-  end.
-
 Definition opP (p : polynomial) : polynomial :=
   maps opp p.
 
 (* 
 Multiplication by X
 *)
-
 
 Definition multPX (p : polynomial) : polynomial := if p is (Adds _ _) then (Adds 0 p) else p.
 
@@ -121,9 +55,7 @@ Definition multRPl (c : R) (p : polynomial): polynomial :=
 Definition multRPr (c : R) (p : polynomial): polynomial :=
   maps (fun x => mult x c) p.
 
-
 Open Scope local_scope.
-
 
 Notation "'11'" :=  (Adds 1 seq0) (at level 0): local_scope.
 Notation "00" := (@Seq0 R: polynomial) (at level 0): local_scope.Notation "x1 '++' x2" := (plusP x1 x2) (at level 50) : local_scope.
@@ -197,8 +129,6 @@ move => [|b q] // [|c r] //=; case/andP => H1 H2;
  -by rewrite (eqtype.eqP H1) H3 (eqP0_trans H4) // eqP_sym.
 by rewrite (eqtype.eqP H1) H3 (Hrec _ _ H2).
 Qed.
-
-
 
 Lemma eqP0_plus: forall p q, eqP0 p -> eqP0 q -> eqP0 (p ++ q).
 Proof.
@@ -444,17 +374,6 @@ rewrite / setU1 in H.
 move: (H a) => Ha; rewrite eq_refl //= in Ha; rewrite Ha //= eq_refl; apply Hrec.
 move=> y Hy; apply H; apply/orP; right; exact Hy.
 Qed.
-
-(*
-Lemma com_coeff_plusP: forall p q x,
-  com_coeff p x -> com_coeff q x -> com_coeff (p ++ q) x.
-Proof.
-elim => //.
-move => x s H1 q x0 H2 H3.
-apply/com_coeffP => //.
-*)
-
-(* ____ *)
 
 Lemma multRPrl: forall a p, com_coeff p a -> p ps a = a sp p.
 move => b; elim => //= [a  p Hrec H].
@@ -866,81 +785,6 @@ elim: q p1 Hrec H => //= [p1 Hrec H|b q1 _ p1 Hrec H];
 by move: (Hrec q1 H2) => ->.
 Qed.
 
-(*
-Lemma com_coeff_multP_rev : forall p p1 p2 x,
-  (com_coeff p x) -> (com_coeff p1 x) -> (p == p1 ** p2) -> ~~ eqP0 p1 -> 
-     (com_coeff p2 x).
-Proof.
-move => p p1 p2.
-elim: p1 p p2 => // [a1 s1 Hrec].
-elim: s1 Hrec => // [Hrec| a2 s2 Hrec2 Hrec].
-move => p p2 x Hp H1 H2 H3.
-move/com_coeffP: Hp => Hp.
-move/com_coeffP: H1 => H1.
-rewrite //= andbT in H3.
-rewrite adds_multl //= in H2.
-apply/com_coeffP => y Hy.
-move: (Hp (a1*y)) => H4.
-
-rewrite // in H2.
-
-move => a1 s1 Hrec p p2 x Hp Hp1 H1 H2.
-elim: s1 Hrec
-elim: p Hp H1 => // [Hp H1| a s Hrec1 Hp H1].
-
-
-rewrite //= in Hp1; elim: (andP Hp1) => H3 H4.
-clear Hp1.
-rewrite //= in H2.
-move: (nandP H2) => H5; clear H2.
-elim: H5 => H5.
-apply: Hrec => //=.
-
-apply: Hrec => //.
-
-  move=> p1; elim: p1 => // [a1 s1 Hrec1].
-  move=> p2 x H1 H2 H3 H4 .
-
-  apply: Hrec1 => //.
-  rewrite //= in H4.
-  
-  move=> p2; elim: p2 s1 Hrec1 => // [a2 s2 Hrec2 s1 Hrec1].
-  move=> x H1 H2 H3 H4.
-  apply: Hrec1 => //=.
-  Focus 2.
-  rewrite adds_multl in H3.
-
-
-  move/com_coeffP: H2 => H2.
-  apply/com_coeff
-
-  rewrite //= in H3; rewrite //= in H4.
-
-move => p p1 p2 x Hp Hp1 H1 H2.
-move/com_coeffP: Hp => Hp; move/com_coeffP: Hp1 => Hp1.
-apply/com_coeffP.
-elim: p p1 p2 Hp H1 H2 => //= [Hp H1 H2| a1 s1 Hrec1 Hp H1 H2].
-elim: p1 Hp1 H1 H2 => // [a1 s1 Hrec2 Hp1 H1 H2] //=.
-elim: p2 Hrec2 H1 => //.
-move=> x0 s Hrec3 H1 H3 y Hy.
-rewrite //= in H3.
-rewrite //= in H2.
-apply: Hrec3 => //.
-apply: Hp => //=.
-elim: p2 p1 Hrec1 Hp Hp1 H => // [p1 Hrec1 Hp Hp1 H| a2 s2 Hrec2 p1 Hrec1 Hp Hp1 H] //=.
-
-
-elim: p2 H => // [a2 s2 Hrec2 H] //=.
-elim: p2 p1 Hrec1 Hp Hp1 H => // [p1 Hrec1 Hp Hp1 H| a2 s2 Hrec2 p1 Hrec1 Hp Hp1 H] //=.
-
-elim: p2 H => //= [a2 s2  Hrec2]; rewrite adds_multr.
-rewrite eqP0_plus //=.
-
-
-
-Qed.
-*)
-
 Lemma factor_th : forall p p1 x,
   (com_coeff p x) -> p == (Adds (- x) (Adds 1 seq0)) ** p1 -> evalP p x = 0.
 Proof.
@@ -975,13 +819,8 @@ Record polyNorm: Type := PolyNorm {
   normP : normal poly
 }.
 
-(*
-Lemma can_poly : forall m n, cancel poly PolyNorm.
-Proof. move => m n; by rewrite /cancel; case => /=. Qed.
+(* Lemma inj_PolyNorm: injective PolyNorm. *)
 
-Lemma mval_inj : forall m n, injective (@mval m n). 
-Proof. move => m n; exact: can_inj (@can_mval m n). Qed.
-*)
 Lemma toto : forall p: (polynomial R), p <> 00 -> (eqP0 p) -> ~ normal p.
 Proof.
 move=> p H1 H2.
@@ -1011,6 +850,19 @@ Qed.
 
 Canonical Structure polyNormET := EqType eqPP.
 
+Definition R_to_polyNorm (x :R) : polyNorm := 
+  (@PolyNorm (R_to_poly x) (R_to_poly_normal x)).
+
+Lemma inj_R_to_polyNorm : injective R_to_polyNorm.
+Proof.
+move => x y H.
+move/eqPP: H => H.
+move/normal_eq: H => H.
+rewrite //= in H.
+apply: inj_R_to_poly.
+apply: H; apply: R_to_poly_normal.
+Qed.
+
 Definition plusPn (p1 p2 :polyNorm) : polyNorm := (PolyNorm (norm_normal (plusP p1 p2))).
 
 Definition multPn (p1 p2 :polyNorm) : polyNorm := (PolyNorm (norm_normal (multP p1 p2))).
@@ -1020,6 +872,12 @@ Definition opPn (p1 :polyNorm) : polyNorm := (PolyNorm (norm_normal (opP p1))).
 Notation "\00n" := (PolyNorm (normal0 R)) (at level 0): local_scope.
 
 Notation "\11n" := (PolyNorm (normal1 R)) (at level 0): local_scope.
+
+Lemma R_to_polyNorm0 : R_to_polyNorm 0 = \00n.
+Proof.
+apply/eqPP.
+rewrite / R_to_polyNorm / R_to_poly //= eq_refl //=.
+Qed.
 
 Lemma multPn0 : forall p : polyNorm, multPn \00n p = \00n.
 Proof. move=> p //=.
@@ -1151,7 +1009,7 @@ Section MatrixOfPoly.
 
 Open Scope local_scope.
 
-Definition matrix_of_polynomial (n :nat) := (matrix \P[x] n n).
+Definition matrix_of_polynomial (n :nat) := (matrix_eqType \P[x] n n).
 
 Notation "'\M_(x)_' ( n )" := (matrix_of_polynomial n)
   (at level 9, m, n at level 50, format "'\M_(x)_' ( n )") : local_scope.
@@ -1184,6 +1042,10 @@ Notation "x1 '*mp' x2" := (multMP x1 x2) (at level 50) : local_scope.
 Definition unitMP (n :nat) : \M_(x)_(n) := (unit_matrix \P[x] n).
 Notation "'\1mp_' ( n )" := (unitMP n)
   (at level 0, format "'\1mp_' ( n )") : local_scope.
+
+Definition zeroMP (n :nat) : \M_(x)_(n) := (null_matrix \P[x] n n).
+Notation "'\0mp_' ( n )" := (zeroMP n)
+  (at level 0, format "'\0mp_' ( n )") : local_scope.
 
 Definition scaleMP (n :nat) : \P[x] -> \M_(x)_(n) -> \M_(x)_(n) := 
   (@matrix_scale \P[x] n n).
@@ -1289,6 +1151,9 @@ Notation "\1pm_(n)" := (unitPM n)
 Notation "\0pm_(n)" := (zeroPM n)
   (at level 0, format "\0pm_(n)") : local_scope.
 
+Notation "\0mp_(n)" := (zeroMP n)
+  (at level 0, format "\0mp_(n)") : local_scope.
+
 Notation "\0m_(n)" := (null_matrix R n n)
   (at level 0, format "\0m_(n)") : local_scope.
 
@@ -1302,11 +1167,119 @@ Notation "'Xpm' x" := (multXPM x) (at level 40) : local_scope.
 Notation "\1pm_(n)" := (unitPM Hn)
   (at level 0, format "\1pm_(n)") : local_scope.
 
-Variable (phi : \M_(x)_(n) -> \M_[x]_(n)).
-Hypothesis phi_iso : bijective phi.
-Hypothesis phi_plus : forall Ax Bx, phi (Ax +mp Bx) = (phi Ax) +pm (phi Bx).
-Hypothesis phi_mult : forall Ax Bx, phi (Ax *mp Bx) = (phi Ax) *pm (phi Bx).
-Hypothesis phi_one : (phi \1mp_(n)) = \1pm_(n).
+Section PHI_MORPH.
+Definition mx_to_mx_poly : \M_(n) -> \M_(x)_(n) := 
+  fun A => (@matrix_of_fun \P[x] n n (fun i j => (R_to_polyNorm (fun_of_matrix A i j)))).
+
+Lemma injective_mx_to_mx_poly : injective mx_to_mx_poly.
+Proof.
+move=> x y H.
+apply/matrix_eqP; apply: EqMatrix => i j.
+apply: inj_R_to_polyNorm.
+rewrite / mx_to_mx_poly in H.
+unlock matrix_of_fun in H.
+move/Matrix_inj: H => // H.
+set f1:= (fun x0 : prod_finType I_(n) I_(n) =>
+       R_to_polyNorm (R0:=R) (fun_of_matrix x (eq_pi1 x0) (eq_pi2 x0))).
+set f2 := (fun x : prod_finType I_(n) I_(n) =>
+       R_to_polyNorm (R0:=R) (fun_of_matrix y (eq_pi1 x) (eq_pi2 x))).
+move: (g2f f1)=> Hf1.
+move: (g2f f2)=> Hf2.
+move/fgraphP: H => H.
+move: (H (EqPair i j)) => H1.
+by rewrite Hf1 Hf2 / f1 / f2 in H1.
+Qed.
+
+Lemma mx_to_mx_poly_0: mx_to_mx_poly 0 = \0mp_(n).
+Proof.
+rewrite / mx_to_mx_poly.
+apply/matrix_eqP; apply: EqMatrix => i j.
+rewrite !m2f.
+apply: R_to_polyNorm0.
+Qed.
+
+Notation "'X'" := (PolyNorm normalX) (at level 0): local_scope.
+
+Fixpoint phi (pm : \M_[x]_(n)) {struct pm} : \M_(x)_(n) :=
+    (if pm is (Adds a pm') then (mx_to_mx_poly a) +mp (X *smp (phi pm')) 
+      else (null_matrix \P[x] n n)).
+
+
+Lemma phi_multX : forall A, phi (Xpm A) = (X *smp (phi A)).
+Proof.
+move=> A.
+elim: A => //=.
+  symmetry; apply: (@matrix_scale_0m \P[x] n n X).
+move=> x s H.
+rewrite mx_to_mx_poly_0.
+set A:=(X *smp (mx_to_mx_poly x +mp X *smp phi s)).
+apply: matrix_plus0x.
+Qed.
+
+Lemma phi_plus : forall Ax Bx, phi (Ax +pm Bx) = (phi Ax) +mp (phi Bx).
+Proof.
+move=> Ax.
+elim: Ax => // [Bx| x s Hrec Bx].
+  rewrite //=; symmetry; apply: (@matrix_plus0x \P[x] n n).
+elim: Bx Hrec => // [Hrec| xx ss Hrec2 Hrec].
+  rewrite //=; symmetry. 
+  set T:=(mx_to_mx_poly x +mp X *smp phi s).
+  by rewrite [T +mp _]matrix_plusC (@matrix_plus0x \P[x] n n).
+rewrite //=.
+Admitted.
+
+Lemma phi_mult : forall Ax Bx, phi (Ax *pm Bx) = (phi Ax) *mp (phi Bx).
+Proof.
+move=> Ax.
+elim: Ax => // [Bx| x s Hrec Bx].
+  rewrite //=; symmetry; apply: matrix_mult0lx.
+have HT: Adds x s *pm Bx = plusPM (@multRPl _ x Bx) (Xpm (multPM s Bx)).
+  apply: adds_multl.
+rewrite HT phi_plus //= phi_multX.
+
+Admitted.
+
+Lemma phi_one : (phi \1pm_(n)) = \1mp_(n).
+Proof.
+
+Admitted.
+
+Lemma phi_inj : injective phi.
+Proof.
+
+
+Admitted.
+
+Lemma phi_iso: bijective phi.
+Proof.
+
+
+Admitted.
+
+Lemma phi_inv_plus: forall f x y, cancel f phi -> cancel phi f -> 
+  f (x +mp y) = (f x) +pm (f y).
+Proof.
+
+Admitted.
+
+Lemma phi_inv_mult: forall f x y, cancel f phi -> cancel phi f -> 
+  f (x *mp y) = (f x) *pm (f y).
+Proof.
+
+Admitted.
+
+Lemma phi_inv_one : forall f, cancel f phi -> cancel phi f -> 
+  (f \1mp_(n)) = \1pm_(n).
+Proof.
+
+Admitted.
+
+(* 
+Lemma phi_inv_id_poly: forall p,
+  phi_inv (p *smp \1mp_(n)) = poly_to_poly_of_mx Hn p.
+*)
+
+End PHI_MORPH.
 
 Definition evalPM : \M_[x]_(n) -> \M_(n) -> \M_(n) := @evalP \M_(n).
 
@@ -1322,6 +1295,39 @@ Qed.
 Theorem Cayley_Hamilton : forall A : \M_(n), 
   evalPM (poly_to_poly_of_mx Hn ( poly_car A)) A = \0m_(n).
 Proof.
+move=> A.
+set pcA := (poly_to_poly_of_mx Hn ( poly_car A)).
+pose X_A := ((x_I n) +mp (mx_to_mx_of_poly (matrix_scale (-1) A))).
+move: (mult_adugateR_MP X_A) => H1.
+have H2: (poly_car A) = det_MP X_A by done.
+rewrite -H2 in H1; clear H2.
+move: phi_iso=> H2; elim: H2 => phi_inv Hphi1 Hphi2.
+move: (bij_can_bij phi_iso Hphi1) => H2.
+move: (bij_inj H2) => H3.
+have H4: phi_inv (X_A *mp adjugateMP X_A) = phi_inv (poly_car A *smp \1mp_(n)) by rewrite H1.
+rewrite phi_inv_mult // in H4.
+apply: injective_mx_to_mx_poly.
+apply: H3.
+
+(*
+set caA := mx_to_mx_poly (evalPM pcA A).
+set Zmx:= mx_to_mx_poly \0m_(n).
+move: phi_inj => Hphi.
+rewrite / injective in Hphi.
+move: (Hphi caA Zmx).
+apply phi_inj.
+
+apply: (phi_inj caA Zmx).
+
+move: (Hphi (X_A *mp adjugateMP X_A) (poly_car A *smp \1mp_(n))).
+
+apply: factor_th_PM.
+*)
+
+
+
+
+
 
 Admitted.
 

@@ -431,8 +431,14 @@ Definition mval (m n: nat) (x : M_(m,n)) := match x with Matrix g => g end.
 Lemma can_mval : forall m n, cancel (@mval m n) (@Matrix m n).
 Proof. move => m n; by rewrite /cancel; case => /=. Qed.
 
+Lemma can_Matrix : forall m n, cancel (@Matrix m n) (@mval m n).
+Proof. move => m n; by rewrite /cancel; case => /=. Qed.
+
 Lemma mval_inj : forall m n, injective (@mval m n). 
 Proof. move => m n; exact: can_inj (@can_mval m n). Qed.
+
+Lemma Matrix_inj : forall m n, injective (@Matrix m n). 
+Proof. move => m n; exact: can_inj (@can_Matrix m n). Qed.
 
 Canonical Structure matrix_eqType (m n :nat) := EqType (can_eq (@can_mval m n)).
 
@@ -1293,6 +1299,9 @@ Proof. by move => *; mx2fun i j; rewrite plusA. Qed.
 Lemma matrix_scale_0 : forall m n (A : M_(m, n)), 0 *sm A = \0m.
 Proof. by move => *; mx2fun i j; rewrite mult0l. Qed.
 
+Lemma matrix_scale_0m : forall (m n :nat) (c:R), c *sm \0m_(m,n) = \0m.
+Proof. by move => *; mx2fun i j; rewrite mult0r. Qed.
+
 Lemma matrix_scale_1 : forall m n (A : M_(m, n)), 1 *sm A = A.
 Proof. by move => *; mx2fun i j; rewrite mult1l. Qed.
 
@@ -1737,3 +1746,5 @@ Qed.
 End R_props.
 
 End determinant_context.
+
+Unset Implicit Arguments.
