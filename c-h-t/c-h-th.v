@@ -850,6 +850,9 @@ Qed.
 
 Canonical Structure polyNormET := EqType eqPP.
 
+(* degree of a normal polynomial *)
+Definition poly_deg : polyNorm ->  nat := fun x => size (poly x).
+
 Definition R_to_polyNorm (x :R) : polyNorm := 
   (@PolyNorm (R_to_poly x) (R_to_poly_normal x)).
 
@@ -1022,6 +1025,88 @@ Definition mx_to_mx_of_poly (n :nat) (A :M_(n)): \M_(x)_( n ) :=
 Lemma inj_mx_to_mx_of_poly : forall n, injective (@mx_to_mx_of_poly n).
 Proof.
 Admitted.
+
+(* 
+Definition deg_mx_poly (n :nat) : \M_(x)_(n) -> nat.
+move=> n A.
+*)
+(* max of a seq for a relation of order *)
+
+(* 
+Fixpoint max_seq (d :eqType) (ord: d->d->bool) (i :d) (s :seq d) {struct s} : d :=
+  if s is (Adds a s') then (if (ord i a) then (max_seq ord a s') else (max_seq ord i s'))
+  else i.
+*)
+
+Fixpoint max_seq (d :eqType) (x :nat) (f :d->nat) (s :seq d) {struct s} : nat :=
+  if s is (Adds a s') then (if (x < f a) then (max_seq (f a) f s') else (max_seq x f s'))
+  else x.
+
+Lemma max_seq_min :  forall (d :eqType) (f :d->nat) (s :seq d) (o :nat), 
+  o <= max_seq o f s.
+Proof.
+move=> d f.
+elim => //= [x s Hrec o].
+case H:(o < f x); last apply: Hrec.
+move: (Hrec (f x)) => H2.
+apply: (@leq_trans (f x) _ _)=> //.
+by apply: ltnW.
+Qed.
+
+(* TO ADD TO SSRNAT *)
+
+Lemma leq_ltn_trans : forall n m p, m <= n -> n < p -> m < p.
+Proof. by elim=> [|m Hrec] [|n] [|p];  try exact (Hrec n p). Qed.
+
+Lemma ltn_leq_trans : forall n m p, m < n -> n <= p -> m < p.
+Proof. by elim=> [|m Hrec] [|n] [|p];  try exact (Hrec n p). Qed.
+
+Lemma max_seq_trans : forall (d :eqType) (f :d->nat) (s :seq d) (o :nat) (p :nat), 
+  o <= p -> max_seq o f s <= max_seq p f s.
+Proof.
+move=> d f.
+elim => //= [x s Hrec o p Hop].
+case H:(p < f x). 
+  move/idP: H => H; by rewrite (@leq_ltn_trans p o (f x) Hop H).
+case H2:(o < f x); apply: Hrec=> //.
+rewrite leqNgt.
+by move/negbT: H => H.
+Qed.
+
+Lemma max_seq_max : forall (d :eqType) (f :d->nat) (s :seq d) (o :nat), 
+  (forall x, s x -> f x <= max_seq o f s).
+Proof.
+move=> d f.
+elim => //= [x s Hrec o xx Hxx].
+rewrite / setU1 in Hxx; move/orP: Hxx => Hxx.
+elim: Hxx => H.
+  move/eqtype.eqP: H => <-.
+  case H:(o < f x); first apply: max_seq_min.
+  move/negbT: H => H; rewrite -leqNgt in H.
+  apply: (@leq_trans o _ _)=> //; apply: max_seq_min.
+case H2:(o < f x); last apply: Hrec => //.
+move/ltnW: H2 => H2.
+move: (max_seq_trans f s H2) => H3.
+apply: (@leq_trans (max_seq o f s) _ _) => //.
+by apply: Hrec.
+Qed.
+
+(* END MAX SEQ *)
+
+
+Definition mx_poly_deg (n :nat):  \M_(x)_(n) -> nat := 
+  fun x => (@max_seq \P[x] (0%N) (@poly_deg R) (fval (mval x))).
+
+
+Lemma mx_poly_deg_prop: forall n (A : \M_(x)_(n)) i j, 
+  poly_deg (fun_of_matrix A i j) <= mx_poly_deg A.
+Proof.
+move=> n A i j.
+apply: max_seq_max.
+unlock fun_of_matrix => //.
+rewrite mem_sub // fproof index_mem.
+rewrite (@mem_enum (prod_finType I_(n) I_(n)) _) //.
+Qed.
 
 (* Operation for Matrix of Poly *)
 
@@ -1244,6 +1329,65 @@ Proof.
 
 Admitted.
 
+Definition sub_mx_poly (Ax : \M_(x)_(n)) (k :nat) : \M_(n) := 
+(*   if k < (mx_poly_deg Ax) then *)
+     (matrix_of_fun (fun i j => sub 0 (poly (fun_of_matrix Ax i j)) k)) 
+(*  else \0m_(n) *).
+
+Definition poly_mx_poly (Ax : \M_(x)_(n)) : (polynomial \M_(n)) := 
+  mkseq (sub_mx_poly Ax) (mx_poly_deg Ax).
+
+(* TO ADD TO SEQ PROP *)
+
+Lemma last_iota : forall m n :nat, last 0%N (iota m n) = (n + m - 1%N)%N.
+Proof.
+elim => //= [|m' Hrec].
+  elim => //=[n' _].
+  rewrite -(@sub_last _ 0%N 0%N(iota 1 n')) size_iota //=.
+  have H: iota 0%N (1%N + n') = (Adds 0%N (iota 1 n')).
+    by rewrite //=.
+  rewrite -H sub_iota //.
+
+Admitted.
+
+
+Lemma last_mkseq : forall (d : eqType) (f : nat -> d) (x : d) (m :nat),
+       (0<m) -> last x (mkseq f m) = f (pred m).
+Proof.
+move => d f x.
+elim => //= [m' Hrec Hm].
+rewrite last_maps.
+case H:(m'==0%N); move/eqtype.eqP: H => H.
+  rewrite H //=.
+by rewrite last_iota subn_addl.
+Qed.
+
+
+(* --- *)
+
+Lemma normal_poly_mx_poly : forall (Ax : \M_(x)_(n)), normal (poly_mx_poly Ax).
+Proof.
+move=> Ax.
+rewrite / normal / poly_mx_poly //=.
+apply/eqtype.eqP.
+move=> H.
+(* rewrite last_maps.
+case H2:(mx_poly_deg Ax == 0%N).
+  move/eqtype.eqP: H2 => H2.
+  rewrite H2 //= in H; move: (@one_diff_0 \M_(n)) => H3; by rewrite H in H3.
+  rewrite / sub_mx_poly // in H. *)
+
+Admitted.
+
+
+
+(* Definition  *)
+
+(*
+Fixpoint phi_inv (pm : \M_[x]_(n)) {struct pm} : \M_(x)_(n) :=
+    (if pm is (Adds a pm') then (mx_to_mx_poly a) +mp (X *smp (phi pm')) 
+      else (null_matrix \P[x] n n)).
+*)
 Lemma phi_inj : injective phi.
 Proof.
 
