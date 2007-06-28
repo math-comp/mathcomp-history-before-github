@@ -1053,6 +1053,11 @@ apply: (@leq_trans (f x) _ _)=> //.
 by apply: ltnW.
 Qed.
 
+Fixpoint get_max_seq (d :eqType) (x0 :d) (f :d->nat) (s :seq d) {struct s} : d :=
+  if s is (Adds a s') then (if (f a == max_seq (f x0) f s) then a 
+     else (get_max_seq x0 f s')) 
+  else x0.
+
 (* TO ADD TO SSRNAT *)
 
 Lemma leq_ltn_trans : forall n m p, m <= n -> n < p -> m < p.
@@ -1091,6 +1096,26 @@ apply: (@leq_trans (max_seq o f s) _ _) => //.
 by apply: Hrec.
 Qed.
 
+
+Lemma get_max_seq_prop : 
+  forall (d :eqType) (f :d->nat) (s :seq d) (x0 :d), 
+    f (get_max_seq x0 f s) = max_seq (f x0) f s.
+Proof.
+move=> d f.
+elim => // [x s Hrec x0].
+rewrite //=.
+case H:(f x0 < f x) => //.
+  move: (Hrec x0) => H2.
+  case H1:( f x == max_seq (f x) f s) => //.
+    by move/eqtype.eqP: H1.
+  rewrite H2.
+  move: (ltnW H) => H3.
+  move: (max_seq_trans f s H3) => H4.
+
+Admitted.
+
+
+
 (* END MAX SEQ *)
 
 
@@ -1107,6 +1132,43 @@ unlock fun_of_matrix => //.
 rewrite mem_sub // fproof index_mem.
 rewrite (@mem_enum (prod_finType I_(n) I_(n)) _) //.
 Qed.
+
+Lemma mx_poly_deg_0 : forall n, mx_poly_deg (null_matrix \P[x] n n) = 0%N.
+Proof.
+move=> n.
+rewrite / mx_poly_deg //=.
+set ss:= (fval (mval (null_matrix \P[x] n n))).
+have Hss: forall x, ss x -> x = 0.
+  move=> x Hx //.
+  rewrite / ss / null_matrix in Hx.
+  unlock matrix_of_fun in Hx.
+  unlock fgraph_of_fun in Hx.
+  rewrite //= in Hx.
+  move/mapsP: Hx => Hx.
+  by elim: Hx => _ _ H1.
+elim: ss Hss => // [ xx ss Hrec Hss].
+rewrite //=.
+have H: (@poly_deg R 0 = 0%N) by rewrite //=.
+move: (@get_max_seq_prop \P[x] (poly_deg (R:=R)) ss xx) => H1.
+case H2:(0 < poly_deg xx); last first.
+  apply: Hrec => x Hx; apply: Hss => //=.
+  by rewrite / setU1 Hx orbT.
+move/idP: H2 => H2.
+move: (Hss xx) => //= H3.
+rewrite / setU1 eq_refl orTb //= in H3.
+move: (H3 is_true_true) => H4; clear H3.
+rewrite -H4 in H.
+by rewrite H in H2.
+Qed.
+
+
+(* 
+Definition get_mx_poly_deg_index (n :nat) (Ax : \M_(x)_(n))
+  : (prod_finType I_(n) I_(n)).
+move=> n Ax.
+pose nx:= get_max_seq (PolyNorm (normal0 R)) (@poly_deg R) (fval (mval Ax)).
+index
+*)
 
 (* Operation for Matrix of Poly *)
 
@@ -1337,6 +1399,13 @@ Definition sub_mx_poly (Ax : \M_(x)_(n)) (k :nat) : \M_(n) :=
 Definition poly_mx_poly (Ax : \M_(x)_(n)) : (polynomial \M_(n)) := 
   mkseq (sub_mx_poly Ax) (mx_poly_deg Ax).
 
+Lemma poly_mx_poly_0 : poly_mx_poly (null_matrix \P[x] n n) = seq0.
+Proof.
+rewrite / poly_mx_poly // mx_poly_deg_0 //=.
+Qed.
+
+
+
 (* TO ADD TO SEQ PROP *)
 
 Lemma last_iota : forall m n :nat, last 0%N (iota m n) = (n + m - 1%N)%N.
@@ -1370,16 +1439,36 @@ Proof.
 move=> Ax.
 rewrite / normal / poly_mx_poly //=.
 apply/eqtype.eqP.
-move=> H.
-(* rewrite last_maps.
 case H2:(mx_poly_deg Ax == 0%N).
+  move=> H.
   move/eqtype.eqP: H2 => H2.
   rewrite H2 //= in H; move: (@one_diff_0 \M_(n)) => H3; by rewrite H in H3.
-  rewrite / sub_mx_poly // in H. *)
+rewrite last_mkseq; last first.
+  move/eqtype.eqP: H2 => H2.
+  case: (posnP (mx_poly_deg Ax)) => //.
+rewrite / sub_mx_poly //.
+move=>H.
+move/matrix_eqP: H => H; case: H => H.
+rewrite / eqrel in H.
+  
 
 Admitted.
 
+Definition phi_inv (pm : \M_(x)_(n)) : \M_[x]_(n) := 
+  (poly_mx_poly pm).
 
+Lemma cancel_phi_phi_inv : cancel phi phi_inv.
+Proof.
+move=> A.
+
+Admitted.
+
+Lemma cancel_phi_inv_phi : cancel phi_inv phi.
+Proof.
+move=> A.
+rewrite / phi_inv.
+
+Admitted.
 
 (* Definition  *)
 
@@ -1400,20 +1489,17 @@ Proof.
 
 Admitted.
 
-Lemma phi_inv_plus: forall f x y, cancel f phi -> cancel phi f -> 
-  f (x +mp y) = (f x) +pm (f y).
+Lemma phi_inv_plus: forall x y, phi_inv (x +mp y) = (phi_inv x) +pm (phi_inv y).
 Proof.
 
 Admitted.
 
-Lemma phi_inv_mult: forall f x y, cancel f phi -> cancel phi f -> 
-  f (x *mp y) = (f x) *pm (f y).
+Lemma phi_inv_mult: forall x y, phi_inv (x *mp y) = (phi_inv x) *pm (phi_inv y).
 Proof.
 
 Admitted.
 
-Lemma phi_inv_one : forall f, cancel f phi -> cancel phi f -> 
-  (f \1mp_(n)) = \1pm_(n).
+Lemma phi_inv_one : (phi_inv \1mp_(n)) = \1pm_(n).
 Proof.
 
 Admitted.
@@ -1444,6 +1530,8 @@ set pcA := (poly_to_poly_of_mx Hn ( poly_car A)).
 pose X_A := ((x_I n) +mp (mx_to_mx_of_poly (matrix_scale (-1) A))).
 move: (mult_adugateR_MP X_A) => H1.
 have H2: (poly_car A) = det_MP X_A by done.
+
+(*
 rewrite -H2 in H1; clear H2.
 move: phi_iso=> H2; elim: H2 => phi_inv Hphi1 Hphi2.
 move: (bij_can_bij phi_iso Hphi1) => H2.
@@ -1452,8 +1540,6 @@ have H4: phi_inv (X_A *mp adjugateMP X_A) = phi_inv (poly_car A *smp \1mp_(n)) b
 rewrite phi_inv_mult // in H4.
 apply: injective_mx_to_mx_poly.
 apply: H3.
-
-(*
 set caA := mx_to_mx_poly (evalPM pcA A).
 set Zmx:= mx_to_mx_poly \0m_(n).
 move: phi_inj => Hphi.
