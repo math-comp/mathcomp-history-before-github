@@ -670,6 +670,14 @@ move => p; rewrite /norm.
 rewrite norm3_normal //; exact: normal0.
 Qed.
 
+Lemma normal_norm_eq : forall p, normal p -> norm p = p.
+Proof.
+move=> p Hp.
+apply: normal_eq=> //; last (by apply: norm_eq).
+apply: norm_normal.
+Qed.
+
+
 Lemma norm_plusP : forall p q, p ++ (norm q) == norm (p ++ q).
 Proof.
 move => p q.
@@ -677,6 +685,60 @@ apply: eqP_sym.
 apply: (eqP_trans (norm_eq (p ++ q))).
 apply: eqP_plus; first (exact: eqP_refl).
 apply: eqP_sym; apply: norm_eq.
+Qed.
+
+Lemma norm_seq0 : norm (Seq0 R) = seq0.
+Proof. done. Qed.
+
+Lemma norm_seq1 : forall a, (a <> 0) -> norm (Seq a) = (Seq a).
+Proof.
+move=> a Ha.
+apply: normal_norm_eq.
+rewrite / normal //=.
+by apply/eqtype.eqP.
+Qed.
+
+Lemma norm_seq0R : norm (Seq 0) = seq0.
+Proof.
+by rewrite / norm //= eq_refl.
+Qed.
+
+Lemma norm_adds : forall (p :polynomial) a, (a <> 0) -> norm (Adds a p) = Adds a (norm p).
+Proof.
+have HT1 : forall p a, (Adds a (norm p)) == Adds a p.
+  by move=>  p a; rewrite //= eq_refl norm_eq.
+have HT2: forall p q, p == q -> norm p = norm q.
+  move=> p q H.
+  apply: normal_eq; try apply: norm_normal.
+  move: (norm_eq p) => Hp.
+  move: (norm_eq q) => Hq.
+  by rewrite (eqP_trans Hp) // eqP_sym // (eqP_trans Hq) // eqP_sym.
+have HT3: forall p a, (a != 0) -> normal p -> normal (Adds a p).
+  elim => //=.
+move=> p a Ha.
+move: (HT1 p a) => H1.
+move: (HT2 (Adds a (norm p)) (Adds a p) H1) => H2.
+rewrite -H2.
+apply: normal_norm_eq.
+clear H1 H2.
+apply: HT3; first by apply/eqtype.eqP.
+apply: norm_normal.
+Qed.
+
+Lemma norm_multPX : forall (p :polynomial), norm (Adds 0 p) = multPX (norm p).
+Proof.
+have HT: (forall p, normal p -> normal (Xp p)) by elim=>//.
+move=> p.
+apply: normal_eq; first (apply: norm_normal).
+  apply: HT; apply: norm_normal.
+move: (norm_eq (Adds 0 p)) => H1.
+rewrite (eqP_trans H1) //; clear H1.
+move: (norm_eq p) => H1.
+move: (eqP_multPX H1) => H2.
+rewrite eqP_sym // (eqP_trans H2) //.
+clear H1 H2.
+elim: p => //= [|x p Hrec]; rewrite !eq_refl //=.
+by rewrite eqP_refl.
 Qed.
 
 
@@ -870,6 +932,8 @@ Definition plusPn (p1 p2 :polyNorm) : polyNorm := (PolyNorm (norm_normal (plusP 
 
 Definition multPn (p1 p2 :polyNorm) : polyNorm := (PolyNorm (norm_normal (multP p1 p2))).
 
+Definition multPnX (p1 : polyNorm) : polyNorm := (PolyNorm (norm_normal (multPX p1))).
+
 Definition opPn (p1 :polyNorm) : polyNorm := (PolyNorm (norm_normal (opP p1))).
 
 Notation "\00n" := (PolyNorm (normal0 R)) (at level 0): local_scope.
@@ -991,7 +1055,7 @@ move=> x0 Hx0; apply/com_coeffP=> y0 Hy0.
 apply: multC.
 Defined.
 
-Canonical Structure polyNormComRings.
+(* Canonical Structure polyNormComRings. *)
 
 End PolyNormComRings.
 
@@ -1020,7 +1084,7 @@ Notation "'\M_(x)_' ( n )" := (matrix_of_polynomial n)
 (* ---- STOP ---- *)
 
 Definition mx_to_mx_of_poly (n :nat) (A :M_(n)): \M_(x)_( n ) := 
-   matrix_of_fun (fun i j => (PolyNorm (R_to_poly_normal (A i j)))).
+   @matrix_of_fun \P[x] n n (fun i j => (PolyNorm (R_to_poly_normal (A i j)))).
 
 Lemma inj_mx_to_mx_of_poly : forall n, injective (@mx_to_mx_of_poly n).
 Proof.
@@ -1234,7 +1298,7 @@ Hypothesis (Hn : 0 < n).
 Definition mx_n_type:= (@matrixRings R n Hn).
 Notation "\M_(n)" := (mx_n_type) : local_scope.
 
-Definition polynomial_of_matrix := (@polynomial \M_(n)).
+Definition polynomial_of_matrix := (@polyNorm \M_(n)).
 
 Notation "\M_[x]_(n)" := polynomial_of_matrix : local_scope.
 
@@ -1245,34 +1309,43 @@ Notation "A '+m' B" := (matrix_plus A B) (at level 50) : local_scope.
 Notation "x '*sm' A" := (matrix_scale x A) (at level 40) : local_scope.
 Notation "A '*m' B" := (matrix_mul A B) (at level 40) : local_scope.
 
-Definition plusPM : \M_[x]_(n) -> \M_[x]_(n) -> \M_[x]_(n) := @plusP \M_(n).
+Definition plusPM : \M_[x]_(n) -> \M_[x]_(n) -> \M_[x]_(n) := @plusPn \M_(n).
 Notation "x1 '+pm' x2" := (plusPM x1 x2) (at level 50) : local_scope.
 
-Definition multPM : \M_[x]_(n) -> \M_[x]_(n) -> \M_[x]_(n) := @multP \M_(n).
+Definition multPM : \M_[x]_(n) -> \M_[x]_(n) -> \M_[x]_(n) := @multPn \M_(n).
 Notation "x1 '*pm' x2" := (multPM x1 x2) (at level 50) : local_scope.
 
-Definition unitPM : \M_[x]_(n) := (Adds\1m_(n) seq0).
-Notation "\1pm_(n)" := unitPM
-  (at level 0, format "\1pm_(n)") : local_scope.
+Definition multXPM : \M_[x]_(n) -> \M_[x]_(n) :=(@multPnX \M_(n)).
+Notation "'Xpm' x" := (multXPM x) (at level 40) : local_scope.
 
-Definition zeroPM : \M_[x]_(n) := (@Seq0 \M_(n)).
+Lemma normal_M0 : @normal \M_(n) (@Seq0 \M_(n)).
+Proof.
+apply: normal0.
+Qed.
+
+Definition zeroPM : \M_[x]_(n) := (PolyNorm normal_M0).
 Notation "\0pm_(n)" := zeroPM
   (at level 0, format "\0pm_(n)") : local_scope.
 
-Definition multXPM : \M_[x]_(n) -> \M_[x]_(n) :=(@multPX \M_(n)).
-Notation "'Xpm' x" := (multXPM x) (at level 40) : local_scope.
+Lemma normal_M1 : @normal \M_(n) (Adds\1m_(n) seq0).
+Proof.
+apply: normal1.
+Qed.
+
+Definition unitPM : \M_[x]_(n) := (PolyNorm normal_M1).
+Notation "\1pm_(n)" := unitPM
+  (at level 0, format "\1pm_(n)") : local_scope.
 
 (* --- *)
 
+(*
 Definition R_to_mx (x :R) : M_(n) := (x *sm \1m_(n)).
-
 Definition poly_to_poly_of_mx (p : \P[x]) : \M_[x]_(n):=
   maps R_to_mx (poly p).
-
 Lemma inj_poly_to_poly_of_mx : injective (poly_to_poly_of_mx).
 Proof.
-
 Admitted.
+*)
 
 End PolyOfMatrix.
 Variable n:nat.
@@ -1285,6 +1358,12 @@ Notation "\M_(x)_(n)" := (matrix_of_polynomial n)
   (at level 9, m, n at level 50, format "\M_(x)_(n)") : local_scope.
 Notation "\M_[x]_(n)" := (@polynomial_of_matrix n Hn)
   (at level 9, m, n at level 50, format "\M_[x]_(n)") : local_scope.
+
+Notation "\1m_( n )" := (unit_matrix R n) : local_scope.
+Notation "\0m_( n )" := (null_matrix R n n) : local_scope.
+Notation "A '+m' B" := (matrix_plus A B) (at level 50) : local_scope.
+Notation "x '*sm' A" := (matrix_scale x A) (at level 40) : local_scope.
+Notation "A '*m' B" := (matrix_mul A B) (at level 40) : local_scope.
 
 Notation "x1 '+mp' x2" := (plusMP x1 x2) (at level 50) : local_scope.
 Notation "x1 '*mp' x2" := (multMP x1 x2) (at level 50) : local_scope.
@@ -1347,8 +1426,98 @@ Qed.
 
 Notation "'X'" := (PolyNorm normalX) (at level 0): local_scope.
 
+Definition head_mxp : \M_(x)_(n) -> \M_(n) := 
+  fun Ax : \M_(x)_(n) => 
+     matrix_of_fun (fun (i j : I_(n)) => sub 0 (poly (fun_of_matrix Ax i j)) 0%N).
+
+(* TO ADD TO POLY PROP *)
+
+Lemma sub_poly: 
+  forall (p q : polynomial R) i, sub 0 (plusP p q) i = (sub 0 p i) + (sub 0 q i).
+Proof.
+elim => //[|x p Hrec].
+  move=> q i; by rewrite //= sub_seq0 plus0l.
+elim => //[|y q Hrec2].
+  move=> i; by rewrite //= sub_seq0 plus0r.
+move=> i.
+rewrite //=.
+elim: i => //= n0 Hrec3.
+Qed.
+
+(* TO ADD TO RING *)
+
+Lemma opp_plus_eqr : forall (R : ringsType) (x1 x2 : R), x1 + x2 = 0 -> x1 = -x2.
+Proof.
+move=> R0 x1 x2 H.
+by apply: (@plusInj R0 x2); rewrite plus_opr plusC.
+Qed.
+
+Lemma sub_polyn: 
+  forall (p q : \P[x]) i, sub 0 (poly (plusPn p q)) i = (sub 0 (poly p) i) + (sub 0 (poly q) i).
+Proof.
+elim=> //=.
+elim=> // [Hp|a p Hrec Hp].
+  rewrite //=; elim=> //=.
+  elim=> //= [Hq|b q Hrec2 Hq].
+    by move=> i; rewrite sub_seq0 plus0l.
+  move=> i; rewrite sub_seq0 plus0l //=.
+  by move: (normal_norm_eq Hq) => ->.
+elim=> //.
+elim=> // [Hq|b q Hrec2 Hq] //=.
+  move=> i; rewrite //= sub_seq0 plus0r.
+  by move: (normal_norm_eq Hp) => ->.
+move: (normal_inv Hp) => H1.
+move: (normal_inv Hq) => H2.
+move: (Hrec H1 (PolyNorm H2)) => H3.
+rewrite //= in H3.
+case H:(a+b==0); move/eqtype.eqP:H=>H.
+  rewrite H norm_multPX.
+  move: H3; set xt:=(norm (plusP p q)) => H3.
+  elim=> // [|n0 Hrecn].
+  elim: xt H3 => //=.
+  move: (H3 n0) => H4; clear H3.
+  clear Hrecn.
+  elim: xt H4 => //=.
+  by rewrite sub_seq0.
+rewrite norm_adds //.
+clear Hrec.
+move: H3; set xt:=(norm (plusP p q)) => H3.
+elim=> //= [n0 Hrecn].
+Qed.
+
+Lemma head_mxp_plus: 
+  forall Ax Bx, (head_mxp (Ax +mp Bx)) = (head_mxp Ax +m head_mxp Bx).
+Proof.
+move=> Ax Bx.
+rewrite / head_mxp.
+apply/matrix_eqP; apply: EqMatrix => i j; rewrite !m2f.
+apply: sub_polyn.
+Qed.
+
+(*
+Definition head_mxp (Ax : \M_(x)_(n)) : \M_(n).
+move=> Ax.
+pose f:= (fun (i j : I_(n)) => sub 0 (poly (fun_of_matrix Ax i j)) 0%N).
+exact (matrix_of_fun f).
+Defined.
+
+Definition phi (pm : \M_[x]_(n)) : \M_(x)_(n).
+move=> pm.
+case: pm => p Hp.
+case: p Hp=> Hp.
+pose r0:= (@null_matrix \P[x] n n).
+exists.
+exists (fval (mval r0)).
+by rewrite fproof.
+move=> s Hs.
+move: (normal_inv Hs) => Hss.
+
+exists (fun_of_matrix r0).
+*)
+
+
 Fixpoint phi (pm : \M_[x]_(n)) {struct pm} : \M_(x)_(n) :=
-    (if pm is (Adds a pm') then (mx_to_mx_poly a) +mp (X *smp (phi pm')) 
+    (if poly (pm) is (Adds a pm') then (mx_to_mx_poly a) +mp (X *smp (phi (pm')) 
       else (null_matrix \P[x] n n)).
 
 
