@@ -244,42 +244,103 @@ move => x' y' Hx' Hy' Heq; move/andP:Hx'=>[_ Hx']; move/andP:Hy'=>[_ Hy'].
 by apply Hg => //.
 Qed.
 
-(*
 Lemma i_prod_image2 :
   forall (d d':finType) (a:set d) (g:d->d') f, dinjective a g ->
    iprod _ (image g a) f = iprod _ a (fun x => f (g x)).
-move => d d' a.
-elim: {a}(card a) {-2}a (refl_equal (card a)) => [| n Hrec] a Ha g f Hg.
- have F1: a =1 set0 by apply card0_eq.
- have F2: image g a =1 set0. 
-  by move => x; rewrite (image_eq _ _ a set0 g g) //; rewrite (image_set0 d d' g x).
- by rewrite (eq_iprod_set d _ _ _ F1) (eq_iprod_set d _ _ _ F2) !iprod0.
-have F2: ~~set0b a by apply/set0P => H1; rewrite (eq_card0 H1) in Ha.
-case/set0Pn: F2 => x Hx.
-rewrite (iprodD1 _ x a) => //.
-rewrite (iprodD1 _ (g x)); last by apply/imageP; exists x.
-congr mulR.
-have F3: setD1 (image g a) (g x) =1 image g (setD1 a x).
- move => y;apply/andP/imageP.
-  move => [Hngx Hin]; move/imageP: Hin => [z Hin Heq];exists z =>//.
-  apply/andP; split => //; apply/negP; move => Heq'. 
-  by rewrite (eqP Heq') in Hngx; case/negP: Hngx; rewrite Heq.
- move => [z Hin Heq]; move/andP: Hin => [Hzx Hin]; split.
-  apply/negP;move/eqP => Heq'.
-  by move/negP: Hzx => H; case H; apply/eqP; apply Hg => //; rewrite -Heq.
- by apply/imageP; exists z.
-rewrite (eq_iprod_set d _ _ _ F3); apply Hrec => //.
- by rewrite (cardD1 x) Hx /= add1n in Ha; injection Ha.
-move => x' y' Hx' Hy' Heq; move/andP:Hx'=>[_ Hx']; move/andP:Hy'=>[_ Hy']. 
-by apply Hg => //.
-Qed.
-
+Proof.
+Admitted.
 
 Lemma iprod_injection :
   forall (d d':finType) (a:set d) (a' :set d') (f:d->d') g, dinjective a f ->
-   iprod _ a' g = iprod _ (setI a (preimage f a')) (fun x => g (f x)) * iprod _ (setD a' (image f a)) g.
+   iprod _ a' g = 
+   iprod _ (setI a (preimage f a')) (fun x => g (f x)) * iprod _ (setD a' (image f a)) g.
 Proof.
-*)
+Admitted.
 
+Lemma ltn_addr : forall m n p, m < n -> m < n + p.
+Proof.
+elim=> [|m Hrec] [|n] [|p] //; rewrite ?addn0 //=; try exact (Hrec n (S p)).
+Qed.
+
+Lemma leq_addl : forall m n p, m < n -> m < p + n.
+Proof.
+elim=> [|m Hrec] [|n] [|p] //; rewrite ?add0n //= => H.
+apply: (Hrec (S n) p).
+by apply: (@ltn_trans (S m) m (S n)).
+Qed.
+
+Definition inj_ord (m n :nat) : (ordinal m) -> (ordinal (m+n)) := 
+  fun i => match i with EqSig x Hx => make_ord (ltn_addr x m n Hx) end.
+
+Lemma inj_inj_ord : forall m n, injective (inj_ord m n).
+Proof.
+move=> m n.
+case=>//[i Hi] [i' Hi'] //= H.
+have HT:( val (make_ord (ltn_addr i m n Hi)) = val (make_ord (ltn_addr i' m n Hi'))) 
+  by rewrite H.
+rewrite //= in HT.
+clear H.
+move: Hi Hi'.
+rewrite -HT => Hi Hi'.
+congr EqSig.
+apply: eq_irrelevance.
+Qed.
+
+Lemma inj_ord_image : forall m n i,
+  (image (inj_ord m n) (setA (ordinal m)) ) i = (val i < m).
+move=> m n i.
+case H1:(val i < m).
+  move/idP: H1 => H1.
+  pose ii:= make_ord H1.
+  have H2: (inj_ord m n) ii = i by apply: val_inj => //.
+  rewrite -H2 image_f //; apply: inj_inj_ord.
+apply/idP => H2.
+move/imageP: H2 => H2.
+elim: H2 => ii _ H3.
+move: (ordinal_ltn ii) => H4.
+have H5: val (inj_ord m n ii) = val ii.
+  clear H3 H4; case: ii.
+  rewrite / inj_ord //=.
+rewrite H3 H5 in H1.
+by rewrite H4 in H1.
+Qed.
+
+Lemma ltn_addn1 : forall n, n<n+1.
+Proof. move=> n; rewrite addn1; apply: ltnSn. Qed.
+
+Lemma iprod_rec : 
+  forall n (f : ordinal (n + 1) -> R), iprod _ (setA (ordinal (n + 1))) f =
+    iprod _ (setA (ordinal n)) (fun x => f ((inj_ord n 1) x)) * (f (make_ord (ltn_addn1 n))).
+Proof.
+move=> n f.
+move: (@inj_dinj _ _ (setA (ordinal n)) (inj_ord n 1) (inj_inj_ord n 1) ) => H1.
+move: (iprod_injection (ordinal n) (ordinal (n+1)) 
+  (setA (ordinal n)) (setA (ordinal (n + 1))) (inj_ord n 1) f H1) => H2; clear H1.
+rewrite H2; congr mulR.
+rewrite -iprod_set1.
+apply: eq_iprod_set.
+move=> x.
+rewrite/ setD //.
+rewrite (inj_ord_image n 1 x) / setA andbT.
+clear H2.
+case: x =>//= x Hx.
+rewrite / make_ord.
+symmetry.
+case H1:(x<n) => //=; move/idP: H1 => H1.
+  apply/eqP=> H2.
+  have H3: val (EqSig (fun m : nat => m < n + 1) n (ltn_addn1 n)) =
+     val (EqSig (fun m : nat => m < n + 1) x Hx) by rewrite H2.
+  rewrite //= in H3; rewrite H3 in H1.
+  move: (ltnn x) => H4.
+  by rewrite H1 in H4.
+apply/eqP.
+apply: val_inj => //=.
+move: (leqNgt n x) => H2.
+move/negP: H1 => H1.
+rewrite H1 in H2; clear H1.
+move/idP: H2 => H2.
+apply/eqP.
+by rewrite eqn_leq H2 andTb -ltnS -(addn1 n).
+Qed.
 
 End indexed_products.
