@@ -1412,18 +1412,33 @@ Lemma head_polyn_iprod :
   head_polyn (@indexed_products.iprod _ plusPn \00n I_(n) (setA I_(n)) f) =
   (@indexed_products.iprod _ plus 0 I_(n) (setA I_(n)) (fun j : I_(n) => head_polyn (f j))).
 Proof.
-elim=> // [n Hrec].
-move=> f.
-(* move: (head_polyn_poly
-    (indexed_products.iprod polyNorm plusPn \00n I_(n) (setA I_(n)) f)) => H1.
-rewrite (eqP_trans H1) //; clear H1.
-rewrite / plusPn //.
-move
+move=> n f.
+rewrite / head_polyn -(head_poly_iprod).
+apply: head_poly_eqP.
+elim: n f => // [n Hrec ].
+rewrite -addn1 => f.
+rewrite (iprod_rec (@polynomial R) (@plusP R) (Seq0 R) (@plusPC R) (@plusP0l R) n _).
+rewrite (iprod_rec polyNorm plusPn \00n plusPnC plusPn0l n _).
+rewrite // (eqP_trans (norm_eq _)) //.
+apply: eqP_plus.
+  set ff:=(fun x : I_(n) => f (inj_ord n 1 x)).
+  move: (Hrec ff) => -> //.
+rewrite //= eqP_refl //.
+Qed.
 
-elim=> // [n Hrec].
-need lemma from indexed_product *)
-Admitted.
+Lemma head_polyn_deg: forall p, poly_deg (R_to_polyNorm (head_polyn p)) <= 1.
+Proof.
+move=> p.
+rewrite / R_to_polyNorm / R_to_poly / poly_deg //=.
+case H1:((head_polyn p)==0) => //.
+Qed.
 
+Lemma tail_polyn_deg: forall p, poly_deg (tail_polyn p) = poly_deg p - 1.
+Proof.
+case=>//.
+case=>// [ a p H].
+by rewrite / poly_deg //= -addn1 subn_addl.
+Qed.
 
 End PolyNorm.
 
@@ -1470,35 +1485,7 @@ Notation "'\M_(x)_' ( n )" := (matrix_of_polynomial n)
 
 (* ---- STOP ---- *)
 
-Definition mx_to_mx_of_poly (n :nat) (A :M_(n)): \M_(x)_( n ) := 
-   @matrix_of_fun \P[x] n n (fun i j => (PolyNorm (R_to_poly_normal (A i j)))).
 
-Lemma mx_to_mx_poly_plus : forall n (A B : M_(n)),
-  mx_to_mx_of_poly (matrix_plus A B) =
-    (@matrix_plus \P[x] n n (mx_to_mx_of_poly A) (mx_to_mx_of_poly B)).
-Proof.
-move=> n A B.
-apply/matrix_eqP; apply: EqMatrix => i j.
-rewrite / mx_to_mx_of_poly !m2f //=.
-apply: R_to_polyNorm_plus.
-Qed.
-
-Lemma mx_to_mx_poly_mult : forall n (A B : M_(n)),
-  mx_to_mx_of_poly (matrix_mul A B) =
-    (@matrix_mul \P[x] n n n (mx_to_mx_of_poly A) (mx_to_mx_of_poly B)).
-Proof.
-move=> n A B.
-apply/matrix_eqP; apply: EqMatrix => i j.
-rewrite / mx_to_mx_of_poly !m2f //.
-apply/eqPP => //=.
-
-apply: R_to_polyNorm_mult.
-Qed.
-
-
-Lemma inj_mx_to_mx_of_poly : forall n, injective (@mx_to_mx_of_poly n).
-Proof.
-Admitted.
 
 (* 
 Definition deg_mx_poly (n :nat) : \M_(x)_(n) -> nat.
@@ -1570,6 +1557,61 @@ apply: (@leq_trans (max_seq o f s) _ _) => //.
 by apply: Hrec.
 Qed.
 
+Lemma max_seq_maxf : forall (d :eqType) (f :d->nat) (s :seq d) (o p:nat),
+  (o<=p) -> (forall x, s x ->  f x <= p) -> (max_seq o f s <= p).
+Proof.
+move=> d f.
+elim=>//=[x s Hrec o p H1 H2].
+case H4:(o < f x) => //.
+  apply: (Hrec (f x) p); first (apply: (H2 x); rewrite / setU1 eq_refl //=).
+  by move=> x0 Hx0; apply: H2; rewrite / setU1 Hx0 orbT.
+apply: Hrec => //=.
+by move=> x0 Hx0; apply: H2; rewrite / setU1 Hx0 orbT.
+Qed.
+
+(*
+Lemma max_seq_max_rel : 
+  forall (d :eqType) (x1 x2 :d) (f :d->nat) (s1 s2 :seq d) (o p:nat),
+     (forall i, f (sub x1 s1 i) = (f (sub x2 s2 i) - p)%N) -> (size s1 = size s2) ->
+    max_seq o f s1 = (max_seq o f s2 - p)%N.
+Proof.
+move=> d x1 x2 f.
+elim=>//=[|a1 s1 Hrec].
+  case=>//=. [a2 s2 o p H1 H2].
+case=>//=[a2 s2 o p H1 H2].
+move: (H1 0%N) => //= ->.
+move/eqtype.eqP: H2=> H2; rewrite eqSS in H2; move/eqtype.eqP: H2 => H2.
+case H3:(o < f a2); move/idP: H3 => H3.
+  case H4:(o - p < f a2 - p); move/idP: H4 => H4.
+    apply: Hrec => //  i; move: (H1 (S i)%N) => //=.
+  move/negP: H4 => H4.
+  rewrite -leqNgt in H4.
+ 
+
+  rewrite  in H4.
+  move: (ltnW H3) => H5.
+  
+
+
+
+  case H4:(0 < f a2).
+    apply: Hrec => //= i; move: (H1 (S i)%N) => //=.
+  apply: Hrec => //= i; move: (H1 (S i)%N) => //=.
+move: (ltn_add2r p (f a2 - p) (o-p)) => H3.
+have H4 : forall x y, ((x -y) + y)%N = x.
+  elim=>//=.
+  elim=>//= [n Hrec2].
+
+  rewrite //=.
+move: H3.
+Set Printing All.
+
+rewrite addnC in H3.
+rewrite ltn_sub2r.
+
+case H3:(o < f a2); apply: Hrec => //= i; move: (H1 (S i)%N) => //=.
+Qed.
+*)
 
 Lemma get_max_seq_prop : 
   forall (d :eqType) (f :d->nat) (s :seq d) (x0 :d), 
@@ -1681,6 +1723,71 @@ Lemma normalX : @normal R (Adds 0 (Adds 1 seq0)).
 Proof. rewrite / normal //=; apply/eqtype.eqP; apply: one_diff_0. Qed.
 
 Notation "'X'" := (PolyNorm normalX) (at level 0): local_scope.
+
+Definition mx_to_mx_of_poly (n :nat) (A :M_(n)): \M_(x)_( n ) := 
+   @matrix_of_fun \P[x] n n (fun i j => (PolyNorm (R_to_poly_normal (A i j)))).
+
+Lemma mx_to_mx_poly_plus : forall n (A B : M_(n)),
+  mx_to_mx_of_poly (matrix_plus A B) =
+    (@matrix_plus \P[x] n n (mx_to_mx_of_poly A) (mx_to_mx_of_poly B)).
+Proof.
+move=> n A B.
+apply/matrix_eqP; apply: EqMatrix => i j.
+rewrite / mx_to_mx_of_poly !m2f //=.
+apply: R_to_polyNorm_plus.
+Qed.
+
+Lemma mx_to_mx_poly_mult : forall n (A B : M_(n)),
+  mx_to_mx_of_poly (matrix_mul A B) =
+    (@matrix_mul \P[x] n n n (mx_to_mx_of_poly A) (mx_to_mx_of_poly B)).
+Proof.
+move=> n A B.
+apply/matrix_eqP; apply: EqMatrix => i j.
+rewrite / mx_to_mx_of_poly !m2f //.
+set ff:= (fun j0 : I_(n) =>
+   matrix_of_fun (R0:=\P[x])
+     (fun i0 j1 : I_(n) =>
+      PolyNorm (poly:=R_to_poly (R0:=R) (A i0 j1))
+        (R_to_poly_normal (R0:=R) (A i0 j1))) i j0 *
+   matrix_of_fun (R0:=\P[x])
+     (fun i0 j1 : I_(n) =>
+      PolyNorm (poly:=R_to_poly (R0:=R) (B i0 j1))
+        (R_to_poly_normal (R0:=R) (B i0 j1))) j0 j).
+set gg:=(fun j0 : I_(n) =>
+     (R_to_polyNorm ((A i j0) * (B j0 j)))).
+move: (@eq_iprod_f (@polyNorm R) (@plusPn R) (PolyNorm (normal0 R)) I_(n) 
+  (setA I_(n)) ff gg) => ->; last first.
+  move=> x Hx; rewrite / ff / gg !m2f // R_to_polyNorm_mult //.
+clear ff; rewrite / gg; clear gg.
+move: (R_to_polyNorm_iprod (fun j0 : I_(n) => A i j0 * B j0 j)) => <- //.
+Qed.
+
+Lemma inj_mx_to_mx_of_poly : forall n, injective (@mx_to_mx_of_poly n).
+Proof.
+move=> n x y H.
+apply/matrix_eqP; apply: EqMatrix => i j.
+apply: inj_R_to_polyNorm.
+rewrite / mx_to_mx_of_poly in H.
+unlock matrix_of_fun in H.
+move/Matrix_inj: H => // H.
+set f1:= (fun x0 : prod_finType I_(n) I_(n) =>
+       R_to_polyNorm (R0:=R) (fun_of_matrix x (eq_pi1 x0) (eq_pi2 x0))).
+set f2 := (fun x : prod_finType I_(n) I_(n) =>
+       R_to_polyNorm (R0:=R) (fun_of_matrix y (eq_pi1 x) (eq_pi2 x))).
+move: (g2f f1)=> Hf1.
+move: (g2f f2)=> Hf2.
+move/fgraphP: H => H.
+move: (H (EqPair i j)) => H1.
+by rewrite Hf1 Hf2 / f1 / f2 in H1.
+Qed.
+
+Lemma mx_to_mx_of_poly_0: forall n, @mx_to_mx_of_poly n (null_matrix R n n) = \0mp_(n).
+Proof.
+rewrite / mx_to_mx_of_poly=> n.
+apply/matrix_eqP; apply: EqMatrix => i j.
+rewrite !m2f.
+apply: R_to_polyNorm0.
+Qed.
 
 Definition x_I n : \M_(x)_(n) := 
   (@matrix_of_fun \P[x] n n (fun i j => (if i == j then X else \00n ))).
@@ -1804,35 +1911,13 @@ Notation "\1pm_(n)" := (unitPM Hn)
   (at level 0, format "\1pm_(n)") : local_scope.
 
 Section PHI_MORPH.
+
+(*
 Definition mx_to_mx_poly : \M_(n) -> \M_(x)_(n) := 
   fun A => (@matrix_of_fun \P[x] n n (fun i j => (R_to_polyNorm (fun_of_matrix A i j)))).
 
-Lemma injective_mx_to_mx_poly : injective mx_to_mx_poly.
-Proof.
-move=> x y H.
-apply/matrix_eqP; apply: EqMatrix => i j.
-apply: inj_R_to_polyNorm.
-rewrite / mx_to_mx_poly in H.
-unlock matrix_of_fun in H.
-move/Matrix_inj: H => // H.
-set f1:= (fun x0 : prod_finType I_(n) I_(n) =>
-       R_to_polyNorm (R0:=R) (fun_of_matrix x (eq_pi1 x0) (eq_pi2 x0))).
-set f2 := (fun x : prod_finType I_(n) I_(n) =>
-       R_to_polyNorm (R0:=R) (fun_of_matrix y (eq_pi1 x) (eq_pi2 x))).
-move: (g2f f1)=> Hf1.
-move: (g2f f2)=> Hf2.
-move/fgraphP: H => H.
-move: (H (EqPair i j)) => H1.
-by rewrite Hf1 Hf2 / f1 / f2 in H1.
-Qed.
+*)
 
-Lemma mx_to_mx_poly_0: mx_to_mx_poly 0 = \0mp_(n).
-Proof.
-rewrite / mx_to_mx_poly.
-apply/matrix_eqP; apply: EqMatrix => i j.
-rewrite !m2f.
-apply: R_to_polyNorm0.
-Qed.
 
 Notation "'X'" := (PolyNorm normalX) (at level 0): local_scope.
 
@@ -1871,6 +1956,20 @@ rewrite !m2f.
 apply: head_polyn_mult.
 Qed.
 
+Lemma head_mxp_deg :
+  forall Ax, @mx_poly_deg n (mx_to_mx_of_poly (head_mxp Ax)) <= 1.
+Proof.
+move=> Ax //=.
+rewrite / mx_to_mx_of_poly / mx_poly_deg.
+unlock matrix_of_fun => /=; unlock fgraph_of_fun => /=.
+apply: (@max_seq_maxf _ (@poly_deg R) _ 0 1)=> //=.
+move=> x Hx.
+move/mapsP: Hx => Hx.
+case: Hx => y Hy <-.
+rewrite / head_mxp m2f.
+apply: head_polyn_deg.
+Qed.
+
 Definition tail_mxp : \M_(x)_(n) -> \M_(x)_(n) := 
   fun Ax : \M_(x)_(n) => 
      @matrix_of_fun \P[x] _ _ (fun (i j : I_(n)) => tail_polyn (fun_of_matrix Ax i j)).
@@ -1883,6 +1982,57 @@ rewrite / tail_mxp.
 apply/matrix_eqP; apply: EqMatrix => i j; rewrite !m2f.
 apply: tail_polyn_plus.
 Qed.
+
+Lemma tail_mxp_deg :
+  forall Ax, @mx_poly_deg n (tail_mxp Ax) = (@mx_poly_deg n Ax) - 1.
+Proof.
+move=> Ax //=.
+rewrite / mx_to_mx_of_poly / mx_poly_deg //=.
+have H1: (0 + 0 = 0)%N by done.
+rewrite -{1}H1.
+
+apply max_seq_max_rel.
+
+have H1:( forall i,
+  poly_deg (sub (PolyNorm (normal0 R)) (fval (mval (tail_mxp Ax))) i) = 
+   (poly_deg (sub (PolyNorm (normal0 R)) (fval (mval Ax)) i) - 1)%N).
+move=> i //=.
+rewrite / tail_mxp //.
+unlock matrix_of_fun => //=; unlock fgraph_of_fun => //=.
+rewrite -tail_polyn_deg.
+case H1: (i < card (setA (prod_finType I_(n) I_(n)))); move/idP: H1 => H1.
+  set on:=make_ord Hn.
+  set x1:= (EqPair on on).
+  set op:=(PolyNorm (normal0 R)).
+  set ff:= (fun
+        x : eq_pair (sub_eqType (fun m : nat => m < n))
+              (sub_eqType (fun m : nat => m < n)) =>
+      tail_polyn (fun_of_matrix Ax (eq_pi1 x) (eq_pi2 x))).
+  rewrite (sub_maps  x1 op ff)  / ff //=.
+
+
+rewrite / ff //=; congr tail_polyn.
+clear ff.
+
+unlock matrix_of_fun => //=; unlock fgraph_of_fun => //=.
+
+rewrite //=.
+ m2f.
+ last rewrite -cardA.
+
+case
+rewrite sub_maps.
+rewrite m2f.
+
+move: (max_seq_max_rel).
+
+have H1: forall i j,
+  (poly_deg (fun_of_matrix (tail_mxp Ax) i j)) = poly_deg (fun_of_matrix Ax i j) -1.
+move=> i j //=.
+rewrite / tail_mxp m2f .
+
+
+
 
 (*
 Lemma tail_mxp_scale: 
@@ -1935,7 +2085,7 @@ Fixpoint phi (pm : \M_[x]_(n)) {struct pm} : \M_(x)_(n) :=
 
 Fixpoint phi' (p:polynomial \M_(n)) : \M_(x)_(n) :=
 match p with seq0 => null_matrix \P[x] n n | 
-Adds s p' => (mx_to_mx_poly s) +mp (X *smp (phi' p'))
+Adds s p' => (mx_to_mx_of_poly s) +mp (X *smp (phi' p'))
 end.
 
 Definition phi (pm : \M_[x]_(n)) : \M_(x)_(n) := phi' pm.
@@ -1945,7 +2095,7 @@ Proof.
 elim=>//[|a p Hrec].
   elim=>//=[x s Hrec H].
   move/andP:H=>H; elim: H=> H1 H2; move/eqtype.eqP:H1=> <-.
-  rewrite mx_to_mx_poly_0 //= / zeroMP /plusMP.
+  rewrite mx_to_mx_of_poly_0 //= / zeroMP /plusMP.
   move: (@matrix_plus0x \P[x] n n (X *smp phi' s)) => ->.
   rewrite -(Hrec H2); clear H2.
   symmetry; apply: (@matrix_scale_0m \P[x] n n X).
@@ -1953,7 +2103,7 @@ elim=> [|b q Hrec2].
   move=> //= H; move/andP:H=>H; elim: H => H1 H2.
   move/eqtype.eqP: H1 => <-.
   move: (eqP0_eqP H2) => H3; move: (Hrec _ H3) => H4.
-  by rewrite mx_to_mx_poly_0 H4 //= / zeroMP /plusMP matrix_plus0x
+  by rewrite mx_to_mx_of_poly_0 H4 //= / zeroMP /plusMP matrix_plus0x
     / scaleMP matrix_scale_0m.
 move=> //= H; move/andP:H=>H; elim: H => H1 H2.
 move/eqtype.eqP: H1 => <-.
@@ -1992,88 +2142,92 @@ elim=>//= [H|x s Hrec H].
 
 Admitted.
 *)
+Lemma phi'_plus : forall Ax Bx, phi' (plusP Ax Bx) = (phi' Ax) +mp (phi' Bx).
+Proof.
+elim=>//[ | a p Hrec1].
+  case=>//= *;
+    symmetry; apply: (@matrix_plus0x \P[x] n n).
+case=> // [|b q].
+  rewrite //=.
+  set T:=(mx_to_mx_of_poly a +mp X *smp phi' p).
+  by rewrite [T +mp _]matrix_plusC (@matrix_plus0x \P[x] n n).
+rewrite //=.
+move: (Hrec1 q) => //= ->; clear Hrec1.
+rewrite / scaleMP / plusMP matrix_scale_distrL.
+rewrite  (mx_to_mx_poly_plus a b).
+rewrite -!matrix_plusA; congr (_ +m _).
+rewrite matrix_plusC -matrix_plusA; congr (_ +m _).
+by rewrite matrix_plusC.
+Qed.
+
 Lemma phi_plus : forall Ax Bx, phi (Ax +pm Bx) = (phi Ax) +mp (phi Bx).
 Proof.
 rewrite / phi.
-case=>//.
-elim=>//[ Hp | a p Hrec1  Hp].
-  case=>//= q Hq.
-  move: (normal_norm_eq Hq) => ->.
-  symmetry; apply: (@matrix_plus0x \P[x] n n).
-rewrite //=.
-case=> //.
-case=> // [Hq |b q Hq].
-  rewrite //=.
-  move: (normal_norm_eq Hp) => -> //=.
-  set T:=(mx_to_mx_poly a +mp X *smp phi' p).
-  by rewrite [T +mp _]matrix_plusC (@matrix_plus0x \P[x] n n).
-rewrite //=.
-move: (normal_inv Hp) => H1.
-move: (normal_inv Hq) => H2.
-move: (Hrec1 H1) => //= H3; clear Hrec1 H1.
-set bx:= (PolyNorm H2); move: (H3 bx) => //= H1; clear bx H3 H2.
-rewrite phi'_norm in H1; rewrite phi'_norm //= H1.
-rewrite / scaleMP / plusMP matrix_scale_distrL.
+case=>//[A Ha].
+case=>//[B Hb].
+rewrite phi'_norm.
+exact: phi'_plus.
+Qed.
 
-
-(* Proof that mx_to_mx_poly (a + b) = mx_to_mx_poly a + mx_to_mx_poly b 
-
-
-
-
-move=> Ax Bx.
-
-
-case HT: (plusPn Ax Bx == 0)%EQ.
-  move/eqtype.eqP: HT => HT.
-  rewrite / plusPM HT //= (opp_plus_eqr HT) phi_opp.
-
-
-
-rewrite phi_multX.
-  
-  
-case=>//.
-case=>// [ H | x s H ].
-  case=>//= Bx Hb.
-  move: (normal_norm_eq Hb) => ->.
-  symmetry; apply: (@matrix_plus0x \P[x] n n).
-case=> //.
-case=> // [Hb|xx ss Hb].
-  rewrite //=.
-  move: (normal_norm_eq H) => -> //=.
-  set T:=(mx_to_mx_poly x +mp X *smp phi' s).
-  by rewrite [T +mp _]matrix_plusC (@matrix_plus0x \P[x] n n).
-rewrite //=.
-(* have HT: (Adds (x + xx) (plusP s ss)) = plusP (Adds x s) (Adds xx ss).
-  rewrite //=.*)
-case H1:(x+xx == 0)%EQ; move/eqtype.eqP:H1=> H1.
-  rewrite H1 norm_multPX.
-
-elim: Ax => // [Bx| x s Hrec Bx].
-  rewrite //=; symmetry; apply: (@matrix_plus0x \P[x] n n).
-elim: Bx Hrec => // [Hrec| xx ss Hrec2 Hrec].
-  rewrite //=; symmetry. 
-  set T:=(mx_to_mx_poly x +mp X *smp phi s).
-  by rewrite [T +mp _]matrix_plusC (@matrix_plus0x \P[x] n n).
-rewrite //=.
-Admitted.
+Lemma phi'_mult : forall Ax Bx, phi' (multP Ax Bx) = (phi' Ax) *mp (phi' Bx).
+Proof.
+elim=>//[ | a p Hrec1].
+  case=>//= *;
+  symmetry; apply: (@matrix_mult0lx \P[x] n).
+move=> Bx.
+move: (Hrec1 Bx) => H1; clear Hrec1.
+rewrite adds_multl //= phi'_plus.
+rewrite (@phi'_eqP (multPX (multP p Bx)) (Adds 0 (multP p Bx)));
+  last first.
+  set q:=  (multP p Bx).
+  case: q => //=[|x q]; by rewrite !eq_refl ?eqP_refl.
+rewrite //= H1 mx_to_mx_of_poly_0 / plusMP / multMP / scaleMP.
+rewrite (@matrix_plus0x \P[x] n n) matrix_distrR; congr (_ +m _); 
+  last by rewrite matrix_scaleA.
+clear H1.
+elim: Bx => //= [|b q Hrec].
+  symmetry; apply: (@matrix_mult0rx \P[x] n).
+rewrite Hrec matrix_distrL /plusMP /scaleMP; congr (_ +m _);
+  first apply: mx_to_mx_poly_mult.
+by rewrite matrix_scaleA matrix_scaleC.
+Qed.
 
 Lemma phi_mult : forall Ax Bx, phi (Ax *pm Bx) = (phi Ax) *mp (phi Bx).
 Proof.
-move=> Ax.
-elim: Ax => // [Bx| x s Hrec Bx].
-  rewrite //=; symmetry; apply: matrix_mult0lx.
-have HT: Adds x s *pm Bx = plusPM (@multRPl _ x Bx) (Xpm (multPM s Bx)).
-  apply: adds_multl.
-rewrite HT phi_plus //= phi_multX.
-
-Admitted.
+rewrite / phi.
+case=>//[A Ha].
+case=>//[B Hb].
+rewrite phi'_norm.
+exact: phi'_mult.
+Qed.
 
 Lemma phi_one : (phi \1pm_(n)) = \1mp_(n).
 Proof.
+rewrite / phi //= / plusMP / scaleMP matrix_scale_0m matrix_plusC matrix_plus0x.
+rewrite / mx_to_mx_of_poly.
+apply/matrix_eqP; apply: EqMatrix => i j; rewrite !m2f.
+case H:(i==j)=> //; apply: eqPP => //=; rewrite / R_to_poly ?eq_refl //.
+move: (@one_diff_0 R) => H1; move/eqtype.eqP: H1=>-> //=.
+by rewrite eq_refl.
+Qed.
 
-Admitted.
+(*
+Fixpoint max_seq (d :eqType) (x :nat) (f :d->nat) (s :seq d) {struct s} : nat :=
+  if s is (Adds a s') then (if (x < f a) then (max_seq (f a) f s') else (max_seq x f s'))
+  else x.
+*)
+(*
+Definition phi_inv : ( \M_(x)_(n)) -> \M_[x]_(n).
+move=> m.
+move: 
+*)
+
+Fixpoint phi_inv (m : \M_(x)_(n)) {struct m } : \M_[x]_(n) := 
+  (R_to_polyNorm (head_mxp m)) +pm (Xpm phi_inv (tail_mxp m)).
+
+match p with seq0 => null_matrix \P[x] n n | 
+Adds s p' => (mx_to_mx_of_poly s) +mp (X *smp (phi' p'))
+end.
 
 Definition sub_mx_poly (Ax : \M_(x)_(n)) (k :nat) : \M_(n) := 
 (*   if k < (mx_poly_deg Ax) then *)
