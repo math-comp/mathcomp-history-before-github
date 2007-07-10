@@ -247,15 +247,60 @@ Qed.
 Lemma i_prod_image2 :
   forall (d d':finType) (a:set d) (g:d->d') f, dinjective a g ->
    iprod _ (image g a) f = iprod _ a (fun x => f (g x)).
-Proof.
-Admitted.
+move => d d' a.
+elim: {a}(card a) {-2}a (refl_equal (card a)) => [| n Hrec] a Ha g f Hg.
+ have F1: a =1 set0 by apply card0_eq.
+ have F2: image g a =1 set0 
+  by move => x; rewrite (image_eq _ _ a set0 g g) //;
+     rewrite (image_set0 d d' g x).
+  by rewrite (eq_iprod_set d _ _ _ F1) (eq_iprod_set d' _ _ _ F2) !iprod0.
+have F2: ~~set0b a by apply/set0P => H1; rewrite (eq_card0 H1) in Ha.
+case/set0Pn: F2 => x Hx.
+rewrite (iprodD1 _ x a) => //.
+rewrite (iprodD1 _ (g x)); last by apply/imageP; exists x.
+congr mulR.
+have F3: setD1 (image g a) (g x) =1 image g (setD1 a x).
+ move => y;apply/andP/imageP.
+  move => [Hngx Hin]; move/imageP: Hin => [z Hin Heq];exists z =>//.
+  apply/andP; split => //; apply/negP; move => Heq'. 
+  by rewrite (eqP Heq') in Hngx; case/negP: Hngx; rewrite Heq.
+ move => [z Hin Heq]; move/andP: Hin => [Hzx Hin]; split.
+  apply/negP;move/eqP => Heq'.
+  by move/negP: Hzx => H; case H; apply/eqP; apply Hg => //; rewrite -Heq.
+ by apply/imageP; exists z.
+rewrite (eq_iprod_set d' _ _ _ F3); apply Hrec => //.
+ by rewrite (cardD1 x) Hx /= add1n in Ha; injection Ha.
+move => x' y' Hx' Hy' Heq; move/andP:Hx'=>[_ Hx']; move/andP:Hy'=>[_ Hy']. 
+by apply Hg => //.
+Qed.
 
 Lemma iprod_injection :
-  forall (d d':finType) (a:set d) (a' :set d') (f:d->d') g, dinjective a f ->
-   iprod _ a' g = 
-   iprod _ (setI a (preimage f a')) (fun x => g (f x)) * iprod _ (setD a' (image f a)) g.
+  forall (d d':finType) (a:set d) (a' :set d') (f:d->d') g,
+   dinjective a f ->
+     iprod _ a' g =
+     iprod _ (setI a (preimage f a')) (fun x => g (f x)) *
+     iprod _ (setD a' (image f a)) g.
 Proof.
-Admitted.
+move => d d' a a' f g Hinj.
+have Hinj' : dinjective (setI a (preimage f a')) f.
+ by move => x y Hx Hy; case/andP: Hx => Hx _; case/andP: Hy => Hy _; apply:Hinj.
+rewrite -(i_prod_image2 d d' (setI a (preimage f a')) f g) => //.
+have
+   Hu :a' =1 setU (image f (setI a (preimage f a'))) (setD a' (image f a)).
+ move => x; rewrite /setU /setD.
+ case A: (image f a x)=>//=; first (rewrite orbF; case/imageP: A => y B C).
+  apply/idP/imageP;first by move=>D;exists y=>//;rewrite /setI B /preimage -C.
+  by case => x' Hx' Hf'; case/andP: Hx' => _ Ha'; rewrite Hf'.
+ case H': (a' x); first by rewrite orbT.
+ rewrite orbF; apply/idP/imageP; first done.
+ by case => y Hy Hf; move/andP: Hy => [Ha Ha']; rewrite -H' Hf.
+rewrite -iprod_setU; first by apply: eq_iprod_set.
+apply: (@disjoint_trans d' _ (image f a)).
+ rewrite /setI/subset disjoint_subset;apply/subsetP=>x A; case/imageP:A =>y B C.
+ by rewrite /setC negb_involutive; case/andP: B=>B _; apply/imageP; exists y.
+rewrite /disjoint /setI /setD //=; apply/set0P; move => x //=.
+by case: (image f a x) => //.
+Qed.
 
 Lemma ltn_addr : forall m n p, m < n -> m < n + p.
 Proof.
