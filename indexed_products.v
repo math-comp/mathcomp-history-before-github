@@ -284,22 +284,18 @@ Proof.
 move => d d' a a' f g Hinj.
 have Hinj' : dinjective (setI a (preimage f a')) f.
  by move => x y Hx Hy; case/andP: Hx => Hx _; case/andP: Hy => Hy _; apply:Hinj.
-rewrite -(i_prod_image2 d d' (setI a (preimage f a')) f g) => //.
-have
-   Hu :a' =1 setU (image f (setI a (preimage f a'))) (setD a' (image f a)).
- move => x; rewrite /setU /setD.
+rewrite -(i_prod_image2 d d' (setI a (preimage f a')) f g) // -iprod_setU.
+ apply: eq_iprod_set; move => x; rewrite /setU /setD.
  case A: (image f a x)=>//=; first (rewrite orbF; case/imageP: A => y B C).
   apply/idP/imageP;first by move=>D;exists y=>//;rewrite /setI B /preimage -C.
   by case => x' Hx' Hf'; case/andP: Hx' => _ Ha'; rewrite Hf'.
- case H': (a' x); first by rewrite orbT.
+ case H': (a' x); first (by rewrite orbT).
  rewrite orbF; apply/idP/imageP; first done.
  by case => y Hy Hf; move/andP: Hy => [Ha Ha']; rewrite -H' Hf.
-rewrite -iprod_setU; first by apply: eq_iprod_set.
-apply: (@disjoint_trans d' _ (image f a)).
- rewrite /setI/subset disjoint_subset;apply/subsetP=>x A; case/imageP:A =>y B C.
+apply: (@disjoint_trans d' _ (image f a)); rewrite /setI/setD.
+ rewrite /subset disjoint_subset;apply/subsetP=>x A; case/imageP:A =>y B C.
  by rewrite /setC negb_involutive; case/andP: B=>B _; apply/imageP; exists y.
-rewrite /disjoint /setI /setD //=; apply/set0P; move => x //=.
-by case: (image f a x) => //.
+by apply/set0P; rewrite /setI //=; move =>x //=; case: (image f a x) => //.
 Qed.
 
 Lemma ltn_addr : forall m n p, m < n -> m < n + p.
