@@ -1499,8 +1499,11 @@ Fixpoint max_seq (d :eqType) (ord: d->d->bool) (i :d) (s :seq d) {struct s} : d 
   else i.
 *)
 
+Definition max2 (m n:nat) := if (m < n) then n else m.
+
 Fixpoint max_seq (d :eqType) (x :nat) (f :d->nat) (s :seq d) {struct s} : nat :=
-  if s is (Adds a s') then (if (x < f a) then (max_seq (f a) f s') else (max_seq x f s'))
+  if s is (Adds a s') then (if (x < f a) then (max2 (f a) (max_seq (f a) f s')) 
+    else (max_seq x f s'))
   else x.
 
 Lemma max_seq_min :  forall (d :eqType) (f :d->nat) (s :seq d) (o :nat), 
@@ -1512,6 +1515,8 @@ case H:(o < f x); last apply: Hrec.
 move: (Hrec (f x)) => H2.
 apply: (@leq_trans (f x) _ _)=> //.
 by apply: ltnW.
+rewrite / max2.
+case H1:(f x < max_seq (f x) f s); move/idP: H1 => H1 //=.
 Qed.
 
 Fixpoint get_max_seq (d :eqType) (x0 :d) (f :d->nat) (s :seq d) {struct s} : d :=
@@ -1534,9 +1539,12 @@ move=> d f.
 elim => //= [x s Hrec o p Hop].
 case H:(p < f x). 
   move/idP: H => H; by rewrite (@leq_ltn_trans p o (f x) Hop H).
-case H2:(o < f x); apply: Hrec=> //.
-rewrite leqNgt.
-by move/negbT: H => H.
+case H2:(o < f x); last apply: Hrec=> //.
+rewrite / max2.
+case H3:(f x < max_seq (f x) f s).
+  apply: Hrec; rewrite leqNgt H //=.
+apply: (@leq_trans p _ _); first by rewrite leqNgt H.
+apply: max_seq_min.
 Qed.
 
 Lemma max_seq_max : forall (d :eqType) (f :d->nat) (s :seq d) (o :nat), 
@@ -1547,14 +1555,17 @@ elim => //= [x s Hrec o xx Hxx].
 rewrite / setU1 in Hxx; move/orP: Hxx => Hxx.
 elim: Hxx => H.
   move/eqtype.eqP: H => <-.
-  case H:(o < f x); first apply: max_seq_min.
+  case H:(o < f x); rewrite / max2 //=.
+    case H1:(f x < max_seq (f x) f s)=> //=. apply: max_seq_min.
   move/negbT: H => H; rewrite -leqNgt in H.
   apply: (@leq_trans o _ _)=> //; apply: max_seq_min.
-case H2:(o < f x); last apply: Hrec => //.
+case H2:(o < f x); rewrite / max2; last apply: Hrec => //.
 move/ltnW: H2 => H2.
 move: (max_seq_trans f s H2) => H3.
-apply: (@leq_trans (max_seq o f s) _ _) => //.
-by apply: Hrec.
+apply: (@leq_trans (max_seq o f s) _ _) => //; first by apply: Hrec.
+case H1:(f x < max_seq (f x) f s) => //=.
+apply: (@leq_trans (max_seq (f x) f s) _ _) => //=.
+by rewrite leqNgt H1.
 Qed.
 
 Lemma max_seq_maxf : forall (d :eqType) (f :d->nat) (s :seq d) (o p:nat),
@@ -1562,61 +1573,145 @@ Lemma max_seq_maxf : forall (d :eqType) (f :d->nat) (s :seq d) (o p:nat),
 Proof.
 move=> d f.
 elim=>//=[x s Hrec o p H1 H2].
-case H4:(o < f x) => //.
-  apply: (Hrec (f x) p); first (apply: (H2 x); rewrite / setU1 eq_refl //=).
-  by move=> x0 Hx0; apply: H2; rewrite / setU1 Hx0 orbT.
-apply: Hrec => //=.
-by move=> x0 Hx0; apply: H2; rewrite / setU1 Hx0 orbT.
+case H4:(o < f x) => //; 
+  last (by apply: (Hrec o p) => //= y Hy; apply: H2; rewrite /setU1 Hy orbT).
+rewrite / max2.
+case H3:(f x < max_seq (f x) f s) => //=;
+  last (by apply: H2; rewrite / setU1 //= eq_refl orTb).
+apply: (Hrec (f x) p); first (by apply: H2; rewrite / setU1 eq_refl orTb).
+by move=> y Hy; apply: H2; rewrite / setU1 Hy orbT.
 Qed.
 
-(*
+Lemma max_seq_trans_eq : 
+  forall (d :eqType) (f :d->nat) (s :seq d) a b, 
+    a<=b -> b < max_seq b f s -> max_seq a f s = max_seq b f s.
+Proof.
+move=> d f.
+elim=>//=[a b| x s Hrecs a b H1 H2]; first rewrite ltnn //=.
+case Hc1:(a < f x) => //=; move/idP: Hc1 => Hc1.
+  case Hc2: (b < f x) => //=. rewrite Hc2 in H2.
+  rewrite / max2.
+  move/idP: Hc2=>Hc2; move/negP: Hc2=>Hc2; rewrite -ltnNge ltnS //= in Hc2.
+  case Hc3:(f x < max_seq (f x) f s) => //=; move/idP:Hc3=>Hc3.
+    apply: (Hrecs (f x) b) => //=.
+  rewrite -(Hrecs (f x) b Hc2 H2).
+  move/negP: Hc3=>Hc3; rewrite -ltnNge ltnS //= in Hc3.
+  rewrite leq_eqVlt in Hc3; move/orP: Hc3 => Hc3; elim: Hc3=>Hc3;
+    first (by apply/eqtype.eqP; rewrite eq_sym).
+  move: (Hrecs (f x) b Hc2 H2) => HT1; rewrite -HT1 in H2.
+  move: (leq_ltn_trans Hc2 H2) => HT2; move: (ltn_trans HT2 Hc3).
+  by rewrite ltnn.
+move/negP: Hc1=>Hc1; rewrite -ltnNge ltnS //= in Hc1.
+case Hc2: (b < f x) => //=; rewrite Hc2 in H2; last apply: Hrecs => //=.
+move/idP:Hc2=>Hc2.
+rewrite / max2 in H2; rewrite / max2.
+case Hc3:(f x < max_seq (f x) f s) => //=; rewrite Hc3 in H2; 
+  move/idP:Hc3=>Hc3.
+  congr max_seq.
+  move: (leq_ltn_trans H1 Hc2) => H3.
+  rewrite leq_eqVlt in Hc1; move/orP: Hc1 => Hc1; elim: Hc1=>Hc1;
+    first (by apply/eqtype.eqP; rewrite eq_sym).
+  by move: (ltn_trans H3 Hc1); rewrite ltnn.
+move: (max_seq_min f s (f x)) => H3.
+move/negP: Hc3=>Hc3; rewrite -ltnNge ltnS //= in Hc3.
+move: (eqn_leq (f x) (max_seq (f x) f s)) => H4.
+rewrite H3 Hc3 //= in H4; move/eqtype.eqP:H4=>H5; clear H3 Hc3.
+symmetry.
+rewrite H5; apply: Hrecs => //.
+move: (max_seq_trans f s Hc1) => H4.
+rewrite -H5 in H4; clear H5.
+apply: (@ltn_leq_trans (f x) _ _) => //.
+apply: (@leq_ltn_trans b _ _) => //.
+Qed.
+
+
 Lemma max_seq_max_rel : 
   forall (d :eqType) (x1 x2 :d) (f :d->nat) (s1 s2 :seq d) (o p:nat),
      (forall i, f (sub x1 s1 i) = (f (sub x2 s2 i) - p)%N) -> (size s1 = size s2) ->
-    max_seq o f s1 = (max_seq o f s2 - p)%N.
+    max_seq (o-p) f s1 = (max_seq o f s2 - p)%N.
 Proof.
 move=> d x1 x2 f.
 elim=>//=[|a1 s1 Hrec].
-  case=>//=. [a2 s2 o p H1 H2].
+  case=>//=.
 case=>//=[a2 s2 o p H1 H2].
-move: (H1 0%N) => //= ->.
 move/eqtype.eqP: H2=> H2; rewrite eqSS in H2; move/eqtype.eqP: H2 => H2.
-case H3:(o < f a2); move/idP: H3 => H3.
-  case H4:(o - p < f a2 - p); move/idP: H4 => H4.
-    apply: Hrec => //  i; move: (H1 (S i)%N) => //=.
-  move/negP: H4 => H4.
-  rewrite -leqNgt in H4.
- 
-
-  rewrite  in H4.
-  move: (ltnW H3) => H5.
-  
-
-
-
-  case H4:(0 < f a2).
-    apply: Hrec => //= i; move: (H1 (S i)%N) => //=.
-  apply: Hrec => //= i; move: (H1 (S i)%N) => //=.
-move: (ltn_add2r p (f a2 - p) (o-p)) => H3.
-have H4 : forall x y, ((x -y) + y)%N = x.
-  elim=>//=.
-  elim=>//= [n Hrec2].
-
-  rewrite //=.
-move: H3.
-Set Printing All.
-
-rewrite addnC in H3.
-rewrite ltn_sub2r.
-
-case H3:(o < f a2); apply: Hrec => //= i; move: (H1 (S i)%N) => //=.
+have H3: forall i, f (sub x1 s1 i) = f (sub x2 s2 i) - p.
+  move=> i; apply: (H1 (S i)).
+move: (H1 0%N) => //= H4.
+move: (Hrec s2 (f a2) p H3 H2) => H5.
+move: (Hrec s2 o p H3 H2) => H6.
+rewrite H4 H5 H6.
+case Hc1:(o - p < f a2 - p) => //=; move/idP: Hc1=> Hc1.
+  case Hc2:(o < f a2) => //=; move/idP: Hc2 => Hc2.
+    rewrite / max2.
+    case Hc3:(f a2 < (max_seq (f a2) f s2)) => //=; move/idP: Hc3 => Hc3.
+      case Hc4:(f a2 - p < max_seq (f a2) f s2 -p) => //=; move/idP: Hc4=>Hc4.
+      have HT1:(p<f a2) by rewrite -ltn_0sub; 
+        apply: (@leq_ltn_trans 0%N _ _) => //;
+        apply: (@leq_ltn_trans (o-p) _ _) => //.
+      have HT2: (p < max_seq (f a2) f s2) by apply: (@ltn_trans (f a2) _ _) => //.
+      move: (ltn_sub2r HT2 Hc3) => HT3.
+      move/negP: Hc4=>Hc4; rewrite -ltnNge ltnS //= in Hc4.
+      move: (leq_ltn_trans Hc4 HT3); rewrite ltnn //=.
+    case Hc4:(f a2 - p < max_seq (f a2) f s2 -p) => //=; move/idP: Hc4=>Hc4.
+    have HT1: (p < (f a2)) by rewrite -ltn_0sub;
+      apply: (@leq_ltn_trans (o - p) _ _) => //.
+    move/negP: Hc3=>Hc3; rewrite -ltnNge ltnS //= in Hc3.
+    case Hc5:(max_seq (f a2) f s2 == f a2); move/eqtype.eqP: Hc5 => Hc5;
+      rewrite ?Hc5 //=.
+    move/eqtype.eqP: Hc5 => Hc5.
+    move: (@ltn_neqAle (max_seq (f a2) f s2) (f a2)) => HT4.
+    rewrite Hc5 Hc3 //= in HT4; move/idP: HT4=> HT4.
+    clear Hc3 Hc5.
+    move: (ltn_sub2r HT1 HT4) => HT5.
+    move: (ltn_trans Hc4 HT5); rewrite ltnn //=.
+  rewrite / max2.
+  move/negP: Hc2=>Hc2; rewrite -ltnNge ltnS //= in Hc2.
+  move: (max_seq_min f s2 (f a2)) => HT1.
+  rewrite leq_eqVlt in Hc2; move/orP: Hc2 => Hc2; elim: Hc2=>Hc2.
+    move/eqtype.eqP:Hc2=> Hc2; rewrite Hc2; rewrite Hc2 in HT1.
+    move: (leq_sub2r p HT1) => HT2.
+    rewrite leq_eqVlt in HT2.
+    case Hc3:(o - p < max_seq o f s2 - p)=>//.
+    rewrite Hc3 orbF in HT2; by apply/eqtype.eqP.
+  have HT2: (p < (f a2)) by rewrite -ltn_0sub;
+    apply: (@leq_ltn_trans (o - p) _ _) => //.
+  move: (ltn_trans HT2 Hc2) => HT3.
+  move: (ltn_sub2r HT3 Hc2) => HT4; move: (ltn_trans Hc1 HT4); rewrite ltnn //=.
+case Hc2:(o< f a2) => //=.
+move/idP: Hc2 => Hc2.
+rewrite / max2.
+move/negP: Hc1=>Hc1; rewrite -ltnNge ltnS //= in Hc1.
+case Hc3:(f a2 < max_seq (f a2) f s2); move/idP: Hc3=>Hc3.
+  congr minus; apply: max_seq_trans_eq => //=.
+  apply: ltnW => //.
+move: (max_seq_min f s2 (f a2 )) => HT1.
+move/negP: Hc3=>Hc3; rewrite -ltnNge ltnS //= in Hc3.
+move: (eqn_leq (f a2) (max_seq (f a2) f s2)) => HT2.
+rewrite HT1 Hc3 //= in HT2; move/eqtype.eqP:HT2=>HT2.
+rewrite HT2.
+case Hc4:(f a2 <= p); move/idP: Hc4 => Hc4.
+move: (ltnW Hc2)=> HT3.
+move: (max_seq_trans f s2 HT3) => HT4.
+rewrite HT2 in Hc4.
+move: (leq_trans HT4 Hc4)=> HT5.
+rewrite -eqn_sub0 in Hc4; rewrite -eqn_sub0 in HT5.
+by move/eqtype.eqP: Hc4 => ->; move/eqtype.eqP: HT5 => ->.
+move/negP: Hc4=>Hc4; rewrite -ltnNge //= in Hc4.
+have HT5: p < f a2 by done.
+rewrite -ltn_0sub in Hc4. 
+move: (ltn_leq_trans Hc4 Hc1)=> HT3.
+rewrite ltn_0sub in HT3.
+rewrite -(leq_add2l p) in Hc1.
+rewrite !leq_add_sub in Hc1; try by apply: ltnW.
+rewrite ltnNge in Hc2; by rewrite Hc1 in Hc2.
 Qed.
-*)
 
 Lemma get_max_seq_prop : 
   forall (d :eqType) (f :d->nat) (s :seq d) (x0 :d), 
     f (get_max_seq x0 f s) = max_seq (f x0) f s.
 Proof.
+(*
 move=> d f.
 elim => // [x s Hrec x0].
 rewrite //=.
@@ -1627,7 +1722,7 @@ case H:(f x0 < f x) => //.
   rewrite H2.
   move: (ltnW H) => H3.
   move: (max_seq_trans f s H3) => H4.
-
+*)
 Admitted.
 
 
@@ -1988,62 +2083,50 @@ Lemma tail_mxp_deg :
 Proof.
 move=> Ax //=.
 rewrite / mx_to_mx_of_poly / mx_poly_deg //=.
-have H1: (0 + 0 = 0)%N by done.
+have H1: (0 - 1 = 0)%N by done.
 rewrite -{1}H1.
-
-apply max_seq_max_rel.
-
-have H1:( forall i,
-  poly_deg (sub (PolyNorm (normal0 R)) (fval (mval (tail_mxp Ax))) i) = 
-   (poly_deg (sub (PolyNorm (normal0 R)) (fval (mval Ax)) i) - 1)%N).
+apply: (@max_seq_max_rel _ (PolyNorm (normal0 R)) (PolyNorm (normal0 R))) => //=; 
+  last by rewrite !fproof.
 move=> i //=.
 rewrite / tail_mxp //.
 unlock matrix_of_fun => //=; unlock fgraph_of_fun => //=.
 rewrite -tail_polyn_deg.
-case H1: (i < card (setA (prod_finType I_(n) I_(n)))); move/idP: H1 => H1.
-  set on:=make_ord Hn.
-  set x1:= (EqPair on on).
-  set op:=(PolyNorm (normal0 R)).
-  set ff:= (fun
-        x : eq_pair (sub_eqType (fun m : nat => m < n))
-              (sub_eqType (fun m : nat => m < n)) =>
-      tail_polyn (fun_of_matrix Ax (eq_pi1 x) (eq_pi2 x))).
-  rewrite (sub_maps  x1 op ff)  / ff //=.
-
-
-rewrite / ff //=; congr tail_polyn.
-clear ff.
-
-unlock matrix_of_fun => //=; unlock fgraph_of_fun => //=.
-
-rewrite //=.
- m2f.
- last rewrite -cardA.
-
-case
-rewrite sub_maps.
-rewrite m2f.
-
-move: (max_seq_max_rel).
-
-have H1: forall i j,
-  (poly_deg (fun_of_matrix (tail_mxp Ax) i j)) = poly_deg (fun_of_matrix Ax i j) -1.
-move=> i j //=.
-rewrite / tail_mxp m2f .
-
-
-
-
-(*
-Lemma tail_mxp_scale: 
-  forall Ax p, (tail_mxp (p *smp Ax)) = ((tail_polyn p) *smp tail_mxp Ax).
-Proof.
-move=> Ax p.
-rewrite / tail_mxp.
-apply/matrix_eqP; apply: EqMatrix => i j; rewrite !m2f.
-apply: tail_polyn_mult.
+clear H1.
+congr poly_deg.
+have HT1: forall p x j, 
+  tail_polyn (sub x p j) = sub (tail_polyn x) (maps (@tail_polyn R) p) j.
+  elim=>//=[|x s Hrec x0 j]; first (move=> *; by rewrite !sub_seq0).
+  case: j=>//=.
+rewrite HT1.
+congr sub; last first.
+set g:= (fun
+     x :(prod_finType I_(n) I_(n)) => (fun_of_matrix Ax (eq_pi1 x) (eq_pi2 x))).
+move: (maps_comp (@tail_polyn R) g (prod_enum I_(n) I_(n))) => HT2.
+rewrite HT2 / g; clear HT2 g.
+congr maps.
+set f1 := (fun x : prod_finType I_(n) I_(n) => (fun_of_matrix Ax) (eq_pi1 x) (eq_pi2 x)).
+set f2 := (fun x : prod_finType I_(n) I_(n) => (mval Ax) x).
+have HT2: forall x : prod_finType I_(n) I_(n), f1 x = f2 x.
+  move=> x; rewrite / f1 / f2 //.
+  unlock fun_of_matrix => //=.
+  unlock fun_of_fgraph => //=.
+  congr sub => //=; last first; case:x =>//=.
+move: (@eq_maps _ _ f1 f2 HT2) => HT3.
+move: (HT3 (prod_enum I_(n) I_(n))) => ->.
+rewrite / f2.
+clear HT1 f1 f2 HT2 HT3.
+set mAx := (mval Ax).
+set f1 := (fun x : prod_finType I_(n) I_(n) => mAx x).
+have F1: forall (d1: finType)(d2:eqType) (m : fgraphType d1 d2), 
+        maps m (enum d1) = fval (m).
+  move => d1 d2 m /=.
+  move: (g2f m) => H1.
+  move/fgraphP: H1 => H1.
+  rewrite -{2}H1.
+  unlock fgraph_of_fun =>//=.
+rewrite -F1 //.
+apply/eqPP; rewrite / tail_polyn //.
 Qed.
-*)
 
 
 (* TO ADD TO POLY PROP *)
