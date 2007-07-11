@@ -93,7 +93,7 @@ Proof. by move => [|a p1] //. Qed.
 Lemma plusPC : forall p q : polynomial,  p ++ q = q ++ p.
 Proof. by elim => [| a p1 Hrec] [| b q1] //; rewrite /= plusC Hrec. Qed.
 
-Lemma plusPA: forall p q r, (p ++ q) ++ r = p ++ (q ++ r).
+Lemma plusPA: forall p q r, p ++ (q ++ r) = (p ++ q) ++ r.
 Proof.
 elim => [| a p Hrec] // [| b q] // [| c r] //.
 by rewrite /= plusA Hrec.
@@ -463,9 +463,9 @@ case => [|a1 p].
   by rewrite multP0l /= !plusP0r.
 rewrite {1}[Adds a1 p]lock /=; unlock.
 congr Adds; first by rewrite plus0r.
-rewrite !plusPA; congr plusP.
+rewrite -!plusPA; congr plusP.
 rewrite Hrec.
-rewrite (plusPC (p ps b)) -plusPA.
+rewrite (plusPC (p ps b)) plusPA.
 case: (a1 sp _ ++ _) => // [a2 p1].
 rewrite {2}[Adds a2 _]lock /= plus0r plusPC.
 by unlock.
@@ -478,7 +478,7 @@ move => [|a p] // [|b q] //.
 change (Xp Adds a p) with (Adds 0 (Adds a p)).
 rewrite adds_multl /=.
 rewrite plus0r mult0l; congr Adds.
-rewrite plusPA.
+rewrite -plusPA.
 elim: q (p ps b ++ _) (a * b) => // c r Hrec [| c1 r1] // d.
   rewrite /= mult0l plus0l.
   by generalize (Hrec 00 (a * c)); rewrite !plusP0r => ->.
@@ -495,7 +495,7 @@ case => [|a1 p].
   by rewrite multP0r /= multP0r /= !plusP0r.
 rewrite {1}[Adds a1 p]lock /=; unlock.
 congr Adds; first by rewrite plus0r.
-rewrite !plusPA plusPC plusPA; congr plusP.
+rewrite -!plusPA plusPC -plusPA; congr plusP.
 rewrite Hrec.
 case: (q ps _ ++ _) => [| a2 p1].
   by rewrite /= plusP0r.
@@ -510,8 +510,8 @@ move => [|a p] // [|b q] //.
 change (Xp Adds a p) with (Adds 0 (Adds a p)).
 rewrite adds_multr /=.
 rewrite plus0r mult0r; congr Adds.
-rewrite plusPA.
-rewrite [b sp p ++ _]plusPC !plusPA.
+rewrite -plusPA.
+rewrite [b sp p ++ _]plusPC -!plusPA.
 elim: q (Xp _ ++ _) (b * a) => // c r Hrec [| c1 r1] // d.
   rewrite /= mult0r plus0l.
   by generalize (Hrec 00 (c * a)); rewrite !plusP0r => ->.
@@ -533,16 +533,16 @@ congr Adds => //; first (by rewrite multA).
 rewrite -!multPX_multl !multPX_plus.
 rewrite !plusP_multl !plusP_multr.
 rewrite !multRPl_plusr !multRPr_plusr.
-rewrite !plusPA.
+rewrite -!plusPA.
 congr plusP; first by rewrite multRPl_multl.
 congr plusP; first by rewrite multRPrlC.
-apply sym_equal; rewrite plusPC !plusPA.
+apply sym_equal; rewrite plusPC -!plusPA.
 congr plusP; first by rewrite multRPr_multl.
 rewrite -!multP_sp_ps.
-apply sym_equal; rewrite plusPC !plusPA plusPC !plusPA.
+apply sym_equal; rewrite plusPC -!plusPA plusPC -!plusPA.
 congr plusP.
   by rewrite multRPr_multPX.
-apply sym_equal; rewrite plusPC !plusPA.
+apply sym_equal; rewrite plusPC -!plusPA.
 congr plusP.
  by rewrite !multPX_multl !multPX_multr Hrec.
 rewrite plusPC; congr plusP.
@@ -634,8 +634,8 @@ elim=> // [f|n Hrec].
   (* have H1: iprod R plus 0 I_(0) (setA I_(0)) f = 0 by rewrite //=.*)
   rewrite / R_to_poly // eq_refl//.
 rewrite -addn1 => f.
-move: (iprod_rec R plus 0 (@plusC R) (@plus0l R) n f) => ->.
-move: (iprod_rec polynomial plusP 00 plusPC plusP0l n (fun j : I_(n + 1) => R_to_poly (f j))) => ->.
+move: (iprod_rec R plus 0 (@plusA R) (@plusC R) (@plus0l R) n f) => ->.
+move: (iprod_rec polynomial plusP 00 plusPA plusPC plusP0l n (fun j : I_(n + 1) => R_to_poly (f j))) => ->.
 move: (R_to_poly_plus (iprod R plus 0 I_(n) (setA I_(n)) (fun x : I_(n) => f (inj_ord n 1 x))) 
  (f (make_ord (n:=n + 1) (m:=n) (ltn_addn1 n)))) => H1.
 rewrite (eqP_trans H1) //; clear H1.
@@ -731,8 +731,8 @@ Lemma head_poly_iprod :
 Proof.
 elim=> // [n Hrec].
 rewrite -addn1 => f.
-move: (iprod_rec polynomial plusP 00 plusPC plusP0l n f) => ->.
-move: (iprod_rec R plus 0 (@plusC R) (@plus0l R) n (fun j : I_(n + 1) => head_poly (f j))) => ->.
+move: (iprod_rec polynomial plusP 00 plusPA plusPC plusP0l n f) => ->.
+move: (iprod_rec R plus 0 (@plusA R) (@plusC R) (@plus0l R) n (fun j : I_(n + 1) => head_poly (f j))) => ->.
 rewrite head_poly_plus.
 congr plus.
 set ff:=(fun x : I_(n) => f (inj_ord n 1 x)).
@@ -1149,7 +1149,7 @@ have H2: (eqP (norm (plusP (norm (plusP p q)) r)) (plusP (norm (plusP p q)) r) )
 rewrite eqP_sym //= (eqP_trans H2) //=.
 have H3: eqP (plusP p (norm (plusP q r))) (norm (plusP p (plusP q r))). 
 apply: norm_plusP.
-rewrite eqP_sym // (eqP_trans H3) //= -plusPA eqP_sym //.
+rewrite eqP_sym // (eqP_trans H3) //= plusPA eqP_sym //.
 rewrite [plusP (plusP p q) r]plusPC plusPC.
 apply: norm_plusP.
 Qed.
@@ -1263,8 +1263,8 @@ have H1: eqP (iprod polyNorm plusPn \00n I_(n) (setA I_(n))
   set f2:=(fun j : I_(n + 1) =>
       PolyNorm (poly:=R_to_poly (R0:=R) (f j))
         (R_to_poly_normal (R0:=R) (f j))).
-  move: (iprod_rec (@polynomial R) (@plusP R) (Seq0 R) (@plusPC R) (@plusP0l R) n f1) => ->.
-  move: (iprod_rec polyNorm plusPn \00n plusPnC plusPn0l n f2 ) => ->.
+  move: (iprod_rec (@polynomial R) (@plusP R) (Seq0 R) (@plusPA R) (@plusPC R) (@plusP0l R) n f1) => ->.
+  move: (iprod_rec polyNorm plusPn \00n plusPnA plusPnC plusPn0l n f2 ) => ->.
   rewrite // (eqP_trans (norm_eq _)) //.
   apply: eqP_plus.
     set ff:=(fun x : I_(n) => f (inj_ord n 1 x)).
@@ -1417,8 +1417,8 @@ rewrite / head_polyn -(head_poly_iprod).
 apply: head_poly_eqP.
 elim: n f => // [n Hrec ].
 rewrite -addn1 => f.
-rewrite (iprod_rec (@polynomial R) (@plusP R) (Seq0 R) (@plusPC R) (@plusP0l R) n _).
-rewrite (iprod_rec polyNorm plusPn \00n plusPnC plusPn0l n _).
+rewrite (iprod_rec (@polynomial R) (@plusP R) (Seq0 R) (@plusPA R) (@plusPC R) (@plusP0l R) n _).
+rewrite (iprod_rec polyNorm plusPn \00n plusPnA plusPnC plusPn0l n _).
 rewrite // (eqP_trans (norm_eq _)) //.
 apply: eqP_plus.
   set ff:=(fun x : I_(n) => f (inj_ord n 1 x)).
