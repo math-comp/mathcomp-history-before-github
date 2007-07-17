@@ -1017,4 +1017,6 @@ move: (evalP_multP p1 HXx) => ->.
 by rewrite //= mult0r plus0r mult1r plus_opl mult0l.
 Qed.
 
+End EvaluationMorphism.
 
+End Polynomial.
