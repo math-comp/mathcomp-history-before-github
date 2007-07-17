@@ -318,7 +318,7 @@ elim => [|a p Hrec] [|b q] //=; case/andP => H1 H2.
 by rewrite eqP0_multPX // Hrec.
 Qed.
 
-Lemma eqpP_mult: forall p1 p2 q1 q2, 
+Lemma eqP_mult: forall p1 p2 q1 q2, 
   p1 == p2 -> q1 == q2 -> (p1 ** q1) == (p2 ** q2).
 Proof.
 elim => [|a1 p1 Hrec].
@@ -736,7 +736,7 @@ Proof.
 move=> p q.
 move: (@head_tail_prop (p ** q)) => H1.
 move: (@head_tail_prop p) (@head_tail_prop q)=> Hp Hq.
-move: {Hp Hq}(eqpP_mult Hp Hq) =>H2.
+move: {Hp Hq}(eqP_mult Hp Hq) =>H2.
 move: {H1} (eqP_sym H1) => H1.
 move: {H1 H2} (eqP_trans H1 H2) => H3.
 rewrite plusP_multr !plusP_multl in H3.
@@ -777,15 +777,13 @@ Definition norm p := norm3 p (Seq0 _) (Seq0 _).
 (* 00 is normal *)
 Lemma normal0: normal 00.
 Proof.
-rewrite /normal /=.
-by apply/negP => H1; case (@one_diff_0 R); apply/eqP.
+by rewrite /normal /=; apply/negP => H1; case (@one_diff_0 R); apply/eqP.
 Qed.
 
 (* 1 is normal *)
 Lemma normal1: normal 11.
 Proof.
-rewrite /normal /=.
-by apply/negP => H1; case (@one_diff_0 R); apply/eqP.
+by rewrite /normal /=; apply/negP => H1; case (@one_diff_0 R); apply/eqP.
 Qed.
 
 Lemma normal_inv: forall a p, normal (Adds a p) -> normal p.
@@ -854,7 +852,7 @@ Qed.
 Lemma norm_plusP : forall p q, p ++ (norm q) == norm (p ++ q).
 Proof.
 move => p q; apply: eqP_sym; apply: (eqP_trans (norm_eq (p ++ q))).
-apply: eqP_plus; first (exact: eqP_refl).
+apply: eqP_plus; first by exact: eqP_refl.
 apply: eqP_sym; apply: norm_eq.
 Qed.
 
@@ -868,9 +866,6 @@ Qed.
 
 Lemma normal_seq1 : forall a, (a <> 0) -> normal (Seq a).
 Proof. by move=> a Ha; rewrite / normal //=; apply/eqP. Qed.
-
-Lemma norm_seq0R : norm (Seq 0) = seq0.
-Proof. by rewrite / norm //= eq_refl. Qed.
 
 Lemma eqP_eq_norm : forall p q, p == q -> norm p = norm q.
 Proof.
@@ -902,6 +897,11 @@ rewrite eqP_sym // (eqP_trans H2) //.
 by clear H1 H2; elim: p => //= [|x p Hrec]; rewrite !eq_refl //= eqP_refl.
 Qed.
 
+Lemma norm_mult : forall p q, norm (p ** q) == (norm p) ** (norm q).
+move => p q; apply:(eqP_trans (norm_eq _)).
+apply eqP_mult; apply:eqP_sym; apply: norm_eq.
+Qed.
+
 Lemma normal_tail_poly: forall p, normal p -> normal (tail_poly p).
 Proof. case=>//=[x s]; exact: normal_inv. Qed.
 
@@ -925,11 +925,9 @@ Lemma evalP_com_coeff: forall p x, com_coeff p x ->
   x * (evalP p x) = (evalP p x) * x.
 Proof.
 elim => //=; first (by move=> *; rewrite mult0r mult0l).
-move=> a s Hrec x H.
-move/andP: H => H; elim: H => H1 H2.
+move=> a s Hrec x H; case/andP: H => H1 H2.
 rewrite plus_multl plus_multr -multA.
-move/eqtype.eqP: H1 => ->; congr plus; congr mult.
-by rewrite Hrec. 
+by move/eqP: H1 => ->; congr plus; congr mult; rewrite Hrec. 
 Qed.
 
 (* Proof that eval is morphisme *)
@@ -964,18 +962,16 @@ Lemma evalP_multP : forall p q x, (com_coeff p x) ->
   evalP (p ** q) x = (evalP p x) * (evalP q x).
 Proof.
 move => p q x Hp.
-elim: p q Hp => //[|a p1 Hrec q Hp];
-  first (by move=> *; rewrite //= mult0l).
+elim: p q Hp => //[|a p1 Hrec q Hp]; first (by move=> *; rewrite //= mult0l).
 elim: q p1 Hp Hrec => //[|b q1 Hrec2 p1 Hp Hrec]; 
   first (by move=> *; rewrite //= mult0r).
 rewrite adds_multr // evalP_plusP evalP_multPX.
 move: (Hrec2 p1) => -> //=.
-rewrite evalP_multRP.
-rewrite !plus_multl !plus_multr plus_multl !multA; congr plus.
-congr plus; rewrite //= in Hp; 
-  first (by elim: (andP Hp) => H1 _; move/eqtype.eqP: H1 => ->).
+rewrite evalP_multRP !plus_multl !plus_multr plus_multl !multA; congr plus.
+congr plus; rewrite //= in Hp;
+  first (by case/andP: Hp => H1 _; move/eqP: H1 => ->).
 congr mult; rewrite -!multA; congr mult.
-by apply: evalP_com_coeff; elim: (andP Hp).
+by apply: evalP_com_coeff; case/andP: Hp. 
 Qed.
 
 Lemma evalP_11 : forall x, evalP 11 x = 1.
@@ -983,11 +979,9 @@ Proof. by rewrite //= => *; rewrite mult0r plus0r. Qed.
 
 Lemma evalP_eqP0 : forall p x, eqP0 p -> evalP p x = 0.
 Proof.
-move => p x H.
-elim: p H => //= [a p1 Hrec H].
+move => p x H; elim: p H => //= [a p1 Hrec H].
 move/andP: H => H; elim: H => H1 H2; move/eqtype.eqP: H1 => <-.
-move: (Hrec H2) => ->.
-by rewrite mult0r plus0l.
+by rewrite (Hrec H2) mult0r plus0l.
 Qed.
 
 Lemma evalP_eqP : forall p q x, (p == q) -> evalP p x = evalP q x.
