@@ -58,7 +58,8 @@ Definition multRPr (c : R) (p : polynomial): polynomial :=
 Open Scope local_scope.
 
 Notation "'11'" :=  (Adds 1 seq0) (at level 0): local_scope.
-Notation "00" := (@Seq0 R: polynomial) (at level 0): local_scope.Notation "x1 '++' x2" := (plusP x1 x2) (at level 50) : local_scope.
+Notation "00" := (@Seq0 R: polynomial) (at level 0): local_scope.
+Notation "x1 '++' x2" := (plusP x1 x2) (at level 50) : local_scope.
 Notation "x1 '==' x2" := (eqP x1 x2) (at level 70) : local_scope.
 Notation "'--' x" := (opP x) (at level 10) : local_scope.
 Notation "'Xp' x" := (multPX x) (at level 40) : local_scope.
@@ -2535,6 +2536,35 @@ Lemma phi_inv_plus : forall Ax Bx,
   phi_inv (Ax +mp Bx) = (phi_inv Ax) +pm (phi_inv Bx).
 Proof.
 move => Ax.
+elim: {Ax}(mx_poly_deg Ax)  {1 3 4}Ax (leqnn (mx_poly_deg Ax)) 
+  => [|n1 Hrec]; last first => Ax Hax Bx.
+  case Hc1:(mx_poly_deg Ax == n1`+1); last first.
+    apply Hrec => //=.
+    rewrite leq_eqVlt Hc1 orFb in Hax.
+    apply Hax.
+  case Hc2:(mx_poly_deg Bx <= n1).
+    rewrite / plusMP /plusPM matrix_plusC plusPnC.
+    rewrite Hrec //=.
+    have HT : 1 <= mx_poly_deg Bx.
+      apply: ok.
+    move/eqtype.eqP: Hc1 => Hc1.
+    have HT2 : 1 <= mx_poly_deg Ax.
+      apply: ok.
+    rewrite (phi_inv_eval HT) (phi_inv_eval HT2).
+    rewrite (@phi_inv_evalP (Ax +mp Bx)).
+    rewrite tail_mxp_plus head_mxp_plus R_to_polyNorm_plus.
+    rewrite /plusPM -!plusPnA; congr plusPn.
+    rewrite [plusPn  _ (plusPn _ _)]plusPnC.
+    rewrite -!plusPnA; congr plusPn.
+    rewrite plusPnC.
+    rewrite Hrec //.
+apply ok.
+by rewrite (@tail_mxp_deg Ax) Hc1 -addn1 subn_addl.
+apply: ok.
+Unset Printing All.
+Qed.
+
+(* 
 move: {Ax}(mx_poly_deg Ax)  {1 3 4}Ax (leqnn (mx_poly_deg Ax)).
 set (P := fun k =>  forall  (Ax : \M_(x)_(n)), 
 mx_poly_deg Ax <= k ->
@@ -2566,7 +2596,7 @@ apply ok.
 by rewrite (@tail_mxp_deg Ax) Hc1 -addn1 subn_addl.
 apply: ok.
 Qed.
-(* 
+
 BUG ???
 
 elim: {Ax}(mx_poly_deg Ax)  {1 3 4}Ax (leqnn (mx_poly_deg Ax)) 
@@ -2660,6 +2690,7 @@ rewrite / eqrel in H.
 
 Admitted.
 
+(* 
 Definition phi_inv (pm : \M_(x)_(n)) : \M_[x]_(n) := 
   (poly_mx_poly pm).
 
@@ -2700,6 +2731,8 @@ Proof.
 
 Admitted.
 
+*)
+
 Lemma phi_inv_mult: forall x y, phi_inv (x *mp y) = (phi_inv x) *pm (phi_inv y).
 Proof.
 
@@ -2718,6 +2751,8 @@ Lemma phi_inv_id_poly: forall p,
 End PHI_MORPH.
 
 Definition evalPM : \M_[x]_(n) -> \M_(n) -> \M_(n) := @evalP \M_(n).
+
+
 
 Lemma factor_th_PM : forall (p p1 : \M_[x]_(n)) A,
   (com_coeff p A) -> 

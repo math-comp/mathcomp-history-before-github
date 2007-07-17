@@ -216,10 +216,28 @@ Section determinant_context.
 
 (* Ring theory; should be replaced by a common structure like RingTheory. *)
 
+(*
+Record rings : Type := Rings {
+  R : Type;
+  plus : R -> R -> R;
+  mult : R -> R -> R;
+  opp : R -> R;
+  zero : R;
+  one : R  
+}.
+*)
+
+
 Variable R : Type.
 Variables plus mult : R -> R -> R.
 Variable opp : R -> R.
 Variables zero one : R.
+
+(*
+Definition minus := fun x y :R => plus x (opp y).
+
+Axiom A_ring : ring_theory zero one plus mult minus opp (eq(A:=R)).
+*)
 
 Notation "x + y" := (plus x y) : local_scope.
 Notation "- y" := (opp y) : local_scope.
@@ -230,6 +248,8 @@ Notation "- 1" := (- 1) (at level 0) : local_scope.
 Notation "x - y" := (x + (- y)) : local_scope.
 
 (* Injecting natural integers. *)
+
+(* Variable R : rings. *)
 
 Definition RofSn n := iter n (fun x => x + 1) 1.
 

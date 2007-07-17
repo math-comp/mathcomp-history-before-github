@@ -15,26 +15,6 @@ Canonical Structure boolGroup :=
 (* To be complete we should also port the group structure, to *)
 (* get the direct product.                                    *)
 
-Section EqProd.
-
-Variables d1 d2 : eqType.
-
-Definition pair_of_eq_pair p := let: EqPair x1 x2 := p in (x1 : d1, x2 : d2).
-
-Definition eq_pair_of_pair p := let: (x1, x2) := p in EqPair (x1 : d1) (x2 : d2).
-
-Lemma eqpairK : cancel eq_pair_of_pair pair_of_eq_pair.
-Proof. by case. Qed.
-
-Canonical Structure pair_eqType := EqType (can_eq eqpairK).
-
-End EqProd.
-
-Canonical Structure prod_finType.
-
-Canonical Structure pair_finType (d1 d2 : finType) :=
-   FinType (can_uniq (@eqpairK d1 d2)).
-
 Section PermutationComplements.
 
 Variable d : finType.
@@ -93,8 +73,10 @@ Definition perm_pair_inj s := can_inj (permpK s).
 Notation Local permpI := (@perm_pair_inj).
 Hint Resolve perm_pair_inj.
 
-Lemma image_perm_pair : forall s A p, image (permp s) A p = A (permp s^-1 p).
+Lemma image_perm_pair : 
+  forall s A p, image (permp s) A p = A (permp s^-1 p).
 Proof. by move=> s A p; rewrite -{1}(permpK s^-1 p) invgK (image_f (permpI s)). Qed.
+
 Notation Local im_permp := image_perm_pair.
 
 (* Flipping components of a pair *)
@@ -129,7 +111,7 @@ Notation Local opair := ordered_pair.
 Lemma ordered_pair_flip : forall p, opair (flip p) = (flip p != p) && ~~ opair p.
 Proof.
 case=> x y /=; rewrite /opair ltn_neqAle -leqNgt; congr andb; congr negb.
-rewrite {2}/set1 /= {2}/set1 /= (eq_sym y) andbb; apply/eqP/eqP=> [|-> //].
+rewrite {2}/set1 /= /pair_eq /= (eq_sym y) andbb; apply/eqP/eqP=> [|-> //].
 by rewrite -{2}(sub_index x (mem_enum y)) => ->; rewrite sub_index // mem_enum.
 Qed.
 Notation Local opair_flip := ordered_pair_flip.
@@ -233,7 +215,7 @@ have->: odd (card (setU (B x) (B y))) = oddp (transp x y); last move->.
   apply/norP; case; rewrite /A; case: p => [x' y'] /= in Op Otp *.
   do 2![case/norP; do 2!move/eqP=> ?]; case/negP: Otp; do 2![case transpP => //].
 rewrite -[true]/(odd 1) -(card1 (x, y)); congr odd.
-apply: eq_card => [[x' y']]; rewrite /setI {}/B {}/A /inversion /= /set1 /= /set1 /=.
+apply: eq_card => [[x' y']]; rewrite /setI {}/B {}/A /inversion /= /set1 /= /pair_eq /=.
 rewrite /set2 !(eq_sym x) !(eq_sym y); case: eqP => [-> | _] /=.
   by rewrite Dxy; case: eqP => [->|_]; [rewrite transpL transpR Oxy | rewrite !andbF].
 apply/and3P; case; case/andP=> _; move/eqP=> -> Oxx'; rewrite Dxy orbF; move/eqP=> Dx'.

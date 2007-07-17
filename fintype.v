@@ -512,7 +512,6 @@ Lemma fgraph_size : forall T1 T2 (a b:fgraphType T1 T2),
 Proof. by move => T1 T2 a b; case a; case b => sa Hsa sb Hsb /=; rewrite Hsa Hsb.
 Qed.
 
-
 Lemma can_eq: forall d : eqType, forall d1 : Type, forall f f1, 
   cancel f f1 -> reflect_eq (fun (x y : d1) => f x == f y :> d).
 Proof.
@@ -1058,7 +1057,7 @@ Section ProdFinType.
 Variable d1 d2 : finType.
 
 Definition prod_enum :=
-  foldr (fun x1 => cat (maps (EqPair x1) (enum d2))) seq0 (enum d1).
+  foldr (fun x1 => cat (maps (pair x1) (enum d2))) seq0 (enum d1).
 
 Lemma prod_enumP : forall u, count (set1 u) prod_enum = 1.
 Proof.
@@ -1067,12 +1066,12 @@ elim: (enum d1) (uniq_enum d1) => [|y1 s1 Hrec] //=; move/andP=> [Hy1 Hs1].
 rewrite count_cat {Hrec Hs1}(Hrec Hs1) count_maps /setU1 /comp.
 case Hx1: (y1 == x1) => /=.
   rewrite (eqP Hx1) in Hy1; rewrite (negbET Hy1) (eqP Hx1) addn0 -(card1 x2).
-  by apply: eq_count => y2; rewrite {1}/set1 /= set11.
+  by apply: eq_count => y2; rewrite {1}/set1 //= / pair_eq /= set11 andTb.
 rewrite addnC -{2}(addn0 (s1 x1)) -(card0 d2); congr addn.
-by apply: eq_count => y; rewrite eq_sym /set1 /= Hx1.
+by apply: eq_count => y; rewrite eq_sym /set1 //= / pair_eq //= Hx1 andFb.
 Qed.
 
-Definition prod_finType := FinType prod_enumP.
+Canonical Structure prod_finType := FinType prod_enumP.
 
 Lemma card_prod : card (setA prod_finType) = card (setA d1) * card (setA d2).
 Proof.
@@ -1086,17 +1085,12 @@ Proof. by have:= eq_card_trans card_prod. Qed.
 Variable a1: set d1.
 Variable a2: set d2.
 
-Definition prod_set: set prod_finType :=
-  fun z => a1 (eq_pi1 z) && a2 (eq_pi2 z).
-
-Lemma card_prod_set : card prod_set = card a1 * card a2.
+Lemma card_prod_set : card (prod_set a1 a2) = card a1 * card a2.
 Proof.
 rewrite /card /= /prod_enum; elim: (enum d1) => //= x1 s1 IHs.
 rewrite count_cat {}IHs count_maps /comp /prod_set /=.
 by case: (a1 x1); rewrite // count_set0.
 Qed.
-
-
 
 End ProdFinType.
 

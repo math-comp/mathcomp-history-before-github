@@ -712,7 +712,7 @@ Qed.
 
 Theorem LaGrange : (card H * indexg K)%N = card K.
 Proof.
-pose f x : prod_finType _ _ := EqPair (x * (repr (H :* x))^-1) (H :* x).
+pose f x : prod_finType _ _ := pair (x * (repr (H :* x))^-1) (H :* x).
 have inj_f: injective f.
   rewrite /f [rcoset]lock => x1 x2 [Dy DHx]; move: Dy; rewrite {}DHx; exact: mulg_injr.
 rewrite -card_prod_set -{inj_f}(card_iimage inj_f); apply: eq_card => [] [y A].
@@ -836,7 +836,7 @@ Lemma card_smulg :
 Proof.
 rewrite -(LaGrange (subsetIr H K)) mulnCA mulnC /=; congr muln.
 symmetry; rewrite -card_prod_set -card_sub; set tup := prod_set _ _.
-pose f (u : sub_finType tup) := let: EqPair x Hy := val u in x * repr Hy.
+pose f (u : sub_finType tup) := let: pair x Hy := val u in x * repr Hy.
 have injf: injective f.
   rewrite /f => [] [[x1 A1] dom1] [[x2 A2] dom2] /= Ef; apply: val_inj => /=.
   case/andP: dom1 (Ef) => /= Hx1; case/iimageP=> y1 Ky1 dA1.
@@ -854,7 +854,7 @@ apply/set0Pn/smulgP; rewrite /f /preimage.
 move=> [x y Hx Ky ->{z}].
 case Dz: (repr _) / (repr_rcosetP {H :&: K as group _} y) => /= [z HKz].
 case/isetIP: HKz => Hz Kz.
-have Tu: tup (EqPair (x * z^-1) ((H :&: K) :* y)).
+have Tu: tup (pair (x * z^-1) ((H :&: K) :* y)).
   by rewrite /tup /prod_set /= groupMl ?groupVr //; apply/iimageP; exists y.
 by exists (EqSig tup _ Tu); apply/eqP; rewrite /= Dz; gsimpl.
 Qed.

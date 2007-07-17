@@ -21,22 +21,23 @@ Variables (V:set d1) (W: set d2).
 Variable S:set (prod_finType d1 d2).
 Hypothesis SsubsetVxW: subset S (prod_set V W).
 
-Definition proj1 (x:d1):set d2:= (fun (y : d2) => S (EqPair x  y)).
-Definition proj2 (y:d2):set d1:= (fun (x : d1) => S (EqPair x  y)).
+Definition proj1 (x:d1):set d2:= (fun (y : d2) => S (pair x  y)).
+Definition proj2 (y:d2):set d1:= (fun (x : d1) => S (pair x  y)).
 
-Definition dproj1 (x:d1):= (fun (y : (prod_finType d1 d2)) => S y && (eq_pi1 y == x)).
-Definition dproj2 (x:d2):= (fun (y : (prod_finType d1 d2)) => S y && (eq_pi2 y == x)).
+Definition dproj1 (x:d1):= (fun (y : (prod_finType d1 d2)) => S y && (fst y == x)).
+Definition dproj2 (x:d2):= (fun (y : (prod_finType d1 d2)) => S y && (snd y == x)).
 
 Lemma two_way_counting1: (sum V (fun x => (card (proj1 x))))=card S.
 Proof.
 rewrite (@card_partition d1  (prod_finType d1 d2) V  dproj1 S).
  apply eq_sumf; rewrite /proj1 /dproj1 => x Vx.
- set f :=  (fun (z:d2)  => EqPair x z).
+ set f :=  (fun (z:d2)  => pair x z).
  have finj: injective f; first  by move => a b; rewrite /f;case/pair_eqP ; case /andP=>_; case/eqP.
- set a : (set d2):= (fun y : d2 => S (EqPair (d1:=d1) (d2:=d2) x y)).
- have fdinj: (@dinjective _ _ a  f ).
+ set a : (set d2):= (fun y : d2 => S (pair x y)).
+ have fdinj: (dinjective a  f ).
   by move => x0 y0; rewrite /a /f => _ _ ;case/pair_eqP; case/andP => _ h;  by apply:(eqP h).
- symmetry; have: (fun y : prod_finType d1 d2 => S y && (eq_pi1 y == x)) =1 image f a.
+ symmetry; 
+  have: (fun y : prod_finType d1 d2 => S y && (fst y == x)) =1 image f a.
   move => z; case:z => [z1 z2] /=;apply/idP/idP.
    case/andP=> [H3 H2];rewrite /f;apply/imageP;   exists z2 ;rewrite /a;rewrite -(eqP H2) //.
   case/imageP;rewrite /f  => x0 Hx0 H3;apply/andP;split.
@@ -48,7 +49,7 @@ rewrite/ partition/disjointn;split.
  by move => u v0 x Hu Hv0; unfold dproj1; case/andP => [H1 H2];case/andP => [H3 H4]; rewrite -(eqP H2) -(eqP H4).
 rewrite /cover;apply/andP;split.
  by apply/subsetP => y ; case/setnUP =>  x; case/andP;rewrite /dproj1 => HVx; case/andP => [H1 H2].
-apply/subsetP => y Hy;apply/setnUP;rewrite /dproj1;exists (eq_pi1 y );apply/andP;split.
+apply/subsetP => y Hy;apply/setnUP;rewrite /dproj1;exists (fst y );apply/andP;split.
  by move/subsetP: SsubsetVxW;rewrite /sub_set =>  H1;move : (H1 y Hy) ;by case/andP.
 by  apply/andP; split.
 Qed.
@@ -56,13 +57,13 @@ Qed.
 Lemma two_way_counting2: (sum W (fun z => (card (proj2 z))))=card S.
 Proof.
 rewrite (@card_partition d2  (prod_finType d1 d2) W  dproj2 S).
- apply eq_sumf;rewrite /proj2 /dproj2 => y Wy;set f :=  (fun (z:d1)  => EqPair z y).
+ apply eq_sumf;rewrite /proj2 /dproj2 => y Wy;set f :=  (fun (z:d1)  => pair z y).
  have finj: injective f.
   by move => a b;rewrite /f;case/pair_eqP=> H1;move/andP:H1=> [H2 H3]; apply(eqP H2).
- set a : (set d1):= (fun x : d1 => S (EqPair (d1:=d1) (d2:=d2) x y)).
- have fdinj: (@dinjective _ _ a  f ).
+ set a : (set d1):= (fun x : d1 => S (pair x y)).
+ have fdinj: (dinjective a  f ).
   by move => x0 y0;rewrite /a /f  => _ _ ;case/pair_eqP; case/andP => h _;  by apply:(eqP h).
- symmetry;have: (fun y0 : prod_finType d1 d2 => S y0 && (eq_pi2 y0 == y)) =1 image f a.
+ symmetry;have: (fun y0 : prod_finType d1 d2 => S y0 && (snd y0 == y)) =1 image f a.
     move => z; case:z => [z1 z2] /=;apply/idP/idP.
    case/andP=> [H3 H2];rewrite /f;apply/imageP;   exists z1 ;rewrite /a;rewrite -(eqP H2) //.
   case/imageP;rewrite /f  => x0 Hx0 H3;apply/andP;split.
@@ -74,7 +75,7 @@ rewrite /partition /disjointn;split.
  by move => u v0 x Hu Hv0; rewrite /dproj2;case/andP => [H1 H2];case/andP => [H3 H4]; rewrite -(eqP H2) -(eqP H4).
 rewrite/ cover;apply/andP;split.
  by apply/subsetP => y ;case/setnUP  => x; case/andP;rewrite  /dproj1; move => HVx; case/andP => [H1 H2].
-apply/subsetP => y Hy;apply/setnUP;rewrite /dproj1;exists (eq_pi2 y );apply/andP;split.
+apply/subsetP => y Hy;apply/setnUP;rewrite /dproj1;exists (snd y );apply/andP;split.
  by move/subsetP: SsubsetVxW; rewrite /sub_set  => H1; move : (H1 y Hy); case/andP.
 by  apply/andP; split.
 Qed.

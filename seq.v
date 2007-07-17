@@ -1558,12 +1558,12 @@ Variables d1 d2 : eqType.
 Fixpoint zip (s1 : seq d1) (s2 : seq d2) {struct s2}
             : seq (prod_eqType d1 d2) :=
   match s1, s2 with
-  | Adds x1 s1', Adds x2 s2' => Adds (EqPair x1 x2) (zip s1' s2')
+  | Adds x1 s1', Adds x2 s2' => Adds (x1,x2) (zip s1' s2')
   | _, _ => seq0
   end.
 
-Definition unzip1 := maps (@eq_pi1 d1 d2).
-Definition unzip2 := maps (@eq_pi2 d1 d2).
+Definition unzip1 := maps (@fst d1 d2).
+Definition unzip2 := maps (@snd d1 d2).
 
 Lemma zip_unzip : forall s, zip (unzip1 s) (unzip2 s) = s.
 Proof. by elim=> [|[x1 x2] s /= ->]. Qed.

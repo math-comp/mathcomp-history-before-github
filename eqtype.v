@@ -289,37 +289,37 @@ Section ProdEqType.
 
 Variable d1 d2 : eqType.
 
-Record eq_pair : Type := EqPair {eq_pi1 : d1; eq_pi2 : d2}.
-
-Definition pair_eq u v :=
-  let: EqPair x1 x2 := u in let: EqPair y1 y2 := v in (x1 == y1) && (x2 == y2).
+Definition pair_eq (u v : d1 * d2) :=
+  (fst u == fst v) && (snd u == snd v).
 
 Lemma pair_eqP : reflect_eq pair_eq.
 Proof.
-move=> [x1 x2] [y1 y2] /=; apply: (iffP idP) => [|[<- <-]]; last by rewrite !set11.
-by case/andP; do 2 move/eqP->.
+move=> [x1 x2] [y1 y2] /=; apply: (iffP idP) => [|[<- <-]]; 
+  last ( by rewrite / pair_eq //= !set11).
+move=> H1; elim: (andP H1)=> //= H2 H3;
+  apply: injective_projections => //=; by apply/eqP.
 Qed.
 
 Canonical Structure prod_eqType := EqType pair_eqP.
 
 Lemma pair_eqE : pair_eq = set1. Proof. done. Qed.
 
-Lemma pair_eq1 : forall u v : prod_eqType, u == v -> eq_pi1 u == eq_pi1 v.
+Lemma pair_eq1 : forall u v : d1 * d2, u == v -> fst u == fst v.
 Proof. by move=> [x1 x2] [y1 y2]; case/andP. Qed.
 
-Lemma pair_eq2 : forall u v : prod_eqType, u == v -> eq_pi2 u == eq_pi2 v.
+Lemma pair_eq2 : forall u v : d1 * d2, u == v -> snd u == snd v.
 Proof. by move=> [x1 x2] [y1 y2]; case/andP. Qed.
 
-Variable a1: set d1.
-Variable a2: set d2.
+Variable a1 : set d1.
+Variable a2 : set d2.
 
-Definition prod_set_eqType: set prod_eqType :=
-  fun z => a1 (eq_pi1 z) && a2 (eq_pi2 z).
+Definition prod_set : set _ :=
+  fun z => a1 (fst z) && a2 (snd z).
 
 End ProdEqType.
 
 Implicit Arguments pair_eqP [d1 d2].
-Prenex Implicits eq_pi1 eq_pi2 pair_eqP.
+Prenex Implicits fst snd pair_eqP.
 
 Section SumEqType.
 

@@ -70,11 +70,11 @@ have Hf4: forall x : cops (m * n),
   case/andP: Hx1 => Hx1 Hx2.
   by rewrite /coprime -gcdn_modr. 
 pose f x: (prod_finType (cops n) (cops m)) :=
-  EqPair (EqSig (fun x: fzp n => coprime n (val x)) _ (Hf2 x)) 
+  pair (EqSig (fun x: fzp n => coprime n (val x)) _ (Hf2 x)) 
          (EqSig (fun x: fzp m => coprime m (val x)) _ (Hf4 x)).
 have Hf5: forall x: prod_finType (cops n) (cops m), 
-   modn (chinese (val (val (eq_pi2 x))) 
-                 (val (val (eq_pi1 x))) m n) (m * n) < (m * n).
+   modn (chinese (val (val (snd x))) 
+                 (val (val (fst x))) m n) (m * n) < (m * n).
   move => [[[x Hx] Hx1] [[y Hy] Hy1]] /=; rewrite ltn_mod.
   by move: (Hx) (Hy); case n; case m.
 have Hf6: forall x : prod_finType (cops n) (cops m), 
@@ -105,7 +105,7 @@ exists f; exists g.
 move => [[[x Hx] Hx1] [[y Hy] Hy1]].
 have F1: 0 < n; first by move: (Hx); case n.
 have F2: 0 < m; first by move: (Hy); case m.
-congr EqPair; (do !apply: val_inj) => /=;
+congr pair; (do !apply: val_inj) => /=;
   set e := chinese _ _ _ _.
 - rewrite -(modn_addl_mul (divn e (m * n) * m)) -mulnA
           -divn_eq /e.

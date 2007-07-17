@@ -550,7 +550,7 @@ by rewrite cardA/= ord_enum4.
 Qed.
 
 Definition f(col_pair:prod_finType colors colors) :col_squares:=
-match col_pair  with EqPair c1 c2 => 
+match col_pair  with pair c1 c2 => 
     Fgraph (d1:=ordinal 4) (val:=Seq c1 c1 c2 c2)
       (size4 c1 c1 c2 c2)
 end.
@@ -562,7 +562,7 @@ move/fgraph_eqP=> H;case/and5P :H=>*;by apply /eqP;apply /andP;split.
 Qed.
 
 Definition g(col_pair:prod_finType colors colors) :col_squares:=
-match col_pair  with EqPair c1 c2 => 
+match col_pair  with pair c1 c2 => 
     Fgraph (d1:=ordinal 4) (val:=Seq c1 c2 c2 c1)  (size4 c1 c2 c2 c1)
 end.
 
@@ -600,7 +600,7 @@ move => _;apply /idP/idP.
   by apply/andP;split; rewrite /fun_of_fgraph;unlock=> /= ; rewrite ord_enum4.
  rewrite /coin1/coin0/coin2/coin3/=/fun_of_fgraph;unlock=>/=;
   rewrite ord_enum4/=.
- case/andP=> h1 h2;apply/imageP;exists (EqPair x x1) =>//=.
+ case/andP=> h1 h2;apply/imageP;exists (pair x x1) =>//=.
  by rewrite (eqP h1) (eqP h2) =>//=;apply/fgraph_eqP=>//=.
 by move => h1 <-;symmetry;apply:eq_card.
 Qed.
@@ -623,7 +623,7 @@ move => _;apply /idP/idP.
   by apply/andP;split; rewrite /fun_of_fgraph;unlock=> /= ; rewrite ord_enum4.
  rewrite /coin1/coin0/coin2/coin3/=/fun_of_fgraph;unlock=>/=;
   rewrite ord_enum4/=.
- case/andP=> h1 h2;apply/imageP;exists (EqPair x x1) =>//=.
+ case/andP=> h1 h2;apply/imageP;exists (pair x x1) =>//=.
  by rewrite (eqP h1) (eqP h2) =>//=;apply/fgraph_eqP=>//=.
 by move => h1 <-;symmetry;apply:eq_card.
 Qed.
@@ -800,8 +800,8 @@ repeat (destruct val=>//=;first by rewrite /fun_of_fgraph;unlock=>/= ;rewrite or
 Qed.
 
 Definition i(col_triplet:prod_finType colors (prod_finType colors colors)) :col_squares:=
-match col_triplet  with EqPair c1 c2c3 => 
-  match c2c3 with EqPair c2 c3 =>
+match col_triplet  with pair c1 c2c3 => 
+  match c2c3 with pair c2 c3 =>
     Fgraph (d1:=ordinal 4) (val:=Seq c1 c2 c3 c2)
       (size4 c1 c2 c3 c2)
 end end.
@@ -830,7 +830,7 @@ have : image i (setA (prod_finType colors (prod_finType colors colors))) =1 {x :
   by rewrite /fun_of_fgraph;unlock=> /= ; rewrite ord_enum4.
  rewrite /coin1/coin0/coin2/coin3/=/fun_of_fgraph;unlock=>/=;
   rewrite ord_enum4/=.
- move => h1 ;apply/imageP;exists (EqPair x (EqPair x0 x1)) =>//=.
+ move => h1 ;apply/imageP;exists (pair x (pair x0 x1)) =>//=.
  by rewrite (eqP h1) =>//=;apply/fgraph_eqP=>//=.
 by move => h1 <-;symmetry;apply:eq_card.
 Qed.
@@ -861,8 +861,8 @@ repeat (destruct val=>//=;first by rewrite /fun_of_fgraph;unlock=>/= ;rewrite or
 Qed.
 
 Definition j(col_triplet:prod_finType colors (prod_finType colors colors)) :col_squares:=
-match col_triplet  with EqPair c1 c2c3 => 
-  match c2c3 with EqPair c2 c3 =>
+match col_triplet  with pair c1 c2c3 => 
+  match c2c3 with pair c2 c3 =>
     Fgraph (d1:=ordinal 4) (val:=Seq c1 c2 c1 c3)
       (size4 c1 c2 c1 c3)
 end end.
@@ -889,7 +889,7 @@ have : image j (setA (prod_finType colors (prod_finType colors colors))) =1 {x :
   rewrite (eqP h1)(eqP h2) (eqP h3)(eqP h4) /coin0/coin1/coin2/coin3/=.
   by rewrite /fun_of_fgraph;unlock=> /= ; rewrite ord_enum4.
  rewrite /coin1/coin0/coin2/coin3/=/fun_of_fgraph;unlock=>/=;  rewrite ord_enum4/=.
- move => h1 ;apply/imageP;exists (EqPair x (EqPair x0 x2)) =>//=.
+ move => h1 ;apply/imageP;exists (pair x (pair x0 x2)) =>//=.
  by rewrite (eqP h1) =>//=;apply/fgraph_eqP=>//=.
 by move => h1 <-;symmetry;apply:eq_card.
 Qed.
