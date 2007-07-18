@@ -6,11 +6,11 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-Delimit Scope local_scope with loc.
-Open Scope local_scope.
+(*Delimit Scope local_scope with loc.
+Open Scope local_scope.*)
 Open Scope rings_scope.
 
-Section Polynomial.
+(* Section Polynomial. *)
 
 Variable R : ringsType.
 
@@ -1012,5 +1012,3 @@ by rewrite //= mult0r plus0r mult1r plus_opl mult0l.
 Qed.
 
 End EvaluationMorphism.
-
-End Polynomial.
