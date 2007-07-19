@@ -12,13 +12,14 @@ Open Scope rings_scope.
 
 (* Section Polynomial. *)
 
-Variable R : ringsType.
 
 (* A polynomial is a sequence, the first element of the sequence is the monome 
   of degree 0*)
-Definition polynomial := seq R.
+Section Polynomial.
+Variable R:ringsType.
 
 Section PolynomialOp.
+Definition polynomial := seq R.
 
 Fixpoint plusP (p q: polynomial) {struct p}: polynomial := 
   if p is (Adds a p') then 
@@ -71,21 +72,22 @@ End PolynomialOp.
 Work on notations.
 *)
 
-Delimit Scope poly_scope with P.
-Bind Scope poly_scope with polynomial.
+Delimit Scope local_scope with P.
+Bind Scope local_scope with polynomial.
 
-Notation "'11'" :=  (Adds 1 seq0) (at level 0): poly_scope.
-Notation "00" := (@Seq0 R: polynomial) (at level 0): poly_scope.
-Notation "x1 '++' x2" := (plusP x1 x2) (at level 50) : poly_scope.
-Notation "x1 '==' x2" := (eq_P x1 x2) (at level 70) : poly_scope.
-Notation "'--' x" := (opP x) (at level 10) : poly_scope.
-Notation "'Xp' x" := (multPX x) (at level 40) : poly_scope.
-Notation "c 'sp' x" := (multRPl c x) (at level 40) : poly_scope.
-Notation "x 'ps' c" := (multRPr c x) (at level 40) : poly_scope.
-Notation "x1 '**' x2" := (multP x1 x2) : poly_scope.
+Notation "'11'" :=  (Adds (one _) seq0) (at level 0): local_scope.
+Notation "x1 '++' x2" := (plusP x1 x2) (at level 50) : local_scope.
+Notation "x1 '==' x2" := (eq_P x1 x2) (at level 70) : local_scope.
+Notation "'--' x" := (opP x) (at level 10) : local_scope.
+Notation "'Xp' x" := (multPX x) (at level 40) : local_scope.
+Notation "c 'sp' x" := (multRPl c x) (at level 40) : local_scope.
+Notation "x 'ps' c" := (multRPr c x) (at level 40) : local_scope.
+Notation "x1 '**' x2" := (multP x1 x2) : local_scope.
+Notation "00" := (@Seq0 _: polynomial) (at level 0): local_scope.
 
 Section PolynomialProp.
-Open Scope poly_scope.
+
+Open Scope local_scope.
 
 Lemma multP0 : forall p : polynomial, 00 ** p = 00.
 Proof. move => p; elim: p => [|x s Hrec] //=. Qed.
@@ -562,7 +564,7 @@ Qed.
 End PolynomialProp.
 
 Section InjPolynomial.
-Open Scope poly_scope.
+Open Scope local_scope.
 
 (* Injection from R to polynomial *)
 Definition R_to_poly (x :R) : polynomial := 
@@ -619,7 +621,7 @@ Qed.
 End InjPolynomial.
 
 Section PolynomialDecomposition.
-Open Scope poly_scope.
+Open Scope local_scope.
 (* Definition of the head and tail of a polynomial *)
 
 Definition head_poly : polynomial -> R :=
@@ -759,7 +761,7 @@ Qed.
 End PolynomialDecomposition.
 
 Section Normalization.
-Open Scope poly_scope.
+Open Scope local_scope.
 
 (* A pol is normal if its last element is <> 0 *)
 Definition normal (p: polynomial) := last 1 p != 0.
@@ -916,7 +918,7 @@ Qed.
 End Normalization.
 
 Section EvaluationMorphism.
-Open Scope poly_scope.
+Open Scope local_scope.
 
 Fixpoint evalP (p :polynomial) (x :R) {struct p} : R :=
   (if p is (Adds a p') then a + x * (evalP p' x) else 0).
@@ -1012,3 +1014,21 @@ by rewrite //= mult0r plus0r mult1r plus_opl mult0l.
 Qed.
 
 End EvaluationMorphism.
+(* 
+Work on notations.
+*)
+
+Delimit Scope poly_scope with P.
+Bind Scope poly_scope with polynomial.
+
+Notation "'11'" :=  (Adds (one _) seq0) (at level 0): poly_scope.
+Notation "x1 '++' x2" := (plusP x1 x2) (at level 50) : poly_scope.
+Notation "x1 '==' x2" := (eq_P x1 x2) (at level 70) : poly_scope.
+Notation "'--' x" := (opP x) (at level 10) : poly_scope.
+Notation "'Xp' x" := (multPX x) (at level 40) : poly_scope.
+Notation "c 'sp' x" := (multRPl c x) (at level 40) : poly_scope.
+Notation "x 'ps' c" := (multRPr c x) (at level 40) : poly_scope.
+Notation "x1 '**' x2" := (multP x1 x2) : poly_scope.
+Notation "00" := (@Seq0 _: polynomial _) (at level 0): poly_scope.
+End Polynomial.
+
