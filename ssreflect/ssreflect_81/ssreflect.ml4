@@ -861,8 +861,13 @@ let interp_headpat env sigma = function
 
 let pr_ssrspats prc _ _ spats = str "[" ++  pr_list spc prc spats ++ str "]"
 
-ARGUMENT EXTEND ssrspats TYPED AS constr list PRINTED BY pr_ssrspats
+ARGUMENT EXTEND ssrspats_ne TYPED AS constr list PRINTED BY pr_ssrspats
   | [ "[" ne_constr_list(spats) "]" ] -> [ spats ]
+END
+
+ARGUMENT EXTEND ssrspats TYPED AS ssrspats_ne PRINTED BY pr_ssrspats
+  | [ ssrspats_ne(spats) ] -> [ spats ]
+  | [ ] -> [ [] ]
 END
 
 let interp_searchsubpats env sigma rpats =
@@ -930,8 +935,12 @@ let ssrsearch rlabs rhpat rspats rmodloc =
   hpat (fun gr _ typ -> labs gr && modloc gr && spats typ) ssrdisplaysearch
 
 VERNAC COMMAND EXTEND SsrSearchPattern
-| [ "Search" ssrlabs(labs) constr_opt(hpat) ssrspats(spats)
-             ssrmodloc(modloc) ] ->
+| [ "Search" ssrlabs(labs) ssrspats_ne(spats) ssrmodloc(modloc) ] ->
+  [ ssrsearch labs None spats modloc ]
+| [ "Search" ssrlabs(labs) ssrmodloc_ne(modloc) ] ->
+  [ ssrsearch labs None [] modloc ]
+| [ "Search" ssrlabs(labs) constr_opt(hpat)
+             ssrspats(spats) ssrmodloc(modloc) ] ->
   [ ssrsearch labs hpat spats modloc ]
 END
 
@@ -1324,6 +1333,7 @@ let pf_ctx_let_depth gl =
 let pf_clauseids gl clhyps clseq =
   if clhyps <> [] then (check_hyps_uniq [] clhyps; hyps_ids clhyps) else
   if clseq <> InAll && clseq <> InAllHyps then [] else
+  let _ = error "assumptions should be named explicitly" in
   let dep_term var = mkNamedProd_or_LetIn (pf_get_hyp gl var) mkProp in
   let rec rem_var var =  function
   | [] -> raise Not_found
@@ -1998,17 +2008,13 @@ let tclPERM perm tac gls =
       mkprpft n g' (Proof_type.Intro id) [pft] in
     List.fold_left mki in
   let gl = Refiner.sig_it gls in
-  let mklhyps =
-    let rhyps = List.rev (pf_hyps gls) in
-    let rec chop = function
-      | d1 :: h1, d2 :: h2 when d1 = d2 -> chop (h1, h2)
-      | _, h2 -> h2 in
-    fun subgl ->
-    let full_lhyps = Environ.named_context_of_val subgl.evar_hyps in
-    List.rev (chop (rhyps, List.rev full_lhyps)) in
   let mkhyp subgl =
+    let rec chop_section = function
+    | (x, _, _ as d) :: e when not_section_id x -> d :: chop_section e
+    | _ -> [] in
+    let lhyps = Environ.named_context_of_val subgl.evar_hyps in
     let salt = !tclPERMsalt in tclPERMsalt := salt mod 1000000000 + 1;
-    id_of_tag ("perm hyp" ^ string_of_int salt), subgl, mklhyps subgl in
+    id_of_tag ("perm hyp" ^ string_of_int salt), subgl, chop_section lhyps in
   let mkpfvar (hyp, subgl, lhyps) =
     let mkarg args (lhyp, body, _) =
       if body = None then mkVar lhyp :: args else args in
@@ -2176,17 +2182,6 @@ END
 
 (* post-interpretation of terms *)
 
-(*
-let abs_ssrterm = function ErrorTerm e, _ -> raise e | _, c -> c
-
-let prod_ssrterm = function
-  | ErrorTerm e, _ -> raise e
-  | SsrTerm (_, n), c ->
-    match decompose_lam_n n c with
-    | (_, t) :: dc, cc when isCast cc -> compose_prod dc t
-    | _ -> anomaly "ssr cast hole deleted by typecheck"
-*)
-
 let pf_abs_ssrterm gl = function
   | ErrorTerm e, _ -> raise e
   | SsrTerm (_, n), c -> pf_abs_cterm gl n c
@@ -2197,66 +2192,6 @@ let pf_prod_ssrterm gl = function
     match decompose_lam_n n (pf_abs_cterm gl n c) with
     | (_, t) :: dc, cc when isCast cc -> compose_prod dc t
     | _ -> anomaly "ssr cast hole deleted by typecheck"
-
-(*
-let pf_understand_new_holes gl ise na pat =
-  let env = pf_env gl in
-  if na = 0 then begin
-    let tpat = Retyping.get_type env (evars_of ise) pat in
-    if pf_no_evars gl tpat then
-      begin fun c -> e_conv env ise pat c && closed0 c end
-    else
-      begin fun c ->
-        e_conv env ise tpat (pf_type_of gl c)
-      && e_conv env ise pat c
-      end
-  end else begin
-    let f, a =
-      let f, a = destApp pat in
-      if fixed f then
-        fun a' ->
-          for i = 0 to n - 1 do
-            if not (e_conv env ise a.(i) a'.(i)) then
-              error "unification mismatch"
-          done
-      else
-        let t = Retyping.get_type env (evars_of ise) f in
-        if pf_no_evars gl tpat then
-      begin fun f' a' ->
-          e_conv env ise f f' &&
-          (for i = 0 to n - 1 do
-            if not (e_conv env ise a.(i) a'.(i)) then
-              error "unification mismatch"
-          done; true) end
-    else
-      begin fun f' a' ->
-          e_conv env ise t (try pf_type_of gl f' with _ -> t) &&
-          e_conv env ise f f' &&
-          (for i = 0 to n - 1 do
-            if not (e_conv env ise a.(i) a'.(i)) then
-              error "unification mismatch"
-          done; true) end
-fun c ->
-        e_conv env ise tpat (pf_type_of gl c)
-      && e_conv env ise pat c
-      end   
-  let cp = pf_unabs_evars gl ise n pat in
-  let cp' = if na = 0 then cp else Reductionops.whd_betaiota cp in
-  let cvx c1 c2 = ise := Evarconv.the_conv_x env c1 c2 !ise in
-  let cvc = if na = 0 then cvx cp else
-    fun c -> let f1, a1 = destApp cp' and f2, a2 = destApp c in
-    let k = Array.length a2 - Array.length a1 in
-    let f2' = if k = 0 then f2 else mkApp(f2, Array.sub a2 0 k) in
-    cvx f1 f2'; for i = 0 to na - 1 do cvx a1.(i) a2.(i + k) done in
-  let check_var ev evi () =
-    let evb = evar_body evi in
-    if try evar_body (Evd.find sigma ev) != evb with _ -> evb = Evar_empty
-       then error "matching changed evar" in
-  fun c ->
-    let sigma' = cvc c; evars_of !ise in
-    Evd.fold check_var sigma' ();
-    Array.of_list (List.rev_map (Evarutil.nf_evar sigma') vars)
-*)
 
 (* pf_understand_holes gl n na pat c returns an array of n values such   *)
 (* that pat v1 .. vn is convertible to c; if na > 0, pat should be beta- *)
@@ -3667,9 +3602,9 @@ let rwcltac cl dir rule gl0 =
     errorstrm (str "dependent type error in rewrite of" ++ spc ()
                ++ pf_pr_constr gl cl) in
   let rwtac gl =
-    let gls, _ as tacres =
-      try rewritetac dir rule gl with _ ->
-      anomaly "ssreflect internal rewrite failed" in
+    let gls, _ as tacres = rewritetac dir rule gl
+      (* try rewritetac dir rule gl with _ ->
+      anomaly "ssreflect internal rewrite failed" *) in
     let cl' = pf_concl (first_goal gls) in
     if not (eq_constr cl' (pf_concl gl0)) then tacres else
     errorstrm (str "rewrite loop " ++ pf_pr_constr gl cl ++ spc ()
