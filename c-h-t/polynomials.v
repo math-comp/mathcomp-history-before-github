@@ -876,6 +876,19 @@ move: (norm_eq p)(norm_eq q) => Hp Hq.
 by rewrite (eqP_trans Hp) // eqP_sym // (eqP_trans Hq) // eqP_sym.
 Qed.
 
+Lemma eq_norm_eqP : forall p q, norm p = norm q -> p == q.
+Proof.
+move => p q Heq; move/eqP_sym: (norm_eq p) => Hp.
+by rewrite (eqP_trans Hp) // Heq norm_eq.
+Qed.
+
+Lemma normP : forall p q, reflect (norm p = norm q) (p==q).
+Proof.
+move => p q; apply: (iffP idP).
+apply:eqP_eq_norm.
+apply: eq_norm_eqP.
+Qed.
+
 Lemma norm_adds : 
   forall (p :polynomial) a, (a <> 0) -> norm (Adds a p) = Adds a (norm p).
 Proof.
@@ -1014,9 +1027,7 @@ by rewrite //= mult0r plus0r mult1r plus_opl mult0l.
 Qed.
 
 End EvaluationMorphism.
-(* 
-Work on notations.
-*)
+End Polynomial.
 
 Delimit Scope poly_scope with P.
 Bind Scope poly_scope with polynomial.
@@ -1030,5 +1041,4 @@ Notation "c 'sp' x" := (multRPl c x) (at level 40) : poly_scope.
 Notation "x 'ps' c" := (multRPr c x) (at level 40) : poly_scope.
 Notation "x1 '**' x2" := (multP x1 x2) : poly_scope.
 Notation "00" := (@Seq0 _: polynomial _) (at level 0): poly_scope.
-End Polynomial.
 
