@@ -286,39 +286,56 @@ Proof.
 by move=> p1 p2 p3; apply/coef_eqP=> i; rewrite !coef_add_poly plusA.
 Qed.
 
-Fixpoint mult_cst_poly_l c p : normal p -> polynomial :=
+Fixpoint mult_cst_poly_l_rec c p : normal p -> polynomial :=
   if p is Adds a p' return normal p -> polynomial then 
-    fun np => horner (mult_cst_poly_l c (normal_behead np)) (c * a)
+    fun np => horner (mult_cst_poly_l_rec c (normal_behead np)) (c * a)
   else fun _ => poly0.
 
-Lemma coef_mult_cst_poly_l c p (np : normal p) i : 
-  coef (mult_cst_poly_l c np) i = c * (sub 0 p i).
+Lemma coef_mult_cst_poly_l_rec c p (np : normal p) i : 
+  coef (mult_cst_poly_l_rec c np) i = c * (sub 0 p i).
 Proof.
 move=> c p np.
 elim: p np => [|a p IHp] np [|i] //=;
-  rewrite (mult0r, mult0r, coef_horner_0, coef_horner_S) //; apply: coef0.
+  rewrite (mult0r, mult0r, coef_horner_0, coef_horner_S) // ?IHp //; apply: coef0.
 Qed. 
 
-Fixpoint mult_cst_poly_r c p : normal p -> polynomial :=
+Definition mult_cst_poly_l c p :=
+  let: Poly _ np := p in
+  (mult_cst_poly_l_rec c np).
+
+Lemma coef_mult_cst_poly_l c p i : 
+  coef (mult_cst_poly_l c p) i = c * (coef p i).
+Proof. move=> c [p np]; by apply: coef_mult_cst_poly_l_rec. Qed. 
+
+Fixpoint mult_cst_poly_r_rec  p c : normal p -> polynomial :=
   if p is Adds a p' return normal p -> polynomial then 
-    fun np => horner (mult_cst_poly_r c (normal_behead np)) (a * c)
+    fun np => horner (mult_cst_poly_r_rec c (normal_behead np)) (a * c)
   else fun _ => poly0.
 
-Lemma coef_mult_cst_poly_r c p (np : normal p) i : 
-  coef (mult_cst_poly_r c np) i = (sub 0 p i) * c.
+Lemma coef_mult_cst_poly_r_rec c p (np : normal p) i : 
+  coef (mult_cst_poly_r_rec c np) i = (sub 0 p i) * c.
 Proof.
 move=> c p np.
 elim: p np => [|a p IHp] np [|i] //=;
-  rewrite (mult0l, mult0l, coef_horner_0, coef_horner_S) //; apply: coef0.
+  rewrite (mult0l, mult0l, coef_horner_0, coef_horner_S) // ?IHp //; apply: coef0.
 Qed.
+
+Definition mult_cst_poly_r p c :=
+  let: Poly _ np := p in
+  (mult_cst_poly_r_rec c np).
+
+Lemma coef_mult_cst_poly_r c p i : 
+  coef (mult_cst_poly_r p c) i = (coef p i) * c.
+Proof. move=> c [p np]; by apply: coef_mult_cst_poly_r_rec. Qed.
+
 
 Fixpoint mult_poly_rec (p q : seq R) {struct p} : 
   normal p -> normal q -> polynomial := 
   if p is (Adds a p') return normal p -> normal q -> polynomial then 
     if q is (Adds b q') return (normal (Adds a p')) -> normal q -> polynomial then
       fun np nq => horner 
-       (add_poly (mult_cst_poly_l a (normal_behead nq))
-        (add_poly (mult_cst_poly_r b (normal_behead np))
+       (add_poly (mult_cst_poly_l_rec a (normal_behead nq))
+        (add_poly (mult_cst_poly_r_rec b (normal_behead np))
           (horner (mult_poly_rec (normal_behead np) (normal_behead nq)) 0)))
        (a * b)
     else fun _ _ => poly0
@@ -342,39 +359,39 @@ Proof. by unlock poly1 => //= i; rewrite sub_seq0. Qed.
 
 Lemma coef_mult_poly p1 p2 i :
   coef (mult_poly p1 p2) i = 
-    iprod _ plus 0 I_(i`+1) (setA I_(i`+1)) 
+    iprod plus 0 (setA I_(i`+1)) 
       (fun k => (coef p1 (nat_of_ord k)) * coef p2 (i - (nat_of_ord k))).
 Proof.
 move=> [p1 np1] [p2 np2].
 elim: p1 np1 p2 np2 => [|c1 p1 IHp] np1 [|c2 p2] np2 i //=;
   rewrite ?coef0.
 - rewrite 
-   -{1}(@iprod_1 R plus 0 (@plus0l R) I_(i`+1) (setA (ordinal_eqType (i`+1)))).
+   -{1}(iprod_1 (@plus0l R) (setA (ordinal_eqType (i`+1)))).
   apply: eq_iprod_f => x _ ; rewrite sub_seq0 mult0l //.
 - rewrite 
-   -{1}(@iprod_1 R plus 0 (@plus0l R) I_(i`+1) (setA (ordinal_eqType (i`+1)))).
+   -{1}(iprod_1 (@plus0l R) (setA (ordinal_eqType (i`+1)))).
   apply: eq_iprod_f => x _ ; rewrite sub_seq0 mult0l //.
 - rewrite 
-   -{1}(@iprod_1 R plus 0 (@plus0l R) I_(i`+1) (setA (ordinal_eqType (i`+1)))).
+   -{1}(iprod_1 (@plus0l R) (setA (ordinal_eqType (i`+1)))).
   apply: eq_iprod_f => x _ ; rewrite sub_seq0 mult0r //.
 case: i => [|i]//.
   rewrite coef_horner_0 -(add0n 1).
   rewrite iprod_rec //=; 
     try (apply: plusC); try (apply: plus0l); try (apply: plusA).
   suffices : (setA (ordinal_eqType 0)) =1 set0; last by case=>//.
-  by move=> H1; rewrite (eq_iprod_set R plus 0 I_(0) _ _ _ H1) 
+  by move=> H1; rewrite (eq_iprod_set plus 0 _ H1) 
     iprod0 plus0l.
 rewrite coef_horner_S -(addn1).
 rewrite iprod_rec //; 
   try (apply: plusC); try (apply: plus0l); try (apply: plusA).
 rewrite //= subnn //=.
-rewrite !coef_add_poly coef_mult_cst_poly_r coef_mult_cst_poly_l.
+rewrite !coef_add_poly coef_mult_cst_poly_r_rec coef_mult_cst_poly_l_rec.
 case: i => [|i] //.
   rewrite coef_horner_0 -(add0n 1) plus0r.
   rewrite iprod_rec //; 
     try (apply: plusC); try (apply: plus0l); try (apply: plusA).
   suffices : (setA (ordinal_eqType 0)) =1 set0; last by case=>//.
-  move=> H1; rewrite (eq_iprod_set R plus 0 I_(0) _ _ _ H1) 
+  move=> H1; rewrite (eq_iprod_set plus 0 _ H1) 
     iprod0 !plus0l //.
 rewrite plusC -plusA plusC ; congr plus.
 rewrite -[(i`+1)`+1](addn1) iprod_rec_inv //; 
@@ -385,15 +402,13 @@ rewrite coef_horner_S plusC //; congr plus.
 rewrite IHp.
 apply: eq_iprod_f => x Hx //=.
 congr mult => //=.
-  suffices : S (nat_of_ord x) = nat_of_ord (inj_ord (i`+1 + 1) 1 (inj_ord_add i`+1 1 x)).
+  suffices : S (nat_of_ord x) = nat_of_ord (inj_ord 1 (inj_ord_add 1 x)).
     move => <- //=.
   by clear Hx; case: x => //= [x Hx]; rewrite addn1.
-suffices : S (i - nat_of_ord x) = (i`+1 + 1 - inj_ord (i`+1 + 1) 1 (inj_ord_add i`+1 1 x)).
+suffices : S (i - nat_of_ord x) = (i`+1 + 1 - inj_ord 1 (inj_ord_add 1 x)).
   move => <- //=.
-clear Hx; case: x => //= [x Hx]. rewrite !addn1 subSS //=.
-rewrite leq_subS //.
+clear Hx; case: x => //= [x Hx]; rewrite !addn1 subSS //= leq_subS //.
 Qed.
-
 
 Lemma normalX : normal (Seq 0 1).
 Proof. apply/eqP; by case R. Qed.
@@ -408,6 +423,80 @@ rewrite -addn1 iprod_rec_inv //;
     try (apply: plusC); try (apply: plus0l); try (apply: plusA).
 rewrite //= coef_poly1_0 mult1l subn0 -{2}(plus0r (coef p i)).
 congr plus.
+rewrite -{2}(iprod_1 (@plus0l R) (setA (ordinal_eqType i))).
+apply: eq_iprod_f => x _.
+by case: x => //= => x _; rewrite addn1 coef_poly1_S mult0l.
+Qed.
 
+Lemma poly_multP1 : forall p, mult_poly p poly1 = p.
+Proof.
+move=> p; apply/coef_eqP=> i.
+rewrite coef_mult_poly //=.
+rewrite -addn1 iprod_rec //; 
+    try (apply: plusC); try (apply: plus0l); try (apply: plusA).
+rewrite //= subnn coef_poly1_0 mult1r -{2}(plus0l (coef p i)).
+congr plus.
+rewrite -{2}(iprod_1 (@plus0l R) (setA (ordinal_eqType i))).
+apply: eq_iprod_f => x _.
+case: x => //= => x.
+rewrite -ltn_0sub; set xi:= i - x.
+by case: xi => // n _; rewrite coef_poly1_S mult0r.
+Qed.
 
- 
+Lemma poly_multA p1 p2 p3 :
+  mult_poly p1 (mult_poly p2 p3) = mult_poly (mult_poly p1 p2) p3.
+Proof.
+move=> p1 p2 p3; apply/coef_eqP=> n.
+rewrite !coef_mult_poly.
+set f1:= (fun k : I_(n`+1) => 
+     coef p1 (nat_of_ord k) * coef (mult_poly p2 p3) (n - (nat_of_ord k))).
+set g1:= (fun k : I_(n`+1) => 
+     coef (mult_cst_poly_l (coef p1 (nat_of_ord k)) (mult_poly p2 p3)) (n - (nat_of_ord k))).
+have H1 : f1 =1 g1 by move=> k //=; rewrite / f1 / g1 coef_mult_cst_poly_l.
+set f2:= (fun k : I_(n`+1) => 
+     coef (mult_poly p1 p2) (nat_of_ord k) * coef p3 (n - (nat_of_ord k))).
+set g2:= (fun k : I_(n`+1) => 
+     coef (mult_cst_poly_r (mult_poly p1 p2) (coef p3 (n - (nat_of_ord k)))) (nat_of_ord k)).
+have H2: f2 =1 g2 by move=> k //=; rewrite / f2 / g2 coef_mult_cst_poly_r.
+suffices : iprod plus 0 (d:=I_(n`+1)) (setA I_(n`+1)) f1 = 
+  iprod plus 0 (d:=I_(n`+1)) (setA I_(n`+1)) g1; 
+  last (apply: eq_iprod_f; move=> x _ ; apply: H1); move=> ->.
+suffices : iprod plus 0 (d:=I_(n`+1)) (setA I_(n`+1)) f2 = 
+  iprod plus 0 (d:=I_(n`+1)) (setA I_(n`+1)) g2; 
+  last (apply: eq_iprod_f; move=> x _ ; apply: H2); move=> ->.
+clear H1 H2 f1 f2.
+
+(*
+apply: eq_iprod_f => i Hi.
+rewrite / g1 / g2. !coef_mult_poly.
+
+have H2 :
+  (fun k : I_(n`+1) => 
+     coef (mult_poly p1 p2) (nat_of_ord k) * coef p3 (n - (nat_of_ord k))) =1
+  .
+
+apply: eq_iprod_f => i Hi.
+rewrite !coef_mult_poly.
+
+case=> [p1 np1] [p2 np2] [p3 np3] //.
+elim: p1 np1 p2 np2 p3 np3 => [|a1 p1 Hrec] np1 // [|a2 p2] np2 // [|a3 p3] np3 //.
+
+have H1 :
+  (fun k : I_(n`+1) => 
+     coef p1 (nat_of_ord k) * coef (mult_poly p2 p3) (n - (nat_of_ord k))) =1
+  (fun k : I_(n`+1) => 
+     iprod plus 0 (setA I_((n - (nat_of_ord k))`+1)) (fun i: I_((n - (nat_of_ord k))`+1) =>
+       coef p1 (nat_of_ord k) * (coef p2 (nat_of_ord i) * coef p3 (n - (nat_of_ord k) - (nat_of_ord i))))).
+move=> x //=.
+rewrite !coef_mult_poly //=.
+(* proof iprod_distr right *)
+apply: ok.
+
+iprod plus 0 (d:=I_((n - i)`+1)) (setA I_((n - i)`+1))
+  (fun k : I_((n - i)`+1) => coef p2 k * coef p3 (n - i - k))
+
+by move=> p1 p2 p3; apply/coef_eqP=> i; rewrite !coef_add_poly plusA.
+Qed.
+*)
+
+Admitted.
