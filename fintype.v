@@ -315,22 +315,6 @@ Implicit Arguments set0Pn [d a].
 Implicit Arguments subset_eqP [d a b].
 Prenex Implicits card_uniqP subsetP set0P set0Pn subset_eqP.
 
-Section DInjective.
-
-Variable d d': eqType.
-Variable a: set d.
-Variable f: d -> d'.
-
-Definition dinjective:= 
-  forall x y, a x -> a y -> f x = f y -> x = y.
-
-Lemma inj_dinj: injective f -> dinjective.
-Proof.
-move => H x y H1 H2; exact: H.
-Qed.
-
-End DInjective.
-
 (* setType BEGIN *)
 
 Section PermGen.
@@ -843,39 +827,38 @@ End setTypeOps.
 
 Section FunImage.
 
-Variables (d : finType) (d' : eqType) (f : d -> d').
+Variables (d : finType) (d' : eqType) .
 
-Definition codom : set d' := fun x' => ~~ set0b (preimage f (set1 x')).
+Definition codom (f : d -> d') : set d' := fun x' => ~~ set0b (preimage f (set1 x')).
 
-Remark Hiinv : forall x', codom x' -> {x : d | x' == f x}.
+Remark Hiinv : forall (f : d -> d') x', codom f x' -> {x : d | x' == f x}.
 Proof.
-move=> x' Hx'; pose a := x' == f _.
+move=> f x' Hx'; pose a := x' == f _.
 case: (pickP a) => [x Dx | Hnx']; first by exists x.
 by rewrite /codom /preimage -/a (introT set0P Hnx') in Hx'.
 Qed.
 
-Definition iinv x' (Hx' : codom x') := let (x, _) := Hiinv Hx' in x.
+Definition iinv (f : d -> d') x' (Hx' : codom f x') := let (x, _) := Hiinv Hx' in x.
 
-Lemma codom_f : forall x, codom (f x).
-Proof. move=> x; apply/set0Pn; exists x; apply: set11. Qed.
+Lemma codom_f : forall (f : d -> d') x, codom f (f x).
+Proof. move=> f x; apply/set0Pn; exists x; apply: set11. Qed.
 
-Lemma f_iinv : forall x' (Hx' : codom x'), f (iinv Hx') = x'.
+Lemma f_iinv : forall (f : d -> d') x' (Hx' : codom f x'), f (iinv Hx') = x'.
 Proof.
-by move=> x' Hx'; rewrite /iinv; case: (Hiinv Hx') => [x]; case/eqP.
+by move=> f x' Hx'; rewrite /iinv; case: (Hiinv Hx') => [x]; case/eqP.
 Qed.
 
-Hypothesis Hf : injective f.
 
-Lemma iinv_f : forall x (Hfx : codom (f x)), iinv Hfx = x.
-Proof. move=> x Hfx; apply Hf; apply f_iinv. Qed.
+Lemma iinv_f : forall (f : d -> d') x (Hfx : codom f (f x)), injective f -> iinv Hfx = x.
+Proof. move=> f x Hfx Hf; apply Hf; apply f_iinv. Qed.
 
-Lemma preimage_iinv : forall a' x' (Hx' : codom x'),
+Lemma preimage_iinv : forall (f : d -> d') a' x' (Hx' : codom f x'),
   preimage f a' (iinv Hx') = a' x'.
 Proof. by move=> *; rewrite /preimage f_iinv. Qed.
 
 Section Image.
 
-Variable a : set d.
+Variable (f : d -> d') (a : set d).
 
 Definition image : set d' := fun x' => ~~ disjoint (preimage f (set1 x')) a.
 
@@ -908,6 +891,7 @@ move=> x' Hx'; rewrite /diinv.
 by case: (Hdiinv Hx') => [x]; move/andP => [_ H2].
 Qed.
 
+Hypothesis Hf : injective f.
 Hypothesis Hfd : dinjective a f.
 
 Lemma diinv_f : forall x (Hfx : image (f x)), a x -> diinv Hfx = x.
@@ -922,7 +906,7 @@ Proof. by move=> *; rewrite /preimage f_diinv. Qed.
 
 
 (* This first lemma does not depend on Hf : (injective f). *)
-Lemma image_codom : forall x', image x' -> codom x'.
+Lemma image_codom : forall x', image x' -> codom f x'.
 Proof.
 move=> x'; case/set0Pn=> x; case/andP; move/eqP=> Dx _; rewrite Dx.
 apply codom_f.
@@ -941,7 +925,7 @@ move => x H; apply/set0Pn.
 by exists x; rewrite /setI /preimage eq_refl.
 Qed.
 
-Lemma image_iinv : forall x' (Hx' : codom x'), image x' = a (iinv Hx').
+Lemma image_iinv : forall x' (Hx' : codom f x'), image x' = a (iinv Hx').
 Proof. by move=> x' Hx'; rewrite -image_f f_iinv. Qed.
 
 Lemma pre_image : preimage f image =1 a.
@@ -949,27 +933,42 @@ Proof. by move=> x; rewrite /preimage image_f. Qed.
 
 End Image.
 
-Lemma image_pre : forall a', image (preimage f a') =1 setI a' codom.
+Lemma image_set0 : forall (f : d -> d'), image f set0 =1 set0.
+by move=> f x; case E: (image f set0 x) => //; move/imageP: E=> [y H _].
+Qed.
+
+Lemma image_pre : forall (f : d -> d') a',
+  injective f -> image f (preimage f a') =1 setI a' (codom f).
 Proof.
-move=> a' x'; rewrite /setI andbC; case Hx': (codom x'); simpl.
-  by rewrite -(f_iinv Hx') image_f /preimage f_iinv.
+move=> f a' Hf x'; rewrite /setI andbC; case Hx': (codom f x'); simpl.
+  by rewrite -(f_iinv Hx') image_f /preimage.
 apply/idPn => [Hax']; case/idPn: Hx'; exact (image_codom Hax').
 Qed.
 
-Fixpoint preimage_seq (s : seq d') : seq d :=
+Fixpoint preimage_seq (f : d->d') (s : seq d') : seq d :=
   if s is Adds x s' then
-    (if pick (preimage f (set1 x)) is Some y then Adds y else id) (preimage_seq s')
+    (if pick (preimage f (set1 x)) is Some y then Adds y else id) (preimage_seq f s')
   else seq0.
 
-Lemma maps_preimage : forall s : seq d',
-  sub_set s codom -> maps f (preimage_seq s) = s.
+Lemma maps_preimage : forall (f : d -> d') (s : seq d'),
+  sub_set s (codom f) -> maps f (preimage_seq f s) = s.
 Proof.
-elim=> [|x s Hrec] //=; case: pickP => [y Dy|Hs'] Hs.
+move=> f; elim=> [|x s Hrec] //=; case: pickP => [y Dy|Hs'] Hs.
   rewrite /= (eqP Dy) Hrec // => z Hz; apply Hs; exact: setU1r.
 by case/set0P: (Hs x (setU11 _ _)).
 Qed.
 
+Lemma image_eq : forall (a b:set d)(g f:d->d'), a =1 b ->
+     g =1 f -> image g a =1 image f b.
+Proof.
+move => a b g f Ha Hg x; apply/imageP/imageP; move => [y Hin Heq].
+ by exists y; [rewrite -Ha | rewrite -Hg].
+by exists y; [rewrite Ha | rewrite Hg].
+Qed.
+
 End FunImage.
+
+
 
 Prenex Implicits codom iinv image.
 
@@ -1005,29 +1004,201 @@ Section Ordinal.
 
 Variable n : nat.
 
-Definition ord_enum := subfilter (fun m => m < n) (iota 0 n).
+CoInductive ordinal : Type := Ordinal i of (i < n).
 
-Lemma ord_enumP : forall u, count (set1 u) ord_enum = 1.
-Proof.
-move=> [p Hp]; rewrite count_set1_uniq /ord_enum.
-  by rewrite mem_subfilter /preimage /setI /= mem_iota /= andbC andbb Hp.
-apply: uniq_subfilter; exact: uniq_iota.
-Qed.
+Coercion nat_of_ord x := let: Ordinal i _ := x in i.
 
-Definition ordinal := FinType ord_enumP.
-
-Lemma ordinal_ltn : forall x : ordinal, val x < n.
+Lemma ordinal_ltn : forall  x: ordinal, x < n.
 Proof. by case. Qed.
 
-Lemma card_ordinal : card (setA ordinal) = n.
+Lemma ordinal_inj : injective nat_of_ord.
 Proof.
-rewrite cardA -(size_iota 0 n) /= /ord_enum size_subfilter.
+move=> [i lt_i] [j lt_j]/= eq_ij; rewrite eq_ij in lt_i *.
+congr Ordinal; exact: bool_irrelevance.
+Qed.
+
+Lemma ord_eqP : reflect_eq (fun x y : ordinal => x == y :> nat).
+Proof.
+move=> [x Hx] [y Hy]; apply: (iffP eqP); [exact: ordinal_inj | by case].
+Qed.
+
+Canonical Structure ordinal_eqType := EqType ord_eqP.
+
+Definition ord_of_natsig u := let: EqSig i lt_i := u in @Ordinal i lt_i.
+
+Definition ord_enum :=
+  maps ord_of_natsig (subfilter (fun m => m < n) (iota 0 n)).
+
+Lemma ord_enumP : forall x, count (set1 x) ord_enum = 1.
+Proof.
+have injsig: injective ord_of_natsig.
+  move=> [i lt_i] [j lt_j] [eq_ij]; exact: val_inj.
+move=> [i lt_i]; rewrite count_set1_uniq /ord_enum.
+  rewrite (mem_maps _ _ (EqSig (fun m => m < n) i lt_i)) //.
+  by rewrite mem_subfilter /preimage /setI /= mem_iota /= andbC andbb lt_i.
+rewrite uniq_maps //; apply: uniq_subfilter; exact: uniq_iota.
+Qed.
+
+Canonical Structure ordinal_finType := FinType ord_enumP.
+
+Lemma card_ordinal : card (setA ordinal_finType) = n.
+Proof.
+rewrite cardA -(size_iota 0 n) /= /ord_enum size_maps size_subfilter.
 by apply/eqP; rewrite -all_count; apply/allP=> p; rewrite mem_iota.
 Qed.
 
-Definition make_ord : forall m, m < n -> ordinal := EqSig (fun m => m < n).
-
 End Ordinal.
+
+(* Notation for odinal Type *)
+
+Notation "'I_' ( n )" := (ordinal_finType n)
+  (at level 0, format "'I_' ( n )").
+Notation "'F_' ( n )" := (fgraphType I_(n) I_(n))
+  (at level 0, format "'F_' ( n )").
+
+Section OrdinalProp.
+
+Definition ord0 : ordinal 1 := Ordinal (ltnSn 0).
+
+(* The integer bump / unbump operations, stolen from the PoplMark file! *)
+
+Definition bump h i := (h <= i) + i.
+Definition unbump h i := i - (h < i).
+
+Lemma bumpK : forall h, cancel (bump h) (unbump h).
+Proof.
+rewrite /bump /unbump => h i; case: (leqP h i) => Hhi.
+  by rewrite ltnS Hhi subn1.
+by rewrite ltnNge ltnW ?subn0.
+Qed.
+
+Lemma neq_bump : forall h i, h != bump h i.
+Proof.
+move=> h i; rewrite /bump eqn_leq.
+by case: (leqP h i) => Hhi; [rewrite ltnNge Hhi andbF | rewrite leqNgt Hhi].
+Qed.
+
+Lemma unbumpK : forall h, dcancel (setC1 h) (unbump h) (bump h).
+Proof.
+rewrite /bump /unbump => h i; move/eqP=> Dhi.
+case: (ltngtP h i) => // Hhi; last by rewrite subn0 leqNgt Hhi.
+by rewrite -ltnS subn1 (ltnSpred Hhi) Hhi add1n (ltnSpred Hhi).
+Qed.
+
+(* The lift operations on ordinals; to avoid a messy dependent type, *)
+(* unlift is a partial operation (returns an option).                *)
+
+Lemma lift_subproof : forall n h (i : I_(n.-1)), bump h i < n.
+Proof.
+by case=> [|n] h [i //= Hi]; rewrite /bump; case: (h <= _); last exact: ltnW.
+Qed.
+
+Definition lift n (h : I_(n)) (i : I_(n.-1)) :=
+  Ordinal (lift_subproof h i).
+
+Lemma unlift_subproof : forall n (h : I_(n)) (u : eq_sig (setC1 h)),
+  unbump h (val u) < pred n.
+Proof.
+move=> n h [i] /=; move/unbumpK => Di.
+have lti: (i < n) by case i.
+rewrite -ltnS (ltnSpred lti).
+move: lti; rewrite -{1}Di; move: {i Di} (unbump _ _) => m.
+rewrite /bump; case: (leqP _ m) => // Hm _.
+apply: (@leq_trans (h.+1) _ _) => //.
+by case: h Hm.
+Qed.
+
+Definition unlift n (h i : I_(n)) :=
+  if insub (setC1 h) i is Some u then
+    Some (Ordinal (unlift_subproof u))
+  else None.
+
+CoInductive unlift_spec n (h i : I_(n)) : option I_(n.-1) -> Type :=
+  | UnliftSome j of i = lift h j : unlift_spec h i (Some j)
+  | UnliftNone   of i = h        : unlift_spec h i None.
+
+Lemma unliftP : forall n (h i : I_(n)), unlift_spec h i (unlift h i).
+Proof.
+move=> n h i; rewrite /unlift; case: insubP => [u Hi Di | Di].
+  apply: UnliftSome; 
+  by apply: ordinal_inj; rewrite /= Di (unbumpK Hi).
+apply: UnliftNone; by rewrite negbK in Di; move/eqP: Di.
+Qed.
+
+Lemma neq_lift : forall n (h : I_(n)) i, h != lift h i.
+Proof. by move=> n h i; exact: neq_bump. Qed.
+
+Lemma unlift_none : forall n (h : I_(n)), unlift h h = None.
+Proof. by move=> n h; case: unliftP => // j Dh; case/eqP: (neq_lift h j). Qed.
+
+Lemma unlift_some : forall n (h i : I_(n)),
+  h != i -> {j | i = lift h j & unlift h i = Some j}.
+Proof.
+move=> n h i; rewrite eq_sym; move/eqP=> Hi.
+by case Dui: (unlift h i) / (unliftP h i) => [j Dh|//]; exists j.
+Qed.
+
+Lemma lift_inj : forall n (h : I_(n)), injective (lift h).
+Proof.
+move=> n h i1 i2; move/ord_eqP => //=.
+by rewrite (eqtype.can_eq (@bumpK _)); move/ord_eqP.
+Qed.
+
+Lemma liftK : forall n (h : I_(n)) i, unlift h (lift h i) = Some i.
+Proof.
+by move=> n h i; case: (unlift_some (neq_lift h i)) => j; move/lift_inj->.
+Qed.
+
+(* Shifting and splitting indices, for cutting and pasting arrays *)
+
+Lemma lshift_subproof : forall m n (i : I_(m)), i < m + n.
+Proof. move=> m n i; apply: (@leq_trans m _ _); [by case i| exact: leq_addr]. Qed.
+
+Lemma rshift_subproof : forall m n (i : I_(n)), m + i < m + n.
+Proof. by move=> m n i; rewrite ltn_add2l ordinal_ltn. Qed.
+
+Definition lshift m n (i : I_(m)) := Ordinal (lshift_subproof n i).
+Definition rshift m n (i : I_(n)) := Ordinal (rshift_subproof m i).
+
+Lemma split_subproof : forall m n (i : I_(m + n)),
+  i >= m -> i - m < n.
+Proof. by move=> m n i; move/leq_subS <-; rewrite leq_sub_add ordinal_ltn. Qed.
+
+Definition split m n (i : I_(m + n)) : I_(m) + I_(n) :=
+  match ltnP (i) m with
+  | LtnNotGeq Hi =>  inl _ (Ordinal Hi)
+  | GeqNotLtn Hi =>  inr _ (Ordinal (split_subproof Hi))
+  end.
+
+CoInductive split_spec m n (i : I_(m + n)) : I_(m) + I_(n) -> bool -> Type :=
+  | SplitLo (j : I_(m)) & (i = j :> nat)     : split_spec i (inl _ j) true
+  | SplitHi (k : I_(n)) & (i = m + k :> nat) : split_spec i (inr _ k) false.
+
+Lemma splitP : forall m n i, @split_spec m n i (split i) (i < m).
+Proof.
+rewrite /split {-3}/leq => m n i; case: (@ltnP i m) => Hi //=; first exact: SplitLo.
+by apply: SplitHi; rewrite /= leq_add_sub.
+Qed.
+
+Definition unsplit m n (si : I_(m) + I_(n)) :=
+  match si with inl i => lshift n i | inr i => rshift m i end.
+
+Coercion isleft A B (u : A + B) := if u is inl _ then true else false.
+
+Lemma ltn_unsplit : forall m n si, @unsplit m n si < m = si.
+Proof. by move=> m n [] i /=; rewrite ?(ordinal_ltn i) // ltnNge leq_addr. Qed.
+
+Lemma splitK : forall m n, cancel (@split m n) (@unsplit m n).
+Proof. by move=> m n i; apply: ordinal_inj; case: splitP. Qed.
+
+Lemma unsplitK : forall m n, cancel (@unsplit m n) (@split m n).
+Proof.
+move=> m n si.
+case: splitP (ltn_unsplit si); case: si => //= i j; last move/addn_injl;
+  by move/ordinal_inj->.
+Qed.
+
+End OrdinalProp.
 
 Section SubFinType.
 
@@ -1233,7 +1404,7 @@ Qed.
 Lemma card_preimage : forall a', card (preimage f a') = card (setI (codom f) a').
 Proof.
 move=> a'; apply: etrans (esym (card_image _)) (eq_card _) => x'.
-by rewrite (image_pre Hf) /setI andbC.
+by rewrite (image_pre a' Hf) /setI andbC.
 Qed.
 
 Lemma card_dimage : forall (a: set d), 

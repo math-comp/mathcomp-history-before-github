@@ -49,27 +49,27 @@ Hypothesis p_divides_H: dvdn p (card H).
 Let lt1p := prime_gt1 prime_p.
 Let zp := zp_group (ltnW lt1p).
 Definition make_zp : nat -> zp.
-move=> i; apply: make_ord (modn i p) _.
+move=> i; exists (modn i p).
 abstract by rewrite ltn_mod ltnW ?lt1p.
 Defined.
 
 Let zp1 : zp := make_zp 1.
 
-Lemma make_zp_val : forall x : zp, make_zp (val x) = x.
-Proof. case=> i ltip; apply: val_inj => /=; exact: modn_small. Qed.
+Lemma make_zp_val : forall x : zp, make_zp x = x.
+Proof. case=> i ltip; apply: ordinal_inj => /=; exact: modn_small. Qed.
 
-Lemma zp_power_mul : forall (x : zp) m, x ** m = make_zp (m * val x)%N.
+Lemma zp_power_mul : forall (x : zp) m, x ** m = make_zp (m * x)%N.
 Proof.
-move=> x; elim=> [|m IHm]; apply: val_inj => /=; first by rewrite mod0n.
+move=> x; elim=> [|m IHm]; apply: ordinal_inj => /=; first by rewrite mod0n.
 by rewrite -{1}[x]make_zp_val IHm /= modn_add.
 Qed.
 
 Lemma zp_power_p : forall x : zp, x ** p = 1.
 Proof.
-by move=> x; apply: val_inj; rewrite zp_power_mul /= mulnC modn_mull.
+by move=> x; apply: ordinal_inj; rewrite zp_power_mul /= mulnC modn_mull.
 Qed. 
 
-Lemma zp1_gen : forall x : zp, zp1 ** val x = x.
+Lemma zp1_gen : forall x : zp, zp1 ** x = x.
 Proof.
 by move=> x; rewrite zp_power_mul /= (modn_small lt1p) muln1 make_zp_val.
 Qed.
@@ -113,7 +113,7 @@ Lemma zprot_acts_on_X : closed (orbit zprot_action zp_group) X.
 Proof.
 apply: intro_closed => f1 f2; first exact: orbit_csym.
 case/iimageP=> x _ -> {f2}.
-rewrite -(zp1_gen x) /=; elim: {x}(val x) f1 => [|i IHi] f /=.
+rewrite -(zp1_gen x) /=; elim: {x}(nat_of_ord x) f1 => [|i IHi] f /=.
   by rewrite zprot_to1.
 rewrite zprot_to_morph s2f; case/andP; move/tfunspaceP=> Hfx prodf1.
 apply: IHi; rewrite s2f {i} rot1_prod_over_zp prodf1 andbT.
@@ -140,7 +140,7 @@ have prodF : forall t, prod_over_zp (F t) = (t 1)^-1 ^ (prod_over_zp t).
   have: forall i, iota 1 (pred p) i -> (zp1 ** i == 1) = false.
     move=> i; rewrite mem_iota add1n (ltnSpred lt1p).
     move/andP=> [ipos ltip]; apply: negbET.
-    by rewrite (zp1_gen (make_ord ltip)) -lt0n.
+    by rewrite (zp1_gen (Ordinal ltip)) -lt0n.
   elim: (iota _ _ ) => //= i s IHs zpsnot1.
   rewrite g2f /f zpsnot1 ?setU11 ?IHs // => j sj.
   apply zpsnot1; exact: setU1r.

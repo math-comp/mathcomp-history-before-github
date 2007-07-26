@@ -6,226 +6,12 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-(* More nat notation (frees the S symbol) *)
-
-Notation "0" := 0 (at level 0) : dnat_scope.
-Notation "n '`+1'" := (S n) (at level 9, format "n '`+1'") : dnat_scope.
-Notation "n '`-1'" := (pred n) (at level 9, format "n '`-1'") : dnat_scope.
-
 Delimit Scope local_scope with loc.
 Open Scope local_scope.
-
-(* More funs variants : local equality, cancellation, bijection. *)
-
-Definition dfequal A B (a : set A) (f f' : A -> B) :=
-  forall x, a x -> f x = f' x.
-
-Definition dcancel A B (a : set A) (f : A -> B) f' :=
-  forall x, a x -> f' (f x) = x.
-
-Lemma dcan_inj : forall (A B : eqType) a f f',
-  @dcancel A B a f f' -> dinjective a f.
-Proof.
-by move=> A B a f f' fK x y; do 2![move/fK=> Dx; rewrite -{2}Dx {Dx}] => ->.
-Qed.
-
-Definition icancel A B (b : set B) (f : A -> B) f' :=
-  forall x, b (f x) -> f' (f x) = x.
-
-Definition dbijective A B (a : set A) (f : A -> B) :=
-  exists2 f', dcancel a f f' & icancel a f' f.
-
-(* Used for the assumption of reindex_sum below. *)
-Definition ibijective A B (b : set B) (f : A -> B) :=
-  exists2 f', icancel b f f' & dcancel b f' f.
-
-(* Complements for eqtype. *)
-
-Lemma insubT : forall d (a : set d) x (ax : a x),
-  insub a x = Some (EqSig a x ax).
-Proof.
-move=> d a x ax.
-by case: insubP=> [[y ay] _ Exy| ]; [congr Some; exact: val_inj | rewrite ax].
-Qed.
-
-Implicit Arguments insubT [d x].
-
-Lemma insub_val : forall d a u, @insub d a (val u) = Some u.
-Proof. by move=> d a [x Hx]; rewrite -insubT. Qed.
-
-Lemma insubF : forall d (a : set d) x, a x = false -> insub a x = None.
-Proof. by move=> d a x Hx; case: insubP=> // ?; rewrite Hx. Qed.
-
-Lemma insubN : forall d (a : set d) x, ~~ a x -> insub a x = None.
-Proof. move=> d a x; move/negbET; exact: insubF. Qed.
-
-(* Supplementary material for ordinals, for use as array indices.     *)
-(* Ordinals should really be a proper type, and coerce to nat; at the *)
-(* Very least, ordinal n should be the eq_sig, not the finType.       *)
-
-(* More compact notations for the (fin)Types for index ranges, and    *)
-(* and their permutation group and function space.                    *)
-(*  We'd preferred to use LaTeX-style curly braces for the indices,   *)
-(* however the Coq Notation hacks to circumvent camlp4 limitations    *)
-(* for the { _ } + { _ } notation makes this impossible.              *)
-
-Notation "'I_' ( n )" := (ordinal n)
-  (at level 0, format "'I_' ( n )") : local_scope.
-Notation "'S_' ( n )" := (permType I_(n))
-  (at level 0, format "'S_' ( n )") : local_scope.
-Notation "'F_' ( n )" := (fgraphType I_(n) I_(n))
-  (at level 0, format "'F_' ( n )") : local_scope.
-
-Definition ord0 : ordinal 1 := make_ord (ltnSn 0).
-
-(* The integer bump / unbump operations, stolen from the PoplMark file! *)
-
-Definition bump h i := (h <= i) + i.
-Definition unbump h i := i - (h < i).
-
-Lemma bumpK : forall h, cancel (bump h) (unbump h).
-Proof.
-rewrite /bump /unbump => h i; case: (leqP h i) => Hhi.
-  by rewrite ltnS Hhi subn1.
-by rewrite ltnNge ltnW ?subn0.
-Qed.
-
-Lemma neq_bump : forall h i, h != bump h i.
-Proof.
-move=> h i; rewrite /bump eqn_leq.
-by case: (leqP h i) => Hhi; [rewrite ltnNge Hhi andbF | rewrite leqNgt Hhi].
-Qed.
-
-Lemma unbumpK : forall h, dcancel (setC1 h) (unbump h) (bump h).
-Proof.
-rewrite /bump /unbump => h i; move/eqP=> Dhi.
-case: (ltngtP h i) => // Hhi; last by rewrite subn0 leqNgt Hhi.
-by rewrite -ltnS subn1 (ltnSpred Hhi) Hhi add1n (ltnSpred Hhi).
-Qed.
-
-(* The lift operations on ordinals; to avoid a messy dependent type, *)
-(* unlift is a partial operation (returns an option).                *)
-
-Lemma lift_subproof : forall n h (i : I_(n`-1)), bump h (val i) < n.
-Proof.
-by case=> [|n] h [i //= Hi]; rewrite /bump; case: (h <= _); last exact: ltnW.
-Qed.
-
-Definition lift n (h : I_(n)) (i : I_(n`-1)) :=
-  make_ord (lift_subproof (val h) i).
-
-Lemma unlift_subproof : forall n (h : I_(n)) (u : eq_sig (setC1 h)),
-  unbump (val h) (val (val u)) < pred n.
-Proof.
-move=> n h [i] /=; move/unbumpK => Di.
-have lti := valP i; rewrite -ltnS (ltnSpred lti).
-move: lti; rewrite -{1}Di; move: {i Di} (unbump _ _) => m.
-rewrite /bump; case: (leqP _ m) => // Hm _; exact: leq_trans (valP h).
-Qed.
-
-Definition unlift n (h i : I_(n)) :=
-  if insub (setC1 h) i is Some u then
-    Some (make_ord (unlift_subproof u))
-  else None.
-
-CoInductive unlift_spec n (h i : I_(n)) : option I_(n`-1) -> Type :=
-  | UnliftSome j of i = lift h j : unlift_spec h i (Some j)
-  | UnliftNone   of i = h        : unlift_spec h i None.
-
-Lemma unliftP : forall n (h i : I_(n)), unlift_spec h i (unlift h i).
-Proof.
-move=> n h i; rewrite /unlift; case: insubP => [u Hi Di | Di]; constructor.
-  by apply: val_inj; rewrite /= Di (unbumpK Hi).
-by rewrite negbK in Di; move/eqP: Di.
-Qed.
-
-Lemma neq_lift : forall n (h : I_(n)) i, h != lift h i.
-Proof. by move=> n h i; exact: neq_bump. Qed.
-
-Lemma unlift_none : forall n (h : I_(n)), unlift h h = None.
-Proof. by move=> n h; case: unliftP => // j Dh; case/eqP: (neq_lift h j). Qed.
-
-Lemma unlift_some : forall n (h i : I_(n)),
-  h != i -> {j | i = lift h j & unlift h i = Some j}.
-Proof.
-move=> n h i; rewrite eq_sym; move/eqP=> Hi.
-by case Dui: (unlift h i) / (unliftP h i) => [j Dh|//]; exists j.
-Qed.
-
-Lemma lift_inj : forall n (h : I_(n)), injective (lift h).
-Proof.
-move=> n h i1 i2; move/eqP.
-by rewrite -val_eqE (eqtype.can_eq (@bumpK _)) val_eqE; move/eqP.
-Qed.
-
-Lemma liftK : forall n (h : I_(n)) i, unlift h (lift h i) = Some i.
-Proof.
-by move=> n h i; case: (unlift_some (neq_lift h i)) => j; move/lift_inj->.
-Qed.
-
-(* Shifting and splitting indices, for cutting and pasting arrays *)
-
-Lemma lshift_subproof : forall m n (i : I_(m)), val i < m + n.
-Proof. move=> m n i; exact: leq_trans (valP i) (leq_addr _ _). Qed.
-
-Lemma rshift_subproof : forall m n (i : I_(n)), m + val i < m + n.
-Proof. by move=> m n i; rewrite ltn_add2l ordinal_ltn. Qed.
-
-Definition lshift m n (i : I_(m)) := make_ord (lshift_subproof n i).
-Definition rshift m n (i : I_(n)) := make_ord (rshift_subproof m i).
-
-Lemma split_subproof : forall m n (i : I_(m + n)),
-  val i >= m -> val i - m < n.
-Proof. by move=> m n i; move/leq_subS <-; rewrite leq_sub_add ordinal_ltn. Qed.
-
-Definition split m n (i : I_(m + n)) : I_(m) + I_(n) :=
-  match ltnP (val i) m with
-  | LtnNotGeq Hi =>  inl _ (make_ord Hi)
-  | GeqNotLtn Hi =>  inr _ (make_ord (split_subproof Hi))
-  end.
-
-CoInductive split_spec m n (i : I_(m + n)) : I_(m) + I_(n) -> bool -> Type :=
-  | SplitLo (j : I_(m)) & val i = val j     : split_spec i (inl _ j) true
-  | SplitHi (k : I_(n)) & val i = m + val k : split_spec i (inr _ k) false.
-
-Lemma splitP : forall m n i, @split_spec m n i (split i) (val i < m).
-Proof.
-rewrite /split {3 6}/leq => m n i; case: ltnP => Hi; first exact: SplitLo.
-by apply: SplitHi; rewrite //= leq_add_sub.
-Qed.
-
-Definition unsplit m n (si : I_(m) + I_(n)) :=
-  match si with inl i => lshift n i | inr i => rshift m i end.
-
-Coercion isleft A B (u : A + B) := if u is inl _ then true else false.
-
-Lemma ltn_unsplit : forall m n si, val (@unsplit m n si) < m = si.
-Proof. by move=> m n [] i /=; rewrite ?(valP i) // ltnNge leq_addr. Qed.
-
-Lemma splitK : forall m n, cancel (@split m n) (@unsplit m n).
-Proof. by move=> m n i; apply: val_inj; case: splitP. Qed.
-
-Lemma unsplitK : forall m n, cancel (@unsplit m n) (@split m n).
-Proof.
-move=> m n si.
-case: splitP (ltn_unsplit si); case: si => //= i j; last move/addn_injl;
-  by move/val_inj->.
-Qed.
 
 Section determinant_context.
 
 (* Ring theory; should be replaced by a common structure like RingTheory. *)
-
-(*
-Record rings : Type := Rings {
-  R : Type;
-  plus : R -> R -> R;
-  mult : R -> R -> R;
-  opp : R -> R;
-  zero : R;
-  one : R  
-}.
-*)
 
 
 Variable R : Type.
@@ -253,7 +39,7 @@ Notation "x - y" := (x + (- y)) : local_scope.
 
 Definition RofSn n := iter n (fun x => x + 1) 1.
 
-Coercion R_of_nat n := if n is n'`+1 then RofSn n' else 0.
+Coercion R_of_nat n := if n is n'.+1 then RofSn n' else 0.
 
 (* We'll show later RofSnE : forall n, RofSn n = n + 1. *)
 
@@ -261,7 +47,7 @@ Coercion R_of_nat n := if n is n'`+1 then RofSn n' else 0.
 
 Definition RexpSn x n := iter n (fun y => y * x) x.
 
-Definition Rexp_nat x n := if n is n'`+1 then RexpSn x n' else 1.
+Definition Rexp_nat x n := if n is n'.+1 then RexpSn x n' else 1.
 
 Notation "x ^ n" := (Rexp_nat x n) : local_scope.
 
@@ -354,11 +140,11 @@ Notation "'\prod_' ( i < n ) E" := (iprod mult 1 (setA _) (fun i : I_(n) => E))
 
 Lemma eq_isum : forall (d : finType) (r r' : set d) F F',
   r =1 r' -> dfequal r F F' -> \sum_(in r) F = \sum_(in r') F'.
-Proof. move=> d r r' F F'; move/(eq_iprod_set R) <-; exact: eq_iprod_f. Qed.
+Proof. move=> d r r' F F'. move/(@eq_iprod_set R)=> <-; exact: eq_iprod_f. Qed.
 
 Lemma eq_iprod : forall (d : finType) (r r' : set d) F F',
   r =1 r' -> dfequal r F F' -> \prod_(in r) F = \prod_(in r') F'.
-Proof. move=> d r r' F F'; move/(eq_iprod_set R) <-; exact: eq_iprod_f. Qed.
+Proof. move=> d r r' F F'; move/(@eq_iprod_set R) <-; exact: eq_iprod_f. Qed.
 
 Lemma eq_isumL : forall (d : finType) (r r' : set d) F,
   r =1 r' -> \sum_(in r) F = \sum_(in r') F.
@@ -637,7 +423,7 @@ Proof. move=> m n i i0 A B; case/unlift_some=> i' -> _  [AB] j; exact: AB. Qed.
 Lemma matrix_paste_cut : forall m1 m2 n (A : matrix (m1 + m2) n),
   matrix_paste (matrix_lcut A) (matrix_rcut A) =m A.
 Proof.
-split=> i j /=; case: splitP => k Dk; congr matrix_entry; exact: val_inj.
+split=> i j /=; case: splitP => k Dk; congr matrix_entry; exact: ordinal_inj.
 Qed.
 
 (* Determinants, in one line ! *)
@@ -898,7 +684,7 @@ Qed.
 Lemma isum_id : forall (d : finType) (r : set d) x,
   \sum_(i in r) x = card r * x.
 Proof.
-move=> d r x; elim: {r}_`+1 {-2}r (ltnSn (card r)) => // n IHn r.
+move=> d r x; elim: {r}_.+1 {-2}r (ltnSn (card r)) => // n IHn r.
 case: (pickP r) => [i ri | r0 _]; last by rewrite isum_set0 ?eq_card0.
 rewrite (cardD1 i) (isumD1 i) ri //=; move/IHn=> -> {n IHn}; rewrite RofSnE.
 by rewrite distrR mult1x plusC.
@@ -907,7 +693,7 @@ Qed.
 Lemma iprod_id :  forall (d : finType) (r : set d) x,
   \prod_(i in r) x = x ^ card r.
 Proof.
-move=> d r x; elim: {r}_`+1 {-2}r (ltnSn (card r)) => // n IHn r.
+move=> d r x; elim: {r}_.+1 {-2}r (ltnSn (card r)) => // n IHn r.
 case: (pickP r) => [i ri | r0 _]; last by rewrite iprod_set0 ?eq_card0.
 rewrite (cardD1 i) (iprodD1 i) ri //=.
 by move/IHn=> -> {n IHn}; rewrite RexpSnE multC.
@@ -944,7 +730,7 @@ Lemma reindex_isum_onto : forall (d d' : finType) (h : d' -> d) h' r F,
   \sum_(in r) F = \sum_(i | (h' (h i) == i) && r (h i)) F (h i).
 Proof.
 move=> d d' h h' r F h'K.
-elim: {r}_`+1 {-3}r h'K (ltnSn (card r)) => //= n IHn r h'K.
+elim: {r}_.+1 {-3}r h'K (ltnSn (card r)) => //= n IHn r h'K.
 case: (pickP r) => [i ri | r0 _]; last first.
   by rewrite !isum_set0 // => x; rewrite r0 andbF.
 rewrite ltnS (cardD1 i) ri add1n; move/IHn {n IHn}.
@@ -969,7 +755,7 @@ Lemma reindex_iprod_onto : forall (d d' : finType) (h : d' -> d) h' r F,
   \prod_(in r) F = \prod_(i | (h' (h i) == i) && r (h i)) F (h i).
 Proof.
 move=> d d' h h' r F h'K.
-elim: {r}_`+1 {-3}r h'K (ltnSn (card r)) => //= n IHn r h'K.
+elim: {r}_.+1 {-3}r h'K (ltnSn (card r)) => //= n IHn r h'K.
 case: (pickP r) => [i ri | r0 _]; last first.
   by rewrite !iprod_set0 // => x; rewrite r0 andbF.
 rewrite ltnS (cardD1 i) ri add1n; move/IHn {n IHn}.
@@ -1000,7 +786,7 @@ Proof.
 move=> d d' pr p r F prp.
 rewrite (eq_isumL _ (fun j => r j && pr (p j))); last first.
   by move=> i /=; case ri: (r i); rewrite // prp.
-rewrite isum_eta; elim: {pr}_`+1 {-2}pr {prp} (ltnSn (card pr)) => // n IHn pr.
+rewrite isum_eta; elim: {pr}_.+1 {-2}pr {prp} (ltnSn (card pr)) => // n IHn pr.
 case: (pickP pr) => [i0 pri0 | pr0 _]; last first.
   by rewrite !isum_set0 => //= i; rewrite pr0 andbF.
 rewrite ltnS (cardD1 i0) pri0 (isumD1 i0) //; move/IHn=> {n IHn} <-.
@@ -1083,7 +869,7 @@ Lemma distr_iprod_isum_dep :
      \sum_(f in pfamily j0 r r') \prod_(i in r) F i (f i).
 Proof.
 move=> d d' j0 r r' F; pose df := fgraphType d d'.
-elim: {r}_`+1 {-2}r (ltnSn (card r)) => // m IHm r.
+elim: {r}_.+1 {-2}r (ltnSn (card r)) => // m IHm r.
 case: (pickP r) => [i1 ri1 | r0 _]; last first.
   rewrite (isum_set1 (fgraph_of_fun (fun _ => j0))) ?iprod_set0 // => f.
   apply/familyP/eqP=> [Df|<-{f} i]; last by rewrite r0 g2f set11.
@@ -1320,7 +1106,7 @@ rewrite (isumID (fun f => uniq (fval f))) plusC isum0 ?plus0x => /= [|f Uf].
   rewrite (reindex_isum (fun s => val (pval s))); last first.
     have s0 : S_(n) := 1%G; pose uf (f : F_(n)) := uniq (fval f).
     pose pf f := if insub uf f is Some s then Perm s else s0.
-    exists pf => /= f Uf; rewrite /pf (insubT uf Uf) //; exact: eq_fun_of_perm.
+    exists pf => /= f Uf; rewrite /pf (@insubT _ uf _ Uf) //; exact: eq_fun_of_perm.
   apply: eq_isum => [s|s _]; rewrite ?(valP (pval s)) // isum_distrL.
   rewrite (reindex_isum (mulg s)); last first.
     by exists (mulg s^-1) => t; rewrite ?mulKgv ?mulKg.
@@ -1343,7 +1129,7 @@ Qed.
 (* And now, the Laplace formula. *)
 
 Definition cofactor n (A : M_(n)) (i j : I_(n)) :=
-   (-1) ^ (val i + val j) * \det (row' i (col' j A)).
+   (-1) ^ ( i + j) * \det (row' i (col' j A)).
 
 (* Same bug as determinant
 Add Morphism cofactor with
@@ -1361,7 +1147,7 @@ Lemma expand_cofactor : forall n (A : M_(n)) i j,
     \sum_(s : S_(n) | s i == j) (-1) ^ s * \prod_(k | i != k) A k (s k).
 Proof.
 move=> n.
-pose lsf i (s : S_(n`-1)) j k :=
+pose lsf i (s : S_(n.-1)) j k :=
   if unlift i k is Some k' then lift j (s k') else j.
 have lsfE: forall i s j, (lsf i s j i = j)
                        * (forall k, lsf i s j (lift i k) = lift j (s k)).
@@ -1376,9 +1162,9 @@ have ls1 : forall i, ls i 1%G i = 1%G.
 have lsM : forall i s j t k, (ls i s j * ls j t k)%G = ls i (s * t)%G k.
   move=> i s j t k; apply: eq_fun_of_perm=> l; rewrite permM !p2f.
   by case: (unliftP i l) => [l'|] ->; rewrite !lsfE ?permM.
-have sign_ls: forall s i j, (-1)^(ls i s j) = (-1) ^ s * (-1)^(val i + val j).
-  pose nfp (s : S_(n`-1)) k := s k != k.
-  move=> s i j; elim: {s}_`+1 {-2}s (ltnSn (card (nfp s))) => // m IHm s Hm.
+have sign_ls: forall s i j, (-1)^(ls i s j) = (-1) ^ s * (-1)^(i + j).
+  pose nfp (s : S_(n.-1)) k := s k != k.
+  move=> s i j; elim: {s}_.+1 {-2}s (ltnSn (card (nfp s))) => // m IHm s Hm.
   case: (pickP (nfp s)) Hm => [k Dsk | s1 _ {m IHm}].
     rewrite ltnS (cardD1 k) Dsk => Hm; pose t := transp k (s^-1 k).
     rewrite -(mulKg t s) transpV -(lsM _ _ i).
@@ -1396,24 +1182,24 @@ have sign_ls: forall s i j, (-1)^(ls i s j) = (-1) ^ s * (-1)^(val i + val j).
     case transpP => //; move/eqP; case/idPn; exact: neq_lift.
   have ->: s = 1%G.
     by apply: eq_fun_of_perm=> k; rewrite perm1; move/eqP: (s1 k).
-  rewrite odd_perm1 mult1x; without loss: i {s s1} j / val j <= val i.
-    case: (leqP (val j) (val i)); first by auto.
+  rewrite odd_perm1 mult1x; without loss: i {s s1} j / j <= i.
+    case: (leqP j i); first by auto.
     move/ltnW=> ij; move/(_ _ _ ij)=> Wji.
     rewrite -(mulgK (ls j 1%G i) (ls i  _ j)) lsM !(ls1,mul1g).
     by rewrite odd_permV addnC.
-  move Dm: (val i)`+1 => m; elim: m i Dm => // m IHm i [im].
+  move Dm: i.+1 => m; elim: m i Dm => // m IHm i [im].
   rewrite leq_eqVlt; case/setU1P=> [eqji|ltji].
-    by rewrite (val_inj eqji) ls1 odd_perm1 /= -sign_odd odd_addn addbb.
-  have m'm: m`-1`+1 = m by rewrite -im (ltnSpred ltji).
-  have ltm'n : m`-1 < n by rewrite m'm -im leq_eqVlt orbC (valP i).
-  pose i' := make_ord ltm'n; rewrite -{1}(mulg1 1%G) -(lsM _ _ i') sign_permM.
+    by rewrite (ordinal_inj eqji) ls1 odd_perm1 /= -sign_odd odd_addn addbb.
+  have m'm: m.-1.+1 = m by rewrite -im (ltnSpred ltji).
+  have ltm'n : m.-1 < n by rewrite m'm -im leq_eqVlt orbC (ordinal_ltn i).
+  pose i' := Ordinal ltm'n; rewrite -{1}(mulg1 1%G) -(lsM _ _ i') sign_permM.
   rewrite multC {}IHm; try by rewrite /= -1?ltnS ?m'm // -im.
   rewrite im -m'm addSn -addn1 (exp_addn _ _ 1); congr (_ * _).
-  have{j ltji} ii' : i != i' by rewrite -val_eqE im /= -m'm eqn_leq ltnn.
+  have{j ltji} ii' : i != i' by rewrite /set1 /= im /= -m'm eqn_leq ltnn.
   transitivity ((-1) ^ transp i i'); last by rewrite odd_transp ii'.
   congr (_ ^ odd_perm _); apply: eq_fun_of_perm=> k.
   case: (unliftP i k) => [k'|] -> {k}; rewrite p2f lsfE ?transpL // perm1.
-  apply: val_inj; rewrite p2f /transpose (negbET (neq_lift _ _)) -val_eqE.
+  apply: ordinal_inj; rewrite p2f /transpose (negbET (neq_lift _ _)) /set1.
   rewrite fun_if /= im /bump; case mk': (m <= _).
     by rewrite eq_sym eqn_leq ltnNge leq_eqVlt m'm mk' orbT.
   by rewrite add0n leq_eqVlt m'm mk'; case: eqP => //= <-.
@@ -1434,7 +1220,7 @@ move=> A i0 j0; rewrite (reindex_isum (fun s => ls i0 s j0)); last first.
 rewrite /cofactor isum_distrL.
 apply: eq_isum => [s | s _]; first by rewrite p2f lsfE set11.
 rewrite multCA multA -{}sign_ls; congr (_ * _).
-case: (pickP (setA I_(n`-1))) => [k'0 _ | r'0]; last first.
+case: (pickP (setA I_(n.-1))) => [k'0 _ | r'0]; last first.
   rewrite !iprod_set0 // => k; apply/idP; case/unlift_some=> k'.
   by have:= r'0 k'.
 rewrite (reindex_iprod (lift i0)).

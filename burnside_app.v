@@ -30,14 +30,14 @@ End perm.
 Section square_colouring.
 
 Variable n: nat.
-Definition colors:=ordinal n.
+Definition colors:=ordinal_finType n.
 Hypothesis Hn:0<n.
-Definition col0:colors:= (make_ord Hn).
+Definition col0:colors:= (Ordinal Hn).
 
-Definition square := ordinal 4.
+Definition square := ordinal_finType 4.
 
 Definition perm_square:= perm_finType square.
-Definition mk4 x Hx: square := EqSig (fun m : nat_eqType => m < 4) x Hx.
+Definition mk4 x Hx: square := (@Ordinal 4 x Hx).
 Definition c0:= @mk4 0 is_true_true.
 Definition c1:= @mk4 1%N is_true_true.
 Definition c2:=@mk4 2 is_true_true.
@@ -45,13 +45,13 @@ Definition c3:=@mk4 3 is_true_true.
 
 (*rotations*)
 Definition R1 (sc : square):square :=
-match sc with EqSig 0 _ => c1| EqSig 1 _ => c2| EqSig 2 _ => c3| EqSig (S (S (S _))) _ => c0 end.
+match sc with Ordinal 0 _ => c1| Ordinal 1 _ => c2| Ordinal 2 _ => c3| Ordinal (S (S (S _))) _ => c0 end.
 
 Definition R2 (sc : square):square :=
-match sc with EqSig 0 _ => c2 | EqSig 1 _ => c3 | EqSig 2 _ =>c0| EqSig (S (S (S _))) _ => c1 end.
+match sc with Ordinal 0 _ => c2 | Ordinal 1 _ => c3 | Ordinal 2 _ =>c0| Ordinal (S (S (S _))) _ => c1 end.
 
 Definition R3 (sc : square):square :=
-match sc with EqSig 0 _ => c3| EqSig 1 _ => c0| EqSig 2 _ => c1| EqSig (S (S (S _))) _ => c2 end.
+match sc with Ordinal 0 _ => c3| Ordinal 1 _ => c0| Ordinal 2 _ => c1| Ordinal (S (S (S _))) _ => c2 end.
 
 Ltac get_inv elt l :=
   match l with 
@@ -111,38 +111,45 @@ Qed.
 
 Lemma rot_eq_rot: forall r s, is_rot r -> is_rot s ->
 (fun_of_perm r) c0 = (fun_of_perm s) c0 -> r = s.
-rewrite /is_rot; move => r s  hr hs  hrs;apply :eq_fun_of_perm;move => z;
-destruct z;destruct val.
- by have<-:(c0 = EqSig(fun m:nat_eqType => m < 4)0 valP);first by apply/val_eqP.
+rewrite /is_rot; move => r s  hr hs  hrs;apply :eq_fun_of_perm;move => z.
+destruct z.
+case: i i0 => [|i] i0; first 
+  by have<-:(c0 = Ordinal i0);first by apply/ord_eqP.
 (*1*)
-destruct val.
- have ht : forall t,is_rot t ->  fun_of_perm t  (EqSig (fun m : nat_eqType => m < 4) 1%N valP)= fun_of_perm (r1 * t) c0;last first.
+case: i i0 => [|i] i0.
+ have ht : forall t,is_rot t -> 
+ fun_of_perm t  (Ordinal i0) =
+ fun_of_perm (r1 * t) c0;last first.
 rewrite (ht r hr) (ht s hs) -(eqP hr) -(eqP hs).
 rewrite /fun_of_perm/=/comp !(g2f (d1:= square)(d2:= square)).
 by congr fun_of_fgraph.
 move => t ht; rewrite {2}/fun_of_perm/= /comp!(g2f (d1:= square)(d2:= square)).
- congr fun_of_fgraph; rewrite /r1; apply /val_eqP => /=; unlock perm_of_inj fun_of_perm.
+ congr fun_of_fgraph; rewrite /r1; apply /ord_eqP => /=; unlock perm_of_inj fun_of_perm.
  by rewrite g2f /=. 
 (*2*)
-destruct val.
-have ht: forall t,is_rot t->fun_of_perm t  (EqSig (fun m : nat_eqType => m < 4) 2%N valP)= fun_of_perm (t * (r1 * r1)) c0.
+case: i i0 => [|i] i0.
+ have ht: forall t,is_rot t-> 
+ fun_of_perm t  (Ordinal i0) =
+ fun_of_perm (t * (r1 * r1)) c0.
 move=> t ;rewrite /is_rot => ht;rewrite mulgA (eqP ht)-mulgA(eqP ht).
 rewrite {2}/fun_of_perm/=/comp{2}/fun_of_perm/=/comp/=.
 rewrite !(g2f (d1:= square)(d2:= square)).
 congr fun_of_fgraph. 
- by rewrite /r1 /perm_of_inj /fun_of_perm !g2f; apply /val_eqP.
+ by rewrite /r1 /perm_of_inj /fun_of_perm !g2f; apply /ord_eqP.
 rewrite (ht r hr) (ht s hs).
 rewrite /fun_of_perm/=/comp. 
  rewrite !(g2f (d1:= square)(d2:= square))/comp.
-rewrite hrs /perm_of_inj /fun_of_perm g2f  /R1/=;apply/val_eqP;auto.
+rewrite hrs /perm_of_inj /fun_of_perm g2f  /R1/=;apply/ord_eqP;auto.
 (*3*)
-destruct val=>//.
-have ht : forall t, is_rot t -> fun_of_perm t  (EqSig (fun m : nat_eqType => m < 4) 3 valP)= fun_of_perm (t*( r1 * r1 * r1)) c0.
+case: i i0 => [|i] i0 //.
+ have ht : forall t, is_rot t ->
+ fun_of_perm t  (Ordinal i0) =
+ fun_of_perm (t*( r1 * r1 * r1)) c0.
 move=> t ;rewrite /is_rot => ht.
 replace (t*(r1*r1*r1)) with ((r1*r1*r1)*t).
 rewrite {2}/fun_of_perm/=/comp  !(g2f (d1:= square)(d2:= square)).
 congr fun_of_fgraph. 
- by apply:val_inj => /=; do 3 rewrite /r1 !perm_eqfun /comp.
+ by apply:ordinal_inj => /=; do 3 rewrite /r1 !perm_eqfun /comp.
 by rewrite -!mulgA- (eqP ht) (mulgA r1 t r1) -(eqP ht) -(mulgA t r1 r1)  mulgA -(eqP ht)!mulgA.
 rewrite (ht r hr) (ht s hs) /fun_of_perm/=/comp !(g2f (d1:= square)(d2:= square)).
 by rewrite hrs.
@@ -151,8 +158,9 @@ Qed.
 Lemma rotations_is_rot: forall r, rotations  r -> is_rot r.
 move => r ;rewrite /rotations/is_rot s2f.
 case /or4P;move/eqP => <-//; first (by rewrite mulg1 mul1g);
- apply/eqP;apply: eq_fun_of_perm;move =>z; rewrite !perm_eqfun /comp !perm_eqfun/R2/R1/R3;
- destruct z;repeat (destruct val => //=).
+ apply/eqP;apply: eq_fun_of_perm;move =>z;
+ rewrite !perm_eqfun /comp !perm_eqfun/R2/R1/R3;
+ destruct z; repeat (case: i i0 => [|i] i0 //=).
 Qed.
 
 Lemma rot_is_rot: rot =1 rotations.
@@ -164,29 +172,29 @@ case e0: val0=>[|val].
  rewrite (rot_eq_rot (r:=r) (s:= id1));first by rewrite eq_refl; apply/or4P.
    by rewrite (eqP h).
   by rewrite /is_rot/id1 mulg1 mul1g.
- by rewrite e perm_eqfun;apply /val_eqP; apply /eqP=>/=;rewrite e0.
+ by rewrite e perm_eqfun;apply /ord_eqP; apply /eqP=>/=;rewrite e0.
 destruct val.
  rewrite (rot_eq_rot (r:=r) (s:= r1));first by rewrite eq_refl; apply/or4P;rewrite orbT.
    by rewrite (eqP h).
   apply  rotations_is_rot.
   by rewrite /rotations s2f; rewrite eq_refl/=;apply/orP;right.
- by rewrite e /c0/mk4/r1 perm_eqfun/=;apply/val_eqP;apply/eqP=>/=;rewrite e0.
+ by rewrite e /c0/mk4/r1 perm_eqfun/=;apply/ord_eqP;apply/eqP=>/=;rewrite e0.
 destruct val.
  rewrite (rot_eq_rot (r:=r) (s:= r2));first by rewrite eq_refl; apply/or4P;rewrite !orbT.
    by rewrite (eqP h).
   by apply  rotations_is_rot ;rewrite /rotations s2f; rewrite eq_refl/= !orbT.
- by rewrite e /c0/mk4/r2 perm_eqfun/=;apply/val_eqP;apply/eqP=>/=; by rewrite e0.
+ by rewrite e /c0/mk4/r2 perm_eqfun/=;apply/ord_eqP;apply/eqP=>/=; by rewrite e0.
 destruct val;last by  clear e;rewrite e0 in val0P;discriminate.
 rewrite (rot_eq_rot (r:=r) (s:= r3));first by rewrite eq_refl; apply/or4P;rewrite !orbT.
   by rewrite (eqP h).
  by apply  rotations_is_rot ;rewrite /rotations s2f; rewrite eq_refl/= !orbT.
-by rewrite e /c0/mk4/r3 perm_eqfun/=;apply/val_eqP;apply/eqP=>/=;rewrite e0.
+by rewrite e /c0/mk4/r3 perm_eqfun/=;apply/ord_eqP;apply/eqP=>/=;rewrite e0.
 Qed.
 
 
 (*symmetries*)
 Definition Sh (sc : square) : square:=
-match sc with  EqSig 0 _ => c1| EqSig 1 _ => c0| EqSig 2 _ => c3| EqSig (S (S (S _))) _ =>c2 end.
+match sc with  Ordinal 0 _ => c1| Ordinal 1 _ => c0| Ordinal 2 _ => c3| Ordinal (S (S (S _))) _ =>c2 end.
 
 Lemma Sh_inj: injective Sh.
 Proof.
@@ -204,7 +212,7 @@ repeat (destruct val => //=;first by apply /eqP).
 Qed.
 
 Definition Sv (sc : square) : square:=
-match sc with  EqSig 0 _ => c3| EqSig 1 _ => c2| EqSig 2 _ => c1| EqSig (S (S (S _))) _ =>c0 end.
+match sc with  Ordinal 0 _ => c3| Ordinal 1 _ => c2| Ordinal 2 _ => c1| Ordinal (S (S (S _))) _ =>c0 end.
 
 Lemma Sv_inj: injective Sv.
 Proof. apply : (can_inj (g:= Sv));move => [val H1];
@@ -221,7 +229,7 @@ repeat (destruct val => //=;first by apply /eqP).
 Qed.
 
 Definition S1 (sc : square) : square:=
-match sc with  EqSig 0 _ => c0| EqSig 1 _ => c3| EqSig 2 _ => c2| EqSig (S (S (S _))) _ =>c1 end.
+match sc with  Ordinal 0 _ => c0| Ordinal 1 _ => c3| Ordinal 2 _ => c2| Ordinal (S (S (S _))) _ =>c1 end.
 
 Lemma S1_inj: injective S1.
 Proof.
@@ -239,7 +247,7 @@ repeat (destruct val => //=;first by apply /eqP).
 Qed.
 
 Definition S2 (sc : square) : square:=
-match sc with  EqSig 0 _ => c2| EqSig 1 _ => c1| EqSig 2 _ => c0| EqSig (S (S (S _))) _ =>c3 end.
+match sc with  Ordinal 0 _ => c2| Ordinal 1 _ => c1| Ordinal 2 _ => c0| Ordinal (S (S (S _))) _ =>c3 end.
 
 Lemma S2_inj: injective S2.
 Proof.
@@ -256,14 +264,14 @@ rewrite !perm_eqfun /= /comp/= !perm_eqfun;
 repeat (destruct val => //=;first by apply /eqP).
 Qed.
 
-Lemma ord_enum4: ord_enum 4 = Seq (make_ord (is_true_true:0 < 4))
-                                  (make_ord (is_true_true:1 < 4))
-                                  (make_ord (is_true_true:2 < 4))
-                                  (make_ord (is_true_true:3 < 4)).
+Lemma ord_enum4: ord_enum 4 = Seq (Ordinal (is_true_true:0 < 4))
+                                  (Ordinal (is_true_true:1 < 4))
+                                  (Ordinal (is_true_true:2 < 4))
+                                  (Ordinal (is_true_true:3 < 4)).
 rewrite /ord_enum /subfilter /=.
 rewrite /insub.
 do 4 (case: idP; last by move => *; done).
-by move => i1 i2 i3 i4; repeat congr Adds; apply/val_eqP => //.
+by move => i1 i2 i3 i4; repeat congr Adds; apply/ord_eqP => //.
 Qed.
 
 Lemma diff_id_sh: unitg (perm_finGroupType square) != sh.
@@ -294,10 +302,10 @@ Definition isometries := {p, (p==id1)|| ((p==r1)||((p==r2)||((p==r3)||((p==sh)||
 Definition fop:= fun_of_perm.
 
 Definition opp (sc:square):=
-match sc with EqSig 0 _ => c2
-                      | EqSig 1 _ =>  c3
-                      | EqSig 2 _ =>  c0
-                      | EqSig (S (S (S _))) _  =>  c1 end.
+match sc with Ordinal 0 _ => c2
+                      | Ordinal 1 _ =>  c3
+                      | Ordinal 2 _ =>  c0
+                      | Ordinal (S (S (S _))) _  =>  c1 end.
 
 Definition is_iso p:= forall ci, (fop p (opp ci))=opp(fop p ci).
 
@@ -437,7 +445,7 @@ rewrite ord_enum4/=.
 case/andP=> h0 h1;rewrite (eqP h0)(eqP h1).
 apply/eqP;apply :(fog_inj (d1:= square) (d2:= colors))=> z.
 rewrite g2f /= perm_eqfun; destruct z;
-repeat (destruct val=>//=;first by rewrite /fun_of_fgraph;unlock=>/=;unlock=>/=;rewrite ord_enum4).
+repeat (case: i i0 => [|i] i0 //=;first by rewrite /fun_of_fgraph;unlock=>/=;unlock=>/=;rewrite ord_enum4).
 Qed.
 
 Lemma F_Sv: forall a:group (perm_finGroupType square), a sv -> (F to a (perm_of_inj Sv_inj))=1 
@@ -458,7 +466,7 @@ rewrite {1 2 3 4}/fun_of_fgraph;unlock=>/=.
 rewrite ord_enum4/=;case/andP=> h0 h1;rewrite (eqP h0)(eqP h1);
 apply/eqP;apply :(fog_inj (d1:= square) (d2:= colors))=> z.
 rewrite g2f /= perm_eqfun;destruct z;  
-repeat (destruct val=>//=;first by rewrite /fun_of_fgraph;unlock=>/=;unlock=>/=;rewrite ord_enum4).
+repeat (case: i i0 =>[|i] i0 //=;first by rewrite /fun_of_fgraph;unlock=>/=;unlock=>/=;rewrite ord_enum4).
 Qed.
 
 Ltac inv_tac :=
@@ -496,7 +504,7 @@ rewrite ord_enum4 =>/=.
 case/andP=> h0 h1;rewrite (eqP h0 ) (eqP h1);
 apply/eqP;apply : (fog_inj (d1:= square) (d2:= colors)) => z.
 rewrite g2f/= perm_eqfun;destruct z.
-repeat (destruct val=>//=;first by rewrite /fun_of_fgraph;unlock=>/=;unlock=>/=;rewrite ord_enum4).
+repeat (case: i i0 => [|i] i0 //=;first by rewrite /fun_of_fgraph;unlock=>/=;unlock=>/=;rewrite ord_enum4).
 Qed.
 
 Lemma F_r1: forall a:group (perm_finGroupType square), a  r1 ->(F to a (perm_of_inj R1_inj))=1 
@@ -519,7 +527,7 @@ rewrite {1 2 3 4 5 6}/fun_of_fgraph;unlock=>/=;rewrite ord_enum4 =>/=.
 case/andP=> h0 h1; move/andP: h0=> [h0 h2];rewrite (eqP h0 ) (eqP h2) (eqP h1).
 apply/eqP;apply : (fog_inj (d1:= square) (d2:= colors))=> z.
 rewrite g2f/r3/= perm_eqfun;destruct z.
-repeat (destruct val=>//=;first by rewrite /fun_of_fgraph;unlock=>/=;rewrite ord_enum4).
+repeat (case: i i0 => [|i] i0 //=;first by rewrite /fun_of_fgraph;unlock=>/=;rewrite ord_enum4).
 Qed.
 
 Lemma F_r3: forall a:group (perm_finGroupType square), a  r3 ->(F to a (perm_of_inj R3_inj))=1 
@@ -542,16 +550,16 @@ rewrite {1 2 3 4 5 6}/fun_of_fgraph;unlock=>/=;rewrite ord_enum4 =>/=.
 case/andP=> h0 h1; move/andP: h0=> [h0 h2];rewrite (eqP h0 ) (eqP h2) (eqP h1).
 apply/eqP;apply : (fog_inj (d1:= square) (d2:= colors))=> z.
 rewrite g2f/r3/= perm_eqfun;destruct z.
-repeat (destruct val=>//=;first by rewrite /fun_of_fgraph;unlock=>/= ;rewrite ord_enum4).
+repeat (case: i i0 => [|i] i0 //=;first by rewrite /fun_of_fgraph;unlock=>/= ;rewrite ord_enum4).
 Qed.
 
- Lemma size4:  forall x y z t:colors ,  size (Seq x y z t ) = card (setA (ordinal 4)).
+ Lemma size4:  forall x y z t:colors ,  size (Seq x y z t ) = card (setA (ordinal_finType 4)).
 by rewrite cardA/= ord_enum4.
 Qed.
 
 Definition f(col_pair:prod_finType colors colors) :col_squares:=
 match col_pair  with pair c1 c2 => 
-    Fgraph (d1:=ordinal 4) (val:=Seq c1 c1 c2 c2)
+    Fgraph (d1:= ordinal_finType 4) (val:=Seq c1 c1 c2 c2)
       (size4 c1 c1 c2 c2)
 end.
 
@@ -563,7 +571,7 @@ Qed.
 
 Definition g(col_pair:prod_finType colors colors) :col_squares:=
 match col_pair  with pair c1 c2 => 
-    Fgraph (d1:=ordinal 4) (val:=Seq c1 c2 c2 c1)  (size4 c1 c2 c2 c1)
+    Fgraph (d1:= ordinal_finType 4) (val:=Seq c1 c2 c2 c1)  (size4 c1 c2 c2 c1)
 end.
 
 Lemma g_inj: injective g.
@@ -573,7 +581,7 @@ move/fgraph_eqP=> H;case/and5P :H=>*;by apply /eqP;apply /andP;split.
 Qed.
 
 Definition c(col:colors) :col_squares:=
-    Fgraph (d1:=ordinal 4) (val:=Seq col col col col)(size4 col col col col).
+    Fgraph (d1:=ordinal_finType 4) (val:=Seq col col col col)(size4 col col col col).
 
 Lemma c_inj: injective c.
 Proof.
@@ -796,13 +804,13 @@ rewrite ord_enum4;by case/eqP.
 rewrite /fun_of_fgraph;unlock=>/=;rewrite ord_enum4 =>/=.
 move/eqP => ->/=;apply/eqP;apply : (fog_inj(d1:= square) (d2:= colors))=> z.
 rewrite g2f/s1/= perm_eqfun;destruct z.
-repeat (destruct val=>//=;first by rewrite /fun_of_fgraph;unlock=>/= ;rewrite ord_enum4).
+repeat (case: i i0 => [|i] i0 //=;first by rewrite /fun_of_fgraph;unlock=>/= ;rewrite ord_enum4).
 Qed.
 
 Definition i(col_triplet:prod_finType colors (prod_finType colors colors)) :col_squares:=
 match col_triplet  with pair c1 c2c3 => 
   match c2c3 with pair c2 c3 =>
-    Fgraph (d1:=ordinal 4) (val:=Seq c1 c2 c3 c2)
+    Fgraph (d1:=ordinal_finType 4) (val:=Seq c1 c2 c3 c2)
       (size4 c1 c2 c3 c2)
 end end.
 
@@ -856,14 +864,14 @@ move =>_;rewrite s2_inv;apply/idP/idP=>/=.
  by rewrite ord_enum4;case/eqP.
 rewrite /fun_of_fgraph;unlock=>/=;rewrite ord_enum4 =>/=.
 move/eqP => ->/=;apply/eqP;apply : (fog_inj (d1:= square) (d2:= colors))=> z.
-rewrite g2f/s2/= perm_eqfun;destruct z.
-repeat (destruct val=>//=;first by rewrite /fun_of_fgraph;unlock=>/= ;rewrite ord_enum4).
+rewrite g2f/s2/= perm_eqfun; destruct z.
+repeat (case: i0 i1 => [|i0] i1 //=; first by rewrite /fun_of_fgraph;unlock=>/= ;rewrite ord_enum4).
 Qed.
 
 Definition j(col_triplet:prod_finType colors (prod_finType colors colors)) :col_squares:=
 match col_triplet  with pair c1 c2c3 => 
   match c2c3 with pair c2 c3 =>
-    Fgraph (d1:=ordinal 4) (val:=Seq c1 c2 c1 c3)
+    Fgraph (d1:=ordinal_finType 4) (val:=Seq c1 c2 c1 c3)
       (size4 c1 c2 c1 c3)
 end end.
 

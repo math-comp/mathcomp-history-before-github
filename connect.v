@@ -666,7 +666,7 @@ rewrite /setC; move=> Hh Hha He'e.
 apply intro_adjunction with (fun x Hx => iinv (subsetP Hha x Hx)).
   move=> x Hx; split; first by rewrite f_iinv; apply connect0.
   by move=> y Hy Hxy; apply connect1; rewrite -He'e !f_iinv ?Hx.
-move=> x' Hx'; split; first by rewrite (iinv_f Hh); apply connect0.
+move=> x' Hx'; split; first by rewrite (iinv_f _ Hh); apply connect0.
 by move=> y' Hx'y'; apply connect1; rewrite He'e ?Hx'.
 Qed.
 

@@ -79,20 +79,24 @@ Lemma addnI : plus = addn. Proof. done. Qed.
 
 (* Ugly hack to get 1%N *)
 Notation "1" := 1 : dnat_scope.
+Notation "0" := 0 (at level 0) : dnat_scope.
 
 Notation "x + y" := (addn x y) : dnat_scope.
 
+Notation "n '.+1'" := (S n) (at level 9, format "n '.+1'") : dnat_scope.
+Notation "n '.-1'" := (pred n) (at level 9, format "n '.-1'") : dnat_scope.
+
 Lemma add0n : forall n, 0 + n = n. Proof. done. Qed.
-Lemma addSn : forall m n, S m + n = S (m + n). Proof. done. Qed.
-Lemma add1n : forall n, 1 + n = S n. Proof. done. Qed.
+Lemma addSn : forall m n, m.+1 + n = (m + n).+1. Proof. done. Qed.
+Lemma add1n : forall n, 1 + n = n.+1. Proof. done. Qed.
 
 Lemma addn0 : forall n, n + 0 = n.
 Proof. by move=> n; apply: eqP; elim: n. Qed.
 
-Lemma addnS : forall m n, m + S n = S (m + n).
+Lemma addnS : forall m n, m + n.+1 = (m + n).+1.
 Proof. by move=> m n; elim: m. Qed.
 
-Lemma addSnnS : forall m n, S m + n = m + S n.
+Lemma addSnnS : forall m n, m.+1 + n = m + n.+1.
 Proof. move=> *; rewrite addnS; apply addSn. Qed.
 
 Lemma addnCA : forall m n p, m + (n + p) = n + (m + p).
@@ -101,7 +105,7 @@ Proof. by move=> m n; elim: m => [|m Hrec] p; rewrite ?addSnnS -?addnS. Qed.
 Lemma addnC : forall m n, m + n = n + m.
 Proof. by move=> m n; rewrite -{1}[n]addn0 addnCA addn0. Qed.
 
-Lemma addn1 : forall n, n + 1 = S n.
+Lemma addn1 : forall n, n + 1 = n.+1.
 Proof. by move=> *; rewrite addnC. Qed.
 
 Lemma addnA : forall m n p, m + (n + p) = m + n + p.
@@ -137,8 +141,8 @@ Lemma subnI : minus = subn. Proof. done. Qed.
 Lemma sub0n : forall n, 0 - n = 0. Proof. done. Qed.
 Lemma subn0 : forall n, n - 0 = n. Proof. by case. Qed.
 Lemma subnn : forall n, n - n = 0. Proof. by elim. Qed.
-Lemma subSS : forall n m, S m - S n = m - n. Proof. done. Qed.
-Lemma subn1 : forall n, n - 1 = pred n. Proof. by case; try case. Qed.
+Lemma subSS : forall n m, m.+1 - n.+1 = m - n. Proof. done. Qed.
+Lemma subn1 : forall n, n - 1 = n.-1. Proof. by case; try case. Qed.
 
 Lemma subn_add2l : forall p m n, (p + m) - (p + n) = m - n.
 Proof. by move=> p *; elim p. Qed.
@@ -152,7 +156,7 @@ Proof. by move=> n *; rewrite -{2}[n]addn0 subn_add2l subn0. Qed.
 Lemma subn_addl : forall n m, (m + n) - n = m.
 Proof. by move=> n m; rewrite (addnC m) subn_addr. Qed.
 
-Lemma subSnn : forall n, (S n) - n = 1.
+Lemma subSnn : forall n, n.+1 - n = 1.
 Proof. move=> n; exact (subn_addl n 1). Qed.
 
 Lemma subn_sub : forall m n p, (n - m) - p = n - (m + p).
@@ -213,29 +217,29 @@ Proof. by move=> m n <-; apply leqnn. Qed.
 Lemma ltnn : forall n, n < n = false.
 Proof. by move=> *; rewrite ltnNge leqnn. Qed.
 
-Lemma leqnSn : forall n, n <= S n.
+Lemma leqnSn : forall n, n <= n.+1.
 Proof. by elim. Qed.
 Hint Resolve leqnSn.
 
-Lemma ltnSn : forall n, n < S n.
+Lemma ltnSn : forall n, n < n.+1.
 Proof. done. Qed.
 
-Lemma ltnS : forall m n, (m < S n) = (m <= n).
+Lemma ltnS : forall m n, (m < n.+1) = (m <= n).
 Proof. done. Qed.
 
 Lemma leq0n : forall n, 0 <= n.
 Proof. done. Qed.
 
-Lemma ltn0Sn : forall n, 0 < S n.
+Lemma ltn0Sn : forall n, 0 < n.+1.
 Proof. done. Qed.
 
 Lemma ltn0 : forall n, n < 0 = false.
 Proof. done. Qed.
 
-Lemma leq_pred : forall n, pred n <= n.
+Lemma leq_pred : forall n, n.-1 <= n.
 Proof. by case=> /=. Qed.
 
-Lemma leqSpred : forall n, n <= S (pred n).
+Lemma leqSpred : forall n, n <= (n.-1).+1.
 Proof. by case=> /=. Qed.
 
 CoInductive leq_xor_gtn (m n : nat) : bool -> bool -> Set :=
@@ -265,7 +269,7 @@ Proof. by case; constructor. Qed.
 Lemma eqn_leq : forall m n, (m == n) = (m <= n) && (n <= m).
 Proof. by elim=> [|m Hrec] [|n]; try exact (Hrec n). Qed.
 
-Lemma ltnSpred : forall n m, m < n -> S (pred n) = n.
+Lemma ltnSpred : forall n m, m < n -> (n.-1).+1 = n.
 Proof. by case. Qed.
 
 Lemma leq_eqVlt : forall m n, (m <= n) = (m == n) || (m < n).
@@ -292,7 +296,7 @@ Lemma ltnW : forall m n, m < n -> m <= n.
 Proof. move=> m n; exact: leq_trans. Qed.
 Hint Resolve ltnW.
 
-Lemma leqW : forall m n, m <= n -> m <= S n.
+Lemma leqW : forall m n, m <= n -> m <= n.+1.
 Proof. auto. Qed.
 
 Lemma ltn_trans : forall n m p, m < n -> n < p -> m < p.
@@ -356,10 +360,10 @@ Proof. by elim=> [|m Hrec] [|n] // Hmn; congr S; apply: Hrec. Qed.
 Lemma leq_sub_sub : forall m n, m <= n -> n - (n - m) = m.
 Proof. by move=> m n Hmn; rewrite -{1}[n](leq_add_sub Hmn) subn_addl. Qed.
 
-Lemma leq_subS : forall m n, m <= n -> S n - m = S (n - m).
+Lemma leq_subS : forall m n, m <= n -> n.+1 - m = (n - m).+1.
 Proof. by elim=> [|m Hrec] [|n]; try exact (Hrec n). Qed.
 
-Lemma ltn_subS : forall m n, m < n -> n - m = S (n - S m).
+Lemma ltn_subS : forall m n, m < n -> n - m = (n - m.+1).+1.
 Proof. move=> m; exact: leq_subS (S m). Qed.
 
 Lemma leq_sub2r : forall p m n, m <= n -> m - p <= n - p.
@@ -508,7 +512,7 @@ Qed.
 (* Doubling. *)
 
 Fixpoint double_rec (n : nat) : nat :=
-  if n is S n' then S (S (double_rec n')) else 0.
+  if n is n'.+1 then ((double_rec n').+1).+1 else 0.
 
 Definition double := nosimpl double_rec.
 
@@ -516,7 +520,7 @@ Lemma doubleI : double_rec = double. Proof. done. Qed.
 
 Lemma double0 : double 0 = 0. Proof. done. Qed.
 
-Lemma doubleS : forall n, double (S n) = S (S (double n)).
+Lemma doubleS : forall n, double n.+1 = ((double n).+1).+1.
 Proof. done. Qed.
 
 Lemma double_addnn : forall n, double n = addn n n.
@@ -537,10 +541,10 @@ Proof. by move=> m n; rewrite /leq -double_sub; case (m - n). Qed.
 Lemma ltn_double : forall m n, (double m < double n) = (m < n).
 Proof. by move=> *; rewrite !ltnNge leq_double. Qed.
 
-Lemma ltn_Sdouble : forall m n, (S (double m) < double n) = (m < n).
+Lemma ltn_Sdouble : forall m n, ((double m).+1 < double n) = (m < n).
 Proof. by move=> *; rewrite -doubleS leq_double. Qed.
 
-Lemma leq_Sdouble : forall m n, (double m <= S (double n)) = (m <= n).
+Lemma leq_Sdouble : forall m n, (double m <= (double n).+1) = (m <= n).
 Proof. by move=> *; rewrite leqNgt ltn_Sdouble -leqNgt. Qed.
 
 Lemma odd_double : forall n, odd (double n) = false.

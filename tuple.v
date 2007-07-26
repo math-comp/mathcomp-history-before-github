@@ -186,7 +186,7 @@ End FinPowerSet.
 
 Section Tuple.
 Variables (d1:eqType) (d2:finType) (n:nat).
-Let domain := ordinal n.
+Let domain := ordinal_finType n.
 
 Definition tupleType := fgraphType domain d1.
 
@@ -194,5 +194,5 @@ Canonical Structure tule_eqType := EqType (@fgraph_eqP domain d1).
 Canonical Structure tule_finType := FinType (@finfgraph_enumP domain d2).
 
 End Tuple.
-  
+
 Unset Implicit Arguments.

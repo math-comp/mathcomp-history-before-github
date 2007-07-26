@@ -38,7 +38,7 @@ Open Scope dnat_scope.
 (***********************************************************************)
 
 Definition phi n := 
-    card (fun x: fzp n => coprime n (val x)).
+    card (fun x: fzp n => coprime n x).
 
 Lemma phi_mult: forall m n, 
   coprime m n -> phi (m * n) = phi m * phi n.
@@ -47,39 +47,37 @@ move => m n H0; rewrite /phi.
 rewrite -card_sub [card]lock -card_sub.
 rewrite (mulnC (card _)) -card_sub -lock.
 apply: etrans (card_prod _ _).
-pose cops u := sub_finType (fun x: fzp u => coprime u (val x)).
+pose cops u := sub_finType (fun x: fzp u => coprime u x).
 change (card (setA (cops (m * n))) = card (setA (prod_finType (cops n) (cops m)))).
 apply: bij_eq_card_setA.
-have Hf1: forall x: cops (m * n), modn (val (val x)) n < n.
+have Hf1: forall x: cops (m * n), modn (val x) n < n.
   move => [[x Hx] Hx1] /=.
   by rewrite ltn_mod; move: (Hx); case n => //; rewrite mulnC.
 have Hf2: forall x : cops (m * n), 
-  coprime n
-    (val (EqSig (fun p : nat_eqType => p < n) _ (Hf1 x))).
+  coprime n (Ordinal (Hf1 x)). 
   move => [[x Hx] Hx1] /=; rewrite /= in Hx1.
   rewrite /coprime -gcdn_modr.
   rewrite coprime_mull in Hx1.
   by case/andP: Hx1.
-have Hf3: forall x: cops (m * n), modn (val (val x)) m < m.
+have Hf3: forall x: cops (m * n), modn (val x) m < m.
   move => [[x Hx] Hx1] /=.
   by rewrite ltn_mod; move: (Hx); case m => //; rewrite mulnC.
 have Hf4: forall x : cops (m * n), 
-  coprime m
-    (val (EqSig  (fun p : nat_eqType => p < m) _ (Hf3 x))).
+  coprime m (Ordinal (Hf3 x)).
   move => [[x Hx] Hx1] /=; rewrite /= coprime_mull in Hx1.
   case/andP: Hx1 => Hx1 Hx2.
   by rewrite /coprime -gcdn_modr. 
-pose f x: (prod_finType (cops n) (cops m)) :=
-  pair (EqSig (fun x: fzp n => coprime n (val x)) _ (Hf2 x)) 
-         (EqSig (fun x: fzp m => coprime m (val x)) _ (Hf4 x)).
+pose f (x : cops (m*n)): (prod_finType (cops n) (cops m)) :=
+  pair (EqSig (fun x: fzp n => coprime n x) _ (Hf2 x)) 
+         (EqSig (fun x: fzp m => coprime m x) _ (Hf4 x)).
 have Hf5: forall x: prod_finType (cops n) (cops m), 
-   modn (chinese (val (val (snd x))) 
-                 (val (val (fst x))) m n) (m * n) < (m * n).
+   modn (chinese (val (snd x)) 
+                 (val (fst x)) m n) (m * n) < (m * n).
   move => [[[x Hx] Hx1] [[y Hy] Hy1]] /=; rewrite ltn_mod.
   by move: (Hx) (Hy); case n; case m.
 have Hf6: forall x : prod_finType (cops n) (cops m), 
-  coprime (m * n)
-    (val (EqSig  (fun p : nat_eqType => p < m * n) _ (Hf5 x))).
+  coprime (m * n) (Ordinal (Hf5 x)).
+(*    (val (EqSig  (fun p : nat_eqType => p < m * n) _ (Hf5 x))).*)
   move => [[[x Hx] Hx1] [[y Hy] Hy1]] /=.
   have F1: 0 < n; first by move: (Hx); case n.
   have F2: 0 < m; first by move: (Hy); case m.
@@ -94,18 +92,19 @@ have Hf6: forall x : prod_finType (cops n) (cops m),
   by rewrite gcdnC gcdn_modl (@chinese_remainder1 _ x _ n) // 
          -gcdn_modl in Hy1.
 pose g x : cops (m * n) := 
-  (EqSig (fun x: fzp (m * n) => coprime (m * n) (val x)) _
+  (EqSig (fun x: fzp (m * n) => coprime (m * n) x) _
          (Hf6 x)).
 exists f; exists g. 
   move => [[x Hx] Hx1].
   have F1: 0 < n; first by move: (Hx); rewrite mulnC; case n.
   have F2: 0 < m; first by move: (Hx); case m.
-  rewrite /f /g /=; (do !apply: val_inj) => /=.
+  rewrite /f /g /=; (do !apply:  val_inj ) => /=.
+  (do !apply: ordinal_inj) => /=.
   by rewrite -chinese_remainderf // modn_small.
 move => [[[x Hx] Hx1] [[y Hy] Hy1]].
 have F1: 0 < n; first by move: (Hx); case n.
 have F2: 0 < m; first by move: (Hy); case m.
-congr pair; (do !apply: val_inj) => /=;
+congr pair; (do !apply: val_inj) => /=; (do !apply: ordinal_inj) => /=;
   set e := chinese _ _ _ _.
 - rewrite -(modn_addl_mul (divn e (m * n) * m)) -mulnA
           -divn_eq /e.
@@ -123,11 +122,11 @@ have F1: forall a b c, a + b = c -> a = c - b.
   by move => a b c H; rewrite -H subn_addl.
 apply: F1; rewrite /phi /=.
 set n := p ^ k.
-have Hf: forall x : fzp n, p * val x < p * n.
+have Hf: forall x : fzp n, p * x < p * n.
   by move => [n1 Hn1]; rewrite /= ltn_pmul2l.
-pose f x : fzp (p * n) := @EqSig _ (fun z => z < p * n) _ (Hf x).
+pose f x : fzp (p * n) := Ordinal (Hf x).
 have injF: injective f.
-  move=> [x Hx] [y Hy] [Hxy]; apply: val_inj => /=.
+  move=> [x Hx] [y Hy] [Hxy]; apply: ordinal_inj => /=.
   by apply/eqP; rewrite -(@eqn_pmul2l p) // Hxy.
 rewrite -{5}(card_ordinal n) -(card_image injF).
 rewrite -{7}(card_ordinal (p * n)) addnC.
@@ -135,16 +134,16 @@ set a := image _ _; apply: etrans (cardC a); congr addn.
 apply: eq_card => [[x Hx]] /=.
 rewrite /n -{1}(expnS p k) -prime_coprime_expn //.
 rewrite prime_coprime //. 
-suff : dvdn p x = ~~ setC a (EqSig (fun m : nat => m < p * p ^ k) x Hx)
+suff : dvdn p x = ~~ setC a (Ordinal Hx)
   by move=>->; apply/negPn/idP.
 apply/idP/idP.
   move/dvdnP=> [y Dx]; have Hy := Hx.
   rewrite Dx mulnC ltn_pmul2l /= in Hy => //.
   apply/negPn; apply/imageP.
-  exists (@EqSig _ (fun i => i < n) y Hy) => //.
-  by rewrite /f /=; apply:val_inj=>/=; rewrite mulnC.
-move/negPn; move/imageP=>[y Hy]; rewrite/f; move/val_eqP=> /= HH. 
-by apply/dvdnP; exists (val y); rewrite mulnC; apply/eqP.
+  exists (Ordinal Hy) => //.
+  by rewrite /f /=; apply:ordinal_inj=>/=; rewrite mulnC.
+move/negPn; move/imageP=>[y Hy]; rewrite/f; move/ord_eqP=> /= HH. 
+by apply/dvdnP; exists (nat_of_ord y); rewrite mulnC; apply/eqP.
 Qed.
 
 End Phi.
@@ -691,7 +690,7 @@ by rewrite -{1}(gexpn1 a) gexpn_mul mulnC gexpn_add Hk
 Qed.
 
 Definition f_phi_gen: forall a,
-  sub_eqType (fun x: fzp (orderg a) => coprime (orderg a) (val x)) ->
+  sub_eqType (fun x: fzp (orderg a) => coprime (orderg a) x) ->
   sub_eqType (generator (cyclic a)).
 move => a; set n :=  (orderg a).
 move => [[m Hm1] Hm2]; exists (a ** m).
@@ -700,13 +699,13 @@ Defined.
 
 Definition f_phi_gen_inv: forall a,
   sub_eqType (generator (cyclic a)) ->
-  sub_eqType (fun x: fzp (orderg a) => coprime (orderg a) (val x)).
+  sub_eqType (fun x: fzp (orderg a) => coprime (orderg a) x).
 move => a [b Hb].
 case: (@cyclic_decomp a b).
   case/andP: Hb; move/subsetP => HH _; apply: HH; apply: cyclicnn.
 move => m Hm.
 have Hm1: (m < orderg a) by case/andP: Hm.
-exists (EqSig (fun p : nat_eqType => p < orderg a) _ Hm1) => /=.
+exists (Ordinal Hm1) => /=.
 case/andP: Hm => _ Hm2.
 pose (k := (gcdn m (orderg a))).
 pose (k1 := (divn m k)).
@@ -735,7 +734,7 @@ exists (@f_phi_gen a); exists (@f_phi_gen_inv a).
 rewrite /cancel.
   move => [[x Hx1] Hx2]; apply: val_inj => /=.
   case (@cyclic_decomp a (a ** x)) => /= x1.
-  move/andP => [Hx3 Hx4]; apply val_inj => /=.
+  move/andP => [Hx3 Hx4]; apply ordinal_inj => /=.
   wlog: x1 x Hx1 Hx3 {Hx2}Hx4/ x1 <= x => H1; first by 
     (case: (ltnP x x1) => H2; first symmetry;
       apply: H1 => //;  

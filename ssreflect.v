@@ -12,7 +12,7 @@ Require Import Bool. (* For bool_scope delimiter 'bool'. *)
 (* (at level 10) should be declared at level 8 rather than 9 or the camlp4  *)
 (* grammar will not factor properly.                                        *)
 
-Reserved Notation "'(*' x 'is' y 'by' z 'of' '//' '/=' '//='" (at level 8).
+Reserved Notation "'(*' x 'is' y 'by' z 'of' '//' '/=' '//=' '*)'" (at level 8).
 
 (* Make the general "if" into a notation, so that we can override it below *)
 (* The notations are "only parsing" because the Coq decompiler won't       *)

@@ -170,4 +170,7 @@ Qed.
 
 End PermGroup.
 
+Notation "'S_' ( n )" := (permType I_(n))
+  (at level 0, format "'S_' ( n )").
+
 Unset Implicit Arguments.

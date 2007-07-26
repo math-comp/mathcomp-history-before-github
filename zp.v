@@ -41,14 +41,15 @@ Definition fzp := ordinal p.
 (*|                           unit                                   |*)
 (*--------------------------------------------------------------------*)
 
-Definition zp0: fzp := @EqSig _ (fun m => m < p)  _ Hp.
+Definition zp0: fzp := (Ordinal Hp).
+(* @EqSig _ (fun m => m < p)  _ Hp. *)
 
 (*--------------------------------------------------------------------*)
 (*|                           inverse                                |*)
 (*--------------------------------------------------------------------*)
 Definition inv_zp: fzp -> fzp.
 intros [x1 Hx1].
-apply: (@EqSig _  _ (modn (p - x1) p) _).
+exists (modn (p - x1) p).
 by rewrite ltn_mod.
 Defined.
 
@@ -57,20 +58,20 @@ Defined.
 (*--------------------------------------------------------------------*)
 Definition add_zp: fzp -> fzp -> fzp.
 intros [x1 Hx1] [y1 Hy1].
-apply: (@EqSig _  _ (modn (x1 + y1) p) _).
+exists (modn (x1 + y1) p).
 by rewrite ltn_mod.
 Defined.
 
 Lemma unit_zp: forall x, add_zp zp0 x = x.
 Proof.
-move => [x Hx]; rewrite /zp0 /= add0n.
-apply/val_eqP => /=.
+move => [x Hx]; rewrite /zp0 /= add0n //.
+apply/ord_eqP => /=.
 by rewrite modn_small.
 Qed.
 
 Lemma invP_zp : forall x, add_zp (inv_zp x) x = zp0.
 Proof.
-move => [x Hx]; apply/val_eqP => /=.
+move => [x Hx]; apply/ord_eqP => /=.
 rewrite -{2}(modn_small Hx) // modn_add 
         addnC leq_add_sub ?modnn //.
 by apply ltnW.
@@ -78,7 +79,8 @@ Qed.
 
 Lemma mulP_zp : forall x1 x2 x3, 
   add_zp x1 (add_zp x2 x3) = add_zp (add_zp x1 x2) x3.
-move => [x1 Hx1] [x2 Hx2] [x3 Hx3]; apply/val_eqP => /=.
+Proof.
+move => [x1 Hx1] [x2 Hx2] [x3 Hx3]; apply/ord_eqP => /=.
 by rewrite -{1}(modn_small Hx1) // -{2}(modn_small Hx3) // 
    !modn_add addnA.
 Qed.

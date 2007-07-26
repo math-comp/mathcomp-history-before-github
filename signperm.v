@@ -75,7 +75,7 @@ Hint Resolve perm_pair_inj.
 
 Lemma image_perm_pair : 
   forall s A p, image (permp s) A p = A (permp s^-1 p).
-Proof. by move=> s A p; rewrite -{1}(permpK s^-1 p) invgK (image_f (permpI s)). Qed.
+Proof. by move=> s A p; rewrite -{1}(permpK s^-1 p) invgK (image_f _ (permpI s)). Qed.
 
 Notation Local im_permp := image_perm_pair.
 
@@ -92,7 +92,7 @@ Definition flip_pair_inj := inv_inj flipK.
 Notation Local flipI := flip_pair_inj.
 
 Lemma image_flip_pair : forall p A, image flip A p = A (flip p).
-Proof. by move=> p A; rewrite -{1}(flipK p) (image_f flipI). Qed.
+Proof. by move=> p A; rewrite -{1}(flipK p) (image_f _ flipI). Qed.
 Notation Local im_flip := image_flip_pair.
 
 Lemma perm_flip_pair : forall s p, permp s (flip p) = flip (permp s p).

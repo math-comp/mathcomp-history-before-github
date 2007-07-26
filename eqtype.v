@@ -279,6 +279,24 @@ move=> x; rewrite /insub; case: {2}(a x) / (@idP (a x)); first by left.
 by move/negP; right.
 Qed.
 
+Lemma insubT : forall x (ax : a x),
+  insub x = Some (EqSig ax).
+Proof.
+move=> x ax.
+by case: insubP=> [[y ay] _ Exy| ]; [congr Some; exact: val_inj | rewrite ax].
+Qed.
+
+Implicit Arguments insubT [x].
+
+Lemma insub_val : forall u, @insub (val u) = Some u.
+Proof. by move=> [x Hx]; rewrite -insubT. Qed.
+
+Lemma insubF : forall x, a x = false -> insub x = None.
+Proof. by move=> x Hx; case: insubP=> // ?; rewrite Hx. Qed.
+
+Lemma insubN : forall x, ~~ a x -> insub x = None.
+Proof. move=> x; move/negbET; exact: insubF. Qed.
+
 End SubEqType.
 
 Implicit Arguments EqSig [d].
@@ -365,7 +383,43 @@ End SumEqType.
 
 Implicit Arguments sum_tagged [index dom_at].
 Implicit Arguments sum_eqP [index dom_at x y].
-
 Prenex Implicits sum_tag sum_tagged sum_eqP.
+
+Section Funs.
+
+(* More funs variants : local equality, cancellation, bijection. *)
+
+Definition dinjective A B (a : set A) (f : A -> B) := 
+  forall x y, a x -> a y -> f x = f y -> x = y.
+
+Lemma inj_dinj: forall A B (a : set A) (f : A -> B), injective f -> dinjective a f.
+Proof.
+move => A B a f H x y H1 H2; exact: H.
+Qed.
+
+Definition dfequal A B (a : set A) (f f' : A -> B) :=
+  forall x, a x -> f x = f' x.
+
+Definition dcancel A B (a : set A) (f : A -> B) f' :=
+  forall x, a x -> f' (f x) = x.
+
+Lemma dcan_inj : forall (A B : eqType) a f f',
+  @dcancel A B a f f' -> dinjective a f.
+Proof.
+by move=> A B a f f' fK x y; do 2![move/fK=> Dx; rewrite -{2}Dx {Dx}] => ->.
+Qed.
+
+Definition icancel A B (b : set B) (f : A -> B) f' :=
+  forall x, b (f x) -> f' (f x) = x.
+
+Definition dbijective A B (a : set A) (f : A -> B) :=
+  exists2 f', dcancel a f f' & icancel a f' f.
+
+(* Used for the assumption of reindex_sum below. *)
+Definition ibijective A B (b : set B) (f : A -> B) :=
+  exists2 f', icancel b f f' & dcancel b f' f.
+
+End Funs.
+
 
 Unset Implicit Arguments.
