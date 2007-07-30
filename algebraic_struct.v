@@ -10,6 +10,186 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
+(* Some usefull definition *)
+
+Section OperationProp.
+Variable (T: Type) (op op' : T -> T -> T).
+
+Definition opA := forall x1 x2 x3, op x1 (op x2 x3) = op (op x1 x2) x3.
+
+Definition opC := forall x1 x2, op x1 x2 = op x2 x1.
+
+Definition op_distl := 
+  forall x1 x2 x3, op' x1 (op x2 x3) = op (op' x1 x2) (op' x1 x3).
+
+Definition op_distr :=
+  forall x1 x2 x3, op' (op x1 x2) x3 = op (op' x1 x3) (op' x2 x3).
+
+End OperationProp.
+
+Module Monoid.
+
+Structure monoid : Type := Monoid {
+  element :> eqType;
+  unit : element;
+  op : element -> element -> element
+}.
+
+End Monoid.
+
+Notation monoid_class := Monoid.monoid.
+Notation Monoid := Monoid.Monoid.
+Notation op := Monoid.op.
+Notation unit := Monoid.unit.
+
+Structure is_monoid (M : monoid_class) : Prop := {
+  opA_ : opA (@op M);
+  op_unitl_ : forall x, op (@unit M) x = x;
+  op_unitr_ : forall x, op x (@unit M) = x 
+}.
+
+
+Section MonoidProp.
+Variable (M : monoid_class) (Mm : is_monoid M).
+
+Lemma m_op_A : forall x1 x2 x3 : M,
+  op x1 (op x2 x3) = op (op x1 x2) x3.
+Proof. case: Mm =>//. Qed.
+
+Lemma m_op_unitl : forall x : M, op (@unit M) x = x.
+Proof. case: Mm =>//. Qed.
+
+Lemma m_op_unitr : forall x, op x (@unit M) = x.
+Proof. case: Mm =>//. Qed.
+
+End MonoidProp.
+
+Module Groups.
+
+Structure groups : Type := Groups {
+  element :> eqType;
+  zero : element;
+  opp : element -> element;
+  plus : element -> element -> element
+}.
+End Groups.
+
+(* groups notation *)
+Notation groups_class := Groups.groups.
+Notation Groups := Groups.Groups.
+
+Implicit Arguments Groups.zero [].
+
+Delimit Scope groups_scope with Gs.
+Bind Scope groups_scope with Groups.element.
+Arguments Scope Groups.plus [_ groups_scope groups_scope].
+Arguments Scope Groups.opp [_ groups_scope].
+
+Definition plus_g := nosimpl Groups.plus.
+Definition opp_g := nosimpl Groups.opp.
+Definition zero_g := nosimpl Groups.zero.
+Prenex Implicits plus_g opp_g.
+
+Infix "+" := plus_g: groups_scope.
+Notation "- x" := (opp_g x): groups_scope.
+Notation "0" := (zero_g _) (at level 0): groups_scope.
+
+Coercion groups_to_monoid (g : groups_class) :=
+  (Monoid (@zero_g g) (@plus_g g)).
+
+Structure is_groups (elt : groups_class) : Prop := {
+  monoidP_ : (is_monoid elt);
+  oppP_ : forall x, plus_g (opp_g x) x = @zero_g elt
+}.
+
+Structure is_abelian_groups (elt : groups_class) : Prop := {
+  groupsP_ : (is_groups elt);
+  plusC_ : opC (@plus_g elt)
+}.
+
+Section GroupsProp.
+Open Scope groups_scope.
+
+Variable (G : groups_class) (Gg : is_groups G) 
+(Gag : is_abelian_groups G).
+
+Lemma plus_gA : forall x1 x2 x3 : G, x1 + (x2 + x3) = x1 + x2 + x3.
+Proof. by apply: (@m_op_A G) => //=; case: Gg. Qed.
+
+Lemma plus_g0l : forall x : G, 0 + x = x.
+Proof. by apply: (@m_op_unitl G); case: Gg. Qed.
+
+Lemma plus_opp_gl : forall x : G, - x + x = 0.
+Proof. by case: Gg. Qed.
+
+Lemma plus_gKl : forall x : G, cancel (plus_g x) (plus_g (- x)).
+Proof.
+by move=> x y; rewrite plus_gA plus_opp_gl plus_g0l.
+Qed.
+
+Lemma plus_g_injl : forall x : G, injective (plus_g x).
+Proof. move=> x; exact: can_inj (plus_gKl x). Qed.
+
+Implicit Arguments plus_g_injl [].
+
+Lemma plus_g0r : forall x : G, x + 0 = x.
+Proof. by apply: (@m_op_unitr G); case: Gg. Qed.
+
+Lemma plus_opp_gr : forall x : G, x + (- x) = 0.
+Proof.
+by move=> x; rewrite -{1}(plus_gKl (- x) x) plus_opp_gl -plus_gA
+  plus_g0l plus_opp_gl.
+Qed.
+
+Lemma plus_gKr : forall x : G, cancel (plus_g (- x)) (plus_g x).
+Proof.
+by move=> x y; rewrite plus_gA plus_opp_gr plus_g0l.
+Qed.
+
+Notation plus_gr := (fun x y => y + x).
+
+Lemma plus_grKl : forall x : G, cancel (plus_gr x) (plus_gr (- x)).
+Proof.
+by move=> x y; rewrite -plus_gA plus_opp_gr plus_g0r.
+Qed.
+
+Lemma plus_g_injr : forall x : G, injective (plus_gr x).
+Proof. move=> x; exact: can_inj (plus_grKl x). Qed.
+
+Lemma plus_grKr : forall x : G, cancel (plus_gr (- x)) (plus_gr x).
+Proof. by move=> x y; rewrite -plus_gA plus_opp_gl plus_g0r. Qed.
+
+Lemma opp_g0 : - 0 = 0 :> G.
+Proof. by rewrite -{2}(plus_opp_gl 0) plus_g0r. Qed.
+
+Lemma opp_gK : cancel (@opp_g G) opp_g.
+Proof.
+by move=> x; rewrite -{2}(plus_grKl (- x) x) -plus_gA plus_gKr.
+Qed.
+
+Lemma opp_g_inj : injective (@opp_g G).
+Proof. exact: can_inj opp_gK. Qed.
+
+Lemma opp_plus_g : forall x1 x2 : G, - (x2 + x1) = - x1 + - x2. 
+Proof.
+by move=> x1 x2; apply: (plus_g_injl (x2 + x1));
+  rewrite plus_gA plus_grKl !plus_opp_gr.
+Qed.
+
+Lemma plus_gC : forall x1 x2 : G, x1 + x2 = x2 + x1.
+Proof. by case: Gag. Qed.
+
+End GroupsProp.
+
+Implicit Arguments plus_g_injl [G].
+Implicit Arguments plus_g_injr [G].
+
+Lemma is_groups_ag : forall (G : groups_class),
+  is_abelian_groups G -> is_groups G.
+Proof. by move=> G; case. Qed.
+
+Hint Resolve is_groups_ag.
+(*
 Module Rings.
 
 Structure rings : Type := Rings {
@@ -186,5 +366,6 @@ Lemma multCA : forall x1 x2 x3 : elt, x1 * (x2 * x3) = x2 * (x1 * x3).
 Proof. move=> *; rewrite !multA; congr (_ * _); exact: multC. Qed.
 
 End CommutativeRings.
+*)
 
 Unset Implicit Arguments.
