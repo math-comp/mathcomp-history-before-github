@@ -48,9 +48,20 @@ Structure is_monoid (M : monoid_class) : Prop := {
   op_unitr_ : forall x, op x (@unit M) = x 
 }.
 
+Structure is_abelian_monoid (M : monoid_class) : Prop := {
+  ab_monoidP_ : (is_monoid M);
+  opC_ : opC (@op M)
+}.
+
+Lemma is_monoid_am : forall (M : monoid_class),
+  is_abelian_monoid M -> is_monoid M.
+Proof. by move=> M; case. Qed.
+
+Hint Resolve is_monoid_am.
 
 Section MonoidProp.
-Variable (M : monoid_class) (Mm : is_monoid M).
+Variable (M : monoid_class) (Mm : is_monoid M)
+ (Mam : is_abelian_monoid M).
 
 Lemma m_op_A : forall x1 x2 x3 : M,
   op x1 (op x2 x3) = op (op x1 x2) x3.
@@ -62,7 +73,11 @@ Proof. case: Mm =>//. Qed.
 Lemma m_op_unitr : forall x, op x (@unit M) = x.
 Proof. case: Mm =>//. Qed.
 
+Lemma m_op_C : forall x1 x2 : M, op x1 x2 = op x2 x1.
+Proof. case: Mam => //. Qed.
+
 End MonoidProp.
+
 
 Module Groups.
 
@@ -82,42 +97,59 @@ Implicit Arguments Groups.zero [].
 
 Delimit Scope groups_scope with Gs.
 Bind Scope groups_scope with Groups.element.
-Arguments Scope Groups.plus [_ groups_scope groups_scope].
 Arguments Scope Groups.opp [_ groups_scope].
+Arguments Scope Groups.plus [_ groups_scope groups_scope].
 
-Definition plus_g := nosimpl Groups.plus.
-Definition opp_g := nosimpl Groups.opp.
 Definition zero_g := nosimpl Groups.zero.
-Prenex Implicits plus_g opp_g.
+Definition opp_g := nosimpl Groups.opp.
+Definition plus_g := nosimpl Groups.plus.
+Prenex Implicits opp_g plus_g.
 
-Infix "+" := plus_g: groups_scope.
-Notation "- x" := (opp_g x): groups_scope.
 Notation "0" := (zero_g _) (at level 0): groups_scope.
+Notation "- x" := (opp_g x): groups_scope.
+Infix "+" := plus_g: groups_scope.
 
 Coercion groups_to_monoid (g : groups_class) :=
   (Monoid (@zero_g g) (@plus_g g)).
 
-Structure is_groups (elt : groups_class) : Prop := {
-  monoidP_ : (is_monoid elt);
-  oppP_ : forall x, plus_g (opp_g x) x = @zero_g elt
+Structure is_groups (G : groups_class) : Prop := {
+  monoidP_ : (is_monoid G);
+  oppP_ : forall x, plus_g (opp_g x) x = @zero_g G
 }.
 
-Structure is_abelian_groups (elt : groups_class) : Prop := {
-  groupsP_ : (is_groups elt);
-  plusC_ : opC (@plus_g elt)
+Structure is_abelian_groups (G : groups_class) : Prop := {
+  groupsP_ : (is_groups G);
+  plusC_ : opC (@plus_g G)
 }.
+
+Section GroupsCoercion.
+
+Variable (G : groups_class).
+
+Lemma is_groups_ag : is_abelian_groups G -> is_groups G.
+Proof. by case. Qed.
+
+Lemma is_monoid_grp : is_groups G -> is_monoid G.
+Proof. by case. Qed.
+
+Lemma is_abelian_monoid_ag : is_abelian_groups G -> is_abelian_monoid G.
+Proof. by case=> H1 H2; split=>//; case: H1. Qed.
+
+End GroupsCoercion.
+
+Hint Resolve is_groups_ag is_monoid_grp is_abelian_monoid_ag.
 
 Section GroupsProp.
 Open Scope groups_scope.
 
-Variable (G : groups_class) (Gg : is_groups G) 
-(Gag : is_abelian_groups G).
+Variable (G : groups_class) 
+  (Gg : is_groups G) (Gag : is_abelian_groups G).
 
 Lemma plus_gA : forall x1 x2 x3 : G, x1 + (x2 + x3) = x1 + x2 + x3.
-Proof. by apply: (@m_op_A G) => //=; case: Gg. Qed.
+Proof. by apply: (@m_op_A G) => //=; auto. Qed.
 
 Lemma plus_g0l : forall x : G, 0 + x = x.
-Proof. by apply: (@m_op_unitl G); case: Gg. Qed.
+Proof. by apply: (@m_op_unitl G); auto. Qed.
 
 Lemma plus_opp_gl : forall x : G, - x + x = 0.
 Proof. by case: Gg. Qed.
@@ -184,188 +216,201 @@ End GroupsProp.
 Implicit Arguments plus_g_injl [G].
 Implicit Arguments plus_g_injr [G].
 
-Lemma is_groups_ag : forall (G : groups_class),
-  is_abelian_groups G -> is_groups G.
-Proof. by move=> G; case. Qed.
 
-Hint Resolve is_groups_ag.
-(*
-Module Rings.
+Module Ring.
 
-Structure rings : Type := Rings {
-  R :> eqType;
-  zero :R;
-  one :R;
-  plus :R->R->R;
-  mult :R->R->R;
-  opp :R->R;
-  zeroP : forall x, plus zero x = x;
-  oppP : forall x, plus (opp x) x = zero;
-  plusA : forall x1 x2 x3, plus x1 (plus x2 x3) = plus (plus x1 x2) x3;
-  plusC : forall x1 x2, plus x1 x2 = plus x2 x1;
-  onePl : forall x, mult one x = x;
-  onePr : forall x, mult x one = x;
-  multA : forall x1 x2 x3, mult x1 (mult x2 x3) = mult (mult x1 x2) x3;
-  plus_multl : forall x1 x2 x3, mult x1 (plus x2 x3) = plus (mult x1 x2) (mult x1 x3);
-  plus_multr : forall x1 x2 x3, mult (plus x1 x2) x3 = plus (mult x1 x3) (mult x2 x3);
-  one_diff_zero : one <> zero (* Non trivial ring *)
+Structure ring : Type := Ring {
+  element :> eqType;
+  zero : element;
+  one : element;
+  opp : element -> element;
+  plus : element -> element -> element;
+  mult : element -> element -> element
+}.
+End Ring.
+
+(* ring notation *)
+Notation ring_class := Ring.ring.
+Notation Ring := Ring.Ring.
+
+Implicit Arguments Ring.zero [].
+Implicit Arguments Ring.one [].
+
+Delimit Scope ring_scope with R.
+Bind Scope ring_scope with Ring.element.
+Arguments Scope Ring.opp [_ ring_scope].
+Arguments Scope Ring.plus [_ ring_scope ring_scope].
+Arguments Scope Ring.mult [_ ring_scope ring_scope].
+
+Definition zero_r := nosimpl Ring.zero.
+Definition one_r := nosimpl Ring.one.
+Definition opp_r := nosimpl Ring.opp.
+Definition plus_r := nosimpl Ring.plus.
+Definition mult_r := nosimpl Ring.mult.
+Prenex Implicits opp_r plus_r mult_r.
+
+Notation "0" := (zero_r _) (at level 0): ring_scope.
+Notation "1" := (one_r _) (at level 0): ring_scope.
+Notation "- x" := (opp_r x): ring_scope.
+Infix "+" := plus_r: ring_scope.
+Infix "*" := mult_r: ring_scope.
+
+Coercion ring_to_groups_plus (r : ring_class) :=
+  (Groups (@zero_r r) (@opp_r r) (@plus_r r)).
+
+Coercion ring_to_monoid_mult (r : ring_class) :=
+  (Monoid (@one_r r) (@mult_r r)).
+
+Notation r2m_m := ring_to_monoid_mult.
+
+Structure is_ring (R : ring_class) : Prop := {
+  groups_plusP_ : (is_abelian_groups R);
+  monoid_multP_ : (is_monoid (r2m_m R));
+  plus_mult_l_ : forall x1 x2 x3 : R, 
+    mult_r x1 (plus_r x2 x3) = plus_r (mult_r x1 x2) (mult_r x1 x3);
+  plus_mult_r_ : forall x1 x2 x3 : R, 
+    mult_r (plus_r x1 x2) x3 = plus_r (mult_r x1 x3) (mult_r x2 x3);
+  one_diff_zero_ : (one_r R) <> (zero_r R)  (* Non trivial ring *)
 }.
 
-End Rings.
+Structure is_commutative_ring (R : ring_class) : Prop := {
+  ringP_ : (is_ring R);
+  multC_ : opC (@mult_r R)
+}.
 
-Implicit Arguments Rings.one [].
-Implicit Arguments Rings.zero [].
 
-Delimit Scope rings_scope with R.
-Bind Scope rings_scope with Rings.R.
-Arguments Scope Rings.plus [_ rings_scope rings_scope].
-Arguments Scope Rings.opp [_ rings_scope].
-Arguments Scope Rings.mult [_ rings_scope rings_scope].
+Section RingCoercion.
+Variable (R : ring_class).
 
-Notation ringsType := Rings.rings.
-Notation RingsType := Rings.Rings.
+Lemma is_ring_cr : is_commutative_ring R -> is_ring R.
+Proof. by case. Qed.
 
-Definition mult := nosimpl Rings.mult.
-Definition plus := nosimpl Rings.plus.
-Definition opp := nosimpl Rings.opp.
-Definition zero := nosimpl Rings.zero.
-Definition one := nosimpl Rings.one.
-Prenex Implicits mult plus opp.
+Lemma is_groups_ring : is_ring R -> is_abelian_groups R.
+Proof. by case. Qed.
 
-Infix "+" := plus: rings_scope.
-Notation "- x" := (opp x): rings_scope.
-Infix "*" := mult: rings_scope.
-Notation "1" := (one _) (at level 0) : rings_scope.
-Notation "0" := (zero _) (at level 0): rings_scope.
-(* Notation "x '--' y" := (x + (- y)%R) : rings_scope. *)
+Lemma is_monoid_ring_mult : is_ring R -> is_monoid (r2m_m R).
+Proof. by case. Qed.
+
+Lemma is_abelian_monoid_cr_mult : is_commutative_ring R -> is_abelian_monoid (r2m_m R).
+Proof. by case=> H1 H2; split=>//; case H1; auto. Qed.
+
+End RingCoercion.
+
+Hint Resolve is_ring_cr is_groups_ring is_monoid_ring_mult is_abelian_monoid_cr_mult.
 
 Section RingsProp.
-Open Scope rings_scope.
+Open Scope ring_scope.
 
-Variable elt : ringsType.
+Variable (R : ring_class) 
+  (Rr : is_ring R) (Rcr : is_commutative_ring R).
 
-Lemma plusA : forall x1 x2 x3 : elt, x1 + (x2 + x3) = x1 + x2 + x3.
-Proof. exact: Rings.plusA. Qed.
+Lemma plus_rA : forall x1 x2 x3 : R, x1 + (x2 + x3) = x1 + x2 + x3.
+Proof. apply: (@plus_gA R); auto. Qed.
 
-Lemma plusC : forall x1 x2 : elt, x1 + x2 = x2 + x1.
-Proof. exact: Rings.plusC. Qed.
+Lemma plus_rC : forall x1 x2 : R, x1 + x2 = x2 + x1.
+Proof. apply: (@plus_gC R); auto. Qed.
 
-Lemma plus0l: forall x : elt, 0 + x = x.
-Proof. exact: Rings.zeroP. Qed.
+Lemma plus_r0l: forall x : R, 0 + x = x.
+Proof. apply: (@plus_g0l R); auto. Qed.
 
-Lemma plus0r: forall x : elt, x + 0 = x.
-Proof. move=> *; rewrite plusC; exact: plus0l. Qed.
+Lemma plus_r0r: forall x : R, x + 0 = x.
+Proof. apply: (@plus_g0r R); auto. Qed.
 
-Lemma plus_opl : forall x : elt, - x + x = 0.
-Proof.  exact: Rings.oppP. Qed.
+Lemma plus_opp_rl : forall x : R, - x + x = 0.
+Proof. apply: (@plus_opp_gl R); auto. Qed.
 
-Lemma plus_opr : forall x : elt, x + - x = 0.
-Proof. move=> *; rewrite plusC; exact: plus_opl. Qed.
+Lemma plus_opp_rr : forall x : R, x + - x = 0.
+Proof. apply: (@plus_opp_gr R); auto. Qed.
 
-Lemma plusK : forall x : elt, cancel (plus x) (plus (- x)).
-Proof. by move=> x y; rewrite plusA plus_opl plus0l. Qed.
+Lemma plus_rK : forall x : R, cancel (plus_r x) (plus_r (- x)).
+Proof. apply: (@plus_gKl R); auto. Qed.
 
-Lemma plusInj : forall x : elt, injective (plus x).
-Proof. move=> x; exact: can_inj (plusK x). Qed.
+Lemma plus_r_inj : forall x : R, injective (plus_r x).
+Proof. move=> x; exact: can_inj (plus_rK x). Qed.
 
-Implicit Arguments plusInj [].
+Implicit Arguments plus_r_inj [].
 
-Lemma opp0 : -0 = 0 :> elt.
-Proof. by rewrite -{2}(plus_opl 0) plusC plus0l. Qed.
+Lemma opp_r0 : -0 = 0 :> R.
+Proof. apply: (@opp_g0 R); auto. Qed.
 
-Lemma oppK : cancel (@opp elt) opp.
-Proof. by move=> x; rewrite -{2}(plusK (- x) x) plusC -plusA plusK. Qed.
+Lemma opp_rK : cancel (@opp_r R) opp_r.
+Proof. apply: (@opp_gK R); auto. Qed.
 
-Lemma oppInj : injective (@opp elt).
-Proof. exact: can_inj oppK. Qed.
+Lemma opp_r_inj : injective (@opp_r R).
+Proof. exact: can_inj opp_rK. Qed.
 
-Lemma opp_plus : forall x1 x2 : elt, - (x1 + x2) = - x1 + - x2. 
+Lemma opp_plus_r : forall x1 x2 : R, - (x1 + x2) = - x1 + - x2. 
 Proof.
-move=> x1 x2; apply: (plusInj (x1 + x2)); symmetry.
-by rewrite -plusA [x2 + (_ + _)]plusC -plusA plus_opl plusC -plusA
-   plus0l plus_opl plusC plus_opl.
+move=> x1 x2; rewrite plus_rC.
+apply: (@opp_plus_g R); auto.
 Qed.
 
-Lemma opp_plus_eqr : forall (x1 x2 : elt), x1 + x2 = 0 -> x1 = -x2.
+Lemma opp_plus_r_eq : forall (x1 x2 : R), x1 + x2 = 0 -> x1 = -x2.
 Proof. 
-by move=> x1 x2 H; apply: (plusInj x2); rewrite plus_opr plusC.
+by move=> x1 x2 H; apply: (plus_r_inj x2); rewrite plus_opp_rr plus_rC.
 Qed.
 
 (* Multiplication *)
-Lemma multA: 
-  forall x1 x2 x3 :elt, x1 * (x2 * x3) = x1 * x2 * x3.
-Proof. exact: Rings.multA. Qed.
+Lemma mult_rA: 
+  forall x1 x2 x3 : R, x1 * (x2 * x3) = x1 * x2 * x3.
+Proof. apply (@m_op_A (r2m_m R)); auto. Qed.
 
-Lemma mult1l: forall x :elt, 1 * x = x.
-Proof. exact: Rings.onePl. Qed.
+Lemma mult_r1l: forall x : R, 1 * x = x.
+Proof. apply: (@m_op_unitl (r2m_m R)); auto. Qed.
 
-Lemma mult1r : forall x : elt, x * 1 = x.
-Proof. exact: Rings.onePr. Qed.
+Lemma mult_r1r : forall x : R, x * 1 = x.
+Proof. apply: (@m_op_unitr (r2m_m R)); auto. Qed.
 
-Lemma plus_multl:
-  forall x1 x2 x3 :elt, x3 * (x1 + x2) = (x3 * x1) + (x3 * x2).
-Proof. move => *; exact: Rings.plus_multl. Qed.
+Lemma plus_mult_l:
+  forall x1 x2 x3 : R, x3 * (x1 + x2) = (x3 * x1) + (x3 * x2).
+Proof. by case: Rr. Qed.
 
-Lemma plus_multr:
-  forall x1 x2 x3 :elt, (x1 + x2) * x3 = (x1 * x3) + (x2 * x3).
-Proof. exact: Rings.plus_multr. Qed.
+Lemma plus_mult_r:
+  forall x1 x2 x3 : R, (x1 + x2) * x3 = (x1 * x3) + (x2 * x3).
+Proof. by case: Rr. Qed.
 
-Lemma mult0r: forall x :elt, x * 0 = 0.
+Lemma one_diff_0 : 1 <> 0 :> R.
+Proof. by case: Rr. Qed.
+
+Lemma mult_r0r: forall x : R, x * 0 = 0.
 Proof.
-move => x; move: (@plusInj x (x*0) 0) => ->//.
-by rewrite -{1}[x]mult1r  -plus_multl  plusC plus0l mult1r plusC plus0l.
+move => x; move: (@plus_r_inj x (x*0) 0) => ->//.
+by rewrite -{1}[x]mult_r1r  -plus_mult_l  plus_rC plus_r0l mult_r1r plus_rC plus_r0l.
 Qed.
 
-Lemma mult0l: forall x :elt, 0 * x = 0.
+Lemma mult_r0l: forall x : R, 0 * x = 0.
 Proof.
-move => x; move: (@plusInj x (0*x) 0) => ->//.
-by rewrite -{1}[x]mult1l  -plus_multr plusC plus0l mult1l plusC plus0l.
+move => x; move: (@plus_r_inj x (0*x) 0) => ->//.
+by rewrite -{1}[x]mult_r1l  -plus_mult_r plus_rC plus_r0l mult_r1l plus_rC plus_r0l.
 Qed.
 
-Lemma mult_oppl: forall x y :elt, (- (x * y)) = (- x) * y.
-Proof.
-move => x y.
-by rewrite -[-x*y]plus0l -(plus_opl (x*y)) -plusA -plus_multr [x+_]plusC 
-   plus_opl mult0l plusC plus0l.
-Qed.
-
-Lemma mult_oppr: forall x y :elt, (-(x * y)) = x * (- y).
+Lemma mult_opp_rl: forall x y : R, (- (x * y)) = (- x) * y.
 Proof.
 move => x y.
-by rewrite -[x*-y]plus0l -(plus_opl (x*y)) -plusA -plus_multl [y+_]plusC
-   plus_opl mult0r plusC plus0l.
+by rewrite -[-x*y]plus_r0l -(plus_opp_rl (x*y)) -plus_rA -plus_mult_r [x+_]plus_rC 
+   plus_opp_rl mult_r0l plus_rC plus_r0l.
 Qed.
 
-Lemma one_diff_0 : (one elt) <> 0.
-Proof. exact: Rings.one_diff_zero. Qed.
-
-Lemma multm1x : forall x :elt, -1 * x = - x.
+Lemma mult_opp_rr: forall x y : R, (-(x * y)) = x * (- y).
 Proof.
-by move => x; rewrite -mult_oppl mult1l.
+move => x y.
+by rewrite -[x*-y]plus_r0l -(plus_opp_rl (x*y)) -plus_rA -plus_mult_l [y+_]plus_rC
+   plus_opp_rl mult_r0r plus_rC plus_r0l.
 Qed.
 
-Lemma plusCA : forall x1 x2 x3 : elt, x1 + (x2 + x3) = x2 + (x1 + x3).
-Proof. move=> *; rewrite !plusA; congr (_ + _); exact: plusC. Qed.
+Lemma plus_rCA : forall x1 x2 x3 : R, x1 + (x2 + x3) = x2 + (x1 + x3).
+Proof. move=> *; rewrite !plus_rA; congr (_ + _); exact: plus_rC. Qed.
+
+Lemma mult_rC : forall x1 x2 : R, x1 * x2 = x2 * x1.
+Proof. by case: Rcr. Qed.
+
+Lemma mult_rCA : forall x1 x2 x3 : R, x1 * (x2 * x3) = x2 * (x1 * x3).
+Proof.
+clear Rr; move=> *.
+rewrite !(@m_op_A (r2m_m R)); auto; congr (_ * _); exact: mult_rC.
+Qed.
 
 End RingsProp.
 
-Section CommutativeRings.
-Open Scope rings_scope.
-
-Record comRings : Type := ComRings {
-  elt :> ringsType;
-  multCP : forall x y :elt, x * y = y * x
-}.
-
-Variable elt : comRings.
-
-Lemma multC : forall x y :elt, x * y = y * x.
-Proof. exact: multCP. Qed.
-
-Lemma multCA : forall x1 x2 x3 : elt, x1 * (x2 * x3) = x2 * (x1 * x3).
-Proof. move=> *; rewrite !multA; congr (_ * _); exact: multC. Qed.
-
-End CommutativeRings.
-*)
 
 Unset Implicit Arguments.
