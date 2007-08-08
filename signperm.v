@@ -255,3 +255,5 @@ Qed.
 *)
 
 End PermutationParity.
+
+Coercion odd_perm : permType >-> bool.

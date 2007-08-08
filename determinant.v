@@ -36,6 +36,7 @@ Notation "x - y" := (x + (- y)) : local_scope.
 (* Injecting natural integers. *)
 
 (* Variable R : rings. *)
+(*
 
 Definition RofSn n := iter n (fun x => x + 1) 1.
 
@@ -50,6 +51,8 @@ Definition RexpSn x n := iter n (fun y => y * x) x.
 Definition Rexp_nat x n := if n is n'.+1 then RexpSn x n' else 1.
 
 Notation "x ^ n" := (Rexp_nat x n) : local_scope.
+
+*)
 
 (* We'll show later RexpSnE : forall x n, RexpSn x n = x ^ n * x *)
 
@@ -505,7 +508,7 @@ Lemma opp_plus : forall x1 x2 : R, - (x1 + x2) = - x1 - x2.
 Proof.
 by move=> x1 x2; rewrite -multm1x multC distrR -!(multC -1) !multm1x.
 Qed.
-
+(*
 Lemma RofSnE : forall n, RofSn n = n + 1.
 Proof. by elim=> /= [|_ -> //]; rewrite plus0x. Qed.
 
@@ -568,7 +571,7 @@ Proof. by do 2!case; rewrite //= ?multm1x ?mult1x ?oppK. Qed.
 Lemma sign_permM : forall d (s t : permType d),
   (-1) ^ (s * t)%G = (-1) ^ s * (-1) ^ t.
 Proof. by move=> *; rewrite odd_permM sign_addb. Qed.
-
+*)
 (* Instantiating and completing the set of lemmas lemmas for manipulating *)
 (* indexed sums and products (for reindexing, splitting, and inverting).  *)
 

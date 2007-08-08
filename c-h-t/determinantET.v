@@ -359,7 +359,7 @@ Notation "'\prod_' ( i < n ) E" := (iprod (@mult _) 1 (setA _) (fun i : I_(n) =>
 
 (* Extensionality (i.e., congruence); all variants. *)
 
-
+(*
 Lemma eq_isum : forall (d : finType) (r r' : set d) F F',
   r =1 r' -> dfequal r F F' -> \sum_(in r) F = \sum_(in r') F' :> R.
 Proof. move=> d r r' F F'; move/(@eq_iprod_set R) <-; exact: eq_iprod_f. Qed.
@@ -832,6 +832,8 @@ Lemma opp_plus : forall x1 x2 : R, - (x1 + x2) = - x1 - x2.
 Proof.
 by move=> x1 x2; rewrite -multm1x multC distrR -!(multC -1) !multm1x.
 Qed.
+
+*)
 
 *)
 

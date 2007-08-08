@@ -326,6 +326,18 @@ Proof. by move=> m n; rewrite -{1}[n]addn0 leq_add2l. Qed.
 Lemma leq_addl : forall m n, n <= m + n.
 Proof. move=> *; rewrite addnC; apply leq_addr. Qed.
 
+Lemma ltn_addr : forall m n p, m < n -> m < n + p.
+Proof.
+move=> m n p; rewrite -(ltn_add2r p _ _ ).
+by apply: (@leq_trans (m + p).+1 _ _) => //; apply: leq_addr.
+Qed.
+
+Lemma ltn_addl : forall m n p, m < n -> m < p + n.
+Proof.
+move=> m n p; rewrite -(ltn_add2l p _ _ ).
+by apply: (@leq_trans (p + m).+1 _ _)=>//; apply: leq_addl.
+Qed.
+
 Lemma leqn0 : forall n, (n <= 0) = (n == 0).
 Proof. by move=> *; rewrite eq_sym eqn_leq /=. Qed.
 
