@@ -1,5 +1,6 @@
-Require Import ssreflect ssrbool funs eqtype ssrnat seq fintype paths.
-Require Import connect div groups group_perm zp algebraic_struct.
+Require Import ssreflect ssrbool funs eqtype ssrnat seq fintype.
+Require Import tuple paths connect div .
+Require Import groups group_perm zp algebraic_struct.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -257,12 +258,14 @@ Lemma partition_iprod_ :
   forall (d d': finType) (pr : set d) p (r : set d') (f :d'->R),
     (forall j, r j -> pr (p j)) ->
       iprod r f =
-        iprod pr (fun i => (iprod (fun j=> r j && (p j==i)) (fun j=> f j))).
+        iprod pr (fun i => 
+                      (iprod (fun j=> r j && (p j==i)) (fun j=> f j))).
 Proof.
 move=> d d' pr p r f prp.
 rewrite (@eq_iprod_set_ _ _ _ (fun j => r j && pr (p j))); last first.
   by move=> i /=; case ri: (r i); rewrite // prp.
-rewrite iprod_eta_; elim: {pr}_.+1 {-2}pr {prp} (ltnSn (card pr)) => // n IHn pr.
+rewrite iprod_eta_; 
+  elim: {pr}_.+1 {-2}pr {prp} (ltnSn (card pr)) => // n IHn pr.
 case: (pickP pr) => [i0 pri0 | pr0 _]; last first.
   by rewrite !iprod_set0_ => //= i; rewrite pr0 andbF.
 rewrite ltnS (cardD1 i0) pri0 (@iprodD1_ _ i0) //; move/IHn=> {n IHn} <-.
@@ -271,9 +274,184 @@ rewrite (@iprodID_ _ (fun j => p j == i0));
 - by case: eqP => [-> | _]; rewrite ?pri0 ?andbF ?andbT.
 by rewrite /setD1 eq_sym -!andbA; do !bool_congr.
 Qed.
-Implicit Arguments partition_iprod_ [d d' r f].
 
 End ab_monoid_iprod.
+Implicit Arguments partition_iprod_ [R d d' r f].
+
+Section iprod_reindex.
+Variable (R : ab_monoid).
+
+Lemma reindex_iprod_onto_ : 
+  forall (d d' : finType) (h : d' -> d) h' r (f :d->R),
+    dcancel r h' h -> 
+      iprod r f = 
+      iprod (fun i => (h' (h i) == i) && r (h i)) (fun i=> f (h i)).
+Proof.
+move=> d d' h h' r f h'K.
+elim: {r}_.+1 {-3}r h'K (ltnSn (card r)) => //= n IHn r h'K.
+case: (pickP r) => [i ri | r0 _]; last first.
+  by rewrite !iprod_set0_ // => x; rewrite r0 andbF.
+rewrite ltnS (cardD1 i) ri add1n; move/IHn {n IHn} => IH.
+rewrite (iprodD1_ f ri) (@iprodD1_ _ _ (h' i)) h'K ?set11 //;
+ congr (_ * _).
+rewrite {}IH => [|j]; [apply: eq_iprod_set_ => j | by case/andP; auto].
+rewrite / setD1 (andbCA (~~ _)); case: eqP => //= hK; congr (~~ _ && _).
+by apply/eqP/eqP=> [-> | <-] //; rewrite h'K.
+Qed.
+Implicit Arguments reindex_iprod_onto_ [d d' r f].
+
+Lemma reindex_iprod_ : forall (d d' : finType) (h : d' -> d) r (f :d->R),
+  ibijective r h ->
+    iprod r f = iprod (fun i => r (h i)) (fun i=> f (h i)).
+Proof.
+move=> d d' h r F [h' hK h'K]; rewrite (reindex_iprod_onto_ h h' h'K).
+by apply: eq_iprod_set_ => i; case Hi: (r _); rewrite ?andbF ?hK ?set11.
+Qed.
+Implicit Arguments reindex_iprod_ [d d' r f].
+
+Lemma pair_iprod_dep_ : forall (d d': finType) r r' (f : d -> d' -> R),
+  iprod r (fun i => iprod (r' i) (f i)) = 
+    iprod (fun u => r (fst u) && r' (fst u) (snd u)) 
+      (fun u => f (fst u) (snd u)).
+Proof.
+move=> d d' r r' f; set p1 := @fst d d'; set p2 := @snd d d'.
+rewrite (partition_iprod_ r p1) => [|j]; last by case/andP.
+apply: eq_iprod_f_ => i ri.
+rewrite (reindex_iprod_onto_ (pair i) p2) => [|[i' j]] /=.
+  by rewrite iprod_eta_; apply: eq_iprod_set_ => j;
+    rewrite !set11 ri andbT.
+by case/andP=> _; move/eqP->.
+Qed.
+
+Lemma pair_iprod_ : forall (d d': finType) r r' (f : d -> d' -> R),
+  iprod r (fun i => iprod r' (f i)) = 
+  iprod (fun u => r (fst u) && r' (snd u)) 
+      (fun u => f (fst u) (snd u)).
+Proof. move=> *; exact: pair_iprod_dep_. Qed.
+
+Lemma pair_iprodA_ : forall (d d': finType) (f : d -> d' -> R),
+  iprod (setA _) (fun i => iprod (setA _) (f i)) = 
+    iprod (setA _) (fun u => f (fst u) (snd u)).
+Proof. move=> *; exact: pair_iprod_. Qed.
+
+Lemma exchange_iprod_dep_ :
+  forall (d d' : finType) (r : set d) (r' : d -> set d') (xr : set d') f,
+    (forall i j, r i -> r' i j -> xr j) ->
+      iprod r (fun i => iprod (r' i) (f i)) = 
+      iprod xr (fun j => 
+                iprod (fun i => r i && r' i j) (fun i=> (f i j))) :>R.
+Proof.
+move=> d d' r r' xr F rxr; rewrite !pair_iprod_dep_.
+pose p u := let: (i, j) := u in (j, i).
+rewrite (reindex_iprod_onto_ (p _ _) (p _ _)) => [|[//]].
+apply: eq_iprod_ => [] [j i] //=; symmetry; rewrite set11 andbC.
+case: (@andP (r i)) => //=; case; exact: rxr.
+Qed.
+Implicit Arguments exchange_iprod_dep_ [d d' r r' f].
+
+Lemma exchange_iprod_ : forall (d d': finType) r r' (f : d -> d' -> R),
+  iprod r (fun i=> iprod r' (f i)) = 
+  iprod r' (fun j=> iprod r (fun i => f i j)).
+Proof.
+move=> d d' r r' F; rewrite (exchange_iprod_dep_ r') //;
+  apply: eq_iprod_f_ => i Hi.
+by apply: eq_iprod_set_ => j; rewrite Hi andbT.
+Qed.
+
+Lemma i_prod_image_ :
+  forall (d:finType) (a:set d) (g:d->d) (f : d->R), dinjective a g ->
+   iprod (image g a) f = iprod a (fun x => f (g x)).
+Proof.
+move => d a.
+elim: {a}(card a) {-2}a (refl_equal (card a)) => [| n Hrec] a Ha g f Hg.
+  have F1: a =1 set0 by apply card0_eq.
+  have F2: image g a =1 set0. 
+    by move => x; rewrite (@image_eq _ _ a set0 g g) //;
+      rewrite (@image_set0 d d g x).
+  by rewrite (@eq_iprod_set_ _ d _ _ _ F1) (@eq_iprod_set_ _ d _ _ _ F2)
+    !iprod_set0_eq_.
+have F2: ~~set0b a by apply/set0P => H1; rewrite (eq_card0 H1) in Ha.
+case/set0Pn: F2 => x Hx.
+rewrite (@iprodD1_ _ _ x a) => //.
+rewrite (@iprodD1_ _ _ (g x)); last by apply/imageP; exists x.
+congr (_ * _).
+have F3: setD1 (image g a) (g x) =1 image g (setD1 a x).
+  move => y;apply/andP/imageP.
+    move => [Hngx Hin]; move/imageP: Hin => [z Hin Heq];exists z =>//.
+    apply/andP; split => //; apply/negP; move => Heq'. 
+    by rewrite (eqP Heq') in Hngx; case/negP: Hngx; rewrite Heq.
+  move => [z Hin Heq]; move/andP: Hin => [Hzx Hin]; split.
+    apply/negP;move/eqP => Heq'.
+    by move/negP: Hzx => H; case H; apply/eqP; apply Hg => //;
+      rewrite -Heq.
+  by apply/imageP; exists z.
+rewrite (@eq_iprod_set_ _ d _ _ _ F3); apply Hrec => //.
+  by rewrite (cardD1 x) Hx /= add1n in Ha; injection Ha.
+move => x' y' Hx' Hy' Heq; move/andP:Hx'=>[_ Hx']; move/andP:Hy'=>[_ Hy']. 
+by apply Hg => //.
+Qed.
+
+Lemma i_prod_image2_ :
+  forall (d d':finType) (a:set d) (g:d->d') f, dinjective a g ->
+   iprod (image g a) f = iprod a (fun x => f (g x)) :> R.
+Proof.
+move => d d' a.
+elim: {a}(card a) {-2}a (refl_equal (card a)) => [| n Hrec] a Ha g f Hg.
+  have F1: a =1 set0 by apply card0_eq.
+  have F2: image g a =1 set0 
+    by move => x; rewrite (@image_eq _ _ a set0 g g) //;
+    rewrite (@image_set0 d d' g x).
+  by rewrite (@eq_iprod_set_ _ d _ _ _ F1) (@eq_iprod_set_ _ d' _ _ _ F2)
+    !iprod_set0_eq_.
+have F2: ~~set0b a by apply/set0P => H1; rewrite (eq_card0 H1) in Ha.
+case/set0Pn: F2 => x Hx.
+rewrite (@iprodD1_ _ _ x a) => //.
+rewrite (@iprodD1_ _ _ (g x)); last by apply/imageP; exists x.
+congr (_ * _).
+have F3: setD1 (image g a) (g x) =1 image g (setD1 a x).
+  move => y;apply/andP/imageP.
+    move => [Hngx Hin]; move/imageP: Hin => [z Hin Heq];exists z =>//.
+    apply/andP; split => //; apply/negP; move => Heq'. 
+    by rewrite (eqP Heq') in Hngx; case/negP: Hngx; rewrite Heq.
+  move => [z Hin Heq]; move/andP: Hin => [Hzx Hin]; split.
+    apply/negP;move/eqP => Heq'.
+    by move/negP: Hzx => H; case H; apply/eqP; apply Hg => //; rewrite -Heq.
+  by apply/imageP; exists z.
+rewrite (@eq_iprod_set_ _ d' _ _ _ F3); apply Hrec => //.
+  by rewrite (cardD1 x) Hx /= add1n in Ha; injection Ha.
+move => x' y' Hx' Hy' Heq; move/andP:Hx'=>[_ Hx']; move/andP:Hy'=>[_ Hy']. 
+by apply Hg => //.
+Qed.
+
+Lemma iprod_injection_ : 
+  forall (d d':finType) (a:set d) (a' :set d') (f:d->d') g,
+    dinjective a f ->
+      iprod a' g =
+      iprod (setI a (preimage f a')) (fun x => g (f x)) *
+      iprod (setD a' (image f a)) g :> R.
+Proof.
+move => d d' a a' f g Hinj.
+have Hinj' : dinjective (setI a (preimage f a')) f.
+  by move => x y Hx Hy; case/andP: Hx => Hx _; case/andP: Hy => Hy _;
+    apply:Hinj.
+rewrite -(@i_prod_image2_ d d' (setI a (preimage f a')) f g) // -iprod_setU_.
+  apply: eq_iprod_set_; move => x; rewrite /setU /setD.
+  case A: (image f a x)=>//=; first (rewrite orbF; case/imageP: A => y B C).
+    apply/idP/imageP; first by move=>D; exists y=>//; 
+      rewrite /setI B /preimage -C.
+    by case => x' Hx' Hf'; case/andP: Hx' => _ Ha'; rewrite Hf'.
+  case H': (a' x); first (by rewrite orbT).
+  rewrite orbF; apply/idP/imageP; first done.
+  by case => y Hy Hf; move/andP: Hy => [Ha Ha']; rewrite -H' Hf.
+apply: (@disjoint_trans d' _ (image f a)); rewrite /setI/setD.
+  rewrite /subset disjoint_subset;apply/subsetP=>x A.
+  case/imageP:A =>y B C; rewrite /setC negb_involutive.
+  by case/andP: B=>B _; apply/imageP; exists y.
+by apply/set0P; rewrite /setI //=; move =>x //=; case: (image f a x) => //.
+Qed.
+
+End iprod_reindex.
+
 
 Section iprod_dist.
 
@@ -327,127 +505,6 @@ Qed.
 
 End iprod_dist.
 
-Section iprod_reindex.
-Variable (R : ab_monoid).
-
-Lemma reindex_iprod_onto_ : forall (d d' : finType) (h : d' -> d) h' r (f :d->R),
-  dcancel r h' h -> 
-    iprod r f = iprod (fun i => (h' (h i) == i) && r (h i)) (fun i=> f (h i)).
-Proof.
-move=> d d' h h' r f h'K.
-elim: {r}_.+1 {-3}r h'K (ltnSn (card r)) => //= n IHn r h'K.
-case: (pickP r) => [i ri | r0 _]; last first.
-  by rewrite !iprod_set0_ // => x; rewrite r0 andbF.
-rewrite ltnS (cardD1 i) ri add1n; move/IHn {n IHn} => IH.
-rewrite (iprodD1_ f ri) (@iprodD1_ _ _ (h' i)) h'K ?set11 //; congr (_ * _).
-rewrite {}IH => [|j]; [apply: eq_iprod_set_ => j | by case/andP; auto].
-rewrite / setD1 (andbCA (~~ _)); case: eqP => //= hK; congr (~~ _ && _).
-by apply/eqP/eqP=> [-> | <-] //; rewrite h'K.
-Qed.
-Implicit Arguments reindex_iprod_onto_ [d d' r f].
-
-Lemma reindex_iprod_ : forall (d d' : finType) (h : d' -> d) r (f :d->R),
-  ibijective r h ->
-    iprod r f = iprod (fun i => r (h i)) (fun i=> f (h i)).
-Proof.
-move=> d d' h r F [h' hK h'K]; rewrite (reindex_iprod_onto_ h h' h'K).
-by apply: eq_iprod_set_ => i; case Hi: (r _); rewrite ?andbF ?hK ?set11.
-Qed.
-Implicit Arguments reindex_iprod_ [d d' r f].
-
-Lemma i_prod_image_ :
-  forall (d:finType) (a:set d) (g:d->d) (f : d->R), dinjective a g ->
-   iprod (image g a) f = iprod a (fun x => f (g x)).
-Proof.
-move => d a.
-elim: {a}(card a) {-2}a (refl_equal (card a)) => [| n Hrec] a Ha g f Hg.
-  have F1: a =1 set0 by apply card0_eq.
-  have F2: image g a =1 set0. 
-    by move => x; rewrite (@image_eq _ _ a set0 g g) //;
-      rewrite (@image_set0 d d g x).
-  by rewrite (@eq_iprod_set_ _ d _ _ _ F1) (@eq_iprod_set_ _ d _ _ _ F2)
-    !iprod0_.
-have F2: ~~set0b a by apply/set0P => H1; rewrite (eq_card0 H1) in Ha.
-case/set0Pn: F2 => x Hx.
-rewrite (@iprodD1_ _ _ x a) => //.
-rewrite (@iprodD1_ _ _ (g x)); last by apply/imageP; exists x.
-congr (_ * _).
-have F3: setD1 (image g a) (g x) =1 image g (setD1 a x).
-  move => y;apply/andP/imageP.
-    move => [Hngx Hin]; move/imageP: Hin => [z Hin Heq];exists z =>//.
-    apply/andP; split => //; apply/negP; move => Heq'. 
-    by rewrite (eqP Heq') in Hngx; case/negP: Hngx; rewrite Heq.
-  move => [z Hin Heq]; move/andP: Hin => [Hzx Hin]; split.
-    apply/negP;move/eqP => Heq'.
-    by move/negP: Hzx => H; case H; apply/eqP; apply Hg => //;
-      rewrite -Heq.
-  by apply/imageP; exists z.
-rewrite (@eq_iprod_set_ _ d _ _ _ F3); apply Hrec => //.
-  by rewrite (cardD1 x) Hx /= add1n in Ha; injection Ha.
-move => x' y' Hx' Hy' Heq; move/andP:Hx'=>[_ Hx']; move/andP:Hy'=>[_ Hy']. 
-by apply Hg => //.
-Qed.
-
-Lemma i_prod_image2_ :
-  forall (d d':finType) (a:set d) (g:d->d') f, dinjective a g ->
-   iprod (image g a) f = iprod a (fun x => f (g x)) :> R.
-Proof.
-move => d d' a.
-elim: {a}(card a) {-2}a (refl_equal (card a)) => [| n Hrec] a Ha g f Hg.
-  have F1: a =1 set0 by apply card0_eq.
-  have F2: image g a =1 set0 
-    by move => x; rewrite (@image_eq _ _ a set0 g g) //;
-    rewrite (@image_set0 d d' g x).
-  by rewrite (@eq_iprod_set_ _ d _ _ _ F1) (@eq_iprod_set_ _ d' _ _ _ F2)
-    !iprod0_.
-have F2: ~~set0b a by apply/set0P => H1; rewrite (eq_card0 H1) in Ha.
-case/set0Pn: F2 => x Hx.
-rewrite (@iprodD1_ _ _ x a) => //.
-rewrite (@iprodD1_ _ _ (g x)); last by apply/imageP; exists x.
-congr (_ * _).
-have F3: setD1 (image g a) (g x) =1 image g (setD1 a x).
-  move => y;apply/andP/imageP.
-    move => [Hngx Hin]; move/imageP: Hin => [z Hin Heq];exists z =>//.
-    apply/andP; split => //; apply/negP; move => Heq'. 
-    by rewrite (eqP Heq') in Hngx; case/negP: Hngx; rewrite Heq.
-  move => [z Hin Heq]; move/andP: Hin => [Hzx Hin]; split.
-    apply/negP;move/eqP => Heq'.
-    by move/negP: Hzx => H; case H; apply/eqP; apply Hg => //; rewrite -Heq.
-  by apply/imageP; exists z.
-rewrite (@eq_iprod_set_ _ d' _ _ _ F3); apply Hrec => //.
-  by rewrite (cardD1 x) Hx /= add1n in Ha; injection Ha.
-move => x' y' Hx' Hy' Heq; move/andP:Hx'=>[_ Hx']; move/andP:Hy'=>[_ Hy']. 
-by apply Hg => //.
-Qed.
-
-Lemma iprod_injection_ : 
-  forall (d d':finType) (a:set d) (a' :set d') (f:d->d') g,
-    dinjective a f ->
-      iprod a' g =
-      iprod (setI a (preimage f a')) (fun x => g (f x)) *
-      iprod (setD a' (image f a)) g :> R.
-Proof.
-move => d d' a a' f g Hinj.
-have Hinj' : dinjective (setI a (preimage f a')) f.
-  by move => x y Hx Hy; case/andP: Hx => Hx _; case/andP: Hy => Hy _;
-    apply:Hinj.
-rewrite -(@i_prod_image2_ d d' (setI a (preimage f a')) f g) // -iprod_setU_.
-  apply: eq_iprod_set_; move => x; rewrite /setU /setD.
-  case A: (image f a x)=>//=; first (rewrite orbF; case/imageP: A => y B C).
-    apply/idP/imageP; first by move=>D; exists y=>//; 
-      rewrite /setI B /preimage -C.
-    by case => x' Hx' Hf'; case/andP: Hx' => _ Ha'; rewrite Hf'.
-  case H': (a' x); first (by rewrite orbT).
-  rewrite orbF; apply/idP/imageP; first done.
-  by case => y Hy Hf; move/andP: Hy => [Ha Ha']; rewrite -H' Hf.
-apply: (@disjoint_trans d' _ (image f a)); rewrite /setI/setD.
-  rewrite /subset disjoint_subset;apply/subsetP=>x A.
-  case/imageP:A =>y B C; rewrite /setC negb_involutive.
-  by case/andP: B=>B _; apply/imageP; exists y.
-by apply/set0P; rewrite /setI //=; move =>x //=; case: (image f a x) => //.
-Qed.
-
-End iprod_reindex.
 
 (*
 Lemma ltn_addr : forall m n p, m < n -> m < n + p.
