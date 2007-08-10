@@ -23,103 +23,48 @@ Definition op_distr :=
 
 End OperationProp.
 
-Module MonoidClass.
-
-Structure monoid_class : Type := MonoidClass {
-  element :> Type;
-  unit : element;
-  op : element -> element -> element
-}.
-End MonoidClass.
-Notation monoid_class := MonoidClass.monoid_class.
-Notation MonoidClass := MonoidClass.MonoidClass.
-
-Module GroupsClass.
-
-Structure groups_class : Type := GroupsClass {
-  element :> Type;
-  zero : element;
-  opp : element -> element;
-  plus : element -> element -> element
-}.
-End GroupsClass.
-Notation groups_class := GroupsClass.groups_class.
-Notation GroupsClass := GroupsClass.GroupsClass.
-
-Coercion groups2monoid_cls (g : groups_class) :=
-  (MonoidClass (@GroupsClass.zero g) (@GroupsClass.plus g)).
-
 Section StructAxioms.
 
 (* Monoid *)
-Notation op := MonoidClass.op.
-Notation unit := MonoidClass.unit.
 
-Structure is_monoid (M : monoid_class)
+Structure is_monoid (M : Type) (u : M) (op : M->M->M)
   : Prop := {
-  opA_ : opA (@op M);
-  op_unitl_ : forall x : M, op (@unit M) x = x;
-  op_unitr_ : forall x : M, op x (@unit M) = x 
+  opA_ : opA op;
+  op_unitl_ : forall x, op u x = x;
+  op_unitr_ : forall x, op x u = x 
 }.
 
-Structure is_abelian_monoid (M : monoid_class)
+Structure is_abelian_monoid (M : Type) (u : M) (op : M->M->M)
   : Prop := {
-  ab_is_monoidP_ : (is_monoid M);
-  opC_ : opC (@op M)
+  ab_is_monoidP_ :> (is_monoid u op);
+  opC_ : opC op
 }.
 (* --- *)
 
 (* Groups *)
-Notation zero := GroupsClass.zero.
-Notation opp := GroupsClass.opp.
-Notation plus := GroupsClass.plus.
 
-Structure is_groups (G : groups_class)
+Structure is_groups (G : Type) (z : G) (opp : G->G) (plus : G->G->G)
   : Prop := {
-  is_monoidP_ :> (is_monoid G);
-  oppP_ : forall x : G, plus (opp x) x = (@zero G)
+  is_monoidP_ :> (is_monoid z plus);
+  oppP_ : forall x, plus (opp x) x = z
 }.
 
-Structure is_abelian_groups (G : groups_class)
-  : Prop := {
-  ab_is_groupsP_ :> (is_groups G);
-  plusC_ : opC (@plus G)
+Structure is_abelian_groups (G : Type) (z : G) (opp : G->G)
+  (plus : G->G->G) : Prop := {
+  ab_is_groupsP_ :> (is_groups z opp plus);
+  plusC_ : opC plus
 }.
 (* --- *)
 
 End StructAxioms.
 
-Section StructSimpl.
-
-Lemma is_monoid_am : forall M : monoid_class,
-  is_abelian_monoid M -> is_monoid M.
-Proof. by move=>M; case. Qed.
-
-(* --- *)
-
-Variable G : groups_class.
-
-Lemma is_groups_ag :
-  is_abelian_groups G -> is_groups G.
-Proof. by case. Qed.
-
-Lemma is_monoid_grp : is_groups G -> is_monoid G.
-Proof. by case. Qed.
-
-Lemma is_abelian_monoid_ag :
-  is_abelian_groups G -> is_abelian_monoid G.
-Proof. by case=> H1 H2; split=>//; case: H1. Qed.
-
-End StructSimpl.
-
-Hint Resolve is_monoid_am is_groups_ag is_monoid_grp
- is_abelian_monoid_ag.
-
 Module Monoid.
 
 Structure monoid : Type := Monoid {
-  element :> monoid_class;
-  monoidP : is_monoid element
+  element :> Type;
+  unit : element;
+  op : element -> element -> element;
+  monoidP :> is_monoid unit op
 }.
 End Monoid.
 Notation monoid := Monoid.monoid.
@@ -129,22 +74,18 @@ Coercion Monoid : is_monoid >-> monoid.
 Module AbelianMonoid.
 
 Structure abelian_monoid : Type := AbelianMonoid {
-  element : monoid_class;
-  abelian_monoidP : is_abelian_monoid element
+  element :> monoid;
+  opC_ : opC (@Monoid.op element)
 }.
 End AbelianMonoid.
 Notation ab_monoid := AbelianMonoid.abelian_monoid.
 Notation AbMonoid := AbelianMonoid.AbelianMonoid.
-Coercion AbMonoid : is_abelian_monoid >-> ab_monoid.
-
-Coercion ab_mono2mono (M : ab_monoid) :=
-  let: AbMonoid _ H := M in Monoid (is_monoid_am H).
 
 Delimit Scope monoid_scope with Mo.
 Bind Scope monoid_scope with Monoid.element.
 
-Notation "1" := (MonoidClass.unit _) (at level 0): monoid_scope.
-Infix "*" := MonoidClass.op : monoid_scope.
+Notation "1" := (Monoid.unit _) (at level 0): monoid_scope.
+Infix "*" := Monoid.op : monoid_scope.
 
 Section MonoidProp.
 Open Scope monoid_scope.
@@ -152,26 +93,29 @@ Variable (M : monoid).
 
 Lemma m_op_A : forall x1 x2 x3 : M,
   x1 * (x2 * x3) = x1 * x2 * x3.
-Proof. case: M=> elt; case=>//. Qed.
+Proof. case: M=> elt u o; case=>//=. Qed.
 
 Lemma m_op_unitl : forall x : M, 1 * x = x.
-Proof. case: M=> elt; case=>//. Qed.
+Proof. case: M=> elt u o; case=>//. Qed.
 
 Lemma m_op_unitr : forall x : M, x * 1 = x.
-Proof. case: M=> elt; case=>//. Qed.
+Proof. case: M=> elt u o; case=>//. Qed.
 
 Variable (aM: ab_monoid).
 
 Lemma m_op_C : forall x1 x2 : aM, x1 * x2 = x2 * x1.
-Proof. case: aM => elt; case=> //. Qed.
+Proof. case: aM => elt//. Qed.
 
 End MonoidProp.
 
 Module Groups.
 
 Structure groups : Type := Groups {
-  element :> groups_class;
-  groupsP : is_groups element
+  element :> Type;
+  zero : element;
+  opp : element -> element;
+  plus : element -> element -> element;
+  groupsP :> is_groups zero opp plus
 }.
 End Groups.
 Notation groups := Groups.groups.
@@ -181,26 +125,32 @@ Coercion Groups : is_groups >-> groups.
 Module AbelianGroups.
 
 Structure abelian_groups : Type := AbelianGroups {
-  element : groups_class;
-  abelian_groupsP : is_abelian_groups element
+  element :> groups;
+  plusC_ : opC (@Groups.plus element)
 }.
 End AbelianGroups.
 Notation ab_groups := AbelianGroups.abelian_groups.
 Notation AbGroups := AbelianGroups.AbelianGroups.
-Coercion AbGroups : is_abelian_groups >-> ab_groups.
 
-Coercion groups2monoid (G : groups) :=
-  let: Groups _ H := G in Monoid H.
+(*
+Definition g2m (G :groups) : (Groups.element G) -> (Monoid.element G).
+move=> G x; exact x.
+Defined.
 
-Coercion ab_groups2groups (G : ab_groups) :=
-  let: AbGroups _ H := G in Groups H.
+Coercion g2m : Groups.element >-> Monoid.element.
+*)
+
+Definition ag2am (G : ab_groups) : ab_monoid := 
+@AbMonoid (@AbelianGroups.element G) (@AbelianGroups.plusC_ G).
+
+Coercion ag2am : ab_groups >-> ab_monoid.
 
 Delimit Scope groups_scope with Gs.
 Bind Scope groups_scope with Groups.element.
 
-Notation "0" := (GroupsClass.zero _) (at level 0): groups_scope.
-Notation "- x" := (GroupsClass.opp x): groups_scope.
-Infix "+" := GroupsClass.plus: groups_scope.
+Notation "0" := (Groups.zero _) (at level 0): groups_scope.
+Notation "- x" := (Groups.opp x): groups_scope.
+Infix "+" := Groups.plus: groups_scope.
 
 Section GroupsProp.
 Open Scope groups_scope.
@@ -208,15 +158,15 @@ Open Scope groups_scope.
 Variable (G : groups).
 
 Lemma plus_gA : forall x1 x2 x3 : G, x1 + (x2 + x3) = x1 + x2 + x3.
-Proof. by case: G => //= elt H; apply: (@m_op_A H). Qed.
+Proof. by apply: (@m_op_A G). Qed.
 
 Lemma plus_g0l : forall x : G, 0 + x = x.
-Proof. by case: G => //= elt H; apply: (@m_op_unitl H). Qed.
+Proof. by apply: (@m_op_unitl G). Qed.
 
 Lemma plus_opp_gl : forall x : G, - x + x = 0.
-Proof. by case: G=> elt; case. Qed.
+Proof. by case: G=> elt z o p; case. Qed.
 
-Notation plus_g := GroupsClass.plus.
+Notation plus_g := Groups.plus.
 
 Lemma plus_gKl : forall x : G, cancel (plus_g x) (plus_g (- x)).
 Proof.
@@ -229,7 +179,7 @@ Proof. move=> x; exact: can_inj (plus_gKl x). Qed.
 Implicit Arguments plus_g_injl [].
 
 Lemma plus_g0r : forall x : G, x + 0 = x.
-Proof. by case: G => //= elt H; apply: (@m_op_unitr H). Qed.
+Proof. by apply: (@m_op_unitr G). Qed.
 
 Lemma plus_opp_gr : forall x : G, x + (- x) = 0.
 Proof.
@@ -258,7 +208,7 @@ Proof. by move=> x y; rewrite -plus_gA plus_opp_gl plus_g0r. Qed.
 Lemma opp_g0 : - 0 = 0 :> G.
 Proof. by rewrite -{2}(plus_opp_gl 0) plus_g0r. Qed.
 
-Notation opp_g := GroupsClass.opp.
+Notation opp_g := Groups.opp.
 
 Lemma opp_gK : cancel (@opp_g G) (@opp_g G).
 Proof.
@@ -277,7 +227,7 @@ Qed.
 Variable aG : ab_groups.
 
 Lemma plus_gC : forall x1 x2 : aG, x1 + x2 = x2 + x1.
-Proof. by case: aG=> elt; case. Qed.
+Proof. by case: aG. Qed.
 
 End GroupsProp.
 
