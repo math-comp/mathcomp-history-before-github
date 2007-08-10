@@ -59,8 +59,13 @@ case/andP:Hf => He Us1; apply: (IH Us1) => x S1x.
 have Dx: x != e1 by apply/negP; move/eqP=> Dx; move/negP: He; rewrite -Dx; auto.
 by move/(_ x): H; rewrite (negbET Dx) /= /setU1 S1x orbT; auto.
 Qed.
-
 End FgraphProd.
+
+Definition family := fgraph_prod.
+Definition familyP := fgraph_prodP.
+
+Definition pfamily (d : finType) d' y0 (r : set d) (a' : d -> set d') :=
+  family (fun i => if r i then a' i else set1 y0).
 
 Lemma card_fgraph_prod: 
  forall t c : finType,
