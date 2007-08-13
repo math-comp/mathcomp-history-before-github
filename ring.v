@@ -1,4 +1,4 @@
-Require Import ssreflect eqtype fintype funs ssrnat ssrbool.
+Require Import ssreflect eqtype fintype funs ssrnat ssrbool tuple.
 Require Import groups group_perm signperm indexed_products.
 Require Import algebraic_struct.
 
@@ -192,7 +192,7 @@ Lemma mult_r1r : forall x : R, x * 1 = x.
 Proof. by apply: (@m_op_unitr (r2m R)). Qed.
 
 Lemma plus_mult_l:
-  forall x1 x2 x3 : R, x3 * (x1 + x2) = (x3 * x1) + (x3 * x2).
+  forall x1 x2 x3 : R, x1 * (x2 + x3) = (x1 * x2) + (x1 * x3).
 Proof. by case: R=> elt z o opp p m; case. Qed.
 
 Lemma plus_mult_r:
@@ -354,43 +354,403 @@ Qed.
 
 End IntPowProp.
 
-Section RingIndexedProd.
+Section ComRingIndexedProd.
 Open Scope ring_scope.
 
+(* Instantiating the "indexed product" lemmas for ring. *)
+
+Section RingIndexedProd.
 Variable R: ring.
 
-Lemma isum_id : forall (d : finType) (r : set d) (x :R),
-  @iprod R _ r (fun _=>x) = (@R_of_nat R (card r)) * x.
+Notation "'\sum_' ( 'in' r ) F" := (@iprod R _ r F)
+   (at level 40, F at level 40,
+   format "'\sum_' ( 'in'  r )  F") : local_scope.
+Notation "'\prod_' ( 'in' r ) F" := (@iprod (r2m R) _ r F)
+   (at level 35, F at level 35,
+   format "'\prod_' ( 'in'  r )  F") : local_scope.
+
+Notation "'\sum_' () F" := (@iprod R _ (setA _) F)
+   (at level 40, F at level 40, format "'\sum_' ()  F") : local_scope.
+Notation "'\prod_' () F" := (@iprod (r2m R) _ (setA _) F)
+   (at level 35, F at level 35, format "'\prod_' () F") : local_scope.
+
+Notation "'\sum_' ( i 'in' r ) E" := (@iprod R _ r (fun i => E))
+   (at level 40, E at level 40, i at level 50,
+    format "'\sum_' ( i  'in'  r )  E") : local_scope.
+Notation "'\prod_' ( i 'in' r ) E" := (@iprod (r2m R) _ r (fun i => E))
+   (at level 35, E at level 35, i at level 50,
+    format "'\prod_' ( i  'in'  r )  E") : local_scope.
+
+Notation "'\sum_' ( i : t 'in' r ) E" := (@iprod R _ r (fun i : t => E))
+   (at level 40, E at level 40, i at level 50, only parsing) : local_scope.
+Notation "'\prod_' ( i : t 'in' r ) E" := (@iprod (r2m R) _ r (fun i : t => E))
+   (at level 35, E at level 35, i at level 50, only parsing) : local_scope.
+
+Notation "'\sum_' ( i | P ) E" := (@iprod R _ (fun i => P) (fun i => E))
+   (at level 40, E at level 40, i at level 50, 
+   format "'\sum_' ( i  |  P )  E") : local_scope.
+Notation "'\prod_' ( i | P ) E" := (@iprod (r2m R) _ (fun i => P) (fun i => E))
+   (at level 35, E at level 35, i at level 50,
+   format "'\prod_' ( i  |  P )  E") : local_scope.
+
+Notation "'\sum_' ( i : t | P ) E" :=
+   (@iprod R _ (fun i : t => P) (fun i : t => E))
+   (at level 40, E at level 40, i at level 50, only parsing) : local_scope.
+Notation "'\prod_' ( i : t | P ) E" :=
+   (@iprod (r2m R) _ (fun i : t => P) (fun i : t => E))
+   (at level 35, E at level 35, i at level 50, only parsing) : local_scope.
+
+Notation "'\sum_' ( i ) E" := (@iprod R _ (setA _) (fun i => E))
+   (at level 40, E at level 40, i at level 50,
+   format "'\sum_' ( i )  E") : local_scope.
+Notation "'\prod_' ( i ) E" := (@iprod (r2m R) _ (setA _) (fun i => E))
+   (at level 35, E at level 35, i at level 50 ,
+   format "'\prod_' ( i )  E") : local_scope.
+
+Notation "'\sum_' ( i : t ) E" := (@iprod R _ (setA _) (fun i : t => E))
+   (at level 40, E at level 40, i at level 50, only parsing) : local_scope.
+Notation "'\prod_' ( i : t ) E" := (@iprod (r2m R) _ (setA _) (fun i : t => E))
+   (at level 35, E at level 35, i at level 50, only parsing) : local_scope.
+
+Notation "'\sum_' ( i < n ) E" := (@iprod R _ (setA _) (fun i : I_(n) => E))
+   (at level 40, E at level 40, i, n at level 50, only parsing) : local_scope.
+Notation "'\prod_' ( i < n ) E" := (@iprod (r2m R) _ (setA _) (fun i : I_(n) => E))
+   (at level 35, E at level 35, i, n at level 50, only parsing) : local_scope.
+Open Scope local_scope.
+
+Lemma eq_isum : forall (d : finType) (r r' : set d) F F',
+  r =1 r' -> dfequal r F F' -> \sum_(in r) F = \sum_(in r') F'.
+Proof. exact: eq_iprod_. Qed.
+
+Lemma eq_iprod : forall (d : finType) (r r' : set d) F F',
+  r =1 r' -> dfequal r F F' -> \prod_(in r) F = \prod_(in r') F'.
+Proof. exact: eq_iprod_. Qed.
+
+Lemma eq_isumL : forall (d : finType) (r r' : set d) F,
+  r =1 r' -> \sum_(in r) F = \sum_(in r') F.
+Proof. exact: eq_iprod_set_. Qed.
+
+Lemma eq_isumR : forall (d : finType) (r : set d) F F',
+   dfequal r F F' -> \sum_(in r) F = \sum_(in r) F'.
+Proof. exact: eq_iprod_f_. Qed.
+
+Lemma eq_iprodL : forall (d : finType) (r r' : set d) F,
+  r =1 r' -> \prod_(in r) F = \prod_(in r') F.
+Proof. exact: eq_iprod_set_. Qed.
+
+Lemma eq_iprodR : forall (d : finType) (r : set d) F F',
+   dfequal r F F' -> \prod_(in r) F = \prod_(in r) F'.
+Proof. exact: eq_iprod_f_. Qed.
+
+(* Renormalizing notations that the pretty-printer doesn't recognize. *)
+
+Lemma isum_eta : forall (d : finType) r F,
+  \sum_(in r) F = \sum_(i : d | r i) F i.
+Proof. exact: iprod_eta_. Qed.
+
+Lemma isum_etaA : forall (d : finType) F, \sum_() F = \sum_(i : d) F i.
+Proof. exact: iprod_etaA_. Qed.
+ 
+Lemma iprod_eta : forall (d : finType) r F,
+  \prod_(in r) F = \prod_(i : d | r i) F i.
+Proof. exact: iprod_eta_. Qed.
+
+Lemma iprod_etaA : forall (d : finType) F, \prod_() F = \prod_(i : d) F i.
+Proof. exact: iprod_etaA_. Qed.
+
+Lemma isum_set0_eq : forall (d : finType) (F : d -> R), \sum_(in set0) F = 0.
+Proof. move=> *; exact: iprod_set0_eq_. Qed.
+
+Lemma isum_set0 : forall (d : finType) (r : set d) F,
+  r =1 set0 -> \sum_(in r) F = 0.
+Proof. by move=> *; apply: iprod_set0_. Qed.
+
+Lemma iprod_set0_eq : forall (d : finType) (F : d -> R), \prod_(in set0) F = 1.
+Proof. move=> *; exact: iprod_set0_eq_. Qed.
+
+Lemma iprod_set0 : forall (d : finType) (r : set d) F,
+  r =1 set0 -> \prod_(in r) F = 1.
+Proof. by move=> *; apply: iprod_set0_. Qed.
+
+Lemma isum_set1_eq : forall (d : finType) (i0 : d) F,
+  \sum_(in set1 i0) F = F i0.
+Proof. move=> *; exact: iprod_set1_eq_. Qed.
+
+Lemma isum_set1 : forall (d : finType) i0 (r : set d) F,
+  r =1 set1 i0 -> \sum_(in r) F = F i0.
+Proof. move=> *; exact: iprod_set1_. Qed.
+
+Lemma iprod_set1_eq : forall (d : finType) (i0 : d) F,
+  \prod_(in set1 i0) F = F i0.
+Proof. move=> *; exact: iprod_set1_eq_. Qed.
+
+Lemma iprod_set1 : forall (d : finType) i (r : set d) F,
+  r =1 set1 i -> \prod_(in r) F = F i.
+Proof. move=> *; exact: iprod_set1_. Qed.
+
+Lemma isumD1 : forall (d : finType) i0 (r : set d) F,
+  r i0 -> \sum_(in r) F = F i0 + \sum_(i | (i0 != i) && r i) F i.
+Proof. move=> *; exact: (@iprodD1_ R). Qed.
+
+Lemma isumID : forall (d : finType) c r F,
+  \sum_(in r) F = \sum_(i : d | r i && c i) F i + \sum_(i | r i && ~~ c i) F i.
+Proof. move=> *; exact: (@iprodID_ R). Qed.
+
+Lemma isum0_eq : forall (d : finType) (r : set d),
+  \sum_(in r) (fun _ => 0) = 0.
+Proof. move=> *; exact: iprod_f1_eq_. Qed.
+
+Lemma isum0 : forall (d : finType) (r : set d) F,
+  dfequal r F (fun _ => 0) -> \sum_(in r) F = 0.
+Proof. move=> *; exact: iprod_f1_. Qed.
+
+Lemma iprod1_eq : forall (d : finType) (r : set d),
+  \prod_(in r) (fun _ => 1) = 1.
+Proof. move=> *; exact: iprod_f1_eq_. Qed.
+
+Lemma iprod1 : forall (d : finType) (r : set d) F,
+  dfequal r F (fun _ => 1) -> \prod_(in r) F = 1.
+Proof. move=> *; exact: iprod_f1_. Qed.
+
+Lemma isum_plus : forall (d : finType) (r : set d) F1 F2,
+  \sum_(i in r) (F1 i + F2 i) = \sum_(i in r) F1 i + \sum_(i in r) F2 i.
+Proof. by move=> *; apply: (@iprod_mult_ R). Qed.
+
+Lemma isum_distrR : forall (d : finType) x (r : set d) F,
+  (\sum_(in r) F) * x = \sum_(i in r) F i * x.
+Proof.
+move=> *; rewrite -(@i_prod_distr_ R) //=;
+  [exact: plus_mult_r|exact: mult_r0l].
+Qed.
+
+Lemma isum_distrL : forall (d : finType) x (r : set d) F,
+  x * (\sum_(in r) F) = \sum_(i in r) x * F i.
+Proof.
+move=> *; rewrite -(@i_prod_distl_ R) //=;
+  [exact: plus_mult_l | exact: mult_r0r].
+Qed.
+
+Lemma isum_opp : forall (d : finType) (r : set d) F,
+  \sum_(i in r) - F i = - (\sum_(i in r) F i).
+Proof.
+move=> *; apply: (@iprod_distf_ R) => //=;
+  [exact: opp_r0 | exact: opp_plus_r].
+Qed.
+
+Lemma isum_id : forall (d : finType) (r : set d) x,
+  \sum_(i in r) x = (R_of_nat R (card r)) * x.
 Proof.
 move=> d r x; elim: {r}_.+1 {-2}r (ltnSn (card r)) => // n IHn r.
-case: (pickP r) => [i ri | r0 _]; 
-  last (rewrite iprod_set0_ //= ?eq_card0 ?mult_r0l//).
-rewrite (cardD1 i) (@iprodD1_ R _ i _ (fun _: d => x)) ri //=; 
-move/IHn=> -> {n IHn}; rewrite RofSnE.
+case: (pickP r) => [i ri | r0 _]; last by rewrite isum_set0 ?eq_card0 // mult_r0l.
+rewrite (cardD1 i) (@isumD1 _ i) ri //=; move/IHn=> -> {n IHn}; rewrite RofSnE.
 by rewrite plus_mult_r mult_r1l plus_rC.
 Qed.
 
+Lemma reindex_isum_onto : forall (d d' : finType) (h : d' -> d) h' r F,
+    dcancel r h' h -> 
+  \sum_(in r) F = \sum_(i | (h' (h i) == i) && r (h i)) F (h i).
+Proof. exact: (@reindex_iprod_onto_ R). Qed.
+
+Lemma reindex_isum : forall (d d' : finType) (h : d' -> d) r F,
+  ibijective r h -> \sum_(in r) F = \sum_(i | r (h i)) F (h i).
+Proof. exact: (@reindex_iprod_ R). Qed.
+
+Lemma partition_isum : forall (d d': finType) (pr : set d) p (r : set d') F,
+  (forall j, r j -> pr (p j)) ->
+  \sum_(in r) F = \sum_(i in pr) \sum_(j | r j && (p j == i)) F j.
+Proof. exact: (@partition_iprod_ R). Qed.
+
+Lemma pair_isum_dep : forall (d d': finType) r r' (F : d -> d' -> R),
+  \sum_(i in r) \sum_(in r' i) F i
+    = \sum_(u | r (fst u) && r' (fst u) (snd u)) F (fst u) (snd u).
+Proof. exact: (@pair_iprod_dep_ R). Qed.
+
+Lemma pair_isum : forall (d d': finType) r r' (F : d -> d' -> R),
+  \sum_(i in r) \sum_(in r') F i =
+    \sum_(u | r (fst u) && r' (snd u)) F (fst u) (snd u).
+Proof. exact: (@pair_iprod_ R). Qed.
+
+Lemma pair_isumA : forall (d d': finType) (F : d -> d' -> R),
+  \sum_(i) \sum_() F i = \sum_(u) F (fst u) (snd u).
+Proof. exact: (@pair_iprodA_ R). Qed.
+
+Lemma exchange_isum_dep :
+  forall (d d' : finType) (r : set d) (r' : d -> set d') (xr : set d') F,
+    (forall i j, r i -> r' i j -> xr j) ->
+  \sum_(i in r) \sum_(in r' i) F i =
+    \sum_(j in xr) \sum_(i | r i && r' i j) F i j.
+Proof. exact: (@exchange_iprod_dep_ R). Qed.
+
+Lemma exchange_isum : forall (d d': finType) r r' (F : d -> d' -> R),
+  \sum_(i in r) \sum_(in r') F i = \sum_(j in r') \sum_(i in r) F i j.
+Proof. exact: (@exchange_iprod_ R). Qed.
+
+End RingIndexedProd.
+
+(* Prop for commutative ring *)
 Variable cR :com_ring.
 
+Notation "'\sum_' ( 'in' r ) F" := (@iprod cR _ r F)
+   (at level 40, F at level 40,
+   format "'\sum_' ( 'in'  r )  F") : local_scope.
+Notation "'\prod_' ( 'in' r ) F" := (@iprod (r2m cR) _ r F)
+   (at level 35, F at level 35,
+   format "'\prod_' ( 'in'  r )  F") : local_scope.
+
+Notation "'\sum_' () F" := (@iprod cR _ (setA _) F)
+   (at level 40, F at level 40, format "'\sum_' ()  F") : local_scope.
+Notation "'\prod_' () F" := (@iprod (r2m cR) _ (setA _) F)
+   (at level 35, F at level 35, format "'\prod_' () F") : local_scope.
+
+Notation "'\sum_' ( i 'in' r ) E" := (@iprod cR _ r (fun i => E))
+   (at level 40, E at level 40, i at level 50,
+    format "'\sum_' ( i  'in'  r )  E") : local_scope.
+Notation "'\prod_' ( i 'in' r ) E" := (@iprod (r2m cR) _ r (fun i => E))
+   (at level 35, E at level 35, i at level 50,
+    format "'\prod_' ( i  'in'  r )  E") : local_scope.
+
+Notation "'\sum_' ( i : t 'in' r ) E" := (@iprod cR _ r (fun i : t => E))
+   (at level 40, E at level 40, i at level 50, only parsing) : local_scope.
+Notation "'\prod_' ( i : t 'in' r ) E" := (@iprod (r2m cR) _ r (fun i : t => E))
+   (at level 35, E at level 35, i at level 50, only parsing) : local_scope.
+
+Notation "'\sum_' ( i | P ) E" := (@iprod cR _ (fun i => P) (fun i => E))
+   (at level 40, E at level 40, i at level 50, 
+   format "'\sum_' ( i  |  P )  E") : local_scope.
+Notation "'\prod_' ( i | P ) E" := (@iprod (r2m cR) _ (fun i => P) (fun i => E))
+   (at level 35, E at level 35, i at level 50,
+   format "'\prod_' ( i  |  P )  E") : local_scope.
+
+Notation "'\sum_' ( i : t | P ) E" :=
+   (@iprod cR _ (fun i : t => P) (fun i : t => E))
+   (at level 40, E at level 40, i at level 50, only parsing) : local_scope.
+Notation "'\prod_' ( i : t | P ) E" :=
+   (@iprod (r2m cR) _ (fun i : t => P) (fun i : t => E))
+   (at level 35, E at level 35, i at level 50, only parsing) : local_scope.
+
+Notation "'\sum_' ( i ) E" := (@iprod cR _ (setA _) (fun i => E))
+   (at level 40, E at level 40, i at level 50,
+   format "'\sum_' ( i )  E") : local_scope.
+Notation "'\prod_' ( i ) E" := (@iprod (r2m cR) _ (setA _) (fun i => E))
+   (at level 35, E at level 35, i at level 50 ,
+   format "'\prod_' ( i )  E") : local_scope.
+
+Notation "'\sum_' ( i : t ) E" := (@iprod cR _ (setA _) (fun i : t => E))
+   (at level 40, E at level 40, i at level 50, only parsing) : local_scope.
+Notation "'\prod_' ( i : t ) E" := (@iprod (r2m cR) _ (setA _) (fun i : t => E))
+   (at level 35, E at level 35, i at level 50, only parsing) : local_scope.
+
+Notation "'\sum_' ( i < n ) E" := (@iprod cR _ (setA _) (fun i : I_(n) => E))
+   (at level 40, E at level 40, i, n at level 50, only parsing) : local_scope.
+Notation "'\prod_' ( i < n ) E" := (@iprod (r2m cR) _ (setA _) (fun i : I_(n) => E))
+   (at level 35, E at level 35, i, n at level 50, only parsing) : local_scope.
+Open Scope local_scope.
+
+Lemma iprodD1 : forall (d : finType) i0 (r : set d) F,
+  r i0 -> \prod_(in r) F = F i0 * \prod_(i | (i0 != i) && r i) F i.
+Proof. move=> *; exact: (@iprodD1_ (cr2am cR)). Qed.
+
+Lemma iprodID : forall (d : finType) c r F,
+  \prod_(in r) F =
+    \prod_(i : d | r i && c i) F i * \prod_(i | r i && ~~ c i) F i.
+Proof. move=> *; exact: (@iprodID_ (cr2am cR)). Qed.
+
+Lemma iprod_mult : forall (d : finType) (r : set d) F1 F2,
+  \prod_(i in r) (F1 i * F2 i) = \prod_(i in r) F1 i * \prod_(i in r) F2 i.
+Proof. exact: (@iprod_mult_ (cr2am cR)). Qed.
+
 Lemma iprod_id :  forall (d : finType) (r : set d) (x : cR),
-  @iprod (r2m cR) d r (fun _ : d=> x) = x ^ card r.
+  \prod_(i in r) x = x ^ card r.
 Proof.
 move=> d r x; elim: {r}_.+1 {-2}r (ltnSn (card r)) => // n IHn r.
-case: (pickP r) => [i ri | r0 _]; last by (rewrite iprod_set0_ ?eq_card0).
-rewrite (cardD1 i) (@iprodD1_ (cr2am cR) _ i _ (fun _: d => x)) ri //=.
+case: (pickP r) => [i ri | r0 _]; last by (rewrite iprod_set0 ?eq_card0).
+rewrite (cardD1 i) (@iprodD1 _ i _ (fun _: d => x)) ri //=.
 by move/IHn=> -> {n IHn}; rewrite RexpSnE mult_rC.
 Qed.
 
 Lemma iprod_opp : forall (d : finType) (r : set d) F,
-  @iprod (r2m cR) _ r (fun i => - (F i)) =
-  (-1) ^ card r * @iprod (r2m cR) _ r (fun i=> F i).
+  \prod_(i in r) - F i = (-1) ^ card r * \prod_(i in r) F i.
 Proof.
 move=> d r F; rewrite -iprod_id -(@iprod_mult_ (cr2am cR)).
 by apply: eq_iprod_f_=> i _//; rewrite -mult_opp_rl mult_r1l.
 Qed.
 
+Lemma reindex_iprod_onto : forall (d d' : finType) (h : d' -> d) h' r F,
+    dcancel r h' h -> 
+  \prod_(in r) F = \prod_(i | (h' (h i) == i) && r (h i)) F (h i).
+Proof. exact: (@reindex_iprod_onto_ (cr2am cR)). Qed.
 
-End RingIndexedProd.
+Lemma reindex_iprod : forall (d d' : finType) (h : d' -> d) r F,
+  ibijective r h -> \prod_(in r) F = \prod_(i | r (h i)) F (h i).
+Proof. exact: (@reindex_iprod_ (cr2am cR)). Qed.
+
+Lemma distr_iprod_isum_dep :
+  forall (d d': finType) j0 (r : set d) (r' : d -> set d') F,
+  \prod_(i in r) (\sum_(in r' i) F i) =
+     \sum_(f in pfamily j0 r r') \prod_(i in r) F i (fun_of_fgraph f i).
+Proof.
+move=> d d' j0 r r' F; pose df := fgraphType d d'.
+elim: {r}_.+1 {-2}r (ltnSn (card r)) => // m IHm r.
+case: (pickP r) => [i1 ri1 | r0 _]; last first.
+  rewrite (@isum_set1 _ _ (fgraph_of_fun (fun _ => j0))) ?iprod_set0 // => f.
+  apply/familyP/eqP=> [Df|<-{f} i]; last by rewrite r0 g2f set11.
+  by apply/fgraphP=> i; move/(_ i): Df; rewrite r0 g2f; move/eqP.
+rewrite ltnS (cardD1 i1) ri1 (@iprodD1 _ i1) /setD1 //; move/IHm=> {m IHm} IH.
+rewrite isum_distrR 
+  (@partition_isum _ _ _ (r' i1) (fun f : df => f i1)); last first.
+  by move=> f; move/familyP; move/(_ i1); rewrite ri1.
+apply: eq_isum => // j1 r'j1; rewrite {}IH isum_distrL.
+pose seti1 j (f : df) := fgraph_of_fun (fun i => if i1 == i then j else f i).
+symmetry.
+rewrite (@reindex_isum_onto _ _ _ (seti1 j1) (seti1 j0))=> [|f]; last first.
+  case/andP=> _; move/eqP=> fi1; apply/fgraphP=> i.
+  by rewrite !g2f; case: eqP => // <-.
+apply: eq_isum => [f | f _].
+  rewrite g2f !set11 andbT; apply/andP/familyP=> [|r'f]; [case | split].
+  - move/eqP=> fi1; move/familyP=> r'f j; move/(_ j): r'f; rewrite g2f.
+    by case: eqP => //= <- _; rewrite -fi1 !g2f !set11.
+  - apply/eqP; apply/fgraphP=> j; move/(_ j): r'f; rewrite !g2f.
+    by case: eqP=> //= <-; move/eqP.
+  apply/familyP=> j; move/(_ j): r'f; rewrite !g2f.
+  by case: eqP=> //= <- _; rewrite ri1.
+rewrite (@iprodD1 _ i1) // g2f set11; congr (_ * _); apply: eq_iprodR => i.
+by rewrite g2f; case: eqP.
+Qed.
+
+Lemma distr_iprod_isum : forall (d d' : finType) j0 r r' (F : d -> d' -> cR),
+  \prod_(i in r) (\sum_(in r') F i) =
+     \sum_(f in pfunspace j0 r r') \prod_(i in r) F i (fun_of_fgraph f i).
+Proof. move=> *; exact: distr_iprod_isum_dep. Qed.
+
+Lemma distr_iprodA_isum_dep : forall (d d': finType) (r' : d -> set d') F,
+  \prod_(i) (\sum_(in r' i) F i) =
+  \sum_(f in family r') \prod_(i) F i (fun_of_fgraph f i).
+Proof.
+move=> d d' r' F; case: (pickP (setA d')) => [j0 _ | d'0].
+  exact: (distr_iprod_isum_dep j0).
+have d's0: (_ : set d') =1 set0 by move=> ? j; have:= d'0 j.
+case: (pickP (setA d)) => [i0 _ | d0].
+  rewrite (@iprodD1 _ i0) // isum_set0 // mult_r0l isum_set0 // => f.
+  by apply/familyP; move/(_ i0); rewrite d's0.
+have f0: d -> d' by move=> i; have:= d0 i.
+rewrite iprod_set0 // (@isum_set1 _ _ (fgraph_of_fun f0)) ?iprod_set0 // => f.
+apply/familyP/eqP=> _; last by move=> i; have:= d0 i.
+by apply/fgraphP=> j; have:= d0 j.
+Qed.
+
+Lemma distr_iprodA_isum : forall (d d': finType) (r' : set d') F,
+  \prod_(i : d) (\sum_(in r') F i) =
+    \sum_(f in tfunspace r') \prod_(i) F i (fun_of_fgraph f i).
+Proof. move=> *; exact: distr_iprodA_isum_dep. Qed.
+
+Lemma distr_iprodA_isumA : forall (d d': finType) F,
+  \prod_(i) (\sum_() F i) = \sum_(f : fgraphType d d') \prod_(i) F i (f i).
+Proof.
+move=> *; rewrite distr_iprodA_isum; apply: eq_isumL => f; exact/tfunspaceP.
+Qed.
+
+End ComRingIndexedProd.
+
 
 Unset Implicit Arguments.
 

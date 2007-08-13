@@ -96,7 +96,7 @@ Lemma iprod_eta_ : forall r (f : d->R),
   iprod r f = (iprod (fun i : d => r i) (fun i : d => f i)).
 Proof. move=> *; exact: eq_iprod_. Qed.
 
-Lemma iprod_etaA : forall (f : d->R),
+Lemma iprod_etaA_ : forall (f : d->R),
  iprod (setA d) f = (iprod (setA d) (fun i : d => f i)).
 Proof. move=> *; exact: eq_iprod_. Qed.
 
