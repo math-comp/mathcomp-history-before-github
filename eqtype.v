@@ -415,7 +415,6 @@ Definition icancel A B (b : set B) (f : A -> B) f' :=
 Definition dbijective A B (a : set A) (f : A -> B) :=
   exists2 f', dcancel a f f' & icancel a f' f.
 
-(* Used for the assumption of reindex_sum below. *)
 Definition ibijective A B (b : set B) (f : A -> B) :=
   exists2 f', icancel b f f' & dcancel b f' f.
 

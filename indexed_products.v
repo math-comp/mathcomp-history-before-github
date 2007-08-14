@@ -358,7 +358,7 @@ move=> d d' r r' F; rewrite (exchange_iprod_dep_ r') //;
 by apply: eq_iprod_set_ => j; rewrite Hi andbT.
 Qed.
 
-Lemma i_prod_image_ :
+Lemma iprod_image_ :
   forall (d:finType) (a:set d) (g:d->d) (f : d->R), dinjective a g ->
    iprod (image g a) f = iprod a (fun x => f (g x)).
 Proof.
@@ -391,7 +391,7 @@ move => x' y' Hx' Hy' Heq; move/andP:Hx'=>[_ Hx']; move/andP:Hy'=>[_ Hy'].
 by apply Hg => //.
 Qed.
 
-Lemma i_prod_image2_ :
+Lemma iprod_image2_ :
   forall (d d':finType) (a:set d) (g:d->d') f, dinjective a g ->
    iprod (image g a) f = iprod a (fun x => f (g x)) :> R.
 Proof.
@@ -434,7 +434,7 @@ move => d d' a a' f g Hinj.
 have Hinj' : dinjective (setI a (preimage f a')) f.
   by move => x y Hx Hy; case/andP: Hx => Hx _; case/andP: Hy => Hy _;
     apply:Hinj.
-rewrite -(@i_prod_image2_ d d' (setI a (preimage f a')) f g) // -iprod_setU_.
+rewrite -(@iprod_image2_ d d' (setI a (preimage f a')) f g) // -iprod_setU_.
   apply: eq_iprod_set_; move => x; rewrite /setU /setD.
   case A: (image f a x)=>//=; first (rewrite orbF; case/imageP: A => y B C).
     apply/idP/imageP; first by move=>D; exists y=>//; 
@@ -505,169 +505,71 @@ Qed.
 
 End iprod_dist.
 
+Section iprod_ordinal.
 
-(*
-Lemma ltn_addr : forall m n p, m < n -> m < n + p.
-Proof.
-move=> m n p H.
-rewrite -(ltn_add2r p _ _ ) in H.
-apply: (@leq_trans (m + p).+1 _ _)=>//.
-apply: leq_addr.
-Qed.
+Variable (R : ab_monoid).
 
-Lemma ltn_addl : forall m n p, m < n -> m < p + n.
-Proof.
-move=> m n p H.
-rewrite -(ltn_add2l p _ _ ) in H.
-apply: (@leq_trans (p + m).+1 _ _)=>//.
-apply: leq_addl.
-Qed.
-
-
-Definition inj_ord (m n :nat) : (ordinal m) -> (ordinal (m+n)) := 
-  fun i => let: (Ordinal x Hx) := i in Ordinal (@ltn_addr x m n Hx).
-
-Definition inj_ord_add (m n : nat) : (ordinal m) -> (ordinal (m+n)).
-move=> m n [i Hi].
-exists (i + n).
-by rewrite ltn_add2r.
-Defined.
-
-Lemma inj_inj_ord : forall m n, injective (@inj_ord m n).
-Proof.
-move=> m n.
-case=>//[i Hi] [i' Hi'] //= H.
-move/ord_eqP : H => //= H.
-by apply/ord_eqP => //=.
-Qed.
-
-Lemma inj_inj_ord_add : forall m n, injective (@inj_ord_add m n).
-Proof.
-move=> m n.
-case=>//[i Hi] [i' Hi'] //= H.
-move/ord_eqP : H => //= H.
-apply/ord_eqP => //=.
-by rewrite eqn_addr in H.
-Qed.
-
-Lemma inj_ord_image : forall m n i,
-  (image (@inj_ord m n) (setA (ordinal_finType m)) ) i = (i < m).
-move=> m n i.
-case H1:( i < m).
-  move/idP: H1 => H1.
-  pose ii:= Ordinal H1.
-  have H2: (@inj_ord m n) ii = i by apply: ordinal_inj => //.
-  rewrite -H2 image_f //; apply: inj_inj_ord.
-apply/idP => H2.
-move/imageP: H2 => H2.
-elim: H2 => ii _ H3.
-move: (ordinal_ltn ii) => H4.
-have H5: (@inj_ord m n ii) = ii :>nat.
-  clear H3 H4; case: ii.
-  rewrite / inj_ord //=.
-rewrite H3 H5 in H1.
-by rewrite H4 in H1.
-Qed.
-
-Lemma inj_ord_add_image : forall m n i,
-  (image (@inj_ord_add m n) (setA (ordinal_finType m)) ) i = (n <= i).
-move=> m n i.
-case H1:( n <= i).
-  move/idP: H1 => H1.
-  have H2: i - n < m.
-    case: i H1=> //= [i Hi H1].
-    rewrite addnC in Hi.
-    rewrite -leq_sub_add in Hi.
-    apply: (@leq_trans (S i - n) _ _) => //.
-    apply: ltn_sub2r => //.
-  pose ii:= Ordinal H2.
-  have H3: (@inj_ord_add m n) ii = i .
-    by rewrite //=; apply: ordinal_inj => //=; rewrite addnC; apply: leq_add_sub.
-  rewrite -H3 image_f //; apply: inj_inj_ord_add.
-apply/idP => H2.
-move/imageP: H2 => H2.
-elim: H2 => ii _ H3.
-move: (ordinal_ltn ii) => H4.
-have H5: (@inj_ord_add m n ii) = ii + n :>nat.
-  clear H3 H4; case: ii.
-  rewrite / inj_ord //=.
-rewrite H3 H5 //= in H1.
-move: (leq_addl ii n) => H6.
-by rewrite H6 in H1.
-Qed.
-
-Lemma ltn_addn1 : forall n, n<n+1.
-Proof. move=> n; rewrite addn1; apply: ltnSn. Qed.
-
-Lemma iprod_rec : 
-  forall n (f : ordinal (n + 1) -> R), iprod (setA (ordinal_finType (n + 1))) f =
-    iprod (setA (ordinal_finType n)) (fun x => f ((@inj_ord n 1) x)) * (f (Ordinal (ltn_addn1 n))).
+Lemma iprod_ord_rec_r : forall n (f : I_(n.+1) -> R),
+   iprod (setA I_(n.+1)) f =
+   iprod (setA I_(n)) (fun x => f (lshiftSn x)) * (f (Ordinal (ltnSn n))).
 Proof.
 move=> n f.
-move: (@inj_dinj _ _ (setA (ordinal_finType n)) (@inj_ord n 1) (@inj_inj_ord n 1) ) => H1.
-move: (@iprod_injection (ordinal_finType n) (ordinal_finType (n+1)) 
-  (setA (ordinal_finType n)) (setA (ordinal_finType (n + 1))) (@inj_ord n 1) f H1) => H2; clear H1.
-rewrite H2; congr mulR.
-rewrite -iprod_set1.
-apply: eq_iprod_set.
-move=> x.
-rewrite/ setD //.
-rewrite (@inj_ord_image n 1 x) / setA andbT.
-clear H2.
-case: x =>//= x Hx.
-symmetry.
-case H1:(x<n) => //=; move/idP: H1 => H1.
-  apply/eqP=> H2.
-  move/ord_eqP: H2 => //=; move/eqP => H2.  
-  rewrite H2 in H1.
-  move: (ltnn x) => H4.
-  by rewrite H1 in H4.
-apply/eqP.
-apply: ordinal_inj => //=.
-move: (leqNgt n x) => H2.
-move/negP: H1 => H1.
-rewrite H1 in H2; clear H1.
-move/idP: H2 => H2.
-apply/eqP.
-by rewrite eqn_leq H2 andTb -ltnS -(addn1 n).
+rewrite (iprodID_ (fun i :I_(n.+1) => i <n) (setA I_(n.+1)) f).
+congr (_ * _); last first.
+  apply: iprod_set1_ => //= i; rewrite -leqNgt.
+  case H:(n<=i);symmetry; apply/eqP.
+    move/idP: H => H; case: i H => //= i i0 H.
+    suffices: (n = i).
+      move=> ni; move: i0; rewrite -ni => i0.
+      by congr Ordinal; apply: bool_irrelevance.
+    by apply/eqP; rewrite eqn_leq H -ltnS.
+  rewrite leqNgt in H; move/negbEF: H => H He.
+  suffices: (n=i); first (by move=> ni; clear He; rewrite -ni ltnn in H).
+  clear H; case: i He=> //= i i0 He; by case: He.
+set r:= (fun i : I_(n.+1) => setA I_(n.+1) i && (i < n)).
+suffices: ((setA I_(n)) =1 (fun i => r (lshiftSn i))).
+  move=> H; rewrite (eq_iprod_set_ _ H).
+  rewrite -(iprod_image2_ (g:=(@lshiftSn n)) f);
+    last (move=> x y _ _; case=>//=; apply: ordinal_inj).
+  apply: eq_iprod_; last (by move=> i _ //).
+  move=> i; case Hr:(r i); symmetry; apply/imageP.
+    have Hi: i < n by rewrite / r //= in Hr.
+    clear Hr; exists (Ordinal Hi) => //=.
+    case: i Hi => i i0 Hi //=; rewrite / lshiftSn //=; congr Ordinal.
+    by apply: bool_irrelevance.
+  by move=> Hf; elim: Hf=> x Hx Hxi; rewrite -Hxi in Hx; rewrite Hx in Hr.
+move=> i; rewrite / setA; symmetry; apply/eqP.
+by case: i =>//= i Hi; apply/eqP; rewrite eqn_sub0.
 Qed.
 
-Lemma ltn_addn0 : forall n, 0<n+1.
-Proof. move=> n; rewrite addn1; apply: ltn0Sn. Qed.
-
-Lemma iprod_rec_inv : 
-  forall n (f : ordinal (n + 1) -> R), iprod (setA (ordinal_finType (n + 1))) f =
-     (f (Ordinal (ltn_addn0 n))) * iprod (setA (ordinal_finType n)) (fun x => f ((@inj_ord_add n 1) x)).
+Lemma iprod_ord_rec_l : forall n (f : I_(n.+1) -> R),
+  iprod (setA I_(n.+1)) f = 
+  f (Ordinal (ltn0Sn n)) * iprod (setA I_(n)) (fun x => f (rshiftSn x)).
 Proof.
 move=> n f.
-move: (@inj_dinj _ _ (setA (ordinal_finType n)) (@inj_ord_add n 1) (@inj_inj_ord_add n 1) ) => H1.
-move: (@iprod_injection (ordinal_finType n) (ordinal_finType (n+1)) 
-  (setA (ordinal_finType n)) (setA (ordinal_finType (n + 1))) (@inj_ord_add n 1) f H1) => H2; clear H1.
-rewrite H2 mulC; congr mulR.
-rewrite -iprod_set1.
-apply: eq_iprod_set.
-move=> x.
-rewrite/ setD //.
-rewrite (@inj_ord_add_image n 1 x) / setA andbT.
-clear H2.
-case: x =>//= x Hx.
-symmetry.
-case H1:(0<x) => //=; move/idP: H1 => H1.
-  apply/eqP=> H2.
-  move/ord_eqP: H2 => //=; move/eqP => H2.  
-  rewrite H2 in H1.
-  move: (ltnn x) => H4.
-  by rewrite H1 in H4.
-apply/eqP.
-apply: ordinal_inj => //=.
-move: (leqNgt x 0) => H2.
-move/negP: H1 => H1.
-rewrite H1 in H2; clear H1.
-move/idP: H2 => H2.
-apply/eqP.
-by rewrite eq_sym -leqn0.
+rewrite (iprodID_ (fun i :I_(n.+1) => 0==i) (setA I_(n.+1)) f).
+congr (_ * _).
+apply: iprod_set1_ => //= i.
+(* when write (i != 0) the coercio form ordinal to nat don't work !!*)
+set r:= (fun i : I_(n.+1) => setA I_(n.+1) i && (0 != i)).
+suffices: ((setA I_(n)) =1 (fun i => r (rshiftSn i))).
+  move=> H; rewrite (eq_iprod_set_ _ H).
+  rewrite -(iprod_image2_ (g:=(@rshiftSn n)) f);
+    last (move=> x y _ _; case=>//=; apply: ordinal_inj).
+  apply: eq_iprod_; last (by move=> i _ //).
+  move=> i; case Hr:(r i); symmetry; apply/imageP.
+    have Hi: i.-1 < n.
+      rewrite / r //= in Hr; move/idP: Hr => Hr; rewrite eq_sym -lt0n in Hr.
+      apply: (@leq_trans i); last (case: i Hr=> //=).
+      by rewrite -(@ltnSpred i 0)//.
+    exists (Ordinal Hi) =>//=.
+    case: i Hi Hr => //= i i0 Hi Hr; rewrite / rshiftSn. 
+    apply: ordinal_inj => //=; rewrite / r //= in Hr.
+    by symmetry; apply: (@ltnSpred i 0); rewrite ltn_neqAle leq0n andbT.
+  by move=> Hf; elim: Hf=> x Hx Hxi; rewrite -Hxi in Hx; rewrite Hx in Hr.
+by move=> i; rewrite / setA; symmetry; apply/eqP; case: i.
 Qed.
-*)
 
+End iprod_ordinal.
 
 End IndexedOperation.
