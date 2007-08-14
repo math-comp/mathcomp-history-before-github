@@ -1151,6 +1151,18 @@ Qed.
 
 (* Shifting and splitting indices, for cutting and pasting arrays *)
 
+Lemma lshiftSn_subproof : forall n (i : I_(n)), i < n.+1.
+Proof.
+by move=> n i; apply: (@ltn_trans n) =>//; rewrite ordinal_ltn.
+Qed.
+
+Definition lshiftSn n (i : I_(n)) := Ordinal (lshiftSn_subproof i).
+
+Lemma rshiftSn_subproof : forall n (i : I_(n)), i.+1 < n.+1.
+Proof. by move=> n [i Hi]. Qed.
+
+Definition rshiftSn n (i : I_(n)) := Ordinal (rshiftSn_subproof i).
+
 Lemma lshift_subproof : forall m n (i : I_(m)), i < m + n.
 Proof. move=> m n i; apply: (@leq_trans m _ _); [by case i| exact: leq_addr]. Qed.
 
