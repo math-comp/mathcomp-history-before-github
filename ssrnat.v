@@ -402,6 +402,8 @@ Proof. move=> p m n; move/ltn_subS->; exact: (@leq_sub2r (S p)). Qed.
 Lemma ltn_sub2l : forall p m n, m < p -> m < n -> p - n < p - m.
 Proof. move=> p m n; move/ltn_subS->; exact: leq_sub2l. Qed.
 
+Definition maxn (m n:nat) := if (m < n) then n else m.
+
 (* Multiplication. *)
 
 Definition muln m n := iter m (addn n) 0.

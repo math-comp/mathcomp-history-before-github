@@ -88,7 +88,8 @@ Notation "'M_' ( n )" := (matrix n n)
   (at level 9, m, n at level 50, format "'M_' ( n )") : local_scope.
 
 
-Definition mval (m n: nat) (x : M_(m,n)) := match x with Matrix g => g end.
+Definition mval (m n: nat) (x : M_(m,n)) :=
+  match x with Matrix g => g end.
 
 Lemma can_mval : forall m n, cancel (@mval m n) (@Matrix m n).
 Proof. move => m n; by rewrite /cancel; case => /=. Qed.
@@ -103,6 +104,12 @@ Lemma Matrix_inj : forall m n, injective (@Matrix m n).
 Proof. move => m n; exact: can_inj (@can_Matrix m n). Qed.
 
 Canonical Structure matrix_eqType (m n :nat) := EqType (can_eq (@can_mval m n)).
+
+Definition fmval (m n: nat) (x : M_(m,n)) := fval (mval x).
+
+Definition mproof : forall (m n : nat) (M : M_(m,n)),
+  size (fmval M) = (card (setA (prod_finType I_(m) I_(n)))).
+Proof. by move=> m n M;rewrite fproof. Qed.
 
 Definition matrix_of_fun := locked (fun (m n :nat) (f : I_(m) -> I_(n) -> R) =>
   Matrix (fgraph_of_fun (fun x : (prod_finType I_(m) I_(n)) => (f (fst x) (snd x)) ))).
@@ -453,7 +460,7 @@ Section MatrixRing.
 Variable n :nat.
 Hypothesis (Hn: 0 < n).
 
-Definition matrixRings : ring.
+Definition matrix_ring : ring.
 exists (matrix_eqType n n) \0m_(n) \1m_(n)
   (@matrix_scale n n (-1)) (@matrix_plus n n) (@matrix_mul n n n).
 split=>//=; [ | | apply: matrix_distrL | apply: matrix_distrR | ].

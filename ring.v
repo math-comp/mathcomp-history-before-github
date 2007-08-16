@@ -257,7 +257,9 @@ Variable (R : ring).
 
 Definition RofSn n := iter n (fun x : R => x + 1) 1.
 
-Coercion R_of_nat n := if n is S n' then RofSn n' else 0.
+Definition R_of_nat n := if n is S n' then RofSn n' else 0.
+
+Coercion Local R_of_nat : nat >-> EqType.sort.
 
 Notation "'n2r'" := (R_of_nat) (at level 0) : ring_scope.
 

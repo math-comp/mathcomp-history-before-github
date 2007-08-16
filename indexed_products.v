@@ -573,3 +573,5 @@ Qed.
 End iprod_ordinal.
 
 End IndexedOperation.
+
+Unset Implicit Arguments.

@@ -26,6 +26,9 @@ signperm.v
 indexed_products.v
 determinant.v	
 algebraic_struct.v
+ring.v
+polynomials.v
+
 
 COQC = $(COQBIN)ssrcoq
 COQFLAGS = "-q $(OPT) $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -compile"
