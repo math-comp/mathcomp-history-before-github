@@ -1,0 +1,190 @@
+Require Import ssreflect ssrbool funs eqtype ssrnat seq fintype tuple
+ indexed_products div groups determinant ring polynomials.
+
+Set Implicit Arguments.
+Unset Strict Implicit.
+Import Prenex Implicits.
+
+Open Scope ring_scope.
+(* Delimit Scope local_scope with loc.
+Open Scope local_scope. *)
+
+Axiom ok: forall p, p.
+
+Lemma coef_foldr : forall (R : ring) (n :nat) (f: nat -> R) k,
+  k<n ->
+  coef (foldr (fun k p => horner p (f k)) (@poly0 R) (iota 0 n)) k =
+  f k.
+Proof.
+have Hi : forall n, (maps S (iota 0 n)) = iota 1 n.
+  move=>n ; apply: (eq_from_sub (x0:=0%N));
+    first by rewrite size_maps !size_iota.
+  rewrite size_maps size_iota => i Hi.
+  rewrite (sub_maps 0%N) ?size_iota//.
+  rewrite !sub_iota//.
+move=> R n f k Hk.
+elim: n k f Hk=>//= n Hn k f Hk.
+rewrite -Hi.
+rewrite foldr_maps.
+case: k Hk =>//= [_ | k Hk].
+  by rewrite coef_horner_0.
+rewrite coef_horner_S.
+rewrite Hn//.
+Qed.
+
+Lemma coef_foldr_0 : forall (R : ring) (n :nat) (f: nat -> R) k,
+  n<=k ->
+  coef (foldr (fun k p => horner p (f k)) (@poly0 R) (iota 0 n)) k = 0.
+Proof.
+have Hi : forall n, (maps S (iota 0 n)) = iota 1 n.
+  move=>n ; apply: (eq_from_sub (x0:=0%N));
+    first by rewrite size_maps !size_iota.
+  rewrite size_maps size_iota => i Hi.
+  rewrite (sub_maps 0%N) ?size_iota//.
+  rewrite !sub_iota//.
+move=> R n f k Hk.
+elim: n k f Hk=>//= [k f Hk|n Hn k f Hk]; first by rewrite coef0.
+rewrite -Hi.
+rewrite foldr_maps.
+case: k Hk =>//= [ k Hk].
+rewrite coef_horner_S.
+rewrite Hn//.
+Qed.
+
+Definition maxn_seq d (s : seq d) (f : d -> nat) : nat :=
+  foldr (fun (x : d) x0 => maxn x0 (f x)) 0%N s.
+
+Lemma maxn_seqP : forall d (s : seq d) (f : d -> nat) x,
+  s x -> (f x) <= maxn_seq s f.
+Proof.
+move=> d; elim=>// x s Hr f x0 H; rewrite / maxn_seq //=.
+case Hc1:(x0==x).
+  move/eqP: Hc1=>->//=; rewrite / maxn.
+  by case Hc2:((foldr _ _ s) < f x)=>//; rewrite leqNgt Hc2.
+apply: (@leq_trans (maxn_seq s f)).
+  by apply: Hr; rewrite //= / setU1 eq_sym Hc1 orFb in H; clear Hc1.
+rewrite / maxn_seq / maxn.
+case Hc2:((foldr _ _ s) < f x)=>//.
+by apply: ltnW.
+Qed.
+
+Section Cayley.
+Variable R : com_ring.
+Variable (n : nat).
+Hypothesis (Hn : 0 < n).
+
+Notation "\P[x]" := (poly_com_ring R).
+Notation "\M_(n)" := (matrix_ring R Hn).
+
+Notation "\Mp_(n)" := (matrix_ring \P[x] Hn).
+Notation "\Pm[x]" := (poly_ring \M_(n)).
+
+Lemma m2f_iprod : forall k (f : I_(k) -> \M_(n)) i j,
+  (iprod (R:=\M_(n)) (setA I_(k)) f) i j =
+  iprod (R:=R) (setA I_(k)) (fun k => (f k) i j).
+Proof.
+elim=>//[f i j| k Hk f i j].
+  rewrite !(iprod_set0_) /= ?m2f //; case=>//=.
+rewrite (@iprod_ord_rec_r R) (@iprod_ord_rec_r \M_(n)) m2f; congr (_ + _).
+by rewrite (Hk (fun x => f (lshiftSn x))); apply (@eq_iprod_f_ R)=> x Hx.
+Qed.
+
+Lemma coef_iprod : forall m (f : I_(m) -> \P[x]) k,
+  coef (iprod (R:=\P[x]) (setA I_(m)) f) k =
+  iprod (R:=R) (setA I_(m)) (fun i => coef (f i) k).
+Proof.
+elim=>//[f k| m Hm f k].
+  rewrite !(iprod_set0_) /= ?coef0 //; case=>//=.
+rewrite (@iprod_ord_rec_r R) (@iprod_ord_rec_r \P[x]) coef_add_poly;
+  congr (_ + _).
+by rewrite (Hm (fun x => f (lshiftSn x))); apply (@eq_iprod_f_ R)=> x Hx.
+Qed.
+
+Section DegMatrixOfPoly.
+
+Definition deg_mx_of_poly (M : \Mp_(n)) : nat :=
+  maxn_seq (prod_enum I_(n) I_(n))
+           (fun x => (deg_poly (M (fst x) (snd x)))).
+
+Lemma deg_mx_of_polyP: forall (M : \Mp_(n)) i j, 
+  deg_poly (M i j) <= deg_mx_of_poly M.
+Proof.
+move=>M i j.
+rewrite / deg_mx_of_poly.
+apply: (@maxn_seqP _ (prod_enum I_(n) I_(n))
+           (fun x => (deg_poly (M (fst x) (snd x)))) (i,j)).
+by rewrite mem_enum / setA.
+Qed.
+
+End DegMatrixOfPoly.
+
+Definition phi (M : \Mp_(n)) : \Pm[x] :=
+  foldr (fun k p => 
+             (@horner \M_(n) p (matrix_of_fun (fun i j=> coef (M i j) k))))
+  (@poly0 \M_(n)) (iota 0 (deg_mx_of_poly M)).
+
+Lemma phi_coef : forall (M : \Mp_(n)) i j k,
+  coef (M i j) k = (coef (phi M) k) i j.
+Proof.
+move=> M i j k.
+rewrite / phi.
+case Hc: (k < deg_mx_of_poly M); move/idP: Hc=>Hc.
+move: (@coef_foldr \M_(n) _ 
+        (fun k => (matrix_of_fun (fun i0 j0 => (coef (M i0 j0) k)))) k Hc).
+move=> H1.
+move/matrix_eqP: H1; case=>//= ->.
+by rewrite m2f.
+move/idP: Hc => Hc.
+rewrite -leqNgt in Hc.
+move: (@coef_foldr_0 \M_(n) _ 
+        (fun k => (matrix_of_fun (fun i0 j0 => (coef (M i0 j0) k)))) k Hc).
+move=>H1; rewrite H1 //= m2f.
+apply: deg_coef.
+by apply: (leq_trans (deg_mx_of_polyP M i j)).
+Qed.
+
+(* --- phi is ring morphism --- *)
+Lemma phi_plus : forall (M1 M2 : \Mp_(n)),
+  phi (M1 + M2) = (phi M1) + (phi M2).
+Proof.
+move=> M1 M2.
+apply/coef_eqP => k.
+apply/matrix_eqP; apply: EqMatrix=> i j.
+by rewrite -!phi_coef coef_add_poly //= !m2f -!phi_coef coef_add_poly.
+Qed.
+
+Lemma phi_mult : forall (M1 M2 : \Mp_(n)),
+  phi (M1 * M2) = (phi M1) * (phi M2).
+Proof.
+move=> M1 M2.
+apply/coef_eqP => k.
+apply/matrix_eqP; apply: EqMatrix=> i j.
+rewrite -!phi_coef !m2f !coef_mult_poly m2f_iprod coef_iprod.
+have H1: dfequal (setA I_(n))
+  (fun i0 => coef (M1 i i0 * M2 i0 j) k)
+  (fun i0 => (iprod (R:=R) (setA I_(k.+1))
+        (fun k0 => (coef (M1 i i0) k0 * coef (M2 i0 j) (k - k0))))).
+  move=> i0 _ //=; rewrite -coef_mult_poly//=.
+rewrite (eq_iprod_f_ (R:=R) H1) (exchange_iprod_ (R:=R)); clear H1.
+apply: (eq_iprod_f_ (R:=R))=> i0 _//; rewrite m2f.
+apply: (eq_iprod_f_ (R:=R))=> i1 _//.
+by rewrite -!phi_coef.
+Qed.
+
+Lemma phi_one : phi 1 = 1.
+Proof.
+apply/coef_eqP => k.
+apply/matrix_eqP; apply: EqMatrix=> i j.
+rewrite -!phi_coef.
+case: k=>// [|k].
+  rewrite coef_poly1_0 !m2f//=.
+  by case Hij: (i==j); rewrite ?coef_poly1_0 ?coef0.
+rewrite coef_poly1_S !m2f//=.
+by case Hij: (i==j); rewrite ?coef_poly1_S ?coef0.
+Qed.
+
+(* --- *)
+
+
+
+End Cayley.
