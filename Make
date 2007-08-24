@@ -28,6 +28,7 @@ determinant.v
 algebraic_struct.v
 ring.v
 polynomials.v
+cayley.v
 
 
 COQC = $(COQBIN)ssrcoq

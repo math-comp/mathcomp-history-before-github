@@ -407,16 +407,19 @@ Definition mult_poly p1 p2 :=
   let: Poly _ np2:= p2 in
   (mult_poly_rec np1 np2).
 
-Lemma normal1 : normal (Seq 1).
-Proof. apply/eqP=>//=; exact: one_diff_0. Qed.
+Definition poly1 := const_poly 1.
 
-Definition poly1 := locked Poly (Seq 1) normal1.
+(* Some useful constant *)
+
+Definition polyX := locked horner poly1 0.
+Definition polyX_a a := locked horner poly1 (-a).
+(* --- *)
 
 Lemma coef_poly1_0: coef poly1 0 = 1.
-Proof. unlock poly1 => //. Qed.
+Proof. by rewrite coef_const_0. Qed.
 
 Lemma coef_poly1_S: forall i, coef poly1 (S i) = 0.
-Proof. by unlock poly1 => //= i; rewrite sub_seq0. Qed.
+Proof. by move=> i; rewrite coef_const_S. Qed.
 
 Lemma coef_mult_poly p1 p2 i :
   coef (mult_poly p1 p2) i = 
@@ -451,8 +454,6 @@ rewrite plus_rC -plus_rA plus_rC // ; congr (_ + _).
   rewrite subSS leq_subS //; last (case: x =>//).
 by congr (_ * _) => //=; rewrite subnn.
 Qed.
-
-Definition polyX := locked horner poly1 0.
 
 Lemma poly_mult1P : forall p, mult_poly poly1 p = p.
 Proof.
@@ -689,7 +690,11 @@ by rewrite !coef_add_poly !coef_opp_poly plus_opp_rl coef0.
 Qed.
 
 Lemma poly1_diff_poly0 : poly1 <> poly0.
-Proof. unlock poly1; unlock poly0 => //=. Qed.
+Proof.
+unlock poly0; unlock poly1; unlock const_poly.
+case: insubP => [[[] _] _  //=  |].
+by rewrite / normal //=; move/negbE2; move/eqP; move/one_diff_0.
+Qed.
 
 Definition poly_ring : ring.
 exists polynomial_eqType poly0 poly1 opp_poly add_poly mult_poly.
@@ -702,6 +707,8 @@ split=>//=; [ | | (* 3 *) exact: poly_mult_addl |
 split; [ exact: poly_multA | exact: poly_mult1P | exact: poly_multP1 ].
 Defined.
 
+Canonical Structure poly_ring.
+
 End PolynomialRing.
 
 Section PolynomialDegree.
@@ -710,6 +717,14 @@ Definition deg_poly (p : polynomial) := let: Poly sp _ := p in size sp.
 
 Lemma deg_poly0: deg_poly poly0 = 0%N.
 Proof. rewrite / deg_poly; unlock poly0=>//. Qed.
+
+Lemma deg_poly0_eq : forall p, reflect (p=poly0) (deg_poly p == 0%N).
+Proof.
+move=> [p np]; apply: (iffP idP); last (by move=> ->; rewrite deg_poly0).
+move/eqP=>//= H; apply/coef_eqP=>//= i; unlock poly0=>//=; congr sub.
+clear np i; case: p H=>//.
+Qed.
+
 
 Lemma deg_const_poly: forall c, c!=0 -> deg_poly (const_poly c) = 1%N.
 Proof.
@@ -768,6 +783,117 @@ exists (poly_ring R).
 rewrite //=; apply: poly_multC.
 Defined.
 
+Canonical Structure poly_com_ring.
+
 End PolynomialComRing.
+
+Section EvalPolynomial.
+Open Scope ring_scope.
+Variable R: ring.
+
+Fixpoint eval_poly_rec (p : seq R) : normal p -> R -> R :=
+  if p is (Adds a p') return normal p -> R -> R then
+    fun np x => a + x * (eval_poly_rec (normal_behead np) x)
+  else fun _ _ => 0.
+
+Definition eval_poly (p : poly_ring R) (x : R) : R :=
+  let: Poly _ np := p in (eval_poly_rec np x).
+
+Lemma eval_poly0 : forall x, eval_poly (@poly0 R) x = 0.
+Proof. by unlock poly0=>//. Qed.
+
+Lemma eval_poly_const : forall c x, eval_poly (const_poly c) x = c.
+Proof.
+unlock const_poly => c x /=; case: insubP => [[[] a [] ns ] //= _ [] ->|].
+  by rewrite mult_r0r plus_r0r.
+by rewrite eval_poly0 / normal //=; move/negbE2; move/eqP => ->.
+Qed.
+
+Lemma eval_poly_horner : forall p c x,
+  eval_poly (horner p c) x = x * (eval_poly p x) + c.
+Proof.
+unlock horner => [] [[|a p'] np] c x //=.
+  by move=> *; rewrite mult_r0r plus_r0l eval_poly_const.
+rewrite plus_rC//=; congr (_+_); congr (_*_); congr (_+_); congr (_*_).
+congr eval_poly_rec; apply: bool_irrelevance.
+Qed.
+
+Lemma eval_poly_plus : forall p q x,
+  eval_poly (p + q) x = (eval_poly p x) + (eval_poly q x).
+Proof.
+case=>//; elim=>// [|a p Hp np].
+  by move=> //=_; case=>//= q nq x; rewrite plus_r0l.
+case=>//; case=>// [|b q nq] x; first (by move=> *; rewrite plus_r0r).
+rewrite //= eval_poly_horner.
+move: (Hp (normal_behead np) (Poly (normal_behead nq)) x)=>//= ->.
+rewrite plus_rCA -plus_rA; congr (_+_).
+rewrite -plus_rCA plus_rC; congr (_+_).
+apply: plus_mult_l.
+Qed.
+
+Definition com_coef p (x :R) := forall k, (coef p k) * x = x * (coef p k).
+
+Lemma com_coefP : forall p x, com_coef p x ->
+  x * (eval_poly p x) = (eval_poly p x) * x.
+Proof.
+case=>//; elim=> //=; first (by move=> *; rewrite mult_r0r mult_r0l).
+move=> a p Hp np x H; rewrite plus_mult_r plus_mult_l; congr (_+_).
+  (by move: (H 0%N) =>//).
+rewrite -mult_rA Hp //.
+(move=> i; move: (H (S i))=>//).
+Qed.
+
+Lemma eval_poly_mult_cst_poly_l : forall c (p : poly_ring R) x,
+  (x * c = c * x) ->
+  eval_poly (mult_cst_poly_l c p) x = c * (eval_poly p x).
+Proof.
+move=> c []; elim=>//= [| a p Hp np x Hc].
+  (by move=> *; rewrite eval_poly0 mult_r0r).
+by rewrite eval_poly_horner//= Hp// mult_rA Hc -mult_rA
+  -plus_mult_l plus_rC.
+Qed.
+
+Lemma eval_poly_mult_cst_poly_r : forall c (p : poly_ring R) x,
+  eval_poly (mult_cst_poly_r p c) x = (eval_poly p x) * c.
+Proof.
+move=> c []; elim=>//= [| a p Hp np x].
+  (by move=> *; rewrite eval_poly0 mult_r0l).
+by rewrite eval_poly_horner//= Hp// mult_rA -plus_mult_r plus_rC.
+Qed.
+
+Lemma eval_poly_mult : forall (p q : poly_ring R) x, (com_coef p x) ->
+  eval_poly (p * q) x = (eval_poly p x) * (eval_poly q x).
+Proof.
+case=>//; elim=>// [ /= np [] |a p Hp np].
+  by move=> *; rewrite eval_poly0 mult_r0l.
+case=>//; case=>// [ /= |b q nq] x Hc.
+  by move=> *;  rewrite eval_poly0 mult_r0r.
+rewrite //= !eval_poly_horner !eval_poly_plus !eval_poly_horner.
+rewrite (eval_poly_mult_cst_poly_l (Poly (normal_behead nq))) //;
+  last (by move: (Hc 0%N) =>//).
+rewrite (eval_poly_mult_cst_poly_r b (Poly (normal_behead np))).
+move: (Hp (normal_behead np) (Poly (normal_behead nq)) x)=>//= ->;
+  last by (move=> i; move: (Hc (S i))=>//).
+rewrite !plus_mult_r !plus_mult_l plus_rC !mult_rA !plus_rA
+  mult_r0r plus_r0r; move: (Hc 0%N) => //= ->.
+rewrite -[x * x * (eval_poly_rec _ _)]mult_rA /=
+  {2}[x * eval_poly_rec _ _](@com_coefP (Poly (normal_behead np)))/=
+  ?mult_rA//.
+by move=> i; move: (Hc (S i))=>//.
+Qed.
+
+Lemma factor_th : forall (p p1 : poly_ring R) a,
+  (p = (polyX_a a) * p1) -> eval_poly p a = 0.
+Proof.
+move => p p1 a ->.
+rewrite eval_poly_mult; unlock polyX_a=>//=;
+  last (by case=>//=[|[|n]];
+    rewrite ?coef_horner_0 -?mult_opp_rl -?mult_opp_rr// ?coef_horner_S
+      ?coef_poly1_0 ?mult_r1l ?mult_r1r // ?coef_poly1_S
+      ?mult_r0l ?mult_r0r).
+by rewrite eval_poly_horner eval_poly_const mult_r1r plus_opp_rr mult_r0l.
+Qed.
+
+End EvalPolynomial.
 
 Unset Implicit Arguments.

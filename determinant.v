@@ -475,6 +475,8 @@ mx2fun_elim H; move: (H (Ordinal Hn) (Ordinal Hn)) => //=.
 by rewrite !m2f //= => H1; move: (@one_diff_0 R) => H2.
 Defined.
 
+Canonical Structure matrix_ring.
+
 End MatrixRing.
 
 Lemma perm_matrixM : forall n (s t : S_(n)),

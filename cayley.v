@@ -185,6 +185,76 @@ Qed.
 
 (* --- *)
 
+Fixpoint poly2poly_of_mx_rec (p : seq R) : normal p -> \Pm[x] :=
+  if p is (Adds a p') return normal p -> \Pm[x] then
+    fun np =>
+      horner (poly2poly_of_mx_rec (normal_behead np)) 
+             (matrix_scale a (@unit_matrix R n))
+  else fun _ => (@poly0 \M_(n)).
 
+Definition poly2poly_of_mx (p : \P[x]) :=
+  let: Poly _ np := p in
+  poly2poly_of_mx_rec np.
+
+Notation "'p2pm'" := poly2poly_of_mx : local_scope.
+
+Lemma coef_poly2poly_of_mx : forall p k i j,
+  coef (p2pm p) k i j =
+  (coef p k) * (unit_matrix R n i j).
+Proof.
+case=>//; elim=>//=.
+  move=> np k i j; rewrite coef0 sub_seq0 mult_r0l m2f//.
+move=> x s Hr np [|k] i j; first rewrite coef_horner_0 m2f//=.
+by rewrite coef_horner_S m2f//= Hr m2f.
+Qed.
+
+Lemma phi_polyP : forall (p : \P[x]),
+  (phi (matrix_scale p (unit_matrix \P[x] n))) = p2pm p.
+Proof.
+move=>p; apply/coef_eqP=>k.
+apply/matrix_eqP; apply: EqMatrix=> i j.
+rewrite -phi_coef coef_poly2poly_of_mx !m2f.
+by case Hc:(i==j); rewrite ?mult_r1r ?mult_r0r ?coef0.
+Qed.
+
+Definition poly_car (A : \M_(n)) : \P[x] :=
+  (@determinant \P[x] n 
+                (matrix_of_fun
+                  (fun i j=>
+                    if i==j then ((@polyX R) + - (const_poly (A i j)))
+                    else (- const_poly (A i j))))).
+
+Theorem Cayley_Hamilton : forall A,
+  eval_poly (p2pm (poly_car A)) A = 0.
+Proof.
+move=> A.
+set X_I_A:=(matrix_of_fun
+                  (fun i j=>
+                    if i==j then ((@polyX R) + - (const_poly (A i j)))
+                    else (- const_poly (A i j)))).
+move: (mult_adugateR X_I_A) => H1.
+suffices: phi (X_I_A * (adjugate X_I_A)) = 
+          phi (matrix_scale (poly_car A) (unit_matrix \P[x] n));
+  last (by rewrite //= H1 ); clear H1=>H1.
+(* How can i make this automaticly *)
+rewrite phi_mult in H1; symmetry in H1.
+rewrite -phi_polyP.
+suffices: (phi X_I_A) = polyX_a A; first (move=> H2 ).
+  rewrite H2 in H1.
+  apply: (factor_th (p1:=(phi (adjugate X_I_A))))=>//.
+apply/coef_eqP => k;  apply/matrix_eqP; apply: EqMatrix=> i j.
+rewrite -phi_coef m2f; unlock polyX_a; unlock polyX.
+case: k=>//= [|k].
+  rewrite !coef_horner_0; case Hij:(i==j)=>//=.
+    by rewrite coef_add_poly coef_horner_0 coef_opp_poly coef_const_0 
+      m2f plus_r0l -mult_opp_rl mult_r1l.
+  by rewrite coef_opp_poly coef_const_0 m2f -mult_opp_rl mult_r1l.
+rewrite !coef_horner_S; case Hij:(i==j)=>//=.
+  rewrite coef_add_poly coef_horner_S coef_opp_poly coef_const_S
+    opp_r0 plus_r0r //=.
+  case: k =>//=[|k]; by rewrite ?coef_poly1_0 ?coef_poly1_S !m2f// Hij.
+rewrite coef_opp_poly coef_const_S opp_r0.
+case: k =>//=[|k]; by rewrite ?coef_poly1_0 ?coef_poly1_S !m2f// Hij.
+Qed.
 
 End Cayley.
