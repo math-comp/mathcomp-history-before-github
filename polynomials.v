@@ -882,16 +882,17 @@ rewrite -[x * x * (eval_poly_rec _ _)]mult_rA /=
 by move=> i; move: (Hc (S i))=>//.
 Qed.
 
-Lemma factor_th : forall (p p1 : poly_ring R) a,
-  (p = (polyX_a a) * p1) -> eval_poly p a = 0.
+Lemma factor_th : forall (p p1 p2 : poly_ring R) a,
+  com_coef p1 a -> (p = p1 * (polyX_a a) * p2) -> eval_poly p a = 0.
 Proof.
-move => p p1 a ->.
-rewrite eval_poly_mult; unlock polyX_a=>//=;
+move => p p1 p2 a Hp1 ->; rewrite -mult_rA.
+rewrite !eval_poly_mult; unlock polyX_a=>//=;
   last (by case=>//=[|[|n]];
     rewrite ?coef_horner_0 -?mult_opp_rl -?mult_opp_rr// ?coef_horner_S
       ?coef_poly1_0 ?mult_r1l ?mult_r1r // ?coef_poly1_S
       ?mult_r0l ?mult_r0r).
-by rewrite eval_poly_horner eval_poly_const mult_r1r plus_opp_rr mult_r0l.
+by rewrite eval_poly_horner eval_poly_const mult_r1r plus_opp_rr mult_r0l
+  mult_r0r.
 Qed.
 
 End EvalPolynomial.

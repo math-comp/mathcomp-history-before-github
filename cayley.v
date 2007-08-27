@@ -241,7 +241,10 @@ rewrite phi_mult in H1; symmetry in H1.
 rewrite -phi_polyP.
 suffices: (phi X_I_A) = polyX_a A; first (move=> H2 ).
   rewrite H2 in H1.
-  apply: (factor_th (p1:=(phi (adjugate X_I_A))))=>//.
+  apply: (factor_th (p1:=1) (p2:=(phi (adjugate X_I_A))))=>//;
+    rewrite ?mult_r1l//.
+  by move=> [|k]; rewrite ?coef_poly1_0 ?coef_poly1_S ?mult_r0l ?mult_r0r
+    ?mult_r1r ?mult_r1l.
 apply/coef_eqP => k;  apply/matrix_eqP; apply: EqMatrix=> i j.
 rewrite -phi_coef m2f; unlock polyX_a; unlock polyX.
 case: k=>//= [|k].
