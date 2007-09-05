@@ -11,21 +11,9 @@ Section IndexedOperation.
 
 Open Scope monoid_scope.
 
-
-
-(*
-Notation "x * y" := (mulR x y).
-Notation "1" := e.
-Hypotheses
-  (mulP : forall x1 x2 x3, x1 * (x2 * x3) = (x1 * x2) * x3)
-  (mulC : forall x1 x2, x1 * x2 = x2 * x1)
-  (unitP : forall x, 1 * x = x).
-*)
-
 Section iprod.
 
 Variables (R : monoid) (d : finType) (a : set d) (f : d->R).
-
 Notation mulR := (fun x y :R => x * y).
 
 Definition iprod := foldr (fun x => mulR (f x)) 1 (filter a (enum d)).
@@ -36,21 +24,19 @@ Section monoid_iprod.
 (* Lemma for non abelian monoid *)
 
 Variable (R : monoid) (d : finType).
-(* Notation mulR := (fun x y :R => x * y). *)
 
 Lemma eq_iprod_set_: forall a b (f:d->R),
   a =1 b -> iprod a f = iprod b f.
 Proof.
-move => a b N H; rewrite /iprod; elim (enum d) => [| x s Hrec] //=.
-by rewrite H; case (b x) => //=; congr (_ * _).
+move => a b f H; rewrite / iprod; elim: (enum d) => [| x s Hrec] //=.
+by rewrite H; case: (b x) => //=; congr (_*_).
 Qed.
 
 Lemma eq_iprod_f_: forall (a:set d) (f g:d->R),
   dfequal a f g -> iprod a f = iprod a g.
 Proof.
-move => a f g H; rewrite /iprod.
-elim: (enum d) => //=.
-by move => x s IHs; case E: (a x) => //=; rewrite H => //; congr (_ * _).
+move => a f g H; rewrite /iprod; elim: (enum d) => [|x s Hrec]//=.
+by case E: (a x) => //=; rewrite H => //; congr (_ * _).
 Qed.
 
 Lemma eq_iprod_ : forall a b (f g : d->R),
@@ -79,13 +65,16 @@ Proof. move=> r f; move/eq_iprod_f_->; exact: iprod_f1_eq_. Qed.
 Lemma iprod_set1_eq_ : forall (i0 : d) (f:d->R),
   iprod (set1 i0) f = f i0.
 Proof.
-move => i0 f; rewrite /iprod. 
+move => i0 f; rewrite /iprod.
+suffices : (filter (set1 i0) (FinType.enum d)) = (Seq i0).
+  by move=> -> /=; rewrite m_op_unitr.
 move: (count_set1_uniq i0 (uniq_enum d)).
 rewrite count_filter mem_enum /setA /nat_of_bool.
-have H : filter (set1 i0) (enum d) i0 by rewrite filter_enum; apply/set1P.
-move: H; case: (filter (set1 i0) (enum d)) => //=.
+suffices: filter (set1 i0) (enum d) i0;
+  last by rewrite filter_enum; apply/set1P.
+case: (filter (set1 i0) (enum d)) => //=.
 by move => x [|x' s'] //= ;
-  rewrite /setU1 orbF => Heq; rewrite (eqP Heq) m_op_unitr.
+  rewrite /setU1 orbF => Heq; rewrite (eqP Heq).
 Qed.
 
 Lemma iprod_set1_ : forall i0 (r : set d) (f :d->R),
@@ -109,10 +98,9 @@ Lemma iprodD1_ : forall (d : finType) x (a : set d) (f : d->R),
  a x -> iprod a f = f x * iprod (setD1 a x) f.
 Proof.
 move => d x a f.
-have F1: setD1 a x =1 setD1 (filter a (enum d)) x.
- by move => x1; rewrite /setD1 filter_enum.
-rewrite /iprod (eq_filter F1) -(filter_enum a x).
-elim: (enum d) (uniq_enum d) => [| x1 s1 Hrec] //=; rewrite /id.
+rewrite / iprod (@eq_filter _ (setD1 a x) (setD1 (filter a (enum d)) x)) 
+  -?(filter_enum a x); last by move=>*; rewrite /setD1 filter_enum.
+elim: (enum d) (uniq_enum d) => [| x1 s1 Hrec] //=.
 case/andP; move/negP=>H1 H2.
 case E1: (a x1) => /=.
   case/orP => H3.
@@ -120,16 +108,17 @@ case E1: (a x1) => /=.
     apply: eqd_filter => x2 Hx2; rewrite /setD1 /setU1.
     case E2: (x1 == x2) => /=; first by case H1; rewrite (eqP E2).
     by rewrite mem_filter /setI Hx2 andbT.
-  have F2: setD1 (setU1 x1 (filter a s1)) x x1.
-    rewrite mem_filter in H3; case/andP: H3 => H3 H4.
-    rewrite /setD1 /setU1 mem_filter /setI.
-    case E2: (x==x1) => /=; first by case H1; rewrite -(eqP E2).
-    by rewrite eq_refl.
-  rewrite F2 Hrec //= !m_op_A //; congr (_ * _); first exact: m_op_C. 
-  congr foldr; apply eqd_filter => x2 Hx2; rewrite /setD1 /setU1.
-  case E2: (x==x2)=>//=; rewrite mem_filter /setI.
-  case (a x2) => //=; case E3:(x1==x2) => //=;
-    by case H1; rewrite (eqP E3).
+  rewrite mem_filter in H3; case/andP: H3 => H3 H4.
+  suffices : setD1 (setU1 x1 (filter a s1)) x x1.
+    move=> ->; rewrite Hrec //= ?mem_filter / setI ?H3 ?H4 // ?m_op_A.
+    congr (_ * _); first exact: m_op_C.
+    congr foldr; apply eqd_filter => x2 Hx2; rewrite /setD1 /setU1.
+    case E2: (x==x2)=>//=; rewrite mem_filter /setI.
+    by case (a x2) => //=; case E3:(x1==x2) => //=;
+      case H1; rewrite (eqP E3).
+  rewrite /setD1 /setU1 mem_filter /setI.
+  case E2: (x==x1) => /=; first by case H1; rewrite -(eqP E2).
+  by rewrite eq_refl.
 move => H3; rewrite Hrec //; congr (_ * _); congr foldr.
 have F2: setD1 (filter a s1) x x1 = false.
   by rewrite /setD1 mem_filter /setI E1 /= andbF.

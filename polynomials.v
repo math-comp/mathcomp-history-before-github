@@ -478,171 +478,128 @@ Qed.
 
 Notation "'no' x" := (nat_of_ord x) (at level 0) : local_scope.
 
+Definition ord_inj_id n (k : I_(n.+1)) :=
+  match k return I_(k.+1) -> I_(n.+1) with
+  | Ordinal _ Hk => fun i =>
+    let: Ordinal _ Hi := i in (Ordinal (leq_trans Hi Hk)) end.
+
+Lemma ord_inj_idP : forall n (k : I_(n.+1)) (i : I_(k.+1)), 
+  ord_inj_id i = i :> nat.
+Proof. by move=> n [k Hk] [i Hi] /=. Qed.
+
 Lemma poly_multA p1 p2 p3 :
   mult_poly p1 (mult_poly p2 p3) = mult_poly (mult_poly p1 p2) p3.
 Proof.
 move=> p1 p2 p3; apply/coef_eqP=> n.
 rewrite !coef_mult_poly.
-have : forall (k: I_(n.+1)) p q,
+(* --- preliminary --- *)
+(* --- *)
+have Heq: forall (k: I_(n.+1)) p q,
   coef (mult_poly p q) k = 
     iprod (R:= R) (fun x : I_(n.+1) => x <= k)
       (fun i => (coef p i) * coef q (k - i)).
+  (* - *)
   move=>k p q.
   rewrite !coef_mult_poly.
-  case: k => [k Hk] //=.
-  have Ht : forall i, i <k.+1 -> i < n.+1.
-    move=> i Hi; apply: (leq_trans Hi) => //=.
-  set h : I_(k.+1) -> I_(n.+1) := 
-    fun x => (let: Ordinal _ Hx := x in (Ordinal (Ht _ Hx))).
-  set r:=(fun x : I_(n.+1) => (no x) <= k).
-  have H1 : ibijective r h.
-     rewrite / ibijective.
-  set f' : I_(n.+1) -> I_(k.+1) := 
-    fun x => 
-      (if @idP ((no x) < k.+1) is Reflect_true H
-    then (Ordinal H)
-    else 
-      (Ordinal (ltn0Sn k))).
-    exists f'.
-      rewrite / icancel //= => x Hx.
-      rewrite / r -ltnS in Hx.
-      rewrite / f' //=.
-      case: idP=> //= Hi {Hx}.
-      apply: ordinal_inj => {Hi} //=.
-      rewrite / h //=; case: x => //.
-    rewrite / dcancel //= => x Hx.
-    rewrite / r -ltnS in Hx.
-    rewrite / f' //=.
-    case: idP=> //= Hi {Hx}.
-    apply: ordinal_inj => {Hi} //=.
-  rewrite (reindex_isum 
-            (fun i : I_(n.+1) => coef p i * coef q (k - i)) H1).
-  apply: eq_isum => //=.
-    move=>i; rewrite / setA / h; case: i => //=.
-  rewrite / dfequal => x Hx; congr (_ * _) => //=; congr coef=> //=.
-    rewrite / h; case: x {Hx} => //=.
-    congr minus; rewrite / h; case: x {Hx} => //=.
-move=> Heq.
-set f := fun k i : I_(n.+1) =>
-  coef p1 k * (coef p2 i * coef p3 ((n - k) - i)).
-set g1:= fun k i : I_(n.+1) =>
-  (coef p1 i * coef p2 (k - i)) * coef p3 (n - k).
-set g2 := fun k i : I_(n.+1) =>
-  coef p1 k * (coef p2 (i - k) * coef p3 (n - i)).
-have H1: 
-  (fun k : I_(n.+1) => coef p1 k * coef (mult_poly p2 p3) (n - k)) =1
+  rewrite (reindex_isum (h:= (@ord_inj_id n k))
+            (fun i : I_(n.+1) => coef p i * coef q (k - i))).
+    apply: eq_isum => // [[x x0] | x _ ]; first (by rewrite ord_inj_idP).
+    by congr (_ * _) => //=; congr coef=> //=; rewrite ord_inj_idP.
+  set f' : I_(n.+1) -> I_(k.+1) := fun x => 
+    if @idP ((no x) < k.+1) is Reflect_true H then (Ordinal H)
+    else (Ordinal (ltn0Sn k)).
+  by exists f' => [[x x0]|[x x0]] Hx; rewrite / f'; case: idP=> //= Hi;
+    apply: ordinal_inj=>//=; rewrite ?ord_inj_idP //.
+(* --- *)
+have H1: dfequal (setA I_(n.+1)) 
+  (fun k : I_(n.+1) => coef p1 k * coef (mult_poly p2 p3) (n - k))
   (fun k : I_(n.+1) =>
-       iprod (R:=R) (fun x : I_(n.+1) => x <= (n - k)) (f k)).
-  move=>k => //=; rewrite -isum_distrL; congr (_ * _). 
-  case: k => k Hk.
-  have Hnk : n-k <n.+1.
-    rewrite ltnS; apply: leq_subr.
-  set nk:= Ordinal Hnk.
-  move: (Heq nk p2 p3) => //.
-have H2:
-  (fun k : I_(n.+1) => coef (mult_poly p1 p2) k * coef p3 (n - k)) =1
+       iprod (R:=R) (fun x : I_(n.+1) => x <= (n - k))
+         (fun i => coef p1 k * (coef p2 i * coef p3 ((n - k) - i)))).
+  (* - *)
+  move=> [k Hk] _ => //=; rewrite -isum_distrL; congr (_ * _). 
+  have Hnk : n-k <n.+1 by rewrite ltnS; apply: leq_subr.
+  by move: (Heq (Ordinal Hnk) p2 p3) => //.
+(* --- *)
+have H2: dfequal (setA I_(n.+1))
+  (fun k : I_(n.+1) => coef (mult_poly p1 p2) k * coef p3 (n - k))
   (fun k : I_(n.+1) => 
-       iprod (R:=R) (fun x : I_(n.+1) => x <= k) (g1 k)).
-  move=>k //=; rewrite -isum_distrR; congr (_ * _); apply: Heq.
-have H3 :
-  (fun k : I_(n.+1) => iprod (R:=R) (fun x : I_(n.+1) => x <= (n - k))
-                                    (fun i : I_(n.+1) => f k i)) =1
-  (fun k : I_(n.+1) => iprod (R:=R) 
-                         (fun x : I_(n.+1) => (k <= x) && (x <= n))
-                         (fun i : I_(n.+1) => g2 k i)).
-  move=>  k //=.
-  have Ht1: forall x : I_(n.+1), x - k < n.+1.
-    move=> x //=.
-    case: x => //= x Hx.
-    case: k => //= k Hk.
-    rewrite ltnS; apply: (@leq_trans x _ _) => //=; exact: leq_subr.
-    set h : I_(n.+1) -> I_(n.+1) := 
-      fun x => Ordinal (Ht1 x).
-  have hP: forall x, (h x) <= n - k.
-    move=> x; rewrite / h //=.
-    apply: leq_sub2r.
-    case: x => //=.
-  rewrite (@eq_isumR _ _ _ (g2 k) (fun i => f k (h i))).
-    symmetry; rewrite -(@iprod_image_ R) //=.
-      apply: eq_isumL => //=.
-      move=> x //=.
+       iprod (R:=R) (fun x : I_(n.+1) => x <= k) 
+         (fun i => (coef p1 i * coef p2 (k - i)) * coef p3 (n - k))).
+  (* - *)
+  by move=> k _ //=; rewrite -isum_distrR; congr (_ * _); apply: Heq.
+(* --- *)
+have H3 : dfequal (setA I_(n.+1))
+  (fun k : I_(n.+1) =>
+    iprod (R:=R) (fun x : I_(n.+1) => x <= (n - k)) 
+    (fun i : I_(n.+1) => coef p1 k * (coef p2 i * coef p3 ((n - k) - i))))
+  (fun k : I_(n.+1) =>
+    iprod (R:=R) (fun x : I_(n.+1) => (k <= x) && (x <= n))
+    (fun i => coef p1 k * (coef p2 (i - k) * coef p3 (n - i)))).
+  (* - *)
+  move=>  k _ //=.
+  have hP: forall x : I_(n.+1), x - k < n.+1 by
+    move=> [x Hx]; apply: (@leq_trans x _ n) => //=; exact: leq_subr.
+  set h : I_(n.+1) -> I_(n.+1) := fun x => Ordinal (hP x).
+  set f :=
+    (fun i : I_(n.+1) => coef p1 k * (coef p2 i * coef p3 (n - k - i))).
+  set g := 
+    (fun i : I_(n.+1) => coef p1 k * (coef p2 (i - k) * coef p3 (n - i))).
+  rewrite (eq_isumR (F := g) (F' := (fun i =>  f (h i)))).
+    symmetry; rewrite -(@iprod_image_ R).
+      apply: eq_isumL => x.
       case cx: (x <= n - k); move/idP:cx=>cx.
         apply/imageP.
-        have Ht: forall x, x <= n - k -> x + k < S n.
-          move=>x0; rewrite -(leq_add2r k) [((n - k) + k)%N]addnC.
-          rewrite leq_add_sub //=.
-          case: k {Ht1 h cx hP}=> //= k Hk.      
+        have Ht: forall x, x <= n - k -> x + k < S n
+          by move=> x0; rewrite -(leq_add2r k) [((n - k) + k)%N]addnC
+            leq_add_sub //; case: k {hP f g h cx}=> //=.
         exists (Ordinal (Ht _ cx)) => //=.
           rewrite {1}[(x + k)%N]addnC leq_addr andTb.
           rewrite -(leq_add2r k) [(n - k + k)%N]addnC
             leq_add_sub //= in cx.
-          by case: k Ht1 h Ht hP=> //=.
-        by rewrite / h //=; apply: ordinal_inj => //=; rewrite subn_addl.
-      move/idP: cx => cx; apply/idP.
-      move=>Him; move/imageP: Him => Him.
-      elim: Him => x0 _ Hxx0; move: (hP x0) => cxf; rewrite -Hxx0 in cxf.
-      by rewrite cxf //= in cx.
-    rewrite / dinjective //= => x y Hx Hy Hxy.
-    rewrite / h //= in Hxy.
-    case: Hxy => Hxy.
-    move/eqP: Hxy => Hxy; rewrite -(eqn_addr k) in Hxy.
-    apply/eqP.
-    rewrite ![(_ - k + k)%N]addnC !leq_add_sub //= in Hxy; 
-      by elim: (andP Hx) => //=; elim: (andP Hy) => //=.
-  move=> x //= Hx; rewrite / h / g2 / f //=.
+          by case: k {f g h Ht hP} => //=.
+        by apply: ordinal_inj => /=; rewrite subn_addl.
+      apply/idP; move/imageP=> [x0 _ Hx0].
+      apply: cx; rewrite Hx0 / h /=; apply: leq_sub2r.
+      by apply: (@ordinal_ltn (n.+1)).
+    move=> //= x y Hx Hy Hxy; rewrite / h //= in Hxy.
+    case: Hxy; move/eqP; rewrite -(eqn_addr k); move/eqP.
+    by rewrite ![(_ - k + k)%N]addnC !leq_add_sub; 
+      [ apply: ordinal_inj | 
+        elim: (andP Hy) |
+        elim: (andP Hx) ].
+  move=> x //= Hx; rewrite / h / g / f //=.
   congr (_ * _); congr (_ * _); congr coef.
   rewrite subn_sub leq_add_sub //=.
   by elim: (andP Hx).
-clear Heq.
-rewrite (eq_isumR  
-  (F:=(fun k : I_(n.+1) => coef p1 k * coef (mult_poly p2 p3) (n - k)))
-  (F':=(fun k : I_(n.+1) => iprod (R:=R)
-                                  (fun x : I_(n.+1) => x <= (n - k))
-                                  (f k))));
-  last move=> x _ //=.
-rewrite (eq_isumR 
-  (F:= (fun k : I_(n.+1) => coef (mult_poly p1 p2) k * coef p3 (n - k))) 
-  (F':= (fun k : I_(n.+1) => iprod (R:=R)
-                                   (fun x : I_(n.+1) => x <= k)
-                                   (g1 k))));
-  last move=> x _ //=.
-rewrite (eq_isumR 
-  (F:= (fun k : I_(n.+1) => iprod (R:=R) (fun x : I_(n.+1) => x <= n - k)
-                                  (fun i : I_(n.+1) => f k i)))
-  (F':= (fun k : I_(n.+1) => iprod (R:=R)
-                                (fun x : I_(n.+1) => (k <= x) && (x <= n))
-                                (fun i : I_(n.+1) => g2 k i))));
-  last move=> x _ //=.
+(* --- *)
+(* The proof *)
+rewrite (eq_isumR H1) (eq_isumR H2) (eq_isumR H3); clear H1 H2 H3 Heq.
 rewrite !pair_isum_dep //=.
-set h :
-  prod_finType I_(n.+1) I_(n.+1) -> prod_finType I_(n.+1) I_(n.+1) :=
-  fun u => ((snd u), (fst u)).
-clear H1 H2 H3 f.
-set f:= (fun u : I_(n.+1) * I_(n.+1) => g2 (fst u) (snd u)).
-set g:= (fun u : I_(n.+1) * I_(n.+1) => g1 (fst u) (snd u)).
+(* nice notations *)
+set h := (fun u : I_(n.+1) * I_(n.+1) => ((snd u), (fst u))).
+set f :=
+  (fun u : I_(n.+1) * I_(n.+1) =>
+    coef p1 (fst u) * (coef p2 (snd u - fst u) * coef p3 (n - snd u))).
+set g :=
+  (fun u : I_(n.+1) * I_(n.+1) => 
+    coef p1 (snd u) * coef p2 (fst u - snd u) * coef p3 (n - fst u)).
+(* - *)
 rewrite (eq_isumR (F:= g) (F':= (fun i => f (h i)))); 
-  last (move=> x _; rewrite / f / g / h / g1 / g2 mult_rA //=).
+  last (by move=> x _; rewrite / f / g / h mult_rA).
 symmetry; rewrite -(@iprod_image_ R)//.
-  apply: eq_isumL => x //=.
-  have: snd x <= n by case: (snd x) => //=.
+  apply: eq_isumL => x.
+  suffices: snd x <= n; last by case: (snd x) => //=.
   move=> -> //=; rewrite andbT.
   case cx: (fst x <= snd x); move/idP:cx=>cx.
-    apply/imageP.
-    exists ((snd x), (fst x)) => //=.
-    rewrite / h //=; case: x cx => //=.
-  move/idP: cx => cx; apply/idP.
-  move=>Him; move/imageP: Him => Him.
-  elim: Him => x0 H1 Hxx0.
-  rewrite / h //= in Hxx0.
-  move/eqP: Hxx0 => Hxx1.
-  have Hxx2: x == (snd x0, fst x0) by auto.
-  move/pair_eq1: Hxx1 => //= Hxx1.
-  move/pair_eq2: Hxx2 => //= Hxx2.
-  by rewrite (eqP Hxx1) (eqP Hxx2) H1 in cx.
-rewrite / dinjective //= => x y _ _ Hxy.
-rewrite / h //= in Hxy; move/eqP: Hxy => Hxy.
-apply/pair_eqP; rewrite / pair_eq //=.
-apply/andP.
+    apply/imageP; exists ((snd x), (fst x)) => //=.
+    by case: x cx => //=.
+  apply/idP; move/imageP=> [x0 H1].
+  (* dupliquer automatiquement les hypotheses ? *)
+  rewrite / h; move/pair_eqP; rewrite / pair_eq; move/andP.
+  by elim=>// Hfx Hsx; rewrite (eqP Hfx) (eqP Hsx) H1 in cx.
+move=> x y _ _; rewrite / h; move/eqP=> Hxy.
+apply/pair_eqP; rewrite / pair_eq; apply/andP.
 split; [move/pair_eq2: Hxy => //=|move/pair_eq1: Hxy => //=].
 Qed.
 

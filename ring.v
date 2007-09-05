@@ -492,7 +492,9 @@ Proof. move=> *; exact: iprod_set1_. Qed.
 
 Lemma isumD1 : forall (d : finType) i0 (r : set d) F,
   r i0 -> \sum_(in r) F = F i0 + \sum_(i | (i0 != i) && r i) F i.
-Proof. move=> *; exact: (@iprodD1_ R). Qed.
+Proof.
+move=> d i0 r F Hr.
+move=> *; exact: (@iprodD1_ R). Qed.
 
 Lemma isumID : forall (d : finType) c r F,
   \sum_(in r) F = \sum_(i : d | r i && c i) F i + \sum_(i | r i && ~~ c i) F i.
