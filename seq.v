@@ -854,7 +854,7 @@ Lemma eqseq_rot : forall s1 s2, (rot n0 s1 == rot n0 s2) = (s1 == s2).
 Proof. apply: inj_eq; exact rot_inj. Qed.
 
 CoInductive rot_to_spec (s : seq) (x : d) : Type :=
-  RotToSpec i s' (_ : rot i s = Adds x s').
+  RotToSpec i s' of rot i s = Adds x s'.
 
 Lemma rot_to : forall (s : seq) x, s x -> rot_to_spec s x.
 Proof.

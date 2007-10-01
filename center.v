@@ -156,6 +156,7 @@ rewrite (eqP (commute_expn n _)); gsimpl; last by rewrite /commute cxy.
 by rewrite (eqP (commute_expn n _)) // /commute.
 Qed.
 
+
 End Center.
 
 Unset Implicit Arguments.

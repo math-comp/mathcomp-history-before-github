@@ -77,6 +77,7 @@ Lemma image_perm_pair :
   forall s A p, image (permp s) A p = A (permp s^-1 p).
 Proof. by move=> s A p; rewrite -{1}(permpK s^-1 p) invgK (image_f _ (permpI s)). Qed.
 
+
 Notation Local im_permp := image_perm_pair.
 
 (* Flipping components of a pair *)
@@ -254,6 +255,7 @@ by apply/andP; case=> lti12; rewrite ltnNge ltnW.
 Qed.
 *)
 
+>>>>>>> .r508
 End PermutationParity.
 
 Coercion odd_perm : permType >-> bool.
