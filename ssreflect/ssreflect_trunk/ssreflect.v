@@ -11,7 +11,7 @@ Require Import Bool. (* For bool_scope delimiter 'bool'. *)
 (* (at level 10) should be declared at level 8 rather than 9 or the camlp4  *)
 (* grammar will not factor properly.                                        *)
 
-Reserved Notation "'(*' x 'is' y 'by' z 'of' '//' '/=' '//='" (at level 8).
+Reserved Notation "'(*' x 'is' y 'by' z 'of' '//' '/=' '//=' '*)'" (at level 8).
 
 (* Make the general "if" into a notation, so that we can override it below *)
 (* The notations are "only parsing" because the Coq decompiler won't       *)
@@ -81,6 +81,7 @@ Delimit Scope structure_scope with STRUCT.
 Open Scope structure_scope.
 
 
+
 Open Scope boolean_if_scope.
 
 (* Internal tagging used by the implementation of the ssreflect elim. *)
@@ -122,7 +123,7 @@ Proof. rewrite -lock; discriminate. Qed.
 (* The basic closing tactic "done".                                       *)
 Ltac done :=
   trivial; hnf; intros; solve
-   [ do ![solve [trivial | symmetry; trivial]
+   [ do ![solve [trivial | apply: sym_equal; trivial]
          | discriminate | contradiction | split]
    | case not_locked_false_eq_true; assumption
    | match goal with H : ~ _ |- _ => solve [case H; trivial] end ].

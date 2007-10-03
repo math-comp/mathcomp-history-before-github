@@ -18,4 +18,4 @@ The program ssrcoq will act as a toplevel. There is no extra command
 to compile a file. Do "ssrcoq -compile fermat.v" to generate
 fermat.vo.
 
-Tested with coq-trunk SVN revision 9887.
+Tested with coq-trunk SVN revision 10101.
