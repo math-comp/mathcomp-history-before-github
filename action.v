@@ -41,6 +41,8 @@ Proof. move=> x; exact: (can_inj (actK x)). Qed.
 Variable H : group G.
 Variable a : S.
 
+Definition transitive := forall x y: S, ((to x) @: H) y.
+
 Definition orbit := (fun z => to a z) @: H.
 
 Lemma orbitP: forall x, reflect (exists2 z, H z & to a z = x) (orbit x).
@@ -280,6 +282,130 @@ Proof. exact: perm_of_op. Qed.
 
 
 End PermFact. 
+
+Require Import tuple.
+
+Section NTransitive.
+
+Variable (G: finGroupType) (S:finType).
+
+Variable to : action G S.
+Variable H : group G.
+Variable n: nat.
+
+Definition distinctb (x: tuple_finType S n) := 
+  uniq (fval x).
+Definition dtuple := 
+  @sub_finType (tuple_finType S n) distinctb.
+
+Let f_aux1 x a: size x = 
+ card (setA I_(n))
+  ->size (maps (fun z : S => to z a) x) = card (setA I_(n)).
+move => x a Hx.
+by rewrite -Hx size_maps.
+Qed.
+
+Definition f_naction (x:dtuple) (a: G):=
+match x with
+| EqSig tx x =>
+    match tx as f return (distinctb f -> dtuple) with
+    | Fgraph x Hx =>
+        fun Dx  =>
+        EqSig distinctb
+          (Fgraph (f_aux1 a Hx))
+          (eq_ind_r (fun x : bool => x) Dx
+             (uniq_maps (inj_act (x:=a)) x))
+    end x
+end.
+
+Definition naction: action G dtuple.
+exists f_naction.
+  move => [[x Hx] Dx].
+  rewrite /f_naction; apply/val_eqP => /=.
+  rewrite /set1 /=; apply/eqseqP.
+  rewrite -{2}(maps_id x); apply: eq_maps => y.
+  by exact: act_1.
+move => x y [[z Hz] Dz].
+rewrite /f_naction; apply/val_eqP => /=.
+rewrite /set1 /=; apply/eqseqP.
+rewrite -maps_comp.
+apply: eq_maps => t.
+exact: act_morph.
+Defined.
+
+Definition ntransitive := transitive naction H /\ n <= card (setA S).
+
+End NTransitive.
+
+Section NTransitveProp.
+
+
+Variable (G: finGroupType) (S:finType).
+
+Variable to : action G S.
+Variable H : group G.
+
+Theorem ntransitive0: ntransitive to H 0.
+Proof.
+split => //.
+move => [[x Hx] Dx] [[y Hy] Dy].
+apply/iimageP; exists (1:G) => //.
+apply/val_eqP => /=; rewrite /set1 /=.
+by case: (x) (Hx) (Hy); rewrite card_ordinal => //; case: (y).
+Qed.
+
+Theorem ntransitive_weak: forall k m,
+k <= m -> ntransitive to H m-> ntransitive to H k.
+Proof.
+assert (F: forall m, ntransitive to H (m + 1) -> ntransitive to H m).
+  move => m [H1 H2]; split; rewrite addnC in H2; last first.
+    by apply: leq_trans H2; rewrite leqnSn.
+  move => [[x Hx] Dx] [[y Hy] Dy].
+  have F: ~~ set0b (setC x).
+    rewrite /set0b.
+    apply/negP => HH.
+    move: (card_size x).
+    by rewrite Hx card_ordinal -(addn0 (card x)) -(eqP HH)
+            cardC leqNgt H2.
+  case/set0Pn: F => a1 Ha1.
+  set (x1 := Adds a1 x).
+  have Hx1: size x1 = card (setA I_(m + 1)).
+     by rewrite card_ordinal addnC -(card_ordinal m) -Hx.
+  have Dx1: distinctb (Fgraph Hx1).
+    rewrite /setC in Ha1.
+    by rewrite /distinctb /= Ha1.
+  have F: ~~ set0b (setC y).
+    rewrite /set0b.
+    apply/negP => HH.
+    move: (card_size y).
+    by rewrite Hy card_ordinal -(addn0 (card y)) -(eqP HH)
+            cardC leqNgt H2.
+  case/set0Pn: F => a2 Ha2.
+  set (y1 := Adds a2 y).
+  have Hy1: size y1 = card (setA I_(m + 1)).
+     by rewrite card_ordinal addnC -(card_ordinal m) -Hy.
+  have Dy1: distinctb (Fgraph Hy1).
+    rewrite /setC in Ha2.
+    by rewrite /distinctb /= Ha2.
+  move/iimageP : (H1 (EqSig _ _ Dx1) (EqSig _ _ Dy1)) => [a Ha].
+  move/val_eqP; rewrite /set1 /= /set1 /y1.
+  move/eqseqP => /= HH1.
+  apply/iimageP; exists a => //.
+  apply/val_eqP => /=; rewrite /set1 /=.
+  change y with (behead (Adds  a2 y)).
+  by rewrite HH1.
+move => k m Hm Ht.
+rewrite -(leq_sub_sub Hm).
+elim: (m - k) => [| d Hrec].
+  by rewrite subn0.
+case (leqP m d) => Hd.
+  move: (leqW Hd); rewrite /leq.
+  by move/eqP => ->; exact: ntransitive0.
+apply: F.
+by rewrite addn1 -leq_subS.
+Qed.
+
+End NTransitveProp.
 
 (*
 Section Try.
