@@ -41,7 +41,8 @@ Proof. move=> x; exact: (can_inj (actK x)). Qed.
 Variable H : group G.
 Variable a : S.
 
-Definition transitive := forall x y: S, ((to x) @: H) y.
+Definition transitive (S1: set S) := 
+  forall x: S, S1 x -> (to x) @: H =1 S1.
 
 Definition orbit := (fun z => to a z) @: H.
 
@@ -291,6 +292,7 @@ Variable (G: finGroupType) (S:finType).
 
 Variable to : action G S.
 Variable H : group G.
+Variable S1: set S.
 Variable n: nat.
 
 Definition distinctb (x: tuple_finType S n) := 
@@ -333,67 +335,294 @@ apply: eq_maps => t.
 exact: act_morph.
 Defined.
 
-Definition ntransitive := transitive naction H /\ n <= card (setA S).
+Definition dlift: (set dtuple) := fun x =>
+match x with
+| EqSig (Fgraph x _) _ => all S1 x
+end.
+
+Definition ntransitive := 
+   transitive naction H dlift /\ n <= card S1.
 
 End NTransitive.
 
 Section NTransitveProp.
 
-
-Variable (G: finGroupType) (S:finType).
-
-Variable to : action G S.
-Variable H : group G.
-
-Theorem ntransitive0: ntransitive to H 0.
+Lemma dlift_sub_set:
+forall m (S: finType) (S1 S2: set S),
+ sub_set S1 S2 -> sub_set (dlift (n := m) S1) (dlift (n := m) S2).
 Proof.
-split => //.
-move => [[x Hx] Dx] [[y Hy] Dy].
-apply/iimageP; exists (1:G) => //.
-apply/val_eqP => /=; rewrite /set1 /=.
-by case: (x) (Hx) (Hy); rewrite card_ordinal => //; case: (y).
+move => m S S1 S2 H [[x Hx] Hx1] /= H1.
+apply/allP => z Hz.
+apply: (H z).
+by apply: (allP H1 z).
 Qed.
 
-Theorem ntransitive_weak: forall k m,
-k <= m -> ntransitive to H m-> ntransitive to H k.
+Lemma dlift_eq: forall m (S: finType) (S1 S2: set S)
+                        (t: dtuple S m),
+  S1 =1 S2 -> (dlift S1 t) = dlift S2 t.
+by move => m S S1 S2 t H; apply/idP/idP => H1;
+  apply: dlift_sub_set H1; move => z; rewrite H.
+Qed.
+
+Definition dtuple_in (S: finType) m (x: S) (t: dtuple S m) := 
+match t with
+| EqSig (Fgraph x1 _) _ => x1 x
+end.
+
+Definition dtuple_get (S: finType) m (t: dtuple S m) := 
+match t with
+| EqSig (Fgraph x1 _) _ => x1
+end.
+
+Lemma dtuple_get_size (S: finType) m (t: dtuple S m): 
+ size (dtuple_get t) = m.
 Proof.
-assert (F: forall m, ntransitive to H (m + 1) -> ntransitive to H m).
+move => S m [[x Hx] Dx] /=.
+by move: (Hx); rewrite card_ordinal.
+Qed.
+
+Lemma dtuple_get_card (S: finType) m (t: dtuple S m): 
+ card (dtuple_get t) = m.
+Proof.
+move => S m [[x Hx] Dx] /=.
+move: (Hx); rewrite card_ordinal.
+by move => <-; apply/card_uniqP.
+Qed.
+
+Lemma dtuple_get_sub_set (S: finType) (S1: set S) m (t: dtuple S m): 
+ dlift S1 t -> sub_set (dtuple_get t) S1.
+Proof.
+move => S S1 m [[x Hx] Dx] /= H1 x1 Hx1.
+exact: (allP H1).
+Qed.
+
+Let dtuple_add_aux: forall m (S: finType) x (x1: seq S),
+  size x1 = card (setA I_(m)) ->
+  size (Adds x x1) = card (setA I_(m + 1)).
+move => m S x x1 Hx1.
+by rewrite card_ordinal addnC -(card_ordinal m) -Hx1.
+Qed.
+
+Definition dtuple_add (S: finType) m (x:S) (t: dtuple S m):
+    ~~(dtuple_in x t) -> dtuple S (m + 1).
+intros S m x [[x1 Hx1] Dx1] => /= H.
+exists (Fgraph (dtuple_add_aux x Hx1)).
+by rewrite /distinctb /= H.
+Defined.
+
+Definition dtuple_hd S m s (t: dtuple S m) := head s (dtuple_get t).
+
+Lemma dtuple_hd_add (S: finType) m (x y:S) (t: dtuple S m) 
+         (F: ~~(dtuple_in x t)):
+  dtuple_hd y (dtuple_add F) = x.
+Proof.
+by move => S m x y [[xx Hxx] Dx].
+Qed.
+
+Let dtuple_tl_aux: forall m (S: finType) (x1: seq S),
+  size x1 = card (setA I_(m + 1)) ->
+  size (behead x1) = card (setA I_(m)).
+move => m S [| x1 l] /=.
+  by rewrite card_ordinal addnC.
+rewrite !card_ordinal addn1; move/eqP.
+by rewrite eqSS; move/eqP.
+Qed.
+
+Definition dtuple_tl S m (t: dtuple S (m + 1)): dtuple S m.
+ move => S m [[x Hx] Dx].
+exists (Fgraph (dtuple_tl_aux Hx)).
+case: (x) Hx Dx; rewrite /distinctb //= => a l _.
+by case/andP.
+Defined.
+
+Lemma dtuple_tl_add (S: finType) m (x:S) (t: dtuple S m) 
+         (F: ~~(dtuple_in x t)):
+  dtuple_tl (dtuple_add F) = t.
+Proof.
+move => S m x [[xx Hxx] Dx] F; apply/val_eqP.
+by rewrite /set1 /=.
+Qed.
+
+Lemma dtuple_hd_tl (S: finType) m (x:S) (t1 t2: dtuple S (m + 1)):
+  dtuple_hd x t1 = dtuple_hd x t2 ->
+  dtuple_tl t1 = dtuple_tl t2 ->
+  t1 = t2.
+Proof.
+move => S m x [[[|t1 l1] Ht1] Dt1].
+  by apply False_ind; move: (Ht1); rewrite /= card_ordinal addnC.
+move => [[[|t2 l2] Ht2] Dt2].
+  by apply False_ind; move: (Ht2); rewrite /= card_ordinal addnC.
+rewrite /dtuple_hd /= => H1.
+move/val_eqP; rewrite /set1 /= => H2.
+apply/val_eqP; rewrite /set1 /= /set1 /=.
+by rewrite H1 eqseqE H2 eq_refl.
+Qed.
+
+Lemma dlift_add:
+forall m (S: finType) (S1: set S) (a1: S) (x: dtuple S m)
+(F1 : ~~ dtuple_in a1 x),
+ dlift S1 x -> S1 a1 -> dlift S1 (dtuple_add F1).
+Proof.
+by move => m S S1 a1 [[x Hx] Dx] /= _ -> ->.
+Qed.
+
+Lemma dlift_addI:
+forall m (S: finType) (S1: set S) (a1: S) (x: dtuple S m)
+(F1 : ~~ dtuple_in a1 x),
+dlift S1 (dtuple_add F1) -> dlift S1 x.
+Proof.
+move => m S S1 a1 [[x Hx] Dx] /=; case (all S1 x) => //.
+by rewrite andbF.
+Qed.
+
+Lemma dlift_hd:
+forall m (S: finType) (S1: set S) (a1: S) (x: dtuple S (m + 1)),
+ dlift S1 x ->
+ S1 (dtuple_hd a1 x).
+Proof.
+move => m S S1 a1 [[[| x l] Hx] Dx] //=.
+  apply False_ind; move: (Hx) => /=; 
+  by rewrite card_ordinal addnC.
+by case/andP.
+Qed.
+
+Lemma dlift_tl:
+forall m (S: finType) (S1: set S) (a1: S) (x: dtuple S (m + 1)),
+ dlift S1 x ->
+ dlift (setD1 S1 (dtuple_hd a1 x)) (dtuple_tl x).
+Proof.
+move => m S S1 a1 [[[| x l] Hx] Dx] //=.
+rewrite /dlift /dtuple_tl /dtuple_hd /=.
+move: Dx; rewrite /distinctb /=; case/andP => Dx Dx1.
+case/andP => Dx2; move/allP => Dx3.
+apply/allP => z Hz.
+rewrite /setD1 Dx3 ?Hz // andbT.
+elim: (l) Dx Dx1 Hz => //= a l1 Hrec H1; move/andP => [H2 H3].
+case/orP => [| HH].
+  move/eqP => <-; apply/negP => HH; case/negP: H1.
+  by rewrite (eqP HH) setU11.
+apply: Hrec => //.
+apply/negP => HH1; case/negP: H1.
+by rewrite/setU1 HH1 orbT.
+Qed.
+
+Lemma dlift_tlw:
+forall m (S: finType) (S1: set S) (a1: S) (x: dtuple S (m + 1)),
+ dlift S1 x -> dlift S1 (dtuple_tl x).
+Proof.
+move => m S S1 a1 x H.
+have F := dlift_tl a1 H.
+apply: dlift_sub_set F => z.
+by case/andP.
+Qed.
+
+Lemma dlift_add_gen:
+forall m (S: finType) (S1: set S) (a1: S) (x: dtuple S m)
+(F1 : ~~ dtuple_in a1 x),
+ dlift S1 x -> dlift (setU1 a1 S1) (dtuple_add F1).
+Proof.
+move => m S S1 a1 [[x Hx] Dx] /=.
+rewrite setU11 /= => H.
+move/allP => H1; apply/allP => xx Hxx.
+by rewrite /setU1 H1 // orbT.
+Qed.
+
+Lemma naction_hd:
+forall m (G: finGroupType) 
+  (S: finType) a (a1 a2: S) (to: action G S) (x: dtuple S m),
+ 0 < m -> dtuple_hd a2 (naction to m x a) = to (dtuple_hd a2 x) a.
+Proof.
+move => m G S a a1 a2 xto [[[|x l] Hx] Dx];
+ rewrite /dtuple_hd //=.
+by move: (Hx); rewrite card_ordinal /= => <-.
+Qed.
+
+Lemma naction_tl:
+forall m (G: finGroupType)
+  (S: finType) a (to: action G S) (x: dtuple S (m + 1)),
+ dtuple_tl (naction to (m + 1) x a) = naction to m (dtuple_tl x) a.
+Proof.
+move => m G S a xto [[x Hx] Dx];
+ rewrite /dtuple_tl //=.
+apply/val_eqP; rewrite /set1 /=.
+by case: (x) (Hx); rewrite card_ordinal.
+Qed.
+
+Variable (G: finGroupType) (S:finType).
+Variable to : action G S.
+Variable H : group G.
+Variable S1: set S.
+
+
+Lemma ntransitive0: ntransitive to H S1 0.
+Proof.
+split => //.
+rewrite /transitive /dtuple => x Hx y.
+apply/idP/idP => H1.
+  by case: (y) => [[[|yy ll] Hyy] Dyy].
+apply/iimageP; exists (1:G) => //=.
+case: (x) => [[[|xx ll] Hxx]  Dxx] => //=.
+case: (y) => [[[|yy ll] Hyy] Dyy] => //=.
+by apply/val_eqP.
+Qed.
+
+Lemma ntransitive_weak: forall k m,
+k <= m -> ntransitive to H S1 m-> ntransitive to H S1 k.
+Proof.
+assert (F: forall m, ntransitive to H S1 (m + 1) -> ntransitive to H S1 m).
   move => m [H1 H2]; split; rewrite addnC in H2; last first.
     by apply: leq_trans H2; rewrite leqnSn.
-  move => [[x Hx] Dx] [[y Hy] Dy].
-  have F: ~~ set0b (setC x).
+  move => x Hx y.
+  set x1 := dtuple_get x.
+  have F: ~~ set0b  (setI S1 (setC x1)).
     rewrite /set0b.
     apply/negP => HH.
-    move: (card_size x).
-    by rewrite Hx card_ordinal -(addn0 (card x)) -(eqP HH)
-            cardC leqNgt H2.
-  case/set0Pn: F => a1 Ha1.
-  set (x1 := Adds a1 x).
-  have Hx1: size x1 = card (setA I_(m + 1)).
-     by rewrite card_ordinal addnC -(card_ordinal m) -Hx.
-  have Dx1: distinctb (Fgraph Hx1).
-    rewrite /setC in Ha1.
-    by rewrite /distinctb /= Ha1.
-  have F: ~~ set0b (setC y).
-    rewrite /set0b.
-    apply/negP => HH.
-    move: (card_size y).
-    by rewrite Hy card_ordinal -(addn0 (card y)) -(eqP HH)
-            cardC leqNgt H2.
-  case/set0Pn: F => a2 Ha2.
-  set (y1 := Adds a2 y).
-  have Hy1: size y1 = card (setA I_(m + 1)).
-     by rewrite card_ordinal addnC -(card_ordinal m) -Hy.
-  have Dy1: distinctb (Fgraph Hy1).
-    rewrite /setC in Ha2.
-    by rewrite /distinctb /= Ha2.
-  move/iimageP : (H1 (EqSig _ _ Dx1) (EqSig _ _ Dy1)) => [a Ha].
-  move/val_eqP; rewrite /set1 /= /set1 /y1.
-  move/eqseqP => /= HH1.
-  apply/iimageP; exists a => //.
-  apply/val_eqP => /=; rewrite /set1 /=.
-  change y with (behead (Adds  a2 y)).
-  by rewrite HH1.
+    move: H2; rewrite -(cardIC x1) (eqP HH) addn0.
+    replace (card (setI S1 x1)) with (card x1).
+      by rewrite /x1 dtuple_get_card add1n ltnn.
+    apply: eq_card => z; rewrite /setI.
+    move: (@dtuple_get_sub_set S S1 m x Hx z).
+    by rewrite -/x1; case (x1 z); case (S1 z) => // ->.
+  case/set0Pn: F => a1; case/andP => Ha1 Hb1.
+  have F1: ~~ dtuple_in a1 x.
+    move: Hb1; rewrite /x1.
+    by case: (x) => [[xx Hxx] Dxx].
+  set (x2 := dtuple_add F1).
+  set y1 := dtuple_get y.
+  apply/idP/idP => Hy; last first.
+    have F: ~~ set0b  (setI S1 (setC y1)).
+      rewrite /set0b.
+      apply/negP => HH.
+      move: H2; rewrite -(cardIC y1) (eqP HH) addn0.
+      replace (card (setI S1 y1)) with (card y1).
+        by rewrite /x1 dtuple_get_card add1n ltnn.
+      apply: eq_card => z; rewrite /setI.
+      move: (@dtuple_get_sub_set S S1 m y Hy z).
+      by rewrite -/y1; case (y1 z); case (S1 z) => // ->.
+    case/set0Pn: F => a2; case/andP => Ha2 Hb2.
+    have F2: ~~ dtuple_in a2 y.
+      move: Hb2; rewrite /y1.
+      by case: (y) => [[yy Hyy] Dyy].
+    set (y2 := dtuple_add F2).
+    have DLx2: dlift S1 x2.
+      by apply: dlift_add.
+    have DLy2: dlift S1 y2.
+      by apply: dlift_add.
+    move: (H1 _ DLx2 y2); rewrite DLy2.
+    move/iimageP => [a Ha] Ha'.
+    apply/iimageP; exists a => //.
+    rewrite /y2 /x2 in Ha'.
+    by rewrite -(dtuple_tl_add F2) Ha' naction_tl
+               dtuple_tl_add.
+  case/iimageP: Hy => a Ha Hya.
+  have DLx2: dlift S1 x2.
+    rewrite /x2; apply dlift_add => //.
+  set z := naction to (m + 1) x2 a.
+  replace y with (dtuple_tl z);
+    last by rewrite /z Hya /x2 naction_tl dtuple_tl_add.
+  apply: dlift_tlw => //.
+  rewrite /z -(H1 x2) //.
+  by apply/iimageP; exists a.
 move => k m Hm Ht.
 rewrite -(leq_sub_sub Hm).
 elim: (m - k) => [| d Hrec].
@@ -406,6 +635,152 @@ by rewrite addn1 -leq_subS.
 Qed.
 
 End NTransitveProp.
+
+Section NTransitveProp1.
+
+
+Variable (G: finGroupType) (S:finType).
+
+Variable to : action G S.
+Variable H : group G.
+Variable S1: set S.
+
+(* Correspond to => of 15.12.1 Aschbacher *)
+Theorem stab_ntransitive m x:
+  m >= 2 -> S1 x ->  ntransitive to H S1 m ->  
+     ntransitive to (group_stab to H x) (setD1 S1 x) (m - 1).
+Proof.
+case => // m.
+rewrite ltnS -(add1n m) subn_addr addnC => x Hlm Hs1 [Ht Hc].
+have F: setU1 x (setD1 S1 x) =1 S1.
+  move => z; rewrite /setU1 /setD1.
+  case E1: (x == z) => //.
+  by rewrite -(eqP E1) Hs1.
+have Fm: 0 < m + 1 by rewrite addnC /=.
+split; last first.
+  by move: Hc; rewrite (cardD1 x) Hs1 /= addnC.
+move => x1 Lx1 y1.
+have F1: ~~ dtuple_in x x1.
+  move: Lx1.
+  case: (x1) => [[xx1 Hxx1] Dxx1] /= HH.
+  by move: (allP HH x);
+     rewrite /setD1 eq_refl; case (xx1 x) => //= ->.
+set (x2 := dtuple_add F1).
+have Lx2: dlift S1 x2.
+  apply: dlift_add => //.
+  rewrite -(dlift_eq x1 F).
+  apply: dlift_sub_set Lx1.
+  by exact: setU1r.
+apply/idP/idP => Ly1; last first.
+  have F2: ~~ dtuple_in x y1.
+    move: Ly1.
+    case: (y1) => [[yy1 Hyy1] Dyy1] /= HH.
+    by move: (allP HH x);
+     rewrite /setD1 eq_refl; case (yy1 x) => //= ->.
+  set (y2 := dtuple_add F2).
+  have Ly2: dlift S1 y2.
+    apply: dlift_add => //.
+    rewrite -(dlift_eq y1 F).
+    apply: dlift_sub_set Ly1.
+    by exact: setU1r.
+  move: Ly2; rewrite /y2.
+  rewrite -(Ht x2) //.
+  case/iimageP => [a Ha] Ha'.
+  apply/iimageP; exists a => //.
+    apply/stabilizerP; split => //.
+    assert (FF: 0 < m + 1) by rewrite addnC //.
+    by rewrite -{2}(dtuple_hd_add x F2) Ha' naction_hd //
+            (dtuple_hd_add x F1).
+  by rewrite -{1}(dtuple_tl_add F2) Ha' naction_tl //
+            dtuple_tl_add.
+case/iimageP: Ly1 => [a Ha] Ha'.
+case/stabilizerP: Ha => Ha1 Ha2.
+rewrite Ha' -{1}(dtuple_tl_add F1) -naction_tl
+       -{1}Ha2 -{1}(dtuple_hd_add x F1) -naction_hd //.
+apply: dlift_tl.
+rewrite -(Ht x2 Lx2).
+by apply/iimageP; exists a.
+Qed.
+
+Lemma dlift_naction: 
+  forall m (x1: dtuple S m) (a1: G),
+  H a1 -> transitive to H S1 ->
+  dlift S1 x1 -> dlift S1 (naction to m x1 a1).
+Proof.
+move => m [[[|x l] Hx] Dx] a1 Ha1 Ht //=.
+case/andP => Hsx; move/allP => Ha.
+apply/andP; split.
+  rewrite -(Ht x Hsx).
+  by apply/iimageP; exists a1.
+apply/allP => x1.
+case/mapsP => y1 Hy1 <-.
+rewrite -(Ht y1 (Ha _ Hy1)).
+by apply/iimageP; exists a1.
+Qed.
+
+(*
+Lemma dlift_naction: 
+  forall m (x1: dtuple S m) (a1: G),
+  m > 0 ->
+  ntransitive to H S1 m ->
+  dlift S1 x1 -> dlift S1 (naction to m x1 a1).
+
+Lemma dlift_naction: 
+  forall m (x1: dtuple S m) (a1: G),
+  transitive to H S1 ->
+  (forall x y, dlift S1 m x -> dlift S1 m y 
+      (exists z, naction to m x = y)) ->
+  ntransitive to H S1 m
+*)
+
+(* Correspond to <= of 15.12.1 Aschbacher *)
+Theorem stab_ntransitiveI m x:
+  card S1 > m -> m >= 1 -> S1 x ->  transitive to H S1 ->
+   ntransitive to (group_stab to H x) (setD1 S1 x) m ->
+   ntransitive to H S1 (m + 1).
+Proof.
+move =>  m x Hcs Hlm Hs1 Ht1 [Ht Hc].
+have F: 0 < m   by apply: leq_trans Hlm.
+have F0: 0 < m + 1   by rewrite addnC.
+split; last by rewrite addn1.
+move => x1 Hx1 y1.
+set (h1 := dtuple_hd x x1).
+have Sh1: S1 h1 by exact: dlift_hd.
+set (h2 := dtuple_hd x y1).
+move: (Hs1); rewrite -(Ht1 _ Sh1).
+case/iimageP => [g1 Hg1] Hh1.
+apply/idP/idP => Hy1.
+  case/iimageP: Hy1 => [z Hz] ->.
+  by apply dlift_naction.
+have Sh2: S1 h2 by exact: dlift_hd.
+move: (Hs1); rewrite -(Ht1 _ Sh2).
+case/iimageP => [g2 Hg2] Hh2.
+set x2 := naction to (m + 1) x1 g1.
+have Hx2: x = dtuple_hd x x2 by rewrite naction_hd.
+set y2 := naction to (m + 1) y1 g2.
+have Hy2: x = dtuple_hd x y2  by rewrite naction_hd.
+set x3 := dtuple_tl x2.
+set y3 := dtuple_tl y2.
+have Dx3: dlift (setD1 S1 x) x3.
+  rewrite Hx2; apply: dlift_tl.
+  by exact: dlift_naction.
+have Dy3: dlift (setD1 S1 x) y3.
+  rewrite Hy2; apply: dlift_tl.
+  by exact: dlift_naction.
+rewrite -(Ht _ Dx3) in Dy3.
+case/iimageP: Dy3 => [g3 Hg3] Hh3.
+apply/iimageP; exists (g1 * g3 * g2^-1).
+  rewrite !groupM // ?groupV //.
+  by apply: (subsetP (subset_stab to H x)).
+rewrite !act_morph -/x2.
+have <-: y2 = naction to (m + 1) x2 g3.
+  apply: (dtuple_hd_tl (x:=x)).
+    rewrite -Hy2 naction_hd // -Hx2.
+    by case/stabilizerP: Hg3.
+  by rewrite  naction_tl.
+by rewrite /y2 -act_morph mulgV act_1.
+Qed.
+
 
 (*
 Section Try.
