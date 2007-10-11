@@ -781,6 +781,58 @@ have <-: y2 = naction to (m + 1) x2 g3.
 by rewrite /y2 -act_morph mulgV act_1.
 Qed.
 
+(* => of 5.20 Aschbacher *)
+Theorem subgroup_transitive: 
+  forall (K: group G) (x:S), S1 x ->
+   subset K H -> transitive to H S1 -> transitive to K S1 ->
+    (stabilizer to H x) :*: K = H.
+Proof.
+move => K x Hx H1 H2 H3.
+set H_x := stabilizer to H x.
+apply/isetP => z; apply/smulgP/idP => [[hx1 k1 Hx1 Hk1 ->] | Hz].
+  apply: groupM; last by apply: (subsetP H1).
+  by apply (subsetP (subset_stab to H x)).
+set y := to x z.
+have Hy: S1 y.
+  rewrite -(H2 x Hx).
+  by apply/iimageP; exists z.
+move: (Hy); rewrite -(H3 x Hx).
+case/iimageP => k Hk Hk1.
+exists (z * k ^-1)  k => //.
+  apply/stabilizerP; split.
+    by rewrite groupM // groupV (subsetP H1).
+  by rewrite act_morph -/y Hk1 -act_morph mulgV act_1.
+by gsimpl.
+Qed.
+  
+
+(* <= of 5.20 Aschbacher *)
+Theorem subgroup_transitiveI: 
+  forall (K: group G) (x:S), S1 x ->
+   subset K H -> transitive to H S1 -> 
+    (stabilizer to H x) :*: K = H ->
+     transitive to K S1.
+Proof.
+move => K x Hx Hkh Ht Heq x1 Hx1 y1.
+apply/iimageP/idP => [[g1 Hg1 ->] | Hy1].
+  have F: H g1 by apply: (subsetP Hkh).
+  rewrite -(Ht _ Hx1).
+  by apply/iimageP; exists g1.
+move: (Hx1); rewrite -(Ht _ Hx).
+case/iimageP => [g1 Hg1 Hgg1].
+move: (Hg1); rewrite <- Heq.
+case/smulgP => h1 k1 Hh1 Hk1 Hhk1.
+move: (Hy1); rewrite -(Ht _ Hx).
+case/iimageP => [g2 Hg2 Hgg2].
+move: (Hg2); rewrite <- Heq.
+case/smulgP => h2 k2 Hh2 Hk2 Hhk2.
+exists (k1^-1 * k2).
+  by rewrite groupM // groupV.
+rewrite Hgg1 Hhk1 -act_morph; gsimpl.
+rewrite Hgg2 Hhk2 !act_morph.
+case/stabilizerP: Hh1 => _ ->.
+by case/stabilizerP: Hh2 => _ ->.
+Qed.
 
 (*
 Section Try.
