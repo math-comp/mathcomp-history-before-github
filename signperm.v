@@ -1,5 +1,6 @@
 Require Import ssreflect ssrbool funs eqtype ssrnat seq fintype paths.
 Require Import connect div groups group_perm zp action.
+Require Import normal.
 
 Import Prenex Implicits.
 Set Implicit Arguments.
@@ -150,6 +151,55 @@ Notation Local oddpV := odd_permV.
 Lemma odd_permJ : forall s t, oddp (s ^ t) = oddp s.
 Proof. by move=> *; rewrite /conjg !oddpM oddpV addbC addbA addbb. Qed.
 Notation Local oddpJ := odd_permJ.
+
+Definition sym := Group (group_set_finGroupType (perm_finGroupType d)).
+
+Lemma dom_odd_perm : dom odd_perm = (perm_finGroupType d).
+Proof.
+apply/isetP; apply/subset_eqP; apply/andP; split; apply/subsetP=> x //.
+move=> _; case Ix : (odd_perm x);  [rewrite dom_nu // | rewrite dom_k //].
+  by rewrite Ix.
+apply/kerP=> y; move: Ix; rewrite odd_permM.
+by case: odd_perm.
+Qed.
+
+Lemma group_set_dom_odd_perm : group_set (dom odd_perm).
+Proof.
+by rewrite dom_odd_perm; apply/andP; split => //; apply/subsetP=> u.
+Qed.
+
+Definition sign_morph: morphism (perm_finGroupType d) boolGroup.
+exists odd_perm.
+  exact: group_set_dom_odd_perm.
+move => *; exact: odd_permM.
+Defined.
+
+Definition alt := ker sign_morph.
+
+Lemma altP: forall x, reflect (even_perm x) (alt x).
+Proof.
+move => x; apply: (iffP idP); rewrite /even_perm => H1.
+  by move: (mker H1) => /= ->.
+apply/kerP => /= y.
+by move: H1; rewrite odd_permM; case: odd_perm.
+Qed.
+
+Lemma alt_subset: subset alt sym.
+Proof.
+by apply/subsetP => x; rewrite !s2f.
+Qed.
+
+Lemma alt_normal: alt <| sym.
+Proof.
+by rewrite /isetA /= -dom_odd_perm normal_ker.
+Qed.
+
+Definition group_set_alt: group_set alt.
+exact: group_set_ker.
+Defined.
+
+Definition group_alt := Group group_set_alt.
+
 
 (* Complements on tranpositions, starting with a shorter prenex alias. *)
 

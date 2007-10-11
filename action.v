@@ -718,21 +718,6 @@ rewrite -(Ht y1 (Ha _ Hy1)).
 by apply/iimageP; exists a1.
 Qed.
 
-(*
-Lemma dlift_naction: 
-  forall m (x1: dtuple S m) (a1: G),
-  m > 0 ->
-  ntransitive to H S1 m ->
-  dlift S1 x1 -> dlift S1 (naction to m x1 a1).
-
-Lemma dlift_naction: 
-  forall m (x1: dtuple S m) (a1: G),
-  transitive to H S1 ->
-  (forall x y, dlift S1 m x -> dlift S1 m y 
-      (exists z, naction to m x = y)) ->
-  ntransitive to H S1 m
-*)
-
 (* Correspond to <= of 15.12.1 Aschbacher *)
 Theorem stab_ntransitiveI m x:
   card S1 > m -> m >= 1 -> S1 x ->  transitive to H S1 ->
@@ -833,6 +818,9 @@ rewrite Hgg2 Hhk2 !act_morph.
 case/stabilizerP: Hh1 => _ ->.
 by case/stabilizerP: Hh2 => _ ->.
 Qed.
+
+End NTransitveProp1.
+
 
 (*
 Section Try.

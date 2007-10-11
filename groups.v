@@ -454,6 +454,12 @@ Lemma sinvg_set1 : forall x : elt, {:x} :^-1 = {:x^-1}.
 Proof. move=> x; apply/isetP=> y; rewrite !s2f inv_eq //; exact: invgK. Qed.
 
 Definition group_set A := (1 \in A) && subset (A :*: A) A.
+	 
+Lemma group_set_finGroupType :  group_set elt. 	 
+Proof. 	 
+rewrite /group_set /=; apply/andP; split; first by done. 	 
+by apply/subsetP=> u; case/smulgP=> x y Ex Ey ->. 	 
+Qed. 	
 
 Lemma groupP : forall A,
   reflect (1 \in A /\ forall x y, x \in A -> y \in A -> x * y \in A) (group_set A).
@@ -551,6 +557,7 @@ Hint Resolve group1 groupM groupVr.
 
 Lemma sinvMG : forall H K : group, (H :*: K) :^-1 = K :*: H.
 Proof. by move=> H K; rewrite sinvgM !sinvG. Qed.
+
 
 Lemma group_set_unit : group_set {:1}.
 Proof. by rewrite /group_set smulg_set1 mulg1 subset_refl iset11. Qed.
@@ -975,7 +982,6 @@ move=> elt H x y Nx.
 rewrite !rcoset_smul -smulgA (smulgA _ H) -lcoset_smul -norm_rlcoset //.
 by rewrite rcoset_smul -smulgA smulg_set1 smulgA smulgg.
 Qed.
-
 
 
 Unset Implicit Arguments.
