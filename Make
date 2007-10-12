@@ -23,12 +23,6 @@ group_perm.v
 frobenius_cauchy.v
 burnside_app.v
 signperm.v
-indexed_products.v
-determinant.v	
-algebraic_struct.v
-ring.v
-polynomials.v
-cayley.v
 charpoly.v
 ssralg.v
 ssrpoly.v
