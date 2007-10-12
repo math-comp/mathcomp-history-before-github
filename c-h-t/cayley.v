@@ -6,67 +6,6 @@ Unset Strict Implicit.
 Import Prenex Implicits.
 
 Open Scope ring_scope.
-(* Delimit Scope local_scope with loc.
-Open Scope local_scope. *)
-
-Axiom ok: forall p, p.
-
-Lemma coef_foldr : forall (R : ring) (n :nat) (f: nat -> R) k,
-  k<n ->
-  coef (foldr (fun k p => horner p (f k)) (@poly0 R) (iota 0 n)) k =
-  f k.
-Proof.
-have Hi : forall n, (maps S (iota 0 n)) = iota 1 n.
-  move=>n ; apply: (eq_from_sub (x0:=0%N));
-    first by rewrite size_maps !size_iota.
-  rewrite size_maps size_iota => i Hi.
-  rewrite (sub_maps 0%N) ?size_iota//.
-  rewrite !sub_iota//.
-move=> R n f k Hk.
-elim: n k f Hk=>//= n Hn k f Hk.
-rewrite -Hi.
-rewrite foldr_maps.
-case: k Hk =>//= [_ | k Hk].
-  by rewrite coef_horner_0.
-rewrite coef_horner_S.
-rewrite Hn//.
-Qed.
-
-Lemma coef_foldr_0 : forall (R : ring) (n :nat) (f: nat -> R) k,
-  n<=k ->
-  coef (foldr (fun k p => horner p (f k)) (@poly0 R) (iota 0 n)) k = 0.
-Proof.
-have Hi : forall n, (maps S (iota 0 n)) = iota 1 n.
-  move=>n ; apply: (eq_from_sub (x0:=0%N));
-    first by rewrite size_maps !size_iota.
-  rewrite size_maps size_iota => i Hi.
-  rewrite (sub_maps 0%N) ?size_iota//.
-  rewrite !sub_iota//.
-move=> R n f k Hk.
-elim: n k f Hk=>//= [k f Hk|n Hn k f Hk]; first by rewrite coef0.
-rewrite -Hi.
-rewrite foldr_maps.
-case: k Hk =>//= [ k Hk].
-rewrite coef_horner_S.
-rewrite Hn//.
-Qed.
-
-Definition maxn_seq d (s : seq d) (f : d -> nat) : nat :=
-  foldr (fun (x : d) x0 => maxn x0 (f x)) 0%N s.
-
-Lemma maxn_seqP : forall d (s : seq d) (f : d -> nat) x,
-  s x -> (f x) <= maxn_seq s f.
-Proof.
-move=> d; elim=>// x s Hr f x0 H; rewrite / maxn_seq //=.
-case Hc1:(x0==x).
-  move/eqP: Hc1=>->//=; rewrite / maxn.
-  by case Hc2:((foldr _ _ s) < f x)=>//; rewrite leqNgt Hc2.
-apply: (@leq_trans (maxn_seq s f)).
-  by apply: Hr; rewrite //= / setU1 eq_sym Hc1 orFb in H; clear Hc1.
-rewrite / maxn_seq / maxn.
-case Hc2:((foldr _ _ s) < f x)=>//.
-by apply: ltnW.
-Qed.
 
 Section Cayley.
 Variable R : com_ring.
@@ -81,7 +20,7 @@ Notation "\Pm[x]" := (poly_ring \M_(n)).
 
 Lemma m2f_iprod : forall k (f : I_(k) -> \M_(n)) i j,
   (iprod (R:=\M_(n)) (setA I_(k)) f) i j =
-  iprod (R:=R) (setA I_(k)) (fun k => (f k) i j).
+   iprod (R:=R) (setA I_(k)) (fun k => (f k) i j).
 Proof.
 elim=>//[f i j| k Hk f i j].
   rewrite !(iprod_set0_) /= ?m2f //; case=>//=.
@@ -103,16 +42,15 @@ Qed.
 Section DegMatrixOfPoly.
 
 Definition deg_mx_of_poly (M : \Mp_(n)) : nat :=
-  maxn_seq (prod_enum I_(n) I_(n))
-           (fun x => (deg_poly (M (fst x) (snd x)))).
+  maxn_seq (fun x => (deg_poly (M (fst x) (snd x)))) (prod_enum I_(n) I_(n)).
 
 Lemma deg_mx_of_polyP: forall (M : \Mp_(n)) i j, 
   deg_poly (M i j) <= deg_mx_of_poly M.
 Proof.
 move=>M i j.
 rewrite / deg_mx_of_poly.
-apply: (@maxn_seqP _ (prod_enum I_(n) I_(n))
-           (fun x => (deg_poly (M (fst x) (snd x)))) (i,j)).
+apply: (@maxn_seqP _ (fun x => (deg_poly (M (fst x) (snd x))))
+                     (prod_enum I_(n) I_(n)) (i,j)).
 by rewrite mem_enum / setA.
 Qed.
 
@@ -120,27 +58,22 @@ End DegMatrixOfPoly.
 
 Definition phi (M : \Mp_(n)) : \Pm[x] :=
   foldr (fun k p => 
-             (@horner \M_(n) p (matrix_of_fun (fun i j=> coef (M i j) k))))
-  (@poly0 \M_(n)) (iota 0 (deg_mx_of_poly M)).
+             (horner p (matrix_of_fun (fun i j=> coef (M i j) k))))
+  (@poly0 _) (iota 0 (deg_mx_of_poly M)).
 
 Lemma phi_coef : forall (M : \Mp_(n)) i j k,
   coef (M i j) k = (coef (phi M) k) i j.
 Proof.
 move=> M i j k.
 rewrite / phi.
-case Hc: (k < deg_mx_of_poly M); move/idP: Hc=>Hc.
-move: (@coef_foldr \M_(n) _ 
-        (fun k => (matrix_of_fun (fun i0 j0 => (coef (M i0 j0) k)))) k Hc).
-move=> H1.
-move/matrix_eqP: H1; case=>//= ->.
+set fk: nat -> \M_(n) :=
+  (fun k => (matrix_of_fun (fun i0 j0 => (coef (M i0 j0) k)))).
+have Hfk: forall k', (deg_mx_of_poly M) <= k' -> fk k' = 0.
+  move=> k' Hk'; rewrite / fk /=.
+  apply/matrix_eqP; apply: EqMatrix => x y; rewrite !m2f.
+  by apply: deg_coef; apply: (leq_trans (deg_mx_of_polyP M x y) Hk').
+move/matrix_eqP: (coef_horner_foldr Hfk k); case=>//= ->.
 by rewrite m2f.
-move/idP: Hc => Hc.
-rewrite -leqNgt in Hc.
-move: (@coef_foldr_0 \M_(n) _ 
-        (fun k => (matrix_of_fun (fun i0 j0 => (coef (M i0 j0) k)))) k Hc).
-move=>H1; rewrite H1 //= m2f.
-apply: deg_coef.
-by apply: (leq_trans (deg_mx_of_polyP M i j)).
 Qed.
 
 (* --- phi is ring morphism --- *)
@@ -236,7 +169,7 @@ move: (mult_adugateR X_I_A) => H1.
 suffices: phi (X_I_A * (adjugate X_I_A)) = 
           phi (matrix_scale (poly_car A) (unit_matrix \P[x] n));
   last (by rewrite //= H1 ); clear H1=>H1.
-(* How can i make this automaticly *)
+(* How can i do this automaticly *)
 rewrite phi_mult in H1; symmetry in H1.
 rewrite -phi_polyP.
 suffices: (phi X_I_A) = polyX_a A; first (move=> H2 ).

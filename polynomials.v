@@ -48,40 +48,6 @@ Fixpoint eq_p (p q : poly_coef) {struct p}: bool :=
    else eq_p0 p 
   else eq_p0 q.
 
-Notation "x1 '==' x2" := (eq_p x1 x2) (at level 70) : local_scope.
-Notation "00" := (@Seq0 _: poly_coef) (at level 0): local_scope.
-
-Lemma eq_p0_eq_p: forall p, eq_p0 p = (p == 00).
-Proof. elim => //= [a p Hrec H]. Qed.
-
-Lemma eq_p_refl: forall p, p == p.
-Proof.
-by elim => [|a p Hrec] //=; rewrite eq_refl.
-Qed.
-
-Lemma eq_p_sym: forall p q, p == q -> q == p.
-Proof.
-elim => [|a p Hrec] // [|b q] //=.
-by case/andP => H1 H2; rewrite eq_sym H1 Hrec.
-Qed.
-
-Lemma eq_p0_trans: forall p q, eq_p0 p -> p == q -> eq_p0 q.
-Proof.
-elim => [|a p Hrec] // [|b q] //=.
-case/andP => H1 H2; case/andP => H3 H4.
-by rewrite -(eqP H3) H1 Hrec.
-Qed.
-
-Lemma eq_p_trans: forall p q r, p == q -> q == r -> p == r.
-Proof.
-elim => [|a p Hrec] //=; first exact: eq_p0_trans.
-move => [|b q] // [|c r] //=; case/andP => H1 H2; 
-                              case/andP => H3 H4.
-  by rewrite -(eqP H1) H3 (Hrec 00) // -eq_p0_eq_p.
- -by rewrite (eqP H1) H3 (eq_p0_trans H4) // eq_p_sym.
-by rewrite (eqP H1) H3 (Hrec _ _ H2).
-Qed.
-
 Lemma eq_p0_subP : forall p, reflect (sub 0 p =1 sub 0 seq0) (eq_p0 p).
 Proof.
 elim=> //=[|x s Hp]; apply: (iffP idP) => //=.
@@ -92,7 +58,10 @@ apply/Hp=> i; move: (H1 (S i)) => //=.
 by rewrite sub_seq0.
 Qed.
 
-Lemma eq_p_subP : forall p q, reflect (sub 0 p =1 sub 0 q) (p == q).
+Lemma eq_p0_eq_p: forall p, eq_p0 p = (eq_p p seq0).
+Proof. elim => //= [a p Hrec H]. Qed.
+
+Lemma eq_p_subP : forall p q, reflect (sub 0 p =1 sub 0 q) (eq_p p q).
 Proof.
 move=> p q.
 elim: q p => // [p| b q Hq]; 
@@ -108,89 +77,20 @@ move: (H1 0%N)=> /= ->; rewrite eq_refl andTb.
 apply/Hq => i; apply: (H1 (S i)).
 Qed.
 
-(* --- *)
-
 (* normal polynomial *)
 
 (* A polynomial is normal if its last element is <> 0 *)
 Definition normal (p : poly_coef) := last 1 p != 0.
 
-Fixpoint norm3 (p q r : poly_coef) {struct p} : poly_coef :=
-  if p is (Adds a p') then
-    if (a == 0)%EQ then norm3 p' q (Adds a r) 
-              else norm3 p' (Adds a r) (Adds a r)
-  else rev q.
-
-(* Normalizer *)
-Definition norm p := norm3 p (Seq0 _) (Seq0 _).
-
-(* 00 is normal *)
-Lemma normal0: normal 00.
+Lemma normal0: normal seq0.
 Proof.
 by rewrite /normal /=; apply/negP => H1; case (@one_diff_0 R); apply/eqP.
 Qed.
 
 Lemma normal_behead: forall a p, normal (Adds a p) -> normal p.
 Proof.
-move => a [|b p] // _; exact: normal0.
-Qed.
-
-(* Equality on normal polynomials is structural *)
-Lemma normal_eq:
-  forall p q, normal p -> normal q -> p == q -> p = q.
-Proof.
-have F1: forall p, eq_p0 p -> last 0 p = 0.
-  elim => [|a p] //= H; first by case/andP; move/eqP => <-.
-elim => [|a p Hrec].
-  elim => [|b q Hrec] //=.
-  move => _ H; case/andP; move/eqP => H1 H2.
-  by case/negP: H; rewrite -H1 /=; apply/eqP; apply F1.
-case => [|b q H1 H2] //=.
-  move => H _; case/andP; move/eqP => H1 H2.
-  by case/negP: H; rewrite -H1 /=; apply/eqP; apply F1.
-case/andP; move/eqP => -> H3.
-by rewrite (Hrec q)  ?(normal_behead H1) ?(normal_behead H2).
-Qed.
-
-Lemma norm3_eq:
-  forall p q r, (rev q) == (rev r) -> norm3 p q r == cat (rev r) p.
-Proof.
-elim => [|a p Hrec] q r H1 //=; first by rewrite cats0.
-case E1: (a == 0)%EQ.
-  rewrite (eq_p_trans (Hrec q (Adds a r) _)) //=.
-    rewrite rev_adds {H1}(eq_p_trans H1) //.
-    elim: (rev r) => [|b r1 Hrec1] //=.
-      by rewrite eq_sym E1.
-    by rewrite Hrec1 eq_refl.
-  by rewrite rev_adds cat_add_last eq_p_refl.
-rewrite (eq_p_trans (Hrec (Adds a r) (Adds a r) _)) //=.
-  by rewrite eq_p_refl.
-by rewrite rev_adds cat_add_last eq_p_refl.
-Qed.
-
-(* Normalizing returns an equal polynomial *)
-Lemma norm_eq: forall p, norm p == p.
-Proof.
-by move => p; rewrite /norm (eq_p_trans (norm3_eq _ _)) //= eq_p_refl.
-Qed.
-
-Lemma norm3_normal: forall p q r, normal (rev q) -> normal (norm3 p q r).
-Proof.
-elim => [|a p Hrec] q r H1 //=.
-by case E1: (a == 0)%EQ;
-  rewrite Hrec // /normal rev_adds last_add_last E1.
-Qed.
-
-(* Normalizing normalises *)
-Lemma norm_normal: forall p, normal (norm p).
-Proof.
-by move => p; rewrite /norm norm3_normal //; exact: normal0.
-Qed.
-
-Lemma normal_norm_eq : forall p, normal p -> norm p = p.
-Proof.
-move=> p Hp; apply: normal_eq=> //; last (by apply: norm_eq).
-apply: norm_normal.
+move => a [|b p] // _.
+by rewrite /normal /=; apply/negP => H1; case (@one_diff_0 R); apply/eqP.
 Qed.
 
 (* --- *)
@@ -201,8 +101,11 @@ End PolynomialCoef.
 
 CoInductive polynomial : Type := Poly p of normal p.
 
-Definition coef p :=
-  let: Poly sp _ := p in sub 0 sp.
+Notation poly := polynomial.
+
+Coercion seq_of_poly p := let: Poly s _ := p in s.
+
+Definition coef p := let: Poly p _:= p in sub 0 p.
 
 Lemma coef_eqP : forall p q, coef p =1 coef q <-> p = q.
 Proof.
@@ -230,7 +133,7 @@ move=> [[|a1 p1] np1] [[|a2 p2] np2] ; apply: (iffP idP) => //=.
    suffices: (last a2 p2) = 0 => //=; 
      first (move=> ->; move/eqP=>//=).
    elim: (andP H1) =>  //=; move/eqP=><-.
-   rewrite / eq_p0 //= ; elim: p2 {H1 H2} => //= [x s Hs] H1.
+   rewrite / eq_p0 //=; elim: p2 {H1 H2} => //= [x s Hs] H1.
    by elim: (andP H1); move/eqP=> <-; exact Hs.
  - move=> H1; move: np1; rewrite / normal //= => H2.
    suffices: (last a1 p1) != 0 => //=.
@@ -240,8 +143,7 @@ move=> [[|a1 p1] np1] [[|a2 p2] np2] ; apply: (iffP idP) => //=.
    rewrite / eq_p0 //= ; elim: p1 {H1 H2} => //= [x s Hs] H1.
    by elim: (andP H1); move/eqP=> <-; exact Hs.
  - move=> H1; elim: (andP H1); move/eqP=> {H1} H1 H2.
-   move/eq_p_subP: H2 => H2.
-   by apply/coef_eqP => //=; move=> [|i] //=.
+   by apply/coef_eqP; apply/eq_p_subP => /=; rewrite H1 H2 eq_refl.
 move/coef_eqP=> //= H1; apply/andP.
 split; first (apply/eqP; apply: (H1 0%N)).
 apply/eq_p_subP=>i; apply: (H1 (S i)).
@@ -251,25 +153,40 @@ Canonical Structure polynomial_eqType := EqType eq_pP.
 
 Section PolynomialRing.
 
-Definition poly0 := locked Poly seq0 normal0.
-
 Definition const_poly c :=
   if insub normal (Seq c) is Some (EqSig p np) then locked Poly p np
-  else poly0.
+  else Poly normal0.
 
-Definition horner p c : polynomial :=
-  if p is Poly (Adds _ _ as sp) norm_p then
-    locked Poly (Adds c sp) norm_p
-  else const_poly c.
+Notation Local "\C c" := (const_poly c) (at level 0).
 
+Definition poly0 := const_poly 0.
+Definition poly1 := const_poly 1.
+
+Notation Local "\C0" := poly0 (at level 0).
+Notation Local "\C1" := poly1 (at level 0).
+
+Definition horner c p : polynomial :=
+  if p is Poly (Adds _ _ as sp) np then
+    locked Poly (Adds c sp) np
+  else \C c.
+
+Definition mkPoly := foldr horner \C0.
+
+Definition polyX := mkPoly (Seq 0 1).
+Notation "\X" := polyX.
 
 Lemma coef0 : forall i, coef poly0 i = 0.
-Proof. by unlock poly0; case. Qed.
+Proof.
+rewrite /poly0; unlock const_poly.
+by case: insubP => [[_ _] _ /= -> //|] /= [] *;
+   rewrite //= ?sub_seq0.
+Qed.
 
 Lemma coef_const_0 : forall c, coef (const_poly c) 0 = c.
 Proof.
-unlock const_poly => c /=; case: insubP => [[_ _] _ /= -> //|].
-by rewrite negbK coef0; move/eqP.
+unlock const_poly => c /=.
+case: insubP => [[_ _] _ /= -> //|].
+by rewrite negbK //=; move/eqP.
 Qed.
 
 Lemma coef_const_S : forall c i, coef (const_poly c) i.+1 = 0.
@@ -277,55 +194,62 @@ Proof.
 by unlock const_poly poly0 => c [|i] /=; case: insubP => [[_ _] _ /= ->|].
 Qed.
 
-Lemma coef_horner_0 : forall p c, coef (horner p c) 0 = c.
+Lemma coef_horner_0 : forall p c, coef (horner c p) 0 = c.
 Proof.
 unlock horner => [] [[|_ _] _] c //=; exact: coef_const_0.
 Qed.
 
-Lemma coef_horner_S : forall p c i, coef (horner p c) i.+1 = coef p i.
+Lemma coef_horner_S : forall p c i, coef (horner c p) i.+1 = coef p i.
 Proof.
 unlock horner => [] [[|_ _] _] c [|i] //=; exact: coef_const_S.
 Qed.
 
-Lemma coef_norm : forall p , coef (Poly (norm_normal p)) =1 sub 0 p.
-Proof. move=> p //=; apply/eq_p_subP; apply: norm_eq. Qed.
-
-Lemma poly_rect P :
-  P poly0 -> (forall p c, P p -> P (horner p c)) -> forall p, P p.
+Lemma coef_horner_foldr : forall (n :nat) (f: nat -> R),
+  (forall k, n<=k -> f k = 0) ->
+  (forall k, coef (foldr (fun k p => horner (f k) p) poly0 (iota 0 n)) k =
+   f k).
 Proof.
-unlock poly0 horner => P P_0 P_H [].
-elim=> [|c [|c' p] /= IHp] np; last exact: P_H (IHp np).
-  by rewrite (bool_irrelevance np normal0).
-have:= P_H _ c P_0; unlock const_poly.
-case: insubP np => [[q nq] _ /= <- np|]; last by move/negP.
-by rewrite (bool_irrelevance np nq).
+move=> n f Hfk k.
+case Ck:(k<n); move/idP: Ck => Ck.
+  elim: n k f {Hfk} Ck=>//= n Hn k f Ck.
+  rewrite -(iota_maps 1 n) foldr_maps.
+  case: k Ck =>//= [_ | k Ck]; first (by rewrite coef_horner_0).
+  by rewrite !coef_horner_S Hn// addn1.
+rewrite Hfk; last (by move/idP: Ck; rewrite -leqNgt).
+elim: n k f {Hfk} Ck=>//= [k f Ck|n Hn k f Ck]; first by rewrite coef0.
+rewrite -(iota_maps 1 n) foldr_maps.
+case: k Ck =>//= [ k Ck].
+by rewrite coef_horner_S Hn//.
 Qed.
 
-Definition poly_ind (P : polynomial -> Prop) := @poly_rect P.
-Definition poly_rec (P : polynomial -> Set) := @poly_rect P.
+Lemma coef_mkPoly : forall s, coef (mkPoly s) =1 sub 0 s.
+Proof.
+by elim=> [|c s IHs] /= [|i];
+  rewrite (coef0, coef_horner_0, coef_horner_S) /=.
+Qed.
 
-Fixpoint add_poly_rec (p q : seq R) {struct p} : 
-  normal p -> normal q -> polynomial := 
-  if p is (Adds a p') return normal p -> normal q -> polynomial then 
-    if q is (Adds b q')
-      return (normal (Adds a p')) -> normal q -> polynomial then
-      fun np nq => 
-        horner (add_poly_rec (normal_behead np) (normal_behead nq))
-               (a + b)
-    else fun np _ => Poly np
-  else fun _ nq => Poly nq.
+Fixpoint add_poly_seq (s1 s2 : seq R) {struct s1} : seq R :=
+  match s1, s2 with
+  | Seq0, _ => s2
+  | _, Seq0 => s1
+  | Adds c1 s1', Adds c2 s2' => Adds (c1 + c2) (add_poly_seq s1' s2')
+  end.
 
-Definition add_poly p1 p2 :=
-  let: Poly _ np1 := p1 in
-  let: Poly _ np2 := p2 in
-  (add_poly_rec np1 np2).
+Definition add_poly (p1 p2 : polynomial) := mkPoly (add_poly_seq p1 p2).
+
+Notation Local "p1 +p p2" := (add_poly p1 p2) (at level 50).
+
+Lemma sub_add_poly_seq : forall s1 s2 i,
+  sub 0 (add_poly_seq s1 s2) i = sub 0 s1 i + sub 0 s2 i.
+Proof.
+by elim=> [|c1 s1 IHs] [|c2 s2] [|i] //=; rewrite ?plus_r0r ?plus_r0l.
+Qed.
 
 Lemma coef_add_poly p1 p2 i : 
-  coef (add_poly p1 p2) i = coef p1 i + coef p2 i.
+  coef (p1 +p p2) i = coef p1 i + coef p2 i.
 Proof.
-move=> [p1 np1] [p2 np2].
-elim: p1 np1 p2 np2 => [|c1 p1 IHp] np1 [|c2 p2] np2 [|i] //=;
-  rewrite (plus_r0r, plus_r0l, coef_horner_0, coef_horner_S) // IHp //=.
+move=> [p1 np1] [p2 np2] i.
+by rewrite coef_mkPoly /coef /= {np1 np2} sub_add_poly_seq.
 Qed.
 
 Lemma poly_add0P p : add_poly poly0 p = p.
@@ -344,75 +268,53 @@ Proof.
 by move=> p1 p2 p3; apply/coef_eqP=> i; rewrite !coef_add_poly plus_rA.
 Qed.
 
-Fixpoint mult_cst_poly_l_rec c p : normal p -> polynomial :=
-  if p is Adds a p' return normal p -> polynomial then 
-    fun np => horner (mult_cst_poly_l_rec c (normal_behead np)) (c * a)
-  else fun _ => poly0.
+Fixpoint mult_poly_seq (s1 s2 : seq R) {struct s1} : seq R :=
+  if s1 is Adds c1 s1' then
+    add_poly_seq (maps (fun c2 => c1 * c2) s2)
+                 (Adds 0 (mult_poly_seq s1' s2))
+  else seq0.
 
-Lemma coef_mult_cst_poly_l_rec c p (np : normal p) i : 
-  coef (mult_cst_poly_l_rec c np) i = c * (sub 0 p i).
-Proof.
-move=> c p np.
-elim: p np => [|a p IHp] np [|i] //=;
-  rewrite (mult_r0r, mult_r0r, coef_horner_0, coef_horner_S) // ?IHp //;
-  apply: coef0.
-Qed. 
+Definition mult_poly (p1 p2 : poly) := mkPoly (mult_poly_seq p1 p2).
 
-Definition mult_cst_poly_l c p :=
-  let: Poly _ np := p in
-  (mult_cst_poly_l_rec c np).
-
-Lemma coef_mult_cst_poly_l c p i : 
-  coef (mult_cst_poly_l c p) i = c * (coef p i).
-Proof. move=> c [p np]; by apply: coef_mult_cst_poly_l_rec. Qed. 
-
-Fixpoint mult_cst_poly_r_rec  p c : normal p -> polynomial :=
-  if p is Adds a p' return normal p -> polynomial then 
-    fun np => horner (mult_cst_poly_r_rec c (normal_behead np)) (a * c)
-  else fun _ => poly0.
-
-Lemma coef_mult_cst_poly_r_rec c p (np : normal p) i : 
-  coef (mult_cst_poly_r_rec c np) i = (sub 0 p i) * c.
-Proof.
-move=> c p np.
-elim: p np => [|a p IHp] np [|i] //=;
-  rewrite (mult_r0l, mult_r0l, coef_horner_0, coef_horner_S) // ?IHp //;
-  apply: coef0.
-Qed.
-
-Definition mult_cst_poly_r p c :=
-  let: Poly _ np := p in
-  (mult_cst_poly_r_rec c np).
-
-Lemma coef_mult_cst_poly_r c p i : 
-  coef (mult_cst_poly_r p c) i = (coef p i) * c.
-Proof. move=> c [p np]; by apply: coef_mult_cst_poly_r_rec. Qed.
-
-Fixpoint mult_poly_rec (p q : seq R) {struct p} : 
-  normal p -> normal q -> polynomial := 
-  if p is (Adds a p') return normal p -> normal q -> polynomial then 
-    if q is (Adds b q') 
-      return (normal (Adds a p')) -> normal q -> polynomial then
-      fun np nq => horner 
-       (add_poly (mult_cst_poly_l_rec a (normal_behead nq))
-                 (add_poly (mult_cst_poly_r_rec b (normal_behead np))
-                           (horner (mult_poly_rec (normal_behead np)
-                                   (normal_behead nq)) 0)))
-       (a * b)
-    else fun _ _ => poly0
-  else fun _ _ => poly0.
-
-Definition mult_poly p1 p2 :=
-  let: Poly _ np1 := p1 in
-  let: Poly _ np2:= p2 in
-  (mult_poly_rec np1 np2).
-
-Definition poly1 := const_poly 1.
+Notation Local "p1 *p p2" := (mult_poly p1 p2) (at level 40).
 
 (* Some useful constant *)
 
-Definition polyX := locked horner poly1 0.
-Definition polyX_a a := locked horner poly1 (-a).
+Lemma coef_mult_poly p1 p2 i :
+  coef (p1 *p p2) i =
+  \sum_() (fun k :I_(i.+1) => (coef p1 k) * coef p2 (i - k)).
+Proof.
+move=> [p1 np1] [p2 np2] i.
+rewrite coef_mkPoly /coef /= {np1 np2}.
+elim: p1 p2 i => [|c1 p1 /= IHp] [|c2 p2] [|i] //=;
+  rewrite ?coef0;
+  try (symmetry; apply: isum0 => //= x Hx; rewrite sub_seq0 mult_r0l //).
+- symmetry; apply: isum0 => //= x Hx; rewrite mult_r0r //.
+- rewrite IHp !iprod_f1_//= => x _; rewrite sub_seq0 mult_r0r //.
+- pose x0:= (@Ordinal 1%N 0%N (ltnSn 0)).  
+  rewrite (@iprod_set1_ R I_(1) x0)/= {}/x0 ?plus_r0r//.
+  move=> [x Hx]=>/=; rewrite /setA; symmetry; apply/eqP.
+  by apply: ordinal_inj=>//=; case: x Hx.
+rewrite sub_add_poly_seq IHp (@iprod_ord_rec_l R (i.+1)) /=; congr (_ + _).
+by elim: p2 i {IHp p1}=>[|x p2 IHp] [|i]/=; rewrite ?sub_seq0 ?mult_r0r.
+Qed.
+
+Lemma coef_mult_poly_rev : forall p1 p2 i,
+  coef (p1 *p p2) i =
+  \sum_() (fun k :I_(i.+1) => (coef p1 (i - k)) * coef p2 k).
+Proof.
+move=> p1 p2 i; rewrite coef_mult_poly.
+set f:=(fun k : I_(i.+1) => coef p1 k * coef p2 (i - k)).
+rewrite (reindex_isum f (h := (@ord_opp i))).
+  apply: eq_isum=> [x|x _]; rewrite /setA // {}/f.
+  congr (_*_); congr coef=>//=; exact: sub_ordK.
+exists (@ord_opp i)=> x _; apply: ordinal_inj=>/=; 
+  apply: leq_sub_sub; case: x=>//=.
+Qed.
+
+
+
+Definition polyX_a a := locked horner (-a) poly1.
 (* --- *)
 
 Lemma coef_poly1_0: coef poly1 0 = 1.
@@ -421,41 +323,7 @@ Proof. by rewrite coef_const_0. Qed.
 Lemma coef_poly1_S: forall i, coef poly1 (S i) = 0.
 Proof. by move=> i; rewrite coef_const_S. Qed.
 
-Lemma coef_mult_poly p1 p2 i :
-  coef (mult_poly p1 p2) i = 
-  \sum_() (fun k :I_(i.+1) =>
-              (coef p1 (nat_of_ord k)) * coef p2 (i - (nat_of_ord k))).
-Proof.
-move=> [p1 np1] [p2 np2].
-elim: p1 np1 p2 np2 => [|c1 p1 IHp] np1 [|c2 p2] np2 i //=;
-  rewrite ?coef0.
-- symmetry; apply: isum0 => //= x Hx; rewrite sub_seq0 mult_r0l //.
-- symmetry; apply: isum0 => //= x Hx; rewrite sub_seq0 mult_r0l //.
-- symmetry; apply: isum0 => //= x Hx; rewrite sub_seq0 mult_r0r //.
-case: i => [|i]//.
-  pose x0:= Ordinal (ltnSn 0).  
-  rewrite coef_horner_0 (@iprod_set1_ R I_(1) x0)// {}/x0.
-  case=>//= i i0; rewrite / setA; symmetry.
-  apply/eqP; case: i i0 =>//= i0; congr Ordinal.
-  by apply: bool_irrelevance.
-rewrite coef_horner_S (@iprod_ord_rec_r R) //. 
-rewrite !coef_add_poly coef_mult_cst_poly_r_rec coef_mult_cst_poly_l_rec.
-case: i => [|i] //.
-  rewrite coef_horner_0 plus_r0r.
-  pose x0:= Ordinal (ltnSn 0).  
-  rewrite (@iprod_set1_ R I_(1) x0)// {}/x0.
-  case=>//= i i0; rewrite / setA; symmetry.
-  apply/eqP; case: i i0 =>//= i0; congr Ordinal.
-  by apply: bool_irrelevance.
-rewrite plus_rC -plus_rA plus_rC // ; congr (_ + _).
-  rewrite (@iprod_ord_rec_l R) // coef_horner_S plus_rC //; congr (_ + _).
-  rewrite IHp.
-  apply: (@eq_iprod_f_ R) => x _ //=; congr (_ * _).
-  rewrite subSS leq_subS //; last (case: x =>//).
-by congr (_ * _) => //=; rewrite subnn.
-Qed.
-
-Lemma poly_mult1P : forall p, mult_poly poly1 p = p.
+Lemma poly_mult1P : forall p, \C1 *p p = p.
 Proof.
 move=> p; apply/coef_eqP=> i.
 rewrite coef_mult_poly //=.
@@ -465,7 +333,7 @@ congr (_ + _); apply: (@iprod_f1_ R).
 by move=> x _ //=; rewrite coef_poly1_S mult_r0l.
 Qed.
 
-Lemma poly_multP1 : forall p, mult_poly p poly1 = p.
+Lemma poly_multP1 : forall p, p *p \C1 = p.
 Proof.
 move=> p; apply/coef_eqP=> i.
 rewrite coef_mult_poly //=.
@@ -476,131 +344,25 @@ case=>//= x Hx _ //=; rewrite -ltn_0sub in Hx.
 by case: (i-x) Hx =>//= n Hn; rewrite coef_poly1_S mult_r0r.
 Qed.
 
-Notation "'no' x" := (nat_of_ord x) (at level 0) : local_scope.
-
-Definition ord_inj_id n (k : I_(n.+1)) :=
-  match k return I_(k.+1) -> I_(n.+1) with
-  | Ordinal _ Hk => fun i =>
-    let: Ordinal _ Hi := i in (Ordinal (leq_trans Hi Hk)) end.
-
-Lemma ord_inj_idP : forall n (k : I_(n.+1)) (i : I_(k.+1)), 
-  ord_inj_id i = i :> nat.
-Proof. by move=> n [k Hk] [i Hi] /=. Qed.
-
-Lemma poly_multA p1 p2 p3 :
-  mult_poly p1 (mult_poly p2 p3) = mult_poly (mult_poly p1 p2) p3.
+Lemma poly_multA : forall p1 p2 p3, p1 *p (p2 *p p3) = p1 *p p2 *p p3.
 Proof.
-move=> p1 p2 p3; apply/coef_eqP=> n.
-rewrite !coef_mult_poly.
-(* --- preliminary --- *)
-(* --- *)
-have Heq: forall (k: I_(n.+1)) p q,
-  coef (mult_poly p q) k = 
-    iprod (R:= R) (fun x : I_(n.+1) => x <= k)
-      (fun i => (coef p i) * coef q (k - i)).
-  (* - *)
-  move=>k p q.
-  rewrite !coef_mult_poly.
-  rewrite (reindex_isum (h:= (@ord_inj_id n k))
-            (fun i : I_(n.+1) => coef p i * coef q (k - i))).
-    apply: eq_isum => // [[x x0] | x _ ]; first (by rewrite ord_inj_idP).
-    by congr (_ * _) => //=; congr coef=> //=; rewrite ord_inj_idP.
-  set f' : I_(n.+1) -> I_(k.+1) := fun x => 
-    if @idP ((no x) < k.+1) is Reflect_true H then (Ordinal H)
-    else (Ordinal (ltn0Sn k)).
-  by exists f' => [[x x0]|[x x0]] Hx; rewrite / f'; case: idP=> //= Hi;
-    apply: ordinal_inj=>//=; rewrite ?ord_inj_idP //.
-(* --- *)
-have H1: dfequal (setA I_(n.+1)) 
-  (fun k : I_(n.+1) => coef p1 k * coef (mult_poly p2 p3) (n - k))
-  (fun k : I_(n.+1) =>
-       iprod (R:=R) (fun x : I_(n.+1) => x <= (n - k))
-         (fun i => coef p1 k * (coef p2 i * coef p3 ((n - k) - i)))).
-  (* - *)
-  move=> [k Hk] _ => //=; rewrite -isum_distrL; congr (_ * _). 
-  have Hnk : n-k <n.+1 by rewrite ltnS; apply: leq_subr.
-  by move: (Heq (Ordinal Hnk) p2 p3) => //.
-(* --- *)
-have H2: dfequal (setA I_(n.+1))
-  (fun k : I_(n.+1) => coef (mult_poly p1 p2) k * coef p3 (n - k))
-  (fun k : I_(n.+1) => 
-       iprod (R:=R) (fun x : I_(n.+1) => x <= k) 
-         (fun i => (coef p1 i * coef p2 (k - i)) * coef p3 (n - k))).
-  (* - *)
-  by move=> k _ //=; rewrite -isum_distrR; congr (_ * _); apply: Heq.
-(* --- *)
-have H3 : dfequal (setA I_(n.+1))
-  (fun k : I_(n.+1) =>
-    iprod (R:=R) (fun x : I_(n.+1) => x <= (n - k)) 
-    (fun i : I_(n.+1) => coef p1 k * (coef p2 i * coef p3 ((n - k) - i))))
-  (fun k : I_(n.+1) =>
-    iprod (R:=R) (fun x : I_(n.+1) => (k <= x) && (x <= n))
-    (fun i => coef p1 k * (coef p2 (i - k) * coef p3 (n - i)))).
-  (* - *)
-  move=>  k _ //=.
-  have hP: forall x : I_(n.+1), x - k < n.+1 by
-    move=> [x Hx]; apply: (@leq_trans x _ n) => //=; exact: leq_subr.
-  set h : I_(n.+1) -> I_(n.+1) := fun x => Ordinal (hP x).
-  set f :=
-    (fun i : I_(n.+1) => coef p1 k * (coef p2 i * coef p3 (n - k - i))).
-  set g := 
-    (fun i : I_(n.+1) => coef p1 k * (coef p2 (i - k) * coef p3 (n - i))).
-  rewrite (eq_isumR (F := g) (F' := (fun i =>  f (h i)))).
-    symmetry; rewrite -(@iprod_image_ R).
-      apply: eq_isumL => x.
-      case cx: (x <= n - k); move/idP:cx=>cx.
-        apply/imageP.
-        have Ht: forall x, x <= n - k -> x + k < S n
-          by move=> x0; rewrite -(leq_add2r k) [((n - k) + k)%N]addnC
-            leq_add_sub //; case: k {hP f g h cx}=> //=.
-        exists (Ordinal (Ht _ cx)) => //=.
-          rewrite {1}[(x + k)%N]addnC leq_addr andTb.
-          rewrite -(leq_add2r k) [(n - k + k)%N]addnC
-            leq_add_sub //= in cx.
-          by case: k {f g h Ht hP} => //=.
-        by apply: ordinal_inj => /=; rewrite subn_addl.
-      apply/idP; move/imageP=> [x0 _ Hx0].
-      apply: cx; rewrite Hx0 / h /=; apply: leq_sub2r.
-      by apply: (@ordinal_ltn (n.+1)).
-    move=> //= x y Hx Hy Hxy; rewrite / h //= in Hxy.
-    case: Hxy; move/eqP; rewrite -(eqn_addr k); move/eqP.
-    by rewrite ![(_ - k + k)%N]addnC !leq_add_sub; 
-      [ apply: ordinal_inj | 
-        elim: (andP Hy) |
-        elim: (andP Hx) ].
-  move=> x //= Hx; rewrite / h / g / f //=.
-  congr (_ * _); congr (_ * _); congr coef.
-  rewrite subn_sub leq_add_sub //=.
-  by elim: (andP Hx).
-(* --- *)
-(* The proof *)
-rewrite (eq_isumR H1) (eq_isumR H2) (eq_isumR H3); clear H1 H2 H3 Heq.
-rewrite !pair_isum_dep //=.
-(* nice notations *)
-set h := (fun u : I_(n.+1) * I_(n.+1) => ((snd u), (fst u))).
-set f :=
-  (fun u : I_(n.+1) * I_(n.+1) =>
-    coef p1 (fst u) * (coef p2 (snd u - fst u) * coef p3 (n - snd u))).
-set g :=
-  (fun u : I_(n.+1) * I_(n.+1) => 
-    coef p1 (snd u) * coef p2 (fst u - snd u) * coef p3 (n - fst u)).
-(* - *)
-rewrite (eq_isumR (F:= g) (F':= (fun i => f (h i)))); 
-  last (by move=> x _; rewrite / f / g / h mult_rA).
-symmetry; rewrite -(@iprod_image_ R)//.
-  apply: eq_isumL => x.
-  suffices: snd x <= n; last by case: (snd x) => //=.
-  move=> -> //=; rewrite andbT.
-  case cx: (fst x <= snd x); move/idP:cx=>cx.
-    apply/imageP; exists ((snd x), (fst x)) => //=.
-    by case: x cx => //=.
-  apply/idP; move/imageP=> [x0 H1].
-  (* dupliquer automatiquement les hypotheses ? *)
-  rewrite / h; move/pair_eqP; rewrite / pair_eq; move/andP.
-  by elim=>// Hfx Hsx; rewrite (eqP Hfx) (eqP Hsx) H1 in cx.
-move=> x y _ _; rewrite / h; move/eqP=> Hxy.
-apply/pair_eqP; rewrite / pair_eq; apply/andP.
-split; [move/pair_eq2: Hxy => //=|move/pair_eq1: Hxy => //=].
+move=> p1 p2 p3; apply/coef_eqP=> i.
+rewrite coef_mult_poly coef_mult_poly_rev.
+pose coef3 j k := coef p1 j * (coef p2 (i - j - k) * coef p3 k).
+transitivity (\sum_() (fun j :I_(i.+1) => 
+              \sum_( in (fun k :I_(i.+1) => k <= i - j))
+                   (fun k => coef3 j k))).
+  apply: eq_isumR => /= j _.
+  rewrite coef_mult_poly_rev isum_distrL //.
+  rewrite (iprod_ord_inj (R:=R) _ (leq_subr _ _)); apply: eq_isumR => x _ //=.
+set r': I_(i.+1) -> set I_(i.+1) := (fun j k : I_(i.+1) => k <= i - j).
+rewrite (@exchange_isum_dep _ _ _ _ r' (setA I_(i.+1)) _) //=.
+apply: eq_isumR => x _ //=.
+transitivity (\sum_( in (fun k :I_(i.+1) => k <= i - x)) (fun k => coef3 k x)).
+  apply: eq_isumL=> k; rewrite {}/r' -ltnS -(ltnS k) -!leq_subS ?leq_ord //.
+  by rewrite -ltn_0sub -(ltn_0sub k) !subn_sub addnC.
+rewrite (iprod_ord_inj (R:=R) _ (leq_subr _ _)) coef_mult_poly isum_distrR /=.
+by apply: eq_isumR => k _ //=; rewrite /coef3 !subn_sub addnC mult_rA.
 Qed.
 
 Lemma poly_mult_addl: forall p1 p2 p3, 
@@ -623,14 +385,14 @@ apply: eq_isumR => i _.
 rewrite -plus_mult_r coef_add_poly; congr (_ * _).
 Qed.
 
-Fixpoint opp_poly_rec p : normal p -> polynomial :=
+Fixpoint opp_poly_seq p : normal p -> polynomial :=
   if p is Adds a p' return normal p -> polynomial then 
-    fun np => horner (opp_poly_rec (normal_behead np)) (- a)
+    fun np => horner (- a) (opp_poly_seq (normal_behead np))
   else fun _ => poly0.
 
 Definition opp_poly p :=
   let: Poly _ np := p in
-  (opp_poly_rec np).
+  (opp_poly_seq np).
 
 Lemma coef_opp_poly p i : 
   coef (opp_poly p) i = - (coef p i).
@@ -640,16 +402,21 @@ by elim: p np => [|a p IHp] np [|i] //=;
   rewrite (coef0, opp_r0, coef_horner_0, coef_horner_S) // ?IHp // opp_r0.
 Qed.
 
-Lemma opp_poly_P : forall p, add_poly (opp_poly p) p = poly0.
+Lemma opp_poly_P : forall p, add_poly (opp_poly p) p = \C0.
 Proof.
 move=> p; apply/coef_eqP=> n.
 by rewrite !coef_add_poly !coef_opp_poly plus_opp_rl coef0.
 Qed.
 
-Lemma poly1_diff_poly0 : poly1 <> poly0.
+Lemma poly1_diff_poly0 : \C1 <> \C0.
 Proof.
-unlock poly0; unlock poly1; unlock const_poly.
-case: insubP => [[[] _] _  //=  |].
+unlock poly0; unlock poly1; unlock const_poly=>//=.
+case insubP => [[? ?] //|]/=.
+
+move/(congr1 seq_of_poly).
+
+case: insubP => [[_ _] _ //= |].
+case: insubP => [[[] x] y u //=  |].
 by rewrite / normal //=; move/negbE2; move/eqP; move/one_diff_0.
 Qed.
 
@@ -664,7 +431,7 @@ split=>//=; [ | | (* 3 *) exact: poly_mult_addl |
 split; [ exact: poly_multA | exact: poly_mult1P | exact: poly_multP1 ].
 Defined.
 
-Canonical Structure poly_ring.
+ Canonical Structure poly_ring.
 
 End PolynomialRing.
 
@@ -748,9 +515,11 @@ Section EvalPolynomial.
 Open Scope ring_scope.
 Variable R: ring.
 
+(* eval poly fun need that the variable commute with all coef *)
+
 Fixpoint eval_poly_rec (p : seq R) : normal p -> R -> R :=
   if p is (Adds a p') return normal p -> R -> R then
-    fun np x => a + x * (eval_poly_rec (normal_behead np) x)
+    fun np x => a + (eval_poly_rec (normal_behead np) x) * x
   else fun _ _ => 0.
 
 Definition eval_poly (p : poly_ring R) (x : R) : R :=
@@ -762,16 +531,16 @@ Proof. by unlock poly0=>//. Qed.
 Lemma eval_poly_const : forall c x, eval_poly (const_poly c) x = c.
 Proof.
 unlock const_poly => c x /=; case: insubP => [[[] a [] ns ] //= _ [] ->|].
-  by rewrite mult_r0r plus_r0r.
+  by rewrite mult_r0l plus_r0r.
 by rewrite eval_poly0 / normal //=; move/negbE2; move/eqP => ->.
 Qed.
 
 Lemma eval_poly_horner : forall p c x,
-  eval_poly (horner p c) x = x * (eval_poly p x) + c.
+  eval_poly (horner p c) x = c + (eval_poly p x) * x.
 Proof.
 unlock horner => [] [[|a p'] np] c x //=.
-  by move=> *; rewrite mult_r0r plus_r0l eval_poly_const.
-rewrite plus_rC//=; congr (_+_); congr (_*_); congr (_+_); congr (_*_).
+  by move=> *; rewrite mult_r0l plus_r0r eval_poly_const.
+congr (_+_); congr (_*_); congr (_+_); congr (_*_).
 congr eval_poly_rec; apply: bool_irrelevance.
 Qed.
 
@@ -783,9 +552,7 @@ case=>//; elim=>// [|a p Hp np].
 case=>//; case=>// [|b q nq] x; first (by move=> *; rewrite plus_r0r).
 rewrite //= eval_poly_horner.
 move: (Hp (normal_behead np) (Poly (normal_behead nq)) x)=>//= ->.
-rewrite plus_rCA -plus_rA; congr (_+_).
-rewrite -plus_rCA plus_rC; congr (_+_).
-apply: plus_mult_l.
+by rewrite plus_mult_r -plus_rA plus_rC -plus_rCA plus_rC plus_rA.
 Qed.
 
 Definition com_coef p (x :R) := forall k, (coef p k) * x = x * (coef p k).
@@ -796,29 +563,27 @@ Proof.
 case=>//; elim=> //=; first (by move=> *; rewrite mult_r0r mult_r0l).
 move=> a p Hp np x H; rewrite plus_mult_r plus_mult_l; congr (_+_).
   (by move: (H 0%N) =>//).
-rewrite -mult_rA Hp //.
-(move=> i; move: (H (S i))=>//).
+rewrite mult_rA Hp //; move=> i; move: (H (S i))=>//.
 Qed.
 
 Lemma eval_poly_mult_cst_poly_l : forall c (p : poly_ring R) x,
-  (x * c = c * x) ->
   eval_poly (mult_cst_poly_l c p) x = c * (eval_poly p x).
 Proof.
-move=> c []; elim=>//= [| a p Hp np x Hc].
+move=> c []; elim=>//= [| a p Hp np x].
   (by move=> *; rewrite eval_poly0 mult_r0r).
-by rewrite eval_poly_horner//= Hp// mult_rA Hc -mult_rA
-  -plus_mult_l plus_rC.
+by rewrite eval_poly_horner//= Hp// plus_mult_l -mult_rA.
 Qed.
 
 Lemma eval_poly_mult_cst_poly_r : forall c (p : poly_ring R) x,
+  (x * c = c * x) ->
   eval_poly (mult_cst_poly_r p c) x = (eval_poly p x) * c.
 Proof.
-move=> c []; elim=>//= [| a p Hp np x].
+move=> c []; elim=>//= [| a p Hp np x Hc].
   (by move=> *; rewrite eval_poly0 mult_r0l).
-by rewrite eval_poly_horner//= Hp// mult_rA -plus_mult_r plus_rC.
+by rewrite eval_poly_horner//= Hp// -mult_rA -Hc mult_rA -plus_mult_r.
 Qed.
 
-Lemma eval_poly_mult : forall (p q : poly_ring R) x, (com_coef p x) ->
+Lemma eval_poly_mult : forall (p q : poly_ring R) x, (com_coef q x) ->
   eval_poly (p * q) x = (eval_poly p x) * (eval_poly q x).
 Proof.
 case=>//; elim=>// [ /= np [] |a p Hp np].
@@ -826,30 +591,29 @@ case=>//; elim=>// [ /= np [] |a p Hp np].
 case=>//; case=>// [ /= |b q nq] x Hc.
   by move=> *;  rewrite eval_poly0 mult_r0r.
 rewrite //= !eval_poly_horner !eval_poly_plus !eval_poly_horner.
-rewrite (eval_poly_mult_cst_poly_l (Poly (normal_behead nq))) //;
+rewrite (eval_poly_mult_cst_poly_l a (Poly (normal_behead nq))) //.
+rewrite (eval_poly_mult_cst_poly_r (Poly (normal_behead np)));
   last (by move: (Hc 0%N) =>//).
-rewrite (eval_poly_mult_cst_poly_r b (Poly (normal_behead np))).
 move: (Hp (normal_behead np) (Poly (normal_behead nq)) x)=>//= ->;
   last by (move=> i; move: (Hc (S i))=>//).
-rewrite !plus_mult_r !plus_mult_l plus_rC !mult_rA !plus_rA
-  mult_r0r plus_r0r; move: (Hc 0%N) => //= ->.
-rewrite -[x * x * (eval_poly_rec _ _)]mult_rA /=
-  {2}[x * eval_poly_rec _ _](@com_coefP (Poly (normal_behead np)))/=
-  ?mult_rA//.
-by move=> i; move: (Hc (S i))=>//.
+rewrite !plus_mult_r !plus_mult_l !plus_rA !mult_rA 
+  mult_r0l plus_r0r -[eval_poly_rec _ _ * b * x]mult_rA  (Hc 0%N) /=.
+rewrite -[(eval_poly_rec _ _) * x * (eval_poly_rec _ _)]mult_rA /=.
+rewrite [x * eval_poly_rec _ _](@com_coefP (Poly (normal_behead nq)) x)/=
+  ?mult_rA //.
+by move=> i; move: (Hc (S i))=>/=.
 Qed.
 
 Lemma factor_th : forall (p p1 p2 : poly_ring R) a,
-  com_coef p1 a -> (p = p1 * (polyX_a a) * p2) -> eval_poly p a = 0.
+  com_coef p2 a -> (p = p1 * (polyX_a a) * p2) -> eval_poly p a = 0.
 Proof.
-move => p p1 p2 a Hp1 ->; rewrite -mult_rA.
-rewrite !eval_poly_mult; unlock polyX_a=>//=;
-  last (by case=>//=[|[|n]];
-    rewrite ?coef_horner_0 -?mult_opp_rl -?mult_opp_rr// ?coef_horner_S
-      ?coef_poly1_0 ?mult_r1l ?mult_r1r // ?coef_poly1_S
-      ?mult_r0l ?mult_r0r).
-by rewrite eval_poly_horner eval_poly_const mult_r1r plus_opp_rr mult_r0l
-  mult_r0r.
+move => p p1 p2 a Hp1 ->.
+rewrite !eval_poly_mult//; unlock polyX_a=>//=;
+  first ( by rewrite eval_poly_horner eval_poly_const mult_r1l
+          plus_opp_rl mult_r0r mult_r0l).
+by case=>//=[|[|n]]; 
+  rewrite ?coef_horner_0 -?mult_opp_rr -?mult_opp_rl// ?coef_horner_S
+    ?coef_poly1_0 ?mult_r1r ?mult_r1l // ?coef_poly1_S ?mult_r0r ?mult_r0l.
 Qed.
 
 End EvalPolynomial.

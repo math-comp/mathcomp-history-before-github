@@ -6,6 +6,22 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
+(*
+Section indexed_products.
+Variables (R:Type)(mulR : R -> R -> R)(e:R).
+Notation "x * y" := (mulR x y).
+Notation "1" := e.
+Hypotheses
+  (mulP : forall x1 x2 x3, x1 * (x2 * x3) = (x1 * x2) * x3)
+  (mulC : forall x1 x2, x1 * x2 = x2 * x1)
+  (unitP : forall x, 1 * x = x).
+Section iprod.
+Variables (d:finType)(a:set d)(f:d->R).
+
+Definition iprod := foldr (fun x => mulR (f x)) 1 (filter a (enum d)).
+
+End iprod.
+*)
 
 Section IndexedOperation.
 
@@ -557,6 +573,22 @@ suffices: ((setA I_(n)) =1 (fun i => r (rshiftSn i))).
     by symmetry; apply: (@ltnSpred i 0); rewrite ltn_neqAle leq0n andbT.
   by move=> Hf; elim: Hf=> x Hx Hxi; rewrite -Hxi in Hx; rewrite Hx in Hr.
 by move=> i; rewrite / setA; symmetry; apply/eqP; case: i.
+Qed.
+
+Lemma iprod_ord_inj : forall m n f (le_m_n : m <= n),
+  let w := @widen_ord m.+1 n.+1 le_m_n in
+  iprod (fun x:I_(n.+1) => x <= m) f = 
+  iprod (setA I_(m.+1)) (fun x => f (w x)) :>R.
+Proof.
+move=> m n f le_m_n w.
+rewrite -(iprod_image2_ (g:=w)).
+  apply: eq_iprod_set_ => x; symmetry; apply/imageP.
+  case: leqP=> //= H1.
+    exists (@Ordinal m.+1 x H1)=>//; apply: ordinal_inj=>//.
+  elim=>//= x0 _ H2; rewrite {}H2 in H1.
+  suffices : w x0 <= m; last (by case: x0 H1).
+  by move=> H2; move: (leq_trans H1 H2); rewrite ltnn.
+by move=> [x Hx] [y Hy] _ _ ; case=>// xy; apply: ordinal_inj.
 Qed.
 
 End iprod_ordinal.

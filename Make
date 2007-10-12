@@ -29,7 +29,10 @@ algebraic_struct.v
 ring.v
 polynomials.v
 cayley.v
-
+charpoly.v
+ssralg.v
+ssrpoly.v
+matrix.v
 
 COQC = $(COQBIN)ssrcoq
 COQFLAGS = "-q $(OPT) $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -compile"
