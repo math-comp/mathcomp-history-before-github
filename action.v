@@ -347,6 +347,12 @@ End NTransitive.
 
 Section NTransitveProp.
 
+Lemma dliftA: forall (S: finType) n (x: dtuple S n), 
+   dlift (setA S) x.
+Proof.
+by move => S n [[x Hx] Dx]; apply/allP.
+Qed.
+
 Lemma dlift_sub_set:
 forall m (S: finType) (S1 S2: set S),
  sub_set S1 S2 -> sub_set (dlift (n := m) S1) (dlift (n := m) S2).

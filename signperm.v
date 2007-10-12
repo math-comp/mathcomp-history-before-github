@@ -256,7 +256,7 @@ by apply/andP; case=> lti12; rewrite ltnNge ltnW.
 Qed.
 *)
 
-
+(** Definitions of the alternate groups and some Properties **)
 Definition sym := Group (group_set_finGroupType (perm_finGroupType d)).
 
 Lemma dom_odd_perm : dom odd_perm = (perm_finGroupType d).
@@ -336,6 +336,85 @@ case: (pickP (setD1 d x1)) => [x2 Hx2 | HH1]; last first.
 case/andP: Hx2 => Hx2 Hy2 _.
 apply/iimageP; exists (transperm x1 x2) => //=.
 by rewrite odd_transp.
+Qed.
+
+Let n := card d.
+
+Let setAd: card d = card (setA d).
+by rewrite eq_cardA // => x; rewrite s2f.
+Qed.
+
+Let gt1: tuple.tuple_finType d n.
+exists (enum d).
+by rewrite card_ordinal /n setAd.
+Defined.
+
+Definition dsym1: dtuple d n.
+exists gt1.
+rewrite /gt1 /distinctb /=.
+exact: uniq_enum.
+Defined.
+
+Let d2p_aux:
+ forall (t: seq d),
+ size t = card (setA I_(n)) ->  size t = card (setA d).
+Proof.
+by move => t; rewrite card_ordinal -setAd.
+Qed.
+
+Definition d2p: dtuple d n -> (permType d).
+move => [[t Hs] Ht].
+apply Perm.
+by exists (Fgraph (d2p_aux Hs)).
+Defined.
+
+Lemma d2p_sym: forall t, sym (d2p t).
+Proof.
+by move => [[t Ht] Dt]; rewrite s2f.
+Qed.
+
+Lemma eq_maps_s : forall (d1 d2: eqType) (f1 f2 : d1 -> d2) (l: seq d1), 
+  (forall x, l x ->  f1 x = f2 x) -> maps f1 l = maps f2 l.
+move => d1 d2 f1 f2; elim => [|a l Hrec] H //=.
+rewrite (H a) // ?Hrec //= /setU1 ?eq_refl //.
+by move => x H1; rewrite H //= /setU1 H1 orbT.
+Qed.
+
+Lemma eq_maps_same : forall (d1: eqType) (l1 l2: seq d1)
+                             (f: d1 -> d1),
+  size l1 = size l2 -> uniq l2 ->
+  maps (fun z => sub (f z) l1 (index z l2)) l2 = l1.
+move => d1; elim => [| b l1 Hrec] [|c l2] //=.
+move => f Hs; case/andP => H1 H2; rewrite eq_refl /=.
+congr Adds.
+rewrite -{2}(Hrec l2 f) //.
+  refine (eq_maps_s _).
+  move => e He.
+  case Ec: (e == c) => //.
+  by case/negP: H1; rewrite -(eqP Ec).
+by injection Hs.
+Qed.
+
+Lemma d2p_sym1: forall t,
+   naction (perm_act d) n dsym1 (d2p t) = t.
+move => [[t Ht] Dt]; apply/val_eqP => /=.
+rewrite /set1 /= /to  /fun_of_perm /=.
+rewrite /fun_of_fgraph; unlock; rewrite /=.
+apply/eqP; apply: eq_maps_same.
+  by rewrite Ht card_ordinal.
+exact: uniq_enum.
+Qed.
+
+Lemma sym_trans: ntransitive (perm_act d) sym (setA d) n.
+Proof.
+split; last by exact: max_card.
+move => x Hx y; apply/iimageP/idP => [[z Hz Hz1] | H1].
+  by exact: dliftA.
+exists ((d2p x)^-1 * (d2p y)).
+  by rewrite s2f.
+rewrite act_morph.
+rewrite -{1}(d2p_sym1 x) -!act_morph; gsimpl.
+by rewrite (d2p_sym1 y).
 Qed.
 
 End PermutationParity.
