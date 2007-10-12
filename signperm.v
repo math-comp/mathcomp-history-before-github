@@ -152,54 +152,6 @@ Lemma odd_permJ : forall s t, oddp (s ^ t) = oddp s.
 Proof. by move=> *; rewrite /conjg !oddpM oddpV addbC addbA addbb. Qed.
 Notation Local oddpJ := odd_permJ.
 
-Definition sym := Group (group_set_finGroupType (perm_finGroupType d)).
-
-Lemma dom_odd_perm : dom odd_perm = (perm_finGroupType d).
-Proof.
-apply/isetP; apply/subset_eqP; apply/andP; split; apply/subsetP=> x //.
-move=> _; case Ix : (odd_perm x);  [rewrite dom_nu // | rewrite dom_k //].
-  by rewrite Ix.
-apply/kerP=> y; move: Ix; rewrite odd_permM.
-by case: odd_perm.
-Qed.
-
-Lemma group_set_dom_odd_perm : group_set (dom odd_perm).
-Proof.
-by rewrite dom_odd_perm; apply/andP; split => //; apply/subsetP=> u.
-Qed.
-
-Definition sign_morph: morphism (perm_finGroupType d) boolGroup.
-exists odd_perm.
-  exact: group_set_dom_odd_perm.
-move => *; exact: odd_permM.
-Defined.
-
-Definition alt := ker sign_morph.
-
-Lemma altP: forall x, reflect (even_perm x) (alt x).
-Proof.
-move => x; apply: (iffP idP); rewrite /even_perm => H1.
-  by move: (mker H1) => /= ->.
-apply/kerP => /= y.
-by move: H1; rewrite odd_permM; case: odd_perm.
-Qed.
-
-Lemma alt_subset: subset alt sym.
-Proof.
-by apply/subsetP => x; rewrite !s2f.
-Qed.
-
-Lemma alt_normal: alt <| sym.
-Proof.
-by rewrite /isetA /= -dom_odd_perm normal_ker.
-Qed.
-
-Definition group_set_alt: group_set alt.
-exact: group_set_ker.
-Defined.
-
-Definition group_alt := Group group_set_alt.
-
 
 (* Complements on tranpositions, starting with a shorter prenex alias. *)
 
@@ -303,6 +255,88 @@ case: i2 i1 => [|[|i2]] [|[|i1]] //= in i1P i2P *; rewrite !Ez //= !ltnS.
 by apply/andP; case=> lti12; rewrite ltnNge ltnW.
 Qed.
 *)
+
+
+Definition sym := Group (group_set_finGroupType (perm_finGroupType d)).
+
+Lemma dom_odd_perm : dom odd_perm = (perm_finGroupType d).
+Proof.
+apply/isetP; apply/subset_eqP; apply/andP; split; apply/subsetP=> x //.
+move=> _; case Ix : (odd_perm x);  [rewrite dom_nu // | rewrite dom_k //].
+  by rewrite Ix.
+apply/kerP=> y; move: Ix; rewrite odd_permM.
+by case: odd_perm.
+Qed.
+
+Lemma group_set_dom_odd_perm : group_set (dom odd_perm).
+Proof.
+by rewrite dom_odd_perm; apply/andP; split => //; apply/subsetP=> u.
+Qed.
+
+Definition sign_morph: morphism (perm_finGroupType d) boolGroup.
+exists odd_perm.
+  exact: group_set_dom_odd_perm.
+move => *; exact: odd_permM.
+Defined.
+
+Definition alt := ker sign_morph.
+
+Lemma altP: forall x, reflect (even_perm x) (alt x).
+Proof.
+move => x; apply: (iffP idP); rewrite /even_perm => H1.
+  by move: (mker H1) => /= ->.
+apply/kerP => /= y.
+by move: H1; rewrite odd_permM; case: odd_perm.
+Qed.
+
+Lemma alt_subset: subset alt sym.
+Proof.
+by apply/subsetP => x; rewrite !s2f.
+Qed.
+
+Lemma alt_normal: alt <| sym.
+Proof.
+by rewrite /isetA /= -dom_odd_perm normal_ker.
+Qed.
+
+Definition group_set_alt: group_set alt.
+exact: group_set_ker.
+Defined.
+
+Definition group_alt := Group group_set_alt.
+
+Lemma alt_index: 1 < card d -> indexg group_alt sym = 2.
+Proof.
+move => H.
+have F1: ker_(sym) oddp = group_alt.
+  apply/isetP => z; apply/idP/idP; rewrite /isetI /= s2f.
+    by case/andP.
+  by move => -> /=; rewrite s2f.
+rewrite <- card_quotient; last by exact: alt_normal.
+rewrite <- F1.
+have F: isog (sym/ ker_(sym) oddp) (odd_perm @: sym).
+  have F2: subset sym (dom oddp).
+    by rewrite dom_odd_perm; apply/subsetP.
+  exact: (@first_isom _ _ sign_morph _ F2).
+case: F => g; case/andP => H1; move/injmP => /= H2.
+rewrite /= in H1.
+rewrite -(card_diimage H2) (eqP H1).
+have <-: card boolGroup = 2.
+  by rewrite eq_cardA // => x; rewrite s2f.
+apply eq_card => z; apply/idP/idP.
+  by rewrite s2f.
+case: z => _ /=; last first.
+  apply/iimageP; exists (1:perm_finGroupType d) => //.
+  by rewrite odd_perm1.
+case: (pickP d) => [x1 Hx1 | HH]; move: H; last first.
+  by rewrite (eq_card HH) card0.
+rewrite (cardD1 x1) Hx1.
+case: (pickP (setD1 d x1)) => [x2 Hx2 | HH1]; last first.
+  by rewrite (eq_card HH1) card0.
+case/andP: Hx2 => Hx2 Hy2 _.
+apply/iimageP; exists (transperm x1 x2) => //=.
+by rewrite odd_transp.
+Qed.
 
 End PermutationParity.
 
