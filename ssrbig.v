@@ -6,51 +6,6 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-(* Missing/incomplete ordinals in finType. *)
-Section MoreOrdinals.
-
-Definition ltn_ord := ordinal_ltn.
-
-Variable n : nat.
-
-Definition ord0 := Ordinal (ltn0Sn n).
-
-Definition ord_max := Ordinal (ltnSn n).
-
-Lemma leq_ord : forall i : ordinal n.+1, i <= n.
-Proof. exact: ltn_ord. Qed.
-
-Lemma sub_ordK : forall i : ordinal n.+1, n - (n - i) = i.
-Proof. move=> i; apply: leq_sub_sub; exact: leq_ord. Qed.
-
-Definition ord_sub i := Ordinal (leq_subr i n : n - i < n.+1).
-
-Definition ord_opp (i : ordinal n.+1) := ord_sub i.
-
-Lemma ord_oppK : involutive ord_opp.
-Proof. move=> i; apply: ordinal_inj; exact: sub_ordK. Qed.
-
-Definition widen_ord m (le_n_m : n <= m) i :=
-  Ordinal (leq_trans (ltn_ord i) le_n_m).
-
-Definition inord i := locked ord_sub (n - i).
-
-Lemma inord_eq : forall i, i <= n -> inord i = i :> nat.
-Proof. by unlock inord => i; exact: leq_sub_sub. Qed.
-
-Lemma inord_id : forall i : ordinal n.+1, inord i = i.
-Proof. by case=> i le_i_n; apply: ordinal_inj; apply: inord_eq. Qed.
-
-End MoreOrdinals.
-
-Implicit Arguments ord0 [n].
-Implicit Arguments ord_max [n].
-Implicit Arguments inord [n].
-
-Prenex Implicits ord_opp.
-
-(* End of fintype complements. *)
-
 Reserved Notation "\big [ op / nil ]_ ( <- r | P ) F"
   (at level 36, F at level 36, op, nil at level 10, r at level 50,
      right associativity,
