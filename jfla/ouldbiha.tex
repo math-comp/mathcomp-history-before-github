@@ -169,82 +169,65 @@ Pour représenter les types finis à \(n\) éléments, la bibliothèque \ssr{} fourni
 
 \section{Formalisations \coq}
 Dans Ce travail de formalisation du théorème de Cayley-Hamilton, nous utilisons des bibliothèques sur les opérations indexées et les déterminants. Ces librairies ont été développées par Y. Bertot et G. Gonthier dans le cadre du projet ``Mathematical Components''. \ssr{} contient aussi une bibliothèque  qui fournit une formalisation des structures algébriques de monoïde, groupe et anneau. L'utilisation de cette librairie et le mécanisme des Canonical Structure de \coq{} nous ont permis d'avoir des notations proches de celles utilisées de façon standard en mathématiques. La bibliothèque sur les polynômes fournit une formalisation des propriétés algébrique des polynômes, du morphisme d'évaluation et du théorème du reste. La définition de l'isomorphisme entre l'anneau des matrices de polynômes et celui des polynômes de matrices est l'étape ultime de la formalisation du théorème de Cayley-Hamilton.
+
+\subsection{Les opérations indexées} 
+Dans la définition des opérations sur les matrices, par exemple la multiplication ou le calcul du déterminant, les opérations indexées (somme et produit) sont fréquentes. Factoriser la preuve de propriétés générales sur les sommes et produits indexés permet de réduire considérablement la longueur et la complexité des preuves.  Une librairie pour les opérations indexées n'est pas seulement utile dans le développement sur la théorie des matrices, elle pourra l'être aussi dans des développements plus générales que l'algèbre linéaire.
+\paragraph{}
+Une opération indexée est la généralisation de la définition d'une opération binaire aux éléments d'une suite finie. Dans le cas particulier de l'addition, c'est la somme de tous les éléments d'une suite donnée. \newline
+La définition d'une opération indexée utilise la fonction foldr [ref doc ssrman] de \ssr{} qui correspond à l'opération \textit{fold} utilisée en programmation fonctionnelle. Elle est donnée par :
+\begin{verbatim}
+Definition reducebig R I op nil (r : seq I) P F : R :=
+  foldr (fun i x => if P i then op (F i : R) x else x) nil r.
+\end{verbatim}
+La fonction \verb|reducebig| a comme paramètres un type quelconque \verb|R|, un \verb|eqType I|, une opération binaire \verb|op| sur \verb|R|, un élément \verb|nil| de \verb|R| correspondant à l'ensemble vide, une séquence \verb|r| sur \verb|I|, une propriétés caractéristique \verb|P| sur \verb|I| (une fonction de \verb|I| vers \verb|bool| : un ensemble sur \verb|I|) et une fonction \verb|F| de \verb|I| vers \verb|R|. Le résultat de \verb|reducebig| correspond schématiquement à :
+\[ F ~ p_{1} ~ op ~ F ~ p_{2} ~ op ~ \cdots ~ op ~ F ~ p_{n} ~ op ~ nil,  \] 
+Les $p_{i}$ sont les éléments de la séquence $r$ pour lesquels la propriété $P$ est vraie : les éléments de l'ensemble $P$. L'utilisation de \verb|reducebig| est plus naturelle lorsque l'opération est associative et commutative et lorsque \verb|nil| est l'élément neutre de cette opération. En d'autres termes, lorsque \verb|op| et \verb|nil| ont des propriétés de monoïde. \newline
+La notation \verb|\big[*%M/1]_(i|\texttt{| P i) F i} correspond à l'application de \verb|reducebig| à une opération \verb|*| qui a pour élément neutre \verb|1| et qui a des propriétés de monoïde. Le reste des paramètres sont inférés de façon implicite par \coq.
+\paragraph*{}
+Un lemme intéressant sur \verb|reducebig|  est celui qui permet d'effectuer l'opération usuelle de ré-indexation. Dans le cas d'une somme indexée, ce lemme correspond à l'égalité entre les sommes 
+$ \sum_{i=0}^{n} (i + m)$ et $ \sum_{j=m}^{n + m} j $. Une façon de formaliser cette égalité est de considérer que $i$ et $j$ sont de types différents et qu'il existe une bijection entre eux.
+Cette bijection est la fonction $ f : x \leftarrow x + m $. \newline
+Le prédicat \verb|ibjective P h| permet de dire que la fonction \verb|h| est bijective sur l'ensemble {\tt P}. Le lemme de ré-indexation s'énonce alors comme suit : 
+\begin{verbatim}
+Lemma reindex : forall (I J : finType) (h : J -> I) P F,
+  ibijective P h ->
+  \big[*%M/1]_(i | P i) F i = \big[*%M/1]_(j | P (h j)) F (h j).
+\end{verbatim}
+Un autre résultat intéressant sur les opérations indexées est celui qui permet de décomposer cette opération suivant une partition de l'ensemble d'indice. Par exemple, dans le cas d'une somme indexée, le résultat s'écrit $ \sum_{i=0}^{n + m} i = \sum_{i=0}^{n} i + \sum_{i=n+1}^{n + m} i $. La généralisation de cette propriété peut s'écrire formellement :
+\begin{verbatim}
+Lemma bigID : forall (I : finType) (a : set I) (P : I -> bool) F,
+  \big[*%M/1]_(i | P i) F i
+    = \big[*%M/1]_(i | P i && a i) F i * \big[*%M/1]_(i | P i && ~~ a i) F i.
+\end{verbatim}
+Dans ce lemme, étant donnés deux ensembles \texttt{P} et \texttt{a}, une partition de \texttt{P} est donnée par les deux ensembles $\mathtt{P \cap a}$ et $\mathtt{P \cap \bar{a} }$. La somme des éléments indexés par \texttt{P} peut être donc décomposée en deux sommes des éléments indexés par ces deux ensembles.
+
+
+\subsection{Structures canoniques}
+Dans l'assistant de preuve \coq, le mécanisme des \texttt{Canonical Structure} permet de définir une instance d'un type structurel (mot clé \coq{} \texttt{Record} ou \texttt{Structure}) qui pourra être utilisée lors du processus d'inférence de type dans des équations invoquant des arguments implicites. Par exemple, pour définir une structure de \texttt{eqType} sur le type \texttt{nat} il faut une égalité décidable sur les entiers et prouver que cette égalité est équivalente à celle de Leibniz sur les entiers. 
+\begin{verbatim}
+Fixpoint eqn (m n : nat) {struct m} : bool :=
+  match m, n with
+  | 0, 0 => true
+  | S m', S n' => eqn m' n'
+  | _, _ => false
+  end.
+Lemma eqnP : reflect_eq eqn.
+Proof.
+...
+Qed.
+Canonical Structure nat_eqType := EqType (@eqnP).
+\end{verbatim}
+Grâce à la définition de \texttt{Canonical Structure nat\_eqType}, les arguments \texttt{m} et \texttt{n} vont être typés comme des éléments d'un \texttt{eqType}, il sera donc correcte de considérer l'égalité booléenne entre eux.
+\begin{verbatim}
+Lemma eqn_add0 : forall m n, (m + n == 0) = (m == 0) && (n == 0).
+\end{verbatim} 
+\paragraph*{}
+Le mécanisme des \texttt{Canonical Structure} peut être appliquée à des structures plus complexes comme les anneaux. Dans les librairies sur les matrices et les polynômes, nous définissons les types polynômes sur des structures d'anneaux. Ces structures sont ensuite définis comme des anneaux. Avec la définition des \texttt{Canonical Structure} sur ces structures, les mêmes opérations d'anneaux (addition, multiplication et opposé) sont utilisées pour les matrices et les polynômes. Ceci nous permet d'avoir des énoncés proches de ceux en mathématique standard et plus lisible du point de vue de l'utilisateur. 
+
 \paragraph{}
 STOP : TO continuous in the next episode.
 \paragraph{}
 
-\subsection{Les opérations indexées} 
-Dans la définition des opérations sur les matrices, par exemple la multiplication ou le calcul du déterminant, les opérations indexées (somme et produit) sont fréquentes. Factoriser la preuve de propriétés générales sur les sommes et produits indexés permet de réduire considérablement la longueur et la complexité des preuves.  Une librairie pour les opérations indexées n'est pas seulement utile dans le développement sur la théorie des matrices, elle pourra l'être aussi dans les développements sur l'algèbre linéaire.
-\paragraph{}
-Une opération indexée est l'application d'une opération binaire aux éléments d'une suite indexée par un ensemble fini. C'est une généralisation de la définition d'une opération binaire en une opération n-aire.
-Dans le cas particulier de l'addition, c'est la somme de tous les éléments d'une suite donnée. \newline
-La fonction qui généralise la définition d'une opération binaire \verb|op| sur un type \verb|R| en une opération n-aire est la suivante :
-\begin{verbatim}
-Definition iop (d : finType)(a : set d)(f : d->R) :=
-  foldr (fun x => op (f x)) nil (filter a (enum d)).
-\end{verbatim}
-Pour utiliser cette fonction, on fixe d'abord l'opération binaire \verb|op| et la valeur \verb|nil| qui sera associée aux ensembles vides. Dans ce contexte \verb|iop d a f| représente :
-\[ f ~ a_{1} ~ op ~ f ~ a_{2} ~ op ~ \cdots ~ op ~ f ~ a_{n} ~ op ~ nil,  \] 
-lorsque les $a_{i}$ sont tous les éléments de l'ensemble $a$. L'utilisation de \verb|iop| est plus naturelle lorsque l'opération est associative et commutative et lorsque \verb|nil| est l'élément neutre de cette opération.
-
-\paragraph*{}
-Donnons quelques lemmes intéressants sur {\tt iop}.  Le premier permet de changer le type des indices de l'opération. Dans le cas d'une somme indexée, ce lemme correspond à l'égalité entre les sommes 
-$ \sum_{i=0}^{n} (i + m)$ et $ \sum_{j=m}^{n + m} j $. Une façon de formaliser cette égalité est de considérer que $i$ et $j$ sont de types différents et qu'il existe une bijection locale entre ces types.
-Cette bijection est la fonction $ f : x \leftarrow x + m $, qui est localement bijective sur l'interval $ [0..n] $. \newline
-Le prédicat \verb|ibjective r h| permet de dire que la fonction \verb|h| de type \verb|d' -> d| est localement bijective sur l'ensemble {\tt r}. Le lemme de ré-indexation s'énonce alors comme suit : 
-\begin{verbatim}
-Lemma reindex_iop :
-  forall (d d' : finType) (h : d' -> d) r (f :d->R),
-   ibijective r h ->
-    iop d r f = iop d' (fun i => r (h i)) (fun i=> f (h i)).
-\end{verbatim}
-
-Un autre résultat intéressant sur les opérations indexées est celui qui permet de décomposer cette opération suivant une partition de l'ensemble d'indice. Par exemple, dans le cas d'une somme indexée, le résultat s'écrit $ \sum_{i=0}^{n + m} i = \sum_{i=0}^{n} i + \sum_{i=n+1}^{n + m} i $. La généralisation de cette propriété peut s'écrire formellement :
-\begin{verbatim}
-Lemma iopID :
-  forall (d : finType)(c r : set d) f,
-   iop d r f = 
-   op (iop d (fun i => r i && c i) f) 
-    (iop d (fun i => r i && ~~ c i) f).
-\end{verbatim}
-Dans ce lemme, étant donnés deux ensembles \texttt{c} et \texttt{r}, une partition de \texttt{r} est donnée par les deux ensembles $\mathtt{r \cap c}$ et $\mathtt{r \cap \bar{c} }$. La somme des éléments indexés par \texttt{r} peut être donc décomposée en deux sommes des éléments indexés par ces deux ensembles. 
-\paragraph*{}
-Bien sûr, ces deux lemmes ne sont prouvés que dans le cas où l'opération {\tt op} est commutative, associative et la valeur {\tt nil} est élément neutre.
-
-\subsection{Structures canoniques}
-Le théorème de Cayley-Hamilton parle de polynômes de matrices et de matrices sur des anneaux commutatifs. Les structures algébriques utilisées dans la preuve sont toutes des structures d'anneaux. Les anneaux sont définis par une structure qui regroupe les propriétés standards d'anneau.
-\begin{verbatim}
-Structure ring : Type := Ring {
-  element :> eqType;
-  0 : element;
-  1 : element;
-  - _ : element -> element;
-  _ + _ : element -> element -> element;
-  _ * _ : element -> element -> element;
-  zeroP : forall x, 0 + x = x;
-  oppP : forall x, - x + x = 0;
-  plusA : forall x y z, x + (y + z) = (x + y) + z;
-  plusC : forall x y, x + y = y + x;
-  onePl : forall x, 1 * x = x;
-  onePr : forall x, x * 1 = x;
-  multA : forall x y z, x * (y * z) = (x * y) * z;
-  plus_mult_l: forall x y z, x * (y + z) = (x * y) + (x * z);
-  plus_mult_r: forall x y z, (x + y) * z = (x * z) + (y * z);
-  one_diff_zero_ : 1 <> 0 (* exclure l'anneau trivial *)
-}.
-\end{verbatim} 
-Il est à remarquer que dans la structure ring ne contient pas la propriété de commutativité de la multiplication de l'anneau. Si l'anneau des matrices n'est pas commutatif, celui des polynômes peut être commutatif si l'anneau de ses coefficients l'est aussi. Dans la preuve, d'une part la règle de Cramer sur les matrices n'est vraie que si l'anneau des coefficients de la matrice est commutatif. Pour appliquer Cramer sur l'anneau des matrices de polynômes, il faut que ce dernier soit commutatif, ce qui nécessite que l'anneau des coefficients soit à son tour commutatif. D'autre part, les polynômes de matrices sont construits sur l'anneau des matrices, qui n'est pas commutatif. L'anneau des polynômes peut se définir sur une structure d'anneau commutatif ou non commutatif. \newline
-La structure d'anneau commutatif est définie au dessus de celle d'anneau en lui ajoutant la propriété de commutativité de son opération de multiplication.
-\begin{verbatim}
-Structure commutative_ring : Type := CommutativeRing {
-  element :> ring;
-  multC :  forall x y, x * y = y * x
-}.
-\end{verbatim} 
-Le système de coercion de \coq{} permet à la structure d'anneau commutatif d'hériter de celle d'anneau simple tous les lemme standards.
-\paragraph*{}
-Grâce à ces définitions, les structures d'anneau de polynômes et de matrices se construisent sur celle d'anneau. Les constructeurs de ces structures prennent en paramètre un anneau et retournent l'anneau correspondant. Ainsi, pour définir les polynômes de matrices il suffira de passer comme paramètre au constructeur de la structure de polynômes l'anneau des matrices. La même méthode s'applique dans le sens inverse pour définir les matrices de polynômes. \newline
-Un autre avantage est d'avoir la même notation pour les opérations d'anneau (addition, multiplication et opposé) sur les polynômes et les matrices. Ceci rend l'énoncé de nos théorèmes très proches des notations utilisées en mathématiques classiques où il n'y a pas de différence entre l'addition de polynômes ou celle de matrices. Ceci se fait à l'aide du mécanisme de \texttt{Canonical Structure}~\cite{coqman} de \coq. Un exemple d'utilisation de ce mécanisme dans l'exemple des matrices est présenté dans la prochaine section.
 
 \subsection{Matrices et déterminants}
 Une matrice sur un anneau $R$ est une séquence de coefficients doublement indexée. Elle peut être vue comme une fonction qui associe à une position  \((i,j)\) une valeur dans l'anneau $R$. Étant donnés $m$ et $n$ deux entiers et $R$ un anneau, une matrice sur $R$ (un objet de type $M_{m,n}(R)$) peut être représentée par la fonction suivante : $ [0..n[ \rightarrow [0..m[ \rightarrow R$. Le type des matrices de taille \((m,n)\) est défini par :
