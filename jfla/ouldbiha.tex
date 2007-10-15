@@ -30,40 +30,50 @@
 % Ici commence votre texte
 
 \section{Introduction}
-Les systèmes de preuves formelles peuvent être d'une grande utilité dans la vérification et la validation de preuves mathématiques, surtout lorsque ces preuves sont complexes et longues. Les travaux récents, comme la preuve formelle du théorème des 4 couleurs~\cite{4colproof} ou celle du théorème des nombres premiers~\cite{primeth}, montrent que ces systèmes ont atteint un niveau de maturité leur permettant de s'attaquer à des problèmes mathématiques non triviaux. Le travail de formalisation de preuves mathématiques faisant intervenir une large variété de structures mathématiques et nécessite l'adoption d'une approche semblable au génie logiciel. La formalisation de telles théories peut être vue comme un développement faisant intervenir différentes composantes : définitions et preuves mathématiques.
+Les systèmes de preuves formelles peuvent être d'une grande utilité dans la vérification et la validation de preuves mathématiques, surtout lorsque ces preuves sont complexes et longues. Les travaux récents, comme la preuve formelle du théorème des 4 couleurs~\cite{4colproof} ou celle du théorème des nombres premiers~\cite{primeth}, montrent que ces systèmes ont atteint un niveau de maturité leur permettant de s'attaquer à des problèmes mathématiques non triviaux. Le travail de formalisation de preuves mathématiques faisant intervenir une large variété d'objets mathématiques nécessite l'adoption d'une approche semblable au génie logiciel. La formalisation de telles théories peut être vue comme un développement faisant intervenir différentes composantes : définitions et preuves mathématiques.
 \paragraph*{}
-Le théorème de Cayley-Hamilton, est l'un des théorèmes présents dans la liste des 100 théorèmes à formaliser~\cite{100th}. Ce papier en présente une première formalisation. Le fait qu'il n'avait pas été jusqu'à ce jour formalisé peut s'expliquer par le fait qu'il fait intervenir de nombreuses structures et propriétés mathématiques. Ces structures ne sont pas uniquement utilisées, de façon indépendante; mais elles sont aussi emboîtées les unes sur les autres. L'idée principale de notre travail est l'adoption d'une approche modulaire pour la formalisation des composantes utilisées dans la preuve, en particulier les polynômes et les matrices. Cette philosophie rentre dans le cadre de celle du projet ``Mathematical Components''~\cite{manif} dont l'un des objectifs est la formalisation du théorème de Feit-Thompson sur les groupes solvables. Dans ce cadre, le travail présenté dans cet article sera le point de départ du travail de formalisation de la théorie des caractères, une des composantes de la preuve du théorème de Feit-Thompson.
+Le théorème de Cayley-Hamilton, est l'un des théorèmes présents dans la liste des 100 théorèmes à formaliser~\cite{100th}. Ce papier en présente une première formalisation. Le fait qu'il n'avait pas été jusqu'à ce jour formalisé peut s'expliquer par le fait qu'il fait intervenir de nombreux objets et propriétés mathématiques. Ces objets ne sont pas uniquement utilisées, de façon indépendante; mais ils sont aussi emboîtés les uns sur les autres. Dans le cadre de ce travail de formalisation nous utilisons \ssr{} l'extension de \coq{} développée par G. Gonthier. Elle fournit des libriairies et un langage de tactique adaptés au travail de formalisation des mathématiques. Elle est la plate-forme de développement des travaux de formalisation du théorème de Feit-Thompson sur les groupes d'ordre impaires, un des objectifs du projet ``Mathematical Components''~\cite{manif}. 
 \paragraph*{}
 L'article est organisé comme suit. Dans la section 2, nous présentons l'énoncé et la preuve du théorème de Cayley-Hamilton. Dans la section 3, nous présentons \ssr{}, l'extension de \coq{} et plate-forme de notre développement. Enfin, dans la section 4, nous présentons le développement qui a été nécessaire pour arriver à la formalisation du théorème de Cayley-Hamilton. 
 
 \section{Le théorème de Cayley-Hamilton}
-L'énoncé du théorème de Cayley-Hamilton~\cite{algebra} est le suivant : 
+Le théorème de Cayley-Hamilton~\cite{algebra} peut être énoncé de la façon suivante : 
 \begin{center}
  \textit{Toute matrice carrée sur un anneau commutatif annule son polynôme caractéristique.}
 \end{center}
 Plus formellement, soient $R$ un anneau commutatif et $A$ une matrice carrée sur $R$. Le polynôme caractéristique de $A$, défini par : $p_{A}(x) = \det{(xI_{n} - A)}$, s'annule en A; donc $p_{A}(A) = O_{n}$.
 \newline
+Le théorème peut être énoncé différemment en considérant les endomorphismes d'espace vectorielle. Dans ce cas il n'est plus question d'anneau commutatif mais de corps. L'énoncé et la preuve sont alors moins générales et plus simples.
 \paragraph{}
-La preuve du théorème de Cayley-Hamilton~\cite{algebra} découle de la formule de Cramer selon laquelle la multiplication d'une matrice $B$ par la transposée de sa co-matrice est égale au déterminant de cette même matrice $B$ multiplié par la matrice identité :
+La preuve du théorème de Cayley-Hamilton présentée dans ~\cite{algebra} découle de la formule de Cramer selon laquelle la multiplication d'une matrice $B$ par la transposée de sa co-matrice est égale au déterminant de cette même matrice $B$ multiplié par la matrice identité :
 \begin{equation}
   \label{Cramer}
  B * {}^t{{\rm com} B} = {}^t{{\rm com} B} * B =\det{B} * I_{n}
 \end{equation}
-En appliquant la formule (\ref{Cramer}) à la matrice $(xI_{n} - A)$ on obtient que :
+En appliquant la formule (\ref{Cramer}) à $(xI_{n} - A)$ nous obtenons :
 \begin{equation}
-  \label{Cramer-mx_poly-1}
- {}^t{{\rm com} (xI_{n} - A)} * (xI_{n} - A) =\det{(xI_{n} - A)} * I_{n}
+  \label{Cramer-mx_poly}
+ {}^t{{\rm com} (xI_{n} - A)} * (xI_{n} - A) =\det{(xI_{n} - A)} * I_{n} = p_{A}(x) * I_{n}
 \end{equation}
-Dans la formule (\ref{Cramer-mx_poly-1}), la partie droite de l'égalité est égale au produit du polynôme caractéristique de $A$ par la matrice identité. La formule devient donc :
+La matrice $(xI_{n} - A) \in M_{n}(R[x]) = (M_{n}(R))[x] $ et les degrés de ses coefficients sont $\leq n-1$. $M_{n}(R[x])$ et $(M_{n}(R))[x] $ représentent respectivement l'anneau des matrices de polynômes et celui des polynômes de matrices sur un anneau $R$. Nous avons donc : 
 \begin{equation}
-  \label{Cramer-mx_poly-2}
- {}^t{{\rm com} (xI_{n} - A)} * (xI_{n} - A) = p_{A}(x) * I_{n}
+ {}^t{{\rm com} (xI_{n} - A)} = B_{n} x^{n} + B_{n-1} x^{n-1} + \cdots + B_{1} x + B_{0}
 \end{equation}
-Il est tentant de remplacer le $x$ par $A$ dans la formule (\ref{Cramer-mx_poly-2}). Dans la partie droite de l'égalité, nous obtiendrions $p_{A}(A) * I_{n}$, qui n'est autre que $p_{A}(A)$. Dans la partie gauche, la formule s'écrirait alors ${}^t{{\rm com} (AI_{n} - A)} * (AI_{n} - A)$, qui n'est autre que ${}^t{{\rm com} (AI_{n} - A)} * O_{n}$ ($O_{n}$ est la matrice nulle). En conclusion, nous obtiendrions que $p_{A}(A) = O_{n}$. En réalité, cette substitution n'est pas légale car dans (\ref{Cramer-mx_poly-2}) le $x$ est un scalaire et ne peut pas être substitué par $A$, qui est une matrice.
-\newline
-En fait, implicitement, la preuve classique du théorème utilise l'isomorphisme entre l'anneau des polynômes de matrices et celui des matrices de polynômes. En effet, toute matrice de polynômes peut s'écrire, de façon unique comme la somme de puissances en $x$ multipliées par des matrices, c'est-à-dire un polynôme à coefficients matriciels. Par exemple :
+De meme, si $p_{A}(x) = a_{n} x^{n} + a_{n-1} x^{n-1} + \cdots + a_{1} x + a_{0}$ nous avons alors que : 
+\[
+p_{A}(x)I_{n} = a_{n} I_{n} x^{n} + a_{n-1} I_{n} x^{n-1} + \cdots + a_{1} I_{n} x + a_{0} I_{n}
+\]
+L'égalité (\ref{Cramer-mx_poly}) devient donc : 
 \begin{equation}
-  \label{morphism}
+  \label{proof_start}
+  (B_{n} x^{n} + B_{n-1} x^{n-1} + \cdots + B_{1} x + B_{0}) * (1 I_{n} x - A) = a_{n} I_{n} x^{n} + a_{n-1} I_{n} x^{n-1} + \cdots + a_{1} I_{n} x + a_{0} I_{n}
+\end{equation}
+Ceci montre que $(xI_{n} - A)$ est facteur de $p_{A}(x)I_{n}$ dans $(M_{n}(R))[x] $ et par le théorème du reste $ p_{A}(A) = O_{n} $.
+\paragraph*{}
+Formaliser une preuve mathématique dans un assistant de preuve consiste à développer cette preuve pour qu'elle soit compréhensible pour un ordinateur. Dans ce cadre, il est nécessaire d'une part d'expliciter les parties de cette preuve, implicites ou triviales pour un mathématicien. D'autre part, il est nécessaire d'éviter de se retrouver avec des formules longues, incompréhensibles et illisible pour un un mathématicien.
+\paragraph*{}
+Dans le cas du théorème de Cayley-Hamilton et en considérant la preuve ci-dessus plusieurs problèmes se posent lors de sa formalisation. Dire que $M_{n}(R[x])$ est identique à $(M_{n}(R))[x]$ équivaut algébriquement à dire qu'il existe un isomorphisme d'anneau entre eux. En effet, toute matrice de polynômes peut s'écrire, de façon unique comme la somme de puissances en $x$ multipliées par des matrices, c'est-à-dire un polynôme à coefficients matriciels. Par exemple :
+\begin{equation}
  \left(
   \begin{array}{ c c }
      x^{2} + 1 & x - 2 \\
@@ -86,24 +96,15 @@ x\left(
      3 & -4
   \end{array} \right)
 \end{equation}
- Soit $\phi$ cet isomorphisme :
-\[ \phi : M_{n}(R[x]) \rightarrow (M_{n}(R))[x] \]
-Il est clair que l'image par $\phi$ de la matrice de polynôme $(xI_{n} - A)$ est le polynôme de matrice $(X - A)$. On utilise le $X$ pour différencier les polynômes de matrices de ceux sur l'anneau de base $R$. L'image par $\phi$ de la matrice de polynômes $p_{A}(x) I_{n}$ est le polynôme de matrices suivant :
-\[ p_{A}(X) = a_{n} I_{n} X^{n} + a_{n-1} I_{n} X^{n-1} + \cdots + a_{1} I_{n} X + a_{0} I_{n}.\]
-Dans la formule (\ref{Cramer-mx_poly-2}) les deux termes de l'égalité sont des matrices de polynômes. L'application de $\phi$ à ces termes nous donne l'égalité suivante :
-   \[   \phi ( {}^t{{\rm com} (xI_{n} - A)} * (xI_{n} - A)) = \phi ( p_{A}(x) * I_{n})) \]
-Les propriétés de morphisme de $\phi$ nous donnent alors que :
-\[       \phi ( {}^t{{\rm com} (xI_{n} - A)}) * \phi ( xI_{n} - A)  = p_{A}(X) \]
-Par construction de $\phi$ la formule ci-dessus s'écrit alors :
-\[      \phi ( {}^t{{\rm com} (xI_{n} - A)}) * (X - A)  =  p_{A}(X) \]
-Le polynôme $p_{A}(X)$ se factorise en $(X - A)$. Par le théorème du reste,  nous obtenons que $ p_{A}(A) = O_{n}$.
-\paragraph*{}
-Une formalisation de cette preuve du théorème de Cayley-Hamilton consiste à vérifier tous ses détails. Ce travail de formalisation n'est malheureusement pas aussi facile à écrire que l'énoncé du théorème ou sa preuve papier. En effet, et de manière générale, dans les preuves papiers plusieurs étapes sont implicites, ce qui ne facilite pas le travail de formalisation de telles preuves.
-\paragraph*{}
-L'énoncé du théorème de Cayley-Hamilton donne une relation entre les polynômes et les matrices, deux objets mathématiques différents. Pour pouvoir formaliser l'énoncé du théorème, il va falloir tout d'abord définir ces deux structures. Il est aussi question de polynôme caractéristique. La définition du polynôme caractéristique fait appel à celle de déterminant. En effet, le polynôme caractéristique est le déterminant d'une matrice de polynômes. La définition du déterminant nécessite à son tour celle des sommes et produits indexés, ainsi que celle des groupes de permutations.\newline
-Le point départ de la preuve est la règle de Cramer. La formalisation de cette dernière nécessite la définitions des notions de co-matrice, de transposé et de déterminant, et la preuve de propriétés de multi-linéarités et de morphisme du déterminant. Dans la preuve, l'isomorphisme entre l'anneau des polynômes de matrices et celui des matrices de polynômes est présent de façon implicite. Lors du passage à la preuve formelle, cet isomorphisme devra être formalisé et ses propriétés de morphisme devront être prouvées. Les propriétés de morphisme de l'évaluation des polynômes sont utilisées par le théorème du reste. Il est aussi intéressant de noter que si dans l'énoncé il est question d'évaluation de polynôme de matrices, l'anneau des matrices n'est pas commutatif. Ainsi dans les propriétés de morphisme de l'évaluation, il a été nécessaire de considérer des hypothèses de commutativité entre les coefficients du polynôme évalué et la matrice que l'on évalue.
-\paragraph*{}
-En résumé, pour arriver donc à une formalisation et à la preuve du théorème de Cayley-Hamilton, il a fallu  développer une librairie sur les matrices (déterminant, formule de cramer, ...) et une autre sur les polynômes (morphisme d'évaluation, théorème du reste, ...). La formalisation de l'isomorphisme entre les matrices de polynômes et les polynômes de matrices sera l'étape ultime pour arriver à la preuve du théorème.  
+La formalisation de cette isomorphisme correspond à l'écriture de la fonction qui implémente de façon générale l'algorithme décrit dans l'exemple ci-dessus. La certification de cette fonction est nécessaire pour pouvoir l'utiliser dans la preuve formelle.
+En notant $\phi$ cette isomorphisme, ses propriétés de morphisme sont utilisées implicitement dans la preuve. En effet, dans (\ref{Cramer-mx_poly}) les membres de l'égalité sont des matrices de polynômes. L'application de $\phi$ aux parties gauche et droite de (\ref{Cramer-mx_poly}) nous donne : 
+\[   \phi ( {}^t{{\rm com} (xI_{n} - A)} * (xI_{n} - A)) = \phi ( p_{A}(x) * I_{n})) \]
+Les propriétés de morphisme de $\phi$ sont alors utilisées pour obtenir :
+\[       \phi ( {}^t{{\rm com} (xI_{n} - A)}) * \phi (xI_{n} - A)  = \phi ( p_{A}(x) * I_{n})) \]
+Après développement de l'application de $\phi$ dans l'égalité ci-dessus, nous obtenons la formule (\ref{proof_start}).\newline
+Pour conclure la preuve utilise le théorème du reste selon lequel :
+\[ p(x) = q(x)*(x-c) \Leftrightarrow p(c) = 0 \]
+Dans ce théorème il y a un morphisme implicite : celui d'évaluation de polynômes. Les propriétés de morphisme de l'évaluation se prouvent naturellement sur un anneau commutatif. Hors dans le théorème de Cayley-Hamilton il est question d'évaluation de matrice et l'anneau de matrice n'est pas commutatif. Pour prouver ces propriétés et par la suite prouver le théorème du reste il a fallu considérer des hypothèses de commutativité entre les coefficients du polynôme évalué et la matrice que l'on évalue.
 
 \section{ \ssr }
 \ssr~\cite{not4col,modgrp} (pour \textit{Small Scale Reflection} ou réflection à petite échelle) est une extension de \coq{}~\cite{coqart} qui introduit de nouvelles tactiques et des librairies \coq{} adaptées pour travailler sur des types avec une égalité décidable. Elle a été initialement développée par G. Gonthier dans le cadre de sa preuve du théorème des 4 couleurs. Un développement~\cite{modgrp} sur la théorie des groupes finis a été fait au dessus de \ssr. Ce développement comprend, entre autre, une formalisation du théorème de Sylow et du lemme de Cauchy-Frobenuis.\newline
@@ -114,7 +115,7 @@ Dans le système de preuve \coq{} la logique par défaut est intuitionniste. Dans 
 Coercion is_true (b: bool) := b = true.
 \end{verbatim}
 Ainsi, et de façon transparente pour l'utilisateur, lorsque \coq{} attend un objet de type \texttt{Prop} et reçoit une valeur \texttt{b} de type \texttt{bool}, il la traduira automatiquement en la proposition \texttt{(is\_true b)}, qui correspond à la proposition \texttt{b $=$ true}.\newline
-Le prédicat inductif \texttt{reflect} permet d'avoir une équivalence entre les propositions décidables et les booléens :
+Le prédicat inductif \texttt{reflect} donne une équivalence pratique et confortable entre les propositions décidables et les booléens :
 \begin{verbatim}
 Inductive reflect (P: Prop): bool -> Type :=
   | Reflect_true: P => reflect P true
@@ -135,7 +136,7 @@ Le mécanisme de réflection entre les propositions décidables et les booléens déc
 
 
 \subsection*{Librairies}
-Des librairies de base sont définies dans \ssr. C'est une hiérarchie de structure pour travailler avec les types décidables et en particulier les types finis. La structure \verb|eqType| définit les types munis d'une égalité décidable.
+Des librairies de base sont définies dans \ssr. C'est une hiérarchie de structure pour travailler avec les types décidables et en particulier les types finis. La structure \verb|eqType| définit les types munis d'une égalité décidable qui s'injecte dans celle de Leibniz.
 \begin{verbatim}
 Structure eqType : Type := EqType {
   sort :> Type; 
@@ -149,24 +150,11 @@ Une propriété majeure des structures d'\verb|eqType| est qu'elles donnent la pro
 Lemma eq_irrelevance: forall (d: eqType) (x y: d) (E: x = y) (E': x = y), E = E'.
 \end{verbatim} 
 \paragraph*{}
-Un ensemble sur une structure d'\verb|eqType| est représenté par sa fonction caractéristique : 
-\begin{verbatim}
-Definition set (d: eqType) := d -> bool.
-\end{verbatim} 
-Avec cette définition, les opérations ensemblistes comme l'intersection ou l'union se définissent avec les fonctions booléennes correspondantes.
-\paragraph*{}
 Le type des listes sur un \verb|eqType d| se définit de façon inductive par :
 \begin{verbatim}
 Inductive seq : Type := Seq0 | Adds (x : d) (s : seq).
 \end{verbatim} 
-\verb|Adds| et \verb|Seq0| correspondent respectivement aux constructeurs \verb|cons| et \verb|nil| du type standard \verb|list| de \coq. Le type \verb|seq d| définit les listes sur un \verb|eqType d|. La décidabilité de l'égalité sur \verb|d| permet de définir les opérations d'appartenance et de recherche d'occurrence dans une liste. L'opération d'appartenance à une liste va permettre la définition d'une coercion de liste vers \verb|set|. Pour une liste \verb|l, (l x)| peut être représentée par \verb|x| $\in$ \verb|l|.\newline
-Une fonction utile sur les séquences est la fonction \verb|filter|. Elle prend en paramètre un ensemble \verb|a| et une séquence \verb|s| et ne retourne que les éléments de \verb|s| qui appartiennent à \verb|a|. L'opération d'extraction d'un élément d'une liste est donnée par la fonction \verb|sub|. Par exemple \verb|sub x0 s i| retourne l'élément d'indice \texttt{i} de la séquence \texttt{s}, si \texttt{i} est strictement inférieure à la longueur de la séquence, et \texttt{x0} dans le cas contraire.La fonction \verb|foldr| correspond à l'opération fold utilisée en programmation fonctionelle. Elle est définie par récurrence sur une séquence :
-\begin{verbatim}
-Variables (d : eqType) (R : Type) (f : d -> R -> R) (z0 : R).
-Fixpoint foldr (s : seq d) : R :=
-  match s with | Seq0 => z0 | Adds x s' => f x (foldr s') end.
-\end{verbatim} 
-
+\verb|Adds| et \verb|Seq0| correspondent respectivement aux constructeurs \verb|cons| et \verb|nil| du type standard \verb|list| de \coq. Le type \verb|seq d| définit les listes sur un \verb|eqType d|.\newline
 \paragraph*{}
 La définition du type liste sur un \verb|eqType| est à la base de celle des types finis. La structure \verb|finType| se compose d'une liste sur un \verb|eqType| et de la preuve qu'aucun élément de cette liste n'apparaît plus d'une fois.
 \begin{verbatim}
@@ -179,19 +167,12 @@ Structure finType : Type := FinType {
 Dans cette définition \verb|(set1 x)| est l'ensemble singleton ${x}$ et \verb|(count f l)| calcule le nombre d'éléments \verb|y| de la liste \verb|l| pour lesquels \verb|(f y)| est vraie. Le paramètre \verb|enum| correspond à la liste des éléments du type fini. Par exemple pour un \verb|finType d|, (\verb|enum d|) retourne la liste des éléments de \verb|d|. \newline
 Pour représenter les types finis à \(n\) éléments, la bibliothèque \ssr{} fournit une famille de types nommée \verb|ordinal| dont les éléments sont des paires composées d'un nombre entier \(p\) et d'une preuve que \(p\) est inférieur à \(n\). Comme cette preuve est basée sur un test décidable, la propriété d'irrelevance s'applique et les éléments de ce type sont uniquement caractérisés par la composante \(p\). La notation \verb|I_(n)| désigne le type \verb|ordinal n|.
 
-\paragraph*{}
-Dans le système \coq, l'axiome d'extensionnalité n'est pas admis par défaut. En effet lorsque deux fonctions \texttt{f} et \texttt{g} sont égales sur tous les éléments de leurs domaines ($\mathtt{\forall x, f~x = g~x}$ ce qui correspond à la notation \texttt{f =1 g}), ceci n'implique pas que \texttt{f = g}. Lorsque les fonction sont à deux arguments la notation \texttt{f =2 g} correspond à la proposition ($\mathtt{\forall x~y, f~x~y = g~x~y}$). Dans le cas où les domaines des fonctions manipulées sont finies et les co-domaines sont des eqType, elles peuvent être représentées par leur graphe et ainsi nous obtenons une égalité de Leibniz sur ces fonctions sans avoir besoin d'ajouter d'axiomes. Etant donnés un type fini \texttt{d1} et un type \texttt{d2} muni d'une égalité décidable, un graphe est défini par :
-\begin{verbatim}
-Inductive fgraphType : Type := 
-  Fgraph (val: seq d2) (fgraph_sizeP: size val = card d1): fgraphType.
-\end{verbatim} 
-Le type contient une liste \texttt{val} d'éléments de \texttt{d2} et la preuve que la taille de cette liste est égale au cardinal de \texttt{d1}. Une structure de eqType et une autre de finType sont définies sur les graphes de fonction. Elles sont respectivement représentées par \verb|fgraph_eqType| et \verb|fgraph_finType|. La fonction \verb|fgraph_of_fun| permet de calculer le graphe d'une fonction donnée alors que la fonction \verb|fun_of_fgraph| permet de voire le graphe comme une fonction. Grâce à ces définitions, l'extensionnalité fonctionnelle peut être prouvée : 
-\begin{verbatim}
-Lemma fgraphP : forall (f g : fgraphType d1 d2), f =1 g <=> f = g.
-\end{verbatim}
-Il est à noter que dans la partie gauche de l'équivalence, \texttt{f =1 g} correspond en réalité à \texttt{(fun\_of\_fgraph f) =1 (fun\_of\_fgraph g)}. En effet \texttt{fun\_of\_fgraph} est une coercion entre \texttt{fgraphType} et le type des fonctions.
-
 \section{Formalisations \coq}
+Dans Ce travail de formalisation du théorème de Cayley-Hamilton, nous utilisons des bibliothèques sur les opérations indexées et les déterminants. Ces librairies ont été développées par Y. Bertot et G. Gonthier dans le cadre du projet ``Mathematical Components''. \ssr{} contient aussi une bibliothèque  qui fournit une formalisation des structures algébriques de monoïde, groupe et anneau. L'utilisation de cette librairie et le mécanisme des Canonical Structure de \coq{} nous ont permis d'avoir des notations proches de celles utilisées de façon standard en mathématiques. La bibliothèque sur les polynômes fournit une formalisation des propriétés algébrique des polynômes, du morphisme d'évaluation et du théorème du reste. La définition de l'isomorphisme entre l'anneau des matrices de polynômes et celui des polynômes de matrices est l'étape ultime de la formalisation du théorème de Cayley-Hamilton.
+\paragraph{}
+STOP : TO continuous in the next episode.
+\paragraph{}
+
 \subsection{Les opérations indexées} 
 Dans la définition des opérations sur les matrices, par exemple la multiplication ou le calcul du déterminant, les opérations indexées (somme et produit) sont fréquentes. Factoriser la preuve de propriétés générales sur les sommes et produits indexés permet de réduire considérablement la longueur et la complexité des preuves.  Une librairie pour les opérations indexées n'est pas seulement utile dans le développement sur la théorie des matrices, elle pourra l'être aussi dans les développements sur l'algèbre linéaire.
 \paragraph{}
