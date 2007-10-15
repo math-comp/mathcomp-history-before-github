@@ -279,17 +279,6 @@ exists odd_perm.
 move => *; exact: odd_permM.
 Defined.
 
-(*
-Definition alt := ker sign_morph.
-
-Definition group_set_alt: group_set alt.
-exact: group_set_ker.
-Defined.
-
-Definition group_alt := Group group_set_alt.
-
-*)
-
 Definition alt :=  Group (group_set_ker sign_morph).
 
 Lemma altP: forall x, reflect (even_perm x) (alt x).
@@ -344,7 +333,7 @@ apply/iimageP; exists (transperm x1 x2) => //=.
 by rewrite odd_transp.
 Qed.
 
-Let n := card d.
+Let n := card (setA d).
 
 Let setAd: card d = card (setA d).
 by rewrite eq_cardA // => x; rewrite s2f.
@@ -352,7 +341,7 @@ Qed.
 
 Let gt1: tuple.tuple_finType d n.
 exists (enum d).
-by rewrite card_ordinal /n setAd.
+by rewrite card_ordinal.
 Defined.
 
 Definition dsym1: dtuple d n.
@@ -365,14 +354,12 @@ Let d2p_aux:
  forall (t: seq d),
  size t = card (setA I_(n)) ->  size t = card (setA d).
 Proof.
-by move => t; rewrite card_ordinal -setAd.
+by move => t; rewrite card_ordinal.
 Qed.
 
 Definition d2p: dtuple d n -> (permType d).
 move => [[t Hs] Ht].
 apply Perm.
-Print dtuple.
-Print tuple.tuple_finType.
 by exists (Fgraph (d2p_aux Hs)).
 Defined.
 
@@ -439,12 +426,12 @@ have Hn3: 0 < n - 2 + 1 + 1
 have Hn4: 0 < n - 2 + 1.
   by rewrite addnC ltnS leq_eqVlt ltn_0sub Hn orbT.
 split; last first.
-  by rewrite -setAd -/n leq_subr.
+  by rewrite -/n leq_subr.
 move => x Hx y; apply/iimageP/idP => [[z Hz ->] | H1].
   by exact: dliftA.
 have F: card(setC (dtuple_get x)) == 2.
   by rewrite -(eqn_addr (n - 2)) leq_add_sub //
-          -{2}(dtuple_get_card x) addnC cardC -setAd.
+          -{2}(dtuple_get_card x) addnC cardC.
 case: (pickP (setC (dtuple_get x))) => 
         [a1 Ha1 | HH]; last first.
   by move: F; rewrite (eq_card HH) card0.
@@ -453,7 +440,7 @@ case: (pickP (setD1 (setC (dtuple_get x)) a1)) =>
   by move: F; rewrite (cardD1 a1) (eq_card HH) Ha1 card0.
 have F: card(setC (dtuple_get y)) == 2.
   by rewrite -(eqn_addr (n - 2)) leq_add_sub //
-          -{2}(dtuple_get_card y) addnC cardC -setAd.
+          -{2}(dtuple_get_card y) addnC cardC.
 case: (pickP (setC (dtuple_get y))) => 
         [b1 Hb1 | HH]; last first.
   by move: F; rewrite (eq_card HH) card0.
