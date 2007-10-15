@@ -370,15 +370,13 @@ by move => m S S1 S2 t H; apply/idP/idP => H1;
   apply: dlift_sub_set H1; move => z; rewrite H.
 Qed.
 
-Definition dtuple_in (S: finType) m (x: S) (t: dtuple S m) := 
-match t with
-| EqSig (Fgraph x1 _) _ => x1 x
-end.
-
 Definition dtuple_get (S: finType) m (t: dtuple S m) := 
 match t with
 | EqSig (Fgraph x1 _) _ => x1
 end.
+
+Definition dtuple_in (S: finType) m (x: S) (t: dtuple S m) := 
+ dtuple_get t x.
 
 Lemma dtuple_get_size (S: finType) m (t: dtuple S m): 
  size (dtuple_get t) = m.
@@ -535,10 +533,10 @@ Qed.
 
 Lemma naction_hd:
 forall m (G: finGroupType) 
-  (S: finType) a (a1 a2: S) (to: action G S) (x: dtuple S m),
- 0 < m -> dtuple_hd a2 (naction to m x a) = to (dtuple_hd a2 x) a.
+  (S: finType) a (a1: S) (to: action G S) (x: dtuple S m),
+ 0 < m -> dtuple_hd a1 (naction to m x a) = to (dtuple_hd a1 x) a.
 Proof.
-move => m G S a a1 a2 xto [[[|x l] Hx] Dx];
+move => m G S a a1 xto [[[|x l] Hx] Dx];
  rewrite /dtuple_hd //=.
 by move: (Hx); rewrite card_ordinal /= => <-.
 Qed.
@@ -670,7 +668,8 @@ have F1: ~~ dtuple_in x x1.
   move: Lx1.
   case: (x1) => [[xx1 Hxx1] Dxx1] /= HH.
   by move: (allP HH x);
-     rewrite /setD1 eq_refl; case (xx1 x) => //= ->.
+     rewrite /setD1 eq_refl /dtuple_in /=;
+     case (xx1 x) => //= ->.
 set (x2 := dtuple_add F1).
 have Lx2: dlift S1 x2.
   apply: dlift_add => //.
@@ -682,7 +681,7 @@ apply/idP/idP => Ly1; last first.
     move: Ly1.
     case: (y1) => [[yy1 Hyy1] Dyy1] /= HH.
     by move: (allP HH x);
-     rewrite /setD1 eq_refl; case (yy1 x) => //= ->.
+     rewrite /setD1 eq_refl /dtuple_in /=; case (yy1 x) => //= ->.
   set (y2 := dtuple_add F2).
   have Ly2: dlift S1 y2.
     apply: dlift_add => //.

@@ -279,7 +279,18 @@ exists odd_perm.
 move => *; exact: odd_permM.
 Defined.
 
+(*
 Definition alt := ker sign_morph.
+
+Definition group_set_alt: group_set alt.
+exact: group_set_ker.
+Defined.
+
+Definition group_alt := Group group_set_alt.
+
+*)
+
+Definition alt :=  Group (group_set_ker sign_morph).
 
 Lemma altP: forall x, reflect (even_perm x) (alt x).
 Proof.
@@ -296,19 +307,14 @@ Qed.
 
 Lemma alt_normal: alt <| sym.
 Proof.
-by rewrite /isetA /= -dom_odd_perm normal_ker.
+rewrite /isetA /= -dom_odd_perm.
+exact: (normal_ker sign_morph).
 Qed.
 
-Definition group_set_alt: group_set alt.
-exact: group_set_ker.
-Defined.
-
-Definition group_alt := Group group_set_alt.
-
-Lemma alt_index: 1 < card d -> indexg group_alt sym = 2.
+Lemma alt_index: 1 < card d -> indexg alt sym = 2.
 Proof.
 move => H.
-have F1: ker_(sym) oddp = group_alt.
+have F1: ker_(sym) oddp = alt.
   apply/isetP => z; apply/idP/idP; rewrite /isetI /= s2f.
     by case/andP.
   by move => -> /=; rewrite s2f.
@@ -365,6 +371,8 @@ Qed.
 Definition d2p: dtuple d n -> (permType d).
 move => [[t Hs] Ht].
 apply Perm.
+Print dtuple.
+Print tuple.tuple_finType.
 by exists (Fgraph (d2p_aux Hs)).
 Defined.
 
@@ -415,6 +423,104 @@ exists ((d2p x)^-1 * (d2p y)).
 rewrite act_morph.
 rewrite -{1}(d2p_sym1 x) -!act_morph; gsimpl.
 by rewrite (d2p_sym1 y).
+Qed.
+
+
+Lemma alt_trans: ntransitive (perm_act d) alt (setA d) (n - 2).
+Proof.
+case (leqP n 2).
+  rewrite -eqn_sub0; move/eqP => ->; exact: ntransitive0.
+move => Hn.
+have Hn1: 1 < n by apply: leq_trans Hn.
+have Hn2: n = n - 2 + 1 + 1.
+  by rewrite -addnA addnC leq_add_sub.
+have Hn3: 0 < n - 2 + 1 + 1 
+  by rewrite -Hn2; apply: leq_trans Hn1.
+have Hn4: 0 < n - 2 + 1.
+  by rewrite addnC ltnS leq_eqVlt ltn_0sub Hn orbT.
+split; last first.
+  by rewrite -setAd -/n leq_subr.
+move => x Hx y; apply/iimageP/idP => [[z Hz ->] | H1].
+  by exact: dliftA.
+have F: card(setC (dtuple_get x)) == 2.
+  by rewrite -(eqn_addr (n - 2)) leq_add_sub //
+          -{2}(dtuple_get_card x) addnC cardC -setAd.
+case: (pickP (setC (dtuple_get x))) => 
+        [a1 Ha1 | HH]; last first.
+  by move: F; rewrite (eq_card HH) card0.
+case: (pickP (setD1 (setC (dtuple_get x)) a1)) => 
+        [a2 {F}Ha2 | HH]; last first.
+  by move: F; rewrite (cardD1 a1) (eq_card HH) Ha1 card0.
+have F: card(setC (dtuple_get y)) == 2.
+  by rewrite -(eqn_addr (n - 2)) leq_add_sub //
+          -{2}(dtuple_get_card y) addnC cardC -setAd.
+case: (pickP (setC (dtuple_get y))) => 
+        [b1 Hb1 | HH]; last first.
+  by move: F; rewrite (eq_card HH) card0.
+case: (pickP (setD1 (setC (dtuple_get y)) b1)) => 
+        [b2 {F}Hb2 | HH]; last first.
+  by move: F; rewrite (cardD1 b1) (eq_card HH) Hb1 card0.
+set x1 := dtuple_add Ha1.
+have Fx1: ~~ dtuple_in a2 x1.
+  rewrite /x1 /dtuple_in.
+  case: (x) (Ha1) (Ha2); case => /= v _ _ _.
+  by case/andP => HH1 HH2; apply/norP; split.
+set x2 := dtuple_add Fx1.
+set y1 := dtuple_add Hb1.
+have Fy1: ~~ dtuple_in b2 y1.
+  rewrite /y1 /dtuple_in /distinctb.
+  case: (y) (Hb1) (Hb2); case => /= v _ _ _.
+  by case/andP => HH1 HH2; apply/norP; split.
+set y2 := dtuple_add Fy1.
+move: sym_trans.
+rewrite {1}Hn2; case => FF _.
+move: (dliftA y2); rewrite -(@FF _ (dliftA x2)).
+case/iimageP => g Hg Hg1.
+case Pm: (odd_perm g); last first.
+  exists g => [/= |].
+    by apply/kerP => h; rewrite odd_permM Pm.
+  have ->: x = (dtuple_tl (dtuple_tl x2))
+    by rewrite !dtuple_tl_add.
+  by rewrite -!naction_tl -Hg1 !dtuple_tl_add.
+set (g1:= transperm b1 b2).
+exists (g * g1) => [/= |].
+  apply/kerP => h; rewrite !odd_permM Pm odd_transp.
+  by case/andP: (Hb2) => ->.
+have ->: x = (dtuple_tl (dtuple_tl x2))  
+  by rewrite !dtuple_tl_add.
+rewrite act_morph -!naction_tl -Hg1.
+have Fy3: ~~ dtuple_in b2 y.
+  rewrite /dtuple_in /distinctb.
+  case: (y) (Hb1) (Hb2); case => /= v _ _ _.
+  by case/andP.
+set y3 := dtuple_add Fy3.
+have Fy4: ~~ dtuple_in b1 y3.
+  rewrite /y3 /dtuple_in /distinctb /=.
+  case: (y) (Fy3) (Hb1) (Hb2) => [[v]] /= _ _ _ HH.
+  case/andP => HH1 HH2; apply/norP; split => //.
+  by rewrite eq_sym.
+set y4 := dtuple_add Fy4.
+suff ->: naction (perm_act d) (n -2 + 1 + 1) y2 g1 = y4.
+  by rewrite !dtuple_tl_add.
+apply: (dtuple_hd_tl (x:= a1)).
+  rewrite dtuple_hd_add naction_hd /= /to /g1 //
+          dtuple_hd_add.
+  by case: (transpP b1 b2 b2).
+rewrite dtuple_tl_add naction_tl dtuple_tl_add.
+apply: (dtuple_hd_tl (x:= a1)).
+  rewrite dtuple_hd_add naction_hd /= /to /g1 //
+          dtuple_hd_add.
+  by case: (transpP b1 b2 b1).
+rewrite dtuple_tl_add naction_tl dtuple_tl_add.
+case: (y) (Hb1) (Fy3); case => /=.
+rewrite /dtuple_in /distinctb /setC /= => z Hz Hz0 Hz1 Hz2.
+apply/val_eqP => /=; rewrite /set1 /=; apply/eqP.
+elim: (z) Hz1 Hz2 =>  [|a z1 Hrec] //=.
+case/norP => Hz3 Hz4; case/norP => Hz5 Hz6.
+congr Adds; last by exact: Hrec.
+rewrite /to /g1 /=.
+by case: (transpP b1 b2 a) Hz3 Hz5 => // -> //;
+   rewrite eq_refl.
 Qed.
 
 End PermutationParity.
