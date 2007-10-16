@@ -32,7 +32,7 @@
 \section{Introduction}
 Les systèmes de preuves formelles peuvent être d'une grande utilité dans la vérification et la validation de preuves mathématiques, surtout lorsque ces preuves sont complexes et longues. Les travaux récents, comme la preuve formelle du théorème des 4 couleurs~\cite{4colproof} ou celle du théorème des nombres premiers~\cite{primeth}, montrent que ces systèmes ont atteint un niveau de maturité leur permettant de s'attaquer à des problèmes mathématiques non triviaux. Le travail de formalisation de preuves mathématiques faisant intervenir une large variété d'objets mathématiques nécessite l'adoption d'une approche semblable au génie logiciel. La formalisation de telles théories peut être vue comme un développement faisant intervenir différentes composantes : définitions et preuves mathématiques.
 \paragraph*{}
-Le théorème de Cayley-Hamilton, est l'un des théorèmes présents dans la liste des 100 théorèmes à formaliser~\cite{100th}. Ce papier en présente une première formalisation. Le fait qu'il n'avait pas été jusqu'à ce jour formalisé peut s'expliquer par le fait qu'il fait intervenir de nombreux objets et propriétés mathématiques. Ces objets ne sont pas uniquement utilisées, de façon indépendante; mais ils sont aussi emboîtés les uns sur les autres. Dans le cadre de ce travail de formalisation nous utilisons \ssr{} l'extension de \coq{} développée par G. Gonthier. Elle fournit des bibliothèques et un langage de tactique adaptés au travail de formalisation des mathématiques. Elle est la plate-forme de développement des travaux de formalisation du théorème de Feit-Thompson sur les groupes d'ordre impaires, un des objectifs du projet ``Mathematical Components''~\cite{manif}. 
+Une liste des 100 plus grands théorèmes mathématiques~\cite{100ths} a été constitué par Paul et Jack Abad. Cette liste prend en compte la place du théorème dans la littérature mathématique, la qualité de sa preuve et l'importance du résultat qu'il introduit. F. Wiedijk maintient une liste~\cite{100th} qui recense les formalisations de ces théorèmes dans des systèmes de preuves formelles. Le théorème de Cayley-Hamilton, est l'un des théorèmes présents cette liste. Ce papier présente une formalisation de ce théorème, qui est à notre connaissance la première. Le fait qu'il n'avait pas été jusqu'à ce jour formalisé peut s'expliquer par le fait qu'il fait intervenir de nombreux objets et propriétés mathématiques. Ces objets ne sont pas uniquement utilisées, de façon indépendante; mais ils sont aussi emboîtés les uns sur les autres. Ce travail de formalisation du théorème de Cayley-Hamilton est utilisé dans le cadre des travaux de formalisation du théorème de Feit-Thompson sur les groupes d'ordre impaires. L'objectifs n'est pas seulement de formaliser Cayley-Hamilton; mais d'avoir en plus des bibliothèques réutilisables. 
 \paragraph*{}
 L'article est organisé comme suit. Dans la section 2, nous présentons l'énoncé et la preuve du théorème de Cayley-Hamilton. Dans la section 3, nous présentons \ssr{}, l'extension de \coq{} et plate-forme de notre développement. Enfin, dans la section 4, nous présentons le développement qui a été nécessaire pour arriver à la formalisation du théorème de Cayley-Hamilton. 
 
@@ -41,38 +41,28 @@ Le théorème de Cayley-Hamilton~\cite{algebra} peut être énoncé de la façon suiva
 \begin{center}
  \textit{Toute matrice carrée sur un anneau commutatif annule son polynôme caractéristique.}
 \end{center}
-Plus formellement, soient $R$ un anneau commutatif et $A$ une matrice carrée sur $R$. Alors, Le polynôme caractéristique de $A$, défini par : $p_{A}(x) = \det{(xI_{n} - A)}$, s'annule en A; ce qui veut dire que $p_{A}(A) = O_{n}$.
+Plus formellement, soient $R$ un anneau commutatif et $A$ une matrice carrée sur $R$. Alors, Le polynôme caractéristique de $A$, défini par : $p_{A}(x) = \det{(xI_{n} - A)}$, s'annule en A.
 \newline
-Le théorème peut être énoncé différemment en considérant les endomorphismes d'espace vectorielle. Dans ce cas il n'est plus question d'anneau commutatif mais de corps. L'énoncé et la preuve sont alors moins générales et plus simples.
+Le théorème peut être énoncé différemment en considérant les endomorphismes d'espace vectorielle. Dans ce cas il n'est plus question d'anneau commutatif mais de corps.
 \paragraph{}
-La preuve du théorème de Cayley-Hamilton présentée dans ~\cite{algebra} découle de la formule de Cramer selon laquelle la multiplication d'une matrice $B$ par la transposée de sa co-matrice est égale au déterminant de cette même matrice $B$ multiplié par la matrice identité :
+La preuve du théorème de Cayley-Hamilton présentée dans ~\cite{algebra} découle de la formule de Cramer. En notant  $^t{{\rm com} B} $ la transposée de la co-matrice de $B$, la règle de Cramer est :
 \begin{equation}
   \label{Cramer}
  B * {}^t{{\rm com} B} = {}^t{{\rm com} B} * B =\det{B} * I_{n}
 \end{equation}
-En appliquant la formule (\ref{Cramer}) à la matrice $(xI_{n} - A)$, nous obtenons :
+En appliquant la formule (\ref{Cramer}) à la matrice $(xI_{n} - A) \in M_{n}(R[x])$, nous obtenons :
 \begin{equation}
   \label{Cramer-mx_poly}
  {}^t{{\rm com} (xI_{n} - A)} * (xI_{n} - A) =\det{(xI_{n} - A)} * I_{n} = p_{A}(x) * I_{n}
 \end{equation}
-La matrice $(xI_{n} - A) \in M_{n}(R[x]) = (M_{n}(R))[x] $ et les degrés de ses coefficients sont $\leq n-1$. $M_{n}(R[x])$ et $(M_{n}(R))[x] $ représentent respectivement l'anneau des matrices de polynômes et celui des polynômes de matrices sur un anneau $R$. Nous avons donc : 
-\begin{equation}
-\label{poly_tcom}
- {}^t{{\rm com} (xI_{n} - A)} = B_{n} x^{n} + B_{n-1} x^{n-1} + \cdots + B_{1} x + B_{0}
-\end{equation}
-De meme, si $p_{A}(x) = a_{n} x^{n} + a_{n-1} x^{n-1} + \cdots + a_{1} x + a_{0}$ nous avons alors que : 
-\begin{equation}
-\label{poly_car}
-p_{A}(x)I_{n} = a_{n} I_{n} x^{n} + a_{n-1} I_{n} x^{n-1} + \cdots + a_{1} I_{n} x + a_{0} I_{n}
-\end{equation}
-L'égalité (\ref{Cramer-mx_poly}) devient donc : 
+Comme $ M_{n}(R[x]) = (M_{n}(R))[X] $ ( $M_{n}(R[x])$ et $(M_{n}(R))[X] $ représentent respectivement l'anneau des matrices de polynômes et celui des polynômes de matrices sur un anneau $R$), l'égalité (\ref{Cramer-mx_poly}) s'écrit dans $(M_{n}(R))[X] $  : 
 \begin{equation}
   \label{proof_start}
-  (B_{n} x^{n} + B_{n-1} x^{n-1} + \cdots + B_{1} x + B_{0}) * (1 I_{n} x - A) = a_{n} I_{n} x^{n} + a_{n-1} I_{n} x^{n-1} + \cdots + a_{1} I_{n} x + a_{0} I_{n}
+   {}^t{{\rm com} (xI_{n} - A)} * (X - A) = p_{A}(X)
 \end{equation}
-Ceci montre que $(1 I_{n} x - A)$ est facteur de $p_{A}(x)I_{n}$ dans $(M_{n}(R))[x] $ et par le théorème du reste $ p_{A}(A) = O_{n} $.
+Ceci montre que $(X - A)$ est facteur de $p_{A}(X)$ dans $(M_{n}(R))[X] $ et donc $ p_{A}(A) = O_{n} $.
 \paragraph*{}
-Formaliser une preuve mathématique dans un assistant de preuve consiste à développer cette preuve pour qu'elle soit compréhensible pour un ordinateur. Dans ce cadre, il est nécessaire d'une part d'expliciter les parties de cette preuve, implicites ou triviales pour un mathématicien. D'autre part, il est nécessaire d'éviter de se retrouver avec des formules longues, incompréhensibles et illisible pour un mathématicien.
+Formaliser une preuve mathématique dans un assistant à la preuve consiste à développer cette preuve pour qu'elle soit compréhensible pour un ordinateur. Pour arriver à cet objectifs deux difficultés sont à surmontées. En premiers lieu, il faut expliciter les parties de la preuve qui sont implicites ou triviales pour un mathématicien. Paradoxalement, l'implémentation sur ordinateur de ces parties, qui n'apparaissent pas dans la preuve, est la tache la plus complexe dans ce travail de formalisation. En second lieu, il faut avoir des formules et des scripts de preuves compréhensible pour un mathématicien. Les énoncés et preuves doivent être le plus proche possible de ceux utilisés de façon standard en mathématiques. 
 \paragraph*{}
 Dans le cas du théorème de Cayley-Hamilton et en considérant la preuve ci-dessus plusieurs problèmes se posent lors de sa formalisation. Dire que $M_{n}(R[x])$ est identique à $(M_{n}(R))[x]$ équivaut algébriquement à dire qu'il existe un isomorphisme d'anneau entre eux. En effet, toute matrice de polynômes peut s'écrire, de façon unique comme la somme de puissances en $x$ multipliées par des matrices, c'est-à-dire un polynôme à coefficients matriciels. Par exemple :
 \begin{equation}
@@ -99,15 +89,11 @@ x\left(
      3 & -4
   \end{array} \right)
 \end{equation}
-La formalisation de cette isomorphisme correspond à l'écriture de la fonction qui implémente de façon générale l'algorithme décrit dans l'exemple ci-dessus. La certification de cette fonction est nécessaire pour pouvoir l'utiliser dans la preuve formelle.
-En notant $\phi$ cette isomorphisme, ses propriétés de morphisme sont utilisées implicitement dans la preuve. En effet, dans (\ref{Cramer-mx_poly}) les membres de l'égalité sont des matrices de polynômes. L'application de $\phi$ aux parties gauche et droite de (\ref{Cramer-mx_poly}) nous donne : 
+La formalisation de cette isomorphisme correspond à l'écriture de la fonction de transformation décrite dans l'exemple ci-dessus. En notant $\phi$ cette isomorphisme, ses propriétés de morphisme sont utilisées implicitement dans la preuve. En effet, dans (\ref{Cramer-mx_poly}) les membres de l'égalité sont des matrices de polynômes. L'application de $\phi$ aux parties gauche et droite de (\ref{Cramer-mx_poly}) nous donne : 
 \[   \phi ( {}^t{{\rm com} (xI_{n} - A)} * (xI_{n} - A)) = \phi ( p_{A}(x) * I_{n})) \]
 Les propriétés de morphisme de $\phi$ sont alors utilisées pour obtenir :
 \[       \phi ( {}^t{{\rm com} (xI_{n} - A)}) * \phi (xI_{n} - A)  = \phi ( p_{A}(x) * I_{n})) \]
-Après développement de l'application de $\phi$ dans l'égalité ci-dessus, nous obtenons la formule (\ref{proof_start}) où $\phi ( {}^t{{\rm com} (xI_{n} - A)})$ est remplacé par (\ref{poly_tcom}) et $\phi ( p_{A}(x) * I_{n}))$ est remplacé par (\ref{poly_car}).\newline
-Pour conclure la preuve utilise le théorème du reste selon lequel :
-\[ p(x) = q(x)*(x-c) \Leftrightarrow p(c) = 0 \]
-Dans ce théorème il y a un morphisme implicite : celui de l'évaluation des polynômes. Les propriétés de morphisme de l'évaluation se prouvent naturellement sur un anneau commutatif. Hors dans le théorème de Cayley-Hamilton il est question d'évaluation de matrice et l'anneau de matrice n'est pas commutatif. Pour prouver ces propriétés et par la suite prouver le théorème du reste il a fallu considérer des hypothèses de commutativité entre les coefficients du polynôme évalué et la matrice que l'on évalue.
+La formule (\ref{proof_start}) correspond explicitement à l'égalité ci-dessus.
 
 \section{ \ssr }
 \ssr~\cite{ssrman,modgrp} (pour \textit{Small Scale Reflection} ou réflection à petite échelle) est une extension de \coq{}~\cite{coqart} qui introduit de nouvelles tactiques et des bibliothèque \coq{} adaptées pour travailler sur des types avec une égalité décidable. Elle a été initialement développée par G. Gonthier dans le cadre de sa preuve du théorème des 4 couleurs. Un développement~\cite{modgrp} sur la théorie des groupes finis a été fait au dessus de \ssr. Ce développement comprend, entre autre, une formalisation du théorème de Sylow et du lemme de Cauchy-Frobenuis.\newline
@@ -407,12 +393,17 @@ La preuve se déroule exactement comme décrit dans la seconde section. Après avoi
 
 \section{Conclusion}
 Nous avons présenté une formalisation du théorème de Cayley-Hamilton qui adopte une approche modulaire. La preuve que nous avons présenté dans la section 4.4 peut paraître très simple; mais la conception a été assez longue que ce soit pour choisir l'architecture globale de la preuve ou le bon type de données pour représenter les structures manipulées (polynômes et matrices). Ceci a été d'autant plus difficile car dans la preuve les structures utilisées vont être combinées les unes avec les autres. Les choix ont été motivés par des soucis de lisibilité et de réutilisabilité. L'utilisation des {Canonical Structure} de \coq{} nous a permis d'avoir des énoncés proches de ceux utilisés en mathématiques classiques. Le découpage des différentes composantes de la preuve sous forme modulaire ( les opérations indexées, les matrices et les polynômes) favorise la réutilisation de ces bibliothèques dans des développements indépendants. Les bibliothèques sur les opérations indexées et les matrices seront réutilisées dans nos prochains travaux sur la théories des caractères, une des composantes de la preuves du théorème de Feit-Thompson.\newline
-Ce travail que nous avons présenté ici est la première formalisation du théorème de Cayley-Hamilton. Ce n'est pas la première formalisation des matrices ou des polynômes. Des formalisations de ces structures sont présentées respectivement dans~\cite{ring-mx, linalg} et~\cite{fta, factor-th}. Mais c'est le premier développement qui regroupe une formalisation des matrices et polynômes et où ces objets sont assemblées pour former de nouveaux objets : les matrices de polynômes et les polynômes de matrices. Dans ce développement la bibliothèque sur les polynômes comprend 83 objets (définitions et lemmes) pour environs 490 lignes de codes. Celle pour les matrices comprend 89 objets pour 700 lignes de codes. Les définitions et lemmes propres à la preuve du théorème de Cayley-Hamilton sont au nombre de 15 pour 125 lignes de codes. Les sources du développement sont disponibles à l'adresse suivante : \verb|http://www-sop.inria.fr/marelle/Sidi.Biha/cayley/|.  
+Ce travail que nous avons présenté ici est la première formalisation du théorème de Cayley-Hamilton. Ce n'est pas la première formalisation des matrices ou des polynômes. Des formalisations de ces structures sont présentées respectivement dans~\cite{ring-mx, linalg} et~\cite{fta, factor-th}. Mais c'est le premier développement qui regroupe une formalisation des matrices et polynômes et où ces objets sont assemblées pour former de nouveaux objets : les matrices de polynômes et les polynômes de matrices. Dans ce développement la bibliothèque sur les polynômes comprend 83 objets (définitions et lemmes) pour environs 490 lignes de codes. Les définitions et lemmes propres à la preuve du théorème de Cayley-Hamilton sont au nombre de 15 pour 125 lignes de codes. Les sources du développement sont disponibles à l'adresse suivante : \verb|http://www-sop.inria.fr/marelle/Sidi.Biha/cayley/|.  
 \paragraph*{}
 Dans la formalisation du théorème de Cayley-Hamilton, présentée dans cet article, nous avons choisi de construire nos structures de données sur des types munis d'une égalité décidables: les \texttt{eqType}. En plus du fait qu'en mathématiques classiques tous les types sont décidables, notre preuve sur les types décidables peut être généralisés vers les types quelconques. Ceci se fait en remarquant que tout anneau est une $\mathbf{Z}$-algèbre et en considérant le morphisme d'évaluation des polynômes à $n^{2}$ variables et à coefficients dans $\mathbf{Z}$ qui est un type décidable. Puisque les opérations algébriques sur les matrices et les polynômes n'agissent qu'en fonction des indices des coefficients, ce morphisme commute avec ces opérations. Par conséquent le théorème de Cayley-Hamilton sur les types décidables peut être généralisé à des types quelconques. Cette démarche n'est pas difficile mais elle est fastidieuse et d'aucune utilité pour le travail que nous faisons dans le cadre du projet ``Mathematical Components''. L'avantage de construire nos structures de données (anneaux, matrices et polynômes) sur des types décidables est d'avoir une égalité de Leibniz sur ces structures. Nous pourrons alors profiter de la puissance de la réécriture avec cette égalité, qui est la règle de réécriture par défaut dans \coq{}.
 
 % La bibliographie
 \begin{thebibliography}{10} % N'oubliez pas de l'inclure lors
+\bibitem{100ths}
+  Paul et Jack \textsc{Abad},
+  \textit{The Hundred Greatest Theorems},
+  Disponible à http://personal.stevens.edu/~nkahl/Top100Theorems.html.
+
 \bibitem{primeth}
   Jeremy \textsc{Avigad}, Kevin \textsc{Donnelly}, David \textsc{Gray}, et Paul \textsc{Raff},
   \textit{A Formally Verified Proof of the Prime Number Theorem},
@@ -449,11 +440,6 @@ Dans la formalisation du théorème de Cayley-Hamilton, présentée dans cet article
   Georges \textsc{Gonthier}, Assia \textsc{Mahboubi}, Laurence \textsc{Rideau}, Enrico \textsc{Tassi} et Laurent \textsc{Théry},
   \textit{A Modular Formalisation of Finite Group Theory},
   Rapport de Recherche 6156, INRIA, 2007.
-
-\bibitem{manif}
-  Georges \textsc{Gonthier}, Benjamin \textsc{Werner}, Yves \textsc{Bertot},
-  \textit{Mathematical Components Manifesto},
-  Disponible à http://www.msr-inria.inria.fr/projects/math/manifesto.html.
 
 \bibitem{ring-mx}
   Nicolas \textsc{Magaud},
