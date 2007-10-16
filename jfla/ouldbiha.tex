@@ -32,28 +32,9 @@
 \section{Introduction}
 Les systèmes de preuves formelles peuvent être d'une grande utilité dans la vérification et la validation de preuves mathématiques, surtout lorsque ces preuves sont complexes et longues. Les travaux récents, comme la preuve formelle du théorème des 4 couleurs~\cite{4colproof} ou celle du théorème des nombres premiers~\cite{primeth}, montrent que ces systèmes ont atteint un niveau de maturité leur permettant de s'attaquer à des problèmes mathématiques non triviaux. Le travail de formalisation de preuves mathématiques faisant intervenir une large variété d'objets mathématiques nécessite l'adoption d'une approche semblable au génie logiciel. La formalisation de telles théories peut être vue comme un développement faisant intervenir différentes composantes : définitions et preuves mathématiques.
 \paragraph*{}
-Une liste des 100 plus grands théorèmes mathématiques~\cite{100ths} a
-été constitué par Paul et Jack Abad. Cette liste prend en compte la
-place du théorème dans la littérature mathématique, la qualité de sa
-preuve et l'importance du résultat qu'il introduit. F. Wiedijk
-maintient une liste~\cite{100th} qui recense les formalisations de ces
-théorèmes dans des systèmes de preuves formelles. Le théorème de
-Cayley-Hamilton, est l'un des théorèmes présents cette liste. Ce
-papier présente une formalisation de ce théorème, qui est à notre
-connaissance la première. Le fait qu'il n'avait pas été jusqu'à ce
-jour formalisé peut s'expliquer par le fait qu'il fait intervenir de
-nombreux objets et propriétés mathématiques de nature différente
-(algèbre linéaire, multilinéaire, combinatoire, ...). Ces objets ne
-sont pas définis et utilisés de façon indépendante mais au contraire
-ils s'emboîtent les uns avec les autres. Ce travail de formalisation
-du théorème de Cayley-Hamilton est utilisé dans le cadre des travaux
-de formalisation du théorème de Feit-Thompson sur les groupes d'ordre
-impair. L'objectif n'est pas seulement de formaliser
-Cayley-Hamilton; mais d'organiser la preuve en bibliothèques réutilisables. 
+Une liste des 100 plus grands théorèmes mathématiques~\cite{100ths} a été constituée par Paul et Jack Abad. Cette liste prend en compte la place du théorème dans la littérature mathématique, la qualité de sa preuve et l'importance du résultat qu'il introduit. F. Wiedijk maintient une liste~\cite{100th} qui recense les formalisations de ces théorèmes dans des systèmes de preuves formelles. Le théorème de Cayley-Hamilton, est l'un des théorèmes présents cette liste. Ce papier présente une formalisation de ce théorème, qui est à notre connaissance la première. Le fait qu'il n'avait pas été jusqu'à ce jour formalisé peut s'expliquer par le fait qu'il fait intervenir de nombreux objets et propriétés mathématiques de nature différente (algèbre linéaire, multilinéaire, combinatoire, ..). Ces objets ne sont pas uniquement utilisées, de façon indépendante; mais au contraire ils s'emboîtent les uns avec les autres. Ce travail de formalisation du théorème de Cayley-Hamilton est utilisé dans le cadre des travaux de formalisation du théorème de Feit-Thompson sur les groupes d'ordre impaires. L'objectifs n'est pas seulement de formaliser Cayley-Hamilton; mais d'organiser la preuve en bibliothèques réutilisables. 
 \paragraph*{}
-L'article est organisé comme suit. Dans la section 2, nous présentons
-l'énoncé et la preuve du théorème de Cayley-Hamilton. Dans la section
-3, nous présentons brièvement \ssr{}, l'extension de \coq{} et plate-forme de notre développement. Enfin, dans la section 4, nous présentons le développement qui a été nécessaire pour arriver à la formalisation du théorème de Cayley-Hamilton. 
+L'article est organisé comme suit. Dans la section 2, nous présentons l'énoncé et la preuve du théorème de Cayley-Hamilton. Dans la section 3, nous présentons brièvement \ssr{}, l'extension de \coq{} et plate-forme de notre développement. Enfin, dans la section 4, nous présentons le développement qui a été nécessaire pour arriver à la formalisation du théorème de Cayley-Hamilton. 
 
 \section{Le théorème de Cayley-Hamilton}
 Le théorème de Cayley-Hamilton~\cite{algebra} peut être énoncé de la façon suivante : 
@@ -74,32 +55,16 @@ En appliquant la formule (\ref{Cramer}) à la matrice $(xI_{n} - A) \in M_{n}(R[x
   \label{Cramer-mx_poly}
  {}^t{{\rm com} (xI_{n} - A)} * (xI_{n} - A) =\det{(xI_{n} - A)} * I_{n} = p_{A}(x) * I_{n}
 \end{equation}
-L'anneau $ M_{n}(R[x])$ des matrices de polynômes est aussi celui des
-polynômes à coefficients matriciels $M_{n}(R))[X] $. L'égalité
-(\ref{Cramer-mx_poly}) s'écrit ainsi dans $(M_{n}(R))[X] $  : 
+L'anneau $ M_{n}(R[x])$ des matrices de polynômes est aussi celui des polynômes à coefficients matriciels $(M_{n}(R))[X]$. L'égalité (\ref{Cramer-mx_poly}) s'écrit ainsi dans $(M_{n}(R))[X] $  : 
 \begin{equation}
   \label{proof_start}
    {}^t{{\rm com} (xI_{n} - A)} * (X - A) = p_{A}(X)
 \end{equation}
 Ceci montre que $(X - A)$ est facteur de $p_{A}(X)$ dans $(M_{n}(R))[X] $ et donc $ p_{A}(A) = O_{n} $.
 \paragraph*{}
-Formaliser une preuve mathématique dans un assistant à la preuve
-consiste à détailler cette preuve pour qu'elle soit compréhensible
-pour un ordinateur. Pour arriver à cet objectifs deux difficultés sont
-à surmontées. En premiers lieu, il faut expliciter les parties de la
-preuve qui sont implicites ou ``triviales'' pour un
-mathématicien. Paradoxalement, l'implémentation sur ordinateur de ces
-parties, qui n'apparaissent pas dans la preuve, est la tache la plus
-complexe dans ce travail de formalisation. En second lieu, il faut
-avoir des énoncés % et des scripts de preuves
-% assia : je ne suis pas d'accord : les scripts ne sont pas compréhensibles!!!
-compréhensible pour un mathématicien. Ils doivent en fait être le plus
-proche possible de ceux utilisés dans la littérature mathématiques. 
+Formaliser une preuve mathématique dans un assistant à la preuve consiste à développer cette preuve pour qu'elle soit compréhensible pour un ordinateur. Pour arriver à cet objectifs deux difficultés sont à surmontées. En premiers lieu, il faut expliciter les parties de la preuve qui sont implicites ou ``triviales'' pour un mathématicien. Paradoxalement, l'implémentation sur ordinateur de ces parties, qui n'apparaissent pas dans la preuve, est la tache la plus complexe dans ce travail de formalisation. En second lieu, il faut avoir des énoncés compréhensible pour un mathématicien. Ils doivent en fait être le plus proche possible de ceux utilisés dans la littérature mathématiques. 
 \paragraph*{}
-Dans le cas du théorème de Cayley-Hamilton et en considérant la preuve
-ci-dessus plusieurs problèmes 
-% assia : lesquels?
-se posent lors de sa formalisation. Dire que $M_{n}(R[x])$ est identique à $(M_{n}(R))[x]$ équivaut algébriquement à dire qu'il existe un isomorphisme d'anneau entre eux. En effet, toute matrice de polynômes peut s'écrire, de façon unique comme la somme de puissances en $x$ multipliées par des matrices, c'est-à-dire un polynôme à coefficients matriciels. Par exemple :
+Dans le cas du théorème de Cayley-Hamilton et en considérant la preuve ci-dessus plusieurs problèmes se posent lors de sa formalisation. Dire que $M_{n}(R[x])$ est identique à $(M_{n}(R))[x]$ équivaut algébriquement à dire qu'il existe un isomorphisme d'anneau entre eux. En effet, toute matrice de polynômes peut s'écrire, de façon unique comme la somme de puissances en $x$ multipliées par des matrices, c'est-à-dire un polynôme à coefficients matriciels. Par exemple :
 \begin{equation}
  \label{morphism}
  \left(
@@ -124,30 +89,17 @@ x\left(
      3 & -4
   \end{array} \right)
 \end{equation}
-La formalisation de cette isomorphisme correspond à l'écriture de la
-fonction de transformation décrite dans l'exemple ci-dessus. Les
-propriétés de cet isomorphisme que nous noterons  $\phi$
- sont utilisées implicitement dans la preuve. En effet, dans (\ref{Cramer-mx_poly}) les membres de l'égalité sont des matrices de polynômes. L'application de $\phi$ aux parties gauche et droite de (\ref{Cramer-mx_poly}) nous donne : 
+La formalisation de cette isomorphisme correspond à l'écriture de la fonction de transformation décrite dans l'exemple ci-dessus. Les propriétés de morphisme que nous noterons $\phi$ sont utilisées implicitement dans la preuve. En effet, dans (\ref{Cramer-mx_poly}) les membres de l'égalité sont des matrices de polynômes. L'application de $\phi$ aux parties gauche et droite de (\ref{Cramer-mx_poly}) nous donne : 
 \[   \phi ( {}^t{{\rm com} (xI_{n} - A)} * (xI_{n} - A)) = \phi ( p_{A}(x) * I_{n})) \]
 Les propriétés de morphisme de $\phi$ sont alors utilisées pour obtenir :
 \[       \phi ( {}^t{{\rm com} (xI_{n} - A)}) * \phi (xI_{n} - A)  = \phi ( p_{A}(x) * I_{n})) \]
 La formule (\ref{proof_start}) correspond explicitement à l'égalité ci-dessus.
 
 \section{ \ssr }
-\ssr~\cite{ssrman,modgrp} (pour \textit{Small Scale Reflection} ou
-réflection à petite échelle) est une extension de \coq{}~\cite{coqart}
-qui introduit de nouvelles tactiques et des bibliothèques \coq{}
-adaptées pour travailler sur des types avec une égalité décidable et
-équivalente à l'égalité structurelle de \coq{}, dite égalité de
-Leibniz. Elle a été initialement développée par G. Gonthier dans le
-cadre de sa preuve du théorème des 4 couleurs. Un
-développement~\cite{modgrp} sur la théorie des groupes finis,
-prérequis de la preuve de Feit-Thompson a été construit avec \ssr. Ce
-développement comprend en particulier, une formalisation du théorème de Sylow et du lemme de Cauchy-Frobenuis.\newline
-Nous allons présenter en premier lieu la méthode de \ssr{} pour
-réfléchir entre les prédicats booléens dans la logique de \coq{}. Nous allons introduire par la suite quelques bibliothèques \coq{} de \ssr{} que nous avons utilisées dans notre développement. Des informations plus détaillées sur \ssr{} et précisément son langage de tactique peuvent être obtenues dans~\cite{ssrman}.
+\ssr~\cite{ssrman,modgrp} (pour \textit{Small Scale Reflection} ou réflection à petite échelle) est une extension de \coq{}~\cite{coqart} qui introduit de nouvelles tactiques et des bibliothèques \coq{} adaptées pour travailler sur des types avec une égalité décidable et équivalente à l'égalité structurelle de \coq{}, dite égalité de Leibniz. Elle a été initialement développée par G. Gonthier dans le cadre de sa preuve du théorème des 4 couleurs. Un développement~\cite{modgrp} sur la théorie des groupes finis a été fait au dessus de \ssr. Ce développement comprend, entre autre, une formalisation du théorème de Sylow et du lemme de Cauchy-Frobenuis.\newline
+Nous allons présenter en premier lieu la méthode de \ssr{} pour réfléchir entre les prédicats booléens dans la logique de \coq{}. Nous introduisons par la suite le langage de tactique de \ssr. Enfin, nous présentons quelques bibliothèques \coq{} de \ssr{} que nous avons utilisées dans notre développement. Des informations plus détaillées sur \ssr{} et précisément son langage de tactique peuvent être obtenues dans~\cite{ssrman}.
 \subsection*{Réflection}
-Dans le système de preuve \coq{} la logique par défaut est intuitionniste. Dans cette logique, les propositions logiques et les valeurs booléennes sont distinctes. Lorsque nous travaillons avec des types décidables cette distinction n'a pas lieu d'être. \ssr{} permet de combiner le meilleur des deux visions et de passer de la version propositionnelle d'un prédicat décidable vers la version booléenne. Pour ce faire, le type booléen est injecté dans celui des propositions par une coercion : 
+Dans le système de preuve \coq{} la logique par défaut est intuitionniste. Dans cette logique, les propositions logiques et les valeurs booléennes sont distinctes. \ssr{} permet de combiner le meilleur des deux visions et passer de la version propositionnelle d'un prédicat décidable vers la version booléenne. La version propositionnelle permet d'avoir des preuves structurées alors que celle booléenne permet de faire des calculs. Pour ce faire, le type booléen est injecté dans celui des propositions par une coercion : 
 \begin{verbatim}
 Coercion is_true (b: bool) := b = true.
 \end{verbatim}
@@ -161,12 +113,18 @@ Inductive reflect (P: Prop): bool -> Type :=
 
 La proposition \texttt{(reflect P b)} indique que \texttt{P} est équivalent à \texttt{(is\_true b)}. Par exemple, l'équivalence entre la conjonction booléenne \texttt{\&\&} et celle propositionnelle \verb|/\| est donnée par le lemme suivant : 
 \begin{verbatim}
-Lemma andP: forall a b, reflect (a /\ b) (a && b).
+Lemma andP: forall a b:bool, reflect (a /\ b) (a && b).
 \end{verbatim}
-Dans ce lemme \texttt{a} et \texttt{b} sont des variables booléennes.
+Des lemmes de même nature que \texttt{andP} sont définis lorsque nous voulons avoir l'équivalence entre la représentation calculatoire d'une fonction (pouvant être calculer) donnée et sa représentation logique. 
 
-\subsection*{Bibliothèques}
-Des bibliothèques de base sont définies dans \ssr. C'est une hiérarchie de structure pour travailler avec les types décidables et en particulier les types finis. La structure \verb|eqType| définit les types munis d'une égalité décidable et de Leibniz.
+\subsection*{Langage de tactiques}
+Les scripts de preuve écrits avec \ssr{} diffèrent de ceux écrits dans \coq{} standard. Le langage de tactique de \ssr{} permet de faciliter les opérations d'interprétation et le développement des scripts. En pratique, les scripts de preuve écrits avec \ssr{} se révèlent plus concis que ceux écrits dans \coq{} standard. \newline
+Toutes les opérations fréquentes qui consistent à déplacer ou généraliser depuis ou vers le contexte courant des formules sont regroupées dans la tactique \verb|move|. Par exemple la tactique ``\verb|move: (H1 a)|''  permet de placer dans le but courant une instance de l'hypothèse \verb|H1| pour la variable \verb|a|. Un autre exemple est la tactique ``\verb|move=> x y H2|'' qui correspond à l'introduction des variables \verb|x| et \verb|y|, et d'une nouvelle hypothèse \verb|H2| dans le contexte courant. La tactique \verb|move: (H1 a) => H2 x y| correspond à la combinaison des deux exemples précédents dans une seule et unique tactique.\newline
+La tactique \verb|rewrite| permet de combiner toutes les opérations de réécriture conditionnelle, de dépliage de définition, de simplification et de réécriture pour une occurrence ou un pattern donné. Ces opérations peuvent être utilisées ensemble ou séparément. Par exemple la tactique \verb|rewrite /def H1 ?H2 !H3| permet de déplier la définition \verb|def|, de récrire avec l'hypothèse \verb|H1|, de récrire zéro ou plusieurs fois avec l'hypothèse \verb|H2|, et de récrire au moins une fois avec l'hypothèse \verb|H3|. Un autre exemple est celui de la tactique \verb|rewrite {2}[_ * _]H4 //| qui permet de récrire dans la seconde occurrence du pattern \verb|[_ * _]| avec l'hypothèse \verb|H4| et de simplifier le but courant.\newline
+Le mécanisme de réflection entre les propositions décidables et les booléens décrit plus haut est intégrée au nouveau langage de tactique. Par exemple, étant donné un contexte avec une proposition \verb|H| de type \verb|a && b|, la tactique \verb|move/andP : H => H| applique le lemme \verb|andP| à \verb|H| et introduit dans le contexte une hypothèse \verb|H| de type \verb|a /\ b|. En revanche, lorsque le but est de la forme \verb|a && b|, la tactique \verb|apply/andP| change le but par \verb|a /\ b|. Enfin, lorsque le but est de la forme \verb|(a && b) -> G|, la tactique \verb|case/andP => H1 H2| change le but en \verb|G| et introduit deux hypothèses \verb|H1 : a| et \verb|H2 : b|.
+
+\subsection*{Structures }
+Des bibliothèques de base sont définies dans \ssr. C'est une hiérarchie de structure pour travailler avec les théories décidables et en particulier les types finis. La structure \verb|eqType| définit les types munis d'une égalité décidable et équivalente à celle de Leibniz.
 \begin{verbatim}
 Structure eqType : Type := EqType {
   sort :> Type; 
@@ -174,20 +132,26 @@ Structure eqType : Type := EqType {
   eqP :  forall x y, reflect (x = y) (x == y)
 }.
 \end{verbatim} 
-Le symbole \verb|: >|  déclare \verb|sort| comme une coercion d'un \verb|eqType| vers son type porteur. C'est la technique standard de sous-typage, toute objet de type \verb|eqType| est aussi de type \verb|Type|. La structure \verb|eqType| ne suppose pas seulement l'existence d'une égalité décidable \verb|==|, en plus elle injecte cette égalité vers celle de Leibniz. \newline
+Le symbole \verb|: >|  déclare \verb|sort| comme une coercion d'un \verb|eqType| vers son type porteur. C'est une forme d'héritage. La structure \verb|eqType| ne suppose pas seulement l'existence d'une égalité décidable \verb|==|, en plus elle injecte cette égalité vers celle de Leibniz avec le proposition \verb|eqP|. Nous pouvons ainsi profiter de la puissance de réécriture de Coq. \newline
 Une propriété majeure des structures d'\verb|eqType| est qu'elles donnent la propriété de la \textit{proof-irrelevance} pour les preuves d'égalités de leurs éléments. Ainsi il n'y a qu'une seule preuve de l'égalité pour chaque paire d'objets égaux.
 \begin{verbatim}
 Lemma eq_irrelevance: forall (d: eqType) (x y: d) (E: x = y) (E': x = y), E = E'.
 \end{verbatim} 
 \paragraph*{}
-Le type des listes sur un \verb|eqType d| se définit de façon inductive par :
+Un ensemble sur une structure d'\verb|eqType| est représenté par sa fonction caractéristique : 
+\begin{verbatim}
+Definition set (d: eqType) := d -> bool.
+\end{verbatim} 
+Une propriété booléenne sur un \verb|eqType| correspond donc à l'ensemble des éléments qui l'a satisfont. Avec cette définition les opérations ensemblistes comme l'intersection ou le complémentaire se définissent avec les fonctions booléennes correspondantes.
+\begin{verbatim}
+Definition setI (a b : set d) : set d := fun x => a x && b x.
+Definition setC (a : set d) : set d := fun x => ~~ a x.
+\end{verbatim}
+Il est nécessaire d'avoir un type des listes sur un \verb|eqType d| pour pouvoir définir plus naturellement des opérations qui se base sur un test booléen comme la recherche d'un élément dans une liste. Le type des listes sur un \verb|eqType d| se définit de façon inductive par :
 \begin{verbatim}
 Inductive seq : Type := Seq0 | Adds (x : d) (s : seq).
 \end{verbatim} 
-\verb|Adds| et \verb|Seq0| correspondent respectivement aux constructeurs \verb|cons| et \verb|nil| du type standard \verb|list| de \coq. Le type \verb|seq d| définit les listes sur un \verb|eqType d|. La fonction \texttt{foldr} correspond dans \ssr{} à l'opération \textit{fold} utilisée en programmation fonctionnelle. Elle est définit par récurrence sur une séquence. L'opération d'extraction d'un élément d'une liste est donnée par la fonction \verb|sub|. Par exemple \verb|sub x0 s i| retourne l'élément d'indice \texttt{i} de la séquence \texttt{s}, si \texttt{i} est strictement inférieure à la longueur de la séquence, et \texttt{x0} dans le cas contraire. La fonction \verb|mkseq| permet de construire une séquence de longueur donnée à partir d'une fonction sur les entiers. Par exemple, \verb|mkseq f n| correspond à la séquence \verb|[(f 0), (f 1), ..., (f n-1)]|.
-%%%
-
-%%%
+\verb|Adds| et \verb|Seq0| correspondent respectivement aux constructeurs \verb|cons| et \verb|nil| du type standard \verb|list| de \coq.   Le type \verb|seq d| définit les listes sur un \verb|eqType d|. La fonction \texttt{foldr} correspond dans \ssr{} à l'opération \textit{fold} utilisée en programmation fonctionnelle. Elle est définit par récurrence sur une liste. L'opération d'extraction d'un élément d'une liste est donnée par la fonction \verb|sub|. Par exemple \verb|sub x0 s i| retourne l'élément d'indice \texttt{i} de la liste \texttt{s}, si \texttt{i} est strictement inférieure à la longueur de la liste, et \texttt{x0} dans le cas contraire. La fonction \verb|mkseq| permet de construire une liste de longueur donnée à partir d'une fonction sur les entiers. Par exemple, \verb|mkseq f n| correspond à la liste \verb|[(f 0), (f 1), ..., (f n-1)]|.
 \paragraph*{}
 La définition du type liste sur un \verb|eqType| est à la base de celle des types finis. La structure \verb|finType| se compose d'une liste sur un \verb|eqType| et de la preuve qu'aucun élément de cette liste n'apparaît plus d'une fois.
 \begin{verbatim}
@@ -197,14 +161,14 @@ Structure finType : Type := FinType {
   enumP :  forall x, count (set1 x) enum = 1
 }.
 \end{verbatim} 
-Dans cette définition \verb|(set1 x)| est l'ensemble singleton ${x}$ et \verb|(count f l)| calcule le nombre d'éléments \verb|y| de la liste \verb|l| pour lesquels \verb|(f y)| est vraie. Le constructeur \verb|enum| correspond à la liste des éléments du type fini. Par exemple pour un \verb|finType d|, (\verb|enum d|) retourne la liste des éléments de \verb|d|. \newline
-Pour représenter les types finis à \(n\) éléments, la bibliothèque \ssr{} fournit une famille de types nommée \verb|ordinal| dont les éléments sont des paires composées d'un nombre entier \(p\) et d'une preuve que \(p\) est inférieur à \(n\). Comme cette preuve est basée sur un test décidable, la propriété d'irrelevance s'applique et les éléments de ce type sont uniquement caractérisés par la composante \(p\). La notation \verb|I_(n)| désigne le type \verb|ordinal n|.
+Dans cette définition \verb|(set1 x)| est l'ensemble singleton ${x}$ et \verb|(count f l)| calcule le nombre d'éléments \verb|y| de la liste \verb|l| pour lesquels \verb|(f y)| est vraie. Le paramètre \verb|enum| correspond à la liste des éléments du type fini. Par exemple pour un \verb|finType d|, (\verb|enum d|) retourne la liste des éléments de \verb|d|. \newline
+Pour représenter le types finis des élément de l'intervalle \(0..n-1\), la bibliothèque \ssr{} fournit une famille de types nommée \verb|ordinal| dont les éléments sont des paires composées d'un nombre entier \(p\) et d'une preuve que \(p\) est inférieur à \(n\). Comme cette preuve est basée sur un test booléen, la propriété d'irrelevance s'applique et les éléments de ce type sont uniquement caractérisés par la composante \(p\). La notation \verb|I_(n)| désigne le type \verb|ordinal n|.
 
 \section{Formalisations \coq}
-Dans Ce travail de formalisation du théorème de Cayley-Hamilton, nous utilisons des bibliothèques sur les opérations indexées et les déterminants. Ces bibliothèques ont été développées par Y. Bertot et G. Gonthier dans le cadre du projet ``Mathematical Components''. \ssr{} contient aussi une bibliothèque  qui fournit une formalisation des structures algébriques de monoïde, groupe et anneau. L'utilisation de cette bibliothèque et le mécanisme des Canonical Structure de \coq{} nous ont permis d'avoir des notations proches de celles utilisées de façon standard en mathématiques. La bibliothèque sur les polynômes fournit une formalisation des propriétés algébrique des polynômes, du morphisme d'évaluation et du théorème du reste. La définition de l'isomorphisme entre l'anneau des matrices de polynômes et celui des polynômes de matrices est l'étape ultime de la formalisation du théorème de Cayley-Hamilton.
+Dans ce travail de formalisation du théorème de Cayley-Hamilton, nous utilisons des bibliothèques sur les opérations indexées et les déterminants. Ces bibliothèques ont été développées par Y. Bertot et G. Gonthier dans le cadre du projet ``Composants Mathématiques''. \ssr{} contient aussi une bibliothèque  qui fournit une formalisation des structures algébriques de monoïde, groupe et anneau. L'utilisation de cette bibliothèque et le mécanisme des \texttt{Canonical Structure} de \coq{} nous ont permis d'avoir des notations proches de celles utilisées de façon standard en mathématiques. La bibliothèque sur les polynômes fournit une formalisation des propriétés algébrique des polynômes, du morphisme d'évaluation et du théorème du reste. La définition de l'isomorphisme entre l'anneau des matrices de polynômes et celui des polynômes de matrices est l'étape ultime de la formalisation du théorème de Cayley-Hamilton.
 
 \subsection{Les opérations indexées} 
-Dans la définition des opérations sur les matrices, par exemple la multiplication ou le calcul du déterminant, les opérations indexées (somme et produit) sont fréquentes. Factoriser la preuve de propriétés générales sur les sommes et produits indexés permet de réduire considérablement la longueur et la complexité des preuves. Une bibliothèque pour les opérations indexées n'est pas seulement utile dans le développement sur la théorie des matrices, elle pourra l'être aussi dans des développements plus générales que l'algèbre linéaire.
+Dans la définition des opérations sur les matrices, par exemple la multiplication ou le calcul du déterminant, les opérations indexées (somme et produit) sont fréquentes. Factoriser la preuve de propriétés générales sur les sommes et produits indexés permet de réduire considérablement la longueur et la complexité des preuves, et d'avoir des énoncés plus lisibles. Une bibliothèque pour les opérations indexées n'est pas seulement utile dans le développement sur la théorie des matrices, elle pourra l'être aussi dans des développements plus générales que l'algèbre linéaire.
 \paragraph{}
 Une opération indexée est la généralisation de la définition d'une opération binaire aux éléments d'une suite finie. Dans le cas particulier de l'addition, c'est la somme de tous les éléments d'une suite donnée. \newline
 La définition d'une opération indexée est donnée par :
@@ -212,14 +176,13 @@ La définition d'une opération indexée est donnée par :
 Definition reducebig R I op nil (r : seq I) P F : R :=
   foldr (fun i x => if P i then op (F i : R) x else x) nil r.
 \end{verbatim}
-La fonction \verb|reducebig| a comme paramètres un type quelconque \verb|R|, un \verb|eqType I|, une opération binaire \verb|op| sur \verb|R|, un élément \verb|nil| de \verb|R| correspondant à l'ensemble vide, une séquence \verb|r| sur \verb|I|, une propriétés caractéristique \verb|P| sur \verb|I| (une fonction de \verb|I| vers \verb|bool| : un ensemble sur \verb|I|) et une fonction \verb|F| de \verb|I| vers \verb|R|. Le résultat de \verb|reducebig| correspond schématiquement à :
+La fonction \verb|reducebig| a comme paramètres un type quelconque \verb|R|, un \verb|eqType I|, une opération binaire \verb|op| sur \verb|R|, un élément \verb|nil| de \verb|R| correspondant à l'ensemble vide, une liste \verb|r| sur \verb|I|, une propriétés caractéristique \verb|P| sur \verb|I| (une fonction de \verb|I| vers \verb|bool| : un ensemble sur \verb|I|) et une fonction \verb|F| de \verb|I| vers \verb|R|. Le résultat de \verb|reducebig| correspond schématiquement à :
 \[ F ~ p_{1} ~ op ~ F ~ p_{2} ~ op ~ \cdots ~ op ~ F ~ p_{n} ~ op ~ nil,  \] 
-Les $p_{i}$ sont les éléments de la séquence $r$ pour lesquels la propriété $P$ est vraie : les éléments de l'ensemble $P$. L'utilisation de \verb|reducebig| est plus naturelle lorsque l'opération est associative et commutative et lorsque \verb|nil| est l'élément neutre de cette opération. En d'autres termes, lorsque \verb|op| et \verb|nil| ont des propriétés de monoïde. \newline
-La notation \verb|\big[*%M/1]_(i|\texttt{| P i) F i} correspond à l'application de \verb|reducebig| à une opération \verb|*| qui a pour élément neutre \verb|1| et qui a des propriétés de monoïde. Le reste des paramètres sont inférés de façon implicite par \coq.
+Les $p_{i}$ sont les éléments de la liste $r$ pour lesquels la propriété $P$ est vraie : les éléments de l'ensemble $P$. L'utilisation de \verb|reducebig| est plus naturelle lorsque l'opération est associative et commutative et lorsque \verb|nil| est l'élément neutre de cette opération. En d'autres termes, lorsque \verb|(R, op, nil)| est un monoïde. \newline
+La notation \verb|\big[*%M/1]_(i|\texttt{| P i) F i} correspond à l'application de \verb|reducebig| à une opération \verb|*| monoïde qui a pour élément neutre \verb|1|. Le reste des paramètres sont inférés de façon implicite par \coq. Par exemple \verb|\big[*%M/1]_(i|\texttt{| i < n) i} equivaut à la notation mathématique $ \sum_{i<n} i$.
 \paragraph*{}
 Un lemme intéressant sur \verb|reducebig|  est celui qui permet d'effectuer l'opération usuelle de ré-indexation. Dans le cas d'une somme indexée, ce lemme correspond à l'égalité entre les sommes 
-$ \sum_{i=0}^{n} (i + m)$ et $ \sum_{j=m}^{n + m} j $. Une façon de formaliser cette égalité est de considérer que $i$ et $j$ sont de types différents et qu'il existe une bijection entre eux.
-Cette bijection est la fonction $ f : x \leftarrow x + m $. \newline
+$ \sum_{i=0}^{n} (i + m)$ et $ \sum_{j=m}^{n + m} j $. Une façon de formaliser cette égalité est de considérer que $i$ et $j$ sont de types différents, respectivement $[0..n]$ et $[m..n+m]$, et qu'il existe une bijection entre ces deux types. Cette bijection est la fonction $ f : x \leftarrow x + m $. \newline
 Le prédicat \verb|ibjective P h| permet de dire que la fonction \verb|h| est bijective sur l'ensemble {\tt P}. Le lemme de ré-indexation s'énonce alors comme suit : 
 \begin{verbatim}
 Lemma reindex : forall (I J : finType) (h : J -> I) P F,
@@ -232,11 +195,11 @@ Lemma bigID : forall (I : finType) (a : set I) (P : I -> bool) F,
   \big[*%M/1]_(i | P i) F i
     = \big[*%M/1]_(i | P i && a i) F i * \big[*%M/1]_(i | P i && ~~ a i) F i.
 \end{verbatim}
-Dans ce lemme, étant donnés deux ensembles \texttt{P} et \texttt{a}, une partition de \texttt{P} est donnée par les deux ensembles $\mathtt{P \cap a}$ et $\mathtt{P \cap \bar{a} }$. La somme des éléments indexés par \texttt{P} peut être donc décomposée en deux sommes des éléments indexés par ces deux ensembles.
+Dans ce lemme, étant donnés deux ensembles \texttt{a}, une partition de d'un ensemble \texttt{P} est donnée par les deux ensembles $\mathtt{P \cap a}$ et $\mathtt{P \cap \bar{a} }$. La somme des éléments indexés par \texttt{P} peut être donc décomposée en deux sommes des éléments indexés par ces deux ensembles.
 
 
 \subsection{Structures canoniques}
-Dans l'assistant de preuve \coq, le mécanisme des \texttt{Canonical Structure} permet de définir une instance d'un type structurel (mot clé \coq{} \texttt{Record} ou \texttt{Structure}) qui pourra être utilisée lors du processus d'inférence de type dans des équations invoquant des arguments implicites. Par exemple, pour définir une structure de \texttt{eqType} sur le type \texttt{nat} il faut une égalité décidable sur les entiers et prouver que cette égalité est équivalente à celle de Leibniz sur les entiers. 
+Dans l'assistant de preuve \coq, le mécanisme des \texttt{Canonical Structure} permet de définir une instance d'un type enregistrement (mot clé \coq{} \texttt{Record} ou \texttt{Structure}) qui pourra être utilisée lors du processus d'inférence de type dans des équations invoquant des arguments implicites. Par exemple, pour définir une structure de \texttt{eqType} sur le type \texttt{nat} il faut une égalité décidable sur les entiers et prouver que cette égalité est équivalente à celle de Leibniz sur les entiers. 
 \begin{verbatim}
 Fixpoint eqn (m n : nat) {struct m} : bool :=
   match m, n with
@@ -250,26 +213,32 @@ Proof.
 Qed.
 Canonical Structure nat_eqType := EqType (@eqnP).
 \end{verbatim}
-Grâce à la définition de \texttt{Canonical Structure nat\_eqType}, les arguments \texttt{m} et \texttt{n} vont être typés comme des éléments d'un \texttt{eqType}, il sera donc correcte de considérer l'égalité booléenne entre eux.
+Le lemme suivant montre un exemple simple d'utilisation des \texttt{Canonical Structure}.
 \begin{verbatim}
-Lemma eqn_add0 : forall m n, (m + n == 0) = (m == 0) && (n == 0).
+Lemma eqn_add0 : forall m n:nat, (m + n == 0) = (m == 0) && (n == 0).
 \end{verbatim} 
+
+Rappelons que \verb|==| dénote l'égalité dans un \verb|eqType|. Dans cet énoncé \coq{} s'attend à ce que \texttt{m} et \texttt{n} soient d'un type \texttt{eqType}. Hors ils sont de type \texttt{nat}. Il cherche alors une définition d'un \texttt{eqType} dont le paramètre \texttt{sort} est \texttt{nat}. Grâce à la définition de \texttt{Canonical Structure nat\_eqType}, \coq{} peut inférer automatiquement au arguments \texttt{m} et \texttt{n} le type \texttt{nat\_eqType}. 
 \paragraph*{}
-Le mécanisme des \texttt{Canonical Structure} peut être appliquée à des structures plus complexes comme les anneaux. Dans les bibliothèques sur les matrices et les polynômes, nous définissons les types de polynômes et matrices sur des structures d'anneaux. Des structures d'anneaux sont ensuite définies sur ces types. Ainsi les mêmes opérations d'anneaux (addition, multiplication et opposé) sont utilisées pour les matrices et les polynômes. Avec la définition des \texttt{Canonical Structure} sur ces structures, \coq{} pourra inférer automatiquement que la structure d'anneau sur les polynômes et les matrices. Ceci nous permet d'avoir des énoncés proches de ceux en mathématique standard et plus lisibles du point de vue de l'utilisateur. 
+Le mécanisme des \texttt{Canonical Structure} est puissant et très utile dans le travail avec les structures algébriques comme les anneaux. Dans les bibliothèques sur les matrices et les polynômes, nous définissons les types de polynômes et matrices sur des structures d'anneaux. Des structures d'anneaux sont ensuite définies sur ces types. Ainsi les mêmes opérations d'anneaux (addition, multiplication et opposé) sont utilisées pour les matrices et les polynômes. Avec la définition des \texttt{Canonical Structure} sur ces structures, \coq{} pourra inférer automatiquement la structure d'anneau sur les polynômes et les matrices. Ceci nous permet d'avoir des énoncés proches de ceux utilisés en mathématique standard et plus lisible du point de vue de l'utilisateur. 
 
 \subsection{Matrices et déterminants}
-Une matrice sur un anneau $R$ est une séquence de coefficients doublement indexée. Elle peut être vue comme une fonction qui associe à une position  \((i,j)\) une valeur dans l'anneau $R$. Étant donnés $m$ et $n$ deux entiers et $R$ un anneau, une matrice sur $R$ (un objet de type $M_{m,n}(R)$) peut être représentée par la fonction suivante : $ [0..n[ \rightarrow [0..m[ \rightarrow R$. Le type des matrices de taille \((m,n)\) est défini par :
+Une matrice sur un anneau $R$ est une liste de coefficients doublement indexée. Elle peut être vue comme une fonction qui associe à une position  \((i,j)\) une valeur dans l'anneau $R$. Étant donnés $m$ et $n$ deux entiers et $R$ un anneau, une matrice sur $R$ (un objet de type $M_{m,n}(R)$) peut être représentée par la fonction suivante : $ [0..n[ \rightarrow [0..m[ \rightarrow R$. Pour définir un \texttt{eqType} sur les matrices, qui sont des fonctions, nous avons besoin de l'extensionnalité. La fonction \texttt{fgraphType} construit le graphe des fonctions dont le domaine est un \texttt{finType} et le co-domaine un \texttt{eqType}. Avec la définition des graphes de fonctions, les fonctions sont ainsi munies d'une égalité de Leibniz. Pour deux fonctions \texttt{f} et \texttt{g}, les notations \texttt{f =1 g} et \texttt{f =2 g} correspondent respectivement à $\mathtt{\forall x, f~x = g~x}$  et  $\mathtt{\forall x~y, f~x~y = g~x~y}$ et sont équivalente à \texttt{f = g}.
+\paragraph*{}
+Le type des matrices de taille \((m,n)\) est défini par :
 \begin{verbatim}
 Definition matrix (m n :nat) :=
   fgraphType (I_(m) * I_(n)) R.
 \end{verbatim} 
-Dans cette définition, les matrices sont des fonctions à deux arguments. La fonction \texttt{fgraphType} construit le graphe des fonctions dont le domaine est un type fini et le co-domaine un eqType. Avec la définition des graphes de fonctions, les fonctions sont ainsi munies d'une égalité de Leibniz et ceci sans avoir besoin de nouveaux axiomes. Pour deux fonctions \texttt{f} et \texttt{g}, les notations \texttt{f =1 g} et \texttt{f =2 g} équivalent respectivement à $\mathtt{\forall x, f~x = g~x}$  et  $\mathtt{\forall x~y, f~x~y = g~x~y}$.
-\paragraph*{}
 Les fonctions \verb|matrix_of_fun| et \verb|fun_of_matrix| permettent respectivement de définir un objet de type \texttt{matrix} à partir d'une fonction et de convertir un objet de type \texttt{matrix} en une fonction à deux arguments. Cette dernière n'est autre qu'une coercion du type \texttt{matrix} vers celui des fonctions. Elle nous permet de dire que deux matrices \texttt{A} et \texttt{B} sont égales si et seulement si nous avons \texttt{A =2 B}. Ce qui veut dire que les fonctions associées à ces matrices sont égales : \texttt{fun\_of\_matrix A =2 fun\_of\_matrix B}.\newline
-Dans la suite, les notations \texttt{M\_(n)} et \verb|\Z| correspondent respectivement au type des matrices carrées et à la multiplication d'un scalaire par la matrice identité.
+Dans la suite, les notations \texttt{M\_(n)} et \verb|\Z x| correspondent respectivement au type des matrices carrées et à la matrice scalaire en \texttt{x}. la notation \verb|\matrix_(i,j) E| où \texttt{E} est une expression en \texttt{i} et \texttt{j} correspond à l'application de \verb|matrix_of_fun| à la fonction \verb|f i j => E i j|. Par exemple la matrice scalaire correspondant à un élément \texttt{x} est donné par la formule suivante :
+\begin{verbatim}
+Definition scalar_mx n x : M_(n) :=
+  \matrix_(i, j) (if i == j then x else 0).
+\end{verbatim} 
 
 \paragraph*{}
-La bibliothèque sur les déterminants utilise la formule de Leibniz pour définir le déterminant. Ce choix est motivé par le fait que dans cette formule il est question de groupe de permutations et qu'une formalisation des permutations (groupe, signature ...) a été déjà développée dans le cadre du travail sur les groupes finies~\cite{modgrp}. Étant donné une matrice carrée $A$ de dimension $n$, le déterminant est donnée par :
+La bibliothèque sur les déterminants utilise la formule de Leibniz pour définir le déterminant. Ce choix est motivé par le fait que dans cette formule est bien adapté et que nous disposons des ingrédients nécessaires à sa formalisation. En effet, une formalisation des permutations (groupe, signature ...) a été déjà développée dans le cadre du travail sur les groupes finies~\cite{modgrp}. Etant donné une matrice carrée $A$ de dimension $n$, le déterminant est donnée par :
 \begin{equation}
   \label{leibniz} \det(A)=\sum_{\sigma \in S_n} 
 \epsilon(\sigma) \prod_{i=1}^n a_{i, \sigma(i)}
@@ -278,7 +247,7 @@ Dans cette formule, il est question d'opérations indexées pour les sommes et les
 \begin{itemize}
  \item l'indexation des lignes et colonnes de la matrice par des entiers est remplacée par une 
 indexation par les éléments du type \texttt{I\_(n)},
- \item l'ensemble des permutations sur cet ensemble fini est décrit comme un ensemble fini qui pourra être énuméré.
+ \item l'ensemble des permutations sur cet ensemble fini est décrit comme un ensemble fini qui pourra être énuméré et donc servir d'ensemble d'indice.
 \end{itemize}
 
 \paragraph{}
@@ -288,13 +257,9 @@ Avec ces choix, grâce aux développements sur le calcul de la parité des permutat
   \sum_(s : S_(n)) (-1) ^ s * \prod_(i) A i (s i).
 \end{verbatim} 
 
-Les notations \verb|\sum| et \verb|\prod| représentent respectivement la somme et le produit indexés. Ce sont des instances de \verb|reducebig| pour les opérations internes (addition et multiplication) de l'anneau des coefficients de la matrice. La notation \verb|S_(n)| représente le groupe des permutations de taille $n$. Dans la suite, la notation \verb|\det| représentera la fonction \verb|determinant|.
+Les notations \verb|\sum| et \verb|\prod| représentent respectivement la somme et le produit indexées. Ce sont des instances de \verb|reducebig| pour les opérations internes (addition et multiplication) de l'anneau des coefficients de la matrice. La notation \verb|S_(n)| représente le groupe des permutations sur un ensemble à $n$ élément. Dans la suite, la notation \verb|\det| représentera la fonction \verb|determinant|.
 \paragraph{}
-Pour exprimer la règle de Cramer,  la co-matrice d'une matrice est
-définie à l'aide de la fonction {\tt row'}. Cette dernier prend en
-entrée  un nombre \(i\) inférieur à \(m\) (un élément de type {\tt
-  I\_(m)}) et une matrice de taille \((m,n)\); elle retourne la
-matrice de taille \((m-1,n)\) où la rangée \(i\) a été enlevée. Avec les mêmes arguments, la fonction {\tt row} retourne la matrice \((1,n)\) (une rangée et \(n\) colonnes) qui contient la rangée \(i\). La transposée de la co-matrice est représentée par la fonction {\tt adjugate}.  L'égalité de Cramer s'énonce alors formellement: 
+Pour exprimer la règle de Cramer,  la co-matrice d'une matrice est définie à l'aide de la fonction {\tt row'}. Cette dernier prend en entrée  un nombre \(i\) inférieur à \(m\) (un élément de type {\tt I\_(m)}) et une matrice  de taille \((m,n)\); elle retourne la matrice \((m-1,n)\) où la rangée \(i\) a été enlevée. Avec les mêmes arguments, la fonction {\tt row} retourne la matrice \((1,n)\) (une rangée et \(n\) colonnes) qui contient la rangée \(i\). La transposée de la co-matrice est représentée par la fonction {\tt adjugate}.  L'égalité de Cramer est alors formellement représentée par le lemme \verb|mulmx_adjr| : 
 \begin{verbatim}
 Definition cofactor n (A : M_(n)) (i j : I_(n)) :=
    (-1) ^+(i + j) * \det (row' i (col' j A)).
@@ -302,34 +267,30 @@ Definition adjugate n (A : M_(n)) := \matrix_(i, j) (cofactor A j i).
 
 Lemma mulmx_adjr : forall n (A : M_(n)), A * adjugate A = \Z (\det A).
 \end{verbatim}
-La preuve utilise la formule de Laplace ($\det(A)=\sum_{i=1}^{n} a_{i;j} {\rm co-matrice}_{i,j}$) sur les co-matrices et le lemme selon lequel le déterminant est une forme alternée (le déterminant d'une matrice, où au moins deux lignes sont identiques, est nul). Ces propriétés sont donnés respectivement par les lemmes suivants :
+La preuve utilise la formule de Laplace ($\det(A)=\sum_{i=1}^{n} a_{i,j} {\rm co-matrice}_{i,j}$) sur les co-matrices. Celle-ci est formellement donnée par :
 \begin{verbatim}
 Lemma expand_determinant_row : forall n (A : M_(n)) i0,
   \det A = \sum_(j) A i0 j * cofactor A i0 j.
+\end{verbatim} 
+Le lemme selon lequel le déterminant est une forme alternée (le déterminant d'une matrice, où au moins deux lignes sont identiques, est nul) s'énonce formelement comme suit: 
+\begin{verbatim}
 Lemma alternate_determinant : forall n (A : M_(n)) i1 i2,
   i1 != i2 -> A i1 =1 A i2 -> \det A = 0.
 \end{verbatim} 
-Le terme \verb|A i1 =1 A i2| correspond à l'égalité entre les lignes d'indice \verb|i1| et \verb|i2| de la matrice {\tt A}.
+
+Rappelons que les matrices sont des fonctions à deux arguments. Le terme \verb|A i1| est une fonction à un argument et il correspond à la ligne d'indice \verb|i1| de la matrice {\tt A}.
 
 \subsection{Polynômes}
 Un polynôme est défini par la liste de ses coefficients $a_{i}$ qui appartiennent à un anneau $R$: 
 \[ a_{n} x^n + a_{n - 1} x^{n - 1} + \cdots + a_{1} x + a_{0}\]
-Cette représentation n'est malheureusement pas unique, en effet les
-polynômes $ a_{n} x^n + a_{n - 1} x^{n - 1} + \cdots + a_{1} x + a_{0}
-$ et $ 0 x^{n + 1} + a_{n} x^n + a_{n - 1} x^{n - 1} + \cdots + a_{1}
-x + a_{0} $ ont des listes de coefficients différentes mais
-représentent le même polynôme. Pour avoir une égalité amthématiquement
-naturelle sur cette représentation, il est nécessaire de ne considérer
-que les polynômes normalisés, c'est-à-dire ceux dont le coefficient de
-plus grand degré est non nul.
-Les polynômes sont donc représentés par la structure suivante :
+Cette représentation n'est malheureusement pas unique, en effet les polynômes $ a_{n} x^n + a_{n - 1} x^{n - 1} + \cdots + a_{1} x + a_{0} $ et $ 0 x^{n + 1} + a_{n} x^n + a_{n - 1} x^{n - 1} + \cdots + a_{1} x + a_{0} $ ont des listes de coefficients différentes mais représentent le même polynôme. Pour avoir une égalité de Leibniz pour cette représentation, il est nécessaire de ne considérer que les polynômes normalisés, c'est-à-dire ceux dont le coefficient de plus grand degré est non nul, et avoir une égalité de Leibniz sur les coefficients. Les polynômes sont donc représentés par la structure suivante :
 \begin{verbatim}
 Structure polynomial (R : ring) : Type := Poly {
   p :>  seq R;
   normal : last 1 p != 0
 }.
 \end{verbatim} 
-Avec cette définition nous pouvons donc définir une structure de \verb|eqType| sur les polynômes. Mais il est parfois utile de voir les polynômes juste comme une fonction qui donne les coefficients. Nous avons donc défini la fonction coefficient des polynômes par :
+La propriétés normal dit que le dernier élément de la liste des coefficients est non nul. Avec cette définition nous pouvons donc définir une structure de \verb|eqType| sur les polynômes. Mais il est parfois utile de voir les polynômes juste comme une fonction qui donne les coefficients. Nous avons donc défini la fonction coefficient des polynômes par :
 \begin{verbatim}
 Definition coef (p : polynomial) i := sub 0 p i.
 \end{verbatim} 
@@ -343,8 +304,8 @@ Avec ce lemme, nous pouvons passer de notre représentation structurelle des poly
 \left(\sum_{i=0}^n a_ix^i\right)\left(\sum_{j=0}^m  b_jx^j\right)=\sum_{k=0}^{m+n}\left(\sum_{i +j =k}a_{i} b_{j}\right)x^k.
 \end{equation} 
 La preuve de l'associativité de cette multiplication se ramène à des raisonnements sur des sommes indexées, sans avoir besoin de faire des récurrences sur les polynômes.\newline
-Dans la suite, les notations \verb|\X|, \verb|\C c| et \verb|\C0| correspondent respectivement au monôme $x$, au polynôme constant $c$ et au polynôme nul (la séquence vide).\newline
-L'opération de multiplication d'un polynôme par \verb|x| (décalage à droite) et addition d'une constante est l'une des opérations élémentaires sur les polynômes. Dans la bibliothèque elle est réalisée par la fonction suivante : 
+Dans la suite, les notations \verb|\X| et \verb|\C c|correspondent respectivement au monôme $x$ et au polynôme constant $c$.\newline
+L'opération de multiplication d'un polynôme par \verb|x| (décalage à droite) et addition d'une constante est l'une des opérations de base sur les polynômes. Dans la bibliothèque elle est réalisée par la fonction suivante : 
 \begin{verbatim}
 Definition horner c p : polynomial :=
   if p is Poly (Adds _ _ as s) ns then Poly (ns : normal (Adds c s)) else \C c.
@@ -357,7 +318,7 @@ Notation "\poly_ ( i < n ) E" := (mkPoly (mkseq (fun i : nat => E) n)).
 La notation \verb|\poly| permet de construire un polynôme à partir d'une fonction de coefficients. Par exemple, le polynôme correspondant à \verb|\poly_ ( i < n ) i| est le suivant :
  \[ {n - 1} x^{n - 1} + \cdots + {1} x + {0}\] 
 \paragraph{}
-Les opérations d'anneau sur les polynômes sont définies par récurrence sur la séquence des coefficients. La séquence résultat est ensuite normalisée par la fonction \verb|mkPoly|. Par exemple la multiplication de deux polynômes est définie comme suit :
+Les opérations de base sur les polynômes sont définies par récurrence sur la liste des coefficients. La liste résultat est ensuite normalisée par la fonction \verb|mkPoly|. Par exemple la multiplication de deux polynômes est définie comme suit :
 \begin{verbatim}
 Fixpoint mult_poly_seq (s1 s2 : seq R) {struct s1} : seq R :=
   if s1 is Adds c1 s1' then
@@ -367,22 +328,25 @@ Fixpoint mult_poly_seq (s1 s2 : seq R) {struct s1} : seq R :=
 
 Definition mult_poly (p1 p2 : polynomial) := mkPoly (mult_poly_seq p1 p2).
 \end{verbatim} 
-Dans la seconde définition, la coercion du type \verb|polynomial| vers \verb|seq| permet d'écrire \verb|mult_poly_seq p1 p2| bien que \verb|p1| et \verb|p2| sont de type \verb|polynomial|. Le lemme \verb|coef_mul_poly|
+Dans la seconde définition, la conversion de type entre les types \verb|polynomial| et \verb|seq| permet d'écrire \verb|mult_poly_seq p1 p2| bien que \verb|p1| et \verb|p2| sont de type \verb|polynomial|. Le lemme \verb|coef_mul_poly|
 \begin{verbatim}
 Lemma coef_mul_poly : forall p1 p2 i,
   coef (mult_poly p1 p2) i = \sum_(j <= i) coef p1 j * coef p2 (i - j).
 \end{verbatim}
 donne une relation entre les coefficients des deux polynômes et le résultat de leur multiplication. Il correspond à la relation de la formule (\ref{poly-mult}).
 \paragraph{}
-Une autre opération importante sur les polynômes est la fonction d'évaluation d'un polynôme. Elle consiste à remplacer sa variable par une valeur donnée. Cette fonction peut être décrite avec le schéma de Horner pour un polynôme \verb|p| et une valeur \verb|x| par :
+Une autre opération importante sur les polynômes est la fonction d'évaluation d'un polynôme. Elle consiste à remplacer sa variable par une valeur donnée. Cette fonction peut être décrite avec le schéma de Horner pour un polynôme $p$ et une valeur $x$ par :
 \begin{equation}
  \label{horner-sch}
    p(x) = ((...((a_{n}x + a_{n-1})x + a_{n-2})x + ... ) + a_{1})x + a_{0}
 \end{equation}
-Suivant le schéma (\ref{horner-sch}) l'évaluation ne dépend que de la séquence des coefficients et de la valeur où nous évaluons. Elle se définit par récurrence sur la séquence des coefficients. La fonction d'évaluation peut être définie par récurrence comme suit :
+Suivant le schéma (\ref{horner-sch}) l'évaluation ne dépend que de la liste des coefficients et de la valeur où nous évaluons. Elle se définit par récurrence sur la liste des coefficients. La fonction d'évaluation peut être définie par récurrence sur une liste arbitraire comme suit :
 \begin{verbatim}
 Fixpoint eval_poly_seq (s : seq R) (x : R) {struct s} : R :=
   if s is (Adds a s') then eval_poly_seq s' x * x + a else 0.
+\end{verbatim}
+Rappelons que dans la définition de la structure \texttt{polynomial} nous avons une coercion entre elle et le type de la liste des coefficients. Ceci nous permet de définir l'évaluation d'un polynôme de la manière suivante :
+\begin{verbatim}
 Definition eval_poly (p : polynomial R) : R-> R := eval_poly_seq p.
 \end{verbatim}
 La notation \verb|p.[c]| correspond à l'application de la fonction \verb|eval_poly| en \verb|p| et \verb|c|.\newline
@@ -392,46 +356,34 @@ Lemma eval_polyC : forall c x, (\C c).[x] = c.
 Lemma eval_poly_plus : forall p q x,
  (p + q).[x] = p.[x] + q.[x].
 Lemma eval_poly_mult : forall p q x,
- (forall i, (coef q i) * x = x * (coef q i)) ->
+   x * q.[x] = q.[x] * x ->
   (p * q).[x] = p.[x] * q.[x].
 \end{verbatim} 
-Dans le second lemme, la condition de commutativité entre les coefficients de \texttt{q} et \texttt{x} est nécessaire dans le cas d'un anneau non commutatif (les matrices par exemples).
-\[
-\mathrm{Soient} ~~~ p(x) = \sum_{i=0}^n a_ix^i ~~ \mathrm{et} ~~ q(x) = \sum_{j=0}^m  b_jx^j
-\]
-\begin{equation}
- \label{prod1}
-\begin{array}{l l l l l }
-  (p*q)(x) & = & \sum_{k=0}^{m+n}\left(\sum_{i+j =k}a_{i} b_{j}\right)x^k & = & \cdots a_{i} b_{j}x^(i +j) \cdots\\
-\end{array} 
-\end{equation} 
-\begin{equation}
- \label{prod2}
-\begin{array}{l l l l l }
-  p(x)*q(x)& = & \left(\sum_{i=0}^n a_ix^i\right)\left(\sum_{j=0}^m  b_jx^j\right) & = & \cdots a_ix^ib_jx^j \cdots \\
-\end{array} 
-\end{equation}
-La condition de commutativité s'explique donc par le fait que pour passer de (\ref{prod1}) à (\ref{prod2}), il faut que tous les $b_j$ commutent avec $x$.
+
 \paragraph*{}
 Après ces développements, le théorème du reste peut s'énoncer comme suit :
 \begin{verbatim}
-Theorem factor_poly : forall p c,
-  (exists q, p = q * (\X - \C c)) <-> (p.[c] = 0).
+Theorem factor_theorem : forall p c,
+  reflect (exists q, p = q * (\X - \C c)) (p.[c] == 0).
 \end{verbatim} 
 Dans la preuve de ce théorème, pour pouvoir dire que \verb|p.[c]| est égale à \verb|q.[c] * (\X - \C c).[c]|, il faut prouver que les coefficients du polynôme \verb|(\X - \C c)| commutent avec \texttt{c}. Ce qui se prouve facilement car \texttt{1} et \texttt{c} commutent avec \texttt{c}.
 
 \subsection{Preuve de Cayley-Hamilton}
 Le morphisme entre l'anneau des matrice de polynômes et celui des polynômes de matrices est la partie centrale de la preuve du théorème de Cayley-Hamilton. Les autres composantes de la preuve : la règle de Cramer et le théorème de factorisation, sont des propriétés qui se rattachent respectivement aux matrices et aux polynômes. \newline
-Ce morphisme que nous allons appeler \verb|phi| prend en entrée une matrice de polynômes, lui applique le procédé décrit dans (\ref{morphism}), et retourne un polynôme de matrices. La longueur de la séquence des coefficients du polynôme résultat est la taille maximale des polynômes de la matrice de départ. La taille d'un polynôme correspond à la longueur de la séquence de ces coefficients, en d'autre termes son degré plus un. Dans la suite, les notations \verb|M(R)|, \verb|M(R[X])| et \verb|M(R)[X]| représentent respectivement l'anneau des matrices, celui des matrices de polynômes et celui des polynômes de matrices. 
+Ce morphisme que nous allons appeler \verb|phi| prend en argument une matrice de polynômes et retourne un polynôme de matrices. La longueur de la liste des coefficients du polynôme résultat est la taille maximale des polynômes de la matrice de départ. La taille d'un polynôme correspond à la longueur de la liste de ces coefficients, en d'autre terme son degré plus un. Pour une matrice de polynômes \texttt{A}, \verb|phi A| est le polynômes de matrices dont le coefficient d'indice \texttt{k} est la matrice dont le coefficient en \texttt{i} et \texttt{j} est \texttt{coef (A i j) k}. Dans la suite, les notations \verb|R[X]|, \verb|M(R)|, \verb|M(R[X])| et \verb|M(R)[X]| représentent respectivement l'anneau des polynômes, celui des matrices, celui des matrices de polynômes et celui des polynômes de matrices. 
 \begin{verbatim}
 Definition phi (A : M(R[X])) : M(R)[X] :=
   \poly_(k < \max_(i) \max_(j) size (A i j)) \matrix_(i, j) coef (A i j) k.
 \end{verbatim} 
-Le lemme donnant la relation entre le résultat de \verb|phi| et sa valeur d'entrée est utilisé dans la preuve des propriétés de morphismes. Ce lemme dit que pour toute matrice de polynômes $M$, le coefficient du polynôme $M_{i, j}$ en $k$ est égale à l'élément d'indice $(i, j)$ de la matrice coefficient en $k$ de l'image de $M$ par \verb|phi|.
+Le \verb|coef_phi| permet d'exprimer la relation entre une matrice de polynômes et son image par \texttt{phi}.
 \begin{verbatim}
 Lemma coef_phi : forall A i j k, coef (phi A) k i j = coef (A i j) k.
 \end{verbatim} 
-Pour pouvoir définir l'évaluation d'une matrice en son polynôme caractéristique, nous avons défini l'injection de l'anneau des polynômes vers celui des polynômes de matrices. Cette fonction prend un polynôme sur un anneau de base $R$ et multiplie ses coefficients par la matrice identité pour obtenir un polynôme à coefficients matriciels. La notation \texttt{Zpoly} correspond à cette fonction. \newline
+Pour pouvoir définir l'évaluation d'une matrice en son polynôme caractéristique, nous avons défini l'injection de l'anneau des polynômes vers celui des polynômes de matrices.
+\begin{verbatim}
+Definition Zpoly (p : R[X]) : M(R)[X] := \poly_(i < size p) \Z (coef p i).
+\end{verbatim} 
+
 Le polynôme caractéristique d'une matrice est définit en appliquant la définition du déterminant à la matrice de polynômes $xI_{n} - A$.  
 \begin{verbatim}
 Definition matrixC (A : M(R)) : M(R[X]) := \matrix_(i, j) \C (A i j).
@@ -449,13 +401,15 @@ by rewrite phi_add phi_opp phi_Zpoly phi_polyC ZpolyX.
 Qed.
 \end{verbatim} 
 
-La preuve se déroule exactement comme décrit dans la seconde section. Après avoir appliqué le théorème du reste, le polynôme facteur est donné en récrivant avec la règle de Cramer. Le résultat du théorème de Cayley-Hamilton est alors obtenu par des réécritures et simplifications dans le terme obtenu. L'utilisation de \ssr{} a permis d'aboutir à une preuve aussi concise : 3 lignes de codes. C'est l'un des avantages du langage de tactique de \ssr{} par rapport à celui de \coq{} standard. 
+La preuve se déroule exactement comme décrit dans la seconde section. Après avoir appliqué le théorème du reste, le polynôme facteur est donné en récrivant avec la règle de Cramer. Le résultat du théorème de Cayley-Hamilton est alors obtenu par des réécritures et simplifications dans le terme obtenu. L'utilisation de \ssr{}, des mécanismes des \verb|Canonical Structure| et des notations, ainsi que la définition hiérarchique des structures de donnée ont permit d'aboutir à une preuve aussi concise : 3 lignes de codes. 
 
 \section{Conclusion}
-Nous avons présenté une formalisation du théorème de Cayley-Hamilton qui adopte une approche modulaire. La preuve que nous avons présentée dans la section 4.4 peut paraître très simple; mais la conception a été assez longue que ce soit pour choisir l'architecture globale de la preuve ou le bon type de données pour représenter les structures manipulées (polynômes et matrices). Ceci a été d'autant plus difficile car dans la preuve les structures utilisées vont être combinées les unes avec les autres. Les choix ont été motivés par des soucis de lisibilité et de réutilisabilité. L'utilisation des {Canonical Structure} de \coq{} nous a permis d'avoir des énoncés proches de ceux utilisés en mathématiques usuelles. Le découpage des différentes composantes de la preuve sous forme modulaire ( les opérations indexées, les matrices et les polynômes) favorise la réutilisation de ces bibliothèques dans des développements indépendants. Les bibliothèques sur les opérations indexées et les matrices seront réutilisées dans nos prochains travaux sur la théorie des caractères, une des composantes de la preuves du théorème de Feit-Thompson.\newline
-Le travail que nous avons présenté ici est la première formalisation du théorème de Cayley-Hamilton. Ce n'est pas la première formalisation des matrices ou des polynômes. Des formalisations de ces structures sont présentées respectivement dans~\cite{ring-mx, linalg} et~\cite{fta, factor-th}. Mais c'est le premier développement qui regroupe une formalisation des matrices et polynômes et où ces objets sont assemblés pour former de nouveaux objets : les matrices de polynômes et les polynômes de matrices. Dans ce développement la bibliothèque sur les polynômes comprend 83 objets (définitions et lemmes) pour environs 490 lignes de codes. Les définitions et lemmes propres à la preuve du théorème de Cayley-Hamilton sont au nombre de 15 pour 125 lignes de codes. Les sources du développement sont disponibles à l'adresse suivante : \verb|http://www-sop.inria.fr/marelle/Sidi.Biha/cayley/|.  
+Nous avons présenté une formalisation du théorème de Cayley-Hamilton qui adopte une approche modulaire. La preuve que nous avons présenté dans la section 4.4 peut paraître très simple; mais la conception a été assez longue que ce soit pour choisir l'architecture globale de la preuve ou le bon type de données pour représenter les structures manipulées (polynômes et matrices). Les choix ont été motivés par des soucis de lisibilité et de réutilisabilité. L'utilisation des {Canonical Structure} de \coq{} nous a permis d'avoir des énoncés proches de ceux utilisés en mathématiques usuelles. Le découpage des différentes composantes de la preuve sous forme modulaire ( les opérations indexées, les matrices et les polynômes) favorise la réutilisation de ces bibliothèques dans des développements indépendants. Les bibliothèques sur les opérations indexées et les matrices seront réutilisées dans nos prochains travaux sur la théories des caractères, une des composantes de la preuves du théorème de Feit-Thompson.\newline
+Ce travail que nous avons présenté ici est la première formalisation du théorème de Cayley-Hamilton. Ce n'est pas la première formalisation des matrices ou des polynômes. Des formalisations de ces structures sont présentées respectivement dans~\cite{ring-mx, linalg} et~\cite{fta, factor-th}. Mais c'est le premier développement qui regroupe une formalisation des matrices et polynômes et où ces objets sont assemblées pour former de nouveaux objets : les matrices de polynômes et les polynômes de matrices.
 \paragraph*{}
-Dans la formalisation du théorème de Cayley-Hamilton, présentée dans cet article, nous avons choisi de construire nos structures de données sur des types munis d'une égalité décidables: les \texttt{eqType}. En plus du fait qu'en mathématiques classiques tous les types sont décidables, notre preuve sur les types décidables peut être généralisés vers les types quelconques. Ceci se fait en remarquant que tout anneau est une $\mathbf{Z}$-algèbre et en considérant le morphisme d'évaluation des polynômes à $n^{2}$ variables et à coefficients dans $\mathbf{Z}$ qui est un type décidable. Puisque les opérations algébriques sur les matrices et les polynômes n'agissent qu'en fonction des indices des coefficients, ce morphisme commute avec ces opérations. Par conséquent le théorème de Cayley-Hamilton sur les types décidables peut être généralisé à des types quelconques. Cette démarche n'est pas difficile mais elle est fastidieuse et d'aucune utilité pour le travail que nous faisons dans le cadre du projet ``Mathematical Components''. L'avantage de construire nos structures de données (anneaux, matrices et polynômes) sur des types décidables est d'avoir une égalité de Leibniz sur ces structures. Nous pourrons alors profiter de la puissance de la réécriture avec cette égalité, qui est la règle de réécriture par défaut dans \coq{}.
+Dans la formalisation du théorème de Cayley-Hamilton, présentée dans cet article, nous avons choisi de construire nos structures de données sur des types munis d'une égalité décidables: les \texttt{eqType}. En plus du fait qu'en mathématiques classiques tous les types sont décidables, notre preuve sur les types où l'égalité est décidables peut être généralisés vers les types quelconques. Ceci se fait en remarquant que tout anneau est une $\mathbf{Z}$-algèbre et en considérant le morphisme d'évaluation des polynômes à $n^{2}$ variables et à coefficients dans $\mathbf{Z}$ qui est un type où l'égalité est décidable. Il va falloir alors travailler avec les \texttt{Setoid}.
+\paragraph*{}
+Dans ce développement la bibliothèque sur les polynômes comprend 83 objets (définitions et lemmes) pour environs 490 lignes de codes. Les définitions et lemmes propres à la preuve du théorème de Cayley-Hamilton sont au nombre de 15 pour 125 lignes de codes. Les sources du développement sont disponibles à l'adresse suivante : \verb|http://www-sop.inria.fr/marelle/Sidi.Biha/cayley/|.  
 
 % La bibliographie
 \begin{thebibliography}{10} % N'oubliez pas de l'inclure lors
