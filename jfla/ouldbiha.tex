@@ -32,9 +32,28 @@
 \section{Introduction}
 Les systèmes de preuves formelles peuvent être d'une grande utilité dans la vérification et la validation de preuves mathématiques, surtout lorsque ces preuves sont complexes et longues. Les travaux récents, comme la preuve formelle du théorème des 4 couleurs~\cite{4colproof} ou celle du théorème des nombres premiers~\cite{primeth}, montrent que ces systèmes ont atteint un niveau de maturité leur permettant de s'attaquer à des problèmes mathématiques non triviaux. Le travail de formalisation de preuves mathématiques faisant intervenir une large variété d'objets mathématiques nécessite l'adoption d'une approche semblable au génie logiciel. La formalisation de telles théories peut être vue comme un développement faisant intervenir différentes composantes : définitions et preuves mathématiques.
 \paragraph*{}
-Une liste des 100 plus grands théorèmes mathématiques~\cite{100ths} a été constitué par Paul et Jack Abad. Cette liste prend en compte la place du théorème dans la littérature mathématique, la qualité de sa preuve et l'importance du résultat qu'il introduit. F. Wiedijk maintient une liste~\cite{100th} qui recense les formalisations de ces théorèmes dans des systèmes de preuves formelles. Le théorème de Cayley-Hamilton, est l'un des théorèmes présents cette liste. Ce papier présente une formalisation de ce théorème, qui est à notre connaissance la première. Le fait qu'il n'avait pas été jusqu'à ce jour formalisé peut s'expliquer par le fait qu'il fait intervenir de nombreux objets et propriétés mathématiques. Ces objets ne sont pas uniquement utilisées, de façon indépendante; mais ils sont aussi emboîtés les uns sur les autres. Ce travail de formalisation du théorème de Cayley-Hamilton est utilisé dans le cadre des travaux de formalisation du théorème de Feit-Thompson sur les groupes d'ordre impaires. L'objectifs n'est pas seulement de formaliser Cayley-Hamilton; mais d'avoir en plus des bibliothèques réutilisables. 
+Une liste des 100 plus grands théorèmes mathématiques~\cite{100ths} a
+été constitué par Paul et Jack Abad. Cette liste prend en compte la
+place du théorème dans la littérature mathématique, la qualité de sa
+preuve et l'importance du résultat qu'il introduit. F. Wiedijk
+maintient une liste~\cite{100th} qui recense les formalisations de ces
+théorèmes dans des systèmes de preuves formelles. Le théorème de
+Cayley-Hamilton, est l'un des théorèmes présents cette liste. Ce
+papier présente une formalisation de ce théorème, qui est à notre
+connaissance la première. Le fait qu'il n'avait pas été jusqu'à ce
+jour formalisé peut s'expliquer par le fait qu'il fait intervenir de
+nombreux objets et propriétés mathématiques de nature différente
+(algébre linéaire, multilinéaire, combinatoire, ...). Ces objets ne
+sont pas définis et utilisés de façon indépendante mais au contraire
+ils s'emboîtent les uns avec les autres. Ce travail de formalisation
+du théorème de Cayley-Hamilton est utilisé dans le cadre des travaux
+de formalisation du théorème de Feit-Thompson sur les groupes d'ordre
+impair. L'objectifs n'est pas seulement de formaliser
+Cayley-Hamilton; mais d'organiser la preuve en bibliothèques réutilisables. 
 \paragraph*{}
-L'article est organisé comme suit. Dans la section 2, nous présentons l'énoncé et la preuve du théorème de Cayley-Hamilton. Dans la section 3, nous présentons \ssr{}, l'extension de \coq{} et plate-forme de notre développement. Enfin, dans la section 4, nous présentons le développement qui a été nécessaire pour arriver à la formalisation du théorème de Cayley-Hamilton. 
+L'article est organisé comme suit. Dans la section 2, nous présentons
+l'énoncé et la preuve du théorème de Cayley-Hamilton. Dans la section
+3, nous présentons brièvement \ssr{}, l'extension de \coq{} et plate-forme de notre développement. Enfin, dans la section 4, nous présentons le développement qui a été nécessaire pour arriver à la formalisation du théorème de Cayley-Hamilton. 
 
 \section{Le théorème de Cayley-Hamilton}
 Le théorème de Cayley-Hamilton~\cite{algebra} peut être énoncé de la façon suivante : 
@@ -55,16 +74,32 @@ En appliquant la formule (\ref{Cramer}) à la matrice $(xI_{n} - A) \in M_{n}(R[x
   \label{Cramer-mx_poly}
  {}^t{{\rm com} (xI_{n} - A)} * (xI_{n} - A) =\det{(xI_{n} - A)} * I_{n} = p_{A}(x) * I_{n}
 \end{equation}
-Comme $ M_{n}(R[x]) = (M_{n}(R))[X] $ ( $M_{n}(R[x])$ et $(M_{n}(R))[X] $ représentent respectivement l'anneau des matrices de polynômes et celui des polynômes de matrices sur un anneau $R$), l'égalité (\ref{Cramer-mx_poly}) s'écrit dans $(M_{n}(R))[X] $  : 
+L'anneau $ M_{n}(R[x])$ des matrices de polynômes est aussi celui des
+polynômes à coefficients matriciels $M_{n}(R))[X] $. L'égalité
+(\ref{Cramer-mx_poly}) s'écrit ainsi dans $(M_{n}(R))[X] $  : 
 \begin{equation}
   \label{proof_start}
    {}^t{{\rm com} (xI_{n} - A)} * (X - A) = p_{A}(X)
 \end{equation}
 Ceci montre que $(X - A)$ est facteur de $p_{A}(X)$ dans $(M_{n}(R))[X] $ et donc $ p_{A}(A) = O_{n} $.
 \paragraph*{}
-Formaliser une preuve mathématique dans un assistant à la preuve consiste à développer cette preuve pour qu'elle soit compréhensible pour un ordinateur. Pour arriver à cet objectifs deux difficultés sont à surmontées. En premiers lieu, il faut expliciter les parties de la preuve qui sont implicites ou triviales pour un mathématicien. Paradoxalement, l'implémentation sur ordinateur de ces parties, qui n'apparaissent pas dans la preuve, est la tache la plus complexe dans ce travail de formalisation. En second lieu, il faut avoir des formules et des scripts de preuves compréhensible pour un mathématicien. Les énoncés et preuves doivent être le plus proche possible de ceux utilisés de façon standard en mathématiques. 
+Formaliser une preuve mathématique dans un assistant à la preuve
+consiste à détailler cette preuve pour qu'elle soit compréhensible
+pour un ordinateur. Pour arriver à cet objectifs deux difficultés sont
+à surmontées. En premiers lieu, il faut expliciter les parties de la
+preuve qui sont implicites ou ``triviales'' pour un
+mathématicien. Paradoxalement, l'implémentation sur ordinateur de ces
+parties, qui n'apparaissent pas dans la preuve, est la tache la plus
+complexe dans ce travail de formalisation. En second lieu, il faut
+avoir des énoncés % et des scripts de preuves
+% assia : je ne suis pas d'accord : les scripts ne sont pas compréhensibles!!!
+compréhensible pour un mathématicien. Ils doivent en fait être le plus
+proche possible de ceux utilisés dans la littérature mathématiques. 
 \paragraph*{}
-Dans le cas du théorème de Cayley-Hamilton et en considérant la preuve ci-dessus plusieurs problèmes se posent lors de sa formalisation. Dire que $M_{n}(R[x])$ est identique à $(M_{n}(R))[x]$ équivaut algébriquement à dire qu'il existe un isomorphisme d'anneau entre eux. En effet, toute matrice de polynômes peut s'écrire, de façon unique comme la somme de puissances en $x$ multipliées par des matrices, c'est-à-dire un polynôme à coefficients matriciels. Par exemple :
+Dans le cas du théorème de Cayley-Hamilton et en considérant la preuve
+ci-dessus plusieurs problèmes 
+% assia : lesquels?
+se posent lors de sa formalisation. Dire que $M_{n}(R[x])$ est identique à $(M_{n}(R))[x]$ équivaut algébriquement à dire qu'il existe un isomorphisme d'anneau entre eux. En effet, toute matrice de polynômes peut s'écrire, de façon unique comme la somme de puissances en $x$ multipliées par des matrices, c'est-à-dire un polynôme à coefficients matriciels. Par exemple :
 \begin{equation}
  \label{morphism}
  \left(
@@ -89,15 +124,28 @@ x\left(
      3 & -4
   \end{array} \right)
 \end{equation}
-La formalisation de cette isomorphisme correspond à l'écriture de la fonction de transformation décrite dans l'exemple ci-dessus. En notant $\phi$ cette isomorphisme, ses propriétés de morphisme sont utilisées implicitement dans la preuve. En effet, dans (\ref{Cramer-mx_poly}) les membres de l'égalité sont des matrices de polynômes. L'application de $\phi$ aux parties gauche et droite de (\ref{Cramer-mx_poly}) nous donne : 
+La formalisation de cette isomorphisme correspond à l'écriture de la
+fonction de transformation décrite dans l'exemple ci-dessus. Les
+propriétés de cet isomorphisme que nous noterons  $\phi$
+ sont utilisées implicitement dans la preuve. En effet, dans (\ref{Cramer-mx_poly}) les membres de l'égalité sont des matrices de polynômes. L'application de $\phi$ aux parties gauche et droite de (\ref{Cramer-mx_poly}) nous donne : 
 \[   \phi ( {}^t{{\rm com} (xI_{n} - A)} * (xI_{n} - A)) = \phi ( p_{A}(x) * I_{n})) \]
 Les propriétés de morphisme de $\phi$ sont alors utilisées pour obtenir :
 \[       \phi ( {}^t{{\rm com} (xI_{n} - A)}) * \phi (xI_{n} - A)  = \phi ( p_{A}(x) * I_{n})) \]
 La formule (\ref{proof_start}) correspond explicitement à l'égalité ci-dessus.
 
 \section{ \ssr }
-\ssr~\cite{ssrman,modgrp} (pour \textit{Small Scale Reflection} ou réflection à petite échelle) est une extension de \coq{}~\cite{coqart} qui introduit de nouvelles tactiques et des bibliothèque \coq{} adaptées pour travailler sur des types avec une égalité décidable. Elle a été initialement développée par G. Gonthier dans le cadre de sa preuve du théorème des 4 couleurs. Un développement~\cite{modgrp} sur la théorie des groupes finis a été fait au dessus de \ssr. Ce développement comprend, entre autre, une formalisation du théorème de Sylow et du lemme de Cauchy-Frobenuis.\newline
-Nous allons présenons en premier lieu la méthode de \ssr{} pour avoir la réflection entre les prédicats décidables et les booléens. Nous allons introduire par la suite quelques bibliothèques \coq{} de \ssr{} que nous avons utilisées dans notre développement. Des informations plus détaillées sur \ssr{} et précisément son langage de tactique peuvent être obtenues dans~\cite{ssrman}.
+\ssr~\cite{ssrman,modgrp} (pour \textit{Small Scale Reflection} ou
+réflection à petite échelle) est une extension de \coq{}~\cite{coqart}
+qui introduit de nouvelles tactiques et des bibliothèques \coq{}
+adaptées pour travailler sur des types avec une égalité décidable et
+équivalente à l'égalité structurelle de \coq{}, dite égalité de
+Leibniz. Elle a été initialement développée par G. Gonthier dans le
+cadre de sa preuve du théorème des 4 couleurs. Un
+développement~\cite{modgrp} sur la théorie des groupes finis,
+prérequis de la preuve de Feit-Thompson a été construit avec \ssr. Ce
+développement comprend en particulier, une formalisation du théorème de Sylow et du lemme de Cauchy-Frobenuis.\newline
+Nous allons présenter en premier lieu la méthode de \ssr{} pour
+réfléchir entre les prédicats booléens dans la logique de \coq{}. Nous allons introduire par la suite quelques bibliothèques \coq{} de \ssr{} que nous avons utilisées dans notre développement. Des informations plus détaillées sur \ssr{} et précisément son langage de tactique peuvent être obtenues dans~\cite{ssrman}.
 \subsection*{Réflection}
 Dans le système de preuve \coq{} la logique par défaut est intuitionniste. Dans cette logique, les propositions logiques et les valeurs booléennes sont distinctes. Lorsque nous travaillons avec des types décidables cette distinction n'a pas lieu d'être. \ssr{} permet de combiner le meilleur des deux visions et de passer de la version propositionnelle d'un prédicat décidable vers la version booléenne. Pour ce faire, le type booléen est injecté dans celui des propositions par une coercion : 
 \begin{verbatim}
@@ -149,7 +197,7 @@ Structure finType : Type := FinType {
   enumP :  forall x, count (set1 x) enum = 1
 }.
 \end{verbatim} 
-Dans cette définition \verb|(set1 x)| est l'ensemble singleton ${x}$ et \verb|(count f l)| calcule le nombre d'éléments \verb|y| de la liste \verb|l| pour lesquels \verb|(f y)| est vraie. Le paramètre \verb|enum| correspond à la liste des éléments du type fini. Par exemple pour un \verb|finType d|, (\verb|enum d|) retourne la liste des éléments de \verb|d|. \newline
+Dans cette définition \verb|(set1 x)| est l'ensemble singleton ${x}$ et \verb|(count f l)| calcule le nombre d'éléments \verb|y| de la liste \verb|l| pour lesquels \verb|(f y)| est vraie. Le constructeur \verb|enum| correspond à la liste des éléments du type fini. Par exemple pour un \verb|finType d|, (\verb|enum d|) retourne la liste des éléments de \verb|d|. \newline
 Pour représenter les types finis à \(n\) éléments, la bibliothèque \ssr{} fournit une famille de types nommée \verb|ordinal| dont les éléments sont des paires composées d'un nombre entier \(p\) et d'une preuve que \(p\) est inférieur à \(n\). Comme cette preuve est basée sur un test décidable, la propriété d'irrelevance s'applique et les éléments de ce type sont uniquement caractérisés par la composante \(p\). La notation \verb|I_(n)| désigne le type \verb|ordinal n|.
 
 \section{Formalisations \coq}
@@ -207,7 +255,7 @@ Grâce à la définition de \texttt{Canonical Structure nat\_eqType}, les arguments
 Lemma eqn_add0 : forall m n, (m + n == 0) = (m == 0) && (n == 0).
 \end{verbatim} 
 \paragraph*{}
-Le mécanisme des \texttt{Canonical Structure} peut être appliquée à des structures plus complexes comme les anneaux. Dans les bibliothèques sur les matrices et les polynômes, nous définissons les types de polynômes et matrices sur des structures d'anneaux. Des structures d'anneaux sont ensuite définies sur ces types. Ainsi les mêmes opérations d'anneaux (addition, multiplication et opposé) sont utilisées pour les matrices et les polynômes. Avec la définition des \texttt{Canonical Structure} sur ces structures, \coq{} pourra inférer automatiquement que la structure d'anneau sur les polynômes et les matrices. Ceci nous permet d'avoir des énoncés proches de ceux en mathématique standard et plus lisible du point de vue de l'utilisateur. 
+Le mécanisme des \texttt{Canonical Structure} peut être appliquée à des structures plus complexes comme les anneaux. Dans les bibliothèques sur les matrices et les polynômes, nous définissons les types de polynômes et matrices sur des structures d'anneaux. Des structures d'anneaux sont ensuite définies sur ces types. Ainsi les mêmes opérations d'anneaux (addition, multiplication et opposé) sont utilisées pour les matrices et les polynômes. Avec la définition des \texttt{Canonical Structure} sur ces structures, \coq{} pourra inférer automatiquement que la structure d'anneau sur les polynômes et les matrices. Ceci nous permet d'avoir des énoncés proches de ceux en mathématique standard et plus lisibles du point de vue de l'utilisateur. 
 
 \subsection{Matrices et déterminants}
 Une matrice sur un anneau $R$ est une séquence de coefficients doublement indexée. Elle peut être vue comme une fonction qui associe à une position  \((i,j)\) une valeur dans l'anneau $R$. Étant donnés $m$ et $n$ deux entiers et $R$ un anneau, une matrice sur $R$ (un objet de type $M_{m,n}(R)$) peut être représentée par la fonction suivante : $ [0..n[ \rightarrow [0..m[ \rightarrow R$. Le type des matrices de taille \((m,n)\) est défini par :
@@ -240,9 +288,13 @@ Avec ces choix, grâce aux développements sur le calcul de la parité des permutat
   \sum_(s : S_(n)) (-1) ^ s * \prod_(i) A i (s i).
 \end{verbatim} 
 
-Les notations \verb|\sum| et \verb|\prod| représentent respectivement la somme et le produit indexées. Ce sont des instances de \verb|reducebig| pour les opérations internes (addition et multiplication) de l'anneau des coefficients de la matrice. La notation \verb|S_(n)| représente le groupe des permutations de taille $n$. Dans la suite, la notation \verb|\det| représentera la fonction \verb|determinant|.
+Les notations \verb|\sum| et \verb|\prod| représentent respectivement la somme et le produit indexés. Ce sont des instances de \verb|reducebig| pour les opérations internes (addition et multiplication) de l'anneau des coefficients de la matrice. La notation \verb|S_(n)| représente le groupe des permutations de taille $n$. Dans la suite, la notation \verb|\det| représentera la fonction \verb|determinant|.
 \paragraph{}
-Pour exprimer la règle de Cramer,  la co-matrice d'une matrice est définie à l'aide de la fonction {\tt row'}. Cette dernier prend en entrée  un nombre \(i\) inférieur à \(m\) (un élément de type {\tt I\_(m)}) et une matrice \((m,n)\); elle retourne la matrice \((m-1,n)\) où la rangée \(i\) a été enlevée. Avec les mêmes arguments, la fonction {\tt row} retourne la matrice \((1,n)\) (une rangée et \(n\) colonnes) qui contient la rangée \(i\). La transposée de la co-matrice est représentée par la fonction {\tt adjugate}.  L'égalité de Cramer s'énonce alors : 
+Pour exprimer la règle de Cramer,  la co-matrice d'une matrice est
+définie à l'aide de la fonction {\tt row'}. Cette dernier prend en
+entrée  un nombre \(i\) inférieur à \(m\) (un élément de type {\tt
+  I\_(m)}) et une matrice de taille \((m,n)\); elle retourne la
+matrice de taille \((m-1,n)\) où la rangée \(i\) a été enlevée. Avec les mêmes arguments, la fonction {\tt row} retourne la matrice \((1,n)\) (une rangée et \(n\) colonnes) qui contient la rangée \(i\). La transposée de la co-matrice est représentée par la fonction {\tt adjugate}.  L'égalité de Cramer s'énonce alors formellement: 
 \begin{verbatim}
 Definition cofactor n (A : M_(n)) (i j : I_(n)) :=
    (-1) ^+(i + j) * \det (row' i (col' j A)).
@@ -262,7 +314,15 @@ Le terme \verb|A i1 =1 A i2| correspond à l'égalité entre les lignes d'indice \v
 \subsection{Polynômes}
 Un polynôme est défini par la liste de ses coefficients $a_{i}$ qui appartiennent à un anneau $R$: 
 \[ a_{n} x^n + a_{n - 1} x^{n - 1} + \cdots + a_{1} x + a_{0}\]
-Cette représentation n'est malheureusement pas unique, en effet les polynômes $ a_{n} x^n + a_{n - 1} x^{n - 1} + \cdots + a_{1} x + a_{0} $ et $ 0 x^{n + 1} + a_{n} x^n + a_{n - 1} x^{n - 1} + \cdots + a_{1} x + a_{0} $ ont des listes de coefficients différentes mais représentent le même polynôme. Pour avoir une égalité de Leibniz pour cette représentation, il est nécessaire de ne considérer que les polynômes normalisés, c'est-à-dire ceux dont le coefficient de plus grand degré est non nul, et avoir une égalité de Leibniz sur les coefficients. Les polynômes sont donc représentés par la structure suivante :
+Cette représentation n'est malheureusement pas unique, en effet les
+polynômes $ a_{n} x^n + a_{n - 1} x^{n - 1} + \cdots + a_{1} x + a_{0}
+$ et $ 0 x^{n + 1} + a_{n} x^n + a_{n - 1} x^{n - 1} + \cdots + a_{1}
+x + a_{0} $ ont des listes de coefficients différentes mais
+représentent le même polynôme. Pour avoir une égalité amthématiquement
+naturelle sur cette représentation, il est nécessaire de ne considérer
+que les polynômes normalisés, c'est-à-dire ceux dont le coefficient de
+plus grand degré est non nul.
+Les polynômes sont donc représentés par la structure suivante :
 \begin{verbatim}
 Structure polynomial (R : ring) : Type := Poly {
   p :>  seq R;
@@ -284,7 +344,7 @@ Avec ce lemme, nous pouvons passer de notre représentation structurelle des poly
 \end{equation} 
 La preuve de l'associativité de cette multiplication se ramène à des raisonnements sur des sommes indexées, sans avoir besoin de faire des récurrences sur les polynômes.\newline
 Dans la suite, les notations \verb|\X|, \verb|\C c| et \verb|\C0| correspondent respectivement au monôme $x$, au polynôme constant $c$ et au polynôme nul (la séquence vide).\newline
-L'opération de multiplication d'un polynôme par \verb|x| (décalage à droite) et addition d'une constante est l'une des opérations de base sur les polynômes. Dans la bibliothèque elle est réalisée par la fonction suivante : 
+L'opération de multiplication d'un polynôme par \verb|x| (décalage à droite) et addition d'une constante est l'une des opérations élémentaires sur les polynômes. Dans la bibliothèque elle est réalisée par la fonction suivante : 
 \begin{verbatim}
 Definition horner c p : polynomial :=
   if p is Poly (Adds _ _ as s) ns then Poly (ns : normal (Adds c s)) else \C c.
@@ -297,7 +357,7 @@ Notation "\poly_ ( i < n ) E" := (mkPoly (mkseq (fun i : nat => E) n)).
 La notation \verb|\poly| permet de construire un polynôme à partir d'une fonction de coefficients. Par exemple, le polynôme correspondant à \verb|\poly_ ( i < n ) i| est le suivant :
  \[ {n - 1} x^{n - 1} + \cdots + {1} x + {0}\] 
 \paragraph{}
-Les opérations de base sur les polynômes sont définies par récurrence sur la séquence des coefficients. La séquence résultat est ensuite normalisée par la fonction \verb|mkPoly|. Par exemple la multiplication de deux polynômes est définie comme suit :
+Les opérations d'anneau sur les polynômes sont définies par récurrence sur la séquence des coefficients. La séquence résultat est ensuite normalisée par la fonction \verb|mkPoly|. Par exemple la multiplication de deux polynômes est définie comme suit :
 \begin{verbatim}
 Fixpoint mult_poly_seq (s1 s2 : seq R) {struct s1} : seq R :=
   if s1 is Adds c1 s1' then
@@ -307,7 +367,7 @@ Fixpoint mult_poly_seq (s1 s2 : seq R) {struct s1} : seq R :=
 
 Definition mult_poly (p1 p2 : polynomial) := mkPoly (mult_poly_seq p1 p2).
 \end{verbatim} 
-Dans la seconde définition, la conversion de type entre les types \verb|polynomial| et \verb|seq| permet d'écrire \verb|mult_poly_seq p1 p2| bien que \verb|p1| et \verb|p2| sont de type \verb|polynomial|. Le lemme \verb|coef_mul_poly|
+Dans la seconde définition, la coercion du type \verb|polynomial| vers \verb|seq| permet d'écrire \verb|mult_poly_seq p1 p2| bien que \verb|p1| et \verb|p2| sont de type \verb|polynomial|. Le lemme \verb|coef_mul_poly|
 \begin{verbatim}
 Lemma coef_mul_poly : forall p1 p2 i,
   coef (mult_poly p1 p2) i = \sum_(j <= i) coef p1 j * coef p2 (i - j).
@@ -362,7 +422,7 @@ Dans la preuve de ce théorème, pour pouvoir dire que \verb|p.[c]| est égale à \v
 
 \subsection{Preuve de Cayley-Hamilton}
 Le morphisme entre l'anneau des matrice de polynômes et celui des polynômes de matrices est la partie centrale de la preuve du théorème de Cayley-Hamilton. Les autres composantes de la preuve : la règle de Cramer et le théorème de factorisation, sont des propriétés qui se rattachent respectivement aux matrices et aux polynômes. \newline
-Ce morphisme que nous allons appeler \verb|phi| prend en entrée une matrice de polynômes, lui applique le procédé décrit dans (\ref{morphism}), et retourne un polynôme de matrices. La longueur de la séquence des coefficients du polynôme résultat est la taille maximale des polynômes de la matrice de départ. La taille d'un polynôme correspond à la longueur de la séquence de ces coefficients, en d'autre terme son degré plus un. Dans la suite, les notations \verb|M(R)|, \verb|M(R[X])| et \verb|M(R)[X]| représentent respectivement l'anneau des matrices, celui des matrices de polynômes et celui des polynômes de matrices. 
+Ce morphisme que nous allons appeler \verb|phi| prend en entrée une matrice de polynômes, lui applique le procédé décrit dans (\ref{morphism}), et retourne un polynôme de matrices. La longueur de la séquence des coefficients du polynôme résultat est la taille maximale des polynômes de la matrice de départ. La taille d'un polynôme correspond à la longueur de la séquence de ces coefficients, en d'autre termes son degré plus un. Dans la suite, les notations \verb|M(R)|, \verb|M(R[X])| et \verb|M(R)[X]| représentent respectivement l'anneau des matrices, celui des matrices de polynômes et celui des polynômes de matrices. 
 \begin{verbatim}
 Definition phi (A : M(R[X])) : M(R)[X] :=
   \poly_(k < \max_(i) \max_(j) size (A i j)) \matrix_(i, j) coef (A i j) k.
@@ -389,11 +449,11 @@ by rewrite phi_add phi_opp phi_Zpoly phi_polyC ZpolyX.
 Qed.
 \end{verbatim} 
 
-La preuve se déroule exactement comme décrit dans la seconde section. Après avoir appliqué le théorème du reste, le polynôme facteur est donné en récrivant avec la règle de Cramer. Le résultat du théorème de Cayley-Hamilton est alors obtenu par des réécritures et simplifications dans le terme obtenu. L'utilisation de \ssr{} a permit d'aboutir à une preuve aussi concise : 3 lignes de codes. C'est l'un des avantages du langage de tactique de \ssr{} par rapport à celui de \coq{} standard. 
+La preuve se déroule exactement comme décrit dans la seconde section. Après avoir appliqué le théorème du reste, le polynôme facteur est donné en récrivant avec la règle de Cramer. Le résultat du théorème de Cayley-Hamilton est alors obtenu par des réécritures et simplifications dans le terme obtenu. L'utilisation de \ssr{} a permis d'aboutir à une preuve aussi concise : 3 lignes de codes. C'est l'un des avantages du langage de tactique de \ssr{} par rapport à celui de \coq{} standard. 
 
 \section{Conclusion}
-Nous avons présenté une formalisation du théorème de Cayley-Hamilton qui adopte une approche modulaire. La preuve que nous avons présenté dans la section 4.4 peut paraître très simple; mais la conception a été assez longue que ce soit pour choisir l'architecture globale de la preuve ou le bon type de données pour représenter les structures manipulées (polynômes et matrices). Ceci a été d'autant plus difficile car dans la preuve les structures utilisées vont être combinées les unes avec les autres. Les choix ont été motivés par des soucis de lisibilité et de réutilisabilité. L'utilisation des {Canonical Structure} de \coq{} nous a permis d'avoir des énoncés proches de ceux utilisés en mathématiques classiques. Le découpage des différentes composantes de la preuve sous forme modulaire ( les opérations indexées, les matrices et les polynômes) favorise la réutilisation de ces bibliothèques dans des développements indépendants. Les bibliothèques sur les opérations indexées et les matrices seront réutilisées dans nos prochains travaux sur la théories des caractères, une des composantes de la preuves du théorème de Feit-Thompson.\newline
-Ce travail que nous avons présenté ici est la première formalisation du théorème de Cayley-Hamilton. Ce n'est pas la première formalisation des matrices ou des polynômes. Des formalisations de ces structures sont présentées respectivement dans~\cite{ring-mx, linalg} et~\cite{fta, factor-th}. Mais c'est le premier développement qui regroupe une formalisation des matrices et polynômes et où ces objets sont assemblées pour former de nouveaux objets : les matrices de polynômes et les polynômes de matrices. Dans ce développement la bibliothèque sur les polynômes comprend 83 objets (définitions et lemmes) pour environs 490 lignes de codes. Les définitions et lemmes propres à la preuve du théorème de Cayley-Hamilton sont au nombre de 15 pour 125 lignes de codes. Les sources du développement sont disponibles à l'adresse suivante : \verb|http://www-sop.inria.fr/marelle/Sidi.Biha/cayley/|.  
+Nous avons présenté une formalisation du théorème de Cayley-Hamilton qui adopte une approche modulaire. La preuve que nous avons présentée dans la section 4.4 peut paraître très simple; mais la conception a été assez longue que ce soit pour choisir l'architecture globale de la preuve ou le bon type de données pour représenter les structures manipulées (polynômes et matrices). Ceci a été d'autant plus difficile car dans la preuve les structures utilisées vont être combinées les unes avec les autres. Les choix ont été motivés par des soucis de lisibilité et de réutilisabilité. L'utilisation des {Canonical Structure} de \coq{} nous a permis d'avoir des énoncés proches de ceux utilisés en mathématiques usuelles. Le découpage des différentes composantes de la preuve sous forme modulaire ( les opérations indexées, les matrices et les polynômes) favorise la réutilisation de ces bibliothèques dans des développements indépendants. Les bibliothèques sur les opérations indexées et les matrices seront réutilisées dans nos prochains travaux sur la théorie des caractères, une des composantes de la preuves du théorème de Feit-Thompson.\newline
+Le travail que nous avons présenté ici est la première formalisation du théorème de Cayley-Hamilton. Ce n'est pas la première formalisation des matrices ou des polynômes. Des formalisations de ces structures sont présentées respectivement dans~\cite{ring-mx, linalg} et~\cite{fta, factor-th}. Mais c'est le premier développement qui regroupe une formalisation des matrices et polynômes et où ces objets sont assemblés pour former de nouveaux objets : les matrices de polynômes et les polynômes de matrices. Dans ce développement la bibliothèque sur les polynômes comprend 83 objets (définitions et lemmes) pour environs 490 lignes de codes. Les définitions et lemmes propres à la preuve du théorème de Cayley-Hamilton sont au nombre de 15 pour 125 lignes de codes. Les sources du développement sont disponibles à l'adresse suivante : \verb|http://www-sop.inria.fr/marelle/Sidi.Biha/cayley/|.  
 \paragraph*{}
 Dans la formalisation du théorème de Cayley-Hamilton, présentée dans cet article, nous avons choisi de construire nos structures de données sur des types munis d'une égalité décidables: les \texttt{eqType}. En plus du fait qu'en mathématiques classiques tous les types sont décidables, notre preuve sur les types décidables peut être généralisés vers les types quelconques. Ceci se fait en remarquant que tout anneau est une $\mathbf{Z}$-algèbre et en considérant le morphisme d'évaluation des polynômes à $n^{2}$ variables et à coefficients dans $\mathbf{Z}$ qui est un type décidable. Puisque les opérations algébriques sur les matrices et les polynômes n'agissent qu'en fonction des indices des coefficients, ce morphisme commute avec ces opérations. Par conséquent le théorème de Cayley-Hamilton sur les types décidables peut être généralisé à des types quelconques. Cette démarche n'est pas difficile mais elle est fastidieuse et d'aucune utilité pour le travail que nous faisons dans le cadre du projet ``Mathematical Components''. L'avantage de construire nos structures de données (anneaux, matrices et polynômes) sur des types décidables est d'avoir une égalité de Leibniz sur ces structures. Nous pourrons alors profiter de la puissance de la réécriture avec cette égalité, qui est la règle de réécriture par défaut dans \coq{}.
 
