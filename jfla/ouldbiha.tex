@@ -74,6 +74,7 @@ Formaliser une preuve mathématique dans un assistant de preuve consiste à dévelo
 \paragraph*{}
 Dans le cas du théorème de Cayley-Hamilton et en considérant la preuve ci-dessus plusieurs problèmes se posent lors de sa formalisation. Dire que $M_{n}(R[x])$ est identique à $(M_{n}(R))[x]$ équivaut algébriquement à dire qu'il existe un isomorphisme d'anneau entre eux. En effet, toute matrice de polynômes peut s'écrire, de façon unique comme la somme de puissances en $x$ multipliées par des matrices, c'est-à-dire un polynôme à coefficients matriciels. Par exemple :
 \begin{equation}
+ \label{morphism}
  \left(
   \begin{array}{ c c }
      x^{2} + 1 & x - 2 \\
@@ -224,96 +225,53 @@ Lemma eqn_add0 : forall m n, (m + n == 0) = (m == 0) && (n == 0).
 \paragraph*{}
 Le mécanisme des \texttt{Canonical Structure} peut être appliquée à des structures plus complexes comme les anneaux. Dans les librairies sur les matrices et les polynômes, nous définissons les types polynômes sur des structures d'anneaux. Ces structures sont ensuite définis comme des anneaux. Avec la définition des \texttt{Canonical Structure} sur ces structures, les mêmes opérations d'anneaux (addition, multiplication et opposé) sont utilisées pour les matrices et les polynômes. Ceci nous permet d'avoir des énoncés proches de ceux en mathématique standard et plus lisible du point de vue de l'utilisateur. 
 
-\paragraph{}
-STOP : TO continuous in the next episode.
-\paragraph{}
-
-
 \subsection{Matrices et déterminants}
 Une matrice sur un anneau $R$ est une séquence de coefficients doublement indexée. Elle peut être vue comme une fonction qui associe à une position  \((i,j)\) une valeur dans l'anneau $R$. Étant donnés $m$ et $n$ deux entiers et $R$ un anneau, une matrice sur $R$ (un objet de type $M_{m,n}(R)$) peut être représentée par la fonction suivante : $ [0..n[ \rightarrow [0..m[ \rightarrow R$. Le type des matrices de taille \((m,n)\) est défini par :
 \begin{verbatim}
 Definition matrix (m n :nat) :=
-  fgraph_eqType (I_(m) * I_(n)) R.
+  fgraphType (I_(m) * I_(n)) R.
 \end{verbatim} 
-Dans cette définition, les matrices sont des fonctions à deux arguments. Nous avons donc défini les fonctions \verb|matrix_of_fun| et \verb|fun_of_matrix| qui permettent respectivement de définir un objet de type \texttt{matrix} à partir d'une fonction et de convertir un objet de type \texttt{matrix} en une fonction à deux arguments. Cette dernière n'est autre qu'une coercion du type \texttt{matrix} vers celui des fonctions. Elle nous permet de dire que deux matrices A et B sont égales si et seulement si nous avons \texttt{A =2 B}. Ce qui veut dire que les fonctions associées à ces matrices sont égales.\newline
-Dans la suite, les notations \texttt{M\_(n)}, \texttt{+m}, \texttt{*m}, \texttt{*sm}, \verb|\0m| et \verb|\1m| correspondent respectivement au type des matrices carrées, à l'addition de deux matrices, la multiplication de deux matrices, la multiplication d'une matrice par un scalaire, la matrice nulle et la matrice unité. 
+Dans cette définition, les matrices sont des fonctions à deux arguments. La fonction \texttt{fgraphType} [ssrman] construit le graphe des fonctions dont le domaine est un type fini et le co-domaine un eqType. Avec la définition des graphes de fonctions, les fonctions sont ainsi munies d'une égalité de Leibniz et ceci sans avoir besoin de nouveaux axiomes. \ssr{} définit, pour deux fonctions f et g, les notations \texttt{f =1 g} et \texttt{f =2 g} équivalentes respectivement à $\mathtt{\forall x, f~x = g~x}$  et  $\mathtt{\forall x~y, f~x~y = g~x~y}$. Les fonctions \verb|matrix_of_fun| et \verb|fun_of_matrix| qui permettent respectivement de définir un objet de type \texttt{matrix} à partir d'une fonction et de convertir un objet de type \texttt{matrix} en une fonction à deux arguments. Cette dernière n'est autre qu'une coercion du type \texttt{matrix} vers celui des fonctions. Elle nous permet de dire que deux matrices \texttt{A} et \texttt{B} sont égales si et seulement si nous avons \texttt{A =2 B}. Ce qui veut dire que les fonctions associées à ces matrices sont égales : \texttt{fun\_of\_matrix A =2 fun\_of\_matrix B}.\newline
+Dans la suite, les notations \texttt{M\_(n)} et \verb|\Z| correspondent respectivement au type des matrices carrées et à la multiplication d'un scalaire par la matrice identité.
+
 \paragraph*{}
-Après avoir défini le type des matrices et pour construire la structure d'anneau sur le type des matrices carrées, il va falloir prouver les axiomes d'anneaux sur ce type. 
-\begin{verbatim}
-Variable (n : nat) (Hn : 0<n).
-Lemma mx_plus0x: forall (A : M_(n)), \0m +m A = A.
-Lemma mx_scale_oppl: forall (A : M_(n)), (- 1 *sm A) +m A = \0m.
-Lemma mx_plusA: forall (A B C : M_(n)), A +m (B +m C) = (A +m B) +m C.
-Lemma mx_plusC: forall (A B : M_(n)), A +m B = B +m A.
-Lemma mx_mult1x: forall (A : M_(n)), \1m *m A = A.
-Lemma mx_multx1: forall (A : M_(n)), A *m \1m = A.
-Lemma mx_multA: forall (A B C : M_(n)), A *m (B *m C) = (A *m B) *m C.
-Lemma mx_distrL: forall (A B C : M_(n)), A *m (B +m C) = (A *m B) +m (A *m C).
-Lemma mx_distrR: forall (A B C : M_(n)), (A +m B) *m C = (A *m C) +m (B *m C).
-Lemma mx_0_diff_1: \0m <> \1m.
-Canonical Structure matrix_ring: ring:=
-  Ring mx_plus0x m_scale_oppl mx_plusA mx_plusC mx_mult1x mx_multx1
-       mx_multA mx_distrL mx_distrR mx_0_diff_1.
-\end{verbatim} 
-L'utilisation de \texttt{Canonical Structure} dans la dernière déclaration permettra à Coq d'inférer automatiquement la structure d'anneau de matrice lorsque nécessaire. C'est par exemple le cas dans le lemme suivant qui dit que la trace de la somme de deux matrice est la somme des traces des deux matrices. 
-\begin{verbatim}
-Lemma trace_plus_mx : forall n (A B : M_(n)), \tr (A + B) = \tr A + \tr B.
-\end{verbatim} 
-Dans l'énoncé du lemme les matrices \texttt{A} et \texttt{B} ne sont pas déclarées de type \texttt{matrix\_ring} mais simplement de type \texttt{matrix}, \coq{} a inféré automatiquement la structure d'anneau et a accepté l'utilisation de la notation pour l'addition d'anneau dans la partie gauche de l'égalité.
-\paragraph*{}
-Pour définir les déterminants, nous avons utilisé la formule de Leibniz où nous supposons que $A$ 
-est une matrice carrée de dimension $n$.
+La bibliothèque sur les déterminants utilise la formule de Leibniz pour définir le déterminant. Ce choix est motivé par le fait que dans cette formule il est question de groupe de permutations et qu'une formalisation des permutations (groupe, signature ...) a été déjà développée dans le cadre du travail sur les groupes finies []. Etant donné une une matrice carrée $A$ de dimension $n$, le déterminant est donnée par :
 \begin{equation}
   \label{leibniz} \det(A)=\sum_{\sigma \in S_n} 
 \epsilon(\sigma) \prod_{i=1}^n a_{i, \sigma(i)}
 \end{equation} 
-Dans cette formule, nous utilisons des opérations indexées pour les sommes et les produits, mais les notations mathématiques cachent plusieurs autres éléments qui doivent être formalisés précisément:
+Dans cette formule, il est question d'opérations indexées pour les sommes et les produits, mais les notations mathématiques cachent plusieurs autres éléments. Dans la bibliothèque sur les déterminant, pour pouvoir formaliser la formule (\ref{leibniz}) :
 \begin{itemize}
- \item l'indexation des lignes et colonnes de la matrice par des entiers est remplacée par  une 
+ \item l'indexation des lignes et colonnes de la matrice par des entiers est remplacée par une 
 indexation par les éléments du type \texttt{I\_(n)},
- \item l'ensemble des permutations sur cet ensemble fini doit également être décrit comme un 
- ensemble fini qui pourra être énuméré,
- \item pour toute permutation il est nécessaire de calculer sa parité.
+ \item l'ensemble des permutations sur cet ensemble fini est décrit comme un ensemble fini qui pourra être énuméré.
 \end{itemize}
 
 \paragraph{}
-Pour représenter les permutations, la bibliothèque \ssr{} utilise les \texttt{fgraphType}. Le type permutation est facilement décrit comme un type fini qui peut être énuméré et sur lequel on peut faire des opérations indexées finies. Pour calculer la parité d'une permutation \(\sigma\), on veut compter le nombre d'inversions de la permutation, c'est à dire l'ensemble des paires \((i,j)\) telles que \(i < j\)  et \(\sigma(j) < \sigma(i)\). Pour ce travail, nous utilisons une théorie des multiplets sur des types finis, un type fini et l'ordre naturel des éléments induits par l'ordre dans la séquence \texttt{enum} qui définit ce type. Cet ordre est utilisé pour comparer \(i\) et \(j\) d'une part et \(\sigma(i)\) et \(\sigma(j)\) d'autre part.
-\paragraph{}
-Grâce à ces développements la formule (\ref{leibniz}) peut alors s'écrire :
+Avec ces choix, grâce aux développements sur le calcul de la parité des permutations et à celui sur les groupes de permutations, la formule (\ref{leibniz}) s'écrit :
 \begin{verbatim}
  Definition determinant n (A : M_(n)) :=
   \sum_(s : S_(n)) (-1) ^ s * \prod_(i) A i (s i).
 \end{verbatim} 
 
-Les notations \verb|\sum| et \verb|\prod| représentent respectivement la somme et le produit indexées. Ce sont des instances de \verb|iop| pour les opérations internes (addition et multiplication) de l'anneau des coefficients de la matrice. La notation \verb|S_(n)| représente le groupe des permutations de taille $n$. Dans la suite, la notation \verb|\det| représentera la fonction \verb|determinant|.
+Les notations \verb|\sum| et \verb|\prod| représentent respectivement la somme et le produit indexées. Ce sont des instances de \verb|reducebig| pour les opérations internes (addition et multiplication) de l'anneau des coefficients de la matrice. La notation \verb|S_(n)| représente le groupe des permutations de taille $n$. Dans la suite, la notation \verb|\det| représentera la fonction \verb|determinant|.
+\paragraph{}
+Pour exprimer la règle de Cramer,  la co-matrice d'une matrice est définie à l'aide de la fonction {\tt row'}. Cette dernier prend en entrée  un nombre \(i\) inférieur à \(m\) (un élément de type {\tt I\_(m)}) et une matrice \((m,n)\); elle retourne la matrice \((m-1,n)\) où la rangée \(i\) a été enlevée. Avec les mêmes arguments, la fonction {\tt row} retourne la matrice \((1,n)\) (une rangée et \(n\) colonnes) qui contient la rangée \(i\). La transposée de la co-matrice est représentée par la fonction {\tt adjugate}.  L'égalité de Cramer s'énonce alors : 
+\begin{verbatim}
+Lemma mulmx_adjr : forall n (A : M_(n)), A * adjugate A = \Z (\det A).
+\end{verbatim}
+La preuve utilise la formule de Laplace ($\det(A)=\sum_{i=1}^{n} a_{i;j} {\rm Cofacteur}_{i,j}$) sur les cofacteurs et le lemme selon lequel le déterminant est une forme alternée (le déterminant d'une matrice, où au moins deux lignes sont identiques, est nul). Ces propriétés sont donnés respectivement par les lemmes suivants :
+\begin{verbatim}
+Lemma expand_determinant_row : forall n (A : M_(n)) i0,
+  \det A = \sum_(j) A i0 j * cofactor A i0 j.
+Lemma alternate_determinant : forall n (A : M_(n)) i1 i2,
+  i1 != i2 -> A i1 =1 A i2 -> \det A = 0.
+\end{verbatim} 
+Le terme \verb|A i1 =1 A i2| correspond à l'égalité entre les lignes d'indice \verb|i1| et \verb|i2| de la matrice {\tt A}.
 
 \paragraph{}
-Pour montrer que le déterminant est une forme linéaire, nous avons eu besoin de montrer que la structure 
-d'anneau sur l'ensemble des coefficients où la multiplication est associative, l'addition est commutative, 
-et la multiplication distributive sur l'addition se retrouve sur les opérations indexées. Ces preuves se 
-font assez simplement. Nous arrivons donc au point où nous voulons exprimer des relations entre les lignes de plusieurs matrices. Pour cela nous utilisons deux fonctions : la fonction {\tt row} prend en entrée un nombre \(i\) inférieur à \(m\) (un élément de type {\tt I\_(m)}) et une matrice \((m,n)\); elle retourne la matrice \((1,n)\) (une rangée et \(n\) colonnes) qui contient la rangée \(i\).  Avec les mêmes arguments la fonction {\tt row'} retourne la matrice \((m-1,n)\) où la rangée choisie a été enlevée.  Grâce à ces fonctions la multilinéarité s'écrit de la façon suivante:
-\begin{verbatim}
- Lemma determinant_multilinear : forall n (A B C : M_(n)) i b c,
-    row i A =2 b *sm row i B +m c *sm row i C ->
-    row' i B =2 row' i A -> row' i C =2 row' i A ->
-  \det A = b * \det B + c * \det C.
-\end{verbatim} 
-Nous devons également démontrer que le déterminant est une forme alternée. Pour cela il est nécessaire de montrer plusieurs propriétés sur la parité des permutations. En particulier, nous avons établi que pour la
-composition de toute permutation avec une transposition entre deux éléments distincts établit une bijection entre les permutations paires et les permutations impaires. Les lemmes de partitionnement et de réindexation des opérations indexées suffisent alors pour obtenir l'énoncé suivant:
-\begin{verbatim}
-Lemma alternate_determinant : forall n (A : M_(n)) i1 i2,
-  i1 != i2 -> row i1 A =1 row i2 A -> \det A = 0.
-\end{verbatim}
-Des calculs dans le même esprit permettent d'obtenir la propriété de morphisme du déterminant :
-\begin{verbatim}
-Lemma determinantM :
- forall n (A B : M_(n)), \det (A * B) = \det A * \det B.
-\end{verbatim}
-Puis nous pouvons définir la co-matrice d'une matrice à l'aide de la fonction {\tt row'} et d'une fonction similaire sur les colonnes, puis la transposée de cette co-matrice (représentée par la fonction {\tt adjugate}) et prouver l'égalité de Cramer :
-\begin{verbatim}
-Lemma mult_adugateR :
- forall n (A : M_(n)), A * adjugate A = \det A *sm \1m.
-\end{verbatim}
+STOP : TO continuous in the next episode.
+\paragraph{}
 
 \subsection{Polynômes}
 Un polynôme est défini par la liste de ses coefficients $a_{i}$ qui appartiennent à un anneau $R$: 
