@@ -43,12 +43,12 @@ papier présente une formalisation de ce théorème, qui est à notre
 connaissance la première. Le fait qu'il n'avait pas été jusqu'à ce
 jour formalisé peut s'expliquer par le fait qu'il fait intervenir de
 nombreux objets et propriétés mathématiques de nature différente
-(algébre linéaire, multilinéaire, combinatoire, ...). Ces objets ne
+(algèbre linéaire, multilinéaire, combinatoire, ...). Ces objets ne
 sont pas définis et utilisés de façon indépendante mais au contraire
 ils s'emboîtent les uns avec les autres. Ce travail de formalisation
 du théorème de Cayley-Hamilton est utilisé dans le cadre des travaux
 de formalisation du théorème de Feit-Thompson sur les groupes d'ordre
-impair. L'objectifs n'est pas seulement de formaliser
+impair. L'objectif n'est pas seulement de formaliser
 Cayley-Hamilton; mais d'organiser la preuve en bibliothèques réutilisables. 
 \paragraph*{}
 L'article est organisé comme suit. Dans la section 2, nous présentons
@@ -269,7 +269,7 @@ Les fonctions \verb|matrix_of_fun| et \verb|fun_of_matrix| permettent respective
 Dans la suite, les notations \texttt{M\_(n)} et \verb|\Z| correspondent respectivement au type des matrices carrées et à la multiplication d'un scalaire par la matrice identité.
 
 \paragraph*{}
-La bibliothèque sur les déterminants utilise la formule de Leibniz pour définir le déterminant. Ce choix est motivé par le fait que dans cette formule il est question de groupe de permutations et qu'une formalisation des permutations (groupe, signature ...) a été déjà développée dans le cadre du travail sur les groupes finies~\cite{modgrp}. Etant donné une matrice carrée $A$ de dimension $n$, le déterminant est donnée par :
+La bibliothèque sur les déterminants utilise la formule de Leibniz pour définir le déterminant. Ce choix est motivé par le fait que dans cette formule il est question de groupe de permutations et qu'une formalisation des permutations (groupe, signature ...) a été déjà développée dans le cadre du travail sur les groupes finies~\cite{modgrp}. Étant donné une matrice carrée $A$ de dimension $n$, le déterminant est donnée par :
 \begin{equation}
   \label{leibniz} \det(A)=\sum_{\sigma \in S_n} 
 \epsilon(\sigma) \prod_{i=1}^n a_{i, \sigma(i)}
