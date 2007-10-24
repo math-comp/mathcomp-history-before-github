@@ -80,7 +80,7 @@ Qed.
 Lemma seq_poly0 : \C0 = seq0 :> seq R.
 Proof. by rewrite /poly0 seq_polyC set11. Qed.
 
-Lemma seq_poly1 : \C1 = Seq 1 :> seq R.
+Lemma seq_poly1 : \C1 = (Seq 1) :> seq R.
 Proof. by rewrite /poly1 seq_polyC (negbET normal_seq0). Qed.
 
 Definition horner c p : poly :=
@@ -113,7 +113,7 @@ Definition polyX := mkPoly (Seq 0 1).
 Notation "\X" := polyX.
 Notation "\poly_ ( i < n ) E" := (mkPoly (mkseq (fun i : nat => E) n)).
 
-Lemma seq_polyX : \X = Seq 0 1 :> seq R.
+Lemma seq_polyX : \X = (Seq 0 1) :> seq R.
 Proof. by rewrite !seq_horner seq_poly0 seq_poly1. Qed.
 
 Lemma mkPoly_seq : forall p : poly, mkPoly p = p.

@@ -745,9 +745,12 @@ rewrite -Hy -{1}[x]invgK -sinvg_lcoset sinvgK !lcoset_smul !rcoset_smul.
 by rewrite -!smulgA -!rcoset_smul Hy.
 Qed.
 
-
+(*
 Lemma set_of_coset_of : forall x,
   coset_of H x = if N x then H :* x else H :> setType _.
+*)
+Lemma set_of_coset_of : forall x,
+  coset_of H x = (if N x then H :* x else H) :> setType _.
 Proof.
 move=> x; rewrite -coset_set_rcoset /coset_of.
 by case insubP => [u -> <- //|]; move/negbET->.
