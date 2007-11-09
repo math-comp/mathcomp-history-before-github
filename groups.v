@@ -1034,5 +1034,8 @@ move/subset_eqP: F1.
 by rewrite E3 E4.
 Qed.
 
+End Maximal.
+
+
 Unset Implicit Arguments.
 
