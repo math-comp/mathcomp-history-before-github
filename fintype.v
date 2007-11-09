@@ -2047,5 +2047,43 @@ Qed.
 
 End fun_partition.
 
+(**********************************************************************)
+(*                                                                    *)
+(*  Boolean forall for finType                                        *)
+(*                                                                    *)
+(**********************************************************************)
+
+
+Notation "'forallb' x : A , f " :=  
+  (set0b (preimage (fun (x : A) => f) (set1 false))) (at level 0, x at level 99).
+
+Theorem forallP: forall (A: finType) (P: A -> bool), 
+   reflect (forall (x: A), (P x))
+           (forallb x: A, (P x)).
+Proof.
+move => A P; apply: (iffP idP).
+  move/set0P => H1 x; move: (H1 x).
+  by move/negPn.
+move => H1; apply/set0P => x.
+by apply/negPn.
+Qed.
+
+Notation "'existsb' x : A , f" :=  
+  (~~(set0b (preimage (fun (x : A) => f) (set1 true)))) (at level 0, x at level 99).
+
+Theorem existsP: forall (A: finType) (P: A -> bool), 
+   reflect (exists x: A, (P x))
+           (existsb x: A, (P x)).
+Proof.
+move => A P; apply: (iffP idP).
+  move/set0Pn => [x].
+  rewrite /preimage; move/eqP => H1.
+  by exists x.
+move => [x Hx].
+apply/set0Pn.
+by exists x; apply/eqP.
+Qed.
+
 Unset Implicit Arguments.
+
 
