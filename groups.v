@@ -984,5 +984,55 @@ by rewrite rcoset_smul -smulgA smulg_set1 smulgA smulgg.
 Qed.
 
 
+Section Maximal.
+
+Variable elt: finGroupType.
+Variable H G: group elt.
+
+Definition maximal :=
+ subset H G &&
+ set0b 
+  (preimage
+   (fun (f: fgraphType elt bool_finType) => let K := fun_of_fgraph f in 
+        ~~group_set (Sett f) || ~~subset H  K || subset K H || ~~subset K G || subset G K)
+    (set1 false)).
+
+Theorem maximalP:
+ reflect
+ (subset H G  /\ 
+   forall (K: group elt), subset H K -> ~ H =1 K -> subset K G ->
+                  K =1 G) maximal.
+Proof.
+apply: (iffP idP).
+  case/andP => H1.
+  split; first done.
+  rewrite /s2s; move => K H2 H3 H4.
+  apply/subset_eqP; rewrite H4 /=.
+  set f :=  (fgraph_of_fun K).
+  move/set0P: H0; move/(_ f).
+  rewrite /preimage /f can_fun_of_fgraph /s2s H2 H4 /=
+          !orbF.
+ case E0: (group_set _) => //=;
+   last by case: (K) E0 => s /=; rewrite can_sval => ->.
+ case E1: (subset _ _) => /=.
+  by case H3; apply/subset_eqP; rewrite H2.
+ by case: (subset _ _).
+rewrite /s2s; move => [H1 H2].
+rewrite /maximal H1 andTb.
+apply/set0P => x.
+rewrite /preimage /s2s.
+case E0: (group_set _) => //=.
+case E1: (subset _ _) => //=.
+case E2: (subset _ _) => //=.
+case E3: (subset _ _) => //=.
+case E4: (subset _ _) => //=.
+have F1: x =1 sval G.
+ apply: (H2 (Group E0)) => //.
+ move/subset_eqP => /=.
+ by rewrite E1 E2.
+move/subset_eqP: F1.
+by rewrite E3 E4.
+Qed.
+
 Unset Implicit Arguments.
 
