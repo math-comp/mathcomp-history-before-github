@@ -283,124 +283,102 @@ Proof. exact: perm_of_op. Qed.
 
 End PermFact. 
 
-Section Injectiveb.
-
-Variable d d': finType.
-Variable f: d -> d'.
-
-Definition injectivef (p: prod_finType d d) :=
-match p with
-| pair x y => (x != y) && (f x == f y)
-end.
-Definition injectiveb := (set0b injectivef).
-
-Lemma injectiveP: (reflect (injective f) injectiveb).
-Proof.
-apply: (iffP idP).
-  move/set0P => H x y; move/eqP => H1.
-  have F1: injectivef (pair x y) = false by rewrite H.
-  rewrite /injectivef H1 andbT in F1.
-  by apply/eqP; move/negbEF: F1.
-move => H; apply/set0P; case => x y.
-rewrite /injectivef.
-case E1: (f x == f y); last by rewrite andbF.
-by rewrite (H x y (eqP E1)) eq_refl.
-Qed.
-
-Lemma injectiveN: ~(injective f) ->
-  exists x, exists y, (x != y) && (f x == f y).
-Proof.
-move/injectiveP; move/set0Pn; case; case => x y H.
-by exists x; exists y.
-Qed.
-
-End Injectiveb.
-
 Section Primitive.
 
 Variable (G: finGroupType) (S:finType).
 
 Variable to : action G S.
 Variable H : group G.
+Variable S1: set S.
 
 Definition primitive :=
 forallb f : fgraphType S S,
-if (forallb x : S,
-    (forallb g : G,
-     if H g then
-      (card (image (fun y : S => f (to y g)) (preimage f (set1 (f x)))) ==
-          1%nat)
+  if (subset (image f S1) S1) &&
+    (forallb x : S,
+     (forallb g : G,
+     if S1 x &&  H g then
+      (card (image (fun y : S => f (to y g)) 
+               (setI S1 (preimage f (set1 (f x))))) == 1%nat)
       else true))
-  then injectiveb (d:=S) (d':=S) f || (card (image f S) <= 1) else true.
+  then dinjectiveb f S1 || (card (image f S1) <= 1) else true.
 
 Theorem primitiveP:
   reflect 
   (forall (f: S -> S),
-   (forall x y g, H g -> f x = f y -> f (to x g) = f (to y g)) ->
-   injective f \/ (forall x y, f x = f y))
+   (subset (image f S1) S1) ->
+   (forall x y g, S1 x -> S1 y -> H g -> f x = f y -> f (to x g) = f (to y g)) ->
+   dinjective S1 f \/ (forall x y, S1 x -> S1 y -> f x = f y))
    primitive.
 Proof.
 apply: (iffP idP).
-  move => Hp f H1.
+  move => Hp f H1 H2.
   move/forallP: Hp.
   move/(_ (fgraph_of_fun f)).
-  case E1: (set0b _) => /=; last first.
+  case E1: (_ && _) => /=; last first.
     case/negP: E1.
+    rewrite (@eq_subset _ _ (image f S1)); last first.
+      by move => z; apply image_eq => //; exact: g2f.
+    rewrite H1 /=.
     apply/forallP => x.
     apply/forallP => g.
-    case H2: (H g) => //=.
+    case Hx: (S1 x) => //=.
+    case Hg: (H g) => //=.
     rewrite -(card1 (f (to x g))).
     apply/eqP; apply: eq_card.
     move => y.
     apply/imageP/eqP.  
-      move => [z Hz1 ->].
-      rewrite g2f.
-      apply: H1 => //.
-      rewrite /preimage !g2f in Hz1.
+      move => [z]; case/andP.
+      rewrite /preimage !g2f => Hz1 Hy ->.
+      apply: H2 => //.
       by apply/eqP.
-    by move => H3; exists x; rewrite /preimage !g2f //.
-  clear E1; case E1: (injectiveb _) => //=.
+    move => H3; exists x.
+      by rewrite /setI /preimage !g2f Hx eq_refl.
+    by rewrite /preimage !g2f.
+  clear E1; case E1: (dinjectiveb _ _) => //=.
     move => _; left.
-    move/injectiveP: E1 => E1 x y Hx.
-    apply: E1.
+    move/dinjectiveP: E1 => E1 x y Hx Hy Hxy.
+    apply: E1 => //.
     by rewrite !g2f.
-  move => H2; right.
-  move => x y.
-  set f1 := fgraph_of_fun _ in H2.
-  have F1: card (setD1 (image f1 S) (f1 x)) <= 0.
+  move => H3; right.
+  move => x y Hx Hy.
+  set f1 := fgraph_of_fun _ in H3.
+  have F1: card (setD1 (image f1 S1) (f1 x)) <= 0.
     rewrite -(leq_add2l 1).
-    by move: H2; rewrite (cardD1 (f1 x)) image_f_imp.
+    by move: H3; rewrite (cardD1 (f1 x)) image_f_imp.
   case E2: (f x == f y).
     by apply/eqP.
   move: F1; rewrite (cardD1 (f1 y)).
-  by rewrite /setD1 image_f_imp // !g2f E2.
+  by rewrite /setD1 image_f_imp // /f1 !g2f E2.
 move => H1.
 apply/forallP => f.
-case E0: (set0b _) => //=.
-case E1: (injectiveb _) => //=.
-case: (H1 f).
-    move => x y g Hg Hf.
-    move/forallP: E0; move /(_ x).
+case E0: (_ && _) => //=.
+case/andP: E0 => E0 E1.
+case E2: (dinjectiveb _ _) => //=.
+case: (H1 f) => //.
+    move => x y g Hx Hy Hg Hf.
+    move/forallP: E1; move /(_ x).
     move/forallP; move /(_ g).
-    rewrite Hg /=.
-    rewrite /preimage (cardD1 (f (to x g))) image_f_imp //.
-    rewrite (cardD1 (f (to y g))) /setD1 image_f_imp ?Hf //.
-    case E2: (_ != _) => //.
-    by move/negPn: E2; move/eqP.
-  by move => H2; move/injectiveP: E1.
+    rewrite Hx Hg /=.
+    rewrite /preimage (cardD1 (f (to x g))) image_f_imp //;
+      last by rewrite /setI Hx Hf eq_refl.
+    rewrite (cardD1 (f (to y g))) /setD1 image_f_imp ?Hf //;
+      last by rewrite /setI Hy eq_refl.
+    case E3: (_ != _) => //.
+    by move/negPn: E3; move/eqP.
+  by move => H2; move/dinjectiveP: E2.
 move => H2.
-case E2: (card S == 0).
+case E3: (card S1 == 0).
   apply: (leq_trans (leq_image_card _ _)).
-  by rewrite (eqP E2).
-case: (pickP S) => [x|] Hx; last first.
+  by rewrite (eqP E3).
+case: (pickP S1) => [x|] Hx; last first.
   apply: (leq_trans (leq_image_card _ _)).
-  suff ->: card S = 0 by done.
+  suff ->: card S1 = 0 by done.
   by rewrite (eq_card Hx) card0.
-suff ->: card (image f S) = 1%nat by done.
+suff ->: card (image f S1) = 1%nat by done.
 rewrite -(card1 (f x)).
 apply: eq_card => y.
 apply/imageP/idP.
-  by move => [z _ ->]; rewrite (H2 x z).
+ by move => [z Hz ->]; rewrite (H2 x z).
 by move/eqP => Hy; exists x.
 Qed.
 
@@ -757,6 +735,46 @@ case (leqP m d) => Hd.
 apply: F.
 by rewrite addn1 -leq_subS.
 Qed.
+
+Lemma ntransitive_primitive: forall m,
+  2 <= m -> ntransitive to H S1 m -> primitive to H S1.
+Proof.
+move => m Hm Ht.
+have H2: ntransitive to H S1 2.
+  by apply: ntransitive_weak Ht.
+apply/primitiveP => f Hf1 Hf2.
+case E1: (dinjectiveb f S1).
+  by left; apply/dinjectiveP.
+have E2: ~(dinjective S1 f).
+  by move => H3;case/negP: E1; apply/dinjectiveP.
+case: (dinjectiveN E2) => x [y].
+(do 3 case/andP) => Hx Hy Hd; move/eqP => Hf.
+right => x1 y1 Hx1 Hy1.
+case: H2 => H2 H3.
+rewrite /transitive in H2.
+case Hf3: (x1 == y1).
+  by rewrite (eqP Hf3).
+have F1: size (Seq y x) = card (setA I_(2)).
+  by rewrite card_ordinal.
+have G1: (distinctb (Fgraph F1)).
+  rewrite /distinctb /= /setU1.
+  by rewrite orbF andbT.
+have HH1: dlift S1 (EqSig _ _ G1).
+  by apply/allP => z; case/or3P => //; move/eqP => <-.
+have F2: size (Seq y1 x1) = card (setA I_(2)).
+  by rewrite card_ordinal.
+have G2: (distinctb (Fgraph F2)).
+  by rewrite /distinctb /= /setU1 Hf3.
+have HH2: dlift S1 (EqSig _ _ G2).
+  by apply/allP => z; case/or3P => //; move/eqP => <-.
+rewrite -(H2 _ HH1) in HH2.
+case/iimageP: HH2 => g Hg.
+move/val_eqP => /=; move/eqP.
+move/fgraph_eqP => /=.
+case/and3P; move/eqP => ->; move/eqP => -> _.
+by apply: Hf2.
+Qed.
+
 
 End NTransitveProp.
 

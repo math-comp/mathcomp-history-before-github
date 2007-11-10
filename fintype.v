@@ -2019,6 +2019,7 @@ exact: card_dvdn_setnU.
 Qed.
 
 End Partition.
+
            
 (**********************************************************************)
 (*                                                                    *)
@@ -2068,6 +2069,17 @@ move => H1; apply/set0P => x.
 by apply/negPn.
 Qed.
 
+Theorem forallPn: forall (A: finType) (P: A -> bool), 
+   reflect (exists x: A, ~(P x))
+           (~~(forallb x: A, (P x))).
+Proof.
+move => A P; apply: (iffP idP).
+  move/set0Pn => [x].
+  by move/negPn => Hx; exists x.
+move => [x Hx]; apply/set0Pn.
+by exists x; apply/negPn.
+Qed.
+
 Notation "'existsb' x : A , f" :=  
   (~~(set0b (preimage (fun (x : A) => f) (set1 true)))) (at level 0, x at level 99).
 
@@ -2083,6 +2095,89 @@ move => [x Hx].
 apply/set0Pn.
 by exists x; apply/eqP.
 Qed.
+
+Theorem existsPn: forall (A: finType) (P: A -> bool), 
+   reflect (forall x: A, ~(P x))
+           (~~(existsb x: A, (P x))).
+Proof.
+move => A P; apply: (iffP idP).
+  move => H1 x Hx.
+  case/set0Pn: H1; exists x.
+  by apply/eqP.
+move => H; apply/set0Pn.
+move => [x Hx]; case: (H x).
+move/eqP: Hx; rewrite /preimage.
+by move/eqP; move/eqP.
+Qed.
+
+(**********************************************************************)
+(*                                                                    *)
+(*  Boolean injective for finType                                     *)
+(*                                                                    *)
+(**********************************************************************)
+
+
+Section Injectiveb.
+
+Variable d d': finType.
+Variable f: d -> d'.
+
+Definition injectiveb := 
+ forallb x: d, forallb y: d,
+   if f x == f y then x == y else true.
+
+Lemma injectiveP: (reflect (injective f) injectiveb).
+Proof.
+apply: (iffP idP).
+  move => H x y Hx.
+  move/forallP: H; move /(_ x).
+  move/forallP; move /(_ y).
+  by rewrite Hx eq_refl; move/eqP.
+move => H; apply/forallP => x; apply/forallP => y.
+case E1: (f x == f y) => //.
+by rewrite (H _ _ (eqP E1)) eq_refl.
+Qed.
+
+Lemma injectiveN: ~(injective f) ->
+  exists x, exists y, (x != y) && (f x == f y).
+Proof.
+move/injectiveP; move/forallPn => [x].
+move/negP; move/forallPn => [y H].
+exists x; exists y.
+by move: H; case: (_ == _) => //; case: (_ == _).
+Qed.
+
+Variable a: set d.
+
+Definition dinjectiveb := 
+ forallb x: d, forallb y: d,
+   if a x && a y && (f x == f y) then x == y else true.
+
+Lemma dinjectiveP: (reflect (dinjective a f) dinjectiveb).
+Proof.
+apply: (iffP idP).
+  move/forallP => H x y Hx Hy; move/eqP => H1.
+  move/forallP: (H x); move /(_ y).
+  by rewrite Hx Hy H1; move/eqP.
+move => H; apply/forallP => x; apply/forallP => y.
+case Ex: (a x) => //.
+case Ey: (a y) => //.
+case E1: (f x == f y) => //.
+by rewrite (H _ _ Ex Ey (eqP E1)) eq_refl.
+Qed.
+
+Lemma dinjectiveN: ~(dinjective a f) ->
+  exists x, exists y, a x && a y && (x != y) && (f x == f y).
+Proof.
+move/dinjectiveP; move/forallPn => [x].
+move/negP; move/forallPn => [y Hxy].
+exists x; exists y.
+move: Hxy; do 2 case: (a _) => //.
+by do 2 case: (_ == _).
+Qed.
+
+End Injectiveb.
+
 
 Unset Implicit Arguments.
 
