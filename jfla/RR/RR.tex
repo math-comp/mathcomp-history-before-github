@@ -1,0 +1,168 @@
+\documentclass[twoside]{article}
+\usepackage[latin1]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{actes}
+\usepackage[english]{babel}
+
+\newcommand{\coq}{{\sc Coq}}
+\newcommand{\ssr}{{\sc SSReflect}}
+
+\title{ Formalization of Mathematics : proof of the Cayley-Hamilton Theorem }
+
+\author{Sidi Ould Biha $^1$}
+
+\titlehead{Formalization of Mathematics}
+
+\authorhead{Ould Biha}
+
+\affiliation{\begin{tabular}{rr} 
+\\ 1:  Inria Sophia-Antipolis,
+\\     2004, route des Lucioles - B.P. 93 06902 Sophia Antipolis Cedex, France
+\\     {\tt Sidi.Ould\_biha@sophia.inria.fr} 
+\end{tabular}}
+
+\begin{document}
+\setcounter{page}{1}
+\maketitle
+
+
+\section{Introduction}
+Formal proofs Systems can be very useful in the verification and validation of mathematical proofs, especially when the proofs are complex and lengthy. Recent work, as formal proof of the theorem of 4 colors~\cite{4colproof} or the theorem of prime numbers~\cite{primeth}, show that these systems have reached a level of maturity to deal with non-trivial mathematical problems. The work of formalization of mathematical theories involving a wide variety of mathematical objects requires the adoption of a similar approach to software engineering. The formalization of such theories can be seen as a development involving different components: definitions and mathematical proofs.
+\paragraph*{}
+A list of the 100 greatest mathematical theorems~\cite{100ths} was formed by Paul and Jack Abad. This list takes into account the place of theorem in the mathematical literature, the quality of its proof and the importance of the result he introduced. F. Wiedijk maintains a list~\cite{100th} which identifies formalizations of those theorems in some formal proofs systems. The Cayley-Hamilton theorem is in this list. This paper presents a formalization of this theorem, which is to our knowledge the first. The fact that he had not been so far formalized can be explained by the fact that it involves a lot of objects and mathematical properties of a different kind (linear algebra, multi-linear, combinatorics, etc.). These objects are not used independently; But on the contrary they fit together with each other. This work of formalization of the theorem of Cayley-Hamilton is a part of the work of formalization of the theorem of Feit-Thompson on the groups of odd order. The objectives is not only to formalize Cayley-Hamilton; but to organize the proof in reusable libraries. 
+\paragraph*{}
+The article is organized as follows. In section 2, we present the statement and the proof of the Cayley-Hamilton theorem. In section 3, we briefly present \ssr{}, the extension of \coq{} and platform of our development. Finally, in section 4, we present the development which was necessary to arrive at the formalization of the Cayley-Hamilton theorem.
+
+\section{The  Cayley-Hamilton theorem}
+The Cayley-Hamilton theorem can be stated~\cite{algebra} in the following way:
+\begin{center}
+ \textit{Any square matrix on a commutative ring satisfies its own characteristic equation.}
+\end{center}
+More formally, if $R$ is a commutative ring and $A$ a square matrix on $R$, then the characteristic polynomial of A, defined by: $p_{A}(x) = \det{(xI_{n} - A)}$, vanishes in A. \newline
+The theorem can be stated differently by considering the endomorphisms of vector space. In this case it is not any more question of commutative ring but of field.
+The proof of the Cayley-Hamilton theorem presented in~\cite{algebra} use the Cramer formula. By noting $Adj(B)$ the adjugate matrix of B (the transpose of the cofactor matrix of B), the Cramer rule states : 
+\begin{equation}
+  \label{Cramer}
+ B * Adj{(B)} = Adj{(B)} * B =\det{(B)} * I_{n}
+\end{equation}
+By applying the formula (\ref{Cramer}) to the matrix $(xi_{n} - A) \in M_{n}(R[x])$, we obtain:
+\begin{equation}
+  \label{Cramer-mx_poly}
+ Adj{(xI_{n} - A)} * (xI_{n} - A) =\det{(xI_{n} - A)} * I_{n} = p_{A}(x) * I_{n}
+\end{equation}
+The ring $ M_{n}(R[x])$ of the matrices of polynomials is also the ring of the polynomials with matrix coefficients $(M_{n}(R))[X]$. In $(M_{n}(R))[X] $, the equality (\ref{Cramer-mx_poly}) is written :
+\begin{equation}
+  \label{proof_start}
+   Adj{(xI_{n} - A)} * (X - A) = p_{A}(X)
+\end{equation}
+This shows that $(x - A)$ is factor of $p_{A}(X)$ in $(M_{n}(R))[X] $, so $ p_{A}(A) = O_{n} $.
+\paragraph*{}
+To formalize a mathematical proof in a proof assistant, we need to develop this proof to be comprehensible to a computer. To reach this objective, two difficulties are to overcome. In first place, it is necessary to make explicit the parts of the proof which are implicit or `` trivial' ' for a mathematician. Paradoxically, the implementation on computer of these parts, which do not appear in the proof, is the most complex work in the formalization.In the second place, it is necessary to have statements comprehensible for a mathematician and human reader. In fact, they should be nearest as possible to those used in the mathematics literature.
+\paragraph*{}
+In the case of the Cayley-Hamilton theorem and by considering the proof above, several problems arise at the time of its formalization. To say that $M_{n}(R[x])$ is identical to $(M_{n}(R))[x]$ is algebraically equivalent to say that there is an isomorphism of ring between them. Indeed, any matrix of polynomials can be written, in a single way, as the sum of powers in $x$ multiplied by matrices, i.e. a polynomial with matrix coefficients. For example :
+\begin{equation}
+ \label{morphism}
+ \left(
+  \begin{array}{ c c }
+     x^{2} + 1 & x - 2 \\
+     - x + 3 & 2x - 4
+  \end{array} \right)
+=
+ x^{2}\left(
+  \begin{array}{ c c }
+     1 & 0 \\
+     0 & 0
+  \end{array} \right) + 
+x\left(
+  \begin{array}{ c c }
+     0 & 1 \\
+     -1 & 2
+  \end{array} \right) + 
+\left(
+  \begin{array}{ c c }
+     1 & -2 \\
+     3 & -4
+  \end{array} \right)
+\end{equation}
+The formalization of this isomorphism corresponds to the writing of the function of transformation described in the example above. The properties of this morphism, which we will note $\phi$, are used implicitly in the proof. Indeed, in (\ref{Cramer-mx_poly}) the members of the equality are matrices of polynomials. The application of $\phi$ to the left and right side of the equality (\ref{Cramer-mx_poly}) gives us:
+\[   \phi ( Adj{(xI_{n} - A)} * (xI_{n} - A)) = \phi ( p_{A}(x) * I_{n})) \]
+The properties of morphism of $\phi$ are used to obtain:
+\[       \phi ( Adj{(xI_{n} - A)}) * \phi (xI_{n} - A)  = \phi ( p_{A}(x) * I_{n})) \]
+The formula (\ref{proof_start}) corresponds explicitly to the equality above.
+
+
+
+\begin{thebibliography}{10} 
+\bibitem{100ths}
+  Paul et Jack \textsc{Abad},
+  \textit{The Hundred Greatest Theorems},
+  Available at http://personal.stevens.edu/~nkahl/Top100Theorems.html.
+
+\bibitem{primeth}
+  Jeremy \textsc{Avigad}, Kevin \textsc{Donnelly}, David \textsc{Gray}, et Paul \textsc{Raff},
+  \textit{A Formally Verified Proof of the Prime Number Theorem},
+  ACM Transactions on Computational Logic, A paraître.
+
+\bibitem{coqart}
+  Yves \textsc{Bertot}, Pierre \textsc{Castéran},
+  \textit{Interactive Theorem Proving and Program Development Coq'Art: The Calculus of Inductive Constructions},
+  Springer Verlag,
+  2004.
+
+\bibitem{algebra}
+  Nathan \textsc{Jacobson},
+  \textit{Lectures in Abstract Algebra: II. Linear Algebra},
+  Springer Verlag, 1975.
+
+\bibitem{fta}
+  Herman \textsc{Geuvers}, Freek \textsc{Wiedijk} et Jan \textsc{Zwanenburg},
+  \textit{A Constructive Proof of the Fundamental Theorem of Algebra without Using the Rationals},
+  Types for Proofs and Programs, TYPES 2000 International Workshop, Selected Papers, volume 2277 of
+  LNCS, pages 96-111, 2002.
+
+\bibitem{4colproof}
+  Georges \textsc{Gonthier},
+  \textit{A computer-checked proof of the four-colour theorem},
+  Available at http://research.microsoft.com/~gonthier/4colproof.pdf.
+
+\bibitem{ssrman}
+  Georges \textsc{Gonthier}, Assia \textsc{Mahboubi},
+  \textit{A small scale reflection extension for the Coq system},
+  Available at http://www.msr-inria.inria.fr/~assia/rech-eng.html.
+
+\bibitem{modgrp}
+  Georges \textsc{Gonthier}, Assia \textsc{Mahboubi}, Laurence \textsc{Rideau}, Enrico \textsc{Tassi} et Laurent \textsc{Théry},
+  \textit{A Modular Formalisation of Finite Group Theory},
+  Rapport de Recherche 6156, INRIA, 2007.
+
+\bibitem{ring-mx}
+  Nicolas \textsc{Magaud},
+  \textit{Ring properties for square matrices} contribution to Coq,
+  http://coq.inria.fr/contribs-eng.html.
+
+\bibitem{factor-th}
+  Piotr \textsc{Rudnicki},
+  \textit{Little Bezout Theorem (Factor Theorem)}, Journal of Formalized Mathematics volume 15, 2003,
+  Available at http://mizar.org/JFM/Vol15/uproots.html.
+
+\bibitem{linalg}
+  Jasper \textsc{Stein},
+  \textit{Linear Algebra} contribution to Coq,
+  http://coq.inria.fr/contribs-eng.html.
+
+\bibitem{coqman}
+  \textsc{Coq Team},
+  \textit{The Coq reference manual V 8.1},
+  http://coq.inria.fr/V8.1/refman/index.html.
+
+\bibitem{100th}
+  Freek \textsc{Wiedijk},
+  \textit{Formalizing 100 Theorems},
+  http://www.cs.ru.nl/freek/100/.
+
+\end{thebibliography}
+
+\pagebreak
+\thispagestyle{colloquetitle}
+\cleardoublepage
+\end{document}
