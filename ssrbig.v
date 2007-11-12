@@ -834,6 +834,22 @@ Implicit Arguments exchange_big_dep [R op nil I J P Q F].
 Implicit Arguments big_ord_recl [R op nil].
 Implicit Arguments big_ord_recr [R op nil].
 
+Section BigProp.
+Variables (R1 : Type) (Pb : R1 -> Prop).
+Variables (nil : R1) (op1 : R1 -> R1 -> R1).
+Hypothesis (p_nil : Pb nil)
+           (p_op1 : forall x y, Pb x -> Pb y -> Pb (op1 x y)).
+
+Lemma big_prop : forall I (r : seq I) P F,
+  (forall i, Pb (F i)) -> Pb (\big[op1/nil]_(i <- r | P i) F i).
+Proof.
+move=> I r P F H.
+unlock reducebig; elim: r => //= i r Hr.
+by case: (P i); [apply: p_op1; [apply: H|] |]; apply: Hr.
+Qed.
+
+End BigProp.
+
 Section Morphism.
 
 Variables R1 R2 : Type.
