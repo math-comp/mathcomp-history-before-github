@@ -480,6 +480,8 @@ Lemma sig_of_groupK : cancel sig_of_group group_of_sig. Proof. by case. Qed.
 Canonical Structure group_eqType := EqType (can_eq sig_of_groupK).
 Canonical Structure group_finType := FinType (can_uniq sig_of_groupK).
 
+Definition groupA := Group group_set_finGroupType.
+
 Lemma set_of_group_inj : injective set_of_group.
 Proof. move=> [G1 gG1] [G2 gG2]; move/eqP=> eG12; exact/eqP. Qed.
 
@@ -994,9 +996,9 @@ Definition  maximal :=
   subset H G &&
   forallb f : fgraph_eqType elt bool_finType,
   let K := fun_of_fgraph f in
-  if (group_set (elt:=elt) (Sett f) && 
+ (group_set (elt:=elt) (Sett f) && 
     (subset H K) && (~~(subset K H)) && (subset K G)) 
-  then subset G K else true.
+  ->b subset G K.
 
 Theorem maximalP:
  reflect
@@ -1010,27 +1012,22 @@ apply: (iffP idP).
   rewrite /s2s; move => K H2 H3 H4.
   apply/subset_eqP; rewrite H4 /=.
   set f :=  (fgraph_of_fun K).
-  move: (H0 f); rewrite /f can_fun_of_fgraph /s2s H2 H4 /=.
+  move: (H0 f); rewrite /f can_fun_of_fgraph /s2s H2 H4 /= !andbT.
+  move/implP => HH; apply: HH.
   case E0: (group_set _) => //=;
     last by case: (K) E0 => s /=; rewrite can_sval => ->.
-  case E1: (subset _ _) => /=.
-    by case H3; apply/subset_eqP; rewrite H2.
-  by case: (subset _ _).
+  apply/negP => HH; case H3.
+  by apply/subset_eqP; rewrite H2.
 rewrite /s2s; move => [H1 H2].
 rewrite /maximal H1 andTb.
-apply/forallP => x.
+apply/forallP => K.
 rewrite /s2s.
-case E0: (group_set _) => //=.
-case E1: (subset _ _) => //=.
-case E2: (subset _ _) => //=.
-case E3: (subset _ _) => //=.
-case E4: (subset _ _) => //=.
-have F1: x =1 sval G.
+apply/implP; (do 3 case/andP) => E0 E1 E2 E3.
+have F1: K =1 sval G.
  apply: (H2 (Group E0)) => //.
  move/subset_eqP => /=.
- by rewrite E1 E2.
-move/subset_eqP: F1.
-by rewrite E3 E4.
+ by rewrite E1; apply/idP.
+by rewrite -(eq_subset F1) subset_refl.
 Qed.
 
 End Maximal.

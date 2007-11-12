@@ -277,7 +277,15 @@ Proof. by case b1; case b2; constructor; auto; case; auto. Qed.
 Lemma norP : reflect (~~ b1 /\ ~~ b2) (~~ (b1 || b2)).
 Proof. by case b1; case b2; constructor; auto; case; auto. Qed.
 
+
+Notation " b1 ->b b2 " := (implb b1 b2)  (at level 90, right associativity).
+Lemma implP: reflect (b1 -> b2) (b1 ->b b2).
+Proof. by case b1; case b2; constructor; auto; case; auto. Qed.
+
+
 End ReflectConnectives.
+
+Notation " b1 ->b b2 " := (implb b1 b2)  (at level 90, right associativity).
 
 Implicit Arguments idP [b1].
 Implicit Arguments idPn [b1].

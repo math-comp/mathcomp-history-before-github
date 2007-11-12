@@ -2056,7 +2056,7 @@ End fun_partition.
 
 
 Notation "'forallb' x : A , f " :=  
-  (set0b (preimage (fun (x : A) => f) (set1 false))) (at level 0, x at level 99).
+  (set0b (preimage (fun (x : A) => f) (set1 false))) (at level 95, x at level 99).
 
 Theorem forallP: forall (A: finType) (P: A -> bool), 
    reflect (forall (x: A), (P x))
@@ -2123,8 +2123,7 @@ Variable d d': finType.
 Variable f: d -> d'.
 
 Definition injectiveb := 
- forallb x: d, forallb y: d,
-   if f x == f y then x == y else true.
+ forallb x: d, forallb y: d, f x == f y ->b x == y.
 
 Lemma injectiveP: (reflect (injective f) injectiveb).
 Proof.
@@ -2151,7 +2150,7 @@ Variable a: set d.
 
 Definition dinjectiveb := 
  forallb x: d, forallb y: d,
-   if a x && a y && (f x == f y) then x == y else true.
+   a x && a y && (f x == f y) ->b x == y.
 
 Lemma dinjectiveP: (reflect (dinjective a f) dinjectiveb).
 Proof.
