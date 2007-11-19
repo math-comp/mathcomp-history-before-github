@@ -997,8 +997,8 @@ Definition  maximal :=
   forallb f : fgraph_eqType elt bool_finType,
   let K := fun_of_fgraph f in
  (group_set (elt:=elt) (Sett f) && 
-    (subset H K) && (~~(subset K H)) && (subset K G)) 
-  ->b subset G K.
+    (subset H K) && (~~(H =1b K)) && (subset K G)) 
+  ->b K =1b G.
 
 Theorem maximalP:
  reflect
@@ -1010,24 +1010,19 @@ apply: (iffP idP).
   case/andP => H1; move/forallP => H0.
   split; first done.
   rewrite /s2s; move => K H2 H3 H4.
-  apply/subset_eqP; rewrite H4 /=.
   set f :=  (fgraph_of_fun K).
   move: (H0 f); rewrite /f can_fun_of_fgraph /s2s H2 H4 /= !andbT.
-  move/implP => HH; apply: HH.
+  move/implP => HH; apply/eq1P; apply: HH.
   case E0: (group_set _) => //=;
     last by case: (K) E0 => s /=; rewrite can_sval => ->.
   apply/negP => HH; case H3.
-  by apply/subset_eqP; rewrite H2.
-rewrite /s2s; move => [H1 H2].
+  by apply/eq1P.
+move => [H1 H2].
 rewrite /maximal H1 andTb.
 apply/forallP => K.
-rewrite /s2s.
 apply/implP; (do 3 case/andP) => E0 E1 E2 E3.
-have F1: K =1 sval G.
- apply: (H2 (Group E0)) => //.
- move/subset_eqP => /=.
- by rewrite E1; apply/idP.
-by rewrite -(eq_subset F1) subset_refl.
+apply/eq1P; apply: (H2 (Group E0)) => //.
+by apply/eq1P.
 Qed.
 
 End Maximal.

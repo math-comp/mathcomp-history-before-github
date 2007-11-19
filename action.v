@@ -292,90 +292,188 @@ Variable H : group G.
 Variable S1: set S.
 
 Definition primitive :=
-forallb f : fgraphType S S,
-  (subset (image f S1) S1) &&
-    (forallb x : S,
-     (forallb g : G,
-      S1 x &&  H g ->b
-      (card (image (fun y : S => f (to y g)) 
-               (setI S1 (preimage f (set1 (f x))))) == 1%nat)
-      ))
-  ->b dinjectiveb f S1 || (card (image f S1) <= 1).
+forallb P : fgraphType S (fgraph_eqType S bool_finType),
+  (forallb x: S, S1 x ->b P x x) &&
+  (forallb x: S, forallb y: S, forallb g: G,
+    S1 x ->b S1 y ->b H g ->b
+    P x y ->b  (fun_of_fgraph (P (to x g))) =1b (fun_of_fgraph (P (to y g)))) ->b
+  (forallb x: S, forallb y: S, S1 x ->b S1 y ->b P x y ->b x == y) 
+  ||  
+  (forallb x: S, forallb y: S, S1 x ->b S1 y ->b P x y).
 
-Theorem primitiveP:
+Lemma primitiveP:
   reflect 
-  (forall (f: S -> S),
-   (subset (image f S1) S1) ->
-   (forall x y g, S1 x -> S1 y -> H g -> f x = f y -> f (to x g) = f (to y g)) ->
-   dinjective S1 f \/ (forall x y, S1 x -> S1 y -> f x = f y))
+  (forall (P: S -> set S),
+   (forall x, S1 x -> P x x) ->
+   (forall x y g, S1 x -> S1 y -> H g -> P x y -> P (to x g) =1 P (to y g)) ->
+   (forall x y, S1 x -> S1 y -> P x y -> x = y) 
+   \/
+   (forall x y, S1 x -> S1 y -> P x y))
    primitive.
 Proof.
 apply: (iffP idP).
-  move => Hp f H1 H2.
-  move/forallP: Hp.
-  move/(_ (fgraph_of_fun f)).
-  set F := _ && _.
-  suff F1: F.
-    move/implP; move/(_ F1); case/orP.
-      move/dinjectiveP => HH; left => x y Hx Hy Hxy.
-      by apply: HH => //; rewrite !g2f.
-    move => H3; right.
-    move => x y Hx Hy.
-    set f1 := fgraph_of_fun _ in H3.
-    have F2: card (setD1 (image f1 S1) (f1 x)) <= 0.
-      rewrite -(leq_add2l 1).
-      by move: H3; rewrite (cardD1 (f1 x)) image_f_imp.
-    case E2: (f x == f y).
-      by apply/eqP.
-    move: F2; rewrite (cardD1 (f1 y)).
-    by rewrite /setD1 image_f_imp // /f1 !g2f E2.
-  rewrite /F (@eq_subset _ _ (image f S1)); last first.
-    by move => z; apply image_eq => //; exact: g2f.
-  rewrite H1 /=.
-  apply/forallP => x; apply/forallP => g.
-  case Hx: (S1 x) => //=.
-  case Hg: (H g) => //=.
-  rewrite -(card1 (f (to x g))).
-  apply/eqP; apply: eq_card.
-  move => y.
-  apply/imageP/eqP. 
-    move => [z]; case/andP.
-    rewrite /preimage !g2f => Hz1 Hy ->.
-    apply: H2 => //.
-    by apply/eqP.
-  move => H3; exists x.
-    by rewrite /setI /preimage !g2f Hx eq_refl.
-  by rewrite /preimage !g2f.
-move => H1.
-apply/forallP => f.
-apply/implP; case/andP => E0 E1.
-case E2: (dinjectiveb _ _) => //=.
-case: (H1 f) => //.
-    move => x y g Hx Hy Hg Hf.
-    move/forallP: E1; move /(_ x).
-    move/forallP; move /(_ g).
-    rewrite Hx Hg /=.
-    rewrite /preimage (cardD1 (f (to x g))) image_f_imp //;
-      last by rewrite /setI Hx Hf eq_refl.
-    rewrite (cardD1 (f (to y g))) /setD1 image_f_imp ?Hf //;
-      last by rewrite /setI Hy eq_refl.
-    case E3: (_ != _) => //.
-    by move/negPn: E3; move/eqP.
-  by move => H2; move/dinjectiveP: E2.
-move => H2.
-case E3: (card S1 == 0).
-  apply: (leq_trans (leq_image_card _ _)).
-  by rewrite (eqP E3).
-case: (pickP S1) => [x|] Hx; last first.
-  apply: (leq_trans (leq_image_card _ _)).
-  suff ->: card S1 = 0 by done.
-  by rewrite (eq_card Hx) card0.
-suff ->: card (image f S1) = 1%nat by done.
-rewrite -(card1 (f x)).
-apply: eq_card => y.
-apply/imageP/idP.
- by move => [z Hz ->]; rewrite (H2 x z).
-by move/eqP => Hy; exists x.
+  move => Hpr P Hr Ht. 
+  move/forallP: Hpr.
+  set fP := fgraph_of_fun (fun x: S => (fgraph_of_fun (P  x))).
+  move /(_ fP); move/implP => H1.
+  set F := _ || _ in H1.
+  have F1: F; rewrite /F.
+    apply: H1; apply/andP; split.
+      apply/forallP => x; apply/implP; rewrite /fP !g2f; exact: Hr.
+    apply/forallP => x; apply/forallP => y; apply/forallP => g.
+    apply/implP => Hx; apply/implP => Hy; apply/implP => Hg; apply/implP => Hf.
+    apply/eq1P => z; rewrite /fP !g2f; apply: Ht => //.
+    by move: Hf; rewrite /fP !g2f.
+  case/orP: F1; move/forallP => H2; [left | right].
+    move => x y Hx1 Hx2 Hp.
+    move/forallP: (H2 x); move/(_ y); move/implP; move/(_ Hx1).
+    move/implP; move/(_ Hx2); rewrite /fP !g2f; move/implP; move/(_ Hp).
+    by move => HH; apply/eqP.
+  move => x y Hx1 Hx2.
+  move/forallP: (H2 x); move/(_ y); move/implP; move/(_ Hx1).
+  by move/implP; move/(_ Hx2); rewrite /fP !g2f.
+move => H1; apply/forallP => P; apply/implP; case/andP => H2 H3.
+case (H1 (fun x => fun_of_fgraph (P x))).
+- by move => x Hx; move/forallP: H2; move/(_ x); move/implP => HH; exact: HH.
+- move => x y g Hx Hy Hg Hp; move/forallP: H3; move/(_ x);
+    move/forallP; move/(_ y); move/forallP; move/(_ g);
+    move/implP; move/(_ Hx); move/implP; move/(_ Hy); move/implP; move/(_ Hg);
+    by move/implP; move/(_ Hp); move/eq1P.
+- move => H4; apply/orP; left; apply/forallP => x; apply/forallP => y.
+  apply/implP => Hx; apply/implP => Hy; apply/implP => Hp.
+  by apply/eqP; apply H4.
+move => H4; apply/orP; right; apply/forallP => x; apply/forallP => y.
+by apply/implP => Hx; apply/implP => Hy; apply: H4.
+Qed.
+
+
+Hypothesis Htrans: transitive to H S1.
+
+Lemma primitivePt: 
+  reflect 
+  (forall Y,
+    subset Y S1 ->
+    wdisjointn H (fun z => (image (fun t => to t z) Y)) ->
+    card Y <= 1 \/ Y =1 S1)
+   primitive.
+Proof.
+have FF0: forall x g, S1 x -> H g -> S1 (to x g).
+  by move => x g Sx Hg; rewrite -(Htrans Sx); apply/iimageP; exists g.
+apply: (iffP idP).
+  move => Hp Y HY Hd.
+  case E1: (_ <= _); first by left.
+  right; move/idP: E1; move/idP; rewrite -(ltnNge) => E1.
+  have F1: ~Y =1 set0 by move => F1; move: E1; rewrite (eq_card F1) card0.
+  move/set0P: F1; case/set0Pn => x Hx.
+  have S1x: S1 x by apply: (subsetP HY).
+  set g_rep := fun z =>
+    (if pick (setI H (preimage (to x) (set1 z))) is (Some a)
+     then a else 1).
+  have Hg_rep1: forall z, H (g_rep z).
+    rewrite /g_rep => z1; case: (pickP _).
+      by move => x1; case/andP.
+    by move => _; apply: group1.
+  have Hg_rep: forall z, S1 z -> to x (g_rep z) = z.
+    move => z; rewrite -(Htrans S1x).
+    case/iimageP => z1 Hz1 Hz2.
+      rewrite /g_rep; case: (pickP _).
+      by move => x1; case/andP => _; move/eqP.
+    move/(_ z1); rewrite /setI Hz1 /=.
+    by rewrite /preimage Hz2 eq_refl.
+  set YY := fun k => image (fun z => to z k) Y.
+  move/primitiveP: Hp; move/(_ (fun z => YY (g_rep z))).
+  case.
+  - by move => x1 Hx1; apply/imageP; exists x => //; rewrite Hg_rep.
+  - have FF: forall (x1: S) (g : G),
+     S1 x1 -> H g ->  YY (g_rep (to x1 g)) =1 YY (g_rep x1 * g).
+      move => x1 g Hx1 Hg.
+      apply: (Hd _ _ (to x1 g)) => //; first by apply: groupM.
+      apply/imageP; exists x => //; rewrite Hg_rep //; first by exact: FF0.
+      by apply/imageP; exists x => //; rewrite act_morph Hg_rep.
+    move => x1 y1 g Hx1 Hy1 Hg HH z.
+      rewrite FF // FF //; move: z; apply/eq1P; apply/eq1P.
+    apply: (Hd _ _ (to y1 g)) => //; try exact: groupM.
+      case/imageP: HH => z2 Hz2 ->.
+      by apply/imageP; exists z2 => //; rewrite act_morph.
+    by apply/imageP; exists x => //; rewrite act_morph Hg_rep.
+  - have F1: ~(setD1 Y x) =1 set0.
+      by move => F1; move: E1; rewrite (cardD1 x) Hx (eq_card F1) card0.
+    move/set0P: F1; case/set0Pn => z; case/andP => Hz Hz1 HH.
+    case/negP: Hz; apply/eqP; apply: HH => //.
+      by apply: (subsetP HY).
+    have <-: YY 1 =1 YY (g_rep x).
+      apply: (Hd _ _ x) => //.
+        by apply/imageP; exists x => //; rewrite act_1.
+      by apply/imageP; exists x => //; rewrite Hg_rep.
+    by apply/imageP; exists z => //; rewrite act_1.
+  move => HH y.
+  apply/idP/idP => S1y.
+    by apply: (subsetP HY).
+  have <-: YY 1 =1 Y.
+    move => z; apply/imageP/idP.
+      by case => u Hu ->; rewrite act_1.
+    by move => Hz; exists z => //; rewrite act_1.
+  have ->: YY 1 =1 YY (g_rep x).
+    apply: (Hd _ _ x) => //.
+      by apply/imageP; exists x => //; rewrite act_1.
+    by apply/imageP; exists x => //; rewrite Hg_rep.
+  by apply: HH.
+move => HY.
+apply/primitiveP.
+move => P Hp1 Hp2.
+case E1: (set0b S1); first by left => x; move/set0P: E1 => ->.
+case/set0Pn: E1 => z Sz.
+set Y := (setI S1 (P z)).
+set YY := fun k => image (fun z => to z k) Y.
+have FF: forall g, H g -> YY g =1 setI S1 (P (to z g)).
+  move => g Hg z1.
+  apply/imageP/andP.
+    case => x1; case/andP => Hx1 Hx2 ->.
+    have F1: (S1 (to x1 g)) by exact: FF0.
+    by split => //; rewrite (Hp2 z x1 g) // Hp1.
+  case => Hx1 Hx2; exists (to z1 g^-1); last by rewrite -act_morph mulVg act_1.
+  apply/andP.
+  have F1: (S1 (to z1 g^-1)) by apply: FF0 => //; rewrite groupV.
+  split => //.
+  by move: (Hp2 (to z g) z1 g^-1); rewrite -act_morph mulgV act_1 => -> //;
+    [rewrite Hp1 | apply: FF0 | rewrite groupV].
+case: (HY Y) => //; first by apply/subsetP => y Hy; case/andP: Hy.
+- move => g1 g2 x1 Hg1 Hg2.
+  rewrite -/YY !FF //.
+  case/andP => Hs1 HP1; case/andP => Hs2 HP2 z1.
+  rewrite !FF //.
+  have F1: P (to (to z g1) 1) =1 P (to x1 1).
+    by apply: Hp2 => //; exact: FF0.
+  have F2: P (to (to z g2) 1) =1 P (to x1 1).
+    apply: Hp2 => //; exact: FF0.
+  by rewrite !act_1 in F1 F2; rewrite /setI F1 F2.
+- move => HH.
+  have F0: Y z by rewrite /Y /setI Sz Hp1.
+  have F1: Y =1 set1 z.
+    move => x; case E1: (z == x).
+      by move/eqP: E1 => <-.
+    apply/negP => E2.
+    have F1: (setD1 Y z) x.
+      by rewrite /setD1 E2 andbT; move/negP: E1; move/negPn.
+    move: HH; rewrite (cardD1 z) F0.
+    by rewrite (cardD1 x) F1.
+  left => x1 y1 S1x1 S1y1 HP.
+  move: (S1x1); rewrite -(Htrans Sz); case/iimageP => g Hg Hg1.
+  apply: (@inj_act _ _ to g^-1).
+  rewrite Hg1 -act_morph mulgV act_1.
+  apply/eqP; rewrite <- F1.
+  have F2: P (to (to z g) g^-1) =1 P (to y1 g^-1) by
+    apply: Hp2 => //; [exact: FF0 | rewrite groupV | rewrite <- Hg1].
+  rewrite -act_morph mulgV act_1 in F2.
+  by rewrite /Y /setI F2 Hp1 // ?andbT; apply: FF0; rewrite // groupV.
+move => HH; right => x1 y1 S1x1 S1y1.
+move: (S1x1); rewrite -(Htrans Sz); case/iimageP => g Hg Hg1.
+rewrite Hg1.
+have F1: S1 (to y1 g^-1) by apply: FF0; rewrite // groupV.
+have ->: y1 = to (to y1 g^-1) g by rewrite -act_morph mulVg act_1.
+rewrite (Hp2 z (to y1 g^-1) g) // ?Hp1 //.
+  by apply: FF0; rewrite // groupV.
+by rewrite -HH in F1; case/andP: F1.
 Qed.
 
 End Primitive.
@@ -732,6 +830,35 @@ apply: F.
 by rewrite addn1 -leq_subS.
 Qed.
 
+Lemma ntransitive1 m: 0 < m ->
+   ntransitive to H S1 m -> transitive to H S1.
+Proof.
+move => m Hm HH.
+have HH1 := ntransitive_weak Hm HH.
+case: HH1 => [H1 H2] x Hx y.
+rewrite /ntransitive in H1.
+have F1: size (Seq x) = card (setA I_(1)).
+  by rewrite card_ordinal.
+have G1: (distinctb (Fgraph F1)) by done.
+have HH1: dlift S1 (EqSig _ _ G1).
+  by rewrite /distinctb /= /setU1 Hx.
+rewrite /ntransitive in H1.
+move: (H1 _ HH1).
+have F2: size (Seq y) = card (setA I_(1)).
+  by rewrite card_ordinal.
+have G2: (distinctb (Fgraph F2)) by done.
+move/(_ (EqSig _ _ G2)).
+rewrite /naction /= /f_naction /=.
+case (S1 y) => /=.
+  case/iimageP => /= g Hg; move/val_eqP => /=.
+  rewrite /set1 /= /set1 /= andbT; move/eqP => ->.
+  apply/iimageP; exists g => //.
+move/negP => HH2; apply/negP; case/iimageP => z Hz Hz1.
+case: HH2; apply/iimageP; exists z => //.
+apply/val_eqP => /=; rewrite /set1 /= /set1 /= andbT.
+by apply/eqP.
+Qed.
+
 Lemma ntransitive_primitive: forall m,
   2 <= m -> ntransitive to H S1 m -> primitive to H S1.
 Proof.
@@ -739,22 +866,29 @@ move => m Hm Ht.
 have H2: ntransitive to H S1 2.
   by apply: ntransitive_weak Ht.
 apply/primitiveP => f Hf1 Hf2.
-case E1: (dinjectiveb f S1).
-  by left; apply/dinjectiveP.
-have E2: ~(dinjective S1 f).
-  by move => H3;case/negP: E1; apply/dinjectiveP.
-case: (dinjectiveN E2) => x [y].
-(do 3 case/andP) => Hx Hy Hd; move/eqP => Hf.
+set fP := fgraph_of_fun (fun x: S => (fgraph_of_fun (f  x))).
+case E1: (forallb x: S, S1 x ->b (setI S1 (f x)) =1b set1 x).
+  left => x y S1x S1y Hf.
+  move/forallP: E1; move /(_ x); move/implP; move/(_ S1x).
+  move/eq1P; move/(_ y); rewrite /setI Hf S1y /= => HH.
+  by apply/eqP; rewrite -HH.
+move/forallPn: E1; case => x.
+case E1: (S1 x) => //=; move/idP: E1 => E1.
+move/negP; case/eq1Pn => y.
+case E2: (x == y); move/eqP: E2 => E2.
+  by rewrite /setI -E2 Hf1 E1.
+rewrite /setI; case E3: (S1 y) => //; move/idP: E3 => E3.
+case E4: (f x y) => // _; move/idP: E4 => E4.
 right => x1 y1 Hx1 Hy1.
 case: H2 => H2 H3.
 rewrite /transitive in H2.
 case Hf3: (x1 == y1).
-  by rewrite (eqP Hf3).
+  by rewrite (eqP Hf3) Hf1.
 have F1: size (Seq y x) = card (setA I_(2)).
   by rewrite card_ordinal.
 have G1: (distinctb (Fgraph F1)).
   rewrite /distinctb /= /setU1.
-  by rewrite orbF andbT.
+  by rewrite orbF andbT; apply/eqP.
 have HH1: dlift S1 (EqSig _ _ G1).
   by apply/allP => z; case/or3P => //; move/eqP => <-.
 have F2: size (Seq y1 x1) = card (setA I_(2)).
@@ -768,176 +902,142 @@ case/iimageP: HH2 => g Hg.
 move/val_eqP => /=; move/eqP.
 move/fgraph_eqP => /=.
 case/and3P; move/eqP => ->; move/eqP => -> _.
-by apply: Hf2.
+rewrite (Hf2 _ _ _ E1 E3) // Hf1 //.
+have H1: transitive to H S1.
+  apply: ntransitive1 Ht.
+  by apply: leq_trans Hm.
+by rewrite -(H1 _ E3); apply/iimageP; exists g.
 Qed.
 
-(* UGGGGLYYY!! *)
 Lemma trans_prim_stab: forall x, S1 x ->
-  transitive to H S1 -> primitive to H S1 -> 
-  maximal (group_stab to H x) H.
+  transitive to H S1 -> primitive to H S1 = maximal (group_stab to H x) H.
 Proof.
-move => x Hx Ht Hp.
-apply/maximalP; split.
-  by apply/subsetP => y; case/stabilizerP.
-move => K Hk1 Hk2 Hk3 y.
-apply/idP/idP => Hy.
-  by apply: (subsetP Hk3).
-set Y := image (to x) K.
-have Yx: Y x.
-  apply/imageP; exists (1:G); first by exact: group1.
-  by rewrite act_1.
-have HY1: forall g1 g2, H g1 -> H g2 -> to x g1 = to x g2 ->
-  image (fun z => to z g1) Y =1 image (fun z => to z g2) Y.
-  move => g1 g2 Hg1 Hg2 Hto z.
-  apply/imageP/imageP; case => s; case/imageP => g Hg -> ->.
-    exists (to x (g * (g1 * g2 ^-1))); last first.
-      by rewrite !act_morph -(@act_morph _ _ _ g2^-1) mulVg act_1.
-    apply/imageP; exists (g * (g1 * g2^-1)) => //.
-    rewrite groupM // ?Hg (subsetP Hk1) //.
-    apply/stabilizerP; split; last first.
-      by rewrite act_morph Hto -act_morph mulgV act_1.
-    by rewrite groupM // groupV.
-  exists (to x (g * (g2 * g1 ^-1))); last first.
-    by rewrite !act_morph -(@act_morph _ _ _ g1^-1) mulVg act_1.
-  apply/imageP; exists (g * (g2 * g1^-1)) => //.
-  rewrite groupM // ?Hg (subsetP Hk1) //.
-  apply/stabilizerP; split; last first.
-    by rewrite act_morph -Hto -act_morph mulgV act_1.
-  by rewrite groupM // groupV.  
-set g_rep := fun z =>
-  (if pick (setI H (preimage (to x) (set1 z))) is (Some a)
-   then a else 1).
-have Hg_rep1: forall z, H (g_rep z).
-  rewrite /g_rep => z1; case: (pickP _).
-    by move => x1; case/andP.
-  by move => _; apply: group1.
-have Hg_rep: forall z, S1 z -> to x (g_rep z) = z.
-  move => z; rewrite -(Ht x Hx).
-  case/iimageP => z1 Hz1 Hz2.
-    rewrite /g_rep; case: (pickP _).
-    by move => x1; case/andP => _; move/eqP.
-  move/(_ z1); rewrite /setI Hz1 /=.
-  by rewrite /preimage Hz2 eq_refl.
-set f := fun z => 
-  if pick (image (fun t => to t (g_rep z))  Y) is (Some b) 
-  then b else x.
-have Hf: subset (image f S1) S1.
- apply/subsetP => z.
- case/imageP => z1 Hz1 ->.
- rewrite /f; case: (pickP _) => x1 //.
- case/imageP => g Hg ->.
- rewrite -(Ht g).
-   by apply/iimageP; exists (g_rep z1).
- case/imageP: Hg => u Hu ->.
- rewrite -(Ht x Hx); apply/iimageP; exists u => //.
- by apply: (subsetP Hk3).
-have Hf2: forall x1 x2 g1 g2, H g1 -> H g2 ->
-   to x g1 = x1 -> to x g2 = x2 ->
-   (reflect (image (fun z => to z g1) Y =1 image (fun z => to z g2) Y)
-            (f x1 == f x2)).
-  move => x1 x2 g1 g2 Hg1 Hg2 Ht1 Ht2.
-  have F1: (S1 x1).
-    by rewrite -Ht1 -(Ht x) //; apply/iimageP; exists g1.
-  have F2: (S1 x2).
-    by rewrite -Ht2 -(Ht x) //; apply/iimageP; exists g2.
-  rewrite -(Hg_rep _ F1) in Ht1.
-  rewrite -(Hg_rep _ F2) in Ht2.
-  apply: (iffP idP).
-    rewrite /f; case: (pickP _) => [s1|]; last first.
-      move/(_ (to x (g_rep x1))).
-      by move/idP; case; apply/imageP; exists x.
-    case: (pickP _) => [s2|]; last first.
-      move/(_ (to x (g_rep x2))).
-      by move/idP; case; apply/imageP; exists x.
-    rewrite -(HY1 _ _ _ _ Ht1) // -(HY1 _ _ _ _ Ht2) //.
-    case/imageP => s4; case/imageP => g4 Hg4 -> ->.
-    case/imageP => s3; case/imageP => g3 Hg3 -> ->.
-    move/eqP => HH z.
-    apply/imageP/imageP => [] [s5]; case/imageP => g5 Hg5 -> ->.
+move => x Hx Ht; apply/(primitivePt Ht)/maximalP.
+  move => Hp; split.
+    by apply/subsetP => y; case/stabilizerP.
+  move => K Hk1 Hk2 Hk3 g.
+  apply/idP/idP => Hg.
+    by apply: (subsetP Hk3).
+  set Y := image (to x) K.
+  have Yx: Y x.
+    apply/imageP; exists (1:G); first by exact: group1.
+    by rewrite act_1.
+  case: (Hp Y).
+  - apply/subsetP => z; case/imageP => g1 Kg1 ->.
+    have Hg1: H g1 by apply: (subsetP Hk3).
+    by rewrite -(Ht _ Hx); apply/iimageP; exists g1.
+  - move => g1 g2 x1 Hg1 Hg2.
+    set YY := fun z => image (fun t => to t z) Y.
+    case/imageP => u1; case/imageP => g3 Kg3 -> ->.
+    case/imageP => u2; case/imageP => g4 Kg4 ->; rewrite -!act_morph => Heq.
+    move => z1; apply/imageP/imageP; case => u3; case/imageP => g5 Kg5 -> ->.
       exists (to x (g5 * g1 * g2^-1)); last first.
-        by rewrite !act_morph -(act_morph _ g2^-1) mulVg act_1.
-      apply/imageP; exists (g5 * g1 * g2^-1) => //.
-      rewrite -mulgA groupM //.
+        by rewrite -!act_morph; gsimpl.
+      rewrite -mulgA.
       have ->: g1 * g2^-1 = g3^-1 * (g3 * g1 * g2^-1 * g4^-1) * g4 by gsimpl.
-      rewrite groupM // groupM // ?groupV //.
+      set u := _ * _.
+      apply/imageP; exists u => //.
+      rewrite groupM // groupM // ?groupV // groupM // ?groupV //.
       apply: (subsetP Hk1); apply/stabilizerP; split.
         by rewrite !groupM // ?groupV // (subsetP Hk3) //.
-      by rewrite !act_morph HH -(act_morph _ g2) mulgV act_1 -act_morph mulgV act_1.
+      by rewrite 2!act_morph Heq -!act_morph; gsimpl; rewrite act_1.
     exists (to x (g5 * g2 * g1^-1)); last first.
-      by rewrite !act_morph -(act_morph _ g1^-1) mulVg act_1.
-    apply/imageP; exists (g5 * g2 * g1^-1) => //.
-    rewrite -mulgA groupM //.
+      by rewrite -!act_morph; gsimpl.
+    rewrite -mulgA.
     have ->: g2 * g1^-1 = g4^-1 * (g4 * g2 * g1^-1 * g3^-1) * g3 by gsimpl.
-    rewrite groupM // groupM // ?groupV //.
+    set u := _ * _.
+    apply/imageP; exists u => //.
+    rewrite groupM // groupM // ?groupV // groupM // ?groupV //.
     apply: (subsetP Hk1); apply/stabilizerP; split.
       by rewrite !groupM // ?groupV // (subsetP Hk3) //.
-    by rewrite !act_morph -HH -(act_morph _ g1) mulgV act_1 -act_morph mulgV act_1.
-  move => HH; rewrite /f.
-  set u := image _ _; set v := image _ _.
-  suff HH1: u =1 v by rewrite (eq_pick HH1).
-  rewrite /u /v => z.
-  by rewrite -(HY1 _ _ _ _ Ht1) // -(HY1 _ _ _ _ Ht2).
-have F6: forall x1 y1 g,
-  S1 x1 -> S1 y1 -> H g -> f x1 = f y1 -> f (to x1 g) = f (to y1 g).
-  move => x1 y1 g Hx1 Hy1 Hg; move/eqP.
-  move/(Hf2 _ _ _ _ (Hg_rep1 x1) (Hg_rep1 y1)
-           (Hg_rep _ Hx1) (Hg_rep _ Hy1)) => HH.
-  apply/eqP.
-  have F1: to x (g_rep x1 * g) = to x1 g.
-    by rewrite act_morph (Hg_rep _ Hx1).
-  have F2: to x (g_rep y1 * g) = to y1 g.
-    by rewrite act_morph (Hg_rep _ Hy1).
-  have F3: H (g_rep x1 * g).
-    by rewrite groupM //.
-  have F4: H (g_rep y1 * g).
-    by rewrite groupM //.
-  apply/(Hf2 _ _ _ _ F3 F4 F1 F2).
-  have F5: 
-    forall u v, image (fun z: S => to z (u * v)) Y =1
-     image (fun z => to z v) (image (fun z => to z u) Y).
-   move => u v z; apply/imageP/imageP => [] [z1 Hz1 ->].
-     exists (to z1 u); last by rewrite act_morph.
-     by apply/imageP; exists z1.
-   case/imageP: Hz1 => z2 Hz2 ->.
-  by exists z2 => //; rewrite act_morph.
-  move => z; rewrite !F5.
-  by apply: image_eq.
-move/primitiveP: Hp; case/(_ f) => //.
-  move => Hi; case: Hk2.
-  apply/subset_eqP; rewrite Hk1; apply/subsetP => z Kz.
-  apply/stabilizerP; split; first by apply: (subsetP Hk3).
-  have Hz: H z by apply: (subsetP Hk3).
-   apply: Hi => //.
-    rewrite -(Ht x) //.
-    by apply/iimageP; exists z.
-  have H1: H 1 by done.
-  have He1: to x z = to x z by done.
-  have He2: to x 1 = x by exact: act_1.
-  apply/eqP; apply/(Hf2 _ _ _ _ Hz H1 He1 He2).
-  move => t; apply/imageP/imageP => [] [u]; case/imageP => v Kv -> ->.
-    exists (to x (v * z)); last by rewrite act_1 act_morph.
-    apply/imageP; exists (v * z) => //.
-    by rewrite groupM //.
-  exists (to x (v * z^-1)); last by rewrite act_1 -act_morph -mulgA mulVg mulg1.
-  apply/imageP; exists (v * z^-1) => //.
-  by rewrite groupM // groupV.
-have Sy: S1 (to x y).
-  rewrite -(Ht x) //.
-  by apply/iimageP; exists y.
-move/(_ x (to x y) Hx Sy).
-have H1: H 1 by done.
-have He1: to x y = to x y by done.
-have He2: to x 1 = x by exact: act_1.
-move/eqP; move/(Hf2 _ _ _ _ H1 Hy He2 He1) => Hi.
-have F7: image (fun z => to z 1) Y x.
-  by apply/imageP; exists x.
-rewrite Hi in F7.
-case/imageP: F7 => u; case/imageP => v Kv ->.
-rewrite -act_morph => Hv.
-have ->: y = v^-1 * (v * y) by gsimpl.
-rewrite groupM // ?groupV //.
-apply: (subsetP Hk1); apply/stabilizerP; split =>//.
-by rewrite groupM // (subsetP Hk3).
+    by rewrite 2!act_morph -Heq -!act_morph; gsimpl; rewrite act_1.
+  - move/eq1P: Hk2; case/eq1Pn => g3.
+    case E1: (K g3); move/idP: E1 => E1; last first.
+    by case; apply/idP => HH; case E1; apply: (subsetP Hk1).
+    move/negPn; move/stabilizerP => HH.
+    have E2: x != to x g3.
+      case E3: (_ == _) => //; move/idP: E3 => E3.
+      case: HH; split; first by apply: (subsetP Hk3).
+      by rewrite -(eqP E3).
+    have E3: Y (to x g3); first by apply/imageP; exists g3.
+    by rewrite (cardD1 x) Yx (cardD1 (to x g3)) /setD1 E2 E3.
+  move => HH.
+  have F1: S1 (to x g) by rewrite -(Ht _ Hx); apply/iimageP; exists g.
+  rewrite -HH in F1; case/imageP: F1 => g1 Hg1 Hg2.
+  have ->: g = (g * g1^-1) * g1 by gsimpl.
+  apply: groupM => //; apply: (subsetP Hk1).
+  apply/stabilizerP; split; first by rewrite groupM // groupV (subsetP Hk3).
+  by rewrite act_morph Hg2 -act_morph mulgV act_1.
+case => Hs Hst Y Hsub Hd.
+case E1: (card Y <= 1); first by left.
+right; move/idP: E1; move/idP; rewrite -(ltnNge) => E1.
+have F1: ~Y =1 set0 by move => F1; move: E1; rewrite (eq_card F1) card0.
+move/set0P: F1; case/set0Pn => y Hy.
+have F1: ~(setD1 Y y) =1 set0.
+  by move => F1; move: E1; rewrite (cardD1 y) Hy (eq_card F1) card0.
+move/set0P: F1; case/set0Pn => y1; case/andP => Hy1 Yy1.
+have S1y: S1 y by apply: (subsetP Hsub).
+have S1y1: S1 y1 by apply: (subsetP Hsub).
+move: (Hx); rewrite -(Ht _ S1y); case/iimageP => g Hg He.
+set Y1 := image (fun z => to z g) Y.
+have F1: Y1 x by apply/imageP; exists y.
+have Fi: forall z, image  (fun t => to t z) Y1 =1 image  (fun t => to t (g * z)) Y.
+  move => g1 x1;apply/imageP/imageP; case => x2.
+    by case/imageP => x3 Hx3 -> ->; exists x3; rewrite // act_morph.
+  move => Hx2 ->; exists (to x2 g); last by rewrite act_morph.
+  by apply/imageP; exists x2.
+have Hd1 : wdisjointn H (fun z => image (fun t => to t z) Y1).
+  move => g1 g2 x1 Hg1 Hg2 /=; rewrite !Fi => HH HH1 z /=.
+  by rewrite !Fi; apply: (Hd _ _ x1); try apply: groupM.
+set K := setI H (preimage (to x) Y1).
+have F2: group_set (iset_of_fun K).
+  apply/andP; split; first by rewrite s2f /K /setI /preimage act_1 group1.
+  apply/subsetP => z; case/smulgP => g1 g2.
+  rewrite !s2f /K /preimage; case/andP => Hg1 Yg1; case/andP => Hg2 Yg2 ->.
+  apply/andP; split; first by apply: groupM.
+  set YY := fun z => image (fun t : S => to t z) Y1.
+  have F2: YY 1 =1 Y1.
+    move => z1; apply/imageP/idP.
+      by case => z2 Hz2 ->; rewrite act_1.
+    by move => Hz1; exists z1; rewrite // act_1.
+  have F3: YY g2 =1 YY 1.
+    apply: (@Hd1 _ _ (to x g2)) => //.
+      by apply/imageP; exists x.
+    by apply/imageP; exists (to x g2); rewrite // act_1.
+  have F4: YY (g1 * g2) =1 YY 1.
+    apply: (@Hd1 _ _ (to x (g1 * g2))) => //.
+      by apply: groupM.
+      by apply/imageP; exists x.
+    rewrite /YY in F3; rewrite -F3.
+    apply/imageP; exists (to x g1) => //.
+    by rewrite // act_morph.
+  by rewrite -F2 -F4; apply/imageP; exists x.
+have F3: (Group F2) =1 H.
+  apply: Hst => //.
+  - apply/subsetP => g1; case/stabilizerP => Hg1 Heq.
+    by rewrite s2f /K /preimage /setI Hg1 /= Heq.
+  - move: (Hx); rewrite -(Ht _ S1y1); case/iimageP => g1 Hg1 He1.
+    move => HH; case/negP: Hy1; apply/eqP.
+    have F3: (Group F2) (g1^-1 * g).
+      rewrite s2f /K /setI /preimage groupM //; last by rewrite groupV.
+      rewrite He1 -!act_morph mulgA mulgV mul1g.
+      by apply/imageP; exists y1.
+    rewrite -HH in F3; case/stabilizerP: F3 => _ HH1.
+    apply: (@inj_act _ _ to g).
+    by rewrite -He -HH1 act_morph {1}He1 -!act_morph !mulgA mulgV mul1g.
+  by apply/subsetP => g1 /=; rewrite s2f; case/andP.
+ apply/subset_eqP; rewrite Hsub; apply/subsetP => x1 Hx1.
+set YY := fun z => image (fun t : S => to t z) Y1.
+have ->: Y =1 YY g^-1.
+  move => z; rewrite /YY Fi mulgV.
+  rewrite /=; apply/idP/imageP.
+    by move=> HH; exists z; rewrite // act_1.
+  by case => x2 Hx2; rewrite act_1 => ->.
+move: (Hx1); rewrite -(Ht _ Hx); case/iimageP => g1 Hg1 He1.
+apply/imageP; exists (to x (g1 * g)).
+  have FK: K (g1 * g) by rewrite /= in F3; rewrite -s2f F3 groupM.
+  by case/andP: FK.
+by rewrite -!act_morph -!mulgA mulgV mulg1.
 Qed.
 
 End NTransitveProp.

@@ -2165,17 +2165,53 @@ case E1: (f x == f y) => //.
 by rewrite (H _ _ Ex Ey (eqP E1)) eq_refl.
 Qed.
 
-Lemma dinjectiveN: ~(dinjective a f) ->
-  exists x, exists y, a x && a y && (x != y) && (f x == f y).
+Lemma dinjectivePn: 
+  reflect 
+   (exists x, exists y, a x && a y && (x != y) && (f x == f y))
+   (~~dinjectiveb).
 Proof.
-move/dinjectiveP; move/forallPn => [x].
-move/negP; move/forallPn => [y Hxy].
-exists x; exists y.
-move: Hxy; do 2 case: (a _) => //.
-by do 2 case: (_ == _).
+apply: (iffP idP).
+  move/forallPn => [x].
+  move/negP; move/forallPn => [y Hxy].
+  exists x; exists y.
+  move: Hxy; do 2 case: (a _) => //.
+  by do 2 case: (_ == _).
+case => x; case => y; (do 3 case/andP) => E1 E2 E3 E4.
+apply/negP => H; move/forallP: H; move /(_ x).
+move/forallP; move /(_ y) => HH.
+case/negP: E3; apply: (implP _ _ HH).
+by rewrite E1 E2.
 Qed.
 
 End Injectiveb.
+
+Section Eq1b.
+
+Variable d: finType.
+Variable a b: set d.
+Definition eq1b:= forallb x: d, a x == b x.
+
+Lemma eq1P: reflect (a =1 b) eq1b.
+Proof.
+apply: (iffP idP).
+  by move/forallP => H x; apply/eqP.
+by move => H; apply/forallP => x; apply/eqP.
+Qed.
+
+Lemma eq1Pn: reflect (exists x, (a x <> b x)) (~~ eq1b).
+Proof.
+apply: (iffP idP).
+  case/forallPn => x Hx; exists x => Hx1.
+  by case Hx; rewrite Hx1.
+case => x Hx; apply/forallPn; exists x => Hx1.
+by case: Hx; apply/eqP.
+Qed.
+ 
+End Eq1b.
+
+Notation "a '=1b' b" := (eq1b a b) (at level 70, no associativity).
+
+
 
 
 Unset Implicit Arguments.
