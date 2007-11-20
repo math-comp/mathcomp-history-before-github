@@ -339,6 +339,15 @@ Let setAd: card d = card (setA d).
 by rewrite eq_cardA // => x; rewrite s2f.
 Qed.
 
+Lemma card_alt: 1 < card d -> (2* (card alt))%N= fact n.
+move => Hcard; move: (LaGrange alt_subset).
+rewrite mulnC alt_index // /n => ->.
+rewrite - (card_perm (setA d)).
+apply:eq_card=> /=.
+by move =>  z; rewrite s2f; apply sym_equal;apply/subsetP. 
+Qed.
+
+
 Let gt1: tuple.tuple_finType d n.
 exists (enum d).
 by rewrite card_ordinal.
