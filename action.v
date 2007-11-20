@@ -39,6 +39,8 @@ Proof. move=>x; rewrite -{2}(invgK x); exact:actK. Qed.
 Lemma inj_act : forall x, injective (fun e => to e x).
 Proof. move=> x; exact: (can_inj (actK x)). Qed.
 
+
+
 Variable H : group G.
 Variable a : S.
 
@@ -250,6 +252,12 @@ Definition perm_act := Action to_1 to_morph.
 
 End PermAction.
 
+Lemma perm_act1P: forall d (x: permType d),  reflect  (forall y, perm_act  d y  x  =  y)  (x == 1).
+move => d x ;apply:(iffP idP); first by move/eqP=> -> y;apply:act_1.
+move =>H;apply/eqP;apply:eq_fun_of_perm.
+by move => z;move:(H z);rewrite perm1.
+Qed.
+
 Require Import normal.
 
 Section PermFact.
@@ -279,7 +287,6 @@ Canonical Structure perm_of_op_action := perm_act S.
 Lemma act_perm_of_act : forall x a,
    act_f perm_of_op_action a (perm_of_act x) = to a x.
 Proof. exact: perm_of_op. Qed.
-
 
 End PermFact. 
 
