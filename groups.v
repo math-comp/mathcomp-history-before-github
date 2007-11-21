@@ -1025,6 +1025,7 @@ apply/eq1P; apply: (H2 (Group E0)) => //.
 by apply/eq1P.
 Qed.
 
+
 End Maximal.
 
 
