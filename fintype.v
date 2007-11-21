@@ -1737,12 +1737,51 @@ case: (a x1) => //; case => y; case/andP => /=;
 by right; apply: Hx1; exists y; rewrite Hy1.
 Qed.
 
+
 End Unions.
+
+Section Intersections.
+
+Variables d: finType.
+Variables d': eqType.
+Variable a: set d.
+Variable S:  d -> set d'.
+
+(**********************************************************************)
+(*                                                                    *)
+(*  Definition of the intersection of indexed sets                           *)
+(*                                                                    *)
+(**********************************************************************)
+
+Definition setnI := setC (setnU a (fun x => setC (S x))).
+
+
+Lemma setnIP: forall x,
+  reflect (forall y, a y -> S y x) (setnI x).
+Proof.
+move => x; apply: (iffP idP).
+  move/setnUP => H1 y H2.
+  case E1: (S y x) => //.
+  case: H1; exists y; rewrite H2.
+  by rewrite /setnI /setC E1.
+move => HH; apply/setnUP; case => x1; case/andP => Hx1 Hx2.
+by case/negP: Hx2; apply: HH.
+Qed.
+
+End Intersections.
+
 
 Lemma setnU0: forall (d: finType) d' (S: d -> set d'),
   setnU set0 S =1 set0.
 Proof.
 by move => d d' S x; rewrite / setnU / setnOp filter_set0.
+Qed.
+
+
+Lemma setnI0: forall (d: finType) d' (S: d -> set d'),
+  setnI set0 S =1 setA d'.
+Proof.
+by move => d d' S x; rewrite /setC /setnI /setnU /setnOp filter_set0.
 Qed.
 
 Lemma setnU1: forall (d: finType) d' x (S: d -> set d'),
@@ -1754,6 +1793,13 @@ move => d d' x S y; apply/idP/idP => H.
 by apply/setnUP; exists x; rewrite eq_refl.
 Qed.
 
+Lemma setnI1: forall (d: finType) d' x (S: d -> set d'),
+  setnI (set1 x) S =1 S x.
+Proof.
+move => d d' x S y.
+by rewrite /setnI /setC setnU1; case: (S _ _).
+Qed.
+
 Lemma eq_setnU: forall (d: finType) d' a b (S: d -> set d'),
   a =1 b -> setnU a S =1 setnU b S.
 Proof.
@@ -1761,8 +1807,15 @@ by move => d d' a b S H x; apply/setnUP/setnUP => [] [y Hy];
    exists y; rewrite ?H // -H.
 Qed.
 
+Lemma eq_setnI: forall (d: finType) d' a b (S: d -> set d'),
+  a =1 b -> setnI a S =1 setnI b S.
+Proof.
+by move => d d' a b S H x; rewrite /setnI /setC (@eq_setnU _ _ a b).
+Qed.
+
 Lemma setnU_setU: forall (d: finType) d' (a b: set d) (S: d -> set d'),
   setnU (setU a b) S =1 setU (setnU a S) (setnU b S).
+Proof.
 move => d d' a b S x; apply/setnUP/orP.
   case => y; case/andP; case/orP => H1 H2.
     by left; apply/setnUP; exists y; rewrite H1.
@@ -1770,6 +1823,17 @@ move => d d' a b S x; apply/setnUP/orP.
 by case; case/setnUP => y; case/andP => Hy1 Hy2;
    exists y; rewrite /setU Hy1 // orbT.
 Qed.
+
+Lemma setnI_setU: forall (d: finType) d' (a b: set d) (S: d -> set d'),
+  setnI (setU a b) S =1 setI (setnI a S) (setnI b S).
+Proof.
+move => d d' a b S x; apply/setnIP/andP.
+  by move => HH; split; apply/setnIP => y Hy; apply: HH; rewrite /setU Hy // orbT.
+case; move/setnIP => H1; move/setnIP => H2 y.
+case/orP => Hy; first by apply: H1.
+by apply: H2.
+Qed.
+
 
 Lemma setnU_disjoint: forall (d d': finType) (a: set d) 
                          (S: d -> set d') (A: set d'),

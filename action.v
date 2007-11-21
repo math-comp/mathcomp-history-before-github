@@ -11,6 +11,7 @@ Require Import connect.
 Require Import groups.  
 Require Import group_perm.
 Require Import tuple.
+Require Import normal.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -140,6 +141,56 @@ Qed.
 
 End Action.
 
+Section Faithful.
+
+Variable S :finType.
+Variable G :finGroupType.
+Variable to : action G S.
+Variable H : group G. 
+Variable S1: set S.
+
+Definition akernel := setnI S1 (stabilizer to H).
+
+
+Lemma akernelP: forall x,
+  reflect (forall y, S1 y -> H x /\ to y x = y) (akernel x).
+Proof.
+move => x; apply: (iffP idP).
+  move/setnIP => HH y Hy; move: (HH y Hy) => /=.
+  by rewrite s2f; case/andP => H1; case/eqP; split.
+move => HH; apply/setnIP => y Hy.
+rewrite s2f.
+by case: (HH _ Hy) => -> ->; rewrite eq_refl.
+Qed.
+
+Lemma akernel1: akernel 1.
+Proof.
+by apply/akernelP => y Hy; rewrite act_1; split.
+Qed.
+
+Definition faithful := card akernel == 1%nat.
+
+Lemma faithfulP:
+  reflect (forall x, (forall y, S1 y -> H x /\ to y x = y) -> x = 1) 
+          faithful.
+Proof.
+apply: (iffP idP).
+  move => HH x Hi.
+  have F1: akernel x by apply/akernelP => y Hy; case: (Hi _ Hy) => *; split.
+  apply: sym_equal; apply/eqP.
+  move: HH; rewrite /faithful (cardD1 1) akernel1 (cardD1 x) /setD1 F1.
+  by case: (1 == x).
+move => HH.
+case E1: (set0b (setD1 akernel 1)).
+  rewrite /set0b in E1.
+  by rewrite /faithful (cardD1 1) akernel1 (eqP E1).
+case/set0Pn: E1 => x; case/andP => Hx; move/akernelP => Hx1.
+case/negP: Hx; apply/eqP; apply: sym_equal.
+by apply: HH.
+Qed.  
+
+End Faithful.
+
 Section ModP.
 
 Variable (G: finGroupType) (S:finType).
@@ -258,7 +309,6 @@ move =>H;apply/eqP;apply:eq_fun_of_perm.
 by move => z;move:(H z);rewrite perm1.
 Qed.
 
-Require Import normal.
 
 Section PermFact.
 
@@ -481,6 +531,41 @@ have ->: y1 = to (to y1 g^-1) g by rewrite -act_morph mulVg act_1.
 rewrite (Hp2 z (to y1 g^-1) g) // ?Hp1 //.
   by apply: FF0; rewrite // groupV.
 by rewrite -HH in F1; case/andP: F1.
+Qed.
+
+Lemma prim_trans_norm: forall K: group G, primitive -> subset K H ->
+   K <| H -> subset K (akernel to H S1) \/ transitive to K S1.
+Proof.
+move => K Hp Hs Hn.
+set P := fun x => image (to x) K.
+move/primitiveP: Hp; move/(_ P); case.
+- move => x Hx; apply/imageP; exists (1: G); first by apply: group1.
+  by rewrite act_1.
+- move => x y g Hx Hy Hg; case/imageP => g1 Kg1 Heg1 z.
+  apply/imageP/imageP; case => g2 Kg2 Heg2.
+    exists (g^-1 * g1^-1 * g * g2).
+      apply: groupM => //.
+      move/normalP: Hn => Hn1.
+      by rewrite -(Hn1 g) // s2f /conjg; gsimpl; rewrite groupV.
+    by rewrite Heg2 Heg1 -!act_morph; congr (to x); gsimpl.
+  exists (g^-1 * g1 * g * g2).
+    apply: groupM => //.
+    move/normalP: Hn => Hn1.
+    by rewrite -(Hn1 g) // s2f /conjg; gsimpl; rewrite groupV.
+  by rewrite Heg2 Heg1 -!act_morph; congr (to x); gsimpl.
+- move => HH; left.
+  apply/subsetP => x Kx.
+  have Hx: H x by apply: (subsetP Hs).
+  apply/akernelP => y Hy; split => //.
+  apply: HH => //; first by rewrite -(Htrans Hy); apply/iimageP; exists x.
+ apply/imageP; exists x^-1; first by rewrite groupV.
+ by rewrite -act_morph mulgV act_1.
+move => HH; right => x Hx y.
+apply/iimageP/idP.
+  case => g Kg ->; rewrite -(Htrans Hx); apply/iimageP; exists g =>//.
+  by apply: (subsetP Hs).
+move => Hy; case/imageP: (HH _ _ Hx Hy) => g Kg ->.
+by exists g.
 Qed.
 
 End Primitive.
