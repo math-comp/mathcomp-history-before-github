@@ -110,6 +110,9 @@ apply/eq1P; apply: (H1 (Group E0)) => //.
 by apply/eq1P.
 Qed.
 
+End Simple.
+
+
 
 (********************************************************************)
 (*       Cosets are right cosets of elements in the normaliser      *)
