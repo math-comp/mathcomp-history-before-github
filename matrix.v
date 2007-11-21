@@ -37,6 +37,7 @@ Reserved Notation "A *m B"    (at level 40, format "A  *m  B").
 Reserved Notation "\^t A"     (at level 10, A at level 8, format "\^t  A").
 Reserved Notation "\tr A"     (at level 10, A at level 8, format "\tr  A").
 Reserved Notation "\det A"    (at level 10, A at level 8, format "\det  A").
+Reserved Notation "\adj A"    (at level 10, A at level 8, format "\adj  A").
 
 Delimit Scope matrix_scope with MX.
 
@@ -57,7 +58,7 @@ Variables m n : nat.
 (* if it proves too unwieldly for block decomposition theory.             *)
 
 CoInductive matrix : Type :=
-  Matrix of fgraphType {(ordinal m * ordinal n : Type)%type as finType} R.
+  Matrix of fgraphType {(I_(m) * I_(n) : Type)%type as finType} R.
 
 Notation "'M_' ( m , n )" := (matrix m n)
   (at level 9, m, n at level 50, format "'M_' ( m ,  n )").
@@ -704,5 +705,98 @@ Notation "\^t A" := (trmx A) : matrix_scope.
 
 Notation "'\tr' A" := (mx_trace A) : ring_scope.
 Notation "'\det' A" := (determinant A) : ring_scope.
+Notation "'\adj' A" := (adjugate A) : ring_scope.
+
+Import Field.
+Open Scope field_scope.
+
+Delimit Scope lin_grp_scope with GL.
+Open Scope lin_grp_scope.
+
+Section GenLinGrpDef.
+Variable (K : field) (n : nat).
+
+Notation Local "'M_' ( n )" := (matrix K n n).
+
+CoInductive gen_lin_grp : Type := GenLinGrp (A : M_(n)) & (\det A != 0).
+
+Notation GL := gen_lin_grp.
+
+Bind Scope lin_grp_scope with gen_lin_grp.
+
+Coercion mx_of_invmx A := let: GenLinGrp A' _ := A in A'.
+
+Lemma mx_of_invmx_inj : injective mx_of_invmx.
+Proof.
+move=> [A1 I1] [A2 I2] /= eq_A12.
+rewrite eq_A12 in I1 *; congr GenLinGrp; exact: bool_irrelevance.
+Qed.
+Lemma gen_lin_grp_eqP : reflect_eq (fun A1 A2 : GL => A1 == A2 :> (M_(n))).
+Proof.
+by move=> A1 A2; apply: (iffP eqP); [exact: mx_of_invmx_inj | move->].
+Qed.
+
+Canonical Structure gen_lin_grp_eqType := EqType gen_lin_grp_eqP.
+
+Lemma invmx_ : forall (A : GL), \det ((\det A)^-1 *s (\adj A)) != 0.
+Proof.
+move=> [A Ha].
+rewrite determinant_scale; move: (congr1 (@determinant _ n) (mulmx_adjl A)).
+rewrite determinantM -scalemx1 determinant_scale determinant1 mulr1.
+move/(congr1 (mul (\det A)^-1)); rewrite mulrCA mulfV// mulr1=>->.
+rewrite mulrCA -exprn_mull mulfV// exp1rn mulr1.
+by apply: neq0I.
+Qed.
+Lemma mulimx_ : forall (A B : GL), \det (A *m B) != 0.
+Proof. by move=> [A Ha] [B Hb]; rewrite determinantM; apply: neq0_mul. Qed.
+
+Definition invmx (A : GL) := GenLinGrp (invmx_ A).
+
+Definition mulimx (A B : GL) := GenLinGrp (mulimx_ A B).
+
+End GenLinGrpDef.
+
+Notation "'GL_' ( n , F )" := (gen_lin_grp F n)
+  (at level 9, n, F at level 50, format "'GL_' ( n , F )") : type_scope.
+Notation "A ^-1m" := (invmx A) (at level 10, format "A ^-1m") : lin_grp_scope.
+Notation "A * B" := (mulimx A B) : lin_grp_scope.
+
+Section GenLinGrpEquations.
+Variable (K : field) (n : nat).
+Notation Local "'M_' ( n )" := (matrix K n n) : type_scope.
+
+Lemma invmxP :
+ forall (A : GL_(n,K)), A^-1m = ((\det A)^-1 *s (\adj A)) :> M_(n).
+Proof. by case. Qed.
+Lemma mulimxP : forall (A B : GL_(n,K)), A * B = A *m B :> M_(n).
+Proof. by move=> [A Ha]. Qed.
+Lemma mulmxV : forall (A : GL_(n,K)), A *m A^-1m = \1_(n).
+Proof. by move=> [A Ha]; rewrite -scalemxAr mulmx_adjr -scalemx1
+          scalemxA mulfV ?scale1mx. Qed.
+Lemma mulVmx : forall (A : GL_(n,K)), A^-1m *m A= \1_(n).
+Proof. by move=> [A Ha]; rewrite -scalemxAl mulmx_adjl -scalemx1
+          scalemxA mulfV ?scale1mx//. Qed.
+Lemma mulKmx : forall (A : GL_(n,K)), cancel (mulimx A) (mulimx (A^-1m)).
+Proof.
+move=> A B; apply/gen_lin_grp_eqP; apply/eqP.
+by rewrite !mulimxP mulmxA mulVmx mul1mx.
+Qed.
+Notation Local mulimx_ := (fun x y => mulimx y x).
+Lemma mulmxK : forall (A : GL_(n,K)), cancel (mulimx_ A) (mulimx_ (A^-1m)).
+Proof.
+move=> A B; apply/gen_lin_grp_eqP; apply/eqP.
+by rewrite !mulimxP -mulmxA mulmxV mulmx1.
+Qed.
+Lemma mulImx : forall (A : GL_(n,K)), injective (mulimx A).
+Proof. move=> A; exact: can_inj (mulKmx A). Qed.
+Lemma mulmxI : forall (A : GL_(n,K)), injective (mulimx_ A).
+Proof. move=> A; exact: can_inj (mulmxK A). Qed.
+Lemma invmxK : forall (A : GL_(n,K)), (A^-1m)^-1m = A.
+Proof.
+move=> A; apply: (@mulmxI (A^-1m)); apply/gen_lin_grp_eqP; apply/eqP.
+by rewrite !mulimxP mulmxV mulVmx.
+Qed.
+
+End GenLinGrpEquations.
 
 Unset Implicit Arguments.
