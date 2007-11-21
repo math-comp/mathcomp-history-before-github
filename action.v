@@ -139,6 +139,22 @@ move=> c1; symmetry; apply/isetP; apply/subset_cardP.
 by rewrite subset_set1 orbit_refl.
 Qed.
 
+Lemma trans_orbit: forall S1: set S, 
+  S1 a -> transitive S1 -> orbit =1 S1.
+Proof.
+move => S1 Ha Ht z.
+rewrite -(Ht _ Ha) /orbit.
+by apply/iimageP/iimageP.
+Qed.
+
+Lemma trans_div: forall S1: set S, S1 a -> 
+  transitive S1 -> dvdn (card S1) (card H).
+Proof.
+move => S1 Ha Ht.
+suff ->: card S1 = card orbit by apply: card_orbit_div.
+by apply: sym_equal; apply: eq_card; apply: trans_orbit.
+Qed.
+
 End Action.
 
 Section Faithful.
@@ -190,6 +206,26 @@ by apply: HH.
 Qed.  
 
 End Faithful.
+
+Section FaithfulProp.
+
+Variable S :finType.
+Variable G :finGroupType.
+Variable to : action G S.
+Variable K H : group G. 
+Variable S1: set S.
+Variable SubKH: subset K H.
+
+Lemma subset_faithful: faithful to H S1 -> faithful to K S1.
+Proof.
+move/faithfulP => HH.
+apply/faithfulP => x HH1; apply: HH.
+move => y Hy; case: (HH1 _ Hy) => HH2 HH3.
+by split; first by apply: (subsetP SubKH).
+Qed.
+
+End FaithfulProp.
+
 
 Section ModP.
 

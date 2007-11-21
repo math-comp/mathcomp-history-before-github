@@ -519,6 +519,14 @@ by case: (transpP b1 b2 a) Hz3 Hz5 => // -> //;
    rewrite eq_refl.
 Qed.
 
+Lemma perm_act_faithful: faithful (perm_act d) alt (setA d).
+Proof.
+apply/faithfulP => x H.
+apply /eqP; apply/ perm_act1P.
+by move => y; move: (H y); case.
+Qed.
+
+
 End PermutationParity.
 
 Coercion odd_perm : permType >-> bool.
