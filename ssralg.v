@@ -492,8 +492,8 @@ Module Field.
 
 Structure field : Type := Field {
   field_ :> commutative_;
-  inv_ : field_ -> field_; (* Should define a new type for field_ \ {0} *)
-  _ : forall x, x <> 0 -> (inv_ x) * x = 1
+  inv_ : field_ -> field_;
+  _ : forall x, x != 0 -> (inv_ x) * x = 1
 }.
 
 Definition inv := nosimpl inv_.
@@ -507,43 +507,43 @@ Variable F : field.
 Notation Local mul := (@mul F) (only parsing).
 Notation Local inv := (@inv F) (only parsing).
 
-Lemma mulfV: forall x : F, (x <> 0) -> x^-1 * x = 1.
+Lemma mulfV: forall x : F, (x != 0) -> x^-1 * x = 1.
 Proof. by case: F. Qed.
-Lemma mulVf: forall x : F, (x <> 0) -> x * x^-1 = 1.
+Lemma mulVf: forall x : F, (x != 0) -> x * x^-1 = 1.
 Proof. by move=>*; rewrite mulrC mulfV. Qed.
-Lemma mulKf : forall x : F, (x <> 0) -> cancel (mul x) (mul x^-1).
+Lemma mulKf : forall x : F, (x != 0) -> cancel (mul x) (mul x^-1).
 Proof. by move=> x Hx y; rewrite mulrA mulfV// mul1r. Qed.
-Lemma mulfK : forall x : F, (x <> 0) -> cancel (mul^~ x) (mul^~ x^-1).
+Lemma mulfK : forall x : F, (x != 0) -> cancel (mul^~ x) (mul^~ x^-1).
 Proof. by move=> x Hx y; rewrite -mulrA mulVf// mulr1. Qed.
-Lemma mulIf : forall x : F, (x <> 0) -> injective (mul x).
+Lemma mulIf : forall x : F, (x != 0) -> injective (mul x).
 Proof. move=> x Hx; exact: can_inj (mulKf Hx). Qed.
-Lemma mulfI : forall x : F, (x <> 0) -> injective (mul^~ x).
+Lemma mulfI : forall x : F, (x != 0) -> injective (mul^~ x).
 Proof. move=> x Hx; exact: can_inj (mulfK Hx). Qed.
-Lemma neq0I: forall x : F, x <> 0 -> (x^-1) <> 0.
+Lemma neq0I: forall x : F, x != 0 -> (x^-1) != 0.
 Proof.
-move=> x Hx; move/(congr1 (mul x)).
+move=> x Hx; apply/eqP; move/(congr1 (mul x)).
 by rewrite mulVf// mulr0; move: (@nonzero1r F).
 Qed.
-Lemma neq0_mul : forall x y : F, x <> 0 -> y <> 0 -> (x * y <> 0).
+Lemma neq0_mul : forall x y : F, x != 0 -> y != 0 -> (x * y != 0).
 Proof.
-move=> x y Hx Hy; move/(congr1 (mul (x^-1))).
-by rewrite mulr0 mulrA mulfV// mul1r.
+move=> x y Hx Hy; apply/eqP; move/(congr1 (mul (x^-1))).
+by rewrite mulr0 mulrA mulfV// mul1r; apply/eqP.
 Qed.
-Lemma invfK : forall x : F, (x <> 0) -> (x^-1)^-1 = x.
+Lemma invfK : forall x : F, (x != 0) -> (x^-1)^-1 = x.
 Proof.
 move=> x Hx; apply: (mulfI (neq0I Hx)).
 rewrite mulfV ?mulVf//.
 by apply: neq0I.
 Qed.
 Lemma invf1 : 1^-1 = 1 :> F.
-Proof. by rewrite -[1^-1]mul1r mulVf; [|exact: nonzero1r]. Qed.
+Proof. by rewrite -[1^-1]mul1r mulVf; [|apply/eqP; exact: nonzero1r]. Qed.
 Lemma invfI : forall x1 x2 : F,
- (x1 <> 0) -> (x2 <> 0) -> (x1^-1 = x2^-1) -> x1 = x2.
+ (x1 != 0) -> (x2 != 0) -> (x1^-1 = x2^-1) -> x1 = x2.
 Proof.
 by move => x1 x2 H1 H2 Heq; rewrite -(invfK H1) -(invfK H2) Heq.
 Qed.
 Lemma invf_mul : forall x y : F,
- x <> 0 -> y <> 0 -> (x * y)^-1 = x^-1 * y^-1.
+ x != 0 -> y != 0 -> (x * y)^-1 = x^-1 * y^-1.
 Proof.
 move=> x y Hx Hy.
 apply: (mulfI (neq0_mul Hx Hy)); rewrite mulfV; last (by apply: neq0_mul).
