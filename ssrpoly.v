@@ -9,8 +9,6 @@ Import Ring.
 
 Reserved Notation "\C c" (at level 10, c at level 8).
 Reserved Notation "\X" (at level 0).
-Reserved Notation "f .[ x ]"
-  (at level 2, x at level 200, format "f .[ x ]").
 
 Reserved Notation "\poly_ ( i < n ) E"
   (at level 36, E at level 36, i, n at level 50,
@@ -488,4 +486,3 @@ End EvalPolynomial.
 Notation "p .[ x ]" := (eval_poly p x) : ring_scope.
 
 Unset Implicit Arguments.
-

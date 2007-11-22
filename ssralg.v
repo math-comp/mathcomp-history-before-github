@@ -1,5 +1,5 @@
 Require Import ssreflect funs ssrbool eqtype.
-Require Import ssrnat div.
+Require Import ssrnat div seq.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -43,6 +43,8 @@ Reserved Notation "x ^+ n" (at level 30, n at level 9, right associativity,
            format "x  ^+ n").
 Reserved Notation "x ^- n" (at level 30, n at level 9, right associativity,
            format "x  ^- n").
+Reserved Notation "f .[ x ]"
+  (at level 2, x at level 200, format "f .[ x ]").
 
 (* Notation complement for functions and pairs (should move to funs.v). *)
 
@@ -485,10 +487,13 @@ Notation "5" := (1 + 4) : ring_scope.
 Notation "n `:` R" := ((Ring.one R) *+ n)%R : ring_scope.
 Notation "x * y" := (Ring.mul x y) : ring_scope.
 Notation "x ^+ n" := (Ring.exp x n) : ring_scope.
+Notation "s .[ i ]" :=  (sub 0%R s i) : ring_scope.
 
 Import Ring.
 (* Fields *)
 Module Field.
+
+Delimit Scope field_scope with F.
 
 Structure field : Type := Field {
   field_ :> commutative_;
