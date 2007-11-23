@@ -989,42 +989,30 @@ Qed.
 Section Maximal.
 
 Variable elt: finGroupType.
-Variable H G: group elt.
-
-
+Variable H G: setType elt.
 Definition  maximal :=
   subset H G &&
-  forallb f : fgraph_eqType elt bool_finType,
-  let K := fun_of_fgraph f in
- (group_set (elt:=elt) (Sett f) && 
-    (subset H K) && (~~(H =1b K)) && (subset K G)) 
-  ->b K =1b G.
+  forallb K: setType elt,
+ (group_set K && (subset H K) && (~~(H == K)) && (subset K G)) 
+  ->b K == G.
 
 Theorem maximalP:
  reflect
  (subset H G  /\ 
    forall (K: group elt), subset H K -> ~ H =1 K -> subset K G ->
-                  K =1 G) maximal.
+                  K =1 G) 
+ maximal.
 Proof.
 apply: (iffP idP).
-  case/andP => H1; move/forallP => H0.
-  split; first done.
-  rewrite /s2s; move => K H2 H3 H4.
-  set f :=  (fgraph_of_fun K).
-  move: (H0 f); rewrite /f can_fun_of_fgraph /s2s H2 H4 /= !andbT.
-  move/implP => HH; apply/eq1P; apply: HH.
-  case E0: (group_set _) => //=;
-    last by case: (K) E0 => s /=; rewrite can_sval => ->.
-  apply/negP => HH; case H3.
-  by apply/eq1P.
-move => [H1 H2].
-rewrite /maximal H1 andTb.
-apply/forallP => K.
-apply/implP; (do 3 case/andP) => E0 E1 E2 E3.
-apply/eq1P; apply: (H2 (Group E0)) => //.
-by apply/eq1P.
+  case/andP => Hhg; move/forallP => Hf; split; first done.
+  move=> K Hs He Hs1 z; suff ->: (K: setType elt) = G by done.
+  apply/eqP; apply: (implP _ _ (Hf K)); rewrite Hs Hs1 set_of_groupP andbT.
+  by apply/negP => HH; case He; rewrite (eqP HH).
+move=> [Hs Hf]; rewrite /maximal Hs andTb.
+apply/forallP => K; apply/implP; (do 3 case/andP) => E0 E1 E2 E3.
+apply/eqP; apply/isetP;  apply: (Hf (Group E0)) => //.
+by move/isetP => HH; case/negP: E2; apply/eqP.
 Qed.
-
 
 End Maximal.
 

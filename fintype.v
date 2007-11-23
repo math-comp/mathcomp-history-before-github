@@ -2126,22 +2126,18 @@ Theorem forallP: forall (A: finType) (P: A -> bool),
    reflect (forall (x: A), (P x))
            (forallb x: A, (P x)).
 Proof.
-move => A P; apply: (iffP idP).
-  move/set0P => H1 x; move: (H1 x).
-  by move/negPn.
-move => H1; apply/set0P => x.
-by apply/negPn.
+move=> A P; apply: (iffP idP).
+  by move/set0P => H1 x; move: (H1 x); move/negPn.
+by move=> H1; apply/set0P => x; apply/negPn.
 Qed.
 
 Theorem forallPn: forall (A: finType) (P: A -> bool), 
    reflect (exists x: A, ~(P x))
            (~~(forallb x: A, (P x))).
 Proof.
-move => A P; apply: (iffP idP).
-  move/set0Pn => [x].
-  by move/negPn => Hx; exists x.
-move => [x Hx]; apply/set0Pn.
-by exists x; apply/negPn.
+move=> A P; apply: (iffP idP).
+  by move/set0Pn => [x]; move/negPn => Hx; exists x.
+by move=> [x Hx]; apply/set0Pn; exists x; apply/negPn.
 Qed.
 
 Notation "'existsb' x : A , f" :=  
@@ -2151,27 +2147,19 @@ Theorem existsP: forall (A: finType) (P: A -> bool),
    reflect (exists x: A, (P x))
            (existsb x: A, (P x)).
 Proof.
-move => A P; apply: (iffP idP).
-  move/set0Pn => [x].
-  rewrite /preimage; move/eqP => H1.
-  by exists x.
-move => [x Hx].
-apply/set0Pn.
-by exists x; apply/eqP.
+move=> A P; apply: (iffP idP).
+  by move/set0Pn => [x]; rewrite /preimage; move/eqP => H1; exists x.
+by move=> [x Hx]; apply/set0Pn; exists x; apply/eqP.
 Qed.
 
 Theorem existsPn: forall (A: finType) (P: A -> bool), 
    reflect (forall x: A, ~(P x))
            (~~(existsb x: A, (P x))).
 Proof.
-move => A P; apply: (iffP idP).
-  move => H1 x Hx.
-  case/set0Pn: H1; exists x.
-  by apply/eqP.
-move => H; apply/set0Pn.
-move => [x Hx]; case: (H x).
-move/eqP: Hx; rewrite /preimage.
-by move/eqP; move/eqP.
+move=> A P; apply: (iffP idP).
+  by move=> H1 x Hx; case/set0Pn: H1; exists x; apply/eqP.
+move=> H; apply/set0Pn => [] [x Hx]; case: (H x).
+by move/eqP: Hx; rewrite /preimage; do 2 move/eqP.
 Qed.
 
 (**********************************************************************)
@@ -2192,13 +2180,11 @@ Definition injectiveb :=
 Lemma injectiveP: (reflect (injective f) injectiveb).
 Proof.
 apply: (iffP idP).
-  move => H x y Hx.
-  move/forallP: H; move /(_ x).
+  move=> H x y Hx; move/forallP: H; move /(_ x).
   move/forallP; move /(_ y).
   by rewrite Hx eq_refl; move/eqP.
-move => H; apply/forallP => x; apply/forallP => y.
-case E1: (f x == f y) => //.
-by rewrite (H _ _ (eqP E1)) eq_refl.
+move=> Hi; apply/forallP => x; apply/forallP => y.
+by case E1: (f x == f y); rewrite // (Hi _ _ (eqP E1)) eq_refl.
 Qed.
 
 Lemma injectiveN: ~(injective f) ->
@@ -2206,8 +2192,7 @@ Lemma injectiveN: ~(injective f) ->
 Proof.
 move/injectiveP; move/forallPn => [x].
 move/negP; move/forallPn => [y H].
-exists x; exists y.
-by move: H; case: (_ == _) => //; case: (_ == _).
+by exists x; exists y; move: H; do 2 case: (_ == _).
 Qed.
 
 Variable a: set d.
@@ -2222,11 +2207,9 @@ apply: (iffP idP).
   move/forallP => H x y Hx Hy; move/eqP => H1.
   move/forallP: (H x); move /(_ y).
   by rewrite Hx Hy H1; move/eqP.
-move => H; apply/forallP => x; apply/forallP => y.
-case Ex: (a x) => //.
-case Ey: (a y) => //.
-case E1: (f x == f y) => //.
-by rewrite (H _ _ Ex Ey (eqP E1)) eq_refl.
+move=> H; apply/forallP => x; apply/forallP => y.
+case Ex: (a x); case Ey: (a y); case E1: (_ == _) => //.
+by apply/eqP; apply: H (eqP E1).
 Qed.
 
 Lemma dinjectivePn: 
@@ -2238,44 +2221,14 @@ apply: (iffP idP).
   move/forallPn => [x].
   move/negP; move/forallPn => [y Hxy].
   exists x; exists y.
-  move: Hxy; do 2 case: (a _) => //.
-  by do 2 case: (_ == _).
+  by move: Hxy; do 2 case: (a _); do 2 case: (_ == _).
 case => x; case => y; (do 3 case/andP) => E1 E2 E3 E4.
 apply/negP => H; move/forallP: H; move /(_ x).
 move/forallP; move /(_ y) => HH.
-case/negP: E3; apply: (implP _ _ HH).
-by rewrite E1 E2.
+by case/negP: E3; apply: (implP _ _ HH); rewrite E1 E2.
 Qed.
 
 End Injectiveb.
-
-Section Eq1b.
-
-Variable d: finType.
-Variable a b: set d.
-Definition eq1b:= forallb x: d, a x == b x.
-
-Lemma eq1P: reflect (a =1 b) eq1b.
-Proof.
-apply: (iffP idP).
-  by move/forallP => H x; apply/eqP.
-by move => H; apply/forallP => x; apply/eqP.
-Qed.
-
-Lemma eq1Pn: reflect (exists x, (a x <> b x)) (~~ eq1b).
-Proof.
-apply: (iffP idP).
-  case/forallPn => x Hx; exists x => Hx1.
-  by case Hx; rewrite Hx1.
-case => x Hx; apply/forallPn; exists x => Hx1.
-by case: Hx; apply/eqP.
-Qed.
- 
-End Eq1b.
-
-Notation "a '=1b' b" := (eq1b a b) (at level 70, no associativity).
-
-
 
 
 Unset Implicit Arguments.

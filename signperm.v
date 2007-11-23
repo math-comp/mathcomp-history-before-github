@@ -274,8 +274,7 @@ by rewrite dom_odd_perm; apply/andP; split => //; apply/subsetP=> u.
 Qed.
 
 Definition sign_morph: morphism (perm_finGroupType d) boolGroup.
-exists odd_perm.
-  exact: group_set_dom_odd_perm.
+exists odd_perm; first exact: group_set_dom_odd_perm.
 move => *; exact: odd_permM.
 Defined.
 
@@ -283,10 +282,8 @@ Definition alt :=  Group (group_set_ker sign_morph).
 
 Lemma altP: forall x, reflect (even_perm x) (alt x).
 Proof.
-move => x; apply: (iffP idP); rewrite /even_perm => H1.
-  by move: (mker H1) => /= ->.
-apply/kerP => /= y.
-by move: H1; rewrite odd_permM; case: odd_perm.
+move=> x; apply: (iffP idP); rewrite /even_perm => H1; first by move: (mker H1) => /= ->.
+by apply/kerP => /= y; move: H1; rewrite odd_permM; case: odd_perm.
 Qed.
 
 Lemma alt_subset: subset alt sym.
@@ -296,237 +293,185 @@ Qed.
 
 Lemma alt_normal: alt <| sym.
 Proof.
-rewrite /isetA /= -dom_odd_perm.
-exact: (normal_ker sign_morph).
+by rewrite /isetA /= -dom_odd_perm; exact: (normal_ker sign_morph).
 Qed.
 
-Lemma alt_index: 1 < card d -> indexg alt sym = 2.
+Lemma alt_index: 1 < card (setA d) -> indexg alt sym = 2.
 Proof.
-move => H.
+move=> H.
 have F1: ker_(sym) oddp = alt.
-  apply/isetP => z; apply/idP/idP; rewrite /isetI /= s2f.
-    by case/andP.
+  apply/isetP => z; apply/idP/idP; rewrite /isetI /= s2f; first by case/andP.
   by move => -> /=; rewrite s2f.
-rewrite <- card_quotient; last by exact: alt_normal.
-rewrite <- F1.
+rewrite -card_quotient ?alt_normal // -F1.
 have F: isog (sym/ ker_(sym) oddp) (odd_perm @: sym).
-  have F2: subset sym (dom oddp).
-    by rewrite dom_odd_perm; apply/subsetP.
+  have F2: subset sym (dom oddp) by rewrite dom_odd_perm; apply/subsetP.
   exact: (@first_isom _ _ sign_morph _ F2).
 case: F => g; case/andP => H1; move/injmP => /= H2.
 rewrite /= in H1.
 rewrite -(card_diimage H2) (eqP H1).
-have <-: card boolGroup = 2.
-  by rewrite eq_cardA // => x; rewrite s2f.
-apply eq_card => z; apply/idP/idP.
-  by rewrite s2f.
-case: z => _ /=; last first.
+have <-: card boolGroup = 2 by rewrite eq_cardA // => x; rewrite s2f.
+apply eq_card => z; apply/idP/idP; first by rewrite s2f.
+case: z => _; last first.
   apply/iimageP; exists (1:perm_finGroupType d) => //.
   by rewrite odd_perm1.
-case: (pickP d) => [x1 Hx1 | HH]; move: H; last first.
+case: (pickP (setA d)) => [x1 Hx1 | HH]; move: H; last first.
   by rewrite (eq_card HH) card0.
 rewrite (cardD1 x1) Hx1.
-case: (pickP (setD1 d x1)) => [x2 Hx2 | HH1]; last first.
-  by rewrite (eq_card HH1) card0.
-case/andP: Hx2 => Hx2 Hy2 _.
-apply/iimageP; exists (transperm x1 x2) => //=.
+case: (pickP (setD1 (setA d) x1)) => [x2 Hx2 | HH1]; last by rewrite (eq_card HH1) card0.
+case/andP: Hx2 => Hx2 Hy2 _; apply/iimageP; exists (transperm x1 x2) => //.
 by rewrite odd_transp.
 Qed.
 
 Let n := card (setA d).
 
-Let setAd: card d = card (setA d).
-by rewrite eq_cardA // => x; rewrite s2f.
+Lemma card_alt: 1 < card (setA d) -> (2* (card alt))%N= fact n.
+Proof.
+move=> Hcard; move: (LaGrange alt_subset).
+rewrite mulnC alt_index // /n => ->; rewrite - (card_perm (setA d)).
+by apply:eq_card =>  z; rewrite s2f; apply sym_equal;apply/subsetP. 
 Qed.
-
-Lemma card_alt: 1 < card d -> (2* (card alt))%N= fact n.
-move => Hcard; move: (LaGrange alt_subset).
-rewrite mulnC alt_index // /n => ->.
-rewrite - (card_perm (setA d)).
-apply:eq_card=> /=.
-by move =>  z; rewrite s2f; apply sym_equal;apply/subsetP. 
-Qed.
-
 
 Let gt1: tuple.tuple_finType d n.
-exists (enum d).
-by rewrite card_ordinal.
+by exists (enum d); rewrite card_ordinal.
 Defined.
 
 Definition dsym1: dtuple d n.
-exists gt1.
-rewrite /gt1 /distinctb /=.
-exact: uniq_enum.
+by exists gt1; rewrite /gt1 /distinctb; exact: uniq_enum.
 Defined.
 
 Let d2p_aux:
  forall (t: seq d),
  size t = card (setA I_(n)) ->  size t = card (setA d).
 Proof.
-by move => t; rewrite card_ordinal.
+by move=> t; rewrite card_ordinal.
 Qed.
 
 Definition d2p: dtuple d n -> (permType d).
-move => [[t Hs] Ht].
-apply Perm.
-by exists (Fgraph (d2p_aux Hs)).
+by move=> [[t Hs] Ht]; apply Perm; exists (Fgraph (d2p_aux Hs)).
 Defined.
 
 Lemma d2p_sym: forall t, sym (d2p t).
 Proof.
-by move => [[t Ht] Dt]; rewrite s2f.
+by move=> [[t Ht] Dt]; rewrite s2f.
 Qed.
 
 Lemma eq_maps_s : forall (d1 d2: eqType) (f1 f2 : d1 -> d2) (l: seq d1), 
   (forall x, l x ->  f1 x = f2 x) -> maps f1 l = maps f2 l.
-move => d1 d2 f1 f2; elim => [|a l Hrec] H //=.
+Proof.
+move=> d1 d2 f1 f2; elim => [|a l Hrec] H //=.
 rewrite (H a) // ?Hrec //= /setU1 ?eq_refl //.
-by move => x H1; rewrite H //= /setU1 H1 orbT.
+by move=> x H1; rewrite H //= /setU1 H1 orbT.
 Qed.
 
 Lemma eq_maps_same : forall (d1: eqType) (l1 l2: seq d1)
                              (f: d1 -> d1),
   size l1 = size l2 -> uniq l2 ->
   maps (fun z => sub (f z) l1 (index z l2)) l2 = l1.
-move => d1; elim => [| b l1 Hrec] [|c l2] //=.
-move => f Hs; case/andP => H1 H2; rewrite eq_refl /=.
-congr Adds.
-rewrite -{2}(Hrec l2 f) //.
-  refine (eq_maps_s _).
-  move => e He.
-  case Ec: (e == c) => //.
-  by case/negP: H1; rewrite -(eqP Ec).
-by injection Hs.
+Proof.
+move=> d1; elim => [| b l1 Hrec] [|c l2] //.
+move=> f Hs; case/andP => Hc Hf; rewrite /= eq_refl.
+congr Adds; rewrite -{2}(Hrec l2 f) //; last by case: Hs.
+apply: eq_maps_s => e He; case Ec: (e == c) => //.
+by case/negP: Hc; rewrite -(eqP Ec).
 Qed.
 
 Lemma d2p_sym1: forall t,
    naction (perm_act d) n dsym1 (d2p t) = t.
-move => [[t Ht] Dt]; apply/val_eqP => /=.
-rewrite /set1 /= /to  /fun_of_perm /=.
-rewrite /fun_of_fgraph; unlock; rewrite /=.
-apply/eqP; apply: eq_maps_same.
-  by rewrite Ht card_ordinal.
-exact: uniq_enum.
+Proof.
+move=> [[t Ht] Dt]; apply/val_eqP.
+rewrite /set1 /= /to  /fun_of_perm /fun_of_fgraph; unlock.
+apply/eqP; apply: eq_maps_same; last by exact: uniq_enum.
+by rewrite Ht card_ordinal.
 Qed.
 
 Lemma sym_trans: ntransitive (perm_act d) sym (setA d) n.
 Proof.
 split; last by exact: max_card.
-move => x Hx y; apply/iimageP/idP => [[z Hz Hz1] | H1].
+move=> x Hx y; apply/iimageP/idP => [[z Hz Hz1] | H1].
   by exact: dliftA.
-exists ((d2p x)^-1 * (d2p y)).
-  by rewrite s2f.
-rewrite act_morph.
-rewrite -{1}(d2p_sym1 x) -!act_morph; gsimpl.
+exists ((d2p x)^-1 * (d2p y)); first by rewrite s2f.
+rewrite act_morph -{1}(d2p_sym1 x) -!act_morph; gsimpl.
 by rewrite (d2p_sym1 y).
 Qed.
 
-
 Lemma alt_trans: ntransitive (perm_act d) alt (setA d) (n - 2).
 Proof.
-case (leqP n 2).
-  rewrite -eqn_sub0; move/eqP => ->; exact: ntransitive0.
+case (leqP n 2); first by rewrite -eqn_sub0; move/eqP => ->; exact: ntransitive0.
 move => Hn.
 have Hn1: 1 < n by apply: leq_trans Hn.
-have Hn2: n = n - 2 + 1 + 1.
-  by rewrite -addnA addnC leq_add_sub.
-have Hn3: 0 < n - 2 + 1 + 1 
-  by rewrite -Hn2; apply: leq_trans Hn1.
-have Hn4: 0 < n - 2 + 1.
-  by rewrite addnC ltnS leq_eqVlt ltn_0sub Hn orbT.
-split; last first.
-  by rewrite -/n leq_subr.
-move => x Hx y; apply/iimageP/idP => [[z Hz ->] | H1].
-  by exact: dliftA.
+have Hn2: n = n - 2 + 1 + 1. by rewrite -addnA addnC leq_add_sub.
+have Hn3: 0 < n - 2 + 1 + 1 by rewrite -Hn2; apply: leq_trans Hn1.
+have Hn4: 0 < n - 2 + 1 by rewrite addnC ltnS leq_eqVlt ltn_0sub Hn orbT.
+split; last by rewrite -/n leq_subr.
+move => x Hx y; apply/iimageP/idP => [[z Hz ->] | H1]; first by exact: dliftA.
 have F: card(setC (dtuple_get x)) == 2.
   by rewrite -(eqn_addr (n - 2)) leq_add_sub //
           -{2}(dtuple_get_card x) addnC cardC.
 case: (pickP (setC (dtuple_get x))) => 
-        [a1 Ha1 | HH]; last first.
-  by move: F; rewrite (eq_card HH) card0.
+        [a1 Ha1 | HH]; last by move: F; rewrite (eq_card HH) card0.
 case: (pickP (setD1 (setC (dtuple_get x)) a1)) => 
-        [a2 {F}Ha2 | HH]; last first.
-  by move: F; rewrite (cardD1 a1) (eq_card HH) Ha1 card0.
+        [a2 {F}Ha2 | HH]; last by move: F; rewrite (cardD1 a1) (eq_card HH) Ha1 card0.
 have F: card(setC (dtuple_get y)) == 2.
   by rewrite -(eqn_addr (n - 2)) leq_add_sub //
           -{2}(dtuple_get_card y) addnC cardC.
 case: (pickP (setC (dtuple_get y))) => 
-        [b1 Hb1 | HH]; last first.
-  by move: F; rewrite (eq_card HH) card0.
+        [b1 Hb1 | HH]; last by move: F; rewrite (eq_card HH) card0.
 case: (pickP (setD1 (setC (dtuple_get y)) b1)) => 
-        [b2 {F}Hb2 | HH]; last first.
-  by move: F; rewrite (cardD1 b1) (eq_card HH) Hb1 card0.
-set x1 := dtuple_add Ha1.
-have Fx1: ~~ dtuple_in a2 x1.
-  rewrite /x1 /dtuple_in.
-  case: (x) (Ha1) (Ha2); case => /= v _ _ _.
+        [b2 {F}Hb2 | HH]; last by move: F; rewrite (cardD1 b1) (eq_card HH) Hb1 card0.
+pose x1 := dtuple_add Ha1; have Fx1: ~~ dtuple_in a2 x1.
+  rewrite /x1 /dtuple_in; case: (x) (Ha1) (Ha2); case => /= v _ _ _.
   by case/andP => HH1 HH2; apply/norP; split.
-set x2 := dtuple_add Fx1.
-set y1 := dtuple_add Hb1.
-have Fy1: ~~ dtuple_in b2 y1.
+pose y1 := dtuple_add Hb1; have Fy1: ~~ dtuple_in b2 y1.
   rewrite /y1 /dtuple_in /distinctb.
   case: (y) (Hb1) (Hb2); case => /= v _ _ _.
   by case/andP => HH1 HH2; apply/norP; split.
-set y2 := dtuple_add Fy1.
-move: sym_trans.
-rewrite {1}Hn2; case => FF _.
+pose x2 := dtuple_add Fx1; pose y2 := dtuple_add Fy1.
+move: sym_trans; rewrite {1}Hn2; case => FF _.
 move: (dliftA y2); rewrite -(@FF _ (dliftA x2)).
 case/iimageP => g Hg Hg1.
 case Pm: (odd_perm g); last first.
-  exists g => [/= |].
-    by apply/kerP => h; rewrite odd_permM Pm.
-  have ->: x = (dtuple_tl (dtuple_tl x2))
-    by rewrite !dtuple_tl_add.
+  exists g; first by apply/kerP => h; rewrite /= odd_permM Pm.
+  have ->: x = (dtuple_tl (dtuple_tl x2)) by rewrite !dtuple_tl_add.
   by rewrite -!naction_tl -Hg1 !dtuple_tl_add.
-set (g1:= transperm b1 b2).
-exists (g * g1) => [/= |].
+pose (g1:= transperm b1 b2); exists (g * g1) => [/= |].
   apply/kerP => h; rewrite !odd_permM Pm odd_transp.
   by case/andP: (Hb2) => ->.
-have ->: x = (dtuple_tl (dtuple_tl x2))  
-  by rewrite !dtuple_tl_add.
+have ->: x = (dtuple_tl (dtuple_tl x2)) by rewrite !dtuple_tl_add.
 rewrite act_morph -!naction_tl -Hg1.
 have Fy3: ~~ dtuple_in b2 y.
-  rewrite /dtuple_in /distinctb.
-  case: (y) (Hb1) (Hb2); case => /= v _ _ _.
+  rewrite /dtuple_in /distinctb; case: (y) (Hb1) (Hb2); case => /= v _ _ _.
   by case/andP.
-set y3 := dtuple_add Fy3.
-have Fy4: ~~ dtuple_in b1 y3.
+pose y3 := dtuple_add Fy3; have Fy4: ~~ dtuple_in b1 y3.
   rewrite /y3 /dtuple_in /distinctb /=.
   case: (y) (Fy3) (Hb1) (Hb2) => [[v]] /= _ _ _ HH.
-  case/andP => HH1 HH2; apply/norP; split => //.
-  by rewrite eq_sym.
-set y4 := dtuple_add Fy4.
-suff ->: naction (perm_act d) (n -2 + 1 + 1) y2 g1 = y4.
-  by rewrite !dtuple_tl_add.
+  by case/andP => HH1 HH2; apply/norP; split; rewrite // eq_sym.
+pose y4 := dtuple_add Fy4.
+suff ->: naction (perm_act d) (n -2 + 1 + 1) y2 g1 = y4 by rewrite !dtuple_tl_add.
 apply: (dtuple_hd_tl (x:= a1)).
-  rewrite dtuple_hd_add naction_hd /= /to /g1 //
-          dtuple_hd_add.
+  rewrite dtuple_hd_add naction_hd /= /to /g1 // dtuple_hd_add.
   by case: (transpP b1 b2 b2).
 rewrite dtuple_tl_add naction_tl dtuple_tl_add.
 apply: (dtuple_hd_tl (x:= a1)).
-  rewrite dtuple_hd_add naction_hd /= /to /g1 //
-          dtuple_hd_add.
+  rewrite dtuple_hd_add naction_hd /= /to /g1 // dtuple_hd_add.
   by case: (transpP b1 b2 b1).
 rewrite dtuple_tl_add naction_tl dtuple_tl_add.
-case: (y) (Hb1) (Fy3); case => /=.
+case: (y) (Hb1) (Fy3); case.
 rewrite /dtuple_in /distinctb /setC /= => z Hz Hz0 Hz1 Hz2.
-apply/val_eqP => /=; rewrite /set1 /=; apply/eqP.
+apply/val_eqP; rewrite /set1 /=; apply/eqP.
 elim: (z) Hz1 Hz2 =>  [|a z1 Hrec] //=.
 case/norP => Hz3 Hz4; case/norP => Hz5 Hz6.
 congr Adds; last by exact: Hrec.
-rewrite /to /g1 /=.
-by case: (transpP b1 b2 a) Hz3 Hz5 => // -> //;
-   rewrite eq_refl.
+by rewrite /to /g1; case: (transpP b1 b2 a) Hz3 Hz5 => // ->; rewrite eq_refl.
 Qed.
 
 Lemma perm_act_faithful: faithful (perm_act d) alt (setA d).
 Proof.
 apply/faithfulP => x H.
 apply /eqP; apply/ perm_act1P.
-by move => y; move: (H y); case.
+by move=> y; move: (H y); case.
 Qed.
-
 
 End PermutationParity.
 
+  
 Coercion odd_perm : permType >-> bool.

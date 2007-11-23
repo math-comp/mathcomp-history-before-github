@@ -83,31 +83,25 @@ Section Simple.
 Variables (elt: finGroupType) (H: setType elt).
 
 Definition  simple :=
-  forallb f : fgraph_eqType elt bool_finType,
-  let K := fun_of_fgraph f in
- (group_set (elt:=elt) (Sett f) && 
-    (subset K H) && (~~(K =1b H)) && (normal (Sett f) H)) 
-  ->b K =1b set1 1.
+  forallb K: setType elt,
+ (group_set K && (subset K H) && (~~(K == H)) && (normal K H)) 
+  ->b K == {: 1}.
 
 Theorem simpleP:
  reflect
  (forall K: group elt, 
-   subset K H  -> ~(K =1 H) -> K <| H -> K =1 set1 1)
+   subset K H  -> ~ K =1 H -> K <| H -> K =1 set1 1)
  simple.
 Proof.
+have F1: forall z, set1 1 z = iset1 (1: elt) z by move => z; rewrite s2f.
 apply: (iffP idP).
-  move/forallP => H1 K Hk1 Hk3 Hk4.
-  apply/eq1P.
-  set f :=  (fgraph_of_fun K).
-  move: (H1 f); rewrite /f {5}can_fun_of_fgraph;  move/implP => H2.
-  apply: H2.
-  rewrite can_fun_of_fgraph can_sval.
-  do 2 (apply/andP; split => //); last apply/eq1P => //.
-  by apply/andP; split => //; case: (K).
-move => H1.
-apply/forallP => K; apply/implP; (do 3 case/andP) => E0 E1 E2 E3.
-apply/eq1P; apply: (H1 (Group E0)) => //.
-by apply/eq1P.
+  move/forallP => Hf K Hk1 Hk3 Hk4 z; rewrite F1.
+  move: z; apply/isetP; apply: eqP; apply: (implP _ _ (Hf K)).
+  by rewrite set_of_groupP Hk1 Hk4 andbT; apply/eqP => HH; case: Hk3; rewrite HH.
+move=> Hf; apply/forallP => K; apply/implP; (do 3 case/andP) => E0 E1 E2 E3.
+apply/eqP; apply/isetP => z; rewrite -F1.
+move: z; apply: (Hf (Group E0)) => //; move/isetP => HH.
+by case/negP: E2; apply/eqP.
 Qed.
 
 End Simple.
