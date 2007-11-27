@@ -1054,4 +1054,36 @@ Proof. by move=> *; exact: leq_bigmax_cond. Qed.
 Implicit Arguments leq_bigmax_cond [I P F].
 Implicit Arguments leq_bigmax [I F].
 
+Lemma eq_bigmax_cond : forall (I : finType) (P : set I) F,
+  (~~ set0b P) -> exists i0, P i0 && (F i0 == \max_(i | P i) F i).
+Proof.
+move=> I P F.
+case: {2}(card P) (eqP (eq_refl (card P)))=>/= [|n] cardP.
+  by move/card0_eq: cardP; move/set0P=>->.
+elim: n P cardP =>/= [|n Hn] P cardP; move/set0Pn=>[] i0 Pi0.
+  rewrite -(card1 i0) in cardP; symmetry in cardP.
+  exists i0; rewrite Pi0 andTb; apply/eqP.
+  suffices: (set1 i0) =1 P; first (by move/fsym=>H1; rewrite (big_set1 _ H1)).
+  by apply/(subset_cardP cardP); apply/subsetP=> j0; move/eqP=><-.
+move: (cardD1 i0 P); move/eqP; rewrite cardP Pi0/= addnC addnS addn0 eqSS
+ eq_sym; move/eqP=> H1.
+have H2 : ~~ set0b (setD1 P i0) by apply/eqP=> H2; rewrite H2 in H1.
+elim: (Hn _ H1 H2)=> j0; move/andP=> [] Pj0 Sj0.
+rewrite (bigD1 i0 Pi0)/= (eq_bigl (setD1 P i0) F) -?(eqP Sj0);
+ last (by move=> i; rewrite /setD1 andbC eq_sym).
+case Lt_i0_j0:(F j0 <= F i0); [exists i0 | exists j0]; apply/andP; split=>//.
+    by move/idP: Lt_i0_j0; rewrite leqNgt; move/negbET; rewrite /maxn=>->.
+  by move: Pj0; rewrite /setD1; move/andP=>[].
+by move: Lt_i0_j0; rewrite leqNgt; move/negbEF; rewrite /maxn=>->.
+Qed.
+
+Lemma eq_bigmax : forall (I : finType) F,
+  (~~ set0b (setA I)) -> exists i0 : I, (F i0 == \max_(i) F i).
+Proof.
+by move=> I F; move/(eq_bigmax_cond F)=>[] x; move/andP=>[] _; exists x.
+Qed.
+
+Implicit Arguments eq_bigmax_cond [I P F].
+Implicit Arguments eq_bigmax [I F].
+
 Unset Implicit Arguments.
