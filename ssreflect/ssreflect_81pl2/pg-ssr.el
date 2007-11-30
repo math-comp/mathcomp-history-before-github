@@ -2,13 +2,21 @@
 ;; Assia Mahboubi 2007
 
 (defcustom coq-user-tactics-db
-   '(("have" "hv" "have # : #" t "have") 
+   '(("nat_congr" "ncongr"  "nat_congr" t "nat_congr")
+     ("nat_norm" "nnorm"  "nat_norm" t "nat_norm")
+     ("bool_congr" "bcongr"  "bool_congr" t "bool_congr")
+     ("prop_congr" "prcongr"  "prop_congr" t "prop_congr")
+     ("move" "m"  "move" t "move")
+     ("pose" "po"  "pose # := #" t "pose")
+     ("set" "set"  "set # := #" t "set")
+     ("have" "hv" "have # : #" t "have") 
      ("congr" "con" "congr #" t "congr")
      ("wlog" "wlog" "wlog : / #" t "wlog")
      ("without loss" "wilog" "without loss #" t "without loss")
      ("unlock" "unlock" "unlock #" t "unlock")
      ("suffices" "suffices" "suffices # : #" t "suffices")
-     ("suff" "suff" "suff # : #" t "suff")) 
+     ("suff" "suff" "suff # : #" t "suff")
+) 
    "Extended list of tactics, includings ssr and user defined ones")
 
 
