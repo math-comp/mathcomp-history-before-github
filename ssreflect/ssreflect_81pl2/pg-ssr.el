@@ -23,7 +23,7 @@
   "Extended list of tacticals, includings ssr and user defined ones")
 
 (defcustom coq-user-reserved-db
-  '("is" "nosimpl")
+  '("is" "nosimpl" "of")
   "Extended list of tacticals, includings ssr and user defined ones")
 
 (defcustom coq-user-solve-tactics-db
