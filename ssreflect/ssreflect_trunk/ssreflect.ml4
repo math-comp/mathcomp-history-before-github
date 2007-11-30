@@ -3072,7 +3072,7 @@ END
 (* is used and there are no dependents.                                    *)
 
 let elimtac view c gl = match view with
-  | [v] -> general_elim (c, NoBindings) (v, NoBindings) gl
+  | [v] -> general_elim false (c, NoBindings) (v, NoBindings) gl
   | _ -> simplest_elim c gl
 
 let protectreceqtac cl gl =
