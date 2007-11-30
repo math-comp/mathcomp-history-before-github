@@ -24,9 +24,9 @@
 
 (defcustom coq-user-reserved-db
   '("is" "nosimpl" "of")
-  "Extended list of tacticals, includings ssr and user defined ones")
+  "Extended list of keywords, includings ssr and user defined ones")
 
 (defcustom coq-user-solve-tactics-db
   '(("done" nil "done" nil "done")
     )
-   "Extended list of clsoing tactic(al)s, includings ssr and user defined ones")
+   "Extended list of closing tactic(al)s, includings ssr and user defined ones")
