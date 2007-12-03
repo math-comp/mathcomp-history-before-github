@@ -23,6 +23,7 @@
 (defcustom coq-user-commands-db
   '(("Unset Strict Implicit" "unsti" nil t "Strict\\s-+Implicit")
     ("Prenex Implicits" "pi" "Prenex Implicits #" t "Prenex\\s-+Implicits")
+    ("Hint View for" "hv" "Hint View for #" t "Hint\\s-+View\\s-+for")
 )
    "Extended list of commands, includings ssr and user defined ones")
 
