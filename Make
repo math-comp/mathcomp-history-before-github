@@ -25,9 +25,11 @@ burnside_app.v
 signperm.v
 charpoly.v
 ssralg.v
+ssrbig.v
 ssrpoly.v
 matrix.v
 ssrbig.v
+schurzass.v
 
 COQC = $(COQBIN)ssrcoq
 COQFLAGS = "-q $(OPT) $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -compile"

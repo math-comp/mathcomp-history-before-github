@@ -24,28 +24,21 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-Section Split.
+Section More_conjg.
 
 Variable elt : finGroupType.
-Variables G H : setType elt.
 
-Definition pcomplg K := (H :*: K == G).
+Lemma conjgC : forall x y : elt, x * y = y * x ^ y.
+Proof. by move=> *; rewrite /conjg -!mulgA mulKgv. Qed.
 
-Definition complg := {K, trivg (H :&: K) && (H :*: K == G)}.
+Lemma conjgCv : forall x y : elt, x * y = y ^ x^-1 * x.
+Proof. by move=> x y; rewrite (conjgC _ x) conjgKv. Qed.
 
-Definition splitg := existsb K : group elt, (complg K).
+Lemma norm_conjg : forall (H : setType elt) x y,
+  normaliser H x -> H (y ^ x) = H y.
+Proof. by move=> H x y Nx; rewrite -{1}(norm_sconjg Nx) sconjg_conj. Qed.
 
-End Split.
-
-Prenex Implicits pcomplg complg splitg.
-
-Lemma splitgP : forall elt (G H : group elt),
-  reflect (exists2 K : group elt, disjointg H K & H :*: K = G) (splitg G H).
-Proof.
-move=> elt G H; apply: (iffP (existsP _)) => [[K] | [K trHK <-]].
-  by rewrite s2f; case/andP=> trHK; move/eqP; exists K.
-by exists K; rewrite s2f set11 andbT.
-Qed.
+End More_conjg.
 
 Notation "'N_' ( G ) H"  := (normaliser H :&: G)
   (at level 10, H at level 8, format "'N_' ( G )  H") : group_scope.
@@ -78,21 +71,105 @@ rewrite 2!s2f andbC groupMr // (subsetP sHG) //= sconjgM.
 by apply/subsetP=> z; rewrite s2f -QPy s2f conjgK.
 Qed.
 
-Section More_conjg.
+Section Split.
 
 Variable elt : finGroupType.
 
-Lemma conjgC : forall x y : elt, x * y = y * x ^ y.
-Proof. by move=> *; rewrite /conjg -!mulgA mulKgv. Qed.
+Section Defs.
 
-Lemma conjgCv : forall x y : elt, x * y = y ^ x^-1 * x.
-Proof. by move=> x y; rewrite (conjgC _ x) conjgKv. Qed.
+Variables G H : setType elt.
 
-Lemma norm_conjg : forall (H : setType elt) x y,
-  normaliser H x -> H (y ^ x) = H y.
-Proof. by move=> H x y Nx; rewrite -{1}(norm_sconjg Nx) sconjg_conj. Qed.
+Definition pcomplg K := (H :*: K == G).
 
-End More_conjg.
+Definition complg := {K : group elt, trivg (H :&: K) && (H :*: K == G)}.
+
+Definition splitg := ~~ set0b complg.
+
+Definition pr_compl K x := repr (H :* x :&: K).
+
+Definition pr_ker K x := x * (pr_compl K x)^-1.
+
+End Defs.
+
+Variables G H : group elt.
+
+Lemma complgP : forall K : group _, reflect (disjointg H K /\ H :*: K = G) (complg G H K).
+Proof. by move=> K; rewrite s2f; apply: (iffP andP); case; split=> //; apply/eqP. Qed.
+
+Lemma splitgP : reflect (exists2 K : group elt, disjointg H K & H :*: K = G) (splitg G H).
+Proof.
+by apply: (iffP set0Pn); case=> K; first case/complgP; exists K; last apply/complgP.
+Qed.
+
+Variable K : group elt.
+
+Lemma split_pr : forall x, x = pr_ker H K x * pr_compl H K x.
+Proof. by move=> *; rewrite mulgKv. Qed.
+
+Lemma pr_compl_mull : forall x y, H x -> pr_compl H K (x * y) = pr_compl H K y.
+Proof. by move=> x y Hx; rewrite {1}/pr_compl rcoset_morph rcoset_id. Qed.
+
+Lemma pr_ker_mull : forall x y, H x -> pr_ker H K (x * y) = x * pr_ker H K y.
+Proof. by move=> x y Hx; rewrite {1}/pr_ker pr_compl_mull // mulgA. Qed.
+
+Lemma rcoset_compl_pr : forall x, (H :*: K) x -> (H :* x :&: K) (pr_compl H K x).
+Proof.
+move=> x; case/smulgP=> h k Hh Kk ->{x}; apply: mem_repr (k) _ _.
+by rewrite s2f rcoset_sym rcosetE mulgK Hh.
+Qed.
+
+Lemma compl_pr : forall x, (H :*: K) x -> K (pr_compl H K x).
+Proof. by move=> x; move/rcoset_compl_pr; case/isetIP. Qed.
+
+Lemma ker_pr : forall x, (H :*: K) x -> H (pr_ker H K x).
+Proof. by move=> x; move/rcoset_compl_pr; case/isetIP; rewrite rcoset_sym rcosetE. Qed.
+
+Section Disjoint.
+
+Hypothesis trHK : disjointg H K.
+
+Lemma pr_compl_id : forall x, K x -> pr_compl H K x = x.
+Proof.
+move=> x Kx; rewrite -[pr_compl H K x]mul1g; apply: canLR (mulgKv _); apply/iset1P.
+have HKx: (H :*: K) x by exact: (subsetP (smulg_subr _ _)).
+by move/disjointgP: trHK => <-; rewrite s2f ker_pr // groupMl // groupV compl_pr.
+Qed.
+
+Lemma pr_compl_idr : forall x y, H x -> K y -> pr_compl H K (x * y) = y.
+Proof. by move=> *; rewrite pr_compl_mull // pr_compl_id. Qed.
+
+Lemma pr_ker_idl : forall x y, H x -> K y -> pr_ker H K (x * y) = x.
+Proof. by move=> *; rewrite /pr_ker pr_compl_idr // mulgK. Qed.
+
+End Disjoint.
+
+Lemma complgC : H <| G -> complg G K H = complg G H K.
+Proof.
+move=> nHG; rewrite !s2f; congr (trivg _ && _); first by apply/isetP=> x; rewrite !s2f andbC.
+apply/eqP/eqP=> eqG; rewrite -eqG in nHG.
+  rewrite norm_smulC //; apply: subset_trans nHG; exact: smulg_subl.
+rewrite -norm_smulC //; apply: subset_trans nHG; exact: smulg_subr.
+Qed.
+
+Hypothesis cK : complg G H K.
+
+Lemma sub_compl : subset K G.
+Proof. case/complgP: cK => _ <-; exact: smulg_subr. Qed.
+
+Hypothesis nHG : H <| G.
+
+Lemma pr_compl_morph : forall x y, G x -> G y ->
+  pr_compl H K (x * y) = pr_compl H K x * pr_compl H K y.
+Proof.
+case/complgP: cK nHG => trHK <- nHHK x y HKx HKy.
+rewrite {1}[y]split_pr mulgA (conjgCv x) {2}[x]split_pr -2!mulgA mulgA.
+rewrite pr_compl_mull 1?pr_compl_id // groupMl ?(compl_pr, ker_pr, norm_conjg) // groupV.
+exact: (subsetP nHHK).
+Qed.
+
+End Split.
+
+Prenex Implicits pcomplg complg splitg pr_compl pr_ker.
 
 Theorem Gaschutz_split : forall elt (G H P : group elt) p,
   prime p -> H <| G -> sylow p G P -> subset H P -> subset H (center H) ->
@@ -130,17 +207,19 @@ have GrH: forall x, G x -> G (rH x).
   by move=> x Gx; rewrite -(groupMr _ (groupVr Gx)) (subsetP sHG) -?rcosetE.
 have rH_Pmul: forall x y, P x -> rH (x * y) = pQ x * rH y.
   by move=> x y Px; rewrite /rH mulgA -pQmul // /pP rPmul // mulgA.
+have rH_Hmul: forall h y, H h -> rH (h * y) = rH y.
+  by move=> h y Hh; rewrite rH_Pmul ?(subsetP sHP) // -(mulg1 h) pQhq // mul1g.
 pose toH x := if insub H x is Some a then a else 1.
 have valH : forall x, H x -> val (toH x) = x.
   by rewrite /toH => x Hx; case: insubP => //; rewrite Hx.
-have mulHC : commutative (@mulg {eq_sig H as finGroupType}).
+pose Hgrp := {eq_sig H as finGroupType}; have mulHC : commutative (@mulg Hgrp).
   move=> x y; apply/eqP; have:= subsetP abelH _ (valP x); rewrite s2f valP /=.
   by move/subsetP; apply; exact: valP.
 pose eltH := Ring.AdditiveGroup (@mulgA _) mulHC (@mul1g _) (@mulVg _).
 have valM: forall a b : eltH, val (a + b)%R = val a * val b by [].
-have valE: forall (a : eltH) n, val (a*+n)%R = val a ** n.
-  by move=> a; elim=> //= n <-.
+have valE: forall (a : eltH) n, val (a*+n)%R = val a ** n by move=> a; elim=> //= n <-.
 pose mu x y : eltH := toH ((rH x * rH y)^-1 * rH (x * y)).
+pose nu y := (\sum_(Px | rcosets P G Px) mu (repr Px) y)%R.
 have rHmul : forall x y, G x -> G y -> rH (x * y) = rH x * rH y * val (mu x y).
   move=> x y Gx Gy; rewrite valH ?mulKgv // -lcosetE lcoset_sym.
   rewrite -norm_rlcoset; last by rewrite (subsetP nHG) ?GrH ?groupM.
@@ -149,14 +228,20 @@ have rHmul : forall x y, G x -> G y -> rH (x * y) = rH x * rH y * val (mu x y).
 have mu_Pmul: forall x y z, P x -> mu (x * y) z = mu y z.
   move=> x y z Px; congr toH; rewrite -mulgA !(rH_Pmul x) ?rPmul //.
   by rewrite -mulgA invg_mul -mulgA mulKg.
+have mu_Hmul: forall x y z, G x -> H y -> mu x (y * z) = mu x z.
+  move=> x y z Gx Hy; congr toH; rewrite (mulgA x) (conjgCv x) -mulgA 2?rH_Hmul //.
+  by rewrite norm_conjg // groupV (subsetP nHG).
+have{mu_Hmul} nu_Hmul: forall y z, H y -> nu (y * z) = nu z.
+  move=> y z Hy; apply: eq_bigr => Px; case/iimageP=> x Gx ->{Px}; apply: mu_Hmul y z _ Hy.
+  by rewrite -(groupMl _ (subsetP sPG _ (PpP x))) mulgKv.
 pose actG (a : eltH) y : eltH := toH (val a ^ rH y).
 have valG: forall a y, G y -> val (actG a y) = val a ^ rH y.
   move=> a y Gy; rewrite valH // -sconjgE norm_sconjg ?valP //.
   by rewrite groupV (subsetP nHG) // GrH.
-have actGM: forall a b y, G y -> (actG (a + b) y = actG a y + actG b y)%R.
-  by move=> a b y Gy; apply: val_inj; rewrite /= !valG //= conjg_mul.
 have actG0: forall y, G y -> (actG 0 y = 0)%R.
   by move=> y Gy; apply: val_inj; rewrite valG //= conj1g.
+have actGM: forall a b y, G y -> (actG (a + b) y = actG a y + actG b y)%R.
+  by move=> a b y Gy; apply: val_inj; rewrite /= !valG //= conjg_mul.
 have actGE: forall a n y, G y -> (actG (a*+n) y = (actG a y)*+n)%R.
   by move=> a n y Gy; apply: val_inj; rewrite !(valE, valG) // gexpn_conjg.
 have cocycle_mu: forall x y z, G x -> G y -> G z ->
@@ -164,21 +249,8 @@ have cocycle_mu: forall x y z, G x -> G y -> G z ->
 - move=> x y z Gx Gy Gz; apply: val_inj; apply: (mulg_injl (rH x * rH y * rH z)).
   rewrite Ring.addrC !valM valG // -mulgA (mulgA (rH z)) -conjgC 3!mulgA -!rHmul ?groupM //.
   by rewrite -2!(mulgA (rH x)) -mulgA -!rHmul ?groupM //.
-pose iP := indexg P G; have [m mK]: exists m, forall a : eltH, (a*+(iP * m) = a)%R.
-  pose n := card P; have n_p: n = p_part p (card G) by apply/eqP; case/andP: sylP.
-  case: (@bezoutl iP n)=> [|m' _].
-    by rewrite lt0n; apply/set0Pn; exists (P :* 1); apply/iimageP; exists (1 : elt).
-  have ->: gcdn iP n = 1%N.
-    case: (p_part_coprime prime_p (pos_card_group G)) => n' co_p_n'; rewrite -n_p.   
-    rewrite -(LaGrange sPG); move/eqP; rewrite mulnC eqn_pmul2r ?pos_card_group //.
-    rewrite -/iP n_p /p_part; move/eqP->; case: (logn _ _) => // k.
-    by apply/eqP; rewrite gcdnC -[_ == _]prime_coprime_expn.
-  case/dvdnP=> m inv_m; exists m => a; rewrite mulnC -inv_m /= mulnC Ring.mulrnA /=.
-  suff ->: (a*+n = 0)%R by rewrite Ring.mulr0n Ring.addr0.
-  apply: val_inj; rewrite !valE /=; apply/eqP; rewrite -orderg_dvd.
-  by rewrite orderg_dvd_g // (subsetP sHP) // valP.
-pose nu y := (\sum_(Px | rcosets P G Px) mu (repr Px) y)%R.
-have{cocycle_mu} cocycle_nu : forall y z, G y -> G z ->
+move: mu => mu in rHmul mu_Pmul cocycle_mu nu nu_Hmul; pose iP := indexg P G.
+have{actG0 actGM cocycle_mu} cocycle_nu : forall y z, G y -> G z ->
   (nu z + actG (nu y) z = (mu y z)*+iP + nu (y * z)%G)%R.
 - move=> y z Gy Gz; pose ap := (@Ring.add eltH); pose am a := actG a z.
   rewrite -/(am (nu y)) (@big_morph _ _ 0 0 _ ap)%R {}/ap {}/am; last by split; auto.
@@ -197,21 +269,26 @@ have{cocycle_mu} cocycle_nu : forall y z, G y -> G z ->
   rewrite -sumr_const -!big_split /=; apply: eq_bigr => Px.
   case/iimageP=> x Gx ->{Px}; rewrite -cocycle_mu //.
   by case: repr_rcosetP=> p1 Pp1; rewrite groupMr // (subsetP sPG).
-pose f x := if G x then rH x * val ((nu x)*+m)%R else 1.
+have [m mK]: exists m, forall a : eltH, (a*+(iP * m) = a)%R.
+  pose n := card P; have n_p: n = p_part p (card G) by apply/eqP; case/andP: sylP.
+  case: (@bezoutl iP n)=> [|m' _].
+    by rewrite lt0n; apply/set0Pn; exists (P :* 1); apply/iimageP; exists (1 : elt).
+  have ->: gcdn iP n = 1%N.
+    case: (p_part_coprime prime_p (pos_card_group G)) => n' co_p_n'; rewrite -n_p.   
+    rewrite -(LaGrange sPG); move/eqP; rewrite mulnC eqn_pmul2r ?pos_card_group //.
+    rewrite -/iP n_p /p_part; move/eqP->; case: (logn _ _) => // k.
+    by apply/eqP; rewrite gcdnC -[_ == _]prime_coprime_expn.
+  case/dvdnP=> m inv_m; exists m => a; rewrite mulnC -inv_m /= mulnC Ring.mulrnA /=.
+  suff ->: (a*+n = 0)%R by rewrite Ring.mulr0n Ring.addr0.
+  apply: val_inj; rewrite !valE /=; apply/eqP; rewrite -orderg_dvd.
+  by rewrite orderg_dvd_g // (subsetP sHP) // valP.
+move: nu => nu in nu_Hmul cocycle_nu; pose f x := if G x then rH x * val ((nu x)*+m)%R else 1.
+have{nu_Hmul} kerf: subset H (ker f).
+  by apply/subsetP=> h *; apply/kerP=> y; rewrite /f rH_Hmul // groupMl (nu_Hmul, subsetP sHG).
 have{cocycle_nu} morf: forall y z, G y -> G z -> f (y * z) = f y * f z.
   move=> y z Gy Gz; rewrite /f groupM // Gy Gz rHmul // -3!mulgA; congr (_ * _).
   rewrite (mulgA _ (rH z)) (conjgC _ (rH z)) -mulgA -valG ?actGE //; congr (_ * _).
   by rewrite -!valM -(mK (mu y z)) Ring.mulrnA -!Ring.mulrn_addl /= -cocycle_nu // Ring.addrC.
-have kerf: subset H (ker f).
-  have rH_Hmul: forall h y, H h -> rH (h * y) = rH y.
-    by move=> h y Hh; rewrite rH_Pmul ?(subsetP sHP) // -(mulg1 h) pQhq // mul1g.
-  apply/subsetP=> h Hh; apply/kerP=> y; rewrite /f rH_Hmul // groupMl; last first.
-    by rewrite (subsetP sPG) // (subsetP sHP).
-  case: (G y) => //; congr (_ * val ((_ : eltH)*+m)%R).
-  apply: eq_bigr => Px; case/iimageP=> x Gx ->{Px}; congr toH; rewrite rH_Hmul // -/(rP x).
-  congr (_ * _); rewrite mulgA (conjgCv _ h) -mulgA; set h1 := h ^ _.
-  have Hh1: H h1 by rewrite norm_conjg ?(subsetP nHG) // -(groupMl _ Gx) (subsetP sPG) ?PpP.
-  by rewrite rH_Pmul ?(subsetP sHP) // -(mulg1 h1) pQhq ?mul1g.
 have [phi phi_f]: exists phi : morphism _ _, f =1 phi.
   case triv_f: (trivm f); first by exists (triv_morph elt elt); exact: trivm_is_cst.
   have domf: dom f = G.
@@ -338,9 +415,7 @@ have [ZK [sZZK sZKG] quoZK]:
   apply/isetP=> xbar; apply/iimageP/idP=> [[x ZKx ->{xbar}] | Kxbar].
     case/isetIP: ZKx; case/isetUP; first by rewrite !s2f; case/andP.
     move/mker=> -> _; exact: group1.
-  have: Gbar xbar.
-    rewrite -eqHKbar; apply/smulgP.
-    by exists (1 : coset Z) xbar; rewrite ?group1 ?mul1g.
+  have: Gbar xbar by rewrite -eqHKbar (subsetP (smulg_subr _ _)).
   case/quotientP=> x [Gx Nx eq_xbar]; exists x => //.
   rewrite 4?s2f Gx andbT /= -eq_xbar Kxbar; case: eqP => //= kx.
   by apply/kerMP; rewrite ?(subsetP (subset_dom_coset _)) //= -eq_xbar.

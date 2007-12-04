@@ -1329,19 +1329,19 @@ Hypothesis nKG : K <| G.
 
 Theorem third_iso  : isog ((G / H) / (K / H)) (G / K).
 Proof.
-pose coK := {coset_of K as morphism _ _}.
-have sHker: subset H (ker coK).
+have sHker: subset H (ker (coset_of K)).
   by rewrite (subset_trans sHK) ?subset_ker_coset.
-have sGdom: subset G (dom coK).
+have sGdom: subset G (dom (coset_of K)).
   by rewrite (subset_trans nKG) ?subset_dom_coset.
-have KH_ker : K / H = ker_(G / H) (mquo coK H).
+have sGHdom: subset (G / H) (dom (mquo (coset_of K) H)).
+  apply: subset_trans (subset_dom_mquo _ _); exact: subset_iimage.
+have KH_ker : K / H = ker_(G / H) (mquo (coset_of K) H).
   rewrite ker_mquo_loc // ker_coset_of_loc //; congr (_ / H).
   apply/isetP=> x; rewrite s2f.
   by case Kx: (K x); rewrite //= (subsetP sKG).
 rewrite -[K / H]/(set_of_group _) {KH_ker}(set_of_group_inj KH_ker) /=.
-have -> : G / K = mquo coK H @: G / H by rewrite factor_mquo_iim.
-apply: first_isom=> /=.
-apply: subset_trans (subset_dom_mquo _ _); exact: subset_iimage.
+have -> : G / K = mquo (coset_of K) H @: G / H by rewrite factor_mquo_iim.
+exact: first_isom.
 Qed.  
 
 End ThirdIsomorphism.

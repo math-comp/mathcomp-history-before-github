@@ -72,17 +72,61 @@ Proof. by move=> *; apply/eqP/eqP. Qed.
 
 (* A short proof of the K axiom (proof-irrelevance for x = x) on eqTypes. *)
 
-Theorem eq_axiomK : forall (d : eqType) (x : d) (Ex : x = x), Ex = erefl x.
+(*
+Section Irrelevance.
+
+Variable T : Type.
+Hypothesis dec_eq : forall x y : T, {x = y} + {x <> y}.
+Variable x : T.
+
+Definition join y z (Exy : x = y) (Exz : x = z) : y = z :=
+  let: erefl in _ = x' := Exy return x' = z in Exz.
+
+Lemma joinK : forall y Exy, join Exy Exy = erefl y.
+Proof. by move=> y Exy; case: y / Exy. Qed.
+
+Lemma eq_monic : forall (f : forall y, x = y -> x = y) y, injective (f y).
 Proof.
-move=> d x Exx.
-have Er: forall E, eq_ind x (fun y => y = x) E x E = erefl x.
-  by case: {2 3 4 6 7 8}x /.
-case (Er (if x =P x is Reflect_true E then E else Exx)).
-case: {2 4 6 8 10 12 14 16}x / {-3}Exx; case: (x =P x) => [E|[]]; auto.
+move=> f y; apply: can_inj (join (f x (erefl x))) _ => Exy.
+case: y / Exy; exact: joinK.
+Qed.
+
+Definition proj y Exy := if dec_eq x y is left Exy0 then Exy0 else Exy.
+
+Lemma proj_cst : forall y (E1 E2 : x = y), proj E1 = proj E2.
+Proof. by rewrite /proj => y E1 E2; case: (dec_eq x y). Qed.
+
+Theorem eq_irrelevance : forall y (E1 E2 : x = y), E1 = E2.
+Proof. move=> *; apply: (@eq_monic proj); exact: proj_cst. Qed.
+
+Theorem eq_axiomK : forall Exx, Exx = erefl x.
+Proof. move=> Exx; exact: eq_irrelevance. Qed.
+
+End Irrelevance.
+*)
+Theorem eq_irrelevance (T : eqType) (x y : T) (e1 e2 : x = y) : e1 = e2.
+Proof.
+move=> T x; pose proj y e := if x =P y is Reflect_true e0 then e0 else e.
+pose join e0 y e := let: erefl in _ = x' := e0 : x = x return x' = y in e.
+move=> y e1 e2; apply: (@can_inj _ _ (proj y) (join (proj x (erefl x)) y)).
+  by rewrite {e1 e2}/join; case: y /; case: {-1 5}x / (proj _ _).
+by rewrite /proj; case: (x =P y).
+Qed.
+
+Corollary eq_axiomK : forall (T : eqType) (x : T) (e : x = x), e = erefl x.
+Proof. move=> *; exact: eq_irrelevance. Qed.
+(*
+Theorem eq_axiomK' : forall (T : eqType) (x : T) (e : x = x), e = erefl x.
+Proof.
+move=> T x e0; pose req (y z : T) := z = y.
+have jK: forall e : req x x, eq_ind x _ e x e = erefl x by case: {-2 5}x /.
+pose p e' := if x =P _ is Reflect_true e then e else e'. 
+by rewrite -(jK (p x e0)); case: {2 4 6 7}x / {1 2}e0; rewrite /p; case: eqP.
 Qed.
 
 Lemma eq_irrelevance : forall (d : eqType) (x y : d) (E E' : x = y), E = E'.
 Proof. by move=> d x y; case: y / => E; rewrite [E]eq_axiomK. Qed.
+*)
 
 (* Comparison for booleans. *)
 

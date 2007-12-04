@@ -14,35 +14,6 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-(* Syntax for referring to canonical structures:                   *)
-(*   {mycarrier as mystruct}                                       *)
-(* denotes mycarrier_struct when mycarrier_struct : mystruct is a  *)
-(* Canonical Structure that projects to mycarrier via one of its   *)
-(* coercions, i.e., such that                                      *)
-(*     mycarrier_struct : typeof mycarrier = mycarrier.            *)
-(*  Although {mycarrier as mystruct} reduces (via simpl or /=) to  *)
-(* mycarrier_struct, it does not actually denote mycarrier_struct, *)
-(* but a more complex term that gets displayed as                  *)
-(*      (* mycarrier as mystruct *) mycarrier_struct               *)
-
-Module GetCanonical.
-
-CoInductive phantom ct (c c' : ct) st (s : st) : Type := Phantom.
-
-Definition get ct (c : ct) st (s : st) (p : phantom c c s) := let: Phantom := p in s.
-
-End GetCanonical.
-
-Notation "'(*' c 'as' st '*)' s" :=
-  (@GetCanonical.get _ c st s _)
-  (at level 10, t, s at level 200, format "'(*'  c  'as'  st  '*)'  s")
-  : group_scope.
-
-Notation "{ c 'as' st }" :=
-  (GetCanonical.get ((fun s : st => GetCanonical.Phantom c s s) _))
-  (at level 0, c at level 99, s at level 200)
-   : group_scope.
-
 Module Group.
 
 Structure finGroupType : Type := FinGroupType {
@@ -73,7 +44,7 @@ Prenex Implicits mulg invg.
 
 Notation "x1 * x2" := (mulg x1 x2): group_scope.
 Notation "1" := (unitg _) : group_scope.
-Notation "x '^-1'" := (invg x) (at level 9, format "x '^-1'") : group_scope.
+Notation "x '^-1'" := (invg x) (at level 2, format "x '^-1'") : group_scope.
 
 Section GroupIdentities.
 

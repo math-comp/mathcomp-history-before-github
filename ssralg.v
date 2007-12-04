@@ -34,9 +34,8 @@ Reserved Notation "4".
 Reserved Notation "5".
 *)
 Reserved Notation "- 1" (at level 0).
-Reserved Notation "x ^-1" (at level 9,
+Reserved Notation "x ^-1" (at level 2,
            format "x ^-1").
-   (* Should be at level 2 -- need to patch groups.v*)
 Reserved Notation "x ^2" (at level 2,
            format "x ^2").
 Reserved Notation "x ^+ n" (at level 30, n at level 9, right associativity,

@@ -50,36 +50,72 @@ Notation "'if' c 'as' x 'return' t 'then' v1 'else' v2" :=
   (if c%bool is true as x return t then v1 else v2) : boolean_if_scope.
 
 (* Syntax for referring to canonical structures:                   *)
-(*   {mytype as mystruct}                                          *)
-(* denotes mytype_struct when mytype_struct : mystruct is a        *)
-(* Canonical Structure that projects to mytype via the Sortclass   *)
-(* coercion of the mystruct structure, i.e., such that we have     *)
-(* mytype_struct : Type = mytype.                                  *)
-(*  Although {mytype as mystruct} reduces (via simpl or /=) to     *)
-(* mytype_struct, it does not actually denote mytype_struct, but   *)
-(* a more complex term that gets displayed as                      *)
-(*      mytype_struct (* mytype as mystruct *)                     *)
-
-Module GetCanonical.
-
-CoInductive phantom (t s : Type) (d : s) : Type := Phantom.
-
-Definition get t s d (x : @phantom t s d) := let: Phantom := x in d.
-
-End GetCanonical.
-
-Notation "d '(*' t 'as' s '*)'" :=
-  (@GetCanonical.get t s d _)
-  (at level 10, t, s at level 200, format "d  '(*'  t  'as'  s  '*)'")
-  : structure_scope.
-
-Notation "{ t 'as' s }" :=
-  (@GetCanonical.get t _ _ ((fun d : s => GetCanonical.Phantom d d) _))
-  (at level 0, t at level 99, s at level 200)
-   : structure_scope.
+(*   {carrier [: [carrier_type]] as struct_type}                   *)
+(* denotes carrier_struct when carrier_struct : struct_type is a   *)
+(* Canonical Structure that projects to carrier via its coercion   *)
+(* to carrier_type, i.e., such that                                *)
+(*     carrier_struct : carrier_type = carrier.                    *)
+(*  Although {carrier as struct} is convertible, and indeed        *)
+(* simplifies, to carrier_struct, it does not actually denote      *)
+(* carrier_struct, but a more complex term that is displayed as    *)
+(*      (*carrier as*)carrier_struct                               *)
+(* The "carrier_type" defaults to Type when omitted, i.e.,         *)
+(*      {c :as sT} is equilvalent to {c : Type as sT}              *)
+(* However, if the type cast is omitted altogether, as in          *)
+(*      {c as sT}                                                  *)
+(* then "carrier_type" is inferred from c. Be warned that the cast *)
+(* is often necessary when "carrier" is a Type, because Coq infers *)
+(* that simple datatypes such as nat, nat * nat, or list nat have  *)
+(* the archaic type "Set" rather than "Type".                      *)
 
 Delimit Scope structure_scope with STRUCT.
 Open Scope structure_scope.
+
+Module AsCanonical.
+
+CoInductive put cT sT (c1 c2 : cT) (s : sT) : Type := Put.
+
+Definition get cT sT c s p := let: Put := p : @put cT sT c c s in s.
+
+End AsCanonical.
+
+Import AsCanonical.
+
+Notation "(* c 'as' *) s" := (@get _ _ c s _)
+  (at level 10, c at level 99, format "(* c  'as' *) s") : structure_scope.
+
+Notation "(* c : 'as' *) s" := (@get Type _ c s _)
+  (at level 10, c at level 99, format "(* c  : 'as' *) s") : structure_scope.
+
+Notation "{ c 'as' sT }" := (get ((fun s : sT => Put c s s) _))
+  (at level 0, c at level 99, only parsing) : structure_scope.
+
+Notation "{ c : cT 'as' sT }" := {(c : cT) as sT}
+  (at level 0, c at level 99, ct at level 100, only parsing) : structure_scope.
+
+Notation "{ c : 'as' sT }" := {c : Type as sT}
+  (at level 0, c at level 99, only parsing) : structure_scope.
+
+(* A generic "phantom" type (actually, the unit type with a phantom      *)
+(* parameter. This can be used for type definitions that require some    *)
+(* Structure on one of their parameters, to allow Coq to infer said      *)
+(* structure rather that having to supply it explicitly or by using the  *)
+(* "{ _ as _ }" notation, which interacts poorly with Notation.          *)
+(*   The definition of a (co)inductive type with a parameter p : p_type, *)
+(* that uses the operations of a structure                               *)
+(*  Structure p_str : Type := p_Str {                                    *)
+(*    p_repr :> p_type; p_op : p_repr -> ...}                            *)
+(* should be given as                                                    *)
+(*  Inductive indt_phant (p : p_str) (p_phant : phantom p_type p) : Type *)
+(*    := ... .                                                           *)
+(*  Notation "'indt' p" := (indt_phant (Phantom p))                      *)
+(*     (at level 10, p at level 8).                                      *)
+(* We also define a simpler version ("phant" / "Phant") for the common   *)
+(* case where p is a Type.                                               *)
+
+CoInductive phantom (T : Type) (p : T) : Type := Phantom.
+Implicit Arguments phantom [].
+CoInductive phant (p : Type) : Type := Phant.
 
 End SsrSyntax.
 
@@ -164,10 +200,20 @@ Qed.
 
 (* View lemmas that don't use reflection.                       *)
 
-Lemma iffLR : forall P Q, (P <-> Q) -> P -> Q. Proof. by move=> ? ? []. Qed.
-Lemma iffRL : forall P Q, (P <-> Q) -> Q -> P. Proof. by move=> ? ? []. Qed.
+Section ApplyIff.
 
-Hint View iffLR|2 iffRL|2.
+Variables P Q : Prop.
+Hypothesis eqPQ : P <-> Q.
+
+Lemma iffLR : P -> Q. Proof. by case eqPQ. Qed.
+Lemma iffRL : Q -> P. Proof. by case eqPQ. Qed.
+
+Lemma iffLRn : ~P -> ~Q. Proof. by move=> nP tQ; case: nP; case: eqPQ tQ. Qed.
+Lemma iffRLn : ~Q -> ~P. Proof. by move=> nQ tP; case: nQ; case: eqPQ tP. Qed.
+
+End ApplyIff.
+
+Hint View iffLRn|2 iffRLn|2 iffLR|2 iffRL|2.
 
 Unset Implicit Arguments.
 
