@@ -210,7 +210,7 @@ have->: card (B x) = card (B y); last rewrite addbb.
   apply: eq_card => p; rewrite /= /setI im_flip im_permp transpV.
   rewrite /B /inversion !permp_flip flipK -permpM transp2 permp1 -!andbA; do !bool_congr.
   by case: p => x' y'; rewrite /A /= /set2 !(inv_eq (transpK _ _)) orbC transpL.
-move/(fun H => canRL H (addKb _)) => /=.
+move/(canRL (addKb _)) => /=.
 have->: odd (card (setU (B x) (B y))) = oddp (transp x y); last move->.
   congr odd; apply: eq_card=> p /=; rewrite /setI /setU /B.
   case: (@andP (opair p)) => //=; case; rewrite /inversion opair_flip => Op; case/andP=> _ Otp.

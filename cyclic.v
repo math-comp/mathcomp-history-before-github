@@ -156,36 +156,27 @@ Variable f: A -> A.
 
 (***********************************************************************)
 (*                                                                     *)
-(*  Definition of composition f o g                                    *)
-(*                                                                     *)
-(***********************************************************************)
-
-Definition comp (f g: A->A) := fun x => f (g x).
-
-(***********************************************************************)
-(*                                                                     *)
 (*  Definition of iterative composition f^n                            *)
 (*                                                                     *)
 (***********************************************************************)
 
 Fixpoint compn (n: nat) : A -> A :=
-  if n is S n1 then  comp f (compn n1) else (@id A).
+  if n is S n1 then  f \o (compn n1) else \id.
 
 Lemma compn_add: forall n m x,
-  compn (n+m) x = comp (compn n) (compn m) x.
+  compn (n + m) x = (compn n \o compn m) x.
 Proof.
-elim => [|n Rec] m x //=.
-by rewrite /comp Rec.
+by elim => [|n Rec] m x //=; rewrite /comp Rec.
 Qed.
 
 Lemma compn0: forall x, compn 0 x = x.
-Proof. by done. Qed.
+Proof. done. Qed.
 
 Lemma compn1: forall x, compn 1%N x = f x.
-Proof. by done. Qed.
+Proof. done. Qed.
 
 Lemma compnS: forall n x, compn (S n) x = f (compn n x).
-Proof. by done. Qed.
+Proof. done. Qed.
 
 End Comp.
 
@@ -196,7 +187,7 @@ Open Scope group_scope.
 Variable G : finGroupType.
 
 Lemma gexpn_compn: forall (a: G) n, a ** n = compn (fun x => a * x) n 1.
-Proof. by move=> a; elim=> /= [|n Rec]; [rewrite /id|rewrite /comp Rec]. Qed.
+Proof. by move=> a; elim=> /= [|n Rec]; [|rewrite /comp Rec]. Qed.
 
 (***********************************************************************)
 (*                                                                     *)
@@ -384,7 +375,7 @@ Lemma seq_f_loop: forall f a n, seq_f f a (compn f n a).
 Proof.
 move => f a n.
 elim: n {1 3}n (leqnn n) => [| n Rec] /=.
-  by case => //= _; rewrite /id seq_f_id.
+  by case => //= _; rewrite seq_f_id.
 move => n1 Hn1.
 case Lt1: (n1 < card (seq_f f a)).
   by apply seq_f_in; rewrite Lt1.

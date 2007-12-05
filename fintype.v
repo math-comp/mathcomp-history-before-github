@@ -148,7 +148,7 @@ move=> x y /=; apply: (etrans (cardU1 x (set1 y))).
 by rewrite card1 addn1 eq_sym.
 Qed.
 
-Lemma cardC1 : forall x, card (setC1 x) = pred (card (setA d)).
+Lemma cardC1 : forall x, card (setC1 x) = (card (setA d)).-1.
 Proof. by move=> x; rewrite -(cardC (set1 x)) card1. Qed.
 
 Lemma cardD1 : forall x a, card a = a x + card (setD1 a x).
@@ -566,16 +566,16 @@ Variable G : finType.
 
 Definition iset1 x : setType G := {y, x==y}.
 Definition iset2 x1 x2 : setType G := {y, (x1 == y) || (x2 == y)}.
-Definition iset3 x1 x2 x3 : setType G := {y, or3b (x1 == y) (x2 == y) (x3 == y)}.
+Definition iset3 x1 x2 x3 : setType G := {y, [|| x1 == y, x2 == y | x3 == y]}.
 Definition iset4 x1 x2 x3 x4 : setType G :=
-  {y, or4b (x1 == y) (x2 == y) (x3 == y) (x4 == y)}.
-Definition isetU (A B:setType G) : setType G := {x, A x || B x}.
+  {y, [|| x1 == y, x2 == y, x3 == y | x4 == y]}.
+Definition isetU (A B : setType G) : setType G := {x, A x || B x}.
 Definition isetU1 x A : setType G := {y, (x == y) || A y}.
 Definition isetI (A B : setType G): setType G := {x, A x && B x}.
 Definition isetC (A:setType G) : setType G := {x, ~~ A x}.
 Definition isetC1 x : setType G:= {y, x != y}.
-Definition isetD (A B:setType G) : setType G := {x, ~~ B x && A x}.
-Definition isetD1 (A:setType G) x : setType G := {y, (x != y) && A y}.
+Definition isetD (A B : setType G) : setType G := {x, ~~ B x && A x}.
+Definition isetD1 (A : setType G) x : setType G := {y, (x != y) && A y}.
 Definition iset0 := {x : G, false}.
 Definition isetA := {x : G, true}.
 
@@ -775,7 +775,7 @@ move=> x y /=; rewrite -(@eq_card _ (set2 x y)); last by move=>z;rewrite s2f.
 by apply: (etrans (cardU1 x (set1 y))); rewrite card1 addn1 eq_sym.
 Qed.
 
-Lemma icardC1 : forall x:G, card {~:x} = pred (card (setA G)).
+Lemma icardC1 : forall x:G, card {~:x} = (card (setA G)).-1.
 Proof. 
 move=> x; rewrite -(icardC (iset1 x)) icard1.
 by apply: eq_card; move => y; rewrite !s2f.
@@ -947,7 +947,7 @@ Qed.
 
 Fixpoint preimage_seq (f : d->d') (s : seq d') : seq d :=
   if s is Adds x s' then
-    (if pick (preimage f (set1 x)) is Some y then Adds y else id) (preimage_seq f s')
+    (if pick (preimage f (set1 x)) is Some y then Adds y else \id) (preimage_seq f s')
   else seq0.
 
 Lemma maps_preimage : forall (f : d -> d') (s : seq d'),
@@ -1097,7 +1097,7 @@ Definition lift n (h : I_(n)) (i : I_(n.-1)) :=
   Ordinal (lift_subproof h i).
 
 Lemma unlift_subproof : forall n (h : I_(n)) (u : eq_sig (setC1 h)),
-  unbump h (val u) < pred n.
+  unbump h (val u) < n.-1.
 Proof.
 move=> n h [i] /=; move/unbumpK => Di.
 have lti: (i < n) by case i.
@@ -1567,7 +1567,7 @@ move => d x a N.
 have F1: (setD1 a x) =1 (setD1 (filter a (enum d)) x).
   by move => x1; rewrite /setD1 filter_enum.
 rewrite /sum (eq_filter F1) -(filter_enum a x).
-elim: (enum d) (uniq_enum d) => [| x1 s1 Hrec] //=; rewrite /id.
+elim: (enum d) (uniq_enum d) => [| x1 s1 Hrec] //=.
 case/andP; move/negP => H1 H2.
 case E1: (a x1) => /=.
   case/orP => H3.
@@ -1631,7 +1631,7 @@ have F1: (forall x: d, (filter a (enum d) x) -> N x = l).
 rewrite -(eq_card (filter_enum a)).
 move: F1; rewrite /sum.
 elim: (enum d) (uniq_enum d) => 
-  [| x1 s1 Hrec] //=; rewrite /id /=; first by rewrite card0.
+  [| x1 s1 Hrec] //=; rewrite /=; first by rewrite card0.
 case/andP => Hu1 Hu2.
 case E1: (a x1) => //= H1; last exact: Hrec.
 have F1: forall x, filter a s1 x -> N x = l.
@@ -2175,7 +2175,7 @@ Variable d d': finType.
 Variable f: d -> d'.
 
 Definition injectiveb := 
- forallb x: d, forallb y: d, f x == f y ->b x == y.
+  forallb x: d, forallb y: d, f x == f y ==> x == y.
 
 Lemma injectiveP: (reflect (injective f) injectiveb).
 Proof.
@@ -2199,7 +2199,7 @@ Variable a: set d.
 
 Definition dinjectiveb := 
  forallb x: d, forallb y: d,
-   a x && a y && (f x == f y) ->b x == y.
+   a x && a y && (f x == f y) ==> x == y.
 
 Lemma dinjectiveP: (reflect (dinjective a f) dinjectiveb).
 Proof.
@@ -2225,7 +2225,7 @@ apply: (iffP idP).
 case => x; case => y; (do 3 case/andP) => E1 E2 E3 E4.
 apply/negP => H; move/forallP: H; move /(_ x).
 move/forallP; move /(_ y) => HH.
-by case/negP: E3; apply: (implP _ _ HH); rewrite E1 E2.
+by case/negP: E3; apply: (implyP HH); rewrite E1 E2.
 Qed.
 
 End Injectiveb.

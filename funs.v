@@ -11,6 +11,16 @@ Open Scope fun_scope.
 (* composition, override, update, inverse, and iteration, with some their    *)
 (* identities, and reflected equalities.                                     *)
 
+(* Miscellaneous notation bits *)
+
+Notation "f ^~ y" := (fun x => f x y)
+  (at level 10, y at level 8, no associativity, format "f ^~  y") : fun_scope.
+
+Notation "p .1" := (fst p) (at level 2, left associativity,
+  format "p .1") : fun_scope.
+Notation "p .2" := (snd p) (at level 2, left associativity,
+  format "p .2") : fun_scope.
+
 (* Shorthand for some basic equality lemmas lemmas. *)
 
 Definition erefl := refl_equal.
@@ -41,20 +51,18 @@ End ExtensionalEquality.
 
 Hint Resolve frefl rrefl.
 
-Notation "f1 '=1' f2" := (eqfun f1 f2)
+Notation "f1 =1 f2" := (eqfun f1 f2)
   (at level 70, no associativity) : fun_scope.
-Notation "f1 '=1' f2 ':>' A" := (f1 =1 (f2 : A))
+Notation "f1 =1 f2 :> A" := (f1 =1 (f2 : A))
   (at level 70, f2 at next level, A at level 90) : fun_scope.
-Notation "f1 '=2' f2" := (eqrel f1 f2)
+Notation "f1 =2 f2" := (eqrel f1 f2)
   (at level 70, no associativity) : fun_scope.
-Notation "f1 '=2' f2 ':>' A " := (f1 =2 (f2 : A))
+Notation "f1 =2 f2 :> A" := (f1 =2 (f2 : A))
   (at level 70, f2 at next level, A, B at level 90) : fun_scope.
 
 Section Composition.
 
 Variables A B C : Type.
-
-Definition id (x : A) := x.
 
 Definition comp (f : B -> A) (g : C -> B) x := f (g x).
 
@@ -63,7 +71,9 @@ Proof. by move=> f f' g g' Ef Eg x; rewrite /comp Eg Ef. Qed.
 
 End Composition.
 
-Prenex Implicits id.
+Notation "\id" := (fun x => x) (at level 0) : fun_scope.
+Notation "@ 'id' T " := (fun x : T => x)
+  (at level 10, T at level 8, only parsing) : fun_scope.
 
 Notation "f1 \o f2" := (comp f1 f2)  (at level 50) : fun_scope.
 
@@ -93,7 +103,7 @@ Proof. by move=> f f' Ef; elim=> [|n Hrec] x //=; rewrite Ef Hrec. Qed.
 
 End Iteration.
 
-(* In an intuitionistic setting, we have two degrees of injectivity. The     *)
+  (* In an intuitionistic setting, we have two degrees of injectivity. The     *)
 (* weaker one gives only simplification, and the strong one provides a left  *)
 (* inverse (we show in `fintype' that they coincide for finite types).        *)
 (* (The definition could be further weakened if equality on A is not         *)
@@ -107,11 +117,11 @@ Definition injective : Prop := forall x x' : B, f x = f x' -> x = x'.
 
 Definition cancel : Prop := forall x, g (f x) = x.
 
-Lemma canLR : forall x y, x = f y -> cancel -> g x = y.
-Proof. by move=> x y ->. Qed.
+Lemma canLR : forall x y, cancel -> x = f y -> g x = y.
+Proof. by move=> x y ? ->. Qed.
 
-Lemma canRL : forall x y, f x = y -> cancel -> x = g y.
-Proof. by move=> x y <-. Qed.
+Lemma canRL : forall x y, cancel -> f x = y -> x = g y.
+Proof. by move=> x y ? <-. Qed.
 
 Lemma can_inj : cancel -> injective.
 Proof. by move=> Hf x y Ef; rewrite -[x]Hf Ef. Qed.
@@ -197,8 +207,6 @@ Lemma inv_inj : injective f. Proof. exact: can_inj Hf. Qed.
 Lemma inv_bij : bijective f. Proof. by exists f. Qed.
 
 End Involutions.
-
-Unset Implicit Arguments.
 
 
 

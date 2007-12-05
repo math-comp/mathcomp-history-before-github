@@ -337,7 +337,7 @@ Definition orbit x := traject f x (order x).
 
 Definition findex x y := index y (orbit x).
 
-Definition finv x := iter (pred (order x)) f x.
+Definition finv x := iter (order x).-1 f x.
 
 Lemma fconnect_iter : forall n x, fconnect f x (iter n f x).
 Proof.
@@ -351,7 +351,7 @@ Proof. exact (fconnect_iter 1). Qed.
 Lemma fconnect_finv : forall x, fconnect f x (finv x).
 Proof. move=> x; apply: fconnect_iter. Qed.
 
-Lemma orderSpred : forall x, S (pred (order x)) = order x.
+Lemma orderSpred : forall x, (order x).-1.+1 = order x.
 Proof. by move=> x; rewrite /order (cardD1 x) connect0. Qed.
 
 Lemma size_orbit : forall x : d, size (orbit x) = order x.
@@ -377,7 +377,7 @@ Qed.
 Lemma uniq_orbit : forall x, uniq (orbit x).
 Proof.
 move=> x; rewrite /orbit -orderSpred looping_uniq.
-apply/trajectP => [[i Hi Ei]]; set (n := pred (order x)); case/idP: (ltnn n).
+apply/trajectP => [[i Hi Ei]]; set n := (order x).-1; case/idP: (ltnn n).
 rewrite {1}/n orderSpred /order -(size_traject f x n).
 apply: (leq_trans (subset_leq_card _) (card_size _)); apply/subsetP => [z].
 rewrite fconnect_orbit; move/trajectP=> [j Hj <-] {z}; apply/trajectP.
@@ -448,7 +448,7 @@ Lemma f_finv : cancel finv f.
 Proof.
 move=> x; move: (looping_order x) (uniq_orbit x).
 rewrite /looping /orbit -orderSpred looping_uniq /= /looping.
-set n := pred (order x); case/setU1P; first done.
+set n := (order x).-1; case/setU1P; first done.
 move/trajectP=> [i Hi Dnx]; rewrite iter_f -f_iter in Dnx.
 by case/trajectP; exists i; last by apply Hf.
 Qed.
@@ -569,10 +569,10 @@ Lemma canF_sym : cancel f' f.
 Proof. exact (eq_can (f_finv Hf) finv_eq_can (frefl f)). Qed.
 
 Lemma canF_LR : forall x y, x = f' y -> f x = y.
-Proof. move=> *; exact: canLR canF_sym. Qed.
+Proof. move=> *; exact: canLR canF_sym _. Qed.
 
 Lemma canF_RL : forall x y, f' x = y -> x = f y.
-Proof. move=> *; exact: canRL canF_sym. Qed.
+Proof. move=> *; exact: canRL canF_sym _. Qed.
 
 Lemma canF_eq : forall x y, (f x == y) = (x == f' y).
 Proof. exact (can2_eq Ef canF_sym). Qed.

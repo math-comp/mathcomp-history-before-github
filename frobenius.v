@@ -878,8 +878,7 @@ have F2: wpartition (fun z => G z && (orderg z == p ^ (S l))%N)
   exists (pconst p x); rewrite (pconst_group _ F3) F2 eq_refl /=.
   apply /spconstwP.
     by rewrite (pconst_group _ F3).
-  exists (1: elt); rewrite conjg1 /id. 
-  rewrite group1 /=.
+  exists (1: elt); rewrite conjg1 group1 /=.
   rewrite /spconst s2f F3 eq_refl /= F2.
   rewrite expnS -mulnA -Hsl mulnC.
   by case/andP: Hx; case/andP.

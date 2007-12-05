@@ -154,9 +154,9 @@ Definition sub_rel (e e' : rel) : Prop := forall x y : d, e x y -> e' x y.
 
 Definition set2 (x1 x2 : d) : set := fun y => (x1 == y) || (x2 == y).
 Definition set3 (x1 x2 x3 : d) : set :=
-  fun y => or3b (x1 == y) (x2 == y) (x3 == y).
+  fun y => [|| x1 == y, x2 == y | x3 == y].
 Definition set4 (x1 x2 x3 x4 : d) : set :=
-  fun y => or4b (x1 == y) (x2 == y) (x3 == y) (x4 == y).
+  fun y => [|| x1 == y, x2 == y, x3 == y | x4 == y].
 Definition setU (a b : set) : set := fun x => a x || b x.
 Definition setU1 (x : d) (a : set) : set := fun y => (x == y) || a y.
 Definition setI (a b : set) : set := fun x => a x && b x.

@@ -76,7 +76,7 @@ Definition head s := if s is Adds x _ then x else x0.
 
 Definition behead s := if s is Adds _ s' then s' else Seq0.
 
-Lemma size_behead : forall s, size (behead s) = pred (size s).
+Lemma size_behead : forall s, size (behead s) = (size s).-1.
 Proof. by case. Qed.
 
 (* Equality and eqType for seq.                                          *)
@@ -125,7 +125,7 @@ Fixpoint nseq_rec (f : seq -> seq) (n : nat) {struct n} : nseq_type n :=
   | S n' => fun x => nseq_rec (fun s => f (Adds x s)) n'
   end.
 
-Definition nseq : forall n : nat, nseq_type n := nseq_rec id.
+Definition nseq : forall n : nat, nseq_type n := nseq_rec \id.
 
 (* Sequence catenation "cat".                                                *)
 
@@ -318,7 +318,7 @@ Fixpoint find (s : seq) : nat :=
   if s is Adds x s' then if a x then 0 else S (find s') else 0.
 
 Fixpoint filter (s : seq) : seq :=
-  if s is Adds x s' then (if a x then Adds x else id) (filter s') else seq0.
+  if s is Adds x s' then (if a x then Adds x else \id) (filter s') else seq0.
 
 Fixpoint count (s : seq) : nat :=
   if s is Adds x s' then addn (a x) (count s') else 0.
@@ -437,7 +437,7 @@ Qed.
 Lemma mem_filter : forall s, filter s =1 setI a s.
 Proof.
 move=> s y; rewrite /setI andbC; elim: s => [|x s Hrec] //=.
-rewrite if_arg /id (fun_if (fun s' : seq => s' y)) /= /setU1 Hrec.
+rewrite if_arg (fun_if (fun s' : seq => s' y)) /= /setU1 Hrec.
 by case: (x =P y) => [<-|_]; case (a x); rewrite /= ?andbF.
 Qed.
 
@@ -569,7 +569,7 @@ Lemma uniq_adds : forall x s, uniq (Adds x s) = ~~ s x && uniq s.
 Proof. done. Qed.
 
 Lemma uniq_cat : forall s1 s2,
-   uniq (cat s1 s2) = (and3b (uniq s1) (~~ has s1 s2) (uniq s2)).
+   uniq (cat s1 s2) = [&& uniq s1, ~~ has s1 s2 & uniq s2].
 Proof.
 move=> s1 s2; elim: s1 => [|x s1 Hrec]; first by rewrite /= has_set0.
 by rewrite has_sym /= mem_cat /setU !negb_orb has_sym Hrec -!andbA; do !bool_congr.
@@ -1102,7 +1102,7 @@ Qed.
 
 Lemma rev_rotr : forall s : seq d, rev (rotr n0 s) = rot n0 (rev s).
 Proof.
-move=> s; apply: canRL rotrK.
+move=> s; apply: canRL rotrK _.
 rewrite {1}/rotr size_rev size_rotr /rotr {2}/rot rev_cat.
 set m := size s - n0; rewrite -{1}(@size_takel m _ _ (leq_subr _ _)).
 by rewrite -size_rev rot_size_cat -rev_cat cat_take_drop.
@@ -1183,7 +1183,7 @@ Lemma sieve_adds : forall b m x s,
   sieve (Adds b m) (Adds x s) = cat (seqn b x) (sieve m s).
 Proof. by case. Qed.
 
-Lemma size_sieve : forall m s, size m = size s -> size (sieve m s) = count id m.
+Lemma size_sieve : forall m s, size m = size s -> size (sieve m s) = count \id m.
 Proof. by elim=> [|b m Hrec] [|x s] //= [Hs]; case: b; rewrite /= Hrec. Qed.
 
 Lemma sieve_cat : forall m1 s1, size m1 = size s1 ->
@@ -1215,7 +1215,7 @@ apply/negP => [Hmx]; case/negP: Hx; exact (mem_sieve Hmx).
 Qed.
 
 Lemma sieve_rot : forall m s, size m = size s ->
- sieve (rot n0 m) (rot n0 s) = rot (count id (take n0 m)) (sieve m s).
+ sieve (rot n0 m) (rot n0 s) = rot (count \id (take n0 m)) (sieve m s).
 Proof.
 move=> m s Hs; have Hsn0: (size (take n0 m) = size (take n0 s)).
   by rewrite !size_take Hs.
@@ -1290,7 +1290,7 @@ Proof. by move=> *; rewrite /rot maps_cat maps_take maps_drop. Qed.
 
 Lemma maps_rotr : forall s, maps (rotr n0 s) = rotr n0 (maps s).
 Proof.
-by move=> *; apply: canRL (@rotK n0 d2); rewrite -maps_rot rotrK.
+by move=> *; apply: canRL (@rotK n0 d2) _; rewrite -maps_rot rotrK.
 Qed.
 
 Lemma maps_rev : forall s, maps (rev s) = rev (maps s).
@@ -1357,7 +1357,7 @@ Section MapComp.
 
 Variable d1 d2 d3 : eqType.
 
-Lemma maps_id : forall s : seq d1, maps (fun x => x) s = s.
+Lemma maps_id : forall s : seq d1, maps \id s = s.
 Proof. by elim=> [|x s Hrec] //=; rewrite Hrec. Qed.
 
 Lemma eq_maps : forall f1 f2 : d1 -> d2, f1 =1 f2 -> maps f1 =1 maps f2.

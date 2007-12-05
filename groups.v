@@ -44,7 +44,8 @@ Prenex Implicits mulg invg.
 
 Notation "x1 * x2" := (mulg x1 x2): group_scope.
 Notation "1" := (unitg _) : group_scope.
-Notation "x '^-1'" := (invg x) (at level 2, format "x '^-1'") : group_scope.
+Notation "x ^-1" := (invg x) (at level 2, left associativity,
+  format "x ^-1") : group_scope.
 
 Section GroupIdentities.
 
@@ -254,7 +255,7 @@ Open Scope group_scope.
 
 Variable elt : finGroupType.
 
-Notation "x \in A" := (@s2s elt A x) (at level 65, no associativity).
+Notation Local "x \in A" := (@s2s elt A x).
 
 (* Set-lifted group operations *)
 
@@ -290,22 +291,22 @@ Section SmulProp.
 Variable elt : finGroupType.
 
 Open Scope group_scope.
-Notation Local "x \in A" := (@s2s elt A x) (at level 65, no associativity).
+Notation Local "x \in A" := (@s2s elt A x) : group_scope.
 Notation Local "1" := (unitg elt).
 
-Lemma lcosetE : forall y A z, z \in y *: A = y^-1 * z \in A.
+Lemma lcosetE : forall y A z, (z \in y *: A) = (y^-1 * z \in A).
 Proof. by move=> *; rewrite s2f. Qed.
 
-Lemma rcosetE : forall A y z, z \in A :* y = z * y^-1 \in A.
+Lemma rcosetE : forall A y z, (z \in A :* y) = (z * y^-1 \in A).
 Proof. by move=> *; rewrite s2f. Qed.
 
-Lemma lcosetP : forall y A z, reflect (exists2 x, x \in A & z = y * x) (z \in y *: A).
+Lemma lcosetP : forall y A z, reflect (exists2 x, x \in A & z = y * x) (z \in y *: A)%G.
 Proof.
 move=> y A z; rewrite lcosetE.
 apply: (iffP idP) => [Ax | [x Ax ->]]; first exists (y^-1 * z); gsimpl.
 Qed.
 
-Lemma rcosetP : forall A y z, reflect (exists2 x, x \in A & z = x * y) (z \in A :* y).
+Lemma rcosetP : forall A y z, reflect (exists2 x, x \in A & z = x * y) (z \in A :* y)%G.
 Proof.
 move=> A y z; rewrite rcosetE.
 apply: (iffP idP) => [Ax | [x Ax ->]]; first exists (z * y^-1); gsimpl.
@@ -313,7 +314,7 @@ Qed.
 
 CoInductive mem_smulg A B z : Prop := MemProdg x y of x \in A & y \in B & z = x * y.
 
-Lemma smulgP : forall A B z, reflect (mem_smulg A B z) (z \in A :*: B).
+Lemma smulgP : forall A B z, reflect (mem_smulg A B z) (z \in A :*: B)%G.
 Proof.
 unlock smulg => A B z; rewrite s2f; apply: (iffP set0Pn) => [[y]|[x y Ax Ay ->]].
   by case/andP; rewrite s2f; case/rcosetP=> x; exists x y.
@@ -470,7 +471,7 @@ Proof. by case/groupP: (set_of_groupP H). Qed.
 Lemma groupVr : forall x, H x -> H x^-1.
 Proof.
 move=> x Hx; rewrite -(finv_f (mulg_injl x) x^-1) mulgV /finv.
-elim: pred => [|n IHn] /=; [exact: group1 | exact: groupM].
+elim: _.-1 => [|n IHn] /=; [exact: group1 | exact: groupM].
 Qed.
 
 Lemma groupV : forall x, H x^-1 = H x.
@@ -822,7 +823,7 @@ have injf: injective f.
   case/andP: dom1 (Ef) => /= Hx1; case/iimageP=> y1 Ky1 dA1.
   case/andP: dom2 => /= Hx2; case/iimageP=> y2 Ky2 dA2.
   suff ->: A1 = A2 by move/mulg_injr->.
-  rewrite {A1}dA1 {A2}dA2 in Ef *; have kEf := canRL _ (mulKg _).
+  rewrite {A1}dA1 {A2}dA2 in Ef *; have kEf := canRL (mulKg _).
   apply: rcoset_trans1; rewrite // !s2f andbC groupM ?groupV //=.
   case: repr_rcosetP Ef => z1; case/isetIP=> Hz1 _; rewrite mulgA; move/kEf->.
   by case: repr_rcosetP => z2; case/isetIP=> Hz2 _; gsimpl; rewrite !groupM ?groupV.
@@ -963,9 +964,9 @@ Variable elt: finGroupType.
 Variable H G: setType elt.
 Definition  maximal :=
   subset H G &&
-  forallb K: setType elt,
+  forallb K : setType elt,
  (group_set K && (subset H K) && (~~(H == K)) && (subset K G)) 
-  ->b K == G.
+  ==> K == G.
 
 Theorem maximalP:
  reflect
@@ -977,10 +978,10 @@ Proof.
 apply: (iffP idP).
   case/andP => Hhg; move/forallP => Hf; split; first done.
   move=> K Hs He Hs1 z; suff ->: (K: setType elt) = G by done.
-  apply/eqP; apply: (implP _ _ (Hf K)); rewrite Hs Hs1 set_of_groupP andbT.
+  apply/eqP; apply: (implyP (Hf K)); rewrite Hs Hs1 set_of_groupP andbT.
   by apply/negP => HH; case He; rewrite (eqP HH).
 move=> [Hs Hf]; rewrite /maximal Hs andTb.
-apply/forallP => K; apply/implP; (do 3 case/andP) => E0 E1 E2 E3.
+apply/forallP => K; apply/implyP; (do 3 case/andP) => E0 E1 E2 E3.
 apply/eqP; apply/isetP;  apply: (Hf (Group E0)) => //.
 by move/isetP => HH; case/negP: E2; apply/eqP.
 Qed.

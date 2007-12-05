@@ -96,7 +96,7 @@ Proof.
 elim => [|a s Rec h] //=.
 case Ha: (h a).
 rewrite mem_cat /setU maps_f //.
-by rewrite mem_cat /setU /id Rec orbT.
+by rewrite mem_cat /setU Rec orbT.
 Qed.
 
 End PowerSeq.

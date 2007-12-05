@@ -34,25 +34,16 @@ Reserved Notation "4".
 Reserved Notation "5".
 *)
 Reserved Notation "- 1" (at level 0).
-Reserved Notation "x ^-1" (at level 2,
+Reserved Notation "x ^-1" (at level 2, left associativity,
            format "x ^-1").
-Reserved Notation "x ^2" (at level 2,
+Reserved Notation "x ^2" (at level 2, left associativity,
            format "x ^2").
 Reserved Notation "x ^+ n" (at level 30, n at level 9, right associativity,
            format "x  ^+ n").
 Reserved Notation "x ^- n" (at level 30, n at level 9, right associativity,
            format "x  ^- n").
-Reserved Notation "f .[ x ]"
-  (at level 2, x at level 200, format "f .[ x ]").
-
-(* Notation complement for functions and pairs (should move to funs.v). *)
-
-Notation "f '^~' y" := (fun x => f x y)
-  (at level 10, y at level 9, only parsing) : fun_scope.
-Notation "p '.1'" := (fst p) (at level 2, format "p '.1'") : fun_scope.
-Notation "p '.2'" := (snd p) (at level 2, format "p '.2'") : fun_scope.
-
-(* End of complements. *)
+Reserved Notation "f .[ x ]" (at level 2, left associativity,
+  format "f .[ x ]").
 
 Section OperationProperties.
 

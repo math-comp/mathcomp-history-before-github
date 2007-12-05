@@ -1,10 +1,5 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect.
-Require Import ssrbool.
-Require Import funs.
-Require Import eqtype.
 Require Export Arith.
-
 Delimit Scope dnat_scope with N.
 Open Scope dnat_scope.
 Bind Scope dnat_scope with nat.
@@ -17,6 +12,15 @@ Arguments Scope le [dnat_scope dnat_scope].
 Arguments Scope lt [dnat_scope dnat_scope].
 Arguments Scope ge [dnat_scope dnat_scope].
 Arguments Scope gt [dnat_scope dnat_scope].
+Notation "n .+1" := (S n) (at level 2, left associativity,
+  format "n '.+1'") : dnat_scope.
+Notation "n .-1" := (pred n) (at level 2, left associativity,
+  format "n .-1") : dnat_scope.
+Require Import ssreflect.
+Require Import ssrbool.
+Require Import funs.
+Require Import eqtype.
+
 Arguments Scope iter [type_scope dnat_scope _ _].
 
 Notation plus := plus.
@@ -82,9 +86,6 @@ Notation "1" := 1 : dnat_scope.
 Notation "0" := 0 (at level 0) : dnat_scope.
 
 Notation "x + y" := (addn x y) : dnat_scope.
-
-Notation "n '.+1'" := (S n) (at level 9, format "n '.+1'") : dnat_scope.
-Notation "n '.-1'" := (pred n) (at level 9, format "n '.-1'") : dnat_scope.
 
 Lemma add0n : forall n, 0 + n = n. Proof. done. Qed.
 Lemma addSn : forall m n, m.+1 + n = (m + n).+1. Proof. done. Qed.
@@ -519,7 +520,7 @@ Qed.
 
 Lemma odd_subn : forall m n, n <= m -> odd (m - n) = odd m (+) odd n.
 Proof.
-move=> m n Hnm; apply: (@canRL bool) (addKb _).
+move=> m n Hnm; apply: (@canRL bool) (addKb _) _.
 rewrite -odd_addn addnC; exact (congr1 odd (leq_add_sub Hnm)).
 Qed.
 
@@ -534,7 +535,7 @@ Lemma doubleI : double_rec = double. Proof. done. Qed.
 
 Lemma double0 : double 0 = 0. Proof. done. Qed.
 
-Lemma doubleS : forall n, double n.+1 = ((double n).+1).+1.
+Lemma doubleS : forall n, double n.+1 = (double n).+1.+1.
 Proof. done. Qed.
 
 Lemma double_addnn : forall n, double n = addn n n.

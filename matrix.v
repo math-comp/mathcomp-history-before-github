@@ -16,15 +16,13 @@ Reserved Notation "\matrix_ ( i , j < n ) E"
   (at level 36, E at level 36, i, j, n at level 50,
    format "\matrix_ ( i ,  j  <  n )  E").
 
-Reserved Notation "'M_' ( m , n )"
-  (at level 9, m, n at level 50, format "'M_' ( m ,  n )").
-Reserved Notation "'M_' ( n )"
-  (at level 9, m, n at level 50, format "'M_' ( n )").
+Reserved Notation "'M_' ( m , n )" (at level 0, format "'M_' ( m ,  n )").
+Reserved Notation "'M_' ( n )"     (at level 0, format "'M_' ( n )").
 
-Reserved Notation "\0_ ( m , n )" (at level 2, format "\0_ ( m ,  n )").
-Reserved Notation "\0_ ( n )"     (at level 2, format "\0_ ( n )").
+Reserved Notation "\0_ ( m , n )" (at level 0, format "\0_ ( m ,  n )").
+Reserved Notation "\0_ ( n )"     (at level 0, format "\0_ ( n )").
 Reserved Notation "\0"            (at level 0, format "\0").
-Reserved Notation "\1_ ( n )"     (at level 2, format "\1_ ( n )").
+Reserved Notation "\1_ ( n )"     (at level 0, format "\1_ ( n )").
 Reserved Notation "\1"            (at level 0, format "\1").
 Reserved Notation "\Z_ ( n ) x"   (at level 10, x at level 8,
                                    format "\Z_ ( n )  x").
@@ -32,7 +30,7 @@ Reserved Notation "\Z x"          (at level 10, x at level 8, format "\Z  x").
 Reserved Notation "\P s"          (at level 10, s at level 8, format "\P  s").
 Reserved Notation "\1"            (at level 0, format "\1").
 Reserved Notation "A +m B"    (at level 50, format "A  +m  B").
-Reserved Notation "x *s A" (at level 40, format "x  *s  A").
+Reserved Notation "x *s A"    (at level 40, format "x  *s  A").
 Reserved Notation "A *m B"    (at level 40, format "A  *m  B").
 Reserved Notation "\^t A"     (at level 10, A at level 8, format "\^t  A").
 Reserved Notation "\tr A"     (at level 10, A at level 8, format "\tr  A").
@@ -60,10 +58,8 @@ Variables m n : nat.
 CoInductive matrix : Type :=
   Matrix of fgraphType {(I_(m) * I_(n) : Type)%type as finType} R.
 
-Notation "'M_' ( m , n )" := (matrix m n)
-  (at level 9, m, n at level 50, format "'M_' ( m ,  n )").
-Notation "'M_' ( n )" := (matrix n n)
-  (at level 9, m, n at level 50, format "'M_' ( n )").
+Notation "'M_' ( m , n )" := (matrix m n).
+Notation "'M_' ( n )" := (matrix n n).
 
 Definition matrix_val A := let: Matrix g := A in g.
 

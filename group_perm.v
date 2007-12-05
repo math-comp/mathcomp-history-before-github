@@ -71,7 +71,7 @@ Proof. by case=> H; apply/perm_uniqP; case: H => *. Qed.
 
 Definition perm_elem := perm_finType.
 
-Lemma inj_id : @injective d _ id.
+Lemma inj_id : @injective d _ \id.
 Proof. done. Qed. 
 Definition perm_unit := perm_of_inj inj_id.
 
@@ -102,7 +102,7 @@ Qed.
 Canonical Structure perm_finGroupType := 
   FinGroupType perm_unitP perm_invP perm_mulP.
 
-Lemma perm1 : forall x, perm_unit x = id x.
+Lemma perm1 : forall x, perm_unit x = x.
 Proof. by move=> x; rewrite p2f. Qed.
 
 Definition perm a (u : permType) := subset (fun x => u x != x) a.

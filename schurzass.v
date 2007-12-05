@@ -130,7 +130,7 @@ Hypothesis trHK : disjointg H K.
 
 Lemma pr_compl_id : forall x, K x -> pr_compl H K x = x.
 Proof.
-move=> x Kx; rewrite -[pr_compl H K x]mul1g; apply: canLR (mulgKv _); apply/iset1P.
+move=> x Kx; rewrite -[pr_compl H K x]mul1g; apply: canLR (mulgKv _) _; apply/iset1P.
 have HKx: (H :*: K) x by exact: (subsetP (smulg_subr _ _)).
 by move/disjointgP: trHK => <-; rewrite s2f ker_pr // groupMl // groupV compl_pr.
 Qed.

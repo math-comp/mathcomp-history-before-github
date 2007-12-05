@@ -474,7 +474,7 @@ apply/coef_eqP => [] [|i {root_p_c}]; rewrite coef_mul_poly_rev.
   rewrite big_ord_recl big_seq0 simp /=.
   move: root_p_c; rewrite  coef_factor coef_poly_of /eval_poly /coef drop1.
   case/seq_of_poly: p => [|a s]; rewrite /= ?simp // mulrN.
-  by move=> eq_a0; rewrite (canRL eq_a0 (addKr _)) simp.
+  by move=> eq_a0; rewrite (canRL (addKr _) eq_a0) simp.
 rewrite 2!big_ord_recl /= big1 => [|j _]; rewrite /= ?(coef_factor, simp) //.
 rewrite !coef_poly_of subn0 subn1 /= mulrN; case: leqP => [le_p_i|lt_i_p].
   by rewrite drop_oversize // if_same !simp oppr0 coef_default.

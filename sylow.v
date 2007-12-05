@@ -137,7 +137,7 @@ have injF : dinjective Y F.
 have prodF : forall t, prod_over_zp (F t) = (t 1)^-1 ^ (prod_over_zp t).
   move=> t; rewrite /conjg {-2}/prod_over_zp -(ltnSpred lt1p) /=; gsimpl.
   rewrite g2f /f set11; congr mulg. 
-  have: forall i, iota 1 (pred p) i -> (zp1 ** i == 1) = false.
+  have: forall i, iota 1 p.-1 i -> (zp1 ** i == 1) = false.
     move=> i; rewrite mem_iota add1n (ltnSpred lt1p).
     move/andP=> [ipos ltip]; apply: negbET.
     by rewrite (zp1_gen (Ordinal ltip)) -lt0n.

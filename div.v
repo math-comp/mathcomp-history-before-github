@@ -32,18 +32,18 @@ Import Prenex Implicits.
 Fixpoint edivn_rec (m d q r : nat) {struct m} : nat * nat :=
   match m, r with
   | 0, _ => (q, d - r)
-  | S m', 0 => edivn_rec m' d (S q) d
-  | S m', S r' => edivn_rec m' d q r'
+  | m'.+1, 0 => edivn_rec m' d q.+1 d
+  | m'.+1, r'.+1 => edivn_rec m' d q r'
   end.
 
 Definition edivn m d := edivn_rec m d 0 d.
 
 CoInductive edivn_spec (m d : nat) : nat * nat -> Set :=
-  EdivnSpec q r : m = q * S d + r -> r <= d -> edivn_spec m d (q, r).
+  EdivnSpec q r : m = q * d.+1 + r -> r <= d -> edivn_spec m d (q, r).
 
 Lemma edivnP : forall m d, edivn_spec m d (edivn m d).
 Proof.
-move=> m d //=; have Dm: m = m + (d - d) + 0 * (S d) by rewrite subnn addn0.
+move=> m d //=; have Dm: m = m + (d - d) + 0 * d.+1 by rewrite subnn addn0.
 rewrite {1}Dm {Dm} /edivn; elim: m 0 {1 4 8}d (leqnn d) => [|m IHm] q /=.
   by split; [rewrite addnC | rewrite leq_subr].
 (*
@@ -55,17 +55,17 @@ case=> [|r] /= Hr; last
 rewrite subn0 addSnnS -{1}(addn0 m) -{1}(subnn d) -addnA; exact: (IHm (S q)).
 Qed.
 
-Lemma edivn_eq : forall d q r, r <= d -> edivn (q * S d + r) d = (q, r).
+Lemma edivn_eq : forall d q r, r <= d -> edivn (q * d.+1 + r) d = (q, r).
 Proof.
 move=> d q r; case: edivnP => q' r'.
 wlog: q q' r r' / q <= q' by case (ltnP q q'); last symmetry; eauto.
 rewrite leq_eqVlt; case: eqP => [-> _|_] /=; first by move/addn_injl->.
-rewrite -(@leq_pmul2r (S d)) //=; move/leq_add2=> Hqr Eqr _; move/Hqr {Hqr}.
+rewrite -(@leq_pmul2r d.+1) //=; move/leq_add2=> Hqr Eqr _; move/Hqr {Hqr}.
 by rewrite -addnA Eqr addSn ltnNge addnC addnA leq_addr.
 Qed.
 
-Definition divn m d := nosimpl (if d is S d' then fst (edivn m d') else 0).
-Definition modn m d := nosimpl (if d is S d' then snd (edivn m d') else m).
+Definition divn m d := nosimpl (if d is d'.+1 then fst (edivn m d') else 0).
+Definition modn m d := nosimpl (if d is d'.+1 then snd (edivn m d') else m).
 
 Lemma divn_eq : forall m d, m = divn m d * d + modn m d.
 Proof. by move=> m [|d] //; rewrite /divn /modn /=; case edivnP. Qed.
@@ -74,7 +74,7 @@ Lemma div0n : forall d, divn 0 d = 0.
 Proof. by case. Qed.
 
 Lemma divn_small : forall m d, m < d -> divn m d = 0.
-Proof. by move=> m [|d] // Hm; rewrite /divn -[m]/(0 * S d + m) edivn_eq. Qed.
+Proof. by move=> m [|d] // Hm; rewrite /divn -[m]/(0 * d.+1 + m) edivn_eq. Qed.
 
 Lemma divn_addl_mul : forall p m d, 0 < d -> divn (p * d + m) d = p + divn m d.
 Proof.
@@ -92,7 +92,7 @@ Lemma divn1: forall m, divn m 1 = m.
 Proof. by move=> m; rewrite -{1}[m]muln1 divn_mull. Qed.
 
 Lemma divnn : forall d, divn d d = (0 < d).
-Proof. by case=> // d; rewrite -{1}[S d]muln1 divn_mulr. Qed.
+Proof. by case=> // d; rewrite -{1}[d.+1]muln1 divn_mulr. Qed.
 
 Lemma divn_pmul2l : forall p m d, p > 0 -> divn (p * m) (p * d) = divn m d.
 Proof.
@@ -108,7 +108,7 @@ Proof.  by move=> m [|d]; rewrite /modn //=; case: edivnP. Qed.
 Lemma leq_div : forall m d, (divn m d) * d <= m.
 Proof. by move=> m d; rewrite {2}(divn_eq m d) leq_addr. Qed.
 
-Lemma ltn_Sdiv : forall m d, 0 < d -> m < S (divn m d) * d.
+Lemma ltn_Sdiv : forall m d, 0 < d -> m < (divn m d).+1 * d.
 Proof.
 by move=> m d Hd /=; rewrite addnC {1}(divn_eq m d) -addnS leq_add2l ltn_mod.
 Qed.
@@ -116,7 +116,7 @@ Qed.
 Lemma divn_lt : forall m d, 1 < d -> 0 < m -> divn m d < m.
 Proof.
 case=> // m [|[|d]] // _ _; rewrite /divn; case: edivnP => [q r Dm Hr] /=.
-rewrite -(@ltn_pmul2r (S (S d))) // (mulnC (S m)) /= addSn ltnS addnCA Dm -!addnA.
+rewrite -(@ltn_pmul2r d.+1.+1) // (mulnC m.+1) /= addSn ltnS addnCA Dm -!addnA.
 exact: leq_addr.
 Qed.
 
@@ -133,7 +133,7 @@ Proof. by move=> m [|d] //; apply: modn_small; rewrite ltn_mod. Qed.
 Lemma modn_addl_mul : forall p m d, modn (p * d + m) d = modn m d.
 Proof.
 move=> p m d; case: d (divn_eq (p * d + m) d) => // d; first by rewrite muln0.
-by rewrite {1}(divn_eq m (S d)) addnA -muln_addl divn_addl_mul //; move/addn_injl.
+by rewrite {1}(divn_eq m d.+1) addnA -muln_addl divn_addl_mul //; move/addn_injl.
 Qed.
 
 Lemma modn_pmul2l : forall p m d, 0 < p -> modn (p * m) (p * d) = p * modn m d.
@@ -291,12 +291,12 @@ Proof. by move=> *; rewrite -dvdn_divisors. Qed.
 Lemma primeP : forall p,
   reflect (p > 1 /\ forall d, dvdn d p -> set2 1 p d) (prime p).
 Proof.
-rewrite /prime; case=> [|[|n]]; last 1 [set p := S (S n)] || by right; case.
+rewrite /prime; case=> [|[|n]]; last 1 [set p := n.+1.+1] || by right; case.
 apply: (iffP idP) => [Hn | [_ Hn]]; first split=> // d.
   by rewrite dvdn_divisors // (eqP Hn) mem_seq2.
 have:= uniq_divisors p; have{Hn}: all (set2 1 p) (divisors p).
   apply/allP=> d; rewrite -dvdn_divisors //; exact: Hn.
-rewrite /divisors -{3 5 7}[p](addn1 (S n)) iota_add -[1 + _]/p.
+rewrite /divisors -{3 5 7}[p](addn1 n.+1) iota_add -[1 + _]/p.
 rewrite -(uniq_rot 1) filter_cat /= dvd1n // dvdnn.
 case: filter => //= d s; rewrite -mem_seq2 -(mem_rot 1); case/andP=> Hd _.
 by rewrite -catA mem_cat; case/andP; case/norP=> _; case/negP.
@@ -319,7 +319,7 @@ Proof.
 case; first exact: dvdnn.
 case => [| p]; first exact: dvdnn.
 rewrite /pdiv /primes.
-move: (mem_filter prime (divisors (S (S p)))).
+move: (mem_filter prime (divisors p.+1.+1)).
 case: filter => [| u1 s]; try by rewrite dvdnn.
 move => H; move: (sym_equal (H u1)) => /=.
 rewrite /setU1 eq_refl orTb /setI dvdn_divisors //.
@@ -369,7 +369,7 @@ Qed.
 (***********************************************************************)
 
 Fixpoint gcdn_rec (m p n : nat) {struct n} : nat :=
-  if n is S n' then if p is 0 then m else gcdn_rec p (modn m p) n' else m.
+  if n is n'.+1 then if p is 0 then m else gcdn_rec p (modn m p) n' else m.
 
 Definition gcdn m p := nosimpl (gcdn_rec m p p).
 
@@ -378,7 +378,7 @@ Lemma gcdnE : forall m p,
 Proof.
 move=> m [|p] //; rewrite /gcdn /= /modn.
 case: edivnP => /= _ r _ {m}.
-elim: r {1 4 5}r p (S p) (leqnn r) => [|n1 IHn1] [|p] [|n2] m //=.
+elim: r {1 4 5}r p p.+1 (leqnn r) => [|n1 IHn1] [|p] [|n2] m //=.
 rewrite /modn; case: edivnP => /= _ r _ {m} Hr Hn1; 
   apply: IHn1; exact: leq_trans Hr Hn1.
 Qed.
@@ -399,9 +399,9 @@ Proof. done. Qed.
 
 Lemma dvdn_gcdl : forall m n, dvdn (gcdn m n) m.
 Proof.
-move=> m n; move/S: n {-2}n m (ltnSn n).
+move=> m n; move: {n}n.+1 {-2}n m (ltnSn n).
 elim=> // [i IHi] [|n] m; rewrite ltnS gcdnE [modn]lock //= -lock => Hn.
-rewrite {2}(divn_eq m (S n)); set r := modn _ _.
+rewrite {2}(divn_eq m n.+1); set r := modn _ _.
 have{Hn} Hr: r < i by apply: leq_trans Hn; rewrite /r ltn_mod.
 apply: dvdn_add; auto; case: r Hr => // r Hr; rewrite gcdnE; apply: IHi.
 by apply: ltn_trans Hr; rewrite ltn_mod.
@@ -412,19 +412,19 @@ Proof. by move=> m n; rewrite gcdnC dvdn_gcdl. Qed.
 
 Lemma ltn_0gcd : forall m n, (0 < gcdn m n) = (0 < m) || (0 < n).
 Proof.
-move=> m [|n]; rewrite orbC //; have:= dvdn_gcdr m (S n).
+move=> m [|n]; rewrite orbC //; have:= dvdn_gcdr m n.+1.
 by case/dvdnP=> q; rewrite mulnC; case gcdn.
 Qed.
 
 Lemma bezoutl : forall m n, m > 0 -> {a | a < m & dvdn m (gcdn m n + a * n)}.
 Proof.
-move=> m n; elim: {n}(S n) m {-2}n (ltnSn n) => // [i IHi] m n.
+move=> m n; elim: {n}n.+1 m {-2}n (ltnSn n) => // [i IHi] m n.
 case: n (dvdn_gcdl m n) => [|n]; first by exists 0; rewrite // gcdnE addn0.
 rewrite ltnS gcdnE /= /modn; case: edivnP => /= q r Dm Hr Hdm Hi.
 case: (IHi (S n) r) => // [|{i IHi Hi} a Ha]; first exact: leq_trans Hi.
 rewrite dvdn_eq; move: (divn _ _) => b; move/eqP=> Db Hm; exists (m - (q * a + b)).
   rewrite -(ltnSpred Hm) ltnS leq_sub_add -add1n leq_add2r.
-  by rewrite -(@ltn_pmul2r (S n)) // muln_addl Db !ltn_0add ltn_0gcd orbT.
+  by rewrite -(@ltn_pmul2r n.+1) // muln_addl Db !ltn_0add ltn_0gcd orbT.
 rewrite muln_subl muln_addl Db -mulnA mulnCA -(addnC (a * r)) addnA -muln_addr -Dm.
 rewrite -subn_sub mulnC -muln_subl -(mul1n (gcdn _ _)) leq_add_sub; auto.
 by apply: leq_mul; [rewrite ltn_0sub | exact: dvdn_leq].
@@ -446,13 +446,13 @@ Proof. by move=> m n; rewrite addnC gcdn_addl. Qed.
 
 Lemma dvdn_gcd : forall p m n, dvdn p m -> dvdn p n -> dvdn p (gcdn m n).
 Proof.
-move=> p m [|n] // Hpm Hpn; case: (@bezoutr m (S n)) => // a _.
+move=> p m [|n] // Hpm Hpn; case: (@bezoutr m n.+1) => // a _.
 by move/(dvdn_trans Hpn); rewrite dvdn_addl; auto.
 Qed.
 
 Lemma gcdn_mul2l : forall p m n, gcdn (p * m) (p * n) = p * gcdn m n.
 Proof.
-case=> // p m n; elim: {n}(S n) {-2}n m (ltnSn n) => // h IHh n m.
+case=> // p m n; elim: {n}n.+1 {-2}n m (ltnSn n) => // h IHh n m.
 rewrite gcdnE (gcdnE m) eqn_mul0 modn_pmul2l // [_ || _]/= ltnS => Hh.
 by case: posnP => // Hn; apply: IHh; apply: leq_trans Hh; rewrite ltn_mod.
 Qed.
@@ -574,7 +574,7 @@ Qed.
 (***********************************************************************)
 
 Fixpoint bezoutn_rec (m p n : nat) {struct n} : nat * nat :=
-  if n is S n' then 
+  if n is n'.+1 then 
     if p is 0 then (1%nat,0) 
     else let (u,v) := bezoutn_rec p (modn m p) n'  
          in (v, u+ v * (divn m p))
@@ -583,8 +583,8 @@ Fixpoint bezoutn_rec (m p n : nat) {struct n} : nat * nat :=
 Definition bezoutn m p := bezoutn_rec m p p.
 
 Lemma gcdn_bezoutn_if: forall m n,
- let (u,v) := bezoutn m n in
- if (u*m <= v*n) then
+ let: (u, v) := bezoutn m n in
+ if (u * m <= v * n) then
    (gcdn m n + u * m = v * n)%N
  else
    (gcdn m n + v * n = u * m)%N.
@@ -596,15 +596,15 @@ elim: n m {-2 4 7 10}n (leqnn n) => [| n Hrec] /=.
 move => m1 [|n1] //.
   by case: m1.
 move => HH.
-have F1: modn m1 (S n1) <= n.
+have F1: modn m1 n1.+1 <= n.
   rewrite -ltnS.
   apply: leq_trans HH.
   by rewrite ltn_mod.
 move: (Hrec (S n1) (modn m1 (S n1)) F1).
 case: bezoutn_rec => n2 n3.
 set k := gcdn_rec _ _ _ .
-replace (n3 * m1 <= (n2 + n3 * divn m1 (S n1)) * S n1) with
-     (n3 * modn m1 (S n1) <= n2 * S n1).
+replace (n3 * m1 <= (n2 + n3 * divn m1 n1.+1) * n1.+1) with
+     (n3 * modn m1 (S n1) <= n2 * n1.+1).
   rewrite leq_eqVlt orbC (leqNgt (n3 * _)).
   case: leq => /=.
     move => HH1.
@@ -619,7 +619,7 @@ replace (n3 * m1 <= (n2 + n3 * divn m1 (S n1)) * S n1) with
   move => HH1.
   rewrite muln_addl -HH1 -addnA -mulnA -muln_addr.
   by congr addn; rewrite addnC -divn_eq.
-by rewrite muln_addl {2}(divn_eq m1 (S n1)) muln_addr
+by rewrite muln_addl {2}(divn_eq m1 n1.+1) muln_addr
         addnC mulnA leq_add2r.
 Qed.  
   
@@ -667,11 +667,11 @@ Qed.
 (***********************************************************************)
 
 Definition chinese (n1 m1 n m: nat) :=
-  if n is S n2 then
-    if m is S m2 then
-      let (x,_,_) := bezoutl (S m2) (is_true_true: 0 < S n2) in
-      let (y,_,_) := bezoutr (S n2) (is_true_true: 0 < S m2) in
-      x * n1 * n2 * (S m2) + y * m1 * m2 * (S n2)
+  if n is n2.+1 then
+    if m is m2.+1 then
+      let (x,_,_) := bezoutl m2.+1 (is_true_true: 0 < S n2) in
+      let (y,_,_) := bezoutr n2.+1 (is_true_true: 0 < S m2) in
+      x * n1 * n2 * m2.+1 + y * m1 * m2 * n2.+1
     else 0
   else 0.
      
@@ -687,7 +687,7 @@ move => x2 Hx2; case/dvdnP => k2 Hk2.
 rewrite addnC modn_addl_mul.
 symmetry; rewrite -(modn_addl_mul (a * k2)) -mulnA -Hk2.
 rewrite muln_addr muln1 mulnA (mulnC a) -!mulnA -addnA.
-rewrite (mulnC m) -{1}(muln1 (S n))-!muln_addr add1n.
+rewrite (mulnC m) -{1}(muln1 n.+1)-!muln_addr add1n.
 by rewrite addnC !mulnA modn_addl_mul.
 Qed.
 
@@ -702,7 +702,7 @@ move => x2 Hx2; case/dvdnP => k2 Hk2.
 rewrite modn_addl_mul.
 symmetry; rewrite -(modn_addl_mul (b * k1)) -mulnA -Hk1.
 rewrite muln_addr muln1 mulnA (mulnC b) -!mulnA -addnA.
-rewrite (mulnC n) -{1}(muln1 (S m))-!muln_addr add1n.
+rewrite (mulnC n) -{1}(muln1 m.+1)-!muln_addr add1n.
 by rewrite addnC !mulnA modn_addl_mul.
 Qed.
 
@@ -736,7 +736,7 @@ Qed.
 (* power function *)
 
 Fixpoint expn (m n : nat) {struct n} : nat :=
-  if n is S n' then m * (expn m n') else 1.
+  if n is n'.+1 then m * (expn m n') else 1.
 
 Infix "^":= expn : dnat_scope.
 
@@ -746,7 +746,7 @@ Proof. done. Qed.
 Lemma exp0n : forall n, 0 < n -> 0 ^ n = 0.
 Proof. by elim. Qed.
 
-Lemma expnS : forall m n, m ^ (S n) = m * m ^ n.
+Lemma expnS : forall m n, m ^ n.+1 = m * m ^ n.
 Proof. done. Qed.
 
 Lemma expn1 : forall m, m ^ 1 = m.
@@ -773,7 +773,7 @@ Proof. by move=> [|m]; elim=> //= n IHn; rewrite ltn_0add IHn. Qed.
 Lemma ltn_expl : forall m n, 1 < m -> n < m ^ n.
 Proof.
 move=> m n Hm; elim: n => //= n; rewrite -(leq_pmul2l (ltnW Hm)).
-by apply: leq_trans; rewrite -{1}(mul1n (S n)) ltn_pmul2r.
+by apply: leq_trans; rewrite -{1}(mul1n n.+1) ltn_pmul2r.
 Qed.
 
 Lemma leq_exp2l : forall m n1 n2, 1 < m -> (m ^ n1 <= m ^ n2) = (n1 <= n2).
@@ -798,34 +798,35 @@ Proof. by move=> [|[|m]] // n1 n2; [rewrite !exp1n | rewrite ltn_exp2l]. Qed.
 
 Fixpoint logn_rec (d m r : nat) {struct r} : nat :=
   match r, edivn m d with
-  | S r', (S _ as m', 0) => S (logn_rec d m' r')
+  | r'.+1, (_.+1 as m', 0) => (logn_rec d m' r').+1
   | _, _ => 0
   end.
 
-Definition logn p m := if prime p then logn_rec (pred p) m m else 0.
+Definition logn p m := if prime p then logn_rec p.-1 m m else 0.
 
 Lemma lognE : forall p m,
-  logn p m = if and3b (prime p) (0 < m) (dvdn p m) then S (logn p (divn m p)) else 0.
+  logn p m = 
+     if [&& prime p, 0 < m & dvdn p m] then (logn p (divn m p)).+1 else 0.
 Proof.
 rewrite /logn /dvdn; move=> [|[|d]] [|m] //=; case: (prime _) => //.
 rewrite /divn /modn; case: edivnP => [[|q] [|r] Dm _] //; congr S; rewrite [fst _]/=.
 have{Dm}: q < m by rewrite -ltnS Dm addn0 mulnC /= !addSn addnS !ltnS leq_addr.
-elim: m {q}(S q) {-2 3 6}q (ltnSn q) => [|m1 IHm] [|m2] //= q Hm1 Hm2.
+elim: m {q}q.+1 {-2 3 6}q (ltnSn q) => [|m1 IHm] [|m2] //= q Hm1 Hm2.
 case: edivnP=> [[|q'] [|_] Dq _] //; rewrite (IHm m2) //; rewrite addn0 in Dq.
-rewrite -ltnS -(@ltn_pmul2r (S (S d))) // -Dq mulnC /=  addSn ltnS addnCA.
+rewrite -ltnS -(@ltn_pmul2r d.+1.+1) // -Dq mulnC /=  addSn ltnS addnCA.
 by rewrite (leq_trans Hm1) // leq_addr.
 Qed.
 
 Lemma dvdn_exp_max : forall p n m,
   prime p -> m > 0 -> dvdn (p ^ n) m = (n <= logn p m).
 Proof.
-move=> p n [|m] // Hp _; elim: {m}(S m) {-2}m (ltnSn m) n => // [h IHh] m //.
+move=> p n [|m] // Hp _; elim: {m}m.+1 {-2}m (ltnSn m) n => // [h IHh] m //.
 rewrite lognE ltnS Hp /= => Hh [|n]; first by rewrite dvd1n.
-case Hm: (dvdn p (S m));
+case Hm: (dvdn p m.+1);
   last by apply/dvdnP; case=> /= q Dm; case/idP: Hm; rewrite Dm; auto.
 move/prime_gt1: Hp Hm => Hp; rewrite //= dvdn_eq; move/eqP; case: divn => // q Dm.
 rewrite -Dm -(mulnC p) dvdn_pmul2l ?IHh; auto.
-by apply: leq_trans Hh; rewrite -ltnS -Dm -{1}(muln1 (S q)) ltn_pmul2l.
+by apply: leq_trans Hh; rewrite -ltnS -Dm -{1}(muln1 q.+1) ltn_pmul2l.
 Qed.
 
 Definition p_part p m := p ^ (logn p m).
@@ -855,9 +856,9 @@ Qed.
 
 Lemma logn_gauss : forall p m n, coprime p m -> logn p (m * n) = logn p n.
 Proof.
-move=> p m n Hm; elim: {n}(S n) {-2}n (ltnSn n) => // h IHh.
+move=> p m n Hm; elim: {n}n.+1 {-2}n (ltnSn n) => // h IHh.
 case=> [|n]; rewrite ?muln0 // ltnS => Hh.
-rewrite lognE (lognE p (S n)) gauss //= ltn_0mul andbT.
+rewrite lognE (lognE p n.+1) gauss //= ltn_0mul andbT.
 case Hp: (prime p) => //; case: posnP => [Dm | _].
   by rewrite prime_coprime // Dm dvdn0 in Hm.
 case Hpn: (dvdn p _); move: (Hpn); rewrite dvdn_eq //=; move/eqP=> Dn.
@@ -897,11 +898,11 @@ apply/eqP; rewrite eqn_dvd -(dvdn_pmul2l Hq) -Dq -Dn mulnC expn_add mulnC.
 rewrite dvdn_pmul2l ?ltn_0exp ?Hp0 //; apply/andP; split; auto; exact: dvdn_p_part.
 Qed.
 
-Lemma dvdn_expS : forall n a b, dvdn a b -> dvdn a (b ^ (S n)).
+Lemma dvdn_expS : forall n a b, dvdn a b -> dvdn a (b ^ n.+1).
 Proof. by simpl; auto. Qed.
 
 Lemma prime_coprime_expn: forall k p m, 
-  prime p -> coprime p m = coprime (p ^ (S k)) m.
+  prime p -> coprime p m = coprime (p ^ k.+1) m.
 Proof.
 move => k p m Hp; elim: k => [| k Hrec] //;
   first by rewrite expn1.

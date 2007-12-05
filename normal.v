@@ -85,7 +85,7 @@ Variables (elt: finGroupType) (H: setType elt).
 Definition  simple :=
   forallb K: setType elt,
  (group_set K && (subset K H) && (~~(K == H)) && (normal K H)) 
-  ->b K == {: 1}.
+  ==> K == {: 1}.
 
 Theorem simpleP:
  reflect
@@ -96,9 +96,9 @@ Proof.
 have F1: forall z, set1 1 z = iset1 (1: elt) z by move => z; rewrite s2f.
 apply: (iffP idP).
   move/forallP => Hf K Hk1 Hk3 Hk4 z; rewrite F1.
-  move: z; apply/isetP; apply: eqP; apply: (implP _ _ (Hf K)).
+  move: z; apply/isetP; apply: eqP; apply: (implyP (Hf K)).
   by rewrite set_of_groupP Hk1 Hk4 andbT; apply/eqP => HH; case: Hk3; rewrite HH.
-move=> Hf; apply/forallP => K; apply/implP; (do 3 case/andP) => E0 E1 E2 E3.
+move=> Hf; apply/forallP => K; apply/implyP; (do 3 case/andP) => E0 E1 E2 E3.
 apply/eqP; apply/isetP => z; rewrite -F1.
 move: z; apply: (Hf (Group E0)) => //; move/isetP => HH.
 by case/negP: E2; apply/eqP.
@@ -176,9 +176,12 @@ Definition isom (A : setType elt1)(B : setType elt2) :=
 Definition invm  A y :=
   if injm A then repr {x, A x && (f x == y)} else 1.
 
+Definition idm (x : elt1) := x.
+
 End MorphismDefs.
 
 Implicit Arguments mquo [elt1 elt2].
+Implicit Arguments idm [].
 
 Prenex Implicits dom ker preim trivm mquo injm isom invm.
 
@@ -501,14 +504,14 @@ Section IdMorphism.
 
 Variable elt : finGroupType.
 
-Notation Local elt_id := (@id elt).
+Notation Local elt_id := (idm elt).
 
 Lemma dom_id : dom elt_id = elt.
 Proof.
 apply/isetP; apply/subset_eqP; apply/andP; split; apply/subsetP=> x //.
 move=> _; case Ix : (x == 1); [rewrite dom_k // | rewrite dom_nu //].
   by  apply/kerP=> y; rewrite (eqP Ix) mul1g.
-by rewrite /id Ix.
+by rewrite Ix /idm.
 Qed.
 
 Lemma group_set_dom_id : group_set (dom elt_id).
@@ -519,7 +522,7 @@ Qed.
 Lemma idmorphM : forall x y, 
   dom elt_id x -> dom elt_id y -> 
   elt_id (x * y) = (elt_id x) * (elt_id y).
-Proof. by move=> x y _ _ ; rewrite /id. Qed.
+Proof. by rewrite /idm. Qed.
 
 Canonical Structure morph_id := Morphism group_set_dom_id idmorphM.
 
@@ -1202,10 +1205,10 @@ Variables (elt1 elt2 : finGroupType)(H : group elt1)(G : group elt2).
 
 Lemma isog_refl : isog H H.
 Proof.
-exists {(@id elt1) as morphism _ _}=> /=; rewrite /isom; apply/andP; split.
-  apply/eqP; apply/isetP=> x; apply/iimageP/idP; rewrite /id; first by case=> y Hy ->.
-by move=> Hx; exists x.
-by apply/injmP; move=> x y Hx Hy /=; rewrite /id.
+exists {idm elt1 as morphism _ _}=> /=; rewrite /isom; apply/andP; split.
+  apply/eqP; apply/isetP=> x; apply/iimageP/idP; rewrite /idm; first by case=> y Hy ->.
+  by move=> Hx; exists x.
+by apply/injmP; move=> x y Hx Hy /=; rewrite /idm.
 Qed.
 
 

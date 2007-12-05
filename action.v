@@ -383,14 +383,13 @@ Variable H : group G.
 Variable S1: set S.
 
 Definition primitive :=
-forallb P :  fgraphType S (fgraph_eqType S bool_finType),
-  (forallb x: S, S1 x ->b P x x) &&
+  forallb P :  fgraphType S (fgraph_eqType S bool_finType),
+  (forallb x: S, S1 x ==> P x x) &&
   (forallb x: S, forallb y: S, forallb g: G,
-    S1 x ->b S1 y ->b H g ->b
-    P x y ->b  (P (to x g)) == (P (to y g))) ->b
-  (forallb x: S, forallb y: S, S1 x ->b S1 y ->b P x y ->b x == y) 
-  ||  
-  (forallb x: S, forallb y: S, S1 x ->b S1 y ->b P x y).
+     [==> S1 x, S1 y, H g, P x y => P (to x g) == P (to y g)])
+   ==> (forallb x : S, forallb y : S, [==> S1 x, S1 y, P x y => x == y]) 
+     ||  
+       (forallb x : S, forallb y : S, [==> S1 x, S1 y => P x y]).
 
 Lemma primitiveP:
   reflect 
@@ -406,35 +405,35 @@ apply: (iffP idP).
   move => Hpr P Hr Ht. 
   move/forallP: Hpr.
   pose fP := fgraph_of_fun (fun x: S => (fgraph_of_fun (P  x))).
-  move /(_ fP); move/implP => Hf.
+  move /(_ fP); move/implyP => Hf.
   set F := _ || _ in Hf.
   have F1: F; rewrite /F.
     apply: Hf; apply/andP; split.
-      by apply/forallP => x; apply/implP; rewrite /fP !g2f; exact: Hr.
+      by apply/forallP => x; apply/implyP; rewrite /fP !g2f; exact: Hr.
     apply/forallP => x; apply/forallP => y; apply/forallP => g.
     rewrite /fP !g2f.
-    apply/implP => Hx; apply/implP => Hy; apply/implP => Hg; apply/implP => Hf. 
+    apply/implyP => Hx; apply/implyP => Hy; apply/implyP => Hg; apply/implyP => Hf. 
     by apply/eqP; apply/fgraphP => z; rewrite !g2f; apply: Ht.
   case/orP: F1; move/forallP => Hc; [left | right].
     move=> x y Hx1 Hx2 Hp.
-    move/forallP: (Hc x); move/(_ y); move/implP; move/(_ Hx1).
-    move/implP; move/(_ Hx2); rewrite /fP !g2f; move/implP; move/(_ Hp).
+    move/forallP: (Hc x); move/(_ y); move/implyP; move/(_ Hx1).
+    move/implyP; move/(_ Hx2); rewrite /fP !g2f; move/implyP; move/(_ Hp).
     by move => HH; apply/eqP.
   move=> x y Hx1 Hx2.
-  move/forallP: (Hc x); move/(_ y); move/implP; move/(_ Hx1).
-  by move/implP; move/(_ Hx2); rewrite /fP !g2f.
-move=> Hf; apply/forallP => P; apply/implP; case/andP => Hr Hf1.
+  move/forallP: (Hc x); move/(_ y); move/implyP; move/(_ Hx1).
+  by move/implyP; move/(_ Hx2); rewrite /fP !g2f.
+move=> Hf; apply/forallP => P; apply/implyP; case/andP => Hr Hf1.
 case (Hf (fun x => fun_of_fgraph (P x))).
-- by move=> x Hx; move/forallP: Hr; move/(_ x); move/implP => HH; exact: HH.
+- by move=> x Hx; move/forallP: Hr; move/(_ x); move/implyP => HH; exact: HH.
 - move=> x y g Hx Hy Hg Hp; move/forallP: Hf1; move/(_ x);
     move/forallP; move/(_ y); move/forallP; move/(_ g);
-    move/implP; move/(_ Hx); move/implP; move/(_ Hy); move/implP; move/(_ Hg).
-    by move/implP; move/(_ Hp); move/eqP; move/fgraphP.
+    move/implyP; move/(_ Hx); move/implyP; move/(_ Hy); move/implyP; move/(_ Hg).
+    by move/implyP; move/(_ Hp); move/eqP; move/fgraphP.
 - move=> Hi; apply/orP; left; apply/forallP => x; apply/forallP => y.
-  apply/implP => Hx; apply/implP => Hy; apply/implP => Hp.
+  apply/implyP => Hx; apply/implyP => Hy; apply/implyP => Hp.
   by apply/eqP; apply Hi.
 move=> Hi; apply/orP; right; apply/forallP => x; apply/forallP => y.
-by apply/implP => Hx; apply/implP => Hy; apply: Hi.
+by apply/implyP => Hx; apply/implyP => Hy; apply: Hi.
 Qed.
 
 Hypothesis Htrans: transitive to H S1.
@@ -945,9 +944,9 @@ move=> m Hm Ht.
 have Ht2: ntransitive to H S1 2 by apply: ntransitive_weak Ht.
 apply/primitiveP => f Hf1 Hf2.
 pose fP := fgraph_of_fun (fun x: S => (fgraph_of_fun (f  x))).
-case E1: (forallb x: S, S1 x ->b card (setI S1 (f x)) == 1%nat).
+case E1: (forallb x: S, S1 x ==> card (setI S1 (f x)) == 1%nat).
   left => x y S1x S1y Hf; apply/eqP.
-  move/forallP: E1; move /(_ x); move/implP; move/(_ S1x).
+  move/forallP: E1; move /(_ x); move/implyP; move/(_ S1x).
   rewrite (cardD1 x) /setI Hf1 S1x // (cardD1 y) /setI /setD1 S1y Hf.
   by case: (x == _).
 move/forallPn: E1; case => x.
