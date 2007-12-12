@@ -24,6 +24,8 @@
   '(("Unset Strict Implicit" "unsti" nil t "Strict\\s-+Implicit")
     ("Prenex Implicits" "pi" "Prenex Implicits #" t "Prenex\\s-+Implicits")
     ("Hint View for" "hv" "Hint View for #" t "Hint\\s-+View\\s-+for")
+    ("inside" "ins" nil f "inside")
+    ("outside" "outs" nil f "outside")
 )
    "Extended list of commands, includings ssr and user defined ones")
 
