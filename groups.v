@@ -960,13 +960,13 @@ Qed.
 
 Section Maximal.
 
-Variable elt: finGroupType.
-Variable H G: setType elt.
+Variable elt : finGroupType.
+Variable H G : setType elt.
 Definition  maximal :=
   subset H G &&
   forallb K : setType elt,
- (group_set K && (subset H K) && (~~(H == K)) && (subset K G)) 
-  ==> K == G.
+   (group_set K && (subset H K) && (H != K) && (subset K G)) 
+    ==> (K == G).
 
 Theorem maximalP:
  reflect

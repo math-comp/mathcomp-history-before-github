@@ -2175,7 +2175,7 @@ Variable d d': finType.
 Variable f: d -> d'.
 
 Definition injectiveb := 
-  forallb x: d, forallb y: d, f x == f y ==> x == y.
+  forallb x: d, forallb y: d, (f x == f y) ==> (x == y).
 
 Lemma injectiveP: (reflect (injective f) injectiveb).
 Proof.
@@ -2199,7 +2199,7 @@ Variable a: set d.
 
 Definition dinjectiveb := 
  forallb x: d, forallb y: d,
-   a x && a y && (f x == f y) ==> x == y.
+   a x && a y && (f x == f y) ==> (x == y).
 
 Lemma dinjectiveP: (reflect (dinjective a f) dinjectiveb).
 Proof.

@@ -11,7 +11,7 @@ Unset Strict Implicit.
 (* Parsing and format declarations. *)
 
 Reserved Notation "~~ b" (at level 35, right associativity).
-Reserved Notation "b ==> c" (at level 90, right associativity).
+Reserved Notation "b ==> c" (at level 60, right associativity).
 Reserved Notation "b1  (+)  b2" (at level 50, left associativity).
 Reserved Notation "x \in A" (at level 70, no associativity).
 Reserved Notation "x \notin A" (at level 70, no associativity).
@@ -415,6 +415,17 @@ Proof. by do 3!case. Qed.
 Lemma orb_andr : forall b1 b2 b3, b1 || b2 && b3 = (b1 || b2) && (b1 || b3).
 Proof. by do 3!case. Qed.
 
+Lemma negb_and : forall b1 b2, ~~ (b1 && b2) = ~~ b1 || ~~ b2.
+Proof. by do 2!case. Qed.
+
+Lemma negb_or : forall b1 b2, ~~ (b1 || b2) = ~~ b1 && ~~ b2.
+Proof. by do 2!case. Qed.
+
+Lemma negb_imply : forall b1 b2, ~~ (b1 ==> b2) = b1 && ~~ b2.
+Proof. by do 2!case. Qed.
+
+Lemma implybN : forall b1 b2, (~~ b1 ==> ~~ b2) = b2 ==> b1.
+Proof. by do 2!case. Qed.
 
 (* Finally, an alternative to xorb that behaves somewhat better wrt simpl. *)
 
@@ -475,128 +486,3 @@ Ltac bool_congr :=
   | |- (~~ ?X1 = ?X2) => congr 1 negb
   end.
 
-(* Predicates, i.e., packaged functions to bool.                *)
-(* We define three layers of packaging:                         *)
-(*  - pred_fun A, a simple type alias for A -> bool,            *)
-(*  - pred A, a concrete type encapsulating the actual lambda,  *)
-(*  - predType A, an abstract structure allowing for arbitrary  *)
-(*    representations, such as lists or bitvectors.             *)
-(* The latter is the most flexible, and should be the preferred *)
-(* way of declaring predicate parameters. The second should be  *)
-(* used for defining predicates, and we provide special syntax  *)
-(* for it, namely [Pred x => expression(x)]. The first should   *)
-(* really only be used for recasting fixpoint definitions as    *)
-(* (recursive) predicates, or to avoid the overhead of the      *)
-(* constructor in effective code.                               *)
-(*   We define Canonical Structures so that Coq can recast the  *)
-(* first two layers into the third; conversely the last two     *)
-(* layers can coerce to the first, so any predicate can be      *)
-(* applied directly (and applying an explicit Pred converts to  *)
-(* a beta redex). However, it is recommended to use membership  *)
-(* notation "x \in p" (or "x \notin p") for abstract predicates *)
-(* as this will allow Coq to infer the predType structure for   *)
-(* representation types that cannot coerce to pred_fun because  *)
-(* of the uniform inheritance condition.                        *)
-(*   The "\in" definition and the pred-to-pred_fun coercion     *)
-(* both have nosimpl tags to avoid spurrious expansions; these  *)
-(* can be lifted by manually expanding the constants (in_pred   *)
-(* fun_of_pred, respectively), or by rewriting with the inE or  *)
-(* predE lemmas.                                                *)
-
-Section Predicates.
-
-Variable A : Type.
-
-Definition pred_fun := A -> bool.
-
-Identity Coercion apply_pred_fun : pred_fun >-> Funclass.
-
-CoInductive pred : Type := Pred of pred_fun.
-
-Coercion fun_of_pred p := nosimpl (let: Pred f := p in f).
-
-Lemma predE : forall f, Pred f = f :> pred_fun. Proof. done. Qed.
-
-Structure predType : Type := PredType {
-  pred_repr :> Type;
-  pred_value : pred_repr -> pred_fun
-}.
-
-Coercion pred_value : pred_repr >-> pred_fun.
-
-Canonical Structure pred_fun_predType := PredType (fun p : pred_fun => p).
-
-Canonical Structure pred_predType := PredType fun_of_pred.
-
-Variable pT : predType.
-
-Notation Local "[ 'pred' x => E ]" := (Pred (fun x => E)).
-
-Definition pred0 := [pred x => false].
-Definition predA := [pred x => true].
-Definition predI (p1 p2 : pT) := [pred x => p1 x && p2 x].
-Definition predU (p1 p2 : pT) := [pred x => p1 x || p2 x].
-Definition predC (p : pT) := [pred x => ~~ p x].
-Definition predD (p1 p2 : pT) := [pred x => ~~ p2 x && p1 x].
-
-Definition in_pred x (p : pT) := nosimpl (p x).
-Lemma inE : forall x p, in_pred x p = p x. Proof. done. Qed.
-
-End Predicates.
-
-Implicit Arguments pred0 [A].
-Implicit Arguments predA [A].
-Prenex Implicits pred0 predA predI predU predC predD.
-
-Notation "x \in p" := (in_pred x p) : bool_scope.
-Notation "x \notin p" := (~~ (x \in p)) : bool_scope.
-Notation "[ 'pred' x => E ]" := (Pred (fun x => E)) : fun_scope.
-Notation "[ 'pred' x : T => E ]" := (Pred (fun x : T => E))
-  (only parsing) : fun_scope.
-
-(* This section will eventually belong here; it's in eqtype for now because
-   of the dependency on the old "set" type.
-
-Section Funs.
-
-(* More funs variants : local equality, cancellation, inj/bijection. *)
-
-Definition dfequal A B (pA : predType A) (a : pA) (f f' : A -> B) :=
-  forall x, x \in a -> f x = f' x.
-
-Definition dcancel A B (pA : predType A) (a : pA) (f : A -> B) f' :=
-  forall x, x \in a -> f' (f x) = x.
-
-Definition dinjective A B (pA : predType A) (a : pA) (f : A -> B) := 
-  forall x y, x \in a -> y \in a -> f x = f y -> x = y.
-
-Lemma inj_dinj: forall A B (pA : predType A) (a : pA) (f : A -> B),
-  injective f -> dinjective a f.
-Proof. by move=> * ? *; auto. Qed.
-
-Lemma dcan_inj : forall A B pA a f f',
-  @dcancel A B pA a f f' -> dinjective a f.
-Proof.
-by move=> A B pA a f f' fK x y; do 2![move/fK=> Dx; rewrite -{2}Dx {Dx}] => ->.
-Qed.
-
-Definition icancel A B (pB : predType B) (b : pB) (f : A -> B) f' :=
-  forall x, f x \in b -> f' (f x) = x.
-
-Definition dbijective A B (pA : predType A) (a : pA) (f : A -> B) :=
-  exists2 f', dcancel a f f' & icancel a f' f.
-
-Definition ibijective A B (pB : predType B) (b : pB) (f : A -> B) :=
-  exists2 f', icancel b f f' & dcancel b f' f.
-
-Lemma bij_dbij : forall A B pA a f,
-  bijective f -> @dbijective A B pA a f.
-Proof. by move=> A B pA a f [g fK gK]; exists g => * ? *; auto. Qed.
-
-Lemma bij_ibij : forall A B pB b f,
-  bijective f -> @ibijective A B pB b f.
-Proof. by move=> A B pB b f [g fK gK]; exists g => * ? *; auto. Qed.
-
-End Funs.
-
-*)

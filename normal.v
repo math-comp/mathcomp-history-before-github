@@ -80,12 +80,12 @@ End NormalProp.
 
 Section Simple.
 
-Variables (elt: finGroupType) (H: setType elt).
+Variables (elt : finGroupType) (H : setType elt).
 
 Definition  simple :=
-  forallb K: setType elt,
- (group_set K && (subset K H) && (~~(K == H)) && (normal K H)) 
-  ==> K == {: 1}.
+  forallb K : setType elt,
+ (group_set K && (subset K H) && (K != H) && (K <| H)) 
+  ==> (K == {: 1}).
 
 Theorem simpleP:
  reflect

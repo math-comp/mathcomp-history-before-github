@@ -944,7 +944,7 @@ move=> m Hm Ht.
 have Ht2: ntransitive to H S1 2 by apply: ntransitive_weak Ht.
 apply/primitiveP => f Hf1 Hf2.
 pose fP := fgraph_of_fun (fun x: S => (fgraph_of_fun (f  x))).
-case E1: (forallb x: S, S1 x ==> card (setI S1 (f x)) == 1%nat).
+case E1: (forallb x: S, S1 x ==> (card (setI S1 (f x)) == 1%nat)).
   left => x y S1x S1y Hf; apply/eqP.
   move/forallP: E1; move /(_ x); move/implyP; move/(_ S1x).
   rewrite (cardD1 x) /setI Hf1 S1x // (cardD1 y) /setI /setD1 S1y Hf.
