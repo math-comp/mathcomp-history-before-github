@@ -840,12 +840,20 @@ Variables (nil : R1) (op1 : R1 -> R1 -> R1).
 Hypothesis (p_nil : Pb nil)
            (p_op1 : forall x y, Pb x -> Pb y -> Pb (op1 x y)).
 
-Lemma big_prop : forall I (r : seq I) P F,
-  (forall i, Pb (F i)) -> Pb (\big[op1/nil]_(i <- r | P i) F i).
+Lemma big_prop : forall I (r : seq I) (P:I -> bool) F,
+  (forall i, (r i) && (P i) -> Pb (F i)) -> Pb (\big[op1/nil]_(i <- r | P i) F i).
 Proof.
-move=> I r P F H.
-unlock reducebig; elim: r => //= i r Hr.
-by case: (P i); [apply: p_op1; [apply: H|] |]; apply: Hr.
+move=> I r P F; unlock reducebig; elim: r => //= i r Hr.
+ case e: (P i)=> H;
+[apply p_op1; [by apply H; rewrite /setU1 // eq_refl orTb andTb e|] |];
+by apply Hr=> i0; move/andP=> [Hri Hp]; apply H; rewrite /setU1 Hri Hp andbT orbT.
+Qed.
+
+Lemma fin_big_prop : forall (I:finType) (P: I -> bool) (F: I -> R1),
+  (forall x, (P x) -> Pb (F x)) -> Pb (\big[op1/nil]_(i | P i) F i).
+Proof.
+move=> I P F H; rewrite -big_filter; apply big_prop.
+by move=> i H1; apply H; rewrite andbT in H1; rewrite -filter_enum.
 Qed.
 
 End BigProp.

@@ -917,6 +917,51 @@ Qed.
 
 End setTypeOps.
 
+Section setTypeOpsAlgebra.
+
+Require Import ssralg.
+
+Variable G:finType.
+
+Lemma isetUUl : left_distributive (@isetU G) (@isetU _).
+Proof.
+move=> x y z; apply/isetP=> x0; rewrite !s2f.
+case (x x0); case (y x0); case (z x0)=>//=.
+Qed.
+
+Lemma isetUUr : right_distributive (@isetU G) (@isetU _).
+Proof.
+move=> x y z; apply/isetP=> x0; rewrite !s2f.
+case (x x0); case (y x0); case (z x0)=>//=.
+Qed.
+
+Lemma isetIIl : left_distributive (@isetI G) (@isetI _).
+Proof.
+move=> x y z; apply/isetP=> x0; rewrite !s2f.
+case (x x0); case (y x0); case (z x0)=>//=.
+Qed.
+
+Lemma isetIIr : right_distributive (@isetI G) (@isetI _).
+Proof.
+move=> x y z; apply/isetP=> x0; rewrite !s2f.
+case (x x0); case (y x0); case (z x0)=>//=.
+Qed.
+
+Import Monoid.
+
+Canonical Structure isetI_monoid := Law (fun x y z : setType _ => sym_eq (isetIA x y z)) (@iset_1I G) (@iset_I1 G).
+Canonical Structure isetI_abeloid := AbelianLaw (@iset_IC G).
+Canonical Structure isetI_muloid := MulLaw (@iset_0I G) (@iset_I0 G).
+
+Canonical Structure isetU_monoid := Law (@isetUA G) (@iset_1U G) (@iset_U1 G).
+Canonical Structure isetU_abeloid := AbelianLaw (@iset_UC G).
+Canonical Structure isetU_muloid := MulLaw (@iset_0U G) (@iset_U0 G).
+
+Canonical Structure isetI_addoid := AddLaw (@isetUIl G) (@isetUIr G).
+Canonical Structure isetU_addoid := AddLaw (@isetIUl G) (@isetIUr G).
+
+End setTypeOpsAlgebra.
+
 Section FunImage.
 
 Variables (d : finType) (d' : eqType) .
