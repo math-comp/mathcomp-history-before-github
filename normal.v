@@ -1187,7 +1187,9 @@ apply/isetP; apply/subset_eqP; apply/andP; split; apply/subsetP=> y.
     by rewrite s2f Hx eq_refl.
   move: (@mem_repr _ x {y : elt1, H y && (f y == f x)} Tmpx).
     by rewrite s2f; move/andP; case=> _.
-Admitted.
+by rewrite s2f; move/eqP => <-; rewrite group1.
+Qed.
+
 
 
 End InverseMorphism.
