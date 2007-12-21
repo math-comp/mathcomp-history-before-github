@@ -30,6 +30,7 @@ ssrpoly.v
 matrix.v
 ssrbig.v
 schurzass.v
+alt.v
 
 COQC = $(COQBIN)ssrcoq
 COQFLAGS = "-q $(OPT) $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -compile"

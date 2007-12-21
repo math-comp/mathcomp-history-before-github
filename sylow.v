@@ -164,7 +164,7 @@ apply/tfunspaceP=> u; rewrite g2f /f; case: set1 => //.
 by rewrite groupV /prod_over_zp; elim: (iota _ _) => //= *; rewrite groupM.
 Qed.
 
-Theorem cauchy: exists a, H a && (card (cyclic a) == p).
+Theorem cauchy: exists a, H a && (orderg a == p).
 Proof.
 have card_zp: card zp_group = (p ^ 1)%N.
   by rewrite icard_card card_ordinal /= muln1.

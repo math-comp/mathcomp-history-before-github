@@ -84,24 +84,20 @@ Variables (elt : finGroupType) (H : setType elt).
 
 Definition  simple :=
   forallb K : setType elt,
- (group_set K && (subset K H) && (K != H) && (K <| H)) 
-  ==> (K == {: 1}).
+ [ ==> (group_set K) , (subset K H) , (K <| H) => (K == {: 1} ) || (K == H)].
 
 Theorem simpleP:
  reflect
- (forall K: group elt, 
-   subset K H  -> ~ K =1 H -> K <| H -> K =1 set1 1)
+ (forall K: group elt, subset K H -> K <| H -> K =1 set1 1 \/ K =1 H)
  simple.
 Proof.
-have F1: forall z, set1 1 z = iset1 (1: elt) z by move => z; rewrite s2f.
 apply: (iffP idP).
-  move/forallP => Hf K Hk1 Hk3 Hk4 z; rewrite F1.
-  move: z; apply/isetP; apply: eqP; apply: (implyP (Hf K)).
-  by rewrite set_of_groupP Hk1 Hk4 andbT; apply/eqP => HH; case: Hk3; rewrite HH.
-move=> Hf; apply/forallP => K; apply/implyP; (do 3 case/andP) => E0 E1 E2 E3.
-apply/eqP; apply/isetP => z; rewrite -F1.
-move: z; apply: (Hf (Group E0)) => //; move/isetP => HH.
-by case/negP: E2; apply/eqP.
+  move/forallP => Hf K Hk1 Hk2.
+  by move: (Hf K); rewrite set_of_groupP Hk1 Hk2; case/orP; move/eqP => ->;
+    [left|right] => // z; rewrite s2f.
+move=> Hf; apply/forallP => K; apply/implyP => E0; apply/implyP => E1; apply/implyP => E2.
+by apply/orP; case (Hf (Group E0)) => //= HH; [left | right];
+   apply/eqP; apply/isetP => // z; rewrite HH s2f.
 Qed.
 
 End Simple.
@@ -1211,7 +1207,41 @@ exists {idm elt1 as morphism _ _}=> /=; rewrite /isom; apply/andP; split.
 by apply/injmP; move=> x y Hx Hy /=; rewrite /idm.
 Qed.
 
+Lemma isog_sym : isog H G -> isog G H.
+Proof.
+Admitted.
 
+Lemma isog_simpl: isog H G -> simple H -> simple G.
+Proof.
+move=> HH; move: {HH}(isog_sym HH).
+case=> f; case/andP => Hf Hf1.
+move/simpleP => HH; apply/simpleP => K Hk Hk1.
+case (HH (group_im f K)).
+- rewrite /group_im /= -(eqP Hf).
+  apply/subsetP => x; case/iimageP => y Ky ->.
+  by apply/iimageP; exists y => //; apply: (subsetP Hk).
+- move/normalP: Hk1 => Hk2.
+  apply/normalP => x /=; rewrite -(eqP Hf).
+  case/iimageP => y Gy ->.
+  rewrite -!iimage_conj; first by rewrite (Hk2 _ Gy).
+  - by apply: (subset_trans Hk); apply: injm_dom Hf1.
+  by apply: (subsetP (injm_dom Hf1)).
+- move=> /= HH1; left.
+  apply/subset_eqP; apply/andP; split; apply/subsetP => z Hz; last first.
+    by rewrite -(eqP Hz) group1.
+  have Hf1z: f 1 = f z.
+    suff ->: f 1 = 1 by apply/eqP; rewrite -(HH1 (f z)); apply/iimageP; exists z.
+    by apply sym_equal; apply/eqP; rewrite -(HH1 (f 1)); apply/iimageP; exists (1: elt2); rewrite // group1.
+  apply/eqP; move/injmP: Hf1 => HH2.
+  by rewrite (HH2 _ _ _ _ Hf1z) // (subsetP Hk).
+move=> /= HH1; right.
+apply/subset_eqP; rewrite Hk; apply/subsetP=> g Hg.
+have: (f @: K) (f g) by rewrite HH1 -(eqP Hf); apply/iimageP; exists g.
+case/iimageP => g1 Hg1.
+move/injmP: Hf1 => HH2 Hi.
+by rewrite (HH2 _ _ Hg _ Hi) // (subsetP Hk).
+Qed.
+  
 End Isomorphisms.
 
 

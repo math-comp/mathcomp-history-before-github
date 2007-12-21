@@ -93,7 +93,7 @@ Variable H: group G.
 
 (*Fg : x of S, left fixed by g *)
 Definition F (g:G): set  S := fun (x:S) => H g && (to x g == x).
-(* pairs (g,x); g in stabilizer of x *)
+(* pairs (g,x); g in stabiliser of x *)
 Definition B:set (prod_finType G S):= fun z => let (g, s) := z in (H g) && (to s g == s).
 
 Lemma subsetBS: subset B  (prod_set (setA G)( setA S)).
@@ -106,9 +106,9 @@ Proof.
 by rewrite -(two_way_counting1 subsetBS).
 Qed.
 
-Lemma card2_B: card B = (sum (setA S) (fun x => card (stabilizer to H x))).
+Lemma card2_B: card B = (sum (setA S) (fun x => card (stabiliser to H x))).
 Proof.
-by rewrite - (two_way_counting2 subsetBS)  /B /proj2 /stabilizer;apply: eq_sumf  =>x _;apply: eq_card =>y;rewrite s2f.
+by rewrite - (two_way_counting2 subsetBS)  /B /proj2 /stabiliser;apply: eq_sumf  =>x _;apply: eq_card =>y;rewrite s2f.
 Qed.
 
 Definition indexs := (roots (orbit to H)).
@@ -169,7 +169,7 @@ rewrite -card1_B /t  card2_B.
 rewrite (eq_sum (b:= (setnU indexs (orbit to H)) ));
  last by apply/subset_eqP;case:indexs_partition => _;case/andP=> [H1 H2];apply/andP;split.
 rewrite sum_setnU; last by case:indexs_partition.
-  rewrite (eq_sumf (N2:= (fun z =>  (card (orbit to H z) * card (stabilizer to H z))%N))).
+  rewrite (eq_sumf (N2:= (fun z =>  (card (orbit to H z) * card (stabiliser to H z))%N))).
   rewrite (eq_sumf (N2:=(fun z => card H))); first by apply:sum_id.
   by move => x _;rewrite mulnC card_orbit (LaGrange (subset_stab to H x)).
 move => z _;apply: sum_id=> x Hx;apply: card_stab_eq;rewrite orbit_sym //.
