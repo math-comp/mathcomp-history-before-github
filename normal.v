@@ -1173,7 +1173,6 @@ by move: (H1 H2)=> {H1}; rewrite s2f Kx/=.
 Qed.
 
 
-
 Lemma ker_invm : ker_(f @: H) invfH = {:1}.
 Proof.
 apply/isetP; apply/subset_eqP; apply/andP; split; apply/subsetP=> y.
@@ -1190,7 +1189,83 @@ apply/isetP; apply/subset_eqP; apply/andP; split; apply/subsetP=> y.
 by rewrite s2f; move/eqP => <-; rewrite group1.
 Qed.
 
+Hypothesis Hntriv: ~trivg H.
 
+Lemma kert_invm: ker (invm f H) = {: 1}.
+Proof.
+case E1: (set0b (setD1 H 1)); apply sym_equal.
+  case: Hntriv; apply/trivgP.
+  apply/isetP=> z; rewrite s2f.
+  case Ez: (_ == _); first by rewrite -(eqP Ez) group1.
+  by apply/idP=> HH; move: E1; rewrite /set0b; rewrite (cardD1 z) /setD1 Ez HH.
+case/set0Pn: E1 => x; case/andP => Hdx Hx.
+apply/isetP; apply/subset_eqP; apply/andP; split; apply/subsetP => y.
+  by rewrite s2f; move/eqP => <-; apply/kerP => z; rewrite mul1g.
+move/kerP; move /(_ (f x)).
+rewrite {2}/invm injmf /repr; case pickP; last first.
+ by move /(_ x); rewrite s2f Hx eq_refl.
+move=> z; rewrite s2f; case/andP=> Hz; move/eqP=> HH.
+move/injmP: injmf; move/(_ _ _ Hz Hx HH) => ->.
+rewrite /invm injmf /repr; case pickP; last first.
+  by move=> *; case/negP: Hdx; apply/eqP.
+move=> t; rewrite s2f; case/andP=> Ht Ht1 He.
+have ->: y = (y * f x) * (f x)^-1 by gsimpl.
+by rewrite -(eqP Ht1) He mulgV s2f.
+Qed.
+
+Lemma invm_dom: dom (invm f H) = f @: H.
+Proof.
+rewrite /dom.
+apply/isetP; apply/subset_eqP; apply/andP; split; apply/subsetP => y; last first.
+  case/iimageP=> z Hz ->; case Ez: (1 == z); apply/isetUP.
+    by rewrite -(eqP Ez) morph1; left; apply/kerP=> t; rewrite mul1g.
+  right; rewrite s2f; rewrite /invm injmf /repr; case pickP; last first.
+    by move/(_ z); rewrite s2f Hz eq_refl.
+  move=> t; rewrite s2f; case/andP=> Ht; move/eqP=> Hf.
+  by move/injmP: injmf; move/(_ _ _ Ht Hz Hf)=> ->; rewrite eq_sym Ez.
+rewrite s2f; case/orP.
+  by rewrite kert_invm s2f; move/eqP=> <-; apply/iimageP; exists (1: elt1); rewrite ?group1 // morph1.
+rewrite s2f /invm injmf/repr; case pickP; last by move=> _; case/negP.
+by move=> z; rewrite s2f; case/andP=> Hz; move/eqP=> <- _; apply/iimageP; exists z.
+Qed.
+
+Lemma invm_group: group_set (dom (invm f H)).
+Proof.
+apply/groupP; split; first by rewrite s2f group1.
+move=> x y; rewrite !invm_dom.
+case/iimageP=> x1 Hx1 ->; case/iimageP=> y1 Hy1 ->.
+rewrite -morphM; first by apply/iimageP; exists (x1 * y1); rewrite // groupM.
+  by move: (injm_dom injmf); move/subsetP; move/(_ x1) => ->.
+by move: (injm_dom injmf); move/subsetP; move/(_ y1) => ->.
+Qed.
+
+Lemma invmI: forall x, dom (invm f H) x -> f (invm f H x) = x.
+Proof.
+move=> x; rewrite invm_dom; case/iimageP=> y Hy ->.
+rewrite /invm injmf /repr; case pickP; last first.
+  by move/(_ y); rewrite s2f Hy eq_refl.
+by move=> z; rewrite s2f; case/andP=> _; move/eqP.
+Qed.
+
+Lemma invIm: forall x, H x -> invm f H (f x) = x.
+Proof.
+move=> x Hx; rewrite /invm injmf /repr; case pickP.
+  move=> z; rewrite s2f; case/andP=> HH1; move/eqP => HH2.
+  by move/injmP: injmf=> HH3; apply: HH3.
+by move/(_ x); rewrite s2f Hx eq_refl.
+Qed.
+
+Lemma invmM: 
+forall x y : elt2,
+dom (invm f H) x ->
+dom (invm f H) y -> invm f H (x * y) = invm f H x * invm f H y.
+Proof.
+move=> x y; rewrite invm_dom.
+case/iimageP=> x1 Hx1 ->; case/iimageP=> x2 Hx2 ->.
+by rewrite -morphM ?invIm //; first (by rewrite groupM); apply (subsetP (injm_dom injmf)).
+Qed.
+
+Canonical Structure invm_morph := Morphism invm_group invmM.
 
 End InverseMorphism.
 
@@ -1209,9 +1284,42 @@ exists {idm elt1 as morphism _ _}=> /=; rewrite /isom; apply/andP; split.
 by apply/injmP; move=> x y Hx Hy /=; rewrite /idm.
 Qed.
 
+Lemma isog_card: isog H G -> card H = card G.
+Proof.
+case=> f; case/andP; move/eqP=> <- HH.
+apply sym_equal; apply card_diimage.
+by apply/injmP.
+Qed.
+
+Lemma isog_triv: isog H G -> trivg H = trivg G.
+Proof.
+move => Hi; case Gt: (trivg G).
+  apply/eqP; apply/eqP.
+  move: (isog_card Hi); move/trivgP: Gt=> ->; rewrite (cardD1 1) group1.
+  rewrite icard1; move/eqP.
+  suff F1: (setD1 H 1%G =1 setI H (setC {:1})) by rewrite (eq_card F1).
+  by move=> z; rewrite /setD1 /setI /setC /iset1 s2f andbC.
+apply/negP=> Gh; case/negP: Gt.
+apply/eqP; apply/eqP.
+move: (isog_card Hi); move/trivgP: Gh=> ->; rewrite (cardD1 1 G) group1.
+rewrite icard1; move/eqP; rewrite eq_sym.
+suff F1: (setD1 G 1%G =1 setI G (setC {:1})) by rewrite (eq_card F1).
+by move=> z; rewrite /setD1 /setI /setC /iset1 s2f andbC.
+Qed.
+
 Lemma isog_sym : isog H G -> isog G H.
 Proof.
-Admitted.
+move=> Hi; case: (Hi)=> f; case/andP=> Him Hf.
+case Th: (trivg H); move/idP: Th=> Th.
+  by apply: trivial_isog; rewrite // -(isog_triv Hi).
+exists (invm_morph Hf Th); apply/andP; split=> /=; rewrite -(eqP Him).
+  apply/eqP; apply/isetP; apply/subset_eqP; apply/andP; split; apply/subsetP=> y.
+    by case/iimageP=> t; case/iimageP=> u Hu ->; rewrite invIm // => ->.
+  move=> Hy; apply/iimageP; exists (f y); last by rewrite invIm.
+  by apply/iimageP; exists y.
+apply/(@injmP _ _ (invm_morph Hf Th))=> /= x1 y1.
+by case/iimageP=> x2 Hx2 ->; case/iimageP=> y2 Hy2 ->; rewrite !invIm=> // ->.
+Qed.
 
 Lemma isog_simpl: isog H G -> simple H -> simple G.
 Proof.
