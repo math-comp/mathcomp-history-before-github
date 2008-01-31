@@ -7,7 +7,6 @@
      ("bool_congr" "bcongr"  "bool_congr" t "bool_congr")
      ("prop_congr" "prcongr"  "prop_congr" t "prop_congr")
      ("move" "m"  "move" t "move")
-     ("pose" "po"  "pose # := #" t "pose")
      ("set" "set"  "set # := #" t "set")
      ("have" "hv" "have # : #" t "have") 
      ("congr" "con" "congr #" t "congr")
@@ -21,8 +20,7 @@
 
 
 (defcustom coq-user-commands-db
-  '(("Unset Strict Implicit" "unsti" nil t "Strict\\s-+Implicit")
-    ("Prenex Implicits" "pi" "Prenex Implicits #" t "Prenex\\s-+Implicits")
+  '(("Prenex Implicits" "pi" "Prenex Implicits #" t "Prenex\\s-+Implicits")
     ("Hint View for" "hv" "Hint View for #" t "Hint\\s-+View\\s-+for")
     ("inside" "ins" nil f "inside")
     ("outside" "outs" nil f "outside")
