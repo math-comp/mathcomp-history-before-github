@@ -39,3 +39,7 @@
   '(("done" nil "done" nil "done")
     )
    "Extended list of closing tactic(al)s, includings ssr and user defined ones")
+
+(defcustom coq-variable-highlight-enable nil
+  "Activates partial bound variable highlighting"
+)
