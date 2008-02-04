@@ -1011,12 +1011,12 @@ Lemma trans_prim_stab: forall x, S1 x ->
 Proof.
 move=> x Hx Ht; apply/(primitivePt Ht)/maximalP.
   move=> Hp; split; first by apply/subsetP => y; case/stabiliserP.
-  move=> K Hk1 Hk2 Hk3 g; apply/idP/idP => Hg; first by apply: (subsetP Hk3).
+  move=> K Hk1 Hk2.
   pose Y := image (to x) K.
   have Yx: Y x by apply/imageP; exists (1:G); [exact: group1 | rewrite act_1].
   case: (Hp Y).
   - apply/subsetP => z; case/imageP => g1 Kg1 ->.
-    have Hg1: H g1 by apply: (subsetP Hk3).
+    have Hg1: H g1 by apply: (subsetP Hk2).
     by rewrite -(Ht _ Hx); apply/iimageP; exists g1.
   - move=> g1 g2 x1 Hg1 Hg2.
     pose YY := fun z => image (fun t => to t z) Y.
@@ -1028,26 +1028,26 @@ move=> x Hx Ht; apply/(primitivePt Ht)/maximalP.
       set u := _ * _; apply/imageP; exists u => //.
       rewrite groupM // groupM // ?groupV // groupM // ?groupV //.
       apply: (subsetP Hk1); apply/stabiliserP; split.
-        by rewrite !groupM // ?groupV // (subsetP Hk3) //.
+        by rewrite !groupM // ?groupV // (subsetP Hk2) //.
       by rewrite 2!act_morph Heq -!act_morph; gsimpl; rewrite act_1.
     exists (to x (g5 * g2 * g1^-1)); last by rewrite -!act_morph; gsimpl.
     have ->: g5 * g2 * g1^-1 = g5 * (g4^-1 * (g4 * g2 * g1^-1 * g3^-1) * g3) by gsimpl.
     set u := _ * _; apply/imageP; exists u => //.
     rewrite groupM // groupM // ?groupV // groupM // ?groupV //.
     apply: (subsetP Hk1); apply/stabiliserP; split.
-      by rewrite !groupM // ?groupV // (subsetP Hk3) //.
+      by rewrite !groupM // ?groupV // (subsetP Hk2) //.
     by rewrite 2!act_morph -Heq -!act_morph; gsimpl; rewrite act_1.
-  - move=> HY; case: Hk2; apply/subset_eqP; rewrite Hk1; apply/subsetP => g1 Hg1.
+  - move=> HY; left; apply/isetP; apply/subset_eqP; rewrite Hk1; apply/subsetP => g1 Hg1.
     have F1: Y (to x g1) by apply/imageP; exists g1.
-    apply/stabiliserP; split; first by apply: (subsetP Hk3).
+    apply/stabiliserP; split; first by apply: (subsetP Hk2).
     apply: sym_equal; apply/eqP.
     by move: HY; rewrite (cardD1 x) Yx (cardD1 (to x g1)) /setD1 F1; case: (x == _).
-  move=> HH.
+  move=> HH; right; apply/isetP; apply/subset_eqP; rewrite Hk2; apply/subsetP => g Hg .
   have F1: S1 (to x g) by rewrite -(Ht _ Hx); apply/iimageP; exists g.
   rewrite -HH in F1; case/imageP: F1 => g1 Hg1 Hg2.
   have ->: g = (g * g1^-1) * g1 by gsimpl.
   apply: groupM => //; apply: (subsetP Hk1).
-  apply/stabiliserP; split; first by rewrite groupM // groupV (subsetP Hk3).
+  apply/stabiliserP; split; first by rewrite groupM // groupV (subsetP Hk2).
   by rewrite act_morph Hg2 -act_morph mulgV act_1.
 case => Hs Hst Y Hsub Hd.
 case E1: (card Y <= 1); first by left.
@@ -1089,10 +1089,10 @@ have F2: group_set (iset_of_fun K).
     rewrite /YY in F3; rewrite -F3.
     by apply/imageP; exists (to x g1); rewrite // act_morph.
   by rewrite -F2 -F4; apply/imageP; exists x.
-have F3: (Group F2) =1 H.
-  apply: Hst => //.
+case (Hst (Group F2)); auto.
   - apply/subsetP => g1; case/stabiliserP => Hg1 Heq.
     by rewrite s2f /K /preimage /setI Hg1 /= Heq.
+  - by apply/subsetP => g1 /=; rewrite s2f; case/andP.
   - move: (Hx); rewrite -(Ht _ S1y1); case/iimageP => g1 Hg1 He1.
     move=> HH; case/negP: Hy1; apply/eqP.
     have F3: (Group F2) (g1^-1 * g).
@@ -1102,8 +1102,8 @@ have F3: (Group F2) =1 H.
     rewrite -HH in F3; case/stabiliserP: F3 => _ HH1.
     apply: (@inj_act _ _ to g).
     by rewrite -He -HH1 act_morph {1}He1 -!act_morph !mulgA mulgV mul1g.
-  by apply/subsetP => g1 /=; rewrite s2f; case/andP.
- apply/subset_eqP; rewrite Hsub; apply/subsetP => x1 Hx1.
+move=> F3.
+apply/subset_eqP; rewrite Hsub; apply/subsetP => x1 Hx1.
 pose YY := fun z => image (fun t : S => to t z) Y1.
 have ->: Y =1 YY g^-1.
   move=> z; rewrite /YY Fi mulgV; apply/idP/imageP.
