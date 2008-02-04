@@ -965,25 +965,25 @@ Variable H G : setType elt.
 Definition  maximal :=
   subset H G &&
   forallb K : setType elt,
-   (group_set K && (subset H K) && (H != K) && (subset K G)) 
-    ==> (K == G).
+   [==> group_set K && subset H K && subset K G => 
+      (H == K) || (K == G)].
 
 Theorem maximalP:
  reflect
  (subset H G  /\ 
-   forall (K: group elt), subset H K -> ~ H =1 K -> subset K G ->
-                  K =1 G) 
+   forall (K: group elt), subset H K -> subset K G ->
+                  H = K \/ (K: setType _) = G) 
  maximal.
 Proof.
 apply: (iffP idP).
   case/andP => Hhg; move/forallP => Hf; split; first done.
-  move=> K Hs He Hs1 z; suff ->: (K: setType elt) = G by done.
-  apply/eqP; apply: (implyP (Hf K)); rewrite Hs Hs1 set_of_groupP andbT.
-  by apply/negP => HH; case He; rewrite (eqP HH).
+  move=> K Hs Hs1.
+  by move: (Hf K); rewrite Hs Hs1 set_of_groupP; case/orP; 
+    case/eqP => ->; [left | right].
 move=> [Hs Hf]; rewrite /maximal Hs andTb.
-apply/forallP => K; apply/implyP; (do 3 case/andP) => E0 E1 E2 E3.
-apply/eqP; apply/isetP;  apply: (Hf (Group E0)) => //.
-by move/isetP => HH; case/negP: E2; apply/eqP.
+apply/forallP => K.
+apply/implyP; (do 2 case/andP) => E0 E1 E2.
+by case (Hf (Group E0)) => //= => ->; rewrite eq_refl // orbT.
 Qed.
 
 End Maximal.
