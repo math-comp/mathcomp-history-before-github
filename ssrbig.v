@@ -896,9 +896,38 @@ Implicit Arguments eq_big_op_seq [R1 nil op1 I r P F].
 Implicit Arguments eq_big_op [R1 nil op1 I P F].
 
 Section BigRel.
-(* Next Step Add prop for big rel *)
+
+Variables (R1 : Type) (Prel : R1 ->R1-> Prop).
+Variables  (nil : R1) (op1  : R1 -> R1 -> R1). 
+Hypothesis (p_nil : Prel nil nil)
+  (p_rel : forall a x b y, Prel a x -> Prel b y -> Prel (op1  a b) (op1 x y)).
+
+Lemma big_rel_seq:
+forall I (r : seq I) (P:I -> bool) F G,
+  (forall i, (r i) && (P i) -> Prel (F i) (G i)) -> 
+Prel (\big[op1/nil]_(i <- r | P i) F i) (\big[op1/nil]_(i <- r | P i) G i).
+Proof.
+move=> I r P F G; unlock reducebig;  elim: r => //= i r Hr.
+case e : (P i) => H; [apply p_rel;
+[by apply H; rewrite /setU1 // eq_refl orTb andTb e|] |];
+by apply Hr=> i0; move/andP=> [Hri Hp]; 
+apply H; rewrite /setU1 Hri Hp andbT orbT.
+Qed.
+
+Lemma big_rel:
+forall (I: finType) (P: set I) F G,
+  (forall i, (P i) -> Prel (F i) (G i)) -> 
+Prel (\big[op1/nil]_(i | P i) F i) (\big[op1/nil]_(i  | P i) G i).
+Proof.
+move=> I P F G PbP; apply big_rel_seq => i;
+rewrite mem_enum; exact: PbP.
+Qed.
+
 
 End BigRel.
+
+Implicit Arguments big_rel_seq [R1 nil op1 I r P F G].
+Implicit Arguments big_rel [R1 nil op1 I P F G].
 
 
 Section Morphism.
