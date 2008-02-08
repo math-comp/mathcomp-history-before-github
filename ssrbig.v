@@ -578,6 +578,23 @@ Variable op : Monoid.law 1.
 Notation Local "'*%M'" := (operator op) (at level 0).
 Notation Local "x * y" := ( *%M x y).
 
+Lemma eq_big_nil_seq  : forall nil' I (r : seq I) P F,
+     right_unit nil' *%M -> has P r ->
+   \big[*%M/nil']_(i <- r | P i) F i =\big[*%M/1]_(i <- r | P i) F i.
+Proof.
+move=> nil' I r P F op_nil'; rewrite -!(big_filter _ _ r) has_count count_filter.
+case/lastP: (filter P r) => {r p}// r i _.
+by rewrite -cats1 !(big_cat_nested, big_adds, big_seq0) op_nil' mulm1.
+Qed.
+
+Lemma eq_big_nil  : forall nil' (I : finType) i0 (P : set I) F,
+     P i0 -> right_unit nil' *%M ->
+  \big[*%M/nil']_(i | P i) F i =\big[*%M/1]_(i | P i) F i.
+Proof.
+move=> nil' I i0 P F op_nil' Pi0; apply: eq_big_nil_seq => //.
+by apply/hasP; exists i0; first exact: mem_enum.
+Qed.
+
 Lemma big1_eq : forall I (r : seq I) P, \big[*%M/1]_(i <- r | P i) 1 = 1.
 Proof.
 move=> *; rewrite big_const_seq; elim: (count _ _) => //= n ->; exact: mul1m.
@@ -799,6 +816,7 @@ Implicit Arguments congr_big [R op nil I r1 P1 F1].
 Implicit Arguments eq_big [R op nil I r P1  F1].
 Implicit Arguments eq_bigl [R op nil  I r P1].
 Implicit Arguments eq_bigr [R op nil I r  P F1].
+Implicit Arguments eq_big_nil [R op nil nil' I P F].
 Implicit Arguments big_maps [R op nil I J r].
 Implicit Arguments big_sub [R op nil I r].
 Implicit Arguments big_catl [R op nil I r1 r2 P F].
@@ -835,44 +853,47 @@ Implicit Arguments big_ord_recl [R op nil].
 Implicit Arguments big_ord_recr [R op nil].
 
 Section BigProp.
+
 Variables (R1 : Type) (Pb : R1 -> Prop).
 Variables (nil : R1) (op1 op2 : R1 -> R1 -> R1).
 Hypothesis (p_nil : Pb nil)
            (p_op1 : forall x y, Pb x -> Pb y -> Pb (op1 x y))
            (p_eq_op : forall x y, Pb x -> Pb y -> op1 x y = op2 x y).
 
-Lemma big_prop : forall I (r : seq I) (P:I -> bool) F,
-  (forall i, (r i) && (P i) -> Pb (F i)) -> Pb (\big[op1/nil]_(i <- r | P i) F i).
+Lemma big_prop : forall I (r : seq I) P F,
+  (forall i, r i && P i -> Pb (F i)) -> Pb (\big[op1/nil]_(i <- r | P i) F i).
 Proof.
-move=> I r P F; unlock reducebig; elim: r => //= i r Hr.
- case e: (P i)=> H;
-[apply p_op1; [by apply H; rewrite /setU1 // eq_refl orTb andTb e|] |];
-by apply Hr=> i0; move/andP=> [Hri Hp]; apply H; rewrite /setU1 Hri Hp andbT orbT.
+move=> I r P F; elim: r => //= [|i r IHr] Pb_ir; rewrite !(big_seq0, big_adds) //.
+have{IHr} IHr: Pb (\big[op1/nil]_(i <- r | P i) F i).
+  by apply: IHr => j rPj; apply Pb_ir; rewrite andb_orl rPj orbT.
+by case Pi: (P i); first by apply: p_op1; first by apply: Pb_ir; rewrite setU11.
 Qed.
 
-Lemma fin_big_prop : forall (I:finType) (P: I -> bool) (F: I -> R1),
-  (forall x, (P x) -> Pb (F x)) -> Pb (\big[op1/nil]_(i | P i) F i).
-Proof.
-move=> I P F H; rewrite -big_filter; apply big_prop.
-by move=> i H1; apply H; rewrite andbT in H1; rewrite -filter_enum.
-Qed.
+Lemma fin_big_prop : forall (I : finType) (P : set I) F,
+  (forall x, P x -> Pb (F x)) -> Pb (\big[op1/nil]_(i | P i) F i).
+Proof. move=> I P F PbP; apply big_prop => i; rewrite mem_enum; exact: PbP. Qed.
 
 (* Change operation *)
-Lemma big_ch_op :  forall I (r : seq I) (P:I -> bool) F,
- (forall i, (r i) && (P i) -> Pb (F i)) ->
- (\big[op1/nil]_(i <- r | P i) F i) = (\big[op2/nil]_(i <- r | P i) F i).
+Lemma eq_big_op_seq :  forall I (r : seq I) P F,
+    (forall i, r i && P i -> Pb (F i)) ->
+  \big[op1/nil]_(i <- r | P i) F i = \big[op2/nil]_(i <- r | P i) F i.
 Proof.
-move=> I r P F; unlock reducebig; elim: r => //= i r Hr.
-by case e: (P i) => H; first (rewrite p_eq_op; [| apply: H; rewrite /setU1 e eq_refl//=| ]);
-[rewrite -Hr// => i0 Hi0 ; apply: H=>//|
- move: (@big_prop I r P F); unlock reducebig => H'; apply: H'; move=> i0 Hi0; apply: H| rewrite Hr// => i0 Hi0; apply: H];
- rewrite /setU1 Monoid.Equations.mulm_addl /= Hi0 orbT.
+move=> I r P F; elim: r => //= [|i r IHr] Pb_ir; rewrite !(big_seq0, big_adds) //.
+have Pb_r: forall j, r j && P j -> Pb (F j).
+  by move=> j rPj; apply Pb_ir; rewrite andb_orl rPj orbT.
+rewrite -{}IHr //; case Pi: (P i) => //; apply p_eq_op; last exact: big_prop.
+by apply Pb_ir; rewrite setU11.
 Qed.
 
-
-
+Lemma eq_big_op :  forall (I : finType) (P : set I) F,
+   (forall i, P i -> Pb (F i)) ->
+  \big[op1/nil]_(i | P i) F i = \big[op2/nil]_(i | P i) F i.
+Proof. move=> I P F PbP; apply eq_big_op_seq => i; rewrite mem_enum; exact: PbP. Qed.
 
 End BigProp.
+
+Implicit Arguments eq_big_op_seq [R1 nil op1 I r P F].
+Implicit Arguments eq_big_op [R1 nil op1 I P F].
 
 Section BigRel.
 (* Next Step Add prop for big rel *)
