@@ -836,9 +836,10 @@ Implicit Arguments big_ord_recr [R op nil].
 
 Section BigProp.
 Variables (R1 : Type) (Pb : R1 -> Prop).
-Variables (nil : R1) (op1 : R1 -> R1 -> R1).
+Variables (nil : R1) (op1 op2 : R1 -> R1 -> R1).
 Hypothesis (p_nil : Pb nil)
-           (p_op1 : forall x y, Pb x -> Pb y -> Pb (op1 x y)).
+           (p_op1 : forall x y, Pb x -> Pb y -> Pb (op1 x y))
+           (p_eq_op : forall x y, Pb x -> Pb y -> op1 x y = op2 x y).
 
 Lemma big_prop : forall I (r : seq I) (P:I -> bool) F,
   (forall i, (r i) && (P i) -> Pb (F i)) -> Pb (\big[op1/nil]_(i <- r | P i) F i).
@@ -856,7 +857,28 @@ move=> I P F H; rewrite -big_filter; apply big_prop.
 by move=> i H1; apply H; rewrite andbT in H1; rewrite -filter_enum.
 Qed.
 
+(* Change operation *)
+Lemma big_ch_op :  forall I (r : seq I) (P:I -> bool) F,
+ (forall i, (r i) && (P i) -> Pb (F i)) ->
+ (\big[op1/nil]_(i <- r | P i) F i) = (\big[op2/nil]_(i <- r | P i) F i).
+Proof.
+move=> I r P F; unlock reducebig; elim: r => //= i r Hr.
+by case e: (P i) => H; first (rewrite p_eq_op; [| apply: H; rewrite /setU1 e eq_refl//=| ]);
+[rewrite -Hr// => i0 Hi0 ; apply: H=>//|
+ move: (@big_prop I r P F); unlock reducebig => H'; apply: H'; move=> i0 Hi0; apply: H| rewrite Hr// => i0 Hi0; apply: H];
+ rewrite /setU1 Monoid.Equations.mulm_addl /= Hi0 orbT.
+Qed.
+
+
+
+
 End BigProp.
+
+Section BigRel.
+(* Next Step Add prop for big rel *)
+
+End BigRel.
+
 
 Section Morphism.
 
