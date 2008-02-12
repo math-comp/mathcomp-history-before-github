@@ -23,13 +23,16 @@
 \setcounter{page}{1}
 \maketitle
 
+{\abstract 
+The Cayley-Hamilton theorem is a major theorem of linear algebra. In this article, we present a first formalization of this theorem in a proof assistant. This formalization was developed in Coq using its extension \ssr{} developed by G. Gonthier. This work is based on developments on matrices, polynomials and indexed operations. It is a part of the work of formalization of the Feit-Thompson theorem on the groups of odd order. }
+
 
 \section{Introduction}
 Formal proofs Systems can be very useful in the verification and validation of mathematical proofs, especially when the proofs are complex and lengthy. Recent work, as formal proof of the theorem of 4 colors~\cite{4colproof} or the theorem of prime numbers~\cite{primeth}, show that these systems have reached a level of maturity to deal with non-trivial mathematical problems. The work of formalization of mathematical theories involving a wide variety of mathematical objects requires the adoption of a similar approach to software engineering. The formalization of such theories can be seen as a development involving different components: definitions and mathematical proofs.
 \paragraph*{}
-A list of the 100 greatest mathematical theorems~\cite{100ths} was formed by Paul and Jack Abad. This list takes into account the place of theorem in the mathematical literature, the quality of its proof and the importance of the result he introduced. F. Wiedijk maintains a list~\cite{100th} which identifies formalizations of those theorems in some formal proofs systems. The Cayley-Hamilton theorem is in this list. This paper presents a formalization of this theorem, which is to our knowledge the first. The fact that he had not been so far formalized can be explained by the fact that it involves a lot of objects and mathematical properties of a different kind (linear algebra, multi-linear, combinatorics, etc.). These objects are not used independently; But on the contrary they fit together with each other. This work of formalization of the theorem of Cayley-Hamilton is a part of the work of formalization of the theorem of Feit-Thompson on the groups of odd order. The objectives is not only to formalize Cayley-Hamilton; but to organize the proof in reusable libraries. 
+A list of the 100 greatest mathematical theorems~\cite{100ths} was formed by Paul and Jack Abad. This list takes into account the place of theorem in the mathematical literature, the quality of its proof and the importance of the result he introduced. F. Wiedijk maintains a list~\cite{100th} which enumerates formalizations of those theorems in some formal proofs systems. The Cayley-Hamilton theorem is in this list. This paper presents a formalization of this theorem, which is to our knowledge the first. The fact that he had never been formalized can be explained by the fact that it involves a lot of mathematical objects and properties of different kind (linear algebra, multi-linear, combinatorics, etc...). These objects are not used independently; but on the contrary they fit with each other. This work of formalization of the theorem of Cayley-Hamilton is a part of the work of formalization of the theorem of Feit-Thompson on the groups of odd order. The objectives is not only to formalize Cayley-Hamilton; but to organize the proof in reusable libraries. 
 \paragraph*{}
-The article is organized as follows. In section 2, we present the statement and the proof of the Cayley-Hamilton theorem. In section 3, we briefly present \ssr{}, the extension of \coq{} and platform of our development. Finally, in section 4, we present the development which was necessary to arrive at the formalization of the Cayley-Hamilton theorem.
+The article is organized as follows. In section 2, we present the statement and the proof of the Cayley-Hamilton theorem. In section 3, we briefly present \ssr{}, the extension of \coq{} and platform of our development. Finally, in section 4, we present the development which was necessary to arrive at this formalization of the Cayley-Hamilton theorem.
 
 \section{The  Cayley-Hamilton theorem}
 The Cayley-Hamilton theorem can be stated~\cite{algebra} in the following way:
@@ -38,22 +41,25 @@ The Cayley-Hamilton theorem can be stated~\cite{algebra} in the following way:
 \end{center}
 More formally, if $R$ is a commutative ring and $A$ a square matrix on $R$, then the characteristic polynomial of A, defined by: $p_{A}(x) = \det{(xI_{n} - A)}$, vanishes in A. \newline
 The theorem can be stated differently by considering the endomorphisms of vector space. In this case it is not any more question of commutative ring but of field.
+\paragraph*{}
+The Cayley-Hamilton theorem is used to make computations on square matrices or endomorphisms : computation of the inverse matrix and the eigenvalues. A corollary of this theorem is the result according to which, the minimal polynomial of a given matrix is a divisor of its characteristic polynomial.
+\paragraph*{}
 The proof of the Cayley-Hamilton theorem presented in~\cite{algebra} use the Cramer formula. By noting $Adj(B)$ the adjugate matrix of B (the transpose of the cofactor matrix of B), the Cramer rule states : 
 \begin{equation}
   \label{Cramer}
  B * Adj{(B)} = Adj{(B)} * B =\det{(B)} * I_{n}
 \end{equation}
-By applying the formula (\ref{Cramer}) to the matrix $(xi_{n} - A) \in M_{n}(R[x])$, we obtain:
+By applying the formula (\ref{Cramer}) to the matrix $(xI_{n} - A) \in M_{n}(R[x])$, we obtain:
 \begin{equation}
   \label{Cramer-mx_poly}
  Adj{(xI_{n} - A)} * (xI_{n} - A) =\det{(xI_{n} - A)} * I_{n} = p_{A}(x) * I_{n}
 \end{equation}
-The ring $ M_{n}(R[x])$ of the matrices of polynomials is also the ring of the polynomials with matrix coefficients $(M_{n}(R))[X]$. In $(M_{n}(R))[X] $, the equality (\ref{Cramer-mx_poly}) is written :
+The ring $ M_{n}(R[x])$ of the matrices of polynomials is also the ring of the polynomials with matrix coefficients $(M_{n}(R))[x]$. In $(M_{n}(R))[x] $, the equality (\ref{Cramer-mx_poly}) is written :
 \begin{equation}
   \label{proof_start}
-   Adj{(xI_{n} - A)} * (X - A) = p_{A}(X)
+   Adj{(xI_{n} - A)} * (x - A) = p_{A}(x)
 \end{equation}
-This shows that $(x - A)$ is factor of $p_{A}(X)$ in $(M_{n}(R))[X] $, so $ p_{A}(A) = O_{n} $.
+This shows that $(x - A)$ is factor of $p_{A}(x)$ in $(M_{n}(R))[x] $, so $ p_{A}(A) = O_{n} $.
 \paragraph*{}
 To formalize a mathematical proof in a proof assistant, we need to develop this proof to be comprehensible to a computer. To reach this objective, two difficulties are to overcome. In first place, it is necessary to make explicit the parts of the proof which are implicit or `` trivial' ' for a mathematician. Paradoxically, the implementation on computer of these parts, which do not appear in the proof, is the most complex work in the formalization. In the second place, it is necessary to have statements comprehensible for a mathematician and human reader. The interest is not simply to make proof on computers but it's necessary that the statements of this proofs are nearest possible to those used in the mathematics literature. This will facilitate the re-use of this proofs in other developments.
 \paragraph*{}
@@ -89,8 +95,8 @@ The properties of morphism of $\phi$ are used to obtain:
 The formula (\ref{proof_start}) corresponds explicitly to the equality above.
 
 \section{ \ssr }
-\ssr~\cite{ssrman, modgrp} (for \textit{Small Scale Reflection}) is an extension of \coq{}~\cite{coqart} which introduces new tactics and \coq{} libraries adapted to work on types with an equality decidable and equivalent to the structural equality of \coq{}, called the Leibniz equality. It was initially developed by G Gonthier within the framework of its proof of the 4 colors  theorem. A development~\cite{modgrp} on the theory of finished groups was made with \ssr. This development includes, amongst other things, a formalization of the Sylow theorem and the Cauchy-Frobenuis lemma.\newline
-We will present initially the method of \ssr{} to reflect between Boolean and Propositional predicates of \coq{} logic. We introduce thereafter the language of tactic of \ssr. Finally, we present some \ssr{} \coq{} libraries that we used in our development. More detailed information on \ssr{} and precisely its language of tactic can be obtained in~\cite{ssrman}.
+\ssr~\cite{ssrman, modgrp} (for \textit{Small Scale Reflection}) is an extension of \coq{}~\cite{coqart} which introduces new tactics and \coq{} libraries adapted to work on types with a decidable equality and equivalent to the structural equality of \coq{}, called the Leibniz equality. It was initially developed by G. Gonthier in his proof of the 4 colors  theorem. A development~\cite{modgrp} on the theory of finite groups was made with \ssr. This development includes, among others, a formalization of the Sylow theorem and the Cauchy-Frobenuis lemma.\newline
+We will present firstly the method of \ssr{} to reflect between Boolean and Propositional predicates of \coq{} logic. We introduce thereafter the language of tactic of \ssr. Finally, we present some \ssr{} \coq{} libraries that we used in our development. More detailed information on \ssr{} and precisely its language of tactic can be obtained in~\cite{ssrman}.
 
 \subsection*{Reflection}
 In the \coq{} proof system, the default logic is intuitionistic. In this logic, the logical proposition and the Boolean values are distinct. \ssr{} makes it possible to combine the best of the two visions and to pass from the propositional version of a decidable predicate towards there Boolean version. The propositional version makes it possible to have structured proof whereas the Boolean makes it possible to make computation. To do this, the Boolean type is injected into the proposition type by a coercion:
@@ -108,14 +114,15 @@ The proposition \texttt{(reflect P b)} indicates that \texttt{P} is equivalent t
 \begin{verbatim}
 Lemma andP: forall a b:bool, reflect (a /\ b) (a && b).
 \end{verbatim}
-The lemmas of the same nature as \ texttt (andP) are defined when we want to have the equivalence between computational representation of a function (which can be calculated) and its logical representation. More details on the use of \texttt{reflect} are available in the \ssr{} documentation ~\cite{ssrman}.
+Lemma of the same nature as \texttt{(andP)} are defined when we want to have the equivalence between computational representation of a function (which can be calculated) and its logical representation. More details on the use of \texttt{reflect} are available in the \ssr{} documentation ~\cite{ssrman}.
 \subsection*{Tactics language}
 The proof scripts written with \ssr{} differ from those written using standard \coq{} tactics. The tactic language of \ssr{} facilitates the operations of interpretation and development of proof scripts. In practice, the proof scripts written with \ssr{} are more concise than those written using standard \coq{} tactics. \newline
-All the frequent operations that consists in moving, splitting, generalizing formulas form (or to) the context are regrouped in the tactic \verb|move|. For example, the tactics ``\verb|move: (H1 a)|'' put, in the current goal, a instance of the hypothesis \verb|H1| for the variable \verb|a|. Another example is the tactics ``\verb|move=> x y H2|'' which corresponds to the introduction of the variables \verb|x| and \verb|y|, and a new hypothesis \verb|H2| in the current context. The tactic ``\verb|move: (H1 a) => H2 x y|'' corresponds to the combination of the above two examples in a single tactic.\newline
-The tactic \verb|rewrite| combines in single command all the operations of conditional rewriting, unfolding of definition, simplifying and rewriting selecting occurrences or patterns. Those operations can be used together or separately. For example, the tactic \verb|rewrite /def H1 ?H2 !H3| unfolds the definition \verb|def|, rewrites the hypothesis \verb|H1|, rewrites zero or several times with the hypothesis \verb|H2|, and rewrites at least once with the hypothesis \verb|H3|. Another example is the tactic \verb|rewrite {2}[_ * _]H4 //| who rewrites in the second occurrence of the pattern \verb|[_ * _]| with the hypothesis \verb|H4| and simplifies the current goal. \newline
+All the frequent operations that consists in moving, splitting, generalizing formulas form (or to) the context are regrouped in the tactic \verb|move|. For example, the tactics ``\verb|move: (H1 a)|'' put, in the current goal, a instance of the hypothesis \verb|H1| for the variable \verb|a|. Another example is the tactics ``\verb|move=> x y H2|'' which corresponds to the introduction of the variables \verb|x| and \verb|y|, and a new hypothesis \verb|H2| in the current context. The tactic ``\verb|move: (H1 a) => H2 x y|'' corresponds to the combination of the two examples above in a single tactic.\newline
+The tactic \verb|rewrite| combines in single command all the operations of conditional rewriting, unfolding of definition, simplifying and rewriting selecting occurrences or patterns. Those operations can be used together or separately. For example, the tactic \verb|rewrite /def H1 ?H2 !H3 {2}[_ * _]H4 //| unfolds the definition \verb|def|, rewrites the hypothesis \verb|H1|, rewrites zero or several times with the hypothesis \verb|H2|, rewrites at least once time with the hypothesis \verb|H3|, rewrites in the second occurrence of the pattern \verb|[_ * _]| with the hypothesis \verb|H4| and simplifies the current goal. \newline
+
 The mechanism of reflection between the decidable proposition and the boolean, described above, is integrated in the \ssr{} tactic language. For example, given a context with a hypothesis \verb|H| of type \verb|a && b|, the tactic \verb|move/andP : H => H| apply the lemma \verb|andP| to \verb|H| and introduces in the current context a new hypothesis \verb|H| of type \verb|a /\ b|. On the other hand, when the goal is like \verb|a && b|, the tactics \verb|apply/andP| replaces it by \verb|a /\ b|. Finally, when the goal is \verb|(a && b) -> G|, the tactics \verb|case/andP => H1 H2| changes it to \verb|G| and introduces two new hypothesis \verb|H1 : a| and \verb|H2 : b| in the context. 
 \subsection*{Libraries }
-Some Basics libraries are defined in \ssr. They consist in a hierarchy of structures to work with decidable theories and especially finished types. The structure \verb|eqType| defines the types equipped with equality decidable and equivalent to the Leibniz one. 
+Some Basics libraries are defined in \ssr. They consist in a hierarchy of structures to work with decidable theories and especially finite types. The structure \verb|eqType| defines the types equipped with a decidable equality and equivalent to the Leibniz one. 
 \begin{verbatim}
 Structure eqType : Type := EqType {
   sort :> Type; 
@@ -123,8 +130,8 @@ Structure eqType : Type := EqType {
   eqP :  forall x y, reflect (x = y) (x == y)
 }.
 \end{verbatim} 
-The \verb|: >| symbol declares \verb|sort| as a coercion from an \verb|eqType| to its carrier type. It the standard technique to get subtyping. The \verb|eqType| structure not only assume the existence of a decidable equality \verb|==| but also \verb|eqP| injects this equality into the Leibniz one. We can thus benefit from the power of rewriting of \coq.\newline
-A major property of \verb|eqType| structures is that they give the property of \textit{proof-irrelevance} for the equality proofs of their elements. Thus there is only one proof of the equality for each pair of equal objects.
+The \verb|:>| symbol declares \verb|sort| as a coercion from an \verb|eqType| to its carrier type. It is the standard technique to get subtyping. The \verb|eqType| structure not only assume the existence of a decidable equality \verb|==| but also \verb|eqP| injects this equality into the Leibniz one. Then, We can benefit from the power of rewriting of \coq.\newline
+A major property of \verb|eqType| structures is that they give the property of \textit{proof-irrelevance} for the equality proofs of their elements. Therefore we have a one proof of equality for each pair of equal objects.
 \begin{verbatim}
 Lemma eq_irrelevance: forall (d: eqType) (x y: d) (E: x = y) (E': x = y), E = E'.
 \end{verbatim} 
@@ -154,7 +161,7 @@ Structure finType : Type := FinType {
 \end{verbatim} 
 In this definition \verb|(set1 x)| is the set that contains only $x$ and \verb|(count f l)| computes the number of elements \verb|y| of the list \verb|l| for which \verb|(f y)| is true. The parameter \verb|enum| corresponds to the list of the elements of the finished type. In the case of a \verb|finType d|, (\verb|enum d|) return the list of elements of \verb|d|.
 \paragraph*{}
-To represent the finished types of the element of the interval \(0..n-1 \), the library \ssr{} provides a family of types named \verb|ordinal| whose elements are pairs of a natural number \(p \) and a proof that \(p \) is lower than \(n \). As this proof is based on a boolean test, the property of irrelevance applies and the elements of this type are only characterized by the component \(p \). The notation \verb|I_(n)| indicates the type \verb|ordinal n|.
+To represent the finished types of the element of the interval \(0..n-1 \), the library \ssr{} provides a family of types named \verb|ordinal| whose elements are pairs of a natural number \(p \) and a proof that \(p \) is lower than \(n \). As this proof is based on a boolean test, the property of irrelevance applies and the elements of this type are only characterized by the component \(p \). The notation \verb|I_(n)| represents the type \verb|ordinal n|.
 
 \section{Formalization}
 In this work of formalization of the Cayley-Hamilton theorem, we use libraries on indexed operations and determinants. Those libraries were developed by Y. Bertot and G. Gonthier in the project ``Mathematical Components''. The library on the polynomials provides formalization of the algebraic properties of the polynomials, the evaluation morphism and the factor theorem. The definition of isomorphism between the ring of the matrices of polynomials and that of the polynomials of matrices is the ultimate step in the formalization of Cayley-Hamilton theorem.
@@ -205,12 +212,12 @@ The following lemma shows a simple example of use of the \texttt{Canonical Struc
 \begin{verbatim}
 Lemma eqn_add0 : forall m n:nat, (m + n == 0) = (m == 0) && (n == 0).
 \end{verbatim} 
-We mention that \verb|==| represents the equality in a \verb|eqType|. In the statement above \coq{} expect that \texttt{m} and \texttt{n} are of type a \verb|eqType|. But they are of type \texttt{nat}. \coq{} try to find a definition of a \verb|eqType| whose parameter \texttt{sort} is \texttt{nat}. Thanks to the definition of \texttt{Canonical Structure nat\_eqType}, \coq{} can infer automatically the type \texttt{nat\_eqType} to the arguments \texttt{m} and \texttt{n}.
+We mention above that \verb|==| represents the equality in a \verb|eqType|. In the statement above \coq{} expect that \texttt{m} and \texttt{n} are of type a \verb|eqType|. But they are of type \texttt{nat}. \coq{} try to find a definition of a \verb|eqType| whose parameter \texttt{sort} is \texttt{nat}. Thanks to the definition of \texttt{Canonical Structure nat\_eqType}, \coq{} can infer automatically the type \texttt{nat\_eqType} to the arguments \texttt{m} and \texttt{n}.
 \paragraph*{}
 The mechanism of \texttt{Canonical Structure} is powerful and very useful in work with algebraic structure like groups or rings. \ssr{} contains a library \texttt{ssralg} which, by using this mechanism, provides a hierarchy of algebraic structures including monoid, group, ring and field. In the libraries on matrices and polynomials, we define the types of polynomials and matrices over a structures of rings. Rings structures are then defined on these types. Thereby, the same operations of rings (addition, multiplication and opposite) are used for the matrices and the polynomials. With the definition of the \texttt{Canonical Structure} on these structures, \coq{} will be able to infer automatically the structure of ring on polynomials and matrices. This enables us to have statements close to those used in standard mathematics and more readable from the point of view of the user. 
 \subsection{Matrices and determinant}
-A matrix on a ring $R$ is a double indexed list of coefficients. It can be seen as a function which associates a position \((i, j) \) to a value in the ring $R$. Being given $m$ and $n$ two naturals and $R$ a ring, a matrix on $R$ (an object of the type $M_{m,n}(R)$) can be represented by the following function: $ [0..n[ \rightarrow [0..m[ \rightarrow R$. To define a \texttt{eqType} on the matrices, which are functions, we need the extensionnality. The function \texttt{fgraphType} builds the graph of the functions whose domain is a \texttt{finType} and the Co-domain a \texttt{eqType}. With the definition of the graphs of functions, the functions are now equipped with a Leibniz equality. For two functions \texttt{f} and \texttt{g}, the notations \texttt{f =1 g} and \texttt{f =2 g} correspond respectively to $\mathtt{\forall x, f~x = g~x}$ and $\mathtt{\forall x~y, f~x~y = g~x~y}$. If the two functions have domain of type \texttt{finType} and co-domain \texttt{eqType}, the previous notations are equivalent to \texttt{f = g}.
-The type of the matrices of size \((m, n)\) is defined by :
+A matrix on a ring $R$ is a double indexed list of coefficients. It can be seen as a function which associates a position \((i, j) \) to a value in the ring $R$. Being given $m$ and $n$ two naturals and $R$ a ring, a matrix on $R$ (an object of the type $M_{m,n}(R)$) can be represented by the following function: $ [0..n[ \rightarrow [0..m[ \rightarrow R$. To define a \texttt{eqType} on the matrices, which are functions, we need the extensionnality. The function \texttt{fgraphType} builds the graph of a function whose domain is a \texttt{finType} and the Co-domain a \texttt{eqType}. With the definition of the graphs of functions, the functions are now equipped with a Leibniz equality. For two functions \texttt{f} and \texttt{g}, the notations \texttt{f =1 g} and \texttt{f =2 g} correspond respectively to $\mathtt{\forall x, f~x = g~x}$ and $\mathtt{\forall x~y, f~x~y = g~x~y}$. If the two functions have domain of type \texttt{finType} and co-domain \texttt{eqType}, the previous notations are equivalent to \texttt{f = g}.
+Using those definitions, the type of matrices of size \((m, n)\) is defined by :
 \begin{verbatim}
 Definition matrix (m n :nat) :=
   fgraphType (I_(m) * I_(n)) R.
@@ -233,14 +240,14 @@ In this formula, it is a question of indexed sums and products, but the mathemat
  \item the permutations on this finite set is described as a finite set which could be enumerated and then used as index.
 \end{itemize}
 \paragraph{}
-With these choices, thanks to the developments on the computation of the parity of permutations and with that on the groups of permutations, the Leibniz formula (\ref{leibniz}) is written:
+With these choices, thanks to the developments on the computation of the parity of permutations and with that on the groups of permutations, the Leibniz formula (\ref{leibniz}) is written in \coq{}:
 \begin{verbatim}
  Definition determinant n (A : M_(n)) :=
   \sum_(s : S_(n)) (-1) ^ s * \prod_(i) A i (s i).
 \end{verbatim} 
-The notations \verb|\sum| and \verb|\prod| respectively represent the indexed sum and the indexed product. They are instances of \verb|reducebig| for the internal operations (addition and multiplication) of the matrix coefficients ring. The notation \verb|S_(n)| represents the group of the permutations on a set with $n$ elements. In the following, the notation \verb|\det| will represent the function \verb|determinant|.
+The notations \verb|\sum| and \verb|\prod| respectively represent the indexed sum and the indexed product. They are instances of \verb|reducebig| for the internal operations (addition and multiplication) of the matrix coefficients ring. The notation \verb|S_(n)| represents the group of the permutations on a set with $n$ elements. In the following, the notation \verb|\det| represents the function \verb|determinant|.
 \paragraph{}
-To formalize the Cramer rule, the Co-matrix of a matrix is defined using the function {\tt row'}. The latter takes in entry a number \(i\) lower than \(m\) (an element of type {\tt I\_(m)}) and a matrix of size \((m,n)\); it return the matrix of size \((m-1,n)\) where the line \(i\) was removed. With the same arguments, the function {\tt row} return the matrix of size \((1,n)\) (a line matrix) which contains the line \(i\). The transpose of the Co-matrix is represented by the function {\tt adjugate}. The Cramer rule is formally represented by the lemma \verb|mulmx_adjr|. 
+To formalize the Cramer rule, the Co-matrix of a matrix is defined using the functions {\tt row'} and {\tt col'}. The first takes in entry a number \(i\) lower than \(m\) (an element of type {\tt I\_(m)}) and a matrix of size \((m,n)\); it return the matrix of size \((m-1,n)\) where the line \(i\) was removed. The function {\tt col'} makes the same work that {\tt row'} but for columns. With the same arguments, the function {\tt row} return the matrix of size \((1,n)\) (a line matrix) which contains the line \(i\). The transpose of the Co-matrix is represented by the function {\tt adjugate}. The Cramer rule is formally represented by the lemma \verb|mulmx_adjr|. 
 \begin{verbatim}
 Definition cofactor n (A : M_(n)) (i j : I_(n)) :=
    (-1) ^+(i + j) * \det (row' i (col' j A)).
@@ -261,9 +268,131 @@ Lemma alternate_determinant : forall n (A : M_(n)) i1 i2,
 Let's remind that the matrices are functions with two arguments. The term \verb|A i1| is a function with an argument and it corresponds to the line \verb|i1| of the matrix {\tt A}.
 
 \subsection{Polynomials}
+A polynomial is formally defined by the list of its coefficients $a_{i}$ which are elements of a ring $R$ :
+\[ a_{n} x^n + a_{n - 1} x^{n - 1} + \cdots + a_{1} x + a_{0}\]
+To represent a polynomial we need to know there coefficient. They can be represented by a list. But this representation is not unique. For example, the both polynomials $ a_{n} x^n + a_{n - 1} x^{n - 1} + \cdots + a_{1} x + a_{0} $ and $ 0 x^{n + 1} + a_{n} x^n + a_{n - 1} x^{n - 1} + \cdots + a_{1} x + a_{0} $ have different lists of coefficients but they are equal. To have a Leibniz equality on this representation, it is necessary to consider only the normalized polynomials, i.e. those whose coefficient of greater degree is not null, and to have a Leibniz equality on the coefficients. We represented the polynomial by the following structure :
+\begin{verbatim}
+Structure polynomial (R : ring) : Type := Poly {
+  p :>  seq R;
+  normal : last 1 p != 0
+}.
+\end{verbatim}
+The proposition \texttt{normal} says that the last element of the list of the coefficients is not null. With this definition, we can define a structure of \verb|eqType| on the polynomials. After that, we defined the function of coefficients of a polynomial by:
+\begin{verbatim}
+Definition coef (p : polynomial) i := sub 0 p i.
+\end{verbatim} 
+The function \verb|coef p| is of type \verb|nat -> R|. The following lemma gives the equivalence between the equality between the polynomials and those between the functions of coefficient:
+\begin{verbatim}
+Lemma coef_eqP : forall p1 p2, coef p1 =1 coef p2 <-> p1 = p2.
+\end{verbatim} 
+With this lemma, we can switch between the structural representation of the polynomials and that which considers only the function of coefficients. The advantage of the second representation is to make the proof of the algebraic properties of the polynomials more intuitive. For example, the multiplication of two polynomials is defined by :
+\begin{equation}
+\label{poly-mult}
+\left(\sum_{i=0}^n a_ix^i\right)\left(\sum_{j=0}^m  b_jx^j\right)=\sum_{k=0}^{m+n}\left(\sum_{i +j =k}a_{i} b_{j}\right)x^k.
+\end{equation} 
+The proof of the associativity of this multiplication can be obtained with reasoning on indexed sums, without needing to make recurrences on the polynomials. \newline
+In the following, the notations \verb|\X| and \verb|\C c| correspond respectively to the monomial $x$ and the constant polynomial $c$.\newline
+The operation of multiplication of a polynomial by \verb|x| (shift on the right) and addition of a constant is one of the basic operations on the polynomials. In the library it is given by the following function : 
+\begin{verbatim}
+Definition horner c p : polynomial :=
+  if p is Poly (Adds _ _ as s) ns then Poly (ns : normal (Adds c s)) else \C c.
+\end{verbatim}
+From this definition, the function of construction of a polynomial starting from a list of coefficients is simply defined by :
+\begin{verbatim}
+Definition mkPoly := foldr horner \C0.
+Notation "\poly_ ( i < n ) E" := (mkPoly (mkseq (fun i : nat => E) n)).
+\end{verbatim}
+The notation \verb|\poly| corresponds to the function \verb|mkPoly|. For example, the polynomial corresponding to \verb|\poly_ ( i < n ) i| is \( {n - 1} x^{n - 1} + \cdots + {1} x + {0}\).
+\paragraph{}
+The basic operations on the polynomials are defined by recurrence on the list of the coefficients. The list result is then normalized by the function \verb|mkPoly|. For example, the multiplication of two polynomials is defined as follows:
+\begin{verbatim}
+Fixpoint mult_poly_seq (s1 s2 : seq R) {struct s1} : seq R :=
+  if s1 is Adds c1 s1' then
+    add_poly_seq (maps (fun c2 => c1 * c2) s2)
+                 (Adds 0 (mult_poly_seq s1' s2))
+  else seq0.
 
+Definition mult_poly (p1 p2 : polynomial) := mkPoly (mult_poly_seq p1 p2).
+\end{verbatim} 
+In the second definition, with the coercion from \verb|polynomial| to \verb|seq| we can write \verb|mult_poly_seq p1 p2| although \verb|p1| and \verb|p2| are of type \verb|polynomial|. The lemma \verb|coef_mul_poly|
+\begin{verbatim}
+Lemma coef_mul_poly : forall p1 p2 i,
+  coef (mult_poly p1 p2) i = \sum_(j <= i) coef p1 j * coef p2 (i - j).
+\end{verbatim}
+give a relation between the coefficients of two polynomials and those of the result of their multiplication. It corresponds to the relation of the formula (\ref{poly-mult}).
+\paragraph{}
+Another important operation on the polynomials is the evaluation function. It consists in replacing the variable by a given value in an $R$-algebra. This function can be described with the diagram of Horner for a polynomial $p$ and a value $x$ by:
+\begin{equation}
+ \label{horner-sch}
+   p(x) = ((...((a_{n}x + a_{n-1})x + a_{n-2})x + ... ) + a_{1})x + a_{0}
+\end{equation}
+The diagram (\ref{horner-sch}) corresponds to a recurrence on the list of the coefficients. According to this diagram the evaluation depends only on the list of the coefficients and the value where we evaluate. The evaluation function can be defined by recurrence on an arbitrary list as follows :
+\begin{verbatim}
+Fixpoint eval_poly_seq (s : seq R) (x : R) {struct s} : R :=
+  if s is (Adds a s') then eval_poly_seq s' x * x + a else 0.
+\end{verbatim}
+Let us recall that in the definition of the structure \texttt{polynomial} we have a coercion between it and the type of the list of the coefficients. This enables us to define the evaluation of a polynomial in the following way:
+\begin{verbatim}
+Definition eval_poly (p : polynomial R) : R-> R := eval_poly_seq p.
+\end{verbatim}
+In our formalization of the function of evaluation, the value where the polynomial is evaluates must be of the same type as its coefficients. In our case this choice does not pose a problem considering which one can canonically inject a polynomial on a ring $R$ towards a polynomial on the ring of the matrices on this same ring $R$. The notation \verb|p.[c]| corresponds to the application of the function \verb|eval_poly| to a polynomial \verb|p| and a value \verb|c|.\newline
+The properties of morphism of the evaluation function are used implicitly in the proof of the theorem of Cayley-Hamilton. These properties are given by the following lemmas:
+\begin{verbatim}
+Lemma eval_polyC : forall c x, (\C c).[x] = c.
+Lemma eval_poly_plus : forall p q x, (p + q).[x] = p.[x] + q.[x].
+Lemma eval_poly_mult : forall p q x, x * q.[x] = q.[x] * x ->
+                                    (p * q).[x] = p.[x] * q.[x].
+\end{verbatim} 
+In the lemma \verb|eval_poly_mult| on the evaluation of a product of polynomials, it is necessary to have that the value \verb|x| where the polynomial \verb|p * q| is evaluates commutates with the evaluation of \verb|q| in this same value. This assumption is necessary because we evaluate polynomials on a no-commutative ring: the ring of the matrices. 
+\paragraph*{}
+After these developments, the factor theorem can be stated as follows:
+\begin{verbatim}
+Theorem factor_theorem : forall p c,
+  reflect (exists q, p = q * (\X - \C c)) (p.[c] == 0).
+\end{verbatim} 
+In the proof of this theorem, to be able to say that \verb|p.[c]| is equal to \verb|q.[c ] * (\X - \C c).[c]|, we should prove that the coefficients of the polynomial \verb|(\X - \C c)| commutate with \texttt{c}. What is proved easily because \texttt{1} and \texttt{c} commutate with \texttt{c}.
 
+\subsection{Proof of the Cayley-Hamilton theorem}
+The morphism between the ring of the matrix of polynomials and that of the polynomials of matrices is the central part of the proof of the Cayley-Hamilton theorem. The other components of the proof, the Cramer rule and the factor theorem, are properties which are attached respectively to the matrices and the polynomials. \newline
+This morphism that we will call \verb|phi| takes in argument a matrix of polynomials and return a polynomial of matrices. The length of the list of the coefficients of the result (a polynomial) is the maximum size of the polynomials of the input matrix. The size of a polynomial corresponds to the length of the list of these coefficients, in other term its degree plus one. For a matrix of polynomials \texttt{A}, \verb|phi A| is the polynomials of matrices whose coefficient of index \texttt{k} is the matrix whose coefficient in \texttt{i} and \texttt{j} is \texttt{coef (A i j) k}.\newline
+In the following, the notations \verb|R[X]|, \verb|M(R)|, \verb|M(R[X])| and \verb|M(R)[X]| respectively represent the ring of the polynomials, that of the matrices, that of the matrices of polynomials and that of the polynomials of matrices.
+\begin{verbatim}
+Definition phi (A : M(R[X])) : M(R)[X] :=
+  \poly_(k < \max_(i) \max_(j) size (A i j)) \matrix_(i, j) coef (A i j) k.
+\end{verbatim} 
+The lemma \verb|coef_phi| gives a relation between a matrix of polynomials and its image by \texttt{phi}.
+\begin{verbatim}
+Lemma coef_phi : forall A i j k, coef (phi A) k i j = coef (A i j) k.
+\end{verbatim} 
+To be able to define the evaluation of the characteristic polynomial of a matrix in it, we defined the canonical injection of the ring of the polynomials into that of the polynomials of matrices. This injection follows from that of the ring of the coefficients into that of the matrices on this same ring, in other words the multiplication by the identity matrix.
+\begin{verbatim}
+Definition Zpoly (p : R[X]) : M(R)[X] := \poly_(i < size p) \Z (coef p i).
+\end{verbatim} 
 
+The characteristic polynomial of a matrix is defined by applying the determinant function to the matrix $xI_{n} - A$ which is a matrix of polynomials.
+\begin{verbatim}
+Definition matrixC (A : M(R)) : M(R[X]) := \matrix_(i, j) \C (A i j).
+Definition char_poly (A : M(R)) : R[X] := \det (\Z \X - matrixC A).
+\end{verbatim}
+The function \verb|matrixC| is the canonical injection of the ring of matrices into that of matrices of polynomials. 
+\paragraph*{} 
+After these definitions, the Cayley-Hamilton theorem is proved formally in the following way:
+\begin{verbatim}
+Theorem Cayley_Hamilton : forall A, (Zpoly (char_poly A)).[A] = 0.
+Proof.
+move=> A; apply/eqP; apply/factor_theorem.
+rewrite -phi_Zpoly -mulmx_adjl phi_mul; move: (phi _) => q; exists q.
+by rewrite phi_add phi_opp phi_Zpoly phi_polyC ZpolyX.
+Qed.
+\end{verbatim} 
+
+The proof proceeds exactly as described in the second section. After applying the factor theorem, the factor polynomial is given while rewriting with the Cramer rule (\verb|mulmx_adjl|). The result of the Cayley-Hamilton theorem is then proved by rewritings and simplifications in the term obtained. The use of \ssr{}, of the mechanisms of \verb|Canonical Structure| and notations of \coq{}, as well as the definition of a hierarchical algebraic structures allowed us to have a such concise proof: 3 lines of codes.
+
+\section{Conclusion}
+In this paper,we presented a formalization of the Cayley-Hamilton theorem which adopts a modular approach. The proof that we presented in section 4.4 can appear very simple; but the design was being rather long specially in the choose of the architecture of the proof and the types for representing the data structure we manipulate (polynomials and matrices). The choices were justified by preoccupations of readability and reutilisability. The use of the {Canonical Structure} of \coq{} enabled us to have statements close to those used in usual mathematics. The cutting of the various components of the proof in modular form (indexed operations, matrices and polynomials) promotes the re-use of these libraries in independent developments. The libraries on the indexed operations and the matrices will be re-used in our next work on the characters theories, one of the components of the proof of the Feit-Thompson theorem.\newline
+This work that we presented here is the first formalization of the Cayley-Hamilton theorem. It is not the first formalization of the matrices or the polynomials. Formalizations of these structures are respectively presented in ~\cite{ring-mx, linalg} and ~\cite{fta, factor-th}. But it is the first development which gathers a formalization of the matrices and polynomials and where these objects are assembled to form new objects: matrices of polynomials and polynomials of matrices.
+\paragraph*{}
+In the formalization of the Cayley-Hamilton theorem, presented in this article, we chose to build our structures of data on types with a decidable equality: the \texttt{eqType}. In addition to the fact that in traditional mathematics all the types are decidable, our proof on the types where the equality is decidable can be generalized to any types. This is done by pointing out that any ring is a $\mathbf{z}$-algebra and by considering the morphism of evaluation of polynomials with $n^{2}$ variables and coefficients in $\mathbf{z}$ which is a type where the equality is decidable. We are going to have to work with the \texttt{Setoid}.
 
 \begin{thebibliography}{10} 
 \bibitem{100ths}

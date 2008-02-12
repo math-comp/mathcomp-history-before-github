@@ -234,11 +234,11 @@
 
 
 % beginning of actes.sty
-\def\Namecolloque{JFLA}
-\def\Namecolloqueplain{Journ\'ees Francophones des Langages Applicatifs}
-\def\Yearcolloque{08}
-\def\Yearcolloqueplain{2008}
-\def\Monthcolloque{janvier}
+\def\Namecolloque{}
+\def\Namecolloqueplain{}
+\def\Yearcolloque{}
+\def\Yearcolloqueplain{}
+\def\Monthcolloque{}
 
 \ds@twoside
 
@@ -269,8 +269,8 @@
 
 %%%%%%%%%%%%%%%%%%%% Style of the first page of each paper %%%%%%%%%%%%%%%%%%%%
 \def\DateC#1{\gdef\D@teC{#1}}
-\DateC{\Monthcolloque{} \Yearcolloqueplain{} -- 
-\Namecolloqueplain -- 
+\DateC{\Monthcolloque{} \Yearcolloqueplain{}  
+\Namecolloqueplain 
        \Namecolloque\Yearcolloque{}
 }
 
@@ -374,8 +374,8 @@ to 0pt{$^{\@thefnmark}$\hss}}
 
 \pagestyle{colloque}
 \thispagestyle{colloquetitle}
-\def\abstractname{R\'esum\'e}
-\def\refname{Bibliographie}
+%\def\abstractname{R\'esum\'e}
+%\def\refname{Bibliographie}
 
 \endinput
 
