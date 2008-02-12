@@ -860,7 +860,7 @@ Hypothesis (p_nil : Pb nil)
            (p_op1 : forall x y, Pb x -> Pb y -> Pb (op1 x y))
            (p_eq_op : forall x y, Pb x -> Pb y -> op1 x y = op2 x y).
 
-Lemma big_prop : forall I (r : seq I) P F,
+Lemma big_prop_seq : forall I (r : seq I) P F,
   (forall i, r i && P i -> Pb (F i)) -> Pb (\big[op1/nil]_(i <- r | P i) F i).
 Proof.
 move=> I r P F; elim: r => //= [|i r IHr] Pb_ir; rewrite !(big_seq0, big_adds) //.
@@ -869,9 +869,9 @@ have{IHr} IHr: Pb (\big[op1/nil]_(i <- r | P i) F i).
 by case Pi: (P i); first by apply: p_op1; first by apply: Pb_ir; rewrite setU11.
 Qed.
 
-Lemma fin_big_prop : forall (I : finType) (P : set I) F,
+Lemma big_prop : forall (I : finType) (P : set I) F,
   (forall x, P x -> Pb (F x)) -> Pb (\big[op1/nil]_(i | P i) F i).
-Proof. move=> I P F PbP; apply big_prop => i; rewrite mem_enum; exact: PbP. Qed.
+Proof. move=> I P F PbP; apply big_prop_seq => i; rewrite mem_enum; exact: PbP. Qed.
 
 (* Change operation *)
 Lemma eq_big_op_seq :  forall I (r : seq I) P F,
@@ -881,7 +881,7 @@ Proof.
 move=> I r P F; elim: r => //= [|i r IHr] Pb_ir; rewrite !(big_seq0, big_adds) //.
 have Pb_r: forall j, r j && P j -> Pb (F j).
   by move=> j rPj; apply Pb_ir; rewrite andb_orl rPj orbT.
-rewrite -{}IHr //; case Pi: (P i) => //; apply p_eq_op; last exact: big_prop.
+rewrite -{}IHr //; case Pi: (P i) => //; apply p_eq_op; last exact: big_prop_seq.
 by apply Pb_ir; rewrite setU11.
 Qed.
 
