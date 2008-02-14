@@ -1,0 +1,53 @@
+\section{Conclusion}
+
+
+To our knowledge, what is presented in this paper is already one of the most
+complete formalisations of finite group theory. 
+We cover almost all the material that can be found in an introductory course on 
+group theory. Very few standard results like the simplicity
+of the alternating group are still missing, but should be formalised very soon.
+The only similar effort but in set theory
+can be found in the Mizar system~\cite{Mizar}. Theorems like the ones
+presented in Section 4 are missing from the Mizar formalisation.
+
+We have deliberately specialised our formalisation to \emph{finite}
+group theory: finite groups are \emph{not} obtained as a sub-class of
+generic groups.
+% Such a generic theory of groups is needed for the
+% character theory part of the Feit-Thompson proof, hence we plan to
+% elaborate this as a separated part of the development.
+This design choice
+is consistent with the usual presentation of group theory in the literature.
+Imposing the inheritance of finite group
+theory from generic group theory would be somehow artificial since they share
+little results, all of them being trivial ones, hence it would not
+help formalising proofs but create pointless delicate subtyping issues.  
+
+Getting the definitions right is one of the most difficult aspects of
+formalising mathematics. The problem is not much in capturing the 
+semantics of each individual construct but rather in having all the concepts 
+working together well. Group theory has been no exception in that respect.
+It took much trial and error to arrive at the definitions 
+presented in this paper. The fact that we were able to get 
+results like the ones presented in Section 4 relatively
+easily makes us confident 
+that our base is robust enough to proceed to further formalisations.
+
+Using \ssr{} has been a key aspect to our formal
+development. Decidable types and a substantial use of rewriting for our proofs
+give a `classical' flavour to our development that is more familiar
+to what can be found in provers like {\sc Isabelle}~\cite{Isabelle} or
+{\sc Hol}~\cite{Hol} than what is usually done in \Coq. Moreover, our novel use of canonical structures allows us to reconcile the convenience of
+set-theoretic statements with the expressiveness of dependent types, by harnessing the automation power of type inference. We think that
+this combination makes the \Coq{} system a powerful environment for
+the formalisation of such algebraic theories.
+
+
+
+
+An indication of the conciseness of our proof scripts
+is given by the following figure. The standard library of \Coq{} contains
+7000 objects (definitions + theorems) for  93000 lines of code, this makes a ratio of 
+13 lines per object. The base library of \ssr{} plus our library for groups contains
+1980 objects for 14400 lines, this makes a ratio of 7 lines per object.
+

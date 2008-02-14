@@ -1,0 +1,49 @@
+
+
+\section{Introduction}
+
+
+Recent work such as~\cite{avigad,fta,4color,flyspeck}
+shows that proof systems are getting sufficiently mature to formalise
+non-trivial mathematical theories. Group theory is a domain
+of mathematics where computer proofs could be of real added value.
+This domain was one of the first to publish \emph{very long}
+proofs. The first and most famous example is the 
+Feit-Thompson theorem. Its historical proof~\cite{feit-thompson} is
+255 pages long. That proof has later been simplified and
+re-published~\cite{bender-glauberman,peterfalvi}, providing a better
+understanding of local parts
+of the proof. Yet its length remains unchanged, as well as its global
+architecture.
+Checking such a long proof with a computer would clearly
+increase the confidence in its correctness, and hopefully lead to a
+further step in the understanding of this proof.
+This paper addresses the ground work needed to start formalising this
+theorem.
+
+There have been several attempts to formalise elementary group
+theory using a proof assistant. Most of them~\cite{arthan,gunter1989,Yu90} 
+stop at the Lagrange theorem.
+An exception is Kammüller and Paulson~\cite{kam} who have formalised  
+the first Sylow theorem. The originality of our work is that we do not use
+elementary group theory as a mere example but as a foundation
+for further formalisations. It is then crucial to us that our formalisation
+scales up. We have therefore worked out a new development, with a
+strong effort in proof engineering.
+
+First of all, we reuse the \ssr{} extension of \Coq{}
+developed by Gonthier for his proof of the \FCT{}.
+This gives us a library and a proof language that is particularly
+well suited to the formalisation of finite groups. Second, we make use
+of many features of the \Coq{} proof engine (notations,
+implicit arguments, coercions, canonical structures) to get more
+readable statements and tractable proofs.
+
+
+The paper is organised as follows. In Section 2, we present the 
+\ssr{} extension and show how it is adequate to our needs.
+In Section 3, we comment some of our choices in formalising
+objects such as groups, quotients and morphisms. Finally, in Section 4,
+we present some classic results of group theory that have already
+been formally proved in this setting.
+

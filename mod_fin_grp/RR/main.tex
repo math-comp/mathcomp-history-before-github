@@ -1,0 +1,122 @@
+%%
+%% This is file `squelette-rr.tex',
+%% generated with the docstrip utility.
+%%
+%% The original source files were:
+%%
+%% RR.dtx  (with options: `sample')
+%% ********************************************************************
+%% Copyright (C) 1997-1999 2004 2006 INRIA/APICS
+%% 
+\documentclass[a4paper]{article}
+\usepackage[microsoft]{RR}
+\usepackage{hyperref}
+\usepackage{url}
+%\usepackage[latin1]{inputenc}
+%\usepackage[T1]{fontenc}
+\usepackage{amsfonts}
+\usepackage{latexsym}
+\usepackage{ae,aecompl,amsbsy,amssymb}
+\usepackage{listings}
+
+\newcommand{\Coq}{{\sc Coq}}
+\newcommand{\ssr}{{\sc SSReflect}}
+\newcommand{\C}[1]{\lstinline[basicstyle=\footnotesize][#1[}
+\newcommand{\FCT}{Four Colour theorem}
+
+\def\lstlanguagefiles{defSSR.tex}
+\lstset{language=SSR}
+
+%%\usepackage[frenchb]{babel} % optionnel
+%%
+%% date de publication du rapport
+\RRdate{March 2007}
+%%
+%% Cas d'une version deux
+%% \RRversion{2}
+%% date de publication de la version 2
+%% \RRdater{Novembre  2006}
+
+%%
+\RRauthor{Georges Gonthier\thanks{Microsoft Research, Cambridge, R-U}
+\and
+ Assia  Mahboubi\thanks{INRIA Futurs, Centre commun INRIA
+   Microsoft Research}
+\and Laurence Rideau\thanks[sfn]{INRIA Sophia Antipolis, projet Marelle}
+\and Enrico Tassi\thanks{University of Bologna, Italy} 
+\and Laurent Th\'ery\thanksref{sfn}}
+
+
+
+% \RRauthor{% les auteurs
+%  % Premier auteur, avec une note
+% Georges Gonthier%\thanks{Footnote for first author}%
+%   % note partag\'ee (optionnelle)
+%   %\thanks[sfn]{Shared foot note}%
+%  % \and entre chaque auteur s'il y en a plusieurs
+%   \and
+% Assia Mahboubi
+% \and
+% Enrico Tassi
+% \and
+% Laurent Th\'ery
+% \and
+% Laurence Rideau
+ % r\'ef\'erence \`a la note partag\'ee
+%\thanksref{sfn}{bla}
+%%
+%% Ceci apparait sur chaque page paire.
+\authorhead{Gonthier \& al.}
+%%
+\RRtitle{Une formalisation modulaire des groupes finis}
+%% English title
+\RRetitle{A Modular Formalisation of Finite Group Theory}
+%%
+\titlehead{A Modular Formalisation of Finite Group Theory}
+
+\RRresume{Ce rapport présente une formalisation de théorie des
+  groupes élémentaires réalisée dans le système \Coq{}. Ce travail est
+  la première étape d'un projet d'envergure, qui a pour but de
+  construire une preuve formelle du théorème de Feit-Thompson.
+  Comme nos développements formels ultérieurs reposeront de fa\c con
+  cruciale sur cette base, nous avons consacré un soin particulier à
+  la modularité de ces fondations.}
+
+\RRabstract{In this paper, we present a formalisation of elementary group
+theory done in {\sc Coq}. This work is the first milestone
+of a long-term effort to formalise Feit-Thompson theorem.
+As our further developments will heavily rely on this initial base,
+we took special care to articulate it in the most
+compositional way.}
+%%
+\RRmotcle{Groupes finis, assistants à la preuve, formalisation des
+  mathématiques}
+
+\RRkeyword{finite groups, proof assistants, formalisation of mathematics}
+%%
+%% \RRprojet{Apics}  % cas d'un seul projet
+\RRprojets{Marelle, INRIA Sophia\\ Composants Mathématiques, Centre Commun
+ INRIA Microsoft Research}
+%%
+%% \RRtheme{\THNum} % cas d'un seul theme
+\RRtheme{\THSym} % cas de 5 themes
+\URFuturs % pour ceux qui sont dans le virtuel
+%\URSophia % pour ceux qui sont au Sud.
+%%
+\begin{document}
+%%
+\makeRR   % cas d'un rapport de recherche
+%% \makeRT % cas d'un rapport technique.
+%% a partir d'ici, chacun fait comme il le souhaite
+\input{intro}
+\input{ssreflect}
+\input{coset}
+\input{sylow}
+\input{concl}
+
+
+\bibliographystyle{plain}
+\bibliography{main}
+
+\end{document}
+

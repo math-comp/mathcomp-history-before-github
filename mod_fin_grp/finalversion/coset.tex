@@ -1,0 +1,394 @@
+\section{The group library}
+
+This section is dedicated to the formalisation of elementary group
+theory. We justify our definitions and explain how they relate to each other.
+
+\subsection{Graphs of function and intentional sets}
+We use the notation \C{f $=_1$ g} to indicate that
+two functions are extensionally equal, i.e.,  the fact that
+\C{forall x, f x = g x} holds. In \Coq, \C{f $=_1$ g}
+does not imply \C{f = g}. This makes equational reasoning
+with objects containing functions difficult in \Coq{}
+without adding extra axioms. In our case, extra axioms are not needed.
+The functions we manipulate have finite domains so they can be finitely
+represented by their graph. Given \C{d$_1$} a finite type and \C{d$_2$}
+a type with decidable equality, a graph is defined as:
+
+\begin{lstlisting}
+Inductive fgraphType : Type := 
+  Fgraph (val: seq d$_2$) (fgraph_sizeP: size val = card d$_1$): fgraphType.
+\end{lstlisting}
+It contains a list \C{val} of elements of \C{d$_2$}, the size of \C{val} being
+exactly the cardinality of \C{d$_1$}. Defining
+a function \C{fgraph\_of\_fun} that computes the graph associated to a function
+is straightforward.
+Conversely, a coercion \C{fun\_of\_fgraph} lets the user use graphs
+as standard functions.
+With graphs as functions, it is possible to prove functional extensionality:
+\begin{lstlisting}
+Lemma fgraphP : forall (f g : fgraphType d$_1$ d$_2$), f =$_1$ g $\Leftrightarrow$ f = g.
+\end{lstlisting} 
+Note that here \C{f =$_1$ g} is
+understood as \C{(fun_of_graph f) =$_1$ \ (fun_of_graph g)}.
+
+The special case of graphs with domain \C{d} and codomain \C{bool_eqType} is
+denoted \mbox{\C{(setType d)}}.
+We call elements of \C{(setType d)} \emph{intentional} sets by
+opposition to the sets in \C{(set d)},
+defined by their characteristic function.
+We equip intentional sets with the same operations as extensional sets.
+\C{\{x, $E$(x)\}} denotes the intentional set whose
+characteristic function is \C{(fun x -> $E$(x))}, and \C{(f @ A)} denotes
+the intentional set of the image of \C{A} by \C{f}.
+
+Graphs are used to build some useful data-structures. For example,
+homogeneous tuples, i.e., sequences of elements of type \C{K} of fixed length \C{n}, 
+are implemented as graphs with domain \C{(ordinal n)}, the finite type \C{\{0, 1, 2, $\dots$, n-1\}},
+and co-domain \C{K}. With this representation, the
+$p$-th element of a $n$-tuple $t$ can be obtained applying $t$ to $p$,
+as soon as $p$ lies in the the domain of $t$. Also, permutations
+are defined as function graphs with identical domain and co-domain,
+whose \C{val} list does not contain any duplicate.
+
+\subsection{Groups}\label{ssec:groups}
+
+In the same way that \C{eqType} structures were introduced before defining
+sets, we introduce a notion of (finite) \emph{group domain} which is
+distinct from the one of groups. It is modelled by a \C{finGroupType}
+record structure:
+\begin{lstlisting}
+Structure finGroupType : Type := FinGroupType {
+  element :> finType;
+        1 : element;
+      _^-1 : element -> element;
+    _ * _ : element -> element -> element;
+    unitP : forall x, 1 * x = x;
+     invP : forall x, x^-1 * x = 1;
+    mulP : forall x$_1$ x$_2$ x$_3$,  x$_1$ * (x$_2$ * x$_3$) = (x$_1$ * x$_2$) * x$_3$
+}.
+\end{lstlisting}
+It contains a carrier, a composition law
+and an inverse function, a unit element and the usual properties of these
+operations. Its first field is declared as a coercion to the carrier
+of the group domain, like it was the case  in section
+\ref{ssec:lib}. In particular, we can again define convenient global notations
+like \C{*} or \C{^-1} for the projections of this record type.
+
+In the group library, a first category of lemmas is composed of 
+properties that are valid on the whole group domain. For example:
+
+\begin{lstlisting}
+Lemma invg_mul : forall x$_1$ x$_2$, (x$_2$ * x$_1$)^-1 = x$_1$^-1 * x$_2$^-1. 
+\end{lstlisting}
+
+Also, we can already define operations on arbitrary sets of a group
+domain. If \C{A} is such a set, we can define for instance:
+
+\begin{lstlisting}
+Definition   x ^ y  := y^-1 * x * y. 
+Definition  A :* x  := {y, y * x^-1 \in A}. (* right cosets *)
+Definition  A :^ x  := {y, y ^ x^-1 \in A}. (* conjugate *)
+Definition normaliser A := {x, (A :^ x) $\subset$ A}.
+\end{lstlisting}
+Providing a boolean predicate sometimes requires a little effort, e.g.,
+in the definition of the \emph{point-wise} product of two sets:
+\begin{lstlisting}
+Definition A spp B := {x * y, negb (disjoint {y, x * y \in (A :* y)} B)}
+\end{lstlisting}
+\noindent The corresponding \emph{view} lemma gives the natural characterisation of this object:
+\begin{lstlisting}
+Lemma smulgP : forall A B z,  (exists x y, x \in A & y \in B & z = x * y) <-> (z \in A spp B).
+\end{lstlisting}
+Lemmas like \C{smulgP} belong to  category of lemmas 
+composed of the properties of these operations requiring only group domain \emph{sets}.
+
+
+Finally, a \emph{group} is defined as a boolean predicate, satisfied by
+sets of a given group domain that contain the unit and are stable
+under product.
+
+\begin{lstlisting}
+Definition group_set A := 1 \in A && (A spp A) $\subset$ A.\end{lstlisting}
+It is very convenient to give the possibility of attaching in a
+canonical way the proof that a set has a group structure. This is
+why groups are declared as structures, of type:
+
+\begin{lstlisting}
+Structure group(elt : finGroupType) : Type := Group {
+  set_of_group :> setType elt;
+  set_of_groupP : group_set set_of_group
+}.
+\end{lstlisting}
+The first argument of this structure is a \emph{set}, giving the
+carrier of the group. Notice that we do \emph{not} define one type per group 
+but one type per group domain, which avoids having unnecessary injections
+everywhere in the development.
+
+Finally, the last category of lemmas in the library is composed of
+group properties.  For example, given a group \C{H}, we have the following
+property:
+
+\begin{lstlisting}
+Lemma groupMl : forall x y, x \in H => (x * y) \in H = y \in H.
+\end{lstlisting}
+In the above statement, the equality stands for \Coq{} standard equality
+between boolean values, since membership of \C{H} is a boolean
+predicate.
+
+
+We declare a canonical group structure for the
+usual group constructions so that they can
+be displayed as their set carrier but still benefit from an automatically
+inferred proof of group structure when needed.
+For example, such canonical structure is defined for the intersection of two
+groups \C{H} and \C{K} that share the group domain \C{elt}:
+\begin{lstlisting}
+Lemma group_setI : group_set (H $ \cap $ K).
+Canonical Structure setI_group := Group group_setI.
+\end{lstlisting}
+\noindent where, as in the previous section, $\cap$ stands for the
+\emph{set} intersection operation.
+
+\noindent Given a group domain \lstinline[basicstyle=\footnotesize]+elt+ and two groups \lstinline[basicstyle=\footnotesize]+H+ and
+\lstinline[basicstyle=\footnotesize]+K+, the stability of the group law for the intersection is proved in
+the following way:
+\begin{lstlisting}
+Lemma setI_stable : forall x y, x \in (H $\cap$ K) => y \in (H $\cap$ K) => (x * y) \in (H $\cap$ K).
+Proof. by move=> x y H1 H2; rewrite groupMl. Qed.
+\end{lstlisting}
+The group structure on the \lstinline[basicstyle=\footnotesize]+H $\cap$ K+ carrier is
+automatically inferred from the
+canonical structure declaration and the \lstinline[basicstyle=\footnotesize]+by+
+closing command uses the \lstinline[basicstyle=\footnotesize]+H1+ and \lstinline[basicstyle=\footnotesize]+H2+
+assumptions to close two trivial generated goals.
+
+This two-level definition of groups, involving group
+domain types and groups as first order citizens equipped with
+canonical structures, plays an important
+role in doing proofs. As a consequence, most of the theorems are
+stated like in a set-theoretic framework (see section
+\ref{ssec:morphisms} for some examples). Type inference is then used to
+perform the proof inference, from the database of registered canonical
+structures. This mechanism is used extensively throughout the
+development, and allows us in particular to state and use theorems
+in a way that follows standard mathematical practice.
+
+\subsection{Quotients}\label{ssec:quotients}
+
+Typically, every local section of our development assumes once and
+for all the existence of one group domain \C{elt} to then manipulate 
+different groups of this domain.
+Nevertheless, there are situations where it is necessary to build 
+new \C{finGroupType} structures. This is the case for example for
+\emph{quotients}.
+Let \C{H} and \C{K} be two groups in the same group universe,
+the quotient \C{K/H} is a group under the condition that
+\C{H} is \emph{normal} in \C{K}.
+Of course, we could create a new group domain for each quotient, but we
+can be slightly smarter noticing that given a group \C{H}, all the 
+quotients of the form \C{K/H} share the same  group law, and the same unit.
+The idea is then to have all the quotients groups \C{K/H} in a group
+domain \C{. /H}.
+
+In our finite setting, the largest possible quotient exists and is
+\C{N(H)/H}, where \C{N(H)} is the normaliser of \C{H} and
+all the other quotients are subsets of this one.
+
+
+In our formalisation, normality is defined as:
+\begin{lstlisting} 
+Definition H $\triangleleft$ K := (H $\subset$ K) && (K $\subset$ (normaliser H)).
+\end{lstlisting}
+If \C{H $\,\triangleleft\,$ K}, \C{H}-left cosets and
+\C{H}-right cosets coincide for every element of \C{K}. Hence, they
+are just called \emph{cosets}. 
+
+The set of cosets of an arbitrary set
+\lstinline[basicstyle=\footnotesize]+A+ is the image of the normaliser
+of \C{A} by the \lstinline[basicstyle=\footnotesize]+rcoset+
+operation. Here we define the associated sigma type:
+\begin{lstlisting} 
+Definition coset_set (A : setType elt):= (rcoset A) @ (normaliser A).  
+Definition coset (A : setType elt):= eq_sig (coset_set A).
+\end{lstlisting}
+\noindent where \lstinline[basicstyle=\footnotesize]+eq_sig+ builds
+the sigma type associated to a
+\lstinline[basicstyle=\footnotesize]+set+. This
+\lstinline[basicstyle=\footnotesize]+coset+ type can be equipped
+with \lstinline[basicstyle=\footnotesize]+eqType+ and
+\lstinline[basicstyle=\footnotesize]+finType+ canonical structures;
+elements of this type are intentional sets.
+
+When \lstinline[basicstyle=\footnotesize]+H+ is equipped with a group
+structure, we define group operations on
+\lstinline[basicstyle=\footnotesize]+(coset H)+ thanks to the
+following properties:
+\begin{lstlisting} 
+Lemma cosets_unit : H \in (cosets H).  
+Lemma cosets_mul : forall Hx Hy : coset H, (Hx spp Hy) \in (cosets H).
+Lemma cosets_inv : forall Hx : coset H, (Hx :^-1) \in (cosets H).
+\end{lstlisting}
+\noindent where \lstinline[basicstyle=\footnotesize]+A :^-1+ denotes
+the image of a set \lstinline[basicstyle=\footnotesize]+A+ by the
+inverse operation. Group properties are provable for these operations:
+we can define a canonical structure of group domain on
+\lstinline[basicstyle=\footnotesize]+coset+ depending on an
+arbitrary group object.
+
+\noindent The \lstinline[basicstyle=\footnotesize]+quotient+ of two
+groups of the same group domain can \emph{always} be defined:
+
+\begin{lstlisting} 
+Definition A / B := (coset_of B) @ A.
+\end{lstlisting}
+\noindent where \lstinline[basicstyle=\footnotesize]+coset_of : elt ->(coset A)+
+maps elements of the \C{normaliser A} to their coset, and the other
+ones to the coset unit.
+Hence \C{A / B} defines in fact $N_A(B)B/B$.
+
+Every quotient \C{G / H} of two group structures is equipped with a
+canonical structure of \emph{group} of the \C{coset H} group domain.
+
+A key point in the readability of statements involving quotients is
+that the \lstinline[basicstyle=\footnotesize]+./.+ notation is usable
+because it refers to a definition independent of proofs; the type
+inference mechanism will automatically find an associated group
+structure for this set when it exists.
+
+Defining quotients has been a place where we had to rework our
+formalisation substantially using intentional sets instead of sets
+defined by their characteristic function.
+
+A significant part of the library of finite group quotients deals with
+constructions of group isomorphisms. The first important  results to
+establish are the
+so-called three fundamental isomorphism theorems. 
+
+Two isomorphic groups do
+not necessarily share the same group domain. For example, two
+quotients by two different groups will have distinct (dependent) types.
+Having sets for which function extensionality does not hold had forced
+us to use setoids.  For theorems with types depending on setoid
+arguments, especially the ones stating equalities, we had to add one
+extensional equality condition per occurrence of such a dependent type
+in the statement of the theorem in order to make these theorems
+usable. Worse, in order to apply one of
+these theorems, the user had to provide specific lemmas, proved
+before-hand, for each equality proof.  This was clearly unacceptable
+if quotients were to be used in further formalisations.  Using
+intentional sets simplified everything.
+
+
+\subsection{Group Morphisms}\label{ssec:morphisms}
+Group morphisms are functions between two group domains, compatible
+ with the group laws of their domain and
+co-domain. Their properties may not hold on the whole group domain, but only
+on a certain group of this domain. The notion of morphism is hence a
+local one.
+
+We avoid the numerous difficulties introduced by formalising
+partial functions in type theory by embedding the domain of a morphism
+inside its computational definition. Any morphism candidate takes a
+default unit value outside the group where the morphism properties are
+supposed to hold.  Now, we can compute back the domain of a
+morphism candidate from its values, identifying the kernel among the
+set of elements mapped to the unit:
+\begin{lstlisting} 
+Definition ker (f: elt$_1$ -> elt$_2$) := {x, elt$_1$ $\subset$ {y, f (x * y) == f y}}.
+
+\end{lstlisting}
+
+\noindent This kernel can be equipped with a canonical group structure. Morphism
+domains are defined as:
+\begin{lstlisting}
+Definition mdom (f: elt$_1$ -> elt$_2$) := ker f $\cup$ {x, f x != 1}.
+\end{lstlisting}
+As a group is defined as a set plus certain properties
+satisfied by this set, a morphism is defined as a function, together
+with the properties making this function a morphism.
+
+\begin{lstlisting}
+Structure morphism : Type := Morphism { 
+  mfun :> elt$_1$ -> elt$_2$; 
+  group_set_mdom : group_set (mdom mfun); 
+  morphM : forall x y, x \in (mdom f) => y \in (mdom f) =>
+                   mfun (x * y) = (mfun x) * (mfun y)
+}.
+\end{lstlisting} The domain \C{mdom f} of a given morphism \C{f} is hence
+canonically equipped with an obvious group structure.
+
+Thanks to the use of a default unit value, the (functional)
+composition of two morphisms is canonically equipped with a morphism
+structure. Other standard constructions have a canonical
+morphism structure, like \C{coset_of G} as soon as \C{G} is a
+group.
+
+Morphisms and quotients are involved in the universal property of
+morphism factorisation, also called first isomorphism theorem in the
+literature. We carefully stick to
+first order predicates to take as much benefit as possible from the
+canonical structure mechanism. If necessary, we embed side conditions
+inside definitions with a boolean test. In this way
+we avoid having to add pre-conditions in the properties of these
+predicates to ensure well-formedness. 
+For any function between group domains, we
+define a quotient function by:
+
+\begin{lstlisting} 
+Definition mquo(f : elt$_1$ -> elt$_2$)(A : setType elt$_1$)(Ax : coset A):=
+  if A $\subset$ (ker f) then f (repr Ax) else 1.
+\end{lstlisting} where \lstinline[basicstyle=\footnotesize]+repr Ax+
+picks a representative of a coset 
+\lstinline[basicstyle=\footnotesize]+Ax+.  Given any
+morphism, its quotient function defines an isomorphism between the
+quotient of its domain by its kernel and the image of the initial
+morphism.
+
+\begin{lstlisting} 
+Theorem first_isomorphism : forall H : group elt$_1$, forall f : morphism elt$_1$ elt$_2$,
+    H $\subset$ (dom f) => isog (H / (ker$_H$ f)) (f @ H).
+\end{lstlisting}
+
+An isomorphism between \C{A} and \C{B} is a morphism having
+a trivial kernel and mapping \C{A} to \C{B}. This localised version
+of the theorem builds an isomorphism between \C{ker$_H$ f}, the
+intersection of a group \C{H} with \C{ker f}, and the image \C{f @ H}
+of \C{H}.
+
+
+This definition of morphisms is crafted to eliminate 
+any proof dependency which cannot be resolved by the type inference
+system with the help of canonical structures.
+A pointed out in section \ref{ssec:groups}, statements are much more
+readable and formal proofs much easier.
+
+To convince the reader of the efficiency of these canonical structure
+definitions, we provide hereafter a verbatim copy of the statements of the
+isomorphism theorems we have formally proved.
+
+{\small \begin{verbatim}
+
+Theorem second_isomorphism : forall G H : group elt,
+  subset G (normaliser H) -> isog (G / (G :&: H)) (G / H).
+
+Lemma quotient_mulg : forall G H : group elt, (G :*: H) / H = G / H.
+
+Theorem third_isomorphism  : forall G H K : group elt,
+  H <| G -> K <| G -> subset K H -> isog ((G / K) / (H / K)) (G / H).
+\end{verbatim}
+}
+
+Here \verb+(G :&: H)+ is ASCII for $G \cap H$. The \verb+quotient_mulg+
+identity follows from our design choices for the
+formalisation of quotients. Rewriting with \\ \verb+quotient_mulg+
+yields the standard statement of the second isomorphism theorem.
+
+In the statement of \verb+third_isomorphism+, the term \verb+H / K+
+is defined as \\ \verb+(coset_of K) @ H+. Since \verb+K+ is a
+group, \verb+(coset_of K)+ is equipped with a canonical structure of
+morphism. Since \verb+H+ is a group, its image by a morphism has itself a
+canonical structure of group, hence type inference is able to
+find a group structure for \verb+H / K+, in the group domain
+\verb+(coset K)+. Finally, this allows \Coq{} to infer a group domain
+structure for \verb+coset (H / K)+, the domain of the isomorphism,
+which is (hidden) implicit parameter of the \verb+isog+ predicate.
