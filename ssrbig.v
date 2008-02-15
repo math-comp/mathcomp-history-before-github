@@ -641,6 +641,82 @@ Lemma big_set1 : forall (I : finType) (i : I) P F,
   P =1 set1 i -> \big[*%M/1]_(j | P j) F j = F i.
 Proof. move=> I i P F; move/(eq_bigl _ _)->; exact: big_set1_eq. Qed.
 
+Lemma big_ord_recr : forall n F,
+  \big[*%M/1]_(i <= n) F i =
+     \big[*%M/1]_(i < n) F (widen_ord (leqnSn n) i) * F ord_max.
+Proof.
+move=> n F.
+move: (@big_mkord _ 1 *%M (n.+1) (fun _ => true) 
+             (fun i => if insub (fun m => m < n.+1) i is Some u then
+                          F (ord_of_natsig u) else 1)).
+have h: dfequal (fun _ => true)
+   (fun i : ordinal_eqType n.+1 =>
+    match insub (fun m : nat_eqType => m < n.+1) i with
+    | Some u => F (ord_of_natsig (n:=n.+1) u)
+    | None => 1
+    end) (fun i => F i).
+ move => i _; case:i => i hi /=; rewrite (@insubT _ (fun i => i < n.+1) _ hi).
+ by congr F; apply: ord_eqP.
+rewrite (eq_bigr 1 *%M _ (F2:= fun i => F i)) => //=; clear h; move =><-.
+have h:dfequal (fun _ => true)
+   (fun i :ordinal n=>
+    match insub (fun m : nat_eqType => m < n) i with
+    | Some u => F (widen_ord (leqnSn n) (ord_of_natsig (n:=n) u))
+    | None => 1
+    end) (fun i => F (widen_ord (leqnSn n) i)).
+ move => i _; case: i => i hi /=; rewrite (@insubT _ (fun i => i < n) _ hi).
+ by congr F; apply: ord_eqP.
+move: (@big_mkord _ 1 *%M n (fun _ => true)
+             (fun i => if insub (fun m => m < n) i is Some u then
+                 F (widen_ord (m:=n.+1)(leqnSn n)
+                      (ord_of_natsig u)) else 1)).
+rewrite (eq_bigr 1 *%M _ (F2 := fun i => F (widen_ord (leqnSn n) i))) => //= <-.
+
+move: {h} F; elim: n => [F | n IHn F].
+ have h'': 0 < 1 by done.
+ rewrite (big_geq 1 *%M (n:=0)) //=;  unlock reducebig index_iota iota; 
+ rewrite /= (mulm1 op) (mul1m op) (@insubT _ (fun m => m < 1) 0 h'') => /=.
+ by congr F; apply/ord_eqP => /=.
+have h'': 0 < n.+1.+1 by done.
+rewrite !(@big_ltn _ _ _ 0) => //=.
+rewrite (@insubT _ (fun m => m < n.+1.+1) 0 h'') => /=.
+rewrite (@insubT _ (fun m => m < n.+1) 0 h'') /= -(mulmA op).
+congr (_ * _); first by congr F; apply/ord_eqP; rewrite /widen_ord /=.
+rewrite !big_add1 /=.
+have h': dfequal (setI (index_iota 0 n.+1) (fun _ : nat_eqType => true))
+   (fun i : nat =>
+    match insub (fun m : nat => m < n.+1.+1) i.+1 with
+    | Some u => F (ord_of_natsig (n:=n.+1.+1) u)
+    | None => 1
+    end)
+   (fun i : nat =>
+    match insub (fun m : nat => m < n.+1) i with
+    | Some u => F (lift ord0 (ord_of_natsig (n:=n.+1) u))
+    | None => 1
+    end).
+ move => i; rewrite /setI /index_iota andbT mem_iota add0n subn0 => hi.
+ by case/andP: hi => _ hi;
+ rewrite (@insubT _ (fun m => m < n.+1.+1) i.+1 hi)
+   (@insubT _ (fun m => m < n.+1) i hi); congr F; apply/ord_eqP.
+rewrite (@congr_big _ 1 *%M _ (index_iota 0 n.+1) _ (fun _ => true) 
+          (fun _ => true)
+          (fun i:nat => match insub (fun m : nat => m < n.+1.+1) i.+1 with
+                        | Some u => F (ord_of_natsig u)
+                        | None => 1
+                        end)
+          (fun i:nat => match insub (fun m :nat => m < n.+1) i with
+                   | Some u => F (lift ord0 (ord_of_natsig u))
+                   | None => 1
+                   end)  (refl_equal _) (fun _ _ => (refl_equal true))) => //=.
+rewrite {h' IHn} (IHn (fun i => F (lift ord0 i))).
+congr (_ * _); last by congr F; apply/ord_eqP; rewrite /widen_ord //=.
+apply: congr_big => //=.
+move => x; rewrite /setI andbT /index_iota mem_iota add0n subn0.
+case/andP => _ hx.
+by rewrite (@insubT _ (fun m => m < n) x hx)
+   (@insubT _ (fun m => m < n.+1) x.+1 hx); congr F; apply/ord_eqP.
+Qed.
+
 End Plain.
 
 Section Abelian.
@@ -789,21 +865,6 @@ Lemma exchange_big :  forall (I J : finType) P Q F,
 Proof.
 move=> I J P Q F; rewrite (exchange_big_dep Q) //; apply: eq_bigr => i Pi.
 by apply: eq_bigl => j; rewrite Pi andbT.
-Qed.
-
-Lemma big_ord_recr : forall n F,
-  \big[*%M/1]_(i <= n) F i =
-     \big[*%M/1]_(i < n) F (widen_ord (leqnSn n) i) * F ord_max.
-Proof.
-move=> n F; rewrite (reindex ord_opp); last first.
-  by exists (@ord_opp n) => ? *; exact: ord_oppK.
-rewrite big_ord_recl mulmC /=; congr (_ * F _); last first.
-  by apply: ordinal_inj; exact: subn0.
-case: n => [|n] in F *; first by rewrite !big_seq0.
-rewrite (reindex ord_opp); last first.
-  by exists (@ord_opp n) => ? *; exact: ord_oppK.
-apply: eq_bigr=> i _; congr F; apply: ordinal_inj; rewrite /= subSS.
-by rewrite leq_sub_sub ?leq_ord.
 Qed.
 
 End Abelian.
