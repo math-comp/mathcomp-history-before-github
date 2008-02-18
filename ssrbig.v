@@ -643,7 +643,7 @@ Proof. move=> I i P F; move/(eq_bigl _ _)->; exact: big_set1_eq. Qed.
 
 Lemma big_ord_recr : forall n F,
   \big[*%M/1]_(i <= n) F i =
-     \big[*%M/1]_(i < n) F (widen_ord (leqnSn n) i) * F ord_max.
+  \big[*%M/1]_(i < n) F (widen_ord (leqnSn n) i) * F ord_max.
 Proof.
 move=> n F.
 move: (@big_mkord _ 1 *%M (n.+1) (fun _ => true) 
@@ -958,38 +958,58 @@ Implicit Arguments eq_big_op [R1 nil op1 I P F].
 
 Section BigRel.
 
-Variables (R1 : Type) (Prel : R1 ->R1-> Prop).
-Variables  (nil : R1) (op1  : R1 -> R1 -> R1). 
-Hypothesis (p_nil : Prel nil nil)
-  (p_rel : forall a x b y, Prel a x -> Prel b y -> Prel (op1  a b) (op1 x y)).
+Variables (R1 : Type) (rel : R1 ->R1-> Prop).
+Variables  (nil1 : R1) (op1  : R1 -> R1 -> R1). 
+Hypothesis (rel_sym : forall x, rel x x)
+  (relP : forall a x b y, rel a x -> rel b y -> rel (op1 a b) (op1 x y))
+  (rel_trans : forall b a c, rel a b->rel b c-> rel a c).
 
-Lemma big_rel_seq:
-forall I (r : seq I) (P:I -> bool) F G,
-  (forall i, (r i) && (P i) -> Prel (F i) (G i)) -> 
-Prel (\big[op1/nil]_(i <- r | P i) F i) (\big[op1/nil]_(i <- r | P i) G i).
+Lemma big_rel_seq : forall I (r : seq I) (P : I -> bool) F G,
+   (forall i, (r i) && (P i) -> rel (F i) (G i)) -> 
+  rel (\big[op1/nil1]_(i <- r | P i) F i) (\big[op1/nil1]_(i <- r | P i) G i).
 Proof.
-move=> I r P F G; unlock reducebig;  elim: r => //= i r Hr.
-case e : (P i) => H; [apply p_rel;
-[by apply H; rewrite /setU1 // eq_refl orTb andTb e|] |];
-by apply Hr=> i0; move/andP=> [Hri Hp]; 
-apply H; rewrite /setU1 Hri Hp andbT orbT.
+move=> I r P F G.
+elim: r => //= [|a r Hr H]; [by rewrite ?big_seq0| rewrite ?big_adds/=].
+by case e : (P a); [apply: relP; [| apply: Hr=> i Hi]| apply: Hr=> i [] Hi];
+ apply: H; rewrite /setU1 ?eq_refl ?e //; case/andP: Hi=> -> ->;
+ rewrite andbT orbT.
 Qed.
 
-Lemma big_rel:
-forall (I: finType) (P: set I) F G,
-  (forall i, (P i) -> Prel (F i) (G i)) -> 
-Prel (\big[op1/nil]_(i | P i) F i) (\big[op1/nil]_(i  | P i) G i).
-Proof.
-move=> I P F G PbP; apply big_rel_seq => i;
-rewrite mem_enum; exact: PbP.
+Lemma big_rel : forall (I : finType) (P : set I) F G,
+   (forall i, (P i) -> rel (F i) (G i)) -> 
+  rel (\big[op1/nil1]_(i | P i) F i) (\big[op1/nil1]_(i  | P i) G i).
+Proof. 
+move=> I P F G relH; apply: big_rel_seq => i; rewrite mem_enum.
+by apply: relH.
 Qed.
 
+Variables (R2 : Type) (nil2 : R2) (op2 : R2 -> R2 -> R2) (f : R2 -> R1).
+Hypothesis (f_nil : (f nil2) = (nil1))
+           (f_morph : forall a b, rel (f (op2 a b)) (op1 (f a) (f b))).
+
+Lemma big_morph_rel_seq : forall I (r : seq I) (P :I -> bool) F,
+  rel (f (\big[op2/nil2]_(i <- r | P i) F i))
+      (\big[op1/nil1]_(i <- r | P i) f (F i)).
+Proof.
+move=> I r P F.
+elim: r => //= [|a r Hr]; [by rewrite ?big_seq0 f_nil| rewrite ?big_adds/=].
+case e: (P a); last (apply: Hr).
+apply: (@rel_trans (op1 (f (F a)) (f (\big[op2/nil2]_(j <- r | P j) (F j))))).
+  by apply: f_morph.
+by apply: relP; last apply: Hr.
+Qed.
+
+Lemma big_morph_rel : forall  (I : finType) (P : set I) F,
+  rel (f (\big[op2/nil2]_(i | P i) F i)) (\big[op1/nil1]_(i | P i) f (F i)).
+Proof. by move=> I P F; apply: big_morph_rel_seq => i; rewrite mem_enum. Qed.
 
 End BigRel.
 
-Implicit Arguments big_rel_seq [R1 nil op1 I r P F G].
-Implicit Arguments big_rel [R1 nil op1 I P F G].
+Implicit Arguments big_rel_seq [R1 nil1 op1 I r P F G].
+Implicit Arguments big_rel [R1 nil1 op1 I P F G].
 
+Implicit Arguments big_morph_rel_seq [R1 nil1 op1 R2 nil2 op2 I r P F].
+Implicit Arguments big_morph_rel [R1 nil1 op1 R2 nil2 op2 I P F].
 
 Section Morphism.
 
@@ -1004,7 +1024,8 @@ Lemma big_morph : forall I (r : seq I) P F,
      \big[op2/nil2]_(i <- r | P i) phi (F i).
 Proof.
 case: phi_morphism => [phi1 phiM] I r P F.
-by unlock reducebig; elim: r => //= i r <-; case: (P i).
+by apply: big_morph_rel_seq=>//; [move=> a x b y=> -> -> |
+ move=> b a c; apply: trans_eq].
 Qed.
 
 End Morphism.
