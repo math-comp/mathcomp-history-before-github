@@ -1,7 +1,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect.
 Require Import ssrbool.
-Require Import funs.
+Require Import ssrfun.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -11,122 +11,75 @@ Import Prenex Implicits.
 (* equality. The structure includes the actual boolean predicate, not just *)
 (* the decision procedure. A canonical structure for the booleans is given *)
 (* here, and one will be provided for the integers in ssrnat.v.            *)
-(*   The syntax {t as eqType} denotes the canonical eqType structure on a  *)
-(* type t (up to conversion). This provides a way of directly looking up   *)
-(* a canonical structure.                                                  *)
 (*   Congruence properties of injective functions wrt reflected equality   *)
 (* are established.                                                        *)
-(*   Basic definitions are also given for sets and relations (i.e., unary  *)
-(* and binary boolean predicates); however, the boolean algebra is NOT     *)
-(* lifted to sets.                                                         *)
 (*   The main technical result is the construction of the subdomain        *)
-(* associated with a set.                                                  *)
+(* associated with a pred.                                                 *)
 (*   Syntactic sugar is provided for the equality predicate and its        *)
 (* reflection property.                                                    *)
 
-Definition reflect_eq d eq :=
-  forall x y : d, reflect (x = y) (eq x y).
+Definition reflect_eq T eq :=
+  forall x y : T, reflect (x = y) (eq x y).
 
-Module EqType.
-
-Structure eqType : Type :=
-  EqType {sort :> Type; eq : sort -> sort -> bool; eqP : reflect_eq eq}.
-
-End EqType.
+Structure eqType : Type := EqType {
+  eqType_sort :> Type;
+  eqType_eqd : rel eqType_sort;
+   _ : reflect_eq eqType_eqd
+}.
 
 Delimit Scope eq_scope with EQ.
 Open Scope eq_scope.
 
-Notation eqType := EqType.eqType.
-Notation EqType := EqType.EqType.
+Notation "[ 'eqType' 'of' t ]" :=
+  (match {t : as eqType} as s return [type of EqType for s] -> _ with
+  | EqType _ _ eP => fun k => k _ eP end
+  (@EqType t)) (at level 0, only parsing) : form_scope.
 
-Definition set1 := nosimpl EqType.eq.
+Definition eqd T : rel _ := nosimpl (@eqType_eqd T).
 
-Lemma set1E : set1 = EqType.eq. Proof. done. Qed.
+Lemma eqE : forall T x, @eqd T x = eqType_eqd x. Proof. done. Qed.
 
-Prenex Implicits set1.
+Lemma eqP : forall T, reflect_eq (@eqd T). Proof. by case. Qed.
 
-Notation "x '==' y" := (set1 x y)
-  (at level 70) : eq_scope.
-Notation "x '==' y ':>' d" := (set1 (x : d) (y : d))
+Implicit Arguments eqP [T x y].
+
+Notation "x == y" := (eqd x y)
+  (at level 70, no associativity) : eq_scope.
+Notation "x == y :> d" := ((x : d) == (y : d))
   (at level 70, y at next level) : eq_scope.
-Notation "x '!=' y" := (~~ (x == y))
-  (at level 70) : eq_scope.
-Notation "x '!=' y ':>' d" := (~~ (x == y :> d))
+Notation "x != y" := (~~ (x == y))
+  (at level 70, no associativity) : eq_scope.
+Notation "x != y :> d" := (~~ (x == y :> d))
   (at level 70, y at next level) : eq_scope.
+Notation "x =P y" := (eqP : reflect (x = y) (x == y))
+  (at level 70, no associativity) : eq_scope.
 
-Lemma set1P : forall (d : eqType) (x y : d), reflect (x = y) (x == y).
-Proof. exact EqType.eqP. Qed.
+Prenex Implicits eqd eqP.
 
-Notation "x '=P' y" := (set1P x y) (at level 70, no associativity).
+Lemma eq_refl : forall (T : eqType) (x : T), x == x.
+Proof. by move=> T x; apply/eqP. Qed.
+Notation eqxx := eq_refl.
 
-Definition eqP := set1P.
-Implicit Arguments eqP [d x y].
-Prenex Implicits eqP.
+Lemma eq_sym : forall (T : eqType) (x y : T), (x == y) = (y == x).
+Proof. by move=> T x y; apply/eqP/eqP. Qed.
 
-Lemma eq_refl : forall (d : eqType) (x : d), x == x.
-Proof. by move=> *; apply/eqP. Qed.
+Hint Resolve eq_refl eq_sym.
 
-Lemma eq_sym : forall (d : eqType) (x y : d), (x == y) = (y == x).
-Proof. by move=> *; apply/eqP/eqP. Qed.
-
-(* A short proof of the K axiom (proof-irrelevance for x = x) on eqTypes. *)
-
-(*
-Section Irrelevance.
-
-Variable T : Type.
-Hypothesis dec_eq : forall x y : T, {x = y} + {x <> y}.
-Variable x : T.
-
-Definition join y z (Exy : x = y) (Exz : x = z) : y = z :=
-  let: erefl in _ = x' := Exy return x' = z in Exz.
-
-Lemma joinK : forall y Exy, join Exy Exy = erefl y.
-Proof. by move=> y Exy; case: y / Exy. Qed.
-
-Lemma eq_monic : forall (f : forall y, x = y -> x = y) y, injective (f y).
-Proof.
-move=> f y; apply: can_inj (join (f x (erefl x))) _ => Exy.
-case: y / Exy; exact: joinK.
-Qed.
-
-Definition proj y Exy := if dec_eq x y is left Exy0 then Exy0 else Exy.
-
-Lemma proj_cst : forall y (E1 E2 : x = y), proj E1 = proj E2.
-Proof. by rewrite /proj => y E1 E2; case: (dec_eq x y). Qed.
-
-Theorem eq_irrelevance : forall y (E1 E2 : x = y), E1 = E2.
-Proof. move=> *; apply: (@eq_monic proj); exact: proj_cst. Qed.
-
-Theorem eq_axiomK : forall Exx, Exx = erefl x.
-Proof. move=> Exx; exact: eq_irrelevance. Qed.
-
-End Irrelevance.
-*)
 Theorem eq_irrelevance (T : eqType) (x y : T) (e1 e2 : x = y) : e1 = e2.
 Proof.
-move=> T x; pose proj y e := if x =P y is Reflect_true e0 then e0 else e.
-pose join e0 y e := let: erefl in _ = x' := e0 : x = x return x' = y in e.
-move=> y e1 e2; apply: (@can_inj _ _ (proj y) (join (proj x (erefl x)) y)).
-  by rewrite {e1 e2}/join; case: y /; case: {-1 5}x / (proj _ _).
-by rewrite /proj; case: (x =P y).
+move=> T x y e1 e2; pose join (e : x = _) := etrans (esym e).
+pose proj z e := if x =P z is Reflect_true e0 then e0 else e.
+suff{e1 e2}: injective (proj y) by apply; rewrite /proj; case: eqP.
+apply: can_inj (join x y (proj x (erefl x))) _ => e; case: y / e.
+by case: {-1}x / (proj x _).
 Qed.
 
 Corollary eq_axiomK : forall (T : eqType) (x : T) (e : x = x), e = erefl x.
 Proof. move=> *; exact: eq_irrelevance. Qed.
-(*
-Theorem eq_axiomK' : forall (T : eqType) (x : T) (e : x = x), e = erefl x.
-Proof.
-move=> T x e0; pose req (y z : T) := z = y.
-have jK: forall e : req x x, eq_ind x _ e x e = erefl x by case: {-2 5}x /.
-pose p e' := if x =P _ is Reflect_true e then e else e'. 
-by rewrite -(jK (p x e0)); case: {2 4 6 7}x / {1 2}e0; rewrite /p; case: eqP.
-Qed.
 
-Lemma eq_irrelevance : forall (d : eqType) (x y : d) (E E' : x = y), E = E'.
-Proof. by move=> d x y; case: y / => E; rewrite [E]eq_axiomK. Qed.
-*)
+(* Identify an abstract eqType with its universally true predicate. *)
+
+Coercion eqTypeA (T : eqType) : simpl_pred T := predA.
 
 (* Comparison for booleans. *)
 
@@ -135,105 +88,79 @@ Proof. by do 2 case; constructor. Qed.
 
 Canonical Structure bool_eqType := EqType eqbP.
 
-Lemma eqbE : eqb = set1. Proof. done. Qed.
+Lemma eqbE : eqb = eqd. Proof. done. Qed.
 
 Lemma bool_irrelevance : forall (x y : bool) (E E' : x = y), E = E'.
 Proof. exact: eq_irrelevance. Qed.
 
-(* Subsets and relations, defined by their characteristic functions.       *)
+Lemma negb_add : forall b1 b2, ~~ (b1 (+) b2) = (b1 == b2).
+Proof. by do 2!case. Qed.
 
-Section EqSet.
+Lemma negb_eqb : forall b1 b2, (b1 != b2) = b1 (+) b2.
+Proof. by do 2!case. Qed.
 
-Variable d : eqType.
+(* Equality-based predicates.       *)
 
-Definition set := d -> bool.
-Definition rel := d -> set.
+Notation xpred1 := (fun a1 x => x == a1).
+Notation xpred2 := (fun a1 a2 x => (x == a1) || (x == a2)).
+Notation xpred3 := (fun a1 a2 a3 x => [|| x == a1, x == a2 | x == a3]).
+Notation xpred4 :=
+   (fun a1 a2 a3 a4 x => [|| x == a1, x == a2, x == a3 | x == a4]).
+Notation xpredU1 := (fun a1 (p : pred _) x => (x == a1) || p x).
+Notation xpredC1 := (fun a1 x => x != a1).
+Notation xpredD1 := (fun (p : pred _) a1 x => (x != a1) && p x).
 
-Definition sub_set (a a' : set) : Prop := forall x : d, a x -> a' x.
-Definition sub_rel (e e' : rel) : Prop := forall x y : d, e x y -> e' x y.
+Section EqPred.
 
-Definition set2 (x1 x2 : d) : set := fun y => (x1 == y) || (x2 == y).
-Definition set3 (x1 x2 x3 : d) : set :=
-  fun y => [|| x1 == y, x2 == y | x3 == y].
-Definition set4 (x1 x2 x3 x4 : d) : set :=
-  fun y => [|| x1 == y, x2 == y, x3 == y | x4 == y].
-Definition setU (a b : set) : set := fun x => a x || b x.
-Definition setU1 (x : d) (a : set) : set := fun y => (x == y) || a y.
-Definition setI (a b : set) : set := fun x => a x && b x.
-Definition setC (a : set) : set := fun x => ~~ a x.
-Definition setC1 (x : d) : set := fun y => x != y.
-Definition setD (a b : set) : set := fun x => ~~ b x && a x.
-Definition setD1 (a : set) (x : d) : set := fun y => (x != y) && a y.
+Variable T : eqType.
 
-Definition set1f (f : d -> d) : rel := fun x => set1 (f x).
-Definition relU (e e' : rel) : rel := fun x => setU (e x) (e' x).
+Definition pred1 (a1 : T) := SimplPred (xpred1 a1).
+Definition pred2 (a1 a2 : T) := SimplPred (xpred2 a1 a2).
+Definition pred3 (a1 a2 a3 : T) := SimplPred (xpred3 a1 a2 a3).
+Definition pred4 (a1 a2 a3 a4 : T) := SimplPred (xpred4 a1 a2 a3 a4).
+Definition predU1 (a1 : T) p := SimplPred (xpredU1 a1 p).
+Definition predC1 (a1 : T) := SimplPred (xpredC1 a1).
+Definition predD1 p (a1 : T) := SimplPred (xpredD1 p a1).
 
-Lemma set11 : forall x : d, set1 x x. Proof. exact: eq_refl. Qed.
+Lemma pred1E : pred1 =2 eqd. Proof. move=> x y; exact: eq_sym. Qed.
 
-Lemma setU11 : forall x a, setU1 x a x.
-Proof. by move=> *; rewrite /setU1 set11. Qed.
+Variables (x y : T) (b : bool).
 
-Lemma setU1r : forall x a, sub_set a (setU1 x a).
-Proof. by move=> x a y Hy; rewrite /setU1 Hy orbT. Qed.
+Lemma predU1P : reflect (x = y \/ b) ((x == y) || b).
+Proof. apply: (iffP orP) => [] []; by [right | move/eqP; left]. Qed.
 
-Lemma setU1P : forall x (a : set) y, reflect (x = y \/ a y) (setU1 x a y).
-Proof.
-by move=> x a y; apply: (iffP orP); case; auto; left; [ apply: eqP | apply/eqP ].
-Qed.
+Lemma predD1P : reflect (x <> y /\ b) ((x != y) && b).
+Proof. by apply: (iffP andP)=> [] [] //; move/eqP. Qed.
 
-Lemma setC11 : forall x, setC1 x x = false.
-Proof. by move=> *; rewrite /setC1 set11. Qed.
+Lemma predU1l : x = y -> (x == y) || b.
+Proof. by move->; rewrite eqxx. Qed.
 
-Lemma setD11 : forall x a, setD1 a x x = false.
-Proof. by move=> *; rewrite /setD1 set11. Qed.
+Lemma predU1r : b -> (x == y) || b.
+Proof. by move->; rewrite orbT. Qed.
 
-Lemma set21 : forall x1 x2, set2 x1 x2 x1.
-Proof. by move=> *; rewrite /set2 set11. Qed.
+End EqPred.
 
-Lemma set22 : forall x1 x2, set2 x1 x2 x2.
-Proof. by move=> *; rewrite /set2 set11 orbT. Qed.
+Implicit Arguments predU1P [T x y b].
+Prenex Implicits pred1 pred2 pred3 pred4 predU1 predC1 predD1 predU1P.
 
-Lemma set31 : forall x1 x2 x3, set3 x1 x2 x3 x1.
-Proof. by move=> *; rewrite /set3 set11. Qed.
+Notation "[ 'predU1' x & A ]" := (predU1 x [mem A])
+  (at level 0, format "[ 'predU1'  x  &  A ]") : fun_scope.
+Notation "[ 'predD1' A & x ]" := (predD1 [mem A] x)
+  (at level 0, format "[ 'predD1'  A  &  x ]") : fun_scope.
 
-Lemma set32 : forall x1 x2 x3, set3 x1 x2 x3 x2.
-Proof. by move=> *; rewrite /set3 set11 !orbT . Qed.
-
-Lemma set33 : forall x1 x2 x3, set3 x1 x2 x3 x3.
-Proof. by move=> *; rewrite /set3 set11 !orbT. Qed.
-
-Lemma sub_relUl : forall e e', sub_rel e (relU e e').
-Proof. by move=> e e' x y Hxy; rewrite /relU /setU Hxy. Qed.
-
-Lemma sub_relUr : forall e e', sub_rel e' (relU e e').
-Proof. by move=> e e' x y Hxy; rewrite /relU /setU Hxy orbT. Qed.
-
-End EqSet.
-
-Hint Resolve set11.
-
-Prenex Implicits set1f set2 set3 set4 setU setD setD1 setI setC setC1.
-
-Notation set0 := (fun _ : EqType.sort _ => false).
-
-(* Coercion setA (d : eqType) : set d := fun x : d => true. *)
-Definition setA (d : eqType) : set d := fun x : d => true.
-Implicit Arguments setA []. 
-
-Identity Coercion membership : set >-> Funclass.
-
-Implicit Arguments setU1P [d x a y].
-Prenex Implicits setU1 setU1P.
-
-(* Lemmas for reflected equality and endo functions.   *)
+(* Lemmas for reflected equality and functions.   *)
 
 Section EqFun.
 
-Lemma inj_eq : forall (d d' : eqType) (h : d -> d'),
+Lemma inj_eq : forall (aT rT : eqType) (h : aT -> rT),
   injective h -> forall x y, (h x == h y) = (x == y).
-Proof. by move=> d d' h *; apply/eqP/eqP => *; [ auto | congr h ]. Qed.
+Proof. by move=> T T' h *; apply/eqP/eqP => *; [ auto | congr h ]. Qed.
 
-Variables (d : eqType) (f g : d -> d).
+Section Endo.
+
+Variables (T : eqType) (f g : T -> T).
+
+Definition frel := [rel x y : T | f x == y].
 
 Lemma can_eq : cancel f g -> forall x y, (f x == f y) = (x == y).
 Proof. move/can_inj; exact: inj_eq. Qed.
@@ -241,44 +168,86 @@ Proof. move/can_inj; exact: inj_eq. Qed.
 Lemma bij_eq : bijective f -> forall x y, (f x == f y) = (x == y).
 Proof. move/bij_inj; apply: inj_eq. Qed.
 
-Lemma can2_eq : cancel f g -> cancel g f -> forall x y, (f x == y) = (x == g y).
+Lemma can2_eq :
+  cancel f g -> cancel g f -> forall x y, (f x == y) = (x == g y).
 Proof. by move=> Ef Eg x y; rewrite -{1}[y]Eg; exact: can_eq. Qed.
 
 Lemma inv_eq : involutive f -> forall x y, (f x == y) = (x == f y).
 Proof. by move=> Ef x y; rewrite -(inj_eq (inv_inj Ef)) Ef. Qed.
 
-Variable d' : eqType.
+End Endo.
 
-Definition preimage k (a : set d') : set d := fun x => a (k x).
+Variable aT : Type.
 
-(* The invariant of an function f wrt a projection k is the set of points that *)
-(* have the same projection as their image. We use this mainly with k a        *)
-(* coloring function (in fact "coloring" a map is defined using "invariant").  *)
+(* The invariant of an function f wrt a projection k is the pred of points *)
+(* that have the same projection as their image.                           *)
 
-Definition invariant (k : d -> d') : set d := fun x => (k (f x) == k x).
+Definition invariant (rT : eqType) f (k : aT -> rT) :=
+  [pred x | k (f x) == k x].
 
-Lemma invariant_comp : forall h k, sub_set (invariant k) (invariant (h \o k)).
-Proof. by move=> h k x Dkfx; rewrite /comp /invariant (eqP Dkfx) set11. Qed.
+Variables (rT1 rT2 : eqType) (f : aT -> aT) (h : rT1 -> rT2) (k : aT -> rT1).
 
-Lemma invariant_inj : forall h k, injective h -> invariant (h \o k) =1 invariant k.
-Proof. move=> h k Hh x; exact: (inj_eq Hh). Qed.
+Lemma invariant_comp : subpred (invariant f k) (invariant f (h \o k)).
+Proof. by move=> x eq_kfx; rewrite /comp /= (eqP eq_kfx). Qed.
+
+Lemma invariant_inj : injective h -> invariant f (h \o k) =1 invariant f k.
+Proof. move=> inj_h x; exact: (inj_eq inj_h). Qed.
 
 End EqFun.
 
-Prenex Implicits preimage.
+Prenex Implicits frel.
 
-(* Various  constructions (however, we tend to roll out our own, in *)
-(* order to retain control over the equality predicate).                   *)
+Section FunWith.
+
+Variables (aT : eqType) (rT : Type).
+
+CoInductive fun_delta : Type := FunDelta of aT & rT.
+
+Definition fwith x y (f : aT -> rT) := [fun z => if z == x then y else f z].
+
+Definition app_fdelta df f z :=
+  let: FunDelta x y := df in if z == x then y else f z.
+
+End FunWith.
+
+Prenex Implicits fwith.
+
+Notation "x |-> y" := (FunDelta x y)
+  (at level 190, no associativity,
+   format "'[hv' x '/ '  |->  y ']'") : fun_delta_scope.
+
+Delimit Scope fun_delta_scope with FUN_DELTA.
+Arguments Scope app_fdelta [_ type_scope fun_delta_scope _ _].
+
+Notation "[ 'fun' z : T => F 'with' df1 , .. , dfn ]" :=
+  (SimplFunDelta (fun z : T =>
+     app_fdelta df1 .. (app_fdelta dfn (fun _ => F)) ..))
+  (at level 0, z ident, only parsing) : fun_scope.
+
+Notation "[ 'fun' z => F 'with' df1 , .. , dfn ]" :=
+  (SimplFunDelta (fun z =>
+      app_fdelta df1%FUN_DELTA .. (app_fdelta dfn%FUN_DELTA (fun _ => F)) ..))
+  (at level 0, z ident, format
+  "'[hv' [ '[' 'fun'  z  => '/ '  F ']' '/'  'with'  '[' df1 , '/'  .. , '/'  dfn ']' ] ']'") : fun_scope.
+
+Notation "[ 'eta' f 'with' df1 , .. , dfn ]" :=
+  (SimplFunDelta (fun _ =>
+      app_fdelta df1%FUN_DELTA .. (app_fdelta dfn%FUN_DELTA f) ..))
+  (at level 0, z ident, format
+  "'[hv' [ '[' 'eta' '/ '  f ']' '/'  'with'  '[' df1 , '/'  .. , '/'  dfn ']' ] ']'") : fun_scope.
+
+(* Various EqType constructions.                                         *)
 
 Section ComparableType.
 
-Variable d : Type.
+Variable T : Type.
 
-Definition comparable := forall x y : d, {x = y} + {x <> y}.
+Definition comparable := forall x y : T, {x = y} + {x <> y}.
 
-Hypothesis Hcompare : forall x y : d, {x = y} + {x <> y}.
+Hypothesis Hcompare : forall x y : T, {x = y} + {x <> y}.
 
 Definition compareb x y := if Hcompare x y is left _ then true else false.
+
 
 Lemma compareP : reflect_eq compareb.
 Proof. by move=> x y; rewrite /compareb; case (Hcompare x y); constructor. Qed.
@@ -287,114 +256,273 @@ Definition comparableType := EqType compareP.
 
 End ComparableType.
 
-Definition eq_comparable (d : eqType) : comparable d :=
+Definition eq_comparable (T : eqType) : comparable T :=
   fun x y => decP (x =P y).
 
-Section SubEqType.
+Section SubType.
 
-Variables (d : eqType) (a : set d).
+Variables (T : Type) (p : pred T).
 
-Record eq_sig : Type := EqSig {val : d; valP : a val}.
+Structure subType : Type := SubType {
+  SubType_sort :> Type;
+  val : SubType_sort -> T;
+  Sub : forall x, p x -> SubType_sort;
+  _ : forall P (_ : forall x p_x, P (Sub x p_x)) u, P u;
+  _ : forall x p_x, val (Sub x p_x) = x
+}.
 
-Lemma val_eqP : reflect_eq (fun u v => val u == val v).
-Proof.
-move=> [x Hx] [y Hy]; apply: (iffP eqP) => Hxy; last by congr val.
-by simpl in Hxy; rewrite -Hxy in Hy |- *; rewrite (bool_irrelevance Hy Hx).
-Qed.
+Implicit Arguments Sub [s].
 
-Canonical Structure sub_eqType := EqType val_eqP.
+Section SubTypeOp.
 
-Lemma val_eqE : forall u v : sub_eqType, (val u == val v) = (u == v).
-Proof. done. Qed.
+Variable sT : subType.
 
-Lemma val_inj : injective val.
-Proof. by move=> u v; move/eqP; move/val_eqP. Qed.
+CoInductive Sub_spec : sT -> Type := SubSpec x p_x : Sub_spec (Sub x p_x).
+
+Lemma SubP : forall u, Sub_spec u.
+Proof. by case: sT Sub_spec SubSpec => T' _ C rec _ /= s sC; elim/rec. Qed.
+
+Lemma SubK : forall x p_x, @val sT (Sub x p_x) = x.
+Proof. by case sT. Qed.
 
 Definition insub x :=
-  if @idP (a x) is Reflect_true Hx then Some (EqSig Hx) else None.
+  if @idP (p x) is Reflect_true p_x then @Some sT (Sub x p_x) else None.
 
-CoInductive insub_spec (x : d) : option sub_eqType -> Type :=
-  | Some_val u : a x -> val u = x -> insub_spec x (Some u)
-  | None_val : ~~ a x -> insub_spec x None.
+Definition insubd u0 x := odflt u0 (insub x).
+
+CoInductive insub_spec x : option sT -> Type :=
+  | InsubSome u of p x & val u = x : insub_spec x (Some u)
+  | InsubNone   of ~~ p x          : insub_spec x None.
 
 Lemma insubP : forall x, insub_spec x (insub x).
 Proof.
-move=> x; rewrite /insub; case: {2}(a x) / (@idP (a x)); first by left.
-by move/negP; right.
+rewrite/insub => x; case: {2}(p x) / idP; last by right; exact/negP.
+by left; rewrite ?SubK.
 Qed.
-
-Lemma insubT : forall x (ax : a x),
-  insub x = Some (EqSig ax).
+  
+Lemma insubT : forall x p_x, insub x = Some (Sub x p_x).
 Proof.
-move=> x ax.
-by case: insubP=> [[y ay] _ Exy| ]; [congr Some; exact: val_inj | rewrite ax].
+move=> x p_x; case: insubP; last by case/negP.
+case/SubP=> y p_y _ def_x; rewrite -def_x SubK in p_x *.
+congr (Some (Sub _ _)); exact: bool_irrelevance.
 Qed.
 
-Implicit Arguments insubT [x].
+Lemma insubF : forall x, p x = false -> insub x = None.
+Proof. by move=> x npx; case: insubP => // u; rewrite npx. Qed.
 
-Lemma insub_val : forall u, @insub (val u) = Some u.
-Proof. by move=> [x Hx]; rewrite -insubT. Qed.
+Lemma insubN : forall x, ~~ p x -> insub x = None.
+Proof. by move=> x; move/negPf; exact: insubF. Qed.
 
-Lemma insubF : forall x, a x = false -> insub x = None.
-Proof. by move=> x Hx; case: insubP=> // ?; rewrite Hx. Qed.
+Lemma isSome_insub : ([eta insub] : pred T) =1 p.
+Proof. by apply: fsym => x; case: insubP => //; move/negPf. Qed.
 
-Lemma insubN : forall x, ~~ a x -> insub x = None.
-Proof. move=> x; move/negbET; exact: insubF. Qed.
+Lemma insubK : ocancel insub (@val _).
+Proof. by move=> x; case: insubP. Qed.
+
+Lemma valP : forall u : sT, p (val u).
+Proof. by case/SubP=> x p_x; rewrite SubK. Qed.
+
+Lemma valK : pcancel (@val _) insub.
+Proof. case/SubP=> x p_x; rewrite SubK; exact: insubT. Qed.
+
+Lemma val_inj : injective (@val sT).
+Proof. exact: pcan_inj valK. Qed.
+
+Lemma val_insubd : forall u0 x, val (insubd u0 x) = if p x then x else val u0.
+Proof.
+by rewrite /insubd => u0 x; case: insubP => [u -> // | ]; move/negPf->.
+Qed.
+
+Lemma insubdK : forall u0, {in p, cancel (insubd u0) (@val _)}.
+Proof. by move=> u0 x p_x; rewrite val_insubd [p x]p_x. Qed.
+
+Definition insub_eq x :=
+  let Some_sub p_x := Some (Sub x p_x : sT) in
+  let None_sub _ := None in
+  (if p x as p_x return p x = p_x -> _ then Some_sub else None_sub) (erefl _).
+
+Lemma insub_eqE : insub_eq =1 insub.
+Proof.
+rewrite /insub_eq /insub => x.
+case: {2 4 5}(p x) / idP (erefl _) => // p_x p_x'.
+by congr Some; apply: val_inj; rewrite !SubK.
+Qed.
+
+End SubTypeOp.
+
+Lemma vrefl : forall x, p x -> x = x. Proof. by []. Qed.
+
+End SubType.
+
+Implicit Arguments SubType [T p SubType_sort Sub].
+Implicit Arguments Sub [T p s].
+Implicit Arguments insub [T p sT].
+Implicit Arguments vrefl [T p].
+Implicit Arguments val_inj [T p sT].
+Prenex Implicits val Sub insub insubd val_inj vrefl.
+
+Notation "[ 'subType' 'of' T ]" :=
+  (match {T : as subType _} as s return [type of @SubType _ _ for s] -> _ with
+  | SubType _ _ _ rec can => fun k => k _ _ rec can end
+  (@SubType _ _ T)) (at level 0, only parsing) : form_scope.
+
+Notation "[ 'subType' 'for' proj ]" :=
+  (match {argumentType proj as subType _} as s
+     return [type of @SubType _ _ _ for @val _ _ s] -> _ with
+  | SubType _ _ _ rec can => fun k => k _ rec can end
+  (@SubType _ _ _ proj)) (at level 0, only parsing) : form_scope.
+
+Notation "[ 'insub' x 'in' sT ]" := (insub x : option sT)
+  (at level 0, format "[ 'insub'  x  'in'  sT ]") : form_scope.
+
+Definition NewType T nT proj Con rec :=
+  @SubType T xpredA nT proj (fun x _ => Con x)
+   (fun P IH => rec P (fun x => IH x (erefl true))).
+
+Implicit Arguments NewType [T nT Con].
+
+Definition innew T nT x := @Sub T predA nT x (erefl true).
+
+Implicit Arguments innew [T nT].
+Prenex Implicits innew.
+
+Lemma innew_val : forall T nT, cancel val (@innew T nT).
+Proof. by move=> T nT u; apply: val_inj; exact: SubK. Qed.
+
+Notation "[ 'innew' x 'in' nT ]" := (innew x : nT)
+  (at level 0, format "[ 'innew'  x  'in'  nT ]") : form_scope.
+
+Notation sval := proj1_sig.
+
+Section SigProj.
+
+Variables (T : Type) (P Q : T -> Prop).
+
+Lemma svalP : forall u : sig P, P (sval u). Proof. by case. Qed.
+
+Definition s2val (u : sig2 P Q) := let: exist2 x _ _ := u in x.
+
+Lemma s2valP : forall u, P (s2val u). Proof. by case. Qed.
+
+Lemma s2valP' : forall u, Q (s2val u). Proof. by case. Qed.
+
+End SigProj.
+
+Canonical Structure sig_subType T (p : pred T) :=
+  SubType (@sval T [eta p]) (@sig_rect _ _) vrefl.
+
+Notation insig := (fun p => @insub _ p (sig_subType p)).
+
+Notation "[ 'insub' x | p ]" := (@insub _ p (sig_subType _) x)
+  (at level 0, format "[ 'insub'  x  |  p ]") : form_scope.
+
+(* This should be a rel definition, but it seems this causes divergence  *)
+(* of the simpl tactic on expressions involving == on 4+ nested subTypes *)
+(* in a "strict" position (e.g., as the argument of ~~).                 *)
+
+Notation feq := (fun f x y => f x == f y).
+
+Section TransferEqType.
+
+Variables (T : Type) (eT : eqType) (f : T -> eT).
+
+Lemma inj_reflect_eq : injective f -> reflect_eq (feq f).
+Proof. by move=> f_inj x y; apply: (iffP eqP) => [|-> //]; exact: f_inj. Qed.
+
+Definition InjEqType f_inj := EqType (inj_reflect_eq f_inj).
+
+Definition PcanEqType g (fK : pcancel f g) := InjEqType (pcan_inj fK).
+
+Definition CanEqType g (fK : cancel f g) := InjEqType (can_inj fK).
+
+End TransferEqType.
+
+Section SubEqType.
+
+Variables (T : eqType) (p : pred T) (sT : subType p).
+
+Lemma val_eqP : @reflect_eq sT (feq val).
+Proof. exact: inj_reflect_eq val_inj. Qed.
+
+Canonical Structure sub_eqType := EqType val_eqP.
+
+Lemma val_eqE : forall u v : sT, (val u == val v) = (u == v).
+Proof. by []. Qed.
 
 End SubEqType.
 
-Implicit Arguments EqSig [d].
-Implicit Arguments val_eqP [d a x y].
-Prenex Implicits val val_eqP.
+Implicit Arguments val_eqP [T p sT x y].
+Prenex Implicits val_eqP.
+
+Notation "[ 'subEqType' 'for' proj ]" :=
+  (@EqType _ (feq proj) (@val_eqP _ _ _))
+  (at level 0, only parsing) : form_scope.
+
+Canonical Structure sig_eqType (T : eqType) (p : pred T) :=
+  [subEqType for @sval T p].
 
 Section ProdEqType.
 
-Variable d1 d2 : eqType.
+Variable T1 T2 : eqType.
 
-Definition pair_eq (u v : d1 * d2) :=
-  (fst u == fst v) && (snd u == snd v).
+Definition pair_eq := [rel u v : T1 * T2 | (u.1 == v.1) && (u.2 == v.2)].
 
 Lemma pair_eqP : reflect_eq pair_eq.
 Proof.
-move=> [x1 x2] [y1 y2] /=; apply: (iffP idP) => [|[<- <-]]; 
-  last ( by rewrite / pair_eq //= !set11).
-move=> H1; elim: (andP H1)=> //= H2 H3;
-  apply: injective_projections => //=; by apply/eqP.
+move=> [x1 x2] [y1 y2] /=; apply: (iffP andP) => [[]|[<- <-]] //=.
+by do 2!move/eqP->.
 Qed.
 
 Canonical Structure prod_eqType := EqType pair_eqP.
 
-Lemma pair_eqE : pair_eq = set1. Proof. done. Qed.
+Lemma pair_eqE : pair_eq = eqd :> rel _. Proof. by []. Qed.
 
-Lemma pair_eq1 : forall u v : d1 * d2, u == v -> fst u == fst v.
+Lemma pair_eq1 : forall u v : T1 * T2, u == v -> u.1 == v.1.
 Proof. by move=> [x1 x2] [y1 y2]; case/andP. Qed.
 
-Lemma pair_eq2 : forall u v : d1 * d2, u == v -> snd u == snd v.
+Lemma pair_eq2 : forall u v : T1 * T2, u == v -> u.2 == v.2.
 Proof. by move=> [x1 x2] [y1 y2]; case/andP. Qed.
-
-Variable a1 : set d1.
-Variable a2 : set d2.
-
-Definition prod_set : set _ :=
-  fun z => a1 (fst z) && a2 (snd z).
 
 End ProdEqType.
 
-Implicit Arguments pair_eqP [d1 d2].
-Prenex Implicits fst snd pair_eqP.
+Implicit Arguments pair_eqP [T1 T2].
+
+Prenex Implicits pair_eqP.
+
+Definition predX T1 T2 (p1 : pred T1) (p2 : pred T2) :=
+  [pred z | p1 z.1 && p2 z.2].
+
+Notation "[ 'predX' A1 & A2 ]" := (predX [mem A1] [mem A2])
+  (at level 0, format "[ 'predX'  A1  &  A2 ]") : fun_scope.
+
+Section OptionEqType.
+
+Variable T : eqType.
+
+Definition eq_opt (u v : option T) : bool :=
+  oapp (fun x => oapp (eqd x) false v) (~~ v) u.
+
+Lemma eq_optP : reflect_eq eq_opt.
+Proof.
+case=> [x|] [y|] /=; by [constructor | apply: (iffP eqP) => [|[]] ->].
+Qed.
+
+Canonical Structure option_eqType := EqType eq_optP.
+
+End OptionEqType.
 
 Section SumEqType.
 
-Variables (index : eqType) (dom_at : index -> eqType).
+Variables (I : eqType) (T : I -> eqType).
 
-Record eq_sum : Type := EqSum {sum_tag : index; sum_tagged : dom_at sum_tag}.
+Record eq_sum : Type := EqSum {sum_tag : I; sum_tagged : T sum_tag}.
 
-Definition tagged_as (u v : eq_sum) : dom_at (sum_tag u) :=
+Definition tagged_as (u v : eq_sum) : T (sum_tag u) :=
   if sum_tag u =P sum_tag v is Reflect_true Huv then
-    eq_rect_r dom_at (sum_tagged v) Huv 
+    eq_rect_r T (sum_tagged v) Huv 
   else sum_tagged u.
 
-Lemma tagged_as_same : forall i (x y : dom_at i),
+Lemma tagged_as_same : forall i (x y : T i),
   tagged_as (EqSum x) (EqSum y) = y.
 Proof.
 move=> i x y; rewrite /tagged_as /=; case: (i =P i) => [Hii|[]]; auto.
@@ -413,56 +541,19 @@ Qed.
 
 Canonical Structure sum_eqType := EqType sum_eqP.
 
-Lemma sum_eqE : sum_eq = set1. Proof. done. Qed.
+Lemma sum_eqE : sum_eq = eqd. Proof. by []. Qed.
 
 Lemma sum_eq_tag : forall u v : sum_eqType, u == v -> sum_tag u == sum_tag v.
 Proof.
 by move=> [i x] [j y]; rewrite -{1}sum_eqE /sum_eq /=; case (i == j).
 Qed.
 
-Lemma sum_eq_tagged : forall i (x y : dom_at i), (EqSum x == EqSum y) = (x == y).
-Proof. by move=> *; rewrite -{1}sum_eqE /sum_eq /= set11 tagged_as_same. Qed.
+Lemma sum_eq_tagged : forall i (x y : T i), (EqSum x == EqSum y) = (x == y).
+Proof. by move=> *; rewrite -{1}sum_eqE /sum_eq /= eqxx tagged_as_same. Qed.
 
 End SumEqType.
 
-Implicit Arguments sum_tagged [index dom_at].
-Implicit Arguments sum_eqP [index dom_at x y].
+Implicit Arguments sum_tagged [I T].
+Implicit Arguments sum_eqP [I T x y].
 Prenex Implicits sum_tag sum_tagged sum_eqP.
 
-Section Funs.
-
-(* More funs variants : local equality, cancellation, bijection. *)
-
-Definition dinjective A B (a : set A) (f : A -> B) := 
-  forall x y, a x -> a y -> f x = f y -> x = y.
-
-Lemma inj_dinj: forall A B (a : set A) (f : A -> B), injective f -> dinjective a f.
-Proof.
-move => A B a f H x y H1 H2; exact: H.
-Qed.
-
-Definition dfequal A B (a : set A) (f f' : A -> B) :=
-  forall x, a x -> f x = f' x.
-
-Definition dcancel A B (a : set A) (f : A -> B) f' :=
-  forall x, a x -> f' (f x) = x.
-
-Lemma dcan_inj : forall (A B : eqType) a f f',
-  @dcancel A B a f f' -> dinjective a f.
-Proof.
-by move=> A B a f f' fK x y; do 2![move/fK=> Dx; rewrite -{2}Dx {Dx}] => ->.
-Qed.
-
-Definition icancel A B (b : set B) (f : A -> B) f' :=
-  forall x, b (f x) -> f' (f x) = x.
-
-Definition dbijective A B (a : set A) (f : A -> B) :=
-  exists2 f', dcancel a f f' & icancel a f' f.
-
-Definition ibijective A B (b : set B) (f : A -> B) :=
-  exists2 f', icancel b f f' & dcancel b f' f.
-
-End Funs.
-
-
-Unset Implicit Arguments.

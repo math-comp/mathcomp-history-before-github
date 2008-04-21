@@ -1,5 +1,5 @@
-Require Import ssreflect ssrbool funs eqtype ssrnat seq fintype connect tuple.
-Require Import div groups group_perm zp signperm ssralg ssrbig.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype connect finfun.
+Require Import div groups group_perm zp signperm ssralg bigops finset. 
 (* Require Import Setoid. *)
 
 Set Implicit Arguments.
@@ -55,8 +55,7 @@ Variables m n : nat.
 (* mostly inferred automatically; we may have to reconsider this design   *)
 (* if it proves too unwieldly for block decomposition theory.             *)
 
-CoInductive matrix : Type :=
-  Matrix of fgraphType {(I_(m) * I_(n) : Type)%type as finType} R.
+CoInductive matrix : Type := Matrix of {ffun I_(m) * I_(n) -> R}.
 
 Notation "'M_' ( m , n )" := (matrix m n).
 Notation "'M_' ( n )" := (matrix n n).
@@ -65,22 +64,21 @@ Definition matrix_val A := let: Matrix g := A in g.
 
 Lemma can_matrix_val : cancel matrix_val Matrix. Proof. by case. Qed.
 
-Canonical Structure matrix_eqType := EqType (can_eq can_matrix_val).
+Canonical Structure matrix_eqType := CanEqType can_matrix_val.
 
-Definition matrix_of_fun F :=
-  locked Matrix (fgraph_of_fun (fun ij => F ij.1 ij.2)).
+Definition matrix_of_fun F := locked Matrix [ffun ij => F ij.1 ij.2].
 
 Definition fun_of_matrix := locked (fun A i j => matrix_val A (i, j)).
 
 Coercion fun_of_matrix  : matrix >-> Funclass.
 
 Lemma mxK : forall F, matrix_of_fun F =2 F.
-Proof. by unlock matrix_of_fun fun_of_matrix => F i j; rewrite /= g2f. Qed.
+Proof. by unlock matrix_of_fun fun_of_matrix => F i j; rewrite /= ffunE. Qed.
 
 Lemma matrixP : forall A B : matrix, A =2 B <-> A = B.
 Proof.
 unlock fun_of_matrix => [] [A] [B]; split=> [/= eqAB | -> //].
-congr Matrix; apply/fgraphP=> [] [i j]; exact: eqAB.
+congr Matrix; apply/ffunP=> [] [i j]; exact: eqAB.
 Qed.
 
 End MatrixDef.
@@ -230,7 +228,7 @@ Lemma mx_paste_cut : forall m1 m2 n (A : M_(m1 + m2, n)),
   paste (lcut A) (rcut A) = A.
 Proof.
 move=> m1 m2 n A; apply/matrixP=> i j; rewrite !mxK.
-case: splitP => k Dk //=; rewrite !mxK //=; congr (A _ _); exact: ordinal_inj.
+case: splitP => k Dk //=; rewrite !mxK //=; congr (A _ _); exact: val_inj.
 Qed.
 
 (* The trace, in 1/4 line. *)
@@ -311,7 +309,7 @@ Proof. by move=> m n A; apply/matrixP=> i j; rewrite !mxK mulN1r addNr. Qed.
 
 Lemma mul1mx : forall m n (A : M_(m, n)), \1 *m A = A.
 Proof.
-move=> m n A; apply/matrixP=> i j; rewrite !mxK (bigD1 i) //= mxK set11.
+move=> m n A; apply/matrixP=> i j; rewrite !mxK (bigD1 i) //= mxK eqxx.
 by rewrite big1 ?simp //= => k ne_ki; rewrite mxK eq_sym (negbET ne_ki) simp.
 Qed.
 
@@ -366,27 +364,15 @@ Canonical Structure matrix_additive_group m n :=
 
 (* the additive group structure provides generic sums. *)
 
-Lemma mxK_sum : forall m n I (r : seq I) P (F : I -> M_(m, n)) i j,
+Lemma mxK_sum : forall m n (I : eqType) r (P : pred I) (F : I -> M_(m, n)) i j,
   (\sum_(k <- r | P k) F k) i j = \sum_(k <- r | P k) F k i j.
 Proof.
 move=> m n I r P F i j; apply: (big_morph (fun A : M_(m, n) => A i j)).
-by split=> *; rewrite !mxK.
+by split=> [|A B]; rewrite !mxK.
 Qed.
 
-(* To make a true matrix ring the order needs to be positive! *)
-(* We use a structure to encode that info; it should be defined in ssrnat. *)
-
-Record pos_nat : Type := PosNat { pos_nat_val :> nat; _ : pos_nat_val > 0 }.
-Lemma pos_natP : forall n : pos_nat, n > 0. Proof. by case. Qed.
-Canonical Structure S_pos_nat n := PosNat (ltn0Sn n).
-Canonical Structure addr_pos_nat m n :=
-  PosNat (leq_trans (pos_natP n) (leq_addl m n)).
-Lemma mul_pos_natP : forall (m n : pos_nat), m * n > 0.
-Proof. by do 2!case=> [[//|?] /= _]. Qed.
-Canonical Structure mul_pos_nat m n := PosNat (mul_pos_natP m n).
-Lemma exp_pos_natP : forall (n : pos_nat) m, n ^ m > 0.
-Proof. by move=> [n posn] m; rewrite ltn_0exp posn. Qed.
-Canonical Structure exp_pos_nat m n := PosNat (exp_pos_natP m n).
+(* To make a true matrix ring the order needs to be positive!       *)
+(* We use a structure to encode that info; it is defined in ssrnat. *)
 
 Section MatrixRing.
 
@@ -394,7 +380,7 @@ Variable n : pos_nat.
 
 Lemma nonzeromx1 : \1_(n) <> \0.
 Proof.
-rewrite -(ltnSpred (pos_natP n)); move/matrixP; move/(_ ord0 ord0).
+rewrite -(ltn_predK (pos_natP n)); move/matrixP; move/(_ ord0 ord0).
 rewrite !mxK; exact: nonzero1r.
 Qed.
 
@@ -406,7 +392,7 @@ End MatrixRing.
 
 Lemma perm_mxM : forall n (s t : S_(n)), \P (s * t)%G = \P s *m \P t.
 Proof.
-move=> n s t; apply/matrixP=> i j; rewrite !mxK (bigD1 (s i)) //= !mxK set11.
+move=> n s t; apply/matrixP=> i j; rewrite !mxK (bigD1 (s i)) //= !mxK eqxx.
 rewrite simp -permM big1 /= => [|k ne_k_si]; first by rewrite addrC simp.
 by rewrite mxK /= eq_sym (negbET ne_k_si) simp.
 Qed.
@@ -445,7 +431,7 @@ move=> n A B C i0 b c ABC; move/matrixP=> BA; move/matrixP=> CA.
 move/mx_eq_rem_row: BA => BA; move/mx_eq_rem_row: CA => CA.
 rewrite !big_distrr -big_split; apply: eq_bigr => s _ /=.
 rewrite -!(mulrCA (_ ^+s)) -mulr_addr; congr (_ * _).
-rewrite !(bigD1 i0 (_ : setA _ i0)) //=.
+rewrite !(bigD1 i0 (_ : predA i0)) //=.
 move/matrixP: ABC => ABC; rewrite (mx_eq_row ABC) !mxK mulr_addl !mulrA.
 by congr (_ * _ + _ * _); apply: eq_bigr => i ?; rewrite ?BA ?CA // eq_sym.
 Qed.
@@ -454,24 +440,25 @@ Lemma alternate_determinant : forall n (A : M_(n)) i1 i2,
   i1 != i2 -> A i1 =1 A i2 -> \det A = 0.
 Proof.
 move=> n A i1 i2 Di12 A12; pose r := I_(n).
-pose t := transp i1 i2; pose tr s := (t * s)%G.
-have trK : involutive tr by move=> s; rewrite /tr mulgA transp2 mul1g.
+pose t := tperm i1 i2; pose tr s := (t * s)%G.
+have trK : involutive tr by move=> s; rewrite /tr mulgA tperm2 mul1g.
 have Etr: forall s, odd_perm (tr s) = even_perm s.
-  by move=> s; rewrite odd_permM odd_transp Di12.
-rewrite /(\det _) (bigID (@even_perm r)) /=.
+  by move=> s; rewrite odd_permM odd_tperm Di12.
+rewrite /(\det _) (bigID (@even_perm _)) /=.
 set S1 := \sum_(<- _ | _) _; set T := S1 + _.
 rewrite -(addNr S1) addrC; congr (_ + _); rewrite {}/T {}/S1 -sum_opp.
-rewrite (reindex tr) /=; last by exists tr.
-symmetry; apply: eq_big => [s | s seven]; first by rewrite negbK Etr.
-rewrite -mulNr Etr seven (negbET seven) expr1n; congr (_ * _).
-rewrite (reindex t) /=; last by exists (t : _ -> _) => i _; exact: transpK.
+rewrite (reindex tr) /=; last by exists tr => ? _.
+symmetry; apply: eq_big => [s | s]; first by rewrite negbK Etr.
+rewrite -topredE /= => seven; rewrite -mulNr Etr seven (negbET seven) expr1n.
+congr (_ * _).
+rewrite (reindex t) /=; last by exists (t : _ -> _) => i _; exact: tpermK.
 apply: eq_bigr => i _; rewrite permM /t.
-by case: transpP => // ->; rewrite A12.
+by case: tpermP => // ->; rewrite A12.
 Qed.
 
 Lemma determinant_tr : forall n (A : M_(n)), \det (\^t A) = \det A.
 Proof.
-move=> n A; pose r := I_(n); pose ip p : permType r := p^-1.
+move=> n A; pose r := I_(n); pose ip p : S_(n) := p^-1.
 rewrite /(\det _) (reindex ip) /=; last first.
   by exists ip => s _; rewrite /ip invgK.
 apply: eq_bigr => s _; rewrite !odd_permV /= (reindex s).
@@ -482,11 +469,11 @@ Qed.
 Lemma determinant_perm : forall n (s : S_(n)), \det (\P s) = (-1) ^+s.
 Proof.
 move=> n s; rewrite /(\det _) (bigD1 s) //=.
-rewrite big1 => [|i _]; last by rewrite /= !mxK set11.
+rewrite big1 => [|i _]; last by rewrite /= !mxK eqxx.
 rewrite big1 => /= [|t Dst]; first by rewrite !simp.
 case: (pickP (fun i => s i != t i)) => [i ist | Est].
   by rewrite (bigD1 i) // mulrCA /= mxK (negbET ist) simp.
-by case/eqP: Dst; apply: eq_fun_of_perm => i; move/eqP: (Est i).
+by case/eqP: Dst; apply/permP => i; move/eqP: (Est i).
 Qed.
 
 Lemma determinant1 : forall n, \det \1_(n) = 1.
@@ -500,7 +487,7 @@ Lemma determinant_scale : forall n x (A : M_(n)),
 Proof.
 move=> n x A; rewrite big_distrr /=; apply: eq_bigr => s _.
 rewrite mulrCA; congr (_ * _).
-rewrite -{10}[n]card_ordinal -prodr_const -big_split /setA /=.
+rewrite -{10}[n]card_ord -prodr_const -big_split /=.
 by apply: eq_bigr=> i _; rewrite mxK.
 Qed.
 
@@ -513,31 +500,24 @@ transitivity (\sum_(f) \sum_(s : S_(n)) (-1) ^+s * \prod_(i) AB f s i).
   rewrite -big_distrr /=; congr (_ * _).
   pose F i j := A i j * B j (s i); rewrite -(bigA_distr_bigA F) /=.
   by apply: eq_bigr => x _; rewrite mxK.
-rewrite (bigID (fun f => uniq (fval f))) /= addrC big1 ?simp /= => [|f Uf].
-  rewrite (reindex (fun s => val (pval s))); last first.
-    have s0 : S_(n) := 1%G; pose uf (f : F_(n)) := uniq (fval f).
-    pose pf f := if insub uf f is Some s then Perm s else s0.
-    exists pf => /= f Uf; rewrite /pf (@insubT _ uf _ Uf) //.
-    exact: eq_fun_of_perm.
-  apply: eq_big => [s|s _]; rewrite ?(valP (pval s)) // big_distrr /=.
+rewrite (bigID (fun f : F_(n) => injectiveb f)) /= addrC big1 ?simp => [|f Uf].
+  rewrite (reindex (fun s => pval s)); last first.
+    have s0 : S_(n) := 1%G; pose uf (f : F_(n)) := uniq (val f).
+    exists (insubd s0) => /= f Uf; first apply: val_inj; exact: insubdK.
+  apply: eq_big => [s|s _]; rewrite ?(valP s) // big_distrr /=.
   rewrite (reindex (mulg s)); last first.
     by exists (mulg s^-1) => t; rewrite ?mulKgv ?mulKg.
   apply: eq_bigr => t _; rewrite big_split /= mulrA mulrCA mulrA mulrCA mulrA.
   rewrite -signr_addb odd_permM; congr (_ * _).
   rewrite (reindex s^-1); last first.
     by exists (s : _ -> _) => i _; rewrite ?permK ?permKv.
-  by apply: eq_bigr => i _; rewrite permM permKv ?set11 // -{3}[i](permKv s).
+  by apply: eq_bigr => i _; rewrite permM permKv ?eqxx // -{3}[i](permKv s).
 transitivity (\det (\matrix_(i, j) B (f i) j) * \prod_(i) A i (f i)).
   rewrite mulrC big_distrr /=; apply: eq_bigr => s _.
   rewrite mulrCA big_split //=; congr (_ * (_ * _)).
   by apply: eq_bigr => x _; rewrite mxK.
-suffices [i1 [i2 Ef12 Di12]]: exists i1, exists2 i2, f i1 = f i2 & i1 != i2.
-  by rewrite (alternate_determinant Di12) ?simp //= => j; rewrite !mxK Ef12.
-pose ninj i1 i2 := (f i1 == f i2) && (i1 != i2).
-case: (pickP (fun i1 => ~~ set0b (ninj i1))) => [i1| injf].
-  by case/set0Pn=> i2; case/andP; move/eqP; exists i1; exists i2.
-case/(perm_uniqP f): Uf => i1 i2; move/eqP=> Dfi12; apply/eqP.
-by apply/idPn=> Di12; case/set0Pn: (injf i1); exists i2; apply/andP.
+case/injectivePn: Uf => i1 [i2 Di12 Ef12].
+by rewrite (alternate_determinant Di12) ?simp //= => j; rewrite !mxK Ef12.
 Qed.
 
 (* And now, the Laplace formula. *)
@@ -558,53 +538,54 @@ have lsfE: forall i s j, (lsf i s j i = j)
 have inj_lsf : injective (lsf _ _ _).
   move=> i s j; apply: can_inj (lsf j s^-1 i) _ => k.
   by case: (unliftP i k) => [k'|] ->; rewrite !lsfE ?permK.
-pose ls := perm_of_inj (inj_lsf _ _ _).
+pose ls := perm_of (inj_lsf _ _ _).
 have ls1 : forall i, ls i 1%G i = 1%G.
-  move=> i; apply: eq_fun_of_perm => k.
-  by case: (unliftP i k) => [k'|] ->; rewrite p2f lsfE !perm1.
+  move=> i; apply/permP => k.
+  by case: (unliftP i k) => [k'|] ->; rewrite permE lsfE !perm1.
 have lsM : forall i s j t k, (ls i s j * ls j t k)%G = ls i (s * t)%G k.
-  move=> i s j t k; apply: eq_fun_of_perm=> l; rewrite permM !p2f.
+  move=> i s j t k; apply/permP=> l; rewrite permM !permE.
   by case: (unliftP i l) => [l'|] ->; rewrite !lsfE ?permM.
 have sign_ls: forall s i j, (-1)^+(ls i s j) = (-1) ^+s * (-1)^+(i + j) :> R.
-  pose nfp (s : S_(n.-1)) k := s k != k.
-  move=> s i j; elim: {s}_.+1 {-2}s (ltnSn (card (nfp s))) => // m IHm s Hm.
+  pose nfp (s : S_(n.-1)) := [pred k | s k != k].
+  move=> s i j; elim: {s}_.+1 {-2}s (ltnSn #|nfp s|) => // m IHm s Hm.
   case: (pickP (nfp s)) Hm => [k Dsk | s1 _ {m IHm}].
-    rewrite ltnS (cardD1 k) Dsk => Hm; pose t := transp k (fun_of_perm s^-1 k).
-    rewrite -(mulKg t s) transpV -(lsM _ _ i).
+    rewrite ltnS (cardD1 k) [k \in _]Dsk => Hm.
+    pose t := tperm k (fun_of_perm s^-1 k).
+    rewrite -(mulKg t s) tpermV -(lsM _ _ i).
     rewrite 2!odd_permM 2!signr_addb -mulrA -{}IHm; last first.
       apply: {m} leq_trans Hm; apply: subset_leq_card; apply/subsetP=> k'.
-      rewrite /nfp /setD1 permM /t.
-      case: transpP=> [->|-> Ds|]; rewrite ?permKv; first by rewrite set11.
+      rewrite !inE /= inE /= permM /t (eq_sym k').
+      case: tpermP=> [->|-> Ds|]; rewrite ?permKv; first by rewrite eqxx.
         by rewrite andbb; apply/eqP=> Dk; case/eqP: Ds; rewrite {1}Dk permKv.
       by move/eqP; rewrite eq_sym => ->.
-    suffices ->: ls i t i = transp (lift i k) (lift i (fun_of_perm s^-1 k)).
-      by rewrite !odd_transp (inj_eq (@lift_inj _ _)).
-    apply: eq_fun_of_perm=> i'; rewrite p2f.
+    suffices ->: ls i t i = tperm (lift i k) (lift i (fun_of_perm s^-1 k)).
+      by rewrite !odd_tperm (inj_eq (@lift_inj _ _)).
+    apply/permP=> i'; rewrite permE.
     case: (unliftP i i') => [i''|] ->; rewrite lsfE.
-      rewrite inj_transp //; exact: lift_inj.
-    case transpP => //; move/eqP; case/idPn; exact: neq_lift.
+      rewrite inj_tperm //; exact: lift_inj.
+    case tpermP => //; move/eqP; case/idPn; exact: neq_lift.
   have ->: s = 1%G.
-    by apply: eq_fun_of_perm=> k; rewrite perm1; move/eqP: (s1 k).
+    by apply/permP=> k; rewrite perm1; move/eqP: (s1 k).
   rewrite odd_perm1 simp /=; without loss: i {s s1} j / j <= i.
     case: (leqP j i); first by auto.
     move/ltnW=> ij; move/(_ _ _ ij)=> Wji.
     rewrite -(mulgK (ls j 1%G i) (ls i  _ j)) lsM !(ls1,mul1g).
     by rewrite odd_permV addnC.
   move Dm: i.+1 => m; elim: m i Dm => // m IHm i [im].
-  rewrite leq_eqVlt; case/setU1P=> [eqji|ltji].
-    by rewrite (ordinal_inj eqji) ls1 odd_perm1 /= -signr_odd odd_addn addbb.
-  have m'm: m.-1.+1 = m by rewrite -im (ltnSpred ltji).
-  have ltm'n : m.-1 < n by rewrite m'm -im leq_eqVlt orbC (ordinal_ltn i).
+  rewrite leq_eqVlt; case/predU1P=> [eqji|ltji].
+    by rewrite (val_inj _ _ eqji) ls1 odd_perm1 /= -signr_odd odd_add addbb.
+  have m'm: m.-1.+1 = m by rewrite -im (ltn_predK ltji).
+  have ltm'n : m.-1 < n by rewrite m'm -im leq_eqVlt orbC (ltn_ord i).
   pose i' := Ordinal ltm'n; rewrite -{1}(mulg1 1%G) -(lsM _ _ i') odd_permM.
   rewrite signr_addb mulrC {}IHm; try by rewrite /= - 1?ltnS ?m'm // -im.
   rewrite im -m'm addSn -addn1 (exprn_addr _ _ 1); congr (_ * _).
-  have{j ltji} ii' : i != i' by rewrite /set1 /= im /= -m'm eqn_leq ltnn.
-  transitivity (((-1) ^+(transp i i')) : R); last by rewrite odd_transp ii'.
-  congr (_ ^+(odd_perm _)); apply: eq_fun_of_perm => k.
-  case: (unliftP i k) => [k'|] -> {k}; rewrite p2f lsfE ?transpL // perm1.
-  apply: ordinal_inj; rewrite p2f /transpose (negbET (neq_lift _ _)) /set1.
-  rewrite fun_if /= im /bump; case mk': (m <= _).
-    by rewrite eq_sym eqn_leq ltnNge leq_eqVlt m'm mk' orbT.
+  have{j ltji} ii' : i != i' by rewrite -val_eqE /= im /= -m'm eqn_leq ltnn.
+  transitivity (((-1) ^+(tperm i i')) : R); last by rewrite odd_tperm ii'.
+  congr (_ ^+(odd_perm _)); apply/permP => k.
+  case: (unliftP i k) => [k'|] -> {k}; rewrite permE lsfE ?tpermL // perm1.
+  apply: val_inj; rewrite permE /transpose (negbET (neq_lift _ _)) /pred1.
+  rewrite fun_if -val_eqE /= im /bump; case mk': (m <= _).
+    by rewrite eqn_leq ltnNge leq_eqVlt m'm mk' orbT andbF.
   by rewrite add0n leq_eqVlt m'm mk'; case: eqP => //= <-.
 move=> A i0 j0; rewrite (reindex (fun s => ls i0 s j0)); last first.
   pose ulsf i (s : S_(n)) k' :=
@@ -616,18 +597,18 @@ move=> A i0 j0; rewrite (reindex (fun s => ls i0 s j0)); last first.
   have inj_ulsf: injective (ulsf i0 _).
     move=> s; apply: can_inj (ulsf (s i0) s^-1) _ => k'.
     by rewrite {1}/ulsf ulsfE !permK liftK.
-  exists (fun s => perm_of_inj (inj_ulsf s)) => [s _ | s]. 
-    by apply: eq_fun_of_perm=> k'; rewrite p2f /ulsf !p2f !lsfE liftK.
-  move/eqP=> si0; apply: eq_fun_of_perm=> k.
-  by case: (unliftP i0 k) => [k'|] ->; rewrite p2f lsfE // p2f -si0 ulsfE. 
+  exists (fun s => perm_of (inj_ulsf s)) => [s _ | s]. 
+    by apply/permP=> k'; rewrite permE /ulsf !permE !lsfE liftK.
+  move/(s _ =P _) => si0; apply/permP=> k.
+  by case: (unliftP i0 k) => [k'|] ->; rewrite permE lsfE // permE -si0 ulsfE. 
 rewrite /cofactor big_distrr /=.
-apply: eq_big => [s | s _]; first by rewrite p2f lsfE set11.
+apply: eq_big => [s | s _]; first by rewrite permE lsfE eqxx.
 rewrite mulrCA mulrA -{}sign_ls; congr (_ * _).
-case: (pickP (setA I_(n.-1))) => [k'0 _ | r'0]; last first.
-  rewrite !big_set0 // => k; apply/idP; case/unlift_some=> k'.
+case: (pickP I_(n.-1)) => [k'0 _ | r'0]; last first.
+  rewrite !big_pred0 // => k; apply/idP; case/unlift_some=> k'.
   by have:= r'0 k'.
 rewrite (reindex (lift i0)).
-  by apply: eq_big => [k | k _] /=; rewrite ?neq_lift // !mxK p2f lsfE.
+  by apply: eq_big => [k | k _] /=; rewrite ?neq_lift // !mxK permE lsfE.
 pose f k := if unlift i0 k is Some k' then k' else k'0.
 by exists f; rewrite /f => k; [rewrite liftK | case/unlift_some=> ? ? ->].
 Qed.
@@ -636,10 +617,11 @@ Lemma expand_determinant_row : forall n (A : M_(n)) i0,
   \det A = \sum_(j) A i0 j * cofactor A i0 j.
 Proof.
 move=> n A i0; rewrite /(\det A).
-rewrite (partition_big (fun s : S_(n) => s i0) (setA _)) /setA //=.
+rewrite (partition_big (fun s : S_(n) => s i0) predA) //=.
 apply: eq_bigr => j0 _; rewrite expand_cofactor big_distrr /=.
-apply: eq_bigr => s /=; move/eqP=> Dsi0.
-by rewrite mulrCA (bigID (set1 i0)) /= big_set1_eq Dsi0.
+apply: eq_bigr => s; rewrite -topredE /=; move/eqP=> Dsi0.
+rewrite mulrCA (bigID (pred1 i0)) /= big_pred1_eq Dsi0; congr (_ * (_ * _)).
+by apply: eq_bigl => i; rewrite eq_sym.
 Qed.
 
 Lemma cofactor_tr : forall n (A : M_(n)) i j,
@@ -716,21 +698,31 @@ Definition invmx := fun (A : M_(n)) => ((\det A)^-1 *s (\adj A)).
 Notation "A ^-1m" := (invmx A) (at level 10, format "A ^-1m") : matrix_scope.
 
 Lemma mulVmx : forall (A : M_(n)), (\det A) != 0 -> A *m A^-1m = \1_(n).
-Proof. by move=> A Ha; rewrite -scalemxAr mulmx_adjr -scalemx1
-          scalemxA mulfV ?scale1mx. Qed.
+Proof.
+move=> A Ha.
+by rewrite -scalemxAr mulmx_adjr -scalemx1 scalemxA mulfV ?scale1mx.
+Qed.
+
 Lemma mulmxV : forall (A : M_(n)), (\det A) != 0 -> A^-1m *m A= \1_(n).
-Proof. by move=> A Ha; rewrite -scalemxAl mulmx_adjl -scalemx1
-          scalemxA mulfV ?scale1mx//. Qed.
+Proof.
+move=> A Ha.
+by rewrite -scalemxAl mulmx_adjl -scalemx1 scalemxA mulfV ?scale1mx//.
+Qed.
+
 Lemma mulKmx : forall (A : M_(n)),
  (\det A) != 0 -> cancel (\mulmx A) (\mulmx (A^-1m)).
 Proof. by move=> A Ha B; rewrite mulmxA mulmxV// mul1mx. Qed.
+
 Lemma mulmxK : forall (A : M_(n)),
  (\det A) != 0 -> cancel (\mulmx^~ A) (\mulmx^~ (A^-1m)).
 Proof. by move=> A Ha B; rewrite -mulmxA mulVmx// mulmx1. Qed.
+
 Lemma mulImx : forall (A : M_(n)), (\det A) != 0 -> injective (\mulmx A).
 Proof. move=> A Ha; exact: can_inj (mulKmx Ha). Qed.
+
 Lemma mulmxI : forall (A : M_(n)), (\det A) != 0 -> injective (\mulmx^~ A).
 Proof. move=> A Ha; exact: can_inj (mulmxK Ha). Qed.
+
 Lemma neq0_Dmx: forall (A : M_(n)), (\det A) != 0 -> (\det (A^-1m)) != 0.
 Proof.
 move=> A Ha; rewrite determinant_scale.
@@ -740,26 +732,32 @@ move/(congr1 (mul (\det A)^-1)); rewrite mulrCA mulfV// mulr1=>->.
 rewrite mulrCA -exprn_mull mulfV// exp1rn mulr1.
 by apply: neq0I.
 Qed.
+
 Lemma neq0_Dmx_mul : forall (A B : M_(n)),
  (\det A) != 0 -> (\det B) != 0 -> \det (A *m B) != 0.
 Proof. by move=> *; rewrite determinantM; apply: neq0_mul. Qed.
+
 Lemma invmxK : forall (A : M_(n)), (\det A) != 0 -> (A^-1m)^-1m = A.
 Proof.
 move=> A Ha; apply: (mulmxI (neq0_Dmx Ha)).
 by rewrite mulVmx// mulmxV//; apply: neq0_Dmx.
 Qed.
+
 Lemma invmx1 : \1^-1m = \1 :> M_(n).
-Proof. by rewrite -[\1^-1m]mul1mx mulVmx// determinant1;
-          apply/eqP; apply: nonzero1r. Qed.
+Proof.
+rewrite -[\1^-1m]mul1mx mulVmx// determinant1;
+apply/eqP; exact: nonzero1r.
+Qed.
+
 Lemma invmxI : forall (A B : M_(n)),
  (\det A) != 0 -> (\det B) != 0 -> (A^-1m = B^-1m) -> A = B.
 Proof. by move=> A B Ha Hb Hab; rewrite -(invmxK Ha) -(invmxK Hb) Hab. Qed.
+
 Lemma invmx_mul : forall (A B : M_(n)),
  (\det A) != 0 -> (\det B) != 0 -> (A *m B)^-1m = B^-1m *m A^-1m.
 Proof.
-move=> A B Ha Hb.
-apply: (mulImx (neq0_Dmx_mul Ha Hb)); rewrite mulVmx;
- last (by apply: neq0_Dmx_mul).
+move=> A B Ha Hb; apply: (mulImx (neq0_Dmx_mul Ha Hb)).
+rewrite mulVmx; last exact: neq0_Dmx_mul.
 by rewrite -mulmxA [B *m (_ *m _)]mulmxA mulVmx// mul1mx mulVmx.
 Qed.
 

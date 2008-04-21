@@ -10,7 +10,7 @@
 (***********************************************************************)
 Require Import ssreflect.
 Require Import ssrbool.
-Require Import funs.
+Require Import ssrfun.
 Require Import eqtype.
 Require Import ssrnat.
 Require Import seq.
@@ -25,29 +25,27 @@ Import Prenex Implicits.
 
 Section Zp.
 
-Variable p: nat.
-
-Hypothesis Hp: 0 < p.
-
 (***********************************************************************)
 (*                                                                     *)
 (*  Definition of the finite set {0, 1, 2, ..., p - 1}                 *)
 (*                                                                     *)
 (***********************************************************************)
 
-Definition fzp := ordinal p.
+Definition fzp (p : nat) := ordinal p.
+
+Variable p : pos_nat.
 
 (*--------------------------------------------------------------------*)
 (*|                           unit                                   |*)
 (*--------------------------------------------------------------------*)
 
-Definition zp0: fzp := (Ordinal Hp).
+Definition zp0: fzp p := (Ordinal (pos_natP p)).
 (* @EqSig _ (fun m => m < p)  _ Hp. *)
 
 (*--------------------------------------------------------------------*)
 (*|                           inverse                                |*)
 (*--------------------------------------------------------------------*)
-Definition inv_zp: fzp -> fzp.
+Definition inv_zp : fzp p -> fzp p.
 intros [x1 Hx1].
 exists (modn (p - x1) p).
 by rewrite ltn_mod.
@@ -56,33 +54,26 @@ Defined.
 (*--------------------------------------------------------------------*)
 (*|                           addition                                |*)
 (*--------------------------------------------------------------------*)
-Definition add_zp: fzp -> fzp -> fzp.
+Definition add_zp : fzp p -> fzp p -> fzp p.
 intros [x1 Hx1] [y1 Hy1].
 exists (modn (x1 + y1) p).
 by rewrite ltn_mod.
 Defined.
 
 Lemma unit_zp: forall x, add_zp zp0 x = x.
-Proof.
-move => [x Hx]; rewrite /zp0 /= add0n //.
-apply/ord_eqP => /=.
-by rewrite modn_small.
-Qed.
+Proof. case=> x Hx; apply: val_inj; exact: modn_small. Qed.
 
 Lemma invP_zp : forall x, add_zp (inv_zp x) x = zp0.
 Proof.
-move => [x Hx]; apply/ord_eqP => /=.
-rewrite -{2}(modn_small Hx) // modn_add 
-        addnC leq_add_sub ?modnn //.
-by apply ltnW.
+case=> x Hx; apply: val_inj => /=.
+by rewrite -{2}(modn_small Hx) // modn_add2m addnC subnK ?modnn // ltnW.
 Qed.
 
 Lemma mulP_zp : forall x1 x2 x3, 
   add_zp x1 (add_zp x2 x3) = add_zp (add_zp x1 x2) x3.
 Proof.
-move => [x1 Hx1] [x2 Hx2] [x3 Hx3]; apply/ord_eqP => /=.
-by rewrite -{1}(modn_small Hx1) // -{2}(modn_small Hx3) // 
-   !modn_add addnA.
+move => [x1 Hx1] [x2 Hx2] [x3 Hx3]; apply: val_inj => /=.
+by rewrite -{1}(modn_small Hx1) // -{2}(modn_small Hx3) // !modn_add2m addnA.
 Qed.
 
 (***********************************************************************)
@@ -100,9 +91,8 @@ Proof.
 by rewrite /commute /mulg; case => n Hn /=; case => m Hm /=; rewrite addnC.
 Qed.
 
-Lemma card_zp: card (setA zp_group) = p.
-exact: card_ordinal.
-Qed.
+Lemma card_zp: #|zp_group| = p.
+Proof. exact: card_ord. Qed.
 
 End Zp.
 

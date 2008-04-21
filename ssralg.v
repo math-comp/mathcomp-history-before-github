@@ -1,4 +1,4 @@
-Require Import ssreflect funs ssrbool eqtype.
+Require Import ssreflect ssrfun ssrbool eqtype.
 Require Import ssrnat div seq.
 
 Set Implicit Arguments.
@@ -14,65 +14,21 @@ Import Prenex Implicits.
 (*   Therefore, as a rule, the "carrier" of such structures will    *)
 (* be the binary operation, rather than the data type or its unit.  *)
 (*   The primary application of these structures are the generic    *)
-(* indexed products and summations (see ssrbig.v).                  *)
+(* indexed products and summations (see bigops.v).                  *)
 (*   We then define a second class of structures that provide       *)
 (* generic notation in addition to generic algebraic properties.    *)
 (* For these the carrier is the data type.                          *)
 
-Reserved Notation "x *+ n" (at level 40, n at level 9, left associativity,
-           format "x *+ n").
-Reserved Notation "x *- n" (at level 40, n at level 9, left associativity,
-           format "x  *- n").
-Reserved Notation "n `:` R" (at level 100, no associativity,
-           format "n `:` R").
-Reserved Notation "0" (at level 0).
-Reserved Notation "1" (at level 0).
-(*
-Reserved Notation "2".
-Reserved Notation "3".
-Reserved Notation "4".
-Reserved Notation "5".
-*)
-Reserved Notation "- 1" (at level 0).
-Reserved Notation "x ^-1" (at level 2, left associativity,
-           format "x ^-1").
-Reserved Notation "x ^2" (at level 2, left associativity,
-           format "x ^2").
-Reserved Notation "x ^+ n" (at level 30, n at level 9, right associativity,
-           format "x  ^+ n").
-Reserved Notation "x ^- n" (at level 30, n at level 9, right associativity,
-           format "x  ^- n").
-Reserved Notation "f .[ x ]" (at level 2, left associativity,
-  format "f .[ x ]").
+Reserved Notation "x *+ n" (at level 40, n at level 9, left associativity).
+Reserved Notation "x *- n" (at level 40, n at level 9, left associativity).
+Reserved Notation "n %: R" (at level 2, R at level 1, left associativity,
+           format "n %: R").
 
-Section OperationProperties.
+Reserved Notation "x ^+ n" (at level 30, n at level 9, right associativity).
+Reserved Notation "x ^- n" (at level 30, n at level 9, right associativity).
 
-Variable T : Type.
-Variables zero one: T.
-Variable inv : T -> T.
-Variables mul add : T -> T -> T.
-
-Notation Local "1"  := one.
-Notation Local "x ^-1" := (inv x).
-Notation Local "x * y"  := (mul x y).
-Notation Local "0"  := zero.
-Notation Local "x + y"  := (add x y).
-
-Definition left_unit          := forall x,     1 * x = x.
-Definition right_unit         := forall x,     x * 1 = x.
-Definition left_inverse       := forall x,     x^-1 * x = 1.
-Definition right_inverse      := forall x,     x * x^-1 = 1.
-Definition associative        := forall x y z, x * (y * z) = x * y * z.
-Definition commutative        := forall x y,   x * y = y * x.
-Definition idempotent         := forall x,     x * x = x.
-Definition left_commutative   := forall x y z, x * (y * z) = y * (x * z).
-Definition right_commutative  := forall x y z, x * y * z = x * z * y.
-Definition left_zero          := forall x,     0 * x = 0.
-Definition right_zero         := forall x,     x * 0 = 0.
-Definition left_distributive  := forall x y z, (x + y) * z = x * z + y * z.
-Definition right_distributive := forall x y z, x * (y + z) = x * y + x * z.
-
-End OperationProperties.
+Reserved Notation "f .[ x ]"
+  (at level 2, left associativity, format "f .[ x ]").
 
 Module Monoid.
 
@@ -155,9 +111,33 @@ End Equations.
 Export Equations.
 
 Definition morphism T T' unit unit' mul mul' (phi : T -> T') :=
-  phi unit = unit' /\ forall x y, phi (mul x y) = mul' (phi x) (phi y).
+  phi unit = unit' /\ {morph phi : x y / mul x y >-> mul' x y}.
 
 End Monoid.
+
+Notation "[ 'law' 'of' f ]" :=
+  (match {f as Monoid.law _} as s
+   return [type of @Monoid.Law _ for s] -> _ with
+  | Monoid.Law _ a ul ur => fun k => k a ul ur end
+  (@Monoid.Law _ f)) (at level 0, only parsing) : form_scope.
+
+Notation "[ 'abelian_law' 'of' f ]" :=
+  (match {f : _ -> _ as Monoid.abelian_law _} as s
+   return [type of @Monoid.AbelianLaw _ for s] with
+  | Monoid.AbelianLaw _ c => fun k => k c end
+  (@Monoid.AbelianLaw _ _ f)) (at level 0, only parsing) : form_scope.
+
+Notation "[ 'mul_law' 'of' f ]" :=
+  (match {f : _ -> _ as Monoid.mul_law _} as s
+   return [type of @Monoid.MulLaw _ for s] -> _ with
+  | Monoid.AddLaw _ zl zr => fun k => k zl zr end
+  (@Monoid.AddLaw _ f)) (at level 0, only parsing) : form_scope.
+
+Notation "[ 'add_law' 'of' f ]" :=
+  (match {f : _ -> _ as Monoid.add_law _} as s
+   return [type of @Monoid.AddLaw _ for s] -> _ with
+  | Monoid.AddLaw _ dl dr => fun k => k dl dr end
+  (@Monoid.AddLaw _ f)) (at level 0, only parsing) : form_scope.
 
 Delimit Scope ring_scope with R.
 
@@ -272,18 +252,19 @@ Definition one := nosimpl one_.
 Definition mul := nosimpl mul_.
 Definition exp R x n := iter n (mul x) (one R).
 Notation Local "1" := (one _) : ring_scope.
-Notation Local "- 1" := (- 1) : ring_scope.
+Notation Local "- 1" := (- (1)) : ring_scope.
 (*
 Notation "2" := (1 + 1) : ring_scope.
 Notation "3" := (1 + 2) : ring_scope.
 Notation "4" := (1 + 3) : ring_scope.
 Notation "5" := (1 + 4) : ring_scope.
 *)
-Notation Local "n `:` R" := ((one R) *+ n) : ring_scope.
+Notation Local "n %: R" := ((one R) *+ n) : ring_scope.
 Notation Local "x * y" := (mul x y) : ring_scope.
 Notation Local "x ^+ n" := (exp x n) : ring_scope.
 
 Section BasicRingEquations.
+
 Variable R : basic.
 Notation mul := (@mul R) (only parsing).
 Notation add := (@add R) (only parsing).
@@ -324,21 +305,21 @@ Canonical Structure ring_monoid := Monoid.Law mulrA mul1r mulr1.
 Canonical Structure ring_muloid := Monoid.MulLaw mul0r mulr0.
 Canonical Structure ring_addoid := Monoid.AddLaw mulr_addl mulr_addr.
 
-Lemma natr_cst : forall n, (n`:`R) = if n is m.+1 then iter m (add 1) 1 else 0.
+Lemma natr_cst : forall n, n%:R = (if n is m.+1 then iter m (add 1) 1 else 0).
 Proof. by case=> // n; rewrite /natmul -iter_f addr0. Qed.
 
-Lemma mulr_natr : forall x n, x * (n`:`R) = x *+n.
+Lemma mulr_natr : forall x n, x * n%:R = x *+n.
 Proof. by move=> x; elim=> /= [|n <-]; rewrite (mulr0, mulr_addr) ?mulr1. Qed.
 
-Lemma mulr_natl : forall n x, (n`:`R) * x = x *+n.
+Lemma mulr_natl : forall n x, n%:R * x = x *+n.
 Proof.
 by move=> n x; elim: n => /= [|n <-]; rewrite (mul0r, mulr_addl) ?mul1r.
 Qed.
 
-Lemma natr_add : forall m n, (m + n `:` R) = (m`:`R) + (n`:`R).
+Lemma natr_add : forall m n, (m + n)%:R = m%:R + n%:R.
 Proof. by move=> m n; exact: mulrn_addr. Qed.
 
-Lemma natr_mul : forall m n, (m * n `:` R) = (m`:`R) * (n`:`R).
+Lemma natr_mul : forall m n, (m * n)%:R = m%:R * n%:R.
 Proof.
 by move=> m n; rewrite mulr_natl; elim: m => //= m <-; rewrite natr_add.
 Qed.
@@ -367,7 +348,7 @@ Proof. by move=> x; rewrite /commute mulr1 mul1r. Qed.
 Lemma commr_opp : forall x y, commute x y -> commute x (- y).
 Proof. by move=> x y com_xy; rewrite /commute mulrN com_xy mulNr. Qed.
 
-Lemma commrN1 : forall x, commute x -1.
+Lemma commrN1 : forall x, commute x (-1).
 Proof. move=> x; apply: commr_opp; exact: commr1. Qed.
 
 Lemma commr_add : forall x y z,
@@ -385,7 +366,7 @@ Proof.
 by move=> x y z com_xy; rewrite /commute mulrA com_xy -!mulrA => ->.
 Qed.
 
-Lemma commr_nat : forall x n, commute x (n`:`R).
+Lemma commr_nat : forall x n, commute x n%:R.
 Proof. move=> x n; apply: commr_muln; exact: commr1. Qed.
 
 Lemma commr_exp : forall x y n, commute x y -> commute x (y ^+n).
@@ -456,8 +437,8 @@ Canonical Structure Ring.ring_abeloid.
 Canonical Structure Ring.ring_muloid.
 Canonical Structure Ring.ring_addoid.
 
-Implicit Arguments Ring.addrI [R x x'].
-Implicit Arguments Ring.addIr [R x x'].
+Implicit Arguments Ring.addrI [R x1 x2].
+Implicit Arguments Ring.addIr [R x1 x2].
 
 Notation "0" := (Ring.zero _) : ring_scope.
 Notation "- x" := (Ring.opp x) : ring_scope.
@@ -467,14 +448,14 @@ Notation "x *+ n" := (Ring.natmul x n) : ring_scope.
 Notation "x *- n" := ((- x) *+n)%R : ring_scope.
 
 Notation "1" := (Ring.one _) : ring_scope.
-Notation "- 1" := (- 1)%R : ring_scope.
+Notation "- 1" := (- (1))%R : ring_scope.
 (*
 Notation "2" := (1 + 1) : ring_scope.
 Notation "3" := (1 + 2) : ring_scope.
 Notation "4" := (1 + 3) : ring_scope.
 Notation "5" := (1 + 4) : ring_scope.
 *)
-Notation "n `:` R" := ((Ring.one R) *+ n)%R : ring_scope.
+Notation "n %: R" := ((Ring.one R) *+ n)%R : ring_scope.
 Notation "x * y" := (Ring.mul x y) : ring_scope.
 Notation "x ^+ n" := (Ring.exp x n) : ring_scope.
 Notation "s .[ i ]" :=  (sub 0%R s i) : ring_scope.
@@ -550,6 +531,29 @@ End Field.
 
 Notation "x ^-1" := (Field.inv x) : field_scope.
 
+Notation "[ 'agroupType' 'of' t ]" :=
+  (match {t : Type as additive_group} as s
+   return [type of AdditiveGroup for s] -> _ with
+  | AdditiveGroup _ _ _ _ a c u i => fun k => k _ _ _ a c u i end
+  (@AdditiveGroup t)) (at level 0, only parsing) : form_scope.
+
+Notation "[ 'ringType' 'of' t ]" :=
+  (match {t : Type as basic} as s return [type of Basic for s] -> _ with
+  | Basic _ _ _ a ul ur dl dr nz => fun k => k _ _ a ul ur dl dr nz end
+  (@Basic t)) (at level 0, only parsing) : form_scope.
+
+Notation "[ 'cringType' 'of' t ]" :=
+  (match {t : Type as commutative_} as s
+   return [type of Commutative for s] -> _ with
+  | Commutative _ c => fun k => k c end
+  (@Commutative t)) (at level 0, only parsing) : form_scope.
+
+Notation "[ 'fieldType' 'of' t ]" :=
+  (match {t : Type as Field.field} as s
+   return [type of Field.Field for s] -> _ with
+  | Field.Field _ _ nzi => fun k => k _ nzi end
+  (@Field.Field t)) (at level 0, only parsing) : form_scope.
+
 Require Import ssrbool.
 
 Section BoolMonoids.
@@ -564,10 +568,8 @@ Canonical Structure orb_abeloid := AbelianLaw orbC.
 Canonical Structure orb_muloid := MulLaw orTb orbT.
 Canonical Structure addb_monoid := Law addbA addFb addbF.
 Canonical Structure addb_abeloid := AbelianLaw addbC.
-Canonical Structure orb_addoid := AddLaw andb_orb_distrib_l andb_orb_distrib_r.
-Canonical Structure andb_addoid := AddLaw orb_andb_distrib_l orb_andb_distrib_r.
-Lemma andb_addl : left_distributive andb addb. Proof. by do 3!case. Qed.
-Lemma andb_addr : right_distributive andb addb. Proof. by do 3!case. Qed.
+Canonical Structure orb_addoid := AddLaw andb_orl andb_orr.
+Canonical Structure andb_addoid := AddLaw orb_andl orb_andr.
 Canonical Structure addb_addoid := AddLaw andb_addl andb_addr.
 
 End BoolMonoids.
@@ -584,238 +586,19 @@ Canonical Structure muln_monoid := Law mulnA mul1n muln1.
 Canonical Structure muln_abeloid := AbelianLaw mulnC.
 Canonical Structure muln_muloid := MulLaw mul0n muln0.
 Canonical Structure addn_addoid := AddLaw muln_addl muln_addr.
-Lemma max0n : left_unit 0 maxn. Proof. by case. Qed.
-Lemma maxn0 : right_unit 0 maxn. Proof. done. Qed.
-Lemma maxnC : commutative maxn.
-Proof. by move=> m n; rewrite /maxn; case ltngtP. Qed.
-
-Lemma add_sub_maxn : forall m n, m + (n - m) = maxn m n.
-Proof.
-move=> m n; rewrite /maxn; case: leqP; last by move/ltnW; move/leq_add_sub.
-by move/eqnP->; rewrite addn0.
-Qed.
-
-Lemma maxnAC : right_commutative maxn.
-Proof.
-by move=> m n p; rewrite -!add_sub_maxn -!addnA -!subn_sub !add_sub_maxn maxnC.
-Qed.
-
-Lemma maxnA : associative maxn.
-Proof. by move=> m n p; rewrite !(maxnC m) maxnAC. Qed.
-
-Lemma maxnCA : left_commutative maxn.
-Proof. by move=> m n p; rewrite !maxnA (maxnC m). Qed.
 
 Canonical Structure maxn_monoid := Law maxnA max0n maxn0.
 Canonical Structure maxn_abeloid := AbelianLaw maxnC.
 
-Lemma maxn_leq : forall m n, (maxn m n == n) = (m <= n).
-Proof. by move=> m n; rewrite maxnC -{2}[n]addn0 -add_sub_maxn eqn_addl. Qed.
-
-Lemma maxn_geq : forall m n, (maxn m n == m) = (m >= n).
-Proof. by move=> m n; rewrite -{2}[m]addn0 -add_sub_maxn eqn_addl. Qed.
-
-Lemma maxnn : idempotent maxn.
-Proof. by move=> n; apply/eqP; rewrite maxn_geq. Qed.
-
-Lemma maxn_addl : left_distributive addn maxn.
-Proof. by move=> m n p; rewrite -!add_sub_maxn subn_add2r mulmAC. Qed.
-
-Lemma maxn_addr : right_distributive addn maxn.
-Proof. by move=> m n p; rewrite !(addnC m) maxn_addl. Qed.
-
-Lemma maxn_mulr : right_distributive muln maxn.
-Proof. by case=> // m n p; rewrite /maxn (fun_if (muln _)) ltn_pmul2l. Qed.
-
-Lemma maxn_mull : left_distributive muln maxn.
-Proof. by move=> m n p; rewrite -!(mulnC p) maxn_mulr. Qed.
-
 Canonical Structure maxn_addoid := AddLaw maxn_mull maxn_mulr.
-
-Lemma gcd0n : left_unit 0 gcdn. Proof. by move=> n; rewrite gcdnC gcdn0. Qed.
-Lemma gcdnAC : right_commutative gcdn.
-Proof.
-suff dvd: forall m n p, dvdn (gcdn (gcdn m n) p) (gcdn (gcdn m p) n).
-  by move=> m n p; apply/eqP; rewrite eqn_dvd !dvd.
-move: dvdn_gcdl dvdn_gcdr => dvdl dvdr m n p.
-do ![apply dvdn_gcd]; by [|exact: (dvdn_trans (dvdn_gcdl _ _))].
-Qed.
-Lemma gcdnA : associative gcdn.
-Proof. by move=> m n p; rewrite !(gcdnC m) gcdnAC. Qed.
-Lemma gcdnCA : left_commutative gcdn.
-Proof. by move=> m n p; rewrite !gcdnA (gcdnC m). Qed.
-Lemma muln_gcdl : left_distributive muln gcdn.
-Proof. by move=> m n p; rewrite -!(mulnC p) gcdn_mul2l. Qed.
-Lemma muln_gcdr : right_distributive muln gcdn.
-Proof. by move=> m n p; rewrite gcdn_mul2l. Qed.
 
 Canonical Structure gcdn_monoid := Law gcdnA gcd0n gcdn0.
 Canonical Structure gcdn_abeloid := AbelianLaw gcdnC.
 Canonical Structure gcdn_addoid := AddLaw muln_gcdl muln_gcdr.
 
-Definition lcmn m n := if m * n == 0 then m + n else divn (m * n) (gcdn m n).
-
-Lemma lcmnC : commutative lcmn.
-Proof. by move=> m n; rewrite /lcmn mulnC addnC gcdnC. Qed.
-
-Lemma lcm0n : left_unit 0 lcmn. Proof. done. Qed.
-Lemma lcmn0 : right_unit 0 lcmn. Proof. by move=> n; rewrite lcmnC. Qed.
-
-Lemma muln_lcm_gcd : forall m n, m > 0 -> n > 0 -> lcmn m n * gcdn m n = m * n.
-Proof.
-move=> m n pos_m pos_n; rewrite /lcmn -if_neg -lt0n ltn_0mul pos_m pos_n /=.
-apply/eqP; rewrite -dvdn_eq; apply dvdn_mull; exact: dvdn_gcdr.
-Qed.
-
-Lemma ltn_0lcm : forall m n, (lcmn m n > 0) = (m > 0) || (n > 0).
-Proof.
-move=> m n; case: (ltngtP 0 m) => [pos_m||<-] //.
-case: (ltngtP 0 n) => // [pos_n|<-]; last by rewrite lcmn0.
-have pos_dmn : gcdn m n > 0 by rewrite ltn_0gcd pos_m.
-by rewrite -(ltn_pmul2r pos_dmn) muln_lcm_gcd // ltn_0mul pos_m.
-Qed.
-
-Lemma muln_lcmr : right_distributive muln lcmn.
-Proof.
-move=> m n p; case: (ltngtP 0 m) => [pos_m||<-] //.
-case: (ltngtP 0 n) => // [pos_n|<-]; last by rewrite muln0.
-case: (ltngtP 0 p) => // [pos_p|<-]; last by rewrite muln0 !lcmn0.
-have posd_np : gcdn n p > 0 by rewrite ltn_0gcd pos_n.
-apply/eqP; rewrite -(eqn_pmul2r posd_np) -mulnA muln_lcm_gcd //.
-rewrite -(eqn_pmul2r pos_m) -!mulnA muln_gcdl mulnA -!(mulnC m).
-by rewrite muln_lcm_gcd // !ltn_0mul pos_m.
-Qed.
-
-Lemma muln_lcml : left_distributive muln lcmn.
-Proof. by move=> m n p; rewrite -!(mulnC p) muln_lcmr. Qed.
-
-Lemma lcmnA : associative lcmn.
-Proof.
-move=> m n p; case: (ltngtP 0 m) => [pos_m||<-] //.
-case: (ltngtP 0 n) => // [pos_n|<-]; last by rewrite lcmn0.
-case: (ltngtP 0 p) => // [pos_p|<-]; last by rewrite !lcmn0.
-have posm_np : lcmn n p > 0 by rewrite ltn_0lcm pos_n.
-have posm_mn : lcmn m n > 0 by rewrite ltn_0lcm pos_m.
-have posdm_mnp : gcdn m (lcmn n p) > 0 by rewrite ltn_0gcd pos_m.
-have posd_np : gcdn n p > 0 by rewrite ltn_0gcd pos_n.
-apply/eqP; rewrite -(eqn_pmul2r posdm_mnp) muln_lcm_gcd //.
-rewrite -(eqn_pmul2r posd_np) -!mulnA muln_lcm_gcd //.
-rewrite muln_gcdl muln_lcm_gcd // (muln_gcdr m) -gcdnA -muln_gcdl.
-rewrite -[m * n]muln_lcm_gcd // (mulnC (gcdn m n)) -muln_gcdl.
-by rewrite !mulnA muln_lcm_gcd // -!mulnA (mulnC p) !mulnA muln_lcm_gcd.
-Qed.
-
 Canonical Structure lcmn_monoid := Law lcmnA lcm0n lcmn0.
 Canonical Structure lcmn_abeloid := AbelianLaw lcmnC.
 
 End NatMonoids.
-
-(*
-Delimit Scope group_scope with G.
-
-Require Import fintype.
-
-Module Group.
-
-Record class (T : Type) : Type := Class {
-  unit_ : T;
-  inv_ : T -> T;
-  mul_ : T -> T -> T;
-  _ : associative mul_;
-  _ : left_unit unit_ mul_;
-  _ : left_inverse unit_ inv_ mul_
-}.
-
-Structure type_ : Type := Type_ {
-  sort :> Type;
-  _ : class sort
-}.
-
-Section Operations.
-Variable T : type_.
-Definition dict := let: Type_ _ cT as T' := T return class T' in cT.
-Definition unit := nosimpl unit_ T dict.
-Definition inv := nosimpl inv_ T dict.
-Definition mul := nosimpl mul_ T dict.
-End Operations.
-Open Scope group_scope.
-Notation "1" := (unit _) : group_scope.
-Notation "x ^-1" := (@inv _ x) : group_scope.
-Notation "x * y" := (@mul _ x y) : group_scope.
-Notation "x ^2" := (x * x) : group_scope.
-
-Definition conj (T : type_) x y : T := y^-1 * x * y.
-Notation "x ^ y" := (conj x y) : group_scope.
-
-Definition exp (T : type_) x n : T := iter n (mul x) 1.
-Notation "x ^+ n" := (exp x n) : group_scope.
-Notation "x ^- n" := (x^-1 ^+ n) : group_scope.
-
-Structure eqType_ : Type := EqType_ {
-  eq_sort :> eqType;
-  _ : class eq_sort
-}.
-Canonical Structure base_eq T :=
-  Type_ (let: EqType_ _ c as T' := T return class T' in c).
-
-Structure finType_ : Type := FinType_ {
-  fin_sort :> finType;
-  _ : class fin_sort
-}.
-Canonical Structure base_fin T :=
-  EqType_ (let: FinType_ _ c as T' := T return class T' in c).
-
-Definition bool_group_class := @Class _ _ (fun b => b) _ addbA addFb addbb.
-
-Canonical Structure bool_group_type := Type_ bool_group_class.
-Canonical Structure bool_group_eqtype := EqType_ bool_group_class.
-Canonical Structure bool_group_fintype := FinType_ bool_group_class.
-
-Module Equations.
-
-Section Equations.
-
-Variable T : type_.
-Notation mul := (@mul T) (only parsing).
-Notation inv := (@inv T) (only parsing).
-Notation Local "'mulr' y" := (fun x : T => x * y) (at level 10).
-
-Lemma mulgA : associative mul. Proof. by case: T => ? []. Qed.
-Lemma mul1g : left_unit 1 mul. Proof. by case: T => ? []. Qed.
-Lemma mulVg : left_inverse 1 inv mul. Proof. by case: T => ? []. Qed.
-
-Lemma mulKg : forall x, cancel (mul x) (mul x^-1).
-Proof. by move=> x y; rewrite mulgA mulVg mul1g. Qed.
-Lemma mulIg : forall x, injective (mul x).
-Proof. move=> x; exact: can_inj (mulKg x). Qed.
-
-Lemma mulgV : right_inverse 1 inv mul.
-Proof. by move=> x; rewrite -{1}(mulKg x^-1 x) mulVg -mulgA mul1g mulVg. Qed.
-Lemma mulKgv : forall x, cancel (mul x^-1) (mul x).
-Proof. by move=> x y; rewrite mulgA mulgV mul1g. Qed.
-Lemma mulg1 : right_unit 1 mul.
-Proof. by move=> x; rewrite -(mulVg x) mulKgv. Qed.
-
-Canonical Structure group_monoid := Monoid.Law mulgA mul1g mulg1.
-
-Lemma mulgK : forall x, cancel (mulr x) (mulr x^-1).
-Proof. by move=> x y; rewrite -mulgA mulgV mulg1. Qed.
-Lemma mulgI : forall x, injective (mulr x).
-Proof. move=> x; exact: can_inj (mulgK x). Qed.
-Lemma mulgKv : forall x, cancel (mulr x^-1) (mulr x).
-Proof. by move=> x y; rewrite -mulgA mulVg mulg1. Qed.
-
-Lemma invg1 : 1^-1 = 1 :> T.
-Proof. by rewrite -{2}(mulVg 1) mulg1. Qed.
-Lemma invgK : involutive inv.
-Proof. by move=> x; rewrite -{2}(mulgK x^-1 x) -mulgA mulKgv. Qed.
-Lemma invg_mul : forall x y : T, (x * y)^-1 = y^-1 * x^-1. 
-Proof. by move=> x y; apply: (@mulIg (x * y)); rewrite mulgA mulgK !mulgV. Qed.
-
-End Equations.
-
-End Equations.
-
-*)
 
 Unset Implicit Arguments.

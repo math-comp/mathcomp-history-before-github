@@ -1,11 +1,13 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect.
 Require Import ssrbool.
-Require Import funs.
+Require Import ssrfun.
 Require Import eqtype.
 Require Import ssrnat.
 Require Import seq.
 Require Import fintype.
+Require Import finfun.
+Require Import finset.
 Require Import paths.
 Require Import connect.
 Require Import div.
@@ -16,161 +18,165 @@ Unset Strict Implicit.
 Import Prenex Implicits.
 
 (* group of permutations *)
+
 Section PermGroup.
 
-Variable d:finType.
+Variable T : finType.
 
-CoInductive permType : Type := 
-  Perm : eq_sig (fun g : fgraphType d d => uniq (fval g)) -> permType.
+Record perm : Type := Perm {pval : {ffun T -> T}; _ : injectiveb pval}.
 
-Definition pval p := match p with Perm g => g end.
+Definition perm_for of phant T : predArgType := perm.
 
-Lemma can_pval : cancel pval Perm.
-Proof. by rewrite /cancel; case => /=. Qed.
+Notation pT := (perm_for (Phant T)).
 
-Lemma pval_inj : injective pval. 
-Proof. exact: can_inj can_pval. Qed.
+Canonical Structure perm_subType := SubType pval perm_rect vrefl.
+Canonical Structure perm_eqType := [subEqType for pval].
+Canonical Structure perm_finType := Eval hnf in [subFinType of perm_eqType].
 
-Canonical Structure perm_eqType := EqType (can_eq can_pval).
+Canonical Structure perm_for_subType := Eval hnf in [subType of pT].
+Canonical Structure perm_for_eqType := Eval hnf in [eqType of pT].
+Canonical Structure perm_for_finType :=
+  Eval hnf in [finType of perm_for_eqType].
 
-Canonical Structure perm_finType := FinType (can_uniq can_pval).
+Definition fun_of_perm := fun u : perm => val u : T -> T.
 
-Definition fun_of_perm := fun u : permType => (val (pval u) : fgraphType _ _) : d -> d.
+Coercion fun_of_perm : perm >-> Funclass.
 
-Coercion fun_of_perm : permType >-> Funclass.
+Lemma permP : forall u v : pT, u =1 v <-> u = v.
+Proof. by move=> u v; split=> [Huv | -> //]; apply: val_inj; apply/ffunP. Qed.
 
-Lemma perm_uniqP : forall g : fgraphType d d, reflect (injective g) (uniq (@fval d d g)).
+Lemma perm_ofP : forall f : T -> T, injective f -> injectiveb (ffun_of f).
 Proof.
-move=> g; apply: (iffP idP) => Hg.
-  apply: can_inj (fun x => sub x (enum d) (index x (fval g))) _ => x.
-  by rewrite {2}/fun_of_fgraph; unlock; rewrite index_uniq ?sub_index ?fproof ?mem_enum /card // count_setA index_mem mem_enum.
-by rewrite -[g]can_fun_of_fgraph; unlock fgraph_of_fun; rewrite /= uniq_maps // uniq_enum.
+by move=> f f_inj; apply/injectiveP; apply: eq_inj f_inj _ => x; rewrite ffunE.
 Qed.
 
-Lemma eq_fun_of_perm: forall u v : permType, u =1 v -> u = v.
-Proof.
-move => u v Huv; apply: pval_inj; apply: val_inj. 
-rewrite -(can_fun_of_fgraph (val (pval u))) -(can_fun_of_fgraph (val (pval v))).
-apply: fval_inj; unlock fgraph_of_fun; exact: (eq_maps Huv).
-Qed.
+Definition perm_of f (f_inj : injective f) : pT := Perm (perm_ofP f_inj).
 
-Lemma perm_of_injP : forall f : d -> d, injective f -> uniq (fval (fgraph_of_fun f)).
-Proof.
-move=> f Hf; apply/perm_uniqP.
-by apply: eq_inj Hf _ => x; rewrite g2f.
-Qed.
+Lemma permE : forall f (f_inj : injective f), perm_of f_inj =1 f.
+Proof. move=> *; exact: ffunE. Qed.
 
-Definition perm_of_inj f (Hf : injective f) : permType :=
-  Perm (EqSig (fun g : fgraphType d d => uniq (fval g)) _ (perm_of_injP Hf)).
+Lemma perm_inj : forall u : pT, injective u.
+Proof. move=> u; exact: (injectiveP _ (valP u)). Qed.
 
-Lemma p2f : forall f (Hf : injective f), perm_of_inj Hf =1 f.
-Proof. move=> *; exact: g2f. Qed.
+Implicit Arguments perm_inj [].
 
-Lemma perm_inj : forall u : permType, injective u.
-Proof. by case=> H; apply/perm_uniqP; case: H => *. Qed.
+Hint Resolve perm_inj.
 
-Definition perm_elem := perm_finType.
+Definition perm_unit : perm := perm_of (@inj_id T).
 
-Lemma inj_id : @injective d _ \id.
-Proof. done. Qed. 
-Definition perm_unit := perm_of_inj inj_id.
+Definition perm_inv u := perm_of (finv_inj (perm_inj u)).
 
-Definition perm_inv u := perm_of_inj (finv_inj (@perm_inj u)).
+Definition perm_mul u v := perm_of (inj_comp (perm_inj v) (perm_inj u)).
 
-Definition perm_mul u v := perm_of_inj (inj_comp (@perm_inj v) (@perm_inj u)).
+Lemma perm_unitP : left_unit perm_unit perm_mul.
+Proof. by move=> u; apply/permP => x; rewrite permE /= permE. Qed.
 
-Lemma perm_unitP : forall x, perm_mul perm_unit x = x.
-Proof.
-move=> u; apply eq_fun_of_perm => x.
-by do 2!rewrite /fun_of_perm /= /comp g2f.
-Qed.
+Lemma perm_invP : left_inverse perm_unit perm_inv perm_mul.
+Proof. by move=> u; apply/permP => x; rewrite !permE /= permE f_finv. Qed.
 
-Lemma perm_invP : forall x, perm_mul (perm_inv x) x = perm_unit.
-Proof.
-move=> u; apply: eq_fun_of_perm => x.
-do 3!rewrite /fun_of_perm /= /comp g2f. 
-by rewrite f_finv; last exact: perm_inj.
-Qed.
+Lemma perm_mulP : associative perm_mul.
+Proof. by move=> u v w; apply/permP => x; do !rewrite permE /=. Qed.
 
-Lemma perm_mulP : 
-  forall x y z, perm_mul x (perm_mul y z) = perm_mul (perm_mul x y) z.
-Proof.
-move=> u v w; apply: eq_fun_of_perm => x.
-by do 4!rewrite /fun_of_perm /= /comp g2f. 
-Qed.
-
-Canonical Structure perm_finGroupType := 
+Canonical Structure perm_finGroupType :=
   FinGroupType perm_unitP perm_invP perm_mulP.
 
-Lemma perm1 : forall x, perm_unit x = x.
-Proof. by move=> x; rewrite p2f. Qed.
+Canonical Structure perm_for_finGroupType :=
+  Eval hnf in [finGroupType of perm_for_finType].
 
-Definition perm a (u : permType) := subset (fun x => u x != x) a.
+Lemma perm1 : forall x, (1 : pT) x = x.
+Proof. by move=> x; rewrite permE. Qed.
 
-Lemma perm_closed : forall a u x, perm a u -> a (u x) = a x.
+Lemma permM : forall (s1 s2 : pT) x, (s1 * s2) x = s2 (s1 x).
+Proof. by move=> *; rewrite permE. Qed.
+
+Lemma permK : forall s : pT, cancel s s^-1.
+Proof. by move=> s x; rewrite -permM mulgV perm1. Qed. 
+
+Lemma permKv : forall s : pT, cancel s^-1 s.
+Proof. by move=> s; have:= permK s^-1; rewrite invgK. Qed.
+
+Lemma permJ : forall (s t: pT) x, (s ^ t) (t x) = t (s x).
+Proof. by move=> *; rewrite !permM permK. Qed.
+
+Definition perm_on (A : {set T}) : pred pT :=
+  fun u => [pred x | u x != x] \subset A.
+
+Lemma perm_closed : forall A u x, perm_on A u -> (u x \in A) = (x \in A).
 Proof.
-move=> a u x Hu; case Hx: (u x != x); last by move/eqP: Hx => ->.
-by rewrite !(subsetP Hu) ?(inj_eq (@perm_inj u)).
+move=> a u x; move/subsetP=> u_on_a.
+case: (u x =P x) => [-> //|]; move/eqP=> nfix_u_x.
+by rewrite !u_on_a // inE /= ?(inj_eq (perm_inj u)).
 Qed.  
 
-Definition transpose (x y z : d) := if x == z then y else if y == z then x else z.
+Lemma perm_on1 :  forall H, perm_on H 1.
+Proof. by move=> H; apply/subsetP=> x; rewrite inE /= perm1 eqxx. Qed.
+
+Lemma perm_onM :  forall H f g,
+  perm_on H f -> perm_on H g -> perm_on H (f * g).
+Proof.
+move=> H f g; move/subsetP => fH; move/subsetP => gH.
+apply/subsetP => x; rewrite inE /= permM.
+by case: (f x =P x) => [->|]; [move/gH | move/eqP; move/fH].
+Qed.
+
+Lemma out_perm : forall H f x, perm_on H f -> x \notin H -> f x = x.
+Proof.
+move=> H f x fH nHx; apply/eqP; apply: negbE2; apply: contra nHx.
+exact: (subsetP fH).
+Qed.
+
+Definition transpose x y z : T :=
+ if x == z then y else if y == z then x else z.
 
 Lemma transposeK : forall x y, involutive (transpose x y).
 Proof.
 move=> x y z; rewrite /transpose.
-case Hx: (x == z); first by rewrite (eqP Hx) set11; case: eqP.
-by case Hy: (y == z); [rewrite set11 (eqP Hy) | rewrite Hx Hy].
+case: (x =P z) => [->| nxz]; first by rewrite eqxx; case: eqP.
+by case: (y =P z) => [->| nyz]; [rewrite eqxx | do 2?case: eqP].
 Qed.
 
-Definition transperm x y := perm_of_inj (can_inj (transposeK x y)).
+Definition tperm x y := perm_of (can_inj (transposeK x y)).
 
-Open Scope group_scope.
-
-Lemma square_transperm : forall x y, let t := transperm x y in t * t = 1.
+Lemma square_tperm : forall x y, tperm x y * tperm x y = 1.
 Proof.
-move=> x y; apply: eq_fun_of_perm => z; rewrite /mulg /=.
-do 4!rewrite /fun_of_perm /= /comp g2f.
-exact: transposeK.
+move=> x y; apply/permP=> z; rewrite permM !permE; exact: transposeK.
 Qed.
 
-Lemma card_perm: forall a : set d, card (perm a) = fact (card a).
+Lemma card_perm : forall A : {set T}, #|perm_on A| = fact #|A|.
 Proof.
-move=> a; move Dn: (card a) => n; move/eqP: Dn; elim: n a => [|n IHn] a.
-  move/set0P=> Da; rewrite /= -(card1 perm_unit); apply: eq_card=> u.
-  apply/subsetP/eqP => [Hu | <- {u} x].
-    apply: eq_fun_of_perm => x; apply: eqP. 
-    rewrite {1}/fun_of_perm /= g2f eq_sym.
-    by apply/idPn; move/Hu; rewrite Da.
-  by rewrite {1}/fun_of_perm /= g2f set11.
-case: (pickP a) => [x Hx Ha|]; last by move/eq_card0->.
-move: (Ha); rewrite (cardD1 x) Hx; set a' := setD1 a x; move/(IHn a')=> {IHn} Ha'.
-pose h (u : permType) := pair (u x) (u * transperm x (u x)) : prod_finType _ _.
-have Hh: injective h.
-  move=> u1 u2 H; case: H (congr1 (@snd _ _) H) => /= -> _; exact: mulg_injr.
-rewrite /fact -/fact -(eqP Ha) -Ha' mulnI -card_prod_set -(card_image Hh).
-apply: eq_card=> [[y v]]; apply/set0Pn/andP; rewrite /preimage /setI /=.
-  case=> u; do 2!case/andP=>/=; do 2!move/eqP->; move=> Hu {y v}.
+move=> A; elim: {A}#|A| {1 3}A (eqxx #|A|) => [|n IHn] A /=.
+  move/pred0P=> A0; rewrite -(card1 (1 : pT)); apply: eq_card => u.
+  apply/idP/eqP => /= [uA | -> {u}]; last exact: perm_on1.
+  by apply/permP => x; rewrite perm1 (out_perm uA) // -topredE /= A0.
+case: (pickP (mem A)) => [x /= Ax An1|]; last by move/eq_card0->.
+have:= An1; rewrite (cardsD1 x) Ax eqSS; move/IHn=> {IHn} <-.
+move/eqP: An1 => <- {n}; rewrite -cardX.
+pose h (u : pT) := (u x, u * tperm x (u x)).
+have h_inj: injective h.
+  move=> u1 u2; rewrite /h [mulg]lock; case=> ->; unlock; exact: mulg_injr.
+rewrite -(card_imset _ h_inj); apply: eq_card=> [[/= y v]].
+apply/imsetP/andP=> /= [[u uA [-> -> {y v}]]|[Ay vA']].
   split; first by rewrite perm_closed.
-  apply/subsetP=> z.
-  do 2!rewrite /mulg /= /fun_of_perm /= g2f /comp.
-  rewrite /transpose -/(u x) -/(u z) (inj_eq (@perm_inj u)) /a' /setD1.
-  case: (x =P z) => [<-|_]; first by case/eqP; case: eqP.
-  case: (x =P u z) => [Dx | _]; first by rewrite -(perm_closed _ Hu) -Dx.
-  exact: subsetP Hu z.
-rewrite /= in v *; move=> [Hy Hv]; pose u : permType := v * transperm x y.
-have Dy: y = u x.
-  do 2!rewrite /u /= /fun_of_perm /= g2f /comp.
-  rewrite -/(v x) (_ : v x = x) /transpose ?set11 //.
-  by apply/eqP; apply/idPn; move/(subsetP Hv); rewrite /a'/ setD1 set11.
-exists u; rewrite /h -Dy /u -mulgA square_transperm mulg1 set11.
-apply/subsetP=> z; do 2!rewrite /fun_of_perm /= g2f /comp.
-rewrite (inv_eq (transposeK x y)) /transpose -/(v z).
-by do 2!case: (_ =P z) => [<- //| _]; move/(subsetP Hv); case/andP.
+  apply/subsetP=> z; rewrite inE /= permM permE /transpose.
+  rewrite (inj_eq (perm_inj u)) /= setE (eq_sym z).
+  case: (x =P z) => [<-|nxz nhuz /=]; first by case/eqP; case: eqP.
+  by apply: (subsetP uA); apply: contra nhuz; move/eqP->; case: (x =P z).
+pose u : pT := v * tperm x y.
+have def_y: y = u x.
+  by rewrite permM permE /transpose (out_perm vA') ?setE eqxx.
+exists u; last by rewrite /h -def_y -mulgA square_tperm mulg1.
+apply/subsetP=> z; rewrite inE /= permM permE.
+rewrite (inv_eq (transposeK x y)) /transpose.
+do 2!case: (_ =P z) => [<- //| _].
+by move/(subsetP vA'); rewrite setE; case/andP.
 Qed.
 
 End PermGroup.
 
-Notation "'S_' ( n )" := (permType I_(n))
+Notation "{ 'perm' T }" := (perm_for (Phant T))
+  (at level 0, format "{ 'perm'  T }") : type_scope.
+
+Notation "'S_' ( n )" := {perm I_(n)}
   (at level 0, format "'S_' ( n )").
 
 Unset Implicit Arguments.

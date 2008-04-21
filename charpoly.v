@@ -1,5 +1,5 @@
-Require Import ssreflect ssrbool funs eqtype ssrnat seq paths fintype tuple.
-Require Import ssralg ssrbig div groups matrix ssrpoly.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq paths fintype finfun.
+Require Import ssralg bigops div groups matrix poly.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -83,7 +83,7 @@ Proof.
 move=> A1 A2; apply/coef_eqP=> k; apply/matrixP=> i j.
 rewrite !coef_phi !mxK !coef_mul_poly mxK_sum coef_sum.
 pose F k1 k2 := coef (A1 i k1) k2 * coef (A2 k1 j) (k - k2).
-transitivity (\sum_(k1) \sum_(k2 <= k) F k1 k2); rewrite {}/F.
+transitivity (\sum_(k1) \sum_(k2 < k.+1) F k1 k2); rewrite {}/F.
   by apply: eq_bigr=> k1 _; rewrite coef_mul_poly.
 rewrite exchange_big /=; apply: eq_bigr=> k2 _.
 by rewrite mxK; apply: eq_bigr=> k1 _; rewrite !coef_phi.

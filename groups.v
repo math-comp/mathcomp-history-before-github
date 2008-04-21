@@ -1,7 +1,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect.
 Require Import ssrbool.
-Require Import funs.
+Require Import ssrfun.
 Require Import eqtype.
 Require Import ssrnat.
 Require Import seq.
@@ -9,6 +9,8 @@ Require Import fintype.
 Require Import paths.
 Require Import connect.
 Require Import div.
+Require Import bigops.
+Require Import finset.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -37,6 +39,12 @@ Arguments Scope Group.inv [_ group_scope].
 
 Notation finGroupType := Group.finGroupType.
 Notation FinGroupType := Group.FinGroupType.
+Notation "[ 'finGroupType' 'of' t ]" :=
+  (match {t : Type as finGroupType} as s
+   return [type of FinGroupType for s] -> _ with
+  | FinGroupType _ _ _ _ uP iP mP => fun k => k _ _ _ uP iP mP end
+  (@FinGroupType t)) (at level 0, only parsing) : form_scope.
+
 Definition mulg := nosimpl Group.mul.
 Definition invg := nosimpl Group.inv.
 Definition unitg := nosimpl Group.unit.
@@ -93,6 +101,7 @@ Proof. by move=> x y; rewrite -mulgA mulVg mulg1. Qed.
 Lemma invg1 : 1^-1 = 1 :> elt.
 Proof. by rewrite -{2}(mulVg 1) mulg1. Qed.
 
+
 Lemma invgK : cancel (@invg elt) invg.
 Proof. by move=> x; rewrite -{2}(mulgK x^-1 x) -mulgA mulKgv. Qed.
 
@@ -102,6 +111,12 @@ Proof. exact: can_inj invgK. Qed.
 Lemma invg_mul : forall x1 x2 : elt, (x2 * x1)^-1 = x1^-1 * x2^-1. 
 Proof.
 by move=> x1 x2; apply: (mulg_injl (x2 * x1)); rewrite mulgA mulgK !mulgV.
+Qed.
+
+Lemma mulgaa_1 : forall (a:elt), a * a = a -> a = 1.
+move => a H.
+have e:(a^-1 * a * a = a^-1 * a) by rewrite -{5}H mulgA.
+by rewrite -(mulVg (a)) -e mulVg mul1g.
 Qed.
 
 End GroupIdentities.
@@ -183,9 +198,9 @@ Variable G: finGroupType.
 (*                                                                     *)
 (***********************************************************************)
 Fixpoint gexpn (a: G) (n: nat) {struct n} : G :=
-  if n is S n1 then a * (gexpn a n1) else 1.
+  if n is n1.+1 then a * (gexpn a n1) else 1.
 
-Notation "a '**' p" := (gexpn a p) (at level 30). 
+Notation "a '**' p" := (gexpn a p) (at level 30).
 
 Lemma gexpn0: forall a, a ** 0 = 1.
 Proof. by done. Qed.
@@ -200,7 +215,7 @@ Proof.
 by elim => [| n Rec] //=; rewrite mul1g.
 Qed.
 
-Lemma gexpnS: forall a n, a ** (S n) = a * (a ** n).
+Lemma gexpnS: forall a n, a ** (n.+1) = a * (a ** n).
 Proof. by move => a. Qed.
 
 Lemma gexpn_add: forall a n m, (a ** n) * (a ** m) = a ** (n + m).
@@ -253,21 +268,22 @@ Section SmulDef.
 
 Open Scope group_scope.
 
-Variable elt : finGroupType.
-
-Notation Local "x \in A" := (@s2s elt A x).
+Variable gT : finGroupType.
+Notation Local sT := {set gT}.
 
 (* Set-lifted group operations *)
 
-Definition lcoset x A := {y, x^-1 * y \in A}.
-Definition rcoset A x := {y, y * x^-1 \in A}.
-Definition smulg_def A B := {xy, ~~ disjoint {y, rcoset A y xy} (s2s B)}.
-Definition gmulg_def A B :=
-  let C := smulg_def A B in if C == smulg_def B A then C else {:1}.
-Definition sinvg A := {y, y^-1 \in A}.
-Definition sconjg A x := {y, y ^ x^-1 \in A}.
-Definition classg_def x B := {y, image (fun z : elt => x ^ z) (s2s B) y}.
-Definition sclassg_def A B := {xy, ~~ disjoint {y, sconjg A y xy} (s2s B)}.
+Definition lcoset x (A : sT) := [set y | x^-1 * y \in A].
+Definition rcoset (A : sT) x := [set y | y * x^-1 \in A].
+Definition smulg_def (A B : sT) :=
+  [set xy | ~~ [disjoint [set y | xy \in rcoset A y] & B]].
+Definition gmulg_def (A B : sT) :=
+  let C := smulg_def A B in if C == smulg_def B A then C else [set 1].
+Definition sinvg (A : sT) := [set y | y^-1 \in A].
+Definition sconjg (A : sT) x := [set y | y ^ x^-1 \in A].
+Definition classg_def x (B : sT) := (fun z => x ^ z) @: B.
+Definition sclassg_def (A B : sT) :=
+  [set xy | ~~ [disjoint [set y | xy \in sconjg A y] & B]].
 
 End SmulDef.
 
@@ -288,153 +304,154 @@ Notation "A ':^:' B" := (sclassg A B) (at level 35) : group_scope.
 
 Section SmulProp.
 
-Variable elt : finGroupType.
+Variable gT : finGroupType.
+Notation sT := {set gT}.
 
 Open Scope group_scope.
-Notation Local "x \in A" := (@s2s elt A x) : group_scope.
-Notation Local "1" := (unitg elt).
 
-Lemma lcosetE : forall y A z, (z \in y *: A) = (y^-1 * z \in A).
-Proof. by move=> *; rewrite s2f. Qed.
+Notation Local "1" := (unitg gT).
 
-Lemma rcosetE : forall A y z, (z \in A :* y) = (z * y^-1 \in A).
-Proof. by move=> *; rewrite s2f. Qed.
+Lemma lcosetE : forall y (A : sT) z, (z \in y *: A) = (y^-1 * z \in A).
+Proof. by move=> *; rewrite setE. Qed.
 
-Lemma lcosetP : forall y A z, reflect (exists2 x, x \in A & z = y * x) (z \in y *: A)%G.
+Lemma rcosetE : forall (A : sT) y z, (z \in A :* y) = (z * y^-1 \in A).
+Proof. by move=> *; rewrite setE. Qed.
+
+Lemma lcosetP : forall y (A : sT) z,
+  reflect (exists2 x, x \in A & z = y * x) (z \in y *: A)%G.
 Proof.
 move=> y A z; rewrite lcosetE.
 apply: (iffP idP) => [Ax | [x Ax ->]]; first exists (y^-1 * z); gsimpl.
 Qed.
 
-Lemma rcosetP : forall A y z, reflect (exists2 x, x \in A & z = x * y) (z \in A :* y)%G.
+Lemma rcosetP : forall (A : sT) y z,
+  reflect (exists2 x, x \in A & z = x * y) (z \in A :* y)%G.
 Proof.
 move=> A y z; rewrite rcosetE.
 apply: (iffP idP) => [Ax | [x Ax ->]]; first exists (z * y^-1); gsimpl.
 Qed.
 
-CoInductive mem_smulg A B z : Prop := MemProdg x y of x \in A & y \in B & z = x * y.
+CoInductive mem_smulg (A B : sT) (z : gT) : Prop :=
+  MemProdg x y of x \in A & y \in B & z = x * y.
 
 Lemma smulgP : forall A B z, reflect (mem_smulg A B z) (z \in A :*: B)%G.
 Proof.
-unlock smulg => A B z; rewrite s2f; apply: (iffP set0Pn) => [[y]|[x y Ax Ay ->]].
-  by case/andP; rewrite s2f; case/rcosetP=> x; exists x y.
-by exists y; rewrite /setI s2f Ay andbT; apply/rcosetP; exists x.
+unlock smulg => A B z; rewrite setE; apply: (iffP pred0Pn) => [[y]|[x y Ax Ay ->]].
+  by case/andP; rewrite /= setE; case/rcosetP=> x; exists x y.
+by exists y; rewrite /= setE Ay andbT; apply/rcosetP; exists x.
 Qed.
 
-Lemma smulg_subl : forall A B : setType elt, 1 \in B -> subset A (A :*: B).
+Lemma smulg_subl : forall A B : sT, 1 \in B -> A \subset A :*: B.
 Proof. by move=> A B B1; apply/subsetP=> x Ax; apply/smulgP; exists x 1; gsimpl. Qed.
 
-Lemma smulg_subr : forall A B : setType elt, 1 \in A -> subset B (A :*: B).
+Lemma smulg_subr : forall A B : sT, 1 \in A -> B \subset A :*: B.
 Proof. by move=> A B A1; apply/subsetP=> x Bx; apply/smulgP; exists 1 x; gsimpl. Qed.
 
-Lemma smulgA : forall A1 A2 A3 : setType elt, A1 :*: (A2 :*: A3) = A1 :*: A2 :*: A3.
+Lemma smulgA : forall A1 A2 A3 : sT, A1 :*: (A2 :*: A3) = A1 :*: A2 :*: A3.
 Proof.
-move=> A1 A2 A3; apply/isetP=> x; apply/smulgP/smulgP=> [[x1 x23 Ax1] | [x12 x3]].
+move=> A1 A2 A3; apply/setP=> x; apply/smulgP/smulgP=> [[x1 x23 Ax1] | [x12 x3]].
   case/smulgP=> x2 x3 Ax2 Ax3 ->{x23}; rewrite mulgA => Dx.
   by exists (x1 * x2) x3 => //; apply/smulgP; exists x1 x2.
 case/smulgP=> x1 x2 Ax1 Ax2 ->{x12} Ax3; rewrite -mulgA => Dx.
 by exists x1 (x2 * x3) => //; apply/smulgP; exists x2 x3.
 Qed.
 
-Lemma rcoset_smul : forall A (x : elt), A :* x = A :*: {:x}.
+Lemma rcoset_smul : forall A (x : gT), A :* x = A :*: [set x].
 Proof.
-move=> A x; apply/isetP => y; apply/rcosetP/smulgP => [[z]|[z x']].
-  by exists z x; first 2 [exact: iset11].
-by rewrite s2f => ?; move/eqP=> -> ->; exists z.
+move=> A x; apply/setP => y; apply/rcosetP/smulgP => [[z]|[z x']].
+  by exists z x; first 2 [exact: set11].
+by rewrite setE => ?; move/eqP=> -> ->; exists z.
 Qed.
 
-Lemma lcoset_smul : forall A (x : elt), x *: A = {:x} :*: A.
+Lemma lcoset_smul : forall A (x : gT), x *: A = [set x] :*: A.
 Proof.
-move=> A x; apply/isetP => y; apply/lcosetP/smulgP => [[z]|[x' z]].
-  by exists x z; first 1 [exact: iset11].
-by rewrite s2f; move/eqP=> -> ? ->; exists z.
+move=> A x; apply/setP => y; apply/lcosetP/smulgP => [[z]|[x' z]].
+  by exists x z; first 1 [exact: set11].
+by rewrite setE; move/eqP=> -> ? ->; exists z.
 Qed.
 
-Lemma rcoset1 : forall A : setType elt, A :* 1 = A.
-Proof. by move=> A; apply/isetP=> x; rewrite s2f; gsimpl. Qed.
+Lemma rcoset1 : forall A : sT, A :* 1 = A.
+Proof. by move=> A; apply/setP=> x; rewrite setE; gsimpl. Qed.
 
-Lemma lcoset1 : forall A : setType elt, 1 *: A = A.
-Proof. by move=> A; apply/isetP=> x; rewrite s2f; gsimpl. Qed.
+Lemma lcoset1 : forall A : sT, 1 *: A = A.
+Proof. by move=> A; apply/setP=> x; rewrite setE; gsimpl. Qed.
 
-Lemma smulg1 : forall A : setType elt, A :*: {:1} = A.
+Lemma smulg1 : forall A : sT, A :*: [set 1] = A.
 Proof. by move=> A; rewrite -rcoset_smul rcoset1. Qed.
 
-Lemma smul1g : forall A : setType elt, {:1} :*: A = A.
+Lemma smul1g : forall A : sT, [set 1] :*: A = A.
 Proof. by move=> A; rewrite -lcoset_smul lcoset1. Qed.
 
-Lemma smulgs : forall A B1 B2 : setType elt,
-  subset B1 B2 -> subset (A :*: B1) (A :*: B2).
+Lemma smulgs : forall A B1 B2 : sT,
+  B1 \subset B2 -> A :*: B1 \subset A :*: B2.
 Proof.
 move=> A B1 B2; move/subsetP=> sB12; apply/subsetP=> x.
 case/smulgP=> y z Ay Bz ->; apply/smulgP; exists y z; auto.
 Qed.
 
-Lemma smulsg : forall A1 A2 B : setType elt,
-  subset A1 A2 -> subset (A1 :*: B) (A2 :*: B).
+Lemma smulsg : forall A1 A2 B : sT,
+  A1 \subset A2 -> A1 :*: B \subset A2 :*: B.
 Proof.
 move=> A1 A2 B; move/subsetP=> sA12; apply/subsetP=> x.
 case/smulgP=> y z Ay Bz ->; apply/smulgP; exists y z; auto.
 Qed.
 
-Lemma smulg_set1 : forall x y : elt, {:x} :*: {:y} = {:x * y}.
+Lemma smulg_set1 : forall x y : gT, [set x] :*: [set y] = [set x * y].
 Proof.
-by move=> x y; apply/isetP => z; rewrite -rcoset_smul !s2f (canF_eq (mulgK y)).
+move=> x y; apply/setP => z; rewrite -rcoset_smul /= !setE.
+exact: (canF_eq (mulgKv y)).
 Qed.
 
-Lemma gmulgC : forall A B : setType elt, A :**: B = B :**: A.
+Lemma gmulgC : forall A B : sT, A :**: B = B :**: A.
 Proof. by unlock gmulg gmulg_def => A B; rewrite eq_sym; case: eqP. Qed.
 
-Lemma gmulg1 : forall A, A :**: {:1} = A.
+Lemma gmulg1 : forall A, A :**: [set 1] = A.
 Proof.
 move=> A; move: (smulg1 A) (smul1g A); unlock gmulg smulg gmulg_def => -> ->.
-by rewrite eq_refl.
+by rewrite eqxx.
 Qed.
 
-Lemma gmul1g : forall A, {:1} :**: A = A.
+Lemma gmul1g : forall A, [set 1] :**: A = A.
 Proof. by move=> A; rewrite gmulgC gmulg1. Qed.
 
-Lemma smulC_gmul : forall A B : setType elt, A :*: B = B :*: A -> A :*: B = A :**: B.
+Lemma smulC_gmul : forall A B : sT, A :*: B = B :*: A -> A :*: B = A :**: B.
 Proof. by unlock gmulg gmulg_def smulg => A B <-; rewrite eq_refl. Qed.
 
-Lemma smul_gmul_sym : forall A B : setType elt, A :*: B = A :**: B -> B :*: A = A :**: B.
+Lemma smul_gmul_sym : forall A B : sT, A :*: B = A :**: B -> B :*: A = A :**: B.
 Proof.
-unlock gmulg gmulg_def smulg => A B; case: eqP => // _; move/isetP=> dA; apply/isetP=> z.
-rewrite [smulg_def]lock -/smulg s2f in dA *; apply/smulgP/eqP=> [[y x By Ax ->]|<-] {z}.
+unlock gmulg gmulg_def smulg => A B; case: eqP => // _; move/setP=> dA; apply/setP=> z.
+rewrite [smulg_def]lock -/smulg setE in dA *.
+apply/smulgP/eqP=> [[y x By Ax ->]|->] {z}.
   have: x * y \in A :*: B by apply/smulgP; exists x y.
-  by rewrite dA s2f -{2}(mulKg x y); move/eqP <-; gsimpl.
-move/(_ 1): dA; rewrite iset11; case/smulgP=> x y Ax By Dxy.
+  by rewrite dA setE -{2}(mulKg x y); move/eqP->; gsimpl.
+move/(_ 1): dA; rewrite set11; case/smulgP=> x y Ax By Dxy.
 by exists y x; rewrite // -(mulgK y x) -Dxy; gsimpl.
 Qed.
 
-Lemma sinvgK : involutive (@sinvg elt).
-Proof. by move=> A; apply/isetP => x; rewrite !s2f invgK. Qed.
+Lemma sinvgK : involutive (@sinvg gT).
+Proof. by move=> A; apply/setP => x; rewrite !setE invgK. Qed.
 
-Lemma card_sinvg : forall A : setType elt, card (A :^-1) = card A.
+Lemma card_sinvg : forall A : sT, #|A :^-1| = #|A|.
 Proof.
-move=> A; have iinj := @invg_inj elt; rewrite -(card_image iinj).
-by apply: eq_card => x; rewrite -[x]invgK image_f // s2f.
+move=> A; have iinj := @invg_inj gT; rewrite -(card_image iinj).
+by apply: eq_card => x; rewrite -[x]invgK [_ \in _]image_f //= setE.
 Qed.
 
-Lemma sinvgM : forall A B : setType elt, (A :*: B) :^-1 = (B :^-1) :*: (A :^-1).
+Lemma sinvgM : forall A B : sT, (A :*: B) :^-1 = (B :^-1) :*: (A :^-1).
 Proof.
-move=> A B; apply/isetP=> xy; rewrite s2f; apply/smulgP/smulgP; last first.
-  by case=> y x; rewrite !s2f => By Ax ->{xy}; exists x^-1 y^-1; gsimpl.
-by rewrite -{2}(invgK xy); case=> x y Ax By ->{xy}; exists y^-1 x^-1; rewrite ?s2f; gsimpl.
+move=> A B; apply/setP=> xy; rewrite setE; apply/smulgP/smulgP; last first.
+  by case=> y x; rewrite !setE => By Ax ->{xy}; exists x^-1 y^-1; gsimpl.
+by rewrite -{2}(invgK xy); case=> x y Ax By ->{xy}; exists y^-1 x^-1; rewrite ?setE; gsimpl.
 Qed.
 
-Lemma sinvg_set1 : forall x : elt, {:x} :^-1 = {:x^-1}.
-Proof. move=> x; apply/isetP=> y; rewrite !s2f inv_eq //; exact: invgK. Qed.
+Lemma sinvg_set1 : forall x : gT, [set x] :^-1 = [set x^-1].
+Proof. move=> x; apply/setP=> y; rewrite !setE inv_eq //; exact: invgK. Qed.
 
-Definition group_set A := (1 \in A) && subset (A :*: A) A.
-	 
-Lemma group_set_finGroupType :  group_set elt. 	 
-Proof. 	 
-rewrite /group_set /=; apply/andP; split; first by done. 	 
-by apply/subsetP=> u; case/smulgP=> x y Ex Ey ->. 	 
-Qed. 	
+Definition group_set (A : sT) := (1 \in A)%G && (A :*: A \subset A).
 
-Lemma groupP : forall A,
-  reflect (1 \in A /\ forall x y, x \in A -> y \in A -> x * y \in A) (group_set A).
+Lemma groupP : forall A : sT,
+  reflect (1 \in A /\ forall x y, x \in A -> y \in A -> x * y \in A)
+          (group_set A).
 Proof.
 move=> A; apply: (iffP andP) => [] [A1 AM]; split=> {A1}//.
   by move=> x y Ax Ay; apply: (subsetP AM); apply/smulgP; exists x y.
@@ -442,88 +459,107 @@ by apply/subsetP=> z; case/smulgP=> [x y Ax Ay ->]; auto.
 Qed.
 
 Structure group : Type := Group {
-  set_of_group :> setType elt;
+  set_of_group :> sT;
   set_of_groupP : group_set set_of_group
 }.
 
-Definition group_of_sig u := let: EqSig A gA := u in @Group A gA.
-Coercion sig_of_group G := let: Group A gA := G in EqSig group_set A gA.
-Lemma sig_of_groupK : cancel sig_of_group group_of_sig. Proof. by case. Qed.
-Canonical Structure group_eqType := EqType (can_eq sig_of_groupK).
-Canonical Structure group_finType := FinType (can_uniq sig_of_groupK).
+Definition group_for of phant gT : predArgType := group.
+Notation Local groupT := (group_for (Phant gT)).
+Identity Coercion group_for_group : group_for >-> group.
 
-Definition groupA := Group group_set_finGroupType.
+Canonical Structure group_subType := SubType set_of_group group_rect vrefl.
+Canonical Structure group_eqType := [subEqType for set_of_group].
+Canonical Structure group_finType := Eval hnf in [subFinType of group_eqType].
 
-Lemma set_of_group_inj : injective set_of_group.
-Proof. move=> [G1 gG1] [G2 gG2]; move/eqP=> eG12; exact/eqP. Qed.
+(* No predType structure, as this would hide the group-to-set coercion *)
+(* and thus spoint rewriting *)
+
+Lemma set_of_group_inj : injective set_of_group. Proof. exact: val_inj. Qed.
+
+Canonical Structure group_for_subType := Eval hnf in [subType of groupT].
+Canonical Structure group_for_eqType := Eval hnf in [eqType of groupT].
+Canonical Structure group_for_finType :=
+  Eval hnf in [finType of group_for_eqType].
+
+Lemma group_setA : group_set setA. Proof. exact/groupP. Qed.
+
+Canonical Structure groupA := Group group_setA.
 
 Section GroupProp.
 
-Variable H : group.
+Variable H : groupT.
 
-Lemma valG : val H = H. Proof. by case H. Qed.
+Lemma valG : val H = H. Proof. by []. Qed.
 
-Lemma group1 : H 1. Proof. by case/groupP: (set_of_groupP H). Qed.
+Lemma group1 : 1 \in H. Proof. by case/groupP: (valP H). Qed.
 
-Lemma groupM : forall x y, H x -> H y -> H (x * y).
-Proof. by case/groupP: (set_of_groupP H). Qed.
+Lemma groupM : forall x y, x \in H -> y \in H -> x * y \in H.
+Proof. by case/groupP: (valP H). Qed.
 
-Lemma groupVr : forall x, H x -> H x^-1.
+Lemma groupVr : forall x, x \in H -> x^-1 \in H.
 Proof.
 move=> x Hx; rewrite -(finv_f (mulg_injl x) x^-1) mulgV /finv.
 elim: _.-1 => [|n IHn] /=; [exact: group1 | exact: groupM].
 Qed.
 
-Lemma groupV : forall x, H x^-1 = H x.
-Proof. move=> x; apply/idP/idP; first rewrite -{2}[x]invgK; exact: groupVr. Qed.
+Lemma groupV : forall x, (x^-1 \in H) = (x \in H).
+Proof.
+move=> x; apply/idP/idP; first rewrite -{2}[x]invgK; exact: groupVr.
+Qed.
 
-Lemma groupMl : forall x y, H x -> H (x * y) = H y.
+Lemma groupMl : forall x y, x \in H -> (x * y \in H) = (y \in H).
 Proof.
 move=> x y Hx; apply/idP/idP=> Hy; last exact: groupM.
 rewrite -(mulKg x y); exact: groupM (groupVr _) _.
 Qed.
 
-Lemma groupMr : forall x y, H x -> H (y * x) = H y.
+Lemma groupMr : forall x y, (x \in H) -> (y * x \in H) = (y \in H).
 Proof.
 move=> x y Hx; apply/idP/idP=> Hy; last exact: groupM.
 rewrite -(mulgK x y); exact: groupM (groupVr _).
 Qed.
 
-Lemma groupE : forall x n, H x -> H (x ** n).
+Lemma groupE : forall x n, (x \in H) -> (x ** n \in H).
 Proof.
 move => x n Hx; elim: n => /= [|n Hrec]; first exact: group1.
 by rewrite groupM.
 Qed.
 
-Lemma groupVl : forall x,  H x^-1 ->  H x.
+Lemma groupVl : forall x,  (x^-1 \in H) ->  (x \in H).
 Proof. by move=> x; rewrite groupV. Qed.
 
-Lemma groupJ : forall x y, H x -> H y -> H (x ^ y).
+Lemma groupJ : forall x y, (x \in H) -> (y \in H) -> (x ^ y \in H).
 Proof. by move=> *; rewrite /conjg !groupM ?groupV. Qed.
 
-Lemma groupJr : forall x y, H y -> H (x ^ y) = H x.
+Lemma groupJr : forall x y, y \in H -> (x ^ y \in H) = (x \in H).
 Proof. by move=> *; rewrite /conjg groupMr ?groupMl ?groupV. Qed.
 
-Definition subFinGroupType : finGroupType.
-pose d := sub_finType H.
-pose d1 : d := EqSig H 1 group1.
-pose dV (u : d) : d := EqSig H _ (groupVr (valP u)).
-pose dM (u1 u2 : d) : d := EqSig H _ (groupM (valP u1) (valP u2)).
-(exists d d1 dV dM => *; apply: val_inj);
-  [exact: mul1g | exact: mulVg | exact: mulgA].
-Defined.
+Notation Local sgT := {x | x \in H}.
+Definition subgroup_unit : sgT := Sub 1 group1.
+Definition subgroup_inv (u : sgT) : sgT := Sub _^-1 (groupVr (valP u)).
+Definition subgroup_mul (u v : sgT) : sgT :=
+  Sub(_ * _) (groupM (valP u) (valP v)).
+Lemma subgroup_unitP : left_unit subgroup_unit subgroup_mul.
+Proof. move=> u; apply: val_inj; exact: mul1g. Qed.
+Lemma subgroup_invP : left_inverse subgroup_unit subgroup_inv subgroup_mul.
+Proof. move=> u; apply: val_inj; exact: mulVg. Qed.
+Lemma subgroup_mulP : associative subgroup_mul.
+Proof. move=> u v w; apply: val_inj; exact: mulgA. Qed.
 
-Canonical Structure subFinGroupType.
+Canonical Structure subFinGroupType :=
+  FinGroupType subgroup_unitP subgroup_invP subgroup_mulP.
 
-Lemma pos_card_group : 0 < card H.
-Proof. rewrite lt0n; apply/set0Pn; exists (1 : elt); exact: group1. Qed.
+Lemma pos_card_group : 0 < #|H|.
+Proof. rewrite lt0n; apply/pred0Pn; exists (1 : gT); exact: group1. Qed.
+
+Canonical Structure pos_nat_card_group := PosNat pos_card_group.
 
 Lemma smulgg : H :*: H = H.
 Proof.
-by case/andP: (set_of_groupP H) => H1 mH; apply/isetP; apply/subset_eqP; rewrite mH smulg_subr.
+by case/andP: (set_of_groupP H) => H1 mH; apply/setP; apply/subset_eqP; rewrite mH smulg_subr.
 Qed.
 
-Lemma sinvG : H :^-1 = H. Proof. by apply/isetP=> x; rewrite s2f groupV. Qed.
+Lemma sinvG : H :^-1 = H. Proof. by apply/setP=> x; rewrite setE groupV. Qed.
 
 End GroupProp.
 
@@ -532,93 +568,101 @@ Hint Resolve group1 groupM groupVr.
 Lemma sinvMG : forall H K : group, (H :*: K) :^-1 = K :*: H.
 Proof. by move=> H K; rewrite sinvgM !sinvG. Qed.
 
-
-Lemma group_set_unit : group_set {:1}.
-Proof. by rewrite /group_set smulg_set1 mulg1 subset_refl iset11. Qed.
+Lemma group_set_unit : group_set [set 1].
+Proof. by rewrite /group_set smulg_set1 mulg1 subset_refl set11. Qed.
 
 Canonical Structure unit_set_group := Group group_set_unit.
 
-Lemma group_set_gmulG : forall H K : group, group_set (H :**: K).
+Lemma group_set_gmulG : forall H K : groupT, group_set (H :**: K).
 Proof.
 move=> H K; case cHK: (H :*: K == K :*: H); last first.
   by move: cHK; unlock gmulg gmulg_def smulg => ->; exact group_set_unit.
 move/eqP: cHK => cHK; rewrite -smulC_gmul //.
-apply/andP; split; first by apply/smulgP; exists 1 1; gsimpl.
+apply/andP; split; first by apply/smulgP; exists 1 1; gsimpl; exact: group1.
 by rewrite smulgA -(smulgA H) -cHK smulgA smulgg -smulgA smulgg subset_refl.
 Qed.
 
 Canonical Structure gmulG_group H K := Group (group_set_gmulG H K).
 
-Lemma group_gmul : forall G H K : group, G = H :*: K :> setType _ -> H :*: K = H :**: K.
+Lemma group_gmul : forall G H K : groupT,
+  G = H :*: K :> set _ -> H :*: K = H :**: K.
 Proof. by move=> G H K dG; apply: smulC_gmul; rewrite -dG -sinvG dG sinvgM !sinvG. Qed.
 
-Lemma group_gmul_eq : forall G H K : group, G = H :*: K :> setType _ ->
+Lemma group_gmul_eq : forall G H K : groupT, G = H :*: K :> set _ ->
   G = {H :**: K as group}.
-Proof.
-move=> G H K dG; apply: (can_inj sig_of_groupK); apply: val_inj; rewrite /= valG dG.
-exact: group_gmul dG.
-Qed.
+Proof. by move=> G H K dG; apply: val_inj; rewrite /= dG (group_gmul dG). Qed.
 
 End SmulProp.
 
 Hint Resolve group1 groupM groupVr pos_card_group.
 
+Notation "{ 'group' gT }" := (group_for (Phant gT))
+  (at level 0, format "{ 'group'  gT }") : type_scope.
+
+Notation "[ 'group' 'of' G ]" :=
+  (match {G%SET as group _} as s return [type of @Group _ for s] -> _ with
+  | Group _ gP => fun k => k gP end
+  (@Group _ G)) (at level 0, only parsing) : form_scope.
+
 Section ConjugationSet.
 
 Open Scope group_scope.
 
-Variable elt : finGroupType.
-Variable A : setType elt.
+Variable gT : finGroupType.
+Notation sT := {set gT}.
+Variable A : sT.
 
-Theorem sconjgE : forall (B : setType elt) x y, (B :^ x^-1) y = B (y ^ x).
-Proof. by move=> *; rewrite s2f invgK. Qed.
+Theorem sconjgE : forall (B : sT) x y, (y \in B :^ x^-1) = (y ^ x \in B).
+Proof. by move=> *; rewrite setE invgK. Qed.
 
 Theorem sconj1g : A :^ 1 = A.
-Proof. by apply/isetP => x; rewrite s2f invg1 conjg1. Qed.
+Proof. by apply/setP => x; rewrite setE invg1 conjg1. Qed.
 
 Lemma sconjgM : forall x y, A :^ (x * y) = (A :^ x) :^ y.
-Proof. move=> x y; apply/isetP => z; rewrite !s2f /conjg; gsimpl. Qed.
+Proof. move=> x y; apply/setP => z; rewrite !setE /conjg; gsimpl. Qed.
 
-Theorem sconjg_conj : forall (B : setType elt) x y, (B :^ x) (y ^ x) = B y.
-Proof. by move=> B x y; rewrite s2f conjgK. Qed.
+Theorem sconjg_conj : forall (B : sT) x y, (y ^ x \in B :^ x) = (y \in B).
+Proof. by move=> B x y; rewrite setE conjgK. Qed.
 
 Lemma sconjMg : forall B x, (A :*: B) :^ x = (A :^ x) :*: (B :^ x).
 Proof.
-move=> B x; apply/isetP=> yz; rewrite !s2f; apply/smulgP/smulgP=> [] [y z Ay Bz].
+move=> B x; apply/setP=> yz; rewrite !setE; apply/smulgP/smulgP=> [] [y z Ay Bz].
   by rewrite -{2}(conjgKv x yz) => ->; exists (y ^ x) (z ^ x); rewrite ?sconjg_conj ?conjg_mul.
 by move->; exists (y ^ x^-1) (z ^ x^-1); rewrite -?sconjgE ?conjg_mul ?invgK.
 Qed.
 
-Lemma sconj_set1 : forall x y : elt, {:x} :^ y = {:x ^ y}.
-Proof. by move=> x y; apply/isetP => z; rewrite !s2f (can2_eq (conjgK y) (conjgKv y)). Qed.
-
-Theorem sconjg_iimage : forall x, A :^ x = (conjg x) @: A.
+Lemma sconj_set1 : forall x y : gT, [set x] :^ y = [set x ^ y].
 Proof.
-move=> x; apply/isetP=> y; unlock iimage; rewrite !s2f. 
-rewrite -{2}(conjgKv x y) image_f ?s2f //; exact: conjg_inj.
+move=> x y; apply/setP => z; rewrite !setE; exact: (canF_eq (conjgKv y)).
+Qed.
+
+Theorem sconjg_imset : forall x, A :^ x = (conjg x) @: A.
+Proof.
+move=> x; apply/setP=> y; unlock imset; rewrite !setE. 
+rewrite -{2}(conjgKv x y) image_f ?setE //; exact: conjg_inj.
 Qed.
 
 Lemma sconjg_coset : forall x, A :^ x = x^-1 *: A :* x.
-Proof. by move=> x; apply/isetP =>y; rewrite !s2f mulgA. Qed.
+Proof. by move=> x; apply/setP =>y; rewrite !setE mulgA. Qed.
 
-Theorem card_sconjg : forall x, card (A :^ x) = card A.
+Theorem card_sconjg : forall x, #|A :^ x| = #|A|.
 Proof.
-move=> x; rewrite (sconjg_iimage x); apply: card_iimage; exact: conjg_inj.
+move=> x; rewrite (sconjg_imset x); apply: card_imset; exact: conjg_inj.
 Qed.
 
-Variable H : group elt.
+Variable H : group gT.
 
-Theorem sconjg1 : forall x, (H :^ x) 1.
-Proof. by move=> x; rewrite s2f conj1g group1. Qed.
+Theorem sconjg1 : forall x, 1 \in H :^ x.
+Proof. by move=> x; rewrite setE conj1g group1. Qed.
 
-Theorem sconjg_inv : forall x y, (H :^ x) y -> (H :^ x) y^-1.
-Proof. move=> x y; rewrite !s2f conjg_invg; exact: groupVr. Qed.
+Theorem sconjg_inv : forall x y, y \in H :^ x -> y^-1 \in H :^ x.
+Proof. move=> x y; rewrite !setE conjg_invg; exact: groupVr. Qed.
 
 Theorem group_set_sconjg : forall x, group_set (H :^ x).
 Proof. 
 move=> x; rewrite /group_set sconjg1; apply/subsetP=> y.
 case/smulgP=> x1 x2 Hx1 Hx2 -> {z}.
-rewrite !s2f conjg_mul in Hx1 Hx2 *; exact: groupM. 
+rewrite !setE conjg_mul in Hx1 Hx2 *; exact: groupM. 
 Qed.
 Canonical Structure sconjg_group x := Group (group_set_sconjg x).
 
@@ -626,56 +670,56 @@ End ConjugationSet.
 
 Section LaGrange.
 
-Variables (elt : finGroupType) (H K : group elt).
+Variables (gT : finGroupType) (H K : {group gT}).
+Notation sT := {set gT}.
 
-(*
-Definition subgroup := subset H K.
-Hypothesis subset_HK : subgroup.*)
-
-Hypothesis subset_HK : subset H K.
+Hypothesis subset_HK : H \subset K.
 Let sHK := subsetP subset_HK.
 
 Open Scope group_scope.
 
-Lemma rcoset_refl : forall x, (H :* x) x.
-Proof. by move=> x; rewrite /rcoset s2f mulgV group1. Qed.
+Lemma rcoset_refl : forall x, x \in H :* x.
+Proof. by move=> x; rewrite /rcoset setE mulgV group1. Qed.
 
-Lemma rcoset_sym : forall x y, (H :* x) y = (H :* y) x.
-Proof. by move=> *; rewrite !s2f -groupV; gsimpl. Qed.
+Lemma rcoset_sym : forall x y, (y \in H :* x) = (x \in H :* y).
+Proof. by move=> *; rewrite !setE -groupV; gsimpl. Qed.
 
-Lemma rcoset_trans1 : forall x y, (H :* x) y -> H :* x = H :* y.
+Lemma rcoset_trans1 : forall x y, (y \in H :* x) -> H :* x = H :* y.
 Proof.
-move=> x y Hxy; apply/isetP=> u; rewrite !s2f in Hxy *.
+move=> x y Hxy; apply/setP=> u; rewrite !setE in Hxy *.
 by rewrite -(groupMr (u * y^-1) Hxy); gsimpl.
 Qed.
 
-Lemma rcoset_trans : forall x y z, (H :* x) y -> (H :* y) z -> (H :* x) z.
+Lemma rcoset_trans : forall x y z,
+  y \in H :* x -> z \in H :* y -> z \in H :* x.
 Proof. by move=> x y z; move/rcoset_trans1->. Qed.
 
 Lemma rcoset_trans1r : forall x y, 
-  (H :* x) y -> forall z, (H :* z) x = (H :* z) y.
+  y \in H :* x -> forall z, (x \in H :* z) = (y \in H :* z).
 Proof. by move=> x y Hxy z; rewrite !(rcoset_sym z) (rcoset_trans1 Hxy). Qed.
 
-Lemma rcoset_id : forall x, H x -> H :* x = H.
-Proof. by move=> x Hx; apply/isetP => y; rewrite !s2f groupMr; auto. Qed.
+Lemma rcoset_id : forall x, x \in H -> H :* x = H.
+Proof. by move=> x Hx; apply/setP => y; rewrite !setE groupMr; auto. Qed.
 
-Lemma card_rcoset : forall x, card (H :* x) = card H.
+Lemma card_rcoset : forall x, #|H :* x| = #|H|.
 Proof.
-move=> x; have injx := mulg_injr x; rewrite -(card_image injx H); apply: eq_card => y.
-by rewrite s2f -{2}(mulgKv x y) image_f.
+move=> x; have injx := mulg_injr x; rewrite -(card_image injx (mem H)).
+by apply: eq_card => y; rewrite setE -{2}(mulgKv x y) [_ * x \in _]image_f.
 Qed.
 
-Definition rcosets := iimage (rcoset H).
+Definition rcosets (K : sT) := rcoset H @: K.
 
-Definition indexg K := card (rcosets K).
+Definition indexg (K : sT) := #|rcosets K|.
 
-Definition repr (A : setType elt) := if pick A is Some x then x else 1.
+Definition repr (A : sT) := if [pick x \in A] is Some x then x else 1.
 
-Lemma mem_repr : forall x A, s2s A x -> A (repr A).
-Proof. by rewrite /repr => x A; case: pickP => [|->]. Qed.
+Lemma mem_repr : forall x (A : sT), x \in A -> repr A \in A.
+Proof.
+by rewrite /repr => x A; case: pickP => [//|A0]; rewrite [x \in A]A0.
+Qed.
 
-CoInductive rcoset_repr_spec x : elt -> Type :=
-  RcosetReprSpec y : H y -> rcoset_repr_spec x (y * x).
+CoInductive rcoset_repr_spec x : gT -> Type :=
+  RcosetReprSpec y : y \in H -> rcoset_repr_spec x (y * x).
 
 Lemma repr_rcosetP : forall x, rcoset_repr_spec x (repr (H :* x)).
 Proof.
@@ -691,47 +735,48 @@ apply/rcosetP; exists (y^-1); gsimpl.
 exact: groupVr.
 Qed.
 
-Theorem LaGrange : (card H * indexg K)%N = card K.
+Theorem LaGrange : (#|H| * indexg K)%N = #|K|.
 Proof.
-pose f x : prod_finType _ _ := pair (x * (repr (H :* x))^-1) (H :* x).
+pose f x := (x * (repr (H :* x))^-1, H :* x).
 have inj_f: injective f.
   rewrite /f [rcoset]lock => x1 x2 [Dy DHx]; move: Dy; rewrite {}DHx; exact: mulg_injr.
-rewrite -card_prod_set -{inj_f}(card_iimage inj_f); apply: eq_card => [] [y A].
-apply/andP/iimageP=> /= [[Hy]|[x Kx [-> ->]]]; last first.
-  split; last by apply/iimageP; exists x.
+rewrite -cardX -{inj_f}(card_imset _ inj_f); apply: eq_card => [] [y A].
+apply/andP/imsetP=> /= [[Hy]|[x Kx [-> ->]]]; last first.
+  split; last by apply/imsetP; exists x.
   case: repr_rcosetP => z Hz; gsimpl; exact: groupVr.
-move/iimageP=> [x Kx ->{A}]; case Dz: (repr _) / (repr_rcosetP x) => [z Hz].
+move/imsetP=> [x Kx ->{A}]; case Dz: (repr _) / (repr_rcosetP x) => [z Hz].
 exists (y * z * x); first by rewrite groupMr // sHK // groupM.
-have Hxyx: (H :* x) (y * z * x) by rewrite s2f; gsimpl; exact: groupM.
+have Hxyx: y * z * x \in H :* x by rewrite setE; gsimpl; exact: groupM.
 by rewrite /f -(rcoset_trans1 Hxyx) Dz; gsimpl.
 Qed.
 
-Lemma group_dvdn : dvdn (card H) (card K).
+Lemma group_dvdn : #|H| %| #|K|.
 Proof. by apply/dvdnP; exists (indexg K); rewrite mulnC LaGrange. Qed.
 
-Lemma group_divn : divn (card K) (card H) = indexg K.
+Lemma group_divn : #|K| %/ #|H| = indexg K.
 Proof. by rewrite -LaGrange // divn_mulr; auto. Qed.
 
-Lemma lcoset_inv : forall x y, (x *: H) y = (H :* x^-1) y^-1.
-Proof. by move=> x y; rewrite !s2f -invg_mul groupV. Qed.
+Lemma lcoset_inv : forall x y, (y \in x *: H) = (y^-1 \in H :* x^-1).
+Proof. by move=> x y; rewrite !setE -invg_mul groupV. Qed.
 
-Lemma lcoset_refl : forall x, (x *: H) x.
-Proof. by move=> x; rewrite s2f mulVg group1. Qed.
+Lemma lcoset_refl : forall x, x \in x *: H.
+Proof. by move=> x; rewrite setE mulVg group1. Qed.
 
-Lemma lcoset_sym : forall x y, (x *: H) y = (y *: H) x.
+Lemma lcoset_sym : forall x y, (y \in x *: H) = (x \in y *: H).
 Proof. by move=> x y; rewrite !lcoset_inv rcoset_sym. Qed.
 
-Lemma lcoset_trans : forall x y z, (x *: H) y -> (y *: H) z -> (x *: H) z.
+Lemma lcoset_trans : forall x y z,
+  (y \in x *: H) -> (z \in y *: H) -> (z \in x *: H).
 Proof. move=> x y z; rewrite !lcoset_inv; exact: rcoset_trans. Qed.
 
-Lemma lcoset_trans1 : forall x y, (x *: H) y -> x *: H = y *: H.
+Lemma lcoset_trans1 : forall x y, (y \in x *: H) -> x *: H = y *: H.
 Proof.
-move=> x y Hxy; apply/isetP => u; rewrite s2f in Hxy.
-by rewrite !s2f -{1}(mulKgv y u) mulgA groupMl.
+move=> x y Hxy; apply/setP => u; rewrite setE in Hxy.
+by rewrite !setE -{1}(mulKgv y u) mulgA groupMl.
 Qed.
 
 Lemma lcoset_trans1r : forall x y, 
-  (x *: H) y -> forall z, (z *: H) x = (z *: H) y.
+  (y \in x *: H) -> forall z, (x \in z *: H) = (y \in z *: H).
 Proof.
 by move=> x y Hxy z; rewrite !(lcoset_sym z) (lcoset_trans1 Hxy).
 Qed.
@@ -739,23 +784,23 @@ Qed.
 Lemma sinvg_lcoset : forall x, (x *: H) :^-1 = H :* x^-1.
 Proof. by move=> x; rewrite lcoset_smul rcoset_smul sinvgM sinvG sinvg_set1. Qed.
 
-Lemma card_lcoset : forall x, card (x *: H) = card H.
+Lemma card_lcoset : forall x, #|x *: H| = #|H|.
 Proof. by move=> x; rewrite -card_sinvg sinvg_lcoset card_rcoset. Qed.
 
-Definition lcosets := iimage (fun x => lcoset x H).
+Definition lcosets (K : sT) := (fun x => lcoset x H) @: K.
 
-Lemma card_lcosets : card (lcosets K) = indexg K.
+
+Lemma card_lcosets : #|lcosets K| = indexg K.
 Proof.
-rewrite -(card_iimage (inv_inj (@sinvgK elt))); apply: eq_card => A.
-apply/iimageP/iimageP=> [[B dB ->{A}] | [x Hx ->{A}]].
-  case/iimageP: dB => x Kx ->{B}.
+rewrite -(card_imset _ (inv_inj (@sinvgK gT))); apply: eq_card => A.
+apply/imsetP/imsetP=> [[B dB ->{A}] | [x Hx ->{A}]].
+  case/imsetP: dB => x Kx ->{B}.
   exists x^-1; [exact: groupVr | exact: sinvg_lcoset].
 exists (x^-1 *: H); last by rewrite sinvg_lcoset invgK.
-by apply/iimageP; exists x^-1; first exact: groupVr.
+by apply/imsetP; exists x^-1; first exact: groupVr.
 Qed.
 
 End LaGrange.
-
 
 Prenex Implicits repr.
 
@@ -763,24 +808,25 @@ Section GroupInter.
 
 Open Scope group_scope.
 
-Variable elt : finGroupType.
+Variable gT : finGroupType.
+Notation sT := {set gT}.
 
 Section GroupSmulSub.
 
-Variables (H : group elt) (A : setType elt).
-Hypothesis subAH : subset A H.
+Variables (H : group gT) (A : sT).
+Hypothesis subAH : A \subset H.
 Let sAH := subsetP subAH.
 
-Lemma smulsG : forall x, A x -> A :*: H = H.
+Lemma smulsG : forall x, x \in A -> A :*: H = H.
 Proof.
-move=> x Ax; apply/isetP; apply/subset_eqP; rewrite -{2}smulgg smulsg //.
+move=> x Ax; apply/setP; apply/subset_eqP; rewrite -{2}smulgg smulsg //.
 apply/subsetP=> y Ky; apply/smulgP; exists x (x^-1 * y); gsimpl.
 by rewrite groupMl // groupV; auto.
 Qed.
 
-Lemma smulGs : forall x, A x -> H :*: A = H.
+Lemma smulGs : forall x, x \in A -> H :*: A = H.
 Proof.
-move=> x Ax; apply/isetP; apply/subset_eqP; rewrite -{2}smulgg smulgs //.
+move=> x Ax; apply/setP; apply/subset_eqP; rewrite -{2}smulgg smulgs //.
 apply/subsetP=> y Ky; apply/smulgP; exists (y * x^-1) x; gsimpl.
 by rewrite groupMr // groupV; auto.
 Qed.
@@ -793,87 +839,85 @@ End GroupSmulSub.
 
 Section GroupSmulSubGroup.
 
-Variables H K : group elt.
-(*Hypothesis subHK : subgroup H K.*)
-Hypothesis subHK : subset H K.
+Variables H K : group gT.
+
+Hypothesis subHK : H \subset K.
 
 Definition smulSG := smulsG subHK (group1 H).
 Definition smulGS := smulGs subHK (group1 H).
 
 End GroupSmulSubGroup.
 
-Variables H K : group elt.
+Variables H K : {group gT}.
 
 Lemma group_setI : group_set (H :&: K).
 Proof.
-apply/groupP; split=> [|x y]; rewrite !s2f ?group1 //.
+apply/groupP; split=> [|x y]; rewrite !setE ?group1 //.
 by move/andP=> [Hx Kx]; rewrite !groupMl.
 Qed.
 
 Canonical Structure setI_group := Group group_setI.
 
-Lemma card_smulg :
-  (card (H :*: K) * card (H :&: K) = card H * card K)%N.
+Lemma card_smulg : (#|H :*: K| * #|H :&: K| = #|H| * #|K|)%N.
 Proof.
-rewrite -(LaGrange (subsetIr H K)) mulnCA mulnC /=; congr muln.
-symmetry; rewrite -card_prod_set -card_sub; set tup := prod_set _ _.
-pose f (u : sub_finType tup) := let: pair x Hy := val u in x * repr Hy.
+rewrite -(LaGrange (subsetIr H K)) mulnCA mulnC /=; congr (_ * _)%N.
+rewrite -cardX; set tup := predX _ _.
+pose f (u : {xHy | tup xHy}) := let: (x, Hy) := val u in x * repr Hy.
 have injf: injective f.
   rewrite /f => [] [[x1 A1] dom1] [[x2 A2] dom2] /= Ef; apply: val_inj => /=.
-  case/andP: dom1 (Ef) => /= Hx1; case/iimageP=> y1 Ky1 dA1.
-  case/andP: dom2 => /= Hx2; case/iimageP=> y2 Ky2 dA2.
+  case/andP: dom1 (Ef) => /= Hx1; case/imsetP=> y1 Ky1 dA1.
+  case/andP: dom2 => /= Hx2; case/imsetP=> y2 Ky2 dA2.
   suff ->: A1 = A2 by move/mulg_injr->.
   rewrite {A1}dA1 {A2}dA2 in Ef *; have kEf := canRL (mulKg _).
-  apply: rcoset_trans1; rewrite // !s2f andbC groupM ?groupV //=.
-  case: repr_rcosetP Ef => z1; case/isetIP=> Hz1 _; rewrite mulgA; move/kEf->.
-  by case: repr_rcosetP => z2; case/isetIP=> Hz2 _; gsimpl; rewrite !groupM ?groupV.
-rewrite -(card_codom injf); apply: eq_card => z.
-apply/set0Pn/smulgP; rewrite /f /preimage.
-  case=> [[[x A]]] /=; case/andP=> /= Hx; case/iimageP=> y Ky -> {A}.
-  move/eqP=> ->{z}; case: repr_rcosetP => z /= HKz; exists x (z * y); rewrite // groupMr //.
-  by case/isetIP: HKz.
-move=> [x y Hx Ky ->{z}].
+  apply: rcoset_trans1; rewrite // !setE andbC groupM ?groupV //=.
+  case: repr_rcosetP Ef => z1; case/setIP=> Hz1 _; rewrite mulgA; move/kEf->.
+  by case: repr_rcosetP => z2; case/setIP=> Hz2 _; gsimpl; rewrite !groupM ?groupV.
+rewrite -(card_sig tup) -(card_codom injf) {injf}/f; apply: eq_card => z.
+apply/smulgP/pred0Pn=> [[x y Hx Ky ->{z}]|]; last first.
+  case=> [[[x A]]] /=; case/andP=> /= Hx; case/imsetP=> y Ky -> {A}.
+  move/eqP=> <-{z}; case: repr_rcosetP => z /= HKz.
+  by exists x (z * y); rewrite // groupMr //; case/setIP: HKz.
 case Dz: (repr _) / (repr_rcosetP {H :&: K as group _} y) => /= [z HKz].
-case/isetIP: HKz => Hz Kz.
-have Tu: tup (pair (x * z^-1) ((H :&: K) :* y)).
-  by rewrite /tup /prod_set /= groupMl ?groupVr //; apply/iimageP; exists y.
-by exists (EqSig tup _ Tu); apply/eqP; rewrite /= Dz; gsimpl.
+case/setIP: HKz => Hz Kz.
+have Tu: tup (x * z^-1, (H :&: K) :* y).
+  by rewrite /= groupMl ?groupVr //; apply/imsetP; exists y.
+by exists (exist [eta tup] _ Tu); apply/eqP; rewrite /= Dz; gsimpl.
 Qed.
 
-Definition trivg (A : setType elt) := subset A {:1}.
+Definition trivg (A : sT) := A \subset [set 1].
 
-Lemma trivgP : forall G : group elt, reflect (G = {:1} :> setType _) (trivg G).
+Lemma trivgP : forall G : {group gT}, reflect (G = [set 1] :> set _) (trivg G).
 Proof.
 move=> G; apply: (iffP idP) => [tG | ->]; last exact: subset_refl.
-by apply/isetP; apply/subset_eqP; rewrite andbC subset_set1 group1.
+by apply/setP; apply/subset_eqP; rewrite andbC subset_set1 group1.
 Qed.
 
 Definition disjointg := trivg (H :&: K).
 
-Lemma disjointgP : reflect (H :&: K = {:1}) disjointg.
+Lemma disjointgP : reflect (H :&: K = [set 1]) disjointg.
 Proof. exact: trivgP. Qed.
 
-Lemma disjointg_card : disjointg = (card (H :&: K) == 1%nat).
+Lemma disjointg_card : disjointg = (#|H :&: K| == 1)%N.
 Proof.
-apply/disjointgP/eqP=> [->|cHK]; first by rewrite icard1.
-symmetry; apply/isetP; apply/subset_cardP; first by rewrite icard1.
-apply/subsetP=> x; rewrite s2f; move/eqP <-; exact: group1.
+apply/disjointgP/eqP=> [->|cHK]; first by rewrite cards1.
+symmetry; apply/setP; apply/subset_cardP; first by rewrite cards1.
+apply/subsetP=> x; rewrite setE; move/eqP->; exact: group1.
 Qed.
 
 (*Lemma group_modularity : forall G, subgroup G K ->*)
-Lemma group_modularity : forall G : group elt, subset G K ->
-  G :*: (H :&: K) = G :*: H :&: K.
+Lemma group_modularity : forall G : {group gT},
+  G \subset K -> G :*: (H :&: K) = G :*: H :&: K.
 Proof.
-move=> G; move/subsetP=> sGK; apply/isetP => x.
-apply/smulgP/idP=> [[y z Gy]|]; rewrite s2f; case/andP.
-  move=> Hz Kz -> {x}; rewrite s2f andbC groupMr // sGK //.
+move=> G; move/subsetP=> sGK; apply/setP => x.
+apply/smulgP/idP=> [[y z Gy]|]; rewrite setE; case/andP.
+  move=> Hz Kz -> {x}; rewrite setE andbC groupMr // sGK //.
   by apply/smulgP; exists y z.
 move/smulgP=> [y z Gy Hz -> {x}] Kyz.
-by exists y z => //; rewrite s2f Hz; rewrite groupMl // sGK in Kyz.
+by exists y z => //; rewrite setE Hz; rewrite groupMl // sGK in Kyz.
 Qed.
 
 Lemma disjoint_card_smulg :
-  disjointg -> (card (H :*: K) = card H * card K)%N.
+  disjointg -> (#|H :*: K| = #|H| * #|K|)%N.
 Proof. by rewrite disjointg_card => HK1; rewrite -card_smulg (eqP HK1) muln1. Qed.
 
 End GroupInter.
@@ -882,35 +926,36 @@ Section Normalizer.
 
 Open Scope group_scope.
 
-Variable elt : finGroupType.
+Variable gT : finGroupType.
+Notation sT := {set gT}.
 
 Section NormSet.
 
-Variable A : setType elt.
+Variable A : sT.
 
-Definition normaliser := {x, subset (A :^ x) A}.
+Definition normaliser := [set x | A :^ x \subset A].
 
-Theorem norm_sconjg : forall x, normaliser x -> A :^ x = A.
+Theorem norm_sconjg : forall x, x \in normaliser -> A :^ x = A.
 Proof. 
-by move=> x Ax; apply/isetP; apply/subset_cardP; [rewrite card_sconjg | rewrite s2f in Ax]. 
+by move=> x Ax; apply/setP; apply/subset_cardP; [rewrite card_sconjg | rewrite setE in Ax]. 
 Qed.
 
 
 Theorem group_set_normaliser : group_set normaliser.
 Proof.
-apply/groupP; split=> [|x y Nx Ny]; first by rewrite s2f sconj1g subset_refl.
-by rewrite s2f; apply/subsetP => z; rewrite sconjgM !norm_sconjg.
+apply/groupP; split=> [|x y Nx Ny]; first by rewrite setE sconj1g subset_refl.
+by rewrite setE; apply/subsetP => z; rewrite sconjgM !norm_sconjg.
 Qed.
 
 Canonical Structure group_normaliser := Group group_set_normaliser.
 
-Definition normalized (B : setType elt) := subset B normaliser.
+Definition normalized (B : sT) := B \subset normaliser.
  
 Lemma norm_smulC : forall B, normalized B -> A :*: B = B :*: A.
 Proof.
-move=> B; move/subsetP=> nB; apply/isetP => u.
+move=> B; move/subsetP=> nB; apply/setP => u.
 apply/smulgP/smulgP=> [[x y Ax By] | [y x By Ax]] -> {u}; have dAy := norm_sconjg (nB _ By).
-- by exists y (x ^ y); last rewrite /conjg; gsimpl; rewrite -dAy s2f conjgK.
+- by exists y (x ^ y); last rewrite /conjg; gsimpl; rewrite -dAy setE conjgK.
 by exists (x ^ y^-1) y; last rewrite /conjg; gsimpl; rewrite -sconjgE invgK dAy.
 Qed.
 
@@ -923,16 +968,16 @@ Proof. by move=> B; move/norm_smulC=> dBA; rewrite -dBA; exact: smulC_gmul. Qed.
 
 End NormSet.
 
-Variable H : group elt.
+Variable H : {group gT}.
 Notation N := (normaliser H).
 
-Theorem norm_refl : subset H N.
+Theorem norm_refl : H \subset N.
 Proof.
-apply/subsetP=> x Hx; rewrite s2f; apply/subsetP => y.
-by rewrite s2f /conjg invgK groupMr ?groupMl ?groupV.
+apply/subsetP=> x Hx; rewrite setE; apply/subsetP => y.
+by rewrite setE /conjg invgK groupMr ?groupMl ?groupV.
 Qed.
 
-Lemma norm_rcoset : forall x, N x -> subset (H :* x) N.
+Lemma norm_rcoset : forall x, x \in N -> H :* x \subset N.
 Proof.
 move=> x Nx; rewrite rcoset_smul; rewrite -[normaliser _]smulgg /=.
 by apply: subset_trans (smulsg _ norm_refl); apply: smulgs; rewrite subset_set1.
@@ -942,17 +987,17 @@ End Normalizer.
 
 Open Scope group_scope.
 
-Lemma norm_rlcoset : 
-  forall elt (H : group elt) x, normaliser H x -> (H :* x) = (x *: H).
+Lemma norm_rlcoset : forall (gT : finGroupType) (H : {group gT}) x,
+  x \in normaliser H -> H :* x = x *: H.
 Proof.
-move=> elt H x; rewrite rcoset_smul lcoset_smul -subset_set1; exact: norm_smulC.
+move=> gT H x; rewrite rcoset_smul lcoset_smul -subset_set1; exact: norm_smulC.
 Qed.
 
 
-Lemma rcoset_mul : forall elt (H : group elt) x y, 
-  normaliser H x  -> (H :* x) :*: (H :* y) = H :* (x * y).
+Lemma rcoset_mul : forall (gT : finGroupType) (H : {group gT}) x y, 
+  x \in normaliser H  -> (H :* x) :*: (H :* y) = H :* (x * y).
 Proof.
-move=> elt H x y Nx.
+move=> gT H x y Nx.
 rewrite !rcoset_smul -smulgA (smulgA _ H) -lcoset_smul -norm_rlcoset //.
 by rewrite rcoset_smul -smulgA smulg_set1 smulgA smulgg.
 Qed.
@@ -960,34 +1005,141 @@ Qed.
 
 Section Maximal.
 
-Variable elt : finGroupType.
-Variable H G : setType elt.
+Variable gT : finGroupType.
+Notation sT := {set gT}.
+Variables H G : sT.
+
 Definition  maximal :=
-  subset H G &&
-  forallb K : setType elt,
-   [==> group_set K && subset H K && subset K G => 
-      (H == K) || (K == G)].
+  (H \subset G) &&
+  (forallb K : {group gT},
+    (H \subset K) && (K \subset G) ==> (H == K) || (K == G :> sT)).
 
 Theorem maximalP:
  reflect
- (subset H G  /\ 
-   forall (K: group elt), subset H K -> subset K G ->
-                  H = K \/ (K: setType _) = G) 
+ (H \subset G  /\ 
+   forall K : {group gT}, H \subset K -> K \subset G ->
+                  H = K \/ K = G :> sT) 
  maximal.
 Proof.
-apply: (iffP idP).
-  case/andP => Hhg; move/forallP => Hf; split; first done.
-  move=> K Hs Hs1.
-  by move: (Hf K); rewrite Hs Hs1 set_of_groupP; case/orP; 
-    case/eqP => ->; [left | right].
-move=> [Hs Hf]; rewrite /maximal Hs andTb.
-apply/forallP => K.
-apply/implyP; (do 2 case/andP) => E0 E1 E2.
-by case (Hf (Group E0)) => //= => ->; rewrite eq_refl // orbT.
+(apply: (iffP andP); case=> sHG maxH; split) => // [K sHK sKG|].
+  by have:= (forallP maxH K); rewrite sHK sKG; case/orP; move/eqP; auto.
+apply/forallP => K; apply/implyP; case/andP=> sHK sKG.
+by case (maxH K) => // ->; rewrite eqxx ?orbT.
 Qed.
 
 End Maximal.
 
+Section GeneratedGroup.
+
+Variable gT : finGroupType.
+Variable S : {set gT}.
+
+Definition generated := \bigcap_(G : {group gT} | S \subset G) G.
+
+Lemma group_generated : group_set generated.
+Proof.
+apply: (@big_prop _ [eta @group_set _]); first exact: group_setA.
+  move=> G H gG gH; exact: group_setI (Group gG) (Group gH).
+move=> G _; exact: (valP G).
+Qed.
+
+Canonical Structure generated_group := Group group_generated.
+
+Lemma subset_generated : S \subset generated.
+Proof. by apply/bigcap_inP. Qed.
+
+Lemma generatedP : forall x,
+  reflect (forall G : {group gT}, S \subset G -> x \in G) (x \in generated).
+Proof. exact: bigcapP. Qed.
+
+Lemma subset_gen_stable : forall G : {group gT},
+  (S \subset G) = (generated \subset G).
+Proof.
+move=> G; apply/idP/idP; first by move=> SG; apply/subsetP=> x; move/generatedP; apply.
+exact: (subset_trans subset_generated).
+Qed.
+
+End GeneratedGroup.
+
+Notation "<< X >>"  := (generated X)
+  (at level 0, format "<< X >>") : group_scope.
+
+Section FrattiniDefs.
+
+Variable gT : finGroupType.
+
+Variable G : {group gT}.
+
+Lemma maximal_existence : forall H : {group gT}, H \subset G -> 
+  H = G \/ exists K : {group gT}, [/\ maximal K G , H \subset K & K != G].
+Proof.
+move=> H sHG; elim: {2}#|G| H sHG (leq_addr #|H| #|G|) => [|n IHn] H sHG.
+  rewrite add0n leq_eqVlt ltnNge subset_leq_card // orbF; move/eqP=> eqHG.
+  by left; apply: val_inj; apply/setP; exact/subset_cardP.
+rewrite addSnnS => leGnH; case maxH: (maximal H G).
+  by case: (H =P G); [left | move/eqP=> nHG; right; exists H].
+move/idPn: maxH; rewrite negb_and sHG; case/existsP=> L.
+rewrite negb_imply -andbA negb_orb; case/and4P=> sHL sLG nHL nLG; right.
+case: {IHn}(IHn L sLG) => [|eqLG|[K [maxK sLK nKG]]]; first 1 last.
+- by rewrite eqLG eqxx in nLG.
+- exists K; split=> //; exact: subset_trans sLK.
+apply: (leq_trans leGnH); rewrite leq_add2l ltn_neqAle subset_leq_card //.
+rewrite andbT; apply: contra nHL; move/eqP=> eqHL.
+by apply/eqP; apply/setP; exact/subset_cardP.
+Qed.
+
+Definition Frattini := \bigcap_(H : {group gT} | maximal H G) H.
+
+Lemma Frattini_group : group_set Frattini.
+Proof.
+apply: (@big_prop _ (@group_set _)); first exact: group_setA.
+move=> a b HGa HGb; exact:group_setI (Group HGa) (Group HGb).
+move=> x Hx; exact: set_of_groupP.
+Qed.
+
+Lemma Frattini_sub : Frattini \subset G.
+Proof. 
+rewrite [Frattini](bigD1 G) ?subsetIl ?eqxx //. 
+rewrite /maximal subset_refl andTb; apply/forallP=>x; apply/implyP.
+by move/subset_eqP; move/setP->; rewrite eqxx.
+Qed.
+
+Lemma Frattini_strict_sub :  G = [set 1] :> set gT \/ Frattini != G.
+Proof.
+case e: (G == [set 1] :> set _); first by left; move/eqP: e.
+right; apply/eqP; apply/setP; apply/subset_eqP; rewrite Frattini_sub andTb.
+apply/negP => Hsub; move/bigcap_inP:Hsub=> HF.
+have sub1: [set 1] \subset G by rewrite subset_set1 group1.
+move:(maximal_existence sub1)=>[Hne|[K [HKmax Hksub Hneq]]]; first by rewrite -Hne eqxx in e.
+move: (HF K); rewrite HKmax; move/(_ is_true_true). 
+move/andP:HKmax=>[HKsub _]; move/(conj HKsub); move/andP=>//=; move/subset_eqP.
+move/setP; move/val_inj; exact/eqP.
+Qed.
+
+End FrattiniDefs.
+
+Section FrattiniProps.
+
+Variable gT : finGroupType.
+
+Lemma Frattini_not_gen : forall (G : {group gT}) (X : {set gT}),
+  X \subset G -> (G \subset <<X>>) = (G  \subset << X :|: Frattini G >>).
+Proof.
+move=> G X sXG; apply/idP/idP=> [|sGXF].
+  move/subset_trans; apply.
+  apply/subsetP=>x; move/bigcapP=>Hx; apply/bigcapP=> i Hi.
+  apply Hx; apply: (subset_trans _ Hi); exact: subsetUl.
+have sXFG: X :|: Frattini G \subset G.
+  by rewrite setU_subset sXG andTb Frattini_sub.
+rewrite subset_gen_stable in sXG.
+have [<- //=| [K [Kmax sHK nKG]]] := maximal_existence sXG.
+rewrite -subset_gen_stable in sHK.
+have: Frattini G \subset K by exact: bigcap_inf.
+move/(conj sHK); move/andP; rewrite -setU_subset subset_gen_stable.
+move/(subset_trans sGXF)=> sGK; case/maximalP: Kmax => sKG _.
+by case/eqP: nKG; apply: val_inj; apply/setP; apply/subset_eqP; apply/andP.
+Qed.
+
+End FrattiniProps.
 
 Unset Implicit Arguments.
-

@@ -1,5 +1,5 @@
-Require Import ssreflect ssrbool funs eqtype ssrnat seq fintype.
-Require Import ssralg ssrbig.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype.
+Require Import ssralg bigops.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -25,34 +25,22 @@ Variable R : Ring.basic.
 (* A coef sequence is normal if its last element is <> 0 *)
 Definition normal (s : seq R) := last 1 s != 0.
 
-CoInductive polynomial : Type := Poly s & normal s.
-
-Bind Scope ring_scope with polynomial.
+Record polynomial : Type :=
+  Poly {seq_of_poly :> seq R; _ : normal seq_of_poly}.
 
 Notation poly := polynomial.
 
-Coercion seq_of_poly p := let: Poly s _ := p in s.
+Bind Scope ring_scope with polynomial.
 
-Lemma seq_of_poly_inj : injective seq_of_poly.
-Proof.
-move=> [s1 ns1] [s2 ns2] /= eq_s12.
-rewrite eq_s12 in ns1 *; congr Poly; exact: bool_irrelevance.
-Qed.
+Canonical Structure poly_subType := SubType seq_of_poly polynomial_rect vrefl.
+Canonical Structure poly_eqType := [subEqType for seq_of_poly].
 
-Lemma poly_eqP : reflect_eq (fun p1 p2 : poly => p1 == p2 :> seq R).
-Proof.
-by move=> p1 p2; apply: (iffP eqP); [exact: seq_of_poly_inj | move->].
-Qed.
+Lemma seq_of_poly_inj : injective seq_of_poly. Proof. exact: val_inj. Qed.
 
-Canonical Structure poly_eqType := EqType poly_eqP.
-
-Lemma normal_seq0 : normal seq0.
+Lemma normal_seq0 : normal [::].
 Proof. by apply/eqP; case: R. Qed.
 
-Definition polyC c :=
-  if insub normal (Seq c) is Some (EqSig s ns)
-    then Poly ns
-    else Poly normal_seq0.
+Definition polyC c : poly := insubd (Poly normal_seq0) [:: c].
 
 Notation "\C c" := (polyC c).
 
@@ -63,11 +51,8 @@ Notation Local "\C0" := poly0 (at level 0).
 Notation Local "\C1" := poly1 (at level 0).
 
 Lemma seq_polyC : forall c,
-  polyC c = (if c == 0 then seq0 else Seq c) :> seq R.
-Proof.
-move=> c; rewrite /polyC /normal -if_neg.
-by case insubP => [[? ?] -> //|]; move/negbET->.
-Qed.
+  polyC c = (if c == 0 then seq0 else [:: c]) :> seq R.
+Proof. by move=> c; rewrite val_insubd if_neg. Qed.
 
 Lemma polyC_inj : injective polyC.
 Proof.
@@ -76,23 +61,23 @@ by case: eqP => [->|_]; case: eqP => // _ [].
 Qed.
 
 Lemma seq_poly0 : \C0 = seq0 :> seq R.
-Proof. by rewrite /poly0 seq_polyC set11. Qed.
+Proof. by rewrite /poly0 seq_polyC eqxx. Qed.
 
-Lemma seq_poly1 : \C1 = (Seq 1) :> seq R.
+Lemma seq_poly1 : \C1 = [:: 1] :> seq R.
 Proof. by rewrite /poly1 seq_polyC (negbET normal_seq0). Qed.
 
 Definition horner c p : poly :=
-  if p is Poly (Adds _ _ as s) ns then Poly (ns : normal (Adds c s)) else \C c.
+  if p is Poly ((_ :: _) as s) ns then Poly (ns : normal (c :: s)) else \C c.
 
 Lemma seq_horner : forall c p,
-  horner c p = (if p : seq R is seq0 then \C c else Adds c p) :> seq R.
+  horner c p = (if p : seq R is seq0 then \C c else c :: p) :> seq R.
 Proof. by move=> c [[|c' s] ns] /=. Qed.
 
 Lemma horner_inj : forall c1 c2 p1 p2,
   horner c1 p1 = horner c2 p2 -> c1 = c2 /\ p1 = p2.
 Proof.
 move=> c1 c2 p1 p2; move/(congr1 seq_of_poly); rewrite !seq_horner => eq_h.
-suffices [->]: Adds c1 p1 = Adds c2 p2 by move/seq_of_poly_inj.
+suffices [->]: c1 :: p1 = c2 :: p2 by move/seq_of_poly_inj.
 case: (p1 : seq R) (p2 : seq R) eq_h => [|? ?] [|? ?];
  by [| move/seq_of_poly_inj; move/polyC_inj-> | rewrite seq_polyC; case: eqP].
 Qed.
@@ -106,12 +91,12 @@ Qed.
 
 Definition mkPoly := foldr horner \C0.
 
-Definition polyX := mkPoly (Seq 0 1).
+Definition polyX := mkPoly [:: 0; 1].
 
 Notation "\X" := polyX.
 Notation "\poly_ ( i < n ) E" := (mkPoly (mkseq (fun i : nat => E) n)).
 
-Lemma seq_polyX : \X = (Seq 0 1) :> seq R.
+Lemma seq_polyX : \X = [:: 0; 1] :> seq R.
 Proof. by rewrite !seq_horner seq_poly0 seq_poly1. Qed.
 
 Lemma mkPoly_seq : forall p : poly, mkPoly p = p.
@@ -164,7 +149,7 @@ rewrite /coef => p1 p2; split=> [eq_coef | -> //]; apply: seq_of_poly_inj.
 without loss: p1 p2 eq_coef / size p1 <= size p2 => [wleq|].
   by case: (leqP (size p1) (size p2)); last move/ltnW; move/wleq->.
 rewrite leq_eqVlt; case/orP; first by move/eqP; move/(@eq_from_sub _ 0); exact.
-move/leq_add_sub=> sz_p2; case/eqP: (lead_coef_nz p2).
+move/subnK=> sz_p2; case/eqP: (lead_coef_nz p2).
 by rewrite /lead_coef -(sub_last 0) -sz_p2 /= -eq_coef sub_default ?leq_addr.
 Qed.
 
@@ -172,9 +157,9 @@ Qed.
 
 Fixpoint add_poly_seq (s1 s2 : seq R) {struct s1} : seq R :=
   match s1, s2 with
-  | Seq0, _ => s2
-  | _, Seq0 => s1
-  | Adds c1 s1', Adds c2 s2' => Adds (c1 + c2) (add_poly_seq s1' s2')
+  | seq0, _ => s2
+  | _, seq0 => s1
+  | c1 :: s1', c2 :: s2' => c1 + c2 :: add_poly_seq s1' s2'
   end.
 
 Definition add_poly (p1 p2 : poly) := mkPoly (add_poly_seq p1 p2).
@@ -199,8 +184,8 @@ Lemma poly_addA : forall p1 p2 p3, p1 +p (p2 +p p3) = p1 +p p2 +p p3.
 Proof. by move=> *; apply/coef_eqP=> i; rewrite !coef_add_poly addrA. Qed.
 
 Fixpoint mul_poly_seq (s1 s2 : seq R) {struct s1} : seq R :=
-  if s1 is Adds c1 s1' then
-    add_poly_seq (maps (fun c2 => c1 * c2) s2) (Adds 0 (mul_poly_seq s1' s2))
+  if s1 is c1 :: s1' then
+    add_poly_seq (maps (fun c2 => c1 * c2) s2) (0 :: mul_poly_seq s1' s2)
   else seq0.
 
 Definition mul_poly (p1 p2 : poly) := mkPoly (mul_poly_seq p1 p2).
@@ -208,7 +193,7 @@ Definition mul_poly (p1 p2 : poly) := mkPoly (mul_poly_seq p1 p2).
 Notation Local "p1 *p p2" := (mul_poly p1 p2) (at level 40).
 
 Lemma coef_mul_poly : forall p1 p2 i,
-  coef (p1 *p p2) i = \sum_(j <= i) coef p1 j * coef p2 (i - j).
+  coef (p1 *p p2) i = \sum_(j < i.+1) coef p1 j * coef p2 (i - j).
 Proof.
 move=> [s1 ns1] [s2 ns2] i; rewrite coef_mkPoly /coef {ns1 ns2}/=.
 elim: s1 i => [|c1 s1 IHs1] /= i.
@@ -216,15 +201,15 @@ elim: s1 i => [|c1 s1 IHs1] /= i.
 rewrite sub_add_poly_seq big_ord_recl subn0 /=; congr (_ + _).
   case: (ltnP i (size s2)) => lti; first by rewrite (sub_maps 0).
   by rewrite !sub_default ?size_maps // simp.
-by case: i => [|i] /=; rewrite (big_seq0, IHs1).
+case: i => [|i] /=; last exact: IHs1; by rewrite big_pred0 //; case.
 Qed.
 
 Lemma coef_mul_poly_rev : forall p1 p2 i,
-  coef (p1 *p p2) i = \sum_(j <= i) coef p1 (i - j) * coef p2 j.
+  coef (p1 *p p2) i = \sum_(j < i.+1) coef p1 (i - j) * coef p2 j.
 Proof.
 move=> p1 p2 i; rewrite coef_mul_poly (reindex ord_opp) /=.
-  by apply: eq_bigr => j _; rewrite sub_ordK.
-exists (@ord_opp i) => j _; exact: ord_oppK.
+  by apply: eq_bigr => j _; rewrite (sub_ordK j).
+exists (@ord_opp _ : I_(i.+1) -> _) => j _; exact: ord_oppK.
 Qed.
 
 Lemma coef_mul_C_poly : forall c p i, coef (polyC c *p p) i = c * coef p i.
@@ -249,11 +234,11 @@ Lemma poly_mulA : forall p1 p2 p3, p1 *p (p2 *p p3) = p1 *p p2 *p p3.
 Proof.
 move=> p1 p2 p3; apply/coef_eqP=> i; rewrite coef_mul_poly coef_mul_poly_rev.
 pose coef3 j k := coef p1 j * (coef p2 (i - j - k) * coef p3 k).
-transitivity (\sum_(j <= i) \sum_(k <= i | k <= i - j) coef3 j k).
+transitivity (\sum_(j < i.+1) \sum_(k < i.+1 | k <= i - j) coef3 j k).
   apply: eq_bigr => /= j _; rewrite coef_mul_poly_rev big_distrr /=.
   by rewrite (big_ord_narrow_leq (leq_subr _ _)).
-rewrite (exchange_big_dep (setA _)) //=; apply: eq_bigr => k _.
-transitivity (\sum_(j <= i | j <= i - k) coef3 j k).
+rewrite (exchange_big_dep predA) //=; apply: eq_bigr => k _.
+transitivity (\sum_(j < i.+1 | j <= i - k) coef3 j k).
   apply: eq_bigl => j; rewrite -ltnS -(ltnS j) -!leq_subS ?leq_ord //.
   by rewrite -ltn_0sub -(ltn_0sub j) !subn_sub addnC.
 rewrite (big_ord_narrow_leq (leq_subr _ _)) coef_mul_poly big_distrl /=.
@@ -298,7 +283,7 @@ Lemma coef_mul_poly_X : forall p i,
   coef (p * \X) i = if i is j.+1 then coef p j else 0.
 Proof.
 move=> p i; rewrite coef_mul_poly_rev big_ord_recl coef_polyX !simp.
-case: i => [|i]; first by rewrite big_seq0.
+case: i => [|i]; first by rewrite big_pred0 => [|[]].
 rewrite big_ord_recl coef_polyX /= subn1 /= big1 ?simp // => j _.
 by rewrite coef_polyX simp.
 Qed.
@@ -310,11 +295,11 @@ rewrite coef_horner coef_add_poly coef_mul_poly_X coef_polyC.
 by case: i => [|i]; rewrite simp.
 Qed.
 
-Lemma coef_sum : forall I (r : seq I) P F k,
+Lemma coef_sum : forall (I : eqType) r (P : pred I) F k,
   coef (\sum_(i <- r | P i) F i) k = \sum_(i <- r | P i) coef (F i) k.
 Proof.
 move=> I r P F k; apply: (big_morph (coef^~ k)).
-by split=> *; rewrite (coef0, coef_add_poly).
+by split=> [|p q]; rewrite (coef0, coef_add_poly).
 Qed.
 
 (* "degree" should be a proper type (see Sean's files). *)
@@ -324,7 +309,7 @@ Lemma size_poly0 : size poly0 = 0%N.
 Proof. by rewrite seq_poly0. Qed.
 
 Lemma size_poly0_eq : forall p : poly, (p == 0) = (size p == 0%N).
-Proof. by rewrite /set1 /= seq_poly0; case/seq_of_poly. Qed.
+Proof. by rewrite {1}/eqd /= seq_poly0; case/seq_of_poly. Qed.
 
 Lemma size_polyC : forall c, c != 0 -> size (polyC c) = 1%N.
 Proof. by move=> c c_nz; rewrite seq_polyC (negbET c_nz). Qed.
@@ -362,7 +347,7 @@ Section EvalPolynomial.
 Variable R : Ring.basic.
 
 Fixpoint eval_poly_seq (s : seq R) (x : R) {struct s} : R :=
-  if s is (Adds a s') then eval_poly_seq s' x * x + a else 0.
+  if s is a :: s' then eval_poly_seq s' x * x + a else 0.
 
 Definition eval_poly (p : polynomial R) := eval_poly_seq p.
 
@@ -394,7 +379,7 @@ Lemma eval_poly_expansion : forall p x,
   p.[x] = \sum_(i < size p) coef p i * x ^+i.
 Proof.
 rewrite /eval_poly /coef => p x.
-elim: {p}(p : seq R) => /= [|a s ->]; first by rewrite big_seq0.
+elim: {p}(p : seq R) => /= [|a s ->]; first by rewrite big_pred0 => [|[]].
 rewrite big_ord_recl simp addrC big_distrl /=; congr (_ + _).
 by apply: eq_bigr => i _; rewrite -mulrA commr_exp.
 Qed.
@@ -471,7 +456,7 @@ move=> p c; apply: (iffP eqP) => [root_p_c | [q -> {p}]]; last first.
   by rewrite eval_poly_mult /com_poly factor0 ?simp.
 exists (\poly_(i < size p) eval_poly_seq (drop i.+1 p) c).
 apply/coef_eqP => [] [|i {root_p_c}]; rewrite coef_mul_poly_rev.
-  rewrite big_ord_recl big_seq0 simp /=.
+  rewrite big_ord_recl big_pred0 ?simp /= => [|[//]].
   move: root_p_c; rewrite  coef_factor coef_poly_of /eval_poly /coef drop1.
   case/seq_of_poly: p => [|a s]; rewrite /= ?simp // mulrN.
   by move=> eq_a0; rewrite (canRL (addKr _) eq_a0) simp.

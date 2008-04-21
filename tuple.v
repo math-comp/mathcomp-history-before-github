@@ -2,202 +2,234 @@ Require Import ssreflect.
 Require Import seq.
 Require Import eqtype.
 Require Import ssrnat.
-Require Import funs.
+Require Import ssrfun.
 Require Import ssrbool.
 Require Import fintype.
-Require Import connect.
-Require Import paths.
-Require Import div.
-
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-Section FgraphProd.
+Section Def.
 
-Variables (d1 : finType) (d2 : eqType).
-Variable a : d1 -> set d2.
+Variables (n : nat) (T : Type).
 
-Fixpoint prod_seq (s1:seq d1) (s2 : seq d2) {struct s1} : bool :=
-  match s1, s2 with
-  | Adds x1 s1', Adds x2 s2' => a x1 x2 && prod_seq s1' s2'
-  | _,_ => true
-  end. 
+Record tuple_repr : Type :=
+  TupleRepr {tuple_val :> seq T; _ : size tuple_val == n}.
 
-(* Characteristic function of (tuple_prod n a) over (seq d) *)
-Definition fgraph_prod : set (fgraph_eqType d1 d2) :=
-  fun u => prod_seq (enum d1) (fval u).
+Definition tuple : predArgType := tuple_repr.
+Identity Coercion repr_of_tuple : tuple >-> tuple_repr.
+Definition Tuple : forall s : seq T, size s == n -> tuple := TupleRepr.
 
-Lemma seq_ind2: forall t1 t2 P, 
-  (P seq0 seq0) ->
-  (forall e1 e2 s1 s2, P s1 s2 -> P (Adds e1 s1) (Adds e2 s2)) ->
-  forall (s1:seq t1) (s2 : seq t2), size s1 = size s2 -> P s1 s2.
+Canonical Structure tuple_subType :=
+  @SubType _ _ tuple tuple_val Tuple tuple_repr_rect vrefl.
+
+Canonical Structure tuple_repr_subType :=
+  SubType tuple_val tuple_repr_rect vrefl.
+
+Lemma size_tuple : forall t : tuple, size t = n.
+Proof. move=> f; exact: (eqP (valP f)). Qed.
+
+Lemma tsub_default : forall (t : tuple) (i : I_(n)), T.
+Proof. by case=> [[|//]]; move/eqP <-; case. Qed.
+
+Definition tsub t i := sub (tsub_default t i) t i.
+
+Lemma tsub_sub : forall x t i, tsub t i = sub x t i.
+Proof. by move=> x t i; apply: set_sub_default; rewrite size_tuple. Qed.
+
+Lemma maps_tsub_enum : forall t, maps (tsub t) (enum I_(n)) = t.
 Proof.
-move => g1 g2 P Hseq0 Hadds.
-elim => [[] //| e s IH [] // e1 s1 [Hsize1]].
-by apply: Hadds; apply: (IH s1).
+move=> t; case def_t: {-}(val t) => [|x0 t'].
+  suffices: #|I_(n)| = 0 by rewrite cardE; move/size_eq0->.
+  by rewrite card_ord -(size_tuple t) def_t.
+apply: (@eq_from_sub _ x0) => [|i]; rewrite size_maps.
+  by rewrite -cardE size_tuple card_ord.
+move=> lt_i_e; have lt_i_n: i < n by rewrite -[n]card_ord cardE.
+by rewrite (sub_maps (Ordinal lt_i_n)) // (tsub_sub x0) sub_enum_ord.
 Qed.
 
-Lemma fgraph_prodP: forall u : fgraphType d1 d2,
-  reflect (forall x, a x (u x)) (fgraph_prod u).
+Lemma eq_from_tsub : forall t1 t2, tsub t1 =1 tsub t2 -> t1 = t2.
 Proof.
-move=> u; have Hind: (size (enum d1) = size (fval u)) by case: u => /= s ->; rewrite cardA.
-rewrite /fgraph_prod /=; apply: (iffP idP).
-  move=> H x; have: (enum d1 x) by rewrite mem_enum.
-  unlock fun_of_fgraph.
-  move: (enum d1) (fval u) Hind H x; apply: seq_ind2 => //=.
-  move=> e1 e2 s1 s2 IH; rewrite /prod_seq /=; move/andP=> [ae Hs] x Hx.
-  case Dx: (x == e1); first by rewrite (eqP Dx).
-  by rewrite /setU1 eq_sym Dx orFb in Hx; move/(_ Hs x Hx): IH.
-suff: ((forall x : d1, (enum d1 x) -> a x (sub (fgraph_default x u) (fval u) (index x (enum d1)))) ->
-        prod_seq (enum d1) (fval u)) by unlock fun_of_fgraph; auto.
-move: (enum d1) (fval u) Hind (uniq_enum d1); apply: seq_ind2 => //=.
-move=> e1 e2 s1 s2 IH Hf H; apply/andP; split.
-  by move/(_ e1): H; rewrite /setU1 eq_refl /=; auto.
-case/andP:Hf => He Us1; apply: (IH Us1) => x S1x.
-have Dx: x != e1 by apply/negP; move/eqP=> Dx; move/negP: He; rewrite -Dx; auto.
-by move/(_ x): H; rewrite (negbET Dx) /= /setU1 S1x orbT; auto.
+by move=> *; apply: val_inj; rewrite /= -!maps_tsub_enum; exact: eq_maps.
 Qed.
-End FgraphProd.
 
-Definition family := fgraph_prod.
-Definition familyP := fgraph_prodP.
+Definition tuple_of (t : tuple) s of phantom (seq T) t -> phantom (seq T) s :=
+  t.
 
-Definition pfamily (d : finType) d' y0 (r : set d) (a' : d -> set d') :=
-  family (fun i => if r i then a' i else set1 y0).
+End Def.
 
-Lemma card_fgraph_prod: 
- forall t c : finType,
- forall a : c -> set t,
-  card (@fgraph_prod c t a) = 
-    foldr (fun i m => card (a i) * m) 1 (enum c).
+Notation "[ 'tuple' 'of' s ]" := (@tuple_of _ _ _ s id)
+  (at level 0, format "[ 'tuple'  'of'  s ]") : form_scope.
+
+Definition tsize n T (t : tuple n T) := nosimpl size t.
+
+Notation "[ 'tsub' t i ]" := (tsub t (@Ordinal (tsize t) i (erefl true)))
+  (at level 0, t, i at level 8, format "[ 'tsub'  t  i ]") : form_scope.
+
+Canonical Structure seq0_tuple T :=
+   Tuple (erefl _ : @size T [::] == 0).
+Canonical Structure adds_tuple n T x (t : tuple n T) :=
+   Tuple (valP t : size (x :: t) == n.+1).
+
+Notation "[ 'tuple' x1 ; .. ; xn ]" := [tuple of x1 :: .. [:: xn] ..]
+  (at level 0, format "[ 'tuple' '['  x1 ; '/'  .. ; '/'  xn ']' ]")
+  : form_scope.
+
+Notation "[ 'tuple' ]" := [tuple of [::]]
+  (at level 0, format "[ 'tuple' ]") : form_scope.
+
+Section SeqTuple.
+
+Variables (n : nat) (T rT : Type).
+Notation tT := (tuple n T).
+
+Lemma seqn_tupleP : forall x : T, size (seqn n x) == n.
+Proof. by move=> x; rewrite size_seqn. Qed.
+Canonical Structure seqn_tuple x := Tuple (seqn_tupleP x).
+
+Lemma iota_tupleP : forall m, size (iota m n) == n.
+Proof. by move=> m; rewrite size_iota. Qed.
+Canonical Structure iota_tuple m := Tuple (iota_tupleP m).
+
+Lemma behead_tupleP : forall t : tT, size (behead t) == n.-1.
+Proof. by move=> t; rewrite size_behead size_tuple. Qed.
+Canonical Structure behead_tuple t := Tuple (behead_tupleP t).
+
+Lemma belast_tupleP : forall x (t : tT), size (belast x t) == n.
+Proof. by move=> x t; rewrite size_belast size_tuple. Qed.
+Canonical Structure belast_tuple x t := Tuple (belast_tupleP x t).
+
+Lemma cat_tupleP : forall n1 n2 (t1 : tuple n1 T) (t2 : tuple n2 T),
+  size (t1 ++ t2) == n1 + n2.
+Proof. by move=> n1 n2 t1 t2; rewrite size_cat !size_tuple. Qed.
+Canonical Structure cat_tuple n1 n2 t1 t2 := Tuple (@cat_tupleP n1 n2 t1 t2).
+
+Lemma take_tupleP : forall m (t : tT), size (take m t) == minn m n.
+Proof. by move=> m t; rewrite size_take size_tuple eqxx. Qed.
+Canonical Structure take_tuple m t := Tuple (take_tupleP m t).
+
+Lemma drop_tupleP : forall m (t : tT), size (drop m t) == n - m.
+Proof. by move=> m t; rewrite size_drop size_tuple. Qed.
+Canonical Structure drop_tuple m t := Tuple (drop_tupleP m t).
+
+Lemma rev_tupleP : forall t : tT, size (rev t) == n.
+Proof. by move=> t; rewrite size_rev size_tuple. Qed.
+Canonical Structure rev_tuple t := Tuple (rev_tupleP t).
+
+Lemma rot_tupleP : forall m (t : tT), size (rot m t) == n.
+Proof. by move=> m t; rewrite size_rot size_tuple. Qed.
+Canonical Structure rot_tuple m t := Tuple (rot_tupleP m t).
+
+Lemma rotr_tupleP : forall m (t : tT), size (rotr m t) == n.
+Proof. by move=> m t; rewrite size_rotr size_tuple. Qed.
+Canonical Structure rotr_tuple m t := Tuple (rotr_tupleP m t).
+
+Lemma maps_tupleP : forall f (t : tT), @size rT (maps f t) == n.
+Proof. by move=> f t; rewrite size_maps size_tuple. Qed.
+Canonical Structure maps_tuple f t := Tuple (maps_tupleP f t).
+
+Lemma scanl_tupleP : forall f x (t : tT), @size rT (scanl f x t) == n.
+Proof. by move=> f x t; rewrite size_scanl size_tuple. Qed.
+Canonical Structure scanl_tuple f x t := Tuple (scanl_tupleP f x t).
+
+Lemma pairmap_tupleP : forall f x (t : tT), @size rT (pairmap f x t) == n.
+Proof. by move=> f x t; rewrite size_pairmap size_tuple. Qed.
+Canonical Structure pairmap_tuple f x t := Tuple (pairmap_tupleP f x t).
+
+Lemma zip_tupleP : forall t1 t2 : tT, size (zip t1 t2) == n.
+Proof. by move=> *; rewrite size1_zip !size_tuple. Qed.
+Canonical Structure zip_tuple t1 t2 := Tuple (zip_tupleP t1 t2).
+
+Definition thead (n : pos_nat) (t : tuple n T) := tsub t ord0.
+
+Lemma tsub0 : forall x n (t : tuple n T), tsub [tuple of x :: t] ord0 = x.
+Proof. by []. Qed.
+
+Lemma theadE : forall x n (t : tuple n T), thead [tuple of x :: t] = x.
+Proof. by []. Qed.
+
+Lemma tuple0 : forall t : tuple 0 T, t = [tuple].
+Proof. by move=> t; apply: val_inj; case: t => [[]]. Qed.
+
+CoInductive tuple1_spec : tuple n.+1 T -> Type :=
+  Tuple1spec x (t : tT) : tuple1_spec [tuple of x :: t].
+
+Lemma tupleP : forall t, tuple1_spec t.
 Proof.
-rewrite {1}/card => t c a /=. 
-rewrite count_filter /fgraph_prod -(size_maps (@fval _ _)).
-rewrite -(filter_maps (@fval c t) (prod_seq a _)) -count_filter.
-rewrite maps_tval_fintuple_enum cardA.
-elim: (enum c) => //= e s <-; rewrite /card.
-elim: (enum t) => //= e1 s1 IH; rewrite muln_addl -{}IH count_cat; congr addn.
-rewrite count_filter filter_maps size_maps -count_filter /comp /=.
-case: (a _ _) => //=; exact: count_set0.
+move=> [[|x t] //= sz_t]; pose t' := Tuple (sz_t : size t == n).
+rewrite (_ : TupleRepr _ = [tuple of x :: t']) //; exact: val_inj.
 Qed.
 
-(*m ^ n*)
-(*Definition expn m n := iter n (muln m) 1.*)
- 
-Section Tfunspace.
+Lemma tsub_maps : forall f (t : tT) i,
+  tsub [tuple of maps f t] i = f (tsub t i) :> rT.
+Proof. by move=> f t i; apply: sub_maps; rewrite size_tuple. Qed.
 
-Variables d1 d2 : finType.
+End SeqTuple.
 
-Variable a2 : set d2. 
-
-(* total functions d1 -> d2, but codomains are restricted to a2 (included in d2) *)
-Definition tfunspace : set (fgraph_eqType d1 d2) := 
-  (fgraph_prod (fun _ => a2 )).
-
-(* # (d1 -> a2) = #a2 ^ #d1 *)
-Lemma card_tfunspace : card tfunspace = expn (card a2) (card (setA d1)).
+Lemma tsub_behead : forall (n : pos_nat) T (t : tuple n.+1 T) i,
+  tsub [tuple of behead t] i = tsub t (inord i.+1).
 Proof.
-rewrite /tfunspace. 
-have := card_fgraph_prod. 
-rewrite /fgraph_finType /fgraph_eqType /card /fgraph_prod /=.
-move => H; rewrite (H d2 d1 (fun _ => a2)).
-by elim: (enum d1) => //= e s ->.
+by move=> n T; case/tupleP=> x t i; rewrite !(tsub_sub x) inordK ?ltnS.
 Qed.
 
-Lemma tfunspaceP : 
-  forall u : fgraphType d1 d2, 
-  reflect (forall x : d1, a2 (u x)) (tfunspace u).
-Proof. by move => u; apply: (iffP idP); [move/fgraph_prodP | move=>*; apply/fgraph_prodP]. Qed.
+Lemma tuple_eta : forall n T (t : tuple n.+1 T),
+  t = [tuple of thead t :: behead t].
+Proof. move=> n T; case/tupleP=> x t; exact: val_inj. Qed.
 
-End Tfunspace.
+Section EqTuple.
 
-Section Pfunspace.
+Variables (n : nat) (T : eqType).
 
-Variables d1 d2 : finType.
-Variable y0 : d2.
-Variable a1 : set d1.
-Variable a2 : set d2.
+Canonical Structure tuple_repr_eqType :=
+  Eval hnf in [subEqType for @tuple_val n T].
+Canonical Structure tuple_eqType := Eval hnf in [eqType of tuple n T].
 
-(* singleton of a default element chosen in the codomain universe *)
-Let a2' := set1 y0. 
+Canonical Structure tuple_predType :=
+  Eval hnf in mkPredType (fun t : tuple n T => mem_seq t).
 
-(* notice that : sub false (maps a1 (enum d1)) i = a1 (sub _ (enum d1) i)  *)
-(* subset of fgraphs corresponding to a1 -> a2 functions *)
-Definition pfunspace :=
-  @fgraph_prod d1 _ (fun i => if a1 i then a2 else a2').
+Canonical Structure tuple_repr_predType :=
+  Eval hnf in mkPredType (fun t : tuple_repr n T => mem_seq t).
 
-Lemma iota_addl : forall m1 m2 n,
-  iota (m1 + m2) n = maps (addn m1) (iota m2 n).
-Proof. by move=> m1 m2 n; elim: n m2 => //= n IHn m2; rewrite -addnS IHn. Qed.
+Lemma memtE : forall t : tuple n T, mem t = mem (tuple_val t).
+Proof. by []. Qed.
 
-Lemma card_pfunspace: card pfunspace = expn (card a2) (card a1).
-Proof. 
-rewrite /pfunspace /card /=.
-have := card_fgraph_prod; rewrite /card /=; move ->.
-rewrite /card; elim: (enum d1) => //= x e /= ->.
-case: (a1 x) => //=; rewrite /a2'; have := card1; rewrite/card => ->. 
-by rewrite mul1n.
-Qed.
+End EqTuple.
 
-(*
-Lemma pfunspaceP : 
-  forall u : fgraphType d1 d2, 
-  reflect (forall x : d1, (a1 x /\ a2 (u x)) \/ (~~ a1 x /\ a2' (u x))) (pfunspace u).
+Section FinTuple.
+
+Variables (n : nat) (T : finType).
+Notation tT := (tuple n T).
+
+Lemma tuple_enum : {et : seq tT | enumeration et}.
 Proof.
-rewrite /tfunspace/fun_of_fgraph -lock => u. 
-apply: (iffP idP). 
-  by move/fgraph_prodP => H x; move/(_ x):H; case: (a1 x)=>* ; [ left | right ].
-move=> H; apply/fgraph_prodP => x; move/(_ x): H.
-by case=>[[-> H //] | [Hx H]]; rewrite (negbET Hx).
-Qed.
-*)
-
-Definition support f : set d1 := fun x => setC1 (f x) y0.
-
-Lemma pfunspaceP : forall g : fgraphType d1 d2,
-  reflect (sub_set (support g) a1 /\ sub_set (image g a1) a2) (pfunspace g).
-Proof.
-pose e1 := enum d1.
-move=> g; apply: (iffP idP).
-  move/fgraph_prodP => Hg.
-  split=> [x1 Hx1 | x2 Hx2].
-    apply/negPf=> Hx1'; case/negP: Hx1; rewrite eq_sym.
-    by move: {Hg}(Hg x1); rewrite Hx1' /a2'.
-  case/set0Pn: Hx2=> x1; case/andP; move/eqP=> -> {x2} Hx1.
-  by move: {Hg}(Hg x1); rewrite {}Hx1. 
-move=> [Hg1 Hg2]; apply/fgraph_prodP=>x.
-case Hx1: (a1 x).
-  apply: Hg2; apply/set0Pn; exists x.
-  by rewrite /setI /preimage Hx1 eq_refl.
-apply/idPn=> Hx1'; case/idP: Hx1; apply: Hg1.
-by rewrite /support /setC1 eq_sym.
+elim: n => [|m [et cnt_et]].
+  by apply: exist [::[tuple]] _ => t; rewrite /= [t]tuple0.
+exists (foldr (fun x => cat (maps (adds_tuple x) et)) [::] (enum T)).
+case/tupleP=> x t; rewrite -[1]/(x \in T : nat) -(mem_enum T).
+elim: (enum T) (uniq_enum T) => //= y e IHe; case/andP=> ney.
+rewrite count_cat count_maps in_adds; move/IHe->.
+rewrite -[preim _ _]/[fun t' => (y == x) && (t' == t)] /= eq_sym.
+by move/negPf: ney; case: eqP => [-> -> | _ _]; rewrite (cnt_et, count_pred0).
 Qed.
 
-End Pfunspace.
+Canonical Structure tuple_finType := FinType tuple_enum.
+Canonical Structure tuple_repr_finType :=
+  Eval hnf in [finType of tuple_repr_eqType n T for tuple_finType].
 
-Section FinPowerSet.
+Lemma enum_tupleP : forall a : pred T, size (enum a) == #|a|.
+Proof. by move=> a; rewrite -cardE. Qed.
+Canonical Structure enum_tuple a := Tuple (enum_tupleP a).
 
-Variable d : finType.
-Variable a : set d.
+Definition ord_tuple : tuple n I_(n) := Tuple (introT eqP (size_enum_ord n)).
 
-Definition powerset := pfunspace false a (setA bool_eqType).
+Lemma val_ord_tuple : val ord_tuple = enum I_(n).
+Proof. by []. Qed.
 
-Lemma card_powerset : card powerset = expn 2 (card a).
-Proof. exact: card_pfunspace. Qed.
+Lemma tuple_maps_ord : forall T' (t : tuple n T'),
+  t = [tuple of maps (tsub t) ord_tuple].
+Proof. by move=> T' t; apply: val_inj => /=; rewrite maps_tsub_enum. Qed.
 
-End FinPowerSet.
+End FinTuple.
 
-Section Tuple.
-Variables (d1:eqType) (d2:finType) (n:nat).
-Let domain := ordinal_finType n.
 
-Definition tupleType := fgraphType domain d1.
-
-Canonical Structure tuple_eqType := EqType (@fgraph_eqP domain d1).
-Canonical Structure tuple_finType := FinType (@finfgraph_enumP domain d2).
-
-End Tuple.
-
-Unset Implicit Arguments.
