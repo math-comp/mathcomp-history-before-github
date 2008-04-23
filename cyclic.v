@@ -714,7 +714,7 @@ End CyclicAutomorphism.
 
 (***********************************************************************)
 (*                                                                     *)
-(*       Automorphism with Zp, consequaneces on generators             *)
+(*       Automorphism with Zp, consequences on generators              *)
 (*                                                                     *)
 (***********************************************************************)
 
@@ -783,7 +783,8 @@ case e:(0 <i).
   apply:modn_coprime; first exact: (idP e).
   have H1: (1 < n) by apply: leq_ltn_trans (valP i); apply:(idP e).
   have: (I_(n) (Ordinal H1)) by trivial.
-  rewrite -setE -Hcop; move/cyclicP=>[n1]; move/eqP; rewrite (zp_ord i) (gexpn_muln).
+  rewrite -setE -Hcop; move/cyclicP=>[n1]; move/eqP.
+  rewrite (zp_ord i) (gexpn_muln).
   exists n1; replace 1%N with (val (@Ordinal n 1 H1)); last by trivial.
   by rewrite -elimTF /=.
 move/negbT:e; rewrite lt0n negbK; move/eqP=>Hi.

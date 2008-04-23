@@ -275,6 +275,16 @@ case/setIP=> Kx; move/setD1K: (group1 H)=> <-; rewrite setE.
 by case/orP; last move/(subsetP H1); rewrite setE // Kx. 
 Qed.
 
+Lemma injm_ker :
+  H \subset dom f -> ker_(H) f = [set 1] -> injm f H.
+Proof.
+move=> Hsub Hker; rewrite /injm; apply/subsetP=> x Hx; rewrite setE in Hx.
+move/andP: Hx=> [Hxn1 HxH]; rewrite setDE; apply/setIP; split; last first.
+   rewrite setE; apply/negP=>HH; move: HxH; move/(conj HH); move/setIP.
+   by rewrite Hker setE (negbET Hxn1).
+by apply:(subsetP Hsub).
+Qed.
+
 Lemma ker_dinj : {in H &, injective f} -> ker_(H) f = [set 1].
 Proof.
 move=> If; apply/setP=> x; apply/setIP/idP; rewrite !setE; last first.
