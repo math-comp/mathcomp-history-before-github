@@ -167,24 +167,10 @@ Proof. move=> y; exact: can_inj (conjgK y). Qed.
 
 Definition conjg_fp (y x : elt) := x ^ y == x.
 
-Definition commute (x y : elt) := x * y == y * x.
-
-Lemma commute_sym : forall x y, commute x y -> commute y x.
-Proof. by move => x y; rewrite /commute  eq_sym. Qed.
-
-Lemma conjg_fpP : forall x y : elt, reflect (commute x y) (conjg_fp y x).
-Proof.
-move=> *; rewrite /conjg_fp conjgE -mulgA (canF_eq (mulKgv _)); exact: idP.
-Qed.
-
-Lemma conjg_fp_sym : forall x y : elt, conjg_fp x y = conjg_fp y x.
-Proof. move=> x y; apply/conjg_fpP/conjg_fpP; exact:commute_sym. Qed.
-
 End Conjugation.
 
+
 Implicit Arguments conjg_inj [elt].
-Implicit Arguments conjg_fpP [elt x y].
-Prenex Implicits conjg_fpP.
 
 Section Expn.
 
@@ -241,23 +227,6 @@ Lemma gexpn_conjg: forall x y n,
 Proof.
 move => x y; elim => [| n Rec]; first by rewrite !gexpn0 conj1g.
 by rewrite gexpnS Rec -conjg_mul -gexpnS.
-Qed.
-
-Lemma commute_expn: forall x y n,
-  commute x y ->  commute x (y ** n).
-Proof.
-rewrite /commute; move => x y n H; elim: n => /= [| n Rec]; gsimpl. 
-by rewrite (eqP H) -mulgA (eqP Rec); gsimpl.
-Qed.
-
-Lemma gexpnC: forall x y n, commute x y ->
-  (x * y) ** n  = (x ** n) * (y ** n).
-Proof.
-rewrite /commute; move => x y n H; elim: n => /= [| n Rec]; gsimpl.
-rewrite Rec. gsimpl. congr mulg. rewrite -!mulgA; congr mulg.
-apply/eqP.
-suff: (commute y (x**n)) by rewrite /commute.
-by apply: commute_expn; rewrite /commute eq_sym.
 Qed.
 
 End Expn.
@@ -596,6 +565,81 @@ End SmulProp.
 
 Hint Resolve group1 groupM groupVr pos_card_group.
 
+Section Commutation.
+
+Variable elt: finGroupType.
+
+Open Scope group_scope.
+
+Definition commute (x y : elt) := x * y == y * x.
+
+Lemma commute_sym : forall x y, commute x y -> commute y x.
+Proof. by move => x y; rewrite /commute  eq_sym. Qed.
+
+Lemma conjg_fpP : forall x y : elt, reflect (commute x y) (conjg_fp y x).
+Proof.
+move=> *; rewrite /conjg_fp conjgE -mulgA (canF_eq (mulKgv _)); exact: idP.
+Qed.
+
+Lemma conjg_fp_sym : forall x y : elt, conjg_fp x y = conjg_fp y x.
+Proof. move=> x y; apply/conjg_fpP/conjg_fpP; exact:commute_sym. Qed.
+
+Lemma commute_expn: forall x y n,
+  commute x y ->  commute x (y ** n).
+Proof.
+rewrite /commute; move => x y n H; elim: n => /= [| n Rec]; gsimpl. 
+by rewrite (eqP H) -mulgA (eqP Rec); gsimpl.
+Qed.
+
+Lemma gexpnC: forall x y n, commute x y ->
+  (x * y) ** n  = (x ** n) * (y ** n).
+Proof.
+rewrite /commute; move => x y n H; elim: n => /= [| n Rec]; gsimpl.
+rewrite Rec. gsimpl. congr mulg. rewrite -!mulgA; congr mulg.
+apply/eqP.
+suff: (commute y (x**n)) by rewrite /commute.
+by apply: commute_expn; rewrite /commute eq_sym.
+Qed.
+
+Definition com (A B : {set elt}) :=
+  forallb x, forallb y, (x \in A) && (y \in B) ==> commute x y.
+
+Lemma comP :forall A B : {set elt},
+  reflect {in A & B, commutative mulg} (com A B).
+Proof.
+move=> A B; apply: (iffP forallP) => cAB x => [y Ax By|].
+  by apply/eqP; have:= (forallP (cAB x) y); rewrite Ax By.
+by apply/forallP=> y; apply/implyP; case/andP=> Ax By; apply/eqP; exact: cAB.
+Qed.
+
+Lemma sconjg_com : forall (H: {set elt}) (x:elt), 
+  (forall y, y \in H -> commute y x) -> H :^x = H.
+Proof.
+move=> H x Hcom; apply/setP.
+by apply/subset_eqP; apply/andP; split; apply/subsetP=> y; 
+rewrite /sconjg setE; move=> Hin; move: (Hin); move/Hcom; move/conjg_fpP; 
+move/eqP; [rewrite conjgKv=>->|move=><-; rewrite conjgK].
+Qed.
+
+Lemma com_smulgC : forall (H1 H2 : group elt),
+  com H1 H2 -> H1 :*: H2 == H2 :*: H1.
+Proof.
+move=> H1 H2; move/comP=> Hcom.
+by apply/eqP; apply/setP=> x; apply/smulgP/smulgP; case=> [x1 x2 Hx1 Hx2]; 
+[move: Hcom =>->|move: Hcom =><-]; try by move/MemProdg; apply.
+Qed.
+
+Lemma com_gmulg_smulg : forall (H1 H2: group elt),
+  com H1 H2 -> H1 :*: H2 == H1 :**: H2.
+Proof.
+move=> H1 H2; move/com_smulgC; move/eqP; move/smulC_gmul=>->; exact:eqxx.
+Qed.
+
+End Commutation.
+
+Implicit Arguments conjg_fpP [elt x y].
+Prenex Implicits conjg_fpP.
+
 Notation "{ 'group' gT }" := (group_for (Phant gT))
   (at level 0, format "{ 'group'  gT }") : type_scope.
 
@@ -882,6 +926,16 @@ case/setIP: HKz => Hz Kz.
 have Tu: tup (x * z^-1, (H :&: K) :* y).
   by rewrite /= groupMl ?groupVr //; apply/imsetP; exists y.
 by exists (exist [eta tup] _ Tu); apply/eqP; rewrite /= Dz; gsimpl.
+Qed.
+
+Lemma card_smulg_coprime :
+  coprime #|H| #|K| -> (#|H :*: K| = #|H| * #|K|)%N.
+Proof.
+move=> Hcop; move: card_smulg.
+move: (group_dvdn (subsetIl H K)) =>/= Hdiv1.
+move: (group_dvdn (subsetIr H K)) =>/= Hdiv2.
+move: (dvdn_gcd Hdiv1 Hdiv2); move: Hcop; rewrite /coprime; move/eqP=>->.
+rewrite dvdn1; move/eqP=>->; rewrite muln1; apply.
 Qed.
 
 Definition trivg (A : sT) := A \subset [set 1].

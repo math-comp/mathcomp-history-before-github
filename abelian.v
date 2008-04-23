@@ -324,8 +324,6 @@ Qed.
 
 End Combo_Enum.
 
-
-
 (* Definition of and lemmas on 
    abelian sets and combinations in abelian sets *)
 
@@ -333,18 +331,7 @@ Section Abelian.
 
 Variable (elt : finGroupType).
 
-Definition com (A B : {set elt}) :=
-  forallb x, forallb y, (x \in A) && (y \in B) ==> commute x y.
-
-Lemma comP :forall A B : {set elt},
-  reflect {in A & B, commutative mulg} (com A B).
-Proof.
-move=> A B; apply: (iffP forallP) => cAB x => [y Ax By|].
-  by apply/eqP; have:= (forallP (cAB x) y); rewrite Ax By.
-by apply/forallP=> y; apply/implyP; case/andP=> Ax By; apply/eqP; exact: cAB.
-Qed.
-
-Definition abel A := com A A.
+Definition abel (A:{set elt}) := com A A.
 
 Lemma abelP : forall A : {set elt},
   reflect {in A &, commutative mulg} (abel A).

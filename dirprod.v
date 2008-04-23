@@ -20,8 +20,9 @@ Require Import connect.
 Require Import groups.
 Require Import finset.
 Require Import normal.
-Require Import automorphism.
+Require Import div.
 Require Import abelian.
+Require Import automorphism.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -71,24 +72,10 @@ apply/imsetP; case/smulgP: Hx=> x1 x2 Hx1 Hx2 Heq.
 by exists (x1, x2); rewrite ?setE ?Hx1 ?Hx2.
 Qed.
 
-Lemma com_smulgC : forall (H1 H2 : group elt),
-  com H1 H2 -> H1 :*: H2 == H2 :*: H1.
-Proof.
-move=> H1 H2; move/comP=> Hcom.
-by apply/eqP; apply/setP=> x; apply/smulgP/smulgP; case=> [x1 x2 Hx1 Hx2]; 
-[move: Hcom =>->|move: Hcom =><-]; try by move/MemProdg; apply.
-Qed.
-
-Lemma com_gmulg_smulg : forall (H1 H2: group elt),
-  com H1 H2 -> H1 :*: H2 == H1 :**: H2.
-Proof.
-move=> H1 H2; move/com_smulgC; move/eqP; move/smulC_gmul=>->; exact:eqxx.
-Qed.
-
 Lemma dirprod_isom : forall (H1 H2 G:group _),
   reflect
   (com H1 H2  /\
-  G = {H1 :**: H2 as group _} /\ trivg (H1 :&: H2))
+  G = {H1 :**: H2 as group _} /\ disjointg H1 H2)
   (morphic (prod_dir H1 H2) mgmulg && isom mgmulg (prod_dir H1 H2) G).
 Proof.
 move=> H1 H2 G; apply: (iffP idP).
@@ -143,16 +130,7 @@ have Hinc: group_prod_dir H1 H2 \subset dom mgmulg.
 by apply: (injm_ker Hinc).
 Qed.
 
-Lemma sconjg_com : forall (H: {set elt}) (x:elt), 
-  (forall y, y \in H -> commute y x) -> H :^x = H.
-Proof.
-move=> H x Hcom; apply/setP.
-by apply/subset_eqP; apply/andP; split; apply/subsetP=> y; 
-rewrite /sconjg setE; move=> Hin; move: (Hin); move/Hcom; move/conjg_fpP; 
-move/eqP; [rewrite conjgKv=>->|move=><-; rewrite conjgK].
-Qed.
-
-Lemma smulg_set : forall (H1 H2:group elt), 
+Lemma smulg_1set : forall (H1 H2: group elt), 
   (H1 :*: H2 == [set 1]) = (H1 == [set 1] :> set _) && (H2 == [set 1]:> set _).
 Proof.
 move=> H1 H2; apply/eqP/andP.
@@ -169,7 +147,7 @@ Qed.
 Lemma dirprod_normal_isom : forall (H1 H2 G:group _),
   reflect
   ( (H1 <| G  /\ H2 <| G) /\
-  G = H1 :*: H2 :> set _ /\ trivg (H1 :&: H2))
+  G = H1 :*: H2 :> set _ /\ disjointg H1 H2)
   (morphic (prod_dir H1 H2) mgmulg && isom mgmulg (prod_dir H1 H2) G).
 Proof.
 move=> H1 H2 G; apply: (iffP (dirprod_isom H1 H2 G));
@@ -177,11 +155,11 @@ move=> [Hcom [Hprod Htriv]]; split.
 - split; apply/subsetP; 
   rewrite Hprod /= -(eqP (com_gmulg_smulg Hcom))=> x;
   move/smulgP; case=> [x1 x2 Hx1 Hx2 ->]; rewrite setE sconjgM.
-    rewrite (@sconjg_com _ x2); first by apply/subsetP=> y; 
+    rewrite (@sconjg_com _ _ x2); first by apply/subsetP=> y; 
     rewrite /sconjg setE groupJr ?groupV.
     move=> y; rewrite /sconjg setE groupJr ?groupV // => Hy.
     by apply/eqP; move/comP: Hcom; move/(_ _ _ Hy Hx2).
-  rewrite (@sconjg_com _ x1); 
+  rewrite (@sconjg_com _ _ x1); 
   last by move=> y Hy; apply/eqP; move/comP: Hcom; move/(_ _ _ Hx1 Hy).
   by apply/subsetP=> y; rewrite /sconjg setE groupJr ?groupV.
 - split; last by trivial.
@@ -211,12 +189,12 @@ move=> [Hcom [Hprod Htriv]]; split.
     by move/(mulg_injl (h1 * h2)); move/invg_inj=>->.
   have Heq: H1:*:H2 = [set 1].
     by move: (group_gmul Hprod)=>->; move:e; unlock gmulg gmulg_def smulg=>->.
-  move/eqP: Heq; rewrite smulg_set; move/andP=> [HH1 HH2]; apply/comP.
+  move/eqP: Heq; rewrite smulg_1set; move/andP=> [HH1 HH2]; apply/comP.
   move=> x y; rewrite (eqP HH1) (eqP HH2); move/set1P=>->; move/set1P=>->.
   by rewrite mulg1.
 - split; last by trivial.
   by apply:set_of_group_inj; move: (group_gmul Hprod)=>/= <-.
 Qed.
 
-  
+
 End DirProd.

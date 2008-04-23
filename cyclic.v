@@ -272,6 +272,77 @@ move=> a x; rewrite {1}(divn_eq x (orderg a)) -gexpn_add mulnC -gexpn_mul.
 by rewrite (eqP (orderg_expn1 _)) gexp1n mul1g.
 Qed.
 
+Lemma cyclic_unit : cyclic 1 = [set 1].
+symmetry; apply/setP; apply/subset_cardP.
+  by have:= orderg1; rewrite cards1 /orderg=>->.
+by apply/subsetP=> x; move/set1P=><-; rewrite cyclicnn.
+Qed.
+
+(***********************************************************************)
+(*                                                                     *)
+(*        Commutativity Properties                                     *)
+(*                                                                     *)
+(***********************************************************************)
+
+
+Lemma commute_cyclic_com : forall (a b : G),
+  commute a b ->
+  com (cyclic a) (cyclic b).
+Proof.
+move=> a b Hcom; apply/comP=> x y; move/cyclicP=>[kx]; move/eqP=><-.
+move/cyclicP=>[ky]; move/eqP=><-; apply/eqP.
+exact: (@commute_expn _ (a ** kx) b ky 
+  (commute_sym (commute_expn kx (commute_sym Hcom)))).
+Qed.
+
+Lemma commute_cyclic_normal : forall (a b: G),
+  commute a b ->
+  cyclic a  <| cyclic (a * b).
+Proof.
+move=> a b Hcom; apply/subsetP=> x; move/cyclicP=>[kx]; move/eqP=><-.
+rewrite setE; apply/subsetP=> y; rewrite -cyclic_conjgs.
+have: (commute a (a * b ** kx)).
+  move/eqP:Hcom=>Hcom; apply: commute_expn.
+  by rewrite /commute Hcom mulgA Hcom eqxx.
+by move/conjg_fpP; move/eqP=>->.
+Qed.
+
+Lemma commute_cyclic_sub : forall (a b:G),
+  commute a b ->
+  coprime (orderg a) (orderg b) ->
+  cyclic a \subset cyclic (a * b).
+Proof.
+move=> a b Hcom; rewrite /coprime; move/eqP=> Hcop; apply/subsetP=> x.
+move/cyclicP=> [k]; move/eqP=><-.
+case: (egcdnP (orderg a) (orderg_pos b))=> kb ka Heq Hineq.
+apply/cyclicP; exists (kb * (orderg b) * k)%N.
+rewrite (gexpnC _ Hcom) {2}(mulnC kb) -(mulnA (orderg b)).
+rewrite -(gexpn_mul b (orderg b)) (eqP (orderg_expn1 b)) gexp1n mulg1.
+rewrite Heq gcdnC Hcop muln_addl mul1n -gexpn_add -(mulnC (orderg a)).
+by rewrite -(mulnA (orderg a)) -gexpn_mul (eqP (orderg_expn1 a)) gexp1n mul1g.
+Qed.
+
+Lemma cyclic_mul : forall (a b : G),
+  commute a b ->
+  coprime (orderg a) (orderg b) ->
+  cyclic (a * b) = cyclic a :*: cyclic b.
+Proof.
+move=> a b Hcom Hcop.
+have Hsub: cyclic (a * b) \subset cyclic a :*: cyclic b.
+  apply/subsetP=> x; move/cyclicP=> [k]; move/eqP=><-; apply/smulgP.
+  by apply: (MemProdg (cyclic_in a k) (cyclic_in b k)); rewrite (gexpnC k Hcom).
+apply/setP; apply/subset_cardP; last by trivial.
+apply/eqP; rewrite eqn_dvd; apply/andP; split.
+  move: Hsub; rewrite (eqP (com_gmulg_smulg (commute_cyclic_com Hcom))).
+  by move/group_dvdn.
+rewrite (card_smulg_coprime Hcop); move: (commute_cyclic_sub Hcom Hcop).
+move/group_dvdn=> /= Hdiva; move: (Hcop); rewrite coprime_sym.
+move/(commute_cyclic_sub (commute_sym Hcom)); move/group_dvdn.
+move/eqP: (Hcom)=>Hab; rewrite -Hab /=; move/(conj Hdiva); move/andP.
+by rewrite -(gauss_inv _ Hcop).
+Qed.
+
+
 (***********************************************************************)
 (*                                                                     *)
 (*        Bijection with Zp                                            *)
@@ -419,12 +490,6 @@ rewrite -(gexpn0 a); move : (orderg_pos a); rewrite -(ltn_mod n)=>H.
 by move/(conj H); move/andP; move/(decomp_order_unicity (orderg_pos a))=><-.
 Qed.
 
-Lemma cyclic_unit : cyclic 1 = [set 1].
-symmetry; apply/setP; apply/subset_cardP.
-  by have:= orderg1; rewrite cards1 /orderg=>->.
-by apply/subsetP=> x; move/set1P=><-; rewrite cyclicnn.
-Qed.
-
 Lemma orderg_dvd_g : forall (H : group G) a, a \in H -> orderg a %| #|H|.
 Proof.
 move => H a Ha.
@@ -460,42 +525,9 @@ Qed.
 Lemma orderg_mul: forall (a b: G),
   commute a b -> coprime (orderg a) (orderg b) ->
   orderg (a * b) = (orderg a * orderg b)%N.
-Proof.
-move => a b H H1.
-have F1: orderg (a * b) %| (orderg a * orderg b).
-  rewrite orderg_dvd; apply/eqP; rewrite gexpnC //.
-  by rewrite -gexpn_mul mulnC -gexpn_mul
-           2!(eqP (orderg_expn1 _)) 2!gexp1n mul1g.
-apply/eqP; rewrite eqn_dvd //.
-set oab := orderg (_ * _); set oa := orderg _;
- set ob := orderg _.
-have F2: oab <= oa * ob.
- by apply: dvdn_leq => //; rewrite ltn_0mul /oa /ob !orderg_pos.
-have F3: (a ** oab = b ** (oa * ob - oab)).
-  apply: (mulg_injr (b ** oab)).
-  rewrite gexpn_add -gexpnC //.
-  rewrite addnC subnK // /oab (eqP (orderg_expn1 _)).
-  by rewrite  mulnC -gexpn_mul /ob (eqP (orderg_expn1 _))
-              gexp1n.
-have F4: orderg (a ** oab) == 1%N.
-  rewrite /coprime in H1.
-  rewrite -dvdn1 -(eqP H1).
-  apply dvdn_gcd; last rewrite F3;
-  by exact: orderg_gexp_dvd.
-rewrite gauss_inv //; apply/and3P; split => //.
-  rewrite /oa /ob orderg_dvd.
-  by move: (eqP (orderg_expn1 (a ** oab)));
-     rewrite (eqP F4) gexpn1 => ->.
-rewrite F3 in F4.
-move: (eqP (orderg_expn1 (b ** (oa * ob - oab)))).
-  rewrite (eqP F4) gexpn1 => F5.
-have F6: (b ** (oa * ob) = 1).
-  by rewrite mulnC -gexpn_mul /ob
-             (eqP (orderg_expn1 _)) gexp1n.
-rewrite /oa /ob orderg_dvd.
-by rewrite -F6 -(subnK F2) -gexpn_add F5; gsimpl.
+Proof. 
+by move=> a b Hcom Hcop; rewrite /orderg cyclic_mul ?card_smulg_coprime. 
 Qed.
-
 
 (***********************************************************************)
 (*                                                                     *)
@@ -631,22 +663,7 @@ Lemma cyclic_aut_stable : forall x,
   Aut (cyclic x) f -> f @: cyclic x = cyclic (f x).
 Proof.
 move=> x HAut; move:{+}HAut; move/andP=> [Hperm Hmorph].
-have HH: forall n, f x ** n = f (x ** n).
-  case e: (trivm_(cyclic x) f).
-    move/forallP: e => e; have:= e x; rewrite cyclicnn /=; move/eqP=>-> n.
-    move: (e (x ** n)); move: (groupE n (cyclicnn x))=>/= ->; rewrite /= gexp1n.
-    by move/eqP=>->.
-  rewrite -((morph_of_aut_ondom HAut) _ (cyclicnn x))=> n; rewrite -morphE.
-    have: x ** n \in cyclic x by apply/cyclicP; exists n.
-    by move/(morph_of_aut_ondom HAut); apply.
-  by rewrite dom_morph_of_aut ?cyclicnn //= e.
-symmetry; apply/setP; apply/subset_eqP; apply/andP; split.
-  apply/subsetP; move=> y Hy; apply/imsetP; move/cyclicP: Hy=> [ny Hny].
-  exists (x ** ny); first by apply/cyclicP; exists ny.
-  rewrite -(eqP Hny); exact:HH.
-apply/subsetP=> y; move/imsetP=>[x0]; move/cyclicP=>[n0 Hn0].
-rewrite -(eqP Hn0)=>{x0 Hn0}=>->; apply/cyclicP.
-by exists n0; rewrite HH.
+apply: (cyclic_morph_stable Hmorph).
 Qed.
 
 Lemma order_aut_stable : forall x, Aut (cyclic x) f ->
@@ -805,6 +822,7 @@ have:= (@zp_gen {orderg a as pos_nat} (Ordinal Hmod)); rewrite /= /coprime =><-.
 congr generator; rewrite /cyclic_to_zp;  apply: val_inj=>/=.
 by rewrite cyclic_to_zp_id.
 Qed.
+
 
 Lemma phi_gen : phi (orderg a) = #|generator (cyclic a) : pred _|.
 Proof.
