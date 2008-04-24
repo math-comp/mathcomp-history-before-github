@@ -11,7 +11,6 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
 Require Import seq fintype paths connect.
 Require Import groups normal div zp finset bigops group_perm automorphism.
-Require Import cyclic.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -95,7 +94,11 @@ Qed.
 
 Canonical Structure fp_mul_group := FinGroupType unit_fp_mul invP_fp_mul mulP_fp_mul.
 
+(* This introduces an unwanted dependency to cyclic
+
 Lemma cardphi : #|fp_mul_group| = (phi p).
 Proof. by rewrite card_sub. Qed.
+
+*)
 
 End EulerProofs.
