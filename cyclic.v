@@ -727,6 +727,60 @@ rewrite -(morph_of_aut_ondom Haut (cyclic_in x n)) morphE.
 by rewrite (dom_morph_of_aut Haut (negbT e)) (cyclicnn x).
 Qed.
 
+(* the other direction : from the multiplicative group to automorphisms*)
+
+Lemma cyclic_gexpn_clos : forall (x: G) k, (coprime k (orderg x)) ->
+  (fun a => a ** k) @: (cyclic x) \subset (cyclic x).
+Proof.
+move=> x k Hcop; apply/subsetP=> a.
+move/imsetP=> [y]; move/cyclicP=> [n]; move/eqP=><- ->.
+by apply/cyclicP; exists (n * k)%N; rewrite gexpn_mul.
+Qed.
+
+Lemma cyclic_dcan_gexpn : forall (a:G) k, (coprime k (orderg a)) ->
+  exists g, {in (cyclic a), cancel (fun z => z ** k) g}.
+Proof.
+move=> a k; case Hpos: (0 < k)=> Hcop; last first.
+  move: Hcop; move/idPn: Hpos; rewrite -eqn0Ngt; move/eqP=>->.
+  rewrite /coprime gcd0n /orderg => Hcard; have Heq: [set 1] =i (cyclic a).
+    apply/subset_cardP; last by rewrite subset_set1; apply:group1.
+    by move/eqP:Hcard=>->; rewrite cardsE card1.
+  by exists (@id G)=> x; rewrite gexpn0 //= -(Heq x); move/set1P=><-.
+case: (bezoutl (orderg a) Hpos); move=> x xinf; rewrite /coprime in Hcop.
+move/eqP: Hcop=>->; move/dvdnP=>[k0 Hk0]; exists (fun z:G => z ** k0).
+move=> x0 Hx0 //=; rewrite gexpn_mul mulnC -Hk0 -gexpn_add mulnC.
+move/cyclicP: Hx0=>[i]; move/eqP=><-; rewrite gexpn1.
+by rewrite !gexpn_mul mulnC -!gexpn_mul (eqP (orderg_expn1 a)) !gexp1n mulg1.
+Qed.
+
+Lemma inj_gexpn : forall a k,
+  (coprime k (orderg a)) ->
+  {in (cyclic a) &, injective (fun x :G => x ** k)}.
+Proof.
+move=> k a Hcop; move: (cyclic_dcan_gexpn Hcop)=>[g dcan].
+by apply (in_can_inj dcan).
+Qed.
+
+Lemma gexpn_automorphic : forall a k (D:coprime k (orderg a)),
+  Aut (cyclic a) (perm_of_restriction (cyclic_gexpn_clos D) (inj_gexpn D)).
+Proof.
+move=> a k D.
+apply/andP; split.
+  apply/subsetP=> x; rewrite inE /= permE /restr.
+  by case e: (x \in (cyclic a)); rewrite ?eqxx.
+apply/morphP=> x y Hx Hy; rewrite !permE /restr Hx Hy (groupM Hx Hy).
+apply gexpnC; move/cyclicP: Hx=> [nx Hnx]; move/cyclicP: Hy=> [ny Hny].
+by move/eqP: Hnx=><-; move/eqP: Hny=><-; rewrite /commute !gexpn_add addnC.
+Qed.
+
+Definition f_phi_aut : forall (a:G),
+  {x: fzp (orderg a)| coprime x (orderg a)} ->
+  {b|(Aut (cyclic a)) b}.
+move=> a; move=> [[m H1] //= H2].
+exists (perm_of_restriction (cyclic_gexpn_clos H2) (inj_gexpn H2)).
+exact: gexpn_automorphic.
+Defined.
+
 End CyclicAutomorphism.
 
 (***********************************************************************)
