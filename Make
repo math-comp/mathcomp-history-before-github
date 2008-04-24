@@ -34,6 +34,7 @@ schurzass.v
 alt.v
 abelian.v
 dirprod.v
+fp.v
 
 COQC = $(COQBIN)ssrcoq
 COQFLAGS = "-q $(OPT) $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -compile"
