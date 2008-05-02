@@ -237,7 +237,7 @@ pose coef3 j k := coef p1 j * (coef p2 (i - j - k) * coef p3 k).
 transitivity (\sum_(j < i.+1) \sum_(k < i.+1 | k <= i - j) coef3 j k).
   apply: eq_bigr => /= j _; rewrite coef_mul_poly_rev big_distrr /=.
   by rewrite (big_ord_narrow_leq (leq_subr _ _)).
-rewrite (exchange_big_dep predA) //=; apply: eq_bigr => k _.
+rewrite (exchange_big_dep predT) //=; apply: eq_bigr => k _.
 transitivity (\sum_(j < i.+1 | j <= i - k) coef3 j k).
   apply: eq_bigl => j; rewrite -ltnS -(ltnS j) -!leq_subS ?leq_ord //.
   by rewrite -ltn_0sub -(ltn_0sub j) !subn_sub addnC.

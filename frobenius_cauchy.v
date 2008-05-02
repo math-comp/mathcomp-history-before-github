@@ -1,4 +1,7 @@
-
+(***********************************************************************)
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
+(*                                                                     *)
+(***********************************************************************)
 Require Import ssreflect.
 Require Import ssrbool.
 Require Import ssrfun.
@@ -7,11 +10,11 @@ Require Import ssrnat.
 Require Import seq.
 Require Import fintype.
 Require Import connect.
-Require Import groups.
-Require Import action.
 Require Import ssralg.
 Require Import bigops.
 Require Import finset.
+Require Import groups.
+Require Import action.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -36,8 +39,8 @@ Hint Resolve orbit_csym.
 Lemma stabilizer_to : forall x g,
   g \in normaliser H -> stabilizer to H (to x g) = stabilizer to H x :^ g.
 Proof.
-move=> x g nHg; apply/setP=> h; rewrite !setE -sconjgE invgK norm_sconjg //.
-by rewrite !actM invgK (canF_eq (actKv to g)).
+move=> x g nHg; apply/setP=> h; rewrite mem_conjg !inE -mem_conjg.
+by rewrite (normgP _) // !actM invgK (canF_eq (actKV to g)).
 Qed.
 
 Lemma orbit_eq : forall x y,
@@ -50,8 +53,8 @@ Qed.
 Lemma card_stab_eq : forall x y,
   y \in orbit to H x -> #|stabilizer to H x| = #|stabilizer to H y|.
 Proof.
-move=> x y; case/orbitP=> g Hg <- {y}; rewrite stabilizer_to ?card_sconjg //.
-exact: (subsetP (norm_refl H)).
+move=> x y; case/orbitP=> g Hg <- {y}; rewrite stabilizer_to ?card_conjg //.
+exact: (subsetP (normG H)).
 Qed.
 
 (* should become a posnat structure
@@ -67,7 +70,7 @@ Theorem Frobenius_Cauchy :
 Proof.
 transitivity (\sum_(g \in H) \sum_(x \in act_fix1 g) 1%N).
   by apply: eq_bigr => g _; rewrite sum_nat_const muln1.
-rewrite (exchange_big_dep predA) //=; pose orbH := [rel of orbit to H].
+rewrite (exchange_big_dep predT) //=; pose orbH := [rel of orbit to H].
 rewrite (partition_big (root orbH) (roots orbH)) //= => [|y _]; last first.
   apply: roots_root; exact: orbit_csym.
 rewrite -sum_nat_const; apply: eq_bigr => x; move/eqP=> rx.
@@ -75,7 +78,7 @@ rewrite (eq_bigl (mem (orbit to H x))) => [|y]; last first.
   by rewrite /= -orbit_trans (sameP (rootP _) eqP) ?rx.
 rewrite -(LaGrange (subset_stab to H x)) mulnC -card_orbit -sum_nat_const.
 apply: eq_bigr => y Hxy; rewrite sum_nat_const muln1 (card_stab_eq Hxy).
-by apply: eq_card => h; rewrite -topredE /= !setE.
+by apply: eq_card => h; rewrite -topredE /= !inE.
 Qed.
 
 End  Frob_Cauchy.

@@ -1,19 +1,25 @@
+(***********************************************************************)
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
+(*                                                                     *)
+(***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype paths.
 Require Import tuple finfun finset.
 Require Import connect div groups group_perm zp action.
 Require Import normal.
 
-
 Import Prenex Implicits.
 Set Implicit Arguments.
 Unset Strict Implicit.
+
+Import GroupScope.
 
 (* We don't use the bool group structure directly here, but we may need it *)
 (* to make the parity function is a morphism S_n -> bool, e.g., to define  *)
 (* A_n as its kernel.                                                      *)
 
-Canonical Structure boolGroup :=
-  @FinGroupType _ _ id addb addFb addbb addbA.
+Canonical Structure boolPreGroup :=
+  FinPreGroupType addbA addFb (frefl id) addbC.
+Canonical Structure boolGroup := FinGroupType addbb. 
 
 Section PermutationParity.
 
@@ -126,7 +132,7 @@ Proof. by move=> s; rewrite -{2}(mulgK s s) !oddpM addbb. Qed.
 Notation Local oddpV := odd_permV.
 
 Lemma odd_permJ : forall s t, oddp (s ^ t) = oddp s.
-Proof. by move=> *; rewrite /conjg !oddpM oddpV addbC addbA addbb. Qed.
+Proof. by move=> *; rewrite /conjg !oddpM oddpV addbCA addbb addbF. Qed.
 Notation Local oddpJ := odd_permJ.
 
 
@@ -175,7 +181,7 @@ Qed.
 
 Lemma tpermJ : forall x y (s : {perm T}), (tperm x y) ^ s = tperm (s x) (s y).
 Proof.
-move=> x y s; apply/permP => z; rewrite -(permKv s z) permJ.
+move=> x y s; apply/permP => z; rewrite -(permKV s z) permJ.
 apply: inj_tperm; exact: perm_inj.
 Qed.
 
@@ -243,9 +249,9 @@ Qed.
 *)
 
 (** Definitions of the alternate groups and some Properties **)
-Definition sym := groupA (perm_for_finGroupType T).
+Definition sym := setT_group (perm_for_finGroupType T).
 
-Lemma dom_odd_perm : dom odd_perm = setA.
+Lemma dom_odd_perm : dom odd_perm = setT.
 Proof.
 apply/setP; apply/subset_eqP; apply/andP; split; apply/subsetP=> x //.
 move=> _; case Ix : (odd_perm x);  [rewrite dom_nu // | rewrite dom_k //].
@@ -255,7 +261,7 @@ by case: odd_perm.
 Qed.
 
 Lemma group_set_dom_odd_perm : group_set (dom odd_perm).
-Proof. rewrite dom_odd_perm; exact: set_of_groupP. Qed.
+Proof. rewrite dom_odd_perm; exact: groupP. Qed.
 
 Canonical Structure sign_morph :=
    Morphism group_set_dom_odd_perm (in2W odd_permM).
@@ -265,34 +271,37 @@ Definition alt := Group (group_set_ker sign_morph).
 Lemma altP : forall p, reflect (even_perm p) (p \in alt).
 Proof.
 move=> p; rewrite (sameP (kerMP _) negPf); first exact: idP.
-by rewrite dom_odd_perm setE.
+by rewrite dom_odd_perm inE.
 Qed.
 
 Lemma alt_subset : alt \subset sym.
-Proof. by apply/subsetP => x _; rewrite setE. Qed.
+Proof. by apply/subsetP => x _; rewrite inE. Qed.
 
 Lemma alt_normal : alt <| sym.
 Proof. by rewrite -[sym : set _]dom_odd_perm; exact: normal_ker. Qed.
+
+Lemma alt_norm : sym \subset 'N(alt).
+Proof. by case/andP: alt_normal. Qed.
 
 Let n := #|T|.
 
 Lemma alt_index : 1 < n -> indexg alt sym = 2.
 Proof.
-move=> lt1n; rewrite -card_quotient ?alt_normal //= -ker_r_dom dom_odd_perm.
+move=> lt1n; rewrite -card_quotient ?alt_norm //= -ker_r_dom dom_odd_perm.
 have [g]: isog (sym / ker_(sym) sign_morph) (odd_perm @: sym).
   by apply: first_isom; rewrite dom_odd_perm subset_refl.
 case/andP=> im_quo; move/injmP; move/card_dimset <-; move/eqP: im_quo => ->{g}.
-rewrite eq_cardA // => b; apply/imsetP; case: b => /=; last first.
-  by exists (1 : perm T); [rewrite setE | rewrite odd_perm1].
+rewrite eq_cardT // => b; apply/imsetP; case: b => /=; last first.
+  by exists (1 : perm T); [rewrite inE | rewrite odd_perm1].
 case: (pickP T) lt1n => [x1 _ | d0]; last by rewrite /n eq_card0.
 rewrite /n (cardD1 x1) ltnS lt0n; case/existsP=> x2 /=.
-by rewrite eq_sym andbT -odd_tperm; exists (tperm x1 x2); rewrite ?setE.
+by rewrite eq_sym andbT -odd_tperm; exists (tperm x1 x2); rewrite ?inE.
 Qed.
 
 Lemma card_sym : #|sym| = fact n.
 Proof.
 rewrite -[n]cardsE -card_perm; apply: eq_card => p.
-by apply/idP/subsetP=> [? ?|]; rewrite setE.
+by apply/idP/subsetP=> [? ?|]; rewrite inE.
 Qed.
 
 Lemma card_alt : 1 < n -> (2 * #|alt|)%N = fact n.
@@ -311,7 +320,7 @@ Qed.
 Definition d2p s ds := perm_of (@d2p_inject_aux s ds).
 
 Lemma d2p_sym: forall t (dt : dtuple_on T t), d2p dt \in sym.
-Proof. by move=> *; rewrite setE. Qed.
+Proof. by move=> *; rewrite inE. Qed.
 
 Lemma d2p_sym1 : forall t (dt : dtuple_on T t),
   n_act (perm_action T) sym1 (d2p dt) = t.
@@ -326,9 +335,8 @@ Proof.
 split; last by exact: max_card.
 move=> x Hx y; apply/imsetP/idP => [[z Hz ->] | Hy].
   exact: n_act_dtuple.
-exists ((d2p Hx)^-1 * (d2p Hy)); first by rewrite setE.
-rewrite actM -{1}(d2p_sym1 Hx) -!actM; gsimpl.
-by rewrite /= (d2p_sym1 Hy).
+exists ((d2p Hx)^-1 * (d2p Hy)); first by rewrite inE.
+by rewrite actM -{1}(d2p_sym1 Hx) /= actK (d2p_sym1 Hy).
 Qed.
 
 Lemma alt_trans: ntransitive (perm_action T) alt T (n - 2).

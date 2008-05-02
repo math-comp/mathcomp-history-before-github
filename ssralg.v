@@ -24,8 +24,8 @@ Reserved Notation "x *- n" (at level 40, n at level 9, left associativity).
 Reserved Notation "n %: R" (at level 2, R at level 1, left associativity,
            format "n %: R").
 
-Reserved Notation "x ^+ n" (at level 30, n at level 9, right associativity).
-Reserved Notation "x ^- n" (at level 30, n at level 9, right associativity).
+Reserved Notation "x ^+ n" (at level 29, n at level 9, left associativity).
+Reserved Notation "x ^- n" (at level 29, n at level 9, left associativity).
 
 Reserved Notation "f .[ x ]"
   (at level 2, left associativity, format "f .[ x ]").
@@ -334,48 +334,48 @@ Lemma expr1n : forall x : R, x ^+1 = x. Proof. exact: mulr1. Qed.
 Lemma exprn_addr : forall x m n, x ^+(m + n) = x ^+m * x ^+n :> R.
 Proof. by move=> x m n; elim: m => /= [|m ->]; rewrite (mul1r, mulrA). Qed.
 
-Definition commute (x y : R) := x * y = y * x.
+Definition commb (x y : R) := x * y = y * x.
 
-Lemma commr_sym : forall x y, commute x y -> commute y x. Proof. done. Qed.
-Lemma commr_refl : forall x, commute x x. Proof. done. Qed.
+Lemma commr_sym : forall x y, commb x y -> commb y x. Proof. done. Qed.
+Lemma commr_refl : forall x, commb x x. Proof. done. Qed.
 
-Lemma commr0 : forall x, commute x 0.
-Proof. by move=> x; rewrite /commute mulr0 mul0r. Qed.
+Lemma commr0 : forall x, commb x 0.
+Proof. by move=> x; rewrite /commb mulr0 mul0r. Qed.
 
-Lemma commr1 : forall x, commute x 1.
-Proof. by move=> x; rewrite /commute mulr1 mul1r. Qed.
+Lemma commr1 : forall x, commb x 1.
+Proof. by move=> x; rewrite /commb mulr1 mul1r. Qed.
 
-Lemma commr_opp : forall x y, commute x y -> commute x (- y).
-Proof. by move=> x y com_xy; rewrite /commute mulrN com_xy mulNr. Qed.
+Lemma commr_opp : forall x y, commb x y -> commb x (- y).
+Proof. by move=> x y com_xy; rewrite /commb mulrN com_xy mulNr. Qed.
 
-Lemma commrN1 : forall x, commute x (-1).
+Lemma commrN1 : forall x, commb x (-1).
 Proof. move=> x; apply: commr_opp; exact: commr1. Qed.
 
 Lemma commr_add : forall x y z,
-  commute x y -> commute x z -> commute x (y + z).
-Proof. by move=> x y z; rewrite /commute mulr_addl mulr_addr => -> ->. Qed.
+  commb x y -> commb x z -> commb x (y + z).
+Proof. by move=> x y z; rewrite /commb mulr_addl mulr_addr => -> ->. Qed.
 
-Lemma commr_muln : forall x y n, commute x y -> commute x (y *+n).
+Lemma commr_muln : forall x y n, commb x y -> commb x (y *+n).
 Proof.
 move=> x y n com_xy; elim: n => [|n IHn]; [exact: commr0 | exact: commr_add].
 Qed.
 
 Lemma commr_mul : forall x y z,
-  commute x y -> commute x z -> commute x (y * z).
+  commb x y -> commb x z -> commb x (y * z).
 Proof.
-by move=> x y z com_xy; rewrite /commute mulrA com_xy -!mulrA => ->.
+by move=> x y z com_xy; rewrite /commb mulrA com_xy -!mulrA => ->.
 Qed.
 
-Lemma commr_nat : forall x n, commute x n%:R.
+Lemma commr_nat : forall x n, commb x n%:R.
 Proof. move=> x n; apply: commr_muln; exact: commr1. Qed.
 
-Lemma commr_exp : forall x y n, commute x y -> commute x (y ^+n).
+Lemma commr_exp : forall x y n, commb x y -> commb x (y ^+n).
 Proof.
 move=> x y n com_xy; elim: n => [|n IHn]; [exact: commr1 | exact: commr_mul].
 Qed.
 
 Lemma commr_exp_mull : forall x y n,
-  commute x y -> (x * y) ^+n = x ^+n * y ^+n.
+  commb x y -> (x * y) ^+n = x ^+n * y ^+n.
 Proof.
 move=> x y n com_xy; elim: n => /= [|n ->]; first by rewrite mulr1.
 by rewrite !mulrA; congr (_ * _); rewrite -!mulrA -commr_exp.
@@ -402,7 +402,7 @@ Proof. by do 2!case; rewrite /= ?mulN1r ?mul1r ?opprK. Qed.
 
 Lemma exprN : forall x n, (- x) ^+n = (-1) ^+n * x ^+ n :> R.
 Proof.
-by move=> x n; rewrite -mulN1r commr_exp_mull // /commute mulN1r mulrN mulr1.
+by move=> x n; rewrite -mulN1r commr_exp_mull // /commb mulN1r mulrN mulr1.
 Qed.
 
 End BasicRingEquations.

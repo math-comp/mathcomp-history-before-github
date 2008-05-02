@@ -350,7 +350,7 @@ Proof. by move=> a1 a2 Ea s; rewrite !all_count (eq_count Ea). Qed.
 
 Lemma filter_pred0 : forall s, filter pred0 s = [::]. Proof. by elim. Qed.
 
-Lemma filter_predA : forall s, filter predA s = s.
+Lemma filter_predT : forall s, filter predT s = s.
 Proof. by elim=> //= x s ->. Qed.
 
 Lemma filter_predI : forall a1 a2 s,
@@ -363,8 +363,8 @@ Qed.
 Lemma count_pred0 : forall s, count pred0 s = 0.
 Proof. by move=> s; rewrite count_filter filter_pred0. Qed.
 
-Lemma count_predA : forall s, count predA s = size s.
-Proof. by move=> s; rewrite count_filter filter_predA. Qed.
+Lemma count_predT : forall s, count predT s = size s.
+Proof. by move=> s; rewrite count_filter filter_predT. Qed.
 
 Lemma count_predUI : forall a1 a2 s,
  count (predU a1 a2) s + count (predI a1 a2) s = count a1 s + count a2 s.
@@ -382,8 +382,8 @@ Qed.
 Lemma has_pred0 : forall s, has pred0 s = false.
 Proof. by move=> s; rewrite has_count count_pred0. Qed.
 
-Lemma has_predA : forall s, has predA s = (0 < size s).
-Proof. by move=> s; rewrite has_count count_predA. Qed.
+Lemma has_predT : forall s, has predT s = (0 < size s).
+Proof. by move=> s; rewrite has_count count_predT. Qed.
 
 Lemma has_predC : forall a s, has (predC a) s = ~~ all a s.
 Proof. by move=> a; elim=> //= x s ->; case (a x). Qed.
@@ -396,8 +396,8 @@ Qed.
 Lemma all_pred0 : forall s, all pred0 s = (size s == 0).
 Proof. by move=> *; rewrite all_count count_pred0 eq_sym. Qed.
 
-Lemma all_predA : forall s, all predA s = true.
-Proof. by move=> *; rewrite all_count count_predA eqxx. Qed.
+Lemma all_predT : forall s, all predT s = true.
+Proof. by move=> *; rewrite all_count count_predT eqxx. Qed.
 
 Lemma all_predC : forall a s, all (predC a) s = ~~ has a s.
 Proof. by move=> a; elim=> //= x s ->; case (a x). Qed.
@@ -1198,7 +1198,7 @@ by move=> s1 s2; move/perm_eqP=> eq12 x; rewrite -!has_pred1 !has_count eq12.
 Qed.
 
 Lemma perm_eq_size : forall s1 s2, perm_eq s1 s2 -> size s1 = size s2.
-Proof. by move=> s1 s2; move/perm_eqP=> eq12; rewrite -!count_predA eq12. Qed.
+Proof. by move=> s1 s2; move/perm_eqP=> eq12; rewrite -!count_predT eq12. Qed.
 
 Lemma uniq_leq_size : forall s1 s2 : seq T,
   uniq s1 -> {subset s1 <= s2} -> size s1 <= size s2.

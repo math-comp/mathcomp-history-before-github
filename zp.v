@@ -22,7 +22,6 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-
 Section Zp.
 
 (***********************************************************************)
@@ -82,19 +81,19 @@ Qed.
 (*                                                                     *)
 (***********************************************************************)
 
-Canonical Structure zp_group := FinGroupType unit_zp invP_zp mulP_zp.
+Canonical Structure zp_pre_group := Eval hnf in
+  mkFinPreGroupType mulP_zp unit_zp invP_zp.
+
+Canonical Structure zp_group := FinGroupType invP_zp.
 
 Open Scope group_scope.
 
 Lemma mul_zpC : forall x y : zp_group, commute x y.
-Proof.
-by rewrite /commute /mulg; case => n Hn /=; case => m Hm /=; rewrite addnC.
-Qed.
+Proof. by case=> [n ltnp] [m ltmp]; apply: val_inj; rewrite /= addnC. Qed.
 
 Lemma card_zp: #|zp_group| = p.
 Proof. exact: card_ord. Qed.
 
 End Zp.
-
 
 Unset Implicit Arguments.

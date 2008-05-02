@@ -407,7 +407,7 @@ Lemma findex0 : forall x, findex x x = 0.
 Proof. by move=> x; rewrite /findex /orbit -orderSpred /= eq_refl. Qed.
 
 Lemma fconnect_invariant : forall (T' : eqType) (k : T -> T'),
-  invariant f k =1 xpredA -> forall x y : T, fconnect f x y -> k x = k y.
+  invariant f k =1 xpredT -> forall x y : T, fconnect f x y -> k x = k y.
 Proof.
 move=> T' k Hk x y; move/iter_findex=> <-; elim: {y}(findex x y) => //= n ->.
 exact (esym (eqP (Hk _))).

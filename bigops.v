@@ -506,7 +506,7 @@ Qed.
 Lemma big_ord_widen : forall n1 n2 (F : nat -> R),
  n1 <= n2 ->
   \big[op/nil]_(i < n1) F i = \big[op/nil]_(i < n2 | i < n1) F i.
-Proof. move=> *; exact: (big_ord_widen_cond (predA)). Qed.
+Proof. move=> *; exact: (big_ord_widen_cond (predT)). Qed.
 
 Lemma big_ord_widen_leq : forall n1 n2 (P : pred I_(n1.+1)) F,
  n1 < n2 ->
@@ -543,13 +543,13 @@ Lemma big_ord_narrow : forall n1 n2 F,
   forall le_n1_n2 : n1 <= n2,
   let w := widen_ord le_n1_n2 in
   \big[op/nil]_(i < n2 | i < n1) F i = \big[op/nil]_(i < n1) F (w i).
-Proof. move=> *; exact: (big_ord_narrow_cond (predA)). Qed.
+Proof. move=> *; exact: (big_ord_narrow_cond (predT)). Qed.
 
 Lemma big_ord_narrow_leq : forall n1 n2 F,
   forall le_n1_n2 : n1 <= n2,
   let w := @widen_ord n1.+1 n2.+1 le_n1_n2 in
   \big[op/nil]_(i < n2.+1 | i <= n1) F i = \big[op/nil]_(i < n1.+1) F (w i).
-Proof. move=> *; exact: (big_ord_narrow_cond_leq (predA)). Qed.
+Proof. move=> *; exact: (big_ord_narrow_cond_leq (predT)). Qed.
 
 Lemma big_ord_recl : forall n F,
   \big[op/nil]_(i < n.+1) F i =
@@ -570,7 +570,7 @@ Qed.
 
 Lemma big_const_nat : forall m n x,
   \big[op/nil]_(m <= i < n) x = iter (n - m) (op x) nil.
-Proof. by move=> *; rewrite big_const_seq count_predA size_iota. Qed.
+Proof. by move=> *; rewrite big_const_seq count_predT size_iota. Qed.
 
 Lemma big_const_ord : forall n x,
   \big[op/nil]_(i < n) x = iter n (op x) nil.

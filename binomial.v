@@ -172,7 +172,7 @@ Theorem exp_pascal : forall a b n,
   (a + b) ^ n = \sum_(i < n.+1) (bin n i * (a ^ (n - i) * b ^ i)).
 Proof.
 move=> a b n; pose f n i := bin n i * (a ^ (n - i) * b ^ i).
-rewrite -!(big_mkord xpredA (f n)).
+rewrite -!(big_mkord xpredT (f n)).
 elim: n => [| n Hrec]; first by rewrite big_nat_recr big_geq.
 rewrite big_nat_recr /= big_nat_recl /f /= subn0 subnn 
        !expn0 binn bin0 !mul1n !muln1.

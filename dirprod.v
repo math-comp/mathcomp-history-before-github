@@ -17,8 +17,8 @@ Require Import seq.
 Require Import fintype.
 Require Import paths.
 Require Import connect.
-Require Import groups.
 Require Import finset.
+Require Import groups.
 Require Import normal.
 Require Import div.
 Require Import abelian.
@@ -28,173 +28,107 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-Section DirProd.
+Import GroupScope.
 
-Variable elt: finGroupType.
+Section ExternalDirProd.
 
-Definition prodscal := fun (x y: elt * elt) => (x.1 * y.1, x.2 * y.2).
+Variables gT1 gT2 : finGroupType.
 
-Notation Local "x '*_' y" := (prodscal x y) (at level 40).
+Definition extprod_mulg (x y : gT1 * gT2) := (x.1 * y.1, x.2 * y.2).
+Definition extprod_invg (x : gT1 * gT2) := (x.1^-1, x.2^-1).
 
-Lemma unit_prod : forall x, (1, 1) *_ x = x.
-Proof. by case=> s1 s2; rewrite /prodscal !mul1g. Qed.
+Lemma extprod_mul1g : left_unit (1, 1) extprod_mulg.
+Proof. case=> x1 x2; congr (_, _); exact: mul1g. Qed.
 
-Lemma inv_prod : forall x, (x.1 ^-1, x.2^-1) *_ x = (1,1).
-Proof. by case=> s1 s2; rewrite /prodscal !mulVg. Qed.
+Lemma extprod_mulVg : left_inverse (1, 1) extprod_invg extprod_mulg.
+Proof. by move=> x; congr (_, _); exact: mulVg. Qed.
 
-Lemma mul_prod : forall x y z,
-  x *_ (y *_ z) = x *_ y *_ z.
-Proof. by move=> x y z; rewrite /prodscal /= !mulgA. Qed.
+Lemma extprod_mulgA : associative extprod_mulg.
+Proof. by move=> x y z; congr (_, _); exact: mulgA. Qed.
 
-Canonical Structure prod_group := FinGroupType unit_prod inv_prod mul_prod.
+Canonical Structure extprod_finPreGroupType := Eval hnf in
+  mkFinPreGroupType extprod_mulgA extprod_mul1g extprod_mulVg.
 
-Definition prod_dir  (H1 H2: {set elt}) := [set x| (x.1 \in H1) && (x.2 \in H2)].
+Canonical Structure prod_group := FinGroupType extprod_mulVg.
 
-Lemma group_prod_dirP : forall (H1 H2:group _), group_set (prod_dir H1 H2).
+Lemma group_setX : forall (H1 : {group gT1}) (H2 : {group gT2}),
+  group_set (setX H1 H2).
 Proof.
-move=> H1 H2; apply/groupP; split; first by rewrite setE !group1.
-case => [x1 x2]; case=> [y1 y2]; rewrite !setE; move/andP=> /= [Hx1 Hx2].
-by move/andP=> [Hy1 Hy2]; rewrite !groupM.
+move=> H1 H2; apply/group_setP; split; first by rewrite inE !group1.
+case=> [x1 x2] [y1 y2]; rewrite !inE; case/andP=> Hx1 Hx2; case/andP=> Hy1 Hy2.
+by rewrite /= !groupM.
 Qed.
 
-Canonical Structure group_prod_dir H1 H2 := Group (group_prod_dirP H1 H2).
+Canonical Structure setX_group H1 H2 := Group (group_setX H1 H2).
 
-Definition mgmulg : elt * elt -> elt:= (fun x => x.1 * x.2).
+End ExternalDirProd.
 
-Lemma mgmulg_imset : forall (H1 H2: group elt),
-  mgmulg @: (prod_dir H1 H2) = (H1 :*: H2).
+Section InternalDirProd.
+
+Variables gT : finGroupType.
+Implicit Types G H : {group gT}.
+
+Definition mulg_pair := prod_curry (@mulg gT).
+
+Lemma mulg_setX : forall H1 H2, mulg_pair @: (setX H1 H2) = H1 * H2.
+Proof. by move=> H1 H2; rewrite -curry_imset2X. Qed.
+
+Lemma dirprod_isom : forall H1 H2 G,
+  reflect [/\ {in H1, central H2}, G = (H1 <*> H2)%G & trivg (H1 :&: H2)]
+          (morphic (setX H1 H2) mulg_pair && isom mulg_pair (setX H1 H2) G).
 Proof.
-move=> H1 H2.
-apply/setP; apply/subset_eqP; apply/andP; split; apply/subsetP=> x Hx.
-  move/imsetP: Hx=> [x0]; rewrite setE=> Hx0 ->; move/andP: Hx0=> [Hx01 Hx02].
-  by apply/smulgP; apply: (@MemProdg _ _ _ _ x0.1 x0.2).
-apply/imsetP; case/smulgP: Hx=> x1 x2 Hx1 Hx2 Heq.
-by exists (x1, x2); rewrite ?setE ?Hx1 ?Hx2.
+move=> H1 H2 G; set H := {2}(setX H1 H2); rewrite /isom mulg_setX.
+apply: (iffP and3P) => [[pM] | [cH ->{G} trH]].
+  move/eqP=> defG; move/(injmorphicP pM); rewrite /= -/H => injp.
+  have cH: {in H1, central H2}.
+    move=> x1 Hx1 /= x2 Hx2; have:= morphP pM (1, x2) (x1, 1).
+    rewrite /= !inE !group1 andbT !mul1g !mulg1; exact.
+  split=> //; first by apply: val_inj; rewrite /= central_mulgenE.
+  apply/subsetP=> x; case/setIP=> H1x H2x; apply/set1P.
+  have:= injp (x, 1) (1, x); rewrite !inE ?group1 andbT /= !gsimp. 
+  by case/(_ H1x H2x (erefl x)).
+have pM: morphic H mulg_pair.
+  apply/morphP=> [[x1 x2] [y1 y2]]; rewrite !inE.
+  case/andP=> _ Hx2; case/andP=> Hy1 _.
+  by rewrite /= mulgA -(mulgA x1) (cH _ Hy1) ?mulgA.
+split=> //=; first by rewrite central_mulgenE.
+apply/subsetP=> u; case/setD1P=> nu1 Hu.
+have npu1: mulg_pair u <> 1.
+  apply/eqP; apply: contra nu1; case: u Hu => x1 x2 Hu /=.
+  rewrite -eq_invg_mul; move/eqP=> def_x2.
+  rewrite -{x2}def_x2 inE groupV -in_setI /= in Hu *.
+  by move/(subsetP trH): Hu; move/set1P->; rewrite invg1 eqxx.
+have Du: u \in dom mulg_pair by apply/setUP; right; rewrite inE; exact/eqP.
+rewrite inE Du andbT; rewrite /H in pM; apply/(kermorphicP pM) => //.
+by rewrite inE Hu Du.
 Qed.
 
-Lemma dirprod_isom : forall (H1 H2 G:group _),
-  reflect
-  (com H1 H2  /\
-  G = {H1 :**: H2 as group _} /\ disjointg H1 H2)
-  (morphic (prod_dir H1 H2) mgmulg && isom mgmulg (prod_dir H1 H2) G).
+Lemma smulg_1set : forall H1 H2, 
+  (H1 * H2 == 1) = (H1 == 1 :> set _) && (H2 == 1 :> set _).
 Proof.
-move=> H1 H2 G; apply: (iffP idP).
-  move/andP=> [Hmorph]; move/andP=> [Heq Hinj]; split.
-    apply/comP; move=> x y Hx Hy; move/morphP: Hmorph; move/(_ (1, y) (x, 1)).
-    rewrite !setE Hx Hy !group1 andbT; move/(_ is_true_true is_true_true).
-    by rewrite /prodscal /mgmulg /= !mul1g !mulg1.
-  split.
-    move: Heq; rewrite mgmulg_imset eq_sym; move/eqP.
-    by move/group_gmul_eq=>Heq.
-  apply/subsetP=> x Hx; move/setIP : Hx=> [H1x H2x].
-  have Hinprod: (x, x^-1)\in (prod_dir H1 H2)
-    by rewrite setE /= H1x groupV H2x andTb.
-  have: (mgmulg (x, x^-1) = 1) by rewrite /mgmulg mulgV.
-  move/(kermorphicP Hmorph); move: (injm_dom Hinj); rewrite -eqsetIl setIC.
-  move/eqP=> /= ->; rewrite Hinprod; move/(_ is_true_true).
-  have:= (ker_r_dom mgmulg)=><-; move/setIP=>[Hker Hindom].
-  move: Hinprod; move/(conj Hker); move/setIP; rewrite (ker_injm Hinj).
-  by rewrite setE; move/eqP; case=>-> _; rewrite setE eqxx.
-move=>[Hcom [Hsurj Htriv]].
-have Hmorph: (morphic (prod_dir H1 H2) mgmulg).
-  apply/morphP=> x y; rewrite !setE; move/andP=> [Hx1 Hx2];move/andP=> [Hy1 Hy2].
-  rewrite {1}/mulg /prodscal /mgmulg /= -2!mulgA (mulgA y.1) (mulgA x.2).
-  by suff: (y.1 * x.2 = x.2 * y.1); [move=>->|move/comP: Hcom;apply].
-apply/andP; split; first by trivial.
-apply/andP; split.
-  move: (com_smulgC Hcom) => Hprod; rewrite mgmulg_imset Hsurj /=.
-  exact: com_gmulg_smulg Hcom.
-have Hker: ker_(prod_dir H1 H2) mgmulg = [set 1].
-  apply/setP; apply/subset_eqP; apply/andP; split; apply/subsetP;
-  last by move=> x; rewrite setE; move/eqP=>->; rewrite setE !group1.
-  case => [x1 x2]; rewrite setE; move/andP=> [Hker]; rewrite setE /=.
-  move/andP=> [Hx1 Hx2]; move/(morphicmker Hmorph): Hker.
-  rewrite setE /mgmulg /= -(mulgK x1 1) mul1g; move/mulg_injl=> Hx12.
-  move: (Hx1); rewrite -groupV -Hx12=> Hx21; move: (Hx2); move/(conj Hx21).
-  move/setIP; move/trivgP: (Htriv) =>/= ->; rewrite setE; move/eqP=> Hxx2.
-  move: Hx2; rewrite {1}Hx12 groupV; move/(conj Hx1); move/setIP.
-  move/trivgP: Htriv=>/= ->; rewrite setE; move/eqP=> Hxx1.
-  by rewrite Hxx1 Hxx2 eqxx.
-have Hinc: group_prod_dir H1 H2 \subset dom mgmulg.
-  apply/subsetP=> x Hx.
-  case e: (x == 1); first by apply: dom_k; move/eqP: e=>->; apply:group1.
-  move/idP: e; move: x Hx; case => [x1 x2]; rewrite setE /=.
-  move/andP=>[Hx1 Hx2] Heq; rewrite setE; apply/orP; right.
-  rewrite setE /mgmulg /=; apply/negP=> HH; move/eqP: HH.
-  rewrite -(mulgK x1 1) mul1g; move/mulg_injl=> Hx12; move: (Hx1).
-  rewrite -groupV -Hx12=> Hx21; move: (Hx2); move/(conj Hx21); move/setIP.
-  move/trivgP: (Htriv) =>/= ->; rewrite setE; move/eqP=> Hxx2.
-  move: Hx2; rewrite Hx12 groupV; move/(conj Hx1); move/setIP.
-  move/trivgP: Htriv=>/= ->; rewrite setE; move/eqP=> Hxx1; move: Heq.
-  by rewrite Hxx1 Hxx2 eqxx.
-by apply: (injm_ker Hinc).
+move=> H1 H2; rewrite !eqset_sub (subset_trans _ (mulG_subr _ _)) ?sub1G //=.
+by rewrite !andbT -gen_subG genM_mulgen gen_subG subUset.
 Qed.
 
-Lemma smulg_1set : forall (H1 H2: group elt), 
-  (H1 :*: H2 == [set 1]) = (H1 == [set 1] :> set _) && (H2 == [set 1]:> set _).
+Lemma dirprod_normal_isom : forall H1 H2 G,
+  reflect [/\ H1 <| G, H2 <| G, G = H1 * H2 :> set _ & trivg (H1 :&: H2)]
+          (morphic (setX H1 H2) mulg_pair && isom mulg_pair (setX H1 H2) G).
 Proof.
-move=> H1 H2; apply/eqP/andP.
-  move=> Hprod.
-  have Hsub1: ([set 1] \subset H1) by rewrite subset_set1; apply group1.
-  have Hsub2: ([set 1] \subset H2) by rewrite subset_set1; apply group1.
-  split; apply/eqP; apply/setP; apply/subset_eqP; apply/andP; split=>//.
-    by rewrite -Hprod -{1}(smulg1 H1); apply:smulgs.
-  by rewrite -Hprod -{1}(smul1g H2); apply:smulsg.
-move=> [HH1 HH2]; move/eqP: HH1=>->; move/eqP: HH2=>->.
-by rewrite smulg_set1 mulg1.
+move=> H1 H2 G.
+apply: (iffP (dirprod_isom H1 H2 G)) => [[cH -> trH] | [nH1 nH2 defG trH]].
+  rewrite /normal_subset /= {-2 4}central_mulgenE // mulG_subl // mulG_subr //.
+  rewrite //= !gen_subG !subUset normG /= andbC normG /=.
+  split=> //; apply/normalP; apply: in_central_normal => //.
+  exact: central_sym.
+suff: {in H1, central H2}.
+  by split=> //; apply: val_inj; rewrite /= central_mulgenE.
+(* This ia a classic use of commutators *)
+move=> x1 Hx1 /= x2 Hx2; apply/commgP; rewrite -in_set1.
+apply: (subsetP trH); rewrite inE {1}commgEl commgEr.
+rewrite groupMl (groupMr, groupV) //.
+case/normalsubP: nH1 => sH1 nH1; case/normalsubP: nH2 => sH2 nH2.
+rewrite -(nH1 _ (subsetP sH2 _ Hx2)) -(nH2 _ (subsetP sH1 _ Hx1)).
+by rewrite !memJ_conjg Hx1 groupV.
 Qed.
 
-Lemma dirprod_normal_isom : forall (H1 H2 G:group _),
-  reflect
-  ( (H1 <| G  /\ H2 <| G) /\
-  G = H1 :*: H2 :> set _ /\ disjointg H1 H2)
-  (morphic (prod_dir H1 H2) mgmulg && isom mgmulg (prod_dir H1 H2) G).
-Proof.
-move=> H1 H2 G; apply: (iffP (dirprod_isom H1 H2 G));
-move=> [Hcom [Hprod Htriv]]; split.
-- split; apply/subsetP; 
-  rewrite Hprod /= -(eqP (com_gmulg_smulg Hcom))=> x;
-  move/smulgP; case=> [x1 x2 Hx1 Hx2 ->]; rewrite setE sconjgM.
-    rewrite (@sconjg_com _ _ x2); first by apply/subsetP=> y; 
-    rewrite /sconjg setE groupJr ?groupV.
-    move=> y; rewrite /sconjg setE groupJr ?groupV // => Hy.
-    by apply/eqP; move/comP: Hcom; move/(_ _ _ Hy Hx2).
-  rewrite (@sconjg_com _ _ x1); 
-  last by move=> y Hy; apply/eqP; move/comP: Hcom; move/(_ _ _ Hx1 Hy).
-  by apply/subsetP=> y; rewrite /sconjg setE groupJr ?groupV.
-- split; last by trivial.
-  rewrite Hprod; move: (com_smulgC Hcom)=>/=.
-  by move/eqP; move/smulC_gmul.
-- move: Hcom => [Hnorm1 Hnorm2].
-  case e: (H1 :*: H2 == H2 :*: H1).
-    apply/comP=> h1 h2 Hh1 Hh2.
-    have inH1: h1 * h2 * (h1^-1) * (h2^-1) \in H1.
-      rewrite -!(mulgA h1); apply: groupM; first by trivial.
-      move/normalP: Hnorm1; move/(_ (h2^-1)); rewrite Hprod /=.
-      have Hp: ((h2^-1) \in H1:*:H2).
-        apply/smulgP; apply: (MemProdg (group1 H1) (groupVr Hh2)).
-        by rewrite mul1g.
-      move/(_ Hp)=><-.
-      by rewrite setE /conjg !invgK 2!mulgA mulVg mul1g -mulgA mulVg mulg1 groupV.
-    have inH2: h1 * h2 * (h1^-1) * (h2^-1) \in H2.
-      apply: groupM; last by apply: groupVr.
-      move/normalP: Hnorm2; move/(_ (h1^-1)); rewrite Hprod /=.
-      have Hp: ((h1^-1) \in H1:*:H2).
-        apply/smulgP; apply: (MemProdg (groupVr Hh1) (group1 H2)).
-        by rewrite mulg1.
-      move/(_ Hp)=><-.
-      by rewrite setE /conjg !invgK 2!mulgA mulVg mul1g -mulgA mulVg mulg1.
-    move: inH2; move/(conj inH1); move/setIP; move/trivgP: Htriv =>/= ->.
-    move/set1P; rewrite -(mulgA (h1 * h2)) -(invg_mul h1 h2) -(mulgV (h1 * h2)).
-    by move/(mulg_injl (h1 * h2)); move/invg_inj=>->.
-  have Heq: H1:*:H2 = [set 1].
-    by move: (group_gmul Hprod)=>->; move:e; unlock gmulg gmulg_def smulg=>->.
-  move/eqP: Heq; rewrite smulg_1set; move/andP=> [HH1 HH2]; apply/comP.
-  move=> x y; rewrite (eqP HH1) (eqP HH2); move/set1P=>->; move/set1P=>->.
-  by rewrite mulg1.
-- split; last by trivial.
-  by apply:set_of_group_inj; move: (group_gmul Hprod)=>/= <-.
-Qed.
-
-
-End DirProd.
+End InternalDirProd.

@@ -7,9 +7,9 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-Section Action.
+Import GroupScope.
 
-Open Scope group_scope.
+Section Action.
 
 Variable (gT : finGroupType) (sT : finType).
 
@@ -30,7 +30,7 @@ Proof. by case to. Qed.
 Lemma actK : forall x, cancel (to^~ x) (to^~ x^-1).
 Proof. by move=> x e; rewrite -actM ?groupV // mulgV act1. Qed.
 
-Lemma actKv : forall x, cancel (to^~ x^-1) (to^~ x).
+Lemma actKV : forall x, cancel (to^~ x^-1) (to^~ x).
 Proof. move=>x; rewrite -{2}(invgK x); exact:actK. Qed.
 
 Lemma inj_act : forall x, injective (to^~ x).
@@ -60,7 +60,7 @@ Definition stabilizer := [set x \in G | to a x == a].
 Lemma stabilizerP: forall x,
   reflect (x \in G /\ to a x = a) (x \in stabilizer).
 Proof.
-by move=> x; rewrite setE; apply: (iffP andP) => [] [Gx]; move/eqP.
+by move=> x; rewrite inE; apply: (iffP andP) => [] [Gx]; move/eqP.
 Qed.
 
 Definition act_fix := stabilizer == G.
@@ -70,17 +70,17 @@ Proof.
 apply: (iffP eqP). 
   by move/setP=> Gs x Gx; move/(_ x): Gs; rewrite Gx; case/stabilizerP.
 move=> Ga; apply/setP=> x; move/(_ x): Ga. 
-by rewrite setE; case: (x \in G) => //= ->; rewrite // eqxx.
+by rewrite inE; case: (x \in G) => //= ->; rewrite // eqxx.
 Qed.
 
 Lemma orbit1P : reflect ([set a] = orbit) act_fix.
 Proof.
 apply: (iffP idP).
-  move/act_fixP => Hto; apply/setP=> x; rewrite setE.
+  move/act_fixP => Hto; apply/setP=> x; rewrite inE.
   apply/eqP/orbitP; last by move=> [z Gz Gtoz]; rewrite -(Hto z Gz).
   by move=> <-; exists (1 : gT); rewrite ?group1 ?act1.
 move/setP=> Horb; apply/act_fixP=> x Gx; move/(_ (to a x)): Horb.
-by rewrite setE orbit_to //; move/eqP->.
+by rewrite inE orbit_to //; move/eqP->.
 Qed.
 
 Lemma stab1 : 1 \in stabilizer.
@@ -88,7 +88,7 @@ Proof. by apply/stabilizerP; rewrite group1 act1. Qed.
 
 Lemma group_set_stab : group_set stabilizer.
 Proof.
-apply/groupP; split; first exact: stab1.
+apply/group_setP; split; first exact: stab1.
 move=> x y; move/stabilizerP => [Hx Htox]; move/stabilizerP => [Hy Htoy].
 apply/stabilizerP; split; first by rewrite groupMl.
 by rewrite actM // Htox // Htoy. 
@@ -112,13 +112,13 @@ pose f b := [set x \in G | to a x == b].
 have injf: injective (fun u : {b | b \in orbit} => f (val u)).
   move=> [b Gb] [c Gc] /= eq_f; apply: val_inj => /=; apply: eqP.
   case/orbitP: Gb {Gc} => [x Gx Dxa]; move/setP: eq_f.
-  by move/(_ x); rewrite !setE Dxa Gx eqxx.
+  by move/(_ x); rewrite !inE Dxa Gx eqxx.
 have f_to: forall x, x \in G -> f (to a x) = stabilizer :* x. 
   move=> x Gx; apply/setP=> y; have Gx1:= groupVr Gx.
-  rewrite !setE groupMr; case Gy: (y \in G) => //=.
-  by rewrite actM (canF_eq (actKv x)).
+  rewrite mem_rcoset !inE groupMr //; case Gy: (y \in G) => //=.
+  by rewrite actM (canF_eq (actKV x)).
 rewrite /= -(card_sig (mem orbit)) -(card_image injf); apply: eq_card=> A.
-apply/imageP/imsetP=> [[[b Gb] _] | [x Gx]] -> {A}/=.
+apply/imageP/rcosetsP=> [[[b Gb] _] | [x Gx]] -> {A}/=.
   by case/orbitP: Gb => [x Gx <-]; exists x; rewrite // f_to.
 by exists (exist [eta mem orbit] _ (orbit_to Gx)); rewrite //= f_to.
 Qed.
@@ -130,7 +130,7 @@ Lemma card_orbit1 : #|orbit| = 1%N -> orbit = [set a].
 Proof.
 move=> c1; symmetry; apply/setP; apply/subset_cardP.
   by rewrite cards1 c1.
-by rewrite subset_set1 orbit_refl.
+by rewrite sub1set orbit_refl.
 Qed.
 
 Lemma trans_orbit: forall S : pred sT, 
@@ -169,12 +169,14 @@ Lemma akernelP : forall x,
   reflect (forall y, y \in S -> x \in G /\ to y x = y) (x \in akernel).
 Proof.
 move=> x; apply: (iffP (bigcapP _ _ _)) => stS y; move/stS {stS}.
-  by rewrite setE; case/andP=> Gx; move/eqP->.
-by rewrite setE => [] [-> ->] /=.
+  by rewrite inE; case/andP=> Gx; move/eqP->.
+by rewrite inE => [] [-> ->] /=.
 Qed.
 
+Canonical Structure akernel_group := Eval hnf in [group of akernel].
+
 Lemma akernel1 : 1 \in akernel.
-Proof. by apply/akernelP => y Gy; rewrite act1; split. Qed.
+Proof. exact: group1. Qed.
 
 Definition faithful := #|akernel| == 1%N.
 
@@ -237,10 +239,10 @@ move/connectP=> [p Hp <- {y}]; rewrite orbit_sym.
 elim: p x Hp => [|y p IHp] x /=; first by rewrite orbit_refl.
 move/andP=> [Hxy Hp].
 move: (IHp _ Hp) => H1. rewrite -/orbit orbit_sym in Hxy.
-rewrite orbit_sym /orbit in H1; unlock imset in H1; rewrite setE in H1. 
-unlock orbit imset; rewrite setE -(f_diinv H1).
-unlock orbit imset in Hxy; rewrite setE in Hxy.
-rewrite -(f_diinv Hxy) -{4}(act1 to y) -(mulgV (diinv H1)).
+rewrite orbit_sym /orbit in H1; unlock imset in H1; rewrite inE in H1. 
+unlock orbit imset; rewrite inE -(f_diinv H1).
+unlock orbit imset in Hxy; rewrite inE in Hxy.
+rewrite -(f_diinv Hxy) -{1}(act1 to y) -(mulgV (diinv H1)).
 set k := diinv H1.
 set k1 := diinv Hxy.
 have F1: k \in G by apply (a_diinv H1).
@@ -286,41 +288,14 @@ Qed.
 
 End ModP.
 
-(***********************************************************************)
-(***********************************************************************)
-(*                                                                     *)
-(*  Definition of the left translation as an action on cosets          *)
-(*                                                                     *)
-(***********************************************************************)
-(***********************************************************************)
+(*  Definition of the right translation as an action on cosets.        *)
 
-Section RightTrans.
-
-Open Scope group_scope.
-
-Variable (G : finGroupType).
-
-Lemma rtrans_1: forall s : set G, s :* 1 = s.
-Proof. exact: rcoset1. Qed.
-
-Lemma rcoset_morph: forall (s : set G) x y,
-  s :* (x * y) = s :* x :* y.
-Proof.
-move=> s x y; rewrite !rcoset_smul -smulgA; congr smulg. 
-apply/setP=> a; rewrite -rcoset_smul setE.
-apply/eqP/rcosetP; first by move=> Da; exists x; rewrite ?set11 ?Da.
-by move=> [z]; rewrite setE; move/eqP => ->.
-Qed.
-
-Definition trans_action := Action rtrans_1 rcoset_morph.
-
-End RightTrans.
+Definition trans_action G :=
+  @Action G _ (fun A x => A :* x) (@rcoset1 G) (@rcosetM G).
 
 Section Bij.
 
-Open Scope group_scope.
-
-Variable (G : finGroupType) (H K: group G).
+Variable (G : finGroupType) (H K : {group G}).
 
 Hypothesis subset_HK : H \subset K.
 
@@ -347,8 +322,8 @@ apply/subsetP => y Hy.
 move: (H1 _ Hy) => /= H2.
 have F1: x \in H :* x := rcoset_refl _ _.
 rewrite -H2 in F1; case/rcosetP: F1 => x1.
-case/rcosetP => y1 Hy1 -> Hxy.
-by rewrite setE /conjg {2}Hxy -groupV; gsimpl.
+case/rcosetP => y1 Hy1 ->; move/(canLR (mulKg _)) <-.
+by rewrite (conjgC y1) invMg mulgKV groupV memJ_conjg.
 Qed.
 
 End LBij.
@@ -357,25 +332,23 @@ Lemma act_fix_norm : forall x,
   act_fix (trans_action G) H (H :* x) = (x \in normaliser H).
 Proof.
 move=> x; apply/act_fixP/idP.
-   rewrite -groupV setE => dHx; apply/subsetP=> y. 
-   rewrite setE /conjg; gsimpl => Hxy. 
+   rewrite -groupV inE => dHx; apply/subsetP=> y. 
+   rewrite mem_conjgV => Hxy. 
    rewrite -(actK (trans_action G) x H) /= -(dHx _ Hxy) /=. 
-   by rewrite -!rcoset_morph /conjg setE; gsimpl; exact group1.
-move=> Nx y Hy => /=; rewrite (norm_rlcoset Nx).
-by apply/setP=> a; rewrite !setE mulgA groupMr ?groupV.
+   by rewrite -!rcosetM mulgA -conjgC mulgK rcoset_refl.
+by move=> Nx y Hy; rewrite /= (norm_rlcoset Nx) -mulgA rcoset_id.
 Qed.
 
-Lemma rtrans_fix_norm : rtrans_fix H = (rcoset H) @: (normaliser H :&: K).
+Lemma rtrans_fix_norm : rtrans_fix H = rcosets H N_(K)(H).
 Proof.
-apply/setP=> Hx; apply/setIP/imsetP.
-  case; rewrite setE /rcosets;move/imsetP=> [x Kx ->] af.
-  by exists x => //; rewrite act_fix_norm in af; rewrite setE Kx andbC /=.
-case=> x; case/setIP=> Nx Kx dHx; split; last by rewrite setE dHx act_fix_norm.
-by apply/imsetP; exists x.
+apply/setP=> Hx; apply/setIP/rcosetsP=> [[]|[x]].
+  case/rcosetsP=> x Kx ->{Hx}; rewrite inE act_fix_norm => Nx.
+  by exists x; rewrite // inE Kx.
+case/setIP=> Nx Kx ->; split; first by apply/rcosetsP; exists x.
+by rewrite inE act_fix_norm.
 Qed.
 
 End Bij.
-
 
 
 (**********************************************************************)
@@ -384,16 +357,14 @@ End Bij.
 
 Section GroupAction.
 
-Variable (elt : finGroupType).
+Variable gT : finGroupType.
+Implicit Type P : {group gT}.
 
-Definition gconj (P : group elt) x := {P :^x as group elt}.
+Lemma gconj1 : forall P, (P :^ 1)%G = P.
+Proof. move=> P; apply: group_inj; exact: conjsg1. Qed.
 
-Lemma gconj1 : forall P, gconj P 1 = P.
-Proof. move=> P; apply: set_of_group_inj; exact: sconj1g. Qed.
-
-Lemma gconjM : forall P x y,
-  gconj P (x * y) = gconj (gconj P x) y.
-Proof. move=> P x y; apply: set_of_group_inj; exact: sconjgM. Qed.
+Lemma gconjM : forall P x y, (P :^ (x * y) = (P :^ x) :^ y)%G.
+Proof. move=> P x y; apply: group_inj; exact: conjsgM. Qed.
 
 Definition gconj_action := Action gconj1 gconjM.
 
@@ -409,8 +380,6 @@ End GroupAction.
 
 Section PermAction.
 
-Open Scope group_scope.
-
 Variable sT : finType.
 Notation gT := {perm sT}.
 
@@ -425,13 +394,16 @@ Proof. move=> *; exact: permM. Qed.
 
 Canonical Structure perm_action := Action perm_act1 perm_actM.
 
-Lemma perm_act1P : forall x, reflect (forall a, perm_to a x = a)  (x == 1).
+Lemma perm_act1P : forall x, reflect (forall a, perm_to a x = a) (x == 1).
 Proof.
 move=> x; apply: (iffP eqP) => [-> a | idperm]; first exact: act1.
 by apply/permP=> a; rewrite [x a]idperm perm1.
 Qed.
 
 End PermAction.
+
+Implicit Arguments perm_act1P [sT x].
+Prenex Implicits perm_act1P.
 
 Section PermFact.
 
@@ -536,7 +508,7 @@ apply: (iffP primitiveP) => [prim Y sYS impY| prim P Prefl Pinv].
   move: Sb; rewrite -(Gtrans Sa); case/imsetP=> y Gy ->{b} Yayx.
   rewrite -[_ \in Y](impre Y).
   by rewrite [_ a](impY _ (y * x)^-1 (to a y^-1)) /= ?(groupM, groupV) //;
-     rewrite impre ?actM ?actKv.
+     rewrite impre ?actM ?actKV.
 case: (pickP S) => [a Sa | S0]; last by left=> x y; rewrite [_ \in S]S0.
 pose Y := predI S (P a); case: {prim}(prim Y) => [|x y b Gx Gy | Y1 | YS].
 - by apply/subsetP=> b; case/andP.
@@ -548,29 +520,29 @@ pose Y := predI S (P a); case: {prim}(prim Y) => [|x y b Gx Gy | Y1 | YS].
   case/andP: Yxb => Sxb Paxb; case/andP: Yyb => Syb Payb.
   rewrite Sxc -[a](act1 to); move/Pinv: Paxb ->; rewrite //= act1.
   have Gyx: y * x^-1 \in G by rewrite groupM ?groupV.
-  rewrite -[b](actKv to y) -actM; move/Pinv: Payb => <- //.
-  by move/Pinv: Payc => -> //; rewrite actM actKv Prefl.
+  rewrite -[b](actKV to y) -actM; move/Pinv: Payb => <- //.
+  by move/Pinv: Payc => -> //; rewrite actM actKV Prefl.
 - left=> b c Sb; rewrite -(Gtrans Sa); case/imsetP=> x Gx ->{c} Pbax.
   rewrite (cardD1 a) inE /= Sa Prefl // ltnS leqn0 in Y1.
   move/pred0P: Y1; move/(_ (to b x^-1)); rewrite /= inE /= andbC.
   rewrite [S _]trans_closed ?groupV // Sb -{1}[a](actK to x) /=.
   move/Pinv: Pbax <-; rewrite ?(Prefl, trans_closed, groupV) //.
-  by move/eqP <-; rewrite actKv.
+  by move/eqP <-; rewrite actKV.
 right=> x y; rewrite -2!YS; case/andP=> Sx Pax; case/andP=> Sy.
 by rewrite -[a](act1 to); move/Pinv: Pax ->; rewrite ?act1.
 Qed.
 
-Lemma prim_trans_norm : forall H : group gT, primitive -> 
-  H \subset G -> H <| G -> H \subset akernel to G S \/ transitive to H S.
+Lemma prim_trans_norm : forall H : {group gT},
+  primitive -> H <| G -> H \subset akernel to G S \/ transitive to H S.
 Proof.
-move=> H prim sHG nHG; pose P a := [image to a of H]; move/primitiveP: prim.
-case/(_ P) => [a Sa | a b x Sa _ Gx | P1 | PS].
+move=> H prim; case/normalsubP=> sHG nHG; pose P a := [image to a of H].
+case: (primitiveP prim P) => [a Sa | a b x Sa _ Gx | P1 | PS].
 - by apply/imageP; exists (1 : gT); rewrite /= ?act1.
 - case/imageP=> y Hy ->{b} c; apply/imageP/imageP; case=> z Hz ->{c}.
     exists (y^-1 ^ x * z); last by rewrite !(actM, actK).
-    by rewrite /= groupMl // -sconjgE norm_sconjg groupV // (subsetP nHG).
+    by rewrite /= groupMl // -mem_conjgV nHG groupV.
   exists (y ^ x * z); last by rewrite !(actM, actK).
-  by rewrite /= groupMl // -sconjgE norm_sconjg ?(subsetP nHG, groupV).
+  by rewrite /= groupMl // -mem_conjgV nHG ?groupV.
 - left; apply/subsetP => x Hx; have Gx: x \in G by apply: (subsetP sHG).
   apply/akernelP => a Sa; split=> //; apply: P1; rewrite ?trans_closed //.
   by apply/imageP; exists x^-1; rewrite /= (groupV, actK).
@@ -629,7 +601,7 @@ Section NTransitveProp.
 
 Variable (gT : finGroupType) (sT : finType).
 Variable to : action gT sT.
-Variable G : group gT.
+Variable G : {group gT}.
 Variable S : pred sT.
 
 Lemma card_uniq_tuple m (t : tuple m sT) : uniq t -> #|t| = m.
@@ -788,9 +760,9 @@ have Hd1: wdisjointn (mem G) (fun z => image (to^~ z) Y1).
   by rewrite !Fi; apply: (Hd _ _ x1); try apply: groupM.
 pose H := [set a \in G | to x a \in Y1].
 have F2: group_set H.
-  apply/andP; split; first by rewrite setE /= act1 group1.
-  apply/subsetP => z; case/smulgP => g1 g2.
-  rewrite !setE /=; case/andP => Hg1 Yg1; case/andP => Hg2 Yg2 ->.
+  apply/andP; split; first by rewrite inE /= act1 group1.
+  apply/subsetP => z; case/mulsgP => g1 g2.
+  rewrite !inE /=; case/andP => Hg1 Yg1; case/andP => Hg2 Yg2 ->.
   apply/andP; split; first by apply: groupM.
   pose YY := fun z => image (to^~ z) Y1.
   have F2: YY 1 =i Y1.
@@ -807,12 +779,12 @@ have F2: group_set H.
   by rewrite /= -F2 -F4; apply/imageP; exists x.
 case (Hst (Group F2)) => // [|||F3].
 - apply/subsetP => g1; case/stabilizerP => Hg1 Heq.
-  by rewrite setE /= Hg1 /= Heq.
-- by apply/subsetP=> g1 /=; rewrite setE; case/andP.
+  by rewrite inE /= Hg1 /= Heq.
+- by apply/subsetP=> g1 /=; rewrite inE; case/andP.
 - have:= Hx; rewrite -[S x](Ht _ Sy1); case/imsetP=> g1 Hg1 He1.
   case=> HH; case/negP: Hy1; apply/eqP.
   have: g1^-1 * g \in H.
-    rewrite setE /= groupM //; last by rewrite groupV.
+    rewrite inE /= groupM //; last by rewrite groupV.
     rewrite He1 -!actM mulgA mulgV mul1g.
     by apply/imageP; exists y1.
   rewrite -HH; case/stabilizerP=> _ HH1.
@@ -827,7 +799,7 @@ have ->: Y =i YY g^-1.
 have:= Hx1; rewrite -(Ht _ Hx); case/imsetP => g1 Hg1 He1.
 apply/imageP; exists (to x (g1 * g)).
   have: g1 * g \in H by rewrite [H]F3 groupM.
-  by rewrite setE; case/andP.
+  by rewrite inE; case/andP.
 by rewrite -!actM -!mulgA mulgV mulg1.
 Qed.
 
@@ -888,13 +860,13 @@ by rewrite !actM actK /= (n_act_add _ _ t) toxa.
 Qed.
 
 (* => of 5.20 Aschbacher *)
-Theorem subgroup_transitive : forall (H : group gT) x,
+Theorem subgroup_transitive : forall (H : {group gT}) x,
      x \in S -> H \subset G -> transitive to G S -> transitive to H S
-  -> stabilizer to G x :*: H = G.
+  -> stabilizer to G x * H = G.
 Proof.
 move=> H x Hx H1 H2 H3.
 set G_x := stabilizer to G x.
-apply/setP => z; apply/smulgP/idP => [[hx1 k1 Hx1 Hk1 ->] | Hz].
+apply/setP => z; apply/mulsgP/idP => [[hx1 k1 Hx1 Hk1 ->] | Hz].
   apply: groupM; last by apply: (subsetP H1).
   by apply (subsetP (subset_stab to G x)).
 pose y := to x z.
@@ -906,9 +878,9 @@ by rewrite actM -/y Hk1 -actM mulgV act1.
 Qed.
   
 (* <= of 5.20 Aschbacher *)
-Theorem subgroup_transitiveI : forall (H : group gT) x,
+Theorem subgroup_transitiveI : forall (H : {group gT}) x,
      x \in S -> H \subset G -> transitive to G S
-  -> stabilizer to G x :*: H = G
+  -> stabilizer to G x * H = G
   -> transitive to H S.
 Proof.
 move=> H x Hx Hkh Ht Heq x1 Hx1 y1.
@@ -916,9 +888,9 @@ apply/imsetP/idP => [[g1 Hg1 ->] | Hy1].
   have F: g1 \in G by apply: (subsetP Hkh).
   by rewrite -(Ht _ Hx1); apply/imsetP; exists g1.
 have:= Hx1; rewrite -(Ht _ Hx); case/imsetP => [g1 Hg1 Hgg1].
-have:= Hg1; rewrite <- Heq; case/smulgP => h1 k1 Hh1 Hk1 Hhk1.
+have:= Hg1; rewrite <- Heq; case/mulsgP => h1 k1 Hh1 Hk1 Hhk1.
 have:= Hy1; rewrite -(Ht _ Hx); case/imsetP => [g2 Hg2 Hgg2].
-have:= Hg2; rewrite <- Heq; case/smulgP => h2 k2 Hh2 Hk2 Hhk2.
+have:= Hg2; rewrite <- Heq; case/mulsgP => h2 k2 Hh2 Hk2 Hhk2.
 exists (k1^-1 * k2); first by rewrite groupM // groupV.
 rewrite Hgg1 Hhk1 -actM; gsimpl; rewrite Hgg2 Hhk2 !actM.
 by case/stabilizerP: Hh1 => _ ->; case/stabilizerP: Hh2 => _ ->.

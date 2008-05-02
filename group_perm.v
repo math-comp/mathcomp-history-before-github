@@ -12,6 +12,7 @@ Require Import paths.
 Require Import connect.
 Require Import div.
 Require Import groups.
+Import GroupScope.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -62,7 +63,7 @@ Implicit Arguments perm_inj [].
 
 Hint Resolve perm_inj.
 
-Definition perm_unit : perm := perm_of (@inj_id T).
+Definition perm_unit := perm_of (@inj_id T).
 
 Definition perm_inv u := perm_of (finv_inj (perm_inj u)).
 
@@ -77,11 +78,14 @@ Proof. by move=> u; apply/permP => x; rewrite !permE /= permE f_finv. Qed.
 Lemma perm_mulP : associative perm_mul.
 Proof. by move=> u v w; apply/permP => x; do !rewrite permE /=. Qed.
 
-Canonical Structure perm_finGroupType :=
-  FinGroupType perm_unitP perm_invP perm_mulP.
-
+Canonical Structure perm_for_finPreGroupType := Eval hnf in
+  mkFinPreGroupType perm_mulP perm_unitP perm_invP.
+Canonical Structure perm_finPreGroupType := Eval hnf in
+  @mkFinPreGroupType perm_finType _ _ _ perm_mulP perm_unitP perm_invP.
 Canonical Structure perm_for_finGroupType :=
-  Eval hnf in [finGroupType of perm_for_finType].
+  FinGroupType perm_invP.
+Canonical Structure perm_finGroupType :=
+  @FinGroupType perm_finPreGroupType perm_invP.
 
 Lemma perm1 : forall x, (1 : pT) x = x.
 Proof. by move=> x; rewrite permE. Qed.
@@ -92,7 +96,7 @@ Proof. by move=> *; rewrite permE. Qed.
 Lemma permK : forall s : pT, cancel s s^-1.
 Proof. by move=> s x; rewrite -permM mulgV perm1. Qed. 
 
-Lemma permKv : forall s : pT, cancel s^-1 s.
+Lemma permKV : forall s : pT, cancel s^-1 s.
 Proof. by move=> s; have:= permK s^-1; rewrite invgK. Qed.
 
 Lemma permJ : forall (s t: pT) x, (s ^ t) (t x) = t (s x).
@@ -157,18 +161,18 @@ have h_inj: injective h.
 rewrite -(card_imset _ h_inj); apply: eq_card=> [[/= y v]].
 apply/imsetP/andP=> /= [[u uA [-> -> {y v}]]|[Ay vA']].
   split; first by rewrite perm_closed.
-  apply/subsetP=> z; rewrite inE /= permM permE /transpose.
-  rewrite (inj_eq (perm_inj u)) /= setE (eq_sym z).
+  apply/subsetP=> z; rewrite 2!inE /= permM permE /transpose.
+  rewrite (inj_eq (perm_inj u)) /= (eq_sym z).
   case: (x =P z) => [<-|nxz nhuz /=]; first by case/eqP; case: eqP.
   by apply: (subsetP uA); apply: contra nhuz; move/eqP->; case: (x =P z).
 pose u : pT := v * tperm x y.
 have def_y: y = u x.
-  by rewrite permM permE /transpose (out_perm vA') ?setE eqxx.
+  by rewrite permM permE /transpose (out_perm vA') ?inE eqxx.
 exists u; last by rewrite /h -def_y -mulgA square_tperm mulg1.
 apply/subsetP=> z; rewrite inE /= permM permE.
 rewrite (inv_eq (transposeK x y)) /transpose.
 do 2!case: (_ =P z) => [<- //| _].
-by move/(subsetP vA'); rewrite setE; case/andP.
+by move/(subsetP vA'); rewrite inE; case/andP.
 Qed.
 
 End PermGroup.

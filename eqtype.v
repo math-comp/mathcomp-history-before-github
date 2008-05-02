@@ -45,14 +45,16 @@ Implicit Arguments eqP [T x y].
 
 Notation "x == y" := (eqd x y)
   (at level 70, no associativity) : eq_scope.
-Notation "x == y :> d" := ((x : d) == (y : d))
+Notation "x == y :> T" := ((x : T) == (y : T))
   (at level 70, y at next level) : eq_scope.
 Notation "x != y" := (~~ (x == y))
   (at level 70, no associativity) : eq_scope.
-Notation "x != y :> d" := (~~ (x == y :> d))
+Notation "x != y :> T" := (~~ (x == y :> T))
   (at level 70, y at next level) : eq_scope.
 Notation "x =P y" := (eqP : reflect (x = y) (x == y))
   (at level 70, no associativity) : eq_scope.
+Notation "x =P y :> T" := (eqP : reflect (x = y :> T) (x == y :> T))
+  (at level 70, y at next level, no associativity) : eq_scope.
 
 Prenex Implicits eqd eqP.
 
@@ -79,7 +81,7 @@ Proof. move=> *; exact: eq_irrelevance. Qed.
 
 (* Identify an abstract eqType with its universally true predicate. *)
 
-Coercion eqTypeA (T : eqType) : simpl_pred T := predA.
+Coercion eqTypeA (T : eqType) : simpl_pred T := predT.
 
 (* Comparison for booleans. *)
 
@@ -376,12 +378,12 @@ Notation "[ 'insub' x 'in' sT ]" := (insub x : option sT)
   (at level 0, format "[ 'insub'  x  'in'  sT ]") : form_scope.
 
 Definition NewType T nT proj Con rec :=
-  @SubType T xpredA nT proj (fun x _ => Con x)
+  @SubType T xpredT nT proj (fun x _ => Con x)
    (fun P IH => rec P (fun x => IH x (erefl true))).
 
 Implicit Arguments NewType [T nT Con].
 
-Definition innew T nT x := @Sub T predA nT x (erefl true).
+Definition innew T nT x := @Sub T predT nT x (erefl true).
 
 Implicit Arguments innew [T nT].
 Prenex Implicits innew.
@@ -392,7 +394,9 @@ Proof. by move=> T nT u; apply: val_inj; exact: SubK. Qed.
 Notation "[ 'innew' x 'in' nT ]" := (innew x : nT)
   (at level 0, format "[ 'innew'  x  'in'  nT ]") : form_scope.
 
-Notation sval := proj1_sig.
+(* Prenex Implicits and renaming. *)
+Notation sval := (@proj1_sig _ _).
+Notation "@ 'sval'" := (@proj1_sig) (at level 10, format "@ 'sval'").
 
 Section SigProj.
 
@@ -408,13 +412,12 @@ Lemma s2valP' : forall u, Q (s2val u). Proof. by case. Qed.
 
 End SigProj.
 
+Prenex Implicits svalP s2val s2valP s2valP'.
+
 Canonical Structure sig_subType T (p : pred T) :=
   SubType (@sval T [eta p]) (@sig_rect _ _) vrefl.
 
 Notation insig := (fun p => @insub _ p (sig_subType p)).
-
-Notation "[ 'insub' x | p ]" := (@insub _ p (sig_subType _) x)
-  (at level 0, format "[ 'insub'  x  |  p ]") : form_scope.
 
 (* This should be a rel definition, but it seems this causes divergence  *)
 (* of the simpl tactic on expressions involving == on 4+ nested subTypes *)

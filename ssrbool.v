@@ -641,7 +641,7 @@ Definition rel T := T -> pred T.
 Identity Coercion fun_of_rel : rel >-> Funclass.
 
 Notation xpred0 := (fun _ => false).
-Notation xpredA := (fun _ => true).
+Notation xpredT := (fun _ => true).
 Notation xpredI := (fun (p1 p2 : pred _) x => p1 x && p2 x).
 Notation xpredU := (fun (p1 p2 : pred _) x => p1 x || p2 x).
 Notation xpredC := (fun (p : pred _) x => ~~ p x).
@@ -664,7 +664,7 @@ Definition SimplPred (p : pred T) : simpl_pred := SimplFun p.
 Coercion pred_of_simpl (p : simpl_pred) : pred T := p : T -> bool.
 
 Definition pred0 := SimplPred xpred0.
-Definition predA := SimplPred xpredA.
+Definition predT := SimplPred xpredT.
 Definition predI p1 p2 := SimplPred (xpredI p1 p2).
 Definition predU p1 p2 := SimplPred (xpredU p1 p2).
 Definition predC p := SimplPred (xpredC p).
@@ -708,8 +708,8 @@ Canonical Structure memPredType := Eval hnf in mkPredType pred_of_mem.
 End Predicates.
 
 Implicit Arguments pred0 [T].
-Implicit Arguments predA [T].
-Prenex Implicits pred0 predA predI predU predC predD preim relU.
+Implicit Arguments predT [T].
+Prenex Implicits pred0 predT predI predU predC predD preim relU.
 
 Notation "[ 'pred' : T | E ]" := (SimplPred (fun _ : T => E))
   (at level 0, format "[ 'pred' :  T  |  E ]") : fun_scope.
@@ -742,7 +742,7 @@ Coercion sort_of_simpl_pred T (p : simpl_pred T) : pred_class := p : pred T.
 (* we redefine bool, true, false and all bool ops.                         *)
 Definition predArgType := Type.
 Identity Coercion sort_of_predArgType : predArgType >-> Sortclass.
-Coercion typeA (T : predArgType) : simpl_pred T := predA.
+Coercion pred_of_type (T : predArgType) : simpl_pred T := predT.
 Definition boolA : predArgType := bool.
 
 (* These must be defined outside a Section because "cooking" kills the *)

@@ -89,7 +89,7 @@ Section EnumPick.
 Variable p : pred T.
 
 Lemma enumE : enum T = FinType.enum T.
-Proof. exact: filter_predA. Qed.
+Proof. exact: filter_predT. Qed.
 
 Lemma enum_mem : enum (mem p) = enum p.
 Proof. by []. Qed.
@@ -151,7 +151,7 @@ Proof. move=> A1 A2 _ <-; exact: eq_card. Qed.
 
 Lemma card0 : #|@pred0 T| = 0. Proof. by rewrite cardE enum0. Qed.
 
-Lemma cardA : #|T| = size (enum T). Proof. by rewrite cardE enumE. Qed.
+Lemma cardT : #|T| = size (enum T). Proof. by rewrite cardE enumE. Qed.
 
 Lemma card1 : forall x : T, #|pred1 x| = 1.
 Proof. by move=> x; rewrite cardE enum1. Qed.
@@ -159,8 +159,8 @@ Proof. by move=> x; rewrite cardE enum1. Qed.
 Lemma eq_card0 : forall A : pred T, A =i pred0 -> #|A| = 0.
 Proof. by have:= eq_card_trans card0. Qed.
 
-Lemma eq_cardA : forall A : pred T, A =i predA -> #|A| = size (enum T).
-Proof. by have:= eq_card_trans cardA. Qed.
+Lemma eq_cardT : forall A : pred T, A =i predT -> #|A| = size (enum T).
+Proof. by have:= eq_card_trans cardT. Qed.
 
 Lemma eq_card1 : forall x (A : pred T), A =i pred1 x -> #|A| = 1.
 Proof. by move=> x; have:= eq_card_trans (card1 x). Qed.
@@ -269,10 +269,10 @@ unlock subset => B1 B2 eqB12 [A]; congr (_ == 0); apply: eq_card => x.
 by rewrite !inE /= eqB12.
 Qed.
 
-Lemma subset_setA : forall A : pred T, A \subset T.
+Lemma subset_predT : forall A : pred T, A \subset T.
 Proof. by move=> A; apply/subsetP. Qed.
 
-Lemma subsetA : forall A : pred T , T \subset A -> forall x, x \in A.
+Lemma predT_subset : forall A : pred T , T \subset A -> forall x, x \in A.
 Proof. move=> A; move/subsetP=> allA x; exact: allA. Qed.
 
 Lemma eq_subset_refl : forall A B : pred T, A =i B -> A \subset B.
@@ -629,7 +629,7 @@ move=> f; elim=> [|x s Hrec] //=; case: pickP => [y Dy|Hs'] Hs.
 by case/pred0P: (Hs x (predU1l _ (erefl x))).
 Qed.
 
-Lemma image_eq : forall (a b : pred T) (g f : T -> T'),
+Lemma eq_image : forall (a b : pred T) (g f : T -> T'),
   a =1 b -> g =1 f -> image g a =1 image f b.
 Proof.
 move => a b g f Ha Hg x; apply/imageP/imageP; move=> [y Hin Heq].
@@ -1018,9 +1018,9 @@ Definition sub_enumP := exist _ (s2val sub_enum) (s2valP sub_enum).
 Canonical Structure sub_finType := FinType sub_enumP.
 
 Lemma card_sub : #|(sT : Type) : predArgType| = #|a|.
-Proof. by rewrite cardA enumE /= (s2valP' sub_enum). Qed.
+Proof. by rewrite cardT enumE /= (s2valP' sub_enum). Qed.
 
-Lemma eq_card_sub : forall b : pred sT, b =i predA -> #|b| = #|a|.
+Lemma eq_card_sub : forall b : pred sT, b =i predT -> #|b| = #|a|.
 Proof. by have:= eq_card_trans card_sub. Qed.
 
 End SubFinType.
@@ -1069,7 +1069,7 @@ Lemma card_prod : #|T1 * T2 : predArgType|%type = #|T1| * #|T2|.
 Proof. by rewrite -cardX; apply: eq_card; case. Qed.
 
 Lemma eq_card_prod : forall b : pred (T1 * T2),
-   b =i predA -> #|b| = #|T1| * #|T2|.
+   b =i predT -> #|b| = #|T1| * #|T2|.
 Proof. by have:= eq_card_trans card_prod. Qed.
 
 End ProdFinType.
@@ -1103,7 +1103,7 @@ Qed.
 Canonical Structure sum_finType := FinTypeBy (s2valP sum_enumP).
 
 Lemma card_sum : #|eq_sum [eta T_] : predArgType| = sum_of_cards.
-Proof. by rewrite cardA enumE /= (s2valP' sum_enumP). Qed.
+Proof. by rewrite cardT enumE /= (s2valP' sum_enumP). Qed.
 
 Definition eq_card_sum B := @eq_card_trans _ _ B _ card_sum.
 
@@ -1114,29 +1114,29 @@ Section BijectionCard.
 Lemma can_card_leq :  forall (T T' : finType) (f : T -> T') (g : T' -> T),
   cancel f g -> #|T| <= #|T'|.
 Proof.
-move=> T T' f g Hfg; rewrite (cardA T') -(size_maps g).
+move=> T T' f g Hfg; rewrite (cardT T') -(size_maps g).
 apply: (leq_trans (subset_leq_card _) (card_size _)).
 by apply/subsetP => x _; apply/mapsP; exists (f x); rewrite ?mem_enum.
 Qed.
 
-Lemma bij_eq_card_predA : forall T T' : finType,
+Lemma bij_eq_card_predT : forall T T' : finType,
   (exists f : T -> T', bijective f) -> #|T| = #|T'|.
 Proof.
 move=> T T' [f [g Hfg Hgf]]; apply: eqP.
 by rewrite eqn_leq (can_card_leq Hfg) (can_card_leq Hgf).
 Qed.
 
-Lemma eq_card_predA : forall T T' : finType,
+Lemma eq_card_predT : forall T T' : finType,
   T = T' :> Type -> #|T| = #|T'|.
 Proof.
 move=> T [[T' eqd' eqd'P] [ed' Hed']] /= Hdd'.
 rewrite -{T'}Hdd' in eqd' eqd'P ed' Hed' *.
-by apply: bij_eq_card_predA; do 2 exists (@id T).
+by apply: bij_eq_card_predT; do 2 exists (@id T).
 Qed.
 
 Lemma bij_eq_card : forall (T T' : finType) (A : pred T) (A' : pred T'),
  (exists f : {x | x \in A} -> {y | y \in A'}, bijective f) -> #|A| = #|A'|.
-Proof. by move=> T T' A A'; move/bij_eq_card_predA; rewrite !card_sub. Qed.
+Proof. by move=> T T' A A'; move/bij_eq_card_predT; rewrite !card_sub. Qed.
 
 Definition assoc_finType (T1 T2 : finType) (eqcT12 : #|T1| = #|T2|) x1 :=
   enum_val (cast_ord eqcT12 (enum_rank x1)).
@@ -1148,7 +1148,7 @@ rewrite /assoc_finType => T1 T2 Ed12 Ed21 x.
 by rewrite enum_valK (enum_val_sub x) sub_enum_rank.
 Qed.
 
-Lemma eq_card_predA_bij : forall T1 T2 : finType,
+Lemma eq_card_predT_bij : forall T1 T2 : finType,
   #|T1| = #|T2| -> {f : T1 -> T2 &  {g | cancel f g &  cancel g f}}.
 Proof.
 move=> T1 T2 E12; exists (assoc_finType E12).
@@ -1159,7 +1159,7 @@ Lemma eq_card_bij : forall (T T' : finType) (A : pred T) (A' : pred T'),
    #|A| = #|A'| ->
  {f : {x | x \in A} -> {y | y \in A'} & {g | cancel f g &  cancel g f}}.
 Proof.
-move=> T T' A A'; rewrite -card_sig -(card_sig A'); exact: eq_card_predA_bij.
+move=> T T' A A'; rewrite -card_sig -(card_sig A'); exact: eq_card_predT_bij.
 Qed.
 
 End BijectionCard.

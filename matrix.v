@@ -1,6 +1,11 @@
+(***********************************************************************)
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
+(*                                                                     *)
+(***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype connect finfun.
-Require Import div groups group_perm zp signperm ssralg bigops finset. 
-(* Require Import Setoid. *)
+Require Import div ssralg bigops finset groups group_perm zp signperm.
+
+Import GroupScope.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -166,7 +171,7 @@ Notation Local lcut := mx_lcut.
 Notation Local rcut := mx_rcut.
 Notation Local paste := mx_paste.
 
-Lemma perm_mx1 : forall n, \P 1%G = \1_(n).
+Lemma perm_mx1 : forall n, \P 1%g = \1_(n).
 Proof. by move=> n; apply/matrixP=> i j; rewrite !mxK perm1. Qed.
 
 Lemma trmxK : forall m n, cancel (@trmx m n) (@trmx n m).
@@ -177,7 +182,7 @@ Proof. move=> m n; exact: can_inj (@trmxK m n). Qed.
 
 Lemma trmx_perm : forall n (s : S_(n)), \^t (\P s) = \P (s^-1).
 Proof. 
-by move=> n s; apply/matrixP=> i j; rewrite !mxK eq_sym (canF_eq (permKv s)).
+by move=> n s; apply/matrixP=> i j; rewrite !mxK eq_sym (canF_eq (permKV s)).
 Qed.
 
 Lemma trmxZ : forall n x, \^t (\Z_(n) x) = \Z x.
@@ -390,7 +395,7 @@ Canonical Structure matrix_ring : Ring.basic :=
 
 End MatrixRing.
 
-Lemma perm_mxM : forall n (s t : S_(n)), \P (s * t)%G = \P s *m \P t.
+Lemma perm_mxM : forall n (s t : S_(n)), \P (s * t)%g = \P s *m \P t.
 Proof.
 move=> n s t; apply/matrixP=> i j; rewrite !mxK (bigD1 (s i)) //= !mxK eqxx.
 rewrite simp -permM big1 /= => [|k ne_k_si]; first by rewrite addrC simp.
@@ -431,7 +436,7 @@ move=> n A B C i0 b c ABC; move/matrixP=> BA; move/matrixP=> CA.
 move/mx_eq_rem_row: BA => BA; move/mx_eq_rem_row: CA => CA.
 rewrite !big_distrr -big_split; apply: eq_bigr => s _ /=.
 rewrite -!(mulrCA (_ ^+s)) -mulr_addr; congr (_ * _).
-rewrite !(bigD1 i0 (_ : predA i0)) //=.
+rewrite !(bigD1 i0 (_ : predT i0)) //=.
 move/matrixP: ABC => ABC; rewrite (mx_eq_row ABC) !mxK mulr_addl !mulrA.
 by congr (_ * _ + _ * _); apply: eq_bigr => i ?; rewrite ?BA ?CA // eq_sym.
 Qed.
@@ -440,7 +445,7 @@ Lemma alternate_determinant : forall n (A : M_(n)) i1 i2,
   i1 != i2 -> A i1 =1 A i2 -> \det A = 0.
 Proof.
 move=> n A i1 i2 Di12 A12; pose r := I_(n).
-pose t := tperm i1 i2; pose tr s := (t * s)%G.
+pose t := tperm i1 i2; pose tr s := (t * s)%g.
 have trK : involutive tr by move=> s; rewrite /tr mulgA tperm2 mul1g.
 have Etr: forall s, odd_perm (tr s) = even_perm s.
   by move=> s; rewrite odd_permM odd_tperm Di12.
@@ -463,7 +468,7 @@ rewrite /(\det _) (reindex ip) /=; last first.
   by exists ip => s _; rewrite /ip invgK.
 apply: eq_bigr => s _; rewrite !odd_permV /= (reindex s).
   by congr (_ * _); apply: eq_bigr => i _; rewrite mxK permK.
-by exists (s^-1 : _ -> _) => i _; rewrite ?permK ?permKv.
+by exists (s^-1 : _ -> _) => i _; rewrite ?permK ?permKV.
 Qed.
 
 Lemma determinant_perm : forall n (s : S_(n)), \det (\P s) = (-1) ^+s.
@@ -478,7 +483,7 @@ Qed.
 
 Lemma determinant1 : forall n, \det \1_(n) = 1.
 Proof.
-move=> n; have:= @determinant_perm n 1%G; rewrite odd_perm1 => /= <-.
+move=> n; have:= @determinant_perm n 1%g; rewrite odd_perm1 => /= <-.
 congr (\det _); symmetry; exact: perm_mx1.
 Qed.
 
@@ -502,16 +507,16 @@ transitivity (\sum_(f) \sum_(s : S_(n)) (-1) ^+s * \prod_(i) AB f s i).
   by apply: eq_bigr => x _; rewrite mxK.
 rewrite (bigID (fun f : F_(n) => injectiveb f)) /= addrC big1 ?simp => [|f Uf].
   rewrite (reindex (fun s => pval s)); last first.
-    have s0 : S_(n) := 1%G; pose uf (f : F_(n)) := uniq (val f).
+    have s0 : S_(n) := 1%g; pose uf (f : F_(n)) := uniq (val f).
     exists (insubd s0) => /= f Uf; first apply: val_inj; exact: insubdK.
-  apply: eq_big => [s|s _]; rewrite ?(valP s) // big_distrr /=.
-  rewrite (reindex (mulg s)); last first.
-    by exists (mulg s^-1) => t; rewrite ?mulKgv ?mulKg.
+  apply: eq_big => /= [s|s _]; rewrite ?(valP s) // big_distrr /=.
+  rewrite (reindex (mulg s : S_(n) -> _)); last first.
+    exists (mulg s^-1) => t _; rewrite ?mulKVg ?mulKg //.
   apply: eq_bigr => t _; rewrite big_split /= mulrA mulrCA mulrA mulrCA mulrA.
   rewrite -signr_addb odd_permM; congr (_ * _).
   rewrite (reindex s^-1); last first.
-    by exists (s : _ -> _) => i _; rewrite ?permK ?permKv.
-  by apply: eq_bigr => i _; rewrite permM permKv ?eqxx // -{3}[i](permKv s).
+    by exists (s : _ -> _) => i _; rewrite ?permK ?permKV.
+  by apply: eq_bigr => i _; rewrite permM permKV ?eqxx // -{3}[i](permKV s).
 transitivity (\det (\matrix_(i, j) B (f i) j) * \prod_(i) A i (f i)).
   rewrite mulrC big_distrr /=; apply: eq_bigr => s _.
   rewrite mulrCA big_split //=; congr (_ * (_ * _)).
@@ -539,10 +544,10 @@ have inj_lsf : injective (lsf _ _ _).
   move=> i s j; apply: can_inj (lsf j s^-1 i) _ => k.
   by case: (unliftP i k) => [k'|] ->; rewrite !lsfE ?permK.
 pose ls := perm_of (inj_lsf _ _ _).
-have ls1 : forall i, ls i 1%G i = 1%G.
+have ls1 : forall i, ls i 1%g i = 1%g.
   move=> i; apply/permP => k.
   by case: (unliftP i k) => [k'|] ->; rewrite permE lsfE !perm1.
-have lsM : forall i s j t k, (ls i s j * ls j t k)%G = ls i (s * t)%G k.
+have lsM : forall i s j t k, (ls i s j * ls j t k)%g = ls i (s * t)%g k.
   move=> i s j t k; apply/permP=> l; rewrite permM !permE.
   by case: (unliftP i l) => [l'|] ->; rewrite !lsfE ?permM.
 have sign_ls: forall s i j, (-1)^+(ls i s j) = (-1) ^+s * (-1)^+(i + j) :> R.
@@ -555,8 +560,8 @@ have sign_ls: forall s i j, (-1)^+(ls i s j) = (-1) ^+s * (-1)^+(i + j) :> R.
     rewrite 2!odd_permM 2!signr_addb -mulrA -{}IHm; last first.
       apply: {m} leq_trans Hm; apply: subset_leq_card; apply/subsetP=> k'.
       rewrite !inE /= inE /= permM /t (eq_sym k').
-      case: tpermP=> [->|-> Ds|]; rewrite ?permKv; first by rewrite eqxx.
-        by rewrite andbb; apply/eqP=> Dk; case/eqP: Ds; rewrite {1}Dk permKv.
+      case: tpermP=> [->|-> Ds|]; rewrite ?permKV; first by rewrite eqxx.
+        by rewrite andbb; apply/eqP=> Dk; case/eqP: Ds; rewrite {1}Dk permKV.
       by move/eqP; rewrite eq_sym => ->.
     suffices ->: ls i t i = tperm (lift i k) (lift i (fun_of_perm s^-1 k)).
       by rewrite !odd_tperm (inj_eq (@lift_inj _ _)).
@@ -564,19 +569,19 @@ have sign_ls: forall s i j, (-1)^+(ls i s j) = (-1) ^+s * (-1)^+(i + j) :> R.
     case: (unliftP i i') => [i''|] ->; rewrite lsfE.
       rewrite inj_tperm //; exact: lift_inj.
     case tpermP => //; move/eqP; case/idPn; exact: neq_lift.
-  have ->: s = 1%G.
+  have ->: s = 1%g.
     by apply/permP=> k; rewrite perm1; move/eqP: (s1 k).
   rewrite odd_perm1 simp /=; without loss: i {s s1} j / j <= i.
     case: (leqP j i); first by auto.
     move/ltnW=> ij; move/(_ _ _ ij)=> Wji.
-    rewrite -(mulgK (ls j 1%G i) (ls i  _ j)) lsM !(ls1,mul1g).
+    rewrite -(mulgK (ls j 1%g i) (ls i  _ j)) lsM !(ls1,mul1g).
     by rewrite odd_permV addnC.
   move Dm: i.+1 => m; elim: m i Dm => // m IHm i [im].
   rewrite leq_eqVlt; case/predU1P=> [eqji|ltji].
     by rewrite (val_inj _ _ eqji) ls1 odd_perm1 /= -signr_odd odd_add addbb.
   have m'm: m.-1.+1 = m by rewrite -im (ltn_predK ltji).
   have ltm'n : m.-1 < n by rewrite m'm -im leq_eqVlt orbC (ltn_ord i).
-  pose i' := Ordinal ltm'n; rewrite -{1}(mulg1 1%G) -(lsM _ _ i') odd_permM.
+  pose i' := Ordinal ltm'n; rewrite -{1}(mulg1 1%g) -(lsM _ _ i') odd_permM.
   rewrite signr_addb mulrC {}IHm; try by rewrite /= - 1?ltnS ?m'm // -im.
   rewrite im -m'm addSn -addn1 (exprn_addr _ _ 1); congr (_ * _).
   have{j ltji} ii' : i != i' by rewrite -val_eqE /= im /= -m'm eqn_leq ltnn.
@@ -617,7 +622,7 @@ Lemma expand_determinant_row : forall n (A : M_(n)) i0,
   \det A = \sum_(j) A i0 j * cofactor A i0 j.
 Proof.
 move=> n A i0; rewrite /(\det A).
-rewrite (partition_big (fun s : S_(n) => s i0) predA) //=.
+rewrite (partition_big (fun s : S_(n) => s i0) predT) //=.
 apply: eq_bigr => j0 _; rewrite expand_cofactor big_distrr /=.
 apply: eq_bigr => s; rewrite -topredE /=; move/eqP=> Dsi0.
 rewrite mulrCA (bigID (pred1 i0)) /= big_pred1_eq Dsi0; congr (_ * (_ * _)).

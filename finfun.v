@@ -221,7 +221,7 @@ Section FinPowerSet.
 Variable eT : finType.
 Variable A : pred eT.
 
-Definition powerset := pffun_on false A predA.
+Definition powerset := pffun_on false A predT.
 
 Lemma card_powerset : #|powerset| = 2 ^ #|A|.
 Proof. rewrite -card_bool; exact: card_pffun_on. Qed.

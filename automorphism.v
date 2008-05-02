@@ -15,6 +15,7 @@ Require Import groups.
 Require Import group_perm.
 Require Import finset.
 Require Import normal.
+Import GroupScope.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -63,7 +64,7 @@ Proof.
 apply/existsP/norP => [[x /=] | []].
   case Hx: (x \in H) => [] => [nfx1|]; last by rewrite eqxx.
   split; first by apply/existsP; exists x; rewrite Hx.
-  by apply/eqP=> H0; rewrite H0 setE in Hx.
+  by apply/eqP=> H0; rewrite H0 inE in Hx.
 case/existsP=> x; rewrite negb_imply; case/andP=> Hx nfx1 _.
 by exists x; rewrite /= Hx.
 Qed.
@@ -83,28 +84,28 @@ Variable (H : {group G}).
 Lemma group_trivm_mrestr : trivm (mrestr f H) = trivm_(H) f.
 Proof.
 rewrite trivm_mrestr orbC; case: eqP => // H0.
-by have:= group1 H; rewrite H0 setE.
+by have:= group1 H; rewrite H0 inE.
 Qed.
 
 Hypothesis Hmorph: morphic H f.
 
 Lemma dom_mrestr : ~~ trivm_(H) f -> dom (mrestr f H) = H.
 Proof.
-move=> Htriv; apply/setP; apply/subset_eqP; apply/andP; split; apply/subsetP=> x.
-  case/setUP; last by rewrite setE /=; case (x \in H); rewrite ?eqxx.
+move=> Htriv; apply/setP=> x; apply/idP/idP.
+  case/setUP; last by rewrite inE /=; case (x \in H); rewrite ?eqxx.
   move: Htriv; rewrite -group_trivm_mrestr; case/existsP=> y nfHy1.
   have:= nfHy1 => /=; case: ifP => [Hy nfy1|_]; last by rewrite eqxx.
   rewrite -(groupMr x Hy); move/kerP; move/(_ y); rewrite /= Hy.
   by case: ifP => // _ fy1; case/eqP: nfy1.
-rewrite /mrestr !setE => Hx /=; rewrite Hx orbC.
+rewrite /mrestr !inE => Hx /=; rewrite Hx orbC.
 case: eqP => //= fx1; apply/forallP=> y; rewrite groupMl //.
 by case Hy : (y \in H); rewrite // (morphP Hmorph) // fx1 mul1g.
 Qed.
 
 Lemma group_set_dom_mrestr : group_set (dom (mrestr f H)).
 Proof.
-case e: (trivm_(H) f); last by rewrite (dom_mrestr (negbT e)) set_of_groupP.
-move: (group_trivm_mrestr); rewrite e; move/trivm_dom=>->; exact:group_setA.
+case e: (trivm_(H) f); last by rewrite (dom_mrestr (negbT e)) groupP.
+move: (group_trivm_mrestr); rewrite e; move/trivm_dom=>->; exact: groupP.
 Qed.
 
 Lemma mrestrM : {in dom (mrestr f H) &, {morph mrestr f H: x y / x * y}}.
@@ -120,13 +121,13 @@ Definition mrestr_morphism := Morphism group_set_dom_mrestr mrestrM.
 Lemma ker_mrestr : ~~ trivm_(H) f ->
   ker (mrestr f H) = ker_(H) f :|: (H :\: dom f).
 Proof.
-move=> Htriv; apply/setP=> x; rewrite /dom [ker]lock !setE -lock.
+move=> Htriv; apply/setP=> x; rewrite /dom [ker]lock !inE -lock.
 case Hx: (x \in H); rewrite !(andbT, andbF) /=; last first.
-  by rewrite -dom_mrestr // setE in Hx; case/norP: Hx; move/negPf.
+  by rewrite -dom_mrestr // inE in Hx; case/norP: Hx; move/negPf.
 have Dx: x \in dom mrestr_morphism by rewrite dom_mrestr.
-rewrite (sameP (kerMP Dx) eqP) /= Hx; case: kerP; last by rewrite negbK /=.
-move/(_ x); rewrite (morphP Hmorph) //; move/(canRL (mulgK _))->.
-by rewrite mulgV eqxx.
+rewrite (sameP (kerMP Dx) eqP) /= Hx negb_or negbK.
+case Kx: (x \in ker f) => //=; have:= kerP _ _ Kx x.
+by rewrite (morphP Hmorph) //; move/(canRL (mulgK _))->; rewrite mulgV eqxx.
 Qed.
 
 Lemma dfequal_morphicrestr : {in H, f =1 morphicrestr f H}.
@@ -143,8 +144,8 @@ Variables (f : G -> G') (H : {group G}).
 
 Lemma group_set_dom_morphicrestr : group_set (dom (morphicrestr f H)).
 Proof.
-rewrite /morphicrestr; case e:(morphic H f)=>/=; first exact: group_set_dom_mrestr.
-rewrite dom_triv_morph; exact: group_setA.
+rewrite /morphicrestr; case e: (morphic H f); first exact: group_set_dom_mrestr.
+rewrite dom_triv_morph; exact: group_setT.
 Qed.
 
 Lemma morphicrestrM :
@@ -178,7 +179,7 @@ Lemma kermorphicP :  forall x,
   x \in dom_(H) f -> reflect (f x = 1) (x \in ker f).
 Proof.
 move=> x; case/setIP=> Dx _; apply: introP; first exact: morphicmker.
-by move/negPf=> nKx; apply/eqP; rewrite setE nKx setE in Dx.
+by move/negPf=> nKx; apply/eqP; rewrite inE nKx inE in Dx.
 Qed.
 
 Lemma injmorphicP : reflect {in H &, injective f} (injm f H).
@@ -186,20 +187,20 @@ Proof.
 move/dfequal_morphicrestr: Hmorph => Heq; apply: (iffP idP).
   case e: (trivm_(H) f).
     move/(conj (idP e)); move/andP; move/trivm_injm_r.
-    by move/trivgP=>-> x y /=; rewrite ?inE /= !setE; repeat move/eqP=><-.
+    by move/trivgP=>-> x y /=; rewrite !inE /=; repeat move/eqP=><-.
   move=> Hinj; suff: (injm (morphicrestr f H) H).
     by move/injmP=> Hdinj x y Hx Hy; rewrite !Heq //; exact: Hdinj.
   move/negbT:e=>Htriv; move: (dom_mrestr Hmorph Htriv).
   rewrite /injm /morphicrestr Hmorph /= =>->.
   rewrite (ker_mrestr Hmorph Htriv) setDUr setDIr setDDr setDv setU0 set0U.
   rewrite setDE setIA (setIC H) -(setIA (~: ker f)) setIid setIC setIA -setDE.
-  rewrite /injm in Hinj; rewrite setI_subset Hinj andTb.
-  by apply/subsetP=>x; rewrite setE; move/andP=> [_ Hx].
-move=>Hinj; apply/subsetP=> x; rewrite setE; case/andP=> Hx1 Ax.
+  rewrite /injm in Hinj; rewrite subsetI Hinj andTb.
+  by apply/subsetP=>x; rewrite inE; move/andP=> [_ Hx].
+move=>Hinj; apply/subsetP=> x; rewrite inE; case/andP=> Hx1 Ax.
 case Hfx1: (f x != 1).
   have Dx: x \in dom f by exact: dom_nu.
-  rewrite setE Dx andbT.
-  apply/kermorphicP; by [rewrite setE Ax Dx andbT | apply/eqP].
+  rewrite inE Dx andbT.
+  apply/kermorphicP; by [rewrite inE Ax Dx andbT | apply/eqP].
 case/eqP: Hx1; move/eqP:Hfx1; rewrite -morphic1; exact: Hinj.
 Qed.
 
@@ -219,16 +220,16 @@ Section Automorphism.
 (* a group automorphism is a permutation on a subset of a finGroupType,*)
 (* that respects the morphism law                                      *)
 
-Variable G:finGroupType.
+Variable G : finGroupType.
 
-Variable H: group G.
+Variable H : {group G}.
 
 Lemma group_autom : group_set (set_of (Aut H)).
 Proof.
-rewrite /group_set !setE /=; rewrite -andbA; apply/and3P; split.
+rewrite /group_set !inE /=; rewrite -andbA; apply/and3P; split.
 - by apply/subsetP=> x; case/negP; rewrite permE.
 - by apply/morphP => x Hx y Hy; rewrite !permE.
-apply/subsetP=> f; case/smulgP=> g h; rewrite !setE; case/andP=> pg mg.
+apply/subsetP=> f; case/mulsgP=> g h; rewrite !inE; case/andP=> pg mg.
 case/andP=>ph mh ->; rewrite perm_onM //=; apply/morphP=> x y Hx Hy.
 rewrite !permM; move/morphP: mg => -> //.
 by move/morphP: mh => ->; rewrite // perm_closed.
@@ -258,6 +259,9 @@ End AutomorphicInverse.
 
 End Automorphism.
 
+Notation "[ 'Aut' G ]" := (automorphism_group G)
+  (at level 0, G at level 9, format "[ 'Aut'  G ]") : subgroup_scope.
+
 Section Morph_of_Aut.
 
 Variable G : finGroupType.
@@ -284,8 +288,8 @@ Qed.
 Lemma morphic_morph_of_aut : morphic H (morph_of_aut f H).
 Proof.
 apply/morphP=> x y Hx Hy; rewrite /morph_of_aut.
-case: andP => [[_ fM] | _]; last by rewrite mulg1.
-by rewrite /= /morphicrestr fM /= Hx Hy groupM // (morphP fM).
+case: andP => [[_ fM] | _] /=; last by rewrite mulg1.
+by rewrite /morphicrestr fM /= Hx Hy groupM // (morphP fM).
 Qed.
 
 Lemma morph_of_NAut : ~~(Aut H f) -> trivm (morph_of_aut f H).
@@ -300,6 +304,7 @@ Proof.
 rewrite /morph_of_aut => x /=; move: Haut => ->.
 by rewrite /= /morphicrestr; move/andP:Haut =>[_]=>-> /= ->.
 Qed.
+
 
 Lemma dom_morph_of_aut : ~~(trivm_(H) f) -> dom (morph_of_aut f H) = H.
 Proof.
@@ -360,13 +365,14 @@ Qed.
 End Morph_of_Aut.
 
 Section Restriction.
-Variable d: finType.
-Variables (f: d -> d) (H:{set d}).
 
-Definition restr := fun x => if (x \in H) then (f x) else x.
-Hypothesis Hs: (f @: H) \subset H.
+Variables (T : finType) (f : T -> T) (H : {set T}).
 
-Lemma in_inj_inj_restr :  {in H &, injective f} -> (injective (restr)).
+Definition restr x := if x \in H then f x else x.
+
+Hypothesis Hs : (f @: H) \subset H.
+
+Lemma in_inj_inj_restr :  {in H &, injective f} -> injective restr.
 Proof.
 move=> Hdinj x x'; rewrite /restr.
 case e:(x \in H); case e':(x'\in H)=> // eq; first exact: Hdinj.
@@ -380,39 +386,39 @@ End Restriction.
 
 Section PermExtension.
 
-Variable d: finType.
+Variable d : finType.
 
 Variable H : {set d}.
 
 Section PermRestriction.
 
-Variable (f: perm d).
+Variable f : {perm d}.
 
-Hypothesis Hs: (f @: H) \subset H.
+Hypothesis Hs : f @: H \subset H.
 
 Lemma closed2perm : injective (restr f H).
 Proof. apply (in_inj_inj_restr Hs)=> x y Hx Hy; exact: perm_inj. Qed.
 
-Definition restriction := (perm_of (closed2perm)).
+Definition restriction := perm_of closed2perm.
 
-Lemma perm_restriction : perm_on H (restriction).
+Lemma perm_restriction : perm_on H restriction.
 Proof.
-apply/subsetP=>x Hrtr; case e:(x\in H)=>//; move/negP: Hrtr.
+apply/subsetP=>x Hrtr; case e:(x\in H)=> //; move/negP: Hrtr.
 by rewrite permE /restr e eq_refl.
 Qed.
 
-Lemma dfequal_restriction : {in H , f =1 (restriction)}.
+Lemma dfequal_restriction : {in H , f =1 restriction}.
 Proof. by move=> x /= Hx; rewrite /restriction permE /restr Hx. Qed.
 
 End PermRestriction.
 
 Section Perm_of_Restriction.
 
-Variable f: d -> d.
-Hypothesis Hs: (f@:H) \subset H.
+Variable f : d -> d.
+Hypothesis Hs : f @: H \subset H.
 Hypothesis Hdinj : {in H &, injective f}.
 
-Definition perm_of_restriction := (perm_of (in_inj_inj_restr Hs Hdinj)).
+Definition perm_of_restriction := perm_of (in_inj_inj_restr Hs Hdinj).
 
 End Perm_of_Restriction.
 
@@ -420,9 +426,9 @@ End PermExtension.
 
 Section AutoMorphicRestriction.
 
-Variables (G:finGroupType) (f: perm G) (H : group G).
-Hypothesis Hs: (f @: H) \subset H.
-Hypothesis Hm: morphic H f.
+Variables (G : finGroupType) (f : perm G) (H : group G).
+Hypothesis Hs : f @: H \subset H.
+Hypothesis Hm : morphic H f.
 
 Lemma morph_restriction : morphic H (restriction Hs).
 Proof.
@@ -430,20 +436,18 @@ apply/morphP=> x y Hx Hy; rewrite !permE /restr Hx Hy (groupM Hx Hy).
 by move/morphP: Hm=>Hp; apply:Hp.
 Qed.
 
-Lemma autom_restriction : (Aut H) (restriction Hs).
-Proof.
-by rewrite /= morph_restriction perm_restriction.
-Qed.
+Lemma autom_restriction : Aut H (restriction Hs).
+Proof. by rewrite /= morph_restriction perm_restriction. Qed.
 
 End AutoMorphicRestriction.
 
 Section ConjugationMorphism.
 
-Variable G:finGroupType.
+Variable G : finGroupType.
 
-Definition conjgm (g:G) := (perm_of (can_inj (conjgK g))).
+Definition conjgm (g : G) := (perm_of (can_inj (conjgK g))).
 
-Variable H:group G.
+Variable H : group G.
 
 Lemma conjg_closed : forall g, g \in H -> (conjgm g @: H) \subset H.
 Proof.
@@ -452,9 +456,9 @@ by rewrite permE; apply groupJ.
 Qed.
 
 Lemma conjg_morphic : forall g, morphic H (conjgm g).
-Proof. move=> g; apply/morphP=>x y Hx Hy; rewrite !permE; exact: conjg_mul. Qed.
+Proof. by move=> g; apply/morphP=> x y Hx Hy; rewrite !permE conjMg. Qed.
 
-Definition conjgm_autP : forall g (P:g \in H),
+Definition conjgm_autP : forall g (P : g \in H),
  (Aut H (restriction (conjg_closed P))) :=
  (fun g P => autom_restriction (conjg_closed P) (conjg_morphic g)).
 
@@ -464,65 +468,62 @@ Section Characteristicity.
 
 Variable G : finGroupType.
 
-Definition characteristic (H I: {set _}) := 
-  (I \subset H) &&(forallb f: perm G, (Aut H f) ==> (f @: I == I)).
+Definition characteristic (H K : {set G}) := 
+  (K \subset H) && (forallb f : perm G, (Aut H f) ==> (f @: K == K)).
 
 Variable H : group G.
 
 Lemma normal_char : forall K, characteristic H K -> K <| H.
 Proof.
-move=> K Hchar; apply/normalP=> x Hx.
-move/andP: Hchar => [Hsub]; move/forallP.
-move/(_ (restriction (conjg_closed Hx))); move/implyP; move/(_ (conjgm_autP Hx)).
-rewrite -(dfequal_imset
- (subin1 (subsetP Hsub) (dfequal_restriction (conjg_closed Hx)))).
-move/eqP=> Hconj; rewrite sconjg_imset -{2}Hconj.
-by apply: dfequal_imset=> y Hy; rewrite permE.
+move=> K; case/andP=> sKH chKH; rewrite /(K <| H) sKH; apply/normalP=> x Hx.
+have:= forallP chKH (restriction (conjg_closed Hx)); rewrite conjgm_autP /=.
+move/eqP=> eqKxK; rewrite -{2}eqKxK; apply: dfequal_imset=> y Hy.
+by rewrite -dfequal_restriction (permE, subsetP sKH).
 Qed.
 
-Lemma subset_charP : forall (I:group G), 
-reflect (I \subset H /\ forall f : perm G, (Aut H f) -> (f @: I) \subset I) 
-        (characteristic H I).
+Lemma subset_charP : forall K : {group G}, 
+  reflect (K \subset H /\ forall f, Aut H f -> f @: K \subset K) 
+          (characteristic H K).
 Proof.
-move=> I; apply: (iffP idP).
+move=> K; apply: (iffP idP).
   move/andP=> [Hsub Himage];split; first by trivial.
   move/forallP: Himage => Hchar f Haut; move/implyP: (Hchar f); move/(_ Haut).
   by move/eqP=>->; apply:subset_refl.
 move=> [Hsub Hchar]; apply/andP; split; first by trivial.
 apply/forallP => f; apply/implyP=> Haut; apply/eqP; apply/setP.
 apply/subset_eqP; rewrite (Hchar f Haut) andTb; move/andP: (Haut)=> [_ Hmorph].
-move: (Hchar _ (automorphic_inv Haut)); move/(subset_imset f).
+move: (Hchar _ (automorphic_inv Haut)); move/(imsetS f).
 rewrite -imset_comp=> Hsub1; apply: (subset_trans _ Hsub1).
 apply/subsetP=> x Hx; apply/imsetP.
 by exists x; rewrite // /comp /= permE f_finv; last apply:perm_inj.
 Qed.
 
-Lemma trivg_char : characteristic H [set 1].
+Lemma trivg_char : characteristic H 1.
 Proof.
-apply/subset_charP; split; first by rewrite subset_set1.
-move=> f; move/andP=> [_ Hmorph] /=; rewrite imset_set1 subset_set1.
+apply/subset_charP; split; first by rewrite sub1set.
+move=> f; move/andP=> [_ Hmorph] /=; rewrite imset_set1 sub1set.
 by apply/set1P; rewrite (morphic1 Hmorph).
 Qed.
 
-Lemma groupA_char : characteristic H H.
+Lemma setT_group_char : characteristic H H.
 Proof.
 apply/subset_charP; split; first by apply subset_refl.
 move=> f; move/autom_imset=>->; exact: subset_refl.
 Qed.
 
-Lemma lone_subgroup_char : forall (I: group _) m, 
-  I \subset H ->
-  (#|I| = m) ->
-  (forall J : group _, J \subset H -> #|J| = m -> J = I) ->
-  characteristic H I.
+Lemma lone_subgroup_char : forall (K : {group G}) m, 
+  K \subset H ->
+  (#|K| = m) ->
+  (forall J : {group G}, J \subset H -> #|J| = m -> J = K) ->
+  characteristic H K.
 Proof.
-move=> I m Hsub Hcard Huniq; apply/subset_charP; split; first by trivial.
+move=> K m Hsub Hcard Huniq; apply/subset_charP; split; first by trivial.
 move=> f Haut; move/andP: (Haut)=> [_ Hmorph].
-suff: (f@: I = I) by move/setP; move/subset_eqP; move/andP=>[H1 _].
+suff: (f @: K = K) by move/setP; move/subset_eqP; move/andP=>[H1 _].
 rewrite (dfequal_imset (subin1 (subsetP Hsub) (dfequal_morphicrestr Hmorph))).
-rewrite -{2} (Huniq [group of morphicrestr f H @: I]) //=.
+rewrite -{2} (Huniq [group of morphicrestr f H @: K]) //=.
   move/andP: (isom_morph_of_aut Haut)=> [Heq _]; move/eqP: Heq.
-  by rewrite /morph_of_aut /= Haut /= =>H1; rewrite -{2}H1; apply:subset_imset.
+  by rewrite /morph_of_aut /= Haut /= =>H1; rewrite -{2}H1; apply:imsetS.
 rewrite card_dimset // => x y  Hx Hy.
 by rewrite -!(dfequal_morphicrestr Hmorph) /= ?(subsetP Hsub) //; apply:perm_inj.
 Qed.
@@ -535,7 +536,7 @@ Section CharacteristicityProps.
 
 Variable G : finGroupType.
 
-Lemma char_trans : forall (H I K: group G),
+Lemma char_trans : forall (H I K : {group G}),
   characteristic H I ->
   characteristic I K ->
   characteristic H K.
@@ -551,20 +552,20 @@ by rewrite -(dfequal_imset
      (subin1 (subsetP HsubK) (dfequal_restriction HimageI))).
 Qed.
 
-Lemma char_norm_trans : forall (H I K : group G),
+Lemma char_norm_trans : forall (H I K : {group G}),
   characteristic K H ->
   K <| I ->
   H <| I.
 Proof.
-move=> H I K HcharH HnormK; apply/normalP=> x Ix; move/normalP: HnormK.
-move/(_ _ Ix); move/setP; move/subset_eqP; move/andP=> [HsubK _]; move:HsubK.
-rewrite sconjg_imset; have : (conjgm x @: K = conjg x @: K).
+move=> H I K; case/andP=> sHK charH; case/normalsubP=> sKI nKI.
+apply/normalsubP; split=> [|x Ix]; first exact: subset_trans sHK sKI.
+have:= nKI _ Ix; move/eqP; rewrite eqset_sub andbC; case/andP=> _.
+have <-: conjgm x @: K = K :^ x.
   by apply: dfequal_imset=> y Ky; rewrite -((permE (can_inj (conjgK x))) y).
-move=> <- Hsub; move/andP: HcharH=>[HsubK]; move/forallP.
-move/(_ (restriction Hsub)); move/implyP.
-move/(_ (autom_restriction Hsub (conjg_morphic K x))); move/eqP=>Hres.
-rewrite -{2}Hres sconjg_imset; apply:dfequal_imset=> y Ky /=.
-by rewrite -dfequal_restriction /= ?(subsetP HsubK) // permE.
+move=> nK; have:= forallP charH (restriction nK).
+rewrite autom_restriction ?conjg_morphic //=; move/eqP=> eqKxK.
+rewrite -{2}eqKxK; apply:dfequal_imset=> y Ky /=.
+by rewrite -dfequal_restriction (subsetP sHK, permE).
 Qed.
 
 End CharacteristicityProps.
