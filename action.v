@@ -78,7 +78,7 @@ Proof.
 apply: (iffP idP).
   move/act_fixP => Hto; apply/setP=> x; rewrite inE.
   apply/eqP/orbitP; last by move=> [z Gz Gtoz]; rewrite -(Hto z Gz).
-  by move=> <-; exists (1 : gT); rewrite ?group1 ?act1.
+  by move=> <-; exists (1 : gT); rewrite ?act1.
 move/setP=> Horb; apply/act_fixP=> x Gx; move/(_ (to a x)): Horb.
 by rewrite inE orbit_to //; move/eqP->.
 Qed.
@@ -518,7 +518,7 @@ pose Y := predI S (P a); case: {prim}(prim Y) => [|x y b Gx Gy | Y1 | YS].
   rewrite Yyc; case/andP: Yyc => /= Syc Payc; rewrite inE /=.
   have Sxc: S (to c x^-1) by rewrite ![S _]trans_closed ?groupV in Syc *.
   case/andP: Yxb => Sxb Paxb; case/andP: Yyb => Syb Payb.
-  rewrite Sxc -[a](act1 to); move/Pinv: Paxb ->; rewrite //= act1.
+  rewrite Sxc -[a](act1 to); move/Pinv: Paxb ->; rewrite // act1.
   have Gyx: y * x^-1 \in G by rewrite groupM ?groupV.
   rewrite -[b](actKV to y) -actM; move/Pinv: Payb => <- //.
   by move/Pinv: Payc => -> //; rewrite actM actKV Prefl.
@@ -702,7 +702,7 @@ move=> x Hx Ht; apply/(primitivePt Ht)/maximalP.
   move=> Hp; split; first by apply/subsetP => y; case/stabilizerP.
   move=> H Hk1 Hk2.
   pose Y := image (to x) (mem H).
-  have Yx: Y x by apply/imageP; exists (1 : gT); [exact: group1 | rewrite act1].
+  have Yx: Y x by apply/imageP; exists (1 : gT); rewrite //= ?act1.
   case: (Hp Y).
   - apply/subsetP => z; case/imageP => g1 Kg1 ->.
     have Hg1: g1 \in G by apply: (subsetP Hk2).
@@ -769,10 +769,11 @@ have F2: group_set H.
     move => z1; apply/imageP/idP; first  by case => z2 Hz2 ->; rewrite act1.
     by move => Hz1; exists z1; rewrite // act1.
   have F3: YY g2 =1 YY 1.
-    apply: (@Hd1 _ _ (to x g2)) => //=; first by apply/imageP; exists x.
+    apply: (@Hd1 _ _ (to x g2)); rewrite //=.
+      by apply/imageP; exists x.
     by apply/imageP; exists (to x g2); rewrite // act1.
   have F4: YY (g1 * g2) =i YY 1.
-    apply: (@Hd1 _ _ (to x (g1 * g2))) => //=; first by apply: groupM.
+    apply: (@Hd1 _ _ (to x (g1 * g2))); rewrite /= ?in_group //.
       by apply/imageP; exists x.
     rewrite /YY in F3; rewrite -F3.
     by apply/imageP; exists (to x g1); rewrite // actM.

@@ -20,24 +20,42 @@ Definition enumeration (T : eqType) e := forall x : T, count (pred1 x) e = 1.
 
 Module FinType.
 
-Structure finType : Type :=
-  FinType { sort :> eqType; _ : {e | @enumeration sort e} }.
+Structure mixin (T : Type) (eqmix : EqType.mixin T) : Type :=
+  Mixin { enum : seq T; _ : @enumeration (EqClass eqmix) enum }.
 
-Definition enum T := let: FinType _ u := T return seq T in sval u.
+Definition mixin_for (T : eqType) & phant T := mixin T.
 
-Lemma enumP : forall T, enumeration (enum T). Proof. by case=> T []. Qed.
+Structure class : Type := Class { sort :> eqType; _ : mixin sort }.
+Coercion mixin_of T := let: Class _ m := T return mixin T in m.
+
+Lemma enumP : forall T : class, enumeration T.(enum).
+Proof. by case=> T []. Qed.
+
+CoInductive fullMixin (T : Type) : Type := FullMixin eq_mix of @mixin T eq_mix.
+
+Definition mkFullMixin (T : class) := FullMixin T.
+
+Coercion eqMixin_of_full T (fm : fullMixin T) :=
+  let: FullMixin m _ := fm in m.
+
+Coercion finMixin_of_full T (fm : fullMixin T) :=
+  let: FullMixin _ m := fm return mixin fm in m.
 
 End FinType.
 
-Notation finType := FinType.finType.
-Notation FinType := FinType.FinType.
+Notation finType := FinType.class.
+Notation FinMixin := FinType.Mixin.
+Notation FinClass := FinType.Class.
 
-Definition FinTypeBy T e enum_e := @FinType T (exist _ e enum_e).
+Notation "{ 'finMixin' T }" := (FinType.mixin_for (Phant T))
+  (at level 0, format "{ 'finMixin'  T }") : type_scope.
+
+Definition mkFinType (T : eqType) e eP := FinClass (@FinMixin T T e eP).
 
 Notation "[ 'finType' 'of' eT 'for' fT ]" :=
-  (match fT as s return [type of FinType for s] -> _ with
-  | FinType _ eP => fun k => k eP end
-  (@FinType eT)) (at level 0, only parsing) : form_scope.
+  (match fT as s return [type of FinClass for s] -> _ with
+  | FinClass _ m => fun k => k m end
+  (@FinClass eT)) (at level 0, only parsing) : form_scope.
 
 Notation "[ 'finType' 'of' eT ]" := [finType of eT for {eT : Type as finType}]
   (at level 0, only parsing) : form_scope.
@@ -110,7 +128,7 @@ by apply: IHe => y; apply: leq_trans (e1 y); rewrite leq_addl.
 Qed.
 
 Lemma eq_enum : forall p1 p2 : pred T, p1 =1 p2 -> enum p1 = enum p2.
-Proof. move=> *; exact: eq_filter. Qed.
+Proof. move=> p1 p2 eqp12; exact: eq_filter. Qed.
 
 Lemma enum0 : @enum T pred0 = [::]. Proof. exact: filter_pred0. Qed.
 
@@ -650,24 +668,25 @@ Section SeqFinType.
 
 Variables (T : eqType) (s : seq T).
 
-Lemma seq_enumP : {e : seq {x | x \in s} | enumeration e}.
+Lemma seq_finMixin : {finMixin {x | x \in s}}.
 Proof.
 exists (pmaps (insig (mem s)) (undup s)) => u; rewrite count_pred1_uniq.
  by rewrite mem_pmap_sub mem_undup (valP u).
 apply: uniq_pmap_sub; exact: uniq_undup.
 Qed.
 
-Definition seq_finType := FinType seq_enumP.
+Definition seq_finType := FinClass seq_finMixin.
 
 End SeqFinType.
 
 Lemma bool_enumP : enumeration [:: true; false]. Proof. by case. Qed.
 
-Canonical Structure bool_finType := FinTypeBy bool_enumP.
-Canonical Structure boolA_eqType := Eval hnf in [eqType of boolA].
-Canonical Structure boolA_finType := Eval hnf in [finType of boolA_eqType].
+Canonical Structure bool_finType := mkFinType bool_enumP.
+Canonical Structure bool_for_eqType := Eval hnf in [eqType of {bool}].
+Canonical Structure bool_for_finType := Eval hnf in
+  [finType of bool_for_eqType].
 
-Lemma card_bool : #|boolA| = 2. Proof. by unlock card. Qed.
+Lemma card_bool : #|{bool}| = 2. Proof. by unlock card. Qed.
 
 Section OptionFinType.
 
@@ -680,7 +699,7 @@ Proof.
 by case=> *; rewrite /= count_maps [count _ _](count_pred0, FinType.enumP).
 Qed.
 
-Canonical Structure option_finType := FinTypeBy option_enumP.
+Canonical Structure option_finType := mkFinType option_enumP.
 
 End OptionFinType.
 
@@ -688,18 +707,18 @@ Section Ordinal.
 
 Variable n : nat.
 
-Inductive ordinal_repr : Type := OrdinalRepr m of m < n.
+Inductive ordinal_of : Type := OrdinalOf m of m < n.
 
-Definition ordinal : predArgType := ordinal_repr.
-Definition Ordinal : forall m, m < n -> ordinal := OrdinalRepr.
+Definition ordinal : predArgType := ordinal_of.
+Definition Ordinal : forall m, m < n -> ordinal := OrdinalOf.
 
 Notation I_n := ordinal.
 
-Coercion ord_of_repr (i : ordinal_repr) := i : I_n.
-Coercion nat_of_ord (i : I_n) := let: OrdinalRepr m _ := i in m.
+Coercion ord_of_ord (i : ordinal_of) := i : I_n.
+Coercion nat_of_ord (i : I_n) := let: Ordinal m _ := i in m.
 
 Canonical Structure ordinal_subType :=
-  @SubType _ _ _ nat_of_ord Ordinal ordinal_repr_rect vrefl.
+  @SubType _ _ _ nat_of_ord Ordinal ordinal_of_rect vrefl.
 
 Canonical Structure ordinal_eqType := [subEqType for nat_of_ord].
 
@@ -721,7 +740,7 @@ move=> i; rewrite -(count_maps val (pred1 _)) (svalP ord_enum).
 by rewrite count_pred1_uniq ?uniq_iota // mem_iota ltn_ord.
 Qed.
 
-Canonical Structure ordinal_finType := FinTypeBy ord_enumP.
+Canonical Structure ordinal_finType := mkFinType ord_enumP.
 
 Lemma val_enum_ord : maps val (enum I_n) = iota 0 n.
 Proof. by rewrite enumE /=; case ord_enum. Qed.
@@ -988,14 +1007,14 @@ Section TransferFinType.
 
 Variables (eT : eqType) (fT : finType) (f : eT -> fT).
 
-Lemma pcan_enum : forall g, pcancel f g -> {e : seq eT | enumeration e}.
+Lemma pcan_enum : forall g, pcancel f g -> {finMixin eT}.
 Proof.
 move=> g fK; exists (undup (pmaps g (enum fT))) => u.
 rewrite count_pred1_uniq ?uniq_undup // mem_undup mem_pmaps -fK maps_f //.
 exact: mem_enum.
 Qed.
 
-Definition PcanFinType g fK := FinType (@pcan_enum g fK).
+Definition PcanFinType g fK := FinClass (@pcan_enum g fK).
 
 Definition CanFinType g (fK : cancel f g) := PcanFinType (can_pcan fK).
 
@@ -1013,9 +1032,7 @@ rewrite count_pred1_uniq; first by rewrite mem_pmap_sub mem_enum.
 by apply: uniq_pmap_sub; exact: uniq_enum.
 Qed.
 
-Definition sub_enumP := exist _ (s2val sub_enum) (s2valP sub_enum).
-
-Canonical Structure sub_finType := FinType sub_enumP.
+Canonical Structure sub_finType := mkFinType (s2valP sub_enum).
 
 Lemma card_sub : #|(sT : Type) : predArgType| = #|a|.
 Proof. by rewrite cardT enumE /= (s2valP' sub_enum). Qed.
@@ -1059,7 +1076,7 @@ case=> x1 x2; rewrite (@eq_count _ _ (predX (pred1 x1) (pred1 x2))) => [|[]//].
 by rewrite (svalP prod_enum) !card1.
 Qed.
 
-Canonical Structure prod_finType := FinTypeBy prod_enumP.
+Canonical Structure prod_finType := mkFinType prod_enumP.
 
 Lemma cardX : forall (a1 : pred T1) (a2 : pred T2),
   #|[predX a1 & a2]| = #|a1| * #|a2|.
@@ -1100,7 +1117,7 @@ have:= eq_card0; unlock {1}card => /= -> // y.
 by apply/andP; case; rewrite /= eq_sym (negPf nji).
 Qed.
 
-Canonical Structure sum_finType := FinTypeBy (s2valP sum_enumP).
+Canonical Structure sum_finType := mkFinType (s2valP sum_enumP).
 
 Lemma card_sum : #|eq_sum [eta T_] : predArgType| = sum_of_cards.
 Proof. by rewrite cardT enumE /= (s2valP' sum_enumP). Qed.
@@ -1129,7 +1146,7 @@ Qed.
 Lemma eq_card_predT : forall T T' : finType,
   T = T' :> Type -> #|T| = #|T'|.
 Proof.
-move=> T [[T' eqd' eqd'P] [ed' Hed']] /= Hdd'.
+move=> T [[T' [eqd' eqd'P]] [ed' Hed']] /= Hdd'.
 rewrite -{T'}Hdd' in eqd' eqd'P ed' Hed' *.
 by apply: bij_eq_card_predT; do 2 exists (@id T).
 Qed.

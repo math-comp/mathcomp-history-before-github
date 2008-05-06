@@ -18,7 +18,7 @@ Import GroupScope.
 (* A_n as its kernel.                                                      *)
 
 Canonical Structure boolPreGroup :=
-  FinPreGroupType addbA addFb (frefl id) addbC.
+  [baseFinGroupType of bool by addbA, addFb, frefl id & addbC].
 Canonical Structure boolGroup := FinGroupType addbb. 
 
 Section PermutationParity.

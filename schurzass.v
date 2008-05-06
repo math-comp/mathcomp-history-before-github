@@ -27,7 +27,7 @@ Variable gT : finGroupType.
 
 Section Defs.
 
-Variables G H : set gT.
+Variables G H : {set gT}.
 
 Definition complg := [set K : {group gT} | trivg (H :&: K) && (H * K == G)].
 
@@ -148,14 +148,14 @@ pose Hgrp := {{x | x \in H} as finGroupType}.
 have mulHC : commutative (@mulg Hgrp).
   by case=> x Hx [y Hy]; apply: val_inj; rewrite /= abelH.
 pose gTH := Ring.AdditiveGroup (@mulgA _) mulHC (@mul1g _) (@mulVg _).
-have Hval: forall u : gTH, val u \in H by exact: valP.
-have valM: forall a b : gTH, val (a + b)%R = val a * val b by [].
-have valE: forall (a : gTH) n, val (a*+n)%R = val a ^+ n.
+have Hval: forall u : gTH, sval u \in H by exact: valP.
+have valM: forall a b : gTH, sval (a + b)%R = sval a * sval b by [].
+have valE: forall (a : gTH) n, sval (a*+n)%R = sval a ^+ n.
   by move=> a; elim=> // n IHn; congr (_ * _).
 pose mu x y : gTH := toH ((rH x * rH y)^-1 * rH (x * y)).
 pose nu y := (\sum_(Px \in rcosets P G) mu (repr Px) y)%R.
 have rHmul : forall x y,
-  x \in G -> y \in G -> rH (x * y) = rH x * rH y * val (mu x y).
+  x \in G -> y \in G -> rH (x * y) = rH x * rH y * sval (mu x y).
 - move=> x y Gx Gy; rewrite valH ?mulKVg // -mem_lcoset lcoset_sym.
   rewrite -norm_rlcoset; last by rewrite (subsetP nHG) ?GrH ?groupM.
   rewrite (rcoset_trans1 (HrH _)) -rcoset_mul ?(subsetP nHG) ?GrH //.
@@ -171,21 +171,21 @@ have{mu_Hmul} nu_Hmul: forall y z, y \in H -> nu (y * z) = nu z.
   move=> y z Hy; apply: eq_bigr => Px; case/rcosetsP=> x Gx ->{Px}.
   apply: mu_Hmul y z _ Hy.
   by rewrite -(groupMl _ (subsetP sPG _ (PpP x))) mulgKV.
-pose actG (a : gTH) y : gTH := toH (val a ^ rH y).
-have valG: forall a y, y \in G -> val (actG a y) = val a ^ rH y.
+pose actG (a : gTH) y : gTH := toH (sval a ^ rH y).
+have valG: forall a y, y \in G -> sval (actG a y) = sval a ^ rH y.
   move=> a y Gy; rewrite valH // -mem_conjgV (normgP _) ?Hval //=.
   by rewrite groupV (subsetP nHG) // GrH.
 have actG0: forall y, y \in G -> (actG 0 y = 0)%R.
-  by move=> y Gy; apply: val_inj; rewrite valG //= conj1g.
+  by move=> y Gy; apply: val_inj; rewrite /= valG //= conj1g.
 have actGM: forall a b y, y \in G -> (actG (a + b) y = actG a y + actG b y)%R.
   by move=> a b y Gy; apply: val_inj; rewrite /= !valG //= conjMg.
 have actGE: forall a n y, y \in G -> (actG (a*+n) y = (actG a y)*+n)%R.
-  by move=> a n y Gy; apply: val_inj; rewrite !(valE, valG) // conjXg.
+  by move=> a n y Gy; apply: val_inj; rewrite /= !(valE, valG) // conjXg.
 have cocycle_mu: forall x y z, x \in G -> y \in G -> z \in G ->
   (mu (x * y)%g z + actG (mu x y) z = mu y z + mu x (y * z)%g)%R.
 - move=> x y z Gx Gy Gz; apply: val_inj.
   apply: (mulg_injl (rH x * rH y * rH z)).
-  rewrite Ring.addrC !valM valG // -mulgA (mulgA (rH z)).
+  rewrite Ring.addrC /= valG -1?mulgA // (mulgA (rH z)).
   rewrite -conjgC 3!mulgA -!rHmul ?groupM //.
   by rewrite -2!(mulgA (rH x)) -mulgA -!rHmul ?groupM //.
 move: mu => mu in rHmul mu_Pmul cocycle_mu nu nu_Hmul; pose iP := indexg P G.
@@ -224,10 +224,10 @@ have [m mK]: exists m, forall a : gTH, (a*+(iP * m) = a)%R.
   case/dvdnP=> m inv_m; exists m => a.
   rewrite mulnC -inv_m /= mulnC Ring.mulrnA /=.
   suff ->: (a*+n = 0)%R by rewrite Ring.mulr0n Ring.addr0.
-  apply: val_inj; rewrite !valE /=; apply/eqP; rewrite -orderg_dvd.
+  apply: val_inj; rewrite /= !valE /=; apply/eqP; rewrite -orderg_dvd.
   by rewrite orderg_dvd_g // (subsetP sHP) // Hval.
 move: nu => nu in nu_Hmul cocycle_nu.
-pose f x := if x \in G then rH x * val ((nu x)*+m)%R else 1.
+pose f x := if x \in G then rH x * sval ((nu x)*+m)%R else 1.
 have{nu_Hmul} kerf: H \subset ker f.
   apply/subsetP=> h *; apply/kerP=> y.
   by rewrite /f rH_Hmul // groupMl (nu_Hmul, subsetP sHG).
@@ -264,7 +264,7 @@ exists (x * (phi x)^-1) (phi x); last first; first by rewrite mulgKV.
   by apply/imsetP; exists x. 
 rewrite -phi_f /f Gx -groupV invMg invgK -mulgA (conjgC (val _)) mulgA.
 rewrite groupMl -(mem_conjg, mem_rcoset) //.
-by rewrite (normgP _) ?(valP (nu x *+ m)%R, subsetP nHG).
+by rewrite (normgP _) ?(svalP (nu x *+ m)%R, subsetP nHG).
 Qed.
 
 Definition hall (gT : finGroupType) (G H : {set gT}) :=
@@ -338,7 +338,7 @@ have nHGbar: Hbar <| Gbar.
     by apply: subset_trans (subset_dom_coset _); case/andP: nZG.
   by rewrite -imset_conj (normalP nHG, subset_trans sHG, subsetP sGdom).
 have hallHbar: hall Gbar Hbar.
-  rewrite /hall imsetS //= iZ.
+  rewrite /hall imsetS //=.
   rewrite !card_quotient; try by [case/andP: nZG | case/andP: nZH].
   rewrite -(divn_pmul2l (pos_card_group Z)) !LaGrange //.
   by case/andP: hallH => _; rewrite -{1}(LaGrange sZH) coprime_mull; case/andP.
@@ -359,7 +359,7 @@ have: splitg Gbar Hbar; last case/splitgP=> Kbar trHKbar eqHKbar.
   case/andP: sylP => _; move/eqP=> cPp.
   rewrite {eqZ}(eq_card eqZ) /dvdn -(mpl prime_p cPp) => [|x y].
     rewrite cPp; apply/dvdn_exp_prime=> //; exists 1%N; last by rewrite expn1.
-    by rewrite -dvdn_exp_max //= expn1 dvdn_pdiv.
+    by rewrite -dvdn_exp_max // expn1 dvdn_pdiv.
   by case/imsetP=> z Pz ->; rewrite /= groupJr.
 have [ZK [sZZK sZKG] quoZK]:
   exists2 ZK : group gT, Z \subset ZK /\ ZK \subset G & ZK / Z = Kbar.

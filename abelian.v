@@ -117,7 +117,7 @@ Qed.
 Lemma sup_peak : (x \in A) || (n == 0) = support (peak x n) A.
 Proof.
 apply: eq_true_iff_eq; rewrite/peak; split.
-  move=> Axn; apply/supP => y; case: (y =P x) Axn => // -> Axn n_pos.
+  move=> Axn; apply/supP => /= y; case: (y =P x) Axn => // -> Axn n_pos.
   by rewrite eqn0Ngt n_pos orbF in Axn.
 by move/supP; move/(_ x); rewrite eqxx orbC; case: n => // ? ->.
 Qed.
@@ -403,7 +403,7 @@ Lemma mgenP : forall A x,
   reflect (exists2 f, support f A & em f = x) (x \in mgen A).
 Proof.
 move=> A x; rewrite /mgen /em /index_enum.
-elim: (enum _) x (uniq_enum gT) => /= [x _ | y s IHs x].
+elim: {+}(enum _) x (uniq_enum gT) => /= [x _ | y s IHs x].
   rewrite big_seq0 inE; apply: (iffP eqP) => [->|[]//].
   exists (fun _ : gT => 0) => //=; exact/supP.
 case/andP=> nsy; move/IHs=> {IHs}IHs; rewrite big_adds.

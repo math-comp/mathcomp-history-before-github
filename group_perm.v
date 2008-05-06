@@ -78,14 +78,14 @@ Proof. by move=> u; apply/permP => x; rewrite !permE /= permE f_finv. Qed.
 Lemma perm_mulP : associative perm_mul.
 Proof. by move=> u v w; apply/permP => x; do !rewrite permE /=. Qed.
 
-Canonical Structure perm_for_finPreGroupType := Eval hnf in
-  mkFinPreGroupType perm_mulP perm_unitP perm_invP.
-Canonical Structure perm_finPreGroupType := Eval hnf in
-  @mkFinPreGroupType perm_finType _ _ _ perm_mulP perm_unitP perm_invP.
+Canonical Structure perm_for_baseFinGroupType := Eval hnf in
+  [baseFinGroupType of pT by perm_mulP, perm_unitP & perm_invP].
+Canonical Structure perm_baseFinGroupType := Eval hnf in
+  [baseFinGroupType of perm by perm_mulP, perm_unitP & perm_invP].
 Canonical Structure perm_for_finGroupType :=
   FinGroupType perm_invP.
 Canonical Structure perm_finGroupType :=
-  @FinGroupType perm_finPreGroupType perm_invP.
+  @FinGroupType perm_baseFinGroupType perm_invP.
 
 Lemma perm1 : forall x, (1 : pT) x = x.
 Proof. by move=> x; rewrite permE. Qed.

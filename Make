@@ -16,25 +16,25 @@ bigops.v
 finset.v
 groups.v
 normal.v
+group_perm.v
 automorphism.v
 action.v
+frobenius_cauchy.v
 center.v
 zp.v
+fp.v
 cyclic.v
 sylow.v
-frobenius.v
-group_perm.v
+abelian.v
+dirprod.v
 signperm.v
-frobenius_cauchy.v
-burnside_app.v
 matrix.v
 poly.v
 charpoly.v
 schurzass.v
+frobenius.v
 alt.v
-abelian.v
-dirprod.v
-fp.v
+burnside_app.v
 
 COQC = $(COQBIN)ssrcoq
 COQFLAGS = "-q $(OPT) $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -compile"

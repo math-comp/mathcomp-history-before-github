@@ -166,9 +166,9 @@ move=> a; apply/setP.
 apply/subset_eqP; apply/andP; split; last first.
   apply/bigcap_inP; move=> i; rewrite sub1set=> Hi.
   apply/subsetP=>x; move/cyclicpredP =>[n Heq].
-  by move/eqP: Heq =><-; apply groupX.
+  by move/eqP: Heq => <-; apply: groupX.
 apply: (@bigcap_inf _ _  _ _ (Group (group_cyclicpred a))).
-by rewrite sub1set;apply/cyclicpredP;exists (0.+1); rewrite expg1.
+by rewrite sub1set; apply/cyclicpredP; exists 1%N; rewrite expg1.
 Qed.
 
 Lemma cyclicpred_order : forall a, orderg a = order (mulg a) 1.
@@ -421,13 +421,13 @@ move/eqP=>Hcor2 /=; rewrite -{2}Hcor2; move/(conj Hord1); move/andP.
 by move/(decomp_order_unicity Hord2); symmetry.
 Qed.
 
-Definition cyclic_to_zp (a:G) : G -> (I_(orderg a)):=
+Definition cyclic_to_zp (a : G) : G -> I_(orderg a) :=
   fun x => Ordinal (cyclic_to_zp_ord a x).
 
-Definition zp_to_cyclic (a:G) (n:(I_(orderg a))) : G :=
+Definition zp_to_cyclic (a : G) (n : I_(orderg a)) : FinGroup.sort G :=
   a ^+ n.
 
-Lemma zp_morph (a:G) : morphic (cyclic a) (cyclic_to_zp a).
+Lemma zp_morph (a : G) : morphic (cyclic a) (cyclic_to_zp a).
 Proof.
 move=>a; apply/morphP=> x y Hx Hy.
 move: (cyclic_to_zp_corr Hx) (cyclic_to_zp_corr Hy); move/eqP=> Hcorx.
@@ -740,7 +740,7 @@ Lemma cyclic_to_fp_loc_repr : forall (x:G),
 Proof.
 move=> x Haut.
  case e: (trivm_(cyclic x) f)%g => /=.
-  move/forallP: e => e z Hcyc; move: (e z); rewrite Hcyc; move/eqP=> Hfz /=.
+  move/forallP: e => e z Hcyc; move: (e z); rewrite Hcyc /=; move/eqP=> Hfz.
   move: (cyclicnn x); rewrite -(perm_closed _ (proj1 (andP Haut)))=> Hfx.
   rewrite Hfz; move:{+}Haut {+}Hfz; move/andP=>[_]; move/morphic1=>Hf1.
   by rewrite -{1}Hf1; move/perm_inj=>->; rewrite exp1gn.
@@ -841,24 +841,19 @@ case e:(x \in cyclic a).
 by symmetry; apply: (out_perm (proj1 (andP Haut)) (negbT e)).
 Qed.
 
-Lemma fp_inj : forall (x:G),
-  injm (cyclic_to_fp x) (set_of (Aut (cyclic x))).
+Lemma fp_inj : forall x : G, injm (cyclic_to_fp x) (set_of (Aut (cyclic x))).
 Proof.
 move=> a; apply/(injmorphicP (fp_morph a)); apply (in_can_inj  (@fp_can a)).
 Qed.
 
-Lemma fp_isom (a:G) : isom (cyclic_to_fp a) (set_of (Aut (cyclic a)))
-  (set_of (fp_mul_group {(orderg a) as pos_nat})).
+Lemma fp_isom : forall a : G,
+  isom (cyclic_to_fp a) (set_of (Aut (cyclic a))) setT.
 Proof.
-move=> a; rewrite /isom fp_inj andbT; apply/eqP; apply/setP.
-apply/subset_eqP; apply/andP; split; first by apply/subsetP=> x Hx; rewrite inE.
-apply/subsetP=> x; rewrite inE=> Hx; apply/imsetP.
-exists (fp_to_cyclic x).
-  rewrite inE /fp_to_cyclic; apply: gexpn_automorphic.
-rewrite /fp_to_cyclic; apply:val_inj=>/=.
-rewrite (cyclic_to_fp_repr (gexpn_automorphic (valP x))) /=; apply: val_inj.
-rewrite /= permE /restr cyclicnn; case x=> [x0 Hx0] /=; rewrite cyclic_to_zp_id.
-by move: (valP x0); move/modn_small=>/= ->.
+move=> a; rewrite /isom fp_inj andbT eqset_sub subsetT; apply/subsetP=> /= x _.
+apply/imsetP; exists (fp_to_cyclic x).
+  rewrite inE /fp_to_cyclic; exact: gexpn_automorphic.
+apply: val_inj=> /=; rewrite (cyclic_to_fp_repr (gexpn_automorphic (valP x))).
+by apply: val_inj; rewrite /= permE /restr cyclicnn cyclic_to_zp_id modn_small.
 Qed.
 
 End FpAut.
@@ -871,27 +866,28 @@ End FpAut.
 
 Section GenAut.
 
-Variables G G': finGroupType.
+Variables G G' : finGroupType.
 
-Lemma generator_bij : forall (f: G -> G') (H: group G),
-  (injm f H) -> morphic H f ->
-  (forall a, a \in H -> (generator H a = generator (f@: H) (f a))).
+Lemma generator_bij : forall (f : G -> G') (H : group G),
+  injm f H -> morphic H f ->
+  forall a, a \in H -> generator H a = generator (f @: H) (f a).
 Proof.
-move=> f H Hinj Hmorph a Ha; move: (morphic_subgroup (cyclic_h Ha) Hmorph)=>/=.
-move/cyclic_morph_stable=>Hcyc; apply/subset_eqP/subset_eqP=>H1.
-   by rewrite -Hcyc; move/setP: H1 =>->.
-move:{+} H1; rewrite -Hcyc; move=> H2.
+move=> f H Hinj Hmorph a Ha.
+have:= morphic_subgroup (cyclic_h Ha) Hmorph => /=.
+move/cyclic_morph_stable=> Hcyc; apply/subset_eqP/subset_eqP=> H1.
+  by rewrite -Hcyc; move/setP: H1 => ->.
+move: {+}H1; rewrite -Hcyc; move=> H2.
 apply/subset_cardP; last exact: (cyclic_h Ha).
-move/(injmorphicP Hmorph):Hinj=>Hinj; move/card_dimset:(Hinj)=><-.
+move/(injmorphicP Hmorph): Hinj => Hinj; move/card_dimset: (Hinj) => <-.
 move/card_dimset: (subin2 (subsetP (cyclic_h Ha)) Hinj) <-.
-by move/setP:H2=>->.
+by move/setP: H2 => ->.
 Qed.
 
 End GenAut.
 
 Section ZpAut.
 
-Variable G: finGroupType.
+Variable G : finGroupType.
 Variable a:G.
 
 Lemma expgn_muln : forall (k:nat) (n:pos_nat) (p:nat) (H: p < n),
@@ -901,16 +897,14 @@ elim=>[|k IH] n p H; apply: val_inj=> //=; first by rewrite muln0 modn_small.
 by rewrite expgS IH //= modn_addmr -{1}(muln1 p) -muln_addr add1n.
 Qed.
 
-Lemma zp_group_cyclic : forall (n:pos_nat) k (H:k < n),
-  coprime k n ->
-  set_of I_(n) =
-  (@cyclic {ordinal_finType _ as finGroupType} (Ordinal H)).
+Lemma zp_group_cyclic : forall (n : pos_nat) k (H : k < n),
+  coprime k n -> setT = cyclic (Ordinal H).
 Proof.
 move=>n k H Hcop; symmetry; apply/setP; apply/subset_eqP; apply/andP.
 split; first by apply/subsetP=> x //= Hx ; rewrite inE.
 apply/subsetP; move=> x _ /=; apply/cyclicP; move: k H Hcop x.
-case=> [|k] H Hcop x0.
-  rewrite /coprime gcd0n in Hcop; exists 0.+1; move:(valP x0).
+case=> [|k] H Hcop /= x0.
+  rewrite /coprime gcd0n in Hcop; exists 1%N; move: (valP x0).
   move/eqP:Hcop=>Hn; rewrite {3}Hn !ltnS !leqn0; move/eqP=>H0; apply/eqP.
   by apply: val_inj=>/=; rewrite addn0 /= H0 modn_small.
 case: (egcdnP n (ltn0Sn k))=> kk kn Heq Hineq; exists (kk * x0)%N =>/=.
@@ -920,8 +914,8 @@ move: Hcop; rewrite modn_addl_mul /coprime; move/eqP=>->.
 by rewrite mul1n modn_small.
 Qed.
 
-Lemma zp_ord : forall (n:pos_nat) (i : zp_group n),
-  i = (Ordinal (valP (i : I_(n)))).
+Lemma zp_ord : forall (n : pos_nat) (i : zp_group n),
+  i = Ordinal (valP (i : I_(n))).
 Proof. by move=> n i; apply: val_inj. Qed.
 
 Lemma zp_gen : forall (n : pos_nat) i,
@@ -988,7 +982,7 @@ Section CyclicAutomorphism_Abelian.
 
 Variable G : finGroupType.
 
-Lemma aut_cyclic_commb : forall (x : G) f g,
+Lemma aut_cyclic_commute : forall (x : G) f g,
   Aut (cyclic x) f -> Aut (cyclic x) g -> commute f g.
 Proof.
 move=> x f g Hautf Hautg.

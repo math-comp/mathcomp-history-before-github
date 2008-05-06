@@ -740,10 +740,15 @@ Coercion sort_of_simpl_pred T (p : simpl_pred T) : pred_class := p : pred T.
 (* This lets us use some types as a synonym for their universal predicate. *)
 (* Unfortunately, this won't work for existing types like bool, unless     *)
 (* we redefine bool, true, false and all bool ops.                         *)
+(*   We don't define a coercion to Sortclass because then any coercion to  *)
+(* predArgType would always be in a conflict with a preexisting coercion   *)
+(* to Sortclass.                                                           *)
 Definition predArgType := Type.
-Identity Coercion sort_of_predArgType : predArgType >-> Sortclass.
-Coercion pred_of_type (T : predArgType) : simpl_pred T := predT.
-Definition boolA : predArgType := bool.
+Coercion pred_of_argType (T : predArgType) : simpl_pred T := predT.
+
+Definition bool_for : predArgType := bool.
+Notation "{ 'bool' }" := bool_for
+  (at level 0, format "{ 'bool' }") : type_scope.
 
 (* These must be defined outside a Section because "cooking" kills the *)
 (* nosimpl tag.                                                        *)

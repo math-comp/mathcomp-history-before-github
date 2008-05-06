@@ -22,6 +22,8 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
+Notation fzp := ordinal (only parsing).
+
 Section Zp.
 
 (***********************************************************************)
@@ -29,8 +31,6 @@ Section Zp.
 (*  Definition of the finite set {0, 1, 2, ..., p - 1}                 *)
 (*                                                                     *)
 (***********************************************************************)
-
-Definition fzp (p : nat) := ordinal p.
 
 Variable p : pos_nat.
 
@@ -82,7 +82,7 @@ Qed.
 (***********************************************************************)
 
 Canonical Structure zp_pre_group := Eval hnf in
-  mkFinPreGroupType mulP_zp unit_zp invP_zp.
+  [baseFinGroupType of fzp p by mulP_zp, unit_zp & invP_zp].
 
 Canonical Structure zp_group := FinGroupType invP_zp.
 

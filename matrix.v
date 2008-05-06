@@ -510,7 +510,7 @@ rewrite (bigID (fun f : F_(n) => injectiveb f)) /= addrC big1 ?simp => [|f Uf].
     have s0 : S_(n) := 1%g; pose uf (f : F_(n)) := uniq (val f).
     exists (insubd s0) => /= f Uf; first apply: val_inj; exact: insubdK.
   apply: eq_big => /= [s|s _]; rewrite ?(valP s) // big_distrr /=.
-  rewrite (reindex (mulg s : S_(n) -> _)); last first.
+  rewrite (reindex (mulg s)); last first.
     exists (mulg s^-1) => t _; rewrite ?mulKVg ?mulKg //.
   apply: eq_bigr => t _; rewrite big_split /= mulrA mulrCA mulrA mulrCA mulrA.
   rewrite -signr_addb odd_permM; congr (_ * _).

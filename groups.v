@@ -27,73 +27,74 @@ Import GroupScope.
 
 Module FinGroup.
 
-Structure preType : Type := PreType {
-  sort : finType;
-  class := sort : Type;
-  unit : sort;
-  mul : class -> class -> sort;
-  inv : class -> sort;
+(* We split the group axiomatisation in two. We define a  *)
+(* class of "base groups", which are basically monoids    *)
+(* with an involutive antimorphism, from which we derive  *)
+(* the class of groups proper. This allows use to reuse   *)
+(* much of the group notation and algebraic axioms for    *)
+(* group subsets, by defining a base group class on them. *)
+(*   We use class/mixins here rather than telescopes to   *)
+(* be able to interoperate with the type coercions.       *)
+(* Another potential benefit (not exploited here) would   *)
+(* be to define a class for infinite groups, which could  *)
+(* share all of the algebraic laws.                       *)
+Record mixin (T : Type) : Type := Mixin {
+  mul : T -> T -> T;
+  unit : T;
+  inv : T -> T;
   _ : associative mul;
   _ : left_unit unit mul;
   _ : involutive inv;
   _ : {morph inv : x y / mul x y >-> mul y x}
 }.
 
-Structure fullType : Type := FullType {
-  base :> preType;
-  _ : left_inverse (unit base) (@inv base) (@mul base)
+Structure base_class : Type := BaseClass {
+  sort : Type;
+   _ : mixin sort;
+   _ : FinType.fullMixin sort
 }.
 
-(* We want to use class as a class, both to infer argument scopes *)
-(* properly, and to allow groups to coerce to the set monoid.     *)
+(* We want to use sort as a coercion class, both to infer         *)
+(* argument scopes properly, and to allow groups and cosets to    *)
+(* coerce to the base group of group subsets.                     *)
 (*   However, the return type of monoid operations should NOT be  *)
-(* class, since, e.g.,  this will prevent the coercion of A * B   *)
-(* to pred_sort in x \in A * B: we can't define a coercion from   *)
-(* sort to pred_sort because of the uniform inheritance, and      *)
-(* using a Canonical Structure instead will spoil the automatic   *)
-(* application of trivial set lemmas for sets overs group Types.  *)
-(*  We therefore use the composite coercion directly; note that   *)
-(* the warning about ambiguous paths can be safely ignored.       *)
-(*  Note that while using an alias for the projection would avoid *)
-(* the warning, it would also create chaos during the Canonical   *)
-(* Structure unification.                                         *)
-(* CAVEAT: because of the infamous delta-expansion bug of Coq,    *)
-(* unification of FinGroup.class with eqType_sort ? will FAIL for *)
-(* concrete group types such as coset or perm. The proper fix for *)
-(* (pending an unlikely fix of Coq itself) would be to explicitly *)
-(* construct the finType of a finGroupType from a mixin. Here we  *)
-(* mitigate the problem by using the expanded projection in the   *)
-(* return type of all the group operations. Care should be taken  *)
-(* to respect this convention when defining new operations, i.e., *)
-(* if gT : finGroupType, the return type should be written as     *)
-(* (gT : eqType), which elaborates to                             *)
-(*       eqType_sort (FinType.sort (FinGroup.sort gT))            *)
-(* rather than simply gT, which would elaborate to                *)
-(*       FinGroup.class gT                                        *)
-(* Both types display as gT, since all the functions above are    *)
-(* coercions. Note however that the inferred return type will     *)
-(* usually be of the correct form, since all the base operations  *)
-(* are declared properly.                                         *)
-(* CAVEAT^2: Coq's heuristic for simpl prevents it from expanding *)
-(* composite projections like FinGroup.class. The combination of  *)
-(* arbitrary restrictions on coercions, simplification and the    *)
-(* declaration of record projections make this an unsolvable      *)
-(* problem, short of getting rid of the composite projection      *)
-(* altogether by adopting a mixin architecture. Until then, users *)
-(* will see types like coset_finPreGroupType appear when they use *)
-(* generic group lemmas to get new constants. This is mostly a    *)
-(* presentation issue, but it may cause the loss of coercions     *)
-(* specific to the base type, e.g., the I_(n) >-> nat coercion.   *)
-(* We define a short alias for FinGroup.class below so that the   *)
-(* issue can be addressed by expanding the coercion.              *)
-Coercion class : preType >-> Sortclass.
-Coercion sort : preType >-> finType.
+(* class, since this would trump the real (head-normal) class for *)
+(* concrete group types, e.g., spoiliing the coercion of A * B to *)
+(* to pred_sort in x \in A * B, or rho * tau to ffun and Funclass *)
+(* in (rho * tau) x.                                              *)
+(*   Therefore we define an alias of sort for argument types, and *)
+(* make it the default coercion FinGroup.base_class >-> Sortclass *)
+(* so that arguments of a functions whose parameters are of type, *)
+(* say, gT : finGroupType, can be coerced to the coercion class   *)
+(* of arg_sort. Care should be taken, however, to declare the     *)
+(* return type of functions and operators as FinGroup.sort gT     *)
+(* rather than gT, e.g., mulg : gT -> gT -> FinGroup.sort gT.     *)
+(* Note that since we do this here and in normal.v for all the    *)
+(* basic functions, the inferred return type should generally be  *)
+(* correct.                                                       *)
+Coercion arg_sort := sort.
+(* This is clearly redundant, and only serves the purpose of *)
+(* eliding FinGroup.sort in the display of return types.     *)
+(* The warning could be eliminated by using the functor      *)
+(* trick to replace Sortclass by a dummy target.             *)
+Coercion sort : base_class >-> Sortclass.
+
+Coercion mixin_of T :=
+  let: BaseClass _ m _ := T return mixin T in m.
+
+Definition finmixin_of T :=
+  let: BaseClass _ _ m := T return FinType.fullMixin T in m.
+
+Structure class : Type := Class {
+  base :> base_class;
+  _ : left_inverse base.(unit) base.(inv) base.(mul)
+}.
 
 (* We only need three axioms to make a true group. *)
 
 Section Make.
 
-Variables (T : finType) (unit : T) (inv : T -> T) (mul : T -> T -> T).
+Variables (T : Type) (unit : T) (mul : T -> T -> T) (inv : T -> T).
 
 Hypothesis mulA : associative mul.
 Hypothesis mul1 : left_unit unit mul.
@@ -116,46 +117,67 @@ move=> x y /=; rewrite -[y^-1 * _]mul1 -(mulV (x * y)) -2!mulA (mulA y).
 by rewrite mulxV mul1 mulxV -(mulxV (x * y)) mulA mulV mul1.
 Qed.
 
-Definition mkPreType := PreType mulA mul1 mk_invgK mk_invMg.
+Definition mkMixin := Mixin mulA mul1 mk_invgK mk_invMg.
 
 End Make.
 
 End FinGroup.
 
-Bind Scope group_scope with FinGroup.class.
+Bind Scope group_scope with FinGroup.sort.
+Bind Scope group_scope with FinGroup.arg_sort.
 
-Notation finPreGroupType := FinGroup.preType.
-Notation FinPreGroupType := FinGroup.PreType.
-Notation mkFinPreGroupType := FinGroup.mkPreType.
+Notation baseFinGroupType := FinGroup.base_class.
+Notation BaseFinGroupType := FinGroup.BaseClass.
 
-(* To expand the class coercion for specific instances of FinGroupTypes. *)
-(* See CAVEAT^2 above.                                                   *)
-Notation gcls := FinGroup.class (only parsing).
-Lemma gclsE : forall T eqT eqTP enumT,
-  let fT := @FinType (@EqType T eqT eqTP) enumT in
-  forall one inv mul mulA mul1 invK invM,
-  gcls (@FinPreGroupType fT one inv mul mulA mul1 invK invM) = T.
-Proof. by []. Qed.
+Section InheritedClasses.
 
-Notation "[ 'finPreGroupType' 'of' t ]" :=
-  (match {t : finType as FinPreGroupType} as s
-   return [type of FinPreGroupType for s] -> _ with
-  | FinPreGroupType _ _ _ _ mA m1 vK vM => fun k => k _ _ _ mA m1 vK vM end
-  (@FinPreGroupType t)) (at level 0, only parsing) : form_scope.
+Variable T : FinGroup.base_class.
+Let mT := FinGroup.finmixin_of T.
 
-Notation finGroupType := FinGroup.fullType.
-Notation FinGroupType := FinGroup.FullType.
+Canonical Structure finGroup_arg_eqType := @EqClass T mT.
+Canonical Structure finGroup_eqType := @EqClass (FinGroup.sort T) mT.
+Canonical Structure finGroup_arg_finType := @FinClass finGroup_arg_eqType mT.
+Canonical Structure finGroup_finType := @FinClass finGroup_eqType mT.
 
-Notation "[ 'finGroupType' 'of' t ]" :=
-  (match {t : FinGroup.preType as finGroupType} as s
+End InheritedClasses.
+
+Coercion finGroup_arg_finType : baseFinGroupType >-> finType.
+
+Notation "[ 'baseFinGroupType' 'of' T ]" :=
+  (match {T : as baseFinGroupType} as s
+   return [type of BaseFinGroupType for s] -> _ with
+  | BaseFinGroupType _ mixG mixF => fun k => k mixG mixF end
+  (@BaseFinGroupType T)) (at level 0, only parsing) : form_scope.
+
+Notation Local FinMix := (FinType.mkFullMixin _).
+Notation "[ 'baseFinGroupType' 'of' T 'by' mulA , mul1 , invK & invM ]" :=
+  (@BaseFinGroupType T (FinGroup.Mixin mulA mul1 invK invM) FinMix)
+  (at level 0, only parsing) : form_scope.
+Notation "[ 'baseFinGroupType' 'of' T 'by' mulA , mul1 & mulV ]" :=
+  (@BaseFinGroupType T (FinGroup.mkMixin mulA mul1 mulV) FinMix)
+  (at level 0, only parsing) : form_scope.
+
+Notation finGroupType := FinGroup.class.
+Notation FinGroupType := FinGroup.Class.
+
+Notation "[ 'finGroupType' 'of' T ]" :=
+  (match {T : baseFinGroupType as finGroupType} as s
    return [type of FinGroupType for s] -> _ with
-  | FinGroupType _ mVg => fun k => k mVg end
-  (@FinGroupType t)) (at level 0, only parsing) : form_scope.
+  | FinGroupType _ mulV => fun k => k mulV end
+  (@FinGroupType T)) (at level 0, only parsing) : form_scope.
 
-Definition unitg := nosimpl FinGroup.unit.
-Definition mulg := nosimpl FinGroup.mul.
-Definition invg := nosimpl FinGroup.inv.
-Definition expgn_rec T x n : FinGroup.sort T := iter n (mulg x) (unitg T).
+Section ElementOps.
+
+Variable T : baseFinGroupType.
+Notation rT := (FinGroup.sort T).
+
+Definition unitg : rT := FinGroup.unit T.
+Definition mulg : T -> T -> rT := FinGroup.mul T.
+Definition invg : T -> rT := FinGroup.inv T.
+Definition expgn_rec (x : T) n : rT := iter n (mulg x) unitg.
+
+End ElementOps.
+
 Definition expgn := nosimpl expgn_rec.
 
 Notation "1" := (unitg _) : group_scope.
@@ -167,10 +189,10 @@ Notation "x ^- n" := (x ^+ n)^-1 : group_scope.
 (* Arguments of conjg are restricted to true groups to avoid an *)
 (* improper interpretation of A ^ B with A and B sets, namely:  *)
 (*       {x^-1 * (y * z) | y \in A, x, z \in B}                 *)
-Definition conjg (T : finGroupType) (x y : T) := (y^-1 * (x * y)).
+Definition conjg (T : finGroupType) (x y : T) := y^-1 * (x * y).
 Notation "x1 ^ x2" := (conjg x1 x2) : group_scope.
 
-Definition commg (T : finGroupType) (x y : T) := (x^-1 * x ^ y).
+Definition commg (T : finGroupType) (x y : T) := x^-1 * x ^ y.
 Notation "[ ~ x1 , x2 , .. , xn ]" := (commg .. (commg x1 x2) .. xn)
   (at level 0,
    format  "'[ ' [ ~  x1 , '/'  x2 , '/'  .. , '/'  xn ] ']'") : group_scope.
@@ -206,13 +228,14 @@ Notation "\prod_ ( i \in A ) F" :=
 
 Section PreGroupIdentities.
 
-Variable T : finPreGroupType.
+Variable T : baseFinGroupType.
 Implicit Types x y z : T.
 
-Lemma mulgA : @associative T mulg.  Proof. by case T. Qed.
-Lemma mul1g : @left_unit T 1 mulg.  Proof. by case T. Qed.
-Lemma invgK : @involutive T invg.   Proof. by case T. Qed.
-Lemma invMg : forall x y, (x * y)^-1 = y^-1 * x^-1. Proof. by case T. Qed.
+Lemma mulgA : @associative T mulg.  Proof. by case: T => ? []. Qed.
+Lemma mul1g : @left_unit T 1 mulg.  Proof. by case: T => ? []. Qed.
+Lemma invgK : @involutive T invg.   Proof. by case: T => ? []. Qed.
+Lemma invMg : forall x y, (x * y)^-1 = y^-1 * x^-1.
+Proof. by case: T => ? []. Qed.
 
 Lemma invg_inj : @injective T T invg. Proof. exact: can_inj invgK. Qed.
 
@@ -534,12 +557,11 @@ apply/imset2P/imset2P=> [[x y Ax By] | [y x]]; last first.
 by move/(canRL invgK)->; exists y^-1 x^-1; rewrite ?invMg // inE invgK.
 Qed.
 
-Canonical Structure group_set_for_preGroupType :=
-  FinPreGroupType set_mulgA set_mul1g set_invgK set_invgM.
+Canonical Structure group_set_for_baseGroupType :=
+  [baseFinGroupType of {set gT} by set_mulgA, set_mul1g, set_invgK & set_invgM].
 
-Canonical Structure group_set_preGroupType :=
-  @FinPreGroupType (set_finType _) _ _ _
-    set_mulgA set_mul1g set_invgK set_invgM.
+Canonical Structure group_set_baseGroupType :=
+  [baseFinGroupType of set gT by set_mulgA, set_mul1g, set_invgK & set_invgM].
 
 End SetMulDef.
 
@@ -553,22 +575,38 @@ End SetMulDef.
 (* system to declare two different identity coercions on an alias class.  *)
 
 Module GroupSet.
-Definition class (gT : finGroupType) := {set gT}.
-Identity Coercion set_of_class : class >-> set_for.
+Definition sort (gT : finGroupType) := {set gT}.
+Identity Coercion of_sort : sort >-> set_for.
 End GroupSet.
 
-Module Type GroupSetPreGroupSig.
-Definition class gT := group_set_for_preGroupType gT : Type.
-End GroupSetPreGroupSig.
+Module Type GroupSetBaseGroupSig.
+Definition sort gT := group_set_for_baseGroupType gT : Type.
+End GroupSetBaseGroupSig.
 
-Module MakeGroupSetPreGroup (gspre : GroupSetPreGroupSig).
-Identity Coercion of_class : gspre.class >-> FinGroup.class.
-End MakeGroupSetPreGroup.
+Module MakeGroupSetBaseGroup (Gset_base : GroupSetBaseGroupSig).
+Identity Coercion of_sort : Gset_base.sort >-> FinGroup.arg_sort.
+End MakeGroupSetBaseGroup.
        
-Module GroupSetPreGroup := MakeGroupSetPreGroup GroupSet.
+Module GroupSetBaseGroup := MakeGroupSetBaseGroup GroupSet.
 
-Notation "x *: A" := ([set x] * A) (at level 40) : group_scope.
-Notation "A :* x" := (A * [set x]) (at level 40) : group_scope.
+Arguments Scope conjugate_of [_ group_scope group_scope].
+Arguments Scope class_of [_ group_scope group_scope].
+Arguments Scope conjugates [_ group_scope group_scope].
+Arguments Scope rcosets [_ group_scope group_scope].
+Arguments Scope rcoset_of [_ group_scope group_scope].
+Arguments Scope lcosets [_ group_scope group_scope].
+Arguments Scope lcoset_of [_ group_scope group_scope].
+Arguments Scope class_support [_ group_scope group_scope].
+Arguments Scope normal [_ group_scope].
+Arguments Scope normaliser [_ group_scope].
+Arguments Scope normal_subset [_ group_scope group_scope].
+Arguments Scope central [_ group_scope].
+Arguments Scope centraliser [_ group_scope].
+Arguments Scope centralises [_ group_scope group_scope].
+Arguments Scope abelian [_ group_scope].
+
+Notation "x *: A" := ([set x%g] * A) (at level 40) : group_scope.
+Notation "A :* x" := (A * [set x%g]) (at level 40) : group_scope.
 Notation "A :^ x" := (conjugate_of A x) (at level 35) : group_scope.
 Notation "x ^: B" := (class_of x B) (at level 35) : group_scope.
 Notation "A :^: B" := (conjugates A B) (at level 35) : group_scope.
@@ -580,23 +618,23 @@ Notation "A :^: B" := (conjugates A B) (at level 35) : group_scope.
 
 Notation "''N' ( A )" := (normaliser A)
   (at level 9, format "''N' ( A )") : group_scope.
-Notation "'N_' ( B ) ( A )" := (B :&: 'N(A))
-  (at level 9, format "'N_' ( B ) ( A )") : group_scope.
+Notation "'N_' ( G ) ( A )" := (G%g :&: 'N(A))
+  (at level 9, format "'N_' ( G ) ( A )") : group_scope.
 Notation "A <| B" := (normal_subset A B)
   (at level 70) : group_scope.
-Notation "''C' ( A )" := (centraliser A)
+Notation "''C' ( A )" := (centraliser A%g)
   (at level 9, format "''C' ( A )") : group_scope.
-Notation "'C_' ( B ) ( A )" := (B :&: 'C(A))
-  (at level 9, format "'C_' ( B ) ( A )") : group_scope.
-Notation "''C' [ x ]" := 'N([set x])
+Notation "'C_' ( G ) ( A )" := (G%g :&: 'C(A))
+  (at level 9, format "'C_' ( G ) ( A )") : group_scope.
+Notation "''C' [ x ]" := 'N([set x%g])
   (at level 9, format "''C' [ x ]") : group_scope.
-Notation "'C_' ( H ) [ x ]" := N_(H)([set x])
-  (at level 9, format "'C_' ( H ) [ x ]") : group_scope.
+Notation "'C_' ( G ) [ x ]" := N_(G)([set x%g])
+  (at level 9, format "'C_' ( G ) [ x ]") : group_scope.
 
-Notation "{ 'for' x , 'normal' A }" := (A :^ x = A%SET)
+Notation "{ 'for' x , 'normal' A }" := (A :^ x = A%g)
    (at level 0, A at level 9,
     format "{ 'for'  x ,  'normal'  A }") : type_scope.
-Notation "{ 'for' x , 'central' A }" := (centralises x A)
+Notation "{ 'for' x , 'central' A }" := (centralises x A%g)
    (at level 0, A at level 9,
     format "{ 'for'  x ,  'central'  A }") : type_scope.
 
@@ -889,7 +927,7 @@ apply/subsetP=> z; case/mulsgP=> [x y Ax Ay ->]; exact: AM.
 Qed.
 
 Structure group : Type := Group {
-  set_of_group :> GroupSet.class gT;
+  set_of_group :> GroupSet.sort gT;
   _ : group_set set_of_group
 }.
 
@@ -902,7 +940,7 @@ Canonical Structure group_eqType :=
   Eval hnf in [subEqType for set_of_group : group -> sT].
 Canonical Structure group_finType := Eval hnf in [subFinType of group_eqType].
 
-(* No predType or finPreGroupType structures, as these would hide the *)
+(* No predType or baseFinGroupType structures, as these would hide the *)
 (* group-to-set coercion and thus spoil unification.                  *)
 
 Canonical Structure group_for_subType := Eval hnf in [subType of groupT].
@@ -920,9 +958,11 @@ Canonical Structure unit_group := Group group_set_unit.
 Canonical Structure set1_group := @Group [set 1] group_set_unit.
 
 Lemma group_setT : group_set setT.
-Proof. by apply/group_setP; split=> [|? ?]. Qed.
+Proof. apply/group_setP; split=> [|x y _ _]; exact: in_setT. Qed.
 
 Canonical Structure setT_group := Group group_setT.
+
+Definition setT_group_for of phant gT := setT_group.
 
 (* Trivial group predicate and product remainder functions *)
 
@@ -947,6 +987,10 @@ Implicit Arguments group_setP [gT A].
 Prenex Implicits group_set trivg remgl remgr.
 Prenex Implicits mulsgP lcosetP lcosetsP rcosetP rcosetsP group_setP.
 
+Arguments Scope commutator [_ group_scope group_scope].
+Arguments Scope mulgen [_ group_scope group_scope].
+Arguments Scope generated [_ group_scope].
+
 Notation "{ 'group' gT }" := (group_for (Phant gT))
   (at level 0, format "{ 'group'  gT }") : type_scope.
 
@@ -958,7 +1002,10 @@ Notation "[ 'group' 'of' G ]" :=
 Bind Scope subgroup_scope with group.
 Bind Scope subgroup_scope with group_for.
 Notation "1" := (unit_group _) : subgroup_scope.
-(* No notation for setT_group, which is to be instanciated explicitly. *)
+Notation "[ 'setT' ]" := (setT_group _)
+  (at level 0, format "[ 'setT' ]") : subgroup_scope.
+Notation "[ 'setT' gT ]" := (setT_group_for (Phant gT))
+  (at level 0, format "[ 'setT'  gT ]") : subgroup_scope.
 
 Notation "<< A >>"  := (generated A)
  (at level 0, format "<< A >>") : group_scope.
@@ -987,6 +1034,17 @@ Lemma valG : val G = G. Proof. by []. Qed.
 
 Lemma group1 : 1 \in G. Proof. by case/group_setP: (valP G). Qed.
 Hint Resolve group1.
+
+(* Loads of silly variants to placate the incompleteness of trivial. *)
+(* An alternative would be to upgrade done, pending better support   *)
+(* in the ssreflect ML code.                                         *)
+Notation gTr := (FinGroup.sort gT).
+Notation Gcl := (pred_of_set G : pred gTr).
+Lemma group1_class1 : (1 : gTr) \in G. Proof. by []. Qed.
+Lemma group1_class2 : 1 \in Gcl. Proof. by []. Qed.
+Lemma group1_class12 : (1 : gTr) \in Gcl. Proof. by []. Qed.
+Lemma group1_eqType : (1 : gT : eqType) \in G. Proof. by []. Qed.
+Lemma group1_finType : (1 : gT : finType) \in G. Proof. by []. Qed.
 
 Lemma sub1G : 1%G \subset G. Proof. by rewrite sub1set. Qed.
 
@@ -1232,8 +1290,8 @@ Proof. move=> u; apply: val_inj; exact: mulVg. Qed.
 Lemma subgroup_mulP : associative subgroup_mul.
 Proof. move=> u v w; apply: val_inj; exact: mulgA. Qed.
 
-Canonical Structure subFinMonoidType :=
-  mkFinPreGroupType subgroup_mulP subgroup_unitP subgroup_invP.
+Canonical Structure subBaseFinGroupType :=
+  [baseFinGroupType of subgT by subgroup_mulP, subgroup_unitP & subgroup_invP].
 Canonical Structure subFinGroupType := FinGroupType subgroup_invP.
 
 End OneGroup.
@@ -1304,7 +1362,8 @@ Qed.
 
 End GroupProp.
 
-Hint Resolve group1 pos_card_group.
+Hint Resolve group1 group1_class1 group1_class12 group1_class12.
+Hint Resolve group1_eqType group1_finType pos_card_group.
 
 Notation "G :^ x" := (conjG_group G x) : subgroup_scope.
 
@@ -1411,6 +1470,8 @@ End GroupInter.
 
 Definition mulGen (gT : finGroupType) (G H : {group gT}) :=
   nosimpl (mulgen_group G H).
+
+Arguments Scope generated_group [_ group_scope].
 
 Notation "G :&: H" := (setI_group G H) : subgroup_scope.
 Notation "<< A >>"  := (generated_group A) : subgroup_scope.
@@ -1721,12 +1782,15 @@ Implicit Arguments normalsubP [gT A B].
 Implicit Arguments centralP [gT A B].
 Prenex Implicits normgP normalP centg1P normalsubP centgP centralP.
 
+Arguments Scope normaliser_group [_ group_scope].
+Arguments Scope centraliser_group [_ group_scope].
+
 Notation "''N' ( A )" := (normaliser_group A) : subgroup_scope.
 Notation "''C' ( A )" := (centraliser_group A) : subgroup_scope.
-Notation "''C' [ x ]" := ('N([set x]))%G : subgroup_scope.
+Notation "''C' [ x ]" := ('N([set x%g]))%G : subgroup_scope.
 Notation "'N_' ( G ) ( A )" := (G :&: 'N(A))%G : subgroup_scope.
 Notation "'C_' ( G ) ( A )" := (G :&: 'C(A))%G : subgroup_scope.
-Notation "'C_' ( H ) [ x ]" := (N_(H)([set x]))%G : subgroup_scope.
+Notation "'C_' ( H ) [ x ]" := (N_(H)([set x%g]))%G : subgroup_scope.
 
 Section Maximal.
 

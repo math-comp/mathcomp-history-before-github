@@ -48,14 +48,6 @@ Delimit Scope N_scope with num.
 Delimit Scope nat_scope with N.
 Delimit Scope nat_rec_scope with Nrec.
 
-(* Rebind symbolic 0 and 1 to their numeric equivalent. *)
-(* Not needed in Coq 8.1pl3
-Notation "1" := 1 (at level 0) : nat_scope.
-Notation "0" := 0 (at level 0) : nat_scope.
-Notation "0" := BinNat.N0 : N_scope.
-Notation "1" := (BinNat.Npos BinPos.xH) : N_scope.
-*)
-
 (* Postfix notation for the successor and predecessor functions.  *)
 (* SSreflect uses "pred" for the generic predicate type, and S as *)
 (* a local bound variable.                                        *)
@@ -113,10 +105,11 @@ move=> n m; apply: (iffP idP) => [|<-]; last by elim n.
 by elim: n m => [|n IHn] [|m] //=; move/IHn->.
 Qed.
 
+Canonical Structure nat_eqMixin := EqMixin eqnP.
+Canonical Structure nat_eqType := EqClass nat_eqMixin.
+
 Implicit Arguments eqnP [x y].
 Prenex Implicits eqnP.
-
-Canonical Structure nat_eqType := EqType (@eqnP).
 
 Lemma eqnE : eqn = eqd. Proof. by []. Qed.
 
@@ -1325,7 +1318,8 @@ move=> p q; apply: (iffP idP) => [|[<-]]; last by case: p => //; elim.
 by case: q; case: p => //; elim=> [p IHp|p IHp|] [q|q|] //=; case/IHp=> ->.
 Qed.
 
-Canonical Structure bin_nat_eqType := EqType eq_binP.
+Canonical Structure bin_nat_eqMixin := EqMixin eq_binP.
+Canonical Structure bin_nat_eqType := EqClass bin_nat_eqMixin.
 
 Section NumberInterpretation.
 
@@ -1419,7 +1413,7 @@ Coercion extend_number : number >-> Funclass.
 Lemma eq_numP : reflect_eq (fun nn1 nn2 : number => nn1 == nn2 :> N).
 Proof. by move=> [b1] [b2]; apply: (iffP eqP) => [[]|] ->. Qed.
 
-Canonical Structure number_eqType := EqType eq_numP.
+Canonical Structure number_eqType := mkEqType eq_numP.
 
 Notation "[ 'Num' 'of' e ]" := (Num (bin_of_nat e))
   (at level 0, format "[ 'Num'  'of'  e ]") : nat_scope.

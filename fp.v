@@ -77,10 +77,10 @@ Proof.
 by move=> x y z; do 2!apply: val_inj; rewrite /= modn_mulmr modn_mulml mulnA.
 Qed.
 
-Canonical Structure fp_mul_pre_group := Eval hnf in
-  mkFinPreGroupType mulP_fp_mul unit_fp_mul invP_fp_mul.
+Canonical Structure fp_mul_baseFinGroupType := Eval hnf in
+  [baseFinGroupType of fp_mul n by mulP_fp_mul, unit_fp_mul & invP_fp_mul].
 
-Canonical Structure fp_mul_group := FinGroupType invP_fp_mul.
+Canonical Structure fp_mul_finGroupType := FinGroupType invP_fp_mul.
 
 (* This introduces an unwanted dependency to cyclic
 

@@ -634,7 +634,8 @@ case: (x1 =P x2) => [<-|neqx]; last by right; case.
 by apply: (iffP (IHs _)) => [<-|[]].
 Qed.
 
-Canonical Structure seq_eqType := EqType eqseqP.
+Canonical Structure seq_eqMixin := EqMixin eqseqP.
+Canonical Structure seq_eqType := EqClass seq_eqMixin.
 
 Lemma eqseqE : eqseq = eqd. Proof. by []. Qed.
 

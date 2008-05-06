@@ -21,36 +21,50 @@ Import Prenex Implicits.
 Definition reflect_eq T eq :=
   forall x y : T, reflect (x = y) (eq x y).
 
-Structure eqType : Type := EqType {
-  eqType_sort :> Type;
-  eqType_eqd : rel eqType_sort;
-   _ : reflect_eq eqType_eqd
-}.
+Module EqType.
+
+Structure mixin (T : Type) : Type := Mixin { eqd : rel T; _ : reflect_eq eqd }.
+Structure class : Type := Class { sort :> Type; _ : mixin sort }.
+Coercion mixin_of T := let: Class _ m := T return mixin T in m.
+
+End EqType.
 
 Delimit Scope eq_scope with EQ.
 Open Scope eq_scope.
 
-Notation "[ 'eqType' 'of' t ]" :=
-  (match {t : as eqType} as s return [type of EqType for s] -> _ with
-  | EqType _ _ eP => fun k => k _ eP end
-  (@EqType t)) (at level 0, only parsing) : form_scope.
+Notation eqType := EqType.class.
+Notation EqClass := EqType.Class.
+Notation EqMixin := EqType.Mixin.
 
-Definition eqd T : rel _ := nosimpl (@eqType_eqd T).
+Definition mkEqType T e eP := EqClass (@EqMixin T e eP).
 
-Lemma eqE : forall T x, @eqd T x = eqType_eqd x. Proof. done. Qed.
+Notation "[ 'eqType' 'of' T ]" :=
+  (match {T : as eqType} as s return [type of EqClass for s] -> _ with
+  | EqClass _ m => fun k => k m end
+  (@EqClass T)) (at level 0, only parsing) : form_scope.
 
-Lemma eqP : forall T, reflect_eq (@eqd T). Proof. by case. Qed.
+Section EqOps.
+
+Variable T : eqType.
+
+Definition eqd : rel T := T.(EqType.eqd).
+
+Lemma eqE : forall x, eqd x = T.(EqType.eqd) x. Proof. by []. Qed.
+
+Lemma eqP : reflect_eq eqd. Proof. by rewrite /eqd; case: T => ? []. Qed.
+
+End EqOps.
 
 Implicit Arguments eqP [T x y].
 
 Notation "x == y" := (eqd x y)
-  (at level 70, no associativity) : eq_scope.
+  (at level 70, no associativity) : bool_scope.
 Notation "x == y :> T" := ((x : T) == (y : T))
-  (at level 70, y at next level) : eq_scope.
+  (at level 70, y at next level) : bool_scope.
 Notation "x != y" := (~~ (x == y))
-  (at level 70, no associativity) : eq_scope.
+  (at level 70, no associativity) : bool_scope.
 Notation "x != y :> T" := (~~ (x == y :> T))
-  (at level 70, y at next level) : eq_scope.
+  (at level 70, y at next level) : bool_scope.
 Notation "x =P y" := (eqP : reflect (x = y) (x == y))
   (at level 70, no associativity) : eq_scope.
 Notation "x =P y :> T" := (eqP : reflect (x = y :> T) (x == y :> T))
@@ -79,16 +93,25 @@ Qed.
 Corollary eq_axiomK : forall (T : eqType) (x : T) (e : x = x), e = erefl x.
 Proof. move=> *; exact: eq_irrelevance. Qed.
 
-(* Identify an abstract eqType with its universally true predicate. *)
+(* We use the module system to circumvent a silly limitation that  *)
+(* forbids using the same constant to coerce to different targets. *)
+Module Type EqTypePredSig.
+Parameter sort : eqType -> predArgType.
+End EqTypePredSig.
+Module MakeEqTypePred (eqmod : EqTypePredSig).
+Coercion eqmod.sort : eqType >-> predArgType.
+End MakeEqTypePred.
+Module EqTypePred := MakeEqTypePred EqType.
 
-Coercion eqTypeA (T : eqType) : simpl_pred T := predT.
+Coercion eqTypeT (T : eqType) : simpl_pred T := predT.
 
 (* Comparison for booleans. *)
 
 Lemma eqbP : reflect_eq eqb.
 Proof. by do 2 case; constructor. Qed.
 
-Canonical Structure bool_eqType := EqType eqbP.
+Canonical Structure bool_eqMixin := EqMixin eqbP.
+Canonical Structure bool_eqType := EqClass bool_eqMixin.
 
 Lemma eqbE : eqb = eqd. Proof. done. Qed.
 
@@ -250,11 +273,10 @@ Hypothesis Hcompare : forall x y : T, {x = y} + {x <> y}.
 
 Definition compareb x y := if Hcompare x y is left _ then true else false.
 
-
 Lemma compareP : reflect_eq compareb.
 Proof. by move=> x y; rewrite /compareb; case (Hcompare x y); constructor. Qed.
 
-Definition comparableType := EqType compareP.
+Definition comparableType := mkEqType compareP.
 
 End ComparableType.
 
@@ -432,7 +454,7 @@ Variables (T : Type) (eT : eqType) (f : T -> eT).
 Lemma inj_reflect_eq : injective f -> reflect_eq (feq f).
 Proof. by move=> f_inj x y; apply: (iffP eqP) => [|-> //]; exact: f_inj. Qed.
 
-Definition InjEqType f_inj := EqType (inj_reflect_eq f_inj).
+Definition InjEqType f_inj := mkEqType (inj_reflect_eq f_inj).
 
 Definition PcanEqType g (fK : pcancel f g) := InjEqType (pcan_inj fK).
 
@@ -447,7 +469,7 @@ Variables (T : eqType) (p : pred T) (sT : subType p).
 Lemma val_eqP : @reflect_eq sT (feq val).
 Proof. exact: inj_reflect_eq val_inj. Qed.
 
-Canonical Structure sub_eqType := EqType val_eqP.
+Canonical Structure sub_eqType := mkEqType val_eqP.
 
 Lemma val_eqE : forall u v : sT, (val u == val v) = (u == v).
 Proof. by []. Qed.
@@ -458,7 +480,7 @@ Implicit Arguments val_eqP [T p sT x y].
 Prenex Implicits val_eqP.
 
 Notation "[ 'subEqType' 'for' proj ]" :=
-  (@EqType _ (feq proj) (@val_eqP _ _ _))
+  (@mkEqType _ (feq proj) (@val_eqP _ _ _))
   (at level 0, only parsing) : form_scope.
 
 Canonical Structure sig_eqType (T : eqType) (p : pred T) :=
@@ -476,7 +498,7 @@ move=> [x1 x2] [y1 y2] /=; apply: (iffP andP) => [[]|[<- <-]] //=.
 by do 2!move/eqP->.
 Qed.
 
-Canonical Structure prod_eqType := EqType pair_eqP.
+Canonical Structure prod_eqType := mkEqType pair_eqP.
 
 Lemma pair_eqE : pair_eq = eqd :> rel _. Proof. by []. Qed.
 
@@ -510,7 +532,8 @@ Proof.
 case=> [x|] [y|] /=; by [constructor | apply: (iffP eqP) => [|[]] ->].
 Qed.
 
-Canonical Structure option_eqType := EqType eq_optP.
+Canonical Structure option_eqMixin := EqMixin eq_optP.
+Canonical Structure option_eqType := EqClass option_eqMixin.
 
 End OptionEqType.
 
@@ -542,7 +565,8 @@ case: (i =P j) y => [<-|Hij] y; last by right; case.
 by apply: (iffP eqP) => [->|<-]; rewrite tagged_as_same.
 Qed.
 
-Canonical Structure sum_eqType := EqType sum_eqP.
+Canonical Structure sum_eqMixin := EqMixin sum_eqP.
+Canonical Structure sum_eqType := EqClass sum_eqMixin.
 
 Lemma sum_eqE : sum_eq = eqd. Proof. by []. Qed.
 

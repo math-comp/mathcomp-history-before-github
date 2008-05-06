@@ -75,11 +75,11 @@ Section Cosets.
 
 Variables (gT : finGroupType) (A : {set gT}).
 
-(* We let cosets coerce to GroupSet.class, so they inherit the  *)
-(* group subset pre-group structure. Eventually we will define  *)
-(* a proper group structure on cosets, which will then hide the *)
+(* We let cosets coerce to GroupSet.sort, so they inherit the   *)
+(* group subset base group structure. Later we will define a    *)
+(* proper group structure on cosets, which will then hide the   *)
 (* inherited structure (once coset unifies with FinGroup.sort   *)
-(* the coercion to GroupSet.class will no longer be used). Note *)
+(* the coercion to GroupSet.sort will no longer be used). Note  *)
 (* that for Hx Hy : coset H, Hx * Hy : {set gT} can be either   *)
 (*           set_of_coset (mulg Hx Hy)                          *)
 (*   or mulg (set_of_coset Hx) (set_of_coset Hy)                *)
@@ -87,7 +87,7 @@ Variables (gT : finGroupType) (A : {set gT}).
 (* can live with this ambiguity.                                *)
 
 Record coset : Type := Coset {
-  set_of_coset :> GroupSet.class gT;
+  set_of_coset :> GroupSet.sort gT;
   _ : set_of_coset \in rcosets A 'N(A)
 }.
 
@@ -124,7 +124,7 @@ Definition mpreim (B : {set gT2}) := (f @^-1: B) :&: dom.
 Definition trivm := forallb z, f z == 1.
 
 (* Quotient morphism *)
-Definition mquo (A : {set gT1}) (Ax : coset A) : (gT2 : eqType) :=
+Definition mquo (A : {set gT1}) (Ax : coset A) : FinGroup.sort gT2 :=
   if A \subset ker then f (repr Ax) else 1.
 
 (* Being a morphism injective on A*)
@@ -135,10 +135,10 @@ Definition isom (A : {set gT1}) (B : {set gT2}) :=
   (f @: A == B) && injm A.
 
 (* The inverse morphism of an injective morphism *)
-Definition invm  A y : (gT1 : eqType) :=
+Definition invm  A y : FinGroup.sort gT1 :=
   if injm A then repr [set x \in A | f x == y] else 1.
 
-Definition idm (x : gT1) : (gT1 : eqType) := x.
+Definition idm (x : gT1) : FinGroup.sort gT1 := x.
 
 End MorphismDefs.
 
@@ -269,9 +269,9 @@ Qed.
 
 Lemma ker_dinj : {in H &, injective f} -> ker_(H) f = 1.
 Proof.
-move=> If; apply/setP=> x; apply/setIP/idP; rewrite !inE; last first.
-  by move/eqP->; rewrite group1; split=> //; apply/forallP=> y; rewrite mul1g.
-by case=> Kx Hx; have:= forallP Kx 1; rewrite mulg1; move/eqP; move/If->.
+move=> injf; apply/eqP; rewrite eqset_sub sub1set group1 andbT.
+apply/subsetP=> x; case/setIP; move/kerP=> Kx Hx; have:= Kx 1.
+by rewrite mulg1 inE; move/injf->.
 Qed.
 
 Lemma trivm_injm_r : trivm_(H) f && injm f H -> trivg H.
@@ -296,7 +296,7 @@ Section Morphisms.
 Variables (gT1 gT2 : finGroupType).
 
 Structure morphism : Type := Morphism {
-  mfun :> gT1 -> (gT2 : eqType);
+  mfun :> gT1 -> FinGroup.sort gT2;
   group_set_dom : group_set (dom mfun);
   morphM : {in dom mfun &, {morph mfun : x y / x * y}}
 }.
@@ -473,7 +473,7 @@ Lemma gen_f_com : forall A : {set gT1},
   A \subset dom f -> f @: <<A>> = <<f @: A>>.
 Proof.
 move=> A sAD; apply/setP; apply/subset_eqP; apply/andP.
-split; last by apply: bigcap_inf => /=; apply imsetS; apply/bigcap_inP.
+split; last by apply: bigcap_inf => /=; apply: imsetS; apply/bigcap_inP.
 apply/bigcap_inP=> /= H; move/subsetP=> sfAH.
 suff sAf'H: A \subset mpreim f H.
   rewrite -gen_subG /= in sAf'H; apply: subset_trans (imsetS f sAf'H) _.
@@ -699,7 +699,7 @@ by rewrite -lcosetM mulVg mul1g.
 Qed.
 
 Canonical Structure coset_preGroupType :=
-  mkFinPreGroupType coset_mulP coset_unitP coset_invP.
+  [baseFinGroupType of coset H by coset_mulP, coset_unitP & coset_invP].
 Canonical Structure coset_groupType := FinGroupType coset_invP.
 
 End CosetGroupType.
@@ -1017,7 +1017,8 @@ Qed.
 
 Lemma subset_dom_mquo : dom f / H \subset dom fq.
 Proof.
-apply/subsetP=> Abar DAbar; case Hnt: (trivm fq); first by rewrite trivm_dom ?in_setT.
+apply/subsetP=> Abar DAbar.
+case Hnt: (trivm fq); first by rewrite trivm_dom ?in_setT.
 by rewrite dom_mquo_nt ?Hnt.
 Qed.
 
@@ -1109,7 +1110,8 @@ move=> injf ntrH; rewrite /dom kert_invm // -setU1E.
 apply/setP=> y; apply/setU1P/imsetP=> [[->|]|[x Hx ->{y}]].
 - by exists (1 : gT1); rewrite ?morph1.
 - by rewrite inE; case/invm_nu; exists (invm f H y).
-by rewrite inE invIm //; case: (x =P 1) => [->|_]; rewrite ?morph1; auto.
+rewrite inE invIm //; case: (x =P 1) => [->|]; first by left; rewrite morph1.
+by move/eqP; right.
 Qed.
 
 Lemma ker_invm : injm f H -> ker_(f @: H) invfH = 1.

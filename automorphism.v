@@ -33,7 +33,7 @@ Definition morphic :=
 Lemma morphP : reflect {in H &, {morph g : x y / x * y}} morphic.
 Proof.
 apply: (iffP forallP) => [gmorph x y Hx Hy | gmorph x].
-  by have:= forallP (gmorph x) y; rewrite Hx Hy; move/eqP.
+  by have:= forallP (gmorph x) y; rewrite Hx Hy /=; move/eqP.
 by apply/forallP=> y; apply/implyP; case/andP=> Hx Hy; rewrite gmorph.
 Qed.
 
@@ -92,7 +92,7 @@ Hypothesis Hmorph: morphic H f.
 Lemma dom_mrestr : ~~ trivm_(H) f -> dom (mrestr f H) = H.
 Proof.
 move=> Htriv; apply/setP=> x; apply/idP/idP.
-  case/setUP; last by rewrite inE /=; case (x \in H); rewrite ?eqxx.
+  case/setUP; last by rewrite inE /=; case: (x \in H); rewrite ?eqxx.
   move: Htriv; rewrite -group_trivm_mrestr; case/existsP=> y nfHy1.
   have:= nfHy1 => /=; case: ifP => [Hy nfy1|_]; last by rewrite eqxx.
   rewrite -(groupMr x Hy); move/kerP; move/(_ y); rewrite /= Hy.
@@ -201,7 +201,7 @@ case Hfx1: (f x != 1).
   have Dx: x \in dom f by exact: dom_nu.
   rewrite inE Dx andbT.
   apply/kermorphicP; by [rewrite inE Ax Dx andbT | apply/eqP].
-case/eqP: Hx1; move/eqP:Hfx1; rewrite -morphic1; exact: Hinj.
+case/eqP: Hx1; move/eqP: Hfx1; rewrite -morphic1; exact: Hinj.
 Qed.
 
 Lemma injm_morphicrestr : injm f H -> injm (morphicrestr f H) H.
@@ -452,7 +452,7 @@ Variable H : group G.
 Lemma conjg_closed : forall g, g \in H -> (conjgm g @: H) \subset H.
 Proof.
 move=> g Hg; apply/subsetP=> x; move/imsetP=>[y Hy ->].
-by rewrite permE; apply groupJ.
+by rewrite permE groupJ.
 Qed.
 
 Lemma conjg_morphic : forall g, morphic H (conjgm g).
@@ -500,7 +500,7 @@ Qed.
 
 Lemma trivg_char : characteristic H 1.
 Proof.
-apply/subset_charP; split; first by rewrite sub1set.
+apply/subset_charP; split; first by rewrite sub1G.
 move=> f; move/andP=> [_ Hmorph] /=; rewrite imset_set1 sub1set.
 by apply/set1P; rewrite (morphic1 Hmorph).
 Qed.

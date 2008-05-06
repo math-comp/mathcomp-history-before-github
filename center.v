@@ -97,7 +97,7 @@ Variable H : group gT.
 
 Lemma center_cyclic_abelian : forall a, H / 'Z(H) = cyclic a -> (H = 'Z(H))%G.
 Proof.
-rewrite {1}/gcls /= => a Ha; apply group_inj; apply/setP.
+move=> /= a Ha; apply group_inj; apply/setP.
 apply/subset_eqP; apply/andP; split; last exact:subset_center.
 case trivco: (trivm (coset_of 'Z(H))).
   by move/trivm_coset_of: trivco=>/= nH; case/andP: (centerN H); rewrite nH.

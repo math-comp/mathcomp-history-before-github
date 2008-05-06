@@ -201,10 +201,10 @@ Section FinTuple.
 Variables (n : nat) (T : finType).
 Notation tT := (tuple n T).
 
-Lemma tuple_enum : {et : seq tT | enumeration et}.
+Lemma tuple_enum : {finMixin tT}.
 Proof.
 elim: n => [|m [et cnt_et]].
-  by apply: exist [::[tuple]] _ => t; rewrite /= [t]tuple0.
+  by exists [:: ([tuple] : tuple 0 T)] => t; rewrite /= [t]tuple0.
 exists (foldr (fun x => cat (maps (adds_tuple x) et)) [::] (enum T)).
 case/tupleP=> x t; rewrite -[1]/(x \in T : nat) -(mem_enum T).
 elim: (enum T) (uniq_enum T) => //= y e IHe; case/andP=> ney.
@@ -213,7 +213,7 @@ rewrite -[preim _ _]/[fun t' => (y == x) && (t' == t)] /= eq_sym.
 by move/negPf: ney; case: eqP => [-> -> | _ _]; rewrite (cnt_et, count_pred0).
 Qed.
 
-Canonical Structure tuple_finType := FinType tuple_enum.
+Canonical Structure tuple_finType := FinClass tuple_enum.
 Canonical Structure tuple_repr_finType :=
   Eval hnf in [finType of tuple_repr_eqType n T for tuple_finType].
 

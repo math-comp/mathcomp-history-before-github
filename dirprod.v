@@ -46,8 +46,9 @@ Proof. by move=> x; congr (_, _); exact: mulVg. Qed.
 Lemma extprod_mulgA : associative extprod_mulg.
 Proof. by move=> x y z; congr (_, _); exact: mulgA. Qed.
 
-Canonical Structure extprod_finPreGroupType := Eval hnf in
-  mkFinPreGroupType extprod_mulgA extprod_mul1g extprod_mulVg.
+Canonical Structure extprod_baseFinGroupType := Eval hnf in
+  [baseFinGroupType of gT1 * gT2
+     by extprod_mulgA, extprod_mul1g & extprod_mulVg].
 
 Canonical Structure prod_group := FinGroupType extprod_mulVg.
 
@@ -125,7 +126,7 @@ suff: {in H1, central H2}.
 (* This ia a classic use of commutators *)
 move=> x1 Hx1 /= x2 Hx2; apply/commgP; rewrite -in_set1.
 apply: (subsetP trH); rewrite inE {1}commgEl commgEr.
-rewrite groupMl (groupMr, groupV) //.
+rewrite groupMl (groupMr _ Hx2, groupV) //.
 case/normalsubP: nH1 => sH1 nH1; case/normalsubP: nH2 => sH2 nH2.
 rewrite -(nH1 _ (subsetP sH2 _ Hx2)) -(nH2 _ (subsetP sH1 _ Hx1)).
 by rewrite !memJ_conjg Hx1 groupV.
