@@ -20,6 +20,9 @@ Import Prenex Implicits.
 Delimit Scope group_scope with g.
 Delimit Scope subgroup_scope with G.
 
+(* This module can be imported to open the scope for group element *)
+(* operations locally to a file, without exporing the Open to      *)
+(* clients of that file (as Open would do).                        *)
 Module GroupScope.
 Open Scope group_scope.
 End GroupScope.
@@ -57,11 +60,11 @@ Structure base_class : Type := BaseClass {
 (* We want to use sort as a coercion class, both to infer         *)
 (* argument scopes properly, and to allow groups and cosets to    *)
 (* coerce to the base group of group subsets.                     *)
-(*   However, the return type of monoid operations should NOT be  *)
-(* class, since this would trump the real (head-normal) class for *)
-(* concrete group types, e.g., spoiliing the coercion of A * B to *)
-(* to pred_sort in x \in A * B, or rho * tau to ffun and Funclass *)
-(* in (rho * tau) x.                                              *)
+(*   However, the return type of group operations should NOT be a *)
+(* coercion class, since this would trump the real (head-normal)  *)
+(* coercion class for concrete group types, thus spoiling the     *)
+(* coercion of A * B to pred_sort in x \in A * B, or rho * tau to *)
+(* ffun and Funclass in (rho * tau) x, when rho tau : perm T.     *)
 (*   Therefore we define an alias of sort for argument types, and *)
 (* make it the default coercion FinGroup.base_class >-> Sortclass *)
 (* so that arguments of a functions whose parameters are of type, *)
@@ -73,10 +76,10 @@ Structure base_class : Type := BaseClass {
 (* basic functions, the inferred return type should generally be  *)
 (* correct.                                                       *)
 Coercion arg_sort := sort.
-(* This is clearly redundant, and only serves the purpose of *)
-(* eliding FinGroup.sort in the display of return types.     *)
-(* The warning could be eliminated by using the functor      *)
-(* trick to replace Sortclass by a dummy target.             *)
+(* Declaring sort as a Coercion is clearly redundant; it only     *)
+(* serves the purpose of eliding FinGroup.sort in the display of  *)
+(* return types. The warning could be eliminated by using the     *)
+(* functor trick to replace Sortclass by a dummy target.          *)
 Coercion sort : base_class >-> Sortclass.
 
 Coercion mixin_of T :=
@@ -131,7 +134,7 @@ Notation BaseFinGroupType := FinGroup.BaseClass.
 
 Section InheritedClasses.
 
-Variable T : FinGroup.base_class.
+Variable T : baseFinGroupType.
 Let mT := FinGroup.finmixin_of T.
 
 Canonical Structure finGroup_arg_eqType := @EqClass T mT.
@@ -557,11 +560,11 @@ apply/imset2P/imset2P=> [[x y Ax By] | [y x]]; last first.
 by move/(canRL invgK)->; exists y^-1 x^-1; rewrite ?invMg // inE invgK.
 Qed.
 
-Canonical Structure group_set_for_baseGroupType :=
-  [baseFinGroupType of {set gT} by set_mulgA, set_mul1g, set_invgK & set_invgM].
-
 Canonical Structure group_set_baseGroupType :=
   [baseFinGroupType of set gT by set_mulgA, set_mul1g, set_invgK & set_invgM].
+
+Canonical Structure group_set_for_baseGroupType := Eval hnf in
+  [baseFinGroupType of {set gT}].
 
 End SetMulDef.
 
