@@ -238,11 +238,9 @@ move=> x y; apply/idP/idP; last by move =>*; apply: connect1.
 move/connectP=> [p Hp <- {y}]; rewrite orbit_sym.
 elim: p x Hp => [|y p IHp] x /=; first by rewrite orbit_refl.
 move/andP=> [Hxy Hp].
-move: (IHp _ Hp) => H1. rewrite -/orbit orbit_sym in Hxy.
-rewrite orbit_sym /orbit in H1; unlock imset in H1; rewrite inE in H1. 
-unlock orbit imset; rewrite inE -(f_diinv H1).
-unlock orbit imset in Hxy; rewrite inE in Hxy.
-rewrite -(f_diinv Hxy) -{1}(act1 to y) -(mulgV (diinv H1)).
+move: (IHp _ Hp) => H1; rewrite -/orbit orbit_sym in Hxy.
+rewrite orbit_sym /orbit /imset !unlock !inE in H1 Hxy *.
+rewrite -(f_diinv H1) -(f_diinv Hxy) -{1}(act1 to y) -(mulgV (diinv H1)).
 set k := diinv H1.
 set k1 := diinv Hxy.
 have F1: k \in G by apply (a_diinv H1).

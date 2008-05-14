@@ -201,7 +201,7 @@ Section FinTuple.
 Variables (n : nat) (T : finType).
 Notation tT := (tuple n T).
 
-Lemma tuple_enum : {finMixin tT}.
+Lemma tuple_enum : {enumMixin tT}.
 Proof.
 elim: n => [|m [et cnt_et]].
   by exists [:: ([tuple] : tuple 0 T)] => t; rewrite /= [t]tuple0.
@@ -213,9 +213,13 @@ rewrite -[preim _ _]/[fun t' => (y == x) && (t' == t)] /= eq_sym.
 by move/negPf: ney; case: eqP => [-> -> | _ _]; rewrite (cnt_et, count_pred0).
 Qed.
 
-Canonical Structure tuple_finType := FinClass tuple_enum.
-Canonical Structure tuple_repr_finType :=
-  Eval hnf in [finType of tuple_repr_eqType n T for tuple_finType].
+Definition tuple_finMixin := @FinMixin tT _ tuple_enum.
+Canonical Structure tuple_finType := FinClass tuple_finMixin.
+Canonical Structure tuple_subFinType := SubFinType tuple_finMixin.
+
+Definition tuple_repr_finMixin := @FinMixin (tuple_repr n T) _ tuple_enum.
+Canonical Structure tuple_repr_finType := FinClass tuple_repr_finMixin.
+Canonical Structure tuple_repr_subFinType := SubFinType tuple_repr_finMixin.
 
 Lemma enum_tupleP : forall a : pred T, size (enum a) == #|a|.
 Proof. by move=> a; rewrite -cardE. Qed.

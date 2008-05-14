@@ -92,9 +92,9 @@ Record coset : Type := Coset {
 }.
 
 Canonical Structure coset_subType := SubType set_of_coset coset_rect vrefl.
-Canonical Structure coset_eqType :=
-  Eval hnf in [subEqType for set_of_coset : coset -> {set gT}].
-Canonical Structure coset_finType := Eval hnf in [subFinType of coset_eqType].
+Canonical Structure coset_eqType := Eval hnf in [subEqType for set_of_coset].
+Canonical Structure coset_finType := Eval hnf in [finType of coset by :>].
+Canonical Structure coset_subFinType := Eval hnf in [subFinType of coset].
 
 End Cosets.
 

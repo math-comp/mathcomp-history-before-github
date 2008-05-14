@@ -13,15 +13,17 @@ Section colouring.
 Variable n : nat.
 Definition  colors := I_(n).
 Canonical Structure colors_eqType := Eval hnf in [eqType of colors].
-Canonical Structure colors_finType := Eval hnf in [finType of colors_eqType].
+Canonical Structure colors_finType := Eval hnf in [finType of colors].
 
 Section square_colouring.
 
 Definition square := I_(4).
 Canonical Structure square_eqType := Eval hnf in [eqType of square].
-Canonical Structure square_finType := Eval hnf in [finType of square_eqType].
+Canonical Structure square_subType := Eval hnf in [subType of square].
+Canonical Structure square_finType := Eval hnf in [finType of square].
+Canonical Structure square_subFinType := Eval hnf in [subFinType of square].
 
-Definition mksquare i : square := (Sub _ : _ -> I_(4)) (ltn_mod i _).
+Definition mksquare i : square := Sub (i %% _) (ltn_mod i 4).
 Definition c0 := mksquare 0.
 Definition c1 := mksquare 1.
 Definition c2 := mksquare 2.
@@ -384,7 +386,7 @@ rewrite -{1}card_iso2 -(Frobenius_Cauchy to iso2_group) /=.
 rewrite (eq_bigl (mem [:: id1; sh])) => [|p] /=; last first.
   by rewrite  !inE orbF.
 rewrite -big_uniq /=; last by rewrite !inE orbF diff_id_sh.
-by unlock reducebig => /=; rewrite addn0 card_Fid F_Sh card_n2 //= !muln1.
+by rewrite /reducebig unlock  /= addn0 card_Fid F_Sh card_n2 //= !muln1.
 Qed.
 
 Lemma burnside_app_rot:
@@ -395,7 +397,7 @@ rewrite (eq_bigl (mem [:: id1; r1; r2; r3])) => [|p] /=; last first.
   by rewrite rot_is_rot !inE orbF.
 rewrite -big_uniq; last first.
   by apply: maps_uniq (fun p : {perm square} => p c0) _ _; rewrite /= !permE.
-unlock reducebig; rewrite /= !addn0 card_Fid F_r1 F_r2 F_r3 card_n card_n2 //=.
+rewrite /reducebig unlock /= !addn0 card_Fid F_r1 F_r2 F_r3 card_n card_n2 //=.
 ring.
 Qed.
 
@@ -443,7 +445,7 @@ have Uiso: uniq iso_list.
 have Eiso: iso_group =i iso_list by move=> p; rewrite /= !inE orbF.
 have <-: #|iso_group| = 8 by rewrite (eq_card Eiso) (card_uniqP Uiso).
 rewrite -(Frobenius_Cauchy to) (eq_bigl _ _ Eiso) -big_uniq //.
-unlock reducebig; rewrite /= card_Fid F_r1 F_r2 F_r3 F_Sh F_Sv F_Sd1 F_Sd2.
+rewrite /reducebig unlock /= card_Fid F_r1 F_r2 F_r3 F_Sh F_Sv F_Sd1 F_Sd2.
 by rewrite card_n !card_n3 // !card_n2 //=; ring.
 Qed.
 
@@ -453,15 +455,17 @@ Section cube_colouring.
 
 Definition cube := I_(6).
 Canonical Structure cube_eqType := Eval hnf in [eqType of cube].
-Canonical Structure cube_finType := Eval hnf in [finType of cube_eqType].
+Canonical Structure cube_subType := Eval hnf in [subType of cube].
+Canonical Structure cube_finType := Eval hnf in [finType of cube].
+Canonical Structure cube_subFinType := Eval hnf in [subFinType of cube].
 
-Definition mkFcube i : cube := (Sub _ : _ -> I_(6)) (ltn_mod i _).
+Definition mkFcube i : cube := Sub (i %% 6) (ltn_mod i 6).
 Definition F0:= mkFcube 0.
 Definition F1:= mkFcube 1.
 Definition F2:= mkFcube 2.
-Definition F3:=mkFcube 3.
-Definition F4:=mkFcube 4.
-Definition F5:=mkFcube 5.
+Definition F3:= mkFcube 3.
+Definition F4:= mkFcube 4.
+Definition F5:= mkFcube 5.
 
 (* axial symetries*) 
 Definition S05 :=[:: F0;F4; F3; F2; F1; F5].
@@ -1354,7 +1358,7 @@ have Eiso: diso_group3 =i iso_list.
 by move=> p; rewrite  !inE /= orbF !(eq_sym _ p).
 have <-: #|diso_group3| = 24 by rewrite (eq_card Eiso) (card_uniqP Uiso).
 rewrite -(Frobenius_Cauchy to_g) (eq_bigl _ _ Eiso) -big_uniq //.
-unlock reducebig; rewrite /= card_Fid3 F_s05 F_s14 F_s23 F_r05 F_r14 F_r23
+rewrite /reducebig unlock /= card_Fid3 F_s05 F_s14 F_s23 F_r05 F_r14 F_r23
   F_r50 F_r41 F_r32 F_r024 F_r135 F_r012 F_r345 F_r031 F_r425 F_r043  F_r215 
   F_s1  F_s2 F_s3 F_s4 F_s5 F_s6.
 by rewrite !card_n4 // !card_n3_3 // !card_n2_3 // !card_n3s //; ring.

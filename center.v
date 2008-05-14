@@ -107,7 +107,7 @@ have Hdec: forall x, x \in H ->
   pose xbar := coset_of 'Z(H) x.
   have: x \in xbar by rewrite /xbar coset_ofN ?(rcoset_refl, nZH).
   have: xbar \in H / 'Z(H) by rewrite imset_f_imp.
-  rewrite Ha; case/cyclicP=> n; move/eqP=> <-{xbar}.
+  rewrite Ha; case/cyclicP=> n <-{xbar}.
   rewrite -{1}(coset_of_repr a) -morphX; last first.
     by rewrite (subsetP (subset_dom_coset _)) ?norm_repr_coset.
   rewrite coset_ofN ?groupX ?norm_repr_coset //.
@@ -180,8 +180,8 @@ Qed.
 Lemma cyclic_subset_centraliser: forall x,
      x \in H -> cyclic x \subset C_(H)[x].
 Proof.
-move => x Hx; apply/subsetP => y Hy; case/cyclicP: Hy => n Hn.
-by rewrite -(eqP Hn) ?centraliserXr // centraliser_id.
+move => x Hx; apply/subsetP=> y; case/cyclicP=> n <-{y}.
+by rewrite centraliserXr // centraliser_id.
 Qed.
 
 Lemma centraliser_normaliser:

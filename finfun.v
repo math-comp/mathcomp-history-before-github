@@ -152,11 +152,12 @@ Section FinFunSpace.
 Variables aT rT : finType.
 
 Notation fT := {ffun aT -> rT}.
+Notation ffT := (finfun aT rT).
 
-Canonical Structure finfun_finType :=
-  Eval hnf in [subFinType of finfun_eqType aT rT].
-Canonical Structure finfun_for_finType :=
-  Eval hnf in [finType of finfun_for_eqType aT rT].
+Canonical Structure finfun_finType := Eval hnf in [finType of ffT by :>].
+Canonical Structure finfun_subFinType := Eval hnf in [subFinType of ffT].
+Canonical Structure finfun_for_finType := Eval hnf in [finType of fT by :>].
+Canonical Structure finfun_for_subFinType := Eval hnf in [subFinType of fT].
 
 Lemma card_pfamily : forall y0 d (F : aT -> pred rT),
   #|pfamily y0 d F| = foldr (fun x m => #|F x| * m) 1 (enum d).

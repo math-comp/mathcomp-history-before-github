@@ -37,4 +37,4 @@ alt.v
 burnside_app.v
 
 COQC = $(COQBIN)ssrcoq
-COQFLAGS = "-q $(OPT) $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -compile"
+COQFLAGS = "-q $(OPT) -dont-load-proofs $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -compile"

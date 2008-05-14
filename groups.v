@@ -54,7 +54,7 @@ Record mixin (T : Type) : Type := Mixin {
 Structure base_class : Type := BaseClass {
   sort : Type;
    _ : mixin sort;
-   _ : FinType.fullMixin sort
+   _ : FinType.mixin sort
 }.
 
 (* We want to use sort as a coercion class, both to infer         *)
@@ -86,7 +86,7 @@ Coercion mixin_of T :=
   let: BaseClass _ m _ := T return mixin T in m.
 
 Definition finmixin_of T :=
-  let: BaseClass _ _ m := T return FinType.fullMixin T in m.
+  let: BaseClass _ _ m := T return FinType.mixin T in m.
 
 Structure class : Type := Class {
   base :> base_class;
@@ -139,8 +139,8 @@ Let mT := FinGroup.finmixin_of T.
 
 Canonical Structure finGroup_arg_eqType := @EqClass T mT.
 Canonical Structure finGroup_eqType := @EqClass (FinGroup.sort T) mT.
-Canonical Structure finGroup_arg_finType := @FinClass finGroup_arg_eqType mT.
-Canonical Structure finGroup_finType := @FinClass finGroup_eqType mT.
+Canonical Structure finGroup_arg_finType := @FinClass T mT.
+Canonical Structure finGroup_finType := @FinClass (FinGroup.sort T) mT.
 
 End InheritedClasses.
 
@@ -152,7 +152,7 @@ Notation "[ 'baseFinGroupType' 'of' T ]" :=
   | BaseFinGroupType _ mixG mixF => fun k => k mixG mixF end
   (@BaseFinGroupType T)) (at level 0, only parsing) : form_scope.
 
-Notation Local FinMix := (FinType.mkFullMixin _).
+Notation Local FinMix := (FinType.mkMixin _).
 Notation "[ 'baseFinGroupType' 'of' T 'by' mulA , mul1 , invK & invM ]" :=
   (@BaseFinGroupType T (FinGroup.Mixin mulA mul1 invK invM) FinMix)
   (at level 0, only parsing) : form_scope.
@@ -589,8 +589,13 @@ End GroupSetBaseGroupSig.
 Module MakeGroupSetBaseGroup (Gset_base : GroupSetBaseGroupSig).
 Identity Coercion of_sort : Gset_base.sort >-> FinGroup.arg_sort.
 End MakeGroupSetBaseGroup.
-       
+
 Module GroupSetBaseGroup := MakeGroupSetBaseGroup GroupSet.
+
+Canonical Structure group_set_eqType gT := Eval hnf in
+  [eqType of GroupSet.sort gT].
+Canonical Structure group_set_finType gT := Eval hnf in
+  [finType of GroupSet.sort gT].
 
 Arguments Scope conjugate_of [_ group_scope group_scope].
 Arguments Scope class_of [_ group_scope group_scope].
@@ -939,17 +944,17 @@ Notation Local groupT := (group_for (Phant gT)).
 Identity Coercion group_for_group : group_for >-> group.
 
 Canonical Structure group_subType := SubType set_of_group group_rect vrefl.
-Canonical Structure group_eqType :=
-  Eval hnf in [subEqType for set_of_group : group -> sT].
-Canonical Structure group_finType := Eval hnf in [subFinType of group_eqType].
+Canonical Structure group_eqType := Eval hnf in [subEqType for set_of_group].
+Canonical Structure group_finType := Eval hnf in [finType of group by :>].
+Canonical Structure group_subFinType := Eval hnf in [subFinType of group].
 
 (* No predType or baseFinGroupType structures, as these would hide the *)
 (* group-to-set coercion and thus spoil unification.                  *)
 
 Canonical Structure group_for_subType := Eval hnf in [subType of groupT].
 Canonical Structure group_for_eqType := Eval hnf in [eqType of groupT].
-Canonical Structure group_for_finType :=
-  Eval hnf in [finType of group_for_eqType].
+Canonical Structure group_for_finType := Eval hnf in [finType of groupT].
+Canonical Structure group_for_subFinType := Eval hnf in [subFinType of groupT].
 
 Lemma group_inj : injective set_of_group. Proof. exact: val_inj. Qed.
 Lemma groupP : forall G : groupT, group_set G. Proof. by case. Qed.

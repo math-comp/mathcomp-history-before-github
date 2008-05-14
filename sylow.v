@@ -164,12 +164,12 @@ case/and3P=> tnot1; move/act_fixP=> fixt /=.
 rewrite inE; case/andP; move/ffun_onP=> /= Ht prodt _.
 pose x := t 1; exists x; rewrite Ht /=.
 have Dt: t _ = x by move=> u; rewrite /x -{2}(fixt u (in_setT _)) ffunE mulg1.
-have: orderg x %| p.
+have: #[x] %| p.
   rewrite orderg_dvd -(eqP prodt) -{1}(size_iota 0 p) /prod_over_zp.
   by apply/eqP; elim: (iota _ _) => //= i s <-; rewrite Dt.
 case/primeP: prime_p => _ divp; move/divp; case/orP; rewrite eq_sym //.
 move/eqP=> Dx1; case/eqP: tnot1; apply/ffunP=> i.
-by rewrite Dt -(expg1 x) ffunE Dx1 (eqP (orderg_expn1 _)).
+by rewrite Dt -(expg1 x) ffunE Dx1 orderg_expn1.
 Qed.
 
 End Cauchy.
@@ -265,7 +265,7 @@ rewrite (eqP cardL) mulnC -{}Czbar_p.
 apply/eqP; congr (_ * _)%N; apply: eq_card => xbar.
 apply/imsetP/idP=> [[x Hx ->{xbar}]|].
   by rewrite 3!inE -andbA in Hx; case/andP: Hx.
-case/cyclicP=> m; move/eqP=> <-{xbar}; rewrite {nLH sLH}/H.
+case/cyclicP=> m <-{xbar}; rewrite {nLH sLH}/H.
 case/quotientP: Kzbar => z [Kz Nz ->{zbar}].
 by exists (z ^+ m); rewrite 3?inE morphX // dom_coset ?groupX ?cyclicnn.
 Qed.

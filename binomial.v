@@ -19,7 +19,7 @@ Proof. by done. Qed.
 
 Lemma fact_prod n : fact n = \prod_(1 <= i < n.+1) i.
 Proof.
-elim=> [|n Hrec] //; first by unlock reducebig.
+elim=> [|n Hrec] //; first by rewrite big_seq0.
 by apply sym_equal; rewrite factS Hrec // !big_add1 big_nat_recr /= mulnC.
 Qed.
 

@@ -1,10 +1,9 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
+Require Import Bool. (* For bool_scope delimiter 'bool'. *)
+
 Set Implicit Arguments.
 Unset Strict Implicit.
-
 Module SsrSyntax.
-
-Require Import Bool. (* For bool_scope delimiter 'bool'. *)
 
 (* Declare Ssr keywords: 'is' 'by' 'of' '//' '/=' and '//='.                *)
 (* We also declare the parsing level 8, as a workaround for a notation      *)
@@ -15,6 +14,9 @@ Require Import Bool. (* For bool_scope delimiter 'bool'. *)
 Reserved Notation "(* x 'is' y 'by' z 'of' // /= //= *)" (at level 8).
 Reserved Notation "(* 69 *)" (at level 69).
 
+End SsrSyntax.
+
+Export SsrSyntax.
 
 (* Make the general "if" into a notation, so that we can override it below *)
 (* The notations are "only parsing" because the Coq decompiler won't       *)
@@ -36,8 +38,6 @@ Notation "'if' c 'as' x 'return' t 'then' v1 'else' v2" :=
   (at level 200, c, t, v1, v2 at level 200, x ident, only parsing)
      : general_if_scope.
 
-Open Scope general_if_scope.
-
 (* Force boolean interpretation of simple if expressions.          *)
 
 Delimit Scope boolean_if_scope with BOOL_IF.
@@ -50,6 +50,8 @@ Notation "'if' c 'then' v1 'else' v2" :=
 
 Notation "'if' c 'as' x 'return' t 'then' v1 'else' v2" :=
   (if c%bool is true as x in bool return t then v1 else v2) : boolean_if_scope.
+
+Open Scope boolean_if_scope.
 
 (* Syntax for referring to canonical structures:                   *)
 (*   {carrier [: [carrier_type]] as struct_type}                   *)
@@ -150,12 +152,6 @@ CoInductive phantom (T : Type) (p : T) : Type := Phantom.
 Implicit Arguments phantom [].
 CoInductive phant (p : Type) : Type := Phant.
 
-End SsrSyntax.
-
-Export SsrSyntax.
-
-Open Scope boolean_if_scope.
-
 (* Internal tagging used by the implementation of the ssreflect elim. *)
 
 Definition protect_term (A : Type) (x : A) : A := x.
@@ -181,8 +177,15 @@ Definition protect_term (A : Type) (x : A) : A := x.
 
 Notation "'nosimpl' t" := (let: tt := tt in t) (at level 10, t at level 8).
 
+Definition locked_with key A := let: tt := key in fun x : A => x.
+
+Lemma unlock : forall key A, @locked_with key A = (fun x => x).
+Proof. case; split. Qed.
+
 Lemma master_key : unit. Proof. exact tt. Qed.
 
+(* This shoul be Definition locked := locked_with master_key, *)
+(* but for compatibility with the ml4 code.                   *)
 Definition locked A := let: tt := master_key in fun x : A => x.
 
 Lemma lock : forall A x, x = locked x :> A.

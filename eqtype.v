@@ -103,7 +103,7 @@ Coercion eqmod.sort : eqType >-> predArgType.
 End MakeEqTypePred.
 Module EqTypePred := MakeEqTypePred EqType.
 
-Coercion eqTypeT (T : eqType) : simpl_pred T := predT.
+(* Coercion eqTypeT (T : eqType) : simpl_pred T := predT. *)
 
 (* Comparison for booleans. *)
 

@@ -411,7 +411,7 @@ case Ay: (y \in A); last first.
   apply: (iffP (IHs x)); case=> f Af <-; exists f => //;
     by rewrite (sup0P _ _ Af) (Ay, mul1g).
 apply: (iffP mulsgP) => [[x1 x2] | [f Af <-{x}]].
-  case/cyclicP=> i; move/eqP=> <-{x1}; case/IHs=> f Af <- -> {x x2}.
+  case/cyclicP=> i <-{x1}; case/IHs=> f Af <- -> {x x2}.
   exists (force f y i); first by rewrite -sup_force.
   rewrite /force eqxx; congr (_ * _).
   by apply: eq_foldr => x z sx; case: eqP => // eqxy; rewrite -eqxy sx in nsy.
@@ -435,7 +435,7 @@ move=> A G sAG; rewrite /mgen; elim: index_enum  => /= [| x s IHs].
   by rewrite big_seq0 sub1set.
 rewrite big_adds; case Ax: (x \in A) => //=.
 apply/subsetP=> y; case/mulsgP=> y1 y2.
-case/cyclicP => i; move/eqP => <-; move/(subsetP IHs)=> sy2 ->.
+case/cyclicP => i <-; move/(subsetP IHs)=> sy2 ->.
 by rewrite groupMr // groupX // (subsetP sAG).
 Qed.
 
@@ -664,14 +664,14 @@ case E1: (1 \in E); last move/idPn: E1 => notE1.
     by apply: (asub abelE); apply/subsetP => x; rewrite inE; case/andP.
   by move=> B; move/(ltn_addl 1) => cardB baseB; exists B.
 have{Ez} [f []]: exists f, [/\ support f E, em f = 1 & 0 < f z].
-  exists (peak z (orderg z)); split; first by rewrite -sup_peak Ez.
-    by rewrite em_peak; apply/eqP; exact: orderg_expn1. 
+  exists (peak z #[z]); split; first by rewrite -sup_peak Ez.
+    by rewrite em_peak orderg_expn1. 
   by rewrite /peak eqxx orderg_pos.
 move: {-4 6}E cardE notE1 (erefl << E >>).
 elim: {f z}_.+1 {-2}f {-2}z (ltnSn (f z)) => // m mind f.
 elim: {f}_.+1 {-2}f (ltnSn (esum f)) => // M Mind f esumf.
 move=> x fxm1 X cardX notX1 XE fX emf fx0.
-have abelX: abel << X >> by rewrite XE; apply: agen.
+have abelX: abel <<X>> by rewrite XE; apply: agen.
 have Xx: x \in X by exact: (supP _ _ fX).
 have genXx: x \in <<X>> by apply: mem_geng.
 have fgenX: support f <<X>> by apply: (sup_sub (sub_geng X)).
@@ -694,7 +694,7 @@ case: (x ^+ (f x) =P 1) => [xfx1 | xfx].
     apply: (asub abelX); rewrite -gen_subG.
     by rewrite setU1E (@genDU _ _ _ X) // BXx setD1E setDE -setC1E.
   move: XIx; rewrite subset_disjoint; case/existsP=> y.
-  rewrite /= !inE -andbA; case/and3P; case/cyclicP => k; move/eqP=> <-{y}.
+  rewrite /= !inE -andbA; case/and3P; case/cyclicP => k <-{y}.
   rewrite (divn_eq k (f x)) expgn_add mulnC expgn_mul xfx1 exp1gn.
   rewrite mul1g -groupV; case/agenP=> [|g gX emg xknot1].
     by apply: (asub abelX); rewrite -gen_subG genSg // setD1E subsetIr.

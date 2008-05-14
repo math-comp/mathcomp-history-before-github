@@ -31,13 +31,14 @@ Definition perm_for of phant T : predArgType := perm.
 Notation pT := (perm_for (Phant T)).
 
 Canonical Structure perm_subType := SubType pval perm_rect vrefl.
-Canonical Structure perm_eqType := [subEqType for pval].
-Canonical Structure perm_finType := Eval hnf in [subFinType of perm_eqType].
+Canonical Structure perm_eqType := Eval hnf in [subEqType for pval].
+Canonical Structure perm_finType := Eval hnf in [finType of perm by :>].
+Canonical Structure perm_subFinType := Eval hnf in [subFinType of perm].
 
 Canonical Structure perm_for_subType := Eval hnf in [subType of pT].
 Canonical Structure perm_for_eqType := Eval hnf in [eqType of pT].
-Canonical Structure perm_for_finType :=
-  Eval hnf in [finType of perm_for_eqType].
+Canonical Structure perm_for_finType := Eval hnf in [finType of pT].
+Canonical Structure perm_for_subFinType := Eval hnf in [subFinType of pT].
 
 Definition fun_of_perm := fun u : perm => val u : T -> T.
 

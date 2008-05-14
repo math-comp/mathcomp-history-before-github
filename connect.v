@@ -30,7 +30,7 @@ Lemma subset_dfs : forall n (a b : seq T), a \subset foldl (dfs n) a b.
 Proof.
 elim=> [|n IHn] a b; first by elim: b => /=.
 elim: b a => [|x b IHb] a //=; apply: subset_trans (IHb _) => /=.
-case (x \in a) => //=; apply: subset_trans (IHn _ _).
+case: (x \in a) => //=; apply: subset_trans (IHn _ _).
 apply/subsetP=> y ay; exact: mem_behead.
 Qed.
 
@@ -59,7 +59,7 @@ suffices IHb:  reflect (exists2 x', x' \in b & dfs_path x' y a')
     move/andP: Hpa => [Hpx Hpa].
     exists (x' :: p); try by rewrite //= disjointU1 Hx disjoint_sym.
     by rewrite -Db mem_enum in Hx'; rewrite /= [_ x']Hx'.
-  case/shortenP: Hp Ep => [[|y' p']] /= Hp' Up' Hp'p Dy.
+  move/shortenP: Hp Ep => /= [[|y' p']] /= Hp' Up' Hp'p Dy.
     by rewrite -Da' Dy /= mem_head in Hya'.
   move/andP: Hp' => [Hxy' Hp']; move/andP: Up' => [Hp'x' _].
   exists y'; [ by rewrite -Db mem_enum | exists p'; auto ].
@@ -344,7 +344,7 @@ Definition finv x := iter (order x).-1 f x.
 Lemma fconnect_iter : forall n x, fconnect f x (iter n f x).
 Proof.
 move=> n x; apply/connectP.
-exists (traject f (f x) n); [ apply fpath_traject | apply last_traject ].
+exists (traject f (f x) n); [ exact: fpath_traject | exact: last_traject ].
 Qed.
 
 Lemma fconnect1 : forall x, fconnect f x (f x).
@@ -423,7 +423,7 @@ Hypothesis Hx : x \in p.
 (* The first lemma does not depend on Up : (uniq p) *)
 Lemma fconnect_cycle : fconnect f x =i p.
 Proof.
-case/rot_to: Hx => [i q Dp] y; rewrite -(mem_rot i) Dp.
+case/rot_to: Hx => [i q Dp] y; rewrite -(mem_rot i p) Dp.
 have Hp' := Hp; rewrite -(cycle_rot i) {i}Dp (cycle_path x) /=  in Hp'.
 case/andP: Hp'; move/eqP=> Eq Hq; apply/idP/idP; last exact: path_connect.
 move/connectP=> [q' Hq' <-] {y}; case/fpathP: Hq' => [m <-] {q'}.

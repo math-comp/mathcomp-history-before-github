@@ -21,8 +21,9 @@ Section Euler.
 Definition fp_mul p := {x : I_(p) | coprime p x}.
 Canonical Structure fp_mul_subType p := Eval hnf in [subType of fp_mul p].
 Canonical Structure fp_mul_eqType p := Eval hnf in [eqType of fp_mul p].
-Canonical Structure fp_mul_finType p := Eval hnf in
-  [finType of fp_mul_eqType p].
+Canonical Structure fp_mul_finType p := Eval hnf in [finType of fp_mul p].
+Canonical Structure fp_mul_subFinType p :=
+  Eval hnf in [subFinType of fp_mul p].
 
 Variable n : pos_nat.
 

@@ -28,12 +28,14 @@ Notation sT := (set_for (Phant T)).
 
 Canonical Structure set_subType := NewType ffun_of_set set_rect vrefl.
 Canonical Structure set_for_subType := Eval hnf in [subType of sT].
-Canonical Structure set_eqType := [subEqType for ffun_of_set].
+Canonical Structure set_eqType := Eval hnf in [subEqType for ffun_of_set].
 Canonical Structure set_for_eqType := Eval hnf in [eqType of sT].
-Canonical Structure set_finType := Eval hnf in [subFinType of set_eqType].
-Canonical Structure set_for_finType := Eval hnf in [finType of set_for_eqType].
+Canonical Structure set_finType := Eval hnf in [finType of set by :>].
+Canonical Structure set_for_finType := Eval hnf in [finType of sT].
+Canonical Structure set_subFinType := Eval hnf in [subFinType of set].
+Canonical Structure set_for_subFinType := Eval hnf in [subFinType of sT].
 
-Definition set_of (P : pred T) : sT := locked mkSet (ffun_of P).
+Definition set_of := locked (fun P : pred T => mkSet (ffun_of P) : sT).
 
 (* This lets us use subtypes of set, like group or coset, as predicates. *)
 Coercion pred_of_set (A : set) : pred_class := ffun_of_set A : T -> bool.
@@ -672,8 +674,11 @@ Definition imset2_def := [set y \in image (prod_curry f2) (predX D D2)].
 
 End ImsetDef.
 
-Definition imset := locked imset_def.
-Definition imset2 := locked imset2_def.
+Lemma imset_key : unit. Proof. by []. Qed.
+Lemma imset2_key : unit. Proof. by []. Qed.
+
+Definition imset := locked_with imset_key imset_def.
+Definition imset2 := locked_with imset2_key imset2_def.
 
 Notation "f @^-1: R" := (preimset f (mem R)) (at level 24) : set_scope.
 Notation "f @: D" := (imset f (mem D)) (at level 24) : set_scope.
@@ -690,7 +695,7 @@ Variables (f : aT -> rT) (f2 : aT -> aT2 -> rT).
 
 Lemma imsetP : forall D y,
   reflect (exists2 x, in_mem x D & y = f x) (y \in imset f D).
-Proof. unlock imset => D y; rewrite inE; exact: imageP. Qed.
+Proof. move=> D y; rewrite /imset unlock inE; exact: imageP. Qed.
 
 CoInductive imset2_spec D1 D2 y : Prop :=
   Imset2spec x1 x2 of in_mem x1 D1 & in_mem x2 D2 & y = f2 x1 x2.
@@ -698,7 +703,7 @@ CoInductive imset2_spec D1 D2 y : Prop :=
 Lemma imset2P : forall D1 D2 y,
   reflect (imset2_spec D1 D2 y) (y \in imset2 f2 D1 D2).
 Proof.
-unlock imset2 => D1 D2 y; rewrite inE.
+move=> D1 D2 y; rewrite /imset2 unlock inE.
 apply: (iffP (imageP _ _ _)) => [[[x1 x2] Dx12] | [x1 x2 Dx1 Dx2]] -> {y}.
   by case/andP: Dx12; exists x1 x2.
 by exists (x1, x2); rewrite //= Dx1.
@@ -843,7 +848,7 @@ Variables (f : aT -> rT) (g : rT -> aT) (f2 : aT -> aT2 -> rT).
 Variables (D : pred aT) (D2 : pred aT).
 
 Lemma imset_card : #|f @: D| = #|[image f of D]|.
-Proof. by unlock imset; rewrite cardsE. Qed.
+Proof. by rewrite /imset unlock cardsE. Qed.
 
 Lemma leq_imset_card : #|f @: D| <= #|D|.
 Proof. by rewrite imset_card leq_image_card. Qed.
@@ -1032,8 +1037,7 @@ Lemma bigcup_inP : forall (A : pred T),
 Proof.
 move=> A; apply: (iffP idP) => [sFA i Pi| sFA].
   by apply: subset_trans sFA; exact: bigcup_sup.
-apply big_prop_seq => [|B C sBA sCA|i]; last by case/andP; auto.
-  by apply/subsetP=> x; rewrite inE.
+apply big_prop => // [|B C sBA sBC]; first by apply/subsetP=> x; rewrite inE.
 apply/subsetP=> x; case/setUP; exact: subsetP x.
 Qed.
 
@@ -1042,7 +1046,8 @@ Lemma bigcupP : forall x,
 Proof.
 move=> x; apply: (iffP idP) => [|[i Pi]]; last first.
   apply: subsetP x; exact: bigcup_sup.
-unlock reducebig; elim index_enum => [|i r IHi /=]; first by rewrite inE.
+rewrite /reducebig unlock; elim index_enum => [|i r IHi /=].
+  by rewrite inE.
 by case Pi: (P i); rewrite //= inE; case/orP; [exists i | exact: IHi].
 Qed.
 
@@ -1136,8 +1141,7 @@ Lemma bigcap_inP : forall (A : pred T),
 Proof.
 move=> A; apply: (iffP idP) => [sAF i Pi | sAF].
   apply: subset_trans sAF _; exact: bigcap_inf.
-apply big_prop_seq => [|B C sAB sAC|i]; last by case/andP; auto.
-  by apply/subsetP=> x _; rewrite inE.
+apply big_prop => // [|B C sAB sAC]; first by apply/subsetP=> x _; rewrite inE.
 apply/subsetP=> x Ax; apply/setIP; split; exact: subsetP x Ax.
 Qed.
 
@@ -1237,20 +1241,21 @@ Lemma card_dvdn_bigcup : forall (d d' : finType) (A : {set d})
   wdisjointn (mem A) [rel of S] ->
   (forall x, x \in A -> l %| #|S x|) -> l %| #|\bigcup_(i \in A) S i|.
 Proof.
-move => d d' A S l Ds Ch; unlock reducebig index_enum.
+move => d d' A S l Ds Ch; rewrite /reducebig unlock /index_enum.
 elim (enum d) => //= [|x s IH]; first by rewrite cards0.
 case e: (x \in A); last by exact: IH.
 pose c (x y : {set d'}) := (x \subset y) || [disjoint x & y].
 suff f:  c (S x) (\bigcup_(i <- s | i \in A) S i).
-  unlock reducebig in f; move/orP:f=>[Hsub|Hdisj];
-  last by rewrite (card_disjoint Hdisj); move/idP:e=>e; rewrite (dvdn_addr _ (Ch x e)); exact:IH.
+  rewrite /reducebig unlock in f; case/orP: f => [Hsub|Hdisj]; last first.
+    rewrite (card_disjoint Hdisj); move/idP: e => e.
+    by rewrite (dvdn_addr _ (Ch x e)); exact: IH.
   rewrite -eqsetUl setUC in Hsub; move/eqP: Hsub=>->; exact:IH.
-apply big_prop_seq => [|x1 x2|i]; rewrite {}/c.
-- by rewrite orbC disjoint_sym (eq_disjoint (in_set _)) disjoint0.
+apply big_prop => [|x1 x2|i Ai]; rewrite {}/c.
+- by rewrite disjoints_subset setC0 subsetT orbT.
 - rewrite !disjoints_subset setCU subsetI [_ || _ && _]orbC.
   by do 2![case/orP=> [subx|->]; first by rewrite subsetU ?subx ?orbT].
-case/andP=> Hsi Hai; case f: [disjoint S x & S i]; rewrite orbC //=.
-case/existsP: f => /= x0; case/andP=> Sxx0 Six0.
+case Sxi: [disjoint S x & S i]; rewrite orbC //=.
+case/existsP: Sxi => /= x0; case/andP=> Sxx0 Six0.
 by apply/subsetP=> y; rewrite [y \in _](Ds x i x0).
 Qed.
 
@@ -1265,7 +1270,7 @@ Variables (D1 : pred aT1) (D2 : pred aT2).
 
 Lemma curry_imset2X : f @2: (A1, A2) = prod_curry f @: (setX A1 A2).
 Proof.
-unlock imset imset2; apply/setP=> x; rewrite !in_set.
+rewrite /imset /imset2 !unlock; apply/setP=> x; rewrite !in_set.
 by apply: eq_image => u //=; rewrite inE.
 Qed.
 

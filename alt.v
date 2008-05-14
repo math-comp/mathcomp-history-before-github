@@ -38,59 +38,23 @@ move=> d; rewrite leq_eqVlt; case/predU1P => Hcard; last first.
   have{Hcard} F1: #|alt d| = 1%N.
     move: Hcard; rewrite ltnS leq_eqVlt; case/predU1P; last exact: card_alt0.
     by move=> Hcard; apply/eqP; rewrite -(@eqn_pmul2l 2) // card_alt Hcard.
-  apply/simpleP=> K; case/andP=> Hs _; left.
-  by rewrite (trivgP K _) // trivg_card -F1 subset_leq_card.
+  apply/simpleP=> K; case/andP=> Hs _; left.  
+  by rewrite (trivgP K _) ?trivg_card // -F1 subset_leq_card.
 have F1: #|alt d| = 3%N.
   by apply/eqP; rewrite -(@eqn_pmul2l 2) // card_alt Hcard.
 apply/simpleP=> /= K; case/andP=> sKH _.
 have:= group_dvdn sKH; rewrite F1 dvdn_divisors // !inE orbF orbC -F1.
 case/predU1P; first by right; apply/setP; exact/subset_cardP.
 rewrite (cardD1 1) group1 eqSS [_ == _]disjoint_sym disjoint_subset => sK1.
-left; rewrite (trivgP K _) //; apply: subset_trans sK1 _; apply/subsetP=> x.
-by rewrite inE inE /= negbK.
+left; rewrite {sKH} (trivgP K _) //; apply: subset_trans sK1 _.
+by apply/subsetP=> x; rewrite inE inE /= negbK.
 Qed.
 
 
-(* quelques  theoremes a deplacer dans group_perm *)
+(* Un theoreme a deplacer dans group_perm *)
 Lemma tpermD : forall (d : finType) (x y z : d),
   x != z -> y != z -> tperm x y z = z.
 Proof. by move => d x y z; case tpermP => // ->; rewrite eqxx. Qed.
-
-(* All this meta-stuff is now useless (it's replaced by real math) -- GG
-(* Simplication of trans p *)
-Ltac tperm_tac_aux t := match t with
-  fun_of_perm _  (fun_of_perm ?X ?Y) => 
-     let z := constr: (fun_of_perm X Y) in (tperm_tac_aux z) 
-| fun_of_perm (tperm ?X ?Y) ?Z => 
-        (rewrite (@tpermD _ X Y Z) //; try (rewrite eq_sym; done))
-end.
-
-Ltac tperm_tac :=
-  rewrite tpermR || rewrite tpermL ||
-  match goal with |- context [fun_of_perm ?X ?Y] =>
-     let z := constr: (fun_of_perm X Y) in (tperm_tac_aux z)
-  end.
-
-(* use of injectivity of permutation to remove impossible case *)
-Ltac iperm_tac := match goal with 
-H: ?X = fun_of_perm ?U ?Y,
-H1: ?X = fun_of_perm ?U ?Z |- _ => rewrite H in H1;
-match goal with 
-D: is_true (negb (pred1 Y Z)) |- _ => 
- by case/negP: D; apply/eqP; apply: (@inj_act _ _ (perm_action  _) U)
-| D: is_true (negb (pred1 Z Y)) |- _ => 
- by case/negP: D; apply/eqP; apply: (@inj_act _ _ (perm_action _) U)
-end
-end.
-
-Lemma tpermCom:  forall (d : finType) (x y z t : d),
-  uniq ([:: x; y; z; t]) -> commb (tperm x y) (tperm z t).
-Proof.
-move=> d x y z t; rewrite /= !negb_or !andbT.
-case/and3P; case/and3P=> _ nxz nxt; case/andP=> nyz nyt _.
-by apply/conjg_fpP; rewrite /conjg_fp tpermJ !tpermD // eq_sym.
-Qed.
-*)
 
 Lemma normal_sylowP : forall (gT : finGroupType) (G : {group gT}) p,
   prime p -> reflect (exists2 P : {group gT}, sylow p G P & P <| G)
@@ -124,9 +88,10 @@ have [p [p_pr pA_int Sp1]]:
   case/predU1P=> //; move/(congr1 double).
   pose Q3 := \bigcup_(Q \in Syl3) (Q :\ 1).
   have <-: #|Q3| = #|Syl3|.*2.
-    rewrite -muln2; apply: card_setnU_id=> /= [Q1 Q2 x | Q]; last first.
-      by rewrite inE; case/andP=> _; rewrite (cardsD1 1) group1 cA; case/eqP.
-    rewrite /= !inE; case/andP=> _; rewrite cA -[_ 3 _]/3; move/eqP=> cQ1.
+    rewrite -muln2; (apply: card_setnU_id; move) => /= [Q1 Q2 x | Q]; last first.
+      rewrite inE; case/andP=> _; rewrite (cardsD1 1) group1 /= eq_sym {1}cA.
+      by case/eqP.
+    rewrite /= !{1}inE; case/andP=> _; rewrite cA -[_ 3 _]/3; move/eqP=> cQ1.
     case/andP=> _; rewrite cA -[_ 3 _]/3; move/eqP=> cQ2.
     case/andP=> nx1 Q1x; rewrite nx1 /= => Q2x.
     apply: val_inj; apply/setP; apply/subset_cardP; first by rewrite cQ1.
@@ -240,7 +205,7 @@ have FF: forall H : group _, H <| alt d -> H <> 1 :> set _ -> 20 %| #|H|.
     case: (cauchy (tp: prime 5) F6) => h; case/andP => Hh Horder.
     have diff_hnx_x: forall n, 0 < n -> n < 5 -> x != (h ^+ n) x.
       move=> n Hn1 Hn2; rewrite eq_sym; apply/negP => HH.
-      have: orderg (h ^+ n) = 5.
+      have: #[h ^+ n] = 5.
         rewrite orderg_gcd // /orderg (eqP Horder).
         by move: Hn1 Hn2 {HH}; do 5 (case: n => [|n] //).
       have Hhd2: h ^+ n \in H by rewrite groupX.
