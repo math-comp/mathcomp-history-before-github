@@ -848,40 +848,45 @@ End RelationProperties.
 
 (* Property localization *)
 
-Section LocalProperties.
-
-Variables T1 T2 T3 PfT : Type.
-
-Variables (d1 : mem_pred T1) (d2 : mem_pred T2) (d3 : mem_pred T3).
+Notation Local "{ 'all1' P }" := (forall x, P x : Prop) (at level 0).
+Notation Local "{ 'all2' P }" := (forall x y, P x y : Prop) (at level 0).
+Notation Local "{ 'all3' P }" := (forall x y z, P x y z: Prop) (at level 0).
 Notation Local ph := (phantom _).
 
-Definition prop_in1 P & ph (forall x, P x : Prop) :=
+Section LocalProperties.
+
+Variables T1 T2 T3 : Type.
+
+Variables (d1 : mem_pred T1) (d2 : mem_pred T2) (d3 : mem_pred T3).
+Notation Local ph := (phantom Prop).
+
+Definition prop_in1 P & ph {all1 P} :=
   forall x, in_mem x d1 -> P x.
 
-Definition prop_in11 P & ph (forall x y, P x y : Prop) :=
+Definition prop_in11 P & ph {all2 P} :=
   forall x y, in_mem x d1 -> in_mem y d2 -> P x y.
 
-Definition prop_in2 P & ph (forall x y, P x y : Prop) :=
+Definition prop_in2 P & ph {all2 P} :=
   forall x y, in_mem x d1 -> in_mem y d1 -> P x y.
 
-Definition prop_in111 P & ph (forall x y z, P x y z : Prop) :=
+Definition prop_in111 P & ph {all3 P} :=
   forall x y z, in_mem x d1 -> in_mem y d2 -> in_mem z d3 -> P x y z.
 
-Definition prop_in12 P & ph (forall x y z, P x y z : Prop) :=
+Definition prop_in12 P & ph {all3 P} :=
   forall x y z, in_mem x d1 -> in_mem y d2 -> in_mem z d2 -> P x y z.
 
-Definition prop_in21 P & ph (forall x y z, P x y z : Prop) :=
+Definition prop_in21 P & ph {all3 P} :=
   forall x y z, in_mem x d1 -> in_mem y d1 -> in_mem z d2 -> P x y z.
 
-Definition prop_in3 P & ph (forall x y z, P x y z : Prop) :=
+Definition prop_in3 P & ph {all3 P} :=
   forall x y z, in_mem x d1 -> in_mem y d1 -> in_mem z d1 -> P x y z.
 
 Variable f : T1 -> T2.
 
-Definition prop_on1 Pf P & ph (Pf f : PfT) & ph (forall x, P x : Prop) :=
+Definition prop_on1 Pf P & phantom T3 (Pf f) & ph {all1 P} :=
   forall x, in_mem (f x) d2 -> P x.
 
-Definition prop_on11 Pf P & ph (Pf f : PfT) & ph (forall x y, P x y : Prop) :=
+Definition prop_on2 Pf P & phantom T3 (Pf f) & ph {all2 P} :=
   forall x y, in_mem (f x) d2 -> in_mem (f y) d2 -> P x y.
 
 End LocalProperties.
@@ -930,7 +935,7 @@ Notation "{ 'on' cd , P }" :=
   (at level 0, format "{ 'on'  cd ,  P }") : type_scope.
 
 Notation "{ 'on' cd & , P }" :=
-  (prop_on11 (mem cd) (inPhantom P) (inPhantom P))
+  (prop_on2 (mem cd) (inPhantom P) (inPhantom P))
   (at level 0, format "{ 'on'  cd  & ,  P }") : type_scope.
 
 Notation "{ 'on' cd , P & g }" :=
@@ -955,54 +960,57 @@ Notation "{ 'on' cd , 'bijective' f }" := (bijective_on (mem cd) f)
 Section LocalGlobal.
 
 Variables T1 T2 T3 : predArgType.
-Variables (d1 d1' : pred T1) (d2 d2' : pred T2) (d3 d3' : pred T3).
+Variables (D1 : pred T1) (D2 : pred T2) (D3 : pred T3).
+Variables (d1 d1' : mem_pred T1) (d2 d2' : mem_pred T2) (d3 d3' : mem_pred T3).
 Variables (f f' : T1 -> T2) (g : T2 -> T1) (h : T3).
 Variables (P1 : T1 -> Prop) (P2 : T1 -> T2 -> Prop).
 Variable P3 : T1 -> T2 -> T3 -> Prop.
 Variable Q1 : (T1 -> T2) -> T1 -> Prop.
 Variable Q1l : (T1 -> T2) -> T3 -> T1 -> Prop.
 Variable Q2 : (T1 -> T2) -> T1 -> T1 -> Prop.
-Let allP1 := forall x1, P1 x1.
-Let allP2 := forall x1 x2, P2 x1 x2.
-Let allP3 := forall x1 x2 x3, P3 x1 x2 x3.
-Let allQ1 f'' := forall x, Q1 f'' x.
-Let allQ1l f'' h' := forall x, Q1l f'' h' x.
-Let allQ2 f'' := forall x y, Q2 f'' x y.
 
-Hypothesis sub1 : {subset d1 <= d1'}.
-Hypothesis sub2 : {subset d2 <= d2'}.
-Hypothesis sub3 : {subset d3 <= d3'}.
+Hypothesis sub1 : sub_mem d1 d1'.
+Hypothesis sub2 : sub_mem d2 d2'.
+Hypothesis sub3 : sub_mem d3 d3'.
 
-Lemma in1W : allP1 -> {in d1, allP1}. Proof. by move=> ? ?. Qed.
+Lemma in1W : {all1 P1} -> {in D1, {all1 P1}}.
+Proof. by move=> ? ?. Qed.
+Lemma in2W : {all2 P2} -> {in D1 & D2, {all2 P2}}.
+Proof. by move=> ? ?. Qed.
+Lemma in3W : {all3 P3} -> {in D1 & D2 & D3, {all3 P3}}.
+Proof. by move=> ? ?. Qed.
 
-Lemma in2W : allP2 -> {in d1 & d2, allP2}. Proof. by move=> ? ?. Qed.
-
-Lemma in3W : allP3 -> {in d1 & d2 & d3, allP3}. Proof. by move=> ? ?. Qed.
-
-Lemma in1A : {in T1, allP1} -> allP1. Proof. by move=> ? ?; auto. Qed.
-
-Lemma in2A : {in T1 & T2, allP2} -> allP2. Proof. by move=> ? ?; auto. Qed.
-
-Lemma in3A : {in T1 & T2 & T3, allP3} -> allP3.
+Lemma in1A : {in T1, {all1 P1}} -> {all1 P1}.
+Proof. by move=> ? ?; auto. Qed.
+Lemma in2A : {in T1 & T2, {all2 P2}} -> {all2 P2}.
+Proof. by move=> ? ?; auto. Qed.
+Lemma in3A : {in T1 & T2 & T3, {all3 P3}} -> {all3 P3}.
 Proof. by move=> ? ?; auto. Qed.
 
-Lemma subin1 : {in d1', allP1} -> {in d1, allP1}.
-Proof. move=> allP x; move/sub1; exact: allP. Qed.
+Lemma subin1 : forall Ph : ph {all1 P1},
+  prop_in1 d1' Ph -> prop_in1 d1 Ph.
+Proof. move=> ? allP x; move/sub1; exact: allP. Qed.
 
-Lemma subin11 : {in d1' & d2', allP2} -> {in d1 & d2, allP2}.
-Proof. move=> allP x1 x2; move/sub1=> d1x1; move/sub2; exact: allP. Qed.
+Lemma subin11 : forall Ph : ph {all2 P2},
+  prop_in11 d1' d2' Ph -> prop_in11 d1 d2 Ph.
+Proof. move=> ? allP x1 x2; move/sub1=> d1x1; move/sub2; exact: allP. Qed.
 
-Lemma subin111 : {in d1' & d2' & d3', allP3} -> {in d1 & d2 & d3, allP3}.
+Lemma subin111 :  forall Ph : ph {all3 P3},
+  prop_in111 d1' d2' d3' Ph -> prop_in111 d1 d2 d3 Ph.
 Proof.
-move=> allP x1 x2 x3.
+move=> ? allP x1 x2 x3.
 move/sub1=> d1x1; move/sub2=> d2x2; move/sub3; exact: allP.
 Qed.
 
-Lemma on1W : allQ1 f -> {on d2, allQ1 f}. Proof. by move=> ? ?. Qed.
+Let allQ1 f'' := {all1 Q1 f''}.
+Let allQ1l f'' h' := {all1 Q1l f'' h'}.
+Let allQ2 f'' := {all2 Q2 f''}.
 
-Lemma on1lW : allQ1l f h -> {on d2, allQ1l f & h}. Proof. by move=> ? ?. Qed.
+Lemma on1W : allQ1 f -> {on D2, allQ1 f}. Proof. by move=> ? ?. Qed.
 
-Lemma on2W : allQ2 f -> {on d2 &, allQ2 f}. Proof. by move=> ? ?. Qed.
+Lemma on1lW : allQ1l f h -> {on D2, allQ1l f & h}. Proof. by move=> ? ?. Qed.
+
+Lemma on2W : allQ2 f -> {on D2 &, allQ2 f}. Proof. by move=> ? ?. Qed.
 
 Lemma on1A : {on T2, allQ1 f} -> allQ1 f. Proof. by move=> ? ?; auto. Qed.
 
@@ -1012,54 +1020,32 @@ Proof. by move=> ? ?; auto. Qed.
 Lemma on2A : {on T2 &, allQ2 f} -> allQ2 f.
 Proof. by move=> ? ?; auto. Qed.
 
-Lemma subon1 : {on d2', allQ1 f} -> {on d2, allQ1 f}.
-Proof. move=> allQ x; move/sub2; exact: allQ. Qed.
+Lemma subon1 : forall (Phf : ph (allQ1 f)) (Ph : ph (allQ1 f)),
+  prop_on1 d2' Phf Ph -> prop_on1 d2 Phf Ph.
+Proof. move=> ? ? allQ x; move/sub2; exact: allQ. Qed.
 
-Lemma subon1l : {on d2', allQ1l f & h} -> {on d2, allQ1l f & h}.
-Proof. move=> allQ x; move/sub2; exact: allQ. Qed.
+Lemma subon1l : forall (Phf : ph (allQ1l f)) (Ph : ph (allQ1l f h)),
+  prop_on1 d2' Phf Ph -> prop_on1 d2 Phf Ph.
+Proof. move=> ? ? allQ x; move/sub2; exact: allQ. Qed.
 
-Lemma subon2 : {on d2' &, allQ2 f} -> {on d2 &, allQ2 f}.
-Proof. move=> allQ x y; move/sub2=> d2fx; move/sub2; exact: allQ. Qed.
+Lemma subon2 : forall (Phf : ph (allQ2 f)) (Ph : ph (allQ2 f)),
+  prop_on2 d2' Phf Ph -> prop_on2 d2 Phf Ph.
+Proof. move=> ? ? allQ x y; move/sub2=> d2fx; move/sub2; exact: allQ. Qed.
 
-Lemma subin_eq : {in d1', f =1 f'} -> {in d1, f =1 f'}.
-Proof. move=> eqff' x; move/sub1; exact: eqff'. Qed.
-
-Lemma subin_can : {in d1', cancel f g} -> {in d1, cancel f g}.
-Proof. move=> fK x; move/sub1; exact: fK. Qed.
-
-Lemma subin_inj : {in d1' &, injective f} -> {in d1 &, injective f}.
-Proof. move=> injf x y; move/sub1=> d1x; move/sub1; exact: injf. Qed.
-
-Lemma subin_bij : {in d1', bijective f} -> {in d1, bijective f}.
-Proof.
-case=> g' fK g'K; exists g' => x; move/sub1; [exact: fK | exact: g'K].
-Qed.
-
-Lemma subon_can : {on d2', cancel f & g} -> {on d2, cancel f & g}.
-Proof. move=> fK x; move/sub2; exact: fK. Qed.
-
-Lemma subon_inj : {on d2' &, injective f} -> {on d2 &, injective f}.
-Proof. move=> injf x y; move/sub2=> d2fx; move/sub2; exact: injf. Qed.
-
-Lemma subon_bij : {on d2', bijective f} -> {on d2, bijective f}.
-Proof.
-case=> g' fK g'K; exists g' => x; move/sub2; [exact: fK | exact: g'K].
-Qed.
-
-Lemma in_can_inj : {in d1, cancel f g} -> {in d1 &, injective f}.
+Lemma in_can_inj : {in D1, cancel f g} -> {in D1 &, injective f}.
 Proof.
 by move=> fK x y; do 2![move/fK=> def; rewrite -{2}def {def}] => ->.
 Qed.
 
-Lemma on_can_inj : {on d2, cancel f & g} -> {on d2 &, injective f}.
+Lemma on_can_inj : {on D2, cancel f & g} -> {on D2 &, injective f}.
 Proof.
 by move=> fK x y; do 2![move/fK=> def; rewrite -{2}def {def}] => ->.
 Qed.
 
-Lemma inW_bij : bijective f -> {in d1, bijective f}.
+Lemma inW_bij : bijective f -> {in D1, bijective f}.
 Proof. by case=> g' fK g'K; exists g' => * ? *; auto. Qed.
 
-Lemma onW_bij : bijective f -> {on d2, bijective f}.
+Lemma onW_bij : bijective f -> {on D2, bijective f}.
 Proof. by case=> g' fK g'K; exists g' => * ? *; auto. Qed.
 
 Lemma inA_bij : {in T1, bijective f} -> bijective f.
@@ -1068,15 +1054,36 @@ Proof. by case=> g' fK g'K; exists g' => * ? *; auto. Qed.
 Lemma onA_bij : {on T2, bijective f} -> bijective f. 
 Proof. by case=> g' fK g'K; exists g' => * ? *; auto. Qed.
 
+Lemma subin_bij : forall D1' : pred T1,
+  {subset D1 <= D1'} -> {in D1', bijective f} -> {in D1, bijective f}.
+Proof.
+move=> D1' subD [g' fK g'K].
+exists g' => x; move/subD; [exact: fK | exact: g'K].
+Qed.
+
+Lemma subon_bij :  forall D2' : pred T2,
+ {subset D2 <= D2'} -> {on D2', bijective f} -> {on D2, bijective f}.
+Proof.
+move=> D2' subD [g' fK g'K].
+exists g' => x; move/subD; [exact: fK | exact: g'K].
+Qed.
+
 End LocalGlobal.
 
-Lemma subin2 : forall T (d d' : pred T) (P : T -> T -> Prop),
-  let allP := forall x y, P x y in
-  {subset d <= d'} -> {in d' &, allP} -> {in d &, allP}.
+Lemma subin2 : forall T d d' (P : T -> T -> Prop),
+  sub_mem d d' -> forall Ph : ph {all2 P}, prop_in2 d' Ph -> prop_in2 d Ph.
 Proof. by move=> T d d' P /= sub; exact: subin11. Qed.
 
-Lemma subin3 : forall T (d d' : pred T) (P : T -> T -> T -> Prop),
-  let allP := forall x y z, P x y z in
-  {subset d <= d'} -> {in d' & &, allP} -> {in d & &, allP}.
+Lemma subin3 : forall T d d' (P : T -> T -> T -> Prop),
+  sub_mem d d' -> forall Ph : ph {all3 P}, prop_in3 d' Ph -> prop_in3 d Ph.
 Proof. by move=> T d d' P /= sub; exact: subin111. Qed.
 
+Lemma subin12 : forall T1 T d1 d1' d d' (P : T1 -> T -> T -> Prop),
+  sub_mem d1 d1' -> sub_mem d d' ->
+  forall Ph : ph {all3 P}, prop_in12 d1' d' Ph -> prop_in12 d1 d Ph.
+Proof. by move=> T1 T d1 d1' d d' P /= sub1 sub; exact: subin111. Qed.
+
+Lemma subin21 : forall T T3 d d' d3 d3' (P : T -> T -> T3 -> Prop),
+  sub_mem d d' -> sub_mem d3 d3' ->
+  forall Ph : ph {all3 P}, prop_in21 d' d3' Ph -> prop_in21 d d3 Ph.
+Proof. by move=> T T3 d d' d3 d3' P /= sub sub3; exact: subin111. Qed.
