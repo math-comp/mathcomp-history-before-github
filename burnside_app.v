@@ -175,8 +175,8 @@ apply: (mulg_injr sd2); rewrite mulVg; apply/permP.
 by case; do 4?case=> //=; move=> H; rewrite !permE /= !permE; apply/eqP.
 Qed.
 
-Lemma ord_enum4: sval (ord_enum 4) = [:: c0; c1; c2; c3].
-Proof. by apply: (inj_maps (@val_inj _ _ _)); exact: (svalP (ord_enum 4)). Qed.
+Lemma ord_enum4: enum {I_(4)} = [:: c0; c1; c2; c3].
+Proof. by apply: (inj_maps val_inj); rewrite val_enum_ord. Qed.
 
 Lemma diff_id_sh: 1 != sh.
 Proof.

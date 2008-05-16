@@ -16,7 +16,22 @@ Import Prenex Implicits.
 (* give a construction of a finType from a list, but it is preferable to  *)
 (* specify the structure of the eqType in general.                        *)
 
-Definition enumeration (T : eqType) e := forall x : T, count (pred1 x) e = 1.
+Section Enumeration.
+
+Variable T : eqType.
+
+Definition enumeration e := forall x : T, count (pred1 x) e = 1.
+
+Lemma enumerationP : forall e, (uniq e /\ e =i predT) <-> (enumeration e).
+Proof.
+move=> e; split=> [[Ue Ae] x | Ee]; first by rewrite count_pred1_uniq ?Ae.
+have Ae: _ \in e by move=> x; rewrite -has_pred1 has_count Ee.
+have Uue: uniq (undup e) := uniq_undup e.
+split=> //; apply: etrans (Uue); apply: perm_eq_uniq; apply/allP=> x _.
+by apply/eqP; rewrite Ee count_pred1_uniq // mem_undup Ae.
+Qed.
+
+End Enumeration.
 
 Module FinType.
 
@@ -25,10 +40,14 @@ Section Mixins.
 Variable T : Type.
 
 Section Enum.
+
 Variable eq_mix : EqType.mixin T.
+
 Let enumT := @enumeration (EqClass eq_mix).
 Structure enumMixin : Type := EnumMixin { enum : seq T; _ : enumT enum }.
+
 Lemma enumP : forall enum_mix, enumT (enum enum_mix). Proof. by case. Qed.
+
 End Enum.
 
 CoInductive mixin : Type := Mixin eq_mix of enumMixin eq_mix.
@@ -43,8 +62,6 @@ Coercion mixin_of T := let: Class _ m := T return mixin T in m.
 
 Definition mkMixin (T : class) := Mixin T.
 
-Definition enumMixin_for (T : eqType) & phant T := enumMixin T.
-
 End FinType.
 
 Notation finType := FinType.class.
@@ -55,7 +72,9 @@ Notation FinClass := FinType.Class.
 Coercion fin_eqType (T : finType) := EqClass T.
 Canonical Structure fin_eqType.
 
-Notation "{ 'enumMixin' T }" := (FinType.enumMixin_for (Phant T))
+Definition eqMixin_for_fin := nosimpl EqType.mixin_of.
+
+Notation "{ 'enumMixin' T }" := (@FinType.enumMixin T (eqMixin_for_fin _))
   (at level 0, format "{ 'enumMixin'  T }") : type_scope.
 
 Definition mkFinType eT :=
@@ -143,14 +162,7 @@ by move=> q x; rewrite mem_filter andbC -has_pred1 has_count FinType.enumP.
 Qed.
 
 Lemma uniq_enum : uniq (enum p).
-Proof.
-apply: uniq_filter; set e := FinType.enum T.
-have: count (pred1 _) e <= 1 by move=> x; rewrite FinType.enumP.
-elim: e => [|x e IHe] e1 //=; apply/andP; split.
-  rewrite -has_pred1 has_count -ltnNge /=.
-  by apply: leq_trans (e1 x); rewrite /= eqxx.
-by apply: IHe => y; apply: leq_trans (e1 y); rewrite leq_addl.
-Qed.
+Proof. by apply: uniq_filter; case/enumerationP: (FinType.enumP T). Qed.
 
 Lemma eq_enum : forall p1 p2 : pred T, p1 =1 p2 -> enum p1 = enum p2.
 Proof. move=> p1 p2 eqp12; exact: eq_filter. Qed.
@@ -779,32 +791,38 @@ Module PredSub := MakePredSubType eqtype.
 
 (* This assumes that T has both finType and subType structures. *)
 Notation "[ 'subFinType' 'of' T ]" :=
-  (subFinType_for (erefl T)) (at level 0, only parsing) : form_scope.
+  (subFinType_for (@erefl Type T)) (at level 0, only parsing) : form_scope.
 
 Section FinTypeForSub.
 
 Variables (T : finType) (P : pred T) (sT : subType P).
 
-Lemma sub_enum : {e : seq sT | enumeration e & size e = #|[pred x | P x]|}.
+Let sub_enum_val : seq sT := pmaps insub (enum T).
+
+Lemma sub_enumeration : enumeration sub_enum_val.
 Proof.
-exists (pmaps insub (enum T) : seq sT) => [u|]; last first.
-  by rewrite size_pmap_sub enumE /card unlock.
-rewrite count_pred1_uniq; first by rewrite mem_pmap_sub mem_enum.
-by apply: uniq_pmap_sub; exact: uniq_enum.
+apply/enumerationP; split=> [|x]; first exact: uniq_pmap_sub (uniq_enum T).
+by rewrite mem_pmap_sub mem_enum.
 Qed.
+
+Lemma sub_enum : {enumMixin sT}.
+Proof. exists sub_enum_val; exact: sub_enumeration. Qed.
 
 (* We can't declare a canonical structure here because we've already *)
 (* stated that subType_sort and FinType.sort unify via to the        *)
 (* subType_finType structure.                                        *)
 
-Definition finMixin_for_sub := FinMixin (EnumMixin (s2valP sub_enum)).
+Definition finMixin_for_sub := FinMixin sub_enum.
 Definition finType_for_sub & phant sT := FinClass finMixin_for_sub.
 
-Notation Local "#| > A |" := (@card (finType_for_sub (Phant sT)) (mem A))
-  (at level 0).
+Notation fT := (finType_for_sub (Phant sT)).
+Notation Local "#| > A |" := (@card fT (mem A)) (at level 0).
 
 Lemma card_sub : #|>sT| = #|[pred x | P x]|.
-Proof. by rewrite cardT enumE /= (s2valP' sub_enum). Qed.
+Proof.
+case/enumerationP: sub_enumeration => Ue; move/(@eq_card fT) <-.
+by rewrite (@card_uniqP fT _ Ue) size_pmap_sub enumE /card unlock.
+Qed.
 
 Lemma eq_card_sub : forall A : pred sT,
   A =i predT -> #|>A| = #|[pred x | P x]|.
@@ -830,74 +848,82 @@ Proof. exact: card_sub. Qed.
 
 End CardSig.
 
-Section Ordinal.
+Section OrdinalSub.
 
 Variable n : nat.
 
-Inductive ordinal_of : Type := OrdinalOf m of m < n.
+Inductive ordinal : Type := Ordinal m of m < n.
 
-Definition ordinal : predArgType := ordinal_of.
-Definition Ordinal : forall m, m < n -> ordinal := OrdinalOf.
+Coercion nat_of_ord i := let: Ordinal m _ := i in m.
 
-Notation I_n := ordinal.
+Canonical Structure ordinal_subType := SubType nat_of_ord ordinal_rect vrefl.
 
-Coercion ord_of_ord (i : ordinal_of) := i : I_n.
-Coercion nat_of_ord (i : I_n) := let: Ordinal m _ := i in m.
-
-Canonical Structure ordinal_subType :=
-  @SubType _ _ _ nat_of_ord Ordinal ordinal_of_rect vrefl.
-
-Canonical Structure ordinal_eqType := [subEqType for nat_of_ord].
-
-Lemma ltn_ord : forall x : I_n, x < n. Proof. by case. Qed.
-Hint Resolve ltn_ord.
+Lemma ltn_ord : forall i : ordinal, i < n. Proof. exact: valP. Qed.
 
 Lemma ord_inj : injective nat_of_ord. Proof. exact: val_inj. Qed.
 
-Lemma ord_enum : {e : seq I_n | maps val e = iota 0 n}.
+Canonical Structure ordinal_eqType := [subEqType for nat_of_ord].
+
+Definition ord_enum_val : seq ordinal := pmaps insub (iota 0 n).
+
+Lemma val_ord_enum_val : maps val ord_enum_val = iota 0 n.
 Proof.
-exists (pmaps insub (iota 0 n) : seq I_n).
 rewrite pmaps_filter; last exact: insubK.
 by apply/all_filterP; apply/allP=> i; rewrite mem_iota isSome_insub.
 Qed.
 
-Lemma ord_enumP : enumeration (sval ord_enum).
+Lemma ord_enumeration : enumeration ord_enum_val.
 Proof.
-move=> i; rewrite -(count_maps val (pred1 _)) (svalP ord_enum).
+move=> /= i; rewrite -(count_maps val (pred1 _)) val_ord_enum_val.
 by rewrite count_pred1_uniq ?uniq_iota // mem_iota ltn_ord.
 Qed.
 
-Canonical Structure ordinal_finType := Eval hnf in mkFinType ord_enumP.
+End OrdinalSub.
 
-Canonical Structure ordinal_subFinType := Eval hnf in [subFinType of I_n].
-  
-Lemma val_enum_ord : maps val (enum I_n) = iota 0 n.
-Proof. by rewrite enumE /=; case ord_enum. Qed.
+Notation "'I_' ( n )" := (ordinal n)
+  (at level 0, format "'I_' ( n )").
 
-Lemma size_enum_ord : size (enum I_n) = n.
+(* To use ordinals as predicates, e. g., in #|{I_(n)}| *)
+Notation "{ 'I_' ( n ) }" := (I_(n) : predArgType)
+  (at level 0, format "{ 'I_' ( n ) }").
+
+Hint Resolve ltn_ord.
+
+Lemma ordinal_key : unit. Proof. by []. Qed.
+Definition ord_enum : forall n, {enumMixin I_(n)} :=
+  locked_with ordinal_key (fun n => EnumMixin (@ord_enumeration n)).
+
+Canonical Structure ordinal_finType n := FinClass (FinMixin (ord_enum n)).
+Canonical Structure ordinal_subFinType n := Eval hnf in [subFinType of I_(n)].
+
+Section OrdinalEnum.
+
+Variable n : nat.
+
+Lemma val_enum_ord : maps val (enum {I_(n)}) = iota 0 n.
+Proof. by rewrite enumE /= /ord_enum unlock val_ord_enum_val. Qed.
+
+Lemma size_enum_ord : size (enum {I_(n)}) = n.
 Proof. by rewrite -(size_maps val) val_enum_ord size_iota. Qed.
 
-Lemma card_ord : #|I_n| = n.
+Lemma card_ord : #|{I_(n)}| = n.
 Proof. by rewrite cardE size_enum_ord. Qed.
 
-Lemma sub_enum_ord : forall i0 m, m < n -> sub i0 (enum I_n) m = m :> nat.
+Lemma sub_enum_ord : forall i0 m, m < n -> sub i0 (enum {I_(n)}) m = m :> nat.
 Proof.
 by move=> *; rewrite -(sub_maps _ 0) (size_enum_ord, val_enum_ord) // sub_iota.
 Qed.
 
-Lemma sub_ord_enum : forall i0 i : I_n, sub i0 (enum I_n) i = i.
+Lemma sub_ord_enum : forall i0 i : I_(n), sub i0 (enum {I_(n)}) i = i.
 Proof. move=> i0 i; apply: val_inj; exact: sub_enum_ord. Qed.
 
-Lemma index_enum_ord : forall i : I_n, index i (enum I_n) = i.
+Lemma index_enum_ord : forall i : I_(n), index i (enum {I_(n)}) = i.
 Proof.
 move=> i.
 by rewrite -{1}(sub_ord_enum i i) index_uniq ?(uniq_enum, size_enum_ord).
 Qed.
 
-End Ordinal.
-
-Notation "'I_' ( n )" := (ordinal n) (at level 0, format "'I_' ( n )").
-Hint Resolve ltn_ord.
+End OrdinalEnum.
 
 Lemma widen_ordP : forall n m (i : I_(n)), n <= m -> i < m.
 Proof. move=> *; exact: leq_trans. Qed.
@@ -1118,7 +1144,7 @@ Proof. by move=> m lt_m; rewrite val_insubd lt_m. Qed.
 Lemma inord_val : forall i : I_(n), inord i = i.
 Proof. by move=> i; rewrite /inord /insubd valK. Qed.
 
-Lemma enum_ordS : enum I_(n) = ord0 :: maps (lift ord0) (enum I_(n.-1)).
+Lemma enum_ordS : enum {I_(n)} = ord0 :: maps (lift ord0) (enum {I_(n.-1)}).
 Proof.
 apply: (inj_maps val_inj); rewrite val_enum_ord /= -maps_comp.
 by rewrite (maps_comp (addn 1)) val_enum_ord -iota_addl -{1}(@prednK n).

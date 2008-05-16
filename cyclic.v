@@ -31,7 +31,7 @@ Definition phi n := #|[eta coprime n] : pred I_(n)|.
 Lemma phi_mult: forall m n,
   coprime m n -> phi (m * n) = phi m * phi n.
 Proof.
-move => m n H0; rewrite /phi -![@card {I_(_) : as finType} _]card_sig /=.
+move => m n H0; rewrite /phi -![@card [finType of I_(_)] _]card_sig /=.
 rewrite (mulnC (card _)) -card_prod /=.
 pose cops u := sig_finType (fun x : fzp u => coprime u x).
 change (#|cops (m * n)| = #|@predT (cops n * cops m)|).

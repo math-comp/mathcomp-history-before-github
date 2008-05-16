@@ -40,14 +40,13 @@ move=> d; rewrite leq_eqVlt; case/predU1P => Hcard; last first.
     by move=> Hcard; apply/eqP; rewrite -(@eqn_pmul2l 2) // card_alt Hcard.
   apply/simpleP=> K; case/andP=> Hs _; left.  
   by rewrite (trivgP K _) ?trivg_card // -F1 subset_leq_card.
-have F1: #|alt d| = 3%N.
-  by apply/eqP; rewrite -(@eqn_pmul2l 2) // card_alt Hcard.
+have F1: #|alt d| = 3 by apply/eqP; rewrite -(@eqn_pmul2l 2) // card_alt Hcard.
 apply/simpleP=> /= K; case/andP=> sKH _.
 have:= group_dvdn sKH; rewrite F1 dvdn_divisors // !inE orbF orbC -F1.
 case/predU1P; first by right; apply/setP; exact/subset_cardP.
 rewrite (cardD1 1) group1 eqSS [_ == _]disjoint_sym disjoint_subset => sK1.
 left; rewrite {sKH} (trivgP K _) //; apply: subset_trans sK1 _.
-by apply/subsetP=> x; rewrite inE inE /= negbK.
+by apply/subsetP=> x; rewrite !inE /= negbK.
 Qed.
 
 
@@ -88,9 +87,8 @@ have [p [p_pr pA_int Sp1]]:
   case/predU1P=> //; move/(congr1 double).
   pose Q3 := \bigcup_(Q \in Syl3) (Q :\ 1).
   have <-: #|Q3| = #|Syl3|.*2.
-    rewrite -muln2; (apply: card_setnU_id; move) => /= [Q1 Q2 x | Q]; last first.
-      rewrite inE; case/andP=> _; rewrite (cardsD1 1) group1 /= eq_sym {1}cA.
-      by case/eqP.
+    rewrite -muln2; apply: card_setnU_id => /= [Q1 Q2 x | Q]; last first.
+      by rewrite inE; case/andP=> _; rewrite (cardsD1 1) group1 cA; case/eqP.
     rewrite /= !{1}inE; case/andP=> _; rewrite cA -[_ 3 _]/3; move/eqP=> cQ1.
     case/andP=> _; rewrite cA -[_ 3 _]/3; move/eqP=> cQ2.
     case/andP=> nx1 Q1x; rewrite nx1 /= => Q2x.
@@ -125,8 +123,10 @@ rewrite -[_ p _](eqP sylP) in pA_int.
 by apply/simpleP; case/(_ P)=> // defP; rewrite defP cA ?cards1 in pA_int.
 Qed.
 
+Module alt_CP_1. End alt_CP_1.
+
 (* trivial proof *)
-Let tp := is_true_true.
+Notation Local tp := is_true_true.
 
 Lemma normal_stab: forall gT sT (to : action gT sT) (H1 H2 : {group _}) a, 
   H2 \subset'N(H1) -> stabilizer to H2 a \subset 'N(stabilizer to H1 a).
@@ -141,7 +141,7 @@ move: Hperm1; rewrite !actM invgK Hperm -actM => Hperm1.
 by rewrite -{2}Hperm -{2}Hperm1 -!actM; gsimpl.
 Qed.
 
-Let simple_alt5_base: forall d : finType, #|d| = 5 -> simple (alt d).
+Lemma simple_alt5_base: forall d : finType, #|d| = 5 -> simple (alt d).
 Proof.
 move=> d Hd.
 have F1: #|alt d| = 60 by apply: double_inj; rewrite -mul2n card_alt Hd.
@@ -262,6 +262,8 @@ apply/eqP; apply/idPn=> nQS; move: nSyl5.
 rewrite (cardD1 S) (cardD1 Q) -!topredE {1 2}/gsylow /= nQS /sylow Hcard20.
 by rewrite sSH oS -topredE /= sQH oQ.
 Qed.
+
+Module alt_CP_2. End alt_CP_2.
 
 Section Restrict.
 
@@ -397,8 +399,8 @@ have Hcp1: #|[set x | p1 x != x]| <= n.
     by move=> Hpx1; apply: (@perm_inj _ p); rewrite -Hpx1.  
   have F2: p1 x1 = x1 by rewrite /p1 permM tpermR.
   have F3: [set x | p1 x != x] \subset [predD1 [set x | p x != x] & x1].
-    apply/subsetP => z; rewrite inE /p1 permM inE /=.
-    case tpermP => HH1 HH2; rewrite /= inE.
+    apply/subsetP => z; rewrite !inE permM /= inE.
+    case tpermP => HH1 HH2.
     - rewrite eq_sym HH1 andbb; apply/eqP=> dx1.
       by rewrite dx1 HH1 dx1 eqxx in HH2.
     - by rewrite (perm_inj HH1) eqxx in HH2.
@@ -445,6 +447,8 @@ by rewrite !permE; move/val_eqP; rewrite /= Hx1 Hy1 !eqxx; move/eqP.
 Qed.
 
 End Restrict.
+
+Module alt_CP_3. End alt_CP_3.
 
 Lemma simple_alt5 : forall d : finType, #|d| >= 5 -> simple (alt d).
 Proof.

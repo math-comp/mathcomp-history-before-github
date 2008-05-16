@@ -24,27 +24,50 @@ Record set : Type := mkSet {ffun_of_set : {ffun pred T}}.
 Definition set_for of phant T : predArgType := set.
 Identity Coercion set_for_set : set_for >-> set.
 
-Notation sT := (set_for (Phant T)).
-
 Canonical Structure set_subType := NewType ffun_of_set set_rect vrefl.
-Canonical Structure set_for_subType := Eval hnf in [subType of sT].
 Canonical Structure set_eqType := Eval hnf in [subEqType for ffun_of_set].
-Canonical Structure set_for_eqType := Eval hnf in [eqType of sT].
 Canonical Structure set_finType := Eval hnf in [finType of set by :>].
-Canonical Structure set_for_finType := Eval hnf in [finType of sT].
 Canonical Structure set_subFinType := Eval hnf in [subFinType of set].
-Canonical Structure set_for_subFinType := Eval hnf in [subFinType of sT].
 
-Definition set_of := locked (fun P : pred T => mkSet (ffun_of P) : sT).
+Definition set_of_def (P : pred T) : set := mkSet (ffun_of P).
+
+Definition pred_of_set_def (A : set) : T -> bool := val A.
+
+End SetType.
+
+Delimit Scope set_scope with SET.
+Bind Scope set_scope with set.
+Bind Scope set_scope with set_for.
+Open Scope set_scope.
+Arguments Scope ffun_of_set [_ set_scope].
+
+Notation "{ 'set' T }" := (set_for (Phant T))
+  (at level 0, format "{ 'set'  T }") : type_scope.
+
+Lemma set_of_key : unit. Proof. by []. Qed.
+Definition set_of : forall T : finType, pred T -> {set T} :=
+  locked_with set_of_key set_of_def.
+
+Notation "[ 'set' x : T | P ]" := (set_of (fun x : T => P))
+  (at level 0, x at level 69, only parsing) : set_scope.
+Notation "[ 'set' x | P ]" := [set x : _ | P]
+  (at level 0, x at level 69, format "[ 'set'  x  |  P ]") : set_scope.
+Notation "[ 'set' x \in A | P ]" := [set x | (x \in A) && P]
+  (at level 0, x at level 69, format "[ 'set'  x  \in  A  |  P ]") : set_scope.
+Notation "[ 'set' x \in A ]" := [set x | x \in A]
+  (at level 0, x at level 69, format "[ 'set'  x  \in  A ]") : set_scope.
+
+Lemma pred_of_set_key : unit. Proof. by []. Qed.
+Definition pred_of_set : forall T, set T -> pred_class :=
+  locked_with pred_of_set_key pred_of_set_def.
 
 (* This lets us use subtypes of set, like group or coset, as predicates. *)
-Coercion pred_of_set (A : set) : pred_class := ffun_of_set A : T -> bool.
+Coercion pred_of_set : set >-> pred_class.
 
 (* Declare pred_of_set as a canonical instance of to_pred, but use the *)
 (* coercion to resolve mem A to @mem (predPredType T) (pred_of_set A). *)
-
-Canonical Structure set_predType :=
-  Eval hnf in @mkPredType T (let s := set in s) pred_of_set.
+Canonical Structure set_predType T :=
+  Eval hnf in @mkPredType _ (let s := set T in s) (@pred_of_set T).
 
 (* Alternative: *)
 (* Use specific canonical structures for sets. This allows to have  *)
@@ -57,35 +80,6 @@ Canonical Structure set_for_predType := Eval hnf in [predType of sT].
   pred causes apply to fail, e.g., the group1 lemma does not apply
   to a 1 \in G with G : group gT when this goal results from
   rewriting A = G in 1 \in A, with A : set gT.                      *)
-
-Lemma in_set : forall P x, x \in set_of P = P x.
-Proof. unlock set_of => P; exact: ffunE. Qed.
-
-Lemma setP : forall a b : sT, a =i b <-> a = b.
-Proof. by move=> a b; split=> [eq_ab|->//]; apply: val_inj; apply/ffunP. Qed.
-
-End SetType.
-
-Definition inE := (in_set, inE).
-
-Notation "{ 'set' T }" := (set_for (Phant T))
-  (at level 0, format "{ 'set'  T }") : type_scope.
-
-Delimit Scope set_scope with SET.
-Bind Scope set_scope with set.
-Bind Scope set_scope with set_for.
-Open Scope set_scope.
-Arguments Scope ffun_of_set [_ set_scope].
-Arguments Scope pred_of_set [_ set_scope _].
-
-Notation "[ 'set' x : T | P ]" := (set_of (fun x : T => P))
-  (at level 0, x at level 69, only parsing) : set_scope.
-Notation "[ 'set' x | P ]" := [set x : _ | P]
-  (at level 0, x at level 69, format "[ 'set'  x  |  P ]") : set_scope.
-Notation "[ 'set' x \in A | P ]" := [set x | (x \in A) && P]
-  (at level 0, x at level 69, format "[ 'set'  x  \in  A  |  P ]") : set_scope.
-Notation "[ 'set' x \in A ]" := [set x | x \in A]
-  (at level 0, x at level 69, format "[ 'set'  x  \in  A ]") : set_scope.
 
 Section setOpsDefs.
 
@@ -133,9 +127,30 @@ Notation "A :\ a" := (setD1 A a) (at level 50) : set_scope.
 Notation "A :&: B" := (setI A B) (at level 48, left associativity) : set_scope.
 Notation "~: A" := (setC A) (at level 35, right associativity) : set_scope.
 
-Lemma in_setT : forall T x, x \in @setT T.
-Proof. by move=> T x; rewrite inE. Qed.
+Section BasicSetTheory.
 
+Variable T : finType.
+Implicit Type x : T.
+
+Canonical Structure set_for_eqType := Eval hnf in [eqType of {set T}].
+Canonical Structure set_for_finType := Eval hnf in [finType of {set T}].
+Canonical Structure set_for_subType := Eval hnf in [subType of {set T}].
+Canonical Structure set_for_subFinType := Eval hnf in [subFinType of {set T}].
+
+Lemma in_set : forall P x, x \in set_of P = P x.
+Proof. by move=> P x; rewrite /set_of /pred_of_set !unlock [x \in _]ffunE. Qed.
+
+Lemma in_setT : forall x, x \in setT. Proof. by move=> x; rewrite in_set. Qed.
+
+Lemma setP : forall A B : {set T}, A =i B <-> A = B.
+Proof.
+move=> A B; split=> [eqAB|-> //]; apply: val_inj; apply/ffunP=> x.
+by have:= eqAB x; rewrite /pred_of_set unlock.
+Qed.
+
+End BasicSetTheory.
+
+Definition inE := (inE, in_set).
 Hint Resolve in_setT.
 
 Section setOps.
@@ -143,6 +158,7 @@ Section setOps.
 Variable T : finType.
 Implicit Types a x : T.
 Implicit Types A B C D : {set T}.
+
 
 Lemma eqset_sub : forall A B : {set T},
   (A == B) = (A \subset B) && (B \subset A).
@@ -427,7 +443,8 @@ Proof. exact: can_inj setCK. Qed.
 
 Lemma subsets_disjoint : forall A B, (A \subset B) = [disjoint A & ~: B].
 Proof.
-by move=> A B; rewrite subset_disjoint; apply: eq_disjoint_r => x; rewrite inE.
+move=> A B; rewrite subset_disjoint.
+by apply: eq_disjoint_r => x; rewrite !inE.
 Qed.
 
 Lemma disjoints_subset : forall A B, [disjoint A & B] = (A \subset ~: B).
@@ -478,10 +495,10 @@ Lemma set0D : forall A, set0 :\: A = set0.
 Proof. by move=> A; apply/setP=>x; rewrite !inE andbF. Qed.
  
 Lemma setDT : forall A, A :\: setT = set0.
-Proof. by move=> A; apply/setP=>x; rewrite !inE. Qed.
+Proof. by move=> A; apply/setP=> x; rewrite !inE. Qed.
 
 Lemma setTD : forall A, setT :\: A = ~: A.
-Proof. by move=> A; apply/setP=>x; rewrite !inE andbT. Qed.
+Proof. by move=> A; apply/setP=> x; rewrite !inE andbT. Qed.
  
 Lemma setDv : forall A, A :\: A = set0.
 Proof. by move=> A; apply/setP=> x; rewrite !inE andNb. Qed.
@@ -567,7 +584,7 @@ Proof. by move=> A B; rewrite setDE subsetIr. Qed.
 
 Lemma sub1set : forall A x, ([set x] \subset A) = (x \in A).
 Proof.
-by move=> A x; rewrite -subset_pred1; apply: eq_subset=> y; rewrite inE.
+by move=> A x; rewrite -subset_pred1; apply: eq_subset=> y; rewrite !inE.
 Qed.
 
 Lemma eqsetIl : forall A B, (A :&: B == A) = (A \subset B).

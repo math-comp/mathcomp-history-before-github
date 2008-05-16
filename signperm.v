@@ -301,7 +301,7 @@ Qed.
 Lemma card_sym : #|sym| = fact n.
 Proof.
 rewrite -[n]cardsE -card_perm; apply: eq_card => p.
-by apply/idP/subsetP=> [? ?|]; rewrite inE.
+by apply/idP/subsetP=> [? ?|]; rewrite !inE.
 Qed.
 
 Lemma card_alt : 1 < n -> (2 * #|alt|)%N = fact n.

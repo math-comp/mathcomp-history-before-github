@@ -38,10 +38,10 @@ Definition tsub t i := sub (tsub_default t i) t i.
 Lemma tsub_sub : forall x t i, tsub t i = sub x t i.
 Proof. by move=> x t i; apply: set_sub_default; rewrite size_tuple. Qed.
 
-Lemma maps_tsub_enum : forall t, maps (tsub t) (enum I_(n)) = t.
+Lemma maps_tsub_enum : forall t, maps (tsub t) (enum {I_(n)}) = t.
 Proof.
 move=> t; case def_t: {-}(val t) => [|x0 t'].
-  suffices: #|I_(n)| = 0 by rewrite cardE; move/size_eq0->.
+  suffices: #|{I_(n)}| = 0 by rewrite cardE; move/size_eq0->.
   by rewrite card_ord -(size_tuple t) def_t.
 apply: (@eq_from_sub _ x0) => [|i]; rewrite size_maps.
   by rewrite -cardE size_tuple card_ord.
@@ -226,9 +226,7 @@ Proof. by move=> a; rewrite -cardE. Qed.
 Canonical Structure enum_tuple a := Tuple (enum_tupleP a).
 
 Definition ord_tuple : tuple n I_(n) := Tuple (introT eqP (size_enum_ord n)).
-
-Lemma val_ord_tuple : val ord_tuple = enum I_(n).
-Proof. by []. Qed.
+Lemma val_ord_tuple : val ord_tuple = enum {I_(n)}. Proof. by []. Qed.
 
 Lemma tuple_maps_ord : forall T' (t : tuple n T'),
   t = [tuple of maps (tsub t) ord_tuple].
