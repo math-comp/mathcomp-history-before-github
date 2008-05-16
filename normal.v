@@ -341,7 +341,7 @@ by rewrite (out_dom Dy) (@out_dom _ _ f) // groupMl.
 Qed.
 
 Lemma ker_rcoset : forall x y, x \in dom f -> y \in dom f ->
-  reflect (exists k, k \in ker f /\ x = k * y) (f x == f y).
+  reflect (exists k, k \in ker f /\ x = k * y) (f x == f y :> gT2).
 Proof.
 move=> x y dx dy; apply: (iffP eqP).
   move=> Exy; exists (x * y^-1); split; last by gsimpl.

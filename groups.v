@@ -242,13 +242,13 @@ Proof. by case: T => ? []. Qed.
 
 Lemma invg_inj : @injective T T invg. Proof. exact: can_inj invgK. Qed.
 
-Lemma eq_invg_sym : forall x y, (x^-1 == y) = (x == y^-1).
+Lemma eq_invg_sym : forall x y, (x^-1 == y :> T) = (x == y^-1).
 Proof. by move=> x y; exact: (inv_eq invgK). Qed.
 
 Lemma invg1 : 1^-1 = 1 :> T.
 Proof. by apply: invg_inj; rewrite -{1}[1^-1]mul1g invMg invgK mul1g. Qed.
 
-Lemma eq_invg1 : forall x, (x^-1 == 1) = (x == 1).
+Lemma eq_invg1 : forall x, (x^-1 == 1 :> T) = (x == 1).
 Proof. by move=> x; rewrite eq_invg_sym invg1. Qed.
 
 Lemma mulg1 : @right_unit T 1 mulg.
@@ -345,13 +345,13 @@ Proof. by move=> x y; rewrite -mulgA mulVg mulg1. Qed.
 Lemma mulg_injr : forall x, injective (mulg^~ x).
 Proof. move=> x; exact: can_inj (mulgK x). Qed.
 
-Lemma eq_invg_mul : forall x y, (x^-1 == y) = (x * y == 1).
+Lemma eq_invg_mul : forall x y, (x^-1 == y :> T) = (x * y == 1 :> T).
 Proof. by move=> x y; rewrite (canF_eq (mulKg _)) mulg1. Qed.
 
-Lemma eq_mulgV1 : forall x y, (x == y) = (x * y^-1 == 1).
+Lemma eq_mulgV1 : forall x y, (x == y) = (x * y^-1 == 1 :> T).
 Proof. by move=> x y; rewrite -(inj_eq invg_inj) eq_invg_mul. Qed.
 
-Lemma eq_mulVg1 : forall x y, (x == y) = (x^-1 * y == 1).
+Lemma eq_mulVg1 : forall x y, (x == y) = (x^-1 * y == 1 :> T).
 Proof. by move=> x y; rewrite -eq_invg_mul invgK. Qed.
 
 Lemma commuteV : forall x y, commute x y -> commute x y^-1.
@@ -432,13 +432,13 @@ Proof. by move=> x y z; rewrite !conjMg !conjVg. Qed.
 Lemma invg_comm : forall x y, [~ x, y]^-1 = [~ y, x].
 Proof. by move=> x y; rewrite commgEr conjVg invMg invgK. Qed.
 
-Lemma commgP : forall x y, reflect (commute x y) ([~ x, y] == 1).
+Lemma commgP : forall x y, reflect (commute x y) ([~ x, y] == 1 :> T).
 Proof. move=> x y; rewrite 2!(canF_eq (mulKVg _)) mulg1; exact: eqP. Qed.
 
-Lemma conjg_fixP : forall x y, reflect (x ^ y = x) ([~ x, y] == 1).
+Lemma conjg_fixP : forall x y, reflect (x ^ y = x) ([~ x, y] == 1 :> T).
 Proof. move=> x y; rewrite (canF_eq (mulKVg _)) mulg1; exact: eqP. Qed.
 
-Lemma commg1_sym : forall x y, ([~ x, y] == 1) = ([~ y, x] == 1).
+Lemma commg1_sym : forall x y, ([~ x, y] == 1 :> T) = ([~ y, x] == 1 :> T).
 Proof. by move=> x y; rewrite -invg_comm (inv_eq invgK) invg1. Qed.
 
 Lemma commg1 : forall x, [~ x, 1] = 1.
