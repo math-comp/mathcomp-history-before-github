@@ -486,8 +486,8 @@ End Morphisms.
 Prenex Implicits isog.
 
 Notation "[ 'morphism' 'of' f ]" :=
-  (match {f : _ -> _ as morphism _ _} as s
-   return [type of @Morphism _ _ for s] -> _ with
+  (match [is f : _ -> _ <: morphism _ _] as s
+   return {type of @Morphism _ _ for s} -> _ with
    | Morphism _ domG fM => fun k => k domG fM
    end (@Morphism _ _ f)) (at level 0, only parsing) : form_scope.
 

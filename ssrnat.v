@@ -970,7 +970,7 @@ Proof. by elim=> //= n IHn; rewrite ltn_0mul. Qed.
 Canonical Structure fact_pos_nat n := PosNat (ltn_0fact n).
 
 Notation "[ 'pos_nat' 'of' n ]" :=
-  (match {n%N : nat as pos_nat} as s return [type of PosNat for s] -> _ with
+  (match [is n%N : nat <: pos_nat] as s return {type of PosNat for s} -> _ with
   | PosNat _ np => fun k => k np end
   (@PosNat n)) (at level 0, only parsing) : form_scope.
 

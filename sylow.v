@@ -248,7 +248,7 @@ have: p %| #|K / L|.
   by rewrite /= !rcosetE rcosetM.
 case/cauchy=> // zbar; case/andP=> Kzbar; move/eqP=> Czbar_p.
 pose H := mpreim (coset_of L) (cyclic zbar) :&: K.
-exists {H as group _}; rewrite /= -/H.
+exists [group of H] => /=.
 have Hntriv : ~~ trivm (coset_of L).
   apply/negP=> Hnt; move/prime_gt1: prime_p; rewrite ltnNge; case/negP.
   rewrite -Czbar_p -(coset_of_repr zbar) trivm_is_cst //.
@@ -443,7 +443,7 @@ have F6: forall x, x \in S0 -> x = H.
   move => L; case/andP; move/act_fixP.
   rewrite /= inE /= => Hl Hl1.
   case/andP: (Hl1) => Hl3 Hl4.
-  pose nLK := {normaliser L :&: K as group gT}.
+  pose nLK := ('N(L) :&: K)%G.
   have F7: H \subset nLK. 
     apply/subsetP => y Hy.
     rewrite inE; apply/andP; split; last exact: (subsetP F2).    

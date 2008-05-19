@@ -54,24 +54,24 @@ Notation "'if' c 'as' x 'return' t 'then' v1 'else' v2" :=
 Open Scope boolean_if_scope.
 
 (* Syntax for referring to canonical structures:                   *)
-(*   {carrier [: [carrier_type]] as struct_type}                   *)
+(*   [is carrier : carrier_type <: struct_type]                    *)
 (* denotes carrier_struct when carrier_struct : struct_type is a   *)
 (* Canonical Structure that projects to carrier via its coercion   *)
 (* to carrier_type, i.e., such that                                *)
 (*     carrier_struct : carrier_type = carrier.                    *)
-(*  Although {carrier as struct} is convertible, and indeed        *)
-(* simplifies, to carrier_struct, it does not actually denote      *)
-(* carrier_struct, but a more complex term that is displayed as    *)
-(*      (*carrier as*)carrier_struct                               *)
-(* The "carrier_type" defaults to Type when omitted, specifically, *)
-(*      {c :as sT} is equivalent to {c%type : Type as sT}          *)
+(*  Although [is carrier : carrier_type <: struct_type] is         *)
+(* convertible (and indeed simplifies) to carrier_struct, it does  *)
+(* not actually denote carrier_struct, but a more complex term     *)
+(* that is displayed as                                            *)
+(*      (*is carrier*)carrier_struct                               *)
+(* The ": carrier_type" is optional and defaults to ": Type" :     *)
+(*      [is c <: sT] is equivalent to [c%type : Type <: sT]        *)
 (* (The %type allows the casual use of notations like nat * nat.)  *)
-(* However, if the type cast is omitted altogether, as in          *)
-(*      {c as sT}                                                  *)
-(* then "carrier_type" is inferred from c. Be warned that the cast *)
-(* is often necessary when "carrier" is a Type, because Coq infers *)
-(* that simple datatypes such as nat, nat * nat, or list nat have  *)
-(* the archaic type "Set" rather than "Type".                      *)
+(*   Alternatively, if "carrier_type" is left as "_" it will be    *)
+(* inferred from c. However, this alternative should NOT be be     *)
+(* when carrier_type is Type, because Coq infers that simple       *)
+(* datatypes such as nat, nat * nat, or seq nat have the legacy    *)
+(* type "Set" rather than "Type".                                  *)
 
 Delimit Scope structure_scope with STRUCT.
 Open Scope structure_scope.
@@ -86,19 +86,16 @@ End AsCanonical.
 
 Import AsCanonical.
 
-Notation "(* c 'as' *) s" := (@get _ _ c s _)
-  (at level 10, c at level 99, format "(* c  'as' *) s") : structure_scope.
+Notation "(* 'is' c *) s" := (@get _ _ c s _)
+  (at level 10, c at level 99, format "(* 'is'  c *) s") : structure_scope.
 
-Notation "(* c : 'as' *) s" := (@get Type _ c s _)
-  (at level 10, c at level 99, format "(* c  : 'as' *) s") : structure_scope.
+Notation "(* 'is' c : *) s" := (@get Type _ c s _)
+  (at level 10, c at level 99, format "(* 'is' c  :  *) s") : structure_scope.
 
-Notation "{ c 'as' sT }" := (get ((fun s : sT => Put c s s) _))
-  (at level 0, c at level 99, only parsing) : structure_scope.
+Notation "[ 'is' c : cT <: sT ]" := (get ((fun s : sT => Put (c : cT) s s) _))
+  (at level 0, c, cT at level 99, only parsing) : structure_scope.
 
-Notation "{ c : cT 'as' sT }" := {(c : cT) as sT}
-  (at level 0, c at level 99, ct at level 100, only parsing) : structure_scope.
-
-Notation "{ c : 'as' sT }" := {c%type : Type as sT}
+Notation "[ 'is' c <: sT ]" := [is c%type : Type <: sT]
   (at level 0, c at level 99, only parsing) : structure_scope.
 
 (* Helper notation for canonical structure inheritance support.           *)
@@ -112,21 +109,21 @@ Notation "{ c : 'as' sT }" := {c%type : Type as sT}
 (*   Canonical Structure my_type_struct :=                                *)
 (*     Eval hnf in [struct of my_type].                                   *)
 (* The special notation [struct of _] must be defined for each Strucure   *)
-(* "struct", as follows                                                   *)
-(*   Notation "[ 'struct' 'of' t ]" :=                                    *)
-(*    (match {t : as struct} as s return [type of Struct for s] -> _ with *)
-(*    | Struct _ x y ... z => fun k => k _ x y ... z end                  *)
-(*    (@Struct t)) (at level 0, only parsing) : form_scope.               *)
+(* "str" with constructor "Str", as follows                               *)
+(*  Notation "[ 'struct' 'of' t ]" :=                                     *)
+(*    (match [is t <: str] as s return {type of Str for s} -> str with    *)
+(*    | Str _ x y ... z => fun k => k _ x y ... z end                     *)
+(*    (@Str t)) (at level 0, only parsing) : form_scope.                  *)
 (* The notation for the match return predicate is defined below; note     *)
-(* that the implementation of the {t as s} notation carefully avoids the  *)
-(* delta reduction problem, crucially.                                    *)
+(* that the implementation of the [is t <: s] notation carefully avoids   *)
+(* the delta reduction problem, crucially.                                *)
 
 Definition argumentType T P & forall x : T, P x := T.
 Definition dependentReturnType T P & forall x : T, P x := P.
 Definition returnType aT rT & aT -> rT := rT.
 
-Notation "[ 'type' 'of' c 'for' s ]" := (dependentReturnType c s)
-  (at level 0) : type_scope.
+Notation "{ 'type' 'of' c 'for' s }" := (dependentReturnType c s)
+  (at level 0, format "{ 'type'  'of'  c  'for'  s }") : type_scope.
 
 Delimit Scope form_scope with FORM.
 Open Scope form_scope.
@@ -135,18 +132,23 @@ Open Scope form_scope.
 (* parameter. This can be used for type definitions that require some    *)
 (* Structure on one of their parameters, to allow Coq to infer said      *)
 (* structure rather that having to supply it explicitly or to resort to  *)
-(* the "{ _ as _ }" notation, which interacts poorly with Notation.      *)
+(* the "[is _ <: _]" notation, which interacts poorly with Notation.     *)
 (*   The definition of a (co)inductive type with a parameter p : p_type, *)
 (* that uses the operations of a structure                               *)
 (*  Structure p_str : Type := p_Str {                                    *)
 (*    p_repr :> p_type; p_op : p_repr -> ...}                            *)
 (* should be given as                                                    *)
-(*  Inductive indt_phant (p : p_str) (p_phant : phantom p_type p) : Type *)
-(*    := ... .                                                           *)
-(*  Notation "'indt' p" := (indt_phant (Phantom p))                      *)
-(*     (at level 10, p at level 8).                                      *)
-(* We also define a simpler version ("phant" / "Phant") for the common   *)
-(* case where p is a Type.                                               *)
+(*  Inductive indt (p : p_str) : Type := Indt ... .                      *)
+(*  Definition indt_for (p : p_str) & phantom p_type p := indt p.        *)
+(*  Notation "{ 'indt' p }" := (indt_for (Phantom p)).                   *)
+(*  Definition indt_of p x y ... z : {indt p} := @Indt p x y ... z.      *)
+(*  Notation "[ 'indt' x y ... z ]" := (indt_of x y ... z).              *)
+(* That is, the concrete type and its constructor should be shadowed by  *)
+(* definitions that use a phantom argument to infer and display the true *)
+(* value of p (in practice, the "indt_of" constructor often performs     *)
+(* additional functions, like "locking" the representation (see below).  *)
+(*   We also define a simpler version ("phant" / "Phant") for the common *)
+(* case where p_type is Type.                                            *)
 
 CoInductive phantom (T : Type) (p : T) : Type := Phantom.
 Implicit Arguments phantom [].
@@ -167,6 +169,8 @@ Definition protect_term (A : Type) (x : A) : A := x.
 (*    foo by bar, and fold foo will replace bar by foo. A final warning:    *)
 (*    nosimpl only works if no reduction is apparent in t; in particular    *)
 (*    Definition foo x := nosimpl t. will usually not work.                 *)
+(*    CAVEAT: nosimpl should not be used inside a Section, because the end  *)
+(*    of section "cooking" removes the iota redex.                          *)
 (*  - (locked t) is provably equal to t, but is not convertible to t; it    *)
 (*    provides support for abstract data types, and selective rewriting.    *)
 (*    The equation t == (locked t) is provided as a lemma, but it should    *)
@@ -174,6 +178,13 @@ Definition protect_term (A : Type) (x : A) : A := x.
 (*    unlock tactic should be used to remove locking.                       *)
 (* locked is also used as a placeholder for the implementation of flexible  *)
 (* matching.                                                                *)
+(* Addendum: it appears that the use of a generic key confuses the term     *)
+(* comparison heuristic of the Coq kernel, which thinks all locked terms    *)
+(* have the same "head constant", and therefore immediately jumps to        *)
+(* comparing their LAST argument. As a stopgap, we suggest defining keys    *)
+(* specific to each locked constant, and we provide a locked_with function  *)
+(* that does the required locking, and an unlock rewrite rule that removes  *)
+(* it (locked_with is not yet supported by the unlock tactic).              *)
 
 Notation "'nosimpl' t" := (let: tt := tt in t) (at level 10, t at level 8).
 

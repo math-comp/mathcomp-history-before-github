@@ -82,11 +82,11 @@ Definition mkFinType eT :=
   fun e eP => FinClass (FinMixin (EnumMixin eP)).
 
 Notation "[ 'finType' 'of' T 'for' fT ]" :=
-  (match fT as s in finType return [type of FinClass for s] -> _ with
+  (match fT as s in finType return {type of FinClass for s} -> _ with
   | FinClass _ m => fun k => k m end
   (@FinClass T)) (at level 0, only parsing) : form_scope.
 
-Notation "[ 'finType' 'of' T ]" := [finType of T for {T : as finType}]
+Notation "[ 'finType' 'of' T ]" := [finType of T for [is T <: finType]]
   (at level 0, only parsing) : form_scope.
 
 Module Type FinTypePredSig.

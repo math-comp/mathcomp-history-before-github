@@ -723,7 +723,8 @@ Notation "[ 'rel' x y : T | E ]" := (SimplRel (fun x y : T => E))
   (at level 0, x ident, y ident, only parsing) : fun_scope.
 
 Notation "[ 'predType' 'of' pT ]" :=
-  (match {pT : as predType _} as s return [type of @PredType _ for s] -> _ with
+  (match [is pT <: predType _] as s
+   return {type of @PredType _ for s} -> _ with
   | PredType _ a mP => fun k => k a mP end
   (@PredType _ pT)) (at level 0, only parsing) : form_scope.
 

@@ -147,8 +147,8 @@ End InheritedClasses.
 Coercion finGroup_arg_finType : baseFinGroupType >-> finType.
 
 Notation "[ 'baseFinGroupType' 'of' T ]" :=
-  (match {T : as baseFinGroupType} as s
-   return [type of BaseFinGroupType for s] -> _ with
+  (match [is T <: baseFinGroupType] as s
+   return {type of BaseFinGroupType for s} -> _ with
   | BaseFinGroupType _ mixG mixF => fun k => k mixG mixF end
   (@BaseFinGroupType T)) (at level 0, only parsing) : form_scope.
 
@@ -164,8 +164,8 @@ Notation finGroupType := FinGroup.class.
 Notation FinGroupType := FinGroup.Class.
 
 Notation "[ 'finGroupType' 'of' T ]" :=
-  (match {T : baseFinGroupType as finGroupType} as s
-   return [type of FinGroupType for s] -> _ with
+  (match [is T : Type <: finGroupType] as s
+   return {type of FinGroupType for s} -> _ with
   | FinGroupType _ mulV => fun k => k mulV end
   (@FinGroupType T)) (at level 0, only parsing) : form_scope.
 
@@ -1003,7 +1003,7 @@ Notation "{ 'group' gT }" := (group_for (Phant gT))
   (at level 0, format "{ 'group'  gT }") : type_scope.
 
 Notation "[ 'group' 'of' G ]" :=
-  (match {G%g as group _} as s return [type of @Group _ for s] -> _ with
+  (match [is G%g : _ <: group _] as s return {type of @Group _ for s} -> _ with
   | Group _ gP => fun k => k gP end
   (@Group _ G%g)) (at level 0, only parsing) : form_scope.
 

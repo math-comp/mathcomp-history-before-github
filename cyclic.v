@@ -494,7 +494,7 @@ Variable gT : finGroupType.
 
 Lemma cyclic_sub_group : forall (a : gT) m, m %| #[a] ->
   [set H : {group gT} | (H \subset cyclic a) && (#|H| == m)]
-     = [set {cyclic (a ^+ (#[a] %/ m)) as group _}].
+     = [set [is cyclic (a ^+ (#[a] %/ m)) : _ <: group _]].
 Proof.
 move=> a m Hdiv.
 have Hpos: 0 < m by apply (ltn_0dvd (orderg_pos a) Hdiv).
@@ -706,7 +706,7 @@ Definition cyclic_to_fp_loc (a : G) : perm G -> I_(#[a]) :=
     then
       Ordinal (cyclic_to_zp_ord a (f a))
     else 
-      (zp1 {#[a] as pos_nat}).
+      (zp1 [pos_nat of #[a]]).
 
 Lemma cyclic_to_fp_corr : forall a, coprime #[a] (cyclic_to_fp_loc a f).
 Proof.
@@ -863,7 +863,8 @@ move=> m; rewrite (generator_bij (zp_inj a) (zp_morph a)); last exact: cyclic_in
 rewrite coprime_sym /coprime gcdnE (negbET (lt0n_neq0 (orderg_pos a))).
 move/andP:(zp_isom a)=> [H _]; move/eqP:H =>->.
 have Hmod: m %% #[a] < #[a] by rewrite ltn_mod (orderg_pos a).
-have:= (@zp_gen {#[a] as pos_nat} (Ordinal Hmod)); rewrite /= /coprime =><-.
+have:= @zp_gen [is #[a] : _ <: pos_nat] (Ordinal Hmod).
+rewrite /= /coprime => <-.
 congr generator; rewrite /cyclic_to_zp;  apply: val_inj=>/=.
 by rewrite cyclic_to_zp_id.
 Qed.
@@ -874,7 +875,7 @@ rewrite /phi /=; set n := #[a].
 have: [pred x : I_(n) | coprime n x] =i
       [pred x : I_(n) | generator (cyclic a) (a ^+ x)].
   by move=> x /=; rewrite !inE /= -generator_coprime coprime_sym.
-move/eq_card=>->.
+move/eq_card=> ->.
 suff: (image (cyclic_to_zp a) (generator (cyclic a))) =i
         [pred x : I_(n) | generator (cyclic a) (a ^+ x)].
   move/eq_card <-; apply: card_dimage; move/injmorphicP: (zp_inj a).

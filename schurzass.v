@@ -144,7 +144,7 @@ have rH_Hmul: forall h y, h \in H -> rH (h * y) = rH y.
   by move=> h y Hh; rewrite rH_Pmul ?(subsetP sHP) // -(mulg1 h) pQhq // mul1g.
 pose toH x : {x' | x' \in H} := insubd (Sub 1 (group1 H)) x.
 have valH: {in H, cancel toH val} by move=> *; exact: insubdK.
-pose Hgrp := {{x | x \in H} as finGroupType}.
+pose Hgrp := [is {x | x \in H} <: finGroupType].
 have mulHC : commutative (@mulg Hgrp).
   by case=> x Hx [y Hy]; apply: val_inj; rewrite /= abelH.
 pose gTH := Ring.AdditiveGroup (@mulgA _) mulHC (@mul1g _) (@mulVg _).
@@ -251,7 +251,7 @@ have [phi phi_f]: exists phi : morphism _ _, f =1 phi.
     by rewrite -in_ker /f groupMr // Gx.
   have gdomf: group_set (dom f) by rewrite domf groupP.
   by rewrite -domf in morf; exists (Morphism gdomf morf).
-exists {phi @: G as group _}.
+exists (phi @: G)%G.
   apply/subsetP=> x; case/setIP=> Hx; case/imsetP=> y Gy eq_x; apply/set1P.
   move: Hx; rewrite {x}eq_x -phi_f {1}/f Gy groupMr ?Hval //.
   rewrite -{1}(mulgKV y (rH y)) groupMl -?mem_rcoset // -{2}(mulg1 y).

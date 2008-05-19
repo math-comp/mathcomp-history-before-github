@@ -39,7 +39,7 @@ Notation EqMixin := EqType.Mixin.
 Definition mkEqType T e eP := EqClass (@EqMixin T e eP).
 
 Notation "[ 'eqType' 'of' T ]" :=
-  (match {T : as eqType} as s return [type of EqClass for s] -> _ with
+  (match [is T <: eqType] as s return {type of EqClass for s} -> _ with
   | EqClass _ m => fun k => k m end
   (@EqClass T)) (at level 0, only parsing) : form_scope.
 
@@ -386,13 +386,13 @@ Implicit Arguments val_inj [T p sT].
 Prenex Implicits val Sub insub insubd val_inj vrefl.
 
 Notation "[ 'subType' 'of' T ]" :=
-  (match {T : as subType _} as s return [type of @SubType _ _ for s] -> _ with
+  (match [is T <: subType _] as s return {type of @SubType _ _ for s} -> _ with
   | SubType _ _ _ rec can => fun k => k _ _ rec can end
   (@SubType _ _ T)) (at level 0, only parsing) : form_scope.
 
 Notation "[ 'subType' 'for' proj ]" :=
-  (match {argumentType proj as subType _} as s
-     return [type of @SubType _ _ _ for @val _ _ s] -> _ with
+  (match [is argumentType proj : Type <: subType _] as s
+     return {type of @SubType _ _ _ for @val _ _ s} -> _ with
   | SubType _ _ _ rec can => fun k => k _ rec can end
   (@SubType _ _ _ proj)) (at level 0, only parsing) : form_scope.
 

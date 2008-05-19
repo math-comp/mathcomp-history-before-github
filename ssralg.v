@@ -116,26 +116,26 @@ Definition morphism T T' unit unit' mul mul' (phi : T -> T') :=
 End Monoid.
 
 Notation "[ 'law' 'of' f ]" :=
-  (match {f as Monoid.law _} as s
-   return [type of @Monoid.Law _ for s] -> _ with
+  (match [is f : _ -> _ <: Monoid.law _] as s
+   return {type of @Monoid.Law _ for s} -> _ with
   | Monoid.Law _ a ul ur => fun k => k a ul ur end
   (@Monoid.Law _ f)) (at level 0, only parsing) : form_scope.
 
 Notation "[ 'abelian_law' 'of' f ]" :=
-  (match {f : _ -> _ as Monoid.abelian_law _} as s
-   return [type of @Monoid.AbelianLaw _ for s] with
+  (match [is f : _ -> _ <: Monoid.abelian_law _] as s
+   return {type of @Monoid.AbelianLaw _ for s} with
   | Monoid.AbelianLaw _ c => fun k => k c end
   (@Monoid.AbelianLaw _ _ f)) (at level 0, only parsing) : form_scope.
 
 Notation "[ 'mul_law' 'of' f ]" :=
-  (match {f : _ -> _ as Monoid.mul_law _} as s
-   return [type of @Monoid.MulLaw _ for s] -> _ with
+  (match [is f : _ -> _ <: Monoid.mul_law _] as s
+   return {type of @Monoid.MulLaw _ for s} -> _ with
   | Monoid.AddLaw _ zl zr => fun k => k zl zr end
   (@Monoid.AddLaw _ f)) (at level 0, only parsing) : form_scope.
 
 Notation "[ 'add_law' 'of' f ]" :=
-  (match {f : _ -> _ as Monoid.add_law _} as s
-   return [type of @Monoid.AddLaw _ for s] -> _ with
+  (match [is f : _ -> _ <: Monoid.add_law _] as s
+   return {type of @Monoid.AddLaw _ for s} -> _ with
   | Monoid.AddLaw _ dl dr => fun k => k dl dr end
   (@Monoid.AddLaw _ f)) (at level 0, only parsing) : form_scope.
 
@@ -532,25 +532,25 @@ End Field.
 Notation "x ^-1" := (Field.inv x) : field_scope.
 
 Notation "[ 'agroupType' 'of' t ]" :=
-  (match {t : Type as additive_group} as s
-   return [type of AdditiveGroup for s] -> _ with
+  (match [is t : Type <: additive_group] as s
+   return {type of AdditiveGroup for s} -> _ with
   | AdditiveGroup _ _ _ _ a c u i => fun k => k _ _ _ a c u i end
   (@AdditiveGroup t)) (at level 0, only parsing) : form_scope.
 
 Notation "[ 'ringType' 'of' t ]" :=
-  (match {t : Type as basic} as s return [type of Basic for s] -> _ with
+  (match [is t : Type <: basic] as s return {type of Basic for s} -> _ with
   | Basic _ _ _ a ul ur dl dr nz => fun k => k _ _ a ul ur dl dr nz end
   (@Basic t)) (at level 0, only parsing) : form_scope.
 
 Notation "[ 'cringType' 'of' t ]" :=
-  (match {t : Type as commutative_} as s
-   return [type of Commutative for s] -> _ with
+  (match [is t : Type <: commutative_] as s
+   return {type of Commutative for s} -> _ with
   | Commutative _ c => fun k => k c end
   (@Commutative t)) (at level 0, only parsing) : form_scope.
 
 Notation "[ 'fieldType' 'of' t ]" :=
-  (match {t : Type as Field.field} as s
-   return [type of Field.Field for s] -> _ with
+  (match [is t : Type <: Field.field] as s
+   return {type of Field.Field for s} -> _ with
   | Field.Field _ _ nzi => fun k => k _ nzi end
   (@Field.Field t)) (at level 0, only parsing) : form_scope.
 

@@ -486,14 +486,14 @@ have F12: K \subset Gx.
   apply/subsetP=> g; case/stabilizerP => Hg Hperm.
   by apply/stabilizerP; split => //; apply: (subsetP Hh1).
 have F13: K <| Gx by apply/andP; split; last apply: normal_stab.
-case: (@prim_trans_norm _ _ _ {Gx as group _} _ F10 {K as group _} F11 F13) => Ksub; last first.
+case: (@prim_trans_norm _ _ _ [group of Gx] _ F10 [group of K] F11 F13) => Ksub; last first.
   have F14 := (subgroup_transitive Hx Hh1 F3 F5); rewrite -/Gx in F14.
   have Gx_simpl: simple Gx.
     have FF: 2 < #|d| by apply: (leq_trans _ Hd).
     apply: (isog_simpl (isog_sym (rfd_iso x FF))).
     apply: Hrec => /=; apply/eqP.
     by move/eqP: Hde; rewrite card_sub -(cardC (pred1 x)) card1 !addSn add0n.
-  move/simpleP: Gx_simpl;move/(_ {K as group _} F13); case => HH2.
+  move/simpleP: Gx_simpl; case/(_ [group of K] F13) => HH2.
     case Ez: (pred0b (predD1 (predD1 d x) y)).
       move: Hd; rewrite /pred0b in Ez.
       by rewrite (cardD1 x) (cardD1 y) (eqP Ez) inE /= inE /= diff_x_y.  

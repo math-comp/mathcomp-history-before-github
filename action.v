@@ -106,7 +106,7 @@ move=> z Gz; case: (repr _) / (repr_rcosetP group_stab z) => y.
 by move/stabilizerP=> [Gy Dtoy]; rewrite actM Dtoy.
 Qed.
 
-Lemma card_orbit : #|orbit| = indexg {stabilizer as group _} G.
+Lemma card_orbit : #|orbit| = indexg stabilizer G.
 Proof.
 pose f b := [set x \in G | to a x == b].
 have injf: injective (fun u : {b | b \in orbit} => f (val u)).
@@ -151,7 +151,8 @@ Qed.
 End Action.
 
 Notation "[ 'action' 'of' a ]" :=
-  (match {a as action _ _} as s return [type of @Action _ _ for s] -> _ with
+  (match [is a : _ -> _ <: action _ _] as s
+   return {type of @Action _ _ for s} -> _ with
   | Action _ a1 aM => fun k => k _ a1 aM end
   (@Action _ _ a)) (at level 0, only parsing) : form_scope.
 
