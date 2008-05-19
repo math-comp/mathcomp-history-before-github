@@ -258,7 +258,7 @@ Proof. by rewrite -rot_is_rot group_set_rot. Qed.
 
 Canonical Structure rotations_group := Group group_set_rotations.
 
-Definition col_squares := {{ffun square -> colors} : as finType}.
+Notation col_squares := {ffun square -> colors}.
 
 Definition act_f (sc : col_squares) (p : {perm square}) : col_squares := 
   [ffun z => sc (p^-1 z)].
@@ -460,161 +460,146 @@ Canonical Structure cube_finType := Eval hnf in [finType of cube].
 Canonical Structure cube_subFinType := Eval hnf in [subFinType of cube].
 
 Definition mkFcube i : cube := Sub (i %% 6) (ltn_mod i 6).
-Definition F0:= mkFcube 0.
-Definition F1:= mkFcube 1.
-Definition F2:= mkFcube 2.
-Definition F3:= mkFcube 3.
-Definition F4:= mkFcube 4.
-Definition F5:= mkFcube 5.
+Definition F0 := mkFcube 0.
+Definition F1 := mkFcube 1.
+Definition F2 := mkFcube 2.
+Definition F3 := mkFcube 3.
+Definition F4 := mkFcube 4.
+Definition F5 := mkFcube 5.
 
 (* axial symetries*) 
-Definition S05 :=[:: F0;F4; F3; F2; F1; F5].
-Definition S05f (sc : cube):cube := tsub [tuple of S05] sc.
+Definition S05 := [:: F0; F4; F3; F2; F1; F5].
+Definition S05f (sc : cube) : cube := tsub [tuple of S05] sc.
 
 
-Definition S14 :=[:: F5;F1; F3; F2; F4; F0].
-Definition S14f (sc : cube):cube := tsub [tuple of S14] sc.
+Definition S14 := [:: F5; F1; F3; F2; F4; F0].
+Definition S14f (sc : cube) : cube := tsub [tuple of S14] sc.
 
-Definition S23 :=[:: F5;F4; F2; F3; F1; F0].
-Definition S23f (sc : cube):cube := tsub [tuple of S23] sc.
+Definition S23 := [:: F5; F4; F2; F3; F1; F0].
+Definition S23f (sc : cube) : cube := tsub [tuple of S23] sc.
 
 (* rotations 90 *)
 Definition R05 := [:: F0; F2; F4; F1; F3; F5].
-Definition R05f (sc : cube):cube := tsub [tuple of R05] sc.
+Definition R05f (sc : cube) : cube := tsub [tuple of R05] sc.
 Definition R50:= [:: F0; F3; F1; F4; F2; F5].
-Definition R50f (sc : cube):cube := tsub  [tuple of R50] sc.
+Definition R50f (sc : cube) : cube := tsub  [tuple of R50] sc.
 Definition R14 := [:: F3; F1; F0; F5; F4; F2].
-Definition R14f (sc : cube):cube := tsub [tuple of R14] sc.
+Definition R14f (sc : cube) : cube := tsub [tuple of R14] sc.
 Definition R41 := [:: F2; F1; F5; F0; F4; F3].
-Definition R41f (sc : cube):cube := tsub [tuple of R41] sc.
+Definition R41f (sc : cube) : cube := tsub [tuple of R41] sc.
 Definition R23 := [:: F1; F5; F2; F3; F0; F4].
-Definition R23f (sc : cube):cube := tsub [tuple of R23] sc.
+Definition R23f (sc : cube) : cube := tsub [tuple of R23] sc.
 Definition R32 := [:: F4; F0; F2; F3; F5; F1].
-Definition R32f (sc : cube):cube := tsub [tuple of R32] sc.
+Definition R32f (sc : cube) : cube := tsub [tuple of R32] sc.
 (* rotations 120 *)
 Definition R024 := [:: F2; F5; F4; F1; F0; F3].
-Definition R024f (sc : cube):cube := tsub [tuple of R024] sc.
+Definition R024f (sc : cube) : cube := tsub [tuple of R024] sc.
 Definition R135 := [:: F4; F3; F0; F5; F2; F1].
-Definition R135f (sc : cube):cube := tsub [tuple of  R135] sc.
-Definition R012 :=[:: F1; F2; F0; F5; F3; F4]. 
-Definition R012f (sc : cube):cube := tsub [tuple of  R012] sc. 
-Definition R345 :=[:: F2; F0; F1; F4; F5; F3]. 
-Definition R345f (sc : cube):cube := tsub [tuple of  R345] sc. 
-Definition R031 := [::  F3; F0; F4; F1; F5; F2].
-Definition R031f (sc : cube):cube := tsub [tuple of  R031] sc. 
-Definition R425:=[:: F1; F3; F5; F0; F2; F4].
-Definition R425f (sc : cube):cube := tsub [tuple of  R425]  sc. 
-Definition R043 :=[:: F4; F2; F5; F0; F3; F1].
-Definition R043f (sc : cube):cube := tsub [tuple of  R043]  sc. 
-Definition R215 :=[:: F3; F5; F1; F4; F0; F2].
-Definition R215f (sc : cube):cube := tsub  [tuple of  R215] sc. 
+Definition R135f (sc : cube) : cube := tsub [tuple of R135] sc.
+Definition R012 := [:: F1; F2; F0; F5; F3; F4]. 
+Definition R012f (sc : cube) : cube := tsub [tuple of R012] sc. 
+Definition R345 := [:: F2; F0; F1; F4; F5; F3]. 
+Definition R345f (sc : cube) : cube := tsub [tuple of R345] sc. 
+Definition R031 := [:: F3; F0; F4; F1; F5; F2].
+Definition R031f (sc : cube) : cube := tsub [tuple of R031] sc. 
+Definition R425:= [:: F1; F3; F5; F0; F2; F4].
+Definition R425f (sc : cube) : cube := tsub [tuple of R425] sc. 
+Definition R043 := [:: F4; F2; F5; F0; F3; F1].
+Definition R043f (sc : cube) : cube := tsub [tuple of R043] sc. 
+Definition R215 := [:: F3; F5; F1; F4; F0; F2].
+Definition R215f (sc : cube) : cube := tsub [tuple of R215] sc. 
 
 (* last symmetries*)
-Definition S1 :=[:: F5; F2; F1; F4; F3; F0].
-Definition S1f (sc : cube):cube := tsub  [tuple of  S1] sc. 
-Definition S2 :=[::  F5; F3; F4; F1; F2; F0].
-Definition S2f (sc : cube):cube := tsub  [tuple of  S2]sc. 
-Definition S3 :=[::  F1; F0; F3; F2; F5; F4].
-Definition S3f  (sc : cube):cube := tsub  [tuple of  S3]sc. 
-Definition S4:=[:: F4; F5; F3; F2; F0; F1].
-Definition S4f  (sc : cube):cube := tsub  [tuple of  S4]sc. 
-Definition S5 :=[::  F2; F4; F0; F5; F1; F3].
-Definition S5f  (sc : cube):cube := tsub [tuple of  S5] sc.
-Definition S6 :=[::F3; F4; F5; F0; F1; F2].
-Definition S6f  (sc : cube):cube := tsub [tuple of  S6]  sc. 
+Definition S1 := [:: F5; F2; F1; F4; F3; F0].
+Definition S1f (sc : cube) : cube := tsub [tuple of S1] sc. 
+Definition S2 := [::  F5; F3; F4; F1; F2; F0].
+Definition S2f (sc : cube) : cube := tsub [tuple of S2] sc. 
+Definition S3 := [::  F1; F0; F3; F2; F5; F4].
+Definition S3f  (sc : cube) : cube := tsub [tuple of S3] sc. 
+Definition S4:= [:: F4; F5; F3; F2; F0; F1].
+Definition S4f  (sc : cube) : cube := tsub [tuple of S4] sc. 
+Definition S5 := [::  F2; F4; F0; F5; F1; F3].
+Definition S5f  (sc : cube) : cube := tsub [tuple of S5] sc.
+Definition S6 := [::F3; F4; F5; F0; F1; F2].
+Definition S6f  (sc : cube) : cube := tsub [tuple of S6] sc. 
 
-Lemma S1_inv: involutive S1f.
-Proof. move => z;apply /eqP;case : z ; do 6!case =>//=. Qed.
-Lemma S2_inv: involutive S2f.
-Proof. move => z;apply /eqP;case : z ; do 6!case =>//=. Qed.
-Lemma S3_inv: involutive S3f.
-Proof. move => z;apply /eqP;case : z ; do 6!case =>//=. Qed.
-Lemma S4_inv: involutive S4f.
-Proof. move => z;apply /eqP;case : z ; do 6!case =>//=. Qed.
-Lemma S5_inv: involutive S5f.
-Proof. move => z;apply /eqP;case : z ; do 6!case =>//=. Qed.
-Lemma S6_inv: involutive S6f.
-Proof. move => z;apply /eqP;case : z ; do 6!case =>//=. Qed.
+Lemma S1_inv : involutive S1f.
+Proof. by move=> z; apply/eqP; case: z; do 6?case. Qed.
 
-Lemma S05_inj:injective S05f.
-Proof.
-by apply:(can_inj (g:= S05f)) => z; apply /eqP;case : z ; do 6!case =>//=. 
-Qed.
+Lemma S2_inv : involutive S2f.
+Proof. by move=> z; apply /eqP; case: z; do 6?case. Qed.
+
+Lemma S3_inv : involutive S3f.
+Proof. by move=> z; apply /eqP; case: z; do 6?case. Qed.
+
+Lemma S4_inv : involutive S4f.
+Proof. by move=> z; apply /eqP; case: z; do 6?case. Qed.
+
+Lemma S5_inv : involutive S5f.
+Proof. by move=> z; apply /eqP; case: z; do 6?case. Qed.
+
+Lemma S6_inv : involutive S6f.
+Proof. by move=> z; apply /eqP; case: z; do 6?case. Qed.
+
+Lemma S05_inj : injective S05f.
+Proof. by apply: can_inj S05f _ => z; apply/eqP; case: z; do 6?case.  Qed.
  
-Lemma S14_inj:injective S14f.
-Proof. 
-by apply:(can_inj (g:= S14f)) => z; apply /eqP;case : z ; do 6!case =>//=.
-Qed.
+Lemma S14_inj : injective S14f.
+Proof. by apply: can_inj S14f _ => z; apply/eqP; case: z; do 6?case. Qed.
 
-Lemma S23_inv: involutive S23f.
-Proof. by move => z;apply /eqP;case : z ; do 6!case =>//=. Qed.
+Lemma S23_inv : involutive S23f.
+Proof. by move=> z; apply/eqP; case: z; do 6?case. Qed.
 
-Lemma R05_inj:injective R05f.
-Proof.
-by apply:(can_inj (g:= R50f)) => z; apply /eqP;case : z ; do 6!case =>//=. 
-Qed.
+Lemma R05_inj : injective R05f.
+Proof. by apply: can_inj R50f _ => z; apply/eqP; case: z; do 6?case. Qed.
  
-Lemma R14_inj:injective R14f.
-Proof. 
-by apply:(can_inj (g:= R41f)) => z; apply /eqP;case : z ; do 6!case =>//=.  
-Qed.
+Lemma R14_inj : injective R14f.
+Proof. by apply: can_inj R41f _ => z; apply/eqP; case: z; do 6?case. Qed.
 
-Lemma R23_inj:injective R23f.
-Proof. 
-by apply:(can_inj (g:= R32f)) => z; apply /eqP;case : z ; do 6!case =>//=.  
-Qed.
+Lemma R23_inj : injective R23f.
+Proof. by apply: can_inj R32f _ => z; apply/eqP; case: z; do 6?case. Qed.
 
-Lemma R50_inj:injective R50f.
-Proof. 
-by apply:(can_inj (g := R05f)) => z; apply /eqP;case : z ; do 6!case =>//=.  
-Qed.
-Lemma R41_inj:injective R41f.
-Proof. 
-by apply:(can_inj (g := R14f)) => z; apply /eqP;case : z ; do 6!case =>//=.  
-Qed.
-Lemma R32_inj:injective R32f.
-Proof. 
-by apply:(can_inj (g:= R23f)) => z; apply /eqP;case : z ; do 6!case =>//=.  
-Qed.
-Lemma R024_inj:injective R024f.
-Proof. 
-by apply:(can_inj (g:= R135f)) => z; apply /eqP;case : z ; do 6!case =>//=.  
-Qed.
-Lemma R135_inj:injective R135f.
-Proof. 
-by apply:(can_inj (g:= R024f)) => z; apply/eqP;case : z; do 6!case =>//=.
-Qed.
-Lemma R012_inj:injective R012f.
-Proof. 
-by apply:(can_inj (g:= R345f)) => z; apply /eqP;case : z ; do 6!case =>//=.  
-Qed.
-Lemma R345_inj:injective R345f.
-Proof. 
-by apply:(can_inj (g:= R012f)) => z; apply/eqP;case : z; do 6!case =>//=.
-Qed.
-Lemma R031_inj:injective R031f.
-Proof. 
-by apply:(can_inj (g:= R425f)) => z; apply /eqP;case : z ; do 6!case =>//=.  
-Qed.
-Lemma R425_inj:injective R425f. 
-Proof. 
-by apply:(can_inj (g:= R031f)) => z; apply /eqP;case : z ; do 6!case =>//=.  
-Qed.
-Lemma R043_inj:injective R043f.
-Proof. 
-by apply:(can_inj (g:= R215f)) => z; apply /eqP;case : z ; do 6!case =>//=.  
-Qed.
-Lemma R215_inj:injective R215f.
-Proof. 
-by apply:(can_inj (g:= R043f)) => z; apply /eqP;case : z ; do 6!case =>//=.  
-Qed.
+Lemma R50_inj : injective R50f.
+Proof. by apply: can_inj R05f _ => z; apply/eqP; case: z; do 6?case. Qed.
 
-Definition id3:= (1 : {perm cube}).
+Lemma R41_inj : injective R41f.
+Proof. by apply: can_inj R14f _ => z; apply/eqP; case: z; do 6?case. Qed.
+
+Lemma R32_inj : injective R32f.
+Proof. by apply: can_inj R23f _ => z; apply /eqP; case: z; do 6?case. Qed.
+
+Lemma R024_inj : injective R024f.
+Proof. by apply: can_inj R135f _ => z; apply /eqP; case: z ; do 6?case. Qed.
+
+Lemma R135_inj : injective R135f.
+Proof. by apply: can_inj R024f _ => z; apply/eqP; case: z; do 6?case. Qed.
+
+Lemma R012_inj : injective R012f.
+Proof. by apply: can_inj R345f _ => z; apply/eqP; case: z; do 6?case. Qed.
+
+Lemma R345_inj : injective R345f.
+Proof. by apply: can_inj R012f _ => z; apply/eqP; case: z; do 6?case. Qed.
+
+Lemma R031_inj : injective R031f.
+Proof. by apply: can_inj R425f _ => z; apply/eqP; case: z; do 6?case. Qed.
+
+Lemma R425_inj : injective R425f. 
+Proof. by apply: can_inj R031f _ => z; apply/eqP; case: z; do 6?case. Qed.
+
+Lemma R043_inj : injective R043f.
+Proof. by apply: can_inj R215f _ => z; apply/eqP; case: z; do 6?case. Qed.
+
+Lemma R215_inj : injective R215f.
+Proof. by apply: can_inj R043f _ => z; apply/eqP; case: z; do 6?case. Qed.
+
+Definition id3 := 1 : {perm cube}.
+
 Definition s05 := (perm_of S05_inj).
-Definition s14 :{perm cube_finType}.
+
+Definition s14 : {perm cube}.
 Proof.
-apply: (@perm_of _ S14f); apply:(@can_inj _ _ _ S14f)=> z.
-by apply /eqP;case : z ; do 6!case =>//=. 
+apply: (@perm_of _ S14f); apply: can_inj S14f _ => z.
+by apply /eqP; case: z; do 6?case. 
 Defined.
 
 Definition s23 := (perm_of (inv_inj S23_inv)).
@@ -650,29 +635,26 @@ Definition dir_iso3l := [:: id3; s05; s14; s23; r05; r14; r23; r50; r41;
   r32; r024; r135; r012; r345; r031; r425; r043 ; r215;
   s1 ; s2; s3; s4; s5; s6].
 
-Definition S0 :=[::F5; F4; F3; F2; F1; F0].
-Definition S0f  (sc : cube):cube := tsub [tuple of  S0]  sc. 
+Definition S0 := [:: F5; F4; F3; F2; F1; F0].
+Definition S0f (sc : cube) : cube := tsub [tuple of S0] sc. 
 
 Lemma S0_inv: involutive S0f.
-Proof. move => z;apply /eqP;case : z ; do 6!case =>//=. Qed.
+Proof. by move=> z; apply/eqP; case: z; do 6?case. Qed.
 
 Definition s0 := (perm_of (inv_inj S0_inv)).
 
 Definition is_iso3 (p : {perm cube}) := forall fi, p (s0 fi) = s0 (p fi).
 
-
-Lemma dir_iso_iso3: forall p, p \in dir_iso3  -> is_iso3 p.
+Lemma dir_iso_iso3 : forall p, p \in dir_iso3  -> is_iso3 p.
 Proof.
-move  => p; rewrite inE.
-do ?case/orP; move/eqP=> <- a;  rewrite !permE; case: a;
- do 6![case => // ].
+move=> p; rewrite inE.
+by do ?case/orP; move/eqP=> <- a; rewrite !permE; case: a; do 6?case.
 Qed.
 
-Lemma iso3_ndir:forall p, p \in dir_iso3  -> is_iso3 (s0 * p).
+Lemma iso3_ndir : forall p, p \in dir_iso3  -> is_iso3 (s0 * p).
 Proof.
-move  => p; rewrite inE.
-by do ?case/orP; move/eqP=> <- a;  rewrite !permE /comp /= !permE;
-  case: a;do 6![case => // ].
+move=> p; rewrite inE.
+by do ?case/orP; move/eqP=> <- a; rewrite !(permM, permE); case: a; do 6?case.
 Qed.
 
 (* Lemma ndir_iso3: forall p, p \in dir_iso3  -> (s0 * p) \notin dir_iso3.
@@ -686,170 +668,115 @@ by apply/eqP;
    move/(congr1 (fun p : {perm cube} => (p F0, p F1, p F2))); rewrite !permE /comp /= !permE.
 Qed.*)
 
+Definition sop (p : {perm cube}) : seq cube := val (val (val p)).
 
-Definition sop (p : {perm cube}) : seq  cube_finType.
-Proof.
-by (do 3! case) =>  t  _ _; exact: t.
-Defined.
+Lemma sop_inj : injective sop.
+Proof. do 2!apply: (inj_comp val_inj); exact: val_inj. Qed.
 
-Lemma sop_inj:  injective sop.
+Definition prod_tuple (t1 t2 : seq cube) :=
+  maps (fun n : I_(6) => sub F0 t2 n) t1.
+
+Lemma sop_spec : forall x (n0 : I_(6)), sub F0 (sop x) n0 = x n0.
 Proof.
-(do 3! case) =>  t1 ? ?;(do 3! case) =>  t2  ? ? /= H.
-by do 5 apply/val_eqP => /=; rewrite H.
+move=> x n0; rewrite -pvalE /fun_of_ffun /= unlock /fun_of_ffun_def.
+by rewrite (tsub_sub F0) enum_rank_ord.
 Qed.
 
-Let tt := seq cube_finType.
-Definition prod_tuple (t1 t2 : tt) := maps (fun n : I_(6) => sub F0 t2 n) t1.
-
-Lemma sop_spec: forall x (n0 : I_(6)), sub F0 (sop x) n0 = x n0.
+Lemma prod_t_correct : forall (x y : {perm cube}) (i : cube), 
+  (x * y) i = sub F0 (prod_tuple (sop x) (sop y)) i.
 Proof.
-move=> x n0; rewrite /fun_of_perm /fun_of_ffun /= unlock /fun_of_ffun_def.
-by rewrite (tsub_sub F0) enum_rank_ord /=; case: x => [] [] [].
+move=> x y i /=; rewrite permM -!sop_spec (sub_maps F0) // size_tuple /=.
+by rewrite card_ord ltn_ord.
 Qed.
 
-Lemma prod_t_correct: forall x y i , 
-               (perm_mul x y) i = sub F0 (prod_tuple (sop x) (sop y)) i.
+Lemma sop_morph : Monoid.morphism id3 (sop id3) mulg prod_tuple sop.
 Proof.
-move=> x y i /=;rewrite !permE /comp.  rewrite /prod_tuple /=  -!sop_spec.
-apply: esym ; apply: (sub_maps F0);case:x;(do 2! case) => t2 i2 j2 /=.
-by rewrite (eqP i2);case: i => //= m;rewrite -(card_ord 6).
-Qed.
-
-Lemma sop_morph: 
-     Monoid.morphism id3  (sop id3) (@perm_mul  cube_finType)   prod_tuple sop.
-Proof.
-split; first by done.
-move => x y; apply:(@eq_from_sub _ F0); last first.
-  move => i H.
-  have hi: i < 6.
-    case: perm_mul H.
-    (do 2! case) => t1 i1 j1 /=.
-    by rewrite (eqP i1); by rewrite -(card_ord 6).
-  have -> : i = (Sub _ : _ -> I_(6)) hi by apply /eqP.
-  by rewrite sop_spec prod_t_correct.
-rewrite /prod_tuple size_maps.
-case:perm_mul;  (do 2! case) => t1 i1 j1 /=; rewrite (eqP i1).
-by case:(x); (do 2! case) => t2 i2 j2 /=; rewrite (eqP i2).
+split=> // x y; apply: (@eq_from_sub _ F0) => [|/= i].
+  by rewrite size_maps !size_tuple.
+rewrite size_tuple card_ord => lti6.
+by rewrite -[i]/(val (Ordinal lti6)) sop_spec -prod_t_correct.
 Qed.
  
-Definition sop1 (p : {perm cube}) := [:: p F0;p F1; p F2; p F3; p F4;p F5].
+Definition ecubes : seq cube := [:: F0; F1; F2; F3; F4; F5].
 
-Definition seq_iso_L:= [:: [:: F0; F1; F2; F3; F4; F5]; S05; S14; S23; R05; 
-  R14; R23; R50; R41; R32; R024; R135; R012; R345; R031; R425; R043; R215;
-  S1; S2; S3; S4; S5; S6].
+Lemma ecubes_def : ecubes = enum (@predT cube).
+Proof. by apply: (inj_maps val_inj); rewrite val_enum_ord. Qed.
 
+Definition seq_iso_L:= [::
+   [:: F0; F1; F2; F3; F4; F5];
+   S05; S14; S23; R05; R14; R23; R50; R41; R32;
+   R024; R135; R012; R345; R031; R425; R043; R215;
+   S1; S2; S3; S4; S5; S6].
 
-Lemma seqs1 : forall x, sop x == sop1 x.
+Lemma seqs1 : forall f injf, sop (@perm_of _ f injf) = maps f ecubes.
 Proof.
-do 3! case => //;case.
-  by move => H ; apply: False_ind;rewrite card_ord in H.
-do 5 (move => x s /= H; move : s H x;
- case; first by move => H ; apply: False_ind;rewrite card_ord in H).
-move=> x6 ; case; last by move=> x7 s; case/idPn; rewrite card_ord.
-move=> H x5 x4 x3 x2 x1 i.
-rewrite /sop1 /= /fun_of_perm /fun_of_ffun /= !unlock /=.
-by rewrite /fun_of_ffun_def /= !enum_rank_ord eqxx.
+move=> f ?; rewrite ecubes_def /sop /= -maps_ffun_enum pvalE.
+apply: eq_maps; exact: permE.
 Qed.
 
-Lemma Lcorrect: seq_iso_L == maps sop  [::  id3; s05; s14; s23; r05; r14; r23;
+Lemma Lcorrect: seq_iso_L == maps sop [:: id3; s05; s14; s23; r05; r14; r23;
   r50;  r41;  r32; r024;  r135;  r012;  r345;  r031;  r425;  r043 ;  r215;
   s1 ;  s2;  s3;  s4;  s5; s6].
+Proof. by rewrite /= !seqs1. Qed.
+
+Lemma iso0_1 : dir_iso3 =i dir_iso3l.
+Proof. by move=> p; rewrite /= !inE orbF /= -!(eq_sym p). Qed.
+
+Lemma L_iso : forall p, (p \in dir_iso3) = (sop p \in seq_iso_L).
 Proof.
-by rewrite !maps_adds !(eqP ( seqs1 _ )) /sop1  !permE //=.
+move=> p; rewrite (eqP Lcorrect) mem_maps ?iso0_1 //; exact: sop_inj.
 Qed.
 
-Lemma iso0_1: dir_iso3 =i dir_iso3l.
+Lemma stable: forall x y,
+  x \in dir_iso3 -> y \in dir_iso3 -> x * y \in dir_iso3.
 Proof.
-by move=> p; rewrite /= !inE orbF /= !(eq_sym _ p).
-Qed.
-
-Lemma L_iso: forall p, p \in dir_iso3  <-> (sop p) \in seq_iso_L.
-Proof.
-move=> p; rewrite  (eqP Lcorrect) mem_maps ; last by  exact : sop_inj.
-by rewrite ?setE ?inE ?orbF /= !(eq_sym _ p).
-Qed.
-
-Lemma stable: forall x y, x \in dir_iso3 -> y \in dir_iso3 -> 
-                          (x * y) \in dir_iso3.
-Proof.
-move => x y; rewrite !L_iso => H1 H2.
-case: sop_morph => _ ->.
-have: (all  ( fun x => 
-   (all (fun y => (mem seq_iso_L )(prod_tuple x y)) seq_iso_L))seq_iso_L). 
-  by vm_compute.
-move/(@allP [eqType of tt]);move  /(_ _ H1).
-by move/(@allP [eqType of tt]);move  /(_ _ H2).
+move=> x y; rewrite !L_iso => Hx Hy; case: sop_morph => _ ->.
+by move/sop: y Hy; apply/allP; move/sop: x Hx; apply/allP; vm_compute.
 Qed.
 
 Lemma iso_eq_F0_F1: forall r s : {perm cube}, r \in dir_iso3 -> 
-   s \in dir_iso3 -> r F0 = s F0 -> r F1 = s F1 -> r = s.
+  s \in dir_iso3 -> r F0 = s F0 -> r F1 = s F1 -> r = s.
 Proof.
-move=> r s hr hs hrs0 hrs1;apply:sop_inj.
-move: hrs0 hrs1; rewrite -!sop_spec =>  h1 h2. 
-have Hlr:   (sop r) \in seq_iso_L by case: (L_iso r); move /(_ hr).
-have Hls: (sop s) \in seq_iso_L by case: (L_iso s); move /(_ hs).
-have :(all  ( fun x => 
-       (all (fun y => implb ((sub F0 x F0 == sub F0 y F0)&& 
-       (sub F0 x F1 == sub F0 y F1)) ( x==y)) seq_iso_L)) seq_iso_L).
-  by vm_compute.
-move/allP;  move  /(_ _ Hlr); move/allP; move  /(_ _ Hls).
-by rewrite h1 h2 !eqxx /=;move/eqP.
-(* do !case/orP => // ;move/eqP=> <- //;
- do !case/orP => // ;move/eqP=> <- //=. : 78sec*)
+move=> r s; rewrite !L_iso => hr hs hrs0 hrs1; apply: sop_inj; apply/eqP.
+move/eqP: hrs0; apply/implyP; move/eqP: hrs1; apply/implyP; rewrite -!sop_spec.
+by move/sop: r hr; apply/allP; move/sop: s hs; apply/allP; vm_compute.
 Qed.
 
-Lemma ndir_s0p: forall p, p \in dir_iso3  -> (s0 * p) \notin dir_iso3.
+Lemma ndir_s0p: forall p, p \in dir_iso3 -> s0 * p \notin dir_iso3.
 Proof.
-move => p; rewrite !L_iso => H1.
-have: (all (fun p  => ~~(mem seq_iso_L ) (prod_tuple S0 p)) seq_iso_L)by vm_compute.
-move/(@allP [eqType of tt]);move  /(_ _ H1).
-have <- : (sop s0)= S0 by  rewrite  !(eqP ( seqs1 _ )) /sop1 !permE .
-by apply:contra; rewrite  L_iso => Hn1; case : sop_morph => _ <-; exact:Hn1.
-(*do ?case/orP; move/eqP=> <-;
-do ! [apply/norP;split; first
-by apply/eqP; 
-   move/(congr1 (fun p : {perm cube} => (p F0, p F1, p F2))); rewrite !permE /comp /= !permE];
-by apply/eqP; 
-   move/(congr1 (fun p : {perm cube} => (p F0, p F1, p F2))); rewrite !permE /comp /= !permE.*)
+move=> p; rewrite !L_iso; case: sop_morph => _ ->; rewrite seqs1.
+by move/sop: p; apply/allP; vm_compute.
 Qed.
 
-
-Definition indir_iso3l := maps (perm_mul s0) dir_iso3l.
-
+Definition indir_iso3l := maps (mulg s0) dir_iso3l.
 
 Definition iso3l:= dir_iso3l ++ indir_iso3l.
 
-Definition seq_iso3_L := maps sop  iso3l.
+Definition seq_iso3_L := maps sop iso3l.
 
 Lemma eqperm : forall p1 p2 : {perm cube},
-  (p1 == p2) = all (fun s => p1 s == p2 s) [:: F0; F1; F2; F3; F4; F5].
+  (p1 == p2) = all (fun s => p1 s == p2 s) ecubes.
 Proof.
 move=> p1 p2; apply/eqP/allP=> [-> // | Ep12]; apply/permP=> x.
-by apply/eqP; apply Ep12; case: x; do 6!case=> //.
+by apply/eqP; rewrite Ep12 // ecubes_def mem_enum.
 Qed.
-
 
 Lemma iso_eq_F0_F1_F2: forall r s : {perm cube}, is_iso3 r -> 
    is_iso3 s -> r F0 = s F0 -> r F1 = s F1 ->  r F2 = s F2 -> r = s.
 Proof.
 move=> r s hr hs hrs0 hrs1 hrs2.
-move :(hrs0);move:  (hrs1);move: (hrs2).
-have e23 : F2 = s0 F3 by apply/eqP;rewrite permE /S0f (tsub_sub F0).
-have e14 : F1 = s0 F4 by apply/eqP;rewrite permE /S0f (tsub_sub F0).
-have e05: F0 = s0 F5 by apply/eqP;rewrite permE /S0f (tsub_sub F0).
-rewrite e23 e14 e05;rewrite !hr !hs.
+have:= hrs0; have:= hrs1; have:= hrs2.
+have e23: F2 = s0 F3 by apply/eqP; rewrite permE /S0f (tsub_sub F0).
+have e14: F1 = s0 F4 by apply/eqP; rewrite permE /S0f (tsub_sub F0).
+have e05: F0 = s0 F5 by apply/eqP; rewrite permE /S0f (tsub_sub F0).
+rewrite e23 e14 e05; rewrite !hr !hs.
 move/perm_inj=> hrs3; move/perm_inj=> hrs4; move/perm_inj=> hrs5.
-apply/eqP; rewrite eqperm.
-apply/allP.
-move => x.
-case/orP; first by move/eqP =>a; rewrite ?a; apply/eqP =>//.
-case/orP; first by move/eqP =>a; rewrite ?a; apply/eqP =>//.
-by do ![case/orP; first by move/eqP =>a; rewrite ?a; apply/eqP =>//].
+by apply/eqP; rewrite eqperm /= hrs0 hrs1 hrs2 hrs3 hrs4 hrs5 !eqxx.
 Qed.
 
 Ltac iso_tac := 
   let a := fresh "a" in apply/permP => a;
-  apply/eqP; rewrite !permM !permE; case: a; do 6?case.
+  apply/eqP; rewrite !permM !permE; case: a; do 6? case.
 
 Ltac inv_tac :=
   apply: esym (etrans _ (mul1g _)); apply: canRL (mulgK _) _; iso_tac.
@@ -918,13 +845,11 @@ have -> : s3 = r05 * r14 * r05 by iso_tac.
 have -> : s4 = r05 * r14  * r14 * r14 * r05 by iso_tac.
 have -> : s5 = r14  * r05 * r05 by iso_tac.
 have -> : s6 = r05 * r05 * r14 by iso_tac.
-by do ?(case/orP; first move/eqP => <- );
-     first (by exact:group1); last (move/eqP => <-);
-     do ?apply:groupM; apply:mem_geng; rewrite inE eqxx ?orbT //=.
+do ?case/predU1P=> [<-|]; first exact: group1; last (move/eqP => <-);
+   by rewrite ?groupMl ?mem_geng // inE eqxx ?orbT.
 Qed.
 
-
-Definition col_cubes := {{ffun cube -> colors} : as finType}.
+Notation col_cubes := {ffun cube -> colors}.
 
 Definition act_g (sc : col_cubes) (p : {perm cube}) : col_cubes := 
   [ffun z => sc (p^-1 z)].
@@ -961,7 +886,7 @@ Lemma eqperm_map2 : forall p1 p2 : col_cubes,
   (p1 == p2) = all (fun s => p1 s == p2 s) [:: F0; F1; F2; F3; F4; F5].
 Proof.
 move=> p1 p2; apply/eqP/allP=> [-> // | Ep12]; apply/ffunP=> x.
-by apply/eqP; apply Ep12; case: x; do 6!case=> //.
+by apply/eqP; apply Ep12; case: x; do 6?case.
 Qed.
 
 
@@ -1195,8 +1120,8 @@ apply sym_equal; rewrite ?eqxx /= !andbT /col0/col1/col2/col3/col4/col5.
 by do 3![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
 
-Lemma uniq4_uniq6: forall x y z t: cube, uniq [:: x; y; z;t] -> 
-                               exists u , exists v,  uniq [:: x; y; z;t; u ; v].
+Lemma uniq4_uniq6: forall x y z t : cube,
+  uniq [:: x; y; z; t] -> exists u, exists v, uniq [:: x; y; z; t; u; v].
 Proof.
 move => x y z t Uxt; move:( cardC  (mem [:: x; y; z; t])).
 rewrite card_ord  (card_uniq_tuple Uxt) => hcard.
@@ -1204,9 +1129,9 @@ have hcard2: #|predC (mem [:: x; y; z; t])| = 2.
   by apply:( @addn_injl 4); rewrite /injective  hcard.
 have:  #|predC (mem [:: x; y; z; t])| != 0 by rewrite hcard2.
 case/existsP=> u Hu; exists u.
-move:( cardC  (mem [:: x; y; z; t;u]));rewrite card_ord => hcard5.
-have:  #|predC (mem [:: x; y; z; t;u])| !=0.
-  rewrite -lt0n  -(ltn_add2l #|mem [:: x; y; z; t; u]|) hcard5 addn0.
+move: (cardC (mem [:: x; y; z; t; u])); rewrite card_ord => hcard5.
+have: #|[predC [:: x; y; z; t; u]]| !=0.
+  rewrite -lt0n  -(ltn_add2l #|[:: x; y; z; t; u]|) hcard5 addn0.
  by apply: (leq_ltn_trans (card_size [:: x; y; z; t; u])).
 case/existsP => v Hv; exists v.
 rewrite (uniq_cat [::x; y;z;t]) Uxt andTb.
@@ -1214,8 +1139,8 @@ apply/andP;split.
   apply/hasPn => x0; rewrite !inE orbF.
   case/orP; move/eqP => ->; first by move:Hu.
   by move:Hv; rewrite /= !inE !orbF  !orbA;case/norP.
-rewrite /= andbT !inE orbF /= eq_sym;case/norP:Hv =>//= _.
-by rewrite orbF;do 3![case/norP => //= ; move/negbET => _].
+rewrite /= andbT !inE orbF /= eq_sym; case/norP: Hv => //= _.
+by rewrite orbF; do 3![case/norP => //= ; move/negbET => _].
 Qed.
 
 Lemma card_n4 : forall x y z t : cube, uniq [:: x; y; z; t] ->

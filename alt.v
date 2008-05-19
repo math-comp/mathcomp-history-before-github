@@ -38,7 +38,7 @@ move=> d; rewrite leq_eqVlt; case/predU1P => Hcard; last first.
   have{Hcard} F1: #|alt d| = 1%N.
     move: Hcard; rewrite ltnS leq_eqVlt; case/predU1P; last exact: card_alt0.
     by move=> Hcard; apply/eqP; rewrite -(@eqn_pmul2l 2) // card_alt Hcard.
-  apply/simpleP=> K; case/andP=> Hs _; left. 
+  apply/simpleP=> K; case/andP=> sKalt _; left.
   by rewrite (trivgP K _) ?trivg_card // -F1 subset_leq_card.
 have F1: #|alt d| = 3 by apply/eqP; rewrite -(@eqn_pmul2l 2) // card_alt Hcard.
 apply/simpleP=> /= K; case/andP=> sKH _.

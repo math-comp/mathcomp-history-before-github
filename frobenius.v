@@ -666,27 +666,11 @@ have F2: wpartition [set z \in G | #[z] == p ^ l.+1]%N
     case/(spconstwP _ _ _ Hu) => u1; case/andP => Hub1 Hu1.
     case/(spconstwP _ _ _ Hv) => u2; case/andP => Hub2 Hu2.
     have F2:= (spconst_uniq Hu1 Hu2).
-    move => x1; apply/spconstwP/spconstwP. (* should be // but takes too long *)
-    - by [].
-    - by [].
-    - case => i; case/andP => Hi1 Hi2.
-      exists (u2 * (u1^-1 * i))%g.
-      rewrite !groupM /=; first last. (* should be // but takes too long *)
-      - by [].
-      - by rewrite groupV.
-      - by [].
-      - by [].
-      suff ->: v ^ (u2 * (u1^-1 * i)) = u ^ i by [].
-      by rewrite conjgM -F2 -conjgM; congr conjg; gsimpl.
-    case => i; case/andP => Hi1 Hi2.
-    exists (u1 * (u2^-1 * i))%g.
-    rewrite !groupM /=; first last. (* should be // but takes too long *)
-    - by [].
-    - by rewrite groupV.
-    - by [].
-    - by [].
-    suff ->: u^(u1 * (u2^-1 * i)) = v^i by [].
-    by rewrite conjgM F2 -conjgM; congr conjg; gsimpl.
+    move=> x1; apply/spconstwP/spconstwP=> // [] [i]; case/andP => Hi1 Hi2.
+      exists (u2 * (u1^-1 * i)); rewrite !groupM ?groupV //=.
+      by rewrite (_ : v ^ _ = u ^ i) // !conjgM -F2 conjgK.
+    exists (u1 * (u2^-1 * i)); rewrite !groupM ?groupV //=.
+    by rewrite (_ : u ^ _ = v ^ i) // !conjgM F2 conjgK.
   apply/coverP; split.
      move => x; rewrite inE; case/andP => Hpx Hx; apply/subsetP => y.
      case/(spconstwP _ _ _ Hpx) => i; case/andP => Hpi.

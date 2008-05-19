@@ -20,13 +20,15 @@ Import Prenex Implicits.
 
 (* group of permutations *)
 
-Section PermGroup.
+Section PermDef.
 
 Variable T : finType.
 
 Record perm : Type := Perm {pval : {ffun T -> T}; _ : injectiveb pval}.
 
 Definition perm_for of phant T : predArgType := perm.
+
+Identity Coercion perm_for_perm : perm_for >-> perm.
 
 Notation pT := (perm_for (Phant T)).
 
@@ -40,25 +42,50 @@ Canonical Structure perm_for_eqType := Eval hnf in [eqType of pT].
 Canonical Structure perm_for_finType := Eval hnf in [finType of pT].
 Canonical Structure perm_for_subFinType := Eval hnf in [subFinType of pT].
 
-Definition fun_of_perm := fun u : perm => val u : T -> T.
+Definition fun_of_perm_def (u : perm) := val u : T -> T.
 
-Coercion fun_of_perm : perm >-> Funclass.
-
-Lemma permP : forall u v : pT, u =1 v <-> u = v.
-Proof. by move=> u v; split=> [Huv | -> //]; apply: val_inj; apply/ffunP. Qed.
-
-Lemma perm_ofP : forall f : T -> T, injective f -> injectiveb (ffun_of f).
+Lemma perm_of_proof : forall f : T -> T, injective f -> injectiveb (ffun_of f).
 Proof.
 by move=> f f_inj; apply/injectiveP; apply: eq_inj f_inj _ => x; rewrite ffunE.
 Qed.
 
-Definition perm_of f (f_inj : injective f) : pT := Perm (perm_ofP f_inj).
+Definition perm_of_def f f_inj : pT := Perm (@perm_of_proof f f_inj).
 
-Lemma permE : forall f (f_inj : injective f), perm_of f_inj =1 f.
-Proof. move=> *; exact: ffunE. Qed.
+End PermDef.
+
+Notation "{ 'perm' T }" := (perm_for (Phant T))
+  (at level 0, format "{ 'perm'  T }") : type_scope.
+
+Notation "'S_' ( n )" := {perm I_(n)}
+  (at level 0, format "'S_' ( n )").
+
+Lemma fun_of_perm_key : unit. Proof. by []. Qed.
+Definition fun_of_perm := locked_with fun_of_perm_key fun_of_perm_def.
+Coercion fun_of_perm : perm >-> Funclass.
+
+Lemma perm_of_key : unit. Proof. by []. Qed.
+Definition perm_of := locked_with perm_of_key perm_of_def.
+
+Section Theory.
+
+Variable T : finType.
+
+Notation pT := {perm T}.
+
+Lemma permP : forall u v : pT, u =1 v <-> u = v.
+Proof.
+move=> u v; split=> [| -> //]; rewrite /fun_of_perm unlock => eq_uv.
+by apply: val_inj; apply/ffunP.
+Qed.
+
+Lemma pvalE : forall u : pT, pval u = u :> (T -> T).
+Proof. by rewrite /fun_of_perm unlock. Qed.
+
+Lemma permE : forall f f_inj, @perm_of T f f_inj =1 f.
+Proof. by move=> f f_inj x; rewrite -pvalE /perm_of unlock ffunE. Qed.
 
 Lemma perm_inj : forall u : pT, injective u.
-Proof. move=> u; exact: (injectiveP _ (valP u)). Qed.
+Proof. move=> u; rewrite -!pvalE; exact: (injectiveP _ (valP u)). Qed.
 
 Implicit Arguments perm_inj [].
 
@@ -82,7 +109,7 @@ Proof. by move=> u v w; apply/permP => x; do !rewrite permE /=. Qed.
 Canonical Structure perm_for_baseFinGroupType := Eval hnf in
   [baseFinGroupType of pT by perm_mulP, perm_unitP & perm_invP].
 Canonical Structure perm_baseFinGroupType := Eval hnf in
-  [baseFinGroupType of perm by perm_mulP, perm_unitP & perm_invP].
+  [baseFinGroupType of perm T by perm_mulP, perm_unitP & perm_invP].
 Canonical Structure perm_for_finGroupType :=
   FinGroupType perm_invP.
 Canonical Structure perm_finGroupType :=
@@ -176,12 +203,6 @@ do 2!case: (_ =P z) => [<- //| _].
 by move/(subsetP vA'); rewrite inE; case/andP.
 Qed.
 
-End PermGroup.
-
-Notation "{ 'perm' T }" := (perm_for (Phant T))
-  (at level 0, format "{ 'perm'  T }") : type_scope.
-
-Notation "'S_' ( n )" := {perm I_(n)}
-  (at level 0, format "'S_' ( n )").
+End Theory.
 
 Unset Implicit Arguments.
