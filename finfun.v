@@ -19,74 +19,24 @@ Inductive finfun : Type := Finfun of tuple #|aT| rT.
 
 Definition finfun_for of phant (aT -> rT) : predArgType := finfun.
 
-Notation fT := (finfun_for (Phant (aT -> rT))).
+Identity Coercion finfun_for_finfun : finfun_for >-> finfun.
 
 Definition fgraph f := let: Finfun t := f in t.
 
-CoInductive app_ffun_spec (f : finfun) (x : aT) : rT -> Prop :=
-  AppFfunSpec : app_ffun_spec f x (tsub (fgraph f) (enum_rank x)).
-
-Lemma ffun_fun_def : forall ff, {f | forall x, app_ffun_spec ff x (f x)}.
-Proof. by move=> f; exists (fun x => tsub (fgraph f) (enum_rank x)). Qed.
-
-Definition fun_of_ffun f := sval (ffun_fun_def f).
-
-Coercion fun_of_ffun : finfun >-> Funclass.
-
 Canonical Structure finfun_subType := NewType fgraph finfun_rect vrefl.
-Canonical Structure finfun_for_subType := Eval hnf in [subType of fT].
 
-Lemma app_ffunP : forall (f : fT) x, app_ffun_spec f x (f x).
-Proof. move=> f; exact: (svalP (ffun_fun_def f)). Qed.
+Definition fun_of_ffun_def f x := tsub (fgraph f) (enum_rank x).
 
-Lemma fgraph_maps : forall f : fT, fgraph f = [tuple of maps f (enum aT)].
-Proof.
-move=> f; apply: eq_from_tsub => i; rewrite tsub_maps; case: app_ffunP.
-by congr tsub; rewrite -[tsub _ _]enum_val_sub enum_valK.
-Qed.
-
-Lemma maps_ffun_enum : forall f : fT, maps f (enum aT) = val f.
-Proof. by move=> f; rewrite /= fgraph_maps. Qed.
-
-Lemma make_ffun : forall f, {ff : fT | ff =1 f}.
-Proof.
-move=> f; exists (Finfun [tuple of maps f (enum aT)]) => x.
-by case: app_ffunP; rewrite tsub_maps -[tsub _ _]enum_val_sub enum_rankK.
-Qed.
-
-Definition ffun_of f : fT := sval (make_ffun f).
-
-Lemma ffunE : forall f, ffun_of f =1 f.
-Proof. by rewrite /ffun_of => f; case: make_ffun. Qed.
-
-Lemma ffunP : forall f1 f2 : fT, f1 =1 f2 <-> f1 = f2.
-Proof.
-move=> f1 f2; split=> [eq_f12 | -> //]; do 2!apply: val_inj => /=.
-
-by rewrite -!maps_ffun_enum (eq_maps eq_f12).
-Qed.
-
-Lemma ffunK : cancel fun_of_ffun ffun_of.
-Proof. move=> f; apply/ffunP; exact: ffunE. Qed.
-
-Section Family.
-
-Variable F : aT -> pred rT.
-
-Definition family : pred fT := fun f => forallb x, F x (f x).
-
-Lemma familyP : forall f : fT, reflect (forall x, F x (f x)) (family f).
-Proof. move=> f; exact: forallP. Qed.
-
-End Family.
-
-Definition ffun_on r := family (fun _ => r).
-
-Lemma ffun_onP : forall (r : pred rT) (f : fT),
-  reflect (forall x, r (f x)) (ffun_on r f).
-Proof. move=> r f; exact: forallP. Qed.
+Definition ffun_of_def f := Finfun [tuple of maps f (enum aT)].
 
 End Def.
+
+Lemma fun_of_ffun_key : unit. Proof. by []. Qed.
+Definition fun_of_ffun := locked_with fun_of_ffun_key fun_of_ffun_def.
+Coercion fun_of_ffun : finfun >-> Funclass.
+
+Lemma ffun_of_key : unit. Proof. by []. Qed.
+Definition ffun_of := locked_with ffun_of_key ffun_of_def.
 
 Notation "{ 'ffun' fT }" := (finfun_for (Phant fT))
   (at level 0, format "{ 'ffun'  '[hv' fT ']' }") : type_scope.
@@ -106,7 +56,57 @@ Notation "[ 'ffun' x => F ]" := [ffun x : _ => F]
 Notation "[ 'ffun' => F ]" := [ffun : _ => F]
   (at level 0, format "[ 'ffun' =>  F ]") : fun_scope.
 
-Section EqFinfun.
+Section PlainTheory.
+
+Variables (aT : finType) (rT : Type).
+Notation fT := {ffun aT -> rT}.
+
+Canonical Structure finfun_for_subType := Eval hnf in [subType of fT].
+
+Lemma ffunE : forall f : aT -> rT, ffun_of f =1 f.
+Proof.
+move=> f x; rewrite /fun_of_ffun /ffun_of !unlock /fun_of_ffun_def /=.
+by rewrite tsub_maps -[tsub _ _]enum_val_sub enum_rankK.
+Qed.
+
+Lemma fgraph_maps : forall f : fT, fgraph f = [tuple of maps f (enum aT)].
+Proof.
+move=> f; apply: eq_from_tsub => i; rewrite /fun_of_ffun unlock tsub_maps.
+by congr tsub; rewrite -[tsub _ _]enum_val_sub enum_valK.
+Qed.
+
+Lemma maps_ffun_enum : forall f : fT, maps f (enum aT) = val f.
+Proof. by move=> f; rewrite /= fgraph_maps. Qed.
+
+Lemma ffunP : forall f1 f2 : fT, f1 =1 f2 <-> f1 = f2.
+Proof.
+move=> f1 f2; split=> [eq_f12 | -> //]; do 2!apply: val_inj => /=.
+by rewrite -!maps_ffun_enum (eq_maps eq_f12).
+Qed.
+
+Lemma ffunK : cancel (@fun_of_ffun aT rT) (@ffun_of aT rT).
+Proof. move=> f; apply/ffunP; exact: ffunE. Qed.
+
+Section Family.
+
+Variable F : aT -> pred rT.
+
+Definition family : pred fT := fun f => forallb x, F x (f x).
+
+Lemma familyP : forall f : fT, reflect (forall x, F x (f x)) (family f).
+Proof. move=> f; exact: forallP. Qed.
+
+End Family.
+
+Definition ffun_on r := family (fun _ => r).
+
+Lemma ffun_onP : forall (r : pred rT) (f : fT),
+  reflect (forall x, r (f x)) (ffun_on r f).
+Proof. move=> r f; exact: forallP. Qed.
+
+End PlainTheory.
+
+Section EqTheory.
 
 Variables (aT : finType) (rT : eqType).
 
@@ -145,9 +145,9 @@ Qed.
 
 End Partial.
 
-End EqFinfun.
+End EqTheory.
 
-Section FinFunSpace.
+Section FinTheory.
 
 Variables aT rT : finType.
 
@@ -162,7 +162,7 @@ Canonical Structure finfun_for_subFinType := Eval hnf in [subFinType of fT].
 Lemma card_pfamily : forall y0 d (F : aT -> pred rT),
   #|pfamily y0 d F| = foldr (fun x m => #|F x| * m) 1 (enum d).
 Proof.
-move=> y0 d F; have:= (uniq_enum d); have:= (mem_enum d). 
+move=> y0 d F; have:= uniq_enum d; have:= mem_enum d. 
 elim: {d}enum {2 4}d => [|x0 s IHs] d eq_ds => [_|] /=.
   rewrite -(card1 [ffun=> y0]); apply: eq_card => f.
   apply/familyP/eqP => [f_y0 | ->{f} x]; last by rewrite ffunE -[d _]eq_ds /=.
@@ -215,7 +215,7 @@ Proof.
 rewrite -card_ffun_on; apply: eq_card => f; symmetry; exact/forallP.
 Qed.
 
-End FinFunSpace.
+End FinTheory.
 
 Section FinPowerSet.
 
@@ -229,6 +229,6 @@ Proof. rewrite -card_bool; exact: card_pffun_on. Qed.
 
 End FinPowerSet.
 
-Lemma card_tuple : forall n (T : finType), #|tuple n T| = #|T| ^ n.
+Lemma card_tuple : forall n (T : finType), #|{tuple(n) T}| = #|T| ^ n.
 Proof. by move=> n T; rewrite -[n]card_ord -card_ffun card_sub. Qed.
 

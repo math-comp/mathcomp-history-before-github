@@ -14,18 +14,9 @@ Section Def.
 
 Variables (n : nat) (T : Type).
 
-Record tuple_repr : Type :=
-  TupleRepr {tuple_val :> seq T; _ : size tuple_val == n}.
+Record tuple : Type := Tuple {tval :> seq T; _ : size tval == n}.
 
-Definition tuple : predArgType := tuple_repr.
-Identity Coercion repr_of_tuple : tuple >-> tuple_repr.
-Definition Tuple : forall s : seq T, size s == n -> tuple := TupleRepr.
-
-Canonical Structure tuple_subType :=
-  @SubType _ _ tuple tuple_val Tuple tuple_repr_rect vrefl.
-
-Canonical Structure tuple_repr_subType :=
-  SubType tuple_val tuple_repr_rect vrefl.
+Canonical Structure tuple_subType := SubType tval tuple_rect vrefl.
 
 Lemma size_tuple : forall t : tuple, size t = n.
 Proof. move=> f; exact: (eqP (valP f)). Qed.
@@ -41,11 +32,10 @@ Proof. by move=> x t i; apply: set_sub_default; rewrite size_tuple. Qed.
 Lemma maps_tsub_enum : forall t, maps (tsub t) (enum {I_(n)}) = t.
 Proof.
 move=> t; case def_t: {-}(val t) => [|x0 t'].
-  suffices: #|{I_(n)}| = 0 by rewrite cardE; move/size_eq0->.
-  by rewrite card_ord -(size_tuple t) def_t.
+  by rewrite [enum _]size_eq0 // -cardE card_ord -(size_tuple t) def_t.
 apply: (@eq_from_sub _ x0) => [|i]; rewrite size_maps.
   by rewrite -cardE size_tuple card_ord.
-move=> lt_i_e; have lt_i_n: i < n by rewrite -[n]card_ord cardE.
+move=> lt_i_e; have lt_i_n: i < n by rewrite -cardE card_ord in lt_i_e.
 by rewrite (sub_maps (Ordinal lt_i_n)) // (tsub_sub x0) sub_enum_ord.
 Qed.
 
@@ -54,10 +44,13 @@ Proof.
 by move=> *; apply: val_inj; rewrite /= -!maps_tsub_enum; exact: eq_maps.
 Qed.
 
-Definition tuple_of (t : tuple) s of phantom (seq T) t -> phantom (seq T) s :=
+Definition tuple_of (t : tuple) s & phantom (seq T) t -> phantom (seq T) s :=
   t.
 
 End Def.
+
+Notation "{ 'tuple' ( n ) T }" := (tuple n T : predArgType)
+ (at level 0, format "{ 'tuple' ( n )  T }") : form_scope.
 
 Notation "[ 'tuple' 'of' s ]" := (@tuple_of _ _ _ s id)
   (at level 0, format "[ 'tuple'  'of'  s ]") : form_scope.
@@ -158,7 +151,7 @@ CoInductive tuple1_spec : tuple n.+1 T -> Type :=
 Lemma tupleP : forall t, tuple1_spec t.
 Proof.
 move=> [[|x t] //= sz_t]; pose t' := Tuple (sz_t : size t == n).
-rewrite (_ : TupleRepr _ = [tuple of x :: t']) //; exact: val_inj.
+rewrite (_ : Tuple _ = [tuple of x :: t']) //; exact: val_inj.
 Qed.
 
 Lemma tsub_maps : forall f (t : tT) i,
@@ -181,17 +174,12 @@ Section EqTuple.
 
 Variables (n : nat) (T : eqType).
 
-Canonical Structure tuple_repr_eqType :=
-  Eval hnf in [subEqType for @tuple_val n T].
-Canonical Structure tuple_eqType := Eval hnf in [eqType of tuple n T].
+Canonical Structure tuple_eqType := Eval hnf in [subEqType for @tval n T].
 
 Canonical Structure tuple_predType :=
   Eval hnf in mkPredType (fun t : tuple n T => mem_seq t).
 
-Canonical Structure tuple_repr_predType :=
-  Eval hnf in mkPredType (fun t : tuple_repr n T => mem_seq t).
-
-Lemma memtE : forall t : tuple n T, mem t = mem (tuple_val t).
+Lemma memtE : forall t : tuple n T, mem t = mem (tval t).
 Proof. by []. Qed.
 
 End EqTuple.
@@ -216,10 +204,6 @@ Qed.
 Definition tuple_finMixin := @FinMixin tT _ tuple_enum.
 Canonical Structure tuple_finType := FinClass tuple_finMixin.
 Canonical Structure tuple_subFinType := SubFinType tuple_finMixin.
-
-Definition tuple_repr_finMixin := @FinMixin (tuple_repr n T) _ tuple_enum.
-Canonical Structure tuple_repr_finType := FinClass tuple_repr_finMixin.
-Canonical Structure tuple_repr_subFinType := SubFinType tuple_repr_finMixin.
 
 Lemma enum_tupleP : forall a : pred T, size (enum a) == #|a|.
 Proof. by move=> a; rewrite -cardE. Qed.

@@ -699,14 +699,12 @@ by do 5 apply/val_eqP => /=; rewrite H.
 Qed.
 
 Let tt := seq cube_finType.
-Definition  prod_tuple (t1  t2:tt) := maps  (fun n:I_(6) => sub F0 t2 n  ) t1 .
+Definition prod_tuple (t1 t2 : tt) := maps (fun n : I_(6) => sub F0 t2 n) t1.
 
-Lemma sop_spec: forall x (n0:I_(6)), sub F0 (sop x) n0 = x n0.
+Lemma sop_spec: forall x (n0 : I_(6)), sub F0 (sop x) n0 = x n0.
 Proof.
-(do 3! case) => t1 i1 j1 /=;rewrite /fun_of_perm /= /fun_of_ffun /proj1_sig /=.
-move => n0 /=; case:ffun_fun_def;rewrite /=.
-move => x1;case;rewrite //=.
-by apply :esym;rewrite enum_rank_ord /=;exact: tsub_sub .
+move=> x n0; rewrite /fun_of_perm /fun_of_ffun /= unlock /fun_of_ffun_def.
+by rewrite (tsub_sub F0) enum_rank_ord /=; case: x => [] [] [].
 Qed.
 
 Lemma prod_t_correct: forall x y i , 
@@ -747,10 +745,10 @@ do 3! case => //;case.
   by move => H ; apply: False_ind;rewrite card_ord in H.
 do 5 (move => x s /= H; move : s H x;
  case; first by move => H ; apply: False_ind;rewrite card_ord in H).
-move => x6 ; case; first last.
- by move => s l H;  apply: False_ind;rewrite card_ord in H.
-move => H x5 x4 x3 x2 x1 i; rewrite   /sop1 /fun_of_perm /=.
-by do 6 case: app_ffunP;rewrite /= !enum_rank_ord /= !(tsub_sub  F0) //=.
+move=> x6 ; case; last by move=> x7 s; case/idPn; rewrite card_ord.
+move=> H x5 x4 x3 x2 x1 i.
+rewrite /sop1 /= /fun_of_perm /fun_of_ffun /= !unlock /=.
+by rewrite /fun_of_ffun_def /= !enum_rank_ord eqxx.
 Qed.
 
 Lemma Lcorrect: seq_iso_L == maps sop  [::  id3; s05; s14; s23; r05; r14; r23;

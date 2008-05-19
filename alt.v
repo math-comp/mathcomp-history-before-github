@@ -38,7 +38,7 @@ move=> d; rewrite leq_eqVlt; case/predU1P => Hcard; last first.
   have{Hcard} F1: #|alt d| = 1%N.
     move: Hcard; rewrite ltnS leq_eqVlt; case/predU1P; last exact: card_alt0.
     by move=> Hcard; apply/eqP; rewrite -(@eqn_pmul2l 2) // card_alt Hcard.
-  apply/simpleP=> K; case/andP=> Hs _; left.  
+  apply/simpleP=> K; case/andP=> Hs _; left. 
   by rewrite (trivgP K _) ?trivg_card // -F1 subset_leq_card.
 have F1: #|alt d| = 3 by apply/eqP; rewrite -(@eqn_pmul2l 2) // card_alt Hcard.
 apply/simpleP=> /= K; case/andP=> sKH _.
@@ -48,7 +48,6 @@ rewrite (cardD1 1) group1 eqSS [_ == _]disjoint_sym disjoint_subset => sK1.
 left; rewrite {sKH} (trivgP K _) //; apply: subset_trans sK1 _.
 by apply/subsetP=> x; rewrite !inE /= negbK.
 Qed.
-
 
 (* Un theoreme a deplacer dans group_perm *)
 Lemma tpermD : forall (d : finType) (x y z : d),

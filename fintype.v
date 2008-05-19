@@ -1162,27 +1162,34 @@ Section ProdFinType.
 
 Variable T1 T2 : finType.
 
-Lemma prod_enum :
-  {e : seq (T1 * T2) | forall a1 a2, count (predX a1 a2) e = #|a1| * #|a2|}.
+Definition prod_enum_val :=
+  foldr (fun x1 => cat (maps (pair x1) (enum T2))) [::] (enum T1).
+
+Lemma predX_prod_enum_val : forall A1 A2,
+  count (predX A1 A2) prod_enum_val = #|A1| * #|A2|.
 Proof.
-pose pairT2 := [fun x1 : T1 => cat (maps (pair x1) (enum T2))].
-exists (foldr pairT2 [::] (enum T1)) => a1 a2.
-rewrite !cardE -!count_filter -!enumE; elim: (enum T1) => //= x1 s1 IHs.
-rewrite count_cat {}IHs count_maps /preim /=.
+move=> a1 a2; rewrite !cardE -!count_filter -!enumE /prod_enum_val.
+elim: (enum T1) => //= x1 s1 IHs; rewrite count_cat {}IHs count_maps /preim /=.
 by case: (a1 x1); rewrite ?count_pred0.
 Qed.
 
-Lemma prod_enumP : enumeration (sval prod_enum).
+Lemma prod_enumeration : enumeration prod_enum_val.
 Proof.
-case=> x1 x2; rewrite (@eq_count _ _ (predX (pred1 x1) (pred1 x2))) => [|[]//].
-by rewrite (svalP prod_enum) !card1.
+by case=> x1 x2; rewrite (predX_prod_enum_val (pred1 x1) (pred1 x2)) !card1.
 Qed.
 
-Canonical Structure prod_finType := mkFinType prod_enumP.
+Lemma prod_enum : {enumMixin T1 * T2}.
+Proof. exists prod_enum_val; exact: prod_enumeration. Qed.
 
-Lemma cardX : forall (a1 : pred T1) (a2 : pred T2),
-  #|[predX a1 & a2]| = #|a1| * #|a2|.
-Proof. by move=> a1 a2; rewrite {1}/card unlock -(svalP prod_enum). Qed.
+Canonical Structure prod_finType := FinClass (FinMixin prod_enum).
+
+Lemma cardX : forall (A1 : pred T1) (A2 : pred T2),
+  #|[predX A1 & A2]| = #|A1| * #|A2|.
+Proof.
+move=> A1 A2; rewrite {1}/card unlock -predX_prod_enum_val.
+apply: perm_eqP; apply/allP=> x _; apply/eqP.
+by rewrite prod_enumeration FinType.enumP.
+Qed.
 
 Lemma card_prod : #|T1 * T2 : predArgType|%type = #|T1| * #|T2|.
 Proof. by rewrite -cardX; apply: eq_card; case. Qed.
@@ -1197,30 +1204,32 @@ Section SumFinType.
 
 Variables (I : finType) (T_ : I -> finType).
 
-Definition finsum_dom_at i : eqType := T_ i.
-
-Definition sum_of_cards := foldr (fun i m => #|T_ i| + m) 0 (enum I).
-
-Lemma sum_enumP : {e : seq (eq_sum [eta T_]) | enumeration e
-                  & size e = sum_of_cards}.
+Definition sum_enum_val :=
+  let cat_Ti i := cat (maps (@EqSum I [eta T_] i) (enum (T_ i))) in
+  foldr cat_Ti [::] (enum I).
+  
+Lemma sum_enumeration : enumeration sum_enum_val.
 Proof.
-pose catTi i := cat (maps (@EqSum I [eta T_] i) (enum (T_ i))).
-exists (foldr catTi [::] (enum I)) => [[i x]|]; last first.
-  rewrite /sum_of_cards; elim: (enum I) => //= i s <-.
-  by rewrite /sum_of_cards size_cat size_maps -cardE.
-rewrite -[1]/(i \in I : nat) -(mem_enum I).
-elim: (enum I) (uniq_enum I) => [|j s IHs] //=; case/andP=> nsj.
-rewrite count_cat count_maps /comp /= in_adds enumE; move/IHs=> -> {IHs}.
-case: eqP {nsj}(negPf nsj) => [<-{j} -> /=| ]; last move/eqP=> nji _.
-  rewrite count_filter -cardE (@eq_card1 _ x) // => y; exact: sum_eq_tagged.
-rewrite count_filter -cardE eq_card0 // => y.
-by apply/andP; case; rewrite /= eq_sym (negPf nji).
+case=> i x; rewrite -(FinType.enumP I i) -enumE /sum_enum_val.
+elim: enum => //= j eI IHj; rewrite count_cat count_maps {}IHj; congr (_ + _).
+rewrite count_filter enumE -cardE; case: eqP => [-> | ne_j_i].
+  apply: (@eq_card1 _ x) => y; exact: sum_eq_tagged.
+by apply: eq_card0 => y; apply/andP; case; move/eqP.
 Qed.
 
-Canonical Structure sum_finType := mkFinType (s2valP sum_enumP).
+Lemma sum_enum : {enumMixin (eq_sum [eta T_])}.
+Proof. exists sum_enum_val; exact: sum_enumeration. Qed.
 
-Lemma card_sum : #|eq_sum [eta T_] : predArgType| = sum_of_cards.
-Proof. by rewrite cardT enumE /= (s2valP' sum_enumP). Qed.
+Canonical Structure sum_finType := FinClass (FinMixin sum_enum).
+
+Definition sum_card_sum := foldr (fun i m => #|T_ i| + m) 0 (enum I).
+
+Lemma card_sum : #|eq_sum [eta T_] : predArgType| = sum_card_sum.
+Proof.
+case/enumerationP: sum_enumeration => Ue; move/eq_card <-.
+move/card_uniqP: Ue ->; rewrite /sum_enum_val /sum_card_sum.
+by elim: enum => //= i eI IHi; rewrite size_cat {}IHi size_maps -cardE.
+Qed.
 
 Definition eq_card_sum B := @eq_card_trans _ _ B _ card_sum.
 
