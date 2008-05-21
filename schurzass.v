@@ -1,6 +1,7 @@
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
-Require Import div seq fintype paths connect finfun ssralg bigops finset.
-Require Import groups normal action group_perm automorphism cyclic center sylow.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
+Require Import fintype paths connect finfun ssralg bigops finset.
+Require Import groups normal group_perm automorphism action.
+Require Import cyclic center sylow.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -412,4 +413,347 @@ apply/splitgP; exists K => //; apply/setP; apply/subset_cardP.
 by rewrite -(mulGid G) mulgSS // (subset_trans sKZK).
 Qed.
 
+Module SchurZassCP1. End SchurZassCP1.
 
+Section MoreMorph.
+
+(* Various morphism transport lemmas, that should be in normal. *)
+
+Variables (aT rT : finGroupType) (f : morphism aT rT).
+
+Lemma morphR : {in dom f &, {morph f : x y / [~ x, y]}}.
+Proof.
+by move=> x y Dx Dy; rewrite /= morphM (groupV, morphV, groupJ) // morphJ.
+Qed.
+
+Lemma imset_gen : forall (A : {set aT}),
+  A \subset dom f -> f @: <<A>> = <<f @: A>>.
+Proof.
+move=> A sAD; apply/eqP; rewrite eqset_sub gen_subG andbC imsetS ?sub_geng //=.
+apply/bigcap_inP=> G sAG; have: f @: (f @^-1: G)%G \subset G.
+  by apply/subsetP=> fx; case/imsetP=> x; rewrite 2!inE; case/andP=> Gfx _ ->.
+apply: subset_trans; apply: imsetS; rewrite gen_subG subsetI sAD andbT.
+by apply/subsetP=> x Ax; rewrite inE (subsetP sAG) ?imset_f_imp.
+Qed.
+
+Lemma imset_domP : forall (A : {set aT}) y,
+  y \in f @: A -> y = 1 \/ exists2 x, y = f x & x \in dom_(A) f.
+Proof.
+move=> A y; case/imsetP=> x Ax ->{y}; case: (f x =P 1); first by left.
+by move/eqP=> nfx1; right; exists x; rewrite // !inE nfx1 orbT.
+Qed.
+
+Lemma sub_imset_comm : forall (A B : {set aT}),
+  [~: f @: A, f @: B] \subset f @: [~: A, B].
+Proof.
+move=> A B; rewrite gen_subG; apply/subsetP=> z; case/imset2P=> fx fy.
+case/imset_domP=> [-> _ -> |]; first by rewrite comm1g group1.
+case=> x ->{fx}; case/setIP=> Ax Dx.
+case/imset_domP=> [-> -> |]; first by rewrite commg1 group1.
+case=> y ->{fy}; case/setIP=> By Dy ->.
+by rewrite -morphR ?(imset_f_imp, mem_geng, imset2_f_imp).
+Qed.
+
+Lemma imset_comm : forall (A B : {set aT}),
+  A \subset dom f -> B \subset dom f -> f @: [~: A, B] = [~: f @: A, f @: B].
+Proof.
+move=> A B dfA dfB; apply/eqP; rewrite eqset_sub sub_imset_comm andbT.
+rewrite imset_gen ?genSg //; last first.
+  apply/subsetP=> z; case/imset2P=> x y Ax By ->{z}.
+  by rewrite groupR ?(subsetP dfA x, subsetP dfB y).
+apply/subsetP=> fz; case/imsetP=> z; case/imset2P=> x y Ax By -> -> {z fz}.
+by rewrite morphR ?imset2_f_imp ?(subsetP dfA x, subsetP dfB y, imset_f_imp).
+Qed.
+
+Lemma imset_norm : forall (A : {set aT}), f @: 'N(A) \subset 'N(f @: A).
+Proof.
+move=> A; apply/subsetP=> xb; case/imset_domP=> [->|]; first exact: group1.
+case=> x ->; case/setIP=> Nx Dx; rewrite inE; apply/subsetP=> yxb.
+case/imsetP=> yb fAyb ->{yxb}.
+case/imset_domP: fAyb (fAyb) => [->| [y ->]]; first by rewrite conj1g.
+by case/setIP=> Dy Ay _; rewrite -morphJ ?imset_f_imp ?memJ_normg.
+Qed.
+
+Lemma imset_cent1 : forall x, f @: 'C[x] \subset 'C[f x].
+Proof. by move=> x; rewrite -(imset_set1 f x) imset_norm. Qed.
+
+Lemma imset_cent : forall (A : {set aT}), f @: 'C(A) \subset 'C(f @: A).
+Proof.
+  move=> A; apply/bigcap_inP => fx; case/imsetP=> x Ax ->{fx}.
+apply: subset_trans (imset_cent1 x); apply: imsetS; exact: bigcap_inf.
+Qed.
+
+Lemma imset_normal : forall (A B : {set aT}),
+  A \subset 'N(B) -> f @: A \subset 'N(f @: B).
+Proof. move=> A B nBA; apply: subset_trans (imset_norm B); exact: imsetS. Qed.
+
+Lemma imset_central : forall (A B : {set aT}),
+  A \subset 'C(B) -> f @: A \subset 'C(f @: B).
+Proof. move=> A B cBA; apply: subset_trans (imset_cent B); exact: imsetS. Qed.
+
+Lemma imset_centraliser : forall (A : {set aT}) x,
+  A \subset 'C[x] -> f @: A \subset 'C[f x].
+Proof. move=> A x cAx; apply: subset_trans (imset_cent1 x); exact: imsetS. Qed.
+
+Lemma imset_normalsub :  forall (A B : {set aT}), A <| B -> f @: A <| f @: B.
+Proof.
+by move=> A B; case/andP=> sAB nAB; rewrite /(_ <| _) imsetS // imset_normal.
+Qed.
+
+Lemma inv_morphS : forall (G : {group aT}) (Hbar : {group rT}),
+  Hbar \subset f @: G ->
+  exists H, [/\ Hbar = (f @: H)%G, ker_(G) f \subset H & H \subset dom_(G) f].
+Proof.
+move=> G Hbar sHbarG; exists (G :&: f @^-1: Hbar)%G; split; first 1 last.
+- by apply/subsetP=> x; case/setIP=> Kx; rewrite 4!inE andbC Kx mker ?group1.
+- by rewrite /= setIC -setIA subsetIr.
+apply: val_inj; apply/setP=> /= xb; apply/idP/idP=> [Hxb|]; last first.
+  by case/imsetP=> x; rewrite 3!inE; case/and3P=> _ Hbarfx _ ->.
+case/imset_domP: (subsetP sHbarG _ Hxb) (Hxb) => [-> _|]; first exact: group1.
+by case=> x -> dGx Hfx; rewrite imset_f_imp // setIC -setIA 2!inE Hfx.
+Qed.
+
+Lemma inv_morphN : forall (G : {group aT}) (Hbar : {group rT}),
+  Hbar <| f @: G ->
+  exists H, [/\ Hbar = (f @: H)%G, ker_(G) f \subset H & H <| dom_(G) f].
+Proof.
+move=> G Hbar; case/andP; case/inv_morphS=> H [-> /= sKH sHG] nfHfG; exists H.
+split; rewrite // /(_ <| _) sHG; apply/subsetP=> x; case/setIP=> Dx Gx.
+rewrite inE; apply/subsetP=> yx; case/imsetP=> y Hy ->{yx}.
+have [Dy Gy]: y \in dom f /\ y \in G by apply/setIP; exact: (subsetP sHG).
+have: f (y ^ x) \in f @: H.
+  by rewrite morphJ // memJ_normg ?(imset_f_imp, subsetP nfHfG).
+case/imsetP=> z Hz fz_xy; case/setIP: (subsetP sHG _ Hz) => Dz Gz.
+rewrite -(mulgKV z (y ^ x)) groupMr // (subsetP sKH) // inE andbC.
+rewrite groupM ?(groupJ, groupV) //=.
+apply/kerMP; rewrite (groupM, morphM) ?(morphV, groupJ, groupV) //.
+by rewrite fz_xy mulgV.
+Qed.  
+
+End MoreMorph.
+
+Section MoreQuotient.
+
+Variables (gT : finGroupType) (G K : {group gT}) (Hbar : {group coset K}).
+
+Lemma dom_coset_of_loc : G \subset 'N(K) -> dom_(G) (coset_of K) = G.
+Proof.
+by move/subset_trans=> nKG; apply/eqP; rewrite eqsetIr nKG ?subset_dom_coset.
+Qed.
+
+Hypothesis nKG : K <| G.
+
+Lemma dom_coset_of_sub : dom_(G) (coset_of K) = G.
+Proof. by apply: dom_coset_of_loc; case/andP: nKG. Qed.
+
+Lemma inv_quoS : Hbar \subset G / K ->
+  exists H, [/\ Hbar = (H / K)%G, K \subset H & H \subset G].
+Proof.
+by case/inv_morphS=> H; rewrite dom_coset_of_sub ker_coset_of_sub //; exists H.
+Qed.
+
+Lemma inv_quoN : Hbar <| G / K ->
+  exists H, [/\ Hbar = (H / K)%G, K \subset H & H <| G].
+Proof.
+by case/inv_morphN=> H; rewrite dom_coset_of_sub ker_coset_of_sub //; exists H.
+Qed.
+
+End MoreQuotient.
+
+Definition solvable (gT : finGroupType) (G : {set gT}) :=
+  forallb H : {group gT}, (H \subset G) && ~~ trivg H ==> 
+    (existsb K : {group gT}, [&& K <| H, K != H & H / K \subset 'C(H / K)]).
+
+Prenex Implicits solvable.
+
+Section Solvable.
+
+Variable gT : finGroupType.
+
+Lemma solvable_sub : forall G H : {group gT},
+  H \subset G -> solvable G -> solvable H.
+Proof.
+move=> G H sHG solG; apply/forallP=> K; case sKH: (K \subset H) => //.
+by have:= forallP solG K; rewrite (subset_trans sKH).
+Qed.
+
+Lemma solvable_imset : forall rT (f : morphism gT rT) (G : {group gT}),
+  solvable G -> solvable (f @: G).
+Proof.
+move=> rT f G solG; apply/forallP=> Hbar; apply/implyP; case/andP.
+case/inv_morphS=> H [-> /= _]; elim: {H}_.+1 {-2}H (ltnSn #|H|) => // n IHn H.
+rewrite ltnS subsetI => leHn; case/andP=> sHD sHG ntfH.
+have:= forallP solG H; rewrite sHG; case: trivgP => [H1 | _].
+  by case/subsetP: ntfH; rewrite H1 imset_set1 morph1.
+case/existsP=> K; case/and3P=> [nKH neKH abelK]; case: (andP nKH) => sKH nKH'.
+case: (f @: K =P f @: H)%G => [fK_fH|]; last move/eqP=> nfKfH.
+    rewrite -fK_fH; case: fK_fH ntfH => <-; apply: IHn.
+    rewrite -val_eqE /= eqset_sub_card sKH -ltnNge in neKH.
+    exact: leq_trans neKH leHn.
+  by rewrite (subset_trans sKH) // subsetI sHD.
+apply/existsP; exists (f @: K)%G; rewrite nfKfH imset_normalsub //=.
+rewrite -[_ / _]imset_comp -(factor_mquo_iim _ nKH') 1?imset_central //.
+apply/subsetP=> x Kx; apply: (subsetP (subset_ker_c _ _)).
+rewrite 2!inE (subsetP (subset_trans sKH sHD)) // andbT.
+by rewrite (subsetP (subset_ker_coset _)) ?imset_f_imp.
+Qed.
+
+Lemma solvable_quo : forall G H : {group gT}, solvable G -> solvable (G / H).
+Proof. move=> G H; exact: solvable_imset. Qed.
+
+Lemma normsubG : forall G : {group gT}, G <| G.
+Proof. by move=> G; rewrite /(_ <| _) subset_refl normG. Qed.
+
+Lemma char_refl : forall G : {group gT}, characteristic G G.
+Proof. exact: setT_group_char. Qed.
+
+Lemma charR : forall G H K : {group gT},
+  characteristic G H -> characteristic G K -> characteristic G [~: H, K].
+Proof.
+move=> G H K; case/andP=> sHG chHG; case/andP=> sKG chKG.
+have sRG: [~: H, K] \subset G.
+  rewrite gen_subG; apply/subsetP=> z; case/imset2P=> x y Hx Ky ->{z}.
+  by rewrite groupR ?(subsetP sHG x, subsetP sKG y).
+apply/subset_charP; split => // f aut_f.
+have fE := dfequal_imset (subin1 (subsetP _) (morph_of_aut_ondom aut_f)).
+case/orP: (trivm_aut aut_f) => [ntrf | trG]; last first.
+  suff: trivg [~: H, K].
+    by move/trivgP->; rewrite -fE ?sub1G // imset_set1 morph1 subset_refl.
+  apply/commG1P; apply/centralP; apply: (subset_trans (subset_trans sHG trG)).
+  exact: sub1G.
+rewrite -fE // imset_comm ?dom_morph_of_aut // !fE //.
+have:= forallP chHG f; rewrite aut_f /=; move/eqP->.
+by have:= forallP chKG f; rewrite aut_f /=; move/eqP->.
+Qed.
+
+Lemma solvable_norm_abel : forall L G : {group gT},
+  solvable G -> G <| L -> ~~ trivg G ->
+  exists H : {group gT}, [/\ H \subset G, H <| L, ~~ trivg H & abelian H].
+Proof.
+move=> L G solG; set H := {1 2}G; have: H \subset G := subset_refl _.
+elim: {H}_.+1 {-2}H (ltnSn #|H|) => // n IHn H; rewrite ltnS => leHn.
+move=> sHG nHL ntH; have:= forallP solG H; rewrite sHG ntH.
+case/existsP=> K; case/and3P=> nKH neKH; move/centralP; move/commG1P=> abelK.
+have charH': characteristic H [~: H, H] by apply: charR; exact: char_refl.
+case abelH: (trivg [~: H, H]); first by move/commG1P: abelH; exists H.
+move/idPn: abelH; apply: IHn; last exact: char_norm_trans nHL; last first.
+  by apply: subset_trans sHG; case/andP: charH'.
+apply: leq_trans leHn; rewrite ltnNge -[_ <= _]andTb.
+case/andP: charH' => <- _; rewrite -eqset_sub_card; apply/eqP=> eqH'H.
+case: (andP nKH) neKH => sKH n'KH; rewrite -val_eqE /= eqset_sub sKH /=.
+case/subsetP=> x Hx; apply: coset_of_idr; first exact: (subsetP n'KH).
+apply/set1P; apply: (subsetP abelK).
+have dKH: H \subset dom _ := subset_trans n'KH (subset_dom_coset K).
+by rewrite -imset_comm // eqH'H imset_f_imp.
+Qed.
+
+End Solvable.
+
+Theorem SchurZass_trans_sol : forall (gT : finGroupType) (H K K1 : {group gT}),
+    solvable H -> K \subset 'N(H) -> K1 \subset H * K ->
+    coprime #|H| #|K| -> #|K1| = #|K| ->
+  exists2 x, x \in H & K1 = (K :^ x)%G.
+Proof.
+move=> gT H; move: {2}_.+1 (ltnSn #|H|) => n; elim: n => // n IHn in gT H *.
+rewrite ltnS => leHn K K1 solH nHK; case trH: (trivg H).
+  rewrite (trivgP _ trH) mul1g => sK1K _ eqK1K; exists (1 : gT) => //.
+  by apply/eqP; rewrite -val_eqE /= conjsg1 eqset_sub_card sK1K eqK1K /=.
+pose G := (H <*> K)%G.
+have defG: G = H * K :> set gT by rewrite -normC // -norm_mulgenE // mulgenC.
+have sHG: H \subset G by rewrite -gen_subG genSg // subsetUl.
+have sKG: K \subset G by rewrite -gen_subG genSg // subsetUr.
+have nHG: H <| G by rewrite /(H <| G) sHG gen_subG subUset nHK normG.
+move/idPn: trH; case/(solvable_norm_abel solH nHG)=> M [sMH nMG ntM abelM].
+rewrite -defG => sK1G coHK oK1K.
+have nMsG: forall L : {set gT}, L \subset G -> L \subset 'N(M).
+  by move=> L; move/subset_trans; apply; case/andP: nMG.
+have [coKM coHMK]: coprime #|M| #|K| /\ coprime #|H / M| #|K|.
+  by apply/andP; rewrite -coprime_mull card_quotient ?nMsG ?LaGrange.
+have oKM: forall K' : {group gT},
+  K' \subset G -> #|K'| = #|K| -> #|K' / M| = #|K|.
+- move=> K' sK'G oK'.
+  rewrite -quotient_mulg -?norm_mulgenE ?card_quotient ?nMsG //; last first.
+    by rewrite gen_subG subUset sK'G; case/andP: nMG.
+  rewrite -group_divn /=; last by rewrite -gen_subG genSg ?subsetUr.
+  rewrite norm_mulgenE ?nMsG // coprime_card_mulG ?divn_mull //.
+  by rewrite oK' coprime_sym.
+have sdM := subset_dom_coset M.
+have [xb]: exists2 xb, xb \in H / M & (K1 / M = (K / M) :^ xb)%G.
+  apply: IHn; try by rewrite (solvable_quo, imset_normal, oKM K) ?(oKM K1).
+    apply: leq_trans leHn; rewrite card_quotient ?nMsG //.
+    rewrite -(ltn_pmul2l (pos_card_group M)) LaGrange // -{1}(mul1n #|H|).
+    by rewrite ltnNge leq_pmul2r // -trivg_card.
+  by rewrite -imset_smul ?(subset_trans (nMsG _ _) sdM) // -defG imsetS.
+case/quotientP=> x [Hx nMx ->{xb}]; move/(congr1 val)=> /= eqK1Kx.
+pose K2 := (K :^ x)%G; have{eqK1Kx} eqK12: K1 / M = K2 / M.
+  by rewrite [K2 / M]imset_conj ?(subsetP sdM, subset_trans (nMsG _ _) sdM).
+suff [y My ->]: exists2 y, y \in M & K1 = (K2 :^ y)%G.
+  exists (x * y); first by rewrite groupMl // (subsetP sMH).
+  by apply: val_inj; rewrite /= conjsgM.
+pose toM y : {z | z \in M} := insubd (Sub 1 (group1 M)) y.
+have valM: {in M, cancel toM val} by move=> *; exact: insubdK.
+pose Mgrp := [is {y | y \in M} <: finGroupType].
+have mulMC : commutative (@mulg Mgrp).
+  by case=> y My [z Mz]; apply: val_inj; rewrite /= abelM.
+pose rT := Ring.AdditiveGroup (@mulgA _) mulMC (@mul1g _) (@mulVg _).
+have Mval: forall u : rT, sval u \in M by exact: valP.
+have rM: forall a b : rT, sval (a + b)%R = sval a * sval b by [].
+have rX: forall (a : rT) m, sval (a *+ m)%R = sval a ^+ m.
+  by move=> a; elim=> // m IHm; congr (_ * _).
+have rV: forall (a : rT), sval (- a)%R = (sval a)^-1 by [].
+pose actG (y : rT) z : rT := toM (sval y ^ z).
+have valG: forall a y, y \in K1 -> sval (actG a y) = sval a ^ y.
+  move=> a y Ky; rewrite valM // -mem_conjgV (normgP _) ?Mval //=.
+  by rewrite groupV (subsetP (nMsG _ sK1G)).
+have actG0: forall y, y \in K1 -> (actG 0 y = 0)%R.
+  by move=> y Ky; apply: val_inj; rewrite /= valG //= conj1g.
+have actGM: forall a b y, y \in K1 -> (actG (a + b) y = actG a y + actG b y)%R.
+  by move=> a b y Ky; apply: val_inj; rewrite /= !valG //= conjMg.
+have actGX: forall a m y, y \in K1 -> (actG (a *+ m) y = actG a y *+ m)%R.
+  by move=> a m y Ky; apply: val_inj; rewrite /= !(rX, valG) // conjXg.
+have sK2G: K2 \subset G by rewrite -(conjGid (subsetP sHG _ Hx)) conjSg.
+pose L := (M <*> K2)%G.
+have defL: M * K2 = L by rewrite -normC -?norm_mulgenE 1?mulgenC ?nMsG.
+have cKL: K2 \in complg L M.
+  by apply/complgP; rewrite coprime_trivg ?card_conjg.
+have nML: M <| L.
+  apply: (normalsubS nMG); first by rewrite -gen_subG genSg // subsetUl.
+  by rewrite gen_subG subUset (subset_trans sMH).
+have sK1L: K1 \subset L.
+  apply/subsetP=> y Ky; rewrite -defL.
+  have: coset_of M y \in K2 / M by rewrite -eqK12 imset_f_imp.
+  case/quotientP=> z [Kz Nz]; move/(congr1 val)=> /=.
+  rewrite !coset_ofN // ?(subsetP (nMsG _ sK1G)) // => eqMyz.
+  rewrite -sub1set in Kz; apply: (subsetP (mulgS _ Kz)).
+  by rewrite -eqMyz rcoset_refl.
+pose mu y : rT := toM (divgr K2 M y).
+have val_mu: forall y, y \in K1 -> sval (mu y) = divgr K2 M y.
+  move=> y; move/(subsetP sK1L); rewrite -defL => Ly.
+  by rewrite valM // mem_divgr.
+have mu_cocycle:
+  {in K1 &, forall y z, mu (y * z) = (actG (mu z) y^-1 + mu y)%R}.
+- move=> y z Ky Kz; apply: val_inj => /=.
+  rewrite valG ?(val_mu, groupM, groupV) //.
+  rewrite /divgr (remGrM cKL) ?(subsetP sK1L) //.
+  by rewrite mulgA -conjgCV -!mulgA -invMg.
+have [m mK]: exists m, forall a : rT, (a *+ (#|K| * m) = a)%R.
+  case: (bezoutl #|M| (pos_card_group K)) => m' _.
+  rewrite gcdnC (eqnP coKM); case/dvdnP=> m def_m; exists m => a.
+  apply: val_inj; rewrite mulnC -def_m /= rX (_ : _ ^+ _ = 1) ?mulg1 //.
+  by apply/eqP; rewrite -orderg_dvd dvdn_mull // orderg_dvd_g.
+exists (sval ((\sum_(y \in K1) mu y) *+ m)%R)^-1; first by rewrite groupV.
+apply/eqP; rewrite -val_eqE eqset_sub_card !card_conjg oK1K leqnn andbT.
+apply/subsetP=> /= y Ky; rewrite mem_conjgV conjgE (conjgCV y) mulgA.
+have K': y^-1 \in K1 by rewrite groupV.
+rewrite -valG ?groupV // -rV -rM (_ : _ + _ = - mu y)%R.
+  by rewrite /= val_mu // invMg mulgKV invgK mem_remgr // defL (subsetP sK1L).
+rewrite Ring.oppr_muln actGX // -Ring.mulrn_addl -sum_opp.
+rewrite (@big_morph _ _ 0 0 _ (@Ring.add rT) (actG^~ y^-1))%R; last first.
+  split=> [|a b]; [exact: actG0 | exact: actGM].
+rewrite (reindex (mulg y)) /=; last first.
+  by exists (mulg y^-1) => z _; rewrite (mulKVg, mulKg).
+rewrite (eq_bigl (mem K1)) => [|z]; last by rewrite groupMl.
+rewrite -big_split /= (eq_bigr (fun _ => - mu y)%R) ?sumr_const => [|z Kz].
+  by rewrite -Ring.mulrnA oK1K mK.
+by rewrite mu_cocycle // Ring.oppr_add -Ring.addrA -Ring.addrC Ring.addrK.
+Qed.
