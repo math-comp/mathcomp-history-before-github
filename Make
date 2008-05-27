@@ -32,6 +32,7 @@ matrix.v
 poly.v
 charpoly.v
 schurzass.v
+hall.v
 frobenius.v
 alt.v
 burnside_app.v

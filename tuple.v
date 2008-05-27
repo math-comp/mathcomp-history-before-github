@@ -44,8 +44,9 @@ Proof.
 by move=> *; apply: val_inj; rewrite /= -!maps_tsub_enum; exact: eq_maps.
 Qed.
 
-Definition tuple_of (t : tuple) s & phantom (seq T) t -> phantom (seq T) s :=
-  t.
+Definition tuple_of t s & phantom (seq T) (tval t) -> phantom (seq T) s := t.
+
+Definition tsize of tuple := n.
 
 End Def.
 
@@ -54,8 +55,6 @@ Notation "{ 'tuple' ( n ) T }" := (tuple n T : predArgType)
 
 Notation "[ 'tuple' 'of' s ]" := (@tuple_of _ _ _ s id)
   (at level 0, format "[ 'tuple'  'of'  s ]") : form_scope.
-
-Definition tsize n T (t : tuple n T) := nosimpl size t.
 
 Notation "[ 'tsub' t i ]" := (tsub t (@Ordinal (tsize t) i (erefl true)))
   (at level 0, t, i at level 8, format "[ 'tsub'  t  i ]") : form_scope.

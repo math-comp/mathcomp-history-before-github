@@ -1226,7 +1226,8 @@ have e: forall i j, i \in A -> j \in S i -> j \in \bigcup_(i \in A) S i.
   by move=> i j Ha Hs; apply/bigcupP; exists i.
 rewrite (exchange_big_dep _ e) //=; apply: eq_bigr => x /= Sx.
 rewrite sum_nat_const ((#|_| =P 1) _) ?mul1n // eqn_leq (disjn_card Hdisj) //.
-by rewrite lt0n; apply/pred0Pn; case/bigcupP: Sx => i Pi; exists i; rewrite Pi.
+rewrite lt0n; apply/pred0Pn; case/bigcupP: Sx => i /= Pi.
+by exists i; rewrite Pi.
 Qed.
 
 Lemma card_disjoint : forall (d : finType) (A B : {set d}),

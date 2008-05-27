@@ -601,7 +601,7 @@ by apply: eq_bigr => i _; rewrite eqFG.
 Qed.
 
 Lemma big_const : forall (I : finType) (P : pred I) x,
-  \big[op/nil]_(i : I | P i) x = iter #|P| (op x) nil.
+  \big[op/nil]_(i : I | P i) x = iter #|SimplPred P| (op x) nil.
 Proof.
 by move=> *; rewrite big_const_seq count_filter cardE [index_enum _]enumE.
 Qed.
@@ -778,7 +778,7 @@ Qed.
 Implicit Arguments bigD1 [I P F].
 
 Lemma cardD1x : forall (I : finType) (A : pred I) j,
-  A j -> #|A| = 1 + #|[pred i | A i && (i != j)]|.
+  A j -> #|SimplPred A| = 1 + #|[pred i | A i && (i != j)]|.
 Proof.
 move=> I A j Aj; rewrite (cardD1 j) [j \in A]Aj; congr (_ + _).
 by apply: eq_card => i; rewrite inE /= andbC.
@@ -1173,23 +1173,23 @@ Lemma sum_split_sub : forall I r (P : pred I) (F1 F2 : I -> R),
 Proof. by move=> *; rewrite -sum_opp -big_split /=. Qed.
 
 Lemma sumr_const : forall (I : finType) (P : pred I) (x : R),
-  \sum_(i : I | P i) x = x *+ #|P|.
+  \sum_(i : I | P i) x = x *+ #|SimplPred P|.
 Proof. exact: big_const. Qed.
 
 End Opp.
 
 Lemma prodr_const : forall (R : basic) (I : finType) (P : pred I) (x : R),
-  \prod_(i : I | P i) x = x ^+ #|P|.
+  \prod_(i : I | P i) x = x ^+ #|SimplPred P|.
 Proof. move=> *; exact: big_const. Qed.
 
 End Ring.
 
 Lemma sum_nat_const : forall (I : finType) (P : pred I) (n : nat),
-  \sum_(i : I | P i) n = #|P| * n.
+  \sum_(i : I | P i) n = #|SimplPred P| * n.
 Proof. by move=> I P n; rewrite big_const; elim: #|P| => //= i ->. Qed.
 
 Lemma prod_nat_const : forall (I : finType) (P : pred I) (n : nat),
-  \prod_(i : I | P i) n = n ^ #|P|.
+  \prod_(i : I | P i) n = n ^ #|SimplPred P|.
 Proof. by move=> *; rewrite big_const; elim: #|_| => //= ? ->. Qed.
 
 Lemma sum_nat_const_nat : forall n1 n2 n : nat,
