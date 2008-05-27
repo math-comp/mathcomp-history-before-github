@@ -52,7 +52,7 @@ Open Scope matrix_scope.
 
 Section MatrixDef.
 
-Variable R : commutative_.
+Variable R : basic. (* commutative_. *)
 Variables m n : nat.
 
 (* Basic linear algebra (matrices).                                       *)
@@ -98,9 +98,9 @@ Notation "\matrix_ ( i , j < n ) E" :=
 
 Notation "\matrix_ ( i , j ) E" := (\matrix_(i < _, j < _) E) : matrix_scope.
 
-Section MatrixOps.
-
-Variable R : Ring.commutative_.
+(* Definition of operations for matrix over a ring *)
+Section MatrixOpsDef.
+Variable R : Ring.basic.
 
 Notation Local "'M_' ( m , n )" := (matrix R m n) : type_scope.
 Notation Local "'M_' ( n )" := M_(n, n) : type_scope.
@@ -113,12 +113,7 @@ Definition scalemx m n x (A : M_(m, n)) := \matrix_(i, j) (x * A i j).
 Definition mulmx m n p (A : M_(m, n)) (B : M_(n, p)) :=
   \matrix_(i, k) \sum_(j) (A i j * B j k).
 
-Definition trmx m n (A : M_(m, n)) := \matrix_(i, j) A j i.
-
 Definition null_mx m n : M_(m, n) := \matrix_(i, j) 0.
-
-Definition perm_mx n (s : S_(n)) : M_(n) :=
-   \matrix_(i, j) (if s i == j then 1 else 0).
 
 Definition scalar_mx n x : M_(n) :=
   \matrix_(i, j) (if i == j then x else 0).
@@ -147,9 +142,36 @@ Definition mx_rcut m1 m2 n (A : M_(m1 + m2, n)) :=
 Definition mx_paste m1 m2 n (A1 : M_(m1, n)) (A2 : M_(m2, n)) :=
    \matrix_(i, j) match split i with inl i1 => A1 i1 j | inr i2 => A2 i2 j end.
 
+
+Definition trmx m n (A : M_(m, n)) := \matrix_(i, j) A j i.
+
+Definition perm_mx n (s : S_(n)) : M_(n) :=
+   \matrix_(i, j) (if s i == j then 1 else 0).
+
+(* The trace, in 1/4 line. *)
+Definition mx_trace (n : nat) (A : M_(n)) := \sum_(i) (A i i).
+
+(* The determinants, in one line. *)
+Definition determinant n (A : M_(n)) :=
+  \sum_(s : S_(n)) (-1)^+s * \prod_(i) A i (s i).
+
+Notation Local "'\det' A" := (determinant A).
+Notation Local row' := mx_rem_row.
+Notation Local col' := mx_rem_col.
+
+(* And now, the Laplace formula. *)
+
+Definition cofactor n (A : M_(n)) (i j : I_(n)) :=
+   (-1) ^+(i + j) * \det (row' i (col' j A)).
+
+
+(* The final flurry: adjugates. *)
+
+Definition adjugate n (A : M_(n)) := \matrix_(i, j) (cofactor A j i).
+
 (* Operator syntax, basic style.                     *)
 (* Generic syntax would really help here...          *)
-
+(*
 Notation "\0_ ( m , n )" := (null_mx m n) (only parsing) : matrix_scope.
 Notation "\0_ ( n )" := \0_(n, n) (only parsing) : matrix_scope.
 Notation "\0" := \0_(_, _) : matrix_scope.
@@ -162,7 +184,31 @@ Notation "A +m B" := (addmx A B) : matrix_scope.
 Notation "x *s A" := (scalemx x A) : matrix_scope.
 Notation "A *m B" := (mulmx A B) : matrix_scope.
 Notation "\^t A" := (trmx A) : matrix_scope.
+*)
+End MatrixOpsDef.
 
+Notation "\0_ ( m , n )" := (null_mx _ m n) (only parsing) : matrix_scope.
+Notation "\0_ ( n )" := \0_(n, n) (only parsing) : matrix_scope.
+Notation "\0" := \0_(_, _) : matrix_scope.
+Notation "\1_ ( n )" := (unit_mx _ n) (only parsing) : matrix_scope.
+Notation "\1" := \1_(_) : matrix_scope.
+Notation "\Z_ ( n ) x" := (scalar_mx n x) (only parsing) : matrix_scope.
+Notation "\Z x" := (\Z_(_) x) : matrix_scope.
+Notation "\P s" := (perm_mx _ s) : matrix_scope.
+Notation "A +m B" := (addmx A B) : matrix_scope.
+Notation "x *s A" := (scalemx x A) : matrix_scope.
+Notation "A *m B" := (mulmx A B) : matrix_scope.
+Notation "\^t A" := (trmx A) : matrix_scope.
+
+Notation "'\tr' A" := (mx_trace A) : ring_scope.
+Notation "'\det' A" := (determinant A) : ring_scope.
+Notation "'\adj' A" := (adjugate A) : ring_scope.
+
+Section MatrixOnRingProp.
+Variable R : Ring.basic.
+
+Notation Local "'M_' ( m , n )" := (matrix R m n) : type_scope.
+Notation Local "'M_' ( n )" := M_(n, n) : type_scope.
 Notation Local row := mx_row.
 Notation Local row' := mx_rem_row.
 Notation Local col := mx_col.
@@ -171,27 +217,27 @@ Notation Local lcut := mx_lcut.
 Notation Local rcut := mx_rcut.
 Notation Local paste := mx_paste.
 
-Lemma perm_mx1 : forall n, \P 1%g = \1_(n).
+Lemma perm_mx1 : forall n, \P 1%g = \1_(n) :> M_(n).
 Proof. by move=> n; apply/matrixP=> i j; rewrite !mxK perm1. Qed.
 
-Lemma trmxK : forall m n, cancel (@trmx m n) (@trmx n m).
+Lemma trmxK : forall m n, cancel (@trmx R m n) (@trmx R n m).
 Proof. by move=> m n A; apply/matrixP=> i j; rewrite !mxK. Qed.
 
-Lemma trmx_inj : forall m n, injective (@trmx m n).
+Lemma trmx_inj : forall m n, injective (@trmx R m n).
 Proof. move=> m n; exact: can_inj (@trmxK m n). Qed.
 
-Lemma trmx_perm : forall n (s : S_(n)), \^t (\P s) = \P (s^-1).
+Lemma trmx_perm : forall n (s : S_(n)), \^t (\P s) = \P (s^-1) :> M_(n).
 Proof. 
 by move=> n s; apply/matrixP=> i j; rewrite !mxK eq_sym (canF_eq (permKV s)).
 Qed.
 
-Lemma trmxZ : forall n x, \^t (\Z_(n) x) = \Z x.
+Lemma trmxZ : forall n x, \^t (\Z_(n) x) = \Z x :> M_(n).
 Proof. by move=> n x; apply/matrixP=> i j; rewrite !mxK eq_sym. Qed.
 
-Lemma trmx1 : forall n, \^t \1_(n) = \1.
+Lemma trmx1 : forall n, \^t \1_(n) = \1 :> M_(n).
 Proof. move=> n; exact: trmxZ. Qed.
 
-Lemma trmx0 : forall n, \^t \0_(n) = \0.
+Lemma trmx0 : forall n, \^t \0_(n) = \0 :> M_(n).
 Proof. by move=> n; apply/matrixP=> i j; rewrite !mxK. Qed.
 
 Lemma tr_addmx : forall m n (A B : M_(m, n)),
@@ -236,20 +282,6 @@ move=> m1 m2 n A; apply/matrixP=> i j; rewrite !mxK.
 case: splitP => k Dk //=; rewrite !mxK //=; congr (A _ _); exact: val_inj.
 Qed.
 
-(* The trace, in 1/4 line. *)
-
-Definition mx_trace (n : nat) (A : M_(n)) := \sum_(i) (A i i).
-
-Notation "'\tr' A" := (mx_trace A) : ring_scope.
-
-(* The determinants, in one line. *)
-
-Definition determinant n (A : M_(n)) :=
-  \sum_(s : S_(n)) (-1)^+s * \prod_(i) A i (s i).
-
-Notation "'\det' A" := (determinant A) : ring_scope.
-
-
 (* The matrix graded algebra. *)
 
 Lemma add0mx : forall m n (A : M_(m, n)), \0 +m A = A.
@@ -265,23 +297,23 @@ Proof. by move=> *; apply/matrixP=> i j; rewrite !mxK addrA. Qed.
 Lemma scale0mx : forall m n (A : M_(m, n)), 0 *s A = \0.
 Proof. by move=> *; apply/matrixP=> i j; rewrite !mxK simp. Qed.
 
-Lemma scalemx0 : forall m n c, c *s \0_(m,n) = \0.
+Lemma scalemx0 : forall m n c, c *s \0_(m,n) = \0 :> M_(m,n).
 Proof. by move=> *; apply/matrixP=> i j; rewrite !mxK simp. Qed.
 
 Lemma scale1mx : forall m n (A : M_(m, n)), 1 *s A = A.
 Proof. by move=> *; apply/matrixP=> i j; rewrite !mxK simp. Qed.
 
-Lemma scalarmx0 : forall n, \Z_(n) 0 = \0.
+Lemma scalarmx0 : forall n, \Z_(n) 0 = \0 :> M_(n).
 Proof. by move=> *; apply/matrixP=> i j; rewrite !mxK if_same. Qed.
 
-Lemma scalarmx1 : forall n, \Z_(n) 1 = \1.
+Lemma scalarmx1 : forall n, \Z_(n) 1 = \1 :> M_(n).
 Proof. done. Qed.
 
 Lemma scalemxA : forall m n c1 c2 (A : M_(m, n)),
   c1 *s (c2 *s A) = (c1 * c2) *s A.
 Proof. by move=> *; apply/matrixP=> i j; rewrite !mxK mulrA. Qed.
 
-Lemma scalemx1 : forall n c, c *s \1_(n) = \Z c.
+Lemma scalemx1 : forall n c, c *s \1_(n) = \Z c :> M_(n).
 Proof. by move=> *; apply/matrixP=> i j; rewrite 2!mxK fun_if !simp mxK. Qed.
 
 Lemma scalemx_addl : forall m n x1 x2 (A : M_(m, n)),
@@ -297,13 +329,6 @@ Lemma scalemxAl : forall m n p x (A : M_(m, n)) (B : M_(n, p)),
 Proof.
 move=> *; apply/matrixP=> i k; rewrite !mxK big_distrr /=.
 by apply: eq_bigr => j _; rewrite mulrA mxK.
-Qed.
-
-Lemma scalemxAr : forall m n p x (A : M_(m, n)) (B : M_(n, p)),
-  x *s (A *m B) = A *m (x *s B).
-Proof.
-move=> *; apply/matrixP=> i k; rewrite !mxK big_distrr /=.
-by apply: eq_bigr => j _; rewrite mxK mulrCA.
 Qed.
 
 Lemma addmxN : forall m n (A : M_(m, n)), A +m (-1 *s A) = \0.
@@ -330,15 +355,12 @@ move=> m n p A; apply/matrixP=> i k; rewrite !mxK big1 ?simp //= => j _.
 by rewrite mxK simp.
 Qed.
 
-Lemma tr_mulmx : forall m n p (A : M_(m, n)) (B : M_(n, p)),
-   \^t (A *m B) = \^t B *m \^t A.
-Proof.
-move=> *; apply/matrixP=> i k; rewrite !mxK; apply: eq_bigr => j _.
-by rewrite !mxK mulrC.
-Qed.
-
 Lemma mulmx1 : forall m n (A : M_(m, n)), A *m \1 = A.
-Proof. by move=> m n A; apply: trmx_inj; rewrite tr_mulmx trmx1 mul1mx. Qed.
+Proof.
+move=> m n A; apply/matrixP=> i k; rewrite !mxK.
+rewrite (bigD1 k) //= !mxK eq_refl mulr1 -{-1}(addr0 (A i k)); congr (_ + _).
+by apply: big1 => j Hj; rewrite mxK (negbET Hj) simp.
+Qed.
 
 Lemma mulmx_addl : forall m n p (A1 A2 : M_(m, n)) (B : M_(n, p)),
   (A1 +m A2) *m B = A1 *m B +m A2 *m B.
@@ -350,8 +372,8 @@ Qed.
 Lemma mulmx_addr : forall m n p (A : M_(m, n)) (B1 B2 : M_(n, p)),
   A *m (B1 +m B2) = A *m B1 +m A *m B2.
 Proof.
-move=> m n p A B1 B2; apply: trmx_inj.
-by rewrite tr_addmx !tr_mulmx -mulmx_addl -tr_addmx.
+move=> m n p A B1 B2; apply/matrixP=> i k; rewrite !mxK -big_split /=.
+by apply: eq_bigr => j _; rewrite mxK mulr_addr.
 Qed.
 
 Lemma mulmxA : forall m n p q (A : M_(m, n)) (B : M_(n, p)) (C : M_(p, q)),
@@ -383,7 +405,7 @@ Section MatrixRing.
 
 Variable n : pos_nat.
 
-Lemma nonzeromx1 : \1_(n) <> \0.
+Lemma nonzeromx1 : \1_(n) <> \0 :> M_(n).
 Proof.
 rewrite -(ltn_predK (pos_natP n)); move/matrixP; move/(_ ord0 ord0).
 rewrite !mxK; exact: nonzero1r.
@@ -395,7 +417,7 @@ Canonical Structure matrix_ring : Ring.basic :=
 
 End MatrixRing.
 
-Lemma perm_mxM : forall n (s t : S_(n)), \P (s * t)%g = \P s *m \P t.
+Lemma perm_mxM : forall n (s t : S_(n)), \P (s * t)%g = \P s *m \P t :> M_(n).
 Proof.
 move=> n s t; apply/matrixP=> i j; rewrite !mxK (bigD1 (s i)) //= !mxK eqxx.
 rewrite simp -permM big1 /= => [|k ne_k_si]; first by rewrite addrC simp.
@@ -415,6 +437,35 @@ Qed.
 Lemma trace_tr : forall n (A : M_(n)), \tr (\^t A) = \tr A.
 Proof. by move => *;  apply: eq_bigr => i _; rewrite mxK. Qed.
 
+End MatrixOnRingProp.
+
+Section MatrixOnComRingProp.
+Variable R : Ring.commutative_.
+
+Notation Local "'M_' ( m , n )" := (matrix R m n) : type_scope.
+Notation Local "'M_' ( n )" := M_(n, n) : type_scope.
+Notation Local row := mx_row.
+Notation Local row' := mx_rem_row.
+Notation Local col := mx_col.
+Notation Local col' := mx_rem_col.
+Notation Local lcut := mx_lcut.
+Notation Local rcut := mx_rcut.
+Notation Local paste := mx_paste.
+
+Lemma scalemxAr : forall m n p x (A : M_(m, n)) (B : M_(n, p)),
+  x *s (A *m B) = A *m (x *s B).
+Proof.
+move=> *; apply/matrixP=> i k; rewrite !mxK big_distrr /=.
+by apply: eq_bigr => j _; rewrite mxK mulrCA.
+Qed.
+
+Lemma tr_mulmx : forall m n p (A : M_(m, n)) (B : M_(n, p)),
+   \^t (A *m B) = \^t B *m \^t A.
+Proof.
+move=> *; apply/matrixP=> i k; rewrite !mxK; apply: eq_bigr => j _.
+by rewrite !mxK mulrC.
+Qed.
+
 Lemma trace_mulmxC : forall m n (A : M_(m, n)) (B : M_(n, m)),
   \tr (A *m B) = \tr (B *m A).
 Proof.
@@ -423,8 +474,6 @@ move=> m n A B; transitivity (\sum_(i) \sum_(j) A i j * B j i).
 rewrite exchange_big; apply: eq_bigr => i _ /=; rewrite mxK.
 apply: eq_bigr => j _; exact: mulrC.
 Qed.
-
-(* Finally, determinants. *)
 
 Lemma determinant_multilinear : forall n (A B C : M_(n)) i0 b c,
     row i0 A =2 b *s row i0 B +m c *s row i0 C ->
@@ -471,7 +520,7 @@ apply: eq_bigr => s _; rewrite !odd_permV /= (reindex s).
 by exists (s^-1 : _ -> _) => i _; rewrite ?permK ?permKV.
 Qed.
 
-Lemma determinant_perm : forall n (s : S_(n)), \det (\P s) = (-1) ^+s.
+Lemma determinant_perm : forall n (s : S_(n)), \det (\P s) = (-1) ^+s :> R.
 Proof.
 move=> n s; rewrite /(\det _) (bigD1 s) //=.
 rewrite big1 => [|i _]; last by rewrite /= !mxK eqxx.
@@ -481,7 +530,7 @@ case: (pickP (fun i => s i != t i)) => [i ist | Est].
 by case/eqP: Dst; apply/permP => i; move/eqP: (Est i).
 Qed.
 
-Lemma determinant1 : forall n, \det \1_(n) = 1.
+Lemma determinant1 : forall n, \det \1_(n) = 1 :> R.
 Proof.
 move=> n; have:= @determinant_perm n 1%g; rewrite odd_perm1 => /= <-.
 congr (\det _); symmetry; exact: perm_mx1.
@@ -524,11 +573,6 @@ transitivity (\det (\matrix_(i, j) B (f i) j) * \prod_(i) A i (f i)).
 case/injectivePn: Uf => i1 [i2 Di12 Ef12].
 by rewrite (alternate_determinant Di12) ?simp //= => j; rewrite !mxK Ef12.
 Qed.
-
-(* And now, the Laplace formula. *)
-
-Definition cofactor n (A : M_(n)) (i j : I_(n)) :=
-   (-1) ^+(i + j) * \det (row' i (col' j A)).
 
 Lemma expand_cofactor : forall n (A : M_(n)) i j,
   cofactor A i j =
@@ -644,10 +688,6 @@ move=> n A j0; rewrite -determinant_tr (expand_determinant_row _ j0).
 by apply: eq_bigr => i _; rewrite cofactor_tr mxK.
 Qed.
 
-(* The final flurry: adjugates. *)
-
-Definition adjugate n (A : M_(n)) := \matrix_(i, j) (cofactor A j i).
-
 Lemma mulmx_adjr : forall n (A : M_(n)), A *m adjugate A = \Z (\det A).
 Proof.
 move=> n A; apply/matrixP=> i1 i2; rewrite !mxK; case Di: (i1 == i2).
@@ -671,24 +711,8 @@ move=> n A; apply: trmx_inj; rewrite tr_mulmx -adjugate_tr mulmx_adjr.
 by rewrite determinant_tr trmxZ.
 Qed.
 
-End MatrixOps.
+End MatrixOnComRingProp.
 
-Notation "\0_ ( m , n )" := (null_mx _ m n) (only parsing) : matrix_scope.
-Notation "\0_ ( n )" := \0_(n, n) (only parsing) : matrix_scope.
-Notation "\0" := \0_(_, _) : matrix_scope.
-Notation "\1_ ( n )" := (unit_mx _ n) (only parsing) : matrix_scope.
-Notation "\1" := \1_(_) : matrix_scope.
-Notation "\Z_ ( n ) x" := (scalar_mx n x) (only parsing) : matrix_scope.
-Notation "\Z x" := (\Z_(_) x) : matrix_scope.
-Notation "\P s" := (perm_mx _ s) : matrix_scope.
-Notation "A +m B" := (addmx A B) : matrix_scope.
-Notation "x *s A" := (scalemx x A) : matrix_scope.
-Notation "A *m B" := (mulmx A B) : matrix_scope.
-Notation "\^t A" := (trmx A) : matrix_scope.
-
-Notation "'\tr' A" := (mx_trace A) : ring_scope.
-Notation "'\det' A" := (determinant A) : ring_scope.
-Notation "'\adj' A" := (adjugate A) : ring_scope.
 
 Import Field.
 Open Scope field_scope.

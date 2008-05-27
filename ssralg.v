@@ -458,7 +458,7 @@ Notation "5" := (1 + 4) : ring_scope.
 Notation "n %: R" := ((Ring.one R) *+ n)%R : ring_scope.
 Notation "x * y" := (Ring.mul x y) : ring_scope.
 Notation "x ^+ n" := (Ring.exp x n) : ring_scope.
-Notation "s .[ i ]" :=  (sub 0%R s i) : ring_scope.
+Notation "s .[ i ]" :=  (sub 0%R s i%N) : ring_scope.
 
 Import Ring.
 (* Fields *)

@@ -760,13 +760,15 @@ elim: r => /= [|i r ->]; [by rewrite mulm1 | case: (P i) => //=].
 rewrite !mulmA; congr (_ * _); exact: mulmAC.
 Qed.
 
-Lemma bigID : forall (I : finType) (a P : pred I) F,
-  \big[*%M/1]_(i | P i) F i
-  = \big[*%M/1]_(i | P i && a i) F i * \big[*%M/1]_(i | P i && ~~ a i) F i.
+Lemma bigID : forall I r (a P : pred I) F,
+  \big[*%M/1]_(i <- r | P i) F i
+  = \big[*%M/1]_(i <- r | P i && a i) F i *
+    \big[*%M/1]_(i <- r | P i && ~~ a i) F i.
 Proof.
-move=> I a P F; rewrite !(big_mkcond _ _ _ F) -big_split; apply: eq_bigr => i.
+move=> I r a P F; rewrite !(big_mkcond _ _ _ F) -big_split; apply: eq_bigr => i.
 by case: (a i); rewrite !simpm.
 Qed.
+Implicit Arguments bigID [I r].
 
 Lemma bigD1 : forall (I : finType) j (P : pred I) F,
   P j -> \big[*%M/1]_(i | P i) F i
@@ -935,7 +937,7 @@ Implicit Arguments big1 [R op nil I].
 Implicit Arguments big_pred1 [R op nil I P F].
 Implicit Arguments eq_big_perm [R op nil I r1 P F].
 Implicit Arguments big_uniq [R op nil I F].
-Implicit Arguments bigID [R op nil I].
+Implicit Arguments bigID [R op nil I r].
 Implicit Arguments bigD1 [R op nil I P F].
 Implicit Arguments partition_big [R op nil I J P F].
 Implicit Arguments reindex_onto [R op nil I J P F].
