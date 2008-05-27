@@ -1,3 +1,7 @@
+(***********************************************************************)
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
+(*                                                                     *)
+(***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
 Require Import div seq fintype paths connect.
 Require Import groups group_perm tuple finfun normal.
