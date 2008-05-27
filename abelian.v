@@ -500,7 +500,7 @@ Definition Free (B : {set gT}) :=
     forall x, x ^+ (f x) = x ^+ (g x).
 
 Definition free (B : {set gT}) :=
-  1 \notin B /\ forall f, support f B -> em f = 1 -> forall x, x ^+ (f x) = 1 .
+  1 \notin B /\ forall f, support f B -> em f = 1 -> forall x, x ^+ (f x) = 1.
 
 Lemma Free_set0 : Free set0.
 Proof.

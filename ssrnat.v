@@ -448,7 +448,7 @@ Lemma ltn_add2r : forall p m n, (m + p < n + p) = (m < n).
 Proof. move=> *; exact: leq_add2r _.+1 _. Qed.
 
 Lemma ltnSSn : forall n, 1 < n.+2.
-Proof. by move=> n; move: (ltn0Sn n); rewrite -(leq_add2r 1) 2!addn1. Qed.
+Proof. by []. Qed.
 
 Lemma leq_add : forall m1 m2 n1 n2,
   m1 <= n1 -> m2 <= n2 -> m1 + m2 <= n1 + n2.

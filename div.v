@@ -132,6 +132,9 @@ Proof. by move=> m d; rewrite ltn_mod. Qed.
 Lemma leq_div : forall m d, m %/ d * d <= m.
 Proof. by move=> m d; rewrite {2}(divn_eq m d) leq_addr. Qed.
 
+Lemma leq_modn : forall m d, m %% d  <= m.
+Proof. by move=> m d; rewrite {2}(divn_eq m d) leq_addl. Qed.
+
 Lemma ltn_Sdiv : forall m d, 0 < d -> m < (m %/ d).+1 * d.
 Proof.
 by move=> m d ? /=; rewrite {1}(divn_eq m d) -addnS mulSnr leq_add2l ltn_mod.

@@ -21,7 +21,6 @@ Require Import finset.
 Require Import groups.
 Require Import normal.
 Require Import div.
-Require Import abelian.
 Require Import automorphism.
 
 Set Implicit Arguments.
