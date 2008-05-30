@@ -33,6 +33,7 @@ poly.v
 charpoly.v
 schurzass.v
 hall.v
+coprime_act.v
 frobenius.v
 alt.v
 burnside_app.v
