@@ -49,29 +49,6 @@ left; rewrite {sKH} (trivgP K _) //; apply: subset_trans sK1 _.
 by apply/subsetP=> x; rewrite !inE /= negbK.
 Qed.
 
-(* Un theoreme a deplacer dans group_perm *)
-Lemma tpermD : forall (d : finType) (x y z : d),
-  x != z -> y != z -> tperm x y z = z.
-Proof. by move => d x y z; case tpermP => // ->; rewrite eqxx. Qed.
-
-Lemma normal_sylowP : forall (gT : finGroupType) (G : {group gT}) p,
-  prime p -> reflect (exists2 P : {group gT}, sylow p G P & P <| G)
-                     (#|gsylow p G| == 1%N).
-Proof.
-move=> gT G p p_pr; apply: (iffP idP) => [syl1 | [P sylP nPG]].
-  have [P sylP]: exists P, P \in gsylow p G.
-    by apply/existsP; rewrite /pred0b (eqP syl1).
-  exists P => //; apply/normalsubP; split=> [|x Gx]; first by case/andP: sylP.
-  apply/eqP; apply/idPn=> nPxP.
-  rewrite (cardD1 P) sylP eqSS in syl1; case/existsP: syl1.
-  exists (P :^ x)%G; rewrite /= nPxP -topredE /gsylow /=.
-  by rewrite -(conjGid Gx) -sylow_sconjg.
-rewrite (cardD1 P) [P \in _]sylP eqSS; apply/pred0P=> Q /=.
-apply/andP=> [[nQP sylQ]]; case/eqP: nQP; apply: val_inj=> /=.
-case: (sylow2_cor p_pr sylP sylQ) => x [Gx ->{Q sylQ}].
-case/normalsubP: nPG => _; exact.
-Qed.
-
 Lemma not_simple_alt_4: forall d : finType, #|d| = 4 -> ~~ simple (alt d).
 Proof.
 move => d card_d; set A := alt d : set _.
@@ -124,25 +101,10 @@ Qed.
 
 Module alt_CP_1. End alt_CP_1.
 
-(* trivial proof *)
-Notation Local tp := is_true_true.
-
-Lemma normal_stab: forall gT sT (to : action gT sT) (H1 H2 : {group _}) a, 
-  H2 \subset'N(H1) -> stabilizer to H2 a \subset 'N(stabilizer to H1 a).
-Proof.
-move=> gT sT to H1 H2 a Hnorm.
-apply/subsetP => g; case/stabilizerP => Hg Hperm.
-rewrite /normaliser inE; apply/subsetP => g1 /=.
-rewrite mem_conjg; case/stabilizerP => Hg1 Hperm1.
-apply/stabilizerP; split.
-by move/normalP: Hnorm; move/(_ g Hg) => <-; rewrite mem_conjg.
-move: Hperm1; rewrite !actM invgK Hperm -actM => Hperm1.
-by rewrite -{2}Hperm -{2}Hperm1 -!actM; gsimpl.
-Qed.
-
 Lemma simple_alt5_base: forall d : finType, #|d| = 5 -> simple (alt d).
 Proof.
 move=> d Hd.
+pose tp := is_true_true.
 have F1: #|alt d| = 60 by apply: double_inj; rewrite -mul2n card_alt Hd.
 have FF: forall H : group _, H <| alt d -> H <> 1 :> set _ -> 20 %| #|H|.
 - move=> H Hh1 Hh3.
@@ -205,7 +167,7 @@ have FF: forall H : group _, H <| alt d -> H <> 1 :> set _ -> 20 %| #|H|.
     have diff_hnx_x: forall n, 0 < n -> n < 5 -> x != (h ^+ n) x.
       move=> n Hn1 Hn2; rewrite eq_sym; apply/negP => HH.
       have: #[h ^+ n] = 5.
-        rewrite orderg_gcd // /orderg (eqP Horder).
+        rewrite orderg_gcd // (eqP Horder).
         by move: Hn1 Hn2 {HH}; do 5 (case: n => [|n] //).
       have Hhd2: h ^+ n \in H by rewrite groupX.
       by rewrite (Hreg _ _ Hhd2 (eqP HH)) orderg1.
@@ -289,21 +251,13 @@ Qed.
 
 Definition rfd p := perm_of (@rfdP p).
 
-Lemma rfd1: rfd 1 = 1.
-Proof.
-by apply/permP => u; apply: val_inj; rewrite permE /= if_same !perm1.
-Qed.
-
-Lemma rfd_not_fp : forall p : {perm d}, p x != x -> rfd p = 1.
-Proof.
-move=> p; move/negPf=> npxx; apply/permP => u; apply: val_inj.
-by rewrite permE /= npxx !perm1.
-Qed.
-
 Hypothesis card_d: 2 < #|d|.
 
 Lemma rfd_dom: dom rfd = stabilizer (perm_action d) (setT_group _) x.
 Proof.
+have rfd_not_fp : forall p : {perm d}, p x != x -> rfd p = 1.
+  move=> p; move/negPf=> npxx; apply/permP => u; apply: val_inj.
+  by rewrite permE /= npxx !perm1.
 apply/setP => p; apply/setUP/stabilizerP.
   move=> p_dom; split; first by rewrite inE.
   apply/eqP; apply/idPn=> npxx.
@@ -361,19 +315,10 @@ Qed.
 
 Definition rgd p := perm_of (@rgdP p).
 
-Lemma rgd_x: forall p, rgd p x = x.
-Proof. by move=> p; rewrite permE /= insubF //= eqxx. Qed.
-
-Lemma rfd_rgd: forall p, rfd (rgd p) = p.
-Proof.
-move=> p; apply/permP => [[z Hz]]; apply/val_eqP; rewrite !permE.
-rewrite /= [rgd _ _]permE /=.
-rewrite insubF eq_refl // permE /=.
-by rewrite (@insubT _ (xpredC1 x) _ _ Hz).
-Qed.
-
 Lemma rfd_odd : forall p: {perm d}, p x = x -> rfd p = p :> bool.
 Proof.
+have rfd1: rfd 1 = 1 by apply/permP => u; apply: val_inj; 
+                        rewrite permE /= if_same !perm1.
 have HP0: forall p : {perm d},
   #|[set x | p x != x]| = 0 -> rfd p = p :> bool.
 - move => p Hp; suff ->: p = 1 by rewrite rfd1 !odd_perm1.
@@ -426,6 +371,11 @@ Qed.
 
 Lemma rfd_iso: isog (stabilizer (perm_action d) (alt d) x) (alt d').
 Proof.
+have rgd_x: forall p, rgd p x = x by move=> p; rewrite permE /= insubF //= eqxx.
+have rfd_rgd: forall p, rfd (rgd p) = p.
+  move=> p; apply/permP => [[z Hz]]; apply/val_eqP; rewrite !permE.
+  by rewrite /= [rgd _ _]permE /= insubF eq_refl // permE /= 
+             (@insubT _ (xpredC1 x) _ _ Hz).
 exists rfd_morph.
 apply/andP; split.
   apply/eqP; apply/setP=> z; apply/imsetP/idP.
@@ -451,6 +401,7 @@ Module alt_CP_3. End alt_CP_3.
 
 Lemma simple_alt5 : forall d : finType, #|d| >= 5 -> simple (alt d).
 Proof.
+pose tp := is_true_true.
 suff F1: forall n (d : finType), #|d| = n + 5 -> simple (alt d).
   move=> d H; apply: (F1 (#|d| - 5)).
   by rewrite addnC subnK.

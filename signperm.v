@@ -155,6 +155,9 @@ Proof. by move=> x y; case tpermP. Qed.
 Lemma tpermR : forall x y : T, tperm x y y = x.
 Proof. by move=> x y; case tpermP. Qed.
 
+Lemma tpermD : forall x y z : T,  x != z -> y != z -> tperm x y z = z.
+Proof. by move => x y z; case tpermP => // ->; rewrite eqxx. Qed.
+
 Lemma tpermC : forall x y : T, tperm x y = tperm y x.
 Proof. by move=> *; apply/permP => ?; do 2![case: tpermP => //] => ->. Qed.
 

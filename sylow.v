@@ -145,7 +145,7 @@ apply/ffun_onP=> u; rewrite ffunE /f; case: (_ == _) => //=.
 by rewrite groupV /prod_over_zp; elim: (iota _ _) => //= *; rewrite !in_group.
 Qed.
 
-Theorem cauchy : exists a, (a \in H) && (#|cyclic a| == p).
+Theorem cauchy : exists a, (a \in H) && (#[a] == p).
 Proof.
 have card_zp: #|zp_group| = (p ^ 1)%N.
   by rewrite cardsE card_ord expn1.
@@ -270,11 +270,11 @@ case/quotientP: Kzbar => z [Kz Nz ->{zbar}].
 by exists (z ^+ m); rewrite 3?inE morphX // dom_coset ?groupX ?cyclicnn.
 Qed.
 
-Lemma sylow1: forall i j (L : group gT), i <= j -> j <= n ->
+Lemma sylow1: forall i j (L : group gT), i <= j <= n ->
   L \subset K -> #|L| == (p ^ i)%N ->
   exists H: group gT, [&& L \subset H, H \subset K & #|H| == p ^ j]%N.
 Proof.
-move=> i j L Hij Hjn Hsl Hcl; move: Hjn; rewrite -(subnK Hij) addnC.
+move=> i j L; case/andP => Hij Hjn Hsl Hcl; move: Hjn; rewrite -(subnK Hij) addnC.
 elim: (j - i) => [| k Hrec].
   by rewrite add0n => Hin; exists L; rewrite subset_refl Hsl.
 move=> Hk; case Hrec; first by apply: leq_trans Hk; rewrite addSn.
@@ -293,7 +293,7 @@ Theorem sylow1_subset : forall i (L : {group gT}),
   exists P : {group gT}, (L \subset P) && sylow K P.
 Proof.
 move=> i L Hlk Hcl; case (@sylow1 i n L) => //.
-  by rewrite -dvdn_exp_max // -(eqP Hcl) group_dvdn.
+  by rewrite leqnn andbT -dvdn_exp_max // -(eqP Hcl) group_dvdn.
 by move=> H; case/and3P => [Hlh Hhk Hc]; exists H; rewrite Hlh // /sylow Hhk.
 Qed.
 
@@ -469,5 +469,24 @@ case S0x: (x \in S0) => //; apply/eqP; exact: F6.
 Qed.
 
 End Sylow3.
+
+Lemma normal_sylowP : forall (gT : finGroupType) (G : {group gT}) p,
+  prime p -> reflect (exists2 P : {group gT}, sylow p G P & (P <| G)%g)
+                     (#|gsylow p G| == 1%N).
+Proof.
+move=> gT G p p_pr; apply: (iffP idP) => [syl1 | [P sylP nPG]].
+  have [P sylP]: exists P, P \in gsylow p G.
+    by apply/existsP; rewrite /pred0b (eqP syl1).
+  exists P => //; apply/normalsubP; split=> [|x Gx]; first by case/andP: sylP.
+  apply/eqP; apply/idPn=> nPxP.
+  rewrite (cardD1 P) sylP eqSS in syl1; case/existsP: syl1.
+  exists (P :^ x)%G; rewrite /= nPxP -topredE /gsylow /=.
+  by rewrite -(conjGid Gx) -sylow_sconjg.
+rewrite (cardD1 P) [P \in _]sylP eqSS; apply/pred0P=> Q /=.
+apply/andP=> [[nQP sylQ]]; case/eqP: nQP; apply: val_inj=> /=.
+case: (sylow2_cor p_pr sylP sylQ) => x [Gx ->{Q sylQ}].
+case/normalsubP: nPG => _; exact.
+Qed.
+
 
 Unset Implicit Arguments.

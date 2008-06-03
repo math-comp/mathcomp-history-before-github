@@ -160,6 +160,19 @@ Notation "[ 'action' 'of' a ]" :=
   | Action _ a1 aM => fun k => k _ a1 aM end
   (@Action _ _ a)) (at level 0, only parsing) : form_scope.
 
+Lemma normal_stab: forall gT sT (to : action gT sT) (H1 H2 : {group _}) a, 
+  H2 \subset'N(H1) -> stabilizer to H2 a \subset 'N(stabilizer to H1 a).
+Proof.
+move=> gT sT to H1 H2 a Hnorm.
+apply/subsetP => g; case/stabilizerP => Hg Hperm.
+rewrite /normaliser inE; apply/subsetP => g1 /=.
+rewrite mem_conjg; case/stabilizerP => Hg1 Hperm1.
+apply/stabilizerP; split.
+by move/normalP: Hnorm; move/(_ g Hg) => <-; rewrite mem_conjg.
+move: Hperm1; rewrite !actM invgK Hperm -actM => Hperm1.
+by rewrite -{2}Hperm -{2}Hperm1 -!actM; gsimpl.
+Qed.
+
 Section Faithful.
 
 Variable sT : finType.

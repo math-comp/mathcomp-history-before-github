@@ -16,7 +16,7 @@ move=> gT G H P p; case/normalsubP=> sHG nHG p_prime sylP.
 have sPG: P \subset G by apply: subset_trans sHG; case/andP: sylP.
 apply/eqP; rewrite eqset_sub setIC group_modl // subsetIr.
 apply/subsetP=> x Gx; pose Q := (P :^ x^-1)%G.
-have sylQ: sylow p H Q by rewrite (sylow_sconjg _ _ _ x) conjsgKV nHG.
+have sylQ: sylow p H Q by  by rewrite (sylow_sconjg _ _ _ x) conjsgKV nHG.
 have [y [Hy QPy]] := (sylow2_cor p_prime sylP sylQ).
 rewrite inE Gx andbT -(mulKg y x) mem_mulg ?groupV //.
 by apply/normgP; rewrite conjsgM -QPy conjsgKV.
@@ -709,8 +709,8 @@ case abelH: (trivg [~: H, H]).
   have ntH1 : ~~ trivg H1.
     rewrite /trivg gen_subG expn1 subsets_disjoint. 
     case: (cauchy prp (dvdn_pdiv #|H|)) => x; case/andP=> Hx; move/eqP=> oxp.
-    apply/existsP; exists x; rewrite /= !inE /orderg oxp eqxx Hx /=.
-    by apply/eqP=> x1; rewrite -oxp x1 [#|_|]orderg1 in prp.
+    apply/existsP; exists x; rewrite /= !inE oxp eqxx Hx /=.
+    by apply/eqP=> x1; rewrite -oxp x1 [#[_]]orderg1 in prp.
   exists H1; split=> //; first exact: subset_trans sHG.
     exact: char_norm_trans nHL.
   apply/elementary_eq_Omega1=> //; apply/eqP.
