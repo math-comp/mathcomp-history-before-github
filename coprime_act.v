@@ -1,13 +1,136 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import fintype paths connect finfun ssralg bigops finset.
 Require Import groups normal group_perm automorphism action.
-Require Import cyclic center sylow schurzass hall.
+Require Import commutators cyclic center sylow schurzass hall.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
 Import GroupScope.
+
+Lemma coprime_has_primes : forall m n, m > 0 -> n > 0 ->
+  coprime m n = ~~ has (mem (primes m)) (primes n).
+Proof.
+move=> m n m_pos n_pos; apply/eqnP/hasPn=> [mn1 p | no_p_mn].
+  rewrite /= !mem_primes m_pos n_pos /=; case/andP=> pr_p p_n.
+  have:= prime_gt1 pr_p; rewrite pr_p ltnNge -mn1 /=; apply: contra => p_m.
+  by rewrite dvdn_leq ?ltn_0gcd ?m_pos // dvdn_gcd ?p_m.
+case: (ltngtP (gcdn m n) 1) => //; first by rewrite ltnNge ltn_0gcd ?m_pos.
+move/prime_pdiv; set p := pdiv _ => pr_p.
+move/implyP: (no_p_mn p); rewrite /= !mem_primes m_pos n_pos pr_p /=.
+by rewrite !(dvdn_trans (dvdn_pdiv _)) // (dvdn_gcdl, dvdn_gcdr).
+Qed.
+
+Section NormalPart.
+
+Variable pi : pred nat.
+Variable gT : finGroupType.
+
+Definition pi_set (G : {set gT}) := all pi (primes #|G|).
+
+Definition normal_part (G : {set gT}) :=
+  << \bigcup_(H : {group gT} | pi_set H && (H <| G)) H >>.
+
+Notation "''O' ( G )" := (normal_part G) (at level 9, format "''O' ( G )").
+
+Canonical Structure normal_part_group G := [group of 'O(G)].
+
+Lemma normal_part_max : forall G : {group gT}, pi_set 'O(G) && ('O(G) <| G).
+Proof.
+rewrite /normal_part => G.
+apply big_prop => [| A B | H]; last by rewrite genGid.
+  rewrite /(_ <| _) /pi_set gen_subG sub0set gen0 cards1.
+  apply/normalP=> x _; exact: conjs1g.
+case/and3P=> piA sAG nAG; case/and3P=> piB sBG nBG; rewrite -gen_genU -genUgen.
+apply/and3P; split; last 2 [by rewrite gen_subG subUset sAG].
+  have gen_pos: 0 < #|<<_ : {set gT}>>| := pos_card_group _.
+  apply/allP=> p ABp; move/esym: (primes_mul p (gen_pos A) (gen_pos B)).
+  rewrite -card_mulG -norm_mulgenE ?(subset_trans sAG) //.
+  rewrite !primes_mul ?pos_card_group // ABp /=.
+  by case/orP; [move/(allP piA) | move/(allP piB)].
+apply/subsetP=> x Gx; rewrite inE -(conjSg _ _ x^-1) conjsgK gen_subG.
+rewrite -(conjSg _ _ x) conjsgKV conjUg.
+by rewrite !(normalP nAG, normalP nBG, sub_geng).
+Qed.
+
+Lemma normal_part_part : forall G : {group gT}, pi_set 'O(G).
+Proof. by move=> G; case/andP: (normal_part_max G). Qed.
+
+Lemma normal_part_normal : forall G : {group gT}, 'O(G) <| G.
+Proof. by move=> G; case/andP: (normal_part_max G). Qed.
+
+Lemma char_intro : forall G H : {group gT},
+     H \subset G ->
+  (forall f : morphism gT gT,
+     dom f = G -> ker f = 1 -> {in G &, injective f} -> f @: G = G
+    -> f @: H \subset H) ->
+     characteristic G H.
+Proof.
+move=> G H sHG charH; apply/subset_charP; split=> // f Aut_f.
+rewrite -(dfequal_imset (subin1 (subsetP sHG) (morph_of_aut_ondom Aut_f))).
+case/orP: (trivm_aut Aut_f) => [ntf | trG]; last first.
+  by rewrite (trivgP _ (subset_trans sHG trG)) imset_set1 morph1 sub1G.
+case/andP: (isom_morph_of_aut Aut_f); move/eqP=> Gf injf.
+have domf: dom (morph_of_aut f G) = G by exact: dom_morph_of_aut.
+apply: charH => //; last exact/injmP.
+by apply/eqP; rewrite -(ker_injm injf) eq_sym eqsetIl -{2}domf subsetUl.
+Qed.
+
+Lemma imset_pi : forall (G : {group gT}) (f : morphism gT gT),
+  pi_set G -> pi_set (f @: G).
+Proof.
+move=> G f piG; rewrite /pi_set.
+pose H := (dom_(G) f)%G; have sHG: H \subset G by exact: subsetIr.
+have ->: f @: G = f @: H.
+  apply/eqP; rewrite eq_sym eqset_sub imsetS //=.
+  apply/subsetP=> fx; case/imsetP=> x Gx -> {fx}.
+  case fx1: (f x == 1); first by rewrite (eqP fx1) group1.
+  by rewrite imset_f_imp // 2!inE orbC inE fx1.
+have: isog (H / ker_(H) f) (f @: H) by apply: first_isom; exact: subsetIl.
+move/isog_card => <-; rewrite card_quotient; last first.
+  case/andP: (normal_ker_r f H) => _; apply: subset_trans.
+  by rewrite setIA setIid subset_refl.
+apply/allP=> p H'p; apply: (allP piG); rewrite -(LaGrange sHG) primes_mul //.
+by rewrite -(LaGrange (subsetIr [ker f]%G H)) primes_mul // H'p orbT.
+Qed.
+
+Lemma subset_normal_part : forall G H : {group gT},
+  pi_set H -> H <| G -> H \subset 'O(G).
+Proof.
+move=> G H piH nHG; apply/subsetP=> x Hx; apply: mem_geng; apply/bigcupP.
+by exists H; rewrite // piH.
+Qed.
+
+Lemma normal_part_char : forall G : {group gT}, characteristic G 'O(G).
+Proof.
+move=> G; have sOG: 'O(G) \subset G by case/andP: (normal_part_normal G).
+apply: char_intro => //= f domf _ _ fG; apply: subset_normal_part.
+  by rewrite //= imset_pi ?normal_part_part.
+by rewrite -{2}fG imset_normalsub ?normal_part_normal.
+Qed.
+
+End NormalPart.
+
+Notation "'O_' ( pi ) ( G )" := (normal_part pi G)
+  (at level 9, format "'O_' ( pi ) ( G )") : group_scope.
+Notation "'O_' ( pi ) ( G )" := (normal_part_group pi G) : subgroup_scope.
+
+Notation "'O_' ( ~ pi ) ( G )" := O_(predC pi)(G)
+  (at level 9, format "'O_' ( ~  pi ) ( G )") : group_scope.
+Notation "'O_' ( ~ pi ) ( G )" := O_(predC pi)(G)%G : subgroup_scope.
+
+Notation "'O_' [ p ] ( G )" := O_(pred1 p)(G)
+  (at level 9, format "'O_' [ p ] ( G )") : group_scope.
+Notation "'O_' [ p ] ( G )" := O_(pred1 p)(G)%G : subgroup_scope.
+
+Notation "'O_' [ ~ p ] ( G )" := O_(~ pred1 p)(G)
+  (at level 9, format "'O_' [ ~  p ] ( G )") : group_scope.
+Notation "'O_' [ ~ p ] ( G )" := O_(~ pred1 p)(G)%G : subgroup_scope.
+
+Notation "'O_' [ p , q ] ( G )" := O_(pred2 p q)(G)
+  (at level 9, format "'O_' [ p , q ] ( G )") : group_scope.
+Notation "'O_' [ p , q ] ( G )" := O_(pred2 p q)(G)%G : subgroup_scope.
 
 Section InternalAction.
 
@@ -102,7 +225,6 @@ exists (y * x)^-1.
 by apply: val_inj; rewrite /= -{2}nHy -(conjsgM _ y) conjsgK.
 Qed.
 
-
 Lemma norm_conj_cent : forall A G x, x \in 'C(A) ->
   (A \subset 'N(G :^ x)) = (A \subset 'N(G)).
 Proof.
@@ -141,20 +263,36 @@ rewrite groupMl ?cAx // memJ_normg ?(groupV, subsetP nHA) // Hy /=.
 by rewrite groupMr // conjVg groupV conjgM -mem_conjg -def_Ax memJ_conjg.
 Qed.
 
-End InternalAction.
-
-Lemma coprime_has_primes : forall m n, m > 0 -> n > 0 ->
-  coprime m n = ~~ has (mem (primes m)) (primes n).
+Lemma coprime_comm_normal_part : forall A G K,
+  A \subset 'N(G) -> coprime #|G| #|A| -> solvable G ->
+  hall_for (predC pi) G K -> K \subset C_(G)(A) ->
+  [~: G, A] \subset O_(pi)(G).
 Proof.
-move=> m n m_pos n_pos; apply/eqnP/hasPn=> [mn1 p | no_p_mn].
-  rewrite /= !mem_primes m_pos n_pos /=; case/andP=> pr_p p_n.
-  have:= prime_gt1 pr_p; rewrite pr_p ltnNge -mn1 /=; apply: contra => p_m.
-  by rewrite dvdn_leq ?ltn_0gcd ?m_pos // dvdn_gcd ?p_m.
-case: (ltngtP (gcdn m n) 1) => //; first by rewrite ltnNge ltn_0gcd ?m_pos.
-move/prime_pdiv; set p := pdiv _ => pr_p.
-move/implyP: (no_p_mn p); rewrite /= !mem_primes m_pos n_pos pr_p /=.
-by rewrite !(dvdn_trans (dvdn_pdiv _)) // (dvdn_gcdl, dvdn_gcdr).
+move=> A G K nGA coGA solG hallK cKA.
+case: (coprime_hall_exists nGA) => // H hallH nHA.
+have sHG: H \subset G by case/andP: hallH.
+have sKG: K \subset G by case/andP: hallK.
+have coKH: coprime #|K| #|H|.
+  rewrite coprime_has_primes //; apply/hasP=> [[p]].
+  case/and3P: hallH => _ piH _; move/(allP piH)=> pi_p.
+  by case/and3P: hallK => _ pi'K _; move/(allP pi'K); case/negP.
+have defG: G = K * H :> {set _}.
+  apply/eqP; rewrite eq_sym eqset_sub_card coprime_card_mulG //.
+  rewrite -{1}(mulGid G) mulgSS //=.
+  by rewrite (hall_for_part hallH) (hall_for_part hallK) mulnC pi_partC.
+have sGA_H: [~: G, A] \subset H.
+  rewrite gen_subG defG; apply/subsetP=> xya; case/imset2P=> xy a.
+  case/imset2P=> x y Kx Hy -> Aa -> {xya xy}.
+  rewrite commg_gmult_left (([~ x, a] =P 1) _) ?(conj1g, mul1g).
+    by rewrite groupMl ?groupV // memJ_normg ?(subsetP nHA).
+  rewrite subsetI sKG in cKA; apply/commgP; exact: (centralP cKA).
+apply: subset_normal_part; last first.
+  by rewrite /(_ <| G) /=  normGR sym_sgcomm subcomm_normal nGA.
+apply/allP => p GAp; case/and3P: hallH=> _ piH _; apply: allP piH _ _.
+by rewrite -(LaGrange sGA_H) primes_mul // GAp.
 Qed.
+
+End InternalAction.
 
 Lemma coprime_hall_subset : forall pi (gT : finGroupType) (A G X : {group gT}),
   A \subset 'N(G) -> coprime #|G| #|A| -> solvable G ->
