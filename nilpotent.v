@@ -1,6 +1,6 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import fintype paths connect finfun ssralg bigops finset.
-Require Import groups commutators automorphism normal. 
+Require Import groups commutators automorphism normal center. 
 Import GroupScope.
 
 Section LowerCentral.
@@ -68,5 +68,25 @@ Proof.
 move=> n G; apply: normal_char; exact: lcn_char.
 Qed.
 
+Lemma lcn_center n (G: {group gT}) :
+  lc_elt G n / lc_elt G n.+1 \subset 'Z(G / lc_elt G n.+1).
+Proof.
+move=> n G.
+apply/subsetP => H1; case/quotientP => x [Hx1 Hx2 ->].
+apply/centerP; split.
+  apply/quotientP; exists x; split=> //.
+  by apply: (subsetP (lcn_subset0 n G)).
+move=> H2; case/quotientP => y [Hy1 Hy2 ->]; rewrite /commute.
+case Ht: (trivm (coset_of  (lcn_group n.+1 G))).
+  by rewrite !(trivm_is_cst Ht).
+move/negP: Ht; move/negP => Ht.
+rewrite -!coset_of_morphM /= ?dom_coset //.
+rewrite commgC coset_of_morphM ?dom_coset //;
+ try by rewrite !groupM // ?groupV.
+have F1: [~ x, y] \in lc_elt G n.+1.
+  rewrite /= lc_elt_S; apply: mem_geng. 
+  by apply /imset2P; exists x y.
+by rewrite (coset_of_id F1) // mulg1.
+Qed.
 
 End LowerCentral.
