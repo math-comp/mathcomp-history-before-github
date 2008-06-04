@@ -352,3 +352,70 @@ Qed.
 
 End Specialized_results.
 
+Section Characteristic.
+
+Variable T : finGroupType.
+
+Lemma morphic_comm (f : perm_finType T) (G: {group T}) (x y: T):
+  morphic G f -> x \in G -> y \in G -> f [~ x, y] = [~ f x, f y].
+Proof.
+move=> f G x y; move/morphP => Hf Hx Hy.
+rewrite /commg !Hf // ?groupM ?groupV //.
+(* Strange that I have to reprove this *)
+have Hf1: (f 1) = 1.
+  by apply: (mulg_injr (f 1)); rewrite -Hf // !mul1g.
+have HfI: forall x, x \in G -> (f x)^-1 = f (x^-1).
+  move=> x1 Hx1; apply: (mulg_injr (f x1)).
+  by rewrite -Hf ?mulVg // groupV.
+rewrite -!HfI //.
+Qed.
+
+Lemma morphic_geng (f : perm_finType T) (G: {group T}) (H: {set T}):
+  H \subset G -> morphic G f -> f @: <<H>> = <<f @: H>>.
+Proof.
+move=> f G H Hs Hf. 
+have F1: forall H: {set T}, H \subset G -> mrestr f G @: H = f @: H.
+  by move=> H1 Hs1; apply/setP; apply/subset_eqP; apply/andP; split;
+    apply/subsetP=> x; case/imsetP => x1 Hx1 ->; apply/imsetP; exists x1 => //;
+    rewrite /mrestr /=; (suff ->: x1 \in G by done); apply: (subsetP Hs1).
+rewrite -!F1 //; last by rewrite -genGid genSg.
+apply: (@gen_f_com _ _ (mrestr_morphism Hf)) => /=.
+apply/subsetP => x Hx.
+have: x \in G by apply: (subsetP Hs).
+rewrite /mrestr !inE => Hx1 /=; rewrite Hx1 orbC.
+case: eqP => //= fx1; apply/forallP=> y; rewrite groupMl //.
+by case Hy : (y \in G); rewrite // (morphP Hf) // fx1 mul1g.
+Qed.
+
+Lemma morphic_comms (f : perm_finType T) (G: {group T}) (H1 H2: {set T}):
+  morphic G f -> H1 \subset G -> H2 \subset G -> f @: [~: H1, H2] = [~: f @: H1, f @: H2].
+Proof.
+move=> f G H1 H2 Hf Hs1 Hs2.
+rewrite (morphic_geng _ Hf); last first.
+  apply/subsetP => x /=; case/imset2P => x1 x2 Hx1 Hx2 ->.
+  by apply: groupR; [apply: (subsetP Hs1) | apply: (subsetP Hs2)].
+apply/eqP; rewrite eqset_sub; apply/andP; split; apply: genSg.
+  apply/subsetP => x; case/imsetP => y; case/imset2P => y1 y2 Hy1 Hy2 -> ->.
+  apply/imset2P; exists (f y1) (f y2); try by apply: imset_f_imp.
+  by apply: (morphic_comm Hf); move: (subsetP Hs1 _ Hy1) (subsetP Hs2 _ Hy2).
+apply/subsetP => x; case/imset2P => x1 x2; case/imsetP => y1 Hy1 ->.
+case/imsetP => y2 Hy2 -> ->.
+apply/imsetP; exists [~ y1, y2]; first by  apply/imset2P; exists y1 y2.
+by rewrite -(morphic_comm Hf) //; move: (subsetP Hs1 _ Hy1) (subsetP Hs2 _ Hy2).
+Qed.
+
+
+Lemma char_comm (H1 H2: {set T}) (G: {group T}):
+  characteristic G H1 -> characteristic G H2 -> characteristic G [~: H1, H2].
+Proof.
+move=> H1 H2 G; case/andP => F1 F2; case/andP => F3 F4.
+apply/andP; split.
+  rewrite -genGid genSg //.
+  apply/subsetP => x; case/imset2P => x1 x2 Hx1 Hx2 ->.
+  by apply: groupR; move: (subsetP F1 _ Hx1) (subsetP F3 _ Hx2).
+apply/forallP => f; apply/implyP => HH; case/andP: (HH) => HH1 HH2.
+by rewrite (morphic_comms HH2) // (eqP (implyP (forallP F2 f) HH))
+           (eqP (implyP (forallP F4 f) HH)).
+Qed.
+
+End Characteristic.
