@@ -240,3 +240,5 @@ case/quotientP => y [H1y H2y ->].
 move: H1y; rewrite /= ucn_elt_S1.
 by rewrite inE; case/andP; rewrite inE.
 Qed.
+
+End UpperCentral.
