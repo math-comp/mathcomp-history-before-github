@@ -574,6 +574,12 @@ rewrite -{2}eqKxK; apply:dfequal_imset=> y Ky /=.
 by rewrite -dfequal_restriction (subsetP sHK, permE).
 Qed.
 
+(*
+Lemma char_quotient (H I K: {group G}):
+  H \subset I -> I \subset K -> characteristic K H -> characteristic (K/H) (I/H) ->
+   characteristic K I.
+*)
+
 End CharacteristicityProps.
 
 Unset Implicit Arguments.
