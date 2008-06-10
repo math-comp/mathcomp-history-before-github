@@ -260,10 +260,27 @@ apply: (subsetP (Hrec F1)); rewrite leq_subS //.
 exact: commg_in_commgs.
 Qed.
 
-(*
+
 Lemma ucn_lcn_step1 (m: nat) (G: {group gT}):
   ucn_elt G m = G -> lcn_elt _ G m = 1.
 Proof.
-*)
+move=> n G Hn.
+apply/eqP; rewrite eqset_sub sub1G andbT.
+rewrite  -(ucn_elt0  G)  -(subnn n).
+elim: {1 3 5} n (leqnn n) => [| i].
+ rewrite subn0 Hn (lcn_elt_0 gT G) => _;exact: subset_refl.
+case: n Hn => // [n Hn Hrec Hlt].
+have F1: i <= n.+1 by rewrite (leq_trans (leqnSn _) Hlt).
+rewrite lcn_eltS .
+have HH: G\subset G by apply: subset_refl.
+have H1: [~: lcn_elt gT G i, G] \subset [~: ucn_elt G (n.+1 - i), G] by apply: (genSg (commg_setSS (Hrec F1) HH)).
+apply: (subset_trans H1).
+rewrite subSS leq_subS // ucn_eltS gen_subG.
+apply/subsetP => x.
+case/imset2P => x1 x2; rewrite !inE.
+case/andP => H1x1 H2x1 Hx2 ->.
+apply: (subsetP H2x1).
+by apply/imsetP; exists x2.
+Qed.
 
 End UpperCentral.
