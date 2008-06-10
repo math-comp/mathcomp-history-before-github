@@ -152,6 +152,16 @@ move=> [| n G]; first by exact: sub1G.
 by rewrite ucn_eltS; apply/subsetP=> x; rewrite inE; case/andP.
 Qed.
 
+Lemma ucn_elt_subset n (G: {group gT}) : ucn_elt G n \subset ucn_elt G n.+1.
+Proof.
+move=> n G; elim: n => [| n Hrec].
+  by rewrite ucn_elt0; apply: sub1G.
+rewrite (@ucn_eltS _ n.+1).
+apply/subsetP => x; rewrite {1}ucn_eltS.
+rewrite inE; case/andP => H1x H2x.
+rewrite inE H1x.
+by apply: subset_trans Hrec.
+Qed.
 
 Lemma ucn_elt_char n (G: {group gT}) : characteristic G (ucn_elt G n).
 Proof.
@@ -176,49 +186,6 @@ Qed.
 Lemma ucn_elt_normal0 n (G: {group gT}) : ucn_elt G n <| G.
 Proof. move=> n G; apply: normal_char; exact: ucn_elt_char. Qed.
 
-(* Definition of Aschbacher *)
-Lemma ucn_eltS1 (G: {group gT}) n: 
-  ucn_elt G n.+1 = (coset_of (ucn_elt G n)) @^-1: 'Z(G/(ucn_elt G n)) :&: G.
-Proof.
-move=> G n; rewrite ucn_eltS.
-case Ht: (trivm (coset_of (ucn_elt G n))).
-  have F1: ucn_elt G n = G.
-    apply/eqP; rewrite eqset_sub; case/andP: (ucn_elt_normal0 n G).
-    by case/trivm_coset_of: Ht => -> ->.
-  apply/eqP; rewrite eqset_sub; apply/andP; split; apply/subsetP => x; last first.
-    rewrite !inE; (do 2 case/andP) =>  H1x H2x H3x; rewrite H3x F1.
-    by apply/subsetP => y; case/imsetP => z Hz ->; exact: groupR.
-  rewrite !inE; case/andP => HH _.
-  by rewrite coset_of_id /= ?F1 // !group1.
-move/negP: Ht; move/negP => Ht.
-have F0: G \subset 'N(ucn_group n G) by case/andP: (ucn_elt_normal0 n G).
-apply/eqP; rewrite eqset_sub; apply/andP; split; apply/subsetP => x; last first.
-  rewrite !inE; (do 2 case/andP) =>  H1x H2x H3x; rewrite H3x.
-  apply/subsetP => y; case/imsetP => z Hz ->.
-  have F1: coset_of (ucn_elt G n) z \in G / ucn_elt G n.
-    by apply/quotientP; exists z; repeat split => //; exact: (subsetP F0).
-  apply: coset_of_idr; first by apply: (subsetP F0); exact: groupR.
-  rewrite -(commg_coset F0) //.
-  by apply/eqP; apply/commgP; apply: (centgP H2x).
-rewrite !inE; case/andP => H1x H2x.
-rewrite H1x andbT; apply/andP; split.
-  by apply/quotientP; exists x; repeat split => //; apply: (subsetP F0).
-apply/centgP => y; case/quotientP => z [H1z H2z] ->.
-apply/commgP; rewrite (commg_coset F0) //.
-apply/eqP; apply: coset_of_id.
-by apply: (subsetP H2x); apply/imsetP; exists z.
-Qed.
-
-Lemma ucn_elt_subset n (G: {group gT}) : ucn_elt G n \subset ucn_elt G n.+1.
-Proof.
-move=> n G.
-rewrite ucn_eltS1.
-apply/subsetP => x Hx; rewrite inE.
-have H1x: x \in G by exact: (subsetP (ucn_elt_subset0 n G)).
-rewrite H1x andbT inE.
-by rewrite coset_of_id // group1.
-Qed.
-
 Lemma ucn_elt_normal n (G: {group gT}) : ucn_elt G n <| ucn_elt G n.+1.
 Proof.
 move=> n G; apply/andP; split.
@@ -234,13 +201,41 @@ by apply: (subsetP (ucn_elt_subset0 n G)).
 Qed.
 
 Lemma ucn_elt_center n (G: {group gT}) :
-  ucn_elt G n.+1 / ucn_elt G n \subset 'Z(G / ucn_elt G n).
+  ucn_elt G n.+1 / ucn_elt G n = 'Z(G / ucn_elt G n).
 Proof.
 move=> n G.
-apply/subsetP => x.
-case/quotientP => y [H1y H2y ->].
-move: H1y; rewrite /= ucn_eltS1.
-by rewrite inE; case/andP; rewrite inE.
+case Ht: (trivm (coset_of (ucn_elt G n))).
+  have F1: ucn_elt G n = G.
+    apply/eqP; rewrite eqset_sub; case/andP: (ucn_elt_normal0 n G).
+    by case/trivm_coset_of: Ht => -> ->.
+  apply/eqP; rewrite eqset_sub; apply/andP; split; apply/subsetP => x; last first.
+    rewrite !inE; case/andP; case/quotientP => y [H1y H2y -> H3y] /=.
+    apply/quotientP; exists y; split => //=.
+    rewrite ucn_eltS inE H1y.
+    by apply/subsetP => y1; case/imsetP => z Hz ->; rewrite F1; exact: groupR.
+  case/quotientP => y[H1y H2y ->].
+  rewrite coset_of_id ?group1 //= F1.
+  by move: H1y; rewrite /= ucn_eltS inE; case/andP.
+move/negP: Ht; move/negP => Ht.
+have F0: G \subset 'N(ucn_group n G) by case/andP: (ucn_elt_normal0 n G).
+apply/eqP; rewrite eqset_sub; apply/andP; split; apply/subsetP => x; last first.
+  rewrite !inE; case/andP; case/quotientP => y [H1y H2y ->] H3y.
+  apply/quotientP; exists y; split => //.
+  rewrite /= ucn_eltS inE H1y.
+  apply/subsetP => y1; case/imsetP => z Hz ->.
+  have F1: coset_of (ucn_elt G n) z \in G / ucn_elt G n.
+    by apply/quotientP; exists z; repeat split => //; exact: (subsetP F0).
+  apply: coset_of_idr; first by apply: (subsetP F0); exact: groupR.
+  rewrite -(commg_coset F0) //.
+  by apply/eqP; apply/commgP; apply: (centgP H3y).
+case/quotientP => /= y  [H1y  H2y ->].
+move: H1y; rewrite ucn_eltS inE; case/andP => H1y H3y.
+rewrite inE; apply/andP; split.
+  by apply/quotientP; exists y; repeat split => //; apply: (subsetP F0).
+apply/centgP => y1; case/quotientP => z [H1z H2z] ->.
+apply/commgP; rewrite (commg_coset F0) //.
+apply/eqP; apply: coset_of_id.
+by apply: (subsetP H3y); apply/imsetP; exists z.
 Qed.
 
 Lemma ucn_lcn_equiv (m: nat) (G: {group gT}):
