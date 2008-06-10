@@ -243,37 +243,26 @@ move: H1y; rewrite /= ucn_eltS1.
 by rewrite inE; case/andP; rewrite inE.
 Qed.
 
-
-Lemma ucn_lcn_step (m: nat) (G: {group gT}):
-  lcn_elt _ G m = 1 -> ucn_elt G m = G.
+Lemma ucn_lcn_equiv (m: nat) (G: {group gT}):
+  lcn_elt _ G m == 1 <-> ucn_elt G m == G.
 Proof.
-move=> m G Hm.
-apply/eqP; rewrite eqset_sub  ucn_elt_subset0 -(lcn_elt_0 gT G) -{1}(subnn m).
-elim: {1 4 5} m (leqnn m) => [| n].
-  by rewrite subn0 Hm sub1G.
+move=> m G; split => Hm; rewrite eqset_sub.
+  rewrite ucn_elt_subset0 -(lcn_elt_0 gT G) -{1}(subnn m).
+  elim: {1 4 5} m (leqnn m) => [| n]; first by rewrite subn0 (eqP Hm) sub1G.
+  case: m Hm => // [m Hm Hrec Hlt].
+  have F1: n <= m.+1 by rewrite (leq_trans (leqnSn _) Hlt).
+  apply/subsetP => y Hy.
+  rewrite ucn_eltS inE (subsetP (lcn_subset0 _ (m - n) G)) //.
+  apply/subsetP => x; case/imsetP => x1 Hx1 ->.
+  apply: (subsetP (Hrec F1)); rewrite leq_subS //.
+  exact: commg_in_commgs.
+rewrite sub1G andbT -(ucn_elt0  G)  -(subnn m).
+elim: {1 3 5} m (leqnn m) => [| i].
+  by rewrite subn0 (eqP Hm) (lcn_elt_0 gT G) => _;exact: subset_refl.
 case: m Hm => // [m Hm Hrec Hlt].
-have F1: n <= m.+1 by rewrite (leq_trans (leqnSn _) Hlt).
-apply/subsetP => y Hy.
-rewrite ucn_eltS inE (subsetP (lcn_subset0 _ (m - n) G)) //.
-apply/subsetP => x; case/imsetP => x1 Hx1 ->.
-apply: (subsetP (Hrec F1)); rewrite leq_subS //.
-exact: commg_in_commgs.
-Qed.
-
-
-Lemma ucn_lcn_step1 (m: nat) (G: {group gT}):
-  ucn_elt G m = G -> lcn_elt _ G m = 1.
-Proof.
-move=> n G Hn.
-apply/eqP; rewrite eqset_sub sub1G andbT.
-rewrite  -(ucn_elt0  G)  -(subnn n).
-elim: {1 3 5} n (leqnn n) => [| i].
- rewrite subn0 Hn (lcn_elt_0 gT G) => _;exact: subset_refl.
-case: n Hn => // [n Hn Hrec Hlt].
-have F1: i <= n.+1 by rewrite (leq_trans (leqnSn _) Hlt).
-rewrite lcn_eltS .
+have F1: i <= m.+1 by rewrite (leq_trans (leqnSn _) Hlt).
 have HH: G\subset G by apply: subset_refl.
-have H1: [~: lcn_elt gT G i, G] \subset [~: ucn_elt G (n.+1 - i), G] by apply: (genSg (commg_setSS (Hrec F1) HH)).
+have H1: [~: lcn_elt gT G i, G] \subset [~: ucn_elt G (m.+1 - i), G] by apply: (genSg (commg_setSS (Hrec F1) HH)).
 apply: (subset_trans H1).
 rewrite subSS leq_subS // ucn_eltS gen_subG.
 apply/subsetP => x.
