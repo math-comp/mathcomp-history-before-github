@@ -267,4 +267,17 @@ apply: (subsetP H2x1).
 by apply/imsetP; exists x2.
 Qed.
 
+Lemma lcnSS: forall (H G: {set gT}) n, H \subset G -> (lcn_elt gT  H n) \subset  (lcn_elt gT G n).
+Proof.
+move=> H F n HsG.
+elim: n => [| n Hrec]; first by rewrite !(lcn_elt_0 gT _).
+by rewrite !lcn_eltS; apply: (genSg (commg_setSS Hrec  HsG)).
+Qed.
+
+Lemma ssgrp_nilpotent: forall H G: {group gT}, H \subset G -> nilpotent gT  G -> nilpotent gT H.
+Proof.
+move=> H G HsG; case=> n; case/trivgP=>  Hn.
+exists n; move:(lcnSS H G n HsG); by rewrite Hn .
+Qed.
+
 End UpperCentral.
