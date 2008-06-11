@@ -299,4 +299,33 @@ apply/subsetP => x;case/imsetP => x0; rewrite inE ; move/eqP => -> ->.
 by  rewrite (morphic1 Hf) group1.
 Qed.
 
+Lemma pgroup_nilpotent (G: {group gT}) p n: 
+  prime p -> #|G| = (p ^ n.+1)%N -> nilpotent gT G.
+Proof.
+move=> G p n Hp HG; exists (#|G|.+1).
+suff: lcn_elt gT G #|G|.+1 == 1 by rewrite eqset_sub; case/andP.
+apply/ucn_lcn_equiv.
+move: (subset_leq_card (ucn_elt_subset0 (#|G|.+1) G)).
+rewrite leq_eqVlt; case/orP => Hp1.
+  by rewrite eqset_sub_card ucn_elt_subset0 (eqP Hp1) leqnn.
+have := group_dvdn (ucn_elt_subset0 (#|G|.+1) G).)).
+rewrite {2}HG; case/(dvdn_exp_prime _ _ Hp) => n1 Hn1 H1n1.
+have F1: forall m, ucn_elt G m == ucn_elt G m.+1 \/ m <= #|ucn_elt G m.+1|.
+  elim => [| m [Hrec | Hrec]]; first by right.
+    by left; rewrite ucn_eltS {1}(eqP Hrec).
+  move: (subset_leq_card (ucn_elt_subset m.+1 G)).
+  rewrite leq_eqVlt; case/orP => Hp2; last by right; apply: (leq_trans _ Hp2).
+  by left; rewrite eqset_sub_card (eqP Hp2) ucn_elt_subset leqnn.
+case: (F1 (#|G|.+1)); last by rewrite ltnNge subset_leq_card // ucn_elt_subset0.
+move=> HH.
+have F2 : #|G/ucn_elt G #|G|.+1| = (p ^ (n - n1).+1)%N.
+  rewrite card_quotient -?group_divn ?ucn_elt_subset0 //; last
+    by  case/andP: (ucn_elt_normal0   #|G|.+1 G).
+  rewrite {1}HG H1n1 -leq_subS.
+    by rewrite -{1}(subnK Hn1) expn_add divn_mulr // ltn_0exp prime_pos_natP.
+  by rewrite -ltnS -(ltn_exp2l _ _ (prime_gt1 Hp)) -HG -H1n1.
+case/negP: (pgroup_ntriv Hp F2).
+by rewrite -ucn_elt_center -(eqP HH) trivial_quotient /trivg subset_refl.
+Qed.
+
 End UpperCentral.

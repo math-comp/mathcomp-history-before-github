@@ -9,23 +9,9 @@
 (***********************************************************************)
 (***********************************************************************)
 
-Require Import ssreflect.
-Require Import ssrbool.
-Require Import ssrfun.
-Require Import eqtype.
-Require Import ssrnat.
-Require Import seq.
-Require Import fintype.
-Require Import paths.
-Require Import connect.
-Require Import div.
-Require Import finset.
-Require Import bigops.
-Require Import groups.
-Require Import normal.
-Require Import group_perm.
-Require Import automorphism.
-Require Import cyclic.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
+Require Import fintype paths connect div finset bigops.
+Require Import groups normal group_perm automorphism cyclic action.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -209,3 +195,43 @@ by rewrite /commute -!fM ?cHz.
 Qed.
 
 End CharacteristicCentralizer.
+
+
+Section PGroups.
+(* Some properties on p-groups *)
+
+Variable p n: nat.
+Variable Hp: prime p.
+Variable gT: finGroupType.
+Variable G: {group gT}.
+Variable HG: #|G| = (p ^ n.+1)%N.
+
+Open Scope group_scope.
+
+Lemma pgroup_ntriv:~~ trivg 'Z(G).
+Proof.
+apply/negP => Ht.
+have F1: #|'Z(G)| = 1%N.
+  apply/eqP; rewrite eqn_leq -(trivg_card) Ht.
+  by move: (subset_leq_card (sub1G 'Z(G))); rewrite cards1.
+suff: #|'Z(G)| %%p = 0 by rewrite F1 modn_small // prime_gt1.
+pose act := Action (@conjg1 gT) (@conjgM gT).
+suff F2: [mem 'Z(G)] =1 (predI (act_fix act G) (mem G)).
+  rewrite (eq_card F2) -(mpl  Hp HG); first by rewrite HG modn_mulr.
+  by move=> x y; case/orbitP => z Hz <-; rewrite /= groupJr.
+move=> x; apply/idP/andP => /=; rewrite !inE.
+  case/andP => H1x H2x; split => //.
+  rewrite /act_fix /= eqset_sub; apply/andP; split; apply/subsetP => y Hy.
+    by case/stabilizerP: Hy.
+  apply/stabilizerP; split => //; rewrite /act /=.
+  move/centgP: H2x; move/(_ y Hy) => Hc.
+  by rewrite /conjg Hc mulgA mulVg mul1g.
+case; rewrite /act_fix; move/eqP => H1x H2x.
+rewrite H2x; apply/centgP => y.
+rewrite -H1x; case/stabilizerP => H1y H2y.
+by rewrite /commute -{2}H2y /= conjgC.
+Qed.
+
+End PGroups.
+
+

@@ -487,6 +487,4 @@ apply/andP=> [[nQP sylQ]]; case/eqP: nQP; apply: val_inj=> /=.
 case: (sylow2_cor p_pr sylP sylQ) => x [Gx ->{Q sylQ}].
 case/normalsubP: nPG => _; exact.
 Qed.
-
-
 Unset Implicit Arguments.
