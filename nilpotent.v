@@ -257,7 +257,8 @@ elim: {1 3 5} m (leqnn m) => [| i].
 case: m Hm => // [m Hm Hrec Hlt].
 have F1: i <= m.+1 by rewrite (leq_trans (leqnSn _) Hlt).
 have HH: G\subset G by apply: subset_refl.
-have H1: [~: lcn_elt gT G i, G] \subset [~: ucn_elt G (m.+1 - i), G] by apply: (genSg (commg_setSS (Hrec F1) HH)).
+have H1: [~: lcn_elt gT G i, G] \subset [~: ucn_elt G (m.+1 - i), G].
+  by apply: (genSg (commg_setSS (Hrec F1) HH)).
 apply: (subset_trans H1).
 rewrite subSS leq_subS // ucn_eltS gen_subG.
 apply/subsetP => x.
@@ -267,17 +268,35 @@ apply: (subsetP H2x1).
 by apply/imsetP; exists x2.
 Qed.
 
-Lemma lcnSS: forall (H G: {set gT}) n, H \subset G -> (lcn_elt gT  H n) \subset  (lcn_elt gT G n).
+Lemma lcnSS  (H G: {set gT}) n: H \subset G -> (lcn_elt gT  H n) \subset  (lcn_elt gT G n).
 Proof.
 move=> H F n HsG.
 elim: n => [| n Hrec]; first by rewrite !(lcn_elt_0 gT _).
 by rewrite !lcn_eltS; apply: (genSg (commg_setSS Hrec  HsG)).
 Qed.
 
-Lemma ssgrp_nilpotent: forall H G: {group gT}, H \subset G -> nilpotent gT  G -> nilpotent gT H.
+Lemma ssgrp_nilpotent (H G: {group gT}):H \subset G -> nilpotent gT  G -> nilpotent gT H.
 Proof.
 move=> H G HsG; case=> n; case/trivgP=>  Hn.
 exists n; move:(lcnSS H G n HsG); by rewrite Hn .
+Qed.
+
+Lemma lcn_morph (G: {group gT}) (f : group_perm.perm_finType gT) n:  
+     morphic  G f  ->  f @: (lcn_elt gT  G n) = (lcn_elt gT  (f @:G ) n).
+Proof.
+move=> G f  n Hf.
+elim: n => [| n Hrec]; first by rewrite !(lcn_elt_0 gT _).
+by rewrite !lcn_eltS (morphic_comms Hf) // ?Hrec // lcn_subset0.
+Qed.
+
+Lemma morph_nilpotent: forall (G: {group gT})(f : group_perm.perm_finType gT), 
+      morphic  G f  -> (nilpotent gT  G )-> nilpotent gT (f @: G).
+Proof.
+move=> G f Hf; case=> n; case/trivgP=>  Hn.
+exists n; move:(lcn_morph  G  f n Hf).
+rewrite /trivg /= Hn => <- . 
+apply/subsetP => x;case/imsetP => x0; rewrite inE ; move/eqP => -> ->.
+by  rewrite (morphic1 Hf) group1.
 Qed.
 
 End UpperCentral.
