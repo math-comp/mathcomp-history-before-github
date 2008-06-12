@@ -232,6 +232,18 @@ Qed.
 Theorem sym_sgcomm: forall (H K: set T), [~: H, K] = [~: K, H].
 Proof. by move=> H K; apply/eqP; rewrite eqset_sub !sub_sgcomm. Qed.
 
+Theorem sgcommSSl (G H K: set T) :  H \subset K -> [~: H, G] \subset [~: K, G].
+Proof. 
+move=> G H K HSSK; apply: genSg; apply/subsetP => x.
+by case/imset2P => x1 x2 Hx1 Hx2 ->; apply/imset2P; exists x1 x2; rewrite // (subsetP HSSK).
+Qed.
+
+Theorem sgcommSSr (G H K: set T) :  H \subset K -> [~: G, H] \subset [~: G, K].
+Proof. 
+move=> G H K HSSK; apply: genSg; apply/subsetP => x.
+by case/imset2P => x1 x2 Hx1 Hx2 ->; apply/imset2P; exists x1 x2; rewrite // (subsetP HSSK).
+Qed.
+
 (* a couple of lemmas about set conjugation *)
 Lemma subset_conjugate_of: forall (H K : {set T}) (z : T), 
   (H :^ z \subset K) = (H \subset K :^ z^-1).

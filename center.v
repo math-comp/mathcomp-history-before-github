@@ -208,7 +208,7 @@ Variable HG: #|G| = (p ^ n.+1)%N.
 
 Open Scope group_scope.
 
-Lemma pgroup_ntriv:~~ trivg 'Z(G).
+Lemma pgroup_ntriv : ~~ trivg 'Z(G).
 Proof.
 apply/negP => Ht.
 have F1: #|'Z(G)| = 1%N.
