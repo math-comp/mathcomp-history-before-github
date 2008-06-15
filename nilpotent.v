@@ -51,6 +51,16 @@ case: n => [| n]; first by exact: normG.
 by rewrite /= lcnS sym_sgcomm normGR.
 Qed.
 
+Lemma lcn_stable (G:{group gT}) n m : 
+                     n <= m ->  trivg (lcn G n) -> trivg (lcn G m).
+Proof.
+move=> G n;elim => [| m Hrec]; first by rewrite leqn0; move/eqP => ->.
+rewrite leq_eqVlt;case/orP  ;first by move/eqP=> ->.
+rewrite (ltnS n m) => Hnm trivgn;move:(Hrec Hnm trivgn).
+case/trivgP => Hm ;rewrite /trivg /= -Hm.
+by exact: lcnSSn.
+Qed.
+
 Lemma lcnSS0 (G: {group gT}) n : lcn G n \subset G.
 Proof.
 move=> G; elim => [| n Hrec]; first by exact: subset_refl.
@@ -305,6 +315,71 @@ apply/subsetP => x; case/imsetP => x0; rewrite inE ; move/eqP => -> ->.
 by  rewrite (morphic1 Hf) group1.
 Qed.
 
+Lemma centgSS (L H : {set gT}): L \subset H -> 'C(H) \subset 'C(L).
+Proof.
+move => L H LsH;apply/subsetP=> x.
+move/centgP => cx;apply/centgP=> z Az; apply:cx.
+by apply:(subsetP LsH).
+Qed.
+
+Lemma lcn_prod (H1 H2 :{group gT}) n: {in H1, central H2} ->  
+   ((lcn  (H1 * H2) n) =  (lcn  H1 n) * (lcn  H2 n))%G.
+Proof.
+move=> H1 H2 n Hcomm.
+elim: n => [| n Hrec]; first by rewrite !lcn0.
+rewrite !lcnS Hrec;set L1 := (lcn H1 _);set L2 := (lcn H2 _).
+have LcnC: forall m, commute (lcn H1 m) (lcn H2 m).
+  move => m; apply: normalC;apply:in_central_normal;  apply/centralP.
+  apply: (subset_trans (lcnSS0  H1 m)); move/centralP: Hcomm => Hcomm.
+  by apply: (subset_trans Hcomm); apply:centgSS; apply:lcnSS0.
+rewrite -(comm_mulgenE  (LcnC n.+1)) /=.
+apply/eqP; rewrite eqset_sub;apply/andP;split.
+  rewrite gen_subG;apply/subsetP=> x; case/imset2P => x1 x2.
+  case/mulsgP=>l1 l2 Ll1 Ll2 ->;  case/mulsgP=>h1 h2 Hh1 Hh2 -> Hx.
+  rewrite /= comm_mulgenE; last by apply:(LcnC n.+1).
+  apply/mulsgP; exists [~ l1, h1][~ l2, h2].
+    -apply: mem_geng;apply/imset2P;by exists l1 h1.
+    -apply: mem_geng;apply/imset2P;by exists l2 h2. 
+  rewrite Hx /commg /conjg.
+  have Hl2: l2 \in H2 by rewrite(subsetP (lcnSS0 H2 n )).
+  have Hl1: l1 \in H1 by rewrite(subsetP (lcnSS0 H1 n)).
+  have hcom: forall x y, x\in H1 -> y \in H2 -> x * y = y *x.
+    by move => y1 y2 Hy1 Hy2; apply: (Hcomm y1 Hy1).   
+  rewrite (hcom l1) ?groupV // (hcom h1) ?groupV // !invMg.
+  apply:(mulg_injl l1); rewrite !(mulgA l1) !mulgV !mul1g. 
+  rewrite -!mulgA  (mulgA l2^-1) -(hcom _ l2^-1) ?groupV //.
+  apply : (mulg_injl h1);rewrite !(mulgA h1) !mulgV !mul1g.
+  gsimpl;rewrite -(hcom l1) // ?groupM // ?groupV //. 
+  rewrite -!(mulgA l1);apply : (mulg_injl l1^-1);rewrite !(mulgA l1^-1) !mulVg !mul1g.
+  rewrite -(hcom h1)//;gsimpl;rewrite !groupM // ?groupV //.
+rewrite comm_mulgenE; last by apply:(LcnC n.+1).
+apply /subsetP => x; case/mulsgP => x1 x2.
+move/generatedP=> gen1;move/generatedP=> gen2 ->.
+apply:groupM.
+  apply: gen1; rewrite -gen_subG; apply: genSg; apply/subsetP=> c.
+  case/imset2P=> l1 h1 hl1 hh1 -> ; apply/imset2P;exists l1 h1 =>//.
+    by apply/mulsgP;exists l1 (unitg gT);rewrite // ?group1 // mulg1.
+  by apply/mulsgP; exists h1 (unitg gT);rewrite // mulg1.
+apply: gen2; rewrite -gen_subG; apply: genSg; apply/subsetP=> c.
+  case/imset2P=> l2 h2 hl2 hh2 ->; apply/imset2P;exists l2 h2 =>//.
+  by apply/mulsgP; exists  (unitg gT) l2;rewrite ?group1 ?mul1g.
+by apply/mulsgP; exists (unitg gT) h2; rewrite ?mul1g.
+Qed.
+
+Lemma prod_nilpotent (H1 H2: {group gT}):{in H1, central H2}-> 
+                          nilpotent   H1 -> nilpotent  H2 -> nilpotent  (H1*H2).
+Proof.
+move=> H1 H2 ?; case=> n1 Hn1; case=> n2 Hn2.
+exists (maxn n1 n2). rewrite lcn_prod /maxn //.
+case e: (n1< n2)=> /=.
+  case/trivgP: Hn2 => ->; rewrite mulg1.
+  have Hn1n2: n1<=n2 by apply/leP;apply:Lt.lt_le_weak; move/ltP:e.
+  apply: (lcn_stable   Hn1n2) => //.
+case/trivgP: Hn1 => ->; rewrite mul1g.
+apply: (@lcn_stable  _ _ n2)=> //.
+by apply/leP; move/ltP:e ; apply:Compare_dec.not_gt.
+Qed.
+
 Lemma pgroupNL (G: {group gT}) p n: 
   prime p -> #|G| = (p ^ n.+1)%N -> nilpotent G.
 Proof.
@@ -368,4 +443,3 @@ by apply: (subsetP (ucnSS0 G i.+1)).
 Qed.
 
 End Properties.
-
