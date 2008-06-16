@@ -61,6 +61,78 @@ Qed.
 
 Canonical Structure setX_group H1 H2 := Group (group_setX H1 H2).
 
+
+Lemma setX_gen (H1 : {set gT1}) (H2 : {set gT2}):
+ 1 \in H1 -> 1 \in H2 -> <<setX H1 H2>> = setX <<H1>> <<H2>>.
+Proof.
+(* Too long but I could not find a shorter proof *)
+move=> H1 H2 H11 H12; apply/eqP; rewrite eqset_sub; apply/andP; split.
+  rewrite gen_subG; apply/subsetP => [[x1 x2]]; rewrite !inE /=.
+  by case/andP => Hx1 Hx2;apply/andP; split; apply: mem_geng.
+apply/subsetP => [[x1 x2]]; rewrite !inE /=; case/andP => Hx1 Hx2.
+have ->: forall (x: gT1) (y: gT2), (x,y) = (x,1) * (1,y).
+  by move=> x y; rewrite /mulg /= /extprod_mulg /= mulg1 mul1g.
+rewrite groupM //.
+  have F1: forall (x y: gT1), (x * y,(1: gT2)) = (x,1) * (y,1).
+    by move=> x y; rewrite {2}/mulg /= /extprod_mulg /= mulg1.
+  have F2: <<setX H1 1>> \subset <<setX H1 H2>>.
+    apply: genSg; apply/subsetP => [[y1 y2]]; rewrite !inE /=.
+    by case/andP => ->; move/eqP->.
+  apply: (subsetP F2).
+  pose f1 (x: gT1) := (x,unitg gT2).
+  have P1f1: group_set (dom f1).
+    apply/andP; split.
+       by rewrite !inE eq_refl orbF; apply/forallP => x; rewrite mul1g.
+    apply/subsetP => y _; rewrite !inE /= /f1.
+    case E1: (_ == _); move/idP: E1=> E1; last by rewrite orbT.
+    rewrite orbF; apply/forallP => y1 /=.
+    by rewrite /f1 F1 (eqP E1) mul1g.
+  have P2f1: {in dom f1 &, {morph f1 : x y / x * y}}.
+    by move=> x y /=; rewrite /f1 {2}/mulg /= /extprod_mulg /= mul1g.
+  pose mf1 := (Morphism P1f1 P2f1).
+  have P3f1: forall H: {set gT1}, f1 @: H = setX H 1.
+    move=> H.
+    apply/eqP; rewrite eqset_sub; apply/andP; split; apply/subsetP => x.
+      case/imsetP => y; rewrite !inE /f1 /= => Hy ->.
+      by rewrite Hy eq_refl.
+    case: x => xx1 xx2; rewrite !inE /=.
+    by case/andP => Hxx1; move/eqP->; apply/imsetP; exists xx1.
+  have P4f1: H1 \subset dom f1.
+    apply/subsetP => y _.
+    rewrite /f1 !inE /=; case E1: (_ == _); move/idP: E1 => E1; last by rewrite orbT.
+    by rewrite orbF; apply/forallP => z /=; rewrite F1 (eqP E1) mul1g.
+  by rewrite -P3f1 -(@gen_f_com _ _ mf1 _ P4f1) P3f1 !inE /= Hx1 eq_refl.
+have F1: forall (x y: gT2), ((1: gT1), x * y) = (1, x) * (1, y).
+  by move=> x y; rewrite {2}/mulg /= /extprod_mulg /= mulg1.
+have F2: <<setX 1 H2>> \subset <<setX H1 H2>>.
+  apply: genSg; apply/subsetP => [[y1 y2]]; rewrite !inE /=.
+  by case/andP; move/eqP->; rewrite H11.
+apply: (subsetP F2).
+pose f1 (x: gT2) := (unitg gT1, x).
+have P1f1: group_set (dom f1).
+  apply/andP; split.
+     by rewrite !inE eq_refl orbF; apply/forallP => x; rewrite mul1g.
+  apply/subsetP => y _; rewrite !inE /= /f1.
+  case E1: (_ == _); move/idP: E1=> E1; last by rewrite orbT.
+  rewrite orbF; apply/forallP => y1 /=.
+  by rewrite /f1 F1 (eqP E1) mul1g.
+have P2f1: {in dom f1 &, {morph f1 : x y / x * y}}.
+  by move=> x y /=; rewrite /f1 {2}/mulg /= /extprod_mulg /= mul1g.
+pose mf1 := (Morphism P1f1 P2f1).
+have P3f1: forall H: {set gT2}, f1 @: H = setX 1 H.
+  move=> H.
+  apply/eqP; rewrite eqset_sub; apply/andP; split; apply/subsetP => x.
+    case/imsetP => y; rewrite !inE /f1 /= => Hy ->.
+    by rewrite Hy eq_refl.
+  case: x => xx1 xx2; rewrite !inE /=.
+  by case/andP; move/eqP => -> Hxx1; apply/imsetP; exists xx2.
+have P4f1: H2 \subset dom f1.
+  apply/subsetP => y _.
+  rewrite /f1 !inE /=; case E1: (_ == _); move/idP: E1 => E1; last by rewrite orbT.
+  by rewrite orbF; apply/forallP => z /=; rewrite F1 (eqP E1) mul1g.
+by rewrite -P3f1 -(@gen_f_com _ _ mf1 _ P4f1) P3f1 !inE /= Hx2 eq_refl.
+Qed.
+
 End ExternalDirProd.
 
 Section InternalDirProd.

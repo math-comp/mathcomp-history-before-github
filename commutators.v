@@ -523,9 +523,13 @@ End Specialized_results.
 
 Section Characteristic.
 
-Variable T : finGroupType.
+Variable T: finGroupType.
 
-Lemma morphic_comm (f : perm_finType T) (G: {group T}) (x y: T):
+Section FChar.
+
+Variable T1: finGroupType.
+
+Lemma morphic_comm (f : T -> T1) (G: {group T}) (x y: T):
   morphic G f -> x \in G -> y \in G -> f [~ x, y] = [~ f x, f y].
 Proof.
 move=> f G x y; move/morphP => Hf Hx Hy.
@@ -539,7 +543,7 @@ have HfI: forall x, x \in G -> (f x)^-1 = f (x^-1).
 rewrite -!HfI //.
 Qed.
 
-Lemma morphic_geng (f : perm_finType T) (G: {group T}) (H: {set T}):
+Lemma morphic_geng (f : T -> T1) (G: {group T}) (H: {set T}):
   H \subset G -> morphic G f -> f @: <<H>> = <<f @: H>>.
 Proof.
 move=> f G H Hs Hf. 
@@ -556,7 +560,7 @@ case: eqP => //= fx1; apply/forallP=> y; rewrite groupMl //.
 by case Hy : (y \in G); rewrite // (morphP Hf) // fx1 mul1g.
 Qed.
 
-Lemma morphic_comms (f : perm_finType T) (G: {group T}) (H1 H2: {set T}):
+Lemma morphic_comms (f : T -> T1) (G: {group T}) (H1 H2: {set T}):
   morphic G f -> H1 \subset G -> H2 \subset G -> f @: [~: H1, H2] = [~: f @: H1, f @: H2].
 Proof.
 move=> f G H1 H2 Hf Hs1 Hs2.
@@ -572,6 +576,8 @@ case/imsetP => y2 Hy2 -> ->.
 apply/imsetP; exists [~ y1, y2]; first by  apply/imset2P; exists y1 y2.
 by rewrite -(morphic_comm Hf) //; move: (subsetP Hs1 _ Hy1) (subsetP Hs2 _ Hy2).
 Qed.
+
+End FChar.
 
 
 Lemma char_comm (H1 H2: {set T}) (G: {group T}):

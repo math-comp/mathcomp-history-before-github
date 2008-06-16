@@ -1,6 +1,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import fintype paths connect finfun ssralg bigops finset.
-Require Import groups commutators automorphism normal center group_perm. 
+Require Import groups commutators automorphism normal center.
+Require Import dirprod group_perm. 
 Import GroupScope.
 
 
@@ -65,6 +66,15 @@ Lemma lcnSS0 (G: {group gT}) n : lcn G n \subset G.
 Proof.
 move=> G; elim => [| n Hrec]; first by exact: subset_refl.
 apply: subset_trans (lcnSSn _ _) Hrec.
+Qed.
+
+Lemma lcnSSnm (G: {group gT}) n m : 
+  m <= n  -> lcn G n \subset lcn G m.
+Proof.
+move=> G n m; elim: n => [| n Hrec]; first by case: m.
+rewrite leq_eqVlt; case/orP; first by move/eqP->.
+move=> Hn; apply: (subset_trans (lcnSSn G n)).
+by apply: Hrec.
 Qed.
 
 Lemma lcnNM0 (G: {group gT}) n : lcn G n <|  G.
@@ -297,7 +307,11 @@ move=> H G HsG; case=> n; case/trivgP=>  Hn.
 by exists n; move:(lcnSS n HsG); rewrite Hn.
 Qed.
 
-Lemma lcn_morph (G: {group gT}) (f : perm gT) n:  
+Section FMorph.
+
+Variable gT1 gT2: finGroupType.
+
+Lemma lcn_morph (G: {group gT1}) (f : gT1 -> gT2) n:  
      morphic  G f  ->  f @: (lcn G n) = (lcn (f @:G ) n).
 Proof.
 move=> G f n Hf.
@@ -305,7 +319,7 @@ elim: n => [| n Hrec]; first by rewrite !lcn0.
 by rewrite !lcnS (morphic_comms Hf) // ?Hrec // lcnSS0.
 Qed.
 
-Lemma morphNL (G: {group gT}) (f : perm gT) : 
+Lemma morphNL (G: {group gT1}) (f : gT1 -> gT2) : 
       morphic  G f -> nilpotent G -> nilpotent (f @: G).
 Proof.
 move=> G f Hf; case=> n; case/trivgP=> Hn.
@@ -315,6 +329,8 @@ apply/subsetP => x; case/imsetP => x0; rewrite inE ; move/eqP => -> ->.
 by  rewrite (morphic1 Hf) group1.
 Qed.
 
+End FMorph.
+
 Lemma centgSS (L H : {set gT}): L \subset H -> 'C(H) \subset 'C(L).
 Proof.
 move => L H LsH;apply/subsetP=> x.
@@ -323,7 +339,7 @@ by apply:(subsetP LsH).
 Qed.
 
 Lemma lcn_prod (H1 H2 :{group gT}) n: {in H1, central H2} ->  
-   ((lcn  (H1 * H2) n) =  (lcn  H1 n) * (lcn  H2 n))%G.
+   lcn  (H1 * H2) n =  lcn  H1 n * lcn  H2 n.
 Proof.
 move=> H1 H2 n Hcomm.
 elim: n => [| n Hrec]; first by rewrite !lcn0.
@@ -366,11 +382,11 @@ apply: gen2; rewrite -gen_subG; apply: genSg; apply/subsetP=> c.
 by apply/mulsgP; exists (unitg gT) h2; rewrite ?mul1g.
 Qed.
 
-Lemma prod_nilpotent (H1 H2: {group gT}):{in H1, central H2}-> 
-                          nilpotent   H1 -> nilpotent  H2 -> nilpotent  (H1*H2).
+Lemma prodNL (H1 H2: {group gT}) : 
+  {in H1, central H2} -> nilpotent H1 -> nilpotent H2 -> nilpotent (H1*H2).
 Proof.
 move=> H1 H2 ?; case=> n1 Hn1; case=> n2 Hn2.
-exists (maxn n1 n2). rewrite lcn_prod /maxn //.
+exists (maxn n1 n2); rewrite lcn_prod /maxn //.
 case e: (n1< n2)=> /=.
   case/trivgP: Hn2 => ->; rewrite mulg1.
   have Hn1n2: n1<=n2 by apply/leP;apply:Lt.lt_le_weak; move/ltP:e.
@@ -379,6 +395,63 @@ case/trivgP: Hn1 => ->; rewrite mul1g.
 apply: (@lcn_stable  _ _ n2)=> //.
 by apply/leP; move/ltP:e ; apply:Compare_dec.not_gt.
 Qed.
+
+
+
+Lemma lcn_setX (H1 H2: {group gT}) n : 
+  lcn (setX H1 H2) n = setX (lcn H1 n) (lcn H2 n).
+Proof.
+move=> H1 H2; elim=> [| n Hrec]; first by rewrite !lcn0.
+rewrite !lcnS Hrec.
+apply/eqP; rewrite eqset_sub; apply/andP; split.
+  rewrite gen_subG.
+  apply/subsetP => x; case/imset2P => [[x11 x12] [x21 x22]].
+  rewrite inE; case/andP => /= Hx11 Hx12.
+  rewrite inE; case/andP => /= Hx21 Hx22 ->.  
+  apply/setXP; split => /=.
+    by apply: mem_geng; apply/imset2P; exists x11 x21.
+  by apply: mem_geng; apply/imset2P; exists x12 x22.
+rewrite -setX_gen ?group1;
+  try by apply/imset2P; exists (1: gT) (1: gT); rewrite ?group1 ?comm1g.
+apply: genSg; apply/subsetP => [[x1 x2]]; rewrite !inE /=.
+case/andP; case/imset2P => xx1 xx2 Hxx1 Hxx2 ->.
+case/imset2P => yy1 yy2 Hyy1 Hyy2 ->.
+by apply/imset2P; exists (xx1,yy1) (xx2,yy2); rewrite // !inE /= ?Hxx1 ?Hxx2.
+Qed.
+
+Lemma setXNL (H1 H2: {group gT}) :
+  nilpotent (setX H1 H2) <-> nilpotent H1 /\ nilpotent H2. 
+Proof.
+move=> H1 H2; split; rewrite /nilpotent; case.
+  move=> n; rewrite lcn_setX => Hn; split; exists n.
+    apply/subsetP => y Hy; move: (subsetP Hn (y, 1)).
+    by rewrite !inE /= Hy group1; move/(_ is_true_true); case/andP.
+  apply/subsetP => y Hy; move: (subsetP Hn (1, y)).
+  by rewrite !inE /= Hy group1; move/(_ is_true_true); case/andP.
+case=> n1 Hn1; case => n2 Hn2.
+pose m  := maxn n1 n2.
+have T1m: trivg (lcn H1 m).
+  by apply: subset_trans Hn1; rewrite lcnSSnm // leq_maxr leqnn.
+have T2m: trivg (lcn H2 m).
+  by apply: subset_trans Hn2; rewrite lcnSSnm // leq_maxr leqnn orbT.
+exists m; rewrite lcn_setX.
+apply/subsetP =>  [[x y]]; rewrite !inE /=; case/andP => Hx Hy.
+by apply/andP; split; [move: (subsetP T1m _ Hx) | move: (subsetP T2m _ Hy)];  
+  rewrite !inE.
+Qed.
+
+Lemma dirprodNL (G H1 H2: {group gT}) :
+  [/\ H1 <| G, H2 <| G, G = H1 * H2 :> set _ & trivg (H1 :&: H2)] ->
+  nilpotent H1 -> nilpotent H2 -> nilpotent G.
+Proof.
+move=> G H1 H2; move/dirprod_normal_isom.
+case/andP=> Hm Hi NL1 NL2.
+case/andP: Hi; move/eqP<- => _.
+apply: morphNL => //.
+case: (setXNL H1 H2) => _ HH.
+by apply HH; split.
+Qed.
+
 
 Lemma pgroupNL (G: {group gT}) p n: 
   prime p -> #|G| = (p ^ n.+1)%N -> nilpotent G.
@@ -408,7 +481,6 @@ have F2 : #|G/ucn G #|G|.+1| = (p ^ (n - n1).+1)%N.
 case/negP: (pgroup_ntriv Hp F2).
 by rewrite -ucnCT -(eqP HH) trivial_quotient /trivg subset_refl.
 Qed.
-
 (* Should be in ssrbool *)
 Notation "A \ssubset B" := ((A \subset B) /\ ~(B \subset A))
   (at level 70, no associativity, format "A  \ssubset  B") : bool_scope.
