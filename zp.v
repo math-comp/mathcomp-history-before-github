@@ -45,9 +45,9 @@ Definition zp1: fzp p := (Ordinal non_trivial_p).
 (* @EqSig _ (fun m => m < p)  _ Hp. *)
 
 (*--------------------------------------------------------------------*)
-(*|                           inverse                                |*)
+(*|                          opposite                                |*)
 (*--------------------------------------------------------------------*)
-Definition inv_zp : fzp p -> fzp p.
+Definition opp_zp : fzp p -> fzp p.
 intros [x1 Hx1].
 exists (modn (p - x1) p).
 by rewrite ltn_mod.
@@ -67,7 +67,7 @@ Proof. case=> x Hx. apply: val_inj. rewrite /=.
 exact: modn_small.
 Qed.
 
-Lemma zp_oppP : forall x, add_zp (inv_zp x) x = zp0.
+Lemma zp_oppP : forall x, add_zp (opp_zp x) x = zp0.
 Proof.
 case=> x Hx; apply: val_inj => /=.
 by rewrite -{2}(modn_small Hx) // modn_add2m addnC subnK ?modnn // ltnW.
