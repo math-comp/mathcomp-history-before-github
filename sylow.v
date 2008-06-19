@@ -487,4 +487,17 @@ apply/andP=> [[nQP sylQ]]; case/eqP: nQP; apply: val_inj=> /=.
 case: (sylow2_cor p_pr sylP sylQ) => x [Gx ->{Q sylQ}].
 case/normalsubP: nPG => _; exact.
 Qed.
+
+Lemma sylowNLE : forall (gT : finGroupType) (G P Q : {group gT}) p,
+  prime p -> (P <| G)%g -> sylow p G P -> sylow p G Q -> P = Q :> set _.
+Proof.
+move=> gT G P Q p Pp Npg Sp Sq.
+have: #|gsylow p G| == 1%N by apply/(normal_sylowP _ Pp); exists P.
+  rewrite (cardD1 P) (cardD1 Q) .
+rewrite [_ \in _]Sp inE [predD1 _ _ _]/= [_ \in _]Sq.
+by case E1: (Q == P) => //; move/eqP: E1->.
+Qed.
+
+
+
 Unset Implicit Arguments.
