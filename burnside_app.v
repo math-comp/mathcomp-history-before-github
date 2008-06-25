@@ -495,21 +495,20 @@ Definition R32f (sc : cube) : cube := tsub [tuple of R32] sc.
 (* rotations 120 *)
 Definition R024 := [:: F2; F5; F4; F1; F0; F3].
 Definition R024f (sc : cube) : cube := tsub [tuple of R024] sc.
-Definition R135 := [:: F4; F3; F0; F5; F2; F1].
-Definition R135f (sc : cube) : cube := tsub [tuple of R135] sc.
-Definition R012 := [:: F1; F2; F0; F5; F3; F4].
-Definition R012f (sc : cube) : cube := tsub [tuple of R012] sc.
-Definition R345 := [:: F2; F0; F1; F4; F5; F3].
-Definition R345f (sc : cube) : cube := tsub [tuple of R345] sc.
+Definition R042 := [:: F4; F3; F0; F5; F2; F1].
+Definition R042f (sc : cube) : cube := tsub [tuple of R042] sc.
+Definition R012 := [:: F1; F2; F0; F5; F3; F4]. 
+Definition R012f (sc : cube) : cube := tsub [tuple of R012] sc. 
+Definition R021 := [:: F2; F0; F1; F4; F5; F3]. 
+Definition R021f (sc : cube) : cube := tsub [tuple of R021] sc. 
 Definition R031 := [:: F3; F0; F4; F1; F5; F2].
 Definition R031f (sc : cube) : cube := tsub [tuple of R031] sc.
-Definition R425:= [:: F1; F3; F5; F0; F2; F4].
-Definition R425f (sc : cube) : cube := tsub [tuple of R425] sc.
+Definition R013:= [:: F1; F3; F5; F0; F2; F4].
+Definition R013f (sc : cube) : cube := tsub [tuple of R013] sc. 
 Definition R043 := [:: F4; F2; F5; F0; F3; F1].
 Definition R043f (sc : cube) : cube := tsub [tuple of R043] sc.
-Definition R215 := [:: F3; F5; F1; F4; F0; F2].
-Definition R215f (sc : cube) : cube := tsub [tuple of R215] sc.
-
+Definition R034 := [:: F3; F5; F1; F4; F0; F2].
+Definition R034f (sc : cube) : cube := tsub [tuple of R034] sc. 
 (* last symmetries*)
 Definition S1 := [:: F5; F2; F1; F4; F3; F0].
 Definition S1f (sc : cube) : cube := tsub [tuple of S1] sc.
@@ -570,27 +569,28 @@ Lemma R32_inj : injective R32f.
 Proof. by apply: can_inj R23f _ => z; apply /eqP; case: z; do 6?case. Qed.
 
 Lemma R024_inj : injective R024f.
-Proof. by apply: can_inj R135f _ => z; apply /eqP; case: z ; do 6?case. Qed.
+Proof. by apply: can_inj R042f _ => z; apply /eqP; case: z ; do 6?case. Qed.
 
-Lemma R135_inj : injective R135f.
+Lemma R042_inj : injective R042f.
 Proof. by apply: can_inj R024f _ => z; apply/eqP; case: z; do 6?case. Qed.
 
 Lemma R012_inj : injective R012f.
-Proof. by apply: can_inj R345f _ => z; apply/eqP; case: z; do 6?case. Qed.
+Proof. by apply: can_inj R021f _ => z; apply/eqP; case: z; do 6?case. Qed.
 
-Lemma R345_inj : injective R345f.
+Lemma R021_inj : injective R021f.
 Proof. by apply: can_inj R012f _ => z; apply/eqP; case: z; do 6?case. Qed.
 
 Lemma R031_inj : injective R031f.
-Proof. by apply: can_inj R425f _ => z; apply/eqP; case: z; do 6?case. Qed.
+Proof. by apply: can_inj R013f _ => z; apply/eqP; case: z; do 6?case. Qed.
 
-Lemma R425_inj : injective R425f.
+
+Lemma R013_inj : injective R013f. 
 Proof. by apply: can_inj R031f _ => z; apply/eqP; case: z; do 6?case. Qed.
 
 Lemma R043_inj : injective R043f.
-Proof. by apply: can_inj R215f _ => z; apply/eqP; case: z; do 6?case. Qed.
+Proof. by apply: can_inj R034f _ => z; apply/eqP; case: z; do 6?case. Qed.
 
-Lemma R215_inj : injective R215f.
+Lemma R034_inj : injective R034f.
 Proof. by apply: can_inj R043f _ => z; apply/eqP; case: z; do 6?case. Qed.
 
 Definition id3 := 1 : {perm cube}.
@@ -611,13 +611,13 @@ Definition r50 := (perm_of R50_inj).
 Definition r41 := (perm_of R41_inj).
 Definition r32 := (perm_of R32_inj).
 Definition r024 := (perm_of R024_inj).
-Definition r135 := (perm_of R135_inj).
+Definition r042 := (perm_of R042_inj).
 Definition r012 := (perm_of R012_inj).
-Definition r345 := (perm_of R345_inj).
+Definition r021 := (perm_of R021_inj).
 Definition r031 := (perm_of R031_inj).
-Definition r425 := (perm_of R425_inj).
+Definition r013 := (perm_of R013_inj).
 Definition r043 := (perm_of R043_inj).
-Definition r215 := (perm_of R215_inj).
+Definition r034 := (perm_of R034_inj).
 
 Definition s1 := (perm_of (inv_inj S1_inv)).
 Definition s2 := (perm_of (inv_inj S2_inv)).
@@ -628,12 +628,12 @@ Definition s6 := (perm_of (inv_inj S6_inv)).
 
 Definition dir_iso3 := [set p |
 [|| id3 == p, s05 == p, s14 == p, s23 == p, r05 == p, r14 == p, r23 == p,
- r50 == p, r41 == p, r32 == p, r024 == p, r135 == p, r012 == p, r345 == p,
- r031 == p, r425 == p, r043 == p, r215 == p,
+ r50 == p, r41 == p, r32 == p, r024 == p, r042 == p, r012 == p, r021 == p, 
+ r031 == p, r013 == p, r043 == p, r034 == p,
  s1 == p, s2 == p, s3 == p, s4 == p, s5 == p | s6 == p]].
 
 Definition dir_iso3l := [:: id3; s05; s14; s23; r05; r14; r23; r50; r41;
-  r32; r024; r135; r012; r345; r031; r425; r043 ; r215;
+  r32; r024; r042; r012; r021; r031; r013; r043 ; r034;
   s1 ; s2; s3; s4; s5; s6].
 
 Definition S0 := [:: F5; F4; F3; F2; F1; F0].
@@ -658,17 +658,6 @@ move=> p; rewrite inE.
 by do ?case/orP; move/eqP=> <- a; rewrite !(permM, permE); case: a; do 6?case.
 Qed.
 
-(* Lemma ndir_iso3: forall p, p \in dir_iso3  -> (s0 * p) \notin dir_iso3.
-Proof.
-move  => p; rewrite !setE.
-do ?case/orP; move/eqP=> <-;
-do ! [apply/norP;split; first
-by apply/eqP;
-   move/(congr1 (fun p : {perm cube} => (p F0, p F1, p F2))); rewrite !permE /comp /= !permE];
-by apply/eqP;
-   move/(congr1 (fun p : {perm cube} => (p F0, p F1, p F2))); rewrite !permE /comp /= !permE.
-Qed.*)
-
 Definition sop (p : {perm cube}) : seq cube := val (val (val p)).
 
 Lemma sop_inj : injective sop.
@@ -686,7 +675,7 @@ Qed.
 Lemma prod_t_correct : forall (x y : {perm cube}) (i : cube),
   (x * y) i = sub F0 (prod_tuple (sop x) (sop y)) i.
 Proof.
-move=> x y i /=; rewrite permM -!sop_spec (sub_maps F0) // size_tuple /=.
+move=> x y i; rewrite permM -!sop_spec (sub_maps F0) // size_tuple /=.
 by rewrite card_ord ltn_ord.
 Qed.
 
@@ -706,7 +695,7 @@ Proof. by apply: (inj_maps val_inj); rewrite val_enum_ord. Qed.
 Definition seq_iso_L:= [::
    [:: F0; F1; F2; F3; F4; F5];
    S05; S14; S23; R05; R14; R23; R50; R41; R32;
-   R024; R135; R012; R345; R031; R425; R043; R215;
+   R024; R042; R012; R021; R031; R013; R043; R034;
    S1; S2; S3; S4; S5; S6].
 
 Lemma seqs1 : forall f injf, sop (@perm_of _ f injf) = maps f ecubes.
@@ -716,7 +705,7 @@ apply: eq_maps; exact: permE.
 Qed.
 
 Lemma Lcorrect: seq_iso_L == maps sop [:: id3; s05; s14; s23; r05; r14; r23;
-  r50;  r41;  r32; r024;  r135;  r012;  r345;  r031;  r425;  r043 ;  r215;
+  r50;  r41;  r32; r024;  r042;  r012;  r021;  r031;  r013;  r043 ;  r034;
   s1 ;  s2;  s3;  s4;  s5; s6].
 Proof. by rewrite /= !seqs1. Qed.
 
@@ -833,13 +822,13 @@ have -> : r50 = r05  * r05 * r05 by iso_tac.
 have -> : r41 = r14 * r14 * r14 by iso_tac.
 have -> : r32 = r14 * r14 * r14 * r05* r14 by iso_tac.
 have -> : r024 = r05 * r14 * r14 * r14 by iso_tac.
-have -> : r135 = r14 * r05 * r05 * r05 by iso_tac.
+have -> : r042 = r14 * r05 * r05 * r05 by iso_tac.
 have -> : r012 = r14 * r05 by iso_tac.
-have -> : r345 = r05 * r14 * r05 * r05 by iso_tac.
+have -> : r021 = r05 * r14 * r05 * r05 by iso_tac.
 have -> : r031 = r05 * r14 by iso_tac.
-have -> : r425 = r05 * r05 * r14 * r05 by iso_tac.
+have -> : r013 = r05 * r05 * r14 * r05 by iso_tac.
 have -> : r043 = r14 * r14 * r14 * r05 by iso_tac.
-have -> : r215 = r05 * r05 * r05 * r14 by iso_tac.
+have -> : r034 = r05 * r05 * r05 * r14 by iso_tac.
 have -> : s1 = r14 * r14 * r05 by iso_tac.
 have -> : s2 = r05 * r14 * r14 by iso_tac.
 have -> : s3 = r05 * r14 * r05 by iso_tac.
@@ -991,18 +980,18 @@ Lemma F_r024 : act_fix1 to_g r024 =
   [set x | (col0 x == col4 x) && (col4 x == col2  x) && (col1 x == col3 x)
        && (col3 x == col5 x) ].
 Proof.
-have r024_inv: r024^-1 = r135 by inv_tac.
+have r024_inv: r024^-1 = r042 by inv_tac.
 apply/setP => x; rewrite !inE eqperm_map2 /= /act_g r024_inv !ffunE !permE /=.
 apply sym_equal; rewrite ?eqxx /= !andbT /col0/col1/col2/col3/col4/col5.
 by do 4![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
 
-Lemma F_r135 : act_fix1 to_g r135 =
+Lemma F_r042 : act_fix1 to_g r042 =
   [set x | (col0 x == col4 x) && (col4 x == col2  x) && (col1 x == col3 x)
        && (col3 x == col5 x)].
 Proof.
-have r135_inv: r135^-1 = r024 by inv_tac.
-apply/setP => x; rewrite !inE eqperm_map2 /= /act_g r135_inv !ffunE !permE /=.
+have r042_inv: r042^-1 = r024 by inv_tac.
+apply/setP => x; rewrite !inE eqperm_map2 /= /act_g r042_inv !ffunE !permE /=.
 apply sym_equal; rewrite ?eqxx /= !andbT /col0/col1/col2/col3/col4/col5.
 by do 4![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
@@ -1011,18 +1000,18 @@ Lemma F_r012 : act_fix1 to_g r012 =
   [set x | (col0 x == col2 x) && (col2 x == col1  x) && (col3 x == col4 x)
        && (col4 x == col5 x)].
 Proof.
-have r012_inv: r012^-1 = r345 by inv_tac.
+have r012_inv: r012^-1 = r021 by inv_tac.
 apply/setP => x; rewrite !inE eqperm_map2 /= /act_g r012_inv !ffunE !permE /=.
 apply sym_equal; rewrite ?eqxx /= !andbT /col0/col1/col2/col3/col4/col5.
 by do 4![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
 
-Lemma F_r345 : act_fix1 to_g r345 =
+Lemma F_r021 : act_fix1 to_g r021 =
   [set x | (col0 x == col2 x) && (col2 x == col1  x) && (col3 x == col4 x)
        && (col4 x == col5 x)].
 Proof.
-have r345_inv: r345^-1 = r012 by inv_tac.
-apply/setP => x; rewrite !inE eqperm_map2 /= /act_g r345_inv !ffunE !permE /=.
+have r021_inv: r021^-1 = r012 by inv_tac.
+apply/setP => x; rewrite !inE eqperm_map2 /= /act_g r021_inv !ffunE !permE /=.
 apply sym_equal; rewrite ?eqxx /= !andbT /col0/col1/col2/col3/col4/col5.
 do 4![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
@@ -1031,18 +1020,18 @@ Lemma F_r031 : act_fix1 to_g r031 =
   [set x | (col0 x == col3 x) && (col3 x == col1  x) && (col2 x == col4 x)
        && (col4 x == col5 x)].
 Proof.
-have r031_inv: r031^-1 = r425 by inv_tac.
+have r031_inv: r031^-1 = r013 by inv_tac.
 apply/setP => x; rewrite !inE eqperm_map2 /= /act_g r031_inv !ffunE !permE /=.
 apply sym_equal; rewrite ?eqxx /= !andbT /col0/col1/col2/col3/col4/col5.
 by do 4![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
 
-Lemma F_r425 : act_fix1 to_g r425 =
+Lemma F_r013 : act_fix1 to_g r013 =
   [set x | (col0 x == col3 x) && (col3 x == col1  x) && (col2 x == col4 x)
        && (col4 x == col5 x)].
 Proof.
-have r425_inv: r425^-1 = r031 by inv_tac.
-apply/setP => x; rewrite !inE eqperm_map2 /= /act_g r425_inv !ffunE !permE /=.
+have r013_inv: r013^-1 = r031 by inv_tac.
+apply/setP => x; rewrite !inE eqperm_map2 /= /act_g r013_inv !ffunE !permE /=.
 apply sym_equal; rewrite ?eqxx /= !andbT /col0/col1/col2/col3/col4/col5.
 by do 4![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
@@ -1051,18 +1040,18 @@ Lemma F_r043 : act_fix1 to_g r043 =
   [set x | (col0 x == col4 x) && (col4 x == col3  x) && (col1 x == col2 x)
        && (col2 x == col5 x)].
 Proof.
-have r043_inv: r043^-1 = r215 by inv_tac.
+have r043_inv: r043^-1 = r034 by inv_tac.
 apply/setP => x; rewrite !inE eqperm_map2 /= /act_g r043_inv !ffunE !permE /=.
 apply sym_equal; rewrite ?eqxx /= !andbT /col0/col1/col2/col3/col4/col5.
 by do 4![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
 
-Lemma F_r215 : act_fix1 to_g r215 =
+Lemma F_r034 : act_fix1 to_g r034 =
   [set x | (col0 x == col4 x) && (col4 x == col3  x) && (col1 x == col2 x)
        && (col2 x == col5 x)].
 Proof.
-have r215_inv: r215^-1 = r043 by inv_tac.
-apply/setP => x; rewrite !inE eqperm_map2 /= /act_g r215_inv !ffunE !permE /=.
+have r034_inv: r034^-1 = r043 by inv_tac.
+apply/setP => x; rewrite !inE eqperm_map2 /= /act_g r034_inv !ffunE !permE /=.
 apply sym_equal; rewrite ?eqxx /= !andbT /col0/col1/col2/col3/col4/col5.
 by do 4![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
@@ -1270,7 +1259,7 @@ Lemma burnside_app_iso3 :
                    n ^ 6 + 6 * n ^ 3 + 3 * n ^ 4 + 8 * (n ^ 2)  + 6 * n ^ 3)%N.
 Proof.
 pose iso_list :=[::id3;  s05;  s14;  s23;  r05;  r14;  r23;  r50;  r41;  r32;
-  r024;  r135;  r012;  r345;  r031;  r425;  r043 ;  r215;
+  r024;  r042;  r012;  r021;  r031;  r013;  r043 ;  r034;
   s1 ;  s2;  s3;  s4;  s5;  s6].
 have Uiso: uniq iso_list.
   apply: maps_uniq (fun p : {perm cube} => (p F0, p F1)) _ _.
@@ -1283,7 +1272,7 @@ by move=> p; rewrite  !inE /= orbF !(eq_sym _ p).
 have <-: #|diso_group3| = 24 by rewrite (eq_card Eiso) (card_uniqP Uiso).
 rewrite -(Frobenius_Cauchy to_g) (eq_bigl _ _ Eiso) -big_uniq //.
 rewrite /reducebig unlock /= card_Fid3 F_s05 F_s14 F_s23 F_r05 F_r14 F_r23
-  F_r50 F_r41 F_r32 F_r024 F_r135 F_r012 F_r345 F_r031 F_r425 F_r043  F_r215
+  F_r50 F_r41 F_r32 F_r024 F_r042 F_r012 F_r021 F_r031 F_r013 F_r043  F_r034 
   F_s1  F_s2 F_s3 F_s4 F_s5 F_s6.
 by rewrite !card_n4 // !card_n3_3 // !card_n2_3 // !card_n3s //; ring.
 Qed.
