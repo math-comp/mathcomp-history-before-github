@@ -24,7 +24,7 @@ Section Phi.
 (*                                                                     *)
 (***********************************************************************)
 
-Definition phi n := #|[eta coprime n] : pred 'I_n|.
+Definition phi n := #|([eta coprime n] : pred 'I_n)|.
 
 Lemma cardphi : forall p, #|fp_mul_finGroupType p| = (phi p).
 Proof.  by move=> p; rewrite card_sub. Qed.

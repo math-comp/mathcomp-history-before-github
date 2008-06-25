@@ -180,7 +180,7 @@ have actG0: forall y, y \in G -> (actG 0 y = 0)%R.
   by move=> y Gy; apply: val_inj; rewrite /= valG //= conj1g.
 have actGM: forall a b y, y \in G -> (actG (a + b) y = actG a y + actG b y)%R.
   by move=> a b y Gy; apply: val_inj; rewrite /= !valG //= conjMg.
-have actGE: forall a n y, y \in G -> (actG (a*+n) y = (actG a y)*+n)%R.
+have actGE: forall a n y, y \in G -> (actG (a *+ n) y = actG a y *+ n)%R.
   by move=> a n y Gy; apply: val_inj; rewrite /= !(valE, valG) // conjXg.
 have cocycle_mu: forall x y z, x \in G -> y \in G -> z \in G ->
   (mu (x * y)%g z + actG (mu x y) z = mu y z + mu x (y * z)%g)%R.
@@ -189,9 +189,9 @@ have cocycle_mu: forall x y z, x \in G -> y \in G -> z \in G ->
   rewrite Ring.addrC /= valG -1?mulgA // (mulgA (rH z)).
   rewrite -conjgC 3!mulgA -!rHmul ?groupM //.
   by rewrite -2!(mulgA (rH x)) -mulgA -!rHmul ?groupM //.
-move: mu => mu in rHmul mu_Pmul cocycle_mu nu nu_Hmul; pose iP := indexg P G.
+move: mu => mu in rHmul mu_Pmul cocycle_mu nu nu_Hmul; pose iP := #|G : P|.
 have{actG0 actGM cocycle_mu} cocycle_nu : forall y z, y \in G -> z \in G ->
-  (nu z + actG (nu y) z = (mu y z)*+iP + nu (y * z)%g)%R.
+  (nu z + actG (nu y) z = mu y z *+ iP + nu (y * z)%g)%R.
 - move=> y z Gy Gz; pose ap := (@Ring.add gTH); pose am a := actG a z.
   rewrite -/(am (nu y)) (@big_morph _ _ 0 0 _ ap)%R {}/ap {}/am; last first.
     by split=> [|x1 x2] /=; auto.
@@ -349,7 +349,7 @@ have [ZK [sZZK sZKG] quoZK]:
     exact/setIidPr.
   by rewrite (subset_trans sKG) // morphimS //; case/andP: nZG.
 have nZZK: Z <| ZK by exact: normalsubS nZG.
-have cardZK: #|ZK| = (#|Z| * indexg H G)%N.
+have cardZK: #|ZK| = (#|Z| * #|G : H|)%N.
   rewrite -(LaGrange sZZK); congr (_ * _)%N.
   rewrite -card_quotient ?quoZK; last by case/andP: nZZK.
   rewrite -(group_divn sHG) -(LaGrange sZG) -(LaGrange sZH) divn_pmul2l //.

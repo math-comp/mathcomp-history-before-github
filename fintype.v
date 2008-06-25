@@ -103,7 +103,7 @@ Lemma card_key : unit. Proof. by []. Qed.
 Definition card := locked_with card_key card_def.
 
 Notation "#| A |" := (card (mem A))
-  (at level 0, format "#| A |") : nat_scope.
+  (at level 0, A at level 99, format "#| A |") : nat_scope.
 
 Section OpsDef.
 

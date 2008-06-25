@@ -110,7 +110,7 @@ move=> z Gz; case: (repr _) / (repr_rcosetP group_stab z) => y.
 by move/stabilizerP=> [Gy Dtoy]; rewrite actM Dtoy.
 Qed.
 
-Lemma card_orbit : #|orbit| = indexg stabilizer G.
+Lemma card_orbit : #|orbit| = #|G : stabilizer|.
 Proof.
 pose f b := [set x \in G | to a x == b].
 have injf: injective (fun u : {b | b \in orbit} => f (val u)).

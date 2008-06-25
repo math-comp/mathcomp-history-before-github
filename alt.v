@@ -79,7 +79,7 @@ have [p [p_pr pA_int Sp1]]:
     move=> P; case/andP=> sAP; rewrite cA -[_ 2 _]/4; move/eqP=> cP.
     apply/setP; apply/subset_cardP.
       apply: (@addn_injl #|A :&: Q3|); rewrite cardsID cA cP addnC; congr _.+4.
-      rewrite -[8]cQ3; congr #|_ : set _|; apply/setIidPr.
+      rewrite -[8]cQ3; congr #|(_ : set _)|; apply/setIidPr.
       apply/subsetP=> x; case/bigcupP=> Q; rewrite 2!inE; case/andP=> sAQ _.
       case/andP=> _; exact: (subsetP sAQ).
     apply/subsetP=> x Px; rewrite inE (subsetP sAP) // andbT.

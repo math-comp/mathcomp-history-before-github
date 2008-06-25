@@ -236,7 +236,7 @@ have: p %| #|K / L|.
   have <-: #|rtrans_fix L K L| = #|K / L|.
     rewrite rtrans_fix_norm -(card_imset (mem (K / L)) val_inj).
     apply: eq_card=> Lk; rewrite val_quotient //.
-  have divpLK : p %| indexg L K.
+  have divpLK : p %| #|K : L|.
     rewrite -(@dvdn_pmul2l #|L|) // (LaGrange sLK) (eqP cardL) mulnC -expnS.
     by rewrite dvdn_exp_max.
   apply/eqP; rewrite -{divpLK}(eqnP divpLK); symmetry.
@@ -312,7 +312,7 @@ Proof.
 move => H L i Hshk Hch Hsl.
 case/andP: Hsl => Hsl1 Hsl2.
 pose lS0 := rtrans_fix L K H.
-have F1: ~~ (p %| indexg L K).
+have F1: ~~ (p %| #|K : L|).
   apply/negP => Fd.
   move/dvdnP: Fd => [u Hu].
   have F2: p ^ n.+1 %| #|K|.
@@ -320,7 +320,7 @@ have F1: ~~ (p %| indexg L K).
     rewrite -(LaGrange Hsl1) Hu (eqP Hsl2) /= (mulnA u).
     exact: mulnC. 
   by move: F2; rewrite /n dvdn_p_p_part // (cardD1 1) group1.
-have F2:  indexg L K %% p = #|lS0| %% p. 
+have F2: #|K : L| %% p = #|lS0| %% p. 
   (* THIS IS ALSO IN THE SYLOW1_REC LEMMA *)
   have CL : #|L| = (p ^ n)%N by exact: (eqP Hsl2).
   rewrite (@mpl _ _ (trans_action gT) _ _ _ _ prime_p Hch).

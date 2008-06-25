@@ -513,7 +513,7 @@ Qed.
 
 Lemma card_spconstw: forall y l, y \in G -> #[y] = (p ^ l.+1)%N ->  
   #|spconstw y| = 
-   (indexg 'C_G[y] G * #|[pred z \in 'C_G[y] / cyclic y | #[z] %| s]|)%N.
+   (#|G : 'C_G[y]| * #|[pred z \in 'C_G[y] / cyclic y | #[z] %| s]|)%N.
 Proof.
 move=> y l Hy Oy.
 rewrite /spconstw (@card_setnU_id _ _ _ _ #|spconst y|).
@@ -690,7 +690,7 @@ rewrite inE; case/andP=> Hbx Hx.
 rewrite (card_spconstw _ _ _ (eqP Hx)) //.
 set KRG := (quotient _ _).
 set cKRG := #|KRG|.
-have F3: #|KRG| = indexg (cyclic x) 'C_G[x].
+have F3: #|KRG| = #|'C_G[x] : cyclic x|.
   apply: card_quotient.
   exact: normal_centraliser.
 have F4: #|'C_G[x]| = (#|KRG| * #[x])%N.
@@ -723,7 +723,7 @@ have F7: [pred z \in KRG | #[z] %| s]
 rewrite (eq_card F7).
 case/dvdnP: (Rec _ (quotient_group _ _) F5 _ F6) => c.
 rewrite /f /cKRG => ->.
-set r := indexg _ _.
+set r := #|_ : _|.
 have F8: #|G| = (r * #|'C_G[x]|)%N.
   apply sym_equal; rewrite mulnC; apply: LaGrange => //.
   by exact: subset_centraliser.

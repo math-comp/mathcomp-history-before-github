@@ -1195,7 +1195,7 @@ case/setIP: ANx => Ax Nx.
 by exists (coset_of H x); [apply/morphimP; exists x | rewrite /= coset_ofN].
 Qed.
 
-Lemma card_quotient : forall A, A \subset 'N(H) -> #|A / H| = indexg H A.
+Lemma card_quotient : forall A, A \subset 'N(H) -> #|A / H| = #|A : H|.
 Proof.
 by move=> A nHA; rewrite -(card_imset _ val_inj) val_quotient (setIidPl nHA).
 Qed.

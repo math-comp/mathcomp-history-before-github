@@ -511,7 +511,7 @@ Definition lcoset_of A x := mulg x @: A.
 Definition rcoset_of A x := mulg^~ x @: A.
 Definition lcosets A B := lcoset_of A @: B.
 Definition rcosets A B := rcoset_of A @: B.
-Definition indexg A B := #|rcosets A B|.
+Definition indexg B A := #|rcosets A B|.
 
 Definition conjugate_of A x := conjg^~ x @: A.
 Definition conjugates A B := conjugate_of A @: B.
@@ -624,6 +624,9 @@ Notation "A :^ x" := (conjugate_of A x) (at level 35) : group_scope.
 Notation "x ^: B" := (class_of x B) (at level 35) : group_scope.
 Notation "A :^: B" := (conjugates A B) (at level 35) : group_scope.
 
+Notation "#| B : A |" := (indexg B A)
+  (at level 0, B, A at level 99, format "#| B  :  A |") : group_scope.
+
 (* No notation for lcoset_of and rcoset_of, which are to be used   *)
 (* only in curried form; thus we can use mulgA, mulg1, etc, freely *)
 (* on, e.g., A :* 1 * B :* x.                                      *)
@@ -651,7 +654,7 @@ Notation "{ 'for' x , 'central' A }" := (centralises x A%g)
    (at level 0, A at level 8,
     format "{ 'for'  x ,  'central'  A }") : type_scope.
 
-Prenex Implicits repr lcoset_of rcoset_of lcosets rcosets indexg.
+Prenex Implicits repr lcoset_of rcoset_of lcosets rcosets.
 Prenex Implicits conjugate_of conjugates class_of classes class_support.
 Prenex Implicits commg_set normal central abelian.
 
@@ -1079,7 +1082,7 @@ Lemma pos_card_group : 0 < #|G|.
 Proof. by rewrite lt0n; apply/existsP; exists (1 : gT). Qed.
 Definition ltn_0group := pos_card_group.
 
-Lemma ltn_0indexg : forall A, 0 < indexg A G.
+Lemma ltn_0indexg : forall A, 0 < #|G : A|.
 Proof.
 move=> A; rewrite lt0n; apply/existsP; exists A.
 rewrite -{2}[A]mulg1 -rcosetE; exact: mem_imset.
@@ -1359,9 +1362,9 @@ have <-: #|G * H| <= #|H * G| by rewrite -invMG card_invg.
 rewrite -mulgA mulGS mulgA mulSG -eqset_sub_card eq_sym; exact: eqP.
 Qed.
 
-Lemma card_lcosets : forall G H, #|lcosets H G| = indexg H G.
+Lemma card_lcosets : forall G H, #|lcosets H G| = #|G : H|.
 Proof.
-move=> G H; rewrite -[indexg H G](card_preimset _ invg_inj).
+move=> G H; rewrite -[#|G : H|](card_preimset _ invg_inj).
 by rewrite -lcosets_invg !invGid.
 Qed.
 
@@ -1419,7 +1422,7 @@ Notation sT := {set gT}.
 
 Hypothesis sHG : H \subset G.
 
-Theorem LaGrange : (#|H| * indexg H G)%N = #|G|.
+Theorem LaGrange : (#|H| * #|G : H|)%N = #|G|.
 Proof.
 pose f x := (x * (repr (H :* x))^-1, H :* x).
 rewrite -cardX -(@on_card_preimset _ _ f); first apply: eq_card => x.
@@ -1431,9 +1434,9 @@ by rewrite rcosetE /f rcosetM (rcoset_id Hh) rcoset_repr mulgK.
 Qed.
 
 Lemma group_dvdn : #|H| %| #|G|.
-Proof. by apply/dvdnP; exists (indexg H G); rewrite mulnC LaGrange. Qed.
+Proof. by apply/dvdnP; exists #|G : H|; rewrite mulnC LaGrange. Qed.
 
-Lemma group_divn : #|G| %/ #|H| = indexg H G.
+Lemma group_divn : #|G| %/ #|H| = #|G : H|.
 Proof. by rewrite -LaGrange // divn_mulr. Qed.
 
 End LaGrange.

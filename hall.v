@@ -194,14 +194,13 @@ Section MoreHall.
 Variable gT : finGroupType.
 
 Definition hall_for pi (G H : {set gT}) :=
-  [&& H \subset G, all pi (primes #|H|)
-      & all (predC pi) (primes (indexg H G))].
+  [&& H \subset G, all pi (primes #|H|) & all (predC pi) (primes #|G : H|)].
 
 Lemma hall_for_hall : forall pi (G H : {group gT}),
   hall_for pi G H -> hall G H.
 Proof.
 move=> pi G H; case/and3P=> sHG piH pi'H'; rewrite /hall sHG group_divn //.
-have [Hpos H'pos]: 0 < #|H| /\ 0 < indexg H G.
+have [Hpos H'pos]: 0 < #|H| /\ 0 < #|G : H|.
   by apply/andP; rewrite -ltn_0mul LaGrange.
 rewrite /coprime /= eqn_leq ltn_0gcd Hpos andbT leqNgt.
 apply/negP; move/prime_pdiv; set p := pdiv _ => pr_p.
@@ -288,7 +287,7 @@ have{transHb} transH: forall K : {group gT}, pi_subgroup pi G K ->
   case/morphimP=> z Nz Hxz ->.
   rewrite coset_ofN //; case/rcosetP=> t Mt ->; rewrite groupMl //.
   by rewrite mem_conjg (subsetP sMH) // -mem_conjg (normgP Nx).
-have{pi'Hb'} pi'H': all (predC pi) (primes (indexg H G)).
+have{pi'Hb'} pi'H': all (predC pi) (primes #|G : H|).
   move: pi'Hb'; rewrite -!group_divn // def_H !card_quotient //; last first.
   - by case/andP: nMG.
   - by apply: (subset_trans sHG); case/andP: nMG.
@@ -339,7 +338,7 @@ case: (SchurZass_trans_sol _ nMK sK1G1 coMK) => [||x Mx defK1].
 - apply/eqP; rewrite -(eqn_pmul2l (pos_card_group M)).
   rewrite -(card_mulG_trivP _ _ _); last first.
     by apply: subset_trans trMH; rewrite setIA subsetIl.
-  rewrite -coprime_card_mulG // defG1; apply/eqP; congr #|_ : {set _}|.
+  rewrite -coprime_card_mulG // defG1; apply/eqP; congr #|(_ : {set _})|.
   rewrite group_modl; last by rewrite -defG1 mulG_subl.
   by apply/setIidPr;  rewrite defG gen_subG subUset sKG.
 exists x^-1; first by rewrite groupV (subsetP sMG).

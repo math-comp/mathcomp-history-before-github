@@ -177,7 +177,7 @@ have nGN_N: G :&: N <| N.
   apply/normalsubP; rewrite subsetIr; split=> // y Ny.
   by rewrite conjIg (normgP _) // (subsetP nGN, conjGid).
 have NG_AG : G * N = A <*> G by apply: HallFrattini hallH => //; exact/andP.
-have iGN_A: indexg (G :&: N) N = #|A|.
+have iGN_A: #|N : G :&: N| = #|A|.
   rewrite -card_quotient //; last by case/andP: nGN_N.
   rewrite (isog_card (second_isom nGN)) /= -quotient_mulg (normC nGN) NG_AG.
   rewrite card_quotient // -group_divn //= norm_mulgenE //.
@@ -325,7 +325,7 @@ have{Xb sXHb} sXHM: X \subset HM.
   rewrite defHM; case/morphimP=> y Ny Hy /=; move/(congr1 val).
   rewrite /= !coset_ofN // ?(subsetP nMX) // => ->.
   by case/rcosetP=> z Mz ->; rewrite groupMl // (subsetP sMHM).
-have{pi'Hb' sHGb} pi'HM': all (predC pi) (primes (indexg HM G)).
+have{pi'Hb' sHGb} pi'HM': all (predC pi) (primes #|G : HM|).
   move: pi'Hb'; rewrite -!group_divn // defHM !card_quotient //; last first.
   - exact: subset_trans nMG.
   by rewrite -(divn_pmul2l (pos_card_group M)) !LaGrange.

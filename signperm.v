@@ -280,7 +280,7 @@ Proof. by case/andP: alt_normal. Qed.
 
 Let n := #|T|.
 
-Lemma alt_index : 1 < n -> indexg alt sym = 2.
+Lemma alt_index : 1 < n -> #|sym : alt| = 2.
 Proof.
 move=> lt1n; rewrite -card_quotient ?alt_norm //=.
 have : isog (sym / 'ker sign_morph) (odd_perm @* sym).
