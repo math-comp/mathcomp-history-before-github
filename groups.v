@@ -299,6 +299,9 @@ Proof.
 move=> x y n cxy; elim: n => [|n IHn]; [exact: commute1 | exact: commuteM].
 Qed.
 
+Lemma commuteX2 : forall x y m n, commute x y ->  commute (x ^+ m) (y ^+ n).
+Proof. move=> *; apply: commuteX; apply: commute_sym; exact: commuteX. Qed.
+
 Lemma expVgn : forall x n, x^-1 ^+ n = x ^- n.
 Proof.
 by move=> x; elim=> [|n IHn]; rewrite ?invg1 // invMg -IHn expgSr.
@@ -1074,6 +1077,13 @@ Lemma mem_repr_group : repr G \in G. Proof. exact: mem_repr group1. Qed.
 
 Lemma pos_card_group : 0 < #|G|.
 Proof. by rewrite lt0n; apply/existsP; exists (1 : gT). Qed.
+Definition ltn_0group := pos_card_group.
+
+Lemma ltn_0indexg : forall A, 0 < indexg A G.
+Proof.
+move=> A; rewrite lt0n; apply/existsP; exists A.
+rewrite -{2}[A]mulg1 -rcosetE; exact: mem_imset.
+Qed.
 
 Lemma trivg1 : trivg (1 : sT).
 Proof. exact: subset_refl. Qed.
@@ -1398,7 +1408,7 @@ Qed.
 End GroupProp.
 
 Hint Resolve group1 group1_class1 group1_class12 group1_class12.
-Hint Resolve group1_eqType group1_finType trivg1 pos_card_group.
+Hint Resolve group1_eqType group1_finType trivg1 pos_card_group ltn_0indexg.
 
 Notation "G :^ x" := (conjG_group G x) : subgroup_scope.
 
@@ -1600,6 +1610,12 @@ Lemma genV : forall A, <<A^-1>> = <<A>>.
 Proof.
 move=> A; apply/eqP; rewrite eqset_sub !gen_subG -!(invSg _ <<_>>) invgK.
 by rewrite !invGid !sub_geng.
+Qed.
+
+Lemma genJ : forall A z,  <<A :^z>> = <<A>> :^ z.
+Proof.
+move=> A z; apply/eqP; rewrite eqset_sub sub_conjg.
+by rewrite !gen_subG conjSg -?sub_conjg !sub_geng.
 Qed.
 
 Lemma genDU : forall A B C,

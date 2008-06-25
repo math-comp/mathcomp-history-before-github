@@ -259,11 +259,11 @@ have defG: G = K * H :> {set _}.
 have sGA_H: [~: G, A] \subset H.
   rewrite gen_subG defG; apply/subsetP=> xya; case/imset2P=> xy a.
   case/imset2P=> x y Kx Hy -> Aa -> {xya xy}.
-  rewrite commg_gmult_left (([~ x, a] =P 1) _) ?(conj1g, mul1g).
+  rewrite commMgJ (([~ x, a] =P 1) _) ?(conj1g, mul1g).
     by rewrite groupMl ?groupV // memJ_normg ?(subsetP nHA).
   rewrite subsetI sKG in cKA; apply/commgP; exact: (centralP cKA).
 apply: subset_normal_part; last first.
-  by rewrite /(_ <| G) /=  normGR sym_sgcomm subcomm_normal nGA.
+  by rewrite /(_ <| G) /=  normGR commsgC subcomm_normal nGA.
 apply/allP => p GAp; case/and3P: hallH=> _ piH _; apply: allP piH _ _.
 by rewrite -(LaGrange sGA_H) primes_mul // GAp.
 Qed.

@@ -331,6 +331,9 @@ Hint Resolve lt0n_neq0 neq0_lt0n.
 Lemma eqn_leq : forall m n, (m == n) = (m <= n <= m).
 Proof. elim=> [|m IHm] [|n] //; exact: IHm n. Qed.
 
+Lemma anti_leq : antisymmetric leq.
+Proof. by move=> m n; rewrite -eqn_leq; move/eqP. Qed.
+
 Lemma neq_ltn : forall m n, (m != n) = (m < n) || (n < m).
 Proof. by move=> *; rewrite eqn_leq negb_and orbC -!ltnNge. Qed.
 

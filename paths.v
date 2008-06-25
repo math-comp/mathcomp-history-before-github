@@ -419,6 +419,15 @@ case/predU1P=> [eq_x12 | s1_x2]; first by case ne_x12.
 by rewrite (allP (order_path_min ord_s1)).
 Qed.
 
+Lemma eq_sorted_irr : irreflexive leT -> forall s1 s2,
+  sorted s1 -> sorted s2 -> s1 =i s2 -> s1 = s2.
+Proof.
+move=> leT_irr s1 s2 s1_sort s2_sort eq_s12.
+have: antisymmetric leT.
+  move=> m n; case/andP=> ? ltnm; case/idP: (leT_irr m); exact: leT_tr ltnm.
+move/eq_sorted; apply=> //; apply: uniq_perm_eq => //; exact: sorted_uniq.
+Qed.
+
 End Transitive.
 
 Hypothesis leT_total : total leT.

@@ -59,7 +59,7 @@ Proof. move=> G; elim=> *; exact: groupP. Qed.
 Canonical Structure lower_central_at_group n G := Group (lcn_group_set G n).
 
 Lemma lcn_char : forall G n, 'L_n(G) \char G.
-Proof. by move=> G; elim=> [|n IHn]; rewrite ?lcnSn ?char_comm ?char_refl. Qed.
+Proof. by move=> G; elim=> [|n IHn]; rewrite ?lcnSn ?charR ?char_refl. Qed.
 
 Lemma lcn_normal0 : forall G n, 'L_n(G) <|  G.
 Proof. move=> G n; apply: normal_char; exact: lcn_char. Qed.
@@ -72,7 +72,7 @@ Proof. by move=> G n; case/andP: (lcn_normal0 G n). Qed.
 
 Lemma lcn_subset : forall G n, 'L_n.+1(G) \subset 'L_n(G).
 Proof.
-move=> G n; rewrite lcnSn sym_sgcomm subcomm_normal.
+move=> G n; rewrite lcnSn commsgC subcomm_normal.
 by case/andP: (lcn_normal0 G n).
 Qed.
 
@@ -143,7 +143,7 @@ Proof. move=> G [|n]; exact: groupP. Qed.
 Canonical Structure derived_at_group n G := Group (der_group_set G n).
 
 Lemma der_char : forall G n, G^`(n) \char G.
-Proof. by move=> G; elim=> *; rewrite ?char_refl // dergSn char_comm. Qed.
+Proof. by move=> G; elim=> *; rewrite ?char_refl // dergSn charR. Qed.
 
 End Derived.
 
@@ -322,7 +322,7 @@ rewrite -(central_mulgenE cLL) gen_subG /= central_mulgenE //=.
 apply/subsetP=> xy; case/imset2P=> x y.
 case/imset2P=> x1 x2 Lx1 Lx2 ->{x}; move/sL0: (Lx1) => Gx1.
 case/imset2P=> y1 y2 Gy1 Hy2 ->{y} ->{xy}; move/sL0: (Lx2) => Hx2.
-rewrite commg_gmult_left conjRg conjMg 2!conjgE (cGH _ Gx1) // mulKg.
+rewrite commMgJ conjRg conjMg 2!conjgE (cGH _ Gx1) // mulKg.
 rewrite (cGH _ Gy1) // mulKg.
 rewrite 2!commgEl 2!conjgM conjgE (cGH (x1 ^ y1)) ?groupJ // mulKg -commgEl.
 rewrite (conjgE x2) -(cGH y1) // mulKg -commgEl.
@@ -421,7 +421,7 @@ Qed.
 Require Import dirprod.
 
 Lemma lcn_setX (H1 H2: {group gT}) n : 
-  'L_n (setX H1 H2) = setX ('L_n (H1)) ('L_n (H2)).
+  'L_n(setX H1 H2) = setX 'L_n(H1) 'L_n(H2).
 Proof.
 move=> H1 H2; elim=> [| n Hrec]; first by rewrite !lcn0.
 rewrite !lcnSn Hrec.
@@ -472,7 +472,7 @@ Lemma nilpotent_dirprod (G H1 H2: {group gT}) :
   nilpotent H1 -> nilpotent H2 -> nilpotent G.
 Proof.
 move=> G H1 H2; move/dirprod_normal_isom; case/misomP=> Hm Hi NL1 NL2.
-move/isomP: Hi=> [Hj] <-; apply: nilpotent_morphim=> //.
+move/isomP: Hi => [Hj] <-; apply: nilpotent_morphim=> //.
 case: (nilpotent_setX H1 H2) => _ HH; by apply HH; split.
 Qed.
 

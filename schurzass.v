@@ -520,7 +520,7 @@ move=> sHG nHL ntH; case abelH: (trivg [~: H, H]).
   - by rewrite prime_pdiv // ltnNge -trivg_card.
   - apply: dvdn_trans (dvdn_pdiv _) _; exact: group_dvdn.
   by apply: dvdn_trans (orderg_dvd_g H1x); rewrite (eqP oxp) expnS dvdn_mulr.
-have chH': [~: H, H] \char H by apply: char_comm; apply: char_refl.
+have chH': [~: H, H] \char H by apply: charR; apply: char_refl.
 have [sH'H _] := andP chH'; move/idPn: abelH.
 apply: IHn; last 1 [exact: subset_trans sHG | exact: char_norm_trans nHL].
 apply: leq_trans leHn; rewrite ltnNge -[_ <= _]andTb -sH'H -eqset_sub_card.

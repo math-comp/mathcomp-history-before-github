@@ -56,20 +56,6 @@ Qed.
 Lemma ltn_0log : forall p n, (0 < logn p n) = (p \in primes n).
 Proof. by move=> p n; rewrite lognE -mem_primes; case: {+}(p \in _). Qed.
 
-Lemma anti_leq : antisymmetric leq.
-Proof. by move=> m n; rewrite -eqn_leq; move/eqP. Qed.
-
-Lemma eq_sorted_irr : forall (T : eqType) (lt : rel T),
-  ssrbool.transitive lt -> irreflexive lt ->
-  forall s1 s2, sorted lt s1 -> sorted lt s2 -> s1 =i s2 -> s1 = s2.
-Proof.
-move=> T lt lt_trans lt_irr s1 s2 s1_sort s2_sort eq_s12.
-have: antisymmetric lt.
-  move=> m n; case/andP=> ? ltnm; case/idP: (lt_irr m); exact: lt_trans ltnm.
-move/eq_sorted; apply=> //.
-apply: uniq_perm_eq => //; exact: (sorted_uniq lt_trans).
-Qed.
-
 Lemma sorted_primes : forall n, sorted ltn (primes n).
 Proof. by move=> n; rewrite !(sorted_filter ltn_trans, sorted_ltn_iota). Qed.
 
@@ -250,15 +236,6 @@ Definition pi_subgroup pi (G H : {group gT}) :=
   (H \subset G) && all pi (primes #|H|).
 
 End MoreHall.
-
-Lemma ltn_0indexg : forall (gT : finGroupType) (G : {set gT}) (H : {group gT}),
-  0 < indexg G H.
-Proof.
-move=> gT G H; rewrite lt0n; apply/existsP; exists G.
-rewrite -{2}[G]mulg1 -rcosetE; exact: mem_imset.
-Qed.
-
-Hint Resolve ltn_0indexg.
 
 Lemma HallSolvable : forall pi (gT : finGroupType) (G : {group gT}),
   solvable G -> exists2 H : {group gT}, hall_for pi G H
