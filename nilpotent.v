@@ -67,6 +67,9 @@ Proof. move=> G n; apply: normal_char; exact: lcn_char. Qed.
 Lemma lcn_subset0 : forall G n, 'L_n(G) \subset G.
 Proof. by move=> G n; case/andP: (lcn_normal0 G n). Qed.
 
+Lemma lcn_normaliser0 : forall G n, G \subset  'N('L_n(G) ).
+Proof. by move=> G n; case/andP: (lcn_normal0 G n). Qed.
+
 Lemma lcn_subset : forall G n, 'L_n.+1(G) \subset 'L_n(G).
 Proof.
 move=> G n; rewrite lcnSn sym_sgcomm subcomm_normal.
@@ -82,7 +85,7 @@ Qed.
 Lemma lcn_center : forall G n, 'L_n(G) / 'L_n.+1(G) \subset 'Z(G / 'L_n.+1(G)).
 Proof.
 move=> G n; rewrite subsetI ?lcn_subset0 //=.
-by rewrite morphimS ?center_commgr ?lcn_normal0 ?lcn_subset0 ?lcn_subset.
+by rewrite morphimS ?center_commgr ?lcn_normaliser0 ?lcn_subset0 ?lcn_subset.
 Qed.
 
 Lemma lcn_stable : forall G n m, n <= m ->  trivg 'L_n(G) -> trivg 'L_m(G).

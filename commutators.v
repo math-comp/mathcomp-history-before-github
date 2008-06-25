@@ -249,17 +249,16 @@ apply; apply/imsetP; exists k; last done; apply/setIP; split; last done.
 by apply: (subsetP normK).
 Qed. 
 
-Lemma  center_commgr: forall G H K : {group T},
-    K <| G -> H <| G -> K \subset H ->
+Lemma  center_commgr: forall G H K: {group T}, 
+  G \subset 'N(K) -> G \subset 'N(H) ->
   [~: H, G] \subset K -> (H / K) \subset  'C(G / K).
 Proof.
-move=> G H K; case/andP=> KsubG normK.
-case/andP=> HsubG normH KsubH; rewrite gen_subG /commg_set.
+move=> G H K normK normH; rewrite gen_subG /commg_set.
 move/subsetP=>sub; apply/subsetP=>co.
 case/imsetP=>h; case/setIP=> hinN hinH -> {co}; apply/centgP=>co.
 case/imsetP=>x; case/setIP=> xinN xinG -> {co}; apply/commgP; apply/eqP.
-rewrite (commg_coset normK (subsetP HsubG _ hinH) xinG).
-by apply: coset_of_id; apply: sub; apply/imset2P; apply: (Imset2spec hinH xinG).
+rewrite (commg_coset (subset_refl _)) //;  apply: coset_of_id.
+by apply: sub; apply/imset2P; apply: (Imset2spec hinH xinG).
 Qed. 
 
 Lemma distr_sgcomml: forall (H K L: group T), [~: H, L] * [~: K, L] \subset [~: H * K , L] .
@@ -274,49 +273,48 @@ move/generatedP=>gen1; move/generatedP=>gen2 ->; apply: groupM.
   by move: h hin; apply:subsetP; apply: mulg_subr.
 Qed.
 
-Lemma distr_commg_set: forall (H K L: group T), normal H -> normal L ->
+Lemma distr_commg_set: forall (H K L: group T), K \subset 'N(H) -> K \subset 'N(L) ->
 commg_set (H * K)  L \subset [~: H, L] * [~: K, L].
+Proof.
 move=> H K L normalH normalL.
 apply/subsetP=> c. case/imset2P=> hk l.
 case/imset2P=> h k hin kin -> lin -> {hk}. 
 rewrite commg_gmult_left.
 apply/imset2P; apply: Imset2spec; last done.
 - rewrite/commg conjMg conjJg conjVg -/(commg (h ^ k) (l ^ k)).
-  apply: mem_geng. apply/imset2P. apply: Imset2spec; last done.
-  - by rewrite memJ_normg; first done; apply/normgP.
-  - by rewrite memJ_normg; first done; apply/normgP.
+  apply: mem_geng; apply/imset2P; apply: Imset2spec; last done.
+  - by rewrite memJ_normg; first done; apply (subsetP normalH).
+  - by rewrite memJ_normg; first done; apply (subsetP normalL).
 - by apply: mem_geng; apply/imset2P; apply: Imset2spec; last done.
 Qed.
 
-Theorem normal_scommg:  forall (H K: group T), normal H -> normal K -> normal [~: H, K].
-move=> H K normalH normalK x.
-apply/eqP; rewrite/commutator -genJg; apply/eqP.
-apply/eqP; rewrite eqset_sub; apply/andP; split; apply: genSg.
-- apply/subsetP=> y; case/imsetP=> c; case/imset2P=> h k hin kin -> -> {y c}.
-  rewrite conjRg; apply/imset2P; apply: Imset2spec; last done.
-  - by rewrite memJ_normg; first done; apply/normgP.
-  - by rewrite memJ_normg; first done; apply/normgP.
-- apply/subsetP=> y; case/imset2P=> h k hin kin -> {y}.
-  rewrite -(conjgKV x h); rewrite -(conjgKV x k) -conjRg.
-  apply/imsetP; exists [~ h^ x^-1, k^ x^-1]; last done.
-  apply/imset2P; apply: Imset2spec; last done.
-  - by rewrite memJ_normg; first done; apply/normgP.
-  - by rewrite memJ_normg; first done; apply/normgP.
+Theorem normal_scommg:  forall (H K L: group T), K \subset 'N(L) 
+-> [~: K, L] \subset 'N([~: H, L]).
+Proof.
+move=> H K L normalK. 
+have subL: [~: K, L] \subset L by rewrite subcomm_normal.
+by apply: (subset_trans subL); rewrite sym_sgcomm; apply: normGR.
 Qed.
 
-Lemma group_set_scommgM: forall (H K L: group T), normal H -> normal L ->
-group_set ([~: H, L] * [~: K, L]).
+Lemma group_set_scommgM: forall (H K L: group T), K \subset 'N(H) -> K \subset 'N(L) 
+-> group_set ([~: H, L] * [~: K, L]).
 Proof.
 move=> H K L normalH normalL; apply/comm_group_setP.
-by apply:commute_sym; apply: normalC => c cin; apply: normal_scommg.
+by apply:commute_sym; apply: normC; apply: normal_scommg.
 Qed.
 
-Theorem distr_sgcomm: forall (H K L: group T) (nh: normal H) (nl : normal L),
-[~: H * K , L] = Group (group_set_scommgM  K nh nl).
-Proof. move=> H K L normalH normalL.
+Theorem distr_sgcommG: forall (H K L: group T) (nh: K \subset 'N(H)) (nl: K \subset 'N(L)),
+[~: H * K , L] = Group (group_set_scommgM  nh nl).
+Proof. 
+move=> H K L normalH normalL.
 apply/eqP; rewrite eqset_sub; apply/andP; split.
 - by rewrite gen_subG /=; apply: distr_commg_set.
 - apply: distr_sgcomml.
+Qed.
+
+Theorem distr_sgcomm: forall (H K L: group T), K \subset 'N(H) -> K \subset 'N(L) ->
+[~: H * K , L] = [~: H, L] * [~: K, L]. 
+Proof. by move=> H K L nH nL; rewrite (distr_sgcommG nH nL).
 Qed.
 
 (* redundant -- proved the equality
@@ -348,6 +346,14 @@ move=> H subH; apply/setP => x; apply/idP/idP.
 - by move/set1P=> xis1; rewrite xis1; apply: (group1 (generated_group H)).
 Qed.
 *)
+
+Lemma triv_comm_centr: forall G A: {set T}, [~: 'C_G(A), A] = 1. 
+move=> G A.
+apply/eqP; rewrite eqset_sub; apply/andP; split.
+- rewrite gen_subG /=; apply/subsetP=> c; case/imset2P=> x y; case/setIP=> xinG xinC yin ->.
+  by apply/set1P; apply/eqP; apply/commgP; apply: (centgP xinC).
+- by apply/subsetP=> one; move/set1P ->; apply: group1.
+Qed.
 
 Lemma comm3G1P : forall H K L : {set T},
   reflect {in H & K & L, forall h k l, [~ h, k, l] = 1} ([~: H, K, L] == 1).
