@@ -73,7 +73,7 @@ Canonical Structure set_predType T :=
 (* Use specific canonical structures for sets. This allows to have  *)
 (* smaller terms, because generic operators involve only two levels *)
 (* of nesting rather than three here; also, this lets Coq unify     *)
-(* sets with predType sorts after the fact.                         
+(* sets with predType sorts after the fact.
 Canonical Structure set_predType := Eval hnf in mkPredType pred_of_set.
 Canonical Structure set_for_predType := Eval hnf in [predType of sT].
   Not selected because having two different ways of coercing to
@@ -489,17 +489,17 @@ Lemma setDS : forall A B C, A \subset B -> C :\: B \subset C :\: A.
 Proof. by move=> A B C; rewrite !setDE -setCS; exact: setIS. Qed.
 
 Lemma setD0 : forall A, A :\: set0 = A.
-Proof. by move=> A; apply/setP=>x; rewrite !inE. Qed.
+Proof. by move=> A; apply/setP=> x; rewrite !inE. Qed.
 
 Lemma set0D : forall A, set0 :\: A = set0.
-Proof. by move=> A; apply/setP=>x; rewrite !inE andbF. Qed.
- 
+Proof. by move=> A; apply/setP=> x; rewrite !inE andbF. Qed.
+
 Lemma setDT : forall A, A :\: setT = set0.
 Proof. by move=> A; apply/setP=> x; rewrite !inE. Qed.
 
 Lemma setTD : forall A, setT :\: A = ~: A.
 Proof. by move=> A; apply/setP=> x; rewrite !inE andbT. Qed.
- 
+
 Lemma setDv : forall A, A :\: A = set0.
 Proof. by move=> A; apply/setP=> x; rewrite !inE andNb. Qed.
 
@@ -587,23 +587,27 @@ Proof.
 by move=> A x; rewrite -subset_pred1; apply: eq_subset=> y; rewrite !inE.
 Qed.
 
-Lemma eqsetIl : forall A B, (A :&: B == A) = (A \subset B).
+Lemma setIidPl : forall A B, reflect (A :&: B = A) (A \subset B).
 Proof.
-move=> A B; apply/eqP/subsetP=> [<- x | sAB]; first by case/setIP.
+move=> A B; apply: (iffP subsetP) => [sAB | <- x]; last by case/setIP.
 by apply/setP=> x; rewrite inE; case Ax: (x \in A); rewrite // sAB.
 Qed.
+Implicit Arguments setIidPl [A B].
 
-Lemma eqsetUl : forall A B, (A :|: B == A) = (B \subset A).
-Proof. by move=> A B; rewrite -(inj_eq setC_inj) setCU eqsetIl setCS. Qed.
+Lemma setIidPr : forall A B, reflect (A :&: B = B) (B \subset A).
+Proof. move=> A B; rewrite setIC; exact: setIidPl. Qed.
 
-Lemma eqsetIr : forall A B, (A :&: B == B) = (B \subset A).
-Proof. by move=> A B; rewrite setIC eqsetIl. Qed.
+Lemma setUidPl : forall A B, reflect (A :|: B = A) (B \subset A).
+Proof.
+move=> A B; rewrite -setCS (sameP setIidPl eqP) -setCU (inj_eq setC_inj).
+exact: eqP.
+Qed.
 
-Lemma eqsetUr : forall A B, (A :|: B == B) = (A \subset B).
-Proof. by move=> A B; rewrite setUC eqsetUl. Qed.
+Lemma setUidPr : forall A B, reflect (A :|: B = B) (A \subset B).
+Proof. move=> A B; rewrite setUC; exact: setUidPl. Qed.
 
-Lemma eqsetDl : forall A B, (A :\: B == A) = [disjoint A & B].
-Proof. by move=> A B; rewrite setDE eqsetIl -disjoints_subset. Qed.
+Lemma setDidPl : forall A B, reflect (A :\: B = A) [disjoint A & B].
+Proof. move=> A B; rewrite setDE disjoints_subset; exact: setIidPl. Qed.
 
 Lemma subIset : forall A B C,
   (B \subset A) || (C \subset A) -> (B :&: C \subset A).
@@ -614,7 +618,8 @@ Qed.
 Lemma subsetI : forall A B C,
   (A \subset B :&: C) = (A \subset B) && (A \subset C).
 Proof.
-move=> A B C; rewrite -!eqsetIl setIA; case: (A :&: B =P A) => [-> //| nsAa].
+move=> A B C; rewrite !(sameP setIidPl eqP) setIA.
+case: (A :&: B =P A) => [-> //| nsAa].
 by apply/eqP=> sAab; case: nsAa; rewrite -sAab -setIA -setIIl setIAC.
 Qed.
 
@@ -638,6 +643,12 @@ by case Bx: (x \in B) => //; move/sABC; rewrite inE Bx.
 Qed.
 
 End setOps.
+
+Implicit Arguments setIidPl [T A B].
+Implicit Arguments setIidPr [T A B].
+Implicit Arguments setUidPl [T A B].
+Implicit Arguments setUidPr [T A B].
+Implicit Arguments setDidPl [T A B].
 
 Section setOpsAlgebra.
 
@@ -726,7 +737,7 @@ apply: (iffP (imageP _ _ _)) => [[[x1 x2] Dx12] | [x1 x2 Dx1 Dx2]] -> {y}.
 by exists (x1, x2); rewrite //= Dx1.
 Qed.
 
-Lemma imset_f_imp : forall (D : pred aT) x, x \in D -> f x \in f @: D.
+Lemma mem_imset : forall (D : pred aT) x, x \in D -> f x \in f @: D.
 Proof. by move=> D x Dx; apply/imsetP; exists x. Qed.
 
 Lemma imset_set1 : forall x, f @: [set x] = [set f x].
@@ -735,7 +746,7 @@ move=> x; apply/setP => y.
 by apply/imsetP/set1P=> [[x']| ->]; [move/set1P-> | exists x; rewrite ?set11].
 Qed.
 
-Lemma imset2_f_imp : forall (D : pred aT) (D2 : pred aT2) x x2,
+Lemma mem_imset2 : forall (D : pred aT) (D2 : pred aT2) x x2,
   x \in D -> x2 \in D2 -> f2 x x2 \in f2 @2: (D, D2).
 Proof. by move=> D D2 x x2 Dx Dx2; apply/imset2P; exists x x2. Qed.
 
@@ -786,7 +797,7 @@ Proof.
 move=> A B finj; apply/eqP; rewrite eqset_sub subsetI.
 rewrite 2?imsetS (andTb, subsetIl, subsetIr) //=.
 apply/subsetP=> y; case/setIP; case/imsetP=> x Ax ->{y}.
-by case/imsetP=> z Bz; move/finj=> eqxz; rewrite imset_f_imp // inE Ax eqxz.
+by case/imsetP=> z Bz; move/finj=> eqxz; rewrite mem_imset // inE Ax eqxz.
 Qed.
 
 Lemma imset2Sl : forall (A B : pred aT) (C : pred aT2),
@@ -913,8 +924,8 @@ Lemma imset_comp : forall (f : T' -> U) (g : T -> T') (H : pred T),
   (f \o g) @: H = f @: (g @: H).
 Proof.
 move=> f g H; apply/setP; apply/subset_eqP; apply/andP.
-split; apply/subsetP=> x; move/imsetP=>[x0 Hx0 ->]; apply/imsetP.
-  by exists (g x0); first apply:imset_f_imp.
+split; apply/subsetP=> x; move/imsetP=> [x0 Hx0 ->]; apply/imsetP.
+  by exists (g x0); first apply:mem_imset.
 by move/imsetP: Hx0=> [x1 Hx1 ->]; exists x1.
 Qed.
 
@@ -965,9 +976,11 @@ Definition prednOp :=
 
 End OpSet.
 
+Reserved Notation "\bigcup_ i F"
+  (at level 41, F at level 41, i at level 0,
+           format "'[' \bigcup_ i '/  '  F ']'").
 Reserved Notation "\bigcup_ ( <- r | P ) F"
   (at level 41, F at level 41, r at level 50,
-     right associativity,
            format "'[' \bigcup_ ( <-  r  |  P ) '/  '  F ']'").
 Reserved Notation "\bigcup_ ( i <- r | P ) F"
   (at level 41, F at level 41, i, r at level 50,
@@ -984,9 +997,6 @@ Reserved Notation "\bigcup_ ( m <= i < n ) F"
 Reserved Notation "\bigcup_ ( i | P ) F"
   (at level 41, F at level 41, i at level 50,
            format "'[' \bigcup_ ( i  |  P ) '/  '  F ']'").
-Reserved Notation "\bigcup_ ( i ) F"
-  (at level 41, F at level 41, i at level 50,
-           format "'[' \bigcup_ ( i ) '/  '  F ']'").
 Reserved Notation "\bigcup_ ( i : t | P ) F"
   (at level 41, F at level 41, i at level 50,
            format "'[' \bigcup_ ( i   :  t   |  P ) '/  '  F ']'").
@@ -1018,8 +1028,8 @@ Notation "\bigcup_ ( m <= i < n ) F" :=
   (\big[@setU _/set0]_(m <= i < n) F%SET) : set_scope.
 Notation "\bigcup_ ( i | P ) F" :=
   (\big[@setU _/set0]_(i | P%B) F%SET) : set_scope.
-Notation "\bigcup_ ( i ) F" :=
-  (\big[@setU _/set0]_(i) F%SET) : set_scope.
+Notation "\bigcup_ i F" :=
+  (\big[@setU _/set0]_i F%SET) : set_scope.
 Notation "\bigcup_ ( i : t | P ) F" :=
   (\big[@setU _/set0]_(i : t | P%B) F%SET) (only parsing): set_scope.
 Notation "\bigcup_ ( i : t ) F" :=
@@ -1070,9 +1080,11 @@ Qed.
 
 End Unions.
 
+Reserved Notation "\bigcap_ i F"
+  (at level 41, F at level 41, i at level 0,
+           format "'[' \bigcap_ i '/  '  F ']'").
 Reserved Notation "\bigcap_ ( <- r | P ) F"
   (at level 41, F at level 41, r at level 50,
-     right associativity,
            format "'[' \bigcap_ ( <-  r  |  P ) '/  '  F ']'").
 Reserved Notation "\bigcap_ ( i <- r | P ) F"
   (at level 41, F at level 41, i, r at level 50,
@@ -1089,9 +1101,6 @@ Reserved Notation "\bigcap_ ( m <= i < n ) F"
 Reserved Notation "\bigcap_ ( i | P ) F"
   (at level 41, F at level 41, i at level 50,
            format "'[' \bigcap_ ( i  |  P ) '/  '  F ']'").
-Reserved Notation "\bigcap_ ( i ) F"
-  (at level 41, F at level 41, i at level 50,
-           format "'[' \bigcap_ ( i ) '/  '  F ']'").
 Reserved Notation "\bigcap_ ( i : t | P ) F"
   (at level 41, F at level 41, i at level 50,
            format "'[' \bigcap_ ( i   :  t   |  P ) '/  '  F ']'").
@@ -1123,8 +1132,8 @@ Notation "\bigcap_ ( m <= i < n ) F" :=
   (\big[@setI _/setT]_(m <= i < n) F%SET) : set_scope.
 Notation "\bigcap_ ( i | P ) F" :=
   (\big[@setI _/setT]_(i | P%B) F%SET) : set_scope.
-Notation "\bigcap_ ( i ) F" :=
-  (\big[@setI _/setT]_(i) F%SET) : set_scope.
+Notation "\bigcap_ i F" :=
+  (\big[@setI _/setT]_i F%SET) : set_scope.
 Notation "\bigcap_ ( i : t | P ) F" :=
   (\big[@setI _/setT]_(i : t | P%B) F%SET) (only parsing): set_scope.
 Notation "\bigcap_ ( i : t ) F" :=
@@ -1267,7 +1276,7 @@ suff f:  c (S x) (\bigcup_(i <- s | i \in A) S i).
   rewrite /reducebig unlock in f; case/orP: f => [Hsub|Hdisj]; last first.
     rewrite (card_disjoint Hdisj); move/idP: e => e.
     by rewrite (dvdn_addr _ (Ch x e)); exact: IH.
-  rewrite -eqsetUl setUC in Hsub; move/eqP: Hsub=>->; exact:IH.
+  move/setUidPr: Hsub => ->; exact: IH.
 apply big_prop => [|x1 x2|i Ai]; rewrite {}/c.
 - by rewrite disjoints_subset setC0 subsetT orbT.
 - rewrite !disjoints_subset setCU subsetI [_ || _ && _]orbC.
@@ -1295,14 +1304,14 @@ Qed.
 Lemma curry_imset2l : f @2: (D1, D2) = \bigcup_(x1 \in D1) f x1 @: D2.
 Proof.
 apply/setP=> y; apply/imset2P/bigcupP => [[x1 x2 Dx1 Dx2 ->{y}] | [x1 Dx1]].
-  by exists x1; rewrite // imset_f_imp.
+  by exists x1; rewrite // mem_imset.
 by case/imsetP=> x2 Dx2 ->{y}; exists x1 x2.
 Qed.
 
 Lemma curry_imset2r : f @2: (D1, D2) = \bigcup_(x2 \in D2) f^~ x2 @: D1.
 Proof.
 apply/setP=> y; apply/imset2P/bigcupP => [[x1 x2 Dx1 Dx2 ->{y}] | [x2 Dx2]].
-  by exists x2; rewrite // (imset_f_imp (f^~ x2)).
+  by exists x2; rewrite // (mem_imset (f^~ x2)).
 by case/imsetP=> x1 Dx1 ->{y}; exists x1 x2.
 Qed.
 

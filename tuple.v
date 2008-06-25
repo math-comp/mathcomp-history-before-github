@@ -21,7 +21,7 @@ Canonical Structure tuple_subType := SubType tval tuple_rect vrefl.
 Lemma size_tuple : forall t : tuple, size t = n.
 Proof. move=> f; exact: (eqP (valP f)). Qed.
 
-Lemma tsub_default : forall (t : tuple) (i : I_(n)), T.
+Lemma tsub_default : forall (t : tuple) (i : 'I_n), T.
 Proof. by case=> [[|//]]; move/eqP <-; case. Qed.
 
 Definition tsub t i := sub (tsub_default t i) t i.
@@ -29,7 +29,7 @@ Definition tsub t i := sub (tsub_default t i) t i.
 Lemma tsub_sub : forall x t i, tsub t i = sub x t i.
 Proof. by move=> x t i; apply: set_sub_default; rewrite size_tuple. Qed.
 
-Lemma maps_tsub_enum : forall t, maps (tsub t) (enum {I_(n)}) = t.
+Lemma maps_tsub_enum : forall t, maps (tsub t) (enum {'I_n}) = t.
 Proof.
 move=> t; case def_t: {-}(val t) => [|x0 t'].
   by rewrite [enum _]size_eq0 // -cardE card_ord -(size_tuple t) def_t.
@@ -208,8 +208,8 @@ Lemma enum_tupleP : forall a : pred T, size (enum a) == #|a|.
 Proof. by move=> a; rewrite -cardE. Qed.
 Canonical Structure enum_tuple a := Tuple (enum_tupleP a).
 
-Definition ord_tuple : tuple n I_(n) := Tuple (introT eqP (size_enum_ord n)).
-Lemma val_ord_tuple : val ord_tuple = enum {I_(n)}. Proof. by []. Qed.
+Definition ord_tuple : tuple n 'I_n := Tuple (introT eqP (size_enum_ord n)).
+Lemma val_ord_tuple : val ord_tuple = enum {'I_n}. Proof. by []. Qed.
 
 Lemma tuple_maps_ord : forall T' (t : tuple n T'),
   t = [tuple of maps (tsub t) ord_tuple].

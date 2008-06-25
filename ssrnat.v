@@ -447,9 +447,6 @@ Proof. move=> p *; rewrite -!(addnC p); apply leq_add2l. Qed.
 Lemma ltn_add2r : forall p m n, (m + p < n + p) = (m < n).
 Proof. move=> *; exact: leq_add2r _.+1 _. Qed.
 
-Lemma ltnSSn : forall n, 1 < n.+2.
-Proof. by []. Qed.
-
 Lemma leq_add : forall m1 m2 n1 n2,
   m1 <= n1 -> m2 <= n2 -> m1 + m2 <= n1 + n2.
 Proof.
@@ -580,10 +577,10 @@ move=> m n1 n2; wlog le_n21: n1 n2 / n2 <= n1.
   by case/orP: (leq_total n2 n1) => ?; last rewrite maxnC orbC; auto.
 rewrite /maxn ltnNge le_n21 /=; case: leqP => // lt_m_n1.
 by rewrite leqNgt (leq_trans _ lt_m_n1).
-Qed.  
+Qed.
 
 Lemma leq_maxl : forall m n1 n2, (maxn n1 n2 <= m) = (n1 <= m) && (n2 <= m).
-Proof. by move=> m n1 n2; rewrite leqNgt leq_maxr negb_or -!leqNgt. Qed.  
+Proof. by move=> m n1 n2; rewrite leqNgt leq_maxr negb_or -!leqNgt. Qed.
 
 Lemma addn_maxl : left_distributive addn maxn.
 Proof. by move=> m1 m2 n; rewrite -!add_sub_maxn subn_add2r addnAC. Qed.
@@ -642,10 +639,10 @@ Proof.
 move=> m n1 n2; wlog le_n21: n1 n2 / n2 <= n1.
   by case/orP: (leq_total n2 n1) => ?; last rewrite minnC andbC; auto.
 by rewrite /minn ltnNge le_n21 /= andbC; case: leqP => //; move/leq_trans->.
-Qed.  
+Qed.
 
 Lemma leq_minl : forall m n1 n2, (minn n1 n2 <= m) = (n1 <= m) || (n2 <= m).
-Proof. by move=> m n1 n2; rewrite leqNgt leq_minr negb_and -!leqNgt. Qed.  
+Proof. by move=> m n1 n2; rewrite leqNgt leq_minr negb_and -!leqNgt. Qed.
 
 Lemma addn_minl : left_distributive addn minn.
 Proof.
@@ -767,7 +764,7 @@ Lemma leq_mul : forall m1 m2 n1 n2, m1 <= n1 -> m2 <= n2 -> m1 * m2 <= n1 * n2.
 Proof.
 move=> m1 m2 n1 n2 le_mn1 le_mn2; apply (@leq_trans (m1 * n2)).
   by rewrite leq_mul2l le_mn2 orbT.
-by rewrite leq_mul2r le_mn1 orbT. 
+by rewrite leq_mul2r le_mn1 orbT.
 Qed.
 
 Lemma eqn_mul2l : forall m n1 n2, (m * n1 == m * n2) = (m == 0) || (n1 == n2).
@@ -898,8 +895,8 @@ Proof. by move=> * e1 e2; move/eqP; rewrite eqn_exp2l //; move/eqP. Qed.
 
 Lemma leq_pexp2l : forall m n1 n2, 0 < m -> n1 <= n2 -> m ^ n1 <= m ^ n2.
 Proof. by move=> [|[|m]] // *; [rewrite !exp1n | rewrite leq_exp2l]. Qed.
- 
-Lemma ltn_pexp2l : forall m n1 n2, 0 < m -> m ^ n1 < m ^ n2 -> n1 < n2. 
+
+Lemma ltn_pexp2l : forall m n1 n2, 0 < m -> m ^ n1 < m ^ n2 -> n1 < n2.
 Proof. by move=> [|[|m]] // n1 n2; [rewrite !exp1n | rewrite ltn_exp2l]. Qed.
 
 Lemma ltn_exp2r : forall m n e, e > 0 -> (m ^ e < n ^ e) = (m < n).
@@ -1283,7 +1280,7 @@ Lemma addE : add =2 addn.
 Proof. by elim=> //= n IHn m; rewrite IHn addSnnS. Qed.
 
 Lemma doubleE : double =1 doublen.
-Proof. by case=> // n; rewrite -addnn -addE. Qed. 
+Proof. by case=> // n; rewrite -addnn -addE. Qed.
 
 Lemma add_mulE : forall n m s, add_mul n m s = addn (muln n m) s.
 Proof. by elim=> //= n IHn m s; rewrite IHn addE addnCA addnA. Qed.
@@ -1330,7 +1327,7 @@ Section Trec.
 Import NatTrec.
 
 Fixpoint nat_of_pos p0 :=
-  match p0 with 
+  match p0 with
   | xO p => (nat_of_pos p).*2
   | xI p => (nat_of_pos p).*2.+1
   | xH   => 1
@@ -1423,7 +1420,7 @@ Notation "[ 'Num' 'of' e ]" := (Num (bin_of_nat e))
 Lemma nat_semi_ring : semi_ring_theory 0 1 addn muln (@eq _).
 Proof. exact: mk_srt add0n addnC addnA mul1n mul0n mulnC mulnA muln_addl. Qed.
 
-Lemma nat_semi_morph : 
+Lemma nat_semi_morph :
   semi_morph 0 1 addn muln (@eq _) 0%num 1%num Nplus Nmult pred1 nat_of_bin.
 Proof.
 by move: nat_of_add_bin nat_of_mul_bin; split=> //= m n; move/eqP->.

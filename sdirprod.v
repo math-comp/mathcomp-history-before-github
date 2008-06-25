@@ -40,27 +40,27 @@ Definition perm_of_act x := (perm_of (@inj_act _ _ psi x)).
 
 Hypothesis Haut : forall x, Aut (@setT gT2) (perm_of_act x).
 
-Definition extsprod_mulg (x y : gT1 * gT2) := 
+Definition extsprod_mulg (x y : gT1 * gT2) :=
   (x.1 * y.1, (perm_of_act y.1 x.2) * y.2).
-Definition extsprod_invg (x : gT1 * gT2) := 
+Definition extsprod_invg (x : gT1 * gT2) :=
   (x.1^-1, (perm_of_act x.1^-1 x.2^-1)).
 
 Lemma extsprod_mulgA : associative extsprod_mulg.
 Proof.
 move=> x y z; congr ( _ , _ ); rewrite /= ?permE ?mulgA //.
 rewrite actM; set Hmorph := (proj2 (andP (Haut z.1))).
-move/morphP: (Hmorph); move/(_ (psi x.2 y.1) y.2); rewrite !in_setT.
+move/morphicP: (Hmorph); move/(_ (psi x.2 y.1) y.2); rewrite !in_setT.
 by move/(_ is_true_true is_true_true); rewrite !permE=> <-.
 Qed.
 
 Lemma extsprod_mulVg : left_inverse (1, 1) extsprod_invg extsprod_mulg.
 Proof.
-by move=> x; congr (_, _)=>/=; rewrite ?permE -?actM mulVg // act1 mulVg.
+by move=> x; congr (_, _)=> /=; rewrite ?permE -?actM mulVg // act1 mulVg.
 Qed.
 
 Lemma extsprod_mul1g : left_unit (1, 1) extsprod_mulg.
 Proof. case=> x1 x2; congr (_, _); rewrite ?permE /= ?act1 ?mul1g //.
-by move: (morphic1 (proj2 (andP (Haut x1)))); rewrite !permE=>->; rewrite mul1g.
+by move: (morphic1 (proj2 (andP (Haut x1)))); rewrite !permE=> ->; rewrite mul1g.
 Qed.
 
 Canonical Structure extprod_baseFinGroupType := Eval hnf in

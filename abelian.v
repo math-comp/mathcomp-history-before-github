@@ -693,8 +693,7 @@ case: (x ^+ (f x) =P 1) => [xfx1 | xfx].
       by apply/eqP=> x1; rewrite -x1 Xx in notX1. 
     apply: (asub abelX); rewrite -gen_subG.
     by rewrite setU1E (@genDU _ _ _ X) // BXx setD1E setDE -setC1E.
-  move: XIx; rewrite subset_disjoint; case/existsP=> y.
-  rewrite /= !inE -andbA; case/and3P; case/cyclicP => k <-{y}.
+  case/subsetPn: XIx => y; case/setIP; case/cyclicP => k <-{y}.
   rewrite (divn_eq k (f x)) expgn_add mulnC expgn_mul xfx1 exp1gn.
   rewrite mul1g -groupV; case/agenP=> [|g gX emg xknot1].
     by apply: (asub abelX); rewrite -gen_subG genSg // setD1E subsetIr.

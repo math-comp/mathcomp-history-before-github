@@ -27,22 +27,18 @@ Hypothesis Hx : x \in H.
 
 (* proof to be reworked *)
 Lemma orderg_krg : forall p (Hp : prime p) l y,
-    y \in C_(H)[x] / cyclic x ->
+    y \in 'C_H[x] / cyclic x ->
     #[x] = (p ^ l.+1)%N ->
     coprime #[x] #[y] ->
   exists z, [&& coprime #[x] #[z],
                 coset_of (cyclic x) z == y
-              & z \in C_(H)[x]].
+              & z \in 'C_H[x]].
 Proof.
 move=> p Hp l y.
-case/quotientP => i [Hi1 Hi2 ->] Hox {y} Hy.
-case Hnt: (trivm (coset_of (cyclic x))).
-  exists (1: gT).
-  by rewrite !(trivm_is_cst Hnt) group1 orderg1 eq_refl 
-            /coprime -gcdn_modl modn1 gcdnC gcdn0.
-set y := coset_of _ i.
+case/morphimP => i [Hi1 Hi2 ->] Hox {y} Hy.
+set y := coset_of (cyclic x) i.
 have F1: coset_of (cyclic x) (i ^+ #[y]) = 1.
-  by rewrite coset_ofX ?orderg_expn1 // dom_coset ?Hnt.
+  by rewrite morphX ?orderg_expn1 // dom_coset ?Hnt.
 have F2: i ^+ #[y] \in 'N(cyclic x).
   by rewrite groupX.
 case/cyclicP: (coset_of_idr F2 F1) => j Hj.
@@ -50,9 +46,9 @@ have:= Hy; rewrite coprime_sym {1}/coprime => Hy1.
 have:= bezoutr #[x] (orderg_pos y).
 rewrite gcdnC (eqP Hy1); case => u Hu.
 case/dvdnP => v Hv {Hy1}.
-have C1: x ^+ v \in C_(H)[x].
+have C1: x ^+ v \in 'C_H[x].
   by apply: centraliserXr => //; exact: centraliser_id.
-have F0: commute x i by case/centraliserP: Hi1.
+have F0: commute x i by move/centraliserP: Hi2 =>[_].
 have F4: x ^+ (v * #[y]) = x.
   by rewrite -Hv expgn_add expg1 mulnC expgn_mul orderg_expn1 exp1gn mulg1.
 have F5: x ^+ (j * v * #[y]) = i ^+ #[y].
@@ -65,7 +61,7 @@ have F6: ((x ^+ k1) * i) ^+ #[y] = 1.
   rewrite -{2}(mul1n #[y]) -muln_addl.
   rewrite addnC subnK; last exact: orderg_pos.
   by rewrite mulnC -!mulnA expgn_mul orderg_expn1 exp1gn.
-have F7: x ^+ k1 \in C_(H)[x].
+have F7: x ^+ k1 \in 'C_H[x].
   by apply: centraliserXr; exact: centraliser_id.
 exists (x ^+ k1 * i).
 rewrite groupM // andbT; apply/andP; split.
@@ -74,44 +70,37 @@ rewrite groupM // andbT; apply/andP; split.
   by move: Hy; rewrite Hk coprime_mulr; case/andP.
 rewrite coset_of_morphM -/y; last by rewrite ?dom_coset ?Hnt.
   rewrite coset_of_id ?cyclic_in; gsimpl.
-by rewrite dom_coset ?Hnt // groupX //= (subsetP (normG _)) // cyclicnn.
+by rewrite ?Hnt // groupX //= (subsetP (normG _)) // cyclicnn.
 Qed.
 
 Lemma KB_image: forall p (Hp : prime p) l s,
   #[x] = (p ^ l.+1)%N -> coprime #[x] s ->
-  image (coset_of (cyclic x)) [pred z \in C_(H)[x] | #[z] %| s]
-     =i [pred z \in C_(H)[x] / cyclic x | #[z] %| s].
+  image (coset_of (cyclic x)) [pred z \in 'C_H[x] | #[z] %| s]
+     =i [pred z \in 'C_H[x] / cyclic x | #[z] %| s].
 Proof.
 move=> p Hp l s H1 H2 x1; apply/idP/idP; rewrite inE /= => H3.
   case: (diinv_exists H3) => y /=; do 2![case/andP] => HH1 HH2 HH3.
   rewrite orderg_dvd; apply/andP; split.
-    by apply/imsetP; exists y => //; rewrite (eqP HH3).
-  rewrite -(eqP HH3).
-  case Ht: (trivm (coset_of (cyclic x))). 
-    by rewrite (trivm_is_cst Ht) exp1gn.
-  rewrite -coset_ofX.
-    rewrite (_ : y ^+ s = 1) ?coset_of_id //.
+    apply/morphimP; exists y => //; last by rewrite -(eqP HH3).
+    by apply: (subsetP (normal_centraliser Hx)).
+  rewrite -(eqP HH3) -morphX.
+    rewrite (_ : y ^+ s = 1) ?coset_of_id ?morph1 //=.
     by apply/eqP; rewrite -orderg_dvd.
-  by rewrite dom_coset ?Hnt // ?(subsetP (centraliser_normaliser Hx)) ?Ht.
+  by rewrite ?Hnt // ?(subsetP (centraliser_normaliser Hx)) ?Ht.
 case/andP: H3 => H3 H4.
 have F1: coprime #[x] #[x1].
   case/dvdnP: H4 => k1 Hk1.
   by move: H2; rewrite Hk1 coprime_mulr; case/andP.
 case: (orderg_krg Hp H3 H1 F1) => x2.
 case/and3P=> Hx1 Hx2 Hx3.
-case Ht: (trivm (coset_of (cyclic x))). 
-  rewrite (trivm_is_cst Ht) in Hx2.
-  rewrite -(eqP Hx2); apply/imageP.
-  exists (1:gT); last by rewrite (trivm_is_cst Ht).
-  by rewrite /= group1 orderg1 dvd1n.
 have E1: x1 = coset_of (cyclic x) x2 by symmetry; apply/eqP.
-rewrite E1 -topredE /= image_f_imp //= Hx3 /=.
+rewrite E1 -topredE /= mem_image //= Hx3 /=.
 apply: dvdn_trans H4.
 rewrite -(@gauss _ #[x]); last by rewrite coprime_sym.
 rewrite mulnC orderg_dvd.
 have: x1 ^+ #[x1] = 1 by rewrite orderg_expn1.
-rewrite {1}E1 -coset_ofX => [/= E2|]; last first.
-  rewrite dom_coset ?Ht //. 
+rewrite {1}E1 -morphX => [/= E2|]; last first.
+  rewrite ?Ht //. 
   by rewrite (subsetP (centraliser_normaliser Hx)) // Ht.
 have E3: x2 ^+ #[x1] \in cyclic x.
   apply: coset_of_idr => //. 
@@ -122,8 +111,8 @@ Qed.
 
 Lemma KB_card_image: forall p (Hp : prime p) l s,
     #[x] = (p ^ l.+1)%N -> coprime #[x] s ->
-  #|[pred z \in C_(H)[x] | #[z] %| s]|
-     = #|[pred z \in C_(H)[x] / cyclic x | #[z] %| s]|.
+  #|[pred z \in 'C_H[x] | #[z] %| s]|
+     = #|[pred z \in 'C_H[x] / cyclic x | #[z] %| s]|.
 Proof.
 move=> p Hp l s Hx1 Hx2.
 symmetry; rewrite -(eq_card (KB_image Hp Hx1 Hx2)).
@@ -131,9 +120,8 @@ apply: card_dimage=> y1 y2; case/andP => H1 H2; case/andP => H3 H4 H5.
 have: y1^-1 * y2 \in cyclic x.
   have sCN := subsetP (centraliser_normaliser Hx).
   apply: coset_of_idr; first by rewrite sCN // groupM // groupV.
-  case Ht: (trivm (coset_of (cyclic x))); first by rewrite (trivm_is_cst Ht).
   rewrite coset_of_morphM; first by [rewrite coset_ofV H5 mulVg];
-  by rewrite dom_coset ?Ht ?groupV ?sCN.  
+  by rewrite ?Ht ?groupV ?sCN.  
 case/cyclicP => i Hi.
 have F0: y1 * (x ^+ i) = y2 by rewrite Hi; gsimpl.
 have F1: #[x] %| i * (#[y1] * #[y2]).
@@ -412,7 +400,7 @@ apply eq_card => x.
 by rewrite spconst_conjgs // sconjg_imset.
 Qed.
 
-Lemma pconst_subset_centralizer : forall y, spconst y \subset C_(G)[y].
+Lemma pconst_subset_centralizer : forall y, spconst y \subset 'C_G[y].
 Proof.
 move=> y; apply/subsetP=> x; rewrite inE; case/and3P=> Hx1 Hx2 Hx3.
 apply/centraliserP; split=> //.
@@ -456,7 +444,7 @@ Qed.
 
 Lemma pconst_image: forall y l, y \in G ->
   #[y] = (p ^ l.+1)%N -> coprime #[y] s -> 
-  [image prem of spconst y] =i [pred z \in C_(G)[y] | #[z] %| s]. 
+  [image prem of spconst y] =i [pred z \in 'C_G[y] | #[z] %| s]. 
 Proof.
 move=> y l Hy0 Hy Cy x1; apply/idP/idP; rewrite inE /=  => H1.
   case: (diinv_exists H1) => y1.
@@ -475,14 +463,14 @@ have F2: coprime p #[x1] by rewrite -(@coprime_pexpl l.+1) // -Hy.
 move: (pconst_mul_in Hy0 F3 F1 Hy H2); rewrite inE.
 case/and3P => H3 H4 H5.
 replace x1 with (prem (y * x1)).
-  by apply: image_f_imp; rewrite /= inE H3 H4 H5.
+  by apply: mem_image; rewrite /= inE H3 H4 H5.
 apply: (mulg_injl y).
 rewrite -{1}(eqP H4); exact: pconst_rem.
 Qed.
 
 Lemma pconst_card : forall y l, y \in G ->
   #[y] = (p ^ l.+1)%N ->
-    #|spconst y| = #|[pred z \in C_(G)[y] | #[z] %| s]|. 
+    #|spconst y| = #|[pred z \in 'C_G[y] | #[z] %| s]|. 
 Proof.
 move => y l Hy H.
 have F0: coprime #[y] s by rewrite H coprime_expl.
@@ -494,7 +482,7 @@ Qed.
 
 Lemma pconst_card_KRG: forall y l, y \in G -> 
   #[y] = (p ^ l.+1)%N ->  
-  #|spconst y| = #|[pred z \in C_(G)[y] / cyclic y | #[z] %| s]|.
+  #|spconst y| = #|[pred z \in 'C_G[y] / cyclic y | #[z] %| s]|.
 Proof.
 move => y l Hy H.
 rewrite (pconst_card Hy H).
@@ -503,7 +491,7 @@ by rewrite H coprime_expl.
 Qed.
 
 Definition spconstw y := 
-  \bigcup_(i \in rcosets C_(G)[y] G) spconst (y ^ repr i).
+  \bigcup_(i \in rcosets 'C_G[y] G) spconst (y ^ repr i).
 
 Lemma spconstwP: forall x y, y \in G ->
   reflect (exists i, (i \in G) && (x \in spconst (y ^ i))) (x \in spconstw y).
@@ -512,20 +500,20 @@ move => x y Hy; apply: (iffP idP).
  case/bigcupP => i Hi1 Hi2.
  exists (repr i); rewrite Hi2 andbT.
  case/rcosetsP: Hi1 => x1 Hx1 Hx2.
- move: (@repr_rcosetP gT C_(G)[y] x1).
+ move: (@repr_rcosetP gT 'C_G[y] x1).
  rewrite -Hx2.
  case => x2; rewrite inE; case/andP => Hx3 _.
  exact: groupM.
 case => i; case/andP => Hi1 Hi2.
-set r := C_(G)[y] :* i.
+set r := 'C_G[y] :* i.
 apply/bigcupP; exists r; first by apply/rcosetsP; exists i.
-case: (repr r) / (repr_rcosetP C_(G)[y] i) => z /=; case/centraliserP=> _.
+case: (repr r) / (repr_rcosetP 'C_G[y] i) => z /=; case/centraliserP=> _.
 by move/commgP; move/conjg_fixP; rewrite conjgM => ->.
 Qed.
 
 Lemma card_spconstw: forall y l, y \in G -> #[y] = (p ^ l.+1)%N ->  
   #|spconstw y| = 
-   (indexg C_(G)[y] G * #|[pred z \in C_(G)[y] / cyclic y | #[z] %| s]|)%N.
+   (indexg 'C_G[y] G * #|[pred z \in 'C_G[y] / cyclic y | #[z] %| s]|)%N.
 Proof.
 move=> y l Hy Oy.
 rewrite /spconstw (@card_setnU_id _ _ _ _ #|spconst y|).
@@ -533,9 +521,9 @@ rewrite /spconstw (@card_setnU_id _ _ _ _ #|spconst y|).
   by exact: (pconst_card_KRG _ Oy).
 - move => u v x Hu Hv /= Hsu Hsv.
   case/rcosetsP: Hu Hsu => i1 /= Hi1 ->{u}.
-  case: (repr _) / (repr_rcosetP C_(G)[y] i1) => j1 Hj1 Hsu.
+  case: (repr _) / (repr_rcosetP 'C_G[y] i1) => j1 Hj1 Hsu.
   case/rcosetsP: Hv Hsv => i2 /= Hi2 ->{v}.
-  case: (repr _) / (repr_rcosetP C_(G)[y] i2) => j2 Hj2 Hsv.
+  case: (repr _) / (repr_rcosetP 'C_G[y] i2) => j2 Hj2 Hsv.
   apply: rcoset_trans1 => /=; rewrite mem_rcoset; apply/centraliserP; split.
     by rewrite !in_group.
   apply/commgP; apply/conjg_fixP.
@@ -543,7 +531,7 @@ rewrite /spconstw (@card_setnU_id _ _ _ _ #|spconst y|).
   move: Hj1 Hj2; do 2![case/centraliserP=> _; move/commgP; move/conjg_fixP->].
   exact: (canLR (conjgK _)).
 move=> x; case/rcosetsP=> i2 /= Hi2 ->; apply: spconst_card.
-case: (repr _) / (repr_rcosetP C_(G)[y] i2) => y1; case/setIP=> Gy1 _.
+case: (repr _) / (repr_rcosetP 'C_G[y] i2) => y1; case/setIP=> Gy1 _.
 exact: groupM.
 Qed.
 
@@ -702,16 +690,16 @@ rewrite inE; case/andP=> Hbx Hx.
 rewrite (card_spconstw _ _ _ (eqP Hx)) //.
 set KRG := (quotient _ _).
 set cKRG := #|KRG|.
-have F3: #|KRG| = indexg (cyclic x) C_(G)[x].
+have F3: #|KRG| = indexg (cyclic x) 'C_G[x].
   apply: card_quotient.
   exact: normal_centraliser.
-have F4: #|C_(G)[x]| = (#|KRG| * #[x])%N.
+have F4: #|'C_G[x]| = (#|KRG| * #[x])%N.
   rewrite F3 /orderg.
   apply sym_equal; rewrite mulnC; apply: LaGrange => //=.
   exact: cyclic_subset_centraliser.
 have F5: cKRG <= k.
   rewrite (eqP Hx) in F4.
-  have F5: #|C_(G)[x]| %| #|G|.
+  have F5: #|'C_G[x]| %| #|G|.
     by apply: group_dvdn; exact: subset_centraliser.
   rewrite F4 in F5.
   rewrite -ltnS -(eqP Hk).
@@ -736,7 +724,7 @@ rewrite (eq_card F7).
 case/dvdnP: (Rec _ (quotient_group _ _) F5 _ F6) => c.
 rewrite /f /cKRG => ->.
 set r := indexg _ _.
-have F8: #|G| = (r * #|C_(G)[x]|)%N.
+have F8: #|G| = (r * #|'C_G[x]|)%N.
   apply sym_equal; rewrite mulnC; apply: LaGrange => //.
   by exact: subset_centraliser.
 rewrite F4 (eqP Hx) in F8. 

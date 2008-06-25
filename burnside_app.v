@@ -1,23 +1,24 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype div ssralg.
 Require Import connect groups action frobenius_cauchy group_perm signperm.
 Require Import tuple finfun bigops finset.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits. 
+Import Prenex Implicits.
 
 Import GroupScope.
 
 Section colouring.
 
 Variable n : nat.
-Definition  colors := I_(n).
+Definition  colors := 'I_n.
 Canonical Structure colors_eqType := Eval hnf in [eqType of colors].
 Canonical Structure colors_finType := Eval hnf in [finType of colors].
 
 Section square_colouring.
 
-Definition square := I_(4).
+Definition square := 'I_4.
 Canonical Structure square_eqType := Eval hnf in [eqType of square].
 Canonical Structure square_subType := Eval hnf in [subType of square].
 Canonical Structure square_finType := Eval hnf in [finType of square].
@@ -37,7 +38,7 @@ Definition R2 (sc : square) : square := tsub [tuple c2; c3; c0; c1] sc.
 Definition R3 (sc : square) : square := tsub [tuple c3; c0; c1; c2] sc.
 
 Ltac get_inv elt l :=
-  match l with 
+  match l with
   | (_, (elt, ?x))  => x
   | (elt, ?x)  => x
   | (?x, _) => get_inv elt x
@@ -49,7 +50,7 @@ Ltac inj_tac :=
   move: (erefl rot_inv); unfold rot_inv;
   match goal with |- ?X = _ -> injective ?Y =>
     move=> _; let x := get_inv Y X in
-    apply: (can_inj (g:=x)); move => [val H1] 
+    apply: (can_inj (g:=x)); move => [val H1]
   end.
 
 Lemma R1_inj :  injective R1.
@@ -84,7 +85,7 @@ Lemma rot_eq_c0: forall r s : {perm square},
   is_rot r -> is_rot s -> r c0 = s c0 -> r = s.
 Proof.
 rewrite /is_rot => r s; move/eqP => hr; move/eqP=> hs hrs; apply/permP => a.
-have ->: a = (r1 ^+ a) c0 
+have ->: a = (r1 ^+ a) c0
    by apply/eqP; case: a; do 4?case => //=; rewrite ?permM !permE.
 by rewrite -!permM -!commuteX   //  !permM hrs.
 Qed.
@@ -175,7 +176,7 @@ apply: (mulg_injr sd2); rewrite mulVg; apply/permP.
 by case; do 4?case=> //=; move=> H; rewrite !permE /= !permE; apply/eqP.
 Qed.
 
-Lemma ord_enum4: enum {I_(4)} = [:: c0; c1; c2; c3].
+Lemma ord_enum4: enum {'I_4} = [:: c0; c1; c2; c3].
 Proof. by apply: (inj_maps val_inj); rewrite val_enum_ord. Qed.
 
 Lemma diff_id_sh: 1 != sh.
@@ -210,12 +211,12 @@ move=> p; rewrite inE.
 by do ?case/orP; move/eqP=> -> a; rewrite !permE; case: a; do 4?case.
 Qed.
 
-Ltac non_inj p a1 a2 heq1 heq2 := 
-let h1:= fresh "h1" in 
+Ltac non_inj p a1 a2 heq1 heq2 :=
+let h1:= fresh "h1" in
 (absurd (p a1 = p a2);first (by red; move=> h1;move:(perm_inj h1));
 by rewrite heq1 heq2;apply/eqP).
 
-Ltac is_isoPtac p f e0 e1 e2 e3 := 
+Ltac is_isoPtac p f e0 e1 e2 e3 :=
   suff ->: p = f by [rewrite inE eqxx ?orbT];
   let e := fresh "e" in apply/permP;
   do 5?[case] => // ?; [move: e0 | move: e1 | move: e2 | move: e3] => e;
@@ -260,7 +261,7 @@ Canonical Structure rotations_group := Group group_set_rotations.
 
 Notation col_squares := {ffun square -> colors}.
 
-Definition act_f (sc : col_squares) (p : {perm square}) : col_squares := 
+Definition act_f (sc : col_squares) (p : {perm square}) : col_squares :=
   [ffun z => sc (p^-1 z)].
 
 Lemma act_f_1:  forall k, act_f k 1 = k.
@@ -332,7 +333,7 @@ apply/setP => x; rewrite !inE eqperm_map /= /act_f r2_inv !ffunE !permE /=.
 by rewrite eq_sym andbT andbCA andbC (eq_sym (x c3)) andbA -andbA !andbb andbC.
 Qed.
 
-Lemma F_r1 : act_fix1 to r1 = 
+Lemma F_r1 : act_fix1 to r1 =
   [set x | (coin0 x == coin1 x)&&(coin1 x == coin2 x)&&(coin2 x == coin3 x)].
 Proof.
 apply/setP => x; rewrite !inE eqperm_map /= /act_f r1_inv !ffunE !permE andbC.
@@ -361,7 +362,7 @@ move=> p1 p2; rewrite !inE.
 case/andP=> p1y p1t; case/andP=> p2y p2t [px pz].
 have eqp12: all (fun i => p1 i == p2 i) [:: x; y; z; t].
   by rewrite /= -(eqP p1y) -(eqP p1t) -(eqP p2y) -(eqP p2t) px pz !eqxx.
-apply/ffunP=> i; apply/eqP; apply: (allP eqp12). 
+apply/ffunP=> i; apply/eqP; apply: (allP eqp12).
 by rewrite (subset_cardP _ (subset_predT _)) // (card_uniqP Uxt) card_ord.
 Qed.
 
@@ -453,7 +454,7 @@ End square_colouring.
 
 Section cube_colouring.
 
-Definition cube := I_(6).
+Definition cube := 'I_6.
 Canonical Structure cube_eqType := Eval hnf in [eqType of cube].
 Canonical Structure cube_subType := Eval hnf in [subType of cube].
 Canonical Structure cube_finType := Eval hnf in [finType of cube].
@@ -467,7 +468,7 @@ Definition F3 := mkFcube 3.
 Definition F4 := mkFcube 4.
 Definition F5 := mkFcube 5.
 
-(* axial symetries*) 
+(* axial symetries*)
 Definition S05 := [:: F0; F4; F3; F2; F1; F5].
 Definition S05f (sc : cube) : cube := tsub [tuple of S05] sc.
 
@@ -496,32 +497,32 @@ Definition R024 := [:: F2; F5; F4; F1; F0; F3].
 Definition R024f (sc : cube) : cube := tsub [tuple of R024] sc.
 Definition R135 := [:: F4; F3; F0; F5; F2; F1].
 Definition R135f (sc : cube) : cube := tsub [tuple of R135] sc.
-Definition R012 := [:: F1; F2; F0; F5; F3; F4]. 
-Definition R012f (sc : cube) : cube := tsub [tuple of R012] sc. 
-Definition R345 := [:: F2; F0; F1; F4; F5; F3]. 
-Definition R345f (sc : cube) : cube := tsub [tuple of R345] sc. 
+Definition R012 := [:: F1; F2; F0; F5; F3; F4].
+Definition R012f (sc : cube) : cube := tsub [tuple of R012] sc.
+Definition R345 := [:: F2; F0; F1; F4; F5; F3].
+Definition R345f (sc : cube) : cube := tsub [tuple of R345] sc.
 Definition R031 := [:: F3; F0; F4; F1; F5; F2].
-Definition R031f (sc : cube) : cube := tsub [tuple of R031] sc. 
+Definition R031f (sc : cube) : cube := tsub [tuple of R031] sc.
 Definition R425:= [:: F1; F3; F5; F0; F2; F4].
-Definition R425f (sc : cube) : cube := tsub [tuple of R425] sc. 
+Definition R425f (sc : cube) : cube := tsub [tuple of R425] sc.
 Definition R043 := [:: F4; F2; F5; F0; F3; F1].
-Definition R043f (sc : cube) : cube := tsub [tuple of R043] sc. 
+Definition R043f (sc : cube) : cube := tsub [tuple of R043] sc.
 Definition R215 := [:: F3; F5; F1; F4; F0; F2].
-Definition R215f (sc : cube) : cube := tsub [tuple of R215] sc. 
+Definition R215f (sc : cube) : cube := tsub [tuple of R215] sc.
 
 (* last symmetries*)
 Definition S1 := [:: F5; F2; F1; F4; F3; F0].
-Definition S1f (sc : cube) : cube := tsub [tuple of S1] sc. 
+Definition S1f (sc : cube) : cube := tsub [tuple of S1] sc.
 Definition S2 := [::  F5; F3; F4; F1; F2; F0].
-Definition S2f (sc : cube) : cube := tsub [tuple of S2] sc. 
+Definition S2f (sc : cube) : cube := tsub [tuple of S2] sc.
 Definition S3 := [::  F1; F0; F3; F2; F5; F4].
-Definition S3f  (sc : cube) : cube := tsub [tuple of S3] sc. 
+Definition S3f  (sc : cube) : cube := tsub [tuple of S3] sc.
 Definition S4:= [:: F4; F5; F3; F2; F0; F1].
-Definition S4f  (sc : cube) : cube := tsub [tuple of S4] sc. 
+Definition S4f  (sc : cube) : cube := tsub [tuple of S4] sc.
 Definition S5 := [::  F2; F4; F0; F5; F1; F3].
 Definition S5f  (sc : cube) : cube := tsub [tuple of S5] sc.
 Definition S6 := [::F3; F4; F5; F0; F1; F2].
-Definition S6f  (sc : cube) : cube := tsub [tuple of S6] sc. 
+Definition S6f  (sc : cube) : cube := tsub [tuple of S6] sc.
 
 Lemma S1_inv : involutive S1f.
 Proof. by move=> z; apply/eqP; case: z; do 6?case. Qed.
@@ -543,7 +544,7 @@ Proof. by move=> z; apply /eqP; case: z; do 6?case. Qed.
 
 Lemma S05_inj : injective S05f.
 Proof. by apply: can_inj S05f _ => z; apply/eqP; case: z; do 6?case.  Qed.
- 
+
 Lemma S14_inj : injective S14f.
 Proof. by apply: can_inj S14f _ => z; apply/eqP; case: z; do 6?case. Qed.
 
@@ -552,7 +553,7 @@ Proof. by move=> z; apply/eqP; case: z; do 6?case. Qed.
 
 Lemma R05_inj : injective R05f.
 Proof. by apply: can_inj R50f _ => z; apply/eqP; case: z; do 6?case. Qed.
- 
+
 Lemma R14_inj : injective R14f.
 Proof. by apply: can_inj R41f _ => z; apply/eqP; case: z; do 6?case. Qed.
 
@@ -583,7 +584,7 @@ Proof. by apply: can_inj R012f _ => z; apply/eqP; case: z; do 6?case. Qed.
 Lemma R031_inj : injective R031f.
 Proof. by apply: can_inj R425f _ => z; apply/eqP; case: z; do 6?case. Qed.
 
-Lemma R425_inj : injective R425f. 
+Lemma R425_inj : injective R425f.
 Proof. by apply: can_inj R031f _ => z; apply/eqP; case: z; do 6?case. Qed.
 
 Lemma R043_inj : injective R043f.
@@ -599,7 +600,7 @@ Definition s05 := (perm_of S05_inj).
 Definition s14 : {perm cube}.
 Proof.
 apply: (@perm_of _ S14f); apply: can_inj S14f _ => z.
-by apply /eqP; case: z; do 6?case. 
+by apply /eqP; case: z; do 6?case.
 Defined.
 
 Definition s23 := (perm_of (inv_inj S23_inv)).
@@ -625,18 +626,18 @@ Definition s4 := (perm_of (inv_inj S4_inv)).
 Definition s5 := (perm_of (inv_inj S5_inv)).
 Definition s6 := (perm_of (inv_inj S6_inv)).
 
-Definition dir_iso3 := [set p | 
+Definition dir_iso3 := [set p |
 [|| id3 == p, s05 == p, s14 == p, s23 == p, r05 == p, r14 == p, r23 == p,
- r50 == p, r41 == p, r32 == p, r024 == p, r135 == p, r012 == p, r345 == p, 
+ r50 == p, r41 == p, r32 == p, r024 == p, r135 == p, r012 == p, r345 == p,
  r031 == p, r425 == p, r043 == p, r215 == p,
  s1 == p, s2 == p, s3 == p, s4 == p, s5 == p | s6 == p]].
 
-Definition dir_iso3l := [:: id3; s05; s14; s23; r05; r14; r23; r50; r41; 
+Definition dir_iso3l := [:: id3; s05; s14; s23; r05; r14; r23; r50; r41;
   r32; r024; r135; r012; r345; r031; r425; r043 ; r215;
   s1 ; s2; s3; s4; s5; s6].
 
 Definition S0 := [:: F5; F4; F3; F2; F1; F0].
-Definition S0f (sc : cube) : cube := tsub [tuple of S0] sc. 
+Definition S0f (sc : cube) : cube := tsub [tuple of S0] sc.
 
 Lemma S0_inv: involutive S0f.
 Proof. by move=> z; apply/eqP; case: z; do 6?case. Qed.
@@ -659,12 +660,12 @@ Qed.
 
 (* Lemma ndir_iso3: forall p, p \in dir_iso3  -> (s0 * p) \notin dir_iso3.
 Proof.
-move  => p; rewrite !setE. 
+move  => p; rewrite !setE.
 do ?case/orP; move/eqP=> <-;
 do ! [apply/norP;split; first
-by apply/eqP; 
+by apply/eqP;
    move/(congr1 (fun p : {perm cube} => (p F0, p F1, p F2))); rewrite !permE /comp /= !permE];
-by apply/eqP; 
+by apply/eqP;
    move/(congr1 (fun p : {perm cube} => (p F0, p F1, p F2))); rewrite !permE /comp /= !permE.
 Qed.*)
 
@@ -674,15 +675,15 @@ Lemma sop_inj : injective sop.
 Proof. do 2!apply: (inj_comp val_inj); exact: val_inj. Qed.
 
 Definition prod_tuple (t1 t2 : seq cube) :=
-  maps (fun n : I_(6) => sub F0 t2 n) t1.
+  maps (fun n : 'I_6 => sub F0 t2 n) t1.
 
-Lemma sop_spec : forall x (n0 : I_(6)), sub F0 (sop x) n0 = x n0.
+Lemma sop_spec : forall x (n0 : 'I_6), sub F0 (sop x) n0 = x n0.
 Proof.
 move=> x n0; rewrite -pvalE /fun_of_ffun /= unlock /fun_of_ffun_def.
 by rewrite (tsub_sub F0) enum_rank_ord.
 Qed.
 
-Lemma prod_t_correct : forall (x y : {perm cube}) (i : cube), 
+Lemma prod_t_correct : forall (x y : {perm cube}) (i : cube),
   (x * y) i = sub F0 (prod_tuple (sop x) (sop y)) i.
 Proof.
 move=> x y i /=; rewrite permM -!sop_spec (sub_maps F0) // size_tuple /=.
@@ -696,7 +697,7 @@ split=> // x y; apply: (@eq_from_sub _ F0) => [|/= i].
 rewrite size_tuple card_ord => lti6.
 by rewrite -[i]/(val (Ordinal lti6)) sop_spec -prod_t_correct.
 Qed.
- 
+
 Definition ecubes : seq cube := [:: F0; F1; F2; F3; F4; F5].
 
 Lemma ecubes_def : ecubes = enum (@predT cube).
@@ -734,7 +735,7 @@ move=> x y; rewrite !L_iso => Hx Hy; case: sop_morph => _ ->.
 by move/sop: y Hy; apply/allP; move/sop: x Hx; apply/allP; vm_compute.
 Qed.
 
-Lemma iso_eq_F0_F1: forall r s : {perm cube}, r \in dir_iso3 -> 
+Lemma iso_eq_F0_F1: forall r s : {perm cube}, r \in dir_iso3 ->
   s \in dir_iso3 -> r F0 = s F0 -> r F1 = s F1 -> r = s.
 Proof.
 move=> r s; rewrite !L_iso => hr hs hrs0 hrs1; apply: sop_inj; apply/eqP.
@@ -761,7 +762,7 @@ move=> p1 p2; apply/eqP/allP=> [-> // | Ep12]; apply/permP=> x.
 by apply/eqP; rewrite Ep12 // ecubes_def mem_enum.
 Qed.
 
-Lemma iso_eq_F0_F1_F2: forall r s : {perm cube}, is_iso3 r -> 
+Lemma iso_eq_F0_F1_F2: forall r s : {perm cube}, is_iso3 r ->
    is_iso3 s -> r F0 = s F0 -> r F1 = s F1 ->  r F2 = s F2 -> r = s.
 Proof.
 move=> r s hr hs hrs0 hrs1 hrs2.
@@ -774,7 +775,7 @@ move/perm_inj=> hrs3; move/perm_inj=> hrs4; move/perm_inj=> hrs5.
 by apply/eqP; rewrite eqperm /= hrs0 hrs1 hrs2 hrs3 hrs4 hrs5 !eqxx.
 Qed.
 
-Ltac iso_tac := 
+Ltac iso_tac :=
   let a := fresh "a" in apply/permP => a;
   apply/eqP; rewrite !permM !permE; case: a; do 6? case.
 
@@ -793,7 +794,7 @@ Definition iso3 := [set p | is_iso3b p].
 
 Lemma is_iso3P : forall p, reflect (is_iso3 p) (p \in iso3).
 Proof.
-move => p; apply: (iffP idP); rewrite inE /iso3  /is_iso3b /is_iso3 =>e.
+move => p; apply: (iffP idP); rewrite inE /iso3  /is_iso3b /is_iso3 => e.
   by move => fi; rewrite -!permM (eqP e).
 by apply/eqP;apply/permP=> z; rewrite !permM (e z).
 Qed.
@@ -804,7 +805,7 @@ apply /group_setP;split.
   by apply/is_iso3P => fi; rewrite -!permM mulg1 mul1g.
 move => x1 y; rewrite /iso3 !inE /= /is_iso3.
 rewrite /is_iso3b.
-rewrite -mulgA. 
+rewrite -mulgA.
 move/eqP => hx1; move/eqP => hy.
 rewrite hy !mulgA. by  rewrite -hx1.
 Qed.
@@ -821,8 +822,8 @@ Canonical Structure diso_group3:= Group group_set_diso3.
 Lemma gen_diso3:  dir_iso3 = <<[set r05; r14]>>.
 Proof.
 apply/setP; apply/subset_eqP;apply/andP; split;first last.
-  by rewrite gen_subG;apply/subsetP => x;   rewrite !inE; 
-    case/orP; move/eqP =>->; rewrite  eqxx !orbT.
+  by rewrite gen_subG;apply/subsetP => x;   rewrite !inE;
+    case/orP; move/eqP ->; rewrite  eqxx !orbT.
 apply/subsetP => x; rewrite !inE.
 have -> : s05 = r05 * r05  by iso_tac.
 have -> : s14 = r14 * r14  by iso_tac.
@@ -851,7 +852,7 @@ Qed.
 
 Notation col_cubes := {ffun cube -> colors}.
 
-Definition act_g (sc : col_cubes) (p : {perm cube}) : col_cubes := 
+Definition act_g (sc : col_cubes) (p : {perm cube}) : col_cubes :=
   [ffun z => sc (p^-1 z)].
 
 Lemma act_g_1:  forall k, act_g k 1 = k.
@@ -987,7 +988,7 @@ by do 3![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // {E}(eqP E)].
 Qed.
 
 Lemma F_r024 : act_fix1 to_g r024 =
-  [set x | (col0 x == col4 x) && (col4 x == col2  x) && (col1 x == col3 x) 
+  [set x | (col0 x == col4 x) && (col4 x == col2  x) && (col1 x == col3 x)
        && (col3 x == col5 x) ].
 Proof.
 have r024_inv: r024^-1 = r135 by inv_tac.
@@ -997,7 +998,7 @@ by do 4![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
 
 Lemma F_r135 : act_fix1 to_g r135 =
-  [set x | (col0 x == col4 x) && (col4 x == col2  x) && (col1 x == col3 x) 
+  [set x | (col0 x == col4 x) && (col4 x == col2  x) && (col1 x == col3 x)
        && (col3 x == col5 x)].
 Proof.
 have r135_inv: r135^-1 = r024 by inv_tac.
@@ -1007,7 +1008,7 @@ by do 4![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
 
 Lemma F_r012 : act_fix1 to_g r012 =
-  [set x | (col0 x == col2 x) && (col2 x == col1  x) && (col3 x == col4 x) 
+  [set x | (col0 x == col2 x) && (col2 x == col1  x) && (col3 x == col4 x)
        && (col4 x == col5 x)].
 Proof.
 have r012_inv: r012^-1 = r345 by inv_tac.
@@ -1017,7 +1018,7 @@ by do 4![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
 
 Lemma F_r345 : act_fix1 to_g r345 =
-  [set x | (col0 x == col2 x) && (col2 x == col1  x) && (col3 x == col4 x) 
+  [set x | (col0 x == col2 x) && (col2 x == col1  x) && (col3 x == col4 x)
        && (col4 x == col5 x)].
 Proof.
 have r345_inv: r345^-1 = r012 by inv_tac.
@@ -1027,7 +1028,7 @@ do 4![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
 
 Lemma F_r031 : act_fix1 to_g r031 =
-  [set x | (col0 x == col3 x) && (col3 x == col1  x) && (col2 x == col4 x) 
+  [set x | (col0 x == col3 x) && (col3 x == col1  x) && (col2 x == col4 x)
        && (col4 x == col5 x)].
 Proof.
 have r031_inv: r031^-1 = r425 by inv_tac.
@@ -1037,7 +1038,7 @@ by do 4![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
 
 Lemma F_r425 : act_fix1 to_g r425 =
-  [set x | (col0 x == col3 x) && (col3 x == col1  x) && (col2 x == col4 x) 
+  [set x | (col0 x == col3 x) && (col3 x == col1  x) && (col2 x == col4 x)
        && (col4 x == col5 x)].
 Proof.
 have r425_inv: r425^-1 = r031 by inv_tac.
@@ -1047,7 +1048,7 @@ by do 4![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
 
 Lemma F_r043 : act_fix1 to_g r043 =
-  [set x | (col0 x == col4 x) && (col4 x == col3  x) && (col1 x == col2 x) 
+  [set x | (col0 x == col4 x) && (col4 x == col3  x) && (col1 x == col2 x)
        && (col2 x == col5 x)].
 Proof.
 have r043_inv: r043^-1 = r215 by inv_tac.
@@ -1057,7 +1058,7 @@ by do 4![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
 
 Lemma F_r215 : act_fix1 to_g r215 =
-  [set x | (col0 x == col4 x) && (col4 x == col3  x) && (col1 x == col2 x) 
+  [set x | (col0 x == col4 x) && (col4 x == col3  x) && (col1 x == col2 x)
        && (col2 x == col5 x)].
 Proof.
 have r215_inv: r215^-1 = r043 by inv_tac.
@@ -1154,7 +1155,7 @@ rewrite -(@card_dimage _ _ ff); first last.
   case/andP=> p1y p1t; case/andP=> p2y p2t  [px pz] pu pv.
   have eqp12: all (fun i => p1 i == p2 i) [:: x; y; z; t; u ; v].
    by rewrite /= -(eqP p1y) -(eqP p1t) -(eqP p2y) -(eqP p2t) px pz pu pv !eqxx.
-  apply/ffunP=> i; apply/eqP; apply: (allP eqp12). 
+  apply/ffunP=> i; apply/eqP; apply: (allP eqp12).
   by rewrite (subset_cardP _ (subset_predT _)) // (card_uniqP Uxv) card_ord.
 have ->:forall n, (n ^ 4)%N= (n*n*n*n)%N.
   by move => n0;rewrite (expn_add n0 2 2) -mulnn mulnA.
@@ -1167,7 +1168,7 @@ rewrite /=. rewrite  !orbF !andbT; case/norP; rewrite !inE !orbF=> nxyz nxyt _.
 move:hasxt;rewrite /= !orbF; case/norP; rewrite !inE orbA  !orbF.
 case/norP  => nxyu nztu.
 rewrite orbA;case/norP=> nxyv nztv.
-exists [ffun i => if pred2 x y i then c else if pred2 z t i then d  
+exists [ffun i => if pred2 x y i then c else if pred2 z t i then d
                     else if u==i then e else g].
   rewrite !inE /= !ffunE //= !eqxx orbT //= !eqxx /= orbT.
   by rewrite (negbET nxyz) (negbET nxyt).
@@ -1177,12 +1178,12 @@ by rewrite  nuv.
 Qed.
 
 Lemma card_n3_3 : forall x y z t: cube, uniq [:: x; y; z;t] ->
-  #|[set p : col_cubes | (p x == p y) && (p y == p z)&& (p z == p t)]|  
+  #|[set p : col_cubes | (p x == p y) && (p y == p z)&& (p z == p t)]|
       = (n ^ 3)%N.
 Proof.
 move=> x y z t Uxt; rewrite -[n]card_ord .
 case:(uniq4_uniq6 Uxt) => u; case => v Uxv.
-pose ff (p : col_cubes) := (p x, p u , p v); 
+pose ff (p : col_cubes) := (p x, p u , p v);
    rewrite -(@card_dimage _ _ ff); first last.
   move=> p1 p2; rewrite !inE.
   case/andP ;case/andP => p1xy p1yz p1zt.
@@ -1190,14 +1191,14 @@ pose ff (p : col_cubes) := (p x, p u , p v);
   have eqp12: all (fun i => p1 i == p2 i) [:: x; y; z; t; u ; v].
     by rewrite /= -(eqP p1zt) -(eqP p2zt) -(eqP p1yz) -(eqP p2yz) -(eqP p1xy)
      -(eqP p2xy) px pu pv !eqxx.
-  apply/ffunP=> i; apply/eqP; apply: (allP eqp12). 
+  apply/ffunP=> i; apply/eqP; apply: (allP eqp12).
   by rewrite (subset_cardP _ (subset_predT _)) // (card_uniqP Uxv) card_ord.
 have ->:forall n, (n ^ 3)%N= (n*n*n)%N.
   by move => n0 ; rewrite (expn_add n0 2 1) -mulnn expn1.
 rewrite -!card_prod; apply: eq_card => [] [[c d]e ] /=; apply/imageP.
 rewrite (uniq_cat [::x; y;z;t]) in Uxv; case/and3P: Uxv => _ hasxt.
 rewrite /uniq  !inE orbF !andbT; move/negbET=> nuv.
-exists 
+exists
    [ffun i => if (i \in [:: x; y; z; t]) then c else if u == i then d else e].
   by rewrite /= !inE   !ffunE !inE  !orbF !eqxx !orbT !eqxx.
 rewrite {}/ff !ffunE !inE /= !eqxx /= !orbF.
@@ -1213,11 +1214,11 @@ move=> x y z t u v  Uxv; rewrite -[n]card_ord .
 pose ff (p : col_cubes) := (p x, p t); rewrite -(@card_dimage _ _ ff); first last.
   move=> p1 p2; rewrite !inE.
   case/andP ;case/andP ; case/andP => p1xy p1yz p1tu p1uv.
-  case/andP ;case/andP; case/andP => p2xy p2yz p2tu p2uv [px pu].  
+  case/andP ;case/andP; case/andP => p2xy p2yz p2tu p2uv [px pu].
   have eqp12: all (fun i => p1 i == p2 i) [:: x; y; z; t; u ; v].
-    by rewrite /= -(eqP p1yz) -(eqP p2yz) -(eqP p1xy) -(eqP p2xy) -(eqP p1uv) 
+    by rewrite /= -(eqP p1yz) -(eqP p2yz) -(eqP p1xy) -(eqP p2xy) -(eqP p1uv)
       -(eqP p2uv) -(eqP p1tu) -(eqP p2tu) px  pu !eqxx.
-  apply/ffunP=> i; apply/eqP; apply: (allP eqp12). 
+  apply/ffunP=> i; apply/eqP; apply: (allP eqp12).
   by rewrite (subset_cardP _ (subset_predT _)) // (card_uniqP Uxv) card_ord.
 have ->:forall n, (n ^ 2)%N= (n*n)%N by move => n0 ; rewrite  -mulnn .
    rewrite -!card_prod; apply: eq_card => [] [c d]/=; apply/imageP.
@@ -1232,7 +1233,7 @@ by rewrite !orbF; rewrite (negbET nxyzt) .
 Qed.
 
 Lemma card_n3s : forall x y z t u v: cube, uniq [:: x; y; z;t; u ; v] ->
-  #|[set p : col_cubes | (p x == p y) && (p z == p t)&& (p u == p v )]|  
+  #|[set p : col_cubes | (p x == p y) && (p z == p t)&& (p u == p v )]|
     = (n ^ 3)%N.
 Proof.
 move=> x y z t u v  Uxv; rewrite -[n]card_ord .
@@ -1244,7 +1245,7 @@ rewrite -(@card_dimage _ _ ff); first last.
   have eqp12: all (fun i => p1 i == p2 i) [:: x; y; z; t; u ; v].
     by rewrite /= -(eqP p1xy) -(eqP p2xy) -(eqP p1zt) -(eqP p2zt) -(eqP p1uv)
       -(eqP p2uv)  px  pz pu !eqxx.
-  apply/ffunP=> i; apply/eqP; apply: (allP eqp12). 
+  apply/ffunP=> i; apply/eqP; apply: (allP eqp12).
   by rewrite (subset_cardP _ (subset_predT _)) // (card_uniqP Uxv) card_ord.
 have ->:forall n, (n ^ 3)%N= (n*n*n)%N.
   by move => n0 ; rewrite (expn_add n0 2 1) -mulnn expn1.
@@ -1265,7 +1266,7 @@ by rewrite !orbF; rewrite (negbET nxyz) (negbET nxyu) (negbET nztu).
 Qed.
 
 Lemma burnside_app_iso3 :
-  (cube_coloring_number24 * 24 = 
+  (cube_coloring_number24 * 24 =
                    n ^ 6 + 6 * n ^ 3 + 3 * n ^ 4 + 8 * (n ^ 2)  + 6 * n ^ 3)%N.
 Proof.
 pose iso_list :=[::id3;  s05;  s14;  s23;  r05;  r14;  r23;  r50;  r41;  r32;
@@ -1273,7 +1274,7 @@ pose iso_list :=[::id3;  s05;  s14;  s23;  r05;  r14;  r23;  r50;  r41;  r32;
   s1 ;  s2;  s3;  s4;  s5;  s6].
 have Uiso: uniq iso_list.
   apply: maps_uniq (fun p : {perm cube} => (p F0, p F1)) _ _.
-  have bsr:(fun p : {perm cube} => (p F0, p F1)) =1  
+  have bsr:(fun p : {perm cube} => (p F0, p F1)) =1
     (fun p  => (sub F0 p F0, sub F0 p F1)) \o sop.
     by move => x; rewrite /= -2!sop_spec.
   by rewrite (eq_maps bsr) maps_comp  -(eqP Lcorrect); vm_compute.
@@ -1282,7 +1283,7 @@ by move=> p; rewrite  !inE /= orbF !(eq_sym _ p).
 have <-: #|diso_group3| = 24 by rewrite (eq_card Eiso) (card_uniqP Uiso).
 rewrite -(Frobenius_Cauchy to_g) (eq_bigl _ _ Eiso) -big_uniq //.
 rewrite /reducebig unlock /= card_Fid3 F_s05 F_s14 F_s23 F_r05 F_r14 F_r23
-  F_r50 F_r41 F_r32 F_r024 F_r135 F_r012 F_r345 F_r031 F_r425 F_r043  F_r215 
+  F_r50 F_r41 F_r32 F_r024 F_r135 F_r012 F_r345 F_r031 F_r425 F_r043  F_r215
   F_s1  F_s2 F_s3 F_s4 F_s5 F_s6.
 by rewrite !card_n4 // !card_n3_3 // !card_n2_3 // !card_n3s //; ring.
 Qed.

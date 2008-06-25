@@ -41,9 +41,6 @@ Definition ffun_of := locked_with ffun_of_key ffun_of_def.
 Notation "{ 'ffun' fT }" := (finfun_for (Phant fT))
   (at level 0, format "{ 'ffun'  '[hv' fT ']' }") : type_scope.
 
-Notation "'F_' ( n )" := {ffun I_(n) -> I_(n)}
-  (at level 0, format "'F_' ( n )") : type_scope.
-
 Notation "[ 'ffun' x : aT => F ]" := (ffun_of (fun x : aT => F))
   (at level 0, x ident, only parsing) : fun_scope.
 

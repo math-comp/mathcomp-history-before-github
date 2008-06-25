@@ -1,3 +1,4 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect.
 Require Import ssrfun.
 Require Import ssrbool.
@@ -142,7 +143,7 @@ Qed.
 
 Lemma divn_lt : forall m d, 1 < d -> 0 < m -> m %/ d < m.
 Proof.
-move=> m d d_gt1 m_pos; set q := m %/ d; case: (posnP q) => [-> //| q_pos]. 
+move=> m d d_gt1 m_pos; set q := m %/ d; case: (posnP q) => [-> //| q_pos].
 by apply: leq_trans (leq_div m d); rewrite -[q]muln1 ltn_pmul2l.
 Qed.
 
@@ -154,7 +155,7 @@ Proof. by move=> m [|d] //; apply: modn_small; rewrite ltn_mod. Qed.
 
 Lemma modn_addl_mul : forall p m d, (p * d + m) %% d = m %% d.
 Proof.
-move=> p m d; case: (posnP d) => [-> | d_pos]; first by rewrite muln0. 
+move=> p m d; case: (posnP d) => [-> | d_pos]; first by rewrite muln0.
 by rewrite {1}(divn_eq m d) addnA -muln_addl modn_def edivn_eq // ltn_mod.
 Qed.
 
@@ -259,7 +260,7 @@ Proof. move=> n d m Hn; move/dvdnP => [n1 ->]; auto. Qed.
 Lemma dvdn_eq : forall d m, (d %| m) = (m %/ d * d == m).
 Proof.
 move=> d m; apply/eqP/eqP=> [modm0 | <-]; last exact: modn_mull.
-by rewrite {2}(divn_eq m d) modm0 addn0. 
+by rewrite {2}(divn_eq m d) modm0 addn0.
 Qed.
 
 Lemma divnK : forall d m, d %| m -> m %/ d * d = m.
@@ -385,7 +386,7 @@ Qed.
 
 Implicit Arguments primePn [n].
 Prenex Implicits primePn.
- 
+
 Lemma primePns : forall n,
   reflect (n < 2 \/ exists p, [/\ prime p , p * p <= n & p %| n]) (~~prime n).
 Proof.
@@ -405,7 +406,7 @@ case: (leqP (d * d) n) => E1; first by right; exists d.
 pose d' := n %/ d; have Hd': d' * d = n := (divnK  Hd3).
 have Hd0: 0 < d by apply: leq_trans Hd1.
 have Hd'0: 0 < d' by move: Hd2; rewrite -Hd'; case d'.
-have Hd'1: d' %| n by rewrite -Hd' dvdn_mulr. 
+have Hd'1: d' %| n by rewrite -Hd' dvdn_mulr.
 case P2: (prime d'); move/idP: P2 => P2; last first.
   have F2: d' <= m.
     by rewrite -ltnS (leq_trans _ Hn) // /d' divn_lt //; case: (n) Hd2 => //.
@@ -428,7 +429,7 @@ Lemma ltn_0prime : forall p, prime p -> 0 < p. Proof. by case. Qed.
 Hint Resolve prime_gt1 ltn_0prime.
 
 Lemma prime_pos_natP m : prime m -> m > 0.
-Proof. by move=>m; move/ltn_0prime. Qed.
+Proof. by move=> m; move/ltn_0prime. Qed.
 Definition prime_pos_nat m (H:prime m) := PosNat (prime_pos_natP H).
 
 Lemma even_prime : forall p, prime p -> p = 2 \/ odd p.
@@ -690,7 +691,7 @@ move=> d m n dv_dm dv_dn gdv_d; apply/eqP.
 by rewrite eqn_dvd gdv_d /= (dvdn_gcd, dvdn_gcdl, dvdn_gcdr).
 Qed.
 
-Lemma gcdn_divnC : forall n m, 0 < n -> 0 < m -> 
+Lemma gcdn_divnC : forall n m, 0 < n -> 0 < m ->
    n * (m %/ gcdn n m)  = m * (n %/ gcdn n m).
 Proof.
 move=> n m n_pos m_pos.
@@ -780,7 +781,7 @@ Lemma modn_coprime : forall k n, (O < k) ->
   (exists u, (k * u) %% n = 1%N) -> coprime k n.
 Proof.
 move=> k n Hpos [u Hu]; apply/coprimeP; first by trivial.
-case: (divn_eq (k * u) n); exists (u,(k * u)%/ n)=>/=.
+case: (divn_eq (k * u) n); exists (u,(k * u)%/ n)=> /=.
 rewrite {1}mulnC {1}H addnC.
 by rewrite -addn_subA 1?leq_eqVlt ?eqxx ?orTb // subnn addn0 Hu.
 Qed.
@@ -855,13 +856,13 @@ Proof. by move=> k m n k_pos; rewrite !(coprime_sym m) coprime_pexpl. Qed.
 Lemma coprime_expl : forall k m n, coprime m n -> coprime (m ^ k) n.
 Proof. by case=> [|k] p m co_pm; rewrite (coprime1n, coprime_pexpl). Qed.
 
-Lemma coprime_expr : forall k m n, coprime m n -> coprime m (n ^ k). 
+Lemma coprime_expr : forall k m n, coprime m n -> coprime m (n ^ k).
 Proof. by move=> k m n; rewrite !(coprime_sym m); exact: coprime_expl. Qed.
 
 Lemma coprime_egcdn : forall n m, n > 0 ->
     coprime (egcdn n m).1 (egcdn n m).2.
 Proof.
-move=> n m pn; case: (egcdnP m pn)=> kn km; case Ekn: kn =>[|k].
+move=> n m pn; case: (egcdnP m pn)=> kn km; case Ekn: kn => [|k].
   rewrite mul0n; move/eqP; rewrite eq_sym eqn_add0 (eqn0Ngt (gcdn _ _)) ltn_0gcd.
   by rewrite pn andbF.
 case/dvdnP: (dvdn_gcdl n m)=> an Ean; case/dvdnP: (dvdn_gcdr n m)=> am Eam Eg _.
@@ -878,7 +879,7 @@ Definition abezoutn m n :=
   if m > 0 then let: (km, kn) := egcdn m n in (km, m.-1 * kn) else (0, 1).
 
 Lemma abezout_modn : forall m n,
-  let: (u, v) := abezoutn m n in 
+  let: (u, v) := abezoutn m n in
   (u * m + v * n) %% (m * n) = gcdn m n %% (m * n).
 Proof.
 rewrite /abezoutn => m n; case: posnP => [->|m_pos].
@@ -887,7 +888,7 @@ case: egcdnP => //= km kn -> _.
 by rewrite -mulnA addnAC -mulSn prednK // mulnCA modn_addl_mul.
 Qed.
 
-Lemma abezout_coprime: forall n m, 1 < m * n -> coprime m n -> 
+Lemma abezout_coprime: forall n m, 1 < m * n -> coprime m n ->
   let: (u, v) := abezoutn m n in (u * m + v * n) %% (m * n) = 1.
 Proof.
 move=> n m mn_gt1 co_mn; case: abezoutn (abezout_modn m n) => u v ->.
@@ -1039,7 +1040,7 @@ rewrite {1}def_m -mulnA logn_gauss // {1}def_n mulnCA logn_gauss //.
 by rewrite -expn_add logn_exp // prime_gt1.
 Qed.
 
-Lemma dvdn_exp_prime: forall p d n, prime p -> 
+Lemma dvdn_exp_prime: forall p d n, prime p ->
   reflect (exists2 m, m <= n & d = p ^ m) (d %| p ^ n).
 Proof.
 move=> p d n p_pr; case: (primeP p_pr) => p_gt1 dv_p; have p_pos := ltnW p_gt1.

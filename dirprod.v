@@ -31,6 +31,32 @@ Import GroupScope.
 
 Section ExternalDirProd.
 
+Lemma morph_gen : forall (gT1 gT2: finGroupType)
+  (G : {group gT1}) (f:morphism gT2 G)  (S: {set gT1}), 
+  S \subset G ->
+  f @* <<S>> = <<f @* S>>.
+Proof.
+move=> gT1 gT2 G f S Hsub.
+apply/eqP; rewrite eqset_sub gen_subG imsetS ?setIS ?sub_geng // andbT.
+suff: <<S>> \subset f@*^-1 (<<f@* S>>).
+  move: Hsub; rewrite -gen_subG; move/setIidPl; rewrite {2}/morphim setIC =>->.
+  move/(imsetS f); move/subset_trans; apply; apply/subsetP=> x.
+  by case/imsetP=> x0 Hx0 ->; move/morphpreP: Hx0=> [_ ->].
+rewrite gen_subG; apply/subsetP=> x Hx; apply/morphpreP; apply/andP.
+rewrite (subsetP Hsub) // (subsetP (sub_geng (f@* S))) //.
+by apply:mem_imset; move/setIidPl: Hsub; rewrite setIC => ->.
+Qed.
+
+Lemma morph_preim_gen : forall (gT1 gT2: finGroupType)
+  (G : {group gT1}) (f:morphism gT2 G)  (S: {set gT2}),
+  S \subset f@* G  ->
+  f @*^-1 <<S>> = ('ker f) * <<f @*^-1 S>>.
+Proof.
+move=> gT1 gT2 G f S Hsub.
+have H: f@*^-1 S \subset G by apply/subsetP=> x; move/morphpreP=> [Hx].
+by rewrite -{1}(morphpreK Hsub) -morph_gen ?morphimK ?gen_subG.
+Qed.
+
 Variables gT1 gT2 : finGroupType.
 
 Definition extprod_mulg (x y : gT1 * gT2) := (x.1 * y.1, x.2 * y.2).
@@ -61,76 +87,49 @@ Qed.
 
 Canonical Structure setX_group H1 H2 := Group (group_setX H1 H2).
 
+Notation Local inr := pair.
+Notation Local inl := (fun x y  => (pair y x)).
+
+Lemma morph_inl : {morph inl (1:gT2) : x y / x * y}.
+Proof.
+by move=> x y /=; rewrite {2}/mulg /= /extprod_mulg /= mul1g.
+Qed.
+
+Lemma morph_inr : {morph inr (1:gT1) : x y / x * y}.
+Proof.
+by move=> x y /=; rewrite {2}/mulg /= /extprod_mulg /= mul1g.
+Qed.
 
 Lemma setX_gen (H1 : {set gT1}) (H2 : {set gT2}):
  1 \in H1 -> 1 \in H2 -> <<setX H1 H2>> = setX <<H1>> <<H2>>.
 Proof.
-(* Too long but I could not find a shorter proof *)
-move=> H1 H2 H11 H12; apply/eqP; rewrite eqset_sub; apply/andP; split.
-  rewrite gen_subG; apply/subsetP => [[x1 x2]]; rewrite !inE /=.
-  by case/andP => Hx1 Hx2;apply/andP; split; apply: mem_geng.
-apply/subsetP => [[x1 x2]]; rewrite !inE /=; case/andP => Hx1 Hx2.
-have ->: forall (x: gT1) (y: gT2), (x,y) = (x,1) * (1,y).
-  by move=> x y; rewrite /mulg /= /extprod_mulg /= mulg1 mul1g.
-rewrite groupM //.
-  have F1: forall (x y: gT1), (x * y,(1: gT2)) = (x,1) * (y,1).
-    by move=> x y; rewrite {2}/mulg /= /extprod_mulg /= mulg1.
-  have F2: <<setX H1 1>> \subset <<setX H1 H2>>.
-    apply: genSg; apply/subsetP => [[y1 y2]]; rewrite !inE /=.
-    by case/andP => ->; move/eqP->.
-  apply: (subsetP F2).
-  pose f1 (x: gT1) := (x,unitg gT2).
-  have P1f1: group_set (dom f1).
-    apply/andP; split.
-       by rewrite !inE eq_refl orbF; apply/forallP => x; rewrite mul1g.
-    apply/subsetP => y _; rewrite !inE /= /f1.
-    case E1: (_ == _); move/idP: E1=> E1; last by rewrite orbT.
-    rewrite orbF; apply/forallP => y1 /=.
-    by rewrite /f1 F1 (eqP E1) mul1g.
-  have P2f1: {in dom f1 &, {morph f1 : x y / x * y}}.
-    by move=> x y /=; rewrite /f1 {2}/mulg /= /extprod_mulg /= mul1g.
-  pose mf1 := (Morphism P1f1 P2f1).
-  have P3f1: forall H: {set gT1}, f1 @: H = setX H 1.
-    move=> H.
-    apply/eqP; rewrite eqset_sub; apply/andP; split; apply/subsetP => x.
-      case/imsetP => y; rewrite !inE /f1 /= => Hy ->.
-      by rewrite Hy eq_refl.
-    case: x => xx1 xx2; rewrite !inE /=.
-    by case/andP => Hxx1; move/eqP->; apply/imsetP; exists xx1.
-  have P4f1: H1 \subset dom f1.
-    apply/subsetP => y _.
-    rewrite /f1 !inE /=; case E1: (_ == _); move/idP: E1 => E1; last by rewrite orbT.
-    by rewrite orbF; apply/forallP => z /=; rewrite F1 (eqP E1) mul1g.
-  by rewrite -P3f1 -(@gen_f_com _ _ mf1 _ P4f1) P3f1 !inE /= Hx1 eq_refl.
-have F1: forall (x y: gT2), ((1: gT1), x * y) = (1, x) * (1, y).
-  by move=> x y; rewrite {2}/mulg /= /extprod_mulg /= mulg1.
-have F2: <<setX 1 H2>> \subset <<setX H1 H2>>.
-  apply: genSg; apply/subsetP => [[y1 y2]]; rewrite !inE /=.
-  by case/andP; move/eqP->; rewrite H11.
-apply: (subsetP F2).
-pose f1 (x: gT2) := (unitg gT1, x).
-have P1f1: group_set (dom f1).
-  apply/andP; split.
-     by rewrite !inE eq_refl orbF; apply/forallP => x; rewrite mul1g.
-  apply/subsetP => y _; rewrite !inE /= /f1.
-  case E1: (_ == _); move/idP: E1=> E1; last by rewrite orbT.
-  rewrite orbF; apply/forallP => y1 /=.
-  by rewrite /f1 F1 (eqP E1) mul1g.
-have P2f1: {in dom f1 &, {morph f1 : x y / x * y}}.
-  by move=> x y /=; rewrite /f1 {2}/mulg /= /extprod_mulg /= mul1g.
-pose mf1 := (Morphism P1f1 P2f1).
-have P3f1: forall H: {set gT2}, f1 @: H = setX 1 H.
-  move=> H.
-  apply/eqP; rewrite eqset_sub; apply/andP; split; apply/subsetP => x.
-    case/imsetP => y; rewrite !inE /f1 /= => Hy ->.
-    by rewrite Hy eq_refl.
-  case: x => xx1 xx2; rewrite !inE /=.
-  by case/andP; move/eqP => -> Hxx1; apply/imsetP; exists xx2.
-have P4f1: H2 \subset dom f1.
-  apply/subsetP => y _.
-  rewrite /f1 !inE /=; case E1: (_ == _); move/idP: E1 => E1; last by rewrite orbT.
-  by rewrite orbF; apply/forallP => z /=; rewrite F1 (eqP E1) mul1g.
-by rewrite -P3f1 -(@gen_f_com _ _ mf1 _ P4f1) P3f1 !inE /= Hx2 eq_refl.
+move=> H1 H2 *.
+apply/eqP; rewrite eqset_sub gen_subG; apply/andP; split.
+  apply/subsetP; case => x1 x2; move/setXP=>[Hx1 Hx2].
+  by apply/setXP; split; apply:mem_geng.
+have Hm : <<setX H1 1>> * <<setX 1 H2>> \subset <<setX H1 H2>>.
+  by rewrite -[<<setX H1 H2 >>]mulGid mulgSS ?genSg //;
+  apply/subsetP; case=> h1 h2; move/setXP=> [Hh1 Hh2]; apply/setXP; split=>//;
+  [move/set1P : Hh2->|move/set1P:Hh1->].
+apply: (subset_trans _ Hm).
+apply/subsetP; case=> [x1 x2]; move/setXP=> [Hx1 Hx2].
+have Heq : (x1,x2) = (x1,1) * (1,x2).
+by rewrite /mulg /= /extprod_mulg /= mul1g mulg1.
+apply/mulsgP; exists (x1, 1:gT2) (1:gT1 ,x2); last by apply: Heq.
+  pose minl := (Morphism (in2W morph_inl) : morphism _ setT).
+  have ->: setX H1 1 = (minl @: H1).
+    apply/setP; case=> [x01 x02]; apply/setXP/imsetP=>[[H01]|[x0 Hx0]].
+      by move/set1P=> H02; exists (x01)=> //; rewrite H02.
+   case=> -> ->; split => //; last by rewrite inE.
+  rewrite -(setTI H1) -morph_gen ?subsetT //.
+  by apply/imsetP; rewrite /= setTI; exists x1.
+pose minr := (Morphism (in2W morph_inr) : morphism _ setT).
+have ->: setX 1 H2 = (minr @: H2).
+  apply/setP; case=> [x01 x02]; apply/setXP/imsetP=>[[H01 H02]|[x0 Hx0]].
+    by move/set1P: H01=> H01; exists (x02)=> //; rewrite H01.
+ case=> -> ->; split => //; last by rewrite inE.
+rewrite -(setTI H2) -morph_gen ?subsetT //.
+by apply/imsetP; rewrite /= setTI; exists x2.
 Qed.
 
 End ExternalDirProd.
@@ -147,35 +146,33 @@ Proof. by move=> H1 H2; rewrite -curry_imset2X. Qed.
 
 Lemma dirprod_isom : forall H1 H2 G,
   reflect [/\ {in H1, central H2}, G = (H1 <*> H2)%G & trivg (H1 :&: H2)]
-          (morphic (setX H1 H2) mulg_pair && isom mulg_pair (setX H1 H2) G).
+          (misom (setX H1 H2) G mulg_pair).
 Proof.
-move=> H1 H2 G; set H := {2}(setX H1 H2); rewrite /isom mulg_setX.
-apply: (iffP and3P) => [[pM] | [cH ->{G} trH]].
-  move/eqP=> defG; move/(injmorphicP pM); rewrite /= -/H => injp.
+move=> H1 H2 G; set H := setX _ _.
+apply: (iffP misomP) => [ [pM] | [cH ->{G} trH]].
+  pose f := morphm_morphism pM; case/isomP=> injf fHG.
   have cH: {in H1, central H2}.
-    move=> x1 Hx1 /= x2 Hx2; have:= morphP pM (1, x2) (x1, 1).
-    rewrite /= !inE !group1 andbT !mul1g !mulg1; exact.
-  split=> //; first by apply: val_inj; rewrite /= central_mulgenE.
-  apply/subsetP=> x; case/setIP=> H1x H2x; apply/set1P.
-  have:= injp (x, 1) (1, x); rewrite !inE ?group1 andbT /= !gsimp. 
-  by case/(_ H1x H2x (erefl x)).
+    move=> x1 Hx1 /= x2 Hx2; have:= @morphM _ _ _ f (1, x2) (x1, 1) => /=.
+    rewrite !inE !group1 andbT morphmE /= !mulg1 !mul1g; exact.
+  have defG: G = (H1 <*> H2)%G.
+    apply: val_inj; rewrite /= central_mulgenE // -fHG morphimEdom.
+    by rewrite -curry_imset2X.
+  split=> //; apply/subsetP=> x; case/setIP=> H1x H2x; apply/set1P.
+  have:= injmP _ injf (x, 1) (1, x); rewrite !inE ?group1 andbT /=.
+  by rewrite morphmE /= !gsimp; case/(_ H1x H2x (erefl x)).
 have pM: morphic H mulg_pair.
-  apply/morphP=> [[x1 x2] [y1 y2]]; rewrite !inE.
+  apply/morphicP=> [[x1 x2] [y1 y2]]; rewrite !inE /=.
   case/andP=> _ Hx2; case/andP=> Hy1 _.
   by rewrite /= mulgA -(mulgA x1) (cH _ Hy1) ?mulgA.
-split=> //=; first by rewrite central_mulgenE.
-apply/subsetP=> u; case/setD1P=> nu1 Hu.
-have npu1: mulg_pair u <> 1.
-  apply/eqP; apply: contra nu1; case: u Hu => x1 x2 Hu /=.
-  rewrite -eq_invg_mul; move/eqP=> def_x2.
-  rewrite -{x2}def_x2 inE groupV -in_setI /= in Hu *.
-  by move/(subsetP trH): Hu; move/set1P->; rewrite invg1 eqxx.
-have Du: u \in dom mulg_pair by apply/setUP; right; rewrite inE; exact/eqP.
-rewrite inE Du andbT; rewrite /H in pM; apply/(kermorphicP pM) => //.
-by rewrite inE Hu Du.
+exists pM; apply/isomP; split; last first.
+  by rewrite /= central_mulgenE // morphimEdom -curry_imset2X.
+apply/subsetP=> u; case/setIP; rewrite !inE /=.
+case: u => u1 u2 /= Hu; rewrite -eq_invg_mul; move/eqP=> def_u2.
+rewrite -def_u2 ?groupV -in_setI /= in Hu *.
+by move/(subsetP trH): Hu; move/set1P->; rewrite invg1 eqxx.
 Qed.
 
-Lemma smulg_1set : forall H1 H2, 
+Lemma smulg_1set : forall H1 H2,
   (H1 * H2 == 1) = (H1 == 1 :> set _) && (H2 == 1 :> set _).
 Proof.
 move=> H1 H2; rewrite !eqset_sub (subset_trans _ (mulG_subr _ _)) ?sub1G //=.
@@ -184,7 +181,7 @@ Qed.
 
 Lemma dirprod_normal_isom : forall H1 H2 G,
   reflect [/\ H1 <| G, H2 <| G, G = H1 * H2 :> set _ & trivg (H1 :&: H2)]
-          (morphic (setX H1 H2) mulg_pair && isom mulg_pair (setX H1 H2) G).
+          (misom (setX H1 H2) G mulg_pair).
 Proof.
 move=> H1 H2 G.
 apply: (iffP (dirprod_isom H1 H2 G)) => [[cH -> trH] | [nH1 nH2 defG trH]].

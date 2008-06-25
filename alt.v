@@ -1,6 +1,6 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype paths.
 Require Import connect div tuple finfun finset groups normal group_perm.
-Require Import automorphism zp action normal sylow cyclic signperm.
+Require Import automorphism zp action sylow cyclic signperm.
 
 Import Prenex Implicits.
 Set Implicit Arguments.
@@ -70,16 +70,16 @@ have [p [p_pr pA_int Sp1]]:
     case/andP=> nx1 Q1x; rewrite nx1 /= => Q2x.
     apply: val_inj; apply/setP; apply/subset_cardP; first by rewrite cQ1.
     have sQ12: Q1 :&: Q2 \subset Q1 by exact: subsetIl.
-    rewrite -eqsetIl /= eqset_sub_card sQ12 leq_eqVlt eq_sym; apply/orP; left.
+    apply/setIidPl; apply/eqP; rewrite eqset_sub_card sQ12 /=.
     have:= group_dvdn sQ12; rewrite cQ1 dvdn_divisors // -topredE /= orbF.
-    case/orP=> //; rewrite (cardD1 1) group1 eqSS; case/existsP.
-    by exists x; rewrite /= inE nx1 Q1x.
+    rewrite {1}(cardD1 1) group1 (cardD1 x) inE [_ x]/= inE nx1 Q1x Q2x /=.
+    by move/eqP->.
   move=> /= cQ3; pose Syl2 := gsylow 2 A.
   have{cQ3} nQS2: forall P, P \in Syl2 -> P = A :\: Q3 :> set _.
     move=> P; case/andP=> sAP; rewrite cA -[_ 2 _]/4; move/eqP=> cP.
     apply/setP; apply/subset_cardP.
       apply: (@addn_injl #|A :&: Q3|); rewrite cardsID cA cP addnC; congr _.+4.
-      rewrite -[8]cQ3; congr #|_ : set _|; apply/eqP; rewrite setIC eqsetIl.
+      rewrite -[8]cQ3; congr #|_ : set _|; apply/setIidPr.
       apply/subsetP=> x; case/bigcupP=> Q; rewrite 2!inE; case/andP=> sAQ _.
       case/andP=> _; exact: (subsetP sAQ).
     apply/subsetP=> x Px; rewrite inE (subsetP sAP) // andbT.
@@ -88,8 +88,8 @@ have [p [p_pr pA_int Sp1]]:
     have sPQP: P :&: Q \subset Q by exact: subsetIr.
     have:= (group_dvdn sPQP); rewrite cQ dvdn_divisors //= !inE orbF.
     rewrite {1}(cardD1 1) (cardD1 x) group1 inE [_ x]/= inE nx1 Px Qx /= -cQ.
-    move/eqP=> cPQ; move/(subset_cardP cPQ): sPQP; move/setP; move/eqP.
-    by rewrite setIC eqsetIl; move/group_dvdn; rewrite cP cQ.
+    move/eqP=> cPQ; move/(subset_cardP cPQ): sPQP; move/setP; apply/setIidPr.
+    by apply/negP; move/group_dvdn; rewrite cP cQ.
   case: ((sylow1_cor [group of A]) 2) => //= P sylP; exists 2; split => //.
   rewrite (cardD1 P) [P \in _]sylP eqSS; apply/pred0P=> P'.
   apply/andP=> [[nPP' sylP']]; case/eqP: nPP'.
@@ -218,10 +218,10 @@ case: (sylow1_cor H prime_5) => S; case/andP=> sSH oS.
 have{oS} oS: #|S| = 5 by move/eqP: oS; rewrite Hcard20. 
 suff: 20 %| #|S| by rewrite oS.
 apply FF => [|S1]; last by rewrite S1 cards1 in oS.
-apply: char_norm_trans Hnorm; apply: (lone_subgroup_char sSH oS) => Q sQH oQ.
-apply/eqP; apply/idPn=> nQS; move: nSyl5.
+apply: char_norm_trans Hnorm; apply: lone_subgroup_char => // Q sQH isoQS.
+rewrite ((Q =P S :> set _) _) //; apply/idPn=> nQS; move: nSyl5.
 rewrite (cardD1 S) (cardD1 Q) -!topredE {1 2}/gsylow /= nQS /sylow Hcard20.
-by rewrite sSH oS -topredE /= sQH oQ.
+by rewrite sSH oS -topredE /= sQH (isog_card isoQS) oS.
 Qed.
 
 Module alt_CP_2. End alt_CP_2.
@@ -251,57 +251,17 @@ Qed.
 
 Definition rfd p := perm_of (@rfdP p).
 
-Hypothesis card_d: 2 < #|d|.
+Hypothesis card_d : 2 < #|d|.
 
-Lemma rfd_dom: dom rfd = stabilizer (perm_action d) (setT_group _) x.
+Lemma rfd_morph : {in stabilizer (perm_action d) [setT]%G x &,
+                    {morph rfd : y z / y * z}}.
 Proof.
-have rfd_not_fp : forall p : {perm d}, p x != x -> rfd p = 1.
-  move=> p; move/negPf=> npxx; apply/permP => u; apply: val_inj.
-  by rewrite permE /= npxx !perm1.
-apply/setP => p; apply/setUP/stabilizerP.
-  move=> p_dom; split; first by rewrite inE.
-  apply/eqP; apply/idPn=> npxx.
-  case p_dom; last by rewrite inE rfd_not_fp ?eqxx.
-  have [y nyx nypx]: exists2 y, y != x & y != p x.
-    have:= card_d; rewrite (cardD1 x) (cardD1 (p x)) !inE /= npxx.
-    by rewrite !ltnS lt0n; case/pred0Pn=> y; case/and3P=> /=; exists y.
-   move/kerP => kerH.
-  have xppx: x = p (p x).
-    apply: (inv_inj (tpermK x (p x))); apply/eqP.
-    move: (kerH (tperm x (p x))).
-    rewrite [rfd (tperm _ _)]rfd_not_fp; last by rewrite tpermL.
-    move/(congr1 (fun q : perm d' => q (exist (xpredC1 x) _ npxx))).
-    rewrite perm1 permE; move/val_eqP.
-    by rewrite /= !permM tpermR eq_refl permM eq_sym tpermL.
-  move: (kerH (tperm x (p x) * (tperm (p x) y))).
-  rewrite [rfd (tperm _ _ * _)]rfd_not_fp;  last first.
-    by rewrite permM tpermL tpermL.
-  have npmxx: p^-1 x != x by rewrite eq_sym -(canF_eq (permK p)).
-  move/(congr1 (fun q : {perm d'} => q (exist (xpredC1 x) _ npmxx))).
-  rewrite permE perm1; move/val_eqP=> /=.
-  rewrite !permM tpermR tpermD ?eqxx //.
-  rewrite !permM permKV tpermL tpermL => ypmx.
-  by case/negP: nypx; rewrite (eqP ypmx) {1}xppx permK.
-case=> _ Hx; rewrite inE.
-case: (_ =P _) => E0; last by right.
-suff ->: p = 1 by left; apply/kerP=> y; rewrite mul1g.
-apply/permP => z; rewrite perm1.
-case (z =P x) => [-> //|]; move/eqP => nzx; apply/eqP.
-move: (congr1 (fun q : perm d' => q (exist (xpredC1 x) _ nzx)) E0).
-by rewrite permE perm1; move/val_eqP => /=; rewrite -{2}Hx eq_refl.
+move=> p q; rewrite 4!inE /= /perm_to; move/eqP=> p_x q_x /=.
+apply/permP=> u; apply: val_inj.
+by rewrite permE /= !permM !permE /= p_x q_x eqxx permM /=.
 Qed.
 
-Definition rfd_morph: morphism (perm_finGroupType d) (perm_finGroupType d').
-exists rfd.
-  rewrite rfd_dom.
-  exact: (@group_set_stab _ _ (perm_action d) (setT_group (perm_finGroupType d))).
-move=> x1 y1; rewrite rfd_dom; case/stabilizerP=> _ Hx1.
-case/stabilizerP=> _ Hy1.
-rewrite /perm_action /perm_to /= in Hx1 Hy1.
-have Hxy1: (x1 * y1) x = x by rewrite permM Hx1.
-apply/permP => z.
-by apply/val_eqP; rewrite permM ![rfd _ _]permE /= Hx1 Hy1 Hxy1 !eq_refl permM.
-Defined.
+Canonical Structure rfd_morphism := Morphism rfd_morph.
 
 Definition rgd_fun (p : {perm d'}) :=
   [fun x1 => if insub x1 is Some u then val (p u) else x].
@@ -315,7 +275,7 @@ Qed.
 
 Definition rgd p := perm_of (@rgdP p).
 
-Lemma rfd_odd : forall p: {perm d}, p x = x -> rfd p = p :> bool.
+Lemma rfd_odd : forall p : {perm d}, p x = x -> rfd p = p :> bool.
 Proof.
 have rfd1: rfd 1 = 1 by apply/permP => u; apply: val_inj; 
                         rewrite permE /= if_same !perm1.
@@ -327,7 +287,7 @@ have HP0: forall p : {perm d},
   by rewrite (card0_eq Hp).
 move=> p; elim: #|_| {-2}p (leqnn #|[set x | p x != x]|) => {p}[| n Hrec] p Hp Hpx.
   by apply: HP0; move: Hp; case: card.
-case Ex: (pred0b (mem [set x | p x != x])); first by apply: HP0; move: Ex; rewrite /pred0b; move/eqP.
+case Ex: (pred0b (mem [set x | p x != x])); first by apply: HP0; move/eqnP: Ex.
 case/pred0Pn: Ex => x1; rewrite /= inE => Hx1.
 have nx1x:  x1 != x by apply/eqP => HH; rewrite HH Hpx eqxx in Hx1.
 have npxx1: p x != x1 by apply/eqP => HH; rewrite -HH !Hpx eqxx in Hx1.
@@ -352,12 +312,11 @@ have Hcp1: #|[set x | p1 x != x]| <= n.
   apply: (leq_trans (subset_leq_card F3)).
   by move: Hp; rewrite (cardD1 x1) inE Hx1.
 have ->: p = p1 * tperm x1 (p x1) by rewrite -mulgA tperm2 mulg1.
-rewrite odd_permM odd_tperm eq_sym Hx1.
-rewrite (@morphM _ _ (rfd_morph)) ?rfd_dom /=; last 2 first.
+rewrite odd_permM odd_tperm eq_sym Hx1 morphM; last 2 first.
 - by apply/stabilizerP; rewrite inE.
 - apply/stabilizerP; rewrite inE; split=> //.
   by rewrite -{1}Hpx /= -[perm_to _ _]permM.
-rewrite odd_permM Hrec //; congr (_ (+) _).
+rewrite odd_permM Hrec //=; congr (_ (+) _).
 pose x2: d' := exist (xpredC1 x) _ nx1x.
 pose px2: d' := exist (xpredC1 x) _ npx1x.
 suff ->: rfd (tperm x1 (p x1)) = tperm x2 px2.
@@ -371,27 +330,26 @@ Qed.
 
 Lemma rfd_iso: isog (stabilizer (perm_action d) (alt d) x) (alt d').
 Proof.
-have rgd_x: forall p, rgd p x = x by move=> p; rewrite permE /= insubF //= eqxx.
+have rgd_x: forall p, rgd p x = x.
+  by move=> p; rewrite permE /= insubF //= eqxx.
 have rfd_rgd: forall p, rfd (rgd p) = p.
   move=> p; apply/permP => [[z Hz]]; apply/val_eqP; rewrite !permE.
-  by rewrite /= [rgd _ _]permE /= insubF eq_refl // permE /= 
-             (@insubT _ (xpredC1 x) _ _ Hz).
-exists rfd_morph.
-apply/andP; split.
-  apply/eqP; apply/setP=> z; apply/imsetP/idP.
-    case=> p; case/stabilizerP; move/altP => Hp Hp1 ->; apply/altP.
+  rewrite /= [rgd _ _]permE /= insubF eq_refl // permE /=.
+  by rewrite (@insubT _ (xpredC1 x) _ _ Hz).
+have sSd: stabilizer (perm_action d) (alt d) x \subset 'dom rfd.
+  by apply/subsetP=> p; rewrite !inE /=; case/andP.
+apply/isogP; exists [morphism of restrm sSd rfd] => /=; last first.
+  rewrite morphim_restrm setIid; apply/setP=> z; apply/morphimP/idP=> [[p _]|].
+    case/stabilizerP; move/altP => Hp Hp1 ->; apply/altP.
     by rewrite /even_perm rfd_odd.
-  move=> Hz; exists (rgd z); last by rewrite /= rfd_rgd.
-  apply/stabilizerP; split.
-    apply/altP; rewrite /even_perm -rfd_odd ?rgd_x //.
-    by rewrite rfd_rgd; case/altP: Hz.
-  by rewrite /= /perm_to rgd_x. 
-apply/injmP=> x1 y1.
-case/stabilizerP=> Hax1 Hx1; case/stabilizerP=> Hay1 Hy1 /= Hr.
-rewrite /perm_action /perm_to /= in Hx1 Hy1.
-apply/permP => z.
+  have dz': rgd z x == x by rewrite rgd_x.
+  move=> kz; exists (rgd z); rewrite ?inE //= dz' andbT.
+  by rewrite -rfd_odd // rfd_rgd mker.
+apply/injmP=> x1 y1 /=.
+case/stabilizerP=> Hax1 /= Hx1; case/stabilizerP=> Hay1 /= Hy1 Hr.
+rewrite /perm_to /= in Hx1 Hy1; apply/permP => z.
 case (z =P x) => [->|]; [by rewrite Hx1 | move/eqP => nzx].
-move: (congr1 (fun q : perm d' => q (exist (xpredC1 x) _ nzx)) Hr).
+move: (congr1 (fun q : perm d' => q (Sub z nzx)) Hr).
 by rewrite !permE; move/val_eqP; rewrite /= Hx1 Hy1 !eqxx; move/eqP.
 Qed.
 
@@ -437,25 +395,23 @@ have F12: K \subset Gx.
   apply/subsetP=> g; case/stabilizerP => Hg Hperm.
   by apply/stabilizerP; split => //; apply: (subsetP Hh1).
 have F13: K <| Gx by apply/andP; split; last apply: normal_stab.
-case: (@prim_trans_norm _ _ _ [group of Gx] _ F10 [group of K] F11 F13) => Ksub; last first.
-  have F14 := (subgroup_transitive Hx Hh1 F3 F5); rewrite -/Gx in F14.
-  have Gx_simpl: simple Gx.
-    have FF: 2 < #|d| by apply: (leq_trans _ Hd).
-    apply: (isog_simpl (isog_sym (rfd_iso x FF))).
-    apply: Hrec => /=; apply/eqP.
-    by move/eqP: Hde; rewrite card_sub -(cardC (pred1 x)) card1 !addSn add0n.
-  move/simpleP: Gx_simpl; case/(_ [group of K] F13) => HH2.
+have:= prim_trans_norm F10 F11; case/(_ [group of K]) => //= => Ksub; last first.
+  have F14 := (subgroup_transitive Hx Hh1 F3 F5); rewrite -/Gx /= in F14.
+  have: simple Gx.
+    apply: isog_simpl (isog_sym_imply (rfd_iso x)) (Hrec _ _) => /=.
+    by rewrite card_sub cardC1 Hde.
+  move/simpleP; case/(_ [group of K] F13) => /= HH2.
     case Ez: (pred0b (predD1 (predD1 d x) y)).
       move: Hd; rewrite /pred0b in Ez.
       by rewrite (cardD1 x) (cardD1 y) (eqP Ez) inE /= inE /= diff_x_y.  
     case/pred0Pn: Ez => z; case/andP => diff_y_z Hdz; case/andP: (Hdz) => diff_x_z Hz.
     move: Hdz; rewrite topredE -(Ksub _ Hdy); case/imsetP => g.
-    rewrite HH2 inE; move/eqP => -> HH4.
+    rewrite /= HH2 inE; move/eqP => -> HH4.
     by case/negP: diff_y_z; rewrite HH4 act1.
   rewrite -F14; apply/setP; apply/subset_eqP; apply/andP; split; apply/subsetP => z.
     by move => Hz; apply/mulsgP; exists (1 : {perm d}) z; rewrite ?group1 // mul1g.
   case/mulsgP => t u Ht Hu ->; rewrite groupM // (subsetP F8) //. 
-  by have: t \in Gx; rewrite // -HH2.
+  by have: t \in Gx; rewrite //= -HH2.
 have F14: faithful (perm_action d) Gx (predD1 d x).
   apply/faithfulP => g Hg.
   apply: (faithfulP _ _ _ (perm_action_faithful d)) => z Hz.
@@ -474,8 +430,7 @@ have Hreg: forall g (z: d), g \in H -> g z = z -> g = 1.
   have:= F3 z tp x; case/imsetP=> g1 Hg1 Hg2.
   apply: (mulg_injl g1^-1); apply: (mulg_injr g1); gsimpl.
   apply: F15; first by rewrite -mulgA -(normalP nH _ Hg1) memJ_conjg.
-  change (perm_action d x (g1^-1 * g * g1) = x).
-  by rewrite Hg2 -actM; gsimpl; rewrite actM {2}/perm_action  /perm_to /= Hgz.
+  by rewrite Hg2 -permM -mulgA mulKVg permM Hgz.
 clear K F8 F12 F13 Ksub F14.
 have Hcard: 5 < #|H|.
   apply: (leq_trans Hd); apply dvdn_leq; first by exact: pos_card_group.
@@ -499,7 +454,7 @@ case diff_gx_hx: (g x == h x).
   by rewrite permM -(eqP diff_gx_hx) -permM mulgV perm1.
 case diff_hgx_x: ((h * g) x == x).
   case/negP: diff_h1_g; apply/eqP; apply: (mulg_injl h); gsimpl.
-  by apply: (Hreg _ x); first (by exact: groupM); apply/eqP.
+  by apply: (Hreg _ x); [exact: groupM | apply/eqP].
 case diff_hgx_hx: ((h * g) x == h x).
   case/negP: diff_1_g; apply/eqP.
   by apply: (Hreg _ (h x)) => //; apply/eqP; rewrite -permM.

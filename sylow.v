@@ -32,7 +32,7 @@ Hypothesis p_divides_H : p %| #|H|.
 (**********************************************************************)
 
 Canonical Structure SylowCauchyPosPrime := prime_pos_nat prime_p.
-Notation zp := I_(p).
+Notation zp := 'I_p.
 Let lt1p := prime_gt1 prime_p.
 Definition make_zp : nat -> zp.
 move=> i; exists (i %% p).
@@ -235,7 +235,7 @@ move=> i L ltin sLK cardL.
 have: p %| #|K / L|.
   have <-: #|rtrans_fix L K L| = #|K / L|.
     rewrite rtrans_fix_norm -(card_imset (mem (K / L)) val_inj).
-    by apply: eq_card=> Lk; rewrite set_of_coset_quotient.
+    apply: eq_card=> Lk; rewrite val_quotient //.
   have divpLK : p %| indexg L K.
     rewrite -(@dvdn_pmul2l #|L|) // (LaGrange sLK) (eqP cardL) mulnC -expnS.
     by rewrite dvdn_exp_max.
@@ -247,27 +247,28 @@ have: p %| #|K / L|.
   exists (y * x); first by rewrite groupM //; exact: (subsetP sLK x).
   by rewrite /= !rcosetE rcosetM.
 case/cauchy=> // zbar; case/andP=> Kzbar; move/eqP=> Czbar_p.
-pose H := mpreim (coset_of L) (cyclic zbar) :&: K.
+pose H := (coset_of L) @*^-1 (cyclic zbar) :&: K.
 exists [group of H] => /=.
-have Hntriv : ~~ trivm (coset_of L).
-  apply/negP=> Hnt; move/prime_gt1: prime_p; rewrite ltnNge; case/negP.
-  rewrite -Czbar_p -(coset_of_repr zbar) trivm_is_cst //.
-  rewrite -(cards1 (1 : coset L)); apply: subset_leq_card; exact: cyclic_h.
+(* have Hntriv : ~~ trivm (coset_of L). *)
+(*   apply/negP=> Hnt; move/prime_gt1: prime_p; rewrite ltnNge; case/negP. *)
+(*   rewrite -Czbar_p -(coset_of_repr zbar) trivm_is_cst //. *)
+(*   rewrite -(cards1 (1 : coset L)); apply: subset_leq_card; exact: cyclic_h. *)
 have sLH : L \subset H.
-  apply/subsetP => x Lx. 
-  apply/setIP; split; last exact: (subsetP sLK x).
-  apply/setIP; split; first by rewrite inE coset_of_id // group1.
-  rewrite dom_coset //; exact: (subsetP (normG L)).
+  apply/subsetP => x Lx.
+  apply/setIP; split; last exact: (subsetP sLK).
+  apply/setIP; split; first by rewrite (subsetP (normG _)).
+  by rewrite /= inE coset_of_id // group1.
 have nLH: H \subset 'N(L).
-  by apply/subsetP=> x; case/setIP; case/mpreimP=> *; rewrite -dom_coset.
+  by apply/subsetP=> x; case/setIP; case/morphpreP=> *. 
 rewrite /(_ <| _) sLH nLH subsetIr -(@LaGrange _ L) // -card_quotient //= -/H.
 rewrite (eqP cardL) mulnC -{}Czbar_p.
 apply/eqP; congr (_ * _)%N; apply: eq_card => xbar.
 apply/imsetP/idP=> [[x Hx ->{xbar}]|].
-  by rewrite 3!inE -andbA in Hx; case/andP: Hx.
+  by rewrite 3!inE andbC -andbA in Hx; case/andP: Hx; case/morphpreP=>[_].
 case/cyclicP=> m <-{xbar}; rewrite {nLH sLH}/H.
-case/quotientP: Kzbar => z [Kz Nz ->{zbar}].
-by exists (z ^+ m); rewrite 3?inE morphX // dom_coset ?groupX ?cyclicnn.
+case/morphimP: Kzbar => z [Kz Nz ->{zbar}].
+exists (z ^+ m); rewrite ?morphX // inE groupX ?Kz //= inE ?groupX //.
+by apply/morphpreP; split=> //; apply:cyclicnn.
 Qed.
 
 Lemma sylow1: forall i j (L : group gT), i <= j <= n ->

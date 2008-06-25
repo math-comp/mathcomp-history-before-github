@@ -19,7 +19,7 @@ Import Prenex Implicits.
 
 Import GroupScope.
 
-Definition center (gT : finGroupType) (A : {set gT}) := C_(A)(A).
+Definition center (gT : finGroupType) (A : {set gT}) := 'C_A(A).
 
 Notation "''Z' ( A )" := (center A)
   (at level 9, format "''Z' ( A )") : group_scope.
@@ -36,8 +36,8 @@ Implicit Types x y : gT.
 Implicit Types A B : {set gT}.
 Implicit Types G H : {group gT}.
 
-Lemma subcentgP : forall A B x, 
-  reflect (x \in A /\ {for x, central B}) (x \in C_(A)(B)).
+Lemma subcentgP : forall A B x,
+  reflect (x \in A /\ {for x, central B}) (x \in 'C_A(B)).
 Proof.
 move=> A B x; rewrite inE; case: (x \in A); last by right; case.
 by apply: (iffP centgP) => [|[]].
@@ -59,20 +59,11 @@ move=> H; apply/normalsubP; split=> [|x Hx]; first exact: subset_center.
 by rewrite conjIg conjGid // (normalP (norm_centg _)) // (subsetP (normG _)).
 Qed.
 
-Lemma characteristic_center : forall H, characteristic H 'Z(H).
+Lemma characteristic_center : forall H, 'Z(H) \char H.
 Proof.
-move=> H; apply/subset_charP; split; first exact: subset_center.
-move=> f Haut /=; apply/subsetP=> x Hfx; apply/centerP.
-move/andP: (isom_morph_of_aut Haut)=> [Hm _]; split.
-  move/eqP: Hm =><-; rewrite /morph_of_aut /= Haut /=.
-  move/andP: (Haut)=>[_ Hmorph].
-  rewrite -(dfequal_imset (dfequal_morphicrestr Hmorph)).
-  by move/subsetP: (imsetS f (subset_center H)); apply.
-move=> y; rewrite -(eqP Hm)=> Hy; move/imsetP : Hfx=> [x0 Hx0 ->].
-move/imsetP : Hy=> [y0 Hy0 ->]; rewrite /morph_of_aut /= Haut /=.
-move/andP: (Haut)=>[_ Hmorph]; move/subsetP: (subset_center H)=>Hsub.
-rewrite -(dfequal_morphicrestr Hmorph) //; move/morphP: (Hmorph)=> morphM.
-by move/centerP: Hx0 => [Hx Hcen]; rewrite /commute -!morphM // Hcen.
+move=> H; apply/charP; split=> [|f injf Hf]; first exact: subset_center.
+apply/morphim_fixP=> //; first exact: subsetIl.
+by rewrite /= -{4}Hf subsetI morphimS ?subsetIl // morphimIdom morphim_cent.
 Qed.
 
 Section CyclicCenter.
@@ -83,29 +74,15 @@ Variable H : group gT.
 
 Lemma center_cyclic_abelian : forall a, H / 'Z(H) = cyclic a -> (H = 'Z(H))%G.
 Proof.
-move=> /= a Ha; apply group_inj; apply/setP.
-apply/subset_eqP; apply/andP; split; last exact:subset_center.
-case trivco: (trivm (coset_of 'Z(H))).
-  by move/trivm_coset_of: trivco=>/= nH; case/andP: (centerN H); rewrite nH.
-have Hdec: forall x, x \in H ->
-  exists2 z, z \in 'Z(H) & exists n, x = z * (repr a ^+ n).
-- move=> x Hx; case/andP: (centerN H) => _; move/subsetP=> nZH.
-  pose xbar := coset_of 'Z(H) x.
-  have: x \in xbar by rewrite /xbar coset_ofN ?(rcoset_refl, nZH).
-  have: xbar \in H / 'Z(H) by rewrite imset_f_imp.
-  rewrite Ha; case/cyclicP=> n <-{xbar}.
-  rewrite -{1}(coset_of_repr a) -morphX; last first.
-    by rewrite (subsetP (subset_dom_coset _)) ?norm_repr_coset.
-  rewrite coset_ofN ?groupX ?norm_repr_coset //.
-  by case/rcosetP=> z; exists z; last exists n. 
-apply/subsetP=> /= x Hx; rewrite inE Hx; apply/centgP=> y Hy.
-move: (Hdec _ Hx) (Hdec _ Hy) => [xx Hcx [nx Hnx]] [yy Hcy [ny Hny]].
-have [Hxx Hyy]: xx \in H /\ yy \in H.
-  by split; exact: (subsetP (subset_center H)).
-rewrite Hnx Hny; apply: commuteM; first by apply: centerC Hcy; rewrite -Hnx.
-apply: commute_sym; apply: commuteM.
-  by apply: centerC Hcx; rewrite -(groupMl _ Hyy) -Hny.
-by apply: commuteX; apply: commute_sym; exact: commuteX.
+move=> /= a Ha; apply/eqP; rewrite -val_eqE eqset_sub subset_center /= andbT.
+case: (cosetP a) => /= z Nz def_a.
+have H_Zz: H = 'Z(H) * cyclic z :> set _.
+  rewrite -['Z(H)]ker_coset -morphimK ?cyclic_h ?morphim_cyclic //=.
+  by rewrite -def_a -Ha morphimGK ?ker_coset //; case/andP: (centerN H).
+rewrite -(mulg1 'Z(H)) {1}H_Zz mulGS mulg1 /= H_Zz subsetI mulG_subr /=.
+rewrite centMG subsetI centralC subIset /=.
+  apply/centralP; exact: commute_cyclic_com.
+by rewrite orbC centSg // H_Zz mulG_subr.
 Qed.
 
 End CyclicCenter.
@@ -117,61 +94,61 @@ End CyclicCenter.
 
 Variable H : {group gT}.
 
-Lemma centraliser_id : forall x, x \in H -> x \in C_(H)[x].
+Lemma centraliser_id : forall x, x \in H -> x \in 'C_H[x].
 Proof. move=> x Hx; rewrite inE Hx; exact/centg1P. Qed.
 
 Lemma centraliserP: forall x y,
-  reflect (y \in H /\ commute x y) (y \in C_(H)[x]).
+  reflect (y \in H /\ commute x y) (y \in 'C_H[x]).
 Proof.
 by move=> x y; apply: (iffP (setIP _ _ _))=> [] [Hy];
   last move/commute_sym; move/centg1P.
 Qed.
 
-Lemma subset_centraliser : forall x, C_(H)[x] \subset H.
+Lemma subset_centraliser : forall x, 'C_H[x] \subset H.
 Proof. move=> x; exact: subsetIl. Qed.
 
 Lemma centraliserC : forall x y,
-  x \in H -> y \in C_(H)[x] -> x \in C_(H)[y].
+  x \in H -> y \in 'C_H[x] -> x \in 'C_H[y].
 Proof. by move=> x y Hx; case/centraliserP=> *; apply/centraliserP. Qed.
 
 (* most certainly redundant *)
 Lemma centraliserM : forall x y z,
-  y \in C_(H)[x] -> z \in C_(H)[x] -> y * z \in C_(H)[x].
+  y \in 'C_H[x] -> z \in 'C_H[x] -> y * z \in 'C_H[x].
 Proof. move=> *; exact: groupM. Qed.
 
 Lemma centraliserV : forall x y,
-  y \in C_(H)[x] -> y^-1 \in C_(H)[x].
+  y \in 'C_H[x] -> y^-1 \in 'C_H[x].
 Proof. by move=> *; rewrite groupV. Qed.
 
 Lemma centraliserXr : forall x y n,
-  y \in C_(H)[x] -> y ^+ n \in C_(H)[x].
+  y \in 'C_H[x] -> y ^+ n \in 'C_H[x].
 Proof. move=> *; exact: groupX. Qed.
 
 Lemma centraliserXl : forall x y n, x \in H ->
-  y \in C_(H)[x] -> y \in C_(H)[x ^+ n].
+  y \in 'C_H[x] -> y \in 'C_H[x ^+ n].
 Proof.
 move => x y n Hx; case/centraliserP=> Hy cxy.
-by apply: centraliserC=>//; apply: centraliserXr; apply/centraliserP.
+by apply: centraliserC=> //; apply: centraliserXr; apply/centraliserP.
 Qed.
 
 Section CyclicCentraliser.
 
-Lemma normal_centraliser: forall x, x \in H -> C_(H)[x] \subset 'N(cyclic x).
+Lemma normal_centraliser: forall x, x \in H -> 'C_H[x] \subset 'N(cyclic x).
 Proof.
 move=> x Hx; apply/normalP=> y.
-case/centraliserP=> Hy cxy; apply/setP=>z.
+case/centraliserP=> Hy cxy; apply/setP=> z.
 by rewrite -cyclic_conjgs /conjg cxy mulgA; gsimpl.
 Qed.
 
 Lemma cyclic_subset_centraliser: forall x,
-     x \in H -> cyclic x \subset C_(H)[x].
+     x \in H -> cyclic x \subset 'C_H[x].
 Proof.
 move => x Hx; apply/subsetP=> y; case/cyclicP=> n <-{y}.
 by rewrite centraliserXr // centraliser_id.
 Qed.
 
 Lemma centraliser_normaliser:
-  forall x, x \in H -> C_(H)[x] \subset 'N(cyclic x).
+  forall x, x \in H -> 'C_H[x] \subset 'N(cyclic x).
 Proof. exact: normal_centraliser. (* sic!!! -- GG *) Qed.
 
 End CyclicCentraliser.
@@ -180,18 +157,15 @@ End Center.
 
 Section CharacteristicCentralizer.
 
-Variable G : finGroupType.
+Variable gT : finGroupType.
 
-Lemma char_centralizer_ofchar : forall I H : {group G},
-  characteristic I H -> characteristic I C_(I)(H).
+Lemma char_cent : forall G H : {group gT},
+  H \char G -> 'C_G(H) \char G.
 Proof.
-move=> I H; case/andP=> sHI; move/forallP=> chHI.
-apply/subset_charP; split=> [|f Autf]; first exact: subsetIl.
-apply/subsetP=> fz; case/imsetP=> z; case/setIP=> Iz; move/centgP=> cHz ->{fz}.
-rewrite inE -{1}(autom_imset Autf) imset_f_imp //; apply/centgP=> fx.
-have:= chHI f; rewrite Autf /=; move/eqP <-; case/imsetP=> x Hx ->{fx}.
-case/andP: Autf => _; move/morphP=> fM; have Ix := subsetP sHI x Hx.
-by rewrite /commute -!fM ?cHz.
+move=> G H; case/charP=> sHG chHG; apply/charP.
+split=> [|f injf Gf]; last apply/morphim_fixP; rewrite ?subsetIl //.
+have{chHG} Hf: f @* H = H by exact: chHG.
+by rewrite morphimGI ?subsetIl // Gf setIS // -{2}Hf morphim_cent.
 Qed.
 
 End CharacteristicCentralizer.

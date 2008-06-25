@@ -19,7 +19,7 @@ Import Prenex Implicits.
 
 Section Euler.
 
-Definition fp_mul p := {x : I_(p) | coprime p x}.
+Definition fp_mul p := {x : 'I_p | coprime p x}.
 Canonical Structure fp_mul_subType p := Eval hnf in [subType of fp_mul p].
 Canonical Structure fp_mul_eqType p := Eval hnf in [eqType of fp_mul p].
 Canonical Structure fp_mul_finType p := Eval hnf in [finType of fp_mul p].
@@ -90,15 +90,18 @@ Section EulerUnit.
 
 (* the unit for the multiplicative group *)
 
+Lemma ltnSSn : forall n, 1 < n.+2.
+Proof. by []. Qed.
+
 Definition zp1 (n:pos_nat) : ordinal_finType n.
 case; case; first by case/negP; rewrite ltn0.
 case; first by exists (Ordinal (ltnSn 0)).
-move=>n i; by exists (Ordinal (ltnSSn n)).
+move=> n i; by exists (Ordinal (ltnSSn n)).
 Defined.
 
 Lemma zp11 : forall (n:nat) (H: 0 < n.+2),
   (zp1 (PosNat H)) = (Ordinal (ltnSSn n)).
-Proof.  by case=> [|n] H; apply: val_inj=>//=. Qed.
+Proof.  by case=> [|n] H; apply: val_inj=> //=. Qed.
 
 Lemma zp10 : forall (H : 0 < 1), (zp1 (PosNat H)) = (Ordinal H).
 Proof. trivial. Qed.
@@ -133,43 +136,44 @@ Definition rho : fp_mul (m * n) ->  (fp_mul m) * (fp_mul n):=
   fun x => let Hcop := (andP (coprime_fp_mul_proof (valP x))) in
     (Sub (to_zp m _) (proj1 Hcop), Sub (to_zp n _) (proj2 Hcop)).
 
-Lemma rho_morph : morphic setT rho.
-apply/morphP=> x y Hx Hy; rewrite /rho /mulg /= /extprod_mulg.
-congr pair=>/=; apply: val_inj=>/=; apply: val_inj=>/=; rewrite modn_mul2m;
-apply/eqP; rewrite eq_sym (eqn_mod_dvd _ (leq_modn _ _ ));
-rewrite {1}(divn_eq (sval x * sval y) (m * n)) addnK mulnC.
-  by rewrite -mulnA dvdn_mulr ?dvdnn.
-by rewrite dvdn_mulr ?dvdn_mull ?dvdnn.
+Lemma rho_morph : {morph rho : x y / x * y}%g.
+Proof.
+move=> x y; apply/eqP; rewrite eq_sym; do 3!rewrite /eqd /=.
+rewrite !modn_mul2m !eqn_mod_dvd ?leq_modn //.
+rewrite {1 3}(divn_eq (sval x * sval y) (m * n)) !addnK.
+by rewrite !mulnA {1}mulnAC !dvdn_mull.
 Qed.
 
-Lemma rho_inj : coprime m n -> injm rho setT.
+Canonical Structure rho_morphism := @Morphism _ _ setT rho (in2W rho_morph).
+
+Hypothesis Hcop : coprime m n.
+
+Lemma rho_inj : ('injm rho)%g.
 Proof.
-move=> Hcop; apply/(injmorphicP rho_morph)=> x y Hx Hy; case=>Hm Hn.
-apply: val_inj=>/=; apply: val_inj=>/=.
-move: (modn_small (valP (sval x))) (modn_small (valP (sval y)))=> /= <- <-.
-by apply/eqP; rewrite chinese_remainder; first rewrite Hm Hn !eqxx.
+apply/injmP=> x y _ _; case=> Hm Hn; do 2!apply: val_inj => /=.
+move: (modn_small (valP (sval x))) (modn_small (valP (sval y))) => /= <- <-.
+by apply/eqP; rewrite chinese_remainder // Hm Hn !eqxx.
 Qed.
 
-Lemma rho_isom : coprime m n -> isom rho setT setT.
+Lemma rho_isom : isom setT setT rho.
 Proof.
-move=> Hcop; rewrite /isom (rho_inj Hcop) andbT eqset_sub subsetT /=.
-apply/subsetP; case=> [x1 x2] _; apply/imsetP.
-have Hi : (chinese m n (sval x1) (sval x2)) %% (m * n) < m * n.
+apply/isomP; split; first exact: rho_inj.
+apply/setP=> [[x1 x2]]; rewrite !inE /=.
+have Hi : chinese m n (sval x1) (sval x2) %% (m * n) < m * n.
   by rewrite ltn_mod pos_natP.
 have Hc: coprime (m * n) (Ordinal Hi).
   move: (gcdnE (m * n) (chinese m n (sval x1) (sval x2))).
   rewrite eqn0Ngt pos_natP /coprime /= [gcdn (_ %% _ ) _ ]gcdnC=> <-.
   move: (coprime_modn_mull (chinese m n (sval x1) (sval x2))).
-  rewrite /coprime=>->.
+  rewrite /coprime=> ->.
   rewrite chinese_modl ?(valP n) // chinese_modr ?(valP m) //.
   rewrite (modn_small (valP (sval x1))) (modn_small (valP (sval x2))) /=.
-  by move: (svalP x1) (svalP x2); rewrite /coprime=>->->.
-rewrite /=; exists (Sub (Ordinal _) Hc : fp_mul (m * n)); first exact: in_setT.
-rewrite /rho; congr (_, _); do ![apply: val_inj] => /=; set e := chinese _ _ _ _.
-  rewrite -(modn_addl_mul (e %/ (m * n) * n)) -mulnA (mulnC n) -divn_eq.
-  by rewrite chinese_modl // modn_small.
-rewrite -(modn_addl_mul (e %/ (m * n) * m)) -mulnA -divn_eq.
-by rewrite chinese_modr // modn_small.
+  by move: (svalP x1) (svalP x2); rewrite /coprime=> ->->.
+pose c : fp_mul (m * n) := Sub (Ordinal _) Hc.
+apply/imsetP; exists c; rewrite ?inE //=; apply/eqP; do 3!rewrite /eqd /=.
+set e := chinese _ _ _ _; pose e' i j := modn_addl_mul (e %/ (m * n) * i) j _.
+rewrite -(e' m n) -{e'}(e' n m) -!mulnA (mulnC n) -divn_eq.
+by rewrite chinese_modl ?chinese_modr ?modn_small ?eqxx.
 Qed.
 
 End Chinese.

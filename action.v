@@ -4,8 +4,8 @@
 (***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
 Require Import div seq fintype paths connect.
-Require Import groups group_perm tuple finfun normal.
-Require Import ssralg bigops finset normal.
+Require Import groups group_perm tuple finfun.
+Require Import ssralg bigops finset.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -35,7 +35,7 @@ Lemma actK : forall x, cancel (to^~ x) (to^~ x^-1).
 Proof. by move=> x e; rewrite -actM ?groupV // mulgV act1. Qed.
 
 Lemma actKV : forall x, cancel (to^~ x^-1) (to^~ x).
-Proof. move=>x; rewrite -{2}(invgK x); exact:actK. Qed.
+Proof. move=> x; rewrite -{2}(invgK x); exact:actK. Qed.
 
 Lemma inj_act : forall x, injective (to^~ x).
 Proof. move=> x; exact: (can_inj (actK x)). Qed.
@@ -71,9 +71,9 @@ Definition act_fix := stabilizer == G.
 
 Lemma act_fixP : reflect (forall x, x \in G -> to a x = a) act_fix.
 Proof.
-apply: (iffP eqP). 
+apply: (iffP eqP).
   by move/setP=> Gs x Gx; move/(_ x): Gs; rewrite Gx; case/stabilizerP.
-move=> Ga; apply/setP=> x; move/(_ x): Ga. 
+move=> Ga; apply/setP=> x; move/(_ x): Ga.
 by rewrite inE; case: (x \in G) => //= ->; rewrite // eqxx.
 Qed.
 
@@ -95,7 +95,7 @@ Proof.
 apply/group_setP; split; first exact: stab1.
 move=> x y; move/stabilizerP => [Hx Htox]; move/stabilizerP => [Hy Htoy].
 apply/stabilizerP; split; first by rewrite groupMl.
-by rewrite actM // Htox // Htoy. 
+by rewrite actM // Htox // Htoy.
 Qed.
 
 Canonical Structure group_stab := Group group_set_stab.
@@ -105,7 +105,7 @@ Proof. by apply/subsetP=> x; case/stabilizerP. Qed.
 
 Lemma to_repr_rcoset : forall z,
   z \in G -> to a (repr (stabilizer :* z)) = to a z.
-Proof.    
+Proof.
 move=> z Gz; case: (repr _) / (repr_rcosetP group_stab z) => y.
 by move/stabilizerP=> [Gy Dtoy]; rewrite actM Dtoy.
 Qed.
@@ -117,7 +117,7 @@ have injf: injective (fun u : {b | b \in orbit} => f (val u)).
   move=> [b Gb] [c Gc] /= eq_f; apply: val_inj => /=; apply: eqP.
   case/orbitP: Gb {Gc} => [x Gx Dxa]; move/setP: eq_f.
   by move/(_ x); rewrite !inE Dxa Gx eqxx.
-have f_to: forall x, x \in G -> f (to a x) = stabilizer :* x. 
+have f_to: forall x, x \in G -> f (to a x) = stabilizer :* x.
   move=> x Gx; apply/setP=> y; have Gx1:= groupVr Gx.
   rewrite mem_rcoset !inE groupMr //; case Gy: (y \in G) => //=.
   by rewrite actM (canF_eq (actKV x)).
@@ -137,7 +137,7 @@ move=> c1; symmetry; apply/setP; apply/subset_cardP.
 by rewrite sub1set orbit_refl.
 Qed.
 
-Lemma trans_orbit: forall S : pred sT, 
+Lemma trans_orbit: forall S : pred sT,
   a \in S -> transitive S -> orbit =i S.
 Proof.
 move => S Ha Ht z.
@@ -178,7 +178,7 @@ Section Faithful.
 Variable sT : finType.
 Variable gT : finGroupType.
 Variable to : action gT sT.
-Variable G : group gT. 
+Variable G : group gT.
 Variable S : pred sT.
 
 Definition akernel := \bigcap_(x \in S) stabilizer to G x.
@@ -214,7 +214,7 @@ Section FaithfulProp.
 Variable sT : finType.
 Variable gT : finGroupType.
 Variable to : action gT sT.
-Variable H G : group gT. 
+Variable H G : group gT.
 Variable S : pred sT.
 Variable sHG : H \subset G.
 
@@ -234,13 +234,13 @@ Variable (gT : finGroupType) (sT : finType).
 
 Variable to : action gT sT.
 
-Variable G : group gT. 
+Variable G : group gT.
 
 (***********************************************************************)
 (*                                                                     *)
 (*           The mod p lemma                                           *)
 (*                                                                     *)
-(***********************************************************************) 
+(***********************************************************************)
 
 
 Lemma orbit_sym : forall x y, (y \in orbit to G x) = (x \in orbit to G y).
@@ -252,7 +252,7 @@ Qed.
 Lemma orbit_trans : forall x y,
   connect [rel of orbit to G] x y = (y \in orbit to G x).
 Proof.
-move=> x y; apply/idP/idP; last by move =>*; apply: connect1.
+move=> x y; apply/idP/idP; last by move => *; apply: connect1.
 move/connectP=> [p Hp <- {y}]; rewrite orbit_sym.
 elim: p x Hp => [|y p IHp] x /=; first by rewrite orbit_refl.
 move/andP=> [Hxy Hp].
@@ -264,7 +264,7 @@ set k1 := diinv Hxy.
 have F1: k \in G by apply (a_diinv H1).
 have F2: k1 \in G by apply (a_diinv Hxy).
 rewrite actM -actM.
-by apply: image_f_imp; rewrite /= groupM // groupV.
+by apply: mem_image; rewrite /= groupM // groupV.
 Qed.
 
 Lemma orbit_csym : connect_sym [rel of orbit to G].
@@ -280,7 +280,7 @@ case: (pickP (predD (mem S) (act_fix to G))) => [a | fixS]; last first.
   congr modn; apply: eq_card => a; rewrite !inE /= andbC; symmetry.
   by move/(_ a): fixS; rewrite /= andbC; case: (a \in S) => //=; move/negbEF.
 pose aG := orbit to G a.
-move/andP=> /= [nfixa Sa]; rewrite -(cardID (mem aG) S) memE. 
+move/andP=> /= [nfixa Sa]; rewrite -(cardID (mem aG) S) memE.
 have [i ->]: exists i, #|[predI S & aG]| = (p * p ^ i)%N.
   have ->: #|[predI S & aG]| = #|aG|.
     apply: eq_card => b; rewrite inE /= andbC; case aGb: (b \in aG) => //=.
@@ -348,14 +348,14 @@ Lemma act_fix_norm : forall x,
   act_fix (trans_action G) H (H :* x) = (x \in normaliser H).
 Proof.
 move=> x; apply/act_fixP/idP.
-   rewrite -groupV inE => dHx; apply/subsetP=> y. 
-   rewrite mem_conjgV => Hxy. 
-   rewrite -(actK (trans_action G) x H) /= -(dHx _ Hxy) /=. 
+   rewrite -groupV inE => dHx; apply/subsetP=> y.
+   rewrite mem_conjgV => Hxy.
+   rewrite -(actK (trans_action G) x H) /= -(dHx _ Hxy) /=.
    by rewrite -!rcosetM mulgA -conjgC mulgK rcoset_refl.
 by move=> Nx y Hy; rewrite /= (norm_rlcoset Nx) -mulgA rcoset_id.
 Qed.
 
-Lemma rtrans_fix_norm : rtrans_fix H = rcosets H N_(K)(H).
+Lemma rtrans_fix_norm : rtrans_fix H = rcosets H 'N_K(H).
 Proof.
 apply/setP=> Hx; apply/setIP/rcosetsP=> [[]|[x]].
   case/rcosetsP=> x Kx ->{Hx}; rewrite inE act_fix_norm => Nx.
@@ -439,7 +439,7 @@ Proof. by move=> x y; apply/permP => a; rewrite permM !permE actM. Qed.
 Lemma perm_to_act : forall x a, perm_to a (perm_of_act x) = to a x.
 Proof. exact: perm_of_op. Qed.
 
-End PermFact. 
+End PermFact.
 
 Section Primitive.
 
@@ -451,16 +451,16 @@ Definition primitive :=
    [==> forallb a, (a \in S) ==> P a a,
         forallb a, forallb b, forallb x,
          [==> a \in S, b \in S, x \in G, P a b => P (to a x) == P (to b x)]
-    => (forallb a, forallb b, [==> a \in S, b \in S, P a b => a == b]) 
+    => (forallb a, forallb b, [==> a \in S, b \in S, P a b => a == b])
     || (forallb a, forallb b, [==> a \in S, b \in S => P a b])].
 
 Lemma primitiveP:
-  reflect 
+  reflect
   (forall (P : rel sT),
       (forall a, a \in S -> P a a)
    -> (forall a b x, a \in S -> b \in S -> x \in G ->
        P a b -> P (to a x) =1 P (to b x))
-   -> (forall a b, a \in S -> b \in S -> P a b -> a = b) 
+   -> (forall a b, a \in S -> b \in S -> P a b -> a = b)
    \/ (forall a b, a \in S -> b \in S -> P a b))
    primitive.
 Proof.
@@ -493,8 +493,8 @@ move=> x Gx a; apply/idP/idP=> Sa; rewrite -(Gtrans Sa); apply/imsetP; last by e
 by exists x^-1; rewrite (groupV, actK).
 Qed.
 
-Lemma primitivePt: 
-  reflect 
+Lemma primitivePt:
+  reflect
     (forall Y : pred sT,
         Y \subset S -> wdisjointn (mem G) (fun x => [image to^~ x of Y])
      -> #|Y| <= 1 \/ Y =i S)
@@ -628,14 +628,14 @@ Proof. move=> *; exact: tuple0. Qed.
 
 Lemma dtuple_on_add m (x : sT) (t : tuple m sT) :
   dtuple_on S [tuple of x :: t] = [&& x \in S, x \notin t & dtuple_on S t].
-Proof. move=> *; rewrite /dtuple_on -!andbA; do!bool_congr. Qed. 
+Proof. move=> *; rewrite /dtuple_on -!andbA; do!bool_congr. Qed.
 
 Lemma dtuple_on_add_D1 m (x : sT) (t : tuple m sT) :
   dtuple_on S [tuple of x :: t] = (x \in S) && dtuple_on [predD1 S & x] t.
 Proof.
 move=> m x t; rewrite /dtuple_on /= all_predI all_predC has_pred1 -!andbA.
 by do!bool_congr.
-Qed. 
+Qed.
 
 Lemma dtuple_on_subset m (S1 S2 : pred sT) (t : tuple m sT) :
   S1 \subset S2 -> dtuple_on S1 t -> dtuple_on S2 t.
@@ -662,22 +662,22 @@ rewrite addSn => tr_m1; apply: IHm; move: {m k}(m + k) tr_m1 => m [tr_m1 lt_m].
 have ext_t: forall t, (dtuple_on S) m t ->
   exists x, dtuple_on S [tuple of x :: t].
 - move=> t dt; case sSt: (S \subset t); last first.
-    rewrite subset_disjoint in sSt; case/pred0Pn: sSt => x /= Sntx.
-    by exists x; rewrite dtuple_on_add andbA Sntx.
+    case/subsetPn: sSt => x Sx ntx.
+    by exists x; rewrite dtuple_on_add andbA /= Sx ntx.
   have:= subset_leq_card sSt; rewrite leqNgt card_uniq_tuple ?lt_m //.
   by case/andP: dt.
 split=> [t dt u {lt_m}|]; last exact: ltnW.
 case: (ext_t _ dt) => x; set xt := [tuple of _] => dxt.
 apply/imsetP/idP=> [[a Ga ->{u}]| du].
   have: dtuple_on S (n_act to xt a).
-    by rewrite -[dtuple_on _ _](tr_m1 _ dxt) imset_f_imp.
+    by rewrite -[dtuple_on _ _](tr_m1 _ dxt) mem_imset.
   by rewrite -topredE /= n_act_add dtuple_on_add; case/and3P.
 case: (ext_t u du) => y; rewrite -[dtuple_on _ _](tr_m1 _ dxt).
 case/imsetP=> a Ga; move/(congr1 val) => [_ def_u]; exists a => //.
 exact: val_inj.
 Qed.
 
-Lemma ntransitive1 : forall m, 
+Lemma ntransitive1 : forall m,
   0 < m -> ntransitive to G S m -> transitive to G S.
 Proof.
 have trdom1: forall x, dtuple_on S [tuple x] = S x by move=> x; exact: andbT.
@@ -699,7 +699,7 @@ case triv1: (forallb x, (x \in S) ==> (#|predI (mem S) (f x)| == 1%N)).
   have:= forallP triv1 x; rewrite (cardD1 x) inE /= Sx Hf1 //=.
   by rewrite (cardD1 y) inE /= (eq_sym y) nxy inE /= Sy Hf.
 case/existsP: triv1 => x; rewrite negb_imply; case/andP=> Sx.
-rewrite (cardD1 x) inE /= Hf1 // Sx; case/pred0Pn => y /=. 
+rewrite (cardD1 x) inE /= Hf1 // Sx; case/pred0Pn => y /=.
 case/and3P=> nxy Sy fxy; right=> x1 y1 Sx1 Sy1.
 case: (x1 =P y1) => [-> //|]; [exact: Hf1 | move/eqP; rewrite eq_sym => nxy1].
 pose t := [tuple y; x]; pose t1 := [tuple y1; x1].
@@ -708,7 +708,7 @@ have{Sx1 Sy1 nxy1} [dt dt1]: dtuple_on S t /\ dtuple_on S t1.
 case: (Ht2) dt1 => Ht _; rewrite -{Ht dt}[dtuple_on _ _](Ht t dt).
 case/imsetP=> a Ga; case/(congr1 val)=> -> ->.
 have trGS : transitive to G S by exact: ntransitive1 Ht2.
-by move/Hf2: fxy => -> //; rewrite Hf1 // -(trGS _ Sy) imset_f_imp.
+by move/Hf2: fxy => -> //; rewrite Hf1 // -(trGS _ Sy) mem_imset.
 Qed.
 
 Lemma trans_prim_stab : forall x,
@@ -893,7 +893,7 @@ exists (z * k ^-1)  k => //; last by gsimpl.
 apply/stabilizerP; split; first by rewrite groupM // groupV (subsetP H1).
 by rewrite actM -/y Hk1 -actM mulgV act1.
 Qed.
-  
+
 (* <= of 5.20 Aschbacher *)
 Theorem subgroup_transitiveI : forall (H : {group gT}) x,
      x \in S -> H \subset G -> transitive to G S

@@ -56,8 +56,8 @@ End PermDef.
 Notation "{ 'perm' T }" := (perm_for (Phant T))
   (at level 0, format "{ 'perm'  T }") : type_scope.
 
-Notation "'S_' ( n )" := {perm I_(n)}
-  (at level 0, format "'S_' ( n )").
+Notation "''S_' n" := {perm 'I_n}
+  (at level 8, n at level 2, format "''S_' n").
 
 Lemma fun_of_perm_key : unit. Proof. by []. Qed.
 Definition fun_of_perm := locked_with fun_of_perm_key fun_of_perm_def.

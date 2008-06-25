@@ -1,3 +1,7 @@
+(***********************************************************************)
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
+(*                                                                     *)
+(***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq paths fintype finfun.
 Require Import ssralg bigops div groups matrix poly.
 
@@ -38,7 +42,7 @@ Definition char_poly (A : M(R)) : R[X] := \det (\Z \X - matrixC A).
 (* The isomorhism phi : M(R[X]) <-> M(R)[X] *)
 
 Definition phi (A : M(R[X])) : M(R)[X] :=
-  \poly_(k < \max_(i) \max_(j) size (A i j)) \matrix_(i, j) coef (A i j) k.
+  \poly_(k < \max_i \max_j size (A i j)) \matrix_(i, j) coef (A i j) k.
 
 Lemma coef_phi : forall A i j k, coef (phi A) k i j = coef (A i j) k.
 Proof.
@@ -68,7 +72,7 @@ Qed.
 Lemma phi_opp : forall A, phi (- A) = - phi A.
 Proof.
 move=> A; apply/coef_eqP=> k; apply/matrixP=> i j.
-by rewrite coef_phi mxK coef_opp mxK !mulN1r coef_phi coef_opp. 
+by rewrite coef_phi mxK coef_opp mxK !mulN1r coef_phi coef_opp.
 Qed.
 
 Lemma phi_one : phi 1 = 1.
@@ -83,7 +87,7 @@ Proof.
 move=> A1 A2; apply/coef_eqP=> k; apply/matrixP=> i j.
 rewrite !coef_phi !mxK !coef_mul_poly mxK_sum coef_sum.
 pose F k1 k2 := coef (A1 i k1) k2 * coef (A2 k1 j) (k - k2).
-transitivity (\sum_(k1) \sum_(k2 < k.+1) F k1 k2); rewrite {}/F.
+transitivity (\sum_k1 \sum_(k2 < k.+1) F k1 k2); rewrite {}/F.
   by apply: eq_bigr=> k1 _; rewrite coef_mul_poly.
 rewrite exchange_big /=; apply: eq_bigr=> k2 _.
 by rewrite mxK; apply: eq_bigr=> k1 _; rewrite !coef_phi.

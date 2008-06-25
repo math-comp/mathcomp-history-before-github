@@ -439,7 +439,22 @@ Prenex Implicits svalP s2val s2valP s2valP'.
 Canonical Structure sig_subType T (p : pred T) :=
   SubType (@sval T [eta p]) (@sig_rect _ _) vrefl.
 
-Notation insig := (fun p => @insub _ p (sig_subType p)).
+(* Shorhand for the return type of insub. *)
+Notation "{ ? x : T | P }" := (option {x : T | is_true P})
+  (at level 0, x at level 69, only parsing) : type_scope.
+Notation "{ ? x | P }" := {? x : _ | P}
+  (at level 0, x at level 69, format  "{ ?  x  |  P }") : type_scope.
+(* Because the standard prologue of Coq declares { x ... } with x   *)
+(* at level 99, we can't give shorthand for {x | x \in A}, however. *)
+Notation "{ ? x \in A }" := {? x | x \in A}
+  (at level 0, x at level 69, format  "{ ?  x  \in  A }") : type_scope.
+Notation "{ ? x \in A | P }" := {? x | (x \in A) && P}
+  (at level 0, x at level 69, format  "{ ?  x  \in  A  |  P }") : type_scope.
+
+(* A variant of injection with default that infers a collective predicate *)
+(* from the membership proof for the default value.                       *)
+Definition insigd T (A : mem_pred T) x (Ax : in_mem x A) :=
+  insubd (exist [eta A] x Ax).
 
 (* This should be a rel definition, but it seems this causes divergence  *)
 (* of the simpl tactic on expressions involving == on 4+ nested subTypes *)

@@ -209,7 +209,7 @@ Lemma coef_mul_poly_rev : forall p1 p2 i,
 Proof.
 move=> p1 p2 i; rewrite coef_mul_poly (reindex ord_opp) /=.
   by apply: eq_bigr => j _; rewrite (sub_ordK j).
-exists (@ord_opp _ : I_(i.+1) -> _) => j _; exact: ord_oppK.
+exists (@ord_opp _ : 'I_(i.+1) -> _) => j _; exact: ord_oppK.
 Qed.
 
 Lemma coef_mul_C_poly : forall c p i, coef (polyC c *p p) i = c * coef p i.

@@ -34,7 +34,7 @@ Notation Local permp := perm_pair.
 Lemma perm_pair1 : forall p, permp 1 p = p. 
 Proof. by move=> [x y] /=; rewrite !perm1. Qed.
 Notation Local permp1 := perm_pair1.
- 
+
 Lemma perm_pairM : forall s t p, permp (s * t) p = permp t (permp s p).
 Proof. by move=> s t [x y] /=; rewrite !permM. Qed.
 Notation Local permpM := perm_pairM.
@@ -254,34 +254,26 @@ Qed.
 (** Definitions of the alternate groups and some Properties **)
 Definition sym := setT_group (perm_for_finGroupType T).
 
-Lemma dom_odd_perm : dom odd_perm = setT.
-Proof.
-apply/setP; apply/subset_eqP; apply/andP; split; apply/subsetP=> x //.
-move=> _; case Ix : (odd_perm x);  [rewrite dom_nu // | rewrite dom_k //].
-  by rewrite Ix.
-apply/kerP=> y; move: Ix; rewrite odd_permM.
-by case: odd_perm.
-Qed.
-
-Lemma group_set_dom_odd_perm : group_set (dom odd_perm).
-Proof. rewrite dom_odd_perm; exact: groupP. Qed.
+Lemma group_set_dom_odd_perm : group_set (@setT [finType of perm T]).
+Proof. exact: groupP. Qed.
 
 Canonical Structure sign_morph :=
-   Morphism group_set_dom_odd_perm (in2W odd_permM).
+   @Morphism _ _ setT _ (in2W odd_permM).
 
-Definition alt := Group (group_set_ker sign_morph).
+Definition alt := Eval hnf in [group of 'ker sign_morph].
 
 Lemma altP : forall p, reflect (even_perm p) (p \in alt).
 Proof.
-move=> p; rewrite (sameP (kerMP _) negPf); first exact: idP.
-by rewrite dom_odd_perm inE.
+move=> p; apply: (iffP morphpreP).
+  by move/proj2; move/set1P; move/negbT.
+by move/negbET; move/set1P ->; rewrite in_setT; split.
 Qed.
 
 Lemma alt_subset : alt \subset sym.
 Proof. by apply/subsetP => x _; rewrite inE. Qed.
 
 Lemma alt_normal : alt <| sym.
-Proof. by rewrite -[sym : set _]dom_odd_perm; exact: normal_ker. Qed.
+Proof. exact: normal_ker. Qed.
 
 Lemma alt_norm : sym \subset 'N(alt).
 Proof. by case/andP: alt_normal. Qed.
@@ -290,12 +282,12 @@ Let n := #|T|.
 
 Lemma alt_index : 1 < n -> indexg alt sym = 2.
 Proof.
-move=> lt1n; rewrite -card_quotient ?alt_norm //= -ker_r_dom dom_odd_perm.
-have [g]: isog (sym / ker_(sym) sign_morph) (odd_perm @: sym).
-  by apply: first_isom; rewrite dom_odd_perm subset_refl.
-case/andP=> im_quo; move/injmP; move/card_dimset <-; move/eqP: im_quo => ->{g}.
+move=> lt1n; rewrite -card_quotient ?alt_norm //=.
+have : isog (sym / 'ker sign_morph) (odd_perm @* sym).
+  by apply: first_isom.
+case/isogP=> g; move/injmP; move/card_dimset <-; rewrite /morphim setIid=> ->.
 rewrite eq_cardT // => b; apply/imsetP; case: b => /=; last first.
-  by exists (1 : perm T); [rewrite inE | rewrite odd_perm1].
+ by exists (1 : perm T); [rewrite setIid inE | rewrite odd_perm1].
 case: (pickP T) lt1n => [x1 _ | d0]; last by rewrite /n eq_card0.
 rewrite /n (cardD1 x1) ltnS lt0n; case/existsP=> x2 /=.
 by rewrite eq_sym andbT -odd_tperm; exists (tperm x1 x2); rewrite ?inE.
@@ -369,11 +361,11 @@ have Dnx1: dtuple_on T x1 by rewrite !dtuple_on_add Ha1 negb_or Ha2.
 have: dtuple_on T y1 by rewrite !dtuple_on_add Hb1 negb_or Hb2.
 rewrite -[dtuple_on T y1](@FF _ Dnx1); case/imsetP => g Hg Hg1.
 case Pm: (odd_perm g); last first.
-  exists g; first by apply/kerP => h; rewrite /= odd_permM Pm.
+  exists g; first by rewrite inE in_setT !inE; move/eqP : Pm ->.
   by apply: val_inj; case/(congr1 val): Hg1.
 pose g1:= tperm b1 b2; exists (g * g1) => [/= |].
-  apply/kerP => h; rewrite !odd_permM Pm odd_tperm eq_sym.
-  by case/andP: Hb2 => ->.
+  rewrite inE in_setT /= !inE odd_permM Pm odd_tperm /unitg /=.
+  by apply/negPn; rewrite eq_sym; case/andP: Hb2.
 rewrite actM; apply: val_inj; case/(congr1 val): Hg1 => /= ga1 ga2 <-.
 rewrite dmaps_id // => c yc; rewrite /perm_to /g1.
 by case/andP: Hb2 => _; case: tpermP Hb1 => // <-; rewrite yc.

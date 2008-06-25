@@ -33,7 +33,7 @@ Reserved Notation "p1 =i p2" (at level 70, no associativity).
 (* of the form                                                          *)
 (*    [type var seperator expr]                                         *)
 (* where "type" is the type of the comprehension (e.g., pred) and       *)
-(* separator is | or =>. It is important that in other notations a      *)
+(* separator is | or => . It is important that in other notations a      *)
 (* leading square bracket [ is always by an operator symbol or at least *)
 (* a fixed identifier.                                                  *)
 
@@ -602,7 +602,7 @@ Ltac bool_congr :=
 (* by tha application of mem. It also allows use to turn some     *)
 (* specific Types (namely, any aT : predArgType) into predicates, *)
 (* specifically, the total predicate over that type, i.e.,        *)
-(* fun _ : aT => true. This allow us to write, e.g.,  #|I_(n)|    *)
+(* fun _ : aT => true. This allow us to write, e.g.,  #|'I_n|    *)
 (* for the cardinal of the (finite) type of integers less than n. *)
 (*   Collective predicates have a specific extensional equality,  *)
 (*     - A =i B,                                                  *)
@@ -787,6 +787,8 @@ Notation "[ 'predC' A ]" := (predC [mem A])
 Notation "[ 'preim' f 'of' A ]" := (preim f [mem A])
   (at level 0, format "[ 'preim'  f  'of'  A ]") : fun_scope.
 
+Notation "[ 'pred' x \in A ]" := [pred x | x \in A]
+  (at level 0, x ident, format "[ 'pred'  x  \in  A ]") : fun_scope.
 Notation "[ 'pred' x \in A | E ]" := [pred x | (x \in A) && E]
   (at level 0, x ident, format "[ 'pred'  x  \in  A  |  E ]") : fun_scope.
 Notation "[ 'rel' x y \in A & B | E ]" :=
@@ -1052,7 +1054,7 @@ Proof. by case=> g' fK g'K; exists g' => * ? *; auto. Qed.
 Lemma inA_bij : {in T1, bijective f} -> bijective f.
 Proof. by case=> g' fK g'K; exists g' => * ? *; auto. Qed.
 
-Lemma onA_bij : {on T2, bijective f} -> bijective f. 
+Lemma onA_bij : {on T2, bijective f} -> bijective f.
 Proof. by case=> g' fK g'K; exists g' => * ? *; auto. Qed.
 
 Lemma subin_bij : forall D1' : pred T1,

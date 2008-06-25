@@ -2,8 +2,8 @@
 (*  Commutators  *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
 Require Import seq fintype paths connect.
-Require Import groups normal center div zp finset group_perm automorphism.
-Require Import abelian cyclic.
+Require Import div ssralg bigops finset.
+Require Import groups group_perm normal automorphism.
 
 Set Implicit Arguments.
 Unset Strict Implicit. 
@@ -11,64 +11,17 @@ Import Prenex Implicits.
 
 Import GroupScope.
 
-(* Both of these lemmas are redundant with the current basis
-   conjg_to_eq1 is better handled via canRL / canLR and conjg_inj as below
-   conjg_simpl is the symmetric of conjgC and identical to mulKVg.
-Section Conjg_addenda.
-Variable T: finGroupType.
-Variables x y: T.
-
-(* A couple of lemmas about conjugation. move it in group.v ? *)
-Lemma conjg_to_eq1: x ^ y = 1 -> x = 1.
-Proof.
-by move/(canRL (conjgK _)); rewrite conj1g.
-Qed.
-
-Lemma conjg_simpl: y * x ^ y = x * y.
-Proof.
-by rewrite /conjg !mulgA mulgV mul1g.
-Qed.
-
-End Conjg_addenda.
-*)
-
 Section Basic_commutator_properties.
 
 Variable T : finGroupType.
 Implicit Types x y z : T.
 
-(* redundant with commgEl, commgEr, and commgC in groups.v  
-Lemma commg_eq1: [~ x, y ] = x^-1 * y^-1 * x * y.
-Proof. by rewrite /commg /conjg !mulgA. Qed.
-
-Lemma commg_eq2: [~ x, y ] = (y ^-1) ^x * y.
-Proof. by rewrite /commg /conjg !mulgA. Qed.
-
-Lemma commg_eq3: x * y =y * x * [~ x, y ].
-Proof. 
-by rewrite /commg /conjg mulgA -(mulgA y) mulgV mulg1 !mulgA mulgV mul1g.
-Qed.
-*)
-
-(* This is useful -- so I added the inverted version. *)
 Lemma conjg_mulR : forall x y, x ^ y = x * [~ x, y].
 Proof. by move=> x y; rewrite mulKVg. Qed.
 
 Lemma conjg_Rmul : forall x y, x ^ y = [~ y, x^-1] * x.
 Proof. by move=> x y; rewrite commgEr invgK mulgKV. Qed.
 
-(* invg_comm, commg1, comm1g in groups.v
-Lemma commg_inv: [~ x, y ]^-1 = [~ y, x ].
-Proof. by rewrite /commg !invMg !invgK !mulgA. Qed.
-
-Lemma commg1r: [~ x, 1] = 1. 
-Proof. by rewrite /commg conjg1 mulVg. Qed.
-
-Lemma commg1l: [~ 1, y] = 1. 
-Proof. by rewrite /commg invg1 mul1g conj1g. Qed.
-*)
-
-(* Shorter names, shorter proofs, consistent whitespace. *)
 Lemma commg_gmult_left : forall x y z, [~ x * y, z] = [~ x, z] ^ y * [~ y, z].
 Proof. by move=> x y z; rewrite !commgEr conjgM mulgA -conjMg mulgK. Qed.
 
@@ -82,21 +35,6 @@ Proof. by move=> x y z; rewrite commg_gmult_left conjg_mulR. Qed.
 Lemma commg_gmultr : forall x y z,
   [~ x, y * z] = [~ x, z] * [~ x, y] * [~ x, y, z].
 Proof. by move=> x y z; rewrite commg_gmult_right conjg_mulR mulgA. Qed.
-
-(* reduandant with the reflection lemmas eqP and commgP
-Lemma commg_to_commute: [~ x, y ] = 1 -> commute x y.
-Proof.
-rewrite /commg /commute => comm.
-apply /eqP.
-by rewrite -(mulg1 (y*x)) -comm -commg_eq3. 
-Qed.
-
-Lemma commute_to_commg: commute x y -> [~ x, y ] = 1.
-Proof.
-rewrite /commute => comm.
-by rewrite commg_eq1 -invMg -comm -mulgA mulVg.
-Qed.
-*)
 
 Theorem hall_witt_identity : forall x y z,
   [~ x, y^-1, z] ^ y * [~ y, z^-1, x] ^ z * [~ z, x^-1, y] ^ x = 1.
@@ -124,15 +62,6 @@ Variables x y : T.
 Let z := [~ x, y].
 
 Hypotheses (cxz : commute x z) (cyz : commute y z).
-
-(* is conjXg in groups.v
-(* another lemma about conjugation *)
-Lemma conj_power : forall x y i, (x ^+ i) ^ y = (x ^ y) ^+ i.
-Proof.
-elim; first by rewrite !expg0; apply conj1g.
-by move=> n indh; rewrite !expgS -indh conjMg.
-Qed.
-*)
 
 Lemma invXg : forall j, y ^- j = y^-1 ^+ j.
 Proof.
@@ -169,13 +98,13 @@ Variable H : {set T}.
 (* This is a composite reflections, so it should be a reflection as well. *)
 (* I don't see why the centraliser has to be localised. *)
 Lemma commg_to_centraliser : forall y,
-  {in H, forall x, [~ x, y] = 1} -> H \subset C_(H)[y].
+  {in H, forall x, [~ x, y] = 1} -> H \subset 'C_H[y].
 Proof.
 move=> y comm1; rewrite subsetI subset_refl /=.
 by apply/subsetP=> x Hx; apply/centg1P; apply/commgP; rewrite comm1. 
 Qed.
 
-Lemma centraliser_to_commg: forall x y, x \in C_(H)[y] -> [~ x, y] = 1.
+Lemma centraliser_to_commg: forall x y, x \in 'C_H[y] -> [~ x, y] = 1.
 Proof.
 move=> x y; case/setIP=> _; rewrite (sameP centg1P commgP); exact: eqP.
 Qed.
@@ -226,37 +155,16 @@ Lemma sub_sgcomm : forall H K : {set T}, [~: H, K] \subset [~: K, H].
 Proof.
 move=> H K.
 rewrite gen_subG; apply/subsetP=> xy; case/imset2P=> x y Hx Ky ->{xy}.
-by rewrite -groupV invg_comm mem_geng // imset2_f_imp.
+by rewrite -groupV invg_comm mem_geng // mem_imset2.
 Qed.
 
 Theorem sym_sgcomm: forall (H K: set T), [~: H, K] = [~: K, H].
 Proof. by move=> H K; apply/eqP; rewrite eqset_sub !sub_sgcomm. Qed.
 
-Theorem sgcommSSl (G H K: set T) :  H \subset K -> [~: H, G] \subset [~: K, G].
-Proof. 
-move=> G H K HSSK; apply: genSg; apply/subsetP => x.
-by case/imset2P => x1 x2 Hx1 Hx2 ->; apply/imset2P; exists x1 x2; rewrite // (subsetP HSSK).
-Qed.
-
-Theorem sgcommSSr (G H K: set T) :  H \subset K -> [~: G, H] \subset [~: G, K].
-Proof. 
-move=> G H K HSSK; apply: genSg; apply/subsetP => x.
-by case/imset2P => x1 x2 Hx1 Hx2 ->; apply/imset2P; exists x1 x2; rewrite // (subsetP HSSK).
-Qed.
-
 (* a couple of lemmas about set conjugation *)
 Lemma subset_conjugate_of: forall (H K : {set T}) (z : T), 
   (H :^ z \subset K) = (H \subset K :^ z^-1).
 Proof. by move=> H K z; rewrite -{2}(conjsgK z H) conjSg. Qed.
-
-(* redundant -- proved the boolean equality instead.
-Lemma subset_conjugate_of2: forall (H K: set T) (z: T), 
-H \subset K:^ z^-1 -> H:^z \subset K.
-Proof.
-move=> H K z sub.
-by rewrite -(conjsg1 K) -(mulVg z) conjsgM conjSg.
-Qed.
-*)
 
 Lemma genJg : forall (H : {set T}) z,  <<H :^z>> = <<H>> :^ z.
 Proof.
@@ -275,8 +183,8 @@ Lemma normGR : forall (H : {group T}) (K : {set T}), H \subset 'N([~: H, K]).
 Proof.
 move=> H K; apply/subsetP=> x Hx; rewrite inE -genJg gen_subG.
 apply/subsetP=> yzx; case/imsetP=> yz; case/imset2P=> y z Hy Kz -> -> {yz yzx}.
-have Rxz: [~ x, z] \in [~: H, K] by rewrite mem_geng ?imset2_f_imp.
-by rewrite -(groupMr _ Rxz) -commg_gmult_left mem_geng ?imset2_f_imp ?groupMl.
+have Rxz: [~ x, z] \in [~: H, K] by rewrite mem_geng ?mem_imset2.
+by rewrite -(groupMr _ Rxz) -commg_gmult_left mem_geng ?mem_imset2 ?groupMl.
 Qed.
 
 Theorem normal_commutator: forall H K : {group T}, [~: H, K] <| H <*> K.
@@ -290,7 +198,7 @@ Lemma subcomm_normal : forall H K : {group T},
 Proof.
 move=> H K; rewrite gen_subG; apply/subsetP/subsetP=> [sRK x Hx | nKH xy].
   rewrite inE; apply/subsetP=> yx; case/imsetP=> y Ky ->{yx}.
-  by rewrite conjg_Rmul groupMr // sRK // imset2_f_imp ?groupV.
+  by rewrite conjg_Rmul groupMr // sRK // mem_imset2 ?groupV.
 case/imset2P=> x y Hx Ky ->{xy}; rewrite commgEr groupMr //.
 by rewrite memJ_normg (groupV, nKH). 
 Qed.
@@ -306,11 +214,12 @@ by apply: groupVr; apply:subKG.
 Qed.
 
 Lemma  sub_abelian: forall G K : {group T},
-(K \subset G) -> ([~: G, G] \subset K) -> abel (G / K).
+(K \subset G) -> ([~: G, G] \subset K) -> abelian (G / K).
 Proof.
 move=> G K subKG; rewrite gen_subG; move=> subGGK.
-apply/abelP=> Kx; case/quotientP=> x; case=>xinG xinN -> Ky.
-case/quotientP=> y; case=> yinG yinN ->; apply: val_inj.
+move=> Kx. 
+case/imsetP=> x; case/setIP=> xinN xinG -> Ky.
+case/imsetP=> y; case/setIP=> yinN yinG ->; apply: val_inj.
 rewrite /= (coset_ofN xinN) (coset_ofN yinN) (rcoset_mul _ xinN) (rcoset_mul _ yinN).
 apply: commuteH; apply:( subsetP subGGK).
 by apply/imset2P; apply: Imset2spec; last done; apply: groupVr.
@@ -318,19 +227,11 @@ Qed.
 
 Lemma  commg_coset: forall G K: {group T}, (G \subset 'N(K)) -> forall x y, x \in G -> y \in G ->
 [~ coset_of K x, coset_of K y] = coset_of K [~ x, y].
-move=> G K normK x y xin yin.
-apply: val_inj.
-have xinN := (subsetP normK x xin).
-have yinN := (subsetP normK y yin).
-rewrite //= (coset_ofN xinN)  (coset_ofN yinN).
-rewrite !invg_rcoset -(norm_rlcoset (groupVr xinN)) -(norm_rlcoset (groupVr yinN)). 
-rewrite (rcoset_mul _ xinN); rewrite (rcoset_mul _ (groupVr yinN)); rewrite (rcoset_mul _ (groupVr xinN)).
-rewrite -/(commg x y); apply: sym_eq.
-by apply: coset_ofN; apply: commg_inG.
-Qed.
+Proof. by move=> G K nKG *; rewrite morphR ?(subsetP nKG). Qed.
 
-Lemma  center_commgl: forall G H K: {group T}, (K <| G) -> (H <| G) ->
-(K \subset H) ->  (H / K) \subset  'C(G / K) -> [~: H, G] \subset K.
+Lemma  center_commgl: forall G H K : {group T},
+     K <| G -> H <| G -> K \subset H ->
+  (H / K) \subset 'C(G / K) -> [~: H, G] \subset K.
 Proof.
 move=> G H K; case/andP=> KsubG normK.
 case/andP=> HsubG normH KsubH; move/subsetP=>sub.
@@ -341,21 +242,22 @@ have hk : [~h,k] \in 'N(K).
 apply: (coset_of_idr hk); rewrite -(commg_coset normK (subsetP HsubG _ hin) kin). 
 apply/eqP; apply/commgP.
 have coset_in: coset_of K h \in H / K.
-  apply/quotientP; exists h; split; first done; last done.
+  apply/imsetP; exists h; last done; apply/setIP; split; last done.
   by apply (subsetP normK); apply (subsetP HsubG).
 have sub1:= (sub (coset_of K h) coset_in) ; move :sub1; move/centgP. 
-apply; apply/quotientP; exists k; split; first done; last done.
+apply; apply/imsetP; exists k; last done; apply/setIP; split; last done.
 by apply: (subsetP normK).
 Qed. 
 
-Lemma  center_commgr: forall G H K: {group T}, (K <| G) -> (H <| G) ->
-(K \subset H) ->  [~: H, G] \subset K -> (H / K) \subset  'C(G / K).
+Lemma  center_commgr: forall G H K : {group T},
+    K <| G -> H <| G -> K \subset H ->
+  [~: H, G] \subset K -> (H / K) \subset  'C(G / K).
 Proof.
 move=> G H K; case/andP=> KsubG normK.
 case/andP=> HsubG normH KsubH; rewrite gen_subG /commg_set.
 move/subsetP=>sub; apply/subsetP=>co.
-case/quotientP=>h; case=> hinH hinN -> {co}; apply/centgP=>co.
-case/quotientP=>x; case=> xinG xinN -> {co}; apply/commgP; apply/eqP.
+case/imsetP=>h; case/setIP=> hinN hinH -> {co}; apply/centgP=>co.
+case/imsetP=>x; case/setIP=> xinN xinG -> {co}; apply/commgP; apply/eqP.
 rewrite (commg_coset normK (subsetP HsubG _ hinH) xinG).
 by apply: coset_of_id; apply: sub; apply/imset2P; apply: (Imset2spec hinH xinG).
 Qed. 
@@ -453,7 +355,7 @@ Proof.
 move=> H K L; have R_C := sameP commG1P centralP; rewrite /trivg in R_C.
 rewrite eqset_sub sub1G andbT R_C gen_subG -{}R_C gen_subG.
 apply: (iffP subsetP) => [cHKL h k l Hh Kk Ll | cHKL hkl].
-  by apply/set1P; rewrite cHKL // !imset2_f_imp.
+  by apply/set1P; rewrite cHKL // !mem_imset2.
 by case/imset2P=> hk l; case/imset2P=> h k Hh Kk -> Ll ->; rewrite cHKL.
 Qed.
 
@@ -491,9 +393,9 @@ Variable T : finGroupType.
 Implicit Types x y z : T.
 
 Lemma tech1 : forall (G : {group T}) x y z, x \in G -> y \in G -> z \in G ->
-  commute y z -> abel [~: [set x], G] -> [~ x, y, z] = [~ x, z, y].
+  commute y z -> abelian [~: [set x], G] -> [~ x, y, z] = [~ x, z, y].
 Proof.
-move=> G x y z Gx Gy Gz cyz; move/abelP=> cRxG; pose cx' u := [~ x^-1, u].
+move=> G x y z Gx Gy Gz cyz; move=> cRxG; pose cx' u := [~ x^-1, u].
 have xR3: forall u v, [~ x, u, v] = x^-1 * (cx' u * cx' v) * x ^ (u * v).
   move=> u v; rewrite mulgA -conjg_mulR conjVg [cx' v]commgEl mulgA -invMg.
   by rewrite -mulgA conjgM -conjMg -!commgEl.
@@ -501,7 +403,7 @@ suffices RxGcx': forall u, u \in G -> cx' u \in [~: [set x], G].
   by rewrite !xR3 {}cyz; congr (_ * _ * _); rewrite cRxG ?RxGcx'.
 move=> u Gu; suffices: [~ x, u] ^ x^-1 \in [~: [set x], G].
   by move/groupMl <-; rewrite -commg_gmult_left mulgV comm1g group1.
-rewrite memJ_normg ?mem_geng ?imset2_f_imp ?set11 //.
+rewrite memJ_normg ?mem_geng ?mem_imset2 ?set11 //.
 by rewrite groupV sym_sgcomm (subsetP (normGR _ _)).
 Qed.
 
@@ -523,74 +425,56 @@ End Specialized_results.
 
 Section Characteristic.
 
-Variable T: finGroupType.
+Variable gT1 : finGroupType.
 
 Section FChar.
 
-Variable T1: finGroupType.
+Variable gT2 : finGroupType.
 
-Lemma morphic_comm (f : T -> T1) (G: {group T}) (x y: T):
-  morphic G f -> x \in G -> y \in G -> f [~ x, y] = [~ f x, f y].
+Lemma morph_comm (G: {group gT1}) (f : morphism gT2 G) (x y: gT1):
+ x \in G -> y \in G -> f [~ x, y] = [~ f x, f y].
 Proof.
-move=> f G x y; move/morphP => Hf Hx Hy.
-rewrite /commg !Hf // ?groupM ?groupV //.
-(* Strange that I have to reprove this *)
-have Hf1: (f 1) = 1.
-  by apply: (mulg_injr (f 1)); rewrite -Hf // !mul1g.
-have HfI: forall x, x \in G -> (f x)^-1 = f (x^-1).
-  move=> x1 Hx1; apply: (mulg_injr (f x1)).
-  by rewrite -Hf ?mulVg // groupV.
-rewrite -!HfI //.
+move=> G f x y Hx Hy.
+by rewrite morphM /commg ?morphJ ?morphV ?groupV ?groupJ //.
 Qed.
 
-Lemma morphic_geng (f : T -> T1) (G: {group T}) (H: {set T}):
-  H \subset G -> morphic G f -> f @: <<H>> = <<f @: H>>.
+Lemma morphimEdom1 : forall (H G: set gT1) (g : {morphism G >-> gT2}),
+H \subset G -> g @* H = g @: H.
+Proof. by move=> H G g sub; rewrite /morphim (setIidPr sub). Qed.
+
+Lemma morph_geng  (G: {group gT1}) (f:morphism gT2 G) (H: {set gT1}):
+  H \subset G -> f @: <<H>> = <<f @: H>>.
 Proof.
-move=> f G H Hs Hf. 
-have F1: forall H: {set T}, H \subset G -> mrestr f G @: H = f @: H.
-  by move=> H1 Hs1; apply/setP; apply/subset_eqP; apply/andP; split;
-    apply/subsetP=> x; case/imsetP => x1 Hx1 ->; apply/imsetP; exists x1 => //;
-    rewrite /mrestr /=; (suff ->: x1 \in G by done); apply: (subsetP Hs1).
-rewrite -!F1 //; last by rewrite -genGid genSg.
-apply: (@gen_f_com _ _ (mrestr_morphism Hf)) => /=.
-apply/subsetP => x Hx.
-have: x \in G by apply: (subsetP Hs).
-rewrite /mrestr !inE => Hx1 /=; rewrite Hx1 orbC.
-case: eqP => //= fx1; apply/forallP=> y; rewrite groupMl //.
-by case Hy : (y \in G); rewrite // (morphP Hf) // fx1 mul1g.
+move=> G f H Hs.
+rewrite -morphimEdom1 ; last by rewrite gen_subG.
+rewrite -morphimEdom1; last done.
+by apply morphim_gen .
 Qed.
 
-Lemma morphic_comms (f : T -> T1) (G: {group T}) (H1 H2: {set T}):
-  morphic G f -> H1 \subset G -> H2 \subset G -> f @: [~: H1, H2] = [~: f @: H1, f @: H2].
+Lemma morph_comms  (G: {group gT1}) (f : morphism gT2 G) (H1 H2: {set gT1}):
+  H1 \subset G -> H2 \subset G -> f @: [~: H1, H2] = [~: f @: H1, f @: H2].
 Proof.
-move=> f G H1 H2 Hf Hs1 Hs2.
-rewrite (morphic_geng _ Hf); last first.
-  apply/subsetP => x /=; case/imset2P => x1 x2 Hx1 Hx2 ->.
-  by apply: groupR; [apply: (subsetP Hs1) | apply: (subsetP Hs2)].
+move=> G f H1 H2 Hs1 Hs2; rewrite morph_geng; last first.
+   apply/subsetP => x /=; case/imset2P => x1 x2 Hx1 Hx2 ->.
+   by apply: groupR; [apply: (subsetP Hs1) | apply: (subsetP Hs2)].
 apply/eqP; rewrite eqset_sub; apply/andP; split; apply: genSg.
   apply/subsetP => x; case/imsetP => y; case/imset2P => y1 y2 Hy1 Hy2 -> ->.
-  apply/imset2P; exists (f y1) (f y2); try by apply: imset_f_imp.
-  by apply: (morphic_comm Hf); move: (subsetP Hs1 _ Hy1) (subsetP Hs2 _ Hy2).
+  apply/imset2P; exists (f y1) (f y2); try by apply: mem_imset.
+  by apply: morph_comm; move: (subsetP Hs1 _ Hy1) (subsetP Hs2 _ Hy2).
 apply/subsetP => x; case/imset2P => x1 x2; case/imsetP => y1 Hy1 ->.
 case/imsetP => y2 Hy2 -> ->.
 apply/imsetP; exists [~ y1, y2]; first by  apply/imset2P; exists y1 y2.
-by rewrite -(morphic_comm Hf) //; move: (subsetP Hs1 _ Hy1) (subsetP Hs2 _ Hy2).
+by rewrite -morph_comm //; move: (subsetP Hs1 _ Hy1) (subsetP Hs2 _ Hy2).
 Qed.
 
 End FChar.
 
-
-Lemma char_comm (H1 H2: {set T}) (G: {group T}):
-  characteristic G H1 -> characteristic G H2 -> characteristic G [~: H1, H2].
+Lemma char_comm : forall H1 H2 G : {group gT1},
+  H1 \char G -> H2 \char G -> [~: H1, H2] \char G.
 Proof.
-move=> H1 H2 G; case/andP => F1 F2; case/andP => F3 F4.
-apply/andP; split.
-  rewrite -genGid genSg //.
-  apply/subsetP => x; case/imset2P => x1 x2 Hx1 Hx2 ->.
-  by apply: groupR; move: (subsetP F1 _ Hx1) (subsetP F3 _ Hx2).
-apply/forallP => f; apply/implyP => HH; case/andP: (HH) => HH1 HH2.
-by rewrite (morphic_comms HH2) // (eqP (implyP (forallP F2 f) HH))
-           (eqP (implyP (forallP F4 f) HH)).
+move=> H1 H2 G; case/charP=> sH1G chH1; case/charP=> sH2G chH2.
+apply/charP; split=> [|f infj Gf]; last by rewrite morphimR // chH1 // chH2.
+by rewrite (subset_trans (commg_subset _ _)) // gen_subG subUset sH1G.
 Qed.
 
 End Characteristic.

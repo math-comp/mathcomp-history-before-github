@@ -1,3 +1,4 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype.
 Require Import ssrnat div seq.
 
@@ -216,7 +217,7 @@ Lemma oppr_muln : forall x n, - (x *+n) = x *-n :> R.
 Proof. by move=> x; elim=> /= [|n <-]; rewrite (oppr0, oppr_add). Qed.
 
 Lemma mulrn_addl : forall (x y : R) n, (x + y) *+n = x *+n + y *+n.
-Proof. 
+Proof.
 by move=> x y; elim=> /= [|n ->]; rewrite ?addrA (addr0, addrAC _ y).
 Qed.
 
@@ -486,7 +487,7 @@ Notation Local inv := (@inv F) (only parsing).
 Lemma mulfV: forall x : F, (x != 0) -> x^-1 * x = 1.
 Proof. by case: F. Qed.
 Lemma mulVf: forall x : F, (x != 0) -> x * x^-1 = 1.
-Proof. by move=>*; rewrite mulrC mulfV. Qed.
+Proof. by move=> *; rewrite mulrC mulfV. Qed.
 Lemma mulKf : forall x : F, (x != 0) -> cancel (mul x) (mul x^-1).
 Proof. by move=> x Hx y; rewrite mulrA mulfV// mul1r. Qed.
 Lemma mulfK : forall x : F, (x != 0) -> cancel (mul^~ x) (mul^~ x^-1).

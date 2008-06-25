@@ -59,8 +59,8 @@ case: (Fp1 =P Fpn1); first by rewrite -{2 3}[p]prednK => [[<-]|].
 move/eqP=> nFp1n1.
 have toFpP: _ %% p < p by move=> m; rewrite ltn_mod.
 pose toFp := Ordinal (toFpP _).
-pose mFp (i j : I_(p)) := toFp (i * j).
-have Fp_mod: forall i : I_(p), i %% p = i by move=> i; exact: modn_small.
+pose mFp (i j : 'I_p) := toFp (i * j).
+have Fp_mod: forall i : 'I_p, i %% p = i by move=> i; exact: modn_small.
 have mFpA: associative mFp.
   by move=> i j k; apply: val_inj; rewrite /= modn_mulml modn_mulmr mulnA.
 have mFpC: commutative mFp by move=> i j; apply: val_inj; rewrite /= mulnC.
@@ -68,7 +68,7 @@ have mFp1: left_unit Fp1 mFp by move=> i; apply: val_inj; rewrite /= mul1n.
 have mFp1r: right_unit Fp1 mFp by move=> i; apply: val_inj; rewrite /= muln1.
 pose mFpLaw := Monoid.Law mFpA mFp1 mFp1r.
 pose mFpM := Monoid.operator (@Monoid.AbelianLaw _ _ mFpLaw mFpC).
-pose vFp (i : I_(p)) := toFp (egcdn i p).1.
+pose vFp (i : 'I_p) := toFp (egcdn i p).1.
 have vFpV: forall i, i != Fp0 -> mFp (vFp i) i = Fp1.
   move=> i; rewrite -val_eqE /= -lt0n => i_pos; apply: val_inj => /=.
   rewrite modn_mulml; case: egcdnP => //= _ km -> _; rewrite {km}modn_addl_mul.
@@ -80,9 +80,9 @@ have vFp0: forall i, i != Fp0 -> vFp i != Fp0.
   by have:= congr1 val inv_i; rewrite vFp0 /= mod0n.
 have vFpK: {in predC1 Fp0, involutive vFp}.
   by move=> i n0i; rewrite /= -[vFp _]mFp1r -(vFpV _ n0i) mFpA vFpV (vFp0, mFp1).
-have le_pmFp: (_ : I_(p)) <= p + _.
+have le_pmFp: (_ : 'I_p) <= p + _.
   by move=> *; apply: leq_trans (ltnW _) (leq_addr _ _).
-have eqFp : forall i j : I_(p), (i == j) = (p %| p + i - j).
+have eqFp : forall i j : 'I_p, (i == j) = (p %| p + i - j).
   by move=> i j; rewrite -eqn_mod_dvd ?(modn_addl, Fp_mod).
 have vFpId: forall i, (vFp i == i :> nat) = xpred2 Fp1 Fpn1 i.
   move=> i; symmetry; case: (i =P Fp0) => [->{i}|]; last move/eqP=> ni0.
