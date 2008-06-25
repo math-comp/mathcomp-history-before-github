@@ -467,7 +467,7 @@ Section DirectProdProperties.
 
 Variable gT: finGroupType.
 
-Lemma dirprodNL (G H1 H2: {group gT}) :
+Lemma nilpotent_dirprod (G H1 H2: {group gT}) :
   [/\ H1 <| G, H2 <| G, G = H1 * H2 :> set _ & trivg (H1 :&: H2)] ->
   nilpotent H1 -> nilpotent H2 -> nilpotent G.
 Proof.

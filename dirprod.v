@@ -31,32 +31,6 @@ Import GroupScope.
 
 Section ExternalDirProd.
 
-Lemma morph_gen : forall (gT1 gT2: finGroupType)
-  (G : {group gT1}) (f:morphism gT2 G)  (S: {set gT1}), 
-  S \subset G ->
-  f @* <<S>> = <<f @* S>>.
-Proof.
-move=> gT1 gT2 G f S Hsub.
-apply/eqP; rewrite eqset_sub gen_subG imsetS ?setIS ?sub_geng // andbT.
-suff: <<S>> \subset f@*^-1 (<<f@* S>>).
-  move: Hsub; rewrite -gen_subG; move/setIidPl; rewrite {2}/morphim setIC =>->.
-  move/(imsetS f); move/subset_trans; apply; apply/subsetP=> x.
-  by case/imsetP=> x0 Hx0 ->; move/morphpreP: Hx0=> [_ ->].
-rewrite gen_subG; apply/subsetP=> x Hx; apply/morphpreP; apply/andP.
-rewrite (subsetP Hsub) // (subsetP (sub_geng (f@* S))) //.
-by apply:mem_imset; move/setIidPl: Hsub; rewrite setIC => ->.
-Qed.
-
-Lemma morph_preim_gen : forall (gT1 gT2: finGroupType)
-  (G : {group gT1}) (f:morphism gT2 G)  (S: {set gT2}),
-  S \subset f@* G  ->
-  f @*^-1 <<S>> = ('ker f) * <<f @*^-1 S>>.
-Proof.
-move=> gT1 gT2 G f S Hsub.
-have H: f@*^-1 S \subset G by apply/subsetP=> x; move/morphpreP=> [Hx].
-by rewrite -{1}(morphpreK Hsub) -morph_gen ?morphimK ?gen_subG.
-Qed.
-
 Variables gT1 gT2 : finGroupType.
 
 Definition extprod_mulg (x y : gT1 * gT2) := (x.1 * y.1, x.2 * y.2).
@@ -121,14 +95,14 @@ apply/mulsgP; exists (x1, 1:gT2) (1:gT1 ,x2); last by apply: Heq.
     apply/setP; case=> [x01 x02]; apply/setXP/imsetP=>[[H01]|[x0 Hx0]].
       by move/set1P=> H02; exists (x01)=> //; rewrite H02.
    case=> -> ->; split => //; last by rewrite inE.
-  rewrite -(setTI H1) -morph_gen ?subsetT //.
+  rewrite -(setTI H1) -morphim_gen ?subsetT //.
   by apply/imsetP; rewrite /= setTI; exists x1.
 pose minr := (Morphism (in2W morph_inr) : morphism _ setT).
 have ->: setX 1 H2 = (minr @: H2).
   apply/setP; case=> [x01 x02]; apply/setXP/imsetP=>[[H01 H02]|[x0 Hx0]].
     by move/set1P: H01=> H01; exists (x02)=> //; rewrite H01.
  case=> -> ->; split => //; last by rewrite inE.
-rewrite -(setTI H2) -morph_gen ?subsetT //.
+rewrite -(setTI H2) -morphim_gen ?subsetT //.
 by apply/imsetP; rewrite /= setTI; exists x2.
 Qed.
 
