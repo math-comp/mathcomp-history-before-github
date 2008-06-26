@@ -132,7 +132,7 @@ Lemma cyclic_h : forall a (H : {group gT}), a \in H -> cyclic a \subset H.
 Proof. by move=> a H Ha; rewrite gen_subG sub1set. Qed.
 
 Lemma cyclicnn: forall a, a \in cyclic a.
-Proof. by move=> a; rewrite mem_geng // set11. Qed.
+Proof. by move=> a; rewrite mem_gen // set11. Qed.
 
 Lemma cyclic_expgn: forall a b n, b \in cyclic a -> b ^+ n \in cyclic a.
 Proof. move=> a; exact: groupX. Qed.
@@ -223,17 +223,17 @@ Proof. by apply/eqP; rewrite eqset_sub gen_subG !sub1G. Qed.
 
 
 Lemma commute_cyclic_com : forall a b : gT,
-  commute a b -> {in cyclic a, central (cyclic b)}.
+  commute a b -> {in cyclic a, centralised (cyclic b)}.
 Proof.
 move=> a b Hcom x; case/cyclicP=> kx <-{x} y; case/cyclicP=> ky <- {y}.
-apply: commuteX; apply: commute_sym; exact: commuteX.
+exact: commuteX2.
 Qed.
 
 Lemma commute_cyclic_normal : forall a b : gT,
   commute a b -> cyclic (a * b) \subset 'N(cyclic a).
 Proof.
-move=> a b Hcom; apply: subset_trans (sub_centg _).
-apply/centralP; apply: commute_cyclic_com.
+move=> a b Hcom; apply: subset_trans (cent_subset _).
+apply/centsP; apply: commute_cyclic_com.
 apply: commute_sym; exact: commuteM.
 Qed.
 
@@ -254,7 +254,7 @@ Lemma cyclic_mul : forall (a b : gT),
 Proof.
 move=> a b c_ab co_ab; apply/eqP; rewrite eqset_sub_card coprime_card_mulG //.
 have ->: cyclic (a * b) \subset cyclic a * cyclic b.
-  have CaCb := central_mulgenE (commute_cyclic_com c_ab).
+  have CaCb := centralised_mulgenE (commute_cyclic_com c_ab).
   by rewrite -CaCb gen_subG sub1set /= CaCb mem_mulg ?cyclicnn.
 rewrite dvdn_leq ?orderg_pos // gauss_inv //=.
 by rewrite {2}c_ab !group_dvdn // commute_cyclic_sub // coprime_sym.
@@ -799,8 +799,8 @@ Variable gT : finGroupType.
 Lemma aut_cyclic_commute : forall x : gT, abelian (Aut (cyclic x)).
 Proof.
 move=> x; have:= isom_isog (fp_isom x); rewrite isog_sym.
-case/isogP=> f _ /= <-; apply/centralP; apply: morphim_central.
-by apply/centralP=> m _ n _; do 2!apply: val_inj => /=; rewrite mulnC.
+case/isogP=> f _ /= <-; apply: morphim_cents.
+by apply/centsP=> m _ n _; do 2!apply: val_inj => /=; rewrite mulnC.
 Qed.
 
 End CyclicAutomorphism_Abelian.

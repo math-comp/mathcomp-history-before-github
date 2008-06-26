@@ -329,18 +329,12 @@ End Combo_Enum.
 Section Abelian.
 
 Variable (gT : finGroupType).
+Variable (A : {set gT}) (abelA : abelian A).
 
-Definition abel (A : {set gT}) := A \subset 'C(A).
-
-Lemma abelP : forall A : {set gT}, reflect (abelian A) (abel A).
-Proof. move=> A; exact: centralP. Qed.
-
-Variable (A : {set gT}) (abelA : abel A).
-
-Lemma asub : forall B : {set gT}, B \subset A -> abel B.
+Lemma asub : forall B : {set gT}, B \subset A -> abelian B.
 Proof.
-by move=> B BA; apply/abelP => x y Bx By;
-move/subsetP: BA => BA; move/abelP: abelA; apply; apply: BA.
+by move=> B BA; apply/centsP => x y Bx By;
+move/subsetP: BA => BA; move/centsP: abelA; apply; apply: BA.
 Qed.
 
 Lemma aems_com : forall (f : gT -> nat) x n,
@@ -350,7 +344,7 @@ Proof.
 move=> f x n Ax fA; elim => /=; first by gsimpl. move=> y s Hind;
 rewrite -mulgA -{}Hind !mulgA -commuteX //; apply: commute_sym.
 case fy: (f y); first exact: commute1.
-apply: commuteX; apply: (abelP A abelA) => //.
+apply: commuteX; apply: (centsP abelA) => //.
 by apply: (supP _ _ fA); rewrite fy. 
 Qed.
 
@@ -442,12 +436,12 @@ Qed.
 (* This result -- abelian sets generate abelian groups -- is not *)
 (* used in the main theorem. *)
 
-Lemma amgen : forall A : {set gT}, abel A -> abel (mgen A).
+Lemma amgen : forall A : {set gT}, abelian A -> abelian (mgen A).
 Proof.
 move=> A abelA.
 suff comgen: forall B C : {set gT}, B \subset 'C(C) -> B \subset 'C(mgen C).
-  apply: (comgen); rewrite centralC; exact: comgen.
-move=> B C; rewrite !(centralC B); exact: mgen_sub.
+  apply: (comgen); rewrite centsC; exact: comgen.
+move=> B C; rewrite !(centsC B); exact: mgen_sub.
 Qed.
 
 End Generated_Sequence.
@@ -459,7 +453,7 @@ End Generated_Sequence.
 
 Section Generated_Abelian.
 
-Variable (gT : finGroupType) (A : {set gT}) (abelA : abel A).
+Variable (gT : finGroupType) (A : {set gT}) (abelA : abelian A).
 
 Lemma amgen_group_set : group_set (mgen A).
 Proof.
@@ -476,10 +470,10 @@ Canonical Structure amgen_group := Group amgen_group_set.
 
 Lemma amgen_gen : <<A>> = mgen A.
 Proof.
-by apply/eqP; rewrite eqset_sub gen_subG mgen_super mgen_sub // sub_geng.
+by apply/eqP; rewrite eqset_sub gen_subG mgen_super mgen_sub // subset_gen.
 Qed.
 
-Lemma agen : abel <<A>>.
+Lemma agen : abelian <<A>>.
 Proof. rewrite amgen_gen; exact: amgen. Qed.
 
 Lemma agenP : forall x,
@@ -514,7 +508,7 @@ rewrite (frB f (fun _ => 0)) => //; first by apply/supP.
 by rewrite em1 emf. 
 Qed.
 
-Lemma afree_Free : forall B, abel B -> free B -> Free B.
+Lemma afree_Free : forall B, abelian B -> free B -> Free B.
 Proof.
 move=> B abelB; case=> nB1 frB; split=> // f g Bf Bg emfg.
 have: (em g)^-1 \in << B >> by rewrite groupV; apply/agenP=> //; exists g.
@@ -529,7 +523,7 @@ move=> x; apply: (mulg_injl (x ^+ (h x))).
 by rewrite -!expgn_add; rewrite Hf Hg. 
 Qed.
 
-Lemma free_predU1 : forall B x, x != 1 -> abel (x |: B) ->
+Lemma free_predU1 : forall B x, x != 1 -> abelian (x |: B) ->
   trivg (cyclic x :&: << B >>) -> free B -> free (x |: B).
 Proof.
 move=> B x nx1 abelxB xB1 [nB1 frB].
@@ -583,7 +577,7 @@ case/andP => notsx us; case Bx: (B x) => /=; last first.
     rewrite /= fy eq_sym (mem_filter B s y) By /= orbF.  
   + move=> fB; case/andP => sy us; apply: groupM; first by apply: groupX; 
     apply: (subsetP (subset_generated _)); rewrite /= eq_refl.
-    have: subset << filter B s >> << y :: filter B s >>. by apply: gen_sub; 
+    have: subset << filter B s >> << y :: filter B s >>. by apply: sub_gen; 
     apply/subsetP => z /= ->; rewrite orbT. move/subsetP; apply.
     rewrite (@eq_foldr gT (fun a b => (a ^+ f a) * b)
     (fun a b => (a ^+ force f x 0 a) * b) s);
@@ -602,7 +596,7 @@ Qed.
 *)
 
 (*
-Lemma free_freeb : forall B, abel B -> free B -> freeb B.
+Lemma free_freeb : forall B, abelian B -> free B -> freeb B.
 Proof.
 move=> B abelB; case => notB1 H; rewrite/free/freeb/em. 
 elim: (enum gT) (uniq_enum gT) => //= x s Hind. case/andP => notsx us.
@@ -650,7 +644,7 @@ Section StructureTheorems.
 
 Variable (gT : finGroupType).
 
-Lemma abelian_base_aux : forall E : {set gT}, abel E ->
+Lemma abelian_base_aux : forall E : {set gT}, abelian E ->
   exists2 B : seq gT, #|B| < #|E|.+1 & base <<E>> [set x \in B].
 Proof.
 move=> E; elim: {E}_.+1 {-2 4}E (ltnSn #|E|) => // n IHn E cardE abelE.
@@ -671,10 +665,10 @@ move: {-4 6}E cardE notE1 (erefl << E >>).
 elim: {f z}_.+1 {-2}f {-2}z (ltnSn (f z)) => // m mind f.
 elim: {f}_.+1 {-2}f (ltnSn (esum f)) => // M Mind f esumf.
 move=> x fxm1 X cardX notX1 XE fX emf fx0.
-have abelX: abel <<X>> by rewrite XE; apply: agen.
+have abelX: abelian <<X>> by rewrite XE; apply: agen.
 have Xx: x \in X by exact: (supP _ _ fX).
-have genXx: x \in <<X>> by apply: mem_geng.
-have fgenX: support f <<X>> by apply: (sup_sub (sub_geng X)).
+have genXx: x \in <<X>> by apply: mem_gen.
+have fgenX: support f <<X>> by apply: (sup_sub (subset_gen X)).
 have sXxX: X :\ _ \subset X.
   by move=> y; apply/subsetP=> z; rewrite inE; case/andP.
 have sxX: [set x] \subset X by rewrite sub1set.
@@ -682,7 +676,7 @@ case: (x ^+ (f x) =P 1) => [xfx1 | xfx].
   case XIx: (cyclic x :&: << X :\ x >> \subset [set 1]).
     case: (IHn (X :\ x)) => [|| B cardB [FreeB BXx]].
     - by rewrite (cardsD1 x X) (supP _ _ fX x fx0) in cardX.  
-    - apply: (asub abelX); exact: subset_trans (sub_geng X).
+    - apply: (asub abelX); exact: subset_trans (subset_gen X).
     exists (x :: B).
       rewrite -cardsE set_adds cardsU1 ltnS inE cardsE.
       by rewrite (leq_trans _ cardB) // -add1n leq_add2r leq_b1.
@@ -696,20 +690,20 @@ case: (x ^+ (f x) =P 1) => [xfx1 | xfx].
   case/subsetPn: XIx => y; case/setIP; case/cyclicP => k <-{y}.
   rewrite (divn_eq k (f x)) expgn_add mulnC expgn_mul xfx1 exp1gn.
   rewrite mul1g -groupV; case/agenP=> [|g gX emg xknot1].
-    by apply: (asub abelX); rewrite -gen_subG genSg // setD1E subsetIr.
+    by apply: (asub abelX); rewrite -gen_subG genS // setD1E subsetIr.
   apply: (mind (force g x (k %% f x)) x _ X) => //.
   - by rewrite /force eqxx (leq_trans _ (fxm1 : f x <= m)) // ltn_mod.
   - rewrite -sup_force => //; exact: sup_sub gX.
   - rewrite (aem_force abelX) //; last first.
-      by apply: (sup_sub _ gX); rewrite -gen_subG genSg // setD1E subsetIr.
+      by apply: (sup_sub _ gX); rewrite -gen_subG genS // setD1E subsetIr.
     rewrite (sup0P _ _ gX x) /=; last by rewrite inE eqxx Xx.
     by rewrite emg; gsimpl; apply: invg1.
   rewrite /force eqxx lt0n; apply: contra xknot1.
   by move/eqP=> ->; rewrite /= inE.
 case: (em1_not1 emf xfx) => y ynotx fy0.
 have Xy: y \in X by exact: supP fX _ _.
-have genXy: y \in <<X>> by rewrite mem_geng.
-have xyyx: commute x y by exact: (abelP <<X>> abelX).
+have genXy: y \in <<X>> by rewrite mem_gen.
+have xyyx: commute x y by exact: (centsP abelX).
 have notxyx: x * y != x.
   apply/eqP; move/(canRL (mulKg _)); rewrite mulVg => y1.
   by rewrite -y1 Xy in notX1.
@@ -719,19 +713,19 @@ have notxyy: x * y != y.
 case Xxy: (x * y \in X).
   case: (IHn (X :\ x * y)) => [||B cardB [FreeB genB]].
   - by rewrite -(ltn_add2l (x * y \in X)) -cardsD1 Xxy.
-  - apply: (asub abelX); exact: subset_trans (sub_geng X).
+  - apply: (asub abelX); exact: subset_trans (subset_gen X).
   exists B; first exact: (ltn_trans cardB).
   split=> //; rewrite genB -XE; apply: genD1.
-  by rewrite groupMl mem_geng // inE eq_sym; exact/andP.
+  by rewrite groupMl mem_gen // inE eq_sym; exact/andP.
 case: (ltnP (f y) (f x)) => fxfy.
   apply: (mind f y _ X) => //; exact: leq_trans fxfy _.
 case: (x * y =P 1) => [xy1 | xynot1].
   case: (IHn (X :\ y)) => [||B cardB [FreeB genB]]. 
   - by rewrite (cardsD1 y) (supP _ _ fX) in cardX. 
-  - by apply: (asub abelX); apply: subset_trans (sub_geng X).
+  - by apply: (asub abelX); apply: subset_trans (subset_gen X).
   exists B; [exact: ltnW | split => //].
   rewrite genB -XE; apply: genD1; rewrite -{1}(mulKg x y) xy1 mulg1 groupV.
-  apply: mem_geng; rewrite inE Xx andbT eq_sym; exact/eqP.
+  apply: mem_gen; rewrite inE Xx andbT eq_sym; exact/eqP.
 pose f' := force (force (force f x 0) (x * y) (f x)) y (f y - f x).
 pose X' := x * y |: (X :\ x).
 apply: (Mind f' _ (x * y) _ X') => //; last 1 first.
@@ -746,12 +740,12 @@ apply: (Mind f' _ (x * y) _ X') => //; last 1 first.
 - rewrite -XE; apply/setP; apply/subset_eqP; apply/andP.
   split; rewrite gen_subG; apply/subsetP => t.
     rewrite 2!inE; case/predU1P=> [->|].
-      by apply: groupM; apply: mem_geng.
-    case/andP=> _; exact: mem_geng.
+      by apply: groupM; apply: mem_gen.
+    case/andP=> _; exact: mem_gen.
   case tx: (t == x) => Xt; last first.
-    by apply: mem_geng; rewrite !inE Xt tx orbT.
+    by apply: mem_gen; rewrite !inE Xt tx orbT.
   rewrite {t tx Xt}(eqP tx) -(mulgK y x).
-  by rewrite groupMl ?groupV mem_geng // !inE ?eqxx // Xy orbC; case: eqP.
+  by rewrite groupMl ?groupV mem_gen // !inE ?eqxx // Xy orbC; case: eqP.
 - rewrite -sup_force; last by rewrite !inE Xy orbC; case: eqP.
   rewrite -sup_force; last by rewrite inE eqxx.
   rewrite -sup_predU1_force; apply/supP => t ft /=.
@@ -767,7 +761,7 @@ Qed.
 
 
 Theorem abelian_base : forall G : {group gT},
-  abel G -> exists B, base G B.
+  abelian G -> exists B, base G B.
 Proof.
 by move=> G; case/abelian_base_aux=> B _; rewrite genGid; exists [set x \in B].
 Qed.

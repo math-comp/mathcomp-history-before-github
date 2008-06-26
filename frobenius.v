@@ -452,7 +452,7 @@ move=> y l Hy0 Hy Cy x1; apply/idP/idP; rewrite inE /=  => H1.
   case: (diinv_exists H1) => y1.
   rewrite /= inE /=; case/andP; case/and3P => HH1 HH2 HH3 HH4.
   rewrite  -(eqP HH4) -(eqP HH2) inE prem_group //=; apply/andP; split.
-    apply/centg1P; apply: commute_sym; exact: pconst_remC.
+    apply/cent1P; apply: commute_sym; exact: pconst_remC.
   rewrite -(dvdn_pmul2r (orderg_pos (pconst y1))).
   rewrite mulnC -pconst_prem_orderg.
   by rewrite (eqP HH2) mulnC.

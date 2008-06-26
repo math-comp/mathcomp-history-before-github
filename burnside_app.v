@@ -838,7 +838,7 @@ have -> : s4 = r05 * r14  * r14 * r14 * r05 by iso_tac.
 have -> : s5 = r14  * r05 * r05 by iso_tac.
 have -> : s6 = r05 * r05 * r14 by iso_tac.
 do ?case/predU1P=> [<-|]; first exact: group1; last (move/eqP => <-);
-   by rewrite ?groupMl ?mem_geng // inE eqxx ?orbT.
+   by rewrite ?groupMl ?mem_gen // inE eqxx ?orbT.
 Qed.
 
 Notation col_cubes := {ffun cube -> colors}.

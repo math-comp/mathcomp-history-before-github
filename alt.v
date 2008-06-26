@@ -162,7 +162,7 @@ have FF: forall H : group _, H <| alt d -> H <> 1 :> set _ -> 20 %| #|H|.
       have:= F3 z tp x; case/imsetP => g1 Hg1 Hg2.
       apply: (conjg_inj g1); rewrite conj1g.
       apply: F15.
-        by case/normalsubP: Hh1 => _ nH1; rewrite -(nH1 _ Hg1) memJ_conjg.
+        by case/normalP: Hh1 => _ nH1; rewrite -(nH1 _ Hg1) memJ_conjg.
       by rewrite Hg2 -permM mulKVg permM Hgz.
     clear K F8 F12 F13 Ksub F14.
     case: (cauchy (tp: prime 5) F6) => h; case/andP => Hh Horder.
@@ -190,7 +190,7 @@ have FF: forall H : group _, H <| alt d -> H <> 1 :> set _ -> 20 %| #|H|.
       apply: (Hreg _ x); last first.
         by rewrite !permM -Hgx Hghx -!permM mulKVg mulgV perm1.
       rewrite groupM // ?groupV // (conjgCV g) mulgK -mem_conjg.
-      by case/normalsubP: Hh1 => _ ->.
+      by case/normalP: Hh1 => _ ->.
     have: (g * (h ^+ 2) * g ^-1) x = (h ^+ 3) x.
       rewrite !permM !perm1 -Hgx.
       have ->: h (h x) = (h ^+ 2) x by rewrite /= permM mulg1.
@@ -431,7 +431,7 @@ have Hreg: forall g (z: d), g \in H -> g z = z -> g = 1.
   move=> g z Hg Hgz.
   have:= F3 z tp x; case/imsetP=> g1 Hg1 Hg2.
   apply: (mulg_injl g1^-1); apply: (mulg_injr g1); gsimpl.
-  apply: F15; first by rewrite -mulgA -(normalP nH _ Hg1) memJ_conjg.
+  apply: F15; first by rewrite -mulgA -(normsP nH _ Hg1) memJ_conjg.
   by rewrite Hg2 -permM -mulgA mulKVg permM Hgz.
 clear K F8 F12 F13 Ksub F14.
 have Hcard: 5 < #|H|.
@@ -487,12 +487,12 @@ have h_k_com: h * k = k * h.
   suff HH: (k * h * k^-1) * h^-1 = 1 by rewrite -[h * k]mul1g -HH; gsimpl.
   apply: (Hreg _ x); last first.
     by rewrite !permM -Hkx Hkhx -!permM mulKVg mulgV perm1.
-  by rewrite groupM // ?groupV // (conjgCV k) mulgK -mem_conjg (normalP nH).
+  by rewrite groupM // ?groupV // (conjgCV k) mulgK -mem_conjg (normsP nH).
 have g_k_com: g * k = k * g.
   suff HH: (k * g * k^-1) * g^-1 = 1 by rewrite -[g * k]mul1g -HH; gsimpl.
   apply: (Hreg _ x); last first.
     by rewrite !permM -Hkx Hkgx -!permM mulKVg mulgV perm1.
-  by rewrite groupM // ?groupV // (conjgCV k) mulgK -mem_conjg (normalP nH).
+  by rewrite groupM // ?groupV // (conjgCV k) mulgK -mem_conjg (normsP nH).
 have HH: (k * (h * g) * k ^-1) x = z.
    by rewrite 2!permM -Hkx Hkhgx -permM mulgV perm1.
 case/negP: diff_hgx_z.

@@ -455,17 +455,17 @@ Qed.
 Lemma morphim_gen : forall A, A \subset G -> f @* <<A>> = <<f @* A>>.
 Proof.
 move=> A sAG; apply/eqP.
-rewrite eqset_sub andbC gen_subG morphimS; last exact: sub_geng.
-by rewrite sub_morphim_pre gen_subG // -sub_morphim_pre // sub_geng.
+rewrite eqset_sub andbC gen_subG morphimS; last exact: subset_gen.
+by rewrite sub_morphim_pre gen_subG // -sub_morphim_pre // subset_gen.
 Qed.
 
 Lemma morphpre_gen : forall C,
   1 \in C -> C \subset f @* G -> f @*^-1 <<C>> = <<f @*^-1 C>>.
 Proof.
 move=> C C1 sCG; apply/eqP.
-rewrite eqset_sub andbC gen_subG morphpreS; last exact: sub_geng.
+rewrite eqset_sub andbC gen_subG morphpreS; last exact: subset_gen.
 rewrite -{1}(morphpreK sCG) -morphim_gen ?subsetIl // morphimGK //=.
-  by rewrite (subset_trans _ (sub_geng _)) // setIS // preimsetS ?sub1set.
+  by rewrite sub_gen // setIS // preimsetS ?sub1set.
 by rewrite gen_subG subsetIl.
 Qed.
 
@@ -497,7 +497,7 @@ Proof. by case/trivgP. Qed.
 Lemma morphim_norm : forall A, f @* 'N(A) \subset 'N(f @* A).
 Proof.
 move=> A; apply/subsetP=> fx; case/morphimP=> x Gx Nx -> {fx}.
-by rewrite inE -morphimJ ?(normgP Nx).
+by rewrite inE -morphimJ ?(normP Nx).
 Qed.
 
 Lemma morphim_cent1 : forall x, x \in G -> f @* 'C[x] \subset 'C[f x].
@@ -509,28 +509,28 @@ move=> A; apply/bigcap_inP=> fx; case/morphimP=> x Gx Ax ->{fx}.
 apply: subset_trans (morphim_cent1 Gx); apply: morphimS; exact: bigcap_inf.
 Qed.
 
-Lemma morphim_normal : forall A B,
+Lemma morphim_norms : forall A B,
   A \subset 'N(B) -> f @* A \subset 'N(f @* B).
 Proof.
 move=> A B nBA; apply: subset_trans (morphim_norm B); exact: morphimS.
 Qed.
 
-Lemma morphim_central : forall A B,
+Lemma morphim_cents : forall A B,
   A \subset 'C(B) -> f @* A \subset 'C(f @* B).
 Proof.
 move=> A B cBA; apply: subset_trans (morphim_cent B); exact: morphimS.
 Qed.
 
-Lemma morphim_centraliser : forall A x,
+Lemma morphim_cent1s : forall A x,
   x \in G -> A \subset 'C[x] -> f @* A \subset 'C[f x].
 Proof.
 move=> A x Gx cAx; apply: subset_trans (morphim_cent1 Gx); exact: morphimS.
 Qed.
 
-Lemma morphim_normalsub :  forall A B, A <| B -> f @* A <| f @* B.
+Lemma morphim_normal :  forall A B, A <| B -> f @* A <| f @* B.
 Proof.
 move=> A B; case/andP=> sAB nAB.
-by rewrite /(_ <| _) morphimS // morphim_normal.
+by rewrite /(_ <| _) morphimS // morphim_norms.
 Qed.
 
 Lemma morphpre_norm : forall C, f @*^-1 'N(C) \subset 'N(f @*^-1 C).
@@ -552,27 +552,27 @@ rewrite morphimGI ?(subsetIl, subIset) // orbC.
 by rewrite (subset_trans (morphim_cent _)).
 Qed.
 
-Lemma morphpre_normal : forall C D,
+Lemma morphpre_norms : forall C D,
   C \subset 'N(D) -> f @*^-1 C \subset 'N(f @*^-1 D).
 Proof.
 move=> C D nDC; apply: subset_trans (morphpre_norm D); exact: morphpreS.
 Qed.
 
-Lemma morphpre_central : forall A C,
+Lemma morphpre_cents : forall A C,
   C \subset f @* G -> f @*^-1 C \subset 'C(A) -> C \subset 'C(f @* A).
-Proof. by move=> A C sCfG; move/morphim_central; rewrite morphpreK. Qed.
+Proof. by move=> A C sCfG; move/morphim_cents; rewrite morphpreK. Qed.
 
-Lemma morphpre_centraliser : forall C x,
+Lemma morphpre_cent1s : forall C x,
   x \in G ->  C \subset f @* G -> f @*^-1 C \subset 'C[x] -> C \subset 'C[f x].
 Proof.
-by move=> C x Gx sCfG; move/(morphim_centraliser Gx); rewrite morphpreK.
+by move=> C x Gx sCfG; move/(morphim_cent1s Gx); rewrite morphpreK.
 Qed.
 
-Lemma morphpre_normalsub :  forall C D,
+Lemma morphpre_normal :  forall C D,
   C \subset f @* G -> D \subset f @* G -> (f @*^-1 C <| f @*^-1 D) = (C <| D).
 Proof.
 move=> C D sCfG sDfG; apply/idP/andP=> [|[sCD nDC]].
-  by move/morphim_normalsub; rewrite !morphpreK //; case/andP.
+  by move/morphim_normal; rewrite !morphpreK //; case/andP.
 by rewrite /(_ <| _) (subset_trans _ (morphpre_norm _)) morphpreS.
 Qed.
 
@@ -957,7 +957,7 @@ Lemma isog_simpl : isog G H -> simple G -> simple H.
 Proof.
 move/isog_sym_imply; case/isogP=> f injf <-.
 move/simpleP=> simpH; apply/simpleP=> L nLH.
-have: f @* L <| f @* H by rewrite morphim_normalsub.
+have: f @* L <| f @* H by rewrite morphim_normal.
 case/andP: nLH => sLH _; rewrite -{-1}(morphim_invm injf sLH) {sLH}.
 by case/simpH=> [] [->]; [left | right]; rewrite (morphim1, morphim_invm).
 Qed.
@@ -1087,7 +1087,7 @@ Qed.
 
 Lemma coset_of_morphM : {in 'N(A) &, {morph coset_of : x y / x * y}}.
 Proof.
-apply: (subin2 (subsetP (normg_gen A))) => x y Nx Ny; apply: val_inj.
+apply: (subin2 (subsetP (norm_gen A))) => x y Nx Ny; apply: val_inj.
 by rewrite /= !val_coset_of Nx Ny groupM //= rcoset_mul.
 Qed.
 
@@ -1229,7 +1229,7 @@ Proof.
 case/andP: nHG => sHG nHG' nKbar; case: (andP nKbar) => sKbarG _.
 case: (inv_quotientS sKbarG) => K defKbar sHK sKG.
 have nHGbar: G / H \subset 'N(H) / H by rewrite morphimS; case/andP: nHG.
-rewrite -(morphpre_normalsub (subset_trans sKbarG nHGbar) nHGbar) /= in nKbar.
+rewrite -(morphpre_normal (subset_trans sKbarG nHGbar) nHGbar) /= in nKbar.
 exists K => //; rewrite defKbar !morphimGK ?ker_coset // in nKbar.
 exact: subset_trans nHG'.
 Qed.

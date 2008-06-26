@@ -169,7 +169,7 @@ apply/subsetP => g; case/stabilizerP => Hg Hperm.
 rewrite /normaliser inE; apply/subsetP => g1 /=.
 rewrite mem_conjg; case/stabilizerP => Hg1 Hperm1.
 apply/stabilizerP; split.
-by move/normalP: Hnorm; move/(_ g Hg) => <-; rewrite mem_conjg.
+by move/normsP: Hnorm; move/(_ g Hg) => <-; rewrite mem_conjg.
 move: Hperm1; rewrite !actM invgK Hperm -actM => Hperm1.
 by rewrite -{2}Hperm -{2}Hperm1 -!actM; gsimpl.
 Qed.
@@ -552,7 +552,7 @@ Qed.
 Lemma prim_trans_norm : forall H : {group gT},
   primitive -> H <| G -> H \subset akernel to G S \/ transitive to H S.
 Proof.
-move=> H prim; case/normalsubP=> sHG nHG; pose P a := [image to a of H].
+move=> H prim; case/normalP=> sHG nHG; pose P a := [image to a of H].
 case: (primitiveP prim P) => [a Sa | a b x Sa _ Gx | P1 | PS].
 - by apply/imageP; exists (1 : gT); rewrite /= ?act1.
 - case/imageP=> y Hy ->{b} c; apply/imageP/imageP; case=> z Hz ->{c}.

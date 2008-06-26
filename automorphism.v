@@ -179,7 +179,7 @@ Lemma injm_conj : forall x, 'injm (conjgm G x).
 Proof. move=> x; apply/injmP; apply: in2W; exact: conjg_inj. Qed.
 
 Lemma norm_conj_dom : forall x, x \in 'N(G) -> conjgm G x @* G = G.
-Proof. move=> x; rewrite morphimEdom; exact: normgP. Qed.
+Proof. move=> x; rewrite morphimEdom; exact: normP. Qed.
 
 Definition conj_aut x :=
   aut_of (injm_conj _) (norm_conj_dom (valP (insigd (group1 _) x))).
@@ -194,7 +194,7 @@ Lemma conj_aut_morphM : {in 'N(G) &, {morph conj_aut : x y / x * y}}.
 Proof.
 move=> x y nGx nGy; apply/permP=> z /=; rewrite permM.
 case Gz: (z \in G); last by rewrite !permE /= !Gz.
-by rewrite !norm_conj_autE // (conjgM, memJ_normg, groupM).
+by rewrite !norm_conj_autE // (conjgM, memJ_norm, groupM).
 Qed.
 
 Canonical Structure conj_aut_morphism := Morphism conj_aut_morphM.
@@ -202,8 +202,8 @@ Canonical Structure conj_aut_morphism := Morphism conj_aut_morphM.
 Lemma ker_conj_aut : 'ker conj_aut = 'C(G).
 Proof.
 apply/setP=> x; rewrite inE; case nGx: (x \in 'N(G)); last first.
-  by symmetry; apply/idP=> cGx; rewrite (subsetP (sub_centg G)) in nGx.
-rewrite 2!inE /=; apply/eqP/centgP=> [cx1 y Gy | cGx].
+  by symmetry; apply/idP=> cGx; rewrite (subsetP (cent_subset G)) in nGx.
+rewrite 2!inE /=; apply/eqP/centP=> [cx1 y Gy | cGx].
   by rewrite /commute (conjgC y) -norm_conj_autE // cx1 perm1.
 apply/permP=> y; case Gy: (y \in G); last by rewrite !permE Gy.
 by rewrite perm1 norm_conj_autE // conjgE -cGx ?mulKg.
@@ -272,8 +272,8 @@ Qed.
 
 Lemma char_norm_trans : forall H G K, K \char H -> H <| G -> K <| G.
 Proof.
-move=> H G K; case/charP=> sKH chKH; case/normalsubP=> sHG nHG.
-apply/normalsubP; split=> [|x Gx]; first exact: subset_trans sHG.
+move=> H G K; case/charP=> sKH chKH; case/normalP=> sHG nHG.
+apply/normalP; split=> [|x Gx]; first exact: subset_trans sHG.
 have:= (chKH [morphism of conjgm H x]) => /=.
 rewrite /morphim /= setIid (setIidPr sKH).
 apply; [exact: injm_conj | exact: nHG].

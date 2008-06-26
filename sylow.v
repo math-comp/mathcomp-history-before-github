@@ -361,7 +361,7 @@ Proof.
 move=> i L P Hlk Hcl Hsp Hnp.
 case (@sylow1_subset i L) => // P1; case/andP => Hlp1 Hsp1.
 case (sylow2_cor Hsp Hsp1) => x [Kx EP1].
-by case/normalsubP: Hnp => _ nPK; rewrite EP1 nPK in Hlp1.
+by case/normalP: Hnp => _ nPK; rewrite EP1 nPK in Hlp1.
 Qed.
 
 (**********************************************************************)
@@ -464,7 +464,7 @@ have F6: forall x, x \in S0 -> x = H.
     by apply: (subsetP Hl3).
   case: (sylow2_cor prime_p F9 F8) => u [Hu Hu1].
   apply: val_inj; rewrite /= Hu1.
-  by rewrite (normgP _) //; case/setIP: Hu.
+  by rewrite (normP _) //; case/setIP: Hu.
 rewrite (cardD1 H S0) F5.
 rewrite -[1%N]addn0; congr addn.
 apply: eq_card0 => x /=; rewrite inE /= inE /= andbC.
@@ -480,7 +480,7 @@ Proof.
 move=> gT G p p_pr; apply: (iffP idP) => [syl1 | [P sylP nPG]].
   have [P sylP]: exists P, P \in gsylow p G.
     by apply/existsP; rewrite /pred0b (eqP syl1).
-  exists P => //; apply/normalsubP; split=> [|x Gx]; first by case/andP: sylP.
+  exists P => //; apply/normalP; split=> [|x Gx]; first by case/andP: sylP.
   apply/eqP; apply/idPn=> nPxP.
   rewrite (cardD1 P) sylP eqSS in syl1; case/existsP: syl1.
   exists (P :^ x)%G; rewrite /= nPxP -topredE /gsylow /=.
@@ -488,7 +488,7 @@ move=> gT G p p_pr; apply: (iffP idP) => [syl1 | [P sylP nPG]].
 rewrite (cardD1 P) [P \in _]sylP eqSS; apply/pred0P=> Q /=.
 apply/andP=> [[nQP sylQ]]; case/eqP: nQP; apply: val_inj=> /=.
 case: (sylow2_cor p_pr sylP sylQ) => x [Gx ->{Q sylQ}].
-case/normalsubP: nPG => _; exact.
+case/normalP: nPG => _; exact.
 Qed.
 
 Lemma sylowNLE : forall (gT : finGroupType) (G P Q : {group gT}) p,

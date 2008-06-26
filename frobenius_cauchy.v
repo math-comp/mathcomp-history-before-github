@@ -40,7 +40,7 @@ Lemma stabilizer_to : forall x g,
   g \in normaliser H -> stabilizer to H (to x g) = stabilizer to H x :^ g.
 Proof.
 move=> x g nHg; apply/setP=> h; rewrite mem_conjg !inE -mem_conjg.
-by rewrite (normgP _) // !actM invgK (canF_eq (actKV to g)).
+by rewrite (normP _) // !actM invgK (canF_eq (actKV to g)).
 Qed.
 
 Lemma orbit_eq : forall x y,

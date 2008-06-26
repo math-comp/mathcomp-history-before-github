@@ -80,7 +80,7 @@ Qed.
 Lemma lcn_normal : forall G n, 'L_n.+1(G) <|  'L_n(G).
 Proof.
 move=> n G.
-by apply: normalsubS (lcn_normal0 _ _); rewrite (lcn_subset, lcn_subset0).
+by apply: normalS (lcn_normal0 _ _); rewrite (lcn_subset, lcn_subset0).
 Qed.
 
 Lemma lcn_center : forall G n, 'L_n(G) / 'L_n.+1(G) \subset 'Z(G / 'L_n.+1(G)).
@@ -101,7 +101,7 @@ move=> G; rewrite -(size_mkseq (fun n => 'L_n(G)) #|G|) index_mem.
 apply/forallP/mapsP=> /= [nilG | [n _ Ln1] H]; last first.
   apply/implyP; rewrite subsetI; case/andP=> sHG sHR.
   rewrite /trivg /= -{}Ln1; elim: n => // n IHn.
-  apply: subset_trans sHR _; apply: genSg; exact: imset2S.
+  apply: subset_trans sHR _; apply: genS; exact: imset2S.
 pose n := #|G|; have: n <= #|G| := leqnn _.
 have: #|G| < n + #|'L_n(G)| by rewrite -addn1 leq_add2l pos_card_group.
 elim: n => [|n IHn leGn lt_nG]; first by rewrite ltnn.
@@ -119,7 +119,7 @@ move=> G; apply: (iffP idP) => [| [n Ln1]].
   by case/mapsP=> n _ Ln1; exists n.
 apply/forallP=> H; apply/implyP; rewrite subsetI; case/andP=> sHG sHR.
 rewrite /trivg /= -{}Ln1; elim: n => // n IHn.
-apply: subset_trans sHR _; apply: genSg; exact: imset2S.
+apply: subset_trans sHR _; apply: genS; exact: imset2S.
 Qed.
 
 Lemma lcn1 : forall A, 'L_1(A) = A^`(1). Proof. by []. Qed.
@@ -189,7 +189,7 @@ move=> G; elim=> [|n chZn]; first exact: trivg_char.
 have nZn: 'Z_n(G) <| G by exact: normal_char.
 case: (andP nZn) => sZn nZn'; rewrite ucnSn.
 apply: char_from_quotient (chZn) _.
-  by apply: normalsubS nZn; rewrite (subsetIl, ucn_subset).
+  by apply: normalS nZn; rewrite (subsetIl, ucn_subset).
 rewrite /= quotientE morphimGI ?ker_coset // morphpreK -!quotientE.
   by rewrite setIA setIid characteristic_center.
 by rewrite subIset // morphimS.
@@ -202,7 +202,7 @@ Proof. move=> G n; apply: normal_char; exact: ucn_char. Qed.
 Lemma ucn_normal : forall G n, 'Z_n(G) <| 'Z_n.+1(G).
 Proof.
 move=> G n; move: (ucn_subset0 G n.+1) (ucn_normal0 G n).
-exact: normalsubS (ucn_subset G n).
+exact: normalS (ucn_subset G n).
 Qed.
 
 Lemma ucn_center : forall G n, 'Z_n.+1(G) / 'Z_n(G) = 'Z(G / 'Z_n(G)).
@@ -218,7 +218,7 @@ Proof.
 move=> G n; case/andP: (ucn_normal0 G n) => _ nZG.
 case/andP: (ucn_normal G n) => _ nZZ.
 rewrite -trivg_quotient ?comm_subG // quotientE morphimR //= -!quotientE.
-by rewrite ucn_center (sameP commG1P centralP) subsetIr.
+by rewrite ucn_center (sameP commG1P centsP) subsetIr.
 Qed.
 
 Lemma ucn1 : forall G, 'Z_1(G) = 'Z(G).
@@ -244,7 +244,7 @@ move=> G n; apply/setP=> x; rewrite ucnSn 3!inE; case Gx: (x \in G) => //=.
 have nZG: G \subset 'N('Z_n(G)) by case/andP: (ucn_normal0 G n).
 have nZx: [set x] \subset 'N('Z_n(G)) by rewrite sub1set (subsetP nZG).
 rewrite -sub1set nZx 2!inE -{1}coset_of_norm mem_imset //=.
-rewrite -?(sub1set, morphim_set1) //= -quotientE (sameP centralP commG1P).
+rewrite -?(sub1set, morphim_set1) //= -quotientE (sameP centsP commG1P).
 rewrite -morphimR // trivg_quotient; last exact: comm_subG.
 by rewrite gen_subG /commg_set imset2_set1l.
 Qed.
@@ -268,7 +268,7 @@ rewrite addSnnS; move/IHi=> <- {IHi}.
 have [_ nZG] := andP (ucn_normal0 G j).
 have nZL := subset_trans (lcn_subset0 _ _) nZG.
 rewrite -trivg_quotient //= lcnSn quotientE morphimR //= -!quotientE.
-rewrite (sameP commG1P centralP); symmetry.
+rewrite (sameP commG1P centsP); symmetry.
 rewrite ucnSn subsetI lcn_subset0 -sub_morphim_pre //= -quotientE.
 by rewrite subsetI morphimS ?lcn_subset0.
 Qed.
@@ -281,7 +281,7 @@ Qed.
 
 Lemma lcnS : forall A B n, A \subset B -> 'L_n(A) \subset 'L_n(B).
 Proof.
-by move=> A B n sAB; elim: n => // n IHn; rewrite !lcnSn genSg ?imset2S.
+by move=> A B n sAB; elim: n => // n IHn; rewrite !lcnSn genS ?imset2S.
 Qed.
 
 Lemma nilpotent_sub : forall A B, B \subset A -> nilpotent A -> nilpotent B.
@@ -310,16 +310,16 @@ Lemma nilpotent_quo : forall G H, nilpotent G -> nilpotent (G / H).
 Proof. move=> G H; exact: nilpotent_morphim. Qed.
 
 Lemma lcn_mul : forall G H n,
-  {in G, central H} -> 'L_n(G * H) = 'L_n(G) * 'L_n(H).
+  {in G, centralised H} -> 'L_n(G * H) = 'L_n(G) * 'L_n(H).
 Proof.
 move=> G H n cGH; elim: n => // n; rewrite lcnSn => ->.
 apply/eqP; rewrite eqset_sub; apply/andP; split; last first.
   rewrite -gen_subG genM_mulgen gen_subG subUset /= !lcnSn.
   by rewrite !commgSS // (mulG_subr, mulG_subl).
 have sL0 := subsetP (lcn_subset0 _ _).
-have cLL: {in 'L_n.+1(G), central 'L_n.+1(H)}.
+have cLL: {in 'L_n.+1(G), centralised 'L_n.+1(H)}.
   by move=> x; move/sL0=> Gx y; move/sL0; exact: cGH.
-rewrite -(central_mulgenE cLL) gen_subG /= central_mulgenE //=.
+rewrite -(centralised_mulgenE cLL) gen_subG /= centralised_mulgenE //=.
 apply/subsetP=> xy; case/imset2P=> x y.
 case/imset2P=> x1 x2 Lx1 Lx2 ->{x}; move/sL0: (Lx1) => Gx1.
 case/imset2P=> y1 y2 Gy1 Hy2 ->{y} ->{xy}; move/sL0: (Lx2) => Hx2.
@@ -327,16 +327,16 @@ rewrite commMgJ conjRg conjMg 2!conjgE (cGH _ Gx1) // mulKg.
 rewrite (cGH _ Gy1) // mulKg.
 rewrite 2!commgEl 2!conjgM conjgE (cGH (x1 ^ y1)) ?groupJ // mulKg -commgEl.
 rewrite (conjgE x2) -(cGH y1) // mulKg -commgEl.
-by rewrite mem_imset2 ?mem_geng // mem_imset2.
+by rewrite mem_imset2 ?mem_gen // mem_imset2.
 Qed.
 
-Lemma nilpotent_mul : forall G H, {in G, central H} -> 
+Lemma nilpotent_mul : forall G H, {in G, centralised H} -> 
   nilpotent (G * H) = nilpotent G && nilpotent H.
 Proof.
 move=> G H cGH; apply/idP/andP=> [nilGH | []].
   by split; apply: nilpotent_sub nilGH; rewrite (mulG_subr, mulG_subl).
 case/lcnP=> n1 Ln1G1; case/lcnP=> n2 Ln2G1.
-rewrite -(central_mulgenE cGH); apply/lcnP; rewrite /= central_mulgenE //.
+rewrite -(centralised_mulgenE cGH); apply/lcnP; rewrite /= centralised_mulgenE //.
 have trLadd : forall (K : {group gT}) i j, 'L_i(K) = 1 -> 'L_(j + i)(K) = 1.
   move=> K i j; move/trivgP=> trL; apply/trivgP; apply: subset_trans trL.
   elim: j => // j; apply: subset_trans; exact: lcn_subset.
@@ -413,7 +413,7 @@ have{nilG ntH} [i trZHi]: exists2 i, trZH i & ~~ trZH i.+1.
   elim: n => [|i IHi ntZHi1]; first by rewrite /trivg subsetIr.
   by case trZHi: (trZH i); [exists i | move/idPn: trZHi].
 apply: contra; apply: subset_trans; rewrite [H :&: 'Z(G)]setIA subsetI.
-rewrite {1}setIA subsetIl /= (sameP centralP commG1P).
+rewrite {1}setIA subsetIl /= (sameP centsP commG1P).
 apply: subset_trans trZHi; rewrite -subcomm_normal commsgC in nHG.
 rewrite subsetI (subset_trans _ nHG) ?commSg ?subsetIl //=.
 by rewrite (subset_trans _ (ucn_comm G i)) ?commSg ?subsetIr.
@@ -432,11 +432,11 @@ apply/eqP; rewrite eqset_sub; apply/andP; split.
   rewrite inE; case/andP => /= Hx11 Hx12.
   rewrite inE; case/andP => /= Hx21 Hx22 ->.  
   apply/setXP; split => /=.
-    by apply: mem_geng; apply/imset2P; exists x11 x21.
-  by apply: mem_geng; apply/imset2P; exists x12 x22.
+    by apply: mem_gen; apply/imset2P; exists x11 x21.
+  by apply: mem_gen; apply/imset2P; exists x12 x22.
 rewrite -setX_gen ?group1;
   try by apply/imset2P; exists (1: gT) (1: gT); rewrite ?group1 ?comm1g.
-apply: genSg; apply/subsetP => [[x1 x2]]; rewrite !inE /=.
+apply: genS; apply/subsetP => [[x1 x2]]; rewrite !inE /=.
 case/andP; case/imset2P => xx1 xx2 Hxx1 Hxx2 ->.
 case/imset2P => yy1 yy2 Hyy1 Hyy2 ->.
 by apply/imset2P; exists (xx1,yy1) (xx2,yy2); rewrite // !inE /= ?Hxx1 ?Hxx2.

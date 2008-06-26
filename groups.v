@@ -528,11 +528,12 @@ Definition centraliser A := \bigcap_(x \in A) normaliser [set x].
 
 (* "normal" and "central" are intended to be use in conjunction with *)
 (* the {in ...} form, as in abelian below.                           *)
-Definition normal A := forall x, conjugate_of A x = A.
-Definition normal_subset A B := (A \subset B) && (B \subset normaliser A).
+Definition normalised A := forall x, conjugate_of A x = A.
+Definition normal A B := (A \subset B) && (B \subset normaliser A).
 Definition centralises x A := forall y, y \in A -> commute x y.
-Definition central A := forall x, centralises x A.
-Definition abelian A := {in A, central A}.
+Definition centralised A := forall x, centralises x A.
+Definition abelian A := A \subset centraliser A.
+Definition abelian_prop A := {in A, centralised A}.
 
 (* The pre-group structure of group subsets. *)
 
@@ -608,13 +609,14 @@ Arguments Scope rcoset_of [_ group_scope group_scope].
 Arguments Scope lcosets [_ group_scope group_scope].
 Arguments Scope lcoset_of [_ group_scope group_scope].
 Arguments Scope class_support [_ group_scope group_scope].
-Arguments Scope normal [_ group_scope].
+Arguments Scope normalised [_ group_scope].
 Arguments Scope normaliser [_ group_scope].
-Arguments Scope normal_subset [_ group_scope group_scope].
-Arguments Scope central [_ group_scope].
+Arguments Scope normal [_ group_scope group_scope].
+Arguments Scope centralised [_ group_scope].
 Arguments Scope centraliser [_ group_scope].
 Arguments Scope centralises [_ group_scope group_scope].
 Arguments Scope abelian [_ group_scope].
+Arguments Scope abelian_prop [_ group_scope].
 
 Notation "A ^#" := (A :\ 1) (at level 2, format "A ^#") : group_scope.
 
@@ -636,9 +638,9 @@ Notation "''N' ( A )" := (normaliser A)
   (at level 8, format "''N' ( A )") : group_scope.
 Notation "''N_' G ( A )" := (G%g :&: 'N(A))
   (at level 8, G at level 2, format "''N_' G ( A )") : group_scope.
-Notation "A <| B" := (normal_subset A B)
+Notation "A <| B" := (normal A B)
   (at level 70) : group_scope.
-Notation "''C' ( A )" := (centraliser A%g)
+Notation "''C' ( A )" := (centraliser A)
   (at level 8, format "''C' ( A )") : group_scope.
 Notation "''C_' G ( A )" := (G%g :&: 'C(A))
   (at level 8, G at level 2, format "''C_' G ( A )") : group_scope.
@@ -647,16 +649,12 @@ Notation "''C' [ x ]" := 'N([set x%g])
 Notation "''C_' G [ x ]" := 'N_G([set x%g])
   (at level 8, G at level 2, format "''C_' G [ x ]") : group_scope.
 
-Notation "{ 'for' x , 'normal' A }" := (A :^ x = A%g)
-   (at level 0, A at level 8,
-    format "{ 'for'  x ,  'normal'  A }") : type_scope.
-Notation "{ 'for' x , 'central' A }" := (centralises x A%g)
-   (at level 0, A at level 8,
-    format "{ 'for'  x ,  'central'  A }") : type_scope.
+Notation "{ 'abelian' A }" := (abelian_prop A)
+   (at level 0, A at level 8, format "{ 'abelian'  A }") : type_scope.
 
 Prenex Implicits repr lcoset_of rcoset_of lcosets rcosets.
 Prenex Implicits conjugate_of conjugates class_of classes class_support.
-Prenex Implicits commg_set normal central abelian.
+Prenex Implicits commg_set normalised centralised abelian.
 
 Implicit Arguments mem_repr [gT A].
 
@@ -1297,7 +1295,7 @@ Qed.
 
 Canonical Structure conjG_group x := Group (group_set_conjG x).
 
-Lemma conjGid : {in G, normal G}.
+Lemma conjGid : {in G, normalised G}.
 Proof. by move=> x Gx; apply/setP=> y; rewrite mem_conjg groupJr ?groupV. Qed.
 
 Lemma conj_subG : forall x A, x \in G -> A \subset G -> A :^ x \subset G.
@@ -1310,7 +1308,7 @@ Lemma class1G : 1 ^: G = 1. Proof. exact: class1g group1. Qed.
 Lemma classGidl : forall x y, y \in G -> (x ^ y) ^: G = x ^: G.
 Proof. by move=> x y Gy; rewrite -classg_lcoset lcoset_id. Qed.
 
-Lemma classGidr : forall x, {in G, normal (x ^: G)}.
+Lemma classGidr : forall x, {in G, normalised (x ^: G)}.
 Proof. by move=> x y Gy; rewrite -classg_rcoset rcoset_id. Qed.
 
 Lemma class_supportGidl : forall A x,
@@ -1319,7 +1317,7 @@ Proof.
 by move=> A x Gx; rewrite -class_support_set1r -class_supportM lcoset_id.
 Qed.
 
-Lemma class_supportGidr : forall A, {in G, normal (class_support A G)}.
+Lemma class_supportGidr : forall A, {in G, normalised (class_support A G)}.
 Proof.
 by move=> A x Gx; rewrite -class_support_set1r -class_supportM rcoset_id.
 Qed.
@@ -1563,11 +1561,14 @@ Implicit Types x y z : gT.
 Implicit Types A B C D : sT.
 Implicit Types G H K : {group gT}.
 
-Lemma sub_geng : forall A, A \subset <<A>>.
+Lemma subset_gen : forall A, A \subset <<A>>.
 Proof. move=> A; exact/bigcap_inP. Qed.
 
-Lemma mem_geng : forall x A, x \in A -> x \in <<A>>.
-Proof. move=> x A; exact: subsetP (sub_geng A) x. Qed.
+Lemma sub_gen : forall A B, A \subset B -> A \subset <<B>>.
+Proof. move=> A B sAB; exact: subset_trans (subset_gen B). Qed.
+
+Lemma mem_gen : forall x A, x \in A -> x \in <<A>>.
+Proof. move=> x A; exact: subsetP (subset_gen A) x. Qed.
 
 Lemma generatedP : forall x A,
   reflect (forall G, A \subset G -> x \in G) (x \in <<A>>).
@@ -1575,82 +1576,70 @@ Proof. move=> x A; exact: bigcapP. Qed.
 
 Lemma gen_subG : forall A G, (<<A>> \subset G) = (A \subset G).
 Proof.
-move=> A G; apply/idP/idP=> [|sAG]; first exact: subset_trans (sub_geng A).
+move=> A G; apply/idP/idP=> [|sAG]; first exact: subset_trans (subset_gen A).
 by apply/subsetP=> x; move/generatedP; apply.
 Qed.
 
 Lemma genGid : forall G, <<G>> = G.
-Proof.
-by move=> G; apply/eqP; rewrite eqset_sub gen_subG sub_geng andbT.
-Qed.
+Proof. by move=> G; apply/eqP; rewrite eqset_sub gen_subG subset_gen andbT. Qed.
 
-Lemma genSg : forall A B, A \subset B -> <<A>> \subset <<B>>.
-Proof.
-by move=> A B sAB; rewrite gen_subG (subset_trans _ (sub_geng B)).
-Qed.
+Lemma genS : forall A B, A \subset B -> <<A>> \subset <<B>>.
+Proof. by move=> A B sAB; rewrite gen_subG sub_gen. Qed.
 
-Lemma gengg : forall A, << <<A>> >> = <<A>>.
-Proof. move=> A; exact: genGid. Qed.
-
-Lemma genUgen : forall A B, <<A :|: <<B>> >> = <<A :|: B>>.
-Proof.
-move=> A B; apply/eqP; rewrite eqset_sub gen_subG subUset gen_subG /=.
-by rewrite -subUset sub_geng genSg // setUS // sub_geng.
-Qed.
-
-Lemma gen_genU : forall A B, << <<A>> :|: B>> = <<A :|: B>>.
-Proof. by move=> A B; rewrite -!(setUC B) genUgen. Qed.
-
-Lemma gen0 : <<@set0 gT>> = 1.
+Lemma gen0 : <<set0>> = 1 :> {set gT}.
 Proof. by apply/eqP; rewrite eqset_sub sub1G gen_subG sub0set. Qed.
 
 Lemma genD : forall A B, A \subset <<A :\: B>> -> <<A :\: B>> = <<A>>.
 Proof.
-by move=> A B sAB; apply/eqP; rewrite eqset_sub genSg (subsetDl, gen_subG).
+by move=> A B sAB; apply/eqP; rewrite eqset_sub genS (subsetDl, gen_subG).
 Qed.
 
 Lemma genV : forall A, <<A^-1>> = <<A>>.
 Proof.
 move=> A; apply/eqP; rewrite eqset_sub !gen_subG -!(invSg _ <<_>>) invgK.
-by rewrite !invGid !sub_geng.
+by rewrite !invGid !subset_gen.
 Qed.
 
 Lemma genJ : forall A z,  <<A :^z>> = <<A>> :^ z.
 Proof.
 move=> A z; apply/eqP; rewrite eqset_sub sub_conjg.
-by rewrite !gen_subG conjSg -?sub_conjg !sub_geng.
-Qed.
-
-Lemma genDU : forall A B C,
-  A \subset C -> <<C :\: A>> = <<B>> -> <<A :|: B>> = <<C>>.
-Proof.
-move=> A B C sAC; rewrite -genUgen => <- {B}; rewrite genUgen; congr <<_>>.
-rewrite setDE setUIr setUCr setIT; exact/setUidPr.
+by rewrite !gen_subG conjSg -?sub_conjg !subset_gen.
 Qed.
 
 Lemma genD1 : forall A x, x \in <<A :\ x>> -> <<A :\ x>> = <<A>>.
 Proof.
-move=> A x gA'x; apply/eqP; rewrite eqset_sub genSg; last first.
+move=> A x gA'x; apply/eqP; rewrite eqset_sub genS; last first.
   by rewrite setD1E subsetIl.
 rewrite gen_subG; apply/subsetP=> y Ay.
-by case: (y =P x) => [-> //|]; move/eqP=> nyx; rewrite mem_geng // inE nyx.
+by case: (y =P x) => [-> //|]; move/eqP=> nyx; rewrite mem_gen // inE nyx.
 Qed.
+
+Notation mulgenT := (@mulgen gT) (only parsing).
+Notation mulGenT := (@mulGen gT) (only parsing).
 
 Lemma mulgenE : forall A B, A <*> B = <<A :|: B>>. Proof. by []. Qed.
 
 Lemma mulGenE : forall G H, (G <*> H)%G = G <*> H :> sT. Proof. by []. Qed.
 
-Lemma mulgen_idl : forall A B, <<A>> <*> B = A <*> B.
-Proof. exact: gen_genU. Qed.
-
-Lemma mulgen_idr : forall A B, A <*> <<B>> = A <*> B.
-Proof. exact: genUgen. Qed.
-
-Notation mulgenT := (@mulgen gT).
-Notation mulGenT := (@mulGen gT).
-
 Lemma mulgenC : commutative mulgenT.
 Proof. by move=> A B; rewrite /mulgen setUC. Qed.
+
+Lemma mulgen_idr : forall A B, A <*> <<B>> = A <*> B.
+Proof.
+move=> A B; apply/eqP; rewrite eqset_sub gen_subG subUset gen_subG /=.
+by rewrite -subUset subset_gen genS // setUS // subset_gen.
+Qed.
+
+Lemma mulgen_idl : forall A B, <<A>> <*> B = A <*> B.
+Proof. by move=> A B; rewrite -!(mulgenC B) mulgen_idr. Qed.
+
+Lemma genDU : forall A B C,
+  A \subset C -> <<C :\: A>> = <<B>> -> <<A :|: B>> = <<C>>.
+Proof.
+move=> A B C sAC; rewrite -mulgenE -mulgen_idr => <- {B}.
+rewrite mulgen_idr; congr <<_>>.
+rewrite setDE setUIr setUCr setIT; exact/setUidPr.
+Qed.
 
 Lemma mulgenA : associative mulgenT.
 Proof. by move=> A B C; rewrite mulgen_idl mulgen_idr /mulgen setUA. Qed.
@@ -1664,8 +1653,8 @@ Proof. by move=> G; rewrite mulgenC mulgen1G. Qed.
 Lemma genM_mulgen : forall G H, <<G * H>> = G <*> H.
 Proof.
 move=> G H; apply/eqP; rewrite eqset_sub gen_subG /= -{1}[G <*> H]mulGid.
-rewrite genSg; last by rewrite subUset mulG_subl mulG_subr.
-by rewrite mulgSS ?(subset_trans _ (sub_geng _), subsetUl, subsetUr).
+rewrite genS; last by rewrite subUset mulG_subl mulG_subr.
+by rewrite mulgSS ?(sub_gen, subsetUl, subsetUr).
 Qed.
 
 Lemma comm_mulgenE : forall G H, commute G H -> G <*> H = G * H.
@@ -1690,17 +1679,17 @@ Canonical Structure mulGen_law := Monoid.Law mulGenA mulGen1G mulGenG1.
 Canonical Structure mulGen_abelaw := Monoid.AbelianLaw mulGenC.
 
 Lemma mem_commg : forall A B x y, x \in A -> y \in B -> [~ x, y] \in [~: A, B].
-Proof. by move=> A B x y Ax By; rewrite mem_geng ?mem_imset2. Qed.
+Proof. by move=> A B x y Ax By; rewrite mem_gen ?mem_imset2. Qed.
 
 Lemma commSg : forall A B C, A \subset B -> [~: A, C] \subset [~: B, C].
-Proof. by move=> A B C sAC; rewrite genSg ?imset2S. Qed.
+Proof. by move=> A B C sAC; rewrite genS ?imset2S. Qed.
 
 Lemma commgS : forall A B C, B \subset C -> [~: A, B] \subset [~: A, C].
-Proof. by move=> A B C sBC; rewrite genSg ?imset2S. Qed.
+Proof. by move=> A B C sBC; rewrite genS ?imset2S. Qed.
 
 Lemma commgSS : forall A B C D,
   A \subset B -> C \subset D -> [~: A, C] \subset [~: B, D].
-Proof. by move=> A B C D sAB sCD; rewrite genSg ?imset2S. Qed.
+Proof. by move=> A B C D sAB sCD; rewrite genS ?imset2S. Qed.
 
 Lemma der1_subG : forall G, [~: G, G] \subset G.
 Proof.
@@ -1721,7 +1710,7 @@ by apply/imset2P/imset2P=> [] [x y Ax Ay]; last rewrite -{1}(invgK z);
   rewrite -invg_comm; move/invg_inj->; exists y x.
 Qed.
 
-Lemma commG1P : forall A B, reflect {in A, central B} (trivg [~: A, B]).
+Lemma commG1P : forall A B, reflect {in A, centralised B} (trivg [~: A, B]).
 Proof.
 move=> A B; rewrite [trivg _]gen_subG.
 apply: (iffP subsetP) => [cAB1 x Ax y By | cAB z].
@@ -1742,63 +1731,57 @@ Implicit Types x y z : gT.
 Implicit Types A B C : sT.
 Implicit Type G H K : {group gT}.
 
-Lemma normgP : forall x A, reflect {for x, normal A} (x \in 'N(A)).
+Lemma normP : forall x A, reflect (A :^ x = A) (x \in 'N(A)).
 Proof.
 move=> x A; suff ->: (x \in 'N(A)) = (A :^ x == A) by exact: eqP.
 by rewrite eqset_sub_card card_conjg leqnn andbT inE.
 Qed.
 
-Implicit Arguments normgP [x A].
+Implicit Arguments normP [x A].
 
 Lemma normaliser1 : 'N(1) =  setT :> {set gT}.
-Proof. by apply/setP=> x; apply/normgP; rewrite inE conjs1g. Qed.
+Proof. by apply/setP=> x; apply/normP; rewrite inE conjs1g. Qed.
 
-Lemma normg_conj : forall x A, x \in 'N(A) -> {for x, normal A}.
-Proof. by move=> x A; move/normgP. Qed.
+Lemma conj_norm : forall x A, x \in 'N(A) -> A :^ x = A.
+Proof. by move=> x A; move/normP. Qed.
 
-Lemma memJ_normg : forall x y A, x \in 'N(A) -> (y ^ x \in A) = (y \in A).
-Proof. by move=> x y A Nx; rewrite -{1}(normgP Nx) memJ_conjg. Qed.
+Lemma memJ_norm : forall x y A, x \in 'N(A) -> (y ^ x \in A) = (y \in A).
+Proof. by move=> x y A Nx; rewrite -{1}(normP Nx) memJ_conjg. Qed.
 
 Lemma group_set_normaliser : forall A, group_set 'N(A).
 Proof.
 move=> A; apply/group_setP; split=> [|x y Nx Ny]; rewrite inE ?conjsg1 //.
-by rewrite conjsgM !(normgP _).
+by rewrite conjsgM !(normP _).
 Qed.
 
 Lemma conj_subG_norm : forall A x G,
   x \in 'N(G) -> A \subset G -> A :^ x \subset G.
-Proof. by move=> A x G; move/normgP=> nGx sAG; rewrite -nGx conjSg. Qed.
+Proof. by move=> A x G; move/normP=> nGx sAG; rewrite -nGx conjSg. Qed.
 
 Canonical Structure normaliser_group A := Group (group_set_normaliser A).
 
-Lemma normalP : forall A B, reflect {in A, normal B} (A \subset 'N(B)).
+Lemma normsP : forall A B, reflect {in A, normalised B} (A \subset 'N(B)).
 Proof.
 move=> A B; apply: (iffP subsetP) => nBA x Ax; last by rewrite inE nBA //.
-by apply/normgP; exact: nBA.
+by apply/normP; exact: nBA.
 Qed.
 
 Lemma normC : forall A B, A \subset 'N(B) -> commute A B.
 Proof.
 move=> A B; move/subsetP=> nBA; apply/setP => u.
 apply/mulsgP/mulsgP=> [[x y Ax By] | [y x By Ax]] -> {u}.
-  by exists (y ^ x^-1) x; rewrite -?conjgCV // memJ_normg // groupV nBA.
-by exists x (y ^ x); rewrite -?conjgC // memJ_normg // nBA.
+  by exists (y ^ x^-1) x; rewrite -?conjgCV // memJ_norm // groupV nBA.
+by exists x (y ^ x); rewrite -?conjgC // memJ_norm // nBA.
 Qed.
 
-Lemma normalC : forall A B, {in A, normal B} -> commute A B.
-Proof. move=> A B; move/normalP; exact: normC. Qed.
-
 Lemma normG : forall G, G \subset 'N(G).
-Proof. move=> G; apply/normalP; exact: conjGid. Qed.
+Proof. move=> G; apply/normsP; exact: conjGid. Qed.
 
-Lemma normG_trans : forall A G, A \subset G -> A \subset 'N(G).
+Lemma normsG : forall A G, A \subset G -> A \subset 'N(G).
 Proof. move=> A G sAG; exact: subset_trans (normG G). Qed.
 
 Lemma norm_mulgenE : forall G H, G \subset 'N(H) -> G <*> H = G * H.
 Proof. by move=> G H; move/normC; move/comm_mulgenE. Qed.
-
-Lemma normal_mulgenE : forall G H, {in G, normal H} -> G <*> H = G * H.
-Proof. by move=> G H; move/normalC; move/comm_mulgenE. Qed.
 
 Lemma norm_rlcoset : forall G x, x \in 'N(G) -> G :* x = x *: G.
 Proof. by move=> G x; rewrite -sub1set; move/normC. Qed.
@@ -1810,11 +1793,17 @@ move=> G x y; move/norm_rlcoset=> GxxG.
 by rewrite mulgA -(mulgA _ _ G) -GxxG mulgA mulGid -mulgA mulg_set1.
 Qed.
 
-Lemma normalsubP : forall A B,
-  reflect (A \subset B /\ {in B, normal A}) (A <| B).
-Proof. by move=> A B; apply: (iffP andP)=> [] [sAB]; move/normalP. Qed.
+Lemma normalP : forall A B,
+  reflect (A \subset B /\ {in B, normalised A}) (A <| B).
+Proof. by move=> A B; apply: (iffP andP)=> [] [sAB]; move/normsP. Qed.
 
-Lemma centg1P : forall x y, reflect (commute x y) (x \in 'C[y]).
+Lemma normal_norm : forall A B, A <| B -> B \subset 'N(A).
+Proof. by move=> A B; case/andP. Qed.
+
+Lemma normal_sub : forall A B, A <| B -> A \subset B.
+Proof. by move=> A B; case/andP. Qed.
+
+Lemma cent1P : forall x y, reflect (commute x y) (x \in 'C[y]).
 Proof.
 move=> x y; rewrite inE conjg_set1 sub1set inE (sameP eqP conjg_fixP).
 rewrite commg1_sym; exact: commgP.
@@ -1822,137 +1811,164 @@ Qed.
 
 Canonical Structure centraliser_group A := Eval hnf in [group of 'C(A)].
 
-Lemma centg_set1 : forall x, 'C([set x]) = 'C[x].
+Lemma cent_set1 : forall x, 'C([set x]) = 'C[x].
 Proof. by move=> x; apply: big_pred1 => y /=; rewrite inE. Qed.
 
-Lemma centgP : forall A x, reflect {for x, central A} (x \in 'C(A)).
+Lemma centP : forall A x, reflect (centralises x A) (x \in 'C(A)).
 Proof.
-by move=> A x; apply: (iffP (bigcapP _ _ _)) => cxA y; move/cxA; move/centg1P.
+by move=> A x; apply: (iffP (bigcapP _ _ _)) => cxA y; move/cxA; move/cent1P.
 Qed.
 
-Lemma centralP : forall A B, reflect {in A, central B} (A \subset 'C(B)).
+Lemma centsP : forall A B, reflect {in A, centralised B} (A \subset 'C(B)).
 Proof.
-by move=> A B; apply: (iffP subsetP) => cAB x; move/cAB; move/centgP.
+by move=> A B; apply: (iffP subsetP) => cAB x; move/cAB; move/centP.
 Qed.
 
+(* 
 Lemma central_normal : forall x A, {for x, central A} -> {for x, normal A}.
 Proof.
-move=> x A Cx; apply/normgP; rewrite inE; apply/subsetP=> yx.
+move=> x A Cx; apply/normP; rewrite inE; apply/subsetP=> yx.
 case/imsetP=> y Ay ->{yx}; rewrite (conjg_fixP _) // commg1_sym.
 apply/commgP; exact: Cx.
 Qed.
 
 Lemma in_central_normal : forall A B, {in A, central B} -> {in A, normal B}.
 Proof. move=> A B cAB x; move/cAB; exact: central_normal. Qed.
+*)
 
-Lemma sub_centg : forall A, 'C(A) \subset 'N(A).
+Lemma cent_subset : forall A, 'C(A) \subset 'N(A).
 Proof.
-by move=> A; apply/subsetP=> x; move/centgP; move/central_normal; move/normgP.
+move=> A; apply/subsetP=> x; move/centP=> cAx; rewrite inE.
+by apply/subsetP=> yx; case/imsetP=> y Ay ->; rewrite /conjg -cAx ?mulKg.
 Qed.
 
-Lemma norm_centg : forall A, 'N(A) \subset 'N('C(A)).
+Lemma cent_norm : forall A, 'N(A) \subset 'N('C(A)).
 Proof.
-move=> A; apply/subsetP=> x; move/normgP=> nxA; rewrite inE.
-apply/subsetP=> zx; case/imsetP=> z; move/centgP=> czA ->{zx}.
-apply/centgP=> y Ay; apply/commgP; apply/conjg_fixP.
+move=> A; apply/subsetP=> x; move/normP=> nxA; rewrite inE.
+apply/subsetP=> zx; case/imsetP=> z; move/centP=> czA ->{zx}.
+apply/centP=> y Ay; apply/commgP; apply/conjg_fixP.
 rewrite -conjgM (conjgCV x y) conjgM (@conjg_fixP _ z _ _) //.
 by apply/commgP; apply: czA; rewrite -mem_conjg nxA.
 Qed.
 
-Lemma normsub_centg : forall A, 'C(A) <| 'N(A).
-Proof. by move=> A; rewrite /(_ <| _) sub_centg norm_centg. Qed.
+Lemma cent_normal : forall A, 'C(A) <| 'N(A).
+Proof. by move=> A; rewrite /(_ <| _) cent_subset cent_norm. Qed.
 
-Lemma central_mulgenE : forall H1 H2,
-  {in H1, central H2} -> H1 <*> H2 = H1 * H2.
-Proof. move=> H1 H2; move/in_central_normal; exact: normal_mulgenE. Qed.
-
-Lemma centralC : forall A B, (A \subset 'C(B)) = (B \subset 'C(A)).
+Lemma cent_mulgenE : forall H1 H2,
+  H1 \subset 'C(H2) -> H1 <*> H2 = H1 * H2.
 Proof.
-by move=> A B; apply/centralP/centralP=> cAB x ? y ?; rewrite /commute -cAB.
+move=> H1 H2 cH12; apply: norm_mulgenE; exact: subset_trans (cent_subset _).
 Qed.
 
-Lemma central_sym : forall A B, {in A, central B} -> {in B, central A}.
-Proof. by move=> A B; move/centralP; rewrite centralC; move/centralP. Qed.
+Lemma centralised_mulgenE : forall H1 H2,
+  {in H1, centralised H2} -> H1 <*> H2 = H1 * H2.
+Proof. move=> H1 H2; move/centsP; exact: cent_mulgenE. Qed.
 
-Lemma normalsubS : forall G H K,
+Lemma centsC : forall A B, (A \subset 'C(B)) = (B \subset 'C(A)).
+Proof.
+by move=> A B; apply/centsP/centsP=> cAB x ? y ?; rewrite /commute -cAB.
+Qed.
+
+(*
+Lemma central_sym : forall A B, {in A, central B} -> {in B, central A}.
+Proof. by move=> A B; move/centsP; rewrite centsC; move/centsP. Qed.
+*)
+
+Lemma normalS : forall G H K,
   K \subset H -> H \subset G -> K <| G -> K <| H.
 Proof.
 move=> G H K sKH sHG; case/andP=> _ nKG.
 by rewrite /(K <| _) sKH (subset_trans sHG).
 Qed.
 
-Lemma normalsub_refl : forall G, G <| G.
+Lemma normal_refl : forall G, G <| G.
 Proof. by move=> G; rewrite /(G <| _) normG subset_refl. Qed.
 
-Lemma norm_normal : forall G, G <| 'N(G).
+Lemma normalG : forall G, G <| 'N(G).
 Proof. by move=> G; rewrite /(G <| _) normG subset_refl. Qed.
 
-Lemma norm_in_normal : forall G H, H \subset G -> H <| 'N_G(H).
+Lemma normalSG : forall G H, H \subset G -> H <| 'N_G(H).
 Proof.
 move=> G H sHG; rewrite /(H <| _) subsetI sHG normG subIset //. 
 by rewrite subset_refl orbT.
 Qed.
 
-Lemma normg_gen : forall A, 'N(A) \subset 'N(<<A>>).
+Lemma norm_gen : forall A, 'N(A) \subset 'N(<<A>>).
 Proof.
-move=> A; apply/subsetP=> x; move/normgP=> Nx.
-by rewrite inE sub_conjg gen_subG -sub_conjg Nx sub_geng.
+move=> A; apply/subsetP=> x; move/normP=> Nx.
+by rewrite inE sub_conjg gen_subG -sub_conjg Nx subset_gen.
 Qed.
 
-Lemma normIg : forall A B, 'N(A) :&: 'N(B) \subset 'N(A :&: B).
-Proof.
-move=> A B; apply/subsetP=> x; case/setIP=> nAx nBx.
-by apply/normgP; rewrite conjIg !(normgP _).
-Qed.
-
-Lemma normMg : forall A B, 'N(A) :&: 'N(B) \subset 'N(A * B).
+Lemma normI : forall A B, 'N(A) :&: 'N(B) \subset 'N(A :&: B).
 Proof.
 move=> A B; apply/subsetP=> x; case/setIP=> nAx nBx.
-by apply/normgP; rewrite conjsMg !(normgP _).
+by apply/normP; rewrite conjIg !(normP _).
 Qed.
 
-Lemma normMgeng : forall A B, 'N(A) :&: 'N(B) \subset 'N(A <*> B).
+Lemma normM : forall A B, 'N(A) :&: 'N(B) \subset 'N(A * B).
 Proof.
 move=> A B; apply/subsetP=> x; case/setIP=> nAx nBx.
-by apply: (subsetP (normg_gen _)); apply/normgP; rewrite conjUg !(normgP _).
+by apply/normP; rewrite conjsMg !(normP _).
 Qed.
 
-Lemma centSg : forall A B, B \subset A -> 'C(A) \subset 'C(B).
+Lemma normJ : forall A x, 'N(A :^ x) = 'N(A) :^ x.
+Proof.
+move=> A x; apply/setP=> y.
+by rewrite mem_conjg !inE -conjsgM conjgCV conjsgM conjSg.
+Qed.
+
+Lemma norm_mulgen : forall A B, 'N(A) :&: 'N(B) \subset 'N(A <*> B).
+Proof.
+move=> A B; apply/subsetP=> x; case/setIP=> nAx nBx.
+by apply: (subsetP (norm_gen _)); apply/normP; rewrite conjUg !(normP _).
+Qed.
+
+Lemma centS : forall A B, B \subset A -> 'C(A) \subset 'C(B).
 Proof.
 move=> A B; move/subsetP=> sAB; apply/subsetP=> x.
-move/centgP=> cAx; apply/centgP; exact: subin1 cAx.
+move/centP=> cAx; apply/centP; exact: subin1 cAx.
 Qed.
 
-Lemma centIg : forall A B, 'C(A) <*> 'C(B) \subset 'C(A :&: B).
+Lemma centI : forall A B, 'C(A) <*> 'C(B) \subset 'C(A :&: B).
 Proof.
-by move=> A B; rewrite gen_subG subUset !centSg ?(subsetIl, subsetIr).
+by move=> A B; rewrite gen_subG subUset !centS ?(subsetIl, subsetIr).
 Qed.
 
-Lemma centUg : forall A B, 'C(A :|: B) = 'C(A) :&: 'C(B).
+Lemma centU : forall A B, 'C(A :|: B) = 'C(A) :&: 'C(B).
 Proof.
 move=> A B; apply/eqP.
-rewrite eqset_sub subsetI 2?centSg ?(subsetUl, subsetUr) //=.
-by rewrite centralC subUset -centralC subsetIl -centralC subsetIr.
+rewrite eqset_sub subsetI 2?centS ?(subsetUl, subsetUr) //=.
+by rewrite centsC subUset -centsC subsetIl -centsC subsetIr.
 Qed.
 
-Lemma centg_gen : forall A, 'C(<<A>>) = 'C(A).
+Lemma cent_gen : forall A, 'C(<<A>>) = 'C(A).
 Proof.
-move=> A; apply/eqP; rewrite eqset_sub centSg ?sub_geng //=.
-by rewrite -centralC gen_subG centralC.
+move=> A; apply/eqP; rewrite eqset_sub centS ?subset_gen //=.
+by rewrite -centsC gen_subG centsC.
 Qed.
+
+Lemma cent_mulgen : forall A B, 'C(A <*> B) = 'C(A) :&: 'C(B).
+Proof. by move=> G H; rewrite cent_gen centU. Qed.
 
 Lemma centMG : forall G H, 'C(G * H) = 'C(G) :&: 'C(H).
-Proof. by move=> G H; rewrite -centg_gen genM_mulgen centg_gen centUg. Qed.
+Proof. by move=> G H; rewrite -cent_gen genM_mulgen cent_mulgen. Qed.
+
+Lemma centJ : forall A x, 'C(A :^ x) = 'C(A) :^ x.
+Proof.
+move=> A x; apply/setP=> y; rewrite mem_conjg; apply/centP/centP=> cAy z Az.
+  by apply: (conjg_inj x); rewrite 2!conjMg conjgKV cAy ?memJ_conjg.
+by apply: (conjg_inj x^-1); rewrite 2!conjMg cAy -?mem_conjg.
+Qed.
 
 End Normaliser.
 
-Implicit Arguments normgP [gT x A].
-Implicit Arguments centgP [gT x A].
+Implicit Arguments normP [gT x A].
+Implicit Arguments centP [gT x A].
+Implicit Arguments normsP [gT A B].
+Implicit Arguments cent1P [gT x y].
 Implicit Arguments normalP [gT A B].
-Implicit Arguments centg1P [gT x y].
-Implicit Arguments normalsubP [gT A B].
-Implicit Arguments centralP [gT A B].
-Prenex Implicits normgP normalP centg1P normalsubP centgP centralP.
+Implicit Arguments centsP [gT A B].
+Prenex Implicits normP normsP cent1P normalP centP centsP.
 
 Arguments Scope normaliser_group [_ group_scope].
 Arguments Scope centraliser_group [_ group_scope].
@@ -1964,7 +1980,7 @@ Notation "''N_' G ( A )" := (G :&: 'N(A))%G : subgroup_scope.
 Notation "''C_' G ( A )" := (G :&: 'C(A))%G : subgroup_scope.
 Notation "''C_' G [ x ]" := ('N_G([set x%g]))%G : subgroup_scope.
 
-Hint Resolve normalsub_refl.
+Hint Resolve normal_refl.
 
 Section Maximal.
 

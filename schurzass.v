@@ -14,14 +14,14 @@ Import GroupScope.
 Lemma Frattini : forall (gT : finGroupType) (G H P : {group gT}) p,
   H <| G -> prime p -> sylow p H P -> H * 'N_G(P) = G.
 Proof.
-move=> gT G H P p; case/normalsubP=> sHG nHG p_prime sylP.
+move=> gT G H P p; case/normalP=> sHG nHG p_prime sylP.
 have sPG: P \subset G by apply: subset_trans sHG; case/andP: sylP.
 apply/eqP; rewrite eqset_sub setIC group_modl // subsetIr.
 apply/subsetP=> x Gx; pose Q := (P :^ x^-1)%G.
 have sylQ: sylow p H Q by  by rewrite (sylow_sconjg _ _ _ x) conjsgKV nHG.
 have [y [Hy QPy]] := (sylow2_cor p_prime sylP sylQ).
 rewrite inE Gx andbT -(mulKg y x) mem_mulg ?groupV //.
-by apply/normgP; rewrite conjsgM -QPy conjsgKV.
+by apply/normP; rewrite conjsgM -QPy conjsgKV.
 Qed.
 
 Section Split.
@@ -105,7 +105,7 @@ Hypothesis nHG : H <| G.
 
 Lemma remGrM : {in G &, {morph remgr K H : x y / x * y}}.
 Proof.
-case/normalsubP: nHG => _; case/complgP: cK => trHK <- nHHK x y HKx HKy.
+case/normalP: nHG => _; case/complgP: cK => trHK <- nHHK x y HKx HKy.
 rewrite {1}[y]split_pr mulgA (conjgCV x) {2}[x]split_pr -2!mulgA mulgA.
 rewrite remGr_id 1?remgr_idr // groupMl -?mem_conjg ?nHHK //;
   by rewrite (mem_remgr, mem_divgr).
@@ -136,7 +136,7 @@ pose pQ x := remgr Q H x; pose rH x := pQ (pP x) * rP x.
 have pQhq: forall h q, h \in H -> q \in Q -> pQ (h * q) = q.
   by exact: remgr_idl.
 have pQmul: forall x y, x \in P -> y \in P -> pQ (x * y) = pQ x * pQ y.
-  apply: remGrM; [exact/complgP | exact: normalsubS nsHG].
+  apply: remGrM; [exact/complgP | exact: normalS nsHG].
 have HrH: forall x, rH x \in H :* x.
   by move=> x; rewrite rcoset_sym mem_rcoset invMg mulgA mem_divgr // eqHQ PpP.
 have GrH: forall x, x \in G -> rH x \in G.
@@ -149,7 +149,7 @@ pose toH x : {x' | x' \in H} := insubd (Sub 1 (group1 H)) x.
 have valH: {in H, cancel toH val} by move=> *; exact: insubdK.
 pose Hgrp := [is {x | x \in H} <: finGroupType].
 have mulHC : commutative (@mulg Hgrp).
-  by case=> x Hx [y Hy]; apply: val_inj; rewrite /= abelH.
+  by case=> x Hx [y Hy]; apply: val_inj; rewrite /= (centsP abelH).
 pose gTH := Ring.AdditiveGroup (@mulgA _) mulHC (@mul1g _) (@mulVg _).
 have Hval: forall u : gTH, sval u \in H by exact: valP.
 have valM: forall a b : gTH, sval (a + b)%R = sval a * sval b by [].
@@ -169,14 +169,14 @@ have mu_Pmul: forall x y z, x \in P -> mu (x * y) z = mu y z.
 have mu_Hmul: forall x y z, x \in G -> y \in H -> mu x (y * z) = mu x z.
   move=> x y z Gx Hy; congr toH.
   rewrite (mulgA x) (conjgCV x) -mulgA 2?rH_Hmul //.
-  by rewrite -mem_conjg (normgP _) ?(subsetP nHG).
+  by rewrite -mem_conjg (normP _) ?(subsetP nHG).
 have{mu_Hmul} nu_Hmul: forall y z, y \in H -> nu (y * z) = nu z.
   move=> y z Hy; apply: eq_bigr => Px; case/rcosetsP=> x Gx ->{Px}.
   apply: mu_Hmul y z _ Hy.
   by rewrite -(groupMl _ (subsetP sPG _ (PpP x))) mulgKV.
 pose actG (a : gTH) y : gTH := toH (sval a ^ rH y).
 have valG: forall a y, y \in G -> sval (actG a y) = sval a ^ rH y.
-  move=> a y Gy; rewrite valH // -mem_conjgV (normgP _) ?Hval //=.
+  move=> a y Gy; rewrite valH // -mem_conjgV (normP _) ?Hval //=.
   by rewrite groupV (subsetP nHG) // GrH.
 have actG0: forall y, y \in G -> (actG 0 y = 0)%R.
   by move=> y Gy; apply: val_inj; rewrite /= valG //= conj1g.
@@ -248,7 +248,7 @@ apply/setP=> x; apply/mulsgP/idP=> [[h y Hh fy ->{x}] | Gx].
 exists (x * (f x)^-1) (f x); last first; first by rewrite mulgKV.
   by apply/morphimP; exists x. 
 rewrite -groupV invMg invgK -mulgA (conjgC (val _)) mulgA.
-rewrite groupMl -(mem_rcoset, mem_conjg) // (normalP nHG) //.
+rewrite groupMl -(mem_rcoset, mem_conjg) // (normsP nHG) //.
 exact: (svalP (nu x *+ m)%R).
 Qed.
 
@@ -287,7 +287,7 @@ case nPG: (P <| G); last first.
   pose H' := (H :&: N)%G.
   have nH'N: H' <| N.
     rewrite /(_ <| N) subsetIr; apply/subsetP=> x Nx.
-    rewrite inE; apply/subsetP=> y; rewrite conjIg (conjGid Nx) (normgP _) //.
+    rewrite inE; apply/subsetP=> y; rewrite conjIg (conjGid Nx) (normP _) //.
     by apply: (subsetP nHG); case/setIP: Nx.
   have eq_iH: #|G| %/ #|H| = #|N| %/ #|H'|.
     rewrite -(divn_pmul2l (pos_card_group H')) mulnC -eqHN_G card_mulG.
@@ -313,10 +313,10 @@ have sZP: Z \subset P by exact: subset_center.
 have sZH: Z \subset H by case/andP: sylP; move/(subset_trans sZP).
 have sZG: Z \subset G by exact: subset_trans sHG.
 have nZG: Z <| G by apply: char_norm_trans nPG; exact: characteristic_center.
-have nZH: Z <| H by exact: normalsubS nZG.
+have nZH: Z <| H by exact: normalS nZG.
 pose Gbar := (G / Z)%G; have iGbar: G / Z = Gbar by [].
 pose Hbar := (H / Z)%G; have iHbar: H / Z = Hbar by [].
-have nHGbar: Hbar <| Gbar by exact: morphim_normalsub.
+have nHGbar: Hbar <| Gbar by exact: morphim_normal.
 have hallHbar: hall Gbar Hbar.
   rewrite /hall morphimS //=.
   rewrite !card_quotient; try by [case/andP: nZG | case/andP: nZH].
@@ -332,7 +332,7 @@ have: splitg Gbar Hbar; last case/splitgP=> Kbar trHKbar eqHKbar.
   have eqZ: Z =i predI (act_fix to P) (mem P).
     move=> z; rewrite /= inE /= !inE /= -(andbC (z \in P)).
     case: (z \in P) => //=.
-    apply/centgP/eqP=> [Cz | <- x].
+    apply/centP/eqP=> [Cz | <- x].
       apply/setP=> x; rewrite inE; case Px: (x \in P) => //=.
       rewrite (sameP eqP conjg_fixP); apply/commgP; exact: Cz.
     by rewrite inE; case/andP=> _; rewrite (sameP eqP conjg_fixP); move/commgP.
@@ -350,7 +350,7 @@ have [ZK [sZZK sZKG] quoZK]:
   rewrite [_ / _]morphimGI ?ker_coset // morphpreK -quotientE.
     exact/setIidPr.
   by rewrite (subset_trans sKG) // morphimS //; case/andP: nZG.
-have nZZK: Z <| ZK by exact: normalsubS nZG.
+have nZZK: Z <| ZK by exact: normalS nZG.
 have cardZK: #|ZK| = (#|Z| * #|G : H|)%N.
   rewrite -(LaGrange sZZK); congr (_ * _)%N.
   rewrite -card_quotient ?quoZK; last by case/andP: nZZK.
@@ -368,8 +368,7 @@ have: splitg ZK Z; last case/splitgP=> K trZK eqZK.
   rewrite (Gaschutz_split _ nZZK sylZ) ?subset_refl //.
     apply/splitgP.
     exists (1%G : group gT); [exact: subsetIr | exact: mulg1].
-  apply: (subin1 (subsetP sZP)); apply: central_sym; apply/centralP.
-  exact: subsetIr.
+  apply: subset_trans (centS sZP); exact: subsetIr.
 have sKZK: K \subset ZK by rewrite -(mul1g K) -eqZK mulSg ?sub1set.
 have trHK: trivg (H :&: K).
   apply/subsetP=> x; case/setIP=> Hx Kx; apply: (subsetP trZK).
@@ -434,7 +433,7 @@ Lemma solvable_quo : forall G H : {group gT}, solvable G -> solvable (G / H).
 Proof. move=> G H; exact: solvable_morphim. Qed.
 
 Definition elementary_abelian (A : {set gT}) :=
-  abelian A /\ {in A, forall x, #[x] %| pdiv #|A|}.
+  abelian A && (forallb x, (x \in A) ==> (#[x] %| pdiv #|A|)).
 
 Definition Ohm i (A : {set gT}) :=
   <<[set x \in A | #[x] == pdiv #|A| ^ i]%N>>.
@@ -444,7 +443,7 @@ Definition Mho i (A : {set gT}) := <<expgn^~ (pdiv #|A| ^ i)%N @: A>>.
 Notation "''Ohm_' i ( G )" := (Ohm i G)
   (at level 8, i at level 2, format "''Ohm_' i ( G )") : group_scope.
 
-Notation "''Mho^' i ( G )" := (Ohm i G)
+Notation "''Mho^' i ( G )" := (Mho i G)
   (at level 8, i at level 2, format "''Mho^' i ( G )") : group_scope.
 
 Canonical Structure Ohm_group i G := Eval hnf in [group of 'Ohm_i(G)].
@@ -461,36 +460,36 @@ move=> i G; have sOmG: 'Ohm_i(G) \subset G.
   by rewrite gen_subG; apply/subsetP=> x; rewrite inE; case/andP.
 apply/charP; split=> // f injf fG; apply/morphim_fixP => //.
 rewrite sub_morphim_pre // gen_subG; apply/subsetP=> x; rewrite inE.
-case/andP=> Gx oxp; rewrite !inE Gx mem_geng // inE eq_sym -{2}fG.
+case/andP=> Gx oxp; rewrite !inE Gx mem_gen // inE eq_sym -{2}fG.
 rewrite mem_imset ?setIid //= -{oxp}(eqP oxp); apply/eqP.
 have sxG: cyclic x \subset G by rewrite cyclic_h.
 apply: isom_card [morphism of restrm sxG f] _ => /=.
 by apply/isomP; rewrite injm_restrm //= morphim_restrm setIid morphim_cyclic.
 Qed.
 
-Lemma elementary_eq_Ohm1 : forall G : {group gT},
-  abelian G -> (elementary_abelian G <-> 'Ohm_1(G) = G).
+Lemma elementary_abelianP : forall G : {group gT},
+  abelian G -> reflect ('Ohm_1(G) = G) (elementary_abelian G).
 Proof.
 move=> G abelG; pose p := pdiv #|G|; pose G1 := [set x \in G | #[x] %| p].
 have gG1: group_set G1.
   apply/group_setP; split=> [|x y]; rewrite !inE ?(orderg1, dvd1n, group1) //.
   rewrite !orderg_dvd.
   case/andP=> Gx; move/eqP=> xp; case/andP=> Gy; move/eqP=> yp.
-  rewrite groupM // expMgn ?(xp, yp, mulg1) //=; exact: abelG.
+  rewrite groupM // expMgn ?(xp, yp, mulg1) //=; exact: (centsP abelG).
 have ->: 'Ohm_1(G) = G1.
-  apply/eqP; rewrite eqset_sub -{1}[G1](genGid (Group gG1)) genSg.
+  apply/eqP; rewrite eqset_sub -{1}[G1](genGid (Group gG1)) genS.
     apply/subsetP=> x; rewrite /= !inE; case/andP=> Gx.
       case: (x =P 1) => [->|]; [by rewrite group1 | move/eqP=> nx1].
       have: prime p.
         by rewrite prime_pdiv // (cardD1 1) (cardD1 x) group1 inE /= Gx nx1.
       case/primeP=> _ prp; move/prp; case/predU1P=> [x1 | xp].
         by case/eqP: nx1; rewrite -[x]expg1 -x1 orderg_expn1.
-      by rewrite mem_geng // inE /= Gx expn1.
+      by rewrite mem_gen // inE /= Gx expn1.
     apply/subsetP=> x; rewrite !inE; case/andP=> ->; move/eqP->.
     by rewrite expn1 dvdnn.
-split=> [[_ elemG] | OmG].
-  apply/setP=> x; rewrite inE; case Gx: (x \in G) => //; exact: elemG.
-by split=> // x; rewrite -{1}OmG inE; case/andP.
+rewrite /elementary_abelian abelG; apply: (iffP forallP) => [elemG | OmG x].
+  by apply/setP=> x; rewrite inE; case: (x \in G) (elemG x).
+by rewrite -{1}OmG inE andbC -implybN; case: {+}(_ %| _).
 Qed.
 
 Lemma solvable_norm_abel : forall L G : {group gT},
@@ -504,7 +503,8 @@ move=> sHG nHL ntH; case abelH: (trivg [~: H, H]).
   pose H1 := 'Ohm_1(H)%G; have charH1: H1 \char H by exact: char_Ohm.
   have sH1H: H1 \subset H by case/andP: charH1.
   have abelH1: abelian H1.
-    move=> x H1x /= y H1y; apply: (commG1P abelH); exact: (subsetP sH1H).
+    apply: subset_trans (subset_trans sH1H _) (centS sH1H).
+    by rewrite (sameP centsP commG1P).
   pose p := pdiv #|H|.
   have prp: prime p by rewrite prime_pdiv // ltnNge -trivg_card.
   have ntH1 : ~~ trivg H1.
@@ -514,10 +514,10 @@ move=> sHG nHL ntH; case abelH: (trivg [~: H, H]).
     by apply/set1P=> x1; rewrite -oxp x1 [#[_]]orderg1 in prp.
   exists H1; split=> //; first exact: subset_trans sHG.
     exact: char_norm_trans nHL.
-  apply/elementary_eq_Ohm1=> //; apply/eqP.
+  apply/elementary_abelianP=> //; apply/eqP.
   rewrite eqset_sub; case/andP: (char_Ohm 1 H1) => -> _.
-  rewrite gen_subG; apply/subsetP=> x Hx; have H1x: x \in H1 := mem_geng Hx.
-  rewrite mem_geng // !inE H1x; rewrite inE in Hx; case/andP: Hx => Hx oxp.
+  rewrite gen_subG; apply/subsetP=> x Hx; have H1x: x \in H1 := mem_gen Hx.
+  rewrite mem_gen // !inE H1x; rewrite inE in Hx; case/andP: Hx => Hx oxp.
   rewrite ((pdiv _ =P p) _) // eqn_leq !pdiv_min_dvd ?prime_gt1 //.
   - by rewrite prime_pdiv // ltnNge -trivg_card.
   - apply: dvdn_trans (dvdn_pdiv _) _; exact: group_dvdn.
@@ -544,11 +544,11 @@ rewrite ltnS => leHn K K1 solH nHK; case trH: (trivg H).
   by apply/eqP; rewrite -val_eqE /= conjsg1 eqset_sub_card sK1K eqK1K /=.
 pose G := (H <*> K)%G.
 have defG: G = H * K :> set gT by rewrite -normC // -norm_mulgenE // mulgenC.
-have sHG: H \subset G by rewrite -gen_subG genSg // subsetUl.
-have sKG: K \subset G by rewrite -gen_subG genSg // subsetUr.
+have sHG: H \subset G by rewrite -gen_subG genS // subsetUl.
+have sKG: K \subset G by rewrite -gen_subG genS // subsetUr.
 have nHG: H <| G by rewrite /(H <| G) sHG gen_subG subUset nHK normG.
-move/idPn: trH; case/(solvable_norm_abel solH nHG)=> M [sMH nMG ntM [abelM _]].
-rewrite -defG => sK1G coHK oK1K.
+move/idPn: trH; case/(solvable_norm_abel solH nHG)=> M [sMH nMG ntM].
+case/andP=> abelM _; rewrite -defG => sK1G coHK oK1K.
 have nMsG: forall L : {set gT}, L \subset G -> L \subset 'N(M).
   by move=> L; move/subset_trans; apply; case/andP: nMG.
 have [coKM coHMK]: coprime #|M| #|K| /\ coprime #|H / M| #|K|.
@@ -558,11 +558,11 @@ have oKM: forall K' : {group gT},
 - move=> K' sK'G oK'.
   rewrite -quotient_mulg -?norm_mulgenE ?card_quotient ?nMsG //; last first.
     by rewrite gen_subG subUset sK'G; case/andP: nMG.
-  rewrite -group_divn /=; last by rewrite -gen_subG genSg ?subsetUr.
+  rewrite -group_divn /=; last by rewrite -gen_subG genS ?subsetUr.
   rewrite norm_mulgenE ?nMsG // coprime_card_mulG ?divn_mull //.
   by rewrite oK' coprime_sym.
 have [xb]: exists2 xb, xb \in H / M & (K1 / M = (K / M) :^ xb)%G.
-  apply: IHn; try by rewrite (solvable_quo, morphim_normal, oKM K) ?(oKM K1).
+  apply: IHn; try by rewrite (solvable_quo, morphim_norms, oKM K) ?(oKM K1).
     apply: leq_trans leHn; rewrite card_quotient ?nMsG //.
     rewrite -(ltn_pmul2l (pos_card_group M)) LaGrange // -{1}(mul1n #|H|).
     by rewrite ltnNge leq_pmul2r // -trivg_card.
@@ -577,7 +577,7 @@ pose toM y : {z | z \in M} := insubd (Sub 1 (group1 M)) y.
 have valM: {in M, cancel toM val} by move=> *; exact: insubdK.
 pose Mgrp := [is {y | y \in M} <: finGroupType].
 have mulMC : commutative (@mulg Mgrp).
-  by case=> y My [z Mz]; apply: val_inj; rewrite /= abelM.
+  by case=> y My [z Mz]; apply: val_inj; rewrite /= (centsP abelM).
 pose rT := Ring.AdditiveGroup (@mulgA _) mulMC (@mul1g _) (@mulVg _).
 have Mval: forall u : rT, sval u \in M by exact: valP.
 have rM: forall a b : rT, sval (a + b)%R = sval a * sval b by [].
@@ -586,7 +586,7 @@ have rX: forall (a : rT) m, sval (a *+ m)%R = sval a ^+ m.
 have rV: forall (a : rT), sval (- a)%R = (sval a)^-1 by [].
 pose actG (y : rT) z : rT := toM (sval y ^ z).
 have valG: forall a y, y \in K1 -> sval (actG a y) = sval a ^ y.
-  move=> a y Ky; rewrite valM // -mem_conjgV (normgP _) ?Mval //=.
+  move=> a y Ky; rewrite valM // -mem_conjgV (normP _) ?Mval //=.
   by rewrite groupV (subsetP (nMsG _ sK1G)).
 have actG0: forall y, y \in K1 -> (actG 0 y = 0)%R.
   by move=> y Ky; apply: val_inj; rewrite /= valG //= conj1g.
@@ -600,7 +600,7 @@ have defL: M * K2 = L by rewrite -normC -?norm_mulgenE 1?mulgenC ?nMsG.
 have cKL: K2 \in complg L M.
   by apply/complgP; rewrite coprime_trivg ?card_conjg.
 have nML: M <| L.
-  apply: normalsubS nMG; first by rewrite -gen_subG genSg // subsetUl.
+  apply: normalS nMG; first by rewrite -gen_subG genS // subsetUl.
   by rewrite gen_subG subUset (subset_trans sMH).
 have sK1L: K1 \subset L.
   apply/subsetP=> y Ky; rewrite -defL.
