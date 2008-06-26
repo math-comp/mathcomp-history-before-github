@@ -1,7 +1,9 @@
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
-Require Import fintype paths connect finfun ssralg bigops finset.
-Require Import groups normal group_perm automorphism action.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat div.
+Require Import fintype ssralg bigops finset.
+Require Import groups normal automorphism action.
 Require Import commutators cyclic center sylow.
+
+(* Require Import seq paths connect finfun group_perm. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.

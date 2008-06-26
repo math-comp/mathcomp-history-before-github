@@ -1,6 +1,8 @@
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype paths.
-Require Import connect div tuple finfun finset groups normal group_perm.
-Require Import automorphism zp action sylow cyclic signperm.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype.
+Require Import connect div tuple finset groups normal group_perm.
+Require Import automorphism action sylow cyclic signperm.
+
+(* Require Import paths finfun zp. *)
 
 Import Prenex Implicits.
 Set Implicit Arguments.

@@ -2,10 +2,11 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 (*                                                                     *)
 (***********************************************************************)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype paths.
-Require Import tuple finfun finset.
-Require Import connect div groups group_perm zp action.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype.
+Require Import tuple finset groups group_perm action.
 Require Import normal.
+
+(* Require Import paths finfun connect div zp. *)
 
 Import Prenex Implicits.
 Set Implicit Arguments.

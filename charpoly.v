@@ -2,8 +2,10 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 (*                                                                     *)
 (***********************************************************************)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq paths fintype finfun.
-Require Import ssralg bigops div groups matrix poly.
+Require Import ssreflect ssrbool eqtype ssrnat seq fintype.
+Require Import ssralg bigops matrix poly.
+
+(* Require Import ssrfun paths finfun div groups. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.

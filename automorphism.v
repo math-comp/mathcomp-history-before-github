@@ -4,13 +4,13 @@ Require Import ssrbool.
 Require Import ssrfun.
 Require Import eqtype.
 Require Import ssrnat.
-Require Import seq.
+(* Require Import seq. *)
+(* Require Import bigops. *)
+(* Require Import ssralg. *)
+(* Require Import paths. *)
+(* Require Import connect. *)
+(* Require Import div. *)
 Require Import fintype.
-Require Import bigops.
-Require Import ssralg.
-Require Import paths.
-Require Import connect.
-Require Import div.
 Require Import finset.
 Require Import groups.
 Require Import group_perm.

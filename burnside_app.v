@@ -1,7 +1,9 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype div ssralg.
-Require Import connect groups action frobenius_cauchy group_perm signperm.
+Require Import groups action frobenius_cauchy group_perm.
 Require Import tuple finfun bigops finset.
+
+(* Require Import connect. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.

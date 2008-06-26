@@ -3,9 +3,10 @@
 (*                                                                     *)
 (***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
-Require Import div seq fintype paths connect.
-Require Import groups group_perm tuple finfun.
-Require Import ssralg bigops finset.
+Require Import div seq fintype connect.
+Require Import groups group_perm tuple finfun finset.
+
+(* Require Import paths ssralg bigops. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.

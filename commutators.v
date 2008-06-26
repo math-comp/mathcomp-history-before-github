@@ -1,9 +1,10 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 (*  Commutators  *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
-Require Import seq fintype paths connect.
-Require Import div ssralg bigops finset.
-Require Import groups group_perm normal automorphism.
+Require Import fintype finset.
+Require Import groups normal automorphism.
+
+(* Require Import seq paths connect div ssralg bigops group_perm. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit. 

@@ -16,12 +16,12 @@ Require Import ssrnat.
 Require Import eqtype.
 Require Import seq.
 Require Import fintype.
-Require Import finfun.
+(* Require Import finfun. *)
+(* Require Import ssralg. *)
 Require Import finset.
 Require Import groups.
 Require Import div.
 Require Import cyclic.
-Require Import ssralg.
 Require Import bigops.
 
 Set Implicit Arguments.

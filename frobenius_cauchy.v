@@ -7,7 +7,7 @@ Require Import ssrbool.
 Require Import ssrfun.
 Require Import eqtype.
 Require Import ssrnat.
-Require Import seq.
+(* Require Import seq. *)
 Require Import fintype.
 Require Import connect.
 Require Import ssralg.

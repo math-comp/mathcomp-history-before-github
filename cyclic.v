@@ -9,8 +9,10 @@
 (***********************************************************************)
 (***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
-Require Import seq fintype paths connect div.
-Require Import finset bigops groups normal group_perm automorphism zp fp.
+Require Import seq fintype connect div.
+Require Import finset groups normal group_perm automorphism zp fp.
+
+(* Require Import paths bigops. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.

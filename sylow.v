@@ -10,8 +10,10 @@
 (***********************************************************************)
 
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
-Require Import fintype paths connect div finfun finset.
+Require Import fintype connect div finfun finset.
 Require Import groups normal action cyclic zp.
+
+(* Require Import paths. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.

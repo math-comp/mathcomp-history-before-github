@@ -2,8 +2,10 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 (*                                                                     *)
 (***********************************************************************)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype connect div.
-Require Import finfun ssralg bigops finset groups group_perm zp signperm.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype connect.
+Require Import finfun ssralg bigops groups group_perm signperm.
+
+(* Require Import div finset zp. *)
 
 Import GroupScope.
 

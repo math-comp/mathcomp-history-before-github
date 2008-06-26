@@ -1,7 +1,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat div seq fintype.
-Require Import finfun paths connect.
-Require Import ssralg.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype.
+Require Import finfun paths ssralg.
+(*Require Import div connect.*)
 
 Set Implicit Arguments.
 Unset Strict Implicit.

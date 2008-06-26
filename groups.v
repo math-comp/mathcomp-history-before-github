@@ -4,9 +4,9 @@ Require Import ssrbool.
 Require Import ssrfun.
 Require Import eqtype.
 Require Import ssrnat.
-Require Import seq.
+(* Require Import seq. *)
+(* Require Import paths. *)
 Require Import fintype.
-Require Import paths.
 Require Import connect.
 Require Import div.
 Require Import ssralg.
