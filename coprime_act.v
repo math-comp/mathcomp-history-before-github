@@ -241,11 +241,12 @@ rewrite groupMl ?cAx // memJ_norm ?(groupV, subsetP nHA) // Hy /=.
 by rewrite groupMr // conjVg groupV conjgM -mem_conjg -def_Ax memJ_conjg.
 Qed.
 
+(* a weaker, more traditional form of the previous theorem *)
 Lemma coprime_quotient_cent_weak : forall A G H,
     H <| G -> A \subset 'N(H) -> coprime #|G| #|A| -> solvable G ->
   'C_G(A) / H = 'C_(G / H)(A / H).
 move=> A G H normH nHA co so.
-move: (normH); case/normalisubP=> sHG nHG.
+move: (normH); case/normalP=> sHG nHG.
 apply: coprime_quotient_cent; rewrite //=; last by apply: (solvable_sub sHG so).  
 by rewrite -(LaGrange sHG) coprime_mull in co; move: co; case/andP.
 Qed.
