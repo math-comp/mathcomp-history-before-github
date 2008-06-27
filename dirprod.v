@@ -13,11 +13,13 @@ Require Import ssrbool.
 Require Import ssrfun.
 Require Import eqtype.
 (* Require Import ssrnat. *)
-(* Require Import seq. *)
+Require Import seq.
 (* Require Import paths. *)
 (* Require Import connect. *)
 (* Require Import div. *)
 (* Require Import automorphism. *)
+Require Import ssralg.
+Require Import bigops.
 Require Import fintype.
 Require Import finset.
 Require Import groups.
@@ -112,6 +114,7 @@ Section InternalDirProd.
 
 Variables gT : finGroupType.
 Implicit Types G H : {group gT}.
+Implicit Types A B C : {set gT}.
 
 Definition mulg_pair := prod_curry (@mulg gT).
 
@@ -146,13 +149,6 @@ rewrite -def_u2 ?groupV -in_setI /= in Hu *.
 by move/(subsetP trH): Hu; move/set1P->; rewrite invg1 eqxx.
 Qed.
 
-Lemma smulg_1set : forall H1 H2,
-  (H1 * H2 == 1) = (H1 == 1 :> set _) && (H2 == 1 :> set _).
-Proof.
-move=> H1 H2; rewrite !eqset_sub (subset_trans _ (mulG_subr _ _)) ?sub1G //=.
-by rewrite !andbT -gen_subG genM_mulgen gen_subG subUset.
-Qed.
-
 Lemma dirprod_normal_isom : forall H1 H2 G,
   reflect [/\ H1 <| G, H2 <| G, G = H1 * H2 :> set _ & trivg (H1 :&: H2)]
           (misom (setX H1 H2) G mulg_pair).
@@ -174,124 +170,162 @@ rewrite -(nH1 _ (subsetP sH2 _ Hx2)) -(nH2 _ (subsetP sH1 _ Hx1)).
 by rewrite !memJ_conjg Hx1 groupV.
 Qed.
 
-Definition dprod (A B: set gT): set gT :=
-  if [&& group_set A, group_set B, A \subset 'C(B) & trivg (A :&: B)]
-  then A * B else set0.
+Definition central_product A B :=
+  if A == 1 then B else if B == 1 then A else
+  if [&& group_set A, group_set B & A \subset 'C(B)] then A * B else set0.
 
-Infix "'*" := dprod (at level 40, left associativity).
+Infix "\*" := central_product (at level 40, left associativity).
 
-Lemma dprodC A B: A '* B = B '* A.
+Lemma smulg_1set : forall H1 H2,
+  (H1 * H2 == 1) = (H1 == 1 :> set _) && (H2 == 1 :> set _).
 Proof.
-move=> A B; rewrite /dprod; do 2 (case: (group_set _) => //).
-rewrite setIC; case: (trivg _); rewrite ?andbF //.
-rewrite centsC; case CAB: (_ \subset _); move/centsP: CAB => CAB //=.
-by apply/eqP; rewrite eqset_sub; apply/andP; split; apply/subsetP => x;
-   case/imset2P => x1 x2 Hx1 Hx2 ->; [rewrite -CAB | rewrite CAB] => //;
-   apply/imset2P; exists x2 x1.
+move=> H1 H2; rewrite !eqset_sub -{2}[1]mulGid mulgSS ?sub1G // !andbT.
+by rewrite -gen_subG genM_mulgen gen_subG subUset.
 Qed.
 
-Lemma dprod1g (A: {group gT}): 1 '* A = A.
+Lemma cprodC : commutative central_product.
 Proof.
-move=> A; rewrite /dprod group_set_unit groupP sub1G.
-suff ->: trivg (1 :&: A) by rewrite mul1g.
-by apply/subsetP => x; rewrite inE; case/andP.
+move=> A B; do 2!rewrite /(_ \* _); case: eqP => [->|_]; first by case: eqP.
+rewrite andbCA centsC; case cAB: (B \subset _); last by rewrite !andbF.
+by rewrite -normC // (subset_trans _ (cent_subset _)).
 Qed.
 
-Lemma dprodg1 (A: {group gT}): A '* 1 = A.
+Lemma cprod1g : left_unit 1 central_product.
+Proof. by move=> A; rewrite /(_ \* _) eqxx. Qed.
+
+Lemma cprodg1 : right_unit 1 central_product.
+Proof. by move=> A; rewrite cprodC cprod1g. Qed.
+
+Lemma cprodA : associative central_product.
 Proof.
-by move=> A; rewrite dprodC dprod1g.
+have ng0: @group_set gT set0 = false by apply/andP; case; rewrite inE.
+have n01: (@set0 gT == 1) = false by rewrite eqset_sub sub1set inE andbF.
+have mgenE := @cent_mulgenE gT (Group _) (Group _); simpl in mgenE.
+have mul1E := @smulg_1set (Group _) (Group _); simpl in mul1E.
+move=> A B C; case nA1: (A == 1); first by rewrite (eqP nA1) !cprod1g.
+case nB1: (B == 1); first by rewrite (eqP nB1) cprod1g cprodg1.
+case nC1: (C == 1); first by rewrite (eqP nC1) !cprodg1.
+rewrite /central_product nA1 nB1 nC1.
+case: and3P => [[gB gC cBC] | ngBC]; last first.
+  rewrite n01 ng0 andbF.
+  case: and3P => [[gA gB cAB] | _]; last by rewrite n01 ng0.
+  rewrite mul1E // nA1 nB1 /=; case: and3P => // [[_ gC cABC]]; case: ngBC.
+  split=> //; apply: subset_trans cABC; exact: (mulG_subr (Group gA)).
+rewrite mul1E // nB1 nC1 gB gC /= -mgenE // groupP /=.
+rewrite centsC gen_subG subUset -!(centsC A) /= andbA; symmetry.
+case: andP => [[gA cAB] | _]; last by rewrite n01 ng0.
+rewrite mul1E // nA1 nB1 /= -mgenE // groupP gen_subG subUset cBC andbT /=.
+by rewrite !mgenE ?mulgA.
 Qed.
 
-Lemma dprodA A B C: (A '* B) '* C = A '* (B '* C).
+Canonical Structure central_product_law := Monoid.Law cprodA cprod1g cprodg1.
+Canonical Structure central_product_abelaw := Monoid.AbelianLaw cprodC.
+
+Lemma cprodGE : forall G H, G \subset 'C(H) -> G \* H = G * H.
 Proof.
-move=> A B C; rewrite /dprod.
-have F1: forall (D: {set gT}), set0 * D = set0.
-  by move=> D; apply/eqP; rewrite eqset_sub; apply/andP; split;
-  apply/subsetP=> x; rewrite !inE //; case/imset2P=>x1 x2; rewrite inE.
-have F2: forall (D: {set gT}), D * set0 = set0.
-  by move=> D; apply/eqP; rewrite eqset_sub; apply/andP; split;
-  apply/subsetP=> x; rewrite !inE //; case/imset2P=>x1 x2; rewrite inE.
-case CA: (group_set A); move/idP: CA => CA; last by rewrite F1; case: (_ && _).
-case CB: (group_set B); move/idP: CB => CB; last by rewrite !F1 !F2; do 2 case: (_ && _).
-case CC: (group_set C); move/idP: CC => CC; last by rewrite !andbF !F2; case: (_ && _).
-case SA: (A \subset 'C(B)); move/idP: SA => SA; last first.
-  case SB: (B \subset 'C(C)); move/idP: SB => SB; last first.
-    by rewrite !F1 !F2; do 2 case: (_ && _).
-  case TB: (trivg (B :&: C)); move/idP: TB => TB /=; last by rewrite /group_set inE .
-  case SA1: (A \subset 'C(B * C)); move/idP: SA1 => SA1; last first.
-    by rewrite andbF; case: (_ && _); rewrite //= F1.
-  case: SA; move: SA1; rewrite !(centsC  A) => SA1.
-  apply: (subset_trans _ SA1).
-  apply/subsetP=> x Hx; apply/imset2P; exists x (1: gT); rewrite ?mulg1 //.
-  by apply: (group1 (Group CC)).
-case SB: (B \subset 'C(C)); move/idP: SB => SB; last first.
-  case TA: (trivg (A :&: B)); move/idP: TA => TA /=; last by rewrite /group_set !inE.
-  case SC: (_ \subset _); move/idP: SC => SC; last by rewrite andbF /group_set inE.
-  case SB; apply: (subset_trans  _ SC).
-  apply/subsetP=> x Hx; apply/imset2P; exists (1: gT) x; rewrite // ?mul1g //.
-  by apply: (group1 (Group CA)).
-case TA: (trivg (A :&: B)); move/idP: TA => TA /=; last first.
-  case TB: (trivg (B :&: C)); move/idP: TB => TB /=; last by rewrite /group_set inE.
-  case TA1: (trivg (A :&: _)); move/idP: TA1 => TA1; last by rewrite !andbF /group_set inE.
-  case TA; apply: (subset_trans _ TA1).
-  apply/subsetP=> x; rewrite !inE; case/andP => -> H1.
-  apply/imset2P; exists x (1: gT); rewrite // ?mulg1 //.
-  by apply: (group1 (Group CC)).
-case TB: (trivg (B :&: C)); move/idP: TB => TB /=; last first.
-  case TA1: (trivg (A * _ :&: _)); move/idP: TA1 => TA1; last by rewrite !andbF /group_set inE.
-  case TB; apply: (subset_trans _ TA1).
-  apply/subsetP=> x; rewrite !inE; case/andP => H1 ->; rewrite andbT.
-  apply/imset2P; exists (1: gT) x; rewrite // ?mul1g //.
-  by apply: (group1 (Group CA)).
-have ->: group_set ((Group CA) * (Group CB)).
-  apply/comm_group_setP; apply: normC.
-  exact: subset_trans (cent_subset _).
-have ->: group_set ((Group CB) * (Group CC)).
-  apply/comm_group_setP; apply: normC.
-  exact: subset_trans (cent_subset _).
-case TA1: (trivg _); move/idP: TA1 => TA1; last first.
-  suff ->: trivg (A :&: B * C) = false by rewrite !andbF.
-  apply/idP => HH; case TA1.
-  apply/subsetP => x; rewrite !inE; case/andP; case/imset2P => x1 x2 Hx1 Hx2 -> Hx1x2.
-  have Fx1: x1 \in 1%G.
-     apply: (subsetP HH); rewrite inE Hx1.
-     apply/imset2P; exists (x2^-1) (x1 * x2); rewrite // ?(groupV (Group CB)) //.
-     rewrite mulgA -(centP (subsetP SA _ Hx1) x2^-1) // ?(groupV (Group CB)) //.
-     by rewrite -mulgA mulVg mulg1.
-  have Fx2: x2 \in 1%G.
-     apply: (subsetP TB); rewrite inE Hx2.
-     by move: Fx1 Hx1x2; rewrite !inE; move/eqP->; rewrite mul1g.
-  by move: Fx1 Fx2; rewrite !inE; move/eqP->; rewrite mul1g.
-have ->: trivg (A :&: B * C).
-  apply/subsetP => x; rewrite !inE; case/andP => Hx; 
-    case/imset2P => x1 x2 Hx1 Hx2 Hx3; subst.
-  have Fx2: x2 \in 1%G.
-     apply: (subsetP TA1); rewrite inE Hx2 andbT.
-     apply/imset2P; exists (x1 * x2) (x1^-1); rewrite // ?(groupV (Group CB)) //.
-     rewrite (centP (subsetP SA _ Hx)) // ?(groupV (Group CB)) //.
-     by rewrite mulgA mulVg mul1g.
-  have Fx1: x1 \in 1%G.
-     apply: (subsetP TA); rewrite inE Hx1.
-     by move: Fx2 Hx; rewrite !inE; move/eqP->; rewrite mulg1 andbT.
-  by move: Fx1 Fx2; rewrite !inE; move/eqP->; rewrite mul1g.
-case SA1: (_ \subset _); move/idP: SA1 => SA1.
-  suff ->: A \subset 'C(B * C) by rewrite mulgA.
-  apply/centsP => x Hx y; case/imset2P => y1 y2 Hy1 Hy2 ->.
-  rewrite /commute.
-  have: x * y1 \in A * B by apply/imset2P; exists x y1.
-  move/(centsP SA1); move/(_ _ Hy2).
-  rewrite /commute !mulgA => ->.
-  move/(centsP SB): (Hy1); move/(_ _ Hy2)->.
-  rewrite -!mulgA.
-  by move/(centsP SA): Hx; move/(_ _ Hy1)->.
-suff ->: A \subset 'C(B * C) = false by done.
-apply/idP => HH; case SA1.
-apply/centsP => x; case/imset2P => x1 x2 Hx1 Hx2 -> y Hy.
-have Fx2y: x2 * y \in B * C by apply/imset2P; exists x2 y.
-move/(centsP HH): (Hx1); move/(_ _ Fx2y).
-rewrite /commute -!mulgA => ->; rewrite mulgA.
-move/(centsP SB): (Hx2); move/(_ _ Hy)->.
-by move/(centsP SA): Hx1; move/(_ _ Hx2)->; rewrite mulgA.
-Qed.       
- 
+move=> G H cGH; rewrite /(G \* H) !groupP cGH andbT.
+by do 2![case: eqP => [-> | _]; first by rewrite gsimp].
+Qed.
+
+CoInductive cprod_spec A B C : Prop :=
+  CprodSpec H1 H2 of A = H1 & B = H2 & A * B = C & A \subset 'C(B).
+
+Lemma cprodP : forall A B,
+  A != 1 -> B != 1 -> A \* B = set0 \/ cprod_spec A B (A \* B).
+Proof.
+move=> A B nA1 nB1; rewrite /(A \* B) (negbET nA1) (negbET nB1).
+case: and3P => [[gA gB cAB] | _]; [right | by left].
+by exists (Group gA) (Group gB).
+Qed.
+
+Lemma cprodGP : forall A B G, A \* B = G -> cprod_spec A B G.
+Proof.
+move=> A B G AB_G; have:= @cprodP A B; rewrite AB_G; move: AB_G.
+rewrite /(A \* B); case: eqP => [-> -> _ | _].
+  by exists (1%G : {group gT}) G; rewrite // ?mul1g ?sub1G.
+case: eqP => [-> -> _ | _ _].
+  by exists G (1%G : {group gT}); rewrite ?mulg1 // centsC sub1G.
+by case=> //; move/setP; move/(_ 1); rewrite group1 inE.
+Qed.
+
+Lemma bigcprodE : forall I (r : seq I) P F G,
+  \big[central_product/1]_(i <- r | P i) F i = G
+  -> \prod_(i <- r | P i) F i = G.
+Proof.
+move=> I r P F; rewrite -!(big_filter r).
+elim: {r}filter => [|i r IHr] G; rewrite !(big_seq0, big_adds) //=.
+by case/cprodGP=> _ G' _ defG' <- _; rewrite defG' (IHr _ defG').
+Qed.
+
+Lemma cprod0g : left_zero set0 central_product.
+Proof.
+move=> A; rewrite /(_ \* A) eqset_sub sub1set {1}/group_set !inE andbF.
+exact: if_same.
+Qed.
+
+Lemma cprodg0 : right_zero set0 central_product.
+Proof. by move=> A; rewrite cprodC cprod0g. Qed.
+
+Definition direct_product A B := if trivg (A :&: B) then A \* B else set0.
+
+Infix "\x" := direct_product (at level 40, left associativity).
+
+Lemma dprodC : commutative direct_product.
+Proof. by move=> A B; rewrite /(A \x B) setIC cprodC. Qed.
+
+Lemma dprod1g : left_unit 1 direct_product.
+Proof. by move=> A; rewrite /(1 \x A) /trivg subsetIl cprod1g. Qed.
+
+Lemma dprodg1 : right_unit 1 direct_product.
+Proof. by move=> A; rewrite dprodC dprod1g. Qed.
+
+Lemma dprodA : associative direct_product.
+Proof.
+move=> A B C; case: (A =P 1) => [-> |]; [by rewrite !dprod1g | move/eqP=> nA1].
+case: (B =P 1) => [-> |]; [by rewrite dprod1g dprodg1 | move/eqP=> nB1].
+case: (C =P 1) => [-> |]; [by rewrite !dprodg1 | move/eqP=> nC1].
+rewrite /direct_product (fun_if (central_product A)).
+rewrite (fun_if (central_product^~ C)) cprodA cprodg0 cprod0g.
+case: (cprodP nA1 nB1) => [-> | [G _ -> _ mGB _]].
+  by rewrite cprod0g !if_same.
+rewrite -cprodA -{}mGB; case: (cprodP nB1 nC1) => [-> | [H K -> -> <- _]].
+  by rewrite cprodg0 !if_same.
+case trGH: (trivg (G :&: H)); case trHK: (trivg (H :&: K));
+  rewrite ?if_same //; last first.
+- case: ifP => // trGHK; case/idP: trGH; apply: subset_trans trGHK.
+  by rewrite setIS ?mulG_subl.
+- case: ifP => // trGHK; case/idP: trHK; apply: subset_trans trGHK.
+  by rewrite setSI ?mulG_subr.
+rewrite !ifE; congr if_expr; apply/idP/idP=> trGHK.
+  apply: subset_trans trHK; apply/subsetP=> z; case/setIP.
+  case/imset2P=> x y Gx Hy z_xy Kz.
+  suff x1: x \in 1%G by rewrite inE Kz z_xy (set1P _ _ x1) mul1g Hy.
+  rewrite -groupV (subsetP trGHK) // inE groupV Gx -(mulgK z x^-1).
+  by rewrite {1}z_xy mulKg mem_mulg ?groupV.
+apply: subset_trans trGH; apply/subsetP=> x; case/setIP=> Gx.
+case/imset2P=> y z Hy Kz x_yz.
+suff z1: z \in 1%G by rewrite inE Gx x_yz (set1P _ _ z1) mulg1.
+rewrite -groupV (subsetP trGHK) // inE groupV Kz -(mulKg x z^-1).
+by rewrite {2}x_yz mulgK mem_mulg ?groupV.
+Qed.
+
+Canonical Structure direct_product_law := Monoid.Law dprodA dprod1g dprodg1.
+Canonical Structure direct_product_abelaw := Monoid.AbelianLaw dprodC.
+
+Lemma dprodGP : forall A B G,
+  A \x B = G -> cprod_spec A B G /\ trivg (A :&: B).
+Proof.
+move=> A B G; rewrite /(A \x B); case: trivg; first by move/cprodGP.
+by move/setP; move/(_ 1); rewrite group1 inE.
+Qed.
+
+Lemma bigdprodE : forall I (r : seq I) P F G,
+  \big[direct_product/1]_(i <- r | P i) F i = G
+  -> \prod_(i <- r | P i) F i = G.
+Proof.
+move=> I r P F; rewrite -!(big_filter r).
+elim: {r}filter => [|i r IHr] G; rewrite !(big_seq0, big_adds) //=.
+by case/dprodGP=> [[_ G' _ defG' <- _] _]; rewrite defG' (IHr _ defG').
+Qed.
+
 End InternalDirProd.
