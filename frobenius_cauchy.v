@@ -24,62 +24,40 @@ Section Frob_Cauchy.
 
 Open Scope group_scope.
 
-Variable G : finGroupType.
-Variable S : finType.
-Variable to : action G S.
-Variable H : {group G}.
+Variables (aT : finGroupType) (sT : finType) (to : {action aT &-> sT}).
+Variable G : {group aT}.
 
-(* Fg : x of S, left fixed by g *)
-Definition act_fix1 g := [set x | to x g == x].
-
-Definition act_nbcomp := #|roots [rel of orbit to H]|.
-
-Hint Resolve orbit_csym.
-
-Lemma stabilizer_to : forall x g,
-  g \in normaliser H -> stabilizer to H (to x g) = stabilizer to H x :^ g.
+Lemma astab1_to : forall x a,
+  a \in 'N(G) -> 'C_(G | to)[to x a] = 'C_(G | to)[x] :^ a.
 Proof.
-move=> x g nHg; apply/setP=> h; rewrite mem_conjg !inE -mem_conjg.
-by rewrite (normP _) // !actM invgK (canF_eq (actKV to g)).
-Qed.
-
-Lemma orbit_eq : forall x y,
-  y \in (orbit to H x) -> orbit to H x = orbit to H y.
-Proof.
-move=> x y Hxy; apply/setP=> z; rewrite -!orbit_trans in Hxy *.
-exact: same_connect Hxy z.
+move=> x a nGa; rewrite conjIg (normP nGa); congr (_ :&: _).
+apply/setP=> b; rewrite mem_conjg !(sameP astab1P eqP) actCJV.
+exact: (inj_eq (act_inj to a)).
 Qed.
 
 Lemma card_stab_eq : forall x y,
-  y \in orbit to H x -> #|stabilizer to H x| = #|stabilizer to H y|.
+  y \in orbit to G x -> #|'C_(G | to)[x]| = #|'C_(G | to)[y]|.
 Proof.
-move=> x y; case/orbitP=> g Hg <- {y}; rewrite stabilizer_to ?card_conjg //.
-exact: (subsetP (normG H)).
+move=> x y; case/orbitP=> a Ga <- {y}; rewrite astab1_to ?card_conjg //.
+exact: (subsetP (normG G)).
 Qed.
-
-(* should become a posnat structure
-Lemma indexg_gt0: forall (g : finGroupType) (h k : group g), 0 < indexg h k.
-Proof.
-move=> g h k; rewrite lt0n; apply/pred0Pn; exists (h :* 1).
-by apply/imsetP; exists (1 : g).
-Qed.
-*)
 
 Theorem Frobenius_Cauchy :
-  \sum_(g \in H) #|act_fix1 g| = (act_nbcomp * #|H|)%N.
+  \sum_(a \in G) #|'C[a | to]| = (#|orbit to G @: setT| * #|G|)%N.
 Proof.
-transitivity (\sum_(g \in H) \sum_(x \in act_fix1 g) 1%N).
-  by apply: eq_bigr => g _; rewrite sum_nat_const muln1.
-rewrite (exchange_big_dep predT) //=; pose orbH := [rel of orbit to H].
-rewrite (partition_big (root orbH) (roots orbH)) //= => [|y _]; last first.
-  apply: roots_root; exact: orbit_csym.
-rewrite -sum_nat_const; apply: eq_bigr => x; move/eqP=> rx.
-rewrite (eq_bigl (mem (orbit to H x))) => [|y]; last first.
-  by rewrite /= -orbit_trans (sameP (rootP _) eqP) ?rx.
-rewrite -(LaGrange (subset_stab to H x)) mulnC -card_orbit -sum_nat_const.
-apply: eq_bigr => y Hxy; rewrite sum_nat_const muln1 (card_stab_eq Hxy).
-by apply: eq_card => h; rewrite -topredE /= !inE.
+transitivity (\sum_(a \in G) \sum_(x \in 'C[a | to]) 1%N).
+  by apply: eq_bigr => a _; rewrite sum_nat_const muln1.
+rewrite (exchange_big_dep predT) //=; set orbG := orbit to G.
+rewrite (partition_big orbG (mem (orbG @: setT))) //= => [|y _]; last first.
+  by rewrite mem_imset ?inE.
+rewrite -sum_nat_const; apply: eq_bigr => X; case/imsetP=> x _ ->{X}.
+rewrite (eq_bigl (mem (orbG x))) => [|y]; last first.
+  by apply/eqP/idP=> [<-|]; [exact: orbit_refl | move/orbit_transl].
+rewrite -(LaGrange (subset_astab to G [set x])) mulnC.
+rewrite -card_orbit -sum_nat_const.
+apply: eq_bigr => y Gxy; rewrite sum_nat_const muln1 (card_stab_eq Gxy).
+by apply: eq_card => a; rewrite 2!inE /= (sameP afix1P astab1P).
 Qed.
 
-End  Frob_Cauchy.
+End Frob_Cauchy.
 

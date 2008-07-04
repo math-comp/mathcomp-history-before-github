@@ -274,15 +274,14 @@ Proof. by move=> k x y; apply/ffunP=> a; rewrite !ffunE invMg permE. Qed.
 
 Definition to := Action act_f_1 act_f_morph.
 
-Definition square_coloring_number2 := act_nbcomp to iso2_group.
-Definition square_coloring_number4 := act_nbcomp to rot_group.
-Definition square_coloring_number8 := act_nbcomp to iso_group.
+Definition square_coloring_number2 := #|orbit to isometries2 @: setT|.
+Definition square_coloring_number4 := #|orbit to rotations @: setT|.
+Definition square_coloring_number8 := #|orbit to isometries @: setT|.
 
+Lemma Fid : 'C(1 |to) = setT.
+Proof. apply/setP=> x /=; rewrite in_setT; apply/afix1P; exact: act1. Qed.
 
-Lemma Fid : act_fix1 to 1 = setT.
-Proof. by apply/setP=> x /=; rewrite !inE act1 eqxx. Qed.
-
-Lemma card_Fid: #|act_fix1 to 1| = (n ^ 4)%N.
+Lemma card_Fid: #|'C(1 | to)| = (n ^ 4)%N.
 Proof.
 rewrite -[4]card_ord -[n]card_ord -card_ffun_on Fid cardsE.
 by symmetry; apply: eq_card => f; exact/ffun_onP.
@@ -301,16 +300,18 @@ by apply/eqP; apply Ep12; case: x; do 4!case=> //.
 Qed.
 
 Lemma F_Sh :
-  act_fix1 to sh = [set x | (coin0 x == coin1 x) && (coin2 x == coin3 x)].
+  'C[sh | to] = [set x | (coin0 x == coin1 x) && (coin2 x == coin3 x)].
 Proof.
-apply/setP=> x; rewrite !inE eqperm_map /= /act_f sh_inv !ffunE !permE /=.
+apply/setP=> x; rewrite (sameP afix1P eqP) !inE eqperm_map /=.
+rewrite /act_f sh_inv !ffunE !permE /=.
 by rewrite eq_sym (eq_sym (x c3)) andbT andbA !andbb.
 Qed.
 
 Lemma F_Sv :
-   act_fix1 to sv = [set x | (coin0 x == coin3 x) && (coin2 x == coin1 x)].
+  'C[sv | to] = [set x | (coin0 x == coin3 x) && (coin2 x == coin1 x)].
 Proof.
-apply/setP => x; rewrite !inE eqperm_map /= /act_f sv_inv !ffunE !permE /=.
+apply/setP=> x; rewrite (sameP afix1P eqP) !inE eqperm_map /=.
+rewrite /act_f sv_inv !ffunE !permE /=.
 by rewrite eq_sym andbT andbC (eq_sym (x c1)) andbA -andbA !andbb andbC.
 Qed.
 
@@ -329,23 +330,26 @@ Lemma r3_inv: r3^-1 = r1.
 Proof. by inv_tac. Qed.
 
 Lemma F_r2 :
-  act_fix1 to r2 = [set x | (coin0 x == coin2 x) && (coin1 x == coin3 x)].
+  'C[r2 | to] = [set x | (coin0 x == coin2 x) && (coin1 x == coin3 x)].
 Proof.
-apply/setP => x; rewrite !inE eqperm_map /= /act_f r2_inv !ffunE !permE /=.
+apply/setP=> x; rewrite (sameP afix1P eqP) !inE eqperm_map /=.
+rewrite /act_f r2_inv !ffunE !permE /=.
 by rewrite eq_sym andbT andbCA andbC (eq_sym (x c3)) andbA -andbA !andbb andbC.
 Qed.
 
-Lemma F_r1 : act_fix1 to r1 =
+Lemma F_r1 : 'C[r1 | to] =
   [set x | (coin0 x == coin1 x)&&(coin1 x == coin2 x)&&(coin2 x == coin3 x)].
 Proof.
-apply/setP => x; rewrite !inE eqperm_map /= /act_f r1_inv !ffunE !permE andbC.
+apply/setP=> x; rewrite (sameP afix1P eqP) !inE eqperm_map /=.
+rewrite /act_f r1_inv !ffunE !permE andbC.
 by do 3![case E: {+}(_ == _); rewrite // {E}(eqP E)]; rewrite eqxx.
 Qed.
 
-Lemma F_r3 : act_fix1 to r3 =
+Lemma F_r3 : 'C[r3 | to] =
   [set x | (coin0 x == coin1 x)&&(coin1 x == coin2 x)&&(coin2 x == coin3 x)].
 Proof.
-apply/setP => x; rewrite !inE eqperm_map /= /act_f r3_inv !ffunE !permE /=.
+apply/setP=> x; rewrite (sameP afix1P eqP) !inE eqperm_map /=.
+rewrite /act_f r3_inv !ffunE !permE /=.
 by do 3![rewrite eq_sym; case E: {+}(_ == _); rewrite // {E}(eqP E)].
 Qed.
 
@@ -388,25 +392,26 @@ Proof.
 rewrite -{1}card_iso2 -(Frobenius_Cauchy to iso2_group) /=.
 rewrite (eq_bigl (mem [:: id1; sh])) => [|p] /=; last first.
   by rewrite  !inE orbF.
-rewrite -big_uniq /=; last by rewrite !inE orbF diff_id_sh.
-by rewrite /reducebig unlock  /= addn0 card_Fid F_Sh card_n2 //= !muln1.
+rewrite -big_uniq /=; last by rewrite !{1}inE orbF diff_id_sh.
+by rewrite 2!big_adds big_seq0 addn0 {1}card_Fid F_Sh card_n2.
 Qed.
 
 Lemma burnside_app_rot:
   (square_coloring_number4 * 4 = n ^ 4 + n ^ 2 + 2 * n)%N.
 Proof.
-rewrite -{1}card_rot -(Frobenius_Cauchy to rot_group).
+rewrite -{1}card_rot rot_is_rot -(Frobenius_Cauchy to).
 rewrite (eq_bigl (mem [:: id1; r1; r2; r3])) => [|p] /=; last first.
-  by rewrite rot_is_rot !inE orbF.
+  by rewrite !inE orbF.
 rewrite -big_uniq; last first.
   by apply: maps_uniq (fun p : {perm square} => p c0) _ _; rewrite /= !permE.
-rewrite /reducebig unlock /= !addn0 card_Fid F_r1 F_r2 F_r3 card_n card_n2 //=.
-ring.
+rewrite !big_adds big_seq0 /= addn0 {1}card_Fid F_r1 F_r2 F_r3.
+by rewrite card_n card_n2 //=; ring.
 Qed.
 
-Lemma F_Sd1 : act_fix1 to sd1 = [set x | coin1 x == coin3 x].
+Lemma F_Sd1 : 'C[sd1 | to] = [set x | coin1 x == coin3 x].
 Proof.
-apply/setP => x; rewrite !inE eqperm_map /= /act_f sd1_inv !ffunE !permE /=.
+apply/setP => x; rewrite (sameP afix1P eqP) !inE eqperm_map /=.
+rewrite /act_f sd1_inv !ffunE !permE /=.
 by rewrite !eqxx !andbT eq_sym /= andbb.
 Qed.
 
@@ -432,10 +437,10 @@ have{Epk}: pk k1 i = pk k2 i by rewrite Epk.
 by rewrite !ffunE; case: eqP => // ->.
 Qed.
 
-Lemma F_Sd2 : act_fix1 to sd2 = [set x | coin0 x == coin2 x].
+Lemma F_Sd2 : 'C[sd2 | to] = [set x | coin0 x == coin2 x].
 Proof.
-apply/setP => x; rewrite !inE eqperm_map /= /act_f sd2_inv !ffunE !permE /=.
-by rewrite !eqxx !andbT eq_sym /= andbb.
+apply/setP => x; rewrite (sameP afix1P eqP) !inE eqperm_map /=.
+by rewrite  /act_f sd2_inv !ffunE !permE /= !eqxx !andbT eq_sym /= andbb.
 Qed.
 
 Lemma burnside_app_iso :
@@ -448,7 +453,7 @@ have Uiso: uniq iso_list.
 have Eiso: iso_group =i iso_list by move=> p; rewrite /= !inE orbF.
 have <-: #|iso_group| = 8 by rewrite (eq_card Eiso) (card_uniqP Uiso).
 rewrite -(Frobenius_Cauchy to) (eq_bigl _ _ Eiso) -big_uniq //.
-rewrite /reducebig unlock /= card_Fid F_r1 F_r2 F_r3 F_Sh F_Sv F_Sd1 F_Sd2.
+rewrite !big_adds big_seq0 {1}card_Fid F_r1 F_r2 F_r3 F_Sh F_Sv F_Sd1 F_Sd2.
 by rewrite card_n !card_n3 // !card_n2 //=; ring.
 Qed.
 
@@ -855,13 +860,13 @@ Proof. by move=> k x y; apply/ffunP=> a; rewrite !ffunE invMg permE. Qed.
 Definition to_g := Action act_g_1 act_g_morph.
 
 
-Definition cube_coloring_number24 := act_nbcomp to_g diso_group3.
+Definition cube_coloring_number24 := #|orbit to_g diso_group3 @: setT|.
 
 
-Lemma Fid3 : act_fix1 to_g 1 = setT.
-Proof. by apply/setP=> x /=; rewrite !inE act1 eqxx. Qed.
+Lemma Fid3 : 'C[1 | to_g] = setT.
+Proof. by apply/setP=> x /=; rewrite (sameP afix1P eqP) !inE act1 eqxx. Qed.
 
-Lemma card_Fid3: #|act_fix1 to_g 1| = (n ^ 6)%N.
+Lemma card_Fid3: #|'C[1 | to_g]| = (n ^ 6)%N.
 Proof.
 rewrite -[6]card_ord -[n]card_ord -card_ffun_on Fid3 cardsT.
 by symmetry; apply: eq_card => ff; exact/ffun_onP.
@@ -881,21 +886,22 @@ move=> p1 p2; apply/eqP/allP=> [-> // | Ep12]; apply/ffunP=> x.
 by apply/eqP; apply Ep12; case: x; do 6?case.
 Qed.
 
+Notation infE := (sameP afix1P eqP).
 
 Lemma F_s05 :
-  act_fix1 to_g s05 = [set x | (col1 x == col4 x) && (col2 x == col3 x)].
+  'C[s05 | to_g] = [set x | (col1 x == col4 x) && (col2 x == col3 x)].
 Proof.
 have s05_inv: s05^-1=s05 by inv_tac.
-apply/setP => x; rewrite !inE eqperm_map2 /= /act_g s05_inv !ffunE !permE /=.
+apply/setP => x; rewrite infE !inE eqperm_map2 /= /act_g s05_inv !ffunE !permE /=.
 apply sym_equal; rewrite !eqxx /= andbT/col1/col2/col3/col4/col5/col0.
 by do 2![rewrite eq_sym; case : {+}(_ == _)=>  //= ].
 Qed.
 
 Lemma F_s14 :
-   act_fix1 to_g s14= [set x | (col0 x == col5 x) && (col2 x == col3 x)].
+   'C[s14 | to_g]= [set x | (col0 x == col5 x) && (col2 x == col3 x)].
 Proof.
 have s14_inv: s14^-1=s14  by inv_tac.
-apply/setP => x; rewrite !inE eqperm_map2 /= /act_g s14_inv !ffunE !permE /=.
+apply/setP => x; rewrite infE !inE eqperm_map2 /= /act_g s14_inv !ffunE !permE /=.
 apply sym_equal; rewrite !eqxx /= andbT/col1/col2/col3/col4/col5/col0.
 by do 2![rewrite eq_sym; case : {+}(_ == _)=>  //= ].
 Qed.
@@ -916,198 +922,198 @@ Lemma s23_inv: s23^-1 = s23.
 Proof. by inv_tac. Qed.
 
 Lemma F_s23 :
-  act_fix1 to_g s23 = [set x | (col0 x == col5 x) && (col1 x == col4 x)].
+  'C[s23 | to_g] = [set x | (col0 x == col5 x) && (col1 x == col4 x)].
 Proof.
-apply/setP => x; rewrite !inE eqperm_map2 /= /act_g s23_inv !ffunE !permE /=.
+apply/setP => x; rewrite infE !inE eqperm_map2 /= /act_g s23_inv !ffunE !permE /=.
 apply sym_equal; rewrite !eqxx /= andbT/col1/col2/col3/col4/col5/col0.
 by do 2![rewrite eq_sym; case : {+}(_ == _)=>  //=].
 Qed.
 
-Lemma F_r05: act_fix1 to_g r05=
+Lemma F_r05: 'C[r05 | to_g]=
   [set x | (col1 x == col2 x) && (col2 x == col3 x)
                                 && (col3 x == col4 x)].
 Proof.
 apply sym_equal.
-apply/setP => x; rewrite !inE eqperm_map2 /= /act_g r05_inv !ffunE !permE /=.
+apply/setP => x; rewrite infE !inE eqperm_map2 /= /act_g r05_inv !ffunE !permE /=.
 rewrite !eqxx /= !andbT /col1/col2/col3/col4/col5/col0.
 by do 3! [rewrite eq_sym;case E: {+}(_ == _); rewrite  ?andbF // {E}(eqP E)  ].
 Qed.
 
-Lemma F_r50: act_fix1 to_g r50=
+Lemma F_r50: 'C[r50 | to_g]=
   [set x | (col1 x == col2 x) && (col2 x == col3 x)
                                 && (col3 x == col4 x)].
 Proof.
-apply/setP => x; rewrite !inE eqperm_map2 /= /act_g r50_inv !ffunE !permE /=.
+apply/setP => x; rewrite infE !inE eqperm_map2 /= /act_g r50_inv !ffunE !permE /=.
 apply sym_equal;rewrite !eqxx /= !andbT /col1/col2/col3/col4.
 by do 3![rewrite eq_sym;case E: {+}(_ == _); rewrite  ?andbF // {E}(eqP E) ].
 Qed.
 
-Lemma F_r23 : act_fix1 to_g r23 =
+Lemma F_r23 : 'C[r23 | to_g] =
   [set x | (col0 x == col1 x) && (col1 x == col4 x)
                                 && (col4 x == col5 x)].
 Proof.
 have r23_inv: r23^-1 = r32 by inv_tac.
-apply/setP => x; rewrite !inE eqperm_map2 /= /act_g r23_inv !ffunE !permE /=.
+apply/setP => x; rewrite infE !inE eqperm_map2 /= /act_g r23_inv !ffunE !permE /=.
 apply sym_equal; rewrite !eqxx /= !andbT /col1/col0/col5/col4.
 by do 3![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // {E}(eqP E)].
 Qed.
 
-Lemma F_r32 : act_fix1 to_g r32 =
+Lemma F_r32 : 'C[r32 | to_g] =
   [set x | (col0 x == col1 x) && (col1 x == col4 x)
                                 && (col4 x == col5 x)].
 Proof.
 have r32_inv: r32^-1 = r23 by inv_tac.
-apply/setP => x; rewrite !inE eqperm_map2 /= /act_g r32_inv !ffunE !permE /=.
+apply/setP => x; rewrite infE !inE eqperm_map2 /= /act_g r32_inv !ffunE !permE /=.
 apply sym_equal; rewrite !eqxx /= !andbT /col1/col0/col5/col4.
 by do 3![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // {E}(eqP E)].
 Qed.
 
-Lemma F_r14 : act_fix1 to_g r14 =
+Lemma F_r14 : 'C[r14 | to_g] =
   [set x | (col0 x == col2 x) && (col2 x == col3 x) && (col3 x == col5 x)].
 Proof.
-apply/setP => x; rewrite !inE eqperm_map2 /= /act_g r14_inv !ffunE !permE /=.
+apply/setP => x; rewrite infE !inE eqperm_map2 /= /act_g r14_inv !ffunE !permE /=.
 apply sym_equal; rewrite !eqxx /= !andbT /col2/col0/col5/col3.
 by do 3![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // {E}(eqP E)].
 Qed.
 
-Lemma F_r41 : act_fix1 to_g r41 =
+Lemma F_r41 : 'C[r41 | to_g] =
   [set x | (col0 x == col2 x) && (col2 x == col3 x) && (col3 x == col5 x)].
 Proof.
-apply/setP => x; rewrite !inE eqperm_map2 /= /act_g r41_inv !ffunE !permE /=.
+apply/setP => x; rewrite infE !inE eqperm_map2 /= /act_g r41_inv !ffunE !permE /=.
 apply sym_equal; rewrite !eqxx /= !andbT /col2/col0/col5/col3.
 by do 3![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // {E}(eqP E)].
 Qed.
 
-Lemma F_r024 : act_fix1 to_g r024 =
+Lemma F_r024 : 'C[r024 | to_g] =
   [set x | (col0 x == col4 x) && (col4 x == col2  x) && (col1 x == col3 x)
        && (col3 x == col5 x) ].
 Proof.
 have r024_inv: r024^-1 = r042 by inv_tac.
-apply/setP => x; rewrite !inE eqperm_map2 /= /act_g r024_inv !ffunE !permE /=.
+apply/setP => x; rewrite infE !inE eqperm_map2 /= /act_g r024_inv !ffunE !permE /=.
 apply sym_equal; rewrite ?eqxx /= !andbT /col0/col1/col2/col3/col4/col5.
 by do 4![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
 
-Lemma F_r042 : act_fix1 to_g r042 =
+Lemma F_r042 : 'C[r042 | to_g] =
   [set x | (col0 x == col4 x) && (col4 x == col2  x) && (col1 x == col3 x)
        && (col3 x == col5 x)].
 Proof.
 have r042_inv: r042^-1 = r024 by inv_tac.
-apply/setP => x; rewrite !inE eqperm_map2 /= /act_g r042_inv !ffunE !permE /=.
+apply/setP => x; rewrite infE !inE eqperm_map2 /= /act_g r042_inv !ffunE !permE /=.
 apply sym_equal; rewrite ?eqxx /= !andbT /col0/col1/col2/col3/col4/col5.
 by do 4![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
 
-Lemma F_r012 : act_fix1 to_g r012 =
+Lemma F_r012 : 'C[r012 | to_g] =
   [set x | (col0 x == col2 x) && (col2 x == col1  x) && (col3 x == col4 x)
        && (col4 x == col5 x)].
 Proof.
 have r012_inv: r012^-1 = r021 by inv_tac.
-apply/setP => x; rewrite !inE eqperm_map2 /= /act_g r012_inv !ffunE !permE /=.
+apply/setP => x; rewrite infE !inE eqperm_map2 /= /act_g r012_inv !ffunE !permE /=.
 apply sym_equal; rewrite ?eqxx /= !andbT /col0/col1/col2/col3/col4/col5.
 by do 4![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
 
-Lemma F_r021 : act_fix1 to_g r021 =
+Lemma F_r021 : 'C[r021 | to_g] =
   [set x | (col0 x == col2 x) && (col2 x == col1  x) && (col3 x == col4 x)
        && (col4 x == col5 x)].
 Proof.
 have r021_inv: r021^-1 = r012 by inv_tac.
-apply/setP => x; rewrite !inE eqperm_map2 /= /act_g r021_inv !ffunE !permE /=.
+apply/setP => x; rewrite infE !inE eqperm_map2 /= /act_g r021_inv !ffunE !permE /=.
 apply sym_equal; rewrite ?eqxx /= !andbT /col0/col1/col2/col3/col4/col5.
 do 4![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
 
-Lemma F_r031 : act_fix1 to_g r031 =
+Lemma F_r031 : 'C[r031 | to_g] =
   [set x | (col0 x == col3 x) && (col3 x == col1  x) && (col2 x == col4 x)
        && (col4 x == col5 x)].
 Proof.
 have r031_inv: r031^-1 = r013 by inv_tac.
-apply/setP => x; rewrite !inE eqperm_map2 /= /act_g r031_inv !ffunE !permE /=.
+apply/setP => x; rewrite infE !inE eqperm_map2 /= /act_g r031_inv !ffunE !permE /=.
 apply sym_equal; rewrite ?eqxx /= !andbT /col0/col1/col2/col3/col4/col5.
 by do 4![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
 
-Lemma F_r013 : act_fix1 to_g r013 =
+Lemma F_r013 : 'C[r013 | to_g] =
   [set x | (col0 x == col3 x) && (col3 x == col1  x) && (col2 x == col4 x)
        && (col4 x == col5 x)].
 Proof.
 have r013_inv: r013^-1 = r031 by inv_tac.
-apply/setP => x; rewrite !inE eqperm_map2 /= /act_g r013_inv !ffunE !permE /=.
+apply/setP => x; rewrite infE !inE eqperm_map2 /= /act_g r013_inv !ffunE !permE /=.
 apply sym_equal; rewrite ?eqxx /= !andbT /col0/col1/col2/col3/col4/col5.
 by do 4![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
 
-Lemma F_r043 : act_fix1 to_g r043 =
+Lemma F_r043 : 'C[r043 | to_g] =
   [set x | (col0 x == col4 x) && (col4 x == col3  x) && (col1 x == col2 x)
        && (col2 x == col5 x)].
 Proof.
 have r043_inv: r043^-1 = r034 by inv_tac.
-apply/setP => x; rewrite !inE eqperm_map2 /= /act_g r043_inv !ffunE !permE /=.
+apply/setP => x; rewrite infE !inE eqperm_map2 /= /act_g r043_inv !ffunE !permE /=.
 apply sym_equal; rewrite ?eqxx /= !andbT /col0/col1/col2/col3/col4/col5.
 by do 4![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
 
-Lemma F_r034 : act_fix1 to_g r034 =
+Lemma F_r034 : 'C[r034 | to_g] =
   [set x | (col0 x == col4 x) && (col4 x == col3  x) && (col1 x == col2 x)
        && (col2 x == col5 x)].
 Proof.
 have r034_inv: r034^-1 = r043 by inv_tac.
-apply/setP => x; rewrite !inE eqperm_map2 /= /act_g r034_inv !ffunE !permE /=.
+apply/setP => x; rewrite infE !inE eqperm_map2 /= /act_g r034_inv !ffunE !permE /=.
 apply sym_equal; rewrite ?eqxx /= !andbT /col0/col1/col2/col3/col4/col5.
 by do 4![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
 
-Lemma F_s1 : act_fix1 to_g s1 =
+Lemma F_s1 : 'C[s1 | to_g] =
   [set x | (col0 x == col5 x) && (col1 x == col2  x) && (col3 x == col4 x)].
 Proof.
 have s1_inv: s1^-1 = s1 by inv_tac.
-apply/setP => x; rewrite !inE eqperm_map2 /= /act_g s1_inv !ffunE !permE /=.
+apply/setP => x; rewrite infE !inE eqperm_map2 /= /act_g s1_inv !ffunE !permE /=.
 apply sym_equal; rewrite ?eqxx /= !andbT /col0/col1/col2/col3/col4/col5.
 by do 3![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
 
-Lemma F_s2: act_fix1 to_g s2 =
+Lemma F_s2: 'C[s2 | to_g] =
   [set x | (col0 x == col5 x) && (col1 x == col3  x) && (col2 x == col4 x)].
 Proof.
 have s2_inv: s2^-1 = s2 by inv_tac.
-apply/setP => x; rewrite !inE eqperm_map2 /= /act_g s2_inv !ffunE !permE /=.
+apply/setP => x; rewrite infE !inE eqperm_map2 /= /act_g s2_inv !ffunE !permE /=.
 apply sym_equal; rewrite ?eqxx /= !andbT /col0/col1/col2/col3/col4/col5.
 by do 3![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
 
-Lemma F_s3: act_fix1 to_g s3 =
+Lemma F_s3: 'C[s3 | to_g] =
   [set x | (col0 x == col1 x) && (col2 x == col3  x) && (col4 x == col5 x)].
 Proof.
 have s3_inv: s3^-1 = s3 by inv_tac.
-apply/setP => x; rewrite !inE eqperm_map2 /= /act_g s3_inv !ffunE !permE /=.
+apply/setP => x; rewrite infE !inE eqperm_map2 /= /act_g s3_inv !ffunE !permE /=.
 apply sym_equal; rewrite ?eqxx /= !andbT /col0/col1/col2/col3/col4/col5.
 by do 3![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
 
-Lemma F_s4: act_fix1 to_g s4 =
+Lemma F_s4: 'C[s4 | to_g] =
   [set x | (col0 x == col4 x) && (col1 x == col5  x) && (col2 x == col3 x)].
 Proof.
 have s4_inv: s4^-1 = s4 by inv_tac.
-apply/setP => x; rewrite !inE eqperm_map2 /= /act_g s4_inv !ffunE !permE /=.
+apply/setP => x; rewrite infE !inE eqperm_map2 /= /act_g s4_inv !ffunE !permE /=.
 apply sym_equal; rewrite ?eqxx /= !andbT /col0/col1/col2/col3/col4/col5.
 by do 3![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
 
-Lemma F_s5: act_fix1 to_g s5 =
+Lemma F_s5: 'C[s5 | to_g] =
   [set x | (col0 x == col2 x) && (col1 x == col4  x) && (col3 x == col5 x)].
 Proof.
 have s5_inv: s5^-1 = s5 by inv_tac.
-apply/setP => x; rewrite !inE eqperm_map2 /= /act_g s5_inv !ffunE !permE /=.
+apply/setP => x; rewrite infE !inE eqperm_map2 /= /act_g s5_inv !ffunE !permE /=.
 apply sym_equal; rewrite ?eqxx /= !andbT /col0/col1/col2/col3/col4/col5.
 by do 3![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
 
-Lemma F_s6: act_fix1 to_g s6 =
+Lemma F_s6: 'C[s6 | to_g] =
   [set x | (col0 x == col3 x) && (col1 x == col4  x) && (col2 x == col5 x)].
 Proof.
 have s6_inv: s6^-1 = s6 by inv_tac.
-apply/setP => x; rewrite !inE eqperm_map2 /= /act_g s6_inv !ffunE !permE /=.
+apply/setP => x; rewrite infE !inE eqperm_map2 /= /act_g s6_inv !ffunE !permE /=.
 apply sym_equal; rewrite ?eqxx /= !andbT /col0/col1/col2/col3/col4/col5.
 by do 3![rewrite eq_sym; case E: {+}(_ == _); rewrite ?andbF  // ?{E}(eqP E)].
 Qed.
@@ -1273,7 +1279,7 @@ have Eiso: diso_group3 =i iso_list.
 by move=> p; rewrite  !inE /= orbF !(eq_sym _ p).
 have <-: #|diso_group3| = 24 by rewrite (eq_card Eiso) (card_uniqP Uiso).
 rewrite -(Frobenius_Cauchy to_g) (eq_bigl _ _ Eiso) -big_uniq //.
-rewrite /reducebig unlock /= card_Fid3 F_s05 F_s14 F_s23 F_r05 F_r14 F_r23
+rewrite !big_adds big_seq0 {1}card_Fid3 /= F_s05 F_s14 F_s23 F_r05 F_r14 F_r23
   F_r50 F_r41 F_r32 F_r024 F_r042 F_r012 F_r021 F_r031 F_r013 F_r043  F_r034 
   F_s1  F_s2 F_s3 F_s4 F_s5 F_s6.
 by rewrite !card_n4 // !card_n3_3 // !card_n2_3 // !card_n3s //; ring.
@@ -1291,4 +1297,6 @@ Qed.
 
 Corollary burnside_app_iso_2_4col: square_coloring_number8 4 = 55.
 Proof. by apply/eqP; rewrite -(@eqn_pmul2r 8) // burnside_app_iso. Qed.
+
+
 

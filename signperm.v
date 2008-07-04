@@ -308,59 +308,62 @@ Qed.
 Definition sym1 : tuple n T := [tuple of enum T].
 
 Lemma d2p_inject_aux : forall s : tuple n T,
-  dtuple_on T s -> injective (fun x => tsub s (enum_rank x)).
+  s \in dtuple_on n setT -> injective (fun x => tsub s (enum_rank x)).
 Proof.
 move=> s; case/dtuple_onP=> s_inj _ x y; move/s_inj; exact: enum_rank_inj.
 Qed.
 
 Definition d2p s ds := perm_of (@d2p_inject_aux s ds).
 
-Lemma d2p_sym: forall t (dt : dtuple_on T t), d2p dt \in sym.
+Lemma d2p_sym: forall t dt, @d2p t dt \in sym.
 Proof. by move=> *; rewrite inE. Qed.
 
-Lemma d2p_sym1 : forall t (dt : dtuple_on T t),
-  n_act (perm_action T) sym1 (d2p dt) = t.
+Lemma d2p_sym1 : forall t dt, n_act (perm_action T) sym1 (@d2p t dt) = t.
 Proof.
 move=> t dt; apply: eq_from_tsub => i; rewrite tsub_maps.
 rewrite [perm_action _ _ _]permE; congr tsub.
 by rewrite (tsub_sub (enum_default i)) enum_valK.
 Qed.
 
-Lemma sym_trans: ntransitive (perm_action T) sym T n.
+Lemma sym_trans: ntransitive (perm_action T) n sym setT.
 Proof.
-split; last by exact: max_card.
-move=> x Hx y; apply/imsetP/idP => [[z Hz ->] | Hy].
-  exact: n_act_dtuple.
+apply/andP; split; last by rewrite cardsT max_card.
+apply/atransP=> x Hx; apply/setP=> y; apply/imsetP/idP => [[z Hz ->] | Hy].
+  by apply: n_act_dtuple => //; apply/astabsP=> t; rewrite !inE.
 exists ((d2p Hx)^-1 * (d2p Hy)); first by rewrite inE.
 by rewrite actM -{1}(d2p_sym1 Hx) /= actK (d2p_sym1 Hy).
 Qed.
 
-Lemma alt_trans: ntransitive (perm_action T) alt T (n - 2).
+Lemma alt_trans : ntransitive (perm_action T) (n - 2) alt setT.
 Proof.
 case: (leqP n 2) => [|lt2n].
   by rewrite -eqn_sub0; move/eqP => ->; exact: ntransitive0.
 have lt1n: 1 < n by exact: ltnW.
-split; [move=> /= x Hx y | by rewrite -/n leq_subr].
-apply/imsetP/idP => [[z Hz ->] | Hy]; first exact: n_act_dtuple.
+apply/andP; split; last by rewrite cardsT -/n leq_subr.
+apply/atransP; move=> /= x Hx; apply/setP=> /= y.
+apply/imsetP/idP => [[z Hz ->] | Hy].
+  by apply: n_act_dtuple => //; apply/astabsP=> t; rewrite !inE.
 have: #|[predC x]| == 2.
   rewrite -(eqn_addr (n - 2)) subnK //.
   suff Hf: #|x| = n - 2 by rewrite addnC -{1}Hf cardC.
-  by rewrite (card_uniqP _) ?size_tuple //; case/andP: Hx.
+  by rewrite (card_uniqP _) ?size_tuple //; rewrite inE in Hx; case/andP: Hx.
 case: (pickP [predC x]) => /= [a1 Ha1 | HH]; last by rewrite eq_card0.
 case: (pickP (predD1 [predC x] a1)) => /= [a2 Ha2 _ | HH]; last first.
   by rewrite (cardD1 a1) inE /= Ha1 eq_card0.
 have: #|[predC y]| == 2.
   rewrite -(eqn_addr (n - 2)) subnK //.
   suff Hf: #|y| = n - 2 by rewrite addnC -{1}Hf cardC.
-  by rewrite (card_uniqP _) ?size_tuple //; case/andP: Hy.
+  by rewrite (card_uniqP _) ?size_tuple //; rewrite inE in Hy; case/andP: Hy.
 case: (pickP [predC y]) => /= [b1 Hb1 | HH]; last by rewrite eq_card0.
 case: (pickP (predD1 [predC y] b1)) => /= [b2 Hb2 _ | HH]; last first.
   by rewrite (cardD1 b1) inE /= Hb1 eq_card0.
 pose x1 := [tuple of a2 :: a1 :: x]; pose y1 := [tuple of b2 :: b1 :: y].
-have:= sym_trans; rewrite -{1}(subnK lt1n) add2n; case => FF _.
-have Dnx1: dtuple_on T x1 by rewrite !dtuple_on_add Ha1 negb_or Ha2.
-have: dtuple_on T y1 by rewrite !dtuple_on_add Hb1 negb_or Hb2.
-rewrite -[dtuple_on T y1](@FF _ Dnx1); case/imsetP => g Hg Hg1.
+have:= sym_trans; rewrite -{1}(subnK lt1n) add2n; case/andP=> FF _.
+have Dnx1: x1 \in dtuple_on _ setT.
+  by rewrite !dtuple_on_add Ha1 negb_or Ha2 !in_setT.
+have: y1 \in dtuple_on _ setT.
+  by rewrite !dtuple_on_add Hb1 negb_or Hb2 !in_setT.
+rewrite -(atransP FF _ Dnx1); case/imsetP => g Hg Hg1.
 case Pm: (odd_perm g); last first.
   exists g; first by rewrite inE in_setT !inE; move/eqP : Pm ->.
   by apply: val_inj; case/(congr1 val): Hg1.
@@ -368,14 +371,14 @@ pose g1:= tperm b1 b2; exists (g * g1) => [/= |].
   rewrite inE in_setT /= !inE odd_permM Pm odd_tperm /unitg /=.
   by apply/negPn; rewrite eq_sym; case/andP: Hb2.
 rewrite actM; apply: val_inj; case/(congr1 val): Hg1 => /= ga1 ga2 <-.
-rewrite dmaps_id // => c yc; rewrite /perm_to /g1.
+rewrite dmaps_id // => c yc; rewrite /aperm /g1.
 by case/andP: Hb2 => _; case: tpermP Hb1 => // <-; rewrite yc.
 Qed.
 
-Lemma perm_action_faithful: faithful (perm_action T) alt T.
+Lemma perm_action_faithful: [faithful (alt | perm_action T) on setT].
 Proof.
-apply/faithfulP=> /= p np1; apply/eqP; apply/perm_act1P.
-by move=> y; case: (np1 y).
+apply/faithfulP=> /= p _ np1; apply/eqP; apply/perm_act1P=> y.
+by rewrite np1 ?inE.
 Qed.
 
 End PermutationParity.

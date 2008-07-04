@@ -186,26 +186,14 @@ Open Scope group_scope.
 
 Lemma pgroup_ntriv : ~~ trivg 'Z(G).
 Proof.
-apply/negP => Ht.
-have F1: #|'Z(G)| = 1%N.
-  apply/eqP; rewrite eqn_leq -(trivg_card) Ht.
-  by move: (subset_leq_card (sub1G 'Z(G))); rewrite cards1.
-suff: #|'Z(G)| %%p = 0 by rewrite F1 modn_small // prime_gt1.
-pose act := Action (@conjg1 gT) (@conjgM gT).
-suff F2: [mem 'Z(G)] =1 (predI (act_fix act G) (mem G)).
-  rewrite (eq_card F2) -(mpl  Hp HG); first by rewrite HG modn_mulr.
-  by move=> x y; case/orbitP => z Hz <-; rewrite /= groupJr.
-move=> x; apply/idP/andP => /=; rewrite !inE.
-  case/andP => H1x H2x; split => //.
-  rewrite /act_fix /= eqset_sub; apply/andP; split; apply/subsetP => y Hy.
-    by case/stabilizerP: Hy.
-  apply/stabilizerP; split => //; rewrite /act /=.
-  move/centP: H2x; move/(_ y Hy) => Hc.
-  by rewrite /conjg Hc mulgA mulVg mul1g.
-case; rewrite /act_fix; move/eqP => H1x H2x.
-rewrite H2x; apply/centP => y.
-rewrite -H1x; case/stabilizerP => H1y H2y.
-by rewrite /commute -{2}H2y /= conjgC.
+apply/trivgP=> /= Z1.
+suffices{Z1}: #|'Z(G)| %%p = 0 by rewrite Z1 cards1 modn_small ?prime_gt1.
+suff ->: 'Z(G) = 'C_G(G | 'J).
+  rewrite -(mpl Hp HG); first by rewrite HG modn_mulr.
+  apply/actsP=> x Gx y; exact: groupJr.
+congr (_ :&: _); apply/setP=> x; apply/centP/afixP=> cxG y; move/cxG=> /=.
+  by move/commgP; move/conjg_fixP.
+by move/conjg_fixP; move/commgP.
 Qed.
 
 End PGroups.

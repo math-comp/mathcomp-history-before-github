@@ -19,7 +19,7 @@ have sPG: P \subset G by apply: subset_trans sHG; case/andP: sylP.
 apply/eqP; rewrite eqset_sub setIC group_modl // subsetIr.
 apply/subsetP=> x Gx; pose Q := (P :^ x^-1)%G.
 have sylQ: sylow p H Q by  by rewrite (sylow_sconjg _ _ _ x) conjsgKV nHG.
-have [y [Hy QPy]] := (sylow2_cor p_prime sylP sylQ).
+have [y Hy [/= QPy]] := sylow2_cor p_prime sylP sylQ.
 rewrite inE Gx andbT -(mulKg y x) mem_mulg ?groupV //.
 by apply/normP; rewrite conjsgM -QPy conjsgKV.
 Qed.
@@ -325,22 +325,9 @@ have hallHbar: hall Gbar Hbar.
 have: splitg Gbar Hbar; last case/splitgP=> Kbar trHKbar eqHKbar. 
   apply: IHn => //; apply: {n}leq_trans Gn.
   rewrite card_quotient; last by case/andP: nZG.
-  rewrite -(group_divn sZG) divn_lt ?pos_card_group //.
-  apply: (leq_trans (prime_gt1 prime_p)).
-  apply: dvdn_leq; first exact: pos_card_group.
-  pose to := Action (@conjg1 gT) (@conjgM _).
-  have eqZ: Z =i predI (act_fix to P) (mem P).
-    move=> z; rewrite /= inE /= !inE /= -(andbC (z \in P)).
-    case: (z \in P) => //=.
-    apply/centP/eqP=> [Cz | <- x].
-      apply/setP=> x; rewrite inE; case Px: (x \in P) => //=.
-      rewrite (sameP eqP conjg_fixP); apply/commgP; exact: Cz.
-    by rewrite inE; case/andP=> _; rewrite (sameP eqP conjg_fixP); move/commgP.
-  case/andP: sylP => _; move/eqP=> cPp.
-  rewrite {eqZ}(eq_card eqZ) /dvdn -(mpl prime_p cPp) => [|x y].
-    rewrite cPp; apply/dvdn_exp_prime=> //; exists 1%N; last by rewrite expn1.
-    by rewrite -dvdn_exp_max // expn1 dvdn_pdiv.
-  by case/imsetP=> z Pz ->; rewrite /= groupJr.
+  rewrite -(group_divn sZG) divn_lt ?pos_card_group // ltnNge -trivg_card.
+  case/andP: sylP => _; rewrite lognE prime_p dvdn_pdiv ltn_0group.
+  move/eqP; exact: pgroup_ntriv.
 have [ZK [sZZK sZKG] quoZK]:
   exists2 ZK : group gT, Z \subset ZK /\ ZK \subset G & ZK / Z = Kbar.
 - exists [group of G :&: coset_of Z @*^-1 Kbar]; rewrite /=.

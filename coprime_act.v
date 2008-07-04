@@ -245,10 +245,9 @@ Qed.
 Lemma coprime_quotient_cent_weak : forall A G H,
     H <| G -> A \subset 'N(H) -> coprime #|G| #|A| -> solvable G ->
   'C_G(A) / H = 'C_(G / H)(A / H).
-move=> A G H normH nHA co so.
-move: (normH); case/normalP=> sHG nHG.
-apply: coprime_quotient_cent; rewrite //=; last by apply: (solvable_sub sHG so).  
-by rewrite -(LaGrange sHG) coprime_mull in co; move: co; case/andP.
+move=> A G H normH nHA co so; have sHG := normal_sub normH.
+apply: coprime_quotient_cent => //; last exact: solvable_sub so.  
+by rewrite -(LaGrange sHG) coprime_mull in co; case/andP: co.
 Qed.
 
 Lemma coprime_comm_normal_part : forall A G K,
@@ -412,66 +411,6 @@ Qed.
 
 Module AfterInner. End AfterInner.
 
-(* Should be in action.v. *)
-Definition fix_act (sT aT : finType) (A : {set aT}) to :=
-  [set x : sT | forallb a, (a \in A) ==> (to x a == x)].
-
-Definition stab_act (sT aT : finType) to (S : {set aT}) :=
-  [set a : aT | forallb x, (x \in S) ==> (to x a == x)].
-
-Notation "''C' ( A | to )" := (fix_act A to)
- (at level 8, format "''C' ( A  |  to )") : group_scope.
-
-Notation "''C_' S ( A | to )" := (S :&: 'C(A | to))
- (at level 8, S at level 2, format "''C_' S ( A  |  to )") : group_scope.
-
-(* Camlp4 factoring. *)
-Notation "''C_' ( G ) ( A )" := 'C_G(A)
-  (at level 8, only parsing) : group_scope.
-Notation "''C_' ( G ) ( A )" := 'C_G(A)%G : subgroup_scope.
-Notation "''C_' ( G ) ( A | to )" := 'C_G(A | to)
-  (at level 8, only parsing) : group_scope.
-
-Notation "''N_' ( G ) ( A )" := 'N_G(A)
-  (at level 8, only parsing) : group_scope.
-Notation "''N_' ( G ) ( A )" := 'N_G(A)%G : subgroup_scope.
-
-Notation "''C_' ( | to ) ( S )" := (stab_act to S)
- (at level 8, format "''C_' ( |  to ) ( S )") : group_scope.
-
-Notation "''C_' ( A | to ) ( S )" := (A :&: 'C_(|to)(S))
- (at level 8, format "''C_' ( A  |  to ) ( S )") : group_scope.
-
-Definition stabs_act (aT sT : finType) to (S : {set sT}) :=
-  [ set a : aT | to^~ a @: S \subset S ].
-
-Notation "''N_' ( | to ) ( S )" := (stabs_act to S)
-  (at level 8, format "''N_' ( | to ) ( S )") : group_scope.
-
-Notation "''N_' ( A | to ) ( S )" := (A :&: 'N_(|to)(S))
-  (at level 8, format "''N_' ( A  |  to ) ( S )") : group_scope.
-
-Notation "''C_' ( | to ) [ x ]" := 'C_(|to)([set x])
-  (at level 8, format "''C_' ( | to ) [ x ]") : group_scope.
-
-Notation "''C_' ( A | to ) [ x ]" := 'C_(A | to)([set x])
-  (at level 8, format "''C_' ( A  |  to ) [ x ]") : group_scope.
-
-Notation "''C' [ a | to ]" := 'C([set a] | to)
-  (at level 8, format "''C' [ a  |  to ]") : group_scope.
-
-Notation "''C_' S [ a | to ] " := 'C_S([set a] | to)
-  (at level 8, S at level 2, format "''C_' S [ a  |  to ]") : group_scope.
-
-Notation "[ 'acts' ( A | to ) 'on' S ]" := (A \subset pred_of_set 'N_(|to)(S))
-  (at level 0, format "[ 'acts'  ( A  |  to )  'on'  S ]") : form_scope.
-
-Definition act_stable (aT sT : finType) to (S : {set sT}) :=
-  forall (a : aT) (x : sT), (to x a \in S) = (x \in S).
-
-Notation "{ 'acts' ( A | to ) 'on' S }" := {in A, act_stable to S}
-  (at level 0, format "{ 'acts'  ( A  |  to )  'on'  S }") : form_scope.
-
 Definition quo_act (gT aT : finGroupType) (H : {set gT}) to :=
   fun (Hx : coset H) (a : aT) => insubd Hx (to^~ a @: Hx).
 
@@ -507,10 +446,12 @@ Lemma ext_norm_conj_cent : forall (H : {group gT}) x,
 Proof.
 Admitted.
 
+(*
 Lemma ext_coprime_quotient_cent : forall L : {group gT},
   G <| L -> 'C_L(A | to) / G = 'C_(L / G)(A | quo_act to).
 Proof.
 Admitted.
+*)
 
 Lemma ext_coprime_hall_subset : forall X : {group gT},
     pi_subgroup pi G X -> A \subset 'N_(|to)(X) ->

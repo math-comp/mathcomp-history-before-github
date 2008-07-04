@@ -90,16 +90,15 @@ Proof. move=> f x y; apply/ffunP=> i; rewrite /zprot !ffunE; gsimpl. Qed.
 
 Canonical Structure zprot_action := Action zprot_to1 zprot_to_morph.
 
-Definition zp_group : {group zp} := setT_group _.
+Notation Local "'rot" := zprot_action (at level 0) : action_scope.
 
-Lemma zprot_acts_on_X : closed [rel of orbit zprot_action zp_group] (mem X).
+Lemma zprot_acts_on_X : [acts (setT | 'rot) on X].
 Proof.
-apply: intro_closed => f1 f2; first exact: orbit_csym.
-case/imsetP=> x _ -> {f2}.
-rewrite -(zp1_gen x) /=; elim: {x}(nat_of_ord x) f1 => [|i IHi] f /=.
+apply/subsetP=> /= x _; rewrite inE /=; apply/subsetP=> f.
+rewrite !inE -(zp1_gen x) /=; elim: {x}(x : nat) f => /= [|i IHi] f.
   by rewrite zprot_to1.
-rewrite zprot_to_morph inE; case/andP; move/ffun_onP=> Hfx prodf1.
-apply: IHi; rewrite inE {i} rot1_prod_over_zp prodf1 andbT.
+rewrite expgS zprot_to_morph; case/andP; move/ffun_onP=> Hfx prodf1.
+apply: IHi; rewrite {i} rot1_prod_over_zp prodf1 andbT.
 by apply/ffun_onP=> i; rewrite ffunE Hfx.
 Qed.
 
@@ -149,21 +148,21 @@ Qed.
 
 Theorem cauchy : exists a, (a \in H) && (#[a] == p).
 Proof.
-have card_zp: #|zp_group| = (p ^ 1)%N.
+have card_zp: #|(setT : {set zp})| = (p ^ 1)%N.
   by rewrite cardsE card_ord expn1.
-have:= mpl prime_p card_zp zprot_acts_on_X; set Z := predI _ _.
+have:= mpl prime_p card_zp zprot_acts_on_X; set Z := _ :&: _.
 rewrite card_X -{1}(subnK lt1p) /= -modn_mul2m (eqnP p_divides_H) mod0n.
 pose t1 : {ffun zp -> gT} := [ffun => 1].
 have Zt1: t1 \in Z.
-  apply/andP; split; [|rewrite /= inE; apply/andP; split].
-  - by apply/act_fixP=> x _; apply/ffunP=> i; rewrite /zprot /t1 !ffunE.
-  - by apply/ffun_onP=> u; rewrite ffunE /=.
+  rewrite 2!inE; apply/andP; split; last first.
+    by apply/afixP=> x _; apply/ffunP=> i; rewrite !ffunE.
+  apply/andP; split; first by apply/ffun_onP=> u; rewrite ffunE /=.
   rewrite /prod_over_zp; apply/eqP; elim: (iota _ _) => //= i s -> {s}.
   by rewrite ffunE mul1g.
-case: (pickP (predD1 Z t1)) => [t | Z0]; last first.
+case: (pickP [predD1 Z & t1]) => [t | Z0]; last first.
   by rewrite (cardD1 t1) Zt1 (eq_card0 Z0) modn_small.
-case/and3P=> tnot1; move/act_fixP=> fixt /=. 
-rewrite inE; case/andP; move/ffun_onP=> /= Ht prodt _.
+case/andP=> tnot1; rewrite /= 2!inE; do 2!case/andP.
+move/ffun_onP=> /= Ht prodt; move/afixP=> /= fixt _.
 pose x := t 1; exists x; rewrite Ht /=.
 have Dt: t _ = x by move=> u; rewrite /x -{2}(fixt u (in_setT _)) ffunE mulg1.
 have: #[x] %| p.
@@ -235,26 +234,19 @@ Lemma sylow1_rec: forall i (L : {group gT}), i < n ->
 Proof.
 move=> i L ltin sLK cardL.
 have: p %| #|K / L|.
-  have <-: #|rtrans_fix L K L| = #|K / L|.
+  have <-: #|'C_(rcosets L K)(L | 'Msr)| = #|K / L|.
     rewrite rtrans_fix_norm -(card_imset (mem (K / L)) val_inj).
     apply: eq_card=> Lk; rewrite val_quotient //.
   have divpLK : p %| #|K : L|.
     rewrite -(@dvdn_pmul2l #|L|) // (LaGrange sLK) (eqP cardL) mulnC -expnS.
     by rewrite dvdn_exp_max.
-  apply/eqP; rewrite -{divpLK}(eqnP divpLK); symmetry.
-  rewrite /indexg (@mpl _ _ (trans_action gT) _ _ _ _ prime_p (eqP cardL)).
-    by congr (_ %% _); apply: eq_card=> x; rewrite !inE andbC.
-  apply: intro_closed=> A B; first exact: orbit_csym.
-  case/imsetP=> x Lx ->{B}; case/imsetP=> y Ky ->{A}; apply/imsetP.
-  exists (y * x); first by rewrite groupM //; exact: (subsetP sLK x).
-  by rewrite /= !rcosetE rcosetM.
+  apply/eqP; rewrite -{divpLK}(eqnP divpLK) -(mpl prime_p (eqP cardL)) //.
+  apply/subsetP=> x Lx; rewrite /= inE; apply/subsetP=> A; rewrite /= inE.
+  case/imsetP=> y Ky ->{A}; rewrite !rcosetE -rcosetM -rcosetE mem_imset //.
+  by rewrite groupMl // (subsetP sLK).
 case/cauchy=> // zbar; case/andP=> Kzbar; move/eqP=> Czbar_p.
-pose H := (coset_of L) @*^-1 (cyclic zbar) :&: K.
+pose H := coset_of L @*^-1 cyclic zbar :&: K.
 exists [group of H] => /=.
-(* have Hntriv : ~~ trivm (coset_of L). *)
-(*   apply/negP=> Hnt; move/prime_gt1: prime_p; rewrite ltnNge; case/negP. *)
-(*   rewrite -Czbar_p -(coset_of_repr zbar) trivm_is_cst //. *)
-(*   rewrite -(cards1 (1 : coset L)); apply: subset_leq_card; exact: cyclic_h. *)
 have sLH : L \subset H.
   apply/subsetP => x Lx.
   apply/setIP; split; last exact: (subsetP sLK).
@@ -277,7 +269,8 @@ Lemma sylow1: forall i j (L : group gT), i <= j <= n ->
   L \subset K -> #|L| == (p ^ i)%N ->
   exists H: group gT, [&& L \subset H, H \subset K & #|H| == p ^ j]%N.
 Proof.
-move=> i j L; case/andP => Hij Hjn Hsl Hcl; move: Hjn; rewrite -(subnK Hij) addnC.
+move=> i j L; case/andP=> Hij Hjn Hsl Hcl.
+move: Hjn; rewrite -(subnK Hij) addnC.
 elim: (j - i) => [| k Hrec].
   by rewrite add0n => Hin; exists L; rewrite subset_refl Hsl.
 move=> Hk; case Hrec; first by apply: leq_trans Hk; rewrite addSn.
@@ -309,11 +302,11 @@ by move=> H; case/and3P => [_ Hhk Hc]; exists H; apply/andP.
 Qed.
 
 Lemma sylow2 : forall (H L : {group gT}) i, H \subset K ->
- #|H| = (p ^ i)%N -> sylow K L -> exists x, (x \in K) && (H \subset L :^ x).
+ #|H| = (p ^ i)%N -> sylow K L -> exists2 x, x \in K & H \subset L :^ x.
 Proof.
 move => H L i Hshk Hch Hsl.
 case/andP: Hsl => Hsl1 Hsl2.
-pose lS0 := rtrans_fix L K H.
+pose lS0 := 'C_(rcosets L K)(H | 'Msr).
 have F1: ~~ (p %| #|K : L|).
   apply/negP => Fd.
   move/dvdnP: Fd => [u Hu].
@@ -323,36 +316,26 @@ have F1: ~~ (p %| #|K : L|).
     exact: mulnC. 
   by move: F2; rewrite /n dvdn_p_p_part // (cardD1 1) group1.
 have F2: #|K : L| %% p = #|lS0| %% p. 
-  (* THIS IS ALSO IN THE SYLOW1_REC LEMMA *)
-  have CL : #|L| = (p ^ n)%N by exact: (eqP Hsl2).
-  rewrite (@mpl _ _ (trans_action gT) _ _ _ _ prime_p Hch).
-    by congr (_ %% _); apply: eq_card => Ha; rewrite inE /= !inE /= andbC.
-  apply: intro_closed=> A B; first exact: orbit_csym.
-  case/imsetP=> x Lx ->; case/imsetP=> y Ky ->; apply/imsetP.
-  exists (y*x); first by rewrite groupM // (subsetP Hshk x).
-  by rewrite /= !rcosetE rcosetM.
-rewrite /dvdn {}F2 in F1.
-have F3: exists x, x \in lS0.
-  apply/pred0Pn.
-  by move: F1; rewrite /pred0b; case: #|lS0| => //=; rewrite mod0n.
-case: F3 => Hx; case/setIP=> Hx2; rewrite inE => Hx3.
-do [case/imsetP: Hx2 => x Kx /= ->; rewrite rcosetE] in Hx3.
-exists x; rewrite Kx /=; exact: (@act_fix_sub _ L).
+  rewrite -(mpl prime_p Hch) //; apply/subsetP=> x Hx; rewrite inE /=.
+  apply/subsetP=> A; rewrite inE /=; case/imsetP=> y Ly ->{A}.
+  by rewrite !rcosetE -rcosetM -rcosetE mem_imset ?groupM // (subsetP Hshk).
+have{F1 F2}: #|lS0| != 0.
+  by move: F1; rewrite /dvdn F2; case: #|lS0|; rewrite ?mod0n.
+case/existsP=> X; case/setIP; case/imsetP=> x Kx ->{X}; rewrite rcosetE.
+by move/act_fix_sub; exists x.
 Qed.
 
 (**********************************************************************)
 (*               Second Sylow theorem                                 *)
 (**********************************************************************)
 
-Lemma sylow2_cor: forall (L1 L2 : {group gT}),
-   sylow K L1 -> sylow K L2 -> exists x, x \in K /\ L2 = L1 :^ x :> set _.
+Lemma sylow2_cor: forall L1 L2 : {group gT},
+  sylow K L1 -> sylow K L2 -> exists2 x, x \in K & L2 = (L1 :^ x)%G.
 Proof.
 move => L1 L2 Hl1; case/andP => Ml2 Nl2.
-case: (sylow2 Ml2 (eqP Nl2) Hl1) => x; move/andP=> [Hx1 Hx2].
-exists x; split => //.
-apply/setP; apply/subset_cardP => //.
-rewrite card_conjg (eqP Nl2).
-by apply sym_equal; apply/eqP; case/andP: Hl1.
+case: (sylow2 Ml2 (eqP Nl2) Hl1) => x Hx1 Hx2.
+exists x => //; apply/eqP; rewrite -val_eqE eqset_sub_card Hx2 /=.
+by rewrite card_conjg (eqP Nl2); case/andP: Hl1 => _; move/eqP ->.
 Qed.
  
 Theorem sylow2_subset: forall i (L P : {group gT}),
@@ -360,8 +343,8 @@ Theorem sylow2_subset: forall i (L P : {group gT}),
 Proof.
 move=> i L P Hlk Hcl Hsp Hnp.
 case (@sylow1_subset i L) => // P1; case/andP => Hlp1 Hsp1.
-case (sylow2_cor Hsp Hsp1) => x [Kx EP1].
-by case/normalP: Hnp => _ nPK; rewrite EP1 nPK in Hlp1.
+case (sylow2_cor Hsp Hsp1) => x Kx [EP1].
+by case/normalP: Hnp => _ nPK; rewrite EP1 /= nPK in Hlp1.
 Qed.
 
 (**********************************************************************)
@@ -373,12 +356,11 @@ Definition gsylow A : pred {group gT} := [eta sylow A].
 Theorem sylow3_div : #|gsylow K| %| #|K|.
 Proof.
 case sylow1_cor => H Hh.
-suff ->: #|gsylow K| = #|orbit (gconj_action gT) K H|.
-  exact: card_orbit_div.
+suff ->: #|gsylow K| = #|orbit 'JG%act K H| by exact: card_orbit_div.
 apply: eq_card => L; apply/idP/idP; last first.
   by case/orbitP => y Hy <- /=; rewrite /gsylow -topredE /= -sylow_sconjgr.
-case/(sylow2_cor Hh) => y [Hy HH].
-by apply/orbitP; exists y; last exact: val_inj.
+case/(sylow2_cor Hh) => y Hy [HH].
+by apply/orbitP; exists y.
 Qed.
 
 End Sylow.
@@ -430,45 +412,22 @@ Lemma sylow3_mod : #|gsylow p K| %% p = 1%N.
 Proof.
 case (sylow1_cor K prime_p) => H Hh.
 case/andP: (Hh) => F2 F3.
-rewrite -(eq_card (in_set (gsylow p K))).
-rewrite (mpl prime_p (eqP F3) (to := gconj_action gT)); last first.
-  move => L1 L2 /=.
-  rewrite !inE.
-  case/imsetP => x Hx1 ->; apply: sylow_sconjgr.
-  exact: (subsetP F2).
-rewrite -(@modn_small 1%N p); last by case: p prime_p => //=; case.
-congr (_ %% _).
-set S0 := predI _ _.
-have F5: H \in S0.
-  apply/andP; split; last by rewrite /= inE.
-  apply/act_fixP => x Hx; apply: group_inj; exact: conjGid.
-have F6: forall x, x \in S0 -> x = H.
-  move => L; case/andP; move/act_fixP.
-  rewrite /= inE /= => Hl Hl1.
-  case/andP: (Hl1) => Hl3 Hl4.
-  pose nLK := ('N(L) :&: K)%G.
-  have F7: H \subset nLK. 
-    apply/subsetP => y Hy.
-    rewrite inE; apply/andP; split; last exact: (subsetP F2).    
-    by rewrite inE /= -{2}(Hl _ Hy) subset_refl.
-  have F8 : sylow p nLK H.
-    apply: (@sylow_subset _ _ K)  => //.
-    apply/subsetP => y.
-    by rewrite inE; case/andP.
-  have F9 : sylow p nLK L.
-    apply: (sylow_subset (K := K)) => //;
-      last by apply/subsetP => y; rewrite inE; case/andP.
-    apply/subsetP => /= x Hx.
-    apply/setIP; split.
-      by apply: (subsetP (normG L)).
-    by apply: (subsetP Hl3).
-  case: (sylow2_cor prime_p F9 F8) => u [Hu Hu1].
-  apply: val_inj; rewrite /= Hu1.
-  by rewrite (normP _) //; case/setIP: Hu.
-rewrite (cardD1 H S0) F5.
-rewrite -[1%N]addn0; congr addn.
-apply: eq_card0 => x /=; rewrite inE /= inE /= andbC.
-case S0x: (x \in S0) => //; apply/eqP; exact: F6.
+pose Syl := [set P | gsylow p K P].
+suff <-: #|Syl| %% p = 1%N by rewrite cardsE.
+have: [acts (H | 'JG) on Syl].
+  apply: (subset_trans F2); apply/actsP=> x Kx P.
+  by rewrite !inE /gsylow /sylow card_conjg -{1}(conjGid Kx) conjSg.
+move/(mpl prime_p (eqP F3))->; rewrite -(([set H] =P _ :&: _) _).
+  by rewrite cards1 modn_small ?prime_gt1.
+rewrite eqset_sub {1}sub1set 2!inE /gsylow Hh /=; apply/andP; split.
+  by apply/afixP=> x Hx; apply: group_inj; exact: conjGid.
+apply/subsetP=> L; rewrite 2!{1}inE; case/andP=> sylL; move/afixP=> fixL.
+rewrite inE eq_sym -val_eqE eqset_sub_card /= (eqP F3).
+case: (andP sylL) => sLK; move/eqP->; rewrite leqnn andbT.
+have nLN: L <| 'N_K(L) by rewrite /(L <| _) subsetI sLK normG subsetIr.
+apply: sylow2_subset F3 _ (nLN) => //.
+  by rewrite subsetI F2; apply/normsP=> x Hx; rewrite -{2}(fixL x Hx).
+by apply: sylow_subset sylL; rewrite ?subsetIl //; case/andP: nLN.
 Qed.
 
 End Sylow3.
@@ -487,7 +446,7 @@ move=> gT G p p_pr; apply: (iffP idP) => [syl1 | [P sylP nPG]].
   by rewrite -(conjGid Gx) -sylow_sconjg.
 rewrite (cardD1 P) [P \in _]sylP eqSS; apply/pred0P=> Q /=.
 apply/andP=> [[nQP sylQ]]; case/eqP: nQP; apply: val_inj=> /=.
-case: (sylow2_cor p_pr sylP sylQ) => x [Gx ->{Q sylQ}].
+case: (sylow2_cor p_pr sylP sylQ) => x Gx ->{Q sylQ}.
 case/normalP: nPG => _; exact.
 Qed.
 
@@ -500,7 +459,5 @@ have: #|gsylow p G| == 1%N by apply/(normal_sylowP _ Pp); exists P.
 rewrite [_ \in _]Sp inE [predD1 _ _ _]/= [_ \in _]Sq.
 by case E1: (Q == P) => //; move/eqP: E1->.
 Qed.
-
-
 
 Unset Implicit Arguments.
