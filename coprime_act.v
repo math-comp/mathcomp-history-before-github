@@ -149,8 +149,8 @@ have iGN_A: #|N| %/ #|G :&: N| = #|A|.
   rewrite card_quotient // -group_divn //= norm_mulgenE //.
   by rewrite coprime_card_mulG 1?coprime_sym // divn_mull.
 have hallGN: hall N (G :&: N).
-  move: coGA; rewrite -(LaGrange (subsetIl G N)) coprime_mull.
-  by rewrite /hall subsetIr iGN_A; case/andP.
+  rewrite /hall -group_divn subsetIr //= iGN_A.
+  by move: coGA; rewrite -(LaGrange (subsetIl G N)) coprime_mull; case/andP.
 case/splitgP: {hallGN nGN_N}(SchurZass_split hallGN nGN_N) => B trBGN defN.
 have{trBGN iGN_A} oBA: #|B| = #|A|.
   by rewrite -iGN_A -{1}defN (card_mulG_trivP _ _ trBGN) divn_mulr.
@@ -412,7 +412,8 @@ Qed.
 Module AfterInner. End AfterInner.
 
 Definition quo_act (gT aT : finGroupType) (H : {set gT}) to :=
-  fun (Hx : coset H) (a : aT) => insubd Hx (to^~ a @: Hx).
+  fun (Hx : coset H) (a : aT) =>
+    if 'N_(|to)(H) == setT then insubd Hx (to^~ a @: Hx) else Hx.
 
 Prenex Implicits quo_act.
 

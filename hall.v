@@ -200,7 +200,7 @@ Definition hall_for pi (G H : {set gT}) :=
 Lemma hall_for_hall : forall pi (G H : {group gT}),
   hall_for pi G H -> hall G H.
 Proof.
-move=> pi G H; case/and3P=> sHG piH pi'H'; rewrite /hall sHG group_divn //.
+move=> pi G H; case/and3P=> sHG piH pi'H'; rewrite /hall sHG.
 have [Hpos H'pos]: 0 < #|H| /\ 0 < #|G : H|.
   by apply/andP; rewrite -ltn_0mul LaGrange.
 rewrite /coprime /= eqn_leq ltn_0gcd Hpos andbT leqNgt.
@@ -215,9 +215,8 @@ Qed.
 Lemma hall_hall_for : forall G H : {group gT},
   hall G H -> exists pi, hall_for pi G H.
 Proof.
-move=> G H; case/andP=> sHG; rewrite group_divn // => coHG.
-exists (mem (primes #|H|) : pred nat); apply/and3P; split=> //.
-  exact/allP.
+move=> G H; case/andP=> sHG coHG; exists (mem (primes #|H|) : pred nat).
+apply/and3P; split=> //; first exact/allP.
 apply/allP=> p; rewrite /= !mem_primes; case/and3P=> pr_p _ p_H'.
 rewrite pr_p pos_card_group /=; apply/negP=> p_H.
 by move/prime_gt1: pr_p; rewrite ltnNge dvdn_leq // -(eqnP coHG) dvdn_gcd.
