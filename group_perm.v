@@ -20,7 +20,7 @@ Import Prenex Implicits.
 
 (* group of permutations *)
 
-Section PermDef.
+Section PermDefSection.
 
 Variable T : finType.
 
@@ -42,16 +42,12 @@ Canonical Structure perm_for_eqType := Eval hnf in [eqType of pT].
 Canonical Structure perm_for_finType := Eval hnf in [finType of pT].
 Canonical Structure perm_for_subFinType := Eval hnf in [subFinType of pT].
 
-Definition fun_of_perm_def (u : perm) := val u : T -> T.
-
 Lemma perm_of_proof : forall f : T -> T, injective f -> injectiveb (ffun_of f).
 Proof.
 by move=> f f_inj; apply/injectiveP; apply: eq_inj f_inj _ => x; rewrite ffunE.
 Qed.
 
-Definition perm_of_def f f_inj : pT := Perm (@perm_of_proof f f_inj).
-
-End PermDef.
+End PermDefSection.
 
 Notation "{ 'perm' T }" := (perm_for (Phant T))
   (at level 0, format "{ 'perm'  T }") : type_scope.
@@ -59,12 +55,29 @@ Notation "{ 'perm' T }" := (perm_for (Phant T))
 Notation "''S_' n" := {perm 'I_n}
   (at level 8, n at level 2, format "''S_' n").
 
-Lemma fun_of_perm_key : unit. Proof. by []. Qed.
-Definition fun_of_perm := locked_with fun_of_perm_key fun_of_perm_def.
-Coercion fun_of_perm : perm >-> Funclass.
+Notation Local fun_of_perm_def := (fun T (u : perm T) => val u : T -> T).
+Notation Local perm_of_def := (fun T f injf => Perm (@perm_of_proof T f injf)).
 
-Lemma perm_of_key : unit. Proof. by []. Qed.
-Definition perm_of := locked_with perm_of_key perm_of_def.
+Module Type PermDefSig.
+Parameter fun_of_perm : forall T, perm T -> T -> T.
+Parameter perm_of : forall (T : finType) (f : T -> T), injective f -> {perm T}.
+Axiom fun_of_permE : fun_of_perm = fun_of_perm_def.
+Axiom perm_ofE : perm_of = perm_of_def.
+End PermDefSig.
+Module PermDef : PermDefSig.
+Definition fun_of_perm := fun_of_perm_def.
+Definition perm_of := perm_of_def.
+Lemma fun_of_permE : fun_of_perm = fun_of_perm_def. Proof. by []. Qed.
+Lemma perm_ofE : perm_of = perm_of_def. Proof. by []. Qed.
+End PermDef.
+
+Coercion PermDef.fun_of_perm : perm >-> Funclass.
+Notation fun_of_perm := PermDef.fun_of_perm.
+Notation "@ 'perm_of'" := (@PermDef.perm_of)
+  (at level 10, format "@ 'perm_of'").
+Notation perm_of := (@PermDef.perm_of _ _).
+Canonical Structure fun_of_perm_unlock := Unlockable PermDef.fun_of_permE.
+Canonical Structure perm_of_unlock := Unlockable PermDef.perm_ofE.
 
 Section Theory.
 
@@ -74,15 +87,15 @@ Notation pT := {perm T}.
 
 Lemma permP : forall u v : pT, u =1 v <-> u = v.
 Proof.
-move=> u v; split=> [| -> //]; rewrite /fun_of_perm unlock => eq_uv.
+move=> u v; split=> [| -> //]; rewrite unlock => eq_uv.
 by apply: val_inj; apply/ffunP.
 Qed.
 
 Lemma pvalE : forall u : pT, pval u = u :> (T -> T).
-Proof. by rewrite /fun_of_perm unlock. Qed.
+Proof. by rewrite [@fun_of_perm _]unlock. Qed.
 
 Lemma permE : forall f f_inj, @perm_of T f f_inj =1 f.
-Proof. by move=> f f_inj x; rewrite -pvalE /perm_of unlock ffunE. Qed.
+Proof. by move=> f f_inj x; rewrite -pvalE [@perm_of _]unlock ffunE. Qed.
 
 Lemma perm_inj : forall u : pT, injective u.
 Proof. move=> u; rewrite -!pvalE; exact: (injectiveP _ (valP u)). Qed.

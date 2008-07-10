@@ -174,8 +174,20 @@ Open Scope big_scope.
 
 Definition reducebig_rec R I op nil r (P : pred I) (F : I -> R) : R :=
   foldr (fun i x => if P i then op (F i) x else x) nil r.
-Lemma big_key : unit. Proof. by []. Qed.
-Definition reducebig := locked_with big_key reducebig_rec.
+
+Module Type ReduceBigSig.
+Parameter reducebig : forall R I,
+   (R -> R -> R) -> R -> seq I -> pred I -> (I -> R) -> R.
+Axiom reducebigE : reducebig = reducebig_rec.
+End ReduceBigSig.
+
+Module ReduceBig : ReduceBigSig.
+Definition reducebig := reducebig_rec.
+Lemma reducebigE : reducebig = reducebig_rec. Proof. by []. Qed.
+End ReduceBig.
+
+Notation reducebig := ReduceBig.reducebig.
+Canonical Structure reduce_big_unlock := Unlockable ReduceBig.reducebigE.
 
 Definition index_iota m n := iota m (n - m).
 
@@ -345,9 +357,7 @@ Variable I : Type.
 
 Lemma big_filter : forall r (P : pred I) F,
   \big[op/nil]_(i <- filter P r) F i = \big[op/nil]_(i <- r | P i) F i.
-Proof.
-by rewrite /reducebig unlock => r P F; elim: r => //= i r <-; case (P i).
-Qed.
+Proof. by rewrite unlock => r P F; elim: r => //= i r <-; case (P i). Qed.
 
 Lemma big_filter_cond : forall r (P1 P2 : pred I) F,
   \big[op/nil]_(i <- filter P1 r | P2 i) F i
@@ -366,7 +376,7 @@ Qed.
 Lemma eq_bigr : forall r (P : pred I) F1 F2, {in SimplPred P, F1 =1 F2} ->
   \big[op/nil]_(i <- r | P i) F1 i = \big[op/nil]_(i <- r | P i) F2 i.
 Proof.
-move=> r P F1 F2 eqF12; rewrite /reducebig unlock.
+move=> r P F1 F2 eqF12; rewrite unlock.
 by elim: r => //= x r ->; case Px: (P x); rewrite // eqF12.
 Qed.
 
@@ -382,17 +392,17 @@ Proof. move=> r1 r2 P1 P2 F1 F2 <-{r2}; exact: eq_big. Qed.
 
 Lemma big_seq0 : forall (P : pred I) F,
   \big[op/nil]_(i <- [::] | P i) F i = nil.
-Proof. by rewrite /reducebig unlock. Qed.
+Proof. by rewrite unlock. Qed.
 
 Lemma big_adds : forall i r (P : pred I) F,
   let x := \big[op/nil]_(j <- r | P j) F j in
   \big[op/nil]_(j <- i :: r | P j) F j = if P i then op (F i) x else x.
-Proof. by rewrite /reducebig unlock. Qed.
+Proof. by rewrite unlock. Qed.
 
 Lemma big_maps : forall (J : eqType) (h : J -> I) r F (P : pred I),
   \big[op/nil]_(i <- maps h r | P i) F i
      = \big[op/nil]_(j <- r | P (h j)) F (h j).
-Proof. by rewrite /reducebig unlock => J h r P F; elim: r => //= j r ->. Qed.
+Proof. by rewrite unlock => J h r P F; elim: r => //= j r ->. Qed.
 
 Lemma big_sub : forall x0 r (P : pred I) F,
   \big[op/nil]_(i <- r | P i) F i
@@ -419,9 +429,7 @@ Proof. move=> r P F; move/eq_bigl->; exact: big_pred0_eq. Qed.
 Lemma big_cat_nested : forall r1 r2 (P : pred I) F,
   let x := \big[op/nil]_(i <- r2 | P i) F i in
   \big[op/nil]_(i <- r1 ++ r2 | P i) F i = \big[op/x]_(i <- r1 | P i) F i.
-Proof.
-by move=> r1 r2 P F; rewrite /reducebig unlock /reducebig_rec foldr_cat.
-Qed.
+Proof. by move=> r1 r2 P F; rewrite unlock /reducebig_rec foldr_cat. Qed.
 
 Lemma big_catl : forall r1 r2 (P : pred I) F, ~~ has P r2 ->
   \big[op/nil]_(i <- r1 ++ r2 | P i) F i = \big[op/nil]_(i <- r1 | P i) F i.
@@ -436,9 +444,7 @@ Qed.
 
 Lemma big_const_seq : forall r (P : pred I) x,
   \big[op/nil]_(i <- r | P i) x = iter (count P r) (op x) nil.
-Proof.
-by rewrite /reducebig unlock => r P x; elim: r => //= i r ->; case: (P i).
-Qed.
+Proof. by rewrite unlock => r P x; elim: r => //= i r ->; case: (P i). Qed.
 
 End SeqExtension.
 
@@ -668,14 +674,13 @@ by move=> I r P F eqF1; rewrite big_cond_seq (eq_bigr _ _ _ eqF1) big1_eq.
 Qed.
 
 Lemma big_seq1 : forall I (i : I) F, \big[*%M/1]_(j <- [:: i]) F j = F i.
-Proof. by rewrite /reducebig unlock => /= *; rewrite mulm1. Qed.
+Proof. by rewrite unlock => /= *; rewrite mulm1. Qed.
 
 Lemma big_mkcond : forall I r (P : pred I) F,
   \big[*%M/1]_(i <- r | P i) F i =
      \big[*%M/1]_(i <- r) (if P i then F i else 1).
 Proof.
-rewrite /reducebig unlock => I r P F; elim: r => //= i r ->.
-by case (P i); rewrite ?mul1m.
+by rewrite unlock => I r P F; elim: r => //= i r ->; case P; rewrite ?mul1m.
 Qed.
 
 Lemma big_cat : forall I r1 r2 (P : pred I) F,
@@ -756,7 +761,7 @@ Lemma big_split : forall I r (P : pred I) F1 F2,
   \big[*%M/1]_(i <- r | P i) (F1 i * F2 i) =
     \big[*%M/1]_(i <- r | P i) F1 i * \big[*%M/1]_(i <- r | P i) F2 i.
 Proof.
-rewrite /reducebig unlock => I r P F1 F2.
+rewrite unlock => I r P F1 F2.
 elim: r => /= [|i r ->]; [by rewrite mulm1 | case: (P i) => //=].
 rewrite !mulmA; congr (_ * _); exact: mulmAC.
 Qed.
@@ -963,8 +968,7 @@ Hypothesis (Pb_nil : Pb nil)
 Lemma big_prop : forall I r (P : pred I) F,
   (forall i, P i -> Pb (F i)) -> Pb (\big[op1/nil]_(i <- r | P i) F i).
 Proof.
-rewrite /reducebig unlock => I r P F PbF.
-by elim: r => //= i *; case Pi: (P i); auto.
+by rewrite unlock => I r P F PbF; elim: r => //= i *; case Pi: (P i); auto.
 Qed.
 
 (* The lemma below is propably unusable, because second-order unification *)
@@ -979,7 +983,7 @@ Lemma eq_big_op :  forall I r (P : pred I) F,
    (forall i, P i -> Pb (F i)) ->
   \big[op1/nil]_(i <- r | P i) F i = \big[op2/nil]_(i <- r | P i) F i.
 Proof.
-have:= big_prop; rewrite /reducebig unlock => Pb_big I r P F Pb_F.
+have:= big_prop; rewrite unlock => Pb_big I r P F Pb_F.
 by elim: r => //= i r <-; case Pi: (P i); auto.
 Qed.
 
@@ -1005,7 +1009,7 @@ Lemma big_rel : forall I r (P : pred I) F1 F2,
   (forall i, (P i) -> Pr (F1 i) (F2 i)) ->
   Pr (\big[op/nil]_(i <- r | P i) F1 i) (\big[op/nil]_(i <- r | P i) F2 i).
 Proof.
-rewrite /reducebig unlock => I r P F1 F2 PrF.
+rewrite unlock => I r P F1 F2 PrF.
 by elim: r => //= i *; case Pi: (P i); auto.
 Qed.
 
@@ -1032,7 +1036,7 @@ Lemma big_morph : forall I r (P : pred I) F,
      \big[op2/nil2]_(i <- r | P i) phi (F i).
 Proof.
 case: phi_morphism => [phi1 phiM] I r P F.
-by rewrite /reducebig unlock; elim: r => //= i r <-; case: (P i).
+by rewrite !unlock; elim: r => //= i r <-; case: (P i).
 Qed.
 
 End Morphism.

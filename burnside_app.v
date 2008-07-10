@@ -178,7 +178,7 @@ apply: (mulg_injr sd2); rewrite mulVg; apply/permP.
 by case; do 4?case=> //=; move=> H; rewrite !permE /= !permE; apply/eqP.
 Qed.
 
-Lemma ord_enum4: enum {'I_4} = [:: c0; c1; c2; c3].
+Lemma ord_enum4: enum 'I_4 = [:: c0; c1; c2; c3].
 Proof. by apply: (inj_maps val_inj); rewrite val_enum_ord. Qed.
 
 Lemma diff_id_sh: 1 != sh.
@@ -674,10 +674,7 @@ Definition prod_tuple (t1 t2 : seq cube) :=
   maps (fun n : 'I_6 => sub F0 t2 n) t1.
 
 Lemma sop_spec : forall x (n0 : 'I_6), sub F0 (sop x) n0 = x n0.
-Proof.
-move=> x n0; rewrite -pvalE /fun_of_ffun /= unlock /fun_of_ffun_def.
-by rewrite (tsub_sub F0) enum_rank_ord.
-Qed.
+Proof. by move=> x n0; rewrite -pvalE unlock enum_rank_ord (tsub_sub F0). Qed.
 
 Lemma prod_t_correct : forall (x y : {perm cube}) (i : cube),
   (x * y) i = sub F0 (prod_tuple (sop x) (sop y)) i.

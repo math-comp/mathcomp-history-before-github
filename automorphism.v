@@ -109,8 +109,6 @@ Proof. by move=> x Bx; rewrite /= permE Bx. Qed.
 
 End PermOnOf.
 
-Prenex Implicits perm_of.
-
 Section AutOf.
 
 Variables (gT : finGroupType) (G : {group gT}) (f : {morphism G >-> gT}).

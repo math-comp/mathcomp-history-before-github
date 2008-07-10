@@ -64,7 +64,7 @@ Variables m n : nat.
 (* mostly inferred automatically; we may have to reconsider this design   *)
 (* if it proves too unwieldly for block decomposition theory.             *)
 
-CoInductive matrix : Type := Matrix of {ffun 'I_m * 'I_n -> R}.
+CoInductive matrix : predArgType := Matrix of {ffun 'I_m * 'I_n -> R}.
 
 Notation "''M_' ( m , n )" := (matrix m n).
 Notation "''M_' ( n )" := 'M_(n, n).
@@ -663,7 +663,7 @@ move=> A i0 j0; rewrite (reindex (fun s => ls i0 s j0)); last first.
 rewrite /cofactor big_distrr /=.
 apply: eq_big => [s | s _]; first by rewrite permE lsfE eqxx.
 rewrite mulrCA mulrA -{}sign_ls; congr (_ * _).
-case: (pickP {'I_(n.-1)}) => [k'0 _ | r'0]; last first.
+case: (pickP 'I_(n.-1)) => [k'0 _ | r'0]; last first.
   rewrite !big_pred0 // => k; apply/idP; case/unlift_some=> k'.
   by have:= r'0 k'.
 rewrite (reindex (lift i0)).

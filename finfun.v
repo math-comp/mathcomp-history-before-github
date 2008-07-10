@@ -25,21 +25,36 @@ Definition fgraph f := let: Finfun t := f in t.
 
 Canonical Structure finfun_subType := NewType fgraph finfun_rect vrefl.
 
-Definition fun_of_ffun_def f x := tsub (fgraph f) (enum_rank x).
-
-Definition ffun_of_def f := Finfun [tuple of maps f (enum aT)].
-
 End Def.
-
-Lemma fun_of_ffun_key : unit. Proof. by []. Qed.
-Definition fun_of_ffun := locked_with fun_of_ffun_key fun_of_ffun_def.
-Coercion fun_of_ffun : finfun >-> Funclass.
-
-Lemma ffun_of_key : unit. Proof. by []. Qed.
-Definition ffun_of := locked_with ffun_of_key ffun_of_def.
 
 Notation "{ 'ffun' fT }" := (finfun_for (Phant fT))
   (at level 0, format "{ 'ffun'  '[hv' fT ']' }") : type_scope.
+
+Notation Local fun_of_ffun_def :=
+  (fun aT rT f x => tsub (@fgraph aT rT f) (enum_rank x)).
+
+Notation Local ffun_of_def :=
+  (fun aT rT f => @Finfun aT rT [tuple of maps f (enum aT)]).
+
+Module Type FunFfunSig.
+Parameter fun_of_ffun : forall aT rT, finfun aT rT -> aT -> rT.
+Parameter ffun_of : forall (aT : finType) rT, (aT -> rT) -> {ffun aT -> rT}.
+Axiom fun_of_ffunE : fun_of_ffun = fun_of_ffun_def.
+Axiom ffun_ofE : ffun_of = ffun_of_def.
+End FunFfunSig.
+
+Module FunFfun : FunFfunSig.
+Definition fun_of_ffun := fun_of_ffun_def.
+Definition ffun_of := ffun_of_def.
+Lemma fun_of_ffunE : fun_of_ffun = fun_of_ffun_def. Proof. by []. Qed.
+Lemma ffun_ofE : ffun_of = ffun_of_def. Proof. by []. Qed.
+End FunFfun.
+
+Coercion FunFfun.fun_of_ffun : finfun >-> Funclass.
+Notation fun_of_ffun := FunFfun.fun_of_ffun.
+Notation ffun_of := FunFfun.ffun_of.
+Canonical Structure fun_of_ffun_unlock := Unlockable FunFfun.fun_of_ffunE.
+Canonical Structure ffun_of_unlock := Unlockable FunFfun.ffun_ofE.
 
 Notation "[ 'ffun' x : aT => F ]" := (ffun_of (fun x : aT => F))
   (at level 0, x ident, only parsing) : fun_scope.
@@ -62,13 +77,13 @@ Canonical Structure finfun_for_subType := Eval hnf in [subType of fT].
 
 Lemma ffunE : forall f : aT -> rT, ffun_of f =1 f.
 Proof.
-move=> f x; rewrite /fun_of_ffun /ffun_of !unlock /fun_of_ffun_def /=.
-by rewrite tsub_maps -[tsub _ _]enum_val_sub enum_rankK.
+move=> f x; rewrite [@ffun_of _]unlock unlock tsub_maps.
+by rewrite -[tsub _ _]enum_val_sub enum_rankK.
 Qed.
 
 Lemma fgraph_maps : forall f : fT, fgraph f = [tuple of maps f (enum aT)].
 Proof.
-move=> f; apply: eq_from_tsub => i; rewrite /fun_of_ffun unlock tsub_maps.
+move=> f; apply: eq_from_tsub => i; rewrite [@fun_of_ffun _]unlock tsub_maps.
 by congr tsub; rewrite -[tsub _ _]enum_val_sub enum_valK.
 Qed.
 

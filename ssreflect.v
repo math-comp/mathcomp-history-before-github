@@ -158,6 +158,7 @@ CoInductive phant (p : Type) : Type := Phant.
 
 Definition protect_term (A : Type) (x : A) : A := x.
 
+(* TODO: update comment. *)
 (** Term tagging (user-level).                                              *)
 (* We provide two strengths of term tagging :                               *)
 (*  - (nosimpl t) simplifies to t EXCEPT in a definition; more precisely,   *)
@@ -181,17 +182,39 @@ Definition protect_term (A : Type) (x : A) : A := x.
 (* Addendum: it appears that the use of a generic key confuses the term     *)
 (* comparison heuristic of the Coq kernel, which thinks all locked terms    *)
 (* have the same "head constant", and therefore immediately jumps to        *)
-(* comparing their LAST argument. As a stopgap, we suggest defining keys    *)
-(* specific to each locked constant, and we provide a locked_with function  *)
-(* that does the required locking, and an unlock rewrite rule that removes  *)
-(* it (locked_with is not yet supported by the unlock tactic).              *)
+(* comparing their LAST argument. Furthermore, Coq still needs to delta     *)
+(* expand a locked constant when comparing unequal terms, and, given the    *)
+(* total absence of caching of comparisons, this causes an exponential      *)
+(* blowup in comparisons that return false on terms that are built from     *)
+(* many combinators, which is quite common in a modular development.        *)
+(*   As a stopgap, we use the module system to create opaque constants      *)
+(* with an expansion lemma; this is pretty clumsy because design of the     *)
+(* module language does not support such small-scale usage very well. See   *)
+(* the definiiton of card and subset in fintype.v for examples of this.     *)
+(*   Of course the unlock tactic will not support the expansion of this new *)
+(* kind of opaque constants; to compensate for that we use "unlockable"     *)
+(* canonical structures to store the expansion lemmas, which can then be    *)
+(* retrieved by a generic "unlock" rewrite rule. Note that because of a     *)
+(* technical limitation of the implementation of canonical projection       *)
+(* in ssreflect 1.1, unlock must weaken the intensional equality between    *)
+(* the constant and its definition to an extensional one.                   *)
 
 Notation "'nosimpl' t" := (let: tt := tt in t) (at level 10, t at level 8).
 
+(* To unlock opaque constants. *)
+Structure unlockable (T : Type) (v : T) : Type :=
+  Unlockable {unlocked : T; _ : unlocked = v}.
+
+Lemma unlock : forall aT rT (f : forall x : aT, rT x) (u : unlockable f) x,
+  unlocked u x = f x.
+Proof. move=> aT rT f [u /= ->]; split. Qed.
+
+(*
 Definition locked_with key A := let: tt := key in fun x : A => x.
 
 Lemma unlock : forall key A, @locked_with key A = (fun x => x).
 Proof. case; split. Qed.
+*)
 
 Lemma master_key : unit. Proof. exact tt. Qed.
 

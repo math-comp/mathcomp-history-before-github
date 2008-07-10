@@ -97,10 +97,21 @@ Coercion finmod.sort : finType >-> predArgType.
 End MakeFinTypePred.
 Module FinTypePred := MakeFinTypePred FinType.
 
-Definition card_def (T : finType) (A : mem_pred T) :=
-  count (A : pred_class) (FinType.enum T).
-Lemma card_key : unit. Proof. by []. Qed.
-Definition card := locked_with card_key card_def.
+Notation Local card_def := 
+  (fun (T : finType) (A : mem_pred T) => count (A : pred T) (FinType.enum T)).
+
+Module Type CardSig.
+Parameter card : forall (T : finType) (A : mem_pred T), nat.
+Axiom cardE : card = card_def.
+End CardSig.
+
+Module Card : CardSig.
+Definition card := card_def.
+Lemma cardE : card = card_def. Proof. by []. Qed.
+End Card.
+
+Notation card := Card.card.
+Canonical Structure card_unlock := Unlockable Card.cardE.
 
 Notation "#| A |" := (card (mem A))
   (at level 0, A at level 99, format "#| A |") : nat_scope.
@@ -119,14 +130,10 @@ Definition pick (p : pred T) := if enum p is x :: _ then Some x else None.
 Definition pred0b (p : pred T) := #|p| == 0.
 
 Definition disjoint (A B : mem_pred T) := pred0b (predI A B).
-Definition subset_def (A B : mem_pred T) := pred0b (predD A B).
 
 End OpsDef.
 
 Prenex Implicits enum pick pred0b.
-
-Lemma sub_key : unit. Proof. by []. Qed.
-Definition subset := locked_with sub_key subset_def.
 
 Notation "[ 'pick' x | P ]" := (pick [pred x | P])
   (at level 0, x ident, format "[ 'pick'  x  |  P  ]") : form_scope.
@@ -137,10 +144,27 @@ Notation "[ 'pick' x \in A ]" := (pick [pred x | x \in A])
 Notation "[ 'pick' x \in A | P ]" := (pick [pred x | (x \in A) && P])
   (at level 0, x ident, format "[ 'pick'  x  \in  A  |  P  ]") : form_scope.
 
-Notation "A \subset B" := (subset (mem A) (mem B))
-  (at level 70, no associativity, format "A  \subset  B") : bool_scope.
 Notation "[ 'disjoint' A & B ]" := (disjoint (mem A) (mem B))
   (at level 0, format "[ 'disjoint'  A  &  B ]") : bool_scope.
+
+Notation Local subset_def :=
+  (fun (T : finType) (A B : mem_pred T) => pred0b (predD A B)).
+
+Module Type SubsetSig.
+Parameter subset : forall (T : finType) (A B : mem_pred T), bool.
+Axiom subsetE : subset = subset_def.
+End SubsetSig.
+
+Module Subset : SubsetSig.
+Definition subset := subset_def.
+Lemma subsetE : subset = subset_def. Proof. by []. Qed.
+End Subset.
+
+Notation subset := Subset.subset.
+Canonical Structure subset_unlock := Unlockable Subset.subsetE.
+
+Notation "A \subset B" := (subset (mem A) (mem B))
+  (at level 70, no associativity, format "A  \subset  B") : bool_scope.
 
 Section OpsTheory.
 
@@ -195,7 +219,7 @@ End EnumPick.
 Section Card.
 
 Lemma cardE : forall A : pred T, #|A| = size (enum A).
-Proof. by move=> A; rewrite /card unlock /card_def -count_filter. Qed.
+Proof. by move=> A; rewrite unlock -count_filter. Qed.
 
 Lemma eq_card : forall A1 A2 : pred T, A1 =i A2 -> #|A1| = #|A2|.
 Proof. by move=> A1 A2 eqA12; rewrite !cardE (@eq_enum A1 A2 eqA12). Qed.
@@ -222,7 +246,7 @@ Proof. by move=> x; have:= eq_card_trans (card1 x). Qed.
 
 Lemma cardUI : forall A B : pred T,
   #|[predU A & B]| + #|[predI A & B]| = #|A| + #|B|.
-Proof. by rewrite /card unlock => A B; exact: count_predUI. Qed.
+Proof. by move=> A B; rewrite !unlock count_predUI. Qed.
 
 Lemma cardID : forall B A : pred T, #|[predI A & B]| + #|[predD A & B]| = #|A|.
 Proof.
@@ -232,7 +256,7 @@ by rewrite !inE /= !inE /= -!andbA andbC andbA andbN.
 Qed.
 
 Lemma cardC : forall A : pred T, #|A| + #|[predC A]| = #|T|.
-Proof. rewrite /card unlock => A; exact: count_predC. Qed.
+Proof. by move=> A; rewrite !unlock count_predC. Qed.
 
 Lemma cardU1 : forall x (A : pred T), #|[predU1 x & A]| = (x \notin A) + #|A|.
 Proof.
@@ -292,7 +316,7 @@ Qed.
 
 Lemma subsetP : forall A B : pred T, reflect {subset A <= B} (A \subset B).
 Proof.
-rewrite /subset unlock => A B; apply: (iffP (pred0P _)) => [AB0 x | sAB x /=].
+move=> A B; rewrite unlock; apply: (iffP (pred0P _)) => [AB0 x | sAB x /=].
   by apply/implyP; apply/idPn; rewrite negb_imply andbC [_ && _]AB0.
 by rewrite andbC -negb_imply; apply: (introNf implyP); move/sAB.
 Qed.
@@ -300,22 +324,20 @@ Qed.
 Lemma subsetPn : forall A B : pred T,
   reflect (exists2 x, x \in A & x \notin B) (~~ (A \subset B)).
 Proof.
-rewrite /subset unlock => A B; apply: (iffP (pred0Pn _)) => [[x] | [x Ax nBx]].
+move=> A B; rewrite unlock; apply: (iffP (pred0Pn _)) => [[x] | [x Ax nBx]].
   by case/andP; exists x.
 by exists x; rewrite /= nBx.
 Qed.
 
 Lemma subset_leq_card : forall A B : pred T, A \subset B -> #|A| <= #|B|.
 Proof.
-rewrite /subset unlock => A B; move/pred0P=> sAB.
+move=> A B; rewrite unlock; move/pred0P=> sAB.
 rewrite -(leq_add2r #|predC B|) cardC addnC -cardUI addnC.
 by rewrite (eq_card0 sAB) ?max_card.
 Qed.
 
 Lemma subset_refl_hint : forall A : mem_pred T, subset A A.
-Proof.
-case=> A; have:= introT (subsetP A A); rewrite /subset unlock; exact.
-Qed.
+Proof. case=> A; have:= introT (subsetP A A); rewrite !unlock; exact. Qed.
 Hint Resolve subset_refl_hint.
 
 Lemma subset_refl : forall A : pred T, A \subset A.
@@ -324,14 +346,14 @@ Proof. by []. Qed.
 Lemma eq_subset : forall A1 A2 : pred T,
   A1 =i A2 -> subset (mem A1) =1 subset (mem A2).
 Proof.
-rewrite /subset unlock => A1 A2 eqA12 [B]; congr (_ == 0).
+move=> A1 A2 eqA12 [B]; rewrite !unlock; congr (_ == 0).
 by apply: eq_card => x; rewrite inE /= eqA12.
 Qed.
 
 Lemma eq_subset_r : forall B1 B2 : pred T, B1 =i B2 ->
   (@subset T)^~ (mem B1) =1 (@subset T)^~ (mem B2).
 Proof.
-rewrite /subset unlock => B1 B2 eqB12 [A]; congr (_ == 0).
+move=> B1 B2 eqB12 [A]; rewrite !unlock; congr (_ == 0).
 by apply: eq_card => x; rewrite !inE /= eqB12.
 Qed.
 
@@ -405,7 +427,7 @@ Qed.
 
 Lemma subset_disjoint : forall A B : pred T,
   (A \subset B) = [disjoint A & [predC B]].
-Proof. by move=> A B; rewrite disjoint_sym /subset unlock. Qed.
+Proof. by move=> A B; rewrite disjoint_sym unlock. Qed.
 
 Lemma disjoint_subset : forall A B : pred T,
   [disjoint A & B] = (A \subset [predC B]).
@@ -457,7 +479,7 @@ Lemma disjoint_has : forall (s : seq T) (A : pred T),
 Proof.
 move=> s A; rewrite -(@eq_has _ (mem (enum A))) => [|x]; last exact: mem_enum.
 rewrite has_sym has_filter -filter_predI -has_filter has_count lt0n negbK.
-by rewrite /disjoint /pred0b /card unlock.
+by rewrite /disjoint /pred0b unlock.
 Qed.
 
 Lemma disjoint_cat : forall (s1 s2 : seq T) (A : pred T),
@@ -734,7 +756,7 @@ Canonical Structure bool_finType := Eval hnf in mkFinType bool_enumP.
 Canonical Structure bool_for_eqType := Eval hnf in [eqType of {bool}].
 Canonical Structure bool_for_finType := Eval hnf in [finType of {bool}].
 
-Lemma card_bool : #|{bool}| = 2. Proof. by rewrite /card unlock. Qed.
+Lemma card_bool : #|{bool}| = 2. Proof. by rewrite unlock. Qed.
 
 Section OptionFinType.
 
@@ -830,7 +852,7 @@ Notation Local "#| > A |" := (@card fT (mem A)) (at level 0).
 Lemma card_sub : #|>sT| = #|[pred x | P x]|.
 Proof.
 case/enumerationP: sub_enumeration => Ue; move/(@eq_card fT) <-.
-by rewrite (@card_uniqP fT _ Ue) size_pmap_sub enumE /card unlock.
+by rewrite (@card_uniqP fT _ Ue) size_pmap_sub enumE unlock.
 Qed.
 
 Lemma eq_card_sub : forall A : pred sT,
@@ -861,7 +883,7 @@ Section OrdinalSub.
 
 Variable n : nat.
 
-Inductive ordinal : Type := Ordinal m of m < n.
+Inductive ordinal : predArgType := Ordinal m of m < n.
 
 Coercion nat_of_ord i := let: Ordinal m _ := i in m.
 
@@ -892,15 +914,25 @@ End OrdinalSub.
 Notation "''I_' n" := (ordinal n)
   (at level 8, n at level 2, format "''I_' n").
 
-(* To use ordinals as predicates, e. g., in #|{'I_n}| *)
+(* To use ordinals as predicates, e. g., in #|{'I_n}|
 Notation "{ ''I_' n }" := ('I_n : predArgType)
   (at level 0, n at level 2, format "{ ''I_' n }").
-
+*)
 Hint Resolve ltn_ord.
 
-Lemma ordinal_key : unit. Proof. by []. Qed.
-Definition ord_enum : forall n, {enumMixin 'I_n} :=
-  locked_with ordinal_key (fun n => EnumMixin (@ord_enumeration n)).
+Notation Local ord_enum_def := (fun n => EnumMixin (@ord_enumeration n)).
+Module Type OrdEnumSig.
+Parameter ord_enum : forall n, {enumMixin 'I_n}.
+Axiom ord_enumE : ord_enum = ord_enum_def.
+End OrdEnumSig.
+
+Module OrdEnum : OrdEnumSig.
+Definition ord_enum := ord_enum_def.
+Lemma ord_enumE : ord_enum = ord_enum_def. Proof. by []. Qed.
+End OrdEnum.
+
+Notation ord_enum := OrdEnum.ord_enum.
+Canonical Structure ord_enum_unlock := Unlockable OrdEnum.ord_enumE.
 
 Canonical Structure ordinal_finType n := FinClass (FinMixin (ord_enum n)).
 Canonical Structure ordinal_subFinType n := Eval hnf in [subFinType of 'I_n].
@@ -909,24 +941,24 @@ Section OrdinalEnum.
 
 Variable n : nat.
 
-Lemma val_enum_ord : maps val (enum {'I_n}) = iota 0 n.
-Proof. by rewrite enumE /= /ord_enum unlock val_ord_enum_val. Qed.
+Lemma val_enum_ord : maps val (enum 'I_n) = iota 0 n.
+Proof. by rewrite enumE /= unlock val_ord_enum_val. Qed.
 
-Lemma size_enum_ord : size (enum {'I_n}) = n.
+Lemma size_enum_ord : size (enum 'I_n) = n.
 Proof. by rewrite -(size_maps val) val_enum_ord size_iota. Qed.
 
-Lemma card_ord : #|{'I_n}| = n.
+Lemma card_ord : #|'I_n| = n.
 Proof. by rewrite cardE size_enum_ord. Qed.
 
-Lemma sub_enum_ord : forall i0 m, m < n -> sub i0 (enum {'I_n}) m = m :> nat.
+Lemma sub_enum_ord : forall i0 m, m < n -> sub i0 (enum 'I_n) m = m :> nat.
 Proof.
 by move=> *; rewrite -(sub_maps _ 0) (size_enum_ord, val_enum_ord) // sub_iota.
 Qed.
 
-Lemma sub_ord_enum : forall i0 i : 'I_n, sub i0 (enum {'I_n}) i = i.
+Lemma sub_ord_enum : forall i0 i : 'I_n, sub i0 (enum 'I_n) i = i.
 Proof. move=> i0 i; apply: val_inj; exact: sub_enum_ord. Qed.
 
-Lemma index_enum_ord : forall i : 'I_n, index i (enum {'I_n}) = i.
+Lemma index_enum_ord : forall i : 'I_n, index i (enum 'I_n) = i.
 Proof.
 move=> i.
 by rewrite -{1}(sub_ord_enum i i) index_uniq ?(uniq_enum, size_enum_ord).
@@ -1153,7 +1185,7 @@ Proof. by move=> m lt_m; rewrite val_insubd lt_m. Qed.
 Lemma inord_val : forall i : 'I_n, inord i = i.
 Proof. by move=> i; rewrite /inord /insubd valK. Qed.
 
-Lemma enum_ordS : enum {'I_n} = ord0 :: maps (lift ord0) (enum {'I_(n.-1)}).
+Lemma enum_ordS : enum 'I_n = ord0 :: maps (lift ord0) (enum 'I_(n.-1)).
 Proof.
 apply: (inj_maps val_inj); rewrite val_enum_ord /= -maps_comp.
 by rewrite (maps_comp (addn 1)) val_enum_ord -iota_addl -{1}(@prednK n).
@@ -1195,7 +1227,7 @@ Canonical Structure prod_finType := FinClass (FinMixin prod_enum).
 Lemma cardX : forall (A1 : pred T1) (A2 : pred T2),
   #|[predX A1 & A2]| = #|A1| * #|A2|.
 Proof.
-move=> A1 A2; rewrite {1}/card unlock -predX_prod_enum_val.
+move=> A1 A2; rewrite unlock -predX_prod_enum_val.
 apply: perm_eqP; apply/allP=> x _; apply/eqP.
 by rewrite prod_enumeration FinType.enumP.
 Qed.

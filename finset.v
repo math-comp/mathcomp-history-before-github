@@ -29,10 +29,6 @@ Canonical Structure set_eqType := Eval hnf in [subEqType for ffun_of_set].
 Canonical Structure set_finType := Eval hnf in [finType of set by :>].
 Canonical Structure set_subFinType := Eval hnf in [subFinType of set].
 
-Definition set_of_def (P : pred T) : set := mkSet (ffun_of P).
-
-Definition pred_of_set_def (A : set) : T -> bool := val A.
-
 End SetType.
 
 Delimit Scope set_scope with SET.
@@ -44,9 +40,28 @@ Arguments Scope ffun_of_set [_ set_scope].
 Notation "{ 'set' T }" := (set_for (Phant T))
   (at level 0, format "{ 'set'  T }") : type_scope.
 
-Lemma set_of_key : unit. Proof. by []. Qed.
-Definition set_of : forall T : finType, pred T -> {set T} :=
-  locked_with set_of_key set_of_def.
+Notation Local set_of_def := (fun T P => @mkSet T (ffun_of P)).
+
+Notation Local pred_of_set_def := (fun T (A : set T) => val A : _ -> _).
+
+Module Type SetDefSig.
+Parameter set_of : forall T : finType, pred T -> {set T}.
+Parameter pred_of_set : forall T, set T -> pred_sort (predPredType T).
+Axiom set_ofE : set_of = set_of_def.
+Axiom pred_of_setE : pred_of_set = pred_of_set_def.
+End SetDefSig.
+
+Module SetDef : SetDefSig.
+Definition set_of := set_of_def.
+Definition pred_of_set := pred_of_set_def.
+Lemma set_ofE : set_of = set_of_def. Proof. by []. Qed.
+Lemma pred_of_setE : pred_of_set = pred_of_set_def. Proof. by []. Qed.
+End SetDef.
+
+Notation set_of := SetDef.set_of.
+Notation pred_of_set := SetDef.pred_of_set.
+Canonical Structure set_of_unlock := Unlockable SetDef.set_ofE.
+Canonical Structure pred_of_set_unlock := Unlockable SetDef.pred_of_setE.
 
 Notation "[ 'set' x : T | P ]" := (set_of (fun x : T => P))
   (at level 0, x at level 69, only parsing) : set_scope.
@@ -56,10 +71,6 @@ Notation "[ 'set' x \in A | P ]" := [set x | (x \in A) && P]
   (at level 0, x at level 69, format "[ 'set'  x  \in  A  |  P ]") : set_scope.
 Notation "[ 'set' x \in A ]" := [set x | x \in A]
   (at level 0, x at level 69, format "[ 'set'  x  \in  A ]") : set_scope.
-
-Lemma pred_of_set_key : unit. Proof. by []. Qed.
-Definition pred_of_set : forall T, set T -> pred_class :=
-  locked_with pred_of_set_key pred_of_set_def.
 
 (* This lets us use subtypes of set, like group or coset, as predicates. *)
 Coercion pred_of_set : set >-> pred_class.
@@ -138,14 +149,14 @@ Canonical Structure set_for_subType := Eval hnf in [subType of {set T}].
 Canonical Structure set_for_subFinType := Eval hnf in [subFinType of {set T}].
 
 Lemma in_set : forall P x, x \in set_of P = P x.
-Proof. by move=> P x; rewrite /set_of /pred_of_set !unlock [x \in _]ffunE. Qed.
+Proof. by move=> P x; rewrite [@set_of _]unlock unlock [x \in _]ffunE. Qed.
 
 Lemma in_setT : forall x, x \in setT. Proof. by move=> x; rewrite in_set. Qed.
 
 Lemma setP : forall A B : {set T}, A =i B <-> A = B.
 Proof.
 move=> A B; split=> [eqAB|-> //]; apply: val_inj; apply/ffunP=> x.
-by have:= eqAB x; rewrite /pred_of_set unlock.
+by have:= eqAB x; rewrite unlock.
 Qed.
 
 End BasicSetTheory.
@@ -298,7 +309,7 @@ Lemma set31 : forall a1 a2 a3, a1 \in [set a1; a2; a3].
 Proof. by move=> *; rewrite inE eqxx. Qed.
 
 Lemma set32 : forall a1 a2 a3, a2 \in [set a1; a2; a3].
-Proof. by move=> *; rewrite inE eqxx !orbT . Qed.
+Proof. by move=> *; rewrite inE eqxx !orbT. Qed.
 
 Lemma set33 : forall a1 a2 a3, a3 \in [set a1; a2; a3].
 Proof. by move=> *; rewrite inE eqxx !orbT. Qed.
@@ -690,6 +701,36 @@ Proof. by rewrite cardsE cardX. Qed.
 
 End CartesianProd.
 
+Notation Local imset_def :=
+  (fun (aT rT : finType) f (D : mem_pred aT) => [set y \in @image aT rT f D]).
+Notation Local imset2_def :=
+  (fun (aT1 aT2 rT : finType) f (D1 : mem_pred aT1) (D2 : mem_pred aT2) =>
+     [set y \in @image _ rT (prod_curry f) (@predX aT1 aT2 D1 D2)]).
+
+Module Type ImsetSig.
+Parameter imset : forall aT rT : finType,
+ (aT -> rT) -> mem_pred aT -> {set rT}.
+Parameter imset2 : forall aT1 aT2 rT : finType,
+ (aT1 -> aT2 -> rT) -> mem_pred aT1 -> mem_pred aT2 -> {set rT}.
+Axiom imsetE : imset = imset_def.
+Axiom imset2E : imset2 = imset2_def.
+End ImsetSig.
+
+Module Imset : ImsetSig.
+Definition imset := imset_def.
+Definition imset2 := imset2_def.
+Lemma imsetE : imset = imset_def. Proof. by []. Qed.
+Lemma imset2E : imset2 = imset2_def. Proof. by []. Qed.
+End Imset.
+
+Notation imset := Imset.imset.
+Notation imset2 := Imset.imset2.
+Canonical Structure imset_unlock := Unlockable Imset.imsetE.
+Canonical Structure imset2_unlock := Unlockable Imset.imset2E.
+Definition preimset (aT : finType) rT f (R : mem_pred rT) :=
+  [set x : aT | in_mem (f x) R].
+
+(*
 Section ImsetDef.
 
 Variables (aT aT2 rT : finType) (f : aT -> rT) (f2 : aT -> aT2 -> rT).
@@ -707,6 +748,7 @@ Lemma imset2_key : unit. Proof. by []. Qed.
 
 Definition imset := locked_with imset_key imset_def.
 Definition imset2 := locked_with imset2_key imset2_def.
+*)
 
 Notation "f @^-1: R" := (preimset f (mem R)) (at level 24) : set_scope.
 Notation "f @: D" := (imset f (mem D)) (at level 24) : set_scope.
@@ -723,7 +765,7 @@ Variables (f : aT -> rT) (f2 : aT -> aT2 -> rT).
 
 Lemma imsetP : forall D y,
   reflect (exists2 x, in_mem x D & y = f x) (y \in imset f D).
-Proof. move=> D y; rewrite /imset unlock inE; exact: imageP. Qed.
+Proof. move=> D y; rewrite [@imset _]unlock inE; exact: imageP. Qed.
 
 CoInductive imset2_spec D1 D2 y : Prop :=
   Imset2spec x1 x2 of in_mem x1 D1 & in_mem x2 D2 & y = f2 x1 x2.
@@ -731,7 +773,7 @@ CoInductive imset2_spec D1 D2 y : Prop :=
 Lemma imset2P : forall D1 D2 y,
   reflect (imset2_spec D1 D2 y) (y \in imset2 f2 D1 D2).
 Proof.
-move=> D1 D2 y; rewrite /imset2 unlock inE.
+move=> D1 D2 y; rewrite [@imset2 _]unlock inE.
 apply: (iffP (imageP _ _ _)) => [[[x1 x2] Dx12] | [x1 x2 Dx1 Dx2]] -> {y}.
   by case/andP: Dx12; exists x1 x2.
 by exists (x1, x2); rewrite //= Dx1.
@@ -876,7 +918,7 @@ Variables (f : aT -> rT) (g : rT -> aT) (f2 : aT -> aT2 -> rT).
 Variables (D : pred aT) (D2 : pred aT).
 
 Lemma imset_card : #|f @: D| = #|[image f of D]|.
-Proof. by rewrite /imset unlock cardsE. Qed.
+Proof. by rewrite [@imset _]unlock cardsE. Qed.
 
 Lemma leq_imset_card : #|f @: D| <= #|D|.
 Proof. by rewrite imset_card leq_image_card. Qed.
@@ -1073,7 +1115,7 @@ Lemma bigcupP : forall x,
 Proof.
 move=> x; apply: (iffP idP) => [|[i Pi]]; last first.
   apply: subsetP x; exact: bigcup_sup.
-rewrite /reducebig unlock; elim index_enum => [|i r IHi /=].
+rewrite [@reducebig _]unlock; elim index_enum => [|i r IHi /=].
   by rewrite inE.
 by case Pi: (P i); rewrite //= inE; case/orP; [exists i | exact: IHi].
 Qed.
@@ -1268,12 +1310,12 @@ Lemma card_dvdn_bigcup : forall (d d' : finType) (A : {set d})
   wdisjointn (mem A) [rel of S] ->
   (forall x, x \in A -> l %| #|S x|) -> l %| #|\bigcup_(i \in A) S i|.
 Proof.
-move => d d' A S l Ds Ch; rewrite /reducebig unlock /index_enum.
+move => d d' A S l Ds Ch; rewrite [@reducebig _]unlock /index_enum.
 elim (enum d) => //= [|x s IH]; first by rewrite cards0.
 case e: (x \in A); last by exact: IH.
 pose c (x y : {set d'}) := (x \subset y) || [disjoint x & y].
 suff f:  c (S x) (\bigcup_(i <- s | i \in A) S i).
-  rewrite /reducebig unlock in f; case/orP: f => [Hsub|Hdisj]; last first.
+  rewrite unlock in f; case/orP: f => [Hsub|Hdisj]; last first.
     rewrite (card_disjoint Hdisj); move/idP: e => e.
     by rewrite (dvdn_addr _ (Ch x e)); exact: IH.
   move/setUidPr: Hsub => ->; exact: IH.
@@ -1297,7 +1339,7 @@ Variables (D1 : pred aT1) (D2 : pred aT2).
 
 Lemma curry_imset2X : f @2: (A1, A2) = prod_curry f @: (setX A1 A2).
 Proof.
-rewrite /imset /imset2 !unlock; apply/setP=> x; rewrite !in_set.
+rewrite [@imset _]unlock unlock; apply/setP=> x; rewrite !in_set.
 by apply: eq_image => u //=; rewrite inE.
 Qed.
 
