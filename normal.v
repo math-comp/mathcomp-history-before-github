@@ -12,7 +12,7 @@ Require Import ssreflect.
 Require Import ssrbool.
 Require Import ssrfun.
 Require Import eqtype.
-(* Require Import ssrnat. *)
+Require Import ssrnat.
 (* Require Import seq. *)
 (* Require Import paths. *)
 (* Require Import connect. *)
@@ -29,19 +29,25 @@ Import GroupScope.
 
 Section Simple.
 
-Variables (gT : finGroupType) (H : {set gT}).
+Variables gT : finGroupType.
 
-Definition simple := forallb K : {group gT}, (K <| H) ==> pred2 1 H K.
+Definition simple (A : {set gT}) := #|[set H : {group gT} | H <| A]| == 2.
 
-Theorem simpleP:
-  reflect
-   (forall K : {group gT}, K <| H -> K = 1 :> {set gT} \/ K = H :> {set gT})
-   simple.
+Theorem simpleP : forall G : {group gT},
+  reflect (~~ trivg G /\ forall H : {group gT}, H <| G -> H = 1%G \/ H = G)
+          (simple G).
 Proof.
-(* have F1: forall z, pred1 1 z = set1 (1: gT) z by move => z; rewrite inE. *)
-apply: (iffP forallP) => /= [Hf K Hk | Hf K].
-  by have:= Hf K; rewrite Hk; case/orP => HH; [left|right]; exact/eqP.
-by apply/implyP; case/Hf=> ->; rewrite eqxx ?orbT.
+move=> G; rewrite /simple (cardsD1 G) inE normal_refl eqSS (cardsD1 1%G).
+rewrite 2!inE /(_ <| _) -val_eqE eqset_sub sub1G /= -/(trivg G).
+rewrite -cent_set1 centsC sub1G andbT; case: trivGP => [-> | _].
+  apply: (iffP idP) => [|[//]]; rewrite eqn_leq lt0n; case/andP=> _.
+  rewrite eq_card0 // => H; rewrite !inE; apply/and4P=> [] [_ nH1 sH1 _].
+  by case/eqP: nH1; move/trivGP: sH1.
+rewrite eqSS; apply: (iffP eqP) => [simG | [_ simG]].
+  split=> // H nHG; have:= card0_eq simG H; rewrite !inE nHG andbT -negb_or.
+  by case/orP; move/eqP; [left | right].
+apply: eq_card0=> H; rewrite !inE andbA andbC; apply/andP=> [] [].
+by case/simG=> ->; rewrite eqxx ?andbF.
 Qed.
 
 End Simple.
@@ -956,10 +962,12 @@ Qed.
 Lemma isog_simpl : isog G H -> simple G -> simple H.
 Proof.
 move/isog_sym_imply; case/isogP=> f injf <-.
-move/simpleP=> simpH; apply/simpleP=> L nLH.
+case/simpleP=> ntH simH; apply/simpleP; split=> [|L nLH].
+  by apply: contra ntH; move/trivGP=> H1; rewrite {3}H1 /= morphim1.
+case: (andP nLH); move/(morphim_invm injf); move/group_inj=> <- _.
 have: f @* L <| f @* H by rewrite morphim_normal.
-case/andP: nLH => sLH _; rewrite -{-1}(morphim_invm injf sLH) {sLH}.
-by case/simpH=> [] [->]; [left | right]; rewrite (morphim1, morphim_invm).
+by case/simH=> [] ->; [left | right];
+  apply: val_inj; rewrite /= (morphim1, morphim_invm).
 Qed.
 
 End Isomorphisms.
@@ -968,6 +976,7 @@ Section IsoBoolEquiv.
 
 Variables gT hT kT : finGroupType.
 Variables (G : {group gT}) (H : {group hT}) (K : {group kT}).
+
 
 Lemma isog_sym : isog G H = isog H G.
 Proof. apply/idP/idP; exact: isog_sym_imply. Qed.
@@ -980,6 +989,7 @@ Qed.
 Lemma isog_transr : isog G H -> isog K G = isog K H.
 Proof.
 by move=> iso; apply/idP/idP; move/isog_trans; apply; rewrite // -isog_sym.
+
 Qed.
 
 End IsoBoolEquiv.
