@@ -160,10 +160,9 @@ by rewrite trivg_quotient // comm_subG ?(subset_trans HsubG).
 Qed. 
 
 Lemma center_commgr : forall G H K : {group T}, 
-  G \subset 'N(K) -> G \subset 'N(H) ->
   [~: H, G] \subset K -> (H / K) \subset 'C(G / K).
 Proof.
-move=> G H K _ _ sHGK; rewrite /quotient -morphimIdom -(morphimIdom _ G).
+move=> G H K sHGK; rewrite /quotient -morphimIdom -(morphimIdom _ G).
 rewrite (sameP centsP commG1P) -morphimR ?subsetIl //.
 rewrite trivg_quotient //; last by rewrite comm_subG ?subsetIl.
 by apply: subset_trans sHGK; rewrite commgSS ?subsetIr.
