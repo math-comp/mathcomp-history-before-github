@@ -172,12 +172,12 @@ Reserved Notation "\prod_ ( i \in A ) F"
 Delimit Scope big_scope with BIG.
 Open Scope big_scope.
 
-Definition reducebig_rec R I op nil r (P : pred I) (F : I -> R) : R :=
+Definition reducebig_rec R I nil op r (P : pred I) (F : I -> R) : R :=
   foldr (fun i x => if P i then op (F i) x else x) nil r.
 
 Module Type ReduceBigSig.
 Parameter reducebig : forall R I,
-   (R -> R -> R) -> R -> seq I -> pred I -> (I -> R) -> R.
+   R -> (R -> R -> R) -> seq I -> pred I -> (I -> R) -> R.
 Axiom reducebigE : reducebig = reducebig_rec.
 End ReduceBigSig.
 
@@ -203,26 +203,26 @@ Lemma filter_index_enum : forall T P, filter P (index_enum T) = enum P.
 Proof. by move=> T P; rewrite /enum -enumE. Qed.
 
 Notation "\big [ op / nil ]_ ( <- r | P ) F" :=
-  (reducebig op nil r P F) : big_scope.
+  (reducebig nil op r P F) : big_scope.
 Notation "\big [ op / nil ]_ ( i <- r | P ) F" :=
-  (reducebig op nil r (fun i => P%B) (fun i => F)) : big_scope.
+  (reducebig nil op r (fun i => P%B) (fun i => F)) : big_scope.
 Notation "\big [ op / nil ]_ ( i <- r ) F" :=
-  (reducebig op nil r (fun _ => true) (fun  i => F)) : big_scope.
+  (reducebig nil op r (fun _ => true) (fun  i => F)) : big_scope.
 Notation "\big [ op / nil ]_ ( m <= i < n | P ) F" :=
-  (reducebig op nil (index_iota m n) (fun i : nat => P%B) (fun i : nat => F))
+  (reducebig nil op (index_iota m n) (fun i : nat => P%B) (fun i : nat => F))
      : big_scope.
 Notation "\big [ op / nil ]_ ( m <= i < n ) F" :=
-  (reducebig op nil (index_iota m n) (fun _ => true) (fun i : nat => F))
+  (reducebig nil op (index_iota m n) (fun _ => true) (fun i : nat => F))
      : big_scope.
 Notation "\big [ op / nil ]_ ( i | P ) F" :=
-  (reducebig op nil (index_enum _) (fun i => P%B) (fun i => F)) : big_scope.
+  (reducebig nil op (index_enum _) (fun i => P%B) (fun i => F)) : big_scope.
 Notation "\big [ op / nil ]_ i F" :=
-  (reducebig op nil (index_enum _) (fun _ => true) (fun i => F)) : big_scope.
+  (reducebig nil op (index_enum _) (fun _ => true) (fun i => F)) : big_scope.
 Notation "\big [ op / nil ]_ ( i : t | P ) F" :=
-  (reducebig op nil (index_enum _) (fun i : t => P%B) (fun i : t => F))
+  (reducebig nil op (index_enum _) (fun i : t => P%B) (fun i : t => F))
      (only parsing) : big_scope.
 Notation "\big [ op / nil ]_ ( i : t ) F" :=
-  (reducebig op nil (index_enum _) (fun _ => true) (fun i : t => F))
+  (reducebig nil op (index_enum _) (fun _ => true) (fun i : t => F))
      (only parsing) : big_scope.
 Notation "\big [ op / nil ]_ ( i < n | P ) F" :=
   (\big[op/nil]_(i : ordinal n | P%B) F) : big_scope.
