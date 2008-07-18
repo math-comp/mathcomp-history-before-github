@@ -10,7 +10,7 @@
 (***********************************************************************)
 
 Require Import ssreflect ssrbool ssrfun ssrnat.
-Require Import eqtype fintype div finset.
+Require Import eqtype fintype div prime finset.
 Require Import groups normal cyclic center.
 
 (* Require Import seq paths connect zp. *)

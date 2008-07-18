@@ -1,5 +1,9 @@
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
-Require Import fintype finset groups commutators automorphism normal center. 
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div prime.
+Require Import ssralg bigops. 
+Require Import fintype finset groups commutators automorphism.
+Require Import normal center sylow. 
+Require Import schurzass cyclic.
+
 
 (* Require Import paths connect finfun ssralg bigops. *)
 
@@ -468,13 +472,35 @@ Section DirectProdProperties.
 
 Variable gT: finGroupType.
 
-Lemma nilpotent_dirprod (G H1 H2: {group gT}) :
-  [/\ H1 <| G, H2 <| G, G = H1 * H2 :> set _ & trivg (H1 :&: H2)] ->
-  nilpotent H1 -> nilpotent H2 -> nilpotent G.
+Infix "\x" := direct_product (at level 40, left associativity).
+
+Lemma nilpotent_dirprod (H1 H2 G: {group gT}) :
+   H1 \x H2 = G -> nilpotent H1 -> nilpotent H2 -> nilpotent G.
 Proof.
-move=> G H1 H2; move/dirprod_normal_isom; case/misomP=> Hm Hi NL1 NL2.
-move/isomP: Hi => [Hj] <-; apply: nilpotent_morphim=> //.
-case: (nilpotent_setX H1 H2) => _ HH; by apply HH; split.
+move=> H1 H2 G; case/dprodGP => [[_ _ _ _ <- Hc] Htr].
+rewrite nilpotent_mul; first by move=> ->.
+by apply/centsP.
 Qed.
 
+
+Lemma filter_all: forall (I: Type) (r : seq I) P, all P (filter P r).
+move=> I r P; elim: r => [| a r1 Hrec] //=.
+by case Pa: (P a) => //=; rewrite Pa.
+Qed.
+
+Lemma nilpotent_bigdprod : forall (I: Type) (r : seq I) P 
+      (F: I -> {set gT}) (G: {group gT}),
+  \big[(@direct_product gT)/1]_(i <- r | P i) F i = G
+  -> (forall i, P i -> nilpotent (F i)) -> nilpotent G.
+Proof.
+move=> I r P F; rewrite -!(big_filter r).
+elim: {r}(filter P r) (filter_all r P) => [| i r Hrec]; 
+  rewrite !(big_seq0, big_adds) /=.
+  by move=> _ G <- Hfi; rewrite nilpotent1.
+case/andP=> Hpi Hpr G Hpd.
+case/dprodGP: (Hpd) => [[G1 G2 Hg1 Hg2 _ _] _] HFi.
+move: Hpd (HFi _ Hpi) (Hrec Hpr _ Hg2 HFi); rewrite Hg1 Hg2.
+exact: nilpotent_dirprod.
+Qed. 
+ 
 End DirectProdProperties.

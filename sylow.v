@@ -10,7 +10,7 @@
 (***********************************************************************)
 
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
-Require Import fintype connect div finfun finset.
+Require Import fintype connect div prime finfun finset.
 Require Import groups normal action cyclic zp.
 
 (* Require Import paths. *)
@@ -431,6 +431,26 @@ by apply: sylow_subset sylL; rewrite ?subsetIl //; case/andP: nLN.
 Qed.
 
 End Sylow3.
+
+Definition sylows (gT : finGroupType) (G: {group gT}) (A: {set gT}):=
+   if primes #|A| is [::p] then group_set A && sylow p G A
+   else false.
+
+Lemma sylowsP (gT : finGroupType) (G: {group gT}) P: 
+  reflect (exists p, [/\ prime p, p %| #|G|, group_set P & sylow p G P]) 
+          (sylows G P).
+Proof.
+move=> gT G P; apply: (iffP idP).
+  rewrite /sylows; case: primes (mem_primes^~ #|P|)=> // p [|p1] //.
+  move/(_ p); rewrite inE eqxx /=; move/eqP.
+  rewrite eq_sym; move/eqP; move/idP; case/and3P=> H1P H2P H3P.
+  case/andP=> H4P H5P; exists p; split=> //.
+  rewrite (dvdn_trans H3P) // (@group_dvdn _ (Group H4P)) //=.
+  by case/andP: H5P.
+case=> p [H1p H2p H3p]; case/andP=> H4p H5p.
+by rewrite /sylows (eqP H5p) primes_exp // ?primes_prime // ?H3p 
+          /sylow ?H4p //  -dvdn_exp_max // expn1.
+Qed.
 
 Lemma normal_sylowP : forall (gT : finGroupType) (G : {group gT}) p,
   prime p -> reflect (exists2 P : {group gT}, sylow p G P & (P <| G)%g)

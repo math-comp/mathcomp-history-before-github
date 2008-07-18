@@ -9,7 +9,7 @@
 (***********************************************************************)
 (***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
-Require Import seq fintype connect div.
+Require Import seq fintype connect div prime.
 Require Import finset groups normal group_perm automorphism zp fp.
 
 (* Require Import paths bigops. *)

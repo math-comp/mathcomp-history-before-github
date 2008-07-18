@@ -9,20 +9,9 @@
 (***********************************************************************)
 (***********************************************************************)
 
-Require Import ssreflect.
-Require Import ssrbool.
-Require Import ssrfun.
-Require Import ssrnat.
-Require Import eqtype.
-Require Import seq.
-Require Import fintype.
-(* Require Import finfun. *)
-(* Require Import ssralg. *)
-Require Import finset.
-Require Import groups.
-Require Import div.
-Require Import cyclic.
-Require Import bigops.
+Require Import ssreflect ssrbool ssrfun ssrnat.
+Require Import eqtype seq fintype finset.
+Require Import groups div cyclic bigops.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

@@ -1,5 +1,5 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq bigops fintype ssralg.
-Require Import div.
+Require Import div prime.
 
 (**************************************************************************)
 (* This files contains the definitions of:                                *)

@@ -6,6 +6,7 @@ ssrnat.v
 seq.v
 paths.v
 div.v
+prime.v
 binomial.v
 fintype.v
 connect.v

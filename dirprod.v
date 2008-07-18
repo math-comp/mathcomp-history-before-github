@@ -8,22 +8,8 @@
 (*                                                                     *)
 (***********************************************************************)
 (***********************************************************************)
-Require Import ssreflect.
-Require Import ssrbool.
-Require Import ssrfun.
-Require Import eqtype.
-(* Require Import ssrnat. *)
-Require Import seq.
-(* Require Import paths. *)
-(* Require Import connect. *)
-(* Require Import div. *)
-(* Require Import automorphism. *)
-Require Import ssralg.
-Require Import bigops.
-Require Import fintype.
-Require Import finset.
-Require Import groups.
-Require Import normal.
+Require Import ssreflect ssrbool ssrfun eqtype seq ssralg.
+Require Import bigops fintype finset groups normal.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -161,7 +147,7 @@ apply: (iffP (dirprod_isom H1 H2 G)) => [[cH -> trH] | [nH1 nH2 defG trH]].
   by rewrite centsC.
 suff: {in H1, centralised H2}.
   by split=> //; apply: val_inj; rewrite /= centralised_mulgenE.
-(* This ia a classic use of commutators *)
+(* This is a classic use of commutators *)
 move=> x1 Hx1 /= x2 Hx2; apply/commgP; rewrite -in_set1.
 apply: (subsetP trH); rewrite inE {1}commgEl commgEr.
 rewrite groupMl (groupMr _ Hx2, groupV) //.

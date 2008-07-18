@@ -3,7 +3,7 @@
 (*                                                                     *)
 (***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
-Require Import div seq fintype connect.
+Require Import div prime seq fintype connect.
 Require Import tuple finfun ssralg bigops finset.
 Require Import groups normal group_perm.
 

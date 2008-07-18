@@ -1,4 +1,4 @@
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat div.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat div prime.
 Require Import fintype ssralg bigops finset.
 Require Import groups normal automorphism action.
 Require Import commutators cyclic center sylow.
