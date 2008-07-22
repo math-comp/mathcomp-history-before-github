@@ -360,8 +360,7 @@ case: (p_part_coprime pr_p Gpos) => m; rewrite prime_coprime //.
 case: (ltnP 1 m).
   move/prime_pdiv; set q := pdiv m => pr_q npm oGm; case/negP: npm.
   have: all (mem (primes #|G|)) [:: p; q].
-    do 2!rewrite /= mem_filter -dvdn_divisors //.
-    by rewrite pr_p pr_q dvdn_pdiv oGm dvdn_mulr // dvdn_pdiv.
+    by rewrite /= !mem_primes pr_p pr_q Gpos {2}oGm dvdn_mulr dvdn_pdiv.
   case: primes pgG => [|r []] //= _; rewrite !mem_seq1 andbT.
   by case/andP; move/eqP->; move/eqP <-; rewrite dvdn_pdiv.
 case: m => [|[]] //; first by rewrite dvdn0.
@@ -474,33 +473,29 @@ Variable gT: finGroupType.
 
 Infix "\x" := direct_product (at level 40, left associativity).
 
-Lemma nilpotent_dirprod (H1 H2 G: {group gT}) :
-   H1 \x H2 = G -> nilpotent H1 -> nilpotent H2 -> nilpotent G.
+Lemma nilpotent_dirprod : forall A B (G : {group gT}),
+   A \x B = G -> nilpotent A -> nilpotent B -> nilpotent G.
 Proof.
-move=> H1 H2 G; case/dprodGP => [[_ _ _ _ <- Hc] Htr].
-rewrite nilpotent_mul; first by move=> ->.
-by apply/centsP.
+move=> A B G; case/dprodGP=> [[H K -> -> <- Hc] _].
+rewrite nilpotent_mul => [-> //|]; exact/centsP.
 Qed.
 
-
+(*
 Lemma filter_all: forall (I: Type) (r : seq I) P, all P (filter P r).
 move=> I r P; elim: r => [| a r1 Hrec] //=.
 by case Pa: (P a) => //=; rewrite Pa.
 Qed.
+*)
 
-Lemma nilpotent_bigdprod : forall (I: Type) (r : seq I) P 
-      (F: I -> {set gT}) (G: {group gT}),
+Lemma nilpotent_bigdprod : forall I r (P : pred I) F (G : {group gT}),
   \big[(@direct_product gT)/1]_(i <- r | P i) F i = G
   -> (forall i, P i -> nilpotent (F i)) -> nilpotent G.
 Proof.
-move=> I r P F; rewrite -!(big_filter r).
-elim: {r}(filter P r) (filter_all r P) => [| i r Hrec]; 
-  rewrite !(big_seq0, big_adds) /=.
-  by move=> _ G <- Hfi; rewrite nilpotent1.
-case/andP=> Hpi Hpr G Hpd.
-case/dprodGP: (Hpd) => [[G1 G2 Hg1 Hg2 _ _] _] HFi.
-move: Hpd (HFi _ Hpi) (Hrec Hpr _ Hg2 HFi); rewrite Hg1 Hg2.
-exact: nilpotent_dirprod.
+move=> I r P F G defG nilF; move: G defG.
+apply big_prop => [_ <-|A B IHA IHB G defG| i Pi _ <-]; last exact: nilF.
+  exact: nilpotent1.
+case: (dprodGP defG) => [[H K defH defK _ _] _].
+by apply: (nilpotent_dirprod defG); rewrite (defH, defK); auto.
 Qed. 
- 
+
 End DirectProdProperties.

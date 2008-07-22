@@ -323,59 +323,6 @@ rewrite /dvdn => d m n le_nm; apply/eqP/eqP => [eq_mod | mod_mn_0]; last first.
 by rewrite (divn_eq m d) (divn_eq n d) eq_mod subn_add2r -muln_subl modn_mull.
 Qed.
 
-Definition divisors m := filter (dvdn^~ m) (iota 1 m).
-
-Lemma dvdn_divisors : forall d m, 0 < m -> (d %| m) = (d \in divisors m).
-Proof.
-move=> [|d] [|m] // _; rewrite /divisors mem_filter mem_iota //.
-by case dv_dm: (_ %| _); rewrite //= ltnS dvdn_leq.
-Qed.
-
-Lemma uniq_divisors : forall m, uniq (divisors m).
-Proof. move=> m; apply: uniq_filter; exact: uniq_iota. Qed.
-
-Lemma divisor1: forall n, 0 < n -> 1 \in divisors n.
-Proof. by move=> *; rewrite -dvdn_divisors // dvd1n. Qed.
-
-Lemma divisorn: forall n, 0 < n -> n \in divisors n.
-Proof. by move=> *; rewrite -dvdn_divisors. Qed.
-
-(***********************************************************************)
-(* A function that computes the smallest (prime) divisor of a number.  *)
-(***********************************************************************)
-
-Definition pdiv n := sub n (divisors n) 1.
-
-Lemma dvdn_pdiv : forall n, dvdn (pdiv n) n.
-Proof.
-rewrite /pdiv => n; case: (posnP n) => [-> //| ]; move/dvdn_divisors.
-by case: (divisors n) => [|a1 [|p sp]] //= => ->; rewrite !in_adds eqxx orbT.
-Qed.
-
-Lemma leq_pdiv : forall n, pdiv n <= n.
-Proof. by case=> // n; rewrite dvdn_leq // dvdn_pdiv. Qed.
-
-Lemma pdiv_min_dvd : forall m d, 1 < d -> d %| m -> pdiv m <= d.
-Proof.
-case=> // m d d_gt1; rewrite dvdn_divisors // /pdiv /divisors /= dvd1n /=.
-rewrite in_adds eqn_leq leqNgt {}d_gt1 /=.
-elim: {2 4}m 2 => //= n IHn p; case: (_ %| _) => //=; last exact: IHn.
-rewrite in_adds mem_filter mem_iota andbCA orb_andr eq_sym -leq_eqVlt.
-by case/andP.
-Qed.
-
-Lemma pdiv_gt1 : forall n, (1 < pdiv n) = (1 < n).
-Proof.
-case=> // n; have:= dvdnn n.+1.
-rewrite dvdn_divisors // /pdiv /divisors /= dvd1n /=; case: n => // n.
-set dv := filter _ _; case def_p: dv => //= [p dv']  _.
-have: p \in dv by rewrite def_p mem_head.
-by rewrite mem_filter mem_iota andbCA; case/andP.
-Qed.
-
-Lemma ltn_0pdiv : forall n, (0 < pdiv n) = (0 < n).
-Proof. by case=> [|[|n]] //; rewrite ltnW ?pdiv_gt1. Qed.
-
 (***********************************************************************)
 (*   A function that computes the gcd of 2 numbers                     *)
 (***********************************************************************)

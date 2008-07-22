@@ -31,7 +31,7 @@ Proof.
 move=> T T3; have{T3} oA: #|'Alt_T| = 3.
   by apply: double_inj; rewrite -mul2n card_Alt T3.
 apply/simpleP; split=> [|K]; [by rewrite trivg_card oA | case/andP=> sKH _].
-have:= group_dvdn sKH; rewrite oA dvdn_divisors // !inE orbF orbC -oA.
+have:= group_dvdn sKH; rewrite oA dvdn_divisors // !inE orbF orbC /= -oA.
 case/orP=> eqK; [right | left]; apply/eqP; rewrite -val_eqE.
   by rewrite eqset_sub_card sKH (eqP eqK) leqnn.
 by rewrite eq_sym eqset_sub_card sub1G (eqP eqK) cards1.

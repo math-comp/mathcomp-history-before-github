@@ -547,11 +547,20 @@ Qed.
 
 End SortSeq.
 
+Lemma sorted_ltn_uniq_leq : forall s, sorted ltn s = uniq s && sorted leq s.
+Proof.
+case=> //= n s; elim: s n => //= m s IHs n.
+rewrite inE ltn_neqAle negb_or IHs -!andbA.
+case sn: (n \in s); last do !bool_congr.
+rewrite andbF; apply/and5P=> [[ne_nm lenm _ _ le_ms]]; case/negP: ne_nm.
+rewrite eqn_leq lenm; exact: (allP (order_path_min leq_trans le_ms)).
+Qed.
+
 Lemma sorted_iota : forall i n, sorted leq (iota i n).
 Proof. by move=> i n; elim: n i => // [[|n] //= IHn] i; rewrite IHn leqW. Qed.
 
 Lemma sorted_ltn_iota : forall i n, sorted ltn (iota i n).
-Proof. by move=> i n; elim: n i => // [[|n] //= IHn] i; rewrite IHn leqnn. Qed.
+Proof. by move=> i n; rewrite sorted_ltn_uniq_leq sorted_iota uniq_iota. Qed.
 
 (* Function trajectories. *)
 
