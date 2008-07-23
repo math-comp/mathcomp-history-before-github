@@ -694,6 +694,44 @@ Qed.
 Lemma minn_maxr : right_distributive minn maxn.
 Proof. by move=> m n1 n2; rewrite !(minnC m) minn_maxl. Qed.
 
+(* Getting a concrete value from an abstract existence proof. *)
+
+Section ExMinn.
+
+Variable P : pred nat.
+Hypothesis exP : exists n, P n.
+
+Inductive acc_nat i : Prop := AccNat0 of P i | AccNatS of acc_nat i.+1.
+
+Lemma find_ex_minn : {m | P m & forall n, P n -> n >= m}.
+Proof.
+have: forall n, P n -> n >= 0 by [].
+have: acc_nat 0.
+  case exP => n; rewrite -(addn0 n); elim: n 0 => [|n IHn] j; first by left.
+  rewrite addSnnS; right; exact: IHn.
+move: 0; fix 2 => m IHm m_lb; case Pm: (P m); first by exists m.
+apply: find_ex_minn m.+1 _ _ => [|n Pn]; first by case: IHm; rewrite ?Pm.
+by rewrite ltn_neqAle m_lb //; case: eqP Pm => // ->; case/idP.
+Qed.
+
+Definition ex_minn := s2val find_ex_minn.
+
+Inductive ex_minn_spec : nat -> Type :=
+  ExMinnSpec m of P m & (forall n, P n -> n >= m) : ex_minn_spec m.
+
+Lemma ex_minnP : ex_minn_spec ex_minn.
+Proof. by rewrite /ex_minn; case: find_ex_minn. Qed.
+
+End ExMinn.
+
+Lemma eq_ex_minn : forall P Q exP exQ,
+  P =1 Q -> @ex_minn P exP = @ex_minn Q exQ.
+Proof.
+move=> P Q exP exQ eqPQ.
+case: ex_minnP => m1 Pm1 m1_lb; case: ex_minnP => m2 Pm2 m2_lb.
+by apply/eqP; rewrite eqn_leq m1_lb (m2_lb, eqPQ) // -eqPQ.
+Qed.
+
 (* Multiplication. *)
 
 Definition muln_rec := mult.
