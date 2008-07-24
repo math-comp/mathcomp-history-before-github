@@ -1,5 +1,5 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
-Require Import fintype paths connect finfun ssralg bigops finset.
+Require Import fintype paths finfun ssralg bigops finset.
 Require Import groups normal commutators.
 Require Import cyclic center sylow dirprod schurzass hall coprime_act.
 
@@ -105,11 +105,11 @@ have centr : forall v, v \in 'C_G(A) -> phi v = v^+ #|A|.
   rewrite phiv /cphi sumr_const. 
   by elim: {+}#|_| => [  | n indh]; first done; rewrite //= valG // expgS indh.
 have v1: forall v, v \in G ->  v ^+ #|A| = 1 -> v = 1.
-  move => v vin; move/eqP; rewrite -orderg_dvd => div. 
+  move => v vin; move/eqP; rewrite -order_dvd => div. 
   have ov1: #[ v ] = 1%nat.
     rewrite /coprime in co; apply/eqP; rewrite -dvdn1 -(eqP co).
-    by apply: dvdn_gcd; last done; apply: orderg_dvd_g.
-  rewrite -(expg1 v) -ov1; apply: orderg_expn1.
+    by apply: dvdn_gcd; last done; apply: order_dvd_g.
+  rewrite -(expg1 v) -ov1; apply: order_expn1.
   apply/eqP; rewrite eqset_sub; apply/andP; split. 
   - apply/subsetP => x; case/setIP => inco incen; move: (incen).
     rewrite inE; case/andP=> inG ince; apply/set1P; apply: v1; first done.

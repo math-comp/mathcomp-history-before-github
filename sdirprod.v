@@ -16,7 +16,7 @@ Require Import ssrnat.
 Require Import seq.
 Require Import fintype.
 Require Import paths.
-Require Import connect.
+(* Require Import connect. *)
 Require Import finset.
 Require Import groups.
 Require Import normal.
@@ -36,9 +36,9 @@ Section ExternalSDirProd.
 Variables gT1 gT2 : finGroupType.
 Variable psi : action gT1 gT2.
 
-Definition perm_of_act x := (perm_of (@inj_act _ _ psi x)).
+Definition perm_of_act x := (perm_of (@act_inj _ _ psi x)).
 
-Hypothesis Haut : forall x, Aut (@setT gT2) (perm_of_act x).
+Hypothesis Haut : forall x, perm_of_act x \in Aut setT.
 
 Definition extsprod_mulg (x y : gT1 * gT2) :=
   (x.1 * y.1, (perm_of_act y.1 x.2) * y.2).

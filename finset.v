@@ -9,7 +9,7 @@ Require Import fintype.
 Require Import finfun.
 Require Import bigops.
 Require Import ssralg.
-Require Import connect.
+(* Require Import connect. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -950,12 +950,18 @@ Qed.
 
 Lemma can_imset_pre : forall (T : finType) f g (A : {set T}),
   cancel f g -> f @: A = g @^-1: A :> {set T}.
-Proof. move=> *; apply: can2_imset_pre => //; exact: canF_sym. Qed.
+Proof.
+move=> T f g A fK; apply: can2_imset_pre => // x.
+suffices fx: codom f x by rewrite -(f_iinv fx) fK.
+move: x; apply/(subset_cardP (card_codom (can_inj fK))); exact/subsetP.
+Qed.
 
 Lemma card_preimset : forall (T : finType) (f : T -> T) (A : {set T}),
   injective f -> #|f @^-1: A| = #|A|.
 Proof.
-by move=> *; apply: on_card_preimset; apply: onW_bij; exact: fin_inj_bij.
+move=> T f A injf; apply: on_card_preimset; apply: onW_bij.
+have ontof: codom f _ by apply/(subset_cardP (card_codom injf)); exact/subsetP.
+by exists (fun x => iinv (ontof x)) => x; rewrite (f_iinv, iinv_f).
 Qed.
 
 Section FunImageComp.
@@ -967,7 +973,7 @@ Lemma imset_comp : forall (f : T' -> U) (g : T -> T') (H : pred T),
 Proof.
 move=> f g H; apply/setP; apply/subset_eqP; apply/andP.
 split; apply/subsetP=> x; move/imsetP=> [x0 Hx0 ->]; apply/imsetP.
-  by exists (g x0); first apply:mem_imset.
+  by exists (g x0); first apply: mem_imset.
 by move/imsetP: Hx0=> [x1 Hx1 ->]; exists x1.
 Qed.
 

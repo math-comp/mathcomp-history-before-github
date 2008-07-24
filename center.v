@@ -74,16 +74,16 @@ Variable H : group gT.
 
 (* G. 1.3.4 *)
 
-Lemma center_cyclic_abelian : forall a, H / 'Z(H) = cyclic a -> (H = 'Z(H))%G.
+Lemma center_cyclic_abelian : forall a, H / 'Z(H) = <[a]> -> (H = 'Z(H))%G.
 Proof.
 move=> /= a Ha; apply/eqP; rewrite -val_eqE eqset_sub subset_center /= andbT.
 case: (cosetP a) => /= z Nz def_a.
-have H_Zz: H = 'Z(H) * cyclic z :> set _.
-  rewrite -['Z(H)]ker_coset -morphimK ?cyclic_h ?morphim_cyclic //=.
+have H_Zz: H = 'Z(H) * <[z]> :> set _.
+  rewrite -['Z(H)]ker_coset -morphimK ?cycle_h ?morphim_cycle //=.
   by rewrite -def_a -Ha morphimGK ?ker_coset //; case/andP: (centerN H).
 rewrite -(mulg1 'Z(H)) {1}H_Zz mulGS mulg1 /= H_Zz subsetI mulG_subr /=.
 rewrite centMG subsetI centsC subIset /=.
-  apply/centsP; exact: commute_cyclic_com.
+  apply/centsP; exact: commute_cycle_com.
 by rewrite orbC centS // H_Zz mulG_subr.
 Qed.
 
@@ -135,22 +135,22 @@ Qed.
 
 Section CyclicCentraliser.
 
-Lemma normal_centraliser: forall x, x \in H -> 'C_H[x] \subset 'N(cyclic x).
+Lemma normal_centraliser: forall x, x \in H -> 'C_H[x] \subset 'N(<[x]>).
 Proof.
 move=> x Hx; apply/normsP=> y.
 case/centraliserP=> Hy cxy; apply/setP=> z.
-by rewrite -cyclic_conjgs /conjg cxy mulgA; gsimpl.
+by rewrite -cycle_conjgs /conjg cxy mulgA; gsimpl.
 Qed.
 
-Lemma cyclic_subset_centraliser: forall x,
-     x \in H -> cyclic x \subset 'C_H[x].
+Lemma cycle_subset_centraliser: forall x,
+     x \in H -> <[x]> \subset 'C_H[x].
 Proof.
-move => x Hx; apply/subsetP=> y; case/cyclicP=> n <-{y}.
+move => x Hx; apply/subsetP=> y; case/cycleP=> n <-{y}.
 by rewrite centraliserXr // centraliser_id.
 Qed.
 
 Lemma centraliser_normaliser:
-  forall x, x \in H -> 'C_H[x] \subset 'N(cyclic x).
+  forall x, x \in H -> 'C_H[x] \subset 'N(<[x]>).
 Proof. exact: normal_centraliser. (* sic!!! -- GG *) Qed.
 
 End CyclicCentraliser.

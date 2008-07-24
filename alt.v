@@ -1,8 +1,8 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype.
-Require Import connect div prime tuple finset groups normal group_perm.
+Require Import div prime tuple finset groups normal group_perm.
 Require Import automorphism action sylow cyclic signperm.
 
-(* Require Import paths finfun zp. *)
+(* Require Import paths connect finfun zp. *)
 
 Import Prenex Implicits.
 Set Implicit Arguments.
@@ -138,10 +138,10 @@ have FF: forall H : group _, H <| 'Alt_T -> H <> 1 :> set _ -> 20 %| #|H|.
     have diff_hnx_x: forall n, 0 < n -> n < 5 -> x != (h ^+ n) x.
       move=> n Hn1 Hn2; rewrite eq_sym; apply/negP => HH.
       have: #[h ^+ n] = 5.
-        rewrite orderg_gcd // (eqP Horder).
+        rewrite order_gcd // (eqP Horder).
         by move: Hn1 Hn2 {HH}; do 5 (case: n => [|n] //).
       have Hhd2: h ^+ n \in H by rewrite groupX.
-      by rewrite (Hreg _ _ Hhd2 (eqP HH)) orderg1.
+      by rewrite (Hreg _ _ Hhd2 (eqP HH)) order1.
     pose S1 := [tuple x; h x; (h ^+ 3) x].
     have DnS1: S1 \in dtuple_on _ setT.
       rewrite inE memtE subset_all /= !inE /= !negb_or -!andbA /= andbT.
@@ -215,7 +215,7 @@ Definition rfd_fun p := [fun u => Sub ((_ : perm T) _) (rfd_funP p u) : T'].
 Lemma rfdP : forall p, injective (rfd_fun p).
 Proof.
 move=> p; apply: can_inj (rfd_fun p^-1) _ => u; apply: val_inj => /=.
-rewrite (canF_eq (permKV p)) eq_sym.
+rewrite -(inj_eq (@perm_inj _ p)) permKV eq_sym.
 by case: eqP => _; rewrite !(perm1, permK).
 Qed.
 

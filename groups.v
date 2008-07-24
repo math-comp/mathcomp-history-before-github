@@ -7,7 +7,7 @@ Require Import ssrnat.
 (* Require Import seq. *)
 (* Require Import paths. *)
 Require Import fintype.
-Require Import connect.
+(* Require Import connect. *)
 Require Import div.
 Require Import ssralg.
 Require Import bigops.
@@ -349,7 +349,7 @@ Lemma mulg_injr : forall x, injective (mulg^~ x).
 Proof. move=> x; exact: can_inj (mulgK x). Qed.
 
 Lemma eq_invg_mul : forall x y, (x^-1 == y :> T) = (x * y == 1 :> T).
-Proof. by move=> x y; rewrite (canF_eq (mulKg _)) mulg1. Qed.
+Proof. by move=> x y; rewrite -(inj_eq (@mulg_injl x)) mulgV eq_sym. Qed.
 
 Lemma eq_mulgV1 : forall x y, (x == y) = (x * y^-1 == 1 :> T).
 Proof. by move=> x y; rewrite -(inj_eq invg_inj) eq_invg_mul. Qed.
@@ -359,26 +359,8 @@ Proof. by move=> x y; rewrite -eq_invg_mul invgK. Qed.
 
 Lemma commuteV : forall x y, commute x y -> commute x y^-1.
 Proof.
-by move=> x y cxy; apply/eqP; rewrite (canF_eq (mulgKV _)) -mulgA cxy mulKg.
+by move=> x y cxy; apply: (@mulg_injr y); rewrite mulgKV -mulgA cxy mulKg.
 Qed.
-
-(* A connect-based alternative to orderg
-Definition order (x : T) := connect.order (mulg x) 1.
-
-Lemma expgn_order : forall x, x ^+ (order x) = 1.
-Proof. move=> x; apply: iter_order; exact: mulg_injl. Qed.
-
-Lemma order_pos : forall x, order x > 0.
-Proof. by move=> x; rewrite -[order x]orderSpred. Qed.
-
-Canonical Structure order_pos_nat x := PosNat (order_pos x).
-
-Lemma invg_order : forall x, x^-1 = x ^+ (order x).-1.
-Proof.
-by move=> x; apply/eqP; rewrite eq_invMg -expgS orderSpred expgn_order.
-Qed.
-
-*)
 
 Lemma conjgE : forall x y, x ^ y = y^-1 * (x * y). Proof. by []. Qed.
 
@@ -436,10 +418,12 @@ Lemma invg_comm : forall x y, [~ x, y]^-1 = [~ y, x].
 Proof. by move=> x y; rewrite commgEr conjVg invMg invgK. Qed.
 
 Lemma commgP : forall x y, reflect (commute x y) ([~ x, y] == 1 :> T).
-Proof. move=> x y; rewrite 2!(canF_eq (mulKVg _)) mulg1; exact: eqP. Qed.
+Proof.
+move=> x y; rewrite [[~ x, y]]mulgA -invMg -eq_mulVg1 eq_sym; exact: eqP.
+Qed.
 
 Lemma conjg_fixP : forall x y, reflect (x ^ y = x) ([~ x, y] == 1 :> T).
-Proof. move=> x y; rewrite (canF_eq (mulKVg _)) mulg1; exact: eqP. Qed.
+Proof. move=> x y; rewrite -eq_mulVg1 eq_sym; exact: eqP. Qed.
 
 Lemma commg1_sym : forall x y, ([~ x, y] == 1 :> T) = ([~ y, x] == 1 :> T).
 Proof. by move=> x y; rewrite -invg_comm (inv_eq invgK) invg1. Qed.
@@ -1001,6 +985,7 @@ Definition generated A := \bigcap_(G : groupT | A \subset G) G.
 Definition cycle_of x := generated [set x].
 Definition mulgen A B := generated (A :|: B).
 Definition commutator A B := generated (commg_set A B).
+Definition order x := #|cycle_of x|.
 
 End SmulProp.
 
@@ -1034,7 +1019,12 @@ Notation "[ 'setT' gT ]" := (setT_group_for (Phant gT))
   (at level 0, format "[ 'setT'  gT ]") : subgroup_scope.
 
 Notation "<< A >>"  := (generated A)
- (at level 0, format "<< A >>") : group_scope.
+  (at level 0, format "<< A >>") : group_scope.
+
+Notation "<[ x ] >"  := (cycle_of x)
+  (at level 0, format "<[ x ] >") : group_scope.
+
+Notation "#[ x ]"  := (order x) (at level 0, format "#[ x ]") : group_scope.
 
 Notation "A <*> B" := (mulgen A B) (at level 40) : group_scope.
 
@@ -1135,7 +1125,15 @@ Lemma groupX : forall x n, x \in G -> x ^+ n \in G.
 Proof. by move => x n Gx; elim: n => [|n IHn]; rewrite (group1, groupM). Qed.
 
 Lemma groupVr : forall x, x \in G -> x^-1 \in G.
-Proof. by move=> x Gx; rewrite -(finv_f (mulg_injl x) x^-1) mulgV groupX. Qed.
+Proof.
+move=> x Gx; pose f (i : 'I_#|gT|.+1) := x ^+ i; case injf: (injectiveb f).
+  have:= max_card (image f 'I__).
+  by rewrite (card_image (injectiveP _ injf)) card_ord ltnn.
+case/injectivePn: injf => i [j]; rewrite neq_ltn {}/f => ne_ij.
+wlog{ne_ij} ltij: i j / i < j by case/orP: ne_ij; eauto.
+rewrite -(subnK ltij) expgn_add; move/(canLR (mulKg _)).
+rewrite expgSr invMg mulgKV => ->; exact: groupX.
+Qed.
 
 Lemma groupVl : forall x, x^-1 \in G -> x \in G.
 Proof. by move=> x; move/groupVr; rewrite invgK. Qed.
@@ -1512,6 +1510,8 @@ Canonical Structure commutator_group A B := Eval hnf in [group of [~: A, B]].
 
 Canonical Structure mulgen_group A B := Eval hnf in [group of A <*> B].
 
+Canonical Structure cycle_group x := Eval hnf in [group of <[x]>].
+
 End GroupInter.
 
 Definition mulGen (gT : finGroupType) (G H : {group gT}) :=
@@ -1521,6 +1521,7 @@ Arguments Scope generated_group [_ group_scope].
 
 Notation "G :&: H" := (setI_group G H) : subgroup_scope.
 Notation "<< A >>"  := (generated_group A) : subgroup_scope.
+Notation "<[ x ] >"  := (cycle_group x) : subgroup_scope.
 Notation "[ ~: A1 , A2 , .. , An ]" :=
   (commutator_group .. (commutator_group A1 A2) .. An) : subgroup_scope.
 Notation "G <*> H" := (mulGen G H) : subgroup_scope.

@@ -10,7 +10,7 @@ Require Import ssrnat.
 Require Import fintype.
 Require Import finfun.
 Require Import finset.
-Require Import connect.
+(* Require Import connect. *)
 Require Import groups.
 Import GroupScope.
 
@@ -104,9 +104,15 @@ Implicit Arguments perm_inj [].
 
 Hint Resolve perm_inj.
 
+Lemma perm_onto : forall u : pT, codom u =i predT.
+Proof. by move=> u; apply/subset_cardP; rewrite ?card_codom ?subset_predT. Qed.
+ 
 Definition perm_unit := perm_of (@inj_id T).
 
-Definition perm_inv u := perm_of (finv_inj (perm_inj u)).
+Lemma perm_invK : forall u : pT, cancel (fun x => iinv (perm_onto u x)) u.
+Proof. by move=> u x /=; rewrite f_iinv. Qed.
+
+Definition perm_inv u := perm_of (can_inj (perm_invK u)).
 
 Definition perm_mul u v := perm_of (inj_comp (perm_inj v) (perm_inj u)).
 
@@ -114,7 +120,7 @@ Lemma perm_unitP : left_unit perm_unit perm_mul.
 Proof. by move=> u; apply/permP => x; rewrite permE /= permE. Qed.
 
 Lemma perm_invP : left_inverse perm_unit perm_inv perm_mul.
-Proof. by move=> u; apply/permP => x; rewrite !permE /= permE f_finv. Qed.
+Proof. by move=> u; apply/permP => x; rewrite !permE /= permE f_iinv. Qed.
 
 Lemma perm_mulP : associative perm_mul.
 Proof. by move=> u v w; apply/permP => x; do !rewrite permE /=. Qed.

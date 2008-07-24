@@ -2,10 +2,10 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 (*                                                                     *)
 (***********************************************************************)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype connect.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype.
 Require Import finfun ssralg bigops groups group_perm signperm.
 
-(* Require Import div finset zp. *)
+(* Require Import div connect finset zp. *)
 
 Import GroupScope.
 
@@ -237,10 +237,12 @@ Proof. move=> m n; exact: can_inj (@trmxK m n). Qed.
 
 Lemma trmx_perm : forall n (s : 'S_n), \^t (\P s) = \P (s^-1) :> 'M_n.
 Proof.
-by move=> n s; apply/matrixP=> i j; rewrite !mxK eq_sym (canF_eq (permKV s)).
+move=> n s; apply/matrixP=> i j.
+by rewrite !mxK -(inj_eq (@perm_inj _ s^-1)) permK eq_sym.
 Qed.
 
 Lemma trmxZ : forall n x, \^t (\Z x) = \Z x :> 'M_n.
+
 Proof. by move=> n x; apply/matrixP=> i j; rewrite !mxK eq_sym. Qed.
 
 Lemma trmx1 : forall n, \^t \1 = \1 :> 'M_n.

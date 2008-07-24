@@ -377,10 +377,10 @@ Variable (gT : finGroupType).
 
 (*
 Definition mgens s : set gT :=
-foldr (fun x Y => (cyclic x) :*: Y) [set 1] s.
+foldr (fun x Y => (<[x]>) :*: Y) [set 1] s.
 *)
 
-Definition mgen (A : {set gT}) : {set gT} := \prod_(x \in A) cyclic x.
+Definition mgen (A : {set gT}) : {set gT} := \prod_(x \in A) <[x]>.
 
 Lemma mgenP : forall A x,
   reflect (exists2 f, support f A & em f = x) (x \in mgen A).
@@ -394,11 +394,11 @@ case Ay: (y \in A); last first.
   apply: (iffP (IHs x)); case=> f Af <-; exists f => //;
     by rewrite (sup0P _ _ Af) (Ay, mul1g).
 apply: (iffP mulsgP) => [[x1 x2] | [f Af <-{x}]].
-  case/cyclicP=> i <-{x1}; case/IHs=> f Af <- -> {x x2}.
+  case/cycleP=> i <-{x1}; case/IHs=> f Af <- -> {x x2}.
   exists (force f y i); first by rewrite -sup_force.
   rewrite /force eqxx; congr (_ * _).
   by apply: eq_foldr => x z sx; case: eqP => // eqxy; rewrite -eqxy sx in nsy.
-exists (y ^+ (f y)) (ems f s) => //; first by apply/cyclicP; exists (f y).
+exists (y ^+ (f y)) (ems f s) => //; first by apply/cycleP; exists (f y).
 apply/IHs; exists (force f y 0); first by rewrite -sup_force.
 apply: eq_foldr => x z sx.
 by rewrite /force; case: eqP => // eqxy; rewrite -eqxy sx in nsy.
@@ -418,7 +418,7 @@ move=> A G sAG; rewrite /mgen; elim: index_enum  => /= [| x s IHs].
   by rewrite big_seq0 sub1set.
 rewrite big_adds; case Ax: (x \in A) => //=.
 apply/subsetP=> y; case/mulsgP=> y1 y2.
-case/cyclicP => i <-; move/(subsetP IHs)=> sy2 ->.
+case/cycleP => i <-; move/(subsetP IHs)=> sy2 ->.
 by rewrite groupMr // groupX // (subsetP sAG).
 Qed.
 
@@ -513,13 +513,13 @@ by rewrite -!expgn_add; rewrite Hf Hg.
 Qed.
 
 Lemma free_predU1 : forall B x, x != 1 -> abelian (x |: B) ->
-  trivg (cyclic x :&: << B >>) -> free B -> free (x |: B).
+  trivg (<[x]> :&: << B >>) -> free B -> free (x |: B).
 Proof.
 move=> B x nx1 abelxB xB1 [nB1 frB].
 split=> [|f xBf]; first by rewrite inE negb_or eq_sym nx1.
 rewrite (@aem_force0 _ _ abelxB f x _ xBf); last by rewrite setU11.
 move/(canRL (mulgK _)); rewrite mul1g; set z := _^-1 => def_z.
-have xz: z \in cyclic x by rewrite groupV; apply: groupX; exact: cyclicnn.    
+have xz: z \in <[x]> by rewrite groupV; apply: groupX; exact: cyclenn.    
 have genBz: z \in << B >>.
   rewrite -def_z; apply/agenP; first by rewrite (asub abelxB) ?predU1_super. 
   by exists (force f x 0) => //; rewrite -sup_predU1_force.
@@ -531,7 +531,7 @@ Qed.
 (*
 Fixpoint sfreeb (s : seq gT) : bool :=
 if s is x::s'
-then (x != 1) && sfreeb s' && subset (cyclic x :&: << s' >>) [set 1]
+then (x != 1) && sfreeb s' && subset (<[x]> :&: << s' >>) [set 1]
 else true.
 
 Definition freeb (B : pred gT) := sfreeb (enum B).
@@ -556,7 +556,7 @@ case/andP => notsx us; case Bx: (B x) => /=; last first.
 - move=> f; case/andP; case/andP => _ sfB Inter fB. 
   rewrite -{2}(mulgV (x ^+ f x)); move/mulg_injl => xfx.
   have xfx1:  x ^+ f x = 1. apply: sym_eq; apply/set1P;
-  apply: (subsetP Inter); apply/setIP; split; first by apply/cyclicP;
+  apply: (subsetP Inter); apply/setIP; split; first by apply/cycleP;
   exists (f x). rewrite -groupV -xfx; clear Hind sfB Inter xfx. 
   elim: s f x Bx notsx fB us => /= [* | y s Hind f x Bx]; first exact: group1. 
     rewrite negb_or; case/andP; move/negP => ynotx notsx; case By: (B y);
@@ -592,7 +592,7 @@ elim: (enum gT) (uniq_enum gT) => //= x s Hind. case/andP => notsx us.
 case Bx: (B x) => /=; last exact: Hind. apply/andP. split. 
 - apply/andP. split; last by exact: Hind.
   by  apply/negP; move/eqP=> x1; rewrite x1 in Bx. 
-- apply/subsetP => y. case/setIP. case/cyclicP => n. move/eqP <-.  
+- apply/subsetP => y. case/setIP. case/cycleP => n. move/eqP <-.  
   case/agenP; first by apply: (@asub _ B _) => //; apply/subsetP => z;
   rewrite mem_filter; case/andP. move=> f fB. emxn. apply
 
@@ -607,7 +607,7 @@ apply/andP. split.
 
 by exact: Hind.
   by  apply/negP; move/eqP=> x1; rewrite x1 in Bx. 
-- apply/subsetP => y. case/setIP. case/cyclicP => n. move/eqP <-. 
+- apply/subsetP => y. case/setIP. case/cycleP => n. move/eqP <-. 
 *)
 
 End Free.
@@ -648,8 +648,8 @@ case E1: (1 \in E); last move/idPn: E1 => notE1.
   by move=> B; move/(ltn_addl 1) => cardB baseB; exists B.
 have{Ez} [f []]: exists f, [/\ support f E, em f = 1 & 0 < f z].
   exists (peak z #[z]); split; first by rewrite -sup_peak Ez.
-    by rewrite em_peak orderg_expn1. 
-  by rewrite /peak eqxx orderg_pos.
+    by rewrite em_peak order_expn1. 
+  by rewrite /peak eqxx ltn_0order.
 move: {-4 6}E cardE notE1 (erefl << E >>).
 elim: {f z}_.+1 {-2}f {-2}z (ltnSn (f z)) => // m mind f.
 elim: {f}_.+1 {-2}f (ltnSn (esum f)) => // M Mind f esumf.
@@ -662,7 +662,7 @@ have sXxX: X :\ _ \subset X.
   by move=> y; apply/subsetP=> z; rewrite inE; case/andP.
 have sxX: [set x] \subset X by rewrite sub1set.
 case: (x ^+ (f x) =P 1) => [xfx1 | xfx].
-  case XIx: (cyclic x :&: << X :\ x >> \subset [set 1]).
+  case XIx: (trivg (<[x]> :&: << X :\ x >>)).
     case: (IHn (X :\ x)) => [|| B cardB [FreeB BXx]].
     - by rewrite (cardsD1 x X) (supP _ _ fX x fx0) in cardX.  
     - apply: (asub abelX); exact: subset_trans (subset_gen X).
@@ -676,7 +676,7 @@ case: (x ^+ (f x) =P 1) => [xfx1 | xfx].
       by apply/eqP=> x1; rewrite -x1 Xx in notX1. 
     apply: (asub abelX); rewrite -gen_subG.
     by rewrite setU1E (@genDU _ _ _ X) // BXx setD1E setDE -setC1E.
-  case/subsetPn: XIx => y; case/setIP; case/cyclicP => k <-{y}.
+  case/subsetPn: XIx => y; case/setIP; case/cycleP => k <-{y}.
   rewrite (divn_eq k (f x)) expgn_add mulnC expgn_mul xfx1 exp1gn.
   rewrite mul1g -groupV; case/agenP=> [|g gX emg xknot1].
     by apply: (asub abelX); rewrite -gen_subG genS // setD1E subsetIr.

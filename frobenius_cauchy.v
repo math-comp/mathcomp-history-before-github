@@ -9,7 +9,7 @@ Require Import eqtype.
 Require Import ssrnat.
 (* Require Import seq. *)
 Require Import fintype.
-Require Import connect.
+(* Require Import connect. *)
 Require Import ssralg.
 Require Import bigops.
 Require Import finset.

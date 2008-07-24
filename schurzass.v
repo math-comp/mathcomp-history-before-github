@@ -155,8 +155,8 @@ have [m mK]: exists m, forall a : rT, (a *+ (#|G : P| * m) = a)%R.
   case/dvdnP=> m inv_m; exists m => a.
   rewrite mulnC -inv_m /= mulnC Ring.mulrnA /=.
   suff ->: (a *+ #|H| = 0)%R by rewrite Ring.mulr0n Ring.addr0.
-  apply: val_inj; rewrite /= !valX /=; apply/eqP; rewrite -orderg_dvd.
-  by rewrite orderg_dvd_g // (subsetP sHP) // Hval.
+  apply: val_inj; rewrite /= !valX /=; apply/eqP; rewrite -order_dvd.
+  by rewrite order_dvd_g // (subsetP sHP) // Hval.
 split=> [|K L].
   apply/splitgP/splitgP=> [[K trHK eqHK] | [Q trHQ eqHQ]].
     exists (K :&: P)%G; first by rewrite setICA (setIidPl sHP) setIC.
@@ -477,9 +477,9 @@ apply/charP; split=> // f injf fG; apply/morphim_fixP => //.
 rewrite sub_morphim_pre // gen_subG; apply/subsetP=> x; rewrite inE.
 case/andP=> Gx oxp; rewrite !inE Gx mem_gen // inE eq_sym -{2}fG.
 rewrite mem_imset ?setIid //= -{oxp}(eqP oxp); apply/eqP.
-have sxG: cyclic x \subset G by rewrite cyclic_h.
+have sxG: <[x]> \subset G by rewrite cycle_h.
 apply: isom_card [morphism of restrm sxG f] _ => /=.
-by apply/isomP; rewrite injm_restrm //= morphim_restrm setIid morphim_cyclic.
+by apply/isomP; rewrite injm_restrm //= morphim_restrm setIid morphim_cycle.
 Qed.
 
 Lemma elementary_abelianP : forall G : {group gT},
@@ -487,8 +487,8 @@ Lemma elementary_abelianP : forall G : {group gT},
 Proof.
 move=> G abelG; pose p := pdiv #|G|; pose G1 := [set x \in G | #[x] %| p].
 have gG1: group_set G1.
-  apply/group_setP; split=> [|x y]; rewrite !inE ?(orderg1, dvd1n, group1) //.
-  rewrite !orderg_dvd.
+  apply/group_setP; split=> [|x y]; rewrite !inE ?(order1, dvd1n, group1) //.
+  rewrite !order_dvd.
   case/andP=> Gx; move/eqP=> xp; case/andP=> Gy; move/eqP=> yp.
   rewrite groupM // expMgn ?(xp, yp, mulg1) //=; exact: (centsP abelG).
 have ->: 'Ohm_1(G) = G1.
@@ -498,7 +498,7 @@ have ->: 'Ohm_1(G) = G1.
       have: prime p.
         by rewrite prime_pdiv // (cardD1 1) (cardD1 x) group1 inE /= Gx nx1.
       case/primeP=> _ prp; move/prp; case/predU1P=> [x1 | xp].
-        by case/eqP: nx1; rewrite -[x]expg1 -x1 orderg_expn1.
+        by case/eqP: nx1; rewrite -[x]expg1 -x1 order_expn1.
       by rewrite mem_gen // inE /= Gx expn1.
     apply/subsetP=> x; rewrite !inE; case/andP=> ->; move/eqP->.
     by rewrite expn1 dvdnn.
@@ -526,7 +526,7 @@ move=> sHG nHL ntH; case abelH: (trivg [~: H, H]).
     case: (cauchy prp (dvdn_pdiv #|H|)) => x; case/andP=> Hx; move/eqP=> oxp.
     rewrite /trivg gen_subG expn1; apply/subsetPn; exists x.
       by rewrite inE Hx oxp eqxx.
-    by apply/set1P=> x1; rewrite -oxp x1 [#[_]]orderg1 in prp.
+    by apply/set1P=> x1; rewrite -oxp x1 [#[_]]order1 in prp.
   exists H1; split=> //; first exact: subset_trans sHG.
     exact: char_norm_trans nHL.
   apply/elementary_abelianP=> //; apply/eqP.
@@ -536,7 +536,7 @@ move=> sHG nHL ntH; case abelH: (trivg [~: H, H]).
   rewrite ((pdiv _ =P p) _) // eqn_leq !pdiv_min_dvd ?prime_gt1 //.
   - by rewrite prime_pdiv // ltnNge -trivg_card.
   - apply: dvdn_trans (dvdn_pdiv _) _; exact: group_dvdn.
-  by apply: dvdn_trans (orderg_dvd_g H1x); rewrite (eqP oxp) expnS dvdn_mulr.
+  by apply: dvdn_trans (order_dvd_g H1x); rewrite (eqP oxp) expnS dvdn_mulr.
 have chH': [~: H, H] \char H by apply: charR; apply: char_refl.
 have [sH'H _] := andP chH'; move/idPn: abelH.
 apply: IHn; last 1 [exact: subset_trans sHG | exact: char_norm_trans nHL].

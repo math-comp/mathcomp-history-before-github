@@ -10,10 +10,10 @@
 (***********************************************************************)
 
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
-Require Import fintype connect div prime finfun finset.
+Require Import fintype div prime finfun finset.
 Require Import bigops groups normal action cyclic zp dirprod.
 
-(* Require Import paths. *)
+(* Require Import paths connect. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -165,11 +165,11 @@ move/ffun_onP=> /= Ht prodt; move/afixP=> /= fixt _.
 pose x := t 1; exists x; rewrite Ht /=.
 have Dt: t _ = x by move=> u; rewrite /x -{2}(fixt u (in_setT _)) ffunE mulg1.
 have: #[x] %| p.
-  rewrite orderg_dvd -(eqP prodt) -{1}(size_iota 0 p) /prod_over_zp.
+  rewrite order_dvd -(eqP prodt) -{1}(size_iota 0 p) /prod_over_zp.
   by apply/eqP; elim: (iota _ _) => //= i s <-; rewrite Dt.
 case/primeP: prime_p => _ divp; move/divp; case/orP; rewrite eq_sym //.
 move/eqP=> Dx1; case/eqP: tnot1; apply/ffunP=> i.
-by rewrite Dt -(expg1 x) ffunE Dx1 orderg_expn1.
+by rewrite Dt -(expg1 x) ffunE Dx1 order_expn1.
 Qed.
 
 End Cauchy.
@@ -242,7 +242,7 @@ have: p %| #|K / L|.
   case/imsetP=> y Ky ->{A}; rewrite !rcosetE -rcosetM -rcosetE mem_imset //.
   by rewrite groupMl // (subsetP sLK).
 case/cauchy=> // zbar; case/andP=> Kzbar; move/eqP=> Czbar_p.
-pose H := coset_of L @*^-1 cyclic zbar :&: K.
+pose H := coset_of L @*^-1 <[zbar]> :&: K.
 exists [group of H] => /=.
 have sLH : L \subset H.
   apply/subsetP => x Lx.
@@ -256,10 +256,10 @@ rewrite (eqP cardL) mulnC -{}Czbar_p.
 apply/eqP; congr (_ * _)%N; apply: eq_card => xbar.
 apply/imsetP/idP=> [[x Hx ->{xbar}]|].
   by rewrite 3!inE andbC -andbA in Hx; case/andP: Hx; case/morphpreP=>[_].
-case/cyclicP=> m <-{xbar}; rewrite {nLH sLH}/H.
+case/cycleP=> m <-{xbar}; rewrite {nLH sLH}/H.
 case/morphimP: Kzbar => z [Kz Nz ->{zbar}].
 exists (z ^+ m); rewrite ?morphX // inE groupX ?Kz //= inE ?groupX //.
-by apply/morphpreP; split=> //; apply:cyclicnn.
+by apply/morphpreP; split=> //; apply: cyclenn.
 Qed.
 
 Lemma sylow1: forall i j (L : group gT), i <= j <= n ->
@@ -597,13 +597,15 @@ rewrite Hc // ?(Ep1, H1j, inE, eqxx, H2j, orbT) //.
 by move=> Hij; case/negP: H1u; rewrite Hij.
 Qed.
 
-(* Missing lemma in groups, so we can apply not only on groups but also on sets *)
+(* Missing lemma in groups, so we can apply not only on groups but also on sets
+-- GG: Not missing, mulg1 applies to set mul just as well!
 Lemma set_mulg1 : right_unit [set 1] (@set_mulg gT).
 Proof.
 move=> A; apply/setP=> y; apply/imset2P/idP=> [[x1 x] | Ay].
   by rewrite inE => Hx1 Ax ->; rewrite (eqP Ax) mulg1.
 by exists y (1 : gT); rewrite ?(set11, mulg1).
 Qed.
+*)
 
 Lemma sylow_dirprod (G : {group gT}):
   (forall Pi, sylows G Pi -> Pi <| G) ->
@@ -695,7 +697,7 @@ have ->: Pi \subset 'C(H).
   case/andP=> HPi1 H1Pi1; rewrite Hsr // ?(E1, HPi1, mem_enum) //.
   by move=> HH; case/negP: H1r1; rewrite HH.
 case: eqP => He1; first by rewrite He1 -{1}(@set_mul1g gT H).
-by case: eqP => He2; rewrite // He2 -{1}(@set_mulg1 Pi).
+by case: eqP => He2; rewrite // He2 -{1}(mulg1 Pi).
 Qed.
 
 End DirProd.
