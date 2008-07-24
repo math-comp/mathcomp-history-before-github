@@ -11,17 +11,16 @@
 
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 Require Import fintype connect div prime finfun finset.
-Require Import groups normal action cyclic zp.
+Require Import bigops groups normal action cyclic zp dirprod.
 
 (* Require Import paths. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
+Import GroupScope.
 
 Section Cauchy.
-
-Open Scope group_scope.
 
 Variable (gT : finGroupType) (H : {group gT}).
 
@@ -176,8 +175,6 @@ Qed.
 End Cauchy.
 
 Section Sylow.
-
-Open Scope group_scope.
 
 Variable (gT : finGroupType) (K : {group gT}).
 
@@ -479,5 +476,228 @@ have: #|gsylow p G| == 1%N by apply/(normal_sylowP _ Pp); exists P.
 rewrite [_ \in _]Sp inE [predD1 _ _ _]/= [_ \in _]Sq.
 by case E1: (Q == P) => //; move/eqP: E1->.
 Qed.
+
+Section DirProd.
+
+Variable gT: finGroupType.
+
+(* General lemmas to get to sylow_dirprod *) 
+Lemma coprime_bigprod: forall p (I: eqType) r (P : pred I) F,
+  (forall i : I, P i  && (i \in r) -> coprime p (F i)) ->
+  coprime p (\prod_(i <- r | P i) F i).
+Proof.
+move=> p I r P F HcF.
+apply big_prop_seq => [| x y Hx Hy |//]; first by exact: coprimen1.
+by rewrite coprime_mulr Hx.
+Qed.
+
+Lemma div_primes: forall (n m: nat), 0 < n ->
+  (forall p, p \in primes n -> p_part p n %| m) -> n %| m.
+Proof.
+move=> n m Hn Hpa.
+rewrite -(prod_p_parts Hn).
+have: forall i, i \in primes n -> prime i.
+  by move=> i; rewrite mem_primes; case/andP.
+have: uniq (primes n) by exact: uniq_primes.
+elim: (primes n) Hpa => [| i r Hrec];
+  rewrite !(big_seq0, big_adds) /= ?dvd1n //.
+move=> H1; case/andP=> H2 H3 H4.
+have Hrec1: \prod_(p <- r) p_part p n %| m.
+  by apply: Hrec => // p Hp; rewrite (H1, H4) // inE orbC Hp.
+rewrite gauss_inv //; first by rewrite Hrec1 H1 // inE eqxx.
+apply: coprime_bigprod => j /= Hj.
+rewrite coprime_expl // coprime_expr //.
+have Pi: prime i by rewrite H4 // inE eqxx.
+have Pj: prime j by rewrite H4 // inE orbC Hj.
+rewrite prime_coprime //.
+apply/negP => HH; case/negP: H2.
+case/primeP: (Pj) => _; move/(_  _ HH); case/orP => // Hi.
+  by move: Pi; rewrite (eqP Hi).
+by rewrite (eqP Hi).
+Qed.
+
+Lemma comm_bigprod: forall (A: {set gT}) (I: eqType) r (P: pred I) F,
+  (forall i, P i && (i \in r) -> A \subset 'C(F i)) -> 
+  A \subset 'C(\prod_(i <- r | P i) F i).
+Proof.
+move=> A I r P F Hg.
+apply: (@big_prop_seq _ (fun x => A \subset 'C(x))) => 
+    [|B C HB HC|//]; rewrite centsC; last first.
+  by rewrite mul_subG // centsC.
+by apply/subsetP=> x; rewrite inE; move/eqP->; rewrite group1.
+Qed.
+
+Lemma subset_bigprod: forall (A: {group gT}) I r (P: pred I) (F: I -> {set gT}),
+  (forall i : I, P i -> F i \subset A) -> \prod_(i <- r | P i) F i \subset A.
+Proof.
+move=> A I r P F Hg.
+by apply big_prop => [| B C HB HC|//]; rewrite (sub1G, mul_subG).
+Qed.
+
+Lemma group_set_bigprod: forall (I: eqType) (r : seq I) P (F: I -> {set gT}),
+   uniq r ->
+  (forall i, P i && (i \in r) -> group_set (F i)) ->
+  (forall i j, i <> j -> P i && (i \in r) -> P j && (j \in r) ->
+           (F i) \subset 'C(F j)) ->
+  group_set (\prod_(i <- r | P i) F i).
+Proof.
+move=> I r P F; elim: r => [| i r Hrec];
+  rewrite !(big_seq0, big_adds, group_set_unit) => //=.
+case/andP => Hir Hu Hi Ha.
+have HGi: group_set (\prod_(j <- r | P j) F j).
+  apply: Hrec => [//| i1 | i1 j1 Hi1j1]; case/andP => Hp1 Hip1.
+    by rewrite Hi // Hp1 inE orbC Hip1.
+  by case/andP => Hpj1 Hjp1; rewrite Ha // inE ?Hip1 ?Hjp1 orbC andbC.
+case Ep1: (P i) => //.
+have HG1: group_set (F i) by rewrite Hi // Ep1 inE eqxx.
+pose Gi := (Group HG1).
+pose G1 := (Group HGi).
+apply/group_setP; split.
+  by apply/imset2P; exists (1:gT) (1:gT); rewrite ?mul1g ?(group1 Gi) ?(group1 G1).
+move=> x y; case/imset2P=> x1 x2 Hx1 Hx2 ->; case/imset2P=> y1 y2 Hy1 Hy2 ->.
+apply/imset2P; exists (x1 * y1) (x2 * y2); first by rewrite (@groupM _ Gi).
+  by rewrite (@groupM _ G1).
+rewrite !mulgA; congr mulg; rewrite -!mulgA; congr mulg.
+suff: F i \subset 'C(\prod_(j <- r| P j) F j) by  move/centsP; move/(_ _ Hy1 _ Hx2).
+apply: comm_bigprod => j; case/andP => H1j H2j.
+apply: Ha => [Hij||]; first by case/negP: Hir; rewrite Hij.
+  by rewrite Ep1 inE eqxx.
+by rewrite H1j inE orbC H2j.
+Qed.
+
+Lemma card_bigprod: forall (I: eqType) (r : seq I) P (F: I -> {set gT}),
+  uniq r ->
+  (forall i, P i && (i \in r) -> group_set (F i)) ->
+  (forall i j, i <> j -> P i && (i \in r) -> P j && (j \in r) ->
+           (F i) \subset 'C(F j)) ->
+  (forall i j, i <> j -> P i && (i \in r) -> P j && (j \in r) ->
+           coprime #|F i| #|F j|) ->
+  #|(\prod_(i <- r | P i) (F i: set _))| =  (\prod_(i <- r | P i) #|F i|)%N.
+Proof.
+move=> I r P F; elim: r => [| i r Hrec];
+  rewrite !(big_seq0, big_adds, cards1) => //=.
+case/andP=> H1u H2u Hg Hs Hc.
+have Hr: #|\prod_(i <- r | P i) F i| = (\prod_(i <- r | P i) #|F i|)%N.
+  apply: Hrec => [// | i1 | i1 j1 Hij1 | i1 j1 Hij1]; case/andP => H1i1 H2i1.
+  - by rewrite Hg // H1i1 inE H2i1 orbC.
+  - by case/andP => H1j1 H2j1; rewrite Hs // (H1i1, H1j1) inE (H2i1, H2j1) orbC.
+  by case/andP => H1j1 H2j1; rewrite Hc // (H1i1, H1j1) inE (H2i1, H2j1) orbC.
+case Ep1: (P i) => //.
+have HG1: group_set (F i) by rewrite Hg // Ep1 inE eqxx.
+set H := reducebig _ _ _ _ _.
+have GH: group_set H.
+  apply: group_set_bigprod =>  [// | i1 | i1 j1 Hij1]; case/andP => H1i1 H2i1.
+  - by rewrite Hg // H1i1 inE H2i1 orbC.
+  by case/andP => H1j1 H2j1; rewrite Hs // (H1i1, H1j1) inE (H2i1, H2j1) orbC.
+pose Gi := (Group GH).
+pose G1 := (Group HG1).
+rewrite (@coprime_card_mulG _ G1 Gi) //= Hr //.
+apply: coprime_bigprod => j; case/andP => H1j H2j.
+rewrite Hc // ?(Ep1, H1j, inE, eqxx, H2j, orbT) //.
+by move=> Hij; case/negP: H1u; rewrite Hij.
+Qed.
+
+(* Missing lemma in groups, so we can apply not only on groups but also on sets *)
+Lemma set_mulg1 : right_unit [set 1] (@set_mulg gT).
+Proof.
+move=> A; apply/setP=> y; apply/imset2P/idP=> [[x1 x] | Ay].
+  by rewrite inE => Hx1 Ax ->; rewrite (eqP Ax) mulg1.
+by exists y (1 : gT); rewrite ?(set11, mulg1).
+Qed.
+
+Lemma sylow_dirprod (G : {group gT}):
+  (forall Pi, sylows G Pi -> Pi <| G) ->
+ \big[direct_product/1]_(Pi | sylows G Pi) Pi = G.
+Proof.
+move => G HG.
+pose r := index_enum  [finType of {set gT}].
+have Hur: uniq r by apply: uniq_enum.
+have Hgr: forall i, sylows G i && (i \in r) -> group_set i.
+  by move=> i; case/andP; case/sylowsP => p; case.
+have Hcr: forall Pi Pj, Pi <> Pj -> 
+            sylows G Pi && (Pi \in r) -> sylows G Pj && (Pj \in r) -> 
+            coprime #|Pi| #|Pj|.
+  move=> Pi Pj Hij.
+  case/andP; case/sylowsP => p1 [H1pi H2pi H3pi]; case/andP => H4pi H5pi H6pi.
+  case/andP; case/sylowsP => p2 [H1pj H2pj H3pj]; case/andP => H4pj H5pj H6pj.
+  rewrite (eqP H5pi) (eqP H5pj) coprime_expl // coprime_expr //.
+  rewrite prime_coprime //.
+  apply/negP => Hp1p2; case: Hij; apply: (@sylowNLE _ G (Group H3pi) (Group H3pj) _ H1pi).
+  - by apply: HG; apply/sylowsP; exists p1; split => //; rewrite /sylow H4pi.
+  - by rewrite /sylow H4pi.
+  case/primeP: H1pj => _; move /(_ _ Hp1p2); case/orP.
+    by move/eqP => Hp1; move: H1pi; rewrite Hp1.
+  by move/eqP->; rewrite /sylow H4pj.
+have Hsr: forall Pi Pj, Pi <> Pj -> 
+            sylows G Pi && (Pi \in r) -> sylows G Pj && (Pj \in r) -> 
+            Pi \subset 'C(Pj).
+  move=> Pi Pj Hij Hsi Hsj.
+  case/andP: (Hsi); case/sylowsP => p1 [H1pi H2pi H3pi]; case/andP => H4pi H5pi H6pi.
+  case/andP: (Hsj); case/sylowsP => p2 [H1pj H2pj H3pj]; case/andP => H4pj H5pj H6pj.
+  apply/centsP => x Hx y Hy.
+  apply/commgP.
+  have Ht: trivg (Pi :&: Pj).
+    by rewrite (@coprime_trivg _ (Group H3pi) (Group H3pj)) // Hcr.
+  move/subsetP: Ht; move/(_ [~ x, y]); rewrite !inE => -> //.
+  rewrite -[Pi]/(Group H3pi: set _) -[Pj]/(Group H3pj: set _)
+          {1}commgEl commgEr; apply/andP; split; rewrite groupM // ?groupV //.
+    have: Pi <| G by apply: HG; case/andP: Hsi.
+    case/normalP => /= _; move/(_ y)<-; last by apply: (subsetP H4pj).
+    by apply/imsetP; exists x.
+  have: Pj <| G by apply: HG; case/andP: Hsj.
+  case/normalP => /= _; move/(_ x)<-; last by apply: (subsetP H4pi). 
+  by apply/imsetP; exists (y^-1); rewrite // (@groupV _ (Group H3pj)) //.
+have GP: group_set (\prod_(Pi | sylows G Pi) Pi) by apply: group_set_bigprod.
+have<-: \prod_(Pi | sylows G Pi) Pi = G.
+  apply/eqP; rewrite eqset_sub_card.
+  rewrite subset_bigprod; last by move=> i; case/sylowsP => x [_ _ _]; case/andP.
+  apply: dvdn_leq => //.
+    by rewrite (@ltn_0group _ (Group GP)).
+  apply: div_primes; first by apply: ltn_0group.
+  move=> p Hp.
+  have H1p: prime p.
+    by move: Hp; rewrite mem_primes; case/and3P.
+  case: (@sylow1_cor _ G _ H1p) => Pj HPj.
+  case/andP: (HPj) => _; rewrite /p_part; move/eqP<-.
+  rewrite card_bigprod //-/r.
+  have: (Pj: [finType of {set gT}]) \in r by rewrite mem_enum //.
+  elim: (r) => [| i r1 Hrec]; rewrite !(big_seq0, big_adds) => //=.
+  rewrite inE; case/orP => H1Pj; last first.
+    by case: sylows; rewrite ?(dvdn_mull) // Hrec.
+  rewrite -(eqP H1Pj); suff->: sylows G Pj by rewrite dvdn_mulr.
+  apply/sylowsP; exists p; split; rewrite // ?groupP //.
+  by move: Hp; rewrite mem_primes; case/and3P.
+have: uniq r by apply: uniq_enum.
+rewrite -/r; elim: (r) => [| Pi r1 Hrec]; rewrite !(big_seq0, big_adds) => //=.
+case/andP => H1r1 H2r1; move: (Hrec H2r1) => Hrec1; case E1: (sylows _ _) => //.
+rewrite {1}/direct_product Hrec1 //.
+set H:= \prod_(Pi <- r1 | sylows G Pi)Pi.
+have F1: forall i, sylows G i && (i \in r1) -> group_set i.
+   by move=> Pi1; case/andP=> HPi1 _; rewrite Hgr // HPi1 mem_enum.
+have F2: forall i j, i <> j ->
+  sylows G i && (i \in r1) -> sylows G j && (j \in r1) -> coprime #|i| #|j|.
+  by move=> Pi1 Pj1 Hij1; case/andP=> HPi1 _; case/andP=> HPj1 _; 
+     rewrite Hcr // (HPi1, HPj1) mem_enum.
+have F3: forall Pj, sylows G Pj && (Pj \in r1) -> coprime #|Pi| #|Pj|.
+  move=> Pi1; case/andP=> H1Pi1 H2Pi1; rewrite Hcr // ?(E1, H1Pi1, mem_enum) //.
+  by move=> HH; case/negP: H1r1; rewrite HH.
+have F4: forall i j, i <> j ->
+  sylows G i && (i \in r1) -> sylows G j && (j \in r1) -> i \subset 'C(j).
+  by move=> Pi1 Pj1 Hij1; case/andP=> HPi1 _; case/andP=> HPj1 _; 
+     rewrite Hsr // (HPi1, HPj1) mem_enum.
+have GPi: group_set Pi by rewrite Hgr // E1 mem_enum.
+have GH: group_set H by apply: (group_set_bigprod  H2r1).
+have->: trivg (Pi :&: \prod_(Pi <- r1 | sylows G Pi)Pi) by
+  rewrite (@coprime_trivg _ (Group GPi) (Group GH)) ?(card_bigprod,coprime_bigprod).
+rewrite /central_product GPi GH.
+have ->: Pi \subset 'C(H).
+  apply: comm_bigprod => Pi1.
+  case/andP=> HPi1 H1Pi1; rewrite Hsr // ?(E1, HPi1, mem_enum) //.
+  by move=> HH; case/negP: H1r1; rewrite HH.
+case: eqP => He1; first by rewrite He1 -{1}(@set_mul1g gT H).
+by case: eqP => He2; rewrite // He2 -{1}(@set_mulg1 Pi).
+Qed.
+
+End DirProd.
 
 Unset Implicit Arguments.

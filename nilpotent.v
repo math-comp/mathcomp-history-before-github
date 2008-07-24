@@ -2,7 +2,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div prime.
 Require Import ssralg bigops. 
 Require Import fintype finset groups commutators automorphism.
 Require Import normal center sylow. 
-Require Import schurzass cyclic.
+Require Import schurzass cyclic dirprod.
 
 
 (* Require Import paths connect finfun ssralg bigops. *)
@@ -422,56 +422,11 @@ rewrite subsetI (subset_trans _ nHG) ?commSg ?subsetIl //=.
 by rewrite (subset_trans _ (ucn_comm G i)) ?commSg ?subsetIr.
 Qed.
 
-Require Import dirprod.
-
-Lemma lcn_setX (H1 H2: {group gT}) n : 
-  'L_n(setX H1 H2) = setX 'L_n(H1) 'L_n(H2).
-Proof.
-move=> H1 H2; elim=> [| n Hrec]; first by rewrite !lcn0.
-rewrite !lcnSn Hrec.
-apply/eqP; rewrite eqset_sub; apply/andP; split.
-  rewrite gen_subG.
-  apply/subsetP => x; case/imset2P => [[x11 x12] [x21 x22]].
-  rewrite inE; case/andP => /= Hx11 Hx12.
-  rewrite inE; case/andP => /= Hx21 Hx22 ->.  
-  apply/setXP; split => /=.
-    by apply: mem_gen; apply/imset2P; exists x11 x21.
-  by apply: mem_gen; apply/imset2P; exists x12 x22.
-rewrite -setX_gen ?group1;
-  try by apply/imset2P; exists (1: gT) (1: gT); rewrite ?group1 ?comm1g.
-apply: genS; apply/subsetP => [[x1 x2]]; rewrite !inE /=.
-case/andP; case/imset2P => xx1 xx2 Hxx1 Hxx2 ->.
-case/imset2P => yy1 yy2 Hyy1 Hyy2 ->.
-by apply/imset2P; exists (xx1,yy1) (xx2,yy2); rewrite // !inE /= ?Hxx1 ?Hxx2.
-Qed.
-
-Lemma nilpotent_setX (H1 H2: {group gT}) :
-  nilpotent (setX H1 H2) <-> nilpotent H1 /\ nilpotent H2. 
-Proof.
-move=> H1 H2; split.
-    case/lcnP=> n; rewrite lcn_setX => Hn.
-    split; apply/lcnP; exists n; apply/trivgP; apply/subsetP => y Hy;
-    move/trivgP: Hn; move/subsetP; [move/(_ (y, 1))|move/(_ (1, y))];
-    by rewrite !inE /= Hy group1; move/(_ is_true_true); case/andP.
-move=> [Hn1]; case/lcnP=> n2 Hn2; case/lcnP: Hn1 => n1 Hn1.
-pose m  := maxn n1 n2.
-have T1m: trivg 'L_m(H1).
-  by move/trivgP: Hn1; move/lcn_stable; apply; rewrite leq_maxr leqnn.
-have T2m: trivg ('L_m (H2)).
-  by move/trivgP: Hn2; move/lcn_stable; apply; rewrite leq_maxr leqnn orbT.
-apply/lcnP; exists m; rewrite lcn_setX.
-apply/trivgP; apply/subsetP =>  [[x y]]; rewrite !inE /=; case/andP => Hx Hy.
-by apply/andP; split; [move: (subsetP T1m _ Hx) | move: (subsetP T2m _ Hy)];  
-  rewrite !inE.
-Qed.
-
 End Properties.
 
 Section DirectProdProperties.
 
 Variable gT: finGroupType.
-
-Infix "\x" := direct_product (at level 40, left associativity).
 
 Lemma nilpotent_dirprod : forall A B (G : {group gT}),
    A \x B = G -> nilpotent A -> nilpotent B -> nilpotent G.
@@ -480,15 +435,8 @@ move=> A B G; case/dprodGP=> [[H K -> -> <- Hc] _].
 rewrite nilpotent_mul => [-> //|]; exact/centsP.
 Qed.
 
-(*
-Lemma filter_all: forall (I: Type) (r : seq I) P, all P (filter P r).
-move=> I r P; elim: r => [| a r1 Hrec] //=.
-by case Pa: (P a) => //=; rewrite Pa.
-Qed.
-*)
-
 Lemma nilpotent_bigdprod : forall I r (P : pred I) F (G : {group gT}),
-  \big[(@direct_product gT)/1]_(i <- r | P i) F i = G
+  \big[direct_product/1]_(i <- r | P i) F i = G
   -> (forall i, P i -> nilpotent (F i)) -> nilpotent G.
 Proof.
 move=> I r P F G defG nilF; move: G defG.
@@ -498,4 +446,34 @@ case: (dprodGP defG) => [[H K defH defK _ _] _].
 by apply: (nilpotent_dirprod defG); rewrite (defH, defK); auto.
 Qed. 
 
+Lemma nilpotent_sylow: forall G: {group gT},  ~trivg G ->
+  (nilpotent G <-> \big[direct_product/1]_(Pi | sylows G Pi) Pi = G).
+Proof.
+move=> G; rewrite trivg_card; move/negP; rewrite -ltnNge => Hg1.
+have Hg0: (0 < #|G|) by rewrite (cardD1 1) group1.
+split=> Hg; last first.
+  apply: (nilpotent_bigdprod Hg) => Pi.
+  case/sylowsP=> p [H1p H2p H3p]; case/andP=> H4p H5p.
+  suff: nilpotent (Group H3p) by done.
+  apply: nilpotent_pgroup; rewrite /= (eqP H5p).
+  by rewrite primes_exp ?primes_prime // ltn_0log mem_primes H1p Hg0.
+apply: sylow_dirprod.
+move=> Pi; case/sylowsP=> p [H1p H2p H3p H4p].
+pose H := 'N_G(Pi)%G; pose N := 'N_G(H)%G.
+have SHG: H \subset G by apply/subsetP=> x; rewrite inE; case/andP.
+rewrite (@nilpotent_sub_norm _ G H) //.
+  by apply: (@normalSG _ G (Group H3p)); case/andP: H4p.
+have normHN: H <| N.
+  by apply: normalSG; apply/subsetP=> x; rewrite inE; case/andP.
+have SPi: sylow p H Pi.
+ apply: (@sylow_subset gT (Group H3p) G)=> //=.
+   apply/subsetP=> x; rewrite inE => Hx.
+   case/andP: H4p; move/subsetP; move/(_ x Hx)=> -> _.
+   by exact: (subsetP (normG (Group H3p)) x Hx).
+move: (@Frattini _ _ _ (Group H3p) _ normHN H1p SPi).
+suff H1: 'N_N(Pi) \subset H.
+  by rewrite (mulGSgid (group1 _)) // => EHN; rewrite {2}EHN.
+by apply/subsetP=> x; rewrite !inE; rewrite -andbA; case/and3P=> ->.
+Qed.
+ 
 End DirectProdProperties.

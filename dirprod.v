@@ -315,3 +315,7 @@ by case/dprodGP=> [[_ G' _ defG' <- _] _]; rewrite defG' (IHr _ defG').
 Qed.
 
 End InternalDirProd.
+
+Prenex Implicits direct_product.
+Infix "\x" := direct_product (at level 40, left associativity).
+
