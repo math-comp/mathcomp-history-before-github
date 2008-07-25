@@ -1,13 +1,16 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import fintype paths finfun ssralg bigops finset.
 Require Import groups normal commutators.
-Require Import cyclic center sylow dirprod schurzass hall coprime_act.
+Require Import cyclic center sylow dirprod schurzass hall. 
+Require Import coprime_act nilpotent.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
 Import GroupScope.
+
+Section coprime_comm.
 Variable T : finGroupType.
 
 
@@ -116,4 +119,81 @@ have v1: forall v, v \in G ->  v ^+ #|A| = 1 -> v = 1.
     by rewrite -centr; last done; apply: (mker (kerphi x inco)).
   - by apply/subsetP => x; move/set1P ->; apply/setIP; split; apply: group1.
 Qed. 
- 
+
+Definition stabn (A:{set T}) (G G1:{group T}):= 
+(G1 <| G) && (A \subset 'N(G1)) && (A/G1 \subset 'C(G/G1)).
+
+Definition stabn_seq A G s:= path (stabn A) G s && (last (unit_group T) (G::s) == (unit_group T)).
+
+Theorem centraliser1: 'C(1) = @setT T.
+Proof. 
+by apply/setP=> x; apply/centP; rewrite inE; move =>y; move /set1P ->; apply: commute1.
+Qed.
+
+
+Theorem stabn_seq_cent: forall (A G: {group T}) s, 
+coprime #|G| #|A| -> solvable G -> stabn_seq A G s -> A \subset 'C(G).
+Proof.
+move => A G s; rewrite /stabn_seq; move: G.
+elim: s => [G1 _ _|G1 t indh G cop solv]; rewrite /=; first by move /eqP ->; rewrite centraliser1; apply:subsetT.
+rewrite /=. case/andP. case/andP. case /andP. case /andP.
+move=> G1nG AnG1 subC ph lh.
+have subC1: A \subset 'C(G1).
+  apply: indh; last by apply/andP; split.
+  - by have G1sG := normal_sub G1nG; rewrite -(LaGrange G1sG) coprime_mull in cop; case/andP: cop.
+  - by apply: (solvable_sub (normal_sub G1nG)). 
+have lem: G \subset G1 * 'C_G(A).
+  rewrite -quotientSK; last by apply:normal_norm. 
+  rewrite coprime_quotient_cent_weak; last done; last done; last done; last done.
+  by rewrite subsetI; apply/andP; split; first done; rewrite centsC.
+have lem2: G1 * 'C_G(A) \subset 'C(A).
+  apply: mul_subG; first by rewrite centsC. by apply: subsetIr.
+by rewrite centsC; apply: (subset_trans lem lem2).
+Qed.
+
+Theorem nilpotent_solvable: forall (G: {group T}), nilpotent G -> solvable G.
+Proof.
+move => G. rewrite /nilpotent; move/implyP => nil; rewrite /solvable; apply/implyP => sub.
+apply: nil. move/forallP => nil. 
+have nil1: forall (H: {group T}), H \subset G :&: [~: H, G] -> trivg H by move=> H; apply/implyP.
+apply:sub; apply/forallP=>H; apply/implyP; rewrite subsetI; case/andP=> HsubG HsubC. 
+apply: nil1; rewrite subsetI. apply/andP; split; first done. 
+apply (subset_trans HsubC (commgS H HsubG)).
+Qed.
+
+(* B+G Prop 1.09 *)
+Theorem faithful_cent_fix_nil : forall A G: {group T},
+    A \subset 'N(G) -> coprime #|G| #|A| -> nilpotent G ->
+  'C_G('C_G(A)) \subset 'C(A) -> G \subset 'C(A).
+Proof.
+move=> A G subN co nil subC.
+suff AsubCNC: A \subset 'C('N_G('C_G(A))).
+  have eqGC: G = 'C_G(A)%G. 
+    by apply: nilpotent_sub_norm; rewrite ? subsetIl // subsetI subsetIl centsC AsubCNC.
+  rewrite eqGC; apply: subsetIr.
+suff stab: stabn_seq A 'N_G('C_G(A)) [:: 'C_G(A)%G ; 1%G].
+apply: stabn_seq_cent _ _ stab.
+  by rewrite -(LaGrange (subsetIl G 'N('C_G(A)))) coprime_mull in co; case/andP: co.
+  by apply: nilpotent_solvable; apply: (nilpotent_sub _ nil); rewrite subsetIl.
+apply/andP; split; last done.
+have AsubNC: A \subset 'N('C_G(A)).
+  apply: (subset_trans _ (normI _ _)).
+  rewrite subsetI subN /=; apply: (subset_trans (normG A) (cent_norm _)).
+rewrite /stabn /= andbT; apply/andP; split. 
+  rewrite /stabn AsubNC /(_ <| _) subsetIr subsetI subsetIl /= normG /=.
+  apply: center_commgr. 
+  rewrite gen_subG; apply/subsetP=> ax; case/imset2P=> a x Aa Nx ->{ax}.
+  case/setIP: Nx => Gx Nx.
+  have subCG: 'C_G('C_G(A)) \subset 'C_G(A) by rewrite subsetI subC subsetIl //. 
+  apply: (subsetP subCG); rewrite inE commgEr groupMr // memJ_norm ?(subsetP subN, groupV) // Gx.
+  apply/centP=> y Cy.
+  rewrite /commute -mulgA (conjgCV x y) 2!mulgA; congr (_ * _).
+  have Cyx: y ^ x^-1 \in 'C_G(A) by rewrite -mem_conjg (normP Nx). 
+  have Cfixa: forall z, z \in 'C_G(A) -> z ^ a = z.
+    by move=> z; case/setIP=> _ Cz; rewrite conjgE (centP Cz) ?mulKg.
+  by rewrite -{2}(Cfixa y Cy) -(Cfixa _ Cyx) -!conjMg -conjgC.
+rewrite /(_ <| _) sub1G normaliser1 !subsetT /= center_commgr //.
+by rewrite [_ \subset _](sameP commG1P centsP) centsC subsetIr.
+Qed.
+
+End coprime_comm.
