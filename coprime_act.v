@@ -8,8 +8,6 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-Import GroupScope.
-
 Lemma coprime_has_primes : forall m n, m > 0 -> n > 0 ->
   coprime m n = ~~ has (mem (primes m)) (primes n).
 Proof.
@@ -22,6 +20,8 @@ move/prime_pdiv; set p := pdiv _ => pr_p.
 move/implyP: (no_p_mn p); rewrite /= !mem_primes m_pos n_pos pr_p /=.
 by rewrite !(dvdn_trans (dvdn_pdiv _)) // (dvdn_gcdl, dvdn_gcdr).
 Qed.
+
+Import GroupScope.
 
 Section NormalPart.
 

@@ -1032,6 +1032,8 @@ Notation "[ ~: A1 , A2 , .. , An ]" := (commutator .. (commutator A1 A2) .. An)
   (at level 0,
   format "[ ~: '['  A1 , '/'  A2 , '/'  .. , '/'  An ']' ]") : group_scope.
 
+Prenex Implicits order cycle_of.
+
 Section GroupProp.
 
 Variable gT : finGroupType.
