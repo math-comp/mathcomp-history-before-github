@@ -1424,12 +1424,15 @@ case=> [|p] [|q] //=; elim: p => [p IHp|p IHp|] /=;
   by rewrite ?(mul1n, nat_of_add_pos, mulSn) //= !natTrecE IHp double_mull.
 Qed.
 
+
 Lemma nat_of_exp_bin : forall n (b : N), n ^ (b : nat) = pow_N 1 muln n b.
 Proof.
 move=> n [|p] /=; first exact: expn0.
 elim: p => /= [p <-|p <-|]; last exact: expn1;
   by rewrite natTrecE mulnn -expn_mulr muln2.
 Qed.
+
+
 
 End NumberInterpretation.
 
@@ -1457,6 +1460,7 @@ Notation "[ 'Num' 'of' e ]" := (Num (bin_of_nat e))
   (at level 0, format "[ 'Num'  'of'  e ]") : nat_scope.
 
 (* Interface to ring/ring_simplify tactics *)
+
 
 Lemma nat_semi_ring : semi_ring_theory 0 1 addn muln (@eq _).
 Proof. exact: mk_srt add0n addnC addnA mul1n mul0n mulnC mulnA muln_addl. Qed.
@@ -1499,6 +1503,7 @@ Add Ring nat_ring_ssr : nat_semi_ring (morphism nat_semi_morph,
 
 (* A congruence tactic, similar to the boolean one, along with an .+1/+  *)
 (* normalization tactic.                                                 *)
+
 
 Ltac nat_norm :=
   succn_to_add; rewrite ?add0n ?addn0 -?addnA ?(addSn, addnS, add0n, addn0).

@@ -11,7 +11,7 @@
 
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 Require Import fintype div prime finfun finset.
-Require Import bigops groups normal action cyclic zp dirprod.
+Require Import bigops groups morphisms normal action cyclic zp dirprod.
 
 (* Require Import paths connect. *)
 

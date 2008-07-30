@@ -3,6 +3,7 @@ Require Import Bool. (* For bool_scope delimiter 'bool'. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+
 Module SsrSyntax.
 
 (* Declare Ssr keywords: 'is' 'by' 'of' '//' '/=' and '//='.                *)
@@ -78,7 +79,7 @@ Open Scope structure_scope.
 
 Module AsCanonical.
 
-CoInductive put cT sT (c1 c2 : cT) (s : sT) : Type := Put.
+CoInductive put cT sT (c1 c2 : cT) (s : sT) :  Type := Put.
 
 Definition get cT sT c s (p : @put cT sT c c s) := let: Put := p in s.
 
@@ -89,13 +90,13 @@ Import AsCanonical.
 Notation "(* 'is' c *) s" := (@get _ _ c s _)
   (at level 10, c at level 99, format "(* 'is'  c *) s") : structure_scope.
 
-Notation "(* 'is' c : *) s" := (@get Type _ c s _)
+Notation "(* 'is' c : *) s" := (@get  Type _ c s _)
   (at level 10, c at level 99, format "(* 'is' c  :  *) s") : structure_scope.
 
 Notation "[ 'is' c : cT <: sT ]" := (get ((fun s : sT => Put (c : cT) s s) _))
   (at level 0, c, cT at level 99, only parsing) : structure_scope.
 
-Notation "[ 'is' c <: sT ]" := [is c%type : Type <: sT]
+Notation "[ 'is' c <: sT ]" := [is c%type :  Type <: sT]
   (at level 0, c at level 99, only parsing) : structure_scope.
 
 (* Helper notation for canonical structure inheritance support.           *)
@@ -150,13 +151,13 @@ Open Scope form_scope.
 (*   We also define a simpler version ("phant" / "Phant") for the common *)
 (* case where p_type is Type.                                            *)
 
-CoInductive phantom (T : Type) (p : T) : Type := Phantom.
+CoInductive phantom (T :  Type) (p : T) :  Type := Phantom.
 Implicit Arguments phantom [].
-CoInductive phant (p : Type) : Type := Phant.
+CoInductive phant (p : Type) :  Type := Phant.
 
 (* Internal tagging used by the implementation of the ssreflect elim. *)
 
-Definition protect_term (A : Type) (x : A) : A := x.
+Definition protect_term (A :  Type) (x : A) : A := x.
 
 (* TODO: update comment. *)
 (** Term tagging (user-level).                                              *)

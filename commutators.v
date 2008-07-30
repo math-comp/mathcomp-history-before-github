@@ -2,7 +2,7 @@
 (*  Commutators  *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
 Require Import fintype finset.
-Require Import groups normal automorphism.
+Require Import groups morphisms automorphism normal.
 
 (* Require Import seq paths connect div ssralg bigops group_perm. *)
 

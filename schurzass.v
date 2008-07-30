@@ -1,6 +1,6 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat div prime.
 Require Import fintype ssralg bigops finset.
-Require Import groups normal automorphism action.
+Require Import groups morphisms automorphism normal action.
 Require Import commutators cyclic center sylow.
 
 (* Require Import seq paths connect finfun group_perm. *)

@@ -9,7 +9,7 @@
 (***********************************************************************)
 (***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype seq ssralg.
-Require Import bigops fintype finset groups normal.
+Require Import bigops fintype finset groups morphisms normal.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

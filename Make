@@ -17,6 +17,8 @@ bigops.v
 finset.v
 groups.v
 normal.v
+jordanholder.v
+morphisms.v
 commutators.v
 nilpotent.v
 group_perm.v
@@ -40,7 +42,7 @@ coprime_act.v
 frobenius.v
 alt.v
 burnside_app.v
-jordanholder.v
+
 
 COQC = $(COQBIN)ssrcoq
 COQFLAGS = "-q $(OPT) -dont-load-proofs $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -compile"

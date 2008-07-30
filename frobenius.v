@@ -11,7 +11,7 @@
 
 Require Import ssreflect ssrbool ssrfun ssrnat.
 Require Import eqtype fintype div prime finset.
-Require Import groups normal cyclic center.
+Require Import groups morphisms normal cyclic center.
 
 (* Require Import seq paths connect zp. *)
 

@@ -40,6 +40,6 @@
     )
    "Extended list of closing tactic(al)s, includings ssr and user defined ones")
 ;; This works only with the cvs version (> 3.7) of Proof General. 
-;; (defcustom coq-variable-highlight-enable nil
-;;   "Activates partial bound variable highlighting"
-;; )
+(defcustom coq-variable-highlight-enable nil
+  "Activates partial bound variable highlighting"
+)

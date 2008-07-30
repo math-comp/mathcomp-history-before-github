@@ -20,6 +20,7 @@ Require Import finset.
 Require Import finfun.
 Require Import groups.
 Import GroupScope.
+Require Import morphisms.
 Require Import normal.
 
 Require Import automorphism.
@@ -28,101 +29,103 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-Reserved Notation "x \isog y" (at level 70, no associativity).
 
 Section Proper.
 
 Variable T : finType.
-Implicit Types x y z: pred T.
-Implicit Types a b c: {set T}.
+Implicit Types A B C : {set T}.
 
-Definition proper (a b : mem_pred T) := subset a b && ~~ subset b a.
+Definition proper A B := (A \subset B) && ~~ (B \subset A).
 
-Notation "x \proper y" := (proper (mem x) (mem y))
+Notation "x \proper y" := (proper x y)
   (at level 70, no associativity, format "x  \proper  y") : bool_scope.
 
-(* plutôt sur {set T} *)
-Lemma propers : forall x y, x \proper y -> x \subset y.
-Proof. by move=> x b; case/andP=>->. Qed.
+Lemma proper_sub : forall A B, A \proper B -> A \subset B.
+Proof. by move=> A B; case/andP=>->. Qed.
 
-Lemma properns : forall x y, x \proper y -> ~~ (y \subset x).
-Proof. by move=> x b; case/andP=>_ ->. Qed.
+Lemma proper_subn : forall A B, A \proper B -> ~~ (B \subset A).
+Proof. by move=> A B; case/andP=>_ ->. Qed.
 
-Lemma proper_inD : forall x y,
-  x \proper y -> exists2 u, u \in y & u \notin x.
-Proof. by move=> x y; case/andP=> _; case/subsetPn=> u yu nxu; exists u. Qed.
+Lemma proper_inD : forall A B,
+  A \proper B -> exists2 x, x \in B & x \notin A.
+Proof. by move=> A B; case/andP=> _; case/subsetPn=> x Bx nAx; exists x. Qed.
 
-Lemma proper_trans : forall x y z,
-  x \proper y -> y \proper z -> x \proper z.
+Lemma proper_trans : forall A B C,
+  A \proper B -> B \proper C -> A \proper C.
 Proof.
-move=> a b c; case/andP=> sab pab; case/andP=> sbc; case/subsetPn=> x cx nax.
-rewrite /proper (subset_trans sab) //=; apply/subsetPn; exists x=> //.
-by apply/negP; move/(subsetP sab); apply/negP.
+move=> A B C; case/andP=> sAB pAB; case/andP=> sBC; case/subsetPn=> x Cx nAx.
+rewrite /proper (subset_trans sAB) //=; apply/subsetPn; exists x=> //.
+by apply/negP; move/(subsetP sAB); apply/negP.
 Qed.
 
-Lemma proper_subset_trans : forall x y z,
-  x \proper y -> y \subset z -> x \proper z.
+Lemma proper_sub_trans : forall A B C,
+  A \proper B -> B \subset C -> A \proper C.
 Proof.
-move=> a b c; case/andP=> sab pab sbc; rewrite /proper (subset_trans sab) //=.
-by case/subsetPn: pab=> x bx nax; apply/subsetPn; exists x; rewrite ?(subsetP sbc).
+move=> A B C; case/andP=> sAB pAB sBC; rewrite /proper (subset_trans sAB) //=.
+by case/subsetPn: pAB=> x Bx nAx; apply/subsetPn; exists x; rewrite ?(subsetP sBC).
 Qed.
 
-Lemma subset_proper_trans : forall x y z,
-  x \subset y -> y \proper z -> x \proper z.
-move=> a b c sab; case/andP=> sbc pbc; rewrite /proper (subset_trans _ sbc) //=.
-case/subsetPn: pbc=> x cx nbx; apply/subsetPn; exists x; rewrite //; apply/negP.
-by move/(subsetP sab); apply/negP.
+Lemma sub_proper_trans : forall A B C,
+  A \subset B -> B \proper C -> A \proper C.
+move=> A B C sAB; case/andP=> sBC pBC; rewrite /proper (subset_trans _ sBC) //=.
+case/subsetPn: pBC=> x Cx nBx; apply/subsetPn; exists x; rewrite //; apply/negP.
+by move/(subsetP sAB); apply/negP.
 Qed.
 
-Lemma proper_card : forall x y,
-  x \proper y -> #|x| < #|y|.
+Lemma proper_card : forall A B,
+  A \proper B -> #|A| < #|B|.
 Proof.
-move=> x y; case/andP=> sxy exy; rewrite ltn_neqAle.
-by case: (subset_leqif_card sxy)=> -> ->; rewrite andbT.
+move=> A B; case/andP=> sAB eAB; rewrite ltn_neqAle.
+by case: (subset_leqif_card sAB)=> -> ->; rewrite andbT.
 Qed.
 
-(* Now we switch to sets and benefit from the algebra developped in finset *)
-Lemma proper_empty : forall a, a != set0 ->  set0 \proper a.
-Proof. by move=> a nea; rewrite /proper sub0set subset0 nea. Qed.
+Lemma proper_empty : forall A, A != set0 ->  set0 \proper A.
+Proof. by move=> A neA; rewrite /proper sub0set subset0 neA. Qed.
 
 (* This misses in finset ? *)
-Lemma subD1set : forall a u, a :\ u \subset a.
-Proof. by move=> a u; apply/subsetP=> v; case/setD1P. Qed.
+Lemma subsetD1 : forall A x, A :\ x \subset A.
+Proof. by move=> A x; apply/subsetP=> y; case/setD1P. Qed.
 
-Lemma properD1 : forall a u, u \in a -> a :\ u \proper a.
+Lemma properD1 : forall A x, x \in A -> A :\ x \proper A.
 Proof.
-move=> x u xu; rewrite /proper subD1set; apply/subsetPn; exists u=> //.
-by rewrite in_setD1 xu eqxx.
+move=> A x Ax; rewrite /proper subsetD1; apply/subsetPn; exists x=> //.
+by rewrite in_setD1 Ax eqxx.
 Qed.
+ 
+Lemma properIr :  forall A B, ~~ (B \subset A) -> A :&: B \proper B.
+Proof. by move=> A B nsAB; rewrite /proper subsetIr subsetI negb_andb nsAB. Qed.
 
-Lemma properIr :  forall a b, ~~ (b \subset a) -> a :&: b \proper b.
-Proof. by move=> a b nsab; rewrite /proper subsetIr subsetI negb_andb nsab. Qed.
-
-Lemma properIl : forall a b, ~~ (a \subset b) -> a :&: b \proper a.
+Lemma properIl : forall A B, ~~ (A \subset B) -> A :&: B \proper A.
 Proof. 
-by move=> a b nsba; rewrite /proper subsetIl subsetI negb_andb nsba orbT. 
+by move=> A B nsBA; rewrite /proper subsetIl subsetI negb_andb nsBA orbT. 
 Qed.
 
-Lemma properE : forall a b : {set T}, a \proper b = (a \subset b) && (a != b).
-Proof. by move=> a b; rewrite /proper eqset_sub; case sab : (a \subset b). Qed.
+Lemma properE : forall A B, A \proper B = (A \subset B) && (A != B).
+Proof. by move=> A B; rewrite /proper eqset_sub; case sAB : (A \subset B). Qed.
 
-Lemma proper_neq :  forall a b : {set T}, a \proper b -> a != b.
-Proof. by move=> a b; rewrite properE; case/andP. Qed.
+Lemma proper_neq :  forall A B, A \proper B -> A != B.
+Proof. by move=> A B; rewrite properE; case/andP. Qed.
 
-Lemma properUr : forall a b, a :\: b != set0 ->  b \proper a :|: b.
+Lemma properUr : forall A B, A :\: B != set0 ->  B \proper A :|: B.
 Proof.
-move=> a b; rewrite /proper subsetUr subUset subset_refl andbT -subset0 subDset.
+move=> A B; rewrite /proper subsetUr subUset subset_refl andbT -subset0 subDset.
 by rewrite setU0.
 Qed.
 
-Lemma properUl : forall a b, b :\: a != set0 ->  a \proper a :|: b.
-Proof. by move=> a b ned; rewrite setUC properUr. Qed.
+Lemma properUl : forall A B, B :\: A != set0 ->  A \proper A :|: B.
+Proof. by move=> A B ned; rewrite setUC properUr. Qed.
+
+
 
 End Proper.
 
 
-Notation "x \proper y" := (proper (mem x) (mem y))
+Notation "x \proper y" := (proper x y)
   (at level 70, no associativity, format "x  \proper  y") : bool_scope.
+
+
+Reserved Notation "x \isog y" (at level 70, no associativity).
+
 
 Section MaxSet.
 
@@ -270,7 +273,7 @@ Lemma pmaxnormal_proper : forall N : st, pmaxnormal N -> N \proper G.
 Proof. by move=> N; move/maxgroupp; case/andP; rewrite /proper; move/normal_sub->. Qed.
 
 Lemma pmaxnormalS : forall N : st, pmaxnormal N -> N \subset G.
-Proof. by move=> N pNN; rewrite propers // pmaxnormal_proper. Qed.
+Proof. by move=> N pNN; rewrite proper_sub // pmaxnormal_proper. Qed.
 
 (* This misses in normal ? *)
 Lemma normal1 : 1 <| G.
@@ -299,7 +302,7 @@ Lemma pmaxnormal_sub :  forall H : gTg,
   H <| G -> H \proper G -> exists N : gTg, pmaxnormal N && (H \subset N).
 Proof.
 move=> H nHG pHGl.
-have pnHG : (H <| G) && ~~ (G \subset H) by rewrite nHG properns.
+have pnHG : (H <| G) && ~~ (G \subset H) by rewrite nHG proper_subn.
 
 case: (@maxgroup_exists _ [pred x | (x <| G) && ~~(G \subset x)] _ pnHG)=> N.
 by case/andP=> mN sHN; exists N; rewrite /pmaxnormal mN.
@@ -350,13 +353,13 @@ Definition simple := pmaxnormal G 1%G.
 
 Lemma simple_nt : simple -> ~~ (trivg G).
 Proof.
-by rewrite /simple; case/pmaxnormalP=> _ p1G _; rewrite /trivg; move/properns:p1G.
+by rewrite /simple; case/pmaxnormalP=> _ p1G _; rewrite /trivg; move/proper_subn:p1G.
 Qed.
 
 Lemma nt_proper1 : ~~ trivg G -> 1%G \proper G.
 Proof. by rewrite /trivg /proper sub1set group1=> ->. Qed.
 
-Lemma proper_preim : forall (T1 T2: finType)(f : T1 -> T2) (x y : pred T2),
+Lemma proper_preim : forall (T1 T2: finType)(f : T1 -> T2) (x y : {set T2}),
 y \subset (f @: T1) -> x \proper y -> (f @^-1: x) \proper (f @^-1: y).
 Proof.
 move=> T1 T2 f x y syi ; case/andP=> sfxy pfxy; rewrite /proper preimsetS //=.
@@ -369,11 +372,11 @@ Qed.
 Lemma proper_inj_im :  forall (gT2 : finGroupType)(f : {morphism G >-> gT2})
 (x y : gT), 'injm f -> y \subset G -> x \proper y -> f @* x \proper f @* y.
 Proof.
-move=> gT2 f x y ijf syG pxy; rewrite properE morphimS ?propers //=; apply/eqP.
+move=> gT2 f x y ijf syG pxy; rewrite properE morphimS ?proper_sub //=; apply/eqP.
 move=> e; move: e (proper_neq pxy). 
 move/morphim_inj=> /= ->; rewrite ?eqxx // !inE /=; move: (trivgP _ ijf)=> /= ->;
 rewrite sub1set group1 //.
-by apply: subset_trans _ syG; rewrite propers.
+by apply: subset_trans _ syG; rewrite proper_sub.
 Qed.
 
 Lemma simpleP :
@@ -418,7 +421,7 @@ have di : f @* L <| f @* H by rewrite morphim_normal.
 have pi:  f @* L \proper f @* H by apply: proper_inj_im.
 move: (simH _ di pi)=> /=.
 move/congr_group=> /=; rewrite -{1}(morphim_ker f).
-move/morphim_inj; rewrite !inE /= ker_injm // !sub1set !group1 propers //=.
+move/morphim_inj; rewrite !inE /= ker_injm // !sub1set !group1 proper_sub //=.
 by move=> -> //; apply: val_inj; rewrite /= ker_injm.
 Qed.
 
@@ -444,7 +447,7 @@ have sK'd : K' \subset coset_of N @* 'N(N).
 have skG: 'ker (coset_of N) \subset G by rewrite ker_coset.
 have neKG : K \proper G.
   rewrite /proper; move/morphimGK: skG => /= <-; rewrite ?normal_norm //.
-  by rewrite morphpreS //= morphpreSK -?quotientE ?properns ?morphimS ?normal_norm.
+  by rewrite morphpreS //= morphpreSK -?quotientE ?proper_subn ?morphimS ?normal_norm.
 apply: val_inj => /=; suff eKN : K = N :> set _.
   have -> : K' = coset_of N @* K :> set _.
     by rewrite /K morphpreK //= (subset_trans scKG) // morphimS ?normal_norm.

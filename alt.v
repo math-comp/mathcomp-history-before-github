@@ -1,5 +1,5 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype.
-Require Import div prime tuple finset groups normal group_perm.
+Require Import div prime tuple finset groups morphisms normal group_perm.
 Require Import automorphism action sylow cyclic signperm.
 
 (* Require Import paths connect finfun zp. *)

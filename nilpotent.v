@@ -1,7 +1,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div prime.
 Require Import ssralg bigops. 
 Require Import fintype finset groups commutators automorphism.
-Require Import normal center sylow. 
+Require Import morphisms normal center sylow. 
 Require Import schurzass cyclic dirprod.
 
 

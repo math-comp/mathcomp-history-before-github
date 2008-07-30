@@ -1,6 +1,6 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div prime.
 Require Import fintype paths ssralg bigops finset.
-Require Import groups normal cyclic sylow schurzass.
+Require Import groups morphisms normal cyclic sylow schurzass.
 
 (* Require Import connect finfun group_perm automorphism action center. *)
 

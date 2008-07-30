@@ -14,7 +14,8 @@ Require Import fintype.
 Require Import finset.
 Require Import groups.
 Require Import group_perm.
-Require Import normal.
+Require Import morphisms.
+
 
 Import GroupScope.
 
@@ -309,18 +310,5 @@ End Characteristicity.
 
 Notation "H \char G" := (characteristic H G) : group_scope.
 
-Lemma char_from_quotient : forall (gT : finGroupType) (G H K : {group gT}),
-  H <| K -> H \char G -> K / H \char G / H -> K \char G.
-Proof.
-move=> gT G H K; case/andP=> sHK nHK chHG; case/charP=> sKG chKG.
-have nHG := normal_char chHG; case: (andP nHG) => sHG nHG'.
-rewrite -(ker_coset H) in sHK; rewrite morphimSGK ?ker_coset // in sKG.
-apply/charP; split=> // f injf Gf; apply/morphim_fixP => //.
-have{chHG} Hf: f @* H = H by case/charP: chHG => _; apply.
-rewrite -(morphimSGK _ sHK) -?quotientE; last first.
-  by apply: subset_trans nHG'; rewrite -{3}Gf morphimS.
-rewrite -(morphim_quotm nHG Gf Hf) {}chKG // ?injm_quotm //.
-by rewrite morphim_quotm Gf.
-Qed.
 
 Unset Implicit Arguments.

@@ -64,6 +64,7 @@ Reserved Notation "[ ==> b1 , b2 , .. , bn => c ]" (at level 0, format
   "'[hv' [ ==> '['  b1 , '/'  b2 , '/'  .. , '/'  bn ']' '/'  =>  c ] ']'").
 
 Reserved Notation "[ 'pred' : T => E ]" (at level 0, format
+
   "'[hv' [ 'pred' :  T  => '/ '  E ] ']'").
 Reserved Notation "[ 'pred' x => E ]" (at level 0, x at level 8, format
   "'[hv' [ 'pred'  x  => '/ '  E ] ']'").
@@ -109,8 +110,9 @@ Notation "b1 (+) b2" := (addb b1 b2) : bool_scope.
 
 Coercion is_true b := b = true.
 
+(*
 Ltac fold_prop := match goal with |- (?b = true) => change (is_true b) end.
-
+*)
 Lemma prop_congr : forall b b' : bool, b = b' -> b = b' :> Prop.
 Proof. by move=> b b' ->. Qed.
 

@@ -9,7 +9,7 @@
 (***********************************************************************)
 (***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
-Require Import fintype finset groups normal div dirprod.
+Require Import fintype finset groups morphisms normal div dirprod.
 
 (* Require Import seq paths connect zp bigops group_perm automorphism  *)
 

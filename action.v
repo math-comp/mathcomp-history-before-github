@@ -6,7 +6,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
 Require Import div prime seq fintype.
 (* Require Import connect. *)
 Require Import tuple finfun ssralg bigops finset.
-Require Import groups normal group_perm.
+Require Import groups morphisms normal group_perm.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -615,6 +615,7 @@ Proof. move=> A x a; exact: actmE. Qed.
 
 Lemma perm_of_actM : forall A, {morph actm A : a b / a * b}.
 Proof. by move=> A a b; apply/permP => x; rewrite permM !permE actM. Qed.
+
 
 Canonical Structure actm_morphism A :=
   @Morphism _ _ A _ (in2W (@perm_of_actM A)).

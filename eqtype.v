@@ -38,6 +38,7 @@ Notation EqMixin := EqType.Mixin.
 
 Definition mkEqType T e eP := EqClass (@EqMixin T e eP).
 
+
 Notation "[ 'eqType' 'of' T ]" :=
   (match [is T <: eqType] as s return {type of EqClass for s} -> _ with
   | EqClass _ m => fun k => k m end
@@ -212,9 +213,10 @@ Definition invariant (rT : eqType) f (k : aT -> rT) :=
 
 Variables (rT1 rT2 : eqType) (f : aT -> aT) (h : rT1 -> rT2) (k : aT -> rT1).
 
+(* pouquoi Type -> Type demande de reecrire eqxx??? *)
 Lemma invariant_comp : subpred (invariant f k) (invariant f (h \o k)).
-Proof. by move=> x eq_kfx; rewrite /comp /= (eqP eq_kfx). Qed.
-
+Proof.  by move=> x eq_kfx; rewrite /comp /= (eqP eq_kfx) eqxx. Qed.
+ 
 Lemma invariant_inj : injective h -> invariant f (h \o k) =1 invariant f k.
 Proof. move=> inj_h x; exact: (inj_eq inj_h). Qed.
 
@@ -279,6 +281,7 @@ Proof. by move=> x y; rewrite /compareb; case (Hcompare x y); constructor. Qed.
 Definition comparableType := mkEqType compareP.
 
 End ComparableType.
+
 
 Definition eq_comparable (T : eqType) : comparable T :=
   fun x y => decP (x =P y).
