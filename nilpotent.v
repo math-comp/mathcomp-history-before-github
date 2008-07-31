@@ -446,11 +446,10 @@ case: (dprodGP defG) => [[H K defH defK _ _] _].
 by apply: (nilpotent_dirprod defG); rewrite (defH, defK); auto.
 Qed. 
 
-Lemma nilpotent_sylow: forall G: {group gT},  ~trivg G ->
-  (nilpotent G <-> \big[direct_product/1]_(Pi | sylows G Pi) Pi = G).
+Lemma nilpotent_sylow: forall G: {group gT}, 
+  nilpotent G <-> \big[direct_product/1]_(Pi | sylows G Pi) Pi = G.
 Proof.
-move=> G; rewrite trivg_card; move/negP; rewrite -ltnNge => Hg1.
-have Hg0: (0 < #|G|) by rewrite (cardD1 1) group1.
+move=> G; have Hg0: (0 < #|G|) by rewrite (cardD1 1) group1.
 split=> Hg; last first.
   apply: (nilpotent_bigdprod Hg) => Pi.
   case/sylowsP=> p [H1p H2p H3p]; case/andP=> H4p H5p.
