@@ -1,7 +1,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div prime.
 Require Import ssralg bigops. 
 Require Import fintype finset groups commutators automorphism.
-Require Import morphisms normal center sylow. 
+Require Import morphisms normal center pgroups sylow. 
 Require Import schurzass cyclic dirprod.
 
 
@@ -452,7 +452,7 @@ Proof.
 move=> G; have Hg0: (0 < #|G|) by rewrite (cardD1 1) group1.
 split=> Hg; last first.
   apply: (nilpotent_bigdprod Hg) => Pi.
-  case/sylowsP=> p [H1p H2p H3p]; case/andP=> H4p H5p.
+  case/sylowsP=> p [H1p H2p H3p]; rewrite sylowE; case/andP=> H4p H5p.
   suff: nilpotent (Group H3p) by done.
   apply: nilpotent_pgroup; rewrite /= (eqP H5p).
   by rewrite primes_exp ?primes_prime // ltn_0log mem_primes H1p Hg0.

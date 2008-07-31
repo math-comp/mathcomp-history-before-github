@@ -1,7 +1,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat div prime.
 Require Import fintype ssralg bigops finset.
 Require Import groups morphisms automorphism normal action.
-Require Import commutators cyclic center sylow.
+Require Import commutators cyclic center pgroups sylow.
 
 (* Require Import seq paths connect finfun group_perm. *)
 
@@ -285,10 +285,10 @@ Definition hall (gT : finGroupType) (G H : {set gT}) :=
 Lemma sylow_hall : forall (gT : finGroupType) (G P : {group gT}) p,
   prime p -> sylow p G P -> hall G P.
 Proof.
-move=> gT G P p prime_p; case/andP=> sPG sylP.
+move=> gT G P p prime_p; rewrite sylowE; case/andP=> sPG sylP.
 rewrite /hall -group_divn sPG //=.
 case: (p_part_coprime prime_p (pos_card_group G)) => n' co_p_n' ->.
-rewrite /p_part -(eqP sylP) divn_mull ?pos_card_group // (eqP sylP).
+rewrite -(eqP sylP) divn_mull ?pos_card_group // (eqP sylP) /p_part.
 by case: (logn _ _) => [|k]; rewrite ?coprime_expl // /coprime gcdnC.
 Qed.
 
@@ -354,7 +354,7 @@ have: splitg Gbar Hbar; last case/splitgP=> Kbar trHKbar eqHKbar.
   apply: IHn => //; apply: {n}leq_trans Gn.
   rewrite card_quotient; last by case/andP: nZG.
   rewrite -(group_divn sZG) divn_lt ?pos_card_group // ltnNge -trivg_card.
-  case/andP: sylP => _; rewrite lognE prime_p dvdn_pdiv ltn_0group.
+  move: sylP; rewrite sylowE; case/andP => _; rewrite /p_part lognE prime_p dvdn_pdiv ltn_0group.
   move/eqP; exact: pgroup_ntriv.
 have: Kbar \subset Gbar by rewrite -eqHKbar mulG_subr.
 case/inv_quotientS=> // ZK; move/(congr1 val)=> /= quoZK sZZK sZKG.
