@@ -11,19 +11,6 @@ Import Prenex Implicits.
 
 Import GroupScope.
 
-Lemma Frattini : forall (gT : finGroupType) (G H P : {group gT}) p,
-  H <| G -> prime p -> sylow p H P -> H * 'N_G(P) = G.
-Proof.
-move=> gT G H P p; case/normalP=> sHG nHG p_prime sylP.
-have sPG: P \subset G by apply: subset_trans sHG; case/andP: sylP.
-apply/eqP; rewrite eqset_sub setIC group_modl // subsetIr.
-apply/subsetP=> x Gx; pose Q := (P :^ x^-1)%G.
-have sylQ: sylow p H Q by  by rewrite (sylow_sconjg _ _ _ x) conjsgKV nHG.
-have [y Hy [/= QPy]] := sylow2_cor p_prime sylP sylQ.
-rewrite inE Gx andbT -(mulKg y x) mem_mulg ?groupV //.
-by apply/normP; rewrite conjsgM -QPy conjsgKV.
-Qed.
-
 Section Split.
 
 Variable gT : finGroupType.
