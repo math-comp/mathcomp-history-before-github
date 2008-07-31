@@ -314,8 +314,10 @@ elim: {r}filter => [|i r IHr] G; rewrite !(big_seq0, big_adds) //=.
 by case/dprodGP=> [[_ G' _ defG' <- _] _]; rewrite defG' (IHr _ defG').
 Qed.
 
+
 End InternalDirProd.
 
-Prenex Implicits direct_product.
+Prenex Implicits direct_product central_product.
 Infix "\x" := direct_product (at level 40, left associativity).
+Infix "\*" := central_product (at level 40, left associativity).
 

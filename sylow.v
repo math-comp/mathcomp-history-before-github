@@ -597,16 +597,6 @@ rewrite Hc // ?(Ep1, H1j, inE, eqxx, H2j, orbT) //.
 by move=> Hij; case/negP: H1u; rewrite Hij.
 Qed.
 
-(* Missing lemma in groups, so we can apply not only on groups but also on sets
--- GG: Not missing, mulg1 applies to set mul just as well!
-Lemma set_mulg1 : right_unit [set 1] (@set_mulg gT).
-Proof.
-move=> A; apply/setP=> y; apply/imset2P/idP=> [[x1 x] | Ay].
-  by rewrite inE => Hx1 Ax ->; rewrite (eqP Ax) mulg1.
-by exists y (1 : gT); rewrite ?(set11, mulg1).
-Qed.
-*)
-
 Lemma sylow_dirprod (G : {group gT}):
   (forall Pi, sylows G Pi -> Pi <| G) ->
  \big[direct_product/1]_(Pi | sylows G Pi) Pi = G.
