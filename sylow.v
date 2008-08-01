@@ -12,7 +12,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 Require Import fintype div prime finfun finset ssralg.
 Require Import bigops groups morphisms normal action cyclic zp. 
-Require Import dirprod pgroups pgroups.
+Require Import dirprod pgroups nilpotent.
 
 (* Require Import paths connect. *)
 
@@ -710,6 +710,36 @@ have ->: Pi \subset 'C(H).
   by move=> HH; case/negP: H1r1; rewrite HH.
 case: eqP => He1; first by rewrite He1 -{1}(@set_mul1g gT H).
 by case: eqP => He2; rewrite // He2 -{1}(mulg1 Pi).
+Qed.
+
+
+Lemma nilpotent_sylow: forall G: {group gT}, 
+  nilpotent G <-> \big[direct_product/1]_(Pi | sylows G Pi) Pi = G.
+Proof.
+move=> G; have Hg0: (0 < #|G|) by rewrite (cardD1 1) group1.
+split=> Hg; last first.
+  apply: (nilpotent_bigdprod Hg) => Pi.
+  case/sylowsP=> p [H1p H2p H3p]; rewrite sylowE; case/andP=> H4p H5p.
+  suff: nilpotent (Group H3p) by done.
+  apply: nilpotent_pgroup; rewrite /= (eqP H5p).
+  by rewrite primes_exp ?primes_prime // ltn_0log mem_primes H1p Hg0.
+apply: sylow_dirprod.
+move=> Pi; case/sylowsP=> p [H1p H2p H3p H4p].
+pose H := 'N_G(Pi)%G; pose N := 'N_G(H)%G.
+have SHG: H \subset G by apply/subsetP=> x; rewrite inE; case/andP.
+rewrite (@nilpotent_sub_norm _ G H) //.
+  by apply: (@normalSG _ G (Group H3p)); case/andP: H4p.
+have normHN: H <| N.
+  by apply: normalSG; apply/subsetP=> x; rewrite inE; case/andP.
+have SPi: sylow p H Pi.
+ apply: (@sylow_subset gT (Group H3p) G)=> //=.
+   apply/subsetP=> x; rewrite inE => Hx.
+   case/andP: H4p; move/subsetP; move/(_ x Hx)=> -> _.
+   by exact: (subsetP (normG (Group H3p)) x Hx).
+move: (@Frattini _ _ _ (Group H3p) _ normHN H1p SPi).
+suff H1: 'N_N(Pi) \subset H.
+  by rewrite (mulGSgid (group1 _)) // => EHN; rewrite {2}EHN.
+by apply/subsetP=> x; rewrite !inE; rewrite -andbA; case/and3P=> ->.
 Qed.
 
 End DirProd.

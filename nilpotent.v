@@ -1,8 +1,8 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div prime.
 Require Import ssralg bigops. 
 Require Import fintype finset groups commutators automorphism.
-Require Import morphisms normal center pgroups sylow. 
-Require Import schurzass cyclic dirprod.
+Require Import morphisms normal center. 
+Require Import cyclic dirprod.
 
 
 (* Require Import paths connect finfun ssralg bigops. *)
@@ -445,34 +445,5 @@ apply big_prop => [_ <-|A B IHA IHB G defG| i Pi _ <-]; last exact: nilF.
 case: (dprodGP defG) => [[H K defH defK _ _] _].
 by apply: (nilpotent_dirprod defG); rewrite (defH, defK); auto.
 Qed. 
-
-Lemma nilpotent_sylow: forall G: {group gT}, 
-  nilpotent G <-> \big[direct_product/1]_(Pi | sylows G Pi) Pi = G.
-Proof.
-move=> G; have Hg0: (0 < #|G|) by rewrite (cardD1 1) group1.
-split=> Hg; last first.
-  apply: (nilpotent_bigdprod Hg) => Pi.
-  case/sylowsP=> p [H1p H2p H3p]; rewrite sylowE; case/andP=> H4p H5p.
-  suff: nilpotent (Group H3p) by done.
-  apply: nilpotent_pgroup; rewrite /= (eqP H5p).
-  by rewrite primes_exp ?primes_prime // ltn_0log mem_primes H1p Hg0.
-apply: sylow_dirprod.
-move=> Pi; case/sylowsP=> p [H1p H2p H3p H4p].
-pose H := 'N_G(Pi)%G; pose N := 'N_G(H)%G.
-have SHG: H \subset G by apply/subsetP=> x; rewrite inE; case/andP.
-rewrite (@nilpotent_sub_norm _ G H) //.
-  by apply: (@normalSG _ G (Group H3p)); case/andP: H4p.
-have normHN: H <| N.
-  by apply: normalSG; apply/subsetP=> x; rewrite inE; case/andP.
-have SPi: sylow p H Pi.
- apply: (@sylow_subset gT (Group H3p) G)=> //=.
-   apply/subsetP=> x; rewrite inE => Hx.
-   case/andP: H4p; move/subsetP; move/(_ x Hx)=> -> _.
-   by exact: (subsetP (normG (Group H3p)) x Hx).
-move: (@Frattini _ _ _ (Group H3p) _ normHN H1p SPi).
-suff H1: 'N_N(Pi) \subset H.
-  by rewrite (mulGSgid (group1 _)) // => EHN; rewrite {2}EHN.
-by apply/subsetP=> x; rewrite !inE; rewrite -andbA; case/and3P=> ->.
-Qed.
  
 End DirectProdProperties.
