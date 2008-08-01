@@ -194,20 +194,6 @@ Qed.
 
 Let DivpCK := SylowDivpCK.
 
-Lemma sylowE (A B: {set gT}) :
-   sylow p A B = (B \subset A) && (#|B| == p_part p #|A|)%N.
-Proof.
-have filter_pred1: forall (T : eqType) (a: T) s,
-       uniq s ->  filter (pred1 a) s = if a \in s then [::a] else [::].
-  move=> T a; elim => [| b s IHr] //=; case/andP => N1 U1.  
-  rewrite inE eq_sym; case: eqP => //= E1; rewrite IHr //.
-  by rewrite -E1 {2}E1; move: N1; case: (_ \in _).
-move=> A B; rewrite /sylow /hall /pi_part.
-case: (_ \subset _) => //=.
-rewrite -big_filter !(filter_pred1, uniq_primes) //= /p_part -ltn_0log.
-by case E2: (logn p #|A|) => [| p1]; rewrite /= !(big_seq0, big_adds, E2, expn0, muln1).
-Qed.
-
 Lemma sylow_sconjgr: forall L x, x \in K -> sylow p K L = sylow p K (L :^ x).
 Proof.
 have F1: forall L x, x \in K -> sylow p K L -> sylow p K (L :^ x).
