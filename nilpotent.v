@@ -350,48 +350,6 @@ Qed.
 Lemma nilpotent1 : nilpotent (1 : {set gT}).
 Proof. by apply/lcnP; exists 0. Qed.
 
-Lemma nilpotent_pgroup : forall G, size (primes #|G|) <= 1 -> nilpotent G.
-Proof.
-move=> G pgG. (* interface to old p-group characterization *)
-case: (leqP #|G| 1).
-  by rewrite -trivg_card; case/trivGP=> ->; exact: nilpotent1.
-move/prime_pdiv; set p := pdiv _ => pr_p; have Gpos: #|G| > 0 by [].
-case: (p_part_coprime pr_p Gpos) => m; rewrite prime_coprime //.
-case: (ltnP 1 m).
-  move/prime_pdiv; set q := pdiv m => pr_q npm oGm; case/negP: npm.
-  have: all (mem (primes #|G|)) [:: p; q].
-    by rewrite /= !mem_primes pr_p pr_q Gpos {2}oGm dvdn_mulr dvdn_pdiv.
-  case: primes pgG => [|r []] //= _; rewrite !mem_seq1 andbT.
-  by case/andP; move/eqP->; move/eqP <-; rewrite dvdn_pdiv.
-case: m => [|[]] //; first by rewrite dvdn0.
-rewrite mul1n /p_part => _ _ {Gpos pgG}; move: p => p in pr_p *.
-move: (logn _ _) => m oG; apply/ucnP; exists m; apply/eqP.
-rewrite eqset_sub_card ucn_subset0 /= oG.
-elim: {-2}m (leqnn m) => [|k IHk] ltkm; first exact: pos_card_group.
-case/andP: (ucn_normal G k) => sZ nZ.
-  case/andP: (ucn_normal0 G k) => sZG nZG.
-have: #|G / 'Z_k(G)| %| #|G|.
-  by rewrite card_quotient // -(LaGrange sZG) dvdn_mull.
-rewrite oG; case/dvdn_exp_prime=> // [] [|j] lejk oGbar.
-  apply: (@leq_trans #|G|); first by rewrite oG leq_exp2l // prime_gt1.
-  apply: subset_leq_card; apply: subset_trans sZ.
-  by rewrite -trivg_quotient // trivg_card oGbar.
-rewrite -(LaGrange sZ) -card_quotient //= ucn_center expnSr.
-rewrite leq_mul ?(IHk (ltnW _)) // dvdn_leq ?pos_card_group //.
-have:= pgroup_ntriv pr_p oGbar; rewrite trivg_card.
-have: #|'Z(G / 'Z_k(G))| %| p ^ j.+1 by rewrite -oGbar group_dvdn // subsetIl.
-by case/dvdn_exp_prime=> // [] [|i] _ -> // _; rewrite dvdn_mulr.
-Qed.
-
-
-Lemma small_nil_class : forall G n, nil_class G <= n -> n <= 5 -> nilpotent G.
-Proof.
-move=> G n leKn; move/(leq_trans leKn) => {n leKn} leK5.
-case: (ltnP 5 #|G|) => [lt5G | leG5 {leK5}].
-  by rewrite nilpotent_class (leq_ltn_trans leK5).
-by apply: nilpotent_pgroup; move: #|G| leG5; do 6!case=> //.
-Qed.
-
 Lemma nilpotent_sub_norm : forall G H,
   nilpotent G -> H \subset G -> 'N_G(H) \subset H -> G = H.
 Proof.

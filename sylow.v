@@ -12,7 +12,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 Require Import fintype div prime finfun finset ssralg.
 Require Import bigops groups morphisms normal action cyclic zp. 
-Require Import dirprod pgroups nilpotent.
+Require Import dirprod pgroups nilpotent center.
 
 (* Require Import paths connect. *)
 
@@ -699,16 +699,61 @@ by case: eqP => He2; rewrite // He2 -{1}(mulg1 Pi).
 Qed.
 
 
+End DirProd.
+
+Section PGroups.
+
+Variable (gT : finGroupType).
+Implicit Type G H : {group gT}.
+
+Lemma nilpotent_pgroup : forall G, is_pgroup G -> nilpotent G.
+Proof.
+move=> G pgG.
+case: (leqP #|G| 1).
+  by rewrite -trivg_card; case/trivGP=> ->; exact: nilpotent1.
+move/prime_pdiv; set p := pdiv _ => pr_p; have Gpos: #|G| > 0 by [].
+move: (part_pi_nat pgG); rewrite -p_part_pi -/p /p_part.
+move: (logn _ _) => m oG; apply/ucnP; exists m; apply/eqP.
+rewrite eqset_sub_card ucn_subset0 /= -oG.
+elim: {-2}m (leqnn m) => [|k IHk] ltkm; first exact: pos_card_group.
+case/andP: (ucn_normal G k) => sZ nZ.
+  case/andP: (ucn_normal0 G k) => sZG nZG.
+have: #|G / 'Z_k(G)| %| #|G|.
+  by rewrite card_quotient // -(LaGrange sZG) dvdn_mull.
+rewrite -oG; case/dvdn_exp_prime=> // [] [|j] lejk oGbar.
+  apply: (@leq_trans #|G|); first by rewrite -oG leq_exp2l // prime_gt1.
+  apply: subset_leq_card; apply: subset_trans sZ.
+  by rewrite -trivg_quotient // trivg_card oGbar.
+rewrite -(LaGrange sZ) -card_quotient //= ucn_center expnSr.
+rewrite leq_mul ?(IHk (ltnW _)) // dvdn_leq ?pos_card_group //.
+have:= pgroup_ntriv pr_p oGbar; rewrite trivg_card.
+have: #|'Z(G / 'Z_k(G))| %| p ^ j.+1 by rewrite -oGbar group_dvdn // subsetIl.
+by case/dvdn_exp_prime=> // [] [|i] _ -> // _; rewrite dvdn_mulr.
+Qed.
+
+
+Lemma small_nil_class : forall G, nil_class G <= 5 -> nilpotent G.
+Proof.
+move=> G; have Hg0: (0 < #|G|) by rewrite (cardD1 1) group1.
+move=> leK5.
+case: (ltnP 5 #|G|) => [lt5G | leG5 {leK5}].
+  by rewrite nilpotent_class (leq_ltn_trans leK5).
+apply: nilpotent_pgroup.
+move: Hg0 leG5; rewrite /is_pgroup /pgroup /pi_group; move: #|G|.
+by do 6!case => //.
+Qed.
+
 Lemma nilpotent_sylow: forall G: {group gT}, 
   nilpotent G <-> \big[direct_product/1]_(Pi | sylows G Pi) Pi = G.
 Proof.
 move=> G; have Hg0: (0 < #|G|) by rewrite (cardD1 1) group1.
 split=> Hg; last first.
   apply: (nilpotent_bigdprod Hg) => Pi.
-  case/sylowsP=> p [H1p H2p H3p]; rewrite sylowE; case/andP=> H4p H5p.
+  case/sylowsP=> p [H1p H2p H3p] HS.
+  have HS1: is_sylow G (Group H3p) by apply/is_sylowP; exists p.
+  move: HS; rewrite sylowE; case/andP=> H4p H5p.
   suff: nilpotent (Group H3p) by done.
-  apply: nilpotent_pgroup; rewrite /= (eqP H5p).
-  by rewrite primes_exp ?primes_prime // ltn_0log mem_primes H1p Hg0.
+  by apply: nilpotent_pgroup; move: HS1; rewrite is_sylowE; case/andP.
 apply: sylow_dirprod.
 move=> Pi; case/sylowsP=> p [H1p H2p H3p H4p].
 pose H := 'N_G(Pi)%G; pose N := 'N_G(H)%G.
@@ -728,6 +773,6 @@ suff H1: 'N_N(Pi) \subset H.
 by apply/subsetP=> x; rewrite !inE; rewrite -andbA; case/and3P=> ->.
 Qed.
 
-End DirProd.
+End PGroups.
 
 Unset Implicit Arguments.
