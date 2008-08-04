@@ -246,7 +246,7 @@ Lemma char_refl : forall G, G \char G.
 Proof. move=> G; exact/charP. Qed.
 
 Lemma lone_subgroup_char : forall G H,
-  H \subset G -> (forall K, K \subset G -> isog K H -> K \subset H) ->
+  H \subset G -> (forall K, K \subset G -> K \isog H -> K \subset H) ->
   H \char G.
 Proof.
 move=> G H sHG Huniq; apply/charP; split=> // f injf Gf; apply/eqP.

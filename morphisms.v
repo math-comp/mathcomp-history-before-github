@@ -28,6 +28,8 @@ Import Prenex Implicits.
 
 Import GroupScope.
 
+Reserved Notation "x \isog y" (at level 70).
+
 Section Simple.
 
 Variables gT : finGroupType.
@@ -373,7 +375,6 @@ move=> C D sDfG; apply: invg_inj.
 by rewrite invMg -!morphpreV invMg morphpreMl // -invSg invgK invGid.
 Qed.
 
-(* remove the dependency on this particular G, cf next lemma *)
 Lemma morphimK : forall A, A \subset G -> f @*^-1 (f @* A) = 'ker f * A.
 Proof.
 move=> A sAG; apply/setP=> x; rewrite !inE; apply/idP/idP.
@@ -890,6 +891,9 @@ Qed.
 
 End Defs.
 
+
+Infix "\isog":= isog.
+
 (* The real reflection properties only hold for true groups and morphisms. *)
 
 Variables (G : group aT) (H : group rT).
@@ -912,7 +916,7 @@ Proof.
 by move=> f; case/isomP; move/injmP=> injf <-; rewrite morphimEdom card_dimset.
 Qed.
 
-Lemma isogP : reflect (exists2 f : fMT, 'injm f & f @* G = H) (isog G H).
+Lemma isogP : reflect (exists2 f : fMT, 'injm f & f @* G = H) (G \isog H).
 Proof.
 apply: (iffP idP) => [| [f *]]; last by apply: isom_isog (f) _; exact/isomP.
 by case/existsP=> f; case/misomP=> fM; case/isomP; exists (morphm_morphism fM).
@@ -925,37 +929,38 @@ Implicit Arguments misomP [aT rT A B f].
 Implicit Arguments isomP [aT rT G H f].
 Implicit Arguments isogP [aT rT G H].
 Prenex Implicits morphic morphicP morphm isom isog isomP misomP isogP.
+Notation "x \isog y":= (isog x y).
 
 Section Isomorphisms.
 
 Variables gT hT kT : finGroupType.
 Variables (G : {group gT}) (H : {group hT}) (K : {group kT}).
 
-Lemma isog_refl : isog G G.
+Lemma isog_refl : G \isog G.
 Proof.
 by apply/isogP; exists [morphism of idm G]; rewrite /= ?injm_idm ?morphim_idm.
 Qed.
 
-Lemma isog_card : isog G H -> #|G| = #|H|.
+Lemma isog_card : G \isog H -> #|G| = #|H|.
 Proof. case/isogP=> f injf <-; apply: isom_card (f) _; exact/isomP. Qed.
 
-Lemma trivial_isog : trivg G -> trivg H -> isog G H.
+Lemma trivial_isog : trivg G -> trivg H -> G \isog H.
 Proof.
 move/trivgP=> ->; move/trivgP=> ->; apply/isogP.
 exists [morphism of @trivm gT hT 1]; rewrite /= ?morphim_trivm //.
 rewrite ker_trivm; exact: subset_refl.
 Qed.
 
-Lemma isog_triv : isog G H -> trivg G = trivg H.
+Lemma isog_triv : G \isog H -> trivg G = trivg H.
 Proof. by move=> isoGH; rewrite !trivg_card isog_card. Qed.
 
-Lemma isog_sym_imply : isog G H -> isog H G.
+Lemma isog_sym_imply : G \isog H -> H \isog G.
 Proof.
 case/isogP=> f injf <-; apply/isogP.
 by exists [morphism of invm injf]; rewrite /= ?injm_invm // invm_dom.
 Qed.
 
-Lemma isog_trans : isog G H -> isog H K -> isog G K.
+Lemma isog_trans : G \isog H -> H \isog K -> G \isog K.
 Proof.
 case/isogP=> f injf <-; case/isogP=> g injg <-.
 have defG: f @*^-1 (f @* G) = G by rewrite morphimGK ?subsetIl.
@@ -963,7 +968,7 @@ rewrite -morphim_comp -{1 8}defG.
 by apply/isogP; exists [morphism of g \o f]; rewrite ?injm_comp.
 Qed.
 
-Lemma isog_simpl : isog G H -> simple G -> simple H.
+Lemma isog_simpl : G \isog H -> simple G -> simple H.
 Proof.
 move/isog_sym_imply; case/isogP=> f injf <-.
 case/simpleP=> ntH simH; apply/simpleP; split=> [|L nLH].
@@ -982,15 +987,15 @@ Variables gT hT kT : finGroupType.
 Variables (G : {group gT}) (H : {group hT}) (K : {group kT}).
 
 
-Lemma isog_sym : isog G H = isog H G.
+Lemma isog_sym : (G \isog H) = (H \isog G).
 Proof. apply/idP/idP; exact: isog_sym_imply. Qed.
 
-Lemma isog_transl : isog G H -> isog G K = isog H K.
+Lemma isog_transl : G \isog H -> (G \isog K) = (H \isog K).
 Proof.
 by move=> iso; apply/idP/idP; apply: isog_trans; rewrite // -isog_sym.
 Qed.
 
-Lemma isog_transr : isog G H -> isog K G = isog K H.
+Lemma isog_transr : G \isog H -> (K \isog G) = (K \isog H).
 Proof.
 by move=> iso; apply/idP/idP; move/isog_trans; apply; rewrite // -isog_sym.
 

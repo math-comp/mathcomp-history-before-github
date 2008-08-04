@@ -115,8 +115,6 @@ Qed.
 Lemma properUl : forall A B, B :\: A != set0 ->  A \proper A :|: B.
 Proof. by move=> A B ned; rewrite setUC properUr. Qed.
 
-
-
 End Proper.
 
 
@@ -124,7 +122,7 @@ Notation "x \proper y" := (proper x y)
   (at level 70, no associativity, format "x  \proper  y") : bool_scope.
 
 
-Reserved Notation "x \isog y" (at level 70, no associativity).
+
 
 
 Section MaxSet.
@@ -151,13 +149,6 @@ Qed.
 
 Lemma maxsetp : forall b, maxset b -> p b.
 Proof. by move=> b; case/maxsetP. Qed.
-
-(* This misses in ssrnat ? *)
-Lemma ltn_leq_trans :  forall n m p : nat, m < n -> n <= p -> m < p.
-Proof.
-move=> x y z ltxy; rewrite leq_eqVlt; case/orP=> h; first by rewrite -(eqP h).
-exact: (ltn_trans ltxy).
-Qed.
 
 Lemma maxset_exists : forall c, p c -> exists b, (maxset b) && (c \subset b).
 move=> c; pose t := setT : sT.
@@ -411,7 +402,7 @@ Section SimpleMaxNormal.
 (* To be moved in previous section ? *)
 Lemma isog_simple : forall (gT hT : finGroupType) 
   (G : {group gT}) (H : {group hT}),
-  isog G H -> simple G -> simple  H.
+  G \isog H -> simple G -> simple  H.
 Proof.
 move=> gT hT G H; move/isog_sym_imply; case/isogP=> f injf e. 
 rewrite (_ : G = (f @*H)%G); last by apply: val_inj=> /=.
@@ -513,7 +504,7 @@ Canonical Structure section_subFinType :=
   Eval hnf in [subFinType of section].
 
 (* To be moved in normal *)
-Notation "x \isog y":= (isog x y).
+
 
 Canonical Structure section_group(u : section) : {group _} := 
   Eval hnf in [group of u : set _].
@@ -521,7 +512,7 @@ Canonical Structure section_group(u : section) : {group _} :=
 Coercion section_group : section >-> group_for.
 
 (* Isomophic sections *)
-Definition sisog := [rel x y : section | isog x y].
+Definition sisog := [rel x y : section | x \isog y].
 
 (* A representant of the isomorphism class of a section *)
 Definition srepr (H : section) := 
@@ -603,7 +594,6 @@ by rewrite -(@trivg_comps H s) /comps ?ls //=; apply/trivgP; move/(congr1 val): 
 Qed.
 
 
-
 (* Existence of a composition serie for a finite group, 
 by recursion of the cardinal.
 Is it usefull to have explicitely the values for trivg and simple ? 
@@ -663,11 +653,11 @@ pose N := (N1 :&: N2)%G.
 have nNG : N <| G.
   rewrite /normal subIset ?(normal_sub nN1G) //=; apply: subset_trans (normI _ _).
   by rewrite subsetI !normal_norm.
-have iso1 : isog (G / N1) (N2 / N).
+have iso1 : (G / N1) \isog (N2 / N).
   rewrite isog_sym /= -(pmaxnormalprod pmaxN1 pmaxN2) //.
   rewrite (@normC _ N1 N2) ?(subset_trans (normal_sub nN1G)) ?normal_norm //.
   by apply: weak_second_isom; rewrite ?(subset_trans (normal_sub nN2G)) ?normal_norm.
-have iso2 : isog (G / N2) (N1 / N).
+have iso2 : (G / N2) \isog (N1 / N).
   rewrite isog_sym /= -(pmaxnormalprod pmaxN1 pmaxN2) // setIC.
   by apply: weak_second_isom; rewrite ?(subset_trans (normal_sub nN1G)) ?normal_norm.
 case: (exists_comps N)=> sN; case/andP=> lsN csN.

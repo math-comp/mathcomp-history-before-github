@@ -359,6 +359,12 @@ Proof. move=> *; exact: ltnW. Qed.
 Lemma ltn_trans : forall n m p, m < n -> n < p -> m < p.
 Proof. move=> n m p Hmn; move/ltnW; exact: leq_trans. Qed.
 
+Lemma ltn_leq_trans :  forall n m p : nat, m < n -> n <= p -> m < p.
+Proof.
+move=> x y z ltxy; rewrite leq_eqVlt; case/orP=> h; first by rewrite -(eqP h).
+exact: (ltn_trans ltxy).
+Qed.
+
 Lemma leq_total : forall m n, (m <= n) || (m >= n).
 Proof. by move=> m n; rewrite leq_eqVlt orbC orbCA ltnNge orbN orbT. Qed.
 

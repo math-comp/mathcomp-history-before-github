@@ -296,7 +296,7 @@ case: (tpermP x2) => [->|->|HH1 HH2]; rewrite /x2 (tpermL, tpermR, tpermD) //.
 by apply/eqP => HH3; case: HH2; apply: val_inj.
 Qed.
 
-Lemma rfd_iso: isog 'C_('Alt_T | 'P)[x] 'Alt_T'.
+Lemma rfd_iso: 'C_('Alt_T | 'P)[x] \isog 'Alt_T'.
 Proof.
 have rgd_x: forall p, rgd p x = x.
   by move=> p; rewrite permE /= insubF //= eqxx.

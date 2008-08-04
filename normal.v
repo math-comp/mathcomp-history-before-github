@@ -464,7 +464,7 @@ Variables aT rT : finGroupType.
 Implicit Types G H : {group aT}.
 
 Lemma first_isom : forall G (f : {morphism G >-> rT}),
-  isog (G / 'ker f) (f @* G).
+  (G / 'ker f) \isog (f @* G).
 Proof.
 move=> G f; apply/isogP; have nkG := norm_ker f.
 have skk: 'ker (coset_of ('ker f)) \subset 'ker f by rewrite ker_coset.
@@ -473,7 +473,7 @@ by rewrite ker_factm -quotientE trivial_quotient.
 Qed.
 
 Lemma first_isom_loc : forall G H (f : {morphism G >-> rT}),
-  H \subset G -> isog (H / 'ker_H f) (f @* H).
+  H \subset G -> (H / 'ker_H f) \isog (f @* H).
 Proof.
 move=> G H f sHG.
 rewrite -{4}(setIid H) -(morphim_restrm sHG) -(ker_restrm sHG f).
@@ -488,10 +488,10 @@ Variables (gT : finGroupType) (H K : {group gT}).
 
 Hypothesis nKH : H \subset 'N(K).
 
-Lemma second_isom : isog (H / (K :&: H)) (H / K).
+Lemma second_isom : (H / (K :&: H)) \isog (H / K).
 Proof. rewrite setIC -{1 3}(ker_coset K); exact: first_isom_loc. Qed.
 
-Lemma weak_second_isom : isog (H / (K :&: H)) (H * K / K).
+Lemma weak_second_isom : (H / (K :&: H)) \isog (H * K / K).
 Proof. rewrite quotient_mulg; exact: second_isom. Qed.
 
 End SecondIsomorphism.
@@ -504,7 +504,7 @@ Hypothesis sHK : H \subset K.
 Hypothesis snHG : H <| G.
 Hypothesis snKG : K <| G.
 
-Theorem third_isom : isog (G / H / (K / H)) (G / K).
+Theorem third_isom : (G / H / (K / H)) \isog (G / K).
 Proof.
 case/andP: snKG => sKG nKG; case/andP: snHG => sHG nHG.
 have sHker: 'ker (coset_of H) \subset 'ker (restrm nKG (coset_of K)).
