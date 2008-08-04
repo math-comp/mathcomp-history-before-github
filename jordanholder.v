@@ -121,51 +121,51 @@ End Proper.
 Notation "x \proper y" := (proper x y)
   (at level 70, no associativity, format "x  \proper  y") : bool_scope.
 
-
-
-
-
 Section MaxSet.
 
 Variable T : finType.
 Notation sT := {set T}.
 
-Implicit Type b c: sT.
+Variable P : pred sT.
 
-Variable p : pred sT.
+Definition maxset B := 
+  P B && (forallb C, (P C && (B \subset C)) ==> (C == B)).
 
-Definition maxset b := 
-  p b && (forallb c, (p c && (b \subset c)) ==> (c == b)).
-
-Lemma maxsetP : forall b, 
-  reflect ((p b) /\ (forall c, p c -> b \subset c -> c = b)) (maxset b).
+Lemma maxsetP : forall B, 
+  reflect ((P B) /\ (forall C, P C -> B \subset C -> C = B)) (maxset B).
 Proof.
-move=> b; apply: (iffP andP); move=> [pb bmax].
+move=> B; apply: (iffP andP); move=> [pb bmax].
   split=>//; move=> c pc; move/forallP: bmax; move/(_ c); rewrite pc /=.
    move/implyP=> h sbc; apply/eqP; exact: h.
 split=> //; apply/forallP=> x; apply/implyP; case/andP=> px sxb; apply/eqP.
 by apply: (bmax x).
 Qed.
 
-Lemma maxsetp : forall b, maxset b -> p b.
-Proof. by move=> b; case/maxsetP. Qed.
+Lemma maxsetp : forall B, maxset B -> P B.
+Proof. by move=> C; case/maxsetP. Qed.
 
-Lemma maxset_exists : forall c, p c -> exists b, (maxset b) && (c \subset b).
-move=> c; pose t := setT : sT.
-move: {2}(#|t| - #|c|) (leqnn (#|t| - #|c|))=> n; elim: n c=> [|n Hi] c hle pc.
-  exists t; rewrite subsetT andbT; apply/maxsetP; split; last first. 
-    by move=> x px xT; apply/eqP; rewrite -subTset.
-  rewrite -(_ : c = t) //; apply/eqP; rewrite eqset_sub_card subsetT.
-  by rewrite -eqn_sub0 -leqn0.
-case cmax: (maxset c); first by exists c; rewrite subset_refl andbT.
-move/negbT: cmax; rewrite negb_and pc /=; case/existsP=> b; rewrite negb_imply.
-case/andP=> /=; case/andP=> pb scb nebc; case: (Hi b)=> //; last first.
-  by move=> d; case/andP=> maxd sbd; exists d; rewrite maxd /= (subset_trans scb).
-suff h2 :  #|t| - #|b| <  #|t| - #|c| by rewrite -ltnS; apply: (leq_trans h2).
-have ltbc : #|c| < #|b| by rewrite proper_card // properE scb eq_sym.
-by rewrite ltn_sub2l // (leq_trans ltbc) // subset_leq_card  ?subsetT.
-Qed. 
+(* Using Georges' spec of minimum on nats to get rid of the recursion *)
 
+Lemma cardsCs : forall (T : finType) (A : {set T}), #|A| = #|T| - #|~: A|.
+Proof. by move=> fT D; rewrite -(cardsC D) -addn_subA ?leqnn // subnn addn0. Qed.
+
+Variable A : sT.
+Hypothesis PA : P A.
+
+Lemma maxset_exists : exists B, (maxset B) && (A \subset B).
+Proof.
+pose p := 
+  [pred n : nat | existsb C : sT, [&& (#|C| == n), P (~: C) & (A \subset ~: C)]].
+have exp : exists C, p C.
+ by exists #|~: A|; apply/existsP; exists (~: A); rewrite eqxx setCK PA subset_refl.
+case: (ex_minnP exp)=> m {exp}; case/existsP=> B; case/and3P=> ecB pcB sAcB hmax.
+exists (~: B); rewrite sAcB andbT; apply/maxsetP; split=> // C PC scBC.
+have pc : p #|~: C|. 
+  rewrite /p /=; apply/existsP; exists (~: C); rewrite setCK eqxx PC.
+  by rewrite (subset_trans sAcB).
+apply/eqP; rewrite eq_sym; rewrite eqset_sub_card scBC /= cardsCs.
+rewrite (cardsCs (~: B)) leq_sub2l // setCK (eqP ecB); exact: hmax.
+Qed.
 
 
 End MaxSet.
@@ -176,44 +176,48 @@ Prenex Implicits maxset.
 Section MaxGroup.
 
 Variable gT : finGroupType.
-Notation gt := {group gT}.
+Notation gTg := {group gT}.
 Notation sT := {set gT}.
-Implicit Type b: sT.
-Implicit Type c d: gt.
+Implicit Type A: sT.
+Implicit Type G H: gTg.
 
-Variable p : pred sT.
+Variable P : pred sT.
 
-Definition maxgroup b := 
-  p b && (forallb c, (p (c :gt) && (b \subset c)) ==> (c == b :> {set gT})).
+Definition maxgroup A := 
+  P A && (forallb G, (P (G :gTg) && (A \subset G)) ==> (G == A :> {set gT})).
 
-Lemma maxgroupP : forall b, 
-  reflect ((p b) /\ (forall c, p c -> b \subset c -> c = b :> {set gT})) (maxgroup b).
+Lemma maxgroupP : forall A, 
+  reflect ((P A) /\ (forall G, P G -> A \subset G -> G = A :> {set gT})) (maxgroup A).
 Proof.
-move=> b; apply: (iffP andP); move=> [pb bmax].
-  split=>//; move=> c pc; move/forallP: bmax; move/(_ c); rewrite pc /=.
-   move/implyP=> h sbc; apply/eqP; exact: h.
-split=> //; apply/forallP=> x; apply/implyP; case/andP=> px sxb; apply/eqP.
-exact:bmax.
+move=> A; apply: (iffP andP); move=> [pA Amax].
+  split=>//; move=> G PG; move/forallP: Amax; move/(_ G); rewrite PG /=.
+   move/implyP=> h sAG; apply/eqP; exact: h.
+split=> //; apply/forallP=> x; apply/implyP; case/andP=> px sxA; apply/eqP.
+exact:Amax.
 Qed.
 
-Lemma maxgroupp : forall b, maxgroup b -> p b.
-Proof. by move=> b; case/maxgroupP. Qed.
+Lemma maxgroupp : forall A, maxgroup A -> P A.
+Proof. by move=> A; case/maxgroupP. Qed.
 
-(* Can we avoid duplicating the proof ? *)
-Lemma maxgroup_exists : forall c, p c -> exists d : gt, maxgroup d && (c \subset d).
-move=> c; pose t := setT : {set gT}.
-move: {2}(#|t| - #|c|) (leqnn (#|t| - #|c|))=> n; elim: n c=> [|n Hi] c hle pc.
+
+(* Can we avoid duplicating the proof ? 
+this time we cannot avoid the recursion because we need to convey the group structure *)
+
+
+Lemma maxgroup_exists : forall G, P G -> exists H : gTg, maxgroup H && (G \subset H).
+move=> G; pose t := setT : {set gT}.
+move: {2}(#|t| - #|G|) (leqnn (#|t| - #|G|))=> n; elim: n G => [|n Hi] G hle PG.
   exists [group of t] => /=; rewrite subsetT andbT; apply/maxgroupP; split; last first. 
-  by  move=> x px xT; apply/eqP; rewrite -subTset.
-  rewrite (_ : t = c ) //=; apply/eqP; rewrite eq_sym.
+    by  move=> x px xT; apply/eqP; rewrite -subTset.
+  rewrite (_ : t = G) //=; apply/eqP; rewrite eq_sym.
   by rewrite eqset_sub_card subsetT -eqn_sub0 -leqn0.
-case cmax: (maxgroup c); first by exists c; rewrite subset_refl andbT.
-move/negbT: cmax; rewrite negb_and pc /=; case/existsP=> b; rewrite negb_imply.
-case/andP=> /=; case/andP=> pb scb nebc; case: (Hi b)=> //; last first.
-  by move=> d; case/andP=> maxd sbd; exists d; rewrite maxd /= (subset_trans scb).
-suff h2 :  #|t| - #|b| <  #|t| - #|c| by rewrite -ltnS; apply: (leq_trans h2).
-have ltbc : #|c| < #|b| by rewrite proper_card // properE scb eq_sym.
-by rewrite ltn_sub2l // (leq_trans ltbc) // subset_leq_card  ?subsetT.
+case cmax: (maxgroup G); first by exists G; rewrite subset_refl andbT.
+move/negbT: cmax; rewrite negb_and PG /=; case/existsP=> H; rewrite negb_imply.
+case/andP=> /=; case/andP=> PB sGH nebc; case: (Hi H)=> //; last first.
+  by move=> K; case/andP=> maxK sHK; exists K; rewrite maxK /= (subset_trans sGH).
+suff h2 :  #|t| - #|H| <  #|t| - #|G| by rewrite -ltnS; apply: (leq_trans h2).
+have ltGH : #|G| < #|H| by rewrite proper_card // properE sGH eq_sym.
+by rewrite ltn_sub2l // (leq_trans ltGH) // subset_leq_card  ?subsetT.
 Qed. 
 
 End MaxGroup.
