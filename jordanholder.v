@@ -161,10 +161,11 @@ case cmax: (maxset c); first by exists c; rewrite subset_refl andbT.
 move/negbT: cmax; rewrite negb_and pc /=; case/existsP=> b; rewrite negb_imply.
 case/andP=> /=; case/andP=> pb scb nebc; case: (Hi b)=> //; last first.
   by move=> d; case/andP=> maxd sbd; exists d; rewrite maxd /= (subset_trans scb).
-suff h2 :  #|t| - #|b| <  #|t| - #|c| by rewrite -ltnS; apply: (ltn_leq_trans h2).
+suff h2 :  #|t| - #|b| <  #|t| - #|c| by rewrite -ltnS; apply: (leq_trans h2).
 have ltbc : #|c| < #|b| by rewrite proper_card // properE scb eq_sym.
-by rewrite ltn_sub2l // (ltn_leq_trans ltbc) // subset_leq_card  ?subsetT.
+by rewrite ltn_sub2l // (leq_trans ltbc) // subset_leq_card  ?subsetT.
 Qed. 
+
 
 
 End MaxSet.
@@ -210,9 +211,9 @@ case cmax: (maxgroup c); first by exists c; rewrite subset_refl andbT.
 move/negbT: cmax; rewrite negb_and pc /=; case/existsP=> b; rewrite negb_imply.
 case/andP=> /=; case/andP=> pb scb nebc; case: (Hi b)=> //; last first.
   by move=> d; case/andP=> maxd sbd; exists d; rewrite maxd /= (subset_trans scb).
-suff h2 :  #|t| - #|b| <  #|t| - #|c| by rewrite -ltnS; apply: (ltn_leq_trans h2).
+suff h2 :  #|t| - #|b| <  #|t| - #|c| by rewrite -ltnS; apply: (leq_trans h2).
 have ltbc : #|c| < #|b| by rewrite proper_card // properE scb eq_sym.
-by rewrite ltn_sub2l // (ltn_leq_trans ltbc) // subset_leq_card  ?subsetT.
+by rewrite ltn_sub2l // (leq_trans ltbc) // subset_leq_card  ?subsetT.
 Qed. 
 
 End MaxGroup.
@@ -609,7 +610,7 @@ case/orP: (orbN (trivg G))=> [tG | ntG].
   by apply/trivgP.
 case: (pmaxnormal_exists ntG)=> N pmN.
 have cN: #|N| <= n.
-  by rewrite -ltnS (ltn_leq_trans _ cG) // proper_card // pmaxnormal_proper.
+  by rewrite -ltnS (leq_trans _ cG) // proper_card // pmaxnormal_proper.
 case: (Hi _ cN)=> s; case/andP=> lasts ps; exists [:: N & s]; rewrite /comps.
 by rewrite last_adds lasts /= pmN.
 Qed.
@@ -640,9 +641,9 @@ case es2: s2 cs2 => [|N2 st2] cs2 {s1 es1}.
 case/andP: cs1 => /= lst1; case/andP=> pmaxN1 pst1.
 case/andP: cs2 => /= lst2; case/andP=> pmaxN2 pst2.
 have cN1 : #|N1| <= n.
-  by rewrite -ltnS (ltn_leq_trans _ cG) ?proper_card ?pmaxnormal_proper.
+  by rewrite -ltnS (leq_trans _ cG) ?proper_card ?pmaxnormal_proper.
 have cN2 : #|N2| <= n.
-  by rewrite -ltnS (ltn_leq_trans _ cG) ?proper_card ?pmaxnormal_proper.
+  by rewrite -ltnS (leq_trans _ cG) ?proper_card ?pmaxnormal_proper.
 case eN12 : (N1 == N2)=> {s2 es2}.
   rewrite (eqP eN12) /= perm_adds; apply: Hi=> //; rewrite /comps ?lst2 //=.
   by rewrite -(eqP eN12) lst1.
