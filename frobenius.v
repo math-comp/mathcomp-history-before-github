@@ -359,8 +359,7 @@ case E1: (logn _ _) => [| n].
   by rewrite expn0 divn1 coprime1n.
 rewrite coprime_expl // -E1.
 case (@p_part_coprime p #[x]) => //; first exact: ltn_0order.
-move => xx Hxx Hr; rewrite {1}Hr divn_mull // ltn_0exp.
-by case: p primep.
+by move => xx Hxx Hr; rewrite {1}Hr divn_mull // ltn_0exp.
 Qed.
 
 Lemma pconst_prem_order: forall x, #[x] = (#[pconst x] * #[prem x])%N.

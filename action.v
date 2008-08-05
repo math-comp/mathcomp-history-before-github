@@ -6,7 +6,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
 Require Import div prime seq fintype.
 (* Require Import connect. *)
 Require Import tuple finfun ssralg bigops finset.
-Require Import groups morphisms normal group_perm.
+Require Import groups group_perm morphisms.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -18,11 +18,11 @@ Section ActionDef.
 
 Variable aT : finGroupType.
 
-Record action (T : Type) : Type := Action {
-  afun :> T -> aT -> T;
-  _ : forall x, afun x 1 = x;
-  _ : forall a x y, afun a (x * y) = afun (afun a x) y
-}.
+Definition is_action T (to : T -> aT -> T) :=
+  prod (forall x, to x 1 = x) (forall a x y, to a (x * y) = to (to a x) y).
+
+Record action (T : Type) : Type :=
+  Action { afun :> T -> aT -> T; _ : is_action afun }.
 
 Definition action_for of phant aT := action.
 
@@ -34,7 +34,7 @@ Notation "{ 'action' aT &-> T }" := (action_for (Phant aT) T)
 Notation "[ 'action' 'of' a ]" :=
   (match [is a : _ -> _ <: action _ _] as s
    return {type of @Action _ _ for s} -> _ with
-   | Action _ a1 aM => fun k => k a1 aM
+   | Action _ actP => fun k => k actP
    end (@Action _ _ a)) (at level 0) : form_scope.
 
 Delimit Scope action_scope with act.
@@ -48,9 +48,9 @@ Implicit Type A : {set aT}.
 Implicit Type to : {action aT &-> sT}.
 Implicit Type S : {set sT}.
 
-Definition afix A to := [set x | forallb a, (a \in A) ==> (to x a == x)].
+Definition afix A to := [set x | A \subset [set a | to x a == x]].
 
-Definition astab to S := [set a | forallb x, (x \in S) ==> (to x a == x)].
+Definition astab to S := [set a | S \subset [set x | to x a == x]].
 
 Definition orbit to A x := to x @: A.
 
@@ -131,10 +131,10 @@ Implicit Types S : {set sT}.
 Variable to : {action aT &-> sT}.
 
 Lemma act1 : forall x, to x 1 = x.
-Proof. by case to. Qed.
+Proof. by case: to => ? []. Qed.
 
 Lemma actM : forall x a b, to x (a * b) = to (to x a) b.
-Proof. by case to. Qed.
+Proof. by case: to => ? []. Qed.
 
 Lemma actK : forall a, cancel (to^~ a) (to^~ a^-1).
 Proof. by move=> a x; rewrite -actM ?groupV // mulgV act1. Qed.
@@ -185,14 +185,16 @@ Qed.
 
 Lemma orbit_transr : forall A x y z,
   y \in orbit to A x -> (y \in orbit to A z) = (x \in orbit to A z).
-Proof. by move=> A x y z Axy; rewrite !(orbit_sym A z) (orbit_transl Axy). Qed.
+Proof.
+by move=> A x y z Axy; rewrite !(orbit_sym A z) (orbit_transl Axy).
+Qed.
 
 Lemma afixP : forall (A : {set aT}) x,
   reflect (forall a, a \in A -> to x a = x) (x \in 'C(A | to)).
 Proof.
-move=> A x; rewrite inE; apply: (iffP forallP) => [xfix a Aa | xfix a].
-  by move/(_ a): xfix; rewrite Aa; move/eqP.
-by apply/implyP=> Aa; rewrite xfix.
+move=> A x; rewrite inE; apply: (iffP subsetP) => [xfix a | xfix a Aa].
+  by move/xfix; rewrite inE; move/eqP.
+by rewrite inE xfix.
 Qed.
 
 Lemma orbit1P : forall A x,
@@ -205,24 +207,18 @@ by apply/set1P; rewrite xfix mem_imset.
 Qed.
 
 Lemma afix1P : forall a x, reflect (to x a = x) (x \in 'C[a | to]).
-Proof.
-move=> a x; apply: (iffP (afixP _ _)) => [-> // | toxa b]; first exact: set11.
-by move/set1P->.
-Qed.
+Proof. move=> a x; rewrite inE sub1set inE; exact: eqP. Qed.
 
 Lemma astabP : forall S a,
   reflect (forall x, x \in S -> to x a = x) (a \in 'C_(|to)(S)).
 Proof.
-move=> S a; rewrite inE; apply: (iffP forallP) => fix_a y => [Sy|].
-  by move/(_ y): fix_a; rewrite Sy /=; move/eqP.
-by apply/implyP; move/fix_a; move/eqP.
+move=> S a; rewrite inE; apply: (iffP subsetP) => fix_a y => [|Sy].
+  by move/fix_a; rewrite inE; move/eqP.
+by rewrite inE fix_a.
 Qed.
 
 Lemma astab1P : forall x a, reflect (to x a = x) (a \in 'C_(|to)[x]).
-Proof.
-move=> x a; apply: (iffP (astabP _ _)) => [-> // | toxa y]; first exact: set11.
-by move/set1P->.
-Qed.
+Proof. move=> x a; rewrite inE sub1set inE; exact: eqP. Qed.
 
 Lemma astabsP : forall S a,
   reflect (forall x, (to x a \in S) = (x \in S)) (a \in 'N_(|to)(S)).
@@ -256,25 +252,25 @@ Canonical Structure astabs_group S := Group (group_set_astabs S).
 Lemma subset_astab : forall A S, 'C_(A | to)(S) \subset A.
 Proof. move=> A S; exact: subsetIl. Qed.
 
-Lemma card_orbit : forall A x, #|orbit to A x| = #|A : 'C_(A | to)[x]|.
+Lemma card_orbit_stab : forall A x,
+  (#|orbit to A x| * #|'C_(A | to)[x]|)%N = #|A|.
 Proof.
-move=> A x; pose f y := [set a \in A | to x a == y].
-have f_to: forall a, a \in A -> f (to x a) = 'C_(A | to)[x] :* a.
-  move=> a Aa; apply/setP=> b; rewrite mem_rcoset 2!inE groupMr ?groupV //.
-  by rewrite (sameP (astab1P _ _) eqP) -(inj_eq (@act_inj a) _ x) -actM mulgKV.
-rewrite -(@card_dimset _ _ f) => [|y z].
-  apply: eq_card => C; apply/imsetP/rcosetsP=> [[y]|[a Aa ->{C}]].
-    by case/imsetP=> a Aa /= -> ->{C}; exists a; rewrite // f_to.
-  by exists (to x a); rewrite ?mem_imset //= f_to.
-case/imsetP=> a _ ->{y}; case/imsetP=> b Ab ->{z}.
-by move/setP; move/(_ b); rewrite /= !inE Ab eqxx /=; move/eqP.
+move=> A x; rewrite [#|A|]card_sum_1 (partition_big_imset (to x)) /=.
+rewrite -sum_nat_const; apply: eq_bigr => y; case/imsetP=> a Aa ->{y}.
+rewrite (reindex (mulg^~ a)) /= ?card_sum_1; last first.
+  by exists (mulg^~ a^-1) => b _; rewrite (mulgK, mulgKV).
+apply: eq_bigl => b; rewrite inE groupMr // actM inE sub1set inE.
+by rewrite (inj_eq (@act_inj a)). 
 Qed.
 
-Lemma card_orbit_div : forall A x, #|orbit to A x| %| #|A|.
+Lemma card_orbit : forall A x, #|orbit to A x| = #|A : 'C_(A | to)[x]|.
 Proof.
-move=> A x; rewrite -(LaGrange (subset_astab A [set x])).
-by rewrite -card_orbit dvdn_mull.
+move=> A x; rewrite -group_divn ?subsetIl //.
+by rewrite -(card_orbit_stab A x) divn_mull ?ltn_0group.
 Qed.
+
+Lemma dvdn_orbit : forall A x, #|orbit to A x| %| #|A|.
+Proof. by move=> A x; rewrite -(card_orbit_stab A x) dvdn_mulr. Qed. 
 
 Lemma card_orbit1 : forall A x,
   #|orbit to A x| = 1%N -> orbit to A x = [set x].
@@ -288,6 +284,69 @@ Lemma actsP : forall A S,
 Proof.
 move=> A S; apply: (iffP subsetP) => nAS a Aa; apply/astabsP; exact: nAS.
 Qed.
+Implicit Arguments actsP [A S].
+
+Lemma acts_orbit : forall A S x,
+  [acts (A | to) on S] -> (orbit to A x \subset S) = (x \in S).
+Proof.
+move=> A S x; move/actsP=> AactS; apply/subsetP/idP=> [| Sx y].
+  apply; exact: orbit_refl.
+by case/imsetP=> a Aa ->{y}; rewrite AactS.
+Qed.
+
+Lemma orbit_in_act : forall A S x y,
+  [acts (A | to) on S] -> y \in orbit to A x -> x \in S -> y \in S.
+Proof. move=> A S x y; move/acts_orbit=> <- xAy; move/subsetP; exact. Qed.
+
+Lemma acts_sum_card_orbit : forall A S, [acts (A | to) on S] ->
+  \sum_(T \in orbit to A @: S) #|T| = #|S|.
+Proof.
+move=> A S AactS; rewrite card_sum_1 (partition_big_imset (orbit to A)) /=.
+apply: eq_bigr => xS; case/imsetP=> x Sx ->{xS}; rewrite card_sum_1.
+apply: eq_bigl=> y; apply/idP/andP=> [xAy|[_]].
+  by rewrite (orbit_transl xAy) (orbit_in_act _ xAy).
+by move/eqP <-; exact: orbit_refl.
+Qed.
+
+Lemma astab_to : forall S a, 'C_(| to)(to^~a @: S) = 'C_(| to)(S) :^ a.
+Proof.
+move=> S a; apply/setP=> b; rewrite mem_conjg.
+apply/astabP/astabP=> stab x => [Sx|].
+  by rewrite conjgE invgK !actM stab ?actK //; apply/imsetP; exists x.
+by case/imsetP=> y Sy ->{x}; rewrite -actM conjgCV actM stab.
+Qed.
+
+Lemma astab1_to : forall G x a,
+  a \in 'N(G) -> 'C_(G | to)[to x a] = 'C_(G | to)[x] :^ a.
+Proof.
+by move=> G x a nGa; rewrite conjIg (normP nGa) -astab_to imset_set1.
+Qed.
+
+Theorem Frobenius_Cauchy : forall A S, [acts (A | to) on S] ->
+  \sum_(a \in A) #|'C_S[a | to]| = (#|orbit to A @: S| * #|A|)%N.
+Proof.
+move=> A S AactS; transitivity (\sum_(a \in A) \sum_(x \in 'C_S[a | to]) 1%N).
+  by apply: eq_bigr => a _; rewrite card_sum_1.
+rewrite (exchange_big_dep (mem S)) /= => [|a x _]; last by case/setIP.
+set orbA := orbit to A; rewrite (partition_big_imset orbA) -sum_nat_const /=.
+apply: eq_bigr => X; case/imsetP=> x Sx ->{X}.
+rewrite (eq_bigl (mem (orbA x))) => [|y] /=; last first.
+  apply/andP/idP=> [[_]|xAy]; first by move/eqP <-; exact: orbit_refl.
+  by rewrite /orbA (orbit_transl xAy) (orbit_in_act AactS xAy).
+rewrite -(card_orbit_stab A x) -sum_nat_const.
+apply: eq_bigr => y; rewrite orbit_sym; case/imsetP=> a Aa defx.
+rewrite defx astab1_to (subsetP (normG _), card_conjg) // card_sum_1.
+by apply: eq_bigl => b; rewrite !(sub1set, inE) -(actsP AactS a Aa) -defx Sx.
+Qed.
+
+(*
+Lemma card_stab_eq : forall x y,
+  y \in orbit to G x -> #|'C_(G | to)[x]| = #|'C_(G | to)[y]|.
+Proof.
+move=> x y; case/orbitP=> a Ga <- {y}; rewrite astab1_to ?card_conjg //.
+exact: (subsetP (normG G)).
+Qed.
+*)
 
 Lemma atransP : forall A S, [transitive (A | to) on S] ->
   forall x, x \in S -> orbit to A x = S.
@@ -302,14 +361,6 @@ Lemma trans_acts : forall A S,
 Proof.
 move=> A S AtrS; apply/subsetP=> a Aa; rewrite inE.
 by apply/subsetP=> x; move/(atransP AtrS) <-; rewrite inE mem_imset.
-Qed.
-
-Lemma acts_orbit : forall A S x,
-  [acts (A | to) on S] -> (orbit to A x \subset S) = (x \in S).
-Proof.
-move=> A S x; move/actsP=> AactS; apply/subsetP/idP=> [| Sx y].
-  apply; exact: orbit_refl.
-by case/imsetP=> a Aa ->{y}; rewrite AactS.
 Qed.
 
 Lemma atrans_acts_card : forall A S,
@@ -333,7 +384,7 @@ Qed.
 Lemma trans_div : forall A S x,
   x \in S -> [transitive (A | to) on S] -> #|S| %| #|A|.
 Proof.
-by move=> A S x Sx; move/atransP=> AtrS; rewrite -(AtrS x Sx) card_orbit_div.
+by move=> A S x Sx; move/atransP=> AtrS; rewrite -(AtrS x Sx) dvdn_orbit.
 Qed.
 
 (* Aschbacher 5.2 *)
@@ -393,6 +444,7 @@ Notation "''C_' ( A | to ) [ x ]" := (A :&: 'C_(|to)[x])%G : subgroup_scope.
 Notation "''N_' ( | to ) ( S )" := (astabs_group to S) : subgroup_scope.
 Notation "''N_' ( A | to ) ( S )" := (A :&: 'N_(|to)(S))%G : subgroup_scope.
 
+(*
 Section ModP.
 
 Variable (gT : finGroupType) (sT : finType).
@@ -428,7 +480,7 @@ transitivity ((\sum_(X \in orbS) #|X|) %% p); first congr (_ %% p).
 apply big_prop => [|m1 m2|X]; first exact: mod0n.
   by rewrite -modn_addml => ->.
 case/imsetP=> x; case/setDP=> Sx nCx ->{X}.
-have: #|orb x| %| p ^ n by rewrite -cardG card_orbit_div.
+have: #|orb x| %| p ^ n by rewrite -cardG dvdn_orbit.
 case/dvdn_exp_prime => // k _.
 case: k => [orbx1 | k ->]; last by rewrite -modn_mulml modnn mod0n.
 case/orbit1P: nCx; apply/eqP.
@@ -451,7 +503,7 @@ have [i ->]: exists i, #|[predI S & aG]| = (p * p ^ i)%N.
   have ->: #|[predI S & aG]| = #|aG|.
     apply: eq_card => b; rewrite inE /= andbC; case aGb: (b \in aG) => //=.
     by rewrite -[b \in S](GactS a).
-  have: #|aG| %| p ^ n by rewrite -cardG card_orbit_div.
+  have: #|aG| %| p ^ n by rewrite -cardG dvdn_orbit.
   case/dvdn_exp_prime=> //= [] [_ fixa|i]; last by exists i.
   case/orbit1P: nfixa; symmetry; exact: card_orbit1.
 rewrite mulnC modn_addl_mul {}IHm; last first.
@@ -470,7 +522,7 @@ Qed.
 *)
 
 End ModP.
-
+*)
 (*  Definition of the right translation as an action on cosets.        *)
 
 Section GroupActions.
@@ -479,28 +531,21 @@ Variable gT : finGroupType.
 Implicit Type A : {set gT}.
 Implicit Type G : {group gT}.
 
-Canonical Structure mulgr_action := Action (@mulg1 gT) (@mulgA gT).
+Canonical Structure mulgr_action := Action (@mulg1 gT, @mulgA gT).
 
-Canonical Structure conjg_action := Action (@conjg1 gT) (@conjgM gT).
+Canonical Structure conjg_action := Action (@conjg1 gT, @conjgM gT).
 
-Lemma rcoset_act1 : forall A, rcoset_of A 1 = A.
-Proof. by move=> A; rewrite rcosetE mulg1. Qed.
+Lemma rcoset_is_action : is_action (@rcoset_of gT).
+Proof. by split=> [A|A x y]; rewrite !rcosetE (mulg1, rcosetM). Qed.
 
-Lemma rcoset_actM : forall A x y,
-  rcoset_of A (x * y) = rcoset_of (rcoset_of A x) y.
-Proof. by move=> A x y; rewrite !rcosetE rcosetM. Qed.
+Canonical Structure rcoset_action := Action rcoset_is_action.
 
-Canonical Structure rcoset_action := Action rcoset_act1 rcoset_actM.
+Canonical Structure conjsg_action := Action (@conjsg1 gT, @conjsgM gT).
 
-Canonical Structure conjsg_action := Action (@conjsg1 gT) (@conjsgM gT).
+Lemma conjG_is_action : is_action (@conjG_group gT).
+Proof. by split=> *; apply: group_inj; rewrite /= ?conjsg1 ?conjsgM. Qed.
 
-Lemma conjG1 : forall G, (G :^ 1)%G = G.
-Proof. move=> G; apply: group_inj; exact: conjsg1. Qed.
-
-Lemma conjGM : forall G x y, (G :^ (x * y) = (G :^ x) :^ y)%G.
-Proof. move=> G x y; apply: group_inj; exact: conjsgM. Qed.
-
-Definition conjG_action := Action conjG1 conjGM.
+Definition conjG_action := Action conjG_is_action.
 
 End GroupActions.
 
@@ -519,7 +564,6 @@ Hypothesis sHG : H \subset G.
 Section LBij.
 
 Variable L : {group gT}.
-Hypothesis sLG : L \subset G.
 
 (***********************************************************************)
 (*                                                                     *)
@@ -528,36 +572,92 @@ Hypothesis sLG : L \subset G.
 (*                                                                     *)
 (***********************************************************************)
 
-Lemma act_fix_sub : forall x, H :* x \in 'C(L | 'Msr) -> L \subset H :^ x.
+Lemma act_fix_sub : forall x, (H :* x \in 'C(L | 'Msr)) = (L \subset H :^ x).
 Proof.
-move=> x; move/afixP=> /= LfixHx.
-apply/subsetP => y; move/LfixHx=> y_fixHx {LfixHx}.
-have: x \in H :* x := rcoset_refl _ _.
-rewrite -{}y_fixHx; case/imsetP=> z; case/rcosetP => t Ht -> {z}.
-by move/(canLR (mulKg _)) <-; rewrite -groupV invMg invgK memJ_conjg.
+move=> x; rewrite inE /=; apply: eq_subset_r => a.
+rewrite inE rcosetE -(can2_eq (rcosetKV x) (rcosetK x)) -!rcosetM.
+rewrite (conjgCV x) mulgK eqset_sub_card card_rcoset leqnn andbT.
+by rewrite -{2 3}(mulGid H) mulGS sub1set -mem_conjg.
 Qed.
 
 End LBij.
 
 Lemma act_fix_norm : forall x, (H :* x \in 'C(H | 'Msr)) = (x \in 'N(H)).
-Proof.
-move=> x; apply/afixP/idP=> /= [dHx | Nx y Hy]; last first.
-  by rewrite /= (norm_rlcoset Nx) rcosetE -mulgA rcoset_id.
-rewrite -groupV inE; apply/subsetP=> y; rewrite mem_conjgV => Hxy.
-rewrite -(rcosetK x H) -(dHx _ Hxy) /= rcosetE -2!rcosetM -conjgC mulgK.
-exact: rcoset_refl.
-Qed.
+Proof. by move=> x; rewrite act_fix_sub -groupV inE sub_conjgV. Qed.
 
 Lemma rtrans_fix_norm : 'C_(rcosets H G)(H | 'Msr) = rcosets H 'N_G(H).
 Proof.
 apply/setP=> Hx; apply/setIP/rcosetsP=> [[]|[x]].
   case/rcosetsP=> x Gx ->{Hx}; rewrite act_fix_norm => Nx.
   by exists x; rewrite // inE Gx.
-case/setIP=> Nx Gx ->; split; first by apply/rcosetsP; exists x.
-by rewrite act_fix_norm.
+by case/setIP=> Nx Gx ->; rewrite -{1}rcosetE mem_imset // act_fix_norm.
 Qed.
 
+Lemma rtrans_stabG : 'C_(| 'Msr)[G : {set _}] = G.
+Proof.
+apply/setP=> x.
+by apply/astab1P/idP=> /= [<- | Gx]; rewrite rcosetE (rcoset_refl, rcoset_id).
+Qed.
+
+Lemma conjg_fix : forall A : {set gT}, 'C(A | 'J) = 'C(A).
+Proof.
+move=> A; apply/setP=> x; apply/afixP/centP=> cAx y Ay /=.
+  by rewrite /commute conjgC cAx.
+by rewrite conjgE cAx ?mulKg.
+Qed.
+
+Lemma conjg_astab : forall A : {set gT}, 'C_(| 'J)(A) = 'C(A).
+Proof.
+move=> A; apply/setP=> x; apply/astabP/centP=> cAx y Ay /=.
+  by apply: esym; rewrite conjgC cAx.
+by rewrite conjgE -cAx ?mulKg.
+Qed.
+
+Lemma conjg_astab1 : forall x : gT, 'C_(| 'J)[x] = 'C[x].
+Proof. by move=> x; rewrite conjg_astab cent_set1. Qed.
+
+Lemma conjsg_astab1 : forall A : {set gT}, 'C_(| 'Js)[A] = 'N(A).
+Proof. by move=> A; apply/setP=> x; apply/astab1P/normP. Qed.
+
+Lemma conjG_astab1 : 'C_(| 'JG)[G] = 'N(G).
+Proof.
+by apply/setP=> x; apply/astab1P/normP; [move/(congr1 val) | move/group_inj].
+Qed.
+
+(* Other group action identities, most of which hold by conversion
+   Outcommented for now, until we require them.
+Lemma conjg_orbit : forall x, orbit 'J%act G x = x ^: G.
+Proof. by []. Qed.
+
+Lemma rtrans_orbit : forall A : {set gT}, orbit 'Msr%act G A = rcosets A G.
+Proof. by []. Qed.
+
+Lemma rmul_orbit : forall x, orbit 'Mr%act G x = x *: G.
+Proof. by move=> x; rewrite -lcosetE. Qed.
+
+Lemma conjsg_orbit : forall A : {set gT}, orbit 'Js%act G A = A :^: G.
+Proof. by []. Qed.
+*)
 End Bij.
+
+Section CardClass.
+
+Variables (gT : finGroupType) (G : {group gT}).
+
+Lemma index_cent1 : forall x, #|G : 'C_G[x]| = #|x ^: G|.
+Proof. by move=> x; rewrite -conjg_astab1 -card_orbit. Qed.
+
+Lemma sum_card_class : \sum_(C \in classes G) #|C| = #|G|.
+Proof. apply: acts_sum_card_orbit; apply/actsP=> x Gx y; exact: groupJr. Qed.
+
+Lemma class_formula : \sum_(C \in classes G) #|G : 'C_G[repr C]| = #|G|.
+Proof.
+rewrite -sum_card_class; apply: eq_bigr => C; case/imsetP=> x Gx ->.
+have: x \in x ^: G by rewrite -{1}(conjg1 x) mem_imset.
+by move/mem_repr; case/imsetP=> y Gy ->; rewrite index_cent1 classGidl.
+Qed.
+
+End CardClass.
 
 (***********************************************************************)
 (***********************************************************************)
@@ -577,13 +677,10 @@ Definition aperm x (a : gT) := a x.
 
 Definition apermE : forall x a, aperm x a = a x. Proof. by []. Qed.
 
-Lemma aperm1 : forall x, aperm x 1 = x.
-Proof. exact: permE. Qed.
+Lemma aperm_is_action : is_action aperm.
+Proof. by split=> [x|x a b]; rewrite apermE (perm1, permM). Qed.
 
-Lemma apermM : forall x a b, aperm x (a * b) = aperm (aperm x a) b.
-Proof. move=> x a b; exact: permM. Qed.
-
-Canonical Structure perm_action := Action aperm1 apermM.
+Canonical Structure perm_action := Action aperm_is_action.
 
 Lemma perm_act1P : forall a, reflect (forall x, aperm x a = x) (a == 1).
 Proof.
@@ -615,7 +712,6 @@ Proof. move=> A x a; exact: actmE. Qed.
 
 Lemma perm_of_actM : forall A, {morph actm A : a b / a * b}.
 Proof. by move=> A a b; apply/permP => x; rewrite permM !permE actM. Qed.
-
 
 Canonical Structure actm_morphism A :=
   @Morphism _ _ A _ (in2W (@perm_of_actM A)).
@@ -779,13 +875,12 @@ Notation tT := (tuple n sT).
 
 Definition n_act (t : tT) a : tT := [tuple of maps (to^~ a) t].
 
-Lemma n_act1 : forall t, n_act t 1 = t.
-Proof. by move=> t; apply: eq_from_tsub=> i; rewrite tsub_maps act1. Qed.
+Lemma n_act_is_action : is_action n_act.
+Proof.
+by split=> [t|t a b]; apply: eq_from_tsub=> i; rewrite !tsub_maps ?act1 ?actM.
+Qed.
 
-Lemma n_actM : forall t a b, n_act t (a * b) = n_act (n_act t a) b.
-Proof. by move=> t a b; apply: eq_from_tsub=> i; rewrite !tsub_maps actM. Qed.
-
-Canonical Structure n_act_action := Action n_act1 n_actM.
+Canonical Structure n_act_action := Action n_act_is_action.
 
 End NactionDef.
 

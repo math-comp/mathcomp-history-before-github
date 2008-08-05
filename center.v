@@ -11,7 +11,8 @@
 
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 Require Import fintype div prime finset ssralg bigops.
-Require Import groups morphisms normal automorphism cyclic action dirprod.
+Require Import groups morphisms action normal pgroups automorphism.
+Require Import cyclic dirprod.
 
 (* Require Import seq paths connecct bigops group_perm. *)
 
@@ -284,9 +285,10 @@ Open Scope group_scope.
 Lemma pgroup_ntriv : ~~ trivg 'Z(G).
 Proof.
 apply/trivgP=> /= Z1.
-suffices{Z1}: #|'Z(G)| %%p = 0 by rewrite Z1 cards1 modn_small ?prime_gt1.
+suffices{Z1}: #|'Z(G)| %% p = 0 by rewrite Z1 cards1 modn_small ?prime_gt1.
 suff ->: 'Z(G) = 'C_G(G | 'J).
-  rewrite -(mpl Hp HG); first by rewrite HG modn_mulr.
+  have: pgroup p G by apply/pnatP=> //; exists n.+1.
+  move/pgroup_fix_mod=> <- //; first by rewrite HG modn_mulr.
   apply/actsP=> x Gx y; exact: groupJr.
 congr (_ :&: _); apply/setP=> x; apply/centP/afixP=> cxG y; move/cxG=> /=.
   by move/commgP; move/conjg_fixP.

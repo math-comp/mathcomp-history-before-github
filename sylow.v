@@ -88,7 +88,7 @@ Proof. by move=> f; apply/ffunP=> i; rewrite /zprot ffunE mul1g. Qed.
 Lemma zprot_to_morph : forall f x y, zprot f (x * y) = zprot (zprot f x) y.
 Proof. move=> f x y; apply/ffunP=> i; rewrite /zprot !ffunE; gsimpl. Qed.
 
-Canonical Structure zprot_action := Action zprot_to1 zprot_to_morph.
+Canonical Structure zprot_action := Action (zprot_to1, zprot_to_morph).
 
 Notation Local "'rot" := zprot_action (at level 0) : action_scope.
 
@@ -148,9 +148,9 @@ Qed.
 
 Theorem cauchy : exists a, (a \in H) && (#[a] == p).
 Proof.
-have card_zp: #|(setT : {set zp})| = (p ^ 1)%N.
-  by rewrite cardsE card_ord expn1.
-have:= mpl prime_p card_zp zprot_acts_on_X; set Z := _ :&: _.
+have pg_zp: pgroup p (setT : {set zp}).
+  by apply/pnatP=> //; exists 1%N; rewrite expn1 cardsE card_ord.
+have:= pgroup_fix_mod prime_p pg_zp zprot_acts_on_X; set Z := _ :&: _.
 rewrite card_X -{1}(subnK lt1p) /= -modn_mul2m (eqnP p_divides_H) mod0n.
 pose t1 : {ffun zp -> gT} := [ffun => 1].
 have Zt1: t1 \in Z.
@@ -228,7 +228,8 @@ have: p %| #|K / L|.
   have divpLK : p %| #|K : L|.
     rewrite -(@dvdn_pmul2l #|L|) // (LaGrange sLK) (eqP cardL) mulnC -expnS.
     by rewrite dvdn_exp_max.
-  apply/eqP; rewrite -{divpLK}(eqnP divpLK) -(mpl prime_p (eqP cardL)) //.
+  have pgL: pgroup p L by apply/pnatP=> //; exists i; exact/eqP.
+  apply/eqP; rewrite -{divpLK}(eqnP divpLK) -(pgroup_fix_mod prime_p pgL) //.
   apply/subsetP=> x Lx; rewrite /= inE; apply/subsetP=> A; rewrite /= inE.
   case/imsetP=> y Ky ->{A}; rewrite !rcosetE -rcosetM -rcosetE mem_imset //.
   by rewrite groupMl // (subsetP sLK).
@@ -242,9 +243,9 @@ have sLH : L \subset H.
   by rewrite /= inE coset_of_id // group1.
 have nLH: H \subset 'N(L).
   by apply/subsetP=> x; case/setIP; case/morphpreP=> *. 
-rewrite /(_ <| _) sLH nLH subsetIr -(@LaGrange _ L) // -card_quotient //= -/H.
-rewrite (eqP cardL) mulnC -{}Czbar_p.
-apply/eqP; congr (_ * _)%N; apply: eq_card => xbar.
+rewrite /(_ <| _) sLH nLH subsetIr.
+rewrite -(@LaGrange _ _ L) // -card_quotient //= -/H (eqP cardL) mulnC.
+rewrite -{}Czbar_p; apply/eqP; congr (_ * _)%N; apply: eq_card => xbar.
 apply/imsetP/idP=> [[x Hx ->{xbar}]|].
   by rewrite 3!inE andbC -andbA in Hx; case/andP: Hx; case/morphpreP=>[_].
 case/cycleP=> m <-{xbar}; rewrite {nLH sLH}/H.
@@ -303,14 +304,15 @@ have F1: ~~ (p %| #|K : L|).
     rewrite -(LaGrange Hsl1) Hu (eqP Hsl2) /= (mulnA u).
     exact: mulnC. 
   by move: F2; rewrite /n dvdn_p_p_part // (cardD1 1) group1.
-have F2: #|K : L| %% p = #|lS0| %% p. 
-  rewrite -(mpl prime_p Hch) //; apply/subsetP=> x Hx; rewrite inE /=.
+have F2: #|K : L| %% p = #|lS0| %% p.
+  have: pgroup p H by apply/pnatP=> //; exists i. 
+  move/pgroup_fix_mod=> <- //; apply/subsetP=> x Hx; rewrite inE /=.
   apply/subsetP=> A; rewrite inE /=; case/imsetP=> y Ly ->{A}.
   by rewrite !rcosetE -rcosetM -rcosetE mem_imset ?groupM // (subsetP Hshk).
 have{F1 F2}: #|lS0| != 0.
   by move: F1; rewrite /dvdn F2; case: #|lS0|; rewrite ?mod0n.
-case/existsP=> X; case/setIP; case/imsetP=> x Kx ->{X}; rewrite rcosetE.
-by move/act_fix_sub; exists x.
+case/existsP=> X; case/setIP; case/rcosetsP=> x Kx ->{X}.
+by rewrite act_fix_sub; exists x.
 Qed.
 
 (**********************************************************************)
@@ -345,7 +347,7 @@ Definition gsylow A : pred {group gT} := [eta (sylow p) A].
 Theorem sylow3_div : #|gsylow K| %| #|K|.
 Proof.
 case sylow1_cor => H Hh.
-suff ->: #|gsylow K| = #|orbit 'JG%act K H| by exact: card_orbit_div.
+suff ->: #|gsylow K| = #|orbit 'JG%act K H| by exact: dvdn_orbit.
 apply: eq_card => L; apply/idP/idP; last first.
   by case/orbitP => y Hy <- /=; rewrite /gsylow -topredE /= -sylow_sconjgr.
 case/(sylow2_cor Hh) => y Hy [HH].
@@ -405,7 +407,9 @@ suff <-: #|Syl| %% p = 1%N by rewrite cardsE.
 have: [acts (H | 'JG) on Syl].
   apply: (subset_trans F2); apply/actsP=> x Kx P.
   by rewrite !inE /gsylow !sylowE card_conjg -{1}(conjGid Kx) conjSg.
-move/(mpl prime_p (eqP F3))->; rewrite -(([set H] =P _ :&: _) _).
+move/pgroup_fix_mod=> -> //; last first.
+  by rewrite /pgroup /pi_group (eqP F3) p_part_pi pi_nat_part.
+rewrite -(([set H] =P _ :&: _) _).
   by rewrite cards1 modn_small ?prime_gt1.
 rewrite eqset_sub {1}sub1set 2!inE /gsylow sylowE Hh /=; apply/andP; split.
   by apply/afixP=> x Hx; apply: group_inj; exact: conjGid.
@@ -447,7 +451,7 @@ move=> gT G P; apply: (iffP idP).
   move/(_ p); rewrite inE eqxx /=; move/eqP.
   rewrite eq_sym; move/eqP; move/idP; case/and3P=> H1P H2P H3P.
   case/andP=> H4P H5P; exists p; split=> //.
-  rewrite (dvdn_trans H3P) // (@group_dvdn _ (Group H4P)) //=.
+  rewrite (dvdn_trans H3P) // (@group_dvdn _ _ (Group H4P)) //=.
   by case/andP: H5P.
 case=> p [H1p H2p H3p]; rewrite sylowE; case/andP=> H4p H5p.
 by rewrite /sylows (eqP H5p) 

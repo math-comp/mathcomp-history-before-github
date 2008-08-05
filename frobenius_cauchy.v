@@ -56,7 +56,7 @@ rewrite (eq_bigl (mem (orbG x))) => [|y]; last first.
 rewrite -(LaGrange (subset_astab to G [set x])) mulnC.
 rewrite -card_orbit -sum_nat_const.
 apply: eq_bigr => y Gxy; rewrite sum_nat_const muln1 (card_stab_eq Gxy).
-by apply: eq_card => a; rewrite 2!inE /= (sameP afix1P astab1P).
+by apply: eq_card => a; rewrite inE /= -(sameP afix1P astab1P).
 Qed.
 
 End Frob_Cauchy.

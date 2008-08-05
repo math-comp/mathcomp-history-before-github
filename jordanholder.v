@@ -14,7 +14,7 @@ Require Import ssrnat.
 Require Import seq.
 Require Import fintype.
 Require Import paths.
-Require Import connect.
+(* Require Import connect. *)
 Require Import bigops.
 Require Import finset.
 Require Import finfun.

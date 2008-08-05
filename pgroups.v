@@ -1,5 +1,5 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
-Require Import fintype paths connect finfun ssralg bigops finset prime.
+Require Import fintype paths finfun ssralg bigops finset prime.
 Require Import groups action morphisms group_perm automorphism normal cyclic.
 
 Set Implicit Arguments.
@@ -70,184 +70,6 @@ Import GroupScope.
 (* notion never tests for the group property, since this property     *)
 (* will always be provided by a (canonical) group structure.          *)
 (**********************************************************************)
-
-
-(* More prime stuff, to be moved. *)
-
-Section MorePrime.
-
-Close Scope group_scope.
-
-Implicit Types pi rho : pred nat.
-
-Lemma coprime_has_primes : forall m n, m > 0 -> n > 0 ->
-  coprime m n = ~~ has (mem (primes m)) (primes n).
-Proof.
-move=> m n m_pos n_pos; apply/eqnP/hasPn=> [mn1 p | no_p_mn].
-  rewrite /= !mem_primes m_pos n_pos /=; case/andP=> pr_p p_n.
-  have:= prime_gt1 pr_p; rewrite pr_p ltnNge -mn1 /=; apply: contra => p_m.
-  by rewrite dvdn_leq ?ltn_0gcd ?m_pos // dvdn_gcd ?p_m.
-case: (ltngtP (gcdn m n) 1) => //; first by rewrite ltnNge ltn_0gcd ?m_pos.
-move/prime_pdiv; set p := pdiv _ => pr_p.
-move/implyP: (no_p_mn p); rewrite /= !mem_primes m_pos n_pos pr_p /=.
-by rewrite !(dvdn_trans (dvdn_pdiv _)) // (dvdn_gcdl, dvdn_gcdr).
-Qed.
-
-Hint Resolve ltn_0p_part.
-Lemma ltn_0pi_part : forall pi n, 0 < pi_part pi n.
-Proof.
-by rewrite /pi_part => pi n; apply big_prop => // ? ?; rewrite ltn_0mul => ->.
-Qed.
-Hint Resolve ltn_0pi_part.
-
-Lemma p_part_pi : forall p n, p_part p n = pi_part (pred1 p) n.
-Proof.
-move=> p n; rewrite /pi_part -big_filter unlock; set r := filter _ _.
-have: size r = (p \in r).
-  by rewrite mem_filter /= eqxx -count_filter count_pred1_uniq ?uniq_primes.
-case rp: (p \in r); move: rp.
-  by case: r => [|q []] //=; case/predU1P=> [->|//]; rewrite muln1.
-by rewrite mem_filter /= eqxx /p_part lognE -mem_primes /= => ->; case: r.
-Qed.
-
-Definition pi_nat pi n := (n > 0) && all pi (primes n).
-
-Lemma sub_pi_nat : forall pi rho n,
-  subpred pi rho -> pi_nat pi n -> pi_nat rho n.
-Proof.
-rewrite /pi_nat => pi rho n subpi; case/andP=> -> pi_n.
-apply/allP=> p; move/(allP pi_n); exact: subpi.
-Qed.
-
-Lemma eq_pi_nat : forall pi rho n,
-  pi =1 rho -> pi_nat pi n = pi_nat rho n.
-Proof. by move=> pi rho n eqpi; rewrite /pi_nat (eq_all eqpi). Qed.
-
-Lemma pi_nat_predI : forall pi rho n,
-  pi_nat (predI pi rho) n = pi_nat pi n && pi_nat rho n.
-Proof. by move=> pi rho n; rewrite /pi_nat andbCA all_predI !andbA andbb. Qed.
-
-Lemma pi_nat_1 : forall n, pi_nat (pred1 1) n = (n == 1).
-Proof.
-move=> [|[|n]] //; apply/allPn; exists (pdiv n.+2); rewrite ?primes_pdiv //.
-by rewrite neq_ltn pdiv_gt1 orbT.
-Qed.
-
-Lemma pi_nat_mul : forall pi m n,
-  pi_nat pi (m * n) = pi_nat pi m && pi_nat pi n.
-Proof.
-move=> pi m n; rewrite /pi_nat ltn_0mul andbCA -andbA andbCA.
-case: posnP => // n_pos; case: posnP => //= m_pos.
-apply/allP/andP=> [pi_mn | [pi_m pi_n] p].
-  by split; apply/allP=> p m_p; apply: pi_mn; rewrite primes_mul // m_p ?orbT.
-rewrite primes_mul //; case/orP; [exact: (allP pi_m) | exact: (allP pi_n)].
-Qed.
-
-Lemma pi_nat_part : forall pi n, pi_nat pi (pi_part pi n).
-Proof.
-move=> pi n; rewrite /pi_nat primes_pi_part ltn_0pi_part.
-by apply/allP=> p; rewrite mem_filter; case/andP.
-Qed.
-
-Lemma pi_nat_pfactor : forall pi p n,
-  prime p -> pi_nat pi (p ^ n) = (n == 0) || pi p.
-Proof.
-move=> pi p [|n] // pr_p; rewrite /pi_nat ltn_0exp ltn_0prime //=.
-by rewrite primes_exp // primes_prime //= andbT.
-Qed.
-
-Lemma pi_nat_primes : forall n, n > 0 -> pi_nat (mem (primes n)) n.
-Proof. rewrite /pi_nat => n ->; exact/allP. Qed.
-
-Lemma pi_nat_dvdn : forall m n pi, m %| n -> pi_nat pi n -> pi_nat pi m.
-Proof. by move=> m n pi; case/dvdnP=> q ->; rewrite pi_nat_mul; case/andP. Qed.
-
-Lemma pi_nat_divn : forall m n pi, m %| n -> pi_nat pi n -> pi_nat pi (n %/ m).
-Proof.
-move=> m n // pi; case/dvdnP=> q ->; rewrite pi_nat_mul andbC; case/andP.
-by case: m => // m _; rewrite divn_mull.
-Qed.
-
-Lemma coprime_pi_nat : forall m n,
-  m > 0 -> n > 0 -> coprime m n = pi_nat (predC (mem (primes m))) n.
-Proof.
-by move=> m n m_pos n_pos; rewrite /pi_nat n_pos all_predC coprime_has_primes.
-Qed.
-
-Lemma part_pi_nat : forall pi n, pi_nat pi n -> pi_part pi n = n.
-Proof.
-move=> pi n; case/andP=> n_pos pi_n.
-by rewrite /pi_part -big_filter (all_filterP pi_n) prod_p_parts.
-Qed.
-
-Lemma part_pi'_nat : forall pi n, pi_nat (predC pi) n -> pi_part pi n = 1.
-Proof.
-by move=> pi n; case/andP=> n_pos pi'_n; rewrite /pi_part big_hasC -?all_predC.
-Qed.
-
-Definition pnatP : forall p n,
-  prime p -> reflect (exists k, n = p ^ k) (pi_nat (pred1 p) n).
-Proof.
-move=> p n pr_p; apply: (iffP idP) => [p_n | [k ->{n}]].
-  by exists (logn p n); rewrite [p ^ _]p_part_pi part_pi_nat.
-by rewrite pi_nat_pfactor //= eqxx orbT.
-Qed.
-
-End MorePrime.
-
-Hint Resolve ltn_0p_part ltn_0pi_part.
-
-Section MoreLaGrange.
-
-(* Generalizing the LaGrange theorem. *)
-
-Variables gT : finGroupType.
-Implicit Types G H K : {group gT}.
-
-Lemma LaGrangeI : forall G H, (#|G : H| * #|G :&: H|)%N = #|G|.
-Proof.
-move=> G H; pose C := 'C_(G | 'Msr)[H : {set _}]%G.
-have ->: #|G : H| = #|G : C| by exact: card_orbit.
-suff ->: G :&: H = C by rewrite mulnC LaGrange ?subsetIl.
-congr (_ :&: _); apply/setP=> x; apply/idP/astab1P=> /= [Hx | <-].
-  by rewrite rcosetE rcoset_id.
-by rewrite rcosetE rcoset_refl.
-Qed.
-
-Lemma group_divnI : forall G H, #|G| %/ #|G :&: H| = #|G : H|.
-Proof. by move=> G H; rewrite -(LaGrangeI G H) divn_mull ?ltn_0group. Qed.
-
-Lemma group_divn_index : forall G H, #|G| %/ #|G : H| = #|G :&: H|.
-Proof. by move=> G H; rewrite -(LaGrangeI G H) divn_mulr. Qed.
-
-Lemma indexg_dvdn : forall G H, #|G : H| %| #|G|.
-Proof. by move=> G H; rewrite -(LaGrangeI G H) dvdn_mulr. Qed.
-
-Lemma group_indexI : forall G H, #|G : G :&: H| = #|G : H|.
-Proof. by move=> G H; rewrite -group_divnI group_divn ?subsetIl. Qed.
-
-Lemma group_index1 : forall G, #|G : 1| = #|G|.
-Proof. by move=> G; rewrite -group_divn ?sub1G // cards1 divn1. Qed.
-
-(* TODO: prove directly the orbit-stabilizer formula *)
-(*  #|to x @: G| * #|C_(G | to)[x]| = #|G| *)
-(* then derive the LaGrangeI theorem as above, and the LaGrange as a *)
-(* special case; further derive the #|G * H| formula by partitioning. *)
-
-Lemma dvdn_indexgS : forall G H K, H \subset K -> #|G : K| %| #|G : H|.
-Proof.
-move=> G H K sHK; rewrite -(@dvdn_pmul2r #|G :&: K|) ?ltn_0group // LaGrangeI.
-by rewrite -(LaGrange (setIS G sHK)) mulnA LaGrangeI dvdn_mulr.
-Qed.
-
-Lemma dvdn_indexSg : forall G H K,
-  H \subset K -> K \subset G -> #|K : H| %| #|G : H|.
-Proof.
-move=> G H K sHK sKG; rewrite -(@dvdn_pmul2l #|H|) ?ltn_0group //.
-by rewrite !LaGrange ?(group_dvdn, subset_trans sHK).
-Qed.
-
-End MoreLaGrange.
 
 Section PgroupDefs.
   
@@ -486,42 +308,46 @@ Proof. move=> p; exact: pi_groupS. Qed.
 
 End PgroupProps.
 
+Section ModP.
+
+Variable (gT : finGroupType) (sT : finType).
+
+Variable to : {action gT &-> sT}.
+
+(***********************************************************************)
+(*                                                                     *)
+(*           The mod p lemma                                           *)
+(*                                                                     *)
+(***********************************************************************)
+
+Lemma pgroup_fix_mod : forall p (G : {group gT}) (S : {set sT}),
+   prime p -> pgroup p G -> [acts (G | to) on S] ->
+   #|S| %% p = #|'C_S(G | to)| %% p.
+Proof.
+move=> p G S prime_p; case/pnatP=> // n cardG GactS; apply/eqP.
+rewrite -(cardsID 'C(G | to)) eqn_mod_dvd (leq_addr, addKn) //.
+set S1 := S :\: _; have: [acts (G | to) on S1].
+  apply/actsP=> a Ga x; rewrite !in_setD (actsP GactS) //; congr (~~ _ && _).
+  by apply: actsP Ga x; rewrite norm_act_fix ?normG.
+move/acts_sum_card_orbit <-.
+apply big_prop => // [m1 m2|X]; first exact: dvdn_add.
+case/imsetP=> x; case/setDP=> _ nfx ->{X}.
+have:= dvdn_orbit to G x; rewrite cardG.
+case/dvdn_exp_prime=> [//|[_|m _ ->]]; last exact: dvdn_mulr.
+move/card_orbit1=> fix_x; case/afixP: nfx => a Ga; apply/set1P.
+by rewrite -fix_x mem_imset.
+Qed.
+
+End ModP.
+
 Section Morphim.
 
 Variables (aT rT : finGroupType) (D : {group aT}) (f : {morphism D >-> rT}).
 Implicit Type pi : pred nat.
 Implicit Types G H P : {group aT}.
 
-Lemma card_morphim : forall G, #|f @* G| = #|D :&: G : 'ker f|.
-Proof.
-move=> G; rewrite -morphimIdom -group_indexI -card_quotient; last first.
-  by apply: subset_trans (normI _ _); rewrite subsetI normG subIset ?norm_ker.
-by apply: esym (isog_card _); rewrite first_isom_loc ?subsetIl.
-Qed.
-
-Lemma dvdn_morphim :  forall G, #|f @* G| %| #|G|.
-Proof.
-move=> G; rewrite card_morphim (dvdn_trans (indexg_dvdn _ _)) //.
-by rewrite group_dvdn ?subsetIr.
-Qed.
-
 Lemma morphim_pi_group : forall pi G, pi_group pi G -> pi_group pi (f @* G).
 Proof. move=> pi G; apply: pi_nat_dvdn; exact: dvdn_morphim. Qed.
-
-Lemma dvdn_morphim_index : forall G H,
-  G :&: H \subset D -> #|f @* G : f @* H| %| #|G : H|.
-Proof.
-move=> G H dGH; apply: (@dvdn_trans #|f @* G : f @* (G :&: H)|).
-  by rewrite -group_indexI dvdn_indexgS ?morphimI.
-have: 0 < #|f @* (G :&: H)| * #|'ker_(D :&: G) f|.
-  by rewrite ltn_0mul !ltn_0group.
-move/dvdn_pmul2r <-; rewrite mulnCA !mulnA LaGrange ?(morphimS, subsetIl) //.
-rewrite 2!card_morphim LaGrangeI.
-have: 'ker_(D :&: (G :&: H)) f \subset 'ker_(D :&: G) f.
-  by rewrite setSI ?setIS ?subsetIl.
-move/LaGrange <-; rewrite !mulnA dvdn_mulr // -mulnA LaGrangeI /=.
-by rewrite (setIidPr dGH) LaGrangeI group_dvdn ?subsetIr.
-Qed.
 
 Lemma morphim_pgroup : forall p P, pgroup p P -> pgroup p (f @* P).
 Proof. move=> p; exact: morphim_pi_group. Qed.

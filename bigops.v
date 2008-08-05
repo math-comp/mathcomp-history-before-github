@@ -607,8 +607,8 @@ rewrite big_ltn // big_add1 /= big_mkord; congr op.
 by apply: eq_bigr => i _; rewrite eqFG.
 Qed.
 
-Lemma big_const : forall (I : finType) (P : pred I) x,
-  \big[op/nil]_(i | P i) x = iter #|SimplPred P| (op x) nil.
+Lemma big_const : forall (I : finType) (A : pred I) x,
+  \big[op/nil]_(i \in A) x = iter #|A| (op x) nil.
 Proof.
 by move=> *; rewrite big_const_seq count_filter cardE [index_enum _]enumE.
 Qed.
@@ -1179,25 +1179,38 @@ Lemma sum_split_sub : forall I r (P : pred I) (F1 F2 : I -> R),
      = \sum_(i <- r | P i) F1 i - \sum_(i <- r | P i) F2 i.
 Proof. by move=> *; rewrite -sum_opp -big_split /=. Qed.
 
-Lemma sumr_const : forall (I : finType) (P : pred I) (x : R),
-  \sum_(i : I | P i) x = x *+ #|SimplPred P|.
+Lemma sumr_const : forall (I : finType) (A : pred I) (x : R),
+  \sum_(i \in A) x = x *+ #|A|.
 Proof. exact: big_const. Qed.
 
 End Opp.
 
-Lemma prodr_const : forall (R : basic) (I : finType) (P : pred I) (x : R),
-  \prod_(i : I | P i) x = x ^+ #|SimplPred P|.
+Lemma prodr_const : forall (R : basic) (I : finType) (A : pred I) (x : R),
+  \prod_(i \in A) x = x ^+ #|A|.
 Proof. move=> *; exact: big_const. Qed.
 
 End Ring.
 
-Lemma sum_nat_const : forall (I : finType) (P : pred I) (n : nat),
-  \sum_(i : I | P i) n = #|SimplPred P| * n.
-Proof. by move=> I P n; rewrite big_const; elim: #|P| => //= i ->. Qed.
+Notation "\sum_ ( i | P ) ' e" :=
+  (\sum_(<- index_enum _ | (fun i => P)) (fun _ => e%N))
+  (at level 41, e at level 41, i at level 50,
+   format "\sum_ ( i  |  P )  ' e") : nat_scope.
 
-Lemma prod_nat_const : forall (I : finType) (P : pred I) (n : nat),
-  \prod_(i : I | P i) n = n ^ #|SimplPred P|.
-Proof. by move=> *; rewrite big_const; elim: #|_| => //= ? ->. Qed.
+Notation "\prod_ ( i | P ) ' e" :=
+  (\prod_(<- index_enum _ | (fun i => P)) (fun _ => e%N))
+  (at level 36, e at level 36, i at level 50,
+   format "\prod_ ( i  |  P )  ' e") : nat_scope.
+
+Lemma sum_nat_const : forall (I : finType) (A : pred I) (n : nat),
+  \sum_(i \in A) n = #|A| * n.
+Proof. by move=> I A n; rewrite big_const; elim: #|A| => //= i ->. Qed.
+
+Lemma card_sum_1 : forall (I : finType) (A : pred I), #|A| = \sum_(i \in A) 1.
+Proof. by move=> I A; rewrite sum_nat_const muln1. Qed.
+
+Lemma prod_nat_const : forall (I : finType) (A : pred I) (n : nat),
+  \prod_(i \in A) n = n ^ #|A|.
+Proof. by move=> I A n; rewrite big_const; elim: #|_| => //= ? ->. Qed.
 
 Lemma sum_nat_const_nat : forall n1 n2 n : nat,
   \sum_(n1 <= i < n2) n = (n2 - n1) * n.

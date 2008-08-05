@@ -1413,32 +1413,6 @@ Hint Resolve group1_eqType group1_finType trivg1 pos_card_group ltn_0indexg.
 
 Notation "G :^ x" := (conjG_group G x) : subgroup_scope.
 
-Section LaGrange.
-
-Variables (gT : finGroupType) (H G : {group gT}).
-Notation sT := {set gT}.
-
-Hypothesis sHG : H \subset G.
-
-Theorem LaGrange : (#|H| * #|G : H|)%N = #|G|.
-Proof.
-pose f x := (x * (repr (H :* x))^-1, H :* x).
-rewrite -cardX -(@on_card_preimset _ _ f); first apply: eq_card => x.
-  rewrite !inE /= -mem_rcoset rcoset_sym (mem_repr x) ?rcoset_refl //=.
-  by rewrite mem_rcosets mulSGid.
-exists (fun hHx => hHx.1 * repr hHx.2 : gT) => [x _ | ]; first exact: mulgKV.
-case=> h A; case/andP=> /= Hh; case/imsetP=> x _ ->{A}.
-by rewrite rcosetE /f rcosetM (rcoset_id Hh) rcoset_repr mulgK.
-Qed.
-
-Lemma group_dvdn : #|H| %| #|G|.
-Proof. by apply/dvdnP; exists #|G : H|; rewrite mulnC LaGrange. Qed.
-
-Lemma group_divn : #|G| %/ #|H| = #|G : H|.
-Proof. by rewrite -LaGrange // divn_mulr. Qed.
-
-End LaGrange.
-
 Section GroupInter.
 
 Open Scope group_scope.
@@ -1447,50 +1421,13 @@ Variable gT : finGroupType.
 Implicit Types A B : {set gT}.
 Implicit Types G H : {group gT}.
 
-Section Binary.
-
-Variables G H : {group gT}.
-
-Lemma group_setI : group_set (G :&: H).
+Lemma group_setI : forall G H, group_set (G :&: H).
 Proof.
-apply/group_setP; split=> [|x y]; rewrite !inE ?group1 //.
+move=> G H; apply/group_setP; split=> [|x y]; rewrite !inE ?group1 //.
 by case/andP=> Gx Hx; rewrite !groupMl.
 Qed.
 
-Canonical Structure setI_group := Group group_setI.
-
-Lemma card_mulG : (#|G * H|%g * #|G :&: H| = #|G| * #|H|)%N.
-Proof.
-pose f u := let: (g, h) := u in let m := g * h in (m, remgr H G m * h^-1).
-rewrite -!cardX -(@on_card_preimset _ _ f); last first.
-  pose f' md := let h := md.2^-1 * remgr H G md.1 in (md.1 * h^-1, h).
-  by exists f'; case=> *; rewrite /f' /= !gnorm.
-apply: eq_card => [] [g h]; rewrite !inE /=; symmetry.
-case GHgh: (g * h \in G * H); last first.
-  by apply/andP=> [] [Gg Hh]; rewrite mem_mulg in GHgh.
-rewrite -mem_remGr in GHgh; case/setIP: GHgh; move: (remgr H G _) => z Hz Gghz.
-rewrite /= inE (groupMl _ Hz) groupV -{1}(mulgKV g (z * _)) groupMl //.
-by rewrite -mulgA -invMg -mem_rcoset.
-Qed.
-
-Lemma card_mulG_trivP :
-  reflect (#|G * H| = (#|G| * #|H|)%N) (trivg (G :&: H)).
-Proof.
-rewrite trivg_card leq_eqVlt ltnNge pos_card_group orbF eq_sym /=.
-suff: #|G * H| > 0 by move/eqn_pmul2l <-; rewrite muln1 card_mulG; exact: eqP.
-apply: leq_trans (pos_card_group H) (subset_leq_card _); exact: mulG_subr.
-Qed.
-
-Lemma coprime_trivg : coprime #|G| #|H| -> trivg (G :&: H).
-Proof.
-move/eqnP=> coGH; rewrite trivg_card dvdn_leq // -{}coGH.
-by rewrite dvdn_gcd ?group_dvdn ?(subsetIl, subsetIr).
-Qed.
-
-Lemma coprime_card_mulG : coprime #|G| #|H| -> #|G * H| = (#|G| * #|H|)%N.
-Proof. by move/coprime_trivg; move/card_mulG_trivP. Qed.
-
-End Binary.
+Canonical Structure setI_group G H := Group (group_setI G H).
 
 Section Nary.
 
@@ -1555,6 +1492,90 @@ Notation "\prod_ ( i \in A | P ) F" :=
   (\big[mulGen/1%G]_(i \in A | P%B) F%G) : subgroup_scope.
 Notation "\prod_ ( i \in A ) F" :=
   (\big[mulGen/1%G]_(i \in A) F%G) : subgroup_scope.
+
+Section LaGrange.
+
+Variables gT : finGroupType.
+Implicit Types G H K : {group gT}.
+
+Lemma LaGrangeI : forall G H, (#|G :&: H| * #|G : H|)%N = #|G|.
+Proof.
+move=> G H.
+rewrite [#|G|]card_sum_1 (partition_big_imset (rcoset_of H)) /=.
+rewrite mulnC -sum_nat_const; apply: eq_bigr=> A; case/rcosetsP=> x Gx ->{A}.
+rewrite -(card_rcoset _ x) card_sum_1; apply: eq_bigl => y.
+rewrite rcosetE eqset_sub_card mulGS !card_rcoset leqnn andbT sub1set.
+by rewrite mem_rcoset inE -!mem_rcoset rcoset_id.
+Qed.
+
+Lemma group_divnI : forall G H, #|G| %/ #|G :&: H| = #|G : H|.
+Proof. by move=> G H; rewrite -(LaGrangeI G H) divn_mulr ?ltn_0group. Qed.
+
+Lemma group_divn_index : forall G H, #|G| %/ #|G : H| = #|G :&: H|.
+Proof. by move=> G H; rewrite -(LaGrangeI G H) divn_mull. Qed.
+
+Lemma indexg_dvdn : forall G H, #|G : H| %| #|G|.
+Proof. by move=> G H; rewrite -(LaGrangeI G H) dvdn_mull. Qed.
+
+Theorem LaGrange : forall G H, H \subset G -> (#|H| * #|G : H|)%N = #|G|.
+Proof. by move=> G H; move/setIidPr=> sHG; rewrite -{1}sHG LaGrangeI. Qed.
+
+Lemma group_dvdn : forall G H, H \subset G -> #|H| %| #|G|.
+Proof. by move=> G H; move/LaGrange <-; rewrite dvdn_mulr. Qed.
+
+Lemma group_divn : forall G H, H \subset G -> #|G| %/ #|H| = #|G : H|.
+Proof. by move=> G H; move/LaGrange <-; rewrite divn_mulr. Qed.
+
+Lemma group_indexI : forall G H, #|G : G :&: H| = #|G : H|.
+Proof. by move=> G H; rewrite -group_divnI group_divn ?subsetIl. Qed.
+
+Lemma group_index1 : forall G, #|G : 1| = #|G|.
+Proof. by move=> G; rewrite -group_divn ?sub1G // cards1 divn1. Qed.
+
+Lemma card_mulG : forall G H, (#|G * H|%g * #|G :&: H| = #|G| * #|H|)%N.
+Proof.
+move=> G H; rewrite -(LaGrangeI H G) mulnA mulnAC setIC; congr (_ * _)%N.
+rewrite card_sum_1 mulnC -sum_nat_const /=.
+rewrite (partition_big (fun x => G :* x) (mem (rcosets G H))) /=; last first.
+  by move=> x; rewrite mem_rcosets.
+apply: eq_bigr => Gy; case/imsetP=> y Hy ->{Gy}.
+rewrite -(card_rcoset G y) card_sum_1; apply: eq_bigl => x.
+rewrite rcosetE eqset_sub_card !card_rcoset leqnn andbT mulGS sub1set.
+by rewrite -in_setI (setIidPr _) ?mulgS ?sub1set.
+Qed.
+
+Lemma card_mulG_trivP : forall G H,
+  reflect (#|G * H| = (#|G| * #|H|)%N) (trivg (G :&: H)).
+Proof.
+move=> G H; rewrite trivg_card leq_eqVlt ltnNge ltn_0group orbF eq_sym /=.
+have: #|G * H| > 0 by exact: leq_trans (subset_leq_card (mulG_subr _ _)).
+move/eqn_pmul2l <-; rewrite muln1 card_mulG; exact: eqP.
+Qed.
+
+Lemma coprime_trivg : forall G H, coprime #|G| #|H| -> trivg (G :&: H).
+Proof.
+move=> G H; move/eqnP=> coGH; rewrite trivg_card dvdn_leq // -{}coGH.
+by rewrite dvdn_gcd ?group_dvdn ?(subsetIl, subsetIr).
+Qed.
+
+Lemma coprime_card_mulG : forall G H,
+  coprime #|G| #|H| -> #|G * H| = (#|G| * #|H|)%N.
+Proof. by move=> G H; move/coprime_trivg; move/card_mulG_trivP. Qed.
+
+Lemma dvdn_indexgS : forall G H K, H \subset K -> #|G : K| %| #|G : H|.
+Proof.
+move=> G H K sHK; rewrite -(@dvdn_pmul2l #|G :&: K|) ?ltn_0group // LaGrangeI.
+by rewrite -(LaGrange (setIS G sHK)) mulnAC LaGrangeI dvdn_mulr.
+Qed.
+
+Lemma dvdn_indexSg : forall G H K,
+  H \subset K -> K \subset G -> #|K : H| %| #|G : H|.
+Proof.
+move=> G H K sHK sKG; rewrite -(@dvdn_pmul2l #|H|) ?ltn_0group //.
+by rewrite !LaGrange ?(group_dvdn, subset_trans sHK).
+Qed.
+
+End LaGrange.
 
 Section GeneratedGroup.
 

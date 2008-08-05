@@ -883,6 +883,19 @@ Qed.
 
 End FunImage.
 
+Lemma partition_big_imset :
+  forall R nil (law : @Monoid.abelian_law R nil) I J h A F,
+  let op := Monoid.operator law in
+  \big[op/nil]_(i | in_mem i A) F i =
+     \big[op/nil]_(j \in @imset I J h A)
+       \big[op/nil]_(i | in_mem i A && (h i == j)) F i.
+Proof.
+move=> R nil law I J h A F op.
+by apply: partition_big => i Ai; apply/imsetP; exists i.
+Qed.
+
+Implicit Arguments partition_big_imset [R nil law I J].
+
 Implicit Arguments imsetP [aT rT f D y].
 Implicit Arguments imset2P [aT aT2 rT f2 D1 D2 y].
 Prenex Implicits imsetP imset2P.

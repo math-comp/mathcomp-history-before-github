@@ -19,6 +19,7 @@ Require Import ssrnat.
 Require Import fintype.
 Require Import finfun.
 Require Import finset.
+Require Import div.
 Require Import groups.
 Require Import morphisms.
 Require Import automorphism.
@@ -516,8 +517,6 @@ Qed.
 
 End ThirdIsomorphism.
 
-
-
 Lemma char_from_quotient : forall (gT : finGroupType) (G H K : {group gT}),
   H <| K -> H \char G -> K / H \char G / H -> K \char G.
 Proof.
@@ -531,3 +530,58 @@ rewrite -(morphimSGK _ sHK) -?quotientE; last first.
 rewrite -(cosetim_quotm nHG Gf Hf) {}chKG // ?injm_quotm //.
 by rewrite cosetim_quotm Gf.
 Qed.
+
+(* Counting lemmas for morphisms. *)
+
+Section CardMorphism.
+
+Variables (aT rT : finGroupType) (D : {group aT}) (f : {morphism D >-> rT}).
+Implicit Types G H : {group aT}.
+Implicit Types L M : {group rT}.
+
+Lemma card_morphim : forall G, #|f @* G| = #|D :&: G : 'ker f|.
+Proof.
+move=> G; rewrite -morphimIdom -group_indexI -card_quotient; last first.
+  by apply: subset_trans (normI _ _); rewrite subsetI normG subIset ?norm_ker.
+by apply: esym (isog_card _); rewrite first_isom_loc ?subsetIl.
+Qed.
+
+Lemma dvdn_morphim :  forall G, #|f @* G| %| #|G|.
+Proof.
+move=> G; rewrite card_morphim (dvdn_trans (indexg_dvdn _ _)) //.
+by rewrite group_dvdn ?subsetIr.
+Qed.
+
+Lemma dvdn_morphim_index : forall G H,
+  G :&: H \subset D -> #|f @* G : f @* H| %| #|G : H|.
+Proof.
+move=> G H dGH; apply: (@dvdn_trans #|f @* G : f @* (G :&: H)|).
+  by rewrite -group_indexI dvdn_indexgS ?morphimI.
+have: 0 < #|'ker_(D :&: G) f| * #|f @* (G :&: H)|.
+  by rewrite ltn_0mul !ltn_0group.
+move/dvdn_pmul2l <-; rewrite -mulnA LaGrange ?(morphimS, subsetIl) //.
+rewrite 2!card_morphim LaGrangeI (setIidPr dGH).
+have: 'ker_(G :&: H) f \subset 'ker_(D :&: G) f.
+  by rewrite setSI // subsetI dGH subsetIl.
+move/LaGrange <-; rewrite -!mulnA mulnCA dvdn_mull //= mulnA !LaGrangeI.
+by rewrite group_dvdn ?subsetIr.
+Qed.
+
+Lemma card_morphpre : forall L,
+  L \subset f @* D -> #|f @*^-1 L| = (#|'ker f| * #|L|)%N.
+Proof.
+move=> L; move/morphpreK=> defL; rewrite -{2}defL card_morphim morphpreIdom.
+by rewrite LaGrange // morphpreS ?sub1G.
+Qed.
+
+Lemma index_morphpre : forall L M,
+  L \subset f @* D -> #|f @*^-1 L : f @*^-1 M| = #|L : M|.
+Proof.
+move=> L M dL; rewrite -!group_divnI -morphpreI card_morphpre //.
+have: L :&: M \subset f @* D by rewrite subIset ?dL.
+by move/card_morphpre->; rewrite divn_pmul2l ?ltn_0group.
+Qed.
+
+End CardMorphism.
+
+

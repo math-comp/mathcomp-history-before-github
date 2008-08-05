@@ -1,7 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype div ssralg.
-Require Import groups action frobenius_cauchy group_perm.
-Require Import tuple finfun bigops finset.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype div.
+Require Import tuple finfun ssralg bigops finset groups action group_perm.
 
 (* Require Import connect. *)
 
@@ -10,6 +9,19 @@ Unset Strict Implicit.
 Import Prenex Implicits.
 
 Import GroupScope.
+
+Lemma burnside_formula : forall (gT : finGroupType) s (G : {group gT}),
+   uniq s -> s =i G -> 
+   forall (sT : finType) (to : {action gT &-> sT}),
+   (#|orbit to G @: setT| * size s)%N = \sum_(p <- s) #|'C[p | to]|.
+Proof.
+move=> gT s G Us sG sT to.
+rewrite big_uniq // -(card_uniqP Us) (eq_card sG) -Frobenius_Cauchy.
+  by apply: eq_big => // p _; rewrite setTI.
+by apply/actsP=> ? _ ?; rewrite !inE.
+Qed.
+
+Implicit Arguments burnside_formula [gT].
 
 Section colouring.
 
@@ -272,7 +284,7 @@ Proof. by move=> k; apply/ffunP=> a; rewrite ffunE invg1 permE. Qed.
 Lemma act_f_morph:  forall k x y, act_f k (x * y) = act_f (act_f k x) y.
 Proof. by move=> k x y; apply/ffunP=> a; rewrite !ffunE invMg permE. Qed.
 
-Definition to := Action act_f_1 act_f_morph.
+Definition to := Action (act_f_1, act_f_morph).
 
 Definition square_coloring_number2 := #|orbit to isometries2 @: setT|.
 Definition square_coloring_number4 := #|orbit to rotations @: setT|.
@@ -389,21 +401,18 @@ Qed.
 
 Lemma burnside_app2: (square_coloring_number2 * 2 = n ^ 4 + n ^ 2)%N.
 Proof.
-rewrite -{1}card_iso2 -(Frobenius_Cauchy to iso2_group) /=.
-rewrite (eq_bigl (mem [:: id1; sh])) => [|p] /=; last first.
-  by rewrite  !inE orbF.
-rewrite -big_uniq /=; last by rewrite !{1}inE orbF diff_id_sh.
+rewrite (burnside_formula [:: id1; sh]) => [||p]; last first.
+- by rewrite !inE orbF.
+- by rewrite /= inE orbF diff_id_sh.
 by rewrite 2!big_adds big_seq0 addn0 {1}card_Fid F_Sh card_n2.
 Qed.
 
 Lemma burnside_app_rot:
   (square_coloring_number4 * 4 = n ^ 4 + n ^ 2 + 2 * n)%N.
 Proof.
-rewrite -{1}card_rot rot_is_rot -(Frobenius_Cauchy to).
-rewrite (eq_bigl (mem [:: id1; r1; r2; r3])) => [|p] /=; last first.
-  by rewrite !inE orbF.
-rewrite -big_uniq; last first.
-  by apply: maps_uniq (fun p : {perm square} => p c0) _ _; rewrite /= !permE.
+rewrite (burnside_formula [:: id1; r1; r2; r3]) => [||p]; last first.
+- by rewrite !inE orbF.
+- by apply: maps_uniq (fun p : {perm square} => p c0) _ _; rewrite /= !permE.
 rewrite !big_adds big_seq0 /= addn0 {1}card_Fid F_r1 F_r2 F_r3.
 by rewrite card_n card_n2 //=; ring.
 Qed.
@@ -447,12 +456,10 @@ Lemma burnside_app_iso :
   (square_coloring_number8 * 8 = n ^ 4 + 2 * n ^ 3 + 3 * n ^ 2 + 2 * n)%N.
 Proof.
 pose iso_list := [:: id1; r1; r2; r3; sh; sv; sd1; sd2].
-have Uiso: uniq iso_list.
-  apply: maps_uniq (fun p : {perm square} => (p c0, p c1)) _ _.
+rewrite (burnside_formula iso_list) => [||p]; last first.
+- by rewrite /= !inE orbF.
+- apply: maps_uniq (fun p : {perm square} => (p c0, p c1)) _ _.
   by rewrite /= !permE.
-have Eiso: iso_group =i iso_list by move=> p; rewrite /= !inE orbF.
-have <-: #|iso_group| = 8 by rewrite (eq_card Eiso) (card_uniqP Uiso).
-rewrite -(Frobenius_Cauchy to) (eq_bigl _ _ Eiso) -big_uniq //.
 rewrite !big_adds big_seq0 {1}card_Fid F_r1 F_r2 F_r3 F_Sh F_Sv F_Sd1 F_Sd2.
 by rewrite card_n !card_n3 // !card_n2 //=; ring.
 Qed.
@@ -854,11 +861,9 @@ Proof. by move=> k; apply/ffunP=> a; rewrite ffunE invg1 permE. Qed.
 Lemma act_g_morph:  forall k x y, act_g k (x * y) = act_g (act_g k x) y.
 Proof. by move=> k x y; apply/ffunP=> a; rewrite !ffunE invMg permE. Qed.
 
-Definition to_g := Action act_g_1 act_g_morph.
-
+Definition to_g := Action (act_g_1, act_g_morph).
 
 Definition cube_coloring_number24 := #|orbit to_g diso_group3 @: setT|.
-
 
 Lemma Fid3 : 'C[1 | to_g] = setT.
 Proof. by apply/setP=> x /=; rewrite (sameP afix1P eqP) !inE act1 eqxx. Qed.
@@ -1266,16 +1271,13 @@ Proof.
 pose iso_list :=[::id3;  s05;  s14;  s23;  r05;  r14;  r23;  r50;  r41;  r32;
   r024;  r042;  r012;  r021;  r031;  r013;  r043 ;  r034;
   s1 ;  s2;  s3;  s4;  s5;  s6].
-have Uiso: uniq iso_list.
-  apply: maps_uniq (fun p : {perm cube} => (p F0, p F1)) _ _.
+rewrite (burnside_formula iso_list) => [||p]; last first.
+- by rewrite  !inE /= orbF !(eq_sym _ p).
+- apply: maps_uniq (fun p : {perm cube} => (p F0, p F1)) _ _.
   have bsr:(fun p : {perm cube} => (p F0, p F1)) =1
     (fun p  => (sub F0 p F0, sub F0 p F1)) \o sop.
     by move => x; rewrite /= -2!sop_spec.
   by rewrite (eq_maps bsr) maps_comp  -(eqP Lcorrect); vm_compute.
-have Eiso: diso_group3 =i iso_list.
-by move=> p; rewrite  !inE /= orbF !(eq_sym _ p).
-have <-: #|diso_group3| = 24 by rewrite (eq_card Eiso) (card_uniqP Uiso).
-rewrite -(Frobenius_Cauchy to_g) (eq_bigl _ _ Eiso) -big_uniq //.
 rewrite !big_adds big_seq0 {1}card_Fid3 /= F_s05 F_s14 F_s23 F_r05 F_r14 F_r23
   F_r50 F_r41 F_r32 F_r024 F_r042 F_r012 F_r021 F_r031 F_r013 F_r043  F_r034 
   F_s1  F_s2 F_s3 F_s4 F_s5 F_s6.

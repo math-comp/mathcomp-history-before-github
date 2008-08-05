@@ -27,7 +27,6 @@ zp.v
 fp.v
 cyclic.v
 pgroups.v
-frobenius_cauchy.v
 center.v
 nilpotent.v
 sylow.v
