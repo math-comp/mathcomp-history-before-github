@@ -598,6 +598,9 @@ Proof.
 by move=> A x; rewrite -subset_pred1; apply: eq_subset=> y; rewrite !inE.
 Qed.
 
+Lemma subsetD1 : forall A x, A :\ x \subset A.
+Proof. by move=> A x; apply/subsetP=> y; case/setD1P. Qed.
+
 Lemma setIidPl : forall A B, reflect (A :&: B = A) (A \subset B).
 Proof.
 move=> A B; apply: (iffP subsetP) => [sAB | <- x]; last by case/setIP.
@@ -651,6 +654,72 @@ Proof.
 move=> A B C; apply/subsetP/subsetP=> sABC x; rewrite !inE.
   by case Bx: (x \in B) => // Ax; rewrite sABC ?inE ?Bx.
 by case Bx: (x \in B) => //; move/sABC; rewrite inE Bx.
+Qed.
+
+Lemma subn_set0Dn : forall A B, ~~ (A \subset B) = (A :\: B != set0).
+Proof.
+move=> A B; rewrite eqset_sub sub0set andbT.
+apply/subsetPn/subsetPn; case=> x; [|case/setDP]=> Ax nBx; last by exists x.
+by exists x; rewrite ?in_set0 //; apply/setDP; split.
+Qed.
+
+Lemma proper_empty : forall A, A != set0 ->  set0 \proper A.
+Proof. by move=> A neA; rewrite properE sub0set subset0 neA. Qed.
+
+Lemma properD1 : forall A x, x \in A -> A :\ x \proper A.
+Proof.
+move=> A x Ax; rewrite properE subsetD1; apply/subsetPn; exists x=> //.
+by rewrite in_setD1 Ax eqxx.
+Qed.
+ 
+Lemma properIr :  forall A B, ~~ (B \subset A) -> A :&: B \proper B.
+Proof. by move=> A B nsAB; rewrite properE subsetIr subsetI negb_andb nsAB. Qed.
+
+Lemma properIl : forall A B, ~~ (A \subset B) -> A :&: B \proper A.
+Proof. 
+by move=> A B nsBA; rewrite properE subsetIl subsetI negb_andb nsBA orbT. 
+Qed.
+
+Lemma properEneq : forall A B, A \proper B = (A \subset B) && (A != B).
+Proof. by move=> A B; rewrite properE eqset_sub; case sAB : (A \subset B). Qed.
+
+Lemma proper_neq :  forall A B, A \proper B -> A != B.
+Proof. by move=> A B; rewrite properEneq; case/andP. Qed.
+
+Lemma properUr : forall A B, ~~ (A \subset B) ->  B \proper A :|: B.
+Proof. by move=> A B; rewrite properE subsetUr subUset subset_refl /= andbT. Qed.
+
+Lemma properUl : forall A B, ~~ (B \subset A) ->  A \proper A :|: B.
+Proof. by move=> A B ned; rewrite setUC properUr. Qed.
+
+Lemma proper1set : forall A x, ([set x] \proper A) -> (x \in A).
+Proof. by move=> A x; move/proper_sub; rewrite sub1set. Qed.
+
+Lemma properIset : forall A B C,
+  (B \proper A) || (C \proper A) -> (B :&: C \proper A).
+Proof. 
+by move=> A B C; case/orP; apply: sub_proper_trans; rewrite (subsetIl, subsetIr).
+Qed.
+
+Lemma properI : forall A B C,
+  (A \proper B :&: C) -> (A \proper B) && (A \proper C).
+Proof.
+move=> A B C pAI; apply/andP.
+by split; apply: (proper_sub_trans pAI); rewrite (subsetIl, subsetIr).
+Qed.
+
+Lemma properU : forall A B C,
+  (B :|: C \proper A) -> (B \proper A) && (C \proper A).
+Proof.
+move=> A B C pUA; apply/andP.
+by split; apply: sub_proper_trans pUA; rewrite (subsetUr, subsetUl).
+Qed.
+
+Lemma properD : forall A B C,
+  (A \proper B :\: C) -> (A \proper B) && [disjoint A & C].
+Proof.
+move=> A B C; rewrite setDE; move/properI; case/andP=>->; move/proper_sub.
+by rewrite disjoints_subset; move->.
 Qed.
 
 End setOps.
