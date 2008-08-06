@@ -28,58 +28,6 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-Section MaxSet.
-
-Variable T : finType.
-Notation sT := {set T}.
-
-Variable P : pred sT.
-
-Definition maxset B := 
-  P B && (forallb C, (P C && (B \subset C)) ==> (C == B)).
-
-Lemma maxsetP : forall B, 
-  reflect ((P B) /\ (forall C, P C -> B \subset C -> C = B)) (maxset B).
-Proof.
-move=> B; apply: (iffP andP); move=> [pb bmax].
-  split=>//; move=> c pc; move/forallP: bmax; move/(_ c); rewrite pc /=.
-   move/implyP=> h sbc; apply/eqP; exact: h.
-split=> //; apply/forallP=> x; apply/implyP; case/andP=> px sxb; apply/eqP.
-by apply: (bmax x).
-Qed.
-
-Lemma maxsetp : forall B, maxset B -> P B.
-Proof. by move=> C; case/maxsetP. Qed.
-
-(* Using Georges' spec of minimum on nats to get rid of the recursion *)
-
-Lemma cardsCs : forall (T : finType) (A : {set T}), #|A| = #|T| - #|~: A|.
-Proof. by move=> fT D; rewrite -(cardsC D) -addn_subA ?leqnn // subnn addn0. Qed.
-
-Variable A : sT.
-Hypothesis PA : P A.
-
-Lemma maxset_exists : exists B, (maxset B) && (A \subset B).
-Proof.
-pose p := 
-  [pred n : nat | existsb C : sT, [&& (#|C| == n), P (~: C) & (A \subset ~: C)]].
-have exp : exists C, p C.
- by exists #|~: A|; apply/existsP; exists (~: A); rewrite eqxx setCK PA subset_refl.
-case: (ex_minnP exp)=> m {exp}; case/existsP=> B; case/and3P=> ecB pcB sAcB hmax.
-exists (~: B); rewrite sAcB andbT; apply/maxsetP; split=> // C PC scBC.
-have pc : p #|~: C|. 
-  rewrite /p /=; apply/existsP; exists (~: C); rewrite setCK eqxx PC.
-  by rewrite (subset_trans sAcB).
-apply/eqP; rewrite eq_sym; rewrite eqset_sub_card scBC /= cardsCs.
-rewrite (cardsCs (~: B)) leq_sub2l // setCK (eqP ecB); exact: hmax.
-Qed.
-
-
-End MaxSet.
-
-Prenex Implicits maxset.
-
-
 Section MaxGroup.
 
 Variable gT : finGroupType.
@@ -263,16 +211,9 @@ Qed.
 Lemma nt_proper1 : ~~ trivg G -> 1%G \proper G.
 Proof. by rewrite /trivg properE sub1set group1=> ->. Qed.
 
-Lemma proper_preim : forall (T1 T2: finType)(f : T1 -> T2) (x y : {set T2}),
-y \subset (f @: T1) -> x \proper y -> (f @^-1: x) \proper (f @^-1: y).
-Proof.
-move=> T1 T2 f x y syi ; rewrite properE; case/andP=> sfxy pfxy; rewrite properE preimsetS //=.
- case/subsetPn: pfxy=> u yu nxu; apply/subsetPn.
-have iu : u \in f @: T1 by apply: (subsetP syi).
-by case/imsetP: iu=> v _ uv; exists v; rewrite inE -uv.
-Qed.
 
 (* to be cleaned !!! *)
+
 Lemma proper_inj_im :  forall (gT2 : finGroupType)(f : {morphism G >-> gT2})
 (x y : gT), 'injm f -> y \subset G -> x \proper y -> f @* x \proper f @* y.
 Proof.
@@ -285,6 +226,8 @@ apply: (@contra _ (H == K)); first by rewrite eq_sym; move/eqP; move/h; move/eqP
 apply/eqP; move/(congr1 val)=> /=; move/eqP; rewrite eqset_sub; apply/negP.
 by rewrite negb_and pGK orbT.
 Qed.
+
+
 
 
 Lemma simpleP :

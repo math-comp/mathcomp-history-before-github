@@ -166,21 +166,7 @@ Canonical Structure subset_unlock := Unlockable Subset.subsetE.
 Notation "A \subset B" := (subset (mem A) (mem B))
   (at level 70, no associativity, format "A  \subset  B") : bool_scope.
 
-Notation Local proper_def :=
-  (fun (T : finType) (A B : mem_pred T) => (A \subset B) && ~~ (B \subset A)).
-
-Module Type ProperSig.
-Parameter proper : forall (T : finType) (A B : mem_pred T), bool.
-Axiom properE : proper = proper_def.
-End ProperSig.
-
-Module Proper : ProperSig.
-Definition proper := proper_def.
-Lemma properE : proper = proper_def. Proof. by []. Qed.
-End Proper.
-
-Notation proper := Proper.proper.
-Canonical Structure proper_unlock := Unlockable Proper.properE.
+Definition proper T A B := @subset T A B && ~~ subset B A.
 
 Notation "A \proper B" := (proper (mem A) (mem B))
   (at level 70, no associativity, format "A  \proper  B") : bool_scope.
@@ -430,21 +416,20 @@ Lemma subset_all : forall (s : seq T) (A : pred T),
 Proof. by move=> s A; exact (sameP (subsetP _ _) allP). Qed.
 
 Lemma properE : forall A B, A \proper B = (A \subset B) && ~~(B \subset A).
-Proof. by move=> A B; rewrite unlock. Qed.
+Proof. by []. Qed.
 
 Lemma properP : forall A B,
-  reflect ({subset A <= B} /\ (exists2 x, x \in B & x \notin A)) (A \proper B).
+  reflect (A \subset B /\ (exists2 x, x \in B & x \notin A)) (A \proper B).
 Proof.
-move=> A B; rewrite properE.
-apply: (iffP andP); case; move/subsetP=> sAB; case/subsetPn; last by split.
+move=> A B; rewrite properE; apply: (iffP andP); case=>->; case/subsetPn=> //.
 by move=> x Bx nAx; split=> //; exists x.
 Qed.
  
 Lemma proper_sub : forall A B, A \proper B -> A \subset B.
-Proof. by move=> A B; case/properP; move/subsetP. Qed.
+Proof. by move=> A B; case/andP. Qed.
 
 Lemma proper_subn : forall A B, A \proper B -> ~~ (B \subset A).
-Proof. by move=> A B; rewrite properE; case/andP. Qed.
+Proof. by move=> A B; case/andP. Qed.
 
 Lemma proper_inD : forall A B,
   A \proper B -> exists2 x, x \in B & x \notin A.
@@ -453,28 +438,28 @@ Proof. by move=> A B; case/properP. Qed.
 Lemma proper_trans : forall A B C,
   A \proper B -> B \proper C -> A \proper C.
 Proof.
-move=> A B C; case/properP; move/subsetP=> sAB [x Bx nAx]; case/properP.
-move/subsetP=> sBC [y Cy nBy]; rewrite properE (subset_trans sAB) //=.
-by apply/subsetPn; exists y=> //; apply/negP; move/(subsetP _ _ sAB); apply/negP.
+move=> A B C; case/properP=> sAB [x Bx nAx]; case/properP=> sBC [y Cy nBy].
+rewrite properE (subset_trans sAB) //=; apply/subsetPn; exists y=> //.
+by apply/negP; move/(subsetP _ _ sAB); apply/negP.
 Qed.
 
 Lemma proper_sub_trans : forall A B C,
   A \proper B -> B \subset C -> A \proper C.
 Proof.
-move=> A B C; case/properP; move/subsetP=> sAB [x Bx nAx] sBC; rewrite properE.
+move=> A B C; case/properP=> sAB [x Bx nAx] sBC; rewrite properE.
 by rewrite (subset_trans sAB) //; apply/subsetPn; exists x; rewrite ?(subsetP _ _ sBC).
 Qed.
 
 Lemma sub_proper_trans : forall A B C,
   A \subset B -> B \proper C -> A \proper C.
-move=> A B C sAB; case/properP; move/subsetP=> sBC [x Cx nBx]; rewrite properE.
+move=> A B C sAB; case/properP=> sBC [x Cx nBx]; rewrite properE.
 rewrite (subset_trans sAB) //; apply/subsetPn; exists x=> //; apply/negP.
 by move/(subsetP _ _ sAB); apply/negP.
 Qed.
 
 Lemma proper_card : forall A B, A \proper B -> #|A| < #|B|.
 Proof.
-move=> A B; rewrite properE; case/andP=> sAB nsBA; rewrite ltn_neqAle.
+move=> A B; case/andP=> sAB nsBA; rewrite ltn_neqAle. 
 by case: (subset_leqif_card sAB)=> -> ->; rewrite andbT.
 Qed.
 
@@ -484,14 +469,14 @@ Proof. by move=> A; rewrite properE subset_refl. Qed.
 Lemma eq_proper : forall A B,
   A =i B -> proper (mem A) =1 proper (mem B).
 Proof.
-move=> A B eAB [C]; rewrite unlock; congr andb; first by apply: (eq_subset eAB).
+move=> A B eAB [C]; congr andb; first by apply: (eq_subset eAB).
 by rewrite (eq_subset_r eAB).
 Qed.
 
 Lemma eq_proper_r : forall A B, A =i B ->
   (@proper T)^~ (mem A) =1 (@proper T)^~ (mem B).
 Proof.
-move=> A B eAB [C]; rewrite unlock; congr andb; first by apply: (eq_subset_r eAB).
+move=> A B eAB [C]; congr andb; first by apply: (eq_subset_r eAB).
 by rewrite (eq_subset eAB).
 Qed. 
 

@@ -558,6 +558,9 @@ Proof. by move=> B A; rewrite !cardsE cardID. Qed.
 Lemma cardsC : forall A, #|A| + #|~: A| = #|T|.
 Proof. by move=> A; rewrite cardsE cardC. Qed.
 
+Lemma cardsCs : forall A, #|A| = #|T| - #|~: A|.
+Proof. by move=> A; rewrite -(cardsC A) -addn_subA ?leqnn // subnn addn0. Qed.
+
 Lemma cardsU1 : forall a A, #|a |: A| = (a \notin A) + #|A|.
 Proof. by move=> a A; rewrite cardsE cardU1. Qed.
 
@@ -683,6 +686,11 @@ Qed.
 Lemma properEneq : forall A B, A \proper B = (A \subset B) && (A != B).
 Proof. by move=> A B; rewrite properE eqset_sub; case sAB : (A \subset B). Qed.
 
+Lemma subEproper : forall A B, A \subset B = (A \proper B) || (A == B).
+Proof.
+by move=> A B; rewrite properE eqset_sub; case: (A \subset B)=> //=; rewrite orNb.
+Qed.
+
 Lemma proper_neq :  forall A B, A \proper B -> A != B.
 Proof. by move=> A B; rewrite properEneq; case/andP. Qed.
 
@@ -720,6 +728,13 @@ Lemma properD : forall A B C,
 Proof.
 move=> A B C; rewrite setDE; move/properI; case/andP=>->; move/proper_sub.
 by rewrite disjoints_subset; move->.
+Qed.
+
+Lemma properEcardlt : forall A B, (A \proper B) = (A \subset B) && (#|A| < #|B|).
+Proof.
+move=> A B. rewrite properEneq; case sAB : (A \subset B)=> //=.
+move/subset_leqif_card: (sAB); move/ltn_eqiffP; rewrite eqset_sub sAB /=.
+by case sBA: (B \subset A)=> //=; move/eqP->; rewrite ltnn.
 Qed.
 
 End setOps.
@@ -890,6 +905,21 @@ move=> A B sAB; apply/subsetP=> y; case/imsetP=> x Ax ->.
 by apply/imsetP; exists x; rewrite ?(subsetP sAB).
 Qed.
 
+Lemma imset_proper : forall (A B : {set aT})(injf : {in B, injective f}),
+   A \proper B -> f @: A \proper f @: B.
+Proof.
+move=> A B fi; case/properP=> sAB [x Bx nAx]; rewrite properE imsetS //=.
+apply/subsetP; move/(_ (f x) (mem_imset Bx)); case/imsetP=> y Ay; move/(fi _ Bx).
+by move=> e; move/negP: nAx; rewrite e.
+Qed.
+
+Lemma preimset_proper : forall (A B : {set rT}),
+B \subset codom f -> A \proper B -> (f @^-1: A) \proper (f @^-1: B).
+Proof.
+move=> A B sBc; case/properP=> sAB [u Bu nAu]; rewrite properE preimsetS //=.
+by apply/subsetPn; exists (iinv (subsetP sBc  _ Bu)); rewrite inE /= f_iinv.
+Qed.
+
 Lemma imsetU : forall A B : {set aT},
   f @: (A :|: B) = (f @: A) :|: (f @: B).
 Proof.
@@ -917,6 +947,8 @@ Proof.
 move=> A B C sAB; apply/subsetP=> y; case/imset2P=> x x2 Ax Cx2 ->.
 by apply/imset2P; exists x x2; rewrite ?(subsetP sAB).
 Qed.
+
+
 
 Lemma imset2Sr : forall (A B : pred aT2) (C : pred aT),
   A \subset B -> f2 @2: (C, A) \subset f2 @2: (C, B).
@@ -1546,3 +1578,117 @@ by exists (f x); [apply/imsetP; exists x | rewrite !inE /= eqxx].
 Qed.
 
 End fun_partition.
+
+(**********************************************************************)
+(*                                                                    *)
+(*  Maximum and minimun (sub)set with respect to a given pred         *)
+(*                                                                    *)
+(**********************************************************************)
+
+
+
+Section MaxSetMinSet.
+
+Variable T : finType.
+Notation sT := {set T}.
+
+Section Min.
+
+Variable P : pred sT.
+
+Definition minset A :=
+  P A && (forallb C, (P C && (C \subset A)) ==> (C == A)).
+
+Lemma minsetP : forall A, 
+  reflect ((P A) /\ (forall C, P C -> C \subset A -> C = A)) (minset A).
+Proof.
+move=> A; apply: (iffP andP); move=> [PA Bmin].
+  split=>//; move=> B PB; move/forallP: Bmin; move/(_ B); rewrite PB /=.
+   move/implyP=> h sbc; apply/eqP; exact: h.
+split=> //; apply/forallP=> x; apply/implyP; case/andP=> PX sXA; apply/eqP.
+by apply: (Bmin x).
+Qed.
+
+Lemma minsetp : forall A, minset A -> P A.
+Proof. by move=> A; case/minsetP. Qed.
+
+Lemma minsetinf : forall A, minset A -> forall C, P C -> C \subset A -> C = A.
+Proof. by move=> A; case/minsetP. Qed.
+
+Variable W : sT.
+Hypothesis PW : P W.
+
+Lemma minset_exists : exists A, (minset A) && (A \subset W).
+Proof.
+pose p := [pred n : nat | existsb B : sT, [&& (#|B| == n), P B & (B \subset W)]].
+have pwc : exists n, p n. 
+  by exists #|W|; apply/existsP; exists W; rewrite subset_refl PW eqxx.
+case: (ex_minnP pwc)=> {pwc} m; case/existsP=> B; case/and3P=> ecB PB sBW mmin.
+exists B; rewrite sBW andbT; apply/minsetP; split=> // C PC sCB; apply/setP.
+apply/subset_cardP=> //; apply/eqP; rewrite eqn_leq subset_leq_card //=.
+rewrite (eqP ecB) mmin //; apply/existsP; exists C; rewrite eqxx PC /=. 
+by rewrite (subset_trans sCB).
+Qed.
+
+End Min.
+
+Lemma minset_eq : forall (P1 P2 : pred sT)(A : sT), 
+  P1 =1 P2 -> minset P1 A = minset P2 A.
+Proof. 
+move=> P1 P2 A eP12; rewrite /minset !eP12; congr andb; apply: eq_forallb=> x.
+by rewrite eP12.
+Qed.
+
+Section Max.
+
+Variable P : pred sT.
+
+Definition maxset A := 
+  P A && (forallb B, (P B && (A \subset B)) ==> (B == A)).
+
+Lemma maxminset : forall A, maxset A = minset [pred B | P (~: B)] (~: A).
+Proof.
+move=> A; apply/idP/minsetP=> /=; rewrite setCK.
+  case/andP=> PA; move/forallP=> Amax; split=> // B PcB sBcA; move: (Amax (~: B)).
+  by rewrite PcB /= -{1}(setCK A) setCS sBcA /=; move/eqP<-; rewrite setCK.
+case=> PA Amax; rewrite /maxset PA /=; apply/forallP=> B; apply/implyP.
+by case/andP=> PB sAV; apply/eqP; apply: setC_inj; apply: Amax; rewrite ?setCK // setCS.
+Qed.
+
+Lemma maxsetP : forall A, 
+  reflect ((P A) /\ (forall B, P B -> A \subset B -> B = A)) (maxset A).
+Proof.
+move=> A; rewrite maxminset.
+apply:(iffP (minsetP _ _))=> /=; rewrite setCK; case=> PA hmax; split=> // B PB hs.
+  by apply: setC_inj; apply: hmax; rewrite ?setCK // setCS.
+by apply: setC_inj; rewrite ?setCK; apply: hmax; rewrite // -(setCK A) setCS.
+Qed.
+
+Lemma maxsetp : forall A, maxset A -> P A.
+Proof. by move=> A; case/maxsetP. Qed.
+
+Lemma maxsetsup : forall A, maxset A -> forall C, P C -> A \subset C -> C = A.
+Proof. by move=> A; case/maxsetP. Qed.
+
+Variable W : sT.
+Hypothesis PW : P W.
+
+Lemma maxset_exists : exists A, (maxset A) && (W \subset A).
+Proof.
+pose Q := [pred B | P (~: B)]; have QW : Q (~: W) by rewrite /Q /= setCK.
+case: (minset_exists QW)=> A; case/andP=> minA sAcW; exists (~: A).
+by rewrite maxminset setCK minA -setCS setCK.
+Qed.
+
+End Max.
+
+Lemma maxset_eq : forall (P1 P2 : pred sT)(A : sT), 
+  P1 =1 P2 -> maxset P1 A = maxset P2 A.
+Proof.
+by move=> P1 P2 A eP12; rewrite !maxminset; apply: minset_eq=> x /=; rewrite eP12.
+Qed.
+
+End MaxSetMinSet.
+
+Prenex Implicits minset maxset.
+
