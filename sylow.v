@@ -705,7 +705,7 @@ Qed.
 
 End DirProd.
 
-Section PGroups.
+Section Nilpotent.
 
 Variable (gT : finGroupType).
 Implicit Type G H : {group gT}.
@@ -775,6 +775,88 @@ move: (@Frattini _ _ _ (Group H3p) _ normHN H1p SPi).
 suff H1: 'N_N(Pi) \subset H.
   by rewrite (mulGSgid (group1 _)) // => EHN; rewrite {2}EHN.
 by apply/subsetP=> x; rewrite !inE; rewrite -andbA; case/and3P=> ->.
+Qed.
+
+End Nilpotent.
+
+Section PGroups.
+
+
+Variable (p: nat) (prime_p: prime p).
+Variable (gT : finGroupType).
+Implicit Type G H : {group gT}.
+
+(* Bender 1.22 p.9 *)
+
+Lemma normal_pgroup: forall k r (G N: {group gT}), 
+  pgroup p G -> N <| G -> #|N| = (p^k)%N -> r <= k -> 
+   exists L: {group gT}, [/\ L \subset N, L <| G & #|L| = (p^r)%N].
+Proof.
+move=> k; move: {-2}k (leqnn k) gT.
+elim: k => [| k Hrec] [| k1//] Hk1 gT1 [|r//] G N PG NNG CG Lrk; try by exists N.
+  exists (unit_group gT1); split => //; first by exact: sub1G.
+    apply/normalP; split; first exact: sub1G.
+    by move=> x Hx; rewrite /= conjs1g.
+  by rewrite expn0 cards1.
+have PN := pgroupS (normal_sub NNG) PG.
+case/(pnatP _ prime_p): (PG) => k2 Hk2.
+pose N1 := (N :&: 'Z(G))%G.
+have SN1: N1 \subset N by rewrite subsetIl.
+have PN1 := pgroupS SN1 PN.
+have NTN1: ~~ trivg N1.
+  apply: nilpotent_meet_center => //.
+    by apply: nilpotent_pgroup; apply: (@pgroup_is_pgroup _ p).
+  by rewrite trivg_card CG -ltnNge -(expn0 p) ltn_exp2l // prime_gt1.
+have DN1: #|N1| %| (p ^k1.+1)%N. 
+  by rewrite -CG -(LaGrangeI N 'Z(G)) dvdn_mulr.
+have CN1: p %| #|N1|.
+  case/(dvdn_exp_prime _ _ prime_p): DN1 => [[|n]] _ Hn; last by rewrite Hn dvdn_exp.
+  by case/negP: NTN1; rewrite trivg_card Hn expn0.
+case/(pnatP _ prime_p): (PN1) => [[| k3] Hk3].
+  by move: CN1; rewrite Hk3 expn0 dvdn1; case: p prime_p => //; case.
+case: (cauchy prime_p CN1) => a; case/andP => Sa Ca.
+have Ca1: #|<[a]>| = p by move/eqP: Ca.
+pose G1 := (G/<[a]>)%G; pose N2 := (N/<[a]>)%G.
+case/andP: (NNG) => NNG1 _.
+move: (Sa); rewrite in_setI; case/andP => Sa1 Sa2.
+have IaG: a \in G by apply: (subsetP NNG1).
+have NCa: <[a]> <| G.
+  apply/andP; split; first by apply: cycle_h.
+  suff<-: 'C_G[a] = G by apply: normal_centraliser.
+  apply/setIidPl; apply/subsetP => x Hx; apply/cent1P.
+  by case/centerP: Sa2 => _;move/(_ _ Hx).
+case/andP: NCa => NCa1 NCa2.
+have SaN: <[a]> \subset N by apply: cycle_h.
+have Dk: forall k, (p^k.+1%/p = p^k)%N.
+  by move=> kk; rewrite divn_mulr // ltn_0prime.
+case (Hrec _ Hk1 _ r G1 N2) => //.
+- apply/(pnatP _ prime_p); exists k2.-1.
+  rewrite card_quotient // -group_divn //.
+  move/subset_leq_card: NCa1; rewrite Hk2 Ca1.
+  case: {Hk2}k2 => [| k2 _]; last by rewrite Dk.
+  by rewrite expn0; case: p prime_p => //; case.
+- by apply: morphim_normal.
+- rewrite card_quotient; last by rewrite (subset_trans NNG1).
+  by rewrite -group_divn // Ca1 CG Dk.
+move=> L1 [H1L1 H2L2 H3L3]; pose H := (G :&: coset_of <[a]> @*^-1 L1)%G.
+have Iaa := cyclenn a.
+have EG: coset_of <[a]> @*^-1 G1 = G by rewrite cosetimK // (mulSgGid Iaa).
+have EN: coset_of <[a]> @*^-1 N2 = N.
+  have SNa: N \subset 'N(<[a]>) by rewrite (subset_trans NNG1).
+  by rewrite cosetimK // (mulSgGid Iaa).
+have SaH: <[a]>%G \subset H.
+  by rewrite subsetI NCa1 {1}ker_cosetE morphpreS // sub1G.
+have NaH: H \subset 'N(<[a]>) by rewrite (subset_trans (subsetIl _ _)).
+have QH: H/<[a]> = L1.
+  case/andP: H2L2 => H2L2 _.
+  rewrite /H quotientE cosetimGI // -quotientE -/G1 
+         !(morphpreK, subset_trans H2L2, morphimS) //.
+  by apply/setIidPr.
+exists  H; split; last first.
+- by rewrite -(@LaGrange _ _ <[a]>) // -card_quotient // QH H3L3 Ca1.
+- by move: H2L2; rewrite -QH -(@morphpre_normal _ _  _ (coset_of_morphism <[a]>));
+   [rewrite EG cosetimGK | apply: morphimS | apply: morphimS].
+by rewrite (subset_trans (subsetIr _ _)) // -EN morphpreS.
 Qed.
 
 End PGroups.
