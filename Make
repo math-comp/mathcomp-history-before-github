@@ -39,6 +39,7 @@ charpoly.v
 schurzass.v
 hall.v
 coprime_act.v
+coprime_comm.v
 frobenius.v
 alt.v
 burnside_app.v

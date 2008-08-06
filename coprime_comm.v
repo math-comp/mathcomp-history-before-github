@@ -1,7 +1,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
-Require Import fintype paths finfun ssralg bigops finset.
-Require Import groups normal commutators.
-Require Import cyclic center sylow dirprod schurzass hall. 
+Require Import prime fintype paths finfun ssralg bigops finset.
+Require Import groups morphisms normal commutators.
+Require Import cyclic center pgroups sylow dirprod schurzass hall. 
 Require Import coprime_act nilpotent.
 
 Set Implicit Arguments.
@@ -130,7 +130,6 @@ Proof.
 by apply/setP=> x; apply/centP; rewrite inE; move =>y; move /set1P ->; apply: commute1.
 Qed.
 
-
 Theorem stabn_seq_cent: forall (A G: {group T}) s, 
 coprime #|G| #|A| -> solvable G -> stabn_seq A G s -> A \subset 'C(G).
 Proof.
@@ -194,6 +193,138 @@ rewrite /stabn /= andbT; apply/andP; split.
   by rewrite -{2}(Cfixa y Cy) -(Cfixa _ Cyx) -!conjMg -conjgC.
 rewrite /(_ <| _) sub1G normaliser1 !subsetT /= center_commgr //.
 by rewrite [_ \subset _](sameP commG1P centsP) centsC subsetIr.
+Qed.
+
+Lemma norm_quot: forall A H: {group T},
+A \subset 'N(H) -> coset_of H @*^-1 'N(A / H) \subset 'N(A * H).
+Proof.
+by move=> A H nHA; rewrite normC // -{8}(ker_coset H) -morphimK ?morphpre_norm.
+Qed.
+
+Lemma not_dvdn_p_part_1: forall n p, 0 < n -> prime p -> not (dvdn p n) -> p_part p n = 1%nat.
+Proof.
+by move=> n p npos pr; move/negP=> nd; rewrite /p_part lognE npos pr //= (negbET nd).
+Qed.
+
+Lemma divp_pgroup_p: forall G: {group T}, forall p d, 1 < d -> prime p -> 
+  pgroup p G -> d %| #|G| -> pdiv d = p.
+move=> G p d lt1d pr; rewrite /p_part; case/andP=> _; move/allP=> allp.
+case/dvdnP=> k eqG; apply/eqP; apply: allp; rewrite eqG primes_mul.
+- by apply/orP; right; rewrite primes_pdiv.
+- by apply: (ltn_0dvd (pos_card_group G)); apply/dvdnP; exists d; rewrite mulnC.
+- by apply: ltnW.
+Qed.
+
+Lemma card_pgroup_p: forall G: {group T}, forall p, prime p -> pgroup p G -> 
+#|G| = p_part p #|G|.
+Proof.
+move=> G p pr pg; case (p_part_coprime pr (pos_card_group G)) => y co cardG.
+suff eqy1: y = 1%nat by rewrite eqy1 mul1n in cardG.
+move: (leq0n y); rewrite leq_eqVlt; case /orP. 
+- move /eqP => eqy0; apply: False_ind; rewrite -eqy0 /coprime gcdn0 in co.
+  by move: (prime_gt1 pr); apply/negP; rewrite (eqP co).
+- rewrite leq_eqVlt; case /orP=>[|lt1y]; first by move /eqP.
+  have pdivy: pdiv y = p. 
+    apply: (divp_pgroup_p lt1y pr pg). apply/dvdnP. exists (p_part p #|G|).
+    by rewrite mulnC.
+ apply: False_ind; move: (prime_gt1 pr); apply/negP; rewrite -leqNgt.
+ rewrite /coprime in co; rewrite -(eqP co).
+ apply: dvdn_leq; first by rewrite /coprime in co; rewrite (eqP co).
+ apply: dvdn_gcd; first by apply: dvdnn.
+ by rewrite -pdivy; apply: dvdn_pdiv.
+Qed. 
+
+Lemma dvdn_sub_primes: forall d n: nat, 0 < n ->
+d %| n -> forall m, m \in primes d -> m \in primes n.
+move=> d n lt0n dvd m min; case: (dvdnP dvd)=>x eqn. 
+rewrite eqn primes_mul; first by apply/orP; right.
+- by apply: (ltn_0dvd lt0n); apply/dvdnP; exists d; rewrite mulnC.
+- by apply: (ltn_0dvd lt0n); apply/dvdnP; exists x.
+Qed. 
+
+Lemma pgroup_coprime: forall A H: {group T}, forall p:nat, prime p -> 
+  pgroup p A ->  ~ p %| #|H| -> coprime #|A| #|H|.
+Proof.
+move=> A H p pr pg pndvdn.
+have gcdpos: 0 < gcdn #|A| #|H|.
+  by rewrite ltn_0gcd; apply/orP; left; apply: pos_card_group.
+move: gcdpos; rewrite leq_eqVlt; move/orP; case=> [|gcdpos].
+- by rewrite /coprime; move/eqP ->.
+  apply: False_ind; apply: pndvdn.
+  rewrite -(divp_pgroup_p gcdpos pr pg (dvdn_gcdl _ _)).
+  by apply: (dvdn_trans (dvdn_pdiv _)); apply: dvdn_gcdr.
+Qed.
+
+Lemma pgroup_quotient_normal_inv: forall A G H: {group T}, 
+  forall p:nat, prime p -> pgroup p A -> A \subset G -> H <| G -> ~ p %| #|H| -> 
+  forall x, x \in 'N(H) -> x \in G -> coset_of H x \in 'N(A / H) ->
+x \in 'N_G(A) * H.
+Proof.
+move=> A G H p pr pg AsubG normH pndvdn x Nx Gx xbin.
+suff exz: exists2 z, z \in A * H & (A :^ x)%G = (A :^ z)%G.
+  case exz=> z; case/imset2P=> a y ain yin  -> eq; move: (congr1 val eq).
+  rewrite //= conjsgM (conjsgE _ a) rcoset_id // lcoset_id ?groupVr // => eqyx.
+  rewrite -(mulgKV y x); apply/imset2P; apply: (Imset2spec _ yin); last done. 
+  have yinG: y \in G by apply: (subsetP (normal_sub normH) _ yin).
+  rewrite inE; rewrite groupM ?groupVr //=.
+  by apply/normP; rewrite conjsgM eqyx conjsgK.
+rewrite -norm_mulgenE; last by apply: (subset_trans AsubG (normal_norm normH)).
+suff sylowA: sylow p (A <*> H)%G A.
+  apply: (sylow2_cor pr sylowA).
+  suff xnormAH : x \in 'N(A <*> H).
+    by rewrite //= -(conj_norm xnormAH) -(sylow_sconjg p (A <*> H) A x).
+  rewrite //= norm_mulgenE; last by apply: (subset_trans AsubG (normal_norm normH)). 
+  apply: (subsetP (norm_quot _)); first by apply: (subset_trans AsubG (normal_norm normH)).
+  by rewrite morphpreE; apply/morphpreP.
+rewrite sylowE sub_gen ?subsetUl //= norm_mulgenE; last by apply: (subset_trans AsubG (normal_norm normH)).
+have co: coprime #|A| #|H| by apply: (pgroup_coprime pr).
+rewrite (card_mulG_trivP _ _ (coprime_trivg co)). 
+rewrite p_part_mul ?pos_card_group //=.
+rewrite (@not_dvdn_p_part_1 #|H|); rewrite //=; last by apply: pos_card_group.
+by rewrite muln1; apply/eqP; apply: card_pgroup_p.
+Qed.
+
+Lemma pgroup_quotient_normal : forall A G H: {group T}, forall p:nat, prime p ->
+    pgroup p A -> A \subset G -> H <| G -> ~ p %| #|H| -> 
+  'N_G(A) / H = 'N_(G / H)(A / H).
+move => A G H p pr pgroupA AsubG normH co.
+apply/eqP; rewrite eqset_sub subsetI morphimS ?subsetIl //= morphim_norms ?morphimS ?subsetIr //=.
+apply/subsetP=> xb; case/setIP; rewrite quotientE; case /morphimP=> x Nx Gx -> xbin.
+rewrite -quotient_mulg; apply/imsetP; exists x; rewrite // inE Nx /=.
+apply: (pgroup_quotient_normal_inv pr); rewrite //.
+Qed.
+
+Lemma pgroup_quotient_central : forall A G H: {group T}, forall p:nat, prime p ->
+    pgroup p A -> A \subset G -> H <| G -> ~ p %| #|H| -> 
+  'C_G(A) / H = 'C_(G / H)(A / H).
+Proof.
+move => A G H p pr pgroupA AsubG normH pndivn.
+apply/eqP; rewrite eqset_sub subsetI morphimS ?subsetIl //=.
+rewrite morphim_cents ?morphimS ?subsetIr //=. 
+apply/subsetP=> xb; case/setIP. 
+rewrite quotientE; case /morphimP=> x Nx Gx -> xbin.
+rewrite -quotient_mulg; apply/imsetP; exists x; rewrite // inE Nx /=.
+have nHA: A \subset 'N(H) by apply: subset_trans AsubG _; case/andP: normH.
+suff subC: coset_of H @*^-1 'C_(G / H)(A / H) :&: 'N_G(A) \subset 'C_G(A).
+  apply: (subsetP (mulSg _ subC)); rewrite group_modr ?in_setI; rewrite ?Nx //=.
+  - rewrite inE in_setI xbin -andbA /=; apply/andP; split. 
+    by apply/imsetP; exists x; rewrite ?in_setI ?Nx.
+    by apply: (pgroup_quotient_normal_inv pr); rewrite //; apply: (subsetP (cent_subset _)).
+  - have lem: H \subset coset_of H @*^-1 ('C_G(A)/H).
+      by rewrite morphimK ?ker_coset ?mulG_subl ?(subset_trans (subsetIl _ _)) ?normal_norm.
+    apply: (subset_trans lem); apply: morphpreS.
+    by rewrite subsetI morphimS ?subsetIl ?morphim_cents ?subsetIr.
+rewrite subsetI {x Nx Gx xbin}. rewrite {1}subIset ?subsetIl ?orb_true_r //=.
+apply/centsP; apply/commG1P; apply/trivgP; apply/eqP; rewrite eqset_sub sub1G andb_true_r.
+have co: coprime #|H| #|A| by rewrite coprime_sym; apply: (pgroup_coprime pr).
+rewrite -(trivgP _ (coprime_trivg co)); rewrite subsetI; apply/andP; split.
+- apply: (subset_trans (commSg _ (subsetIl _ _))); apply: center_commgl; rewrite //.
+  - apply: (subset_trans _ (normal_norm normH)); have HsubG := normal_sub normH.
+    rewrite sub_morphpre_im ?subsetIl ?ker_coset ?normal_norm //=. 
+    by apply: (subset_trans (subsetIl _ _)); apply: morphimS; apply: normal_norm.
+  - apply/subsetP=> Hx; case/imsetP=> x; rewrite in_setI; case/andP => xinN.
+    by rewrite !inE; case/andP => _ ; case/andP => _ Hxin ->.
+- by apply: (subset_trans (commSg _ (subsetIr _ _))); rewrite subcomm_normal subsetIr.
 Qed.
 
 End coprime_comm.
