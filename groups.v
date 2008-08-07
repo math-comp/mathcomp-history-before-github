@@ -2011,6 +2011,69 @@ Section Maximal.
 Variable gT : finGroupType.
 Notation sT := {set gT}.
 Implicit Types A B : sT.
+Implicit Type P : pred sT.
+Implicit Types G H : {group gT}.
+
+Definition maxgroup P := maxset (fun B => group_set B && P B).
+Definition mingroup P := minset (fun B => group_set B && P B).
+
+Lemma mingroupP : forall P G,
+  reflect (P G /\ forall H, P H -> H \subset G -> H = G) (mingroup P G).
+Proof.
+move=> P G; apply: (iffP (minsetP _ _)); rewrite /= groupP => [] /= [-> minG].
+  by split=> // H PH sGH; apply: val_inj; apply: minG; rewrite ?groupP.
+by split=> // B; case/andP=> gB PB sGB; rewrite -(minG (Group gB)).
+Qed.
+
+Lemma maxgroupP : forall P G,
+  reflect (P G /\ forall H, P H -> G \subset H -> H = G) (maxgroup P G).
+Proof.
+move=> P G; apply: (iffP (maxsetP _ _)); rewrite /= groupP => [] /= [-> maxG].
+  by split=> // H PH sGH; apply: val_inj; apply: maxG; rewrite ?groupP.
+by split=> // B; case/andP=> gB PB sGB; rewrite -(maxG (Group gB)).
+Qed.
+
+Lemma ex_maxgroup : forall P,
+  (exists G : {group gT}, P G) -> {G : {group gT} | maxgroup P G}.
+Proof.
+move=> P exP; have [B maxB]: {B | maxgroup P B}.
+  by apply: ex_maxset; case: exP => G PG; exists (G : sT); rewrite groupP.
+by case/andP: (maxsetp maxB) => gB; exists (Group gB).
+Qed.
+
+Lemma ex_mingroup : forall P,
+  (exists G : {group gT}, P G) -> {G : {group gT} | mingroup P G}.
+Proof.
+move=> P exP; have [B minB]: {B | mingroup P B}.
+  by apply: ex_minset; case: exP => G PG; exists (G : sT); rewrite groupP.
+by case/andP: (minsetp minB) => gB; exists (Group gB).
+Qed.
+
+Lemma maxgroup_exists : forall P G,
+  P G -> {H : {group gT} | maxgroup P H & G \subset H}.
+Proof.
+move=> P G PG; have [B maxB sGB]: {B | maxgroup P B & G \subset B}.
+  by apply: maxset_exists; rewrite groupP.
+by case/andP: (maxsetp maxB) => gB _; exists (Group gB).
+Qed.
+
+Lemma mingroup_exists : forall P G,
+  P G -> {H : {group gT} | mingroup P H & H \subset G}.
+Proof.
+move=> P G PG; have [B maxB sGB]: {B | mingroup P B & B \subset G}.
+  by apply: minset_exists; rewrite groupP.
+by case/andP: (minsetp maxB) => gB _; exists (Group gB).
+Qed.
+
+Lemma maxgroupp : forall P A, maxgroup P A -> P A.
+Proof. by move=> P A; case/maxsetP; case/andP. Qed.
+
+Lemma mingroupp : forall P A, mingroup P A -> P A.
+Proof. by move=> P A; case/minsetP; case/andP. Qed.
+
+(*
+Definition maximal A B := maxgroup (fun C : sT => C \proper B) A. 
+*)
 
 Definition maximal A B :=
   (A \subset B) &&
@@ -2031,6 +2094,18 @@ Qed.
 
 End Maximal.
 
+Notation "[ 'max' G 'as' A | P ]" := (maxgroup (fun A : {set _} => P) G)
+  (at level 0, format "[ 'max'  G  'as'  A  |  P ]") : group_scope.
+
+Notation "[ 'max' G | P ]" := [max G as G | P]
+  (at level 0, only parsing) : group_scope.
+
+Notation "[ 'min' G 'as' A | P ]" := (mingroup (fun A : {set _} => P) G)
+  (at level 0, format "[ 'min'  G  'as'  A  |  P ]") : group_scope.
+
+Notation "[ 'min' G | P ]" := [min G as G | P]
+  (at level 0, only parsing) : group_scope.
+
 Section FrattiniDefs.
 
 Variable gT : finGroupType.
@@ -2044,6 +2119,7 @@ move=> H sHG; elim: {2}#|G| H sHG (leq_addr #|H| #|G|) => [|n IHn] H sHG.
   rewrite add0n leq_eqVlt ltnNge subset_leq_card // orbF; move/eqP=> eqHG.
   by left; apply: val_inj; apply/setP; exact/subset_cardP.
 rewrite addSnnS => leGnH; case maxH: (maximal H G).
+
   by case: (H =P G); [left | move/eqP=> nHG; right; exists H].
 move/idPn: maxH; rewrite negb_and sHG; case/existsP=> L.
 rewrite negb_imply -andbA negb_orb; case/and4P=> sHL sLG nHL nLG; right.
@@ -2060,6 +2136,7 @@ Definition Frattini (A : {set gT}) := \bigcap_(H : {group gT} | maximal H A) H.
 Canonical Structure Frattini_group A := Eval hnf in [group of Frattini A].
 
 Lemma Frattini_sub : Frattini G \subset G.
+
 Proof.
 rewrite [Frattini G](bigD1 G) ?subsetIl ?eqxx //.
 rewrite /maximal subset_refl andTb; apply/forallP=> x; apply/implyP.

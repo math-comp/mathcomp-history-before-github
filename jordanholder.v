@@ -28,6 +28,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
+(*
 Section MaxGroup.
 
 Variable gT : finGroupType.
@@ -78,8 +79,8 @@ Qed.
 
 End MaxGroup.
 
-
 Prenex Implicits maxgroup.
+*)
 
 Section MaxNormal.
 
@@ -91,28 +92,26 @@ Notation st := {set gT}.
 
 Variable G : gTg.
 
-Definition maxnormal (N : st) := maxgroup [pred x | x <| G] N.
+Definition maxnormal (N : st) := [max N | N <| G].
 
-Definition pmaxnormal (N : st) := 
-  maxgroup [pred x | (x <| G) && ~~(G \subset x)] N.
+Definition pmaxnormal (N : st) := [max N | (N <| G) && ~~ (G \subset N)].
 
-Lemma maxnormalP  : forall N : st, 
-  reflect (N <| G /\ (forall H : gTg, H <| G -> N \subset H -> H = N :> st)) 
+Lemma maxnormalP  : forall N : gTg, 
+  reflect (N <| G /\ (forall H : gTg, H <| G -> N \subset H -> H = N)) 
   (maxnormal N).
-move=> N; rewrite /maxnormal;  apply: (iffP idP); first by move/maxgroupP.
-by move=> *; apply/maxgroupP.
-Qed.
+Proof. move=> N; exact: (iffP (maxgroupP _ _)). Qed.
 
-Lemma pmaxnormalP : forall N : st, 
+Lemma pmaxnormalP : forall N : gTg, 
   reflect [/\ N <| G , (N \proper G) &
-    (forall H : gTg, H <| G -> G != H :> st -> N \subset H -> H = N :> st)]
+    (forall H : gTg, H <| G -> G != H :> st -> N \subset H -> H = N)]
   (pmaxnormal N).
-move=> N; rewrite /pmaxnormal;  apply: (iffP idP).
-  case/maxgroupP=> /=; case/andP=> nNG nsGN max; rewrite nNG /= properE nsGN.
-  rewrite normal_sub //; split=> // H nHG neGH sNH; apply: max=> //; rewrite nHG /=.
-  by move: neGH; rewrite eqset_sub (normal_sub nHG) andbT.
-case=> nNG; rewrite properE; case/andP=> sNG pNG max; apply/maxgroupP; rewrite /= nNG pNG; split=> //.
-by move=> H; case/andP=> nHG nsGH sNH; apply: max=> //; rewrite eqset_sub negb_and nsGH.
+Proof.
+move=> N; apply: (iffP (maxgroupP _ _)) => [[]|[nNG]].
+  case/andP=> nNG nsGN max; rewrite nNG /= properE nsGN.
+  rewrite normal_sub //; split=> // H nHG neGH; move/max=> -> //.
+  by move: neGH; rewrite eqset_sub nHG (normal_sub nHG) andbT.
+rewrite properE; case/andP=> sNG pNG max; rewrite /= nNG pNG; split=> [//|H].
+by case/andP=> nHG nsGH; apply: max; rewrite // eqset_sub negb_and nsGH.
 Qed.
 
 Lemma maxnormal_norm : forall N : st, maxnormal N -> N <| G.
@@ -122,7 +121,9 @@ Lemma pmaxnormal_norm : forall N : st, pmaxnormal N -> N <| G.
 Proof. by move=> N; move/maxgroupp; case/andP. Qed.
 
 Lemma pmaxnormal_proper : forall N : st, pmaxnormal N -> N \proper G.
-Proof. by move=> N; move/maxgroupp; case/andP; rewrite properE; move/normal_sub->. Qed.
+Proof.
+by move=> N; move/maxgroupp; case/andP; rewrite properE; move/normal_sub->.
+Qed.
 
 Lemma pmaxnormalS : forall N : st, pmaxnormal N -> N \subset G.
 Proof. by move=> N pNN; rewrite proper_sub // pmaxnormal_proper. Qed.
@@ -131,33 +132,22 @@ Proof. by move=> N pNN; rewrite proper_sub // pmaxnormal_proper. Qed.
 Lemma normal1 : 1 <| G.
 Proof. by rewrite /normal sub1set group1 normaliser1 subsetT. Qed.
 
-Lemma maxnormal_exists : exists N : gTg, maxnormal N.
- case: (@maxgroup_exists _ [pred x | x <| G] _ (normal1)) => N; case/andP=> mN _.
-by exists N.
-Qed.
+Lemma maxnormal_exists : {N : gTg | maxnormal N}.
+Proof. apply: ex_maxgroup; exists (1%G : gTg); exact: normal1. Qed.
 
 Lemma maxnormal_sub : forall H : gTg, 
-  H <| G -> H \subset G -> exists N : gTg, maxnormal N && (H \subset N).
-Proof.
-move=> H nHG sHG. case: (@maxgroup_exists _ [pred x | x <| G] _ nHG)=> N.
-by case/andP=> maxN sHN; exists N; rewrite /maxnormal maxN.
-Qed.
+  H <| G -> {N : gTg | maxnormal N & H \subset N}.
+Proof. move=> H nHG; exact: maxgroup_exists. Qed.
 
-Lemma pmaxnormal_exists : ~~ trivg G -> exists N : gTg, pmaxnormal N.
+Lemma pmaxnormal_exists : ~~ trivg G -> {N : gTg | pmaxnormal N}.
 Proof.
-move=> nt; case: (@maxgroup_exists _ [pred x | (x <| G) && ~~(G \subset x)] 1%G).
-  by rewrite /= normal1.
-by move=> N; case/andP=> mN _; exists N.
+by move=> nt; apply: ex_maxgroup; exists (1%G : gTg); rewrite /= normal1.
 Qed.
 
 Lemma pmaxnormal_sub :  forall H : gTg, 
-  H <| G -> H \proper G -> exists N : gTg, pmaxnormal N && (H \subset N).
+  H <| G -> H \proper G -> {N : gTg | pmaxnormal N & H \subset N}.
 Proof.
-move=> H nHG pHGl.
-have pnHG : (H <| G) && ~~ (G \subset H) by rewrite nHG proper_subn.
-
-case: (@maxgroup_exists _ [pred x | (x <| G) && ~~(G \subset x)] _ pnHG)=> N.
-by case/andP=> mN sHN; exists N; rewrite /pmaxnormal mN.
+by move=> H nHG; case/andP=> _ pHGl; apply: maxgroup_exists; rewrite nHG.
 Qed.
 
 (* This proof needs serious cleanup ... *)
@@ -167,6 +157,7 @@ Proof.
 
 move=> N1 N2 pmN1 pmN2 neN12; case/pmaxnormalP: (pmN1)=> nN1G pN1G mN1.
 case/pmaxnormalP: (pmN2)=> nN2G pN2 mN2.
+
 have cN12 : commute N1 N2.
   apply: normC; move/normal_sub: nN1G => sN1G; apply: (subset_trans sN1G).
   by apply: normal_norm.
@@ -180,7 +171,7 @@ have dPG : N1 * N2 <| G.
   rewrite /normal sPG; apply: subset_trans (normM N1 N2); rewrite subsetI.
   by rewrite !normal_norm // pmaxnormal_norm.
 case: (@pmaxnormal_sub (N1 <*> N2))=> /=; rewrite ?eP ?properE ?sPG ?sGP //.
-move=> N; case/andP; case/pmaxnormalP=> nNG pNG _ sPN.
+move=> N; case/pmaxnormalP=> nNG pNG _ sPN.
 have neGN : G != N by rewrite eq_sym proper_neq.
 have sN1N : N1 \subset N by apply: subset_trans sPN; rewrite mulg_subl ?group1.
 have sN2N : N2 \subset N by apply: subset_trans sPN; rewrite mulg_subr ?group1.
@@ -227,20 +218,15 @@ apply/eqP; move/(congr1 val)=> /=; move/eqP; rewrite eqset_sub; apply/negP.
 by rewrite negb_and pGK orbT.
 Qed.
 
-
-
-
 Lemma simpleP :
   reflect (~~ trivg G /\ forall N : gT, N <| G -> N \proper G -> N = 1%G) 
   simple.
 Proof.
-apply: (iffP idP).
-  move=> s; rewrite simple_nt //; split=> //.
-  case/pmaxnormalP: s => _ _ max N nNG pNG; apply: val_inj=> /=.
-  by apply: (max N); rewrite // ?sub1set ?group1 // eq_sym proper_neq.
-case=> nt max; apply/pmaxnormalP; split; rewrite ?normal1 ?nt_proper1 //.
-by move=> H nHG neGH _ /=; rewrite (max H) // properEneq normal_sub // eq_sym.
-
+apply: (iffP (pmaxnormalP _ _)) => [[_] | [nt max]].
+  case/andP=> _ ntG max; split=> {ntG}// N nNG pNG.
+  by apply: max; rewrite ?sub1G // eq_sym proper_neq.
+split; rewrite ?normal1 ?nt_proper1 // => H nHG neGH _ /=.
+by rewrite (max H) // properEneq normal_sub // eq_sym.
 Qed.
 
 Lemma simple_pmaxN1 : 
@@ -249,9 +235,8 @@ Lemma simple_pmaxN1 :
 Proof.
 apply: (iffP simpleP); case=> -> sG; split=> // N.
   by move=> pmaxN; apply: sG; rewrite ?pmaxnormal_norm ?pmaxnormal_proper.
-move=> nNG pNG; case: (pmaxnormal_sub nNG pNG)=> M; case/andP=> pmaxM sNM.
+move=> nNG pNG; case: (pmaxnormal_sub nNG pNG)=> M pmaxM sNM.
 have M1 : M = 1%G by apply: sG.
-
 apply: val_inj=> /=; apply/eqP; rewrite eqset_sub sub1set group1 andbT /=.
 by rewrite M1 in sNM.
 Qed.
@@ -310,7 +295,7 @@ have sNK : N \subset K by rewrite -(ker_coset N) kerE morphpreSK sub1set group1.
 have nKG : K <| G.
   rewrite -(morphimGK skG) ?normal_norm // ?morphimS.
   by rewrite morphpre_normal ?morphimS ?normal_norm //=.
-by apply: Nmax=> //; rewrite eq_sym proper_neq.
+by rewrite (Nmax K) // eq_sym proper_neq.
 Qed.
 
 
@@ -326,7 +311,7 @@ have pK'Q : gK' \proper (G / N).
   rewrite properE (normal_sub K'dQ) /=; rewrite sub_morphim_pre //=.
   rewrite morphimGK ?ker_coset // ?(subset_trans sKG) ?normal_norm //. 
   by move: neGK; rewrite eqset_sub sKG andbT.
-apply/eqP; rewrite eqset_sub sNK andbT -(ker_coset N) ker_trivg_morphim.
+apply/eqP; rewrite -val_eqE eqset_sub /= sNK andbT -(ker_coset N) ker_trivg_morphim.
 rewrite normal_norm /= ?(normalS _ _ nNG) // ?normal_sub //=; apply/trivgP.
 by rewrite -/gK' (sQ gK').
 Qed.
