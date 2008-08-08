@@ -28,60 +28,6 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-(*
-Section MaxGroup.
-
-Variable gT : finGroupType.
-Notation gTg := {group gT}.
-Notation sT := {set gT}.
-Implicit Type A: sT.
-Implicit Type G H: gTg.
-
-Variable P : pred sT.
-
-(* definir le maxgroup comme instance de maxset *)
-Definition maxgroup A := 
-  P A && (forallb G, (P (G :gTg) && (A \subset G)) ==> (G == A :> {set gT})).
-
-Lemma maxgroupP : forall A, 
-  reflect ((P A) /\ (forall G, P G -> A \subset G -> G = A :> {set gT})) (maxgroup A).
-Proof.
-move=> A; apply: (iffP andP); move=> [pA Amax].
-  split=>//; move=> G PG; move/forallP: Amax; move/(_ G); rewrite PG /=.
-   move/implyP=> h sAG; apply/eqP; exact: h.
-split=> //; apply/forallP=> x; apply/implyP; case/andP=> px sxA; apply/eqP.
-exact:Amax.
-Qed.
-
-Lemma maxgroupp : forall A, maxgroup A -> P A.
-Proof. by move=> A; case/maxgroupP. Qed.
-
-
-(* Can we avoid duplicating the proof ? 
-this time we cannot avoid the recursion because we need to convey the group structure *)
-
-
-Lemma maxgroup_exists : forall G, P G -> exists H : gTg, maxgroup H && (G \subset H).
-move=> G; pose t := setT : {set gT}.
-move: {2}(#|t| - #|G|) (leqnn (#|t| - #|G|))=> n; elim: n G => [|n Hi] G hle PG.
-  exists [group of t] => /=; rewrite subsetT andbT; apply/maxgroupP; split; last first. 
-    by  move=> x px xT; apply/eqP; rewrite -subTset.
-  rewrite (_ : t = G) //=; apply/eqP; rewrite eq_sym.
-  by rewrite eqset_sub_card subsetT -eqn_sub0 -leqn0.
-case cmax: (maxgroup G); first by exists G; rewrite subset_refl andbT.
-move/negbT: cmax; rewrite negb_and PG /=; case/existsP=> H; rewrite negb_imply.
-case/andP=> /=; case/andP=> PB sGH nebc; case: (Hi H)=> //; last first.
-  by move=> K; case/andP=> maxK sHK; exists K; rewrite maxK /= (subset_trans sGH).
-suff h2 :  #|t| - #|H| <  #|t| - #|G| by rewrite -ltnS; apply: (leq_trans h2).
-have ltGH : #|G| < #|H| by rewrite proper_card // properEneq sGH eq_sym.
-by rewrite ltn_sub2l // (leq_trans ltGH) // subset_leq_card  ?subsetT.
-Qed. 
-
-End MaxGroup.
-
-Prenex Implicits maxgroup.
-*)
-
 Section MaxNormal.
 
 Open Scope group_scope.
@@ -226,7 +172,7 @@ apply: (iffP (pmaxnormalP _ _)) => [[_] | [nt max]].
   case/andP=> _ ntG max; split=> {ntG}// N nNG pNG.
   by apply: max; rewrite ?sub1G // eq_sym proper_neq.
 split; rewrite ?normal1 ?nt_proper1 // => H nHG neGH _ /=.
-by rewrite (max H) // properEneq normal_sub // eq_sym.
+by rewrite (max H) // properEneq andbC normal_sub // eq_sym.
 Qed.
 
 Lemma simple_pmaxN1 : 

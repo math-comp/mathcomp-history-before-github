@@ -676,26 +676,32 @@ by rewrite in_setD1 Ax eqxx.
 Qed.
  
 Lemma properIr :  forall A B, ~~ (B \subset A) -> A :&: B \proper B.
-Proof. by move=> A B nsAB; rewrite properE subsetIr subsetI negb_andb nsAB. Qed.
+Proof.
+by move=> A B nsAB; rewrite properE subsetIr subsetI negb_andb nsAB.
+Qed.
 
 Lemma properIl : forall A B, ~~ (A \subset B) -> A :&: B \proper A.
 Proof. 
 by move=> A B nsBA; rewrite properE subsetIl subsetI negb_andb nsBA orbT. 
 Qed.
 
-Lemma properEneq : forall A B, A \proper B = (A \subset B) && (A != B).
-Proof. by move=> A B; rewrite properE eqset_sub; case sAB : (A \subset B). Qed.
-
-Lemma subEproper : forall A B, A \subset B = (A \proper B) || (A == B).
+Lemma properEneq : forall A B, A \proper B = (A != B) && (A \subset B).
 Proof.
-by move=> A B; rewrite properE eqset_sub; case: (A \subset B)=> //=; rewrite orNb.
+by move=> A B; rewrite andbC properE eqset_sub; case: (A \subset B).
+Qed.
+
+Lemma subEproper : forall A B, A \subset B = (A == B) || (A \proper B).
+Proof.
+by move=> A B; rewrite properEneq; case: eqP => //= ->; exact: subset_refl.
 Qed.
 
 Lemma proper_neq :  forall A B, A \proper B -> A != B.
 Proof. by move=> A B; rewrite properEneq; case/andP. Qed.
 
 Lemma properUr : forall A B, ~~ (A \subset B) ->  B \proper A :|: B.
-Proof. by move=> A B; rewrite properE subsetUr subUset subset_refl /= andbT. Qed.
+Proof.
+by move=> A B; rewrite properE subsetUr subUset subset_refl /= andbT.
+Qed.
 
 Lemma properUl : forall A B, ~~ (B \subset A) ->  A \proper A :|: B.
 Proof. by move=> A B ned; rewrite setUC properUr. Qed.
@@ -732,9 +738,8 @@ Qed.
 
 Lemma properEcardlt : forall A B, (A \proper B) = (A \subset B) && (#|A| < #|B|).
 Proof.
-move=> A B. rewrite properEneq; case sAB : (A \subset B)=> //=.
-move/subset_leqif_card: (sAB); move/ltn_eqiffP; rewrite eqset_sub sAB /=.
-by case sBA: (B \subset A)=> //=; move/eqP->; rewrite ltnn.
+move=> A B; rewrite properEneq ltnNge eqset_sub_card andbC.
+by case: (A \subset B).
 Qed.
 
 End setOps.

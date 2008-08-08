@@ -2006,7 +2006,7 @@ Notation "''C_' G [ x ]" := ('N_G([set x%g]))%G : subgroup_scope.
 
 Hint Resolve normal_refl.
 
-Section Maximal.
+Section MinMaxGroup.
 
 Variable gT : finGroupType.
 Notation sT := {set gT}.
@@ -2071,9 +2071,25 @@ Proof. by move=> P A; case/maxsetP; case/andP. Qed.
 Lemma mingroupp : forall P A, mingroup P A -> P A.
 Proof. by move=> P A; case/minsetP; case/andP. Qed.
 
-(*
-Definition maximal A B := maxgroup (fun C : sT => C \proper B) A. 
-*)
+End MinMaxGroup.
+
+Notation "[ 'max' G 'as' A | P ]" := (maxgroup (fun A : {set _} => P) G)
+  (at level 0, format "[ 'max'  G  'as'  A  |  P ]") : group_scope.
+
+Notation "[ 'max' G | P ]" := [max G as G | P]
+  (at level 0, only parsing) : group_scope.
+
+Notation "[ 'min' G 'as' A | P ]" := (mingroup (fun A : {set _} => P) G)
+  (at level 0, format "[ 'min'  G  'as'  A  |  P ]") : group_scope.
+
+Notation "[ 'min' G | P ]" := [min G as G | P]
+  (at level 0, only parsing) : group_scope.
+
+Section Maximal.
+
+Variable gT : finGroupType.
+Notation sT := {set gT}.
+Implicit Types A B : sT.
 
 Definition maximal A B :=
   (A \subset B) &&
@@ -2093,18 +2109,6 @@ by case (maxH K) => // ->; rewrite eqxx ?orbT.
 Qed.
 
 End Maximal.
-
-Notation "[ 'max' G 'as' A | P ]" := (maxgroup (fun A : {set _} => P) G)
-  (at level 0, format "[ 'max'  G  'as'  A  |  P ]") : group_scope.
-
-Notation "[ 'max' G | P ]" := [max G as G | P]
-  (at level 0, only parsing) : group_scope.
-
-Notation "[ 'min' G 'as' A | P ]" := (mingroup (fun A : {set _} => P) G)
-  (at level 0, format "[ 'min'  G  'as'  A  |  P ]") : group_scope.
-
-Notation "[ 'min' G | P ]" := [min G as G | P]
-  (at level 0, only parsing) : group_scope.
 
 Section FrattiniDefs.
 

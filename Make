@@ -29,6 +29,7 @@ cyclic.v
 pgroups.v
 center.v
 nilpotent.v
+maximal.v
 sylow.v
 abelian.v
 dirprod.v
