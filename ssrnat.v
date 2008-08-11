@@ -1196,15 +1196,15 @@ Proof. exact: expn_injr. Qed.
 (* lemma); in addition, the conditional equality also coerces to a       *)
 (* non-strict one.                                                       *)
 
-Definition ltn_eqiff m n c := ((m <= n) * ((m == n) = c))%type.
+Definition leqif m n c := ((m <= n) * ((m == n) = c))%type.
 
-Notation "m <= n ?= 'iff' c" := (ltn_eqiff m n c)
+Notation "m <= n ?= 'iff' c" := (leqif m n c)
     (at level 70, n at next level,
   format "m '[hv'  <=  n '/'  ?=  'iff'  c ']'") : nat_scope.
 
-Coercion leq_of_ltn_eqiff m n c (H : m <= n ?= iff c) := H.1 : m <= n.
+Coercion leq_of_leqif m n c (H : m <= n ?= iff c) := H.1 : m <= n.
 
-Lemma ltn_eqiffP : forall m n c,
+Lemma leqifP : forall m n c,
    reflect (m <= n ?= iff c) (if c then m == n else m < n).
 Proof.
 move=> m n c; rewrite ltn_neqAle.
@@ -1212,59 +1212,65 @@ apply: (iffP idP) => [|lte]; last by rewrite !lte; case c.
 case c; [move/eqP-> | case/andP; move/negPf]; split=> //; exact: eqxx.
 Qed.
 
-Lemma ltn_eqiff_refl : forall m c, reflect (m <= m ?= iff c) c.
+Lemma leqif_refl : forall m c, reflect (m <= m ?= iff c) c.
 Proof.
 move=> m c; apply: (iffP idP) => [-> | <-]; last by rewrite eqxx.
 by split; rewrite (leqnn, eqxx).
 Qed.
 
-Lemma ltn_eqiff_trans : forall m1 m2 m3 c1 c2,
+Lemma leqif_trans : forall m1 m2 m3 c1 c2,
   m1 <= m2 ?= iff c1 -> m2 <= m3 ?= iff c2 -> m1 <= m3 ?= iff c1 && c2.
 Proof.
-move=> m1 m2 m3 c1 c2 ltm12 ltm23; apply/ltn_eqiffP; rewrite -ltm12.
+move=> m1 m2 m3 c1 c2 ltm12 ltm23; apply/leqifP; rewrite -ltm12.
 case eqm12: (m1 == m2).
   by rewrite (eqP eqm12) ltn_neqAle !ltm23 andbT; case c2.
 by rewrite (@leq_trans m2) ?ltm23 // ltn_neqAle eqm12 ltm12.
 Qed.
 
-Lemma monotone_ltn_eqiff : forall f, monotone f ->
+Lemma monotone_leqif : forall f, monotone f ->
   forall m n c, (f m <= f n ?= iff c) <-> (m <= n ?= iff c).
 Proof.
 move=> f f_mono m n c.
-by split; move/ltn_eqiffP=> hyp; apply/ltn_eqiffP;
+by split; move/leqifP=> hyp; apply/leqifP;
    rewrite !eqn_leq !ltnNge !f_mono in hyp *.
 Qed.
 
-Lemma ltn_eqiff_add : forall m1 n1 c1 m2 n2 c2,
+Lemma leqif_geq : forall m n, m <= n -> m <= n ?= iff (m >= n).
+Proof. by move=> m n lemn; split=> //; rewrite eqn_leq lemn. Qed.
+
+Lemma leqif_eq : forall m n, m <= n -> m <= n ?= iff (m == n).
+Proof. by []. Qed.
+
+Lemma leqif_add : forall m1 n1 c1 m2 n2 c2,
     m1 <= n1 ?= iff c1 -> m2 <= n2 ?= iff c2 ->
   m1 + m2 <= n1 + n2 ?= iff c1 && c2.
 Proof.
-move=> m1 n1 c1 m2 n2 c2 le1; move/(monotone_ltn_eqiff (leq_add2l n1)).
-apply: ltn_eqiff_trans; exact/(monotone_ltn_eqiff (leq_add2r m2)).
+move=> m1 n1 c1 m2 n2 c2 le1; move/(monotone_leqif (leq_add2l n1)).
+apply: leqif_trans; exact/(monotone_leqif (leq_add2r m2)).
 Qed.
 
-Lemma ltn_eqiff_mul : forall m1 n1 c1 m2 n2 c2,
+Lemma leqif_mul : forall m1 n1 c1 m2 n2 c2,
     m1 <= n1 ?= iff c1 -> m2 <= n2 ?= iff c2 ->
   m1 * m2 <= n1 * n2 ?= iff (n1 * n2 == 0) || (c1 && c2).
 Proof.
 move=> m1 n1 c1 m2 n2 c2 le1 le2; case: posnP => [n12_0 | ].
   rewrite n12_0; move/eqP: n12_0 {le1 le2}le1.1 le2.1; rewrite eqn_mul0.
   case/orP; move/eqP->; case: m1 m2 => [|m1] [|m2] // _ _;
-   rewrite ?muln0; exact/ltn_eqiff_refl.
+   rewrite ?muln0; exact/leqif_refl.
 rewrite ltn_0mul; move/andP=> [n1_pos n2_pos].
 case: (posnP m2) => [m2_0 | m2_pos].
-  apply/ltn_eqiffP; rewrite -le2 andbC eq_sym eqn_leq leqNgt m2_0 muln0.
+  apply/leqifP; rewrite -le2 andbC eq_sym eqn_leq leqNgt m2_0 muln0.
   by rewrite ltn_0mul n1_pos n2_pos.
-move/leq_pmul2l: n1_pos; move/monotone_ltn_eqiff=> Mn1; move/Mn1: le2 => {Mn1}.
-move/leq_pmul2r: m2_pos; move/monotone_ltn_eqiff=> Mm2; move/Mm2: le1 => {Mm2}.
-exact: ltn_eqiff_trans.
+move/leq_pmul2l: n1_pos; move/monotone_leqif=> Mn1; move/Mn1: le2 => {Mn1}.
+move/leq_pmul2r: m2_pos; move/monotone_leqif=> Mm2; move/Mm2: le1 => {Mm2}.
+exact: leqif_trans.
 Qed.
 
 Lemma nat_Cauchy : forall m n, 2 * (m * n) <= m ^ 2 + n ^ 2 ?= iff (m == n).
 Proof.
 move=> m n; wlog le_nm: m n / n <= m.
   by case: (leqP m n); auto; rewrite eq_sym addnC (mulnC m); auto.
-apply/ltn_eqiffP; case: ifP => [|ne_mn].
+apply/leqifP; case: ifP => [|ne_mn].
   by move/eqP->; rewrite mulnn addnn mul2n.
 by rewrite -ltn_0sub -sqrn_sub // ltn_0sqr ltn_0sub ltn_neqAle eq_sym ne_mn.
 Qed.
@@ -1272,7 +1278,7 @@ Qed.
 Lemma nat_AGM2 : forall m n, 4 * (m * n) <= (m + n) ^ 2 ?= iff (m == n).
 Proof.
 move=> m n; rewrite -[4]/(2 * 2) -mulnA mul2n -addnn sqrn_add.
-apply/ltn_eqiffP; rewrite ltn_add2r eqn_addr ltn_neqAle !nat_Cauchy.
+apply/leqifP; rewrite ltn_add2r eqn_addr ltn_neqAle !nat_Cauchy.
 by case: ifP => ->.
 Qed.
 
