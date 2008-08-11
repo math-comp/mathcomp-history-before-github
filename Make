@@ -44,7 +44,7 @@ coprime_comm.v
 frobenius.v
 alt.v
 burnside_app.v
-theorem3.6.v
+theorem3_6.v
 
 
 COQC = $(COQBIN)ssrcoq
