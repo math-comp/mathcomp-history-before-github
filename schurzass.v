@@ -279,24 +279,11 @@ rewrite -!(card_mulG_trivP _ _ _) //; last first.
 by rewrite group_modl // eqHK (setIidPr sPG) group_divn.
 Qed.
 
-Definition hall (gT : finGroupType) (G H : {set gT}) :=
-  (H \subset G) && coprime #|H| #|G : H|.
-
-Lemma sylow_hall : forall (gT : finGroupType) (G P : {group gT}) p,
-  prime p -> sylow p G P -> hall G P.
-Proof.
-move=> gT G P p prime_p; rewrite sylowE; case/andP=> sPG sylP.
-rewrite /hall -group_divn sPG //=.
-case: (p_part_coprime prime_p (pos_card_group G)) => n' co_p_n' ->.
-rewrite -(eqP sylP) divn_mull ?pos_card_group // (eqP sylP) /p_part.
-by case: (logn _ _) => [|k]; rewrite ?coprime_expl // /coprime gcdnC.
-Qed.
-
 Module AfterGaschutz.
 End AfterGaschutz.
 
 Theorem SchurZass_split : forall (gT : finGroupType) (G H : {group gT}),
-  hall G H -> H <| G -> splitg G H.
+  is_hall G H -> H <| G -> splitg G H.
 Proof.
 move=> gT G; move: {2}_.+1 (ltnSn #|G|) => n.
 elim: n gT G => // n IHn gT G; rewrite ltnS => Gn H.
@@ -320,10 +307,10 @@ case nPG: (P <| G); last first.
   have eq_iH: #|G : H| = #|N| %/ #|H'|.
     rewrite -group_divn // -(divn_pmul2l (pos_card_group H')) mulnC -eqHN_G.
     by rewrite card_mulG (mulnC #|H'|) divn_pmul2l // pos_card_group.
-  have hallH': hall N H'.
+  have hallH': is_hall N H'.
     have sH'H: H' \subset H by exact: subsetIl.
     case/andP: hallH => _; rewrite eq_iH -(LaGrange sH'H) coprime_mull.
-    by rewrite /hall group_divn subsetIr //; case/andP.
+    by rewrite /is_hall group_divn subsetIr //; case/andP.
   have: splitg N H'; last case/splitgP=> K trKN eqH'K.
     apply: IHn hallH' nH'N; apply: {n}leq_trans Gn.
     rewrite ltn_neqAle subset_leq_card // andbT; apply/eqP=> eqNG.
@@ -345,11 +332,8 @@ have nZH: Z <| H by exact: normalS nZG.
 pose Gbar := (G / Z)%G; have iGbar: G / Z = Gbar by [].
 pose Hbar := (H / Z)%G; have iHbar: H / Z = Hbar by [].
 have nHGbar: Hbar <| Gbar by exact: morphim_normal.
-have hallHbar: hall Gbar Hbar.
-  rewrite /hall morphimS //= -group_divn ?morphimS //.
-  rewrite !card_quotient; try by [case/andP: nZG | case/andP: nZH].
-  rewrite -(divn_pmul2l (pos_card_group Z)) !LaGrange // group_divn //.
-  by case/andP: hallH => _; rewrite -{1}(LaGrange sZH) coprime_mull; case/andP.
+have hallHbar: is_hall Gbar Hbar.
+  by apply: morphim_is_hall; first case/andP: nZH.
 have: splitg Gbar Hbar; last case/splitgP=> Kbar trHKbar eqHKbar. 
   apply: IHn => //; apply: {n}leq_trans Gn.
   rewrite card_quotient; last by case/andP: nZG.
@@ -434,70 +418,10 @@ Qed.
 Lemma solvable_quo : forall G H : {group gT}, solvable G -> solvable (G / H).
 Proof. move=> G H; exact: solvable_morphim. Qed.
 
-Definition elementary_abelian (A : {set gT}) :=
-  abelian A && (forallb x, (x \in A) ==> (#[x] %| pdiv #|A|)).
-
-Definition Ohm i (A : {set gT}) :=
-  <<[set x \in A | #[x] == pdiv #|A| ^ i]%N>>.
-
-Definition Mho i (A : {set gT}) := <<expgn^~ (pdiv #|A| ^ i)%N @: A>>.
-
-Notation "''Ohm_' i ( G )" := (Ohm i G)
-  (at level 8, i at level 2, format "''Ohm_' i ( G )") : group_scope.
-
-Notation "''Mho^' i ( G )" := (Mho i G)
-  (at level 8, i at level 2, format "''Mho^' i ( G )") : group_scope.
-
-Canonical Structure Ohm_group i G := Eval hnf in [group of 'Ohm_i(G)].
-
-Canonical Structure Mho_group i G := Eval hnf in [group of 'Mho^i(G)].
-
-Notation "''Ohm_' i ( G )" := (Ohm_group i G) : subgroup_scope.
-
-Notation "''Mho^' i ( G )" := (Mho_group i G) : subgroup_scope.
-
-Lemma char_Ohm : forall i (G : {group gT}), 'Ohm_i(G) \char G.
-Proof.
-move=> i G; have sOmG: 'Ohm_i(G) \subset G.
-  by rewrite gen_subG; apply/subsetP=> x; rewrite inE; case/andP.
-apply/charP; split=> // f injf fG; apply/morphim_fixP => //.
-rewrite sub_morphim_pre // gen_subG; apply/subsetP=> x; rewrite inE.
-case/andP=> Gx oxp; rewrite !inE Gx mem_gen // inE eq_sym -{2}fG.
-rewrite mem_imset ?setIid //= -{oxp}(eqP oxp); apply/eqP.
-have sxG: <[x]> \subset G by rewrite cycle_h.
-apply: isom_card [morphism of restrm sxG f] _ => /=.
-by apply/isomP; rewrite injm_restrm //= morphim_restrm setIid morphim_cycle.
-Qed.
-
-Lemma elementary_abelianP : forall G : {group gT},
-  abelian G -> reflect ('Ohm_1(G) = G) (elementary_abelian G).
-Proof.
-move=> G abelG; pose p := pdiv #|G|; pose G1 := [set x \in G | #[x] %| p].
-have gG1: group_set G1.
-  apply/group_setP; split=> [|x y]; rewrite !inE ?(order1, dvd1n, group1) //.
-  rewrite !order_dvd.
-  case/andP=> Gx; move/eqP=> xp; case/andP=> Gy; move/eqP=> yp.
-  rewrite groupM // expMgn ?(xp, yp, mulg1) //=; exact: (centsP abelG).
-have ->: 'Ohm_1(G) = G1.
-  apply/eqP; rewrite eqset_sub -{1}[G1](genGid (Group gG1)) genS.
-    apply/subsetP=> x; rewrite /= !inE; case/andP=> Gx.
-      case: (x =P 1) => [->|]; [by rewrite group1 | move/eqP=> nx1].
-      have: prime p.
-        by rewrite prime_pdiv // (cardD1 1) (cardD1 x) group1 inE /= Gx nx1.
-      case/primeP=> _ prp; move/prp; case/predU1P=> [x1 | xp].
-        by case/eqP: nx1; rewrite -[x]expg1 -x1 order_expn1.
-      by rewrite mem_gen // inE /= Gx expn1.
-    apply/subsetP=> x; rewrite !inE; case/andP=> ->; move/eqP->.
-    by rewrite expn1 dvdnn.
-rewrite /elementary_abelian abelG; apply: (iffP forallP) => [elemG | OmG x].
-  by apply/setP=> x; rewrite inE; case: (x \in G) (elemG x).
-by rewrite -{1}OmG inE andbC -implybN; case: {+}(_ %| _).
-Qed.
-
-Lemma solvable_norm_abel : forall L G : {group gT},
+Lemma solvable_norm_abelem : forall L G : {group gT},
   solvable G -> G <| L -> ~~ trivg G ->
   exists H : {group gT}, [/\ H \subset G, H <| L, ~~ trivg H
-                           & elementary_abelian H].
+                           & is_abelem H].
 Proof.
 move=> L G solG; set H := {1 2}G; have: H \subset G := subset_refl _.
 elim: {H}_.+1 {-2}H (ltnSn #|H|) => // n IHn H; rewrite ltnS => leHn.
@@ -512,18 +436,21 @@ move=> sHG nHL ntH; case abelH: (trivg [~: H, H]).
   have ntH1 : ~~ trivg H1.
     case: (cauchy prp (dvdn_pdiv #|H|)) => x; case/andP=> Hx; move/eqP=> oxp.
     rewrite /trivg gen_subG expn1; apply/subsetPn; exists x.
-      by rewrite inE Hx oxp eqxx.
-    by apply/set1P=> x1; rewrite -oxp x1 [#[_]]order1 in prp.
+      by rewrite inE Hx -/p -oxp order_expn1 eqxx.
+    by apply/set1P=> x1; rewrite -oxp x1 order1 in prp.
   exists H1; split=> //; first exact: subset_trans sHG.
     exact: char_norm_trans nHL.
-  apply/elementary_abelianP=> //; apply/eqP.
+  apply/is_abelem_Ohm1P=> //; apply/eqP.
   rewrite eqset_sub; case/andP: (char_Ohm 1 H1) => -> _.
-  rewrite gen_subG; apply/subsetP=> x Hx; have H1x: x \in H1 := mem_gen Hx.
-  rewrite mem_gen // !inE H1x; rewrite inE in Hx; case/andP: Hx => Hx oxp.
-  rewrite ((pdiv _ =P p) _) // eqn_leq !pdiv_min_dvd ?prime_gt1 //.
+  rewrite gen_subG; apply/subsetP=> x Hx.
+  have H1x: x \in H1 by rewrite mem_gen.
+  apply: mem_gen; move: Hx; rewrite !inE -!order_dvd -/p !expn1 H1x.
+  case/andP=> Hx; case: (primeP prp) => _ dvp; move/dvp=> {dvp}.
+  case/orP; move/eqP=> oxp; rewrite oxp ?dvd1n //.
+  rewrite ((pdiv _ =P p) _) ?dvdnn // eqn_leq !pdiv_min_dvd ?prime_gt1 //.
   - by rewrite prime_pdiv // ltnNge -trivg_card.
   - apply: dvdn_trans (dvdn_pdiv _) _; exact: group_dvdn.
-  by apply: dvdn_trans (order_dvd_g H1x); rewrite (eqP oxp) expnS dvdn_mulr.
+  by rewrite -oxp order_dvd_g.
 have chH': [~: H, H] \char H by apply: charR; apply: char_refl.
 have [sH'H _] := andP chH'; move/idPn: abelH.
 apply: IHn; last 1 [exact: subset_trans sHG | exact: char_norm_trans nHL].
@@ -549,7 +476,7 @@ have defG: G = H * K :> set gT by rewrite -normC // -norm_mulgenE // mulgenC.
 have sHG: H \subset G by rewrite -gen_subG genS // subsetUl.
 have sKG: K \subset G by rewrite -gen_subG genS // subsetUr.
 have nHG: H <| G by rewrite /(H <| G) sHG gen_subG subUset nHK normG.
-move/idPn: trH; case/(solvable_norm_abel solH nHG)=> M [sMH nMG ntM].
+move/idPn: trH; case/(solvable_norm_abelem solH nHG)=> M [sMH nMG ntM].
 case/andP=> abelM _; rewrite -defG => sK1G coHK oK1K.
 have nMsG: forall L : {set gT}, L \subset G -> L \subset 'N(M).
   by move=> L; move/subset_trans; apply; case/andP: nMG.
