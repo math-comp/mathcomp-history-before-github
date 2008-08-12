@@ -25,6 +25,67 @@ Notation "''F' ( G )" := (fitting G)
   (at level 8, format "''F' ( G )") : group_scope.
 Notation "''F' ( G )" := (fitting_group G) : subgroup_scope.
 
+Lemma cyclicS : forall gT (G H : group gT),
+  H \subset G -> cyclic G -> cyclic H. 
+Proof.
+move=> gT G H HsubG; case/cyclicP=> x gex.
+apply/cyclicP. exists (x ^+ (#[x] %/ #|H|)).
+have Hdiv: #|H| %| #[x] by rewrite /order -gex; apply: group_dvdn.
+move: (cycle_sub_group Hdiv); move/setP=> csg.
+move: (csg H); rewrite !inE {csg} => csgH. 
+suffices eqG: val H = val <[x ^+ (#[x] %/ #|H|)]>%G by done.
+by congr (val _); apply/eqP; rewrite -csgH -gex HsubG eq_refl. 
+Qed.
+
+Lemma cyclicJ:  forall gT (G: group gT), forall x:gT,
+  cyclic G = cyclic (G :^ x).
+have impl: forall gT (G: group gT) x, cyclic G -> cyclic (G :^ x).
+  move=> gT G x; case/cyclicP => y ->.
+  by rewrite -genJ conjg_set1; apply/cyclicP; exists (y ^ x). 
+move=> gT G x; apply/idP/idP; first by apply: impl.
+rewrite -{2}(conjsgK x G). apply: impl.
+Qed.
+
+Lemma cyclic_morphim : forall (gT rT : finGroupType) (G D : group gT)
+                              (f : {morphism D >-> rT}),
+  cyclic G -> cyclic (f @* G).
+Proof.
+move=> gT rt G D f; move/(cyclicS (subsetIr D _)).
+case/cyclicP=> x /= GDx.
+have Dx: x \in D by have:= cyclenn x; rewrite -GDx inE; case/andP.
+rewrite -morphimIdom GDx morphim_gen ?sub1set // morphim_set1 //.
+by apply/cyclicP; exists (f x).
+Qed.
+
+Lemma ZgroupS : forall gT (G H : group gT),
+  H \subset G -> Zgroup G -> Zgroup H. 
+Proof.
+rewrite/Zgroup; move=> gT G H HsubG; move/forallP=> zgG.
+apply/forallP=> V; apply/implyP; case/is_sylowP=> p pr_p. 
+rewrite sylowE; case/andP=> VsubH cardV. 
+have exP: exists P : {group gT}, (V \subset P) && sylow p G P.
+  by apply: sylow1_subset cardV; rewrite //; apply: (subset_trans VsubH).
+case: exP=> P; case/andP=> VsubP sPG; apply: (cyclicS VsubP).
+by apply: (implyP (zgG P)); apply /is_sylowP; exists p.
+Qed.
+
+Lemma Zgroup_morphim : forall (gT rT : finGroupType) (G D : group gT)
+                              (f : {morphism D >-> rT}),
+  Zgroup G -> Zgroup (f @* G). 
+Proof.
+move=> gT rt G D f. move/(ZgroupS (subsetIr D _)).
+rewrite/Zgroup.
+move/forallP=> zgG.
+apply/forallP=> V; apply/implyP; case/is_sylowP=> p pr_p => spV.  
+case: (sylow1_cor (D :&: G) pr_p) => P spP.
+have cfP: cyclic (f @* P).
+  by apply: cyclic_morphim; apply: (implyP (zgG P)); apply/is_sylowP; exists p.
+have spfP: sylow p (f @* G) (f @* P).
+  rewrite -morphimIdom; apply: morphim_sylow; rewrite //.
+  by rewrite sylowE in spP; case/andP: spP; rewrite subsetI; case/andP.
+by case (sylow2_cor pr_p spfP spV)=> x xin ->; rewrite -cyclicJ.
+Qed.
+
 Theorem three_dot_six : forall (T : finGroupType) (G H R R0: {group T}),
     solvable G -> odd #|G| ->
     H <| G -> is_hall G H -> R \in complg G H ->
@@ -76,9 +137,6 @@ have IHG: forall H1 R1 : {group T},
     rewrite ltn_neqAle !(leqif_mul leH1H leR1R) andbT.
     rewrite negb_or negb_and -!ltnNge -lt0n ltn_0mul !ltn_0group /=.
     exact/orP.
-Lemma ZgroupS : forall gT (G H : group gT),
-  H \subset G -> Zgroup G -> Zgroup H. 
-Admitted.
   by apply: ZgroupS ZCHR0; rewrite setSI ?normal_sub.
 without loss defHR: / [~: H, R] = H.
   have:= RnH; rewrite -subcomm_normal commsgC subEproper.
@@ -113,10 +171,6 @@ have{IHn hallH} IHquo: forall X : group T,
     rewrite -morphimGI ?ker_coset //.
     by rewrite [H :&: R](trivgP _ (coprime_trivg coHR)) morphim1.
   + exact: morphimS.
-Lemma Zgroup_morphim : forall (gT rT : finGroupType) (G D : group gT)
-                              (f : {morphism D >-> rT}),
-  Zgroup G -> Zgroup (f @* G). 
-Admitted.
   rewrite -coprime_quotient_cent_weak //; first exact: Zgroup_morphim.
   + exact/andP.
   + exact: subset_trans sR0R nXR.
