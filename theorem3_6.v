@@ -93,6 +93,11 @@ Lemma p_length_1_quo_p : forall p gT (G H : group gT),
   p_length_1 p (G / H) -> p_length_1 p G.
 Admitted.
 
+Lemma p_length_1_quo2_p : forall p gT (G H N : group gT),
+  prime p -> H <| G -> N <| G -> trivg (H :&: N) ->
+  p_length_1 p (G / H) -> p_length_1 p (G / N) -> p_length_1 p G.
+Admitted.
+
 Lemma coprime_cent_Phi : forall gT (A G : group gT),
   coprime #|A| #|G| -> [~: A, G] \subset 'Phi(G) ->  A \subset 'C(G).
 Admitted.
@@ -254,7 +259,26 @@ have eqVC: V = 'C_H(V) :> (set _).
   apply/eqP. rewrite eqset_sub; apply/andP; rewrite -defV; split; last first.
     by apply: solvable_self_cent_Fitting; apply: (solvable_sub sHG).
     rewrite subsetI; rewrite (normal_sub (Fitting_normal _)) /=.
-    by case/andP:abV; rewrite -defV /abelian. 
+    by case/andP:abV; rewrite -defV /abelian.
+wlog jo:  / forallb N1 : {group T}, forallb N2 : {group T}, (N1 <| G) ==> (N1 \subset H) 
+      ==> (N2 <| G) ==> (N2 \subset H) ==> trivg (N1 :&: N2) ==> (trivg N1 || trivg N2).
+  case/orP: (orbN (forallb N1 : {group T}, forallb N2 : {group T}, (N1 <| G) ==> (N1 \subset H) 
+    ==> (N2 <| G) ==> (N2 \subset H) ==> trivg (N1 :&: N2) ==> (trivg N1 || trivg N2)))=> [-> -> // | nn _].
+  case/existsP:nn=>N1;case/existsP=>N2; rewrite !negb_imply.
+  case/andP=> nN1; case/andP=> sN1;  case/andP=> nN2; case/andP=> sN2; case/andP => trivI.
+  rewrite negb_orb; case/andP=> ntrivN1 ntrivN2.
+  have nN1_H: N1 <| H.
+    by rewrite/normal sN1 //=; apply: (subset_trans sHG); apply: (normal_norm nN1).
+  have nN2_H: N2 <| H.
+    by rewrite/normal sN2 //=; apply: (subset_trans sHG); apply: (normal_norm nN2).
+  apply: (p_length_1_quo2_p ppr nN1_H nN2_H trivI). 
+  - apply: IHquo; rewrite //=; apply: (subset_trans _ (normal_norm nN1)).
+    rewrite -eqHR_G; apply: mulG_subr.
+  - apply: IHquo; rewrite //=; apply: (subset_trans _ (normal_norm nN2)).
+    rewrite -eqHR_G; apply: mulG_subr.
+
+Search[subset mulg]. 
+
 admit.
 Qed.
 
