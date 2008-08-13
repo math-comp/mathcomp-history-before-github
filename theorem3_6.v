@@ -277,34 +277,10 @@ wlog nondecV:  / forall N1 N2,
   rewrite /= defN eqxx {}nNG /= -negb_or; case/orP; first by left.
   case/dprodGP: defN => [] [_ N3 _ -> <- _] _; move/trivgP->.
   by right; rewrite mulg1.
-
-
-
-; rewrite //=; apply: (subset_trans _ (normal_norm nN1)).
-    rewrite -eqHR_G; apply: mulG_subr.
-  - apply: IHquo; rewrite //=; apply: (subset_trans _ (normal_norm nN2)).
-    rewrite -eqHR_G; apply: mulG_subr.
-    
-
-   #|[set N | [min N | ~~ trivg N && (N <| G)] && (N \subset V)]| = 1%N.
-
-forallb N1 : {group T}, forallb N2 : {group T}, (N1 <| G) ==> (N1 \subset H) 
-      ==> (N2 <| G) ==> (N2 \subset H) ==> trivg (N1 :&: N2) ==> (trivg N1 || trivg N2).
-  case/orP: (orbN (forallb N1 : {group T}, forallb N2 : {group T}, (N1 <| G) ==> (N1 \subset H) 
-    ==> (N2 <| G) ==> (N2 \subset H) ==> trivg (N1 :&: N2) ==> (trivg N1 || trivg N2)))=> [-> -> // | nn _].
-  case/existsP:nn=>N1;case/existsP=>N2; rewrite !negb_imply.
-  case/andP=> nN1; case/andP=> sN1;  case/andP=> nN2; case/andP=> sN2; case/andP => trivI.
-  rewrite negb_orb; case/andP=> ntrivN1 ntrivN2.
-  have nN1_H: N1 <| H.
-    by rewrite/normal sN1 //=; apply: (subset_trans sHG); apply: (normal_norm nN1).
-  have nN2_H: N2 <| H.
-    by rewrite/normal sN2 //=; apply: (subset_trans sHG); apply: (normal_norm nN2).
-  apply: (p_length_1_quo2_p ppr nN1_H nN2_H trivI). 
-  - apply: IHquo; rewrite //=; apply: (subset_trans _ (normal_norm nN1)).
-    rewrite -eqHR_G; apply: mulG_subr.
-  - apply: IHquo; rewrite //=; apply: (subset_trans _ (normal_norm nN2)).
-    rewrite -eqHR_G; apply: mulG_subr.
-
+have: 'F(H / V) <| G / V.
+  admit.
+case/(inv_quotientN _) => [|U defU sVU nUG].
+  admit.
 admit.
 Qed.
 
