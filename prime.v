@@ -763,6 +763,8 @@ Qed.
 
 Definition pi_nat pi n := (n > 0) && all pi (primes n).
 
+Definition pi'_nat pi n := pi_nat (predC pi) n.
+
 Lemma sub_pi_nat : forall pi rho n,
   subpred pi rho -> pi_nat pi n -> pi_nat rho n.
 Proof.
@@ -774,15 +776,15 @@ Lemma eq_pi_nat : forall pi rho n,
   pi =1 rho -> pi_nat pi n = pi_nat rho n.
 Proof. by move=> pi rho n eqpi; rewrite /pi_nat (eq_all eqpi). Qed.
 
-Lemma pi_nat_predI : forall pi rho n,
+Lemma pi'_natE : forall pi n, pi'_nat pi n = pi_nat (predC pi) n.
+Proof. by []. Qed.
+
+Lemma pi'_natE' : forall pi n, pi'_nat (predC pi) n = pi_nat pi n.
+Proof. move=> pi n; apply: eq_pi_nat => p; exact: negbK. Qed.
+
+Lemma pi_natI : forall pi rho n,
   pi_nat (predI pi rho) n = pi_nat pi n && pi_nat rho n.
 Proof. by move=> pi rho n; rewrite /pi_nat andbCA all_predI !andbA andbb. Qed.
-
-Lemma pi_nat_1 : forall n, pi_nat (pred1 1) n = (n == 1).
-Proof.
-move=> [|[|n]] //; apply/allPn; exists (pdiv n.+2); rewrite ?primes_pdiv //.
-by rewrite neq_ltn pdiv_gt1 orbT.
-Qed.
 
 Lemma pi_nat_mul : forall pi m n,
   pi_nat pi (m * n) = pi_nat pi m && pi_nat pi n.
@@ -794,18 +796,23 @@ apply/allP/andP=> [pi_mn | [pi_m pi_n] p].
 rewrite primes_mul //; case/orP; [exact: (allP pi_m) | exact: (allP pi_n)].
 Qed.
 
+Lemma pi'_nat_mul : forall pi m n,
+  pi'_nat pi (m * n) = pi'_nat pi m && pi'_nat pi n.
+Proof. move=> pi; exact: pi_nat_mul. Qed.
+
 Lemma pi_nat_part : forall pi n, pi_nat pi (pi_part pi n).
 Proof.
 move=> pi n; rewrite /pi_nat primes_pi_part ltn_0pi_part.
 by apply/allP=> p; rewrite mem_filter; case/andP.
 Qed.
 
-Lemma pi_nat_pfactor : forall pi p n,
-  prime p -> pi_nat pi (p ^ n) = (n == 0) || pi p.
+Lemma pi_nat_prime : forall pi p, prime p -> pi_nat pi p = pi p.
 Proof.
-move=> pi p [|n] // pr_p; rewrite /pi_nat ltn_0exp ltn_0prime //=.
-by rewrite primes_exp // primes_prime //= andbT.
+by move=> pi p pr_p; rewrite /pi_nat ltn_0prime // primes_prime //= andbT.
 Qed.
+
+Lemma pi_nat_exp : forall pi m n, pi_nat pi (m ^ n) = (n == 0) || pi_nat pi m.
+Proof. by move=> pi m [|n] //; rewrite /pi_nat ltn_0exp orbC primes_exp. Qed.
 
 Lemma pi_nat_primes : forall n, n > 0 -> pi_nat (mem (primes n)) n.
 Proof. rewrite /pi_nat => n ->; exact/allP. Qed.
@@ -819,10 +826,24 @@ move=> m n // pi; case/dvdnP=> q ->; rewrite pi_nat_mul andbC; case/andP.
 by case: m => // m _; rewrite divn_mull.
 Qed.
 
-Lemma coprime_pi_nat : forall m n,
-  m > 0 -> n > 0 -> coprime m n = pi_nat (predC (mem (primes m))) n.
+Lemma coprime_pi_primes : forall m n,
+  m > 0 -> n > 0 -> coprime m n = pi'_nat (mem (primes m)) n.
 Proof.
-by move=> m n m_pos n_pos; rewrite /pi_nat n_pos all_predC coprime_has_primes.
+move=> m n m_pos n_pos.
+by rewrite /pi'_nat /pi_nat n_pos all_predC coprime_has_primes.
+Qed.
+
+Lemma pi_nat_coprime : forall pi m n,
+  pi_nat pi m -> pi'_nat pi n -> coprime m n.
+Proof.
+move=> pi m n; case/andP=> m_pos pi_m; case/andP=> n_pos pi'_n.
+rewrite coprime_has_primes //; apply/hasPn=> p; move/(allP pi'_n).
+apply: contra; exact: allP.
+Qed.
+
+Lemma pi_nat_1 : forall pi n, pi_nat pi n -> pi'_nat pi n -> n = 1.
+Proof.
+by move=> pi n pi_n pi'_n; rewrite -(eqnP (pi_nat_coprime pi_n pi'_n)) gcdnn.
 Qed.
 
 Lemma part_pi_nat : forall pi n, pi_nat pi n -> pi_part pi n = n.
@@ -831,17 +852,26 @@ move=> pi n; case/andP=> n_pos pi_n.
 by rewrite /pi_part -big_filter (all_filterP pi_n) prod_p_parts.
 Qed.
 
-Lemma part_pi'_nat : forall pi n, pi_nat (predC pi) n -> pi_part pi n = 1.
+Lemma part_pi'_nat : forall pi n, pi'_nat pi n -> pi_part pi n = 1.
 Proof.
 by move=> pi n; case/andP=> n_pos pi'_n; rewrite /pi_part big_hasC -?all_predC.
 Qed.
 
-Definition pnatP : forall p n,
+Lemma pnatP : forall p n,
   prime p -> reflect (exists k, n = p ^ k)%N (pi_nat (pred1 p) n).
 Proof.
 move=> p n pr_p; apply: (iffP idP) => [p_n | [k ->{n}]].
   by exists (logn p n); rewrite [(p ^ _)%N]p_part_pi part_pi_nat.
-by rewrite pi_nat_pfactor //= eqxx orbT.
+by rewrite pi_nat_exp pi_nat_prime //= eqxx orbT.
+Qed.
+
+Lemma pi_natP : forall (pi : pred nat) n,
+  n > 0 -> reflect (forall p, prime p -> p %| n -> pi p) (pi_nat pi n).
+Proof.
+move=> pi n n_pos; rewrite /pi_nat n_pos.
+apply: (iffP allP) => pi_n p => [pr_p p_n|].
+  by rewrite pi_n // mem_primes pr_p n_pos.
+by rewrite mem_primes n_pos /=; case/andP; move: p.
 Qed.
 
 (************************************)

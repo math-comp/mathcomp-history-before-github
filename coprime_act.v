@@ -158,10 +158,9 @@ case: (coprime_hall_exists nGA) => // H hallH nHA.
 have sHG: H \subset G by case/andP: hallH.
 have sKG: K \subset G by case/andP: hallK.
 have coKH: coprime #|K| #|H|.
-  rewrite coprime_sym coprime_pi_nat //.
-  move: hallK; rewrite hallE; case/and3P=> _ pi'K _.
-  apply: sub_pi_nat pi'K => q; apply: contra; apply: allP q.
-  by move: hallH; rewrite hallE -!andbA; case/and4P.
+  move: hallH hallK; rewrite !hallE.
+  case/and3P=> _ piH _; case/and3P=> _ pi'K _.
+  by rewrite coprime_sym (pi_nat_coprime piH pi'K).
 have defG: G = K * H :> {set _}.
   apply/eqP; rewrite eq_sym eqset_sub_card coprime_card_mulG //.
   rewrite -{1}(mulGid G) mulgSS //=.
@@ -264,31 +263,27 @@ case: (ltnP #|HM| #|G|) => [ltHG | leGHM {n IHn leGn}].
   have sHG: H \subset G by exact: subset_trans sHMG.
   exists H; split=> //; rewrite hallE; apply/and3P; split=> //.
   rewrite -group_divn // -(LaGrange sHMG) -(LaGrange sHHM) -mulnA divn_mulr //.
-  by rewrite pi_nat_mul pi'H'.
+  by rewrite pi'_nat_mul pi'H'.
 have{leGHM nHMA sHMG sMHM sXHM pi'HM'} eqHMG: HM = G.
   by apply/eqP; rewrite -val_eqE eqset_sub_card sHMG.
+have pi'M: pi'_group pi M by apply/andP; rewrite ltn_0group pM /= pi_p.
 have{HM Hb defHM eqHMG piHb} hallM: hall (predC pi) G M.
-  rewrite hallE sMG /pi_group {1}/pi_nat pM /= pi_p ltn_0group /=.
-  apply: etrans piHb; rewrite /pi_group defHM eqHMG card_quotient //.
-  by apply: eq_pi_nat => q; rewrite /= negbK.
+  rewrite hallE; apply/and3P; split; rewrite // /pi_group pi'_natE'.
+  by rewrite defHM /pi_group /= eqHMG card_quotient in piHb.
 case: (coprime_hall_exists pi nGA) => // H hallH nHA.
 pose XM := (X <*> M)%G; pose Y := (H :&: XM)%G.
 have:= hallH; rewrite hallE; case/and3P=> sHG piH _.
 have sXXM: X \subset XM by rewrite  -{1}genGid genS ?subsetUl.
 have co_pi_M: forall B : {group gT}, pi_group pi B -> coprime #|B| #|M|.
-  move=> B; rewrite coprime_sym coprime_pi_nat // pM.
-  apply: sub_pi_nat => q pi_q; rewrite /= mem_seq1.
-  by apply/eqP=> qp; rewrite -qp pi_q in pi_p.
+  by move=> B piB; rewrite (pi_nat_coprime piB).
 have hallX: hall pi XM X.
   rewrite hallE piX sXXM -group_divn //= norm_mulgenE //.
-  rewrite coprime_card_mulG ?co_pi_M // divn_mulr // /pi_nat pM /=.
-  by rewrite ltn_0group pi_p.
+  by rewrite coprime_card_mulG ?co_pi_M // divn_mulr.
 have hallY: hall pi XM Y.
   have sYXM: Y \subset XM by rewrite subsetIr.
   have piY: pi_group pi Y by apply: pi_groupS piH; exact: subsetIl.
   rewrite hallE sYXM piY -group_divn // -(_ : Y * M = XM).
-    rewrite coprime_card_mulG ?co_pi_M // divn_mulr //.
-    by rewrite /pi_nat pM /= ltn_0group pi_p.
+    by rewrite coprime_card_mulG ?co_pi_M // divn_mulr //.
   rewrite /= setIC group_modr /= norm_mulgenE ?mulG_subr //; apply/setIidPl.
   rewrite mulSG ((H * M =P G) _) // eqset_sub_card -{1}(mulGid G) mulgSS //=.
   rewrite coprime_card_mulG ?co_pi_M //.

@@ -1526,8 +1526,25 @@ Proof. by move=> G H; move/LaGrange <-; rewrite dvdn_mulr. Qed.
 Lemma group_divn : forall G H, H \subset G -> #|G| %/ #|H| = #|G : H|.
 Proof. by move=> G H; move/LaGrange <-; rewrite divn_mulr. Qed.
 
+Lemma indexgg : forall G, #|G : G| = 1%N.
+Proof. by move=> G; rewrite -group_divn // divnn ltn_0group. Qed.
+
+Lemma LaGrange_index : forall G H K,
+  H \subset G -> K \subset H -> (#|G : H| * #|H : K|)%N = #|G : K|.
+Proof.
+move=> G H K sHG sKH; apply/eqP; rewrite mulnC -(eqn_pmul2l (ltn_0group K)).
+by rewrite mulnA !LaGrange // (subset_trans sKH).
+Qed.
+
 Lemma group_indexI : forall G H, #|G : G :&: H| = #|G : H|.
 Proof. by move=> G H; rewrite -group_divnI group_divn ?subsetIl. Qed.
+
+Lemma indexg_sub : forall G H K, K \subset H -> #|G : H| %| #|G : K|.
+Proof.
+move=> G H K; move/(setIS G)=> sKH.
+rewrite -(group_indexI G K) -(LaGrange_index _ sKH) ?subsetIl // group_indexI.
+exact: dvdn_mulr.
+Qed.
 
 Lemma group_index1 : forall G, #|G : 1| = #|G|.
 Proof. by move=> G; rewrite -group_divn ?sub1G // cards1 divn1. Qed.

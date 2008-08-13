@@ -224,42 +224,36 @@ wlog abV: / abelem p V.
   have: 'O_[~p](H / 'Phi(V)) <| H / 'Phi(V) by exact: core_normal.
   case/(inv_quotientN _) => // W defW sPhiW nWH.
   suffices pW: pgroup p W.
-    have sp'p: subpred (predI (pred1 p) (predC (pred1 p))) _.
-      by move=> ? ?; rewrite /= andbN.
-    rewrite trivg_card leq_eqVlt -pi_nat_1 (sub_pi_nat (sp'p _)) // pi_nat_predI.
-    by rewrite {1}defW [pi_nat _ _]morphim_pi_group // [pi_nat _ _]pi_group_core.
-  apply/andP; split=> //; apply/allP=> q; rewrite mem_primes; case/and3P=> pr_q _.
-  case/cauchy=> // x; case/andP=> Wx oxq; apply/idPn=> /= neqp.
+    rewrite trivg_card (@pi_nat_1 (pred1 p) #|_|) //.
+      by rewrite defW [pi_nat _ _]morphim_pi_group.
+    by rewrite [pi'_nat _ _]pi_group_core.
+  apply/pi_groupP=> q pr_q; case/cauchy=> // x; case/andP=> Wx; move/eqP=> oxq.
   have pV: pgroup p V by rewrite defVp /pgroup pi_group_core.
+  apply/idPn=> /= neqp.
   suff: <[x]> \subset V.
-    rewrite gen_subG sub1set => Vx; have:= pi_nat_dvdn (order_dvd_g Vx) pV.
-    by rewrite (eqP oxq) -[q]expn1 pi_nat_pfactor //= (negPf neqp).
+    rewrite gen_subG sub1set => Vx.
+    by move/pi_groupP: pV neqp => /= -> //; rewrite -oxq order_dvd_g.
   apply: subset_trans sCV_V; rewrite subsetI cycle_h /=; last first.
     apply: subsetP Wx; exact: normal_sub.
   have coxV: coprime #[x] #|V|.
-    rewrite (eqP oxq) prime_coprime //; apply/negP=> qV.
-    case/andP: pV => _; move/allP; move/(_ q).
-    by rewrite mem_primes pr_q ltn_0group /= (negPf neqp); move/(_ qV).
+    by rewrite oxq coprime_sym (pi_nat_coprime pV) // /pi'_nat pi_nat_prime.
   apply: coprime_cent_Phi coxV _.
-  have: W :&: V \subset 'Phi(V).
+  have: W :&: V \subset 'Phi(V); last apply: subset_trans.
     rewrite -trivg_quotient; last first.
       by rewrite subIset // orbC normal_norm // normal_char // Phi_char.  
-    rewrite quotientE morphimIG ?ker_coset ?Phi_subset // -!quotientE coprime_trivg //.
-    rewrite coprime_sym coprime_pi_nat ?ltn_0group //.
-    have: pi_group (predC (pred1 p)) (W / 'Phi(V))%G by rewrite -defW pi_group_core.
-    apply: sub_pi_nat => p1; apply: contra; apply: allP.
-    have: pgroup p (V / 'Phi(V)) by apply: morphim_pi_group.
-    by case/andP.
-  apply: subset_trans; rewrite subsetI andbC subcomm_normal cycle_h; last first.
+    rewrite quotientE morphimIG ?ker_coset ?Phi_subset // -!quotientE.
+    rewrite setIC coprime_trivg // (@pi_nat_coprime (pred1 p)) //.
+      by rewrite [pi_nat _ _]morphim_pi_group.
+    by rewrite -defW [pi'_nat _ _]pi_group_core.
+  rewrite subsetI andbC subcomm_normal cycle_h; last first.
     apply: subsetP Wx; apply: (subset_trans (normal_sub nWH)).
     by rewrite defVp normal_norm ?core_normal.
   case/andP: nWH => _; rewrite -subcomm_normal commsgC; apply: subset_trans.
   by rewrite commgSS ?cycle_h // defVp normal_sub ?core_normal.
-have eqVC: V = 'C_H(V) :> (set _). 
-  apply/eqP. rewrite eqset_sub; apply/andP; rewrite -defV; split; last first.
-    by apply: solvable_self_cent_Fitting; apply: (solvable_sub sHG).
-    rewrite subsetI; rewrite (normal_sub (Fitting_normal _)) /=.
-    by case/andP:abV; rewrite -defV /abelian.
+have{sCV_V} eqVC: V = 'C_H(V) :> (set _). 
+  apply/eqP; rewrite eqset_sub sCV_V subsetI andbT; apply/andP; split.
+    by rewrite defVp normal_sub ?core_normal.
+  by case/andP: abV.
 wlog jo:  / forallb N1 : {group T}, forallb N2 : {group T}, (N1 <| G) ==> (N1 \subset H) 
       ==> (N2 <| G) ==> (N2 \subset H) ==> trivg (N1 :&: N2) ==> (trivg N1 || trivg N2).
   case/orP: (orbN (forallb N1 : {group T}, forallb N2 : {group T}, (N1 <| G) ==> (N1 \subset H) 
@@ -276,8 +270,6 @@ wlog jo:  / forallb N1 : {group T}, forallb N2 : {group T}, (N1 <| G) ==> (N1 \s
     rewrite -eqHR_G; apply: mulG_subr.
   - apply: IHquo; rewrite //=; apply: (subset_trans _ (normal_norm nN2)).
     rewrite -eqHR_G; apply: mulG_subr.
-
-Search[subset mulg]. 
 
 admit.
 Qed.

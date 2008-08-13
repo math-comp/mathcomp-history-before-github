@@ -82,7 +82,11 @@ Implicit Types A B X : {set gT}.
 
 Definition pi_group pi A := pi_nat pi #|A|.
 
+Definition pi'_group pi A := pi_group (predC pi) A.
+
 Definition pgroup p A := pi_group (pred1 p) A.
+
+Definition p'group p A := pi_group (predC (pred1 p)) A.
 
 Definition is_pgroup A := pgroup (pdiv #|A|) A.
 
@@ -159,13 +163,15 @@ Notation "''O_' pi ( G )" := (pi_core pi G)
   (at level 8, pi at level 2, format "''O_' pi ( G )") : group_scope.
 Notation "''O_' pi ( G )" := (pi_core_group pi G) : subgroup_scope.
 
-Notation "''O_' ( ~ pi ) ( G )" := 'O_(predC pi)(G)
+Notation "''O_' ( ~ pi ) ( G )" := 'O_(pred_of_simpl (predC pi))(G)
   (at level 8, format "''O_' ( ~  pi ) ( G )") : group_scope.
-Notation "''O_' ( ~ pi ) ( G )" := 'O_(predC pi)(G)%G : subgroup_scope.
+Notation "''O_' ( ~ pi ) ( G )" := 'O_(pred_of_simpl (predC pi))(G)%G
+                                               : subgroup_scope.
 
-Notation "''O_' [ p ] ( G )" := 'O_(pred1 p)(G)
+Notation "''O_' [ p ] ( G )" := 'O_(pred_of_simpl (pred1 p))(G)
   (at level 8, format "''O_' [ p ] ( G )") : group_scope.
-Notation "''O_' [ p ] ( G )" := 'O_(pred1 p)(G)%G : subgroup_scope.
+Notation "''O_' [ p ] ( G )" := 'O_(pred_of_simpl (pred1 p))(G)%G
+                                           : subgroup_scope.
 
 Notation "''O_' [ ~ p ] ( G )" := 'O_(~ pred1 p)(G)
   (at level 8, format "''O_' [ ~  p ] ( G )") : group_scope.
@@ -221,6 +227,14 @@ Implicit Types x y z : gT.
 Implicit Types A B C D : {set gT}.
 Implicit Types G H K P Q : {group gT}.
 
+Lemma pi_groupP : forall pi G,
+  reflect (forall p, prime p -> p %| #|G| -> pi p) (pi_group pi G).
+Proof. move=> pi G; exact: pi_natP. Qed.
+
+Lemma pi_indexP : forall pi G H,
+  reflect (forall p, prime p -> p %| #|G : H| -> pi p) (pi_nat pi #|G : H|).
+Proof. move=> pi G H; exact: pi_natP. Qed.
+
 Lemma pi_group1 : forall pi, @pi_group gT pi 1.
 Proof. by move=> pi; rewrite /pi_group cards1. Qed.
 
@@ -240,10 +254,10 @@ rewrite -trivg_card; move/trivgP=> -> _; exists 2 => //; exact: pgroup1.
 Qed.
 
 Lemma hallE : forall pi G H,
-  hall pi G H = [&& H \subset G, pi_group pi H & pi_nat (predC pi) #|G : H|].
+  hall pi G H = [&& H \subset G, pi_group pi H & pi'_nat pi #|G : H|].
 Proof.
 move=> pi G H; apply/andP/andP; case=> sHG.
-  move/eqP=> hallH; split; rewrite -?group_divn // /pi_group.
+  move/eqP=> hallH; split; rewrite -?group_divn // /pi_group /pi'_nat.
   by rewrite -(@pi_partC pi #|G|) // hallH divn_mulr ?pi_nat_part.
 case/andP=> piH copiH; split=> //.
 rewrite -(LaGrange sHG) pi_part_mul ?LaGrange //.
@@ -252,15 +266,14 @@ Qed.
 
 Lemma hall_is_hall : forall pi G H, hall pi G H -> is_hall G H.
 Proof.
-move=> pi G H; rewrite hallE; case/and3P=> sHG; case/andP=> _ piH copiH.
-rewrite /is_hall sHG; rewrite coprime_pi_nat //.
-apply: sub_pi_nat copiH => p; apply: contra; exact: (allP piH).
+move=> pi G H; rewrite hallE; case/and3P=> sHG piH copiH.
+rewrite /is_hall sHG; exact: pi_nat_coprime piH copiH.
 Qed.
 
 Lemma is_hall_primes : forall G H, is_hall G H -> hall (mem (primes #|H|)) G H.
 Proof.
 move=> G H; case/andP=> sHG coHG.
-by rewrite hallE sHG /pi_group pi_nat_primes -?coprime_pi_nat.
+by rewrite hallE sHG /pi_group pi_nat_primes -?coprime_pi_primes.
 Qed.
 
 Lemma is_hall_hall : forall G H, is_hall G H -> exists pi, hall pi G H.
@@ -365,7 +378,7 @@ Lemma morphim_hall : forall pi G H,
   H \subset D -> hall pi G H -> hall pi (f @* G) (f @* H).
 Proof.
 move=> pi G H dH; rewrite !hallE; case/and3P=> sHG piH pi'GH.
-by rewrite morphimS // morphim_pi_group // morphim_pi_index.
+by rewrite morphimS // morphim_pi_group // /pi'_nat morphim_pi_index.
 Qed.
 
 Lemma morphim_is_hall : forall G H,
@@ -407,6 +420,16 @@ case/andP=> Gx oxp; rewrite !inE Gx mem_gen // inE eq_sym -{2}fG.
 by rewrite mem_imset ?setIid //= -morphX // (eqP oxp) morph1.
 Qed.
 
+Lemma char_Mho : forall i G, 'Mho^i(G) \char G.
+Proof.
+move=> i G; have sMhoG: 'Mho^i(G) \subset G.
+  rewrite gen_subG; apply/subsetP=> y; case/imsetP=> x Gx ->; exact: groupX.
+apply/charP; split=> // f injf fG; apply/morphim_fixP => //.
+rewrite sub_morphim_pre // gen_subG; apply/subsetP=> y; rewrite !inE.
+case/imsetP=> x Gx ->; rewrite groupX // morphX // mem_gen //.
+by apply/imsetP; exists (f x); rewrite // -{2}fG morphimEdom mem_imset.
+Qed.
+
 Lemma exponentP : forall G n,
   reflect (forall x, x \in G -> x ^+ n = 1) (exponent G %| n).
 Proof.
@@ -429,6 +452,20 @@ rewrite -(@dvdn_pmul2r (gcdn p q)) ?ltn_0gcd ?p_pos ?muln_lcm_gcd //.
 case/dvdnP: pn qn => r -> qr; rewrite -mulnA mulnCA dvdn_pmul2l //.
 case: (bezoutr p q_pos) => m _; move/(dvdn_mull r).
 by rewrite muln_addr mulnCA dvdn_addl // dvdn_mull.
+Qed.
+
+Lemma trivg_exponent : forall G, trivg G = (exponent G %| 1).
+Proof.
+move=> G.
+by apply/subsetP/exponentP=> trG x; move/trG; rewrite expg1; move/set1P.
+Qed.
+
+Lemma exponent1 : exponent (1 : {set gT}) = 1%N.
+Proof. by apply/eqP; rewrite -dvdn1 -trivg_exponent trivg1. Qed.
+
+Lemma dvdn_exponent : forall G, exponent G %| #|G|.
+Proof.
+by move=> G; apply/exponentP=> s Gx; apply/eqP; rewrite -order_dvd order_dvd_g.
 Qed.
 
 Lemma is_abelem_Ohm1P : forall G,

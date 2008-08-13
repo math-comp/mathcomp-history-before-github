@@ -73,7 +73,7 @@ case: (ltnP #|H| #|G|) => [ltHG | leGH {n IHn leGn transH}].
   exists H1=> [|K sKG piK].
     rewrite hallE; apply/and3P; split => //.
     rewrite -group_divn // -(LaGrange sHG) -(LaGrange sH1H) -mulnA.
-    by rewrite divn_mulr // pi_nat_mul pi'H1'.
+    by rewrite divn_mulr // pi'_nat_mul pi'H1'.
   case: (transH K sKG piK) => x Gx def_K.
   case: (transH1 (K :^ x^-1)%G) => [||y Hy def_K1].
   - by rewrite sub_conjgV.
