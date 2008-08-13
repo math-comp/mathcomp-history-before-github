@@ -1,8 +1,8 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import prime fintype paths finfun ssralg bigops finset.
-Require Import groups morphisms normal commutators.
+Require Import groups morphisms automorphism normal commutators.
 Require Import cyclic center pgroups sylow dirprod schurzass hall. 
-Require Import coprime_act nilpotent coprime_comm.
+Require Import coprime_act nilpotent coprime_comm maximal.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -85,6 +85,24 @@ have spfP: sylow p (f @* G) (f @* P).
   by rewrite sylowE in spP; case/andP: spP; rewrite subsetI; case/andP.
 by case (sylow2_cor pr_p spfP spV)=> x xin ->; rewrite -cyclicJ.
 Qed.
+
+Lemma Phi_char: forall gT (G : group gT), 'Phi(G) \char G. Admitted.
+
+Lemma p_length_1_quo_p : forall p gT (G H : group gT),
+  prime p -> H <| G -> trivg 'O_[~p] (G / H) ->
+  p_length_1 p (G / H) -> p_length_1 p G.
+Admitted.
+
+Lemma coprime_cent_Phi : forall gT (A G : group gT),
+  coprime #|A| #|G| -> [~: A, G] \subset 'Phi(G) ->  A \subset 'C(G).
+Admitted.
+
+Lemma solvable_self_cent_Fitting : forall gT (G : group gT),
+  solvable G -> 'C_G('F(G)) \subset 'F(G).
+Admitted.
+
+Lemma Fitting_normal : forall gT (G : group gT), 'F(G) <| G.
+Admitted.
 
 Theorem three_dot_six : forall (T : finGroupType) (G H R R0: {group T}),
     solvable G -> odd #|G| ->
@@ -179,11 +197,64 @@ have{IHn hallH} IHquo: forall X : group T,
 rewrite defHR.
 without loss Op'_H: / trivg 'O_[~ p](H).
   case/orP: (orbN (trivg 'O_[~ p](H))) => [-> -> // | ntO _].
-  suffices: p_length_1 p (H / 'O_[~ p](H)). admit.
-  apply: IHquo => //.
-    simpl. have:= (core_normal (predC (pred1 p)) H).
-    admit.
+  suffices: p_length_1 p (H / 'O_[~ p](H)) by admit.
+  apply: IHquo => //; first exact: core_normal.
+  apply: subset_trans (mulG_subr H R) (normal_norm _); rewrite eqHR_G.
+  apply: char_norm_trans nHG; exact: char_core.
+move defV: 'F(H)%G => V.
+have defVp: V = 'O_[p](H) :> set _.
   admit.
+have sCV_V: 'C_H(V) \subset V.
+  rewrite -defV solvable_self_cent_Fitting //; exact: solvable_sub solG.
+wlog abV: / abelem p V.
+  case/orP: (orbN (trivg 'Phi(V))) => [trPhi -> // | ntPhi _].
+    admit.
+  have chPhi: 'Phi(V) \char H.
+    rewrite defVp; exact: char_trans (Phi_char _) (char_core _ _).
+  have nPhiH := normal_char chPhi.
+  have{chPhi} nPhiR: R \subset 'N('Phi(V)).
+    apply: subset_trans (mulG_subr H R) (normal_norm _); rewrite eqHR_G.
+    exact: char_norm_trans nHG.
+  apply: (p_length_1_quo_p ppr nPhiH); last exact: IHquo.
+  have: 'O_[~p](H / 'Phi(V)) <| H / 'Phi(V) by exact: core_normal.
+  case/(inv_quotientN _) => // W defW sPhiW nWH.
+  suffices pW: pgroup p W.
+    have sp'p: subpred (predI (pred1 p) (predC (pred1 p))) _.
+      by move=> ? ?; rewrite /= andbN.
+    rewrite trivg_card leq_eqVlt -pi_nat_1 (sub_pi_nat (sp'p _)) // pi_nat_predI.
+    by rewrite {1}defW [pi_nat _ _]morphim_pi_group // [pi_nat _ _]pi_group_core.
+  apply/andP; split=> //; apply/allP=> q; rewrite mem_primes; case/and3P=> pr_q _.
+  case/cauchy=> // x; case/andP=> Wx oxq; apply/idPn=> /= neqp.
+  have pV: pgroup p V by rewrite defVp /pgroup pi_group_core.
+  suff: <[x]> \subset V.
+    rewrite gen_subG sub1set => Vx; have:= pi_nat_dvdn (order_dvd_g Vx) pV.
+    by rewrite (eqP oxq) -[q]expn1 pi_nat_pfactor //= (negPf neqp).
+  apply: subset_trans sCV_V; rewrite subsetI cycle_h /=; last first.
+    apply: subsetP Wx; exact: normal_sub.
+  have coxV: coprime #[x] #|V|.
+    rewrite (eqP oxq) prime_coprime //; apply/negP=> qV.
+    case/andP: pV => _; move/allP; move/(_ q).
+    by rewrite mem_primes pr_q ltn_0group /= (negPf neqp); move/(_ qV).
+  apply: coprime_cent_Phi coxV _.
+  have: W :&: V \subset 'Phi(V).
+    rewrite -trivg_quotient; last first.
+      by rewrite subIset // orbC normal_norm // normal_char // Phi_char.  
+    rewrite quotientE morphimIG ?ker_coset ?Phi_subset // -!quotientE coprime_trivg //.
+    rewrite coprime_sym coprime_pi_nat ?ltn_0group //.
+    have: pi_group (predC (pred1 p)) (W / 'Phi(V))%G by rewrite -defW pi_group_core.
+    apply: sub_pi_nat => p1; apply: contra; apply: allP.
+    have: pgroup p (V / 'Phi(V)) by apply: morphim_pi_group.
+    by case/andP.
+  apply: subset_trans; rewrite subsetI andbC subcomm_normal cycle_h; last first.
+    apply: subsetP Wx; apply: (subset_trans (normal_sub nWH)).
+    by rewrite defVp normal_norm ?core_normal.
+  case/andP: nWH => _; rewrite -subcomm_normal commsgC; apply: subset_trans.
+  by rewrite commgSS ?cycle_h // defVp normal_sub ?core_normal.
+have eqVC: V = 'C_H(V) :> (set _). 
+  apply/eqP. rewrite eqset_sub; apply/andP; rewrite -defV; split; last first.
+    by apply: solvable_self_cent_Fitting; apply: (solvable_sub sHG).
+    rewrite subsetI; rewrite (normal_sub (Fitting_normal _)) /=.
+    by case/andP:abV; rewrite -defV /abelian. 
 admit.
 Qed.
 
