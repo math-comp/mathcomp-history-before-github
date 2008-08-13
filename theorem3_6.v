@@ -254,7 +254,41 @@ have{sCV_V} eqVC: V = 'C_H(V) :> (set _).
   apply/eqP; rewrite eqset_sub sCV_V subsetI andbT; apply/andP; split.
     by rewrite defVp normal_sub ?core_normal.
   by case/andP: abV.
-wlog jo:  / forallb N1 : {group T}, forallb N2 : {group T}, (N1 <| G) ==> (N1 \subset H) 
+have sVH: V \subset H by rewrite eqVC subsetIl.
+have sRG: R \subset G by rewrite -eqHR_G mulG_subr.
+wlog nondecV:  / forall N1 N2,
+      N1 \x N2 = V -> G \subset 'N(N1) :&: 'N(N2) -> trivg N1 \/ N1 = V.
+  case: (pickP [pred N | [&& N.1 \x N.2 == V,
+                              G \subset 'N(N.1) :&: 'N(N.2),
+                             ~~ trivg N.1 & ~~ trivg N.2]]).
+    case=> A1 A2 /=; case: eqP => //=.
+    case/dprodGP=> [[N1 N2 -> ->{A1 A2} defN _] trN12].
+    case/and3P; rewrite subsetI; case/andP=> nN1G nN2G ntN1 ntN2 _.
+    have [nN1_H nN1_R]: N1 <| H /\ R \subset 'N(N1).
+      apply/andP; rewrite /(_ <| H) (subset_trans _ sVH); last first.
+        by rewrite -defN mulG_subl.
+      by rewrite -subUset (subset_trans _ nN1G) // subUset sHG sRG.
+    have [nN2_H nN2_R]: N2 <| H /\ R \subset 'N(N2).
+      apply/andP; rewrite /(_ <| H) (subset_trans _ sVH); last first.
+        by rewrite -defN mulG_subr.
+      by rewrite -subUset (subset_trans _ nN2G) // subUset sHG sRG.
+    apply: (p_length_1_quo2_p ppr nN1_H nN2_H trN12); exact: IHquo.
+  move=> trN12; apply=> N1 N2 defN nNG; move/(_ (N1, N2)): trN12.
+  rewrite /= defN eqxx {}nNG /= -negb_or; case/orP; first by left.
+  case/dprodGP: defN => [] [_ N3 _ -> <- _] _; move/trivgP->.
+  by right; rewrite mulg1.
+
+
+
+; rewrite //=; apply: (subset_trans _ (normal_norm nN1)).
+    rewrite -eqHR_G; apply: mulG_subr.
+  - apply: IHquo; rewrite //=; apply: (subset_trans _ (normal_norm nN2)).
+    rewrite -eqHR_G; apply: mulG_subr.
+    
+
+   #|[set N | [min N | ~~ trivg N && (N <| G)] && (N \subset V)]| = 1%N.
+
+forallb N1 : {group T}, forallb N2 : {group T}, (N1 <| G) ==> (N1 \subset H) 
       ==> (N2 <| G) ==> (N2 \subset H) ==> trivg (N1 :&: N2) ==> (trivg N1 || trivg N2).
   case/orP: (orbN (forallb N1 : {group T}, forallb N2 : {group T}, (N1 <| G) ==> (N1 \subset H) 
     ==> (N2 <| G) ==> (N2 \subset H) ==> trivg (N1 :&: N2) ==> (trivg N1 || trivg N2)))=> [-> -> // | nn _].
