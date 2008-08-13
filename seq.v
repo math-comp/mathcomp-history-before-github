@@ -884,6 +884,18 @@ move=> s x; elim: s => //= [y s IHs]; case/andP; move/negbET => Hy Us.
 by rewrite {}IHs {Us}// in_adds eq_sym; case: eqP => // ->; rewrite Hy.
 Qed.
 
+Lemma uniq_count_pred1 : forall s,
+ (forall x, count (pred1 x) s = (x \in s)) -> uniq s.
+Proof.
+elim=> //= x s IHs IHx; apply/andP; split.
+  move: (IHx x); rewrite in_adds !eq_refl /= add1n; move/(congr1 predn) => /=.
+  by rewrite -has_pred1 has_count => ->.
+apply: IHs => y; move: (IHx y); case: (_ =P _) => /=; last first.
+  by move/eqP; move/negbET=> H; rewrite in_adds eq_sym add0n {}H orFb.
+move=> -> /=; rewrite in_adds eq_refl /= add1n; move/(congr1 predn) => /=.
+by case yIs : (y \in s) => // Cys0; move/idP: yIs; rewrite -has_pred1 has_count Cys0.
+Qed.
+
 (* Removing duplicates *)
 
 Fixpoint undup s :=
