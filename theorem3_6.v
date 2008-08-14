@@ -14,7 +14,7 @@ Variable T : finGroupType.
 (* waiting for the actual definition *)
 Parameter fitting: {set T} -> {set T}.
 Axiom fitting_group_set : forall G : {group T}, group_set (fitting G).
-Canonical Structure fitting_group G := Group (fitting_group_set G).
+Canonical Structure fitting_group G : {group T} := Group (fitting_group_set G).
 
 Definition Zgroup (A : {set T}) := 
   forallb V : {group T}, is_sylow A V ==> cyclic V.
@@ -210,6 +210,7 @@ have nVG: G \subset 'N(V) by rewrite normal_norm ?(char_norm_trans charV).
 have sVH: V \subset H by rewrite normal_sub ?normal_char.
 have defVp: V = 'O_[p](H) :> set _.
   admit.
+have pV: pgroup p V by rewrite defVp /pgroup pi_group_core.
 have sCV_V: 'C_H(V) \subset V.
   rewrite -defV solvable_self_cent_Fitting //; exact: solvable_sub solG.
 wlog abV: / abelem p V.
@@ -227,7 +228,6 @@ wlog abV: / abelem p V.
     rewrite trivg_card (@pi_nat_1 (pred1 p) #|_|) //= defW //.
     exact: morphim_pi_group.
   apply/pi_groupP=> q pr_q; case/cauchy=> // x; case/andP=> Wx; move/eqP=> oxq.
-  have pV: pgroup p V by rewrite defVp /pgroup pi_group_core.
   apply/idPn=> /= neqp.
   suff: <[x]> \subset V.
     rewrite gen_subG sub1set => Vx.
@@ -250,7 +250,7 @@ wlog abV: / abelem p V.
   by rewrite commgSS // cycle_h //.
 have{sCV_V} eqVC: V = 'C_H(V) :> (set _). 
   by apply/eqP; rewrite eqset_sub sCV_V subsetI andbT sVH; case/andP: abV.
-wlog nondecV:  / forall N1 N2,
+wlog{IHquo} nondecV:  / forall N1 N2,
       N1 \x N2 = V -> G \subset 'N(N1) :&: 'N(N2) -> trivg N1 \/ N1 = V.
   pose decV := [pred N | [&& N.1 \x N.2 == V, G \subset 'N(N.1) :&: 'N(N.2),
                              ~~ trivg N.1 & ~~ trivg N.2]].
@@ -268,10 +268,57 @@ wlog nondecV:  / forall N1 N2,
   rewrite subsetI in nNG; case/andP: nNG => nN1G nN2G.
   apply: (p_length_1_quo2 pr_p nN1 nN2 trN12); exact: IHquo.
 have: 'F(H / V) <| G / V.
-  admit.
-case/(inv_quotientN _) => [|U defU sVU nUG].
+  exact: char_norm_trans (Fitting_char _) (morphim_normal _ _).
+case/(inv_quotientN _) => [|U]; last move/(congr1 val)=> /= defU sVU nUG.
   by apply/andP; rewrite (subset_trans sVH).
+case/andP: nUG => sUG nUG; have nUR := subset_trans sRG nUG.
+have sUH: U \subset H.
+  have: U / V \subset H / V by rewrite -defU normal_sub ?Fitting_normal.
+  by rewrite morphimSGK ?ker_coset // (subset_trans sUG).
+have: exists2 K : {group gT}, hall (predC1 p) U K & R \subset 'N(K).
+  apply: coprime_hall_exists => //; last exact: (solvable_sub sUG).
+  by rewrite -(LaGrange sUH) coprime_mull in coHR; case/andP: coHR.
+case=> K hallK nKR; have [sKU _]:= andP hallK.
+have p'K: p'group p K by move: hallK; rewrite hallE; case/and3P.
+have p'Ub: p'group p 'F(H / V) by admit.
+have nVU := subset_trans (subset_trans sUH sHG) nVG.
+have defVK: U = V * K :> {set gT}.
+  have nVK := subset_trans sKU nVU.
+  apply/eqP; rewrite eqset_sub mul_subG //= andbT -quotientSK //.
+  rewrite subEproper eq_sym eqset_sub_card.
+  have: hall (predC1 p) (U / V) (K / V) by exact: morphim_hall.
+  by case/andP=> ->; move/eqP=> ->; rewrite part_pi_nat ?leqnn // -defU.
+have sylV: sylow p U V.
+  have coVK: coprime #|V| #|K| := pi_nat_coprime pV p'K.
+  by rewrite [sylow p U V]hallE sVU [pi_group _ V]pV -card_quotient // -defU.
+have defH: H = V * 'N_H(K) :> {set gT}.
+  have nUH: U <| H by apply/andP; rewrite (subset_trans sHG).
+  rewrite -{1}(HallFrattini _ nUH hallK); last exact: solvable_sub solG.
+  by rewrite defVK -mulgA [K * _]mulSGid // subsetI normG (subset_trans sKU).
+have [P sylP nPR]: exists2 P : {group gT}, sylow p 'N_H(K) P & R \subset 'N(P).
+  have sNH: 'N_H(K) \subset H by exact: subsetIl.
+  apply: coprime_hall_exists.
+  - by apply/normsP=> x Rx /=; rewrite conjIg -normJ !(normsP _ _ Rx).
+  - by move: coHR; rewrite -(LaGrange sNH) coprime_mull; case/andP.
+  apply: solvable_sub solG; exact: subset_trans sHG.
+have sPN: P \subset 'N_H(K) by case/andP: sylP.
+have [sPH nKP]: P \subset H /\ P \subset 'N(K) by apply/andP; rewrite -subsetI.
+ have nVH := subset_trans sHG nVG; have nVP := subset_trans sPH nVH.
+have sylVP: sylow p H (V * P).
+  have defVP: V * P = V <*> P by rewrite mulgenC -normC ?norm_mulgenE.
+  rewrite /sylow /hall mul_subG //= defVP.
+  rewrite -(LaGrange sVH) pi_part_mul ?ltn_0mul ?ltn_0group //=.
+  have: V \subset V <*> P by rewrite -defVP mulG_subl.
+  move/LaGrange <-; rewrite part_pi_nat // eqn_pmul2l // /=.
+  rewrite -!card_quotient //; last by rewrite gen_subG subUset normG.
+  rewrite -defVP defH !quotient_mulgr.
+  have: sylow p ('N_H(K) / V) (P / V) by exact: morphim_sylow.
+  by case/andP.
+case/orP: (orbN (trivg [~: K, P])) => [|ntKP].
+  admit.
 admit.
+
+
 Qed.
 
 
