@@ -173,9 +173,10 @@ Notation "''O_' [ p ] ( G )" := 'O_(pred_of_simpl (pred1 p))(G)
 Notation "''O_' [ p ] ( G )" := 'O_(pred_of_simpl (pred1 p))(G)%G
                                            : subgroup_scope.
 
-Notation "''O_' [ ~ p ] ( G )" := 'O_(~ pred1 p)(G)
+Notation "''O_' [ ~ p ] ( G )" := 'O_(~ pred_of_simpl (pred1 p))(G)
   (at level 8, format "''O_' [ ~  p ] ( G )") : group_scope.
-Notation "''O_' [ ~ p ] ( G )" := 'O_(~ pred1 p)(G)%G : subgroup_scope.
+Notation "''O_' [ ~ p ] ( G )" := 'O_(~ pred_of_simpl (pred1 p))(G)%G
+                                              : subgroup_scope.
 
 Notation "''Ohm_' i ( G )" := (Ohm i G)
   (at level 8, i at level 2, format "''Ohm_' i ( G )") : group_scope.
