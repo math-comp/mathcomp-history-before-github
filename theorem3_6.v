@@ -314,8 +314,24 @@ have sylVP: sylow p H (V * P).
   rewrite -defVP defH !quotient_mulgr.
   have: sylow p ('N_H(K) / V) (P / V) by exact: morphim_sylow.
   by case/andP.
-case/orP: (orbN (trivg [~: K, P])) => [|ntKP].
-  admit.
+case/orP: (orbN (trivg [~: K, P])) => [tKP|ntKP].
+  suffices sylVH: sylow (gT:=gT) p H V. admit.
+(*  rewrite /p_length_1. rewrite/qp'_core.
+    have Op'_H1: 'O_[~ p](H) = 1 by case/trivgP: Op'_H.
+    rewrite Op'_H1. *) 
+  suffices sPV: P \subset V by rewrite mulGSid in sylVP.
+  have sol_qHV : solvable (H /V). 
+    by apply: solvable_quo; apply: (solvable_sub sHG).
+  have qPV: P / V \subset 'C_(H / V)('F(H / V)).
+    rewrite defU subsetI; apply/andP; split; first by apply:morphimS.
+    rewrite defVK quotient_mulgr; apply: center_commgr; rewrite commsgC.
+    case/trivgP: tKP; move ->; apply: sub1G.
+  have sPU: P \subset U.
+    rewrite defVK -quotientSK // -(quotient_mulgr _ K) -defVK -defU.
+    by apply (subset_trans qPV (solvable_self_cent_Fitting sol_qHV)).
+  case/andP: sylP; rewrite -p_part_pi /p_part => _ cardP. 
+  apply: (sylow2_subset pr_p sPU cardP); rewrite //=.
+  rewrite/normal sVU //=.
 admit.
 
 
