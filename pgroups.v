@@ -208,9 +208,9 @@ Implicit Type A : {set gT}.
 Implicit Type G : {group gT}.
 
 Definition qp'_core p q A :=
- A :&: coset_of 'O_[~ p](A) @*^-1 'O_[q](A / 'O_[~p](A)).
+  coset_of 'O_[~ p](A) @*^-1 'O_[q](A / 'O_[~p](A)).
 
-Definition p_length_1 p A := p \notin primes #|A : qp'_core p p A|.
+Definition p_length_1 p A := pi'_nat (pred1 p) #|A : qp'_core p p A|.
 
 Canonical Structure qp'_core_group p q G := Eval hnf in [group of qp'_core p q G].
 
@@ -405,92 +405,6 @@ Qed.
 
 End Morphim.
 
-Section OhmProps.
-
-Variable gT : finGroupType.
-Implicit Type A : {set gT}.
-Implicit Type G : {group gT}.
-
-Lemma char_Ohm : forall i G, 'Ohm_i(G) \char G.
-Proof.
-move=> i G; have sOmG: 'Ohm_i(G) \subset G.
-  by rewrite gen_subG; apply/subsetP=> x; rewrite inE; case/andP.
-apply/charP; split=> // f injf fG; apply/morphim_fixP => //.
-rewrite sub_morphim_pre // gen_subG; apply/subsetP=> x; rewrite inE.
-case/andP=> Gx oxp; rewrite !inE Gx mem_gen // inE eq_sym -{2}fG.
-by rewrite mem_imset ?setIid //= -morphX // (eqP oxp) morph1.
-Qed.
-
-Lemma char_Mho : forall i G, 'Mho^i(G) \char G.
-Proof.
-move=> i G; have sMhoG: 'Mho^i(G) \subset G.
-  rewrite gen_subG; apply/subsetP=> y; case/imsetP=> x Gx ->; exact: groupX.
-apply/charP; split=> // f injf fG; apply/morphim_fixP => //.
-rewrite sub_morphim_pre // gen_subG; apply/subsetP=> y; rewrite !inE.
-case/imsetP=> x Gx ->; rewrite groupX // morphX // mem_gen //.
-by apply/imsetP; exists (f x); rewrite // -{2}fG morphimEdom mem_imset.
-Qed.
-
-Lemma exponentP : forall G n,
-  reflect (forall x, x \in G -> x ^+ n = 1) (exponent G %| n).
-Proof.
-move=> G n; apply: (iffP idP) => [eGn x Gx | eGn].
-  apply/eqP; rewrite -order_dvd; apply: dvdn_trans eGn.
-  have def1: 1%N = \big[lcmn/0]_(x <- [::1] | x \in G) #[x : gT].
-    by rewrite unlock /= group1 order1.
-  rewrite /exponent def1 -big_cat_nested big_cat /= -{}def1.
-  rewrite lcmnC (bigD1 1) // lcmnA order1 -[lcmn 1 1](order1 gT) -bigD1 //=.
-  rewrite (bigD1 x) //=.
-  case: {+}(reducebig _ _ _ _ _) => [|m]; first by rewrite lcmn0.
-  rewrite -(@dvdn_pmul2r (gcdn #[x] m.+1)) ?ltn_0gcd ?orbT //.
-  by rewrite muln_lcm_gcd ?dvdn_pmul2l ?ltn_0order // dvdn_gcdr.
-rewrite /exponent; apply big_prop=> [|p q pn qn|x Gx]; last 1 first.
-- by rewrite order_dvd eGn.
-- exact: dvd1n.
-case: (posnP p) => [-> | p_pos]; first by rewrite lcm0n.
-case: (posnP q) => [-> | q_pos]; first by rewrite lcmn0.
-rewrite -(@dvdn_pmul2r (gcdn p q)) ?ltn_0gcd ?p_pos ?muln_lcm_gcd //.
-case/dvdnP: pn qn => r -> qr; rewrite -mulnA mulnCA dvdn_pmul2l //.
-case: (bezoutr p q_pos) => m _; move/(dvdn_mull r).
-by rewrite muln_addr mulnCA dvdn_addl // dvdn_mull.
-Qed.
-
-Lemma trivg_exponent : forall G, trivg G = (exponent G %| 1).
-Proof.
-move=> G.
-by apply/subsetP/exponentP=> trG x; move/trG; rewrite expg1; move/set1P.
-Qed.
-
-Lemma exponent1 : exponent (1 : {set gT}) = 1%N.
-Proof. by apply/eqP; rewrite -dvdn1 -trivg_exponent trivg1. Qed.
-
-Lemma dvdn_exponent : forall G, exponent G %| #|G|.
-Proof.
-by move=> G; apply/exponentP=> s Gx; apply/eqP; rewrite -order_dvd order_dvd_g.
-Qed.
-
-Lemma is_abelem_Ohm1P : forall G,
-  abelian G -> reflect ('Ohm_1(G) = G) (is_abelem G).
-Proof.
-move=> G abelG; pose p := pdiv #|G|; pose G1 := [set x \in G | x ^+ p == 1].
-have gG1: group_set G1.
-  apply/group_setP; split=> [|x y]; rewrite !inE ?(exp1gn, group1) //=.
-  case/andP=> Gx; move/eqP=> xp; case/andP=> Gy; move/eqP=> yp.
-  rewrite groupM // expMgn ?(xp, yp, mulg1) //=; exact: (centsP abelG).
-have ->: 'Ohm_1(G) = G1.
-  apply/eqP; rewrite eqset_sub -{1}[G1](genGid (Group gG1)) genS.
-    apply/subsetP=> x; rewrite /= !inE; case/andP=> Gx.
-      by move=> xp; rewrite mem_gen // inE Gx expn1.
-    by apply/subsetP=> x; rewrite !inE; case/andP=> ->; rewrite expn1.
-rewrite /is_abelem /abelem -/p abelG.
-apply: (iffP (exponentP _ _)) => [elemG | <- x].
-  apply/setP=> x; rewrite inE; case Gx: (x \in G) => //=.
-  apply/eqP; exact: elemG.
-by rewrite inE; case/andP=> _; move/eqP.
-Qed.
-
-End OhmProps.
-
 Section PiCoreProps.
 
 Variable gT : finGroupType.
@@ -534,5 +448,141 @@ apply: subset_core; first by rewrite morphim_pi_group ?pi_group_core.
 by rewrite -{3}fG  morphim_normal ?core_normal.
 Qed.
 
+Lemma Cauchy : forall p G, prime p -> p %| #|G| -> {x | x \in G & #[x] = p}.
+Proof.
+move=> p G pr_p; elim: {G}_.+1 {-2}G (ltnSn #|G|) => // n IHn G; rewrite ltnS.
+pose xpG := [pred x \in G | #[x] == p] => leGn pG.
+case: (pickP xpG) => [x|no_x]; first by case/andP=> Gx; move/eqP; exists x.
+have{pG n leGn IHn} pZ: p %| #|'C_G(G)|.
+  have:= pG; rewrite -(cardsID 'C(G)) dvdn_addl //.
+  rewrite card_sum_1 (partition_big_imset (class_of^~ G)) /=.
+  apply big_prop => // [|C]; first exact: dvdn_add.
+  case/imsetP=> x; case/setDP=> Gx nCx ->{C}.
+  move: pG; rewrite -(LaGrange (subsetIl G 'C[x]%G)) euclid //; case/orP.
+    case/IHn=> [|y]; last first.
+      by case/setIP=> Gy _; move/eqP=> oyp; case/andP: (no_x y).
+    apply: leq_trans leGn; apply: proper_card; rewrite properE subsetIl.
+    by rewrite subsetI subset_refl /= -cent_set1 centsC sub1set.
+  rewrite index_cent1 card_sum_1; apply: etrans; congr (p %| _).
+  apply: eq_bigl=> y /=; apply/andP/idP=> [[_]|].
+    by move/eqP=> <-; exact: classg_refl.
+  case/imsetP=> z Gz ->; rewrite classGidl // eqxx inE -!mem_conjgV.
+  by rewrite -centJ conjGid ?groupV ?nCx.
+suff: predC1 p p by case/eqP.
+have: p'group p 'O_[~p](G) by exact: pi_group_core.
+move/pi_groupP; apply=> //; apply: dvdn_trans pZ (group_dvdn _).
+apply/subsetP=> x; case/setIP=> Cx Gx.
+rewrite -sub1set -gen_subG subset_core //; last first.
+  rewrite /(_ <| _) cycle_h // (subset_trans _ (norm_gen _)) //.
+  by rewrite -cent_set1 centsC sub1set.
+apply/pi_groupP=> q _ p_x; apply/eqP=> def_q; rewrite {q}def_q in p_x.
+case/dvdnP: p_x => m ox; case/idP: (no_x (x ^+ m)) => /=.
+have m_pos: 0 < m by rewrite -(ltn_pmul2r (ltn_0prime pr_p)) -ox ltn_0order.
+by rewrite /= groupX //= order_gcd // [#[x]]ox gcdnC gcdn_mulr divn_mulr.
+Qed.
+
 End PiCoreProps.
+
+Section OhmProps.
+
+Variable gT : finGroupType.
+Implicit Type A : {set gT}.
+Implicit Type G : {group gT}.
+
+
+Lemma char_Ohm : forall i G, 'Ohm_i(G) \char G.
+Proof.
+move=> i G; have sOmG: 'Ohm_i(G) \subset G.
+  by rewrite gen_subG; apply/subsetP=> x; rewrite inE; case/andP.
+apply/charP; split=> // f injf fG; apply/morphim_fixP => //.
+rewrite sub_morphim_pre // gen_subG; apply/subsetP=> x; rewrite inE.
+case/andP=> Gx oxp; rewrite !inE Gx mem_gen // inE eq_sym -{2}fG.
+by rewrite mem_imset ?setIid //= -morphX // (eqP oxp) morph1.
+Qed.
+
+Lemma char_Mho : forall i G, 'Mho^i(G) \char G.
+Proof.
+move=> i G; have sMhoG: 'Mho^i(G) \subset G.
+  rewrite gen_subG; apply/subsetP=> y; case/imsetP=> x Gx ->; exact: groupX.
+apply/charP; split=> // f injf fG; apply/morphim_fixP => //.
+rewrite sub_morphim_pre // gen_subG; apply/subsetP=> y; rewrite !inE.
+case/imsetP=> x Gx ->; rewrite groupX // morphX // mem_gen //.
+by apply/imsetP; exists (f x); rewrite // -{2}fG morphimEdom mem_imset.
+Qed.
+
+Lemma dvdn_exponent : forall x G, x \in G -> #[x] %| exponent G.
+Proof.
+move=> x G Gx; have def1: 1%N = \big[lcmn/0]_(x <- [::1] | x \in G) #[x].
+  by rewrite unlock /= group1 order1.
+rewrite /exponent def1 -big_cat_nested big_cat /= -{}def1.
+rewrite lcmnC (bigD1 1) // lcmnA order1 -[lcmn 1 1](order1 gT) -bigD1 //=.
+rewrite (bigD1 x) //=.
+case: {+}(reducebig _ _ _ _ _) => [|m]; first by rewrite lcmn0.
+rewrite -(@dvdn_pmul2r (gcdn #[x] m.+1)) ?ltn_0gcd ?orbT //.
+by rewrite muln_lcm_gcd ?dvdn_pmul2l ?ltn_0order // dvdn_gcdr.
+Qed.
+
+Lemma exponentP : forall G n,
+  reflect (forall x, x \in G -> x ^+ n = 1) (exponent G %| n).
+Proof.
+move=> G n; apply: (iffP idP) => [eGn x Gx | eGn].
+  apply/eqP; rewrite -order_dvd; apply: dvdn_trans eGn; exact: dvdn_exponent.
+rewrite /exponent; apply big_prop=> [|p q pn qn|x Gx]; last 1 first.
+- by rewrite order_dvd eGn.
+- exact: dvd1n.
+case: (posnP p) => [-> | p_pos]; first by rewrite lcm0n.
+case: (posnP q) => [-> | q_pos]; first by rewrite lcmn0.
+rewrite -(@dvdn_pmul2r (gcdn p q)) ?ltn_0gcd ?p_pos ?muln_lcm_gcd //.
+case/dvdnP: pn qn => r -> qr; rewrite -mulnA mulnCA dvdn_pmul2l //.
+case: (bezoutr p q_pos) => m _; move/(dvdn_mull r).
+by rewrite muln_addr mulnCA dvdn_addl // dvdn_mull.
+Qed.
+
+Lemma trivg_exponent : forall G, trivg G = (exponent G %| 1).
+Proof.
+move=> G.
+by apply/subsetP/exponentP=> trG x; move/trG; rewrite expg1; move/set1P.
+Qed.
+
+Lemma exponent1 : exponent (1 : {set gT}) = 1%N.
+Proof. by apply/eqP; rewrite -dvdn1 -trivg_exponent trivg1. Qed.
+
+Lemma exponent_dvdn : forall G, exponent G %| #|G|.
+Proof.
+by move=> G; apply/exponentP=> s Gx; apply/eqP; rewrite -order_dvd order_dvd_g.
+Qed.
+
+Lemma ltn_0exponent : forall G, 0 < exponent G.
+Proof. move=> G; exact: ltn_0dvd (exponent_dvdn G). Qed.
+
+Lemma pi_exponent : forall pi G, pi_nat pi (exponent G) = pi_group pi G.
+Proof.
+move=> pi G; rewrite /pi_group /pi_nat ltn_0group ltn_0exponent; congr all.
+apply/eq_primes=> p; rewrite !mem_primes ltn_0group ltn_0exponent /=.
+case pr_p: (prime p) => //=; apply/idP/idP=> pG.
+  exact: dvdn_trans pG (exponent_dvdn G).
+case/Cauchy: pG => // x Gx <-; exact: dvdn_exponent.
+Qed.
+
+Lemma is_abelem_Ohm1P : forall G,
+  abelian G -> reflect ('Ohm_1(G) = G) (is_abelem G).
+Proof.
+move=> G abelG; pose p := pdiv #|G|; pose G1 := [set x \in G | x ^+ p == 1].
+have gG1: group_set G1.
+  apply/group_setP; split=> [|x y]; rewrite !inE ?(exp1gn, group1) //=.
+  case/andP=> Gx; move/eqP=> xp; case/andP=> Gy; move/eqP=> yp.
+  rewrite groupM // expMgn ?(xp, yp, mulg1) //=; exact: (centsP abelG).
+have ->: 'Ohm_1(G) = G1.
+  apply/eqP; rewrite eqset_sub -{1}[G1](genGid (Group gG1)) genS.
+    apply/subsetP=> x; rewrite /= !inE; case/andP=> Gx.
+      by move=> xp; rewrite mem_gen // inE Gx expn1.
+    by apply/subsetP=> x; rewrite !inE; case/andP=> ->; rewrite expn1.
+rewrite /is_abelem /abelem -/p abelG.
+apply: (iffP (exponentP _ _)) => [elemG | <- x].
+  apply/setP=> x; rewrite inE; case Gx: (x \in G) => //=.
+  apply/eqP; exact: elemG.
+by rewrite inE; case/andP=> _; move/eqP.
+Qed.
+
+End OhmProps.
 

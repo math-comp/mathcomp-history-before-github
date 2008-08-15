@@ -434,7 +434,7 @@ move=> sHG nHL ntH; case abelH: (trivg [~: H, H]).
   pose p := pdiv #|H|.
   have prp: prime p by rewrite prime_pdiv // ltnNge -trivg_card.
   have ntH1 : ~~ trivg H1.
-    case: (cauchy prp (dvdn_pdiv #|H|)) => x; case/andP=> Hx; move/eqP=> oxp.
+    case: (Cauchy prp (dvdn_pdiv #|H|)) => x Hx oxp.
     rewrite /trivg gen_subG expn1; apply/subsetPn; exists x.
       by rewrite inE Hx -/p -oxp order_expn1 eqxx.
     by apply/set1P=> x1; rewrite -oxp x1 order1 in prp.

@@ -135,7 +135,7 @@ have FF: forall H : group _, H <| 'Alt_T -> H <> 1 :> set _ -> 20 %| #|H|.
       apply: F15; last by rewrite Hg2 -permM mulKVg permM Hgz.
       by case/normalP: Hh1 => _ nH1; rewrite -(nH1 _ Hg1) memJ_conjg.
     clear K F8 F12 F13 Ksub F14.
-    case: (cauchy (tp: prime 5) F6) => h; case/andP => Hh Horder.
+    case: (Cauchy _ F6) => // h Hh; move/eqP=> Horder.
     have diff_hnx_x: forall n, 0 < n -> n < 5 -> x != (h ^+ n) x.
       move=> n Hn1 Hn2; rewrite eq_sym; apply/negP => HH.
       have: #[h ^+ n] = 5.

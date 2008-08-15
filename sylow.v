@@ -21,160 +21,6 @@ Unset Strict Implicit.
 Import Prenex Implicits.
 Import GroupScope.
 
-Section Cauchy.
-
-Variable (gT : finGroupType) (H : {group gT}).
-
-Variable p : nat.
-Hypothesis prime_p : prime p.
-Hypothesis p_divides_H : p %| #|H|.
-
-(**********************************************************************)
-(*               Cauchy theorem                                       *)
-(**********************************************************************)
-
-Canonical Structure SylowCauchyPosPrime := prime_pos_nat prime_p.
-Notation zp := 'I_p.
-Let lt1p := prime_gt1 prime_p.
-Definition make_zp : nat -> zp.
-move=> i; exists (i %% p).
-abstract by rewrite ltn_mod pos_natP.
-Defined.
-
-Let zp1 : zp := make_zp 1.
-
-Lemma make_zp_val : forall x : zp, make_zp x = x.
-Proof. case=> i ltip; apply: val_inj => /=; exact: modn_small. Qed.
-
-Lemma zp_power_mul : forall (x : zp) m, x ^+ m = make_zp (m * x)%N.
-Proof.
-move=> x; elim=> [|m IHm]; apply: val_inj => /=; first by rewrite mod0n.
-by rewrite expgS IHm -{1}(make_zp_val x) /= modn_add2m.
-Qed.
-
-Lemma zp_power_p : forall x : zp, x ^+ p = 1.
-Proof.
-by move=> x; apply: val_inj; rewrite zp_power_mul /= mulnC modn_mull.
-Qed. 
-
-Lemma zp1_gen : forall x : zp, zp1 ^+ x = x.
-Proof.
-by move=> x; rewrite zp_power_mul /= (modn_small lt1p) muln1 make_zp_val.
-Qed.
-
-Let prod_over_zp f :=
-  foldr (fun i x => f (zp1 ^+ i) * x) (1 : gT) (iota 0 p).
-
-Let X := [set t | ffun_on (mem H) t && (prod_over_zp t == 1)].
-
-Definition zprot (f : {ffun zp -> gT}) x := [ffun y => f (x * y)].
-
-Lemma rot1_prod_over_zp : forall f,
-  (prod_over_zp (zprot f zp1) == 1) = (prod_over_zp f == 1).
-Proof.
-move=> f; rewrite /prod_over_zp -{-2}(ltn_predK lt1p) -{2}add1n -addn1.
-rewrite !iota_add !foldr_cat /= add0n addnC iota_addl foldr_maps /= ffunE.
-set y := f _ * 1; have->: f 1 = y; last clearbody y.
-  by rewrite -(zp_power_p zp1) -{-1}(ltn_predK lt1p) /y mulg1.
-rewrite -(inj_eq (mulg_injr y^-1)).
-rewrite -(inj_eq (mulg_injl y^-1) _ 1); gsimpl; congr (_ == _).
-elim: (iota _ _) y => [|i s IHs] y /=; gsimpl.
-by rewrite ffunE -mulgA IHs.
-Qed.
-
-Lemma zprot_to1 : forall f, zprot f 1 = f.
-Proof. by move=> f; apply/ffunP=> i; rewrite /zprot ffunE mul1g. Qed.
-
-Lemma zprot_to_morph : forall f x y, zprot f (x * y) = zprot (zprot f x) y.
-Proof. move=> f x y; apply/ffunP=> i; rewrite /zprot !ffunE; gsimpl. Qed.
-
-Canonical Structure zprot_action := Action (zprot_to1, zprot_to_morph).
-
-Notation Local "'rot" := zprot_action (at level 0) : action_scope.
-
-Lemma zprot_acts_on_X : [acts (setT | 'rot) on X].
-Proof.
-apply/subsetP=> /= x _; rewrite inE /=; apply/subsetP=> f.
-rewrite !inE -(zp1_gen x) /=; elim: {x}(x : nat) f => /= [|i IHi] f.
-  by rewrite zprot_to1.
-rewrite expgS zprot_to_morph; case/andP; move/ffun_onP=> Hfx prodf1.
-apply: IHi; rewrite {i} rot1_prod_over_zp prodf1 andbT.
-by apply/ffun_onP=> i; rewrite ffunE Hfx.
-Qed.
-
-Lemma card_X : #|X| = (#|H| ^ (p - 1))%N.
-Proof.
-pose Y := pffun_on 1 (mem [set~ 1 : zp]) (mem H).
-transitivity #|Y|; last first.
-  by rewrite card_pffun_on subn1 cardsC1 card_ord.
-pose f t x := if x == 1 then (prod_over_zp t)^-1 else t x.
-pose F (t : {ffun _}) := ffun_of (f t).
-have injF : {in Y &, injective F}.
-  move=> t1 t2; move/pffun_onP=> [Yt1 _]; move/pffun_onP=> [Yt2 _].
-  move=> Ft12; apply/ffunP=> u. 
-  have:= erefl (F t1 u); rewrite {2}Ft12 !ffunE /f.
-  case: eqP => //= -> {u} _; transitivity (1 : gT); last symmetry.
-    by apply/eqP; apply/idPn; move/Yt1; rewrite /= setC11.
-  by apply/eqP; apply/idPn; move/Yt2; rewrite /= setC11.
-have prodF : forall t, prod_over_zp (F t) = (t 1)^-1 ^ (prod_over_zp t).
-  move=> t; rewrite /conjg {-2}/prod_over_zp -(ltn_predK lt1p) /=; gsimpl.
-  rewrite ffunE /f eqxx; congr mulg. 
-  have: forall i, i \in iota 1 p.-1 -> (zp1 ^+ i == 1) = false.
-    move=> i; rewrite mem_iota add1n (ltn_predK lt1p).
-    move/andP=> [ipos ltip]; apply: negbET.
-    by rewrite (zp1_gen (Ordinal ltip)) -lt0n.
-  elim: (iota _ _ ) => //= i s IHs zpsnot1.
-  rewrite ffunE /f zpsnot1 ?inE ?eqxx ?IHs // => j sj.
-  apply zpsnot1; exact: predU1r.
-rewrite -(card_dimset injF); apply: eq_card => t; rewrite inE.
-apply/andP/imsetP=> [[]|[t1 Yt1 ->{t}]].
-  move/ffun_onP=> /= Xt; move/eqP=> Yt; exists (F t); last first.
-    apply/ffunP=> u; rewrite !ffunE /f prodF Yt conjg1 invgK.
-    by rewrite ffunE /f; case: eqP => // ->.
-  apply/pffun_onP; split=> u.
-    move/eqP=> dFtu; rewrite /= inE; apply/eqP=> Du; case: dFtu.
-    by rewrite {u}Du ffunE /f eqxx Yt invg1.
-  move/imageP=> [v /= vnot1 ->{u}]; rewrite ffunE /f /=.
-  by rewrite inE in vnot1; rewrite (negbET vnot1).
-move/pffun_onP: Yt1 => [Yt1 Xt1]. 
-case sup1: (support 1 t1 1); first by move/Yt1: sup1; rewrite /= setC11.
-move/eqP: sup1 => Dt11; have{Xt1} Xt1: forall u, t1 u \in H.
-  move=> u; case sup_u: (u == 1); first by rewrite (eqP sup_u) Dt11.
-  by apply: Xt1; apply/imageP; exists u; rewrite //= inE sup_u.
-split; last by rewrite prodF Dt11 invg1 conj1g eqxx.
-apply/ffun_onP=> u; rewrite ffunE /f; case: (_ == _) => //=.
-by rewrite groupV /prod_over_zp; elim: (iota _ _) => //= *; rewrite !in_group.
-Qed.
-
-Theorem cauchy : exists a, (a \in H) && (#[a] == p).
-Proof.
-have pg_zp: pgroup p (setT : {set zp}).
-  by apply/pnatP=> //; exists 1%N; rewrite expn1 cardsE card_ord.
-have:= pgroup_fix_mod prime_p pg_zp zprot_acts_on_X; set Z := _ :&: _.
-rewrite card_X -{1}(subnK lt1p) /= -modn_mul2m (eqnP p_divides_H) mod0n.
-pose t1 : {ffun zp -> gT} := [ffun => 1].
-have Zt1: t1 \in Z.
-  rewrite 2!inE; apply/andP; split; last first.
-    by apply/afixP=> x _; apply/ffunP=> i; rewrite !ffunE.
-  apply/andP; split; first by apply/ffun_onP=> u; rewrite ffunE /=.
-  rewrite /prod_over_zp; apply/eqP; elim: (iota _ _) => //= i s -> {s}.
-  by rewrite ffunE mul1g.
-case: (pickP [predD1 Z & t1]) => [t | Z0]; last first.
-  by rewrite (cardD1 t1) Zt1 (eq_card0 Z0) modn_small.
-case/andP=> tnot1; rewrite /= 2!inE; do 2!case/andP.
-move/ffun_onP=> /= Ht prodt; move/afixP=> /= fixt _.
-pose x := t 1; exists x; rewrite Ht /=.
-have Dt: t _ = x by move=> u; rewrite /x -{2}(fixt u (in_setT _)) ffunE mulg1.
-have: #[x] %| p.
-  rewrite order_dvd -(eqP prodt) -{1}(size_iota 0 p) /prod_over_zp.
-  by apply/eqP; elim: (iota _ _) => //= i s <-; rewrite Dt.
-case/primeP: prime_p => _ divp; move/divp; case/orP; rewrite eq_sym //.
-move/eqP=> Dx1; case/eqP: tnot1; apply/ffunP=> i.
-by rewrite Dt -(expg1 x) ffunE Dx1 order_expn1.
-Qed.
-
-End Cauchy.
-
 Section Sylow.
 
 Variable (gT : finGroupType) (K : {group gT}).
@@ -233,7 +79,7 @@ have: p %| #|K / L|.
   apply/subsetP=> x Lx; rewrite /= inE; apply/subsetP=> A; rewrite /= inE.
   case/imsetP=> y Ky ->{A}; rewrite !rcosetE -rcosetM -rcosetE mem_imset //.
   by rewrite groupMl // (subsetP sLK).
-case/cauchy=> // zbar; case/andP=> Kzbar; move/eqP=> Czbar_p.
+case/Cauchy=> // zbar Kzbar Czbar_p.
 pose H := coset_of L @*^-1 <[zbar]> :&: K.
 exists [group of H] => /=.
 have sLH : L \subset H.
@@ -788,9 +634,9 @@ Implicit Type G H : {group gT}.
 
 (* Bender 1.22 p.9 *)
 
-Lemma normal_pgroup: forall k r (G N: {group gT}), 
-  pgroup p G -> N <| G -> #|N| = (p^k)%N -> r <= k -> 
-   exists L: {group gT}, [/\ L \subset N, L <| G & #|L| = (p^r)%N].
+Lemma normal_pgroup: forall k r (G N : {group gT}), 
+  pgroup p G -> N <| G -> #|N| = (p ^ k)%N -> r <= k -> 
+   exists L: {group gT}, [/\ L \subset N, L <| G & #|L| = (p ^ r)%N].
 Proof.
 move=> k; move: {-2}k (leqnn k) gT.
 elim: k => [| k Hrec] [| k1//] Hk1 gT1 [|r//] G N PG NNG CG Lrk; try by exists N.
@@ -814,11 +660,9 @@ have CN1: p %| #|N1|.
   by case/negP: NTN1; rewrite trivg_card Hn expn0.
 case/(pnatP _ prime_p): (PN1) => [[| k3] Hk3].
   by move: CN1; rewrite Hk3 expn0 dvdn1; case: p prime_p => //; case.
-case: (cauchy prime_p CN1) => a; case/andP => Sa Ca.
-have Ca1: #|<[a]>| = p by move/eqP: Ca.
-pose G1 := (G/<[a]>)%G; pose N2 := (N/<[a]>)%G.
-case/andP: (NNG) => NNG1 _.
-move: (Sa); rewrite in_setI; case/andP => Sa1 Sa2.
+case: (Cauchy prime_p CN1) => a Sa; rewrite {1}/order=> Ca1.
+pose G1 := (G / <[a]>)%G; pose N2 := (N / <[a]>)%G.
+have [NNG1 _] := andP NNG; have [Sa1 Sa2] := setIP _ _ _ Sa.
 have IaG: a \in G by apply: (subsetP NNG1).
 have NCa: <[a]> <| G.
   apply/andP; split; first by apply: cycle_h.

@@ -227,8 +227,7 @@ wlog abV: / abelem p V.
   suffices pW: pgroup p W.
     rewrite trivg_card (@pi_nat_1 (pred1 p) #|_|) //= defW //.
     exact: morphim_pi_group.
-  apply/pi_groupP=> q pr_q; case/cauchy=> // x; case/andP=> Wx; move/eqP=> oxq.
-  apply/idPn=> /= neqp.
+  apply/pi_groupP=> q pr_q; case/Cauchy=> // x Wx oxq; apply/idPn=> /= neqp.
   suff: <[x]> \subset V.
     rewrite gen_subG sub1set => Vx.
     by move/pi_groupP: pV neqp => /= -> //; rewrite -oxq order_dvd_g.

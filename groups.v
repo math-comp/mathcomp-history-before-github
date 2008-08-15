@@ -486,6 +486,9 @@ Qed.
 Lemma card_mem_repr : forall A, #|A| > 0 -> repr A \in A.
 Proof. by move=> A; rewrite lt0n; case/existsP=> x; exact: mem_repr. Qed.
 
+Lemma repr_set1 : forall x : gT, repr [set x] = x.
+Proof. by move=> x; apply/set1P; apply: card_mem_repr; rewrite cards1. Qed.
+
 (* Set-lifted group operations. *)
 
 Definition set_mulg A B := mulg @2: (A, B).
@@ -862,6 +865,9 @@ Proof. by move=> A B x; rewrite !conjsgE !mulgA rcosetK. Qed.
 
 (* Classes; not much for now. *)
 
+Lemma memJ_classg : forall x y A, y \in A -> x ^ y \in x ^: A.
+Proof. by move=> x y A Ay; apply/imsetP; exists y. Qed.
+
 Lemma classgS : forall x A B, A \subset B -> x ^: A \subset x ^: B.
 Proof. move=> x A B; exact: imsetS. Qed.
 
@@ -914,12 +920,6 @@ Proof. move=> A B; exact: curry_imset2l. Qed.
 Lemma class_supportEr : forall A B,
   class_support A B = \bigcup_(x \in B) A :^ x.
 Proof. move=> A B; exact: curry_imset2r. Qed.
-
-(* Commutator sets. *)
-
-Lemma commg_setSS : forall A B C D,
-   A \subset B -> C \subset D -> commg_set A C \subset commg_set B D.
-Proof. by move=> A B C D; exact: imset2S. Qed.
 
 (* Groups (at last!) *)
 
@@ -1310,6 +1310,33 @@ Proof. by move=> x y Gy; rewrite -classg_lcoset lcoset_id. Qed.
 
 Lemma classGidr : forall x, {in G, normalised (x ^: G)}.
 Proof. by move=> x y Gy; rewrite -classg_rcoset rcoset_id. Qed.
+
+Lemma classg_refl : forall x, x \in x ^: G.
+Proof. by move=> x; apply/imsetP; exists (1 : gT); rewrite ?conjg1. Qed.
+Hint Resolve classg_refl.
+
+Lemma classg_transr : forall x y, x \in y ^: G -> x ^: G = y ^: G.
+Proof. by move=> x y; case/imsetP=> z Gz ->; rewrite classGidl. Qed.
+
+Lemma classg_sym : forall x y, (x \in y ^: G) = (y \in x ^: G).
+Proof. by move=> x y; apply/idP/idP; move/classg_transr->. Qed.
+
+Lemma classg_transl : forall x y z,
+   x \in y ^: G -> (x \in z ^: G) = (y \in z ^: G).
+Proof. by move=> x y z; rewrite -!(classg_sym z); move/classg_transr->. Qed.
+
+Lemma classg_trans : forall x y z,
+   x \in y ^: G -> y \in z ^: G -> x \in z ^: G.
+Proof. by move=> x y z; move/classg_transl->. Qed.
+
+Lemma repr_classg : forall x, {y | y \in G & repr (x ^: G) = x ^ y}.
+Proof.
+move=> x; set z := repr _; have: #|[set y \in G | z == x ^ y]| > 0.
+  have: z \in x ^: G by exact: (mem_repr x).
+  by case/imsetP=> y Gy ->; rewrite (cardD1 y) inE Gy eqxx.
+move/card_mem_repr; move: (repr _) => y; rewrite inE; case/andP=> Gy.
+by move/eqP; exists y.
+Qed.
 
 Lemma class_supportGidl : forall A x,
   x \in G -> class_support (A :^ x) G = class_support A G.
@@ -1821,8 +1848,12 @@ Proof. move=> G; apply/normsP; exact: conjGid. Qed.
 Lemma normsG : forall A G, A \subset G -> A \subset 'N(G).
 Proof. move=> A G sAG; exact: subset_trans (normG G). Qed.
 
-Lemma norm_mulgenE : forall G H, G \subset 'N(H) -> G <*> H = G * H.
+Lemma norm_mulgenEl : forall G H, G \subset 'N(H) -> G <*> H = G * H.
 Proof. by move=> G H; move/normC; move/comm_mulgenE. Qed.
+Definition norm_mulgenE := norm_mulgenEl.
+
+Lemma norm_mulgenEr : forall G H, H \subset 'N(G) -> G <*> H = G * H.
+Proof. by move=> G H; move/normC=> cHG; exact: comm_mulgenE. Qed.
 
 Lemma norm_rlcoset : forall G x, x \in 'N(G) -> G :* x = x *: G.
 Proof. by move=> G x; rewrite -sub1set; move/normC. Qed.
@@ -1865,18 +1896,6 @@ Proof.
 by move=> A B; apply: (iffP subsetP) => cAB x; move/cAB; move/centP.
 Qed.
 
-(* 
-Lemma central_normal : forall x A, {for x, central A} -> {for x, normal A}.
-Proof.
-move=> x A Cx; apply/normP; rewrite inE; apply/subsetP=> yx.
-case/imsetP=> y Ay ->{yx}; rewrite (conjg_fixP _) // commg1_sym.
-apply/commgP; exact: Cx.
-Qed.
-
-Lemma in_central_normal : forall A B, {in A, central B} -> {in A, normal B}.
-Proof. move=> A B cAB x; move/cAB; exact: central_normal. Qed.
-*)
-
 Lemma cent_subset : forall A, 'C(A) \subset 'N(A).
 Proof.
 move=> A; apply/subsetP=> x; move/centP=> cAx; rewrite inE.
@@ -1910,10 +1929,14 @@ Proof.
 by move=> A B; apply/centsP/centsP=> cAB x ? y ?; rewrite /commute -cAB.
 Qed.
 
-(*
-Lemma central_sym : forall A B, {in A, central B} -> {in B, central A}.
-Proof. by move=> A B; move/centsP; rewrite centsC; move/centsP. Qed.
-*)
+Lemma cent_classP : forall x G, reflect (x ^: G = [set x]) (x \in 'C(G)).
+Proof.
+move=> x G; apply: (iffP (centP _ _)) => [Cx | Cx1 y Gy].
+  apply/eqP; rewrite eqset_sub sub1set classg_refl andbT.
+  by apply/subsetP=> xy; case/imsetP=> y Gy ->; rewrite inE conjgE Cx ?mulKg.
+apply/commgP; apply/conjg_fixP; apply/set1P.
+by rewrite -Cx1; apply/imsetP; exists y.
+Qed.
 
 Lemma normalS : forall G H K,
   K \subset H -> H \subset G -> K <| G -> K <| H.

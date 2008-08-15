@@ -204,7 +204,7 @@ have{elemM} pM: primes #|M| = [:: p].
   apply: (eq_sorted_irr ltn_trans ltnn); rewrite ?sorted_primes // => q.
   rewrite mem_primes mem_seq1 pos_card_group /=.
   apply/andP/eqP=> [[pr_q q_M] | ->]; last by rewrite dvdn_pdiv.
-  case: (cauchy pr_q q_M) => x; case/andP=> Mx; move/eqP=> oxq.
+  case: (Cauchy pr_q q_M) => x Mx oxq.
   apply/eqP; rewrite eqn_leq pdiv_min_dvd ?prime_gt1 1?dvdn_leq ?ltn_0prime //.
   by rewrite -oxq order_dvd elemM.
 pose Gb := (G / M)%G; pose Ab := (A / M)%G; pose Xb := (X / M)%G.
