@@ -331,9 +331,32 @@ case/orP: (orbN (trivg [~: K, P])) => [tKP|ntKP].
   case/andP: sylP; rewrite -p_part_pi /p_part => _ cardP. 
   apply: (sylow2_subset pr_p sPU cardP); rewrite //=.
   rewrite/normal sVU //=.
+have{sylVP} dp: [~: V, K] \x 'C_V(K) = V :> set _.
+  apply: sym_eq; apply: comm_center_dir_prod.
+  - exact: (subset_trans sKU nVU).
+  - exact (pi_nat_coprime  pV p'K).
+  - by case/andP: abV.
+have trVeq: trivg 'C_V(K) \/ 'C_V(K) = V.
+  apply: (nondecV _  [~: V, K]); first by rewrite dprodC.
+  rewrite subsetI; apply/andP; split; admit.
+have Vcomm: [~: V, K] = V :> set _ /\ trivg  'C_V(K).
+  case trVeq=> [trC|eqC]. 
+  - split; last done.
+    by rewrite -{2}dp; case/trivgP:trC; move ->; rewrite dprodg1.
+  - apply: False_ind.
+    have sKV: K \subset V by rewrite eqVC subsetI (subset_trans sKU sUH) centsC -eqC subsetIr.
+    have trK: trivg K. 
+      by rewrite trivg_card (pi_nat_1 _ p'K) //; apply: (pi_nat_dvdn _ pV); apply: group_dvdn.
+    by apply: (negP ntKP); rewrite (trivgP _ trK); apply/trivgP; rewrite //= comm1G.
+have eqcn: 'N_V(K) = 'C_V(K).
+  apply: coprime_norm_cent.
+  - rewrite -subcomm_normal commsgC; case Vcomm=> eqV _; rewrite -{2}eqV; apply: subset_refl.
+  - exact (pi_nat_coprime  pV p'K).
+have PIV: V :&: P = 1.
+  apply/eqP; rewrite eqset_sub sub1G andb_true_r.
+  apply: (subset_trans (setIS _ sPN)); rewrite setIA (setIidPl sVH) eqcn.
+  case Vcomm => _ ; move/trivgP <-; apply: subset_refl.
 admit.
-
-
 Qed.
 
 

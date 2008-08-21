@@ -106,6 +106,14 @@ Section Commutator_properties.
 
 Variable T : finGroupType.
 
+Lemma commG1: forall H: {set T}, [~: H, 1] = 1.
+Proof. 
+by move=> H; apply/trivgP; apply/commG1P; apply/centsP; rewrite centsC; apply: sub1G. 
+Qed.
+
+Lemma comm1G: forall H: {set T}, [~: 1, H] = 1.
+Proof. move=> H; rewrite commsgC; apply: commG1. Qed.
+
 Lemma commg_subset: forall H K : {set T}, [~: H, K] \subset H <*> K.
 Proof.
 by move=> H K; rewrite comm_subG // -gen_subG genS // (subsetUl, subsetUr).
