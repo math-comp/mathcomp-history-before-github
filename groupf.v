@@ -89,22 +89,23 @@ End IdSubFunctor.
 Notation isFc := IdSubFunctor.subfuncclass.
 Notation isFcClass := IdSubFunctor.SubFuncClass.
 
-Section IdentitySubfunctorProps.
+Notation Local "''e_' s ( G )" := (s _ G)
+  (at level 8,s at level 2, format "''e_' s ( G )") : group_scope.
 
-(* TODO : insert phantom providing the domain type in the projection to obmap *)
+Section IdentitySubfunctorProps.
 
 Variables gT hT:finGroupType.
 Variable P : filter gT hT.
 Implicit Types sF: isFc P.
 
-Lemma subfuncclass_groupset : forall sF (G:{group gT}), group_set (sF _ G).
+Lemma subfuncclass_groupset : forall sF (G:{group gT}), group_set ('e_sF(G)).
 Proof. by case. Qed.
 
 Canonical Structure subfuncclass_group sF G := 
   Group (subfuncclass_groupset sF G).
 
 Lemma subfuncclass_clos : forall sF (G:{group gT}),
-  sF _ G \subset G.
+  'e_sF(G) \subset G.
 Proof. by case. Qed.
 
 Lemma subfuncclass_resp : forall sF, resp (sF) P.
@@ -132,7 +133,7 @@ Implicit Types H:{group gT}.
 
 Lemma resp_normal : forall sF, 
   (forall H (phi:{morphism H >-> gT}), is_int_aut phi -> P phi) ->
-  forall G : {group gT}, (sF _ G) <| G.
+  forall G : {group gT}, ('e_sF(G)) <| G.
 Proof.
 move=> sF H G; apply/normalP; split; first exact: (subfuncclass_clos sF G).
 apply/normsP; apply/subsetP=> x; move/(subsetP (normG _)); move/normP=>Heq.
@@ -147,7 +148,7 @@ Qed.
 
 Lemma resp_charac : forall sF,
   (forall H (phi:{morphism H >-> gT}), is_aut phi -> P phi) ->
-  forall G : {group gT}, (sF _ G) \char G.
+  forall G : {group gT}, ('e_sF(G)) \char G.
 Proof.
 move=> sF H G; apply/charP; rewrite /= (subfuncclass_clos sF G).
 split=> // f Hinj Heq; apply/(morphim_fixP Hinj _ (subfuncclass_clos sF G)).
@@ -327,6 +328,12 @@ apply/morphpreP; split; first exact:groupX.
 rewrite morphX //; apply/imsetP; exists (f x); 
  by [rewrite morphimEdom mem_imset|rewrite (eqP Hs)].
 Qed.
+
+Canonical Structure Mho_id_subfunctor (i:nat) :=
+  @isFcClass _ _ _ (fun _ S => 'Mho^i(S))
+            (fun G => groupP 'Mho^i(G)%G)
+            (Mho_sub i)
+            (Mho_resp i).
 
 End IdentitySubfunctorsExamples.
 
