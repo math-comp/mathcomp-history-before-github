@@ -2180,7 +2180,6 @@ Definition Frattini (A : {set gT}) := \bigcap_(H : {group gT} | maximal H A) H.
 Canonical Structure Frattini_group A := Eval hnf in [group of Frattini A].
 
 Lemma Frattini_sub : Frattini G \subset G.
-
 Proof.
 rewrite [Frattini G](bigD1 G) ?subsetIl ?eqxx //.
 rewrite /maximal subset_refl andTb; apply/forallP=> x; apply/implyP.
@@ -2197,6 +2196,8 @@ by rewrite -val_eqE eqset_sub sGmax //=; case/andP: Kmax => ->.
 Qed.
 
 End FrattiniDefs.
+
+Implicit Arguments Frattini [gT].
 
 Section FrattiniProps.
 
