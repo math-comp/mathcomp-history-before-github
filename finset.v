@@ -972,6 +972,13 @@ Lemma eq_preimset :  forall (f g : aT -> rT) (R : pred rT),
   f =1 g -> f @^-1: R = g @^-1: R.
 Proof. by move=> f g R eqfg; apply/setP => y; rewrite !inE eqfg. Qed.
 
+Lemma eq_imset : forall (f g : aT -> rT) (D : {set aT}),
+       f =1 g -> f @: D = g @: D.
+Proof.
+move=> f g R eqfg; apply/setP=> y.
+by apply/imsetP/imsetP=> [] [x Dx ->]; exists x; rewrite ?eqfg.
+Qed.
+
 Lemma dfequal_imset :  forall (f g : aT -> rT) (D : {set aT}),
   {in D, f =1 g} -> f @: D = g @: D.
 Proof.
