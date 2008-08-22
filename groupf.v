@@ -19,7 +19,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-Section IdSubFunctorDefs.
+Section IdentitySubFunctorDefs.
 
 Implicit Types gT hT : finGroupType.
 
@@ -40,6 +40,8 @@ Definition resp (F : obmap) gT hT (P : filter gT hT): Prop :=
   forall (G:{group gT}) (phi:{morphism G >-> hT}),
     (P G phi) -> phi @* (F _ G) \subset F _ (phi @* G).
 
+(* Some filter examples *)
+
 Variable gT:finGroupType.
 
 Implicit Types H:{group gT}.
@@ -51,7 +53,7 @@ Definition is_aut H (phi : {morphism H >-> gT}) :=
   'injm phi && (phi @* H == H).
 
 Definition is_surj_end H (phi : {morphism H >-> gT}) :=
-  phi @* H == H.
+  phi @* H \subset H.
 
 Definition is_inj hT H (phi : {morphism H >-> hT}) :=
   'injm phi.
@@ -59,11 +61,11 @@ Definition is_inj hT H (phi : {morphism H >-> hT}) :=
 Definition is_morphism hT H (phi: {morphism H >-> hT}) :=
   True.
 
-End IdSubFunctorDefs.
+End IdentitySubFunctorDefs.
 
 Module IdSubFunctor.
 
-Section IdSubFunctorStructs.
+Section IdentitySubFunctorStructs.
 
 Variable gT:finGroupType.
 Variable hT : finGroupType.
@@ -71,7 +73,7 @@ Variable hT : finGroupType.
 Implicit Types F:obmap.
 Implicit Types P:filter gT hT.
 
-(* Conditions for an object mapping on Grp restricted to arrows verifying
+(* Conditions for an object mapping on Grp, restricted to arrows verifying
    a given filter, to define a subfunctor of the identity*)
 
 Structure subfuncclass P : Type := SubFuncClass { 
@@ -80,16 +82,16 @@ Structure subfuncclass P : Type := SubFuncClass {
   _ : forall (G: {group gT}), Fobj gT G \subset G;
   _ : resp Fobj P}.
 
-End IdSubFunctorStructs.
+End IdentitySubFunctorStructs.
 
 End IdSubFunctor.
 
 Notation isFc := IdSubFunctor.subfuncclass.
 Notation isFcClass := IdSubFunctor.SubFuncClass.
 
-Section IdentitySubfunctorsProps.
+Section IdentitySubfunctorProps.
 
-(* TODO : insert a phantom to provide the domain in the projection to obmap *)
+(* TODO : insert phantom providing the domain type in the projection to obmap *)
 
 Variables gT hT:finGroupType.
 Variable P : filter gT hT.
@@ -116,9 +118,9 @@ move=> Q sF Hint H phi HQ.
 by apply (subfuncclass_resp sF (Hint _ _ HQ)).
 Qed.
 
-End IdentitySubfunctorsProps.
+End IdentitySubfunctorProps.
 
-Section IdentitySubfunctorsEndo.
+Section IdentitySubfunctorEndo.
 
 Variables gT hT:finGroupType.
 Variable P : filter gT gT.
@@ -155,11 +157,17 @@ Qed.
 (* For endomorphisms, they yield strictly characteristic groups.
    -> do we need that notion ?*)
 
-End IdentitySubfunctorsEndo.
+End IdentitySubfunctorEndo.
 
 Section IdentitySubfunctorSub.
 
-(* Just for fun, pretty inusable structure-wise *)
+(* TO ENHANCE : This is just for fun & pretty inusable because of the
+   uniform inheritance restriction on isFc.
+
+   It would be really nice, though, to have a way to render a graph of
+   implications between filters structurally, without having to define a
+   dozen specialized structures for bijective, injective, etc
+   [endo-|hetero-]morphisms.  *)
 
 Variable gT:finGroupType.
 
@@ -194,7 +202,7 @@ Qed.
 
 Lemma aut_is_surj_end : forall H (f:{morphism H >-> gT}),
   is_aut f -> is_surj_end f.
-Proof. by move=> H f; move/andP=>[_]. Qed.
+Proof. by move=> H f; move/andP=>[Hinj]; rewrite eqset_sub; case/andP. Qed.
 
 Lemma aut_is_inj : forall H (f:{morphism H >-> gT}),
   is_aut f -> is_inj f.
@@ -206,7 +214,7 @@ Section IdentitySubfunctorsExamples.
 
 Variable gT:finGroupType.
 
-Lemma id_resp : resp (fun _ G => G) (@is_morphism gT gT).
+Lemma id_resp : resp (fun _ S => S) (@is_morphism gT gT).
 Proof. by []. Qed.
 
 Canonical Structure id_subfunc :=
@@ -214,13 +222,22 @@ Canonical Structure id_subfunc :=
             (fun G => subset_refl _)
             id_resp.
 
+Lemma triv_resp : resp (fun _ S => 1) (@is_morphism gT gT).
+Proof. by move=> H f _ ; rewrite morphim1. Qed.
+
+Canonical Structure triv_subfunc :=
+  @isFcClass _ _ _ (fun _ S => 1)
+            (fun G => groupP 1%G)
+            (@sub1G gT)
+            triv_resp.
+
 Require Import center.
 
-Lemma center_resp : resp (fun _ G => 'Z(G)) (@is_surj_end gT).
+Lemma center_resp : resp (fun _ S => 'Z(S)) (@is_surj_end gT).
 Proof.
-move=> H phi /= Heq; rewrite /center {1}(eqP Heq) subsetI; apply/andP; split.
-  by move/(morphimS phi): (subsetIl H 'C(H)); rewrite (eqP Heq).
-by rewrite morphimIdom; apply:(subset_trans (morphim_cent _ _)). 
+move=> H phi /= Heq; apply:(subset_trans (morphimI _ _ _ )).
+rewrite subsetI subsetIl /=; apply:(subset_trans (subsetIr (phi @* H) _) ).
+exact:morphim_cent.
 Qed.
 
 Canonical Structure center_id_subfunc :=
@@ -264,6 +281,52 @@ Canonical Structure der_id_subfunctor (n:nat) :=
   isFcClass (fun (G:{group gT}) => der_group_set G n)
             (der_clos n)
             (der_resp n).
+
+Require Import pgroups.
+
+Implicit Types G:{group gT}.
+
+Lemma Ohm_sub : forall i G, 'Ohm_i(G) \subset G.
+Proof.
+by move=> i G; rewrite gen_subG; apply/subsetP=> x; rewrite inE; case/andP.
+Qed.
+
+Lemma Ohm_resp : forall i,
+  resp (fun gT S => 'Ohm_i(S)) (@is_aut gT).
+Proof.
+move=> i G f; move/andP=>[Hinj Hs]; apply/bigcap_inP=> j Hj.
+rewrite sub_morphim_pre // gen_subG;
+apply/subsetP=> x; rewrite inE; last by move/andP => [Hx].
+case/andP=> Gx oxp; rewrite !inE Gx /=; apply: (subsetP Hj).
+rewrite inE {1}morphimEdom (mem_imset _ Gx) /= -(morphX _ _ Gx) (eqP Hs).
+by rewrite (eqP oxp) morph1.
+Qed.
+
+Canonical Structure Ohm_id_subfunctor (i:nat) :=
+  @isFcClass _ _ _ (fun _ S => 'Ohm_i(S))
+            (fun G => groupP 'Ohm_i(G)%G)
+            (Ohm_sub i)
+            (Ohm_resp i).
+
+Lemma Mho_sub : forall i G, 'Mho^i(G) \subset G.
+Proof.
+move=> i G; rewrite gen_subG; apply/subsetP=> y; case/imsetP=> x Gx ->.
+exact:groupX.
+Qed.
+
+Lemma Mho_resp : forall i,
+  resp (fun gT S => 'Mho^i(S)) (@is_aut gT).
+Proof.
+move=> i G f; move/andP=>[Hinj Hs]; rewrite morphim_gen ?gen_subG;
+  last by apply/subsetP=> y; move/imsetP=> [x Hx ->]; apply:groupX.
+apply/bigcap_inP=> H; move/(subset_trans _);apply.
+(* the following could be much faster provided you prove a few things on conjXg*)
+rewrite sub_morphim_pre; apply/subsetP=> y; 
+  move/imsetP=> [x Hx ->]; last exact:groupX.
+apply/morphpreP; split; first exact:groupX.
+rewrite morphX //; apply/imsetP; exists (f x); 
+ by [rewrite morphimEdom mem_imset|rewrite (eqP Hs)].
+Qed.
 
 End IdentitySubfunctorsExamples.
 
