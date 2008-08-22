@@ -91,6 +91,10 @@ Lemma coprime_cent_Phi : forall H G,
   coprime #|H| #|G| -> [~: H, G] \subset 'Phi(G) ->  H \subset 'C(G).
 Admitted.
 
+Lemma Fitting_def : forall G H,
+  H <| G -> nilpotent H -> H \subset 'F(G).
+Admitted.
+
 Lemma solvable_self_cent_Fitting : forall G,
   solvable G -> 'C_G('F(G)) \subset 'F(G).
 Admitted.
@@ -101,7 +105,17 @@ Admitted.
 Lemma Fitting_normal : forall G, 'F(G) <| G.
 Proof. move=> G; apply: normal_char; exact: Fitting_char. Qed.
 
+Lemma quotient1:  forall G, (G / 1) \isog G. 
+Proof.
+move=> G; have GsG: G \subset G by apply: subset_refl.
+rewrite -{2}(morphim_idm GsG) -(ker_idm G); apply: first_isom.
+Qed.
+
 End Props.
+
+Lemma Fitting_iso : forall (gT rT : finGroupType), forall G: {group gT}, 
+forall H: {set rT}, G \isog H -> 'F(G) \isog 'F(H).
+Admitted.
 
 Section MoreSubsets.
 
@@ -352,10 +366,33 @@ have eqcn: 'N_V(K) = 'C_V(K).
   apply: coprime_norm_cent.
   - rewrite -subcomm_normal commsgC; case Vcomm=> eqV _; rewrite -{2}eqV; apply: subset_refl.
   - exact (pi_nat_coprime  pV p'K).
-have PIV: V :&: P = 1.
-  apply/eqP; rewrite eqset_sub sub1G andb_true_r.
-  apply: (subset_trans (setIS _ sPN)); rewrite setIA (setIidPl sVH) eqcn.
+have VIN: V :&: 'N_H(K) = 1. 
+  apply/eqP; rewrite eqset_sub sub1G andb_true_r; rewrite setIA (setIidPl sVH) eqcn.
   case Vcomm => _ ; move/trivgP <-; apply: subset_refl.
+have VIP: V :&: P = 1.
+  apply/eqP; rewrite eqset_sub sub1G andb_true_r.
+  by rewrite -VIN; apply: setIS; apply: (subset_trans sPN).
+have iso1: 'N_H(K) \isog H / V.
+  rewrite {2}defH quotient_mulgr.
+  have sec_iso: 'N_H(K) / 1 \isog 'N_H(K) / V.
+    by rewrite -VIN; apply: second_isom; apply: (subset_trans _ nVH); apply: subsetIl.
+  apply: (isog_trans _ sec_iso); rewrite isog_sym; apply: quotient1.
+have iso2: K \isog 'F(H / V).
+  rewrite defU defVK quotient_mulgr.
+  have sec_iso: K / 1 \isog K / V.
+    rewrite -(trivgP _ (coprime_trivg (pi_nat_coprime  pV p'K))).
+    apply: second_isom; apply: (subset_trans _ nVH); exact: (subset_trans sKU sUH).
+  apply: (isog_trans _ sec_iso); rewrite isog_sym; apply: quotient1.
+have eqK: K = 'F('N_H(K)) :> (set _).
+  apply/eqP; rewrite eqset_sub_card; apply/andP; split; last first.
+  - by rewrite (isog_card (Fitting_iso iso1)) (isog_card iso2).
+  - apply: Fitting_def; first by apply: normalSG; apply: subset_trans sKU sUH.
+    admit.
+have{dp trVeq Vcomm eqcn VIN VIP iso1 iso2} sCKK: 'C_H(K) \subset K.
+  rewrite {2}eqK; apply: (subset_trans _ (solvable_self_cent_Fitting _)).
+  - by rewrite -eqK subsetI subsetIr andb_true_r; apply: setIS; apply: cent_subset.
+  - by apply: solvable_sub _ (solvable_sub sHG solG); apply: subsetIl.
+Search[(_ \char _)].
 admit.
 Qed.
 
