@@ -323,7 +323,7 @@ case/normalP: nPG => _; exact.
 Qed.
 
 Lemma sylowNLE : forall (gT : finGroupType) (G P Q : {group gT}) p,
-  prime p -> (P <| G)%g -> sylow p G P -> sylow p G Q -> P = Q :> set _.
+  prime p -> (P <| G)%g -> sylow p G P -> sylow p G Q -> P :=: Q.
 Proof.
 move=> gT G P Q p Pp Npg Sp Sq.
 have: #|gsylow p G| == 1%N by apply/(normal_sylowP _ Pp); exists P.

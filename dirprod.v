@@ -136,7 +136,7 @@ by move/(subsetP trH): Hu; move/set1P->; rewrite invg1 eqxx.
 Qed.
 
 Lemma dirprod_normal_isom : forall H1 H2 G,
-  reflect [/\ H1 <| G, H2 <| G, G = H1 * H2 :> set _ & trivg (H1 :&: H2)]
+  reflect [/\ H1 <| G, H2 <| G, G :=: H1 * H2 & trivg (H1 :&: H2)]
           (misom (setX H1 H2) G mulg_pair).
 Proof.
 move=> H1 H2 G.
@@ -162,8 +162,7 @@ Definition central_product A B :=
 
 Infix "\*" := central_product (at level 40, left associativity).
 
-Lemma smulg_1set : forall H1 H2,
-  (H1 * H2 == 1) = (H1 == 1 :> set _) && (H2 == 1 :> set _).
+Lemma smulg_1set : forall H1 H2, (H1 * H2 == 1) = (H1 :==: 1) && (H2 :==: 1).
 Proof.
 move=> H1 H2; rewrite !eqset_sub -{2}[1]mulGid mulgSS ?sub1G // !andbT.
 by rewrite -gen_subG genM_mulgen gen_subG subUset.
@@ -305,6 +304,10 @@ move=> A B G; rewrite /(A \x B); case: trivg; first by move/cprodGP.
 by move/setP; move/(_ 1); rewrite group1 inE.
 Qed.
 
+Lemma dprodGE : forall G H,
+  G \subset 'C(H) -> trivg (G :&: H) -> G \x H = G * H.
+Proof. by move=> G H cGH trGH; rewrite /(G \x H) trGH cprodGE. Qed.
+
 Lemma bigdprodE : forall I (r : seq I) P F G,
   \big[direct_product/1]_(i <- r | P i) F i = G
   -> \prod_(i <- r | P i) F i = G.
@@ -318,6 +321,6 @@ Qed.
 End InternalDirProd.
 
 Prenex Implicits direct_product central_product.
-Infix "\x" := direct_product (at level 40, left associativity).
-Infix "\*" := central_product (at level 40, left associativity).
+Infix "\x" := direct_product (at level 40, left associativity) : group_scope.
+Infix "\*" := central_product (at level 40, left associativity) : group_scope.
 

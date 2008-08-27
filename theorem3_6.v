@@ -117,22 +117,6 @@ Lemma Fitting_iso : forall (gT rT : finGroupType), forall G: {group gT},
 forall H: {set rT}, G \isog H -> 'F(G) \isog 'F(H).
 Admitted.
 
-Section MoreSubsets.
-
-Variables (T : finType) (A B C D : {set T}).
-Hypotheses (sAC : A \subset C) (sBD : B \subset D).
-
-Lemma setISS : A :&: B \subset C :&: D.
-Proof. exact: subset_trans (setIS _ _) (setSI _ _). Qed.
-
-Lemma setUSS : A :|: B \subset C :|: D.
-Proof. exact: subset_trans (setUS _ _) (setSU _ _). Qed.
-
-Lemma setDSS : A :\: D \subset C :\: B.
-Proof. exact: subset_trans (setDS _ _) (setSD _ _). Qed.
-
-End MoreSubsets.
-
 Theorem three_dot_six : forall (gT : finGroupType) (G H R R0 : {group gT}),
     solvable G -> odd #|G| ->
     H <| G -> is_hall G H -> R \in complg G H ->
@@ -153,7 +137,7 @@ have IHG: forall H1 R1 : {group gT},
   H1 \subset H -> H1 * R1 \subset 'N(H1) -> R0 \subset R1 -> R1 \subset R ->
   (#|H1| < #|H|) || (#|R1| < #|R|) -> p_length_1 p [~: H1, R1].
 - move=> H1 R1 sH1 nH1 sR01 sR1 ltG1.
-  move defHR1: (H1 <*> R1)%G => G1; have{defHR1} defG1: G1 = H1 * R1 :> set _.
+  move defHR1: (H1 <*> R1)%G => G1; have{defHR1} defG1: G1 :=: H1 * R1.
     have nH1R: R1 \subset 'N(H1) := subset_trans (mulG_subr H1 R1) nH1.
     by rewrite -defHR1 /= mulgenC norm_mulgenE // normC.
   have coHR1: coprime #|H1| #|R1|.
@@ -222,7 +206,7 @@ move defV: 'F(H)%G => V.
 have charV: V \char H by rewrite -defV Fitting_char.
 have nVG: G \subset 'N(V) by rewrite normal_norm ?(char_norm_trans charV).
 have sVH: V \subset H by rewrite normal_sub ?normal_char.
-have defVp: V = 'O_p(H) :> set _.
+have defVp: V :=: 'O_p(H).
   admit.
 have pV: pgroup p V by rewrite defVp pgroup_core.
 have sCV_V: 'C_H(V) \subset V.
@@ -261,7 +245,7 @@ wlog abV: / abelem p V.
     by apply: subsetP Wx; apply: subset_trans (subset_trans sWH _) nVG.
   move: nWH; rewrite -subcomm_normal commsgC; apply: subset_trans.
   by rewrite commgSS // cycle_h //.
-have{sCV_V} eqVC: V = 'C_H(V) :> (set _). 
+have{sCV_V} eqVC: V :=: 'C_H(V). 
   by apply/eqP; rewrite eqset_sub sCV_V subsetI andbT sVH; case/andP: abV.
 wlog{IHquo} nondecV:  / forall N1 N2,
       N1 \x N2 = V -> G \subset 'N(N1) :&: 'N(N2) -> trivg N1 \/ N1 = V.
@@ -295,7 +279,7 @@ case=> K hallK nKR; have [sKU _]:= andP hallK.
 have p'K: pgroup p^' K by move: hallK; rewrite hallE; case/and3P.
 have p'Ub: pgroup p^' 'F(H / V) by admit.
 have nVU := subset_trans (subset_trans sUH sHG) nVG.
-have defVK: U = V * K :> {set gT}.
+have defVK: U :=: V * K.
   have nVK := subset_trans sKU nVU.
   apply/eqP; rewrite eqset_sub mul_subG //= andbT -quotientSK //.
   rewrite subEproper eq_sym eqset_sub_card.
@@ -304,7 +288,7 @@ have defVK: U = V * K :> {set gT}.
 have sylV: sylow p U V.
   have coVK: coprime #|V| #|K| := p_nat_coprime pV p'K.
   by rewrite [sylow p U V]hallE sVU [pgroup _ V]pV -card_quotient // -defU.
-have defH: H = V * 'N_H(K) :> {set gT}.
+have defH: H :=: V * 'N_H(K).
   have nUH: U <| H by apply/andP; rewrite (subset_trans sHG).
   rewrite -{1}(HallFrattini _ nUH hallK); last exact: solvable_sub solG.
   by rewrite defVK -mulgA [K * _]mulSGid // subsetI normG (subset_trans sKU).
@@ -345,7 +329,7 @@ case/orP: (orbN (trivg [~: K, P])) => [tKP|ntKP].
   case/andP: sylP; rewrite p1_part => _ cardP. 
   apply: (sylow2_subset pr_p sPU cardP); rewrite //=.
   rewrite/normal sVU //=.
-have{sylVP} dp: [~: V, K] \x 'C_V(K) = V :> set _.
+have{sylVP} dp: [~: V, K] \x 'C_V(K) :=: V.
   apply: sym_eq; apply: comm_center_dir_prod.
   - exact: (subset_trans sKU nVU).
   - exact (p_nat_coprime  pV p'K).
@@ -353,7 +337,7 @@ have{sylVP} dp: [~: V, K] \x 'C_V(K) = V :> set _.
 have trVeq: trivg 'C_V(K) \/ 'C_V(K) = V.
   apply: (nondecV _  [~: V, K]); first by rewrite dprodC.
   rewrite subsetI; apply/andP; split; admit.
-have Vcomm: [~: V, K] = V :> set _ /\ trivg  'C_V(K).
+have Vcomm: [~: V, K] :=: V /\ trivg  'C_V(K).
   case trVeq=> [trC|eqC]. 
   - split; last done.
     by rewrite -{2}dp; case/trivgP:trC; move ->; rewrite dprodg1.
@@ -383,7 +367,7 @@ have iso2: K \isog 'F(H / V).
     rewrite -(trivgP _ (coprime_trivg (p_nat_coprime  pV p'K))).
     apply: second_isom; apply: (subset_trans _ nVH); exact: (subset_trans sKU sUH).
   apply: (isog_trans _ sec_iso); rewrite isog_sym; apply: quotient1.
-have eqK: K = 'F('N_H(K)) :> (set _).
+have eqK: K :=: 'F('N_H(K)).
   apply/eqP; rewrite eqset_sub_card; apply/andP; split; last first.
   - by rewrite (isog_card (Fitting_iso iso1)) (isog_card iso2).
   - apply: Fitting_def; first by apply: normalSG; apply: subset_trans sKU sUH.

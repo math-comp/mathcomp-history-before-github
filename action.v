@@ -444,85 +444,6 @@ Notation "''C_' ( A | to ) [ x ]" := (A :&: 'C_(|to)[x])%G : subgroup_scope.
 Notation "''N_' ( | to ) ( S )" := (astabs_group to S) : subgroup_scope.
 Notation "''N_' ( A | to ) ( S )" := (A :&: 'N_(|to)(S))%G : subgroup_scope.
 
-(*
-Section ModP.
-
-Variable (gT : finGroupType) (sT : finType).
-
-Variable to : {action gT &-> sT}.
-
-Variable G : {group gT}.
-
-(***********************************************************************)
-(*                                                                     *)
-(*           The mod p lemma                                           *)
-(*                                                                     *)
-(***********************************************************************)
-
-Lemma mpl : forall n p (S : {set sT}),
-   prime p -> #|G| = (p ^ n)%N -> [acts (G | to) on S] ->
-   #|S| %% p = #|'C_S(G | to)| %% p.
-Proof.
-move=> n p S prime_p cardG GactS.
-rewrite -[#|S|]muln1 -(sum_nat_const (mem S)) (bigID (mem 'C(G | to))) /=.
-rewrite sum_nat_const muln1 addnC -modn_addml; congr (_ %% _).
-rewrite (_ : _ %% p = 0); first by apply: eq_card => x; rewrite 2!inE.
-pose orb := orbit to G; pose orbS := orb @: (S :\: 'C(G | to)).
-transitivity ((\sum_(X \in orbS) #|X|) %% p); first congr (_ %% p).
-  rewrite (partition_big orb (mem orbS)) /= => [|x Sx]; last first.
-    by rewrite mem_imset // inE andbC.
-  apply: eq_bigr => X; case/imsetP=> x Sx ->{X}; rewrite sum_nat_const muln1.
-  apply: eq_card => y; apply/andP/idP=> [[Sy] | xGy].
-    move/eqP <-; exact: orbit_refl.
-  split; last by rewrite /orb (orbit_transl xGy).
-  case/imsetP: xGy => a Ga ->; rewrite (actsP GactS) //.
-  by rewrite (actsP (norm_act_fix _ (normG G))) // andbC -in_setD.
-apply big_prop => [|m1 m2|X]; first exact: mod0n.
-  by rewrite -modn_addml => ->.
-case/imsetP=> x; case/setDP=> Sx nCx ->{X}.
-have: #|orb x| %| p ^ n by rewrite -cardG dvdn_orbit.
-case/dvdn_exp_prime => // k _.
-case: k => [orbx1 | k ->]; last by rewrite -modn_mulml modnn mod0n.
-case/orbit1P: nCx; apply/eqP.
-by rewrite eqset_sub_card sub1set orbx1 cards1 orbit_refl.
-Qed.
-
-(*
-Lemma mpl : forall n p (S : pred sT),
-   prime p -> #|G| = (p ^ n)%N -> closed [rel of orbit to G] (mem S) ->
-   #|S| %% p = #|predI (act_fix to G) (mem S)| %% p.
-Proof.
-move=> n p S prime_p cardG; elim: {S}_.+1 {-2}S (ltnSn #|S|) => // m IHm S.
-rewrite ltnS => leSm GactS.
-case: (pickP (predD (mem S) (act_fix to G))) => [a | fixS]; last first.
-  congr modn; apply: eq_card => a; rewrite !inE /= andbC; symmetry.
-  by move/(_ a): fixS; rewrite /= andbC; case: (a \in S) => //=; move/negbEF.
-pose aG := orbit to G a.
-move/andP=> /= [nfixa Sa]; rewrite -(cardID (mem aG) S) memE.
-have [i ->]: exists i, #|[predI S & aG]| = (p * p ^ i)%N.
-  have ->: #|[predI S & aG]| = #|aG|.
-    apply: eq_card => b; rewrite inE /= andbC; case aGb: (b \in aG) => //=.
-    by rewrite -[b \in S](GactS a).
-  have: #|aG| %| p ^ n by rewrite -cardG dvdn_orbit.
-  case/dvdn_exp_prime=> //= [] [_ fixa|i]; last by exists i.
-  case/orbit1P: nfixa; symmetry; exact: card_orbit1.
-rewrite mulnC modn_addl_mul {}IHm; last first.
-- move=> b1 b2  /= orbGb12; rewrite !inE /= [b1 \in S](GactS _ b2) //=.
-  congr (~~ _ && _).
-  rewrite -!orbit_trans in orbGb12 *; apply: same_connect_r => //=.
-  exact: orbit_csym.
-- apply: leq_trans leSm => {m IHm}.
-  rewrite -(cardID (mem aG) S) memE -add1n leq_add2r lt0n.
-  by apply/pred0Pn; exists a; rewrite /= Sa /aG orbit_refl.
-congr (_ %% p); apply: eq_card => b //=; rewrite !inE /= inE /= andbCA andbC.
-case: (@andP _ (b \in S)) => //= [[fixb Sb]].
-rewrite orbit_sym -(orbit1P _ _ _ fixb).
-by apply/set1P=> eqab; rewrite eqab fixb in nfixa.
-Qed.
-*)
-
-End ModP.
-*)
 (*  Definition of the right translation as an action on cosets.        *)
 
 Section GroupActions.
@@ -1026,9 +947,9 @@ Qed.
 
 Lemma trans_prim_astab : forall x,
   x \in S -> [transitive (G | to) on S] ->
-    [primitive (G | to) on S] = maximal 'C_(G | to)[x] G.
+    [primitive (G | to) on S] = maximal_eq 'C_(G | to)[x] G.
 Proof.
-move=> x Sx Ht; apply/(primitivePt Ht)/maximalP=> [Hp | [Hs Hst Y Hsub Hd]].
+move=> x Sx Ht; apply/(primitivePt Ht)/maximal_eqP=> [Hp | [Hs Hst Y Hsub Hd]].
   split=> [|H Hk1 Hk2]; first exact: subsetIl.
   pose Y := orbit to H x; have Yx: x \in Y by exact: orbit_refl.
   case/(_ Y): Hp.
@@ -1041,7 +962,7 @@ move=> x Sx Ht; apply/(primitivePt Ht)/maximalP=> [Hp | [Hs Hst Y Hsub Hd]].
     apply: (subsetP Hk1); apply/setIP; split.
       by rewrite !(groupM, groupV) // (subsetP Hk2).
     by apply/astab1P; rewrite !actM -yg2_xh2 actK yg1_xh1 actK.
-  - move=> Y1; left; apply/eqP; rewrite eqset_sub Hk1 subsetI Hk2 /=.
+  - move=> Y1; left; apply/eqP; rewrite eqset_sub Hk1 subsetI Hk2 /= andbT.
     apply/subsetP=> a Ha; apply/astab1P.
     apply/set1P; rewrite (([set x] =P Y) _) ?mem_imset //.
     by rewrite eqset_sub_card sub1set Yx cards1.
@@ -1065,7 +986,7 @@ case: (Hst ('N_(G | to)(Y) :^ a^-1)%G) => /=.
 - have:= subsetP Hsub z Yz; rewrite -(atransP Ht _  (subsetP Hsub y Yy)).
   case/imsetP=> b Gb z_yb Cx_NY; case/eqP: nny; rewrite z_yb y_xa actCJV.
   have: b \in 'N_(G | to)(Y) by rewrite defN !inE Gb -z_yb /=.
-  by rewrite -(memJ_conjg _ a^-1) -Cx_NY inE groupJ ?groupV //; move/astab1P->.
+  by rewrite -(memJ_conjg _ a^-1) Cx_NY inE groupJ ?groupV //; move/astab1P->.
 move=> NY_G; apply/subsetP=> t; case/imsetP=> b.
 rewrite -{1}(mulgKV a b) groupMr // -NY_G defN mem_conjgV conjgE mulgKV.
 by rewrite !inE actM y_xa actK; case/andP=> _ ? ->.

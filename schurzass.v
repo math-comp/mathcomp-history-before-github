@@ -315,7 +315,7 @@ case nPG: (P <| G); last first.
     apply: IHn hallH' nH'N; apply: {n}leq_trans Gn.
     rewrite ltn_neqAle subset_leq_card // andbT; apply/eqP=> eqNG.
     case/andP: nPG; rewrite (subset_trans _ sHG); last by case/andP: sylP.
-    suff <-: (N = G :> set _) by rewrite subsetIr.
+    suff <-: N :=: G by rewrite subsetIr.
     by apply/setP; exact/subset_cardP.
   have sKN: K \subset N by rewrite -(mul1g K) -eqH'K mulSg ?sub1set.
   apply/splitgP; exists K.
@@ -473,7 +473,7 @@ rewrite ltnS => leHn K K1 solH nHK; case trH: (trivg H).
   exists (1 : gT); first exact: set11.
   by apply/eqP; rewrite -val_eqE /= conjsg1 eqset_sub_card sK1K eqK1K /=.
 pose G := (H <*> K)%G.
-have defG: G = H * K :> set gT by rewrite -normC // -norm_mulgenE // mulgenC.
+have defG: G :=: H * K by rewrite -normC // -norm_mulgenE // mulgenC.
 have sHG: H \subset G by rewrite -gen_subG genS // subsetUl.
 have sKG: K \subset G by rewrite -gen_subG genS // subsetUr.
 have nHG: H <| G by rewrite /(H <| G) sHG gen_subG subUset nHK normG.

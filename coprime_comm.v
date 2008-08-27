@@ -39,7 +39,7 @@ Qed.
 
 Lemma comm_center_prod : forall A G : {group T},
   A \subset 'N(G) -> coprime #|G| #|A| -> solvable G ->
-  G = [~: G, A] * 'C_G(A) :> set _.
+  G :=: [~: G, A] * 'C_G(A).
 Proof.
 move=> A G AsubNG coprime solv.
 apply/eqP; rewrite eqset_sub andbC -{3}mulGid imset2S ?subsetIl //; last first.
@@ -139,7 +139,7 @@ Qed.
 
 Theorem comm_center_dir_prod: forall A G : {group T},
   A \subset 'N(G) -> coprime #|G| #|A| -> abelian G ->
-  G = [~: G, A] \x 'C_G(A) :> set _.
+  G :=: [~: G, A] \x 'C_G(A).
 move=> A G AsubNG coprime abel.
 have trI: trivg ([~: G, A] :&: 'C_G(A)) by apply/trivgP; apply: comm_center_triv.
 rewrite /direct_product trI // cprodGE.

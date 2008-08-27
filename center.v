@@ -78,11 +78,11 @@ Variable H : group gT.
 
 (* G. 1.3.4 *)
 
-Lemma center_cyclic_abelian : forall a, H / 'Z(H) = <[a]> -> (H = 'Z(H))%G.
+Lemma center_cyclic_abelian : cyclic (H / 'Z(H)) -> H :=: 'Z(H).
 Proof.
-move=> /= a Ha; apply/eqP; rewrite -val_eqE eqset_sub subset_center /= andbT.
+case/cyclicP=> a Ha; apply/eqP; rewrite eqset_sub subset_center /= andbT.
 case: (cosetP a) => /= z Nz def_a.
-have H_Zz: H = 'Z(H) * <[z]> :> set _.
+have H_Zz: H :=: 'Z(H) * <[z]>.
   rewrite -['Z(H)]ker_coset -morphimK ?cycle_h ?morphim_cycle //=.
   by rewrite -def_a -Ha morphimGK ?ker_coset //; case/andP: (centerN H).
 rewrite -(mulg1 'Z(H)) {1}H_Zz mulGS mulg1 /= H_Zz subsetI mulG_subr /=.

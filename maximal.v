@@ -25,17 +25,11 @@ Import GroupScope.
 
 Section Defs.
 
-Variable gT : finGroupType.
-Implicit Types A B : {set gT}.
-Implicit Types G H K M : {group gT}.
+Variables (gT : finGroupType) (A : {set gT}).
 
-Definition maximal A B := [max A | A \proper B].
+Definition Frattini := \bigcap_(H : {group gT} | maximal_eq H A) H.
 
-Definition maximal_eq A B := (A == B) || maximal A B.
-
-Definition Frattini A := \bigcap_(H : {group gT} | maximal_eq H A) H.
-
-Canonical Structure Frattini_group A := Eval hnf in [group of Frattini A].
+Canonical Structure Frattini_group := Eval hnf in [group of Frattini].
 
 End Defs.
 
@@ -48,31 +42,6 @@ Section Props.
 Variable gT : finGroupType.
 Implicit Types A B : {set gT}.
 Implicit Types G H K M : {group gT}.
-
-Lemma maximalP : forall M G,
-  reflect (M \proper G /\ (forall H, H \proper G -> M \subset H -> H = M))
-          (maximal M G).
-Proof. move=> M G; exact: maxgroupP. Qed.
-
-Lemma maximal_eqP : forall M G,
-  reflect (M \subset G  /\
-             forall H, M \subset H -> H \subset G -> H = M \/ H = G)
-       (maximal_eq M G).
-Proof.
-move=> M G; rewrite subEproper /maximal_eq; case: eqP => [->|_]; first left.
-  by split=> // H sGH sHG; right; apply/eqP; rewrite -val_eqE eqset_sub sHG.
-apply: (iffP (maxgroupP _ _)) => [] [sMG maxM]; split=> // H.
-  by move/maxM=> maxMH; rewrite subEproper val_eqE; case/predU1P; auto.
-by rewrite properEneq val_eqE; case/andP; move/eqP=> neHG sHG; case/maxM.
-Qed.
-
-Lemma maximal_existence : forall H G, H \subset G ->
-  H = G \/ exists2 M : {group gT}, maximal M G & H \subset M.
-Proof.
-move=> H G; rewrite subEproper val_eqE; case/predU1P=> sHG; first by left.
-suff [M *]: {M : {group gT} | maximal M G & H \subset M} by right; exists M.
-exact: maxgroup_exists.
-Qed.
 
 Lemma Phi_subset : forall G, 'Phi(G) \subset G.
 Proof. by move=> G; apply: bigcap_inf (G) _; apply/orP; left. Qed.
@@ -111,11 +80,11 @@ split=> [|fH sMH sHG]; first by rewrite morphimS.
 have defH: fH = (restrm sGD f @* (restrm sGD f @*^-1 fH))%G.
   apply: group_inj; rewrite /= morphpreK // (subset_trans sHG) //.
   by rewrite morphim_restrm setIid /=.
-rewrite defH; case: (maxM (restrm sGD f @*^-1 fH)%G) => [||->|->].
+rewrite defH; case: (maxM (restrm sGD f @*^-1 fH)%G) => /= [||->|->].
 - by rewrite -sub_morphim_pre //= morphim_restrm (setIidPr _).
 - by rewrite subsetIl.
-- by left; apply: val_inj; rewrite /= morphim_restrm (setIidPr _).
-by right; apply: val_inj; rewrite /= morphim_restrm setIid.
+- by left; rewrite morphim_restrm (setIidPr _).
+by right; rewrite morphim_restrm setIid.
 Qed.
 
 End Morphisms.

@@ -958,7 +958,7 @@ Canonical Structure group_for_subFinType := Eval hnf in [subFinType of groupT].
 Lemma group_inj : injective set_of_group. Proof. exact: val_inj. Qed.
 Lemma groupP : forall G : groupT, group_set G. Proof. by case. Qed.
 
-Lemma congr_group : forall H K : groupT, H = K -> H = K :> sT.
+Lemma congr_group : forall H K : groupT, H = K -> H :=: K.
 Proof. exact: congr1. Qed.
 
 Lemma group_set_unit : group_set 1.
@@ -1081,7 +1081,7 @@ Qed.
 Lemma trivg1 : trivg (1 : sT).
 Proof. exact: subset_refl. Qed.
 
-Lemma trivgP : reflect (G = 1 :> sT) (trivg G).
+Lemma trivgP : reflect (G :=: 1) (trivg G).
 Proof. by rewrite -[trivg G]andbT -sub1G -eqset_sub; exact: eqP. Qed.
 
 Lemma trivGP : reflect (G = 1%G) (trivg G).
@@ -1687,7 +1687,7 @@ Notation mulGenT := (@mulGen gT) (only parsing).
 
 Lemma mulgenE : forall A B, A <*> B = <<A :|: B>>. Proof. by []. Qed.
 
-Lemma mulGenE : forall G H, (G <*> H)%G = G <*> H :> sT. Proof. by []. Qed.
+Lemma mulGenE : forall G H, (G <*> H)%G :=: G <*> H. Proof. by []. Qed.
 
 Lemma mulgenC : commutative mulgenT.
 Proof. by move=> A B; rewrite /mulgen setUC. Qed.
@@ -2058,18 +2058,18 @@ Definition maxgroup P := maxset (fun B => group_set B && P B).
 Definition mingroup P := minset (fun B => group_set B && P B).
 
 Lemma mingroupP : forall P G,
-  reflect (P G /\ forall H, P H -> H \subset G -> H = G) (mingroup P G).
+  reflect (P G /\ forall H, P H -> H \subset G -> H :=: G) (mingroup P G).
 Proof.
 move=> P G; apply: (iffP (minsetP _ _)); rewrite /= groupP => [] /= [-> minG].
-  by split=> // H PH sGH; apply: val_inj; apply: minG; rewrite ?groupP.
+  by split=> // H PH sGH; apply: minG; rewrite ?groupP.
 by split=> // B; case/andP=> gB PB sGB; rewrite -(minG (Group gB)).
 Qed.
 
 Lemma maxgroupP : forall P G,
-  reflect (P G /\ forall H, P H -> G \subset H -> H = G) (maxgroup P G).
+  reflect (P G /\ forall H, P H -> G \subset H -> H :=: G) (maxgroup P G).
 Proof.
 move=> P G; apply: (iffP (maxsetP _ _)); rewrite /= groupP => [] /= [-> maxG].
-  by split=> // H PH sGH; apply: val_inj; apply: maxG; rewrite ?groupP.
+  by split=> // H PH sGH; apply: maxG; rewrite ?groupP.
 by split=> // B; case/andP=> gB PB sGB; rewrite -(maxG (Group gB)).
 Qed.
 
@@ -2125,28 +2125,43 @@ Notation "[ 'min' G 'as' A | P ]" := (mingroup (fun A : {set _} => P) G)
 Notation "[ 'min' G | P ]" := [min G as G | P]
   (at level 0, only parsing) : group_scope.
 
+(* We need to define maximal groups here rather than in maximal.v to resolve *)
+(* a circularity issue between action.v (which uses maximal), pgroups.v, and *)
+(* maximal.v.                                                                *)
+
 Section Maximal.
 
 Variable gT : finGroupType.
-Notation sT := {set gT}.
-Implicit Types A B : sT.
+Implicit Types A B : {set gT}.
+Implicit Types G H M : {group gT}.
 
-Definition maximal A B :=
-  (A \subset B) &&
-  (forallb K : {group gT},
-    (A \subset K) && (K \subset B) ==> (A == K) || (K == B :> sT)).
+Definition maximal A B := [max A | A \proper B].
 
-Lemma maximalP : forall A B,
-  reflect (A \subset B  /\
-           forall K : {group gT},
-             A \subset K -> K \subset B -> A = K \/ K = B :> sT)
-  (maximal A B).
+Definition maximal_eq A B := (A == B) || maximal A B.
+
+Lemma maximalP : forall M G,
+  reflect (M \proper G /\ (forall H, H \proper G -> M \subset H -> H :=: M))
+          (maximal M G).
+Proof. move=> M G; exact: maxgroupP. Qed.
+
+Lemma maximal_eqP : forall M G,
+  reflect (M \subset G  /\
+             forall H, M \subset H -> H \subset G -> H :=: M \/ H :=: G)
+       (maximal_eq M G).
 Proof.
-move=> A B; (apply: (iffP andP); case=> sHG maxH; split) => // [K sHK sKG|].
-  by have:= (forallP maxH K); rewrite sHK sKG; case/orP; move/eqP; auto.
-apply/forallP => K; apply/implyP; case/andP=> sHK sKG.
-by case (maxH K) => // ->; rewrite eqxx ?orbT.
+move=> M G; rewrite subEproper /maximal_eq; case: eqP => [->|_]; first left.
+  by split=> // H sGH sHG; right; apply/eqP; rewrite eqset_sub sHG.
+apply: (iffP (maxgroupP _ _)) => [] [sMG maxM]; split=> // H.
+  by move/maxM=> maxMH; rewrite subEproper; case/predU1P; auto.
+by rewrite properEneq; case/andP; move/eqP=> neHG sHG; case/maxM.
+Qed.
+
+Lemma maximal_existence : forall H G, H \subset G ->
+  H :=: G \/ exists2 M : {group gT}, maximal M G & H \subset M.
+Proof.
+move=> H G; rewrite subEproper; case/predU1P=> sHG; first by left.
+suff [M *]: {M : {group gT} | maximal M G & H \subset M} by right; exists M.
+exact: maxgroup_exists.
 Qed.
 
 End Maximal.
-

@@ -161,10 +161,10 @@ Notation cH := (coset_of H).
 Notation cT := (coset_groupType H).
 
 Lemma set_of_coset_of : forall x,
-  cH x = (if x \in 'N(H) then H :* x else H) :> {set _}.
+  cH x :=: (if x \in 'N(H) then H :* x else H).
 Proof. by move=> x; rewrite val_coset_of /= genGid. Qed.
 
-Lemma coset_ofN : forall x, x \in 'N(H) -> cH x = H :* x :> set _.
+Lemma coset_ofN : forall x, x \in 'N(H) -> cH x :=: H :* x.
 Proof. by move=> x; rewrite set_of_coset_of => ->. Qed.
 
 Lemma coset_of_id : forall x, x \in H -> cH x = 1.
@@ -215,10 +215,10 @@ Qed.
 (* We now build the morphism theory of coset_of by specialising the
 lemmas of the normal library, in part. with the value of 'ker cH *)
 
-Lemma coset_of1 : cH 1%g = H :> set _.
+Lemma coset_of1 : cH 1 :=: H.
 Proof. by rewrite morph1 /= genGid. Qed.
 
-Lemma ker_cosetE : H = cH @*^-1 1 :> set _. 
+Lemma ker_cosetE : H :=: cH @*^-1 1. 
 Proof. symmetry; rewrite -{7}ker_coset; apply: kerE. Qed.
 
 Lemma cosetimEdom : cH @* 'N(H) = setT.

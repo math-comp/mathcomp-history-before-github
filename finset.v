@@ -40,6 +40,21 @@ Arguments Scope ffun_of_set [_ set_scope].
 Notation "{ 'set' T }" := (set_for (Phant T))
   (at level 0, format "{ 'set'  T }") : type_scope.
 
+(* We later define several subtypes that coerce to set; for these it is *)
+(* preferable to state equalities at the {set _} level, even when       *)
+(* comparing subtype values, because the primitive "injection" tactic   *)
+(* tends to diverge on complex types (e.g., quotient groups).           *)
+(* We provide some parse-only notation to make this technicality less   *)
+(* obstrusive.                                                          *)
+Notation "A :=: B" := (A = B :> {set _})
+  (at level 70, no associativity, only parsing) : set_scope.
+Notation "A :<>: B" := (A <> B :> {set _})
+  (at level 70, no associativity, only parsing) : set_scope.
+Notation "A :==: B" := (A == B :> {set _})
+  (at level 70, no associativity, only parsing) : set_scope.
+Notation "A :!=: B" := (A != B :> {set _})
+  (at level 70, no associativity, only parsing) : set_scope.
+
 Notation Local set_of_def := (fun T P => @mkSet T (ffun_of P)).
 
 Notation Local pred_of_set_def := (fun T (A : set T) => val A : _ -> _).
@@ -332,6 +347,10 @@ Qed.
 Lemma setSU : forall A B C, A \subset B -> A :|: C \subset B :|: C.
 Proof. by move=> A B C sAB; rewrite -!(setUC C) setUS. Qed.
 
+Lemma setUSS : forall A B C D,
+  A \subset C -> B \subset D -> A :|: B \subset C :|: D.
+Proof. move=> *; exact: subset_trans (setUS _ _) (setSU _ _). Qed.
+
 Lemma set0U : forall A, set0 :|: A = A.
 Proof. by move=> A; apply/setP => x; rewrite !inE orFb. Qed.
 
@@ -381,6 +400,10 @@ Qed.
 
 Lemma setSI : forall A B C, A \subset B -> A :&: C \subset B :&: C.
 Proof. by move=> A B C sAB; rewrite -!(setIC C) setIS. Qed.
+
+Lemma setISS : forall A B C D,
+  A \subset C -> B \subset D -> A :&: B \subset C :&: D.
+Proof. move=> *; exact: subset_trans (setIS _ _) (setSI _ _). Qed.
 
 Lemma setTI : forall A, setT :&: A = A.
 Proof. by move=> A; apply/setP => x; rewrite !inE andTb. Qed.
@@ -499,6 +522,10 @@ Proof. by move=> A B C; rewrite !setDE; exact: setSI. Qed.
 Lemma setDS : forall A B C, A \subset B -> C :\: B \subset C :\: A.
 Proof. by move=> A B C; rewrite !setDE -setCS; exact: setIS. Qed.
 
+Lemma setDSS : forall A B C D,
+  A \subset C -> D \subset B -> A :\: B \subset C :\: D.
+Proof. move=> *; exact: subset_trans (setDS _ _) (setSD _ _). Qed.
+
 Lemma setD0 : forall A, A :\: set0 = A.
 Proof. by move=> A; apply/setP=> x; rewrite !inE. Qed.
 
@@ -513,6 +540,9 @@ Proof. by move=> A; apply/setP=> x; rewrite !inE andbT. Qed.
 
 Lemma setDv : forall A, A :\: A = set0.
 Proof. by move=> A; apply/setP=> x; rewrite !inE andNb. Qed.
+
+Lemma setDset1 : forall A x, A :\: [set x] = A :\ x.
+Proof. by move=> A x; apply/setP=> y; rewrite !inE. Qed.
 
 Lemma setCD : forall A B, ~: (A :\: B) = ~: A :|: B.
 Proof. by move=> A B; rewrite !setDE setCI setCK. Qed.

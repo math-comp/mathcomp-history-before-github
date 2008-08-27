@@ -32,7 +32,7 @@ move=> T T3; have{T3} oA: #|'Alt_T| = 3.
   by apply: double_inj; rewrite -mul2n card_Alt T3.
 apply/simpleP; split=> [|K]; [by rewrite trivg_card oA | case/andP=> sKH _].
 have:= group_dvdn sKH; rewrite oA dvdn_divisors // !inE orbF orbC /= -oA.
-case/orP=> eqK; [right | left]; apply/eqP; rewrite -val_eqE.
+case/orP=> eqK; [right | left]; apply/eqP.
   by rewrite eqset_sub_card sKH (eqP eqK) leqnn.
 by rewrite eq_sym eqset_sub_card sub1G (eqP eqK) cards1.
 Qed.
@@ -66,7 +66,7 @@ have [p [p_pr pA_int Sp1]]:
     rewrite {1}(cardD1 1) group1 (cardD1 x) inE [_ x]/= inE nx1 Q1x Q2x /=.
     by move/eqP->.
   move=> /= cQ3; pose Syl2 := gsylow 2 A.
-  have{cQ3} nQS2: forall P, P \in Syl2 -> P = A :\: Q3 :> set _.
+  have{cQ3} nQS2: forall P, P \in Syl2 -> P :=: A :\: Q3.
     move=> P; rewrite /Syl2 /gsylow /in_mem /= sylowE; case/andP=> sAP.
     rewrite oA p1_part -[_ 2 _]/4; move/eqP=> cP.
     apply/setP; apply/subset_cardP.
@@ -99,7 +99,7 @@ Proof.
 move=> T oT.
 pose tp := is_true_true.
 have F1: #|'Alt_T| = 60 by apply: double_inj; rewrite -mul2n card_Alt oT.
-have FF: forall H : group _, H <| 'Alt_T -> H <> 1 :> set _ -> 20 %| #|H|.
+have FF: forall H : group _, H <| 'Alt_T -> H :<>: 1 -> 20 %| #|H|.
 - move=> H Hh1 Hh3.
   have [x _]: exists x, x \in T by apply/existsP; rewrite /pred0b oT.
   have F2 := Alt_trans T; rewrite oT /= in F2.
@@ -174,10 +174,9 @@ have FF: forall H : group _, H <| 'Alt_T -> H <> 1 :> set _ -> 20 %| #|H|.
   by rewrite (@gauss_inv 4 5) // F7.
 apply/simpleP; split => [|H Hnorm]; first by rewrite trivg_card F1.
 case Hcard1: (#|H| == 1%N); move/eqP: Hcard1 => Hcard1.
-  by left; apply/trivGP; rewrite trivg_card Hcard1.
+  by left; apply/trivgP; rewrite trivg_card Hcard1.
 right; case Hcard60: (#|H| == 60%N); move/eqP: Hcard60 => Hcard60.
-  apply/eqP; rewrite -val_eqE eqset_sub_card Hcard60 F1 andbT.
-  by case/andP: Hnorm.
+  by apply/eqP; rewrite eqset_sub_card Hcard60 F1 andbT; case/andP: Hnorm.
 have Hcard20: #|H| = 20; last clear Hcard1 Hcard60.
   have Hdiv: 20 %| #|H| by apply: FF => // HH; case Hcard1; rewrite HH cards1.
   case H20: (#|H| == 20); first by apply/eqP.
@@ -350,7 +349,7 @@ have F2: [transitive * 4 ('Alt_T | 'P) on setT].
 have F3 := ntransitive1 (tp: 0 < 4) F2.
 have F4 := ntransitive_primitive (tp: 1 < 4) F2.
 case Hcard1: (#|H| == 1%N); move/eqP: Hcard1 => Hcard1.
-  by left; apply/trivGP; rewrite trivg_card Hcard1.
+  by left; apply/trivgP; rewrite trivg_card Hcard1.
 right; case: (prim_trans_norm F3 F4 Hnorm) => F5.
   by rewrite (trivGP H (subset_trans F5 (aperm_faithful _))) cards1 in Hcard1.
 case E1: (pred0b (predD1 T x)).

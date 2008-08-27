@@ -95,7 +95,7 @@ Definition cyclic A := existsb x, A == <[x]>.
 Lemma cyclicP : forall A, reflect (exists x, A = <[x]>) (cyclic A).
 Proof. move=> A; apply: (iffP existsP) => [] [x]; exists x; exact/eqP. Qed.
 
-Lemma cycle_unit : <[1 : gT]> = 1.
+Lemma cycle_unit : <[1]> = 1 :> {set gT}.
 Proof. by apply/eqP; rewrite eqset_sub gen_subG !sub1G. Qed.
 
 Lemma cycle_h : forall a H, a \in H -> <[a]> \subset H.

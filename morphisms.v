@@ -37,7 +37,7 @@ Variables gT : finGroupType.
 Definition simple (A : {set gT}) := #|[set H : {group gT} | H <| A]| == 2.
 
 Theorem simpleP : forall G : {group gT},
-  reflect (~~ trivg G /\ forall H : {group gT}, H <| G -> H = 1%G \/ H = G)
+  reflect (~~ trivg G /\ forall H : {group gT}, H <| G -> H :=: 1 \/ H :=: G)
           (simple G).
 Proof.
 move=> G; rewrite /simple (cardsD1 G) inE normal_refl eqSS (cardsD1 1%G).
@@ -48,9 +48,9 @@ rewrite -cent_set1 centsC sub1G andbT; case: trivGP => [-> | _].
   by case/eqP: nH1; move/trivGP: sH1.
 rewrite eqSS; apply: (iffP eqP) => [simG | [_ simG]].
   split=> // H nHG; have:= card0_eq simG H; rewrite !inE nHG andbT -negb_or.
-  by case/orP; move/eqP; [left | right].
+  by case/orP; rewrite -val_eqE; move/eqP; [left | right].
 apply: eq_card0=> H; rewrite !inE andbA andbC; apply/andP=> [] [].
-by case/simG=> ->; rewrite eqxx ?andbF.
+by rewrite -!(val_eqE H) /=; case/simG=> ->; rewrite eqxx ?andbF.
 Qed.
 
 End Simple.
@@ -62,7 +62,7 @@ Variables aT rT : finGroupType.
 
 Structure morphism (A : {set aT}) : Type := Morphism {
   mfun :> aT -> FinGroup.sort rT;
-  morphM : {in A &, {morph mfun : x y / x * y}}
+  _ : {in A &, {morph mfun : x y / x * y}}
 }.
 
 Definition morphism_for A of phant rT := morphism A.
@@ -98,6 +98,9 @@ Prenex Implicits morphimP morphpreP.
 Section MorphismOps1.
 
 Variables (aT rT : finGroupType) (A : {set aT}) (f : {morphism A >-> rT}).
+
+Lemma morphM : {in A &, {morph f : x y / x * y}}.
+Proof. by case f. Qed.
 
 Notation morphantom := (phantom (aT -> rT)).
 Definition MorPhantom := @Phantom (aT -> rT).
@@ -975,8 +978,7 @@ case/simpleP=> ntH simH; apply/simpleP; split=> [|L nLH].
   by apply: contra ntH; move/trivGP=> H1; rewrite {3}H1 /= morphim1.
 case: (andP nLH); move/(morphim_invm injf); move/group_inj=> <- _.
 have: f @* L <| f @* H by rewrite morphim_normal.
-by case/simH=> [] ->; [left | right];
-  apply: val_inj; rewrite /= (morphim1, morphim_invm).
+by case/simH=> /= ->; [left | right]; rewrite (morphim1, morphim_invm).
 Qed.
 
 End Isomorphisms.

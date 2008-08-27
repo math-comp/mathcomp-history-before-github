@@ -161,7 +161,7 @@ have coKH: coprime #|K| #|H|.
   move: hallH hallK; rewrite !hallE.
   case/and3P=> _ piH _; case/and3P=> _ pi'K _.
   by rewrite coprime_sym (p_nat_coprime piH pi'K).
-have defG: G = K * H :> {set _}.
+have defG: G :=: K * H.
   apply/eqP; rewrite eq_sym eqset_sub_card coprime_card_mulG //.
   rewrite -{1}(mulGid G) mulgSS //=.
   case/andP: hallH => _; move/eqP->; case/andP: hallK => _; move/eqP->.
