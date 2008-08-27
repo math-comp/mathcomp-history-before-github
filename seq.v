@@ -1624,7 +1624,7 @@ Proof. by move=> f1 f2 Hf; elim=> [|x s IHs] //=; rewrite Hf IHs. Qed.
 
 End MapComp.
 
-Lemma eqd_maps : forall (T1 T2 : eqType) (f1 f2 : T1 -> T2) (s : seq T1),
+Lemma eqd_maps : forall (T1 : eqType) T2 (f1 f2 : T1 -> T2) (s : seq T1),
   {in s, f1 =1 f2} -> maps f1 s = maps f2 s.
 Proof.
 move=> T1 T2 f1 f2; elim=> //= x s IHs eqf12.
@@ -1650,6 +1650,9 @@ Proof. by move=> gK; elim=> //= x s ->; rewrite gK. Qed.
 
 Lemma size_pmaps : forall s, size (pmaps s) = count [eta f] s.
 Proof. by elim=> //= x s <-; case f. Qed.
+
+Lemma pmapsS_filter : forall s, maps (@Some rT) (pmaps s) = maps f (filter [eta f] s).
+Proof. by elim=> //= x s; case: {-2}(f x) (erefl (f x)) => //= r -> <-. Qed.
 
 Hypothesis fK : ocancel f g.
 
