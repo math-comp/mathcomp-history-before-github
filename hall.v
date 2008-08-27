@@ -12,14 +12,14 @@ Import GroupScope.
 
 Lemma HallSolvable : forall pi (gT : finGroupType) (G : {group gT}),
   solvable G -> exists2 H : {group gT}, hall pi G H
-                & forall K : {group gT}, K \subset G -> pi_group pi K ->
+                & forall K : {group gT}, K \subset G -> pgroup pi K ->
                   exists2 x, x \in G & K \subset H :^ x.
 Proof.
 move=> pi gT G; move: {2}_.+1 (ltnSn #|G|) => n.
 elim: n gT G => // n IHn gT G; rewrite ltnS => leGn solG.
 case trG: (trivg G); last move/idPn: trG => trG.
   exists G => [|K]; rewrite (trivGP _ trG); last move/trivGP=> -> {K} _.
-    by rewrite /hall subset_refl cards1 part_pi'_nat.
+    by rewrite /hall subset_refl cards1 part_p'_nat.
   by exists (1 : gT); rewrite ?conjs1g ?sub1set set11.
 case: (solvable_norm_abelem solG (normal_refl _)) => // M [sMG nMG ntM].
 case/andP=> abelM; set p := pdiv #|M|; move/exponentP=> elemM.
@@ -39,11 +39,11 @@ pose Gb := (G / M)%G; case: (IHn _ Gb) => [||Hb]; try exact: solvable_quo.
 rewrite hallE; case/and3P=> [sHbGb piHb pi'Hb'] transHb.
 case: (inv_quotientS nMG sHbGb) => H def_H sMH sHG.
 have{transHb} transH: forall K : {group gT},
-  K \subset G -> pi_group pi K -> exists2 x, x \in G & K \subset H :^ x.
+  K \subset G -> pgroup pi K -> exists2 x, x \in G & K \subset H :^ x.
 - move=> K sKG piK.
   have nMK: K \subset 'N(M) by apply: subset_trans sKG _; case/andP: nMG.
   case: (transHb (K / M)%G) => [||xb Gxb sKHxb]; first exact: morphimS.
-    exact: morphim_pi_group.
+    exact: morphim_pgroup.
   case/morphimP: Gxb => x Nx Gx /= def_x; exists x => //.
   apply/subsetP=> y Ky.
   have: y \in coset_of M y by rewrite coset_ofN (subsetP nMK, rcoset_refl).
@@ -54,16 +54,16 @@ have{transHb} transH: forall K : {group gT},
   case/morphimP=> z Nz Hxz ->.
   rewrite coset_ofN //; case/rcosetP=> t Mt ->; rewrite groupMl //.
   by rewrite mem_conjg (subsetP sMH) // -mem_conjg (normP Nx).
-have{pi'Hb'} pi'H': pi_nat (predC pi) #|G : H|.
+have{pi'Hb'} pi'H': p_nat pi^' #|G : H|.
   move: pi'Hb'; rewrite -!group_divn // def_H !card_quotient //; last first.
   - by case/andP: nMG.
   - by apply: (subset_trans sHG); case/andP: nMG.
   by rewrite -(divn_pmul2l (ltn_0group M)) !LaGrange.
-case pi_p: (pi p).
+case pi_p: (p \in pi).
   exists H => //; rewrite hallE; apply/and3P; split=> //.
-  rewrite /pi_group -(LaGrange sMH) -card_quotient //; last first.
+  rewrite /pgroup -(LaGrange sMH) -card_quotient //; last first.
     case/andP: nMG => _; exact: subset_trans.
-  rewrite pi_nat_mul {1}/pi_nat pM ltn_0group /= pi_p.
+  rewrite p_nat_mul {1}/p_nat pM ltn_0group /= pi_p.
   by rewrite def_H in piHb.
 case: (ltnP #|H| #|G|) => [ltHG | leGH {n IHn leGn transH}].
   case: (IHn _ H (leq_trans ltHG leGn)) => [|H1].
@@ -73,33 +73,31 @@ case: (ltnP #|H| #|G|) => [ltHG | leGH {n IHn leGn transH}].
   exists H1=> [|K sKG piK].
     rewrite hallE; apply/and3P; split => //.
     rewrite -group_divn // -(LaGrange sHG) -(LaGrange sH1H) -mulnA.
-    by rewrite divn_mulr // pi'_nat_mul pi'H1'.
+    by rewrite divn_mulr // p_nat_mul pi'H1'.
   case: (transH K sKG piK) => x Gx def_K.
   case: (transH1 (K :^ x^-1)%G) => [||y Hy def_K1].
   - by rewrite sub_conjgV.
-  - by rewrite /pi_group card_conjg.
+  - by rewrite /pgroup card_conjg.
   exists (y * x); first by rewrite groupMr // (subsetP sHG).
   by rewrite -(conjsgKV x K) conjsgM conjSg.
 have{leGH Gb sHbGb sHG sMH pi'H'} eqHG: H = G.
   by apply/eqP; rewrite -val_eqE eqset_sub_card sHG.
-have{H Hb def_H eqHG piHb} hallM: hall (predC pi) G M.
-  rewrite hallE sMG /pi_group {1}/pi_nat pM /= pi_p ltn_0group /=.
+have{H Hb def_H eqHG piHb} hallM: hall pi^' G M.
+  rewrite hallE sMG /pgroup {1}/p_nat pM /= inE /= pi_p ltn_0group /=.
   apply: etrans piHb; rewrite -card_quotient ?normal_norm // -eqHG def_H.
-  by apply: eq_pi_nat => q; rewrite /= negbK.
+  by rewrite p_natCK.
 case/splitgP: (SchurZass_split (hall_is_hall hallM) nMG) => H trMH defG.
 have sHG: H \subset G by rewrite -defG mulG_subr.
 exists H => [|K sKG piK].
   apply: etrans hallM; rewrite !hallE sMG sHG /= -!group_divn // -defG andbC.
-  rewrite (card_mulG_trivP _ _ trMH) divn_mulr ?divn_mull //; congr (_ && _).
-  by apply: eq_pi_nat => q; rewrite /= negbK.
+  by rewrite (card_mulG_trivP _ _ trMH) divn_mulr ?divn_mull // p_natCK.
 pose G1 := (K <*> M)%G; pose K1 := (H :&: G1)%G.
 have nMK: K \subset 'N(M) by apply: subset_trans sKG _; case/andP: nMG.
 have defG1: M * K = G1 by rewrite -normC -?norm_mulgenE.
 have sK1G1: K1 \subset M * K by rewrite defG1 subsetIr.
 have coMK: coprime #|M| #|K|.
-  rewrite -[#|M|]prod_p_parts // pM big_seq1 coprime_expl // prime_coprime //.
-  apply/negP=> pK; case/idP: pi_p; case/andP: piK => _; move/allP; apply.
-  by rewrite mem_primes pr_p pos_card_group.
+  rewrite coprime_sym (p_nat_coprime piK) //.
+  by rewrite  /p_nat pM ltn_0group //= inE /= pi_p.
 case: (SchurZass_trans_sol _ nMK sK1G1 coMK) => [||x Mx defK1].
 - exact: solvable_sub solG.
 - apply/eqP; rewrite -(eqn_pmul2l (ltn_0group M)).
@@ -149,7 +147,7 @@ Lemma hall_conj : forall pi (G H : {group gT}) x,
 Proof. by move=> pi G *; rewrite hall_norm_conj ?(subsetP (normG G)). Qed.
 
 Corollary HallSubset : forall pi (G K : {group gT}),
-  solvable G -> K \subset G -> pi_group pi K ->
+  solvable G -> K \subset G -> pgroup pi K ->
     exists2 H : {group gT}, hall pi G H & K \subset H.
 Proof.
 move=> pi G K solG sKG; case: (HallSolvable pi solG) => H hallH transH.
@@ -170,13 +168,13 @@ by rewrite conjsgM {1}defH conjsgK conjsgKV.
 Qed.
 
 Lemma hall_maximal : forall pi (G H K : {group gT}),
-  hall pi G H -> K \subset G -> pi_group pi K -> H \subset K -> K = H.
+  hall pi G H -> K \subset G -> pgroup pi K -> H \subset K -> K = H.
 Proof.
 move=> pi G H K hallH sKG piK sHK; apply/eqP.
 suff: hall pi G K.
   rewrite eq_sym -val_eqE eqset_sub_card sHK leq_eqVlt.
   by case/andP: hallH => _; move/eqP->; case/andP=> _ ->.
-move: hallH; rewrite !hallE sKG piK; case/and3P=> _ _; apply: pi_nat_dvdn.
+move: hallH; rewrite !hallE sKG piK; case/and3P=> _ _; apply: p_nat_dvdn.
 rewrite -(dvdn_pmul2l (ltn_0group K)) LaGrange // -(LaGrange sHK) mulnAC.
 by rewrite LaGrange (subset_trans sHK, dvdn_mulr).
 Qed.
@@ -186,14 +184,14 @@ Lemma HallSubnormal : forall pi (G K H : {group gT}),
 Proof.
 move=> pi G K H solG; case/andP=> sKG nKG hallH.
 case: (HallExist pi (solvable_sub sKG solG)) => H1 hallH1.
-have [sH1G piH1]: H1 \subset G /\ pi_group pi H1.
+have [sH1G piH1]: H1 \subset G /\ pgroup pi H1.
   move: hallH1; rewrite hallE; case/and3P=> sH1K piH1 _; split=> //.
   exact: subset_trans sKG.
 case: (HallSubset solG sH1G piH1) => H2 hallH2 sH12.
 case: (HallConj solG hallH hallH2) => x; move/(subsetP nKG) => Nx ->.
 rewrite -{2}(normP Nx) -conjIg hall_norm_conj //.
 rewrite (@hall_maximal _ _ _ (H2 :&: K)%G hallH1) //; first exact: subsetIr.
-  apply: pi_groupS (subsetIl _ _) _.
+  apply: pgroupS (subsetIl _ _) _.
   by move: hallH2; rewrite hallE; case/and3P.
 by rewrite subsetI sH12; case/andP: hallH1.
 Qed.

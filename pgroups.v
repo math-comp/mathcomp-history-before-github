@@ -27,14 +27,12 @@ Import GroupScope.
 (*        == \big[lcmn/1]_(x \in G) #[x].                             *)
 (*   abelem p E                                                       *)
 (*        <-> E is an elementary abelian p-group                      *)
-(*   abelem_for p n E                                                 *)
-(*        <-> E is an elementary abelian p-group of order p ^ n       *)
-(*   is_abelem E                                                      *)
+(*   elementary_abelian E                                             *)
 (*        <-> E is elementary abelian (abelem p E for some p)         *)
-(*   max_abelem p G E                                                 *)
-(*        <-> E is a maximal abelem p subgroup of G                   *)
-(*   'E_p(G), 'E_p^n(G), 'E_p^*(G)                                    *)
-(*        == set of p_elem (,.. of rank n, maximal ..) subgroups of G *)
+(*   'E_p(G), 'E_p^n(G), 'E_p^*(G), 'E^n(G)                           *)
+(*        == the set of abelem p subgroups of G                       *)
+(*           (resp., p-abelem of order p ^ n (<=> of rank n),         *)
+(*            maximal p-abelem, elementary_abelian of rank n)         *)
 (*   'm_p(G)                                                          *)
 (*        == the p-rank of G (max of logn p #|E| for E in 'E_p(G))    *)
 (*   'm(G)                                                            *)
@@ -54,19 +52,14 @@ Import GroupScope.
 (*        == the pi-core (the largest normal pi-subgroup) of G        *)
 (*           (the first term in the upper pi-series of G)             *)
 (*           (relevant lemmas quote core)                             *)
-(*   'O_[p](G), 'O_(~ pi)(G), 'O_[~ p](G)                             *)
-(*        == special cases of the above for {p}, pi', {p}' (resp.,    *)
-(*           the first terms of the upper p, lower pi/p series)       *)
-(*   'O_[~ p; q](G)                                                   *)
-(*       == the q,p'-core of G, such that                             *)
-(*          'O_[~p;q](G) / 'O_[~p](G) = 'O_[q](G / 'O_[~ p](G))       *)
-(*     with 'O_[~p](G) <| 'O_[~p;q](G) <| G                           *)
-(*       (for p = q, which is the only case we consider, this is      *)
-(*        the second term of the lower p-series of G).                *)
-(*       (relevant lemmas quote core2)                                *)
+(*   'O_{pi2, pi1}(G)                                                 *)
+(*       == the pi1, pi2 -core of G, such that                        *)
+(*          'O_{pi2, pi1}(G) / 'O_pi2(G) = 'O_pi1(G / 'O_pi2(G))      *)
+(*     with 'O_pi2(G) <| 'O_{pi2, pi1}(G) <| G                        *)
+(*   'O_{pi3, pi2, pi1}(G)                                            *)
+(*       == the pi1, pi2, pi3 -core of G, similarly                   *)
 (*   p_length_1 p G                                                   *)
-(*        <-> sylow p 'O_[p](G / 'O_[~p](G)) (G / 'O_[~p](G))         *)
-(*            (see below for the definition of 'O_pi(G))              *)
+(*        <-> trivg 'O_{p^', p, p^'}(G)                               *)
 (* Note that notions are always defined on sets even though their     *)
 (* name indicates "group" properties; the actual definition of the    *)
 (* notion never tests for the group property, since this property     *)
@@ -76,29 +69,21 @@ Import GroupScope.
 Section PgroupDefs.
   
 Variable gT : finGroupType.
-Implicit Type pi : pred nat.
+Implicit Type pi : nat_pred.
 Implicit Types x y z : gT.
 Implicit Types A B X : {set gT}.
 
-Definition pi_group pi A := pi_nat pi #|A|.
-
-Definition pi'_group pi A := pi_group (predC pi) A.
-
-Definition pgroup p A := pi_group (pred1 p) A.
-
-Definition p'group p A := pi_group (predC (pred1 p)) A.
+Definition pgroup pi A := p_nat pi #|A|.
 
 Definition is_pgroup A := pgroup (pdiv #|A|) A.
 
-Definition pi_elt pi x := pi_group pi <[x]>.
+Definition p_elt pi x := pgroup pi <[x]>.
 
-Definition p_elt p x := pgroup p <[x]>.
-
-Definition hall pi A B := (B \subset A) && (#|B| == pi_part pi #|A|).
+Definition hall pi A B := (B \subset A) && (#|B| == p_part pi #|A|).
 
 Definition Hall pi A := [set H : {group gT} | hall pi A H].
 
-Definition sylow p := hall (pred1 p).
+Definition sylow (p : nat) := hall p.
 
 Definition Syl p A := [set P : {group gT} | sylow p A P].
 
@@ -108,10 +93,10 @@ Definition is_sylow A B := sylow (pdiv #|B|) A B.
 
 Definition hall_set pi A := [set G : {group gT} | hall pi A G].
 
-Definition sylow_set p := hall_set (pred1 p).
+Definition sylow_set (p : nat) := hall_set p.
 
-Definition pi_core pi A :=
-  << \bigcup_(G : {group gT} | pi_group pi G && (G <| A)) G >>.
+Definition p_core pi A :=
+  << \bigcup_(G : {group gT} | pgroup pi G && (G <| A)) G >>.
 
 Definition Ohm i A := <<[set x \in A | x ^+ (pdiv #|A| ^ i) == 1]>>.
 
@@ -121,20 +106,18 @@ Definition exponent A := \big[lcmn/1%N]_(x \in A) #[x].
 
 Definition abelem p A := abelian A && (exponent A %| p).
 
-Definition abelem_for p n A := abelem p A && (#|A| == p ^ n)%N.
-
-Definition is_abelem A := abelem (pdiv #|A|) A.
-
-Definition max_abelem p B A := A == [set x \in 'C_B(A) | x ^+ p == 1].
+Definition elementary_abelian A := abelem (pdiv #|A|) A.
 
 Definition Elem p A :=
   [set E : {group gT} | (E \subset A) && abelem p E].
 
-Definition Elem_for p n A :=
-  [set E : {group gT} | (E \subset A) && abelem_for p n E].
+Definition Elem_order p n A :=
+  [set E : {group gT} | (E \subset A) && abelem p E && (#|E| == p ^ n)%N].
+
+Definition Elem_rank n A := \bigcup_(p <- primes #|A|) Elem_order p n A.
 
 Definition Elem_max p A :=
-  [set E : {group gT} | max_abelem p A E].
+  [set E : {group gT} | [max E | (E \subset A) && abelem p E]].
 
 Definition p_rank p A := \max_(E \in Elem p A) logn p #|E|.
 
@@ -143,6 +126,7 @@ Definition rank A := \max_(p <- primes #|A|) p_rank p A.
 (*
 Definition basis A X :=
    (1 \notin X) && (\big[direct_product/1]_(x \in X) <[x]> == A).
+
 
 Definition abelian_type A :=
   if pick (basis A) is Some X then
@@ -153,30 +137,15 @@ Definition homocyclic A :=
   abelian A && is_pgroup A && seq.constant (abelian_type A).
 *)
 
-Canonical Structure pi_core_group pi A := Eval hnf in [group of pi_core pi A].
+Canonical Structure p_core_group pi A := Eval hnf in [group of p_core pi A].
 Canonical Structure Ohm_group i A := Eval hnf in [group of Ohm i A].
 Canonical Structure Mho_group i A := Eval hnf in [group of Mho i A].
 
 End PgroupDefs.
 
-Notation "''O_' pi ( G )" := (pi_core pi G)
+Notation "''O_' pi ( G )" := (p_core pi G)
   (at level 8, pi at level 2, format "''O_' pi ( G )") : group_scope.
-Notation "''O_' pi ( G )" := (pi_core_group pi G) : subgroup_scope.
-
-Notation "''O_' ( ~ pi ) ( G )" := 'O_(pred_of_simpl (predC pi))(G)
-  (at level 8, format "''O_' ( ~  pi ) ( G )") : group_scope.
-Notation "''O_' ( ~ pi ) ( G )" := 'O_(pred_of_simpl (predC pi))(G)%G
-                                               : subgroup_scope.
-
-Notation "''O_' [ p ] ( G )" := 'O_(pred_of_simpl (pred1 p))(G)
-  (at level 8, format "''O_' [ p ] ( G )") : group_scope.
-Notation "''O_' [ p ] ( G )" := 'O_(pred_of_simpl (pred1 p))(G)%G
-                                           : subgroup_scope.
-
-Notation "''O_' [ ~ p ] ( G )" := 'O_(~ pred_of_simpl (pred1 p))(G)
-  (at level 8, format "''O_' [ ~  p ] ( G )") : group_scope.
-Notation "''O_' [ ~ p ] ( G )" := 'O_(~ pred_of_simpl (pred1 p))(G)%G
-                                              : subgroup_scope.
+Notation "''O_' pi ( G )" := (p_core_group pi G) : subgroup_scope.
 
 Notation "''Ohm_' i ( G )" := (Ohm i G)
   (at level 8, i at level 2, format "''Ohm_' i ( G )") : group_scope.
@@ -189,8 +158,11 @@ Notation "''Mho^' i ( G )" := (Mho_group i G) : subgroup_scope.
 Notation "''E_' p ( G )" := (Elem p G)
   (at level 8, p at level 2, format "''E_' p ( G )") : group_scope.
 
-Notation "''E_' p ^ n ( G )" := (Elem_for p n G)
+Notation "''E_' p ^ n ( G )" := (Elem_order p n G)
   (at level 8, p, n at level 2, format "''E_' p ^ n ( G )") : group_scope.
+
+Notation "''E' ^ n ( G )" := (Elem_rank n G)
+  (at level 8, n at level 2, format "''E' ^ n ( G )") : group_scope.
 
 Notation "''E_' p ^* ( G )" := (Elem_max p G)
   (at level 8, p at level 2, format "''E_' p ^* ( G )") : group_scope.
@@ -204,48 +176,52 @@ Notation "''Hall_' pi ( G )" := (Hall pi G)
 Section PlengthDefs.
 
 Variable gT : finGroupType.
-Implicit Type A : {set gT}.
-Implicit Type G : {group gT}.
+Implicit Type A B : {set gT}.
 
-Definition qp'_core p q A :=
-  coset_of 'O_[~ p](A) @*^-1 'O_[q](A / 'O_[~p](A)).
+Definition p_core_mod pi A B := coset_of B @*^-1 'O_pi(A / B).
 
-Definition p_length_1 p A := pi'_nat (pred1 p) #|A : qp'_core p p A|.
+Canonical Structure p_core_mod_group pi A B :=
+  Eval hnf in [group of p_core_mod pi A B].
 
-Canonical Structure qp'_core_group p q G := Eval hnf in [group of qp'_core p q G].
+Definition p_length_1 (p : nat) A :=
+  trivg (p_core_mod p^' A (p_core_mod p A 'O_p^'(A))).
 
 End PlengthDefs.
 
-Notation "''O_' [ ~ p , q ] ( G )" := (qp'_core p q G)
-  (at level 8, format "''O_' [ ~ p ,  q ] ( G )") : group_scope.
-Notation "''O_' [ ~ p , q ] ( G )" := (qp'_core_group p q G) : subgroup_scope.
+(* Coq's n-ary notation facility is too broken to be used here. *)
+Notation "''O_{' p1 , p2 } ( A )" := (p_core_mod p2 A 'O_p1(A))
+  (at level 8, format "''O_{' p1 ,  p2 } ( A )") : group_scope.
+Notation "''O_{' p1 , p2 , p3 } ( A )" := (p_core_mod p3 A 'O_{p1, p2}(A))
+  (at level 8, format "''O_{' p1 ,  p2 ,  p3 } ( A )") : group_scope.
+Notation "''O_{' p1 , p2 } ( A )" :=
+  (p_core_mod_group p2 A 'O_p1(A)) : subgroup_scope.
+Notation "''O_{' p1 , p2 , p3 } ( A )" :=
+  (p_core_mod_group p3 A 'O_{p1, p2}(A)) : subgroup_scope.
 
 Section PgroupProps.
 
 Variable gT : finGroupType.
-Implicit Type pi : pred nat.
+Implicit Type pi : nat_pred.
+Implicit Type p : nat.
 Implicit Types x y z : gT.
 Implicit Types A B C D : {set gT}.
 Implicit Types G H K P Q : {group gT}.
 
-Lemma pi_groupP : forall pi G,
-  reflect (forall p, prime p -> p %| #|G| -> pi p) (pi_group pi G).
-Proof. move=> pi G; exact: pi_natP. Qed.
+Lemma pgroupP : forall pi G,
+  reflect (forall p, prime p -> p %| #|G| -> p \in pi) (pgroup pi G).
+Proof. move=> pi G; exact: p_natP. Qed.
 
-Lemma pi_indexP : forall pi G H,
-  reflect (forall p, prime p -> p %| #|G : H| -> pi p) (pi_nat pi #|G : H|).
-Proof. move=> pi G H; exact: pi_natP. Qed.
+Lemma p_indexP : forall pi G H,
+  reflect (forall p, prime p -> p %| #|G : H| -> p \in pi) (p_nat pi #|G : H|).
+Proof. move=> pi G H; exact: p_natP. Qed.
 
-Lemma pi_group1 : forall pi, @pi_group gT pi 1.
-Proof. by move=> pi; rewrite /pi_group cards1. Qed.
-
-Lemma pgroup1 : forall p, @pgroup gT p 1.
-Proof. by move=> p; exact: pi_group1. Qed.
+Lemma pgroup1 : forall pi, @pgroup gT pi 1.
+Proof. by move=> pi; rewrite /pgroup cards1. Qed.
 
 Lemma pgroup_is_pgroup : forall p P, pgroup p P -> is_pgroup P.
 Proof.
-move=> p P; rewrite /is_pgroup /pgroup /pdiv /pi_group /pi_nat ltn_0group /=.
-by case: primes => //= q prP; case/andP; move/eqP->; rewrite eqxx.
+move=> p P; rewrite /is_pgroup /pdiv /pgroup /p_nat ltn_0group /=.
+by case: primes => //= q prP; case/andP; move/(q =P p)->; rewrite inE /= eqxx.
 Qed.
 
 Lemma is_pgroupP : forall P, is_pgroup P -> exists2 p, prime p & pgroup p P.
@@ -255,36 +231,42 @@ rewrite -trivg_card; move/trivgP=> -> _; exists 2 => //; exact: pgroup1.
 Qed.
 
 Lemma hallE : forall pi G H,
-  hall pi G H = [&& H \subset G, pi_group pi H & pi'_nat pi #|G : H|].
+  hall pi G H = [&& H \subset G, pgroup pi H & p_nat pi^' #|G : H|].
 Proof.
 move=> pi G H; apply/andP/andP; case=> sHG.
-  move/eqP=> hallH; split; rewrite -?group_divn // /pi_group /pi'_nat.
-  by rewrite -(@pi_partC pi #|G|) // hallH divn_mulr ?pi_nat_part.
+  move/eqP=> hallH; split; rewrite -?group_divn // /pgroup.
+  by rewrite -(@p_partC pi #|G|) // hallH divn_mulr ?p_nat_part.
 case/andP=> piH copiH; split=> //.
-rewrite -(LaGrange sHG) pi_part_mul ?LaGrange //.
-by rewrite part_pi_nat ?part_pi'_nat ?muln1.
+rewrite -(LaGrange sHG) p_part_mul ?LaGrange //.
+by rewrite part_p_nat ?part_p'_nat ?muln1.
 Qed.
 
 Lemma hall_is_hall : forall pi G H, hall pi G H -> is_hall G H.
 Proof.
 move=> pi G H; rewrite hallE; case/and3P=> sHG piH copiH.
-rewrite /is_hall sHG; exact: pi_nat_coprime piH copiH.
+rewrite /is_hall sHG; exact: p_nat_coprime piH copiH.
 Qed.
 
-Lemma is_hall_primes : forall G H, is_hall G H -> hall (mem (primes #|H|)) G H.
+Lemma is_hall_primes : forall G H,
+  is_hall G H -> hall [pred p \in primes #|H|] G H.
 Proof.
 move=> G H; case/andP=> sHG coHG.
-by rewrite hallE sHG /pi_group pi_nat_primes -?coprime_pi_primes.
+by rewrite hallE sHG /pgroup p_nat_primes -?coprime_primes'.
 Qed.
 
 Lemma is_hall_hall : forall G H, is_hall G H -> exists pi, hall pi G H.
 Proof.
-move=> G H hallH; exists (mem (primes #|H|) : pred _); exact: is_hall_primes.
+move=> G H hallH; exists [pred p \in primes #|H|]; exact: is_hall_primes.
 Qed.
 
 Lemma sylowE : forall A B p,
   sylow p A B = (B \subset A) && (#|B| == p_part p #|A|).
 Proof. by move=> A B p; congr (_ && _ ); rewrite -p_part_pi. Qed.
+
+Lemma pgroup_sylow : forall A B p, sylow p A B -> pgroup p B.
+Proof.
+move=> A B p; case/andP=> _; rewrite /pgroup; move/eqP->; exact: p_nat_part.
+Qed.
 
 Lemma is_sylowE : forall G P, is_sylow G P = is_pgroup P && is_hall G P.
 Proof.
@@ -293,7 +275,7 @@ move=> G P; apply/idP/andP=> [sylP|[pgP]].
   by rewrite [is_sylow G P]hallE; case/and3P.
 move/is_hall_primes; rewrite hallE; case/and3P=> sPG _; case/andP=> _ q'GP.
 rewrite [is_sylow G P]hallE; apply/and4P; split=> //.
-apply/allP=> q pr_q; apply: contra (allP q'GP _ pr_q) => /=; move/eqP=> def_q.
+apply/allP=> q pr_q; apply: contra (allP q'GP _ pr_q) => /=; move/eqnP=> def_q.
 move: pr_q; rewrite !mem_primes ltn_0group // {4}def_q dvdn_pdiv !andbT.
 by case/andP.
 Qed.
@@ -308,19 +290,16 @@ move=> G P; case (ltnP 1 #|P|) => [lt1P |].
   rewrite [sylow p G P]hallE in sylP; case/and3P: sylP=> _; case/andP=> _.
   by move/allP; rewrite -primes_pdiv in lt1P; move/(_ _ lt1P); move/eqnP.
 rewrite -trivg_card; move/trivgP->.
-rewrite /is_sylow sylowE sub1G /p_part lognE cards1; left.
+rewrite /is_sylow sylowE sub1G cards1 p1_part lognE; left.
 pose p := pdiv #|G|.+1; have pr_p: prime p by rewrite prime_pdiv ?ltnS.
-exists p; rewrite // sylowE sub1G cards1 /p_part lognE pr_p /= andbC.
+exists p; rewrite // sylowE sub1G cards1 p1_part lognE pr_p /= andbC.
 have: p %| #|G| + 1 by rewrite addn1 dvdn_pdiv.
 rewrite {1}/dvdn; case: dvdnP => // [] [q ->].
 by rewrite modn_addl_mul modn_small ?prime_gt1.
 Qed.
 
-Lemma pi_groupS : forall pi G H, H \subset G -> pi_group pi G -> pi_group pi H.
-Proof. move=> pi G H sHG; apply: pi_nat_dvdn; exact: group_dvdn. Qed.
-
-Lemma pgroupS : forall p G H, H \subset G -> pgroup p G -> pgroup p H.
-Proof. move=> p; exact: pi_groupS. Qed.
+Lemma pgroupS : forall pi G H, H \subset G -> pgroup pi G -> pgroup pi H.
+Proof. move=> pi G H sHG; apply: p_nat_dvdn; exact: group_dvdn. Qed.
 
 End PgroupProps.
 
@@ -340,7 +319,7 @@ Lemma pgroup_fix_mod : forall p (G : {group gT}) (S : {set sT}),
    prime p -> pgroup p G -> [acts (G | to) on S] ->
    #|S| %% p = #|'C_S(G | to)| %% p.
 Proof.
-move=> p G S prime_p; case/pnatP=> // n cardG GactS; apply/eqP.
+move=> p G S prime_p; case/p1_natP=> // n cardG GactS; apply/eqP.
 rewrite -(cardsID 'C(G | to)) eqn_mod_dvd (leq_addr, addKn) //.
 set S1 := S :\: _; have: [acts (G | to) on S1].
   apply/actsP=> a Ga x; rewrite !in_setD (actsP GactS) //; congr (~~ _ && _).
@@ -349,7 +328,7 @@ move/acts_sum_card_orbit <-.
 apply big_prop => // [m1 m2|X]; first exact: dvdn_add.
 case/imsetP=> x; case/setDP=> _ nfx ->{X}.
 have:= dvdn_orbit to G x; rewrite cardG.
-case/dvdn_exp_prime=> [//|[_|m _ ->]]; last exact: dvdn_mulr.
+case/dvdn_pfactor=> [//|[_|m _ ->]]; last exact: dvdn_mulr.
 move/card_orbit1=> fix_x; case/afixP: nfx => a Ga; apply/set1P.
 by rewrite -fix_x mem_imset.
 Qed.
@@ -359,19 +338,16 @@ End ModP.
 Section Morphim.
 
 Variables (aT rT : finGroupType) (D : {group aT}) (f : {morphism D >-> rT}).
-Implicit Type pi : pred nat.
+Implicit Type pi : nat_pred.
 Implicit Types G H P : {group aT}.
 
-Lemma morphim_pi_group : forall pi G, pi_group pi G -> pi_group pi (f @* G).
-Proof. move=> pi G; apply: pi_nat_dvdn; exact: dvdn_morphim. Qed.
+Lemma morphim_pgroup : forall pi G, pgroup pi G -> pgroup pi (f @* G).
+Proof. move=> pi G; apply: p_nat_dvdn; exact: dvdn_morphim. Qed.
 
-Lemma morphim_pgroup : forall p P, pgroup p P -> pgroup p (f @* P).
-Proof. move=> p; exact: morphim_pi_group. Qed.
-
-Lemma morphim_pi_index : forall pi G H,
-  H \subset D -> pi_nat pi #|G : H| -> pi_nat pi #|f @* G : f @* H|.
+Lemma morphim_p_index : forall pi G H,
+  H \subset D -> p_nat pi #|G : H| -> p_nat pi #|f @* G : f @* H|.
 Proof.
-move=> pi G H dH; apply: pi_nat_dvdn; apply: dvdn_morphim_index.
+move=> pi G H dH; apply: p_nat_dvdn; apply: dvdn_morphim_index.
 by rewrite subIset // orbC dH.
 Qed.
 
@@ -379,7 +355,7 @@ Lemma morphim_hall : forall pi G H,
   H \subset D -> hall pi G H -> hall pi (f @* G) (f @* H).
 Proof.
 move=> pi G H dH; rewrite !hallE; case/and3P=> sHG piH pi'GH.
-by rewrite morphimS // morphim_pi_group // /pi'_nat morphim_pi_index.
+by rewrite morphimS // morphim_pgroup // morphim_p_index.
 Qed.
 
 Lemma morphim_is_hall : forall G H,
@@ -411,29 +387,29 @@ Variable gT : finGroupType.
 Implicit Type A : {set gT}.
 Implicit Types G H : {group gT}.
 
-Lemma core_max : forall pi G, pi_group pi 'O_pi(G) && ('O_pi(G) <| G).
+Lemma core_max : forall pi G, pgroup pi 'O_pi(G) && ('O_pi(G) <| G).
 Proof.
 move=> pi G; rewrite /'O_pi(G).
 apply big_prop => [| A B | H]; last by rewrite genGid.
-  by rewrite /(_ <| _) gen0 pi_group1 /pi_group normaliser1 sub1G subsetT.
+  by rewrite /(_ <| _) gen0 pgroup1 /pgroup normaliser1 sub1G subsetT.
 case/and3P=> piA sAG nAG; case/and3P=> piB sBG nBG.
 rewrite -mulgenE -mulgen_idl -mulgen_idr.
 apply/and3P; split; last 2 [by rewrite gen_subG subUset sAG].
   have gen_pos: 0 < #|<<_ : {set gT}>>| := pos_card_group _.
-  rewrite /pi_group norm_mulgenE ?(subset_trans sAG) //.
-  have: pi_nat pi (#|<<A>>| * #|<<B>>|) by rewrite pi_nat_mul //; exact/andP.
-  by rewrite -card_mulG pi_nat_mul //; case/andP.
+  rewrite /pgroup norm_mulgenE ?(subset_trans sAG) //.
+  have: p_nat pi (#|<<A>>| * #|<<B>>|) by rewrite p_nat_mul //; exact/andP.
+  by rewrite -card_mulG p_nat_mul //; case/andP.
 by apply: subset_trans (norm_mulgen _ _); rewrite subsetI nAG.
 Qed.
 
-Lemma pi_group_core : forall pi G, pi_group pi 'O_pi(G).
+Lemma pgroup_core : forall pi G, pgroup pi 'O_pi(G).
 Proof. by move=> pi G; case/andP: (core_max pi G). Qed.
 
 Lemma core_normal : forall pi G, 'O_pi(G) <| G.
 Proof. by move=> pi G; case/andP: (core_max pi G). Qed.
 
 Lemma subset_core : forall pi G H,
-  pi_group pi H -> H <| G -> H \subset 'O_pi(G).
+  pgroup pi H -> H <| G -> H \subset 'O_pi(G).
 Proof.
 move=> pi G H piH nHG; apply/subsetP=> x Hx; apply: mem_gen; apply/bigcupP.
 by exists H; rewrite // piH.
@@ -444,7 +420,7 @@ Proof.
 move=> pi G.
 have sOG: 'O_pi(G) \subset G by case/andP: (core_normal pi G).
 apply/charP; split=> //= f injf fG; apply/morphim_fixP=> //.
-apply: subset_core; first by rewrite morphim_pi_group ?pi_group_core.
+apply: subset_core; first by rewrite morphim_pgroup ?pgroup_core.
 by rewrite -{3}fG  morphim_normal ?core_normal.
 Qed.
 
@@ -455,27 +431,23 @@ pose xpG := [pred x \in G | #[x] == p] => leGn pG.
 case: (pickP xpG) => [x|no_x]; first by case/andP=> Gx; move/eqP; exists x.
 have{pG n leGn IHn} pZ: p %| #|'C_G(G)|.
   have:= pG; rewrite -(cardsID 'C(G)) dvdn_addl //.
-  rewrite card_sum_1 (partition_big_imset (class_of^~ G)) /=.
+  have: [acts (G | 'J) on G :\: 'C(G)]; last move/acts_sum_card_orbit <-.
+    by apply/actsP=> x Gx y; rewrite !inE -!mem_conjgV -centJ conjGid ?groupV.
   apply big_prop => // [|C]; first exact: dvdn_add.
-  case/imsetP=> x; case/setDP=> Gx nCx ->{C}.
-  move: pG; rewrite -(LaGrange (subsetIl G 'C[x]%G)) euclid //; case/orP.
-    case/IHn=> [|y]; last first.
-      by case/setIP=> Gy _; move/eqP=> oyp; case/andP: (no_x y).
-    apply: leq_trans leGn; apply: proper_card; rewrite properE subsetIl.
-    by rewrite subsetI subset_refl /= -cent_set1 centsC sub1set.
-  rewrite index_cent1 card_sum_1; apply: etrans; congr (p %| _).
-  apply: eq_bigl=> y /=; apply/andP/idP=> [[_]|].
-    by move/eqP=> <-; exact: classg_refl.
-  case/imsetP=> z Gz ->; rewrite classGidl // eqxx inE -!mem_conjgV.
-  by rewrite -centJ conjGid ?groupV ?nCx.
+  case/imsetP=> x; case/setDP=> Gx nCx ->{C}; rewrite card_orbit conjg_astab1.
+  move: pG; rewrite -(LaGrange (subsetIl G 'C[x]%G)) euclid //; case/orP => //.
+  case/IHn=> [|y]; last first.
+    by case/setIP=> Gy _; move/eqP=> oyp; case/andP: (no_x y).
+  apply: leq_trans leGn; apply: proper_card; rewrite properE subsetIl.
+  by rewrite subsetI subset_refl /= -cent_set1 centsC sub1set.
 suff: predC1 p p by case/eqP.
-have: p'group p 'O_[~p](G) by exact: pi_group_core.
-move/pi_groupP; apply=> //; apply: dvdn_trans pZ (group_dvdn _).
+have: pgroup p^' 'O_p^'(G) by exact: pgroup_core.
+move/pgroupP; apply=> //; apply: dvdn_trans pZ (group_dvdn _).
 apply/subsetP=> x; case/setIP=> Cx Gx.
 rewrite -sub1set -gen_subG subset_core //; last first.
   rewrite /(_ <| _) cycle_h // (subset_trans _ (norm_gen _)) //.
   by rewrite -cent_set1 centsC sub1set.
-apply/pi_groupP=> q _ p_x; apply/eqP=> def_q; rewrite {q}def_q in p_x.
+apply/pgroupP=> q _ p_x; apply/eqP=> def_q; rewrite {q}def_q in p_x.
 case/dvdnP: p_x => m ox; case/idP: (no_x (x ^+ m)) => /=.
 have m_pos: 0 < m by rewrite -(ltn_pmul2r (ltn_0prime pr_p)) -ox ltn_0order.
 by rewrite /= groupX //= order_gcd // [#[x]]ox gcdnC gcdn_mulr divn_mulr.
@@ -487,8 +459,8 @@ Section OhmProps.
 
 Variable gT : finGroupType.
 Implicit Type A : {set gT}.
-Implicit Type G : {group gT}.
-
+Implicit Type G H E : {group gT}.
+Implicit Type pi : nat_pred.
 
 Lemma char_Ohm : forall i G, 'Ohm_i(G) \char G.
 Proof.
@@ -554,34 +526,73 @@ Qed.
 
 Lemma ltn_0exponent : forall G, 0 < exponent G.
 Proof. move=> G; exact: ltn_0dvd (exponent_dvdn G). Qed.
+Hint Resolve ltn_0exponent.
 
-Lemma pi_exponent : forall pi G, pi_nat pi (exponent G) = pi_group pi G.
+Lemma pi_exponent : forall pi G, p_nat pi (exponent G) = pgroup pi G.
 Proof.
-move=> pi G; rewrite /pi_group /pi_nat ltn_0group ltn_0exponent; congr all.
+move=> pi G; rewrite /pgroup /p_nat ltn_0group ltn_0exponent; congr all.
 apply/eq_primes=> p; rewrite !mem_primes ltn_0group ltn_0exponent /=.
 case pr_p: (prime p) => //=; apply/idP/idP=> pG.
   exact: dvdn_trans pG (exponent_dvdn G).
 case/Cauchy: pG => // x Gx <-; exact: dvdn_exponent.
 Qed.
 
-Lemma is_abelem_Ohm1P : forall G,
-  abelian G -> reflect ('Ohm_1(G) = G) (is_abelem G).
+Lemma pgroup_abelem : forall p E, prime p -> abelem p E -> pgroup p E.
 Proof.
-move=> G abelG; pose p := pdiv #|G|; pose G1 := [set x \in G | x ^+ p == 1].
-have gG1: group_set G1.
+move=> p E pr_p; case/andP=> _ pE; rewrite -pi_exponent.
+by apply: p_nat_dvdn pE _; rewrite p_nat_prime //= inE /=.
+Qed.
+
+Lemma abelemP : forall E,
+  reflect (exists2 p, prime p & abelem p E) (elementary_abelian E).
+Proof.
+rewrite /elementary_abelian => E; case: (leqP #|E| 1).
+  rewrite -trivg_card; move/trivgP->.
+  by rewrite /abelem /abelian sub1G exponent1 cards1; left; exists 2.
+move/prime_pdiv; set q := pdiv _ => pr_q; apply: (iffP idP); first by exists q.
+case=> p pr_p pE; move/pgroupP: (pgroup_abelem pr_p pE).
+by move/(_ q pr_q (dvdn_pdiv _)); move/eqnP->.
+Qed.
+
+Lemma abelem_Ohm1P : forall E,
+  abelian E -> reflect ('Ohm_1(E) = E) (elementary_abelian E).
+Proof.
+move=> E abelE; pose p := pdiv #|E|; pose E1 := [set x \in E | x ^+ p == 1].
+have gE1: group_set E1.
   apply/group_setP; split=> [|x y]; rewrite !inE ?(exp1gn, group1) //=.
-  case/andP=> Gx; move/eqP=> xp; case/andP=> Gy; move/eqP=> yp.
-  rewrite groupM // expMgn ?(xp, yp, mulg1) //=; exact: (centsP abelG).
-have ->: 'Ohm_1(G) = G1.
-  apply/eqP; rewrite eqset_sub -{1}[G1](genGid (Group gG1)) genS.
-    apply/subsetP=> x; rewrite /= !inE; case/andP=> Gx.
-      by move=> xp; rewrite mem_gen // inE Gx expn1.
-    by apply/subsetP=> x; rewrite !inE; case/andP=> ->; rewrite expn1.
-rewrite /is_abelem /abelem -/p abelG.
-apply: (iffP (exponentP _ _)) => [elemG | <- x].
-  apply/setP=> x; rewrite inE; case Gx: (x \in G) => //=.
-  apply/eqP; exact: elemG.
+  case/andP=> Ex; move/eqP=> xp; case/andP=> Ey; move/eqP=> yp.
+  rewrite groupM // expMgn ?(xp, yp, mulg1) //=; exact: (centsP abelE).
+have ->: 'Ohm_1(E) = E1.
+  apply/eqP; rewrite eqset_sub -{1}[E1](genGid (Group gE1)) genS.
+    apply/subsetP=> x; rewrite /= !inE; case/andP=> Ex.
+    by move=> xp; rewrite mem_gen // inE Ex expn1.
+  by apply/subsetP=> x; rewrite !inE; case/andP=> ->; rewrite expn1.
+rewrite /elementary_abelian /abelem -/p abelE.
+apply: (iffP (exponentP _ _)) => [elemE | <- x].
+  apply/setP=> x; rewrite inE; case Ex: (x \in E) => //=.
+  apply/eqP; exact: elemE.
 by rewrite inE; case/andP=> _; move/eqP.
+Qed.
+
+Lemma mem_Elem1 : forall G E,
+  reflect (E \subset G /\ exists2 p, prime p & #|E| = p) (E \in 'E^1(G)).
+Proof.
+move=> G E; rewrite ['E^1(G)](big_sub 0) big_mkord.
+apply: (iffP (bigcupP _ _ _)) => [/= [i _]|[sEG [p pr_p pE]]].
+  set p := sub 0 _ i; have: p \in primes #|G| by rewrite mem_sub.
+  rewrite inE -andbA expn1 mem_primes; case/andP=> pr_p _.
+  by case/and3P; split=> //; exists p; last exact/eqP.
+have pG: p \in primes #|G|.
+  by rewrite mem_primes pr_p ltn_0group -pE group_dvdn.
+have:= pG; rewrite -index_mem => lt_i; exists (Ordinal lt_i) => //=.
+rewrite sub_index // inE sEG pE expn1 eqxx /= -andbA -pE exponent_dvdn !andbT.
+case/primeP: pr_p => lt1p pr_p.
+have: ~~ trivg E by rewrite trivg_card -ltnNge pE.
+case/subsetPn=> x Ex nx1.
+suff <-: <[x]> = E by apply/centsP; apply: commute_cycle_com.
+apply/eqP; rewrite eqset_sub_card gen_subG sub1set Ex.
+have:= order_dvd_g Ex; rewrite pE; move/pr_p; rewrite eqn_leq -trivg_card.
+rewrite [trivg _]gen_subG sub1set (negPf nx1) /=; move/eqP=> <-; exact: leqnn.
 Qed.
 
 End OhmProps.

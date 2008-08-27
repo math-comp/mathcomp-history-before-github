@@ -199,18 +199,15 @@ Proof.
 move => x; rewrite /pconst /prem.
 set l := logn p #[x].
 set t :=  #[x] %/ p ^ l.
-have F0: #[x] = (p ^ l * t)%N.
-  case/dvdnP: (dvdn_p_part p #[x]); rewrite /p_part -/l => k Hk.
-  rewrite /t {2}Hk (mulnC k) divn_mulr ?(mulnC _ k) //.
-  by move: (ltn_0order x); rewrite Hk; case: (p ^ l)%N => //; rewrite muln0. 
+have F0: #[x] = (p ^ l * t)%N by rewrite mulnC divnK // pfactor_dvdnn. 
 have F1: coprime (p ^ l)  t.
   case Eq1: l => [| l1]; first by rewrite expn0 coprime1n.
   rewrite coprime_expl // prime_coprime //.
   apply/negP => H1; case/dvdnP: H1 => k1 Hk1. 
   have F1: p ^ l.+1 %| #[x].
     by rewrite F0 Hk1 (mulnC k1) mulnA (mulnC _ p) -expnS dvdn_mulr.
-  have:= dvdn_leq_log primep (ltn_0order x) F1.
-  by rewrite logn_exp -/l // ltnn.
+  have:= dvdn_leq_log p (ltn_0order x) F1.
+  by rewrite pfactorK // ltnn.
 case Eq1: #[x] => [| n1].
   by move: (ltn_0order x); rewrite Eq1.
 case: n1 Eq1 => [| n1] Eq1.
@@ -247,10 +244,7 @@ Proof.
 move => x; move: (pconst_rem x); rewrite /pconst /prem.
 set l := logn p #[x].
 set t :=  #[x] %/ p ^ l.
-have F0: #[x] = (p ^ l * t)%N.
-  case/dvdnP: (dvdn_p_part p #[x]); rewrite /p_part -/l => k Hk.
-  rewrite /t {2}Hk (mulnC k) divn_mulr ?(mulnC _ k) //.
-  by move: (ltn_0order x); rewrite Hk; case: (p ^ l)%N => //; rewrite muln0. 
+have F0: #[x] = (p ^ l * t)%N by rewrite mulnC divnK // pfactor_dvdnn.
 have P1: (0 < t) by move: (ltn_0order x); rewrite F0; case t; rewrite ?muln0.
 have P2: (0 < p ^ l) by move: (ltn_0order x); rewrite F0; case (p ^ l)%N.
 have P3: 0 < t * _.+1 by move=> k; rewrite ltn_0mul P1.
@@ -303,8 +297,7 @@ Proof.
 move => x; move: (pconst_rem x); rewrite /pconst /prem.
 set l := logn p #[x].
 set t := #[x] %/ p ^ l.
-have F0: #[x] = (p ^ l * t)%N.
-  by apply/eqP; rewrite -mulnC eq_sym -dvdn_eq dvdn_p_part.
+have F0: #[x] = (p ^ l * t)%N by rewrite mulnC divnK // pfactor_dvdnn.
 have [P1 P2]: 0 < t /\ 0 < p ^ l.
   by apply/andP; rewrite andbC -ltn_0mul -F0 ltn_0order.
 have P3: 0 < t * _.+1 by case: {+}t P1.
@@ -358,7 +351,7 @@ rewrite order_pconst order_prem.
 case E1: (logn _ _) => [| n].
   by rewrite expn0 divn1 coprime1n.
 rewrite coprime_expl // -E1.
-case (@p_part_coprime p #[x]) => //; first exact: ltn_0order.
+case (@pfactor_coprime p #[x]) => //; first exact: ltn_0order.
 by move => xx Hxx Hr; rewrite {1}Hr divn_mull // ltn_0exp.
 Qed.
 
@@ -426,12 +419,12 @@ have F2:  1 < #[y * z].
   apply: leq_ltn_trans (ltn_0order z) _.
   rewrite -{1}(mul1n #[z]) F1 ltn_mul2r ltn_0order andTb.
   by rewrite -(expn0 p) ltn_exp2l // prime_gt1.
-rewrite {1 3 5}F1 logn_mul // ?ltn_0order ?logn_exp //; last first.
+rewrite {1 3 5}F1 logn_mul // ?ltn_0order ?pfactorK //; last first.
   by rewrite ?ltn_0exp; case: p primep.
 have FF: (p %| #[z]) = false.
   apply/negP; apply/negP.
   by rewrite -prime_coprime // -(@coprime_pexpl l.+1) // -H1.
-rewrite lognE primep ltn_0order FF [l.+1]lock /= addn0;  unlock.
+rewrite lognE FF !andbF [l.+1]lock /= addn0; unlock.
 rewrite -H1 F1 -H1 divn_mulr ?ltn_0order //.
 have F3: 1 < #[y] * #[z] by rewrite H1 -F1.
 move: (abezout_coprime F3 F0).
@@ -597,7 +590,7 @@ rewrite -(@dvdn_addr #|predI (f gT G (n2 * p)%N) (predC (f gT G n2))|).
   congr (_ + _); last by apply: eq_card => x; rewrite !inE /= andbC.
   apply: eq_card => x; rewrite [f]lock !inE /= !inE /= -lock andbC /=.
   by case: andP => //= [[-> /= HH]]; rewrite (dvdn_trans HH) ?dvdn_mulr.
-case (p_part_coprime Hp Hn2b0); rewrite /p_part => s.
+case (pfactor_coprime Hp Hn2b0) => s.
 rewrite mulnC; set l := logn p n2 => Hsl1 Hsl.
 have P1: 0 < p ^ (l.+1) by rewrite ltn_0exp Hp0.
 set A := (predI _ _).
@@ -678,7 +671,7 @@ have F2: wpartition [set z \in G | #[z] == p ^ l.+1]%N
   case: (F1 x) => // t; case/andP => Ht1 Ht2.
   have F2: #[pconst p x] = (p ^ l.+1)%N.
     rewrite order_pconst // (eqP Ht2).
-    by rewrite logn_gauss // logn_exp.
+    by rewrite logn_gauss // pfactorK.
   have F3: x \in G by case/andP: Hx; case/andP. 
   exists (pconst p x); first by rewrite inE (pconst_group _ F3) F2 eqxx.
   apply /spconstwP; first by rewrite pconst_group.

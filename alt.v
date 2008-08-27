@@ -47,14 +47,17 @@ have [p [p_pr pA_int Sp1]]:
   have: #|Syl3| \in filter [pred d | d %% 3 == 1%N] (divisors 12).
     rewrite mem_filter -dvdn_divisors //= -oA cardsE.
     by rewrite sylow3_div ?sylow3_mod.
-  rewrite /= oA; case/orP; first by rewrite cardsE; exists 3.
+  rewrite /= oA; case/orP; first by rewrite cardsE; exists 3; rewrite ?p1_part.
   case/predU1P=> //; move/(congr1 double).
   pose Q3 := \bigcup_(Q \in Syl3) (Q :\ 1).
   have <-: #|Q3| = #|Syl3|.*2.
     rewrite -muln2; apply: card_setnU_id => /= [Q1 Q2 x | Q]; last first.
-      by rewrite inE /gsylow sylowE; case/andP=> _; rewrite (cardsD1 1) group1 oA; case/eqP.
-    rewrite /= !{1}inE /gsylow sylowE; case/andP=> _; rewrite oA -[_ 3 _]/3; move/eqP=> cQ1.
-    rewrite sylowE; case/andP=> _; rewrite oA -[_ 3 _]/3; move/eqP=> cQ2.
+      rewrite inE /gsylow sylowE oA p1_part; case/andP=> _.
+      by rewrite (cardsD1 1) group1; case/eqP.
+    rewrite /= !{1}inE /gsylow sylowE; case/andP=> _.
+    rewrite oA p1_part -[_ 3 _]/3; move/eqP=> cQ1.
+    rewrite sylowE; case/andP=> _.
+    rewrite oA p1_part -[_ 3 _]/3; move/eqP=> cQ2.
     case/andP=> nx1 Q1x; rewrite nx1 /= => Q2x.
     apply: val_inj; apply/setP; apply/subset_cardP; first by rewrite cQ1.
     have sQ12: Q1 :&: Q2 \subset Q1 by exact: subsetIl.
@@ -65,7 +68,7 @@ have [p [p_pr pA_int Sp1]]:
   move=> /= cQ3; pose Syl2 := gsylow 2 A.
   have{cQ3} nQS2: forall P, P \in Syl2 -> P = A :\: Q3 :> set _.
     move=> P; rewrite /Syl2 /gsylow /in_mem /= sylowE; case/andP=> sAP.
-    rewrite oA -[_ 2 _]/4; move/eqP=> cP.
+    rewrite oA p1_part -[_ 2 _]/4; move/eqP=> cP.
     apply/setP; apply/subset_cardP.
       apply: (@addn_injl #|A :&: Q3|); rewrite cardsID oA cP addnC; congr _.+4.
       rewrite -[8]cQ3; congr #|(_ : set _)|; apply/setIidPr.
@@ -73,18 +76,19 @@ have [p [p_pr pA_int Sp1]]:
       case/andP=> _; exact: (subsetP sAQ).
     apply/subsetP=> x Px; rewrite inE (subsetP sAP) // andbT.
     apply/bigcupP=> [[Q]]; rewrite !inE /gsylow sylowE; case/andP=> _.
-    rewrite oA -[_ 3 _]/3; move/eqP=> cQ; case/andP=> nx1 Qx.
+    rewrite oA p1_part -[_ 3 _]/3; move/eqP=> cQ; case/andP=> nx1 Qx.
     have sPQP: P :&: Q \subset Q by exact: subsetIr.
     have:= (group_dvdn sPQP); rewrite cQ dvdn_divisors //= !inE orbF.
     rewrite {1}(cardD1 1) (cardD1 x) group1 inE [_ x]/= inE nx1 Px Qx /= -cQ.
     move/eqP=> cPQ; move/(subset_cardP cPQ): sPQP; move/setP; apply/setIidPr.
     by apply/negP; move/group_dvdn; rewrite cP cQ.
-  case: ((sylow1_cor [group of A]) 2) => //= P sylP; exists 2; split => //.
+  case: ((sylow1_cor [group of A]) 2) => //= P sylP; exists 2.
+  rewrite p1_part; split => //.
   rewrite (cardD1 P) [P \in _]sylP eqSS; apply/pred0P=> P'.
   apply/andP=> [[nPP' sylP']]; case/eqP: nPP'.
   by apply: val_inj; rewrite /= !nQS2.
 case: (normal_sylowP 'Alt_T p_pr Sp1) => P; rewrite sylowE; case/andP=> sPA sylP nPA.
-apply/simpleP=> [] [_]; rewrite -[_ p _](eqP sylP) in pA_int.
+apply/simpleP=> [] [_]; rewrite -(eqP sylP) in pA_int.
 by case/(_ P)=> // defP; rewrite defP oA ?cards1 in pA_int.
 Qed.
 
@@ -186,13 +190,13 @@ have nSyl5: #|gsylow 5 H| = 1%N.
   move: (dvdn_leq  (tp: (0 < 20)%N) Hdiv).
   by move: (n) Hdiv; do 20 (case => //).
 case: (sylow1_cor H prime_5) => S; rewrite sylowE; case/andP=> sSH oS.
-have{oS} oS: #|S| = 5 by move/eqP: oS; rewrite Hcard20. 
+have{oS} oS: #|S| = 5 by move/eqP: oS; rewrite p1_part Hcard20. 
 suff: 20 %| #|S| by rewrite oS.
 apply FF => [|S1]; last by rewrite S1 cards1 in oS.
 apply: char_norm_trans Hnorm; apply: lone_subgroup_char => // Q sQH isoQS.
 rewrite ((Q =P S :> set _) _) //; apply/idPn=> nQS; move: nSyl5.
 rewrite (cardD1 S) (cardD1 Q) -2!topredE {1 2}/gsylow /= nQS sylowE.
-by rewrite sSH oS -topredE /= sylowE Hcard20 sQH (isog_card isoQS) oS.
+by rewrite sSH oS -topredE /= sylowE p1_part Hcard20 sQH (isog_card isoQS) oS.
 Qed.
 
 Module Alt_CP_2. End Alt_CP_2.

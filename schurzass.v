@@ -338,7 +338,8 @@ have: splitg Gbar Hbar; last case/splitgP=> Kbar trHKbar eqHKbar.
   apply: IHn => //; apply: {n}leq_trans Gn.
   rewrite card_quotient; last by case/andP: nZG.
   rewrite -(group_divn sZG) divn_lt ?pos_card_group // ltnNge -trivg_card.
-  move: sylP; rewrite sylowE; case/andP => _; rewrite /p_part lognE prime_p dvdn_pdiv ltn_0group.
+  move: sylP; rewrite sylowE; case/andP => _.
+  rewrite p1_part lognE prime_p dvdn_pdiv ltn_0group.
   move/eqP; exact: pgroup_ntriv.
 have: Kbar \subset Gbar by rewrite -eqHKbar mulG_subr.
 case/inv_quotientS=> // ZK; move/(congr1 val)=> /= quoZK sZZK sZKG.
@@ -421,7 +422,7 @@ Proof. move=> G H; exact: solvable_morphim. Qed.
 Lemma solvable_norm_abelem : forall L G : {group gT},
   solvable G -> G <| L -> ~~ trivg G ->
   exists H : {group gT}, [/\ H \subset G, H <| L, ~~ trivg H
-                           & is_abelem H].
+                           & elementary_abelian H].
 Proof.
 move=> L G solG; set H := {1 2}G; have: H \subset G := subset_refl _.
 elim: {H}_.+1 {-2}H (ltnSn #|H|) => // n IHn H; rewrite ltnS => leHn.
@@ -440,7 +441,7 @@ move=> sHG nHL ntH; case abelH: (trivg [~: H, H]).
     by apply/set1P=> x1; rewrite -oxp x1 order1 in prp.
   exists H1; split=> //; first exact: subset_trans sHG.
     exact: char_norm_trans nHL.
-  apply/is_abelem_Ohm1P=> //; apply/eqP.
+  apply/abelem_Ohm1P=> //; apply/eqP.
   rewrite eqset_sub; case/andP: (char_Ohm 1 H1) => -> _.
   rewrite gen_subG; apply/subsetP=> x Hx.
   have H1x: x \in H1 by rewrite mem_gen.

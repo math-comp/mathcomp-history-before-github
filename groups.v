@@ -1531,8 +1531,8 @@ move=> G H.
 rewrite [#|G|]card_sum_1 (partition_big_imset (rcoset_of H)) /=.
 rewrite mulnC -sum_nat_const; apply: eq_bigr=> A; case/rcosetsP=> x Gx ->{A}.
 rewrite -(card_rcoset _ x) card_sum_1; apply: eq_bigl => y.
-rewrite rcosetE eqset_sub_card mulGS !card_rcoset leqnn andbT sub1set.
-by rewrite mem_rcoset inE -!mem_rcoset rcoset_id.
+rewrite rcosetE eqset_sub_card mulGS !card_rcoset leqnn andbT.
+by rewrite group_modr sub1set // inE.
 Qed.
 
 Lemma group_divnI : forall G H, #|G| %/ #|G :&: H| = #|G : H|.
@@ -2150,75 +2150,3 @@ Qed.
 
 End Maximal.
 
-Section FrattiniDefs.
-
-Variable gT : finGroupType.
-
-Variable G : {group gT}.
-
-Lemma maximal_existence : forall H : {group gT}, H \subset G ->
-  H = G \/ exists K : {group gT}, [/\ maximal K G , H \subset K & K != G].
-Proof.
-move=> H sHG; elim: {2}#|G| H sHG (leq_addr #|H| #|G|) => [|n IHn] H sHG.
-  rewrite add0n leq_eqVlt ltnNge subset_leq_card // orbF; move/eqP=> eqHG.
-  by left; apply: val_inj; apply/setP; exact/subset_cardP.
-rewrite addSnnS => leGnH; case maxH: (maximal H G).
-
-  by case: (H =P G); [left | move/eqP=> nHG; right; exists H].
-move/idPn: maxH; rewrite negb_and sHG; case/existsP=> L.
-rewrite negb_imply -andbA negb_orb; case/and4P=> sHL sLG nHL nLG; right.
-case: {IHn}(IHn L sLG) => [|eqLG|[K [maxK sLK nKG]]]; first 1 last.
-- by rewrite eqLG eqxx in nLG.
-- exists K; split=> //; exact: subset_trans sLK.
-apply: (leq_trans leGnH); rewrite leq_add2l ltn_neqAle subset_leq_card //.
-rewrite andbT; apply: contra nHL; move/eqP=> eqHL.
-by apply/eqP; apply/setP; exact/subset_cardP.
-Qed.
-
-Definition Frattini (A : {set gT}) := \bigcap_(H : {group gT} | maximal H A) H.
-
-Canonical Structure Frattini_group A := Eval hnf in [group of Frattini A].
-
-Lemma Frattini_sub : Frattini G \subset G.
-Proof.
-rewrite [Frattini G](bigD1 G) ?subsetIl ?eqxx //.
-rewrite /maximal subset_refl andTb; apply/forallP=> x; apply/implyP.
-by move/subset_eqP; move/setP->; rewrite eqxx.
-Qed.
-
-Lemma Frattini_strict_sub :  G = 1 :> {set gT} \/ Frattini G != G.
-Proof.
-case: (G =P 1 :> {set _}) => nG1; [by left | right].
-rewrite eqset_sub Frattini_sub; apply/bigcap_inP=> sGmax.
-have: [set 1] \subset G by rewrite sub1set group1.
-case/maximal_existence=> [G1 | [K [Kmax _]]]; first by case nG1; rewrite -G1.
-by rewrite -val_eqE eqset_sub sGmax //=; case/andP: Kmax => ->.
-Qed.
-
-End FrattiniDefs.
-
-Implicit Arguments Frattini [gT].
-
-Section FrattiniProps.
-
-Variable gT : finGroupType.
-
-Lemma Frattini_not_gen : forall (G : {group gT}) (X : {set gT}),
-  X \subset G -> (G \subset <<X>>) = (G  \subset << X :|: Frattini G >>).
-Proof.
-move=> G X sXG; apply/idP/idP=> [|sGXF].
-  move/subset_trans; apply.
-  apply/subsetP=> x; move/bigcapP=> Hx; apply/bigcapP=> i Hi.
-  apply Hx; apply: (subset_trans _ Hi); exact: subsetUl.
-have sXFG: X :|: Frattini G \subset G.
-  by rewrite subUset sXG andTb Frattini_sub.
-rewrite -gen_subG in sXG.
-have [<- //=| [K [Kmax sHK nKG]]] := maximal_existence sXG.
-rewrite gen_subG in sHK.
-have: Frattini G \subset K by exact: bigcap_inf.
-move/(conj sHK); move/andP; rewrite -subUset -gen_subG.
-move/(subset_trans sGXF)=> sGK; case/maximalP: Kmax => sKG _.
-by case/eqP: nKG; apply: val_inj; apply/setP; apply/subset_eqP; apply/andP.
-Qed.
-
-End FrattiniProps.

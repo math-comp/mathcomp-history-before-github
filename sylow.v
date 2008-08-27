@@ -34,7 +34,7 @@ Hypothesis n_pos: 0 < n.
 
 Lemma SylowDivpCK : p %| #|K|.
 Proof.
-apply: (@dvdn_trans (p ^ n)%N); last by rewrite dvdn_exp_max.
+apply: (@dvdn_trans (p ^ n)%N); last by rewrite pfactor_dvdn.
 by move: n_pos; case: n => // n1 _; rewrite dvdn_exp // dvdnn.
 Qed.
 
@@ -73,8 +73,8 @@ have: p %| #|K / L|.
     apply: eq_card=> Lk; rewrite val_quotient //.
   have divpLK : p %| #|K : L|.
     rewrite -(@dvdn_pmul2l #|L|) // (LaGrange sLK) (eqP cardL) mulnC -expnS.
-    by rewrite dvdn_exp_max.
-  have pgL: pgroup p L by apply/pnatP=> //; exists i; exact/eqP.
+    by rewrite pfactor_dvdn.
+  have pgL: pgroup p L by apply/p1_natP=> //; exists i; exact/eqP.
   apply/eqP; rewrite -{divpLK}(eqnP divpLK) -(pgroup_fix_mod prime_p pgL) //.
   apply/subsetP=> x Lx; rewrite /= inE; apply/subsetP=> A; rewrite /= inE.
   case/imsetP=> y Ky ->{A}; rewrite !rcosetE -rcosetM -rcosetE mem_imset //.
@@ -123,14 +123,14 @@ Theorem sylow1_subset : forall i (L : {group gT}),
   L \subset K -> #|L| == (p ^ i)%N -> 
   exists P : {group gT}, (L \subset P) && sylow p K P.
 Proof.
-move=> i L Hlk Hcl; case (@sylow1 i n L) => //.
-  by rewrite leqnn andbT -dvdn_exp_max // -(eqP Hcl) group_dvdn.
-by move=> H; case/and3P => [Hlh Hhk Hc]; exists H; rewrite Hlh // sylowE Hhk.
+move=> i L Hlk Hcl; case (@sylow1 i n L) => // [|H].
+  by rewrite leqnn andbT -pfactor_dvdn // -(eqP Hcl) group_dvdn.
+by case/and3P => Hlh Hhk Hc; exists H; rewrite Hlh // sylowE p1_part Hhk.
 Qed.
 
 Theorem sylow1_cor : exists P : {group gT}, sylow p K P.
 Proof.
-case (@sylow1_subset 0 [group of [set 1]]) => //=.
+case (@sylow1_subset 0 1%G) => //=.
 - by apply/subsetP => z; rewrite inE; move/eqP->; exact: group1.
 - by rewrite cards1.
 by move=> H; case/and3P => [_ Hhk Hc]; exists H; apply/andP.
@@ -147,11 +147,11 @@ have F1: ~~ (p %| #|K : L|).
   move/dvdnP: Fd => [u Hu].
   have F2: p ^ n.+1 %| #|K|.
     apply/dvdnP; exists u.
-    rewrite -(LaGrange Hsl1) Hu (eqP Hsl2) /= (mulnA u).
+    rewrite -(LaGrange Hsl1) Hu (eqP Hsl2) /= (mulnA u) p1_part.
     exact: mulnC. 
-  by move: F2; rewrite /n dvdn_p_p_part // (cardD1 1) group1.
+  by rewrite /n pfactor_dvdn ?ltnn in F2.
 have F2: #|K : L| %% p = #|lS0| %% p.
-  have: pgroup p H by apply/pnatP=> //; exists i. 
+  have: pgroup p H by apply/p1_natP=> //; exists i. 
   move/pgroup_fix_mod=> <- //; apply/subsetP=> x Hx; rewrite inE /=.
   apply/subsetP=> A; rewrite inE /=; case/imsetP=> y Ly ->{A}.
   by rewrite !rcosetE -rcosetM -rcosetE mem_imset ?groupM // (subsetP Hshk).
@@ -168,11 +168,11 @@ Qed.
 Lemma sylow2_cor: forall L1 L2 : {group gT},
   sylow p K L1 -> sylow p K L2 -> exists2 x, x \in K & L2 = (L1 :^ x)%G.
 Proof.
-move => L1 L2 Hl1; rewrite sylowE; case/andP => Ml2 Nl2.
+move => L1 L2 Hl1; rewrite sylowE; case/andP=> Ml2; rewrite p1_part => Nl2.
 case: (sylow2 Ml2 (eqP Nl2) Hl1) => x Hx1 Hx2.
 exists x => //; apply/eqP; rewrite -val_eqE eqset_sub_card Hx2 /=.
 by rewrite card_conjg (eqP Nl2); 
-   move: Hl1; rewrite sylowE; case/andP => _; move/eqP ->.
+   move: Hl1; rewrite sylowE; case/andP => _; rewrite p1_part; move/eqP ->.
 Qed.
  
 Theorem sylow2_subset: forall i (L P : {group gT}),
@@ -219,11 +219,10 @@ Hypothesis n_pos: 0 < n.
 Lemma sylow_subset: sylow p K H -> sylow p L H.
 Proof.
 rewrite !sylowE; move/andP => [H1 H2]; apply/andP; split => //.
-rewrite (eqP H2) /p_part; apply/eqP.
-suff ->: logn p #|K| = logn p #|L| by [].
+rewrite (eqP H2) !p1_part; apply/eqP; congr (p ^ _)%N.
 apply/eqP; rewrite eqn_leq; apply/andP; split; last first.
   by apply dvdn_leq_log => //; exact: group_dvdn.
-by rewrite /p_part in H2; rewrite -dvdn_exp_max // -(eqP H2) group_dvdn.
+by rewrite p1_part in H2; rewrite -pfactor_dvdn // -(eqP H2) group_dvdn.
 Qed.
 
 End SylowAux.
@@ -254,7 +253,7 @@ have: [acts (H | 'JG) on Syl].
   apply: (subset_trans F2); apply/actsP=> x Kx P.
   by rewrite !inE /gsylow !sylowE card_conjg -{1}(conjGid Kx) conjSg.
 move/pgroup_fix_mod=> -> //; last first.
-  by rewrite /pgroup /pi_group (eqP F3) p_part_pi pi_nat_part.
+  by rewrite /pgroup (eqP F3) p_nat_part.
 rewrite -(([set H] =P _ :&: _) _).
   by rewrite cards1 modn_small ?prime_gt1.
 rewrite eqset_sub {1}sub1set 2!inE /gsylow sylowE Hh /=; apply/andP; split.
@@ -264,7 +263,7 @@ rewrite inE eq_sym -val_eqE eqset_sub_card /= (eqP F3).
 move: (sylL); rewrite /gsylow sylowE; case/andP => sLK.
 move/eqP->; rewrite leqnn andbT.
 have nLN: L <| 'N_K(L) by rewrite /(L <| _) subsetI sLK normG subsetIr.
-apply: sylow2_subset F3 _ (nLN) => //.
+rewrite p1_part in F3; apply: sylow2_subset F3 _ (nLN) => //.
   by rewrite subsetI F2; apply/normsP=> x Hx; rewrite -{2}(fixL x Hx).
 by apply: sylow_subset sylL; rewrite ?subsetIl //; case/andP: nLN.
 Qed.
@@ -300,9 +299,9 @@ move=> gT G P; apply: (iffP idP).
   rewrite (dvdn_trans H3P) // (@group_dvdn _ _ (Group H4P)) //=.
   by case/andP: H5P.
 case=> p [H1p H2p H3p]; rewrite sylowE; case/andP=> H4p H5p.
-by rewrite /sylows (eqP H5p) 
-          !(primes_exp, primes_prime, H3p, sylowE, H4p) //  
-          -dvdn_exp_max // expn1.
+rewrite /sylows (eqP H5p) p1_part primes_exp.
+  by rewrite primes_prime // H3p sylowE H4p.
+by rewrite ltn_0log mem_primes H1p ltn_0group.
 Qed.
 
 Lemma normal_sylowP : forall (gT : finGroupType) (G : {group gT}) p,
@@ -350,26 +349,19 @@ Qed.
 Lemma div_primes: forall (n m: nat), 0 < n ->
   (forall p, p \in primes n -> p_part p n %| m) -> n %| m.
 Proof.
-move=> n m Hn Hpa.
-rewrite -(prod_p_parts Hn).
-have: forall i, i \in primes n -> prime i.
-  by move=> i; rewrite mem_primes; case/andP.
-have: uniq (primes n) by exact: uniq_primes.
-elim: (primes n) Hpa => [| i r Hrec];
-  rewrite !(big_seq0, big_adds) /= ?dvd1n //.
-move=> H1; case/andP=> H2 H3 H4.
-have Hrec1: \prod_(p <- r) p_part p n %| m.
-  by apply: Hrec => // p Hp; rewrite (H1, H4) // inE orbC Hp.
-rewrite gauss_inv //; first by rewrite Hrec1 H1 // inE eqxx.
-apply: coprime_bigprod => j /= Hj.
-rewrite coprime_expl // coprime_expr //.
-have Pi: prime i by rewrite H4 // inE eqxx.
-have Pj: prime j by rewrite H4 // inE orbC Hj.
-rewrite prime_coprime //.
-apply/negP => HH; case/negP: H2.
-case/primeP: (Pj) => _; move/(_  _ HH); case/orP => // Hi.
-  by move: Pi; rewrite (eqP Hi).
-by rewrite (eqP Hi).
+have widen: forall m n,
+  n > 0 -> n = (\prod_(1 <= p < (m + n).+1) p ^ logn p n)%N.
+- move=> m n n_pos; rewrite (@big_cat_nat _ _ _ n.+1) ?ltnS ?leq_addl //=.
+  rewrite [(\prod_(<- _ | _) _)%N]p_partT // big1_seq ?muln1 //= => p.
+  rewrite mem_index_iota ltnNge; case/andP=> lt_n_p; rewrite lognE.
+  by case: and3P => // [] [_  _ dv_p_n]; rewrite dvdn_leq in lt_n_p.
+move=> n m Hn Hpa; case: (posnP m) => [-> // | m_pos].
+rewrite [n](widen m) // {2}[m](widen n) // addnC.
+apply (@big_rel _ (fun n1 n2 => n1 %| n2)) => // [n1 n2 m1 m2|p _].
+  by case/dvdnP=> n1' ->; case/dvdnP=> n2' ->; rewrite mulnCA -mulnA 2?dvdn_mull.
+case: (posnP (logn p n)) => [-> // | ]; rewrite ltn_0log => p_n.
+have pr_p: prime p by rewrite mem_primes in p_n; case/andP: p_n.
+by have:= Hpa p p_n; rewrite p1_part !pfactor_dvdn // pfactorK.
 Qed.
 
 Lemma comm_bigprod: forall (A: {set gT}) (I: eqType) r (P: pred I) F,
@@ -470,7 +462,7 @@ have Hcr: forall Pi Pj, Pi <> Pj ->
      rewrite sylowE; case/andP => H4pi H5pi H6pi.
   case/andP; case/sylowsP => p2 [H1pj H2pj H3pj];
      rewrite sylowE; case/andP => H4pj H5pj H6pj.
-  rewrite (eqP H5pi) (eqP H5pj) coprime_expl // coprime_expr //.
+  rewrite (eqP H5pi) (eqP H5pj) !p1_part coprime_expl // coprime_expr //.
   rewrite prime_coprime //.
   apply/negP => Hp1p2; case: Hij; apply: (@sylowNLE _ G (Group H3pi) (Group H3pj) _ H1pi).
   - by apply: HG; apply/sylowsP; exists p1; split => //; rewrite sylowE H4pi.
@@ -562,7 +554,7 @@ move=> G pgG.
 case: (leqP #|G| 1).
   by rewrite -trivg_card; case/trivGP=> ->; exact: nilpotent1.
 move/prime_pdiv; set p := pdiv _ => pr_p; have Gpos: #|G| > 0 by [].
-move: (part_pi_nat pgG); rewrite -p_part_pi -/p /p_part.
+have:= part_p_nat pgG; rewrite -/p p1_part.
 move: (logn _ _) => m oG; apply/ucnP; exists m; apply/eqP.
 rewrite eqset_sub_card ucn_subset0 /= -oG.
 elim: {-2}m (leqnn m) => [|k IHk] ltkm; first exact: pos_card_group.
@@ -570,7 +562,7 @@ case/andP: (ucn_normal G k) => sZ nZ.
   case/andP: (ucn_normal0 G k) => sZG nZG.
 have: #|G / 'Z_k(G)| %| #|G|.
   by rewrite card_quotient // -(LaGrange sZG) dvdn_mull.
-rewrite -oG; case/dvdn_exp_prime=> // [] [|j] lejk oGbar.
+rewrite -oG; case/dvdn_pfactor=> // [] [|j] lejk oGbar.
   apply: (@leq_trans #|G|); first by rewrite -oG leq_exp2l // prime_gt1.
   apply: subset_leq_card; apply: subset_trans sZ.
   by rewrite -trivg_quotient // trivg_card oGbar.
@@ -578,7 +570,7 @@ rewrite -(LaGrange sZ) -card_quotient //= ucn_center expnSr.
 rewrite leq_mul ?(IHk (ltnW _)) // dvdn_leq ?pos_card_group //.
 have:= pgroup_ntriv pr_p oGbar; rewrite trivg_card.
 have: #|'Z(G / 'Z_k(G))| %| p ^ j.+1 by rewrite -oGbar group_dvdn // subsetIl.
-by case/dvdn_exp_prime=> // [] [|i] _ -> // _; rewrite dvdn_mulr.
+by case/dvdn_pfactor=> // [] [|i] _ -> // _; rewrite dvdn_mulr.
 Qed.
 
 
@@ -589,8 +581,7 @@ move=> leK5.
 case: (ltnP 5 #|G|) => [lt5G | leG5 {leK5}].
   by rewrite nilpotent_class (leq_ltn_trans leK5).
 apply: nilpotent_pgroup.
-move: Hg0 leG5; rewrite /is_pgroup /pgroup /pi_group; move: #|G|.
-by do 6!case => //.
+by move: Hg0 leG5; rewrite /is_pgroup /pgroup; move: #|G|; do 6!case => //.
 Qed.
 
 Lemma nilpotent_sylow: forall G: {group gT}, 
@@ -645,7 +636,7 @@ elim: k => [| k Hrec] [| k1//] Hk1 gT1 [|r//] G N PG NNG CG Lrk; try by exists N
     by move=> x Hx; rewrite /= conjs1g.
   by rewrite expn0 cards1.
 have PN := pgroupS (normal_sub NNG) PG.
-case/(pnatP _ prime_p): (PG) => k2 Hk2.
+case/(p1_natP _ prime_p): (PG) => k2 Hk2.
 pose N1 := (N :&: 'Z(G))%G.
 have SN1: N1 \subset N by rewrite subsetIl.
 have PN1 := pgroupS SN1 PN.
@@ -656,9 +647,9 @@ have NTN1: ~~ trivg N1.
 have DN1: #|N1| %| (p ^k1.+1)%N. 
   by rewrite -CG -(LaGrangeI N 'Z(G)) dvdn_mulr.
 have CN1: p %| #|N1|.
-  case/(dvdn_exp_prime _ _ prime_p): DN1 => [[|n]] _ Hn; last by rewrite Hn dvdn_exp.
+  case/dvdn_pfactor: DN1 => // [[|n]] _ Hn; last by rewrite Hn dvdn_exp.
   by case/negP: NTN1; rewrite trivg_card Hn expn0.
-case/(pnatP _ prime_p): (PN1) => [[| k3] Hk3].
+case/p1_natP: (PN1) => // [[| k3] Hk3].
   by move: CN1; rewrite Hk3 expn0 dvdn1; case: p prime_p => //; case.
 case: (Cauchy prime_p CN1) => a Sa; rewrite {1}/order=> Ca1.
 pose G1 := (G / <[a]>)%G; pose N2 := (N / <[a]>)%G.
@@ -674,7 +665,7 @@ have SaN: <[a]> \subset N by apply: cycle_h.
 have Dk: forall k, (p^k.+1%/p = p^k)%N.
   by move=> kk; rewrite divn_mulr // ltn_0prime.
 case (Hrec _ Hk1 _ r G1 N2) => //.
-- apply/(pnatP _ prime_p); exists k2.-1.
+- apply/p1_natP=> //; exists k2.-1.
   rewrite card_quotient // -group_divn //.
   move/subset_leq_card: NCa1; rewrite Hk2 Ca1.
   case: {Hk2}k2 => [| k2 _]; last by rewrite Dk.

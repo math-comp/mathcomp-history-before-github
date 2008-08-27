@@ -220,38 +220,26 @@ Proof.
 by move=> A H nHA; rewrite normC // -{8}(ker_coset H) -morphimK ?morphpre_norm.
 Qed.
 
-Lemma not_dvdn_p_part_1: forall n p, 0 < n -> prime p -> not (dvdn p n) -> p_part p n = 1%nat.
+Lemma not_dvdn_p_part_1: forall n p,
+  0 < n -> prime p -> ~ (p %| n) -> p_part p n = 1%N.
 Proof.
-by move=> n p npos pr; move/negP=> nd; rewrite /p_part lognE npos pr //= (negbET nd).
+move=> n p npos pr; move/negP=> nd.
+by rewrite p1_part lognE npos pr //= (negbET nd).
 Qed.
 
 Lemma divp_pgroup_p: forall G: {group T}, forall p d, 1 < d -> prime p -> 
   pgroup p G -> d %| #|G| -> pdiv d = p.
+Proof.
 move=> G p d lt1d pr; rewrite /p_part; case/andP=> _; move/allP=> allp.
 case/dvdnP=> k eqG; apply/eqP; apply: allp; rewrite eqG primes_mul.
 - by apply/orP; right; rewrite primes_pdiv.
-- by apply: (ltn_0dvd (pos_card_group G)); apply/dvdnP; exists d; rewrite mulnC.
+- by apply: (ltn_0dvd (ltn_0group G)); apply/dvdnP; exists d; rewrite mulnC.
 - by apply: ltnW.
 Qed.
 
-Lemma card_pgroup_p: forall G: {group T}, forall p, prime p -> pgroup p G -> 
-#|G| = p_part p #|G|.
-Proof.
-move=> G p pr pg; case (p_part_coprime pr (pos_card_group G)) => y co cardG.
-suff eqy1: y = 1%nat by rewrite eqy1 mul1n in cardG.
-move: (leq0n y); rewrite leq_eqVlt; case /orP. 
-- move /eqP => eqy0; apply: False_ind; rewrite -eqy0 /coprime gcdn0 in co.
-  by move: (prime_gt1 pr); apply/negP; rewrite (eqP co).
-- rewrite leq_eqVlt; case /orP=>[|lt1y]; first by move /eqP.
-  have pdivy: pdiv y = p. 
-    apply: (divp_pgroup_p lt1y pr pg). apply/dvdnP. exists (p_part p #|G|).
-    by rewrite mulnC.
- apply: False_ind; move: (prime_gt1 pr); apply/negP; rewrite -leqNgt.
- rewrite /coprime in co; rewrite -(eqP co).
- apply: dvdn_leq; first by rewrite /coprime in co; rewrite (eqP co).
- apply: dvdn_gcd; first by apply: dvdnn.
- by rewrite -pdivy; apply: dvdn_pdiv.
-Qed. 
+Lemma card_pgroup_p: forall (G : {group T}) p,
+  prime p -> pgroup p G -> #|G| = p_part p #|G|.
+Proof. by move=> G p pr pg; rewrite part_p_nat. Qed.
 
 Lemma dvdn_sub_primes: forall d n: nat, 0 < n ->
 d %| n -> forall m, m \in primes d -> m \in primes n.
@@ -298,7 +286,7 @@ suff sylowA: sylow p (A <*> H)%G A.
 rewrite sylowE sub_gen ?subsetUl //= norm_mulgenE; last by apply: (subset_trans AsubG (normal_norm normH)).
 have co: coprime #|A| #|H| by apply: (pgroup_coprime pr).
 rewrite (card_mulG_trivP _ _ (coprime_trivg co)). 
-rewrite p_part_mul ?pos_card_group //=.
+rewrite p_part_mul ?ltn_0mul ?ltn_0group //=.
 rewrite (@not_dvdn_p_part_1 #|H|); rewrite //=; last by apply: pos_card_group.
 by rewrite muln1; apply/eqP; apply: card_pgroup_p.
 Qed.
