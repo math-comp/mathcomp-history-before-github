@@ -1532,6 +1532,14 @@ Proof. by elim=> [|x s IHs] //=; rewrite !rev_adds -!cats1 maps_cat IHs. Qed.
 Lemma maps_sieve : forall m s, maps (sieve m s) = sieve m (maps s).
 Proof. by elim=> [|[|] m IHm] [|x p] //=; rewrite IHm. Qed.
 
+Hypothesis Hf : injective f.
+
+Lemma inj_maps : injective maps.
+Proof.
+move=> s1 s2; elim: s1 s2 => [|y1 s1 IHs] [|y2 s2] //= [Hy Hs].
+by rewrite (Hf Hy) (IHs _ Hs).
+Qed.
+
 End Map.
 
 Section EqMap.
@@ -1587,12 +1595,6 @@ Qed.
 
 Lemma uniq_maps : forall s, uniq (maps f s) = uniq s.
 Proof. move=> s; apply: uniq_dmaps; exact: in2W. Qed.
-
-Lemma inj_maps : injective (maps f).
-Proof.
-move=> s1 s2; elim: s1 s2 => [|y1 s1 IHs] [|y2 s2] //= [Hy Hs].
-by rewrite (Hf Hy) (IHs _ Hs).
-Qed.
 
 End EqMap.
 
