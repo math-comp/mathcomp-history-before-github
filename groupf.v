@@ -288,20 +288,11 @@ Require Import pgroups.
 Implicit Types G:{group gT}.
 
 Lemma Ohm_sub : forall i G, 'Ohm_i(G) \subset G.
-Proof.
-by move=> i G; rewrite gen_subG; apply/subsetP=> x; rewrite inE; case/andP.
-Qed.
+Proof. move=> i; exact: Ohm_subset. Qed.
 
 Lemma Ohm_resp : forall i,
   resp (fun gT S => 'Ohm_i(S)) (@is_aut gT).
-Proof.
-move=> i G f; move/andP=>[Hinj Hs]; apply/bigcap_inP=> j Hj.
-rewrite sub_morphim_pre // gen_subG;
-apply/subsetP=> x; rewrite inE; last by move/andP => [Hx].
-case/andP=> Gx oxp; rewrite !inE Gx /=; apply: (subsetP Hj).
-rewrite inE {1}morphimEdom (mem_imset _ Gx) /= -(morphX _ _ Gx) (eqP Hs).
-by rewrite (eqP oxp) morph1.
-Qed.
+Proof. move=> i G f _; exact: morphim_Ohm. Qed.
 
 Canonical Structure Ohm_id_subfunctor (i:nat) :=
   @isFcClass _ _ _ (fun _ S => 'Ohm_i(S))
@@ -310,24 +301,11 @@ Canonical Structure Ohm_id_subfunctor (i:nat) :=
             (Ohm_resp i).
 
 Lemma Mho_sub : forall i G, 'Mho^i(G) \subset G.
-Proof.
-move=> i G; rewrite gen_subG; apply/subsetP=> y; case/imsetP=> x Gx ->.
-exact:groupX.
-Qed.
+Proof. move=> i; exact: Mho_subset. Qed.
 
 Lemma Mho_resp : forall i,
   resp (fun gT S => 'Mho^i(S)) (@is_aut gT).
-Proof.
-move=> i G f; move/andP=>[Hinj Hs]; rewrite morphim_gen ?gen_subG;
-  last by apply/subsetP=> y; move/imsetP=> [x Hx ->]; apply:groupX.
-apply/bigcap_inP=> H; move/(subset_trans _);apply.
-(* the following could be much faster provided you prove a few things on conjXg*)
-rewrite sub_morphim_pre; apply/subsetP=> y; 
-  move/imsetP=> [x Hx ->]; last exact:groupX.
-apply/morphpreP; split; first exact:groupX.
-rewrite morphX //; apply/imsetP; exists (f x); 
- by [rewrite morphimEdom mem_imset|rewrite (eqP Hs)].
-Qed.
+Proof. move=> i G f _; exact: morphim_Mho. Qed.
 
 Canonical Structure Mho_id_subfunctor (i:nat) :=
   @isFcClass _ _ _ (fun _ S => 'Mho^i(S))

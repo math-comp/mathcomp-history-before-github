@@ -283,7 +283,7 @@ Module AfterGaschutz.
 End AfterGaschutz.
 
 Theorem SchurZass_split : forall (gT : finGroupType) (G H : {group gT}),
-  is_hall G H -> H <| G -> splitg G H.
+  Hall G H -> H <| G -> splitg G H.
 Proof.
 move=> gT G; move: {2}_.+1 (ltnSn #|G|) => n.
 elim: n gT G => // n IHn gT G; rewrite ltnS => Gn H.
@@ -307,10 +307,10 @@ case nPG: (P <| G); last first.
   have eq_iH: #|G : H| = #|N| %/ #|H'|.
     rewrite -group_divn // -(divn_pmul2l (pos_card_group H')) mulnC -eqHN_G.
     by rewrite card_mulG (mulnC #|H'|) divn_pmul2l // pos_card_group.
-  have hallH': is_hall N H'.
+  have hallH': Hall N H'.
     have sH'H: H' \subset H by exact: subsetIl.
     case/andP: hallH => _; rewrite eq_iH -(LaGrange sH'H) coprime_mull.
-    by rewrite /is_hall group_divn subsetIr //; case/andP.
+    by rewrite /Hall group_divn subsetIr //; case/andP.
   have: splitg N H'; last case/splitgP=> K trKN eqH'K.
     apply: IHn hallH' nH'N; apply: {n}leq_trans Gn.
     rewrite ltn_neqAle subset_leq_card // andbT; apply/eqP=> eqNG.
@@ -332,15 +332,14 @@ have nZH: Z <| H by exact: normalS nZG.
 pose Gbar := (G / Z)%G; have iGbar: G / Z = Gbar by [].
 pose Hbar := (H / Z)%G; have iHbar: H / Z = Hbar by [].
 have nHGbar: Hbar <| Gbar by exact: morphim_normal.
-have hallHbar: is_hall Gbar Hbar.
-  by apply: morphim_is_hall; first case/andP: nZH.
+have hallHbar: Hall Gbar Hbar.
+  by apply: morphim_Hall; first case/andP: nZH.
 have: splitg Gbar Hbar; last case/splitgP=> Kbar trHKbar eqHKbar. 
   apply: IHn => //; apply: {n}leq_trans Gn.
   rewrite card_quotient; last by case/andP: nZG.
   rewrite -(group_divn sZG) divn_lt ?pos_card_group // ltnNge -trivg_card.
-  move: sylP; rewrite sylowE; case/andP => _.
-  rewrite p1_part lognE prime_p dvdn_pdiv ltn_0group.
-  move/eqP; exact: pgroup_ntriv.
+  have:= card_Hall sylP; rewrite p_part lognE prime_p dvdn_pdiv ltn_0group /=.
+  exact: pgroup_ntriv.
 have: Kbar \subset Gbar by rewrite -eqHKbar mulG_subr.
 case/inv_quotientS=> // ZK; move/(congr1 val)=> /= quoZK sZZK sZKG.
 have nZZK: Z <| ZK by exact: normalS nZG.
@@ -427,31 +426,30 @@ Proof.
 move=> L G solG; set H := {1 2}G; have: H \subset G := subset_refl _.
 elim: {H}_.+1 {-2}H (ltnSn #|H|) => // n IHn H; rewrite ltnS => leHn.
 move=> sHG nHL ntH; case abelH: (trivg [~: H, H]).
-  pose H1 := 'Ohm_1(H)%G; have charH1: H1 \char H by exact: char_Ohm.
-  have sH1H: H1 \subset H by case/andP: charH1.
-  have abelH1: abelian H1.
-    apply: subset_trans (subset_trans sH1H _) (centS sH1H).
-    by rewrite (sameP centsP commG1P).
-  pose p := pdiv #|H|.
+  pose p := pdiv #|H|; pose H1 := 'Ohm_1('O_p(H))%G.
   have prp: prime p by rewrite prime_pdiv // ltnNge -trivg_card.
+  have charH1: H1 \char H by exact: char_trans (char_Ohm _ _) (char_core p _).
+  have sH1H: H1 \subset H by case/andP: charH1.
+  have{abelH} abelH: abelian H by apply/centsP; exact/commG1P.
+  have abelH1: abelian H1.
+    by do 2![apply: (subset_trans sH1H); rewrite 1?centsC].
+  have pOp: p.-group 'O_p(H) by exact: pgroup_core.
+  have pH1: p.-group H1 by apply: pgroupS pOp; exact: Ohm_subset.
   have ntH1 : ~~ trivg H1.
     case: (Cauchy prp (dvdn_pdiv #|H|)) => x Hx oxp.
-    rewrite /trivg gen_subG expn1; apply/subsetPn; exists x.
-      by rewrite inE Hx -/p -oxp order_expn1 eqxx.
-    by apply/set1P=> x1; rewrite -oxp x1 order1 in prp.
+    rewrite /trivg /= (OhmE 1 pOp) gen_subG.
+    apply/subsetPn; exists x; last first.
+      by apply/set1P=> x1; rewrite -oxp x1 order1 in prp.
+    rewrite inE -{2}oxp expn1 order_expn1 eqxx andbT -sub1set -gen_subG.
+    apply: subset_core; first rewrite /pi_group [#|_|]oxp p_nat_prime ?inE //=.
+    rewrite /(_ <| H) cycle_h // (subset_trans _ (cent_subset _)) // centsC.
+    rewrite cycle_h //; exact: subsetP Hx.
   exists H1; split=> //; first exact: subset_trans sHG.
     exact: char_norm_trans nHL.
-  apply/abelem_Ohm1P=> //; apply/eqP.
-  rewrite eqset_sub; case/andP: (char_Ohm 1 H1) => -> _.
-  rewrite gen_subG; apply/subsetP=> x Hx.
-  have H1x: x \in H1 by rewrite mem_gen.
-  apply: mem_gen; move: Hx; rewrite !inE -!order_dvd -/p !expn1 H1x.
-  case/andP=> Hx; case: (primeP prp) => _ dvp; move/dvp=> {dvp}.
-  case/orP; move/eqP=> oxp; rewrite oxp ?dvd1n //.
-  rewrite ((pdiv _ =P p) _) ?dvdnn // eqn_leq !pdiv_min_dvd ?prime_gt1 //.
-  - by rewrite prime_pdiv // ltnNge -trivg_card.
-  - apply: dvdn_trans (dvdn_pdiv _) _; exact: group_dvdn.
-  by rewrite -oxp order_dvd_g.
+  apply/abelem_Ohm1P=> //; apply/eqP; rewrite eqset_sub Ohm_subset /=.
+  rewrite (OhmE 1 pH1) /= (OhmE 1 pOp) genS //.
+  apply/subsetP=> x H1x; rewrite inE mem_gen //=.
+  by have:= H1x; rewrite inE; case/andP.
 have chH': [~: H, H] \char H by apply: charR; apply: char_refl.
 have [sH'H _] := andP chH'; move/idPn: abelH.
 apply: IHn; last 1 [exact: subset_trans sHG | exact: char_norm_trans nHL].

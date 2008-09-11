@@ -597,7 +597,7 @@ Canonical Structure gcdn_monoid := Law gcdnA gcd0n gcdn0.
 Canonical Structure gcdn_abeloid := AbelianLaw gcdnC.
 Canonical Structure gcdn_addoid := AddLaw muln_gcdl muln_gcdr.
 
-Canonical Structure lcmn_monoid := Law lcmnA lcm0n lcmn0.
+Canonical Structure lcmn_monoid := Law lcmnA lcm1n lcmn1.
 Canonical Structure lcmn_abeloid := AbelianLaw lcmnC.
 
 End NatMonoids.

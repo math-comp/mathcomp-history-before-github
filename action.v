@@ -3,7 +3,7 @@
 (*                                                                     *)
 (***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
-Require Import div prime seq fintype.
+Require Import div seq fintype.
 (* Require Import connect. *)
 Require Import tuple finfun ssralg bigops finset.
 Require Import groups group_perm morphisms.
@@ -338,15 +338,6 @@ apply: eq_bigr => y; rewrite orbit_sym; case/imsetP=> a Aa defx.
 rewrite defx astab1_to (subsetP (normG _), card_conjg) // card_sum_1.
 by apply: eq_bigl => b; rewrite !(sub1set, inE) -(actsP AactS a Aa) -defx Sx.
 Qed.
-
-(*
-Lemma card_stab_eq : forall x y,
-  y \in orbit to G x -> #|'C_(G | to)[x]| = #|'C_(G | to)[y]|.
-Proof.
-move=> x y; case/orbitP=> a Ga <- {y}; rewrite astab1_to ?card_conjg //.
-exact: (subsetP (normG G)).
-Qed.
-*)
 
 Lemma atransP : forall A S, [transitive (A | to) on S] ->
   forall x, x \in S -> orbit to A x = S.

@@ -118,6 +118,10 @@ by rewrite addnC divn_small // ltn_pmul2l.
 Qed.
 Implicit Arguments divn_pmul2l [p m d].
 
+Lemma divn_pmul2r : forall p m d, p > 0 -> m * p %/ (d * p) = m %/ d.
+Proof. by move=> p m d p_pos; rewrite -!(mulnC p) divn_pmul2l. Qed.
+Implicit Arguments divn_pmul2r [p m d].
+
 Lemma ltn_mod : forall m d, (m %% d < d) = (0 < d).
 Proof. by move=> m [|d] //; rewrite modn_def; case: edivnP. Qed.
 
@@ -528,37 +532,37 @@ Qed.
 
 (* We derive the lcm directly. *)
 
-Definition lcmn m n := if m * n == 0 then m + n else m * n %/ gcdn m n.
+Definition lcmn m n := m * n %/ gcdn m n.
 
 Lemma lcmnC : commutative lcmn.
-Proof. by move=> m n; rewrite /lcmn mulnC addnC gcdnC. Qed.
+Proof. by move=> m n; rewrite /lcmn mulnC gcdnC. Qed.
 
-Lemma lcm0n : left_unit 0 lcmn. Proof. done. Qed.
-Lemma lcmn0 : right_unit 0 lcmn. Proof. by move=> n; rewrite lcmnC. Qed.
+Lemma lcm0n : left_zero 0 lcmn. Proof. move=> n; exact: div0n. Qed.
+Lemma lcmn0 : right_zero 0 lcmn. Proof. by move=> n; rewrite lcmnC lcm0n. Qed.
 
-Lemma muln_lcm_gcd : forall m n, m > 0 -> n > 0 -> lcmn m n * gcdn m n = m * n.
+Lemma lcm1n : left_unit 1 lcmn.
+Proof. by move=> n; rewrite /lcmn gcd1n mul1n divn1. Qed.
+Lemma lcmn1 : right_unit 1 lcmn.
+Proof. by move=> n; rewrite lcmnC lcm1n. Qed.
+
+Lemma muln_lcm_gcd : forall m n, lcmn m n * gcdn m n = m * n.
 Proof.
-move=> m n pos_m pos_n; rewrite /lcmn -if_neg -lt0n ltn_0mul pos_m pos_n /=.
-apply/eqP; rewrite -dvdn_eq; apply dvdn_mull; exact: dvdn_gcdr.
+by move=> m n; apply/eqP; rewrite -dvdn_eq dvdn_mull // dvdn_gcdr.
 Qed.
 
-Lemma ltn_0lcm : forall m n, (0 < lcmn m n) = (0 < m) || (0 < n).
+Lemma ltn_0lcm : forall m n, (0 < lcmn m n) = (0 < m) && (0 < n).
 Proof.
-move=> m n; case: (ltngtP 0 m) => [pos_m||<-] //.
-case: (ltngtP 0 n) => // [pos_n|<-]; last by rewrite lcmn0.
-have pos_dmn : gcdn m n > 0 by rewrite ltn_0gcd pos_m.
-by rewrite -(ltn_pmul2r pos_dmn) muln_lcm_gcd // ltn_0mul pos_m.
+move=> m n; have:= ltn_0mul m n; rewrite -muln_lcm_gcd ltn_0mul ltn_0gcd andbC.
+by case: posnP => // ->; rewrite lcm0n.
 Qed.
 
 Lemma muln_lcmr : right_distributive muln lcmn.
 Proof.
-move=> m n p; case: (ltngtP 0 m) => [pos_m||<-] //.
-case: (ltngtP 0 n) => // [pos_n|<-]; last by rewrite muln0.
-case: (ltngtP 0 p) => // [pos_p|<-]; last by rewrite muln0 !lcmn0.
-have posd_np : gcdn n p > 0 by rewrite ltn_0gcd pos_n.
-apply/eqP; rewrite -(eqn_pmul2r posd_np) -mulnA muln_lcm_gcd //.
-rewrite -(eqn_pmul2r pos_m) -!mulnA muln_gcdl mulnA -!(mulnC m).
-by rewrite muln_lcm_gcd // !ltn_0mul pos_m.
+move=> m n p; case: (posnP m) => [-> // | pos_m].
+rewrite /lcmn -muln_gcdr -!mulnA divn_pmul2l //; set d := gcdn n p.
+case: (posnP d) => [->|posd]; first by rewrite !divn0 muln0.
+apply/eqP; rewrite -(eqn_pmul2r posd) -!mulnA muln_lcm_gcd mulnCA eq_sym.
+by rewrite -dvdn_eq dvdn_mulr // dvdn_gcdl.
 Qed.
 
 Lemma muln_lcml : left_distributive muln lcmn.
@@ -566,19 +570,26 @@ Proof. by move=> m n p; rewrite -!(mulnC p) muln_lcmr. Qed.
 
 Lemma lcmnA : associative lcmn.
 Proof.
-move=> m n p; case: (posnP m) => [->|m_pos] //.
-case: (posnP n) => [->|n_pos]; first by rewrite lcmn0.
+move=> m n p; apply/eqP.
+case: (posnP m) => [->|pos_m]; first by rewrite !lcm0n.
 case: (posnP p) => [->|pos_p]; first by rewrite !lcmn0.
-have mnp_pos : 0 < lcmn n p by rewrite ltn_0lcm n_pos.
-have mmn_pos : 0 < lcmn m n by rewrite ltn_0lcm m_pos.
-have m_np_pos : 0 < gcdn m (lcmn n p) by rewrite ltn_0gcd m_pos.
-have np_pos : 0 < gcdn n p by rewrite ltn_0gcd n_pos.
-apply/eqP; rewrite -(eqn_pmul2r m_np_pos) muln_lcm_gcd //.
-rewrite -(eqn_pmul2r np_pos) -!mulnA muln_lcm_gcd //.
-rewrite muln_gcdl muln_lcm_gcd // (muln_gcdr m) -gcdnA -muln_gcdl.
-rewrite -[m * n]muln_lcm_gcd // (mulnC (gcdn m n)) -muln_gcdl.
-by rewrite !mulnA muln_lcm_gcd // -!mulnA (mulnC p) !mulnA muln_lcm_gcd.
+have: 0 < gcdn m (lcmn n p) * gcdn n p; last move/eqn_pmul2r <-.
+  by rewrite ltn_0mul !ltn_0gcd pos_m pos_p ?orbT.
+rewrite mulnA muln_lcm_gcd -mulnA muln_lcm_gcd.
+rewrite muln_gcdl muln_lcm_gcd (muln_gcdr m) -gcdnA -muln_gcdl.
+rewrite -[m * n]muln_lcm_gcd (mulnC (gcdn m n)) -muln_gcdl.
+by rewrite !mulnA muln_lcm_gcd -!mulnA (mulnC p) !mulnA muln_lcm_gcd.
 Qed.
+
+Lemma dvdn_lcml : forall d1 d2, d1 %| lcmn d1 d2.
+Proof.
+move=> d1 d2; case: (posnP d1) => [->|d1_pos]; first by rewrite lcm0n.
+have: 0 < gcdn d1 d2 by rewrite ltn_0gcd d1_pos.
+by move/dvdn_pmul2r <-; rewrite muln_lcm_gcd dvdn_pmul2l ?dvdn_gcdr.
+Qed.
+
+Lemma dvdn_lcmr : forall d1 d2, d2 %| lcmn d1 d2.
+Proof. by move=> d1 d2; rewrite lcmnC dvdn_lcml. Qed.
 
 (* Coprime factors *)
 
@@ -680,7 +691,19 @@ rewrite  -(@eqn_pmul2r (gcdn n m)) ?ltn_0gcd ?pn // mul1n muln_subl.
 by rewrite (mulnC an) -mulnA -{1}Ean Eg {1}Eam mulnA (mulnC km) addKn.
 Qed.
 
-
+Lemma dvdn_lcm : forall d1 d2 m, d1 %| m -> d2 %| m -> lcmn d1 d2 %| m.
+Proof.
+move=> d1 d2; case: (posnP d1) => [->|d1_pos]; first by rewrite lcm0n; case.
+have d12_pos: 0 < gcdn d1 d2 by rewrite ltn_0gcd d1_pos.
+move=> m; case/dvdnP=> m1 ->{m}.
+have: gcdn d1 d2 %| d2 by exact: dvdn_gcdr.
+case/dvdnP=> q2 def_d2; rewrite /lcmn {1 2}def_d2 mulnA divn_mull //.
+rewrite (mulnC d1) dvdn_pmul2r //.
+have: gcdn d1 d2 %| d1 by exact: dvdn_gcdl.
+case/dvdnP=> q1 def_d1; rewrite /lcmn {2}def_d1 mulnA dvdn_pmul2r //.
+rewrite mulnC gauss // -[coprime _ _](eqn_pmul2r d12_pos) mul1n.
+by rewrite gcdnC muln_gcdl -def_d1 -def_d2.
+Qed.
 
 (* Symmetrical Bezout coefficients (used for p-components in frobenius). *)
 

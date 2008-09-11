@@ -220,52 +220,43 @@ Proof.
 by move=> A H nHA; rewrite normC // -{8}(ker_coset H) -morphimK ?morphpre_norm.
 Qed.
 
-Lemma not_dvdn_p_part_1: forall n p,
-  0 < n -> prime p -> ~ (p %| n) -> p_part p n = 1%N.
+Lemma not_dvdn_partn1: forall n p,
+  0 < n -> prime p -> ~ (p %| n) -> n`_p = 1%N.
 Proof.
 move=> n p npos pr; move/negP=> nd.
-by rewrite p1_part lognE npos pr //= (negbET nd).
+by rewrite p_part lognE npos pr //= (negbET nd).
 Qed.
 
 Lemma divp_pgroup_p: forall G: {group T}, forall p d, 1 < d -> prime p -> 
-  pgroup p G -> d %| #|G| -> pdiv d = p.
+  p.-group G -> d %| #|G| -> pdiv d = p.
 Proof.
-move=> G p d lt1d pr; rewrite /p_part; case/andP=> _; move/allP=> allp.
-case/dvdnP=> k eqG; apply/eqP; apply: allp; rewrite eqG primes_mul.
-- by apply/orP; right; rewrite primes_pdiv.
-- by apply: (ltn_0dvd (ltn_0group G)); apply/dvdnP; exists d; rewrite mulnC.
-- by apply: ltnW.
+move=> G p d lt1d pr; move/pgroupP=> pG dG; apply/eqP; apply: pG.
+  exact: prime_pdiv.
+exact: dvdn_trans (dvdn_pdiv _) dG.
 Qed.
 
 Lemma card_pgroup_p: forall (G : {group T}) p,
-  prime p -> pgroup p G -> #|G| = p_part p #|G|.
-Proof. by move=> G p pr pg; rewrite part_p_nat. Qed.
+  prime p -> p.-group G -> #|G| = #|G|`_p.
+Proof. by move=> G p _ pG; rewrite part_p_nat. Qed.
 
 Lemma dvdn_sub_primes: forall d n: nat, 0 < n ->
-d %| n -> forall m, m \in primes d -> m \in primes n.
-move=> d n lt0n dvd m min; case: (dvdnP dvd)=>x eqn. 
-rewrite eqn primes_mul; first by apply/orP; right.
-- by apply: (ltn_0dvd lt0n); apply/dvdnP; exists d; rewrite mulnC.
-- by apply: (ltn_0dvd lt0n); apply/dvdnP; exists x.
+  d %| n -> {subset primes d <= primes n}.
+Proof.
+move=> d n lt0n dvd m; rewrite !mem_primes lt0n; case/and3P=> -> _ /= dvm.
+exact: dvdn_trans dvd.
 Qed. 
 
-Lemma pgroup_coprime: forall A H: {group T}, forall p:nat, prime p -> 
-  pgroup p A ->  ~ p %| #|H| -> coprime #|A| #|H|.
+Lemma pgroup_coprime: forall A H : {group T}, forall p : nat, prime p -> 
+  p.-group A ->  ~ p %| #|H| -> coprime #|A| #|H|.
 Proof.
-move=> A H p pr pg pndvdn.
-have gcdpos: 0 < gcdn #|A| #|H|.
-  by rewrite ltn_0gcd; apply/orP; left; apply: pos_card_group.
-move: gcdpos; rewrite leq_eqVlt; move/orP; case=> [|gcdpos].
-- by rewrite /coprime; move/eqP ->.
-  apply: False_ind; apply: pndvdn.
-  rewrite -(divp_pgroup_p gcdpos pr pg (dvdn_gcdl _ _)).
-  by apply: (dvdn_trans (dvdn_pdiv _)); apply: dvdn_gcdr.
+move=> A H p pr; case/p_natP=> // k ->; move/negP; rewrite -prime_coprime //.
+exact: coprime_expl.
 Qed.
 
-Lemma pgroup_quotient_normal_inv: forall A G H: {group T}, 
-  forall p:nat, prime p -> pgroup p A -> A \subset G -> H <| G -> ~ p %| #|H| -> 
+Lemma pgroup_quotient_normal_inv : forall A G H : {group T}, forall p : nat,
+  prime p -> p.-group A -> A \subset G -> H <| G -> ~ p %| #|H| -> 
   forall x, x \in 'N(H) -> x \in G -> coset_of H x \in 'N(A / H) ->
-x \in 'N_G(A) * H.
+  x \in 'N_G(A) * H.
 Proof.
 move=> A G H p pr pg AsubG normH pndvdn x Nx Gx xbin.
 suff exz: exists2 z, z \in A * H & (A :^ x)%G = (A :^ z)%G.
@@ -276,23 +267,23 @@ suff exz: exists2 z, z \in A * H & (A :^ x)%G = (A :^ z)%G.
   rewrite inE; rewrite groupM ?groupVr //=.
   by apply/normP; rewrite conjsgM eqyx conjsgK.
 rewrite -norm_mulgenE; last by apply: (subset_trans AsubG (normal_norm normH)).
-suff sylowA: sylow p (A <*> H)%G A.
+suff sylowA: p.-Sylow(A <*> H) A.
   apply: (sylow2_cor pr sylowA).
   suff xnormAH : x \in 'N(A <*> H).
     by rewrite //= -(conj_norm xnormAH) -(sylow_sconjg p (A <*> H) A x).
   rewrite //= norm_mulgenE; last by apply: (subset_trans AsubG (normal_norm normH)). 
   apply: (subsetP (norm_quot _)); first by apply: (subset_trans AsubG (normal_norm normH)).
   by rewrite morphpreE; apply/morphpreP.
-rewrite sylowE sub_gen ?subsetUl //= norm_mulgenE; last by apply: (subset_trans AsubG (normal_norm normH)).
+rewrite piHallE sub_gen ?subsetUl //= norm_mulgenE; last by apply: (subset_trans AsubG (normal_norm normH)).
 have co: coprime #|A| #|H| by apply: (pgroup_coprime pr).
 rewrite (card_mulG_trivP _ _ (coprime_trivg co)). 
-rewrite p_part_mul ?ltn_0mul ?ltn_0group //=.
-rewrite (@not_dvdn_p_part_1 #|H|); rewrite //=; last by apply: pos_card_group.
+rewrite muln_part ?ltn_0mul ?ltn_0group //=.
+rewrite (@not_dvdn_partn1 #|H|); rewrite //=; last by apply: pos_card_group.
 by rewrite muln1; apply/eqP; apply: card_pgroup_p.
 Qed.
 
 Lemma pgroup_quotient_normal : forall A G H: {group T}, forall p:nat, prime p ->
-    pgroup p A -> A \subset G -> H <| G -> ~ p %| #|H| -> 
+    p.-group A -> A \subset G -> H <| G -> ~ p %| #|H| -> 
   'N_G(A) / H = 'N_(G / H)(A / H).
 move => A G H p pr pgroupA AsubG normH co.
 apply/eqP; rewrite eqset_sub subsetI morphimS ?subsetIl //= morphim_norms ?morphimS ?subsetIr //=.
@@ -302,7 +293,7 @@ apply: (pgroup_quotient_normal_inv pr); rewrite //.
 Qed.
 
 Lemma pgroup_quotient_central : forall A G H: {group T}, forall p:nat, prime p ->
-    pgroup p A -> A \subset G -> H <| G -> ~ p %| #|H| -> 
+    p.-group A -> A \subset G -> H <| G -> ~ p %| #|H| -> 
   'C_G(A) / H = 'C_(G / H)(A / H).
 Proof.
 move => A G H p pr pgroupA AsubG normH pndivn.

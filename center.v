@@ -287,7 +287,7 @@ Proof.
 apply/trivgP=> /= Z1.
 suffices{Z1}: #|'Z(G)| %% p = 0 by rewrite Z1 cards1 modn_small ?prime_gt1.
 suff ->: 'Z(G) = 'C_G(G | 'J).
-  have: pgroup p G by apply/p1_natP=> //; exists n.+1.
+  have: p.-group G by apply/p_natP=> //; exists n.+1.
   move/pgroup_fix_mod=> <- //; first by rewrite HG modn_mulr.
   apply/actsP=> x Gx y; exact: groupJr.
 congr (_ :&: _); apply/setP=> x; apply/centP/afixP=> cxG y; move/cxG=> /=.
