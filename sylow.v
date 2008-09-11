@@ -663,8 +663,8 @@ have QH: H/<[a]> = L1.
   by apply/setIidPr.
 exists  H; split; last first.
 - by rewrite -(@LaGrange _ _ <[a]>) // -card_quotient // QH H3L3 Ca1.
-- by move: H2L2; rewrite -QH -(@morphpre_normal _ _  _ (coset_of_morphism <[a]>));
-   [rewrite EG cosetimGK | apply: morphimS | apply: morphimS].
+- move: H2L2; rewrite -QH -(@cosetpre_normal _ <[a]>).
+  by rewrite !cosetimGK // /normal ?NCa1 ?NCa2 ?SaH ?NaH.
 by rewrite (subset_trans (subsetIr _ _)) // -EN morphpreS.
 Qed.
 

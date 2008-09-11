@@ -13,11 +13,6 @@ Import GroupScope.
 Section coprime_comm.
 Variable T : finGroupType.
 
-
-Lemma quotientSK : forall G H K : {group T}, G \subset 'N(K) ->
-  (G / K \subset H / K) = (G \subset K * H).
-Proof. by move=> *; rewrite morphimSK ?ker_coset. Qed.
-
 (* same as the following but with weaker assumptions 
 Lemma comm_center_prod: forall (A G: group T),
   A \subset 'N(G) -> coprime #|[~: G, A]| #|A| -> solvable [~: G, A] ->
@@ -214,11 +209,7 @@ rewrite /(_ <| _) sub1G normaliser1 !subsetT /= center_commgr //.
 by rewrite [_ \subset _](sameP commG1P centsP) centsC subsetIr.
 Qed.
 
-Lemma norm_quot: forall A H: {group T},
-A \subset 'N(H) -> coset_of H @*^-1 'N(A / H) \subset 'N(A * H).
-Proof.
-by move=> A H nHA; rewrite normC // -{8}(ker_coset H) -morphimK ?morphpre_norm.
-Qed.
+
 
 Lemma not_dvdn_partn1: forall n p,
   0 < n -> prime p -> ~ (p %| n) -> n`_p = 1%N.
@@ -244,6 +235,7 @@ Lemma dvdn_sub_primes: forall d n: nat, 0 < n ->
 Proof.
 move=> d n lt0n dvd m; rewrite !mem_primes lt0n; case/and3P=> -> _ /= dvm.
 exact: dvdn_trans dvd.
+
 Qed. 
 
 Lemma pgroup_coprime: forall A H : {group T}, forall p : nat, prime p -> 
@@ -272,8 +264,8 @@ suff sylowA: p.-Sylow(A <*> H) A.
   suff xnormAH : x \in 'N(A <*> H).
     by rewrite //= -(conj_norm xnormAH) -(sylow_sconjg p (A <*> H) A x).
   rewrite //= norm_mulgenE; last by apply: (subset_trans AsubG (normal_norm normH)). 
-  apply: (subsetP (norm_quot _)); first by apply: (subset_trans AsubG (normal_norm normH)).
-  by rewrite morphpreE; apply/morphpreP.
+  have nAH : A \subset 'N(H) by apply: subset_trans (normal_norm normH).
+  by rewrite normC //; apply: (subsetP (cosetpre_norm nAH)); apply/morphpreP; split.
 rewrite piHallE sub_gen ?subsetUl //= norm_mulgenE; last by apply: (subset_trans AsubG (normal_norm normH)).
 have co: coprime #|A| #|H| by apply: (pgroup_coprime pr).
 rewrite (card_mulG_trivP _ _ (coprime_trivg co)). 
@@ -281,6 +273,7 @@ rewrite muln_part ?ltn_0mul ?ltn_0group //=.
 rewrite (@not_dvdn_partn1 #|H|); rewrite //=; last by apply: pos_card_group.
 by rewrite muln1; apply/eqP; apply: card_pgroup_p.
 Qed.
+
 
 Lemma pgroup_quotient_normal : forall A G H: {group T}, forall p:nat, prime p ->
     p.-group A -> A \subset G -> H <| G -> ~ p %| #|H| -> 

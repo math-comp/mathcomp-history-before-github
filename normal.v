@@ -4,7 +4,7 @@
 (***********************************************************************)
 (***********************************************************************)
 (*                                                                     *)
-(*  Definitions of conjugate set, normal set and quotient group        *)
+(*  Cosets, quotients, and isomorphism theorems                        *)
 (*                                                                     *)
 (***********************************************************************)
 (***********************************************************************)
@@ -156,7 +156,7 @@ Prenex Implicits coset coset_of.
 Section CosetOfGroupTheory.
 
 Variables (gT : finGroupType) (H : {group gT}).
-Implicit Types A : {set gT}.
+Implicit Types A B : {set gT}.
 Notation cH := (coset_of H).
 Notation cT := (coset_groupType H).
 
@@ -261,8 +261,8 @@ Lemma cosetimK : forall A, A \subset 'N(H) -> cH @*^-1 (cH @* A) = H * A.
 Proof. rewrite -{12}ker_coset; exact: morphimK. Qed.
 
 Lemma cosetimGK : forall (G : {group gT}),
- H \subset G -> G \subset 'N(H) -> cH @*^-1 (cH @* G) = G.
-Proof. by rewrite -{1}ker_coset; exact: morphimGK. Qed.
+ H <| G -> cH @*^-1 (cH @* G) = G.
+Proof. move=> G; case/andP; rewrite -{1}ker_coset; exact: morphimGK. Qed.
 
 Lemma cosetpre_set1 : forall x, x \in 'N(H) -> cH @*^-1 [set cH x] = H :* x.
 Proof. by rewrite -{9}ker_coset; exact: morphpre_set1. Qed.
@@ -275,13 +275,18 @@ Lemma normal_ker_cosetpre : forall (G : {group cT}),
 Proof. rewrite -{3}ker_coset; exact: normal_ker_pre. Qed.
 
 Lemma sub_cosetpre_im : forall (C : {set cT})(G : {group gT}),
-    H \subset G -> G \subset 'N(H) -> C \subset cH @* 'N(H) ->
+   H <| G  -> C \subset cH @* 'N(H) ->
   (cH @*^-1 C \subset G) = (C \subset cH @* G).
-Proof. rewrite -{3}ker_coset; exact: sub_morphpre_im. Qed.
+Proof. 
+by move=> C G; case/andP; rewrite -{1}ker_coset; exact: sub_morphpre_im. 
+Qed.
 
-Lemma ker_trivg_cosetim : forall A,
-  (A \subset H) = (A \subset 'N(H)) && trivg (cH @* A).
-Proof. rewrite -{1}ker_coset; exact: ker_trivg_morphim. Qed. 
+Lemma trivg_cosetim : forall A,
+  A :&: 'N(H) \subset H = trivg (cH @* A).
+Proof.
+move=> A. rewrite -{2}ker_coset ker_trivg_morphim subsetIr /= !morphimE.
+by rewrite ['N_A(H)]setIC setIA setIid.
+Qed.
 
 Lemma cosetimSK : forall A B,
   A \subset 'N(H) -> (cH @* A \subset cH @* B) = (A \subset H * B).
@@ -292,10 +297,19 @@ Lemma cosetimSGK : forall A (G : {group gT}),
 Proof. rewrite -{2}ker_coset; exact: morphimSGK. Qed.
 
 Lemma cosetim_inj :
-  {in [pred G : {group _} | (H \subset G) && (G \subset 'N(H))] &,
+  {in [pred G : {group _} | H <| G] &,
    injective (fun G : group _ => cH @* G)}.
-Proof. rewrite -{1}ker_coset; exact: morphim_inj. Qed.
+Proof. rewrite /normal -{1}ker_coset; exact: morphim_inj. Qed.
 
+Lemma cosetpre_normal : forall C D : {set cT},
+  (cH @*^-1 C <| cH @*^-1 D) = (C <| D).
+Proof.
+by move=> C D; apply: morphpre_normal=> /=; rewrite cosetimEdom subsetT.
+Qed.
+
+Lemma cosetimS : forall A B,
+  A \subset B -> (coset_of H) @* A \subset (coset_of H) @* B.
+Proof. move=> A B sAB; exact: morphimS. Qed.
 
 End CosetOfGroupTheory.
 
@@ -352,6 +366,34 @@ Qed.
 Lemma quotient_inj :
   {in [pred K : {group gT} | H <| K] &, injective (fun K => K / H)}.
 Proof. by move=> G K nHG nHK; apply: morphim_inj; rewrite ker_coset. Qed.
+
+
+Lemma quotientS : forall A B, A \subset B -> A / H \subset B / H.
+Proof. move=> A B; exact: cosetimS. Qed.
+
+Lemma quotientSGK : forall A G,
+  A \subset 'N(H) -> H \subset G -> A / H \subset G / H = (A \subset G).
+Proof. move=> A G; rewrite !quotientE; exact: cosetimSGK. Qed.
+
+
+Lemma quotientSK : forall A B, A \subset 'N(H) -> 
+  A / H \subset B / H = (A \subset H * B).
+Proof. move=> A B; rewrite !quotientE; exact: cosetimSK. Qed.
+
+Lemma quotientGK : forall G, H <| G -> coset_of H @*^-1 (G / H) = G.
+Proof. move=> G; rewrite !quotientE; exact: cosetimGK. Qed.
+
+Lemma quotientK : forall A, 
+   A \subset 'N(H) -> coset_of H @*^-1 (A / H) = H * A.
+Proof. move=> G; rewrite quotientE; exact: cosetimK. Qed.
+
+Lemma quotientDG : forall A G,
+   H \subset G -> (A :\: G) / H = (A / H) :\: G / H.
+Proof. move=> A G; rewrite !quotientE; exact: cosetimDG. Qed.
+
+Lemma quotientIG : forall A G,
+   H \subset G -> (A :&: G) / H = (A / H) :&: (G / H).
+Proof. move=> A G; rewrite !quotientE; exact: cosetimIG. Qed.
 
 Section InverseImage.
 
@@ -413,6 +455,8 @@ Section QuotientMorphism.
 
 Variable (gT : finGroupType) (G H : {group gT}) (f : {morphism G >-> gT}).
 
+Implicit Types A : {set gT}.
+Implicit Types B : {set (coset_groupType H)}.
 Hypotheses (nHG : H <| G) (nGf : f @* G = G) (nHf : f @* H = H).
 
 Notation fH := (coset_of H \o f).
@@ -434,13 +478,13 @@ Qed.
 Definition quotm := factm quotm_fact_proof1 quotm_fact_proof2.
 Canonical Structure quotm_morphism := Eval hnf in [morphism of quotm].
 
-Lemma cosetim_quotm : forall A : {set gT}, quotm @* (A / H) = f @* A / H.
+Lemma cosetim_quotm : forall A, quotm @* (A / H) = f @* A / H.
 Proof.
 case/andP: nHG => sHG nHG' A.
 by rewrite morphim_factm morphim_restrm morphim_comp morphimIdom.
 Qed.
 
-Lemma cosetpre_quotm : forall A : {set gT},
+Lemma cosetpre_quotm : forall A,
   quotm @*^-1 (A / H) = f @*^-1 A / H.
 Proof.
 case/andP: nHG => sHG nHG' A; rewrite morphpre_factm morphpre_restrm.
@@ -456,6 +500,25 @@ Proof. by rewrite -cosetpre_quotm /quotient morphim1. Qed.
 
 Lemma injm_quotm : 'injm f -> 'injm quotm.
 Proof. by move/trivgP=> /= kf1; rewrite ker_quotm kf1 quotientE morphim1. Qed.
+
+Lemma quotient_norm :  forall A, 'N(A) / H \subset 'N(A / H).
+Proof. move=> A; exact: morphim_norm. Qed.
+
+Lemma cosetpre_norm : forall A,
+  A \subset 'N(H) -> (coset_of H)@*^-1 'N(A / H) \subset 'N (H * A).
+Proof. move=> A nAH; rewrite -quotientK //; exact: morphpre_norm. Qed.
+
+Lemma cosetpreK : forall B,
+  ((coset_of H) @*^-1 B) / H = B.
+Proof. by move=> B; apply: morphpreK=> /=; rewrite cosetimEdom subsetT. Qed.
+
+Lemma norm_quotient : 'N(G / H) = 'N(G) / H.
+Proof.
+apply/eqP; rewrite eqset_sub quotient_norm andbT.
+rewrite -(cosetpreK 'N(G / H)); apply: quotientS; rewrite -{2}(quotientGK nHG).
+exact: morphpre_norm.
+Qed.
+
 
 End QuotientMorphism.
 

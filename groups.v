@@ -1945,6 +1945,9 @@ move=> G H K sKH sHG; case/andP=> _ nKG.
 by rewrite /(K <| _) sKH (subset_trans sHG).
 Qed.
 
+Lemma normal1 : forall G, 1 <| G.
+Proof. by move=> G; rewrite /normal sub1set group1 normaliser1 subsetT. Qed.
+
 Lemma normal_refl : forall G, G <| G.
 Proof. by move=> G; rewrite /(G <| _) normG subset_refl. Qed.
 
@@ -1973,6 +1976,12 @@ Lemma normM : forall A B, 'N(A) :&: 'N(B) \subset 'N(A * B).
 Proof.
 move=> A B; apply/subsetP=> x; case/setIP=> nAx nBx.
 by apply/normP; rewrite conjsMg !(normP _).
+Qed.
+
+Lemma normalM : forall G H K, H <| G -> K <| G -> H * K <| G.
+Proof.
+move=> G H K nH nK; rewrite /normal mul_subG ?(@normal_sub _ G) //.
+by apply: subset_trans (normM H K); rewrite subsetI !normal_norm.
 Qed.
 
 Lemma normJ : forall A x, 'N(A :^ x) = 'N(A) :^ x.

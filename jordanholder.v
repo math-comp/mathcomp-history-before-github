@@ -3,9 +3,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* Warning, this library is still under developpment names, definitions
-and statements will probably change very soon ... *)
-
 Require Import ssreflect. 
 Require Import ssrbool.
 Require Import ssrfun.
@@ -34,25 +31,22 @@ Open Scope group_scope.
 
 Variables (gT : finGroupType).
 Notation gTg := {group gT}.
-Notation st := {set gT}.
+Notation sT := {set gT}.
 
-Variable G : gTg.
+Definition maxnormal (A B : sT) := [max B | (B <| A) && ~~ (A \subset B)].
 
-Definition maxnormal (N : st) := [max N | N <| G].
+(* si on garde une defintion, penser au PI *)
 
-Definition pmaxnormal (N : st) := [max N | (N <| G) && ~~ (G \subset N)].
+Section MaxNormalElemProps.
 
-Lemma maxnormalP  : forall N : gTg, 
-  reflect (N <| G /\ (forall H : gTg, H <| G -> N \subset H -> H :=: N)) 
-  (maxnormal N).
-Proof. move=> N; exact: (iffP (maxgroupP _ _)). Qed.
+Variables G N : gTg.
 
-Lemma pmaxnormalP : forall N : gTg, 
+Lemma maxnormalP :
   reflect [/\ N <| G , (N \proper G) &
     (forall H : gTg, H <| G -> G :!=: H -> N \subset H -> H :=: N)]
-  (pmaxnormal N).
+  (maxnormal G N).
 Proof.
-move=> N; apply: (iffP (maxgroupP _ _)) => [[]|[nNG]].
+apply: (iffP (maxgroupP _ _)) => [[]|[nNG]].
   case/andP=> nNG nsGN max; rewrite nNG /= properE nsGN.
   rewrite normal_sub //; split=> // H nHG neGH; move/max=> -> //.
   by move: neGH; rewrite eqset_sub nHG (normal_sub nHG) andbT.
@@ -60,203 +54,150 @@ rewrite properE; case/andP=> sNG pNG max; rewrite /= nNG pNG; split=> [//|H].
 by case/andP=> nHG nsGH; apply: max; rewrite // eqset_sub negb_and nsGH.
 Qed.
 
-Lemma maxnormal_norm : forall N : st, maxnormal N -> N <| G.
-Proof. by move=> N; move/maxgroupp. Qed.
 
-Lemma pmaxnormal_norm : forall N : st, pmaxnormal N -> N <| G.
-Proof. by move=> N; move/maxgroupp; case/andP. Qed.
+Lemma maxN_norm : maxnormal G N -> N <| G.
+Proof. by move/maxgroupp; case/andP. Qed.
 
-Lemma pmaxnormal_proper : forall N : st, pmaxnormal N -> N \proper G.
+Lemma maxN_proper : maxnormal G N -> N \proper G.
 Proof.
-by move=> N; move/maxgroupp; case/andP; rewrite properE; move/normal_sub->.
+by move/maxgroupp; case/andP; rewrite properE; move/normal_sub->.
 Qed.
 
-Lemma pmaxnormalS : forall N : st, pmaxnormal N -> N \subset G.
-Proof. by move=> N pNN; rewrite proper_sub // pmaxnormal_proper. Qed.
+Lemma maxNS : maxnormal G N -> N \subset G.
+Proof. by move=> pNN; rewrite proper_sub // maxN_proper. Qed.
 
-(* This misses in normal ? *)
-Lemma normal1 : 1 <| G.
-Proof. by rewrite /normal sub1set group1 normaliser1 subsetT. Qed.
-
-Lemma maxnormal_exists : {N : gTg | maxnormal N}.
-Proof. apply: ex_maxgroup; exists (1%G : gTg); exact: normal1. Qed.
-
-Lemma maxnormal_sub : forall H : gTg, 
-  H <| G -> {N : gTg | maxnormal N & H \subset N}.
-Proof. move=> H nHG; exact: maxgroup_exists. Qed.
-
-Lemma pmaxnormal_exists : ~~ trivg G -> {N : gTg | pmaxnormal N}.
+Lemma maxN_exists : ~~ trivg G -> {N : gTg | maxnormal G N}.
 Proof.
 by move=> nt; apply: ex_maxgroup; exists (1%G : gTg); rewrite /= normal1.
 Qed.
 
-Lemma pmaxnormal_sub :  forall H : gTg, 
-  H <| G -> H \proper G -> {N : gTg | pmaxnormal N & H \subset N}.
+Lemma maxN_sub :
+  N <| G -> N \proper G -> {H : gTg | maxnormal G H & N \subset H}.
 Proof.
-by move=> H nHG; case/andP=> _ pHGl; apply: maxgroup_exists; rewrite nHG.
+by move=> nNG; case/andP=> _ pNGl; apply: maxgroup_exists; rewrite nNG.
 Qed.
 
-(* This proof needs serious cleanup ... *)
-Lemma pmaxnormalprod : forall N1 N2 : gTg,
-  pmaxnormal N1 -> pmaxnormal N2 -> N1 :<>: N2 -> N1 * N2 = G.
+End MaxNormalElemProps.
+
+Lemma maxN_prod : forall G N1 N2 : gTg,
+  maxnormal G N1 -> maxnormal G N2 -> N1 :<>: N2 -> N1 * N2 = G.
 Proof.
-
-move=> N1 N2 pmN1 pmN2 neN12; case/pmaxnormalP: (pmN1)=> nN1G pN1G mN1.
-case/pmaxnormalP: (pmN2)=> nN2G pN2 mN2.
-
+move=> G N1 N2 pmN1 pmN2 neN12.
 have cN12 : commute N1 N2.
-  apply: normC; move/normal_sub: nN1G => sN1G; apply: (subset_trans sN1G).
-  by apply: normal_norm.
-wlog nsN12: N1 N2 pmN1 pmN2 neN12 nN2G cN12 nN1G pN1G mN1 pN2 mN2/ ~~(N1 \subset N2).
-  move/eqP: (neN12); rewrite (eqset_sub N1 N2) negb_and; case/orP=> ns; first by apply.
-  by rewrite cN12; apply=> //; move => e; move: (sym_eq e).
-move: (comm_mulgenE cN12)=> eP.
-have sPG : N1 * N2 \subset G by rewrite mul_subG ?pmaxnormalS.
-case sGP : (G \subset N1 * N2); first by apply/eqP; rewrite eqset_sub sPG.
-have dPG : N1 * N2 <| G.
-  rewrite /normal sPG; apply: subset_trans (normM N1 N2); rewrite subsetI.
-  by rewrite !normal_norm // pmaxnormal_norm.
-case: (@pmaxnormal_sub (N1 <*> N2))=> /=; rewrite ?eP ?properE ?sPG ?sGP //.
-move=> N; case/pmaxnormalP=> nNG pNG _ sPN.
-have neGN : G != N by rewrite eq_sym proper_neq.
-have sN1N : N1 \subset N by apply: subset_trans sPN; rewrite mulg_subl ?group1.
-have sN2N : N2 \subset N by apply: subset_trans sPN; rewrite mulg_subr ?group1.
-move : (mN2 N nNG neGN sN2N)=> eNN2 {mN1 mN2 eP nNG nN2G nN1G dPG}.
-case/subsetPn: nsN12=> x N1x nN2x; move/subsetP: sN1N; move/(_ x N1x).
-by rewrite eNN2; move/negP: nN2x.
+  by apply: normC; rewrite (subset_trans (maxNS pmN1)) ?normal_norm ?maxN_norm.
+wlog nsN21 : G N1 N2 pmN1 pmN2 neN12 cN12/ ~~(N1 \subset N2).
+  move/eqP: (neN12); rewrite eqset_sub negb_and; case/orP=> ns; first by apply.
+  by rewrite cN12; apply=> //; apply: sym_not_eq.
+have nP : N1 * N2 <| G by rewrite normalM ?maxN_norm //.
+have sN2P : N2 \subset N1 * N2 by rewrite mulg_subr ?group1.
+case/maxnormalP:(pmN2)=> nN2G pN2G mN2.
+have contr : (G != (N1 <*> N2)%G -> (N1 <*> N2) == N2).
+  by move => ne; apply/eqP=> /=; apply: mN2 => //=; rewrite comm_mulgenE.
+apply/eqP; rewrite eq_sym; rewrite -[_ == _]negb_involutive -comm_mulgenE //.
+have nsPN2 : ~~ (N1 * N2 \subset N2).
+case/subsetPn: nsN21=> x N2x nN1x; apply/subsetPn; exists x=> //.
+apply: (subsetP (mulg_subl _ _ )); rewrite // group1.
+by apply: (contra contr); rewrite comm_mulgenE // eqset_sub negb_and nsPN2.
 Qed.
+
 
 End MaxNormal.
 
-
+Prenex Implicits maxnormal.
 
 Section Simple.
 
 Variables (T : finGroupType).
 Notation sT := {set T}.
 Notation gT := {group T}.
-Variables G : gT.
 
+Implicit Types G : gT.
 (* Warning! This overloads the definition still present in normal ! *)
-Definition simple := pmaxnormal G 1%G.
 
-Lemma simple_nt : simple -> ~~ (trivg G).
+Definition simple (A : sT) := maxnormal A 1%G.
+
+Lemma trivGn : forall G, ~~ trivg G = (1%G \proper G).
+Proof. by move=> G; rewrite /trivg properE sub1set group1 /=. Qed.
+
+
+Lemma simpleP : forall G, 
+  reflect (~~ trivg G /\ forall H : gT, H <| G -> H :=: 1 \/ H :=: G)
+          (simple G).
 Proof.
-by rewrite /simple; case/pmaxnormalP=> _ p1G _; rewrite /trivg; move/proper_subn:p1G.
+move=> G; rewrite trivGn; apply: (iffP (maxnormalP _ _)) => [[_] | [nt max]].
+  move=> p1G max; split=> // N nNG.
+  case NGe : (N :==: G); first by right; rewrite (eqP NGe).
+  by left; apply: max; rewrite // ?sub1set ?group1 // eq_sym NGe.
+split; rewrite ?normal1 // => H nHG GHne _; case: (max H)=> // HGe.
+by rewrite HGe eqxx in GHne.
 Qed.
 
-Lemma nt_proper1 : ~~ trivg G -> 1%G \proper G.
-Proof. by rewrite /trivg properE sub1set group1=> ->. Qed.
+(* penser au Prenex Implicit *)
 
 
-(* to be cleaned !!! *)
-
-Lemma proper_inj_im :  forall (gT2 : finGroupType)(f : {morphism G >-> gT2})
-(x y : gT), 'injm f -> y \subset G -> x \proper y -> f @* x \proper f @* y.
-Proof.
-move=> gT2 f H K ijf sKG; rewrite properE; case/andP=> sGK pGK; rewrite properE.
-rewrite morphimS ?sHK //=; apply: (@contra _ (f @* K == f @* H)).
-  by rewrite eqset_sub; move->; rewrite /= morphimS.
-have:= (@morphim_inj _ _ G f H K); rewrite !inE /= ker_injm //= !sub1set !group1 /=.
-rewrite sKG (subset_trans sGK) //; move/(_ (refl_equal true));  move/(_ (refl_equal true)) => h.
-apply: (@contra _ (H == K)); first by rewrite eq_sym; move/eqP; move/h; move/eqP.
-apply/eqP; move/(congr1 val)=> /=; move/eqP; rewrite eqset_sub; apply/negP.
-by rewrite negb_and pGK orbT.
-Qed.
-
-Lemma simpleP :
-  reflect (~~ trivg G /\ forall N : gT, N <| G -> N \proper G -> N :=: 1) 
-  simple.
-Proof.
-apply: (iffP (pmaxnormalP _ _)) => [[_] | [nt max]].
-  case/andP=> _ ntG max; split=> {ntG}// N nNG pNG.
-  by apply: max; rewrite ?sub1G // eq_sym proper_neq.
-split; rewrite ?normal1 ?nt_proper1 // => H nHG neGH _ /=.
-by rewrite (max H) // properEneq andbC normal_sub // eq_sym.
-Qed.
-
-Lemma simple_pmaxN1 : 
-  reflect (~~ trivg G /\ forall N : gT, pmaxnormal G N -> N :=: 1)
-  simple.
-Proof.
-apply: (iffP simpleP); case=> -> sG; split=> // N.
-  by move=> pmaxN; apply: sG; rewrite ?pmaxnormal_norm ?pmaxnormal_proper.
-move=> nNG pNG; case: (pmaxnormal_sub nNG pNG)=> M pmaxM sNM.
-apply/trivgP; apply: subset_trans sNM _; apply/trivgP; exact: sG.
-Qed.
- 
 End Simple.
+
+Prenex Implicits simple.
+
+Lemma isog_simpl : forall (gT1 gT2 : finGroupType)(G : {group gT1})(H : {group gT2}),
+   G \isog H -> simple G -> simple H.
+Proof.
+move=> gT1 gT2 G H; move/isog_sym_imply; case/isogP=> f injf <-.
+case/simpleP=> ntH simH; apply/simpleP; split=> [|L nLH].
+  by apply: contra ntH; move/trivGP=> H1; rewrite {3}H1 /= morphim1.
+case: (andP nLH); move/(morphim_invm injf); move/group_inj=> <- _.
+have: f @* L <| f @* H by rewrite morphim_normal.
+by case/simH=> /= ->; [left | right]; rewrite (morphim1, morphim_invm).
+Qed.
+
 
 
 Section SimpleMaxNormal.
 
-(* To be moved in previous section ? *)
-Lemma isog_simple : forall (gT hT : finGroupType) 
-  (G : {group gT}) (H : {group hT}),
-  G \isog H -> simple G -> simple  H.
-Proof.
-move=> gT hT G H; move/isog_sym_imply; case/isogP=> f injf e. 
-rewrite (_ : G = (f @*H)%G); last by apply: val_inj=> /=.
-case/simpleP=> ntH simH; apply/simpleP; split=> [|L nLH pLN].
-  by apply: contra ntH; move/trivGP=> H1; rewrite {3}H1 /= morphim1.
-have di: f @* L <| f @* H by rewrite morphim_normal.
-have pi:  f @* L \proper f @* H by apply: proper_inj_im.
-by rewrite -(morphim_invm injf (proper_sub pLN)) [f @* L]simH // morphim1.
-Qed.
 
 Variables (gT : finGroupType).
 Notation gt := {group gT}.
-
-
 Notation st := {set gT}.
-
 
 Variables G N : {group gT}.
 
-(* The two next proofs should shrink with the specialization of morph lemmas to quotients *)
-Lemma pmaxN_simple_quo : pmaxnormal G N -> simple (G / N).
+
+Lemma maxN_simple_quo : maxnormal G N -> simple (G / N).
 Proof.
-case/pmaxnormalP=> nNG; rewrite properE; case/andP=> sNG pNG Nmax; apply/simpleP; split.
-  by rewrite trivg_quotient ?normal_norm.
-move=> K' nK'Q pK'Q; pose K := ((coset_of N) @*^-1 K')%G.
-have scK'G : K' \subset coset_of N @* G  by apply: (normal_sub nK'Q).
-have sK'd : K' \subset coset_of N @* 'N(N).
-  by rewrite (subset_trans scK'G) // morphimS ?normal_norm.
-have skG: 'ker (coset_of N) \subset G by rewrite ker_coset.
-have neKG : K \proper G.
-  rewrite properE; move/morphimGK: skG => /= <-; rewrite ?normal_norm //.
-  by rewrite morphpreS //= morphpreSK -?quotientE ?proper_subn ?morphimS ?normal_norm.
-suff eKN : K :=: N.
-  have -> : K' :=: K / N by rewrite /(K / N) morphpreK //= (subset_trans scKG).
-  by rewrite eKN trivial_quotient.
-have sNK : N \subset K by rewrite -(ker_coset N) kerE morphpreSK sub1G.
-have nKG : K <| G.
-  rewrite -(morphimGK skG) ?normal_norm // ?morphimS.
-  by rewrite morphpre_normal ?morphimS ?normal_norm //=.
-by rewrite (Nmax K) // eq_sym proper_neq.
+case/maxnormalP=> nNG pNG Nmax; apply/simpleP; split; last move=> K' nK'Q. 
+  by rewrite trivg_quotient ?normal_norm ?proper_subn.
+have : (K' \proper (G / N)) || (G / N == K').
+  by rewrite properE eqset_sub andbC (normal_sub nK'Q) !andbT orbC orb_negb_r.
+case/orP=> [ pHQ | eQH]; last by right; apply sym_eq; apply/eqP.
+left; pose K := ((coset_of N) @*^-1 K')%G.
+have eK'I : K' \subset (coset_of N) @* 'N(N).
+  by rewrite (subset_trans (normal_sub nK'Q)) ?morphimS ?normal_norm.
+have eKK' : K' :=: K / N by rewrite /(K / N) morphpreK //=.
+suff eKN : K :=: N by rewrite -trivial_quotient eKK' eKN.
+have nKG : K <| G by rewrite -(cosetimGK nNG) cosetpre_normal.
+apply: Nmax=> //; last by rewrite -(ker_coset N) kerE morphpreSK sub1G.
+suff : ~~ (G \subset K) by rewrite eqset_sub negb_and (normal_sub nKG) orbF.
+by rewrite -(cosetimGK nNG) morphpreSK /= ?proper_subn // ?morphimS ?normal_norm.
 Qed.
 
 
-Lemma normal_simple_quo_pmaxN : N <| G -> simple (G / N) -> pmaxnormal G N.
+Lemma normal_simple_quo_maxN_ : N <| G -> simple (G / N) -> maxnormal G N.
 Proof.
-move=> nNG; case/normalP:(nNG) => NsG; move/normsP=> sGNN.
-move/simpleP=> [nt sQ]; apply/pmaxnormalP.
-split; rewrite ?properE ?NsG //= -?(trivg_quotient sGNN) // => K nKG neGK sNK.
-pose K':= ((coset_of N) @* K); pose gK':= ((coset_of N) @* K)%G.
-have K'dQ : K' <| (G / N) by apply: morphim_normal.
-have sKG : K \subset G by rewrite  normal_sub.
-have pK'Q : gK' \proper (G / N).
-  rewrite properE (normal_sub K'dQ) /=; rewrite sub_morphim_pre //=.
-  rewrite morphimGK ?ker_coset // ?(subset_trans sKG) ?normal_norm //. 
-  by move: neGK; rewrite eqset_sub sKG andbT.
-apply/eqP; rewrite eqset_sub /= sNK andbT -(ker_coset N) ker_trivg_morphim.
-rewrite normal_norm /= ?(normalS _ _ nNG) // ?normal_sub //=; apply/trivgP.
-by rewrite -/gK' (sQ gK').
+move=> nNG; move/simpleP=> [nt sQ]; apply/maxnormalP; rewrite nNG properE.
+rewrite normal_sub // -trivg_quotient ?normal_norm //; split=> // K nKG neGK sNK.
+pose K':= ((coset_of N) @* K)%G.
+have K'dQ : K' <| (G / N)%G by apply: morphim_normal.
+have nKN : N <| K by rewrite (normalS _ _ nNG) // normal_sub.
+case: (sQ K' K'dQ)=> /=; last first.
+  by move/quotient_inj; rewrite !inE /=; move/(_ nKN nNG)=> c; rewrite c eqxx in neGK.
+rewrite -trivial_quotient; move=> tK'; apply:(congr1 (@set_of_group _)); move: tK'.
+apply: (@quotient_inj _ N); rewrite ?inE /= ?normal_refl /normal ?sNK //.
+by rewrite ?(subset_trans sKG) ?normal_norm.
 Qed.
 
-Lemma pmaxN_is_simple_quo : N <| G -> pmaxnormal G N = simple (G / N).
+Lemma maxN__is_simple_quo : N <| G -> maxnormal G N = simple (G / N).
 Proof.
-by move=> nNG; apply/idP/idP; [apply:pmaxN_simple_quo|apply:normal_simple_quo_pmaxN].
+by move=> nNG; apply/idP/idP; [apply:maxN_simple_quo|apply:normal_simple_quo_maxN_].
 Qed.
 
 
@@ -289,9 +230,6 @@ Canonical Structure section_finType :=
 Canonical Structure section_subFinType :=
   Eval hnf in [subFinType of section].
 
-(* To be moved in normal *)
-
-
 Canonical Structure section_group(u : section) : {group _} := 
   Eval hnf in [group of u : set _].
 
@@ -302,7 +240,7 @@ Definition sisog := [rel x y : section | x \isog y].
 
 (* A representant of the isomorphism class of a section *)
 Definition srepr (H : section) := 
-  if (pick (sisog ^~ H)) is Some s then s else (1/ 1)%sec.
+  if (pick (sisog ^~ H)) is Some s then s else (mkSec 1 1)%sec.
 
 Definition mksrepr G1 G2 := srepr (mkSec G1 G2).
 
@@ -332,8 +270,6 @@ End SectionSeries.
 
 Infix "/" := mkSec : section_scope.
 
-Notation "x \isog y":= (isog x y).
-
 Prenex Implicits perm_eq.
 
 Section CompositionSeries.
@@ -352,39 +288,42 @@ Implicit Type s : seq gTg.
 - ends with 1
 *)
 
-Lemma n1proper : forall G, ~~ (G \proper 1%G).
-Proof. by move=> G; rewrite properE negb_and sub1set group1 orbT. Qed.
-
 Definition comps G s :=
-  ((last G s) == 1%G) && path [rel x y : gTg | pmaxnormal x y] G s.
+  ((last G s) == 1%G) && path [rel x y : gTg | maxnormal x y] G s.
 
+Lemma compsP : forall G s, reflect
+  (last G s = 1%G /\  path [rel x y : gTg | maxnormal x y] G s) (comps G s).
+Proof. by move=> G s; apply: (iffP andP); case; move/eqP. Qed.
 
 Lemma trivg_comps : forall G s, comps G s -> trivg G = (s == [::]).
 Proof.
 move=> G s; case/andP=> ls cs; apply/trivgP/eqP; last first.
   by move=> se; rewrite se /= in ls; apply/eqP.
-move=> G1; case: s ls cs => // H s _ /=; case/andP; case/pmaxnormalP=> _.
-by rewrite G1; move/(negP (n1proper _)).
+move=> G1; case: s ls cs => // H s _ /=; case/andP; case/maxnormalP=> _.
+by rewrite G1 /proper sub1set group1 andbF.
 Qed.
 
-(* tip Check sameP. cf groups *)
-(* faire un lemme de refl entre Leib et simpl *)
-Lemma simple_comps : forall G s, 
-  comps G s -> simple G = (s == [:: (1%G : gTg) ]).
-Proof.
-move=> G s; case/andP=> ls cs; apply/idP/eqP; last first.
-  by move=> se; move: cs; rewrite se /= andbT. 
-case: s ls cs=> /= [| H].
-  by move/eqP=> -> _; move/simple_nt; rewrite /trivg subset_refl.
-move=> s ls; case/andP=> maxH cs sG; case/simple_pmaxN1:(sG)=> ntG.
-move/(_ H maxH)=> H1; apply/eqP; rewrite eqseq_adds -val_eqE /= H1 eqxx.
-by rewrite -(@trivg_comps H s) /comps ?ls //=; apply/trivgP.
+Lemma comps_adds : forall G H s, comps G (H :: s) -> comps H s.
+Proof. 
+by move=> G H s; case/andP => /= ls; case/andP=> _ p; rewrite /comps ls. 
 Qed.
+
+Lemma simple_compsP : forall G s, comps G s ->
+  reflect (s = [:: (1%G : gTg) ]) (simple G).
+Proof.
+move=> G s cs; apply: (iffP idP); last first.
+  by move=> se; move: cs; rewrite se /=; case/andP=> /=; rewrite andbT.
+case: s cs; first by rewrite /comps /= andbT; move/eqP->; case/simpleP; rewrite trivg1.
+move=> H s cs sG; apply/eqP; rewrite eqseq_adds -(trivg_comps (comps_adds cs)).
+suff H1: H :=: 1 by rewrite H1 trivg1 andbT; apply/eqP; apply: val_inj=> /=.
+case/compsP: cs=> /= ls; case/andP=> mH ps; case/maxnormalP: sG=> _ _.
+by apply; rewrite ?sub1set ?group1 ?maxN_norm // eq_sym proper_neq ?maxN_proper.
+Qed.
+
 
 
 (* Existence of a composition serie for a finite group, 
 by recursion of the cardinal.
-Is it usefull to have explicitely the values for trivg and simple ? 
 *)
 Lemma exists_comps : forall G : gTg, exists s, comps G s.
 Proof.
@@ -395,9 +334,9 @@ case/orP: (orbN (simple G)) => [sG | nsG].
 case/orP: (orbN (trivg G))=> [tG | ntG].
   exists (Seq0 gTg); rewrite /comps /= andbT; apply/eqP; apply: val_inj.
   by apply/trivgP.
-case: (pmaxnormal_exists ntG)=> N pmN.
+case: (maxN_exists ntG)=> N pmN.
 have cN: #|N| <= n.
-  by rewrite -ltnS (leq_trans _ cG) // proper_card // pmaxnormal_proper.
+  by rewrite -ltnS (leq_trans _ cG) // proper_card // maxN_proper.
 case: (Hi _ cN)=> s; case/andP=> lasts ps; exists [:: N & s]; rewrite /comps.
 by rewrite last_adds lasts /= pmN.
 Qed.
@@ -418,53 +357,51 @@ move=> s1 s2 cs1 cs2; case/orP: (orbN (trivg G))=> [tG | ntG].
   have -> : s2 = [::] by apply/eqP; rewrite -(trivg_comps cs2).
   by rewrite /= perm_eq_refl.
 case/orP: (orbN (simple G))=> [sG | nsG].
-  have -> : s1 = [:: 1%G ] by apply/eqP; rewrite -(simple_comps cs1).
-  have -> : s2 = [:: 1%G ] by apply/eqP; rewrite -(simple_comps cs2).
+  have -> : s1 = [:: 1%G ] by apply/(simple_compsP cs1).
+  have -> : s2 = [:: 1%G ] by apply/(simple_compsP cs2).
   by rewrite /= perm_eq_refl.
 case es1: s1 cs1 => [|N1 st1] cs1.
   by move: (trivg_comps cs1); rewrite eqxx; move/negP:ntG.
 case es2: s2 cs2 => [|N2 st2] cs2 {s1 es1}.
   by move: (trivg_comps cs2); rewrite eqxx; move/negP:ntG.
-case/andP: cs1 => /= lst1; case/andP=> pmaxN1 pst1.
-case/andP: cs2 => /= lst2; case/andP=> pmaxN2 pst2.
+case/andP: cs1 => /= lst1; case/andP=> maxN_1 pst1.
+case/andP: cs2 => /= lst2; case/andP=> maxN_2 pst2.
 have cN1 : #|N1| <= n.
-  by rewrite -ltnS (leq_trans _ cG) ?proper_card ?pmaxnormal_proper.
+  by rewrite -ltnS (leq_trans _ cG) ?proper_card ?maxN_proper.
 have cN2 : #|N2| <= n.
-  by rewrite -ltnS (leq_trans _ cG) ?proper_card ?pmaxnormal_proper.
+  by rewrite -ltnS (leq_trans _ cG) ?proper_card ?maxN_proper.
 case: (N1 =P N2) {s2 es2} => [eN12 |].
   by rewrite eN12 /= perm_adds Hi // /comps ?lst2 //= -eN12 lst1.
 move/eqP; rewrite -val_eqE /=; move/eqP=> neN12.
-have nN1G : N1 <| G by apply pmaxnormal_norm.
-have nN2G : N2 <| G by apply pmaxnormal_norm.
+have nN1G : N1 <| G by apply maxN_norm.
+have nN2G : N2 <| G by apply maxN_norm.
 pose N := (N1 :&: N2)%G.
 have nNG : N <| G.
   rewrite /normal subIset ?(normal_sub nN1G) //=.
   apply: subset_trans (normI _ _).
   by rewrite subsetI !normal_norm.
-have iso1 : (G / N1) \isog (N2 / N).
-  rewrite isog_sym /= -(pmaxnormalprod pmaxN1 pmaxN2) //.
+have iso1 : (G / N1)%G \isog (N2 / N)%G.
+  rewrite isog_sym /= -(maxN_prod maxN_1 maxN_2) //.
   rewrite (@normC _ N1 N2) ?(subset_trans (normal_sub nN1G)) ?normal_norm //.
   by apply: weak_second_isom; rewrite ?(subset_trans (normal_sub nN2G)) ?normal_norm.
-have iso2 : (G / N2) \isog (N1 / N).
-  rewrite isog_sym /= -(pmaxnormalprod pmaxN1 pmaxN2) // setIC.
+have iso2 : (G / N2)%G \isog (N1 / N)%G.
+  rewrite isog_sym /= -(maxN_prod maxN_1 maxN_2) // setIC.
   by apply: weak_second_isom; rewrite ?(subset_trans (normal_sub nN1G)) ?normal_norm.
 case: (exists_comps N)=> sN; case/andP=> lsN csN.
 have i1 : perm_eq (mksrepr G N1 :: mkfactors N1 st1)
                   [:: mksrepr G N1, mksrepr N1 N & mkfactors N sN].
   rewrite perm_adds -[mksrepr _ _ :: _]/(mkfactors N1 [:: N & sN]).
   apply: Hi=> //; rewrite /comps ?lst1 //= lsN csN andbT /=.
-  apply: normal_simple_quo_pmaxN.
+  apply: normal_simple_quo_maxN_.
   rewrite (normalS (subsetIl N1 N2) (normal_sub nN1G)) //.
-  by apply: (isog_simple iso2); apply: pmaxN_simple_quo.
+  by apply: (isog_simpl iso2); apply: maxN_simple_quo.
 have i2 : perm_eq (mksrepr G N2 :: mkfactors N2 st2) 
                   [:: mksrepr G N2, mksrepr N2 N & mkfactors N sN].
   rewrite perm_adds -[mksrepr _ _ :: _]/(mkfactors N2 [:: N & sN]).
   apply: Hi=> //; rewrite /comps ?lst2 //= lsN csN andbT /=.
-  apply: normal_simple_quo_pmaxN.
+  apply: normal_simple_quo_maxN_.
   rewrite (normalS (subsetIr N1 N2) (normal_sub nN2G)) //.
-  by apply: (isog_simple iso1); apply: pmaxN_simple_quo.
-(* Trying to use lemmas as cat1s makes Coq go into deep thoughts,
-hence these pedestrian forward reasoning steps *)
+  by apply: (isog_simpl iso1); apply: maxN_simple_quo.
 pose fG1 := [:: mksrepr G N1, mksrepr N1 N & mkfactors N sN].
 pose fG2 := [:: mksrepr G N2, mksrepr N2 N & mkfactors N sN].
 have i3 : perm_eq fG1 fG2.
