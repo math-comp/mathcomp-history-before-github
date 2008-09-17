@@ -107,7 +107,7 @@ apply/forallP/mapsP=> /= [nilG | [n _ Ln1] H]; last first.
   rewrite /trivg /= -{}Ln1; elim: n => // n IHn.
   apply: subset_trans sHR _; apply: genS; exact: imset2S.
 pose n := #|G|; have: n <= #|G| := leqnn _.
-have: #|G| < n + #|'L_n(G)| by rewrite -addn1 leq_add2l pos_card_group.
+have: #|G| < n + #|'L_n(G)| by rewrite -addn1 leq_add2l ltn_0group.
 elim: n => [|n IHn leGn lt_nG]; first by rewrite ltnn.
 have:= nilG [group of 'L_n(G)]; rewrite /= -lcnSn subsetI lcn_subset0.
 rewrite -(lcn_subset G n) -eqset_sub eqset_sub_card lcn_subset implybE /=.

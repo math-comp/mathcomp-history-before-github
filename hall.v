@@ -19,18 +19,13 @@ move=> pi gT G; move: {2}_.+1 (ltnSn #|G|) => n.
 elim: n gT G => // n IHn gT G; rewrite ltnS => leGn solG.
 case trG: (trivg G); last move/idPn: trG => trG.
   exists G => [|K]; rewrite (trivGP _ trG); last move/trivGP=> -> {K} _.
-    by rewrite piHallE sub1G cards1 part_p'_nat.
+    by rewrite pHallE sub1G cards1 part_p'nat.
   by exists (1 : gT); rewrite ?conjs1g ?sub1set set11.
 case: (solvable_norm_abelem solG (normal_refl _)) => // M [sMG nMG ntM].
-case/andP=> abelM; set p := pdiv #|M|; move/exponentP=> elemM.
-have pr_p: prime p by rewrite prime_pdiv // ltnNge -trivg_card.
-have{elemM} pM: primes #|M| = [:: p].
-  apply: (eq_sorted_irr ltn_trans ltnn); rewrite ?sorted_primes // => q.
-  rewrite mem_primes mem_seq1 pos_card_group /=.
-  apply/andP/eqP=> [[pr_q q_M] | ->]; last by rewrite dvdn_pdiv.
-  case: (Cauchy pr_q q_M) => x Mx oxp.
-  apply/eqP; rewrite eqn_leq pdiv_min_dvd ?prime_gt1 1?dvdn_leq ?ltn_0prime //.
-  by rewrite -oxp order_dvd elemM.
+case/abelemP=> p pr_p; do 2![case/andP]=> abelM _ pM.
+have{pM} pM: primes #|M| = [:: p].
+  move: ntM; rewrite trivg_card; case/p_natP: pM => // [[|k]] -> // _.
+  by rewrite primes_exp // primes_prime. 
 pose Gb := (G / M)%G; case: (IHn _ Gb) => [||Hb]; try exact: solvable_quo.
   rewrite -[#|_|]mul1n card_quotient; last by case/andP: nMG.
   apply: leq_trans leGn; have:= ltn_0group G.
@@ -61,9 +56,9 @@ have{pi'Hb'} pi'H': pi^'.-nat #|G : H|.
   by rewrite -(divn_pmul2l (ltn_0group M)) !LaGrange.
 case pi_p: (p \in pi).
   exists H => //; apply/and3P; split=> //.
-  rewrite /pi_group -(LaGrange sMH) -card_quotient //; last first.
+  rewrite /pgroup -(LaGrange sMH) -card_quotient //; last first.
     case/andP: nMG => _; exact: subset_trans.
-  rewrite p_nat_mul {1}/pi_nat pM ltn_0group /= pi_p.
+  rewrite pnat_mul {1}/pnat pM ltn_0group /= pi_p.
   by rewrite def_H in piHb.
 case: (ltnP #|H| #|G|) => [ltHG | leGH {n IHn leGn transH}].
   case: (IHn _ H (leq_trans ltHG leGn)) => [|H1].
@@ -73,31 +68,31 @@ case: (ltnP #|H| #|G|) => [ltHG | leGH {n IHn leGn transH}].
   exists H1=> [|K sKG piK].
     apply/and3P; split => //.
     rewrite -group_divn // -(LaGrange sHG) -(LaGrange sH1H) -mulnA.
-    by rewrite divn_mulr // p_nat_mul pi'H1'.
+    by rewrite divn_mulr // pnat_mul pi'H1'.
   case: (transH K sKG piK) => x Gx def_K.
   case: (transH1 (K :^ x^-1)%G) => [||y Hy def_K1].
   - by rewrite sub_conjgV.
-  - by rewrite /pi_group card_conjg.
+  - by rewrite /pgroup card_conjg.
   exists (y * x); first by rewrite groupMr // (subsetP sHG).
   by rewrite -(conjsgKV x K) conjsgM conjSg.
 have{leGH Gb sHbGb sHG sMH pi'H'} eqHG: H = G.
   by apply/eqP; rewrite -val_eqE eqset_sub_card sHG.
 have{H Hb def_H eqHG piHb} hallM: pi^'.-Hall(G) M.
-  rewrite /piHall sMG /pi_group {1}/pi_nat pM /= inE /= pi_p ltn_0group /=.
+  rewrite /pHall sMG /pgroup {1}/pnat pM /= inE /= pi_p ltn_0group /=.
   apply: etrans piHb; rewrite -card_quotient ?normal_norm // -eqHG def_H.
-  by rewrite p_natCK.
-case/splitgP: (SchurZass_split (pi_Hall hallM) nMG) => H trMH defG.
+  by rewrite pnatNK.
+case/splitgP: (SchurZass_split (pHall_Hall hallM) nMG) => H trMH defG.
 have sHG: H \subset G by rewrite -defG mulG_subr.
 exists H => [|K sKG piK].
-  apply: etrans hallM; rewrite /piHall sMG sHG /= -!group_divn // -defG andbC.
-  by rewrite (card_mulG_trivP _ _ trMH) divn_mulr ?divn_mull // p_natCK.
+  apply: etrans hallM; rewrite /pHall sMG sHG /= -!group_divn // -defG andbC.
+  by rewrite (card_mulG_trivP _ _ trMH) divn_mulr ?divn_mull // pnatNK.
 pose G1 := (K <*> M)%G; pose K1 := (H :&: G1)%G.
 have nMK: K \subset 'N(M) by apply: subset_trans sKG _; case/andP: nMG.
 have defG1: M * K = G1 by rewrite -normC -?norm_mulgenE.
 have sK1G1: K1 \subset M * K by rewrite defG1 subsetIr.
 have coMK: coprime #|M| #|K|.
-  rewrite coprime_sym (p_nat_coprime piK) //.
-  by rewrite  /pi_nat pM ltn_0group //= inE /= pi_p.
+  rewrite coprime_sym (pnat_coprime piK) //.
+  by rewrite /pnat pM ltn_0group //= inE /= pi_p.
 case: (SchurZass_trans_sol _ nMK sK1G1 coMK) => [||x Mx defK1].
 - exact: solvable_sub solG.
 - apply/eqP; rewrite -(eqn_pmul2l (ltn_0group M)).
@@ -139,7 +134,7 @@ Qed.
 Lemma hall_norm_conj : forall pi (G H : {group gT}) x,
   x \in 'N(G) -> pi.-Hall(G) (H :^ x) = pi.-Hall(G) H.
 Proof.
-by move=> pi G H x Nx; rewrite !piHallE card_conjg -{1}(normP Nx) conjSg.
+by move=> pi G H x Nx; rewrite !pHallE card_conjg -{1}(normP Nx) conjSg.
 Qed.
 
 Lemma hall_conj : forall pi (G H : {group gT}) x,
@@ -174,7 +169,7 @@ move=> pi G H K hallH sKG piK sHK; apply/eqP.
 suff: pi.-Hall(G) K.
   rewrite eq_sym -val_eqE eqset_sub_card sHK /= (card_Hall hallH).
   by move/card_Hall->.
-rewrite /piHall sKG piK; case/and3P: hallH => _ _; apply: p_nat_dvdn.
+rewrite /pHall sKG piK; case/and3P: hallH => _ _; apply: pnat_dvd.
 rewrite -(dvdn_pmul2l (ltn_0group K)) LaGrange // -(LaGrange sHK) mulnAC.
 by rewrite LaGrange (subset_trans sHK, dvdn_mulr).
 Qed.
@@ -190,7 +185,7 @@ case: (HallSubset solG sH1G piH1) => H2 hallH2 sH12.
 case: (HallConj solG hallH hallH2) => x; move/(subsetP nKG) => Nx ->.
 rewrite -{2}(normP Nx) -conjIg hall_norm_conj //.
 rewrite (@hall_maximal _ _ _ (H2 :&: K)%G hallH1) //; first exact: subsetIr.
-  apply: pgroupS (Hall_pi hallH2); exact: subsetIl.
+  apply: pgroupS (pHall_pgroup hallH2); exact: subsetIl.
 by rewrite subsetI sH12; case/andP: hallH1.
 Qed.
 

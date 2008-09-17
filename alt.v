@@ -66,18 +66,18 @@ have [p [p_pr pA_int Sp1]]:
     move=> P; rewrite inE {1}/A => sylP.
     apply/eqP; rewrite eqset_sub_card -(leq_add2l #|A :&: Q3|) cardsID.
     rewrite (card_Hall sylP) (setIidPr _) ?oA; last first.
-      apply/bigcup_inP=> Q; rewrite inE /A; move/Hall_sub; apply: subset_trans.
-      by rewrite setD1E subsetIl.
-    rewrite cQ3 p_part andbT subsetD (Hall_sub sylP).
+      apply/bigcup_inP=> Q; rewrite inE /A; move/pHall_subset.
+      by apply: subset_trans; rewrite setD1E subsetIl.
+    rewrite cQ3 p_part andbT subsetD (pHall_subset sylP).
     rewrite disjoint_sym disjoints_subset;  apply/bigcup_inP=> Q.
     rewrite inE -setCS -setDset1 setCD -subDset setDE !setCK /A => sylQ.
-    apply: coprime_trivg; apply: p_nat_coprime (Hall_pi sylP) _.
-    by apply: sub_p_nat (Hall_pi sylQ) => q; move/eqnP->.
+    apply: coprime_trivg; apply: pnat_coprime (pHall_pgroup sylP) _.
+    by apply: subd_pnat (pHall_pgroup sylQ) => q _; move/eqnP->.
   case: ((sylow1_cor [group of A]) 2) => //= P sylP.
   rewrite (cardD1 P) inE sylP eqSS; apply/pred0P=> P'.
   apply/andP=> [[nPP' sylP']]; case/eqP: nPP'.
   by apply: val_inj; rewrite /= !nQS2 // inE.
-case: (normal_sylowP 'Alt_T p_pr Sp1) => P; case/piHallP=> sPA pP nPA.
+case: (normal_sylowP 'Alt_T p_pr Sp1) => P; case/pHallP=> sPA pP nPA.
 apply/simpleP=> [] [_]; rewrite -pP in pA_int.
 by case/(_ P)=> // defP; rewrite defP oA ?cards1 in pA_int.
 Qed.
@@ -178,13 +178,13 @@ have nSyl5: #|'Syl_5(H)| = 1%N.
   rewrite Hcard20; case: (card _) => // n Hdiv.
   move: (dvdn_leq  (tp: (0 < 20)%N) Hdiv).
   by move: (n) Hdiv; do 20 (case => //).
-case: (sylow1_cor H prime_5) => S; case/piHallP=> sSH oS.
+case: (sylow1_cor H prime_5) => S; case/pHallP=> sSH oS.
 have{oS} oS: #|S| = 5 by rewrite oS p_part Hcard20. 
 suff: 20 %| #|S| by rewrite oS.
 apply FF => [|S1]; last by rewrite S1 cards1 in oS.
 apply: char_norm_trans Hnorm; apply: lone_subgroup_char => // Q sQH isoQS.
 rewrite ((Q =P S :> set _) _) //; apply/idPn=> nQS; move: nSyl5.
-rewrite (cardsD1 S) (cardsD1 Q) 3!{1}inE nQS !piHallE sQH sSH Hcard20 p_part.
+rewrite (cardsD1 S) (cardsD1 Q) 3!{1}inE nQS !pHallE sQH sSH Hcard20 p_part.
 by rewrite (isog_card isoQS) oS.
 Qed.
 
@@ -387,7 +387,7 @@ have Hreg: forall g z, g \in H -> g z = z -> g = 1.
   by rewrite memJ_norm ?(subsetP nH).
 clear K F8 F12 F13 Ksub F14.
 have Hcard: 5 < #|H|.
-  apply: (leq_trans oT); apply dvdn_leq; first by exact: pos_card_group.
+  apply: (leq_trans oT); apply dvdn_leq; first by exact: ltn_0group.
   by rewrite -cardsT (trans_div Hx F5).
 case Eh: (pred0b [predD1 H & 1]).
   by move: Hcard; rewrite /pred0b in Eh; rewrite (cardD1 1) group1 (eqP Eh).

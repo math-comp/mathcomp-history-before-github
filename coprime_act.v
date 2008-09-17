@@ -159,7 +159,7 @@ have sHG: H \subset G by case/andP: hallH.
 have sKG: K \subset G by case/andP: hallK.
 have coKH: coprime #|K| #|H|.
   case/and3P: hallH=> _ piH _; case/and3P: hallK => _ pi'K _.
-  by rewrite coprime_sym (p_nat_coprime piH pi'K).
+  by rewrite coprime_sym (pnat_coprime piH pi'K).
 have defG: G :=: K * H.
   apply/eqP; rewrite eq_sym eqset_sub_card coprime_card_mulG //.
   rewrite -{1}(mulGid G) mulgSS //= (card_Hall hallH) (card_Hall hallK).
@@ -170,7 +170,7 @@ have sGA_H: [~: G, A] \subset H.
   rewrite commMgJ (([~ x, a] =P 1) _) ?(conj1g, mul1g).
     by rewrite groupMl ?groupV // memJ_norm ?(subsetP nHA).
   rewrite subsetI sKG in cKA; apply/commgP; exact: (centsP cKA).
-apply: subset_core; last first.
+apply: subset_pcore; last first.
   by rewrite /(_ <| G) /=  normGR commsgC subcomm_normal nGA.
 by case/and3P: hallH => _ piH _; apply: pgroupS piH.
 Qed.
@@ -196,15 +196,10 @@ case: (solvable_norm_abelem solG nsG_AG) => // M [sMG nMAG ntM].
 have{nMAG} [nMA nMG]: A \subset 'N(M) /\ G \subset 'N(M).
   by apply/andP; rewrite -subUset -gen_subG; case/andP: nMAG.
 have nMX: X \subset 'N(M) by exact: subset_trans nMG.
-case/andP=> abelM; set p := pdiv #|M|; move/exponentP=> elemM.
-have pr_p: prime p by rewrite prime_pdiv // ltnNge -trivg_card.
-have{elemM} pM: primes #|M| = [:: p].
-  apply: (eq_sorted_irr ltn_trans ltnn); rewrite ?sorted_primes // => q.
-  rewrite mem_primes mem_seq1 pos_card_group /=.
-  apply/andP/eqP=> [[pr_q q_M] | ->]; last by rewrite dvdn_pdiv.
-  case: (Cauchy pr_q q_M) => x Mx oxq.
-  apply/eqP; rewrite eqn_leq pdiv_min_dvd ?prime_gt1 1?dvdn_leq ?ltn_0prime //.
-  by rewrite -oxq order_dvd elemM.
+case/abelemP=> p pr_p; do 2![case/andP]=> abelM _ pM.
+have{pM} pM: primes #|M| = [:: p].
+  move: ntM; rewrite trivg_card; case/p_natP: pM => // [[|k]] -> // _.
+  by rewrite primes_exp ?primes_prime.
 pose Gb := (G / M)%G; pose Ab := (A / M)%G; pose Xb := (X / M)%G.
 have oAb: #|Ab| = #|A|.
   rewrite /= -quotient_mulg // -norm_mulgenE // card_quotient; last first.
@@ -214,16 +209,16 @@ have oAb: #|Ab| = #|A|.
   by move: coGA; rewrite -(LaGrange sMG) coprime_mull; case/andP.
 case: (IHn _ Ab Gb _ Xb); do 1?[exact: solvable_quo | exact: morphim_norms].
 - rewrite -[#|_|]mul1n card_quotient //.
-  apply: leq_trans leGn; have:= pos_card_group G.
+  apply: leq_trans leGn; have:= ltn_0group G.
   rewrite -(LaGrange sMG) ltn_0mul; case/andP=> _ M'pos.
   by rewrite ltn_pmul2r // ltnNge -trivg_card.
 - rewrite card_quotient // oAb.
   by move: coGA; rewrite -(LaGrange sMG) coprime_mull; case/andP.
 - exact: morphimS.
-- rewrite /pi_group -(isog_card (second_isom nMX)) /=.
+- rewrite /pgroup -(isog_card (second_isom nMX)) /=.
   rewrite card_quotient //; last first.
     by apply: subset_trans (normI _ _); rewrite subsetI nMX normG.
-  apply: p_nat_dvdn piX; exact: indexg_dvdn.
+  apply: pnat_dvd piX; exact: indexg_dvdn.
 move=> Hb []; case/and3P=> sHGb piHb pi'Hb' nHbA sXHb.
 case/inv_quotientS: (sHGb) => [|HM defHM sMHM sHMG]; first exact/andP.
 have{Xb sXHb} sXHM: X \subset HM.
@@ -236,7 +231,7 @@ have{Xb sXHb} sXHM: X \subset HM.
 have{pi'Hb' sHGb} pi'HM': pi^'.-nat #|G : HM|.
   move: pi'Hb'; rewrite -!group_divn // defHM !card_quotient //; last first.
   - exact: subset_trans nMG.
-  by rewrite -(divn_pmul2l (pos_card_group M)) !LaGrange.
+  by rewrite -(divn_pmul2l (ltn_0group M)) !LaGrange.
 have{Ab oAb nHbA} nHMA: A \subset 'N(HM).
   apply/subsetP=> x Ax; rewrite inE.
   apply/subsetP=> yx; case/imsetP=> y HMy ->{yx}.
@@ -250,9 +245,9 @@ have{Ab oAb nHbA} nHMA: A \subset 'N(HM).
   by case/rcosetP=> t Mt ->; rewrite groupMl // (subsetP sMHM).
 case pi_p: (p \in pi).
   exists HM; split=> //; apply/and3P; split=> //.
-  rewrite /pi_group -(LaGrange sMHM) p_nat_mul.
-  rewrite {1}/pi_nat pM /= pi_p ltn_0group.
-  by rewrite defHM /pi_group card_quotient ?(subset_trans sHMG) in piHb.
+  rewrite /pgroup -(LaGrange sMHM) pnat_mul.
+  rewrite {1}/pnat pM /= pi_p ltn_0group.
+  by rewrite defHM /pgroup card_quotient ?(subset_trans sHMG) in piHb.
 case: (ltnP #|HM| #|G|) => [ltHG | leGHM {n IHn leGn}].
   case: (IHn _ A HM (leq_trans ltHG leGn) X) => // [||H [hallH nHA sXH]].
   - by move: coGA; rewrite -(LaGrange sHMG) coprime_mull; case/andP.
@@ -261,26 +256,26 @@ case: (ltnP #|HM| #|G|) => [ltHG | leGHM {n IHn leGn}].
   have sHG: H \subset G by exact: subset_trans sHMG.
   exists H; split=> //; apply/and3P; split=> //.
   rewrite -group_divn // -(LaGrange sHMG) -(LaGrange sHHM) -mulnA divn_mulr //.
-  by rewrite p_nat_mul pi'H'.
+  by rewrite pnat_mul pi'H'.
 have{leGHM nHMA sHMG sMHM sXHM pi'HM'} eqHMG: HM = G.
   by apply/eqP; rewrite -val_eqE eqset_sub_card sHMG.
 have pi'M: pi^'.-group M by apply/andP; rewrite ltn_0group pM /= inE /= pi_p.
 have{HM Hb defHM eqHMG piHb} hallM: pi^'.-Hall(G) M.
-  apply/and3P; split; rewrite // /pi_group p_natCK.
-  by rewrite defHM /pi_group /= eqHMG card_quotient in piHb.
+  apply/and3P; split; rewrite // /pgroup pnatNK.
+  by rewrite defHM /pgroup /= eqHMG card_quotient in piHb.
 case: (coprime_hall_exists pi nGA) => // H hallH nHA.
 pose XM := (X <*> M)%G; pose Y := (H :&: XM)%G.
 case/and3P: (hallH) => sHG piH _.
 have sXXM: X \subset XM by rewrite  -{1}genGid genS ?subsetUl.
 have co_pi_M: forall B : {group gT}, pi.-group B -> coprime #|B| #|M|.
-  by move=> B piB; rewrite (p_nat_coprime piB).
+  by move=> B piB; rewrite (pnat_coprime piB).
 have hallX: pi.-Hall(XM) X.
-  rewrite /piHall piX sXXM -group_divn //= norm_mulgenE //.
+  rewrite /pHall piX sXXM -group_divn //= norm_mulgenE //.
   by rewrite coprime_card_mulG ?co_pi_M // divn_mulr.
 have hallY: pi.-Hall(XM) Y.
   have sYXM: Y \subset XM by rewrite subsetIr.
   have piY: pi.-group Y by apply: pgroupS piH; exact: subsetIl.
-  rewrite /piHall sYXM piY -group_divn // -(_ : Y * M = XM).
+  rewrite /pHall sYXM piY -group_divn // -(_ : Y * M = XM).
     by rewrite coprime_card_mulG ?co_pi_M // divn_mulr //.
   rewrite /= setIC group_modr /= norm_mulgenE ?mulG_subr //; apply/setIidPl.
   rewrite mulSG ((H * M =P G) _) // eqset_sub_card -{1}(mulGid G) mulgSS //=.

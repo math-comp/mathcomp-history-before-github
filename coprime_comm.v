@@ -228,7 +228,7 @@ Qed.
 
 Lemma card_pgroup_p: forall (G : {group T}) p,
   prime p -> p.-group G -> #|G| = #|G|`_p.
-Proof. by move=> G p _ pG; rewrite part_p_nat. Qed.
+Proof. by move=> G p _ pG; rewrite part_pnat. Qed.
 
 Lemma dvdn_sub_primes: forall d n: nat, 0 < n ->
   d %| n -> {subset primes d <= primes n}.
@@ -266,11 +266,11 @@ suff sylowA: p.-Sylow(A <*> H) A.
   rewrite //= norm_mulgenE; last by apply: (subset_trans AsubG (normal_norm normH)). 
   have nAH : A \subset 'N(H) by apply: subset_trans (normal_norm normH).
   by rewrite normC //; apply: (subsetP (cosetpre_norm nAH)); apply/morphpreP; split.
-rewrite piHallE sub_gen ?subsetUl //= norm_mulgenE; last by apply: (subset_trans AsubG (normal_norm normH)).
+rewrite pHallE sub_gen ?subsetUl //= norm_mulgenE; last by apply: (subset_trans AsubG (normal_norm normH)).
 have co: coprime #|A| #|H| by apply: (pgroup_coprime pr).
 rewrite (card_mulG_trivP _ _ (coprime_trivg co)). 
-rewrite muln_part ?ltn_0mul ?ltn_0group //=.
-rewrite (@not_dvdn_partn1 #|H|); rewrite //=; last by apply: pos_card_group.
+rewrite partn_mul ?ltn_0mul ?ltn_0group //=.
+rewrite (@not_dvdn_partn1 #|H|); rewrite //=; last by apply: ltn_0group.
 by rewrite muln1; apply/eqP; apply: card_pgroup_p.
 Qed.
 

@@ -1068,9 +1068,8 @@ Lemma sub1G : 1%G \subset G. Proof. by rewrite sub1set. Qed.
 
 Lemma mem_repr_group : repr G \in G. Proof. exact: mem_repr group1. Qed.
 
-Lemma pos_card_group : 0 < #|G|.
+Lemma ltn_0group : 0 < #|G|.
 Proof. by rewrite lt0n; apply/existsP; exists (1 : gT). Qed.
-Definition ltn_0group := pos_card_group.
 
 Lemma ltn_0indexg : forall A, 0 < #|G : A|.
 Proof.
@@ -1436,13 +1435,12 @@ Qed.
 End GroupProp.
 
 Hint Resolve group1 group1_class1 group1_class12 group1_class12.
-Hint Resolve group1_eqType group1_finType trivg1 pos_card_group ltn_0indexg.
+Hint Resolve group1_eqType group1_finType trivg1.
+Hint Resolve ltn_0group ltn_0indexg.
 
 Notation "G :^ x" := (conjG_group G x) : subgroup_scope.
 
 Section GroupInter.
-
-Open Scope group_scope.
 
 Variable gT : finGroupType.
 Implicit Types A B : {set gT}.
@@ -1522,13 +1520,12 @@ Notation "\prod_ ( i \in A ) F" :=
 
 Section LaGrange.
 
-Variables gT : finGroupType.
+Variable gT : finGroupType.
 Implicit Types G H K : {group gT}.
 
 Lemma LaGrangeI : forall G H, (#|G :&: H| * #|G : H|)%N = #|G|.
 Proof.
-move=> G H.
-rewrite [#|G|]card_sum_1 (partition_big_imset (rcoset_of H)) /=.
+move=> G H; rewrite [#|G|]card_sum_1 (partition_big_imset (rcoset_of H)) /=.
 rewrite mulnC -sum_nat_const; apply: eq_bigr=> A; case/rcosetsP=> x Gx ->{A}.
 rewrite -(card_rcoset _ x) card_sum_1; apply: eq_bigl => y.
 rewrite rcosetE eqset_sub_card mulGS !card_rcoset leqnn andbT.
@@ -1649,7 +1646,15 @@ by apply/subsetP=> x; move/generatedP; apply.
 Qed.
 
 Lemma genGid : forall G, <<G>> = G.
-Proof. by move=> G; apply/eqP; rewrite eqset_sub gen_subG subset_gen andbT. Qed.
+Proof.
+by move=> G; apply/eqP; rewrite eqset_sub gen_subG subset_gen andbT.
+Qed.
+
+Lemma genGidG : forall G, <<G>>%G = G.
+Proof. by move=> G; apply: val_inj; exact: genGid. Qed.
+
+Lemma gen_set_id : forall A, group_set A -> <<A>> = A.
+Proof. by move=> A gA; exact: (genGid (Group gA)). Qed.
 
 Lemma genS : forall A B, A \subset B -> <<A>> \subset <<B>>.
 Proof. by move=> A B sAB; rewrite gen_subG sub_gen. Qed.
@@ -1786,8 +1791,13 @@ apply: (iffP subsetP) => [cAB1 x Ax y By | cAB z].
 case/imset2P=> x y Ax Ay ->{z}; rewrite inE; apply/commgP; exact: cAB.
 Qed.
 
+Lemma ltn_0order : forall x, 0 < #[x].
+Proof. by move=> x; exact: ltn_0group. Qed.
+Canonical Structure order_pos_nat x := PosNat (ltn_0order x).
+
 End GeneratedGroup.
 
+Hint Resolve ltn_0order.
 Implicit Arguments commG1P [gT A B].
 Prenex Implicits commG1P.
 
@@ -2058,81 +2068,79 @@ Hint Resolve normal_refl.
 Section MinMaxGroup.
 
 Variable gT : finGroupType.
-Notation sT := {set gT}.
-Implicit Types A B : sT.
-Implicit Type P : pred sT.
-Implicit Types G H : {group gT}.
+Variable gP : pred {group gT}.
+Arguments Scope gP [subgroup_scope].
 
-Definition maxgroup P := maxset (fun B => group_set B && P B).
-Definition mingroup P := minset (fun B => group_set B && P B).
+Definition maxgroup := maxset (fun A => group_set A && gP <<A>>).
+Definition mingroup := minset (fun A => group_set A && gP <<A>>).
 
-Lemma mingroupP : forall P G,
-  reflect (P G /\ forall H, P H -> H \subset G -> H :=: G) (mingroup P G).
+Lemma ex_maxgroup : (exists G, gP G) -> {G : {group gT} | maxgroup G}.
 Proof.
-move=> P G; apply: (iffP (minsetP _ _)); rewrite /= groupP => [] /= [-> minG].
-  by split=> // H PH sGH; apply: minG; rewrite ?groupP.
-by split=> // B; case/andP=> gB PB sGB; rewrite -(minG (Group gB)).
+move=> exP; have [A maxA]: {A | maxgroup A}.
+  apply: ex_maxset; case: exP => G gPG.
+  by exists (G : {set gT}); rewrite groupP genGidG.
+by exists <<A>>%G; rewrite /= gen_set_id; case/andP: (maxsetp maxA).
 Qed.
 
-Lemma maxgroupP : forall P G,
-  reflect (P G /\ forall H, P H -> G \subset H -> H :=: G) (maxgroup P G).
+Lemma ex_mingroup : (exists G, gP G) -> {G : {group gT} | mingroup G}.
 Proof.
-move=> P G; apply: (iffP (maxsetP _ _)); rewrite /= groupP => [] /= [-> maxG].
-  by split=> // H PH sGH; apply: maxG; rewrite ?groupP.
-by split=> // B; case/andP=> gB PB sGB; rewrite -(maxG (Group gB)).
+move=> exP; have [A minA]: {A | mingroup A}.
+  apply: ex_minset; case: exP => G gPG.
+  by exists (G : {set gT}); rewrite groupP genGidG.
+by exists <<A>>%G; rewrite /= gen_set_id; case/andP: (minsetp minA).
 Qed.
 
-Lemma ex_maxgroup : forall P,
-  (exists G : {group gT}, P G) -> {G : {group gT} | maxgroup P G}.
+Variable G : {group gT}.
+
+Lemma mingroupP :
+  reflect (gP G /\ forall H, gP H -> H \subset G -> H :=: G) (mingroup G).
 Proof.
-move=> P exP; have [B maxB]: {B | maxgroup P B}.
-  by apply: ex_maxset; case: exP => G PG; exists (G : sT); rewrite groupP.
-by case/andP: (maxsetp maxB) => gB; exists (Group gB).
+apply: (iffP (minsetP _ _)); rewrite /= groupP genGidG /=; case=> -> minG.
+  by split=> // H gPH sGH; apply: minG; rewrite // groupP genGidG.
+split=> // A; case/andP=> gA gPA; rewrite -(gen_set_id gA); exact: minG.
 Qed.
 
-Lemma ex_mingroup : forall P,
-  (exists G : {group gT}, P G) -> {G : {group gT} | mingroup P G}.
+Lemma maxgroupP :
+  reflect (gP G /\ forall H, gP H -> G \subset H -> H :=: G) (maxgroup G).
 Proof.
-move=> P exP; have [B minB]: {B | mingroup P B}.
-  by apply: ex_minset; case: exP => G PG; exists (G : sT); rewrite groupP.
-by case/andP: (minsetp minB) => gB; exists (Group gB).
+apply: (iffP (maxsetP _ _)); rewrite /= groupP genGidG /=; case=> -> maxG.
+  by split=> // H gPH sGH; apply: maxG; rewrite // groupP genGidG.
+split=> // A; case/andP=> gA gPA; rewrite -(gen_set_id gA); exact: maxG.
 Qed.
 
-Lemma maxgroup_exists : forall P G,
-  P G -> {H : {group gT} | maxgroup P H & G \subset H}.
+Lemma maxgroupp : maxgroup G -> gP G. Proof. by case/maxgroupP. Qed.
+
+Lemma mingroupp : mingroup G -> gP G. Proof. by case/mingroupP. Qed.
+
+Hypothesis gPG : gP G.
+
+Lemma maxgroup_exists : {H : {group gT} | maxgroup H & G \subset H}.
 Proof.
-move=> P G PG; have [B maxB sGB]: {B | maxgroup P B & G \subset B}.
-  by apply: maxset_exists; rewrite groupP.
-by case/andP: (maxsetp maxB) => gB _; exists (Group gB).
+have [A maxA sGA]: {A | maxgroup A & G \subset A}.
+  by apply: maxset_exists; rewrite groupP genGidG.
+by exists <<A>>%G; rewrite /= gen_set_id; case/andP: (maxsetp maxA).
 Qed.
 
-Lemma mingroup_exists : forall P G,
-  P G -> {H : {group gT} | mingroup P H & H \subset G}.
+Lemma mingroup_exists : {H : {group gT} | mingroup H & H \subset G}.
 Proof.
-move=> P G PG; have [B maxB sGB]: {B | mingroup P B & B \subset G}.
-  by apply: minset_exists; rewrite groupP.
-by case/andP: (minsetp maxB) => gB _; exists (Group gB).
+have [A maxA sGA]: {A | mingroup A & A \subset G}.
+  by apply: minset_exists; rewrite groupP genGidG.
+by exists <<A>>%G; rewrite /= gen_set_id; case/andP: (minsetp maxA).
 Qed.
-
-Lemma maxgroupp : forall P A, maxgroup P A -> P A.
-Proof. by move=> P A; case/maxsetP; case/andP. Qed.
-
-Lemma mingroupp : forall P A, mingroup P A -> P A.
-Proof. by move=> P A; case/minsetP; case/andP. Qed.
 
 End MinMaxGroup.
 
-Notation "[ 'max' G 'as' A | P ]" := (maxgroup (fun A : {set _} => P) G)
-  (at level 0, format "[ 'max'  G  'as'  A  |  P ]") : group_scope.
+Notation "[ 'max' A 'of' G | gP ]" := (maxgroup (fun G : {group _} => gP) A)
+  (at level 0, format "[ 'max'  A  'of'  G  |  gP ]") : group_scope.
 
-Notation "[ 'max' G | P ]" := [max G as G | P]
-  (at level 0, only parsing) : group_scope.
+Notation "[ 'max' G | gP ]" := [max set_of_group G of G | gP]
+  (at level 0, format "[ 'max'  G  |  gP ]") : group_scope.
 
-Notation "[ 'min' G 'as' A | P ]" := (mingroup (fun A : {set _} => P) G)
-  (at level 0, format "[ 'min'  G  'as'  A  |  P ]") : group_scope.
+Notation "[ 'min' A 'of' G | gP ]" := (mingroup (fun G : {group _} => gP) A)
+  (at level 0, format "[ 'min'  A  'of'  G  |  gP ]") : group_scope.
 
-Notation "[ 'min' G | P ]" := [min G as G | P]
-  (at level 0, only parsing) : group_scope.
+Notation "[ 'min' G | gP ]" := [min set_of_group G of G | gP]
+  (at level 0, format "[ 'min'  G  |  gP ]") : group_scope.
 
 (* We need to define maximal groups here rather than in maximal.v to resolve *)
 (* a circularity issue between action.v (which uses maximal), pgroups.v, and *)
@@ -2144,14 +2152,14 @@ Variable gT : finGroupType.
 Implicit Types A B : {set gT}.
 Implicit Types G H M : {group gT}.
 
-Definition maximal A B := [max A | A \proper B].
+Definition maximal A B := [max A of G | G \proper B].
 
 Definition maximal_eq A B := (A == B) || maximal A B.
 
 Lemma maximalP : forall M G,
   reflect (M \proper G /\ (forall H, H \proper G -> M \subset H -> H :=: M))
           (maximal M G).
-Proof. move=> M G; exact: maxgroupP. Qed.
+Proof. move=> M G; exact: (iffP (maxgroupP _ _)). Qed.
 
 Lemma maximal_eqP : forall M G,
   reflect (M \subset G  /\

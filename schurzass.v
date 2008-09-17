@@ -305,8 +305,8 @@ case nPG: (P <| G); last first.
     rewrite inE; apply/subsetP=> y; rewrite conjIg (conjGid Nx) (normP _) //.
     by apply: (subsetP nHG); case/setIP: Nx.
   have eq_iH: #|G : H| = #|N| %/ #|H'|.
-    rewrite -group_divn // -(divn_pmul2l (pos_card_group H')) mulnC -eqHN_G.
-    by rewrite card_mulG (mulnC #|H'|) divn_pmul2l // pos_card_group.
+    rewrite -group_divn // -(divn_pmul2l (ltn_0group H')) mulnC -eqHN_G.
+    by rewrite card_mulG (mulnC #|H'|) divn_pmul2l // ltn_0group.
   have hallH': Hall N H'.
     have sH'H: H' \subset H by exact: subsetIl.
     case/andP: hallH => _; rewrite eq_iH -(LaGrange sH'H) coprime_mull.
@@ -337,7 +337,7 @@ have hallHbar: Hall Gbar Hbar.
 have: splitg Gbar Hbar; last case/splitgP=> Kbar trHKbar eqHKbar. 
   apply: IHn => //; apply: {n}leq_trans Gn.
   rewrite card_quotient; last by case/andP: nZG.
-  rewrite -(group_divn sZG) divn_lt ?pos_card_group // ltnNge -trivg_card.
+  rewrite -(group_divn sZG) divn_lt ?ltn_0group // ltnNge -trivg_card.
   have:= card_Hall sylP; rewrite p_part lognE prime_p dvdn_pdiv ltn_0group /=.
   exact: pgroup_ntriv.
 have: Kbar \subset Gbar by rewrite -eqHKbar mulG_subr.
@@ -420,20 +420,19 @@ Proof. move=> G H; exact: solvable_morphim. Qed.
 
 Lemma solvable_norm_abelem : forall L G : {group gT},
   solvable G -> G <| L -> ~~ trivg G ->
-  exists H : {group gT}, [/\ H \subset G, H <| L, ~~ trivg H
-                           & elementary_abelian H].
+  exists H : {group gT}, [/\ H \subset G, H <| L, ~~ trivg H & abelem H].
 Proof.
 move=> L G solG; set H := {1 2}G; have: H \subset G := subset_refl _.
 elim: {H}_.+1 {-2}H (ltnSn #|H|) => // n IHn H; rewrite ltnS => leHn.
 move=> sHG nHL ntH; case abelH: (trivg [~: H, H]).
   pose p := pdiv #|H|; pose H1 := 'Ohm_1('O_p(H))%G.
   have prp: prime p by rewrite prime_pdiv // ltnNge -trivg_card.
-  have charH1: H1 \char H by exact: char_trans (char_Ohm _ _) (char_core p _).
+  have charH1: H1 \char H by exact: char_trans (char_Ohm _ _) (char_pcore p _).
   have sH1H: H1 \subset H by case/andP: charH1.
   have{abelH} abelH: abelian H by apply/centsP; exact/commG1P.
   have abelH1: abelian H1.
     by do 2![apply: (subset_trans sH1H); rewrite 1?centsC].
-  have pOp: p.-group 'O_p(H) by exact: pgroup_core.
+  have pOp: p.-group 'O_p(H) by exact: pgroup_pcore.
   have pH1: p.-group H1 by apply: pgroupS pOp; exact: Ohm_subset.
   have ntH1 : ~~ trivg H1.
     case: (Cauchy prp (dvdn_pdiv #|H|)) => x Hx oxp.
@@ -441,7 +440,7 @@ move=> sHG nHL ntH; case abelH: (trivg [~: H, H]).
     apply/subsetPn; exists x; last first.
       by apply/set1P=> x1; rewrite -oxp x1 order1 in prp.
     rewrite inE -{2}oxp expn1 order_expn1 eqxx andbT -sub1set -gen_subG.
-    apply: subset_core; first rewrite /pi_group [#|_|]oxp p_nat_prime ?inE //=.
+    apply: subset_pcore; first by rewrite /pgroup [#|_|]oxp pnat_id.
     rewrite /(_ <| H) cycle_h // (subset_trans _ (cent_subset _)) // centsC.
     rewrite cycle_h //; exact: subsetP Hx.
   exists H1; split=> //; first exact: subset_trans sHG.
@@ -492,7 +491,7 @@ have oKM: forall K' : {group gT},
 have [xb]: exists2 xb, xb \in H / M & (K1 / M = (K / M) :^ xb)%G.
   apply: IHn; try by rewrite (solvable_quo, morphim_norms, oKM K) ?(oKM K1).
     apply: leq_trans leHn; rewrite card_quotient ?nMsG //.
-    rewrite -(ltn_pmul2l (pos_card_group M)) LaGrange // -{1}(mul1n #|H|).
+    rewrite -(ltn_pmul2l (ltn_0group M)) LaGrange // -{1}(mul1n #|H|).
     by rewrite ltnNge leq_pmul2r // -trivg_card.
   by rewrite -morphimMl ?nMsG // -defG morphimS.
 case/morphimP=> x nMx Hx ->{xb}; move/(congr1 val)=> /= eqK1Kx.

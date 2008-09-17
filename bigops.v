@@ -1230,6 +1230,16 @@ rewrite andbC; move/pred0P: Hdisj; move/(_ x0)=> /=.
 by rewrite -topredE /=; case: a.
 Qed.
 
+Lemma ltn_0prodn_cond : forall I r (P : pred I) F,
+  (forall i, P i -> 0 < F i) -> 0 < \prod_(i <- r | P i) F i.
+Proof.
+by move=> I r P F Fpos; apply big_prop => // n1 n2; rewrite ltn_0mul => ->.
+Qed.
+
+Lemma ltn_0prodn : forall I r (P : pred I) F,
+  (forall i, 0 < F i) -> 0 < \prod_(i <- r | P i) F i.
+Proof. move=> I r P F Fpos; exact: ltn_0prodn_cond. Qed.
+
 Notation "\max_ ( <- r | P ) F" :=
   (\big[maxn/0%N]_(<- r | P%B) F%N) : nat_scope.
 Notation "\max_ ( i <- r | P ) F" :=

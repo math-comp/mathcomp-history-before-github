@@ -202,7 +202,7 @@ Proof. by move=> m n d; rewrite modn_mulml modn_mulmr. Qed.
 Lemma modn2_odd : forall m, m %% 2 = odd m.
 Proof. by elim=> //= m IHm; rewrite -addn1 -modn_addml IHm; case odd. Qed.
 
-Lemma dvdn2_half : forall m, m %/ 2 = m./2.
+Lemma divn2_half : forall m, m %/ 2 = m./2.
 Proof.
 by move=> m; rewrite {2}(divn_eq m 2) modn2_odd muln2 addnC half_bit_double.
 Qed.
@@ -221,7 +221,7 @@ Notation "m %| d" := (dvdn m d) (at level 70, no associativity) : nat_scope.
 Lemma dvdn2_even : forall n, (2 %| n) = ~~ odd n.
 Proof. by move=> n; rewrite /dvdn modn2_odd; case (odd n). Qed.
 
-Lemma dvdnP: forall d m, reflect (exists k, m = k * d) (d %| m).
+Lemma dvdnP : forall d m, reflect (exists k, m = k * d) (d %| m).
 Proof.
 move=> d m; apply: (iffP eqP) => [Hm | [k ->]]; last by rewrite modn_mull.
 by exists (m %/ d); rewrite {1}(divn_eq m d) Hm addn0.
@@ -248,9 +248,15 @@ Lemma dvdn_mull: forall d m n, d %| n -> d %| m * n.
 Proof. by move=> d m n; case/dvdnP=> n' ->; rewrite /dvdn mulnA modn_mull. Qed.
 
 Lemma dvdn_mulr: forall d m n, d %| m -> d %| m * n.
-Proof. by move=> *; rewrite mulnC dvdn_mull. Qed.
+Proof. by move=> d m n d_m; rewrite mulnC dvdn_mull. Qed.
 
 Hint Resolve dvdn0 dvd1n dvdnn dvdn_mull dvdn_mulr.
+
+Lemma dvdn_mul: forall d1 d2 m1 m2, d1 %| m1 -> d2 %| m2 -> d1 * d2 %| m1 * m2.
+Proof.
+move=> d1 d2 m1 m2; case/dvdnP=> q1 ->; case/dvdnP=> q2 ->.
+by rewrite mulnCA -mulnA 2?dvdn_mull.
+Qed.
 
 Lemma dvdn_trans: forall n d m, d %| n -> n %| m -> d %| m.
 Proof. move=> n d m Hn; move/dvdnP => [n1 ->]; auto. Qed.
@@ -264,10 +270,19 @@ Qed.
 Lemma divnK : forall d m, d %| m -> m %/ d * d = m.
 Proof. by move=> m d; rewrite dvdn_eq; move/eqP. Qed.
 
+Lemma modn_dvdm : forall m n d, d %| m -> n %% m %% d = n %% d.
+Proof.
+move=> m n d; case/dvdnP=> q def_m.
+by rewrite {2}(divn_eq n m) {3}def_m mulnA modn_addl_mul.
+Qed.
+
 Lemma dvdn_leq : forall d m, 0 < m -> d %| m -> d <= m.
 Proof.
 by move=> d m Hm; case/dvdnP=> [[|k] Dm]; rewrite Dm //= leq_addr in Hm *.
 Qed.
+
+Lemma gtnNdvd : forall n d, 0 < n -> n < d -> (d %| n) = false.
+Proof. by move=> n d n_pos ltnd; rewrite /dvdn eqn0Ngt modn_small ?n_pos. Qed.
 
 Lemma dvdn_lt : forall d m,
   1 < d -> 0 < m -> d %| m -> 0 < m %/ d /\ m %/ d < m.
@@ -704,29 +719,6 @@ case/dvdnP=> q1 def_d1; rewrite /lcmn {2}def_d1 mulnA dvdn_pmul2r //.
 rewrite mulnC gauss // -[coprime _ _](eqn_pmul2r d12_pos) mul1n.
 by rewrite gcdnC muln_gcdl -def_d1 -def_d2.
 Qed.
-
-(* Symmetrical Bezout coefficients (used for p-components in frobenius). *)
-
-Definition abezoutn m n :=
-  if m > 0 then let: (km, kn) := egcdn m n in (km, m.-1 * kn) else (0, 1).
-
-Lemma abezout_modn : forall m n,
-  let: (u, v) := abezoutn m n in
-  (u * m + v * n) %% (m * n) = gcdn m n %% (m * n).
-Proof.
-rewrite /abezoutn => m n; case: posnP => [->|m_pos].
-  by rewrite /= !modn0 gcd0n mul1n.
-case: egcdnP => //= km kn -> _.
-by rewrite -mulnA addnAC -mulSn prednK // mulnCA modn_addl_mul.
-Qed.
-
-Lemma abezout_coprime: forall n m, 1 < m * n -> coprime m n ->
-  let: (u, v) := abezoutn m n in (u * m + v * n) %% (m * n) = 1.
-Proof.
-move=> n m mn_gt1 co_mn; case: abezoutn (abezout_modn m n) => u v ->.
-by rewrite (eqnP co_mn) modn_small.
-Qed.
-
 
 Section Chinese.
 

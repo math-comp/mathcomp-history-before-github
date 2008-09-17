@@ -122,11 +122,6 @@ Qed.
 Lemma order1 : #[1 : gT] = 1%N.
 Proof. by rewrite /order cycle_unit cards1. Qed.
 
-Lemma ltn_0order : forall a, 0 < #[a].
-Proof. by move => a; exact: pos_card_group. Qed.
-Hint Resolve ltn_0order.
-Canonical Structure order_pos_nat a := PosNat (ltn_0order a).
-
 Lemma order_inf : forall a n, a ^+ n.+1 == 1 -> #[a] <= n.+1.
 Proof.
 move=> a [|n]; move/eqP; first by rewrite expg1 => ->; rewrite order1.
@@ -213,7 +208,7 @@ move=> a b; apply/setP=> x; rewrite mem_conjg; apply/cycleP/idP=> [[n <-]|].
 by case/cycleP=> [n a_n_x]; exists n; rewrite -conjXg a_n_x conjgKV.
 Qed.
 
-Lemma order_conjg : forall a b, #[a ^ b] = #[a].
+Lemma orderJ : forall a b, #[a ^ b] = #[a].
 Proof. by move=> a b; rewrite /order cycle_conjgs card_conjg. Qed.
 
 Lemma expgn_modnorder : forall a k, a ^+ k = a ^+ (k %% #[a]).
@@ -391,6 +386,9 @@ move=> a; symmetry; apply/eqP; rewrite eqset_sub.
 by rewrite !cycle_h // -groupV ?invgK cyclenn.
 Qed.
 
+Lemma orderV : forall x, #[x^-1] = #[x].
+Proof. by move=> x; rewrite /order cycleV. Qed.
+
 End Cyclic.
 
 Section CyclicSubGroup.
@@ -438,10 +436,14 @@ End CyclicSubGroup.
 Section MorphicImage.
 
 Variables aT rT : finGroupType.
+Variables (D : {group aT}) (f : {morphism D >-> rT}) (x : aT).
+Hypothesis Dx : x \in D.
 
-Lemma morphim_cycle : forall (G : {group aT}) (f : {morphism G >-> rT}) x,
-  x \in G -> f @* <[x]> = <[f x]>.
-Proof. by move=> G f x Gx; rewrite morphim_gen (sub1set, morphim_set1). Qed.
+Lemma morphim_cycle : f @* <[x]> = <[f x]>.
+Proof. by rewrite morphim_gen (sub1set, morphim_set1). Qed.
+
+Lemma morph_order : #[f x] %| #[x].
+Proof. by rewrite order_dvd -morphX // order_expn1 morph1. Qed.
 
 End MorphicImage.
 
@@ -545,7 +547,7 @@ have: gcdn #[x] n <= 1.
   rewrite ltn_neqAle; move: (order_gcd x npos); rewrite -(eqP Hn).
   move/eqP; rewrite -(order_aut_stable autf); move/eqP=> Hg.
   by rewrite {3}Hg eqxx andFb.
-by rewrite leq_eqVlt orbC ltnNge ltn_0gcd npos pos_card_group.
+by rewrite leq_eqVlt orbC ltnNge ltn_0gcd npos ltn_0group.
 Qed.
 
 Lemma cycle_to_fp_loc_repr : forall x,
