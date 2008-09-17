@@ -1665,6 +1665,10 @@ Section EqPmap.
 
 Variables (aT rT : eqType) (f : aT -> option rT) (g : rT -> aT).
 
+Lemma eq_pmaps : forall (f1 f2 : aT -> option rT),
+ f1 =1 f2 -> pmaps f1 =1 pmaps f2.
+Proof. by move=> f1 f2 Ef; elim=> [|x s IHs] //=; rewrite Ef IHs. Qed.
+
 Lemma mem_pmaps : forall s u, (u \in pmaps f s) = (Some u \in maps f s).
 Proof.
 by move=> s u; elim: s => //= x s IHs; rewrite in_adds -IHs; case (f x).
