@@ -70,36 +70,6 @@ clear 1; rewrite subn1 -[_.-1.+1]doubleS -mul2n mulnA -expnSr.
 rewrite -{1}(addKn q q) addnn; exact: IHq.
 Qed.
 
-Fixpoint elognn (e q r : nat) {struct q} :=
-  match q, r with
-  | 0, _ => [:: e]
-  | q'.+1, 0 => (e :: elognn 0 q' q')
-  | q'.+1, 1 => elognn e.+1 q' q'
-  | q'.+1, r'.+2 => elognn e q' r'
-  end.
-
-CoInductive elognn_spec n : seq nat -> Type :=
-  ElognnSpec s of n = (foldr (fun e m => 2 ^ e * m.*2.+1) 0 s) : elognn_spec n s.
-
-Lemma elognn_adds : forall e q s,
- elognn_spec q s -> elognn_spec (2 ^ e * q.*2.+1) (e :: s).
-Proof.
-move=> e q s sp_qs; case: (@ElognnSpec (2 ^ e * q.*2.+1) (e :: s)) => //=.
-by case: sp_qs => ? ->.
-Qed.
-
-Lemma elognnP : forall n, elognn_spec n.+1 (elognn 0 n n).
-Proof.
-move=> n; rewrite -{1}[n.+1]mul1n -[1]/(2 ^ 0) -{1}(addKn n n) addnn.
-elim: n {1 4 6}n {2 3}0 (leqnn n) => [|q IHq] [|[|r]] e //=; last first.
-- move/ltnW; rewrite doubleS !subSS; exact: IHq.
-- clear 1; move: (IHq q e.+1); rewrite leqnn; move/(_ is_true_true).
-  rewrite doubleS subn1 /= -addnn -addn_subA // subnn addn0 addnn -doubleS.
-  by rewrite -mul2n mulnA expnSr.
-clear 1; rewrite subn0; apply: elognn_adds; move: (IHq q 0).
-by rewrite expn0 mul1n -addnn -addn_subA // subnn addn0; move/(_ (leqnn q)).
-Qed.
-
 Definition ifnz T n (x y : T) := if n is 0 then y else x.
 
 CoInductive ifnz_spec T n (x y : T) : T -> Type :=
