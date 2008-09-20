@@ -634,8 +634,12 @@ Section RestrictedMorphism.
 
 Variables aT rT : finGroupType.
 Variables A B : {set aT}.
+Implicit Type C : {set aT}.
+Implicit Type R : {set rT}.
 
 Definition restrm of A \subset B := @id (aT -> FinGroup.sort rT).
+
+Section Props.
 
 Hypothesis sAB : A \subset B.
 Variable f : {morphism B >-> rT}.
@@ -644,11 +648,11 @@ Notation fB := (restrm sAB (mfun f)).
 Canonical Structure restrm_morphism :=
   @Morphism aT rT A fB (subin2 (subsetP sAB) (morphM f)).
 
-Lemma morphim_restrm : forall C : {set aT}, fB @* C = f @* (A :&: C).
+Lemma morphim_restrm : forall C, fB @* C = f @* (A :&: C).
 Proof. by move=> C; rewrite {2}/morphim setIA (setIidPr sAB). Qed.
 
-Lemma morphpre_restrm : forall C : {set rT}, fB @*^-1 C = A :&: f @*^-1 C.
-Proof. by move=> C; rewrite setIA (setIidPl sAB). Qed.
+Lemma morphpre_restrm : forall R, fB @*^-1 R = A :&: f @*^-1 R.
+Proof. by move=> R; rewrite setIA (setIidPl sAB). Qed.
 
 Lemma ker_restrm : 'ker (restrm sAB f) = 'ker_A f.
 Proof. exact: morphpre_restrm. Qed.
@@ -656,9 +660,20 @@ Proof. exact: morphpre_restrm. Qed.
 Lemma injm_restrm : 'injm f -> 'injm (restrm sAB f).
 Proof. by apply: subset_trans; rewrite ker_restrm subsetIr. Qed.
 
+End Props.
+
+Lemma restrmP : forall f : {morphism B >-> rT}, A \subset 'dom f ->
+  exists2 g : {morphism A >-> rT}, 
+    forall C, C \subset A -> f @* C= g @* C & f = g :> (aT -> rT).
+Proof.
+move=> f sAB; exists (restrm_morphism sAB f) => // C sCA.
+by rewrite morphim_restrm (setIidPr sCA).
+Qed.
+
 End RestrictedMorphism.
 
 Prenex Implicits restrm.
+Implicit Arguments restrmP [aT rT A B].
 
 Section TrivMorphism.
 
@@ -894,12 +909,13 @@ Qed.
 
 End Defs.
 
-
-Infix "\isog":= isog.
+Infix "\isog" := isog.
 
 (* The real reflection properties only hold for true groups and morphisms. *)
 
-Variables (G : group aT) (H : group rT).
+Section Main.
+
+Variables (G : {group aT}) (H : {group rT}).
 Notation fMT := {morphism G >-> rT}.
 
 Lemma isomP : forall f : fMT, reflect ('injm f /\ f @* G = H) (isom G H f).
@@ -925,6 +941,22 @@ apply: (iffP idP) => [| [f *]]; last by apply: isom_isog (f) _; exact/isomP.
 by case/existsP=> f; case/misomP=> fM; case/isomP; exists (morphm_morphism fM).
 Qed.
 
+End Main.
+
+Variables (G : {group aT}) (f : {morphism G >-> rT}).
+
+Lemma morphim_isom : forall (H : {group aT}) (K : {group rT}),
+  H \subset G -> isom H K f -> f @* H = K.
+Proof. by move=> H K; case/(restrmP f)=> g -> // ->; case/isomP. Qed.
+
+Lemma sub_isom : forall (A : {set aT}) (C : {set rT}),
+  A \subset G -> f @* A = C -> 'injm f -> isom A C f.
+Proof.
+move=> A C sAG; case: (restrmP f sAG) => g _ fg <-{C} injf.
+rewrite /isom -!setDset1 -morphimEsub ?morphimDG ?morphim1 //.
+by rewrite subDset setUC subsetU ?sAG.
+Qed.
+  
 End ReflectProp.
 
 Implicit Arguments morphicP [aT rT A f].

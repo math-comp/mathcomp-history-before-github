@@ -148,6 +148,14 @@ Qed.
 
 Canonical Structure coset_of_morphism := Morphism coset_of_morphM.
 
+Lemma ker_coset_gen : 'ker coset_of = 'N_H(A).
+Proof.
+apply/setP=> z; rewrite !in_setI andbC 2!inE -val_eqE /=.
+case Nz: (z \in 'N(A)); rewrite ?andbF // val_coset_of.
+rewrite (subsetP (norm_gen _) _ Nz) !andbT.
+by apply/eqP/idP=> [<-| Az]; rewrite (rcoset_refl, rcoset_id).
+Qed.
+
 End Cosets.
 
 Prenex Implicits coset coset_of.
@@ -180,15 +188,10 @@ by rewrite coset_ofN ?rcoset_refl.
 Qed.
 
 Lemma ker_coset : 'ker (cH) = H.
-Proof.
-apply/setP=> x; rewrite inE; apply/andP/idP=> [[Nx] | Hx] /=.
-  rewrite inE; move/set1P; exact: coset_of_idr.
-by rewrite (subsetP (normG H)) // inE /= coset_of_id ?set11.
-Qed.
+Proof. by rewrite ker_coset_gen genGid (setIidPl _) ?normG. Qed.
 
-Lemma norm_repr_cosetG : forall xbar : coset  H, repr xbar \in 'N(H).
+Lemma norm_repr_cosetG : forall xbar : coset H, repr xbar \in 'N(H).
 Proof. by move=> xbar; rewrite -{2}(genGid H) norm_repr_coset. Qed.
-
 
 Lemma coset_of_repr : forall xbar : coset H, cH (repr xbar) = xbar.
 Proof.
@@ -196,7 +199,6 @@ move=> xbar; apply: val_inj; rewrite /= set_of_coset_of norm_repr_cosetG.
 case: xbar => A /=; case/rcosetsP=> x; rewrite genGid => Nx ->{A}.
 exact: rcoset_repr.
 Qed.
-
 
 Lemma cosetP : forall xbar, {x | x \in 'N(H) & xbar = cH x}.
 Proof.
@@ -247,7 +249,6 @@ Proof. move=> x y Gx Gy eqfxy; rewrite -ker_coset; exact: ker_rcoset. Qed.
 Lemma cosetimGI : forall (G : {group gT})(A : {set gT}),
   H \subset G -> cH @* (G :&: A) = cH @* G :&: cH @* A.
 Proof. by rewrite -{1}ker_coset; exact: morphimGI. Qed.
-
 
 Lemma cosetimIG : forall (A : {set gT}) (G : {group gT}),
   H \subset G -> cH @* (A :&: G) = cH @* A :&: cH @* G.
@@ -367,14 +368,12 @@ Lemma quotient_inj :
   {in [pred K : {group gT} | H <| K] &, injective (fun K => K / H)}.
 Proof. by move=> G K nHG nHK; apply: morphim_inj; rewrite ker_coset. Qed.
 
-
 Lemma quotientS : forall A B, A \subset B -> A / H \subset B / H.
 Proof. move=> A B; exact: cosetimS. Qed.
 
 Lemma quotientSGK : forall A G,
   A \subset 'N(H) -> H \subset G -> A / H \subset G / H = (A \subset G).
 Proof. move=> A G; rewrite !quotientE; exact: cosetimSGK. Qed.
-
 
 Lemma quotientSK : forall A B, A \subset 'N(H) -> 
   A / H \subset B / H = (A \subset H * B).
@@ -518,7 +517,6 @@ apply/eqP; rewrite eqset_sub quotient_norm andbT.
 rewrite -(cosetpreK 'N(G / H)); apply: quotientS; rewrite -{2}(quotientGK nHG).
 exact: morphpre_norm.
 Qed.
-
 
 End QuotientMorphism.
 

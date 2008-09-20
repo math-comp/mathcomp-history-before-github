@@ -432,7 +432,7 @@ move=> sHG nHL ntH; case abelH: (trivg [~: H, H]).
   have{abelH} abelH: abelian H by apply/centsP; exact/commG1P.
   have abelH1: abelian H1.
     by do 2![apply: (subset_trans sH1H); rewrite 1?centsC].
-  have pOp: p.-group 'O_p(H) by exact: pgroup_pcore.
+  have pOp: p.-group 'O_p(H) by exact: pcore_pgroup.
   have pH1: p.-group H1 by apply: pgroupS pOp; exact: Ohm_subset.
   have ntH1 : ~~ trivg H1.
     case: (Cauchy prp (dvdn_pdiv #|H|)) => x Hx oxp.
