@@ -77,16 +77,6 @@ Qed.
 
 Lemma Phi_char: forall G, 'Phi(G) \char G. Admitted.
 
-Lemma p_length_1_quo_p : forall p G H,
-  prime p -> H <| G -> trivg 'O_p^'(G / H) ->
-  p.-length_1 (G / H) -> p.-length_1 G.
-Admitted.
-
-Lemma p_length_1_quo2 : forall p G H K,
-  prime p -> H <| G -> K <| G -> trivg (H :&: K) ->
-  p.-length_1 (G / H) -> p.-length_1 (G / K) -> p.-length_1 G.
-Admitted.
-
 Lemma coprime_cent_Phi : forall H G,
   coprime #|H| #|G| -> [~: H, G] \subset 'Phi(G) ->  H \subset 'C(G).
 Admitted.
@@ -208,7 +198,8 @@ have{IHn trivgHR hallH} IHquo: forall X : group gT,
 rewrite defHR.
 without loss Op'_H: / trivg 'O_p^'(H).
   case/orP: (orbN (trivg 'O_p^'(H))) => [-> -> // | ntO _].
-  suffices: p.-length_1 (H / 'O_p^'(H)) by admit.
+  suffices: p.-length_1 (H / 'O_p^'(H)).
+    by rewrite p'quo_plength1 ?pcore_normal ?pcore_pgroup.
   apply: IHquo => //; first by rewrite normal_sub ?pcore_normal.
   by rewrite normal_norm // (char_norm_trans (pcore_char _ _)).
 move defV: 'F(H)%G => V.
@@ -227,7 +218,8 @@ wlog abV: / p.-abelem V.
   have nPhiH := char_normal chPhi; have sPhiH := normal_sub nPhiH.
   have{chPhi} nPhiG: G \subset 'N('Phi(V)).
     exact: normal_norm (char_norm_trans chPhi nHG).
-  apply: (p_length_1_quo_p pr_p nPhiH); last exact: IHquo.
+  rewrite -(pquo_plength1 nPhiH) 1?IHquo //.
+    exact: pgroupS (Phi_sub _) pV.
   have: 'O_p^'(H / 'Phi(V)) <| H / 'Phi(V) by exact: pcore_normal.
   case/(inv_quotientN _) => // W; move/(congr1 val)=> /= defW sPhiW nWH.
   have p'Wb: p^'.-group (W / 'Phi(V)) by rewrite -defW; exact: pcore_pgroup.
@@ -272,7 +264,7 @@ wlog{IHquo} nondecV:  / forall N1 N2,
   case/and3P=> nNG ntN1 ntN2 _; have [nN1 nN2]: N1 <| H /\ N2 <| H.
     by apply/andP; rewrite /normal sN1 sN2 /= -subsetI (subset_trans sHG).
   rewrite subsetI in nNG; case/andP: nNG => nN1G nN2G.
-  apply: (p_length_1_quo2 pr_p nN1 nN2 trN12); exact: IHquo.
+  by rewrite -(quo2_plength1 pr_p nN1 nN2 trN12) ?IHquo.
 have: 'F(H / V) <| G / V.
   exact: char_norm_trans (Fitting_char _) (morphim_normal _ _).
 case/(inv_quotientN _) => [|U]; last move/(congr1 val)=> /= defU sVU nUG.
@@ -322,10 +314,14 @@ have sylVP: p.-Sylow(H) (V * P).
   have: p.-Sylow('N_H(K) / V) (P / V) by exact: morphim_pHall.
   by case/pHallP=> _ ->.
 case/orP: (orbN (trivg [~: K, P])) => [tKP|ntKP].
-  suffices sylVH: p.-Sylow(H) V by admit.
-(*  rewrite /p_length_1. rewrite/qp'_pcore.
-    have Op'_H1: 'O_[~ p](H) = 1 by case/trivgP: Op'_H.
-    rewrite Op'_H1. *) 
+  suffices sylVH: p.-Sylow(H) V.
+    rewrite p_elt_gen_length1 // (_ : p_elt_gen p H = V).
+      rewrite /pHall pcore_sub pcore_pgroup /= pnatNK.
+      apply: pnat_dvd pV; exact: indexg_dvdn.
+    rewrite -(genGid V); congr <<_>>; apply/setP=> x; rewrite inE.
+    apply/andP/idP=> [[Hx p_x] | Vx].
+      by rewrite (mem_normal_Hall sylVH) // /normal sVH.
+    split; [exact: (subsetP sVH) | exact: mem_p_elt Vx].
   suffices sPV: P \subset V by rewrite mulGSid in sylVP.
   have sol_qHV : solvable (H /V). 
     by apply: solvable_quo; apply: (solvableS sHG).
