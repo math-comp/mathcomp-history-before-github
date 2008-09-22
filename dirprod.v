@@ -143,7 +143,7 @@ move=> H1 H2 G.
 apply: (iffP (dirprod_isom H1 H2 G)) => [[cH -> trH] | [nH1 nH2 defG trH]].
   rewrite /normal /= {-2 4}centralised_mulgenE // mulG_subl // mulG_subr //.
   rewrite //= !gen_subG !subUset normG /= andbC normG /=.
-  move/centsP: cH => cH; split=> //; apply: subset_trans (cent_subset _) => //.
+  move/centsP: cH => cH; split=> //; apply: subset_trans (cent_norm _) => //.
   by rewrite centsC.
 suff: {in H1, centralised H2}.
   by split=> //; apply: val_inj; rewrite /= centralised_mulgenE.
@@ -172,7 +172,7 @@ Lemma cprodC : commutative central_product.
 Proof.
 move=> A B; do 2!rewrite /(_ \* _); case: eqP => [->|_]; first by case: eqP.
 rewrite andbCA centsC; case cAB: (B \subset _); last by rewrite !andbF.
-by rewrite -normC // (subset_trans _ (cent_subset _)).
+by rewrite -normC // (subset_trans _ (cent_norm _)).
 Qed.
 
 Lemma cprod1g : left_unit 1 central_product.

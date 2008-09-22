@@ -43,7 +43,7 @@ Variable gT : finGroupType.
 Implicit Types A B : {set gT}.
 Implicit Types G H K M : {group gT}.
 
-Lemma Phi_subset : forall G, 'Phi(G) \subset G.
+Lemma Phi_sub : forall G, 'Phi(G) \subset G.
 Proof. by move=> G; apply: bigcap_inf (G) _; apply/orP; left. Qed.
 
 Lemma Phi_proper : forall G, ~~ trivg G -> 'Phi(G) \proper G.

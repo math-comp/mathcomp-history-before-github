@@ -67,7 +67,7 @@ Lemma lcn_char : forall G n, 'L_n(G) \char G.
 Proof. by move=> G; elim=> [|n IHn]; rewrite ?lcnSn ?charR ?char_refl. Qed.
 
 Lemma lcn_normal0 : forall G n, 'L_n(G) <|  G.
-Proof. move=> G n; apply: normal_char; exact: lcn_char. Qed.
+Proof. move=> G n; apply: char_normal; exact: lcn_char. Qed.
 
 Lemma lcn_subset0 : forall G n, 'L_n(G) \subset G.
 Proof. by move=> G n; case/andP: (lcn_normal0 G n). Qed.
@@ -190,18 +190,18 @@ Qed.
 Lemma ucn_char : forall G n, 'Z_n(G) \char G.
 Proof.
 move=> G; elim=> [|n chZn]; first exact: trivg_char.
-have nZn: 'Z_n(G) <| G by exact: normal_char.
+have nZn: 'Z_n(G) <| G by exact: char_normal.
 case: (andP nZn) => sZn nZn'; rewrite ucnSn.
 apply: char_from_quotient (chZn) _.
   by apply: normalS nZn; rewrite (subsetIl, ucn_subset).
 rewrite /= quotientE morphimGI ?ker_coset // morphpreK -!quotientE.
-  by rewrite setIA setIid characteristic_center.
+  by rewrite setIA setIid center_char.
 by rewrite subIset // morphimS.
 Qed.
 
 (* Now reprove all the intermediate facts of the last proof. *)
 Lemma ucn_normal0 : forall G n, 'Z_n(G) <| G.
-Proof. move=> G n; apply: normal_char; exact: ucn_char. Qed.
+Proof. move=> G n; apply: char_normal; exact: ucn_char. Qed.
 
 Lemma ucn_normal : forall G n, 'Z_n(G) <| 'Z_n.+1(G).
 Proof.
@@ -227,18 +227,17 @@ Qed.
 
 Lemma ucn1 : forall G, 'Z_1(G) = 'Z(G).
 Proof.
-have morphim_center: forall (K H : group _) (f : morphism _ K),
+have morphim_center: forall (H K : group _) (f : morphism _ K),
   f @* 'Z(H) \subset 'Z(f @* H).
-- move=> T T' K H f; rewrite subsetI morphimS ?subsetIl //=.
-  by rewrite (subset_trans _ (morphim_cent _ _)) ?morphimS // subsetIr.
+- move=> T T' H K f; rewrite subsetI morphimS ?subsetIl //=.
+  by rewrite morphim_cents ?morphimS // subsetIr.
 move=> G; apply: congr_group; apply: (quotient_inj (ucn_normal G 0)).
-  apply: normal_char; exact: trivg_char. (* GG: sic! *)
-apply/eqP; rewrite eqset_sub ucn_center /= ucn0 morphim_center.
-have injq1: 'injm (coset_of (1 : sT)) by rewrite ker_coset trivg1.
-have allN1: forall A : sT, A \subset 'N(1).
-  by move=> A; rewrite normaliser1 subsetT.
-rewrite -{2}(morphim_invm injq1 (allN1 G)) -['Z(_) / 1](morphpre_invm injq1).
-by rewrite -sub_morphim_pre ?morphim_center // subIset // morphimS.
+  exact: normal1.
+apply/eqP; rewrite eqset_sub ucn_center /= ucn0 morphim_center andbT.
+have injq1 := coset1_injm gT.
+rewrite /quotient -(morphpre_invm injq1 'Z(G)) -sub_morphim_pre.
+  by rewrite -{2}(morphim_invm injq1 (norms1 G)) morphim_center.
+by rewrite subIset // morphimS // norms1.
 Qed.
 
 Lemma ucnSnR : forall G n,
@@ -288,7 +287,7 @@ Proof.
 by move=> A B n sAB; elim: n => // n IHn; rewrite !lcnSn genS ?imset2S.
 Qed.
 
-Lemma nilpotent_sub : forall A B, B \subset A -> nilpotent A -> nilpotent B.
+Lemma nilpotentS : forall A B, B \subset A -> nilpotent A -> nilpotent B.
 Proof.
 move=> A B sBA nilA; apply/forallP=> H; apply/implyP=> sHR.
 have:= forallP nilA H; rewrite (subset_trans sHR) //.
@@ -305,7 +304,7 @@ Qed.
 Lemma nilpotent_morphim : forall rT G H (f : {morphism G >-> rT}),
   nilpotent H -> nilpotent (f @* H).
 Proof.
-move=> rT G H f; move/(nilpotent_sub (subsetIr G H)); case/lcnP=> n LnH1.
+move=> rT G H f; move/(nilpotentS (subsetIr G H)); case/lcnP=> n LnH1.
 rewrite -morphimIdom; apply/lcnP; exists n.
 by rewrite -morphim_lcn ?subsetIl // LnH1 morphim1.
 Qed.
@@ -338,7 +337,7 @@ Lemma nilpotent_mul : forall G H, {in G, centralised H} ->
   nilpotent (G * H) = nilpotent G && nilpotent H.
 Proof.
 move=> G H cGH; apply/idP/andP=> [nilGH | []].
-  by split; apply: nilpotent_sub nilGH; rewrite (mulG_subr, mulG_subl).
+  by split; apply: nilpotentS nilGH; rewrite (mulG_subr, mulG_subl).
 case/lcnP=> n1 Ln1G1; case/lcnP=> n2 Ln2G1.
 rewrite -(centralised_mulgenE cGH); apply/lcnP; rewrite /= centralised_mulgenE //.
 have trLadd : forall (K : {group gT}) i j, 'L_i(K) = 1 -> 'L_(j + i)(K) = 1.

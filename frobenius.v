@@ -39,12 +39,12 @@ apply/morphimP/andP=> [[z Nz cxzs ->{x1}]|[]].
   apply: dvdn_trans zs; exact: morph_order.
 case/morphimP=> z Nz cxz ->{x1} zs1.
 exists z.`_p^'; first exact: groupX.
-  rewrite inE groupX //= order_dvd -compXg; apply/eqP; apply/compg1P.
+  rewrite inE groupX //= order_dvd -consttX; apply/eqP; apply/constt1P.
   have: z ^+ s \in <[x]>.
     move: zs1; rewrite order_dvd -morphX //; move/eqP.
     by apply: coset_of_idr; exact: groupX.
   by apply: mem_p_elt; rewrite /pgroup [#|_|]H1 pnatNK pnat_exp pnat_id.
-rewrite morph_comp //= compg_p_elt //.
+rewrite morph_constt //= constt_p_elt //.
 by apply: (pnat_dvd zs1); rewrite p'natE -?prime_coprime.
 Qed.
 
@@ -60,8 +60,8 @@ apply: card_dimset=> y1 y2; rewrite 2!inE.
 case/andP=> Cy1 y1s; case/andP=> Cy2 y2s; case/ker_rcoset; auto => z.
 rewrite ker_coset => x_z def_y1.
 have p's: p^'.-nat s by rewrite p'natE -?prime_coprime.
-rewrite -(compg_p_elt (pnat_dvd y1s p's)) def_y1 compMg.
-  rewrite (compg1P _ _ _) ?mul1g ?(compg_p_elt (pnat_dvd y2s p's)) //.
+rewrite -(constt_p_elt (pnat_dvd y1s p's)) def_y1 consttM.
+  rewrite (constt1P _ _ _) ?mul1g ?(constt_p_elt (pnat_dvd y2s p's)) //.
   by apply: mem_p_elt x_z; rewrite /pgroup pnatNK [#|_|]Hx1 pnat_exp pnat_id.
 apply: commute_sym; apply: commute_cycle_com (cyclenn _) _ x_z.
 by case/setIP: Cy2=> _; move/cent1P.
@@ -95,11 +95,11 @@ Proof.
 move => a b Hb; apply/setP => x; apply/idP/idP.
   rewrite mem_conjg !inE; case/and3P=> H1 H2 H3; apply/and3P; split.
   - by rewrite groupJr ?groupV.
-  - by rewrite compJg (eqP H2) conjgK.
+  - by rewrite consttJ (eqP H2) conjgK.
   by move: H3; rewrite !orderJ.
 case/imsetP=> y; rewrite !inE; case/and3P=> H1 H2 H3 ->{x}; apply/and3P; split.
 - exact: groupJ.
-- by rewrite compJg (eqP H2).
+- by rewrite consttJ (eqP H2).
 by move: H3; rewrite !orderJ.
 Qed.
 
@@ -117,13 +117,13 @@ Lemma pconst_mul_in: forall y z l,
   y \in G -> z \in G -> commute y z -> #[y] = (p ^ l.+1)%N -> #[z] %| s ->
   y * z \in spconst y.
 Proof.
-move => y z l Hy Hz H H1 H2; rewrite inE groupM // compMg //.
+move => y z l Hy Hz H H1 H2; rewrite inE groupM // consttM //.
 have npz: ~~ (p %| #[z]).
   move: coprimeps; rewrite prime_coprime //; apply: contra => pz.
   exact: dvdn_trans H2.
 have F0: coprime #[y] #[z] by rewrite H1 coprime_expl ?prime_coprime.
-rewrite order_mul // dvdn_pmul2l // H2 andbT /= compg_p_elt.
-  by rewrite (compg1P _ _ _) ?mulg1 // /p_elt p'natE.
+rewrite order_mul // dvdn_pmul2l // H2 andbT /= constt_p_elt.
+  by rewrite (constt1P _ _ _) ?mulg1 // /p_elt p'natE.
 by rewrite /p_elt H1 pnat_exp pnat_id.
 Qed.
 
@@ -135,10 +135,10 @@ move=> y l Hy0 Hy; apply/setP=> x1; rewrite inE /=.
 apply/imsetP/idP => [[y1 Hy1 ->{x1}] | ].
   rewrite groupX ?(subsetP (pconst_subset_centralizer y)) //=.
   move: Hy1; rewrite inE; case/and3P=> // _; move/eqP=> <-.
-  by rewrite -[#[y1]](partnC p) // !order_comp dvdn_pmul2l.
+  by rewrite -[#[y1]](partnC p) // !order_constt dvdn_pmul2l.
 case/andP; case/setIP=> Gx1; move/cent1P=> cx1 H2.
 exists (y * x1); first exact: pconst_mul_in Hy _.
-rewrite compMg // (compg1P _ _ _) ?mul1g ?compg_p_elt // /p_elt ?pnatNK.
+rewrite consttM // (constt1P _ _ _) ?mul1g ?constt_p_elt // /p_elt ?pnatNK.
   move: coprimeps; rewrite p'natE ?prime_coprime //; apply: contra => px1.
   exact: dvdn_trans H2.
 by rewrite Hy pnat_exp ?pnat_id.
@@ -149,7 +149,7 @@ Lemma pconst_card : forall y l,
   #|spconst y| = #|[set z \in 'C_G[y] | #[z] %| s]|. 
 Proof.
 move=> y l Hy H; symmetry; rewrite -(pconst_image Hy H).
-apply: card_dimset => y1 y2; rewrite -{3}[y1](compgC p) -{3}[y2](compgC p).
+apply: card_dimset => y1 y2; rewrite -{3}[y1](consttC p) -{3}[y2](consttC p).
 by rewrite !inE; do 2![case/and3P=> _; move/eqP=> -> _] => ->.
 Qed.
 
@@ -332,7 +332,7 @@ have F2: wpartition [set z \in G | #[z] == p ^ l.+1]%N
      move => x; rewrite inE; case/andP => Hpx Hx; apply/subsetP => y.
      case/(spconstwP _ _ _ Hpx) => i; case/andP => Hpi.
      rewrite /spconst inE; case/and3P => Hi0 Hi1 Hi2.
-     rewrite inE /= Hi0 -{2}[#[y]](partnC p) //= -order_comp (eqP Hi1).
+     rewrite inE /= Hi0 -{2}[#[y]](partnC p) //= -order_constt (eqP Hi1).
      rewrite orderJ in Hi2; rewrite Hsl mulnAC -expnSr -(eqP Hx) Hi2 /=.
      rewrite orderJ (eqP Hx) expnSr -mulnA.
      rewrite dvdn_pmul2l ?ltn_0exp ?ltn_0prime //.
@@ -341,7 +341,7 @@ have F2: wpartition [set z \in G | #[z] == p ^ l.+1]%N
   move=> x; rewrite inE=> Hx.
   case: (F1 x) => // t; case/andP => Ht1 Ht2.
   have F2: #[x.`_p] = (p ^ l.+1)%N.
-    by rewrite order_comp (eqP Ht2) p_part // logn_gauss // pfactorK.
+    by rewrite order_constt (eqP Ht2) p_part // logn_gauss // pfactorK.
   have F3: x \in G by case/andP: Hx; case/andP. 
   exists x.`_p; first by rewrite inE groupX // F2 eqxx.
   apply/spconstwP; first by rewrite groupX.

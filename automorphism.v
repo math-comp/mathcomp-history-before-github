@@ -201,7 +201,7 @@ Canonical Structure conj_aut_morphism := Morphism conj_aut_morphM.
 Lemma ker_conj_aut : 'ker conj_aut = 'C(G).
 Proof.
 apply/setP=> x; rewrite inE; case nGx: (x \in 'N(G)); last first.
-  by symmetry; apply/idP=> cGx; rewrite (subsetP (cent_subset G)) in nGx.
+  by symmetry; apply/idP=> cGx; rewrite (subsetP (cent_norm G)) in nGx.
 rewrite 2!inE /=; apply/eqP/centP=> [cx1 y Gy | cGx].
   by rewrite /commute (conjgC y) -norm_conj_autE // cx1 perm1.
 apply/permP=> y; case Gy: (y \in G); last by rewrite !permE Gy.
@@ -278,13 +278,13 @@ rewrite /morphim /= setIid (setIidPr sKH).
 apply; [exact: injm_conj | exact: nHG].
 Qed.
 
-Lemma normal_char : forall H G, H \char G -> H <| G.
+Lemma char_normal : forall H G, H \char G -> H <| G.
 Proof.
 by move=> H G; move/char_norm_trans; apply; apply/andP; rewrite normG.
 Qed.
 
-Lemma norm_char : forall H G, H \char G -> G \subset 'N(H).
-Proof. by move=> H G; move/normal_char; case/andP. Qed.
+Lemma char_norm : forall H G, H \char G -> G \subset 'N(H).
+Proof. by move=> H G; move/char_normal; case/andP. Qed.
 
 Lemma charI : forall G H K, H \char G -> K \char G -> H :&: K \char G.
 Proof.
@@ -303,7 +303,7 @@ Qed.
 Lemma charM : forall G H K, H \char G -> K \char G -> H * K \char G.
 Proof.
 move=> G H K chHG chKG; rewrite -norm_mulgenE ?charMgen //.
-by case/andP: (normal_char chKG) => _; apply: subset_trans; case/andP: chHG.
+by case/andP: (char_normal chKG) => _; apply: subset_trans; case/andP: chHG.
 Qed.
 
 End Characteristicity.

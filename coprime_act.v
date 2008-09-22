@@ -20,7 +20,7 @@ Lemma coprime_norm_cent : forall A G,
   A \subset 'N(G) -> coprime #|G| #|A| ->
   'N_G(A) = 'C_G(A).
 Proof.
-move=> A G nGA coGA; apply/eqP; rewrite eqset_sub andbC setIS ?cent_subset //=.
+move=> A G nGA coGA; apply/eqP; rewrite eqset_sub andbC setIS ?cent_norm //=.
 rewrite subsetI subsetIl /=; apply/centsP; apply/commG1P.
 apply: subset_trans (coprime_trivg coGA); rewrite gen_subG.
 apply/subsetP=> xy; case/imset2P=> x y; case/setIP=> Gx nAx Ay ->{xy}.
@@ -43,7 +43,7 @@ have nGN_N: G :&: N <| N.
 have NG_AG : G * N = A <*> G by apply: HallFrattini hallH => //; exact/andP.
 have iGN_A: #|N| %/ #|G :&: N| = #|A|.
   rewrite group_divn ?subsetIr // -card_quotient; last by case/andP: nGN_N.
-  rewrite (isog_card (second_isom nGN)) /= -quotient_mulg (normC nGN) NG_AG.
+  rewrite (isog_card (second_isog nGN)) /= -quotient_mulg (normC nGN) NG_AG.
   rewrite card_quotient // -group_divn //= norm_mulgenE //.
   by rewrite coprime_card_mulG 1?coprime_sym // divn_mull.
 have hallGN: Hall N (G :&: N).
@@ -79,10 +79,10 @@ have nGN_N: G :&: N <| N.
 have NG_AG : G * N = A <*> G by apply: HallFrattini hallH => //; exact/andP.
 have iGN_A: #|N : G :&: N| = #|A|.
   rewrite -card_quotient //; last by case/andP: nGN_N.
-  rewrite (isog_card (second_isom nGN)) /= -quotient_mulg (normC nGN) NG_AG.
+  rewrite (isog_card (second_isog nGN)) /= -quotient_mulg (normC nGN) NG_AG.
   rewrite card_quotient // -group_divn //= norm_mulgenE //.
   by rewrite coprime_card_mulG 1?coprime_sym // divn_mull.
-have solGN: solvable (G :&: N) by apply: solvable_sub solG; exact: subsetIl.
+have solGN: solvable (G :&: N) by apply: solvableS solG; exact: subsetIl.
 have oAxA: #|A :^ x^-1| = #|A| by exact: card_conjg.
 have sAN: A \subset N by rewrite subsetI -{1}genGid genS // subsetUl.
 have nGNA: A \subset 'N(G :&: N).
@@ -144,7 +144,7 @@ Lemma coprime_quotient_cent_weak : forall A G H,
     H <| G -> A \subset 'N(H) -> coprime #|G| #|A| -> solvable G ->
   'C_G(A) / H = 'C_(G / H)(A / H).
 move=> A G H normH nHA co so; have sHG := normal_sub normH.
-apply: coprime_quotient_cent => //; last exact: solvable_sub so.  
+apply: coprime_quotient_cent => //; last exact: solvableS so.  
 by rewrite -(LaGrange sHG) coprime_mull in co; case/andP: co.
 Qed.
 
@@ -215,9 +215,8 @@ case: (IHn _ Ab Gb _ Xb); do 1?[exact: solvable_quo | exact: morphim_norms].
 - rewrite card_quotient // oAb.
   by move: coGA; rewrite -(LaGrange sMG) coprime_mull; case/andP.
 - exact: morphimS.
-- rewrite /pgroup -(isog_card (second_isom nMX)) /=.
-  rewrite card_quotient //; last first.
-    by apply: subset_trans (normI _ _); rewrite subsetI nMX normG.
+- rewrite /pgroup -(isog_card (second_isog nMX)) /=.
+  rewrite card_quotient ?normsI ?normG //.
   apply: pnat_dvd piX; exact: indexg_dvdn.
 move=> Hb []; case/and3P=> sHGb piHb pi'Hb' nHbA sXHb.
 case/inv_quotientS: (sHGb) => [|HM defHM sMHM sHMG]; first exact/andP.
@@ -251,7 +250,7 @@ case pi_p: (p \in pi).
 case: (ltnP #|HM| #|G|) => [ltHG | leGHM {n IHn leGn}].
   case: (IHn _ A HM (leq_trans ltHG leGn) X) => // [||H [hallH nHA sXH]].
   - by move: coGA; rewrite -(LaGrange sHMG) coprime_mull; case/andP.
-  - exact: solvable_sub solG.
+  - exact: solvableS solG.
   case/and3P: hallH => sHHM piH pi'H'.
   have sHG: H \subset G by exact: subset_trans sHMG.
   exists H; split=> //; apply/and3P; split=> //.
@@ -287,7 +286,7 @@ have nXMA: A \subset 'N(XM).
 have sXMG: XM \subset G by rewrite gen_subG subUset sXG.
 case: (coprime_hall_trans nXMA _ _ hallX nXA hallY) => [|||x].
 - by have:= coGA; rewrite -(LaGrange sXMG) coprime_mull; case/andP.
-- exact: solvable_sub solG.
+- exact: solvableS solG.
 - by apply/normsP=> x Ax; rewrite conjIg (normsP nHA) ?(normsP nXMA).
 case/setIP=> XMx cAx ->; exists (H :^ x)%G; split.
 - by rewrite hall_conj ?(subsetP sXMG).

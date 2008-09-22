@@ -43,7 +43,7 @@ move=> m n Hcop.
 case: (posnP m) => [-> | mpos]; first by rewrite mul0n phi0 mul0n.
 case: (posnP n) => [-> | npos]; first by rewrite muln0 phi0 muln0.
 have:= @rho_isom (PosNat mpos) (PosNat npos) Hcop.
-by move/isom_isog; move/isog_card; rewrite !cardsT card_prod !cardphi.
+by move/isom_card; rewrite !cardsT card_prod !cardphi.
 Qed.
 
 Lemma phi_prime_k: forall p k (H:prime p),
@@ -234,7 +234,7 @@ Qed.
 Lemma commute_cycle_normal : forall a b : gT,
   commute a b -> <[a * b]> \subset 'N(<[a]>).
 Proof.
-move=> a b Hcom; apply: subset_trans (cent_subset _).
+move=> a b Hcom; apply: subset_trans (cent_norm _).
 apply/centsP; apply: commute_cycle_com.
 apply: commute_sym; exact: commuteM.
 Qed.
@@ -758,7 +758,7 @@ Variable gT : finGroupType.
 
 Lemma aut_cycle_commute : forall x : gT, abelian (Aut <[x]>).
 Proof.
-move=> x; have:= isom_isog (fp_isom x); rewrite isog_sym.
+move=> x; have:= isom_isog _ (subset_refl _) (fp_isom x); rewrite isog_sym.
 case/isogP=> f _ /= <-; apply: morphim_cents.
 by apply/centsP=> m _ n _; do 2!apply: val_inj => /=; rewrite mulnC.
 Qed.

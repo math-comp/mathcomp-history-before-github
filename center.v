@@ -50,24 +50,24 @@ Lemma centerP : forall A x,
   reflect (x \in A /\ centralises x A) (x \in 'Z(A)).
 Proof. move=> A x; exact: subcentP. Qed.
 
-Lemma subset_center : forall A, 'Z(A) \subset A.
+Lemma center_sub : forall A, 'Z(A) \subset A.
 Proof. move=> A; exact: subsetIl. Qed.
 
 Lemma center1: 'Z(1) = 1 :> set gT .
-Proof. by apply/eqP; rewrite eqset_sub subset_center sub1G. Qed.
+Proof. by apply/eqP; rewrite eqset_sub center_sub sub1G. Qed.
 
 Lemma centerC : forall A, {in A, centralised 'Z(A)}.
 Proof. by move=> A; apply/centsP; rewrite centsC subsetIr. Qed.
 
 Lemma centerN : forall H, 'Z(H) <| H.
 Proof.
-move=> H; apply/normalP; split=> [|x Hx]; first exact: subset_center.
-by rewrite conjIg conjGid // (normsP (cent_norm _)) // (subsetP (normG _)).
+move=> H; apply/normalP; split=> [|x Hx]; first exact: center_sub.
+by rewrite conjIg conjGid // (normsP _ x Hx) // norms_cent ?normG.
 Qed.
 
-Lemma characteristic_center : forall H, 'Z(H) \char H.
+Lemma center_char : forall H, 'Z(H) \char H.
 Proof.
-move=> H; apply/charP; split=> [|f injf Hf]; first exact: subset_center.
+move=> H; apply/charP; split=> [|f injf Hf]; first exact: center_sub.
 apply/morphim_fixP=> //; first exact: subsetIl.
 by rewrite /= -{4}Hf subsetI morphimS ?subsetIl // morphimIdom morphim_cent.
 Qed.
@@ -80,7 +80,7 @@ Variable H : group gT.
 
 Lemma center_cyclic_abelian : cyclic (H / 'Z(H)) -> H :=: 'Z(H).
 Proof.
-case/cyclicP=> a Ha; apply/eqP; rewrite eqset_sub subset_center /= andbT.
+case/cyclicP=> a Ha; apply/eqP; rewrite eqset_sub center_sub /= andbT.
 case: (cosetP a) => /= z Nz def_a.
 have H_Zz: H :=: 'Z(H) * <[z]>.
   rewrite -['Z(H)]ker_coset -morphimK ?cycle_h ?morphim_cycle //=.
@@ -235,8 +235,8 @@ move=> A B G; rewrite  /(_ \x _) /(_ \x _); case E1: (trivg _); last first.
   by move/setP; move/(_ 1); rewrite group1 inE.
 suff->: trivg ('Z(A) :&: 'Z(B)) by exact: center_cprod.
 apply: (subset_trans _ (idP E1)).
-apply: (subset_trans _ (setSI B (subset_center A))).
-apply: setIS; apply: subset_center.
+apply: (subset_trans _ (setSI B (center_sub A))).
+apply: setIS; apply: center_sub.
 Qed.
 
 (* I don't like this I -> {group gT} but I need it to apply center_prod *)
@@ -259,7 +259,7 @@ Section CharacteristicCentralizer.
 
 Variable gT : finGroupType.
 
-Lemma char_cent : forall G H : {group gT},
+Lemma cent_char : forall G H : {group gT},
   H \char G -> 'C_G(H) \char G.
 Proof.
 move=> G H; case/charP=> sHG chHG; apply/charP.

@@ -377,16 +377,14 @@ have nN1G : N1 <| G by apply maxN_norm.
 have nN2G : N2 <| G by apply maxN_norm.
 pose N := (N1 :&: N2)%G.
 have nNG : N <| G.
-  rewrite /normal subIset ?(normal_sub nN1G) //=.
-  apply: subset_trans (normI _ _).
-  by rewrite subsetI !normal_norm.
+  by rewrite /normal subIset ?(normal_sub nN1G) //= normsI ?normal_norm.
 have iso1 : (G / N1)%G \isog (N2 / N)%G.
   rewrite isog_sym /= -(maxN_prod maxN_1 maxN_2) //.
   rewrite (@normC _ N1 N2) ?(subset_trans (normal_sub nN1G)) ?normal_norm //.
-  by apply: weak_second_isom; rewrite ?(subset_trans (normal_sub nN2G)) ?normal_norm.
+  by rewrite weak_second_isog ?(subset_trans (normal_sub nN2G)) ?normal_norm.
 have iso2 : (G / N2)%G \isog (N1 / N)%G.
   rewrite isog_sym /= -(maxN_prod maxN_1 maxN_2) // setIC.
-  by apply: weak_second_isom; rewrite ?(subset_trans (normal_sub nN1G)) ?normal_norm.
+  by rewrite weak_second_isog ?(subset_trans (normal_sub nN1G)) ?normal_norm.
 case: (exists_comps N)=> sN; case/andP=> lsN csN.
 have i1 : perm_eq (mksrepr G N1 :: mkfactors N1 st1)
                   [:: mksrepr G N1, mksrepr N1 N & mkfactors N sN].

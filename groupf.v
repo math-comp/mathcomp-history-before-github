@@ -243,7 +243,7 @@ Qed.
 
 Canonical Structure center_id_subfunc :=
   isFcClass (fun G => groupP 'Z(G)%G)
-            (fun G => @subset_center gT G)
+            (fun G => @center_sub gT G)
             (center_resp).
 
 Require Import maximal.
@@ -251,7 +251,7 @@ Require Import maximal.
 Lemma Frattini_resp : resp (Frattini) (@is_inj gT gT).
 Proof.
 move=> H phi Hinj; apply/bigcap_inP=> i Hi.
-rewrite sub_morphim_pre; last by apply:Phi_subset.
+rewrite sub_morphim_pre; last by apply:Phi_sub.
 apply:bigcap_inf; move/subsetP: (@dom_ker _ _ H phi); move/morphimGK.
 move/(_ (subset_refl _)) => Heq; rewrite -{2}Heq /= -2!(morphim_invmE Hinj).
 by apply:maximal_morphim; first by apply subset_refl.
@@ -259,7 +259,7 @@ Qed.
 
 Canonical Structure Frattini_subfunc :=
   isFcClass (fun G => groupP 'Phi(G)%G)
-            (@Phi_subset gT)
+            (@Phi_sub gT)
             (Frattini_resp).
 
 Require Import nilpotent.
@@ -288,7 +288,7 @@ Require Import pgroups.
 Implicit Types G:{group gT}.
 
 Lemma Ohm_sub : forall i G, 'Ohm_i(G) \subset G.
-Proof. move=> i; exact: Ohm_subset. Qed.
+Proof. move=> i; exact: Ohm_sub. Qed.
 
 Lemma Ohm_resp : forall i,
   resp (fun gT S => 'Ohm_i(S)) (@is_aut gT).
@@ -301,7 +301,7 @@ Canonical Structure Ohm_id_subfunctor (i:nat) :=
             (Ohm_resp i).
 
 Lemma Mho_sub : forall i G, 'Mho^i(G) \subset G.
-Proof. move=> i; exact: Mho_subset. Qed.
+Proof. move=> i; exact: Mho_sub. Qed.
 
 Lemma Mho_resp : forall i,
   resp (fun gT S => 'Mho^i(S)) (@is_aut gT).

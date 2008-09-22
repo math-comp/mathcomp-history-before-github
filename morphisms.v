@@ -900,14 +900,17 @@ End MorphicProps.
 Lemma misomP : forall f, reflect {fM : morphic f & isom (morphm fM)} (misom f).
 Proof. by move=> f; apply: (iffP andP) => [] [fM fiso] //; exists fM. Qed.
 
-Lemma isom_isog : forall f : {morphism A >-> rT}, isom f -> isog.
+Lemma isom_isog : forall (D : {group aT}) (f : {morphism D >-> rT}),
+  A \subset D -> isom f -> isog.
 Proof.
-move=> f isof; apply/existsP; exists (ffun_of f); apply/andP; split.
-  by apply/morphicP=> x y Ax Ay; rewrite !ffunE morphM.
+move=> D f sAD isof; apply/existsP; exists (ffun_of f); apply/andP; split.
+  by apply/morphicP=> x y Ax Ay; rewrite !ffunE morphM ?(subsetP sAD).
 by rewrite /isom (dfequal_imset (in1W (ffunE f))). 
 Qed.
 
 End Defs.
+
+Implicit Arguments isom_isog [A B D].
 
 Infix "\isog" := isog.
 
@@ -937,7 +940,7 @@ Qed.
 
 Lemma isogP : reflect (exists2 f : fMT, 'injm f & f @* G = H) (G \isog H).
 Proof.
-apply: (iffP idP) => [| [f *]]; last by apply: isom_isog (f) _; exact/isomP.
+apply: (iffP idP) => [| [f *]]; last by apply: (isom_isog f); last exact/isomP.
 by case/existsP=> f; case/misomP=> fM; case/isomP; exists (morphm_morphism fM).
 Qed.
 
@@ -957,10 +960,15 @@ rewrite /isom -!setDset1 -morphimEsub ?morphimDG ?morphim1 //.
 by rewrite subDset setUC subsetU ?sAG.
 Qed.
   
+Lemma sub_isog : forall (A : {set aT}),
+  A \subset G -> 'injm f -> isog A (f @* A).
+Proof. move=> A sAG injf; apply: (isom_isog f sAG); exact: sub_isom. Qed.
+
 End ReflectProp.
 
 Implicit Arguments morphicP [aT rT A f].
 Implicit Arguments misomP [aT rT A B f].
+Implicit Arguments isom_isog [aT rT A B D].
 Implicit Arguments isomP [aT rT G H f].
 Implicit Arguments isogP [aT rT G H].
 Prenex Implicits morphic morphicP morphm isom isog isomP misomP isogP.

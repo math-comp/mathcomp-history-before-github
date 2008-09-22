@@ -62,7 +62,7 @@ case pi_p: (p \in pi).
   by rewrite def_H in piHb.
 case: (ltnP #|H| #|G|) => [ltHG | leGH {n IHn leGn transH}].
   case: (IHn _ H (leq_trans ltHG leGn)) => [|H1].
-    exact: solvable_sub solG.
+    exact: solvableS solG.
   case/and3P=> sH1H piH1 pi'H1' transH1.
   have sH1G: H1 \subset G by exact: subset_trans sHG.
   exists H1=> [|K sKG piK].
@@ -94,7 +94,7 @@ have coMK: coprime #|M| #|K|.
   rewrite coprime_sym (pnat_coprime piK) //.
   by rewrite /pnat pM ltn_0group //= inE /= pi_p.
 case: (SchurZass_trans_sol _ nMK sK1G1 coMK) => [||x Mx defK1].
-- exact: solvable_sub solG.
+- exact: solvableS solG.
 - apply/eqP; rewrite -(eqn_pmul2l (ltn_0group M)).
   rewrite -(card_mulG_trivP _ _ _); last first.
     by apply: subset_trans trMH; rewrite setIA subsetIl.
@@ -178,7 +178,7 @@ Lemma HallSubnormal : forall pi (G K H : {group gT}),
   solvable G -> K <| G -> pi.-Hall(G) H -> pi.-Hall(K) (H :&: K).
 Proof.
 move=> pi G K H solG; case/andP=> sKG nKG hallH.
-case: (HallExist pi (solvable_sub sKG solG)) => H1 hallH1.
+case: (HallExist pi (solvableS sKG solG)) => H1 hallH1.
 have [sH1G piH1]: H1 \subset G /\ pi.-group H1.
   case/and3P: hallH1=> sH1K piH1 _; split=> //; exact: subset_trans sKG.
 case: (HallSubset solG sH1G piH1) => H2 hallH2 sH12.

@@ -324,10 +324,10 @@ case nPG: (P <| G); last first.
   apply/eqP; rewrite eqset_sub -eqHN_G mulgS // -eqH'K mulgA mulSg //.
   by rewrite -{2}(mulGid H) mulgS // subsetIl.
 pose Z := ('Z(P))%G; have iZ: 'Z(P) = Z by [].
-have sZP: Z \subset P by exact: subset_center.
+have sZP: Z \subset P by exact: center_sub.
 have sZH: Z \subset H by case/andP: sylP; move/(subset_trans sZP).
 have sZG: Z \subset G by exact: subset_trans sHG.
-have nZG: Z <| G by apply: char_norm_trans nPG; exact: characteristic_center.
+have nZG: Z <| G by apply: char_norm_trans nPG; exact: center_char.
 have nZH: Z <| H by exact: normalS nZG.
 pose Gbar := (G / Z)%G; have iGbar: G / Z = Gbar by [].
 pose Hbar := (H / Z)%G; have iHbar: H / Z = Hbar by [].
@@ -379,7 +379,7 @@ Section Solvable.
 
 Variable gT : finGroupType.
 
-Lemma solvable_sub : forall G H : {group gT},
+Lemma solvableS : forall G H : {group gT},
   H \subset G -> solvable G -> solvable H.
 Proof.
 move=> G H sHG solG.
@@ -397,7 +397,7 @@ move=> rT G H f solH; have{solH} [G' [f' ->{f G H}]]:
 - pose G' := (G :&: H)%G; have sG'G: G' \subset G by exact: subsetIl.
   exists G'; exists [morphism of restrm sG'G f] => /=.
     by rewrite /= morphim_restrm setIid morphimIdom.
-  apply: solvable_sub solH; exact: subsetIr.
+  apply: solvableS solH; exact: subsetIr.
 move: G' f' => G f solG.
 apply/forallP=> Hb; apply/implyP; rewrite subsetI; case/andP=> sHbG sHbHb'.
 have{sHbG} [H]: exists2 H : {group gT}, H \subset G & f @* H = Hb.
@@ -427,13 +427,13 @@ elim: {H}_.+1 {-2}H (ltnSn #|H|) => // n IHn H; rewrite ltnS => leHn.
 move=> sHG nHL ntH; case abelH: (trivg [~: H, H]).
   pose p := pdiv #|H|; pose H1 := 'Ohm_1('O_p(H))%G.
   have prp: prime p by rewrite prime_pdiv // ltnNge -trivg_card.
-  have charH1: H1 \char H by exact: char_trans (char_Ohm _ _) (char_pcore p _).
+  have charH1: H1 \char H by exact: char_trans (Ohm_char _ _) (pcore_char p _).
   have sH1H: H1 \subset H by case/andP: charH1.
   have{abelH} abelH: abelian H by apply/centsP; exact/commG1P.
   have abelH1: abelian H1.
     by do 2![apply: (subset_trans sH1H); rewrite 1?centsC].
   have pOp: p.-group 'O_p(H) by exact: pcore_pgroup.
-  have pH1: p.-group H1 by apply: pgroupS pOp; exact: Ohm_subset.
+  have pH1: p.-group H1 by apply: pgroupS pOp; exact: Ohm_sub.
   have ntH1 : ~~ trivg H1.
     case: (Cauchy prp (dvdn_pdiv #|H|)) => x Hx oxp.
     rewrite /trivg /= (OhmE 1 pOp) gen_subG.
@@ -441,11 +441,11 @@ move=> sHG nHL ntH; case abelH: (trivg [~: H, H]).
       by apply/set1P=> x1; rewrite -oxp x1 order1 in prp.
     rewrite inE -{2}oxp expn1 order_expn1 eqxx andbT -sub1set -gen_subG.
     apply: subset_pcore; first by rewrite /pgroup [#|_|]oxp pnat_id.
-    rewrite /(_ <| H) cycle_h // (subset_trans _ (cent_subset _)) // centsC.
+    rewrite /(_ <| H) cycle_h // (subset_trans _ (cent_norm _)) // centsC.
     rewrite cycle_h //; exact: subsetP Hx.
   exists H1; split=> //; first exact: subset_trans sHG.
     exact: char_norm_trans nHL.
-  apply/abelem_Ohm1P=> //; apply/eqP; rewrite eqset_sub Ohm_subset /=.
+  apply/abelem_Ohm1P=> //; apply/eqP; rewrite eqset_sub Ohm_sub /=.
   rewrite (OhmE 1 pH1) /= (OhmE 1 pOp) genS //.
   apply/subsetP=> x H1x; rewrite inE mem_gen //=.
   by have:= H1x; rewrite inE; case/andP.

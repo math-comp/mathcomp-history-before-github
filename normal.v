@@ -345,7 +345,7 @@ Qed.
 
 Lemma trivial_quotient : H / H = 1.
 Proof. by rewrite -{3}ker_coset quotientE morphim_ker. Qed.
-  
+
 Lemma trivg_quotient : forall A,
   A \subset 'N(H) -> trivg (A / H) = (A \subset H).
 Proof. by move=> A nHA; rewrite -{3}ker_coset ker_trivg_morphim nHA. Qed.
@@ -376,7 +376,7 @@ Lemma quotientSGK : forall A G,
 Proof. move=> A G; rewrite !quotientE; exact: cosetimSGK. Qed.
 
 Lemma quotientSK : forall A B, A \subset 'N(H) -> 
-  A / H \subset B / H = (A \subset H * B).
+  (A / H \subset B / H) = (A \subset H * B).
 Proof. move=> A B; rewrite !quotientE; exact: cosetimSK. Qed.
 
 Lemma quotientGK : forall G, H <| G -> coset_of H @*^-1 (G / H) = G.
@@ -449,6 +449,21 @@ End Quotient.
 
 Notation "A / B" := (quotient A B) : group_scope.
 Notation "A / H" := (quotient_group A H) : subgroup_scope.
+
+Section Quotient1.
+
+Variables (gT : finGroupType) (A : {set gT}).
+
+Lemma coset1_injm : 'injm (@coset_of gT 1).
+Proof. by rewrite ker_coset /=. Qed.
+
+Lemma quotient1_isom : isom A (A / 1) (coset_of 1).
+Proof. by apply: sub_isom coset1_injm; rewrite ?norms1. Qed.
+
+Lemma quotient1_isog : isog A (A / 1).
+Proof. apply: isom_isog quotient1_isom; exact: norms1. Qed.
+
+End Quotient1.
 
 Section QuotientMorphism.
 
@@ -523,23 +538,36 @@ End QuotientMorphism.
 Section FirstIsomorphism.
 
 Variables aT rT : finGroupType.
-Implicit Types G H : {group aT}.
 
-Lemma first_isom : forall G (f : {morphism G >-> rT}),
-  (G / 'ker f) \isog (f @* G).
+Lemma first_isom : forall (G : {group aT}) (f : {morphism G >-> rT}),
+  {g : {morphism G / 'ker f >-> rT} | 'injm g &
+      forall A : {set aT}, g @* (A / 'ker f) = f @* A}.
 Proof.
-move=> G f; apply/isogP; have nkG := norm_ker f.
+move=> G f; have nkG := norm_ker f.
 have skk: 'ker (coset_of ('ker f)) \subset 'ker f by rewrite ker_coset.
-exists [morphism of factm nkG skk] => /=; last by rewrite morphim_factm.
+exists (factm_morphism nkG skk) => /=; last exact: morphim_factm.
 by rewrite ker_factm -quotientE trivial_quotient.
 Qed.
 
-Lemma first_isom_loc : forall G H (f : {morphism G >-> rT}),
-  H \subset G -> (H / 'ker_H f) \isog (f @* H).
+Variables (G H : {group aT}) (f : {morphism G >-> rT}).
+Hypothesis sHG : H \subset G.
+
+Lemma first_isog : (G / 'ker f) \isog (f @* G).
 Proof.
-move=> G H f sHG.
-rewrite -{4}(setIid H) -(morphim_restrm sHG) -(ker_restrm sHG f).
-exact: first_isom.
+by case: (first_isom f) => g injg im_g; apply/isogP; exists g; rewrite ?im_g.
+Qed.
+
+Lemma first_isom_loc : {g : {morphism H / 'ker_H f >-> rT} |
+ 'injm g & forall A : {set aT}, A \subset H -> g @* (A / 'ker_H f) = f @* A}.
+Proof.
+case: (first_isom (restrm_morphism sHG f)).
+rewrite ker_restrm => g injg im_g; exists g => // A sAH.
+by rewrite im_g morphim_restrm (setIidPr sAH).
+Qed.
+
+Lemma first_isog_loc : (H / 'ker_H f) \isog (f @* H).
+Proof.
+by case: first_isom_loc => g injg im_g; apply/isogP; exists g; rewrite ?im_g.
 Qed.
 
 End FirstIsomorphism.
@@ -550,11 +578,18 @@ Variables (gT : finGroupType) (H K : {group gT}).
 
 Hypothesis nKH : H \subset 'N(K).
 
-Lemma second_isom : (H / (K :&: H)) \isog (H / K).
-Proof. rewrite setIC -{1 3}(ker_coset K); exact: first_isom_loc. Qed.
+Lemma second_isom : {f : {morphism H / (K :&: H) >-> coset K} |
+  'injm f & forall A : {set gT}, A \subset H -> f @* (A / (K :&: H)) = A / K}.
+Proof.
+have ->: K :&: H = 'ker_H (coset_of K) by rewrite ker_coset setIC.
+exact: first_isom_loc.
+Qed.
 
-Lemma weak_second_isom : (H / (K :&: H)) \isog (H * K / K).
-Proof. rewrite quotient_mulg; exact: second_isom. Qed.
+Lemma second_isog : H / (K :&: H) \isog H / K.
+Proof. rewrite setIC -{1 3}(ker_coset K); exact: first_isog_loc. Qed.
+
+Lemma weak_second_isog : H / (K :&: H) \isog H * K / K.
+Proof. rewrite quotient_mulg; exact: second_isog. Qed.
 
 End SecondIsomorphism.
 
@@ -566,14 +601,21 @@ Hypothesis sHK : H \subset K.
 Hypothesis snHG : H <| G.
 Hypothesis snKG : K <| G.
 
-Theorem third_isom : (G / H / (K / H)) \isog (G / K).
+Theorem third_isom : {f : {morphism (G / H) / (K / H) >-> coset K} | 'injm f
+   & forall A : {set gT}, A \subset G -> f @* (A / H / (K / H)) = A / K}.
 Proof.
 case/andP: snKG => sKG nKG; case/andP: snHG => sHG nHG.
 have sHker: 'ker (coset_of H) \subset 'ker (restrm nKG (coset_of K)).
   by rewrite ker_restrm !ker_coset subsetI sHG.
-have:= first_isom_loc [morphism of factm nHG sHker] (subset_refl _) => /=.
-rewrite ker_factm_loc morphim_factm morphim_restrm ker_restrm -!quotientE.
-by rewrite ker_coset !(setIidPr sKG) setIid.
+have:= first_isom_loc (factm_morphism nHG sHker) (subset_refl _) => /=.
+rewrite ker_factm_loc ker_restrm ker_coset !(setIidPr sKG) /= -!quotientE.
+case=> f injf im_f; exists f => // A sAG; rewrite im_f ?morphimS //.
+by rewrite morphim_factm morphim_restrm (setIidPr sAG).
+Qed.
+
+Theorem third_isog : (G / H / (K / H)) \isog (G / K).
+Proof.
+by case: third_isom => f inj_f im_f; apply/isogP; exists f; rewrite ?im_f.
 Qed.
 
 End ThirdIsomorphism.
@@ -582,7 +624,7 @@ Lemma char_from_quotient : forall (gT : finGroupType) (G H K : {group gT}),
   H <| K -> H \char G -> K / H \char G / H -> K \char G.
 Proof.
 move=> gT G H K; case/andP=> sHK nHK chHG; case/charP=> sKG chKG.
-have nHG := normal_char chHG; case: (andP nHG) => sHG nHG'.
+have nHG := char_normal chHG; case: (andP nHG) => sHG nHG'.
 rewrite -(ker_coset H) in sHK; rewrite morphimSGK ?ker_coset // in sKG.
 apply/charP; split=> // f injf Gf; apply/morphim_fixP => //.
 have{chHG} Hf: f @* H = H by case/charP: chHG => _; apply.
@@ -603,8 +645,8 @@ Implicit Types L M : {group rT}.
 Lemma card_morphim : forall G, #|f @* G| = #|D :&: G : 'ker f|.
 Proof.
 move=> G; rewrite -morphimIdom -group_indexI -card_quotient; last first.
-  by apply: subset_trans (normI _ _); rewrite subsetI normG subIset ?norm_ker.
-by apply: esym (isog_card _); rewrite first_isom_loc ?subsetIl.
+  by rewrite normsI ?normG ?subIset ?norm_ker.
+by apply: esym (isog_card _); rewrite first_isog_loc ?subsetIl.
 Qed.
 
 Lemma dvdn_morphim :  forall G, #|f @* G| %| #|G|.

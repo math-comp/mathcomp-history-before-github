@@ -284,7 +284,7 @@ Let n := #|T|.
 Lemma Alt_index : 1 < n -> #|'Sym_T : 'Alt_T| = 2.
 Proof.
 move=> lt1n; rewrite -card_quotient ?Alt_norm //=.
-have : ('Sym_T / 'Alt_T) \isog (odd_perm @* 'Sym_T) by apply: first_isom.
+have : ('Sym_T / 'Alt_T) \isog (odd_perm @* 'Sym_T) by apply: first_isog.
 case/isogP=> g; move/injmP; move/card_dimset <-; rewrite /morphim setIid=> ->.
 rewrite eq_cardT // => b; apply/imsetP; case: b => /=; last first.
  by exists (1 : perm T); [rewrite setIid inE | rewrite odd_perm1].

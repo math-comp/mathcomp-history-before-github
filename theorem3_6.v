@@ -103,13 +103,7 @@ Lemma Fitting_char : forall G, 'F(G) \char G.
 Admitted.
 
 Lemma Fitting_normal : forall G, 'F(G) <| G.
-Proof. move=> G; apply: normal_char; exact: Fitting_char. Qed.
-
-Lemma quotient1:  forall G, (G / 1) \isog G. 
-Proof.
-move=> G; have GsG: G \subset G by apply: subset_refl.
-rewrite -{2}(morphim_idm GsG) -(ker_idm G); apply: first_isom.
-Qed.
+Proof. move=> G; apply: char_normal; exact: Fitting_char. Qed.
 
 End Props.
 
@@ -166,7 +160,7 @@ have IHG: forall H1 R1 : {group gT},
     by apply: leq_trans leGn; rewrite ltn_neqAle !leG1 andbT negb_and -!ltnNge.
   have sG1G: G1 \subset G.
     by rewrite defG1 mul_subG // (subset_trans sH1, subset_trans sR1).
-  have solG1: solvable G1 := solvable_sub sG1G solG.
+  have solG1: solvable G1 := solvableS sG1G solG.
   have oddG1: odd #|G1|.
     move: oddG; do 2!rewrite -[odd _]negbK -dvdn2_even; apply: contra. 
     move/dvdn_trans; apply; exact: group_dvdn.
@@ -179,7 +173,7 @@ have IHG: forall H1 R1 : {group gT},
 without loss defHR: / [~: H, R] = H.
   have:= nHR; rewrite -subcomm_normal commsgC => sHR_R.
   have:= sHR_R; rewrite subEproper; case/predU1P=> [-> -> //|s'HR_H _].
-  rewrite commGAA //; last exact: solvable_sub solG.
+  rewrite commGAA //; last exact: solvableS solG.
   apply: IHG => //; last by rewrite proper_card.
   apply: subset_trans (normal_norm (normal_commutator H R)).
   by rewrite mulgenC norm_mulgenE // (normC nHR) mulSg.
@@ -210,27 +204,27 @@ have{IHn trivgHR hallH} IHquo: forall X : group gT,
   have coHR0: coprime #|H| #|R0|.
     by rewrite -(LaGrange sR0R) coprime_mulr in coHR; case/andP: coHR.
   rewrite -coprime_quotient_cent_weak ?Zgroup_morphim //; first exact/andP.
-  exact: solvable_sub solG.
+  exact: solvableS solG.
 rewrite defHR.
 without loss Op'_H: / trivg 'O_p^'(H).
   case/orP: (orbN (trivg 'O_p^'(H))) => [-> -> // | ntO _].
   suffices: p.-length_1 (H / 'O_p^'(H)) by admit.
   apply: IHquo => //; first by rewrite normal_sub ?pcore_normal.
-  by rewrite normal_norm // (char_norm_trans (char_pcore _ _)).
+  by rewrite normal_norm // (char_norm_trans (pcore_char _ _)).
 move defV: 'F(H)%G => V.
 have charV: V \char H by rewrite -defV Fitting_char.
 have nVG: G \subset 'N(V) by rewrite normal_norm ?(char_norm_trans charV).
-have sVH: V \subset H by rewrite normal_sub ?normal_char.
+have sVH: V \subset H by rewrite normal_sub ?char_normal.
 have defVp: V :=: 'O_p(H).
   admit.
 have pV: p.-group V by rewrite defVp pcore_pgroup.
 have sCV_V: 'C_H(V) \subset V.
-  rewrite -defV solvable_self_cent_Fitting //; exact: solvable_sub solG.
+  rewrite -defV solvable_self_cent_Fitting //; exact: solvableS solG.
 wlog abV: / p.-abelem V.
   case/orP: (orbN (trivg 'Phi(V))) => [trPhi -> // | ntPhi _].
     admit.
   have chPhi: 'Phi(V) \char H := char_trans (Phi_char _) charV.
-  have nPhiH := normal_char chPhi; have sPhiH := normal_sub nPhiH.
+  have nPhiH := char_normal chPhi; have sPhiH := normal_sub nPhiH.
   have{chPhi} nPhiG: G \subset 'N('Phi(V)).
     exact: normal_norm (char_norm_trans chPhi nHG).
   apply: (p_length_1_quo_p pr_p nPhiH); last exact: IHquo.
@@ -251,8 +245,8 @@ wlog abV: / p.-abelem V.
   apply: coprime_cent_Phi coxV _.
   have: W :&: V \subset 'Phi(V); last apply: subset_trans.
     rewrite -trivg_quotient; last first.
-      by rewrite subIset // orbC normal_norm // normal_char // Phi_char.  
-    rewrite quotientE morphimIG ?ker_coset ?Phi_subset // -!quotientE.
+      by rewrite subIset // orbC normal_norm // char_normal // Phi_char.  
+    rewrite quotientE morphimIG ?ker_coset ?Phi_sub // -!quotientE.
     rewrite setIC coprime_trivg // (@pnat_coprime p) //.
     by rewrite [_.-nat _]morphim_pgroup.
   case/andP: nWH => sWH nWH.
@@ -288,7 +282,7 @@ have sUH: U \subset H.
   have: U / V \subset H / V by rewrite -defU normal_sub ?Fitting_normal.
   by rewrite morphimSGK ?ker_coset // (subset_trans sUG).
 have: exists2 K : {group gT}, p^'.-Hall(U) K & R \subset 'N(K).
-  apply: coprime_hall_exists => //; last exact: (solvable_sub sUG).
+  apply: coprime_hall_exists => //; last exact: (solvableS sUG).
   by rewrite -(LaGrange sUH) coprime_mull in coHR; case/andP: coHR.
 case=> K hallK nKR; have [sKU _]:= andP hallK.
 have p'K: p^'.-group K by exact: pHall_pgroup hallK.
@@ -305,7 +299,7 @@ have sylV: p.-Sylow(U) V.
   by rewrite /pHall sVU [_.-group _]pV -card_quotient // -defU.
 have defH: H :=: V * 'N_H(K).
   have nUH: U <| H by apply/andP; rewrite (subset_trans sHG).
-  rewrite -{1}(HallFrattini _ nUH hallK); last exact: solvable_sub solG.
+  rewrite -{1}(HallFrattini _ nUH hallK); last exact: solvableS solG.
   by rewrite defVK -mulgA [K * _]mulSGid // subsetI normG (subset_trans sKU).
 have [P sylP nPR]:
   exists2 P : {group gT}, p.-Sylow('N_H(K)) P & R \subset 'N(P).
@@ -313,7 +307,7 @@ have [P sylP nPR]:
   apply: coprime_hall_exists.
   - by apply/normsP=> x Rx /=; rewrite conjIg -normJ !(normsP _ _ Rx).
   - by move: coHR; rewrite -(LaGrange sNH) coprime_mull; case/andP.
-  apply: solvable_sub solG; exact: subset_trans sHG.
+  apply: solvableS solG; exact: subset_trans sHG.
 have sPN: P \subset 'N_H(K) by case/andP: sylP.
 have [sPH nKP]: P \subset H /\ P \subset 'N(K) by apply/andP; rewrite -subsetI.
 have nVH := subset_trans sHG nVG; have nVP := subset_trans sPH nVH.
@@ -334,7 +328,7 @@ case/orP: (orbN (trivg [~: K, P])) => [tKP|ntKP].
     rewrite Op'_H1. *) 
   suffices sPV: P \subset V by rewrite mulGSid in sylVP.
   have sol_qHV : solvable (H /V). 
-    by apply: solvable_quo; apply: (solvable_sub sHG).
+    by apply: solvable_quo; apply: (solvableS sHG).
   have qPV: P / V \subset 'C_(H / V)('F(H / V)).
     rewrite defU subsetI; apply/andP; split; first by apply:morphimS.
     rewrite defVK quotient_mulgr; apply: center_commgr; rewrite commsgC.
@@ -352,7 +346,7 @@ have{sylVP} dp: [~: V, K] \x 'C_V(K) :=: V.
 have trVeq: trivg 'C_V(K) \/ 'C_V(K) = V.
   apply: (nondecV _  [~: V, K]); first by rewrite dprodC.
   rewrite -eqHR_G defH -mulgA mul_subG //.
-    rewrite subsetI normGR (subset_trans _ (cent_subset _)) //.
+    rewrite subsetI normGR (subset_trans _ (cent_norm _)) //.
     by rewrite centsC {1}eqVC setIAC subsetIr.
   have: 'N_H(K) * R \subset 'N_G(K) by rewrite mul_subG ?setSI // subsetI sRG.
   move/subset_trans; apply; apply/subsetP=> x; case/setIP=> Gx nKx.
@@ -383,8 +377,8 @@ have defK: K :=: 'F('N_H(K)).
   by rewrite -(morphim_restrm nVN) morphim_invm.
 have sCKK: 'C_H(K) \subset K.
   rewrite {2}defK; apply: subset_trans (solvable_self_cent_Fitting _).
-    by rewrite -defK subsetI subsetIr setIS // cent_subset.
-  by apply: solvable_sub (solvable_sub sHG solG); apply: subsetIl.
+    by rewrite -defK subsetI subsetIr setIS // cent_norm.
+  by apply: solvableS (solvableS sHG solG); apply: subsetIl.
 have{nVN} ntKR0: ~~ trivg [~: K, R0].
   apply/commG1P; move/centsP=> cKR0; case/negP: ntKP.
   have Z_K: Zgroup K by apply: ZgroupS ZCHR0; rewrite subsetI sKH.
@@ -416,7 +410,7 @@ have sKR0_G : K <*> R0 \subset G.
 have nV_KR0: K <*> R0 \subset 'N(V) by exact: subset_trans nVG.
 have: K :|: R0 \subset K <*> R0 by rewrite -gen_subG subset_refl.
 rewrite subUset; case/andP=> sK_KR0 sR0_KR0.
-have solKR0: solvable (K <*> R0) by exact: solvable_sub solG.
+have solKR0: solvable (K <*> R0) by exact: solvableS solG.
 have coK_R0: coprime #|K| #|R0|.
   have:= coHR; rewrite -(LaGrange sKH) -(LaGrange sR0R).
   by rewrite coprime_mull coprime_mulr -andbA; case/andP.
@@ -432,8 +426,8 @@ have hallR0_K: r.-Sylow(K <*> R0) R0.
   by rewrite /pHall sR0_KR0 rR0 -group_divn // oKR0 divn_mull.
 have trCKR0_V: trivg 'C_(K <*> R0)(V).
   have nC_KR0: 'C_(K <*> R0)(V) <| K <*> R0.
-    rewrite /(_ <| _) subsetIl; apply: subset_trans (normI _ _).
-    by rewrite subsetI normG (subset_trans nV_KR0) ?cent_norm.
+    rewrite /(_ <| _) subsetIl normsI ?normG //.
+    by rewrite (subset_trans nV_KR0) ?norm_cent.
   have hallCK: r^'.-Hall('C_(K <*> R0)(V)) 'C_K(V).
     rewrite -{2}(setIidPl sK_KR0) -setIA; exact: HallSubnormal hallK_R0.
   have hallCR0: r.-Sylow('C_(K <*> R0)(V)) 'C_R0(V).
@@ -517,7 +511,7 @@ have defP: P :=: [~: P, R0].
   rewrite coprime_mull coprime_mulr -andbA andbC; case/andP=> _.
   move/comm_center_prod=> defP; rewrite {1}defP ?(subset_trans sR0R) //.
     by rewrite ['C__(_)](trivgP _ trCP_R0) mulg1.
-  apply: solvable_sub solG; exact: subset_trans sHG.
+  apply: solvableS solG; exact: subset_trans sHG.
 have{IHG} IHG: forall X : {group gT},
   P <*> R0 \subset 'N(X) -> X \subset K ->
   (#|V <*> X <*> P| < #|H|) || (#|R0| < #|R|) -> trivg [~: X, P].
@@ -526,10 +520,8 @@ have{IHG} IHG: forall X : {group gT},
     rewrite gen_subG subUset sPH andbT gen_subG subUset sVH /=.
     exact: subset_trans sKH.
   have nXR0: R0 \subset 'N(V <*> X <*> P).
-    apply: subset_trans (norm_mulgen _ _).
-    rewrite setIC subsetI (subset_trans sR0R) //=.
-    apply: subset_trans (norm_mulgen _ _).
-    rewrite subsetI (subset_trans sR0R) ?(subset_trans sRG) //.
+    rewrite mulgenC mulgenA norms_mulgen //.
+      by rewrite (subset_trans sR0R) ?norms_mulgen // (subset_trans sRG).
     by apply: subset_trans nX_PR0; rewrite sub_gen ?subsetUr.
   have trOp'H1: trivg 'O_p^'(V <*> X <*> P).
     rewrite trivg_card (pnat_1 _ (pcore_pgroup _ _)) //; apply: pgroupS pV.
@@ -544,13 +536,13 @@ have{IHG} IHG: forall X : {group gT},
   have{trOp'H1} trOR: trivg 'O_p^'([~: V <*> X <*> P, R0]).
     apply: subset_trans trOp'H1.
     apply: subset_pcore; first exact: pcore_pgroup.
-    apply: char_norm_trans (char_pcore _ _) _.
+    apply: char_norm_trans (pcore_char _ _) _.
     by rewrite /(_ <| _) normGR /= commsgC subcomm_normal andbT.
   have sP_O: P \subset 'O_p([~: V <*> X <*> P, R0]).
     rewrite (@subset_normal_Hall _ p _ [~: ((V <*> X) <*> P)%g, R0]).
     + rewrite /psubgroup (pHall_pgroup sylP) {1}defP commSg //.
       by rewrite sub_gen // subsetUr.
-    + rewrite /pHall pcore_subset pcore_pgroup /= -(pseries_pop2 _ trOR).
+    + rewrite /pHall pcore_sub pcore_pgroup /= -(pseries_pop2 _ trOR).
       rewrite -card_quotient ?normal_norm ?pseries_normal //.
       have{ltX_G IHG} VXPR_1: p.-length_1 [~: V <*> X <*> P, R0].
         by apply: IHG ltX_G => //=; rewrite mul_subG ?normG.
@@ -565,7 +557,7 @@ have{IHG} IHG: forall X : {group gT},
   apply: subset_trans (commgS _ sP_O) _; rewrite subcomm_normal.
   have: X \subset V <*> X <*> P by rewrite mulgenC mulgenA sub_gen ?subsetUr.
   move/subset_trans; apply; apply: normal_norm.
-  apply: char_norm_trans (char_pcore _ _) _.
+  apply: char_norm_trans (pcore_char _ _) _.
   by rewrite /(_ <| _) normGR andbT /= commsgC subcomm_normal.
 clear defH.
 have[]: H :==: V * K * P /\ R0 :==: R; last (move/eqP=> defH; move/eqP=> defR).
@@ -585,7 +577,7 @@ have defKP: K :=: [~: K, P].
   have sKP_K: [~: K, P] \subset K by rewrite commsgC subcomm_normal.
   apply/eqP; rewrite eq_sym eqset_sub_card sKP_K leqNgt.
   apply: contra ntKP => psKP_P; rewrite commGAA //; first last.
-  - apply: solvable_sub solG; exact: subset_trans sKH sHG.
+  - apply: solvableS solG; exact: subset_trans sKH sHG.
   - rewrite coprime_sym; exact: pnat_coprime pP p'K.
   rewrite IHG ?orbF //.
     rewrite gen_subG subUset /= {1}commsgC normGR.
@@ -593,8 +585,7 @@ have defKP: K :=: [~: K, P].
     rewrite -morphim_conj morphimR ?subsetT // !morphim_conj !setTI.
     by rewrite (normsP nKR) // (normsP nPR).
   rewrite /= norm_mulgenEr; last first.
-    rewrite (subset_trans _ (norm_mulgen _ _)) // subsetI.
-    by rewrite nVP commsgC normGR.
+    by rewrite norms_mulgen ?nVP // commsgC normGR.
   have oVK: #|V <*> K| = (#|V| * #|K|)%N.
     by rewrite norm_mulgenEr // coprime_card_mulG // (pnat_coprime pV).
   have trVK_P: trivg ((V <*> K) :&: P).
