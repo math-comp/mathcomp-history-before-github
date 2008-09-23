@@ -265,7 +265,7 @@ Qed.
 
 Lemma card_orbit : forall A x, #|orbit to A x| = #|A : 'C_(A | to)[x]|.
 Proof.
-move=> A x; rewrite -group_divn ?subsetIl //.
+move=> A x; rewrite -divgS ?subsetIl //.
 by rewrite -(card_orbit_stab A x) divn_mull ?ltn_0group.
 Qed.
 

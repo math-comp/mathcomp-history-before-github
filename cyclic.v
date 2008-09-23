@@ -234,7 +234,7 @@ Qed.
 Lemma commute_cycle_normal : forall a b : gT,
   commute a b -> <[a * b]> \subset 'N(<[a]>).
 Proof.
-move=> a b Hcom; apply: subset_trans (cent_norm _).
+move=> a b Hcom; apply: cents_norm.
 apply/centsP; apply: commute_cycle_com.
 apply: commute_sym; exact: commuteM.
 Qed.
@@ -259,7 +259,7 @@ have ->: <[a * b]> \subset <[a]> * <[b]>.
   have CaCb := centralised_mulgenE (commute_cycle_com c_ab).
   by rewrite -CaCb gen_subG sub1set /= CaCb mem_mulg ?cyclenn.
 rewrite dvdn_leq ?ltn_0order // gauss_inv //=.
-by rewrite {2}c_ab !group_dvdn // commute_cycle_sub // coprime_sym.
+by rewrite {2}c_ab !cardSg // commute_cycle_sub // coprime_sym.
 Qed.
 
 (***********************************************************************)
@@ -331,7 +331,7 @@ by move/(conj H); move/andP; move/(decomp_order_unicity (ltn_0order a))=> <-.
 Qed.
 
 Lemma order_dvd_g : forall (H : group gT) a, a \in H -> #[a] %| #|H|.
-Proof. move=> H a Ha; apply: group_dvdn; exact: cycle_h. Qed.
+Proof. move=> H a Ha; apply: cardSg; exact: cycle_h. Qed.
 
 Lemma order_gexp_dvd : forall a n, #[a ^+ n] %| #[a].
 Proof. move=> a n; apply: order_dvd_g; exact: cycle_in. Qed.
@@ -415,7 +415,7 @@ apply/eqP; rewrite eqset_sub sub1set inE /= cycle_subset Hcardm !andbT.
 apply/subsetP=> X; rewrite in_set1 inE -val_eqE /= eqset_sub_card (eqP Hcardm).
 case/andP=> sXa; move/eqP=> oX; rewrite oX leqnn andbT.
 apply/subsetP=> x Xx; case/cycleP: (subsetP sXa _ Xx) => k def_x.
-have: (x ^+ m == 1)%g by rewrite -oX -order_dvd group_dvdn // gen_subG sub1set.
+have: (x ^+ m == 1)%g by rewrite -oX -order_dvd cardSg // gen_subG sub1set.
 rewrite -def_x -expgn_mul -order_dvd -[#[a]](LaGrange sXa) -oX mulnC.
 rewrite dvdn_pmul2r // divn_mull //; case/dvdnP=> i ->{def_x k}.
 by rewrite mulnC expgn_mul groupX // cyclenn.
@@ -425,7 +425,7 @@ Lemma cycle_subgroup_char : forall a (H : {group gT}),
   H \subset <[a]> -> H \char <[a]>.
 Proof.
 move=> a H sHa; apply: lone_subgroup_char => // J sJa isoJH.
-have dvHa: #|H| %| #[a] by exact: group_dvdn.
+have dvHa: #|H| %| #[a] by exact: cardSg.
 have{dvHa} Huniq := esym (cycle_sub_group dvHa).
 move/setP: Huniq => Huniq; move: (Huniq H) (Huniq J); rewrite !inE /=.
 by rewrite sHa sJa (isog_card isoJH) eqxx; do 2!move/eqP <-.

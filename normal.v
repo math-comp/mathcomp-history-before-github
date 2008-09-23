@@ -401,7 +401,7 @@ Variables (G : {group gT}) (Kbar : {group coset H}).
 Hypothesis nHG : H <| G.
 
 CoInductive inv_quotient_spec (P : pred {group gT}) : Prop :=
-  InvQuotientSpec K of (Kbar = K / H)%G & H \subset K & P K.
+  InvQuotientSpec K of Kbar :=: K / H & H \subset K & P K.
 
 Lemma inv_quotientS :
   Kbar \subset G / H -> inv_quotient_spec (fun K => K \subset G).
@@ -409,7 +409,7 @@ Proof.
 case/andP: nHG => sHG nHG' sKbarG.
 have sKdH: Kbar \subset 'N(H) / H by rewrite (subset_trans sKbarG) ?morphimS.
 exists [group of coset_of H @*^-1 Kbar].
-- by apply: val_inj; rewrite /= quotientE morphpreK.
+- by rewrite /= quotientE morphpreK.
 - by rewrite -{1}ker_coset morphpreS ?sub1G.
 by rewrite sub_morphpre_im ?ker_coset.
 Qed.
@@ -644,22 +644,22 @@ Implicit Types L M : {group rT}.
 
 Lemma card_morphim : forall G, #|f @* G| = #|D :&: G : 'ker f|.
 Proof.
-move=> G; rewrite -morphimIdom -group_indexI -card_quotient; last first.
+move=> G; rewrite -morphimIdom -indexgI -card_quotient; last first.
   by rewrite normsI ?normG ?subIset ?norm_ker.
 by apply: esym (isog_card _); rewrite first_isog_loc ?subsetIl.
 Qed.
 
 Lemma dvdn_morphim :  forall G, #|f @* G| %| #|G|.
 Proof.
-move=> G; rewrite card_morphim (dvdn_trans (indexg_dvdn _ _)) //.
-by rewrite group_dvdn ?subsetIr.
+move=> G; rewrite card_morphim (dvdn_trans (dvdn_indexg _ _)) //.
+by rewrite cardSg ?subsetIr.
 Qed.
 
 Lemma dvdn_morphim_index : forall G H,
   G :&: H \subset D -> #|f @* G : f @* H| %| #|G : H|.
 Proof.
 move=> G H dGH; apply: (@dvdn_trans #|f @* G : f @* (G :&: H)|).
-  by rewrite -group_indexI dvdn_indexgS ?morphimI.
+  by rewrite -indexgI indexgS ?morphimI.
 have: 0 < #|'ker_(D :&: G) f| * #|f @* (G :&: H)|.
   by rewrite ltn_0mul !ltn_0group.
 move/dvdn_pmul2l <-; rewrite -mulnA LaGrange ?(morphimS, subsetIl) //.
@@ -667,7 +667,7 @@ rewrite 2!card_morphim LaGrangeI (setIidPr dGH).
 have: 'ker_(G :&: H) f \subset 'ker_(D :&: G) f.
   by rewrite setSI // subsetI dGH subsetIl.
 move/LaGrange <-; rewrite -!mulnA mulnCA dvdn_mull //= mulnA !LaGrangeI.
-by rewrite group_dvdn ?subsetIr.
+by rewrite cardSg ?subsetIr.
 Qed.
 
 Lemma card_morphpre : forall L,
@@ -680,7 +680,7 @@ Qed.
 Lemma index_morphpre : forall L M,
   L \subset f @* D -> #|f @*^-1 L : f @*^-1 M| = #|L : M|.
 Proof.
-move=> L M dL; rewrite -!group_divnI -morphpreI card_morphpre //.
+move=> L M dL; rewrite -!divgI -morphpreI card_morphpre //.
 have: L :&: M \subset f @* D by rewrite subIset ?dL.
 by move/card_morphpre->; rewrite divn_pmul2l ?ltn_0group.
 Qed.

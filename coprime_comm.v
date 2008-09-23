@@ -55,7 +55,7 @@ apply/eqP; rewrite eqset_sub; apply/andP; split; last first.
 rewrite {1}(comm_center_prod AsubNG coGA solG) distr_sgcomm //=.
 - by rewrite triv_comm_centr mulg1 subset_refl.
 - by rewrite subIset // normGR.
-by rewrite subIset // orbC cent_norm.
+by rewrite subIset // orbC cent_sub.
 Qed.
 
 Lemma comm_center_triv:   forall A G : {group T},
@@ -298,7 +298,7 @@ suff subC: coset_of H @*^-1 'C_(G / H)(A / H) :&: 'N_G(A) \subset 'C_G(A).
   apply: (subsetP (mulSg _ subC)); rewrite group_modr ?in_setI; rewrite ?Nx //=.
   - rewrite inE in_setI xbin -andbA /=; apply/andP; split. 
     by apply/imsetP; exists x; rewrite ?in_setI ?Nx.
-    by apply: (pgroup_quotient_normal_inv pr); rewrite //; apply: (subsetP (cent_norm _)).
+    by apply: (pgroup_quotient_normal_inv pr); rewrite //; apply: (subsetP (cent_sub _)).
   - have lem: H \subset coset_of H @*^-1 ('C_G(A)/H).
       by rewrite morphimK ?ker_coset ?mulG_subl ?(subset_trans (subsetIl _ _)) ?normal_norm.
     apply: (subset_trans lem); apply: morphpreS.

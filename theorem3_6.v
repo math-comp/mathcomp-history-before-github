@@ -34,7 +34,7 @@ Lemma cyclicS : forall G H, H \subset G -> cyclic G -> cyclic H.
 Proof.
 move=> G H HsubG; case/cyclicP=> x gex; apply/cyclicP.
 exists (x ^+ (#[x] %/ #|H|)); apply: congr_group; apply/set1P.
-by rewrite -cycle_sub_group /order -gex ?group_dvdn // inE HsubG eqxx.
+by rewrite -cycle_sub_group /order -gex ?cardSg // inE HsubG eqxx.
 Qed.
 
 Lemma cycleJ : forall x y : rT, <[x]> :^ y = <[x ^ y]>.
@@ -129,7 +129,7 @@ move oR0: #|R0| => r pr_r ZCHR0 p pr_p.
 have sRG: R \subset G by exact: sub_compl compH_R.
 case/complgP: compH_R => trivgHR eqHR_G; case/andP: (hallH) => sHG coHH'.
 have{coHH'} coHR: coprime #|H| #|R|. 
-  have:= coHH'; rewrite -group_divn -eqHR_G ?mulG_subl // .
+  have:= coHH'; rewrite -divgS -eqHR_G ?mulG_subl // .
   by rewrite (card_mulG_trivP _ _ trivgHR) ?divn_mulr. 
 have nHR: R \subset 'N(H) := subset_trans sRG (normal_norm nHG).
 have IHG: forall H1 R1 : {group gT},
@@ -153,10 +153,10 @@ have IHG: forall H1 R1 : {group gT},
   have solG1: solvable G1 := solvableS sG1G solG.
   have oddG1: odd #|G1|.
     move: oddG; do 2!rewrite -[odd _]negbK -dvdn2_even; apply: contra. 
-    move/dvdn_trans; apply; exact: group_dvdn.
+    move/dvdn_trans; apply; exact: cardSg.
   have nHG1: H1 <| G1 by rewrite /(H1 <| _) defG1 mulG_subl.
   have hallH1: Hall G1 H1.
-    by rewrite /Hall -group_divn normal_sub // oG1 divn_mulr.
+    by rewrite /Hall -divgS normal_sub // oG1 divn_mulr.
   have complR1: R1 \in complg G1 H1 by apply/complgP; rewrite coprime_trivg.
   apply: IHn complR1 sR01 _ _ p pr_p => //; first by rewrite oR0.
   exact: ZgroupS (setSI _ sH1) ZCHR0.
@@ -189,7 +189,7 @@ have{IHn trivgHR hallH} IHquo: forall X : group gT,
   have pr_R0X: prime #|R0 / X|.
     have trXR0: X :&: R0 = 1.
       by apply/trivgP; exact: subset_trans (setISS _ _) trivgHR.
-    by rewrite card_quotient // -group_divnI setIC trXR0 cards1 divn1 oR0.
+    by rewrite card_quotient // -divgI setIC trXR0 cards1 divn1 oR0.
   apply: IHn compR' sR0R' pr_R0X _ _ pr_p => //.
   have coHR0: coprime #|H| #|R0|.
     by rewrite -(LaGrange sR0R) coprime_mulr in coHR; case/andP: coHR.
@@ -221,7 +221,7 @@ wlog abV: / p.-abelem V.
   rewrite -(pquo_plength1 nPhiH) 1?IHquo //.
     exact: pgroupS (Phi_sub _) pV.
   have: 'O_p^'(H / 'Phi(V)) <| H / 'Phi(V) by exact: pcore_normal.
-  case/(inv_quotientN _) => // W; move/(congr1 val)=> /= defW sPhiW nWH.
+  case/(inv_quotientN _) => //= W defW sPhiW nWH.
   have p'Wb: p^'.-group (W / 'Phi(V)) by rewrite -defW; exact: pcore_pgroup.
   suffices pW: p.-group W.
     rewrite trivg_card (@pnat_1 p #|_|) //= defW //.
@@ -267,7 +267,7 @@ wlog{IHquo} nondecV:  / forall N1 N2,
   by rewrite -(quo2_plength1 pr_p nN1 nN2 trN12) ?IHquo.
 have: 'F(H / V) <| G / V.
   exact: char_norm_trans (Fitting_char _) (morphim_normal _ _).
-case/(inv_quotientN _) => [|U]; last move/(congr1 val)=> /= defU sVU nUG.
+case/(inv_quotientN _) => [| /= U defU sVU nUG].
   by apply/andP; rewrite (subset_trans sVH).
 case/andP: nUG => sUG nUG; have nUR := subset_trans sRG nUG.
 have sUH: U \subset H.
@@ -317,7 +317,7 @@ case/orP: (orbN (trivg [~: K, P])) => [tKP|ntKP].
   suffices sylVH: p.-Sylow(H) V.
     rewrite p_elt_gen_length1 // (_ : p_elt_gen p H = V).
       rewrite /pHall pcore_sub pcore_pgroup /= pnatNK.
-      apply: pnat_dvd pV; exact: indexg_dvdn.
+      apply: pnat_dvd pV; exact: dvdn_indexg.
     rewrite -(genGid V); congr <<_>>; apply/setP=> x; rewrite inE.
     apply/andP/idP=> [[Hx p_x] | Vx].
       by rewrite (mem_normal_Hall sylVH) // /normal sVH.
@@ -342,8 +342,7 @@ have{sylVP} dp: [~: V, K] \x 'C_V(K) :=: V.
 have trVeq: trivg 'C_V(K) \/ 'C_V(K) = V.
   apply: (nondecV _  [~: V, K]); first by rewrite dprodC.
   rewrite -eqHR_G defH -mulgA mul_subG //.
-    rewrite subsetI normGR (subset_trans _ (cent_norm _)) //.
-    by rewrite centsC {1}eqVC setIAC subsetIr.
+    by rewrite subsetI normGR cents_norm // centsC {1}eqVC setIAC subsetIr.
   have: 'N_H(K) * R \subset 'N_G(K) by rewrite mul_subG ?setSI // subsetI sRG.
   move/subset_trans; apply; apply/subsetP=> x; case/setIP=> Gx nKx.
   rewrite 3!inE conjIg -centJ /= -{1}[[~:V, K]]setTI -morphim_conj.
@@ -373,7 +372,7 @@ have defK: K :=: 'F('N_H(K)).
   by rewrite -(morphim_restrm nVN) morphim_invm.
 have sCKK: 'C_H(K) \subset K.
   rewrite {2}defK; apply: subset_trans (solvable_self_cent_Fitting _).
-    by rewrite -defK subsetI subsetIr setIS // cent_norm.
+    by rewrite -defK subsetI subsetIr setIS // cent_sub.
   by apply: solvableS (solvableS sHG solG); apply: subsetIl.
 have{nVN} ntKR0: ~~ trivg [~: K, R0].
   apply/commG1P; move/centsP=> cKR0; case/negP: ntKP.
@@ -417,13 +416,13 @@ have r'K: r^'.-group K.
   by rewrite oR0 coprime_sym prime_coprime // -def_q dv_qK in coK_R0.
 have rR0: r.-group R0 by by rewrite /pgroup oR0 pnat_id // inE /= eqxx.
 have hallK_R0: r^'.-Hall(K <*> R0) K.
-  by rewrite /pHall sK_KR0 r'K -group_divn // pnatNK oKR0 divn_mulr.
+  by rewrite /pHall sK_KR0 r'K -divgS // pnatNK oKR0 divn_mulr.
 have hallR0_K: r.-Sylow(K <*> R0) R0.
-  by rewrite /pHall sR0_KR0 rR0 -group_divn // oKR0 divn_mull.
+  by rewrite /pHall sR0_KR0 rR0 -divgS // oKR0 divn_mull.
 have trCKR0_V: trivg 'C_(K <*> R0)(V).
   have nC_KR0: 'C_(K <*> R0)(V) <| K <*> R0.
     rewrite /(_ <| _) subsetIl normsI ?normG //.
-    by rewrite (subset_trans nV_KR0) ?norm_cent.
+    by rewrite (subset_trans nV_KR0) ?cent_norm.
   have hallCK: r^'.-Hall('C_(K <*> R0)(V)) 'C_K(V).
     rewrite -{2}(setIidPl sK_KR0) -setIA; exact: HallSubnormal hallK_R0.
   have hallCR0: r.-Sylow('C_(K <*> R0)(V)) 'C_R0(V).
@@ -435,7 +434,7 @@ have trCKR0_V: trivg 'C_(K <*> R0)(V).
     rewrite -{2}(muln1 #|_|) leq_mul // -trivg_card; apply: subset_trans VIN.
     rewrite /= -{1}(setIidPl sKH) -setIA -eqVC setIC setIS //.
     by rewrite subsetI sKH normG.
-  have:= group_dvdn sC_R0; rewrite oR0.
+  have:= cardSg sC_R0; rewrite oR0.
   case: (primeP pr_r) => _ dv_r; move/dv_r; rewrite eqn_leq -trivg_card orbC.
   case/predU1P => [oCr|]; last by case/andP.
   case/negP: ntKR0; apply: subset_trans (coprime_trivg coK_R0).
@@ -449,7 +448,7 @@ have oCVR0: #|'C_V(R0)| = p.
       by apply: subset_trans trCKR0_V; rewrite setSI.
     rewrite commsgC; apply: three_dot_four abV nV_KR0 _ trCVR0 => //.
     - move: oddG; do 2!rewrite -[odd _]negbK -dvdn2_even; apply: contra. 
-      move/dvdn_trans; apply; exact: group_dvdn.
+      move/dvdn_trans; apply; exact: cardSg.
     - by rewrite /(K <| _) sK_KR0 gen_subG subUset normG.
     - exact: (pHall_Hall hallK_R0).
     - by apply/complgP; rewrite coprime_trivg //= norm_mulgenEr.
@@ -589,15 +588,48 @@ have defKP: K :=: [~: K, P].
     have sV_VK: V \subset V <*> K by rewrite sub_gen ?subsetUl.
     rewrite (@subset_normal_Hall _ p _ (V <*> K)%G).
     - rewrite /psubgroup subsetIl; apply: pnat_dvd pP.
-      by rewrite group_dvdn ?subsetIr.
-    - by rewrite /pHall sV_VK pV -group_divn // oVK divn_mulr.
+      by rewrite cardSg ?subsetIr.
+    - by rewrite /pHall sV_VK pV -divgS // oVK divn_mulr.
     by rewrite /(V <| _) sV_VK gen_subG subUset normG.
   rewrite (card_mulG_trivP _ _ _) /=; last first.
     by apply: subset_trans trVK_P; rewrite setSI ?genS ?setUS.
   rewrite defH -(norm_mulgenEr nVK) (card_mulG_trivP _ _ trVK_P).
   rewrite ltn_pmul2r ?ltn_0group // oVK norm_mulgenEr ?(subset_trans sKP_K) //.
   rewrite coprime_card_mulG // ?ltn_pmul2l // (pnat_coprime pV) //.
-  apply: pnat_dvd p'K; exact: group_dvdn.
+  apply: pnat_dvd p'K; exact: cardSg.
+have nrp: r != p.
+  have: 'C_V(R) \subset H by apply: subset_trans sVH; exact: subsetIl.
+  move/LaGrange=> oH; move: coHR; rewrite -oH oR oCVR coprime_mull; case/andP.
+  by rewrite coprime_sym prime_coprime // dvdn_prime2.
+have trCPR_K: trivg 'C_(P <*> R)(K).
+  have solPR: solvable (P <*> R).
+     apply: solvableS solG; rewrite gen_subG subUset sRG.
+     by rewrite (subset_trans sPH sHG).
+  have coPR: coprime #|P| #|R| by rewrite oR (pnat_coprime pP) ?pnatE.
+  have nC_PR: 'C_(P <*> R)(K) <| P <*> R.
+    rewrite /normal subsetIl normsI ?normG ?norms_cent //.
+    by rewrite gen_subG subUset nKP nKR.
+  have sP_PR: P \subset P <*> R by rewrite sub_gen ?subsetUl.
+  have sR_PR: R \subset P <*> R by rewrite sub_gen ?subsetUr.
+  have p'R: p^'.-group R by rewrite /pgroup oR pnatE.
+  have sylPC: p.-Sylow('C_(P <*> R)(K)) 'C_P(K).
+    rewrite -{2}(setIidPl sP_PR) -setIA (HallSubnormal _ nC_PR) //.
+    rewrite /pHall sP_PR pP /= -divgS //= norm_mulgenEr //.
+    by rewrite coprime_card_mulG // divn_mulr. 
+  have hallRC: p^'.-Hall('C_(P <*> R)(K)) 'C_R(K).
+    rewrite -{2}(setIidPl sR_PR) -setIA (HallSubnormal _ nC_PR) //.
+    rewrite /pHall sR_PR /= -divgS //= norm_mulgenEr //.
+    rewrite coprime_card_mulG // divn_mull // pnatNK; exact/andP.
+  have trCP: trivg 'C_P(K).
+    have: trivg (P :&: K) by apply coprime_trivg; exact: pnat_coprime pP p'K.
+    by apply: subset_trans; rewrite -{1}(setIidPl sPH) -setIA setIS.
+  have trCR: #|'C_R(K)| = 1%N.
+    have: #|'C_R(K)| %| r by rewrite -oR cardSg ?subsetIl.
+    case/primeP: pr_r => _ pr_r; move/pr_r; case/orP; move/eqP=> // oCR.
+    case/commG1P: ntKR; apply/centsP; rewrite centsC; apply/setIidPl.
+    by apply/eqP; rewrite eqset_sub_card oR oCR leqnn subsetIl.
+  rewrite trivg_card -[#|_|](partnC p) // -(card_Hall sylPC).
+  by rewrite -(card_Hall hallRC) trCR muln1 -trivg_card.
 admit.
 Qed.
 

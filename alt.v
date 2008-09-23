@@ -31,7 +31,7 @@ Proof.
 move=> T T3; have{T3} oA: #|'Alt_T| = 3.
   by apply: double_inj; rewrite -mul2n card_Alt T3.
 apply/simpleP; split=> [|K]; [by rewrite trivg_card oA | case/andP=> sKH _].
-have:= group_dvdn sKH; rewrite oA dvdn_divisors // !inE orbF orbC /= -oA.
+have:= cardSg sKH; rewrite oA dvdn_divisors // !inE orbF orbC /= -oA.
 case/orP=> eqK; [right | left]; apply/eqP.
   by rewrite eqset_sub_card sKH (eqP eqK) leqnn.
 by rewrite eq_sym eqset_sub_card sub1G (eqP eqK) cards1.
@@ -58,7 +58,7 @@ have [p [p_pr pA_int Sp1]]:
     apply/eqP; rewrite -val_eqE /= eqset_sub_card oQ1 {}oQ2 andbT.
     have sQ12: Q1 :&: Q2 \subset Q1 by exact: subsetIl.
     apply/setIidPl; apply/eqP; rewrite eqset_sub_card sQ12.
-    move/group_dvdn: sQ12; rewrite {}oQ1 dvdn_divisors // mem_seq2 /= orbC.
+    move/cardSg: sQ12; rewrite {}oQ1 dvdn_divisors // mem_seq2 /= orbC.
     case/predU1P=> [-> //|]; rewrite eqn_leq -trivg_card ltn_0group andbT.
     by case/subsetPn; exists x; rewrite inE ?Q1x.
   move=> /= cQ3; exists 2; rewrite p_part //; split=> //.
@@ -113,7 +113,7 @@ have FF: forall H : group _, H <| 'Alt_T -> H :<>: 1 -> 20 %| #|H|.
     have F12: K \subset Gx by apply: setSI; exact: normal_sub.
     have F13: K <| Gx by rewrite /(K <| _) F12 norm_stab // normal_norm.
     case: (prim_trans_norm F10 F11 F13) => Ksub; last first.
-      apply: dvdn_trans (group_dvdn F8); rewrite -F7; exact: trans_div Hy Ksub.
+      apply: dvdn_trans (cardSg F8); rewrite -F7; exact: trans_div Hy Ksub.
     have F14: [faithful (Gx | 'P) on [set~ x]].
       apply/subsetP=> g; do 2![case/setIP] => Altg cgx cgx'.
       apply: (subsetP (aperm_faithful 'Alt_T)).
@@ -170,7 +170,7 @@ right; case Hcard60: (#|H| == 60%N); move/eqP: Hcard60 => Hcard60.
 have Hcard20: #|H| = 20; last clear Hcard1 Hcard60.
   have Hdiv: 20 %| #|H| by apply: FF => // HH; case Hcard1; rewrite HH cards1.
   case H20: (#|H| == 20); first by apply/eqP.
-  case: Hcard60; case/andP: Hnorm; move/group_dvdn; rewrite F1 => Hdiv1 _.
+  case: Hcard60; case/andP: Hnorm; move/cardSg; rewrite F1 => Hdiv1 _.
   by case/dvdnP: Hdiv H20 Hdiv1 => n ->; move: n; do 4!case=> //.
 have prime_5: prime 5 by [].
 have nSyl5: #|'Syl_5(H)| = 1%N.

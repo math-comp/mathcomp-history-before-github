@@ -4,7 +4,7 @@ Require Import ssrbool.
 Require Import ssrfun.
 Require Import eqtype.
 Require Import ssrnat.
-(* Require Import seq. *)
+Require Import seq.
 (* Require Import paths. *)
 Require Import fintype.
 (* Require Import connect. *)
@@ -1476,7 +1476,13 @@ Canonical Structure mulgen_group A B := Eval hnf in [group of A <*> B].
 
 Canonical Structure cycle_group x := Eval hnf in [group of <[x]>].
 
+Lemma ltn_0order : forall x : gT, 0 < #[x].
+Proof. by move=> x; exact: ltn_0group. Qed.
+Canonical Structure order_pos_nat x := PosNat (ltn_0order x).
+
 End GroupInter.
+
+Hint Resolve ltn_0order.
 
 Definition mulGen (gT : finGroupType) (G H : {group gT}) :=
   nosimpl (mulgen_group G H).
@@ -1532,26 +1538,26 @@ rewrite rcosetE eqset_sub_card mulGS !card_rcoset leqnn andbT.
 by rewrite group_modr sub1set // inE.
 Qed.
 
-Lemma group_divnI : forall G H, #|G| %/ #|G :&: H| = #|G : H|.
+Lemma divgI : forall G H, #|G| %/ #|G :&: H| = #|G : H|.
 Proof. by move=> G H; rewrite -(LaGrangeI G H) divn_mulr ?ltn_0group. Qed.
 
-Lemma group_divn_index : forall G H, #|G| %/ #|G : H| = #|G :&: H|.
+Lemma divg_index : forall G H, #|G| %/ #|G : H| = #|G :&: H|.
 Proof. by move=> G H; rewrite -(LaGrangeI G H) divn_mull. Qed.
 
-Lemma indexg_dvdn : forall G H, #|G : H| %| #|G|.
+Lemma dvdn_indexg : forall G H, #|G : H| %| #|G|.
 Proof. by move=> G H; rewrite -(LaGrangeI G H) dvdn_mull. Qed.
 
 Theorem LaGrange : forall G H, H \subset G -> (#|H| * #|G : H|)%N = #|G|.
 Proof. by move=> G H; move/setIidPr=> sHG; rewrite -{1}sHG LaGrangeI. Qed.
 
-Lemma group_dvdn : forall G H, H \subset G -> #|H| %| #|G|.
+Lemma cardSg : forall G H, H \subset G -> #|H| %| #|G|.
 Proof. by move=> G H; move/LaGrange <-; rewrite dvdn_mulr. Qed.
 
-Lemma group_divn : forall G H, H \subset G -> #|G| %/ #|H| = #|G : H|.
+Lemma divgS : forall G H, H \subset G -> #|G| %/ #|H| = #|G : H|.
 Proof. by move=> G H; move/LaGrange <-; rewrite divn_mulr. Qed.
 
 Lemma indexgg : forall G, #|G : G| = 1%N.
-Proof. by move=> G; rewrite -group_divn // divnn ltn_0group. Qed.
+Proof. by move=> G; rewrite -divgS // divnn ltn_0group. Qed.
 
 Lemma LaGrange_index : forall G H K,
   H \subset G -> K \subset H -> (#|G : H| * #|H : K|)%N = #|G : K|.
@@ -1560,18 +1566,24 @@ move=> G H K sHG sKH; apply/eqP; rewrite mulnC -(eqn_pmul2l (ltn_0group K)).
 by rewrite mulnA !LaGrange // (subset_trans sKH).
 Qed.
 
-Lemma group_indexI : forall G H, #|G : G :&: H| = #|G : H|.
-Proof. by move=> G H; rewrite -group_divnI group_divn ?subsetIl. Qed.
+Lemma indexgI : forall G H, #|G : G :&: H| = #|G : H|.
+Proof. by move=> G H; rewrite -divgI divgS ?subsetIl. Qed.
 
-Lemma indexg_sub : forall G H K, K \subset H -> #|G : H| %| #|G : K|.
+Lemma indexgS : forall G H K, H \subset K -> #|G : K| %| #|G : H|.
 Proof.
-move=> G H K; move/(setIS G)=> sKH.
-rewrite -(group_indexI G K) -(LaGrange_index _ sKH) ?subsetIl // group_indexI.
-exact: dvdn_mulr.
+move=> G H K sHK; rewrite -(@dvdn_pmul2l #|G :&: K|) ?ltn_0group // LaGrangeI.
+by rewrite -(LaGrange (setIS G sHK)) mulnAC LaGrangeI dvdn_mulr.
 Qed.
 
-Lemma group_index1 : forall G, #|G : 1| = #|G|.
-Proof. by move=> G; rewrite -group_divn ?sub1G // cards1 divn1. Qed.
+Lemma indexSg : forall G H K,
+  H \subset K -> K \subset G -> #|K : H| %| #|G : H|.
+Proof.
+move=> G H K sHK sKG; rewrite -(@dvdn_pmul2l #|H|) ?ltn_0group //.
+by rewrite !LaGrange ?(cardSg, subset_trans sHK).
+Qed.
+
+Lemma indexg1 : forall G, #|G : 1| = #|G|.
+Proof. by move=> G; rewrite -divgS ?sub1G // cards1 divn1. Qed.
 
 Lemma card_mulG : forall G H, (#|G * H|%g * #|G :&: H| = #|G| * #|H|)%N.
 Proof.
@@ -1596,25 +1608,12 @@ Qed.
 Lemma coprime_trivg : forall G H, coprime #|G| #|H| -> trivg (G :&: H).
 Proof.
 move=> G H; move/eqnP=> coGH; rewrite trivg_card dvdn_leq // -{}coGH.
-by rewrite dvdn_gcd ?group_dvdn ?(subsetIl, subsetIr).
+by rewrite dvdn_gcd ?cardSg ?(subsetIl, subsetIr).
 Qed.
 
 Lemma coprime_card_mulG : forall G H,
   coprime #|G| #|H| -> #|G * H| = (#|G| * #|H|)%N.
 Proof. by move=> G H; move/coprime_trivg; move/card_mulG_trivP. Qed.
-
-Lemma dvdn_indexgS : forall G H K, H \subset K -> #|G : K| %| #|G : H|.
-Proof.
-move=> G H K sHK; rewrite -(@dvdn_pmul2l #|G :&: K|) ?ltn_0group // LaGrangeI.
-by rewrite -(LaGrange (setIS G sHK)) mulnAC LaGrangeI dvdn_mulr.
-Qed.
-
-Lemma dvdn_indexSg : forall G H K,
-  H \subset K -> K \subset G -> #|K : H| %| #|G : H|.
-Proof.
-move=> G H K sHK sKG; rewrite -(@dvdn_pmul2l #|H|) ?ltn_0group //.
-by rewrite !LaGrange ?(group_dvdn, subset_trans sHK).
-Qed.
 
 End LaGrange.
 
@@ -1706,6 +1705,12 @@ Qed.
 Lemma mulgen_idl : forall A B, <<A>> <*> B = A <*> B.
 Proof. by move=> A B; rewrite -!(mulgenC B) mulgen_idr. Qed.
 
+Lemma mulgen_subl : forall A B, A \subset A <*> B.
+Proof. by move=> A B; rewrite sub_gen ?subsetUl. Qed.
+
+Lemma mulgen_subr : forall A B, B \subset A <*> B.
+Proof. by move=> A B; rewrite sub_gen ?subsetUr. Qed.
+
 Lemma genDU : forall A B C,
   A \subset C -> <<C :\: A>> = <<B>> -> <<A :|: B>> = <<C>>.
 Proof.
@@ -1750,6 +1755,21 @@ Proof. by move=> G; apply: val_inj; exact: mulgenG1. Qed.
 
 Canonical Structure mulGen_law := Monoid.Law mulGenA mulGen1G mulGenG1.
 Canonical Structure mulGen_abelaw := Monoid.AbelianLaw mulGenC.
+
+Lemma bigprodGEgen : forall I r (P : pred I) (F : I -> {set gT}),
+  (\prod_(i <- r | P i) <<F i>>)%G :=: << \bigcup_(i <- r | P i) F i >>.
+Proof.
+move=> I r P F; rewrite -!(big_filter r).
+elim: {r}filter => [|i r IHr]; rewrite !(big_seq0, big_adds, gen0) //= IHr.
+by rewrite mulgen_idl mulgen_idr.
+Qed.
+
+Lemma bigprodGE : forall I r (P : pred I) (F : I -> {group gT}),
+  (\prod_(i <- r | P i) F i)%G :=: << \bigcup_(i <- r | P i) F i >>.
+Proof.
+move=> I r P F; rewrite -bigprodGEgen /=; apply: congr_group.
+by apply: eq_bigr => i _; rewrite genGidG.
+Qed.
 
 Lemma mem_commg : forall A B x y, x \in A -> y \in B -> [~ x, y] \in [~: A, B].
 Proof. by move=> A B x y Ax By; rewrite mem_gen ?mem_imset2. Qed.
@@ -1801,13 +1821,8 @@ apply/subsetP=> yzx; case/imsetP=> yz; case/imset2P=> y z Ay Bz -> -> {yz yzx}.
 by rewrite conjRg mem_commg ?memJ_conjg.
 Qed.
 
-Lemma ltn_0order : forall x, 0 < #[x].
-Proof. by move=> x; exact: ltn_0group. Qed.
-Canonical Structure order_pos_nat x := PosNat (ltn_0order x).
-
 End GeneratedGroup.
 
-Hint Resolve ltn_0order.
 Implicit Arguments commG1P [gT A B].
 Prenex Implicits commG1P.
 
@@ -1917,14 +1932,14 @@ Proof.
 by move=> A B; apply/centsP/centsP=> cAB x ? y ?; rewrite /commute -cAB.
 Qed.
 
-Lemma cent_norm : forall A, 'C(A) \subset 'N(A).
+Lemma cent_sub : forall A, 'C(A) \subset 'N(A).
 Proof.
 move=> A; apply/subsetP=> x; move/centP=> cAx; rewrite inE.
 by apply/subsetP=> yx; case/imsetP=> y Ay ->; rewrite /conjg -cAx ?mulKg.
 Qed.
 
-Lemma cents_norms : forall A B, A \subset 'C(B) -> A \subset 'N(B).
-Proof. move=> A B cBA; exact: subset_trans (cent_norm B). Qed.
+Lemma cents_norm : forall A B, A \subset 'C(B) -> A \subset 'N(B).
+Proof. move=> A B cBA; exact: subset_trans (cent_sub B). Qed.
 
 Lemma centJ : forall A x, 'C(A :^ x) = 'C(A) :^ x.
 Proof.
@@ -1933,11 +1948,11 @@ move=> A x; apply/setP=> y; rewrite mem_conjg; apply/centP/centP=> cAy z Az.
 by apply: (conjg_inj x^-1); rewrite 2!conjMg cAy -?mem_conjg.
 Qed.
 
-Lemma norm_cent : forall A, 'N(A) \subset 'N('C(A)).
+Lemma cent_norm : forall A, 'N(A) \subset 'N('C(A)).
 Proof. by move=> A; apply/normsP=> x nCx; rewrite -centJ (normP nCx). Qed.
 
 Lemma cent_normal : forall A, 'C(A) <| 'N(A).
-Proof. by move=> A; rewrite /(_ <| _) cent_norm norm_cent. Qed.
+Proof. by move=> A; rewrite /(_ <| _) cent_sub cent_norm. Qed.
 
 Lemma normalS : forall G H K,
   K \subset H -> H \subset G -> K <| G -> K <| H.
@@ -1982,7 +1997,7 @@ Lemma norms_norm : A \subset 'N('N(B)).
 Proof. by apply/normsP=> x Ax; rewrite -normJ (normsP nBA). Qed.
 
 Lemma norms_cent : A \subset 'N('C(B)).
-Proof. exact: subset_trans nBA (norm_cent B). Qed.
+Proof. exact: subset_trans nBA (cent_norm B). Qed.
 
 Lemma normsI : A \subset 'N(B :&: C).
 Proof. by apply/normsP=> x Ax; rewrite conjIg !(normsP _ x Ax). Qed.
@@ -2036,7 +2051,7 @@ Proof. by move=> G H; rewrite -cent_gen genM_mulgen cent_mulgen. Qed.
 
 Lemma cent_mulgenE : forall H1 H2,
   H1 \subset 'C(H2) -> H1 <*> H2 = H1 * H2.
-Proof. move=> H1 H2 cH12; apply: norm_mulgenE; exact: cents_norms. Qed.
+Proof. move=> H1 H2 cH12; apply: norm_mulgenE; exact: cents_norm. Qed.
 
 Lemma centralised_mulgenE : forall H1 H2,
   {in H1, centralised H2} -> H1 <*> H2 = H1 * H2.

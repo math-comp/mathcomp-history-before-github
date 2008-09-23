@@ -53,7 +53,7 @@ Lemma KB_card_image: forall p (Hp : prime p) l s,
   #|[set z \in 'C_H[x] | #[z] %| s]|
      = #|[set z \in 'C_H[x] / <[x]> | #[z] %| s]|.
 Proof.
-move=> p Hp l s Hx1 Hx2; have sCN := subsetP (centraliser_normaliser Hx).
+move=> p Hp l s Hx1 Hx2; have sCN := subsetP (subcent1_cycle_norm x H).
 symmetry; rewrite -(KB_image Hp Hx1 Hx2) /quotient morphimEsub; last first.
   by apply/subsetP=> z; rewrite inE; case/andP; move/sCN.
 apply: card_dimset=> y1 y2; rewrite 2!inE.
@@ -109,7 +109,7 @@ Proof. by move=> a b Hb; rewrite spconst_conjgs // card_conjg. Qed.
 Lemma pconst_subset_centralizer : forall y, spconst y \subset 'C_G[y].
 Proof.
 move=> y; apply/subsetP=> x; rewrite inE; case/and3P=> Hx1 Hx2 Hx3.
-apply/centraliserP; split=> //.
+apply/subcent1P; split=> //.
 apply: commute_sym; rewrite -(eqP Hx2); exact: commuteX.
 Qed.
 
@@ -157,7 +157,7 @@ Lemma pconst_card_KRG : forall y l, y \in G ->
   #[y] = (p ^ l.+1)%N ->  
   #|spconst y| = #|[set z \in 'C_G[y] / <[y]> | #[z] %| s]|.
 Proof.
-by move=> y l Hy H; rewrite (pconst_card Hy H) (KB_card_image Hy primep H).
+by move=> y l Hy H; rewrite (pconst_card Hy H) (KB_card_image G primep H).
 Qed.
 
 Definition spconstw y := 
@@ -177,7 +177,7 @@ move => x y Hy; apply: (iffP idP).
 case => i; case/andP => Hi1 Hi2.
 set r := 'C_G[y] :* i.
 apply/bigcupP; exists r; first by apply/rcosetsP; exists i.
-case: (repr r) / (repr_rcosetP 'C_G[y] i) => z /=; case/centraliserP=> _.
+case: (repr r) / (repr_rcosetP 'C_G[y] i) => z /=; case/subcent1P=> _.
 by move/commgP; move/conjg_fixP; rewrite conjgM => ->.
 Qed.
 
@@ -193,11 +193,11 @@ rewrite /spconstw (@card_setnU_id _ _ _ _ #|spconst y|).
   case: (repr _) / (repr_rcosetP 'C_G[y] i1) => j1 Hj1 Hsu.
   case/rcosetsP: Hv Hsv => i2 /= Hi2 ->{v}.
   case: (repr _) / (repr_rcosetP 'C_G[y] i2) => j2 Hj2 Hsv.
-  apply: rcoset_trans1 => /=; rewrite mem_rcoset; apply/centraliserP; split.
+  apply: rcoset_trans1 => /=; rewrite mem_rcoset; apply/subcent1P; split.
     by rewrite !in_group.
   apply/commgP; apply/conjg_fixP.
   have:= spconst_uniq Hsu Hsv; rewrite !conjgM.
-  move: Hj1 Hj2; do 2![case/centraliserP=> _; move/commgP; move/conjg_fixP->].
+  move: Hj1 Hj2; do 2![case/subcent1P=> _; move/commgP; move/conjg_fixP->].
   exact: (canLR (conjgK _)).
 move=> x; case/rcosetsP=> i2 /= Hi2 ->; apply: spconst_card.
 case: (repr _) / (repr_rcosetP 'C_G[y] i2) => y1; case/setIP=> Gy1 _.
@@ -226,7 +226,7 @@ set e := _ - n; elim: e {-2}e (leqnn e).
   apply/dvdnP; exists 1%N; rewrite mul1n.
   apply: eq_card => x.
   rewrite inE /= /order; case E1: (x \in G) => //=.
-  by rewrite group_dvdn // cycle_h.
+  by rewrite cardSg // cycle_h.
 move => n1 Hrec e.
 rewrite leq_eqVlt; case/orP => H H1; last apply Hrec => //.
 move: H1; rewrite (eqP H).
@@ -355,15 +355,15 @@ set KRG := (quotient _ _).
 set cKRG := #|KRG|.
 have F3: #|KRG| = #|'C_G[x] : <[x]>|.
   apply: card_quotient.
-  exact: normal_centraliser.
+  exact: subcent1_cycle_norm.
 have F4: #|'C_G[x]| = (#|KRG| * #[x])%N.
   rewrite F3 /order.
   apply sym_equal; rewrite mulnC; apply: LaGrange => //=.
-  exact: cycle_subset_centraliser.
+  exact: subcent1_cycle_sub.
 have F5: cKRG <= k.
   rewrite (eqP Hx) in F4.
   have F5: #|'C_G[x]| %| #|G|.
-    by apply: group_dvdn; exact: subset_centraliser.
+    by apply: cardSg; exact: subcent1_sub.
   rewrite F4 in F5.
   rewrite -ltnS -(eqP Hk).
   have F6: 0 < #|G| by rewrite (eqP Hk).
@@ -387,7 +387,7 @@ case/dvdnP: (Rec _ (quotient_group _ _) F5 _ F6) => c.
 rewrite cardsE => ->; set r := #|_ : _|.
 have F8: #|G| = (r * #|'C_G[x]|)%N.
   apply sym_equal; rewrite mulnC; apply: LaGrange => //.
-  by exact: subset_centraliser.
+  by exact: subcent1_sub.
 rewrite F4 (eqP Hx) in F8. 
 apply: (@dvdn_trans (r * gcdn #|KRG| s)); last first.
   by apply/dvdnP; exists c; rewrite mulnA (mulnC r) !mulnA.

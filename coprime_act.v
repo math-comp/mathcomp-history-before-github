@@ -20,7 +20,7 @@ Lemma coprime_norm_cent : forall A G,
   A \subset 'N(G) -> coprime #|G| #|A| ->
   'N_G(A) = 'C_G(A).
 Proof.
-move=> A G nGA coGA; apply/eqP; rewrite eqset_sub andbC setIS ?cent_norm //=.
+move=> A G nGA coGA; apply/eqP; rewrite eqset_sub andbC setIS ?cent_sub //=.
 rewrite subsetI subsetIl /=; apply/centsP; apply/commG1P.
 apply: subset_trans (coprime_trivg coGA); rewrite gen_subG.
 apply/subsetP=> xy; case/imset2P=> x y; case/setIP=> Gx nAx Ay ->{xy}.
@@ -42,12 +42,12 @@ have nGN_N: G :&: N <| N.
   by rewrite conjIg (normP _) // (subsetP nGN, conjGid).
 have NG_AG : G * N = A <*> G by apply: HallFrattini hallH => //; exact/andP.
 have iGN_A: #|N| %/ #|G :&: N| = #|A|.
-  rewrite group_divn ?subsetIr // -card_quotient; last by case/andP: nGN_N.
+  rewrite divgS ?subsetIr // -card_quotient; last by case/andP: nGN_N.
   rewrite (isog_card (second_isog nGN)) /= -quotient_mulg (normC nGN) NG_AG.
-  rewrite card_quotient // -group_divn //= norm_mulgenE //.
+  rewrite card_quotient // -divgS //= norm_mulgenE //.
   by rewrite coprime_card_mulG 1?coprime_sym // divn_mull.
 have hallGN: Hall N (G :&: N).
-  rewrite /Hall -group_divn subsetIr //= iGN_A.
+  rewrite /Hall -divgS subsetIr //= iGN_A.
   by move: coGA; rewrite -(LaGrangeI G N) coprime_mull; case/andP.
 case/splitgP: {hallGN nGN_N}(SchurZass_split hallGN nGN_N) => B trBGN defN.
 have{trBGN iGN_A} oBA: #|B| = #|A|.
@@ -80,7 +80,7 @@ have NG_AG : G * N = A <*> G by apply: HallFrattini hallH => //; exact/andP.
 have iGN_A: #|N : G :&: N| = #|A|.
   rewrite -card_quotient //; last by case/andP: nGN_N.
   rewrite (isog_card (second_isog nGN)) /= -quotient_mulg (normC nGN) NG_AG.
-  rewrite card_quotient // -group_divn //= norm_mulgenE //.
+  rewrite card_quotient // -divgS //= norm_mulgenE //.
   by rewrite coprime_card_mulG 1?coprime_sym // divn_mull.
 have solGN: solvable (G :&: N) by apply: solvableS solG; exact: subsetIl.
 have oAxA: #|A :^ x^-1| = #|A| by exact: card_conjg.
@@ -204,7 +204,7 @@ pose Gb := (G / M)%G; pose Ab := (A / M)%G; pose Xb := (X / M)%G.
 have oAb: #|Ab| = #|A|.
   rewrite /= -quotient_mulg // -norm_mulgenE // card_quotient; last first.
     by rewrite gen_subG subUset nMA normG.
-  rewrite -group_divn /= norm_mulgenE ?mulG_subr //.
+  rewrite -divgS /= norm_mulgenE ?mulG_subr //.
   rewrite coprime_card_mulG ?divn_mull // coprime_sym.
   by move: coGA; rewrite -(LaGrange sMG) coprime_mull; case/andP.
 case: (IHn _ Ab Gb _ Xb); do 1?[exact: solvable_quo | exact: morphim_norms].
@@ -217,7 +217,7 @@ case: (IHn _ Ab Gb _ Xb); do 1?[exact: solvable_quo | exact: morphim_norms].
 - exact: morphimS.
 - rewrite /pgroup -(isog_card (second_isog nMX)) /=.
   rewrite card_quotient ?normsI ?normG //.
-  apply: pnat_dvd piX; exact: indexg_dvdn.
+  apply: pnat_dvd piX; exact: dvdn_indexg.
 move=> Hb []; case/and3P=> sHGb piHb pi'Hb' nHbA sXHb.
 case/inv_quotientS: (sHGb) => [|HM defHM sMHM sHMG]; first exact/andP.
 have{Xb sXHb} sXHM: X \subset HM.
@@ -228,7 +228,7 @@ have{Xb sXHb} sXHM: X \subset HM.
   rewrite /= !coset_ofN // ?(subsetP nMX) // => ->.
   by case/rcosetP=> z Mz ->; rewrite groupMl // (subsetP sMHM).
 have{pi'Hb' sHGb} pi'HM': pi^'.-nat #|G : HM|.
-  move: pi'Hb'; rewrite -!group_divn // defHM !card_quotient //; last first.
+  move: pi'Hb'; rewrite -!divgS // defHM !card_quotient //; last first.
   - exact: subset_trans nMG.
   by rewrite -(divn_pmul2l (ltn_0group M)) !LaGrange.
 have{Ab oAb nHbA} nHMA: A \subset 'N(HM).
@@ -254,7 +254,7 @@ case: (ltnP #|HM| #|G|) => [ltHG | leGHM {n IHn leGn}].
   case/and3P: hallH => sHHM piH pi'H'.
   have sHG: H \subset G by exact: subset_trans sHMG.
   exists H; split=> //; apply/and3P; split=> //.
-  rewrite -group_divn // -(LaGrange sHMG) -(LaGrange sHHM) -mulnA divn_mulr //.
+  rewrite -divgS // -(LaGrange sHMG) -(LaGrange sHHM) -mulnA divn_mulr //.
   by rewrite pnat_mul pi'H'.
 have{leGHM nHMA sHMG sMHM sXHM pi'HM'} eqHMG: HM = G.
   by apply/eqP; rewrite -val_eqE eqset_sub_card sHMG.
@@ -269,12 +269,12 @@ have sXXM: X \subset XM by rewrite  -{1}genGid genS ?subsetUl.
 have co_pi_M: forall B : {group gT}, pi.-group B -> coprime #|B| #|M|.
   by move=> B piB; rewrite (pnat_coprime piB).
 have hallX: pi.-Hall(XM) X.
-  rewrite /pHall piX sXXM -group_divn //= norm_mulgenE //.
+  rewrite /pHall piX sXXM -divgS //= norm_mulgenE //.
   by rewrite coprime_card_mulG ?co_pi_M // divn_mulr.
 have hallY: pi.-Hall(XM) Y.
   have sYXM: Y \subset XM by rewrite subsetIr.
   have piY: pi.-group Y by apply: pgroupS piH; exact: subsetIl.
-  rewrite /pHall sYXM piY -group_divn // -(_ : Y * M = XM).
+  rewrite /pHall sYXM piY -divgS // -(_ : Y * M = XM).
     by rewrite coprime_card_mulG ?co_pi_M // divn_mulr //.
   rewrite /= setIC group_modr /= norm_mulgenE ?mulG_subr //; apply/setIidPl.
   rewrite mulSG ((H * M =P G) _) // eqset_sub_card -{1}(mulGid G) mulgSS //=.

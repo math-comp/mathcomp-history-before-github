@@ -292,7 +292,7 @@ Proof. move=> i; exact: Ohm_sub. Qed.
 
 Lemma Ohm_resp : forall i,
   resp (fun gT S => 'Ohm_i(S)) (@is_aut gT).
-Proof. move=> i G f _; exact: morphim_Ohm. Qed.
+Proof. move=> i G f _; exact: gfunc_Ohm. Qed.
 
 Canonical Structure Ohm_id_subfunctor (i:nat) :=
   @isFcClass _ _ _ (fun _ S => 'Ohm_i(S))
@@ -305,7 +305,7 @@ Proof. move=> i; exact: Mho_sub. Qed.
 
 Lemma Mho_resp : forall i,
   resp (fun gT S => 'Mho^i(S)) (@is_aut gT).
-Proof. move=> i G f _; exact: morphim_Mho. Qed.
+Proof. move=> i G f _; exact: gfunc_Mho. Qed.
 
 Canonical Structure Mho_id_subfunctor (i:nat) :=
   @isFcClass _ _ _ (fun _ S => 'Mho^i(S))

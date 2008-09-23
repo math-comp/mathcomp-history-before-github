@@ -50,7 +50,7 @@ have{transHb} transH: forall K : {group gT},
   rewrite coset_ofN //; case/rcosetP=> t Mt ->; rewrite groupMl //.
   by rewrite mem_conjg (subsetP sMH) // -mem_conjg (normP Nx).
 have{pi'Hb'} pi'H': pi^'.-nat #|G : H|.
-  move: pi'Hb'; rewrite -!group_divn // def_H !card_quotient //; last first.
+  move: pi'Hb'; rewrite -!divgS // def_H !card_quotient //; last first.
   - by case/andP: nMG.
   - by apply: (subset_trans sHG); case/andP: nMG.
   by rewrite -(divn_pmul2l (ltn_0group M)) !LaGrange.
@@ -67,7 +67,7 @@ case: (ltnP #|H| #|G|) => [ltHG | leGH {n IHn leGn transH}].
   have sH1G: H1 \subset G by exact: subset_trans sHG.
   exists H1=> [|K sKG piK].
     apply/and3P; split => //.
-    rewrite -group_divn // -(LaGrange sHG) -(LaGrange sH1H) -mulnA.
+    rewrite -divgS // -(LaGrange sHG) -(LaGrange sH1H) -mulnA.
     by rewrite divn_mulr // pnat_mul pi'H1'.
   case: (transH K sKG piK) => x Gx def_K.
   case: (transH1 (K :^ x^-1)%G) => [||y Hy def_K1].
@@ -84,7 +84,7 @@ have{H Hb def_H eqHG piHb} hallM: pi^'.-Hall(G) M.
 case/splitgP: (SchurZass_split (pHall_Hall hallM) nMG) => H trMH defG.
 have sHG: H \subset G by rewrite -defG mulG_subr.
 exists H => [|K sKG piK].
-  apply: etrans hallM; rewrite /pHall sMG sHG /= -!group_divn // -defG andbC.
+  apply: etrans hallM; rewrite /pHall sMG sHG /= -!divgS // -defG andbC.
   by rewrite (card_mulG_trivP _ _ trMH) divn_mulr ?divn_mull // pnatNK.
 pose G1 := (K <*> M)%G; pose K1 := (H :&: G1)%G.
 have nMK: K \subset 'N(M) by apply: subset_trans sKG _; case/andP: nMG.

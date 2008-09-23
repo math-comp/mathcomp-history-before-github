@@ -201,7 +201,7 @@ Canonical Structure conj_aut_morphism := Morphism conj_aut_morphM.
 Lemma ker_conj_aut : 'ker conj_aut = 'C(G).
 Proof.
 apply/setP=> x; rewrite inE; case nGx: (x \in 'N(G)); last first.
-  by symmetry; apply/idP=> cGx; rewrite (subsetP (cent_norm G)) in nGx.
+  by symmetry; apply/idP=> cGx; rewrite (subsetP (cent_sub G)) in nGx.
 rewrite 2!inE /=; apply/eqP/centP=> [cx1 y Gy | cGx].
   by rewrite /commute (conjgC y) -norm_conj_autE // cx1 perm1.
 apply/permP=> y; case Gy: (y \in G); last by rewrite !permE Gy.

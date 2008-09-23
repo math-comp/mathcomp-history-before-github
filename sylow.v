@@ -21,6 +21,64 @@ Unset Strict Implicit.
 Import Prenex Implicits.
 Import GroupScope.
 
+Section ModP.
+
+Variable (gT : finGroupType) (sT : finType).
+
+Variable to : {action gT &-> sT}.
+
+(***********************************************************************)
+(*                                                                     *)
+(*           The mod p lemma                                           *)
+(*                                                                     *)
+(***********************************************************************)
+
+Lemma pgroup_fix_mod : forall p (G : {group gT}) (S : {set sT}),
+  prime p -> p.-group G -> [acts (G | to) on S] ->
+   #|S| %% p = #|'C_S(G | to)| %% p.
+Proof.
+move=> p G S prime_p; case/p_natP => // n cardG GactS; apply/eqP.
+rewrite -(cardsID 'C(G | to)) eqn_mod_dvd (leq_addr, addKn) //.
+set S1 := S :\: _; have: [acts (G | to) on S1].
+  apply/actsP=> a Ga x; rewrite !in_setD (actsP GactS) //; congr (~~ _ && _).
+  by apply: actsP Ga x; rewrite norm_act_fix ?normG.
+move/acts_sum_card_orbit <-.
+apply big_prop => // [m1 m2|X]; first exact: dvdn_add.
+case/imsetP=> x; case/setDP=> _ nfx ->{X}.
+have:= dvdn_orbit to G x; rewrite cardG.
+case/dvdn_pfactor=> [//|[_|m _ ->]]; last exact: dvdn_mulr.
+move/card_orbit1=> fix_x; case/afixP: nfx => a Ga; apply/set1P.
+by rewrite -fix_x mem_imset.
+Qed.
+
+End ModP.
+
+Section Center.
+(* Some properties on p-groups *)
+
+Variable p n: nat.
+Variable Hp: prime p.
+Variable gT: finGroupType.
+Variable G: {group gT}.
+Variable HG: #|G| = (p ^ n.+1)%N.
+
+Open Scope group_scope.
+
+Lemma pgroup_ntriv : ~~ trivg 'Z(G).
+Proof.
+apply/trivgP=> /= Z1.
+suffices{Z1}: #|'Z(G)| %% p = 0 by rewrite Z1 cards1 modn_small ?prime_gt1.
+suff ->: 'Z(G) = 'C_G(G | 'J).
+  have: p.-group G by apply/p_natP=> //; exists n.+1.
+  move/pgroup_fix_mod=> <- //; first by rewrite HG modn_mulr.
+  apply/actsP=> x Gx y; exact: groupJr.
+congr (_ :&: _); apply/setP=> x; apply/centP/afixP=> cxG y; move/cxG=> /=.
+  by move/commgP; move/conjg_fixP.
+by move/conjg_fixP; move/commgP.
+Qed.
+
+End Center.
+
 Section Sylow.
 
 Variable (gT : finGroupType) (K : {group gT}).
@@ -110,7 +168,7 @@ Theorem sylow1_subset : forall i (L : {group gT}),
   exists P : {group gT}, (L \subset P) && p.-Sylow(K) P.
 Proof.
 move=> i L Hlk Hcl; case (@sylow1 i n L) => // [|H].
-  by rewrite leqnn andbT -pfactor_dvdn // -(eqP Hcl) group_dvdn.
+  by rewrite leqnn andbT -pfactor_dvdn // -(eqP Hcl) cardSg.
 by case/and3P => Hlh Hhk Hc; exists H; rewrite Hlh // pHallE p_part Hhk.
 Qed.
 
@@ -203,8 +261,8 @@ Proof.
 rewrite !pHallE; move/andP => [H1 H2]; apply/andP; split => //.
 rewrite (eqP H2) !p_part; apply/eqP; congr (p ^ _)%N.
 apply/eqP; rewrite eqn_leq; apply/andP; split; last first.
-  by apply dvdn_leq_log => //; exact: group_dvdn.
-by rewrite p_part in H2; rewrite -pfactor_dvdn // -(eqP H2) group_dvdn.
+  by apply dvdn_leq_log => //; exact: cardSg.
+by rewrite p_part in H2; rewrite -pfactor_dvdn // -(eqP H2) cardSg.
 Qed.
 
 End SylowAux.
@@ -275,7 +333,7 @@ move=> gT G P; apply: (iffP idP).
   move/(_ p); rewrite inE eqxx /=; move/eqP.
   rewrite eq_sym; move/eqP; move/idP; case/and3P=> H1P H2P H3P.
   case/andP=> H4P H5P; exists p; split=> //.
-  rewrite (dvdn_trans H3P) // (@group_dvdn _ _ (Group H4P)) //=.
+  rewrite (dvdn_trans H3P) // (@cardSg _ _ (Group H4P)) //=.
   by case/andP: H5P.
 case=> p [H1p H2p H3p] /= H45p.
 have:= H45p; rewrite (pHallE _ _ (Group H3p)); case/andP=> H4p H5p.
@@ -542,7 +600,7 @@ rewrite -oG; case/dvdn_pfactor=> // [] [|j] lejk oGbar.
 rewrite -(LaGrange sZ) -card_quotient //= ucn_center expnSr.
 rewrite leq_mul ?(IHk (ltnW _)) // dvdn_leq ?ltn_0group //.
 have:= pgroup_ntriv pr_p oGbar; rewrite trivg_card.
-have: #|'Z(G / 'Z_k(G))| %| p ^ j.+1 by rewrite -oGbar group_dvdn // subsetIl.
+have: #|'Z(G / 'Z_k(G))| %| p ^ j.+1 by rewrite -oGbar cardSg // subsetIl.
 by case/dvdn_pfactor=> // [] [|i] _ -> // _; rewrite dvdn_mulr.
 Qed.
 
@@ -620,18 +678,18 @@ have [NNG1 _] := andP NNG; have [Sa1 Sa2] := setIP _ _ _ Sa.
 have IaG: a \in G by apply: (subsetP NNG1).
 have NCa1: <[a]> \subset G by apply: cycle_h.
 have NCa2 : G \subset 'N(<[a]>).
-  suff<-: 'C_G[a] = G by apply: normal_centraliser.
+  suff<-: 'C_G[a] = G by apply: subcent1_cycle_norm.
   apply/setIidPl; apply/subsetP => x Hx; apply/cent1P.
   by case/centerP: Sa2 => _;move/(_ _ Hx).
 have SaN: <[a]> \subset N by apply: cycle_h.
 case (Hrec _ Hk1 _ r G1 N2) => //.
 - apply/p_natP=> //; exists k2.-1.
-  rewrite card_quotient // -group_divn //.
+  rewrite card_quotient // -divgS //.
   move/subset_leq_card: NCa1; rewrite Hk2 Ca1.
   case: {Hk2}k2 => [| k2 _]; first by rewrite leqNgt prime_gt1.
   by rewrite divn_mulr // ltn_0prime.
 - by apply: morphim_normal.
-- by rewrite card_quotient ?(subset_trans NNG1) // -group_divn // 
+- by rewrite card_quotient ?(subset_trans NNG1) // -divgS // 
              Ca1 CG divn_mulr // ltn_0prime.
 move=> L1 [H1L1 H2L2 H3L3]; pose H := (G :&: coset_of <[a]> @*^-1 L1)%G.
 have SaH: <[a]>%G \subset H.

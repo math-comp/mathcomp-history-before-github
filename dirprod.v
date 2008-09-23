@@ -143,8 +143,7 @@ move=> H1 H2 G.
 apply: (iffP (dirprod_isom H1 H2 G)) => [[cH -> trH] | [nH1 nH2 defG trH]].
   rewrite /normal /= {-2 4}centralised_mulgenE // mulG_subl // mulG_subr //.
   rewrite //= !gen_subG !subUset normG /= andbC normG /=.
-  move/centsP: cH => cH; split=> //; apply: subset_trans (cent_norm _) => //.
-  by rewrite centsC.
+  by move/centsP: cH => cH; split; rewrite // cents_norm // centsC.
 suff: {in H1, centralised H2}.
   by split=> //; apply: val_inj; rewrite /= centralised_mulgenE.
 (* This is a classic use of commutators *)
@@ -172,7 +171,7 @@ Lemma cprodC : commutative central_product.
 Proof.
 move=> A B; do 2!rewrite /(_ \* _); case: eqP => [->|_]; first by case: eqP.
 rewrite andbCA centsC; case cAB: (B \subset _); last by rewrite !andbF.
-by rewrite -normC // (subset_trans _ (cent_norm _)).
+by rewrite -normC // cents_norm.
 Qed.
 
 Lemma cprod1g : left_unit 1 central_product.
@@ -242,6 +241,16 @@ elim: {r}filter => [|i r IHr] G; rewrite !(big_seq0, big_adds) //=.
 by case/cprodGP=> _ G' _ defG' <- _; rewrite defG' (IHr _ defG').
 Qed.
 
+Lemma bigcprodEgen : forall I (r : seq I) P F G,
+  \big[central_product/1]_(i <- r | P i) F i = G
+  -> << \bigcup_(i <- r | P i) F i >> = G.
+Proof.
+move=> I r P F; rewrite -!(big_filter r).
+elim: {r}filter => [|i r IHr] G; rewrite !(big_seq0, big_adds, gen0) //=.
+case/cprodGP=> F' G' -> defG' <-; rewrite defG' -mulgenE -mulgen_idr => cG'.
+by rewrite (IHr _ defG') cent_mulgenE.
+Qed.
+
 Lemma cprod0g : left_zero set0 central_product.
 Proof.
 move=> A; rewrite /(_ \* A) eqset_sub sub1set {1}/group_set !inE andbF.
@@ -308,19 +317,30 @@ Lemma dprodGE : forall G H,
   G \subset 'C(H) -> trivg (G :&: H) -> G \x H = G * H.
 Proof. by move=> G H cGH trGH; rewrite /(G \x H) trGH cprodGE. Qed.
 
-Lemma bigdprodE : forall I (r : seq I) P F G,
+Lemma bigdprodEcent : forall I (r : seq I) P F G,
   \big[direct_product/1]_(i <- r | P i) F i = G
-  -> \prod_(i <- r | P i) F i = G.
+   -> \big[central_product/1]_(i <- r | P i) F i = G.
 Proof.
 move=> I r P F; rewrite -!(big_filter r).
 elim: {r}filter => [|i r IHr] G; rewrite !(big_seq0, big_adds) //=.
-by case/dprodGP=> [[_ G' _ defG' <- _] _]; rewrite defG' (IHr _ defG').
+case/dprodGP=> [[F' G' -> defG' <-]]; rewrite defG' (IHr _ defG') => cFG' _.
+by rewrite cprodGE.
 Qed.
 
+Lemma bigdprodE : forall I (r : seq I) P F G,
+  \big[direct_product/1]_(i <- r | P i) F i = G
+  -> \prod_(i <- r | P i) F i = G.
+Proof. move=> I r P F G; move/bigdprodEcent; exact: bigcprodE. Qed.
+
+Lemma bigdprodEgen : forall I (r : seq I) P F G,
+  \big[direct_product/1]_(i <- r | P i) F i = G
+  -> << \bigcup_(i <- r | P i) F i >> = G.
+Proof. move=> I r P F G; move/bigdprodEcent; exact: bigcprodEgen. Qed.
 
 End InternalDirProd.
 
 Prenex Implicits direct_product central_product.
 Infix "\x" := direct_product (at level 40, left associativity) : group_scope.
 Infix "\*" := central_product (at level 40, left associativity) : group_scope.
+
 
