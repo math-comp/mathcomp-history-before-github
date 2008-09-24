@@ -179,10 +179,10 @@ Lemma center_bigcprod : forall I r P (F : I -> {set gT}) G,
   \big[central_product/1]_(i <- r | P i) F i = G
   -> \big[central_product/1]_(i <- r | P i) 'Z(F i) = 'Z(G).
 Proof.
-move=> I r P F; rewrite -!(big_filter r).
-elim: {r}filter => [_ <-|i r IHr G]; rewrite !(big_seq0, big_adds, center1) //.
-case/cprodGP => F' G' -> defG'; rewrite defG' (IHr _ defG') => defG cFG'.
-by apply: center_cprod; rewrite cprodGE.
+move=> I r P F; pose R A C := forall G, A :=: G -> C = 'Z(G).
+apply (big_rel R) => [_ <-|A B C D IHA IHB G dG|_ _ G ->]; rewrite ?center1 //.
+case/cprodGP: dG IHA IHB (dG) => [H K -> -> _ _] IHH IHK dG.
+by rewrite (IHH H) // (IHK K) // (center_cprod dG).
 Qed.
 
 Lemma center_dprod : forall A B G, A \x B = G -> 'Z(A) \x 'Z(B) = 'Z(G).
@@ -197,10 +197,10 @@ Lemma center_bigdprod : forall I r P (F: I -> {set gT}) G,
   \big[direct_product/1]_(i <- r | P i) F i = G
   -> \big[direct_product/1]_(i <- r | P i) 'Z(F i) = 'Z(G).
 Proof.
-move=> I r P F; rewrite -!(big_filter r).
-elim: {r}filter => [_ <-|i r IHr G]; rewrite !(big_seq0, big_adds, center1) //.
-case/dprodGP=> [[F' G' -> defG']]; rewrite defG' (IHr _ defG') => dG cFG' tFG'.
-by apply: center_dprod; rewrite dprodGE.
+move=> I r P F; pose R A C := forall G, A :=: G -> C = 'Z(G).
+apply (big_rel R) => [_ <-|A B C D IHA IHB G dG|_ _ G ->]; rewrite ?center1 //.
+case/dprodGP: dG IHA IHB (dG) => [[H K -> -> _ _] _] IHH IHK dG.
+by rewrite (IHH H) // (IHK K) // (center_dprod dG).
 Qed.
 
 End Product.
