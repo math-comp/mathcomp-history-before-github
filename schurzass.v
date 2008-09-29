@@ -1,7 +1,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat div prime.
 Require Import fintype ssralg bigops finset.
 Require Import groups morphisms automorphism normal action.
-Require Import commutators cyclic center pgroups sylow.
+Require Import commutators cyclic center pgroups sylow nilpotent.
 
 (* Require Import seq paths connect finfun group_perm. *)
 
@@ -378,6 +378,28 @@ Prenex Implicits solvable.
 Section Solvable.
 
 Variable gT : finGroupType.
+
+Lemma der_solvable: forall (G : {group gT}),
+  reflect (exists k, G^`(k) = 1) (solvable G).
+Proof.
+move=> G; apply: (iffP idP) => Hi; last first.
+  case: Hi=> k TGk; apply/forallP=> H; apply/implyP.
+  rewrite subsetI; case/andP=> P1H P2H.
+  suff: forall n, H \subset G^`(n) by move/(_ k); rewrite TGk.
+  by elim=> [| n Hrec] //; rewrite (subset_trans P2H) // dergSn commgSS.
+suff Hn: forall (n: nat), ~trivg(G^`(n)) -> (#|G^`(n)| <= #|G| - n).
+  case E1: (trivg G^`(#|G|)); move/idP: E1 => E1; first by exists #|G|; apply/trivgP.
+  by case: (E1); rewrite trivg_card (@leq_trans 0) // -(subnn #|G|) Hn.
+elim=> [| n Hrec] // TG; first by rewrite subn0.
+move: (der_subset G n); rewrite subEproper; case/orP=> EG.
+  by case: TG;
+     rewrite (implyP (forallP Hi ((Group (der_group_set G (n.+1)))))) //
+              subsetI /= der_subset0 {-1}(eqP EG) subset_refl.
+move: {EG}(proper_card EG) => EG.
+rewrite -(addnK n (#|G^`(n.+1)|)) -subSS leq_sub2r //
+         -(eqP (ltn_subr _ _ _)) (leq_trans EG) // Hrec //.
+by move=> HH; case TG; rewrite trivg_card (leq_trans (ltnW EG)) // -trivg_card.
+Qed.
 
 Lemma solvableS : forall G H : {group gT},
   H \subset G -> solvable G -> solvable H.

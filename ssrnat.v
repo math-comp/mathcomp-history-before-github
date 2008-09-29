@@ -526,6 +526,12 @@ Proof. move=> p m n; move/ltn_subS->; exact: (@leq_sub2r p.+1). Qed.
 Lemma ltn_sub2l : forall p m n, m < p -> m < n -> p - n < p - m.
 Proof. move=> p m n; move/ltn_subS->; exact: leq_sub2l. Qed.
 
+Lemma ltn_subr: forall m n p, (n < m - p) == (n + p < m).
+Proof.
+elim=> [| m Hp] n p; first by rewrite sub0n.
+by case: p => *; rewrite !(subn0, addn0, subSS) // addnS ltnS.
+Qed.
+
 (* Elimination of the common idiom for structurally decreasing compare and *)
 (* subtract. *)
 

@@ -322,7 +322,7 @@ Variable (A : {set gT}) (abelA : abelian A).
 
 Lemma asub : forall B : {set gT}, B \subset A -> abelian B.
 Proof.
-by move=> B BA; apply/centsP => x y Bx By;
+by move=> B BA; apply/centsP => x Bx y By;
 move/subsetP: BA => BA; move/centsP: abelA; apply; apply: BA.
 Qed.
 

@@ -150,6 +150,21 @@ Canonical Structure derived_at_group n G := Group (der_group_set G n).
 Lemma der_char : forall G n, G^`(n) \char G.
 Proof. by move=> G; elim=> *; rewrite ?char_refl // dergSn charR. Qed.
 
+Lemma der_subset : forall G n, G^`(n.+1) \subset G^`(n).
+Proof. by move=> G n; rewrite dergSn comm_subG. Qed.
+
+Lemma der_subset0 : forall G n, G^`(n.+1) \subset G.
+Proof.
+move=>G; elim=> [| n Hrec]; first by exact: der_subset.
+by apply: (subset_trans (der_subset _ _)).
+Qed.
+
+Lemma der_normal : forall G n, G^`(n.+1) <| G^`(n).
+Proof. by move=> G n; rewrite sub_der1_normal // der_subset. Qed.
+
+Lemma der_abelian : forall G n, abelian (G^`(n)/G^`(n.+1)).
+Proof. by move=> G n; rewrite sub_der1_abelian // der_subset. Qed.
+
 End Derived.
 
 Section UpperCentral.

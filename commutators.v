@@ -158,6 +158,16 @@ apply/centsP; apply/commG1P.
 by rewrite -morphimR // trivg_quotient // comm_subG.
 Qed.
 
+Lemma der1_min: forall G : {group T},
+  [min [~: G, G] of H | (H <| G) && abelian (G/H)].
+Proof.
+move=> G; apply/mingroupP; split.
+  by rewrite sub_der1_normal ?sub_der1_abelian // comm_subG.
+move=> H; case/andP; case/andP=> N1H N2H AH SH; apply/eqP.
+rewrite eqset_sub SH -trivg_quotient /quotient (comm_subG,morphimR) //.
+by apply/commG1P; apply/centsP.
+Qed.
+
 Lemma center_commgl: forall G H K : {group T},
      G \subset 'N(K) -> H \subset 'N(K) ->
   (H / K) \subset 'C(G / K) -> [~: H, G] \subset K.
