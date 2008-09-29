@@ -21,6 +21,7 @@ Require Import normal.
 
 Require Import automorphism.
 
+
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
@@ -412,3 +413,164 @@ apply: perm_eq_trans i2; exact: perm_eq_refl.
 Qed.
 
 End CompositionSeries.
+
+Section GeneralJordanHolder.
+
+
+Variables (gT : finGroupType).
+
+Definition ainvar(A G : {set gT}) := A \subset 'N(G).
+
+Lemma ainvar1 : forall A, ainvar A 1%G.
+Proof. rewrite /ainvar norm1; exact: subsetT. Qed.
+
+Lemma ainvar1G : forall A : {group gT}, ainvar 1%G A.
+Proof. by move=> A; rewrite /ainvar sub1set group1. Qed.
+
+
+Lemma ainvar_refl : forall A : {group gT}, ainvar A A.
+Proof. rewrite /ainvar; exact: normG. Qed.
+
+
+Definition maxainv (A B C : {set gT}) := 
+  [max C of G | [&& (G <| B), ~~ (B \subset G) & ainvar A G]].
+
+(* garder le != pour aller avec maxnormalP ou bien changer les deux en  ~\subset*)
+Lemma maxainvP : forall A G H : {group gT},
+  reflect [/\ H <| G, H \proper G, ainvar A H &
+    (forall K : {group gT}, K <| G -> K \proper G -> ainvar A K -> H \subset K -> K :=: H)]
+  (maxainv A G H).
+Proof.
+move=> A G H; apply: (iffP idP).
+  case/maxgroupP; case/and3P=> nHG pH aiH iH; split=> //; rewrite /proper ?(normal_sub nHG) //.
+  by move=>  K nKH neKH iK; apply: iH; rewrite nKH; case/andP: neKH => _ ->.
+case=> nHG pHG aH Hm; apply/maxgroupP.
+rewrite nHG proper_subn //=; split=> // K; case/and3P=> nKG nsGK aKs HK; apply: Hm=> //.
+by rewrite /proper (normal_sub nKG).
+Qed.
+
+Section MaxAinvProps.
+
+Variables A G N : {group gT}.
+
+Lemma maxainv_norm : maxainv A G N -> N <| G.
+Proof. by move/maxgroupp; case/andP. Qed.
+
+Lemma maxainv_proper : maxainv A G N -> N \proper G.
+Proof.
+by move/maxgroupp; case/andP; rewrite properE; move/normal_sub->; case/andP.
+Qed.
+
+Lemma maxainv_ainvar : maxainv A G N -> ainvar A N.
+Proof. by move/maxgroupp; case/and3P. Qed.
+
+Lemma maxainvS : maxainv A G N -> N \subset G.
+Proof. by move=> pNN; rewrite proper_sub // maxainv_proper. Qed.
+
+Lemma maxainv_exists : ~~ trivg G -> {N : {group gT} | maxainv A G N}.
+Proof.
+move=> nt; apply: ex_maxgroup; exists (1%G : {group gT}). 
+by rewrite /= normal1 ainvar1 nt.
+Qed.
+
+Lemma maxainv_sub :
+  N <| G -> N \proper G -> ainvar A N -> {H : {group gT} | maxainv A G H & N \subset H}.
+Proof.
+by move=> nNG; case/andP=> _ pNGl aN; apply: maxgroup_exists; rewrite nNG pNGl.
+Qed.
+
+End MaxAinvProps.
+
+Definition asimple (A G : {set gT}) := maxainv A G 1.
+
+Lemma asimpleP : forall A G : {group gT}, 
+  reflect (~~(trivg G) /\ (forall H : {group gT}, H <| G -> ainvar A H -> H :=: 1 \/ H :=: G)) (asimple A G).
+Proof.
+move=> A G; apply: (iffP idP).
+  case; case/maxainvP=> _ ntG ainvG mG; split; first by rewrite  trivGn.
+  move=> H nHG ainvH; case eHG : (H == G); first by rewrite (eqP eHG) /=; right.
+  left; apply: mG=> //; rewrite ?sub1set ?group1 // properEneq normal_sub // andbT.
+  by move/negbT:eHG.
+rewrite trivGn; case=> ntG; move=> h; apply/maxainvP.
+rewrite normal1 ntG ainvar1; split=> // K nKG pKG ainvK _.
+by case: (h _ nKG ainvK)=> //; move/eqP; move/negbET: (proper_neq pKG)->.
+Qed.
+
+Lemma asimple1 : forall G : {group gT}, ~~ (trivg G) && asimple 1 G = simple G.
+Proof.
+move=> G; apply/andP/simpleP.
+  by case=> ntG; case/asimpleP=> ntH asH; split=> // H nHG; apply: asH; rewrite // ainvar1G.
+by  case=> ntG sG; split=> //; apply/asimpleP; split => // H sHG _; apply: (sG).
+Qed.
+
+
+Section RelativeCompositionSeries.
+
+
+Notation gTsec := (section gT).
+Notation gTg := {group gT}.
+
+Implicit Type G : gTg.
+Implicit Type s : seq gTg.
+
+
+Variable A : gTg.
+
+Definition acomps G s :=
+  ((last G s) == 1%G) && path [rel x y : gTg | maxainv A x y] G s.
+
+Lemma acompsP : forall G s, reflect
+  (last G s = 1%G /\  path [rel x y : gTg | maxainv A x y] G s) (acomps G s).
+Proof. by move=> G s; apply: (iffP andP); case; move/eqP. Qed.
+
+Lemma trivg_acomps : forall G s, acomps G s -> trivg G = (s == [::]).
+Proof.
+move=> G s; case/andP=> ls cs; apply/trivgP/eqP; last first.
+  by move=> se; rewrite se /= in ls; apply/eqP.
+move=> G1; case: s ls cs => // H s _ /=; case/andP; case/maxainvP=> _.
+by rewrite G1 /proper sub1set group1 andbF.
+Qed.
+
+
+Lemma acomps_adds : forall G H s, acomps G (H :: s) -> acomps H s.
+Proof. 
+by move=> G H s; case/andP => /= ls; case/andP=> _ p; rewrite /acomps ls. 
+Qed.
+
+Lemma asimple_acompsP : forall G s, acomps G s ->
+  reflect (s = [:: (1%G : group gT) ]) (asimple A G).
+Proof.
+move=> G s cs; apply: (iffP idP); last first.
+  by move=> se; move: cs; rewrite se /=; case/andP=> /=; rewrite andbT.
+case: s cs; first by rewrite /acomps /= andbT; move/eqP->; case/asimpleP; rewrite trivg1.
+move=> H s cs sG; apply/eqP; rewrite eqseq_adds -(trivg_acomps (acomps_adds cs)).
+suff H1: H :=: 1 by rewrite H1 trivg1 andbT; apply/eqP; apply: val_inj=> /=.
+case/acompsP: cs=> /= ls; case/andP=> mH ps; case/maxainvP: sG => _ ntG _.
+apply; rewrite ?sub1set ?group1 ?(maxainv_norm mH) ?(maxainv_proper mH) //. 
+exact: (maxainv_ainvar mH).
+Qed.
+
+
+(* Existence of a composition serie for a finite group, 
+by recursion of the cardinal.
+*)
+Lemma exists_acomps : forall G : gTg, exists s, acomps G s.
+Proof.
+move=> G; elim: {G} #|G| {1 3}G (leqnn #|G|) => [G | n Hi G cG].
+  by rewrite leqNgt ltn_0group.
+case/orP: (orbN (asimple A G)) => [sG | nsG].
+  by exists [:: (1%G : gTg) ]; rewrite /acomps eqxx /= andbT; rewrite /asimple in sG.
+case/orP: (orbN (trivg G))=> [tG | ntG].
+  exists (Seq0 gTg); rewrite /acomps /= andbT; apply/eqP; apply: val_inj.
+  by apply/trivgP.
+case: (maxainv_exists A ntG)=> N pmN.
+have cN: #|N| <= n.
+  by rewrite -ltnS (leq_trans _ cG) // proper_card // (maxainv_proper pmN).
+case: (Hi _ cN)=> s; case/andP=> lasts ps; exists [:: N & s]; rewrite /acomps.
+by rewrite last_adds lasts /= pmN.
+Qed.
+
+
+End RelativeCompositionSeries.
+
+End GeneralJordanHolder.
