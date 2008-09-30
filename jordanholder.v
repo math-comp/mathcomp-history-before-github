@@ -570,7 +570,63 @@ case: (Hi _ cN)=> s; case/andP=> lasts ps; exists [:: N & s]; rewrite /acomps.
 by rewrite last_adds lasts /= pmN.
 Qed.
 
-
 End RelativeCompositionSeries.
 
 End GeneralJordanHolder.
+
+Prenex Implicits ainvar.
+
+Section RelativeSimpleMaxInv.
+
+Variable (gT : finGroupType).
+Notation gt := {group gT}.
+Notation st := {set gT}.
+
+Variables A G N : {group gT}.
+
+
+Lemma maxainv_asimple_quo : maxainv A G N -> asimple (A / N) (G / N).
+Proof.
+case/maxainvP=> nNG pNG Ninv Nmax; apply/asimpleP; split; last move=> K' nK'Q. 
+  by rewrite trivg_quotient ?normal_norm ?proper_subn.
+have : (K' \proper (G / N)) || (G / N == K').
+  by rewrite properE eqset_sub andbC (normal_sub nK'Q) !andbT orbC orb_negb_r.
+case/orP=> [ pHQ | eQH]; last by right; apply sym_eq; apply/eqP.
+left; pose K := ((coset_of N) @*^-1 K')%G.
+have eK'I : K' \subset (coset_of N) @* 'N(N).
+  by rewrite (subset_trans (normal_sub nK'Q)) ?morphimS ?normal_norm.
+have eKK' : K' :=: K / N by rewrite /(K / N) morphpreK //=.
+suff eKN : K :=: N by rewrite -trivial_quotient eKK' eKN.
+have nKG : K <| G by rewrite -(cosetimGK nNG) cosetpre_normal.
+have sNK : N \subset K by rewrite -ker_coset kerE morphpreS // sub1set group1.
+have {sNK} nNK : N <| K by rewrite (@normalS _ G) // normal_sub.
+have iK : ainvar A K.
+  move: {Nmax pNG} H; rewrite eKK' /ainvar norm_quotient //.
+  by rewrite cosetimSGK // (subset_trans (normal_sub nNG)) // normal_norm.
+apply: Nmax=> //; last by rewrite -(ker_coset N) kerE morphpreSK sub1G.
+suff : ~~ (G \subset K) by rewrite properE (normal_sub nKG).
+by rewrite -(cosetimGK nNG) morphpreSK /= ?proper_subn // ?morphimS ?normal_norm.
+Qed.
+
+Lemma asimple_quo_maxainv : 
+  ainvar A N -> N <| G -> asimple (A / N) (G / N) -> maxainv A G N.
+Proof.
+move=> aiN nNG; move/asimpleP=> [nt sQ]; apply/maxainvP; rewrite nNG properE.
+rewrite normal_sub // -trivg_quotient ?normal_norm // nt aiN.
+split=> // K nKG neGK aiK sNK.
+pose K':= (K / N)%G.
+have K'dQ : K' <| (G / N)%G by apply: morphim_normal.
+have nKN : N <| K by rewrite (normalS _ _ nNG) // normal_sub.
+have aiK' : ainvar (A / N) K' by rewrite /ainvar /K' norm_quotient // quotientS.
+case: (sQ K' K'dQ aiK')=> /=; last first.
+  move/quotient_inj; rewrite !inE /=; move/(_ nKN nNG)=> c; move: neGK.
+  by rewrite c properE subset_refl.
+rewrite -trivial_quotient; move=> tK'; apply:(congr1 (@set_of_group _)); move: tK'.
+apply: (@quotient_inj _ N); rewrite ?inE /= ?normal_refl /normal ?sNK //.
+by rewrite ?(subset_trans sKG) ?normal_norm.
+Qed.
+
+
+End RelativeSimpleMaxInv.
+
+
