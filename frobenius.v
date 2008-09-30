@@ -226,7 +226,7 @@ set e := _ - n; elim: e {-2}e (leqnn e).
   apply/dvdnP; exists 1%N; rewrite mul1n.
   apply: eq_card => x.
   rewrite inE /= /order; case E1: (x \in G) => //=.
-  by rewrite cardSg // cycle_h.
+  by rewrite cardSg // cycle_subG.
 move => n1 Hrec e.
 rewrite leq_eqVlt; case/orP => H H1; last apply Hrec => //.
 move: H1; rewrite (eqP H).
@@ -306,7 +306,7 @@ apply/andP;split.
       rewrite !inE /= /f -andbA; case/and3P=> Gy y_p_n2; rewrite Gy /= => y_p_n2' e1_y_x.
       have{e1_y_x} e_x_y: <[x]> = <[y]> by symmetry; apply/eqP.
       have ->: x \in G.
-        by apply: (subsetP (cycle_h Gy)); rewrite -e_x_y cyclenn.
+        by rewrite -cycle_subG e_x_y cycle_subG.
       by rewrite /order e_x_y y_p_n2.
     by exists x; rewrite inE // [e1 _ _]eqxx.
   rewrite -cardsE; apply: card_dvdn_partition F2 _ => x; rewrite inE => Ax.

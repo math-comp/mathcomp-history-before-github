@@ -365,13 +365,13 @@ by rewrite order_dvd -expgn_mul mulnC mulnA partnC // -order_dvd dvdn_mulr.
 Qed.
 
 Lemma mem_p_elt : forall pi x G, pi.-group G -> x \in G -> pi.-elt x.
-Proof. by move=>pi x G piG Gx; apply: pgroupS piG; rewrite cycle_h. Qed.
+Proof. by move=>pi x G piG Gx; apply: pgroupS piG; rewrite cycle_subG. Qed.
 
 Lemma p_eltM_norm : forall pi x y, x \in 'N(<[y]>) ->
   pi.-elt x -> pi.-elt y -> pi.-elt (x * y).
 Proof.
 move=> pi x y nyx pi_x pi_y; apply: (@mem_p_elt pi _ (<[x]> <*> <[y]>)%G).
-  rewrite /= norm_mulgenE ?cycle_h // pgroupM; exact/andP.
+  rewrite /= norm_mulgenE ?cycle_subG // pgroupM; exact/andP.
 by rewrite groupM // mem_gen // inE cyclenn ?orbT.
 Qed.
 
@@ -464,7 +464,7 @@ move=> pi x y cxy; pose m := #|<<[set x; y]>>|.
 pose k := chinese m`_pi m`_pi^' 1 0; have m_pos: 0 < m := ltn_0group _.
 suffices kXpi: forall z, z \in <<[set x; y]>> -> z.`_pi = z ^+ k.
   by rewrite !kXpi ?expMgn // ?groupM ?mem_gen // (set21, set22).
-move=> z xyz; have{xyz} zm: #[z] %| m by rewrite cardSg ?cycle_h.
+move=> z xyz; have{xyz} zm: #[z] %| m by rewrite cardSg ?cycle_subG.
 apply/eqP; rewrite eq_expg_mod_order -{3 4}[#[z]](partnC pi) //.
 rewrite chinese_remainder ?chinese_modl ?chinese_modr ?coprime_partC //.
 rewrite -!(modn_dvdm k (partn_dvd _ m_pos zm)).
@@ -583,7 +583,8 @@ have [Q maxQ _]: {Q | [max Q | p^'.-subgroup('C_G(G)) Q] & 1%G \subset Q}.
 case/andP: (maxgroupp maxQ) => sQC; rewrite /pgroup p'natE //; case/negP.
 apply: dvdn_trans pZ (cardSg _); apply/subsetP=> x; case/setIP=> Gx Cx.
 rewrite -sub1set -gen_subG (normal_sub_max_pgroup maxQ) //; last first.
-  by rewrite /normal subsetI !cycle_h ?cents_norm ?subIset // centsC cycle_h.
+  rewrite /normal subsetI !cycle_subG ?Gx ?cents_norm ?subIset ?andbT //=.
+  by rewrite centsC cycle_subG Cx.
 rewrite /pgroup p'natE //= -[#|_|]/#[x]; apply/dvdnP=> [[m oxm]].
 have m_pos: 0 < m by apply: ltn_0dvd (ltn_0order x) _; rewrite oxm dvdn_mulr.
 case/idP: (no_x (x ^+ m)); rewrite /= groupX //= order_gcd //= oxm.
@@ -1579,7 +1580,7 @@ exists (Ordinal lt_p_G1); rewrite //= pnElemE // 2!inE sEG /= expn1 pE eqxx.
 rewrite p_abelemE // -pE exponent_dvdn !andbT.
 case: (@Cauchy _ p E) => // [|x Ex oxp]; first by rewrite pE.
 suff <-: <[x]> = E by apply/centsP; apply: commute_cycle_com.
-by apply/eqP; rewrite eqset_sub_card pE [#|_|]oxp cycle_h /=.
+by apply/eqP; rewrite eqset_sub_card pE [#|_|]oxp cycle_subG Ex /=.
 Qed.
 
 End OhmProps.

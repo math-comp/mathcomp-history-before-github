@@ -461,8 +461,8 @@ move=> sHG nHL ntH; case abelH: (trivg [~: H, H]).
       by apply/set1P=> x1; rewrite -oxp x1 order1 in prp.
     rewrite inE -{2}oxp expn1 order_expn1 eqxx andbT -sub1set -gen_subG.
     apply: subset_pcore; first by rewrite /pgroup [#|_|]oxp pnat_id.
-    rewrite /(_ <| H) cycle_h // cents_norm // centsC.
-    rewrite cycle_h //; exact: subsetP Hx.
+    rewrite /(_ <| H) cycle_subG // cents_norm ?andbT // centsC.
+    rewrite cycle_subG //; exact: subsetP Hx.
   exists H1; split=> //; first exact: subset_trans sHG.
     exact: char_normal_trans nHL.
   apply/abelem_Ohm1P=> //; first exact: pgroup_p pH1.

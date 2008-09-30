@@ -118,7 +118,7 @@ Lemma subcent1C : forall x y G, x \in G -> y \in 'C_G[x] -> x \in 'C_G[y].
 Proof. by move=> x y G Gx; case/subcent1P=> *; apply/subcent1P. Qed.
 
 Lemma subcent1_cycle_sub : forall x G, x \in G -> <[x]> \subset 'C_G[x].
-Proof. by move=> x G Gx; rewrite cycle_h ?subcent1_id. Qed.
+Proof. by move=> x G Gx; rewrite cycle_subG ?subcent1_id. Qed.
 
 Lemma subcent1_cycle_norm : forall x G, 'C_G[x] \subset 'N(<[x]>).
 Proof. by move=> x G; rewrite cents_norm // cent_gen cent_set1 subsetIr. Qed.
@@ -135,7 +135,7 @@ Proof.
 move=> G; case/cyclicP=> a Ga; apply/eqP; rewrite eqset_sub center_sub andbT.
 case: (cosetP a) => /= z Nz def_a.
 have G_Zz: G :=: 'Z(G) * <[z]>.
-  rewrite -['Z(G)]ker_coset -morphimK ?cycle_h ?morphim_cycle //=.
+  rewrite -['Z(G)]ker_coset -morphimK ?cycle_subG ?morphim_cycle //=.
   by rewrite -def_a -Ga quotientGK // center_normal.
 rewrite -(mulg1 'Z(G)) {1}G_Zz mulGS mulg1 /= G_Zz subsetI mulG_subr /=.
 rewrite centMG subsetI centsC subIset /=.

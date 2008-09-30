@@ -98,11 +98,14 @@ Proof. move=> A; apply: (iffP existsP) => [] [x]; exists x; exact/eqP. Qed.
 Lemma cycle_unit : <[1]> = 1 :> {set gT}.
 Proof. by apply/eqP; rewrite eqset_sub gen_subG !sub1G. Qed.
 
-Lemma cycle_h : forall a H, a \in H -> <[a]> \subset H.
-Proof. by move=> a H Ha; rewrite gen_subG sub1set. Qed.
-
 Lemma cyclenn : forall a, a \in <[a]>.
 Proof. by move=> a; rewrite mem_gen // set11. Qed.
+
+Lemma cycle_subG : forall a H, <[a]> \subset H = (a \in H).
+Proof.
+move=> a H; apply/idP/idP=> Ha; last by rewrite gen_subG sub1set.
+by rewrite -sub1set (subset_trans _ Ha) // sub1set cyclenn.
+Qed.
 
 Lemma cycle_expgn : forall a b n, b \in <[a]> -> b ^+ n \in <[a]>.
 Proof. move=> a; exact: groupX. Qed.
@@ -331,7 +334,7 @@ by move/(conj H); move/andP; move/(decomp_order_unicity (ltn_0order a))=> <-.
 Qed.
 
 Lemma order_dvd_g : forall (H : group gT) a, a \in H -> #[a] %| #|H|.
-Proof. move=> H a Ha; apply: cardSg; exact: cycle_h. Qed.
+Proof. by move=> H a Ha; apply: cardSg; rewrite cycle_subG. Qed.
 
 Lemma order_gexp_dvd : forall a n, #[a ^+ n] %| #[a].
 Proof. move=> a n; apply: order_dvd_g; exact: cycle_in. Qed.
@@ -378,12 +381,12 @@ Lemma generator_order : forall a b,
 Proof. by rewrite /order => a b; move/(<[a]> =P _)->. Qed.
 
 Lemma cycle_subset : forall a n, <[a ^+ n]> \subset <[a]>.
-Proof. move=> a n; apply: cycle_h; exact: cycle_in. Qed.
+Proof. move=> a n; rewrite cycle_subG; exact: cycle_in. Qed.
 
 Lemma cycleV : forall a, <[a^-1]> = <[a]>.
 Proof.
 move=> a; symmetry; apply/eqP; rewrite eqset_sub.
-by rewrite !cycle_h // -groupV ?invgK cyclenn.
+by rewrite !cycle_subG // -2!groupV invgK !cyclenn. 
 Qed.
 
 Lemma orderV : forall x, #[x^-1] = #[x].
@@ -488,11 +491,11 @@ Lemma cyclic_prime: forall G, prime #|G| -> cyclic G.
 Proof.
 move=> G pG; case: (pickP (mem G^#)) => [x Hx| Hx]; last first.
   by move: pG; rewrite (cardsD1 1 G) group1 (eq_card0 Hx).
-move: (Hx); rewrite /= in_setD1; case/andP => xD1 xIG.
-case/primeP: pG => _; move/(_ _ (cardSg (cycle_h xIG))); case/orP;  move/eqP.
+move: (Hx); rewrite /= in_setD1; case/andP => xD1; rewrite -cycle_subG=> xIG.
+case/primeP: pG => _; move/(_ _ (cardSg xIG)); case/orP;  move/eqP.
   by rewrite (cardsD1 1) (cardsD1 x) group1 in_setD1 xD1 cyclenn.
 move=> CxG; apply/cyclicP; exists x.
-by apply/eqP; rewrite eq_sym eqset_sub_card cycle_h // CxG leqnn.
+by apply/eqP; rewrite eq_sym eqset_sub_card // CxG leqnn andbT.
 Qed.
 
 End CyclicProps.
@@ -709,7 +712,7 @@ Lemma generator_bij : forall (G H : {group aT}) (f : {morphism G >-> rT}) a,
 Proof.
 move=> G H f a injf sHG Ga.
 rewrite /generator -morphim_cycle // !eqset_sub.
-by rewrite !morphimSGK //= ?(subset_trans injf, sub1G, cycle_h).
+by rewrite !morphimSGK //= ?(subset_trans injf, sub1G, cycle_subG).
 Qed.
 
 End GenAut.

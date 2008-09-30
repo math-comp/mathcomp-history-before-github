@@ -230,7 +230,7 @@ wlog abV: / p.-abelem V.
   suff: <[x]> \subset V.
     rewrite gen_subG sub1set => Vx.
     by move/pgroupP: pV neqp => /= -> //; rewrite -oxq order_dvd_g.
-  apply: subset_trans sCV_V; rewrite subsetI cycle_h /=; last first.
+  apply: subset_trans sCV_V; rewrite subsetI cycle_subG; apply/andP; split.
     apply: subsetP Wx; exact: normal_sub.
   have coxV: coprime #[x] #|V|.
     by rewrite oxq coprime_sym (pnat_coprime pV) // pnatE.
@@ -242,10 +242,10 @@ wlog abV: / p.-abelem V.
     rewrite setIC coprime_trivg // (@pnat_coprime p) //.
     by rewrite [_.-nat _]morphim_pgroup.
   case/andP: nWH => sWH nWH.
-  rewrite subsetI andbC subcomm_normal cycle_h; last first.
+  rewrite subsetI andbC subcomm_normal cycle_subG; apply/andP; split.
     by apply: subsetP Wx; apply: subset_trans (subset_trans sWH _) nVG.
   move: nWH; rewrite -subcomm_normal commsgC; apply: subset_trans.
-  by rewrite commgSS // cycle_h //.
+  by rewrite commgSS // cycle_subG //.
 have{sCV_V} eqVC: V :=: 'C_H(V). 
   by apply/eqP; rewrite eqset_sub sCV_V subsetI andbT sVH; case/p_abelemP: abV.
 wlog{IHquo} nondecV:  / forall N1 N2,
@@ -481,7 +481,7 @@ have trCP_R0: trivg 'C_P(R0).
   case/Cauchy=> // x Cx oxp.
   suff: trivg <[x]> by rewrite trivg_card [#|_|]oxp leqNgt prime_gt1.
   apply: subset_trans VIP; rewrite subsetI andbC.
-  rewrite cycle_h /=; last by case/setIP: Cx.
+  rewrite cycle_subG; apply/andP; split; first by case/setIP: Cx.
   suff <-: 'C_V(R0) = <[x]> by rewrite subsetIl.
   have: cyclic 'C_(P <*> V)(R0).
     have: Sylow 'C_(P <*> V)(R0) 'C_(P <*> V)(R0); last apply/implyP.
@@ -498,7 +498,7 @@ have trCP_R0: trivg 'C_P(R0).
   have: p %| #[y] by rewrite -oxp order_dvd_g.
   move/cycle_sub_group; set Cy1 := <[_]>%G => defCy1.
   have ->: <[x]>%G = Cy1.
-    apply/set1P; rewrite -defCy1 inE cycle_h //=; exact/eqP.
+    apply/set1P; rewrite -defCy1 inE cycle_subG y_x /=; exact/eqP.
   by apply/set1P; rewrite -defCy1 inE oCVR0 -defC setSI //= sub_gen ?subsetUr.
 have defP: P :=: [~: P, R0].
   move: coHR; rewrite -(LaGrange sPH) -(LaGrange sR0R).
