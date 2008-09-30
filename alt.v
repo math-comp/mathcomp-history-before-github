@@ -45,7 +45,7 @@ have [p [p_pr pA_int Sp1]]:
   exists p, [/\ prime p, 1 < #|A|`_p < #|A| & #|'Syl_p(A)| == 1%N].
 - have: #|'Syl_3(A)| \in filter [pred d | d %% 3 == 1%N] (divisors 12).
     rewrite mem_filter -dvdn_divisors //= -oA.
-    by rewrite sylow3_div ?sylow3_mod.
+    by rewrite card_Syl_dvd ?card_Syl_mod.
   rewrite /= oA; case/orP; first by exists 3; rewrite ?p_part.
   case/predU1P=> //; move/(congr1 double).
   pose Q3 := \bigcup_(Q \in 'Syl_3(A)) Q^#.
@@ -66,18 +66,18 @@ have [p [p_pr pA_int Sp1]]:
     move=> P; rewrite inE {1}/A => sylP.
     apply/eqP; rewrite eqset_sub_card -(leq_add2l #|A :&: Q3|) cardsID.
     rewrite (card_Hall sylP) (setIidPr _) ?oA; last first.
-      apply/bigcup_inP=> Q; rewrite inE /A; move/pHall_subset.
+      apply/bigcup_inP=> Q; rewrite inE /A; move/pHall_sub.
       by apply: subset_trans; rewrite setD1E subsetIl.
-    rewrite cQ3 p_part andbT subsetD (pHall_subset sylP).
+    rewrite cQ3 p_part andbT subsetD (pHall_sub sylP).
     rewrite disjoint_sym disjoints_subset;  apply/bigcup_inP=> Q.
     rewrite inE -setCS -setDset1 setCD -subDset setDE !setCK /A => sylQ.
     apply: coprime_trivg; apply: pnat_coprime (pHall_pgroup sylP) _.
     by apply: subd_pnat (pHall_pgroup sylQ) => q _; move/eqnP->.
-  case: ((sylow1_cor [group of A]) 2) => //= P sylP.
+  have [/= P sylP]:= Sylow_exists 2 [group of A].
   rewrite (cardD1 P) inE sylP eqSS; apply/pred0P=> P'.
   apply/andP=> [[nPP' sylP']]; case/eqP: nPP'.
   by apply: val_inj; rewrite /= !nQS2 // inE.
-case: (normal_sylowP 'Alt_T p_pr Sp1) => P; case/pHallP=> sPA pP nPA.
+case: (normal_sylowP p 'Alt_T Sp1) => P; case/pHallP=> sPA pP nPA.
 apply/simpleP=> [] [_]; rewrite -pP in pA_int.
 by case/(_ P)=> // defP; rewrite defP oA ?cards1 in pA_int.
 Qed.
@@ -174,15 +174,15 @@ have Hcard20: #|H| = 20; last clear Hcard1 Hcard60.
   by case/dvdnP: Hdiv H20 Hdiv1 => n ->; move: n; do 4!case=> //.
 have prime_5: prime 5 by [].
 have nSyl5: #|'Syl_5(H)| = 1%N.
-  move: (sylow3_div H prime_5) (sylow3_mod H prime_5).
+  move: (card_Syl_dvd 5 H) (card_Syl_mod H prime_5).
   rewrite Hcard20; case: (card _) => // n Hdiv.
   move: (dvdn_leq  (tp: (0 < 20)%N) Hdiv).
   by move: (n) Hdiv; do 20 (case => //).
-case: (sylow1_cor H prime_5) => S; case/pHallP=> sSH oS.
+case: (Sylow_exists 5 H) => S; case/pHallP=> sSH oS.
 have{oS} oS: #|S| = 5 by rewrite oS p_part Hcard20. 
 suff: 20 %| #|S| by rewrite oS.
 apply FF => [|S1]; last by rewrite S1 cards1 in oS.
-apply: char_norm_trans Hnorm; apply: lone_subgroup_char => // Q sQH isoQS.
+apply: char_normal_trans Hnorm; apply: lone_subgroup_char => // Q sQH isoQS.
 rewrite ((Q =P S :> set _) _) //; apply/idPn=> nQS; move: nSyl5.
 rewrite (cardsD1 S) (cardsD1 Q) 3!{1}inE nQS !pHallE sQH sSH Hcard20 p_part.
 by rewrite (isog_card isoQS) oS.

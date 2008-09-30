@@ -40,7 +40,7 @@ have nGN: N \subset 'N(G) by rewrite subIset ?nG_AG.
 have nGN_N: G :&: N <| N.
   apply/normalP; rewrite subsetIr; split=> // x Nx.
   by rewrite conjIg (normP _) // (subsetP nGN, conjGid).
-have NG_AG : G * N = A <*> G by apply: HallFrattini hallH => //; exact/andP.
+have NG_AG : G * N = A <*> G by apply: Hall_Frattini_arg hallH => //; exact/andP.
 have iGN_A: #|N| %/ #|G :&: N| = #|A|.
   rewrite divgS ?subsetIr // -card_quotient; last by case/andP: nGN_N.
   rewrite (isog_card (second_isog nGN)) /= -quotient_mulg (normC nGN) NG_AG.
@@ -76,7 +76,7 @@ have nGN: N \subset 'N(G) by rewrite subIset ?nG_AG.
 have nGN_N: G :&: N <| N.
   apply/normalP; rewrite subsetIr; split=> // y Ny.
   by rewrite conjIg (normP _) // (subsetP nGN, conjGid).
-have NG_AG : G * N = A <*> G by apply: HallFrattini hallH => //; exact/andP.
+have NG_AG : G * N = A <*> G by apply: Hall_Frattini_arg hallH => //; exact/andP.
 have iGN_A: #|N : G :&: N| = #|A|.
   rewrite -card_quotient //; last by case/andP: nGN_N.
   rewrite (isog_card (second_isog nGN)) /= -quotient_mulg (normC nGN) NG_AG.

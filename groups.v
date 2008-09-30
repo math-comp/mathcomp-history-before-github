@@ -1337,6 +1337,12 @@ move/card_mem_repr; move: (repr _) => y; rewrite inE; case/andP=> Gy.
 by move/eqP; exists y.
 Qed.
 
+Lemma class_subG : forall x A, x \in G -> A \subset G -> x ^: A \subset G.
+Proof.
+move=> x A Gx sAG; apply/subsetP=> yx; case/imsetP=> y Ay ->{yx}.
+by rewrite groupJ // (subsetP sAG).
+Qed.
+
 Lemma class_supportGidl : forall A x,
   x \in G -> class_support (A :^ x) G = class_support A G.
 Proof.
@@ -1711,6 +1717,10 @@ Proof. by move=> A B; rewrite sub_gen ?subsetUl. Qed.
 Lemma mulgen_subr : forall A B, B \subset A <*> B.
 Proof. by move=> A B; rewrite sub_gen ?subsetUr. Qed.
 
+Lemma mulgen_subG : forall A B G,
+  (A <*> B \subset G) = (A \subset G) && (B \subset G).
+Proof. by move=> A B G; rewrite gen_subG subUset. Qed.
+
 Lemma genDU : forall A B C,
   A \subset C -> <<C :\: A>> = <<B>> -> <<A :|: B>> = <<C>>.
 Proof.
@@ -1985,6 +1995,9 @@ Qed.
 Lemma norm_gen : forall A, 'N(A) \subset 'N(<<A>>).
 Proof. by move=> A; apply/normsP=> x Nx; rewrite -genJ (normP Nx). Qed.
 
+Lemma norm_class : forall x G, G \subset 'N(x ^: G).
+Proof. by move=> x G; apply/normsP=> y; exact: classGidr. Qed.
+
 Section norm_trans.
 
 Variables A B C : {set gT}.
@@ -2018,6 +2031,9 @@ Proof.
 move=> G H K; case/andP=> sHG nHG; case/andP=> sKG nKG.
 by rewrite /normal mul_subG ?normsM.
 Qed.
+
+Lemma normal_subnorm : forall G H, (H <| 'N_G(H)) = (H \subset G).
+Proof. by move=> G H; rewrite /normal subsetIr subsetI normG !andbT. Qed.
 
 Lemma centS : forall A B, B \subset A -> 'C(A) \subset 'C(B).
 Proof.

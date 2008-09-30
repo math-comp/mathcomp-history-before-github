@@ -292,13 +292,13 @@ case: (leqP #|H| 1%N) => [trivH _ _ | ntrivH].
     apply/subsetP=> x Hx; rewrite inE; apply/idPn=> nx1.
     by rewrite (cardD1 1) group1 (cardD1 x) inE /= Hx nx1 in trivH.
   move/trivgP->; apply/splitgP; exists G; [exact: subsetIl | exact: mul1g].
-have:= (prime_pdiv ntrivH); set p := pdiv _ => prime_p.
-case: (sylow1_cor H prime_p) => // P sylP hallH nsHG.
+have:= (prime_pdiv ntrivH); set p := pdiv _ => prime_p hallH nsHG.
+have [P sylP] := Sylow_exists p H.
 have [sHG nHG] := andP nsHG.
 case nPG: (P <| G); last first.
   pose N := ('N_G(P))%G.
   have sNG: N \subset G by rewrite subsetIl.
-  have eqHN_G: H * N = G by exact: Frattini sylP.
+  have eqHN_G: H * N = G by exact: Frattini_arg sylP.
   pose H' := (H :&: N)%G.
   have nH'N: H' <| N.
     rewrite /(_ <| N) subsetIr; apply/subsetP=> x Nx.
@@ -307,7 +307,7 @@ case nPG: (P <| G); last first.
   have eq_iH: #|G : H| = #|N| %/ #|H'|.
     rewrite -divgS // -(divn_pmul2l (ltn_0group H')) mulnC -eqHN_G.
     by rewrite card_mulG (mulnC #|H'|) divn_pmul2l // ltn_0group.
-  have hallH': Hall N H'.
+    have hallH': Hall N H'.
     have sH'H: H' \subset H by exact: subsetIl.
     case/andP: hallH => _; rewrite eq_iH -(LaGrange sH'H) coprime_mull.
     by rewrite /Hall divgS subsetIr //; case/andP.
@@ -327,7 +327,7 @@ pose Z := ('Z(P))%G; have iZ: 'Z(P) = Z by [].
 have sZP: Z \subset P by exact: center_sub.
 have sZH: Z \subset H by case/andP: sylP; move/(subset_trans sZP).
 have sZG: Z \subset G by exact: subset_trans sHG.
-have nZG: Z <| G by apply: char_norm_trans nPG; exact: center_char.
+have nZG: Z <| G by apply: char_normal_trans nPG; exact: center_char.
 have nZH: Z <| H by exact: normalS nZG.
 pose Gbar := (G / Z)%G; have iGbar: G / Z = Gbar by [].
 pose Hbar := (H / Z)%G; have iHbar: H / Z = Hbar by [].
@@ -338,8 +338,9 @@ have: splitg Gbar Hbar; last case/splitgP=> Kbar trHKbar eqHKbar.
   apply: IHn => //; apply: {n}leq_trans Gn.
   rewrite card_quotient; last by case/andP: nZG.
   rewrite -(divgS sZG) divn_lt ?ltn_0group // ltnNge -trivg_card.
-  have:= card_Hall sylP; rewrite p_part lognE prime_p dvdn_pdiv ltn_0group /=.
-  exact: pgroup_ntriv.
+  apply/negP; move/(trivg_center_pgroup (pHall_pgroup sylP)).
+  rewrite trivg_card (card_Hall sylP) p_part lognE dvdn_pdiv ltn_0group.
+  by rewrite (leq_exp2l _ 0) ?prime_gt1 ?prime_p.
 have: Kbar \subset Gbar by rewrite -eqHKbar mulG_subr.
 case/inv_quotientS=> //= ZK quoZK sZZK sZKG.
 have nZZK: Z <| ZK by exact: normalS nZG.
@@ -387,18 +388,15 @@ move=> G; apply: (iffP idP) => Hi; last first.
   rewrite subsetI; case/andP=> P1H P2H.
   suff: forall n, H \subset G^`(n) by move/(_ k); rewrite TGk.
   by elim=> [| n Hrec] //; rewrite (subset_trans P2H) // dergSn commgSS.
-suff Hn: forall (n: nat), ~trivg(G^`(n)) -> (#|G^`(n)| <= #|G| - n).
-  case E1: (trivg G^`(#|G|)); move/idP: E1 => E1; first by exists #|G|; apply/trivgP.
-  by case: (E1); rewrite trivg_card (@leq_trans 0) // -(subnn #|G|) Hn.
-elim=> [| n Hrec] // TG; first by rewrite subn0.
-move: (der_subset G n); rewrite subEproper; case/orP=> EG.
-  by case: TG;
-     rewrite (implyP (forallP Hi ((Group (der_group_set G (n.+1)))))) //
-              subsetI /= der_subset0 {-1}(eqP EG) subset_refl.
-move: {EG}(proper_card EG) => EG.
-rewrite -(addnK n (#|G^`(n.+1)|)) -subSS leq_sub2r //
-         -(eqP (ltn_subr _ _ _)) (leq_trans EG) // Hrec //.
-by move=> HH; case TG; rewrite trivg_card (leq_trans (ltnW EG)) // -trivg_card.
+suff Hn: forall n, ~~ trivg G^`(n) -> n + #|G^`(n)| <= #|G|.
+  exists #|G|; apply/trivgP; apply/idPn; move/Hn.
+  by rewrite leqNgt -leq_sub_add subSnn ltn_0group.
+elim=> [|n IHn] TG; first by rewrite leqnn.
+have:= der_subset G n; rewrite subEproper; case/predU1P=> [eG | sG].
+  case/negP: TG; have:= forallP Hi [group of G^`(n.+1)] => /=.
+  by rewrite subsetI der_subset0 {-1}eG subset_refl.
+apply: leq_trans (IHn _); first by rewrite addSnnS leq_add2l proper_card.
+apply: contra TG; apply: subset_trans; exact: der_subset.
 Qed.
 
 Lemma solvableS : forall G H : {group gT},
@@ -466,7 +464,7 @@ move=> sHG nHL ntH; case abelH: (trivg [~: H, H]).
     rewrite /(_ <| H) cycle_h // cents_norm // centsC.
     rewrite cycle_h //; exact: subsetP Hx.
   exists H1; split=> //; first exact: subset_trans sHG.
-    exact: char_norm_trans nHL.
+    exact: char_normal_trans nHL.
   apply/abelem_Ohm1P=> //; first exact: pgroup_p pH1.
   apply/eqP; rewrite eqset_sub Ohm_sub /=.
   rewrite (OhmE 1 pH1) /= (OhmE 1 pOp) genS //.
@@ -474,7 +472,7 @@ move=> sHG nHL ntH; case abelH: (trivg [~: H, H]).
   by have:= H1x; rewrite inE; case/andP.
 have chH': [~: H, H] \char H by apply: charR; apply: char_refl.
 have [sH'H _] := andP chH'; move/idPn: abelH.
-apply: IHn; last 1 [exact: subset_trans sHG | exact: char_norm_trans nHL].
+apply: IHn; last 1 [exact: subset_trans sHG | exact: char_normal_trans nHL].
 apply: leq_trans leHn; rewrite ltnNge -[_ <= _]andTb -sH'H -eqset_sub_card.
 apply/eqP=> eqH'H; have:= forallP solG H.
 by rewrite eqH'H subsetI sHG subset_refl -implybN ntH.

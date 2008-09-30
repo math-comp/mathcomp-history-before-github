@@ -292,6 +292,9 @@ Qed.
 Lemma in_set2 : forall x a1 a2, (x \in [set a1; a2]) = (x == a1) || (x == a2).
 Proof. move=> x a1 a2; exact: in_set. Qed.
 
+Lemma set2E : forall a1 a2, [set a1; a2] = a1 |: [set a2].
+Proof. by move=> a1 a2; apply/setP=> x; rewrite !inE. Qed.
+
 Lemma set3P : forall x a1 a2 a3,
   reflect [\/ x = a1, x = a2 | x = a3] (x \in [set a1; a2; a3]).
 Proof.
@@ -303,6 +306,9 @@ Lemma in_set3 : forall x a1 a2 a3,
  (x \in [set a1; a2; a3]) = [|| x == a1, x == a2 | x == a3].
 Proof. move=> x a1 a2 a3; exact: in_set. Qed.
 
+Lemma set3E : forall a1 a2 a3, [set a1; a2; a3] = a1 |: [set a2; a3].
+Proof. by move=> a1 a2 a3; apply/setP=> x; rewrite !inE. Qed.
+
 Lemma set4P : forall x a1 a2 a3 a4,
   reflect [\/ x = a1, x = a2, x = a3 | x = a4] (x \in [set a1; a2; a3; a4]).
 Proof.
@@ -313,6 +319,10 @@ Qed.
 Lemma in_set4 : forall x a1 a2 a3 a4,
  (x \in [set a1; a2; a3; a4]) = [|| x == a1, x == a2, x == a3 | x == a4].
 Proof. move=> x a1 a2 a3 a4; exact: in_set. Qed.
+
+Lemma set4E : forall a1 a2 a3 a4,
+  [set a1; a2; a3; a4] = a1 |: [set a2; a3; a4].
+Proof. by move=> a1 a2 a3 a4; apply/setP=> x; rewrite !inE. Qed.
 
 Lemma set21 : forall a1 a2, a1 \in [set a1; a2].
 Proof. by move=> *; rewrite inE eqxx. Qed.

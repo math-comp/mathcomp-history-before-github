@@ -469,56 +469,47 @@ Notation "'JG" := (@conjG_action _) (at level 0) : action_scope.
 
 Section Bij.
 
-Variable (gT : finGroupType) (H G : {group gT}).
+Variable (gT : finGroupType).
+Implicit Types A B : {set gT}.
+Implicit Types H G : {group gT}.
 
-Hypothesis sHG : H \subset G.
+(*  Various identities for actions on groups; may need some trimming.  *)
 
-Section LBij.
-
-Variable L : {group gT}.
-
-(***********************************************************************)
-(*                                                                     *)
-(*  Definition of the set of element of orbit 1 by the right           *)
-(*    translation  of rcoset of H in G                                 *)
-(*                                                                     *)
-(***********************************************************************)
-
-Lemma act_fix_sub : forall x, (H :* x \in 'C(L | 'Msr)) = (L \subset H :^ x).
+Lemma act_fix_sub : forall G x A,
+ (G :* x \in 'C(A | 'Msr)) = (A \subset G :^ x).
 Proof.
-move=> x; rewrite inE /=; apply: eq_subset_r => a.
+move=> G x A; rewrite inE /=; apply: eq_subset_r => a.
 rewrite inE rcosetE -(can2_eq (rcosetKV x) (rcosetK x)) -!rcosetM.
 rewrite (conjgCV x) mulgK eqset_sub_card card_rcoset leqnn andbT.
-by rewrite -{2 3}(mulGid H) mulGS sub1set -mem_conjg.
+by rewrite -{2 3}(mulGid G) mulGS sub1set -mem_conjg.
 Qed.
 
-End LBij.
+Lemma act_fix_norm : forall G x, (G :* x \in 'C(G | 'Msr)) = (x \in 'N(G)).
+Proof. by move=> G x; rewrite act_fix_sub -groupV inE sub_conjgV. Qed.
 
-Lemma act_fix_norm : forall x, (H :* x \in 'C(H | 'Msr)) = (x \in 'N(H)).
-Proof. by move=> x; rewrite act_fix_sub -groupV inE sub_conjgV. Qed.
-
-Lemma rtrans_fix_norm : 'C_(rcosets H G)(H | 'Msr) = rcosets H 'N_G(H).
+Lemma rtrans_fix_norm : forall A G,
+  'C_(rcosets G A)(G | 'Msr) = rcosets G 'N_A(G).
 Proof.
-apply/setP=> Hx; apply/setIP/rcosetsP=> [[]|[x]].
-  case/rcosetsP=> x Gx ->{Hx}; rewrite act_fix_norm => Nx.
-  by exists x; rewrite // inE Gx.
-by case/setIP=> Nx Gx ->; rewrite -{1}rcosetE mem_imset // act_fix_norm.
+move=> A G; apply/setP=> Gx; apply/setIP/rcosetsP=> [[]|[x]].
+  case/rcosetsP=> x Ax ->{Gx}; rewrite act_fix_norm => Nx.
+  by exists x; rewrite // inE Ax.
+by case/setIP=> Ax Nx ->; rewrite -{1}rcosetE mem_imset // act_fix_norm.
 Qed.
 
-Lemma rtrans_stabG : 'C_(| 'Msr)[G : {set _}] = G.
+Lemma rtrans_stabG : forall G, 'C_(| 'Msr)[G : {set gT}] = G.
 Proof.
-apply/setP=> x.
+move=> G; apply/setP=> x.
 by apply/astab1P/idP=> /= [<- | Gx]; rewrite rcosetE (rcoset_refl, rcoset_id).
 Qed.
 
-Lemma conjg_fix : forall A : {set gT}, 'C(A | 'J) = 'C(A).
+Lemma conjg_fix : forall A, 'C(A | 'J) = 'C(A).
 Proof.
 move=> A; apply/setP=> x; apply/afixP/centP=> cAx y Ay /=.
   by rewrite /commute conjgC cAx.
 by rewrite conjgE cAx ?mulKg.
 Qed.
 
-Lemma conjg_astab : forall A : {set gT}, 'C_(| 'J)(A) = 'C(A).
+Lemma conjg_astab : forall A, 'C_(| 'J)(A) = 'C(A).
 Proof.
 move=> A; apply/setP=> x; apply/astabP/centP=> cAx y Ay /=.
   by apply: esym; rewrite conjgC cAx.
@@ -528,12 +519,23 @@ Qed.
 Lemma conjg_astab1 : forall x : gT, 'C_(| 'J)[x] = 'C[x].
 Proof. by move=> x; rewrite conjg_astab cent_set1. Qed.
 
-Lemma conjsg_astab1 : forall A : {set gT}, 'C_(| 'Js)[A] = 'N(A).
+Lemma conjg_astabs : forall G, 'N_(|'J)(G) = 'N(G).
+Proof.
+by move=> G; apply/setP=> x; rewrite -2!groupV !inE -conjg_preim -sub_conjg.
+Qed.
+
+Lemma conjsg_astab1 : forall A, 'C_(| 'Js)[A] = 'N(A).
 Proof. by move=> A; apply/setP=> x; apply/astab1P/normP. Qed.
 
-Lemma conjG_astab1 : 'C_(| 'JG)[G] = 'N(G).
+Lemma conjG_fix: forall G A, (G \in 'C(A | 'JG)) = (A \subset 'N(G)).
 Proof.
-by apply/setP=> x; apply/astab1P/normP; [move/(congr1 val) | move/group_inj].
+by move=> G A; apply/afixP/normsP=> nG x Ax; apply/eqP; move/eqP: (nG x Ax).
+Qed.
+
+Lemma conjG_astab1 : forall G, 'C_(| 'JG)[G] = 'N(G).
+Proof.
+move=> G; apply/setP=> x.
+by apply/astab1P/normP; [move/(congr1 val) | move/group_inj].
 Qed.
 
 (* Other group action identities, most of which hold by conversion

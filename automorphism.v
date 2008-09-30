@@ -217,9 +217,10 @@ Reserved Notation "G \char H" (at level 70).
 Section Characteristicity.
 
 Variable gT : finGroupType.
+Implicit Types A B : {set gT}.
 Implicit Types G H K L : {group gT}.
 
-Definition characteristic (A B : {set gT}) :=
+Definition characteristic A B :=
   (A \subset B) && (forallb f, (f \in Aut B) ==> (f @: A \subset A)).
 
 Infix "\char" := characteristic.
@@ -245,21 +246,6 @@ Qed.
 Lemma char_refl : forall G, G \char G.
 Proof. move=> G; exact/charP. Qed.
 
-Lemma lone_subgroup_char : forall G H,
-  H \subset G -> (forall K, K \subset G -> K \isog H -> K \subset H) ->
-  H \char G.
-Proof.
-move=> G H sHG Huniq; apply/charP; split=> // f injf Gf; apply/eqP.
-have{injf} injf: {in H &, injective f}.
-  by move/injmP: injf; apply: subin2; exact/subsetP.
-have fH: f @* H = f @: H by rewrite /morphim (setIidPr sHG).
-rewrite eqset_sub_card {2}fH card_dimset ?{}Huniq //=.
-  by rewrite -{3}Gf morphimS.
-rewrite isog_sym; apply/isogP.
-exists [morphism of restrm sHG f] => //=; first exact/injmP.
-by rewrite morphimEdom fH.
-Qed.
-
 Lemma char_trans : forall H G K, K \char H -> H \char G -> K \char G.
 Proof.
 move=> H G K; case/charP=> sKH chKH; case/charP=> sHG chHG.
@@ -269,18 +255,29 @@ rewrite -{1}(setIidPr sKH) -(morphim_restrm sHG) chKH //.
 by rewrite morphim_restrm setIid chHG.
 Qed.
 
-Lemma char_norm_trans : forall H G K, K \char H -> H <| G -> K <| G.
+Lemma char_norms : forall H G, H \char G -> 'N(G) \subset 'N(H).
 Proof.
-move=> H G K; case/charP=> sKH chKH; case/normalP=> sHG nHG.
-apply/normalP; split=> [|x Gx]; first exact: subset_trans sHG.
-have:= (chKH [morphism of conjgm H x]) => /=.
-rewrite /morphim /= setIid (setIidPr sKH).
-apply; [exact: injm_conj | exact: nHG].
+move=> H G; case/charP=> sHG chHG; apply/normsP=> x; move/normP=> Nx.
+have:= (chHG [morphism of conjgm G x]) => /=.
+by rewrite !morphimEsub //=; apply; rewrite // injm_conj.
+Qed.
+
+Lemma char_sub : forall A B, A \char B -> A \subset B.
+Proof. by move=> A B; case/andP. Qed.
+
+Lemma char_norm_trans : forall H G A,
+  H \char G -> A \subset 'N(G) -> A \subset 'N(H).
+Proof. move=> H G A; move/char_norms=> nHnG nGA; exact: subset_trans nHnG. Qed.
+
+Lemma char_normal_trans : forall H G K, K \char H -> H <| G -> K <| G.
+Proof.
+move=> H G K chKH; case/andP=> sHG nHG.
+by rewrite /normal (subset_trans (char_sub chKH)) // (char_norm_trans chKH).
 Qed.
 
 Lemma char_normal : forall H G, H \char G -> H <| G.
 Proof.
-by move=> H G; move/char_norm_trans; apply; apply/andP; rewrite normG.
+by move=> H G; move/char_normal_trans; apply; apply/andP; rewrite normG.
 Qed.
 
 Lemma char_norm : forall H G, H \char G -> G \subset 'N(H).
@@ -304,6 +301,21 @@ Lemma charM : forall G H K, H \char G -> K \char G -> H * K \char G.
 Proof.
 move=> G H K chHG chKG; rewrite -norm_mulgenE ?charMgen //.
 by case/andP: (char_normal chKG) => _; apply: subset_trans; case/andP: chHG.
+Qed.
+
+Lemma lone_subgroup_char : forall G H,
+  H \subset G -> (forall K, K \subset G -> K \isog H -> K \subset H) ->
+  H \char G.
+Proof.
+move=> G H sHG Huniq; apply/charP; split=> // f injf Gf; apply/eqP.
+have{injf} injf: {in H &, injective f}.
+  by move/injmP: injf; apply: subin2; exact/subsetP.
+have fH: f @* H = f @: H by rewrite /morphim (setIidPr sHG).
+rewrite eqset_sub_card {2}fH card_dimset ?{}Huniq //=.
+  by rewrite -{3}Gf morphimS.
+rewrite isog_sym; apply/isogP.
+exists [morphism of restrm sHG f] => //=; first exact/injmP.
+by rewrite morphimEdom fH.
 Qed.
 
 End Characteristicity.

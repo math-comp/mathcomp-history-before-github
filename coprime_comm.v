@@ -181,9 +181,8 @@ Theorem faithful_cent_fix_nil : forall A G: {group T},
 Proof.
 move=> A G subN co nil subC.
 suff AsubCNC: A \subset 'C('N_G('C_G(A))).
-  have eqGC: G = 'C_G(A)%G. 
-    by apply: nilpotent_sub_norm; rewrite ? subsetIl // subsetI subsetIl centsC AsubCNC.
-  rewrite eqGC; apply: subsetIr.
+  apply/setIidPl; symmetry; apply: nilpotent_sub_norm; rewrite ?subsetIl //.
+  by rewrite subsetI subsetIl centsC AsubCNC.
 suff stab: stabn_seq A 'N_G('C_G(A)) [:: 'C_G(A)%G ; 1%G].
 apply: stabn_seq_cent _ _ stab.
   by rewrite -(LaGrange (subsetIl G 'N('C_G(A)))) coprime_mull in co; case/andP: co.
@@ -249,8 +248,8 @@ Lemma pgroup_quotient_normal_inv : forall A G H : {group T}, forall p : nat,
   x \in 'N_G(A) * H.
 Proof.
 move=> A G H p pr pg AsubG normH pndvdn x Nx Gx xbin.
-suff exz: exists2 z, z \in A * H & (A :^ x)%G = (A :^ z)%G.
-  case exz=> z; case/imset2P=> a y ain yin  -> eq; move: (congr1 val eq).
+suff exz: exists2 z, z \in A * H & A :^ x :=: A :^ z.
+  case exz=> z; case/imset2P=> a y ain yin  ->.
   rewrite //= conjsgM (conjsgE _ a) rcoset_id // lcoset_id ?groupVr // => eqyx.
   rewrite -(mulgKV y x); apply/imset2P; apply: (Imset2spec _ yin); last done. 
   have yinG: y \in G by apply: (subsetP (normal_sub normH) _ yin).
@@ -258,12 +257,11 @@ suff exz: exists2 z, z \in A * H & (A :^ x)%G = (A :^ z)%G.
   by apply/normP; rewrite conjsgM eqyx conjsgK.
 rewrite -norm_mulgenE; last by apply: (subset_trans AsubG (normal_norm normH)).
 suff sylowA: p.-Sylow(A <*> H) A.
-  apply: (sylow2_cor pr sylowA).
-  suff xnormAH : x \in 'N(A <*> H).
-    by rewrite //= -(normP xnormAH) -(sylow_sconjg p (A <*> H) A x).
-  rewrite //= norm_mulgenE; last by apply: (subset_trans AsubG (normal_norm normH)).
+  apply: (Sylow_trans sylowA).
+  suff xnormAH : x \in 'N(A <*> H) by rewrite /= -(normP xnormAH) pHallJ2.
   have nAH : A \subset 'N(H) by apply: subset_trans (normal_norm normH).
-  by rewrite normC //; apply: (subsetP (cosetpre_norm nAH)); apply/morphpreP; split.
+  rewrite mulgenC norm_mulgenEr // (subsetP (cosetpre_norm nAH)) //.
+  by rewrite inE Nx inE.
 rewrite pHallE sub_gen ?subsetUl //= norm_mulgenE; last by apply: (subset_trans AsubG (normal_norm normH)).
 have co: coprime #|A| #|H| by apply: (pgroup_coprime pr).
 rewrite (card_mulG_trivP _ _ (coprime_trivg co)). 

@@ -365,9 +365,9 @@ Lemma nilpotent1 : nilpotent (1 : {set gT}).
 Proof. by apply/lcnP; exists 0. Qed.
 
 Lemma nilpotent_sub_norm : forall G H,
-  nilpotent G -> H \subset G -> 'N_G(H) \subset H -> G = H.
+  nilpotent G -> H \subset G -> 'N_G(H) \subset H -> G :=: H.
 Proof.
-move=> G H nilG sHG sNH; apply/eqP; rewrite -val_eqE /= eqset_sub sHG andbT.
+move=> G H nilG sHG sNH; apply/eqP; rewrite eqset_sub sHG andbT.
 apply/negP=> nsGH.
 have{nsGH} [i sZH []]: exists2 i, 'Z_i(G) \subset H & ~ 'Z_i.+1(G) \subset H.
   case/ucnP: nilG => n ZnG; rewrite -{}ZnG in nsGH.

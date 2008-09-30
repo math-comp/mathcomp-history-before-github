@@ -33,9 +33,9 @@ Implicit Types G H K : {group gT}.
 Lemma ZgroupS : forall G H, H \subset G -> Zgroup G -> Zgroup H. 
 Proof.
 move=> G H sHG; move/forallP=> zgG; apply/forallP=> V; apply/implyP.
-case/SylowP=> p pr_p; rewrite pHallE p_part; case/andP=> sVH.
-case/(sylow1_subset pr_p (subset_trans sVH sHG))=> P; case/andP=> sVP sylP.
-by apply: cyclicS sVP (implyP (zgG _) _); apply/SylowP; exists p.
+case/SylowP=> p pr_p; case/and3P=> sVH.
+case/(Sylow_superset (subset_trans sVH sHG))=> P sylP sVP _.
+have:= zgG P; rewrite (p_Sylow sylP); exact: cyclicS.
 Qed.
 
 Lemma Zgroup_morphim : forall G, Zgroup G -> Zgroup (f @* G). 
@@ -43,9 +43,9 @@ Proof.
 move=> G zgG; wlog sGD: G zgG / G \subset D.
   by rewrite -morphimIdom; apply; rewrite (ZgroupS _ zgG, subsetIl) ?subsetIr.
 apply/forallP=> fV; apply/implyP.
-case/SylowP=> p pr_p sylfV; have [P sylP] := sylow1_cor G pr_p.
-have [|z _ ->] := (sylow2_cor pr_p) (f @* P)%G _ _ sylfV.
-  apply: morphim_pHall (sylP); exact: subset_trans (pHall_subset sylP) sGD.
+case/SylowP=> p pr_p sylfV; have [P sylP] := Sylow_exists p G.
+have [|z _ ->] := @Sylow_trans p _ _ (f @* P)%G _ _ sylfV.
+  apply: morphim_pHall (sylP); exact: subset_trans (pHall_sub sylP) sGD.
 rewrite cyclicJ cyclic_morphim // (implyP (forallP zgG P)) //.
 by apply/SylowP; exists p.
 Qed.
@@ -176,10 +176,10 @@ without loss Op'_H: / trivg 'O_p^'(H).
   suffices: p.-length_1 (H / 'O_p^'(H)).
     by rewrite p'quo_plength1 ?pcore_normal ?pcore_pgroup.
   apply: IHquo => //; first by rewrite normal_sub ?pcore_normal.
-  by rewrite normal_norm // (char_norm_trans (pcore_char _ _)).
+  by rewrite normal_norm // (char_normal_trans (pcore_char _ _)).
 move defV: 'F(H)%G => V.
 have charV: V \char H by rewrite -defV Fitting_char.
-have nVG: G \subset 'N(V) by rewrite normal_norm ?(char_norm_trans charV).
+have nVG: G \subset 'N(V) by rewrite normal_norm ?(char_normal_trans charV).
 have sVH: V \subset H by rewrite normal_sub ?char_normal.
 have defVp: V :=: 'O_p(H).
   admit.
@@ -192,7 +192,7 @@ wlog abV: / p.-abelem V.
   have chPhi: 'Phi(V) \char H := char_trans (Phi_char _) charV.
   have nPhiH := char_normal chPhi; have sPhiH := normal_sub nPhiH.
   have{chPhi} nPhiG: G \subset 'N('Phi(V)).
-    exact: normal_norm (char_norm_trans chPhi nHG).
+    exact: normal_norm (char_normal_trans chPhi nHG).
   rewrite -(pquo_plength1 nPhiH) 1?IHquo //.
     exact: pgroupS (Phi_sub _) pV.
   have: 'O_p^'(H / 'Phi(V)) <| H / 'Phi(V) by exact: pcore_normal.
@@ -241,7 +241,7 @@ wlog{IHquo} nondecV:  / forall N1 N2,
   rewrite subsetI in nNG; case/andP: nNG => nN1G nN2G.
   by rewrite -(quo2_plength1 pr_p nN1 nN2 trN12) ?IHquo.
 have: 'F(H / V) <| G / V.
-  exact: char_norm_trans (Fitting_char _) (morphim_normal _ _).
+  exact: char_normal_trans (Fitting_char _) (morphim_normal _ _).
 case/(inv_quotientN _) => [| /= U defU sVU nUG].
   by apply/andP; rewrite (subset_trans sVH).
 case/andP: nUG => sUG nUG; have nUR := subset_trans sRG nUG.
@@ -266,7 +266,7 @@ have sylV: p.-Sylow(U) V.
   by rewrite /pHall sVU [_.-group _]pV -card_quotient // -defU.
 have defH: H :=: V * 'N_H(K).
   have nUH: U <| H by apply/andP; rewrite (subset_trans sHG).
-  rewrite -{1}(HallFrattini _ nUH hallK); last exact: solvableS solG.
+  rewrite -{1}(Hall_Frattini_arg _ nUH hallK); last exact: solvableS solG.
   by rewrite defVK -mulgA [K * _]mulSGid // subsetI normG (subset_trans sKU).
 have [P sylP nPR]:
   exists2 P : {group gT}, p.-Sylow('N_H(K)) P & R \subset 'N(P).
@@ -298,18 +298,17 @@ case/orP: (orbN (trivg [~: K, P])) => [tKP|ntKP].
       by rewrite (mem_normal_Hall sylVH) // /normal sVH.
     split; [exact: (subsetP sVH) | exact: mem_p_elt Vx].
   suffices sPV: P \subset V by rewrite mulGSid in sylVP.
-  have sol_qHV : solvable (H /V). 
+  have sol_HV : solvable (H / V). 
     by apply: solvable_quo; apply: (solvableS sHG).
   have qPV: P / V \subset 'C_(H / V)('F(H / V)).
     rewrite defU subsetI; apply/andP; split; first by apply:morphimS.
     rewrite defVK quotient_mulgr; apply: center_commgr; rewrite commsgC.
-    case/trivgP: tKP; move ->; apply: sub1G.
+    case/trivgP: tKP; move ->; exact: sub1G.
   have sPU: P \subset U.
     rewrite defVK -quotientSK // -(quotient_mulgr _ K) -defVK -defU.
-    by apply (subset_trans qPV (solvable_self_cent_Fitting sol_qHV)).
-  case/pHallP: sylP => _; rewrite p_part; move/eqP=> cardP. 
-  apply: (sylow2_subset pr_p sPU cardP); rewrite //=.
-  rewrite/normal sVU //=.
+    exact: subset_trans qPV (solvable_self_cent_Fitting sol_HV).
+  rewrite (subset_normal_Hall _ sylV); last exact/andP.
+  by rewrite /psubgroup ?sPU (pHall_pgroup sylP).
 have{sylVP} dp: [~: V, K] \x 'C_V(K) :=: V.
   apply: sym_eq; apply: comm_center_dir_prod; last by case/p_abelemP: abV.
     exact: subset_trans sKU nVU.
@@ -506,7 +505,7 @@ have{IHG} IHG: forall X : {group gT},
   have{trOp'H1} trOR: trivg 'O_p^'([~: V <*> X <*> P, R0]).
     apply: subset_trans trOp'H1.
     apply: subset_pcore; first exact: pcore_pgroup.
-    apply: char_norm_trans (pcore_char _ _) _.
+    apply: char_normal_trans (pcore_char _ _) _.
     by rewrite /(_ <| _) normGR /= commsgC subcomm_normal andbT.
   have sP_O: P \subset 'O_p([~: V <*> X <*> P, R0]).
     rewrite (@subset_normal_Hall _ p _ [~: ((V <*> X) <*> P)%g, R0]).
@@ -527,7 +526,7 @@ have{IHG} IHG: forall X : {group gT},
   apply: subset_trans (commgS _ sP_O) _; rewrite subcomm_normal.
   have: X \subset V <*> X <*> P by rewrite mulgenC mulgenA sub_gen ?subsetUr.
   move/subset_trans; apply; apply: normal_norm.
-  apply: char_norm_trans (pcore_char _ _) _.
+  apply: char_normal_trans (pcore_char _ _) _.
   by rewrite /(_ <| _) normGR andbT /= commsgC subcomm_normal.
 clear defH.
 have[]: H :==: V * K * P /\ R0 :==: R; last (move/eqP=> defH; move/eqP=> defR).

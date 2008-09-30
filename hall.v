@@ -149,7 +149,7 @@ move=> pi G K solG sKG; case: (HallSolvable pi solG) => H hallH transH.
 by case/transH=> // x Gx sKHx; exists (H :^ x)%G; rewrite ?hall_conj.
 Qed.
 
-Lemma HallFrattini : forall pi (G K H : {group gT}),
+Lemma Hall_Frattini_arg : forall pi (G K H : {group gT}),
   solvable K -> K <| G -> pi.-Hall(K) H -> K * 'N_G(H) = G.
 Proof.
 move=> pi G K H solK; case/andP=> sKG nKG hallH.
