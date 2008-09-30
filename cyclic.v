@@ -433,6 +433,7 @@ Qed.
 
 End CyclicSubGroup.
 
+
 Section MorphicImage.
 
 Variables aT rT : finGroupType.
@@ -446,6 +447,55 @@ Lemma morph_order : #[f x] %| #[x].
 Proof. by rewrite order_dvd -morphX // order_expn1 morph1. Qed.
 
 End MorphicImage.
+
+Section CyclicProps.
+
+Variables gT : finGroupType. 
+Implicit Types G H K : {group gT}.
+Implicit Type rT : finGroupType.
+
+
+Lemma cyclicS : forall G H, H \subset G -> cyclic G -> cyclic H. 
+Proof.
+move=> G H HsubG; case/cyclicP=> x gex; apply/cyclicP.
+exists (x ^+ (#[x] %/ #|H|)); apply: congr_group; apply/set1P.
+by rewrite -cycle_sub_group /order -gex ?cardSg // inE HsubG eqxx.
+Qed.
+
+Lemma cycleJ : forall x y : gT, <[x]> :^ y = <[x ^ y]>.
+Proof. by move=> x y; rewrite -genJ conjg_set1. Qed.
+
+Lemma cyclicJ:  forall (G : {group gT}) x, cyclic (G :^ x) = cyclic G.
+Proof.
+move=> G x; apply/cyclicP/cyclicP=> [[y] | [y ->]].
+  by move/(canRL (conjsgK x)); rewrite cycleJ; exists (y ^ x^-1).
+by exists (y ^ x); rewrite cycleJ.
+Qed.
+
+Lemma cyclic_morphim :  forall rT G H (f : {morphism G >-> rT}),
+  cyclic H -> cyclic (f @* H).
+Proof.
+move=> rT G H f cH; wlog sHG: H cH / H \subset G.
+  by rewrite -morphimIdom; apply; rewrite (cyclicS _ cH, subsetIl) ?subsetIr.
+case/cyclicP: cH sHG => x ->; rewrite gen_subG sub1set => Gx.
+by apply/cyclicP; exists (f x); rewrite morphim_cycle.
+Qed.
+
+Lemma cyclic_quo : forall G H, cyclic G -> cyclic (G / H).
+Proof. move=> G H; exact: cyclic_morphim. Qed.
+
+Lemma cyclic_prime: forall G, prime #|G| -> cyclic G.
+Proof.
+move=> G pG; case: (pickP (mem G^#)) => [x Hx| Hx]; last first.
+  by move: pG; rewrite (cardsD1 1 G) group1 (eq_card0 Hx).
+move: (Hx); rewrite /= in_setD1; case/andP => xD1 xIG.
+case/primeP: pG => _; move/(_ _ (cardSg (cycle_h xIG))); case/orP;  move/eqP.
+  by rewrite (cardsD1 1) (cardsD1 x) group1 in_setD1 xD1 cyclenn.
+move=> CxG; apply/cyclicP; exists x.
+by apply/eqP; rewrite eq_sym eqset_sub_card cycle_h // CxG leqnn.
+Qed.
+
+End CyclicProps.
 
 (***********************************************************************)
 (*                                                                     *)
@@ -764,3 +814,4 @@ by apply/centsP=> m _ n _; do 2!apply: val_inj => /=; rewrite mulnC.
 Qed.
 
 End CyclicAutomorphism_Abelian.
+

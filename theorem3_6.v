@@ -30,31 +30,6 @@ Section Props.
 Variables (gT rT : finGroupType) (D : {group gT}) (f : {morphism D >-> rT}).
 Implicit Types G H K : {group gT}.
 
-Lemma cyclicS : forall G H, H \subset G -> cyclic G -> cyclic H. 
-Proof.
-move=> G H HsubG; case/cyclicP=> x gex; apply/cyclicP.
-exists (x ^+ (#[x] %/ #|H|)); apply: congr_group; apply/set1P.
-by rewrite -cycle_sub_group /order -gex ?cardSg // inE HsubG eqxx.
-Qed.
-
-Lemma cycleJ : forall x y : rT, <[x]> :^ y = <[x ^ y]>.
-Proof. by move=> x y; rewrite -genJ conjg_set1. Qed.
-
-Lemma cyclicJ:  forall (G : {group rT}) x, cyclic (G :^ x) = cyclic G.
-Proof.
-move=> G x; apply/cyclicP/cyclicP=> [[y] | [y ->]].
-  by move/(canRL (conjsgK x)); rewrite cycleJ; exists (y ^ x^-1).
-by exists (y ^ x); rewrite cycleJ.
-Qed.
-
-Lemma cyclic_morphim : forall G, cyclic G -> cyclic (f @* G).
-Proof.
-move=> G cG; wlog sGD: G cG / G \subset D.
-  by rewrite -morphimIdom; apply; rewrite (cyclicS _ cG, subsetIl) ?subsetIr.
-case/cyclicP: cG sGD => x ->; rewrite gen_subG sub1set => Dx.
-by apply/cyclicP; exists (f x); rewrite morphim_cycle.
-Qed.
-
 Lemma ZgroupS : forall G H, H \subset G -> Zgroup G -> Zgroup H. 
 Proof.
 move=> G H sHG; move/forallP=> zgG; apply/forallP=> V; apply/implyP.
