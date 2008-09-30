@@ -590,6 +590,15 @@ move=> C D sCfG sDfG; apply/idP/andP=> [|[sCD nDC]].
 by rewrite /(_ <| _) (subset_trans _ (morphpre_norm _)) morphpreS.
 Qed.
 
+Variable g : {morphism G >-> rT}.
+
+Lemma eq_morphim : {in G, f =1 g} -> forall H, H \subset G -> f @* H = g @* H.
+Proof.
+move=> Heq H Hsub; rewrite /morphim (setIidPr Hsub). 
+have: {in H, f =1 g} by apply: (subin1 _ Heq); apply/subsetP.
+by move/dfequal_imset.
+Qed.
+
 End MorphismTheory.
 
 Notation "''ker' f" := (ker_group (MorPhantom f)) : subgroup_scope.

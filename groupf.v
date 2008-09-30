@@ -29,289 +29,308 @@ Definition obmap : Type := forall gT, {set gT} -> {set gT}.
 
 Identity Coercion fun_of_obmap : obmap >-> Funclass.
 
-(* A filter on morphisms *)
+(* General functoriality *)
 
-Definition filter gT hT : Type := forall (G:{group gT}),
-  {morphism G >-> hT} -> Prop.
+Definition resp (F : obmap): Prop :=
+  forall gT hT (G:{group gT}) (phi:{morphism G >-> hT}),
+    phi @* (F _ G) \subset F _ (phi @* G).
 
-(* Subcommutation of that object mapping with morphisms respecting the filter *)
+(* Functoriality on grp whose arrows are restricted to automorphisms *)
 
-Definition resp (F : obmap) gT hT (P : filter gT hT): Prop :=
-  forall (G:{group gT}) (phi:{morphism G >-> hT}),
-    (P G phi) -> phi @* (F _ G) \subset F _ (phi @* G).
+Definition aresp (F : obmap) : Prop :=
+  forall gT (G:{group gT}) phi (HA:phi \in Aut G), 
+        (autm_morphism HA) @* (F _ G) \subset F _ ((autm_morphism HA) @* G).
 
-(* Some filter examples *)
-
-Variable gT:finGroupType.
-
-Implicit Types H:{group gT}.
-
-Definition is_int_aut H (phi : {morphism H >-> gT}) :=
-  exists y, y \in 'N(H) /\ (conjgm H y) =1 phi.
-
-Definition is_aut H (phi : {morphism H >-> gT}) :=
-  'injm phi && (phi @* H == H).
-
-Definition is_surj_end H (phi : {morphism H >-> gT}) :=
-  phi @* H \subset H.
-
-Definition is_inj hT H (phi : {morphism H >-> hT}) :=
-  'injm phi.
-
-Definition is_morphism hT H (phi: {morphism H >-> hT}) :=
-  True.
+Lemma aresp_of_resp : forall (F:obmap), resp F -> aresp F.
+Proof. by move=> F H gT G phi Ha; apply:H. Qed.
 
 End IdentitySubFunctorDefs.
 
-Module IdSubFunctor.
+Module BaseIdSubFunctor.
 
-Section IdentitySubFunctorStructs.
+(* Those mappings only functorial w.r.t. automorphisms*)
 
-Variable gT:finGroupType.
-Variable hT : finGroupType.
+Implicit Types gT: finGroupType.
 
-Implicit Types F:obmap.
-Implicit Types P:filter gT hT.
+Structure mixin (Fobj : obmap) : Type := Mixin { _ : aresp Fobj}.
 
-(* Conditions for an object mapping on Grp, restricted to arrows verifying
-   a given filter, to define a subfunctor of the identity*)
+Structure class : Type := Class { Fobj :> obmap ; 
+   _ : forall gT (G : {group gT}), group_set (Fobj gT G);
+   _ : forall gT (G: {group gT}), Fobj gT G \subset G;
+   _ : mixin Fobj}.
 
-Structure subfuncclass P : Type := SubFuncClass { 
-  Fobj :> obmap;
-  _ : forall (G : {group gT}), group_set (Fobj gT G);
-  _ : forall (G: {group gT}), Fobj gT G \subset G;
-  _ : resp Fobj P}.
+Definition group_of F := let: Class _ g _ _ := F return 
+  forall gT (G : {group gT}), group_set (F gT G) in g.
+Definition subset_of F := let: Class _ _ s _ := F return
+  forall gT (G: {group gT}), F gT G \subset G in s.
 
-End IdentitySubFunctorStructs.
+Coercion mixin_of F := let: Class _ _ _ m := F return mixin F in m.
 
-End IdSubFunctor.
+End BaseIdSubFunctor.
 
-Notation isFc := IdSubFunctor.subfuncclass.
-Notation isFcClass := IdSubFunctor.SubFuncClass.
+Notation bisFc := BaseIdSubFunctor.class.
+Notation BisFc := BaseIdSubFunctor.Class.
+Notation BisFMixin := BaseIdSubFunctor.Mixin.
+
+Definition mkBaseisFc F FM Fsub Fresp := 
+  BisFc FM Fsub (@BisFMixin F Fresp).
+
+Notation "[ 'bisFc' 'of' F ]" :=
+  (match [is F : _ -> _ <: bisFc] as s return {type of BisFc for s} -> _ with
+    | BisFc _ g s m => fun k => k g s m end
+  (@BisFc F)) (at level 0, only parsing) : form_scope.
 
 Notation Local "''e_' s ( G )" := (s _ G)
   (at level 8,s at level 2, format "''e_' s ( G )") : group_scope.
 
-Section IdentitySubfunctorProps.
+Section BaseIdentitySubfunctorProps.
 
 Variables gT hT:finGroupType.
-Variable P : filter gT hT.
-Implicit Types sF: isFc P.
+Variable sF: bisFc.
+Implicit Types G H : {group gT}.
 
-Lemma subfuncclass_groupset : forall sF (G:{group gT}), group_set ('e_sF(G)).
-Proof. by case. Qed.
+Lemma bisfc_groupset : forall G, group_set ('e_sF(G)).
+Proof. by case sF. Qed.
 
-Canonical Structure subfuncclass_group sF G := 
-  Group (subfuncclass_groupset sF G).
+Canonical Structure bisfc_group G := 
+  Group (bisfc_groupset G).
 
-Lemma subfuncclass_clos : forall sF (G:{group gT}),
-  'e_sF(G) \subset G.
-Proof. by case. Qed.
+Lemma bisfc_clos : forall (fT:finGroupType) (H:{group fT}),
+  'e_sF(H) \subset H.
+Proof. by case sF. Qed.
 
-Lemma subfuncclass_resp : forall sF, resp (sF) P.
-Proof. by case. Qed.
+Lemma bisfc_aresp : aresp sF.
+Proof. by case sF=> Fobj Fg Fs; case. Qed.
 
-Lemma filterW : forall (Q : filter gT hT) sF,
-  (forall H f, Q H f ->  P f) ->
-  resp (sF) Q.
+Lemma bisfc_norm : forall G, G \subset 'N('e_sF(G)).
 Proof.
-move=> Q sF Hint H phi HQ.
-by apply (subfuncclass_resp sF (Hint _ _ HQ)).
+move=> G; apply/subsetP=> x Gx; rewrite inE -{2}(conjGid Gx) -{2}(setIid G).
+rewrite -(setIidPr (bisfc_clos G)) -!morphim_conj.
+pose conjgx := (autm (Aut_aut_of (@injm_conj _ G _) 
+               (norm_conj_dom (valP (insigd (group1 _) x))))).
+rewrite -!(@eq_morphim _ _ _ [morphism of conjgx] (conjgm_morphism _ x)) =>/=;
+rewrite ?bisfc_clos ?bisfc_aresp // => y; apply: (conj_autE Gx).
 Qed.
 
-End IdentitySubfunctorProps.
+Lemma bisfc_normal : forall G, 'e_sF(G) <| G.
+Proof. by move=> G; apply/andP; rewrite bisfc_clos bisfc_norm. Qed.
 
-Section IdentitySubfunctorEndo.
-
-Variables gT hT:finGroupType.
-Variable P : filter gT gT.
-Implicit Types sF: isFc P.
-
-Implicit Types H:{group gT}.
-
-(* For interior automorphisms, subfunctors of Id yield normal groups*)
-
-Lemma resp_normal : forall sF, 
-  (forall H (phi:{morphism H >-> gT}), is_int_aut phi -> P phi) ->
-  forall G : {group gT}, ('e_sF(G)) <| G.
+Lemma bisfc_char : forall G, 'e_sF(G) \char G.
 Proof.
-move=> sF H G; apply/normalP; split; first exact: (subfuncclass_clos sF G).
-apply/normsP; apply/subsetP=> x; move/(subsetP (normG _)); move/normP=>Heq.
-rewrite inE.
-have Hint : (is_int_aut [morphism of conjgm G x]).
-  by exists x=>/=; split; rewrite ?inE ?Heq.
-move: ((filterW sF H) _ _ Hint)=> /=; rewrite !morphim_conj setIid.
-by move/setIidPr : (subfuncclass_clos sF G) ->; rewrite Heq => ->.
+move=> G; apply/andP; split => //; first by apply: bisfc_clos.
+apply/forallP=> f; apply/implyP=> Af; rewrite -{2}(autm_dom Af).
+rewrite  -(morphimEsub (autm_morphism Af)) ?bisfc_clos //.
+by apply: bisfc_aresp.
 Qed.
 
-(* For automorphisms, subfunctors of Id yield characteristic groups *)
+End BaseIdentitySubfunctorProps.
 
-Lemma resp_charac : forall sF,
-  (forall H (phi:{morphism H >-> gT}), is_aut phi -> P phi) ->
-  forall G : {group gT}, ('e_sF(G)) \char G.
+Module IdSubFunctor.
+
+(* Mappings functorial w.r.t. (surjective) morphisms *)
+
+(* Beware, since our commutativity property is defined on f @* G,
+   i.e. implicitly restricts Grp to surjective morphisms, these do not
+   necessarily yield completely characteristic groups (counterexample :
+   center).*)
+
+Implicit Types gT: finGroupType.
+
+Structure mixin (Fobj : obmap) : Type := Mixin { _ : resp Fobj}.
+
+Structure class : Type := Class { 
+  Fobj :> obmap ;
+   _ : forall gT (G : {group gT}), group_set (Fobj gT G);
+   _ : forall gT (G: {group gT}), Fobj gT G \subset G;
+   _ : mixin Fobj}.
+
+Definition group_of F := let: Class _ g _ _ := F return 
+  forall gT (G : {group gT}), group_set (F gT G) in g.
+Definition subset_of F := let: Class _ _ s _ := F return
+  forall gT (G: {group gT}), F gT G \subset G in s.
+
+Coercion mixin_of F := let: Class _ _ _ m := F return mixin F in m.
+
+Lemma isfc_resp (sF: class): resp sF.
+Proof. by case => F FM Fs; case. Qed.
+
+Coercion bmixin_of_mixin Fobj (m : mixin Fobj) := 
+  let: Mixin mresp := m return BaseIdSubFunctor.mixin Fobj in
+  BisFMixin (aresp_of_resp mresp).
+
+End IdSubFunctor.
+
+Notation isFc := IdSubFunctor.class.
+Notation IsFc := IdSubFunctor.Class.
+Notation IsFMixin := IdSubFunctor.Mixin.
+
+Definition mkIsFc F FM Fsub Fresp := 
+  IsFc FM Fsub (@IsFMixin F Fresp).
+
+Notation "[ 'isFc' 'of' F ]" :=
+  (match [is F : _ -> _ <: bisFc] as s return {type of BisFc for s} -> _ with
+    | IsFc _ g s m => fun k => k g s m end
+  (@IsFc F)) (at level 0, only parsing) : form_scope.
+
+Coercion isFc_bisFc (sF : isFc) := 
+  BisFc (IdSubFunctor.group_of sF) (IdSubFunctor.subset_of sF) sF.
+
+Canonical Structure isFc_bisFc.
+
+Section IdentitySubFunctorProps.
+
+Implicit Types gT hT:finGroupType.
+Variable sF: isFc.
+
+Lemma isfc_resp : resp sF.
+Proof. exact:IdSubFunctor.isfc_resp. Qed.
+
+Lemma morphim_sfunctor : forall gT hT (G D : {group gT})
+  (f : {morphism D >-> hT}),
+  G \subset D -> f @* ('e_sF(G)) \subset 'e_sF(f @* G).
 Proof.
-move=> sF H G; apply/charP; rewrite /= (subfuncclass_clos sF G).
-split=> // f Hinj Heq; apply/(morphim_fixP Hinj _ (subfuncclass_clos sF G)).
-by move/eqP : (Heq); move/(conj Hinj); move/andP; move/(filterW sF H);rewrite Heq.
+move=> gT hT G D f sGD; rewrite -(setIidPr (bisfc_clos sF G)).
+by rewrite  -{3}(setIid G) -!(morphim_restrm sGD) isfc_resp.
 Qed.
 
-(* For endomorphisms, they yield strictly characteristic groups.
-   -> do we need that notion ?*)
-
-End IdentitySubfunctorEndo.
-
-Section IdentitySubfunctorSub.
-
-(* TO ENHANCE : This is just for fun & pretty inusable because of the
-   uniform inheritance restriction on isFc.
-
-   It would be really nice, though, to have a way to render a graph of
-   implications between filters structurally, without having to define a
-   dozen specialized structures for bijective, injective, etc
-   [endo-|hetero-]morphisms.  *)
-
-Variable gT:finGroupType.
-
-Variables Q Q':filter gT gT.
-
-Hypothesis Hpq : forall H f, @Q H f -> @Q' H f.
-
-Variable sF: isFc Q'.
-
-Definition superisfc :=
-  @isFcClass gT _ Q _
-    (subfuncclass_groupset sF)
-    (subfuncclass_clos sF)
-    (fun H f Hq => ((subfuncclass_resp sF) _ _ (@Hpq _ f Hq))).
-
-End IdentitySubfunctorSub.
-
-Section IdentitySubfunctorSup.
-
-Variable gT: finGroupType.
-
-Implicit Types H: {group gT}.
-
-Lemma int_aut_is_aut : forall H (f:{morphism H >-> gT}),
-  is_int_aut f -> is_aut f.
+Lemma injm_sfunctor : forall gT hT (G D : {group gT}) (f : {morphism D >-> hT}),
+  'injm f -> G \subset D -> f @* ('e_sF(G)) = 'e_sF(f @* G).
 Proof.
-move=> H f [x [Hnorm Heq]]; suff: (isom H H f).
-by move/isomP=> [Hinj]; move/eqP; rewrite /is_aut Hinj=> ->.
-rewrite /isom -(eq_imset H^# Heq); apply/isomP; rewrite injm_conj; split=> //.
-by apply:norm_conj_dom.
+move=> gT hT G D f injf sGD; apply/eqP; rewrite eqset_sub morphim_sfunctor //=.
+rewrite -{2}(morphim_invm injf sGD) -[f @* sF _ _](morphpre_invm injf).
+have sFtr := subset_trans (bisfc_clos _ _).
+by rewrite -sub_morphim_pre (morphim_sfunctor, sFtr) ?morphimS.
 Qed.
 
-Lemma aut_is_surj_end : forall H (f:{morphism H >-> gT}),
-  is_aut f -> is_surj_end f.
-Proof. by move=> H f; move/andP=>[Hinj]; rewrite eqset_sub; case/andP. Qed.
+Lemma isom_sfunctor : forall gT hT (D G : {group gT}) (R : {group hT}) 
+                                   (f : {morphism D >-> hT}),
+  G \subset D -> isom G R f -> isom ('e_sF(G)) ('e_sF(R)) f.
+Proof.
+move=> gT rT D G R f; case/(restrmP f)=> g _ ->; case/isomP=> injf <-.
+rewrite /isom -!setDset1 -(injm_sfunctor injf) //.
+rewrite -morphimEsub ?morphimDG ?morphim1 //. 
+by rewrite subDset subsetU // bisfc_clos orbT.
+Qed.
 
-Lemma aut_is_inj : forall H (f:{morphism H >-> gT}),
-  is_aut f -> is_inj f.
-Proof. by move=> H f; move/andP => [Hinj _]. Qed.
+Lemma isog_sfunctor : forall gT hT (D : {group gT}) (R : {group hT}),
+  D \isog R -> 'e_sF(D) \isog 'e_sF(R).
+Proof.
+move=> gT rT D R; case/isogP=> f *.
+apply: (isom_isog f) => //; first by apply: bisfc_clos.
+apply: isom_sfunctor => //; exact/isomP.
+Qed.
 
-End IdentitySubfunctorSup.
+End IdentitySubFunctorProps.
 
 Section IdentitySubfunctorsExamples.
 
-Variable gT:finGroupType.
+Implicit Types gT:finGroupType.
 
-Lemma id_resp : resp (fun _ S => S) (@is_morphism gT gT).
+Lemma id_resp : resp (fun _ S => S).
 Proof. by []. Qed.
 
 Canonical Structure id_subfunc :=
-  isFcClass (fun G => groupP G%G)
-            (fun G => subset_refl _)
-            id_resp.
+  IsFc (fun gT G => groupP G%G)
+       (fun gT G => subset_refl _)
+       (IsFMixin id_resp).
 
-Lemma triv_resp : resp (fun _ S => 1) (@is_morphism gT gT).
-Proof. by move=> H f _ ; rewrite morphim1. Qed.
+Lemma triv_resp : resp (fun _ S => 1).
+Proof. by move=> gT hT H f; rewrite morphim1. Qed.
 
 Canonical Structure triv_subfunc :=
-  @isFcClass _ _ _ (fun _ S => 1)
-            (fun G => groupP 1%G)
-            (@sub1G gT)
-            triv_resp.
+  @IsFc (fun _ S => 1)
+        (fun _ G => groupP 1%G)
+        sub1G
+        (IsFMixin triv_resp).
 
 Require Import center.
 
-Lemma center_resp : resp (fun _ S => 'Z(S)) (@is_surj_end gT).
+Lemma center_resp : resp (fun _ S => 'Z(S)).
 Proof.
-move=> H phi /= Heq; apply:(subset_trans (morphimI _ _ _ )).
+move=> gT hT H phi /=; apply:(subset_trans (morphimI _ _ _ )).
 rewrite subsetI subsetIl /=; apply:(subset_trans (subsetIr (phi @* H) _) ).
 exact:morphim_cent.
 Qed.
 
 Canonical Structure center_id_subfunc :=
-  isFcClass (fun G => groupP 'Z(G)%G)
-            (fun G => @center_sub gT G)
-            (center_resp).
+  IsFc (fun gT G => groupP 'Z(G)%G)
+       (fun gT G => @center_sub gT G)
+       (IsFMixin center_resp).
 
 Require Import maximal.
 
-Lemma Frattini_resp : resp (Frattini) (@is_inj gT gT).
+Lemma Frattini_resp : resp (Frattini).
 Proof.
-move=> H phi Hinj; apply/bigcap_inP=> i Hi.
+move=> gT hT H phi; apply/bigcap_inP=> i Hi.
 rewrite sub_morphim_pre; last by apply:Phi_sub.
 apply:bigcap_inf; move/subsetP: (@dom_ker _ _ H phi); move/morphimGK.
-move/(_ (subset_refl _)) => Heq; rewrite -{2}Heq /= -2!(morphim_invmE Hinj).
-by apply:maximal_morphim; first by apply subset_refl.
+move/(_ (subset_refl _)) => Heq; rewrite -{2}Heq /=.
+by apply: maximal_morphpre.
 Qed.
 
 Canonical Structure Frattini_subfunc :=
-  isFcClass (fun G => groupP 'Phi(G)%G)
-            (@Phi_sub gT)
-            (Frattini_resp).
+  IsFc (fun gT G => groupP 'Phi(G)%G)
+       (fun gT => @Phi_sub gT)
+       (IsFMixin Frattini_resp).
 
 Require Import nilpotent.
 
-Lemma der_clos : forall n (G:{group gT}), G^`(n) \subset G.
+Lemma der_clos : forall n gT (G:{group gT}), G^`(n) \subset G.
 Proof.
-elim; first by move=> G; rewrite derg0.
-by move=> n0 IH G; rewrite dergSn (comm_subG (IH _) (IH _)).
+elim; first by move=> gT G; rewrite derg0.
+by move=> n0 IH gT G; rewrite dergSn (comm_subG (IH _ _) (IH _ _)).
 Qed.
 
 Lemma der_resp : forall n, 
-  resp (fun gT G => derived_at G n) (@is_morphism gT gT).
+  resp (fun gT G => derived_at G n).
 Proof.
-elim => [|n IH] H phi _; first by rewrite derg0.
+elim => [|n IH] gT hT H phi; first by rewrite derg0.
 rewrite !dergSn (morphimR _ (der_clos _ _) (der_clos _ _)).
 by rewrite commgSS ?IH.
 Qed.
 
 Canonical Structure der_id_subfunctor (n:nat) :=
-  isFcClass (fun (G:{group gT}) => der_group_set G n)
-            (der_clos n)
-            (der_resp n).
+  IsFc (fun gT (G:{group gT}) => der_group_set G n)
+       (der_clos n)
+       (IsFMixin (der_resp n)).
+
+Lemma lcn_resp : forall n,
+  resp (fun gT G => 'L_n(G)).
+Proof.
+elim=> [|n IH] gT hT H phi; first by rewrite !lcn0.
+by rewrite !lcnSn morphimR ?lcn_subset0 // commSg ?IH.
+Qed.
+
+Canonical Structure lcn_id_subfunctor (n:nat) :=
+  IsFc (fun gT (G :{group gT}) => lcn_group_set G n)
+       (fun gT G => (lcn_subset0 G n))
+       (IsFMixin (lcn_resp n)).
 
 Require Import pgroups.
 
-Implicit Types G:{group gT}.
-
-Lemma Ohm_sub : forall i G, 'Ohm_i(G) \subset G.
-Proof. move=> i; exact: Ohm_sub. Qed.
+Lemma Ohm_sub : forall i gT (G:{group gT}), 'Ohm_i(G) \subset G.
+Proof. move=> gT i; exact: Ohm_sub. Qed.
 
 Lemma Ohm_resp : forall i,
-  resp (fun gT S => 'Ohm_i(S)) (@is_aut gT).
-Proof. move=> i G f _; exact: gfunc_Ohm. Qed.
+  resp (fun gT S => 'Ohm_i(S)).
+Proof. move=> i G f; exact: gfunc_Ohm. Qed.
 
 Canonical Structure Ohm_id_subfunctor (i:nat) :=
-  @isFcClass _ _ _ (fun _ S => 'Ohm_i(S))
-            (fun G => groupP 'Ohm_i(G)%G)
-            (Ohm_sub i)
-            (Ohm_resp i).
+  IsFc  (fun gT (G:{group gT}) => groupP 'Ohm_i(G)%G)
+        (Ohm_sub i)
+        (IsFMixin (Ohm_resp i)).
 
-Lemma Mho_sub : forall i G, 'Mho^i(G) \subset G.
+Lemma Mho_sub : forall i gT (G:{group gT}), 'Mho^i(G) \subset G.
 Proof. move=> i; exact: Mho_sub. Qed.
 
 Lemma Mho_resp : forall i,
-  resp (fun gT S => 'Mho^i(S)) (@is_aut gT).
-Proof. move=> i G f _; exact: gfunc_Mho. Qed.
+  resp (fun gT S => 'Mho^i(S)).
+Proof. move=> i G f; exact: gfunc_Mho. Qed.
 
 Canonical Structure Mho_id_subfunctor (i:nat) :=
-  @isFcClass _ _ _ (fun _ S => 'Mho^i(S))
-            (fun G => groupP 'Mho^i(G)%G)
-            (Mho_sub i)
-            (Mho_resp i).
+  IsFc (fun gT (G:{group gT}) => groupP 'Mho^i(G)%G)
+       (Mho_sub i)
+       (IsFMixin (Mho_resp i)).
 
 End IdentitySubfunctorsExamples.
 

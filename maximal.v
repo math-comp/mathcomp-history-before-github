@@ -70,7 +70,8 @@ End Props.
 Section Morphisms.
 
 Variables (gT rT : finGroupType) (D : {group gT}) (f : {morphism D >-> rT}).
-Implicit Types G H M : {group gT}.
+Implicit Types G M : {group gT}.
+Implicit Types H J : {group rT}.
 
 Lemma maximal_morphim : forall G M,
   G \subset D -> maximal_eq M G -> maximal_eq (f @* M) (f @* G).
@@ -85,6 +86,29 @@ rewrite defH; case: (maxM (restrm sGD f @*^-1 fH)%G) => /= [||->|->].
 - by rewrite subsetIl.
 - by left; rewrite morphim_restrm (setIidPr _).
 by right; rewrite morphim_restrm setIid.
+Qed.
+
+Lemma maximal_morphpre : forall H J,
+  H \subset f @* D -> maximal_eq J H -> maximal_eq (f @*^-1 J) (f @*^-1 H).
+Proof.
+move=> H J sfHD; case/maximal_eqP=> sJH maxJ; apply/maximal_eqP.
+split=> [|fH sfJH sHfH]; first by rewrite morphpreS.
+move: (subset_trans sfJH sHfH) => sJfH.
+move: (morphpreS f sfHD); rewrite morphimGK // =>[sHD|]; 
+last by move/subsetP:(@dom_ker _ _ _ f).
+have HkerfH: ('ker (restrm_morphism sHD f) \subset fH).
+  rewrite /ker morphpre_restrm; move: (morphpreI f H 1).
+  rewrite (setIidPr (sub1G H)) =><-; apply: (subset_trans _ sfJH).
+  by apply:morphpreS; apply:sub1G.
+have defH: fH = (restrm sHD f @*^-1 (restrm sHD f @* fH))%G.
+  by apply:val_inj; rewrite /= morphimGK. 
+rewrite defH; case: (maxJ (restrm sHD f @* fH)%G); try apply:val_inj.
+- rewrite -sub_morphpre_im ?morphpre_restrm ?(setIidPr _) //=.
+  by rewrite morphim_restrm setIid morphpreK.
+- rewrite /= morphim_restrm; move/setIidPr: (sHfH) =>->.
+  by rewrite sub_morphim_pre; last by apply: (subset_trans _ sHD).
+- by move/val_inj => ->; left; rewrite /= morphpre_restrm (setIidPr _).
+- by move/val_inj => ->; right; rewrite /= morphpre_restrm setIid.
 Qed.
 
 End Morphisms.
