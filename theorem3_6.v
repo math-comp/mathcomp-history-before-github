@@ -50,7 +50,29 @@ rewrite cyclicJ cyclic_morphim // (implyP (forallP zgG P)) //.
 by apply/SylowP; exists p.
 Qed.
 
-Lemma Phi_char: forall G, 'Phi(G) \char G. Admitted.
+Lemma nil_Zgroup_cyclic : forall G, Zgroup G -> nilpotent G -> cyclic G.
+Proof.
+move=> G; elim: {G}_.+1 {-2}G (ltnSn #|G|) => // n IHn G; rewrite ltnS => leGn.
+move=> ZgG nilG; case: (leqP #|G| 1).
+  rewrite -trivg_card; move/trivgP->; apply/cyclicP; exists (1 : gT).
+  by rewrite cycle_unit.
+move/prime_pdiv; set p := pdiv _ => pr_p.
+case/dprodGP: (nilpotent_pcoreC p nilG) => [[_ _ _ _ defG Cpp'] _].
+have: cyclic 'O_p^'(G).
+  have sp'G := pcore_sub p^' G.
+  apply: IHn (leq_trans _ leGn) (ZgroupS sp'G _) (nilpotentS sp'G _) => //.
+  rewrite proper_card // properEneq sp'G andbT; case: eqP => //= def_p'.
+  by have:= pcore_pgroup p^' G; rewrite def_p' /pgroup p'natE ?dvdn_pdiv.
+have: cyclic 'O_p(G).
+  have:= forallP ZgG 'O_p(G)%G.
+  by rewrite (p_Sylow (nilpotent_pcore_Hall p nilG)).
+case/cyclicP=> x def_p; case/cyclicP=> x' def_p'.
+apply/cyclicP; exists (x * x'); rewrite -{}defG def_p def_p' cycle_mul //.
+  by apply: (centsP Cpp'); rewrite (def_p, def_p') cyclenn.
+rewrite /order -def_p -def_p' (@pnat_coprime p) //; exact: pcore_pgroup.
+Qed.
+
+Lemma Phi_char : forall G, 'Phi(G) \char G. Admitted.
 
 Lemma coprime_cent_Phi : forall H G,
   coprime #|H| #|G| -> [~: H, G] \subset 'Phi(G) ->  H \subset 'C(G).
@@ -58,6 +80,9 @@ Admitted.
 
 Lemma Fitting_def : forall G H,
   H <| G -> nilpotent H -> H \subset 'F(G).
+Admitted.
+
+Lemma Fitting_nilpotent : forall G, nilpotent 'F(G).
 Admitted.
 
 Lemma solvable_self_cent_Fitting : forall G,
