@@ -484,6 +484,13 @@ case/cyclicP: cH sHG => x ->; rewrite gen_subG sub1set => Gx.
 by apply/cyclicP; exists (f x); rewrite morphim_cycle.
 Qed.
 
+Lemma isog_cyclic:
+  forall rT G (H : {group rT}), G \isog H -> cyclic G -> cyclic H.
+Proof.
+move=> rT G H; move/isog_sym_imply; case/isogP=> f injf <- Cf.
+by rewrite -(morphim_invm injf (subset_refl _)) cyclic_morphim.
+Qed.
+
 Lemma cyclic_quo : forall G H, cyclic G -> cyclic (G / H).
 Proof. move=> G H; exact: cyclic_morphim. Qed.
 
