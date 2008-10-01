@@ -1510,6 +1510,14 @@ case pr_p: (prime p) => //=; apply/idP/idP=> pG.
 case/Cauchy: pG => // x Gx <-; exact: dvdn_exponent.
 Qed.
 
+Lemma abelian1: abelian (1 : {set gT}). Proof. exact: sub1G. Qed.
+
+Lemma abelem1: abelem (1 : {set gT}). 
+Proof. by rewrite /abelem abelian1 pgroup1. Qed.
+
+Lemma p_abelem1: forall p: nat, p.-abelem (1 : {set gT}).
+Proof. by move=> p; rewrite /p_abelem abelem1 pgroup1. Qed.
+
 Lemma abelemP : forall E,
   reflect (exists2 p, prime p & p.-abelem E) (abelem E).
 Proof.

@@ -46,6 +46,8 @@ alt.v
 burnside_app.v
 theorem3_6.v
 groupf.v
+critical.v
+
 
 COQC = $(COQBIN)ssrcoq
 COQFLAGS = "-q $(OPT) -dont-load-proofs $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -compile"

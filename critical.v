@@ -1,6 +1,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import fintype paths finfun ssralg bigops finset prime.
-Require Import groups normal morphisms cyclic nilpotent center pgroups sylow.
+Require Import groups normal morphisms automorphism cyclic nilpotent.
+Require Import commutators center pgroups sylow.
 
 Import GroupScope.
 
@@ -51,10 +52,9 @@ have: p %| #|Group GH'ZP'|.
 case/(Cauchy F5) => X'; rewrite in_setI; case/andP=> IX'H' IX'ZP' CX'.
 have F6: <[X']> <| P'.
   rewrite /normal;  have->: <[X']> \subset P'.
-    (* same pb *)
     have GZP': group_set 'Z(P') by apply: group_setI.
     move: IX'ZP'; rewrite -['Z(P')]/(Group GZP': set _).
-    by move/cycle_h; rewrite subsetI; case/andP.
+    by rewrite -cycle_subG subsetI; case/andP.
   rewrite norms_gen // cents_norm // centsC sub1set.
   by move: IX'ZP'; rewrite in_setI; case/andP.
 case: (inv_quotientN NMP F6) => X /= DX SMX SXP.
@@ -70,11 +70,10 @@ rewrite subsetI SMX centsC.
 have: <[X']> \subset H'.
   (* same pb *)
   have GH': group_set H' by apply: morphim_groupset.
-  by rewrite -[H']/(Group GH': set _) cycle_h.
+  by rewrite -[H']/(Group GH': set _) cycle_subG.
 rewrite DX quotientSGK //; first by rewrite subsetI; case/andP.
 by rewrite normal_norm // (normalS _ _ NMP) //; case/andP: SXP.
 Qed.
-
 
 End CriticalThompson.
 
