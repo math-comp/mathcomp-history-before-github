@@ -74,6 +74,26 @@ Qed.
 
 Lemma Phi_char : forall G, 'Phi(G) \char G. Admitted.
 
+Lemma maximal_p_group : forall (p : nat) (P M : {group gT}),
+  p.-group P -> maximal M P -> M <| P /\ #|P / M| = p.
+Proof.
+move=> p P M pP; case/maximalP; case/andP=> sMP sPM maxM.
+have nMP: P \subset 'N(M).
+  have:= subsetIl P 'N(M); rewrite subEproper.
+  case/predU1P; [by move/setIidPl | move/maxM => /= SNM].
+  case/negP: sPM; rewrite (nilpotent_sub_norm (nilpotent_pgroup pP) sMP) //.
+  by rewrite SNM // subsetI sMP normG.
+have snMP: M <| P by exact/andP.
+have: p.-group (P / M) by exact: morphim_pgroup.
+case/pgroup_1Vpr=> [/= PM1|[p_pr _ [k oMp]]]. 
+  by case/negP: sPM; rewrite -trivg_quotient ?PM1.
+have{k oMp}: p %| #|P / M| by rewrite oMp dvdn_mulr.
+case/Cauchy=> // Mx; rewrite /order -cycle_subG.
+case/inv_quotientS=> [|L /= ->{Mx} sML]; first exact/andP.
+rewrite subEproper; case/predU1P=> [-> // | sLP].
+by rewrite (maxM L) // trivial_quotient cards1 => p1; rewrite -p1 in p_pr.
+Qed.
+
 Lemma coprime_cent_Phi : forall H G,
   coprime #|H| #|G| -> [~: H, G] \subset 'Phi(G) ->  H \subset 'C(G).
 Admitted.
@@ -94,6 +114,20 @@ Admitted.
 
 Lemma Fitting_normal : forall G, 'F(G) <| G.
 Proof. move=> G; apply: char_normal; exact: Fitting_char. Qed.
+
+Lemma pcore_Fitting : forall pi G, 'O_pi('F(G)) \subset 'O_pi(G).
+Proof.
+move=> pi G; rewrite subset_pcore ?pcore_pgroup //.
+exact: char_normal_trans (pcore_char _ _) (Fitting_normal _).
+Qed.
+
+Lemma p_core_Fitting : forall (p : nat) G, 'O_p('F(G)) = 'O_p(G).
+Proof.
+move=> p G; apply/eqP; rewrite eqset_sub pcore_Fitting.
+rewrite subset_pcore ?pcore_pgroup //.
+apply: normalS (normal_sub (Fitting_normal _)) (pcore_normal _ _).
+exact: Fitting_def (pcore_normal _ _) (nilpotent_pgroup (pcore_pgroup _ _)).
+Qed.
 
 End Props.
 
@@ -178,8 +212,7 @@ have{IHn trivgHR hallH} IHquo: forall X : group gT,
     by rewrite ltn_pmul2r // ltnNge -trivg_card.
   have solG': solvable (G / X) by exact: solvable_quo.
   have oddG': odd #|G / X|.
-    move: oddG; do 2!rewrite -[odd _]negbK -dvdn2_even; apply: contra. 
-    by move/dvdn_trans; apply; exact: dvdn_morphim.
+    move: oddG; rewrite !odd_2'nat; exact: morphim_pgroup.
   have nHG': H / X <| G / X by exact: morphim_normal.
   have hallH': Hall (G / X) (H / X) by exact: morphim_Hall.
   have compR': (R / X)%G \in complg (G / X) (H / X).
@@ -207,13 +240,27 @@ have charV: V \char H by rewrite -defV Fitting_char.
 have nVG: G \subset 'N(V) by rewrite normal_norm ?(char_normal_trans charV).
 have sVH: V \subset H by rewrite normal_sub ?char_normal.
 have defVp: V :=: 'O_p(H).
-  admit.
+  rewrite -defV -(nilpotent_pcoreC p (Fitting_nilpotent H)) // p_core_Fitting.
+  rewrite ['O_p^'('F(H))](trivgP _ _) ?dprodg1 //.
+  exact: subset_trans (pcore_Fitting _ _) Op'_H.
 have pV: p.-group V by rewrite defVp pcore_pgroup.
 have sCV_V: 'C_H(V) \subset V.
   rewrite -defV solvable_self_cent_Fitting //; exact: solvableS solG.
 wlog abV: / p.-abelem V.
   case/orP: (orbN (trivg 'Phi(V))) => [trPhi -> // | ntPhi _].
-    admit.
+    apply/p_abelemP=> //; split=> [|x Vx].
+      apply/centsP; apply/commG1P; apply: subset_trans trPhi.
+      apply/bigcap_inP=> M; case/predU1P=> [->|]; first exact: der1_subG.
+      case/(maximal_p_group pV)=> //; case/andP=> sMV nMV oVM.
+      have{oVM} VMcyc: cyclic (V / M) by rewrite cyclic_prime ?oVM.      
+      apply: center_commgl => //; case/cyclicP: VMcyc => x ->; apply/centsP.
+      exact: commute_cycle_com.
+    apply/set1P; rewrite -[[set 1]](trivgP _ trPhi).
+    apply/bigcapP=> M; case/predU1P=> [->|]; first exact: groupX.
+    case/(maximal_p_group pV)=> //; case/andP=> sMV nMV oVM.
+    have Nx: x \in 'N(M) by exact: (subsetP nMV).
+    apply: coset_of_idr; rewrite (groupX, morphX) //= -oVM.
+    by apply/eqP; rewrite -order_dvd order_dvd_g ?mem_imset // inE Nx.
   have chPhi: 'Phi(V) \char H := char_trans (Phi_char _) charV.
   have nPhiH := char_normal chPhi; have sPhiH := normal_sub nPhiH.
   have{chPhi} nPhiG: G \subset 'N('Phi(V)).
@@ -278,7 +325,10 @@ have: exists2 K : {group gT}, p^'.-Hall(U) K & R \subset 'N(K).
   by rewrite -(LaGrange sUH) coprime_mull in coHR; case/andP: coHR.
 case=> K hallK nKR; have [sKU _]:= andP hallK.
 have p'K: p^'.-group K by exact: pHall_pgroup hallK.
-have p'Ub: p^'.-group 'F(H / V) by admit.
+have p'Ub: p^'.-group 'F(H / V).
+  rewrite -['F(H / V)](nilpotent_pcoreC p (Fitting_nilpotent _)).
+  rewrite ['O_p(_)](trivgP _ _) ?dprod1g ?pcore_pgroup // defVp.
+  exact: subset_trans (pcore_Fitting _ _) (trivg_pcore_quotient _ _).
 have nVU := subset_trans (subset_trans sUH sHG) nVG.
 have defVK: U :=: V * K.
   have nVK := subset_trans sKU nVU.
@@ -376,7 +426,7 @@ have sCKK: 'C_H(K) \subset K.
 have{nVN} ntKR0: ~~ trivg [~: K, R0].
   apply/commG1P; move/centsP=> cKR0; case/negP: ntKP.
   have Z_K: Zgroup K by apply: ZgroupS ZCHR0; rewrite subsetI sKH.
-  have cycK: cyclic K by admit.
+  have cycK: cyclic K by rewrite nil_Zgroup_cyclic // defK Fitting_nilpotent.
   have AcycK : abelian (Aut K).
     case/cyclicP: cycK => x ->; exact: aut_cycle_commute.
   have sNR_K: [~: 'N_H(K), R] \subset K.
