@@ -12,7 +12,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 Require Import fintype div prime finset ssralg bigops.
 Require Import groups morphisms action normal pgroups automorphism.
-Require Import cyclic dirprod.
+Require Import cyclic dirprod abelian.
 
 (* Require Import seq paths connecct bigops group_perm. *)
 
@@ -94,6 +94,11 @@ Proof. by move=> G; rewrite -{2}(setIidPl (normG G)) subcent_normal. Qed.
 Lemma morphim_center : forall rT A D (f : {morphism D >-> rT}),
   f @* 'Z(A) \subset 'Z(f @* A).
 Proof. move=> rT A D f; exact: morphim_subcent. Qed.
+
+Lemma abelian_center: forall G, abelian 'Z(G).
+Proof.
+by move=> P; rewrite /abelian subIset // centsC subIset // subset_refl orbT.
+Qed.
 
 Lemma center_char : forall G, 'Z(G) \char G.
 Proof.

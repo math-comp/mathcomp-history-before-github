@@ -1,6 +1,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import fintype paths finfun ssralg bigops finset prime.
-Require Import groups action morphisms group_perm automorphism normal cyclic.
+Require Import groups action morphisms group_perm automorphism normal. 
+Require Import cyclic abelian.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -1565,6 +1566,48 @@ rewrite gen_set_id => [defE |]; last first.
   rewrite groupM // expMgn ?(xp, yp, mulg1) //=; exact: (centsP abelE).
 exists p => //; apply/p_abelemP=> //; split=> // x.
 by rewrite -defE inE expn1; case/andP=> _; move/eqP.
+Qed.
+
+Lemma abelemS: forall E H,  E \subset H -> abelem H -> abelem E.
+Proof.
+move=> E H SEH; case/abelemP => p Pp; case/(p_abelemP _ Pp) => AH PH.
+apply/abelemP; exists p => //; apply/(p_abelemP _ Pp); split => [|r Er] //.
+  by apply: asub SEH.
+by apply: PH; apply: (subsetP SEH).
+Qed.
+ 
+Lemma Ohm_abelian: forall E, p_group E -> abelian E -> abelem ('Ohm_1(E)).
+Proof.
+move=> E; case/p_groupP => p Pp PgE AE.
+rewrite (OhmE 1 PgE); apply/abelemP; exists p => //.
+apply/(p_abelemP _ Pp); split.
+  apply: (asub AE); rewrite gen_subG.
+  by apply/subsetP => x; rewrite in_set; case/andP.
+move=> x.
+have GE: group_set [set x0 \in E | x0 ^+ (p ^ 1) == 1%g].
+  rewrite /group_set in_set group1 exp1gn eqxx.
+  apply/subsetP => y; case/mulsgP => x1 y1; rewrite !in_set.
+  case/andP => Ix1P x1P1; case/andP => Iy1P y1P1 ->; rewrite groupM //.
+  rewrite expMgn // ?(eqP x1P1, eqP y1P1, mul1g, eqxx) //.
+  by move: AE; move/centsP; move/(_ _ Ix1P y1 Iy1P).
+by move: (gen_set_id GE) => /= ->; rewrite in_set expn1; case/andP => _; move/eqP.
+Qed.
+
+Lemma Ohm_triv_setI: forall E H, 
+  p_group E -> trivg(H :&: 'Ohm_1(E)) -> trivg (H :&: E).
+Proof.
+move=> E H PgE THOE.
+case: (pgroup_1Vpr (PgE)); first by move=> ->; rewrite /trivg subsetIr.
+case=> Pp CE _.
+have PgHE: (pdiv #|E|).-group (H :&: E) by apply: pgroupS PgE; rewrite subsetIr.
+case: (pgroup_1Vpr PgHE); first by move => /= ->; rewrite trivg1.
+case=> _ Ln [m Cm].
+have: pdiv #|E| %| #|H :&: E| by rewrite Cm dvdn_mulr.
+case/(Cauchy Pp) => x; rewrite in_set; case/andP => IxH IxE Ox.
+have IxOP: x \in H :&: 'Ohm_1(E).
+  rewrite in_set IxH (OhmE _ PgE) mem_gen // in_set IxE.
+  by rewrite -(@order_expn1 _ x) Ox expn1 eqxx.
+by move/set1P: (subsetP THOE _ IxOP) Ox Pp => -> <-; rewrite order1.
 Qed.
 
 Lemma pnElemE : forall p n G,
