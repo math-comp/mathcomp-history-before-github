@@ -2577,12 +2577,20 @@ let pf_fill_occ_pat gl occ n pat =
   let occ_default, occ_list = match List.map get_index occ with
   | -1 :: ol -> ol <> [], ol
   | 0 :: ol | ol -> ol = [], ol in
+(*  let occ_default, occ_list = match List.map get_index occ with
+  | -1 :: ol -> ol = [], ol
+  | 0 :: ol | ol -> ol <> [], ol in*)
   let max_occ = List.fold_right max occ_list 0 in
   let occ_set = Array.make max_occ occ_default in
+(*assia :
   let _ = List.iter (fun i -> occ_set.(i - 1) <- occ_default) occ_list in  
-(*assia  let _ = List.iter (fun i -> occ_set.(i - 1) <- not occ_default) occ_list in  *)
+ *)
+  let _ = List.iter (fun i -> occ_set.(i - 1) <- not occ_default) occ_list in 
   let subst_occ h c =
     let i = !nocc in nocc := i + 1;
+(*assia  : this would solves the pb but creates others...
+    let occ_ok = if i < max_occ then occ_set.(i) else (not occ_default) in
+    if i >= max_occ - 1 && occ_default then unify := (fun _ -> false);*)
     let occ_ok = if i < max_occ then occ_set.(i) else occ_default in
     if i >= max_occ - 1 && not occ_default then unify := (fun _ -> false);
     if occ_ok then (incr nsubst; mkRel h) else c in
