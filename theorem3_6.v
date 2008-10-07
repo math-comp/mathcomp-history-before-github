@@ -825,8 +825,4 @@ have dprod_V : \big[direct_product/1]_(M \in mxK) 'C_V(M) = V.
       apply/bigcup_inP=> M1 _; exact: subsetIl.
     rewrite defW dprodGE //; first by rewrite -cent_mulgenE ?groupP.
     by apply: subset_trans trWM; rewrite setIC setICA subsetIr.
-  admit
-admit.
-Qed.
-
-
+Admitted.
