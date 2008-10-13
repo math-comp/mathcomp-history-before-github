@@ -2577,20 +2577,11 @@ let pf_fill_occ_pat gl occ n pat =
   let occ_default, occ_list = match List.map get_index occ with
   | -1 :: ol -> ol <> [], ol
   | 0 :: ol | ol -> ol = [], ol in
-(*  let occ_default, occ_list = match List.map get_index occ with
-  | -1 :: ol -> ol = [], ol
-  | 0 :: ol | ol -> ol <> [], ol in*)
   let max_occ = List.fold_right max occ_list 0 in
   let occ_set = Array.make max_occ occ_default in
-(*assia :
-  let _ = List.iter (fun i -> occ_set.(i - 1) <- occ_default) occ_list in  
- *)
   let _ = List.iter (fun i -> occ_set.(i - 1) <- not occ_default) occ_list in 
   let subst_occ h c =
     let i = !nocc in nocc := i + 1;
-(*assia  : this would solves the pb but creates others...
-    let occ_ok = if i < max_occ then occ_set.(i) else (not occ_default) in
-    if i >= max_occ - 1 && occ_default then unify := (fun _ -> false);*)
     let occ_ok = if i < max_occ then occ_set.(i) else occ_default in
     if i >= max_occ - 1 && not occ_default then unify := (fun _ -> false);
     if occ_ok then (incr nsubst; mkRel h) else c in
@@ -3190,7 +3181,9 @@ TACTIC EXTEND ssrmove
   [ tclCLAUSES (ssrmovetac arg) clauses ]
 | [ "move" ssrrpat(pat) ] -> [ ipattac pat ]
 | [ "move" ] -> [ movehnftac ]
-END
+    END
+
+
 
 (** The "case" tactic *)
 
@@ -3799,9 +3792,10 @@ let unfoldtac occ t gl =
   let t' = strip_unfold_term t in
   let cl, c, _ = pf_interp_gen gl false (mkocc occ, t') in
   let r, v = get_evalref c in
+  if occ = [] then unfold_in_concl [all_occurrences,r] gl else
   let iocc = get_occ_indices occ in
   if c = v && List.for_all ((<) 0) iocc && pf_ctx_let_depth gl = 0
-    then unfold_in_concl [(false, iocc), r] gl else
+    then unfold_in_concl [(true, iocc), r] gl else
   let m = nb_occ v c in
   let rec mk_occ (i, occ') c' =
     if c' = v then (i + 1, occ') else
@@ -3975,18 +3969,27 @@ END
 
 let ssrrewritetac rwargs = tclTHENLIST (List.map rwargtac rwargs)
 
-
+(*assia
 let ssrrewritebindtac t bl =
   Equality.general_rewrite_bindings 
     true (force_term t, bl)
+in coq81/tactics/equality.mli:
+val general_rewrite_bindings : bool -> constr with_bindings -> tactic
+in coq82/tactics/equality.mli:
+val general_rewrite_bindings : 
+  bool -> occurrences -> constr with_bindings -> evars_flag -> tactic
+
+*)
+let ssrrewritebindtac t bl =
+  Equality.general_rewrite_bindings
+    true all_occurrences (force_term t, bl) false
+
 
 TACTIC EXTEND ssrrewrite
   | [ "rewrite" ssrrwargs_nt(args) ssrclauses(clauses) ] ->
     [ tclCLAUSES (ssrrewritetac args) clauses ]
-      (* assia : this line is NOT FIXED !
-  | [ "rewrite" ssrtermspc(r) "with" bindings(bl) ssrclauses(clauses) ] ->
-      
-    [ tclCLAUSES (ssrrewritebindtac r bl) clauses ]*)
+(*      assia : this line is NOT FIXED 
+  | [ "rewrite" ssrtermspc(r) "with" bindings(bl) ssrclauses(clauses) ] ->*)
   | [ "rewrite" ssrtermspc(r) ssrrwargs(args) ssrclauses(clauses) ] ->
     [ tclCLAUSES (tclTHEN (rwrxtac [] None L2R r)
                           (ssrrewritetac args)) clauses ]
