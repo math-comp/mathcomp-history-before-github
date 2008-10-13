@@ -88,7 +88,7 @@ case ChM: (M \char P); move/idP: ChM => ChM.
     apply/maxgroupP; split; first by rewrite NMP.
     move=> H; case/andP=> NHP AH SMH.
     by apply: MM => //; rewrite NHP AH (subset_trans SDM).
-  - by rewrite AC subcomm_normal; case/andP: (char_normal ChM).
+  - by rewrite AC commg_subr; case/andP: (char_normal ChM).
   split.
     rewrite /nil_class;case: #|M| => [|[|n]] //=; case: (_ == 1) => //.
     by rewrite ucn_lcnP ucn1 AC eqxx.
@@ -138,11 +138,11 @@ have EZCD: 'Z(C) :=: D.
   apply/andP=> //; split; first by apply: (char_trans (center_char _)).
   by rewrite /abelian subIset // centsC subsetIr.
 have F1: [~: P, C] \subset 'Z(C).
- rewrite EZCD /C /C' /H' /H /P' center_commgl //= -/P' -/H -/H' -/C' -/C.
- - by rewrite -EZCD; case/andP: (@center_normal _ (Group GC)).
- - by case/andP: (char_normal ChD).
+ rewrite EZCD /C /C' /H' /H /P' -quotient_cents //= -/P' -/H -/H' -/C' -/C.
  - by rewrite cosetpreK -/P' centsC (subset_trans (subsetIr _ _)) // /P'
               (subset_trans (@Ohm_sub 1 _ _)) // subsetIr.
+ - by rewrite -EZCD; case/andP: (@center_normal _ (Group GC)).
+ by case/andP: (char_normal ChD).
 split => //.
   - split; last first.
       by rewrite EZCD cosetpreK /C' /H' /H /P'  (abelemS (subsetIr _ _)) //

@@ -77,7 +77,7 @@ Proof. by move=> G n; case/andP: (lcn_normal0 G n). Qed.
 
 Lemma lcn_subset : forall G n, 'L_n.+1(G) \subset 'L_n(G).
 Proof.
-move=> G n; rewrite lcnSn commsgC subcomm_normal.
+move=> G n; rewrite lcnSn commGC commg_subr.
 by case/andP: (lcn_normal0 G n).
 Qed.
 
@@ -90,7 +90,7 @@ Qed.
 Lemma lcn_center : forall G n, 'L_n(G) / 'L_n.+1(G) \subset 'Z(G / 'L_n.+1(G)).
 Proof.
 move=> G n; rewrite subsetI ?lcn_subset0 //=.
-by rewrite morphimS ?center_commgr ?lcn_normaliser0 ?lcn_subset0 ?lcn_subset.
+by rewrite morphimS ?quotient_centsr ?lcn_normaliser0 ?lcn_subset0 ?lcn_subset.
 Qed.
 
 Lemma lcn_stable : forall G n m, n <= m ->  trivg 'L_n(G) -> trivg 'L_m(G).
@@ -374,7 +374,7 @@ have{nsGH} [i sZH []]: exists2 i, 'Z_i(G) \subset H & ~ 'Z_i.+1(G) \subset H.
   elim: n => [|i IHi] in nsGH *; first by rewrite sub1G in nsGH.
   by case sZH: ('Z_i(G) \subset H); [exists i | apply: IHi; rewrite sZH].
 case/andP: (ucn_normal0 G i) => _ nZG.
-apply: subset_trans sNH; rewrite subsetI subsetIl -subcomm_normal.
+apply: subset_trans sNH; rewrite subsetI subsetIl -commg_subr.
 apply: subset_trans sZH; apply: subset_trans (ucn_comm G i); exact: commgS.
 Qed.
 
@@ -389,7 +389,7 @@ have{nilG ntH} [i trZHi]: exists2 i, trZH i & ~~ trZH i.+1.
   by case trZHi: (trZH i); [exists i | move/idPn: trZHi].
 apply: contra; apply: subset_trans; rewrite [H :&: 'Z(G)]setIA subsetI.
 rewrite {1}setIA subsetIl /= (sameP centsP commG1P).
-apply: subset_trans trZHi; rewrite -subcomm_normal commsgC in nHG.
+apply: subset_trans trZHi; rewrite -commg_subr commGC in nHG.
 rewrite subsetI (subset_trans _ nHG) ?commSg ?subsetIl //=.
 by rewrite (subset_trans _ (ucn_comm G i)) ?commSg ?subsetIr.
 Qed.

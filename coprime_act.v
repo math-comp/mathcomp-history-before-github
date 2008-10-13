@@ -171,7 +171,7 @@ have sGA_H: [~: G, A] \subset H.
     by rewrite groupMl ?groupV // memJ_norm ?(subsetP nHA).
   rewrite subsetI sKG in cKA; apply/commgP; exact: (centsP cKA).
 apply: subset_pcore; last first.
-  by rewrite /(_ <| G) /=  normGR commsgC subcomm_normal nGA.
+  by rewrite /(_ <| G) /=  commg_norml commGC commg_subr nGA.
 by case/and3P: hallH => _ piH _; apply: pgroupS piH.
 Qed.
 

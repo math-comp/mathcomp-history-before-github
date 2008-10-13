@@ -1806,7 +1806,7 @@ Proof.
 move=> A B G sAG sBG; apply: subset_trans (der1_subG G); exact: commgSS.
 Qed.
 
-Lemma commsgC : forall A B, [~: A, B] = [~: B, A].
+Lemma commGC : forall A B, [~: A, B] = [~: B, A].
 Proof.
 move=> A B; rewrite -[[~: A, B]]genV; congr <<_>>; apply/setP=> z; rewrite inE.
 by apply/imset2P/imset2P=> [] [x y Ax Ay]; last rewrite -{1}(invgK z);

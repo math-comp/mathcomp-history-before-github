@@ -427,12 +427,12 @@ rewrite ltnS => leHn sHG defHb.
 case eqH'H: ([~: H, H] == H).
   have:= forallP solG H; rewrite subsetI sHG (eqP eqH'H) subset_refl -defHb. 
   by move/trivGP->; rewrite morphim1.
-have sH'H: [~: H, H] \subset H by by rewrite subcomm_normal normG.
+have sH'H: [~: H, H] \subset H by by rewrite commg_subr normG.
 apply: IHn (subset_trans sH'H sHG) _.
   rewrite eqset_sub_card sH'H /= in eqH'H.
   by apply: leq_trans leHn; rewrite ltnNge eqH'H.
 apply/eqP; rewrite morphimR // defHb.
-by rewrite eqset_sub sHbHb' subcomm_normal normG.
+by rewrite eqset_sub sHbHb' commg_subr normG.
 Qed.
 
 Lemma solvable_quo : forall G H : {group gT}, solvable G -> solvable (G / H).

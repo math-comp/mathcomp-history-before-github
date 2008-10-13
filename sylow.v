@@ -346,7 +346,7 @@ rewrite dprodGE //.
   rewrite (card_mulG_trivP _ _ trO) ?(card_Hall (nilpotent_pcore_Hall _ _)) //.
   by rewrite partnC // /=.
 apply/centsP; apply/commG1P; apply: subset_trans trO.
-rewrite subsetI {1}commsgC /= !subcomm_normal /=.
+rewrite subsetI {1}commGC /= !commg_subr /=.
 by rewrite !(subset_trans (pcore_sub _ _)) ?normal_norm ?pcore_normal.
 Qed.
 

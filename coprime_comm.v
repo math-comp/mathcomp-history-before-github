@@ -20,15 +20,15 @@ Lemma comm_center_prod: forall (A G: group T),
 Proof.
 move=> A G AsubNG coprime solv.
 apply/eqP; rewrite eqset_sub; apply/andP; split.
-- apply: sub_gmul; rewrite /=; first by apply:normGR.
-  - by apply: (subset_trans _ (normGR G A)); rewrite /centraliser; apply: subsetIl.
+- apply: sub_gmul; rewrite /=; first by apply:commg_norml.
+  - by apply: (subset_trans _ (commg_norml G A)); rewrite /centraliser; apply: subsetIl.
   - rewrite coprime_quotient_cent //=.
-    - by rewrite subsetI; apply/andP; split; last by apply: center_commgr.
-    - apply/andP; rewrite //=; split; last by apply:normGR.
-      by rewrite commsgC subcomm_normal //.
-    - by rewrite commsgC; apply: normGR.
+    - by rewrite subsetI; apply/andP; split; last by apply: quotient_centsr.
+    - apply/andP; rewrite //=; split; last by apply:commg_norml.
+      by rewrite commGC commg_subr //.
+    - by rewrite commGC; apply: commg_norml.
 - rewrite -{3}mulGid; apply:imset2S; last by apply: subsetIl.
-  by rewrite commsgC subcomm_normal //.
+  by rewrite commGC commg_subr //.
 Qed.
 *)
 
@@ -38,11 +38,11 @@ Lemma comm_center_prod : forall A G : {group T},
 Proof.
 move=> A G AsubNG coprime solv.
 apply/eqP; rewrite eqset_sub andbC -{3}mulGid imset2S ?subsetIl //; last first.
-  by rewrite commsgC subcomm_normal.
-rewrite -quotientSK ?normGR // coprime_quotient_cent_weak //=; last first.
-- by rewrite commsgC normGR.
-- by rewrite [_ <| G]andbC normGR commsgC subcomm_normal.
-by rewrite subsetI andbC center_commgr /=.
+  by rewrite commGC commg_subr.
+rewrite -quotientSK ?commg_norml // coprime_quotient_cent_weak //=; last first.
+- by rewrite commGC commg_norml.
+- by rewrite [_ <| G]andbC commg_norml commGC commg_subr.
+by rewrite subsetI andbC quotient_centsr /=.
 Qed.
 
 Lemma commGAA:   forall A G : {group T},
@@ -51,10 +51,10 @@ Lemma commGAA:   forall A G : {group T},
 Proof.
 move=> A G AsubNG coGA solG.
 apply/eqP; rewrite eqset_sub; apply/andP; split; last first.
-  by rewrite commsgC subcomm_normal /= commsgC normGR.
-rewrite {1}(comm_center_prod AsubNG coGA solG) distr_sgcomm //=.
-- by rewrite triv_comm_centr mulg1 subset_refl.
-- by rewrite subIset // normGR.
+  by rewrite commSg // commg_subl.
+rewrite {1}(comm_center_prod AsubNG coGA solG) commMG.
+- by rewrite (commg_cents (subsetIr _ _)) //= mulg1.
+- by rewrite subIset // commg_norml.
 by rewrite subIset // orbC cent_sub.
 Qed.
 
@@ -141,7 +141,7 @@ rewrite /direct_product trI // cprodGE.
 - apply: comm_center_prod => //.
   apply: nilpotent_solvable; exact: abelian_nilpotent.
 apply: subset_trans (centS (subsetIl _ _)); apply: subset_trans abel.
-by rewrite /= commsgC subcomm_normal.
+by rewrite /= commGC commg_subr.
 Qed.
 
 Definition stabn (A:{set T}) (G G1:{group T}):= 
@@ -191,7 +191,7 @@ apply/andP; split; last done.
 have AsubNC: A \subset 'N('C_G(A)) by rewrite normsI ?norms_cent ?normG.
 rewrite /stabn /= andbT; apply/andP; split. 
   rewrite /stabn AsubNC /(_ <| _) subsetIr subsetI subsetIl /= normG /=.
-  apply: center_commgr. 
+  apply: quotient_centsr. 
   rewrite gen_subG; apply/subsetP=> ax; case/imset2P=> a x Aa Nx ->{ax}.
   case/setIP: Nx => Gx Nx.
   have subCG: 'C_G('C_G(A)) \subset 'C_G(A) by rewrite subsetI subC subsetIl //. 
@@ -202,11 +202,9 @@ rewrite /stabn /= andbT; apply/andP; split.
   have Cfixa: forall z, z \in 'C_G(A) -> z ^ a = z.
     by move=> z; case/setIP=> _ Cz; rewrite conjgE (centP Cz) ?mulKg.
   by rewrite -{2}(Cfixa y Cy) -(Cfixa _ Cyx) -!conjMg -conjgC.
-rewrite /(_ <| _) sub1G norm1 !subsetT /= center_commgr //.
+rewrite /(_ <| _) sub1G norm1 !subsetT /= quotient_centsr //.
 by rewrite [_ \subset _](sameP commG1P centsP) centsC subsetIr.
 Qed.
-
-
 
 Lemma not_dvdn_partn1: forall n p,
   0 < n -> prime p -> ~ (p %| n) -> n`_p = 1%N.
@@ -304,14 +302,10 @@ suff subC: coset_of H @*^-1 'C_(G / H)(A / H) :&: 'N_G(A) \subset 'C_G(A).
 rewrite subsetI {x Nx Gx xbin}. rewrite {1}subIset ?subsetIl ?orb_true_r //=.
 apply/centsP; apply/commG1P; apply/trivgP; apply/eqP; rewrite eqset_sub sub1G andb_true_r.
 have co: coprime #|H| #|A| by rewrite coprime_sym; apply: (pgroup_coprime pr).
-rewrite -(trivgP _ (coprime_trivg co)); rewrite subsetI; apply/andP; split.
-- apply: (subset_trans (commSg _ (subsetIl _ _))); apply: center_commgl; rewrite //.
-  - apply: (subset_trans _ (normal_norm normH)); have HsubG := normal_sub normH.
-    rewrite sub_morphpre_im ?subsetIl ?ker_coset ?normal_norm //=. 
-    by apply: (subset_trans (subsetIl _ _)); apply: morphimS; apply: normal_norm.
-  - apply/subsetP=> Hx; case/imsetP=> x; rewrite in_setI; case/andP => xinN.
-    by rewrite !inE; case/andP => _ ; case/andP => _ Hxin ->.
-- by apply: (subset_trans (commSg _ (subsetIr _ _))); rewrite subcomm_normal subsetIr.
+apply: subset_trans (coprime_trivg co).
+rewrite subsetI commg_subr /= {2}setIA subsetIr andbT.
+apply: subset_trans (commSg _ (subsetIl _ _)) _.
+by rewrite -quotient_cents ?subsetIl // cosetpreK subsetIr.
 Qed.
 
 End coprime_comm.
