@@ -407,15 +407,6 @@ Proof. move=> pi1 pi2 x pi12; exact: eq_pnat. Qed.
 Lemma p_eltNK : forall pi x, pi^'^'.-elt x = pi.-elt x.
 Proof. move=> pi x; exact: pnatNK. Qed.
 
-Lemma eq_expg_mod_order : forall x m n,
-  (x ^+ m == x ^+ n) = (m %% #[x] == n %% #[x]).
-Proof.
-move=> x m n; wlog le_nm: m n / n <= m.
-  by move=> IH; case/orP: (leq_total m n); move/IH; rewrite // eq_sym => ->.
-rewrite eqn_mod_dvd // -{1}(subnK le_nm) expgn_add.
-by rewrite (can2_eq (mulKg _) (mulKVg _)) mulVg order_dvd.
-Qed.
-
 Lemma eq_constt : forall pi1 pi2 x, pi1 =i pi2 -> x.`_pi1 = x.`_pi2.
 Proof.
 move=> pi1 pi2 x pi12; congr (x ^+ (chinese _ _ 1 0)); apply: eq_partn => //.

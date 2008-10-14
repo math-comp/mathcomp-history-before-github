@@ -362,6 +362,15 @@ Proof.
 by move=> a b Hcom Hcop; rewrite -coprime_card_mulG -?cycle_mul.
 Qed.
 
+Lemma eq_expg_mod_order : forall x m n,
+  (x ^+ m == x ^+ n) = (m %% #[x] == n %% #[x]).
+Proof.
+move=> x m n; wlog le_nm: m n / n <= m.
+  by move=> IH; case/orP: (leq_total m n); move/IH; rewrite // eq_sym => ->.
+rewrite eqn_mod_dvd // -{1}(subnK le_nm) expgn_add.
+by rewrite (can2_eq (mulKg _) (mulKVg _)) mulVg order_dvd.
+Qed.
+
 (***********************************************************************)
 (*                                                                     *)
 (*        Generator                                                    *)
@@ -588,14 +597,45 @@ Qed.
 Definition cycle_aut_of a k (coak : coprime #[a] k) :=
   aut_of (cycle_expgm_inj coak) (cycle_expgm_on coak).
 
-(* GG: Aut_aut_of proves cycle_aut_of coak \in Aut <[a]>. *)
+End CyclicAutomorphism.
 
-(* The converse : from automorphisms to the multiplicative group *)
+(***********************************************************************)
+(*                                                                     *)
+(*        Bijection with Fp                                            *)
+(*                                                                     *)
+(***********************************************************************)
 
-Lemma cycle_to_fp_loc_corr : forall x : gT1,
+Section FpAut.
+
+Variable gT:finGroupType.
+
+Definition fp_to_cycle (x : gT) :=
+  fun (D : fp_mul #[x]) => cycle_aut_of (valP D).
+
+Lemma fp_to_cycleM : forall x:gT,
+  {in setT &, {morph @fp_to_cycle x : n m / n * m}}.
+Proof.
+move=> x n m Hn Hm; apply/permP.
+move=> z; rewrite permM !permE; case e:(z \in <[x]>%G); last by rewrite e.
+move/cyclePmin : e =>[k Hk <-]; rewrite /= /cycle_expgm -!expgn_mul cycle_in.
+by apply/eqP; rewrite eq_expg_mod_order -modn_mulml modn_mulmr modn_mulml mulnA.
+Qed.
+
+Canonical Structure fp_to_cycle_morphism x :=
+  Morphism (@fp_to_cycleM x).
+
+Lemma fp_to_cycle_injm : forall x:gT, 'injm (@fp_to_cycle x).
+Proof.
+move=> x; apply/injmP=> y1 y2 _ _; move/permP; move/(_ x); move/eqP.
+rewrite /=  !autE ?cyclenn //=; move/(conj (valP (sval y1))); move/andP.
+move/(decomp_order_unicity (valP (sval y2)))=> /= Heq.
+by apply:val_inj; apply:val_inj => /=; rewrite Heq.
+Qed.
+
+Lemma cycle_to_fp_loc_corr : forall (f: perm gT) (x : gT),
   f \in Aut <[x]> -> coprime #[x] (cycle_to_zp x (f x)).
 Proof.
-move=> x autf /=; set n := cycle_to_zp x (f x).
+move=> f x autf /=; set n := cycle_to_zp x (f x).
 have Hfx: f x \in <[x]>.
   by rewrite -[<[x]>](autm_dom autf) mem_imset // setIid cyclenn.
 have:= cycle_to_zp_corr Hfx; rewrite eq_sym -/n. 
@@ -610,95 +650,50 @@ have: gcdn #[x] n <= 1.
 by rewrite leq_eqVlt orbC ltnNge ltn_0gcd npos ltn_0group.
 Qed.
 
-Lemma cycle_to_fp_loc_repr : forall x,
+Lemma cycle_to_fp_loc_repr : forall (f:perm gT) x,
   f \in Aut <[x]> ->
  (forall z, z \in <[x]> ->
     f z = z ^+ (cycle_to_zp x (f x)))%g.
 Proof.
-move=> x autf; have Cxx := cyclenn x.
+move=> f x autf; have Cxx := cyclenn x.
 move=> z; case/cycleP=> n <- {z}; rewrite -{1}(autmE autf) morphX //=.
 have Cfx: f x \in <[x]>.
   by rewrite -[<[x]>](autm_dom autf) mem_imset // setIid.
 by rewrite -expgn_mul mulnC expgn_mul (eqP (cycle_to_zp_corr Cfx)).
 Qed.
 
-(* Note 1 : This construction is necessary, see Note 2 below *)
-
-Definition cycle_to_fp_loc (a : gT1) : perm gT1 -> 'I_(#[a]) :=
-  fun f => if coprime #[a] (cycle_to_zp a (f a))
-    then
-     (cycle_to_zp a (f a))
-    else
-      (zp1 [pos_nat of #[a]]).
-
-Lemma cycle_to_fp_corr : forall a, coprime #[a] (cycle_to_fp_loc a f).
+Lemma fp_to_cycle_imset : forall x:gT, ((@fp_to_cycle x) @* setT) = (Aut <[x]>).
 Proof.
-move=> a; rewrite /cycle_to_fp_loc.
-case e: (coprime #[a] (cycle_to_zp a (f a))); [apply: (idP e) |apply: coprime_zp1].
+move=> x; apply/eqP; rewrite eqset_sub; apply/andP; split.
+  by apply/subsetP=> /= k; move/morphimP=> [[k0 Hk0] _ _ ->]; apply: Aut_aut_of.
+apply/subsetP=> f Haut.
+apply/morphimP.
+pose kk : fp_mul #[x] := (Sub (cycle_to_zp x (f x)) (cycle_to_fp_loc_corr Haut)).
+exists kk; rewrite ?in_setT //=; apply/permP=> z; rewrite permE.
+case eax : (z \in <[x]>); first by rewrite (cycle_to_fp_loc_repr Haut eax).
+by clear kk; move: Haut; rewrite inE; case/andP; move/out_perm->; rewrite ?eax.
 Qed.
 
-Lemma cycle_to_fp_repr : forall a,
-  f \in Aut <[a]> ->
-  (cycle_to_fp_loc a f) = (cycle_to_zp a (f a)).
+Lemma imset_fp_to_cycle : forall a,Aut <[a]> \subset ( (@fp_to_cycle a) @* setT).
 Proof.
-by move=> a Haut; rewrite /cycle_to_fp_loc (cycle_to_fp_loc_corr Haut).
+by move=> a; rewrite -fp_to_cycle_imset morphimEdom.
 Qed.
 
-End CyclicAutomorphism.
+Definition cycle_to_fp (a: gT) :=
+  restrm (imset_fp_to_cycle a) (invm (fp_to_cycle_injm a)).
 
-(***********************************************************************)
-(*                                                                     *)
-(*        Bijection with Fp                                            *)
-(*                                                                     *)
-(***********************************************************************)
-
-Section FpAut.
-
-Variable gT : finGroupType.
-
-Definition fp_to_cycle (x : gT) :=
-  fun (D : fp_mul #[x]) => cycle_aut_of (valP D).
-
-Definition cycle_to_fp (a : gT) : perm gT -> fp_mul #[a] :=
-  fun f => Sub (cycle_to_fp_loc a f) (cycle_to_fp_corr f a).
-
-Lemma fp_morph : forall x : gT,
-  {in Aut <[x]> &, {morph cycle_to_fp x : y z / y * z}}.
+Lemma fp_inj : forall x : gT, 'injm [morphism of cycle_to_fp x].
 Proof.
-move=> a x y Hx Hy; do 2!apply: val_inj => /=.
-rewrite !cycle_to_fp_repr ?groupM //= permM.
-rewrite {1}(cycle_to_fp_loc_repr Hx) ?cyclenn //=.
-rewrite (cycle_to_fp_loc_repr Hy) ?(groupX, cyclenn) //=.
-by rewrite -expgn_mul cycle_to_zp_id.
+move=> x; move: (injm_invm (fp_to_cycle_injm x)); rewrite /=. 
+by rewrite /trivg /ker /morphpre; rewrite {1}(fp_to_cycle_imset x); apply.
 Qed.
-
-Canonical Structure cycle_to_fp_morphism x := Morphism (@fp_morph x).
-
-  (* Note 2 : notice how this is a partial cancel, in particular we could prove
-     forall a, ~~(Aut <[a]> \subset (@fp_to_cycle a) @* setT)
-
-     ==> it's as long to proceed with cycle_to_zp as it is with fp_to_cyclic
-   *)
-
-Lemma fp_can : forall a : gT,
-  {in Aut <[a]>, cancel (cycle_to_fp a) (@fp_to_cycle a)}.
-Proof.
-move=> a f Haut; symmetry; apply/permP=> x.
-rewrite permE /= (cycle_to_fp_repr Haut) /=.
-case cax: (x \in <[a]>); first exact: cycle_to_fp_loc_repr.
-by move: Haut; rewrite inE; case/andP; move/out_perm->; rewrite ?cax.
-Qed.
-
-Lemma fp_inj : forall x : gT, 'injm (cycle_to_fp x).
-Proof. move=> a; apply/injmP; exact: in_can_inj (@fp_can a). Qed.
 
 Lemma fp_isom : forall a : gT, isom (Aut <[a]>) setT (cycle_to_fp a).
 Proof.
 move=> a; apply/isomP; split; first exact: fp_inj.
 apply/setP=> x; rewrite inE morphimEdom.
 apply/imsetP; exists (fp_to_cycle x); first exact: Aut_aut_of.
-do 2!apply: val_inj; rewrite /= cycle_to_fp_repr ?Aut_aut_of //=.
-by rewrite permE cyclenn -cycle_to_zp_id modn_small.
+by rewrite /= /restrm invmE ?in_setT.
 Qed.
 
 End FpAut.
@@ -818,10 +813,11 @@ Variable gT : finGroupType.
 
 Lemma aut_cycle_commute : forall x : gT, abelian (Aut <[x]>).
 Proof.
-move=> x; have:= isom_isog _ (subset_refl _) (fp_isom x); rewrite isog_sym.
+move=> x.
+have:= isom_isog  [morphism of (cycle_to_fp x)] (subset_refl _) (fp_isom x).
+rewrite isog_sym.
 case/isogP=> f _ /= <-; apply: morphim_cents.
 by apply/centsP=> m _ n _; do 2!apply: val_inj => /=; rewrite mulnC.
 Qed.
 
 End CyclicAutomorphism_Abelian.
-
