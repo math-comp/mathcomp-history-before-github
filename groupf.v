@@ -334,4 +334,80 @@ Canonical Structure Mho_id_subfunctor (i:nat) :=
 
 End IdentitySubfunctorsExamples.
 
+Section MaxnormalSeries.
+
+Variable gT:finGroupType.
+Implicit Types G M N B:{group gT}.
+
+Lemma norm_morphim_conj : forall G M (nMG : M <| G) x,
+  x \in 'N(M) ->
+  (conjgm G x) @* M = M.
+by move=> G M *; rewrite morphim_conj (setIidPr (normal_sub _)) //; apply:normP. 
+Qed.
+
+Definition max_ucn (G M : {group gT}) (nMG:M <| G) B :=
+  [max B of N | (M \subset N) && (N <| G) && 
+    forallb x, (x \in G) ==> forallb y, (y \in N / M) ==>
+    ((coset_of M \o conjgm N x) (repr y) == y)].
+
+Definition prop_ucn (G M : {group gT}) (nMG:M <| G) N :=
+ forall (H1:M\subset N) (H2: N <| G) x (Hx:x \in G),
+   let nMN := (normalS H1 (normal_sub H2) nMG) in
+    {in N/M, quotm nMN
+    (norm_conj_dom ((subsetP (normal_norm H2)) x Hx))
+    (norm_morphim_conj nMN ((subsetP (normal_norm nMG)) x Hx))
+      =1 idm (N / M)}.
+
+Lemma max_ucnP : forall G M (nMG: M <| G) B,
+  reflect [/\ (M \subset B), (B <| G), (prop_ucn nMG B)
+    & (forall H : {group gT},
+      [/\ (M \subset H), (H <| G), (prop_ucn nMG H) & B \subset H] -> H = B)]
+  (max_ucn nMG B).
+Proof.
+move=> G M nMG N; apply: (iffP (maxgroupP _ _)) => [[]|[sMN nNG Hid max]].
+  case/andP; case/andP=> sMN nNG Hid max; rewrite sMN nNG ; split=>//.
+    move=> HsMN HnNG x Hx; rewrite /quotm /factm /= /restrm.
+    move/(_ x): (forallP Hid); move/implyP; move/(_ Hx)=> H y Hy.
+    move/(_ y): (forallP H); move/implyP; move/(_ Hy); move/eqP.
+    by rewrite cosetpre_coset_set1.
+  move=> H [sMH nHG HHid sNH]; apply:val_inj; apply:(max H) =>//.
+  rewrite sMH nHG !andTb; apply/forallP=> x; apply/implyP=> Hx.
+  apply/forallP=> y; apply/implyP=> Hy;apply/eqP. 
+  by rewrite -cosetpre_coset_set1; apply:HHid.
+rewrite sMN nNG; split=>/= [|H]; last first.
+ case/andP; case/andP => sMH nHG HHid sNH; rewrite (max H); split =>//.
+ move=> HsMH HnHG x Hx; rewrite /quotm /factm /= /restrm.
+ move/(_ x): (forallP HHid); move/implyP; move/(_ Hx)=> HH y Hy.
+ move/(_ y): (forallP HH); move/implyP; move/(_ Hy); move/eqP.
+ by rewrite cosetpre_coset_set1.
+apply/forallP=> x; apply/implyP=> Hx; apply/forallP=> y; apply/implyP=> Hy.
+by apply/eqP; rewrite -cosetpre_coset_set1; apply: Hid.
+Qed.
+
+Lemma commute_conjgP : forall (x y:gT), reflect (commute x y) (x ^ y == x).
+Proof.
+move=> x y.
+apply: (iffP eqP); rewrite conjgE; last by move=>->; rewrite mulgA mulVg mul1g.
+by rewrite -{2}(mul1g x) -(mulVg y) -mulgA; move/mulg_injl.
+Qed.
+
+Lemma center_ucn1 : forall (G:{group gT}), max_ucn (normal1 G) 'Z(G).
+Proof.
+move=> G; apply/max_ucnP; rewrite center_normal sub1G; split => //.
+  move=> s1Z nZG x Hx /= y; move/imsetP=> [x0]; rewrite {1}norm1 setTI => nHx ->.
+  rewrite /quotm factmE //= /restrm; move/subcentP: nHx=>[Hx0].
+  by move/(_ x Hx); rewrite /= conjgmE; move/commute_conjgP; move/eqP->.
+move=> H [_ nHG Hid] sZH.
+apply:val_inj; apply/eqP; rewrite eq_sym eqset_sub sZH; apply/subsetP=> x /= Hx.
+apply/subcentP; split; first by rewrite (subsetP (normal_sub nHG)).
+move=> y Hy; apply/commute_conjgP; apply/eqP; move/injmP:(@coset1_injm gT).
+rewrite /= norm1; apply; rewrite ?in_setT //.
+have Hqx: ((coset_of 1 x) \in H /1)
+  by rewrite /quotient /morphim mem_imset ?norm1 ?setTI.
+by move: (Hid (sub1G H) nHG y Hy (coset_of 1 x) Hqx); rewrite /quotm factmE.
+Qed.
+
+End MaxnormalSeries.
+
+
 Unset Implicit Arguments.
