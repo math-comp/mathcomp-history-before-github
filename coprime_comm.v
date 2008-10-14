@@ -115,23 +115,6 @@ have v1: forall v, v \in G ->  v ^+ #|A| = 1 -> v = 1.
   - by apply/subsetP => x; move/set1P ->; apply/setIP; split; apply: group1.
 Qed. 
 
-Theorem nilpotent_solvable: forall (G: {group T}), nilpotent G -> solvable G.
-Proof.
-move => G. rewrite /nilpotent; move/implyP => nil; rewrite /solvable; apply/implyP => sub.
-apply: nil. move/forallP => nil. 
-have nil1: forall (H: {group T}), H \subset G :&: [~: H, G] -> trivg H by move=> H; apply/implyP.
-apply:sub; apply/forallP=>H; apply/implyP; rewrite subsetI; case/andP=> HsubG HsubC. 
-apply: nil1; rewrite subsetI. apply/andP; split; first done. 
-apply (subset_trans HsubC (commgS H HsubG)).
-Qed.
-
-Theorem abelian_nilpotent : forall G : {group T},
-  abelian G -> nilpotent G.
-Proof.
-move=> G; move/centsP; move/commG1P; move/trivgP=> trivG'.
-by apply/lcnP; exists 1%N.
-Qed.
-
 Theorem comm_center_dir_prod: forall A G : {group T},
   A \subset 'N(G) -> coprime #|G| #|A| -> abelian G ->
   G :=: [~: G, A] \x 'C_G(A).
@@ -139,7 +122,7 @@ move=> A G AsubNG coprime abel.
 have trI: trivg ([~: G, A] :&: 'C_G(A)) by apply/trivgP; apply: comm_center_triv.
 rewrite /direct_product trI // cprodGE.
 - apply: comm_center_prod => //.
-  apply: nilpotent_solvable; exact: abelian_nilpotent.
+  apply: nilpotent_sol; exact: abelian_nil.
 apply: subset_trans (centS (subsetIl _ _)); apply: subset_trans abel.
 by rewrite /= commGC commg_subr.
 Qed.
@@ -186,7 +169,7 @@ suff AsubCNC: A \subset 'C('N_G('C_G(A))).
 suff stab: stabn_seq A 'N_G('C_G(A)) [:: 'C_G(A)%G ; 1%G].
 apply: stabn_seq_cent _ _ stab.
   by rewrite -(LaGrange (subsetIl G 'N('C_G(A)))) coprime_mull in co; case/andP: co.
-  by apply: nilpotent_solvable; apply: (nilpotentS _ nil); rewrite subsetIl.
+  by apply: nilpotent_sol; apply: (nilpotentS _ nil); rewrite subsetIl.
 apply/andP; split; last done.
 have AsubNC: A \subset 'N('C_G(A)) by rewrite normsI ?norms_cent ?normG.
 rewrite /stabn /= andbT; apply/andP; split. 

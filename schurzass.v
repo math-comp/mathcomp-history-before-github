@@ -371,115 +371,6 @@ Qed.
 
 Module SchurZassCP1. End SchurZassCP1.
 
-Definition solvable (gT : finGroupType) (G : {set gT}) :=
-  forallb H : {group gT}, (H \subset G :&: [~: H, H]) ==> trivg H.
-
-Prenex Implicits solvable.
-
-Section Solvable.
-
-Variable gT : finGroupType.
-
-Lemma der_solvable: forall (G : {group gT}),
-  reflect (exists k, G^`(k) = 1) (solvable G).
-Proof.
-move=> G; apply: (iffP idP) => Hi; last first.
-  case: Hi=> k TGk; apply/forallP=> H; apply/implyP.
-  rewrite subsetI; case/andP=> P1H P2H.
-  suff: forall n, H \subset G^`(n) by move/(_ k); rewrite TGk.
-  by elim=> [| n Hrec] //; rewrite (subset_trans P2H) // dergSn commgSS.
-suff Hn: forall n, ~~ trivg G^`(n) -> n + #|G^`(n)| <= #|G|.
-  exists #|G|; apply/trivgP; apply/idPn; move/Hn.
-  by rewrite leqNgt -leq_sub_add subSnn ltn_0group.
-elim=> [|n IHn] TG; first by rewrite leqnn.
-have:= der_subset G n; rewrite subEproper; case/predU1P=> [eG | sG].
-  case/negP: TG; have:= forallP Hi [group of G^`(n.+1)] => /=.
-  by rewrite subsetI der_subset0 {-1}eG subset_refl.
-apply: leq_trans (IHn _); first by rewrite addSnnS leq_add2l proper_card.
-apply: contra TG; apply: subset_trans; exact: der_subset.
-Qed.
-
-Lemma solvableS : forall G H : {group gT},
-  H \subset G -> solvable G -> solvable H.
-Proof.
-move=> G H sHG solG.
-apply/forallP=> K; rewrite subsetI; apply/implyP; case/andP=> sKH sKK'.
-by have:= forallP solG K; rewrite subsetI sKK' (subset_trans sKH).
-Qed.
-
-Lemma solvable_morphim : forall (rT : finGroupType) (G H : {group gT})
-                              (f : {morphism G >-> rT}),
-  solvable H -> solvable (f @* H).
-Proof.
-move=> rT G H f solH; have{solH} [G' [f' ->{f G H}]]:
-  exists G' : {group gT}, exists2 f' : {morphism G' >-> rT},
-  f @* H = f' @* G' & solvable G'.
-- pose G' := (G :&: H)%G; have sG'G: G' \subset G by exact: subsetIl.
-  exists G'; exists [morphism of restrm sG'G f] => /=.
-    by rewrite /= morphim_restrm setIid morphimIdom.
-  apply: solvableS solH; exact: subsetIr.
-move: G' f' => G f solG.
-apply/forallP=> Hb; apply/implyP; rewrite subsetI; case/andP=> sHbG sHbHb'.
-have{sHbG} [H]: exists2 H : {group gT}, H \subset G & f @* H = Hb.
-  by exists (f @*^-1 Hb)%G; rewrite (subsetIl, morphpreK).
-elim: {H}_.+1 {-2}H (ltnSn #|H|) => // n IHn H.
-rewrite ltnS => leHn sHG defHb.
-case eqH'H: ([~: H, H] == H).
-  have:= forallP solG H; rewrite subsetI sHG (eqP eqH'H) subset_refl -defHb. 
-  by move/trivGP->; rewrite morphim1.
-have sH'H: [~: H, H] \subset H by by rewrite commg_subr normG.
-apply: IHn (subset_trans sH'H sHG) _.
-  rewrite eqset_sub_card sH'H /= in eqH'H.
-  by apply: leq_trans leHn; rewrite ltnNge eqH'H.
-apply/eqP; rewrite morphimR // defHb.
-by rewrite eqset_sub sHbHb' commg_subr normG.
-Qed.
-
-Lemma solvable_quo : forall G H : {group gT}, solvable G -> solvable (G / H).
-Proof. move=> G H; exact: solvable_morphim. Qed.
-
-Lemma solvable_norm_abelem : forall L G : {group gT},
-  solvable G -> G <| L -> ~~ trivg G ->
-  exists H : {group gT}, [/\ H \subset G, H <| L, ~~ trivg H & abelem H].
-Proof.
-move=> L G solG; set H := {1 2}G; have: H \subset G := subset_refl _.
-elim: {H}_.+1 {-2}H (ltnSn #|H|) => // n IHn H; rewrite ltnS => leHn.
-move=> sHG nHL ntH; case abelH: (trivg [~: H, H]).
-  pose p := pdiv #|H|; pose H1 := 'Ohm_1('O_p(H))%G.
-  have prp: prime p by rewrite prime_pdiv // ltnNge -trivg_card.
-  have charH1: H1 \char H by exact: char_trans (Ohm_char _ _) (pcore_char p _).
-  have sH1H: H1 \subset H by case/andP: charH1.
-  have{abelH} abelH: abelian H by apply/centsP; exact/commG1P.
-  have abelH1: abelian H1.
-    by do 2![apply: (subset_trans sH1H); rewrite 1?centsC].
-  have pOp: p.-group 'O_p(H) by exact: pcore_pgroup.
-  have pH1: p.-group H1 by apply: pgroupS pOp; exact: Ohm_sub.
-  have ntH1 : ~~ trivg H1.
-    case: (Cauchy prp (dvdn_pdiv #|H|)) => x Hx oxp.
-    rewrite /trivg /= (OhmE 1 pOp) gen_subG.
-    apply/subsetPn; exists x; last first.
-      by apply/set1P=> x1; rewrite -oxp x1 order1 in prp.
-    rewrite inE -{2}oxp expn1 order_expn1 eqxx andbT -sub1set -gen_subG.
-    apply: subset_pcore; first by rewrite /pgroup [#|_|]oxp pnat_id.
-    rewrite /(_ <| H) cycle_subG // cents_norm ?andbT // centsC.
-    rewrite cycle_subG //; exact: subsetP Hx.
-  exists H1; split=> //; first exact: subset_trans sHG.
-    exact: char_normal_trans nHL.
-  apply/abelem_Ohm1P=> //; first exact: pgroup_p pH1.
-  apply/eqP; rewrite eqset_sub Ohm_sub /=.
-  rewrite (OhmE 1 pH1) /= (OhmE 1 pOp) genS //.
-  apply/subsetP=> x H1x; rewrite inE mem_gen //=.
-  by have:= H1x; rewrite inE; case/andP.
-have chH': [~: H, H] \char H by apply: charR; apply: char_refl.
-have [sH'H _] := andP chH'; move/idPn: abelH.
-apply: IHn; last 1 [exact: subset_trans sHG | exact: char_normal_trans nHL].
-apply: leq_trans leHn; rewrite ltnNge -[_ <= _]andTb -sH'H -eqset_sub_card.
-apply/eqP=> eqH'H; have:= forallP solG H.
-by rewrite eqH'H subsetI sHG subset_refl -implybN ntH.
-Qed.
-
-End Solvable.
-
 Theorem SchurZass_trans_sol : forall (gT : finGroupType) (H K K1 : {group gT}),
     solvable H -> K \subset 'N(H) -> K1 \subset H * K ->
     coprime #|H| #|K| -> #|K1| = #|K| ->
@@ -510,7 +401,7 @@ have oKM: forall K' : {group gT},
   rewrite norm_mulgenE ?nMsG // coprime_card_mulG ?divn_mull //.
   by rewrite oK' coprime_sym.
 have [xb]: exists2 xb, xb \in H / M & (K1 / M = (K / M) :^ xb)%G.
-  apply: IHn; try by rewrite (solvable_quo, morphim_norms, oKM K) ?(oKM K1).
+  apply: IHn; try by rewrite (quotient_sol, morphim_norms, oKM K) ?(oKM K1).
     apply: leq_trans leHn; rewrite card_quotient ?nMsG //.
     rewrite -(ltn_pmul2l (ltn_0group M)) LaGrange // -{1}(mul1n #|H|).
     by rewrite ltnNge leq_pmul2r // -trivg_card.

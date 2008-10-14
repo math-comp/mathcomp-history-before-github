@@ -1,6 +1,6 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div prime paths.
 Require Import fintype bigops finset groups morphisms automorphism normal action.
-Require Import commutators pgroups cyclic sylow schurzass hall.
+Require Import commutators pgroups cyclic nilpotent sylow schurzass hall.
 
 (* Require Import connect finfun ssralg group_perm center. *)
 
@@ -207,7 +207,7 @@ have oAb: #|Ab| = #|A|.
   rewrite -divgS /= norm_mulgenE ?mulG_subr //.
   rewrite coprime_card_mulG ?divn_mull // coprime_sym.
   by move: coGA; rewrite -(LaGrange sMG) coprime_mull; case/andP.
-case: (IHn _ Ab Gb _ Xb); do 1?[exact: solvable_quo | exact: morphim_norms].
+case: (IHn _ Ab Gb _ Xb); do 1?[exact: quotient_sol | exact: morphim_norms].
 - rewrite -[#|_|]mul1n card_quotient //.
   apply: leq_trans leGn; have:= ltn_0group G.
   rewrite -(LaGrange sMG) ltn_0mul; case/andP=> _ M'pos.

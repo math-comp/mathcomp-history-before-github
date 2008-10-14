@@ -267,12 +267,12 @@ case: (Sylow_exists q G) => P sylP; exists P => //.
 by rewrite inE (p_Sylow sylP).
 Qed.
 
-Lemma nilpotent_quoZ : forall G, nilpotent (G / 'Z(G)) = nilpotent G.
+Lemma quotient_nilZ : forall G, nilpotent (G / 'Z(G)) = nilpotent G.
 Proof.
-move=> G; apply/idP/idP; last exact: nilpotent_quo.
+move=> G; apply/idP/idP; last exact: quotient_nil.
 have nZG: G \subset 'N('Z(G)) by rewrite normal_norm ?center_normal.
 case/lcnP=> n /=; move/trivgP; rewrite /= -morphim_lcn //.
-rewrite trivg_quotient ?(subset_trans _ nZG) ?lcn_subset0 // subsetI.
+rewrite trivg_quotient ?(subset_trans _ nZG) ?lcn_sub0 // subsetI.
 case/andP=> _ cLnG; apply/lcnP; exists n.+1; rewrite lcnSn.
 apply/trivgP; apply/commG1P; exact/centsP.
 Qed.
@@ -282,26 +282,29 @@ End MoreSylow.
 Section Nilpotent.
 
 Variable gT : finGroupType.
-Implicit Types G H K P : {group gT}.
+Implicit Types G H K P L : {group gT}.
 Implicit Types p q : nat.
 
-Lemma nilpotent_pgroup : forall p P, p.-group P -> nilpotent P.
+Lemma pgroup_nil : forall p P, p.-group P -> nilpotent P.
 Proof.
 move=> p P; move: {2}_.+1 (ltnSn #|P|) => n.
 elim: n gT P => // n IHn pT P; rewrite ltnS=> lePn pP.
 case trZ: (trivg 'Z(P)).
   by rewrite (trivgP _ (trivg_center_pgroup pP trZ)) nilpotent1.
-rewrite -nilpotent_quoZ IHn ?morphim_pgroup // (leq_trans _ lePn) //.
+rewrite -quotient_nilZ IHn ?morphim_pgroup // (leq_trans _ lePn) //.
 rewrite card_quotient ?normal_norm ?center_normal // indexgI.
 rewrite -[#|_ : _|]mul1n -(LaGrangeI P 'C(P)) ltn_pmul2r //.
 by rewrite ltnNge -trivg_card trZ.
 Qed.
 
+Lemma pgroup_sol : forall p P, p.-group P -> solvable P.
+Proof. move=> p P; move/pgroup_nil; exact: nilpotent_sol. Qed.
+
 Lemma small_nil_class : forall G, nil_class G <= 5 -> nilpotent G.
 Proof.
 move=> G leK5; case: (ltnP 5 #|G|) => [lt5G | leG5 {leK5}].
   by rewrite nilpotent_class (leq_ltn_trans leK5).
-apply: nilpotent_pgroup (pdiv #|G|) _ _; apply/andP; split=> //.
+apply: pgroup_nil (pdiv #|G|) _ _; apply/andP; split=> //.
 by case: #|G| leG5 => //; do 5!case=> //.
 Qed.
 
@@ -354,8 +357,8 @@ Lemma nilpotent_dprodP : forall G,
  reflect (\big[direct_product/1]_(p <- primes #|G|) 'O_p(G) = G) (nilpotent G).
 Proof.
 move=> G; apply: (iffP idP) => [nilG | defG]; last first.
-  apply: (nilpotent_bigdprod defG) => p _.
-  exact: nilpotent_pgroup (pcore_pgroup _ _).
+  apply: (bigdprod_nil defG) => p _.
+  exact: pgroup_nil (pcore_pgroup _ _).
 move def_r: (primes _) => r; elim: r => [|p r IHr] in G nilG def_r *.
   rewrite big_seq0; symmetry; apply/trivgP.
   by rewrite trivg_card leqNgt -primes_pdiv def_r.
@@ -368,6 +371,48 @@ move/IHr=> /= <-; last exact: nilpotentS (pcore_sub _ _) nilG.
 rewrite !(big_cond_seq xpredT) /=; apply: eq_bigr => q rq.
 rewrite -pcoreI; apply: eq_pcore => q'; symmetry; do !rewrite inE /=.
 by case: eqP => // ->; apply/eqP=> qp; rewrite -qp rq in rp.
+Qed.
+
+(* Should be replaced by the structure theorem for characteristically simple *)
+(* groups. *)
+Lemma solvable_norm_abelem : forall L G,
+  solvable G -> G <| L -> ~~ trivg G ->
+  exists H : {group gT}, [/\ H \subset G, H <| L, ~~ trivg H & abelem H].
+Proof.
+move=> L G solG; set H := {1 2}G; have: H \subset G := subset_refl _.
+elim: {H}_.+1 {-2}H (ltnSn #|H|) => // n IHn H; rewrite ltnS => leHn.
+move=> sHG nHL ntH; case abelH: (trivg [~: H, H]).
+  pose p := pdiv #|H|; pose H1 := 'Ohm_1('O_p(H))%G.
+  have prp: prime p by rewrite prime_pdiv // ltnNge -trivg_card.
+  have charH1: H1 \char H by exact: char_trans (Ohm_char _ _) (pcore_char p _).
+  have sH1H: H1 \subset H by case/andP: charH1.
+  have{abelH} abelH: abelian H by apply/centsP; exact/commG1P.
+  have abelH1: abelian H1.
+    by do 2![apply: (subset_trans sH1H); rewrite 1?centsC].
+  have pOp: p.-group 'O_p(H) by exact: pcore_pgroup.
+  have pH1: p.-group H1 by apply: pgroupS pOp; exact: Ohm_sub.
+  have ntH1 : ~~ trivg H1.
+    case: (Cauchy prp (dvdn_pdiv #|H|)) => x Hx oxp.
+    rewrite /trivg /= (OhmE 1 pOp) gen_subG.
+    apply/subsetPn; exists x; last first.
+      by apply/set1P=> x1; rewrite -oxp x1 order1 in prp.
+    rewrite inE -{2}oxp expn1 order_expn1 eqxx andbT -sub1set -gen_subG.
+    apply: subset_pcore; first by rewrite /pgroup [#|_|]oxp pnat_id.
+    rewrite /(_ <| H) cycle_subG // cents_norm ?andbT // centsC.
+    rewrite cycle_subG //; exact: subsetP Hx.
+  exists H1; split=> //; first exact: subset_trans sHG.
+    exact: char_normal_trans nHL.
+  apply/abelem_Ohm1P=> //; first exact: pgroup_p pH1.
+  apply/eqP; rewrite eqset_sub Ohm_sub /=.
+  rewrite (OhmE 1 pH1) /= (OhmE 1 pOp) genS //.
+  apply/subsetP=> x H1x; rewrite inE mem_gen //=.
+  by have:= H1x; rewrite inE; case/andP.
+have chH': [~: H, H] \char H by apply: charR; apply: char_refl.
+have [sH'H _] := andP chH'; move/idPn: abelH.
+apply: IHn; last 1 [exact: subset_trans sHG | exact: char_normal_trans nHL].
+apply: leq_trans leHn; rewrite ltnNge -[_ <= _]andTb -sH'H -eqset_sub_card.
+apply/eqP=> eqH'H; have:= forallP solG H.
+by rewrite eqH'H subsetI sHG subset_refl -implybN ntH.
 Qed.
 
 End Nilpotent.
@@ -388,7 +433,7 @@ move=> r; elim: r gT => [|r IHr] gTr P N pP nNP le_r.
 have: p.-group (N :&: 'Z(P)) by apply: pgroupS pP; rewrite /= setICA subsetIl.
 case/pgroup_1Vpr=> [| [p_pr _ [k oZ]]].
   move/trivgP; case/idPn; apply: nilpotent_meet_center => //.
-    exact: nilpotent_pgroup pP.
+    exact: pgroup_nil pP.
   by apply/trivgP=> /= N1; rewrite N1 cards1 logn1 in le_r.
 have{oZ}: p %| #|N :&: 'Z(P)| by rewrite oZ dvdn_mulr.
 case/Cauchy=> // z; rewrite -sub1set -gen_subG -[<<_>>]/<[z]> !subsetI /order.
@@ -471,7 +516,7 @@ have [y1 Ny1 Py1]: exists2 y1, y1 \in 'N_E(D) & y1 \notin P.
   case sNN: ('N_<<B>>('N_<<B>>(D)) \subset 'N_<<B>>(D)).
     exists y0 => //; have By0: y0 \in <<B>> by rewrite mem_gen ?setU11.
     rewrite inE Ey0 -By0 -in_setI.
-    by rewrite -['N__(D)](nilpotent_sub_norm (nilpotent_pgroup pB)) ?subsetIl.
+    by rewrite -['N__(D)](nilpotent_sub_norm (pgroup_nil pB)) ?subsetIl.
   case/subsetPn: sNN => z; case/setIP=> Bz NNz; rewrite inE Bz inE.
   case/subsetPn=> y; rewrite mem_conjg => Dzy Dy.
   have:= Dzy; rewrite {1}defD; do 2![case/setIP]=> _ Bzy Ezy.
@@ -489,7 +534,7 @@ have [y2 Ny2 Dy2]: exists2 y2, y2 \in 'N_(P :&: E)(D) & y2 \notin D.
       by rewrite {1}defD 2!inE (negPf Py0) ltnn.
     case/subsetPn=> y Bzy Dy; exists y => //; apply: subsetP Bzy.
     rewrite -setIA setICA subsetI sub_conjg (normsP nEG) ?groupV // sBE.
-    have nilP := nilpotent_pgroup (pHall_pgroup sylP).
+    have nilP := pgroup_nil (pHall_pgroup sylP).
     by rewrite -['N__(_)](nilpotent_sub_norm nilP) ?subsetIl // -gen_subG genJ.
   case/subsetPn: sNN => z; case/setIP=> Pz NNz; rewrite 2!inE Pz.
   case/subsetPn=> y Dzy Dy; exists y => //; apply: subsetP Dzy.

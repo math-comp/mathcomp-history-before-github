@@ -298,12 +298,12 @@ Lemma lcn_resp : forall n,
   resp (fun gT G => 'L_n(G)).
 Proof.
 elim=> [|n IH] gT hT H phi; first by rewrite !lcn0.
-by rewrite !lcnSn morphimR ?lcn_subset0 // commSg ?IH.
+by rewrite !lcnSn morphimR ?lcn_sub0 // commSg ?IH.
 Qed.
 
 Canonical Structure lcn_id_subfunctor (n:nat) :=
   IsFc (fun gT (G :{group gT}) => lcn_group_set G n)
-       (fun gT G => (lcn_subset0 G n))
+       (fun gT G => (lcn_sub0 G n))
        (IsFMixin (lcn_resp n)).
 
 Require Import pgroups.

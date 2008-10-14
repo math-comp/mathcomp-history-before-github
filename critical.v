@@ -31,7 +31,7 @@ have F2: ~ trivg H'.
 have F3: ~ trivg(H' :&: 'Z(P')).
  rewrite /H' /H /P'.
  apply/negP;  rewrite nilpotent_meet_center //; last by apply/negP.
- by apply: nilpotent_quo; apply: (nilpotent_pgroup PgP).
+ by apply: quotient_nil; apply: (pgroup_nil PgP).
 pose p := pdiv #|P|.
 have F4: H \subset P by rewrite subIset // subset_refl.
 have F5: prime p.
@@ -141,12 +141,12 @@ have F1: [~: P, C] \subset 'Z(C).
  rewrite EZCD /C /C' /H' /H /P' -quotient_cents //= -/P' -/H -/H' -/C' -/C.
  - by rewrite cosetpreK -/P' centsC (subset_trans (subsetIr _ _)) // /P'
               (subset_trans (@Ohm_sub 1 _ _)) // subsetIr.
- - by rewrite -EZCD; case/andP: (@center_normal _ (Group GC)).
- by case/andP: (char_normal ChD).
+ - exact: char_norm ChD.
+ by rewrite cents_norm // centsC -EZCD subsetIr.
 split => //.
   - split; last first.
       by rewrite EZCD cosetpreK /C' /H' /H /P'  (abelemS (subsetIr _ _)) //
-                 Ohm_abelian // ?abelian_center // (@pgroup_p _ (pdiv #|P|)) // 
+        Ohm_abelian // ?abelian_center // (@pgroup_p _ (pdiv #|P|)) // 
                 (@pgroupS _ _ (P/D)) // (center_sub,  morphim_pgroup).
    rewrite /nil_class; case: #|C| => [|[|[|n]]] //=;
      case: (_ == _) => //; case: (_ == _) => //.
@@ -196,7 +196,7 @@ have TQ': ~ trivg(Q').
 have NTQ'ZP': ~ trivg(Q' :&: 'Z(P')).
  rewrite /Q' /Q /C /P'.
  apply/negP; apply: nilpotent_meet_center; last by apply/negP.
-   by apply: nilpotent_quo; apply: (nilpotent_pgroup PgP).
+   by apply: quotient_nil; apply: (pgroup_nil PgP).
  by done.
 have NTQ'OZP': ~ trivg(Q':&: 'Ohm_1('Z(P'))).
   move=> NT; case NTQ'ZP'.

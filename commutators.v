@@ -181,20 +181,20 @@ Qed.
 Lemma commg_subl : forall G H, ([~: G, H] \subset G) = (H \subset 'N(G)).
 Proof. by move=> G H; rewrite commGC commg_subr. Qed.
 
-Lemma quotient_cents : forall G H K,
-    G \subset 'N(K) -> H \subset 'N(K) ->
-  (H / K \subset 'C(G / K)) = ([~: H, G] \subset K).
+Lemma quotient_cents : forall A B K,
+    A \subset 'N(K) -> B \subset 'N(K) ->
+  (A / K \subset 'C(B / K)) = ([~: A, B] \subset K).
 Proof.
-move=> G H K nKG nKH.
+move=> A B K nKA nKB.
 by rewrite (sameP centsP commG1P) -morphimR // trivg_quotient // comm_subG.
 Qed. 
 
-Lemma quotient_centsr : forall G H K,
-  [~: H, G] \subset K -> (H / K) \subset 'C(G / K).
+Lemma quotient_centsr : forall A B K,
+  [~: A, B] \subset K -> (A / K) \subset 'C(B / K).
 Proof.
-move=> G H K sHGK.
+move=> A B K sABK.
 rewrite -2![_ / _]morphimIdom -!quotientE quotient_cents ?subsetIl //.
-by apply: subset_trans sHGK; rewrite commgSS ?subsetIr.
+by apply: subset_trans sABK; rewrite commgSS ?subsetIr.
 Qed.
 
 Lemma sub_der1_norm : forall G H,

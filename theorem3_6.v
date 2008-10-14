@@ -81,7 +81,7 @@ move=> p P M pP; case/maximalP; case/andP=> sMP sPM maxM.
 have nMP: P \subset 'N(M).
   have:= subsetIl P 'N(M); rewrite subEproper.
   case/predU1P; [by move/setIidPl | move/maxM => /= SNM].
-  case/negP: sPM; rewrite (nilpotent_sub_norm (nilpotent_pgroup pP) sMP) //.
+  case/negP: sPM; rewrite (nilpotent_sub_norm (pgroup_nil pP) sMP) //.
   by rewrite SNM // subsetI sMP normG.
 have snMP: M <| P by exact/andP.
 have: p.-group (P / M) by exact: morphim_pgroup.
@@ -126,7 +126,7 @@ Proof.
 move=> p G; apply/eqP; rewrite eqset_sub pcore_Fitting.
 rewrite subset_pcore ?pcore_pgroup //.
 apply: normalS (normal_sub (Fitting_normal _)) (pcore_normal _ _).
-exact: Fitting_def (pcore_normal _ _) (nilpotent_pgroup (pcore_pgroup _ _)).
+exact: Fitting_def (pcore_normal _ _) (pgroup_nil (pcore_pgroup _ _)).
 Qed.
 
 End Props.
@@ -210,7 +210,7 @@ have{IHn trivgHR hallH} IHquo: forall X : group gT,
     apply: leq_trans leGn; rewrite card_quotient //.
     rewrite -[#|G : X|]mul1n -(LaGrange (subset_trans sXH sHG)).
     by rewrite ltn_pmul2r // ltnNge -trivg_card.
-  have solG': solvable (G / X) by exact: solvable_quo.
+  have solG': solvable (G / X) by exact: quotient_sol.
   have oddG': odd #|G / X|.
     move: oddG; rewrite !odd_2'nat; exact: morphim_pgroup.
   have nHG': H / X <| G / X by exact: morphim_normal.
@@ -374,7 +374,7 @@ case/orP: (orbN (trivg [~: K, P])) => [tKP|ntKP].
     split; [exact: (subsetP sVH) | exact: mem_p_elt Vx].
   suffices sPV: P \subset V by rewrite mulGSid in sylVP.
   have sol_HV : solvable (H / V). 
-    by apply: solvable_quo; apply: (solvableS sHG).
+    by apply: quotient_sol; apply: (solvableS sHG).
   have qPV: P / V \subset 'C_(H / V)('F(H / V)).
     rewrite defU subsetI; apply/andP; split; first by apply:morphimS.
     rewrite defVK quotient_mulgr; apply: quotient_centsr; rewrite commGC.
@@ -786,7 +786,7 @@ case abelK: (abelian K); last first.
   have nZP := char_norm_trans (center_char _) nKP.
   have nZR := char_norm_trans (center_char _) nKR.
   have nZK := normal_norm (center_normal K).
-  have solK: solvable K := nilpotent_solvable (nilpotent_pgroup qK).
+  have solK: solvable K := nilpotent_sol (pgroup_nil qK).
   have dCKR': 'C_K(R) / 'Z(K) = 'C_(K / 'Z(K))(R / 'Z(K)).
     rewrite coprime_quotient_cent_weak ?center_normal //.
     by rewrite coprime_sym (pnat_coprime rR r'K).
@@ -809,7 +809,7 @@ case abelK: (abelian K); last first.
     have sPRG: P <*> R \subset G by rewrite mulgen_subG sRG (subset_trans sPH).
     have coPR: coprime #|P| #|R| by rewrite (pnat_coprime pP) // oR pnatE.
     apply: three_dot_four abK' _.
-    - exact: solvable_quo (solvableS _ solG).   
+    - exact: quotient_sol (solvableS _ solG).   
     - rewrite !odd_2'nat in oddG *; apply: morphim_pgroup; exact: pgroupS oddG.
     - by rewrite morphim_normal // /normal mulgen_subl mulgen_subG normG.
     - rewrite morphim_Hall // /Hall -divgS ?mulgen_subl //= norm_mulgenEr //.
@@ -840,7 +840,7 @@ case abelK: (abelian K); last first.
   have oCKR: #|'C_K(R)| = q.
     have: cyclic 'C_K(R).
       apply: nil_Zgroup_cyclic; first exact: ZgroupS (setSI _ _) ZCHR.
-      apply: nilpotent_pgroup (pgroupS _ qK); exact: subsetIl.
+      apply: pgroup_nil (pgroupS _ qK); exact: subsetIl.
     case/cyclicP=> x CKRx.
     have Kx: x \in K by rewrite -cycle_subG -CKRx subsetIl.
     have{Kx}:= dvdn_trans (dvdn_exponent Kx) xKq; rewrite /order CKRx.

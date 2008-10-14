@@ -1,6 +1,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div prime.
 Require Import fintype paths ssralg bigops finset.
-Require Import groups morphisms normal pgroups cyclic sylow schurzass.
+Require Import groups morphisms normal pgroups cyclic nilpotent.
+Require Import sylow schurzass.
 
 (* Require Import connect finfun group_perm automorphism action center. *)
 
@@ -26,7 +27,7 @@ case/abelemP=> p pr_p; do 2![case/andP]=> abelM _ pM.
 have{pM} pM: primes #|M| = [:: p].
   move: ntM; rewrite trivg_card; case/p_natP: pM => // [[|k]] -> // _.
   by rewrite primes_exp // primes_prime. 
-pose Gb := (G / M)%G; case: (IHn _ Gb) => [||Hb]; try exact: solvable_quo.
+pose Gb := (G / M)%G; case: (IHn _ Gb) => [||Hb]; try exact: quotient_sol.
   rewrite -[#|_|]mul1n card_quotient; last by case/andP: nMG.
   apply: leq_trans leGn; have:= ltn_0group G.
   rewrite -(LaGrange sMG) ltn_0mul; case/andP=> _ M'pos.
