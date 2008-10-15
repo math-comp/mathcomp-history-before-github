@@ -254,12 +254,7 @@ Definition mul := nosimpl mul_.
 Definition exp R x n := iter n (mul x) (one R).
 Notation Local "1" := (one _) : ring_scope.
 Notation Local "- 1" := (- (1)) : ring_scope.
-(*
-Notation "2" := (1 + 1) : ring_scope.
-Notation "3" := (1 + 2) : ring_scope.
-Notation "4" := (1 + 3) : ring_scope.
-Notation "5" := (1 + 4) : ring_scope.
-*)
+
 Notation Local "n %: R" := ((one R) *+ n) : ring_scope.
 Notation Local "x * y" := (mul x y) : ring_scope.
 Notation Local "x ^+ n" := (exp x n) : ring_scope.
@@ -450,87 +445,13 @@ Notation "x *- n" := ((- x) *+n)%R : ring_scope.
 
 Notation "1" := (Ring.one _) : ring_scope.
 Notation "- 1" := (- (1))%R : ring_scope.
-(*
-Notation "2" := (1 + 1) : ring_scope.
-Notation "3" := (1 + 2) : ring_scope.
-Notation "4" := (1 + 3) : ring_scope.
-Notation "5" := (1 + 4) : ring_scope.
-*)
+
 Notation "n %: R" := ((Ring.one R) *+ n)%R : ring_scope.
 Notation "x * y" := (Ring.mul x y) : ring_scope.
 Notation "x ^+ n" := (Ring.exp x n) : ring_scope.
 Notation "s .[ i ]" :=  (sub 0%R s i%N) : ring_scope.
 
 Import Ring.
-(* Fields *)
-Module Field.
-
-Delimit Scope field_scope with F.
-
-Structure field : Type := Field {
-  field_ :> commutative_;
-  inv_ : field_ -> field_;
-  _ : forall x, x != 0 -> (inv_ x) * x = 1
-}.
-
-Definition inv := nosimpl inv_.
-
-Bind Scope field_scope with field_.
-Open Scope field_scope.
-Notation Local "x ^-1" := (inv x) : field_scope.
-
-Section FieldEquations.
-Variable F : field.
-Notation Local mul := (@mul F) (only parsing).
-Notation Local inv := (@inv F) (only parsing).
-
-Lemma mulfV: forall x : F, (x != 0) -> x^-1 * x = 1.
-Proof. by case: F. Qed.
-Lemma mulVf: forall x : F, (x != 0) -> x * x^-1 = 1.
-Proof. by move=> *; rewrite mulrC mulfV. Qed.
-Lemma mulKf : forall x : F, (x != 0) -> cancel (mul x) (mul x^-1).
-Proof. by move=> x Hx y; rewrite mulrA mulfV// mul1r. Qed.
-Lemma mulfK : forall x : F, (x != 0) -> cancel (mul^~ x) (mul^~ x^-1).
-Proof. by move=> x Hx y; rewrite -mulrA mulVf// mulr1. Qed.
-Lemma mulIf : forall x : F, (x != 0) -> injective (mul x).
-Proof. move=> x Hx; exact: can_inj (mulKf Hx). Qed.
-Lemma mulfI : forall x : F, (x != 0) -> injective (mul^~ x).
-Proof. move=> x Hx; exact: can_inj (mulfK Hx). Qed.
-Lemma neq0I: forall x : F, x != 0 -> (x^-1) != 0.
-Proof.
-move=> x Hx; apply/eqP; move/(congr1 (mul x)).
-by rewrite mulVf// mulr0; move: (@nonzero1r F).
-Qed.
-Lemma neq0_mul : forall x y : F, x != 0 -> y != 0 -> (x * y != 0).
-Proof.
-move=> x y Hx Hy; apply/eqP; move/(congr1 (mul (x^-1))).
-by rewrite mulr0 mulrA mulfV// mul1r; apply/eqP.
-Qed.
-Lemma invfK : forall x : F, (x != 0) -> (x^-1)^-1 = x.
-Proof.
-move=> x Hx; apply: (mulfI (neq0I Hx)).
-rewrite mulfV ?mulVf//.
-by apply: neq0I.
-Qed.
-Lemma invf1 : 1^-1 = 1 :> F.
-Proof. by rewrite -[1^-1]mul1r mulVf; [|apply/eqP; exact: nonzero1r]. Qed.
-Lemma invfI : forall x1 x2 : F,
- (x1 != 0) -> (x2 != 0) -> (x1^-1 = x2^-1) -> x1 = x2.
-Proof.
-by move => x1 x2 H1 H2 Heq; rewrite -(invfK H1) -(invfK H2) Heq.
-Qed.
-Lemma invf_mul : forall x y : F,
- x != 0 -> y != 0 -> (x * y)^-1 = x^-1 * y^-1.
-Proof.
-move=> x y Hx Hy.
-apply: (mulfI (neq0_mul Hx Hy)); rewrite mulfV; last (by apply: neq0_mul).
-by rewrite mulrA mulrAC mulrC -mulrA mulfV// mulr1 mulVf.
-Qed.
-
-End FieldEquations.
-End Field.
-
-Notation "x ^-1" := (Field.inv x) : field_scope.
 
 Notation "[ 'agroupType' 'of' t ]" :=
   (match [is t : Type <: additive_group] as s
@@ -548,12 +469,6 @@ Notation "[ 'cringType' 'of' t ]" :=
    return {type of Commutative for s} -> _ with
   | Commutative _ c => fun k => k c end
   (@Commutative t)) (at level 0, only parsing) : form_scope.
-
-Notation "[ 'fieldType' 'of' t ]" :=
-  (match [is t : Type <: Field.field] as s
-   return {type of Field.Field for s} -> _ with
-  | Field.Field _ _ nzi => fun k => k _ nzi end
-  (@Field.Field t)) (at level 0, only parsing) : form_scope.
 
 Require Import ssrbool.
 
