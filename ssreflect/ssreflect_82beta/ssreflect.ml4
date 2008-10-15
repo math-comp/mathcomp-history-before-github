@@ -49,6 +49,7 @@ let accept_before_syms_or_id syms strm =
   | [_; "IDENT", _] -> Stream.junk strm
   | _ -> raise Stream.Failure
 
+
 (** Pretty-printing utilities *)
 
 let pr_id = Ppconstr.pr_id
@@ -851,8 +852,11 @@ GEXTEND Gram
     | -> Vernacexpr.SearchOutside []
     ] ];
   ssr_search_item: [
+    [ qref = ssrqref -> (true, Vernacexpr.SearchRef qref)
+(*assia    
     [ qref = ssrqref -> Vernacexpr.SearchRef qref
-    | string = ne_string -> Vernacexpr.SearchString string
+| string = ne_string -> Vernacexpr.SearchString string*)
+    | string = ne_string -> (true, Vernacexpr.SearchString (string, None))
     ] ];
   ssr_search_list: [
     [ "["; list = LIST1 ssr_search_item; "]" -> list
@@ -3148,6 +3152,30 @@ let check_movearg = function
     Util.error "no proper intro pattern for equation in move tactic"
   | arg -> arg
 
+type notbeforeident = string
+
+let pr_notbeforeident _ _ _ s = pr_spc()
+
+ARGUMENT EXTEND notbeforeident TYPED AS string PRINTED BY pr_notbeforeident
+  | [ ] -> [""]
+END
+
+
+let test_notbeforeident strm = 
+  match Stream.npeek 1 strm with
+    | [("","")] ->
+        (match Stream.npeek 2 strm with
+           | [_; ("IDENT",id)] -> raise Stream.Failure
+           | _ -> ())
+    | _ -> raise Stream.Failure
+
+let notbeforeident_p4 = Gram.Entry.of_parser "notbeforeident" test_notbeforeident
+
+GEXTEND Gram
+  GLOBAL: notbeforeident_p4 notbeforeident;
+  notbeforeident: [[ c = notbeforeident -> c ]];
+  END
+
 ARGUMENT EXTEND ssrmovearg TYPED AS ssrarg PRINTED BY pr_ssrarg
   INTERPRETED BY interp_ssrarg
 | [ ssrarg(arg) ] -> [ check_movearg arg ]
@@ -3180,8 +3208,15 @@ TACTIC EXTEND ssrmove
 | [ "move" ssrmovearg(arg) ssrclauses(clauses) ] ->
   [ tclCLAUSES (ssrmovetac arg) clauses ]
 | [ "move" ssrrpat(pat) ] -> [ ipattac pat ]
-| [ "move" ] -> [ movehnftac ]
+(*| [ "move" ] -> [ movehnftac ]*)
     END
+
+(* assia : comment câbler vers la tactique movehnf ?
+GEXTEND Gram
+GLOBAL: simple_tactic;
+simple_tactic: [[ "move"; c = notbeforeident -> ???]];
+END
+*)
 
 
 
@@ -3708,6 +3743,7 @@ let mk_rwarg (d, (n, _ as m)) ((clr, occ as docc), rx) (rt, _ as r) =
 let norwmult = L2R, nomult
 let norwocc = noclr, None
 
+
 ARGUMENT EXTEND ssrrwarg_nt
   TYPED AS (ssrdir * ssrmult) * ((ssrdocc * ssrredex) * ssrrule)
   PRINTED BY pr_ssrrwarg
@@ -3731,10 +3767,18 @@ ARGUMENT EXTEND ssrrwarg_nt
     [ mk_rwarg norwmult norwocc r ]
 END
 
+
+
 ARGUMENT EXTEND ssrrwarg TYPED AS ssrrwarg_nt PRINTED BY pr_ssrrwarg
   | [ ssrrwarg_nt(arg) ] -> [ arg ]
-  | [ ssrterm(t) ] -> [ mk_rwarg norwmult norwocc (RWeq, t) ]
+  | [ ssrterm(t) ] -> [mk_rwarg norwmult norwocc (RWeq, t) ]
 END
+
+
+
+
+
+
 
 let simplintac occ rdx sim gl = match rdx with
   | None -> simpltac sim gl
@@ -3989,7 +4033,8 @@ TACTIC EXTEND ssrrewrite
   | [ "rewrite" ssrrwargs_nt(args) ssrclauses(clauses) ] ->
     [ tclCLAUSES (ssrrewritetac args) clauses ]
 (*      assia : this line is NOT FIXED 
-  | [ "rewrite" ssrtermspc(r) "with" bindings(bl) ssrclauses(clauses) ] ->*)
+  | [ "rewrite" ssrtermspc(r) "with" bindings(bl) ssrclauses(clauses) ] ->
+[ tclCLAUSES (ssrrewritebindtac r bl) clauses ]*)
   | [ "rewrite" ssrtermspc(r) ssrrwargs(args) ssrclauses(clauses) ] ->
     [ tclCLAUSES (tclTHEN (rwrxtac [] None L2R r)
                           (ssrrewritetac args)) clauses ]
@@ -4038,12 +4083,15 @@ let input_ssrfwdid strm =
     accept_before_syms_or_id [":"; ":="; "("] strm; id_of_string id
   | _ -> raise Stream.Failure
 
+
 let ssrfwdid_p4 = Gram.Entry.of_parser "ssrfwdid" input_ssrfwdid
 
 GEXTEND Gram
   GLOBAL: ssrfwdid_p4 ssrfwdid;
   ssrfwdid: [[ id = ssrfwdid_p4 -> id ]];
-END
+  END
+
+
 
 (** Definition value formatting *)
 
