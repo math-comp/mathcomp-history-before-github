@@ -113,4 +113,47 @@ Qed.
 
 End Morphisms.
   
+Section Simple.
+
+Variables gT : finGroupType.
+Implicit Type G H : {group gT}.
+
+Definition simple (A : {set gT}) := #|[set H : {group gT} | H <| A]| == 2.
+
+Theorem simpleP : forall G,
+  reflect (~~ trivg G /\ forall H, H <| G -> H :=: 1 \/ H :=: G) (simple G).
+Proof.
+move=> G; rewrite /simple (cardsD1 G) inE normal_refl eqSS (cardsD1 1%G).
+rewrite 2!inE /(_ <| _) -val_eqE eqset_sub sub1G /= -/(trivg G).
+rewrite -cent_set1 centsC sub1G andbT; case: trivGP => [-> | _].
+  apply: (iffP idP) => [|[//]]; rewrite eqn_leq lt0n; case/andP=> _.
+  rewrite eq_card0 // => H; rewrite !inE; apply/and4P=> [] [_ nH1 sH1 _].
+  by case/eqP: nH1; move/trivGP: sH1.
+rewrite eqSS; apply: (iffP eqP) => [simG | [_ simG]].
+  split=> // H nHG; have:= card0_eq simG H; rewrite !inE nHG andbT -negb_or.
+  by case/orP; rewrite -val_eqE; move/eqP; [left | right].
+apply: eq_card0=> H; rewrite !inE andbA andbC; apply/andP=> [] [].
+by rewrite -!(val_eqE H) /=; case/simG=> ->; rewrite eqxx ?andbF.
+Qed.
+
+End Simple.
+
+Section IsoSimple.
+
+Variables gT rT : finGroupType.
+Implicit Type G : {group gT}.
+Implicit Type M : {group rT}.
+
+Lemma isog_simpl : forall G M, G \isog M -> simple G -> simple M.
+Proof.
+move=> G M; move/isog_symr; case/isogP=> f injf <-.
+case/simpleP=> ntM simM; apply/simpleP; split=> [|L nLM].
+  by apply: contra ntM; move/trivGP=> M1; rewrite {3}M1 /= morphim1.
+case: (andP nLM); move/(morphim_invm injf); move/group_inj=> <- _.
+have: f @* L <| f @* M by rewrite morphim_normal.
+by case/simM=> /= ->; [left | right]; rewrite (morphim1, morphim_invm).
+Qed.
+
+End IsoSimple.
+
 

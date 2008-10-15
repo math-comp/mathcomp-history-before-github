@@ -185,7 +185,6 @@ Variable T : finType.
 Implicit Types a x : T.
 Implicit Types A B C D : {set T}.
 
-
 Lemma eqset_sub : forall A B : {set T},
   (A == B) = (A \subset B) && (B \subset A).
 Proof. by move=> A B; apply/eqP/subset_eqP; move/setP. Qed.
@@ -911,6 +910,9 @@ Qed.
 Lemma mem_imset : forall (D : pred aT) x, x \in D -> f x \in f @: D.
 Proof. by move=> D x Dx; apply/imsetP; exists x. Qed.
 
+Lemma imset0 : f @: set0 = set0.
+Proof. by apply/setP => y; rewrite inE; apply/imsetP=> [[x]]; rewrite inE. Qed.
+
 Lemma imset_set1 : forall x, f @: [set x] = [set f x].
 Proof.
 move=> x; apply/setP => y.
@@ -926,6 +928,12 @@ Lemma preimsetS : forall A B : pred rT,
 Proof.
 move=> A B sAB; apply/subsetP=> y; rewrite !inE; exact: (subsetP sAB).
 Qed.
+
+Lemma preimset0 : f @^-1: set0 = set0.
+Proof. by apply/setP=> x; rewrite !inE. Qed.
+
+Lemma preimsetT : f @^-1: setT = setT.
+Proof. by apply/setP=> x; rewrite !inE. Qed.
 
 Lemma preimsetI : forall A B : {set rT},
   f @^-1: (A :&: B) = (f @^-1: A) :&: (f @^-1: B).
@@ -954,8 +962,8 @@ Lemma imset_proper : forall (A B : {set aT})(injf : {in B, injective f}),
    A \proper B -> f @: A \proper f @: B.
 Proof.
 move=> A B fi; case/properP=> sAB [x Bx nAx]; rewrite properE imsetS //=.
-apply/subsetP; move/(_ (f x) (mem_imset Bx)); case/imsetP=> y Ay; move/(fi _ Bx).
-by move=> e; move/negP: nAx; rewrite e.
+apply/subsetP; move/(_ (f x) (mem_imset Bx)); case/imsetP=> y Ay.
+by move/(fi _ Bx)=> e; move/negP: nAx; rewrite e.
 Qed.
 
 Lemma preimset_proper : forall (A B : {set rT}),
@@ -992,8 +1000,6 @@ Proof.
 move=> A B C sAB; apply/subsetP=> y; case/imset2P=> x x2 Ax Cx2 ->.
 by apply/imset2P; exists x x2; rewrite ?(subsetP sAB).
 Qed.
-
-
 
 Lemma imset2Sr : forall (A B : pred aT2) (C : pred aT),
   A \subset B -> f2 @2: (C, A) \subset f2 @2: (C, B).

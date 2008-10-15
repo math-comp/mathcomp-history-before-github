@@ -1,6 +1,6 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype.
 Require Import div prime tuple finset groups morphisms normal group_perm.
-Require Import automorphism action pgroups sylow cyclic signperm.
+Require Import automorphism action pgroups sylow cyclic maximal signperm.
 
 (* Require Import paths connect finfun zp. *)
 
@@ -360,7 +360,7 @@ have F13: K <| Gx by apply/andP; split; last apply: norm_stab.
 have:= prim_trans_norm F10 F11; case/(_ K) => //= => Ksub; last first.
   have F14 := (subgroup_transitive Hx Hh1 F3 F5); rewrite -/Gx /= in F14.
   have: simple Gx.
-    apply: isog_simpl (isog_sym_imply (rfd_iso x)) (Hrec _ _) => /=.
+    apply: isog_simpl (isog_symr (rfd_iso x)) (Hrec _ _) => /=.
     by rewrite card_sub cardC1 Hde.
   case/simpleP=> _; case/(_ [group of K] F13) => /= [] [HH2].
     case Ez: (pred0b (predD1 (predD1 T x) y)).

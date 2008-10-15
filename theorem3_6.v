@@ -253,13 +253,13 @@ wlog abV: / p.-abelem V.
       apply/bigcap_inP=> M; case/predU1P=> [->|]; first exact: der1_subG.
       case/(maximal_p_group pV)=> //; case/andP=> sMV nMV oVM.
       have{oVM} VMcyc: cyclic (V / M) by rewrite cyclic_prime ?oVM.      
-      rewrite -quotient_cents //; apply/centsP.
+      rewrite -quotient_cents2 //; apply/centsP.
       by case/cyclicP: VMcyc => x ->; exact: commute_cycle_com.
     apply/set1P; rewrite -[[set 1]](trivgP _ trPhi).
     apply/bigcapP=> M; case/predU1P=> [->|]; first exact: groupX.
     case/(maximal_p_group pV)=> //; case/andP=> sMV nMV oVM.
     have Nx: x \in 'N(M) by exact: (subsetP nMV).
-    apply: coset_of_idr; rewrite (groupX, morphX) //= -oVM.
+    apply: coset_idr; rewrite (groupX, morphX) //= -oVM.
     by apply/eqP; rewrite -order_dvd order_dvd_g ?mem_imset // inE Nx.
   have chPhi: 'Phi(V) \char H := char_trans (Phi_char _) charV.
   have nPhiH := char_normal chPhi; have sPhiH := normal_sub nPhiH.
@@ -377,7 +377,7 @@ case/orP: (orbN (trivg [~: K, P])) => [tKP|ntKP].
     by apply: quotient_sol; apply: (solvableS sHG).
   have qPV: P / V \subset 'C_(H / V)('F(H / V)).
     rewrite defU subsetI; apply/andP; split; first by apply:morphimS.
-    rewrite defVK quotient_mulgr; apply: quotient_centsr; rewrite commGC.
+    rewrite defVK quotient_mulgr; apply: quotient_cents2r; rewrite commGC.
     case/trivgP: tKP; move ->; exact: sub1G.
   have sPU: P \subset U.
     rewrite defVK -quotientSK // -(quotient_mulgr _ K) -defVK -defU.
@@ -412,7 +412,7 @@ have VIP: trivg (V :&: P).
   apply: subset_trans VIN; apply: setIS; exact: (subset_trans sPN).
 have nVN: 'N_H(K) \subset 'N(V) by rewrite (subset_trans _ nVH) ?subsetIl.
 have defK: K :=: 'F('N_H(K)).
-  have isoV: 'injm (restrm nVN (coset_of V)).
+  have isoV: 'injm (restrm nVN (coset V)).
     by rewrite ker_restrm ker_coset setIC.
   have sKN: K \subset 'N_H(K) by rewrite subsetI sKH normG.
   rewrite -['N_H(K)](invm_dom isoV) Fitting_isom ?injm_invm //=.
@@ -714,7 +714,7 @@ have iK'K: trivg 'C_(P <*> R / K')(K / K') -> #|K / K'| > q ^ 2.
     rewrite -(setIidPl sPR_K') coprime_trivg //.
     apply: pnat_coprime (pgroupS (normal_sub nK'K) p'K).
     by apply: pgroupS pP; rewrite /= commGC commg_subr.
-  rewrite -quotient_cents ?(char_norm_trans (der_char K 1)) //.
+  rewrite -quotient_cents2 ?(char_norm_trans (der_char K 1)) //.
   rewrite (sameP centsP commG1P); apply: subset_trans sCK'.
   rewrite subsetI comm_subG ?morphimS ?(mulgen_subl, mulgen_subr) //.
   rewrite -ker_conj_aut -sub_morphim_pre; last first.
@@ -727,7 +727,7 @@ have iK'K: trivg 'C_(P <*> R / K')(K / K') -> #|K / K'| > q ^ 2.
   case cycK: (cyclic (K / K')).
     case/cyclicP: cycK => x ->; exact: aut_cycle_commute.
   case: k lek2 oK => [|[|[|//]]] _ oK.
-  - case/cyclicP: cycK; exists (1 : coset K'); rewrite cycle_unit.
+  - case/cyclicP: cycK; exists (1 : coset_of K'); rewrite cycle_unit.
     by apply/trivgP; rewrite trivg_card oK.
   - by case/idP: cycK; rewrite cyclic_prime // oK expn1.
   have [lt1q dv_q] := primeP q_pr.
@@ -880,7 +880,7 @@ case abelK: (abelian K); last first.
     case/IHK=> [|dKR|cP_KR]; first exact: proper_sub.
       by case/eqP: (proper_neq sKR_K).
     have{cP_KR} cK'_R: R / 'Z(K) \subset 'C(K / 'Z(K)).
-      by rewrite quotient_centsr //= -dCKP commGC subsetI proper_sub.
+      by rewrite quotient_cents2r //= -dCKP commGC subsetI proper_sub.
     case/negP: ntKR; apply/commG1P; apply/centsP; rewrite centsC.
     admit. (* B & G 1.18 *)
   case/subsetPn: nKR_P => x Px; move/normP; move/eqP=> nKRx.

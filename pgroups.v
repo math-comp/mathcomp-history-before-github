@@ -21,7 +21,7 @@ Import GroupScope.
 (*     + However, we do establish some results on maximal pi-subgroups.      *)
 (*   pi.-elt x        <=> x is a pi-element                                  *)
 (*                    <-> pi.-nat #[x] (<-> pi.-group <[x]>)                 *)
-(*   x.`_pi           == the pi-constituent of x: the only pi-element         *)
+(*   x.`_pi           == the pi-constituent of x: the only pi-element        *)
 (*                       y \in <[x]> s.t. x * y^-1 is a pi'-element          *)
 (*   pi.-Hall(G) H    <=> H is a Hall pi-subgroup of G                       *)
 (*                    <-> [&& H \subset G, pi.-group H & pi^'.-nat #|G : H|] *)
@@ -736,7 +736,7 @@ Section PseriesDefs.
 
 Variables (pis : seq nat_pred) (gT : finGroupType) (A : {set gT}).
 
-Definition pcore_mod pi B := coset_of B @*^-1 'O_pi(A / B).
+Definition pcore_mod pi B := coset B @*^-1 'O_pi(A / B).
 Canonical Structure pcore_mod_group pi B :=
   Eval hnf in [group of pcore_mod pi B].
 
@@ -858,7 +858,7 @@ Lemma isom_gfunctor : forall gT rT (D G : {group gT}) (R : {group rT})
                                    (f : {morphism D >-> rT}),
   G \subset D -> isom G R f -> isom (F G) (F R) f.
 Proof.
-move=> gT rT D G R f; case/(restrmP f)=> g _ ->; case/isomP=> injf <-.
+move=> gT rT D G R f; case/(restrmP f)=> g [_ _ ->]; case/isomP=> injf <-.
 rewrite /isom -!setDset1 -(injm_gfunctor injf) //.
 by rewrite -morphimEsub ?morphimDG ?morphim1 // subDset subsetU // subF orbT.
 Qed.
@@ -911,7 +911,7 @@ Lemma pcore_mod_sub : forall pi gT (G : {group gT}),
 Proof.
 move=> pi gT G; have nFD := gfunctor_norm subF funF G.
 rewrite sub_morphpre_im ?pcore_sub //=.
-  by rewrite ker_coset_gen subIset // gen_subG subF.
+  by rewrite ker_coset_prim subIset // gen_subG subF.
 by apply: subset_trans (pcore_sub _ _) _; apply: morphimS.
 Qed.
 
@@ -928,11 +928,11 @@ Lemma morphim_pcore_mod : forall pi gT rT (D G : {group gT}),
 Proof.
 move=> pi gT rT D G f; have nF := gfunctor_norm subF funF.
 have kF := ker_coset (Group (grF _)); simpl in kF.
-have sDF: D :&: G \subset 'dom (coset_of (F G)) by rewrite setIC subIset ?nF.
-have sDFf: D :&: G \subset 'dom (coset_of (F (f @* G)) \o f).
+have sDF: D :&: G \subset 'dom (coset (F G)) by rewrite setIC subIset ?nF.
+have sDFf: D :&: G \subset 'dom (coset (F (f @* G)) \o f).
   by rewrite -sub_morphim_pre ?subsetIl // morphimIdom nF.
-pose K := 'ker (restrm sDFf (coset_of (F (f @* G)) \o f)).
-have sFK: 'ker (restrm sDF (coset_of (F G))) \subset K.
+pose K := 'ker (restrm sDFf (coset (F (f @* G)) \o f)).
+have sFK: 'ker (restrm sDF (coset (F G))) \subset K.
   rewrite /K  !ker_restrm ker_comp /= subsetI subsetIl /= -setIA.
   by rewrite -sub_morphim_pre ?subsetIl // morphimIdom !kF (setIidPr _) ?morF.
 have sOF := pcore_sub pi (G / F G); have sDD: D :&: G \subset D :&: G by [].
@@ -1025,7 +1025,7 @@ Lemma pseries_sub_catl : forall pi1s pi2s gT (G : {group gT}),
 Proof.
 move=> pi1s pis gT G; elim/last_ind: pis => [|pi pis IHpi]; rewrite ?cats0 //.
 rewrite -add_last_cat pseries_add_last; apply: subset_trans IHpi _.
-by rewrite normal_sub // normal_ker_cosetpre.
+by rewrite sub_cosetpre.
 Qed.
 
 Lemma quotient_pseries : forall pis pi gT (G : {group gT}),
@@ -1067,7 +1067,7 @@ case: (third_isom (pseries_sub_catl pi1s pis G) (psN _)) => //= f inj_f im_f.
 have nH2H: pseries pis (G / K) <| pseries (pi1s ++ add_last pis pi) G / K.
   rewrite -IHpi morphim_normal // -cats1 catA.
   by apply/andP; rewrite pseries_sub_catl pseries_norm2.
-apply: congr_group; apply: (quotient_inj nH2H).
+apply: (quotient_inj nH2H).
   by apply/andP; rewrite /= -cats1 pseries_sub_catl pseries_norm2. 
 rewrite /= quotient_pseries /= -IHpi -add_last_cat.
 rewrite -[G / _ / _](morphim_invm inj_f) //= {2}im_f //.
@@ -1080,10 +1080,10 @@ Lemma pseries_catl_id : forall pi1s pi2s gT (G : {group gT}),
   pseries pi1s (pseries (pi1s ++ pi2s) G) = pseries pi1s G.
 Proof.
 elim/last_ind=> [|pis pi IHpi] pi2s gT G; first by [].
-apply: congr_group; apply: (@quotient_inj _ (pseries_group pis G)).
-- rewrite inE /= -(IHpi (pi :: pi2s)) cat_add_last /(_ <| _) pseries_norm2.
+apply: (@quotient_inj _ (pseries_group pis G)).
+- rewrite /= -(IHpi (pi :: pi2s)) cat_add_last /(_ <| _) pseries_norm2.
   by rewrite -cats1 pseries_sub_catl.
-- by rewrite inE /= /(_ <| _) pseries_norm2 -cats1 pseries_sub_catl.
+- by rewrite /= /(_ <| _) pseries_norm2 -cats1 pseries_sub_catl.
 rewrite /= cat_add_last -(IHpi (pi :: pi2s)) {1}quotient_pseries IHpi.
 apply/eqP; rewrite quotient_pseries eqset_sub !subset_pcore ?pcore_pgroup //=.
   rewrite -quotient_pseries morphim_normal // /(_ <| _) pseries_norm2.
@@ -1104,9 +1104,9 @@ Proof.
 move=> pi1s pis gT; elim/last_ind: pis => [|pis pi IHpi] G; first by [].
 have Epis: pseries pis (pseries (pi1s ++ add_last pis pi) G) = pseries pis G.
   by rewrite -cats1 catA -2!IHpi pseries_catl_id.
-apply: congr_group; apply: (@quotient_inj _ (pseries_group pis G)).
-- by rewrite inE /= -Epis /(_ <| _) pseries_norm2 -cats1 pseries_sub_catl.
-- by rewrite inE /= /(_ <| _) pseries_norm2 -cats1 pseries_sub_catl.
+apply: (@quotient_inj _ (pseries_group pis G)).
+- by rewrite /= -Epis /(_ <| _) pseries_norm2 -cats1 pseries_sub_catl.
+- by rewrite /= /(_ <| _) pseries_norm2 -cats1 pseries_sub_catl.
 rewrite /= -Epis {1}quotient_pseries Epis quotient_pseries.
 apply/eqP; rewrite eqset_sub !subset_pcore ?pcore_pgroup //=.
   rewrite -quotient_pseries morphim_normal // /(_ <| _) pseries_norm2.
@@ -1262,7 +1262,7 @@ apply/idP/idP=> [p1G | pU].
   rewrite gen_subG; apply/subsetP=> x; rewrite inE; case/andP=> Gx p_x.
   have nOx: x \in 'N('O_{p^',p}(G)).
     by apply: subsetP Gx; rewrite normal_norm ?pseries_normal.
-  rewrite coset_of_idr //; apply/eqP; rewrite -[coset_of _ x]expg1 -order_dvd.
+  rewrite coset_idr //; apply/eqP; rewrite -[coset _ x]expg1 -order_dvd.
   rewrite [#[_]](@pnat_1 p) //; first exact: morph_p_elt.
   apply: mem_p_elt (pcore_pgroup _ (G / _)) _.
   by rewrite /= -quotient_pseries /= (eqP p1G); apply/morphimP; exists x.
@@ -1274,7 +1274,7 @@ apply: (@pnat_dvd _ #|G : p_elt_gen G|); last first.
   rewrite -card_quotient // p'natE //; apply/negP; case/Cauchy=> // Ux.
   case/morphimP=> x Nx Gx -> /= oUx_p; have:= prime_gt1 pr_p.
   rewrite -(part_pnat (pnat_id pr_p)) -{1}oUx_p {oUx_p} -order_constt.
-  rewrite -morph_constt //= coset_of_id ?order1 //.
+  rewrite -morph_constt //= coset_id ?order1 //.
   by rewrite mem_gen // inE groupX // p_elt_constt.
 apply: indexgS.
 have nOU: p_elt_gen G \subset 'N('O_{p^'}(G)).
@@ -1317,14 +1317,14 @@ have exB: forall N : {group gT},
   have nN_UN: U <*> N \subset 'N(N) by rewrite gen_subG subUset normG nNU.
   case/(inv_quotientN _): (pcore_normal p^' [group of U <*> N / N]) => /= [|B].
     by rewrite /normal sub_gen ?subsetUr.
-  rewrite /= quotient_mulG //= /U => defB sNB; case/andP=> sB nB hallB.
+  rewrite /= quotient_mulgen //= /U => defB sNB; case/andP=> sB nB hallB.
   exists B; split=> [|x Ux p_x|Q].
   - by rewrite (subset_trans (sub_gen _) nB) ?subsetUl.
   - have nNx: x \in 'N(N) by rewrite (subsetP nN_UN) ?(subsetP sB).
-    apply: coset_of_idr => //; rewrite -[coset_of N x](consttC p).
+    apply: coset_idr => //; rewrite -[coset N x](consttC p).
     rewrite !(constt1P _ _ _) ?mulg1 // ?p_eltNK.
       by rewrite morph_p_elt // /p_elt p_x pnat_id.
-    have: coset_of N x \in B / N by apply/morphimP; exists x.
+    have: coset N x \in B / N by apply/morphimP; exists x.
     by apply: mem_p_elt; rewrite /= -defB pcore_pgroup.
   case/andP=> sQU p'Q; rewrite -(quotientSGK (subset_trans sQU nNU) sNB).
   rewrite -defB (subset_normal_Hall _ hallB) ?pcore_normal //=.

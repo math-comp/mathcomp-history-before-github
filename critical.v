@@ -93,10 +93,10 @@ case ChM: (M \char P); move/idP: ChM => ChM.
     rewrite /nil_class;case: #|M| => [|[|n]] //=; case: (_ == 1) => //.
     by rewrite ucn_lcnP ucn1 AC eqxx.
   by rewrite AC trivial_quotient abelem1.
-pose P' := P/D; pose H := 'C_P(D); pose H' := (H/D) :&: P'.
+pose P' := P / D; pose H := 'C_P(D); pose H' := H / D :&: P'.
 pose C' := H' :&: 'Ohm_1('Z(P')).
-pose C := coset_of D @*^-1 C'.
-have GC: group_set (coset_of D @*^-1 C').
+pose C := coset D @*^-1 C'.
+have GC: group_set (coset D @*^-1 C').
   by rewrite /C' /H' /P' /H; apply: morphpre_groupset.
 exists (Group GC).
 have ECC': C' = C/D by rewrite /C cosetpreK.
@@ -114,11 +114,11 @@ have nTH: ~ trivg H'.
   rewrite (setIidPl (char_sub ChH)).
   suff: D <| H by case/andP.
   by apply: normalS (char_normal ChD); rewrite (char_sub ChH, proper_sub).
-pose K := coset_of D @*^-1 ('Ohm_1('Z(P'))).
+pose K := coset D @*^-1 ('Ohm_1('Z(P'))).
 have EKOZP': 'Ohm_1('Z(P')) = K/D by rewrite /K cosetpreK.
 have ChK: K \char P.
   rewrite /K /P'.
-  apply: (char_from_quotient _ ChD); first by rewrite normal_ker_cosetpre.
+  apply: (char_from_quotient _ ChD); first by rewrite normal_cosetpre.
   by rewrite cosetpreK; apply: char_trans (center_char _); exact: Ohm_char.
 have CE: C = H :&: K.
   rewrite /C /C'/K !morphpreI /= !quotientGK /= /H //.
@@ -129,16 +129,13 @@ have CE: C = H :&: K.
   exact: (char_sub ChH).
 have ChC: C \char P by rewrite CE; apply: charI.
 have SD'ZC: D \subset 'Z(C).
-  rewrite subsetI centsC  {2}CE subIset // ?andbT; last first.
-    by rewrite subIset // subset_refl orbT.
-  rewrite ker_cosetE /C; apply: morphpreS.
-  by rewrite /C' /H' /H /P' sub1G.
+  by rewrite subsetI {1}/C /C' /H' /P' /H sub_cosetpre centsC CE setIAC subsetIr.
 have EZCD: 'Z(C) :=: D.
   rewrite /C /C' /H' /H /P'; apply: MD => //.
   apply/andP=> //; split; first by apply: (char_trans (center_char _)).
   by rewrite /abelian subIset // centsC subsetIr.
 have F1: [~: P, C] \subset 'Z(C).
- rewrite EZCD /C /C' /H' /H /P' -quotient_cents //= -/P' -/H -/H' -/C' -/C.
+ rewrite EZCD /C /C' /H' /H /P' -quotient_cents2 //= -/P' -/H -/H' -/C' -/C.
  - by rewrite cosetpreK -/P' centsC (subset_trans (subsetIr _ _)) // /P'
               (subset_trans (@Ohm_sub 1 _ _)) // subsetIr.
  - exact: char_norm ChD.

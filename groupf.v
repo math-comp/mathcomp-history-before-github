@@ -206,7 +206,7 @@ Lemma isom_sfunctor : forall gT hT (D G : {group gT}) (R : {group hT})
                                    (f : {morphism D >-> hT}),
   G \subset D -> isom G R f -> isom ('e_sF(G)) ('e_sF(R)) f.
 Proof.
-move=> gT rT D G R f; case/(restrmP f)=> g _ ->; case/isomP=> injf <-.
+move=> gT rT D G R f; case/(restrmP f)=> g [_ _ ->]; case/isomP=> injf <-.
 rewrite /isom -!setDset1 -(injm_sfunctor injf) //.
 rewrite -morphimEsub ?morphimDG ?morphim1 //. 
 by rewrite subDset subsetU // bisfc_clos orbT.
@@ -348,7 +348,7 @@ Qed.
 Definition max_ucn (G M : {group gT}) (nMG:M <| G) B :=
   [max B of N | (M \subset N) && (N <| G) && 
     forallb x, (x \in G) ==> forallb y, (y \in N / M) ==>
-    ((coset_of M \o conjgm N x) (repr y) == y)].
+    ((coset M \o conjgm N x) (repr y) == y)].
 
 Definition prop_ucn (G M : {group gT}) (nMG:M <| G) N :=
  forall (H1:M\subset N) (H2: N <| G) x (Hx:x \in G),
@@ -369,19 +369,19 @@ move=> G M nMG N; apply: (iffP (maxgroupP _ _)) => [[]|[sMN nNG Hid max]].
     move=> HsMN HnNG x Hx; rewrite /quotm /factm /= /restrm.
     move/(_ x): (forallP Hid); move/implyP; move/(_ Hx)=> H y Hy.
     move/(_ y): (forallP H); move/implyP; move/(_ Hy); move/eqP.
-    by rewrite cosetpre_coset_set1.
+    by rewrite cosetpre_set1_coset.
   move=> H [sMH nHG HHid sNH]; apply:val_inj; apply:(max H) =>//.
   rewrite sMH nHG !andTb; apply/forallP=> x; apply/implyP=> Hx.
   apply/forallP=> y; apply/implyP=> Hy;apply/eqP. 
-  by rewrite -cosetpre_coset_set1; apply:HHid.
+  by rewrite -cosetpre_set1_coset; apply:HHid.
 rewrite sMN nNG; split=>/= [|H]; last first.
- case/andP; case/andP => sMH nHG HHid sNH; rewrite (max H); split =>//.
- move=> HsMH HnHG x Hx; rewrite /quotm /factm /= /restrm.
- move/(_ x): (forallP HHid); move/implyP; move/(_ Hx)=> HH y Hy.
- move/(_ y): (forallP HH); move/implyP; move/(_ Hy); move/eqP.
- by rewrite cosetpre_coset_set1.
+  case/andP; case/andP => sMH nHG HHid sNH; rewrite (max H); split =>//.
+  move=> HsMH HnHG x Hx; rewrite /quotm /factm /= /restrm.
+  move/(_ x): (forallP HHid); move/implyP; move/(_ Hx)=> HH y Hy.
+  move/(_ y): (forallP HH); move/implyP; move/(_ Hy); move/eqP.
+  by rewrite cosetpre_set1_coset.
 apply/forallP=> x; apply/implyP=> Hx; apply/forallP=> y; apply/implyP=> Hy.
-by apply/eqP; rewrite -cosetpre_coset_set1; apply: Hid.
+by apply/eqP; rewrite -cosetpre_set1_coset; apply: Hid.
 Qed.
 
 Lemma commute_conjgP : forall (x y:gT), reflect (commute x y) (x ^ y == x).
@@ -402,9 +402,9 @@ apply:val_inj; apply/eqP; rewrite eq_sym eqset_sub sZH; apply/subsetP=> x /= Hx.
 apply/subcentP; split; first by rewrite (subsetP (normal_sub nHG)).
 move=> y Hy; apply/commute_conjgP; apply/eqP; move/injmP:(@coset1_injm gT).
 rewrite /= norm1; apply; rewrite ?in_setT //.
-have Hqx: ((coset_of 1 x) \in H /1)
+have Hqx: ((coset 1 x) \in H / 1)
   by rewrite /quotient /morphim mem_imset ?norm1 ?setTI.
-by move: (Hid (sub1G H) nHG y Hy (coset_of 1 x) Hqx); rewrite /quotm factmE.
+by move: (Hid (sub1G H) nHG y Hy (coset 1 x) Hqx); rewrite /quotm factmE.
 Qed.
 
 End MaxnormalSeries.

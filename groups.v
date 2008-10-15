@@ -1942,6 +1942,15 @@ Proof.
 by move=> A B; apply/centsP/centsP=> cAB x ? y ?; rewrite /commute -cAB.
 Qed.
 
+Lemma cents1 : forall A, A \subset 'C(1).
+Proof. by move=> A; rewrite centsC sub1G. Qed.
+
+Lemma cent1T : 'C(1) = setT :> {set gT}.
+Proof. by apply/eqP; rewrite -subTset cents1. Qed.
+
+Lemma cent11T : 'C[1] = setT :> {set gT}.
+Proof. by rewrite -cent_set1 cent1T. Qed.
+
 Lemma cent_sub : forall A, 'C(A) \subset 'N(A).
 Proof.
 move=> A; apply/subsetP=> x; move/centP=> cAx; rewrite inE.

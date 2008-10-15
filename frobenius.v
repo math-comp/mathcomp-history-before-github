@@ -42,7 +42,7 @@ exists z.`_p^'; first exact: groupX.
   rewrite inE groupX //= order_dvd -consttX; apply/eqP; apply/constt1P.
   have: z ^+ s \in <[x]>.
     move: zs1; rewrite order_dvd -morphX //; move/eqP.
-    by apply: coset_of_idr; exact: groupX.
+    by apply: coset_idr; exact: groupX.
   by apply: mem_p_elt; rewrite /pgroup [#|_|]H1 pnatNK pnat_exp pnat_id.
 rewrite morph_constt //= constt_p_elt //.
 by apply: (pnat_dvd zs1); rewrite p'natE -?prime_coprime.

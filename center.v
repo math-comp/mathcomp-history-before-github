@@ -61,13 +61,6 @@ Proof. by move=> G B; rewrite normsI ?subIset ?normG // orbC cent_norm.  Qed.
 Lemma subcent_normal : forall G B, 'C_G(B) <| 'N_G(B).
 Proof. by move=> G B; rewrite /normal subcent_sub subcent_norm. Qed.
 
-Lemma morphim_subcent : forall rT A B D (f : {morphism D >-> rT}),
-  f @* 'C_A(B) \subset 'C_(f @* A)(f @* B).
-Proof.
-move=> rT A B D f; apply: subset_trans (morphimI _ _ _) (setIS _ _).
-exact: morphim_cent.
-Qed.
-
 Lemma subcent_char : forall G H K, H \char G -> K \char G -> 'C_H(K) \char G.
 Proof.
 move=> G H K; case/charP=> sHG chHG; case/charP=> sKG chKG; apply/charP.

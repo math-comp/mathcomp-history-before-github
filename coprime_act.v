@@ -121,14 +121,14 @@ rewrite (subset_trans _ (morphim_cent _ _)) ?morphimS ?subsetIr //=.
 apply/subsetP=> xb; case/setIP; case/morphimP=> x Nx Gx def_x cAxb.
 have{cAxb} cAx: forall y, y \in A -> [~ x, y] \in H.
   move=> y Ay; have Ny: y \in 'N(H) by exact: subsetP Ay.
-  rewrite coset_of_idr ?groupR // morphR //= -def_x; apply/eqP; apply/commgP.
-  by apply: (centP cAxb); rewrite -coset_of_norm mem_imset.
+  rewrite coset_idr ?groupR // morphR //= -def_x; apply/eqP; apply/commgP.
+  by apply: (centP cAxb); rewrite mem_quotient.
 have AxAH : A :^ x \subset H * A.
   apply/subsetP=> yx; case/imsetP=> y Ay ->{yx}.
   rewrite -normC // -(mulKVg y (y ^ x)) -commgEl mem_mulg //.
   by rewrite -groupV invg_comm cAx.
 case: (SchurZass_trans_sol _ nHA AxAH) => // [|y Hy]; first exact: card_conjg.
-case=> def_Ax; rewrite -coset_of_norm; apply/imsetP.
+case=> def_Ax; rewrite -imset_coset; apply/imsetP.
 exists (x * y^-1); last first.
   by rewrite conjgCV mkerl // ker_coset memJ_norm groupV.
 rewrite /= inE groupMl // ?(groupV, subsetP sHG) //=.
@@ -222,10 +222,9 @@ move=> Hb []; case/and3P=> sHGb piHb pi'Hb' nHbA sXHb.
 case/inv_quotientS: (sHGb) => [|HM defHM sMHM sHMG]; first exact/andP.
 have{Xb sXHb} sXHM: X \subset HM.
   apply/subsetP=> x Xx; have:= rcoset_refl M x.
-  have: coset_of M x \in Hb.
-    by apply: (subsetP sXHb); rewrite /Xb /= -coset_of_norm mem_imset.
+  have: coset M x \in Hb by apply: (subsetP sXHb); rewrite mem_quotient.
   rewrite defHM; case/morphimP=> y Ny Hy /=; move/(congr1 val).
-  rewrite /= !coset_ofN // ?(subsetP nMX) // => ->.
+  rewrite /= !val_coset // ?(subsetP nMX) // => ->.
   by case/rcosetP=> z Mz ->; rewrite groupMl // (subsetP sMHM).
 have{pi'Hb' sHGb} pi'HM': pi^'.-nat #|G : HM|.
   move: pi'Hb'; rewrite -!divgS // defHM !card_quotient //; last first.
@@ -235,12 +234,12 @@ have{Ab oAb nHbA} nHMA: A \subset 'N(HM).
   apply/subsetP=> x Ax; rewrite inE.
   apply/subsetP=> yx; case/imsetP=> y HMy ->{yx}.
   have nMy: y \in 'N(M) by rewrite (subsetP nMG) // (subsetP sHMG).
-  have:= rcoset_refl M (y ^ x); have: coset_of M (y ^ x) \in Hb.
+  have:= rcoset_refl M (y ^ x); have: coset M (y ^ x) \in Hb.
     rewrite morphJ ?(subsetP nMA x Ax) //=.
-    rewrite memJ_norm; first by rewrite defHM /= -coset_of_norm mem_imset.
-    by rewrite (subsetP nHbA) //= -coset_of_norm mem_imset.
+    rewrite memJ_norm; first by rewrite defHM mem_quotient.
+    by rewrite (subsetP nHbA) //= mem_quotient.
   rewrite defHM; case/morphimP=> z Nz Hz /=; move/(congr1 val).
-  rewrite /= !coset_ofN // => [->|]; last by rewrite groupJ // (subsetP nMA).
+  rewrite /= !val_coset // => [->|]; last by rewrite groupJ // (subsetP nMA).
   by case/rcosetP=> t Mt ->; rewrite groupMl // (subsetP sMHM).
 case pi_p: (p \in pi).
   exists HM; split=> //; apply/and3P; split=> //.
@@ -297,7 +296,7 @@ Qed.
 Module AfterInner. End AfterInner.
 
 Definition quo_act (gT aT : finGroupType) (H : {set gT}) to :=
-  fun (Hx : coset H) (a : aT) =>
+  fun (Hx : coset_of H) (a : aT) =>
     if 'N_(|to)(H) == setT then insubd Hx (to^~ a @: Hx) else Hx.
 
 Prenex Implicits quo_act.

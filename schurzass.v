@@ -360,7 +360,7 @@ have sKZK: K \subset ZK by rewrite -(mul1g K) -eqZK mulSg ?sub1set.
 have trHK: trivg (H :&: K).
   apply/subsetP=> x; case/setIP=> Hx Kx; apply: (subsetP trZK).
   have Nx: x \in 'N(Z) by apply: subsetP (x) Hx; case/andP: nZH.
-  rewrite inE Kx andbT coset_of_idr //; apply/set1P.
+  rewrite inE Kx andbT coset_idr //; apply/set1P.
   rewrite (subsetP trHKbar) // quoZK inE !mem_imset // inE Nx //.
   exact: (subsetP sKZK).
 apply/splitgP; exists K => //; apply/setP; apply/subset_cardP.

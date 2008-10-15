@@ -42,13 +42,12 @@ have{transHb} transH: forall K : {group gT},
     exact: morphim_pgroup.
   case/morphimP: Gxb => x Nx Gx /= def_x; exists x => //.
   apply/subsetP=> y Ky.
-  have: y \in coset_of M y by rewrite coset_ofN (subsetP nMK, rcoset_refl).
-  have: coset_of M y \in (H :^ x) / M.
+  have: y \in coset M y by rewrite val_coset (subsetP nMK, rcoset_refl).
+  have: coset M y \in (H :^ x) / M.
     rewrite /quotient morphimJ //=.
-    rewrite def_x def_H in sKHxb; apply: (subsetP sKHxb).
-    by rewrite /= -coset_of_norm mem_imset.
+    rewrite def_x def_H in sKHxb; apply: (subsetP sKHxb); exact: mem_quotient.
   case/morphimP=> z Nz Hxz ->.
-  rewrite coset_ofN //; case/rcosetP=> t Mt ->; rewrite groupMl //.
+  rewrite val_coset //; case/rcosetP=> t Mt ->; rewrite groupMl //.
   by rewrite mem_conjg (subsetP sMH) // -mem_conjg (normP Nx).
 have{pi'Hb'} pi'H': pi^'.-nat #|G : H|.
   move: pi'Hb'; rewrite -!divgS // def_H !card_quotient //; last first.

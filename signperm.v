@@ -274,7 +274,7 @@ Lemma Alt_subset : 'Alt_T \subset 'Sym_T.
 Proof. exact: subsetT. Qed.
 
 Lemma Alt_normal : 'Alt_T <| 'Sym_T.
-Proof. exact: normal_ker. Qed.
+Proof. exact: ker_normal. Qed.
 
 Lemma Alt_norm : 'Sym_T \subset 'N('Alt_T).
 Proof. by case/andP: Alt_normal. Qed.

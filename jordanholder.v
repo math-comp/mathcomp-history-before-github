@@ -143,7 +143,7 @@ Prenex Implicits simple.
 Lemma isog_simpl : forall (gT1 gT2 : finGroupType)(G : {group gT1})(H : {group gT2}),
    G \isog H -> simple G -> simple H.
 Proof.
-move=> gT1 gT2 G H; move/isog_sym_imply; case/isogP=> f injf <-.
+move=> gT1 gT2 G H; move/isog_symr; case/isogP=> f injf <-.
 case/simpleP=> ntH simH; apply/simpleP; split=> [|L nLH].
   by apply: contra ntH; move/trivGP=> H1; rewrite {3}H1 /= morphim1.
 case: (andP nLH); move/(morphim_invm injf); move/group_inj=> <- _.
@@ -170,15 +170,15 @@ case/maxnormalP=> nNG pNG Nmax; apply/simpleP; split; last move=> K' nK'Q.
 have : (K' \proper (G / N)) || (G / N == K').
   by rewrite properE eqset_sub andbC (normal_sub nK'Q) !andbT orbC orb_negb_r.
 case/orP=> [ pHQ | eQH]; last by right; apply sym_eq; apply/eqP.
-left; pose K := ((coset_of N) @*^-1 K')%G.
-have eK'I : K' \subset (coset_of N) @* 'N(N).
+left; pose K := ((coset N) @*^-1 K')%G.
+have eK'I : K' \subset (coset N) @* 'N(N).
   by rewrite (subset_trans (normal_sub nK'Q)) ?morphimS ?normal_norm.
 have eKK' : K' :=: K / N by rewrite /(K / N) morphpreK //=.
 suff eKN : K :=: N by rewrite -trivial_quotient eKK' eKN.
-have nKG : K <| G by rewrite -(cosetimGK nNG) cosetpre_normal.
+have nKG : K <| G by rewrite -(quotientGK nNG) cosetpre_normal.
 apply: Nmax=> //; last by rewrite -(ker_coset N) kerE morphpreSK sub1G.
 suff : ~~ (G \subset K) by rewrite eqset_sub negb_and (normal_sub nKG) orbF.
-by rewrite -(cosetimGK nNG) morphpreSK /= ?proper_subn // ?morphimS ?normal_norm.
+by rewrite -(quotientGK nNG) morphpreSK /= ?proper_subn // ?morphimS ?normal_norm.
 Qed.
 
 
@@ -186,13 +186,13 @@ Lemma normal_simple_quo_maxN_ : N <| G -> simple (G / N) -> maxnormal G N.
 Proof.
 move=> nNG; move/simpleP=> [nt sQ]; apply/maxnormalP; rewrite nNG properE.
 rewrite normal_sub // -trivg_quotient ?normal_norm //; split=> // K nKG neGK sNK.
-pose K':= ((coset_of N) @* K)%G.
+pose K':= ((coset N) @* K)%G.
 have K'dQ : K' <| (G / N)%G by apply: morphim_normal.
 have nKN : N <| K by rewrite (normalS _ _ nNG) // normal_sub.
 case: (sQ K' K'dQ)=> /=; last first.
-  by move/quotient_inj; rewrite !inE /=; move/(_ nKN nNG)=> c; rewrite c eqxx in neGK.
+  by move/quotient_injG; rewrite !inE /=; move/(_ nKN nNG)=> c; rewrite c eqxx in neGK.
 rewrite -trivial_quotient; move=> tK'; apply:(congr1 (@set_of_group _)); move: tK'.
-apply: (@quotient_inj _ N); rewrite ?inE /= ?normal_refl /normal ?sNK //.
+apply: (@quotient_injG _ N); rewrite ?inE /= ?normal_refl /normal ?sNK //.
 by rewrite ?(subset_trans sKG) ?normal_norm.
 Qed.
 
@@ -592,20 +592,20 @@ case/maxainvP=> nNG pNG Ninv Nmax; apply/asimpleP; split; last move=> K' nK'Q.
 have : (K' \proper (G / N)) || (G / N == K').
   by rewrite properE eqset_sub andbC (normal_sub nK'Q) !andbT orbC orb_negb_r.
 case/orP=> [ pHQ | eQH]; last by right; apply sym_eq; apply/eqP.
-left; pose K := ((coset_of N) @*^-1 K')%G.
-have eK'I : K' \subset (coset_of N) @* 'N(N).
+left; pose K := ((coset N) @*^-1 K')%G.
+have eK'I : K' \subset (coset N) @* 'N(N).
   by rewrite (subset_trans (normal_sub nK'Q)) ?morphimS ?normal_norm.
 have eKK' : K' :=: K / N by rewrite /(K / N) morphpreK //=.
 suff eKN : K :=: N by rewrite -trivial_quotient eKK' eKN.
-have nKG : K <| G by rewrite -(cosetimGK nNG) cosetpre_normal.
+have nKG : K <| G by rewrite -(quotientGK nNG) cosetpre_normal.
 have sNK : N \subset K by rewrite -ker_coset kerE morphpreS // sub1set group1.
 have {sNK} nNK : N <| K by rewrite (@normalS _ G) // normal_sub.
 have iK : ainvar A K.
-  move: {Nmax pNG} H; rewrite eKK' /ainvar norm_quotient //.
-  by rewrite cosetimSGK // (subset_trans (normal_sub nNG)) // normal_norm.
+  move: {Nmax pNG} H; rewrite eKK' /ainvar -quotient_normG //.
+  by rewrite quotientSGK // (subset_trans (normal_sub nNG)) // normal_norm.
 apply: Nmax=> //; last by rewrite -(ker_coset N) kerE morphpreSK sub1G.
 suff : ~~ (G \subset K) by rewrite properE (normal_sub nKG).
-by rewrite -(cosetimGK nNG) morphpreSK /= ?proper_subn // ?morphimS ?normal_norm.
+by rewrite -(quotientGK nNG) morphpreSK /= ?proper_subn // ?morphimS ?normal_norm.
 Qed.
 
 Lemma asimple_quo_maxainv : 
@@ -617,12 +617,12 @@ split=> // K nKG neGK aiK sNK.
 pose K':= (K / N)%G.
 have K'dQ : K' <| (G / N)%G by apply: morphim_normal.
 have nKN : N <| K by rewrite (normalS _ _ nNG) // normal_sub.
-have aiK' : ainvar (A / N) K' by rewrite /ainvar /K' norm_quotient // quotientS.
+have aiK' : ainvar (A / N) K' by rewrite /ainvar /K' -quotient_normG // quotientS.
 case: (sQ K' K'dQ aiK')=> /=; last first.
-  move/quotient_inj; rewrite !inE /=; move/(_ nKN nNG)=> c; move: neGK.
+  move/quotient_injG; rewrite !inE /=; move/(_ nKN nNG)=> c; move: neGK.
   by rewrite c properE subset_refl.
 rewrite -trivial_quotient; move=> tK'; apply:(congr1 (@set_of_group _)); move: tK'.
-apply: (@quotient_inj _ N); rewrite ?inE /= ?normal_refl /normal ?sNK //.
+apply: (@quotient_injG _ N); rewrite ?inE /= ?normal_refl /normal ?sNK //.
 by rewrite ?(subset_trans sKG) ?normal_norm.
 Qed.
 

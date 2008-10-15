@@ -19,8 +19,7 @@ Variable (gT : finGroupType) (n : nat) (A : {set gT}).
 
 Definition lower_central_at_rec := iter n (fun B => [~: B, A]) A.
 
-Definition upper_central_at_rec :=
-  iter n (fun B => coset_of B @*^-1 'Z(A / B)) 1.
+Definition upper_central_at_rec := iter n (fun B => coset B @*^-1 'Z(A / B)) 1.
 
 Definition derived_at_rec m := iter m (fun B => [~: B, B]) A.
 
@@ -97,7 +96,7 @@ Lemma lcn_central : forall G n,
   'L_n(G) / 'L_n.+1(G) \subset 'Z(G / 'L_n.+1(G)).
 Proof.
 move=> G n; rewrite subsetI ?lcn_sub0 //=.
-by rewrite morphimS ?quotient_centsr ?lcn_norm0 ?lcn_sub0 ?lcn_sub.
+by rewrite morphimS ?quotient_cents2r ?lcn_norm0 ?lcn_sub0 ?lcn_sub.
 Qed.
 
 Lemma lcn_stable : forall G n m, n <= m ->  trivg 'L_n(G) -> trivg 'L_m(G).
@@ -155,8 +154,7 @@ Implicit Type G H : {group gT}.
 Lemma ucn0 : forall A, 'Z_0(A) = 1.
 Proof. by []. Qed.
 
-Lemma ucnSn : forall A n,
- 'Z_n.+1(A) = coset_of 'Z_n(A) @*^-1 'Z(A / 'Z_n(A)).
+Lemma ucnSn : forall A n, 'Z_n.+1(A) = coset 'Z_n(A) @*^-1 'Z(A / 'Z_n(A)).
 Proof. by []. Qed.
 
 Lemma ucnE : forall A n, 'Z_n(A) = upper_central_at_rec n A.
@@ -200,7 +198,7 @@ Proof. by move=> G n; rewrite ucnSn cosetpreK. Qed.
 
 Lemma ucn_comm : forall G n, [~: 'Z_n.+1(G), G] \subset 'Z_n(G).
 Proof.
-move=> G n; rewrite -quotient_cents ?normal_norm ?ucn_normal0 ?ucn_normal //.
+move=> G n; rewrite -quotient_cents2 ?normal_norm ?ucn_normal0 ?ucn_normal //.
 by rewrite ucn_central subsetIr.
 Qed.
 
@@ -220,7 +218,7 @@ case Gx: (x \in G); last first.
 have nZG: G \subset 'N('Z_n(G)) by rewrite normal_norm ?ucn_normal0.
 have nZx: [set x] \subset 'N('Z_n(G)) by rewrite sub1set (subsetP nZG).
 rewrite -sub1set ucnSn -sub_morphim_pre // subsetI morphimS ?sub1set //.
-by rewrite quotient_cents // gen_subG /commg_set imset2_set1l.
+by rewrite quotient_cents2 // gen_subG /commg_set imset2_set1l.
 Qed.
 
 End UpperCentral.
@@ -241,7 +239,7 @@ elim: {1 3}n 0 (addn0 n) => [j <- //|i IHi j].
 rewrite addSnnS; move/IHi=> <- {IHi}; rewrite ucnSn lcnSn.
 have nZG := normal_norm (ucn_normal0 G j).
 have nZL := subset_trans (lcn_sub0 _ _) nZG.
-by rewrite -sub_morphim_pre // subsetI morphimS ?lcn_sub0 // quotient_cents.
+by rewrite -sub_morphim_pre // subsetI morphimS ?lcn_sub0 // quotient_cents2.
 Qed.
 
 Lemma ucnP : forall G, reflect (exists n, 'Z_n(G) = G) (nilpotent G).

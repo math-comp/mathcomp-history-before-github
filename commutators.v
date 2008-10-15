@@ -181,7 +181,7 @@ Qed.
 Lemma commg_subl : forall G H, ([~: G, H] \subset G) = (H \subset 'N(G)).
 Proof. by move=> G H; rewrite commGC commg_subr. Qed.
 
-Lemma quotient_cents : forall A B K,
+Lemma quotient_cents2 : forall A B K,
     A \subset 'N(K) -> B \subset 'N(K) ->
   (A / K \subset 'C(B / K)) = ([~: A, B] \subset K).
 Proof.
@@ -189,11 +189,11 @@ move=> A B K nKA nKB.
 by rewrite (sameP centsP commG1P) -morphimR // trivg_quotient // comm_subG.
 Qed. 
 
-Lemma quotient_centsr : forall A B K,
+Lemma quotient_cents2r : forall A B K,
   [~: A, B] \subset K -> (A / K) \subset 'C(B / K).
 Proof.
 move=> A B K sABK.
-rewrite -2![_ / _]morphimIdom -!quotientE quotient_cents ?subsetIl //.
+rewrite -2![_ / _]morphimIdom -!quotientE quotient_cents2 ?subsetIl //.
 by apply: subset_trans sABK; rewrite commgSS ?subsetIr.
 Qed.
 
@@ -208,11 +208,11 @@ Lemma sub_der1_normal : forall G H,
 Proof. by move=> G H sG'H sHG; rewrite /(H <| G) sHG sub_der1_norm. Qed.
 
 Lemma sub_der1_abelian : forall G H, [~: G, G] \subset H -> abelian (G / H).
-Proof. move=> G H sG'H; exact: quotient_centsr. Qed.
+Proof. move=> G H sG'H; exact: quotient_cents2r. Qed.
 
 Lemma der1_min : forall G H,
   G \subset 'N(H) -> abelian (G / H) -> [~: G, G] \subset H.
-Proof. by move=> G H nHG abGH; rewrite -quotient_cents. Qed.
+Proof. by move=> G H nHG abGH; rewrite -quotient_cents2. Qed.
 
 Lemma commg_normSl :  forall G H K,
   G \subset 'N(H) -> [~: G, H] \subset 'N([~: K, H]).

@@ -496,7 +496,7 @@ Qed.
 Lemma isog_cyclic:
   forall rT G (H : {group rT}), G \isog H -> cyclic G -> cyclic H.
 Proof.
-move=> rT G H; move/isog_sym_imply; case/isogP=> f injf <- Cf.
+move=> rT G H; move/isog_symr; case/isogP=> f injf <- Cf.
 by rewrite -(morphim_invm injf (subset_refl _)) cyclic_morphim.
 Qed.
 
