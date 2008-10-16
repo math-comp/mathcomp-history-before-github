@@ -76,9 +76,9 @@ Proof. by inj_tac; repeat (destruct val => //=; first by apply /eqP). Qed.
 Lemma R3_inj: injective R3.
 Proof. by inj_tac; repeat (destruct val => //=; first by apply /eqP). Qed.
 
-Definition r1 := (perm_of R1_inj).
-Definition r2 := (perm_of R2_inj).
-Definition r3 := (perm_of R3_inj).
+Definition r1 := (perm R1_inj).
+Definition r2 := (perm R2_inj).
+Definition r3 := (perm R3_inj).
 Definition id1:= (1 : {perm square}).
 
 Definition is_rot (r : {perm _}) :=  (r * r1 == r1 * r).
@@ -137,7 +137,7 @@ Proof.
 by apply:(can_inj (g:= Sh));  case; do 4?case  => //=;move=> H;apply /eqP.
 Qed.
 
-Definition sh := (perm_of Sh_inj).
+Definition sh := (perm Sh_inj).
 
 Lemma sh_inv : sh^-1 = sh.
 Proof.
@@ -152,7 +152,7 @@ Proof.
 by apply : (can_inj (g:= Sv));case; do 4?case  => //=;move => H;apply /eqP.
 Qed.
 
-Definition sv := (perm_of Sv_inj).
+Definition sv := (perm Sv_inj).
 
 Lemma sv_inv: sv^-1 = sv.
 Proof.
@@ -167,7 +167,7 @@ Proof.
 by apply: can_inj Sd1 _; case; do 4?case=> //=; move=> H; apply /eqP.
 Qed.
 
-Definition sd1 := (perm_of Sd1_inj).
+Definition sd1 := (perm Sd1_inj).
 
 Lemma sd1_inv : sd1^-1 = sd1.
 Proof.
@@ -182,7 +182,7 @@ Proof.
 by apply: can_inj Sd2 _; case; do 4?case=> //=; move=> H; apply /eqP.
 Qed.
 
-Definition sd2 := (perm_of Sd2_inj).
+Definition sd2 := (perm Sd2_inj).
 
 Lemma sd2_inv : sd2^-1 = sd2.
 Proof.
@@ -609,36 +609,36 @@ Proof. by apply: can_inj R043f _ => z; apply/eqP; case: z; do 6?case. Qed.
 
 Definition id3 := 1 : {perm cube}.
 
-Definition s05 := (perm_of S05_inj).
+Definition s05 := (perm S05_inj).
 
 Definition s14 : {perm cube}.
 Proof.
-apply: (@perm_of _ S14f); apply: can_inj S14f _ => z.
+apply: (@perm _ S14f); apply: can_inj S14f _ => z.
 by apply /eqP; case: z; do 6?case.
 Defined.
 
-Definition s23 := (perm_of (inv_inj S23_inv)).
-Definition r05 := (perm_of R05_inj).
-Definition r14 := (perm_of R14_inj).
-Definition r23 := (perm_of R23_inj).
-Definition r50 := (perm_of R50_inj).
-Definition r41 := (perm_of R41_inj).
-Definition r32 := (perm_of R32_inj).
-Definition r024 := (perm_of R024_inj).
-Definition r042 := (perm_of R042_inj).
-Definition r012 := (perm_of R012_inj).
-Definition r021 := (perm_of R021_inj).
-Definition r031 := (perm_of R031_inj).
-Definition r013 := (perm_of R013_inj).
-Definition r043 := (perm_of R043_inj).
-Definition r034 := (perm_of R034_inj).
+Definition s23 := (perm (inv_inj S23_inv)).
+Definition r05 := (perm R05_inj).
+Definition r14 := (perm R14_inj).
+Definition r23 := (perm R23_inj).
+Definition r50 := (perm R50_inj).
+Definition r41 := (perm R41_inj).
+Definition r32 := (perm R32_inj).
+Definition r024 := (perm R024_inj).
+Definition r042 := (perm R042_inj).
+Definition r012 := (perm R012_inj).
+Definition r021 := (perm R021_inj).
+Definition r031 := (perm R031_inj).
+Definition r013 := (perm R013_inj).
+Definition r043 := (perm R043_inj).
+Definition r034 := (perm R034_inj).
 
-Definition s1 := (perm_of (inv_inj S1_inv)).
-Definition s2 := (perm_of (inv_inj S2_inv)).
-Definition s3 := (perm_of (inv_inj S3_inv)).
-Definition s4 := (perm_of (inv_inj S4_inv)).
-Definition s5 := (perm_of (inv_inj S5_inv)).
-Definition s6 := (perm_of (inv_inj S6_inv)).
+Definition s1 := (perm (inv_inj S1_inv)).
+Definition s2 := (perm (inv_inj S2_inv)).
+Definition s3 := (perm (inv_inj S3_inv)).
+Definition s4 := (perm (inv_inj S4_inv)).
+Definition s5 := (perm (inv_inj S5_inv)).
+Definition s6 := (perm (inv_inj S6_inv)).
 
 Definition dir_iso3 := [set p |
 [|| id3 == p, s05 == p, s14 == p, s23 == p, r05 == p, r14 == p, r23 == p,
@@ -656,7 +656,7 @@ Definition S0f (sc : cube) : cube := tsub [tuple of S0] sc.
 Lemma S0_inv: involutive S0f.
 Proof. by move=> z; apply/eqP; case: z; do 6?case. Qed.
 
-Definition s0 := (perm_of (inv_inj S0_inv)).
+Definition s0 := (perm (inv_inj S0_inv)).
 
 Definition is_iso3 (p : {perm cube}) := forall fi, p (s0 fi) = s0 (p fi).
 
@@ -709,7 +709,7 @@ Definition seq_iso_L:= [::
    R024; R042; R012; R021; R031; R013; R043; R034;
    S1; S2; S3; S4; S5; S6].
 
-Lemma seqs1 : forall f injf, sop (@perm_of _ f injf) = maps f ecubes.
+Lemma seqs1 : forall f injf, sop (@perm _ f injf) = maps f ecubes.
 Proof.
 move=> f ?; rewrite ecubes_def /sop /= -maps_ffun_enum pvalE.
 apply: eq_maps; exact: permE.

@@ -1000,28 +1000,30 @@ Implicit Arguments eq_big_op [R nil op1 I P F].
 
 Section BigRel.
 
-Variables (R : Type) (Pr : R -> R -> Type) (nil : R) (op : R -> R -> R).
-Hypothesis Pr_nil : Pr nil nil.
+Variables (R1 R2 : Type) (Pr : R1 -> R2 -> Type).
+Variables (nil1 : R1) (op1 : R1 -> R1 -> R1).
+Variables (nil2 : R2) (op2 : R2 -> R2 -> R2).
+Hypothesis Pr_nil : Pr nil1 nil2.
 Hypothesis Pr_rel : forall x1 x2 y1 y2,
-  Pr x1 x2 -> Pr y1 y2 -> Pr (op x1 y1) (op x2 y2).
+  Pr x1 x2 -> Pr y1 y2 -> Pr (op1 x1 y1) (op2 x2 y2).
 
 Lemma big_rel : forall I r (P : pred I) F1 F2,
   (forall i, (P i) -> Pr (F1 i) (F2 i)) ->
-  Pr (\big[op/nil]_(i <- r | P i) F1 i) (\big[op/nil]_(i <- r | P i) F2 i).
+  Pr (\big[op1/nil1]_(i <- r | P i) F1 i) (\big[op2/nil2]_(i <- r | P i) F2 i).
 Proof.
-rewrite unlock => I r P F1 F2 PrF.
-by elim: r => //= i *; case Pi: (P i); auto.
+rewrite !unlock => I r P F1 F2 PrF.
+elim: r => //= i *; case Pi: (P i); auto.
 Qed.
 
 Lemma big_rel_seq : forall (I : eqType) (r : seq I) (P : pred I) F1 F2,
     (forall i, P i && (i \in r) -> Pr (F1 i) (F2 i)) ->
-  Pr (\big[op/nil]_(i <- r | P i) F1 i) (\big[op/nil]_(i <- r | P i) F2 i).
+  Pr (\big[op1/nil1]_(i <- r | P i) F1 i) (\big[op2/nil2]_(i <- r | P i) F2 i).
 Proof. move=> I r P *; rewrite !(big_cond_seq P); exact: big_rel. Qed.
 
 End BigRel.
 
-Implicit Arguments big_rel_seq [R nil op I r P F1].
-Implicit Arguments big_rel [R nil op I P F1].
+Implicit Arguments big_rel_seq [R1 R2 nil1 op1 nil2 op2 I r P F1 F2].
+Implicit Arguments big_rel [R1 R2 nil1 op1 nil2 op2 I P F1 F2].
 
 Section Morphism.
 
@@ -1128,7 +1130,7 @@ move=> I J Q F; case: (pickP J) => [j0 _ | J0].
    exact: (big_distr_big_dep j0).
 rewrite /index_enum; case: (enum I) (mem_enum I) => [I0 | i r _].
   have f0: I -> J by move=> i; have:= I0 i.
-  rewrite (big_pred1 (ffun_of f0)) ?big_seq0 // => g.
+  rewrite (big_pred1 (finfun f0)) ?big_seq0 // => g.
   by apply/familyP/eqP=> _; first apply/ffunP; move=> i; have:= I0 i.
 have Q0: Q _ =1 pred0 by move=> ? j; have:= J0 j.
 rewrite big_adds /= big_pred0 // mul0m big_pred0 // => f.

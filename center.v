@@ -28,7 +28,7 @@ Variable gT : finGroupType.
 
 Definition center (A : {set gT}) := 'C_A(A).
 
-Canonical Structure center_group (G : {group gT}) :=
+Canonical Structure center_group (G : {group gT}) : {group gT} :=
   Eval hnf in [group of center G].
 
 End Defs.
@@ -75,7 +75,7 @@ Proof. move=> A x; exact: subcentP. Qed.
 Lemma center_sub : forall A, 'Z(A) \subset A.
 Proof. move=> A; exact: subsetIl. Qed.
 
-Lemma center1 : 'Z(1) = 1 :> set gT .
+Lemma center1 : 'Z(1) = 1 :> {set gT}.
 Proof. by apply/eqP; rewrite eqset_sub center_sub sub1G. Qed.
 
 Lemma centerC : forall A, {in A, centralised 'Z(A)}.

@@ -333,7 +333,7 @@ rewrite -(expg0 a); move : (ltn_0order a); rewrite -(ltn_mod n)=> H.
 by move/(conj H); move/andP; move/(decomp_order_unicity (ltn_0order a))=> <-.
 Qed.
 
-Lemma order_dvd_g : forall (H : group gT) a, a \in H -> #[a] %| #|H|.
+Lemma order_dvd_g : forall (H : {group gT}) a, a \in H -> #[a] %| #|H|.
 Proof. by move=> H a Ha; apply: cardSg; rewrite cycle_subG. Qed.
 
 Lemma order_gexp_dvd : forall a n, #[a ^+ n] %| #[a].
@@ -594,8 +594,8 @@ move=> a k coak; apply/morphim_fixP=> //; first exact: cycle_expgm_inj.
 by rewrite morphimEdom cycle_gexpn_clos.
 Qed.
 
-Definition cycle_aut_of a k (coak : coprime #[a] k) :=
-  aut_of (cycle_expgm_inj coak) (cycle_expgm_on coak).
+Definition cycle_aut a k (coak : coprime #[a] k) :=
+  aut (cycle_expgm_inj coak) (cycle_expgm_on coak).
 
 End CyclicAutomorphism.
 
@@ -610,7 +610,7 @@ Section FpAut.
 Variable gT:finGroupType.
 
 Definition fp_to_cycle (x : gT) :=
-  fun (D : fp_mul #[x]) => cycle_aut_of (valP D).
+  fun (D : fp_mul #[x]) => cycle_aut (valP D).
 
 Lemma fp_to_cycleM : forall x:gT,
   {in setT &, {morph @fp_to_cycle x : n m / n * m}}.
@@ -632,7 +632,7 @@ move/(decomp_order_unicity (valP (sval y2)))=> /= Heq.
 by apply:val_inj; apply:val_inj => /=; rewrite Heq.
 Qed.
 
-Lemma cycle_to_fp_loc_corr : forall (f: perm gT) (x : gT),
+Lemma cycle_to_fp_loc_corr : forall (f : {perm gT}) (x : gT),
   f \in Aut <[x]> -> coprime #[x] (cycle_to_zp x (f x)).
 Proof.
 move=> f x autf /=; set n := cycle_to_zp x (f x).
@@ -650,10 +650,9 @@ have: gcdn #[x] n <= 1.
 by rewrite leq_eqVlt orbC ltnNge ltn_0gcd npos ltn_0group.
 Qed.
 
-Lemma cycle_to_fp_loc_repr : forall (f:perm gT) x,
+Lemma cycle_to_fp_loc_repr : forall (f : {perm gT}) x,
   f \in Aut <[x]> ->
- (forall z, z \in <[x]> ->
-    f z = z ^+ (cycle_to_zp x (f x)))%g.
+ (forall z, z \in <[x]> -> f z = z ^+ (cycle_to_zp x (f x)))%g.
 Proof.
 move=> f x autf; have Cxx := cyclenn x.
 move=> z; case/cycleP=> n <- {z}; rewrite -{1}(autmE autf) morphX //=.
@@ -665,7 +664,7 @@ Qed.
 Lemma fp_to_cycle_imset : forall x:gT, ((@fp_to_cycle x) @* setT) = (Aut <[x]>).
 Proof.
 move=> x; apply/eqP; rewrite eqset_sub; apply/andP; split.
-  by apply/subsetP=> /= k; move/morphimP=> [[k0 Hk0] _ _ ->]; apply: Aut_aut_of.
+  by apply/subsetP=> /= k; move/morphimP=> [[k0 Hk0] _ _ ->]; apply: Aut_aut.
 apply/subsetP=> f Haut.
 apply/morphimP.
 pose kk : fp_mul #[x] := (Sub (cycle_to_zp x (f x)) (cycle_to_fp_loc_corr Haut)).
@@ -692,7 +691,7 @@ Lemma fp_isom : forall a : gT, isom (Aut <[a]>) setT (cycle_to_fp a).
 Proof.
 move=> a; apply/isomP; split; first exact: fp_inj.
 apply/setP=> x; rewrite inE morphimEdom.
-apply/imsetP; exists (fp_to_cycle x); first exact: Aut_aut_of.
+apply/imsetP; exists (fp_to_cycle x); first exact: Aut_aut.
 by rewrite /= /restrm invmE ?in_setT.
 Qed.
 

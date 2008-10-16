@@ -170,8 +170,8 @@ case/maxnormalP=> nNG pNG Nmax; apply/simpleP; split; last move=> K' nK'Q.
 have : (K' \proper (G / N)) || (G / N == K').
   by rewrite properE eqset_sub andbC (normal_sub nK'Q) !andbT orbC orb_negb_r.
 case/orP=> [ pHQ | eQH]; last by right; apply sym_eq; apply/eqP.
-left; pose K := ((coset N) @*^-1 K')%G.
-have eK'I : K' \subset (coset N) @* 'N(N).
+left; pose K := (coset N @*^-1 K')%G.
+have eK'I : K' \subset coset N @* 'N(N).
   by rewrite (subset_trans (normal_sub nK'Q)) ?morphimS ?normal_norm.
 have eKK' : K' :=: K / N by rewrite /(K / N) morphpreK //=.
 suff eKN : K :=: N by rewrite -trivial_quotient eKK' eKN.
@@ -186,7 +186,7 @@ Lemma normal_simple_quo_maxN_ : N <| G -> simple (G / N) -> maxnormal G N.
 Proof.
 move=> nNG; move/simpleP=> [nt sQ]; apply/maxnormalP; rewrite nNG properE.
 rewrite normal_sub // -trivg_quotient ?normal_norm //; split=> // K nKG neGK sNK.
-pose K':= ((coset N) @* K)%G.
+pose K':= (coset N @* K)%G.
 have K'dQ : K' <| (G / N)%G by apply: morphim_normal.
 have nKN : N <| K by rewrite (normalS _ _ nNG) // normal_sub.
 case: (sQ K' K'dQ)=> /=; last first.
@@ -219,22 +219,20 @@ Definition mkSec G H := Sec (G, H).
 Infix "/" := mkSec : section_scope.
 
 Coercion pair_of_section s := let: Sec u := s in u.
-Coercion quotient_of_section (u : section) := u.1 / u.2.
+Coercion quotient_of_section (u : section) : GroupSet.sort _ := u.1 / u.2.
 
 Canonical Structure section_subType := 
   NewType pair_of_section section_rect vrefl.
-
-Canonical Structure section_eqType := 
+Canonical Structure section_eqType :=
   Eval hnf in [subEqType for pair_of_section].
 Canonical Structure section_finType :=
   Eval hnf in [finType of section by :>].
 Canonical Structure section_subFinType :=
   Eval hnf in [subFinType of section].
+Canonical Structure section_group (u : section) : {group coset_of u.2} :=
+  Eval hnf in [group of u].
 
-Canonical Structure section_group(u : section) : {group _} := 
-  Eval hnf in [group of u : set _].
-
-Coercion section_group : section >-> group_for.
+Coercion section_group : section >-> group_of.
 
 (* Isomophic sections *)
 Definition sisog := [rel x y : section | x \isog y].
@@ -537,8 +535,8 @@ Proof.
 by move=> G H s; case/andP => /= ls; case/andP=> _ p; rewrite /acomps ls. 
 Qed.
 
-Lemma asimple_acompsP : forall G s, acomps G s ->
-  reflect (s = [:: (1%G : group gT) ]) (asimple A G).
+Lemma asimple_acompsP : forall G s,
+  acomps G s -> reflect (s = [:: 1%G]) (asimple A G).
 Proof.
 move=> G s cs; apply: (iffP idP); last first.
   by move=> se; move: cs; rewrite se /=; case/andP=> /=; rewrite andbT.

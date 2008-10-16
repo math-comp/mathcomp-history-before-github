@@ -19,25 +19,30 @@ Section SetType.
 
 Variable T : finType.
 
-Record set : Type := mkSet {ffun_of_set : {ffun pred T}}.
+(* All our sets are finite, so we should use set/Set as the type/constructor *)
+(* names; hawever, Set is a Coq keyword, and set could become one, so as a   *)
+(* precauton we use finset/FinSet instead.                                   *)
+(* We should really use a Record to declare set_type, but that runs against  *)
+(* a Coq bug that zaps the Type universe in Record declarations.             *)
+Inductive set_type : predArgType := FinSet of {ffun pred T}.
+Definition finfun_of_set A := let: FinSet f := A in f.
+Definition set_of of phant T := set_type.
+Identity Coercion type_of_set_of : set_of >-> set_type.
 
-Definition set_for of phant T : predArgType := set.
-Identity Coercion set_for_set : set_for >-> set.
-
-Canonical Structure set_subType := NewType ffun_of_set set_rect vrefl.
-Canonical Structure set_eqType := Eval hnf in [subEqType for ffun_of_set].
-Canonical Structure set_finType := Eval hnf in [finType of set by :>].
-Canonical Structure set_subFinType := Eval hnf in [subFinType of set].
+Canonical Structure set_subType := NewType finfun_of_set set_type_rect vrefl.
+Canonical Structure set_eqType := Eval hnf in [subEqType for finfun_of_set].
+Canonical Structure set_finType := Eval hnf in [finType of set_type by :>].
+Canonical Structure set_subFinType := Eval hnf in [subFinType of set_type].
 
 End SetType.
 
 Delimit Scope set_scope with SET.
-Bind Scope set_scope with set.
-Bind Scope set_scope with set_for.
+Bind Scope set_scope with set_type.
+Bind Scope set_scope with set_of.
 Open Scope set_scope.
-Arguments Scope ffun_of_set [_ set_scope].
+Arguments Scope finfun_of_set [_ set_scope].
 
-Notation "{ 'set' T }" := (set_for (Phant T))
+Notation "{ 'set' T }" := (set_of (Phant T))
   (at level 0, format "{ 'set'  T }") : type_scope.
 
 (* We later define several subtypes that coerce to set; for these it is *)
@@ -55,30 +60,32 @@ Notation "A :==: B" := (A == B :> {set _})
 Notation "A :!=: B" := (A != B :> {set _})
   (at level 70, no associativity, only parsing) : set_scope.
 
-Notation Local set_of_def := (fun T P => @mkSet T (ffun_of P)).
+Notation Local finset_def := (fun T P => @FinSet T (finfun P)).
 
-Notation Local pred_of_set_def := (fun T (A : set T) => val A : _ -> _).
+Notation Local pred_of_set_def := (fun T (A : set_type T) => val A : _ -> _).
 
 Module Type SetDefSig.
-Parameter set_of : forall T : finType, pred T -> {set T}.
-Parameter pred_of_set : forall T, set T -> pred_sort (predPredType T).
-Axiom set_ofE : set_of = set_of_def.
+Parameter finset : forall T : finType, pred T -> {set T}.
+Parameter pred_of_set : forall T, set_type T -> pred_sort (predPredType T).
+(* This lets us use subtypes of set, like group or coset_of, as predicates. *)
+Coercion pred_of_set : set_type >-> pred_class.
+Axiom finsetE : finset = finset_def.
 Axiom pred_of_setE : pred_of_set = pred_of_set_def.
 End SetDefSig.
 
 Module SetDef : SetDefSig.
-Definition set_of := set_of_def.
+Definition finset := finset_def.
 Definition pred_of_set := pred_of_set_def.
-Lemma set_ofE : set_of = set_of_def. Proof. by []. Qed.
+Lemma finsetE : finset = finset_def. Proof. by []. Qed.
 Lemma pred_of_setE : pred_of_set = pred_of_set_def. Proof. by []. Qed.
 End SetDef.
 
-Notation set_of := SetDef.set_of.
+Notation finset := SetDef.finset.
 Notation pred_of_set := SetDef.pred_of_set.
-Canonical Structure set_of_unlock := Unlockable SetDef.set_ofE.
+Canonical Structure finset_unlock := Unlockable SetDef.finsetE.
 Canonical Structure pred_of_set_unlock := Unlockable SetDef.pred_of_setE.
 
-Notation "[ 'set' x : T | P ]" := (set_of (fun x : T => P))
+Notation "[ 'set' x : T | P ]" := (finset (fun x : T => P))
   (at level 0, x at level 69, only parsing) : set_scope.
 Notation "[ 'set' x | P ]" := [set x : _ | P]
   (at level 0, x at level 69, format "[ 'set'  x  |  P ]") : set_scope.
@@ -87,13 +94,10 @@ Notation "[ 'set' x \in A | P ]" := [set x | (x \in A) && P]
 Notation "[ 'set' x \in A ]" := [set x | x \in A]
   (at level 0, x at level 69, format "[ 'set'  x  \in  A ]") : set_scope.
 
-(* This lets us use subtypes of set, like group or coset, as predicates. *)
-Coercion pred_of_set : set >-> pred_class.
-
 (* Declare pred_of_set as a canonical instance of to_pred, but use the *)
 (* coercion to resolve mem A to @mem (predPredType T) (pred_of_set A). *)
 Canonical Structure set_predType T :=
-  Eval hnf in @mkPredType _ (let s := set T in s) (@pred_of_set T).
+  Eval hnf in @mkPredType _ (let s := set_type T in s) (@pred_of_set T).
 
 (* Alternative: *)
 (* Use specific canonical structures for sets. This allows to have  *)
@@ -101,7 +105,7 @@ Canonical Structure set_predType T :=
 (* of nesting rather than three here; also, this lets Coq unify     *)
 (* sets with predType sorts after the fact.
 Canonical Structure set_predType := Eval hnf in mkPredType pred_of_set.
-Canonical Structure set_for_predType := Eval hnf in [predType of sT].
+Canonical Structure set_of_predType := Eval hnf in [predType of sT].
   Not selected because having two different ways of coercing to
   pred causes apply to fail, e.g., the group1 lemma does not apply
   to a 1 \in G with G : group gT when this goal results from
@@ -158,13 +162,13 @@ Section BasicSetTheory.
 Variable T : finType.
 Implicit Type x : T.
 
-Canonical Structure set_for_eqType := Eval hnf in [eqType of {set T}].
-Canonical Structure set_for_finType := Eval hnf in [finType of {set T}].
-Canonical Structure set_for_subType := Eval hnf in [subType of {set T}].
-Canonical Structure set_for_subFinType := Eval hnf in [subFinType of {set T}].
+Canonical Structure set_of_eqType := Eval hnf in [eqType of {set T}].
+Canonical Structure set_of_finType := Eval hnf in [finType of {set T}].
+Canonical Structure set_of_subType := Eval hnf in [subType of {set T}].
+Canonical Structure set_of_subFinType := Eval hnf in [subFinType of {set T}].
 
-Lemma in_set : forall P x, x \in set_of P = P x.
-Proof. by move=> P x; rewrite [@set_of _]unlock unlock [x \in _]ffunE. Qed.
+Lemma in_set : forall P x, x \in finset P = P x.
+Proof. by move=> P x; rewrite [@finset _]unlock unlock [x \in _]ffunE. Qed.
 
 Lemma in_setT : forall x, x \in setT. Proof. by move=> x; rewrite in_set. Qed.
 
@@ -1552,7 +1556,7 @@ Section Partition.
 Variables d : finType.
 Variables d' : finType.
 Variable a : {set d}.
-Variable S :  d -> set d'.
+Variable S :  d -> {set d'}.
 Variable A : {set d'}.
 
 (**********************************************************************)

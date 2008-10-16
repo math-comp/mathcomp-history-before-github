@@ -29,7 +29,8 @@ Variables (gT : finGroupType) (A : {set gT}).
 
 Definition Frattini := \bigcap_(H : {group gT} | maximal_eq H A) H.
 
-Canonical Structure Frattini_group := Eval hnf in [group of Frattini].
+Canonical Structure Frattini_group : {group gT} :=
+  Eval hnf in [group of Frattini].
 
 End Defs.
 
@@ -49,7 +50,7 @@ Proof. by move=> G; apply: bigcap_inf (G) _; apply/orP; left. Qed.
 Lemma Phi_proper : forall G, ~~ trivg G -> 'Phi(G) \proper G.
 Proof.
 move=> G ntG; have{ntG} [M maxM]: {M : {group gT} | maximal M G}.
-  by apply: ex_maxgroup; exists (1%G : group gT); rewrite /proper sub1G.
+  by apply: ex_maxgroup; exists (1%G : {group gT}); rewrite /proper sub1G.
 apply: sub_proper_trans (maxgroupp maxM).
 by apply: bigcap_inf (M) _; apply/orP; right.
 Qed.

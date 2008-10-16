@@ -27,7 +27,7 @@ Definition divgr x := x * (remgr G H x)^-1.
 
 End Defs.
 
-Variables G H : group gT.
+Variables G H : {group gT}.
 
 Lemma complgP : forall K : {group gT},
   reflect (trivg (H :&: K) /\ H * K = G) (K \in complg G H).
@@ -42,7 +42,7 @@ by apply: (iffP pred0Pn); case=> K; first case/complgP;
   exists K; last apply/complgP.
 Qed.
 
-Variable K : group gT.
+Variable K : {group gT}.
 
 Lemma split_pr : forall x, x = divgr K H x * remgr K H x.
 Proof. by move=> *; rewrite mulgKV. Qed.
@@ -64,8 +64,8 @@ Hypothesis trHK : trivg (H :&: K).
 
 Lemma remgr_idr : forall x, x \in K -> remgr K H x = x.
 Proof.
-move=> x Kx; apply/eqP; rewrite eq_mulgV1 -in_set1 -[[set 1]]/(1%G : set gT).
-rewrite -(trivGP _ trHK) inE -mem_rcoset groupMr ?groupV // -in_setI.
+move=> x Kx; apply/eqP; rewrite eq_mulgV1 -in_set1 (subsetP trHK) //.
+rewrite inE -mem_rcoset groupMr ?groupV // -in_setI.
 by rewrite setIC mem_remGr (subsetP (mulG_subr _ _)).
 Qed.
 
@@ -355,7 +355,7 @@ have: splitg ZK Z; last case/splitgP=> K trZK eqZK.
   - apply: subset_trans (centS sZP); exact: subsetIr.
   - rewrite -divgS // cardZK divn_mulr //. 
     by case/andP: hallH=> _; rewrite -(LaGrange sZH) coprime_mull; case/andP.
-  apply/splitgP; exists (1%G : group gT); [exact: subsetIr | exact: mulg1].
+  apply/splitgP; exists (1%G : {group gT}); [exact: subsetIr | exact: mulg1].
 have sKZK: K \subset ZK by rewrite -(mul1g K) -eqZK mulSg ?sub1set.
 have trHK: trivg (H :&: K).
   apply/subsetP=> x; case/setIP=> Hx Kx; apply: (subsetP trZK).

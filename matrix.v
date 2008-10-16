@@ -599,7 +599,7 @@ have lsfE: forall i s j, (lsf i s j i = j)
 have inj_lsf : injective (lsf _ _ _).
   move=> i s j; apply: can_inj (lsf j s^-1 i) _ => k.
   by case: (unliftP i k) => [k'|] ->; rewrite !lsfE ?permK.
-pose ls := perm_of (inj_lsf _ _ _).
+pose ls := perm (inj_lsf _ _ _).
 have ls1 : forall i, ls i 1%g i = 1%g.
   move=> i; apply/permP => k.
   by case: (unliftP i k) => [k'|] ->; rewrite permE lsfE !perm1.
@@ -658,7 +658,7 @@ move=> A i0 j0; rewrite (reindex (fun s => ls i0 s j0)); last first.
   have inj_ulsf: injective (ulsf i0 _).
     move=> s; apply: can_inj (ulsf (s i0) s^-1) _ => k'.
     by rewrite {1}/ulsf ulsfE !permK liftK.
-  exists (fun s => perm_of (inj_ulsf s)) => [s _ | s].
+  exists (fun s => perm (inj_ulsf s)) => [s _ | s].
     by apply/permP=> k'; rewrite permE /ulsf !permE !lsfE liftK.
   move/(s _ =P _) => si0; apply/permP=> k.
   by case: (unliftP i0 k) => [k'|] ->; rewrite permE lsfE // permE -si0 ulsfE.

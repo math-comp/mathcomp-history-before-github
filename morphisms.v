@@ -370,17 +370,16 @@ by rewrite -morphM ?mem_imset ?inE ?groupM.
 Qed.
 
 Canonical Structure morphpre_group fPh M :=
-  @Group _ (morphpre fPh M) (morphpre_groupset M).
-
+  @group _ (morphpre fPh M) (morphpre_groupset M).
 Canonical Structure morphim_group fPh H :=
-  @Group _ (morphim fPh H) (morphim_groupset H).
-
-Canonical Structure ker_group fPh := Eval hnf in [group of ker fPh].
+  @group _ (morphim fPh H) (morphim_groupset H).
+Canonical Structure ker_group fPh : {group aT} :=
+  Eval hnf in [group of ker fPh].
 
 Lemma morph_dom_groupset : group_set (f @: G).
 Proof. by rewrite -morphimEdom groupP. Qed.
 
-Canonical Structure morph_dom_group := Group morph_dom_groupset.
+Canonical Structure morph_dom_group := group morph_dom_groupset.
 
 Lemma morphpreMr : forall C D,
   D \subset f @* G -> f @*^-1 (C * D) = f @*^-1 C * f @*^-1 D.
@@ -1032,7 +1031,7 @@ Proof. by move=> f; apply: (iffP andP) => [] [fM fiso] //; exists fM. Qed.
 Lemma isom_isog : forall (D : {group aT}) (f : {morphism D >-> rT}),
   A \subset D -> isom f -> isog.
 Proof.
-move=> D f sAD isof; apply/existsP; exists (ffun_of f); apply/andP; split.
+move=> D f sAD isof; apply/existsP; exists (finfun f); apply/andP; split.
   by apply/morphicP=> x y Ax Ay; rewrite !ffunE morphM ?(subsetP sAD).
 by rewrite /isom (dfequal_imset (in1W (ffunE f))). 
 Qed.

@@ -494,28 +494,28 @@ Proof. by move=> x; apply/set1P; apply: card_mem_repr; rewrite cards1. Qed.
 Definition set_mulg A B := mulg @2: (A, B).
 Definition set_invg A := invg @^-1: A.
 
-Definition lcoset_of A x := mulg x @: A.
-Definition rcoset_of A x := mulg^~ x @: A.
-Definition lcosets A B := lcoset_of A @: B.
-Definition rcosets A B := rcoset_of A @: B.
+Definition lcoset A x := mulg x @: A.
+Definition rcoset A x := mulg^~ x @: A.
+Definition lcosets A B := lcoset A @: B.
+Definition rcosets A B := rcoset A @: B.
 Definition indexg B A := #|rcosets A B|.
 
-Definition conjugate_of A x := conjg^~ x @: A.
-Definition conjugates A B := conjugate_of A @: B.
-Definition class_of x B := conjg x @: B.
-Definition classes A := class_of^~ A @: A.
+Definition conjugate A x := conjg^~ x @: A.
+Definition conjugates A B := conjugate A @: B.
+Definition class x B := conjg x @: B.
+Definition classes A := class^~ A @: A.
 Definition class_support A B := conjg @2: (A, B).
 
 Definition commg_set A B := commg @2: (A, B).
 
 (* These will only be used later, but are defined here so that we can *)
 (* keep all the Notation together.                                    *)
-Definition normaliser A := [set x | conjugate_of A x \subset A].
+Definition normaliser A := [set x | conjugate A x \subset A].
 Definition centraliser A := \bigcap_(x \in A) normaliser [set x].
 
 (* "normal" and "central" are intended to be use in conjunction with *)
 (* the {in ...} form, as in abelian below.                           *)
-Definition normalised A := forall x, conjugate_of A x = A.
+Definition normalised A := forall x, conjugate A x = A.
 Definition normal A B := (A \subset B) && (B \subset normaliser A).
 Definition centralises x A := forall y, y \in A -> commute x y.
 Definition centralised A := forall x, centralises x A.
@@ -552,15 +552,16 @@ by move/(canRL invgK)->; exists y^-1 x^-1; rewrite ?invMg // inE invgK.
 Qed.
 
 Canonical Structure group_set_baseGroupType :=
-  [baseFinGroupType of set gT by set_mulgA, set_mul1g, set_invgK & set_invgM].
+  [baseFinGroupType of set_type gT
+   by set_mulgA, set_mul1g, set_invgK & set_invgM].
 
-Canonical Structure group_set_for_baseGroupType := Eval hnf in
+Canonical Structure group_set_of_baseGroupType := Eval hnf in
   [baseFinGroupType of {set gT}].
 
 End SetMulDef.
 
 (* Time to open the bag of dirty tricks. When we define groups down below *)
-(* as a subtype of set gT, we need them to be able to coerce to sets in   *)
+(* as a subtype of {set gT}, we need them to be able to coerce to sets in *)
 (* both set-style contexts (x \in G) and monoid-style contexts (G * H),   *)
 (* and we need the coercion function to be EXACTLY the structure          *)
 (* projection in BOTH cases -- otherwise the canonical unification breaks.*)
@@ -570,11 +571,11 @@ End SetMulDef.
 
 Module GroupSet.
 Definition sort (gT : finGroupType) := {set gT}.
-Identity Coercion of_sort : sort >-> set_for.
+Identity Coercion of_sort : sort >-> set_of.
 End GroupSet.
 
 Module Type GroupSetBaseGroupSig.
-Definition sort gT := group_set_for_baseGroupType gT : Type.
+Definition sort gT := group_set_of_baseGroupType gT : Type.
 End GroupSetBaseGroupSig.
 
 Module MakeGroupSetBaseGroup (Gset_base : GroupSetBaseGroupSig).
@@ -588,13 +589,13 @@ Canonical Structure group_set_eqType gT := Eval hnf in
 Canonical Structure group_set_finType gT := Eval hnf in
   [finType of GroupSet.sort gT].
 
-Arguments Scope conjugate_of [_ group_scope group_scope].
-Arguments Scope class_of [_ group_scope group_scope].
+Arguments Scope conjugate [_ group_scope group_scope].
+Arguments Scope class [_ group_scope group_scope].
 Arguments Scope conjugates [_ group_scope group_scope].
 Arguments Scope rcosets [_ group_scope group_scope].
-Arguments Scope rcoset_of [_ group_scope group_scope].
+Arguments Scope rcoset [_ group_scope group_scope].
 Arguments Scope lcosets [_ group_scope group_scope].
-Arguments Scope lcoset_of [_ group_scope group_scope].
+Arguments Scope lcoset [_ group_scope group_scope].
 Arguments Scope class_support [_ group_scope group_scope].
 Arguments Scope normalised [_ group_scope].
 Arguments Scope normaliser [_ group_scope].
@@ -609,16 +610,16 @@ Notation "A ^#" := (A :\ 1) (at level 2, format "A ^#") : group_scope.
 
 Notation "x *: A" := ([set x%g] * A) (at level 40) : group_scope.
 Notation "A :* x" := (A * [set x%g]) (at level 40) : group_scope.
-Notation "A :^ x" := (conjugate_of A x) (at level 35) : group_scope.
-Notation "x ^: B" := (class_of x B) (at level 35) : group_scope.
+Notation "A :^ x" := (conjugate A x) (at level 35) : group_scope.
+Notation "x ^: B" := (class x B) (at level 35) : group_scope.
 Notation "A :^: B" := (conjugates A B) (at level 35) : group_scope.
 
 Notation "#| B : A |" := (indexg B A)
   (at level 0, B, A at level 99, format "#| B  :  A |") : group_scope.
 
-(* No notation for lcoset_of and rcoset_of, which are to be used   *)
-(* only in curried form; thus we can use mulgA, mulg1, etc, freely *)
-(* on, e.g., A :* 1 * B :* x.                                      *)
+(* No notation for lcoset and rcoset, which are to be used mostly  *)
+(* in curried form; x *: B and A :* 1 denote singleton products,   *)
+(* so thus we can use mulgA, mulg1, etc, on, say, A :* 1 * B :* x. *)
 (* No notation for the set commutator generator set set_commg.     *)
 
 Notation "''N' ( A )" := (normaliser A)
@@ -639,8 +640,8 @@ Notation "''C_' G [ x ]" := 'N_G([set x%g])
 Notation "{ 'abelian' A }" := (abelian_prop A)
    (at level 0, A at level 8, format "{ 'abelian'  A }") : type_scope.
 
-Prenex Implicits repr lcoset_of rcoset_of lcosets rcosets.
-Prenex Implicits conjugate_of conjugates class_of classes class_support.
+Prenex Implicits repr lcoset rcoset lcosets rcosets.
+Prenex Implicits conjugate conjugates class classes class_support.
 Prenex Implicits commg_set normalised centralised abelian.
 
 Implicit Arguments mem_repr [gT A].
@@ -724,7 +725,7 @@ Proof. move=> x; apply/setP=> y; rewrite !inE inv_eq //; exact: invgK. Qed.
 
 (* Cosets, left and right. *)
 
-Lemma lcosetE : forall A x, lcoset_of A x = x *: A.
+Lemma lcosetE : forall A x, lcoset A x = x *: A.
 Proof. by move=> A x; rewrite [_ * _]imset2_set1l. Qed.
 
 Lemma card_lcoset : forall A x, #|x *: A| = #|A|.
@@ -751,7 +752,7 @@ Proof. by move=> A x y; rewrite -mulg_set1 mulgA. Qed.
 
 (* On to the right, adding some algebraic lemmas *)
 
-Lemma rcosetE : forall A x, rcoset_of A x = A :* x.
+Lemma rcosetE : forall A x, rcoset A x = A :* x.
 Proof. by move=> A x; rewrite [_ * _]imset2_set1r. Qed.
 
 Lemma card_rcoset : forall A x, #|A :* x| = #|A|.
@@ -933,27 +934,30 @@ move=> A; apply: (iffP andP) => [] [A1 AM]; split=> {A1}//.
 apply/subsetP=> z; case/mulsgP=> [x y Ax Ay ->]; exact: AM.
 Qed.
 
-Structure group : Type := Group {
+Structure group_type : Type := Group {
   set_of_group :> GroupSet.sort gT;
   _ : group_set set_of_group
 }.
 
-Definition group_for of phant gT : predArgType := group.
-Notation Local groupT := (group_for (Phant gT)).
-Identity Coercion group_for_group : group_for >-> group.
+Definition group_of of phant gT : predArgType := group_type.
+Notation Local groupT := (group_of (Phant gT)).
+Identity Coercion type_of_group : group_of >-> group_type.
 
-Canonical Structure group_subType := SubType set_of_group group_rect vrefl.
+Canonical Structure group_subType :=
+  SubType set_of_group group_type_rect vrefl.
 Canonical Structure group_eqType := Eval hnf in [subEqType for set_of_group].
-Canonical Structure group_finType := Eval hnf in [finType of group by :>].
-Canonical Structure group_subFinType := Eval hnf in [subFinType of group].
+Canonical Structure group_finType := Eval hnf in [finType of group_type by :>].
+Canonical Structure group_subFinType := Eval hnf in [subFinType of group_type].
 
 (* No predType or baseFinGroupType structures, as these would hide the *)
 (* group-to-set coercion and thus spoil unification.                  *)
 
-Canonical Structure group_for_subType := Eval hnf in [subType of groupT].
-Canonical Structure group_for_eqType := Eval hnf in [eqType of groupT].
-Canonical Structure group_for_finType := Eval hnf in [finType of groupT].
-Canonical Structure group_for_subFinType := Eval hnf in [subFinType of groupT].
+Canonical Structure group_of_subType := Eval hnf in [subType of groupT].
+Canonical Structure group_of_eqType := Eval hnf in [eqType of groupT].
+Canonical Structure group_of_finType := Eval hnf in [finType of groupT].
+Canonical Structure group_of_subFinType := Eval hnf in [subFinType of groupT].
+
+Definition group (A : {set gT}) gA : groupT := @Group A gA.
 
 Lemma group_inj : injective set_of_group. Proof. exact: val_inj. Qed.
 Lemma groupP : forall G : groupT, group_set G. Proof. by case. Qed.
@@ -964,15 +968,15 @@ Proof. exact: congr1. Qed.
 Lemma group_set_unit : group_set 1.
 Proof. by rewrite /group_set set11 mulg1 subset_refl. Qed.
 
-Canonical Structure unit_group := Group group_set_unit.
-Canonical Structure set1_group := @Group [set 1] group_set_unit.
+Canonical Structure unit_group := group group_set_unit.
+Canonical Structure set1_group := @group [set 1] group_set_unit.
 
 Lemma group_setT : group_set setT.
 Proof. apply/group_setP; split=> [|x y _ _]; exact: in_setT. Qed.
 
-Canonical Structure setT_group := Group group_setT.
+Canonical Structure setT_group := group group_setT.
 
-Definition setT_group_for of phant gT := setT_group.
+Definition setT_group_of of phant gT := setT_group.
 
 (* Trivial group predicate and product remainder functions *)
 
@@ -982,10 +986,10 @@ Definition remgr A B x := repr (A :&: B :* x).
 
 (* These definitions come early so we can establish the Notation. *)
 Definition generated A := \bigcap_(G : groupT | A \subset G) G.
-Definition cycle_of x := generated [set x].
+Definition cycle x := generated [set x].
 Definition mulgen A B := generated (A :|: B).
 Definition commutator A B := generated (commg_set A B).
-Definition order x := #|cycle_of x|.
+Definition order x := #|cycle x|.
 
 End SmulProp.
 
@@ -1002,26 +1006,27 @@ Arguments Scope commutator [_ group_scope group_scope].
 Arguments Scope mulgen [_ group_scope group_scope].
 Arguments Scope generated [_ group_scope].
 
-Notation "{ 'group' gT }" := (group_for (Phant gT))
+Notation "{ 'group' gT }" := (group_of (Phant gT))
   (at level 0, format "{ 'group'  gT }") : type_scope.
 
 Notation "[ 'group' 'of' G ]" :=
-  (match [is G%g : _ <: group _] as s return {type of @Group _ for s} -> _ with
+  (match [is G%g : {set _} <: group_type _] as s
+   return {type of @Group _ for s} -> {group _} with
   | Group _ gP => fun k => k gP end
-  (@Group _ G%g)) (at level 0, only parsing) : form_scope.
+  (@group _ G%g)) (at level 0, only parsing) : form_scope.
 
-Bind Scope subgroup_scope with group.
-Bind Scope subgroup_scope with group_for.
+Bind Scope subgroup_scope with group_type.
+Bind Scope subgroup_scope with group_of.
 Notation "1" := (unit_group _) : subgroup_scope.
 Notation "[ 'setT' ]" := (setT_group _)
   (at level 0, format "[ 'setT' ]") : subgroup_scope.
-Notation "[ 'setT' gT ]" := (setT_group_for (Phant gT))
+Notation "[ 'setT' gT ]" := (setT_group_of (Phant gT))
   (at level 0, format "[ 'setT'  gT ]") : subgroup_scope.
 
 Notation "<< A >>"  := (generated A)
   (at level 0, format "<< A >>") : group_scope.
 
-Notation "<[ x ] >"  := (cycle_of x)
+Notation "<[ x ] >"  := (cycle x)
   (at level 0, format "<[ x ] >") : group_scope.
 
 Notation "#[ x ]"  := (order x) (at level 0, format "#[ x ]") : group_scope.
@@ -1032,7 +1037,7 @@ Notation "[ ~: A1 , A2 , .. , An ]" := (commutator .. (commutator A1 A2) .. An)
   (at level 0,
   format "[ ~: '['  A1 , '/'  A2 , '/'  .. , '/'  An ']' ]") : group_scope.
 
-Prenex Implicits order cycle_of.
+Prenex Implicits order cycle.
 
 Section GroupProp.
 
@@ -1292,7 +1297,7 @@ move=> x; apply/group_setP; split=> [|y z]; rewrite !mem_conjg.
 rewrite conjMg; exact: groupM.
 Qed.
 
-Canonical Structure conjG_group x := Group (group_set_conjG x).
+Canonical Structure conjG_group x := group (group_set_conjG x).
 
 Lemma conjGid : {in G, normalised G}.
 Proof. by move=> x Gx; apply/setP=> y; rewrite mem_conjg groupJr ?groupV. Qed.
@@ -1458,7 +1463,7 @@ move=> G H; apply/group_setP; split=> [|x y]; rewrite !inE ?group1 //.
 by case/andP=> Gx Hx; rewrite !groupMl.
 Qed.
 
-Canonical Structure setI_group G H := Group (group_setI G H).
+Canonical Structure setI_group G H := group (group_setI G H).
 
 Section Nary.
 
@@ -1467,20 +1472,21 @@ Variables (I : finType) (P : pred I) (F : I -> {group gT}).
 Lemma group_set_bigcap : group_set (\bigcap_(i | P i) F i).
 Proof.
 apply: (@big_prop _ [eta group_set])=> [|G H gG gH|G _]; try exact: groupP.
-exact: (@group_setI (Group gG) (Group gH)).
+exact: (@group_setI (group gG) (group gH)).
 Qed.
 
-Canonical Structure bigcap_group := Group group_set_bigcap.
+Canonical Structure bigcap_group := group group_set_bigcap.
 
 End Nary.
 
-Canonical Structure generated_group A := Eval hnf in [group of <<A>>].
-
-Canonical Structure commutator_group A B := Eval hnf in [group of [~: A, B]].
-
-Canonical Structure mulgen_group A B := Eval hnf in [group of A <*> B].
-
-Canonical Structure cycle_group x := Eval hnf in [group of <[x]>].
+Canonical Structure generated_group A : {group _} :=
+  Eval hnf in [group of <<A>>].
+Canonical Structure commutator_group A B : {group _} :=
+  Eval hnf in [group of [~: A, B]].
+Canonical Structure mulgen_group A B : {group _} :=
+  Eval hnf in [group of A <*> B].
+Canonical Structure cycle_group x : {group _} :=
+  Eval hnf in [group of <[x]>].
 
 Lemma ltn_0order : forall x : gT, 0 < #[x].
 Proof. by move=> x; exact: ltn_0group. Qed.
@@ -1537,7 +1543,7 @@ Implicit Types G H K : {group gT}.
 
 Lemma LaGrangeI : forall G H, (#|G :&: H| * #|G : H|)%N = #|G|.
 Proof.
-move=> G H; rewrite [#|G|]card_sum_1 (partition_big_imset (rcoset_of H)) /=.
+move=> G H; rewrite [#|G|]card_sum_1 (partition_big_imset (rcoset H)) /=.
 rewrite mulnC -sum_nat_const; apply: eq_bigr=> A; case/rcosetsP=> x Gx ->{A}.
 rewrite -(card_rcoset _ x) card_sum_1; apply: eq_bigl => y.
 rewrite rcosetE eqset_sub_card mulGS !card_rcoset leqnn andbT.
@@ -1659,7 +1665,7 @@ Lemma genGidG : forall G, <<G>>%G = G.
 Proof. by move=> G; apply: val_inj; exact: genGid. Qed.
 
 Lemma gen_set_id : forall A, group_set A -> <<A>> = A.
-Proof. by move=> A gA; exact: (genGid (Group gA)). Qed.
+Proof. by move=> A gA; exact: (genGid (group gA)). Qed.
 
 Lemma genS : forall A B, A \subset B -> <<A>> \subset <<B>>.
 Proof. by move=> A B sAB; rewrite gen_subG sub_gen. Qed.
@@ -1748,7 +1754,7 @@ Qed.
 Lemma comm_mulgenE : forall G H, commute G H -> G <*> H = G * H.
 Proof.
 move=> G H; move/comm_group_setP=> gGH; rewrite -genM_mulgen.
-exact: (genGid (Group gGH)).
+exact: (genGid (group gGH)).
 Qed.
 
 Lemma mulGenC : commutative mulGenT.
@@ -1873,7 +1879,7 @@ move=> A; apply/group_setP; split=> [|x y Nx Ny]; rewrite inE ?conjsg1 //.
 by rewrite conjsgM !(normP _).
 Qed.
 
-Canonical Structure normaliser_group A := Group (group_set_normaliser A).
+Canonical Structure normaliser_group A := group (group_set_normaliser A).
 
 Lemma normC : forall A B, A \subset 'N(B) -> commute A B.
 Proof.
@@ -1922,7 +1928,8 @@ move=> x y; rewrite inE conjg_set1 sub1set inE (sameP eqP conjg_fixP).
 rewrite commg1_sym; exact: commgP.
 Qed.
 
-Canonical Structure centraliser_group A := Eval hnf in [group of 'C(A)].
+Canonical Structure centraliser_group A : {group _} :=
+  Eval hnf in [group of 'C(A)].
 
 Lemma cent_set1 : forall x, 'C([set x]) = 'C[x].
 Proof. by move=> x; apply: big_pred1 => y /=; rewrite inE. Qed.

@@ -211,14 +211,10 @@ Section Frob.
 Theorem frobenius: forall (gT : finGroupType) (G : {group gT}) n,
   n %| #|G| -> n %| #|[pred z \in G | #[z] %| n]|.
 Proof.
-pose f gT (H : group gT) n := [pred z \in H | #[z] %| n].
-change (forall gT (G : group gT) n, n %| #|G| -> n %| #|f gT G n|).
-move => gT G.
-move: {G}#|G| {-2}G (leqnn #|G|) => n.
-elim: n gT.
-  by move=> gT H; move: (ltn_0group H); case: #|H|.
-move=> k Rec gT G; rewrite leq_eqVlt; case/orP => Hk n Hn;
-    last apply Rec => //.
+pose f (gT : finGroupType) (H : {group gT}) n := [pred z \in H | #[z] %| n].
+move=> gT G n; rewrite -/(f gT G n); move: {2}#|G| (leqnn #|G|) n => k.
+elim: k gT G => [|k Rec] gT G; first by rewrite leqNgt ltn_0group.
+rewrite leq_eqVlt ltnS; case/orP => Hk n Hn; last exact: Rec.
 have Hn1: n <= #|G| by apply: dvdn_leq. 
 move: Hn; rewrite -(@subKn n #|G|) //.
 set e := _ - n; elim: e {-2}e (leqnn e).
@@ -298,7 +294,7 @@ apply/andP;split.
   apply: (@dvdn_trans  ((p ^ l) * (p - 1))%N);
     first by rewrite dvdn_mulr.
   pose e1 x : pred gT := generator <[x]>.
-  have F2: (wpartition [set x | A x] (fun x => set_of (e1 x)) [set x | A x]).
+  have F2: (wpartition [set x | A x] (fun x => finset (e1 x)) [set x | A x]).
     split.
       move=> u v x; rewrite /= !inE => Hu Hv Hu1 Hu2 y; rewrite /= !inE.
       by congr (_ == _); rewrite ((_ =P <[x]>) Hu1) ((_ =P <[x]>) Hu2).
@@ -404,8 +400,7 @@ have Hu3: coprime u1 u2.
   by move/eqP; rewrite eqn_mul2l F9.
 rewrite {1}Hu2 dvdn_pmul2r //; last by case: gcdn F9.
 rewrite coprime_sym in Hu3.
-rewrite -(gauss _ Hu3) -(@dvdn_pmul2r (gcdn #|KRG| s));
-  last by case: gcdn F9.
+rewrite -(gauss _ Hu3) -(@dvdn_pmul2r (gcdn #|KRG| s)); last by case: gcdn F9.
 rewrite -Hu2 -mulnA (mulnC r) mulnA -Hu1.
 have F10: coprime s (p ^ (l.+1)).
   by rewrite coprime_sym coprime_expl.

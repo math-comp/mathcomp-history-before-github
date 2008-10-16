@@ -24,60 +24,59 @@ Section PermDefSection.
 
 Variable T : finType.
 
-Record perm : Type := Perm {pval : {ffun T -> T}; _ : injectiveb pval}.
+Inductive perm_type : predArgType :=
+  Perm (pval : {ffun T -> T}) & injectiveb pval.
+Definition pval p := let: Perm f _ := p in f.
+Definition perm_of of phant T := perm_type.
+Identity Coercion type_of_perm : perm_of >-> perm_type.
 
-Definition perm_for of phant T : predArgType := perm.
+Notation pT := (perm_of (Phant T)).
 
-Identity Coercion perm_for_perm : perm_for >-> perm.
-
-Notation pT := (perm_for (Phant T)).
-
-Canonical Structure perm_subType := SubType pval perm_rect vrefl.
+Canonical Structure perm_subType := SubType pval perm_type_rect vrefl.
 Canonical Structure perm_eqType := Eval hnf in [subEqType for pval].
-Canonical Structure perm_finType := Eval hnf in [finType of perm by :>].
-Canonical Structure perm_subFinType := Eval hnf in [subFinType of perm].
+Canonical Structure perm_finType := Eval hnf in [finType of perm_type by :>].
+Canonical Structure perm_subFinType := Eval hnf in [subFinType of perm_type].
 
 Canonical Structure perm_for_subType := Eval hnf in [subType of pT].
 Canonical Structure perm_for_eqType := Eval hnf in [eqType of pT].
 Canonical Structure perm_for_finType := Eval hnf in [finType of pT].
 Canonical Structure perm_for_subFinType := Eval hnf in [subFinType of pT].
 
-Lemma perm_of_proof : forall f : T -> T, injective f -> injectiveb (ffun_of f).
+Lemma perm_proof : forall f : T -> T, injective f -> injectiveb (finfun f).
 Proof.
 by move=> f f_inj; apply/injectiveP; apply: eq_inj f_inj _ => x; rewrite ffunE.
 Qed.
 
 End PermDefSection.
 
-Notation "{ 'perm' T }" := (perm_for (Phant T))
+Notation "{ 'perm' T }" := (perm_of (Phant T))
   (at level 0, format "{ 'perm'  T }") : type_scope.
 
 Notation "''S_' n" := {perm 'I_n}
   (at level 8, n at level 2, format "''S_' n").
 
-Notation Local fun_of_perm_def := (fun T (u : perm T) => val u : T -> T).
-Notation Local perm_of_def := (fun T f injf => Perm (@perm_of_proof T f injf)).
+Notation Local fun_of_perm_def := (fun T (u : perm_type T) => val u : T -> T).
+Notation Local perm_def := (fun T f injf => Perm (@perm_proof T f injf)).
 
 Module Type PermDefSig.
-Parameter fun_of_perm : forall T, perm T -> T -> T.
-Parameter perm_of : forall (T : finType) (f : T -> T), injective f -> {perm T}.
+Parameter fun_of_perm : forall T, perm_type T -> T -> T.
+Coercion fun_of_perm : perm_type >-> Funclass.
+Parameter perm : forall (T : finType) (f : T -> T), injective f -> {perm T}.
 Axiom fun_of_permE : fun_of_perm = fun_of_perm_def.
-Axiom perm_ofE : perm_of = perm_of_def.
+Axiom permE : perm = perm_def.
 End PermDefSig.
 Module PermDef : PermDefSig.
 Definition fun_of_perm := fun_of_perm_def.
-Definition perm_of := perm_of_def.
+Definition perm := perm_def.
 Lemma fun_of_permE : fun_of_perm = fun_of_perm_def. Proof. by []. Qed.
-Lemma perm_ofE : perm_of = perm_of_def. Proof. by []. Qed.
+Lemma permE : perm = perm_def. Proof. by []. Qed.
 End PermDef.
 
-Coercion PermDef.fun_of_perm : perm >-> Funclass.
 Notation fun_of_perm := PermDef.fun_of_perm.
-Notation "@ 'perm_of'" := (@PermDef.perm_of)
-  (at level 10, format "@ 'perm_of'").
-Notation perm_of := (@PermDef.perm_of _ _).
+Notation "@ 'perm'" := (@PermDef.perm) (at level 10, format "@ 'perm'").
+Notation perm := (@PermDef.perm _ _).
 Canonical Structure fun_of_perm_unlock := Unlockable PermDef.fun_of_permE.
-Canonical Structure perm_of_unlock := Unlockable PermDef.perm_ofE.
+Canonical Structure perm_unlock := Unlockable PermDef.permE.
 
 Section Theory.
 
@@ -94,8 +93,8 @@ Qed.
 Lemma pvalE : forall u : pT, pval u = u :> (T -> T).
 Proof. by rewrite [@fun_of_perm _]unlock. Qed.
 
-Lemma permE : forall f f_inj, @perm_of T f f_inj =1 f.
-Proof. by move=> f f_inj x; rewrite -pvalE [@perm_of _]unlock ffunE. Qed.
+Lemma permE : forall f f_inj, @perm T f f_inj =1 f.
+Proof. by move=> f f_inj x; rewrite -pvalE [@perm _]unlock ffunE. Qed.
 
 Lemma perm_inj : forall u : pT, injective u.
 Proof. move=> u; rewrite -!pvalE; exact: (injectiveP _ (valP u)). Qed.
@@ -107,14 +106,14 @@ Hint Resolve perm_inj.
 Lemma perm_onto : forall u : pT, codom u =i predT.
 Proof. by move=> u; apply/subset_cardP; rewrite ?card_codom ?subset_predT. Qed.
  
-Definition perm_unit := perm_of (@inj_id T).
+Definition perm_unit := perm (@inj_id T).
 
 Lemma perm_invK : forall u : pT, cancel (fun x => iinv (perm_onto u x)) u.
 Proof. by move=> u x /=; rewrite f_iinv. Qed.
 
-Definition perm_inv u := perm_of (can_inj (perm_invK u)).
+Definition perm_inv u := perm (can_inj (perm_invK u)).
 
-Definition perm_mul u v := perm_of (inj_comp (perm_inj v) (perm_inj u)).
+Definition perm_mul u v := perm (inj_comp (perm_inj v) (perm_inj u)).
 
 Lemma perm_unitP : left_unit perm_unit perm_mul.
 Proof. by move=> u; apply/permP => x; rewrite permE /= permE. Qed.
@@ -125,11 +124,11 @@ Proof. by move=> u; apply/permP => x; rewrite !permE /= permE f_iinv. Qed.
 Lemma perm_mulP : associative perm_mul.
 Proof. by move=> u v w; apply/permP => x; do !rewrite permE /=. Qed.
 
-Canonical Structure perm_for_baseFinGroupType := Eval hnf in
+Canonical Structure perm_of_baseFinGroupType := Eval hnf in
   [baseFinGroupType of pT by perm_mulP, perm_unitP & perm_invP].
 Canonical Structure perm_baseFinGroupType := Eval hnf in
-  [baseFinGroupType of perm T by perm_mulP, perm_unitP & perm_invP].
-Canonical Structure perm_for_finGroupType :=
+  [baseFinGroupType of perm_type T by perm_mulP, perm_unitP & perm_invP].
+Canonical Structure perm_of_finGroupType :=
   FinGroupType perm_invP.
 Canonical Structure perm_finGroupType :=
   @FinGroupType perm_baseFinGroupType perm_invP.
@@ -186,7 +185,7 @@ case: (x =P z) => [->| nxz]; first by rewrite eqxx; case: eqP.
 by case: (y =P z) => [->| nyz]; [rewrite eqxx | do 2?case: eqP].
 Qed.
 
-Definition tperm x y := perm_of (can_inj (transposeK x y)).
+Definition tperm x y := perm (can_inj (transposeK x y)).
 
 Lemma square_tperm : forall x y, tperm x y * tperm x y = 1.
 Proof.

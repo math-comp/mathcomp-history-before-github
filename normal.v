@@ -212,7 +212,8 @@ Implicit Types xb yb : coset_of H.
 Implicit Types C D : {set coset_of H}.
 Implicit Types L M : {group coset_of H}.
 
-Canonical Structure quotient_group G A := Eval hnf in [group of G / A].
+Canonical Structure quotient_group G A : {group coset_of A} :=
+  Eval hnf in [group of G / A].
 
 Infix "/" := quotient_group : subgroup_scope.
 

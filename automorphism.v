@@ -54,7 +54,7 @@ apply/morphicP=> x y Gx Gy; rewrite !permM (morphicP fM) //.
 by rewrite (morphicP gM) ?perm_closed.
 Qed.
 
-Canonical Structure Aut_group := Group Aut_group_set.
+Canonical Structure Aut_group := group Aut_group_set.
 
 (* Should be redundant
 Lemma automorphic_inv : forall f, f \in Aut G -> perm_inv f \in Aut G.
@@ -84,13 +84,13 @@ Notation "[ 'Aut' G ]" := (Aut_group G)
 
 Prenex Implicits Aut autm.
 
-Section PermOnOf.
+Section PermIn.
 
 Variables (T : finType) (B : {set T}) (f : T -> T).
 
 Hypotheses (injf : {in B &, injective f}) (sBf : f @: B \subset B).
 
-Lemma perm_on_of_inj : injective (fun x => if x \in B then f x else x).
+Lemma perm_in_inj : injective (fun x => if x \in B then f x else x).
 Proof.
 move=> x y /=; wlog By: x y / y \in B.
   by move=> IH eqfxy; case: ifP (eqfxy); [symmetry | case ifP => //]; auto.
@@ -98,19 +98,19 @@ rewrite By; case: ifP => [Bx | nBx def_x]; first exact: injf.
 by case/negP: nBx; rewrite def_x (subsetP sBf) ?mem_imset.
 Qed.
 
-Definition perm_on_of := perm_of perm_on_of_inj.
+Definition perm_in := perm perm_in_inj.
 
-Lemma perm_on_of_on : perm_on B perm_on_of.
+Lemma perm_in_on : perm_on B perm_in.
 Proof.
 by apply/subsetP=> x; rewrite inE /= permE; case ifP => // _; case/eqP.
 Qed.
 
-Lemma perm_onE : {in B, perm_on_of =1 f}.
+Lemma perm_inE : {in B, perm_in =1 f}.
 Proof. by move=> x Bx; rewrite /= permE Bx. Qed.
 
-End PermOnOf.
+End PermIn.
 
-Section AutOf.
+Section MakeAut.
 
 Variables (gT : finGroupType) (G : {group gT}) (f : {morphism G >-> gT}).
 Implicit Type A : {set gT}.
@@ -127,36 +127,36 @@ Qed.
 
 Hypothesis Gf : f @* G = G.
 
-Lemma aut_of_closed : f @: G \subset G.
+Lemma aut_closed : f @: G \subset G.
 Proof. rewrite -morphimEdom; exact/morphim_fixP. Qed.
 
-Definition aut_of := perm_on_of (injmP _ injf) aut_of_closed.
+Definition aut := perm_in (injmP _ injf) aut_closed.
 
-Lemma autE : {in G, aut_of =1 f}.
-Proof. exact: perm_onE. Qed.
+Lemma autE : {in G, aut =1 f}.
+Proof. exact: perm_inE. Qed.
 
-Lemma morphic_aut_of : morphic G aut_of.
+Lemma morphic_aut : morphic G aut.
 Proof. by apply/morphicP=> x y Gx Gy /=; rewrite !autE ?groupM // morphM. Qed.
 
-Lemma Aut_aut_of : aut_of \in Aut G.
-Proof. by rewrite inE morphic_aut_of perm_on_of_on. Qed.
+Lemma Aut_aut : aut \in Aut G.
+Proof. by rewrite inE morphic_aut perm_in_on. Qed.
 
-Lemma imset_autE : forall A,  A \subset G -> aut_of @: A = f @* A.
+Lemma imset_autE : forall A, A \subset G -> aut @: A = f @* A.
 Proof.
 move=> A sAG; rewrite /morphim (setIidPr sAG).
 apply: dfequal_imset; apply: subin1 autE; exact/subsetP.
 Qed.
 
-Lemma preim_autE : forall A, A \subset G -> aut_of @^-1: A = f @*^-1 A.
+Lemma preim_autE : forall A, A \subset G -> aut @^-1: A = f @*^-1 A.
 Proof.
 move=> A sAG; apply/setP=> x; rewrite !inE permE /=.
 by case Gx: (x \in G) => //; apply/negP=> Ax; rewrite (subsetP sAG) in Gx.
 Qed.
 
-End AutOf.
+End MakeAut.
 
 Implicit Arguments morphim_fixP [gT G f].
-Prenex Implicits aut_of morphim_fixP.
+Prenex Implicits aut morphim_fixP.
 
 Section ConjugationMorphism.
 
@@ -181,7 +181,7 @@ Lemma norm_conj_dom : forall x, x \in 'N(G) -> conjgm G x @* G = G.
 Proof. move=> x; rewrite morphimEdom; exact: normP. Qed.
 
 Definition conj_aut x :=
-  aut_of (injm_conj _) (norm_conj_dom (valP (insigd (group1 _) x))).
+  aut (injm_conj _) (norm_conj_dom (valP (insigd (group1 _) x))).
 
 Lemma norm_conj_autE : {in 'N(G) & G, forall x y, conj_aut x y = y ^ x}.
 Proof. by move=> x y nGx Gy; rewrite /= autE //= val_insubd nGx. Qed.
@@ -232,7 +232,7 @@ Lemma charP : forall H G,
 Proof.
 move=> H G; apply: (iffP andP); case=> sHG chHG; split=> //.
   move=> f injf Gf; apply/morphim_fixP=> //.
-  by have:= forallP chHG (aut_of injf Gf); rewrite Aut_aut_of imset_autE.
+  by have:= forallP chHG (aut injf Gf); rewrite Aut_aut imset_autE.
 apply/forallP=> f; apply/implyP=> Af; have injf := injm_autm Af.
 move/(morphim_fixP injf _ sHG): (chHG _ injf (autm_dom Af)).
 by rewrite /morphim (setIidPr _).
@@ -258,7 +258,7 @@ Qed.
 Lemma char_norms : forall H G, H \char G -> 'N(G) \subset 'N(H).
 Proof.
 move=> H G; case/charP=> sHG chHG; apply/normsP=> x; move/normP=> Nx.
-have:= (chHG [morphism of conjgm G x]) => /=.
+have:= chHG [morphism of conjgm G x] => /=.
 by rewrite !morphimEsub //=; apply; rewrite // injm_conj.
 Qed.
 
@@ -321,6 +321,5 @@ Qed.
 End Characteristicity.
 
 Notation "H \char G" := (characteristic H G) : group_scope.
-
 
 Unset Implicit Arguments.

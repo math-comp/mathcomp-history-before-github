@@ -238,7 +238,7 @@ Proof.
 move=> n m n_pos n_dvd_m; case: (posnP m) => [-> // | m_pos].
 rewrite -(partnT n_pos) -(partnT m_pos).
 rewrite !(@widen_partn (m + n)) ?leq_addl ?leq_addr // /in_mem /=.
-apply (@big_rel _ (fun n m => n %| m)) => // [*|q _]; first exact: dvdn_mul.
+apply (big_rel (fun n m => n %| m)) => // [*|q _]; first exact: dvdn_mul.
 case: (posnP (logn q n)) => [-> // | ]; rewrite ltn_0log => q_n.
 have pr_q: prime q by move: q_n; rewrite mem_primes; case/andP.
 by have:= n_dvd_m q q_n; rewrite p_part !pfactor_dvdn // pfactorK.

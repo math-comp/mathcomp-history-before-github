@@ -714,9 +714,9 @@ Definition MhoFun (x : gT) := \prod_(0 <= p < #[x].+1) x.`_p ^+ (p ^ n).
 
 Definition Mho := <<MhoFun @: A>>.
 
-Canonical Structure pcore_group := Eval hnf in [group of pcore].
-Canonical Structure Ohm_group := Eval hnf in [group of Ohm].
-Canonical Structure Mho_group := Eval hnf in [group of Mho].
+Canonical Structure pcore_group : {group gT} := Eval hnf in [group of pcore].
+Canonical Structure Ohm_group : {group gT} := Eval hnf in [group of Ohm].
+Canonical Structure Mho_group : {group gT} := Eval hnf in [group of Mho].
 
 End Pfunctors.
 
@@ -737,7 +737,7 @@ Section PseriesDefs.
 Variables (pis : seq nat_pred) (gT : finGroupType) (A : {set gT}).
 
 Definition pcore_mod pi B := coset B @*^-1 'O_pi(A / B).
-Canonical Structure pcore_mod_group pi B :=
+Canonical Structure pcore_mod_group pi B : {group gT} :=
   Eval hnf in [group of pcore_mod pi B].
 
 Definition pseries := foldr pcore_mod 1 (rev pis).
@@ -745,7 +745,7 @@ Definition pseries := foldr pcore_mod 1 (rev pis).
 Lemma pseries_group_set : group_set pseries.
 Proof. rewrite /pseries; case: rev => [|pi1 pi1']; exact: groupP. Qed.
 
-Canonical Structure pseries_group := Group pseries_group_set.
+Canonical Structure pseries_group : {group gT} := group pseries_group_set.
 
 End PseriesDefs.
 
@@ -1234,7 +1234,8 @@ by rewrite -quotient_pseries /= (eqP pGH1).
 Qed.
 
 Definition p_elt_gen (A : {set gT}) := <<[set x \in A | p.-elt x]>>.
-Canonical Structure p_elt_gen_group A := Eval hnf in [group of p_elt_gen A].
+Canonical Structure p_elt_gen_group A : {group gT} :=
+  Eval hnf in [group of p_elt_gen A].
 
 (* If need be, we could easily make p_elt_gen into a functor. *)
 Lemma p_elt_gen_normal : forall G, p_elt_gen G <| G.

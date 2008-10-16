@@ -89,7 +89,7 @@ Proof.
 move=> T oT.
 pose tp := is_true_true.
 have F1: #|'Alt_T| = 60 by apply: double_inj; rewrite -mul2n card_Alt oT.
-have FF: forall H : group _, H <| 'Alt_T -> H :<>: 1 -> 20 %| #|H|.
+have FF: forall H : {group _}, H <| 'Alt_T -> H :<>: 1 -> 20 %| #|H|.
 - move=> H Hh1 Hh3.
   have [x _]: exists x, x \in T by apply/existsP; rewrite /pred0b oT.
   have F2 := Alt_trans T; rewrite oT /= in F2.
@@ -138,12 +138,12 @@ have FF: forall H : group _, H <| 'Alt_T -> H :<>: 1 -> 20 %| #|H|.
       have Hhd2: h ^+ n \in H by rewrite groupX.
       by rewrite (Hreg _ _ Hhd2 (eqP HH)) order1.
     pose S1 := [tuple x; h x; (h ^+ 3) x].
-    have DnS1: S1 \in dtuple_on _ setT.
+    have DnS1: S1 \in 3.-dtuple(setT).
       rewrite inE memtE subset_all /= !inE /= !negb_or -!andbA /= andbT.
       rewrite -{1}[h]expg1 !diff_hnx_x // expgSr permM.
       by rewrite (inj_eq (@perm_inj _ _)) diff_hnx_x.
     pose S2 := [tuple x; h x; (h ^+ 2) x].
-    have DnS2:  S2 \in dtuple_on _ setT.
+    have DnS2:  S2 \in 3.-dtuple(setT).
       rewrite inE memtE subset_all /= !inE /= !negb_or -!andbA /= andbT.
       rewrite -{1}[h]expg1 !diff_hnx_x // expgSr permM.
       by rewrite (inj_eq (@perm_inj _ _)) diff_hnx_x.
@@ -183,7 +183,7 @@ have{oS} oS: #|S| = 5 by rewrite oS p_part Hcard20.
 suff: 20 %| #|S| by rewrite oS.
 apply FF => [|S1]; last by rewrite S1 cards1 in oS.
 apply: char_normal_trans Hnorm; apply: lone_subgroup_char => // Q sQH isoQS.
-rewrite ((Q =P S :> set _) _) //; apply/idPn=> nQS; move: nSyl5.
+rewrite subEproper; apply/norP=> [[nQS _]]; move: nSyl5.
 rewrite (cardsD1 S) (cardsD1 Q) 3!{1}inE nQS !pHallE sQH sSH Hcard20 p_part.
 by rewrite (isog_card isoQS) oS.
 Qed.
@@ -204,7 +204,7 @@ apply: contra (valP u); move/eqP=> eq_pux.
 by rewrite -(inj_eq (@perm_inj _ p)) eq_pux pxx.
 Qed.
 
-Definition rfd_fun p := [fun u => Sub ((_ : perm T) _) (rfd_funP p u) : T'].
+Definition rfd_fun p := [fun u => Sub ((_ : {perm T}) _) (rfd_funP p u) : T'].
 
 Lemma rfdP : forall p, injective (rfd_fun p).
 Proof.
@@ -213,7 +213,7 @@ rewrite -(inj_eq (@perm_inj _ p)) permKV eq_sym.
 by case: eqP => _; rewrite !(perm1, permK).
 Qed.
 
-Definition rfd p := perm_of (@rfdP p).
+Definition rfd p := perm (@rfdP p).
 
 Hypothesis card_T : 2 < #|T|.
 
@@ -236,7 +236,7 @@ case: (insubP _ y) => [u _ val_u|]; first by rewrite valK permK.
 by rewrite negbK; move/eqP->; rewrite insubF //= eqxx.
 Qed.
 
-Definition rgd p := perm_of (@rgdP p).
+Definition rgd p := perm (@rgdP p).
 
 Lemma rfd_odd : forall p : {perm T}, p x = x -> rfd p = p :> bool.
 Proof.
@@ -423,12 +423,12 @@ case Ez: (pred0b
 case/pred0Pn: Ez => z.
 case/and5P=> diff_hgx_z diff_gx_z diff_hx_z diff_x_z /= Hz.
 pose S1 := [tuple x; h x; g x; z].
-have DnS1: S1 \in dtuple_on 4 setT.
+have DnS1: S1 \in 4.-dtuple(setT).
   rewrite inE memtE subset_all -!andbA !negb_or /= !inE !andbT.
   rewrite -!(eq_sym z) diff_gx_z diff_x_z diff_hx_z.
   by rewrite !(eq_sym x) diff_hx_x diff_gx_x eq_sym diff_gx_hx.
 pose S2 := [tuple x; h x; g x; (h * g) x].
-have DnS2: S2 \in dtuple_on 4 setT.
+have DnS2: S2 \in 4.-dtuple(setT).
   rewrite inE memtE subset_all -!andbA !negb_or /= !inE !andbT !(eq_sym x).
   rewrite diff_hx_x diff_gx_x diff_hgx_x.
   by rewrite !(eq_sym (h x)) diff_gx_hx diff_hgx_hx eq_sym diff_hgx_gx.

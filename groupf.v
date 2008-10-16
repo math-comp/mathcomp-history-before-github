@@ -106,7 +106,7 @@ Lemma bisfc_norm : forall G, G \subset 'N('e_sF(G)).
 Proof.
 move=> G; apply/subsetP=> x Gx; rewrite inE -{2}(conjGid Gx) -{2}(setIid G).
 rewrite -(setIidPr (bisfc_clos G)) -!morphim_conj.
-pose conjgx := (autm (Aut_aut_of (@injm_conj _ G _) 
+pose conjgx := (autm (Aut_aut (@injm_conj _ G _) 
                (norm_conj_dom (valP (insigd (group1 _) x))))).
 rewrite -!(@eq_morphim _ _ _ [morphism of conjgx] (conjgm_morphism _ x)) =>/=;
 rewrite ?bisfc_clos ?bisfc_aresp // => y; apply: (conj_autE Gx).

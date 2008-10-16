@@ -100,7 +100,7 @@ Notation Local opair_flip := ordered_pair_flip.
 Definition inversion s := [pred p | opair (flip (permp s p))].
 Notation Local invn := inversion.
 
-Definition odd_perm (s : perm T) := odd #|predI opair (inversion s)|.
+Definition odd_perm (s : perm_type T) := odd #|predI opair (inversion s)|.
 Notation Local oddp := (odd_perm : pred {perm T}).
 Definition even_perm s := ~~ oddp s.
 
@@ -287,7 +287,7 @@ move=> lt1n; rewrite -card_quotient ?Alt_norm //=.
 have : ('Sym_T / 'Alt_T) \isog (odd_perm @* 'Sym_T) by apply: first_isog.
 case/isogP=> g; move/injmP; move/card_dimset <-; rewrite /morphim setIid=> ->.
 rewrite eq_cardT // => b; apply/imsetP; case: b => /=; last first.
- by exists (1 : perm T); [rewrite setIid inE | rewrite odd_perm1].
+ by exists (1 : {perm T}); [rewrite setIid inE | rewrite odd_perm1].
 case: (pickP T) lt1n => [x1 _ | d0]; last by rewrite /n eq_card0.
 rewrite /n (cardD1 x1) ltnS lt0n; case/existsP=> x2 /=.
 by rewrite eq_sym andbT -odd_tperm; exists (tperm x1 x2); rewrite ?inE.
@@ -307,11 +307,11 @@ Qed.
 Lemma Sym_trans : [transitive * n ('Sym_T | 'P) on setT].
 Proof.
 apply/imsetP; pose t1 := [tuple of enum T].
-have dt1: t1 \in dtuple_on n setT by rewrite inE uniq_enum; apply/subsetP.
+have dt1: t1 \in n.-dtuple(setT) by rewrite inE uniq_enum; apply/subsetP.
 exists t1 => //; apply/setP=> t; apply/idP/imsetP=> [|[a _ ->{t}]]; last first.
   by apply: n_act_dtuple => //; apply/astabsP=> x; rewrite !inE.
 case/dtuple_onP=> injt _; have injf := inj_comp injt (@enum_rank_inj _).
-exists (perm_of injf); first by rewrite inE.
+exists (perm injf); first by rewrite inE.
 apply: eq_from_tsub => i; rewrite tsub_maps /= [aperm _ _]permE; congr tsub.
 by rewrite (tsub_sub (enum_default i)) enum_valK.
 Qed.
@@ -349,4 +349,4 @@ Notation "''Alt_' T" := (Alt (Phant T))
   (at level 8, T at level 2, format "''Alt_' T") : group_scope.
 Notation "''Alt_' T" := (Alt_group (Phant T)) : subgroup_scope.
 
-Coercion odd_perm : perm >-> bool.
+Coercion odd_perm : perm_type >-> bool.
