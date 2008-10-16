@@ -49,7 +49,8 @@ have iGN_A: #|N| %/ #|G :&: N| = #|A|.
 have hallGN: Hall N (G :&: N).
   rewrite /Hall -divgS subsetIr //= iGN_A.
   by move: coGA; rewrite -(LaGrangeI G N) coprime_mull; case/andP.
-case/splitgP: {hallGN nGN_N}(SchurZass_split hallGN nGN_N) => B trBGN defN.
+case/splitsP: {hallGN nGN_N}(SchurZass_split hallGN nGN_N) => B.
+case/complP=> trBGN defN.
 have{trBGN iGN_A} oBA: #|B| = #|A|.
   by rewrite -iGN_A -{1}defN (card_mulG_trivP _ _ trBGN) divn_mulr.
 have sBN: B \subset N by rewrite -defN mulG_subr.

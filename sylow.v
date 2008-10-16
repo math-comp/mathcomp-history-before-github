@@ -463,7 +463,7 @@ have{pE} pE: {in E &, forall x1 x2, p.-group <<x1 |: [set x2]>>}.
   by rewrite -setU1E -set2E pE // groupMl ?groupV.
 have sEG: <<E>> \subset G by rewrite gen_subG class_subG.
 have nEG: G \subset 'N(E) by exact: norm_class.
-have Ex: x \in E by exact: classg_refl.
+have Ex: x \in E by exact: class_refl.
 have [P Px sylP]: exists2 P : {group gT}, x \in P & p.-Sylow(<<E>>) P.
   have sxxE: <<x |: [set x]>> \subset <<E>>.
     by rewrite genS // setU1E setUid sub1set.

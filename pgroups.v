@@ -1,6 +1,6 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import fintype paths finfun ssralg bigops finset prime.
-Require Import groups action morphisms group_perm automorphism normal. 
+Require Import groups morphisms group_perm action automorphism normal. 
 Require Import cyclic abelian.
 
 Set Implicit Arguments.

@@ -63,29 +63,26 @@ Lemma comm_center_triv:   forall A G : {group T},
  [~: G, A] :&: 'C_G(A) = 1.
 Proof.
 move => A G norm co abel.
-pose toG x : {x' | x' \in G} := insubd (Sub 1 (group1 G)) x.
-have valG: {in G, cancel toG val} by move=> *; exact: insubdK.
-pose Ggrp := [is {x | x \in G} <: finGroupType].
-have mulGC : commutative (@mulg Ggrp).
+have mulGC : @commutative (subg_of G) mulg.
   by case=> x Gx [y Gy]; apply: val_inj; rewrite /= (centsP abel).
 pose gTG := Ring.AdditiveGroup (@mulgA _) mulGC (@mul1g _) (@mulVg _).
-have Gval: forall u : gTG, sval u \in G by exact: valP.
-have valM: forall a b : gTG, sval (a + b)%R = sval a * sval b by [].
-pose f x y: gTG := toG (conjg x y).
-pose phi y := sval (\sum_(x \in A) f y x)%R.
+have Gval: forall u : gTG, sgval u \in G by exact: valP.
+have valM: forall a b : gTG, sgval (a + b)%R = sgval a * sgval b by [].
+pose f x y : gTG := subg G (conjg x y).
+pose phi y := sgval (\sum_(x \in A) f y x)%R.
 have morphic_phi: {in G &, {morph phi : x y / x * y}}.
   move => x y xin yin; rewrite /phi -valM -big_split //=. 
-  congr (sval _); apply: eq_bigr => z; rewrite inE /= => Az.
+  congr (sgval _); apply: eq_bigr => z; rewrite inE /= => Az.
   have xz: x ^ z \in G by rewrite memJ_norm //; apply (subsetP norm).
   have yz: y ^ z \in G by rewrite memJ_norm //; apply (subsetP norm).
-  by rewrite /f conjMg; apply: val_inj; rewrite /= !valG //; apply: groupM.
+  by rewrite /f conjMg; apply: val_inj; rewrite /= !subgK //; apply: groupM.
 have phia : forall a y, a \in A -> phi (conjg y a) = phi y.
   move=> a y ain; rewrite /phi; apply: sym_eq.
   rewrite (reindex (fun x => a * x))  /=; last first.
     - exists (fun x => a^-1 * x); move => b abin; rewrite //=; first by rewrite mulKg //.
       by rewrite mulKVg //.
     - rewrite (eq_bigl (fun x => x \in A)); last by move => x; rewrite //=; apply: groupMl.
-      by congr (sval _); apply: eq_bigr => x xin; rewrite /f conjgM //.
+      by congr (sgval _); apply: eq_bigr => x xin; rewrite /f conjgM //.
 pose Mphi := Morphism  morphic_phi.
 have kerphi: forall c, c \in [~: G, A] -> c \in 'ker Mphi.
   move=>c; move/generatedP; apply {c}.
@@ -96,12 +93,12 @@ have kerphi: forall c, c \in [~: G, A] -> c \in 'ker Mphi.
   by apply/set1P; rewrite morphic_phi // phia // (morphV Mphi) //; apply: mulVg.
 have centr : forall v, v \in 'C_G(A) -> phi v = v^+ #|A|.
   move=> v; rewrite inE; case/andP=> inG; move/centP=> inC.
-  pose cphi y := sval (\sum_(x \in A) (toG y:gTG))%R.
+  pose cphi y := sgval (\sum_(x \in A) (subg G y : gTG))%R.
   have phiv: phi v = cphi v.
-    rewrite /phi /cphi; congr (sval _); apply: eq_bigr => x; rewrite inE // /f => xin.
-    by congr (toG _); rewrite /conjg -{2}(mulKg x v); congr (x^-1*_); apply: inC.
+    rewrite /phi /cphi; congr (sgval _); apply: eq_bigr => x; rewrite inE // /f => xin.
+    by congr subg; rewrite /conjg -{2}(mulKg x v); congr (_ * _); apply: inC.
   rewrite phiv /cphi sumr_const. 
-  by elim: {+}#|_| => [  | n indh]; first done; rewrite //= valG // expgS indh.
+  by elim: {+}#|_| => [  | n indh]; first done; rewrite //= subgK // expgS indh.
 have v1: forall v, v \in G ->  v ^+ #|A| = 1 -> v = 1.
   move => v vin; move/eqP; rewrite -order_dvd => div. 
   have ov1: #[ v ] = 1%nat.

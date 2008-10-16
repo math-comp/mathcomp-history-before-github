@@ -193,7 +193,7 @@ rewrite /spconstw (@card_setnU_id _ _ _ _ #|spconst y|).
   case: (repr _) / (repr_rcosetP 'C_G[y] i1) => j1 Hj1 Hsu.
   case/rcosetsP: Hv Hsv => i2 /= Hi2 ->{v}.
   case: (repr _) / (repr_rcosetP 'C_G[y] i2) => j2 Hj2 Hsv.
-  apply: rcoset_trans1 => /=; rewrite mem_rcoset; apply/subcent1P; split.
+  apply: rcoset_transl => /=; rewrite mem_rcoset; apply/subcent1P; split.
     by rewrite !in_group.
   apply/commgP; apply/conjg_fixP.
   have:= spconst_uniq Hsu Hsv; rewrite !conjgM.

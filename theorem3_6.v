@@ -138,21 +138,21 @@ Admitted.
 
 Theorem three_dot_four : forall k (gT : finGroupType) (G K R V : {group gT}),
   solvable G -> odd #|G| ->
-  K <| G -> Hall G K -> R \in complg G K -> prime #|R| ->
+  K <| G -> Hall G K -> R \in [complements to K in G] -> prime #|R| ->
   k.-abelem V -> G \subset 'N(V) -> ~~ (k %| #|G|) ->
   trivg 'C_V(R) -> [~: R, K] \subset 'C_K(V).
 Admitted.
   
 Theorem three_dot_five : forall k (gT : finGroupType) (G K R V : {group gT}),
   solvable G ->
-  K <| G -> R \in complg G K -> prime #|R| -> trivg 'C_K(R) ->
+  K <| G -> R \in [complements to K in G] -> prime #|R| -> trivg 'C_K(R) ->
   k.-abelem V -> G \subset 'N(V) -> ~~ (k %| #|G|) ->
   #|'C_V(R)| = k -> K^`(1) \subset 'C_K(V).
 Admitted.
 
 Theorem three_dot_six : forall (gT : finGroupType) (G H R R0 : {group gT}),
     solvable G -> odd #|G| ->
-    H <| G -> Hall G H -> R \in complg G H ->
+    H <| G -> Hall G H -> R \in [complements to H in G] ->
     R0 \subset R -> prime #|R0| -> Zgroup 'C_H(R0) ->
   forall p, prime p -> p.-length_1 [~: H, R].
 Proof.
@@ -161,7 +161,7 @@ elim: n gT G => // n IHn gT G; rewrite ltnS => leGn H R R0.
 move=> solG oddG nHG hallH compH_R sR0R.
 move oR0: #|R0| => r pr_r ZCHR0 p pr_p.
 have sRG: R \subset G by exact: sub_compl compH_R.
-case/complgP: compH_R => trivgHR eqHR_G; case/andP: (hallH) => sHG coHH'.
+case/complP: compH_R => trivgHR eqHR_G; case/andP: (hallH) => sHG coHH'.
 have{coHH'} coHR: coprime #|H| #|R|. 
   have:= coHH'; rewrite -divgS -eqHR_G ?mulG_subl // .
   by rewrite (card_mulG_trivP _ _ trivgHR) ?divn_mulr. 
@@ -191,7 +191,8 @@ have IHG: forall H1 R1 : {group gT},
   have nHG1: H1 <| G1 by rewrite /(H1 <| _) defG1 mulG_subl.
   have hallH1: Hall G1 H1.
     by rewrite /Hall -divgS normal_sub // oG1 divn_mulr.
-  have complR1: R1 \in complg G1 H1 by apply/complgP; rewrite coprime_trivg.
+  have complR1: R1 \in [complements to H1 in G1].
+    by apply/complP; rewrite coprime_trivg.
   apply: IHn complR1 sR01 _ _ p pr_p => //; first by rewrite oR0.
   exact: ZgroupS (setSI _ sH1) ZCHR0.
 without loss defHR: / [~: H, R] = H.
@@ -215,8 +216,8 @@ have{IHn trivgHR hallH} IHquo: forall X : {group gT},
     move: oddG; rewrite !odd_2'nat; exact: morphim_pgroup.
   have nHG': H / X <| G / X by exact: morphim_normal.
   have hallH': Hall (G / X) (H / X) by exact: morphim_Hall.
-  have compR': (R / X)%G \in complg (G / X) (H / X).
-    apply/complgP; split; last by rewrite -morphimMl ?eqHR_G. 
+  have compR': (R / X)%G \in [complements to H / X in G / X].
+    apply/complP; split; last by rewrite -morphimMl ?eqHR_G. 
     by rewrite -morphimGI ?ker_coset // [H :&: R](trivgP _ trivgHR) morphim1.
   have sR0R': R0 / X \subset R / X by exact: morphimS.
   have pr_R0X: prime #|R0 / X|.
@@ -500,7 +501,7 @@ have oCVR0: #|'C_V(R0)| = p.
       move/dvdn_trans; apply; exact: cardSg.
     - by rewrite /(K <| _) sK_KR0 gen_subG subUset normG.
     - exact: (pHall_Hall hallK_R0).
-    - by apply/complgP; rewrite coprime_trivg //= norm_mulgenEr.
+    - by apply/complP; rewrite coprime_trivg //= norm_mulgenEr.
     - by rewrite oR0.
     rewrite oKR0 -prime_coprime // coprime_mulr.
     rewrite (pnat_coprime _ p'K) ?pnat_id //=.
@@ -814,7 +815,7 @@ case abelK: (abelian K); last first.
     - by rewrite morphim_normal // /normal mulgen_subl mulgen_subG normG.
     - rewrite morphim_Hall // /Hall -divgS ?mulgen_subl //= norm_mulgenEr //.
       by rewrite coprime_card_mulG // divn_mulr.
-    - apply/complgP; rewrite -morphimMl //= norm_mulgenEr // ?coprime_trivg //.
+    - apply/complP; rewrite -morphimMl //= norm_mulgenEr // ?coprime_trivg //.
       apply: pnat_coprime (morphim_pgroup _ pP) (morphim_pgroup _ _).
       by rewrite /pgroup oR pnatE.
     - rewrite card_morphim ker_coset (setIidPr _) // -indexgI.
@@ -872,7 +873,7 @@ case abelK: (abelian K); last first.
     apply: three_dot_five; rewrite ?oR //.
     - exact: solvableS solG.
     - by rewrite /normal mulgen_subl mulgen_subG normG nKR_R.
-    - by apply/complgP; rewrite setIC coprime_trivg //= norm_mulgenEr.
+    - by apply/complP; rewrite setIC coprime_trivg //= norm_mulgenEr.
     exact: subset_trans nVG.
   case nKR_P: (P \subset 'N([~: K, R])).
     have{nKR_P}: P <*> R \subset 'N([~: K, R]).

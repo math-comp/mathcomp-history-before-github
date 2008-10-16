@@ -81,7 +81,8 @@ have{H Hb def_H eqHG piHb} hallM: pi^'.-Hall(G) M.
   rewrite /pHall sMG /pgroup {1}/pnat pM /= inE /= pi_p ltn_0group /=.
   apply: etrans piHb; rewrite -card_quotient ?normal_norm // -eqHG def_H.
   by rewrite pnatNK.
-case/splitgP: (SchurZass_split (pHall_Hall hallM) nMG) => H trMH defG.
+case/splitsP: (SchurZass_split (pHall_Hall hallM) nMG) => H.
+case/complP=> trMH defG.
 have sHG: H \subset G by rewrite -defG mulG_subr.
 exists H => [|K sKG piK].
   apply: etrans hallM; rewrite /pHall sMG sHG /= -!divgS // -defG andbC.

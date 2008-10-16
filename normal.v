@@ -170,7 +170,7 @@ Lemma coset_mem : forall y xb, y \in xb -> coset y = xb.
 Proof.
 move=> y [/= Hx NHx] /= Hxy; apply: val_inj=> /=.
 case/rcosetsP: NHx (NHx) Hxy => x Nx -> NHx Hxy.
-by rewrite val_insubd /= (rcoset_trans1 Hxy) NHx.
+by rewrite val_insubd /= (rcoset_transl Hxy) NHx.
 Qed.
 
 Lemma cosetP : forall xb, {x | x \in 'N(A) & xb = coset x}.
