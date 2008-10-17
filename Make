@@ -16,13 +16,13 @@ ssralg.v
 bigops.v
 finset.v
 groups.v
+morphisms.v
+action.v
 normal.v
 jordanholder.v
-morphisms.v
 commutators.v
 group_perm.v
 automorphism.v
-action.v
 zp.v
 fp.v
 cyclic.v
@@ -30,6 +30,7 @@ pgroups.v
 center.v
 nilpotent.v
 maximal.v
+prim_act.v
 sylow.v
 abelian.v
 dirprod.v

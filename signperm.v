@@ -3,7 +3,7 @@
 (*                                                                     *)
 (***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype.
-Require Import tuple finset groups group_perm action.
+Require Import tuple finset groups group_perm action prim_act.
 Require Import morphisms normal.
 
 (* Require Import paths finfun connect div zp. *)

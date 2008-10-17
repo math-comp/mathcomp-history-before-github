@@ -191,7 +191,7 @@ have K'dQ : K' <| (G / N)%G by apply: morphim_normal.
 have nKN : N <| K by rewrite (normalS _ _ nNG) // normal_sub.
 case: (sQ K' K'dQ)=> /=; last first.
   by move/quotient_injG; rewrite !inE /=; move/(_ nKN nNG)=> c; rewrite c eqxx in neGK.
-rewrite -trivial_quotient; move=> tK'; apply:(congr1 (@set_of_group _)); move: tK'.
+rewrite -trivial_quotient; move=> tK'; apply:(congr1 (@gval _)); move: tK'.
 apply: (@quotient_injG _ N); rewrite ?inE /= ?normal_refl /normal ?sNK //.
 by rewrite ?(subset_trans sKG) ?normal_norm.
 Qed.
@@ -619,7 +619,7 @@ have aiK' : ainvar (A / N) K' by rewrite /ainvar /K' -quotient_normG // quotient
 case: (sQ K' K'dQ aiK')=> /=; last first.
   move/quotient_injG; rewrite !inE /=; move/(_ nKN nNG)=> c; move: neGK.
   by rewrite c properE subset_refl.
-rewrite -trivial_quotient; move=> tK'; apply:(congr1 (@set_of_group _)); move: tK'.
+rewrite -trivial_quotient; move=> tK'; apply:(congr1 (@gval _)); move: tK'.
 apply: (@quotient_injG _ N); rewrite ?inE /= ?normal_refl /normal ?sNK //.
 by rewrite ?(subset_trans sKG) ?normal_norm.
 Qed.

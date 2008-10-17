@@ -183,7 +183,7 @@ Lemma Frattini_arg : forall H P, G <| H -> p.-Sylow(G) P -> G * 'N_H(P) = H.
 Proof.
 move=> H P; case/andP=> sGH nGH sylP.
 rewrite -normC ?subIset ?nGH ?orbT // -conjG_astab1.
-apply: subgroup_transitive Syl_trans; rewrite ?inE //.
+move/subgroup_transitiveP: Syl_trans => ->; rewrite ?inE //.
 apply/imsetP; exists P; rewrite ?inE //.
 apply/eqP; rewrite eqset_sub -{1}((atransP Syl_trans) P) ?inE // imsetS //=.
 apply/subsetP=> Q; case/imsetP=> x Hx ->{Q}.
@@ -200,6 +200,7 @@ Implicit Types G H P : {group gT}.
 Lemma pSylow_normalI : forall G H P,
   G <| H -> p.-Sylow(H) P -> p.-Sylow(G) (G :&: P).
 Proof.
+
 move=> G H P; case/normalP=> sGH nGH sylP.
 have [Q sylQ] := Sylow_exists p G.
 case/maxgroupP: (Hall_max sylQ); case/andP=> sQG pQ maxQ.

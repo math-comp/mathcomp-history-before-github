@@ -935,8 +935,8 @@ apply/subsetP=> z; case/mulsgP=> [x y Ax Ay ->]; exact: AM.
 Qed.
 
 Structure group_type : Type := Group {
-  set_of_group :> GroupSet.sort gT;
-  _ : group_set set_of_group
+  gval :> GroupSet.sort gT;
+  _ : group_set gval
 }.
 
 Definition group_of of phant gT : predArgType := group_type.
@@ -944,8 +944,8 @@ Notation Local groupT := (group_of (Phant gT)).
 Identity Coercion type_of_group : group_of >-> group_type.
 
 Canonical Structure group_subType :=
-  SubType set_of_group group_type_rect vrefl.
-Canonical Structure group_eqType := Eval hnf in [subEqType for set_of_group].
+  SubType gval group_type_rect vrefl.
+Canonical Structure group_eqType := Eval hnf in [subEqType for gval].
 Canonical Structure group_finType := Eval hnf in [finType of group_type by :>].
 Canonical Structure group_subFinType := Eval hnf in [subFinType of group_type].
 
@@ -959,7 +959,7 @@ Canonical Structure group_of_subFinType := Eval hnf in [subFinType of groupT].
 
 Definition group (A : {set gT}) gA : groupT := @Group A gA.
 
-Lemma group_inj : injective set_of_group. Proof. exact: val_inj. Qed.
+Lemma group_inj : injective gval. Proof. exact: val_inj. Qed.
 Lemma groupP : forall G : groupT, group_set G. Proof. by case. Qed.
 
 Lemma congr_group : forall H K : groupT, H = K -> H :=: K.
@@ -1857,8 +1857,8 @@ Canonical Structure mulGen_abelaw := Monoid.AbelianLaw mulGenC.
 Lemma bigprodGEgen : forall I r (P : pred I) (F : I -> {set gT}),
   (\prod_(i <- r | P i) <<F i>>)%G :=: << \bigcup_(i <- r | P i) F i >>.
 Proof.
-move=> I r P F; rewrite -!(big_filter r).
-elim: {r}filter => [|i r IHr]; rewrite !(big_seq0, big_adds, gen0) //= IHr.
+move=> I r P F; pose R := [fun G A => @gval gT G = <<A>>].
+apply: (big_rel R) => //= [|_ A _ B -> ->]; first by rewrite gen0.
 by rewrite mulgen_idl mulgen_idr.
 Qed.
 
@@ -2317,52 +2317,12 @@ End MinMaxGroup.
 Notation "[ 'max' A 'of' G | gP ]" := (maxgroup (fun G : {group _} => gP) A)
   (at level 0, format "[ 'max'  A  'of'  G  |  gP ]") : group_scope.
 
-Notation "[ 'max' G | gP ]" := [max set_of_group G of G | gP]
+Notation "[ 'max' G | gP ]" := [max gval G of G | gP]
   (at level 0, format "[ 'max'  G  |  gP ]") : group_scope.
 
 Notation "[ 'min' A 'of' G | gP ]" := (mingroup (fun G : {group _} => gP) A)
   (at level 0, format "[ 'min'  A  'of'  G  |  gP ]") : group_scope.
 
-Notation "[ 'min' G | gP ]" := [min set_of_group G of G | gP]
+Notation "[ 'min' G | gP ]" := [min gval G of G | gP]
   (at level 0, format "[ 'min'  G  |  gP ]") : group_scope.
 
-(* We need to define maximal groups here rather than in maximal.v to resolve *)
-(* a circularity issue between action.v (which uses maximal), pgroups.v, and *)
-(* maximal.v.                                                                *)
-
-Section Maximal.
-
-Variable gT : finGroupType.
-Implicit Types A B : {set gT}.
-Implicit Types G H M : {group gT}.
-
-Definition maximal A B := [max A of G | G \proper B].
-
-Definition maximal_eq A B := (A == B) || maximal A B.
-
-Lemma maximalP : forall M G,
-  reflect (M \proper G /\ (forall H, H \proper G -> M \subset H -> H :=: M))
-          (maximal M G).
-Proof. move=> M G; exact: (iffP (maxgroupP _ _)). Qed.
-
-Lemma maximal_eqP : forall M G,
-  reflect (M \subset G  /\
-             forall H, M \subset H -> H \subset G -> H :=: M \/ H :=: G)
-       (maximal_eq M G).
-Proof.
-move=> M G; rewrite subEproper /maximal_eq; case: eqP => [->|_]; first left.
-  by split=> // H sGH sHG; right; apply/eqP; rewrite eqset_sub sHG.
-apply: (iffP (maxgroupP _ _)) => [] [sMG maxM]; split=> // H.
-  by move/maxM=> maxMH; rewrite subEproper; case/predU1P; auto.
-by rewrite properEneq; case/andP; move/eqP=> neHG sHG; case/maxM.
-Qed.
-
-Lemma maximal_existence : forall H G, H \subset G ->
-  H :=: G \/ exists2 M : {group gT}, maximal M G & H \subset M.
-Proof.
-move=> H G; rewrite subEproper; case/predU1P=> sHG; first by left.
-suff [M *]: {M : {group gT} | maximal M G & H \subset M} by right; exists M.
-exact: maxgroup_exists.
-Qed.
-
-End Maximal.

@@ -18,10 +18,48 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-Delimit Scope group_scope with g.
-Delimit Scope subgroup_scope with G.
-
 Import GroupScope.
+
+(* We need to define maximal groups here rather than in maximal.v to resolve *)
+(* a circularity issue between action.v (which uses maximal), pgroups.v, and *)
+(* maximal.v.                                                                *)
+
+Section Maximal.
+
+Variable gT : finGroupType.
+Implicit Types A B : {set gT}.
+Implicit Types G H M : {group gT}.
+
+Definition maximal A B := [max A of G | G \proper B].
+
+Definition maximal_eq A B := (A == B) || maximal A B.
+
+Lemma maximalP : forall M G,
+  reflect (M \proper G /\ (forall H, H \proper G -> M \subset H -> H :=: M))
+          (maximal M G).
+Proof. move=> M G; exact: (iffP (maxgroupP _ _)). Qed.
+
+Lemma maximal_eqP : forall M G,
+  reflect (M \subset G  /\
+             forall H, M \subset H -> H \subset G -> H :=: M \/ H :=: G)
+       (maximal_eq M G).
+Proof.
+move=> M G; rewrite subEproper /maximal_eq; case: eqP => [->|_]; first left.
+  by split=> // H sGH sHG; right; apply/eqP; rewrite eqset_sub sHG.
+apply: (iffP (maxgroupP _ _)) => [] [sMG maxM]; split=> // H.
+  by move/maxM=> maxMH; rewrite subEproper; case/predU1P; auto.
+by rewrite properEneq; case/andP; move/eqP=> neHG sHG; case/maxM.
+Qed.
+
+Lemma maximal_existence : forall H G, H \subset G ->
+  H :=: G \/ exists2 M : {group gT}, maximal M G & H \subset M.
+Proof.
+move=> H G; rewrite subEproper; case/predU1P=> sHG; first by left.
+suff [M *]: {M : {group gT} | maximal M G & H \subset M} by right; exists M.
+exact: maxgroup_exists.
+Qed.
+
+End Maximal.
 
 Section Defs.
 

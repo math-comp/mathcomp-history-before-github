@@ -1,6 +1,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype.
 Require Import div prime tuple finset groups morphisms normal group_perm.
 Require Import automorphism action pgroups sylow cyclic maximal signperm.
+Require Import prim_act.
 
 (* Require Import paths connect finfun zp. *)
 
@@ -358,7 +359,7 @@ have F11: [primitive (Gx | 'P) on [set~ x]].
 have F12: K \subset Gx by rewrite setSI // normal_sub.
 have F13: K <| Gx by apply/andP; split; last apply: norm_stab.
 have:= prim_trans_norm F10 F11; case/(_ K) => //= => Ksub; last first.
-  have F14 := (subgroup_transitive Hx Hh1 F3 F5); rewrite -/Gx /= in F14.
+  have F14: Gx * H = 'Alt_T by exact/subgroup_transitiveP.
   have: simple Gx.
     apply: isog_simpl (isog_symr (rfd_iso x)) (Hrec _ _) => /=.
     by rewrite card_sub cardC1 Hde.
@@ -371,7 +372,7 @@ have:= prim_trans_norm F10 F11; case/(_ K) => //= => Ksub; last first.
     rewrite -(atransP Ksub y) ?inE //; case/imsetP => g.
     rewrite /= HH2 inE; move/eqP => -> HH4.
     by case/negP: diff_y_z; rewrite HH4 act1.
-  by apply: val_inj; rewrite /= -F14 -HH2 (mulSGid F8).
+  by apply: val_inj; rewrite /= -F14 /= -HH2 (mulSGid F8).
 have F14: [faithful (Gx | 'P) on [set~ x]].
   apply: subset_trans (aperm_faithful 'Sym_T); rewrite subsetI subsetT.
   apply/subsetP=> g; do 2![case/setIP]=> _ cgx cgx'; apply/astabP=> z _ /=.
