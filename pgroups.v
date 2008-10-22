@@ -190,6 +190,12 @@ Notation "''E' ^ n ( G )" := (nElem n G)
 Notation "''E_' p ^* ( G )" := (pmaxElem p G)
   (at level 8, p at level 2, format "''E_' p ^* ( G )") : group_scope.
 
+Notation "''m' ( A )" := (rank A)
+  (at level 8, format "''m' ( A )") : group_scope.
+
+Notation "''m_' p ( A )" := (p_rank p A)
+  (at level 8, p at level 2, format "''m_' p ( A )") : group_scope.
+
 Section PgroupProps.
 
 Variable gT : finGroupType.
@@ -786,7 +792,7 @@ Proof. by move=> G; case/andP: (pcore_psubgroup G). Qed.
 Lemma pcore_sub_Hall : forall G H, pi.-Hall(G) H -> 'O_pi(G) \subset H.
 Proof. move=> G H; move/Hall_max=> maxH; exact: bigcap_inf. Qed.
 
-Lemma subset_pcore : forall G H, pi.-group H -> H <| G -> H \subset 'O_pi(G).
+Lemma pcore_max : forall G H, pi.-group H -> H <| G -> H \subset 'O_pi(G).
 Proof.
 move=> G H piH nHG; apply/bigcap_inP=> M maxM.
 exact: normal_sub_max_pgroup piH nHG.
@@ -803,7 +809,7 @@ Lemma normal_Hall_pcore : forall H G, pi.-Hall(G) H -> H <| G -> 'O_pi(G) = H.
 Proof.
 move=> H G hallH nHG; apply/eqP.
 rewrite eqset_sub (subset_normal_Hall _ hallH) //= pcore_psubgroup.
-by rewrite subset_pcore //= (pHall_pgroup hallH).
+by rewrite pcore_max //= (pHall_pgroup hallH).
 Qed.
 
 End PCoreProps.
@@ -1046,7 +1052,7 @@ elim=> //= pi1 pi1s IH pi2s gT G; apply: subset_trans (IH _ _ _) _ => {IH}.
 elim/last_ind: {pi1s pi2s}(_ ++ _) => [|pis pi IHpi]; first exact: sub1G.
 rewrite -add_last_adds (pseries_add_last _ (pi1 :: pis)).
 rewrite -sub_morphim_pre ?pseries_norm2 //.
-apply: subset_pcore; last by rewrite morphim_normal ?pseries_normal.
+apply: pcore_max; last by rewrite morphim_normal ?pseries_normal.
 have: pi.-group (pseries (add_last pis pi) G / pseries pis G).
   by rewrite quotient_pseries pcore_pgroup.
 by apply: pnat_dvd; rewrite !card_quotient ?pseries_norm2 // indexgS.
@@ -1085,7 +1091,7 @@ apply: (@quotient_inj _ (pseries_group pis G)).
   by rewrite -cats1 pseries_sub_catl.
 - by rewrite /= /(_ <| _) pseries_norm2 -cats1 pseries_sub_catl.
 rewrite /= cat_add_last -(IHpi (pi :: pi2s)) {1}quotient_pseries IHpi.
-apply/eqP; rewrite quotient_pseries eqset_sub !subset_pcore ?pcore_pgroup //=.
+apply/eqP; rewrite quotient_pseries eqset_sub !pcore_max ?pcore_pgroup //=.
   rewrite -quotient_pseries morphim_normal // /(_ <| _) pseries_norm2.
   by rewrite -cat_add_last pseries_sub_catl.
 apply: char_normal_trans (pcore_char pi _) (morphim_normal _ _).
@@ -1108,7 +1114,7 @@ apply: (@quotient_inj _ (pseries_group pis G)).
 - by rewrite /= -Epis /(_ <| _) pseries_norm2 -cats1 pseries_sub_catl.
 - by rewrite /= /(_ <| _) pseries_norm2 -cats1 pseries_sub_catl.
 rewrite /= -Epis {1}quotient_pseries Epis quotient_pseries.
-apply/eqP; rewrite eqset_sub !subset_pcore ?pcore_pgroup //=.
+apply/eqP; rewrite eqset_sub !pcore_max ?pcore_pgroup //=.
   rewrite -quotient_pseries morphim_normal // /(_ <| _) pseries_norm2.
   by rewrite pseries_sub_catr.
 apply: char_normal_trans (pcore_char pi _) (morphim_normal _ _).
@@ -1126,7 +1132,7 @@ Lemma pcore_modp : forall pi gT (G H : {group gT}),
 Proof.
 move=> pi gT G H nHG piH; apply/eqP; rewrite eqset_sub andbC.
 have nnHG := normal_norm nHG; have sOG := subset_trans (pcore_sub pi _).
-rewrite -sub_morphim_pre ?(sOG, morphim_pcore) // subset_pcore //.
+rewrite -sub_morphim_pre ?(sOG, morphim_pcore) // pcore_max //.
   rewrite -(pquotient_pgroup piH) ?subsetIl //.
   by rewrite quotient_pcore_mod pcore_pgroup.
 by rewrite -{2}(quotientGK nHG) morphpre_normal ?pcore_normal ?sOG ?morphimS.
@@ -1154,7 +1160,7 @@ Implicit Type G : {group gT}.
 Lemma sub_pcore : forall pi1 pi2 G,
   {subset pi1 <= pi2} -> 'O_pi1(G) \subset 'O_pi2(G).
 Proof.
-move=> pi1 pi2 G sub_pi; rewrite subset_pcore ?pcore_normal //.
+move=> pi1 pi2 G sub_pi; rewrite pcore_max ?pcore_normal //.
 apply: subd_pnat (pcore_pgroup _ _) => p _; exact: sub_pi.
 Qed.
 
@@ -1166,7 +1172,7 @@ Qed.
 
 Lemma pcoreI : forall pi1 pi2 G, 'O_[predI pi1 & pi2](G) = 'O_pi1('O_pi2(G)).
 Proof.
-move=> pi1 pi2 G; apply/eqP; rewrite eqset_sub !subset_pcore //.
+move=> pi1 pi2 G; apply/eqP; rewrite eqset_sub !pcore_max //.
 - rewrite /pgroup pnatI [pnat _ _]pcore_pgroup.
   exact: pgroupS (pcore_sub _ _) (pcore_pgroup _ _).
 - exact: char_normal_trans (pcore_char _ _) (pcore_normal _ _).
@@ -1204,7 +1210,7 @@ move=> pGH1; rewrite eqset_sub pseries_sub.
 have nOG: 'O_{p^'}(G) <| G by exact: pseries_normal.
 rewrite -(quotientSGK (normal_norm nOG)) ?(pseries_sub_catl [:: _]) //.
 have [|f f_inj im_f] := third_isom _ nHG nOG.
-  by rewrite /= pseries1 subset_pcore.
+  by rewrite /= pseries1 pcore_max.
 rewrite (quotient_pseries_cat [:: _]) -{}im_f //=.
 rewrite -injm_gfunctor; try by move: gfunc_pseries pseries_sub.
 rewrite {f f_inj}morphimS // pseries1 -pquotient_pcore // -pseries1.
@@ -1226,7 +1232,7 @@ rewrite pseries_pop //; last first.
 have nOG: 'O_{p}(G) <| G by exact: pseries_normal.
 rewrite -(quotientSGK (normal_norm nOG)) ?(pseries_sub_catl [:: _]) //.
 have [|f f_inj im_f] := third_isom _ nHG nOG.
-  by rewrite /= pseries1 subset_pcore.
+  by rewrite /= pseries1 pcore_max.
 rewrite quotient_pseries -{}im_f //=.
 rewrite -injm_gfunctor; try by move: gfunc_pcore pcore_sub.
 rewrite {f f_inj}morphimS // pseries1 -pquotient_pcore // -(pseries1 p).
@@ -1270,7 +1276,7 @@ apply/idP/idP=> [p1G | pU].
 have nOG: 'O_{p^', p}(G) <| G by exact: pseries_normal.
 rewrite eqset_sub pseries_sub.
 rewrite -(quotientSGK (normal_norm nOG)) ?(pseries_sub_catl [:: _; _]) //=.
-rewrite quotient_pseries subset_pcore // /pgroup card_quotient ?normal_norm //.
+rewrite quotient_pseries pcore_max // /pgroup card_quotient ?normal_norm //.
 apply: (@pnat_dvd _ #|G : p_elt_gen G|); last first.
   rewrite -card_quotient // p'natE //; apply/negP; case/Cauchy=> // Ux.
   case/morphimP=> x Nx Gx -> /= oUx_p; have:= prime_gt1 pr_p.
@@ -1281,9 +1287,9 @@ apply: indexgS.
 have nOU: p_elt_gen G \subset 'N('O_{p^'}(G)).
   by rewrite (subset_trans sUG) // normal_norm ?pseries_normal.
 rewrite -(quotientSGK nOU) ?(pseries_sub_catl [:: _]) //=.
-rewrite quotient_pseries subset_pcore ?morphim_normal //.
+rewrite quotient_pseries pcore_max ?morphim_normal //.
 rewrite /pgroup card_quotient //= pseries1; apply: pnat_dvd pU.
-apply: indexgS; rewrite subset_pcore ?pcore_pgroup //.
+apply: indexgS; rewrite pcore_max ?pcore_pgroup //.
 apply: char_normal_trans nUG; exact: pcore_char.
 Qed.
 
@@ -1337,7 +1343,7 @@ apply/maxgroupP; split; first by rewrite /psubgroup pcore_sub pcore_pgroup.
 move=> Q p'Q sOQ; apply/eqP; rewrite eqset_sub sOQ andbT.
 apply: subset_trans (_ : U :&: (A :&: B) \subset _); last rewrite /U.
   by rewrite !subsetI p'A ?p'B //; case/andP: p'Q => ->.
-apply: subset_pcore; last by rewrite /normal subsetIl !normsI ?normG.
+apply: pcore_max; last by rewrite /normal subsetIl !normsI ?normG.
 rewrite /pgroup p'natE //; apply/negP; case/Cauchy=> // x.
 case/setIP=> _; case/setIP=> Ax Bx oxp.
 suff: x \in 1%G by move/set1P=> x1; rewrite -oxp x1 order1 in pr_p.

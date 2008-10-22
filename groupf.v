@@ -260,13 +260,7 @@ Canonical Structure center_id_subfunc :=
 Require Import maximal.
 
 Lemma Frattini_resp : resp (Frattini).
-Proof.
-move=> gT hT H phi; apply/bigcap_inP=> i Hi.
-rewrite sub_morphim_pre; last by apply:Phi_sub.
-apply:bigcap_inf; move/subsetP: (@dom_ker _ _ H phi); move/morphimGK.
-move/(_ (subset_refl _)) => Heq; rewrite -{2}Heq /=.
-by apply: maximal_morphpre.
-Qed.
+Proof. exact: gfunc_Phi. Qed.
 
 Canonical Structure Frattini_subfunc :=
   IsFc (fun gT G => groupP 'Phi(G)%G)

@@ -361,13 +361,13 @@ have F13: K <| Gx by apply/andP; split; last apply: norm_stab.
 have:= prim_trans_norm F10 F11; case/(_ K) => //= => Ksub; last first.
   have F14: Gx * H = 'Alt_T by exact/subgroup_transitiveP.
   have: simple Gx.
-    apply: isog_simpl (isog_symr (rfd_iso x)) (Hrec _ _) => /=.
-    by rewrite card_sub cardC1 Hde.
-  case/simpleP=> _; case/(_ [group of K] F13) => /= [] [HH2].
+    by rewrite (isog_simple (rfd_iso x)) Hrec //= card_sub cardC1 Hde.
+  case/simpleP=> _ simGx; case/simGx: F13 => /= [] [HH2].
     case Ez: (pred0b (predD1 (predD1 T x) y)).
       move: oT; rewrite /pred0b in Ez.
       by rewrite (cardD1 x) (cardD1 y) (eqP Ez) inE /= inE /= diff_x_y.  
-    case/pred0Pn: Ez => z; case/andP => diff_y_z Hdz; case/andP: (Hdz) => diff_x_z Hz.
+    case/pred0Pn: Ez => z; case/andP => diff_y_z Hdz.
+    have [diff_x_z Hz] := andP Hdz.
     have: z \in [set~ x] by rewrite inE.
     rewrite -(atransP Ksub y) ?inE //; case/imsetP => g.
     rewrite /= HH2 inE; move/eqP => -> HH4.

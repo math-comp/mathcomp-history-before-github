@@ -327,7 +327,7 @@ Lemma nilpotent_Hall_pcore : forall pi G H,
   nilpotent G -> pi.-Hall(G) H -> H :=: 'O_pi(G).
 Proof.
 move=> pi G H nilG hallH; have maxH := Hall_max hallH; apply/eqP.
-rewrite eqset_sub subset_pcore ?(pHall_pgroup hallH) //.
+rewrite eqset_sub pcore_max ?(pHall_pgroup hallH) //.
   by rewrite (normal_sub_max_pgroup maxH) ?pcore_pgroup ?pcore_normal.
 exact: nilpotent_maxp_normal maxH.
 Qed.
@@ -398,7 +398,7 @@ move=> sHG nHL ntH; case abelH: (trivg [~: H, H]).
     apply/subsetPn; exists x; last first.
       by apply/set1P=> x1; rewrite -oxp x1 order1 in prp.
     rewrite inE -{2}oxp expn1 order_expn1 eqxx andbT -sub1set -gen_subG.
-    apply: subset_pcore; first by rewrite /pgroup [#|_|]oxp pnat_id.
+    apply: pcore_max; first by rewrite /pgroup [#|_|]oxp pnat_id.
     rewrite /(_ <| H) cycle_subG // cents_norm ?andbT // centsC.
     rewrite cycle_subG //; exact: subsetP Hx.
   exists H1; split=> //; first exact: subset_trans sHG.
@@ -471,7 +471,7 @@ have [P Px sylP]: exists2 P : {group gT}, x \in P & p.-Sylow(<<E>>) P.
   have{sxxE} [P sylP sxxP] := Sylow_superset sxxE (pE _ _ Ex Ex).
   by exists P => //; rewrite (subsetP sxxP) ?mem_gen ?setU11.
 case sEP: (E \subset P).
-  apply: subsetP Ex; rewrite -gen_subG; apply: subset_pcore.
+  apply: subsetP Ex; rewrite -gen_subG; apply: pcore_max.
     by apply: pgroupS (pHall_pgroup sylP); rewrite gen_subG.
   by rewrite /normal gen_subG class_subG // norms_gen.
 pose P_yD D := [pred y | (y \in E :\: P) && p.-group <<y |: D>>].
@@ -500,7 +500,7 @@ have nDD: D \subset 'N(D).
   rewrite inE groupJ // ?inE ?(subsetP sDP) ?mem_gen ?setU1r //= memJ_norm //.
   exact: (subsetP (subset_trans sDG nEG)).
 case nDG: (G \subset 'N(D)).
-  apply: subsetP Dx; rewrite -gen_subG subset_pcore //.
+  apply: subsetP Dx; rewrite -gen_subG pcore_max //.
     exact: pgroupS (genS _) pB.
   by rewrite /normal gen_subG sDG norms_gen.
 have{n leGn IHn nDG} pN: p.-group <<'N_E(D)>>.
