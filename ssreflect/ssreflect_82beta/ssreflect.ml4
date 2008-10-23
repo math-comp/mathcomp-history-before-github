@@ -264,7 +264,8 @@ let mkRCast rc rt =  RCast (dummy_loc, rc, dC rt)
 let mkRType =  RSort (dummy_loc, RType None)
 
 (** assia : now there is a binding_kind argument to RProd, has to do with
-   classes, we put 'Explicit' as blind default choice **)
+   classes, we put 'Explicit' as blind default choice
+ **)
 
 let mkRArrow rt1 rt2 = RProd (dummy_loc, Anonymous, Explicit, rt1, rt2)
 
@@ -383,8 +384,10 @@ let mk_evar_name n = Name (id_of_string (sprintf "SSRevar_%d_" n))
 let nb_evar_deps x =
   try
     let s = match x with Name id -> string_of_id id | _ -> "" in
-    if String.sub s 0 12 <> "SSRevar_" then raise Exit;
-    int_of_string (String.sub s 12 (String.rindex s '_' - 12))
+    if String.sub s 0 8 <> "SSRevar_" then raise Exit;
+(*    if String.sub s 0 12 <> "SSRevar_" then raise Exit;*)
+    int_of_string (String.sub s 8 (String.rindex s '_' - 8))
+(*    int_of_string (String.sub s 12 (String.rindex s '_' - 12))*)
   with _ -> 0
 
 let env_size env = List.length (Environ.named_context env)
@@ -1113,7 +1116,7 @@ GEXTEND Gram
   ssr_else: [[ p = ssr_elsepat; c = lconstr -> loc, [[p]], c ]];*)
   binder_constr: [
     [ "if"; c = operconstr LEVEL "200"; "is"; db1 = ssr_dthen; b2 = ssr_else ->
-      let b1, ct, rt = db1 in CCases (loc, LetPatternStyle, rt, [c, ct], [b1; b2])
+      let b1, ct, rt = db1 in CCases (loc, MatchStyle, rt, [c, ct], [b1; b2])
     | "let"; ":"; p = pattern; ":="; c = lconstr; "in"; c1 = lconstr ->
       CCases (loc, LetPatternStyle, no_rt, [c, no_ct],[(loc, [(loc, [p])], c1)])
     | "let"; ":"; p = pattern; ":="; c = lconstr; rt = ssr_rtype;
@@ -1146,7 +1149,7 @@ GEXTEND Gram
     [ ["of" | "&"]; c = operconstr LEVEL "99" ->
        [LocalRawAssum ([loc, Anonymous], Default Explicit, c)]
 (** assia, previous is:
-       LocalRawAssum ([loc, Anonymous], c)**)
+       LocalRawAssum ([loc, Anonymous], c) and Explicit is the right flag**)
     ]];
 END
 
@@ -3152,29 +3155,6 @@ let check_movearg = function
     Util.error "no proper intro pattern for equation in move tactic"
   | arg -> arg
 
-type notbeforeident = string
-
-let pr_notbeforeident _ _ _ s = pr_spc()
-
-ARGUMENT EXTEND notbeforeident TYPED AS string PRINTED BY pr_notbeforeident
-  | [ ] -> [""]
-END
-
-
-let test_notbeforeident strm = 
-  match Stream.npeek 1 strm with
-    | [("","")] ->
-        (match Stream.npeek 2 strm with
-           | [_; ("IDENT",id)] -> raise Stream.Failure
-           | _ -> ())
-    | _ -> raise Stream.Failure
-
-let notbeforeident_p4 = Gram.Entry.of_parser "notbeforeident" test_notbeforeident
-
-GEXTEND Gram
-  GLOBAL: notbeforeident_p4 notbeforeident;
-  notbeforeident: [[ c = notbeforeident -> c ]];
-  END
 
 ARGUMENT EXTEND ssrmovearg TYPED AS ssrarg PRINTED BY pr_ssrarg
   INTERPRETED BY interp_ssrarg
@@ -3208,15 +3188,8 @@ TACTIC EXTEND ssrmove
 | [ "move" ssrmovearg(arg) ssrclauses(clauses) ] ->
   [ tclCLAUSES (ssrmovetac arg) clauses ]
 | [ "move" ssrrpat(pat) ] -> [ ipattac pat ]
-(*| [ "move" ] -> [ movehnftac ]*)
+| [ "move" ] -> [ movehnftac ]
     END
-
-(* assia : comment câbler vers la tactique movehnf ?
-GEXTEND Gram
-GLOBAL: simple_tactic;
-simple_tactic: [[ "move"; c = notbeforeident -> ???]];
-END
-*)
 
 
 
@@ -3743,6 +3716,15 @@ let mk_rwarg (d, (n, _ as m)) ((clr, occ as docc), rx) (rt, _ as r) =
 let norwmult = L2R, nomult
 let norwocc = noclr, None
 
+(*
+let pattern_ident = Prim.pattern_ident in
+GEXTEND Gram
+GLOBAL: pattern_ident;
+pattern_ident: 
+[[c = pattern_ident -> (CRef (Ident (loc,c)), NoBindings)]];
+END
+*)
+
 
 ARGUMENT EXTEND ssrrwarg_nt
   TYPED AS (ssrdir * ssrmult) * ((ssrdocc * ssrredex) * ssrrule)
@@ -3753,6 +3735,8 @@ ARGUMENT EXTEND ssrrwarg_nt
     [ mk_rwarg (R2L, nomult) norwocc (RWdef, t) ]
   | [ ssrmult_ne(m) ssrrwocc(docc) ssrredex(rx) ssrrule_ne(r) ] ->
     [ mk_rwarg (L2R, m) (docc, rx) r ]
+(*compat 
+  | [pattern_ident(c)] -> [mk_rwarg (R2L, (0, May)) norwocc (notermkind, c)]*)
   | [ "{" ne_ssrhyp_list(clr) "}" ssrredex_ne(rx) ssrrule_ne(r) ] ->
     [ mk_rwarg norwmult (mkclr clr, rx) r ]
   | [ "{" ne_ssrhyp_list(clr) "}" ssrrule(r) ] ->
@@ -4480,7 +4464,7 @@ let push_binders c2 =
 
 let rec fix_binders = function
   | (_, CLambdaN (_, [xs, _, t], _)) :: bs ->
-    LocalRawAssum (xs, Default Implicit, t) :: fix_binders bs
+      LocalRawAssum (xs, Default Explicit, t) :: fix_binders bs
   | (_, CLetIn (_, x, v, _)) :: bs ->
     LocalRawDef (x, v) :: fix_binders bs
   | _ -> []
