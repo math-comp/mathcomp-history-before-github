@@ -354,6 +354,7 @@ rewrite subsetI {1}commGC /= !commg_subr /=.
 by rewrite !(subset_trans (pcore_sub _ _)) ?normal_norm ?pcore_normal.
 Qed.
 
+(* subsumed by the definition of the Fitting subgroup
 Lemma nilpotent_dprodP : forall G,
  reflect (\big[direct_product/1]_(p <- primes #|G|) 'O_p(G) = G) (nilpotent G).
 Proof.
@@ -373,48 +374,7 @@ rewrite !(big_cond_seq xpredT) /=; apply: eq_bigr => q rq.
 rewrite -pcoreI; apply: eq_pcore => q'; symmetry; do !rewrite inE /=.
 by case: eqP => // ->; apply/eqP=> qp; rewrite -qp rq in rp.
 Qed.
-
-(* Should be replaced by the structure theorem for characteristically simple *)
-(* groups. *)
-Lemma solvable_norm_abelem : forall L G,
-  solvable G -> G <| L -> ~~ trivg G ->
-  exists H : {group gT}, [/\ H \subset G, H <| L, ~~ trivg H & abelem H].
-Proof.
-move=> L G solG; set H := {1 2}G; have: H \subset G := subset_refl _.
-elim: {H}_.+1 {-2}H (ltnSn #|H|) => // n IHn H; rewrite ltnS => leHn.
-move=> sHG nHL ntH; case abelH: (trivg [~: H, H]).
-  pose p := pdiv #|H|; pose H1 := 'Ohm_1('O_p(H))%G.
-  have prp: prime p by rewrite prime_pdiv // ltnNge -trivg_card.
-  have charH1: H1 \char H by exact: char_trans (Ohm_char _ _) (pcore_char p _).
-  have sH1H: H1 \subset H by case/andP: charH1.
-  have{abelH} abelH: abelian H by apply/centsP; exact/commG1P.
-  have abelH1: abelian H1.
-    by do 2![apply: (subset_trans sH1H); rewrite 1?centsC].
-  have pOp: p.-group 'O_p(H) by exact: pcore_pgroup.
-  have pH1: p.-group H1 by apply: pgroupS pOp; exact: Ohm_sub.
-  have ntH1 : ~~ trivg H1.
-    case: (Cauchy prp (dvdn_pdiv #|H|)) => x Hx oxp.
-    rewrite /trivg /= (OhmE 1 pOp) gen_subG.
-    apply/subsetPn; exists x; last first.
-      by apply/set1P=> x1; rewrite -oxp x1 order1 in prp.
-    rewrite inE -{2}oxp expn1 order_expn1 eqxx andbT -sub1set -gen_subG.
-    apply: pcore_max; first by rewrite /pgroup [#|_|]oxp pnat_id.
-    rewrite /(_ <| H) cycle_subG // cents_norm ?andbT // centsC.
-    rewrite cycle_subG //; exact: subsetP Hx.
-  exists H1; split=> //; first exact: subset_trans sHG.
-    exact: char_normal_trans nHL.
-  apply/abelem_Ohm1P=> //; first exact: pgroup_p pH1.
-  apply/eqP; rewrite eqset_sub Ohm_sub /=.
-  rewrite (OhmE 1 pH1) /= (OhmE 1 pOp) genS //.
-  apply/subsetP=> x H1x; rewrite inE mem_gen //=.
-  by have:= H1x; rewrite inE; case/andP.
-have chH': [~: H, H] \char H by apply: charR; apply: char_refl.
-have [sH'H _] := andP chH'; move/idPn: abelH.
-apply: IHn; last 1 [exact: subset_trans sHG | exact: char_normal_trans nHL].
-apply: leq_trans leHn; rewrite ltnNge -[_ <= _]andTb -sH'H -eqset_sub_card.
-apply/eqP=> eqH'H; have:= forallP solG H.
-by rewrite eqH'H subsetI sHG subset_refl -implybN ntH.
-Qed.
+*)
 
 End Nilpotent.
 

@@ -1,6 +1,6 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div prime paths.
 Require Import fintype bigops finset groups morphisms automorphism normal action.
-Require Import commutators pgroups cyclic nilpotent sylow schurzass hall.
+Require Import commutators pgroups cyclic nilpotent sylow maximal schurzass hall.
 
 (* Require Import connect finfun ssralg group_perm center. *)
 

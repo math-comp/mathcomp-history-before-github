@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat fintype ssralg bigops.
-Require Import seq div prime finset groups morphisms normal group_perm.
+Require Import seq div prime finfun finset groups morphisms normal group_perm.
 Require Import commutators automorphism cyclic pgroups center dirprod sylow.
 Require Import nilpotent.
 
@@ -27,7 +27,7 @@ Definition minnormal A D := [min A of G | ~~ trivg G && (D \subset 'N(G))].
 
 Definition simple A := minnormal A A.
 
-Definition char_simple A := [min A of G | ~~(G \subset A) && (G \char A)].
+Definition charsimple A := [min A of G | ~~ trivg G && (G \char A)].
 
 Definition Frattini A := \bigcap_(G : {group gT} | maximal_eq G A) G.
 
@@ -77,7 +77,7 @@ Definition SCN_at n B := [set A \in SCN B | n <= 'm(A)].
 
 End Defs.
 
-Prenex Implicits maximal simple char_simple critical special extra_special.
+Prenex Implicits maximal simple charsimple critical special extra_special.
 
 Notation "''Phi' ( A )" := (Frattini A)
   (at level 8, format "''Phi' ( A )") : group_scope.
@@ -464,7 +464,7 @@ Section Simple.
 
 Implicit Types gT rT : finGroupType.
 
-Theorem simpleP : forall gT (G : {group gT}),
+Lemma simpleP : forall gT (G : {group gT}),
   reflect (~~ trivg G /\ forall H : {group gT}, H <| G -> H :=: 1 \/ H :=: G)
           (simple G).
 Proof.
@@ -474,6 +474,17 @@ move=> gT G; apply: (iffP (mingroupP _ _)); rewrite normG andbT.
   by right; apply: simG; rewrite ?trN.
 case=> ntG simG; split=> // N; case/andP=> ntN nNG sNG.
 by case: (simG N) => // [|N1]; [exact/andP | case/trivgP: ntN].
+Qed.
+
+Lemma charsimpleP : forall gT (G : {group gT}),
+   reflect (~~ trivg G
+           /\ forall K : {group gT}, ~~ trivg K -> K \char G -> K :=: G)
+           (charsimple G).
+Proof.
+move=> gT G.
+apply: (iffP (mingroupP _ _)); rewrite char_refl andbT => [[ntG simG]].
+  by split=> // K ntK chK; apply: simG; rewrite ?ntK // char_sub.
+split=> // K; case/andP=> ntK chK _; exact: simG.
 Qed.
 
 Lemma quotient_simple : forall gT (G H : {group gT}),
@@ -610,8 +621,365 @@ Qed.
 
 End FittingFun.
 
+Section CharSimple.
 
+Variable gT : finGroupType.
+Implicit Type rT : finGroupType.
+Implicit Types G H K L : {group gT}.
 
+Lemma minnormal_charsimple : forall G H, minnormal H G -> charsimple H.
+Proof.
+move=> G H; case/mingroupP; case/andP=> ntH nHG minH.
+apply/charsimpleP; split=> // K ntK chK.
+by apply: minH; rewrite ?ntK (char_sub chK, char_norm_trans chK).
+Qed.
+
+Lemma maxnormal_charsimple : forall G H L,
+  G <| L -> maxnormal H G L -> charsimple (G / H).
+Proof.
+move=> G H L; case/andP=> sGL nGL.
+case/maxgroupP; do 2![case/andP] => sHG sGH nHL maxH.
+have nHG: G \subset 'N(H) := subset_trans sGL nHL.
+apply/charsimpleP; rewrite trivg_quotient //; split=> // HK ntHK chHK.
+case/(inv_quotientN _): (char_normal chHK) => [|K defHK sHK]; first exact/andP.
+case/andP; rewrite subEproper defHK; case/predU1P=> [-> //|sKG nKG].
+have nHK: H <| K by rewrite /normal sHK (subset_trans (proper_sub sKG)).
+case/negP: ntHK; rewrite defHK trivg_quotient ?normal_norm // (maxH K) //.
+rewrite sKG -(quotientGK nHK) -defHK (subset_trans _ (morphpre_norm _ _)) //.
+by rewrite -sub_quotient_pre // (char_norm_trans chHK) ?quotient_norms.
+Qed.
+
+Lemma minnormal_exists : forall G H, ~~ trivg H -> G \subset 'N(H) ->
+  {M : {group gT} | minnormal M G & M \subset H}.
+Proof. by move=> G H ntH nHG; apply: mingroup_exists (H) _; rewrite ntH. Qed.
+
+Lemma p_abelemS : forall rT (p : nat) (A B : {group rT}),
+  B \subset A -> p.-abelem A -> p.-abelem B.
+Proof.
+move=> rT p A B sBA; case/andP=> abA pA.
+by rewrite /p_abelem (abelemS sBA) ?(pgroupS sBA).
+Qed.
+
+Lemma misom_isog : forall rT1 rT2 (G1 : {group rT1}) (A2 : {set rT2}) f,
+  misom G1 A2 f -> isog G1 A2.
+Proof. move=> rT1 rT2 G1 A2 f; case/misomP=> fM; exact: isom_isog. Qed.
+
+Lemma isog_setX : forall rT1 rT2 rT3 rT4,
+  forall (G1 : {group rT1}) (G2 : {group rT2}),
+  forall (G3 : {group rT3}) (G4 : {group rT4}),
+  isog G1 G3 -> isog G2 G4 -> isog (setX G1 G2) (setX G3 G4).
+Proof.
+move=> rT1 rT2 rT3 rT4 G1 G2 G3 G4.
+case/isogP=> f1 inj1 <-{G3}; case/isogP=> f2 inj2 <-{G4}.
+pose f u := (f1 u.1, f2 u.2).
+have fM: {in setX G1 G2 &, {morph f : x y / x * y}}.
+  move=> [x1 x2] [y1 y2]; rewrite /f /= !inE /=.
+  by case/andP=> Gx1 Gx2; case/andP=> Gy1 Gy2; rewrite !morphM.
+apply/isogP; exists (Morphism fM).
+  apply/injmP=> [] [x1 x2] [y1 y2]; rewrite !inE /f /=.
+  case/andP=> Gx1 Gx2; case/andP=> Gy1 Gy2 [].
+  by move/(injmP _ inj1)=> -> //; move/(injmP _ inj2)->.
+apply/setP=> [[y1 y2]]; rewrite inE /= !morphimEdom /=.
+apply/imsetP/andP=> [[[x1 x2]]|[]].
+  by rewrite inE /=; case/andP=> Gx1 Gx2 [-> ->]; rewrite !mem_imset.
+case/imsetP=> x1 Gx1 ->; case/imsetP=> x2 Gx2 ->; exists (x1, x2) => //.
+by rewrite inE /= Gx1 Gx2.
+Qed.
+
+Lemma isog_setXC : forall rT1 rT2 (G1 : {group rT1}) (G2 : {group rT2}),
+  isog (setX G1 G2) (setX G2 G1).
+Proof.
+move=> rT1 rT2 G1 G2; pose f x : rT2 * rT1 := (x.2, x.1).
+have fM: {in setX G1 G2 &, {morph f : x y / x * y}} by case=> ? ? [].
+apply/isogP; exists (Morphism fM).
+  by apply/injmP=> [] [x1 x2] [y1 y2] _ _ [-> ->].
+apply/setP=> [[y2 y1]]; rewrite inE morphimEdom /=.
+apply/imsetP/andP=> [[[x1 x2]]|[Gy2 Gy1]].
+  by rewrite inE /=; case/andP=> Gx1 Gx2 [-> ->].
+by exists (y1, y2); rewrite // inE /= Gy1 Gy2.
+Qed.
+
+Lemma isog_setXA : forall rT1 rT2 rT3,
+  forall (G1 : {group rT1}) (G2 : {group rT2}) (G3 : {group rT3}),
+  isog (setX G1 (setX G2 G3)) (setX (setX G1 G2) G3).
+Proof.
+move=> rT1 rT2 rT3 G1 G2 G3; pose f x : rT1 * rT2 * rT3 := (x.1, x.2.1, x.2.2).
+have fM: {in setX G1 (setX G2 G3) &, {morph f : x y / x * y}}.
+   by case=> ? [? ?] [? [? ?]].
+apply/isogP; exists (Morphism fM).
+  by apply/injmP=> [] [x1 [x2 x3]] [y1 [y2 y3]] _ _ [-> -> ->].
+apply/setP=> [[[y1 y2] y3]]; rewrite !inE morphimEdom /= -andbA.
+apply/imsetP/and3P=> [[[x1 [x2 x3]]]|[Gy1 Gy2 Gy3]].
+  by rewrite !inE /=; case/and3P=> Gx1 Gx2 Gx3 [-> -> ->].
+by exists (y1, (y2, y3)); rewrite // !inE /= Gy1 Gy2 Gy3.
+Qed.
+
+Lemma isog_setX1 : forall rT1 rT2 (G1 : {group rT1}),
+  isog (setX G1 [1 rT2]%G) G1.
+Proof.
+move=> rT1 rT2 G1; pose f (x : rT1 * rT2) := x.1.
+have fM: {in setX G1 1 &, {morph f : x y / x * y}} by case=> ? ? [? ?].
+apply/isogP; exists (Morphism fM).
+  apply/injmP=> [] [x1 x2] [y1 y2]; rewrite !inE /=.
+  by do 2![case/andP=> _; move/eqP->] => ->.
+apply/setP=> y; rewrite morphimEdom /=; apply/imsetP/idP=> [[[x1 x2]]|Gy].
+  by rewrite inE; case/andP=> ? _ ->.
+by exists (y, 1 : rT2); rewrite // inE Gy set11.
+Qed.
+
+Lemma cyclic_cycle : forall rT (x : rT), cyclic <[x]>.
+Proof. by move=> rT x; apply/cyclicP; exists x. Qed.
+
+Lemma isog_cyclic : forall rT G (A : {group rT}),
+  cyclic G -> isog G A = cyclic A && (#|A| == #|G|).
+Proof.
+move=> rT G A cG; apply/idP/idP=> [isoAG | ].
+  by rewrite (isog_card isoAG) eqxx (isog_cyclic isoAG).
+case/cyclicP: cG => x ->{G}; case/andP; case/cyclicP=> y ->{A}; move/eqP=> oy.
+apply: isog_trans (isog_symr _) (isom_isog _ (subset_refl _) (cycle_isom y)).
+move/(@val_inj _ _ pos_nat_subType): (oy : #[y] = #[x])->.
+exact: (isom_isog _ (subset_refl _) (cycle_isom x)).
+Qed.
+
+Lemma abelem_order_p : forall rT (p : nat) (A : {group rT}) x,
+  p.-abelem A -> x \in A -> x \notin 1%G -> prime p /\ #[x] = p.
+Proof.
+move=> rT p A x pA Ax; rewrite -cycle_subG.
+have: p.-elt x := mem_p_elt (abelem_pgroup pA) Ax.
+case/pgroup_1Vpr=> [/= -> | [pr_p lepx _] _]; first by rewrite subset_refl.
+split=> //; apply/eqP; rewrite eqn_leq lepx dvdn_leq ?ltn_0prime // order_dvd.
+by case/p_abelemP: pA => // _ ->.
+Qed.
+
+Lemma p_abelem_split1 : forall rT (p : nat) (A : {group rT}) x,
+     p.-abelem A -> x \in A ->
+  exists B : {group rT}, [/\ B \subset A, #|B| = #|A| %/ #[x]
+                          & misom (setX <[x]> B) A (@mulg_pair _)].
+Proof.
+move=> rT p A x pA Ax; have sxA: <[x]> \subset A by rewrite cycle_subG.
+case/splitsP: (abelem_splits pA sxA) => B; case/complP=> trxB defA.
+have sBA: B \subset A by rewrite -defA mulG_subr.
+exists B; split => //.
+  by rewrite -defA (card_mulG_trivP _ _ trxB) divn_mulr.
+have cxB: <[x]> \subset 'C(B).
+  rewrite cycle_subG; apply: subsetP Ax; rewrite centsC.
+  by apply: subset_trans sBA _; case/andP: pA; case/andP.
+apply/dirprod_isom; split=> //; first exact/centsP.
+by apply: group_inj; rewrite /= cent_mulgenE.
+Qed.
+
+Lemma isog_abelem : forall rT (p : nat) G (A : {group rT}),
+  p.-abelem G -> isog G A = p.-abelem A && (#|A| == #|G|).
+Proof.
+move=> rT p G A pG; apply/idP/idP=> [isoAG | ].
+  rewrite (isog_card isoAG) eqxx andbT; case/isogP: isoAG => f injf <- {A}.
+  case/pgroup_1Vpr: (abelem_pgroup pG) => [G1 | [pr_p _ _]].
+     by rewrite {3}G1 morphim1 p_abelem1.
+  case/p_abelemP: pG => // abG pG; apply/p_abelemP=> //; split=> [|fx].
+    by apply/setIidPl; rewrite // -injm_cent // -morphimIdom (setIidPl _).
+  by case/morphimP=> x Gx _ ->{fx}; rewrite -morphX ?pG ?morph1.
+elim: {A}_.+1 {-2}A (ltnSn #|A|) => // n IHn A leAn in G pG *.
+case/andP=> pA; move/eqP=> oA.
+case/pgroup_1Vpr: (abelem_pgroup pA) => [A1 | [pr_p geAp _]].
+  have trG: trivg G by rewrite trivg_card -oA A1 cards1.
+  apply/isogP; exists (triv_morph rT G).
+    by rewrite ['injm _]subIset // [G \subset _]trG.
+  by rewrite {5}(trivgP _ trG) morphim1.
+have{pr_p} lt1p: 1 < p by exact: prime_gt1.
+have ntA: ~~ trivg A by rewrite trivg_card -ltnNge (leq_trans lt1p).
+have ntG: ~~ trivg G by rewrite trivg_card -oA -trivg_card.
+case/subsetPn: ntG => x Gx; case/(abelem_order_p pG)=> // _ ox.
+have [H [sHG oH defG]] := p_abelem_split1 pG Gx.
+case/subsetPn: ntA => y Ay; case/(abelem_order_p pA)=> // _ oy.
+have [B [sBA oB defA]] := p_abelem_split1 pA Ay.
+apply: isog_trans (isog_symr (misom_isog defG)) _.
+apply: isog_trans (isog_setX _ _) (misom_isog defA).
+  by rewrite isog_cyclic ?cyclic_cycle // [#|_|]oy -ox eqxx.
+apply: IHn; rewrite ?(p_abelemS sHG, p_abelemS sBA) //=; last first.
+  by rewrite oB oH oA ox oy.
+apply: leq_trans (proper_card _) leAn; rewrite properEcardlt sBA.
+by apply: leq_trans (leq_div _ #[y]); rewrite -(muln1 #|B|) -oB oy ltn_pmul2l.
+Qed.
+
+Lemma dom_kerP : forall rT1 rT2 (G1 : {group rT1}) (f : {morphism G1 >-> rT2}),
+  forall x, x \in G1 -> reflect (f x = 1) (x \in 'ker f).
+Proof. move=> rT1 rT2 G1 f x Gx; rewrite 2!inE Gx; exact: set1P. Qed.
+
+Lemma abelem_charsimple : forall (p : nat) G,
+  p.-abelem G -> ~~ trivg G -> charsimple G.
+Proof.
+move=> p G pG ntG; apply/charsimpleP; split=> {ntG}// K ntK; case/charP.
+rewrite subEproper; case/predU1P=> //; case/andP=> sKG.
+case/subsetPn=> x Gx Kx chK; case: (abelem_order_p pG Gx) => [|pr_p ox].
+  by apply/set1P=> x1; rewrite x1 group1 in Kx.
+have [A [sAG oA]] := p_abelem_split1 pG Gx.
+case/misomP=> fA; case/isomP=> /= injA defAG.
+case/subsetPn: ntK => y Ky; have Gy := subsetP sKG y Ky.
+case/(abelem_order_p pG) => // _ oy.
+have [B [sBG oB]] := p_abelem_split1 pG Gy.
+case/misomP=> fB; case/isomP=> /= injB defBG.
+have: isog A B; last case/isogP=> fAB injAB defAB.
+  rewrite (isog_abelem _ (p_abelemS sAG pG)) (p_abelemS sBG) //=.
+  by rewrite oA oB ox oy.
+have: isog <[x]> <[y]>; last case/isogP=> fxy injxy /= defxy.
+  by rewrite isog_cyclic ?cyclic_cycle // [#|_|]oy -ox eqxx.
+pose f z := let: (u, v) := invm injA z in morphm fB (fxy u, fAB v).
+have invAE: forall z, z \in G ->
+  exists2 u, u \in <[x]> & exists2 v, v \in A & invm injA z = (u, v).
+- move=> z; rewrite -{1}defAG -(morphpre_invm injA) 3!inE; case/and3P=> _ /=.
+  by case: {+}(invm _ _) => u v xu Av; exists u => //; exists v.
+have memyB: forall u v,
+  u \in <[x]> -> v \in A -> (fxy u, fAB v) \in setX <[y]> B.
+- by move=> u v xa Av; rewrite inE -defAB -defxy !mem_morphim.
+have fM: {in G &, {morph f: z1 z2 / z1 * z2}}.
+  move=> z1 z2 Gz1 Gz2; rewrite /f morphM /= ?defAG //.
+  case/invAE: Gz1 => u1 xu1 [v1 Av1 ->]; case/invAE: Gz2 => u2 xu2 [v2 Av2 ->].
+  by rewrite -morphM /= /morphm /= ?morphM ?memyB.
+have injf: 'injm (Morphism fM).
+  apply/subsetP=> z; case/morphpreP=> Gz /=; move/set1P.
+  case/invAE: (Gz) => u xu [v Av defz]; rewrite /f defz.
+  move/dom_kerP; rewrite ?memyB // ker_injm //; move/implyP; case/set1P.
+  move/(dom_kerP _ xu); rewrite ker_injm //; move/set1P=> u1.
+  move/(dom_kerP _ Av); rewrite ker_injm //; move/set1P=> v1.
+  by rewrite -(ker_injm (injm_invm injA)) 2!inE /= defAG defz Gz u1 v1 set11.
+case/negP: Kx; rewrite -(injmK injf sKG) (chK _ injf).
+  rewrite  2!inE Gx /=; rewrite -cycle_subG in Ky; apply: (subsetP Ky).
+  have ->: x = morphm fA (x, 1) by rewrite /morphm /= mulg1.
+  rewrite /f invmE ?inE /= ?cyclenn ?group1 // morph1 /morphm /= mulg1.
+  by rewrite -defxy mem_morphim ?cyclenn.
+apply/morphim_fixP=> //; apply/subsetP=> fz; case/morphimP=> z _ Gz ->{fz}.
+rewrite /= /f -defBG; case/invAE: Gz => u xu [v Av ->].
+by rewrite morphimEdom mem_imset ?memyB.
+Qed.
+
+Lemma charsimple_dprog : forall G, charsimple G ->
+  exists H : {group gT}, [/\ H \subset G, simple H
+                         & exists2 I : {set {perm gT}}, I \subset Aut G
+                         & \big[direct_product/1]_(f \in I) f @: H = G].
+Proof.
+move=> G; case/charsimpleP=> ntG simG.
+have [H minH sHG]: {H : {group gT} | minnormal H G & H \subset G}.
+  by apply: mingroup_exists; rewrite ntG normG.
+case/mingroupP: minH; case/andP=> ntH nHG minH.
+pose Iok (I : {set {perm gT}}) :=
+  (I \subset Aut G) && 
+  (existsb M : {group gT}, (M <| G) &&
+    (\big[direct_product/1]_(f \in I) f @: H == M)).
+have defH: (1 : {perm gT}) @: H = H.
+  apply/eqP; rewrite eqset_sub_card card_imset ?leqnn; last exact: perm_inj.
+  by rewrite andbT; apply/subsetP=> fx; case/imsetP=> x Hx ->; rewrite perm1.
+have [|I] := @maxset_exists _ Iok 1.
+  rewrite /Iok sub1G; apply/existsP; exists H.
+  by rewrite /normal sHG nHG (big_pred1 1) => [|f]; rewrite ?defH /= ?inE.
+case/maxsetP; case/andP=> Aut_I; case/existsP=> M; do 2![case/andP]=> sMG nMG.
+move/eqP=> defM maxI; rewrite sub1set=> ntI; move: sMG; rewrite subEproper.
+case/predU1P=> [defG|]; last case/andP=> sMG sGM.
+  exists H; split=> //; last by exists I; rewrite ?defM.
+  apply/mingroupP; rewrite ntH normG; split=> // N; case/andP=> ntN nNH sNH.
+  apply: minH => //; rewrite ntN /= -defG.
+  move: defM; rewrite (bigD1 1) //= defH; case/dprodGP=> [[_ K _ -> <- cHK] _].
+  by rewrite mul_subG // cents_norm // centsC (subset_trans sNH).
+have defG: <<\bigcup_(f \in Aut G) f @: H>> = G.
+  have sXG: \bigcup_(f \in Aut G) f @: H \subset G.
+    apply big_prop => [|A B sAG sBG|f Af]; first exact: sub0set.
+    - by rewrite subUset sAG.
+    by rewrite -(autm_dom Af) morphimEdom imsetS.
+  apply: simG.
+    apply: contra ntH; apply: subset_trans; rewrite sub_gen //.
+    rewrite -{1}defH; apply: (@bigcup_sup _ _ _ (fun f : {perm _} => f @: H)).
+    exact: group1.
+  rewrite /characteristic gen_subG sXG; apply/forallP=> f; apply/implyP=> Af.
+  rewrite -(autmE Af) -morphimEsub ?gen_subG ?morphim_gen // genS //.
+  rewrite morphimEsub //= autmE.
+  apply/subsetP=> fgx; case/imsetP=> gx; case/bigcupP=> g Ag.
+  case/imsetP=> x Hx -> -> {gx fgx}; apply/bigcupP.
+  exists (g * f); first exact: groupM.
+  by apply/imsetP; exists x; rewrite // permM.
+have [f Af sfHM]: exists2 f, f \in Aut G & ~~ (f @: H \subset M).
+  move: sGM; rewrite -{1}defG gen_subG; case/subsetPn=> x.
+  by case/bigcupP=> f Af fHx Mx; exists f => //; apply/subsetPn; exists x.
+case If: (f \in I).
+  case/negP: sfHM; rewrite -(bigdprodEgen defM) sub_gen //.
+  exact: (@bigcup_sup _ _ _ (fun f : {perm _} => f @: H)).
+case/idP: (If); rewrite -(maxI ([set f] :|: I)) ?subsetUr ?inE ?eqxx //.
+rewrite {maxI}/Iok subUset sub1set Af {}Aut_I; apply/existsP.
+have sfHG: autm Af @* H \subset G by rewrite -{4}(autm_dom Af) morphimS.
+have{minH nHG}: minnormal (autm Af @* H) G.
+  apply/mingroupP; rewrite andbC -{1}(autm_dom Af) morphim_norms //=.
+  rewrite {1}/trivg sub_morphim_pre // -kerE ker_autm.
+  split=> // N; case/andP=> ntN nNG sNfH.
+  have sNG: N \subset G := subset_trans sNfH sfHG.
+  apply/eqP; rewrite eqset_sub sNfH sub_morphim_pre //=.
+  rewrite -(morphim_invmE (injm_autm Af)) [_ @* N]minH //=.
+    rewrite /trivg sub_morphim_pre /= ?autm_dom // morphpre_invm morphim1 ntN.
+    by rewrite -{1}(invm_dom (injm_autm Af)) /= {2}autm_dom morphim_norms.
+  by rewrite sub_morphim_pre /= ?autm_dom // morphpre_invm.
+case/mingroupP; case/andP=> ntfH nfHG minfH.
+have{minfH sfHM} trfHM: trivg (autm Af @* H :&: M).
+  apply/idPn=> ntMfH; case/setIidPl: sfHM; rewrite -(autmE Af) -morphimEsub //.
+  by apply: minfH; rewrite ?subsetIl // ntMfH normsI.
+have cfHM: autm Af @* H \subset 'C(M).
+  rewrite (sameP centsP commG1P); apply: subset_trans trfHM.
+  rewrite subsetI commg_subl commg_subr (subset_trans sMG) //.
+  exact: (subset_trans sfHG).
+exists (autm Af @* H <*> M)%G.
+rewrite /normal /= mulgen_subG sMG sfHG norms_mulgen //=.
+rewrite (bigD1 f) ?inE ?eqxx // (eq_bigl (mem I)) /= => [|g]; last first.
+  by rewrite /= !inE andbC; case: eqP => // ->.
+by rewrite defM -(autmE Af) -morphimEsub // dprodGE // cent_mulgenE ?eqxx.
+Qed.
+
+Lemma charsimple_solvable : forall G,
+  charsimple G -> solvable G -> abelem G.
+Proof.
+move=> G; case/charsimple_dprog=> H [sHG simH [I Aut_I defG]] solG.
+case/simpleP: simH => ntH simH; pose p := pdiv #|H|.
+have pr_p: prime p by rewrite prime_pdiv // ltnNge -trivg_card.
+have{solG ntH} abH: abelian H.
+  apply/centsP; apply/commG1P; apply/trivgP.
+  case/simH: (der_normal H 0) => // perH; have:= forallP solG H.
+  by rewrite subsetI sHG [[~: H, H]]perH subset_refl (negPf ntH).
+have{simH} oHp: #|H| = p.
+  have [x Hx ox] := Cauchy pr_p (dvdn_pdiv _).
+  case: (simH <[x]>%G) => [|/= x1|<- //].
+    by rewrite /normal cents_norm 1?centsC cycle_subG ?Hx ?(subsetP abH).
+  by rewrite -ox /order x1 cards1 in pr_p.
+apply/abelemP; exists p => //; move: (G) defG.
+apply big_prop => [_ <-|A1 A2 IH1 IH2 M|f If _ <-]; first exact: p_abelem1.
+  case/dprodGP=> [[G1 G2 dG1 dG2]]; rewrite dG1 dG2 => defM cG12 _.
+  have [abG1 pG1] := p_abelemP G1 pr_p (IH1 G1 dG1).
+  have [abG2 pG2] := p_abelemP G2 pr_p (IH2 G2 dG2).
+  apply/p_abelemP; rewrite // -{M}defM /abelian !centMG !subsetI.
+  rewrite !mul_subG // 1?centsC //; split=> // x.
+  case/imset2P=> x1 x2 Gx1 Gx2 ->; rewrite expMgn; last exact: (centsP cG12).
+  by rewrite pG1 // pG2 // mulg1.
+have Af := subsetP Aut_I f If; rewrite -(autmE Af) -morphimEsub //.
+apply/p_abelemP; rewrite /abelian ?morphim_cents //; split=> // fx.
+case/morphimP=> x Gx Hx ->{fx}; rewrite -morphX 1?((x ^+ p =P 1) _) ?morph1 //.
+by rewrite -order_dvd -oHp cardSg // cycle_subG.
+Qed.
+
+Lemma minnormal_solvable : forall L G H : {group gT},
+  minnormal H L -> H \subset G -> solvable G ->
+  [/\ L \subset 'N(H), ~~ trivg H  & abelem H].
+Proof.
+move=> L G H minH sHG solG; have [ntH nHL] := andP (mingroupp minH).
+split=> //; apply: (charsimple_solvable (minnormal_charsimple minH)).
+exact: solvableS solG.
+Qed.
+
+Lemma solvable_norm_abelem : forall L G : {group gT},
+  solvable G -> G <| L -> ~~ trivg G ->
+  exists H : {group gT}, [/\ H \subset G, H <| L, ~~ trivg H & abelem H].
+Proof.
+move=> L G solG; case/andP=> sGL nGL ntG.
+have [H minH sHG]: {H : {group gT} | minnormal H L & H \subset G}.
+  by apply: mingroup_exists; rewrite ntG.
+have [nHL ntH abH] := minnormal_solvable minH sHG solG.
+by exists H; split; rewrite // /normal (subset_trans sHG).
+Qed.
+
+End CharSimple.
 
               
 

@@ -1,7 +1,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div prime.
 Require Import fintype paths ssralg bigops finset.
 Require Import groups morphisms normal pgroups cyclic nilpotent.
-Require Import sylow schurzass.
+Require Import sylow maximal schurzass.
 
 (* Require Import connect finfun group_perm automorphism action center. *)
 
