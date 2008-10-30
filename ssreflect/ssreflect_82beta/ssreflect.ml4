@@ -700,14 +700,24 @@ let redeclare_prenex_pp other_pp =
   let dummy_meta = id_of_string "prenex_pp_override", (None, []) in
 (*assia  des espaces dangereux?
  let dummy_meta = id_of_string "prenex pp override", (None, []) in*)
+
+(*
   let redeclare_pp (rule, (metas, pat), _) () =
     Notation.declare_uninterpretation rule (metas @ [dummy_meta], pat) in
   List.fold_right redeclare_pp other_pp ()
+    *)
+  let redeclare_pp (rule, ((metas1, metas2), pat), _) () =
+    Notation.declare_uninterpretation rule ((metas1 @ [dummy_meta], []), pat) in
+  List.fold_right redeclare_pp other_pp ()
+
 
 let declare_prenex_uninterpretation loc f =
   let fkn = Nametab.locate_syntactic_definition (make_short_qualid f) in
   let interpf = Syntax_def.search_syntactic_definition loc fkn in
-  Notation.declare_uninterpretation (Notation.SynDefRule fkn) interpf
+(** assia   Notation.declare_uninterpretation (Notation.SynDefRule fkn) interpf*)
+  let (interpfv, interpfc) = interpf in
+  Notation.declare_uninterpretation (Notation.SynDefRule fkn) 
+    ((interpfv, []),interpfc)
     (** assia, previous is:
    let rawf = Syntax_def.search_syntactic_definition loc fkn in
    let fpat = aconstr_of_rawconstr [] rawf in
@@ -2076,7 +2086,7 @@ let wit_ssrmmod, globwit_ssrmmod, rawwit_ssrmmod = add_genarg "ssrmmod" pr_mmod
 let ssrmmod = Gram.Entry.create "ssrmmod"
 GEXTEND Gram
   GLOBAL: ssrmmod;
-  ssrmmod: [[ "!" -> Must | "?" -> May ]];
+  ssrmmod: [[ "!" -> Must | PATTERNIDENT "?" -> May | "?" -> May]];
 END
 
 (* tactical *)
@@ -2368,11 +2378,20 @@ let guard_term ch1 s i = match s.[i] with
   | '{' | '/' | '=' -> true
   | _ -> ch1 <> ' '
 
+(* assia generates bad identifiers with comments...
 let pat_of_ssrterm n c =
   let rec mkvars i =
     let v = mkVar (id_of_string (sprintf "_(*%d*)" i)) in
     if i = 0 then [v] else v :: mkvars (i - 1) in
   if n <= 0 then c else substl (mkvars n) (snd (decompose_lam_n n c))
+*)
+
+let pat_of_ssrterm n c =
+  let rec mkvars i =
+    let v = mkVar (id_of_string (sprintf "_SSR_pat_var_%d" i)) in
+    if i = 0 then [v] else v :: mkvars (i - 1) in
+  if n <= 0 then c else substl (mkvars n) (snd (decompose_lam_n n c))
+
 
 let pr_pattern n c = pr_constr (pat_of_ssrterm n c)
 
