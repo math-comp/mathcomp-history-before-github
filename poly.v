@@ -99,6 +99,7 @@ Notation "\poly_ ( i < n ) E" := (mkPoly (mkseq (fun i : nat => E) n)).
 Lemma seq_polyX : \X = [:: 0; 1] :> seq R.
 Proof. by rewrite !seq_horner seq_poly0 seq_poly1. Qed.
 
+
 Lemma mkPoly_seq : forall p : poly, mkPoly p = p.
 Proof.
 move=> [[|c s] ns] /=; apply seq_of_poly_inj=> /=; first exact: seq_poly0.
@@ -285,6 +286,9 @@ Canonical Structure poly_basic_ring :=
   Ring.Basic poly_mulA poly_mul1P poly_mulP1
              poly_mul_addr poly_mul_addl poly_nontriv.
 
+
+Definition simpl01 := (mul0r,mulr0,mul1r,mulr1,add0r,addr0,oppr0).
+
 Lemma coef_opp : forall p i, coef (- p) i = - coef p i.
 Proof. by move=> p i; rewrite coef_mul_C_poly mulN1r. Qed.
 
@@ -343,7 +347,7 @@ Proof.
 by move=> p i H; case: leqP => Cspi //; case H; rewrite coef_default.
 Qed.
 
-Lemma size_plus: forall p q: poly, size (p + q) <= (size p + size q)%N.
+Lemma size_add: forall p q: poly, size (p + q) <= (size p + size q)%N.
 Proof.
 move=> p q; apply leq_size_coef => j Hj; rewrite coef_add_poly.
 by rewrite !coef_default ?add0r // (leq_trans _ Hj) // (leq_addr, leq_addl).
@@ -365,6 +369,15 @@ apply: (@leq_trans (size p +  (j - i).+1)); last by rewrite leq_add2l.
 by rewrite  -!addnA addnS addn0 ltn_add2r.
 Qed. 
 
+Lemma size1P: forall p, reflect (exists c, p = \C c) (size p <= 1).
+Proof.
+move=> p; apply: (iffP eqP); last first.
+  by case=> c ->; rewrite  val_insubd; case: normal.
+move=> HH; exists (coef p 0).
+apply/coef_eqP=> [[|i]]; rewrite coef_polyC // coef_default //.
+by case: size HH => // [[|n]].
+Qed.
+
 Lemma lead_coefE: forall p: poly, lead_coef p = if p == 0 then 1 else coef p (size p).-1.
 Proof.
 move=> p; rewrite /lead_coef /coef -(sub_last 0).
@@ -376,8 +389,6 @@ Qed.
 Definition polyXn n := mkPoly (addsn n (0: R) [::1]).
 
 Notation "\X^ n" := (polyXn n) (at level 1).
-
-Definition simpl01 := (mul0r,mulr0,mul1r,mulr1,add0r,addr0,oppr0).
 
 Lemma polyXn0 : \X^ 0 = 1.
 Proof. by rewrite  /polyXn /= horner_def !simpl01. Qed.
@@ -457,6 +468,9 @@ apply/val_eqP; apply/eqP; rewrite /polyC {2}/mul /= /mul_poly /= !val_insubd /no
 - by move=> ->; rewrite /= add0r seq_poly0.
 by rewrite addr0 /polyC val_insubd /normal; move/eqP->.
 Qed.
+
+Lemma opp_polyC: forall c: R, - \C c = \C -c.
+Proof. by move=> c; rewrite -mulN1r polyC_mul. Qed.
 
 (* Monic *)
 
@@ -707,7 +721,7 @@ elim=> [s2 | a1 s1 IHs [|a2 s2]] x /=; rewrite ?simp //= {}IHs.
 by rewrite mulr_addl -!addrA (addrCA a1).
 Qed.
 
-Lemma eval_poly_plus : forall p q x, (p + q).[x] = p.[x] + q.[x].
+Lemma eval_poly_add : forall p q x, (p + q).[x] = p.[x] + q.[x].
 Proof. by move=> p q x; rewrite eval_mkPoly eval_add_poly_seq. Qed.
 
 Definition com_coef p (x : R) := forall i, (coef p i) * x = x * (coef p i).
@@ -729,7 +743,7 @@ Proof. by move=> *; rewrite /com_poly !eval_polyC !simp. Qed.
 Lemma com_polyX : forall x, com_poly \X x.
 Proof. by move=> *; rewrite /com_poly !eval_polyX. Qed.
 
-Lemma eval_poly_mult : forall p q x,
+Lemma eval_poly_mul : forall p q x,
   com_poly q x -> (p * q).[x] = p.[x] * q.[x].
 Proof.
 move=> p q x com_qx; rewrite eval_mkPoly {1}/eval_poly.
@@ -740,7 +754,7 @@ elim: {s q com_qx}(q : seq R) => /= [|b s ->]; first by rewrite simp.
 by rewrite -mulrA -mulr_addr.
 Qed.
 
-Lemma eval_poly_Cmult : forall c p x, (\C c * p).[x] = c * p.[x].
+Lemma eval_poly_Cmul : forall c p x, (\C c * p).[x] = c * p.[x].
 Proof.
 move=> c p x; rewrite eval_mkPoly seq_polyC /eval_poly.
 case: eqP => [->|_] /=; rewrite ?eval_add_poly_seq /= !simp //.
@@ -748,11 +762,11 @@ by elim: (p : seq R) => /= [|a s ->]; rewrite ?simp // mulr_addr mulrA.
 Qed.
 
 Lemma eval_poly_opp : forall p x, (- p).[x] = - p.[x].
-Proof. by move=> p x; rewrite eval_poly_Cmult mulN1r. Qed.
+Proof. by move=> p x; rewrite eval_poly_Cmul mulN1r. Qed.
 
 Definition eval_poly_lin :=
-  (eval_poly_plus, eval_poly_opp, eval_polyX, eval_polyC, eval_horner,
-   simp, eval_poly_Cmult, (fun p x => eval_poly_mult p (com_polyX x))).
+  (eval_poly_add, eval_poly_opp, eval_polyX, eval_polyC, eval_horner,
+   simp, eval_poly_Cmul, (fun p x => eval_poly_mul p (com_polyX x))).
 
 Lemma factor0 : forall a, (\X - \C a).[a] = 0.
 Proof. by move=> a; rewrite !eval_poly_lin addrN. Qed.
@@ -764,21 +778,27 @@ move=> a i; rewrite coef_add_poly coef_polyX coef_opp coef_polyC.
 by case: i => [|[|i]]; rewrite !(oppr0, simp).
 Qed.
 
+Lemma seq_polyXc: forall c: R, \X + \C c = [::c;1] :> seq R.
+Proof.
+move=> c; rewrite /add /= /add_poly seq_polyX seq_polyC /=.
+ by case: eqP => [->| _]; rewrite ?simpl01 !seq_horner !seq_polyC !eqxx ?simpl01;
+    case: eqP => // HH; case (@nonzero1r R).
+Qed.
+
 Theorem factor_theorem : forall p c,
   reflect (exists q, p = q * (\X - \C c)) (p.[c] == 0).
 Proof.
 move=> p c; apply: (iffP eqP) => [root_p_c | [q -> {p}]]; last first.
-  by rewrite eval_poly_mult /com_poly factor0 ?simp.
-exists (\poly_(i < size p) eval_poly_seq (drop i.+1 p) c).
-apply/coef_eqP => [] [|i {root_p_c}]; rewrite coef_mul_poly_rev.
-  rewrite big_ord_recl big_pred0 ?simp /= => [|[//]].
-  move: root_p_c; rewrite  coef_factor coef_poly_of /eval_poly /coef drop1.
-  case/seq_of_poly: p => [|a s]; rewrite /= ?simp // mulrN.
-  by move=> eq_a0; rewrite (canRL (addKr _) eq_a0) simp.
-rewrite 2!big_ord_recl /= big1 => [|j _]; rewrite /= ?(coef_factor, simp) //.
-rewrite !coef_poly_of subn0 subn1 /= mulrN; case: leqP => [le_p_i|lt_i_p].
-  by rewrite drop_oversize // if_same !simp oppr0 coef_default.
-by rewrite ltnW // (drop_sub 0 lt_i_p) addKr.
+  by rewrite eval_poly_mul /com_poly factor0 ?simp.
+rewrite opp_polyC; exists (divp p (\X + \C -c)).
+have MXc: monic (\X + \C (-c)) by rewrite /monic /lead_coef seq_polyXc.
+move: (divp_mon_spec p MXc) root_p_c => HH; rewrite {1 2}HH.
+have Dxc: \X + \C (- c) != 0.
+  by apply/negP; move/eqP;move/val_eqP; rewrite /= seq_polyXc seq_poly0.
+have:=  modp_spec p Dxc.
+rewrite seq_polyXc /= ltnS; case/size1P => c1 ->.
+pose f := (eval_poly_add,eval_poly_mul,eval_polyX, eval_polyC, addrN, simpl01).
+by rewrite !f => [->|]; rewrite /com_poly ?f.
 Qed.
 
 End EvalPolynomial.
