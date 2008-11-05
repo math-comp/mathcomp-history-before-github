@@ -347,27 +347,23 @@ Proof.
 by move=> p i H; case: leqP => Cspi //; case H; rewrite coef_default.
 Qed.
 
-Lemma size_add: forall p q: poly, size (p + q) <= (size p + size q)%N.
+Lemma size_add: forall p q: poly, size (p + q) <= maxn (size p) (size q).
 Proof.
-move=> p q; apply leq_size_coef => j Hj; rewrite coef_add_poly.
-by rewrite !coef_default ?add0r // (leq_trans _ Hj) // (leq_addr, leq_addl).
+move=> p q; apply: leq_size_coef => j; rewrite  leq_maxl; case/andP=> Cpj Cqj.
+by rewrite coef_add_poly !coef_default // !simpl01.
 Qed.
 
-Lemma size_mul: forall p q: poly, size (p * q) <= (size p * size q)%N.
+Lemma size_mul: forall p q: poly, p != 0 -> size (p * q) < size p + size q.
 Proof.
-move=> p q; apply leq_size_coef => j Hj; rewrite coef_mul_poly.
-apply: big1 => [[i Hi]] /= _.
-case: (@leqP (size p) i) => Cpi; first by rewrite coef_default // mul0r.
-case: (@leqP (size q) (j - i)) => Cqi; first by rewrite (coef_default Cqi) mulr0.
-have: size p + size q <= size p * size q + 1.
-  move: Cpi Cqi; (do 2 case: size) => // n m _ _.
-  by rewrite mulnS mulSn -!addnA leq_add2l !addnA addnC !addnA leq_addr.
-rewrite leqNgt; case/negP; apply: (@leq_trans (j + 2)).
-  by rewrite  !addnS !addn0 !ltnS.
-rewrite addnS -(subnK (Hi: i <= j)). 
-apply: (@leq_trans (size p +  (j - i).+1)); last by rewrite leq_add2l.
-by rewrite  -!addnA addnS addn0 ltn_add2r.
-Qed. 
+move=> p q Dp; have Pp: 0 < size p.
+ by case: size (size_poly0_eq p) => // HH; case/negP: Dp; rewrite HH.
+rewrite -(ltn_predK Pp) addSn; apply: leq_size_coef => j Hj. 
+rewrite coef_mul_poly; apply: big1 => [[i Hi]] /= _.
+case: (leqP (size p) i) => Cpi; first by rewrite (coef_default Cpi) !simpl01.
+suff Cqi: size q <= j - i by rewrite (coef_default Cqi) !simpl01.
+by rewrite -(leq_add2l (size p).-1) (leq_trans Hj) // -{1}(subnK (Hi: i <= _))
+           leq_add2r -ltnS (ltn_predK Pp).
+Qed.
 
 Lemma size1P: forall p, reflect (exists c, p = \C c) (size p <= 1).
 Proof.
@@ -487,6 +483,31 @@ Proof.
 by move=> n; rewrite /monic /lead_coef !seq_polyXn; elim: n {1}1 =>/=.
 Qed.
 
+Lemma lead_coef_mul: forall p q,
+  coef (p * q) (size p + size q).-2 = coef p (size p).-1 * coef q (size q).-1.
+Proof.
+move=> p q.
+case: (@eqP _ p 0) => Dp; first by rewrite Dp mul0r !coef0 mul0r.
+case: (@eqP _ q 0) => Dq; first by rewrite Dq mulr0 !coef0 mulr0.
+have Cp1: 0 < size p.
+  by case: size (size_poly0_eq p) => // HH; case Dp; apply/eqP; rewrite HH.
+have Cq1: 0 < size q.
+  by case: size (size_poly0_eq q) => // HH; case Dq; apply/eqP; rewrite HH.
+rewrite coef_mul_poly (@ltn_predK 0); last first.
+  by move: Cp1 Cq1; (do 2 (case: size => //)) => *; rewrite addnS.
+have Opq: (size p).-1 < (size p + size q).-1.
+  by move: Cp1 Cq1; (do 2 (case: size => //)) => *; rewrite addnS leq_addr.
+rewrite (bigD1 (Ordinal Opq)) //=  big1 /=  ?simpl01.
+  by move: Cp1 Cq1; (do 2 (case: size => //)) => *; rewrite addnS addKn.
+move=> [i Hi] /= Di.
+case: (@leqP (size p) i) => Cip; first by rewrite coef_default // !simpl01.
+rewrite (@coef_default q); first by rewrite ?simpl01 //.
+move: Cip; rewrite leq_eqVlt; case/orP => Cip.
+  by case/eqP: Di; apply/val_eqP; rewrite /= -(eqP Cip).
+case: size Cq1 {Di}Hi => [|s1 _] //; case: size Cp1 Cip => [|s2 _] // Cip Hi.
+by rewrite addnS -ltn_add_sub ltn_add2r.
+Qed.
+
 Lemma monic_mul: forall p q, monic p -> monic q -> monic (p * q).
 Proof.
 move=> p q; rewrite /monic !lead_coefE.
@@ -497,33 +518,63 @@ have Cp1: 0 < size p.
   by case: size (size_poly0_eq p) => // HH; case Dp; apply/eqP; rewrite HH.
 have Cq1: 0 < size q.
   by case: size (size_poly0_eq q) => // HH; case Dq; apply/eqP; rewrite HH.
-have Cpq: coef (p * q) (size p + size q).-2 = 1.
-  rewrite coef_mul_poly (@ltn_predK 0); last first.
-    by move: Cp1 Cq1; (do 2 (case: size => //)) => *; rewrite addnS.
-  have Opq: (size p).-1 < (size p + size q).-1.
-    by move: Cp1 Cq1; (do 2 (case: size => //)) => *; rewrite addnS leq_addr.
-  rewrite (bigD1 (Ordinal Opq)) //=  big1 /=.
-    suff ->: ((size p + size q).-2  - (size p).-1 = (size q).-1)%N.
-      by rewrite (eqP Cp) (eqP Cq) !simpl01.
-    by move: Cp1 Cq1; (do 2 (case: size => //)) => *; rewrite addnS addKn.
-  move=> [i Hi] /= Di.
-  case: (@leqP (size p) i) => Cip; first by rewrite coef_default // !simpl01.
-  rewrite (@coef_default q); first by rewrite ?simpl01 //.
-  move: Cip; rewrite leq_eqVlt; case/orP => Cip.
-    by case/eqP: Di; apply/val_eqP; rewrite /= -(eqP Cip).
-  case: size Cq1 {Di}Hi => [|s1 _] //; case: size Cp1 Cip => [|s2 _] // Cip Hi.
-  by rewrite addnS -ltn_add_sub ltn_add2r.
-suff->: size (p * q) = (size p + size q).-1 by rewrite Cpq.
-apply: anti_leq; rewrite leq_size_coef; last first.
-  move=> j Hj; rewrite coef_mul_poly big1 // => [[i Hi]] _ /=.
-  case: (@leqP (size p) i) => Cpi; first by rewrite coef_default // !simpl01.
-  rewrite (@coef_default q) ?simpl01 //.
-  case: size Cq1 Hj => [| s _] //.
-  by rewrite addnS -ltn_add_sub /= => HH; rewrite (leq_trans _ HH) // ltn_add2r.
-rewrite -(@prednK (_.-1)); last first.
-  by case:size Cp1 Cq1 => [| n1 _] //; case: size => [| n2 _]; rewrite // addnS.
-by apply: leq_coef_size; rewrite Cpq; exact: nonzero1r.
+have F1: 0 < size p + size q.
+  by move: Cp1 Cq1; (do 2 (case: size => //)) => *; rewrite addnS addKn.
+move/eqP: Dp => Dp.
+have Cpq: coef (p * q) (size p + size q).-2 == 1.
+  by rewrite lead_coef_mul (eqP Cp) (eqP Cq) !simpl01.
+suff->: size (p * q) =  (size p + size q).-1 by done.
+apply: anti_leq.
+rewrite -ltnS (@ltn_predK 0) ?size_mul //.
+rewrite -(@ltn_predK 0 (_.-1)).
+apply: leq_coef_size; first by rewrite (eqP Cpq); exact: nonzero1r.
+by move: Cp1 Cq1; (do 2 (case: size => //)) => *; rewrite addnS.
 Qed.
+
+(* Integral domain (we may need to introduce integral ring as an object) *)
+
+Definition idomain := forall r1 r2: R, r1 * r2 = 0 -> r1 = 0 \/ r2 = 0.
+
+Hypothesis idR : idomain.
+Lemma iter_mul_id: forall m (r1 r2: R), r1 != 0 -> r2 != 0 -> iter m (mul r1) r2 != 0.
+Proof.
+by move=> m r1 r2 Dr1 Dr2; elim: m => [| m Hrec] //=;
+   apply/eqP; case/idR=> Dr; [case/eqP: Dr1 | case/eqP: Hrec].
+Qed.
+
+Lemma size_mul_id: forall p q: poly, 
+  p != 0 -> q != 0 -> size (p * q) = (size p + size q).-1.
+Proof.
+move=> p q Dp Dq; apply: anti_leq.
+have Cp1: 0 < size p.
+  by case: size (size_poly0_eq p) => // HH; case/negP: Dp; rewrite HH.
+have Cq1: 0 < size q.
+  by case: size (size_poly0_eq q) => // HH; case/negP: Dq; rewrite HH.
+have F1: 0 < size p + size q.
+  by move: Cp1 Cq1; (do 2 (case: size => //)) => *; rewrite addnS addKn.
+rewrite -ltnS (ltn_predK F1) size_mul //.
+rewrite -(@ltn_predK 0 (_.-1)); last first.
+  by move: Cp1 Cq1; (do 2 (case: size => //)) => *; rewrite addnS.
+apply: leq_coef_size; rewrite lead_coef_mul.
+case: eqP Dp Dq (lead_coefE p) (lead_coefE q) (lead_coef_nz p) (lead_coef_nz q);
+  case: eqP => // _ _ _ _ -> -> Cp Cq.
+by case/idR=> Cpq; [case/negP: Cp | case/negP: Cq]; apply/eqP.
+Qed.
+
+Lemma lead_coef_mul_id: forall p q: poly, 
+  p != 0 -> q != 0 -> lead_coef (p * q) = lead_coef p * lead_coef q.
+Proof.
+move=> p q; rewrite !lead_coefE; 
+    (do 3 (case: eqP)) => // E1 E2 E3 _ _; last first.
+  by rewrite size_mul_id // ?lead_coef_mul //; apply/eqP.
+move: (lead_coef_mul p q); rewrite E1 coef0.
+move/eqP; rewrite eq_sym; move/eqP; case/idR => Hd.
+  move: (lead_coef_nz p); rewrite (lead_coefE p) Hd.
+  by move/eqP: E3; case: eqP => // _ _; case/negP.
+move: (lead_coef_nz q); rewrite (lead_coefE q) Hd.
+by move/eqP: E2; case: eqP => // _ _; case/negP.
+Qed.
+
 
 (* Pseudo division *)
 Definition edivp_rec (q: poly)  :=
@@ -619,6 +670,12 @@ Proof.
 move=> p q; rewrite /divp /modp /scalp /edivp.
 case: eqP => He; first by exists 0%N.
 apply: edivp_scal_spec.
+Qed.
+
+Lemma scalp_id: forall p q, scalp p q != 0.
+Proof.
+move=> p q; case (scalp_spec p q) => m ->.
+apply: iter_mul_id; [apply: lead_coef_nz | apply/eqP; exact: nonzero1r].
 Qed.
 
 End Polynomial.
