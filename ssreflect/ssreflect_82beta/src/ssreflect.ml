@@ -2086,7 +2086,7 @@ let wit_ssrmmod, globwit_ssrmmod, rawwit_ssrmmod = add_genarg "ssrmmod" pr_mmod
 let ssrmmod = Gram.Entry.create "ssrmmod"
 GEXTEND Gram
   GLOBAL: ssrmmod;
-  ssrmmod: [[ "!" -> Must | PATTERNIDENT "?" -> May | "?" -> May]];
+  ssrmmod: [[ "!" -> Must | LEFTQMARK -> May | "?" -> May]];
 END
 
 (* tactical *)
