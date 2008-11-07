@@ -286,6 +286,10 @@ Canonical Structure poly_basic_ring :=
   Ring.Basic poly_mulA poly_mul1P poly_mulP1
              poly_mul_addr poly_mul_addl poly_nontriv.
 
+Lemma p10: 1 != 0 :> poly.
+Proof.
+by apply/eqP => HH; case: (@nonzero1r R); apply: polyC_inj.
+Qed.
 
 Definition simpl01 := (mul0r,mulr0,mul1r,mulr1,add0r,addr0,oppr0).
 
@@ -378,6 +382,13 @@ Lemma lead_coefE: forall p: poly, lead_coef p = if p == 0 then 1 else coef p (si
 Proof.
 move=> p; rewrite /lead_coef /coef -(sub_last 0).
 by case: size (size_poly0_eq p) => [| s] ->.
+Qed.
+
+Lemma lead_coef_polyC: forall c, lead_coef (\C c) = if c == 0 then 1 else c.
+Proof.
+move=> c; rewrite lead_coefE coefE seq_polyC.
+case: (@eqP _  c 0) => Ec; first by rewrite Ec eqxx.
+by case: eqP => Epc //; case: Ec; apply: polyC_inj.
 Qed.
 
 (* monomial *)
@@ -648,7 +659,10 @@ Definition divp p q := ((edivp p q).1).2.
 Definition modp p q := (edivp p q).2.
 Definition scalp p q := ((edivp p q).1).1.
 
-Lemma divp_mon_spec: forall p q, monic q -> p = divp p q * q + modp p q.
+Notation "m '/p' d" := (divp m d) (at level 40, no associativity).
+Notation "m %p d" := (modp m d) (at level 40, no associativity).
+
+Lemma divp_mon_spec: forall p q, monic q -> p = p /p q * q + p %p q.
 Proof.
 move=> p q Mq.
 rewrite /divp /modp /scalp /edivp.
@@ -656,7 +670,7 @@ case: eqP => [->| Hq]; first by rewrite !simpl01.
 by apply: edivp_mon_spec; rewrite // !simpl01.
 Qed.
 
-Lemma modp_spec: forall p q, q != 0 -> size (modp p q) < size q.
+Lemma modp_spec: forall p q, q != 0 -> size (p %p q) < size q.
 Proof.
 move=> p q Hq.
 rewrite /divp /modp /scalp /edivp.
@@ -676,6 +690,70 @@ Lemma scalp_id: forall p q, scalp p q != 0.
 Proof.
 move=> p q; case (scalp_spec p q) => m ->.
 apply: iter_mul_id; [apply: lead_coef_nz | apply/eqP; exact: nonzero1r].
+Qed.
+
+Lemma divp0: forall p, p /p 0 = 0.
+Proof. by rewrite /divp /edivp eqxx. Qed.
+
+Lemma div0p: forall p, 0 /p p = 0.
+Proof.
+move=> p; rewrite /divp /edivp; case: eqP => // Hp.
+rewrite /edivp_rec !size_poly0.
+case: (size p) (size_poly0_eq p) => //=.
+by rewrite eqxx; move/idP; move/eqP => HH; case Hp.
+Qed.
+
+Lemma modp0: forall p, p %p 0 = p.
+Proof. by rewrite /modp /edivp eqxx. Qed.
+
+Lemma mod0p: forall p, 0 %p p = 0.
+Proof.
+move=> p; rewrite /modp /edivp; case: eqP => // Hp.
+rewrite /edivp_rec !size_poly0.
+case: (size p) (size_poly0_eq p) => //=.
+by rewrite eqxx; move/idP; move/eqP->; rewrite !simpl01.
+Qed.
+
+Lemma modp1: forall p, p %p 1 = 0.
+Proof.
+move=> p; move: (@modp_spec p 1).
+move/(_ p10); rewrite size_polyC; last by apply/eqP; exact: nonzero1r.
+by move=> HH1; apply/eqP; rewrite size_poly0_eq; case: size HH1.
+Qed.
+
+Lemma divp1: forall p, p /p 1 = p.
+Proof.
+by move=> p; rewrite {2}(divp_mon_spec p monic1) modp1 !simpl01.
+Qed. 
+
+Lemma modp_mon_mull : forall p q: poly, monic q -> p * q %p q = 0.
+Proof.
+move=> p q Mq.
+pose qq := p - (p * q) /p q.
+have Eq:  (p * q) %p q = qq * q.
+  by rewrite mulr_addl {2}(divp_mon_spec (p * q) Mq) [_ * _ + _]addrC
+             mulNr -addrA addrN simpl01.
+case: (@eqP _ q 0) => Cq; first by rewrite Cq modp0 simpl01.
+case: (@eqP _ qq 0) => Cp; first by rewrite Eq Cp simpl01.
+move/eqP: Cp => Cp; move/eqP: Cq => Cq.
+move: (modp_spec (p * q) Cq); rewrite Eq (size_mul_id Cp Cq).
+case: (size qq) (size_poly0_eq qq) => [| n _]; last by rewrite ltnNge  leq_addl.
+by rewrite eqxx; move/idP; move/eqP => HH; case/negP: Cp; apply/eqP.
+Qed.
+
+Lemma divp_mon_mull : forall p q: poly, q != 0 -> monic q -> p * q /p q = p.
+Proof.
+move=> p q Cq Mq.
+pose qq := p - (p * q) /p q.
+have Eq:  (p * q) %p q = qq * q.
+  by rewrite mulr_addl {2}(divp_mon_spec (p * q) Mq) [_ * _ + _]addrC
+             mulNr -addrA addrN simpl01.
+suff Hqq: qq  = 0.
+  by apply: (addrI  (-((p * q) /p q))); rewrite addrN -/qq Hqq.
+apply/eqP; case: eqP => //; move/eqP => Cqq.
+move: (modp_spec (p * q) Cq); rewrite Eq (size_mul_id Cqq Cq).
+case: (size qq) (size_poly0_eq qq) => [| n _]; last by rewrite ltnNge  leq_addl.
+by rewrite eqxx; move/idP; move/eqP => HH; case/negP: Cqq; apply/eqP.
 Qed.
 
 End Polynomial.
@@ -704,6 +782,9 @@ Canonical Structure poly_commutative_ring := Ring.Commutative poly_mulC.
 
 Notation poly := (polynomial R).
 
+Notation "m '/p' d" := (divp m d) (at level 40, no associativity).
+Notation "m %p d" := (modp m d) (at level 40, no associativity).
+
 Lemma edivp_spec: forall (p q: poly) n c qq r,
  let d := edivp_rec q n c qq r in
  \C c * p = qq * q + r -> \C (d.1).1 * p = (d.1).2 * q + d.2.
@@ -718,12 +799,44 @@ rewrite mulr_addl mulr_addr !mulrA -!addrA !(mulrC (\C _)).
 by congr add => //; rewrite addrC -addrA addrC -addrA addKr.
 Qed.
 
-Lemma divp_spec: forall p q: poly, \C (scalp p q) * p = divp p q * q + modp p q.
+Lemma divp_spec: forall p q: poly, \C (scalp p q) * p = p /p q * q + p %p q.
 Proof.
 move=> p q.
 rewrite /divp /modp /scalp /edivp.
 case: eqP => [->| Hq]; first by rewrite !simpl01.
 by apply: edivp_spec; rewrite !simpl01.
+Qed.
+
+Hypothesis idR : idomain R.
+
+Lemma modp_mull : forall p q: poly, p * q %p q = 0.
+Proof.
+move=> p q.
+pose qq := \C (scalp (p* q) q) * p - (p * q) /p q.
+have Eq:  (p * q) %p q = qq * q.
+   by rewrite mulr_addl -mulrA (divp_spec (p * q) q) [_ * _ + _]addrC
+              mulNr -addrA addrN simpl01.
+case: (@eqP _ q 0) => Cq; first by rewrite Cq modp0 simpl01.
+case: (@eqP _ qq 0) => Cp; first by rewrite Eq Cp simpl01.
+move/eqP: Cp => Cp; move/eqP: Cq => Cq.
+move: (modp_spec (p * q) Cq); rewrite Eq (size_mul_id idR Cp Cq).
+case: (size qq) (size_poly0_eq qq) => [| n _]; last by rewrite ltnNge  leq_addl.
+by rewrite eqxx; move/idP; move/eqP => HH; case/negP: Cp; apply/eqP.
+Qed.
+
+Lemma divp_mull : forall p q: poly, q != 0 -> p * q /p q = \C(scalp (p * q) q) * p.
+Proof.
+move=> p q Cq.
+pose qq := \C (scalp (p* q) q) * p - (p * q) /p q.
+have Eq:  (p * q) %p q = qq * q.
+   by rewrite mulr_addl -mulrA (divp_spec (p * q) q) [_ * _ + _]addrC
+              mulNr -addrA addrN simpl01.
+suff Hqq: qq  = 0.
+  by apply: (addrI  (-((p * q) /p q))); rewrite addrN -/qq Hqq.
+apply/eqP; case: eqP => //; move/eqP => Cqq.
+move: (modp_spec (p * q) Cq); rewrite Eq (size_mul_id idR Cqq Cq).
+case: (size qq) (size_poly0_eq qq) => [| n _]; last by rewrite ltnNge  leq_addl.
+by rewrite eqxx; move/idP; move/eqP => HH; case/negP: Cqq; apply/eqP.
 Qed.
 
 End PolynomialComRing.
@@ -842,12 +955,15 @@ move=> c; rewrite /add /= /add_poly seq_polyX seq_polyC /=.
     case: eqP => // HH; case (@nonzero1r R).
 Qed.
 
+Notation "m '/p' d" := (divp m d) (at level 40, no associativity).
+Notation "m %p d" := (modp m d) (at level 40, no associativity).
+
 Theorem factor_theorem : forall p c,
   reflect (exists q, p = q * (\X - \C c)) (p.[c] == 0).
 Proof.
 move=> p c; apply: (iffP eqP) => [root_p_c | [q -> {p}]]; last first.
   by rewrite eval_poly_mul /com_poly factor0 ?simp.
-rewrite opp_polyC; exists (divp p (\X + \C -c)).
+rewrite opp_polyC; exists (p /p (\X + \C -c)).
 have MXc: monic (\X + \C (-c)) by rewrite /monic /lead_coef seq_polyXc.
 move: (divp_mon_spec p MXc) root_p_c => HH; rewrite {1 2}HH.
 have Dxc: \X + \C (- c) != 0.
