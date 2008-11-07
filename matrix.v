@@ -149,18 +149,17 @@ Definition mx_rcut m1 m2 n (A : 'M_(m1 + m2, n)) :=
 Definition mx_paste m1 m2 n (A1 : 'M_(m1, n)) (A2 : 'M_(m2, n)) :=
    \matrix_(i, j) match split i with inl i1 => A1 i1 j | inr i2 => A2 i2 j end.
 
-
 Definition trmx m n (A : 'M_(m, n)) := \matrix_(i, j) A j i.
 
 Definition perm_mx n (s : 'S_n) : 'M_n :=
    \matrix_(i, j) (if s i == j then 1 else 0).
 
 (* The trace, in 1/4 line. *)
-Definition mx_trace (n : nat) (A : 'M_n) := \sum_i (A i i).
+Definition mx_trace n (A : 'M_n) := \sum_i (A i i).
 
 (* The determinants, in one line. *)
 Definition determinant n (A : 'M_n) :=
-  \sum_(s : 'S_n) (-1)^+s * \prod_i A i (s i).
+ \sum_(s : 'S_n) (-1)^+s * \prod_i A i (s i).
 
 Notation Local "'\det' A" := (determinant A).
 Notation Local row' := mx_rem_row.
@@ -171,27 +170,10 @@ Notation Local col' := mx_rem_col.
 Definition cofactor n (A : 'M_n) (i j : 'I_n) :=
    (-1) ^+(i + j) * \det (row' i (col' j A)).
 
-
 (* The final flurry: adjugates. *)
 
 Definition adjugate n (A : 'M_n) := \matrix_(i, j) (cofactor A j i).
 
-(* Operator syntax, basic style.                     *)
-(* Generic syntax would really help here...          *)
-(*
-Notation "\0_ ( m , n )" := (null_mx m n) (only parsing) : matrix_scope.
-Notation "\0_ ( n )" := \0_(n, n) (only parsing) : matrix_scope.
-Notation "\0" := \0_(_, _) : matrix_scope.
-Notation "\1_ ( n )" := (unit_mx n) (only parsing) : matrix_scope.
-Notation "\1" := \1_(_) : matrix_scope.
-Notation "\Z_ ( n ) x" := (scalar_mx n x) (only parsing) : matrix_scope.
-Notation "\Z x" := (\Z_(_) x) : matrix_scope.
-Notation "\P s" := (perm_mx s) : matrix_scope.
-Notation "A +m B" := (addmx A B) : matrix_scope.
-Notation "x *s A" := (scalemx x A) : matrix_scope.
-Notation "A *m B" := (mulmx A B) : matrix_scope.
-Notation "\^t A" := (trmx A) : matrix_scope.
-*)
 End MatrixOpsDef.
 
 Notation "\0_ ( m , n )" := (null_mx _ m n) (only parsing) : matrix_scope.
@@ -724,5 +706,84 @@ by rewrite determinant_tr trmxZ.
 Qed.
 
 End MatrixOnComRingProp.
+
+Import Field.
+Open Scope field_scope.
+
+Section GenLinGrp.
+Variables (K : field) (n : nat).
+
+Notation Local "''M_' ( n )" := (matrix K n n) : matrix_scope.
+Notation Local "''M_' n" := 'M_(n) : matrix_scope.
+Notation Local "\mulmx" := (@mulmx K n n n) : matrix_scope.
+
+Definition invmx := fun A : 'M_n => (\det A)^-1 *s \adj A.
+Notation "A ^-1m" := (invmx A) (at level 2, format "A ^-1m") : matrix_scope.
+
+Lemma mulVmx : forall A : 'M_n, \det A != 0 -> A *m A^-1m = \1.
+Proof.
+move=> A Ha.
+by rewrite -scalemxAr mulmx_adjr -scalemx1 scalemxA mulfV ?scale1mx.
+Qed.
+
+Lemma mulmxV : forall A : 'M_n, \det A != 0 -> A^-1m *m A= \1.
+Proof.
+move=> A Ha.
+by rewrite -scalemxAl mulmx_adjl -scalemx1 scalemxA mulfV ?scale1mx//.
+Qed.
+
+Lemma mulKmx : forall A : 'M_n,
+  \det A != 0 -> cancel (\mulmx A) (\mulmx A^-1m).
+Proof. by move=> A Ha B; rewrite mulmxA mulmxV// mul1mx. Qed.
+
+Lemma mulmxK : forall (A : 'M_n),
+  \det A != 0 -> cancel (\mulmx^~ A) (\mulmx^~ A^-1m).
+Proof. by move=> A Ha B; rewrite -mulmxA mulVmx// mulmx1. Qed.
+
+Lemma mulImx : forall A : 'M_n, \det A != 0 -> injective (\mulmx A).
+Proof. move=> A Ha; exact: can_inj (mulKmx Ha). Qed.
+
+Lemma mulmxI : forall A : 'M_n, \det A != 0 -> injective (\mulmx^~ A).
+Proof. move=> A Ha; exact: can_inj (mulmxK Ha). Qed.
+
+Lemma neq0_Dmx: forall A : 'M_n, \det A != 0 -> \det A^-1m != 0.
+Proof.
+move=> A Ha; rewrite determinant_scale.
+move: (congr1 (@determinant _ n) (mulmx_adjl A));
+ rewrite determinantM -scalemx1 determinant_scale determinant1 mulr1.
+move/(congr1 (mul (\det A)^-1)); rewrite mulrCA mulfV// mulr1=> ->.
+rewrite mulrCA -exprn_mull mulfV// exp1rn mulr1.
+by apply: neq0I.
+Qed.
+
+Lemma neq0_Dmx_mul : forall A B : 'M_n,
+ \det A != 0 -> \det B != 0 -> \det (A *m B) != 0.
+Proof. by move=> *; rewrite determinantM; apply: neq0_mul. Qed.
+
+Lemma invmxK : forall A : 'M_n, \det A != 0 -> (A^-1m)^-1m = A.
+Proof.
+move=> A Ha; apply: (mulmxI (neq0_Dmx Ha)).
+by rewrite mulVmx// mulmxV//; apply: neq0_Dmx.
+Qed.
+
+Lemma invmx1 : \1^-1m = \1 :> 'M_n.
+Proof.
+rewrite -[\1^-1m]mul1mx mulVmx// determinant1;
+apply/eqP; exact: nonzero1r.
+Qed.
+
+Lemma invmxI : forall A B : 'M_n,
+ \det A != 0 -> \det B != 0 -> A^-1m = B^-1m -> A = B.
+Proof. by move=> A B Ha Hb Hab; rewrite -(invmxK Ha) -(invmxK Hb) Hab. Qed.
+
+Lemma invmx_mul : forall A B : 'M_n,
+ \det A != 0 -> \det B != 0 -> (A *m B)^-1m = B^-1m *m A^-1m.
+Proof.
+move=> A B Ha Hb; apply: (mulImx (neq0_Dmx_mul Ha Hb)).
+rewrite mulVmx; last exact: neq0_Dmx_mul.
+by rewrite -mulmxA [B *m (_ *m _)]mulmxA mulVmx// mul1mx mulVmx.
+Qed.
+
+End GenLinGrp.
 
 Unset Implicit Arguments.
