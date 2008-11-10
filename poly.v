@@ -544,9 +544,11 @@ Qed.
 
 (* Integral domain (we may need to introduce integral ring as an object) *)
 
-Definition idomain := forall r1 r2: R, r1 * r2 = 0 -> r1 = 0 \/ r2 = 0.
+Definition idomain (T: Ring.basic) := forall (r1 r2: T),
+  r1 * r2 = 0 -> r1 = 0 \/ r2 = 0.
 
-Hypothesis idR : idomain.
+Hypothesis idR : (idomain R).
+ 
 Lemma iter_mul_id: forall m (r1 r2: R), r1 != 0 -> r2 != 0 -> iter m (mul r1) r2 != 0.
 Proof.
 by move=> m r1 r2 Dr1 Dr2; elim: m => [| m Hrec] //=;
@@ -586,6 +588,17 @@ move: (lead_coef_nz q); rewrite (lead_coefE q) Hd.
 by move/eqP: E2; case: eqP => // _ _; case/negP.
 Qed.
 
+Lemma idRp: idomain (poly_basic_ring).
+Proof.
+move=> p q Epq.
+case: (@eqP _ p 0) => Ep; first by left.
+case: (@eqP _ q 0) => Eq; first by right.
+move: Ep Eq; move/eqP=> Ep; move/eqP=> Eq.
+move: (size_mul_id Ep Eq); rewrite Epq size_poly0.
+case: size (size_poly0_eq p) Ep Eq; first by move=> ->; case/negP.
+move=> sp _ _; case: size (size_poly0_eq q); first by move=> ->; case/negP.
+by move=> n; rewrite addnS.
+Qed.
 
 (* Pseudo division *)
 Definition edivp_rec (q: poly)  :=
@@ -714,12 +727,17 @@ case: (size p) (size_poly0_eq p) => //=.
 by rewrite eqxx; move/idP; move/eqP->; rewrite !simpl01.
 Qed.
 
-Lemma modp1: forall p, p %p 1 = 0.
+Lemma modpC: forall p c, c != 0 -> p %p \C c = 0.
 Proof.
-move=> p; move: (@modp_spec p 1).
-move/(_ p10); rewrite size_polyC; last by apply/eqP; exact: nonzero1r.
+move=> p c Hc.
+have: \C c != 0.
+  by apply/negP; move/eqP=> HC; case/negP: Hc; apply/eqP; apply polyC_inj.
+move/(@modp_spec p); rewrite size_polyC //.
 by move=> HH1; apply/eqP; rewrite size_poly0_eq; case: size HH1.
 Qed.
+
+Lemma modp1: forall p, p %p 1 = 0.
+Proof. move=> p; apply: modpC; apply/eqP; exact: nonzero1r. Qed.
 
 Lemma divp1: forall p, p /p 1 = p.
 Proof.
@@ -755,6 +773,32 @@ move: (modp_spec (p * q) Cq); rewrite Eq (size_mul_id Cqq Cq).
 case: (size qq) (size_poly0_eq qq) => [| n _]; last by rewrite ltnNge  leq_addl.
 by rewrite eqxx; move/idP; move/eqP => HH; case/negP: Cqq; apply/eqP.
 Qed.
+
+(* Pseudo gcd *)
+Definition gcdp (p q: poly)  :=
+  let (p1,q1) := if size p < size q then (q,p) else (p,q) in
+  if p1 == 0 then q1 else
+  (fix loop (n: nat) (pp qq: poly) {struct n} :=
+      let rr := pp %p qq in
+      if rr == 0 then qq else 
+      if n is (S n1) then loop n1 qq rr else rr) (size q) p1 q1.
+
+Lemma gcd0p: left_unit 0 gcdp.
+Proof.
+move=> p; rewrite /gcdp size_poly0.
+case: size (size_poly0_eq p) => [| n]; rewrite /= !(eqxx,modp0).
+  by move/eqP->.
+by move->; rewrite /=; case: n; rewrite mod0p eqxx.
+Qed.
+
+Lemma gcdp0: right_unit 0 gcdp.
+Proof.
+move=> p; rewrite /gcdp size_poly0.
+case: size (size_poly0_eq p) => [| n]; rewrite /= !(eqxx,modp0).
+  by move/eqP->; rewrite eqxx.  
+by move->; rewrite /=.
+Qed.
+
 
 End Polynomial.
 
