@@ -2572,6 +2572,12 @@ let pop_match_args n = function
   | _ -> () in
   loop 0 st; args
 
+let no_delta_unify_flags = {
+  Unification.modulo_conv_on_closed_terms = None;
+  Unification.use_metas_eagerly = true;
+  Unification.modulo_delta = empty_transparent_state;
+}
+
 let pf_fill_occ_pat gl occ n pat =
   let pat_dc, pat_f, pat_args = splay_pat gl n pat in
   let pat' = compose_lam pat_dc (mkApp (pat_f, pat_args)) in
@@ -2593,7 +2599,7 @@ let pf_fill_occ_pat gl occ n pat =
       let env = pf_env gl in
       let uenv, uargs, _ = Clenv.clenv_environments evd (Some n) tpat in
       let upat = whd_app pat (Array.of_list uargs) in
-      let w_unif2sub = Unification.w_unify_to_subterm env ~flags:Unification.default_no_delta_unify_flags in
+      let w_unif2sub = Unification.w_unify_to_subterm env ~flags:no_delta_unify_flags in
 (** assia, previous is:
       let w_unif2sub = Unification.w_unify_to_subterm env ~mod_delta:false in*)
       ignore (!unify (snd (w_unif2sub (upat, pf_concl gl) uenv)))
