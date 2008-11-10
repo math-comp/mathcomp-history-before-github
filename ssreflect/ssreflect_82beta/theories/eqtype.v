@@ -38,7 +38,6 @@ Notation EqMixin := EqType.Mixin.
 
 Definition mkEqType T e eP := EqClass (@EqMixin T e eP).
 
-
 Notation "[ 'eqType' 'of' T ]" :=
   (match [is T <: eqType] as s return {type of EqClass for s} -> _ with
   | EqClass _ m => fun k => k m end
@@ -150,10 +149,13 @@ Definition predD1 p (a1 : T) := SimplPred (xpredD1 p a1).
 
 Lemma pred1E : pred1 =2 eqd. Proof. move=> x y; exact: eq_sym. Qed.
 
-Variables (x y : T) (b : bool).
+Variables (x y z u: T) (b : bool).
 
 Lemma predU1P : reflect (x = y \/ b) ((x == y) || b).
 Proof. apply: (iffP orP) => [] []; by [right | move/eqP; left]. Qed.
+
+Lemma pred2P : reflect (x = z \/ y = u) ((x == z) || (y == u)).
+Proof. by apply: (iffP orP) => [] []; move/eqP; by [left | right]. Qed.
 
 Lemma predD1P : reflect (x <> y /\ b) ((x != y) && b).
 Proof. by apply: (iffP andP)=> [] [] //; move/eqP. Qed.
@@ -163,6 +165,9 @@ Proof. by move->; rewrite eqxx. Qed.
 
 Lemma predU1r : b -> (x == y) || b.
 Proof. by move->; rewrite orbT. Qed.
+
+Lemma eqVneq : {x = y} + {x != y}.
+Proof. by case: eqP; [left | right]. Qed.
 
 End EqPred.
 

@@ -103,7 +103,7 @@ have: Monoid.morphism 1 Fp1 muln mFpM toFp; last move/(@big_morph _ _ _ _)->.
 rewrite big_mkord (eq_bigr id) => [|i _]; last by apply: val_inj => /=.
 pose ltv i := vFp i < i; rewrite (bigID ltv) -/mFpM [mFpM _ _]mFpC.
 rewrite (bigD1 Fp1) -/mFpM; last by rewrite [ltv _]ltn_neqAle vFpId.
-rewrite -[mFpM]/mFp mFp1 (bigD1 Fpn1) -?mFpA -/mFpM; last first.
+rewrite [mFpM _ _]mFp1 (bigD1 Fpn1) -?mFpA -/mFpM; last first.
   rewrite -lt0n -ltnS prednK // lt1p.
   by rewrite [ltv _]ltn_neqAle vFpId eqxx orbT eq_sym.
 rewrite (reindex_onto vFp vFp) -/mFpM => [|i]; last by do 3!case/andP; auto.
