@@ -496,9 +496,8 @@ rewrite /(\det _) (bigID (@even_perm _)) /=.
 set S1 := \sum_(<- _ | _) _; set T := S1 + _.
 rewrite -(addNr S1) addrC; congr (_ + _); rewrite {}/T {}/S1 -sum_opp.
 rewrite (reindex tr) /=; last by exists tr => ? _.
-symmetry; apply: eq_big => [s | s]; first by rewrite negbK Etr.
-rewrite -topredE /= => seven; rewrite -mulNr Etr seven (negbET seven) expr1n.
-congr (_ * _).
+symmetry; apply: eq_big => [s | s seven]; first by rewrite negbK Etr.
+rewrite -mulNr Etr seven (negbET seven) expr1n; congr (_ * _).
 rewrite (reindex t) /=; last by exists (t : _ -> _) => i _; exact: tpermK.
 apply: eq_bigr => i _; rewrite permM /t.
 by case: tpermP => // ->; rewrite A12.
@@ -597,7 +596,7 @@ have sign_ls: forall s i j, (-1)^+(ls i s j) = (-1) ^+s * (-1)^+(i + j) :> R.
     rewrite -(mulKg t s) tpermV -(lsM _ _ i).
     rewrite 2!odd_permM 2!signr_addb -mulrA -{}IHm; last first.
       apply: {m} leq_trans Hm; apply: subset_leq_card; apply/subsetP=> k'.
-      rewrite !inE /= inE /= permM /t (eq_sym k').
+      rewrite !inE permM /t (eq_sym k').
       case: tpermP=> [->|-> Ds|]; rewrite ?permKV; first by rewrite eqxx.
         by rewrite andbb; apply/eqP=> Dk; case/eqP: Ds; rewrite {1}Dk permKV.
       by move/eqP; rewrite eq_sym => ->.
@@ -662,7 +661,7 @@ Proof.
 move=> n A i0; rewrite /(\det A).
 rewrite (partition_big (fun s : 'S_n => s i0) predT) //=.
 apply: eq_bigr => j0 _; rewrite expand_cofactor big_distrr /=.
-apply: eq_bigr => s; rewrite -topredE /=; move/eqP=> Dsi0.
+apply: eq_bigr => s; move/eqP=> Dsi0.
 rewrite mulrCA (bigID (pred1 i0)) /= big_pred1_eq Dsi0; congr (_ * (_ * _)).
 by apply: eq_bigl => i; rewrite eq_sym.
 Qed.

@@ -779,7 +779,7 @@ Qed.
 
 End Filters.
 
-Lemma eqd_filter : forall (a1 a2 : pred T) (s : seq T),
+Lemma eq_in_filter : forall (a1 a2 : pred T) (s : seq T),
   {in s, a1 =1 a2} -> filter a1 s = filter a2 s.
 Proof.
 move=> a1 a2; elim => [| x s IHs eq_a] //=.
@@ -1624,7 +1624,7 @@ Proof. by move=> f1 f2 Hf; elim=> [|x s IHs] //=; rewrite Hf IHs. Qed.
 
 End MapComp.
 
-Lemma eqd_maps : forall (T1 : eqType) T2 (f1 f2 : T1 -> T2) (s : seq T1),
+Lemma eq_in_maps : forall (T1 : eqType) T2 (f1 f2 : T1 -> T2) (s : seq T1),
   {in s, f1 =1 f2} -> maps f1 s = maps f2 s.
 Proof.
 move=> T1 T2 f1 f2; elim=> //= x s IHs eqf12.
@@ -1634,7 +1634,7 @@ Qed.
 
 Lemma dmaps_id : forall (T : eqType) f (s : seq T),
   {in s, f =1 id} -> maps f s = s.
-Proof. move=> T f s; move/eqd_maps->; exact: maps_id. Qed.
+Proof. move=> T f s; move/eq_in_maps->; exact: maps_id. Qed.
 
 (* Map a partial function *)
 

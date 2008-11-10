@@ -2,7 +2,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div prime.
 Require Import ssralg bigops. 
 Require Import fintype finset groups commutators automorphism.
 Require Import morphisms normal center. 
-Require Import cyclic dirprod.
+Require Import cyclic gprod.
 
 
 (* Require Import paths connect finfun ssralg bigops. *)
@@ -24,10 +24,10 @@ Definition upper_central_at_rec := iter n (fun B => coset B @*^-1 'Z(A / B)) 1.
 Definition derived_at_rec m := iter m (fun B => [~: B, B]) A.
 
 Definition nilpotent :=
-  forallb G : {group gT}, (G \subset A :&: [~: G, A]) ==> trivg G.
+  forallb G : {group gT}, (G \subset A :&: [~: G, A]) ==> (G :==: 1).
 
 Definition solvable :=
-  forallb G : {group gT}, (G \subset A :&: [~: G, G]) ==> trivg G.
+  forallb G : {group gT}, (G \subset A :&: [~: G, G]) ==> (G :==: 1).
 
 End Defs.
 
@@ -99,9 +99,9 @@ move=> G n; rewrite subsetI ?lcn_sub0 //=.
 by rewrite morphimS ?quotient_cents2r ?lcn_norm0 ?lcn_sub0 ?lcn_sub.
 Qed.
 
-Lemma lcn_stable : forall G n m, n <= m ->  trivg 'L_n(G) -> trivg 'L_m(G).
+Lemma lcn_stable : forall G n m, n <= m ->  'L_n(G) = 1 -> 'L_m(G) = 1.
 Proof.
-move=> G n m le_mn; apply: subset_trans; rewrite -(subnK le_mn) addnC.
+move=> G n m le_mn Gn1; apply/trivgP; rewrite -{}Gn1 -(subnK le_mn) addnC.
 elim: {m le_mn}(m - n) => //= m; apply: subset_trans; exact: lcn_sub.
 Qed.
 
@@ -110,16 +110,15 @@ Proof.
 move=> G; rewrite -(size_mkseq (fun n => 'L_n(G)) #|G|) index_mem.
 apply/forallP/mapsP=> /= [nilG | [n _ Ln1] H]; last first.
   apply/implyP; rewrite subsetI; case/andP=> sHG sHR.
-  rewrite /trivg /= -{}Ln1; elim: n => // n IHn.
+  rewrite -subG1 -{}Ln1; elim: n => // n IHn.
   apply: subset_trans sHR _; apply: genS; exact: imset2S.
 pose n := #|G|; have: n <= #|G| := leqnn _.
 have: #|G| < n + #|'L_n(G)| by rewrite -addn1 leq_add2l ltn_0group.
 elim: n => [|n IHn leGn lt_nG]; first by rewrite ltnn.
 have:= nilG [group of 'L_n(G)]; rewrite /= -lcnSn subsetI lcn_sub0.
-rewrite -(lcn_sub G n) -eqset_sub eqset_sub_card lcn_sub implybE /=.
-rewrite -ltnNge trivg_card; case/orP=> [lt_Ln1_Ln | trLn].
-  by apply: IHn (leq_trans leGn _) (ltnW lt_nG); rewrite addSnnS leq_add2l.
-by exists n; [rewrite mem_iota | apply/trivgP; rewrite trivg_card].
+rewrite -(lcn_sub G n) -eqEsubset eqEcard lcn_sub implybE /= -ltnNge orbC.
+case/predU1P=> [trLn | lt_Ln1_Ln]; first by exists n; rewrite ?mem_iota.
+by apply: IHn (leq_trans leGn _) (ltnW lt_nG); rewrite addSnnS leq_add2l.
 Qed.
 
 Lemma lcnP : forall G, reflect (exists n, 'L_n(G) = 1) (nilpotent G).
@@ -128,17 +127,14 @@ move=> G; apply: (iffP idP) => [| [n Ln1]].
   rewrite nilpotent_class -(size_mkseq (fun n => 'L_n(G)) #|G|) index_mem.
   by case/mapsP=> n _ Ln1; exists n.
 apply/forallP=> H; apply/implyP; rewrite subsetI; case/andP=> sHG sHR.
-rewrite /trivg /= -{}Ln1; elim: n => // n IHn.
+rewrite -subG1 -{}Ln1; elim: n => // n IHn.
 apply: subset_trans sHR _; apply: genS; exact: imset2S.
 Qed.
 
 Lemma lcn1 : forall A, 'L_1(A) = A^`(1). Proof. by []. Qed.
 
 Theorem abelian_nil : forall G, abelian G -> nilpotent G.
-Proof.
-move=> G abG; apply/lcnP; exists 1%N.
-apply/trivgP; apply/commG1P; exact/centsP.
-Qed.
+Proof. move=> G abG; apply/lcnP; exists 1%N; exact/commG1P. Qed.
 
 End LowerCentral.
 
@@ -204,7 +200,7 @@ Qed.
 
 Lemma ucn1 : forall G, 'Z_1(G) = 'Z(G).
 Proof.
-move=> G; apply/eqP; rewrite eqset_sub ucnSn ucn0 -sub_morphim_pre ?norms1 //.
+move=> G; apply/eqP; rewrite eqEsubset ucnSn ucn0 -sub_morphim_pre ?norms1 //.
 rewrite -{2}(quotientGK (normal1 G)) -!(morphim_invmE (coset1_injm gT)).
 by rewrite !morphim_center.
 Qed.
@@ -234,7 +230,7 @@ Implicit Type rT : finGroupType.
 
 Lemma ucn_lcnP : forall G n, ('L_n(G) == 1) = ('Z_n(G) == G).
 Proof.
-move=> G n; rewrite !eqset_sub sub1G ucn_sub0 /= andbT -(ucn0 G).
+move=> G n; rewrite !eqEsubset sub1G ucn_sub0 /= andbT -(ucn0 G).
 elim: {1 3}n 0 (addn0 n) => [j <- //|i IHi j].
 rewrite addSnnS; move/IHi=> <- {IHi}; rewrite ucnSn lcnSn.
 have nZG := normal_norm (ucn_normal0 G j).
@@ -286,11 +282,11 @@ have nHG: H \subset 'N(G) by rewrite cents_norm // centsC.
 have sLG := lcn_sub0 G n; have [sLH nLH] := andP (lcn_normal0 H n).
 have cHL: H \subset 'C('L_n(G)) by rewrite centsC (subset_trans sLG).
 have nLGH := cents_norm cHL.
-rewrite -(cent_mulgenE cGH) commMG /= ?(subset_trans sLH) //; last first.
+rewrite -(cent_mulgenEl cGH) commMG /= ?(subset_trans sLH) //; last first.
   by rewrite normsG ?mulgen_subr.
-rewrite cent_mulgenE //; congr (_ * _); rewrite commGC commMG //.
-  by rewrite (commg_cents cHL) mulg1 commGC.
-by rewrite (commg_cents (subset_trans cGH (centS sLH))) mul1g commGC.
+rewrite cent_mulgenEl //; congr (_ * _); rewrite commGC commMG //.
+  by rewrite (commG1P cHL) mulg1 commGC.
+by rewrite (commG1P (subset_trans cGH (centS sLH))) mul1g commGC.
 Qed.
 
 Lemma mulg_nil : forall G H, G \subset 'C(H) -> 
@@ -299,20 +295,19 @@ Proof.
 move=> G H cGH; apply/idP/andP=> [nilGH | []].
   by split; apply: nilpotentS nilGH; rewrite (mulG_subr, mulG_subl).
 case/lcnP=> n1 Ln1G1; case/lcnP=> n2 Ln2G1.
-rewrite -(cent_mulgenE cGH); apply/lcnP; rewrite /= cent_mulgenE //.
+rewrite -(cent_mulgenEl cGH); apply/lcnP; rewrite /= cent_mulgenEl //.
 have trLadd : forall K i j, 'L_i(K) = 1 -> 'L_(j + i)(K) = 1.
-  move=> K i j; move/trivgP=> trL; apply/trivgP; apply: lcn_stable trL.
-  exact: leq_addl.
+  move=> K i j; apply: lcn_stable; exact: leq_addl.
 by exists (n1 + n2); rewrite lcn_mul // {1}addnC !trLadd ?mul1g.
 Qed.
 
-Lemma nilpotent1 : nilpotent (1 : {set gT}).
+Lemma nilpotent1 : nilpotent [1 gT].
 Proof. by apply/lcnP; exists 0. Qed.
 
 Lemma nilpotent_sub_norm : forall G H,
   nilpotent G -> H \subset G -> 'N_G(H) \subset H -> G :=: H.
 Proof.
-move=> G H nilG sHG sNH; apply/eqP; rewrite eqset_sub sHG andbT.
+move=> G H nilG sHG sNH; apply/eqP; rewrite eqEsubset sHG andbT.
 apply/negP=> nsGH.
 have{nsGH} [i sZH []]: exists2 i, 'Z_i(G) \subset H & ~ 'Z_i.+1(G) \subset H.
   case/ucnP: nilG => n ZnG; rewrite -{}ZnG in nsGH.
@@ -322,20 +317,16 @@ apply: subset_trans sNH; rewrite subsetI ucn_sub0 -commg_subr.
 apply: subset_trans sZH; apply: subset_trans (ucn_comm G i); exact: commgS.
 Qed.
 
-Lemma nilpotent_meet_center : forall G H,
-  nilpotent G -> H <| G -> ~~ trivg H -> ~~ trivg (H :&: 'Z(G)).
+Lemma nil_TI_Z : forall G H,
+  nilpotent G -> H <| G -> H :&: 'Z(G) = 1 -> H :=: 1.
 Proof.
-move=> G H nilG; case/andP=> sHG nHG ntH.
-pose trZH := [pred i | trivg (H :&: 'Z_i(G))].
-have{nilG ntH} [i trZHi]: exists2 i, trZH i & ~~ trZH i.+1.
-  move: ntH; rewrite -{1}(setIidPl sHG); case/ucnP: nilG => n <-.
-  elim: n => [|i IHi ntZHi1]; first by rewrite /trivg subsetIr.
-  by case trZHi: (trZH i); [exists i | move/idPn: trZHi].
-apply: contra; apply: subset_trans; rewrite [H :&: 'Z(G)]setIA subsetI.
-rewrite setIS ?ucn_sub0 // (sameP centsP commG1P).
-apply: subset_trans trZHi; rewrite -commg_subr commGC in nHG.
-rewrite subsetI (subset_trans _ nHG) ?commSg ?subsetIl //=.
-by rewrite (subset_trans _ (ucn_comm G i)) ?commSg ?subsetIr.
+move=> G H nilG; case/andP=> sHG nHG trHZ.
+rewrite -{1}(setIidPl sHG); case/ucnP: nilG => n <-.
+elim: n => [|n IHn]; apply/trivgP; rewrite ?subsetIr // -trHZ.
+rewrite [H :&: 'Z(G)]setIA subsetI setIS ?ucn_sub0 //= (sameP commG1P trivgP).
+rewrite -commg_subr commGC in nHG.
+rewrite -IHn subsetI (subset_trans _ nHG) ?commSg ?subsetIl //=.
+by rewrite (subset_trans _ (ucn_comm G n)) ?commSg ?subsetIr.
 Qed.
 
 End Properties.
@@ -345,22 +336,21 @@ Section DirectProdProperties.
 Variable gT: finGroupType.
 Implicit Type G : {group gT}.
 
-Lemma dirprod_nil : forall A B G,
+Lemma dprod_nil : forall A B G,
    A \x B = G -> nilpotent A -> nilpotent B -> nilpotent G.
 Proof.
-move=> A B G; case/dprodGP=> [[H K -> -> <- Hc] _].
-by rewrite mulg_nil => [->|].
+by move=> A B G; case/dprodP=> [[H K -> ->] <- ? _]; rewrite mulg_nil => [->|].
 Qed.
 
 Lemma bigdprod_nil : forall I r (P : pred I) F G,
-  \big[direct_product/1]_(i <- r | P i) F i = G
+  \big[dprod/1]_(i <- r | P i) F i = G
   -> (forall i, P i -> nilpotent (F i)) -> nilpotent G.
 Proof.
 move=> I r P F G defG nilF; rewrite -defG; move: G defG.
 apply big_prop => [_ _|A B IHA IHB G defG| i Pi _ _]; last exact: nilF.
   exact: nilpotent1.
-case: (dprodGP defG) => [[H K defH defK _ _] _].
-by rewrite defG (dirprod_nil defG) ?(IHA _ defH) ?(IHB _ defK).
+case: (dprodP defG) => [[H K defH defK] _ _ _].
+by rewrite defG (dprod_nil defG) ?(IHA _ defH) ?(IHB _ defK).
 Qed. 
  
 End DirectProdProperties.
@@ -432,10 +422,10 @@ apply/forallP=> Hb; apply/implyP; rewrite subsetI; case/andP=> sHbG sHbHb'.
 have{sHbG}: exists H : {group gT}, [&& H \subset G & f @* H == Hb].
   by exists (f @*^-1 Hb)%G; rewrite subsetIl morphpreK /=.
 case/ex_mingroup=> H; case/mingroupP; case/andP=> sHG; move/eqP=> defHb minH.
-suff trH: trivg H by rewrite -defHb (trivgP H trH) morphim1.
+suff trH: H :==: 1 by rewrite -defHb (eqP trH) morphim1.
 have sH'H := der1_subG H.
 apply: (implyP (forallP solG H)); rewrite subsetI sHG [[~: H, H]]minH //=.
-by rewrite (subset_trans sH'H) // morphimR // defHb eqset_sub der1_subG.
+by rewrite (subset_trans sH'H) // morphimR // defHb eqEsubset der1_subG.
 Qed.
 
 Lemma quotient_sol : forall G H, solvable G -> solvable (G / H).
@@ -450,21 +440,21 @@ apply/forallP=> K; rewrite subsetI; apply/implyP; case/andP=> sKG sK'K.
 suffices sKH: K \subset H.
   by apply: (implyP (forallP solH K)); rewrite subsetI sKH.
 have nHK := subset_trans sKG nHG.
-rewrite -trivg_quotient ?(implyP (forallP solGH _)) // subsetI -morphimR //.
-by rewrite !morphimS.
+rewrite -quotient_sub1 // subG1 (implyP (forallP solGH _)) //.
+by rewrite subsetI -morphimR ?morphimS.
 Qed.
 
 Lemma derivedP : forall G, reflect (exists n, G^`(n) = 1) (solvable G).
 Proof.
 move=> G; apply: (iffP idP) => [solG | [n solGn]]; last first.
   apply/forallP=> H; rewrite subsetI; apply/implyP; case/andP=> sHG sH'H.
-  rewrite /trivg /= -{}solGn; elim: n => // n IHn.
+  rewrite -subG1 -{}solGn; elim: n => // n IHn.
   exact: subset_trans sH'H (commgSS _ _).
 suffices IHn: forall n, #|G^`(n)| - 1 <= #|G| - n.+1.
-  exists #|G|.-1; apply/trivgP; rewrite trivg_card /leq -leqn0.
+  exists #|G|.-1; apply/eqP; rewrite trivg_card_le1 -eqn_sub0 -leqn0.
   by rewrite (leq_trans (IHn _)) // prednK ?subnn.
 elim=> // n IHn; rewrite dergSn; have:= forallP solG (G^`(n))%G.
-case: trivgP => /= [->|_]; first by rewrite commG1 cards1.
+case: eqP => /= [->|_]; first by rewrite commG1 cards1.
 rewrite -dergSn implybF subsetI der_sub0 /= => sGnGn1.
 rewrite -(addn1 n.+1) -subn_sub leq_sub2r //; apply: leq_trans IHn.
 by rewrite subn1 -ltnS prednK ?ltn_0group // proper_card // /proper der_sub.

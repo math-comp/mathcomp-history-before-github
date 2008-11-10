@@ -114,11 +114,11 @@ set n1 := card _; set n2 := card _.
 suffices -> : n2 = n1.
   rewrite addbK /=; congr 2 (odd _ (+) odd _); apply: eq_card=> p /=.
     by rewrite !inE /= andbC andbCA andbA.
-  rewrite !inE /= !inE /= im_permp inE /= inE /= invgK /= /inversion.
+  rewrite !inE im_permp !inE invgK /= /inversion.
   rewrite -permpM !opair_flip -!permp_flip !(inj_eq (permpI _)).
   by case: (_ != p); rewrite ?andbF //= negbK (andbC (opair p) _) andbA.
 rewrite /n2 -(card_image flipI); apply: eq_card => p /=.
-rewrite im_flip !inE /= im_permp !inE /= invgK /invn !inE /=.
+rewrite im_flip !inE im_permp !inE invgK /invn.
 rewrite !permp_flip !flipK -permpM !opair_flip -permp_flip.
 by rewrite (inj_eq (@permpI _)) -!andbA; do !bool_congr.
 Qed.
@@ -328,7 +328,7 @@ apply/idP/imsetP=> [|[a _ ->{u}]]; last first.
 case/(atransP2 tr_m dt)=> /= a _ ->{u}.
 case odd_a: (odd_perm a); last by exists a => //; rewrite !inE /= odd_a.
 exists (tperm x y * a); first by rewrite !inE /= odd_permM odd_tperm nxy odd_a.
-apply: val_inj; apply: eqd_maps => z tz; rewrite actM /= /aperm; congr (a _).
+apply: val_inj; apply: eq_in_maps => z tz; rewrite actM /= /aperm; congr (a _).
 by case: tpermP ntx nty => // <-; rewrite tz.
 Qed.
 

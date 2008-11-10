@@ -172,22 +172,22 @@ Reserved Notation "\prod_ ( i \in A ) F"
 Delimit Scope big_scope with BIG.
 Open Scope big_scope.
 
-Definition reducebig_rec R I nil op r (P : pred I) (F : I -> R) : R :=
+Definition reducebig R I nil op r (P : pred I) (F : I -> R) : R :=
   foldr (fun i x => if P i then op (F i) x else x) nil r.
 
 Module Type ReduceBigSig.
-Parameter reducebig : forall R I,
+Parameter bigop : forall R I,
    R -> (R -> R -> R) -> seq I -> pred I -> (I -> R) -> R.
-Axiom reducebigE : reducebig = reducebig_rec.
+Axiom bigopE : bigop = reducebig.
 End ReduceBigSig.
 
 Module ReduceBig : ReduceBigSig.
-Definition reducebig := reducebig_rec.
-Lemma reducebigE : reducebig = reducebig_rec. Proof. by []. Qed.
+Definition bigop := reducebig.
+Lemma bigopE : bigop = reducebig. Proof. by []. Qed.
 End ReduceBig.
 
-Notation reducebig := ReduceBig.reducebig.
-Canonical Structure reduce_big_unlock := Unlockable ReduceBig.reducebigE.
+Notation bigop := ReduceBig.bigop.
+Canonical Structure reduce_big_unlock := Unlockable ReduceBig.bigopE.
 
 Definition index_iota m n := iota m (n - m).
 
@@ -203,26 +203,26 @@ Lemma filter_index_enum : forall T P, filter P (index_enum T) = enum P.
 Proof. by move=> T P; rewrite /enum -enumE. Qed.
 
 Notation "\big [ op / nil ]_ ( <- r | P ) F" :=
-  (reducebig nil op r P F) : big_scope.
+  (bigop nil op r P F) : big_scope.
 Notation "\big [ op / nil ]_ ( i <- r | P ) F" :=
-  (reducebig nil op r (fun i => P%B) (fun i => F)) : big_scope.
+  (bigop nil op r (fun i => P%B) (fun i => F)) : big_scope.
 Notation "\big [ op / nil ]_ ( i <- r ) F" :=
-  (reducebig nil op r (fun _ => true) (fun  i => F)) : big_scope.
+  (bigop nil op r (fun _ => true) (fun  i => F)) : big_scope.
 Notation "\big [ op / nil ]_ ( m <= i < n | P ) F" :=
-  (reducebig nil op (index_iota m n) (fun i : nat => P%B) (fun i : nat => F))
+  (bigop nil op (index_iota m n) (fun i : nat => P%B) (fun i : nat => F))
      : big_scope.
 Notation "\big [ op / nil ]_ ( m <= i < n ) F" :=
-  (reducebig nil op (index_iota m n) (fun _ => true) (fun i : nat => F))
+  (bigop nil op (index_iota m n) (fun _ => true) (fun i : nat => F))
      : big_scope.
 Notation "\big [ op / nil ]_ ( i | P ) F" :=
-  (reducebig nil op (index_enum _) (fun i => P%B) (fun i => F)) : big_scope.
+  (bigop nil op (index_enum _) (fun i => P%B) (fun i => F)) : big_scope.
 Notation "\big [ op / nil ]_ i F" :=
-  (reducebig nil op (index_enum _) (fun _ => true) (fun i => F)) : big_scope.
+  (bigop nil op (index_enum _) (fun _ => true) (fun i => F)) : big_scope.
 Notation "\big [ op / nil ]_ ( i : t | P ) F" :=
-  (reducebig nil op (index_enum _) (fun i : t => P%B) (fun i : t => F))
+  (bigop nil op (index_enum _) (fun i : t => P%B) (fun i : t => F))
      (only parsing) : big_scope.
 Notation "\big [ op / nil ]_ ( i : t ) F" :=
-  (reducebig nil op (index_enum _) (fun _ => true) (fun i : t => F))
+  (bigop nil op (index_enum _) (fun _ => true) (fun i : t => F))
      (only parsing) : big_scope.
 Notation "\big [ op / nil ]_ ( i < n | P ) F" :=
   (\big[op/nil]_(i : ordinal n | P%B) F) : big_scope.
@@ -363,7 +363,7 @@ Lemma big_filter_cond : forall r (P1 P2 : pred I) F,
   \big[op/nil]_(i <- filter P1 r | P2 i) F i
      = \big[op/nil]_(i <- r | P1 i && P2 i) F i.
 Proof.
-move=> r P1 P2 F; rewrite -big_filter -(big_filter r); congr reducebig.
+move=> r P1 P2 F; rewrite -big_filter -(big_filter r); congr bigop.
 rewrite -filter_predI; apply: eq_filter => i; exact: andbC.
 Qed.
 
@@ -373,7 +373,7 @@ Proof.
 by move=> r P1 P2 F eqP12; rewrite -big_filter (eq_filter eqP12) big_filter.
 Qed.
 
-Lemma eq_bigr : forall r (P : pred I) F1 F2, {in SimplPred P, F1 =1 F2} ->
+Lemma eq_bigr : forall r (P : pred I) F1 F2, (forall i, P i -> F1 i = F2 i) ->
   \big[op/nil]_(i <- r | P i) F1 i = \big[op/nil]_(i <- r | P i) F2 i.
 Proof.
 move=> r P F1 F2 eqF12; rewrite unlock.
@@ -381,12 +381,12 @@ by elim: r => //= x r ->; case Px: (P x); rewrite // eqF12.
 Qed.
 
 Lemma eq_big : forall r (P1 P2 : pred I) F1 F2,
-  P1 =1 P2 -> {in SimplPred P1, F1 =1 F2} ->
+  P1 =1 P2 -> (forall i, P1 i -> F1 i = F2 i) ->
   \big[op/nil]_(i <- r | P1 i) F1 i = \big[op/nil]_(i <- r | P2 i) F2 i.
 Proof. by move=> r P1 P2 F1 F2; move/eq_bigl <-; move/eq_bigr->. Qed.
 
 Lemma congr_big : forall r1 r2 (P1 P2 : pred I) F1 F2,
-  r1 = r2 -> P1 =1 P2 -> {in SimplPred P1, F1 =1 F2} ->
+  r1 = r2 -> P1 =1 P2 -> (forall i, P1 i -> F1 i = F2 i) ->
     \big[op/nil]_(i <- r1 | P1 i) F1 i = \big[op/nil]_(i <- r2 | P2 i) F2 i.
 Proof. move=> r1 r2 P1 P2 F1 F2 <-{r2}; exact: eq_big. Qed.
 
@@ -429,7 +429,7 @@ Proof. move=> r P F; move/eq_bigl->; exact: big_pred0_eq. Qed.
 Lemma big_cat_nested : forall r1 r2 (P : pred I) F,
   let x := \big[op/nil]_(i <- r2 | P i) F i in
   \big[op/nil]_(i <- r1 ++ r2 | P i) F i = \big[op/x]_(i <- r1 | P i) F i.
-Proof. by move=> r1 r2 P F; rewrite unlock /reducebig_rec foldr_cat. Qed.
+Proof. by move=> r1 r2 P F; rewrite unlock /reducebig foldr_cat. Qed.
 
 Lemma big_catl : forall r1 r2 (P : pred I) F, ~~ has P r2 ->
   \big[op/nil]_(i <- r1 ++ r2 | P i) F i = \big[op/nil]_(i <- r1 | P i) F i.
@@ -459,14 +459,14 @@ Lemma big_cond_seq : forall (I : eqType) r (P : pred I) F,
   \big[op/nil]_(i <- r | P i) F i
     = \big[op/nil]_(i <- r | P i && (i \in r)) F i.
 Proof.
-move=> I r P F; rewrite -!(big_filter r); congr reducebig.
-by apply: eqd_filter => i ->; rewrite andbT.
+move=> I r P F; rewrite -!(big_filter r); congr bigop.
+by apply: eq_in_filter => i ->; rewrite andbT.
 Qed.
 
 Lemma congr_big_nat : forall m1 n1 m2 n2 P1 P2 F1 F2,
     m1 = m2 -> n1 = n2 ->
-    {in [pred i | m1 <= i < n2], P1 =1 P2} ->
-    {in [pred i | P1 i && (m1 <= i < n2)], F1 =1 F2} ->
+    (forall i, m1 <= i < n2 -> P1 i = P2 i) ->
+    (forall i, P1 i && (m1 <= i < n2) -> F1 i = F2 i) ->
   \big[op/nil]_(m1 <= i < n1 | P1 i) F1 i
     = \big[op/nil]_(m2 <= i < n2 | P2 i) F2 i.
 Proof.
@@ -518,7 +518,7 @@ Lemma big_mkord : forall n (P : pred nat) F,
   \big[op/nil]_(0 <= i < n | P i) F i = \big[op/nil]_(i < n | P i) F i.
 Proof.
 move=> n P F; rewrite /index_iota subn0 -(big_maps (@nat_of_ord n)).
-by congr reducebig; rewrite val_enum_ord.
+by congr bigop; rewrite val_enum_ord.
 Qed.
 
 Lemma big_nat_widen : forall m n1 n2 (P : pred nat) F, n1 <= n2 ->
@@ -527,7 +527,7 @@ Lemma big_nat_widen : forall m n1 n2 (P : pred nat) F, n1 <= n2 ->
 Proof.
 move=> m n1 n2 P F len12; symmetry.
 rewrite -big_filter filter_predI big_filter.
-congr reducebig; rewrite /index_iota; set d1 := n1 - m; set d2 := n2 - m.
+congr bigop; rewrite /index_iota; set d1 := n1 - m; set d2 := n2 - m.
 rewrite -(@subnK d1 d2) /=; last by rewrite leq_sub2r ?leq_addr.
 have: ~~ has (fun i => i < n1) (iota (m + d1) (d2 - d1)).
   apply/hasPn=> i; rewrite mem_iota -leqNgt; case/andP=> le_mn1_i _.
@@ -812,7 +812,7 @@ Qed.
 Implicit Arguments partition_big [I J P F].
 
 Lemma reindex_onto : forall (I J : finType) (h : J -> I) h' (P : pred I) F,
-   {in SimplPred P, cancel h' h} ->
+   (forall i, P i -> h (h' i) = i) ->
   \big[*%M/1]_(i | P i) F i =
     \big[*%M/1]_(j | P (h j) && (h' (h j) == j)) F (h j).
 Proof.
@@ -829,11 +829,11 @@ Qed.
 Implicit Arguments reindex_onto [I J P F].
 
 Lemma reindex : forall (I J : finType) (h : J -> I) (P : pred I) F,
-  {on SimplPred P, bijective h} ->
+  {on [pred i | P i], bijective h} ->
   \big[*%M/1]_(i | P i) F i = \big[*%M/1]_(j | P (h j)) F (h j).
 Proof.
-move=> I J h P F [h' hK h'K]; rewrite (reindex_onto _ _ h'K).
-by apply: eq_bigl => j; case Pi: (P _); rewrite ?andbF // hK // eq_refl.
+move=> I J h P F [h' hK h'K]; rewrite (reindex_onto h h' h'K).
+by apply: eq_bigl => j; rewrite !inE; case Pi: (P _); rewrite //= hK ?eqxx.
 Qed.
 Implicit Arguments reindex [I J P F].
 
@@ -891,7 +891,7 @@ transitivity
     \big[*%M/1]_(j < n2 - m2 | Q (i + m1) (j + m2)) F (i + m1) (j + m2)).
 - rewrite -{1}[m1]add0n big_addn big_mkord; apply: eq_bigr => i _.
   by rewrite -{1}[m2]add0n big_addn big_mkord.
-rewrite (exchange_big_dep (fun j: 'I_(_) => xQ (j + m2))) => [|i j]; last first.
+rewrite (exchange_big_dep (fun j: 'I__ => xQ (j + m2))) => [|i j]; last first.
   by apply: PQxQ; rewrite leq_addl addnC -ltn_0sub -subn_sub ltn_0sub ltn_ord.
 symmetry; rewrite -{1}[m2]add0n big_addn big_mkord; apply: eq_bigr => j _.
 by rewrite -{1}[m1]add0n big_addn big_mkord.
@@ -971,8 +971,8 @@ Proof.
 by rewrite unlock => I r P F PbF; elim: r => //= i *; case Pi: (P i); auto.
 Qed.
 
-(* The lemma below is propably unusable, because second-order unification *)
-(* won't handle the eqType constraint on I.                               *)
+(* Pb must be given explicitly for the lemma below, because Coq second-order *)
+(* unification will not handle the eqType constraint on I.                   *)
 Lemma big_prop_seq : forall (I : eqType) (r : seq I) (P : pred I) F,
   (forall i, P i && (i \in r) -> Pb (F i)) ->
    Pb (\big[op1/nil]_(i <- r | P i) F i).
@@ -995,6 +995,7 @@ Proof. move=> I r P F Pb_F; rewrite !(big_cond_seq P); exact: eq_big_op. Qed.
 
 End BigProp.
 
+(* The implicit arguments expect an explicit Pb *)
 Implicit Arguments eq_big_op_seq [R nil op1 I r P F].
 Implicit Arguments eq_big_op [R nil op1 I P F].
 
@@ -1007,6 +1008,7 @@ Hypothesis Pr_nil : Pr nil1 nil2.
 Hypothesis Pr_rel : forall x1 x2 y1 y2,
   Pr x1 x2 -> Pr y1 y2 -> Pr (op1 x1 y1) (op2 x2 y2).
 
+(* Pr must be given explicitly *)
 Lemma big_rel : forall I r (P : pred I) F1 F2,
   (forall i, (P i) -> Pr (F1 i) (F2 i)) ->
   Pr (\big[op1/nil1]_(i <- r | P i) F1 i) (\big[op2/nil2]_(i <- r | P i) F2 i).
@@ -1193,21 +1195,29 @@ Proof. move=> *; exact: big_const. Qed.
 
 End Ring.
 
-Notation "\sum_ ( i | P ) ' e" :=
+(* Redundant, unparseable notation to print constant sums and products. *)
+Notation "\su 'm_' ( i | P ) e" :=
   (\sum_(<- index_enum _ | (fun i => P)) (fun _ => e%N))
-  (at level 41, e at level 41, i at level 50,
-   format "\sum_ ( i  |  P )  ' e") : nat_scope.
+  (at level 41, e at level 41, format "\su 'm_' ( i  |  P )  e") : nat_scope.
 
-Notation "\prod_ ( i | P ) ' e" :=
+Notation "\su 'm_' ( i \in A ) e" :=
+  (\sum_(<- index_enum _ | (fun i => i \in A)) (fun _ => e%N))
+  (at level 41, e at level 41, format "\su 'm_' ( i  \in  A )  e") : nat_scope.
+
+Notation "\su 'm_' ( i \in A | P ) e" :=
+  (\sum_(<- index_enum _ | (fun i => (i \in A) && P)) (fun _ => e%N))
+  (at level 41, e at level 41, format "\su 'm_' ( i  \in  A  |  P )  e")
+    : nat_scope.
+
+Notation "\pro 'd_' ( i | P ) e" :=
   (\prod_(<- index_enum _ | (fun i => P)) (fun _ => e%N))
-  (at level 36, e at level 36, i at level 50,
-   format "\prod_ ( i  |  P )  ' e") : nat_scope.
+  (at level 36, e at level 36, format "\pro 'd_' ( i  |  P )  e") : nat_scope.
 
 Lemma sum_nat_const : forall (I : finType) (A : pred I) (n : nat),
   \sum_(i \in A) n = #|A| * n.
 Proof. by move=> I A n; rewrite big_const; elim: #|A| => //= i ->. Qed.
 
-Lemma card_sum_1 : forall (I : finType) (A : pred I), #|A| = \sum_(i \in A) 1.
+Lemma sum1_card : forall (I : finType) (A : pred I), \sum_(i \in A) 1 = #|A|.
 Proof. by move=> I A; rewrite sum_nat_const muln1. Qed.
 
 Lemma prod_nat_const : forall (I : finType) (A : pred I) (n : nat),
@@ -1222,6 +1232,8 @@ Lemma prod_nat_const_nat : forall n1 n2 n : nat,
   \prod_(n1 <= i < n2) n = n ^ (n2 - n1).
 Proof. by move=> *; rewrite big_const_nat; elim: (_ - _) => //= ? ->. Qed.
 
+(* Beware: applying sum_predU to a [disjoint A & B] hypothesis will strip *)
+(* the mem wrappers from A and B, possibly exposing internal coercions.   *)
 Lemma sum_predU : forall (I : finType) (N : I -> nat) (a b : pred I),
   [disjoint a & b] ->
   \sum_(i | a i || b i) N i = (\sum_(i | a i) N i) + (\sum_(i | b i) N i).

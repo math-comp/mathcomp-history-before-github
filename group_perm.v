@@ -207,7 +207,7 @@ have h_inj: injective h.
 rewrite -(card_imset _ h_inj); apply: eq_card=> [[/= y v]].
 apply/imsetP/andP=> /= [[u uA [-> -> {y v}]]|[Ay vA']].
   split; first by rewrite perm_closed.
-  apply/subsetP=> z; rewrite 2!inE /= permM permE /transpose.
+  apply/subsetP=> z; rewrite !inE permM permE /transpose.
   rewrite (inj_eq (perm_inj u)) /= (eq_sym z).
   case: (x =P z) => [<-|nxz nhuz /=]; first by case/eqP; case: eqP.
   by apply: (subsetP uA); apply: contra nhuz; move/eqP->; case: (x =P z).

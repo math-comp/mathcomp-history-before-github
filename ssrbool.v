@@ -820,7 +820,10 @@ Proof. by move=> *; rewrite -mem_topred. Qed.
 Lemma in_simpl : forall x (p : simpl_pred T), (x \in p) = p x.
 Proof. by []. Qed.
 
-Definition inE := in_simpl. (* to be extended *)
+Lemma simpl_predE : forall (p : pred T), [pred x | p x] =1 p.
+Proof. by []. Qed.
+
+Definition inE := (in_simpl, simpl_predE). (* to be extended *)
 
 Lemma mem_simpl : forall (p : simpl_pred T), mem p = p :> pred T.
 Proof. by []. Qed.
@@ -834,8 +837,8 @@ End simpl_mem.
 
 Section RelationProperties.
 
-(* Caveat: reflexive should not be used to state lemmas, since Auto *)
-(* and Trivial will not expand the constant.                        *)
+(* Caveat: reflexive should not be used to state lemmas, since auto *)
+(* and trivial will not expand the constant.                        *)
 
 Variable T : Type.
 
@@ -846,8 +849,16 @@ Definition transitive := forall y x z, R x y -> R y z -> R x z.
 
 Definition symmetric := forall x y, R x y = R y x.
 Definition antisymmetric := forall x y, R x y && R y x -> x = y.
+Definition pre_symmetric := forall x y, R x y -> R y x.
+
+Lemma symmetric_from_pre : pre_symmetric -> symmetric.
+Proof. move=> symR x y; apply/idP/idP; exact: symR. Qed.
+
 Definition reflexive := forall x, R x x.
 Definition irreflexive := forall x, R x x = false.
+
+Definition left_transitive := forall x y, R x y -> R x =1 R y.
+Definition right_transitive := forall x y, R x y -> R^~ x =1 R^~ y.
 
 End RelationProperties.
 
@@ -992,15 +1003,15 @@ Proof. by move=> ? ?; auto. Qed.
 Lemma in3A : {in T1 & T2 & T3, {all3 P3}} -> {all3 P3}.
 Proof. by move=> ? ?; auto. Qed.
 
-Lemma subin1 : forall Ph : ph {all1 P1},
+Lemma sub_in1 : forall Ph : ph {all1 P1},
   prop_in1 d1' Ph -> prop_in1 d1 Ph.
 Proof. move=> ? allP x; move/sub1; exact: allP. Qed.
 
-Lemma subin11 : forall Ph : ph {all2 P2},
+Lemma sub_in11 : forall Ph : ph {all2 P2},
   prop_in11 d1' d2' Ph -> prop_in11 d1 d2 Ph.
 Proof. move=> ? allP x1 x2; move/sub1=> d1x1; move/sub2; exact: allP. Qed.
 
-Lemma subin111 :  forall Ph : ph {all3 P3},
+Lemma sub_in111 :  forall Ph : ph {all3 P3},
   prop_in111 d1' d2' d3' Ph -> prop_in111 d1 d2 d3 Ph.
 Proof.
 move=> ? allP x1 x2 x3.
@@ -1037,7 +1048,7 @@ Lemma subon2 : forall (Phf : ph (allQ2 f)) (Ph : ph (allQ2 f)),
   prop_on2 d2' Phf Ph -> prop_on2 d2 Phf Ph.
 Proof. move=> ? ? allQ x y; move/sub2=> d2fx; move/sub2; exact: allQ. Qed.
 
-Lemma in_can_inj : {in D1, cancel f g} -> {in D1 &, injective f}.
+Lemma can_in_inj : {in D1, cancel f g} -> {in D1 &, injective f}.
 Proof.
 by move=> fK x y; do 2![move/fK=> def; rewrite -{2}def {def}] => ->.
 Qed.
@@ -1059,7 +1070,7 @@ Proof. by case=> g' fK g'K; exists g' => * ? *; auto. Qed.
 Lemma onA_bij : {on T2, bijective f} -> bijective f.
 Proof. by case=> g' fK g'K; exists g' => * ? *; auto. Qed.
 
-Lemma subin_bij : forall D1' : pred T1,
+Lemma sub_in_bij : forall D1' : pred T1,
   {subset D1 <= D1'} -> {in D1', bijective f} -> {in D1, bijective f}.
 Proof.
 move=> D1' subD [g' fK g'K].
@@ -1075,20 +1086,20 @@ Qed.
 
 End LocalGlobal.
 
-Lemma subin2 : forall T d d' (P : T -> T -> Prop),
+Lemma sub_in2 : forall T d d' (P : T -> T -> Prop),
   sub_mem d d' -> forall Ph : ph {all2 P}, prop_in2 d' Ph -> prop_in2 d Ph.
-Proof. by move=> T d d' P /= sub; exact: subin11. Qed.
+Proof. by move=> T d d' P /= sub; exact: sub_in11. Qed.
 
-Lemma subin3 : forall T d d' (P : T -> T -> T -> Prop),
+Lemma sub_in3 : forall T d d' (P : T -> T -> T -> Prop),
   sub_mem d d' -> forall Ph : ph {all3 P}, prop_in3 d' Ph -> prop_in3 d Ph.
-Proof. by move=> T d d' P /= sub; exact: subin111. Qed.
+Proof. by move=> T d d' P /= sub; exact: sub_in111. Qed.
 
-Lemma subin12 : forall T1 T d1 d1' d d' (P : T1 -> T -> T -> Prop),
+Lemma sub_in12 : forall T1 T d1 d1' d d' (P : T1 -> T -> T -> Prop),
   sub_mem d1 d1' -> sub_mem d d' ->
   forall Ph : ph {all3 P}, prop_in12 d1' d' Ph -> prop_in12 d1 d Ph.
-Proof. by move=> T1 T d1 d1' d d' P /= sub1 sub; exact: subin111. Qed.
+Proof. by move=> T1 T d1 d1' d d' P /= sub1 sub; exact: sub_in111. Qed.
 
-Lemma subin21 : forall T T3 d d' d3 d3' (P : T -> T -> T3 -> Prop),
+Lemma sub_in21 : forall T T3 d d' d3 d3' (P : T -> T -> T3 -> Prop),
   sub_mem d d' -> sub_mem d3 d3' ->
   forall Ph : ph {all3 P}, prop_in21 d' d3' Ph -> prop_in21 d d3 Ph.
-Proof. by move=> T T3 d d' d3 d3' P /= sub sub3; exact: subin111. Qed.
+Proof. by move=> T T3 d d' d3 d3' P /= sub sub3; exact: sub_in111. Qed.

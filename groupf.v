@@ -196,7 +196,7 @@ Qed.
 Lemma injm_sfunctor : forall gT hT (G D : {group gT}) (f : {morphism D >-> hT}),
   'injm f -> G \subset D -> f @* ('e_sF(G)) = 'e_sF(f @* G).
 Proof.
-move=> gT hT G D f injf sGD; apply/eqP; rewrite eqset_sub morphim_sfunctor //=.
+move=> gT hT G D f injf sGD; apply/eqP; rewrite eqEsubset morphim_sfunctor //=.
 rewrite -{2}(morphim_invm injf sGD) -[f @* sF _ _](morphpre_invm injf).
 have sFtr := subset_trans (bisfc_clos _ _).
 by rewrite -sub_morphim_pre (morphim_sfunctor, sFtr) ?morphimS.
@@ -207,8 +207,7 @@ Lemma isom_sfunctor : forall gT hT (D G : {group gT}) (R : {group hT})
   G \subset D -> isom G R f -> isom ('e_sF(G)) ('e_sF(R)) f.
 Proof.
 move=> gT rT D G R f; case/(restrmP f)=> g [_ _ ->]; case/isomP=> injf <-.
-rewrite /isom -!setDset1 -(injm_sfunctor injf) //.
-rewrite -morphimEsub ?morphimDG ?morphim1 //. 
+rewrite /isom -(injm_sfunctor injf) // -morphimEsub ?morphimDG ?morphim1 //. 
 by rewrite subDset subsetU // bisfc_clos orbT.
 Qed.
 
@@ -231,7 +230,7 @@ Proof. by []. Qed.
 
 Canonical Structure id_subfunc :=
   IsFc (fun gT G => groupP G%G)
-       (fun gT G => subset_refl _)
+       (fun gT G => subxx _)
        (IsFMixin id_resp).
 
 Lemma triv_resp : resp (fun _ S => 1).
@@ -358,7 +357,7 @@ Lemma max_ucnP : forall G M (nMG: M <| G) B,
       [/\ (M \subset H), (H <| G), (prop_ucn nMG H) & B \subset H] -> H = B)]
   (max_ucn nMG B).
 Proof.
-move=> G M nMG N; apply: (iffP (maxgroupP _ _)) => [[]|[sMN nNG Hid max]].
+move=> G M nMG N; apply: (iffP maxgroupP) => [[]|[sMN nNG Hid max]].
   case/andP; case/andP=> sMN nNG Hid max; rewrite sMN nNG ; split=>//.
     move=> HsMN HnNG x Hx; rewrite /quotm /factm /= /restrm.
     move/(_ x): (forallP Hid); move/implyP; move/(_ Hx)=> H y Hy.
@@ -392,7 +391,7 @@ move=> G; apply/max_ucnP; rewrite center_normal sub1G; split => //.
   rewrite /quotm factmE //= /restrm; move/subcentP: nHx=>[Hx0].
   by move/(_ x Hx); rewrite /= conjgmE; move/commute_conjgP; move/eqP->.
 move=> H [_ nHG Hid] sZH.
-apply:val_inj; apply/eqP; rewrite eq_sym eqset_sub sZH; apply/subsetP=> x /= Hx.
+apply:val_inj; apply/eqP; rewrite eq_sym eqEsubset sZH; apply/subsetP=> x /= Hx.
 apply/subcentP; split; first by rewrite (subsetP (normal_sub nHG)).
 move=> y Hy; apply/commute_conjgP; apply/eqP; move/injmP:(@coset1_injm gT).
 rewrite /= norm1; apply; rewrite ?in_setT //.

@@ -30,33 +30,6 @@ Import GroupScope.
 
 Reserved Notation "x \isog y" (at level 70).
 
-(* This is shifted to maximal.v
-Section Simple.
-
-Variables gT : finGroupType.
-
-Definition simple (A : {set gT}) := #|[set H : {group gT} | H <| A]| == 2.
-
-Theorem simpleP : forall G : {group gT},
-  reflect (~~ trivg G /\ forall H : {group gT}, H <| G -> H :=: 1 \/ H :=: G)
-          (simple G).
-Proof.
-move=> G; rewrite /simple (cardsD1 G) inE normal_refl eqSS (cardsD1 1%G).
-rewrite 2!inE /(_ <| _) -val_eqE eqset_sub sub1G /= -/(trivg G).
-rewrite -cent_set1 centsC sub1G andbT; case: trivGP => [-> | _].
-  apply: (iffP idP) => [|[//]]; rewrite eqn_leq lt0n; case/andP=> _.
-  rewrite eq_card0 // => H; rewrite !inE; apply/and4P=> [] [_ nH1 sH1 _].
-  by case/eqP: nH1; move/trivGP: sH1.
-rewrite eqSS; apply: (iffP eqP) => [simG | [_ simG]].
-  split=> // H nHG; have:= card0_eq simG H; rewrite !inE nHG andbT -negb_or.
-  by case/orP; rewrite -val_eqE; move/eqP; [left | right].
-apply: eq_card0=> H; rewrite !inE andbA andbC; apply/andP=> [] [].
-by rewrite -!(val_eqE H) /=; case/simG=> ->; rewrite eqxx ?andbF.
-Qed.
-
-End Simple.
-*)
-
 Section MorphismStructure.
 
 Variables aT rT : finGroupType.
@@ -87,10 +60,14 @@ Notation "{ 'morphism' A >-> T }" := (morphism_for A (Phant T))
   (at level 0, format "{ 'morphism'  A  >->  T }") : group_scope.
 
 Notation "[ 'morphism' 'of' h ]" :=
-  (match [is h : _ -> _ <: morphism _ _] as s
+  (StructureOf (@Morphism _ _ _ h)
+   match [is h : _ -> _ <: morphism _ _] as s
    return {type of @Morphism _ _ _ for s} -> _ with
    | Morphism _ hM => fun k => k hM
-   end (@Morphism _ _ _ h)) (at level 0, only parsing) : form_scope.
+   end) (at level 0, only parsing) : form_scope.
+
+Notation "[ 'morphism' 'o' 'f' h ]" := (StructureOf (@Morphism _ _ _ h) _)
+  (at level 0, format "[ 'morphism'  'o' 'f'  h ]") : form_scope.
 
 Implicit Arguments morphimP [aT rT A B f y].
 Implicit Arguments morphpreP [aT rT A C f x].
@@ -132,7 +109,7 @@ Notation "f @* H" := (morphim (MorPhantom f) H)
 Notation "f @*^-1 L" := (morphpre (MorPhantom f) L)
   (at level 24, format "f  @*^-1  L") : group_scope.
 
-Notation "''injm' f" := (trivg ('ker f))
+Notation "''injm' f" := (pred_of_set ('ker f) \subset pred_of_set 1)
   (at level 10, f at level 8, format "''injm'  f") : group_scope.
 
 Section MorphismTheory.
@@ -221,7 +198,7 @@ Proof.
 have subV: forall A, f @* A^-1 \subset (f @* A)^-1.
   move=> A; apply/subsetP=> y; case/morphimP=> x Gx; rewrite !inE => Ax' ->{y}.
   by rewrite -morphV // mem_imset // inE groupV Gx.
-by move=> A; apply/eqP; rewrite eqset_sub subV -invSg invgK -{1}(invgK A) subV.
+by move=> A; apply/eqP; rewrite eqEsubset subV -invSg invgK -{1}(invgK A) subV.
 Qed.
 
 Lemma morphpreV : forall C, f @*^-1 C^-1 = (f @*^-1 C)^-1.
@@ -294,11 +271,14 @@ Proof. by move=> C D; rewrite -setIIr -preimsetI. Qed.
 Lemma morphpreD : forall C D, f @*^-1 (C :\: D) = f @*^-1 C :\: f @*^-1 D.
 Proof. by move=> C D; apply/setP=> x; rewrite !inE; case: (x \in G). Qed.
 
+Lemma kerP : forall x, reflect (x \in G /\ f x = 1) (x \in 'ker f).
+Proof. by move=> x; apply: (iffP morphpreP) => [] [Gx]; move/set1P. Qed.
+
 Lemma dom_ker : {subset 'ker f <= G}.
-Proof. apply/subsetP; exact: subsetIl. Qed.
+Proof. by move=> x; case/kerP. Qed.
 
 Lemma mker : forall x, x \in 'ker f -> f x = 1.
-Proof. by move=> x; case/setIP=> _; rewrite inE; move/set1P. Qed.
+Proof. by move=> x; case/kerP. Qed.
 
 Lemma mkerl : forall x y, x \in 'ker f -> y \in G -> f (x * y) = f y.
 Proof. by move=> x y Kx Gy; rewrite morphM // ?(dom_ker, mker Kx, mul1g). Qed.
@@ -330,7 +310,7 @@ Proof. by rewrite /(_ <| G) subsetIl ker_norm. Qed.
 Lemma morphimGI : forall H A,
   'ker f \subset H -> f @* (H :&: A) = f @* H :&: f @* A.
 Proof.
-move=> H A sKH; apply/eqP; rewrite eqset_sub morphimI setIC.
+move=> H A sKH; apply/eqP; rewrite eqEsubset morphimI setIC.
 apply/subsetP=> y; case/setIP; case/morphimP=> x Gx Ax ->{y}.
 case/morphimP=> z Gz Hz; case/ker_rcoset=> {Gz}// y Ky def_x.
 have{z Hz y Ky def_x} Hx: x \in H by rewrite def_x groupMl // (subsetP sKH).
@@ -350,7 +330,7 @@ Qed.
 Lemma morphimDG : forall A H,
   'ker f \subset H -> f @* (A :\: H) = f @* A :\: f @* H.
 Proof.
-move=> A H sKH; apply/eqP; rewrite eqset_sub morphimD andbT !setDE subsetI.
+move=> A H sKH; apply/eqP; rewrite eqEsubset morphimD andbT !setDE subsetI.
 rewrite morphimS ?subsetIl // -[~: f @* H]setU0 -subDset setDE setCK.
 by rewrite -morphimIG //= setIAC -setIA setICr setI0 morphim0.
 Qed.
@@ -446,9 +426,9 @@ Lemma sub_morphpre_im : forall C H,
 Proof. by symmetry; rewrite -morphpreSK ?morphimGK. Qed.
 
 Lemma ker_trivg_morphim : forall A,
-  (A \subset 'ker f) = (A \subset G) && trivg (f @* A).
+  (A \subset 'ker f) = (A \subset G) && (f @* A \subset [1]).
 Proof.
-move=> A; case sAG: (A \subset G); first by rewrite -sub_morphim_pre.
+move=> A; case sAG: (A \subset G); first by rewrite sub_morphim_pre.
 by rewrite subsetI sAG.
 Qed.
 
@@ -466,7 +446,7 @@ Proof. by move=> H K sHG skfK; rewrite morphimSK // mulSGid. Qed.
 
 Lemma morphpre_inj :
   {in [pred C : {set _} | C \subset f @* G] &, injective (fun C => f @*^-1 C)}.
-Proof. exact: in_can_inj morphpreK. Qed.
+Proof. exact: can_in_inj morphpreK. Qed.
 
 Lemma morphim_injG :
   {in [pred H : {group _} | ('ker f \subset H) && (H \subset G)] &,
@@ -485,7 +465,7 @@ Proof. by move=> H1 H2 nH1f nH2f; move/morphim_injG->. Qed.
 Lemma morphim_gen : forall A, A \subset G -> f @* <<A>> = <<f @* A>>.
 Proof.
 move=> A sAG; apply/eqP.
-rewrite eqset_sub andbC gen_subG morphimS; last exact: subset_gen.
+rewrite eqEsubset andbC gen_subG morphimS; last exact: subset_gen.
 by rewrite sub_morphim_pre gen_subG // -sub_morphim_pre // subset_gen.
 Qed.
 
@@ -493,7 +473,7 @@ Lemma morphpre_gen : forall C,
   1 \in C -> C \subset f @* G -> f @*^-1 <<C>> = <<f @*^-1 C>>.
 Proof.
 move=> C C1 sCG; apply/eqP.
-rewrite eqset_sub andbC gen_subG morphpreS; last exact: subset_gen.
+rewrite eqEsubset andbC gen_subG morphpreS; last exact: subset_gen.
 rewrite -{1}(morphpreK sCG) -morphim_gen ?subsetIl // morphimGK //=.
   by rewrite sub_gen // setIS // preimsetS ?sub1set.
 by rewrite gen_subG subsetIl.
@@ -551,7 +531,7 @@ Proof. by move=> A x Gx; rewrite -(morphim_set1 Gx) morphim_subnorm. Qed.
 
 Lemma morphim_cent : forall A, f @* 'C(A) \subset 'C(f @* A).
 Proof.
-move=> A; apply/bigcap_inP=> fx; case/morphimP=> x Gx Ax ->{fx}.
+move=> A; apply/bigcapsP=> fx; case/morphimP=> x Gx Ax ->{fx}.
 apply: subset_trans (morphim_cent1 Gx); apply: morphimS; exact: bigcap_inf.
 Qed.
 
@@ -565,6 +545,9 @@ Lemma morphim_subcent : forall A B, f @* 'C_A(B) \subset 'C_(f @* A)(f @* B).
 Proof.
 move=> A B; exact: subset_trans (morphimI A _) (setIS _ (morphim_cent B)).
 Qed.
+
+Lemma morphim_abelian : forall A, abelian A -> abelian (f @* A).
+Proof. move=> A; exact: morphim_cents. Qed.
 
 Lemma morphpre_norm : forall C, f @*^-1 'N(C) \subset 'N(f @*^-1 C).
 Proof.
@@ -593,7 +576,7 @@ Proof. by move=> C D; rewrite morphpreI setIS ?morphpre_norm. Qed.
 Lemma morphim_normG : forall H,
   'ker f \subset H -> H \subset G -> f @* 'N(H) = 'N_(f @* G)(f @* H).
 Proof.
-move=> H sKH sHG; apply/eqP; rewrite eqset_sub -{1}morphimIdom morphim_subnorm.
+move=> H sKH sHG; apply/eqP; rewrite eqEsubset -{1}morphimIdom morphim_subnorm.
 rewrite -(morphpreK (subsetIl _ _)) morphimS //= morphpreI subIset // orbC.
 by rewrite -{2}(morphimGK sKH sHG) morphpre_norm.
 Qed.
@@ -642,7 +625,7 @@ Qed.
 
 Lemma injmP : reflect {in G &, injective f} ('injm f).
 Proof.
-apply: (iffP subsetP) => [injf x y Gx Gy | injf x Kx].
+apply: (iffP subsetP) => [injf x y Gx Gy | injf x /= Kx].
   by case/ker_rcoset=> // z; move/injf; move/set1P->; rewrite mul1g.
 have Gx := dom_ker Kx; apply/set1P; apply: injf => //.
 by apply/rcoset_kerP; rewrite // mulg1.
@@ -657,6 +640,12 @@ Proof. exact/trivgP. Qed.
 
 Lemma injmK : forall A, A \subset G -> f @*^-1 (f @* A) = A.
 Proof. by move=> A sAG; rewrite morphimK // ker_injm // mul1g. Qed.
+
+Lemma card_injm : forall A, A \subset G -> #|f @* A| = #|A|.
+Proof.
+move=> A sAG; rewrite morphimEsub // card_dimset //.
+exact: (sub_in2 (subsetP sAG) (injmP injf)).
+Qed.
 
 Lemma injmSK : forall A B,
   A \subset G -> (f @* A \subset f @* B) = (A \subset B).
@@ -677,7 +666,7 @@ Qed.
 
 Lemma injm_norm : forall A, A \subset G -> f @* 'N(A) = 'N_(f @* G)(f @* A).
 Proof.
-move=> A sAG; apply/eqP; rewrite -morphimIdom eqset_sub morphim_subnorm.
+move=> A sAG; apply/eqP; rewrite -morphimIdom eqEsubset morphim_subnorm.
 rewrite -sub_morphpre_injm ?subsetIl // morphpreI injmK // setIS //.
 by rewrite -{2}(injmK sAG) morphpre_norm.
 Qed.
@@ -696,7 +685,7 @@ Proof. by move=> A x Gx; rewrite injm_subnorm ?morphim_set1 ?sub1set. Qed.
 
 Lemma injm_cent : forall A, A \subset G -> f @* 'C(A) = 'C_(f @* G)(f @* A).
 Proof.
-move=> A sAG; apply/eqP; rewrite -morphimIdom eqset_sub morphim_subcent.
+move=> A sAG; apply/eqP; rewrite -morphimIdom eqEsubset morphim_subcent.
 apply/subsetP=> fx; case/setIP; case/morphimP=> x Gx _ ->{fx} cAfx.
 rewrite mem_morphim // inE Gx -sub1set centsC cent_set1 -injmSK //.
 by rewrite injm_cent1 // subsetI morphimS // -cent_set1 centsC sub1set.
@@ -714,7 +703,7 @@ Variable g : {morphism G >-> rT}.
 
 Lemma eq_morphim : {in G, f =1 g} -> forall A, f @* A = g @* A.
 Proof.
-by move=> efg A; apply: dfequal_imset; apply: subin1 efg => x; case/setIP.
+by move=> efg A; apply: eq_in_imset; apply: sub_in1 efg => x; case/setIP.
 Qed.
 
 End MorphismTheory.
@@ -727,28 +716,28 @@ Notation "f @: G" := (morph_dom_group f G) : subgroup_scope.
 
 Section IdentityMorphism.
 
-Variable T : finGroupType.
+Variable gT : finGroupType.
 
-Definition idm of {set T} := fun x : T => x : FinGroup.sort T.
+Definition idm of {set gT} := fun x : gT => x : FinGroup.sort gT.
 
-Lemma idm_morphM : forall A : {set T}, {in A & , {morph idm A : x y / x * y}}.
+Lemma idm_morphM : forall A : {set gT}, {in A & , {morph idm A : x y / x * y}}.
 Proof. by []. Qed.
 
 Canonical Structure idm_morphism A := Morphism (@idm_morphM A).
 
-Lemma injm_idm : forall G : {group T}, 'injm (idm G).
+Lemma injm_idm : forall G : {group gT}, 'injm (idm G).
 Proof. by move=> G; apply/injmP=> ?. Qed.
 
-Lemma ker_idm : forall G : {group T}, 'ker (idm G) = 1.
+Lemma ker_idm : forall G : {group gT}, 'ker (idm G) = 1.
 Proof. by move=> G; apply/trivgP; exact: injm_idm. Qed.
 
-Lemma morphim_idm : forall A B : {set T}, B \subset A -> idm A @* B = B.
+Lemma morphim_idm : forall A B : {set gT}, B \subset A -> idm A @* B = B.
 Proof.
 move=> A B; rewrite /morphim /= /idm; move/setIidPr->.
 by apply/setP=> x; apply/imsetP/idP=> [[y By ->]|Bx]; last exists x.
 Qed.
 
-Lemma morphpre_idm : forall A B : {set T}, idm A @*^-1 B = A :&: B.
+Lemma morphpre_idm : forall A B : {set gT}, idm A @*^-1 B = A :&: B.
 Proof. by move=> A B; apply/setP=> x; rewrite !inE. Qed.
 
 End IdentityMorphism.
@@ -773,7 +762,7 @@ Variable f : {morphism B >-> rT}.
 Notation fB := (restrm sAB (mfun f)).
 
 Canonical Structure restrm_morphism :=
-  @Morphism aT rT A fB (subin2 (subsetP sAB) (morphM f)).
+  @Morphism aT rT A fB (sub_in2 (subsetP sAB) (morphM f)).
 
 Lemma morphim_restrm : forall C, fB @* C = f @* (A :&: C).
 Proof. by move=> C; rewrite {2}/morphim setIA (setIidPr sAB). Qed.
@@ -927,8 +916,8 @@ Proof. by rewrite ker_factm; case/trivgP=> ->; rewrite morphim1. Qed.
 
 Lemma injm_factmP : reflect ('ker f = 'ker q) ('injm ff).
 Proof.
-rewrite ker_factm -morphimIdom -[trivg _]andbT -sKqKf /trivg.
-rewrite sub_morphim_pre ?subsetIl // setIA (setIidPr sGH) -eqset_sub.
+rewrite ker_factm -morphimIdom sub_morphim_pre ?subsetIl //.
+rewrite setIA (setIidPr sGH) (sameP setIidPr eqP) (setIidPl _) // eq_sym.
 exact: eqP.
 Qed.
 
@@ -950,7 +939,7 @@ Hypothesis injf : 'injm f.
 Lemma invm_subker : 'ker f \subset 'ker (idm G).
 Proof. by rewrite ker_idm. Qed.
 
-Definition invm := factm (subset_refl _) invm_subker.
+Definition invm := factm (subxx _) invm_subker.
 
 Canonical Structure invm_morphism := Eval hnf in [morphism of invm].
 
@@ -973,10 +962,10 @@ by rewrite morphimIdom -morphpreIim morphpreK (subsetIl, morphimIdom).
 Qed.
 
 Lemma injm_invm : 'injm invm.
-Proof. by move/in_can_inj: invmK; move/injmP. Qed.
+Proof. by move/can_in_inj: invmK; move/injmP. Qed.
 
 Lemma ker_invm : 'ker invm = 1.
-Proof. by case/trivgP: injm_invm. Qed.
+Proof. by move/trivgP: injm_invm. Qed.
 
 Lemma invm_dom : invm @* (f @* G) = G.
 Proof. exact: morphim_invm. Qed.
@@ -1028,12 +1017,18 @@ End MorphicProps.
 Lemma misomP : forall f, reflect {fM : morphic f & isom (morphm fM)} (misom f).
 Proof. by move=> f; apply: (iffP andP) => [] [fM fiso] //; exists fM. Qed.
 
+Lemma misom_isog : forall f, misom f -> isog.
+Proof.
+move=> f; case/andP=> fM iso_f; apply/existsP; exists (finfun f).
+apply/andP; split; last by rewrite /misom /isom !(eq_imset _ (ffunE f)).
+apply/forallP=> u; rewrite !ffunE; exact: forallP fM u.
+Qed.
+
 Lemma isom_isog : forall (D : {group aT}) (f : {morphism D >-> rT}),
   A \subset D -> isom f -> isog.
 Proof.
-move=> D f sAD isof; apply/existsP; exists (finfun f); apply/andP; split.
-  by apply/morphicP=> x y Ax Ay; rewrite !ffunE morphM ?(subsetP sAD).
-by rewrite /isom (dfequal_imset (in1W (ffunE f))). 
+move=> D f sAD isof; apply: (@misom_isog f); rewrite /misom isof andbT.
+apply/morphicP; exact: (sub_in2 (subsetP sAD) (morphM f)).
 Qed.
 
 End Defs.
@@ -1052,13 +1047,12 @@ Notation fMT := {morphism G >-> rT}.
 Lemma isomP : forall f : fMT, reflect ('injm f /\ f @* G = H) (isom G H f).
 Proof.
 move=> f; apply: (iffP eqP) => [eqfGH | [injf <-]]; last first.
-  rewrite !setD1E -morphimEsub ?subsetIl // !setC1E -!setDE.
-  by rewrite morphimDG // morphim1.
+  by rewrite setDE -morphimEsub ?subsetIl // -setDE morphimDG // morphim1.
 split.
   apply/subsetP=> x; rewrite !inE /=; case/andP=> Gx fx1; apply/idPn=> nx1.
   by move/setP: eqfGH; move/(_ (f x)); rewrite mem_imset ?inE (nx1, fx1).
-rewrite morphimEdom -{2}(setD1K (group1 G)) setU1E imsetU eqfGH.
-by rewrite imset_set1 morph1 -setU1E setD1K.
+rewrite morphimEdom -{2}(setD1K (group1 G)) imsetU eqfGH.
+by rewrite imset_set1 morph1 setD1K.
 Qed.
 
 Lemma isom_card : forall f : fMT, isom G H f -> #|G| = #|H|.
@@ -1084,7 +1078,7 @@ Lemma sub_isom : forall (A : {set aT}) (C : {set rT}),
   A \subset G -> f @* A = C -> 'injm f -> isom A C f.
 Proof.
 move=> A C sAG; case: (restrmP f sAG) => g [_ _ fg] <-{C} injf.
-rewrite /isom -!setDset1 -morphimEsub ?morphimDG ?morphim1 //.
+rewrite /isom -morphimEsub ?morphimDG ?morphim1 //.
 by rewrite subDset setUC subsetU ?sAG.
 Qed.
   
@@ -1115,15 +1109,15 @@ Qed.
 Lemma isog_card : G \isog H -> #|G| = #|H|.
 Proof. case/isogP=> f injf <-; apply: isom_card (f) _; exact/isomP. Qed.
 
-Lemma trivial_isog : trivg G -> trivg H -> G \isog H.
+Lemma trivial_isog : G :=: 1 -> H :=: 1 -> G \isog H.
 Proof.
-move/trivgP=> ->; move/trivgP=> ->; apply/isogP.
-exists [morphism of @trivm gT hT 1]; rewrite /= ?morphim_trivm //.
-rewrite ker_trivm; exact: subset_refl.
+move=> -> ->; apply/isogP.
+exists [morphism of @trivm gT hT 1]; rewrite /= ?morphim1 //.
+rewrite ker_trivm; exact: subxx.
 Qed.
 
-Lemma isog_triv : G \isog H -> trivg G = trivg H.
-Proof. by move=> isoGH; rewrite !trivg_card isog_card. Qed.
+Lemma isog_triv : G \isog H -> (G :==: 1) = (H :==: 1).
+Proof. by move=> isoGH; rewrite !trivg_card1 isog_card. Qed.
 
 Lemma isog_symr : G \isog H -> H \isog G.
 Proof.
@@ -1138,18 +1132,6 @@ have defG: f @*^-1 (f @* G) = G by rewrite morphimGK ?subsetIl.
 rewrite -morphim_comp -{1 8}defG.
 by apply/isogP; exists [morphism of g \o f]; rewrite ?injm_comp.
 Qed.
-
-(* moving to maximal -- GG
-Lemma isog_simpl : G \isog H -> simple G -> simple H.
-Proof.
-move/isog_symr; case/isogP=> f injf <-.
-case/simpleP=> ntH simH; apply/simpleP; split=> [|L nLH].
-  by apply: contra ntH; move/trivGP=> H1; rewrite {3}H1 /= morphim1.
-case: (andP nLH); move/(morphim_invm injf); move/group_inj=> <- _.
-have: f @* L <| f @* H by rewrite morphim_normal.
-by case/simH=> /= ->; [left | right]; rewrite (morphim1, morphim_invm).
-Qed.
-*)
 
 End Isomorphisms.
 
@@ -1169,8 +1151,63 @@ Qed.
 Lemma isog_transr : G \isog H -> (K \isog G) = (K \isog H).
 Proof.
 by move=> iso; apply/idP/idP; move/isog_trans; apply; rewrite // -isog_sym.
-
 Qed.
 
 End IsoBoolEquiv.
+
+(* Isomorphism between a group and its subtype. *)
+
+Section SubMorphism.
+
+Variables (gT : finGroupType) (G : {group gT}).
+
+Canonical Structure sgval_morphism := Morphism (@sgvalM _ G).
+Canonical Structure subg_morphism := Morphism (@subgM _ G).
+
+Lemma injm_sgval : 'injm sgval.
+Proof. apply/injmP; apply: in2W; exact: subg_inj. Qed.
+
+Lemma injm_subg : 'injm (subg G).
+Proof. apply/injmP; exact: can_in_inj (@subgK _ _). Qed.
+Hint Resolve injm_sgval injm_subg.
+
+Lemma ker_sgval : 'ker sgval = 1. Proof. exact/trivgP. Qed.
+Lemma ker_subg : 'ker (subg G) = 1. Proof. exact/trivgP. Qed.
+
+Lemma subgEdom : subg G @* G = [subg G].
+Proof.
+apply/eqP; rewrite -subTset morphimEdom.
+by apply/subsetP=> u _; rewrite -(sgvalK u) mem_imset ?subgP.
+Qed.
+
+Lemma sgval_sub : forall A, sgval @* A \subset G.
+Proof. move=> A; apply/subsetP=> x; case/imsetP=> u _ ->; exact: subgP. Qed.
+
+Lemma sgvalmK : forall A, subg G @* (sgval @* A) = A.
+Proof.
+move=> A; apply/eqP; rewrite eqEcard !card_injm ?subsetT ?sgval_sub //.
+rewrite leqnn andbT -morphim_comp; apply/subsetP=> u /=.
+by case/morphimP=> v _ Av ->; rewrite /= sgvalK.
+Qed.
+
+Lemma subgmK : forall A : {set gT}, A \subset G -> sgval @* (subg G @* A) = A.
+Proof.
+move=> A sAG; apply/eqP; rewrite eqEcard !card_injm ?subsetT //.
+rewrite leqnn andbT -morphim_comp morphimE /= morphpreT.
+by apply/subsetP=> u; case/morphimP=> v Gv Av -> /=; rewrite subgK.
+Qed.
+
+Lemma sgvalEdom : sgval @* [subg G] = G.
+Proof. by rewrite -{2}subgEdom subgmK. Qed.
+
+Lemma isom_subg : isom G [subg G] (subg G).
+Proof. by apply/isomP; rewrite subgEdom. Qed.
+
+Lemma isom_sgval : isom [subg G] G sgval.
+Proof. by apply/isomP; rewrite sgvalEdom. Qed.
+
+Lemma isog_subg : isog G [subg G].
+Proof. exact: isom_isog isom_subg. Qed.
+
+End SubMorphism.
 

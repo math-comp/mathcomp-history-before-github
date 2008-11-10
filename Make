@@ -17,6 +17,7 @@ bigops.v
 finset.v
 groups.v
 morphisms.v
+gprod.v
 action.v
 normal.v
 jordanholder.v
@@ -33,7 +34,6 @@ maximal.v
 prim_act.v
 sylow.v
 abelian.v
-dirprod.v
 signperm.v
 matrix.v
 poly.v

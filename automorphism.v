@@ -120,9 +120,9 @@ Hypothesis injf : 'injm f.
 Lemma morphim_fixP : forall A,
   A \subset G -> reflect (f @* A = A) (f @* A \subset A).
 Proof.
-rewrite /morphim => A sAG; have:= eqset_sub_card (f @: A) A.
+rewrite /morphim => A sAG; have:= eqEcard (f @: A) A.
 rewrite (setIidPr sAG) card_dimset ?leqnn ?andbT  => [<-|]; first exact: eqP.
-move/injmP: injf; apply: subin2; exact/subsetP.
+move/injmP: injf; apply: sub_in2; exact/subsetP.
 Qed.
 
 Hypothesis Gf : f @* G = G.
@@ -144,7 +144,7 @@ Proof. by rewrite inE morphic_aut perm_in_on. Qed.
 Lemma imset_autE : forall A, A \subset G -> aut @: A = f @* A.
 Proof.
 move=> A sAG; rewrite /morphim (setIidPr sAG).
-apply: dfequal_imset; apply: subin1 autE; exact/subsetP.
+apply: eq_in_imset; apply: sub_in1 autE; exact/subsetP.
 Qed.
 
 Lemma preim_autE : forall A, A \subset G -> aut @^-1: A = f @*^-1 A.
@@ -187,7 +187,7 @@ Lemma norm_conj_autE : {in 'N(G) & G, forall x y, conj_aut x y = y ^ x}.
 Proof. by move=> x y nGx Gy; rewrite /= autE //= val_insubd nGx. Qed.
 
 Lemma conj_autE : {in G &, forall x y, conj_aut x y = y ^ x}.
-Proof. apply: subin11 norm_conj_autE => //; exact: subsetP (normG G). Qed.
+Proof. apply: sub_in11 norm_conj_autE => //; exact: subsetP (normG G). Qed.
 
 Lemma conj_aut_morphM : {in 'N(G) &, {morph conj_aut : x y / x * y}}.
 Proof.
@@ -299,7 +299,7 @@ Qed.
 
 Lemma charM : forall G H K, H \char G -> K \char G -> H * K \char G.
 Proof.
-move=> G H K chHG chKG; rewrite -norm_mulgenE ?charMgen //.
+move=> G H K chHG chKG; rewrite -norm_mulgenEl ?charMgen //.
 by case/andP: (char_normal chKG) => _; apply: subset_trans; case/andP: chHG.
 Qed.
 
@@ -309,9 +309,9 @@ Lemma lone_subgroup_char : forall G H,
 Proof.
 move=> G H sHG Huniq; apply/charP; split=> // f injf Gf; apply/eqP.
 have{injf} injf: {in H &, injective f}.
-  by move/injmP: injf; apply: subin2; exact/subsetP.
+  by move/injmP: injf; apply: sub_in2; exact/subsetP.
 have fH: f @* H = f @: H by rewrite /morphim (setIidPr sHG).
-rewrite eqset_sub_card {2}fH card_dimset ?{}Huniq //=.
+rewrite eqEcard {2}fH card_dimset ?{}Huniq //=.
   by rewrite -{3}Gf morphimS.
 rewrite isog_sym; apply/isogP.
 exists [morphism of restrm sHG f] => //=; first exact/injmP.

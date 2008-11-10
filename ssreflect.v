@@ -87,17 +87,17 @@ End AsCanonical.
 
 Import AsCanonical.
 
-Notation "(* 'is' c *) s" := (@get _ _ c s _)
-  (at level 10, c at level 99, format "(* 'is'  c *) s") : structure_scope.
-
-Notation "(* 'is' c : *) s" := (@get  Type _ c s _)
-  (at level 10, c at level 99, format "(* 'is' c  :  *) s") : structure_scope.
-
 Notation "[ 'is' c : cT <: sT ]" := (get ((fun s : sT => Put (c : cT) s s) _))
   (at level 0, c, cT at level 99, only parsing) : structure_scope.
 
-Notation "[ 'is' c <: sT ]" := [is c%type :  Type <: sT]
+Notation "[ 'is' c <: sT ]" := [is c%type : Type <: sT]
   (at level 0, c at level 99, only parsing) : structure_scope.
+
+Notation "[ 'i' 's' c : cT <: sT ]" := (@get cT sT c _ _)
+  (at level 0, format "[ 'i' 's'  c  :  cT  <:  sT ]") : structure_scope.
+
+Notation "[ 'i' 's' c <: sT ]" := (@get Type sT c _ _)
+  (at level 0, format "[ 'i' 's'  c  <:  sT ]") : structure_scope.
 
 (* Helper notation for canonical structure inheritance support.           *)
 (* This is a workaround for the poor interaction between delta reduction  *)
@@ -109,19 +109,27 @@ Notation "[ 'is' c <: sT ]" := [is c%type :  Type <: sT]
 (* Our solution is to redeclare the structure, as follows                 *)
 (*   Canonical Structure my_type_struct :=                                *)
 (*     Eval hnf in [struct of my_type].                                   *)
-(* The special notation [struct of _] must be defined for each Strucure   *)
+(* The special notation [str of _] must be defined for each Strucure      *)
 (* "str" with constructor "Str", as follows                               *)
-(*  Notation "[ 'struct' 'of' t ]" :=                                     *)
-(*    (match [is t <: str] as s return {type of Str for s} -> str with    *)
-(*    | Str _ x y ... z => fun k => k _ x y ... z end                     *)
-(*    (@Str t)) (at level 0, only parsing) : form_scope.                  *)
+(*  Notation "[ 'str' 'of' t ]" :=                                        *)
+(*    (StructureOf (@Str t)                                               *)
+(*     match [is t <: str] as s                                           *)
+(*       return {type of Str for s} -> str with                           *)
+(*    | Str _ x y ... z => fun k => k _ x y ... z                         *)
+(*    end) (at level 0, only parsing) : form_scope.                       *)
+(*  Notation "[ 'str' 'o' 'f' t ]" := (StructureOf (@Str t) _)            *)
+(*    (at level 0, format "[ 'str'  'o' 'f'  t ]") : form_scope.          *)
 (* The notation for the match return predicate is defined below; note     *)
 (* that the implementation of the [is t <: s] notation carefully avoids   *)
 (* the delta reduction problem, crucially.                                *)
+(* The StructureOf allows the second (unparsable) Notation to be used     *)
+(* to display the result of the first; it can be omitted for structures   *)
+(* like, e.g., eqType, that are only used statically.                     *)
 
 Definition argumentType T P & forall x : T, P x := T.
 Definition dependentReturnType T P & forall x : T, P x := P.
 Definition returnType aT rT & aT -> rT := rT.
+Definition StructureOf sT cT (construct : cT) K : sT := K construct. 
 
 Notation "{ 'type' 'of' c 'for' s }" := (dependentReturnType c s)
   (at level 0, format "{ 'type'  'of'  c  'for'  s }") : type_scope.
@@ -130,7 +138,7 @@ Delimit Scope form_scope with FORM.
 Open Scope form_scope.
 
 (* A generic "phantom" type (actually, the unit type with a phantom      *)
-(* parameter. This can be used for type definitions that require some    *)
+(* parameter). This can be used for type definitions that require some   *)
 (* Structure on one of their parameters, to allow Coq to infer said      *)
 (* structure rather that having to supply it explicitly or to resort to  *)
 (* the "[is _ <: _]" notation, which interacts poorly with Notation.     *)
@@ -159,7 +167,6 @@ CoInductive phant (p : Type) :  Type := Phant.
 
 Definition protect_term (A :  Type) (x : A) : A := x.
 
-(* TODO: update comment. *)
 (** Term tagging (user-level).                                              *)
 (* We provide two strengths of term tagging :                               *)
 (*  - (nosimpl t) simplifies to t EXCEPT in a definition; more precisely,   *)

@@ -234,7 +234,7 @@ Proof. by move=> a a' Ha e; apply: eq_card => x; rewrite inE /= Ha. Qed.
 Lemma n_compC : forall a e, n_comp e T = n_comp e a + n_comp e (predC a).
 Proof.
 move=> a e; rewrite /n_comp; rewrite -(cardID a).
-by congr (_ + _); apply: eq_card => x; rewrite !inE /= !inE /= andbT // andbC.
+by congr (_ + _); apply: eq_card => x; rewrite !inE !andbT andbC.
 Qed.
 
 Lemma eq_root : forall e1 e2 : rel T, e1 =2 e2 -> root e1 =1 root e2.
@@ -541,7 +541,7 @@ rewrite -(cardID (fconnect f x)); congr (_ + _).
   apply: etrans Hex; apply: eq_card => y; rewrite inE /= -!topredE /= andbC.
   case Hy: (fconnect f x y) => //=.
   by rewrite -(rootP fconnect_sym Hy) Dx.
-apply: eq_card => y; rewrite !inE /= !inE /= andbC.
+apply: eq_card => y; rewrite !inE andbC.
 by rewrite -{2}Dx (root_connect fconnect_sym) fconnect_sym andbC.
 Qed.
 
@@ -568,18 +568,6 @@ Let Hf := can_inj Ef.
 Lemma finv_eq_can : finv f =1 f'.
 Proof. exact (bij_can_eq (fin_inj_bij Hf) (finv_f Hf) Ef). Qed.
 
-Lemma canF_sym : cancel f' f.
-Proof. exact (eq_can (f_finv Hf) finv_eq_can (frefl f)). Qed.
-
-Lemma canF_LR : forall x y, x = f' y -> f x = y.
-Proof. move=> *; exact: canLR canF_sym _. Qed.
-
-Lemma canF_RL : forall x y, f' x = y -> x = f y.
-Proof. move=> *; exact: canRL canF_sym _. Qed.
-
-Lemma canF_eq : forall x y, (f x == y) = (x == f' y).
-Proof. exact (can2_eq Ef canF_sym). Qed.
-
 End FinCancel.
 
 Section FconnectEq.
@@ -601,7 +589,8 @@ Proof. exact: eq_n_comp eq_fconnect. Qed.
 
 Lemma eq_finv : finv f =1 finv f'.
 Proof.
-move=> x; rewrite /finv /order (eq_card (eq_fconnect x)); exact: (eq_iter Eff').
+move=> x; rewrite /finv /order (eq_card (eq_fconnect x)).
+exact: (eq_iter Eff').
 Qed.
 
 Lemma eq_froot : froot f =1 froot f'.
@@ -633,7 +622,8 @@ Hypothesis Ha : closed e a.
 
 Record rel_adjunction : Type := RelAdjunction {
   rel_unit : forall x, a x -> {x' : T' | connect e x (h x')};
-  rel_functor : forall x' y', a (h x') -> connect e' x' y' = connect e (h x') (h y')
+  rel_functor : forall x' y',
+    a (h x') -> connect e' x' y' = connect e (h x') (h y')
 }.
 
 Lemma intro_adjunction : forall h' : (forall x, a x -> T'),
@@ -710,7 +700,8 @@ Qed.
 
 End RelAdjunction.
 
-Definition fun_adjunction T T' h f f' := @rel_adjunction T T' h (frel f) (frel f').
+Definition fun_adjunction T T' h f f' :=
+  @rel_adjunction T T' h (frel f) (frel f').
 
 Implicit Arguments intro_adjunction [T T' h e e' a].
 Implicit Arguments adjunction_n_comp [T T' e e' a].

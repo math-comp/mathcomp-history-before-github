@@ -9,7 +9,7 @@
 (***********************************************************************)
 (***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
-Require Import fintype finset groups morphisms normal div dirprod.
+Require Import fintype finset groups morphisms normal div gprod.
 
 (* Require Import seq paths connect zp bigops group_perm automorphism  *)
 
@@ -139,7 +139,7 @@ Definition rho : fp_mul (m * n) ->  (fp_mul m) * (fp_mul n):=
 Lemma rho_morph : {morph rho : x y / x * y}%g.
 Proof.
 move=> x y; apply/eqP; rewrite eq_sym; do 3!rewrite /eqd /=.
-rewrite !modn_mul2m !eqn_mod_dvd ?leq_modn //.
+rewrite !modn_mul2m !eqn_mod_dvd ?leq_mod //.
 rewrite {1 3}(divn_eq (sval x * sval y) (m * n)) !addnK.
 by rewrite !mulnA {1}mulnAC !dvdn_mull.
 Qed.

@@ -114,7 +114,7 @@ Qed.
 
 Lemma rotations_is_rot: forall r, r \in rotations -> is_rot r.
 Proof.
-move=> r Dr; apply/eqP; apply/permP => a; rewrite inE !permM in Dr *.
+move=> r Dr; apply/eqP; apply/permP => a; rewrite !inE -!orbA !permM in Dr *.
 by case/or4P: Dr; move/eqP->; rewrite !permE //; case: a; do 4?case.
 Qed.
 
@@ -265,7 +265,7 @@ Canonical Structure iso_group := Group group_set_iso.
 Lemma card_rot: #|rot| = 4.
 Proof.
 rewrite -[4]/(size [:: id1; r1; r2; r3]) -(card_uniqP _).
-  by apply: eq_card => x; rewrite rot_is_rot  !inE orbF.
+  by apply: eq_card => x; rewrite rot_is_rot  !inE orbF -!orbA.
 by apply: maps_uniq (fun p : {perm square} => p c0) _ _; rewrite /= !permE.
 Qed.
 
@@ -412,7 +412,7 @@ Lemma burnside_app_rot:
   (square_coloring_number4 * 4 = n ^ 4 + n ^ 2 + 2 * n)%N.
 Proof.
 rewrite (burnside_formula [:: id1; r1; r2; r3]) => [||p]; last first.
-- by rewrite !inE orbF.
+- by rewrite !inE !orbA orbF.
 - by apply: maps_uniq (fun p : {perm square} => p c0) _ _; rewrite /= !permE.
 rewrite !big_adds big_seq0 /= addn0 {1}card_Fid F_r1 F_r2 F_r3.
 by rewrite card_n card_n2 //=; ring.
@@ -848,7 +848,7 @@ have -> : s4 = r05 * r14  * r14 * r14 * r05 by iso_tac.
 have -> : s5 = r14  * r05 * r05 by iso_tac.
 have -> : s6 = r05 * r05 * r14 by iso_tac.
 do ?case/predU1P=> [<-|]; first exact: group1; last (move/eqP => <-);
-   by rewrite ?groupMl ?mem_gen // inE eqxx ?orbT.
+   by rewrite ?groupMl ?mem_gen // !inE eqxx ?orbT.
 Qed.
 
 Notation col_cubes := {ffun cube -> colors}.

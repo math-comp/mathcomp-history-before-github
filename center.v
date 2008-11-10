@@ -12,7 +12,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 Require Import fintype div prime finset ssralg bigops.
 Require Import groups morphisms action normal pgroups automorphism.
-Require Import cyclic dirprod abelian.
+Require Import cyclic gprod abelian.
 
 (* Require Import seq paths connecct bigops group_perm. *)
 
@@ -64,8 +64,8 @@ Proof. by move=> G B; rewrite /normal subcent_sub subcent_norm. Qed.
 Lemma subcent_char : forall G H K, H \char G -> K \char G -> 'C_H(K) \char G.
 Proof.
 move=> G H K; case/charP=> sHG chHG; case/charP=> sKG chKG; apply/charP.
-split=> [|f injf Gf]; last apply/morphim_fixP; rewrite ?subIset ?sHG //.
-by apply: subset_trans (morphim_subcent _ _ _) _; rewrite chHG // chKG /=.
+split=> [|f injf Gf]; first by rewrite subIset ?sHG.
+by rewrite injm_subcent ?chHG ?chKG.
 Qed.
 
 Lemma centerP : forall A x,
@@ -75,8 +75,8 @@ Proof. move=> A x; exact: subcentP. Qed.
 Lemma center_sub : forall A, 'Z(A) \subset A.
 Proof. move=> A; exact: subsetIl. Qed.
 
-Lemma center1 : 'Z(1) = 1 :> {set gT}.
-Proof. by apply/eqP; rewrite eqset_sub center_sub sub1G. Qed.
+Lemma center1 : 'Z(1) = [1 gT].
+Proof. by apply/eqP; rewrite eqEsubset center_sub sub1G. Qed.
 
 Lemma centerC : forall A, {in A, centralised 'Z(A)}.
 Proof. by move=> A; apply/centsP; rewrite centsC subsetIr. Qed.
@@ -90,7 +90,7 @@ Proof. move=> rT A D f; exact: morphim_subcent. Qed.
 
 Lemma abelian_center: forall G, abelian 'Z(G).
 Proof.
-by move=> P; rewrite /abelian subIset // centsC subIset // subset_refl orbT.
+by move=> P; rewrite /abelian subIset // centsC subIset // subxx orbT.
 Qed.
 
 Lemma center_char : forall G, 'Z(G) \char G.
@@ -102,8 +102,8 @@ Qed.
 Lemma subcent1P : forall A x y,
   reflect (y \in A /\ commute x y) (y \in 'C_A[x]).
 Proof.
-by move=> A x y; apply: (iffP (setIP _ _ _))=> [] [Ay];
-  last move/commute_sym; move/cent1P.
+move=> A x y; rewrite inE; case: (y \in A); last by right=> [[]].
+by apply: (iffP cent1P) => [|[]].
 Qed.
 
 Lemma subcent1_id : forall x G, x \in G -> x \in 'C_G[x].
@@ -130,21 +130,19 @@ Qed.
 
 Lemma center_cyclic_abelian : forall G, cyclic (G / 'Z(G)) -> G :=: 'Z(G).
 Proof.
-move=> G; case/cyclicP=> a Ga; apply/eqP; rewrite eqset_sub center_sub andbT.
+move=> G; case/cyclicP=> a Ga; apply/eqP; rewrite eqEsubset center_sub andbT.
 case: (cosetP a) => /= z Nz def_a.
 have G_Zz: G :=: 'Z(G) * <[z]>.
   rewrite -['Z(G)]ker_coset -morphimK ?cycle_subG ?morphim_cycle //=.
   by rewrite -def_a -Ga quotientGK // center_normal.
 rewrite -(mulg1 'Z(G)) {1}G_Zz mulGS mulg1 /= G_Zz subsetI mulG_subr /=.
-rewrite centMG subsetI centsC subIset /=.
+rewrite centM subsetI centsC subIset /=.
   apply/centsP; exact: commute_cycle_com.
 by rewrite orbC centS // G_Zz mulG_subr.
 Qed.
 
 End Center.
 
-(* Maybe this should be put in dirprod but then there is
-   a circular dependency dir_prod -> fp -> center *)
 Section Product.
 
 Variable gT : finGroupType.
@@ -154,7 +152,7 @@ Implicit Types A B C : {set gT}.
 Lemma center_prod : forall H1 H2,
   H1 \subset 'C(H2) -> 'Z(H1) * 'Z(H2) = 'Z(H1 * H2).
 Proof.
-move=> H1 H2 CH1H2; apply/setP=> z; rewrite {3}/center centMG !inE.
+move=> H1 H2 CH1H2; apply/setP=> z; rewrite {3}/center centM !inE.
 apply/imset2P/and3P=> [[z1 z2]| []].
   case/setIP=> Hz1 Cz1; case/setIP=> Hz2 Cz2 -> {z}.
   rewrite mem_imset2 ?groupM // ?(subsetP CH1H2) //.
@@ -167,48 +165,41 @@ Qed.
 
 Lemma center_cprod : forall A B G, A \* B = G -> 'Z(A) \* 'Z(B) = 'Z(G).
 Proof.
-move=> A B G; case/cprodGP => H1 H2 -> -> <- CH1H2.
-rewrite cprodGE ?center_prod //=.
+move=> A B G; case/cprodP => [[H1 H2 -> ->] <- CH1H2].
+rewrite cprodE ?center_prod //=.
 apply: subset_trans (subset_trans (center_sub _)  CH1H2) (centS _).
 exact: center_sub.
 Qed.
 
 Lemma center_bigcprod : forall I r P (F : I -> {set gT}) G,
-  \big[central_product/1]_(i <- r | P i) F i = G
-  -> \big[central_product/1]_(i <- r | P i) 'Z(F i) = 'Z(G).
+  \big[cprod/1]_(i <- r | P i) F i = G
+  -> \big[cprod/1]_(i <- r | P i) 'Z(F i) = 'Z(G).
 Proof.
 move=> I r P F; pose R A C := forall G, A :=: G -> C = 'Z(G).
 apply (big_rel R) => [_ <-|A B C D IHA IHB G dG|_ _ G ->]; rewrite ?center1 //.
-case/cprodGP: dG IHA IHB (dG) => [H K -> -> _ _] IHH IHK dG.
+case/cprodP: dG IHA IHB (dG) => [[H K -> ->] _ _] IHH IHK dG.
 by rewrite (IHH H) // (IHK K) // (center_cprod dG).
 Qed.
 
 Lemma center_dprod : forall A B G, A \x B = G -> 'Z(A) \x 'Z(B) = 'Z(G).
 Proof.
-move=> A B G; case/dprodGP=> [[H1 H2 -> -> defG cH12] trH12].
-move: defG; rewrite -cprodGE //; move/center_cprod.
-case/cprodGP=> _ _ _ _ /= <- cZ12; apply: dprodGE => //=.
-rewrite setIAC setIA -setIA; apply: subset_trans trH12; exact: subsetIl.
+move=> A B G; case/dprodP=> [[H1 H2 -> ->] defG cH12 trH12].
+move: defG; rewrite -cprodE //; move/center_cprod.
+case/cprodP=> _ /= <- cZ12; apply: dprodE => //=.
+by rewrite setIAC setIA -setIA trH12 (setIidPl _) ?sub1G.
 Qed.
 
 Lemma center_bigdprod : forall I r P (F: I -> {set gT}) G,
-  \big[direct_product/1]_(i <- r | P i) F i = G
-  -> \big[direct_product/1]_(i <- r | P i) 'Z(F i) = 'Z(G).
+  \big[dprod/1]_(i <- r | P i) F i = G
+  -> \big[dprod/1]_(i <- r | P i) 'Z(F i) = 'Z(G).
 Proof.
 move=> I r P F; pose R A C := forall G, A :=: G -> C = 'Z(G).
 apply (big_rel R) => [_ <-|A B C D IHA IHB G dG|_ _ G ->]; rewrite ?center1 //.
-case/dprodGP: dG IHA IHB (dG) => [[H K -> -> _ _] _] IHH IHK dG.
+case/dprodP: dG IHA IHB (dG) => [[H K -> ->] _ _ _] IHH IHK dG.
 by rewrite (IHH H) // (IHK K) // (center_dprod dG).
 Qed.
 
 End Product.
-
-
-Section CharacteristicCentralizer.
-
-Variable gT : finGroupType.
-
-End CharacteristicCentralizer.
 
 
 

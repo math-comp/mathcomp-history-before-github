@@ -1,7 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 (*  Commutators  *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
-Require Import fintype finset.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat fintype finset.
 Require Import groups morphisms automorphism normal.
 
 (* Require Import seq paths connect div ssralg bigops group_perm. *)
@@ -117,7 +116,7 @@ Variable H : {set T}.
 Lemma commg_to_centraliser : forall y,
   {in H, forall x, [~ x, y] = 1} -> H \subset 'C_H[y].
 Proof.
-move=> y comm1; rewrite subsetI subset_refl /=.
+move=> y comm1; rewrite subsetI subxx /=.
 by apply/subsetP=> x Hx; apply/cent1P; apply/commgP; rewrite comm1. 
 Qed.
 
@@ -137,9 +136,7 @@ Implicit Types A B C : {set gT}.
 Implicit Types G H K : {group gT}.
 
 Lemma commG1 : forall A, [~: A, 1] = 1.
-Proof.
-by move=> A; apply/trivgP; rewrite (sameP commG1P centsP) centsC sub1G. 
-Qed.
+Proof. by move=> A; apply/commG1P; rewrite centsC sub1G. Qed.
 
 Lemma comm1G : forall A, [~: 1, A] = 1.
 Proof. by move=> A; rewrite commGC commG1. Qed.
@@ -186,7 +183,7 @@ Lemma quotient_cents2 : forall A B K,
   (A / K \subset 'C(B / K)) = ([~: A, B] \subset K).
 Proof.
 move=> A B K nKA nKB.
-by rewrite (sameP centsP commG1P) -morphimR // trivg_quotient // comm_subG.
+by rewrite (sameP commG1P trivgP) /= -quotientR // quotient_sub1 // comm_subG.
 Qed. 
 
 Lemma quotient_cents2r : forall A B K,
@@ -230,31 +227,28 @@ Lemma commMG : forall G H K,
     H \subset 'N(G) -> H \subset 'N(K) ->
   [~: G * H , K] = [~: G, K] * [~: H, K].
 Proof.
-move=> G H K nGH nKH; apply/eqP; rewrite eqset_sub commMGr andbT.
+move=> G H K nGH nKH; apply/eqP; rewrite eqEsubset commMGr andbT.
 have defM := norm_mulgenEr (commg_normSl G nKH); rewrite -defM gen_subG /=.
 apply/subsetP=> r; case/imset2P=> m z; case/imset2P=> x y Gx Hy -> Kz ->{r m}.
 rewrite commMgJ {}defM mem_mulg ?memJ_norm ?mem_commg //.
 apply: subsetP Hy; exact: normsR.
 Qed.
 
-Lemma commg_cents : forall A B, A \subset 'C(B) -> [~: A, B] = 1.
-Proof. by move=> A B; move/centsP; move/commG1P; move/trivgP. Qed.
-
 Lemma comm3G1P : forall A B C,
-  reflect {in A & B & C, forall h k l, [~ h, k, l] = 1} (trivg [~: A, B, C]).
+  reflect {in A & B & C, forall h k l, [~ h, k, l] = 1} ([~: A, B, C] :==: 1).
 Proof.
-move=> A B C; have R_C := sameP commG1P centsP.
-rewrite R_C gen_subG -{}R_C /trivg gen_subG.
+move=> A B C; have R_C := sameP trivgP commG1P.
+rewrite -subG1 R_C gen_subG -{}R_C gen_subG.
 apply: (iffP subsetP) => [cABC x y z Ax By Cz | cABC xyz].
   by apply/set1P; rewrite cABC // !mem_imset2.
 by case/imset2P=> xy z; case/imset2P=> x y Ax By -> Cz ->; rewrite cABC.
 Qed.
 
 Lemma three_subgroup : forall G H K,
-  trivg [~: G, H, K] -> trivg [~: H, K, G] -> trivg [~: K, G, H].
+  [~: G, H, K] :=: 1 -> [~: H, K, G] :=: 1-> [~: K, G, H] :=: 1.
 Proof.
-move=> G H K; move/comm3G1P=> cGHK; move/comm3G1P=> cHKG.
-apply/comm3G1P=> x y z Kx Gy Hz; symmetry.
+move=> G H K; move/eqP; move/comm3G1P=> cGHK; move/eqP; move/comm3G1P=> cHKG.
+apply/eqP; apply/comm3G1P=> x y z Kx Gy Hz; symmetry.
 rewrite -(conj1g y) -(Hall_Witt_identity y^-1 z x) invgK.
 by rewrite cGHK ?groupV // cHKG ?groupV // !conj1g !mul1g conjgKV.
 Qed.

@@ -798,6 +798,12 @@ Proof. by case=> [|[|m]] [|[|n]] //; rewrite muln0. Qed.
 Lemma ltn_0mul : forall m n, (0 < m * n) = (0 < m) && (0 < n).
 Proof. by case=> // m [|n] //=; rewrite muln0. Qed.
 
+Lemma leq_pmull : forall m n, n > 0 -> m <= n * m.
+Proof. by move=> m [|n] // _; exact: leq_addr. Qed.
+
+Lemma leq_pmulr : forall m n, n > 0 -> m <= m * n.
+Proof. by move=> m n n_pos; rewrite mulnC leq_pmull. Qed.
+
 Lemma leq_mul2l : forall m n1 n2, (m * n1 <= m * n2) = (m == 0) || (n1 <= n2).
 Proof. by move=> *; rewrite {1}/leq -muln_subr eqn_mul0. Qed.
 
@@ -846,6 +852,12 @@ Implicit Arguments ltn_pmul2l [m n1 n2].
 Lemma ltn_pmul2r : forall m n1 n2, 0 < m -> (n1 * m < n2 * m) = (n1 < n2).
 Proof. by case=> // *; rewrite ltn_mul2r. Qed.
 Implicit Arguments ltn_pmul2r [m n1 n2].
+
+Lemma ltn_Pmull : forall m n, 1 < n -> 0 < m -> m < n * m.
+Proof. by move=> m n lt1n m_pos; rewrite -{1}[m]mul1n ltn_pmul2r. Qed.
+
+Lemma ltn_Pmulr : forall m n, 1 < n -> 0 < m -> m < m * n.
+Proof. by move=> m n lt1n m_pos; rewrite mulnC ltn_Pmull. Qed.
 
 Lemma ltn_mul : forall m1 m2 n1 n2, m1 < n1 -> m2 < n2 -> m1 * m2 < n1 * n2.
 Proof.
@@ -1019,7 +1031,7 @@ Notation "[ 'pos_nat' 'of' n ]" :=
 
 Coercion nat_of_bool (b : bool) := if b then 1 else 0.
 
-Lemma leq_b1 :forall b : bool, b <= 1.
+Lemma leq_b1 : forall b : bool, b <= 1.
 Proof. by case. Qed.
 
 Lemma addn_negb : forall b : bool, ~~ b + b = 1.

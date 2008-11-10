@@ -1,6 +1,6 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat div prime.
 Require Import fintype ssralg bigops finset.
-Require Import groups morphisms automorphism normal action.
+Require Import groups morphisms automorphism normal action gprod.
 Require Import commutators cyclic center pgroups sylow nilpotent maximal.
 
 (* Require Import seq paths connect finfun group_perm. *)
@@ -13,7 +13,7 @@ Import GroupScope.
 
 Theorem Gaschutz : forall (gT : finGroupType) (G H P : {group gT}),
   H <| G -> H \subset P -> P \subset G -> abelian H -> coprime #|H| #|G : P| ->
-    [splits G over H] = [splits P over H]
+    [splits G, over H] = [splits P, over H]
  /\ {in [complements to H in G] &, forall K L : {group gT},
      K :&: P = L :&: P -> exists2 x, x \in H & L :=: K :^ x}.
 Proof.
@@ -53,7 +53,7 @@ have [m mK]: exists m, forall a : rT, (a *+ (#|G : P| * m) = a)%R.
 split=> [|K L].
   apply/splitsP/splitsP=> [[K] | [Q]].
     case/complP=> trHK eqHK; exists (K :&: P)%G.
-    rewrite inE setICA (setIidPl sHP) setIC trHK group_modl // eqHK.
+    rewrite inE setICA (setIidPl sHP) setIC trHK eqxx group_modl // eqHK.
     by rewrite (sameP eqP setIidPr).
   case/complP=> trHQ eqHQ.
   have sQP: Q \subset P by rewrite -eqHQ mulG_subr.
@@ -63,7 +63,7 @@ split=> [|K L].
   have rPmul : forall x y, x \in P -> rP (x * y) = rP y.
     by move=> x y Px; rewrite /rP rcosetM rcoset_id.
   pose pQ x := remgr H Q x; pose rH x := pQ (pP x) * rP x.
-  have pQhq: {in H & Q, forall h q, pQ (h * q) = q} by exact: remgr_idl.
+  have pQhq: {in H & Q, forall h q, pQ (h * q) = q} by exact: remgrMid.
   have pQmul: {in P &, {morph pQ : x y / x * y}}.
     apply: remgrM; [exact/complP | exact: normalS nsHG].
   have HrH: forall x, rH x \in H :* x.
@@ -127,7 +127,8 @@ split=> [|K L].
     congr (_ * _); rewrite -!valM -(mK (mu x y)) toX //.
     by rewrite Ring.mulrnA -!Ring.mulrn_addl -cocycle_nu // Ring.addrC.
   exists (Morphism fM @* G)%G; apply/complP; split.
-    apply/subsetP=> x; case/setIP=> Hx; case/morphimP=> y _ Gy eq_x.
+    apply/trivgP; apply/subsetP=> x; case/setIP=> Hx.
+    case/morphimP=> y _ Gy eq_x.
     apply/set1P; move: Hx; rewrite {x}eq_x /= groupMr ?subgP //.
     rewrite -{1}(mulgKV y (rH y)) groupMl -?mem_rcoset // => Hy.
     rewrite -(mulg1 y) /f nu_Hmul // rH_Hmul //; exact: (morph1 (Morphism fM)).
@@ -151,13 +152,12 @@ have nu_cocycle: {in G &, forall x y, nu (x * y) = (to (nu y) x^-1 + nu x)%R}.
   by rewrite mulgA -conjgCV -!mulgA -invMg.
 have nuL: forall x, x \in L -> nu x = 0%R.
   move=> x Lx; apply: val_inj; rewrite /= val_nu ?sLG //.
-  by rewrite /divgr remgr_idr ?mulgV.
+  by rewrite /divgr remgr_id ?mulgV.
 exists (sgval ((\sum_(X \in rcosets Q K) nu (repr X)^-1) *+ m)%R).
   exact: subgP.
-apply/eqP; rewrite eq_sym eqset_sub_card; apply/andP.
+apply/eqP; rewrite eq_sym eqEcard; apply/andP.
 split; last first.
-  rewrite card_conjg -(leq_pmul2l (ltn_0group H)) -!(card_mulG_trivP _ _ _) //.
-  by rewrite eqHL eqHK.
+  by rewrite cardJg -(leq_pmul2l (ltn_0group H)) -!TI_cardMg // eqHL eqHK.
 apply/subsetP=> /= x_nu; case/imsetP=> x Kx ->{x_nu}.
 rewrite conjgE mulgA (conjgC _ x).
 have Gx: x \in G by rewrite sKG.
@@ -183,8 +183,7 @@ rewrite -sum_split_sub /= (eq_bigr (fun _ => nu x^-1)) => [|X]; last first.
   by rewrite Ring.addrK.
 rewrite sumr_const -Ring.mulrnA (_ : #|_| = #|G : P|) ?mK //.
 rewrite -[#|_|]divgS ?subsetIl // -(divn_pmul2l (ltn_0group H)).
-rewrite -!(card_mulG_trivP _ _ _) //; last first.
-  by rewrite setIA setIAC (setIidPl sHP).
+rewrite -!TI_cardMg //; last by rewrite setIA setIAC (setIidPl sHP).
 by rewrite group_modl // eqHK (setIidPr sPG) divgS.
 Qed.
 
@@ -192,19 +191,14 @@ Module AfterGaschutz.
 End AfterGaschutz.
 
 Theorem SchurZass_split : forall (gT : finGroupType) (G H : {group gT}),
-  Hall G H -> H <| G -> [splits G over H].
+  Hall G H -> H <| G -> [splits G, over H].
 Proof.
 move=> gT G; move: {2}_.+1 (ltnSn #|G|) => n.
-elim: n gT G => // n IHn gT G; rewrite ltnS => Gn H.
-case: (leqP #|H| 1%N) => [trivH _ _ | ntrivH].
-  have: trivg H.
-    apply/subsetP=> x Hx; rewrite inE; apply/idPn=> nx1.
-    by rewrite (cardD1 1) group1 (cardD1 x) inE /= Hx nx1 in trivH.
-  move/trivgP->; apply/splitsP; exists G.
-  by rewrite inE /trivg subsetIl mul1g eqxx.
-have:= (prime_pdiv ntrivH); set p := pdiv _ => prime_p hallH nsHG.
-have [P sylP] := Sylow_exists p H.
+elim: n gT G => // n IHn gT G; rewrite ltnS => Gn H hallH nsHG.
 have [sHG nHG] := andP nsHG.
+case: (trivgVpdiv H) => [H1 | [p pr_p pH]].
+  by apply/splitsP; exists G; rewrite inE H1 -subG1 subsetIl mul1g eqxx.
+have [P sylP] := Sylow_exists p H.
 case nPG: (P <| G); last first.
   pose N := ('N_G(P))%G.
   have sNG: N \subset G by rewrite subsetIl.
@@ -216,12 +210,12 @@ case nPG: (P <| G); last first.
     by apply: (subsetP nHG); case/setIP: Nx.
   have eq_iH: #|G : H| = #|N| %/ #|H'|.
     rewrite -divgS // -(divn_pmul2l (ltn_0group H')) mulnC -eqHN_G.
-    by rewrite card_mulG (mulnC #|H'|) divn_pmul2l // ltn_0group.
+    by rewrite -mul_cardG (mulnC #|H'|) divn_pmul2l // ltn_0group.
     have hallH': Hall N H'.
     have sH'H: H' \subset H by exact: subsetIl.
     case/andP: hallH => _; rewrite eq_iH -(LaGrange sH'H) coprime_mull.
     by rewrite /Hall divgS subsetIr //; case/andP.
-  have: [splits N over H'].
+  have: [splits N, over H'].
     apply: IHn hallH' nH'N; apply: {n}leq_trans Gn.
     rewrite ltn_neqAle subset_leq_card // andbT; apply/eqP=> eqNG.
     case/andP: nPG; rewrite (subset_trans _ sHG); last by case/andP: sylP.
@@ -229,10 +223,10 @@ case nPG: (P <| G); last first.
     by apply/setP; exact/subset_cardP.
   case/splitsP=> K; case/complP=> trKN eqH'K.
   have sKN: K \subset N by rewrite -(mul1g K) -eqH'K mulSg ?sub1set.
-  apply/splitsP; exists K; rewrite inE; apply/andP; split.
-    apply/subsetP=> x; case/setIP=> Hx Kx; apply: (subsetP trKN).
-    by rewrite 2!inE Hx (subsetP sKN) Kx.
-  rewrite eqset_sub -eqHN_G mulgS // -eqH'K mulgA mulSg //.
+  apply/splitsP; exists K; rewrite inE -subG1; apply/andP; split.
+    apply/subsetP=> x; case/setIP=> Hx Kx.
+    by rewrite -trKN 2!inE Hx (subsetP sKN) Kx.
+  rewrite eqEsubset -eqHN_G mulgS // -eqH'K mulgA mulSg //.
   by rewrite mul_subG ?subsetIl.
 pose Z := ('Z(P))%G; have iZ: 'Z(P) = Z by [].
 have sZP: Z \subset P by exact: center_sub.
@@ -245,13 +239,13 @@ pose Hbar := (H / Z)%G; have iHbar: H / Z = Hbar by [].
 have nHGbar: Hbar <| Gbar by exact: morphim_normal.
 have hallHbar: Hall Gbar Hbar.
   by apply: morphim_Hall; first case/andP: nZH.
-have: [splits Gbar over Hbar].
+have: [splits Gbar, over Hbar].
   apply: IHn => //; apply: {n}leq_trans Gn.
   rewrite card_quotient; last by case/andP: nZG.
-  rewrite -(divgS sZG) divn_lt ?ltn_0group // ltnNge -trivg_card.
-  apply/negP; move/(trivg_center_pgroup (pHall_pgroup sylP)).
-  rewrite trivg_card (card_Hall sylP) p_part lognE dvdn_pdiv ltn_0group.
-  by rewrite (leq_exp2l _ 0) ?prime_gt1 ?prime_p.
+  rewrite -(divgS sZG) ltn_Pdiv ?ltn_0group // ltnNge -trivg_card_le1.
+  apply/eqP; move/(trivg_center_pgroup (pHall_pgroup sylP)); move/eqP.
+  rewrite trivg_card1 (card_Hall sylP) p_part -(expn0 p).
+  by rewrite eqn_exp2l ?prime_gt1 // lognE pH pr_p ltn_0group.
 case/splitsP=> Kbar; case/complP=> trHKbar eqHKbar.
 have: Kbar \subset Gbar by rewrite -eqHKbar mulG_subr.
 case/inv_quotientS=> //= ZK quoZK sZZK sZKG.
@@ -261,25 +255,23 @@ have cardZK: #|ZK| = (#|Z| * #|G : H|)%N.
   rewrite -card_quotient -?quoZK; last by case/andP: nZZK.
   rewrite -(divgS sHG) -(LaGrange sZG) -(LaGrange sZH) divn_pmul2l //.
   rewrite -!card_quotient; try by [case/andP: nZG | case/andP: nZH].
-  by rewrite iGbar -eqHKbar (card_mulG_trivP _ _ trHKbar) divn_mulr.
-have: [splits ZK over Z].
+  by rewrite iGbar -eqHKbar (TI_cardMg trHKbar) mulKn.
+have: [splits ZK, over Z].
   case: (Gaschutz nZZK _ sZZK) => // [||-> _].
   - apply: subset_trans (centS sZP); exact: subsetIr.
-  - rewrite -divgS // cardZK divn_mulr //. 
+  - rewrite -divgS // cardZK mulKn //. 
     by case/andP: hallH=> _; rewrite -(LaGrange sZH) coprime_mull; case/andP.
-  by apply/splitsP; exists [1 gT]%G; rewrite inE /trivg subsetIr mulg1 eqxx.
+  by apply/splitsP; exists [1 gT]%G; rewrite inE -subG1 subsetIr mulg1 eqxx.
 case/splitsP=> K; case/complP=> trZK eqZK.
 have sKZK: K \subset ZK by rewrite -(mul1g K) -eqZK mulSg ?sub1set.
-have trHK: trivg (H :&: K).
-  apply/subsetP=> x; case/setIP=> Hx Kx; apply: (subsetP trZK).
+have trHK: H :&: K = 1.
+  apply/trivgP; apply/subsetP=> x; case/setIP=> Hx Kx; rewrite -trZK.
   have Nx: x \in 'N(Z) by apply: subsetP (x) Hx; case/andP: nZH.
-  rewrite inE Kx andbT coset_idr //; apply/set1P.
-  rewrite (subsetP trHKbar) // quoZK inE !mem_imset // inE Nx //.
-  exact: (subsetP sKZK).
-apply/splitsP; exists K; rewrite inE trHK eqset_sub_card.
-rewrite mul_subG ?(subset_trans sKZK) //=.
-rewrite (card_mulG_trivP H K _) // -(@divn_mulr #|K| #|Z|) //.
-by rewrite -(card_mulG_trivP Z K _) // eqZK cardZK divn_mulr // LaGrange.
+  rewrite inE Kx andbT coset_idr //; apply/set1gP.
+  rewrite -trHKbar quoZK inE !mem_imset // inE Nx //; exact: (subsetP sKZK).
+apply/splitsP; exists K; rewrite inE trHK ?eqEcard subxx leqnn /=.
+rewrite mul_subG ?(subset_trans sKZK) //= TI_cardMg // -(@mulKn #|K| #|Z|) //.
+by rewrite -TI_cardMg // eqZK cardZK mulKn // LaGrange.
 Qed.
 
 Module SchurZassCP1. End SchurZassCP1.
@@ -290,16 +282,16 @@ Theorem SchurZass_trans_sol : forall (gT : finGroupType) (H K K1 : {group gT}),
   exists2 x, x \in H & K1 :=: K :^ x.
 Proof.
 move=> gT H; move: {2}_.+1 (ltnSn #|H|) => n; elim: n => // n IHn in gT H *.
-rewrite ltnS => leHn K K1 solH nHK; case trH: (trivg H).
-  rewrite (trivgP _ trH) mul1g => sK1K _ eqK1K.
+rewrite ltnS => leHn K K1 solH nHK; case: (eqsVneq H 1) => [H1 |].
+  rewrite H1 mul1g => sK1K _ eqK1K.
   exists (1 : gT); first exact: set11.
-  by apply/eqP; rewrite conjsg1 eqset_sub_card sK1K eqK1K /=.
+  by apply/eqP; rewrite conjsg1 eqEcard sK1K eqK1K /=.
 pose G := (H <*> K)%G.
-have defG: G :=: H * K by rewrite -normC // -norm_mulgenE // mulgenC.
+have defG: G :=: H * K by rewrite -normC // -norm_mulgenEl // mulgenC.
 have sHG: H \subset G by rewrite -gen_subG genS // subsetUl.
 have sKG: K \subset G by rewrite -gen_subG genS // subsetUr.
 have nHG: H <| G by rewrite /(H <| G) sHG gen_subG subUset nHK normG.
-move/idPn: trH; case/(solvable_norm_abelem solH nHG)=> M [sMH nMG ntM].
+case/(solvable_norm_abelem solH nHG)=> M [sMH nMG ntM].
 case/andP=> abelM _; rewrite -defG => sK1G coHK oK1K.
 have nMsG: forall L : {set gT}, L \subset G -> L \subset 'N(M).
   by move=> L; move/subset_trans; apply; case/andP: nMG.
@@ -308,16 +300,16 @@ have [coKM coHMK]: coprime #|M| #|K| /\ coprime #|H / M| #|K|.
 have oKM: forall K' : {group gT},
   K' \subset G -> #|K'| = #|K| -> #|K' / M| = #|K|.
 - move=> K' sK'G oK'.
-  rewrite -quotient_mulg -?norm_mulgenE ?card_quotient ?nMsG //; last first.
+  rewrite -quotient_mulg -?norm_mulgenEl ?card_quotient ?nMsG //; last first.
     by rewrite gen_subG subUset sK'G; case/andP: nMG.
   rewrite -divgS /=; last by rewrite -gen_subG genS ?subsetUr.
-  rewrite norm_mulgenE ?nMsG // coprime_card_mulG ?divn_mull //.
+  rewrite norm_mulgenEl ?nMsG // coprime_cardMg ?mulnK //.
   by rewrite oK' coprime_sym.
 have [xb]: exists2 xb, xb \in H / M & K1 / M = (K / M) :^ xb.
   apply: IHn; try by rewrite (quotient_sol, morphim_norms, oKM K) ?(oKM K1).
     apply: leq_trans leHn; rewrite card_quotient ?nMsG //.
     rewrite -(ltn_pmul2l (ltn_0group M)) LaGrange // -{1}(mul1n #|H|).
-    by rewrite ltnNge leq_pmul2r // -trivg_card.
+    by rewrite ltnNge leq_pmul2r // -trivg_card_le1.
   by rewrite -morphimMl ?nMsG // -defG morphimS.
 case/morphimP=> x nMx Hx ->{xb} eqK1Kx; pose K2 := (K :^ x)%G.
 have{eqK1Kx} eqK12: K1 / M = K2 / M by rewrite quotientJ.
@@ -325,18 +317,18 @@ suff [y My ->]: exists2 y, y \in M & K1 :=: K2 :^ y.
   exists (x * y); first by rewrite groupMl // (subsetP sMH).
   by rewrite conjsgM.
 have nMK1: K1 \subset 'N(M) by case/andP: nMG => _; exact: subset_trans.
-have defMK: M * K1 = M <*> K1 by rewrite -normC // -norm_mulgenE // mulgenC.
+have defMK: M * K1 = M <*> K1 by rewrite -normC // -norm_mulgenEl // mulgenC.
 have sMKM: M \subset M <*> K1 by rewrite -defMK mulG_subl.
 have nMKM: M <| M <*> K1 by rewrite /(_ <| _) sMKM gen_subG subUset normG.
-have trMK1: trivg (M :&: K1) by rewrite coprime_trivg ?oK1K.
-have trMK2: trivg (M :&: K2) by rewrite coprime_trivg ?card_conjg ?oK1K.
-case: (Gaschutz nMKM _ sMKM) => // [|_].
-  by rewrite -divgS //= -defMK coprime_card_mulG oK1K // divn_mulr.
-apply; first 1 last; first by rewrite inE defMK trMK1 /=.
-  by rewrite -!(setIC M); case/trivGP: trMK1 => ->; exact/trivgP.
-rewrite inE trMK2 eq_sym eqset_sub_card /= -defMK andbC.
-rewrite !coprime_card_mulG ?card_conjg ?oK1K // leqnn.
+have trMK1: M :&: K1 = 1 by rewrite coprime_TIg ?oK1K.
+have trMK2: M :&: K2 = 1 by rewrite coprime_TIg ?cardJg ?oK1K.
+case: (Gaschutz nMKM _ sMKM) => //= [|_].
+  by rewrite -divgS //= -defMK coprime_cardMg oK1K // mulKn.
+apply; first 1 last; first by rewrite inE defMK trMK1 ?eqxx /=.
+  by rewrite -!(setIC M) trMK1.
+rewrite inE trMK2 eqxx eq_sym eqEcard /= -defMK andbC.
+rewrite !coprime_cardMg ?cardJg ?oK1K // leqnn.
 rewrite -{2}(mulGid M) -mulgA mulgS //.
-by move/eqP: eqK12; rewrite eqset_sub morphimSK // ker_coset; case/andP.
+by move/eqP: eqK12; rewrite eqEsubset morphimSK // ker_coset; case/andP.
 Qed.
 
