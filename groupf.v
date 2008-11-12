@@ -44,6 +44,11 @@ Definition aresp (F : obmap) : Prop :=
 Lemma aresp_of_resp : forall (F:obmap), resp F -> aresp F.
 Proof. by move=> F H gT G phi Ha; apply:H. Qed.
 
+(* "Anti-monotonicity" *)
+
+Definition decr (F : obmap) : Prop :=
+  forall gT (H G : {group gT}), (H \subset G) -> (F _ G) :&: H \subset (F _ H).
+
 End IdentitySubFunctorDefs.
 
 Module BaseIdSubFunctor.
@@ -52,19 +57,19 @@ Module BaseIdSubFunctor.
 
 Implicit Types gT: finGroupType.
 
-Structure mixin (Fobj : obmap) : Type := Mixin { _ : aresp Fobj}.
+Structure mixin (Fobj : obmap) : Type := Mixin { 
+(*)  _ : forall gT (G : {group gT}), group_set (Fobj gT G);*)
+  _ : forall gT (G: {group gT}), Fobj gT G \subset G;
+  _ : aresp Fobj}.
 
 Structure class : Type := Class { Fobj :> obmap ; 
-   _ : forall gT (G : {group gT}), group_set (Fobj gT G);
-   _ : forall gT (G: {group gT}), Fobj gT G \subset G;
    _ : mixin Fobj}.
 
-Definition group_of F := let: Class _ g _ _ := F return 
-  forall gT (G : {group gT}), group_set (F gT G) in g.
-Definition subset_of F := let: Class _ _ s _ := F return
-  forall gT (G: {group gT}), F gT G \subset G in s.
+Definition subset_of (Fobj : obmap) (MF : mixin Fobj) := 
+  let: Mixin s _ := MF return
+  forall gT (G: {group gT}), Fobj gT G \subset G in s.
 
-Coercion mixin_of F := let: Class _ _ _ m := F return mixin F in m.
+Coercion mixin_of F := let: Class _ m := F return mixin F in m.
 
 End BaseIdSubFunctor.
 
@@ -72,12 +77,12 @@ Notation bisFc := BaseIdSubFunctor.class.
 Notation BisFc := BaseIdSubFunctor.Class.
 Notation BisFMixin := BaseIdSubFunctor.Mixin.
 
-Definition mkBaseisFc F FM Fsub Fresp := 
-  BisFc FM Fsub (@BisFMixin F Fresp).
+Definition mkBaseisFc F Fsub Fresp := 
+  BisFc (@BisFMixin F Fsub Fresp).
 
 Notation "[ 'bisFc' 'of' F ]" :=
   (match [is F : _ -> _ <: bisFc] as s return {type of BisFc for s} -> _ with
-    | BisFc _ g s m => fun k => k g s m end
+    | BisFc _ m => fun k => k m end
   (@BisFc F)) (at level 0, only parsing) : form_scope.
 
 Notation Local "''e_' s ( G )" := (s _ G)
@@ -89,18 +94,17 @@ Variables gT hT:finGroupType.
 Variable sF: bisFc.
 Implicit Types G H : {group gT}.
 
-Lemma bisfc_groupset : forall G, group_set ('e_sF(G)).
-Proof. by case sF. Qed.
-
+(*
 Canonical Structure bisfc_group G := 
   Group (bisfc_groupset G).
+*)
 
 Lemma bisfc_clos : forall (fT:finGroupType) (H:{group fT}),
   'e_sF(H) \subset H.
-Proof. by case sF. Qed.
+Proof. by case sF=> F; case. Qed.
 
 Lemma bisfc_aresp : aresp sF.
-Proof. by case sF=> Fobj Fg Fs; case. Qed.
+Proof. by case sF=> Fobj; case. Qed.
 
 Lemma bisfc_norm : forall G, G \subset 'N('e_sF(G)).
 Proof.
@@ -136,44 +140,33 @@ Module IdSubFunctor.
 
 Implicit Types gT: finGroupType.
 
-Structure mixin (Fobj : obmap) : Type := Mixin { _ : resp Fobj}.
-
 Structure class : Type := Class { 
   Fobj :> obmap ;
-   _ : forall gT (G : {group gT}), group_set (Fobj gT G);
-   _ : forall gT (G: {group gT}), Fobj gT G \subset G;
-   _ : mixin Fobj}.
+   _ : BaseIdSubFunctor.mixin Fobj;
+   _ : resp Fobj}.
 
-Definition group_of F := let: Class _ g _ _ := F return 
-  forall gT (G : {group gT}), group_set (F gT G) in g.
-Definition subset_of F := let: Class _ _ s _ := F return
-  forall gT (G: {group gT}), F gT G \subset G in s.
-
-Coercion mixin_of F := let: Class _ _ _ m := F return mixin F in m.
+Coercion mixin_of F := let: Class _ m _ := F return 
+  BaseIdSubFunctor.mixin F in m.
 
 Lemma isfc_resp (sF: class): resp sF.
-Proof. by case => F FM Fs; case. Qed.
-
-Coercion bmixin_of_mixin Fobj (m : mixin Fobj) := 
-  let: Mixin mresp := m return BaseIdSubFunctor.mixin Fobj in
-  BisFMixin (aresp_of_resp mresp).
+Proof. by case => F FM. Qed.
 
 End IdSubFunctor.
 
 Notation isFc := IdSubFunctor.class.
 Notation IsFc := IdSubFunctor.Class.
-Notation IsFMixin := IdSubFunctor.Mixin.
 
-Definition mkIsFc F FM Fsub Fresp := 
-  IsFc FM Fsub (@IsFMixin F Fresp).
+Definition mkIsFc F Fsub (Fresp:resp F) := 
+  IsFc (BisFMixin Fsub (aresp_of_resp Fresp)) Fresp.
 
 Notation "[ 'isFc' 'of' F ]" :=
   (match [is F : _ -> _ <: bisFc] as s return {type of BisFc for s} -> _ with
-    | IsFc _ g s m => fun k => k g s m end
+    | IsFc _ m r => fun k => k m r end
   (@IsFc F)) (at level 0, only parsing) : form_scope.
 
 Coercion isFc_bisFc (sF : isFc) := 
-  BisFc (IdSubFunctor.group_of sF) (IdSubFunctor.subset_of sF) sF.
+  BisFc (BisFMixin (BaseIdSubFunctor.subset_of sF)
+  (aresp_of_resp (IdSubFunctor.isfc_resp sF))).
 
 Canonical Structure isFc_bisFc.
 
@@ -221,6 +214,50 @@ Qed.
 
 End IdentitySubFunctorProps.
 
+Module DecrIdSubFunctor.
+
+(* Mappings functorial w.r.t. (surjective) morphisms,
+   well-behaved w.r.t. modulo application *)
+
+Implicit Types gT: finGroupType.
+
+Structure class : Type := Class { 
+  Fobj :> obmap;
+   _ : BaseIdSubFunctor.mixin Fobj;
+   _ : resp Fobj;
+   _ : decr Fobj}.
+
+Coercion mixin_of F := let: Class _ m _ _ := F return 
+  BaseIdSubFunctor.mixin F in m.
+
+Lemma disfc_resp (sF: class): resp sF.
+Proof. by case => F. Qed.
+
+Lemma disfc_decr (sF : class): decr sF.
+Proof. by case => F. Qed.
+
+End DecrIdSubFunctor.
+
+Notation disFc := DecrIdSubFunctor.class.
+Notation DisFc := DecrIdSubFunctor.Class.
+
+Definition mkdIsFc F Fsub (Fresp:resp F) (Fdecr : decr F) := 
+  DisFc (BisFMixin Fsub (aresp_of_resp Fresp)) Fresp Fdecr.
+
+Notation "[ 'disFc' 'of' F ]" :=
+  (match [is F : _ -> _ <: bisFc] as s return {type of BisFc for s} -> _ with
+    | DisFc _ m r d => fun k => k m r d end
+  (@DisFc F)) (at level 0, only parsing) : form_scope.
+
+Coercion disFc_isFc (sF : disFc) := 
+  IsFc sF (DecrIdSubFunctor.disfc_resp sF).
+
+Canonical Structure disFc_isFc.
+
+Section DecreasingIdentitySubFunctorProps.
+
+End DecreasingIdentitySubFunctorProps.
+
 Section IdentitySubfunctorsExamples.
 
 Implicit Types gT:finGroupType.
@@ -229,18 +266,15 @@ Lemma id_resp : resp (fun _ S => S).
 Proof. by []. Qed.
 
 Canonical Structure id_subfunc :=
-  IsFc (fun gT G => groupP G%G)
-       (fun gT G => subxx _)
-       (IsFMixin id_resp).
+  mkIsFc (fun gT G => subxx _)
+         id_resp.
 
 Lemma triv_resp : resp (fun _ S => 1).
 Proof. by move=> gT hT H f; rewrite morphim1. Qed.
 
 Canonical Structure triv_subfunc :=
-  @IsFc (fun _ S => 1)
-        (fun _ G => groupP 1%G)
-        sub1G
-        (IsFMixin triv_resp).
+  @mkIsFc (fun _ S => 1) sub1G
+        triv_resp.
 
 Require Import center.
 
@@ -252,9 +286,8 @@ exact:morphim_cent.
 Qed.
 
 Canonical Structure center_id_subfunc :=
-  IsFc (fun gT G => groupP 'Z(G)%G)
-       (fun gT G => @center_sub gT G)
-       (IsFMixin center_resp).
+  mkIsFc (fun gT G => @center_sub gT G)
+         center_resp.
 
 Require Import maximal.
 
@@ -262,9 +295,8 @@ Lemma Frattini_resp : resp (Frattini).
 Proof. exact: gfunc_Phi. Qed.
 
 Canonical Structure Frattini_subfunc :=
-  IsFc (fun gT G => groupP 'Phi(G)%G)
-       (fun gT => @Phi_sub gT)
-       (IsFMixin Frattini_resp).
+  mkIsFc (fun gT => @Phi_sub gT)
+         Frattini_resp.
 
 Require Import nilpotent.
 
@@ -283,9 +315,8 @@ by rewrite commgSS ?IH.
 Qed.
 
 Canonical Structure der_id_subfunctor (n:nat) :=
-  IsFc (fun gT (G:{group gT}) => der_group_set G n)
-       (der_clos n)
-       (IsFMixin (der_resp n)).
+  mkIsFc (der_clos n)
+         (der_resp n).
 
 Lemma lcn_resp : forall n,
   resp (fun gT G => 'L_n(G)).
@@ -295,9 +326,8 @@ by rewrite !lcnSn morphimR ?lcn_sub0 // commSg ?IH.
 Qed.
 
 Canonical Structure lcn_id_subfunctor (n:nat) :=
-  IsFc (fun gT (G :{group gT}) => lcn_group_set G n)
-       (fun gT G => (lcn_sub0 G n))
-       (IsFMixin (lcn_resp n)).
+  mkIsFc (fun gT G => (lcn_sub0 G n))
+         (lcn_resp n).
 
 Require Import pgroups.
 
@@ -309,9 +339,8 @@ Lemma Ohm_resp : forall i,
 Proof. move=> i G f; exact: gfunc_Ohm. Qed.
 
 Canonical Structure Ohm_id_subfunctor (i:nat) :=
-  IsFc  (fun gT (G:{group gT}) => groupP 'Ohm_i(G)%G)
-        (Ohm_sub i)
-        (IsFMixin (Ohm_resp i)).
+  mkIsFc (Ohm_sub i)
+         (Ohm_resp i).
 
 Lemma Mho_sub : forall i gT (G:{group gT}), 'Mho^i(G) \subset G.
 Proof. move=> i; exact: Mho_sub. Qed.
@@ -321,9 +350,8 @@ Lemma Mho_resp : forall i,
 Proof. move=> i G f; exact: gfunc_Mho. Qed.
 
 Canonical Structure Mho_id_subfunctor (i:nat) :=
-  IsFc (fun gT (G:{group gT}) => groupP 'Mho^i(G)%G)
-       (Mho_sub i)
-       (IsFMixin (Mho_resp i)).
+  mkIsFc (Mho_sub i)
+         (Mho_resp i).
 
 End IdentitySubfunctorsExamples.
 
