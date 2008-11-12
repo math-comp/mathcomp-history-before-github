@@ -171,7 +171,7 @@ let reduct_in_concl t = reduct_in_concl (t, DEFAULTcast)
 (*let havetac id = forward None (IntroIdentifier id)*)
 let havetac id = forward None (dummy_loc, (IntroIdentifier id))
 (*assia : let settac id = letin_tac true (Name id)*)
-let settac id = letin_tac None (Name id)
+let settac id c = letin_tac None (Name id) c None
 let posetac id cl = settac id cl nowhere
 
 (** Name generation *)
