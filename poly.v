@@ -832,23 +832,79 @@ Definition gcdp (p q: poly)  :=
   (fix loop (n: nat) (pp qq: poly) {struct n} :=
       let rr := pp %p qq in
       if rr == 0 then qq else 
-      if n is (S n1) then loop n1 qq rr else rr) (size q) p1 q1.
+      if n is (S n1) then loop n1 qq rr else rr) (size p1) p1 q1.
 
 Lemma gcd0p: left_unit 0 gcdp.
 Proof.
 move=> p; rewrite /gcdp size_poly0.
-case: size (size_poly0_eq p) => [| n]; rewrite /= !(eqxx,modp0).
-  by move/eqP->.
-by move->; rewrite /=; case: n; rewrite mod0p eqxx.
+case: size (size_poly0_eq p) => [| n] /=.
+  by rewrite eqxx; move/eqP->; rewrite /= eqxx.
+move-> => /=; case: size => [| s]; rewrite modp0;
+  case: eqP => Ep //.
+by case: s => [| s]; rewrite mod0p eqxx.
 Qed.
 
 Lemma gcdp0: right_unit 0 gcdp.
 Proof.
 move=> p; rewrite /gcdp size_poly0.
-case: size (size_poly0_eq p) => [| n]; rewrite /= !(eqxx,modp0).
-  by move/eqP->; rewrite eqxx.  
-by move->; rewrite /=.
+case: size (size_poly0_eq p) => [| n] /=.
+  by rewrite eqxx; move/eqP->; rewrite /= eqxx.
+move-> => /=; case: size => [| s]; rewrite modp0;
+  case: eqP => Ep //.
+by case: s => [| s]; rewrite mod0p eqxx.
 Qed.
+
+Lemma gcdpE : forall m n, 
+  gcdp m n = if size m < size n then gcdp (n %p m) m else gcdp (m %p n) n.
+Proof.
+pose gcdp_rec := 
+  fix loop (n: nat) (pp qq: poly) {struct n} :=
+      let rr := pp %p qq in
+      if rr == 0 then qq else 
+      if n is (S n1) then loop n1 qq rr else rr.
+have Irec: forall m n (p q: poly), size q <= m -> size q <= n 
+      -> size q < size p -> gcdp_rec m p q = gcdp_rec n p q.
+  elim=> [| m Hrec] [|n ] //= p q.
+  - case: size (size_poly0_eq q) => [| s] //.
+    rewrite eqxx; move/eqP-> => _ _; rewrite modp0.
+    by case: n => [| n] //=; rewrite mod0p eqxx.
+  - case: size (size_poly0_eq q) => [| s] //.
+    rewrite eqxx; move/eqP-> => _ _; rewrite modp0.
+    by case: (m) => [| m1] //=; rewrite mod0p eqxx.
+  case: eqP=> Epq => // Sm Sn Sq.
+  case: (@eqP _ q 0); move/eqP => Eq.
+    by rewrite (eqP Eq) modp0; case: (m); case: (n) => //=;
+       move=>*; rewrite mod0p eqxx.
+  apply: Hrec; last apply: modp_spec => //.
+    by rewrite -ltnS (leq_trans _ Sm) // modp_spec.
+  by rewrite -ltnS (leq_trans _ Sn) // modp_spec.
+move => m n; case:  (@eqP _ m 0); move/eqP=> Em.
+  by rewrite (eqP Em) mod0p modp0 gcd0p gcdp0; case: ltnP.
+case: (@eqP _ n 0); move/eqP => En.
+  by case: ltnP; rewrite (eqP En) !(gcd0p,gcdp0,mod0p,modp0).
+rewrite {2 3}/gcdp !modp_spec // (negPf Em) (negPf En).
+rewrite /gcdp;  case: ltnP; rewrite (negPf Em,negPf En).
+  case E1: (size n) => [|s] //.
+  case: eqP => Enm.
+    rewrite Enm; case: size => [| s1]; rewrite modp0 /= (negPf Em) //.
+    by case: s1 => [| s1]; rewrite mod0p eqxx.
+  rewrite  ltnS => HH.
+  by apply: Irec => //; [apply: leq_trans HH; apply ltnW |apply ltnW|];
+     apply modp_spec.
+case E1: (size m) (size_poly0_eq m) => [|sm] //.
+  rewrite eqxx;move/eqP->; rewrite mod0p eqxx.
+  case E2: (size n) (size_poly0_eq n) => [|sn] //.
+  by rewrite eqxx;move/eqP->; rewrite mod0p eqxx.
+move=> _ Esn; case: eqP=> HH; try rewrite HH.
+  case E2: (size n) (size_poly0_eq n) => [|sn] //.
+    by rewrite eqxx;move/eqP->; rewrite mod0p eqxx.
+  rewrite modp0 (negPf En) => _.
+  case: (sn); rewrite mod0p /= eqxx //.
+apply: Irec; last by apply modp_spec.
+  by rewrite -ltnS (leq_trans (modp_spec _ _)).
+by rewrite ltnW  //(modp_spec _ _).
+Qed.
+
 
 End Polynomial.
 
@@ -918,6 +974,12 @@ move: (modp_spec (p * q) Cq); rewrite Eq (size_mul_id idR Cp Cq).
 case: (size qq) (size_poly0_eq qq) => [| n _]; last by rewrite ltnNge  leq_addl.
 by rewrite eqxx; move/idP; move/eqP => HH; case/negP: Cp; apply/eqP.
 Qed.
+
+Lemma modpp : forall p: poly, p %p p = 0.
+Proof. by move=> p; rewrite -{1}(mul1r p) modp_mull. Qed.
+
+Lemma dvdpp : forall p: poly, p |p p.
+Proof. move=> p; apply/eqP; exact: modpp. Qed.
 
 Lemma divp_mull : forall p q: poly, q != 0 -> p * q /p q = \C(scalp (p * q) q) * p.
 Proof.
@@ -1031,6 +1093,8 @@ Proof. by move=> d m n Hn; rewrite dvdp_addl // dvdp_mull. Qed.
 Lemma dvdp_sub : forall d m n: poly, d |p m -> d |p n -> d |p m - n.
 Proof.  by move=> d n m Dm Dn; rewrite dvdp_subl. Qed.
 
+Lemma gcdpp : idempotent (@gcdp R).
+Proof. by move=> p; rewrite gcdpE ltnn modpp gcd0p. Qed.
 
 End PolynomialComRing.
 
