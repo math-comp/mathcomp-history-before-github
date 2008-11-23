@@ -6,7 +6,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
 Require Import div seq fintype.
 (* Require Import connect. *)
 Require Import tuple finfun ssralg bigops finset.
-Require Import groups group_perm morphisms action maximal.
+Require Import groups perm morphisms action maximal.
 
 (* n-transitive and primitive actions *)
 

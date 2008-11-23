@@ -7,7 +7,7 @@ Require Import ssrnat.
 Require Import fintype.
 Require Import finset.
 Require Import groups.
-Require Import group_perm.
+Require Import perm.
 Require Import normal.
 Require Import morphisms.
 Require Import automorphism.

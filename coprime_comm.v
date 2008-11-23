@@ -100,11 +100,11 @@ have centr : forall v, v \in 'C_G(A) -> phi v = v^+ #|A|.
   rewrite phiv /cphi sumr_const. 
   by elim: {+}#|_| => [  | n indh]; first done; rewrite //= subgK // expgS indh.
 have v1: forall v, v \in G ->  v ^+ #|A| = 1 -> v = 1.
-  move => v vin; move/eqP; rewrite -order_dvd => div. 
+  move => v vin; move/eqP; rewrite -order_dvdn => div. 
   have ov1: #[ v ] = 1%nat.
     rewrite /coprime in co; apply/eqP.
-    by rewrite -dvdn1 -(eqP co) dvdn_gcd order_dvd_g.
-  rewrite -(expg1 v) -ov1; apply: order_expn1.
+    by rewrite -dvdn1 -(eqP co) dvdn_gcd order_dvdG.
+  rewrite -(expg1 v) -ov1; apply: expg_order.
   apply/eqP; rewrite eqEsubset; apply/andP; split. 
   - apply/subsetP => x; case/setIP=> inco incen; move: (incen).
     rewrite inE; case/andP=> inG ince; apply/set1P; apply: v1; first done.

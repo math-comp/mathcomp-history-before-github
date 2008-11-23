@@ -496,6 +496,9 @@ CoInductive egcdn_spec (m n : nat) : nat * nat -> Type :=
   EgcdnSpec km kn of km * m = kn * n + gcdn m n & kn * gcdn m n < m :
     egcdn_spec m n (km, kn).
 
+Lemma egcd0n : forall n, egcdn 0 n = (1, 0).
+Proof. by case. Qed.
+
 Lemma egcdnP : forall m n, m > 0 -> egcdn_spec m n (egcdn m n).
 Proof.
 rewrite /egcdn => m0 n0; have: (n0, m0) = bezout_rec n0 m0 [::] by [].
@@ -667,6 +670,12 @@ Proof. by move=> n; rewrite /coprime gcdn1. Qed.
 Lemma coprime_sym : forall m n, coprime m n = coprime n m.
 Proof. by move => m n; rewrite /coprime gcdnC. Qed.
 
+Lemma coprime_modl : forall m n, coprime (m %% n) n = coprime m n.
+Proof. by move=> m n; rewrite /coprime gcdn_modl. Qed.
+
+Lemma coprime_modr : forall m n, coprime m (n %% m) = coprime m n.
+Proof. by move=> m n; rewrite /coprime gcdn_modr. Qed.
+
 Lemma coprimeP : forall n m, n > 0 ->
   reflect (exists u, u.1 * n - u.2 * m = 1) (coprime n m).
 Proof.
@@ -750,7 +759,7 @@ Section Chinese.
 (***********************************************************************)
 
 Variables m1 m2 : nat.
-Hypotheses (m1_pos : 0 < m1) (m2_pos : 0 < m2) (co_m12 : coprime m1 m2).
+Hypothesis co_m12 : coprime m1 m2.
 
 Lemma chinese_remainder : forall x y,
   (x == y %[mod m1 * m2]) = (x == y %[mod m1]) && (x == y %[mod m2]).
@@ -769,14 +778,18 @@ Definition chinese r1 r2 :=
 
 Lemma chinese_modl : forall r1 r2, chinese r1 r2 = r1 %[mod m1].
 Proof.
-rewrite /chinese; case: egcdnP=> // k2 k1 def_m1 _ r1 r2.
+rewrite /chinese; case: (posnP m2) co_m12 => [->|m2_pos _].
+  by move/eqnP; rewrite gcdn0 => -> r1 r2 ; rewrite !modn1.
+case: egcdnP=> // k2 k1 def_m1 _ r1 r2.
 rewrite mulnAC -mulnA def_m1 gcdnC (eqnP co_m12) muln_addr mulnA muln1.
 by rewrite addnAC (mulnAC _ m1) -muln_addl modn_addl_mul.
 Qed.
 
 Lemma chinese_modr : forall r1 r2, chinese r1 r2 = r2 %[mod m2].
 Proof.
-rewrite /chinese; case: (egcdnP m2) => // k1 k2 def_m2 _ r1 r2.
+rewrite /chinese; case: (posnP m1) co_m12 => [->|m1_pos _].
+  by move/eqnP; rewrite gcd0n => -> r1 r2 ; rewrite !modn1.
+case: (egcdnP m2) => // k1 k2 def_m2 _ r1 r2.
 rewrite addnC mulnAC -mulnA def_m2 (eqnP co_m12) muln_addr mulnA muln1.
 by rewrite addnAC (mulnAC _ m2) -muln_addl modn_addl_mul.
 Qed.

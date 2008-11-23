@@ -6,7 +6,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
 Require Import div seq fintype.
 (* Require Import connect. *)
 Require Import tuple finfun ssralg bigops finset.
-Require Import groups group_perm morphisms.
+Require Import groups perm morphisms.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

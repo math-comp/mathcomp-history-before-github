@@ -13,7 +13,7 @@ Require Import ssrnat.
 Require Import fintype.
 Require Import finset.
 Require Import groups.
-Require Import group_perm.
+Require Import perm.
 Require Import morphisms.
 
 
@@ -30,20 +30,32 @@ Section Automorphism.
 
 Variable gT : finGroupType.
 Implicit Type A : {set gT}.
+Implicit Types f g : {perm gT}.
 
 Definition Aut A := [set f | perm_on A f && morphic A f].
 
-Lemma aut_morphic : forall A f, f \in Aut A -> morphic A f.
+Lemma Aut_morphic : forall A f, f \in Aut A -> morphic A f.
 Proof. by move=> A f; rewrite inE; case/andP. Qed.
 
-Definition autm A f Af := morphm (@aut_morphic A f Af).
+Lemma out_Aut : forall A f x, f \in Aut A -> x \notin A -> f x = x.
+Proof. by move=> A f x; case/setIdP=> Af _; exact: out_perm. Qed.
+
+Lemma eq_Aut : forall A, {in Aut A &, forall f g, {in A, f =1 g} -> f = g}.
+Proof.
+move=> A f g Af Ag eqfg; apply/permP=> x.
+by case/orP: (orbN (x \in A)); [apply eqfg | move/out_Aut=> out; rewrite !out].
+Qed.
+
+Definition autm A f Af := morphm (@Aut_morphic A f Af).
 Lemma autmE : forall A f Af, @autm A f Af = f.
 Proof. by []. Qed.
 
 Canonical Structure autm_morphism A f fM :=
   Eval hnf in [morphism of @autm A f fM].
 
-Variables (G : {group gT}).
+Section AutGroup.
+
+Variable G : {group gT}.
 
 Lemma Aut_group_set : group_set (Aut G).
 Proof.
@@ -55,11 +67,6 @@ by rewrite (morphicP gM) ?perm_closed.
 Qed.
 
 Canonical Structure Aut_group := group Aut_group_set.
-
-(* Should be redundant
-Lemma automorphic_inv : forall f, f \in Aut G -> perm_inv f \in Aut G.
-Proof. exact: groupVr. Qed.
-*)
 
 Variable (f : {perm gT}) (Af : f \in Aut G).
 Notation fm := (autm Af).
@@ -75,6 +82,14 @@ Lemma autm_dom : fm @* G = G.
 Proof.
 apply/setP=> x; rewrite morphimEdom (can_imset_pre _ (permK f)) inE.
 by have:= Af; rewrite inE; case/andP; move/perm_closed=> <-; rewrite permKV.
+Qed.
+End AutGroup.
+
+Lemma Aut1 : Aut 1 = 1.
+Proof.
+apply/trivgP; apply/subsetP=> s /= As; apply/set1P.
+apply: eq_Aut (As) (group1 _) _ => x; move/set1P=> ->{x}.
+by rewrite -(autmE As) morph1 perm1.
 Qed.
 
 End Automorphism.
@@ -121,7 +136,7 @@ Lemma morphim_fixP : forall A,
   A \subset G -> reflect (f @* A = A) (f @* A \subset A).
 Proof.
 rewrite /morphim => A sAG; have:= eqEcard (f @: A) A.
-rewrite (setIidPr sAG) card_dimset ?leqnn ?andbT  => [<-|]; first exact: eqP.
+rewrite (setIidPr sAG) card_in_imset ?leqnn ?andbT  => [<-|]; first exact: eqP.
 move/injmP: injf; apply: sub_in2; exact/subsetP.
 Qed.
 
@@ -311,7 +326,7 @@ move=> G H sHG Huniq; apply/charP; split=> // f injf Gf; apply/eqP.
 have{injf} injf: {in H &, injective f}.
   by move/injmP: injf; apply: sub_in2; exact/subsetP.
 have fH: f @* H = f @: H by rewrite /morphim (setIidPr sHG).
-rewrite eqEcard {2}fH card_dimset ?{}Huniq //=.
+rewrite eqEcard {2}fH card_in_imset ?{}Huniq //=.
   by rewrite -{3}Gf morphimS.
 rewrite isog_sym; apply/isogP.
 exists [morphism of restrm sHG f] => //=; first exact/injmP.

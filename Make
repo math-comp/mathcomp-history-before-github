@@ -22,10 +22,9 @@ action.v
 normal.v
 jordanholder.v
 commutators.v
-group_perm.v
+perm.v
 automorphism.v
-zp.v
-fp.v
+zmodp.v
 cyclic.v
 pgroups.v
 center.v

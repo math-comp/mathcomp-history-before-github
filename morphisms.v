@@ -271,14 +271,14 @@ Proof. by move=> C D; rewrite -setIIr -preimsetI. Qed.
 Lemma morphpreD : forall C D, f @*^-1 (C :\: D) = f @*^-1 C :\: f @*^-1 D.
 Proof. by move=> C D; apply/setP=> x; rewrite !inE; case: (x \in G). Qed.
 
-Lemma kerP : forall x, reflect (x \in G /\ f x = 1) (x \in 'ker f).
-Proof. by move=> x; apply: (iffP morphpreP) => [] [Gx]; move/set1P. Qed.
+Lemma kerP : forall x, x \in G -> reflect (f x = 1) (x \in 'ker f).
+Proof. move=> x Gx; rewrite 2!inE Gx; exact: set1P. Qed.
 
 Lemma dom_ker : {subset 'ker f <= G}.
-Proof. by move=> x; case/kerP. Qed.
+Proof. by move=> x; case/morphpreP. Qed.
 
 Lemma mker : forall x, x \in 'ker f -> f x = 1.
-Proof. by move=> x; case/kerP. Qed.
+Proof. by move=> x Kx; apply/kerP=> //; exact: dom_ker. Qed.
 
 Lemma mkerl : forall x y, x \in 'ker f -> y \in G -> f (x * y) = f y.
 Proof. by move=> x y Kx Gy; rewrite morphM // ?(dom_ker, mker Kx, mul1g). Qed.
@@ -643,9 +643,12 @@ Proof. by move=> A sAG; rewrite morphimK // ker_injm // mul1g. Qed.
 
 Lemma card_injm : forall A, A \subset G -> #|f @* A| = #|A|.
 Proof.
-move=> A sAG; rewrite morphimEsub // card_dimset //.
+move=> A sAG; rewrite morphimEsub // card_in_imset //.
 exact: (sub_in2 (subsetP sAG) (injmP injf)).
 Qed.
+
+Lemma injm1 : forall x, x \in G -> f x = 1 -> x = 1.
+Proof. by move=> x Gx; move/(kerP Gx); rewrite ker_injm; move/set1P. Qed.
 
 Lemma injmSK : forall A B,
   A \subset G -> (f @* A \subset f @* B) = (A \subset B).
@@ -695,6 +698,12 @@ Lemma injm_subcent : forall A B,
   B \subset G -> f @* 'C_A(B) = 'C_(f @* A)(f @* B).
 Proof.
 by move=> A B sBG; rewrite injmI injm_cent // setICA setIA morphimIim.
+Qed.
+
+Lemma injm_abelian : forall A, A \subset G -> abelian (f @* A) = abelian A.
+Proof.
+move=> A sAG; rewrite /abelian !(sameP setIidPl eqP) -injm_subcent //.
+by rewrite !eqEsubset !injmSK // subIset ?sAG.
 Qed.
 
 End Injective.
@@ -1057,7 +1066,7 @@ Qed.
 
 Lemma isom_card : forall f : fMT, isom G H f -> #|G| = #|H|.
 Proof.
-by move=> f; case/isomP; move/injmP=> injf <-; rewrite morphimEdom card_dimset.
+by move=> f; case/isomP; move/injmP=> injf <-; rewrite morphimEdom card_in_imset.
 Qed.
 
 Lemma isogP : reflect (exists2 f : fMT, 'injm f & f @* G = H) (G \isog H).
@@ -1152,6 +1161,9 @@ Lemma isog_transr : G \isog H -> (K \isog G) = (K \isog H).
 Proof.
 by move=> iso; apply/idP/idP; move/isog_trans; apply; rewrite // -isog_sym.
 Qed.
+
+Lemma isog_abelian :  G \isog H -> abelian G = abelian H.
+Proof. by case/isogP=> f injf <-; rewrite injm_abelian. Qed.
 
 End IsoBoolEquiv.
 

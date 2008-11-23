@@ -655,7 +655,7 @@ pose p := [pred x \in D | existsb y, (y \in [predD1 D & x]) && (f x == f y)].
 case: (pickP p) => [x /= | no_p].
   case/andP=> Dx; case/existsP=> y; case/andP=> Dxy; move/eqP=> eqfxy.
   by exists x; last exists y.
-rewrite /dinjectiveb uniq_dmaps ?uniq_enum // in injf => x y Dx Dy eqfxy.
+rewrite /dinjectiveb uniq_maps_in ?uniq_enum // in injf => x y Dx Dy eqfxy.
 move/(_ x): no_p; rewrite /= -mem_enum Dx; move/pred0P; move/(_ y).
 by rewrite inE /= -(mem_enum D) Dy eqfxy eqxx !andbT; move/eqP.
 Qed.
@@ -1411,7 +1411,7 @@ apply: subset_leq_card; apply/subsetP => y; case/imageP=> x Ax ->{y}.
 by rewrite maps_f ?mem_enum.
 Qed.
 
-Lemma card_dimage : forall A : pred T, {in A &, injective f} ->
+Lemma card_in_image : forall A : pred T, {in A &, injective f} ->
   #|[image f of A]| = #|A|.
 Proof.
 move=> A injf; apply: bij_eq_card.
@@ -1427,7 +1427,7 @@ Qed.
 Hypothesis injf : injective f.
 
 Lemma card_image : forall A : pred T, #|[image f of A]| = #|A|.
-Proof. move=> A; apply: card_dimage; exact: in2W. Qed.
+Proof. move=> A; apply: card_in_image; exact: in2W. Qed.
 
 Lemma card_codom : #|codom f| = #|T|.
 Proof.

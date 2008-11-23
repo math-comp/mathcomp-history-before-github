@@ -10,7 +10,7 @@
 (***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq ssralg.
 Require Import bigops fintype finset groups morphisms normal.
-Require Import group_perm automorphism.
+Require Import perm automorphism.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

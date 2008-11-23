@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype div.
-Require Import tuple finfun ssralg bigops finset groups action group_perm.
+Require Import tuple finfun ssralg bigops finset groups action perm.
 Require Import prim_act.
 
 (* Require Import connect. *)
@@ -370,7 +370,7 @@ Lemma card_n2 : forall x y z t : square, uniq [:: x; y; z; t] ->
   #|[set p : col_squares | (p x == p y) && (p z == p t)]| = (n ^ 2)%N.
 Proof.
 move=> x y z t Uxt; rewrite -[n]card_ord.
-pose f (p : col_squares) := (p x, p z); rewrite -(@card_dimage _ _ f).
+pose f (p : col_squares) := (p x, p z); rewrite -(@card_in_image _ _ f).
   rewrite -mulnn -card_prod; apply: eq_card => [] [c d] /=; apply/imageP.
   rewrite (uniq_cat [::x; y]) in Uxt; case/and3P: Uxt => _.
   rewrite /= !orbF !andbT; case/norP; rewrite !inE !orbF => nxzt nyzt _.
@@ -390,7 +390,7 @@ Lemma card_n :
    = n.
 Proof.
 rewrite -[n]card_ord /coin0 /coin1 /coin2 /coin3.
-pose f (p : col_squares) := p c3; rewrite -(@card_dimage _ _ f).
+pose f (p : col_squares) := p c3; rewrite -(@card_in_image _ _ f).
   apply: eq_card => c /=; apply/imageP.
   exists ([ffun => c] : col_squares); last by rewrite /f ffunE.
   by rewrite /= inE !ffunE !eqxx.
@@ -1150,7 +1150,7 @@ Proof.
 move=> x y z t  Uxt. rewrite -[n]card_ord .
 case:(uniq4_uniq6 Uxt) => u; case => v Uxv.
 pose ff (p : col_cubes) := (p x, p z, p u , p v).
-rewrite -(@card_dimage _ _ ff); first last.
+rewrite -(@card_in_image _ _ ff); first last.
   move=> p1 p2; rewrite !inE.
   case/andP=> p1y p1t; case/andP=> p2y p2t  [px pz] pu pv.
   have eqp12: all (fun i => p1 i == p2 i) [:: x; y; z; t; u ; v].
@@ -1184,7 +1184,7 @@ Proof.
 move=> x y z t Uxt; rewrite -[n]card_ord .
 case:(uniq4_uniq6 Uxt) => u; case => v Uxv.
 pose ff (p : col_cubes) := (p x, p u , p v);
-   rewrite -(@card_dimage _ _ ff); first last.
+   rewrite -(@card_in_image _ _ ff); first last.
   move=> p1 p2; rewrite !inE.
   case/andP ;case/andP => p1xy p1yz p1zt.
   case/andP ;case/andP => p2xy p2yz p2zt [px pu] pv.
@@ -1211,7 +1211,7 @@ Lemma card_n2_3 : forall x y z t u v: cube, uniq [:: x; y; z;t; u ; v] ->
                             && (p u== p v)]|  = (n ^ 2)%N.
 Proof.
 move=> x y z t u v  Uxv; rewrite -[n]card_ord .
-pose ff (p : col_cubes) := (p x, p t); rewrite -(@card_dimage _ _ ff); first last.
+pose ff (p : col_cubes) := (p x, p t); rewrite -(@card_in_image _ _ ff); first last.
   move=> p1 p2; rewrite !inE.
   case/andP ;case/andP ; case/andP => p1xy p1yz p1tu p1uv.
   case/andP ;case/andP; case/andP => p2xy p2yz p2tu p2uv [px pu].
@@ -1238,7 +1238,7 @@ Lemma card_n3s : forall x y z t u v: cube, uniq [:: x; y; z;t; u ; v] ->
 Proof.
 move=> x y z t u v  Uxv; rewrite -[n]card_ord .
 pose ff (p : col_cubes) := (p x, p z, p u).
-rewrite -(@card_dimage _ _ ff); first last.
+rewrite -(@card_in_image _ _ ff); first last.
   move=> p1 p2; rewrite !inE.
   case/andP ;case/andP =>  p1xy p1zt p1uv.
   case/andP ;case/andP => p2xy p2zt p2uv  [px pz] pu.

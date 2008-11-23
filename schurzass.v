@@ -3,7 +3,7 @@ Require Import fintype ssralg bigops finset.
 Require Import groups morphisms automorphism normal action gprod.
 Require Import commutators cyclic center pgroups sylow nilpotent maximal.
 
-(* Require Import seq paths connect finfun group_perm. *)
+(* Require Import seq paths connect finfun perm. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -48,8 +48,8 @@ have [m mK]: exists m, forall a : rT, (a *+ (#|G : P| * m) = a)%R.
   case/dvdnP=> m inv_m; exists m => a.
   rewrite mulnC -inv_m /= mulnC Ring.mulrnA /=.
   suff ->: (a *+ #|H| = 0)%R by rewrite Ring.mulr0n Ring.addr0.
-  apply: val_inj; rewrite /= !valX /=; apply/eqP; rewrite -order_dvd.
-  by rewrite order_dvd_g ?subgP.
+  apply: val_inj; rewrite /= !valX /=; apply/eqP; rewrite -order_dvdn.
+  by rewrite order_dvdG ?subgP.
 split=> [|K L].
   apply/splitsP/splitsP=> [[K] | [Q]].
     case/complP=> trHK eqHK; exists (K :&: P)%G.

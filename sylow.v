@@ -361,7 +361,7 @@ apply/forallP=> fV; apply/implyP.
 case/SylowP=> p pr_p sylfV; have [P sylP] := Sylow_exists p G.
 have [|z _ ->] := @Sylow_trans p _ _ (f @* P)%G _ _ sylfV.
   apply: morphim_pHall (sylP); exact: subset_trans (pHall_sub sylP) sGD.
-rewrite cyclicJ cyclic_morphim // (implyP (forallP zgG P)) //.
+rewrite cyclicJ morphim_cyclic // (implyP (forallP zgG P)) //.
 by apply/SylowP; exists p.
 Qed.
 
@@ -380,7 +380,7 @@ have: cyclic 'O_p(G).
   have:= forallP ZgG 'O_p(G)%G.
   by rewrite (p_Sylow (nilpotent_pcore_Hall p nilG)).
 case/cyclicP=> x def_p; case/cyclicP=> x' def_p'.
-apply/cyclicP; exists (x * x'); rewrite -{}defG def_p def_p' cycle_mul //.
+apply/cyclicP; exists (x * x'); rewrite -{}defG def_p def_p' cycleM //.
   by apply: (centsP Cpp'); rewrite (def_p, def_p') cycle_id.
 rewrite /order -def_p -def_p' (@pnat_coprime p) //; exact: pcore_pgroup.
 Qed.

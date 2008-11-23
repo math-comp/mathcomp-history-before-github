@@ -291,10 +291,15 @@ Proof.
 by apply/eqP => HH; case: (@nonzero1r R); apply: polyC_inj.
 Qed.
 
-Definition simpl01 := (mul0r,mulr0,mul1r,mulr1,add0r,addr0,oppr0).
+Definition simpl01 := (mul0r, mulr0, mul1r, mulr1, add0r, addr0, oppr0).
 
 Lemma coef_opp : forall p i, coef (- p) i = - coef p i.
 Proof. by move=> p i; rewrite coef_mul_C_poly mulN1r. Qed.
+
+Lemma opp_polyC : forall c : R, - \C c = \C -c.
+Proof.
+by move=> c; apply/coef_eqP=> [[|i]]; rewrite !(coef_opp, coef_polyC, oppr0).
+Qed.
 
 Lemma coef_mul_poly_X : forall p i,
   coef (p * \X) i = if i is j.+1 then coef p j else 0.
@@ -331,13 +336,26 @@ Proof. by rewrite {1}/eqd /= seq_poly0; case/seq_of_poly. Qed.
 Lemma size_polyC : forall c, c != 0 -> size (polyC c) = 1%N.
 Proof. by move=> c c_nz; rewrite seq_polyC (negbET c_nz). Qed.
 
+Lemma size_poly1 : size (1 : poly) = 1%N.
+Proof. by rewrite size_polyC //; apply/eqP; exact: nonzero1r. Qed.
+
 Lemma size_horner : forall p c, p != 0 -> size (horner c p) = (size p).+1.
 Proof. by move=> p c; rewrite size_poly0_eq seq_horner; case (p : seq R). Qed.
+
+Lemma size_polyX : size \X = 2.
+Proof. by rewrite seq_polyX. Qed.
+
+Lemma size_polyX_n : forall n, size (\X ^+ n) = n.+1.
+Proof.
+elim=> [|n IHn]; first exact: size_poly1.
+rewrite -{1}addn1 exprn_addr expr1n -[_ * _]addr0 -horner_def.
+by rewrite size_horner ?size_poly0_eq IHn.
+Qed.
 
 Lemma coef_default : forall (p : poly) i, size p <= i -> coef p i = 0.
 Proof. move=> *; exact: sub_default. Qed.
 
-Lemma leq_size_coef: forall (p: poly) i,
+Lemma leq_size_coef : forall (p: poly) i,
   (forall j, i <= j -> coef p j = 0) -> size p <= i.
 Proof.
 move=> p i H; case: leqP => Cspi //.
@@ -346,18 +364,36 @@ case: size Cspi => [| s] //= Cspi.
 by move: (H _ Cspi); rewrite /coef => ->; case/negP.
 Qed.
 
-Lemma leq_coef_size: forall (p: poly) i, coef p i <> 0 -> i < size p.
+Lemma leq_coef_size : forall (p: poly) i, coef p i <> 0 -> i < size p.
 Proof.
 by move=> p i H; case: leqP => Cspi //; case H; rewrite coef_default.
 Qed.
 
-Lemma size_add: forall p q: poly, size (p + q) <= maxn (size p) (size q).
+Lemma size_opp : forall p : poly, size (- p) = size p.
 Proof.
-move=> p q; apply: leq_size_coef => j; rewrite  leq_maxl; case/andP=> Cpj Cqj.
+suffices: forall p : poly, size (- p) <= size p.
+  by move=> le_sz p; apply/eqP; rewrite eqn_leq -{3}(opprK p) !le_sz.
+move=> p; apply: leq_size_coef => j le_p_j.
+by rewrite coef_opp coef_default ?oppr0.
+Qed.
+
+Lemma size_add : forall p q : poly, size (p + q) <= maxn (size p) (size q).
+Proof.
+move=> p q; apply: leq_size_coef => j; rewrite leq_maxl; case/andP=> Cpj Cqj.
 by rewrite coef_add_poly !coef_default // !simpl01.
 Qed.
 
-Lemma size_mul: forall p q: poly, p != 0 -> size (p * q) < size p + size q.
+Lemma size_addl : forall p q : poly,
+  size p > size q -> size (p + q) = size p.
+Proof.
+move=> p q ltqp; apply/eqP; rewrite eqn_leq (leq_trans (size_add _ _)).
+  have szp := ltn_predK ltqp; rewrite -szp leq_coef_size // coef_add_poly.
+  rewrite addrC coef_default ?add0r; last by rewrite -ltnS szp.
+  by move/eqP: (lead_coef_nz p); rewrite /lead_coef /coef -(sub_last 0) -szp.
+by rewrite leq_maxl leqnn ltnW.
+Qed.
+
+Lemma size_mul : forall p q: poly, p != 0 -> size (p * q) < size p + size q.
 Proof.
 move=> p q Dp; have Pp: 0 < size p.
  by case: size (size_poly0_eq p) => // HH; case/negP: Dp; rewrite HH.
@@ -369,7 +405,16 @@ by rewrite -(leq_add2l (size p).-1) (leq_trans Hj) // -{1}(subnK (Hi: i <= _))
            leq_add2r -ltnS (ltn_predK Pp).
 Qed.
 
-Lemma size1P: forall p, reflect (exists c, p = \C c) (size p <= 1).
+Lemma size_exp : forall (p : poly) n, size (p ^+ n) <= ((size p).-1 * n).+1.
+Proof.
+move=> p n; case: (eqVneq p 0) => [-> | nzp].
+  by case: n => [|n]; rewrite /= ?mul0r size_poly0 ?size_poly1.
+elim: n => [|n IHn]; first by rewrite size_poly1.
+rewrite /= mulnS -ltnS -addSn -addnS (leq_trans (size_mul _ nzp)) ?leq_add //.
+by rewrite prednK // lt0n -size_poly0_eq.
+Qed.
+
+Lemma size1P : forall p, reflect (exists c, p = \C c) (size p <= 1).
 Proof.
 move=> p; apply: (iffP eqP); last first.
   by case=> c ->; rewrite  val_insubd; case: normal.
@@ -378,13 +423,14 @@ apply/coef_eqP=> [[|i]]; rewrite coef_polyC // coef_default //.
 by case: size HH => // [[|n]].
 Qed.
 
-Lemma lead_coefE: forall p: poly, lead_coef p = if p == 0 then 1 else coef p (size p).-1.
+Lemma lead_coefE : forall p : poly,
+  lead_coef p = if p == 0 then 1 else coef p (size p).-1.
 Proof.
 move=> p; rewrite /lead_coef /coef -(sub_last 0).
 by case: size (size_poly0_eq p) => [| s] ->.
 Qed.
 
-Lemma lead_coef_polyC: forall c, lead_coef (\C c) = if c == 0 then 1 else c.
+Lemma lead_coef_polyC : forall c, lead_coef (\C c) = if c == 0 then 1 else c.
 Proof.
 move=> c; rewrite lead_coefE coefE seq_polyC.
 case: (@eqP _  c 0) => Ec; first by rewrite Ec eqxx.
@@ -393,14 +439,21 @@ Qed.
 
 (* monomial *)
 
+(* GG : This concept is completely redundant with \X ^+ n, which is *)
+(* used later in the file, and benefits from generic ring lemmas    *)
+(* from ssralg and bigops; please consider removing it.             *)
+(* The notation doesn't seem all that essential, either; if you     *)
+(* decide to keep it, it should come earlier.                       *)
 Definition polyXn n := mkPoly (addsn n (0: R) [::1]).
 
-Notation "\X^ n" := (polyXn n) (at level 1).
+(* GG: added format to suppress spurrious whitespace, raised level *)
+(* to 8 to allow for \X^n.-1, etc.                                 *)
+Notation "\X^ n" := (polyXn n) (at level 8, format "\X^ n").
 
-Lemma polyXn0 : \X^ 0 = 1.
+Lemma polyXn0 : \X^0 = 1.
 Proof. by rewrite  /polyXn /= horner_def !simpl01. Qed.
 
-Lemma polyXn1 : \X^ 1 = \X.
+Lemma polyXn1 : \X^1 = \X.
 Proof.  by rewrite  /polyXn /= !horner_def !simpl01. Qed.
 
 Lemma seq_polyXn : forall n, polyXn n = addsn n (0: R) [:: 1] :> seq R.
@@ -465,7 +518,6 @@ Qed.
 Lemma size_polyXn : forall n, size (\X^ n) = n.+1.
 Proof. by move=> n; rewrite seq_polyXn size_addsn addnC. Qed.
 
-
 Lemma polyC_mul: forall c1 c2, \C (c1 * c2) = \C c1 * \C c2.
 Proof.
 move=> c1 c2; 
@@ -476,25 +528,25 @@ apply/val_eqP; apply/eqP; rewrite /polyC {2}/mul /= /mul_poly /= !val_insubd /no
 by rewrite addr0 /polyC val_insubd /normal; move/eqP->.
 Qed.
 
-Lemma opp_polyC: forall c: R, - \C c = \C -c.
-Proof. by move=> c; rewrite -mulN1r polyC_mul. Qed.
-
 (* Monic *)
 
+(* GG: according to this definition, 0 is monic. I don't think that's *)
+(* correct (it spoils lemmas about the degree of products with monic  *)
+(* polynomials).                                                      *)
 Definition monic p := lead_coef p == 1.
 
-Lemma monic1: monic 1.
+Lemma monic1 : monic 1.
 Proof. by rewrite /monic /lead_coef seq_poly1. Qed.
 
-Lemma monicX: monic \X.
+Lemma monicX : monic \X.
 Proof. by rewrite /monic /lead_coef seq_polyX. Qed.
 
-Lemma monicXn: forall n, monic \X^n.
+Lemma monicXn : forall n, monic \X^n.
 Proof.
 by move=> n; rewrite /monic /lead_coef !seq_polyXn; elim: n {1}1 =>/=.
 Qed.
 
-Lemma lead_coef_mul: forall p q,
+Lemma lead_coef_mul : forall p q,
   coef (p * q) (size p + size q).-2 = coef p (size p).-1 * coef q (size q).-1.
 Proof.
 move=> p q.
@@ -541,6 +593,9 @@ rewrite -(@ltn_predK 0 (_.-1)).
 apply: leq_coef_size; first by rewrite (eqP Cpq); exact: nonzero1r.
 by move: Cp1 Cq1; (do 2 (case: size => //)) => *; rewrite addnS.
 Qed.
+
+Lemma monic_exp : forall p n, monic p -> monic (p ^+ n).
+Proof. by move=> p n ?; elim: n => [|n IHn]; rewrite ?monic1 ?monic_mul. Qed.
 
 (* Integral domain (we may need to introduce integral ring as an object) *)
 
@@ -680,25 +735,30 @@ Definition modp p q := (edivp p q).2.
 Definition scalp p q := ((edivp p q).1).1.
 Definition dvdp p q := modp q p == 0.
 
-Notation "m '/p' d" := (divp m d) (at level 40, no associativity).
-Notation "m %p d" := (modp m d) (at level 40, no associativity).
-Notation "p |p q" := (dvdp p q) (at level 70, no associativity).
+(* GG NO! The lexing tables of Coq are global; these notations will   *)
+(* spoil the syntax of ssreflect scripts, e.g. move/pred0P will break *)
+(* because /p is now a lexer token. Suggest using %/, %% and %|, as   *)
+(* there is not much use of euclidian division in a ring context (we  *)
+(* may need to work something out for algebraic integers, though).    *)
+Notation "m %/ d" := (divp m d) (at level 40, no associativity).
+Notation "m %% d" := (modp m d) (at level 40, no associativity).
+Notation "p %| q" := (dvdp p q) (at level 70, no associativity).
 
-Lemma divp_size: forall p q: poly, size p < size q -> p /p q = 0.
+Lemma divp_size: forall p q: poly, size p < size q -> p %/ q = 0.
 Proof.
 move=> p q; rewrite /divp /edivp; case: eqP => Eq.
   by rewrite Eq size_poly0.
 by case E1: (size p) => [| s] Hs /=; rewrite E1 Hs.
 Qed.
 
-Lemma modp_size: forall p q: poly, size p < size q -> p %p q = p.
+Lemma modp_size: forall p q: poly, size p < size q -> p %% q = p.
 Proof.
 move=> p q; rewrite /modp /edivp; case: eqP => Eq.
   by rewrite Eq size_poly0.
 by case E1: (size p) => [| s] Hs /=; rewrite E1 Hs /=.
 Qed.
 
-Lemma divp_mon_spec: forall p q, monic q -> p = p /p q * q + p %p q.
+Lemma divp_mon_spec: forall p q, monic q -> p = p %/ q * q + p %% q.
 Proof.
 move=> p q Mq.
 rewrite /divp /modp /scalp /edivp.
@@ -706,7 +766,7 @@ case: eqP => [->| Hq]; first by rewrite !simpl01.
 by apply: edivp_mon_spec; rewrite // !simpl01.
 Qed.
 
-Lemma modp_spec: forall p q, q != 0 -> size (p %p q) < size q.
+Lemma modp_spec: forall p q, q != 0 -> size (p %% q) < size q.
 Proof.
 move=> p q Hq.
 rewrite /divp /modp /scalp /edivp.
@@ -728,7 +788,7 @@ move=> p q; case (scalp_spec p q) => m ->.
 apply: iter_mul_id; [apply: lead_coef_nz | apply/eqP; exact: nonzero1r].
 Qed.
 
-Lemma div0p: forall p, 0 /p p = 0.
+Lemma div0p: forall p, 0 %/ p = 0.
 Proof.
 move=> p; rewrite /divp /edivp; case: eqP => // Hp.
 rewrite /edivp_rec !size_poly0.
@@ -736,10 +796,10 @@ case: (size p) (size_poly0_eq p) => //=.
 by rewrite eqxx; move/idP; move/eqP => HH; case Hp.
 Qed.
 
-Lemma modp0: forall p, p %p 0 = p.
+Lemma modp0: forall p, p %% 0 = p.
 Proof. by rewrite /modp /edivp eqxx. Qed.
 
-Lemma mod0p: forall p, 0 %p p = 0.
+Lemma mod0p: forall p, 0 %% p = 0.
 Proof.
 move=> p; rewrite /modp /edivp; case: eqP => // Hp.
 rewrite /edivp_rec !size_poly0.
@@ -748,14 +808,14 @@ by rewrite eqxx; move/idP; move/eqP->; rewrite !simpl01.
 Qed.
 
 Lemma dvdpPm: forall p q: poly, monic q ->
-  reflect (exists qq, p = qq * q) (q |p p).
+  reflect (exists qq, p = qq * q) (q %| p).
 Proof.
 move=> p q Mq; apply: (iffP idP).
   rewrite /dvdp; move/eqP=> Dqp.
-  by exists (p /p q); rewrite {1}(divp_mon_spec p Mq) Dqp !simpl01.
+  by exists (p %/ q); rewrite {1}(divp_mon_spec p Mq) Dqp !simpl01.
 case=> qq Dqq; rewrite /dvdp.
-pose d := qq - p /p q.
-have Epq: p %p q = d * q.
+pose d := qq - p %/ q.
+have Epq: p %% q = d * q.
     rewrite mulr_addl mulNr -Dqq {2}(divp_mon_spec p Mq).
     by rewrite -addrA addrC -addrA addNr !simpl01.
 case: (@eqP _ q 0) => Eq; first by rewrite Eq modp0 Dqq Eq !simpl01.
@@ -767,10 +827,10 @@ by case: (size d) (size_poly0_eq d) => [|s] Hd;
    move: Em; rewrite Hd ?leq_addl.
 Qed.
 
-Lemma dvdp0: forall p, p |p 0.
+Lemma dvdp0: forall p, p %| 0.
 Proof. move=> p; apply/eqP; exact: mod0p. Qed.
 
-Lemma modpC: forall p c, c != 0 -> p %p \C c = 0.
+Lemma modpC: forall p c, c != 0 -> p %% \C c = 0.
 Proof.
 move=> p c Hc.
 have: \C c != 0.
@@ -779,22 +839,22 @@ move/(@modp_spec p); rewrite size_polyC //.
 by move=> HH1; apply/eqP; rewrite size_poly0_eq; case: size HH1.
 Qed.
 
-Lemma modp1: forall p, p %p 1 = 0.
+Lemma modp1: forall p, p %% 1 = 0.
 Proof. move=> p; apply: modpC; apply/eqP; exact: nonzero1r. Qed.
 
-Lemma divp1: forall p, p /p 1 = p.
+Lemma divp1: forall p, p %/ 1 = p.
 Proof.
 by move=> p; rewrite {2}(divp_mon_spec p monic1) modp1 !simpl01.
 Qed. 
 
-Lemma dvd1p: forall p, 1 |p p.
+Lemma dvd1p: forall p, 1 %| p.
 Proof. move=> p; apply/eqP; exact: modp1. Qed.
 
-Lemma modp_mon_mull : forall p q: poly, monic q -> p * q %p q = 0.
+Lemma modp_mon_mull : forall p q: poly, monic q -> p * q %% q = 0.
 Proof.
 move=> p q Mq.
-pose qq := p - (p * q) /p q.
-have Eq:  (p * q) %p q = qq * q.
+pose qq := p - (p * q) %/ q.
+have Eq:  (p * q) %% q = qq * q.
   by rewrite mulr_addl {2}(divp_mon_spec (p * q) Mq) [_ * _ + _]addrC
              mulNr -addrA addrN simpl01.
 case: (@eqP _ q 0) => Cq; first by rewrite Cq modp0 simpl01.
@@ -805,22 +865,22 @@ case: (size qq) (size_poly0_eq qq) => [| n _]; last by rewrite ltnNge  leq_addl.
 by rewrite eqxx; move/idP; move/eqP => HH; case/negP: Cp; apply/eqP.
 Qed.
 
-Lemma divp_mon_mull : forall p q: poly, q != 0 -> monic q -> p * q /p q = p.
+Lemma divp_mon_mull : forall p q: poly, q != 0 -> monic q -> p * q %/ q = p.
 Proof.
 move=> p q Cq Mq.
-pose qq := p - (p * q) /p q.
-have Eq:  (p * q) %p q = qq * q.
+pose qq := p - (p * q) %/ q.
+have Eq:  (p * q) %% q = qq * q.
   by rewrite mulr_addl {2}(divp_mon_spec (p * q) Mq) [_ * _ + _]addrC
              mulNr -addrA addrN simpl01.
 suff Hqq: qq  = 0.
-  by apply: (addrI  (-((p * q) /p q))); rewrite addrN -/qq Hqq.
+  by apply: (addrI  (-((p * q) %/ q))); rewrite addrN -/qq Hqq.
 apply/eqP; case: eqP => //; move/eqP => Cqq.
 move: (modp_spec (p * q) Cq); rewrite Eq (size_mul_id Cqq Cq).
 case: (size qq) (size_poly0_eq qq) => [| n _]; last by rewrite ltnNge  leq_addl.
 by rewrite eqxx; move/idP; move/eqP => HH; case/negP: Cqq; apply/eqP.
 Qed.
 
-Lemma dvdp_mon_mull : forall p q: poly, monic q -> q |p p * q.
+Lemma dvdp_mon_mull : forall p q: poly, monic q -> q %| p * q.
 Proof.
 move=> p q Mq; apply/eqP; exact: modp_mon_mull.
 Qed.
@@ -830,7 +890,7 @@ Definition gcdp (p q: poly)  :=
   let (p1,q1) := if size p < size q then (q,p) else (p,q) in
   if p1 == 0 then q1 else
   (fix loop (n: nat) (pp qq: poly) {struct n} :=
-      let rr := pp %p qq in
+      let rr := pp %% qq in
       if rr == 0 then qq else 
       if n is (S n1) then loop n1 qq rr else rr) (size p1) p1 q1.
 
@@ -855,11 +915,11 @@ by case: s => [| s]; rewrite mod0p eqxx.
 Qed.
 
 Lemma gcdpE : forall m n, 
-  gcdp m n = if size m < size n then gcdp (n %p m) m else gcdp (m %p n) n.
+  gcdp m n = if size m < size n then gcdp (n %% m) m else gcdp (m %% n) n.
 Proof.
 pose gcdp_rec := 
   fix loop (n: nat) (pp qq: poly) {struct n} :=
-      let rr := pp %p qq in
+      let rr := pp %% qq in
       if rr == 0 then qq else 
       if n is (S n1) then loop n1 qq rr else rr.
 have Irec: forall m n (p q: poly), size q <= m -> size q <= n 
@@ -913,7 +973,7 @@ Notation "\poly_ ( i < n ) E" := (mkPoly (mkseq (fun i : nat => E) n))
    : ring_scope.
 Notation "\C c" := (polyC c) : ring_scope.
 Notation "\X" := (polyX _) : ring_scope.
-Notation "\X^ n" := (polyXn _ n) (at level 1): ring_scope.
+Notation "\X^ n" := (polyXn _ n) (at level 8, format "\X^ n"): ring_scope.
 
 Section PolynomialComRing.
 
@@ -932,9 +992,9 @@ Canonical Structure poly_commutative_ring := Ring.Commutative poly_mulC.
 
 Notation poly := (polynomial R).
 
-Notation "m '/p' d" := (divp m d) (at level 40, no associativity).
-Notation "m %p d" := (modp m d) (at level 40, no associativity).
-Notation "p |p q" := (dvdp p q) (at level 70, no associativity).
+Notation "m %/ d" := (divp m d) (at level 40, no associativity).
+Notation "m %% d" := (modp m d) (at level 40, no associativity).
+Notation "p %| q" := (dvdp p q) (at level 70, no associativity).
 
 Lemma edivp_spec: forall (p q: poly) n c qq r,
  let d := edivp_rec q n c qq r in
@@ -950,7 +1010,7 @@ rewrite mulr_addl mulr_addr !mulrA -!addrA !(mulrC (\C _)).
 by congr add => //; rewrite addrC -addrA addrC -addrA addKr.
 Qed.
 
-Lemma divp_spec: forall p q: poly, \C (scalp p q) * p = p /p q * q + p %p q.
+Lemma divp_spec: forall p q: poly, \C (scalp p q) * p = p %/ q * q + p %% q.
 Proof.
 move=> p q.
 rewrite /divp /modp /scalp /edivp.
@@ -960,11 +1020,11 @@ Qed.
 
 Hypothesis idR : idomain R.
 
-Lemma modp_mull : forall p q: poly, p * q %p q = 0.
+Lemma modp_mull : forall p q: poly, p * q %% q = 0.
 Proof.
 move=> p q.
-pose qq := \C (scalp (p* q) q) * p - (p * q) /p q.
-have Eq:  (p * q) %p q = qq * q.
+pose qq := \C (scalp (p* q) q) * p - (p * q) %/ q.
+have Eq:  (p * q) %% q = qq * q.
    by rewrite mulr_addl -mulrA (divp_spec (p * q) q) [_ * _ + _]addrC
               mulNr -addrA addrN simpl01.
 case: (@eqP _ q 0) => Cq; first by rewrite Cq modp0 simpl01.
@@ -975,21 +1035,21 @@ case: (size qq) (size_poly0_eq qq) => [| n _]; last by rewrite ltnNge  leq_addl.
 by rewrite eqxx; move/idP; move/eqP => HH; case/negP: Cp; apply/eqP.
 Qed.
 
-Lemma modpp : forall p: poly, p %p p = 0.
+Lemma modpp : forall p: poly, p %% p = 0.
 Proof. by move=> p; rewrite -{1}(mul1r p) modp_mull. Qed.
 
-Lemma dvdpp : forall p: poly, p |p p.
+Lemma dvdpp : forall p: poly, p %| p.
 Proof. move=> p; apply/eqP; exact: modpp. Qed.
 
-Lemma divp_mull : forall p q: poly, q != 0 -> p * q /p q = \C(scalp (p * q) q) * p.
+Lemma divp_mull : forall p q: poly, q != 0 -> p * q %/ q = \C(scalp (p * q) q) * p.
 Proof.
 move=> p q Cq.
-pose qq := \C (scalp (p* q) q) * p - (p * q) /p q.
-have Eq:  (p * q) %p q = qq * q.
+pose qq := \C (scalp (p* q) q) * p - (p * q) %/ q.
+have Eq:  (p * q) %% q = qq * q.
    by rewrite mulr_addl -mulrA (divp_spec (p * q) q) [_ * _ + _]addrC
               mulNr -addrA addrN simpl01.
 suff Hqq: qq  = 0.
-  by apply: (addrI  (-((p * q) /p q))); rewrite addrN -/qq Hqq.
+  by apply: (addrI  (-((p * q) %/ q))); rewrite addrN -/qq Hqq.
 apply/eqP; case: eqP => //; move/eqP => Cqq.
 move: (modp_spec (p * q) Cq); rewrite Eq (size_mul_id idR Cqq Cq).
 case: (size qq) (size_poly0_eq qq) => [| n _]; last by rewrite ltnNge  leq_addl.
@@ -997,17 +1057,17 @@ by rewrite eqxx; move/idP; move/eqP => HH; case/negP: Cqq; apply/eqP.
 Qed.
 
 Lemma dvdpPc: forall p q: poly, 
-  reflect (exists c, exists qq, (c != 0) /\ (\C c * p = qq * q)) (q |p p).
+  reflect (exists c, exists qq, (c != 0) /\ (\C c * p = qq * q)) (q %| p).
 Proof.
 move=> p q; apply: (iffP idP).
   rewrite /dvdp; move/eqP=> Dqp.
-  exists (scalp p q); exists (p /p q).
+  exists (scalp p q); exists (p %/ q).
   by split; [exact: scalp_id | rewrite divp_spec Dqp !simpl01].
 case=> c; case=> qq; case=> Dc Dqq.
 have Ecc: \C c != 0
   by apply/eqP; move/ polyC_inj => HH; case/eqP: Dc.
 case: (@eqP _ p 0); move/eqP => Ep; first by rewrite (eqP Ep) dvdp0.
-have E1: \C c * (p %p q) = (\C (scalp p q)  * qq - \C c * (p/p q)) * q.
+have E1: \C c * (p %% q) = (\C (scalp p q)  * qq - \C c * (p %/ q)) * q.
     rewrite mulr_addl mulNr -mulrA -Dqq.
     have->: forall x y z: poly, x * (y * z) = y * (x * z).
        by move=> x y z; rewrite mulrC -mulrA (mulrC z).
@@ -1027,18 +1087,18 @@ case: (size p1) (size_poly0_eq p1) => [|s] Hp1.
 by rewrite ltnNge leq_addl. 
 Qed.
 
-Lemma dvdp_mull : forall d m n: poly, d |p n -> d |p m * n.
+Lemma dvdp_mull : forall d m n: poly, d %| n -> d %| m * n.
 Proof.
 move=> d m n; case/dvdpPc => c [q [Hc Hq]].
 apply/dvdpPc; exists c; exists (m * q); split => //.
 by rewrite -mulrA -Hq !mulrA [m * _]mulrC.
 Qed.
 
-Lemma dvdp_mulr: forall d m n: poly, d |p m -> d |p  m * n.
+Lemma dvdp_mulr: forall d m n: poly, d %| m -> d %|  m * n.
 Proof. by move=> d m n d_m; rewrite mulrC dvdp_mull. Qed.
 
 Lemma dvdp_mul: forall d1 d2 m1 m2: poly, 
-  d1 |p m1 -> d2 |p m2 -> d1 * d2 |p m1 * m2.
+  d1 %| m1 -> d2 %| m2 -> d1 * d2 %| m1 * m2.
 Proof.
 move=> d1 d2 m1 m2; case/dvdpPc=> c1 [q1 [Hc1 Hq1]];
   case/dvdpPc=> c2 [q2 [Hc2 Hq2]].
@@ -1051,7 +1111,7 @@ have Hr: forall x1 x2 x3 x4: poly,
 by rewrite polyC_mul Hr (Hr q1) Hq1 Hq2.
 Qed.
 
-Lemma dvdp_trans: forall n d m: poly, d |p n -> n |p m -> d |p m.
+Lemma dvdp_trans: forall n d m: poly, d %| n -> n %| m -> d %| m.
 Proof. 
 move=> n d m; case/dvdpPc=> c1 [q1 [Hc1 Hq1]];
   case/dvdpPc=> c2 [q2 [Hc2 Hq2]].
@@ -1061,7 +1121,7 @@ rewrite -mulrA -Hq1 [_ * n]mulrC mulrA -Hq2 polyC_mul -!mulrA; congr mul.
 by rewrite mulrC.
 Qed.
 
-Lemma dvdp_addr : forall m d n: poly,  d |p m -> (d |p m + n) = (d |p n).
+Lemma dvdp_addr : forall m d n: poly,  d %| m -> (d %| m + n) = (d %| n).
 Proof.
 move=> n d m; case/dvdpPc=> c1 [q1 [Hc1 Hq1]];
      apply/dvdpPc/dvdpPc; case=> c2 [q2 [Hc2 Hq2]].
@@ -1075,22 +1135,22 @@ by rewrite mulr_addl -![_ * _ * d]mulrA -Hq1 -Hq2 !mulrA
           [\C c2 * _]mulrC -polyC_mul -mulr_addr [n + _]addrC.
 Qed.
 
-Lemma dvdp_addl : forall n d m: poly, d |p n -> (d |p m + n) = (d |p m).
+Lemma dvdp_addl : forall n d m: poly, d %| n -> (d %| m + n) = (d %| m).
 Proof. by move=> n d m; rewrite addrC; exact: dvdp_addr. Qed.
 
-Lemma dvdp_add : forall d m n: poly, d |p m -> d |p n -> d |p m + n.
+Lemma dvdp_add : forall d m n: poly, d %| m -> d %| n -> d %| m + n.
 Proof. by move=> n d m; move/dvdp_addr->. Qed.
 
-Lemma dvdp_add_eq : forall d m n: poly, d |p m + n -> (d |p m) = (d |p n).
+Lemma dvdp_add_eq : forall d m n: poly, d %| m + n -> (d %| m) = (d %| n).
 Proof. by move=> *; apply/idP/idP; [move/dvdp_addr <-| move/dvdp_addl <-]. Qed.
 
-Lemma dvdp_subr : forall d m n: poly, d |p m -> (d |p m - n) = (d |p n).
+Lemma dvdp_subr : forall d m n: poly, d %| m -> (d %| m - n) = (d %| n).
 Proof. by move=> *; apply dvdp_add_eq; rewrite -addrA addNr simpl01. Qed.
 
-Lemma dvdp_subl : forall d m n: poly, d |p n -> (d |p m - n) = (d |p m).
+Lemma dvdp_subl : forall d m n: poly, d %| n -> (d %| m - n) = (d %| m).
 Proof. by move=> d m n Hn; rewrite dvdp_addl // dvdp_mull. Qed.
 
-Lemma dvdp_sub : forall d m n: poly, d |p m -> d |p n -> d |p m - n.
+Lemma dvdp_sub : forall d m n: poly, d %| m -> d %| n -> d %| m - n.
 Proof.  by move=> d n m Dm Dn; rewrite dvdp_subl. Qed.
 
 Lemma gcdpp : idempotent (@gcdp R).
@@ -1181,6 +1241,16 @@ elim: {s q com_qx}(q : seq R) => /= [|b s ->]; first by rewrite simp.
 by rewrite -mulrA -mulr_addr.
 Qed.
 
+Lemma eval_poly_exp : forall p x n,
+  com_poly p x -> (p ^+ n).[x] = p.[x] ^+ n.
+Proof.
+move=> p x n com_px; elim: n => [|n IHn]; first by rewrite eval_polyC.
+by rewrite -addn1 !exprn_addr !expr1n -IHn eval_poly_mul.
+Qed.
+
+Lemma eval_polyX_n : forall x n, (\X ^+ n).[x] = x ^+ n.
+Proof. by move=> x n; rewrite eval_poly_exp /com_poly eval_polyX. Qed.
+
 Lemma eval_poly_Cmul : forall c p x, (\C c * p).[x] = c * p.[x].
 Proof.
 move=> c p x; rewrite eval_mkPoly seq_polyC /eval_poly.
@@ -1212,15 +1282,15 @@ move=> c; rewrite /add /= /add_poly seq_polyX seq_polyC /=.
     case: eqP => // HH; case (@nonzero1r R).
 Qed.
 
-Notation "m '/p' d" := (divp m d) (at level 40, no associativity).
-Notation "m %p d" := (modp m d) (at level 40, no associativity).
+Notation "m %/ d" := (divp m d) (at level 40, no associativity).
+Notation "m %% d" := (modp m d) (at level 40, no associativity).
 
 Theorem factor_theorem : forall p c,
   reflect (exists q, p = q * (\X - \C c)) (p.[c] == 0).
 Proof.
 move=> p c; apply: (iffP eqP) => [root_p_c | [q -> {p}]]; last first.
   by rewrite eval_poly_mul /com_poly factor0 ?simp.
-rewrite opp_polyC; exists (p /p (\X + \C -c)).
+rewrite opp_polyC; exists (p %/ (\X + \C -c)).
 have MXc: monic (\X + \C (-c)) by rewrite /monic /lead_coef seq_polyXc.
 move: (divp_mon_spec p MXc) root_p_c => HH; rewrite {1 2}HH.
 have Dxc: \X + \C (- c) != 0.
@@ -1231,8 +1301,40 @@ pose f := (eval_poly_add,eval_poly_mul,eval_polyX, eval_polyC, addrN, simpl01).
 by rewrite !f => [->|]; rewrite /com_poly ?f.
 Qed.
 
+Theorem idomain_max_poly_roots : forall p rs,
+    idomain R -> p != 0 -> uniq rs ->
+    all [pred x | (p.[x] == 0) && all [pred y | x * y == y * x] rs] rs ->
+  size rs < size p.
+Proof.
+move=> p rs idR; elim: rs p => [|x rs IHrs] p nzp /=.
+  by rewrite lt0n -size_poly0_eq.
+case/andP=> rs_x Urs; case/andP; case/and3P.
+case/factor_theorem=> q def_p _ _ roots_rs.
+have [nzq nzXx]: q != 0 /\ \X - \C x != 0.
+  apply/norP; apply/negP=> qx0; case/eqP: nzp; rewrite def_p.
+  by case/pred2P: qx0 => ->; rewrite (mul0r, mulr0).
+rewrite def_p size_mul_id // opp_polyC seq_polyXc addnC ltnS {}IHrs //.
+apply/allP=> y rs_y /=; case/and3P: (allP roots_rs _ rs_y) => py0 cyx ->.
+rewrite andbT; apply/idPn=> nqy0; case/idPn: py0.
+rewrite def_p eval_poly_mul /com_poly !eval_poly_lin; last first.
+  by rewrite mulr_addl mulr_addr mulrN mulNr (eqP cyx).
+rewrite idomainN //; apply/eqP=> yx0; case/negP: rs_x.
+by rewrite -[x]add0r -yx0 addrAC addrK.
+Qed.
+
 End EvalPolynomial.
 
+(* GG: this overrides Sidi's definition in ssralg which says p.[n] is the *)
+(* coef of \X^n in p -- not the value of p at n. We need to resolve this. *)
 Notation "p .[ x ]" := (eval_poly p x) : ring_scope.
+
+Theorem max_poly_roots : forall (R : field) (p : polynomial R) rs,
+  p != 0 -> uniq rs -> all [pred x | (p.[x] == 0)] rs -> size rs < size p.
+Proof.
+move=> R p rs nzp Urs roots_rs; apply: idomain_max_poly_roots => // [x y xy0|].
+  by apply/pred2P; apply/norP=> [[x0 y0]]; case/eqP: (Field.neq0_mul x0 y0).
+apply/allP=> x rs_x /=; rewrite [_ == 0](allP roots_rs x) //=.
+by apply/allP=> y _; rewrite /= mulrC.
+Qed.
 
 Unset Implicit Arguments.

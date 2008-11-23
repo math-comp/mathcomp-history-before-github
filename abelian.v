@@ -640,7 +640,7 @@ case E1: (1 \in E); last move/idPn: E1 => notE1.
   by move=> B; move/(ltn_addl 1) => cardB baseB; exists B.
 have{Ez} [f []]: exists f, [/\ support f E, em f = 1 & 0 < f z].
   exists (peak z #[z]); split; first by rewrite -sup_peak Ez.
-    by rewrite em_peak order_expn1. 
+    by rewrite em_peak expg_order. 
   by rewrite /peak eqxx ltn_0order.
 move: {-4 6}E cardE notE1 (erefl << E >>).
 elim: {f z}_.+1 {-2}f {-2}z (ltnSn (f z)) => // m mind f.

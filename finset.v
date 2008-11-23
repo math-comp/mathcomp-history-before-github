@@ -1150,8 +1150,8 @@ Proof. by rewrite [@imset _]unlock cardsE. Qed.
 Lemma leq_imset_card : #|f @: D| <= #|D|.
 Proof. by rewrite imset_card leq_image_card. Qed.
 
-Lemma card_dimset : {in D &, injective f} -> #|f @: D| = #|D|.
-Proof. by move=> injf; rewrite imset_card card_dimage. Qed.
+Lemma card_in_imset : {in D &, injective f} -> #|f @: D| = #|D|.
+Proof. by move=> injf; rewrite imset_card card_in_image. Qed.
 
 Lemma card_imset : injective f -> #|f @: D| = #|D|.
 Proof. by move=> injf; rewrite imset_card card_image. Qed.
@@ -1171,7 +1171,7 @@ End CardFunImage.
 Lemma on_card_preimset : forall (aT rT : finType) (f : aT -> rT) (R : pred rT),
   {on R, bijective f} -> #|f @^-1: R| = #|R|.
 Proof.
-move=> aT rT f R [g fK gK]; rewrite -(can2_in_imset_pre gK) // card_dimset //.
+move=> aT rT f R [g fK gK]; rewrite -(can2_in_imset_pre gK) // card_in_imset //.
 exact: can_in_inj gK.
 Qed.
 

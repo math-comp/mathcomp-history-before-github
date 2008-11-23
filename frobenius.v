@@ -38,7 +38,7 @@ have [q_pos n_pos] : 0 < q /\ 0 < n by apply/andP; rewrite -ltn_0mul -oG.
 rewrite ltnS oG mulnK // => leqm.
 have:= q_pos; rewrite leq_eqVlt; case/predU1P=> [q1 | lt1q].
   rewrite -(mul1n n) q1 -oG (setIidPl _) //.
-  by apply/subsetP=> x Gx; rewrite inE -order_dvd order_dvd_g.
+  by apply/subsetP=> x Gx; rewrite inE -order_dvdn order_dvdG.
 pose p := pdiv q; have pr_p: prime p by exact: prime_pdiv.
 have lt1p: 1 < p := prime_gt1 pr_p; have p_pos := ltnW lt1p.
 have{leqm} lt_qp_mq: q %/ p < mq by apply: leq_trans leqm; rewrite ltn_Pdiv.
@@ -48,10 +48,10 @@ have: n %| #|'Ldiv_(p * n)(G)|.
   by rewrite oG divn_pmul2r.
 rewrite -(cardsID 'Ldiv_n()) dvdn_addl.
   rewrite -setIA ['Ldiv_n(_)](setIidPr _) //. 
-  apply/subsetP=> x; rewrite !inE -!order_dvd; exact: dvdn_mull.
+  apply/subsetP=> x; rewrite !inE -!order_dvdn; exact: dvdn_mull.
 rewrite setDE -setIA -setDE; set A := _ :\: _.
 have pA: forall x, x \in A -> #[x]`_p = (n`_p * p)%N.
-  move=> x; rewrite !inE -!order_dvd; case/andP=> xn xnp.
+  move=> x; rewrite !inE -!order_dvdn; case/andP=> xn xnp.
   rewrite !p_part // -expnSr; congr (p ^ _)%N; apply/eqP.
   rewrite eqn_leq -{1}addn1 -(pfactorK 1 pr_p) -logn_mul ?expn1 // mulnC.
   rewrite dvdn_leq_log ?ltn_0mul ?p_pos //= ltnNge; apply: contra xn => xn.
@@ -63,11 +63,11 @@ rewrite -(partnC p n_pos) gauss_inv ?coprime_partC //; apply/andP; split.
   rewrite -sum1_card (partition_big_imset (@cycle _)) /=.
   apply: dvdn_sum => X; case/imsetP=> x; case/setIP=> Gx Ax ->{X}.
   rewrite (eq_bigl (generator <[x]>)) => [|y].
-    rewrite sum1_card -phi_gen -[#[x]](partnC p) // phi_mult ?coprime_partC //.
-    rewrite dvdn_mulr // (pA x Ax) p_part // -expnSr.
-    by rewrite phi_prime_k // expnS dvdn_sub ?dvdn_mull.
+    rewrite sum1dep_card -phi_gen -[#[x]](partnC p) //.
+    rewrite phi_coprime ?coprime_partC // dvdn_mulr // .
+    by rewrite (pA x Ax) p_part // -expnSr phi_pfactor // dvdn_mull.
   rewrite /generator eq_sym andbC; case xy: {+}(_ == _) => //.
-  rewrite !inE -!order_dvd in Ax *.
+  rewrite !inE -!order_dvdn in Ax *.
   by rewrite -cycle_subG /order -(eqP xy) cycle_subG Gx.
 rewrite -sum1_card (partition_big_imset (fun x => x.`_p ^: G)) /=.
 apply: dvdn_sum => X; case/imsetP=> x; case/setIP=> Gx Ax ->{X}.
@@ -96,7 +96,7 @@ pose h := [fun z => coset <[y]> (z ^ a^-1)].
 pose h' := [fun Z : coset_of <[y]> => (y * (repr Z).`_p^') ^ a].
 rewrite -sum1_card (reindex_onto h h') /= => [|Z]; last first.
   rewrite conjgK coset_kerl ?cycle_id ?morph_constt ?repr_coset_norm //.
-  rewrite /= coset_reprK 2!inE -order_dvd dvdn_gcd; case/and3P=> _ _ p'Z.
+  rewrite /= coset_reprK 2!inE -order_dvdn dvdn_gcd; case/and3P=> _ _ p'Z.
   apply: constt_p_elt (pnat_dvd p'Z _); exact: pnat_part.
 apply: eq_bigl => z; apply/andP/andP=> [[]|[]].
   rewrite inE -andbA; case/and3P=> Gz Az _; move/eqP=> zp_ya.
@@ -105,18 +105,18 @@ apply: eq_bigl => z; apply/andP/andP=> [[]|[]].
     by apply/cent1P; exact: commuteX.
   have Nz:  z ^ a^-1 \in 'N(<[y]>) by apply: subsetP czy; exact: norm_gen.
   have G'z: h z \in G' by rewrite mem_morphim //= inE groupJ // groupV.
-  rewrite inE G'z inE -order_dvd dvdn_gcd order_dvd_g //=.
+  rewrite inE G'z inE -order_dvdn dvdn_gcd order_dvdG //=.
   rewrite /order -morphim_cycle // -quotientE card_quotient ?cycle_subG //.
   rewrite -(@dvdn_pmul2l #[y]) // LaGrange; last first.
     by rewrite /= cycleJ cycle_subG mem_conjgV -zp_ya mem_cycle.
   rewrite oy mulnAC partnC // [#|_|]orderJ; split.
-    by rewrite !inE -!order_dvd mulnC in Az; case/andP: Az.
+    by rewrite !inE -!order_dvdn mulnC in Az; case/andP: Az.
   set Z := coset _ _; have NZ := repr_coset_norm Z; have:= coset_reprK Z.
   case/kercoset_rcoset=> {NZ}// yi; case/cycleP=> i <- -> {yi Z}.
   rewrite consttM; last by apply commute_sym; apply: commuteX; apply/cent1P.
   rewrite (constt1P _) ?p_eltNK 1?p_eltX ?p_elt_constt // mul1g.
   by rewrite conjMg consttJ conjgKV -zp_ya consttC.
-rewrite 2!inE -order_dvd; set Z := coset _ _.
+rewrite 2!inE -order_dvdn; set Z := coset _ _.
 case/andP=> Cz n'Z; move/eqP=> def_z.
 have Nz: z ^ a^-1 \in 'N(<[y]>).
   rewrite -def_z conjgK groupMr; first by rewrite -(cycle_subG y) normG.
@@ -134,7 +134,7 @@ have{def_z} zp_ya: z.`_p = y ^ a.
 have ozp: #[z ^ a^-1]`_p = #[y].
   by rewrite -order_constt consttJ zp_ya conjgK.
 split; rewrite zp_ya // -class_lcoset lcoset_id // eqxx andbT.
-rewrite -(conjgKV a z) !inE groupJ //= -!order_dvd orderJ; apply/andP; split.
+rewrite -(conjgKV a z) !inE groupJ //= -!order_dvdn orderJ; apply/andP; split.
   apply/negP; move/(partn_dvd p n_pos); apply/negP.
   by rewrite ozp -(muln1 n`_p) oy dvdn_pmul2l // dvdn1 neq_ltn lt1p orbT.
 rewrite -(partnC p n_pos) mulnCA mulnA -oy -(@partnC p #[_]) // ozp.

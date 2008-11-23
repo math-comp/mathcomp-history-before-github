@@ -14,7 +14,7 @@ Require Import fintype div prime finset ssralg bigops.
 Require Import groups morphisms action normal pgroups automorphism.
 Require Import cyclic gprod abelian.
 
-(* Require Import seq paths connecct bigops group_perm. *)
+(* Require Import seq paths connecct bigops perm. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -136,8 +136,7 @@ have G_Zz: G :=: 'Z(G) * <[z]>.
   rewrite -['Z(G)]ker_coset -morphimK ?cycle_subG ?morphim_cycle //=.
   by rewrite -def_a -Ga quotientGK // center_normal.
 rewrite -(mulg1 'Z(G)) {1}G_Zz mulGS mulg1 /= G_Zz subsetI mulG_subr /=.
-rewrite centM subsetI centsC subIset /=.
-  apply/centsP; exact: commute_cycle_com.
+rewrite centM subsetI centsC subIset /=; first exact: cycle_abelian.
 by rewrite orbC centS // G_Zz mulG_subr.
 Qed.
 

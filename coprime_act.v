@@ -3,7 +3,7 @@ Require Import fintype bigops finset.
 Require Import groups morphisms automorphism gprod normal action commutators.
 Require Import pgroups cyclic nilpotent sylow maximal schurzass hall.
 
-(* Require Import connect finfun ssralg group_perm center. *)
+(* Require Import connect finfun ssralg perm center. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.

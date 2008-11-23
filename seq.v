@@ -1570,7 +1570,7 @@ elim=> [|x s IHs] //=; case/andP=> [Hsx Hs]; rewrite (IHs Hs) andbT.
 by apply/negP => Hx; case/mapsP: Hsx; exists x.
 Qed.
 
-Lemma uniq_dmaps : forall s : seq T1,
+Lemma uniq_maps_in : forall s : seq T1,
   {in s &, injective f} -> uniq (maps f s) = uniq s.
 Proof.
 elim=> //= x s IHs //= injf; congr (~~ _ && _).
@@ -1594,7 +1594,7 @@ by rewrite (inj_eq Hf) IHs.
 Qed.
 
 Lemma uniq_maps : forall s, uniq (maps f s) = uniq s.
-Proof. move=> s; apply: uniq_dmaps; exact: in2W. Qed.
+Proof. move=> s; apply: uniq_maps_in; exact: in2W. Qed.
 
 End EqMap.
 

@@ -3,7 +3,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat fintype finset.
 Require Import groups morphisms automorphism normal.
 
-(* Require Import seq paths connect div ssralg bigops group_perm. *)
+(* Require Import seq paths connect div ssralg bigops perm. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit. 

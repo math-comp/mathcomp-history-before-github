@@ -1,6 +1,6 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype.
 Require Import div ssralg bigops prime tuple finset groups morphisms normal.
-Require Import group_perm automorphism action cyclic pgroups sylow.
+Require Import perm automorphism action cyclic pgroups sylow.
 Require Import maximal prim_act signperm.
 
 (* Require Import paths connect finfun zp. *)
@@ -55,7 +55,7 @@ pose A3 := [set x : {perm T} | #[x] == 3]; suffices oA3: #|A :&: A3| = 8.
     move=> P; rewrite inE pHallE oA p_part -natTrecE /=; case/andP=> sPA oP.
     apply/eqP; rewrite eqEcard -(leq_add2l 8) -{1}oA3 cardsID oA (eqP oP).
     rewrite andbT subsetD sPA; apply/existsP=> [[x]] /=; case/andP=> Px.
-    by rewrite inE => ox; have:= order_dvd_g Px; rewrite (eqP oP) (eqP ox).
+    by rewrite inE => ox; have:= order_dvdG Px; rewrite (eqP oP) (eqP ox).
   have [/= P sylP] := Sylow_exists 2 [group of A].
   rewrite -(([set P] =P 'Syl_2(A)) _) ?cards1 // eqEsubset sub1set inE sylP.
   by apply/subsetP=> Q sylQ; rewrite inE -val_eqE /= !sQ2 // inE.
@@ -65,10 +65,10 @@ rewrite (partition_big (fun x => <[x]>%G) (mem 'Syl_3(A))) => [|x]; last first.
 apply: eq_bigr => Q; rewrite inE /= inE pHallE oA p_part -?natTrecE //=.
 case/andP=> sQA; move/eqP=> oQ; have:= oQ.
 rewrite (cardsD1 1) group1 -sum1_card => [[/= <-]]; apply: eq_bigl => x.
-rewrite setIC -val_eqE /= 2!inE in_setD1 -andbA -{4}[x]expg1 -order_dvd dvdn1.
+rewrite setIC -val_eqE /= 2!inE in_setD1 -andbA -{4}[x]expg1 -order_dvdn dvdn1.
 apply/and3P/andP=> [[ox _ defQ] | [ntx Qx]].
   by rewrite -(eqP defQ) cycle_id (eqP ox).
-have:= order_dvd_g Qx; rewrite oQ dvdn_divisors // mem_seq2 (negPf ntx) /=.
+have:= order_dvdG Qx; rewrite oQ dvdn_divisors // mem_seq2 (negPf ntx) /=.
 by rewrite eqEcard cycle_subG Qx (subsetP sQA) // oQ /order; move/eqP->.
 Qed.
 
@@ -123,7 +123,7 @@ have FF: forall H : {group _}, H <| 'Alt_T -> H :<>: 1 -> 20 %| #|H|.
     have diff_hnx_x: forall n, 0 < n -> n < 5 -> x != (h ^+ n) x.
       move=> n Hn1 Hn2; rewrite eq_sym; apply/negP => HH.
       have: #[h ^+ n] = 5.
-        rewrite order_gcd // (eqP Horder).
+        rewrite orderXgcd // (eqP Horder).
         by move: Hn1 Hn2 {HH}; do 5 (case: n => [|n] //).
       have Hhd2: h ^+ n \in H by rewrite groupX.
       by rewrite (Hreg _ _ Hhd2 (eqP HH)) order1.

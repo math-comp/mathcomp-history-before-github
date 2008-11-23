@@ -3,7 +3,7 @@
 (*                                                                     *)
 (***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype.
-Require Import tuple finset groups group_perm action prim_act.
+Require Import tuple finset groups perm action prim_act.
 Require Import morphisms normal.
 
 (* Require Import paths finfun connect div zp. *)
@@ -285,7 +285,7 @@ Lemma Alt_index : 1 < n -> #|'Sym_T : 'Alt_T| = 2.
 Proof.
 move=> lt1n; rewrite -card_quotient ?Alt_norm //=.
 have : ('Sym_T / 'Alt_T) \isog (odd_perm @* 'Sym_T) by apply: first_isog.
-case/isogP=> g; move/injmP; move/card_dimset <-; rewrite /morphim setIid=> ->.
+case/isogP=> g; move/injmP; move/card_in_imset <-; rewrite /morphim setIid=> ->.
 rewrite eq_cardT // => b; apply/imsetP; case: b => /=; last first.
  by exists (1 : {perm T}); [rewrite setIid inE | rewrite odd_perm1].
 case: (pickP T) lt1n => [x1 _ | d0]; last by rewrite /n eq_card0.

@@ -1,6 +1,6 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import fintype paths finfun ssralg bigops finset prime.
-Require Import groups morphisms group_perm action automorphism normal. 
+Require Import groups morphisms perm action automorphism normal. 
 Require Import cyclic abelian.
 
 Set Implicit Arguments.
@@ -372,9 +372,9 @@ move=> pi x m; apply/idP/idP=> [pi_xm|].
   rewrite -(@gauss _ #[x ^+ m]); last first.
     by rewrite coprime_sym (pnat_coprime pi_xm) ?pnat_part.
   apply: (@dvdn_trans #[x]); first by rewrite -{2}[#[x]](partnC pi) ?dvdn_mull.
-  by rewrite order_dvd mulnC expgn_mul order_expn1.
+  by rewrite order_dvdn mulnC expgn_mul expg_order.
 case/dvdnP=> q ->{m}; rewrite mulnC; apply: pnat_dvd (pnat_part pi #[x]).
-by rewrite order_dvd -expgn_mul mulnC mulnA partnC // -order_dvd dvdn_mulr.
+by rewrite order_dvdn -expgn_mul mulnC mulnA partnC // -order_dvdn dvdn_mulr.
 Qed.
 
 Lemma mem_p_elt : forall pi x G, pi.-group G -> x \in G -> pi.-elt x.
@@ -457,7 +457,7 @@ Qed.
 
 Lemma order_constt : forall pi (x : gT), #[x.`_pi] = #[x]`_pi.
 Proof.
-move=> pi x; rewrite -{2}(consttC pi x) order_mul; [|exact: commuteX2|].
+move=> pi x; rewrite -{2}(consttC pi x) orderM; [|exact: commuteX2|].
   rewrite partn_mul // part_pnat ?part_p'nat ?muln1 //; exact: p_elt_constt.
 apply: (@pnat_coprime pi); exact: p_elt_constt.
 Qed.
@@ -485,7 +485,7 @@ Qed.
 Lemma constt1P: forall pi x, reflect (x.`_pi = 1) (pi^'.-elt x).
 Proof.
 move=> pi x; rewrite -{2}[x]expg1 p_elt_exp -order_constt consttNK.
-rewrite order_dvd expg1; exact: eqP.
+rewrite order_dvdn expg1; exact: eqP.
 Qed.
 
 Lemma constt_p_elt : forall pi x, pi.-elt x -> x.`_pi = x.
@@ -591,7 +591,7 @@ rewrite -sub1set -gen_subG (normal_sub_max_pgroup maxQ) //; last first.
   by rewrite centsC cycle_subG Cx.
 rewrite /pgroup p'natE //= -[#|_|]/#[x]; apply/dvdnP=> [[m oxm]].
 have m_pos: 0 < m by apply: ltn_0dvd (ltn_0order x) _; rewrite oxm dvdn_mulr.
-case/idP: (no_x (x ^+ m)); rewrite /= groupX //= order_gcd //= oxm.
+case/idP: (no_x (x ^+ m)); rewrite /= groupX //= orderXgcd //= oxm.
 by rewrite gcdnC gcdn_mulr mulKn.
 Qed.
 
@@ -1278,7 +1278,7 @@ apply/idP/idP=> [p1G | pU].
   rewrite gen_subG; apply/subsetP=> x; rewrite inE; case/andP=> Gx p_x.
   have nOx: x \in 'N('O_{p^',p}(G)).
     by apply: subsetP Gx; rewrite normal_norm ?pseries_normal.
-  rewrite coset_idr //; apply/eqP; rewrite -[coset _ x]expg1 -order_dvd.
+  rewrite coset_idr //; apply/eqP; rewrite -[coset _ x]expg1 -order_dvdn.
   rewrite [#[_]](@pnat_1 p) //; first exact: morph_p_elt.
   apply: mem_p_elt (pcore_pgroup _ (G / _)) _.
   by rewrite /= -quotient_pseries /= (eqP p1G); apply/morphimP; exists x.
@@ -1395,7 +1395,7 @@ Lemma OhmE : forall (p : nat) G,
   p.-group G -> 'Ohm_n(G) = <<[set x \in G | x ^+ (p ^ n) == 1]>>.
 Proof.
 move=> p G pG; congr <<_>>; apply/setP=> x; rewrite !inE.
-case Gx: (x \in G) => //=; rewrite -order_dvd /OhmPred /order.
+case Gx: (x \in G) => //=; rewrite -order_dvdn /OhmPred /order.
 have: p.-elt x by exact: mem_p_elt pG Gx.
 case/pgroup_1Vpr=> [/= -> | [pr_p]].
   by rewrite cards1 dvd1n unlock /= !logn1.
@@ -1486,9 +1486,9 @@ Lemma exponentP : forall G n,
   reflect (forall x, x \in G -> x ^+ n = 1) (exponent G %| n).
 Proof.
 rewrite /exponent => G n; apply: (iffP idP) => [eGn x Gx | eGn].
-  apply/eqP; rewrite -order_dvd; apply: dvdn_trans eGn; exact: dvdn_exponent.
+  apply/eqP; rewrite -order_dvdn; apply: dvdn_trans eGn; exact: dvdn_exponent.
 apply big_prop=> [|p q pn qn|x Gx]; [exact: dvd1n | by rewrite dvdn_lcm pn | ].
-by rewrite order_dvd eGn.
+by rewrite order_dvdn eGn.
 Qed.
 
 Lemma trivg_exponent : forall G, (G :==: 1) = (exponent G %| 1).
@@ -1502,7 +1502,7 @@ Proof. by apply/eqP; rewrite -dvdn1 -trivg_exponent eqxx. Qed.
 
 Lemma exponent_dvdn : forall G, exponent G %| #|G|.
 Proof.
-by move=> G; apply/exponentP=> s Gx; apply/eqP; rewrite -order_dvd order_dvd_g.
+by move=> G; apply/exponentP=> s Gx; apply/eqP; rewrite -order_dvdn order_dvdG.
 Qed.
 
 Lemma ltn_0exponent : forall G, 0 < exponent G.
@@ -1633,9 +1633,7 @@ apply: (iffP bigcupP) => [[[/= p _] _ pE]|[sEG [p pr_p pE]]].
 have lt_p_G1: p < #|G|.+1 by rewrite ltnS dvdn_leq // -pE cardSg.
 exists (Ordinal lt_p_G1); rewrite //= pnElemE // 2!inE sEG /= expn1 pE eqxx.
 rewrite p_abelemE // -pE exponent_dvdn !andbT.
-case: (@Cauchy _ p E) => // [|x Ex oxp]; first by rewrite pE.
-suff <-: <[x]> = E by apply/centsP; apply: commute_cycle_com.
-by apply/eqP; rewrite eqEcard pE [#|_|]oxp cycle_subG Ex /=.
+by rewrite cyclic_abelian ?prime_cyclic ?pE.
 Qed.
 
 End OhmProps.
