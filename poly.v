@@ -1246,12 +1246,12 @@ Qed.
 
 Definition eqp (p1 p2: poly) :=  (p1 %| p2) && (p2 %| p1).
 
-Notation "p1 '=p' p2" := (eqp p1 p2)
+Notation "p1 '%=' p2" := (eqp p1 p2)
   (at level 70, no associativity).
 
 Lemma eqpP: forall m n: poly,
   reflect (exists c1, exists c2, [/\ c1 !=0, c2 != 0 & \C c1 * m = \C c2 *  n])
-          ((m %| n) && (n %| m)).
+          (m %= n).
 Proof.
 move=> m n; apply: (iffP idP); last first.
   case=> c1; case=> c2; case => Hc1 Hc2 Ec1c2.
@@ -1281,25 +1281,25 @@ case/size1P=> c3 Ec3; exists c2; exists c3; split => //; last by rewrite -Ec3.
 by apply/eqP=> HH; case/eqP: Eq2; rewrite Ec3 HH.
 Qed.
 
-Lemma eqpxx: forall p, p =p p.
+Lemma eqpxx: forall p, p %= p.
 Proof. by move=> p; rewrite /eqp dvdpp. Qed. 
 
-Lemma eqp_sym: forall p1 p2, (p1 =p p2) = (p2 =p p1).
+Lemma eqp_sym: forall p1 p2, (p1 %= p2) = (p2 %= p1).
 Proof. by move=> p1 p2; rewrite /eqp andbC. Qed.
 
-Lemma eqp_trans : forall p1 p2 p3, p1 =p p2 -> p2 =p p3 -> p1 =p p3.
+Lemma eqp_trans : forall p1 p2 p3, p1 %= p2 -> p2 %= p3 -> p1 %= p3.
 Proof.
 move=> p1 p2 p3; case/andP => Dp1 pD1; case/andP => Dp2 pD2.
 by rewrite /eqp (dvdp_trans Dp1) // (dvdp_trans pD2).
 Qed.
 
-Lemma eqp0E : forall p, (p =p 0) = (p == 0).
+Lemma eqp0E : forall p, (p %= 0) = (p == 0).
 Proof.
 move=> p; case: eqP; move/eqP=> Ep; first by rewrite (eqP Ep) eqpxx.
 by apply/negP; case/andP=> _; rewrite /dvdp modp0 (negPf Ep).
 Qed.
 
-Lemma size_eqp: forall p1 p2, p1 =p p2 -> size p1 = size p2.
+Lemma size_eqp: forall p1 p2, p1 %= p2 -> size p1 = size p2.
 Proof.
 move=> p1 p2.
 case: (@eqP _ p2 0); move/eqP => Ep2.
@@ -1310,7 +1310,7 @@ by case/andP => Dp1 Dp2; apply: anti_leq; rewrite !size_dvdp.
 Qed.
 
 (* Now we can state that gcd is commutative modulo a factor *)
-Lemma gcdpC: forall p1 p2, gcdp p1 p2 =p gcdp p2 p1.
+Lemma gcdpC: forall p1 p2, gcdp p1 p2 %= gcdp p2 p1.
 Proof.
 by move=>p1 p2; rewrite /eqp !dvdp_gcd !dvdp_gcdl !dvdp_gcdr.
 Qed.
