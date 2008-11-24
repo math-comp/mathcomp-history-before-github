@@ -146,14 +146,14 @@ have sKG: {subset K <= G} by apply/subsetP; rewrite -eqHK mulG_subr.
 have sLG: {subset L <= G} by apply/subsetP; rewrite -eqHL mulG_subr.
 have val_nu: forall x, x \in G -> sgval (nu x) = divgr H L x.
   by move=> x Gx; rewrite subgK // mem_divgr // eqHL.
-have nu_cocycle: {in G &, forall x y, nu (x * y) = (to (nu y) x^-1 + nu x)%R}.
+have nu_cocycle: {in G &, forall x y, nu (x * y) = (to (nu y) x^-1%g + nu x)%R}.
   move=> x y Gx Gy; apply: val_inj => /=.
   rewrite valA ?groupV // !(val_nu, groupM, groupV) // /divgr (remgrM cpHL) //.
   by rewrite mulgA -conjgCV -!mulgA -invMg.
 have nuL: forall x, x \in L -> nu x = 0%R.
   move=> x Lx; apply: val_inj; rewrite /= val_nu ?sLG //.
   by rewrite /divgr remgr_id ?mulgV.
-exists (sgval ((\sum_(X \in rcosets Q K) nu (repr X)^-1) *+ m)%R).
+exists (sgval ((\sum_(X \in rcosets Q K) nu (repr X)^-1%g) *+ m)%R).
   exact: subgP.
 apply/eqP; rewrite eq_sym eqEcard; apply/andP.
 split; last first.
@@ -161,7 +161,7 @@ split; last first.
 apply/subsetP=> /= x_nu; case/imsetP=> x Kx ->{x_nu}.
 rewrite conjgE mulgA (conjgC _ x).
 have Gx: x \in G by rewrite sKG.
-rewrite conjVg -mulgA -valA // -valV -valM (_ : _ + _ = nu x^-1)%R.
+rewrite conjVg -mulgA -valA // -valV -valM (_ : _ + _ = nu x^-1%g)%R.
   rewrite /= val_nu ?groupV //.
   by rewrite mulKVg groupV mem_remgr // eqHL groupV.
 rewrite toX // Ring.oppr_muln -Ring.mulrn_addl (big_morph _ (toB x Gx)).

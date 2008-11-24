@@ -1491,7 +1491,8 @@ Theorem max_poly_roots : forall (R : field) (p : polynomial R) rs,
   p != 0 -> uniq rs -> all [pred x | (p.[x] == 0)] rs -> size rs < size p.
 Proof.
 move=> R p rs nzp Urs roots_rs; apply: idomain_max_poly_roots => // [x y xy0|].
-  by apply/pred2P; apply/norP=> [[x0 y0]]; case/eqP: (Field.neq0_mul x0 y0).
+  apply/pred2P; apply/norP=> [[]]; move/eqP=> x0; move/eqP; move/(neq0_mul x0).
+  by rewrite xy0.
 apply/allP=> x rs_x /=; rewrite [_ == 0](allP roots_rs x) //=.
 by apply/allP=> y _; rewrite /= mulrC.
 Qed.

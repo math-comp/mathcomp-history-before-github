@@ -455,16 +455,16 @@ Proof.
 move=> gT G F f fM f1P; have f1 : f 1 = 1%R by exact/f1P.
 have fX: forall n, {in G, {morph f : u / u ^+ n >-> (u ^+ n)%R}}.
   by move=> n x Gx; elim: n => //= n <-; rewrite -fM ?groupX.
-have f0: forall x, x \in G -> f x != 0%R.
-  move=> x Gx; apply/eqP=> fx0; case: (@Ring.nonzero1r F).
+have f0: forall x, x \in G -> f x <> 0%R.
+  move=> x Gx fx0; case: (@Ring.nonzero1r F).
   rewrite -f1 -(expg_order x) fX // fx0.
   by rewrite -(prednK (ltn_0order _)) /= Ring.mul0r.
-have fV: {in G, {morph f : u / u^-1 >-> u^-1%F}}.
+have fV: {in G, {morph f : u / u^-1 >-> u^-1%R}}.
   move=> x Gx; apply: (mulfI (f0 x Gx)).
-  by rewrite -fM ?groupV // mulVg mulfV ?f0.
+  by rewrite -fM ?groupV // mulVg mulfV //; apply: f0.
 have injf: {in G &, injective f}.
   move=> x y Gx Gy /= eq_fxy; apply/eqP; rewrite eq_mulgV1; apply/eqP.
-  by apply/f1P; rewrite ?fM ?fV ?groupM ?groupV // eq_fxy mulVf ?f0.
+  by apply/f1P; rewrite ?fM ?fV ?groupM ?groupV // eq_fxy mulVf //; apply: f0.
 have: exists H : {group _}, cyclic H && (H \subset G). 
   by exists [1 gT]%G; rewrite sub1G cyclic1.
 case/ex_maxgroup=> H; case/maxgroupP; case/andP=> cycH; rewrite subEproper.

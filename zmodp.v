@@ -298,8 +298,8 @@ Lemma Fp_coprime : forall x, x != 0 -> coprime p x.
 Proof. by move=> x nzx; rewrite prime_coprime // gtnNdvd ?lt0n. Qed.
 
 Lemma Fp_mulVz : forall x,
-  x != 0 -> (Zp_inv (ltnW lt1p) x : Fp_ring) * x = 1.
-Proof. move=> x; move/Fp_coprime=> co_p_x; exact: Zp_mulVz. Qed.
+  x <> 0 -> (Zp_inv (ltnW lt1p) x : Fp_ring) * x = 1.
+Proof. move=> x; move/eqP; move/Fp_coprime=> co_p_x; exact: Zp_mulVz. Qed.
 
 Definition Fp_field := @Field.Field Fp_ring _ Fp_mulVz.
 
