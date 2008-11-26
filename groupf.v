@@ -54,6 +54,9 @@ Definition decr (F : obmap) : Prop :=
 Definition appmod (F1 F2 : obmap) :=
   fun gT (G:{set gT}) => coset (F2 gT G) @*^-1 (F1 _ (G / (F2 gT G))).
 
+Definition app (F1 F2 : obmap) :=
+  fun gT (G:{set gT}) => F1 _ (F2 _ G).
+
 (* Strong functoriality (wrt domains)*)
 
 Definition dresp (F : obmap): Prop :=
@@ -67,6 +70,10 @@ rewrite -morphimIdom -[idm H @* G]morphimIdom !morphim_idm ?subsetIl //.
 by rewrite (setIidPl sHG) setIC.
 Qed.
 
+(* Increasing w.r.t. inclusion *)
+
+Definition incr (F : obmap) : Prop :=
+  forall gT (H G : {group gT}), H \subset G -> (F _ H) \subset (F _ G). 
 
 End IdentitySubFunctorDefs.
 
@@ -410,6 +417,91 @@ End DecreasingIdentitySubFunctorProps.
 Definition disfc_comp_disfc (sF sF3:disFc)  :=
   DisFc (decr_of_dresp (disfc_comp_dresp sF sF3)).
 
+Module IncrIdSubFunctor.
+
+(* Mappings functorial w.r.t. (surjective) morphisms,
+   well-behaved w.r.t. application *)
+
+Implicit Types gT: finGroupType.
+
+Structure class : Type := Class { 
+  FisFc :> isFc;
+   _ : incr FisFc}.
+
+Lemma iisfc_resp (sF: class): resp sF.
+Proof. by move=> sF; apply:isfc_resp. Qed.
+
+Lemma iisfc_incr (sF : class): incr sF.
+Proof. by case => F. Qed.
+
+End IncrIdSubFunctor.
+
+Notation iisFc := IncrIdSubFunctor.class.
+Notation IisFc := IncrIdSubFunctor.Class.
+
+Definition mkiIsFc F Fgrp Fsub (Fresp:resp F) (Fincr : incr F) := 
+  @IisFc (mkIsFc Fgrp Fsub Fresp) Fincr.
+
+Notation "[ 'iisFc' 'of' F ]" :=
+  (match [is F : _ -> _ <: iisFc] as s return {type of IisFc for s} -> _ with
+    | IisFc _ d => fun k => k  d end
+  (@IisFc F)) (at level 0, only parsing) : form_scope.
+
+Section IncreasingIdentitySubFunctorProps.
+
+Implicit Types gT hT:finGroupType.
+
+Section IncreasingIdBaseProps.
+
+Variable sF: iisFc.
+
+Lemma iisfc_resp : resp sF.
+Proof. exact:IdSubFunctor.isfc_resp. Qed.
+
+Lemma iisfc_incr : incr sF.
+Proof. exact:IncrIdSubFunctor.iisfc_incr. Qed.
+
+End IncreasingIdBaseProps.
+
+Section IncreasingIdentitySFComp.
+
+Variable sF: iisFc.
+Variable sF2 : isFc.
+
+(* independent from the group preservation requirement *)
+Lemma iisfc_comp_clos : forall gT (G:{group gT}),
+  (app sF sF2) gT G \subset G.
+Proof. by move=> gT G; rewrite (subset_trans (bisfc_clos _ _)) ?bisfc_clos. Qed.
+
+Lemma iisfc_comp_resp : resp (app sF sF2).
+Proof.
+move=> gT hT G phi.
+rewrite (subset_trans (morphim_sfunctor _ _ (bisfc_clos _ _))) //.
+by rewrite (subset_trans (iisfc_incr sF (isfc_resp sF2 phi))).
+Qed.
+
+End IncreasingIdentitySFComp.
+
+(*The structure for this one is un-inferrable, 
+   see morphim for phantom creation*)
+Definition iisfc_comp_isfc (sF:iisFc) (sF2:isFc) :=
+  @mkIsFc (app sF sF2)
+  (fun gT G => groupP [group of ((app sF sF2) _ G)])
+  (iisfc_comp_clos sF sF2)
+  (iisfc_comp_resp sF sF2).
+
+(* TOFIX *)
+
+Variables sF sF3:iisFc.
+
+Lemma iisfc_comp_incr : incr (iisfc_comp_isfc sF sF3).
+Proof. by move=> gT H G sHG; rewrite !iisfc_incr. Qed.
+
+End IncreasingIdentitySubFunctorProps.
+
+Definition iisfc_comp_disfc (sF sF3:iisFc)  :=
+  IisFc (iisfc_comp_incr sF sF3).
+
 Section IdentitySubfunctorsExamples.
 
 Implicit Types gT:finGroupType.
@@ -417,8 +509,11 @@ Implicit Types gT:finGroupType.
 Lemma id_resp : resp (fun _ S => S).
 Proof. by []. Qed.
 
-Canonical Structure id_subfunc :=
-  mkIsFc (fun gT G => groupP G%G)
+Lemma id_incr : incr (fun _ S => S).
+Proof. by []. Qed.
+
+Canonical Structure incr_id_subfunc :=
+  mkiIsFc (fun gT G => groupP G%G)
   (fun gT G => subxx _)
   id_resp.
 
@@ -446,7 +541,7 @@ move=> gT H G sHG; rewrite setIC /center setIA (setIidPl sHG) setIS //.
 by rewrite (centsS sHG).
 Qed.
 
-Canonical Structure center_id_subfunc :=
+Canonical Structure center_decr_id_subfunc :=
   mkdIsFc (fun gT G => groupP 'Z(G)%G) (fun gT G => @center_sub gT G)
          center_resp center_decr.
 
@@ -458,6 +553,15 @@ Proof. exact: gfunc_Phi. Qed.
 Canonical Structure Frattini_subfunc :=
   mkIsFc (fun gT G => groupP 'Phi(G)%G) (fun gT => @Phi_sub gT)
          Frattini_resp.
+
+Lemma Fitting_decr : decr (fun _ G => 'F(G)).
+Proof. by move=> gT H G; move/FittingS; rewrite setIC. Qed.
+
+Canonical Structure Fitting_decr_id_subfunc :=
+  mkdIsFc (fun gT G => groupP 'F(G)%G)
+           Fitting_sub
+           gfunc_Fitting
+           Fitting_decr.
 
 Require Import nilpotent.
 
@@ -475,10 +579,18 @@ rewrite !dergSn (morphimR _ (der_clos _ _) (der_clos _ _)).
 by rewrite commgSS ?IH.
 Qed.
 
-Canonical Structure der_id_subfunctor (n:nat) :=
-  mkIsFc (fun gT (G:{group gT}) => der_group_set G n)
+Lemma der_incr : forall n, 
+  incr (fun gT G => derived_at G n).
+Proof.
+elim => [|n IH] gT H G sHG; first by rewrite !derg0.
+by rewrite !dergSn commgSS ?IH.
+Qed.
+
+Canonical Structure der_incr_id_subfunctor (n:nat) :=
+  mkiIsFc (fun gT (G:{group gT}) => der_group_set G n)
          (der_clos n)
-         (der_resp n).
+         (der_resp n)
+         (der_incr n).
 
 Lemma lcn_resp : forall n,
   resp (fun gT G => 'L_n(G)).
@@ -487,12 +599,63 @@ elim=> [|n IH] gT hT H phi; first by rewrite !lcn0.
 by rewrite !lcnSn morphimR ?lcn_sub0 // commSg ?IH.
 Qed.
 
-Canonical Structure lcn_id_subfunctor (n:nat) :=
-  mkIsFc (fun gT (G :{group gT}) => lcn_group_set G n)
-  (fun gT G => (lcn_sub0 G n))
-  (lcn_resp n).
+Lemma lcn_incr : forall n,
+  incr (fun gT G => 'L_n(G)).
+Proof.
+elim=> [|n IH] gT H G sHG; first by rewrite !lcn0.
+by rewrite !lcnSn commgSS ?IH.
+Qed.
 
+Canonical Structure lcn_incr_id_subfunctor (n:nat) :=
+  mkiIsFc (fun gT (G :{group gT}) => lcn_group_set G n)
+  (fun gT G => (lcn_sub0 G n))
+  (lcn_resp n)
+  (lcn_incr n).
+
+Lemma ucn_isfc :  forall n,
+  [/\ resp (fun _ G => 'Z_n(G)),
+      decr (fun _ G => 'Z_n(G)) & 
+      forall gT (G:{group gT}), 'Z_n(G) \subset G ].
+Proof.
+elim => [|n [Hresp Hdecr Hsub]].
+ by split=> [gT hT G phi|gT H G sHG| gT G];
+ rewrite ?ucn0 ?morphim1 ?sub1G ?subsetIl //.
+pose Zn := (mkdIsFc (fun _ G => ucn_group_set G n) Hsub Hresp Hdecr).
+(* TOFIX *)
+pose ZSn := (disfc_comp_disfc center_decr_id_subfunc Zn).
+split=> [gT hT G phi|gT H G sHG| gT G]; rewrite ucnSn.
+- apply: (isfc_resp ZSn).
+- apply: (disfc_decr ZSn sHG).
+- apply: (bisfc_clos ZSn).
+Qed.
+
+Lemma ucn_resp : forall n, resp (fun _ G => 'Z_n(G)).
+Proof. by move=> n; case:(ucn_isfc n). Qed.
+
+Lemma ucn_decr : forall n, decr (fun _ G => 'Z_n(G)).
+Proof. by move=> n; case:(ucn_isfc n). Qed.
+
+Lemma ucn_clos : forall n gT (G:{group gT}), 'Z_n(G) \subset G.
+Proof. by move=> n; case:(ucn_isfc n). Qed.
+
+Canonical Structure ucn_decr_id_subfunctor (n:nat) :=
+  mkdIsFc (fun gT (G:{group gT}) => ucn_group_set G n)
+  (ucn_clos n)
+  (ucn_resp n)
+  (ucn_decr n).
+
+Require Import prime.
 Require Import pgroups.
+
+Lemma pcore_decr : forall (pi:nat_pred), decr (fun _ G => 'O_pi(G)).
+Proof. by move=> pi gT H G; move/pcoreS; rewrite setIC. Qed.
+
+Canonical Structure pcore_decr_id_subfunctor (pi:nat_pred) :=
+  mkdIsFc (fun gT (G:{group gT}) => groupP [group of 'O_pi(G)])
+  (pcore_sub pi)
+  (gfunc_pcore pi)
+  (pcore_decr pi).
+
 
 Lemma Ohm_sub : forall i gT (G:{group gT}), 'Ohm_i(G) \subset G.
 Proof. move=> gT i; exact: Ohm_sub. Qed.
@@ -513,10 +676,15 @@ Lemma Mho_resp : forall i,
   resp (fun gT S => 'Mho^i(S)).
 Proof. move=> i G f; exact: gfunc_Mho. Qed.
 
+Lemma Mho_incr : forall i,
+  incr (fun gT S => 'Mho^i(S)).
+Proof. move=> i gT H G sHG; exact:MhoS. Qed.
+
 Canonical Structure Mho_id_subfunctor (i:nat) :=
-  mkIsFc (fun gT (G:{group gT}) => groupP 'Mho^i(G)%G)
+  mkiIsFc (fun gT (G:{group gT}) => groupP 'Mho^i(G)%G)
   (Mho_sub i)
-  (Mho_resp i).
+  (Mho_resp i)
+  (Mho_incr i).
 
 End IdentitySubfunctorsExamples.
 
