@@ -449,8 +449,8 @@ Notation "- 1" := (- (1))%R : ring_scope.
 Notation "n %: R" := ((Ring.one R) *+ n)%R : ring_scope.
 Notation "x * y" := (Ring.mul x y) : ring_scope.
 Notation "x ^+ n" := (Ring.exp x n) : ring_scope.
-Notation "s '\_' i" := (sub 0%R s i%N)
-  (at level 3, left associativity, format "s \_ i") : ring_scope.
+Notation "s '`_' i" := (sub 0%R s i%N)
+  (at level 3, left associativity, format "s `_ i") : ring_scope.
 
 Import Ring.
 
