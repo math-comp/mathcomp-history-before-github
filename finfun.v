@@ -206,7 +206,7 @@ Proof.
 move=> F; case: (pickP rT) => [y0 _ | rT0].
   by rewrite -(card_pfamily y0); apply: eq_card.
 case: enum (mem_enum aT) => [aT0 | x0 e _]; last first.
-  by rewrite /= !eq_card0 // => [f | y]; [have := rT0 (f x0) | have:= rT0 y].
+  by rewrite /= !eq_card0 // => [f | y]; [have := rT0 (f x0) | have := rT0 y].
 have naT: forall x : aT, _ by move=> P x; have:= aT0 x.
 rewrite /= -(card1 [ffun x => naT rT x]); apply: eq_card => f'.
 apply/forallP/eqP=> _; first 1 [apply/ffunP] => x; exact: naT.

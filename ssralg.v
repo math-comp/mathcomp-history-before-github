@@ -554,10 +554,10 @@ Module FieldPlus.
 Structure fieldPlus : Type := FieldPlus {
   F_ :> field;
   choose_ : forall (P : seq F_ -> bool) (E : exists x, P x), seq F_;
-  _ : forall (P : seq F_ -> bool) (E : exists x, P x), P (choose_ P E);
+  _ : forall (P : seq F_ -> bool) (E : exists x, P x), P (@choose_ P E);
   _ : forall (P Q : seq F_ -> bool)
              (Ep : exists x, P x) (Eq : exists x, Q x),
-              P =1 Q -> choose_ P Ep = choose_ Q Eq
+              P =1 Q -> @choose_ P Ep = @choose_ Q Eq
 }.
 
 End FieldPlus.

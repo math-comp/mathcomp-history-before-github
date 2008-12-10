@@ -299,9 +299,19 @@ Structure subType : Type := SubType {
   SubType_sort :> Type;
   val : SubType_sort -> T;
   Sub : forall x, p x -> SubType_sort;
+  _ : forall P (_ : forall x p_x, P (@Sub x p_x)) u, P u;
+  _ : forall x p_x, val (@Sub x p_x) = x
+}.
+
+(*
+Structure subType : Type := SubType {
+  SubType_sort :> Type;
+  val : SubType_sort -> T;
+  Sub : forall x, p x -> SubType_sort;
   _ : forall P (_ : forall x p_x, P (Sub x p_x)) u, P u;
   _ : forall x p_x, val (Sub x p_x) = x
 }.
+*)
 
 Implicit Arguments Sub [s].
 
