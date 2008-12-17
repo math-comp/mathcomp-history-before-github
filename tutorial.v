@@ -10,11 +10,11 @@ Proof.
 move=> hAiBiC hAiB hA.
 move: hAiBiC.
 apply.
-  exact.
+  by []. 
 by apply: hAiB. 
 Qed.
 
-Variables (hAiBiC : A -> B -> C)(hAiB : A -> B)(hA : A).
+Hypotheses (hAiBiC : A -> B -> C) (hAiB : A -> B) (hA : A).
 
 Lemma HilbertS2 : C. 
 Proof.
@@ -25,10 +25,16 @@ Qed.
 Check (hAiB hA).
 
 Lemma HilbertS3 : C. 
-Proof. by apply: hAiBiC; last apply: hAiB. Qed.
+Proof. by apply: hAiBiC; last exact: hAiB. Qed.
 
 Lemma HilbertS4 : C. 
 Proof. exact:  (hAiBiC _ (hAiB _)). Qed.
+
+Lemma HilbertS5 : C.
+Proof. exact: hAiBiC (hAiB _). Qed.
+
+Lemma HilbertS6 : C.
+Proof. exact HilbertS5. Qed.
 
 End HilbertSaxiom.
 
@@ -49,9 +55,9 @@ Lemma andb_sym2 : forall A B : bool, A && B -> B && A.
 Proof. by case; case. Qed.
 
 Lemma andb_sym3 : forall A B : bool, A && B -> B && A.
-Proof. by do 2 case. Qed.
+Proof. by do 2! case. Qed.
 
-Variables (C D : Prop)(hC : C)(hD : D).
+Variables (C D : Prop) (hC : C) (hD : D).
 Check (and C D).
 Print and.
 Check conj.
@@ -76,16 +82,16 @@ End Symmetric_Conjunction_Disjunction.
 
 Section R_sym_trans.
 
-Variables (D : Type)(R : D -> D -> Prop).
+Variables (D : Type) (R : D -> D -> Prop).
 
-Variable R_sym : forall x y, R x y -> R y x.
+Hypothesis R_sym : forall x y, R x y -> R y x.
 
-Variable R_trans : forall x y z, R x y -> R y z -> R x z.
+Hypothesis R_trans : forall x y z, R x y -> R y z -> R x z.
 
 Lemma refl_if : forall x : D, (exists y, R x y) -> R x x.
 Proof. 
 move=> x [y Rxy]. 
-by apply: R_trans _ (R_sym _ y _). 
+exact: R_trans (R_sym _ y _). 
 Qed.
 
 End R_sym_trans.
@@ -94,11 +100,13 @@ End R_sym_trans.
 
 Section Smullyan_drinker.
 
-Variables (D : Type)(d : D)(P : D -> Prop)(EM : forall A, A \/ ~A).
+Variables (D : Type) (P : D -> Prop).
+Hypotheses (d : D) (EM : forall A, A \/ ~A).
 
 Lemma drinker : exists x, P x -> forall y, P y.
 Proof.
-case: (EM (exists y, ~P y))=> [[y notPy]| nonotPy]; first by exists y.
+(* case: (EM (exists y, ~P y)) => [[y notPy]| nonotPy] *)
+have [[y notPy]| nonotPy] := EM (exists y, ~P y); first by exists y.
 exists d => _ y; case: (EM (P y)) => // notPy.
 by case: nonotPy; exists y. 
 Qed.
@@ -110,10 +118,10 @@ End Smullyan_drinker.
 Section Equality.
 
 Variable f : nat -> nat.
-Variable foo : f 0 = 0.
+Hypothesis f00 : f 0 = 0.
 
 Lemma fkk : forall k, k = 0 -> f k = k.
-Proof. move=> k k0. by rewrite k0. Qed.
+Proof. by move=> k k0; rewrite k0. Qed.
 
 Lemma fkk2 : forall k, k = 0 -> f k = k.
 Proof. by move=> k ->. Qed.
@@ -121,9 +129,9 @@ Proof. by move=> k ->. Qed.
 Variable f10 : f 1 = f 0.
 
 Lemma ff10 : f (f 1) = 0.
-Proof. by rewrite f10 foo. Qed.
+Proof. by rewrite f10 f00. Qed.
 
-Variables (D : eqType)(x y : D).
+Variables (D : eqType) (x y : D).
 
 Lemma eq_prop_bool : x = y -> x == y.
 Proof. by move/eqP. Qed.
@@ -139,23 +147,23 @@ Section Using_Definition.
 
 Variable U : Type.
 
-Definition ens := U -> Prop.
+Definition set := U -> Prop.
 
-Definition sousens (A B : ens) := forall x, A x -> B x.
+Definition subset (A B : set) := forall x, A x -> B x.
 
-Definition transitive (T : Type)(R : T -> T -> Prop) :=
+Definition transitive (T : Type) (R : T -> T -> Prop) :=
  forall x y z, R x y -> R y z -> R x z.
 
-Lemma sousens_trans : transitive ens sousens.
+Lemma subset_trans : transitive set subset.
 Proof.
-rewrite /transitive /sousens => x y z sousxy sousyz t xt.
-by apply: sousyz; apply: sousxy.
+rewrite /transitive /subset => x y z subxy subyz t xt.
+by apply: subyz; apply: subxy.
 Qed.
 
-Lemma sousens_trans2 : transitive ens sousens.
+Lemma subset_trans2 : transitive set subset.
 Proof.
-move=> x y z sousxy sousyz t.
-by move/sousxy; move/sousyz. 
+move=> x y z subxy subyz t.
+by move/subxy; move/subyz. 
 Qed.
 
 End Using_Definition.
@@ -190,7 +198,7 @@ Proof. by []. Qed.
 
 Lemma plus_com : forall m1 n1, n1 + m1 = m1 + n1.
 Proof.
-by elim=> [| n co m]; [elim | rewrite -[n.+1 + m]/(n + m).+1 -co; elim: m].
+by elim=> [| n IHn m]; [elim | rewrite -[n.+1 + m]/(n + m).+1 -IHn; elim: m].
 Qed.
 
 End Basic_ssrnat.
