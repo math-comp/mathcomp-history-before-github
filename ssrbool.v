@@ -11,7 +11,7 @@ Unset Strict Implicit.
 (* Parsing and format declarations. *)
 
 Reserved Notation "~~ b" (at level 35, right associativity).
-Reserved Notation "b ==> c" (at level 60, right associativity).
+Reserved Notation "b ==> c" (at leve 60, right associativity).
 Reserved Notation "b1  (+)  b2" (at level 50, left associativity).
 Reserved Notation "x \in A" (at level 70, no associativity).
 Reserved Notation "x \notin A" (at level 70, no associativity).
@@ -351,7 +351,7 @@ Section ReflectConnectives.
 Variable b1 b2 b3 b4 b5 : bool.
 
 Lemma idP : reflect b1 b1.
-Proof. by case b1; constructor. Defined.
+Proof. by case b1; constructor. Qed.
 
 Lemma idPn : reflect (~~ b1) (~~ b1).
 Proof. by case b1; constructor. Qed.
