@@ -248,6 +248,11 @@ Proof.
 by move=> m d d_even; rewrite {2}(divn_eq m d) odd_add odd_mul d_even andbF.
 Qed.
 
+Lemma modn_exp: forall m n a, (a %% n) ^ m = a ^ m %[mod n].
+Proof.
+by elim => // m Hrec n a; rewrite !expnS -modn_mulmr Hrec modn_mulml modn_mulmr.
+Qed.
+
 (** Divisibility **)
 
 Definition dvdn d m := m %% d == 0.

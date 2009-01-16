@@ -351,7 +351,7 @@ Section ReflectConnectives.
 Variable b1 b2 b3 b4 b5 : bool.
 
 Lemma idP : reflect b1 b1.
-Proof. by case b1; constructor. Qed.
+Proof. by case b1; constructor. Defined.
 
 Lemma idPn : reflect (~~ b1) (~~ b1).
 Proof. by case b1; constructor. Qed.

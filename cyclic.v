@@ -260,6 +260,7 @@ rewrite eqn_mod_dvd // -{1}(subnK le_nm) addnC expgn_add eq_mulgV1 mulgK.
 by rewrite order_dvdn.
 Qed.
 
+
 (***********************************************************************)
 (*                                                                     *)
 (*        Generator                                                    *)
@@ -291,6 +292,19 @@ Lemma orderV : forall x, #[x^-1] = #[x].
 Proof. by move=> x; rewrite /order cycleV. Qed.
 
 End Cyclic.
+
+(* Just for fun Euler's theorem *)
+
+Theorem Euler: forall a n: pos_nat, coprime a n -> a ^ phi n  = 1 %[mod n ].
+Proof.
+move=> a n Cop.
+have Ha': coprime n (inZp (valP n) a) by rewrite coprime_sym coprime_modl.
+have Hp1: (ZpUnit Ha') ^+ (phi n) = 1.
+  apply/eqP; rewrite -order_dvdn -card_Zp_units.
+  by apply: cardSg; rewrite cycle_subG inE.
+move/val_eqP: (@Zp_units_expgn n (ZpUnit Ha') (phi n)).
+by rewrite /= modn_exp Hp1; move/eqP<-.
+Qed.
 
 Section CyclicSubGroup.
 
