@@ -206,7 +206,7 @@ case def_b': (b - _) => [|b']; last first.
   apply: IHn => {n le_a_n p'}//; rewrite -/p -/kb; split=> //.
     rewrite lt0k ltpm leppm pr_p andbT /=.
     by case: ifnzP; [move/ltn_predK->; exact: ltnW | rewrite def_kb1].
-  apply: (@addn_injr p.*2).
+  apply: (@addIn p.*2).
   rewrite -2!addnA -!double_add -addnA -mulSnr -def_a -def_m /d.
   have ->: b * kb = b' * kb + (k.*2 - c * kb + kb).
     rewrite addnCA addnC -mulSnr -def_b' def_k2 -muln_subl -muln_addl addnC.
@@ -1008,7 +1008,7 @@ move: (iter e _ _) => divs' [Udivs' Odivs' mem_divs']; split=> [||d].
   rewrite (@path_maps _ _ _ _ leq xpred0) ?has_pred0 // => u v _.
   by rewrite !natTrecE leq_pmul2l.
 rewrite mem_merge mem_cat; case dv_d_p: (p %| d).
-  case/dvdnP: dv_d_p => d' ->{d}; rewrite mulnC (negbET (ndivs_p d')) orbF.
+  case/dvdnP: dv_d_p => d' ->{d}; rewrite mulnC (negbTE (ndivs_p d')) orbF.
   rewrite expnS -mulnA dvdn_pmul2l // -mem_divs'.
   by rewrite -(mem_maps Tmulp_inj divs') natTrecE.
 case pdiv_d: (_ \in _).
@@ -1107,12 +1107,12 @@ rewrite {1}def_n phi_coprime // {IHm}(IHm np') ?big_mkord; last first.
   by rewrite /np p_part -(expn0 p) ltn_exp2l.
 have ->: phi np = #|[pred d : 'I_np | coprime np d]|.
   rewrite {1}[np]p_part phi_pfactor //=; set q := p ^ _.
-  apply: (@addn_injl (1 * q)); rewrite -muln_addl [1 + _]prednK // mul1n.
+  apply: (@addnI (1 * q)); rewrite -muln_addl [1 + _]prednK // mul1n.
   have def_np: np = p * q by rewrite -expnS prednK // -p_part.
   pose mulp := [fun d : 'I_q => in_mod _ np0 (p * d)].
   rewrite -def_np -{1}[np]card_ord -(cardC [image mulp of predT]).
   rewrite card_in_image => [|[d1 ltd1] [d2 ltd2] /= _ _ []]; last first.
-    move/eqP; rewrite def_np !modn_pmul2l ?modn_small ?eqn_pmul2l // => eqd12.
+    move/eqP; rewrite def_np !modn_pmul2l ?modn_small ?eqn_pmul2l // => eq_op12.
     exact/eqP.
   rewrite card_ord; congr (q + _); apply: eq_card => d /=.
   rewrite !inE /= {6}[np]p_part coprime_pexpl ?prime_coprime //; congr (~~ _).
@@ -1124,9 +1124,9 @@ have ->: phi np = #|[pred d : 'I_np | coprime np d]|.
 pose h (d : 'I_n) := (in_mod _ np0 d, in_mod _ np'0 d).
 pose h' (d : 'I_np * 'I_np') := in_mod _ n0 (chinese np np' d.1 d.2).
 rewrite -sum_nat_const pair_big (reindex_onto h h') => [|[d d'] _].
-  apply: eq_bigl => [[d ltd] /=]; rewrite !inE /= /eqd /= !coprime_modr andbC.
+  apply: eq_bigl => [[d ltd] /=]; rewrite !inE /= /eq_op /= !coprime_modr andbC.
   by rewrite def_n -chinese_modlr // -coprime_mull -def_n modn_small ?eqxx.
-apply/eqP; rewrite /eqd /= /eqd /= !modn_dvdm ?dvdn_part //.
+apply/eqP; rewrite /eq_op /= /eq_op /= !modn_dvdm ?dvdn_part //.
 by rewrite chinese_modl // chinese_modr // !modn_small ?eqxx ?ltn_ord.
 Qed.
 

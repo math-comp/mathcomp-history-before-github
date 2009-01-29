@@ -1,7 +1,5 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect.
-Require Import ssrbool.
-Require Import ssrfun.
+Require Import ssreflect ssrbool ssrfun.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -9,55 +7,56 @@ Import Prenex Implicits.
 
 (* Generic definitions and lemmas for datatypes with reflected (decidable) *)
 (* equality. The structure includes the actual boolean predicate, not just *)
-(* the decision procedure. A canonical structure for the booleans is given *)
-(* here, and one will be provided for the integers in ssrnat.v.            *)
+(* the decidability. A canonical structure for the booleans is given here; *)
+(* one will be provided for the integers in ssrnat.v.                      *)
+(*   Syntactic sugar is provided for the equality predicate and its        *)
+(* reflection property.                                                    *)
 (*   Congruence properties of injective functions wrt reflected equality   *)
 (* are established.                                                        *)
 (*   The main technical result is the construction of the subdomain        *)
 (* associated with a pred.                                                 *)
-(*   Syntactic sugar is provided for the equality predicate and its        *)
-(* reflection property.                                                    *)
 
-Definition reflect_eq T eq :=
-  forall x y : T, reflect (x = y) (eq x y).
+Module Equality.
 
-Module EqType.
+Definition axiom T e := forall x y : T, reflect (x = y) (e x y).
 
-Structure mixin (T : Type) : Type := Mixin { eqd : rel T; _ : reflect_eq eqd }.
-Structure class : Type := Class { sort :> Type; _ : mixin sort }.
-Coercion mixin_of T := let: Class _ m := T return mixin T in m.
+Structure mixin_of (T : Type) : Type := Mixin {op : rel T; _ : axiom op}.
+Notation class_of := mixin_of (only parsing).
 
-End EqType.
+Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
+Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
+Definition unpack K (k : forall T (c : class_of T), K T c) cT :=
+  let: Pack T c _ := cT return K _ (class cT) in k _ c.
+Definition repack cT : _ -> Type -> type := let k T c p := p c in unpack k cT.
+
+Definition pack T c := @Pack T c T.
+
+End Equality.
 
 Delimit Scope eq_scope with EQ.
 Open Scope eq_scope.
 
-Notation eqType := EqType.class.
-Notation EqClass := EqType.Class.
-Notation EqMixin := EqType.Mixin.
+Notation eqType := Equality.type.
+Notation EqMixin := Equality.Mixin.
+Notation EqType := Equality.pack.
 
-Definition mkEqType T e eP := EqClass (@EqMixin T e eP).
-
+Notation "[ 'eqType' 'of' T 'for' C ]" :=
+    (@Equality.repack C (@Equality.Pack T) T)
+  (at level 0, format "[ 'eqType'  'of'  T  'for'  C ]") : form_scope.
 Notation "[ 'eqType' 'of' T ]" :=
-  (match [is T <: eqType] as s return {type of EqClass for s} -> _ with
-  | EqClass _ m => fun k => k m end
-  (@EqClass T)) (at level 0, only parsing) : form_scope.
+    (Equality.repack (fun c => @Equality.Pack T c) T)
+  (at level 0, format "[ 'eqType'  'of'  T ]") : form_scope.
 
-Section EqOps.
+Definition eq_op T := Equality.op (Equality.class T).
 
-Variable T : eqType.
+Lemma eqE : forall T x, eq_op x = Equality.op (Equality.class T) x.
+Proof. by []. Qed.
 
-Definition eqd : rel T := T.(EqType.eqd).
-
-Lemma eqE : forall x, eqd x = T.(EqType.eqd) x. Proof. by []. Qed.
-
-Lemma eqP : reflect_eq eqd. Proof. by rewrite /eqd; case: T => ? []. Qed.
-
-End EqOps.
-
+Lemma eqP : forall T, Equality.axiom (@eq_op T).
+Proof. by rewrite /eq_op; case=> ? []. Qed.
 Implicit Arguments eqP [T x y].
 
-Notation "x == y" := (eqd x y)
+Notation "x == y" := (eq_op x y)
   (at level 70, no associativity) : bool_scope.
 Notation "x == y :> T" := ((x : T) == (y : T))
   (at level 70, y at next level) : bool_scope.
@@ -70,7 +69,7 @@ Notation "x =P y" := (eqP : reflect (x = y) (x == y))
 Notation "x =P y :> T" := (eqP : reflect (x = y :> T) (x == y :> T))
   (at level 70, y at next level, no associativity) : eq_scope.
 
-Prenex Implicits eqd eqP.
+Prenex Implicits eq_op eqP.
 
 Lemma eq_refl : forall (T : eqType) (x : T), x == x.
 Proof. by move=> T x; apply/eqP. Qed.
@@ -83,11 +82,11 @@ Hint Resolve eq_refl eq_sym.
 
 Theorem eq_irrelevance (T : eqType) (x y : T) (e1 e2 : x = y) : e1 = e2.
 Proof.
-move=> T x y e1 e2; pose join (e : x = _) := etrans (esym e).
-pose proj z e := if x =P z is Reflect_true e0 then e0 else e.
-suff{e1 e2}: injective (proj y) by apply; rewrite /proj; case: eqP.
-apply: can_inj (join x y (proj x (erefl x))) _ => e; case: y / e.
-by case: {-1}x / (proj x _).
+move=> T x y; pose proj z e := if x =P z is ReflectT e0 then e0 else e.
+suff: injective (proj y) by rewrite /proj => injp e e'; apply: injp; case: eqP.
+pose join (e : x = _) := etrans (esym e).
+apply: can_inj (join x y (proj x (erefl x))) _ => e.
+by case: y / e; case: {-1}x / (proj x _).
 Qed.
 
 Corollary eq_axiomK : forall (T : eqType) (x : T) (e : x = x), e = erefl x.
@@ -101,19 +100,23 @@ End EqTypePredSig.
 Module MakeEqTypePred (eqmod : EqTypePredSig).
 Coercion eqmod.sort : eqType >-> predArgType.
 End MakeEqTypePred.
-Module EqTypePred := MakeEqTypePred EqType.
+Module EqTypePred := MakeEqTypePred Equality.
 
-(* Coercion eqTypeT (T : eqType) : simpl_pred T := predT. *)
+Lemma unit_eqP : Equality.axiom (fun _ _ : unit => true).
+Proof. by do 2!case; left. Qed.
+
+Definition unit_eqMixin := EqMixin unit_eqP.
+Canonical Structure unit_eqType := Eval hnf in EqType unit_eqMixin.
 
 (* Comparison for booleans. *)
 
-Lemma eqbP : reflect_eq eqb.
+Lemma eqbP : Equality.axiom eqb.
 Proof. by do 2 case; constructor. Qed.
 
 Canonical Structure bool_eqMixin := EqMixin eqbP.
-Canonical Structure bool_eqType := EqClass bool_eqMixin.
+Canonical Structure bool_eqType := Eval hnf in EqType bool_eqMixin.
 
-Lemma eqbE : eqb = eqd. Proof. done. Qed.
+Lemma eqbE : eqb = eq_op. Proof. done. Qed.
 
 Lemma bool_irrelevance : forall (x y : bool) (E E' : x = y), E = E'.
 Proof. exact: eq_irrelevance. Qed.
@@ -147,7 +150,7 @@ Definition predU1 (a1 : T) p := SimplPred (xpredU1 a1 p).
 Definition predC1 (a1 : T) := SimplPred (xpredC1 a1).
 Definition predD1 p (a1 : T) := SimplPred (xpredD1 p a1).
 
-Lemma pred1E : pred1 =2 eqd. Proof. move=> x y; exact: eq_sym. Qed.
+Lemma pred1E : pred1 =2 eq_op. Proof. move=> x y; exact: eq_sym. Qed.
 
 Variables (x y z u: T) (b : bool).
 
@@ -218,9 +221,8 @@ Definition invariant (rT : eqType) f (k : aT -> rT) :=
 
 Variables (rT1 rT2 : eqType) (f : aT -> aT) (h : rT1 -> rT2) (k : aT -> rT1).
 
-(* pouquoi Type -> Type demande de reecrire eqxx??? *)
 Lemma invariant_comp : subpred (invariant f k) (invariant f (h \o k)).
-Proof.  by move=> x eq_kfx; rewrite /comp /= (eqP eq_kfx) eqxx. Qed.
+Proof. by move=> x eq_kfx; rewrite /= (eqP eq_kfx). Qed.
  
 Lemma invariant_inj : injective h -> invariant f (h \o k) =1 invariant f k.
 Proof. move=> inj_h x; exact: (inj_eq inj_h). Qed.
@@ -251,22 +253,24 @@ Notation "x |-> y" := (FunDelta x y)
 Delimit Scope fun_delta_scope with FUN_DELTA.
 Arguments Scope app_fdelta [_ type_scope fun_delta_scope _ _].
 
-Notation "[ 'fun' z : T => F 'with' df1 , .. , dfn ]" :=
+Notation "[ 'fun' z : T => F 'with' d1 , .. , dn ]" :=
   (SimplFunDelta (fun z : T =>
-     app_fdelta df1 .. (app_fdelta dfn (fun _ => F)) ..))
+     app_fdelta d1%FUN_DELTA .. (app_fdelta dn%FUN_DELTA  (fun _ => F)) ..))
   (at level 0, z ident, only parsing) : fun_scope.
 
-Notation "[ 'fun' z => F 'with' df1 , .. , dfn ]" :=
+Notation "[ 'fun' z => F 'with' d1 , .. , dn ]" :=
   (SimplFunDelta (fun z =>
-      app_fdelta df1%FUN_DELTA .. (app_fdelta dfn%FUN_DELTA (fun _ => F)) ..))
+     app_fdelta d1%FUN_DELTA .. (app_fdelta dn%FUN_DELTA (fun _ => F)) ..))
   (at level 0, z ident, format
-  "'[hv' [ '[' 'fun'  z  => '/ '  F ']' '/'  'with'  '[' df1 , '/'  .. , '/'  dfn ']' ] ']'") : fun_scope.
+   "'[hv' [ '[' 'fun'  z  => '/ '  F ']' '/'  'with'  '[' d1 , '/'  .. , '/'  dn ']' ] ']'"
+   ) : fun_scope.
 
-Notation "[ 'eta' f 'with' df1 , .. , dfn ]" :=
+Notation "[ 'eta' f 'with' d1 , .. , dn ]" :=
   (SimplFunDelta (fun _ =>
-      app_fdelta df1%FUN_DELTA .. (app_fdelta dfn%FUN_DELTA f) ..))
+     app_fdelta d1%FUN_DELTA .. (app_fdelta dn%FUN_DELTA f) ..))
   (at level 0, z ident, format
-  "'[hv' [ '[' 'eta' '/ '  f ']' '/'  'with'  '[' df1 , '/'  .. , '/'  dfn ']' ] ']'") : fun_scope.
+  "'[hv' [ '[' 'eta' '/ '  f ']' '/'  'with'  '[' d1 , '/'  .. , '/'  dn ']' ] ']'"
+  ) : fun_scope.
 
 (* Various EqType constructions.                                         *)
 
@@ -280,159 +284,152 @@ Hypothesis Hcompare : forall x y : T, {x = y} + {x <> y}.
 
 Definition compareb x y := if Hcompare x y is left _ then true else false.
 
-Lemma compareP : reflect_eq compareb.
+Lemma compareP : Equality.axiom compareb.
 Proof. by move=> x y; rewrite /compareb; case (Hcompare x y); constructor. Qed.
 
-Definition comparableType := mkEqType compareP.
+Definition comparableClass := EqMixin compareP.
 
 End ComparableType.
-
 
 Definition eq_comparable (T : eqType) : comparable T :=
   fun x y => decP (x =P y).
 
 Section SubType.
 
-Variables (T : Type) (p : pred T).
+Variables (T : Type) (P : pred T).
 
 Structure subType : Type := SubType {
-  SubType_sort :> Type;
-  val : SubType_sort -> T;
-  Sub : forall x, p x -> SubType_sort;
-  _ : forall P (_ : forall x p_x, P (@Sub x p_x)) u, P u;
-  _ : forall x p_x, val (@Sub x p_x) = x
+  sub_sort :> Type;
+  val : sub_sort -> T;
+  Sub : forall x, P x -> sub_sort;
+  _ : forall K (_ : forall x Px, K (@Sub x Px)) u, K u;
+  _ : forall x Px, val (@Sub x Px) = x
 }.
-
-(*
-Structure subType : Type := SubType {
-  SubType_sort :> Type;
-  val : SubType_sort -> T;
-  Sub : forall x, p x -> SubType_sort;
-  _ : forall P (_ : forall x p_x, P (Sub x p_x)) u, P u;
-  _ : forall x p_x, val (Sub x p_x) = x
-}.
-*)
 
 Implicit Arguments Sub [s].
+Lemma vrefl : forall x, P x -> x = x. Proof. by []. Qed.
 
-Section SubTypeOp.
+Definition repack_sub sT :=
+  let: SubType _ _ _ rec can := sT
+  return {type of @SubType sT (@val sT) for @Sub sT} -> _ in
+  fun k => k rec can.
 
 Variable sT : subType.
 
-CoInductive Sub_spec : sT -> Type := SubSpec x p_x : Sub_spec (Sub x p_x).
+CoInductive Sub_spec : sT -> Type := SubSpec x Px : Sub_spec (Sub x Px).
 
 Lemma SubP : forall u, Sub_spec u.
-Proof. by case: sT Sub_spec SubSpec => T' _ C rec _ /= s sC; elim/rec. Qed.
+Proof. by case: sT Sub_spec SubSpec => T' _ C rec /= _. Qed.
 
-Lemma SubK : forall x p_x, @val sT (Sub x p_x) = x.
+Lemma SubK : forall x Px, @val sT (Sub x Px) = x.
 Proof. by case sT. Qed.
 
 Definition insub x :=
-  if @idP (p x) is Reflect_true p_x then @Some sT (Sub x p_x) else None.
+  if @idP (P x) is ReflectT Px then @Some sT (Sub x Px) else None.
 
 Definition insubd u0 x := odflt u0 (insub x).
 
 CoInductive insub_spec x : option sT -> Type :=
-  | InsubSome u of p x & val u = x : insub_spec x (Some u)
-  | InsubNone   of ~~ p x          : insub_spec x None.
+  | InsubSome u of P x & val u = x : insub_spec x (Some u)
+  | InsubNone   of ~~ P x          : insub_spec x None.
 
 Lemma insubP : forall x, insub_spec x (insub x).
 Proof.
-rewrite/insub => x; case: {2}(p x) / idP; last by right; exact/negP.
+rewrite/insub => x; case: {2}(P x) / idP; last by right; exact/negP.
 by left; rewrite ?SubK.
 Qed.
   
-Lemma insubT : forall x p_x, insub x = Some (Sub x p_x).
+Lemma insubT : forall x Px, insub x = Some (Sub x Px).
 Proof.
-move=> x p_x; case: insubP; last by case/negP.
-case/SubP=> y p_y _ def_x; rewrite -def_x SubK in p_x *.
+move=> x Px; case: insubP; last by case/negP.
+case/SubP=> y Py _ def_x; rewrite -def_x SubK in Px *.
 congr (Some (Sub _ _)); exact: bool_irrelevance.
 Qed.
 
-Lemma insubF : forall x, p x = false -> insub x = None.
-Proof. by move=> x npx; case: insubP => // u; rewrite npx. Qed.
+Lemma insubF : forall x, P x = false -> insub x = None.
+Proof. by move=> x nPx; case: insubP => // u; rewrite nPx. Qed.
 
-Lemma insubN : forall x, ~~ p x -> insub x = None.
+Lemma insubN : forall x, ~~ P x -> insub x = None.
 Proof. by move=> x; move/negPf; exact: insubF. Qed.
 
-Lemma isSome_insub : ([eta insub] : pred T) =1 p.
+Lemma isSome_insub : ([eta insub] : pred T) =1 P.
 Proof. by apply: fsym => x; case: insubP => //; move/negPf. Qed.
 
 Lemma insubK : ocancel insub (@val _).
 Proof. by move=> x; case: insubP. Qed.
 
-Lemma valP : forall u : sT, p (val u).
-Proof. by case/SubP=> x p_x; rewrite SubK. Qed.
+Lemma valP : forall u : sT, P (val u).
+Proof. by case/SubP=> x Px; rewrite SubK. Qed.
 
 Lemma valK : pcancel (@val _) insub.
-Proof. case/SubP=> x p_x; rewrite SubK; exact: insubT. Qed.
+Proof. case/SubP=> x Px; rewrite SubK; exact: insubT. Qed.
 
 Lemma val_inj : injective (@val sT).
 Proof. exact: pcan_inj valK. Qed.
 
-Lemma val_insubd : forall u0 x, val (insubd u0 x) = if p x then x else val u0.
+Lemma valKd : forall u0, cancel (@val _) (insubd u0).
+Proof. by move=> u0 u; rewrite /insubd valK. Qed.
+
+Lemma val_insubd : forall u0 x, val (insubd u0 x) = if P x then x else val u0.
 Proof.
 by rewrite /insubd => u0 x; case: insubP => [u -> // | ]; move/negPf->.
 Qed.
 
-Lemma insubdK : forall u0, {in p, cancel (insubd u0) (@val _)}.
-Proof. by move=> u0 x p_x; rewrite val_insubd [p x]p_x. Qed.
+Lemma insubdK : forall u0, {in P, cancel (insubd u0) (@val _)}.
+Proof. by move=> u0 x Px; rewrite val_insubd [P x]Px. Qed.
 
 Definition insub_eq x :=
-  let Some_sub p_x := Some (Sub x p_x : sT) in
+  let Some_sub Px := Some (Sub x Px : sT) in
   let None_sub _ := None in
-  (if p x as p_x return p x = p_x -> _ then Some_sub else None_sub) (erefl _).
+  (if P x as Px return P x = Px -> _ then Some_sub else None_sub) (erefl _).
 
 Lemma insub_eqE : insub_eq =1 insub.
 Proof.
 rewrite /insub_eq /insub => x.
-case: {2 4 5}(p x) / idP (erefl _) => // p_x p_x'.
+case: {2 4 5}(P x) / idP (erefl _) => // Px Px'.
 by congr Some; apply: val_inj; rewrite !SubK.
 Qed.
 
-End SubTypeOp.
-
-Lemma vrefl : forall x, p x -> x = x. Proof. by []. Qed.
-
 End SubType.
 
-Implicit Arguments SubType [T p SubType_sort Sub].
-Implicit Arguments Sub [T p s].
-Implicit Arguments insub [T p sT].
-Implicit Arguments vrefl [T p].
-Implicit Arguments val_inj [T p sT].
-Prenex Implicits val Sub insub insubd val_inj vrefl.
+Implicit Arguments SubType [T P].
+Implicit Arguments Sub [T P s].
+Implicit Arguments insub [T P sT].
+Implicit Arguments insubT [T sT x].
+Implicit Arguments val_inj [T P sT].
+Prenex Implicits val Sub insub insubd val_inj.
+
+Notation "[ 'subType' 'for' v 'by' rec ]" :=
+   (@SubType _ _ _ v _ rec (@vrefl _ _))
+ (at level 0, format "[ 'subType'  'for'  v  'by'  rec ]") : form_scope.
+
+Notation "[ 'subType' 'for' v , S ]" :=
+   (repack_sub (fun rec => @SubType _ _ _ v S rec))
+ (at level 0, format "[ 'subType'  'for'  v ,  S ]") : form_scope.
+
+Notation "[ 'subType' 'for' v ]" :=
+   (repack_sub (fun rec => @SubType _ _ _ v (id _) rec))
+ (at level 0, format "[ 'subType'  'for'  v ]") : form_scope.
 
 Notation "[ 'subType' 'of' T ]" :=
-  (match [is T <: subType _] as s return {type of @SubType _ _ for s} -> _ with
-  | SubType _ _ _ rec can => fun k => k _ _ rec can end
-  (@SubType _ _ T)) (at level 0, only parsing) : form_scope.
-
-Notation "[ 'subType' 'for' proj ]" :=
-  (match [is argumentType proj : Type <: subType _] as s
-     return {type of @SubType _ _ _ for @val _ _ s} -> _ with
-  | SubType _ _ _ rec can => fun k => k _ rec can end
-  (@SubType _ _ _ proj)) (at level 0, only parsing) : form_scope.
-
-Notation "[ 'insub' x 'in' sT ]" := (insub x : option sT)
-  (at level 0, format "[ 'insub'  x  'in'  sT ]") : form_scope.
+   (repack_sub (fun rec => @SubType _ _ T (id _) (id _) rec))
+ (at level 0, format "[ 'subType'  'of'  T ]") : form_scope.
 
 Definition NewType T nT proj Con rec :=
   @SubType T xpredT nT proj (fun x _ => Con x)
    (fun P IH => rec P (fun x => IH x (erefl true))).
+Implicit Arguments NewType [T nT].
 
-Implicit Arguments NewType [T nT Con].
+Notation "[ 'newType' 'for' v 'by' rec ]" :=
+   (@NewType _ _ v _ rec (@vrefl _ _))
+ (at level 0, format "[ 'newType'  'for'  v  'by'  rec ]") : form_scope.
 
 Definition innew T nT x := @Sub T predT nT x (erefl true).
-
 Implicit Arguments innew [T nT].
 Prenex Implicits innew.
 
 Lemma innew_val : forall T nT, cancel val (@innew T nT).
 Proof. by move=> T nT u; apply: val_inj; exact: SubK. Qed.
-
-Notation "[ 'innew' x 'in' nT ]" := (innew x : nT)
-  (at level 0, format "[ 'innew'  x  'in'  nT ]") : form_scope.
 
 (* Prenex Implicits and renaming. *)
 Notation sval := (@proj1_sig _ _).
@@ -454,8 +451,8 @@ End SigProj.
 
 Prenex Implicits svalP s2val s2valP s2valP'.
 
-Canonical Structure sig_subType T (p : pred T) :=
-  SubType (@sval T [eta p]) (@sig_rect _ _) vrefl.
+Canonical Structure sig_subType T (P : pred T) :=
+  Eval hnf in [subType for @sval T P by @sig_rect _ _].
 
 (* Shorhand for the return type of insub. *)
 Notation "{ ? x : T | P }" := (option {x : T | is_true P})
@@ -474,50 +471,61 @@ Notation "{ ? x \in A | P }" := {? x | (x \in A) && P}
 Definition insigd T (A : mem_pred T) x (Ax : in_mem x A) :=
   insubd (exist [eta A] x Ax).
 
-(* This should be a rel definition, but it seems this causes divergence  *)
-(* of the simpl tactic on expressions involving == on 4+ nested subTypes *)
-(* in a "strict" position (e.g., as the argument of ~~).                 *)
-
-Notation feq := (fun f x y => f x == f y).
+(* There should be a rel definition for the subType equality op, but this *)
+(* seems to cause the simpl tactic to diverge on expressions involving == *)
+(* on 4+ nested subTypes in a "strict" position (e.g., after ~~).         *)
+(* Definition feq f := [rel x y | f x == f y].                            *)
 
 Section TransferEqType.
 
 Variables (T : Type) (eT : eqType) (f : T -> eT).
 
-Lemma inj_reflect_eq : injective f -> reflect_eq (feq f).
+Lemma inj_eqAxiom : injective f -> Equality.axiom (fun x y => f x == f y).
 Proof. by move=> f_inj x y; apply: (iffP eqP) => [|-> //]; exact: f_inj. Qed.
 
-Definition InjEqType f_inj := mkEqType (inj_reflect_eq f_inj).
+Definition InjEqMixin f_inj := EqMixin (inj_eqAxiom f_inj).
 
-Definition PcanEqType g (fK : pcancel f g) := InjEqType (pcan_inj fK).
+Definition PcanEqMixin g (fK : pcancel f g) := InjEqMixin (pcan_inj fK).
 
-Definition CanEqType g (fK : cancel f g) := InjEqType (can_inj fK).
+Definition CanEqMixin g (fK : cancel f g) := InjEqMixin (can_inj fK).
 
 End TransferEqType.
 
 Section SubEqType.
 
-Variables (T : eqType) (p : pred T) (sT : subType p).
+Variables (T : eqType) (P : pred T) (sT : subType P).
 
-Lemma val_eqP : @reflect_eq sT (feq val).
-Proof. exact: inj_reflect_eq val_inj. Qed.
+Notation Local ev_ax := (fun T v => @Equality.axiom T (fun x y => v x == v y)).
+Lemma val_eqP : ev_ax sT val. Proof. exact: inj_eqAxiom val_inj. Qed.
 
-Canonical Structure sub_eqType := mkEqType val_eqP.
+Definition sub_eqMixin := EqMixin val_eqP.
+Canonical Structure sub_eqType := Eval hnf in EqType sub_eqMixin.
+
+Definition SubEqMixin :=
+  (let: SubType _ v _ _ _ as sT' := sT
+     return ev_ax sT' val -> Equality.class_of sT' in
+   fun vP : ev_ax _ v => EqMixin vP
+   ) val_eqP.
 
 Lemma val_eqE : forall u v : sT, (val u == val v) = (u == v).
 Proof. by []. Qed.
 
 End SubEqType.
 
-Implicit Arguments val_eqP [T p sT x y].
+Implicit Arguments val_eqP [T P sT x y].
 Prenex Implicits val_eqP.
 
-Notation "[ 'subEqType' 'for' proj ]" :=
-  (@mkEqType _ (feq proj) (@val_eqP _ _ _))
-  (at level 0, only parsing) : form_scope.
+Notation "[ 'eqMixin' 'of' T 'by' <: ]" := (SubEqMixin _ : Equality.class_of T)
+  (at level 0, format "[ 'eqMixin'  'of'  T  'by'  <: ]") : form_scope.
 
-Canonical Structure sig_eqType (T : eqType) (p : pred T) :=
-  [subEqType for @sval T p].
+Section SigEqType.
+
+Variables (T : eqType) (P : pred T).
+
+Definition sig_eqMixin := Eval hnf in [eqMixin of {x | P x} by <:].
+Canonical Structure sig_eqType := Eval hnf in EqType sig_eqMixin.
+
+End SigEqType.
 
 Section ProdEqType.
 
@@ -525,15 +533,16 @@ Variable T1 T2 : eqType.
 
 Definition pair_eq := [rel u v : T1 * T2 | (u.1 == v.1) && (u.2 == v.2)].
 
-Lemma pair_eqP : reflect_eq pair_eq.
+Lemma pair_eqP : Equality.axiom pair_eq.
 Proof.
 move=> [x1 x2] [y1 y2] /=; apply: (iffP andP) => [[]|[<- <-]] //=.
 by do 2!move/eqP->.
 Qed.
 
-Canonical Structure prod_eqType := mkEqType pair_eqP.
+Definition prod_eqMixin := EqMixin pair_eqP.
+Canonical Structure prod_eqType := Eval hnf in EqType prod_eqMixin.
 
-Lemma pair_eqE : pair_eq = eqd :> rel _. Proof. by []. Qed.
+Lemma pair_eqE : pair_eq = eq_op :> rel _. Proof. by []. Qed.
 
 Lemma pair_eq1 : forall u v : T1 * T2, u == v -> u.1 == v.1.
 Proof. by move=> [x1 x2] [y1 y2]; case/andP. Qed.
@@ -557,63 +566,93 @@ Section OptionEqType.
 
 Variable T : eqType.
 
-Definition eq_opt (u v : option T) : bool :=
-  oapp (fun x => oapp (eqd x) false v) (~~ v) u.
+Definition opt_eq (u v : option T) : bool :=
+  oapp (fun x => oapp (eq_op x) false v) (~~ v) u.
 
-Lemma eq_optP : reflect_eq eq_opt.
+Lemma opt_eqP : Equality.axiom opt_eq.
 Proof.
 case=> [x|] [y|] /=; by [constructor | apply: (iffP eqP) => [|[]] ->].
 Qed.
 
-Canonical Structure option_eqMixin := EqMixin eq_optP.
-Canonical Structure option_eqType := EqClass option_eqMixin.
+Canonical Structure option_eqMixin := EqMixin opt_eqP.
+Canonical Structure option_eqType := Eval hnf in EqType option_eqMixin.
 
 End OptionEqType.
 
+Definition tag := projS1.
+Definition tagged I T_ :  forall u, T_(tag u) := @projS2 I [eta T_].
+Definition Tagged I i T_ x := @existS I [eta T_] i x.
+Implicit Arguments Tagged [I i].
+Prenex Implicits tag tagged Tagged.
+
+Section TaggedAs.
+
+Variables (I : eqType) (T_ : I -> Type).
+Implicit Types u v : {i : I & T_ i}.
+
+Definition tagged_as u v :=
+  if tag u =P tag v is ReflectT eq_uv then
+    eq_rect_r T_ (tagged v) eq_uv
+  else tagged u.
+
+Lemma tagged_asE : forall u x, tagged_as u (Tagged T_ x) = x.
+Proof.
+rewrite /tagged_as => u y /=; case: eqP => // eq_uu.
+by rewrite (eq_axiomK eq_uu).
+Qed.
+
+End TaggedAs.
+
+Section TagEqType.
+
+Variables (I : eqType) (T_ : I -> eqType).
+Implicit Types u v : {i : I & T_ i}.
+
+Definition tag_eq u v := (tag u == tag v) && (tagged u == tagged_as u v).
+
+Lemma tag_eqP : Equality.axiom tag_eq.
+Proof.
+rewrite /tag_eq => [] [i x] [j] /=.
+case: eqP => [<-|Hij] y; last by right; case.
+by apply: (iffP eqP) => [->|<-]; rewrite tagged_asE.
+Qed.
+
+Canonical Structure tag_eqMixin := EqMixin tag_eqP.
+Canonical Structure tag_eqType := Eval hnf in EqType tag_eqMixin.
+
+Lemma tag_eqE : tag_eq = eq_op. Proof. by []. Qed.
+
+Lemma eq_tag : forall u v, u == v -> tag u = tag v.
+Proof. by move=> u v; move/eqP->. Qed.
+
+Lemma eq_Tagged : forall u x, (u == Tagged _ x) = (tagged u == x).
+Proof. by move=> u x; rewrite -tag_eqE /tag_eq eqxx tagged_asE. Qed.
+
+End TagEqType.
+
+Implicit Arguments tag_eqP [I T_ x y].
+Prenex Implicits tag_eqP.
+
 Section SumEqType.
 
-Variables (I : eqType) (T : I -> eqType).
-
-Record eq_sum : Type := EqSum {sum_tag : I; sum_tagged : T sum_tag}.
-
-Definition tagged_as (u v : eq_sum) : T (sum_tag u) :=
-  if sum_tag u =P sum_tag v is Reflect_true Huv then
-    eq_rect_r T (sum_tagged v) Huv 
-  else sum_tagged u.
-
-Lemma tagged_as_same : forall i (x y : T i),
-  tagged_as (EqSum x) (EqSum y) = y.
-Proof.
-move=> i x y; rewrite /tagged_as /=; case: (i =P i) => [Hii|[]]; auto.
-by rewrite (eq_axiomK Hii).
-Qed.
+Variables T1 T2 : eqType.
+Implicit Types u v : T1 + T2.
 
 Definition sum_eq u v :=
-  (sum_tag u == sum_tag v) && (sum_tagged u == tagged_as u v).
+  match u, v with
+  | inl x, inl y | inr x, inr y => x == y
+  | _, _ => false
+  end.
 
-Lemma sum_eqP : reflect_eq sum_eq.
-Proof.
-move=> [i x] [j y]; rewrite /sum_eq /=.
-case: (i =P j) y => [<-|Hij] y; last by right; case.
-by apply: (iffP eqP) => [->|<-]; rewrite tagged_as_same.
-Qed.
+Lemma sum_eqP : Equality.axiom sum_eq.
+Proof. case=> x [] y /=; by [right | apply: (iffP eqP) => [->|[->]]]. Qed.
 
 Canonical Structure sum_eqMixin := EqMixin sum_eqP.
-Canonical Structure sum_eqType := EqClass sum_eqMixin.
+Canonical Structure sum_eqType := Eval hnf in EqType sum_eqMixin.
 
-Lemma sum_eqE : sum_eq = eqd. Proof. by []. Qed.
-
-Lemma sum_eq_tag : forall u v : sum_eqType, u == v -> sum_tag u == sum_tag v.
-Proof.
-by move=> [i x] [j y]; rewrite -{1}sum_eqE /sum_eq /=; case (i == j).
-Qed.
-
-Lemma sum_eq_tagged : forall i (x y : T i), (EqSum x == EqSum y) = (x == y).
-Proof. by move=> *; rewrite -{1}sum_eqE /sum_eq /= eqxx tagged_as_same. Qed.
+Lemma sum_eqE : sum_eq = eq_op. Proof. by []. Qed.
 
 End SumEqType.
 
-Implicit Arguments sum_tagged [I T].
-Implicit Arguments sum_eqP [I T x y].
-Prenex Implicits sum_tag sum_tagged sum_eqP.
-
+Implicit Arguments sum_eqP [T1 T2 x y].
+Prenex Implicits sum_eqP.

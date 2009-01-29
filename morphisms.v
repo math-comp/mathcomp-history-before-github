@@ -41,6 +41,11 @@ Structure morphism (A : {set aT}) : Type := Morphism {
 
 Definition morphism_for A of phant rT := morphism A.
 
+Definition repack_morphism A f :=
+  let: Morphism _ fM := f
+    return {type of @Morphism A for f} -> morphism_for A (Phant rT)
+  in fun k => k fM.
+
 Variables (A B : {set aT}) (C : {set rT}) (x : aT) (y : rT) (f : aT -> rT).
 
 CoInductive morphim_spec : Prop := MorphimSpec z & z \in A & z \in B & y = f z.
@@ -59,15 +64,9 @@ End MorphismStructure.
 Notation "{ 'morphism' A >-> T }" := (morphism_for A (Phant T))
   (at level 0, format "{ 'morphism'  A  >->  T }") : group_scope.
 
-Notation "[ 'morphism' 'of' h ]" :=
-  (StructureOf (@Morphism _ _ _ h)
-   match [is h : _ -> _ <: morphism _ _] as s
-   return {type of @Morphism _ _ _ for s} -> _ with
-   | Morphism _ hM => fun k => k hM
-   end) (at level 0, only parsing) : form_scope.
-
-Notation "[ 'morphism' 'o' 'f' h ]" := (StructureOf (@Morphism _ _ _ h) _)
-  (at level 0, format "[ 'morphism'  'o' 'f'  h ]") : form_scope.
+Notation "[ 'morphism' 'of' f ]" :=
+     (repack_morphism (fun fM => @Morphism _ _ _ f fM))
+   (at level 0, format "[ 'morphism'  'of'  f ]") : form_scope.
 
 Implicit Arguments morphimP [aT rT A B f y].
 Implicit Arguments morphpreP [aT rT A C f x].
@@ -123,11 +122,11 @@ Implicit Types L M : {group rT}.
 Variables (G : {group aT}) (f : {morphism G >-> rT}).
 
 Lemma morph1 : f 1 = 1.
-Proof. by apply: (mulg_injl (f 1)); rewrite -morphM ?mulg1. Qed.
+Proof. by apply: (mulgI (f 1)); rewrite -morphM ?mulg1. Qed.
 
 Lemma morphV : {in G, {morph f : x / x^-1}}.
 Proof.
-move=> x Gx; apply: (mulg_injl (f x)).
+move=> x Gx; apply: (mulgI (f x)).
 by rewrite -morphM ?groupV // !mulgV morph1.
 Qed.
 

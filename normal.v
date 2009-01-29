@@ -8,21 +8,8 @@
 (*                                                                     *)
 (***********************************************************************)
 (***********************************************************************)
-Require Import ssreflect.
-Require Import ssrbool.
-Require Import ssrfun.
-Require Import eqtype.
-Require Import ssrnat.
-(* Require Import seq. *)
-(* Require Import paths. *)
-(* Require Import connect. *)
-Require Import fintype.
-Require Import finfun.
-Require Import finset.
-Require Import div.
-Require Import groups.
-Require Import morphisms.
-Require Import automorphism.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq div choice fintype.
+Require Import finfun finset groups morphisms automorphism.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -70,17 +57,27 @@ Definition coset_range := [pred B \in rcosets H 'N(A)].
 Record coset_of : Type :=
   Coset { set_of_coset :> GroupSet.sort gT; _ : coset_range set_of_coset }.
 
-Canonical Structure coset_subType := SubType set_of_coset coset_of_rect vrefl.
-Canonical Structure coset_eqType := Eval hnf in [subEqType for set_of_coset].
-Canonical Structure coset_finType := Eval hnf in [finType of coset_of by :>].
+Canonical Structure coset_subType :=
+  Eval hnf in [subType for set_of_coset by coset_of_rect].
+Definition coset_eqMixin := Eval hnf in [eqMixin of coset_of by <:].
+Canonical Structure coset_eqType := Eval hnf in EqType coset_eqMixin.
+Definition coset_choiceMixin := [choiceMixin of coset_of by <:].
+Canonical Structure coset_choiceType :=
+  Eval hnf in ChoiceType coset_choiceMixin.
+Definition coset_countMixin := [countMixin of coset_of by <:].
+Canonical Structure coset_countType := Eval hnf in CountType coset_countMixin.
+Canonical Structure coset_subCountType :=
+  Eval hnf in [subCountType of coset_of].
+Definition coset_finMixin := [finMixin of coset_of by <:].
+Canonical Structure coset_finType := Eval hnf in FinType coset_finMixin.
 Canonical Structure coset_subFinType := Eval hnf in [subFinType of coset_of].
 
 (* We build a new (canonical) structure of groupType for cosets.      *)
 (* When A is a group, this is the largest possible quotient 'N(H) / H *)
 
-Lemma coset_range_unit : coset_range H.
+Lemma coset_one_proof : coset_range H.
 Proof. by apply/rcosetsP; exists (1 : gT); rewrite (group1, mulg1). Qed.
-Definition coset_unit := Coset coset_range_unit.
+Definition coset_one := Coset coset_one_proof.
 
 Let nNH := subsetP (norm_gen A).
 
@@ -104,21 +101,24 @@ Definition coset_inv B := Coset (coset_range_inv B).
 Lemma coset_mulP : associative coset_mul.
 Proof. by move=> B C D; apply: val_inj; rewrite /= mulgA. Qed.
 
-Lemma coset_unitP : left_unit coset_unit coset_mul.
+Lemma coset_oneP : left_id coset_one coset_mul.
 Proof.
 case=> B coB; apply: val_inj => /=; case/rcosetsP: coB => x Hx ->{B}.
 by rewrite mulgA mulGid.
 Qed.
 
-Lemma coset_invP : left_inverse coset_unit coset_inv coset_mul.
+Lemma coset_invP : left_inverse coset_one coset_inv coset_mul.
 Proof.
 case=> B coB; apply: val_inj => /=; case/rcosetsP: coB => x Hx ->{B}.
 rewrite invg_rcoset -mulgA (mulgA H) mulGid.
 by rewrite norm_rlcoset ?nNH // -lcosetM mulVg mul1g.
 Qed.
 
-Canonical Structure coset_preGroupType :=
-  [baseFinGroupType of coset_of by coset_mulP, coset_unitP & coset_invP].
+Definition coset_of_groupMixin :=
+  FinGroup.Mixin coset_mulP coset_oneP coset_invP.
+
+Canonical Structure coset_baseGroupType :=
+  Eval hnf in BaseFinGroupType coset_of_groupMixin.
 Canonical Structure coset_groupType := FinGroupType coset_invP.
 
 (* Projection of the initial group type over the cosets groupType  *)

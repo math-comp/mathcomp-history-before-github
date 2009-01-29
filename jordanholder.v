@@ -3,32 +3,15 @@
 (*                                                                     *)
 (***********************************************************************)
 
-Require Import ssreflect. 
-Require Import ssrbool.
-Require Import ssrfun.
-Require Import eqtype.
-Require Import ssrnat.
-Require Import seq.
-Require Import fintype.
-Require Import paths.
-Require Import bigops.
-Require Import finset.
-Require Import finfun.
-Require Import groups.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
+Require Import paths finfun bigops finset groups morphisms automorphism normal.
 Import GroupScope.
-Require Import morphisms.
-Require Import normal.
-
-Require Import automorphism.
-
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
 Section MaxNormal.
-
-Open Scope group_scope.
 
 Variables (gT : finGroupType).
 Notation gTg := {group gT}.
@@ -216,13 +199,20 @@ Coercion pair_of_section s := let: Sec u := s in u.
 Coercion quotient_of_section (u : section) : GroupSet.sort _ := u.1 / u.2.
 
 Canonical Structure section_subType := 
-  NewType pair_of_section section_rect vrefl.
-Canonical Structure section_eqType :=
-  Eval hnf in [subEqType for pair_of_section].
-Canonical Structure section_finType :=
-  Eval hnf in [finType of section by :>].
-Canonical Structure section_subFinType :=
-  Eval hnf in [subFinType of section].
+  Eval hnf in [newType for pair_of_section by section_rect].
+Definition section_eqMixin := Eval hnf in [eqMixin of section by <:].
+Canonical Structure section_eqType := Eval hnf in EqType section_eqMixin.
+Definition section_choiceMixin := [choiceMixin of section by <:].
+Canonical Structure section_choiceType :=
+  Eval hnf in ChoiceType section_choiceMixin.
+Definition section_countMixin := [countMixin of section by <:].
+Canonical Structure section_countType :=
+   Eval hnf in CountType section_countMixin.
+Canonical Structure section_subCountType :=
+  Eval hnf in [subCountType of section].
+Definition section_finMixin := [finMixin of section by <:].
+Canonical Structure section_finType := Eval hnf in FinType section_finMixin.
+Canonical Structure section_subFinType := Eval hnf in [subFinType of section].
 Canonical Structure section_group (u : section) : {group coset_of u.2} :=
   Eval hnf in [group of u].
 
@@ -484,7 +474,7 @@ move=> A G; apply: (iffP idP).
   by move/negbT:eHG.
 rewrite -proper1G; case=> ntG; move=> h; apply/maxainvP.
 rewrite normal1 ntG ainvar1; split=> // K nKG pKG ainvK _.
-by case: (h _ nKG ainvK)=> //; move/eqP; move/negbET: (proper_neq pKG)->.
+by case: (h _ nKG ainvK)=> //; move/eqP; move/negbTE: (proper_neq pKG)->.
 Qed.
 
 Lemma asimple1 : forall G : {group gT}, (G :!=: 1) && asimple 1 G = simple G.

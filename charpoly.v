@@ -2,7 +2,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 (*                                                                     *)
 (***********************************************************************)
-Require Import ssreflect ssrbool eqtype ssrnat seq fintype.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype.
 Require Import ssralg bigops matrix poly.
 
 (* Require Import ssrfun paths finfun div groups. *)
@@ -11,14 +11,14 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-Import Ring.
-Import Monoid.Equations.
+Import GRing.Theory.
+Import Monoid.Theory.
 
-Open Scope ring_scope.
+Open Local Scope ring_scope.
 
 Section Cayley.
 
-Variable R : commutative_.
+Variable R : comRingType.
 
 Variable n : pos_nat.
 

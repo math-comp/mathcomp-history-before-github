@@ -2,16 +2,16 @@ Add LoadPath "../".
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype.
 Require Import ssralg bigops matrix.
 
-Open Scope matrix_scope.
-Import Field.
-Import Ring.
+Open Local Scope ring_scope.
+Open Local Scope matrix_scope.
+Import GRing.Theory.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
 Section GaussianElimination.
-Variable F : field.
+Variable F : fieldType.
 Variables m n : nat.
 Notation Local "''M_' ( m , n )" := (matrix F m n) : type_scope.
 
@@ -37,8 +37,8 @@ Proof.
 move=> i j m' A k l; symmetry; rewrite /annihilate_col_fun.
 case: ifP; first case/andP.
   by move=> H1 H2; rewrite H1 /mx_row_repl mxK H2 -(eqP H2) !mulNr.
-case/nandP; first by move/negbET->.
-by case: ifP => // _; rewrite /mx_row_repl mxK; move/negbET->.
+case/nandP; first by move/negbTE->.
+by case: ifP => // _; rewrite /mx_row_repl mxK; move/negbTE->.
 Qed.
 
 Definition annihilate_col_step (i : 'I_m) (j : 'I_n) (A : 'M_(m, n)) m' :=
@@ -60,7 +60,7 @@ case: (ltnP m' m) => m'm.
   case: ifP; first (case/andP => ki km').
   - rewrite ki (ltn_trans km' (ltnSn _)) !annihilate_col_funE.
     suff : k != Ordinal m'm; last by rewrite neq_ltn km'.
-    by move/negbET=> ->; rewrite andbF andNb.
+    by move/negbTE=> ->; rewrite andbF andNb.
   case/nandP; last rewrite ltnNge; move/negPn; [move/eqP-> | move=> m'k].
   - by rewrite eq_refl /= annihilate_col_funE andNb.
   case: ifP; rewrite annihilate_col_funE; last case: ifP => //.
@@ -180,11 +180,11 @@ move=> A j x i x_i; rewrite /rref_fun.
 case: insubP=> //=; last by rewrite (ltn_trans x_i _).
 move=> [] /= _ x_m _ _; case: pickP => //= [k|]; last first.
   by move/(_ i)=> /=; rewrite (ltnW x_i) andbT; move/negPn; move/eqP.
-case/andP; move/eqP => Akj x_k; rewrite !annihilate_colE !mxK /=.
+case/andP=> Akj x_k; rewrite !annihilate_colE !mxK /=.
 have i_ne_x : i != Ordinal x_m.
   apply/eqP; move/(congr1 (@nat_of_ord m)) => /=; move/eqP.
   by rewrite eq_sym eqn_leq [_ <= x]leqNgt x_i /= andbF.
-by rewrite i_ne_x (negbET i_ne_x) eq_refl mulfV // invf1 !mulr1 addrN.
+by rewrite i_ne_x (negbTE i_ne_x) eqxx mulVf // invr1 !mulr1 addrN.
 Qed.
 
 Lemma rref_step_eq_rank : forall A (j : 'I_n),
@@ -221,18 +221,18 @@ case: pickP => //= [k|]; last first.
   case/orP: H1 => H1; last by rewrite Rj'.
   suff -> : Ordinal n_j' = j; first by move/negPn; move/eqP.
   by apply: val_inj => /=; rewrite (eqP H1).
-case/andP; move/eqP => Akj x_k; rewrite !annihilate_colE !mxK /=.
+case/andP=> Akj x_k; rewrite !annihilate_colE !mxK /=.
 case: ifP => H3; last first.
   move/negPn: H3 => H3; rewrite H3 eq_refl; rewrite ltnS leq_eqVlt in H1.
   case/orP: H1 => H1; last by rewrite Rj' ?mulr0.
   suff : (rref_step A (Ordinal n_j')).1 = (rref_step A (Ordinal n_j').+1).1.
-  - by move/rref_step_eq_rank; move/(_ k x_k)=> /= H'; rewrite H' in Akj.
+  - by move/rref_step_eq_rank; move/(_ k x_k)=> /= H'; rewrite H' eqxx in Akj.
   by apply/eqP; rewrite /= eqn_leq rref_step_rank_mono //= (leq_trans H2 _) 1?(eqP H3).
-rewrite (negbET H3) eq_refl /= /= mulfV // invf1 mulr1.
+rewrite (negbTE H3) eqxx /= mulVf // invr1 mulr1.
 rewrite ltnS leq_eqVlt in H1; move: Akj.
 case/orP: H1 => H1; last by rewrite !Rj' //= if_same !mulr0 oppr0 addr0.
 suff -> : Ordinal n_j' = j; last by apply: val_inj => /=; rewrite (eqP H1).
-by move/mulfV->; rewrite mulr1; case: ifP; rewrite addrN.
+by move/mulVf->; rewrite mulr1; case: ifP; rewrite addrN.
 Qed.
 
 (* Proving that the value of a col j is given by the step j.+1 *)
@@ -249,15 +249,15 @@ elim: j' {-2}j' (leqnn j') j j_j' nj' A => [| k Hk] j' Hj' j j_j' nj' A.
   by rewrite leqn0 in Hj'; rewrite (eqP Hj') in j_j'.
 rewrite leq_eqVlt in Hj'; case/orP: Hj' => Hj'; last by rewrite (Hk j' _ _ _ nj').
 move: nj'; rewrite (eqP Hj') /rref_fun => nk.
-case: insubP=> //= [] [] _ x_m _ _; case: pickP => //= l; case/andP; move/eqP => H1 H2.
-rewrite !annihilate_colE !mxK /= eq_refl /=.
-case: ifP => H3; last move/negPn: H3 => H3; rewrite ?H3 ?(negbET H3).
+case: insubP=> //= [] [] _ x_m _ _; case: pickP => //= l; case/andP=> H1 H2.
+rewrite !annihilate_colE !mxK /= eqxx /=.
+case: ifP => H3; last move/negPn: H3 => H3; rewrite ?H3 ?(negbTE H3).
   case: ifP => H4; rewrite H4.
-  - rewrite mulfV // invf1 !mulr1 (eqP H4).
+  - rewrite mulVf // invr1 !mulr1 (eqP H4).
     have H5 : (rref_step A k.+1).2 l j = 0.
       by rewrite rref_step_nil_mx // -(eqP Hj').
     by rewrite H5 !mulr0 oppr0 addr0 rref_step_nil_mx // -(eqP Hj').
-  rewrite mulfV // invf1 !mulr1 (@rref_step_nil_mx _ l j) // -1?(eqP Hj') //.
+  rewrite mulVf // invr1 !mulr1 (@rref_step_nil_mx _ l j) // -1?(eqP Hj') //.
   by rewrite !mulr0 oppr0 addr0.
 symmetry; rewrite rref_step_nil_mx //; last (by rewrite (eqP H3)); last by rewrite -(eqP Hj').
 by rewrite (@rref_step_nil_mx _ l j) // 1?mulr0 // -(eqP Hj').
@@ -292,23 +292,23 @@ rewrite -/(rref_step A j) (sub_ord_enum _ (Ordinal n_j)) /= /rref_fun.
 case: insubP => //= [[] [] /= _ _ x_m _ _|]; last by rewrite x_i ltn_ord.
 case: pickP => //= [k |_]; last first.
   by rewrite x_i; move/eqP; rewrite eq_sym eqn_leq ltnn /=.
-case/andP; move/eqP => Akj x_k _; rewrite annihilate_colE !mxK eq_refl /=.
+case/andP=> Akj x_k _; rewrite annihilate_colE !mxK eq_refl /=.
 suff -> : (i == k) = false.
-  suff -> : i == Ordinal x_m => /=; first rewrite mulfV //.
-  - by move/eqP; move: (@nonzero1r F); move/eqP; move/negbET->.
+  suff -> : i == Ordinal x_m => /=; first rewrite mulVf //.
+    by move/eqP; rewrite oner_eq0.
   by apply/eqP; apply: val_inj => /=; rewrite x_i.
 case: (_ =P _) => // ik; rewrite -ik in Akj.
 move: (Zri (Ordinal n_j)); move/implyP; move/(_ (ltnSn _)).
 rewrite /rref_step (take_sub (Ordinal n_j)) 1?size_enum_ord // -cats1 foldl_cat.
 rewrite -/(rref_step A j) (sub_ord_enum _ (Ordinal n_j)) /= /rref_fun.
 case: insubP => //= [[] [] /= _ _ x'_m _ _|]; last by rewrite x_i ltn_ord.
-case: pickP => //= [k' |_]; last by move/eqP=> H'; rewrite H' in Akj.
-case/andP; move/eqP => Ak'j x'_k'; rewrite annihilate_colE !mxK eq_refl /=.
+case: pickP => //= [k' |_]; last by move/eqP=> H'; rewrite H' eqxx in Akj.
+case/andP=> Ak'j x'_k'; rewrite annihilate_colE !mxK eq_refl /=.
 suff -> : i == Ordinal x'_m; last by apply/eqP; apply: val_inj => /=; rewrite x_i.
-by rewrite /= mulfV //; move: (@nonzero1r F); move/eqP; move/negbET->.
+by rewrite /= mulVf // oner_eq0.
 Qed.
 
-
+(*  GG -- giving up for now --
 Lemma pick_enum_rank : forall (T : finType) (p : pred T) x,
  pick p = Some x -> pred0b [pred y | (enum_rank y < enum_rank x) && p y].
 Proof.
@@ -354,9 +354,9 @@ rewrite /pivot_nz; case: pickP => /= [k /=|//]; case: pickP => // [k' /=|]; last
 case/andP=> Aik' k'_j; case/andP=> Aik k_j H1 H2 _.
 case: (ltngtP k' k); last by move=> *; congr Some; apply: val_inj => /=.
   move=> k'_k; move/forallP: H1; move/(_ k'); rewrite k'_k /=; move: Aik'.
-  by rewrite rref_step_col // (rref_step_col _ (ltn_trans k'_k k_j)); move/negbET->.
+  by rewrite rref_step_col // (rref_step_col _ (ltn_trans k'_k k_j)); move/negbTE->.
 move=> k_k'; move/forallP: H2; move/(_ k); rewrite k_k' /=; move: Aik.
-by rewrite rref_step_col // (rref_step_col _ (ltn_trans k_j (ltnSn j))); move/negbET->.
+by rewrite rref_step_col // (rref_step_col _ (ltn_trans k_j (ltnSn j))); move/negbTE->.
 Qed.
 
 Lemma all_zero_row_in_bottom_step : forall A j,
@@ -394,7 +394,7 @@ rewrite {1 3 4}/pivot_nz; case: pickP => [k /=|].
   case: ifP => /= H4; last move/negPn: H4 => H4; rewrite 1?H4; last first.
   - rewrite rref_step_nil_mx 1?eq_refl // in H1.
     by move/eqP: H4; move/(congr1 (@nat_of_ord m)) => /= <-.
-  rewrite (negbET H4) mulfV // invf1 !mulr1 //; case: ifP => H5; rewrite H5.
+  rewrite (negbTE H4) mulfV // invf1 !mulr1 //; case: ifP => H5; rewrite H5.
   - by rewrite rref_step_nil_mx 1?eq_refl // in H1; rewrite (eqP H5).
   by rewrite (@rref_step_nil_mx _ k' k) // !mulr0 oppr0 addr0 (eqP H3).
 move=> H1 _ Zri; rewrite /pivot_nz.
@@ -416,7 +416,7 @@ suff : [pred k | ((rref_step A j.+1).2 i k != 0) && (k < j.+1)] =1
   case: pickP => [k' /=|]; last by move/(_ i) => /=; rewrite x_i andbT => ->.
   case/andP; move/eqP => Ak'k x_k'; rewrite annihilate_colE !mxK eq_refl /=.
   case: ifP => /= H2; last by move/negPn: H2 => H2; rewrite 1?H2 mulfV.
-  by rewrite (negbET H2); rewrite mulfV // invf1 !mulr1 // addrN eq_refl.
+  by rewrite (negbTE H2); rewrite mulfV // invf1 !mulr1 // addrN eq_refl.
 move=> k /=; rewrite ltnS leq_eqVlt andb_orr -{2}(orbF (_  && (k == j :> nat))).
 congr (_ || _); rewrite -(H1 k) /=; case k_j : (k < j); last by rewrite !andbF.
 by rewrite !andbT rref_step_col 1?(ltn_trans k_j _) // (rref_step_col _ k_j).
@@ -453,14 +453,14 @@ case: pickP => [k /=|]; last (move/(_ i) => /=; rewrite x_i andbT); last first.
   rewrite ltnS leq_eqVlt in k'j; case/orP: k'j => // k'j; move/negP: k'_j => [].
   by apply/eqP; apply: ord_inj => /=; rewrite (eqP k'j).
 case/andP; move/eqP => Akj x_k; rewrite !annihilate_colE !mxK eq_refl.
-case: ifP => /= H1; last move/negPn: H1 => H1; rewrite 1?H1 1?(negbET H1).
+case: ifP => /= H1; last move/negPn: H1 => H1; rewrite 1?H1 1?(negbTE H1).
   rewrite mulfV // invf1 !mulr1; rewrite ltnS leq_eqVlt in k'j.
   case/orP: k'j => k'j; first suff -> : k' = Ordinal n_j.
   - by rewrite mulfV // mulr1 addrN eq_refl.
   - by apply: val_inj => /=; rewrite (eqP k'j).
   rewrite (@rref_step_nil_mx _ k k') // !mulr0 oppr0 addr0.
   by rewrite 2?(@rref_step_nil_mx _ _ k') // if_same eq_refl.
-rewrite -(eqP H1) (negbET i'i) /= mulfV // invf1 !mulr1.
+rewrite -(eqP H1) (negbTE i'i) /= mulfV // invf1 !mulr1.
 rewrite ltnS leq_eqVlt in k'j; case/orP: k'j => k'j; last first.
   by rewrite (@rref_step_nil_mx _ _ k') // mulr0 eq_refl.
 suff -> : k' = Ordinal n_j; last by apply: val_inj => /=; rewrite (eqP k'j).
@@ -486,15 +486,15 @@ apply/implyP => i1i2; case: (ltngtP k k') => // k'k.
   move/forallP: (all_zero_row_in_bottom_step A k); move/(_ i1).
   rewrite Zri1 /=; move/forallP; move/(_ i2); rewrite (ltnW i1i2) /=.
   move/forallP; move/(_ k'); rewrite k'k /= rref_step_col //; move: Ai2k.
-  by rewrite rref_step_col //; move/negbET->.
-rewrite -(negbET Ai2k) rref_step_col //.
+  by rewrite rref_step_col //; move/negbTE->.
+rewrite -(negbTE Ai2k) rref_step_col //.
 suff <- : k = k' :> 'I_n; first apply/eqP; last by apply: val_inj.
 apply: rref_step_nil_mx => //; apply: (leq_trans (rref_step_rank_leS A k)).
 by apply: (leq_ltn_trans _ i1i2); apply: zrow_in_bottom.
 Qed.
-
+ *)
 End InvariantsLemmas.
-
+(*
 Lemma is_rref_rref : forall A, is_rref (rref_mx A).
 Proof.
 move=> A; rewrite /is_rref all_zero_row_in_bottom_step pivot_nz_eq1_step.
@@ -503,5 +503,5 @@ Qed.
 
 Lemma leq_rank : forall A, rank A <= minn m n.
 Proof. by move=> A; rewrite leq_minr rank_le_col rank_le_row. Qed.
-
+*)
 End GaussianElimination.

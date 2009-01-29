@@ -828,7 +828,7 @@ move=> i p Up x Hx y; congr (fun q => take (index y q) q); move: Up Hx {y}.
 rewrite -{1 2 5 6}(cat_take_drop i p) /rot uniq_cat; move/and3P=> [_ Hp _].
 rewrite !drop_cat !take_cat !index_cat mem_cat orbC.
 case Hx: (x \in drop i p) => /= => [_|Hx'].
-  rewrite [x \in _](negbET (hasPn Hp _ Hx)).
+  rewrite [x \in _](negbTE (hasPn Hp _ Hx)).
   by rewrite index_mem Hx ltnNge leq_addr /= addKn catA.
 by rewrite Hx' index_mem Hx' ltnNge leq_addr /= addKn catA.
 Qed.
@@ -839,7 +839,7 @@ Proof.
 move=> x y p1 p2 p Up; rewrite /arc {1}/p /= eqxx rot0.
 move: Up; rewrite /p -cat_adds uniq_cat index_cat; move: (x :: p1) => xp1.
 rewrite /= negb_or -!andbA; move/and3P=> [_ Hy _].
-by rewrite (negbET Hy) eqxx addn0 take_size_cat.
+by rewrite (negbTE Hy) eqxx addn0 take_size_cat.
 Qed.
 
 Lemma right_arc : forall x y p1 p2,

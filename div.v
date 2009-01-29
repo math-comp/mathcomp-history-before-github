@@ -47,7 +47,7 @@ Proof.
 move=> d q r lt_rd; have d_pos: 0 < d by exact: leq_trans lt_rd.
 case: edivnP lt_rd => q' r'; rewrite d_pos /=.
 wlog: q q' r r' / q <= q' by case (ltnP q q'); last symmetry; eauto.
-rewrite leq_eqVlt; case: eqP => [-> _|_] /=; first by move/addn_injl->.
+rewrite leq_eqVlt; case: eqP => [-> _|_] /=; first by move/addnI->.
 rewrite -(leq_pmul2r d_pos); move/leq_add=> Hqr Eqr _; move/Hqr {Hqr}.
 by rewrite addnS ltnNge mulSn -addnA Eqr addnCA addnA leq_addr.
 Qed.
@@ -195,7 +195,7 @@ Qed.
 
 Lemma modn_pmul2l : forall p m d, 0 < p -> p * m %% (p * d) = p * (m %% d).
 Proof.
-move=> p m d p_pos; apply: (@addn_injl (p * (m %/ d * d))).
+move=> p m d p_pos; apply: (@addnI (p * (m %/ d * d))).
 by rewrite -muln_addr -divn_eq mulnCA -(divn_pmul2l p_pos) -divn_eq.
 Qed.
 Implicit Arguments modn_pmul2l [p m d].
@@ -441,8 +441,8 @@ move=> m n; wlog lt_nm: m n / n < m.
 by rewrite gcdnE -{1}(ltn_predK lt_nm) modn_small.
 Qed.
 
-Lemma gcd0n : left_unit 0 gcdn. Proof. by case. Qed.
-Lemma gcdn0 : right_unit 0 gcdn. Proof. by case. Qed.
+Lemma gcd0n : left_id 0 gcdn. Proof. by case. Qed.
+Lemma gcdn0 : right_id 0 gcdn. Proof. by case. Qed.
 
 Lemma gcd1n : left_zero 1 gcdn.
 Proof. by move=> n; rewrite gcdnE modn1. Qed.
@@ -538,7 +538,7 @@ have m_pos: 0 < m by rewrite ltn_0add r_pos orbT.
 have d_pos: 0 < d by rewrite ltn_0gcd m_pos.
 move/IHq=> {IHq} IHq le_kn_r le_kr_n def_d; apply: IHq => //; rewrite -/d.
   by rewrite muln_addl leq_add // -mulnA leq_mul2l le_kr_n orbT.
-apply: (@addn_injr d); rewrite -!addnA addnn addnCA muln_addr -addnA addnCA.
+apply: (@addIn d); rewrite -!addnA addnn addnCA muln_addr -addnA addnCA.
 rewrite /km muln_addl mulnCA mulnA -addnA; congr (_ + _).
 by rewrite -def_d addnC -addnA -muln_addl -muln_addr addn_negb -mul2n.
 Qed.
@@ -621,10 +621,10 @@ Proof. by move=> m n; rewrite /lcmn mulnC gcdnC. Qed.
 Lemma lcm0n : left_zero 0 lcmn. Proof. move=> n; exact: div0n. Qed.
 Lemma lcmn0 : right_zero 0 lcmn. Proof. by move=> n; rewrite lcmnC lcm0n. Qed.
 
-Lemma lcm1n : left_unit 1 lcmn.
+Lemma lcm1n : left_id 1 lcmn.
 Proof. by move=> n; rewrite /lcmn gcd1n mul1n divn1. Qed.
 
-Lemma lcmn1 : right_unit 1 lcmn.
+Lemma lcmn1 : right_id 1 lcmn.
 Proof. by move=> n; rewrite lcmnC lcm1n. Qed.
 
 Lemma muln_lcm_gcd : forall m n, lcmn m n * gcdn m n = m * n.

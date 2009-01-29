@@ -1,17 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect.
-Require Import ssrbool.
-Require Import ssrfun.
-Require Import eqtype.
-Require Import ssrnat.
-(* Require Import seq. *)
-(* Require Import paths. *)
-(* Require Import div. *)
-Require Import fintype.
-Require Import finfun.
-Require Import finset.
-(* Require Import connect. *)
-Require Import groups.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
+Require Import finfun finset groups.
 Import GroupScope.
 
 Set Implicit Arguments.
@@ -32,13 +21,25 @@ Identity Coercion type_of_perm : perm_of >-> perm_type.
 
 Notation pT := (perm_of (Phant T)).
 
-Canonical Structure perm_subType := SubType pval perm_type_rect vrefl.
-Canonical Structure perm_eqType := Eval hnf in [subEqType for pval].
-Canonical Structure perm_finType := Eval hnf in [finType of perm_type by :>].
+Canonical Structure perm_subType :=
+  Eval hnf in [subType for pval by perm_type_rect].
+Definition perm_eqMixin := Eval hnf in [eqMixin of perm_type by <:].
+Canonical Structure perm_eqType := Eval hnf in EqType perm_eqMixin.
+Definition perm_choiceMixin := [choiceMixin of perm_type by <:].
+Canonical Structure perm_choiceType := Eval hnf in ChoiceType perm_choiceMixin.
+Definition perm_countMixin := [countMixin of perm_type by <:].
+Canonical Structure perm_countType := Eval hnf in CountType perm_countMixin.
+Canonical Structure perm_subCountType :=
+  Eval hnf in [subCountType of perm_type].
+Definition perm_finMixin := [finMixin of perm_type by <:].
+Canonical Structure perm_finType := Eval hnf in FinType perm_finMixin.
 Canonical Structure perm_subFinType := Eval hnf in [subFinType of perm_type].
 
 Canonical Structure perm_for_subType := Eval hnf in [subType of pT].
 Canonical Structure perm_for_eqType := Eval hnf in [eqType of pT].
+Canonical Structure perm_for_choiceType := Eval hnf in [choiceType of pT].
+Canonical Structure perm_for_countType := Eval hnf in [countType of pT].
+Canonical Structure perm_for_subCountType := Eval hnf in [subCountType of pT].
 Canonical Structure perm_for_finType := Eval hnf in [finType of pT].
 Canonical Structure perm_for_subFinType := Eval hnf in [subFinType of pT].
 
@@ -106,7 +107,7 @@ Hint Resolve perm_inj.
 Lemma perm_onto : forall u : pT, codom u =i predT.
 Proof. by move=> u; apply/subset_cardP; rewrite ?card_codom ?subset_predT. Qed.
  
-Definition perm_unit := perm (@inj_id T).
+Definition perm_one := perm (@inj_id T).
 
 Lemma perm_invK : forall u : pT, cancel (fun x => iinv (perm_onto u x)) u.
 Proof. by move=> u x /=; rewrite f_iinv. Qed.
@@ -115,23 +116,26 @@ Definition perm_inv u := perm (can_inj (perm_invK u)).
 
 Definition perm_mul u v := perm (inj_comp (perm_inj v) (perm_inj u)).
 
-Lemma perm_unitP : left_unit perm_unit perm_mul.
+Lemma perm_oneP : left_id perm_one perm_mul.
 Proof. by move=> u; apply/permP => x; rewrite permE /= permE. Qed.
 
-Lemma perm_invP : left_inverse perm_unit perm_inv perm_mul.
+Lemma perm_invP : left_inverse perm_one perm_inv perm_mul.
 Proof. by move=> u; apply/permP => x; rewrite !permE /= permE f_iinv. Qed.
 
 Lemma perm_mulP : associative perm_mul.
 Proof. by move=> u v w; apply/permP => x; do !rewrite permE /=. Qed.
 
-Canonical Structure perm_of_baseFinGroupType := Eval hnf in
-  [baseFinGroupType of pT by perm_mulP, perm_unitP & perm_invP].
-Canonical Structure perm_baseFinGroupType := Eval hnf in
-  [baseFinGroupType of perm_type T by perm_mulP, perm_unitP & perm_invP].
-Canonical Structure perm_of_finGroupType :=
-  FinGroupType perm_invP.
+Definition perm_of_baseFinGroupMixin : FinGroup.mixin_of (perm_type T) :=
+  FinGroup.Mixin perm_mulP perm_oneP perm_invP.
+Canonical Structure perm_baseFinGroupType :=
+  Eval hnf in BaseFinGroupType perm_of_baseFinGroupMixin.
 Canonical Structure perm_finGroupType :=
   @FinGroupType perm_baseFinGroupType perm_invP.
+
+Canonical Structure perm_of_baseFinGroupType :=
+  Eval hnf in [baseFinGroupType of pT].
+Canonical Structure perm_of_finGroupType :=
+  Eval hnf in [finGroupType of pT].
 
 Lemma perm1 : forall x, (1 : pT) x = x.
 Proof. by move=> x; rewrite permE. Qed.
@@ -171,7 +175,7 @@ Qed.
 
 Lemma out_perm : forall H f x, perm_on H f -> x \notin H -> f x = x.
 Proof.
-move=> H f x fH nHx; apply/eqP; apply: negbE2; apply: contra nHx.
+move=> H f x fH nHx; apply/eqP; apply: negbNE; apply: contra nHx.
 exact: (subsetP fH).
 Qed.
 
@@ -203,7 +207,7 @@ have:= An1; rewrite (cardsD1 x) Ax eqSS; move/IHn=> {IHn} <-.
 move/eqP: An1 => <- {n}; rewrite -cardX.
 pose h (u : pT) := (u x, u * tperm x (u x)).
 have h_inj: injective h.
-  move=> u1 u2; rewrite /h [mulg]lock; case=> ->; unlock; exact: mulg_injr.
+  move=> u1 u2; rewrite /h [mulg]lock; case=> ->; unlock; exact: mulIg.
 rewrite -(card_imset _ h_inj); apply: eq_card=> [[/= y v]].
 apply/imsetP/andP=> /= [[u uA [-> -> {y v}]]|[Ay vA']].
   split; first by rewrite perm_closed.

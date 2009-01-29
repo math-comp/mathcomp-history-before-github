@@ -1,10 +1,5 @@
-Require Import ssreflect.
-Require Import seq.
-Require Import eqtype.
-Require Import ssrnat.
-Require Import ssrfun.
-Require Import ssrbool.
-Require Import fintype.
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -14,9 +9,10 @@ Section Def.
 
 Variables (n : nat) (T : Type).
 
-Record tuple_of : Type := Tuple {tval :> seq T; _ : size tval == n}.
+Structure tuple_of : Type := Tuple {tval :> seq T; _ : size tval == n}.
 
-Canonical Structure tuple_subType := SubType tval tuple_of_rect vrefl.
+Canonical Structure tuple_subType :=
+  Eval hnf in [subType for tval by tuple_of_rect].
 
 Lemma size_tuple : forall t : tuple_of, size t = n.
 Proof. move=> f; exact: (eqP (valP f)). Qed.
@@ -176,7 +172,8 @@ Section EqTuple.
 
 Variables (n : nat) (T : eqType).
 
-Canonical Structure tuple_eqType := Eval hnf in [subEqType for @tval n T].
+Definition tuple_eqMixin := Eval hnf in [eqMixin of n.-tuple(T) by <:].
+Canonical Structure tuple_eqType := Eval hnf in EqType tuple_eqMixin.
 
 Canonical Structure tuple_predType :=
   Eval hnf in mkPredType (fun t : n.-tuple T => mem_seq t).
@@ -186,30 +183,78 @@ Proof. by []. Qed.
 
 End EqTuple.
 
+Definition tuple_choiceMixin n (T : choiceType) :=
+  [choiceMixin of n.-tuple(T) by <:].
+
+Canonical Structure tuple_choiceType n T :=
+  Eval hnf in ChoiceType (tuple_choiceMixin n T).
+
+Definition tuple_countMixin n (T : countType) :=
+  [countMixin of n.-tuple(T) by <:].
+
+Canonical Structure tuple_countType n T :=
+  Eval hnf in CountType (tuple_countMixin n T).
+
+Canonical Structure tuple_subCountType n (T : countType) :=
+  Eval hnf in [subCountType of n.-tuple(T)].
+
+Module Type FinTupleSig.
+Section FinTupleSig.
+Variables (n : nat) (T : finType).
+Parameter enum : seq (n.-tuple T).
+Axiom enumP : Finite.axiom eq_op enum.
+Axiom size_enum : size enum = #|T| ^ n.
+End FinTupleSig.
+End FinTupleSig.
+
+Module FinTuple : FinTupleSig.
 Section FinTuple.
+Variables (n : nat) (T : finType).
+
+Definition enum : seq (n.-tuple(T)) :=
+  let extend e := flatten (maps (fun x => maps (adds x) e) (Finite.enum T)) in
+  pmaps insub (iter n extend [::[::]]).
+
+Lemma enumP : Finite.axiom eq_op enum.
+Proof.
+case=> /= t t_n; rewrite -(count_maps val (pred1 t)).
+rewrite (pmaps_filter (@insubK _ _ _)) count_filter -filter_predI -enumT.
+rewrite -count_filter -(@eq_count _ (pred1 t)) => [|s /=]; last first.
+  by rewrite isSome_insub; case: eqP=> // ->.
+elim: n t t_n => [|m IHm] [|x t] //=.
+move/IHm; move: (iter m _ _) => em {IHm} IHm.
+transitivity (x \in T : nat); rewrite // -mem_enum.
+have:= uniq_enum T; rewrite enumT.
+elim: (Finite.enum T) => //= y e IHe; case/andP; move/negPf=> ney.
+rewrite count_cat count_maps inE /preim /= {1}/eq_op /= eq_sym; move/IHe->.
+by case: eqP => [->|_]; rewrite ?(ney, count_pred0, IHm).
+Qed.
+
+Lemma size_enum : size enum = #|T| ^ n.
+Proof.
+rewrite /= cardE size_pmap_sub enumT; elim: n => //= m IHm.
+rewrite expnS; elim: {2 3}(Finite.enum T) => //= x e IHe.
+by rewrite count_cat {}IHe count_maps IHm.
+Qed.
+
+End FinTuple.
+End FinTuple.
+
+Section UseFinTuple.
 
 Variables (n : nat) (T : finType).
 Notation tT := (n.-tuple T).
 
-Lemma tuple_enum : {enumMixin tT}.
-Proof.
-elim: n => [|m [et cnt_et]].
-  by exists [:: ([tuple] : 0.-tuple T)] => t; rewrite /= [t]tuple0.
-exists (foldr (fun x => cat (maps (adds_tuple x) et)) [::] (enum T)).
-case/tupleP=> x t; rewrite -[1]/(x \in T : nat) -(mem_enum T).
-elim: (enum T) (uniq_enum T) => //= y e IHe; case/andP=> ney.
-rewrite count_cat count_maps in_adds; move/IHe->.
-rewrite -[preim _ _]/[fun t' => (y == x) && (t' == t)] /= eq_sym.
-by move/negPf: ney; case: eqP => [-> -> | _ _]; rewrite (cnt_et, count_pred0).
-Qed.
+Canonical Structure tuple_finMixin := FinMixin (@FinTuple.enumP n T).
+Canonical Structure tuple_finType := Eval hnf in FinType tuple_finMixin.
+Canonical Structure tuple_subFinType := Eval hnf in [subFinType of tT].
 
-Definition tuple_finMixin := @FinMixin tT _ tuple_enum.
-Canonical Structure tuple_finType := FinClass tuple_finMixin.
-Canonical Structure tuple_subFinType := SubFinType tuple_finMixin.
+Lemma card_tuple : #|{:n.-tuple T}| = #|T| ^ n.
+Proof. by rewrite [#|_|]cardT enumT unlock FinTuple.size_enum. Qed.
 
-Lemma enum_tupleP : forall a : pred T, size (enum a) == #|a|.
-Proof. by move=> a; rewrite -cardE. Qed.
-Canonical Structure enum_tuple a := Tuple (enum_tupleP a).
+Lemma enum_tupleP : forall A : pred T, size (enum A) == #|A|.
+Proof. by move=> A; rewrite -cardE. Qed.
+Canonical Structure enum_tuple A := Tuple (enum_tupleP A).
 
 Definition ord_tuple : n.-tuple 'I_n := Tuple (introT eqP (size_enum_ord n)).
 Lemma val_ord_tuple : val ord_tuple = enum 'I_n. Proof. by []. Qed.
@@ -218,6 +263,6 @@ Lemma tuple_maps_ord : forall T' (t : n.-tuple T'),
   t = [tuple of maps (tsub t) ord_tuple].
 Proof. by move=> T' t; apply: val_inj => /=; rewrite maps_tsub_enum. Qed.
 
-End FinTuple.
+End UseFinTuple.
 
 

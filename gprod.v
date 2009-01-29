@@ -8,7 +8,7 @@
 (*                                                                     *)
 (***********************************************************************)
 (***********************************************************************)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq ssralg.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice ssralg.
 Require Import bigops fintype finset groups morphisms normal.
 Require Import perm automorphism.
 
@@ -85,10 +85,10 @@ Notation Local sdprod := (semidirect_product gT) (only parsing).
 Notation Local cprod := (central_product gT) (only parsing).
 Notation Local dprod := (direct_product gT) (only parsing).
 
-Lemma pprod1g : left_unit 1 pprod.
+Lemma pprod1g : left_id 1 pprod.
 Proof. by move=> A; rewrite /pprod eqxx. Qed.
 
-Lemma pprodg1 : right_unit 1 pprod.
+Lemma pprodg1 : right_id 1 pprod.
 Proof. by move=> A; rewrite /pprod eqxx; case: eqP. Qed.
 
 CoInductive are_groups A B : Prop := AreGroups G H of A = G & B = H.
@@ -243,10 +243,10 @@ End NormalComplement.
 
 (* Semi-direct product *)
 
-Lemma sdprod1g : left_unit 1 sdprod.
+Lemma sdprod1g : left_id 1 sdprod.
 Proof. by move=> A; rewrite /sdprod subsetIl pprod1g. Qed.
 
-Lemma sdprodg1 : right_unit 1 sdprod.
+Lemma sdprodg1 : right_id 1 sdprod.
 Proof. by move=> A; rewrite /sdprod subsetIr pprodg1. Qed.
 
 Lemma sdprodP : forall A B G,
@@ -279,10 +279,10 @@ Proof. by move=> G A B; case/sdprodP=> [[H K -> ->] <- _]; move/TI_cardMg. Qed.
 
 (* Central product *)
 
-Lemma cprod1g : left_unit 1 cprod.
+Lemma cprod1g : left_id 1 cprod.
 Proof. by move=> A; rewrite /cprod sub1G pprod1g. Qed.
 
-Lemma cprodg1 : right_unit 1 cprod.
+Lemma cprodg1 : right_id 1 cprod.
 Proof. by move=> A; rewrite /cprod cents1 pprodg1. Qed.
 
 Lemma cprodP : forall A B G,
@@ -365,12 +365,12 @@ by rewrite -{2 3}(cent_mulgenEl cGH) mulgen_subG cHK !groupP !andbT.
 Qed.
 
 Canonical Structure cprod_law := Monoid.Law cprodA cprod1g cprodg1.
-Canonical Structure cprod_abelaw := Monoid.AbelianLaw cprodC.
+Canonical Structure cprod_abelaw := Monoid.ComLaw cprodC.
 
-Lemma dprod1g : left_unit 1 dprod.
+Lemma dprod1g : left_id 1 dprod.
 Proof. by move=> A; rewrite /dprod subsetIl cprod1g. Qed.
 
-Lemma dprodg1 : right_unit 1 dprod.
+Lemma dprodg1 : right_id 1 dprod.
 Proof. by move=> A; rewrite /dprod subsetIr cprodg1. Qed.
 
 Lemma dprodP : forall A B G,
@@ -445,7 +445,7 @@ by rewrite -group_modl ?mulgen_subr //= setIC (normC (sub1G _)) mulgS.
 Qed.
 
 Canonical Structure dprod_law := Monoid.Law dprodA dprod1g dprodg1.
-Canonical Structure dprod_abelaw := Monoid.AbelianLaw dprodC.
+Canonical Structure dprod_abelaw := Monoid.ComLaw dprodC.
 
 End InternalDirProd.
 
@@ -459,7 +459,7 @@ Variables gT1 gT2 : finGroupType.
 Definition extprod_mulg (x y : gT1 * gT2) := (x.1 * y.1, x.2 * y.2).
 Definition extprod_invg (x : gT1 * gT2) := (x.1^-1, x.2^-1).
 
-Lemma extprod_mul1g : left_unit (1, 1) extprod_mulg.
+Lemma extprod_mul1g : left_id (1, 1) extprod_mulg.
 Proof. case=> x1 x2; congr (_, _); exact: mul1g. Qed.
 
 Lemma extprod_mulVg : left_inverse (1, 1) extprod_invg extprod_mulg.
@@ -468,10 +468,10 @@ Proof. by move=> x; congr (_, _); exact: mulVg. Qed.
 Lemma extprod_mulgA : associative extprod_mulg.
 Proof. by move=> x y z; congr (_, _); exact: mulgA. Qed.
 
-Canonical Structure extprod_baseFinGroupType := Eval hnf in
-  [baseFinGroupType of gT1 * gT2
-     by extprod_mulgA, extprod_mul1g & extprod_mulVg].
-
+Definition extprod_groupMixin:=
+  Eval hnf in FinGroup.Mixin extprod_mulgA extprod_mul1g extprod_mulVg.
+Canonical Structure extprod_baseFinGroupType :=
+  Eval hnf in BaseFinGroupType extprod_groupMixin.
 Canonical Structure prod_group := FinGroupType extprod_mulVg.
 
 Lemma group_setX : forall (H1 : {group gT1}) (H2 : {group gT2}),
@@ -584,12 +584,21 @@ Notation sdT := (sdprod_of toAut).
 Notation sdval := (@pair_of_sd toAut).
 
 Canonical Structure sdprod_subType :=
-  SubType sdval (@sdprod_of_rect toAut) vrefl.
-Canonical Structure sdprod_eqType := Eval hnf in [subEqType for sdval].
-Canonical Structure sdprod_finType := Eval hnf in [finType of sdT by :>].
+  Eval hnf in [subType for sdval by @sdprod_of_rect toAut].
+Definition sdprod_eqMixin := Eval hnf in [eqMixin of sdT by <:].
+Canonical Structure sdprod_eqType := Eval hnf in EqType sdprod_eqMixin.
+Definition sdprod_choiceMixin := [choiceMixin of sdT by <:].
+Canonical Structure sdprod_choiceType :=
+  Eval hnf in ChoiceType sdprod_choiceMixin.
+Definition sdprod_countMixin := [countMixin of sdT by <:].
+Canonical Structure sdprod_countType :=
+  Eval hnf in CountType sdprod_countMixin.
+Canonical Structure sdprod_subCountType := Eval hnf in [subCountType of sdT].
+Definition sdprod_finMixin := [finMixin of sdT by <:].
+Canonical Structure sdprod_finType := Eval hnf in FinType sdprod_finMixin.
 Canonical Structure sdprod_subFinType := Eval hnf in [subFinType of sdT].
 
-Definition sdprod_unit := SdPair toAut (group1 _).
+Definition sdprod_one := SdPair toAut (group1 _).
 
 Lemma sdprod_aut_proof : forall a, a \in K -> to a \in Aut H.
 Proof. by move=> a Ka; rewrite (subsetP toAut) ?mem_morphim. Qed.
@@ -617,13 +626,13 @@ Qed.
 
 Definition sdprod_mul u v := SdPair toAut (sdprod_mul_proof u v).
 
-Lemma sdprod_mul1g : left_unit sdprod_unit sdprod_mul.
+Lemma sdprod_mul1g : left_id sdprod_one sdprod_mul.
 Proof.
 move=> u; apply: val_inj; case: u => [[x a] /=]; case/setXP=> _ Ka.
 by rewrite -(autmE (toA Ka)) morph1 !mul1g.
 Qed.
 
-Lemma sdprod_mulVg : left_inverse sdprod_unit sdprod_inv sdprod_mul.
+Lemma sdprod_mulVg : left_inverse sdprod_one sdprod_inv sdprod_mul.
 Proof.
 move=> u; apply: val_inj; case: u => [[x a] /=]; case/setXP=> _ Ka.
 by rewrite morphV // permKV !mulVg.
@@ -636,13 +645,16 @@ case: v w => [[y b]] /=; case/setXP=> Hy Kb [[z c]] /=; case/setXP=> Hz Kc.
 by rewrite !mulgA -(autmE (toA Kc)) !morphM ?permM ?sdprod_closed. 
 Qed.
 
-Canonical Structure sdprod_baseFinGroupType := Eval hnf in
-  [baseFinGroupType of sdT by sdprod_mulgA, sdprod_mul1g & sdprod_mulVg].
+Canonical Structure sdprod_groupMixin :=
+  FinGroup.Mixin sdprod_mulgA sdprod_mul1g sdprod_mulVg.
+
+Canonical Structure sdprod_baseFinGroupType :=
+  Eval hnf in BaseFinGroupType sdprod_groupMixin.
 
 Canonical Structure sdprod_groupType := FinGroupType sdprod_mulVg.
 
-Definition sdpair1 x := insubd sdprod_unit (x, 1) : sdT.
-Definition sdpair2 a := insubd sdprod_unit (1, a) : sdT.
+Definition sdpair1 x := insubd sdprod_one (x, 1) : sdT.
+Definition sdpair2 a := insubd sdprod_one (1, a) : sdT.
 
 Lemma sdpair1_morphM : {in H &, {morph sdpair1 : x y / x * y}}.
 Proof.
@@ -696,7 +708,7 @@ apply/eqP; rewrite -subTset sdprodE /= !morphimEdom /=.
   by rewrite sdpairJ // mem_imset // sdprod_closed.
 apply/trivgP; apply/subsetP=> u; case/setIP; case/imsetP=> a Ka ->{u}.
 case/imsetP=> x Hx; move/eqP; rewrite inE -!val_eqE.
-by rewrite !val_insubd !inE Ka Hx !group1 /eqd /= eqxx; case/andP=> ->.
+by rewrite !val_insubd !inE Ka Hx !group1 /eq_op /= eqxx; case/andP=> ->.
 Qed.
 
 End ExternalSDirProd.

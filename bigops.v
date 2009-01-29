@@ -191,7 +191,7 @@ Canonical Structure reduce_big_unlock := Unlockable ReduceBig.bigopE.
 
 Definition index_iota m n := iota m (n - m).
 
-Definition index_enum (T : finType) := enum T.
+Definition index_enum (T : finType) := Finite.enum T.
 
 Lemma mem_index_iota : forall m n i, i \in index_iota m n = (m <= i < n).
 Proof.
@@ -200,7 +200,7 @@ by rewrite -leq_sub_add leq_subS // -ltn_0sub subn_sub subnK // ltn_0sub.
 Qed.
 
 Lemma filter_index_enum : forall T P, filter P (index_enum T) = enum P.
-Proof. by move=> T P; rewrite /enum -enumE. Qed.
+Proof. by []. Qed.
 
 Notation "\big [ op / nil ]_ ( <- r | P ) F" :=
   (bigop nil op r P F) : big_scope.
@@ -233,8 +233,7 @@ Notation "\big [ op / nil ]_ ( i \in A | P ) F" :=
 Notation "\big [ op / nil ]_ ( i \in A ) F" :=
   (\big[op/nil]_(i | i \in A) F) : big_scope.
 
-Notation Local "'+%R'" := (@Ring.add _) (at level 0).
-Notation Local "'+%N'" := addn (at level 0, only parsing).
+Notation Local "+%N" := addn (at level 0, only parsing).
 
 Notation "\sum_ ( <- r | P ) F" :=
   (\big[+%R/0%R]_(<- r | P%B) F%R) : ring_scope.
@@ -290,8 +289,7 @@ Notation "\sum_ ( i \in A | P ) F" :=
 Notation "\sum_ ( i \in A ) F" :=
   (\big[+%N/0%N]_(i \in A) F%N) : nat_scope.
 
-Notation Local "'*%R'" := (@Ring.mul _) (at level 0).
-Notation Local "'*%N'" := muln (at level 0, only parsing).
+Notation Local "*%N" := muln (at level 0, only parsing).
 
 Notation "\prod_ ( <- r | P ) F" :=
   (\big[*%R/1%R]_(<- r | P%B) F%R) : ring_scope.
@@ -518,7 +516,7 @@ Lemma big_mkord : forall n (P : pred nat) F,
   \big[op/nil]_(0 <= i < n | P i) F i = \big[op/nil]_(i < n | P i) F i.
 Proof.
 move=> n P F; rewrite /index_iota subn0 -(big_maps (@nat_of_ord n)).
-by congr bigop; rewrite val_enum_ord.
+by congr bigop; rewrite /index_enum unlock val_ord_enum.
 Qed.
 
 Lemma big_nat_widen : forall m n1 n2 (P : pred nat) F, n1 <= n2 ->
@@ -609,9 +607,7 @@ Qed.
 
 Lemma big_const : forall (I : finType) (A : pred I) x,
   \big[op/nil]_(i \in A) x = iter #|A| (op x) nil.
-Proof.
-by move=> *; rewrite big_const_seq count_filter cardE [index_enum _]enumE.
-Qed.
+Proof. by move=> I A x; rewrite big_const_seq count_filter cardE. Qed.
 
 Lemma big_const_nat : forall m n x,
   \big[op/nil]_(m <= i < n) x = iter (n - m) (op x) nil.
@@ -636,11 +632,11 @@ Section Plain.
 
 Variable op : Monoid.law 1.
 
-Notation Local "'*%M'" := (operator op) (at level 0).
+Notation Local "*%M" := (operator op) (at level 0).
 Notation Local "x * y" := ( *%M x y).
 
 Lemma eq_big_nil_seq : forall nil' I r (P : pred I) F,
-     right_unit nil' *%M -> has P r ->
+     right_id nil' *%M -> has P r ->
    \big[*%M/nil']_(i <- r | P i) F i =\big[*%M/1]_(i <- r | P i) F i.
 Proof.
 move=> nil' I r P F op_nil'.
@@ -650,11 +646,11 @@ by rewrite -cats1 !(big_cat_nested, big_adds, big_seq0) op_nil' mulm1.
 Qed.
 
 Lemma eq_big_nil  : forall nil' (I : finType) i0 (P : pred I) F,
-     P i0 -> right_unit nil' *%M ->
+     P i0 -> right_id nil' *%M ->
   \big[*%M/nil']_(i | P i) F i =\big[*%M/1]_(i | P i) F i.
 Proof.
 move=> nil' I i0 P F op_nil' Pi0; apply: eq_big_nil_seq => //.
-by apply/hasP; exists i0; first exact: mem_enum.
+by apply/hasP; exists i0; first rewrite /index_enum -enumT mem_enum.
 Qed.
 
 Lemma big1_eq : forall I r (P : pred I), \big[*%M/1]_(i <- r | P i) 1 = 1.
@@ -732,9 +728,9 @@ End Plain.
 
 Section Abelian.
 
-Variable op : abelian_law 1.
+Variable op : com_law 1.
 
-Notation Local "'*%M'" := (operator (law_of_abelian op)) (at level 0).
+Notation Local "'*%M'" := (operator (com_operator op)) (at level 0).
 Notation Local "x * y" := ( *%M x y).
 
 Lemma eq_big_perm : forall (I : eqType) r1 r2 (P : pred I) F,
@@ -747,7 +743,7 @@ elim: r1 r2 => [|i r1 IHr1] r2 eq_r12.
 have r2i: i \in r2 by rewrite -has_pred1 has_count -eq_r12 /= eqxx.
 case/splitPr: r2 / r2i => [r3 r4] in eq_r12 *; rewrite big_cat /= !big_adds.
 rewrite mulmCA; congr (_ * _); rewrite -big_cat; apply: IHr1 => a.
-move/(_ a): eq_r12; rewrite !count_cat /= addnCA; exact: addn_injl.
+move/(_ a): eq_r12; rewrite !count_cat /= addnCA; exact: addnI.
 Qed.
 
 Lemma big_uniq : forall (I : finType) (r : seq I) F,
@@ -1056,11 +1052,11 @@ Variables zero one : R.
 Notation Local "0" := zero.
 Notation Local "1" := one.
 Variable times : mul_law 0.
-Notation Local "'*%M'" := (mul_operator times) (at level 0).
+Notation Local "*%M" := (mul_operator times) (at level 0).
 Notation Local "x * y" := ( *%M x y).
-Variable plus : add_law times.
-Notation Local "'+%M'" :=
-  (operator (law_of_abelian (law_of_additive plus))) (at level 0).
+Variable plus : add_law 0 *%M.
+Notation Local "+%M" :=
+  (operator (com_operator (add_operator plus))) (at level 0).
 Notation Local "x + y" := ( +%M x y).
 
 Lemma big_distrl : forall I r alpha (P : pred I) F,
@@ -1106,12 +1102,12 @@ rewrite big_distrr; apply: eq_big => [f | f eq_f]; last first.
   by apply: eq_bigr => k; rewrite ffunE; case: eqP => // ->; case/idPn.
 rewrite !ffunE !eq_refl andbT; apply/andP/familyP=> [[Pjf fij0] k | Pff].
   have:= familyP _ _ Pjf k; rewrite /= ffunE in_adds; case: eqP => // -> _.
-  by rewrite (negbET nri) -(eqP fij0) !ffunE ?inE /= !eqxx.
+  by rewrite (negbTE nri) -(eqP fij0) !ffunE ?inE /= !eqxx.
 split.
   apply/familyP=> k; move/(_ k): Pff; rewrite /= ffunE in_adds.
   by case: eqP => // ->.
 apply/eqP; apply/ffunP=> k; have:= Pff k; rewrite !ffunE /=.
-by case: eqP => // ->; rewrite (negbET nri) /=; move/eqP.
+by case: eqP => // ->; rewrite (negbTE nri) /=; move/eqP.
 Qed.
 
 Lemma big_distr_big :
@@ -1130,7 +1126,7 @@ Lemma bigA_distr_big_dep :
 Proof.
 move=> I J Q F; case: (pickP J) => [j0 _ | J0].
    exact: (big_distr_big_dep j0).
-rewrite /index_enum; case: (enum I) (mem_enum I) => [I0 | i r _].
+rewrite /index_enum -enumT; case: (enum I) (mem_enum I) => [I0 | i r _].
   have f0: I -> J by move=> i; have:= I0 i.
   rewrite (big_pred1 (finfun f0)) ?big_seq0 // => g.
   by apply/familyP/eqP=> _; first apply/ffunP; move=> i; have:= I0 i.
@@ -1165,11 +1161,12 @@ Implicit Arguments bigA_distr_bigA [R zero one times plus I J].
 
 Section Ring.
 
-Import ssralg.Ring.
+Import GRing.Theory.
+Open Scope ring_scope.
 
 Section Opp.
 
-Variable R : additive_group.
+Variable R : zmodType.
 
 Lemma sum_opp : forall I r P (F : I -> R),
   \sum_(i <- r | P i) - F i = - (\sum_(i <- r | P i) F i).
@@ -1189,7 +1186,7 @@ Proof. exact: big_const. Qed.
 
 End Opp.
 
-Lemma prodr_const : forall (R : basic) (I : finType) (A : pred I) (x : R),
+Lemma prodr_const : forall (R : ringType) (I : finType) (A : pred I) (x : R),
   \prod_(i \in A) x = x ^+ #|A|.
 Proof. move=> *; exact: big_const. Qed.
 

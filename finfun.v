@@ -1,11 +1,6 @@
-Require Import ssreflect.
-Require Import seq.
-Require Import eqtype.
-Require Import ssrnat.
-Require Import ssrfun.
-Require Import ssrbool.
-Require Import fintype.
-Require Import tuple.
+
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype tuple.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -23,7 +18,8 @@ Identity Coercion type_of_finfun : finfun_of >-> finfun_type.
 
 Definition fgraph f := let: Finfun t := f in t.
 
-Canonical Structure finfun_subType := NewType fgraph finfun_type_rect vrefl.
+Canonical Structure finfun_subType :=
+  Eval hnf in [newType for fgraph by finfun_type_rect].
 
 End Def.
 
@@ -73,7 +69,7 @@ Section PlainTheory.
 Variables (aT : finType) (rT : Type).
 Notation fT := {ffun aT -> rT}.
 
-Canonical Structure finfun_of_subType := Eval hnf in [subType of fT].
+Canonical Structure finfun_of_subType := (* Evhnf *) [subType of fT].
 
 Lemma ffunE : forall f : aT -> rT, finfun f =1 f.
 Proof.
@@ -124,7 +120,9 @@ Variables (aT : finType) (rT : eqType).
 
 Notation fT := {ffun aT -> rT}.
 
-Canonical Structure finfun_eqType := Eval hnf in [subEqType for @fgraph aT rT].
+Definition finfun_eqMixin :=
+  Eval hnf in [eqMixin of finfun_type aT rT by <:].
+Canonical Structure finfun_eqType := Eval hnf in EqType finfun_eqMixin.
 Canonical Structure finfun_of_eqType := Eval hnf in [eqType of fT].
 
 Section Partial.
@@ -159,6 +157,24 @@ End Partial.
 
 End EqTheory.
 
+Definition finfun_choiceMixin aT (rT : choiceType) :=
+  [choiceMixin of finfun_type aT rT by <:].
+Canonical Structure finfun_choiceType aT rT :=
+  Eval hnf in ChoiceType (finfun_choiceMixin aT rT).
+Canonical Structure finfun_of_choiceType (aT : finType) (rT : choiceType) :=
+  Eval hnf in [choiceType of {ffun aT -> rT}].
+
+Definition finfun_countMixin aT (rT : countType) :=
+  [countMixin of finfun_type aT rT by <:].
+Canonical Structure finfun_countType aT (rT : countType) :=
+  Eval hnf in CountType (finfun_countMixin aT rT).
+Canonical Structure finfun_of_countType (aT : finType) (rT : countType) :=
+  Eval hnf in [countType of {ffun aT -> rT}].
+Canonical Structure finfun_subCountType aT (rT : countType) :=
+  Eval hnf in [subCountType of finfun_type aT rT].
+Canonical Structure finfun_of_subCountType (aT : finType) (rT : countType) :=
+  Eval hnf in [subCountType of {ffun aT -> rT}].
+
 Section FinTheory.
 
 Variables aT rT : finType.
@@ -166,9 +182,10 @@ Variables aT rT : finType.
 Notation fT := {ffun aT -> rT}.
 Notation ffT := (finfun_type aT rT).
 
-Canonical Structure finfun_finType := Eval hnf in [finType of ffT by :>].
+Definition finfun_finMixin := [finMixin of ffT by <:].
+Canonical Structure finfun_finType := Eval hnf in FinType finfun_finMixin.
 Canonical Structure finfun_subFinType := Eval hnf in [subFinType of ffT].
-Canonical Structure finfun_of_finType := Eval hnf in [finType of fT by :>].
+Canonical Structure finfun_of_finType := Eval hnf in [finType of fT].
 Canonical Structure finfun_of_subFinType := Eval hnf in [subFinType of fT].
 
 Lemma card_pfamily : forall y0 d (F : aT -> pred rT),
@@ -214,12 +231,13 @@ Qed.
 
 Lemma card_pffun_on : forall y0 d r, #|pffun_on y0 d r| = #|r| ^ #|d|.
 Proof.
-by move=> y0 d r; rewrite card_pfamily (cardE d); elim: enum => //= _ {d}d ->.
+move=> y0 d r; rewrite (cardE d) -(@eq_enum _ d) // card_pfamily.
+by elim: (enum _) => //= _ ? ->.
 Qed.
 
 Lemma card_ffun_on : forall r, #|ffun_on r| = #|r| ^ #|aT|.
 Proof.
-by move=> r; rewrite card_family (cardE aT); elim: enum => //= _ e ->.
+by move=> r; rewrite card_family cardT; elim: enum => //= _ e ->.
 Qed.
 
 Lemma card_ffun : #|fT| = #|rT| ^ #|aT|.
@@ -240,7 +258,3 @@ Lemma card_powerset : #|powerset| = 2 ^ #|A|.
 Proof. rewrite -card_bool; exact: card_pffun_on. Qed.
 
 End FinPowerSet.
-
-Lemma card_tuple : forall n (T : finType), #|{tuple n of T}| = #|T| ^ n.
-Proof. by move=> n T; rewrite -[n]card_ord -card_ffun card_sub. Qed.
-

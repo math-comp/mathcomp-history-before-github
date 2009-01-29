@@ -11,7 +11,7 @@ Open Scope fun_scope.
 (* composition, override, update, inverse, and iteration, with some their    *)
 (* identities, and reflected equalities.                                     *)
 
-(* Miscellaneous notation bits for currrying and pairs *)
+(* Miscellaneous notation bits (currrying, pairs, inverse, subscripting) *)
 
 Notation "f ^~ y" := (fun x => f x y)
   (at level 10, y at level 8, no associativity, format "f ^~  y") : fun_scope.
@@ -23,6 +23,10 @@ Notation "p .1" := (fst p) (at level 2, left associativity,
   format "p .1") : pair_scope.
 Notation "p .2" := (snd p) (at level 2, left associativity,
   format "p .2") : pair_scope.
+
+Reserved Notation "x ^-1" (at level 2, left associativity, format "x ^-1").
+
+Reserved Notation "s `_ i" (at level 3, left associativity, format "s `_ i").
 
 (* Complements on the option type constructor, used below to  *)
 (* encode partial functions.                                  *)
@@ -44,10 +48,6 @@ Notation odflt := Option.default.
 Notation obind := Option.bind.
 Notation omap := Option.map.
 Notation some := (@Some _) (only parsing).
-
-(* Reserved Notation "- 1" (at level 35). *)
-Reserved Notation "x ^-1" (at level 2, left associativity, format "x ^-1").
-Reserved Notation "x ^2" (at level 2, left associativity, format "x ^2").
 
 (* Syntax for defining auxiliary recursive function.          *)
 (*  Usage:                                                    *)
@@ -136,6 +136,38 @@ Definition congr2 := f_equal2.
 (* Force at least one implicit when used as a view. *)
 Prenex Implicits esym nesym.
 
+(* Generic structure for formal expressions; supplies the syntax *)
+(*   e.[x] and e.[x1, ..., xn]                                   *)
+(* for evaluating e with the argument x / arguments x1, .., xn   *)
+
+Module Expr.
+
+Structure class (aT rT : Type) : Type :=
+  Class { sort :> Type; eval : sort -> aT -> rT}.
+
+End Expr.
+
+Notation exprType := Expr.class.
+Notation ExprType := Expr.Class.
+
+Definition eval := nosimpl Expr.eval.
+
+Notation "e .[ x ]" := (eval e x)
+   (at level 2, left associativity,
+    format "e .[ x ]") : fun_scope.
+Notation "e .[ x1 , x2 , .. , xn ]" := e.[pair .. (pair x1 x2) .. xn]
+   (at level 2, left associativity,
+    format "e '[ ' .[ x1 , '/'  x2 , '/'  .. , '/'  xn ] ']'") : fun_scope.
+
+Lemma evalE : forall aT rT eT e x, e.[x] = @Expr.eval aT rT eT e x.
+Proof. by []. Qed.
+
+Canonical Structure option_exprType aT rT eT :=
+  ExprType (fun oe x => omap ((@eval aT rT eT)^~ x) oe).
+
+Canonical Structure pair_exprType aT rT1 rT2 eT1 eT2 :=
+  ExprType (fun ep x => (@eval aT rT1 eT1 ep.1 x, @eval aT rT2 eT2 ep.2 x)).
+
 (* Extensional equality, for unary and binary functions, including syntactic *)
 (* sugar.                                                                    *)
 
@@ -188,8 +220,10 @@ Notation id := (fun x => x).
 Notation "@ 'id' T " := (fun x : T => x)
   (at level 10, T at level 8, only parsing) : fun_scope.
 
-Notation "f1 \o f2" := (fun_of_simpl (comp f1 f2))
-  (at level 50) : fun_scope.
+Notation "f1 \o f2" := (comp f1 f2) (at level 50) : fun_scope.
+
+Definition idfun T := @id T.
+Prenex Implicits idfun.
 
 Section OperationProperties.
 
@@ -204,8 +238,8 @@ Notation Local "x ^-1" := (inv x).
 Notation Local "x * y"  := (mul x y).
 Notation Local "x + y"  := (add x y).
 
-Definition left_unit          := forall x,     1 * x = x.
-Definition right_unit         := forall x,     x * 1 = x.
+Definition left_id          := forall x,     1 * x = x.
+Definition right_id         := forall x,     x * 1 = x.
 Definition left_inverse       := forall x,     x^-1 * x = 1.
 Definition right_inverse      := forall x,     x * x^-1 = 1.
 Definition self_inverse       := forall x,     x * x = 1.

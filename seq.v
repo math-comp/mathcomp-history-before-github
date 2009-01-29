@@ -1,9 +1,5 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect.
-Require Import ssrfun.
-Require Import ssrbool.
-Require Import eqtype.
-Require Import ssrnat.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -77,6 +73,7 @@ Fixpoint size s := if s is _ :: s' then (size s').+1 else 0.
 
 Lemma size_eq0 : forall s, size s = 0 -> s = [::]. Proof. by case. Qed.
 
+Definition ohead s := if s is x :: _ then Some x else None.
 Definition head s := if s is x :: _ then x else x0.
 
 Definition behead s := if s is _ :: s' then s' else [::].
@@ -447,6 +444,9 @@ Qed.
 Lemma drop_size_cat : forall s1 s2, drop (size s1) (s1 ++ s2) = s2.
 Proof. by move=> s1 s2; elim: s1 => [|x s1 IHs] //=; rewrite drop0. Qed.
 
+Lemma addsnK : forall n x, cancel (addsn n x) (drop n).
+Proof. by move=> n x; elim: n => // [] []. Qed.
+
 Fixpoint take n (s : seq) {struct s} :=
   match s, n with
   | x :: s', n'.+1 => x :: take n' s'
@@ -476,7 +476,7 @@ Qed.
 
 Lemma size_takel : forall s, n0 <= size s -> size (take n0 s) = n0.
 Proof.
-move=> s Hn0; apply: (addn_injr (etrans _ (esym (subnK Hn0)))).
+move=> s Hn0; apply: (addIn (etrans _ (esym (subnK Hn0)))).
 by rewrite -size_drop -size_cat cat_take_drop.
 Qed.
 
@@ -590,8 +590,16 @@ Fixpoint catrev (s2 s1 : seq) {struct s1} : seq :=
 
 End Sequences.
 
+(* rev must be defined outside a Section because Coq's end of section *)
+(* "cooking" removes the nosimpl guard.                               *)
+
+Definition rev T s := nosimpl catrev T (@Seq0 T) s.
+
 Notation seq0 := (Seq0 _) (only parsing).
 Notation adds := (@Adds _) (only parsing).
+Prenex Implicits size head ohead behead last add_last belast.
+Prenex Implicits cat take drop rev rot rotr.
+Prenex Implicits find count sub all has filter.
 
 Notation "[ :: ]" := seq0 : seq_scope.
 Notation "x :: s" := (Adds x s) : seq_scope.
@@ -603,15 +611,6 @@ Notation "[ :: x1 , x2 , .. , xn & s ]" :=
 
 Notation "[ :: x ]" := (x :: [::]) : seq_scope.
 Notation "[ :: x1 ; x2 ; .. ; xn ]" := (x1 :: x2 :: .. [:: xn] ..) : seq_scope.
-
-(* rev must be defined outside a Section because Coq's end of section *)
-(* "cooking" removes the nosimpl guard.                               *)
-
-Definition rev T s := nosimpl catrev T [::] s.
-
-Prenex Implicits size head behead last add_last belast.
-Prenex Implicits take drop rev rot rotr.
-Prenex Implicits find count sub all has filter.
 
 (* Equality and eqType for seq.                                          *)
 
@@ -627,7 +626,7 @@ Fixpoint eqseq (s1 s2 : seq T) {struct s2} :=
   | _, _ => false
   end.
 
-Lemma eqseqP : reflect_eq eqseq.
+Lemma eqseqP : Equality.axiom eqseq.
 Proof.
 move; elim=> [|x1 s1 IHs] [|x2 s2]; do [ by constructor | simpl ].
 case: (x1 =P x2) => [<-|neqx]; last by right; case.
@@ -635,9 +634,9 @@ by apply: (iffP (IHs _)) => [<-|[]].
 Qed.
 
 Canonical Structure seq_eqMixin := EqMixin eqseqP.
-Canonical Structure seq_eqType := EqClass seq_eqMixin.
+Canonical Structure seq_eqType := Eval hnf in EqType seq_eqMixin.
 
-Lemma eqseqE : eqseq = eqd. Proof. by []. Qed.
+Lemma eqseqE : eqseq = eq_op. Proof. by []. Qed.
 
 Lemma eqseq_adds : forall x1 x2 s1 s2,
   (x1 :: s1 == x2 :: s2) = (x1 == x2) && (s1 == s2).
@@ -682,22 +681,22 @@ Proof. by []. Qed.
 Lemma in_seq0 : forall x, (x \in [::]) = false.
 Proof. by []. Qed.
 
- (* to be repeated after the Section discharge. *)
-Let inE := (in_adds, in_seq0, inE).
-
 Lemma mem_seq1 : forall x y, (x \in [:: y]) = (x == y).
-Proof. by move=> *; rewrite in_adds orbF. Qed.
+Proof. by move=> x y; rewrite in_adds orbF. Qed.
+
+ (* to be repeated after the Section discharge. *)
+Let inE := (mem_seq1, in_adds, inE).
 
 Lemma mem_seq2 : forall x y1 y2, (x \in [:: y1; y2]) = xpred2 y1 y2 x.
-Proof. by move=> *; rewrite !in_adds orbF. Qed.
+Proof. by move=> x y1 y2; rewrite !inE. Qed.
 
 Lemma mem_seq3 :  forall x y1 y2 y3,
   (x \in [:: y1; y2; y3]) = xpred3 y1 y2 y3 x.
-Proof. by move=> *; rewrite !in_adds orbF. Qed.
+Proof. by move=> x y1 y2 y3; rewrite !inE. Qed.
 
 Lemma mem_seq4 :  forall x y1 y2 y3 y4,
   (x \in [:: y1; y2; y3; y4]) = xpred4 y1 y2 y3 y4 x.
-Proof. by move=> *; rewrite !in_adds orbF. Qed.
+Proof. by move=> x y1 y2 y3 y4; rewrite !inE. Qed.
 
 Lemma mem_cat : forall x s1 s2, (x \in s1 ++ s2) = (x \in s1) || (x \in s2).
 Proof.
@@ -872,7 +871,7 @@ Proof. by move=> *; rewrite -cats1 uniq_catC. Qed.
 Lemma uniq_filter : forall s a, uniq s -> uniq (filter a s).
 Proof.
 move=> s a; elim: s => [|x s IHs] //=; case/andP=> [Hx Hs]; case (a x); auto.
-by rewrite /= mem_filter /= (negbET Hx) andbF; auto.
+by rewrite /= mem_filter /= (negbTE Hx) andbF; auto.
 Qed.
 
 Lemma uniq_rot : forall s, uniq (rot n0 s) = uniq s.
@@ -880,7 +879,7 @@ Proof. by move=> *; rewrite /rot uniq_catC cat_take_drop. Qed.
 
 Lemma count_pred1_uniq : forall s x, uniq s -> count (pred1 x) s = (x \in s).
 Proof.
-move=> s x; elim: s => //= [y s IHs]; case/andP; move/negbET => Hy Us.
+move=> s x; elim: s => //= [y s IHs]; case/andP; move/negbTE => Hy Us.
 by rewrite {}IHs {Us}// in_adds eq_sym; case: eqP => // ->; rewrite Hy.
 Qed.
 
@@ -904,7 +903,7 @@ by elim=> //= [x s IHs]; case Hx: (x \in s); rewrite //= mem_undup Hx.
 Qed.
 
 Lemma undup_uniq : forall s, uniq s -> undup s = s.
-Proof. by elim=> //= [x s IHs]; case/andP; move/negbET->; move/IHs->. Qed.
+Proof. by elim=> //= [x s IHs]; case/andP; move/negbTE->; move/IHs->. Qed.
 
 Lemma ltn_size_undup : forall s, (size (undup s) < size s) = ~~ uniq s.
 Proof.
@@ -970,7 +969,7 @@ Qed.
 
 End EqSeq.
 
-Definition inE := (in_adds, in_seq0, inE).
+Definition inE := (mem_seq1, in_adds, inE).
 
 Section SeqRev.
 
@@ -1542,6 +1541,9 @@ Qed.
 
 End Map.
 
+Canonical Structure seq_exprType aT rT (eT : exprType aT rT) :=
+  ExprType (fun s x => maps ((@eval aT rT eT)^~ x) s).
+
 Section EqMap.
 
 Variables (n0 : nat) (T1 : eqType) (x1 : T1).
@@ -1811,13 +1813,18 @@ End FoldRightComp.
 
 (* Quick characterization of the null sequence. *)
 
-Lemma sum_natseqn : forall x n : nat, foldr addn 0 (seqn n x) = x * n.
+Definition sumn := foldr addn 0.
+
+Lemma sumn_seqn : forall x n : nat, sumn (seqn n x) = x * n.
 Proof. by move=> x n; rewrite mulnC; elim: n => //= n ->. Qed.
 
+Lemma sumn_cat : forall s1 s2, sumn (s1 ++ s2) = sumn s1 + sumn s2.
+Proof. by move=> s1 s2; elim: s1 => //= x s1 ->; rewrite addnA. Qed.
+
 Lemma natseqn0P : forall s : seq nat,
-  reflect (s = seqn (size s) 0) (foldr addn 0 s == 0).
+  reflect (s = seqn (size s) 0) (sumn s == 0).
 Proof.
-move=> s; apply: (iffP idP) => [|->]; last by rewrite sum_natseqn.
+move=> s; apply: (iffP idP) => [|->]; last by rewrite sumn_seqn.
 elim: s => //= x s IHs; rewrite eqn_add0.
 by case/andP; move/eqP->; move/IHs <-.
 Qed.
@@ -1916,6 +1923,37 @@ End Zip.
 
 Prenex Implicits zip unzip1 unzip2.
 
+Section Flatten.
+
+Variable T : Type.
+
+Definition flatten := foldr cat (Seq0 T).
+Definition shape := maps (@size T).
+Fixpoint reshape (sh : seq nat) (s : seq T) {struct sh} :=
+  if sh is n :: sh' then take n s :: reshape sh' (drop n s) else [::].
+
+Lemma size_flatten : forall ss, size (flatten ss) = sumn (shape ss).
+Proof. by elim=> //= s ss <-; rewrite size_cat. Qed.
+
+Lemma flattenK : forall ss, reshape (shape ss) (flatten ss) = ss.
+Proof. by elim=> //= s ss IHss; rewrite take_size_cat drop_size_cat IHss. Qed.
+
+Lemma reshapeKr : forall sh s, size s <= sumn sh -> flatten (reshape sh s) = s.
+Proof.
+elim=> [[]|n sh IHsh] //= s sz_s; rewrite IHsh ?cat_take_drop //.
+by rewrite size_drop leq_sub_add.
+Qed.
+
+Lemma reshapeKl : forall sh s, size s >= sumn sh -> shape (reshape sh s) = sh.
+Proof.
+elim=> [[]|n sh IHsh] //= s sz_s.
+rewrite size_takel; last exact: leq_trans (leq_addr _ _) sz_s.
+by rewrite IHsh // -(leq_add2l n) size_drop add_sub_maxn leq_maxr sz_s orbT.
+Qed.
+
+End Flatten.
+
+Prenex Implicits flatten shape reshape.
 
 
 

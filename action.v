@@ -26,20 +26,19 @@ Record action (T : Type) : Type :=
 
 Definition action_for of phant aT := action.
 
+Definition repack_action T f :=
+  let: Action _ fP := f
+    return {type of @Action T for f} -> action_for (Phant aT) T
+  in fun k => k fP.
+
 End ActionDef.
 
 Notation "{ 'action' aT &-> T }" := (action_for (Phant aT) T)
   (at level 0, format "{ 'action'  aT  &->  T }") : type_scope.
 
 Notation "[ 'action' 'of' a ]" :=
-  (StructureOf (@Action _ _ a)
-   match [is a : _ -> _ <: action _ _] as s
-   return {type of @Action _ _ for s} -> _ with
-   | Action _ actP => fun k => k actP
-   end) (at level 0, only parsing) : form_scope.
-
-Notation "[ 'action' 'o' 'f' a ]" := (StructureOf (@Action _ _ a) _)
-  (at level 0, format "[ 'action'  'o' 'f'  a ]") : form_scope.
+    (repack_action (fun aP => @Action _ _ a aP))
+  (at level 0, format "[ 'action'  'of'  a ]") : form_scope.
 
 Delimit Scope action_scope with act.
 Bind Scope action_scope with action.

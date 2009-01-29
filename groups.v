@@ -1,17 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect.
-Require Import ssrbool.
-Require Import ssrfun.
-Require Import eqtype.
-Require Import ssrnat.
-Require Import seq.
-(* Require Import paths. *)
-Require Import fintype.
-(* Require Import connect. *)
-Require Import div.
-Require Import ssralg.
-Require Import bigops.
-Require Import finset.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype.
+Require Import div ssralg bigops finset.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -41,20 +30,20 @@ Module FinGroup.
 (* Another potential benefit (not exploited here) would   *)
 (* be to define a class for infinite groups, which could  *)
 (* share all of the algebraic laws.                       *)
-Record mixin (T : Type) : Type := Mixin {
+Record mixin_of (T : Type) : Type := BaseMixin {
   mul : T -> T -> T;
-  unit : T;
+  one : T;
   inv : T -> T;
   _ : associative mul;
-  _ : left_unit unit mul;
+  _ : left_id one mul;
   _ : involutive inv;
   _ : {morph inv : x y / mul x y >-> mul y x}
 }.
 
-Structure base_class : Type := BaseClass {
+Structure base_type : Type := PackBase {
   sort : Type;
-   _ : mixin sort;
-   _ : FinType.mixin sort
+   _ : mixin_of sort;
+   _ : Finite.class_of sort
 }.
 
 (* We want to use sort as a coercion class, both to infer         *)
@@ -80,29 +69,29 @@ Coercion arg_sort := sort.
 (* serves the purpose of eliding FinGroup.sort in the display of  *)
 (* return types. The warning could be eliminated by using the     *)
 (* functor trick to replace Sortclass by a dummy target.          *)
-Coercion sort : base_class >-> Sortclass.
+Coercion sort : base_type >-> Sortclass.
 
-Coercion mixin_of T :=
-  let: BaseClass _ m _ := T return mixin T in m.
+Coercion mixin T :=
+  let: PackBase _ m _ := T return mixin_of (sort T) in m.
 
-Definition finmixin_of T :=
-  let: BaseClass _ _ m := T return FinType.mixin T in m.
+Definition finClass T :=
+  let: PackBase _ _ m := T return Finite.class_of (sort T) in m.
 
-Structure class : Type := Class {
-  base :> base_class;
-  _ : left_inverse base.(unit) base.(inv) base.(mul)
+Structure type : Type := Pack {
+  base :> base_type;
+  _ : left_inverse (one base) (inv base) (mul base)
 }.
 
 (* We only need three axioms to make a true group. *)
 
-Section Make.
+Section Mixin.
 
-Variables (T : Type) (unit : T) (mul : T -> T -> T) (inv : T -> T).
+Variables (T : Type) (one : T) (mul : T -> T -> T) (inv : T -> T).
 
 Hypothesis mulA : associative mul.
-Hypothesis mul1 : left_unit unit mul.
-Hypothesis mulV : left_inverse unit inv mul.
-Notation "1" := unit.
+Hypothesis mul1 : left_id one mul.
+Hypothesis mulV : left_inverse one inv mul.
+Notation "1" := one.
 Infix "*" := mul.
 Notation "x ^-1" := (inv x).
 
@@ -120,70 +109,74 @@ move=> x y /=; rewrite -[y^-1 * _]mul1 -(mulV (x * y)) -2!mulA (mulA y).
 by rewrite mulxV mul1 mulxV -(mulxV (x * y)) mulA mulV mul1.
 Qed.
 
-Definition mkMixin := Mixin mulA mul1 mk_invgK mk_invMg.
+Definition Mixin := BaseMixin mulA mul1 mk_invgK mk_invMg.
 
-End Make.
+End Mixin.
+
+Definition pack_base := let k T c m := PackBase m c in Finite.unpack k.
+
+Definition repack_base gT :=
+  let: PackBase _ m c := gT return {type of PackBase for sort gT} -> _ in
+  fun k => k m c.
+
+Definition repack gT :=
+  let: Pack c ax := gT return {type of Pack for gT} -> _ in fun k => k ax.
+
+Definition repack_arg gT of phant (sort gT) := @Pack gT.
 
 End FinGroup.
 
 Bind Scope group_scope with FinGroup.sort.
 Bind Scope group_scope with FinGroup.arg_sort.
 
-Notation baseFinGroupType := FinGroup.base_class.
-Notation BaseFinGroupType := FinGroup.BaseClass.
+Notation baseFinGroupType := FinGroup.base_type.
+Notation BaseFinGroupType := FinGroup.pack_base.
 
 Section InheritedClasses.
 
 Variable T : baseFinGroupType.
-Let mT := FinGroup.finmixin_of T.
+Notation c := (FinGroup.finClass T).
+Notation rT := (FinGroup.sort T).
 
-Canonical Structure finGroup_arg_eqType := @EqClass T mT.
-Canonical Structure finGroup_eqType := @EqClass (FinGroup.sort T) mT.
-Canonical Structure finGroup_arg_finType := @FinClass T mT.
-Canonical Structure finGroup_finType := @FinClass (FinGroup.sort T) mT.
+Canonical Structure finGroup_eqType := Equality.Pack c rT.
+Canonical Structure finGroup_choiceType := Choice.Pack c rT.
+Canonical Structure finGroup_countType := Countable.Pack c rT.
+Canonical Structure finGroup_finType := Finite.Pack c rT.
+Canonical Structure finGroup_arg_eqType := Eval hnf in [eqType of T].
+Canonical Structure finGroup_arg_choiceType := Eval hnf in [choiceType of T].
+Canonical Structure finGroup_arg_countType := Eval hnf in [countType of T].
+Canonical Structure finGroup_arg_finType := Eval hnf in [finType of T].
 
 End InheritedClasses.
 
 Coercion finGroup_arg_finType : baseFinGroupType >-> finType.
 
 Notation "[ 'baseFinGroupType' 'of' T ]" :=
-  (match [is T <: baseFinGroupType] as s
-   return {type of BaseFinGroupType for s} -> _ with
-  | BaseFinGroupType _ mixG mixF => fun k => k mixG mixF end
-  (@BaseFinGroupType T)) (at level 0, only parsing) : form_scope.
+    (FinGroup.repack_base (fun m => @FinGroup.PackBase T m))
+  (at level 0, format "[ 'baseFinGroupType'  'of'  T ]") : form_scope.
 
-Notation Local FinMix := (FinType.mkMixin _).
-Notation "[ 'baseFinGroupType' 'of' T 'by' mulA , mul1 , invK & invM ]" :=
-  (@BaseFinGroupType T (FinGroup.Mixin mulA mul1 invK invM) FinMix)
-  (at level 0, only parsing) : form_scope.
-Notation "[ 'baseFinGroupType' 'of' T 'by' mulA , mul1 & mulV ]" :=
-  (@BaseFinGroupType T (FinGroup.mkMixin mulA mul1 mulV) FinMix)
-  (at level 0, only parsing) : form_scope.
-
-Notation finGroupType := FinGroup.class.
-Notation FinGroupType := FinGroup.Class.
+Notation finGroupType := FinGroup.type.
+Notation FinGroupType := FinGroup.Pack.
 
 Notation "[ 'finGroupType' 'of' T ]" :=
-  (match [is T : Type <: finGroupType] as s
-   return {type of FinGroupType for s} -> _ with
-  | FinGroupType _ mulV => fun k => k mulV end
-  (@FinGroupType T)) (at level 0, only parsing) : form_scope.
+    (FinGroup.repack (FinGroup.repack_arg (Phant T)))
+  (at level 0, format "[ 'finGroupType'  'of'  T ]") : form_scope.
 
 Section ElementOps.
 
 Variable T : baseFinGroupType.
 Notation rT := (FinGroup.sort T).
 
-Definition unitg : rT := FinGroup.unit T.
+Definition oneg : rT := FinGroup.one T.
 Definition mulg : T -> T -> rT := FinGroup.mul T.
 Definition invg : T -> rT := FinGroup.inv T.
-Definition expgn_rec (x : T) n : rT := iter n (mulg x) unitg.
+Definition expgn_rec (x : T) n : rT := iter n (mulg x) oneg.
 
 End ElementOps.
 
 Definition expgn := nosimpl expgn_rec.
 
-Notation "1" := (unitg _) : group_scope.
+Notation "1" := (oneg _) : group_scope.
 Notation "x1 * x2" := (mulg x1 x2) : group_scope.
 Notation "x ^-1" := (invg x) : group_scope.
 Notation "x ^+ n" := (expgn x n) : group_scope.
@@ -235,7 +228,7 @@ Variable T : baseFinGroupType.
 Implicit Types x y z : T.
 
 Lemma mulgA : @associative T mulg.  Proof. by case: T => ? []. Qed.
-Lemma mul1g : @left_unit T 1 mulg.  Proof. by case: T => ? []. Qed.
+Lemma mul1g : @left_id T 1 mulg.  Proof. by case: T => ? []. Qed.
 Lemma invgK : @involutive T invg.   Proof. by case: T => ? []. Qed.
 Lemma invMg : forall x y, (x * y)^-1 = y^-1 * x^-1.
 Proof. by case: T => ? []. Qed.
@@ -251,7 +244,7 @@ Proof. by apply: invg_inj; rewrite -{1}[1^-1]mul1g invMg invgK mul1g. Qed.
 Lemma eq_invg1 : forall x, (x^-1 == 1 :> T) = (x == 1).
 Proof. by move=> x; rewrite eq_invg_sym invg1. Qed.
 
-Lemma mulg1 : @right_unit T 1 mulg.
+Lemma mulg1 : @right_id T 1 mulg.
 Proof. by move=> x; apply: invg_inj; rewrite invMg invg1 mul1g. Qed.
 
 Canonical Structure finGroup_law := Monoid.Law mulgA mul1g mulg1.
@@ -336,7 +329,7 @@ Proof. by move=> x y; rewrite mulgA mulVg mul1g. Qed.
 Lemma mulKVg : forall x, cancel (mulg x^-1) (mulg x).
 Proof. by move=> x y; rewrite mulgA mulgV mul1g. Qed.
 
-Lemma mulg_injl : forall x, injective (mulg x).
+Lemma mulgI : forall x, injective (mulg x).
 Proof. move=> x; exact: can_inj (mulKg x). Qed.
 
 Lemma mulgK : forall x, cancel (mulg^~ x) (mulg^~ x^-1).
@@ -345,11 +338,11 @@ Proof. by move=> x y; rewrite -mulgA mulgV mulg1. Qed.
 Lemma mulgKV : forall x, cancel (mulg^~ x^-1) (mulg^~ x).
 Proof. by move=> x y; rewrite -mulgA mulVg mulg1. Qed.
 
-Lemma mulg_injr : forall x, injective (mulg^~ x).
+Lemma mulIg : forall x, injective (mulg^~ x).
 Proof. move=> x; exact: can_inj (mulgK x). Qed.
 
 Lemma eq_invg_mul : forall x y, (x^-1 == y :> T) = (x * y == 1 :> T).
-Proof. by move=> x y; rewrite -(inj_eq (@mulg_injl x)) mulgV eq_sym. Qed.
+Proof. by move=> x y; rewrite -(inj_eq (@mulgI x)) mulgV eq_sym. Qed.
 
 Lemma eq_mulgV1 : forall x y, (x == y) = (x * y^-1 == 1 :> T).
 Proof. by move=> x y; rewrite -(inj_eq invg_inj) eq_invg_mul. Qed.
@@ -359,7 +352,7 @@ Proof. by move=> x y; rewrite -eq_invg_mul invgK. Qed.
 
 Lemma commuteV : forall x y, commute x y -> commute x y^-1.
 Proof.
-by move=> x y cxy; apply: (@mulg_injr y); rewrite mulgKV -mulgA cxy mulKg.
+by move=> x y cxy; apply: (@mulIg y); rewrite mulgKV -mulgA cxy mulKg.
 Qed.
 
 Lemma conjgE : forall x y, x ^ y = y^-1 * (x * y). Proof. by []. Qed.
@@ -460,8 +453,8 @@ Ltac gsimpl := autorewrite with gsimpl; try done.
 Definition gsimp := (mulg1 , mul1g, (invg1, @invgK), (mulgV, mulVg)).
 Definition gnorm := (gsimp, (mulgK, mulgKV, (mulgA, invMg))).
 
-Implicit Arguments mulg_injl [T].
-Implicit Arguments mulg_injr [T].
+Implicit Arguments mulgI [T].
+Implicit Arguments mulIg [T].
 Implicit Arguments conjg_inj [T].
 Implicit Arguments commgP [T x y].
 Implicit Arguments conjg_fixP [T x y].
@@ -528,7 +521,7 @@ Definition centralised A := forall x, centralises x A.
 
 (* The pre-group structure of group subsets. *)
 
-Lemma set_mul1g : left_unit [set 1] set_mulg.
+Lemma set_mul1g : left_id [set 1] set_mulg.
 Proof.
 move=> A; apply/setP=> y; apply/imset2P/idP=> [[x1 x] | Ay].
   by move/set1P=> -> Ax ->; rewrite mul1g.
@@ -555,12 +548,14 @@ apply/imset2P/imset2P=> [[x y Ax By] | [y x]]; last first.
 by move/(canRL invgK)->; exists y^-1 x^-1; rewrite ?invMg // inE invgK.
 Qed.
 
-Canonical Structure group_set_baseGroupType :=
-  [baseFinGroupType of set_type gT
-   by set_mulgA, set_mul1g, set_invgK & set_invgM].
+Definition group_set_baseGroupMixin : FinGroup.mixin_of (set_type _) :=
+  FinGroup.BaseMixin set_mulgA set_mul1g set_invgK set_invgM.
 
-Canonical Structure group_set_of_baseGroupType := Eval hnf in
-  [baseFinGroupType of {set gT}].
+Canonical Structure group_set_baseGroupType :=
+  Eval hnf in BaseFinGroupType group_set_baseGroupMixin.
+
+Canonical Structure group_set_of_baseGroupType :=
+  Eval hnf in [baseFinGroupType of {set gT}].
 
 End SetMulDef.
 
@@ -588,10 +583,14 @@ End MakeGroupSetBaseGroup.
 
 Module GroupSetBaseGroup := MakeGroupSetBaseGroup GroupSet.
 
-Canonical Structure group_set_eqType gT := Eval hnf in
-  [eqType of GroupSet.sort gT].
-Canonical Structure group_set_finType gT := Eval hnf in
-  [finType of GroupSet.sort gT].
+Canonical Structure group_set_eqType gT :=
+  Eval hnf in [eqType of GroupSet.sort gT].
+Canonical Structure group_set_choiceType gT :=
+  Eval hnf in [choiceType of GroupSet.sort gT].
+Canonical Structure group_set_countType gT :=
+  Eval hnf in [countType of GroupSet.sort gT].
+Canonical Structure group_set_finType gT :=
+  Eval hnf in [finType of GroupSet.sort gT].
 
 Arguments Scope conjugate [_ group_scope group_scope].
 Arguments Scope class [_ group_scope group_scope].
@@ -737,7 +736,7 @@ Lemma lcosetE : forall A x, lcoset A x = x *: A.
 Proof. by move=> A x; rewrite [_ * _]imset2_set1l. Qed.
 
 Lemma card_lcoset : forall A x, #|x *: A| = #|A|.
-Proof. by move=> A x; rewrite -lcosetE (card_imset _ (mulg_injl _)). Qed.
+Proof. by move=> A x; rewrite -lcosetE (card_imset _ (mulgI _)). Qed.
 
 Lemma mem_lcoset : forall A x y, (y \in x *: A) = (x^-1 * y \in A).
 Proof.
@@ -764,7 +763,7 @@ Lemma rcosetE : forall A x, rcoset A x = A :* x.
 Proof. by move=> A x; rewrite [_ * _]imset2_set1r. Qed.
 
 Lemma card_rcoset : forall A x, #|A :* x| = #|A|.
-Proof. by move=> A x; rewrite -rcosetE (card_imset _ (mulg_injr _)). Qed.
+Proof. by move=> A x; rewrite -rcosetE (card_imset _ (mulIg _)). Qed.
 
 Lemma mem_rcoset : forall A x y, (y \in A :* x) = (y * x^-1 \in A).
 Proof.
@@ -952,9 +951,18 @@ Notation Local groupT := (group_of (Phant gT)).
 Identity Coercion type_of_group : group_of >-> group_type.
 
 Canonical Structure group_subType :=
-  SubType gval group_type_rect vrefl.
-Canonical Structure group_eqType := Eval hnf in [subEqType for gval].
-Canonical Structure group_finType := Eval hnf in [finType of group_type by :>].
+  Eval hnf in [subType for gval by group_type_rect].
+Definition group_eqMixin := Eval hnf in [eqMixin of group_type by <:].
+Canonical Structure group_eqType := Eval hnf in EqType group_eqMixin.
+Definition group_choiceMixin := [choiceMixin of group_type by <:].
+Canonical Structure group_choiceType :=
+  Eval hnf in ChoiceType group_choiceMixin.
+Definition group_countMixin := [countMixin of group_type by <:].
+Canonical Structure group_countType := Eval hnf in CountType group_countMixin.
+Canonical Structure group_subCountType :=
+  Eval hnf in [subCountType of group_type].
+Definition group_finMixin := [finMixin of group_type by <:].
+Canonical Structure group_finType := Eval hnf in FinType group_finMixin.
 Canonical Structure group_subFinType := Eval hnf in [subFinType of group_type].
 
 (* No predType or baseFinGroupType structures, as these would hide the *)
@@ -962,10 +970,17 @@ Canonical Structure group_subFinType := Eval hnf in [subFinType of group_type].
 
 Canonical Structure group_of_subType := Eval hnf in [subType of groupT].
 Canonical Structure group_of_eqType := Eval hnf in [eqType of groupT].
+Canonical Structure group_of_choiceType := Eval hnf in [choiceType of groupT].
+Canonical Structure group_of_countType := Eval hnf in [countType of groupT].
+Canonical Structure group_of_subCountType :=
+  Eval hnf in [subCountType of groupT].
 Canonical Structure group_of_finType := Eval hnf in [finType of groupT].
 Canonical Structure group_of_subFinType := Eval hnf in [subFinType of groupT].
 
 Definition group (A : {set gT}) gA : groupT := @Group A gA.
+
+Definition repack_group G :=
+  let: Group _ gP := G return {type of Group for G} -> groupT in fun k => k gP.
 
 Lemma group_inj : injective gval. Proof. exact: val_inj. Qed.
 Lemma groupP : forall G : groupT, group_set G. Proof. by case. Qed.
@@ -978,11 +993,11 @@ Proof.
 by move=> A; apply: (iffP idP) => [gA | [[B gB] -> //]]; exists (Group gA).
 Qed.
 
-Lemma group_set_unit : group_set 1.
+Lemma group_set_one : group_set 1.
 Proof. by rewrite /group_set set11 mulg1 subxx. Qed.
 
-Canonical Structure unit_group := group group_set_unit.
-Canonical Structure set1_group := @group [set 1] group_set_unit.
+Canonical Structure one_group := group group_set_one.
+Canonical Structure set1_group := @group [set 1] group_set_one.
 
 Lemma group_setT : group_set setT.
 Proof. apply/group_setP; split=> [|x y _ _]; exact: in_setT. Qed.
@@ -1015,19 +1030,12 @@ Arguments Scope generated [_ group_scope].
 Notation "{ 'group' gT }" := (group_of (Phant gT))
   (at level 0, format "{ 'group'  gT }") : type_scope.
 
-Notation "[ 'group' 'of' G ]" :=
-  (StructureOf (@group _ G%g) match [is G%g : {set _} <: group_type _] as s
-   return {type of @Group _ for s} -> {group _} with
-  | Group _ gP => fun k => k gP
-  end) (at level 0, only parsing) : form_scope.
-
-Notation "[ 'group' 'o' 'f' G ]" :=
-  (StructureOf (@group _ G%g) _)
-   (at level 0, format "[ 'group'  'o' 'f'  G ]") : form_scope.
+Notation "[ 'group' 'of' G ]" := (repack_group (fun gP => @group _ G gP))
+  (at level 0, format "[ 'group'  'of'  G ]") : form_scope.
 
 Bind Scope subgroup_scope with group_type.
 Bind Scope subgroup_scope with group_of.
-Notation "1" := (unit_group _) : subgroup_scope.
+Notation "1" := (one_group _) : subgroup_scope.
 Notation "[ 1 gT ]" := (1%G : {group gT})
   (at level 0, format "[ 1  gT ]") : subgroup_scope.
 Notation "[ 'setT' ]" := (setT_group _)
@@ -1389,9 +1397,17 @@ Qed.
 
 Inductive subg_of : predArgType := Subg x & x \in G.
 Definition sgval u := let: Subg x _ := u in x.
-Canonical Structure subg_subType := SubType sgval subg_of_rect vrefl.
-Canonical Structure subg_eqType := Eval hnf in [subEqType for sgval].
-Canonical Structure subg_finType := Eval hnf in [finType of subg_of by :>].
+Canonical Structure subg_subType :=
+  Eval hnf in [subType for sgval by subg_of_rect].
+Definition subg_eqMixin := Eval hnf in [eqMixin of subg_of by <:].
+Canonical Structure subg_eqType := Eval hnf in EqType subg_eqMixin.
+Definition subg_choiceMixin := [choiceMixin of subg_of by <:].
+Canonical Structure subg_choiceType := Eval hnf in ChoiceType subg_choiceMixin.
+Definition subg_countMixin := [countMixin of subg_of by <:].
+Canonical Structure subg_countType := Eval hnf in CountType subg_countMixin.
+Canonical Structure subg_subCountType := Eval hnf in [subCountType of subg_of].
+Definition subg_finMixin := [finMixin of subg_of by <:].
+Canonical Structure subg_finType := Eval hnf in FinType subg_finMixin.
 Canonical Structure subg_subFinType := Eval hnf in [subFinType of subg_of].
 
 Lemma subgP : forall u, sgval u \in G.
@@ -1401,19 +1417,21 @@ Proof. exact: val_inj. Qed.
 Lemma congr_subg : forall u v, u = v -> sgval u = sgval v.
 Proof. exact: congr1. Qed.
 
-Definition subg_unit := Subg group1.
+Definition subg_one := Subg group1.
 Definition subg_inv u := Subg (groupVr (subgP u)).
 Definition subg_mul u v := Subg (groupM (subgP u) (subgP v)).
-Lemma subg_unitP : left_unit subg_unit subg_mul.
+Lemma subg_oneP : left_id subg_one subg_mul.
 Proof. move=> u; apply: val_inj; exact: mul1g. Qed.
-Lemma subg_invP : left_inverse subg_unit subg_inv subg_mul.
+Lemma subg_invP : left_inverse subg_one subg_inv subg_mul.
 Proof. move=> u; apply: val_inj; exact: mulVg. Qed.
 Lemma subg_mulP : associative subg_mul.
 Proof. move=> u v w; apply: val_inj; exact: mulgA. Qed.
 
+Definition subFinGroupMixin := FinGroup.Mixin subg_mulP subg_oneP subg_invP.
 Canonical Structure subBaseFinGroupType :=
-  [baseFinGroupType of subg_of by subg_mulP, subg_unitP & subg_invP].
+  Eval hnf in BaseFinGroupType subFinGroupMixin.
 Canonical Structure subFinGroupType := FinGroupType subg_invP.
+
 Lemma sgvalM : {in setT &, {morph sgval : x y / x * y}}. Proof. by []. Qed.
 Lemma valgM : {in setT &, {morph val : x y / (x : subg_of) * y >-> x * y}}.
 Proof. by []. Qed.
@@ -1811,14 +1829,14 @@ Proof. by move=> G H; apply: val_inj; exact: mulgenC. Qed.
 Lemma mulGenA : associative mulGenT.
 Proof. by move=> G H K; apply: val_inj; exact: mulgenA. Qed.
 
-Lemma mulGen1G : left_unit 1%G mulGenT.
+Lemma mulGen1G : left_id 1%G mulGenT.
 Proof. by move=> G; apply: val_inj; exact: mulgen1G. Qed.
 
-Lemma mulGenG1 : right_unit 1%G mulGenT.
+Lemma mulGenG1 : right_id 1%G mulGenT.
 Proof. by move=> G; apply: val_inj; exact: mulgenG1. Qed.
 
 Canonical Structure mulGen_law := Monoid.Law mulGenA mulGen1G mulGenG1.
-Canonical Structure mulGen_abelaw := Monoid.AbelianLaw mulGenC.
+Canonical Structure mulGen_abelaw := Monoid.ComLaw mulGenC.
 
 Lemma bigprodGEgen : forall I r (P : pred I) (F : I -> {set gT}),
   (\prod_(i <- r | P i) <<F i>>)%G :=: << \bigcup_(i <- r | P i) F i >>.

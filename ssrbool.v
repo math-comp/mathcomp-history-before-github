@@ -131,11 +131,11 @@ Hint Resolve is_true_true not_false_is_true is_true_locked_true.
 (* than b = false or ~ b, as much as possible.                     *)
 
 Lemma negbT : forall b, b = false -> ~~ b.        Proof. by case. Qed.
-Lemma negbET : forall b, ~~ b -> b = false.       Proof. by case. Qed.
+Lemma negbTE : forall b, ~~ b -> b = false.       Proof. by case. Qed.
 Lemma negbF : forall b : bool, b -> ~~ b = false. Proof. by case. Qed.
-Lemma negbEF : forall b, ~~ b = false -> b.       Proof. by case. Qed.
+Lemma negbFE : forall b, ~~ b = false -> b.       Proof. by case. Qed.
 Lemma negbK : involutive negb.                    Proof. by case. Qed.
-Lemma negbE2 : forall b, ~~ ~~ b -> b.            Proof. by case. Qed.
+Lemma negbNE : forall b, ~~ ~~ b -> b.            Proof. by case. Qed.
 
 Lemma negb_inj : injective negb. Proof. exact: can_inj negbK. Qed.
 
@@ -208,8 +208,8 @@ End BoolIf.
 (* The reflection predicate.                                          *)
 
 Inductive reflect (P : Prop) : bool -> Set :=
-  | Reflect_true  of   P : reflect P true
-  | Reflect_false of ~ P : reflect P false.
+  | ReflectT  of   P : reflect P true
+  | ReflectF of ~ P : reflect P false.
 
 (* Core (internal) reflection lemmas, used for the three kinds of views. *)
 
@@ -431,9 +431,9 @@ Prenex Implicits andP and3P and4P and5P orP or3P or4P nandP norP implyP.
 
 (* Shorter, more systematic names for the boolean connectives laws.       *)
 
-Lemma andTb : left_unit true andb.     Proof. by []. Qed.
+Lemma andTb : left_id true andb.     Proof. by []. Qed.
 Lemma andFb : left_zero false andb.    Proof. by []. Qed.
-Lemma andbT : right_unit true andb.    Proof. by case. Qed.
+Lemma andbT : right_id true andb.    Proof. by case. Qed.
 Lemma andbF : right_zero false andb.   Proof. by case. Qed.
 Lemma andbb : idempotent andb.         Proof. by case. Qed.
 Lemma andbC : commutative andb.        Proof. by do 2!case. Qed.
@@ -442,9 +442,9 @@ Lemma andbCA : left_commutative andb.  Proof. by do 3!case. Qed.
 Lemma andbAC : right_commutative andb. Proof. by do 3!case. Qed.
 
 Lemma orTb : forall b, true || b.      Proof. by []. Qed.
-Lemma orFb : left_unit false orb.      Proof. by []. Qed.
+Lemma orFb : left_id false orb.      Proof. by []. Qed.
 Lemma orbT : forall b, b || true.      Proof. by case. Qed.
-Lemma orbF : right_unit false orb.     Proof. by case. Qed.
+Lemma orbF : right_id false orb.     Proof. by case. Qed.
 Lemma orbb : idempotent orb.           Proof. by case. Qed.
 Lemma orbC : commutative orb.          Proof. by do 2!case. Qed.
 Lemma orbA : associative orb.          Proof. by do 3!case. Qed.
@@ -492,8 +492,8 @@ Proof. by do 2!case. Qed.
 
 (* addition (xor) *)
 
-Lemma addFb : left_unit false addb.             Proof. by []. Qed.
-Lemma addbF : right_unit false addb.            Proof. by case. Qed.
+Lemma addFb : left_id false addb.             Proof. by []. Qed.
+Lemma addbF : right_id false addb.            Proof. by case. Qed.
 Lemma addbb : self_inverse false addb.          Proof. by case. Qed.
 Lemma addbC : commutative addb.                 Proof. by do 2!case. Qed.
 Lemma addbA : associative addb.                 Proof. by do 3!case. Qed.
@@ -724,11 +724,12 @@ Notation "[ 'rel' x y | E ]" := (SimplRel (fun x y => E))
 Notation "[ 'rel' x y : T | E ]" := (SimplRel (fun x y : T => E))
   (at level 0, x ident, y ident, only parsing) : fun_scope.
 
-Notation "[ 'predType' 'of' pT ]" :=
-  (match [is pT <: predType _] as s
-   return {type of @PredType _ for s} -> _ with
-  | PredType _ a mP => fun k => k a mP end
-  (@PredType _ pT)) (at level 0, only parsing) : form_scope.
+Definition repack_pred T pT :=
+  let: PredType _ a mP := pT return {type of @PredType T for pT} -> _ in
+   fun k => k a mP.
+
+Notation "[ 'predType' 'of' T ]" := (repack_pred (fun a => @PredType _ T a))
+  (at level 0, format "[ 'predType'  'of'  T ]") : form_scope.
 
 (* This redundant coercion lets us "inherit" the simpl_predType canonical *)
 (* structure by declaring a coercion to simpl_pred. This hack is the only *)
@@ -749,9 +750,8 @@ Coercion sort_of_simpl_pred T (p : simpl_pred T) : pred_class := p : pred T.
 Definition predArgType := Type.
 Coercion pred_of_argType (T : predArgType) : simpl_pred T := predT.
 
-Definition bool_for : predArgType := bool.
-Notation "{ 'bool' }" := bool_for
-  (at level 0, format "{ 'bool' }") : type_scope.
+Notation "{ : T }" := (T%type : predArgType)
+  (at level 0, format "{ :  T }") : type_scope.
 
 (* These must be defined outside a Section because "cooking" kills the *)
 (* nosimpl tag.                                                        *)

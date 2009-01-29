@@ -54,50 +54,77 @@ Notation "'if' c 'as' x 'return' t 'then' v1 'else' v2" :=
 
 Open Scope boolean_if_scope.
 
+(* To allow a wider variety of notations without reserving a large number *)
+(* of identifiers, the ssreflect library systematically uses "forms" to   *)
+(* enclose complex mixfix syntax. A "form" is simply a mixfix expression  *)
+(* enclosed in square brackets and introduced by a keyword:               *)
+(*      [keyword ... ]                                                    *)
+(* Because the keyword follows a bracket it does not need to be reserved. *)
+(* Non-ssreflect libraries that do not respect the form syntax (e.g., the *)
+(* Coq Lists library) should be loaded before ssreflect so that their     *)
+(* notation do not mask all ssreflect forms.                              *)
+Delimit Scope form_scope with FORM.
+Open Scope form_scope.
+
+(* Allow the casual use of notations like nat * nat for explicit Type *)
+(* declarations. Note that (nat * nat : Type) is NOT equivalent to    *)
+(* (nat * nat)%type, whose inferred type is legacy type "Set".        *)
+Notation "T : 'Type'" := (T%type : Type) (at level 100, only parsing).
+
 (* Syntax for referring to canonical structures:                   *)
-(*   [is carrier : carrier_type <: struct_type]                    *)
-(* denotes carrier_struct when carrier_struct : struct_type is a   *)
-(* Canonical Structure that projects to carrier via its coercion   *)
-(* to carrier_type, i.e., such that                                *)
-(*     carrier_struct : carrier_type = carrier.                    *)
-(*  Although [is carrier : carrier_type <: struct_type] is         *)
-(* convertible (and indeed simplifies) to carrier_struct, it does  *)
-(* not actually denote carrier_struct, but a more complex term     *)
-(* that is displayed as                                            *)
-(*      (*is carrier*)carrier_struct                               *)
-(* The ": carrier_type" is optional and defaults to ": Type" :     *)
-(*      [is c <: sT] is equivalent to [c%type : Type <: sT]        *)
-(* (The %type allows the casual use of notations like nat * nat.)  *)
-(*   Alternatively, if "carrier_type" is left as "_" it will be    *)
-(* inferred from c. However, this alternative should NOT be be     *)
-(* when carrier_type is Type, because Coq infers that simple       *)
-(* datatypes such as nat, nat * nat, or seq nat have the legacy    *)
-(* type "Set" rather than "Type".                                  *)
+(*      [the struct_type of proj_val by proj_fun]                  *)
+(* This form denotes the Canonical instance s of the Structure     *)
+(* type struct_type whose proj_fun projection is proj_val, i.e.,   *)
+(* such that proj_fun s = proj_val. Typically proj_fun will be one *)
+(* of the record field accessors of struct_type, but this need not *)
+(* be the case; it can be, for instance, a field of a record type  *)
+(* to which struct_type coerces; proj_val will likewise be coerced *)
+(* to the return type of proj_fun. In all but the simplest cases,  *)
+(* proj_fun should be eta-expanded to allow for the insertion of   *)
+(* implicit arguments and/or coercions.                            *)
+(*   In the common case where proj_fun itself is a coercion, the   *)
+(* "by" part can be omitted entirely; in this case it is inferred  *)
+(* by casting s : struct_type to the inferred type of proj_val.    *)
+(* Obviously the latter can be fixed by using an implicit cast on  *)
+(* proj_val, and it is highly recommended to do so when the return *)
+(* type intended for proj_fun is "Type", as the type inferred for  *)
+(* proj_val may vary because of sort polymorphism (it could be Set *)
+(* or Prop).                                                       *)
+(*   Special note for telescopes (structures with coercion-based   *)
+(* inheritance): when using the "the" form to generate a           *)
+(* substructure from a canonical hierarchy, on should always       *)
+(* project or coerce the value to the BASE structure, because Coq  *)
+(* will only find a Canonical derived structure for the Canonical  *)
+(* base structure -- not for a base structure that is specific to  *)
+(* proj_value.                                                     *)
 
-Delimit Scope structure_scope with STRUCT.
-Open Scope structure_scope.
+Module TheCanonical.
 
-Module AsCanonical.
+CoInductive put vT sT (v1 v2 : vT) (s : sT) : Type := Put.
 
-CoInductive put cT sT (c1 c2 : cT) (s : sT) :  Type := Put.
+Definition get vT sT v s (p : @put vT sT v v s) := let: Put := p in s.
 
-Definition get cT sT c s (p : @put cT sT c c s) := let: Put := p in s.
+Definition get_by vT sT of sT -> vT := @get vT sT.
 
-End AsCanonical.
+End TheCanonical.
 
-Import AsCanonical.
+Import TheCanonical. (* Note: no export. *)
 
-Notation "[ 'is' c : cT <: sT ]" := (get ((fun s : sT => Put (c : cT) s s) _))
-  (at level 0, c, cT at level 99, only parsing) : structure_scope.
+Notation "[ 'the' sT 'of' v 'by' f ]" :=
+  (@get_by _ sT f _ _ ((fun v' (s : sT) => Put v' (f s) s) v _))
+  (at level 0, only parsing) : form_scope.
 
-Notation "[ 'is' c <: sT ]" := [is c%type : Type <: sT]
-  (at level 0, c at level 99, only parsing) : structure_scope.
+Notation "[ 'the' sT 'of' v ]" := (get ((fun s : sT => Put v (*coerce*)s s) _))
+  (at level 0, only parsing) : form_scope.
 
-Notation "[ 'i' 's' c : cT <: sT ]" := (@get cT sT c _ _)
-  (at level 0, format "[ 'i' 's'  c  :  cT  <:  sT ]") : structure_scope.
+Notation "[ 't' 'he' sT 'of' v 'by' f ]" := (@get_by _ sT f v _ _)
+  (at level 0,  format "[ 't' 'he'  sT  'of'  v  'by'  f ]") : form_scope.
 
-Notation "[ 'i' 's' c <: sT ]" := (@get Type sT c _ _)
-  (at level 0, format "[ 'i' 's'  c  <:  sT ]") : structure_scope.
+Notation "[ 't' 'he' sT 'of' v ]" := (@get _ sT v _ _)
+  (at level 0, format "[ 't' 'he'  sT   'of'  v ]") : form_scope.
+
+Notation "[ 't' 'he' sT 'of' v : 'Type' ]" := (@get Type sT v _ _)
+  (at level 0, format "[ 't' 'he'  sT   'of'  v  :  'Type' ]") : form_scope.
 
 (* Helper notation for canonical structure inheritance support.           *)
 (* This is a workaround for the poor interaction between delta reduction  *)
@@ -113,7 +140,7 @@ Notation "[ 'i' 's' c <: sT ]" := (@get Type sT c _ _)
 (* "str" with constructor "Str", as follows                               *)
 (*  Notation "[ 'str' 'of' t ]" :=                                        *)
 (*    (StructureOf (@Str t)                                               *)
-(*     match [is t <: str] as s                                           *)
+(*     match [the str of t] as s                                          *)
 (*       return {type of Str for s} -> str with                           *)
 (*    | Str _ x y ... z => fun k => k _ x y ... z                         *)
 (*    end) (at level 0, only parsing) : form_scope.                       *)
@@ -125,6 +152,11 @@ Notation "[ 'i' 's' c <: sT ]" := (@get Type sT c _ _)
 (* The StructureOf allows the second (unparsable) Notation to be used     *)
 (* to display the result of the first; it can be omitted for structures   *)
 (* like, e.g., eqType, that are only used statically.                     *)
+(*   Remember to take into account the remark above concerning the use of *)
+(* the "the" form with telescopes: t should be cast to the type of the    *)
+(* carrier of the base class of the telescope. Most of the time this is   *)
+(* Type, which can be written (Type) to avoid a scope discrepancy (note   *)
+(* that in this case t must not be a Type -- it must be a base structure. *)
 
 Definition argumentType T P & forall x : T, P x := T.
 Definition dependentReturnType T P & forall x : T, P x := P.
@@ -133,9 +165,6 @@ Definition StructureOf sT cT (construct : cT) K : sT := K construct.
 
 Notation "{ 'type' 'of' c 'for' s }" := (dependentReturnType c s)
   (at level 0, format "{ 'type'  'of'  c  'for'  s }") : type_scope.
-
-Delimit Scope form_scope with FORM.
-Open Scope form_scope.
 
 (* A generic "phantom" type (actually, the unit type with a phantom      *)
 (* parameter). This can be used for type definitions that require some   *)
@@ -147,14 +176,14 @@ Open Scope form_scope.
 (*  Structure p_str : Type := p_Str {                                    *)
 (*    p_repr :> p_type; p_op : p_repr -> ...}                            *)
 (* should be given as                                                    *)
-(*  Inductive indt (p : p_str) : Type := Indt ... .                      *)
-(*  Definition indt_for (p : p_str) & phantom p_type p := indt p.        *)
-(*  Notation "{ 'indt' p }" := (indt_for (Phantom p)).                   *)
-(*  Definition indt_of p x y ... z : {indt p} := @Indt p x y ... z.      *)
-(*  Notation "[ 'indt' x y ... z ]" := (indt_of x y ... z).              *)
+(*  Inductive indt_type (p : p_str) : Type := Indt ... .                 *)
+(*  Definition indt_of (p : p_str) & phantom p_type p := indt_type p.    *)
+(*  Notation "{ 'indt' p }" := (indt_of (Phantom p)).                    *)
+(*  Definition indt p x y ... z : {indt p} := @Indt p x y ... z.         *)
+(*  Notation "[ 'indt' x y ... z ]" := (indt x y ... z).                 *)
 (* That is, the concrete type and its constructor should be shadowed by  *)
 (* definitions that use a phantom argument to infer and display the true *)
-(* value of p (in practice, the "indt_of" constructor often performs     *)
+(* value of p (in practice, the "indt" constructor often performs        *)
 (* additional functions, like "locking" the representation (see below).  *)
 (*   We also define a simpler version ("phant" / "Phant") for the common *)
 (* case where p_type is Type.                                            *)

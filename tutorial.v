@@ -233,7 +233,7 @@ Proof.
 move=> d q r lt_rd; have d_pos: 0 < d by exact: leq_trans lt_rd.
 case: edivnP lt_rd => q' r'; rewrite d_pos /=.
 wlog: q q' r r' / q <= q' by case (ltnP q q'); last symmetry; eauto.
-rewrite leq_eqVlt; case: eqP => [-> _|_] /=; first by move/addn_injl->.
+rewrite leq_eqVlt; case: eqP => [-> _|_] /=; first by move/addnI->.
 rewrite -(leq_pmul2r d_pos); move/leq_add=> Hqr Eqr _; move/Hqr {Hqr}.
 by rewrite addnS ltnNge mulSn -addnA Eqr addnCA addnA leq_addr.
 Qed.
@@ -273,7 +273,7 @@ set d' := d; have: d' = d by [].
 case: (edivnP_right m d') => {m d'} m d' q' r' -> lt_r'd' d'd q'd'r'.
 move: q'd'r' lt_r'd' lt_rd; rewrite d'd d_pos {d'd m} /=.
 wlog: q q' r r' / q <= q' by case (ltnP q q'); last symmetry; eauto.
-rewrite leq_eqVlt; case: eqP => [-> _|_] /=; first by move/addn_injl->.
+rewrite leq_eqVlt; case: eqP => [-> _|_] /=; first by move/addnI->.
 rewrite -(leq_pmul2r d_pos); move/leq_add=> Hqr Eqr _; move/Hqr {Hqr}.
 by rewrite addnS ltnNge mulSn -addnA -Eqr addnCA addnA leq_addr.
 Qed.
@@ -286,7 +286,7 @@ case: (edivnP_left (q * d + r) d) lt_rd; rewrite d_pos /=.
 set q':= (edivn (q * d + r) d).1; set r':= (edivn (q * d + r) d).2.
 rewrite (surjective_pairing (edivn (q * d + r) d)) -/q' -/r'. 
 wlog: q r q' r' / q <= q' by case (ltnP q q'); last symmetry; eauto.
-rewrite leq_eqVlt; case: eqP => [-> _|_] /=; first by move/addn_injl->.
+rewrite leq_eqVlt; case: eqP => [-> _|_] /=; first by move/addnI->.
 rewrite -(leq_pmul2r d_pos); move/leq_add=> Hqr Eqr _; move/Hqr {Hqr}.
 by rewrite addnS ltnNge mulSn -addnA Eqr addnCA addnA leq_addr.
 Qed.

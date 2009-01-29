@@ -1,5 +1,5 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype div.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype div.
 Require Import tuple finfun ssralg bigops finset groups action perm.
 Require Import prim_act.
 
@@ -29,14 +29,20 @@ Section colouring.
 Variable n : nat.
 Definition  colors := 'I_n.
 Canonical Structure colors_eqType := Eval hnf in [eqType of colors].
+Canonical Structure colors_choiceType := Eval hnf in [choiceType of colors].
+Canonical Structure colors_countType := Eval hnf in [countType of colors].
 Canonical Structure colors_finType := Eval hnf in [finType of colors].
 
 Section square_colouring.
 
 Definition square := 'I_4.
 Canonical Structure square_eqType := Eval hnf in [eqType of square].
-Canonical Structure square_subType := Eval hnf in [subType of square].
+Canonical Structure square_choiceType := Eval hnf in [choiceType of square].
+Canonical Structure square_countType := Eval hnf in [countType of square].
 Canonical Structure square_finType := Eval hnf in [finType of square].
+Canonical Structure square_subType := Eval hnf in [subType of square].
+Canonical Structure square_subCountType :=
+  Eval hnf in [subCountType of square].
 Canonical Structure square_subFinType := Eval hnf in [subFinType of square].
 
 Definition mksquare i : square := Sub (i %% _) (ltn_mod i 4).
@@ -142,7 +148,7 @@ Definition sh := (perm Sh_inj).
 
 Lemma sh_inv : sh^-1 = sh.
 Proof.
-apply:(mulg_injr sh);rewrite mulVg ;apply/permP.
+apply:(mulIg sh);rewrite mulVg ;apply/permP.
 by case; do 4?case  => //=; move=> H;rewrite !permE /= !permE; apply /eqP.
 Qed.
 
@@ -157,7 +163,7 @@ Definition sv := (perm Sv_inj).
 
 Lemma sv_inv: sv^-1 = sv.
 Proof.
-apply:(mulg_injr sv);rewrite mulVg ;apply/permP.
+apply:(mulIg sv);rewrite mulVg ;apply/permP.
 by case; do 4?case  => //=; move=> H; rewrite !permE /= !permE; apply /eqP.
 Qed.
 
@@ -172,7 +178,7 @@ Definition sd1 := (perm Sd1_inj).
 
 Lemma sd1_inv : sd1^-1 = sd1.
 Proof.
-apply: (mulg_injr sd1); rewrite mulVg; apply/permP.
+apply: (mulIg sd1); rewrite mulVg; apply/permP.
 by case; do 4?case=> //=; move=> H; rewrite !permE /= !permE; apply /eqP.
 Qed.
 
@@ -187,7 +193,7 @@ Definition sd2 := (perm Sd2_inj).
 
 Lemma sd2_inv : sd2^-1 = sd2.
 Proof.
-apply: (mulg_injr sd2); rewrite mulVg; apply/permP.
+apply: (mulIg sd2); rewrite mulVg; apply/permP.
 by case; do 4?case=> //=; move=> H; rewrite !permE /= !permE; apply/eqP.
 Qed.
 
@@ -265,7 +271,7 @@ Canonical Structure iso_group := Group group_set_iso.
 Lemma card_rot: #|rot| = 4.
 Proof.
 rewrite -[4]/(size [:: id1; r1; r2; r3]) -(card_uniqP _).
-  by apply: eq_card => x; rewrite rot_is_rot  !inE orbF -!orbA.
+  by apply: eq_card => x; rewrite rot_is_rot !inE -!orbA.
 by apply: maps_uniq (fun p : {perm square} => p c0) _ _; rewrite /= !permE.
 Qed.
 
@@ -373,10 +379,10 @@ move=> x y z t Uxt; rewrite -[n]card_ord.
 pose f (p : col_squares) := (p x, p z); rewrite -(@card_in_image _ _ f).
   rewrite -mulnn -card_prod; apply: eq_card => [] [c d] /=; apply/imageP.
   rewrite (uniq_cat [::x; y]) in Uxt; case/and3P: Uxt => _.
-  rewrite /= !orbF !andbT; case/norP; rewrite !inE !orbF => nxzt nyzt _.
+  rewrite /= !orbF !andbT; case/norP; rewrite !inE => nxzt nyzt _.
   exists [ffun i => if pred2 x y i then c else d].
-    by rewrite !inE /= !ffunE !eqxx orbT (negbET nxzt) (negbET nyzt) !eqxx.
-  by rewrite {}/f !ffunE /= eqxx (negbET nxzt).
+    by rewrite !inE /= !ffunE !eqxx orbT (negbTE nxzt) (negbTE nyzt) !eqxx.
+  by rewrite {}/f !ffunE /= eqxx (negbTE nxzt).
 move=> p1 p2; rewrite !inE.
 case/andP=> p1y p1t; case/andP=> p2y p2t [px pz].
 have eqp12: all (fun i => p1 i == p2 i) [:: x; y; z; t].
@@ -403,8 +409,8 @@ Qed.
 Lemma burnside_app2: (square_coloring_number2 * 2 = n ^ 4 + n ^ 2)%N.
 Proof.
 rewrite (burnside_formula [:: id1; sh]) => [||p]; last first.
-- by rewrite !inE orbF.
-- by rewrite /= inE orbF diff_id_sh.
+- by rewrite !inE.
+- by rewrite /= inE diff_id_sh.
 by rewrite 2!big_adds big_seq0 addn0 {1}card_Fid F_Sh card_n2.
 Qed.
 
@@ -412,7 +418,7 @@ Lemma burnside_app_rot:
   (square_coloring_number4 * 4 = n ^ 4 + n ^ 2 + 2 * n)%N.
 Proof.
 rewrite (burnside_formula [:: id1; r1; r2; r3]) => [||p]; last first.
-- by rewrite !inE !orbA orbF.
+- by rewrite !inE !orbA.
 - by apply: maps_uniq (fun p : {perm square} => p c0) _ _; rewrite /= !permE.
 rewrite !big_adds big_seq0 /= addn0 {1}card_Fid F_r1 F_r2 F_r3.
 by rewrite card_n card_n2 //=; ring.
@@ -441,7 +447,7 @@ rewrite -(@card_image _ _ (fun k : col_squares => (k y, pk k))).
   exists [ffun i => if i == y then c else k i]; first by rewrite inE.
   rewrite !ffunE eqxx; congr (_, _); apply/ffunP=> i; rewrite !ffunE.
   case Eiy: (i == y); last by rewrite Eiy.
-  by rewrite (negbET nxy) (eqP Eiy).
+  by rewrite (negbTE nxy) (eqP Eiy).
 move=> k1 k2 [Eky Epk]; apply/ffunP=> i.
 have{Epk}: pk k1 i = pk k2 i by rewrite Epk.
 by rewrite !ffunE; case: eqP => // ->.
@@ -458,7 +464,7 @@ Lemma burnside_app_iso :
 Proof.
 pose iso_list := [:: id1; r1; r2; r3; sh; sv; sd1; sd2].
 rewrite (burnside_formula iso_list) => [||p]; last first.
-- by rewrite /= !inE orbF.
+- by rewrite /= !inE.
 - apply: maps_uniq (fun p : {perm square} => (p c0, p c1)) _ _.
   by rewrite /= !permE.
 rewrite !big_adds big_seq0 {1}card_Fid F_r1 F_r2 F_r3 F_Sh F_Sv F_Sd1 F_Sd2.
@@ -471,8 +477,11 @@ Section cube_colouring.
 
 Definition cube := 'I_6.
 Canonical Structure cube_eqType := Eval hnf in [eqType of cube].
-Canonical Structure cube_subType := Eval hnf in [subType of cube].
+Canonical Structure cube_choiceType := Eval hnf in [choiceType of cube].
+Canonical Structure cube_countType := Eval hnf in [countType of cube].
 Canonical Structure cube_finType := Eval hnf in [finType of cube].
+Canonical Structure cube_subType := Eval hnf in [subType of cube].
+Canonical Structure cube_subCountType := Eval hnf in [subCountType of cube].
 Canonical Structure cube_subFinType := Eval hnf in [subFinType of cube].
 
 Definition mkFcube i : cube := Sub (i %% 6) (ltn_mod i 6).
@@ -722,7 +731,7 @@ Lemma Lcorrect: seq_iso_L == maps sop [:: id3; s05; s14; s23; r05; r14; r23;
 Proof. by rewrite /= !seqs1. Qed.
 
 Lemma iso0_1 : dir_iso3 =i dir_iso3l.
-Proof. by move=> p; rewrite /= !inE orbF /= -!(eq_sym p). Qed.
+Proof. by move=> p; rewrite /= !inE /= -!(eq_sym p). Qed.
 
 Lemma L_iso : forall p, (p \in dir_iso3) = (sop p \in seq_iso_L).
 Proof.
@@ -1127,21 +1136,17 @@ Proof.
 move => x y z t Uxt; move:( cardC  (mem [:: x; y; z; t])).
 rewrite card_ord  (card_uniq_tuple Uxt) => hcard.
 have hcard2: #|predC (mem [:: x; y; z; t])| = 2.
-  by apply:( @addn_injl 4); rewrite /injective  hcard.
+  by apply:( @addnI 4); rewrite /injective  hcard.
 have:  #|predC (mem [:: x; y; z; t])| != 0 by rewrite hcard2.
 case/existsP=> u Hu; exists u.
 move: (cardC (mem [:: x; y; z; t; u])); rewrite card_ord => hcard5.
 have: #|[predC [:: x; y; z; t; u]]| !=0.
   rewrite -lt0n  -(ltn_add2l #|[:: x; y; z; t; u]|) hcard5 addn0.
  by apply: (leq_ltn_trans (card_size [:: x; y; z; t; u])).
-case/existsP => v Hv; exists v.
-rewrite (uniq_cat [::x; y;z;t]) Uxt andTb.
-apply/andP;split.
-  apply/hasPn => x0; rewrite !inE orbF.
-  case/orP; move/eqP => ->; first by move:Hu.
-  by move:Hv; rewrite /= !inE !orbF  !orbA;case/norP.
-rewrite /= andbT !inE orbF /= eq_sym; case/norP: Hv => //= _.
-by rewrite orbF; do 3![case/norP => //= ; move/negbET => _].
+case/existsP => v; rewrite 2!inE (mem_cat _ [:: _; _; _; _]).
+case/norP=> Hv Huv; exists v.
+rewrite (uniq_cat [:: x; y; z; t]) Uxt andTb.
+by rewrite 2!negb_or /= [~~ _]Hu Hv in_adds eq_sym Huv.
 Qed.
 
 Lemma card_n4 : forall x y z t : cube, uniq [:: x; y; z; t] ->
@@ -1161,19 +1166,19 @@ have ->:forall n, (n ^ 4)%N= (n*n*n*n)%N.
   by move => n0;rewrite (expn_add n0 2 2) -mulnn mulnA.
 rewrite -!card_prod; apply: eq_card => [] [[[c d]e ]g] /=; apply/imageP.
 rewrite (uniq_cat [::x; y;z;t]) in Uxv; case/and3P: Uxv => _ hasxt.
-rewrite /= !inE orbF andbT.
-move/negbET=> nuv .
+rewrite /= !inE andbT.
+move/negbTE=> nuv .
 rewrite (uniq_cat [::x; y]) in Uxt; case/and3P: Uxt => _.
-rewrite /=. rewrite  !orbF !andbT; case/norP; rewrite !inE !orbF=> nxyz nxyt _.
-move:hasxt;rewrite /= !orbF; case/norP; rewrite !inE orbA  !orbF.
+rewrite /= !andbT orbF; case/norP; rewrite !inE => nxyz nxyt _.
+move:hasxt; rewrite /= !orbF; case/norP; rewrite !inE orbA.
 case/norP  => nxyu nztu.
 rewrite orbA;case/norP=> nxyv nztv.
 exists [ffun i => if pred2 x y i then c else if pred2 z t i then d
                     else if u==i then e else g].
   rewrite !inE /= !ffunE //= !eqxx orbT //= !eqxx /= orbT.
-  by rewrite (negbET nxyz) (negbET nxyt).
+  by rewrite (negbTE nxyz) (negbTE nxyt).
 rewrite {}/ff !ffunE /= !eqxx /=.
-rewrite (negbET nxyz) (negbET nxyu) (negbET nztu) (negbET nxyv) (negbET nztv).
+rewrite (negbTE nxyz) (negbTE nxyu) (negbTE nztu) (negbTE nxyv) (negbTE nztv).
 by rewrite  nuv.
 Qed.
 
@@ -1197,13 +1202,12 @@ have ->:forall n, (n ^ 3)%N= (n*n*n)%N.
   by move => n0 ; rewrite (expn_add n0 2 1) -mulnn expn1.
 rewrite -!card_prod; apply: eq_card => [] [[c d]e ] /=; apply/imageP.
 rewrite (uniq_cat [::x; y;z;t]) in Uxv; case/and3P: Uxv => _ hasxt.
-rewrite /uniq  !inE orbF !andbT; move/negbET=> nuv.
+rewrite /uniq !inE !andbT; move/negbTE=> nuv.
 exists
    [ffun i => if (i \in [:: x; y; z; t]) then c else if u == i then d else e].
-  by rewrite /= !inE   !ffunE !inE  !orbF !eqxx !orbT !eqxx.
-rewrite {}/ff !ffunE !inE /= !eqxx /= !orbF.
-move: hasxt; rewrite nuv.
-by do 8![case E: ( _ ==  _ ); rewrite ?(eqP E)/= ?inE ?orbF  ?eqxx //= ?E {E}].
+  by rewrite /= !inE   !ffunE !inE  !eqxx !orbT !eqxx.
+rewrite {}/ff !ffunE !inE /= !eqxx /=; move: hasxt; rewrite nuv.
+by do 8![case E: ( _ ==  _ ); rewrite ?(eqP E)/= ?inE ?eqxx //= ?E {E}].
 Qed.
 
 Lemma card_n2_3 : forall x y z t u v: cube, uniq [:: x; y; z;t; u ; v] ->
@@ -1223,13 +1227,12 @@ pose ff (p : col_cubes) := (p x, p t); rewrite -(@card_in_image _ _ ff); first l
 have ->:forall n, (n ^ 2)%N= (n*n)%N by move => n0 ; rewrite  -mulnn .
    rewrite -!card_prod; apply: eq_card => [] [c d]/=; apply/imageP.
 rewrite (uniq_cat [::x; y;z]) in Uxv; case/and3P: Uxv => Uxt hasxt nuv .
-move:hasxt;rewrite /= !orbF. case/norP; rewrite !inE !orbF => nxyzt.
+move:hasxt;rewrite /= !orbF; case/norP; rewrite !inE => nxyzt.
 case/norP => nxyzu nxyzv.
 exists [ffun i =>  if (i \in [:: x; y; z] ) then c else  d].
-  rewrite !inE /= !ffunE !inE //= !orbF !eqxx !orbT !eqxx //=.
-  by rewrite (negbET nxyzt) (negbET nxyzu)(negbET nxyzv) !eqxx.
-rewrite {}/ff !ffunE  !inE /= !eqxx /=.
-by rewrite !orbF; rewrite (negbET nxyzt) .
+  rewrite !inE /= !ffunE !inE //= !eqxx !orbT !eqxx //=.
+  by rewrite (negbTE nxyzt) (negbTE nxyzu)(negbTE nxyzv) !eqxx.
+by rewrite {}/ff !ffunE  !inE /= !eqxx /= (negbTE nxyzt).
 Qed.
 
 Lemma card_n3s : forall x y z t u v: cube, uniq [:: x; y; z;t; u ; v] ->
@@ -1252,17 +1255,17 @@ have ->:forall n, (n ^ 3)%N= (n*n*n)%N.
 rewrite -!card_prod. apply: eq_card => [] [[c d]e ] /=; apply/imageP.
 rewrite (uniq_cat [::x; y;z;t]) in Uxv; case/and3P: Uxv => Uxt hasxt nuv .
 rewrite (uniq_cat [::x; y]) in Uxt; case/and3P: Uxt => _.
-rewrite /= !orbF !andbT; case/norP ; rewrite !inE !orbF => nxyz nxyt _.
-move:hasxt;rewrite /= !orbF; case/norP; rewrite !inE orbA !orbF.
+rewrite /= !orbF !andbT; case/norP ; rewrite !inE => nxyz nxyt _.
+move: hasxt; rewrite /= !orbF; case/norP; rewrite !inE orbA.
 case/norP => nxyu nztu.
 rewrite orbA;case/norP=> nxyv nztv.
 exists [ffun i =>  if (i \in [:: x; y] ) then c else  if (i \in [:: z; t] )
                          then d else e].
-  rewrite !inE /= !ffunE !inE // !orbF !eqxx !orbT !eqxx //=.
-  by rewrite (negbET nxyz) (negbET nxyt)(negbET nxyu) (negbET nztu)
-           (negbET nxyv) (negbET nztv) !eqxx.
+  rewrite !inE /= !ffunE !inE // !eqxx !orbT !eqxx //=.
+  by rewrite (negbTE nxyz) (negbTE nxyt)(negbTE nxyu) (negbTE nztu)
+           (negbTE nxyv) (negbTE nztv) !eqxx.
 rewrite {}/ff !ffunE !inE  /= !eqxx /=.
-by rewrite !orbF; rewrite (negbET nxyz) (negbET nxyu) (negbET nztu).
+by rewrite (negbTE nxyz) (negbTE nxyu) (negbTE nztu).
 Qed.
 
 Lemma burnside_app_iso3 :
@@ -1273,7 +1276,7 @@ pose iso_list :=[::id3;  s05;  s14;  s23;  r05;  r14;  r23;  r50;  r41;  r32;
   r024;  r042;  r012;  r021;  r031;  r013;  r043 ;  r034;
   s1 ;  s2;  s3;  s4;  s5;  s6].
 rewrite (burnside_formula iso_list) => [||p]; last first.
-- by rewrite  !inE /= orbF !(eq_sym _ p).
+- by rewrite  !inE /= !(eq_sym _ p).
 - apply: maps_uniq (fun p : {perm cube} => (p F0, p F1)) _ _.
   have bsr:(fun p : {perm cube} => (p F0, p F1)) =1
     (fun p  => (sub F0 p F0, sub F0 p F1)) \o sop.

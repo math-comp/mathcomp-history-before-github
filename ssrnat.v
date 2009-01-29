@@ -1,13 +1,8 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect.
-Require Import ssrfun.
-Require Import ssrbool.
-Require Import eqtype.
-
+Require Import ssreflect ssrfun ssrbool eqtype.
 Require Import BinNat.
+Require BinPos Ndec.
 Require Export Ring.
-Require BinPos.
-Require Ndec.
 
 (*   A "reflected" version of Arith, with an emphasis on boolean predicates *)
 (* and rewriting; this includes a canonical eqType for nat, as well as      *)
@@ -99,19 +94,19 @@ Fixpoint eqn (m n : nat) {struct m} : bool :=
   | _, _ => false
   end.
 
-Lemma eqnP : reflect_eq eqn.
+Lemma eqnP : Equality.axiom eqn.
 Proof.
 move=> n m; apply: (iffP idP) => [|<-]; last by elim n.
 by elim: n m => [|n IHn] [|m] //=; move/IHn->.
 Qed.
 
 Canonical Structure nat_eqMixin := EqMixin eqnP.
-Canonical Structure nat_eqType := EqClass nat_eqMixin.
+Canonical Structure nat_eqType := Eval hnf in EqType nat_eqMixin.
 
 Implicit Arguments eqnP [x y].
 Prenex Implicits eqnP.
 
-Lemma eqnE : eqn = eqd. Proof. by []. Qed.
+Lemma eqnE : eqn = eq_op. Proof. by []. Qed.
 
 Lemma eqSS : forall m n, (m.+1 == n.+1) = (m == n). Proof. by []. Qed.
 
@@ -130,11 +125,11 @@ Lemma addnE : addn = addn_rec. Proof. by []. Qed.
 
 Lemma plusE : plus = addn. Proof. by []. Qed.
 
-Lemma add0n : left_unit 0 addn.                  Proof. by []. Qed.
+Lemma add0n : left_id 0 addn.                  Proof. by []. Qed.
 Lemma addSn : forall m n, m.+1 + n = (m + n).+1. Proof. by []. Qed.
 Lemma add1n : forall n, 1 + n = n.+1.            Proof. by []. Qed.
 
-Lemma addn0 : right_unit 0 addn. Proof. by move=> n; apply/eqP; elim: n. Qed.
+Lemma addn0 : right_id 0 addn. Proof. by move=> n; apply/eqP; elim: n. Qed.
 
 Lemma addnS : forall m n, m + n.+1 = (m + n).+1.
 Proof. by move=> m n; elim: m. Qed.
@@ -166,11 +161,11 @@ Proof. by move=> p *; elim p. Qed.
 Lemma eqn_addr : forall p m n, (m + p == n + p) = (m == n).
 Proof. by move=> p *; rewrite -!(addnC p) eqn_addl. Qed.
 
-Lemma addn_injl : forall p, injective (addn p).
+Lemma addnI : forall p, injective (addn p).
 Proof. by move=> p m n Heq; apply: eqP; rewrite -(eqn_addl p) Heq eqxx. Qed.
 
-Lemma addn_injr : forall p, injective (addn^~ p).
-Proof. move=> p m n; rewrite -!(addnC p); apply addn_injl. Qed.
+Lemma addIn : forall p, injective (addn^~ p).
+Proof. move=> p m n; rewrite -!(addnC p); apply addnI. Qed.
 
 Lemma addn2 : forall m, m + 2 = m.+2. Proof. by move=> *; rewrite addnC. Qed.
 Lemma add2n : forall m, 2 + m = m.+2. Proof. by []. Qed.
@@ -224,7 +219,7 @@ Lemma minusE : minus =2 subn.
 Proof. elim=> [|m IHm] [|n] //=; exact: IHm. Qed.
 
 Lemma sub0n : left_zero 0 subn.    Proof. by []. Qed.
-Lemma subn0 : right_unit 0 subn.   Proof. by case. Qed.
+Lemma subn0 : right_id 0 subn.   Proof. by case. Qed.
 Lemma subnn : self_inverse 0 subn. Proof. by elim. Qed.
 
 Lemma subSS : forall n m, m.+1 - n.+1 = m - n. Proof. by []. Qed.
@@ -545,8 +540,8 @@ Definition maxn (m n : nat) := if (m < n) then n else m.
 
 Definition minn (m n : nat) := if (m < n) then m else n.
 
-Lemma max0n : left_unit 0 maxn.  Proof. by case. Qed.
-Lemma maxn0 : right_unit 0 maxn. Proof. by []. Qed.
+Lemma max0n : left_id 0 maxn.  Proof. by case. Qed.
+Lemma maxn0 : right_id 0 maxn. Proof. by []. Qed.
 
 Lemma maxnC : commutative maxn.
 Proof. by move=> m n; rewrite /maxn; case ltngtP. Qed.
@@ -748,7 +743,7 @@ Lemma mulnE : muln = muln_rec. Proof. by []. Qed.
 
 Lemma mul0n : left_zero 0 muln. Proof. by []. Qed.
 Lemma muln0 : right_zero 0 muln. Proof. by elim. Qed.
-Lemma mul1n : left_unit 1 muln. Proof. exact: addn0. Qed.
+Lemma mul1n : left_id 1 muln. Proof. exact: addn0. Qed.
 Lemma mulSn : forall m n, m.+1 * n = n + m * n. Proof. by []. Qed.
 Lemma mulSnr : forall m n, m.+1 * n = m * n + n.
 Proof. by move=> *; exact: addnC. Qed.
@@ -757,7 +752,7 @@ Proof. by move=> m n; elim: m => // m; rewrite !mulSn !addSn addnCA => ->. Qed.
 Lemma mulnSr : forall m n, m * n.+1 = m * n + m.
 Proof. by move=> m n; rewrite addnC mulnS. Qed.
 
-Lemma muln1 : right_unit 1 muln.
+Lemma muln1 : right_id 1 muln.
 Proof. by move=> n; rewrite mulnSr muln0. Qed.
 
 Lemma mulnC : commutative muln.
@@ -886,7 +881,6 @@ where "m ^ n" := (expn_rec m n) : nat_rec_scope.
 
 Definition expn := nosimpl expn_rec.
 Notation "m ^ n" := (expn m n) : nat_scope.
-Notation "m ^2" := (m ^ 2) (only parsing) : nat_scope.
 
 Lemma expn0 : forall m, m ^ 0 = 1. Proof. by []. Qed.
 
@@ -946,7 +940,7 @@ Proof. by move=> *; rewrite !ltnNge leq_exp2l. Qed.
 Lemma eqn_exp2l : forall m n1 n2, 1 < m -> (m ^ n1 == m ^ n2) = (n1 == n2).
 Proof. by move=> *; rewrite !eqn_leq !leq_exp2l. Qed.
 
-Lemma expn_injl : forall m, 1 < m -> injective (expn m).
+Lemma expnI : forall m, 1 < m -> injective (expn m).
 Proof. by move=> * e1 e2; move/eqP; rewrite eqn_exp2l //; move/eqP. Qed.
 
 Lemma leq_pexp2l : forall m n1 n2, 0 < m -> n1 <= n2 -> m ^ n1 <= m ^ n2.
@@ -970,7 +964,7 @@ Proof. by move=> *; rewrite leqNgt ltn_exp2r // -leqNgt. Qed.
 Lemma eqn_exp2r : forall m n e, e > 0 -> (m ^ e == n ^ e) = (m == n).
 Proof. by move=> *; rewrite !eqn_leq !leq_exp2r. Qed.
 
-Lemma expn_injr : forall e, e > 0 -> injective (expn^~ e).
+Lemma expIn : forall e, e > 0 -> injective (expn^~ e).
 Proof. by move=> * m n; move/eqP; rewrite eqn_exp2r //; move/eqP. Qed.
 
 (* Factorial. *)
@@ -993,8 +987,10 @@ Record pos_nat : Type := PosNat { pos_nat_val :> nat; _ : pos_nat_val > 0 }.
 Lemma pos_natP : forall n : pos_nat, n > 0. Proof. by case. Qed.
 Hint Resolve pos_natP.
 
-Canonical Structure pos_nat_subType := SubType pos_nat_val pos_nat_rect vrefl.
-Canonical Structure pos_nat_eqType := [subEqType for pos_nat_val].
+Canonical Structure pos_nat_subType :=
+  Eval hnf in [subType for pos_nat_val by pos_nat_rect].
+Definition pos_nat_eqMixin := Eval hnf in [eqMixin of pos_nat by <:].
+Canonical Structure pos_nat_eqType := Eval hnf in EqType pos_nat_eqMixin.
 
 Canonical Structure S_pos_nat n := PosNat (ltn0Sn n).
 
@@ -1022,10 +1018,11 @@ Lemma ltn_0fact : forall n, fact n > 0.
 Proof. by elim=> //= n IHn; rewrite ltn_0mul. Qed.
 Canonical Structure fact_pos_nat n := PosNat (ltn_0fact n).
 
-Notation "[ 'pos_nat' 'of' n ]" :=
-  (match [is n%N : nat <: pos_nat] as s return {type of PosNat for s} -> _ with
-  | PosNat _ np => fun k => k np end
-  (@PosNat n)) (at level 0, only parsing) : form_scope.
+Definition repack_pos_nat n :=
+  let: PosNat _ nP := n return (0 < n -> pos_nat) -> pos_nat in fun k => k nP.
+
+Notation "[ 'pos_nat' 'of' n ]" := (repack_pos_nat (fun nP => @PosNat n nP))
+  (at level 0, format "[ 'pos_nat'  'of'  n ]") : form_scope.
 
 (* Parity and bits. *)
 
@@ -1199,7 +1196,7 @@ Lemma eqn_sqr : forall m n, (m ^ 2 == n ^ 2) = (m == n).
 Proof. by move=> *; rewrite eqn_exp2r. Qed.
 
 Lemma sqrn_inj : injective (expn ^~ 2).
-Proof. exact: expn_injr. Qed.
+Proof. exact: expIn. Qed.
 
 (* Almost strict inequality: an inequality that is strict unless some    *)
 (* specific condition holds, such as the Cauchy-Schwartz or the AGM      *)
@@ -1371,14 +1368,14 @@ End NatTrec.
 
 Notation natTrecE := NatTrec.trecE.
 
-Lemma eq_binP : reflect_eq Ndec.Neqb.
+Lemma eq_binP : Equality.axiom Ndec.Neqb.
 Proof.
 move=> p q; apply: (iffP idP) => [|[<-]]; last by case: p => //; elim.
 by case: q; case: p => //; elim=> [p IHp|p IHp|] [q|q|] //=; case/IHp=> ->.
 Qed.
 
 Canonical Structure bin_nat_eqMixin := EqMixin eq_binP.
-Canonical Structure bin_nat_eqType := EqClass bin_nat_eqMixin.
+Canonical Structure bin_nat_eqType := Eval hnf in EqType bin_nat_eqMixin.
 
 Section NumberInterpretation.
 
@@ -1445,15 +1442,12 @@ case=> [|p] [|q] //=; elim: p => [p IHp|p IHp|] /=;
   by rewrite ?(mul1n, nat_of_add_pos, mulSn) //= !natTrecE IHp double_mull.
 Qed.
 
-
 Lemma nat_of_exp_bin : forall n (b : N), n ^ (b : nat) = pow_N 1 muln n b.
 Proof.
 move=> n [|p] /=; first exact: expn0.
 elim: p => /= [p <-|p <-|]; last exact: expn1;
   by rewrite natTrecE mulnn -expn_mulr muln2.
 Qed.
-
-
 
 End NumberInterpretation.
 
@@ -1464,18 +1458,16 @@ End NumberInterpretation.
 (*        to display the resut of an expression that    *)
 (*        returns a larger integer.                     *)
 
-CoInductive number : Type := Num of N.
-
-Coercion bin_of_number nn := let: Num b := nn in b.
+Record number : Type := Num {bin_of_number :> N}.
 
 Definition extend_number (nn : number) b := Num (nn * 1000 + b)%num.
 
 Coercion extend_number : number >-> Funclass.
 
-Lemma eq_numP : reflect_eq (fun nn1 nn2 : number => nn1 == nn2 :> N).
-Proof. by move=> [b1] [b2]; apply: (iffP eqP) => [[]|] ->. Qed.
-
-Canonical Structure number_eqType := mkEqType eq_numP.
+Canonical Structure number_subType :=
+  [newType for bin_of_number by number_rect].
+Definition number_eqMixin := Eval hnf in [eqMixin of number by <:].
+Canonical Structure number_eqType := Eval hnf in EqType number_eqMixin.
 
 Notation "[ 'Num' 'of' e ]" := (Num (bin_of_nat e))
   (at level 0, format "[ 'Num'  'of'  e ]") : nat_scope.

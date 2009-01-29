@@ -22,7 +22,7 @@ Proof.
 elim=> [|n Hrec] //; first by rewrite big_seq0.
 by apply sym_equal; rewrite factS Hrec // !big_add1 big_nat_recr /= mulnC.
 Qed.
-
+Import choice.
 Lemma wilson p: 1 < p -> (prime p <-> p %| (fact (p.-1)).+1).
 Proof.
 have HF: forall p, 0 < p -> fact p.-1 = \prod_(0 <= i < p | i != 0) i.
@@ -43,15 +43,13 @@ move=> p Hp; split; last first.
       by case/andP: Hd1 => -> _; case: (d') Hd'1.
     rewrite (bigD1 (Ordinal Hd'2)) //=.
       by rewrite mulnA [d * _]mulnC Hd'd dvdn_mulr.
-    rewrite Hd'1; apply/negP; move/eqP; move/val_eqP=> /= HH.
-    by case: He; case/eqP: HH.
+    by rewrite Hd'1 eq_sym; apply/eqP; case.
   have Hd5: 2 * d < p1; first rewrite -Hd'd -He ltn_mul2r.
     by move: Hd1 Hd'd; rewrite -He; case: (d) => //; do 2 (case=> //).
   have Hd6: 2 * d !=0 by case: (d) Hd4.
   rewrite (bigD1 (Ordinal Hd5)) //=.
     by rewrite -{1}[2 * d]mulnC !mulnA {1}He Hd'd -mulnA dvdn_mulr. 
-  rewrite Hd6; apply/negP; move/eqP; move/val_eqP=> /=.
-  by rewrite -{2}[d]mul1n eqn_mul2r orbF; case: (_ == _) Hd4.
+  by rewrite Hd6 -val_eqE /= neq_ltn orbC ltn_Pmull // lt0n.
 move=> p_prime; have lt1p := prime_gt1 p_prime; have lt0p := ltnW lt1p.
 pose Fp1 := Ordinal lt1p; pose Fp0 := Ordinal lt0p.
 have ltp1p: p.-1 < p by [rewrite prednK]; pose Fpn1 := Ordinal ltp1p.
@@ -64,10 +62,10 @@ have Fp_mod: forall i : 'I_p, i %% p = i by move=> i; exact: modn_small.
 have mFpA: associative mFp.
   by move=> i j k; apply: val_inj; rewrite /= modn_mulml modn_mulmr mulnA.
 have mFpC: commutative mFp by move=> i j; apply: val_inj; rewrite /= mulnC.
-have mFp1: left_unit Fp1 mFp by move=> i; apply: val_inj; rewrite /= mul1n.
-have mFp1r: right_unit Fp1 mFp by move=> i; apply: val_inj; rewrite /= muln1.
+have mFp1: left_id Fp1 mFp by move=> i; apply: val_inj; rewrite /= mul1n.
+have mFp1r: right_id Fp1 mFp by move=> i; apply: val_inj; rewrite /= muln1.
 pose mFpLaw := Monoid.Law mFpA mFp1 mFp1r.
-pose mFpM := Monoid.operator (@Monoid.AbelianLaw _ _ mFpLaw mFpC).
+pose mFpM := Monoid.operator (@Monoid.ComLaw _ _ mFpLaw mFpC).
 pose vFp (i : 'I_p) := toFp (egcdn i p).1.
 have vFpV: forall i, i != Fp0 -> mFp (vFp i) i = Fp1.
   move=> i; rewrite -val_eqE /= -lt0n => i_pos; apply: val_inj => /=.

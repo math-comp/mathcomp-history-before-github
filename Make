@@ -4,6 +4,7 @@ ssrbool.v
 eqtype.v
 ssrnat.v
 seq.v
+choice.v
 paths.v
 div.v
 prime.v

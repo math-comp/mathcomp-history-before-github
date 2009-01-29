@@ -65,7 +65,8 @@ Proof.
 move => A G norm co abel.
 have mulGC : @commutative (subg_of G) mulg.
   by case=> x Gx [y Gy]; apply: val_inj; rewrite /= (centsP abel).
-pose gTG := Ring.AdditiveGroup (@mulgA _) mulGC (@mul1g _) (@mulVg _).
+pose gTm := ZmodMixin (@mulgA _) mulGC (@mul1g _) (@mulVg _).
+pose gTG := ZmodType gTm; hnf in gTG.
 have Gval: forall u : gTG, sgval u \in G by exact: valP.
 have valM: forall a b : gTG, sgval (a + b)%R = sgval a * sgval b by [].
 pose f x y : gTG := subg G (conjg x y).
@@ -127,7 +128,8 @@ Qed.
 Definition stabn (A:{set T}) (G G1:{group T}):= 
   (G1 <| G) && (A \subset 'N(G1)) && (A/G1 \subset 'C(G/G1)).
 
-Definition stabn_seq A G s:= path (stabn A) G s && (last (unit_group T) (G::s) == (unit_group T)).
+Definition stabn_seq A G s:=
+  path (stabn A) G s && (last [1 T]%G (G :: s) == [1 T]%G).
 
 Theorem stabn_seq_cent: forall (A G: {group T}) s, 
 coprime #|G| #|A| -> solvable G -> stabn_seq A G s -> A \subset 'C(G).
@@ -185,7 +187,7 @@ Lemma not_dvdn_partn1: forall n p,
   0 < n -> prime p -> ~ (p %| n) -> n`_p = 1%N.
 Proof.
 move=> n p npos pr; move/negP=> nd.
-by rewrite p_part lognE npos pr //= (negbET nd).
+by rewrite p_part lognE npos pr //= (negbTE nd).
 Qed.
 
 Lemma divp_pgroup_p: forall G: {group T}, forall p d, 1 < d -> prime p -> 

@@ -22,7 +22,8 @@ have [sHG nHG] := andP nsHG.
 (* set up H as a ZG-module *)
 have mulHC : @commutative (subg_of H) mulg.
   by case=> x Hx [y Hy]; apply: val_inj; rewrite /= (centsP abelH).
-pose rT := Ring.AdditiveGroup (@mulgA _) mulHC (@mul1g _) (@mulVg _).
+pose rTm := ZmodMixin (@mulgA _) mulHC (@mul1g _) (@mulVg _).
+pose rT := ZmodType rTm; hnf in rT.
 have valM: forall a b : rT, sgval (a + b)%R = sgval a * sgval b by [].
 have valV: forall a : rT, sgval (- a)%R = (sgval a)^-1 by [].
 have valX: forall (a : rT) n, sgval (a *+ n)%R = sgval a ^+ n.
@@ -46,8 +47,8 @@ have act_Cayley: forall K L : {group gT}, [acts (L | 'Msr) on rcosets K L].
 have [m mK]: exists m, forall a : rT, (a *+ (#|G : P| * m) = a)%R.
   case: (bezoutl #|H| (ltn_0indexg G P))=> m' _; rewrite gcdnC (eqnP coHiPG).
   case/dvdnP=> m inv_m; exists m => a.
-  rewrite mulnC -inv_m /= mulnC Ring.mulrnA /=.
-  suff ->: (a *+ #|H| = 0)%R by rewrite Ring.mulr0n Ring.addr0.
+  rewrite mulnC -inv_m /= mulnC GRing.mulrS GRing.mulrnA /=.
+  suff ->: (a *+ #|H| = 0)%R by rewrite GRing.mul0rn GRing.addr0.
   apply: val_inj; rewrite /= !valX /=; apply/eqP; rewrite -order_dvdn.
   by rewrite order_dvdG ?subgP.
 split=> [|K L].
@@ -86,7 +87,7 @@ split=> [|K L].
   have to_rH : forall a x, x \in G -> to a (rH x) = to a x.
     move=> a x Gx; apply: val_inj; rewrite /= !valA ?GrH //.
     case/rcosetP: (HrH x) => b; move/subgK=> <- ->; rewrite conjgM.
-    by congr (_ ^ _); rewrite conjgE -valV -!valM (Ring.addrC a) Ring.addKr.   
+    by congr (_ ^ _); rewrite conjgE -valV -!valM (GRing.addrC a) GRing.addKr.
   have mu_Pmul: forall x y z, x \in P -> mu (x * y) z = mu y z.
     move=> x y z Px; congr subg; rewrite -mulgA !(rH_Pmul x) ?rPmul //.
     by rewrite -mulgA invMg -mulgA mulKg.
@@ -101,8 +102,8 @@ split=> [|K L].
   have cocycle_mu: {in G & &, forall x y z,
     mu (x * y)%g z + to (mu x y) z = mu y z + mu x (y * z)%g}%R.
   - move=> x y z Gx Gy Gz; apply: val_inj.
-    apply: (mulg_injl (rH x * rH y * rH z)).
-    rewrite -(to_rH _ _ Gz) Ring.addrC /= valA ?GrH //.
+    apply: (mulgI (rH x * rH y * rH z)).
+    rewrite -(to_rH _ _ Gz) GRing.addrC /= valA ?GrH //.
     rewrite mulgA -(mulgA _ (rH z)) -conjgC mulgA -!rHmul ?groupM //.
     by rewrite mulgA -mulgA -2!(mulgA (rH x)) -!rHmul ?groupM.
   move: mu => mu in rHmul mu_Pmul cocycle_mu nu nu_Hmul.
@@ -125,7 +126,7 @@ split=> [|K L].
     move=> x y Gx Gy; rewrite /f ?rHmul // -3!mulgA; congr (_ * _).
     rewrite (mulgA _ (rH y)) (conjgC _ (rH y)) -mulgA -valA ?GrH ?to_rH //.
     congr (_ * _); rewrite -!valM -(mK (mu x y)) toX //.
-    by rewrite Ring.mulrnA -!Ring.mulrn_addl -cocycle_nu // Ring.addrC.
+    by rewrite GRing.mulrnA -!GRing.mulrn_addl -cocycle_nu // GRing.addrC.
   exists (Morphism fM @* G)%G; apply/complP; split.
     apply/trivgP; apply/subsetP=> x; case/setIP=> Hx.
     case/morphimP=> y _ Gy eq_x.
@@ -164,8 +165,8 @@ have Gx: x \in G by rewrite sKG.
 rewrite conjVg -mulgA -valA // -valV -valM (_ : _ + _ = nu x^-1%g)%R.
   rewrite /= val_nu ?groupV //.
   by rewrite mulKVg groupV mem_remgr // eqHL groupV.
-rewrite toX // Ring.oppr_muln -Ring.mulrn_addl (big_morph _ (toB x Gx)).
-rewrite Ring.addrC (reindex ('Msr%act^~ x)) /=; last first.
+rewrite toX // GRing.oppr_muln -GRing.mulrn_addl (big_morph _ (toB x Gx)).
+rewrite GRing.addrC (reindex ('Msr%act^~ x)) /=; last first.
   by exists ('Msr%act^~ x^-1) => Px _; rewrite (actK, actKV).
 rewrite (eq_bigl (mem (rcosets Q K))) => [/=|X]; last first.
   by rewrite (actsP (act_Cayley Q K)).
@@ -179,9 +180,9 @@ rewrite -sum_split_sub /= (eq_bigr (fun _ => nu x^-1)) => [|X]; last first.
   move: Qyy1; rewrite -(rcoset_transl Qyy2) /= KPeqLP; case/rcosetP=> z1.
   case/setIP=> Lz1 _ ->{y1}.
   rewrite !invMg 2?nu_cocycle ?groupM ?groupV // ?sLG // !invgK.
-  rewrite (nuL z1^-1) ?groupV // to0 // Ring.add0r (Ring.addrC (to _ x)).
-  by rewrite Ring.addrK.
-rewrite sumr_const -Ring.mulrnA (_ : #|_| = #|G : P|) ?mK //.
+  rewrite (nuL z1^-1) ?groupV // to0 // GRing.add0r (GRing.addrC (to _ x)).
+  by rewrite GRing.addrK.
+rewrite sumr_const -GRing.mulrnA (_ : #|_| = #|G : P|) ?mK //.
 rewrite -[#|_|]divgS ?subsetIl // -(divn_pmul2l (ltn_0group H)).
 rewrite -!TI_cardMg //; last by rewrite setIA setIAC (setIidPl sHP).
 by rewrite group_modl // eqHK (setIidPr sPG) divgS.

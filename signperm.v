@@ -18,9 +18,10 @@ Import GroupScope.
 (* to make the parity function is a morphism S_n -> bool, e.g., to define  *)
 (* A_n as its kernel.                                                      *)
 
-Canonical Structure boolPreGroup :=
-  [baseFinGroupType of bool by addbA, addFb, frefl id & addbC].
-Canonical Structure boolGroup := FinGroupType addbb. 
+Definition bool_groupMixin := FinGroup.Mixin addbA addFb addbb.
+Canonical Structure bool_baseGroup :=
+  Eval hnf in BaseFinGroupType bool_groupMixin.
+Canonical Structure boolGroup := Eval hnf in FinGroupType addbb. 
 
 Section PermutationParity.
 
@@ -93,7 +94,7 @@ Lemma ordered_pair_flip : forall p,
   opair (flip p) = (flip p != p) && ~~ opair p.
 Proof.
 case=> x y; rewrite /opair ltn_neqAle -leqNgt; congr (~~ _ && _).
-by rewrite val_eqE (inj_eq (@enum_rank_inj T)) {2}/eqd /= (eq_sym y) andbb.
+by rewrite val_eqE (inj_eq (@enum_rank_inj T)) {2}/eq_op /= (eq_sym y) andbb.
 Qed.
 Notation Local opair_flip := ordered_pair_flip.
 
@@ -211,10 +212,12 @@ have->: odd #|predU (B x) (B y)| = oddp (tperm x y); last move->.
   case/andP=> _; case: p => /= x' y' in Op *.
   by do 2![case: tpermP=> [->|->|_ _]; rewrite ?(eqxx, orbT) //]; case/negP.
 rewrite -[true]/(odd 1) -(card1 (x, y)); congr odd.
-apply: eq_card => [[x' y']]; rewrite inE /= !inE {A B}/= {5}/eqd /=.
-rewrite !(eq_sym x) !(eq_sym y) andbA andbC; case: (x' =P x) => [-> | _] /=.
-  by rewrite Dxy; case: eqP => //= ->; rewrite tpermL tpermR Oxy.
-case: (y' =P x) => /= [->|]; last by rewrite !andbF.
+apply: eq_card => /= [[x' y']]; rewrite inE /= !inE {A B}/= {5}/eq_op /=.
+rewrite !(eq_sym x) !(eq_sym y) andbA andbC.
+case: (x' == x) / (x' =P x) => [-> | _] /=.
+  rewrite Dxy; case: (y' == y) / (y' =P y) => //= ->.
+  by rewrite tpermL tpermR Oxy.
+case: (y' == x) / (y' =P x) => /= [->|]; last by rewrite !andbF.
 rewrite Dxy orbF -andbA; case: eqP => // ->; rewrite tpermL tpermR !andbb /=.
 by rewrite -(flipK (y, x)) opair_flip Oxy andbF.
 Qed.
@@ -285,8 +288,9 @@ Lemma Alt_index : 1 < n -> #|'Sym_T : 'Alt_T| = 2.
 Proof.
 move=> lt1n; rewrite -card_quotient ?Alt_norm //=.
 have : ('Sym_T / 'Alt_T) \isog (odd_perm @* 'Sym_T) by apply: first_isog.
-case/isogP=> g; move/injmP; move/card_in_imset <-; rewrite /morphim setIid=> ->.
-rewrite eq_cardT // => b; apply/imsetP; case: b => /=; last first.
+case/isogP=> g; move/injmP; move/card_in_imset <-.
+rewrite /morphim setIid=> ->; rewrite -card_bool; apply: eq_card => b.
+apply/imsetP; case: b => /=; last first.
  by exists (1 : {perm T}); [rewrite setIid inE | rewrite odd_perm1].
 case: (pickP T) lt1n => [x1 _ | d0]; last by rewrite /n eq_card0.
 rewrite /n (cardD1 x1) ltnS lt0n; case/existsP=> x2 /=.

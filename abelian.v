@@ -268,7 +268,7 @@ Qed.
 Lemma esum_force : forall (f : gT -> nat) x n ,
 esum (force f x n) = esum f + n - f x.
 Proof.
-move=> f x n; apply: (@addn_injl (f x)); rewrite addnC subnK;
+move=> f x n; apply: (@addnI (f x)); rewrite addnC subnK;
 last by apply: (leq_trans (esum_leq _ _)); apply: leq_addr. 
 by rewrite -(eq_esum (eq_force f x)) -{1}(esum_peak x (f x))
 -{2}(esum_peak x n) -!esum_addf !(eq_esum (force_peak _ _ _ _)) addnC.
@@ -347,7 +347,7 @@ Lemma aem_force : forall f x n,
   x \in A -> support f A ->
   em (force f x n) = em f * (x ^+ n) * (x ^+ (f x))^-1.
 Proof. 
-move=> f x n Ax fA; apply: (mulg_injr (x ^+ (f x))); gsimpl.
+move=> f x n Ax fA; apply: (mulIg (x ^+ (f x))); gsimpl.
 by rewrite -(eq_em (eq_force f x)) -!(em_peak) -!aem_addf;
 first rewrite !(eq_em (force_peak _ _ _ _)) addnC;
 try rewrite -sup_peak Ax; try rewrite -sup_force .
@@ -377,7 +377,7 @@ Definition mgen (A : {set gT}) : {set gT} := \prod_(x \in A) <[x]>.
 Lemma mgenP : forall A x,
   reflect (exists2 f, support f A & em f = x) (x \in mgen A).
 Proof.
-move=> A x; rewrite /mgen /em /index_enum.
+move=> A x; rewrite /mgen /em /index_enum -enumT.
 elim: {+}(enum _) x (uniq_enum gT) => /= [x _ | y s IHs x].
   rewrite big_seq0 inE; apply: (iffP eqP) => [->|[]//].
   exists (fun _ : gT => 0) => //=; exact/supP.
@@ -500,7 +500,7 @@ move: hf; rewrite -(aem_addf abelB Bh Bf) => emhf.
 have Bhg: support (addf h g) B by rewrite -sup_addf Bh Bg.
 have Bhf: support (addf h f) B by rewrite -sup_addf Bh Bf.
 have Hf := frB _ Bhf emhf; have Hg := frB _ Bhg emhg.
-move=> x; apply: (mulg_injl (x ^+ (h x))).
+move=> x; apply: (mulgI (x ^+ (h x))).
 by rewrite -!expgn_add; rewrite Hf Hg. 
 Qed.
 
@@ -546,7 +546,7 @@ case/andP => notsx us; case Bx: (B x) => /=; last first.
 - move=> f freeB fB; case fx: (f x) => /=; gsimpl; first exact: Hind.
   by move: (supP _ _ fB x); rewrite mem_filter Bx fx; move/implyP.
 - move=> f; case/andP; case/andP => _ sfB Inter fB. 
-  rewrite -{2}(mulgV (x ^+ f x)); move/mulg_injl => xfx.
+  rewrite -{2}(mulgV (x ^+ f x)); move/mulgI => xfx.
   have xfx1:  x ^+ f x = 1. apply: sym_eq; apply/set1P;
   apply: (subsetP Inter); apply/setIP; split; first by apply/cycleP;
   exists (f x). rewrite -groupV -xfx; clear Hind sfB Inter xfx. 

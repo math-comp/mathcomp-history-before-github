@@ -1,14 +1,5 @@
-Require Import ssreflect.
-Require Import ssrbool.
-Require Import ssrfun.
-Require Import eqtype.
-Require Import ssrnat.
-Require Import seq.
-Require Import div.
-Require Import fintype.
-Require Import finfun.
-Require Import bigops.
-Require Import ssralg.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div choice fintype.
+Require Import finfun ssralg bigops.
 (* Require Import connect. *)
 
 Set Implicit Arguments.
@@ -29,9 +20,17 @@ Definition finfun_of_set A := let: FinSet f := A in f.
 Definition set_of of phant T := set_type.
 Identity Coercion type_of_set_of : set_of >-> set_type.
 
-Canonical Structure set_subType := NewType finfun_of_set set_type_rect vrefl.
-Canonical Structure set_eqType := Eval hnf in [subEqType for finfun_of_set].
-Canonical Structure set_finType := Eval hnf in [finType of set_type by :>].
+Canonical Structure set_subType :=
+  Eval hnf in [newType for finfun_of_set by set_type_rect].
+Definition set_eqMixin := Eval hnf in [eqMixin of set_type by <:].
+Canonical Structure set_eqType := Eval hnf in EqType set_eqMixin.
+Definition set_choiceMixin := [choiceMixin of set_type by <:].
+Canonical Structure set_choiceType := Eval hnf in ChoiceType set_choiceMixin.
+Definition set_countMixin := [countMixin of set_type by <:].
+Canonical Structure set_countType := Eval hnf in CountType set_countMixin.
+Canonical Structure set_subCountType := Eval hnf in [subCountType of set_type].
+Definition set_finMixin := [finMixin of set_type by <:].
+Canonical Structure set_finType := Eval hnf in FinType set_finMixin.
 Canonical Structure set_subFinType := Eval hnf in [subFinType of set_type].
 
 End SetType.
@@ -134,9 +133,13 @@ Section BasicSetTheory.
 Variable T : finType.
 Implicit Type x : T.
 
-Canonical Structure set_of_eqType := Eval hnf in [eqType of {set T}].
-Canonical Structure set_of_finType := Eval hnf in [finType of {set T}].
 Canonical Structure set_of_subType := Eval hnf in [subType of {set T}].
+Canonical Structure set_of_eqType := Eval hnf in [eqType of {set T}].
+Canonical Structure set_of_choiceType := Eval hnf in [choiceType of {set T}].
+Canonical Structure set_of_countType := Eval hnf in [countType of {set T}].
+Canonical Structure set_of_subCountType :=
+  Eval hnf in [subCountType of {set T}].
+Canonical Structure set_of_finType := Eval hnf in [finType of {set T}].
 Canonical Structure set_of_subFinType := Eval hnf in [subFinType of {set T}].
 
 Lemma in_set : forall P x, x \in finset P = P x.
@@ -790,11 +793,11 @@ Variable T : finType.
 
 Canonical Structure setI_monoid := Law (@setIA T) (@setTI T) (@setIT T).
 
-Canonical Structure setI_abeloid := AbelianLaw (@setIC T).
+Canonical Structure setI_comoid := ComLaw (@setIC T).
 Canonical Structure setI_muloid := MulLaw (@set0I T) (@setI0 T).
 
 Canonical Structure setU_monoid := Law (@setUA T) (@set0U T) (@setU0 T).
-Canonical Structure setU_abeloid := AbelianLaw (@setUC T).
+Canonical Structure setU_comoid := ComLaw (@setUC T).
 Canonical Structure setU_muloid := MulLaw (@setTU T) (@setUT T).
 
 Canonical Structure setI_addoid := AddLaw (@setUIl T) (@setUIr T).
@@ -1065,7 +1068,7 @@ Prenex Implicits imsetP imset2P.
 Section BigOps.
 
 Variables (R : Type) (nil : R).
-Variables (law : @Monoid.law R nil) (alaw : @Monoid.abelian_law R nil).
+Variables (law : @Monoid.law R nil) (alaw : @Monoid.com_law R nil).
 Let op := Monoid.operator law.
 Let aop := Monoid.operator alaw.
 Variables I J : finType.
@@ -1589,7 +1592,7 @@ Qed.
 
 Section BigOps.
 
-Variables (R : Type) (nil : R) (law : Monoid.abelian_law nil).
+Variables (R : Type) (nil : R) (law : Monoid.com_law nil).
 Let op := Monoid.operator law.
 Let rhs P K F := \big[op/nil]_(A \in P) \big[op/nil]_(x \in A | K x) F x.
 

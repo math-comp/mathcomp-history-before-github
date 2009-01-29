@@ -32,7 +32,7 @@ Proof.
 move=> T T3; have{T3} oA: #|'Alt_T| = 3.
   by apply: double_inj; rewrite -mul2n card_Alt T3.
 apply/simpleP; split=> [|K]; [by rewrite trivg_card1 oA | case/andP=> sKH _].
-have:= cardSg sKH; rewrite oA dvdn_divisors // !inE orbF orbC /= -oA.
+have:= cardSg sKH; rewrite oA dvdn_divisors // !inE orbC /= -oA.
 case/orP=> eqK; [right | left]; apply/eqP.
   by rewrite eqEcard sKH (eqP eqK) leqnn.
 by rewrite eq_sym eqEcard sub1G (eqP eqK) cards1.
@@ -217,7 +217,7 @@ Qed.
 Canonical Structure rfd_morphism := Morphism rfd_morph.
 
 Definition rgd_fun (p : {perm T'}) :=
-  [fun x1 => if insub x1 is Some u then val (p u) else x].
+  [fun x1 => if insub x1 is Some u then sval (p u) else x].
 
 Lemma rgdP : forall p, injective (rgd_fun p).
 Proof.
@@ -271,8 +271,7 @@ rewrite odd_permM odd_tperm eq_sym Hx1 morphM; last 2 first.
 rewrite odd_permM Hrec //=; congr (_ (+) _).
 pose x2 : T' := Sub x1 nx1x; pose px2 : T' := Sub (p x1) npx1x.
 suff ->: rfd (tperm x1 (p x1)) = tperm x2 px2.
-  rewrite odd_tperm; apply/eqP; move/val_eqP => /=.
-  by rewrite eq_sym => HH; case/negP: Hx1.
+  by rewrite odd_tperm -val_eqE eq_sym.
 apply/permP => z; apply/val_eqP; rewrite permE /= tpermD // eqxx.
 case: (tpermP x2) => [->|->|HH1 HH2]; rewrite /x2 (tpermL, tpermR, tpermD) //.
   by apply/eqP=> HH3; case: HH1; apply: val_inj.
@@ -304,7 +303,7 @@ case/setIP=> Hay1; move/astab1P; rewrite /= /aperm => Hy1 Hr.
 apply/permP => z.
 case (z =P x) => [->|]; [by rewrite Hx1 | move/eqP => nzx].
 move: (congr1 (fun q : {perm T'} => q (Sub z nzx)) Hr).
-by rewrite !permE; move/val_eqP; rewrite /= Hx1 Hy1 !eqxx; move/eqP.
+by rewrite !permE => [[]]; rewrite Hx1 Hy1 !eqxx.
 Qed.
 
 End Restrict.
@@ -350,8 +349,8 @@ have F13: K <| Gx by apply/andP; split; last apply: norm_stab.
 have:= prim_trans_norm F11; case/(_ K) => //= => Ksub; last first.
   have F14: Gx * H = 'Alt_T by exact/subgroup_transitiveP.
   have: simple Gx.
-    by rewrite (isog_simple (rfd_iso x)) Hrec //= card_sub cardC1 Hde.
-  case/simpleP=> _ simGx; case/simGx: F13 => /= [] [HH2].
+    by rewrite (isog_simple (rfd_iso x)) Hrec //= card_sig cardC1 Hde.
+  case/simpleP=> _ simGx; case/simGx: F13 => /= HH2.
     case Ez: (pred0b (predD1 (predD1 T x) y)).
       move: oT; rewrite /pred0b in Ez.
       by rewrite (cardD1 x) (cardD1 y) (eqP Ez) inE /= inE /= diff_x_y.  
@@ -393,11 +392,11 @@ by case/negP: diff_1_h; apply/eqP; apply: (Hreg _ _ Hh (eqP diff_hx_x)).
 case diff_gx_x: (g x == x).
   case/negP: diff_1_g; apply/eqP; apply: (Hreg _ _ Hg (eqP diff_gx_x)).
 case diff_gx_hx: (g x == h x).
-  case/negP: diff_h_g; apply/eqP; symmetry; apply: (mulg_injr g^-1); gsimpl.
+  case/negP: diff_h_g; apply/eqP; symmetry; apply: (mulIg g^-1); gsimpl.
   apply: (Hreg _ x); first by rewrite groupM // groupV.
   by rewrite permM -(eqP diff_gx_hx) -permM mulgV perm1.
 case diff_hgx_x: ((h * g) x == x).
-  case/negP: diff_h1_g; apply/eqP; apply: (mulg_injl h); gsimpl.
+  case/negP: diff_h1_g; apply/eqP; apply: (mulgI h); gsimpl.
   by apply: (Hreg _ x); [exact: groupM | apply/eqP].
 case diff_hgx_hx: ((h * g) x == h x).
   case/negP: diff_1_g; apply/eqP.
