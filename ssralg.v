@@ -1330,8 +1330,8 @@ by exists s; rewrite drop_set_nth.
 Qed.
 
 Definition sol f n :=
-  if insub [::] : {?e | sat (Exists_n n f) e} is Some u then
-    xchoose (Exists_nP _ _ _ (valP u))
+  if insub [::] : {? e | sat (Exists_n n f) e} is Some u then
+    @xchoose _ (fun x => _) (Exists_nP _ _ _ (valP u))
   else seqn n 0.
 
 Lemma solP : forall f n,

@@ -1,5 +1,5 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq bigops fintype ssralg.
-Require Import div prime.
+Require Import div prime choice.
 
 (**************************************************************************)
 (* This files contains the definitions of:                                *)
@@ -22,7 +22,7 @@ Proof.
 elim=> [|n Hrec] //; first by rewrite big_seq0.
 by apply sym_equal; rewrite factS Hrec // !big_add1 big_nat_recr /= mulnC.
 Qed.
-Import choice.
+
 Lemma wilson p: 1 < p -> (prime p <-> p %| (fact (p.-1)).+1).
 Proof.
 have HF: forall p, 0 < p -> fact p.-1 = \prod_(0 <= i < p | i != 0) i.
@@ -151,12 +151,9 @@ elim: {m Hm} n p => [| m Hrec].
   by case=> // n; rewrite bin0 // fact0 !mul1n add0n.
 elim=> [| n Hrec1].
   by rewrite addn0 fact0 muln1 binS factS bin_small // binn add0n mul1n.
-rewrite addnS binS muln_addl {1}(factS n) {2}(factS m).
-have ->: forall a b c d, a * (b * (c * d)) = c * (a * (b * d)).
-  by move=> a b c d; rewrite [_ * (a * _)]mulnC -!mulnA [c * _]mulnC.
-have ->: forall a b c d, a * (b * c * d) = b * (a * (c * d)).
-  by move=> a b c d; rewrite mulnC [a * _]mulnC !mulnA.
-by rewrite Hrec1 addSnnS Hrec -muln_addl factS addnC addSn.
+by rewrite addnS binS muln_addl {1}(factS n) {2}(factS m)
+          -2!{1}(mulnCA (n.+1)) -(mulnA (m.+1)) -{1}(mulnCA (m.+1))
+          Hrec1 addSnnS Hrec -muln_addl factS addnC addSn.
 Qed.
 
 Lemma bin_sub: forall n m, n <= m -> bin m n = bin m (m - n).

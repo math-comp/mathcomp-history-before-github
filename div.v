@@ -12,10 +12,8 @@ Require Import paths.
 (* -division: divn and modn compute the euclidian quotient and remainder  *)
 (*            edivn m d performs the euclidian division of m by d         *)
 (* -divisibility: dvdn d m <=> d divides m                                *)
-(*                divisors m == the ascending divisors list of m if m > 0 *)
 (*                gcdn m n == the GCD of m and n                          *)
 (*                coprime m n <=> m and n are coprime                     *)
-(*                phi n == the Euler totient                              *)
 (* The bezout[lr] lemmas give the bezout coefficients.                    *)
 (**************************************************************************)
 

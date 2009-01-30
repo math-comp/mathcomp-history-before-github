@@ -341,7 +341,7 @@ Lemma eq_xchoose : Choice.extensional xchoose.
 Proof. exact: Choice.eq_xchoose. Qed.
 
 Definition choose P x0 :=
-  if insub x0 : {?x | P x} is Some (exist x Px) then
+  if insub x0 : {? x | P x} is Some (exist x Px) then
     xchoose (ex_intro [eta P] x Px)
   else x0.
 

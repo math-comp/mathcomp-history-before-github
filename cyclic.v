@@ -295,7 +295,7 @@ End Cyclic.
 
 (* Just for fun Euler's theorem *)
 
-Theorem Euler: forall a n: pos_nat, coprime a n -> a ^ phi n  = 1 %[mod n ].
+Theorem Euler: forall a n: pos_nat, coprime a n -> a ^ phi n  = 1 %[mod n].
 Proof.
 move=> a n Cop.
 have Ha': coprime n (inZp (valP n) a) by rewrite coprime_sym coprime_modl.
