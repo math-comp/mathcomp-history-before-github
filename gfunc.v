@@ -85,9 +85,9 @@ Implicit Types gT: finGroupType.
 
 Structure mixin (Fobj : obmap) : Type := Mixin { 
   (* group preservation *)
-  _ : forall gT (G:{group gT}), group_set (Fobj gT G);
+  _ : forall gT (G:{group gT}), group_set (Fobj _ G);
   (* submapping *)
-  _ : forall gT (G: {group gT}), Fobj gT G \subset G;
+  _ : forall gT (G: {group gT}), Fobj _ G \subset G;
   (* functoriality condition *)
   _ : aresp Fobj}.
 
@@ -114,7 +114,7 @@ Definition mkBasegFunc F Fgrp Fsub Fresp :=
   BgFunc (@BgFuncMixin F Fgrp Fsub Fresp).
 
 Notation "[ 'bgFunc' 'of' F ]" :=
-  (match[is F : _ -> _ <: bgFunc] as s return {type of BgFunc for s} -> _ with
+  (match [the bgFunc of F : _ -> _] as s return {type of BgFunc for s} -> _ with
     | BgFunc _ m => fun k => k m end
   (@BgFunc F)) (at level 0, only parsing) : form_scope.
 
@@ -140,11 +140,15 @@ Proof. by case sF=> F; case. Qed.
 Lemma bgfunc_aresp : aresp sF.
 Proof. by case sF=> Fobj; case. Qed.
 
-Lemma bgfunc_norm : forall gT (G:{group gT}), G \subset 'N('e_sF(G)).
+Lemma bgfunc_char : forall gT (G:{group gT}), 'e_sF(G) \char G.
 Proof.
-move=> gT G; apply/subsetP=> x Gx; rewrite inE -{2}(conjGid Gx) -{2}(setIid G).
-by rewrite -(setIidPr (bgfunc_clos G)) -!morphim_conj bgfunc_aresp ?injm_conj.
+move=> gT G; apply/andP; split => //; first by apply: bgfunc_clos.
+apply/forallP=> f; apply/implyP=> Af; rewrite -{2}(autm_dom Af).
+by rewrite -(morphimEsub (autm_morphism Af)) ?bgfunc_clos ?bgfunc_aresp ?injm_autm.
 Qed.
+
+Lemma bgfunc_norm : forall gT (G:{group gT}), G \subset 'N('e_sF(G)).
+Proof. by move=> *; rewrite char_norm ?bgfunc_char. Qed.
 
 (* independent from the group preservation requirement*)
 Lemma bgfunc_gen_norm : forall gT (G:{group gT}),
@@ -155,14 +159,7 @@ by move: ((subsetP (genS (bgfunc_clos G))) _ Hx); rewrite genGid.
 Qed.
 
 Lemma bgfunc_normal : forall gT (G : {group gT}), 'e_sF(G) <| G.
-Proof. by move=> gT G; apply/andP; rewrite bgfunc_clos bgfunc_norm. Qed.
-
-Lemma bgfunc_char : forall gT (G:{group gT}), 'e_sF(G) \char G.
-Proof.
-move=> gT G; apply/andP; split => //; first by apply: bgfunc_clos.
-apply/forallP=> f; apply/implyP=> Af; rewrite -{2}(autm_dom Af).
-by rewrite -(morphimEsub (autm_morphism Af)) ?bgfunc_clos ?bgfunc_aresp ?injm_autm.
-Qed.
+Proof.  by move=> *; rewrite char_normal ?bgfunc_char. Qed.
 
 Lemma bgfunc_asresp_sub :
   forall gT hT (H G:{group gT})  (f : {morphism G >-> hT}),
@@ -232,7 +229,7 @@ Definition mkGfunc F Fgrp Fsub (Fresp:resp F) :=
   @Gfunc (@BgFunc F (@BgFuncMixin F Fgrp Fsub (aresp_of_resp Fresp))) Fresp.
 
 Notation "[ 'gFunc' 'of' F ]" :=
-  (match [is F : _ -> _ <: gFunc] as s return {type of Gfunc for s} -> _ with
+  (match [the gFunc of F : _ -> _] as s return {type of Gfunc for s} -> _ with
     | Gfunc _ m => fun k => k m end
   (@Gfunc [bgFunc of F])) (at level 0, only parsing) : form_scope.
 
@@ -297,15 +294,15 @@ Definition mkhgfunc F Fgrp Fsub (Fresp:resp F) (Fdecr : hereditary F) :=
   Fdecr.
 
 Notation "[ 'hgfunc' 'of' F ]" :=
-  (match[is F : _ -> _ <: hgfunc] as s return {type of Hgfunc for s} -> _ with
+  (match [the hgfunc of F : _ -> _ ] as s return {type of Hgfunc for s} -> _ with
     | Hgfunc _ d => fun k => k  d end
   (@Hgfunc [gFunc of F])) (at level 0, only parsing) : form_scope.
 
-Section HereditaryeasingIdentitySubFunctorProps.
+Section HereditaryIdentitySubFunctorProps.
 
 Implicit Types gT hT:finGroupType.
 
-Section HereditaryeasingIdBaseProps.
+Section HereditaryIdBaseProps.
 
 Variable sF: hgfunc.
 
@@ -339,9 +336,9 @@ move=> gT G /=; apply/eqP; rewrite eqEsubset bgfunc_clos.
 by move/hgfunc_hereditary : (bgfunc_clos sF G); rewrite setIid /=.
 Qed.
 
-End HereditaryeasingIdBaseProps.
+End HereditaryIdBaseProps.
 
-Section HereditaryeasingIdentitySFComp.
+Section HereditaryIdentitySFComp.
 
 Variable sF: hgfunc.
 Variable sF2 : gFunc.
@@ -386,7 +383,7 @@ rewrite -morphimIG ?kF // -(morphim_restrm sDF) morphim_factm morphim_restrm.
 by rewrite morphim_comp -quotientE morphimIdom.
 Qed.
 
-End HereditaryeasingIdentitySFComp.
+End HereditaryIdentitySFComp.
 
 Canonical Structure hgfunc_comp_bgfunc (sF:hgfunc) (sF2:gFunc) :=
   @mkBasegFunc (appmod sF sF2)
@@ -424,7 +421,7 @@ rewrite -morphimIG ?kF // -(morphim_restrm sDF) morphim_factm morphim_restrm.
 by rewrite morphim_comp -quotientE -setIA morphimIdom (setIidPr _).
 Qed.
 
-End HereditaryeasingIdentitySubFunctorProps.
+End HereditaryIdentitySubFunctorProps.
 
 Canonical Structure hgfunc_comp_hgfunc (sF sF3:hgfunc)  :=
   @Hgfunc (hgfunc_comp_gfunc sF sF3)
@@ -456,7 +453,7 @@ Definition mkcgfunc F Fgrp Fsub (Fresp:resp F) (Fincr : compatible F) :=
   @Cgfunc (mkGfunc Fgrp Fsub Fresp) Fincr.
 
 Notation "[ 'cgfunc' 'of' F ]" :=
-  (match[is F : _ -> _ <: cgfunc] as s return {type of Cgfunc for s} -> _ with
+  (match [the cgfunc of F : _ -> _ ] as s return {type of Cgfunc for s} -> _ with
     | Cgfunc _ d => fun k => k  d end
   (@Cgfunc [gFunc of F])) (at level 0, only parsing) : form_scope.
 
