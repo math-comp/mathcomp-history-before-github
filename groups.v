@@ -1653,6 +1653,12 @@ move=> G H K sHK sKG; rewrite -(@dvdn_pmul2l #|H|) ?ltn_0group //.
 by rewrite !LaGrange ?(cardSg, subset_trans sHK).
 Qed.
 
+Lemma index1g : forall G H,  H \subset G -> #|G : H| = 1%N -> H = G.
+Proof.
+move=> G H Hsub Hi; apply:val_inj; apply/eqP; rewrite eqEcard Hsub /=.
+by rewrite -(LaGrange Hsub) Hi muln1.
+Qed.
+
 Lemma indexg1 : forall G, #|G : 1| = #|G|.
 Proof. by move=> G; rewrite -divgS ?sub1G // cards1 divn1. Qed.
 

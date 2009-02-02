@@ -650,6 +650,14 @@ Proof.
 by move=> A x; rewrite -subset_pred1; apply: eq_subset=> y; rewrite !inE.
 Qed.
 
+Lemma subset1 : forall A x, (A \subset [set x]) = (A == [set x]) || (A == set0).
+Proof.
+move=> A x; rewrite {1}eqEsubset.
+case e: (A == set0); first by move/eqP:e->; rewrite sub0set orbT.
+move/set0Pn: e=> [y Hy]; case f:(A \subset [set x]); last by [].
+by move/subsetP: f; move/(_ _ Hy); move/set1P<-; rewrite sub1set orbF.
+Qed.
+
 Lemma subsetD1 : forall A x, A :\ x \subset A.
 Proof. by move=> A x; apply/subsetP=> y; case/setD1P. Qed.
 
