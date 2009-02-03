@@ -1467,31 +1467,47 @@ Qed.
 
 End EvalPolynomial.
 
-Theorem idomain_max_poly_roots :
-   forall (R : idomainType) (p : polynomial R) rs,
-      p != 0 -> uniq rs ->
-    all [pred x | (p.[x] == 0) && all [pred y | x * y == y * x] rs] rs ->
-  size rs < size p.
+Section MaxRoots.
+
+Variable R : unitRingType.
+
+Definition roots (p : polynomial R) : pred R := fun x => p.[x] == 0.
+
+Definition diff_root (x y : R) := (x * y == y * x) && GRing.unit (y - x).
+
+Fixpoint uniq_roots (rs : seq R) {struct rs} :=
+  if rs is x :: rs' then all (diff_root x) rs' && uniq_roots rs' else true.
+
+Theorem max_ring_poly_roots : forall (p : polynomial R) rs,
+  p != 0 -> all (roots p) rs -> uniq_roots rs -> size rs < size p.
 Proof.
-move=> R p rs; elim: rs p => [|x rs IHrs] p nzp /=.
+move=> p rs; elim: rs p => [|x rs IHrs] p nzp /=.
   by rewrite lt0n -size_poly0_eq.
-case/andP=> rs_x Urs; case/andP; case/and3P.
-case/factor_theorem=> q def_p _ _ roots_rs.
-have [nzq nzXx]: q != 0 /\ \X - \C x != 0.
-  by apply/norP; rewrite -mulr_eq0 -def_p.
-rewrite def_p size_mul_id // opp_polyC seq_polyXc addnC ltnS {}IHrs //.
-apply/allP=> y rs_y /=; case/and3P: (allP roots_rs _ rs_y) => py0 cyx ->.
-rewrite andbT; apply/idPn=> nqy0; case/idPn: py0.
-rewrite def_p eval_poly_mul /com_poly !eval_poly_lin; last first.
-  by rewrite mulr_addl mulr_addr mulrN mulNr (eqP cyx).
-rewrite mulr_neq0 //; apply/eqP=> yx0; case/negP: rs_x.
-by rewrite -[x]add0r -yx0 addrAC addrK.
+case/andP=> p_x p_rs; case/andP=> x_rs Urs.
+case/factor_theorem: p_x => q def_p.
+have nzq: q != 0 by apply: contra nzp => q0; rewrite def_p (eqP q0) mul0r.
+have szXx: size (\X - \C x) = 2 by rewrite opp_polyC seq_polyXc.
+have ->: size p = (size q).+1.
+  apply/eqP; rewrite eqn_leq def_p -ltnS (leq_trans (size_mul _ nzq)).
+    apply: leq_coef_size; apply/eqP.
+    rewrite -[size q]/(2 + size _).-2 addnC -szXx.
+    rewrite lead_coef_mul /coef opp_polyC seq_polyXc mulr1.
+    by have:= lead_coef_nz q; rewrite lead_coefE (negPf nzq).
+  by rewrite szXx addnS addn1.
+apply: IHrs Urs => //; apply/allP=> y rs_y.
+case/andP: (allP x_rs _ rs_y) => cxy Uxy.
+have:= allP p_rs _ rs_y; rewrite /roots def_p eval_poly_mul; last first.
+  by rewrite /com_poly !eval_poly_lin mulr_addl mulr_addr mulrN mulNr (eqP cxy).
+by rewrite !eval_poly_lin (can2_eq (mulrK Uxy) (divrK Uxy)) mul0r.
 Qed.
 
-Theorem max_poly_roots : forall (R : fieldType) (p : polynomial R) rs,
-  p != 0 -> uniq rs -> all [pred x | (p.[x] == 0)] rs -> size rs < size p.
+End MaxRoots.
+
+Theorem max_poly_roots : forall (F : fieldType) (p : polynomial F) rs,
+  p != 0 -> all (roots p) rs -> uniq rs -> size rs < size p.
 Proof.
-move=> R p rs nzp Urs roots_rs; apply: idomain_max_poly_roots => //.
-apply/allP=> x rs_x /=; rewrite [_ == 0](allP roots_rs x) //=.
-by apply/allP=> y _; rewrite /= mulrC.
+move=> F p rs nzp p_rs Urs; apply: max_ring_poly_roots nzp p_rs _ => {p}//.
+elim: rs Urs => //= x rs IHrs; case/andP=> rs_x; move/IHrs->; rewrite andbT.
+apply/allP=> y rs_y; rewrite /diff_root mulrC eqxx unitfE.
+by rewrite (can2_eq (subrK _) (addrK _)) add0r; apply: contra rs_x; move/eqP<-.
 Qed.

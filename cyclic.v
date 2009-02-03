@@ -456,29 +456,23 @@ Qed.
 
 End IsoCyclic.
 
-(* A classic application to finite fields. The proof is slightly more *)
-(* involved than it should be, because we're too early in the library *)
-(* to use the structure theorem of abelian groups or p-constituents.  *)
+(* A classic application to finite subgroups of fields. The proof is  *)
+(* slightly more involved than it should be because we're too early   *)
+(* in the library to use either the structure theorem of abelian      *)
+(* groups or p-constituents.                                          *)
 
-Lemma fin_field_mul_group_cyclic :
-  forall (gT : finGroupType) (G : {group gT}) (F : fieldType) (f : gT -> F),
-    {in G &, {morph f : u v / u * v >-> (u * v)%R}} ->
-    {in G, forall x, f x = 1%R <-> x = 1} ->
-  cyclic G.
+Lemma div_ring_mul_group_cyclic :
+  forall (gT : finGroupType) (G : {group gT}) (R : unitRingType) (f : gT -> R),
+    f 1 = 1%R -> {in G &, {morph f : u v / u * v >-> (u * v)%R}} ->
+    {in G^#, forall x, GRing.unit (f x - 1)%R} ->
+  abelian G -> cyclic G.
 Proof.
-move=> gT G F f fM f1P; have f1 : f 1 = 1%R by exact/f1P.
+move=> gT G R f f1 fM f1P abelG.
 have fX: forall n, {in G, {morph f : u / u ^+ n >-> (u ^+ n)%R}}.
   by move=> n x Gx; elim: n => //= n IHn; rewrite fM ?groupX ?IHn.
-have f0: forall x, x \in G -> f x != 0%R.
-  move=> x Gx; apply/eqP=> fx0; case/negP: (@GRing.nonzero1r F).
-  by rewrite -f1 -(expg_order x) fX // fx0 GRing.expr_eq0 eqxx ltn_0order.
-have fV: {in G, {morph f : u / u^-1 >-> u^-1%R}}.
-  move=> x Gx; apply: (GRing.mulIf (f0 x Gx)).
-  by rewrite -fM ?groupV // mulVg GRing.mulVf //; apply: f0.
-have injf: {in G &, injective f}.
-  move=> x y Gx Gy /= eq_fxy; apply/eqP; rewrite eq_mulgV1; apply/eqP.
-  apply/f1P; rewrite ?fM ?fV ?groupM ?groupV //.
-  by rewrite eq_fxy GRing.divff //; apply: f0.
+have fU: forall x, x \in G -> GRing.unit (f x).
+  move=> x Gx; apply/GRing.unitrP.
+  by exists (f x^-1); rewrite -!fM ?groupV ?gsimp.
 have: exists H : {group _}, cyclic H && (H \subset G). 
   by exists [1 gT]%G; rewrite sub1G cyclic1.
 case/ex_maxgroup=> H; case/maxgroupP; case/andP=> cycH; rewrite subEproper.
@@ -486,16 +480,24 @@ case/predU1P=> [<- //|]; case/andP=> sHG sGH maxH; set n := #|H|.
 have defH: H :=: [set x \in G | #[x] %| n].
   apply/eqP; rewrite eqEcard; apply/andP; split.
     by apply/subsetP=> x Hx; rewrite inE (subsetP _ x Hx) ?cardSg ?cycle_subG.
-  pose P : polynomial F := (\X ^+ n - \C 1)%R.
+  pose P : polynomial R := (\X ^+ n - \C 1)%R.
   have szP: size P = n.+1.
     by rewrite size_addl size_polyX_n // size_opp size_poly1 ltnS /n.
-  rewrite -ltnS -szP cardE -(size_maps f) max_poly_roots //.
+  rewrite -ltnS -szP cardE -(size_maps f) max_ring_poly_roots //.
   - by rewrite size_poly0_eq szP.
-  - rewrite uniq_maps_in ?uniq_enum //; apply: sub_in2 injf => x.
-    by rewrite mem_enum !inE; case/andP.
-  apply/allP=> fx; case/mapsP=> x; rewrite mem_enum /= !inE order_dvdn.
-  case/andP=> Gx xn1 <-{fx}.
-  by rewrite !(eval_poly_lin, eval_polyX_n) -fX // (eqP xn1) f1 GRing.subrr.
+  - apply/allP=> fx; case/mapsP=> x; rewrite mem_enum !inE order_dvdn.
+    case/andP=> Gx; move/eqP=> xn1 <-{fx}; apply/eqP.
+    by rewrite !(eval_poly_lin, eval_polyX_n) -fX // xn1 f1 GRing.subrr.
+  set rs := enum _; have: uniq rs by exact: uniq_enum.
+  have: all (mem G) rs by apply/allP=> x; rewrite mem_enum !inE; case/andP.
+  elim: rs => //= x rs IHrs; case/andP=> Gx Grs; case/andP=> x_rs.
+  move/IHrs=> -> {IHrs}//; rewrite andbT.
+  apply/allP=> fy; case/mapsP=> y rs_y <-{fy}.
+  have{Grs} Gy := allP Grs y rs_y; rewrite /diff_root -!fM 1?(centsP abelG) //.
+  rewrite eqxx -[f x]GRing.mul1r -(mulgKV x y) fM ?groupM ?groupV //.
+  rewrite -GRing.mulNr -GRing.mulr_addl GRing.unitr_mull ?fU ?f1P //.
+  rewrite !inE groupM ?groupV // andbT -eq_mulgV1.
+  by apply: contra x_rs; move/eqP <-.
 have [x def_x] := cyclicP H cycH; case/subsetPn: sGH => y Hy.
 case/negP; rewrite defH inE Hy; apply/dvdn_partP=> // p.
 rewrite mem_primes; case/and3P=> pr_p _ py.
@@ -514,8 +516,7 @@ case Hyp: (yp \in H).
   by have:= order_dvdG Hyp; rewrite oyp pfactor_dvdn // ltnn.
 have Gx: x \in G by rewrite -cycle_subG -def_x.
 have yxpM: <[yp * xp']> = <[yp]> * <[xp']>.
-  apply: cycleM.
-    apply: injf; rewrite ?groupM ?fM ?groupX //; exact: GRing.mulrC. 
+  apply: cycleM; first by apply: (centsP abelG); rewrite ?groupM ?groupX.
   rewrite oyp oxp'; apply: pnat_coprime (pnat_part _ _).
   by rewrite pnat_exp pnat_id.
 case/negP: Hyp; rewrite -(maxH <[yp * xp']>%G).
@@ -527,6 +528,22 @@ rewrite eqEcard coprime_cardMg {1}[#|<[_]>|]oypp [#|<[_]>|]oxp'; last first.
 rewrite /n partnC // mul_subG //= cycle_subG.
   by rewrite defH inE !groupX // oypp dvdn_part.
 by rewrite def_x groupX ?cycle_id.
+Qed.
+
+Lemma field_mul_group_cyclic :
+  forall (gT : finGroupType) (G : {group gT}) (F : fieldType) (f : gT -> F),
+    {in G &, {morph f : u v / u * v >-> (u * v)%R}} ->
+    {in G, forall x, f x = 1%R <-> x = 1} ->
+  cyclic G.
+Proof.
+move=> gT G F f fM f1P; have f1 : f 1 = 1%R by exact/f1P.
+apply: (div_ring_mul_group_cyclic f1 fM) => [x|].
+  case/setD1P=> x1 Gx; rewrite GRing.unitfE; apply: contra x1.
+  move/eqP; move/(canRL (GRing.subrK _)); rewrite GRing.add0r.
+  by move/f1P->.
+apply/centsP=> x Gx y Gy; apply/commgP; apply/eqP.
+apply/f1P; rewrite ?fM ?groupM ?groupV // GRing.mulrCA -!fM ?groupM ?groupV //.
+by rewrite mulKg mulVg.
 Qed.
 
 (***********************************************************************)
@@ -580,6 +597,7 @@ End ZpUnitMorphism.
 Lemma Zp_unitmM : {in Zp_units #[a] &, {morph Zp_unitm : u v / u * v}}.
 Proof.
 move=> u v _ _; apply: (eq_Aut (Aut_aut _ _)) => [|x a_x].
+
   by rewrite groupM ?Aut_aut.
 rewrite permM !autE ?groupX //= /cyclem -expgn_mul.
 by rewrite -expg_mod_order modn_dvdm ?expg_mod_order // order_dvdG.
@@ -642,7 +660,7 @@ Proof. by rewrite -morphim_Zp_unitm morphim_abelian ?Zp_units_abelian. Qed.
 Lemma Aut_prime_cycle_cyclic : prime #[a] -> cyclic (Aut <[a]>).
 Proof.
 move=> pr_a; pose ff f := invm injm_Zp_unitm f : Fp_field pr_a.
-apply: (@fin_field_mul_group_cyclic _ _ _ ff) => [f g Af Ag | f Af].
+apply: (@field_mul_group_cyclic _ _ _ ff) => [f g Af Ag | f Af].
   by apply: val_inj; rewrite /ff morphM ?morphim_Zp_unitm.
 split=> [/= ff1 |->]; last by apply: val_inj; rewrite /ff morph1.
 apply: (injm1 (injm_invm injm_Zp_unitm)); first by rewrite /= morphim_Zp_unitm.
