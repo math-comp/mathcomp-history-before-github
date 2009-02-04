@@ -83,7 +83,7 @@ Module BaseGFunctor.
 
 Implicit Types gT: finGroupType.
 
-Structure mixin (Fobj : obmap) : Type := Mixin { 
+Structure mixin_of (Fobj : obmap) : Type := Mixin { 
   (* group preservation *)
   _ : forall gT (G:{group gT}), group_set (Fobj _ G);
   (* submapping *)
@@ -91,116 +91,134 @@ Structure mixin (Fobj : obmap) : Type := Mixin {
   (* functoriality condition *)
   _ : aresp Fobj}.
 
-Structure class : Type := Class { Fobj :> obmap ; 
-   _ : mixin Fobj}.
+Notation class_of := mixin_of (only parsing).
 
-Definition subset_of (Fobj : obmap) (MF : mixin Fobj) := 
+(* pack the functor plus its properties *)
+Structure func : Type := Pack {F :> obmap; _ : class_of F; _ : obmap}.
+(* destructor returning the parametric class of properties from the
+   packaged functor *)
+Definition class cF := let: Pack _ c _ := cF return class_of cF in c.
+(* cps 'recombiner' taking a Type and its binary constructor k from
+   functors and their classes, returning its application to components
+   extracted from a packed functor cF *) 
+Definition unpack K (k : forall F (c : class_of F), K F c) cF :=
+  let: Pack F c _ := cF return K _ (class cF) in k _ c.
+(* given a packaged functor, and the a packing function (intended to give
+you the right obmap repetition at the tail of your record), produces the
+glued constructor that reproduces the same functor class with that packing
+function*)
+Definition repack cF : _ -> obmap -> func :=
+  let k (F:obmap) (c:class_of F) (p:class_of F -> obmap -> func) := p c in 
+    unpack k cF.
+
+Definition pack F c := @Pack F c F.
+
+Definition subset_of (Fobj : obmap) (MF : class_of Fobj) := 
   let: Mixin _ s _ := MF return
   forall gT (G: {group gT}), Fobj gT G \subset G in s.
 
-Definition group_of (Fobj : obmap) (MF : mixin Fobj) := 
+Definition group_of (Fobj : obmap) (MF : class_of Fobj) := 
   let: Mixin g _ _ := MF return
   forall gT (G: {group gT}), group_set (Fobj gT G) in g.
 
-Coercion mixin_of F := let: Class _ m := F return mixin F in m.
-
 End BaseGFunctor.
 
-Notation bgFunc := BaseGFunctor.class.
-Notation BgFunc := BaseGFunctor.Class.
-Notation BgFuncMixin := BaseGFunctor.Mixin.
-
-Definition mkBasegFunc F Fgrp Fsub Fresp := 
-  BgFunc (@BgFuncMixin F Fgrp Fsub Fresp).
-
+Notation bgFunc := BaseGFunctor.func.
+Notation BgFunc := BaseGFunctor.pack.
+Notation BgMixin := BaseGFunctor.Mixin.
+Notation "[ 'bgFunc' 'of' F 'for' cF ]" :=
+    (@BaseGFunctor.repack cF (@BaseGFunctor.Pack F) F)
+    (at level 0, only parsing) : form_scope.
 Notation "[ 'bgFunc' 'of' F ]" :=
-  (match [the bgFunc of F : _ -> _] as s return {type of BgFunc for s} -> _ with
-    | BgFunc _ m => fun k => k m end
-  (@BgFunc F)) (at level 0, only parsing) : form_scope.
+    (BaseGFunctor.repack (fun c => @BaseGFunctor.Pack F c) F)
+  (at level 0, only parsing) : form_scope.
 
 Notation Local "''e_' s ( G )" := (s _ G)
   (at level 8,s at level 2, format "''e_' s ( G )") : group_scope.
 
-Lemma bgfunc_groupset : forall (sF:bgFunc) (gT:finGroupType) (G:{group gT}),
+Lemma bgFunc_groupset : forall (sF:bgFunc) (gT:finGroupType) (G:{group gT}),
   group_set (sF gT G).
 Proof. by move=> sF gT G; case sF=> F; case. Qed.
 
-Canonical Structure bgfunc_group (sF:bgFunc) (gT:finGroupType) (G:{group gT}) :=
-  (group (bgfunc_groupset sF G)).
+Canonical Structure bgFunc_group (sF:bgFunc) (gT:finGroupType) (G:{group gT}) :=
+  (group (bgFunc_groupset sF G)).
 
-Section BaseIdentitySubfunctorProps.
+Definition mkBasegFunc (F:obmap) Fgrp Fsub Fresp := 
+  BgFunc (@BgMixin F Fgrp Fsub Fresp).
+
+Section BaseIdentitySubFunctorProps.
 
 Implicit Types gT hT:finGroupType.
 Variable sF: bgFunc.
 
-Lemma bgfunc_clos : forall (fT:finGroupType) (H:{group fT}),
+Lemma bgFunc_clos : forall (fT:finGroupType) (H:{group fT}),
   'e_sF(H) \subset H.
 Proof. by case sF=> F; case. Qed.
 
-Lemma bgfunc_aresp : aresp sF.
+Lemma bgFunc_aresp : aresp sF.
 Proof. by case sF=> Fobj; case. Qed.
 
-Lemma bgfunc_char : forall gT (G:{group gT}), 'e_sF(G) \char G.
+Lemma bgFunc_char : forall gT (G:{group gT}), 'e_sF(G) \char G.
 Proof.
-move=> gT G; apply/andP; split => //; first by apply: bgfunc_clos.
+move=> gT G; apply/andP; split => //; first by apply: bgFunc_clos.
 apply/forallP=> f; apply/implyP=> Af; rewrite -{2}(autm_dom Af).
-by rewrite -(morphimEsub (autm_morphism Af)) ?bgfunc_clos ?bgfunc_aresp ?injm_autm.
+by rewrite -(morphimEsub (autm_morphism Af)) ?bgFunc_clos ?bgFunc_aresp ?injm_autm.
 Qed.
 
-Lemma bgfunc_norm : forall gT (G:{group gT}), G \subset 'N('e_sF(G)).
-Proof. by move=> *; rewrite char_norm ?bgfunc_char. Qed.
+Lemma bgFunc_norm : forall gT (G:{group gT}), G \subset 'N('e_sF(G)).
+Proof. by move=> *; rewrite char_norm ?bgFunc_char. Qed.
 
 (* independent from the group preservation requirement*)
-Lemma bgfunc_gen_norm : forall gT (G:{group gT}),
+Lemma bgFunc_gen_norm : forall gT (G:{group gT}),
   <<'e_sF(G)>> \subset 'N('e_sF(G)).
 Proof.
-move=> gT G; apply/normsP=> x Hx; move/normsP: (bgfunc_norm G); apply.
-by move: ((subsetP (genS (bgfunc_clos G))) _ Hx); rewrite genGid.
+move=> gT G; apply/normsP=> x Hx; move/normsP: (bgFunc_norm G); apply.
+by move: ((subsetP (genS (bgFunc_clos G))) _ Hx); rewrite genGid.
 Qed.
 
-Lemma bgfunc_normal : forall gT (G : {group gT}), 'e_sF(G) <| G.
-Proof.  by move=> *; rewrite char_normal ?bgfunc_char. Qed.
+Lemma bgFunc_normal : forall gT (G : {group gT}), 'e_sF(G) <| G.
+Proof.  by move=> *; rewrite char_normal ?bgFunc_char. Qed.
 
-Lemma bgfunc_asresp_sub :
+Lemma bgFunc_asresp_sub :
   forall gT hT (H G:{group gT})  (f : {morphism G >-> hT}),
   'injm f -> H \subset G -> f @* ('e_sF(H)) \subset 'e_sF(f @* H).
 Proof.
-move=> gT hT H G f injf sHG; apply/eqP; rewrite -(setIidPr (bgfunc_clos H)).
-by rewrite-{3}(setIid H) -!(morphim_restrm sHG) bgfunc_aresp ?injm_restrm //=.
+move=> gT hT H G f injf sHG; apply/eqP; rewrite -(setIidPr (bgFunc_clos H)).
+by rewrite-{3}(setIid H) -!(morphim_restrm sHG) bgFunc_aresp ?injm_restrm //=.
 Qed.
 
-Lemma bgfunc_asresp : forall gT hT (H G : {group gT}) (f : {morphism G >-> hT}),
+Lemma bgFunc_asresp : forall gT hT (H G : {group gT}) (f : {morphism G >-> hT}),
   'injm f -> H \subset G -> f @* ('e_sF(H)) = 'e_sF(f @* H).
 Proof.
-move=> gT hT H G f injf sHG; apply/eqP; rewrite eqEsubset bgfunc_asresp_sub //=.
+move=> gT hT H G f injf sHG; apply/eqP; rewrite eqEsubset bgFunc_asresp_sub //=.
 rewrite -{2}(morphim_invm injf sHG) -[f @* sF _ _](morphpre_invm injf).
-have sFtr := subset_trans (bgfunc_clos _).
-by rewrite -sub_morphim_pre (bgfunc_asresp_sub, sFtr) ?morphimS ?injm_invm.
+have sFtr := subset_trans (bgFunc_clos _).
+by rewrite -sub_morphim_pre (bgFunc_asresp_sub, sFtr) ?morphimS ?injm_invm.
 Qed.
 
-Lemma bgfunc_nker_resp : forall gT hT (H G : {group gT})
+Lemma bgFunc_nker_resp : forall gT hT (H G : {group gT})
   (f : {morphism G >-> hT}),
   'ker f = 1 -> H \subset G -> f @* ('e_sF(H)) = 'e_sF(f @* H).
-Proof. by move=> gT hT H G f; move/trivgP =>/=; apply:bgfunc_asresp. Qed.
+Proof. by move=> gT hT H G f; move/trivgP =>/=; apply:bgFunc_asresp. Qed.
 
-Lemma bgfunc_isom : forall gT hT (H G : {group gT}) (R : {group hT}) 
+Lemma bgFunc_isom : forall gT hT (H G : {group gT}) (R : {group hT}) 
                                    (f : {morphism G >-> hT}),
   H \subset G -> isom H R f -> isom ('e_sF(H)) ('e_sF(R)) f.
 Proof.
 move=> gT rT H G R f; case/(restrmP f)=> g [_ _ ->]; case/isomP=> injf <-.
-rewrite /isom -(bgfunc_asresp injf) // -morphimEsub ?morphimDG ?morphim1 //. 
-by rewrite subDset subsetU // bgfunc_clos orbT.
+rewrite /isom -(bgFunc_asresp injf) // -morphimEsub ?morphimDG ?morphim1 //. 
+by rewrite subDset subsetU // bgFunc_clos orbT.
 Qed.
 
-Lemma bgfunc_isog : forall gT hT (G : {group gT}) (R : {group hT}),
+Lemma bgFunc_isog : forall gT hT (G : {group gT}) (R : {group hT}),
   G \isog R -> 'e_sF(G) \isog 'e_sF(R).
 Proof.
 move=> gT rT D R; case/isogP=> f *.
-apply: (isom_isog f) => //; first by apply: bgfunc_clos.
-apply: bgfunc_isom => //; exact/isomP.
+apply: (isom_isog f) => //; first by apply: bgFunc_clos.
+apply: bgFunc_isom => //; exact/isomP.
 Qed.
 
-End BaseIdentitySubfunctorProps.
+End BaseIdentitySubFunctorProps.
 
 Module GFunctor.
 
@@ -213,90 +231,92 @@ Module GFunctor.
 
 Implicit Types gT: finGroupType.
 
-Structure gFuncClass : Type := Class { 
+Structure gFuncClass : Type := Pack { 
   FbgFunc :> bgFunc ;
    _ : resp FbgFunc}.
 
-Lemma gfunc_resp (sF: gFuncClass): resp sF.
+Definition repack FbgFunc :=
+  let: Pack c r := FbgFunc return {type of Pack for FbgFunc} -> _ in
+    fun k => k r.
+
+Lemma gFunc_resp (sF: gFuncClass): resp sF.
 Proof. by case => F FM. Qed.
 
 End GFunctor.
 
 Notation gFunc := GFunctor.gFuncClass.
-Notation Gfunc := GFunctor.Class.
-
-Definition mkGfunc F Fgrp Fsub (Fresp:resp F) := 
-  @Gfunc (@BgFunc F (@BgFuncMixin F Fgrp Fsub (aresp_of_resp Fresp))) Fresp.
+Notation GFunc := GFunctor.Pack.
 
 Notation "[ 'gFunc' 'of' F ]" :=
-  (match [the gFunc of F : _ -> _] as s return {type of Gfunc for s} -> _ with
-    | Gfunc _ m => fun k => k m end
-  (@Gfunc [bgFunc of F])) (at level 0, only parsing) : form_scope.
+  (GFunctor.repack (fun m => @GFunc [bgFunc of F] m))
+  (at level 0, only parsing) : form_scope.
+
+Definition mkGFunc F Fgrp Fsub (Fresp:resp F) := 
+  @GFunc (mkBasegFunc Fgrp Fsub (aresp_of_resp Fresp)) Fresp.
 
 Section IdentitySubFunctorProps.
 
 Implicit Types gT hT:finGroupType.
 Variable sF: gFunc.
 
-Lemma gfunc_resp : resp sF.
-Proof. exact:GFunctor.gfunc_resp. Qed.
+Lemma gFunc_resp : resp sF.
+Proof. exact:GFunctor.gFunc_resp. Qed.
 
-Lemma morphim_sfunctor : forall gT hT (G D : {group gT})
+Lemma morphim_sFunctor : forall gT hT (G D : {group gT})
   (f : {morphism D >-> hT}),
   G \subset D -> f @* ('e_sF(G)) \subset 'e_sF(f @* G).
 Proof.
-move=> gT hT G D f sGD; rewrite -(setIidPr (bgfunc_clos sF G)).
-by rewrite  -{3}(setIid G) -!(morphim_restrm sGD) gfunc_resp.
+move=> gT hT G D f sGD; rewrite -(setIidPr (bgFunc_clos sF G)).
+by rewrite  -{3}(setIid G) -!(morphim_restrm sGD) gFunc_resp.
 Qed.
 
-Lemma injm_sfunctor : forall gT hT (G D : {group gT}) (f : {morphism D >-> hT}),
+Lemma injm_sFunctor : forall gT hT (G D : {group gT}) (f : {morphism D >-> hT}),
   'injm f -> G \subset D -> f @* ('e_sF(G)) = 'e_sF(f @* G).
-Proof. exact: bgfunc_asresp. Qed.
+Proof. exact: bgFunc_asresp. Qed.
 
-Lemma isom_sfunctor : forall gT hT (D G : {group gT}) (R : {group hT}) 
+Lemma isom_sFunctor : forall gT hT (D G : {group gT}) (R : {group hT}) 
                                    (f : {morphism D >-> hT}),
   G \subset D -> isom G R f -> isom ('e_sF(G)) ('e_sF(R)) f.
-Proof. move=> gT hT D G; exact:bgfunc_isom. Qed.
+Proof. move=> gT hT D G; exact:bgFunc_isom. Qed.
 
-Lemma isog_sfunctor : forall gT hT (D : {group gT}) (R : {group hT}),
+Lemma isog_sFunctor : forall gT hT (D : {group gT}) (R : {group hT}),
   D \isog R -> 'e_sF(D) \isog 'e_sF(R).
-Proof. exact: bgfunc_isog. Qed.
+Proof. exact: bgFunc_isog. Qed.
 
 End IdentitySubFunctorProps.
 
 Module HereditaryGFunctor.
 
-(* Mappings functorial w.r.t. (surjective) morphisms,
+(* Mappings Functorial w.r.t. (surjective) morphisms,
    well-behaved w.r.t. modulo application *)
 
 Implicit Types gT: finGroupType.
 
-Structure class : Type := Class { 
+Structure class : Type := Pack { 
   FgFunc :> gFunc;
    _ : hereditary FgFunc}.
 
-Lemma hgfunc_resp (sF: class): resp sF.
-Proof. by move=> sF; apply:gfunc_resp. Qed.
+Definition repack FgFunc :=
+  let: Pack c r := FgFunc return {type of Pack for FgFunc} -> _ in
+    fun k => k r.
 
-Lemma hgfunc_hereditary (sF : class): hereditary sF.
+Lemma hgFunc_resp (sF: class): resp sF.
+Proof. by move=> sF; apply:gFunc_resp. Qed.
+
+Lemma hgFunc_hereditary (sF : class): hereditary sF.
 Proof. by case => F. Qed.
 
 End HereditaryGFunctor.
 
-Notation hgfunc := HereditaryGFunctor.class.
-Notation Hgfunc := HereditaryGFunctor.Class.
+Notation hgFunc := HereditaryGFunctor.class.
+Notation HgFunc := HereditaryGFunctor.Pack.
 
-Definition mkhgfunc F Fgrp Fsub (Fresp:resp F) (Fdecr : hereditary F) := 
-  @Hgfunc
-    (@Gfunc
-      (@BgFunc F (@BgFuncMixin F Fgrp Fsub (aresp_of_resp Fresp)))
-     Fresp)
-  Fdecr.
+Notation "[ 'hgFunc' 'of' F ]" :=
+  (HereditaryGFunctor.repack (fun m => @HgFunc [gFunc of F] m))
+  (at level 0, only parsing) : form_scope.
 
-Notation "[ 'hgfunc' 'of' F ]" :=
-  (match [the hgfunc of F : _ -> _ ] as s return {type of Hgfunc for s} -> _ with
-    | Hgfunc _ d => fun k => k  d end
-  (@Hgfunc [gFunc of F])) (at level 0, only parsing) : form_scope.
+Definition mkhgFunc F Fgrp Fsub (Fresp:resp F) (Fdecr : hereditary F) := 
+  @HgFunc (mkGFunc Fgrp Fsub Fresp) Fdecr.
 
 Section HereditaryIdentitySubFunctorProps.
 
@@ -304,79 +324,79 @@ Implicit Types gT hT:finGroupType.
 
 Section HereditaryIdBaseProps.
 
-Variable sF: hgfunc.
+Variable sF: hgFunc.
 
-Lemma hgfunc_resp : resp sF.
-Proof. exact:GFunctor.gfunc_resp. Qed.
+Lemma hgFunc_resp : resp sF.
+Proof. exact:GFunctor.gFunc_resp. Qed.
 
-Lemma hgfunc_hereditary : hereditary sF.
-Proof. exact:HereditaryGFunctor.hgfunc_hereditary. Qed.
+Lemma hgFunc_hereditary : hereditary sF.
+Proof. exact:HereditaryGFunctor.hgFunc_hereditary. Qed.
 
-Lemma hgfunc_imsetI : forall gT (G H:{group gT}),
+Lemma hgFunc_imsetI : forall gT (G H:{group gT}),
   'e_sF(G) :&: H = 'e_sF (G) :&: 'e_sF (G :&: H).
 Proof.
-move=>gT G H; rewrite -{1}(setIidPr (bgfunc_clos sF G)) [G :&: _]setIC -setIA.
-move/setIidPr: (hgfunc_hereditary (subsetIl G H)) <-.
-by rewrite setIC -setIA (setIidPr (bgfunc_clos sF (G:&: H))).
+move=>gT G H; rewrite -{1}(setIidPr (bgFunc_clos sF G)) [G :&: _]setIC -setIA.
+move/setIidPr: (hgFunc_hereditary (subsetIl G H)) <-.
+by rewrite setIC -setIA (setIidPr (bgFunc_clos sF (G:&: H))).
 Qed.
 
-Lemma hgfunc_morphim : dresp sF.
+Lemma hgFunc_morphim : dresp sF.
 Proof.
 move=> gT hT G D f.
-rewrite -morphimIdom -(setIidPl (bgfunc_clos sF G)) setIC -setIA [G :&: _]setIC.
-apply: (subset_trans (morphimS f (hgfunc_hereditary (subsetIr D G)))).
-apply:(subset_trans (morphim_sfunctor sF _ _ )); last by rewrite morphimIdom.
+rewrite -morphimIdom -(setIidPl (bgFunc_clos sF G)) setIC -setIA [G :&: _]setIC.
+apply: (subset_trans (morphimS f (hgFunc_hereditary (subsetIr D G)))).
+apply:(subset_trans (morphim_sFunctor sF _ _ )); last by rewrite morphimIdom.
 exact:subsetIl.
 Qed.
 
 Lemma hereditary_idem : forall (gT:finGroupType) (G:{group gT}),
   (app sF sF) _ G  = sF _ G.
 Proof.
-move=> gT G /=; apply/eqP; rewrite eqEsubset bgfunc_clos.
-by move/hgfunc_hereditary : (bgfunc_clos sF G); rewrite setIid /=.
+move=> gT G /=; apply/eqP; rewrite eqEsubset bgFunc_clos.
+by move/hgFunc_hereditary : (bgFunc_clos sF G); rewrite setIid /=.
 Qed.
 
 End HereditaryIdBaseProps.
 
 Section HereditaryIdentitySFComp.
 
-Variable sF: hgfunc.
+Variable sF: hgFunc.
 Variable sF2 : gFunc.
 
 (* independent from the group preservation requirement *)
-Lemma hgfunc_comp_clos : forall gT (G:{group gT}),
+Lemma hgFunc_comp_clos : forall gT (G:{group gT}),
   (appmod sF sF2) gT G \subset G.
 Proof.
-move=> gT G; rewrite /appmod; have nFD := (bgfunc_norm sF2 G).
-rewrite sub_morphpre_im ?(bgfunc_clos sF) //=.
-  by rewrite ker_coset_prim subIset // gen_subG (bgfunc_clos sF2 G).
-by apply: subset_trans (bgfunc_clos sF _) _; apply: morphimS.
+move=> gT G; rewrite /appmod; have nFD := (bgFunc_norm sF2 G).
+rewrite sub_morphpre_im ?(bgFunc_clos sF) //=.
+  by rewrite ker_coset_prim subIset // gen_subG (bgFunc_clos sF2 G).
+by apply: subset_trans (bgFunc_clos sF _) _; apply: morphimS.
 Qed.
 
-Lemma hgfunc_comp_quo : forall gT (G : {group gT}) (B : {set gT}),
+Lemma hgFunc_comp_quo : forall gT (G : {group gT}) (B : {set gT}),
   (coset B @*^-1  sF _ (G / B)) / B  = sF _ (G / B).
 Proof.
-move=> gT A B; apply: morphpreK; apply: subset_trans (bgfunc_clos sF _) _.
+move=> gT A B; apply: morphpreK; apply: subset_trans (bgFunc_clos sF _) _.
 by rewrite /= /quotient -morphimIdom  morphimS ?subsetIl.
 Qed.
 
-Lemma hgfunc_comp_resp : resp (appmod sF sF2).
-move=> gT rT G f; have nF := bgfunc_norm sF2.
-have kF := ker_coset (Group (bgfunc_groupset sF2 _)); simpl in kF.
+Lemma hgFunc_comp_resp : resp (appmod sF sF2).
+move=> gT rT G f; have nF := bgFunc_norm sF2.
+have kF := ker_coset (Group (bgFunc_groupset sF2 _)); simpl in kF.
 have sDF: G \subset 'dom (coset (sF2 _ G)) by rewrite ?nF.
 have sDFf: G \subset 'dom (coset (sF2 _ (f @* G)) \o f).
   by rewrite -sub_morphim_pre ?subsetIl // nF.
 pose K := 'ker (restrm sDFf (coset (sF2 _ (f @* G)) \o f)).
 have sFK: 'ker (restrm sDF (coset (sF2 _ G))) \subset K.
   rewrite /K  !ker_restrm ker_comp /= subsetI subsetIl /=.
-  by rewrite -sub_morphim_pre ?subsetIl // morphimIdom !kF ?morphim_sfunctor.
-have sOF := bgfunc_clos sF (G / sF2 _ G); have sGG: G \subset G by [].
+  by rewrite -sub_morphim_pre ?subsetIl // morphimIdom !kF ?morphim_sFunctor.
+have sOF := bgFunc_clos sF (G / sF2 _ G); have sGG: G \subset G by [].
 rewrite -sub_morphim_pre -?quotientE; last first.
-  by apply: subset_trans (nF _ _); rewrite morphimS ?hgfunc_comp_clos.
+  by apply: subset_trans (nF _ _); rewrite morphimS ?hgFunc_comp_clos.
 suffices im_fact: forall H : {group gT}, sF2 _ G \subset H -> H \subset G ->
   factm sGG sFK @* (H / sF2 _ G) = f @* H / sF2 _ (f @* G).
-- rewrite -2?im_fact ?hgfunc_comp_clos ?bgfunc_clos //.
-  by rewrite hgfunc_comp_quo morphim_sfunctor /= ?morphim_restrm ?setIid //.
+- rewrite -2?im_fact ?hgFunc_comp_clos ?bgFunc_clos //.
+  by rewrite hgFunc_comp_quo morphim_sFunctor /= ?morphim_restrm ?setIid //.
   by rewrite -{1}kF morphpreS ?sub1G.
 move=> H sFH sHG; rewrite -(morphimIdom _ (H / _)) /= {2}morphim_restrm setIid.
 rewrite -morphimIG ?kF // -(morphim_restrm sDF) morphim_factm morphim_restrm.
@@ -385,36 +405,36 @@ Qed.
 
 End HereditaryIdentitySFComp.
 
-Canonical Structure hgfunc_comp_bgfunc (sF:hgfunc) (sF2:gFunc) :=
+Canonical Structure hgFunc_comp_bgFunc (sF:hgFunc) (sF2:gFunc) :=
   @mkBasegFunc (appmod sF sF2)
   (fun gT G => groupP [group of ((appmod sF sF2) _ G)])
-  (hgfunc_comp_clos sF sF2)
-  (aresp_of_resp (hgfunc_comp_resp sF sF2)).
+  (hgFunc_comp_clos sF sF2)
+  (aresp_of_resp (hgFunc_comp_resp sF sF2)).
 
-Canonical Structure hgfunc_comp_gfunc (sF:hgfunc) (sF2:gFunc) :=
-  @Gfunc (hgfunc_comp_bgfunc sF sF2)
-  (hgfunc_comp_resp sF sF2).
+Canonical Structure hgFunc_comp_gFunc (sF:hgFunc) (sF2:gFunc) :=
+  @GFunc (hgFunc_comp_bgFunc sF sF2)
+  (hgFunc_comp_resp sF sF2).
 
-Variables sF sF3:hgfunc.
+Variables sF sF3:hgFunc.
 
-Lemma hgfunc_comp_dresp : dresp ([gFunc of (appmod sF sF3)]).
+Lemma hgFunc_comp_dresp : dresp ([gFunc of (appmod sF sF3)]).
 Proof.
-move=> gT rT G D f /=; have nF := bgfunc_norm sF3.
-have kF := ker_coset (Group (bgfunc_groupset sF3 _)); simpl in kF.
+move=> gT rT G D f /=; have nF := bgFunc_norm sF3.
+have kF := ker_coset (Group (bgFunc_groupset sF3 _)); simpl in kF.
 have sDF: D :&: G \subset 'dom (coset (sF3 _ G)) by rewrite setIC subIset ?nF.
 have sDFf: D :&: G \subset 'dom (coset (sF3 _ (f @* G)) \o f).
   by rewrite -sub_morphim_pre ?subsetIl // morphimIdom nF.
 pose K := 'ker (restrm sDFf (coset (sF3 _ (f @* G)) \o f)).
 have sFK: 'ker (restrm sDF (coset (sF3 _ G))) \subset K.
   rewrite /K  !ker_restrm ker_comp /= subsetI subsetIl /= -setIA.
-  by rewrite -sub_morphim_pre ?subsetIl // morphimIdom !kF (setIidPr _) ?hgfunc_morphim ?bgfunc_clos.
-have sOF := bgfunc_clos sF (G / sF3 _ G); have sGG: D :&: G \subset D :&: G by [].
+  by rewrite -sub_morphim_pre ?subsetIl // morphimIdom !kF (setIidPr _) ?hgFunc_morphim ?bgFunc_clos.
+have sOF := bgFunc_clos sF (G / sF3 _ G); have sGG: D :&: G \subset D :&: G by [].
 rewrite -sub_morphim_pre -?quotientE; last first.
-  by apply: subset_trans (nF _ _); rewrite morphimS ?hgfunc_comp_clos.
+  by apply: subset_trans (nF _ _); rewrite morphimS ?hgFunc_comp_clos.
 suffices im_fact: forall H : {group gT}, sF3 _ G \subset H -> H \subset G ->
   factm sGG sFK @* (H / sF3 _ G) = f @* H / sF3 _ (f @* G).
-- rewrite -2?im_fact ?hgfunc_comp_clos ?bgfunc_clos //.
-  by rewrite hgfunc_comp_quo hgfunc_morphim /=.
+- rewrite -2?im_fact ?hgFunc_comp_clos ?bgFunc_clos //.
+  by rewrite hgFunc_comp_quo hgFunc_morphim /=.
   by rewrite -{1}kF morphpreS ?sub1G.
 move=> H sFH sHG; rewrite -(morphimIdom _ (H / _)) /= {2}morphim_restrm setIid.
 rewrite -morphimIG ?kF // -(morphim_restrm sDF) morphim_factm morphim_restrm.
@@ -423,39 +443,42 @@ Qed.
 
 End HereditaryIdentitySubFunctorProps.
 
-Canonical Structure hgfunc_comp_hgfunc (sF sF3:hgfunc)  :=
-  @Hgfunc (hgfunc_comp_gfunc sF sF3)
-  (hereditary_of_dresp (hgfunc_comp_dresp sF sF3)).
+Canonical Structure hgFunc_comp_hgFunc (sF sF3:hgFunc)  :=
+  @HgFunc (hgFunc_comp_gFunc sF sF3)
+  (hereditary_of_dresp (hgFunc_comp_dresp sF sF3)).
 
-Module CompatibleGfunctor.
+Module CompatibleGFunctor.
 
-(* Mappings functorial w.r.t. (surjective) morphisms,
+(* Mappings Functorial w.r.t. (surjective) morphisms,
    well-behaved w.r.t. application *)
 
 Implicit Types gT: finGroupType.
 
-Structure class : Type := Class { 
+Structure class : Type := Pack { 
   FgFunc :> gFunc;
    _ : compatible FgFunc}.
 
-Lemma cgfunc_resp (sF: class): resp sF.
-Proof. by move=> sF; apply:gfunc_resp. Qed.
+Definition repack FgFunc :=
+  let: Pack c r := FgFunc return {type of Pack for FgFunc} -> _ in
+    fun k => k r.
 
-Lemma cgfunc_compatible (sF : class): compatible sF.
+Lemma cgFunc_resp (sF: class): resp sF.
+Proof. by move=> sF; apply:gFunc_resp. Qed.
+
+Lemma cgFunc_compatible (sF : class): compatible sF.
 Proof. by case => F. Qed.
 
-End CompatibleGfunctor.
+End CompatibleGFunctor.
 
-Notation cgfunc := CompatibleGfunctor.class.
-Notation Cgfunc := CompatibleGfunctor.Class.
+Notation cgFunc := CompatibleGFunctor.class.
+Notation CgFunc := CompatibleGFunctor.Pack.
 
-Definition mkcgfunc F Fgrp Fsub (Fresp:resp F) (Fincr : compatible F) := 
-  @Cgfunc (mkGfunc Fgrp Fsub Fresp) Fincr.
+Notation "[ 'cgFunc' 'of' F ]" :=
+  (CompatibleGFunctor.repack (fun m => @CgFunc [gFunc of F] m))
+  (at level 0, only parsing) : form_scope.
 
-Notation "[ 'cgfunc' 'of' F ]" :=
-  (match [the cgfunc of F : _ -> _ ] as s return {type of Cgfunc for s} -> _ with
-    | Cgfunc _ d => fun k => k  d end
-  (@Cgfunc [gFunc of F])) (at level 0, only parsing) : form_scope.
+Definition mkcgFunc F Fgrp Fsub (Fresp:resp F) (Fincr : compatible F) := 
+  @CgFunc (mkGFunc Fgrp Fsub Fresp) Fincr.
 
 Section CompatibleIdentitySubFunctorProps.
 
@@ -463,56 +486,56 @@ Implicit Types gT hT:finGroupType.
 
 Section CompatibleIdBaseProps.
 
-Variable sF: cgfunc.
+Variable sF: cgFunc.
 
-Lemma cgfunc_resp : resp sF.
-Proof. exact:GFunctor.gfunc_resp. Qed.
+Lemma cgFunc_resp : resp sF.
+Proof. exact:GFunctor.gFunc_resp. Qed.
 
-Lemma cgfunc_compatible : compatible sF.
-Proof. exact:CompatibleGfunctor.cgfunc_compatible. Qed.
+Lemma cgFunc_compatible : compatible sF.
+Proof. exact:CompatibleGFunctor.cgFunc_compatible. Qed.
 
 End CompatibleIdBaseProps.
 
 Section CompatibleIdentitySFComp.
 
-Variable sF: cgfunc.
+Variable sF: cgFunc.
 Variable sF2 : gFunc.
 
 (* independent from the group preservation requirement *)
-Lemma cgfunc_comp_clos : forall gT (G:{group gT}),
+Lemma cgFunc_comp_clos : forall gT (G:{group gT}),
   (app sF sF2) gT G \subset G.
-Proof. by move=> gT G; rewrite (subset_trans (bgfunc_clos _ _)) ?bgfunc_clos. Qed.
+Proof. by move=> gT G; rewrite (subset_trans (bgFunc_clos _ _)) ?bgFunc_clos. Qed.
 
-Lemma cgfunc_comp_resp : resp (app sF sF2).
+Lemma cgFunc_comp_resp : resp (app sF sF2).
 Proof.
 move=> gT hT G phi.
-rewrite (subset_trans (morphim_sfunctor _ _ (bgfunc_clos _ _))) //.
-by rewrite (subset_trans (cgfunc_compatible sF (gfunc_resp sF2 phi))).
+rewrite (subset_trans (morphim_sFunctor _ _ (bgFunc_clos _ _))) //.
+by rewrite (subset_trans (cgFunc_compatible sF (gFunc_resp sF2 phi))).
 Qed.
 
 End CompatibleIdentitySFComp.
 
-Canonical Structure cgfunc_comp_bgfunc (sF:cgfunc) (sF2:gFunc) :=
+Canonical Structure cgFunc_comp_bgFunc (sF:cgFunc) (sF2:gFunc) :=
   @mkBasegFunc (app sF sF2)
   (fun gT G => groupP [group of ((app sF sF2) _ G)])
-  (cgfunc_comp_clos sF sF2)
-  (aresp_of_resp (cgfunc_comp_resp sF sF2)).
+  (cgFunc_comp_clos sF sF2)
+  (aresp_of_resp (cgFunc_comp_resp sF sF2)).
 
-Canonical Structure cgfunc_comp_gfunc (sF:cgfunc) (sF2:gFunc) :=
-  @Gfunc (cgfunc_comp_bgfunc sF sF2)
-  (cgfunc_comp_resp sF sF2).
+Canonical Structure cgFunc_comp_gFunc (sF:cgFunc) (sF2:gFunc) :=
+  @GFunc (cgFunc_comp_bgFunc sF sF2)
+  (cgFunc_comp_resp sF sF2).
 
-Variables sF sF3:cgfunc.
+Variables sF sF3:cgFunc.
 
-Lemma cgfunc_comp_compatible : compatible (cgfunc_comp_gfunc sF sF3).
-Proof. by move=> gT H G sHG; rewrite !cgfunc_compatible. Qed.
+Lemma cgFunc_comp_compatible : compatible (cgFunc_comp_gFunc sF sF3).
+Proof. by move=> gT H G sHG; rewrite !cgFunc_compatible. Qed.
 
 End CompatibleIdentitySubFunctorProps.
 
-Definition cgfunc_comp_hgfunc (sF sF3:cgfunc)  :=
-  @Cgfunc (cgfunc_comp_gfunc sF sF3) (cgfunc_comp_compatible sF sF3).
+Definition cgFunc_comp_hgFunc (sF sF3:cgFunc)  :=
+  @CgFunc (cgFunc_comp_gFunc sF sF3) (cgFunc_comp_compatible sF sF3).
 
-Section IdentitySubfunctorsExamples.
+Section IdentitySubFunctorsExamples.
 
 Implicit Types gT:finGroupType.
 
@@ -522,25 +545,25 @@ Proof. by []. Qed.
 Lemma id_compatible : compatible (fun _ S => S).
 Proof. by []. Qed.
 
-Canonical Structure bgfunc_id :=
+Canonical Structure bgFunc_id :=
   mkBasegFunc (fun gT G => groupP G%G)
   (fun gT G => subxx _)
   (aresp_of_resp id_resp).
 
-Canonical Structure gfunc_id :=
-  @Gfunc bgfunc_id id_resp.
+Canonical Structure gFunc_id :=
+  @GFunc bgFunc_id id_resp.
 
 Lemma triv_resp : resp (fun _ S => 1).
 Proof. by move=> gT hT H f; rewrite morphim1. Qed.
 
-Canonical Structure bgfunc_triv :=
+Canonical Structure bgFunc_triv :=
   @mkBasegFunc (fun _ S => 1)
   (fun _ G => groupP 1%G)
   sub1G
   (aresp_of_resp triv_resp).
 
-Canonical Structure gfunc_triv :=
-  @Gfunc bgfunc_triv triv_resp.
+Canonical Structure gFunc_triv :=
+  @GFunc bgFunc_triv triv_resp.
 
 Require Import center.
 
@@ -557,42 +580,42 @@ move=> gT H G sHG; rewrite setIC /center setIA (setIidPl sHG) setIS //.
 by rewrite (centsS sHG).
 Qed.
 
-Canonical Structure bgfunc_center :=
+Canonical Structure bgFunc_center :=
   @mkBasegFunc center 
   (fun gT G => groupP 'Z(G)%G) (fun gT G => @center_sub gT G)
   (aresp_of_resp center_resp).
 
-Canonical Structure gfunc_center :=
-  @Gfunc bgfunc_center center_resp.
+Canonical Structure gFunc_center :=
+  @GFunc bgFunc_center center_resp.
 
-Canonical Structure hgfunc_center :=
-  @Hgfunc gfunc_center center_hereditary.
+Canonical Structure hgFunc_center :=
+  @HgFunc gFunc_center center_hereditary.
 
 Require Import maximal.
 
 Lemma Frattini_resp : resp (Frattini).
 Proof. exact: gfunc_Phi. Qed.
 
-Canonical Structure bgfunc_Frattini :=
+Canonical Structure bgFunc_Frattini :=
   mkBasegFunc (fun gT G => groupP 'Phi(G)%G) (fun gT => @Phi_sub gT)
   (aresp_of_resp Frattini_resp).
 
-Canonical Structure gfunc_Frattini :=
-  @Gfunc bgfunc_Frattini Frattini_resp.
+Canonical Structure gFunc_Frattini :=
+  @GFunc bgFunc_Frattini Frattini_resp.
 
 Lemma Fitting_hereditary : hereditary (fun _ G => 'F(G)).
 Proof. by move=> gT H G; move/FittingS; rewrite setIC. Qed.
 
-Canonical Structure bgfunc_Fitting :=
+Canonical Structure bgFunc_Fitting :=
   mkBasegFunc (fun gT G => groupP 'F(G)%G)
            Fitting_sub
            (aresp_of_resp gfunc_Fitting).
 
-Canonical Structure gfunc_Fitting :=
-  @Gfunc bgfunc_Fitting gfunc_Fitting.
+Canonical Structure gFunc_Fitting :=
+  @GFunc bgFunc_Fitting gfunc_Fitting.
 
-Canonical Structure hgfunc_Fitting :=
-  @Hgfunc gfunc_Fitting Fitting_hereditary.
+Canonical Structure hgFunc_Fitting :=
+  @HgFunc gFunc_Fitting Fitting_hereditary.
 
 Require Import nilpotent.
 
@@ -617,16 +640,16 @@ elim => [|n IH] gT H G sHG; first by rewrite !derg0.
 by rewrite !dergSn commgSS ?IH.
 Qed.
 
-Canonical Structure bgfunc_der (n:nat) :=
+Canonical Structure bgFunc_der (n:nat) :=
   mkBasegFunc (fun gT (G:{group gT}) => der_group_set G n)
          (der_clos n)
          (aresp_of_resp (der_resp n)).
 
-Canonical Structure gfunc_der (n:nat) :=
-  @Gfunc (bgfunc_der n) (der_resp n).
+Canonical Structure gFunc_der (n:nat) :=
+  @GFunc (bgFunc_der n) (der_resp n).
 
-Canonical Structure cgfunc_der (n:nat) :=
-  @Cgfunc (gfunc_der n) (der_compatible n).
+Canonical Structure cgFunc_der (n:nat) :=
+  @CgFunc (gFunc_der n) (der_compatible n).
 
 Lemma lcn_resp : forall n,
   resp (fun gT G => 'L_n(G)).
@@ -642,18 +665,18 @@ elim=> [|n IH] gT H G sHG; first by rewrite !lcn0.
 by rewrite !lcnSn commgSS ?IH.
 Qed.
 
-Canonical Structure bgfunc_lcn (n:nat) :=
+Canonical Structure bgFunc_lcn (n:nat) :=
   mkBasegFunc (fun gT (G:{group gT}) => lcn_group_set G n)
              (fun gT G => (lcn_sub0 G n))
              (aresp_of_resp (lcn_resp n)).
 
-Canonical Structure gfunc_lcn (n:nat) :=
-  @Gfunc (bgfunc_lcn n) (lcn_resp n).
+Canonical Structure gFunc_lcn (n:nat) :=
+  @GFunc (bgFunc_lcn n) (lcn_resp n).
 
-Canonical Structure cgfunc_lcn (n:nat) :=
-  @Cgfunc (gfunc_lcn n) (lcn_compatible n).
+Canonical Structure cgFunc_lcn (n:nat) :=
+  @CgFunc (gFunc_lcn n) (lcn_compatible n).
 
-Lemma ucn_gfunc :  forall n,
+Lemma ucn_gFunc :  forall n,
   [/\ resp (fun _ G => 'Z_n(G)),
       hereditary (fun _ G => 'Z_n(G)) & 
       forall gT (G:{group gT}), 'Z_n(G) \subset G ].
@@ -661,33 +684,33 @@ Proof.
 elim => [|n [Hresp Hhereditary Hsub]].
  by split=> [gT hT G phi|gT H G sHG| gT G];
  rewrite ?ucn0 ?morphim1 ?sub1G ?subsetIl //.
-pose Zn := (mkhgfunc (fun _ G => ucn_group_set G n) Hsub Hresp Hhereditary).
-pose ZSn:= [hgfunc of (appmod center Zn)].
+pose Zn := (mkhgFunc (fun _ G => ucn_group_set G n) Hsub Hresp Hhereditary).
+pose ZSn:= [hgFunc of (appmod center Zn)].
 split=> [gT hT G phi|gT H G sHG| gT G]; rewrite ucnSn.
-- apply: (gfunc_resp ZSn).
-- apply: (hgfunc_hereditary ZSn sHG).
-- apply: (bgfunc_clos ZSn).
+- apply: (gFunc_resp ZSn).
+- apply: (hgFunc_hereditary ZSn sHG).
+- apply: (bgFunc_clos ZSn).
 Qed.
 
 Lemma ucn_resp : forall n, resp (fun _ G => 'Z_n(G)).
-Proof. by move=> n; case:(ucn_gfunc n). Qed.
+Proof. by move=> n; case:(ucn_gFunc n). Qed.
 
 Lemma ucn_hereditary : forall n, hereditary (fun _ G => 'Z_n(G)).
-Proof. by move=> n; case:(ucn_gfunc n). Qed.
+Proof. by move=> n; case:(ucn_gFunc n). Qed.
 
 Lemma ucn_clos : forall n gT (G:{group gT}), 'Z_n(G) \subset G.
-Proof. by move=> n; case:(ucn_gfunc n). Qed.
+Proof. by move=> n; case:(ucn_gFunc n). Qed.
 
-Canonical Structure bgfunc_ucn (n:nat) :=
+Canonical Structure bgFunc_ucn (n:nat) :=
   mkBasegFunc (fun gT (G:{group gT}) => ucn_group_set G n)
   (ucn_clos n)
   (aresp_of_resp (ucn_resp n)).
 
-Canonical Structure gfunc_ucn (n:nat) :=
-  @Gfunc (bgfunc_ucn n) (ucn_resp n).
+Canonical Structure gFunc_ucn (n:nat) :=
+  @GFunc (bgFunc_ucn n) (ucn_resp n).
 
-Canonical Structure hgfunc_ucn (n:nat) :=
-  @Hgfunc (gfunc_ucn n) (ucn_hereditary n).
+Canonical Structure hgFunc_ucn (n:nat) :=
+  @HgFunc (gFunc_ucn n) (ucn_hereditary n).
 
 Require Import prime.
 Require Import pgroups.
@@ -695,16 +718,16 @@ Require Import pgroups.
 Lemma pcore_hereditary : forall (pi:nat_pred), hereditary (fun _ G => 'O_pi(G)).
 Proof. by move=> pi gT H G; move/pcoreS; rewrite setIC. Qed.
 
-Canonical Structure bgfunc_pcore (pi : nat_pred) :=
+Canonical Structure bgFunc_pcore (pi : nat_pred) :=
   mkBasegFunc (fun gT (G:{group gT}) => groupP [group of 'O_pi(G)])
   (pcore_sub pi)
   (aresp_of_resp (gfunc_pcore pi)).
 
-Canonical Structure gfunc_pcore (pi:nat_pred) :=
-  @Gfunc (bgfunc_pcore pi) (gfunc_pcore pi).
+Canonical Structure gFunc_pcore (pi:nat_pred) :=
+  @GFunc (bgFunc_pcore pi) (gfunc_pcore pi).
 
 Canonical Structure dsfc_pcore (pi:nat_pred) :=
-  @Hgfunc (gfunc_pcore pi) (pcore_hereditary pi).
+  @HgFunc (gFunc_pcore pi) (pcore_hereditary pi).
 
 Lemma Ohm_sub : forall i gT (G:{group gT}), 'Ohm_i(G) \subset G.
 Proof. move=> gT i; exact: Ohm_sub. Qed.
@@ -719,16 +742,16 @@ move=> i gT H G Hsub; apply:genS; apply/subsetP=> x.
 by rewrite !inE; move/andP => [Hx ->]; rewrite (subsetP Hsub _ Hx).
 Qed.
 
-Canonical Structure bgfunc_Ohm (i:nat) :=
+Canonical Structure bgFunc_Ohm (i:nat) :=
   mkBasegFunc (fun gT (G:{group gT}) => groupP 'Ohm_i(G)%G)
   (Ohm_sub i)
   (aresp_of_resp (Ohm_resp i)).
 
-Canonical Structure gfunc_Ohm (i:nat) :=
-  @Gfunc (bgfunc_Ohm i) (Ohm_resp i).
+Canonical Structure gFunc_Ohm (i:nat) :=
+  @GFunc (bgFunc_Ohm i) (Ohm_resp i).
 
-Canonical Structure cgfunc_Ohm (i:nat) :=
-  @Cgfunc (gfunc_Ohm i) (Ohm_compatible i).
+Canonical Structure cgFunc_Ohm (i:nat) :=
+  @CgFunc (gFunc_Ohm i) (Ohm_compatible i).
 
 Lemma Mho_sub : forall i gT (G:{group gT}), 'Mho^i(G) \subset G.
 Proof. move=> i; exact: Mho_sub. Qed.
@@ -741,17 +764,17 @@ Lemma Mho_compatible : forall i,
   compatible (fun gT S => 'Mho^i(S)).
 Proof. move=> i gT H G sHG; exact:MhoS. Qed.
 
-Canonical Structure bgfunc_Mho (i:nat) :=
+Canonical Structure bgFunc_Mho (i:nat) :=
   mkBasegFunc (fun gT (G:{group gT}) => groupP 'Mho^i(G)%G)
   (Mho_sub i)
   (aresp_of_resp (Mho_resp i)).
 
-Canonical Structure gfunc_Mho (i:nat) :=
-  @Gfunc (bgfunc_Mho i) (Mho_resp i).
+Canonical Structure gFunc_Mho (i:nat) :=
+  @GFunc (bgFunc_Mho i) (Mho_resp i).
 
-Canonical Structure cgfunc_Mho (i:nat) :=
-  @Cgfunc (gfunc_Mho i) (Mho_compatible i).
+Canonical Structure cgFunc_Mho (i:nat) :=
+  @CgFunc (gFunc_Mho i) (Mho_compatible i).
 
-End IdentitySubfunctorsExamples.
+End IdentitySubFunctorsExamples.
 
 Unset Implicit Arguments.
