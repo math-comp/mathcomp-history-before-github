@@ -2,7 +2,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div prime.
 Require Import ssralg bigops. 
 Require Import fintype finset groups commutators automorphism.
 Require Import morphisms normal center. 
-Require Import cyclic gprod.
+Require Import cyclic gprod gfunc.
 
 
 (* Require Import paths connect finfun ssralg bigops. *)
@@ -138,6 +138,31 @@ Proof. move=> G abG; apply/lcnP; exists 1%N; exact/commG1P. Qed.
 
 End LowerCentral.
 
+Lemma lcn_resp : forall n,
+  resp (fun hT (G:{set hT}) => 'L_n(G)).
+Proof.
+elim=> [|n IH] g0T h0T H phi; first by rewrite !lcn0.
+by rewrite !lcnSn morphimR ?lcn_sub0 // commSg ?IH.
+Qed.
+
+Lemma lcn_compatible : forall n,
+  compatible (fun gT G => 'L_n(G)).
+Proof.
+elim=> [|n IH] gT H G sHG; first by rewrite !lcn0.
+by rewrite !lcnSn commgSS ?IH.
+Qed.
+
+Canonical Structure bgFunc_lcn (n:nat) :=
+  mkBasegFunc (fun gT (G:{group gT}) => lcn_group_set G n)
+             (fun gT G => (lcn_sub0 G n))
+             (aresp_of_resp (lcn_resp n)).
+
+Canonical Structure gFunc_lcn (n:nat) :=
+  @GFunc (bgFunc_lcn n) (lcn_resp n).
+
+Canonical Structure cgFunc_lcn (n:nat) :=
+  @CgFunc (gFunc_lcn n) (lcn_compatible n).
+
 Notation "''L_' n ( G )" := (lower_central_at_group n G) : subgroup_scope.
 
 Section UpperCentral.
@@ -218,6 +243,44 @@ by rewrite quotient_cents2 // gen_subG /commg_set imset2_set1l.
 Qed.
 
 End UpperCentral.
+
+Lemma ucn_gFunc :  forall n,
+  [/\ resp (fun _ S => 'Z_n(S)),
+      hereditary (fun _ H => 'Z_n(H)) & 
+      forall (hT:finGroupType) (G:{group hT}), 'Z_n(G) \subset G ].
+Proof.
+elim => [|n [Hresp Hhereditary Hsub]].
+by split=> [gT0 hT0 G phi|gT0 H G sHG| gT0 G];
+ rewrite ?ucn0 ?morphim1 ?sub1G ?subsetIl //.
+pose Zn := (mkhgFunc 
+  (fun gT0 (G0:{group gT0}) => ucn_group_set G0 n)
+  Hsub Hresp Hhereditary).
+pose ZSn:= [hgFunc of (appmod center Zn)].
+split=> [gT hT G phi|gT H G sHG| gT G]; rewrite ucnSn.
+- apply: (gFunc_resp ZSn).
+- apply: (hgFunc_hereditary ZSn sHG).
+- apply: (bgFunc_clos ZSn).
+Qed.
+
+Lemma ucn_resp : forall n, resp (fun _ G => 'Z_n(G)).
+Proof. by move=> n; case:(ucn_gFunc n). Qed.
+
+Lemma ucn_hereditary : forall n, hereditary (fun _ G => 'Z_n(G)).
+Proof. by move=> n; case:(ucn_gFunc n). Qed.
+
+Lemma ucn_clos : forall n (gT:finGroupType) (H: {group gT}), 'Z_n(H) \subset H.
+Proof. by move=> n; case:(ucn_gFunc n). Qed.
+
+Canonical Structure bgFunc_ucn (n:nat) :=
+  mkBasegFunc (fun gT (G:{group gT}) => ucn_group_set G n)
+  (ucn_clos n)
+  (aresp_of_resp (ucn_resp n)).
+
+Canonical Structure gFunc_ucn (n:nat) :=
+  @GFunc (bgFunc_ucn n) (ucn_resp n).
+
+Canonical Structure hgFunc_ucn (n:nat) :=
+  @HgFunc (gFunc_ucn n) (ucn_hereditary n).
 
 Notation "''Z_' n ( G )" := (upper_central_at_group n G) : subgroup_scope.
 
@@ -386,6 +449,38 @@ Lemma der_abelian : forall G n, abelian (G^`(n) / G^`(n.+1)).
 Proof. by move=> G n; rewrite sub_der1_abelian // der_sub. Qed.
 
 End Derived.
+
+Lemma der_clos : forall n (gT:finGroupType) (G:{group gT}), G^`(n) \subset G.
+Proof.
+elim; first by move=> gT0 G; rewrite derg0.
+by move=> n0 IH gT G; rewrite dergSn (comm_subG (IH _ _) (IH _ _)).
+Qed.
+
+Lemma der_resp : forall n, 
+  resp (fun gT G => derived_at G n).
+Proof.
+elim => [|n IH] gT hT H phi; first by rewrite derg0.
+rewrite !dergSn (morphimR _ (der_clos _ _) (der_clos _ _)).
+by rewrite commgSS ?IH.
+Qed.
+
+Lemma der_compatible : forall n, 
+  compatible (fun gT G => derived_at G n).
+Proof.
+elim => [|n IH] gT H G sHG; first by rewrite !derg0.
+by rewrite !dergSn commgSS ?IH.
+Qed.
+
+Canonical Structure bgFunc_der (n:nat) :=
+  mkBasegFunc (fun gT (G:{group gT}) => der_group_set G n)
+         (der_clos n)
+         (aresp_of_resp (der_resp n)).
+
+Canonical Structure gFunc_der (n:nat) :=
+  @GFunc (bgFunc_der n) (der_resp n).
+
+Canonical Structure cgFunc_der (n:nat) :=
+  @CgFunc (gFunc_der n) (der_compatible n).
 
 Notation "G ^` ( n )" := (derived_at_group n G) : subgroup_scope.
 

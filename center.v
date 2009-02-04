@@ -12,7 +12,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 Require Import fintype div prime finset ssralg bigops.
 Require Import groups morphisms action normal pgroups automorphism.
-Require Import cyclic gprod abelian.
+Require Import cyclic gprod abelian gfunc.
 
 (* Require Import seq paths connecct bigops perm. *)
 
@@ -140,7 +140,34 @@ rewrite centM subsetI centsC subIset /=; first exact: cycle_abelian.
 by rewrite orbC centS // G_Zz mulG_subr.
 Qed.
 
+(* Functoriality *)
+
+Lemma center_resp : resp (fun _ S => 'Z(S)).
+Proof.
+move=> hT iT H phi /=; apply:(subset_trans (morphimI _ _ _ )).
+rewrite subsetI subsetIl /=; apply:(subset_trans (subsetIr (phi @* H) _) ).
+exact:morphim_cent.
+Qed.
+
+Lemma center_hereditary : hereditary (fun _ S => 'Z(S)).
+Proof.
+move=> hT H G sHG; rewrite setIC /center setIA (setIidPl sHG) setIS //.
+by rewrite (centsS sHG).
+Qed.
+
 End Center.
+
+Canonical Structure bgFunc_center :=
+  @mkBasegFunc center 
+  (fun gT G => groupP 'Z(G)%G)
+  (fun gT G => @center_sub gT G)
+  (aresp_of_resp center_resp).
+
+Canonical Structure gFunc_center :=
+  @GFunc bgFunc_center center_resp.
+
+Canonical Structure hgFunc_center :=
+  @HgFunc gFunc_center center_hereditary.
 
 Section Product.
 

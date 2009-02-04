@@ -2,7 +2,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat fintype ssralg bigops.
 Require Import seq div prime finfun finset groups morphisms normal perm.
 Require Import commutators automorphism cyclic pgroups center gprod sylow.
-Require Import nilpotent action.
+Require Import nilpotent action gfunc.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -297,7 +297,7 @@ case/andP: (maxgroupp maxM) => _; case/negP.
 by rewrite -defG gen_subG subUset Phi_sub_max.
 Qed.
 
-Lemma gfunc_Phi : forall (rT : finGroupType) G (f : {morphism G >-> rT}),
+Lemma Frattini_resp : forall (rT : finGroupType) G (f : {morphism G >-> rT}),
   f @* 'Phi(G) \subset 'Phi(f @* G).
 Proof.
 move=> rT G f; apply/bigcapsP=> M maxM.
@@ -308,15 +308,22 @@ Qed.
 
 End Frattini.
 
+Canonical Structure bgFunc_Frattini :=
+  mkBasegFunc (fun gT G => groupP 'Phi(G)%G) (fun gT => @Phi_sub gT)
+  (aresp_of_resp Frattini_resp).
+
+Canonical Structure gFunc_Frattini :=
+  @GFunc bgFunc_Frattini Frattini_resp.
+
 Section Frattini0.
 
 Variables (gT : finGroupType) (G : {group gT}).
 
 Lemma Phi_char : 'Phi(G) \char G.
-Proof. exact: gfunctor_char Phi_sub gfunc_Phi _ _. Qed.
+Proof. exact: bgFunc_char. Qed.
 
 Lemma Phi_normal : 'Phi(G) <| G.
-Proof. exact: char_normal Phi_char. Qed.
+Proof. exact: bgFunc_normal. Qed.
 
 End Frattini0.
 
@@ -425,7 +432,7 @@ apply/andP; split.
     by rewrite norms_mulgen // char_norm ?der_char ?Mho_char.
   rewrite -quotient_sub1 ?(subset_trans sPhiP) //=.
   suffices <-: 'Phi(P / (P^`(1) <*> 'Mho^1(P))) = 1.
-    exact: (morphim_gfunctor Phi_sub gfunc_Phi).
+    exact: morphim_sFunctor.
   apply/eqP; rewrite (trivg_Phi (morphim_pgroup _ pP)) /= -quotientE.
   apply/p_abelemP=> //; rewrite [abelian _]quotient_cents2 ?mulgen_subl //.
   split=> // Mx; case/morphimP=> x Nx Px ->{Mx} /=.
@@ -600,17 +607,6 @@ move=> gT rT G D f; apply: Fitting_max.
 by rewrite morphim_nil ?Fitting_nil.
 Qed.
 
-Lemma gfunc_Fitting : forall gT rT (G : {group gT}) (f : {morphism G >-> rT}),
-  f @* 'F(G) \subset 'F(f @* G).
-Proof. move=> gT rT G f; exact: morphim_Fitting. Qed.
-
-Lemma Fitting_char : forall gT (G : {group gT}), 'F(G) \char G.
-Proof. exact: gfunctor_char Fitting_sub gfunc_Fitting. Qed.
-
-Lemma injm_Fitting : forall gT rT (D G : {group gT}) (f : {morphism D >-> rT}),
-  'injm f -> G \subset D -> f @* 'F(G) = 'F(f @* G).
-Proof. exact: injm_gfunctor Fitting_sub gfunc_Fitting. Qed.
-
 Lemma FittingS : forall gT (G H : {group gT}),
   H \subset G -> H :&: 'F(G) \subset 'F(H).
 Proof.
@@ -618,7 +614,32 @@ move=> gT G H sHG; rewrite -{2}(setIidPl sHG).
 do 2!rewrite -(morphim_idm (subsetIl H _)) morphimIdom; exact: morphim_Fitting.
 Qed.
 
+Lemma Fitting_resp : forall gT rT (G : {group gT}) (f : {morphism G >-> rT}),
+  f @* 'F(G) \subset 'F(f @* G).
+Proof. move=> gT rT G f; exact: morphim_Fitting. Qed.
+
+Lemma Fitting_hereditary : hereditary (fun _ G => 'F(G)).
+Proof. by move=> gT H G; move/FittingS; rewrite setIC. Qed.
+
 End FittingFun.
+
+Canonical Structure bgFunc_Fitting :=
+  mkBasegFunc (fun gT G => groupP 'F(G)%G)
+           Fitting_sub
+           (aresp_of_resp Fitting_resp).
+
+Canonical Structure gFunc_Fitting :=
+  @GFunc bgFunc_Fitting Fitting_resp.
+
+Canonical Structure hgFunc_Fitting :=
+  @HgFunc gFunc_Fitting Fitting_hereditary.
+
+Lemma Fitting_char : forall (gT:finGroupType) (G : {group gT}), 'F(G) \char G.
+Proof. exact: bgFunc_char. Qed.
+
+Lemma injm_Fitting : forall (gT rT:finGroupType) (G D : {group gT}) (f : {morphism D >-> rT}),
+  'injm f -> G \subset D -> f @* 'F(G) = 'F(f @* G).
+Proof. exact:bgFunc_asresp. Qed.
 
 Section CharSimple.
 
