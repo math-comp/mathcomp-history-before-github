@@ -62,7 +62,7 @@ Open Scope boolean_if_scope.
 (* Because the keyword follows a bracket it does not need to be reserved. *)
 (* Non-ssreflect libraries that do not respect the form syntax (e.g., the *)
 (* Coq Lists library) should be loaded before ssreflect so that their     *)
-(* notation do not mask all ssreflect forms.                              *)
+(* notations do not mask all ssreflect forms.                             *)
 Delimit Scope form_scope with FORM.
 Open Scope form_scope.
 
@@ -81,7 +81,7 @@ Notation "T : 'Type'" := (T%type : Type) (at level 100, only parsing).
 (* to which struct_type coerces; proj_val will likewise be coerced *)
 (* to the return type of proj_fun. In all but the simplest cases,  *)
 (* proj_fun should be eta-expanded to allow for the insertion of   *)
-(* implicit arguments and/or coercions.                            *)
+(* implicit arguments.                                             *)
 (*   In the common case where proj_fun itself is a coercion, the   *)
 (* "by" part can be omitted entirely; in this case it is inferred  *)
 (* by casting s : struct_type to the inferred type of proj_val.    *)
@@ -117,14 +117,22 @@ Notation "[ 'the' sT 'of' v 'by' f ]" :=
 Notation "[ 'the' sT 'of' v ]" := (get ((fun s : sT => Put v (*coerce*)s s) _))
   (at level 0, only parsing) : form_scope.
 
-Notation "[ 't' 'he' sT 'of' v 'by' f ]" := (@get_by _ sT f v _ _)
-  (at level 0,  format "[ 't' 'he'  sT  'of'  v  'by'  f ]") : form_scope.
+(* The following are "format only" versions of the above notations.   *)
+(* Since Coq doesn't provide this option, we fake it by splitting the *)
+(* "the" keyword. We need do do this because the formatter will be    *)
+(* thrown off by application collapsing, coercion insertion and beta  *)
+(* reduction in the right hand sides of the above notations.          *)
 
-Notation "[ 't' 'he' sT 'of' v ]" := (@get _ sT v _ _)
-  (at level 0, format "[ 't' 'he'  sT   'of'  v ]") : form_scope.
+Notation "[ 'th' 'e' sT 'of' v 'by' f ]" := (@get_by _ sT f v _ _)
+  (at level 0,  format "[ 'th' 'e'  sT  'of'  v  'by'  f ]") : form_scope.
 
-Notation "[ 't' 'he' sT 'of' v : 'Type' ]" := (@get Type sT v _ _)
-  (at level 0, format "[ 't' 'he'  sT   'of'  v  :  'Type' ]") : form_scope.
+Notation "[ 'th' 'e' sT 'of' v ]" := (@get _ sT v _ _)
+  (at level 0, format "[ 'th' 'e'  sT   'of'  v ]") : form_scope.
+
+(* We would like to recognize 
+Notation "[ 'th' 'e' sT 'of' v : 'Type' ]" := (@get Type sT v _ _)
+  (at level 0, format "[ 'th' 'e'  sT   'of'  v  :  'Type' ]") : form_scope.
+*)
 
 (* Helper notation for canonical structure inheritance support.           *)
 (* This is a workaround for the poor interaction between delta reduction  *)
@@ -137,31 +145,27 @@ Notation "[ 't' 'he' sT 'of' v : 'Type' ]" := (@get Type sT v _ _)
 (*   Canonical Structure my_type_struct :=                                *)
 (*     Eval hnf in [struct of my_type].                                   *)
 (* The special notation [str of _] must be defined for each Strucure      *)
-(* "str" with constructor "Str", as follows                               *)
-(*  Notation "[ 'str' 'of' t ]" :=                                        *)
-(*    (StructureOf (@Str t)                                               *)
-(*     match [the str of t] as s                                          *)
-(*       return {type of Str for s} -> str with                           *)
-(*    | Str _ x y ... z => fun k => k _ x y ... z                         *)
-(*    end) (at level 0, only parsing) : form_scope.                       *)
-(*  Notation "[ 'str' 'o' 'f' t ]" := (StructureOf (@Str t) _)            *)
-(*    (at level 0, format "[ 'str'  'o' 'f'  t ]") : form_scope.          *)
-(* The notation for the match return predicate is defined below; note     *)
-(* that the implementation of the [is t <: s] notation carefully avoids   *)
-(* the delta reduction problem, crucially.                                *)
-(* The StructureOf allows the second (unparsable) Notation to be used     *)
-(* to display the result of the first; it can be omitted for structures   *)
-(* like, e.g., eqType, that are only used statically.                     *)
-(*   Remember to take into account the remark above concerning the use of *)
-(* the "the" form with telescopes: t should be cast to the type of the    *)
-(* carrier of the base class of the telescope. Most of the time this is   *)
-(* Type, which can be written (Type) to avoid a scope discrepancy (note   *)
-(* that in this case t must not be a Type -- it must be a base structure. *)
+(* "str" with constructor "Str", typically as follows                     *)
+(*   Definition repack_str s :=                                           *)
+(*      let: Str _ x y ... z := s return {type of Str for s} -> str in    *)
+(*      fun k => k _ x y ... z.                                           *)
+(*    Notation "[ 'str' 'of' T 'for' s ]" := (@repack_str s (@str T))     *)
+(*      (at level 0, format "[ 'str'  'of'  T  'for'  s ]") : form_scope. *)
+(*    Notation "[ 'str' 'of' T ]" := (repack_str (fun x => @str T x))     *)
+(*      (at level 0, format "[ 'str'  'of'  T ]") : form_scope.           *)
+(* The notation for the match return predicate is defined below; the eta  *)
+(* expansion in the second form serves both to distinguish it from the    *)
+(* first and to avoid the delta reduction problem.                        *)
+(*   There are several variations on the notation and the definition of   *)
+(* the "repack" function, for telescopes, mixin classes, and join         *)
+(* (multiple inheritance) classes; see fintype.v and ssralg.v for         *)
+(* examples; they involve inferring the structure from instances of       *)
+(* reflexivity or from phantoms (see below), rather than directly from    *)
+(* the constructor as above.                                              *)
 
 Definition argumentType T P & forall x : T, P x := T.
 Definition dependentReturnType T P & forall x : T, P x := P.
 Definition returnType aT rT & aT -> rT := rT.
-Definition StructureOf sT cT (construct : cT) K : sT := K construct. 
 
 Notation "{ 'type' 'of' c 'for' s }" := (dependentReturnType c s)
   (at level 0, format "{ 'type'  'of'  c  'for'  s }") : type_scope.

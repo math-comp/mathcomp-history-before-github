@@ -926,13 +926,8 @@ Fixpoint eval (t : term R) (e : seq R) {struct t} : R :=
   | Exp t1 n => eval t1 e ^+ n
   end.
 
-Canonical Structure term_exprType := ExprType eval.
-
-Lemma eq_eval : forall (t : term R) e e',
-  sub 0 e =1 sub 0 e' -> t.[e] = t.[e'].
-Proof.
-by move=> t e e' eq_e; rewrite !evalE /=; elim: t => //= t1 -> // t2 ->.
-Qed.
+Lemma eq_eval : forall t e e', sub 0 e =1 sub 0 e' -> eval t e = eval t e'.
+Proof. by move=> t e e' eq_e; elim: t => //= t1 -> // t2 ->. Qed.
 
 Definition set_nth s i v : seq R :=
   take i (s ++ seqn i 0) ++ v :: drop i.+1 s.
@@ -956,17 +951,17 @@ move/allP; apply; rewrite mem_sub // size_seqn (leq_ltn_trans _ ltji) //.
 exact: leq_subr.
 Qed.
 
-Lemma eval_tsubst : forall t e s, (tsubst t s).[e] = t.[set_nth e s.1 s.2.[e]].
+Lemma eval_tsubst : forall t e s,
+  eval (tsubst t s) e = eval t (set_nth e s.1 (eval s.2 e)).
 Proof.
-move=> t e [i u]; rewrite !evalE /=.
-elim: t => //=; do 2?[move=> ? -> //] => j.
+move=> t e [i u]; elim: t => //=; do 2?[move=> ? -> //] => j.
 by rewrite sub_set_nth /=; case: eq_op.
 Qed.
 
 Fixpoint holds (f : formula R) (e : seq R) {struct f} : Prop :=
   match f with
-  | Equal t1 t2 => t1.[e] = t2.[e]
-  | Unit t1 => unit t1.[e]
+  | Equal t1 t2 => eval t1 e = eval t2 e
+  | Unit t1 => unit (eval t1 e)
   | And f1 f2 => holds f1 e /\ holds f2 e
   | Or f1 f2 => holds f1 e \/ holds f2 e
   | Implies f1 f2 => holds f1 e -> holds f2 e
@@ -975,17 +970,14 @@ Fixpoint holds (f : formula R) (e : seq R) {struct f} : Prop :=
   | Forall i f1 => forall x, holds f1 (set_nth e i x)
   end.
 
-Canonical Structure formula_exprType := ExprType holds.
-
-Lemma eq_holds : forall (f : formula R) e e',
-  sub 0 e =1 sub 0 e' -> (f.[e] <-> f.[e']).
+Lemma eq_holds : forall f e e',
+  sub 0 e =1 sub 0 e' -> (holds f e <-> holds f e').
 Proof.
 pose es1 e e' := @sub R 0 e =1 sub 0 e'.
 have eq_i: forall i v, let sv e := set_nth e i v in
            forall e e', es1 e e' -> es1 (sv e) (sv e').
   by move=> i v /= e e' eq_e j; rewrite !sub_set_nth /= eq_e.
-move=> f e e'; rewrite !evalE /=.
-elim: f e e' => /=.
+elim=> /=.
 - by move=> t1 t2 e e' eq_e; rewrite !(eq_eval _ eq_e).
 - by move=> t e e' eq_e; rewrite (eq_eval _ eq_e).
 - move=> ? IH ? IH' ? ? E; move: (IH _ _ E) (IH' _ _ E); tauto.
@@ -999,7 +991,7 @@ elim: f e e' => /=.
 Qed.
 
 Lemma holds_fsubst : forall f e i v,
-  (fsubst f (i, Const v)).[e] <-> f.[set_nth e i v].
+  holds (fsubst f (i, Const v)) e <-> holds f (set_nth e i v).
 Proof.
 have setii: forall i e (v v' : R),
   set_nth (set_nth e i v') i v = set_nth e i v.
@@ -1011,20 +1003,19 @@ have setij: forall i j e (v v' : R), i != j ->
 - move=> i j e v v' ne_ij; apply: (@eq_from_sub _ 0) => [|k _].
     by rewrite !size_set_nth maxnCA.
   by do 2!rewrite !sub_set_nth /=; case: eqP => // ->; rewrite -if_neg ne_ij.
-move=> f e i v; rewrite !evalE /=.
-elim: f e => /=; do [
+move=> f e i v; elim: f e => /=; do [
   by move=> *; rewrite !eval_tsubst
 | move=> f1 IHf1 f2 IHf2 e; move: (IHf1 e) (IHf2 e); tauto
 | move=> f IHf e; move: (IHf e); tauto
 | move=> j f IHf e].
-  case: eqP => [->|] /=; last move/eqP=> ne_ji.
+- case: eqP => [->|] /=; last move/eqP=> ne_ji.
     by split=> [] [x f_x]; exists x; rewrite setii in f_x *.
   split=> [] [x f_x]; exists x; move: f_x; rewrite setij //;
-     move: (IHf (set_nth e j x)); tauto.
+     have:= IHf (set_nth e j x); tauto.
 case: eqP => [->|] /=; last move/eqP=> ne_ji.
   by split=> [] f_ x; move: (f_ x); rewrite setii.
 split=> [] f_ x; move: (f_ x); rewrite setij //;
-     move: (IHf (set_nth e j x)); tauto.
+     have:= IHf (set_nth e j x); tauto.
 Qed.
 
 End EvalTerm.
@@ -1041,6 +1032,7 @@ Coercion base2 R m := UnitRing.Class (@ext R m).
 Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
 Definition unpack K (k : forall T (c : class_of T), K T c) cT :=
+
   let: Pack T c _ := cT return K _ (class cT) in k _ c.
 Definition repack cT : _ -> Type -> type := let k T c p := p c in unpack k cT.
 
@@ -1259,7 +1251,7 @@ End FieldTheory.
 Module DecidableField.
 
 Definition axiom (R : UnitRing.type) (s : formula R -> pred (seq R)) :=
-  forall f e, reflect f.[e] (s f e).
+  forall f e, reflect (holds f e) (s f e).
 
 Record mixin_of (R : UnitRing.type) : Type :=
   Mixin { sat : formula R -> pred (seq R); satP : axiom sat}.
@@ -1335,7 +1327,7 @@ Definition sol f n :=
   else seqn n 0.
 
 Lemma solP : forall f n,
-  reflect (exists2 s, size s = n & f.[s]) (sat f (sol f n)).
+  reflect (exists2 s, size s = n & holds f s) (sat f (sol f n)).
 Proof.
 rewrite /sol => f n; case: insubP=> [u /= _ val_u | no_sol].
   set uP := Exists_nP _ _ _ _; case/andP: (xchooseP uP).
@@ -1352,10 +1344,12 @@ rewrite /sol => f n; case: insubP=> [u /= _ _ | _]; last exact: size_seqn.
 by set uP := Exists_nP _ _ _ _; case/andP: (xchooseP uP); move/eqP.
 Qed.
 
-Lemma eq_sat : forall f1 f2, (forall e, f1.[e] <-> f2.[e]) -> sat f1 =1 sat f2.
+Lemma eq_sat : forall f1 f2,
+  (forall e, holds f1 e <-> holds f2 e) -> sat f1 =1 sat f2.
 Proof. by move=> f1 f2 eqf12 e; apply/satP/satP; case: (eqf12 e). Qed.
  
-Lemma eq_sol : forall f1 f2, (forall e, f1.[e] <-> f2.[e]) -> sol f1 =1 sol f2.
+Lemma eq_sol : forall f1 f2,
+  (forall e, holds f1 e <-> holds f2 e) -> sol f1 =1 sol f2.
 Proof.
 rewrite /sol => f1 f2; move/eq_sat=> eqf12 n.
 case: insubP=> [u /= _ val_u | no_sol].
@@ -1619,9 +1613,6 @@ Canonical Structure GRing.ClosedField.comUnitRingType.
 Canonical Structure GRing.ClosedField.idomainType.
 Canonical Structure GRing.ClosedField.fieldType.
 Canonical Structure GRing.ClosedField.decFieldType.
-
-Canonical Structure GRing.term_exprType.
-Canonical Structure GRing.formula_exprType.
 
 Canonical Structure GRing.add_monoid.
 Canonical Structure GRing.add_comoid.

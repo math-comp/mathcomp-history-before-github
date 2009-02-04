@@ -694,8 +694,7 @@ Notation "\pi ( n )" := (pi_of n) (at level 2, format "\pi ( n )") : nat_scope.
 
 Notation "pi .-nat" := (pnat pi) (at level 2, format "pi .-nat") : nat_scope.
 
-Notation "n `_ pi" := (partn n pi)
-  (at level 3, left associativity, format "n `_ pi") : nat_scope.
+Notation "n `_ pi" := (partn n pi) : nat_scope.
 
 Lemma negnK : forall pi, pi^'^' =i pi.
 Proof. move=> pi p; exact: negbK. Qed.

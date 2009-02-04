@@ -1330,24 +1330,24 @@ Variable R : ringType.
 
 Fixpoint eval_poly_seq (s : seq R) (x : R) {struct s} : R :=
   if s is a :: s' then eval_poly_seq s' x * x + a else 0.
+Definition eval_poly (p : polynomial R) := eval_poly_seq p.
 
-Canonical Structure poly_exprType :=
-  @ExprType _ _ (polynomial R) [eta eval_poly_seq].
+Notation "p .[ x ]" := (eval_poly p x) : ring_scope.
 
 Lemma eval_poly0 : forall x, (0 : polynomial R).[x] = 0.
-Proof. by move=> x; rewrite evalE /= seq_poly0. Qed.
+Proof. by move=> x; rewrite /eval_poly seq_poly0. Qed.
 
 Lemma eval_polyC : forall c x, (\C c).[x] = c.
 Proof.
-by move=> c x; rewrite evalE /= seq_polyC; case: eqP; rewrite //= !simp.
+by move=> c x; rewrite /eval_poly seq_polyC; case: eqP; rewrite //= !simp.
 Qed.
 
 Lemma eval_polyX : forall x : R, \X.[x] = x.
-Proof. by move=> x; rewrite evalE /= seq_polyX /= !simp. Qed.
+Proof. by move=> x; rewrite /eval_poly seq_polyX /= !simp. Qed.
 
 Lemma eval_horner : forall p c x, (horner c p).[x] = p.[x] * x + c.
 Proof.
-move=> p c x; rewrite !evalE /= seq_horner.
+move=> p c x; rewrite /eval_poly seq_horner.
 case/seq_of_poly: p; rewrite //= !simp; exact: eval_polyC.
 Qed.
 
@@ -1356,10 +1356,10 @@ Proof.
 by move=> s x; elim: s => [|a s /= <-] /=; rewrite (eval_poly0, eval_horner).
 Qed.
 
-Lemma eval_poly_expansion : forall (p : polynomial R) x,
+Lemma eval_poly_expansion : forall p x,
   p.[x] = \sum_(i < size p) coef p i * x ^+ i.
 Proof.
-move=> p x; rewrite evalE /= /coef.
+move=> p x; rewrite /eval_poly /coef.
 elim: {p}(p : seq R) => /= [|a s ->]; first by rewrite big_pred0 => [|[]].
 rewrite big_ord_recl simp addrC big_distrl /=; congr (_ + _).
 by apply: eq_bigr => i _; rewrite -mulrA exprSr.
@@ -1373,13 +1373,12 @@ elim=> [s2 | a1 s1 IHs [|a2 s2]] x /=; rewrite ?simp //= {}IHs.
 by rewrite mulr_addl -!addrA (addrCA a1).
 Qed.
 
-Lemma eval_poly_add : forall (p q : polynomial R) x,
-  (p + q : polynomial R).[x] = p.[x] + q.[x].
+Lemma eval_poly_add : forall p q x, (p + q).[x] = p.[x] + q.[x].
 Proof. by move=> p q x; rewrite eval_mkPoly eval_add_poly_seq. Qed.
 
 Definition com_coef p (x : R) := forall i, (coef p i) * x = x * (coef p i).
 
-Definition com_poly (p : polynomial R) x := x * p.[x] = p.[x] * x.
+Definition com_poly p x := x * p.[x] = p.[x] * x.
 
 Lemma com_coef_poly : forall p x, com_coef p x -> com_poly p x.
 Proof.
@@ -1396,37 +1395,34 @@ Proof. by move=> *; rewrite /com_poly !eval_polyC !simp. Qed.
 Lemma com_polyX : forall x, com_poly \X x.
 Proof. by move=> *; rewrite /com_poly !eval_polyX. Qed.
 
-Lemma eval_poly_mul : forall (p q : polynomial R) x,
-  com_poly q x -> (p * q : polynomial R).[x] = p.[x] * q.[x].
+Lemma eval_poly_mul : forall p q x,
+  com_poly q x -> (p * q).[x] = p.[x] * q.[x].
 Proof.
-move=> p q x com_qx; rewrite eval_mkPoly evalE /=.
+move=> p q x com_qx; rewrite eval_mkPoly /eval_poly.
 elim: {p}(p : seq R) => /= [|a s IHs]; first by rewrite simp.
-rewrite eval_add_poly_seq /= {}IHs simp addrC mulr_addl evalE /=.
+rewrite eval_add_poly_seq /= {}IHs simp addrC mulr_addl /eval_poly.
 congr (_ + _); first by rewrite -!mulrA com_qx.
 elim: {s q com_qx}(q : seq R) => /= [|b s ->]; first by rewrite simp.
 by rewrite -mulrA -mulr_addr.
 Qed.
 
-Lemma eval_poly_exp : forall p x n,
-  com_poly p x -> (p ^+ n : polynomial R).[x] = p.[x] ^+ n.
+Lemma eval_poly_exp : forall p x n, com_poly p x -> (p ^+ n).[x] = p.[x] ^+ n.
 Proof.
 move=> p x n com_px; elim: n => [|n IHn]; first by rewrite eval_polyC.
 by rewrite -addn1 !exprn_addr !expr1 -IHn eval_poly_mul.
 Qed.
 
-Lemma eval_polyX_n : forall x n, (\X ^+ n : polynomial R).[x] = x ^+ n.
+Lemma eval_polyX_n : forall x n, (\X ^+ n).[x] = x ^+ n.
 Proof. by move=> x n; rewrite eval_poly_exp /com_poly eval_polyX. Qed.
 
-Lemma eval_poly_Cmul : forall c (p : polynomial R) x,
-  (\C c * p : polynomial R).[x] = c * p.[x].
+Lemma eval_poly_Cmul : forall c p x, (\C c * p).[x] = c * p.[x].
 Proof.
-move=> c p x; rewrite eval_mkPoly seq_polyC evalE /=.
+move=> c p x; rewrite eval_mkPoly seq_polyC /eval_poly.
 case: eqP => [->|_] /=; rewrite ?eval_add_poly_seq /= !simp //.
 by elim: (p : seq R) => /= [|a s ->]; rewrite ?simp // mulr_addr mulrA.
 Qed.
 
-Lemma eval_poly_opp : forall (p : polynomial R) x,
-  (- p : polynomial R).[x] = - p.[x].
+Lemma eval_poly_opp : forall p x, (- p).[x] = - p.[x].
 Proof. by move=> p x; rewrite eval_poly_Cmul mulN1r. Qed.
 
 Definition eval_poly_lin :=
@@ -1466,6 +1462,8 @@ by rewrite !f => [->|]; rewrite /com_poly ?f.
 Qed.
 
 End EvalPolynomial.
+
+Notation "p .[ x ]" := (eval_poly p x) : ring_scope.
 
 Section MaxRoots.
 

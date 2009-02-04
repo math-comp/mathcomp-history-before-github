@@ -151,8 +151,8 @@ Proof. move=> a; exact: isom_isog (Zp_isom a). Qed.
 Lemma cycle_decomp : forall a b,
   b \in <[a]> -> {m : nat | m < #[a] & a ^+ m = b}.
 Proof.
-move=> a b; rewrite -Zpm_imset [@imset _]unlock inE.
-by case/diinv_exists=> [[m ltm]]; rewrite !inE /=; move/eqP; exists m.
+move=> a b; rewrite -Zpm_imset [@imset _]unlock inE => im_b.
+exists (iinv im_b : nat) => //; exact: (f_iinv im_b).
 Qed.
 
 (***********************************************************************)

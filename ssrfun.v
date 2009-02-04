@@ -11,7 +11,8 @@ Open Scope fun_scope.
 (* composition, override, update, inverse, and iteration, with some their    *)
 (* identities, and reflected equalities.                                     *)
 
-(* Miscellaneous notation bits (currrying, pairs, inverse, subscripting) *)
+(* Miscellaneous notation bits (currrying, pair projections, evaluation *)
+(* inverse, subscripting), the last three tp be defined later.          *)
 
 Notation "f ^~ y" := (fun x => f x y)
   (at level 10, y at level 8, no associativity, format "f ^~  y") : fun_scope.
@@ -19,14 +20,23 @@ Notation "f ^~ y" := (fun x => f x y)
 Delimit Scope pair_scope with PAIR.
 Open Scope pair_scope.
 
-Notation "p .1" := (fst p) (at level 2, left associativity,
-  format "p .1") : pair_scope.
-Notation "p .2" := (snd p) (at level 2, left associativity,
-  format "p .2") : pair_scope.
+Notation "p .1" := (fst p)
+  (at level 2, left associativity, format "p .1") : pair_scope.
+Notation "p .2" := (snd p)
+  (at level 2, left associativity, format "p .2") : pair_scope.
 
-Reserved Notation "x ^-1" (at level 2, left associativity, format "x ^-1").
+Reserved Notation "e .[ x ]"
+  (at level 2, left associativity, format "e .[ x ]").
 
-Reserved Notation "s `_ i" (at level 3, left associativity, format "s `_ i").
+Reserved Notation "e .[ x1 , x2 , .. , xn ]"
+  (at level 2, left associativity,
+   format "e '[ ' .[ x1 , '/'  x2 , '/'  .. , '/'  xn ] ']'").
+
+Reserved Notation "x ^-1"
+  (at level 3, left associativity, format "x ^-1").
+
+Reserved Notation "s `_ i"
+  (at level 3, i at level 2, left associativity, format "s `_ i").
 
 (* Complements on the option type constructor, used below to  *)
 (* encode partial functions.                                  *)
@@ -136,38 +146,6 @@ Definition congr2 := f_equal2.
 (* Force at least one implicit when used as a view. *)
 Prenex Implicits esym nesym.
 
-(* Generic structure for formal expressions; supplies the syntax *)
-(*   e.[x] and e.[x1, ..., xn]                                   *)
-(* for evaluating e with the argument x / arguments x1, .., xn   *)
-
-Module Expr.
-
-Structure class (aT rT : Type) : Type :=
-  Class { sort :> Type; eval : sort -> aT -> rT}.
-
-End Expr.
-
-Notation exprType := Expr.class.
-Notation ExprType := Expr.Class.
-
-Definition eval := nosimpl Expr.eval.
-
-Notation "e .[ x ]" := (eval e x)
-   (at level 2, left associativity,
-    format "e .[ x ]") : fun_scope.
-Notation "e .[ x1 , x2 , .. , xn ]" := e.[pair .. (pair x1 x2) .. xn]
-   (at level 2, left associativity,
-    format "e '[ ' .[ x1 , '/'  x2 , '/'  .. , '/'  xn ] ']'") : fun_scope.
-
-Lemma evalE : forall aT rT eT e x, e.[x] = @Expr.eval aT rT eT e x.
-Proof. by []. Qed.
-
-Canonical Structure option_exprType aT rT eT :=
-  ExprType (fun oe x => omap ((@eval aT rT eT)^~ x) oe).
-
-Canonical Structure pair_exprType aT rT1 rT2 eT1 eT2 :=
-  ExprType (fun ep x => (@eval aT rT1 eT1 ep.1 x, @eval aT rT2 eT2 ep.2 x)).
-
 (* Extensional equality, for unary and binary functions, including syntactic *)
 (* sugar.                                                                    *)
 
@@ -177,15 +155,15 @@ Variables A B C : Type.
 
 Definition eqfun (f g : B -> A) : Prop := forall x, f x = g x.
 
-Definition eqrel (f g : C -> B -> A) : Prop := forall x y, f x y = g x y.
+Definition eqrel (r s : C -> B -> A) : Prop := forall x y, r x y = s x y.
 
-Lemma frefl : forall f, eqfun f f. Proof. split. Qed.
-Lemma fsym : forall f g, eqfun f g -> eqfun g f. Proof. move=> f g H x; auto. Qed.
+Lemma frefl : forall f, eqfun f f. Proof. by []. Qed.
+Lemma fsym : forall f g, eqfun f g -> eqfun g f. Proof. by move=> f g E x. Qed.
 
-Lemma ftrans : forall f g (h:B -> A), eqfun f g -> eqfun g h -> eqfun f h.
-Proof. by move=> f g h Hfg Hgh x; rewrite (Hfg x). Qed.
+Lemma ftrans : forall f g h, eqfun f g -> eqfun g h -> eqfun f h.
+Proof. by move=> f g h eqfg eqgh x; rewrite eqfg. Qed.
 
-Lemma rrefl : forall f, eqrel f f. Proof. split. Qed.
+Lemma rrefl : forall r, eqrel r r. Proof. by []. Qed.
 
 End ExtensionalEquality.
 
@@ -323,31 +301,34 @@ End Injections.
 
 Section InjectionsTheory.
 
-Variables (A B C : Type) (f f' : B -> A) (g g' : A -> B).
-Variables (h : C -> B) (k : B -> C).
-Hypotheses (Hf : injective f) (Hfg : cancel f g) (Hg : injective g).
-Hypotheses (Hh : injective h) (Hhk : cancel h k).
-
-Lemma inj_can_sym : cancel g f.
-Proof. move=> x; exact: Hg. Qed.
-
-Lemma inj_comp : injective (f \o h).
-Proof. move=> x y; move/Hf; exact: Hh. Qed.
+Variables (A B C : Type) (f g : B -> A) (h : C -> B).
 
 Lemma inj_id : injective (@id A).
 Proof. by []. Qed.
 
-Lemma can_comp : cancel (f \o h) (k \o g).
-Proof. by move=> x; rewrite /= Hfg Hhk. Qed.
+Lemma inj_can_sym : forall f', cancel f f' -> injective f' -> cancel f' f.
+Proof. move=> f' fK injf' x; exact: injf'. Qed.
 
-Lemma eq_inj : f =1 f' -> injective f'.
-Proof. move=> Ef x y; rewrite -2!Ef; exact: Hf. Qed.
+Lemma inj_comp : injective f -> injective h -> injective (f \o h).
+Proof. move=> injf injh x y; move/injf; exact: injh. Qed.
 
-Lemma eq_can : f =1 f' -> g =1 g' -> cancel f' g'.
-Proof. by move=> Ef Eg x; rewrite -Ef -Eg. Qed.
+Lemma can_comp : forall f' h',
+  cancel f f' -> cancel h h' -> cancel (f \o h) (h' \o f').
+Proof. by move=> f' h' fK hK x; rewrite /= fK hK. Qed.
 
-Lemma inj_can_eq : cancel f' g -> f =1 f'.
-Proof. by move=> Hf'g x; apply: Hg; rewrite Hfg. Qed.
+Lemma pcan_pcomp : forall f' h',
+  pcancel f f' -> pcancel h h' -> pcancel (f \o h) (pcomp h' f').
+Proof. by move=> f' h' fK hK x; rewrite /pcomp fK /= hK. Qed.
+
+Lemma eq_inj : injective f -> f =1 g -> injective g.
+Proof. by move=> injf eqfg x y; rewrite -2!eqfg; exact: injf. Qed.
+
+Lemma eq_can : forall f' g', cancel f f' -> f =1 g -> f' =1 g' -> cancel g g'.
+Proof. by move=> f' g' fK eqfg eqfg' x; rewrite -eqfg -eqfg'. Qed.
+
+Lemma inj_can_eq : forall f',
+  cancel f f' -> injective f' -> cancel g f' -> f =1 g.
+Proof. by move=> f' fK injf' gK x; apply: injf'; rewrite fK. Qed.
 
 End InjectionsTheory.
 
@@ -357,39 +338,39 @@ Variables (A B : Type) (f : B -> A).
 
 Definition bijective : Prop := exists2 g, cancel f g & cancel g f.
 
-Hypothesis Hf : bijective.
+Hypothesis bijf : bijective.
 
 Lemma bij_inj : injective f.
-Proof. by case: Hf => [h Ef _]; apply: can_inj Ef. Qed.
+Proof. by case: bijf => [h fK _]; apply: can_inj fK. Qed.
 
-Lemma bij_can_sym : forall g, cancel g f <-> cancel f g.
+Lemma bij_can_sym : forall f', cancel f' f <-> cancel f f'.
 Proof.
-move=> g; split=> Eg; first exact: inj_can_sym Eg bij_inj.
-by case: Hf => [h _ Eh] x; rewrite -[x]Eh Eg.
+move=> f'; split=> fK; first exact: inj_can_sym fK bij_inj.
+by case: bijf => [h _ hK] x; rewrite -[x]hK fK.
 Qed.
 
-Lemma bij_can_eq : forall g g', cancel f g -> cancel f g' -> g =1 g'.
+Lemma bij_can_eq : forall f' f'', cancel f f' -> cancel f f'' -> f' =1 f''.
 Proof.
-by move=> g g' Eg Eg'; apply: (inj_can_eq _ bij_inj); apply/bij_can_sym.
+by move=> f' f'' fK fK'; apply: (inj_can_eq _ bij_inj); apply/bij_can_sym.
 Qed.
 
 End Bijections.
 
 Section BijectionsTheory.
 
-Variables (A B C : Type) (f : B -> A) (g : C -> B).
+Variables (A B C : Type) (f : B -> A) (h : C -> B).
 
-Lemma eq_bij : bijective f -> forall f', f =1 f' -> bijective f'.
-Proof. by move=> [h Ef Eh] f' Eff'; exists h; eapply eq_can; eauto. Qed.
+Lemma eq_bij : bijective f -> forall g, f =1 g -> bijective g.
+Proof. by move=> [f' fK f'K] g eqfg; exists f'; eapply eq_can; eauto. Qed.
 
-Lemma bij_comp : bijective f -> bijective g -> bijective (f \o g).
+Lemma bij_comp : bijective f -> bijective h -> bijective (f \o h).
 Proof.
-move=> [h Ef Eh] [k Eg Ek]; exists (k \o h : _ -> _); apply can_comp; auto.
+move=> [f' fK f'K] [h' hK h'K].
+by exists (h' \o f' : _ -> _); apply can_comp; auto.
 Qed.
 
-Lemma bij_can_bij :
-  bijective f -> forall h, cancel f h -> bijective h.
-Proof. by move=> Hf; exists f; first by apply/(bij_can_sym Hf). Qed.
+Lemma bij_can_bij : bijective f -> forall f', cancel f f' -> bijective f'.
+Proof. by move=> bijf; exists f; first by apply/(bij_can_sym bijf). Qed.
 
 End BijectionsTheory.
 

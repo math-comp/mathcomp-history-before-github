@@ -202,7 +202,7 @@ Module Type FinTupleSig.
 Section FinTupleSig.
 Variables (n : nat) (T : finType).
 Parameter enum : seq (n.-tuple T).
-Axiom enumP : Finite.axiom eq_op enum.
+Axiom enumP : Finite.axiom enum.
 Axiom size_enum : size enum = #|T| ^ n.
 End FinTupleSig.
 End FinTupleSig.
@@ -215,7 +215,7 @@ Definition enum : seq (n.-tuple(T)) :=
   let extend e := flatten (maps (fun x => maps (adds x) e) (Finite.enum T)) in
   pmaps insub (iter n extend [::[::]]).
 
-Lemma enumP : Finite.axiom eq_op enum.
+Lemma enumP : Finite.axiom enum.
 Proof.
 case=> /= t t_n; rewrite -(count_maps val (pred1 t)).
 rewrite (pmaps_filter (@insubK _ _ _)) count_filter -filter_predI -enumT.

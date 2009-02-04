@@ -1541,9 +1541,6 @@ Qed.
 
 End Map.
 
-Canonical Structure seq_exprType aT rT (eT : exprType aT rT) :=
-  ExprType (fun s x => maps ((@eval aT rT eT)^~ x) s).
-
 Section EqMap.
 
 Variables (n0 : nat) (T1 : eqType) (x1 : T1).

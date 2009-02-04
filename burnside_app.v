@@ -440,7 +440,7 @@ move/eqn_pmul2l <-; rewrite -expnS -card_Fid Fid cardsT.
 rewrite -{1}[n]card_ord -cardX.
 pose pk k := [ffun i => k (if i == y then x else i) : colors].
 rewrite -(@card_image _ _ (fun k : col_squares => (k y, pk k))).
-  apply/eqP; apply: eq_card => ck /=;  rewrite inE /= inE.
+  apply/eqP; apply: eq_card => ck /=;  rewrite inE /= [_ \in _]inE.
   apply/eqP/imageP; last first.
     by case=> k _ -> /=; rewrite !ffunE if_same eqxx.
   case: ck => c k /= kxy.

@@ -17,12 +17,12 @@ Import Prenex Implicits.
 
 Module Finite.
 
-Definition axiom T (op : rel T) e := forall x : T, count (op^~ x) e = 1.
+Definition axiom T e := forall x, count (@pred1 T x) e = 1.
 
-Record mixin_of (T : Type) (op : rel T) : Type :=
-  Mixin {mixin_enum : seq T; _ : axiom op mixin_enum}.
+Record mixin_of (T : eqType) : Type :=
+  Mixin {mixin_enum : seq T; _ : axiom mixin_enum}.
 
-Lemma uniq_enumP : forall T e, @uniq T e -> e =i T -> axiom eq_op e.
+Lemma uniq_enumP : forall T e, @uniq T e -> e =i T -> axiom e.
 Proof. by move=> T e Ue sT x; rewrite count_pred1_uniq ?sT. Qed.
 
 Definition UniqMixin T e Ue eT := Mixin (@uniq_enumP T e Ue eT).
@@ -34,19 +34,20 @@ Hypothesis ubT : forall x : T, pickle x < n.
 
 Definition count_enum := pmaps (@pickle_inv T) (iota 0 n).
 
-Lemma count_enumP : axiom eq_op count_enum.
+Lemma count_enumP : axiom count_enum.
 Proof.
 apply: uniq_enumP (uniq_pmaps (@pickle_invK T) (uniq_iota _ _)) _ => x.
 by rewrite mem_pmaps -pickleK_inv maps_f // mem_iota ubT.
 Qed.
 
-Definition CountMixin :=
-  let k T _ := @Mixin T in Countable.unpack k T _ _ count_enumP.
+Definition CountMixin := Mixin count_enumP.
 
 End CountAxiom.
 
-Record class_of (T : Type) : Type :=
-  Class {base :> Countable.class_of T; mixin :> mixin_of (Equality.op base)}.
+Record class_of (T : Type) : Type := Class {
+  base :> Countable.class_of T;
+  mixin :> mixin_of (Equality.Pack base T)
+}.
 
 Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
@@ -168,7 +169,7 @@ Implicit Types A B C P Q : pred T.
 Implicit Types x y : T.
 Implicit Type s : seq T.
 
-Lemma enumP : Finite.axiom eq_op (Finite.enum T).
+Lemma enumP : Finite.axiom (Finite.enum T).
 Proof. by rewrite unlock; case T => ? [? []]. Qed.
 
 Section EnumPick.
@@ -177,9 +178,6 @@ Variable P : pred T.
 
 Lemma enumT : enum T = Finite.enum T.
 Proof. exact: filter_predT. Qed.
-
-Lemma enum_mem : enum (mem P) = enum P.
-Proof. by []. Qed.
 
 Lemma mem_enum : forall A, enum A =i A.
 Proof.
@@ -659,126 +657,197 @@ Proof. apply: (iffP (dinjectiveP _)) => injf x y => [|_ _]; exact: injf. Qed.
 
 End Injectiveb.
 
-Section FunImage.
-
-Variables (T : finType) (T' : eqType) .
-
-Definition codom f : pred T' := fun y => existsb x : T, f x == y.
-
-Remark iinv_exists : forall f y, codom f y -> {x : T | f x == y}.
-Proof.
-move=> f y fy; pose a := f _ == y.
-by case: (pickP a) => [x fx | nfy]; [exists x | case/pred0P: fy].
-Qed.
-
-Definition iinv f y (fy : codom f y) := sval (iinv_exists fy).
-
-Lemma codom_f : forall f x, codom f (f x).
-Proof. by move=> f x; apply/existsP; exists x => /=. Qed.
-  
-Lemma f_iinv : forall f y (Hy : codom f y), f (iinv Hy) = y.
-Proof. by rewrite /iinv => f y Hy; case: iinv_exists => x /=; move/eqP. Qed.
-
-Lemma iinv_f : forall f x (Hfx : codom f (f x)), injective f -> iinv Hfx = x.
-Proof. by move=> f x Hfx; apply; exact: f_iinv. Qed.
-
 Section Image.
 
-Variable (f : T -> T') (a : pred T).
+Variables (T : finType) (T' : eqType) (f : T -> T').
 
-Definition image : pred T' := fun y => existsb x, a x && (f x == y).
+Section Def.
 
-Lemma imageP : forall y, reflect (exists2 x, a x & y = f x) (image y).
+Variable A : pred T.
+
+Definition image : pred T' := mem (maps f (enum A)).
+
+Lemma imageP : forall y, reflect (exists2 x, A x & y = f x) (image y).
 Proof.
-move=> y; apply: (iffP existsP) => [[x]| [x ax ->]].
-  by case/andP=> ax; move/eqP; exists x.
-by exists x; rewrite /= ax eqxx.
+move=> y; apply: (iffP mapsP) => [] [x Ax y_fx];
+ by exists x => //; rewrite mem_enum in Ax *.
 Qed.
 
-Remark diinv_exists : forall y, image y -> {x : T | a x && (f x == y)}.
+Remark iinv_proof : forall y, image y -> {x : T | A x & f x = y}.
 Proof.
-move=> y fy; pose b x := a x && (f x == y).
-by case: (pickP b) => [x | nfy]; [exists x | case/pred0P: fy].
+move=> y fy; pose b x := A x && (f x == y).
+case: (pickP b) => [x | nfy]; first by case/andP=> Ax; move/eqP; exists x.
+by case/negP: fy; case/imageP=> x Ax fx_y; case/andP: (nfy x); rewrite fx_y.
 Qed.
 
-Definition diinv y (Hy : image y) := sval (diinv_exists Hy).
+Definition iinv y fAy := s2val (@iinv_proof y fAy).
 
-Lemma f_diinv : forall y (Hy : image y), f (diinv Hy) = y.
+Lemma f_iinv : forall y fAy, f (@iinv y fAy) = y.
+Proof. move=> y fAy; exact: s2valP' (iinv_proof fAy). Qed.
+
+Lemma mem_iinv : forall y fAy, A (@iinv y fAy).
+Proof. move=> y fAy; exact: s2valP (iinv_proof fAy). Qed.
+
+Lemma in_iinv_f : {in A &, injective f} ->
+  forall x fAfx, A x -> @iinv (f x) fAfx = x.
 Proof.
-by rewrite /diinv => y Hy; case: diinv_exists => x /=; case/andP=> _; move/eqP.
+move=> injf x fAfx Ax; apply: injf => //; [exact: mem_iinv | exact: f_iinv].
 Qed.
 
-Lemma a_diinv : forall y (Hy : image y), a (diinv Hy).
-Proof. by rewrite /diinv => y Hy; case: diinv_exists => x /=; case/andP. Qed.
+Lemma preim_iinv : forall B y fAy, preim f B (@iinv y fAy) = B y.
+Proof. by move=> B y fAy; rewrite /= f_iinv. Qed.
 
-Lemma diinv_f : {in a &, injective f} ->
-  forall x (Hfx : image (f x)), a x -> diinv Hfx = x.
-Proof. move=> Hfd *; apply Hfd => //; [exact: a_diinv | exact: f_diinv]. Qed.
-
-Lemma preim_diinv : forall a' y (Hy : image y),
-  preim f a' (diinv Hy) = a' y.
-Proof. by move=> *; rewrite /= f_diinv. Qed.
-
-Lemma image_codom : forall y, image y -> codom f y.
-Proof. move=> y; case/imageP=> x _ ->; exact: codom_f. Qed.
-
-Lemma mem_image : forall x, a x -> image (f x).
+Lemma mem_image : forall x, A x -> image (f x).
 Proof. by move=> x ax; apply/imageP; exists x. Qed.
 
-Hypothesis Hf : injective f.
+Hypothesis injf : injective f.
 
-Lemma image_f : forall x, image (f x) = a x.
-Proof.
-by move=> x; apply/imageP/idP => [[x' ax' []] | ax]; [move/Hf-> | exists x].
-Qed.
+Lemma image_f : forall x, image (f x) = A x.
+Proof. by move=> x; rewrite /image /= mem_maps ?mem_enum. Qed.
 
-Lemma image_iinv : forall y (Hy : codom f y), image y = a (iinv Hy).
-Proof. by move=> y Hy; rewrite -image_f f_iinv. Qed.
-
-Lemma pre_image : preim f image =1 a.
+Lemma pre_image : preim f image =1 A.
 Proof. by move=> x; rewrite /= image_f. Qed.
 
+End Def.
+
+Section Codom.
+(* Probably redundant -- consider deleting. *)
+
+Definition codom := image T.
+
+Lemma codom_f : forall x, codom (f x).
+Proof. by move=> x; exact: mem_image. Qed.
+  
+Lemma iinv_f : forall x fTfx, injective f -> @iinv T (f x) fTfx = x.
+Proof. by move=> x fAfx injf; apply: in_iinv_f; first exact: in2W. Qed.
+
+Lemma image_codom : forall A y, image A y -> codom y.
+Proof. move=> A y; case/imageP=> x _ ->; exact: codom_f. Qed.
+
+Lemma image_iinv : injective f ->
+ forall A y (fTy : codom y), image A y = A (iinv fTy).
+Proof. by move=> injf A y fTy; rewrite -image_f ?f_iinv. Qed.
+
+Lemma image_pred0 : image pred0 =1 pred0.
+Proof. by move=> x; rewrite /image /= enum0. Qed.
+
+Lemma image_pre : forall B, injective f -> image (preim f B) =1 predI B codom.
+Proof.
+by move=> B injf y; rewrite /image -filter_maps /= mem_filter -enumT.
+Qed.
+
+End Codom.
+
+Fixpoint preim_seq s :=
+  if s is y :: s' then
+    (if pick (preim f (pred1 y)) is Some x then adds x else id) (preim_seq s')
+    else [::].
+
+Lemma maps_preim : forall s : seq T',
+  {subset s <= codom} -> maps f (preim_seq s) = s.
+Proof.
+elim=> [|y s IHs] //=; case: pickP => [x fx_y | nfTy] fTs.
+  rewrite /= (eqP fx_y) IHs // => z s_z; apply fTs; exact: predU1r.
+by case/imageP: (fTs y (mem_head y s)) => x _ fx_y; case/eqP: (nfTy x).
+Qed.
+
 End Image.
-
-Lemma image_pred0 : forall (f : T -> T'), image f pred0 =1 pred0.
-Proof. by move=> f x /=; apply/imageP; case. Qed.
-
-Lemma image_pre : forall (f : T -> T') a',
-  injective f -> image f (preim f a') =1 predI a' (codom f).
-Proof.
-move=> f a' Hf y; rewrite /= andbC; case Hy: (codom f y) => /=.
-  by rewrite -(f_iinv Hy) image_f /=.
-apply/idPn => [Hay]; case/idPn: Hy; exact (image_codom Hay).
-Qed.
-
-Fixpoint preim_seq (f : T -> T') (s : seq T') :=
-  if s is x :: s' then
-    (if pick (preim f (pred1 x)) is Some y then adds y else id)
-      (preim_seq f s')
-  else seq0.
-
-Lemma maps_preim : forall (f : T -> T') (s : seq T'),
-  subpred (mem s) (codom f) -> maps f (preim_seq f s) = s.
-Proof.
-move=> f; elim=> [|x s Hrec] //=; case: pickP => [y Dy|Hs'] Hs.
-  rewrite /= (eqP Dy) Hrec // => z Hz; apply Hs; exact: predU1r.
-by case/pred0P: (Hs x (predU1l _ (erefl x))).
-Qed.
-
-Lemma eq_image : forall (a b : pred T) (g f : T -> T'),
-  a =1 b -> g =1 f -> image g a =1 image f b.
-Proof.
-move => a b g f Ha Hg x; apply/imageP/imageP; move=> [y Hin Heq].
-  by exists y; [rewrite -Ha | rewrite -Hg].
-by exists y; [rewrite Ha | rewrite Hg].
-Qed.
-
-End FunImage.
 
 Prenex Implicits codom iinv image.
 
 Notation "[ 'image' f 'of' A ]" := (image f [mem A])
   (at level 0, format "[ 'image'  f  'of'  A ]") : form_scope.
+
+Section CardFunImage.
+
+Variables (T T' : finType) (f : T -> T').
+Implicit Type A : pred T.
+
+Lemma leq_image_card : forall A, #|[image f of A]| <= #|A|.
+Proof. by move=> A; rewrite (cardE A) -(size_maps f) card_size. Qed.
+
+Lemma card_in_image : forall A,
+  {in A &, injective f} -> #|[image f of A]| = #|A|.
+Proof.
+move=> A injf; rewrite (cardE A) -(size_maps f); apply/card_uniqP.
+rewrite uniq_maps_in ?uniq_enum // => x y; rewrite !mem_enum; exact: injf.
+Qed.
+
+Hypothesis injf : injective f.
+
+Lemma card_image : forall A, #|[image f of A]| = #|A|.
+Proof. move=> A; apply: card_in_image; exact: in2W. Qed.
+
+Lemma card_codom : #|codom f| = #|T|.
+Proof. exact: card_image. Qed.
+
+Lemma card_preim : forall B, #|preim f B| = #|predI (codom f) B|.
+Proof.
+move=> B; rewrite -card_image /=; apply: eq_card => y.
+by rewrite [y \in _]image_pre //= andbC.
+Qed.
+
+End CardFunImage.
+
+Section FinCancel.
+
+Variables (T : finType) (f g : T -> T).
+
+Section Inv.
+
+Hypothesis injf : injective f.
+
+Lemma injF_codom : forall y, codom f y.
+Proof. by apply/subset_cardP; rewrite ?card_codom ?subset_predT. Qed.
+
+Definition invF y := iinv (injF_codom y).
+Lemma invF_f : cancel f invF. Proof. move=> x; exact: iinv_f. Qed.
+Lemma f_invF : cancel invF f. Proof. move=> y; exact: f_iinv. Qed.
+Lemma injF_bij : bijective f. Proof. by move: invF_f f_invF; exists invF. Qed.
+
+End Inv.
+
+Hypothesis fK : cancel f g.
+
+Lemma canF_sym : cancel g f.
+Proof. exact/(bij_can_sym (injF_bij (can_inj fK))). Qed.
+
+Lemma canF_LR : forall x y, x = g y -> f x = y.
+Proof. move=> x y; exact: canLR canF_sym. Qed.
+
+Lemma canF_RL : forall x y, g x = y -> x = f y.
+Proof. move=> x y; exact: canRL canF_sym. Qed.
+
+Lemma canF_eq : forall x y, (f x == y) = (x == g y).
+Proof. exact (can2_eq fK canF_sym). Qed.
+
+Lemma canF_invF : g =1 invF (can_inj fK).
+Proof. by move=> y; apply: (canLR fK); rewrite f_invF. Qed.
+
+End FinCancel.
+
+Section EqImage.
+
+Variables (T : finType) (T' : eqType).
+
+Lemma eq_image : forall (A B : pred T) (f g : T -> T'),
+  A =1 B -> f =1 g -> image f A =1 image g B.
+Proof.
+move=> A B f g eqAB eqfg x; congr (x \in _); rewrite (eq_enum eqAB).
+exact: eq_maps.
+Qed.
+
+Lemma eq_codom : forall f g : T -> T', f =1 g -> codom f =1 codom g.
+Proof. move=> f g; exact: eq_image. Qed.
+
+Lemma eq_invF : forall f g injf injg,
+  f =1 g -> @invF T f injf =1 @invF T g injg.
+Proof.
+move=> f g injf injg eq_fg x; apply: (canLR (invF_f injf)).
+by rewrite eq_fg f_invF.
+Qed.
+
+End EqImage.
 
 (* Standard finTypes *)
 
@@ -825,12 +894,12 @@ Canonical Structure seq_sub_finType := Eval hnf in FinType seq_sub_finMixin.
 
 End SeqFinType.
 
-Lemma unit_enumP : Finite.axiom eq_op [::tt]. Proof. by case. Qed.
+Lemma unit_enumP : Finite.axiom [::tt]. Proof. by case. Qed.
 Definition unit_finMixin := FinMixin unit_enumP.
 Canonical Structure unit_finType := Eval hnf in FinType unit_finMixin.
 Lemma card_unit : #|{: unit}| = 1. Proof. by rewrite cardT enumT unlock. Qed.
 
-Lemma bool_enumP : Finite.axiom eq_op [:: true; false]. Proof. by case. Qed.
+Lemma bool_enumP : Finite.axiom [:: true; false]. Proof. by case. Qed.
 Definition bool_finMixin := FinMixin bool_enumP.
 Canonical Structure bool_finType := Eval hnf in FinType bool_finMixin.
 Lemma card_bool : #|{: bool}| = 2. Proof. by rewrite cardT enumT unlock. Qed.
@@ -841,7 +910,7 @@ Variable T : finType.
 
 Definition option_enum := None :: maps some (Finite.enum T).
 
-Lemma option_enumP : Finite.axiom eq_op option_enum.
+Lemma option_enumP : Finite.axiom option_enum.
 Proof. by case=> [x|]; rewrite /= count_maps (count_pred0, enumP). Qed.
 
 Definition option_finMixin := FinMixin option_enumP.
@@ -857,7 +926,7 @@ Section TransferFinType.
 Variables (eT : countType) (fT : finType) (f : eT -> fT).
 
 Lemma pcan_enumP : forall g,
-  pcancel f g -> Finite.axiom eq_op (undup (pmaps g (Finite.enum fT))).
+  pcancel f g -> Finite.axiom (undup (pmaps g (Finite.enum fT))).
 Proof.
 move=> g fK x; rewrite count_pred1_uniq ?uniq_undup // mem_undup.
 by rewrite mem_pmaps -fK maps_f // -enumT mem_enum.
@@ -876,27 +945,23 @@ Import Finite.
 
 Structure subFinType : Type := SubFinType {
   subFin_sort :> subCountType P;
-  _ : @mixin_of subFin_sort eq_op
+  _ : @mixin_of subFin_sort
 }.
 
 Coercion subFinType_finType sT :=
-  Eval hnf in pack (let: SubFinType _ m := sT return @mixin_of sT eq_op in m).
+  Eval hnf in pack (let: SubFinType _ m := sT return mixin_of sT in m).
 Canonical Structure subFinType_finType.
 
-CoInductive subFinJM (sT : Type) (op : rel sT) : forall U, rel U -> Prop :=
-  SubFinJM : subFinJM op op.
-
 Definition subFinType_for scT :=
-  let k _ c :=
-    let: Class c' m := c return subFinJM _ (Equality.op c) -> _ in
-    fun eqU => (let: SubFinJM in subFinJM _ opU := eqU return mixin_of opU -> _
-    in @SubFinType scT) m
+  let k T c of phant T :=
+    let: Class _ m := c return _ = Equality.Pack c T -> _ in fun eq_eT =>
+    eq_rect _ (fun eT => mixin_of eT -> _) (@SubFinType scT) _ eq_eT m
   in unpack k.
 
 End SubFinType.
 
 (* This assumes that T has both finType and subCountType structures. *)
-Notation "[ 'subFinType' 'of' T ]" := (subFinType_for (@SubFinJM T _))
+Notation "[ 'subFinType' 'of' T ]" := (subFinType_for (Phant T) (erefl _))
   (at level 0, format "[ 'subFinType'  'of'  T ]") : form_scope.
 
 Canonical Structure seq_sub_subFinType T s :=
@@ -925,11 +990,14 @@ Qed.
 (* subType_finType structure.                                        *)
 
 Definition SubFinMixin := UniqFinMixin uniq_sub_enum mem_sub_enum.
+Definition SubFinMixin_for (eT : eqType) of phant eT :=
+  eq_rect _ Finite.mixin_of SubFinMixin eT.
+Let sfT := FinType SubFinMixin.
 
-Lemma card_sub : #|FinType SubFinMixin| = #|[pred x | P x]|.
+Lemma card_sub : #|sfT| = #|[pred x | P x]|.
 Proof. by rewrite !cardE enumT unlock -(size_maps val) val_sub_enum. Qed.
 
-Lemma eq_card_sub : forall A : pred (FinType SubFinMixin),
+Lemma eq_card_sub : forall A : pred sfT,
   A =i predT -> #|A| = #|[pred x | P x]|.
 Proof. by have:= eq_card_trans card_sub. Qed.
 
@@ -938,7 +1006,7 @@ End FinTypeForSub.
 (* This assumes that T has a subCountType structure over a type that  *)
 (* has a finType structure.                                           *)
 Notation "[ 'finMixin' 'of' T 'by' <: ]" :=
-    (SubFinMixin _ : @Finite.mixin_of T _)
+    (SubFinMixin_for (Phant T) (erefl _))
   (at level 0, format "[ 'finMixin'  'of'  T  'by'  <: ]") : form_scope.
 
 (* Regression for the subFinType stack
@@ -955,7 +1023,8 @@ Definition myb_finm := [finMixin of myb by <:].
 Canonical Structure myb_fin := Eval hnf in FinType myb_finm.
 Canonical Structure myb_sfin := Eval hnf in [subFinType of myb].
 Print Canonical Projections.
-Print myb_fin.
+Print myb_finm.
+Print myb_cntm.
 *)
 
 Section CardSig.
@@ -1301,7 +1370,7 @@ elim: (enum T1) => //= x1 s1 IHs; rewrite count_cat {}IHs count_maps /preim /=.
 by case: (x1 \in A1); rewrite ?count_pred0.
 Qed.
 
-Lemma prod_enumP : Finite.axiom eq_op prod_enum.
+Lemma prod_enumP : Finite.axiom prod_enum.
 Proof.
 by case=> x1 x2; rewrite (predX_prod_enum (pred1 x1) (pred1 x2)) !card1.
 Qed.
@@ -1332,7 +1401,7 @@ Definition tag_enum :=
   let tagged_enum i := maps (Tagged T_) (Finite.enum (T_ i)) in
   flatten (maps tagged_enum (Finite.enum I)).
 
-Lemma tag_enumP : Finite.axiom eq_op tag_enum.
+Lemma tag_enumP : Finite.axiom tag_enum.
 Proof.
 case=> i x; rewrite -(enumP i) /tag_enum -enumT.
 elim: (enum I) => //= j e IHe.
@@ -1379,6 +1448,7 @@ Proof. by rewrite !cardT !enumT unlock size_cat !size_maps. Qed.
 End SumFinType.
 
 Section BijectionCard.
+(* Deprecated. *)
 
 Lemma can_card_leq :  forall (T T' : finType) (f : T -> T') (g : T' -> T),
   cancel f g -> #|T| <= #|T'|.
@@ -1431,81 +1501,5 @@ move=> T T' A A'; rewrite -card_sig -(card_sig A'); exact: eq_card_predT_bij.
 Qed.
 
 End BijectionCard.
-
-Section CardFunImage.
-
-Variables (T T' : finType) (f : T -> T').
-
-Lemma leq_image_card : forall A : pred T, #|[image f of A]| <= #|A|.
-Proof.
-move=> A; rewrite (cardE A) -(size_maps f); apply: leq_trans (card_size _).
-apply: subset_leq_card; apply/subsetP => y; case/imageP=> x Ax ->{y}.
-by rewrite maps_f ?mem_enum.
-Qed.
-
-Lemma card_in_image : forall A : pred T, {in A &, injective f} ->
-  #|[image f of A]| = #|A|.
-Proof.
-move=> A injf; apply: bij_eq_card.
-have f1_def: forall w : {y | image f A y}, A (diinv (valP w)).
-  by case=> y fAy; rewrite a_diinv.
-have f2_def: forall w : {x | A x}, image f A (f (val w)).
-  by case=> x Ax; rewrite mem_image.
-pose f1 w := exist A _ (f1_def w); exists f1.
-pose f2 w := exist (image f A) _ (f2_def w).
-by exists f2; case=> *; apply: val_inj; rewrite /= (f_diinv, diinv_f).
-Qed.
-
-Hypothesis injf : injective f.
-
-Lemma card_image : forall A : pred T, #|[image f of A]| = #|A|.
-Proof. move=> A; apply: card_in_image; exact: in2W. Qed.
-
-Lemma card_codom : #|codom f| = #|T|.
-Proof.
-rewrite -(card_image T); apply: eq_card => y.
-by apply/existsP/imageP => [[x]|[x _ ->]]; first move/eqP; exists x.
-Qed.
-
-Lemma card_preim : forall A',  #|preim f A'| = #|predI (codom f) A'|.
-Proof.
-move=> A'; rewrite -card_image /=; apply: eq_card => y.
-by rewrite [y \in _]image_pre //= andbC.
-Qed.
-
-End CardFunImage.
-
-Section FinCancel.
-
-Variables (T : finType) (f g : T -> T).
-
-Lemma injF_codom : injective f -> forall x, codom f x.
-Proof. 
-by move=> injf; apply/subset_cardP; rewrite ?card_codom ?subset_predT.
-Qed.
-
-Lemma injF_bij : injective f -> bijective f.
-Proof.
-move=> injf; pose f' x := iinv (injF_codom injf x).
-by exists f' => x; rewrite /f' (iinv_f, f_iinv).
-Qed.
-
-Hypothesis fK : cancel f g.
-
-Let injf := can_inj fK.
-
-Lemma canF_sym : cancel g f.
-Proof. exact/(bij_can_sym (injF_bij injf)). Qed.
-
-Lemma canF_LR : forall x y, x = g y -> f x = y.
-Proof. move=> x y; exact: canLR canF_sym. Qed.
-
-Lemma canF_RL : forall x y, g x = y -> x = f y.
-Proof. move=> x y; exact: canRL canF_sym. Qed.
-
-Lemma canF_eq : forall x y, (f x == y) = (x == g y).
-Proof. exact (can2_eq fK canF_sym). Qed.
-
-End FinCancel.
 
 
