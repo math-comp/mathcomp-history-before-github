@@ -399,7 +399,7 @@ Lemma bigdprodEcprod : forall I (r : seq I) P F G,
    -> \big[cprod/1]_(i <- r | P i) F i = G.
 Proof.
 move=> I r P F; rewrite -!(big_filter r).
-elim: {r}filter => [|i r IHr] G; rewrite !(big_seq0, big_adds) //=.
+elim: {r}filter => [|i r IHr] G; rewrite !(big_nil, big_cons) //=.
 case/dprodP=> [[F' G' -> defG'] <-]; rewrite defG' (IHr _ defG') => cFG' _.
 by rewrite cprodE.
 Qed.

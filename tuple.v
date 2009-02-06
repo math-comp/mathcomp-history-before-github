@@ -17,27 +17,27 @@ Canonical Structure tuple_subType :=
 Lemma size_tuple : forall t : tuple_of, size t = n.
 Proof. move=> f; exact: (eqP (valP f)). Qed.
 
-Lemma tsub_default : forall (t : tuple_of) (i : 'I_n), T.
+Lemma tnth_default : forall (t : tuple_of) (i : 'I_n), T.
 Proof. by case=> [[|//]]; move/eqP <-; case. Qed.
 
-Definition tsub t i := sub (tsub_default t i) t i.
+Definition tnth t i := nth (tnth_default t i) t i.
 
-Lemma tsub_sub : forall x t i, tsub t i = sub x t i.
-Proof. by move=> x t i; apply: set_sub_default; rewrite size_tuple. Qed.
+Lemma tnth_nth : forall x t i, tnth t i = nth x t i.
+Proof. by move=> x t i; apply: set_nth_default; rewrite size_tuple. Qed.
 
-Lemma maps_tsub_enum : forall t, maps (tsub t) (enum 'I_n) = t.
+Lemma map_tnth_enum : forall t, map (tnth t) (enum 'I_n) = t.
 Proof.
 move=> t; case def_t: {-}(val t) => [|x0 t'].
-  by rewrite [enum _]size_eq0 // -cardE card_ord -(size_tuple t) def_t.
-apply: (@eq_from_sub _ x0) => [|i]; rewrite size_maps.
+  by rewrite [enum _]size0nil // -cardE card_ord -(size_tuple t) def_t.
+apply: (@eq_from_nth _ x0) => [|i]; rewrite size_map.
   by rewrite -cardE size_tuple card_ord.
 move=> lt_i_e; have lt_i_n: i < n by rewrite -cardE card_ord in lt_i_e.
-by rewrite (sub_maps (Ordinal lt_i_n)) // (tsub_sub x0) sub_enum_ord.
+by rewrite (nth_map (Ordinal lt_i_n)) // (tnth_nth x0) nth_enum_ord.
 Qed.
 
-Lemma eq_from_tsub : forall t1 t2, tsub t1 =1 tsub t2 -> t1 = t2.
+Lemma eq_from_tnth : forall t1 t2, tnth t1 =1 tnth t2 -> t1 = t2.
 Proof.
-by move=> *; apply: val_inj; rewrite /= -!maps_tsub_enum; exact: eq_maps.
+by move=> *; apply: val_inj; rewrite /= -!map_tnth_enum; exact: eq_map.
 Qed.
 
 Definition tuple t s & phantom (seq T) (tval t) -> phantom (seq T) s := t.
@@ -55,12 +55,12 @@ Notation "{ 'tuple' n 'of' T }" := (n.-tuple T : predArgType)
 Notation "[ 'tuple' 'of' s ]" := (@tuple _ _ _ s id)
   (at level 0, format "[ 'tuple'  'of'  s ]") : form_scope.
 
-Notation "[ 'tsub' t i ]" := (tsub t (@Ordinal (tsize t) i (erefl true)))
-  (at level 0, t, i at level 8, format "[ 'tsub'  t  i ]") : form_scope.
+Notation "[ 'tnth' t i ]" := (tnth t (@Ordinal (tsize t) i (erefl true)))
+  (at level 0, t, i at level 8, format "[ 'tnth'  t  i ]") : form_scope.
 
-Canonical Structure seq0_tuple T :=
+Canonical Structure nil_tuple T :=
    Tuple (erefl _ : @size T [::] == 0).
-Canonical Structure adds_tuple n T x (t : n.-tuple T) :=
+Canonical Structure cons_tuple n T x (t : n.-tuple T) :=
    Tuple (valP t : size (x :: t) == n.+1).
 
 Notation "[ 'tuple' x1 ; .. ; xn ]" := [tuple of x1 :: .. [:: xn] ..]
@@ -75,9 +75,9 @@ Section SeqTuple.
 Variables (n : nat) (T rT : Type).
 Notation tT := (n.-tuple T).
 
-Lemma seqn_tupleP : forall x : T, size (seqn n x) == n.
-Proof. by move=> x; rewrite size_seqn. Qed.
-Canonical Structure seqn_tuple x := Tuple (seqn_tupleP x).
+Lemma nseq_tupleP : forall x : T, size (nseq n x) == n.
+Proof. by move=> x; rewrite size_nseq. Qed.
+Canonical Structure nseq_tuple x := Tuple (nseq_tupleP x).
 
 Lemma iota_tupleP : forall m, size (iota m n) == n.
 Proof. by move=> m; rewrite size_iota. Qed.
@@ -116,9 +116,9 @@ Lemma rotr_tupleP : forall m (t : tT), size (rotr m t) == n.
 Proof. by move=> m t; rewrite size_rotr size_tuple. Qed.
 Canonical Structure rotr_tuple m t := Tuple (rotr_tupleP m t).
 
-Lemma maps_tupleP : forall f (t : tT), @size rT (maps f t) == n.
-Proof. by move=> f t; rewrite size_maps size_tuple. Qed.
-Canonical Structure maps_tuple f t := Tuple (maps_tupleP f t).
+Lemma map_tupleP : forall f (t : tT), @size rT (map f t) == n.
+Proof. by move=> f t; rewrite size_map size_tuple. Qed.
+Canonical Structure map_tuple f t := Tuple (map_tupleP f t).
 
 Lemma scanl_tupleP : forall f x (t : tT), @size rT (scanl f x t) == n.
 Proof. by move=> f x t; rewrite size_scanl size_tuple. Qed.
@@ -132,9 +132,9 @@ Lemma zip_tupleP : forall t1 t2 : tT, size (zip t1 t2) == n.
 Proof. by move=> *; rewrite size1_zip !size_tuple. Qed.
 Canonical Structure zip_tuple t1 t2 := Tuple (zip_tupleP t1 t2).
 
-Definition thead (n : pos_nat) (t : n.-tuple T) := tsub t ord0.
+Definition thead (n : pos_nat) (t : n.-tuple T) := tnth t ord0.
 
-Lemma tsub0 : forall x n (t : n.-tuple T), tsub [tuple of x :: t] ord0 = x.
+Lemma tnth0 : forall x n (t : n.-tuple T), tnth [tuple of x :: t] ord0 = x.
 Proof. by []. Qed.
 
 Lemma theadE : forall x n (t : n.-tuple T), thead [tuple of x :: t] = x.
@@ -152,16 +152,16 @@ move=> [[|x t] //= sz_t]; pose t' := Tuple (sz_t : size t == n).
 rewrite (_ : Tuple _ = [tuple of x :: t']) //; exact: val_inj.
 Qed.
 
-Lemma tsub_maps : forall f (t : tT) i,
-  tsub [tuple of maps f t] i = f (tsub t i) :> rT.
-Proof. by move=> f t i; apply: sub_maps; rewrite size_tuple. Qed.
+Lemma tnth_map : forall f (t : tT) i,
+  tnth [tuple of map f t] i = f (tnth t i) :> rT.
+Proof. by move=> f t i; apply: nth_map; rewrite size_tuple. Qed.
 
 End SeqTuple.
 
-Lemma tsub_behead : forall (n : pos_nat) T (t : n.+1.-tuple T) i,
-  tsub [tuple of behead t] i = tsub t (inord i.+1).
+Lemma tnth_behead : forall (n : pos_nat) T (t : n.+1.-tuple T) i,
+  tnth [tuple of behead t] i = tnth t (inord i.+1).
 Proof.
-by move=> n T; case/tupleP=> x t i; rewrite !(tsub_sub x) inordK ?ltnS.
+by move=> n T; case/tupleP=> x t i; rewrite !(tnth_nth x) inordK ?ltnS.
 Qed.
 
 Lemma tuple_eta : forall n T (t : n.+1.-tuple T),
@@ -212,13 +212,13 @@ Section FinTuple.
 Variables (n : nat) (T : finType).
 
 Definition enum : seq (n.-tuple(T)) :=
-  let extend e := flatten (maps (fun x => maps (adds x) e) (Finite.enum T)) in
-  pmaps insub (iter n extend [::[::]]).
+  let extend e := flatten (map (fun x => map (cons x) e) (Finite.enum T)) in
+  pmap insub (iter n extend [::[::]]).
 
 Lemma enumP : Finite.axiom enum.
 Proof.
-case=> /= t t_n; rewrite -(count_maps val (pred1 t)).
-rewrite (pmaps_filter (@insubK _ _ _)) count_filter -filter_predI -enumT.
+case=> /= t t_n; rewrite -(count_map val (pred1 t)).
+rewrite (pmap_filter (@insubK _ _ _)) count_filter -filter_predI -enumT.
 rewrite -count_filter -(@eq_count _ (pred1 t)) => [|s /=]; last first.
   by rewrite isSome_insub; case: eqP=> // ->.
 elim: n t t_n => [|m IHm] [|x t] //=.
@@ -226,7 +226,7 @@ move/IHm; move: (iter m _ _) => em {IHm} IHm.
 transitivity (x \in T : nat); rewrite // -mem_enum.
 have:= uniq_enum T; rewrite enumT.
 elim: (Finite.enum T) => //= y e IHe; case/andP; move/negPf=> ney.
-rewrite count_cat count_maps inE /preim /= {1}/eq_op /= eq_sym; move/IHe->.
+rewrite count_cat count_map inE /preim /= {1}/eq_op /= eq_sym; move/IHe->.
 by case: eqP => [->|_]; rewrite ?(ney, count_pred0, IHm).
 Qed.
 
@@ -234,7 +234,7 @@ Lemma size_enum : size enum = #|T| ^ n.
 Proof.
 rewrite /= cardE size_pmap_sub enumT; elim: n => //= m IHm.
 rewrite expnS; elim: {2 3}(Finite.enum T) => //= x e IHe.
-by rewrite count_cat {}IHe count_maps IHm.
+by rewrite count_cat {}IHe count_map IHm.
 Qed.
 
 End FinTuple.
@@ -259,9 +259,9 @@ Canonical Structure enum_tuple A := Tuple (enum_tupleP A).
 Definition ord_tuple : n.-tuple 'I_n := Tuple (introT eqP (size_enum_ord n)).
 Lemma val_ord_tuple : val ord_tuple = enum 'I_n. Proof. by []. Qed.
 
-Lemma tuple_maps_ord : forall T' (t : n.-tuple T'),
-  t = [tuple of maps (tsub t) ord_tuple].
-Proof. by move=> T' t; apply: val_inj => /=; rewrite maps_tsub_enum. Qed.
+Lemma tuple_map_ord : forall T' (t : n.-tuple T'),
+  t = [tuple of map (tnth t) ord_tuple].
+Proof. by move=> T' t; apply: val_inj => /=; rewrite map_tnth_enum. Qed.
 
 End UseFinTuple.
 

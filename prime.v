@@ -120,14 +120,14 @@ Definition prime_decomp n :=
 
 Definition add_divisors f divs :=
   let: (p, e) := f in 
-  let add1 divs' := merge leq (maps (NatTrec.mul p) divs') divs in
+  let add1 divs' := merge leq (map (NatTrec.mul p) divs') divs in
   iter e add1 divs.
 
 Definition add_phi_factor f m := let: (p, e) := f in p.-1 * p ^ e.-1 * m.
 
 End prime_decomp.
 
-Definition primes n := maps (@fst _ _) (prime_decomp n).
+Definition primes n := unzip1 (prime_decomp n).
 
 Definition prime p := if prime_decomp p is [:: (_ , 1)] then true else false.
 
@@ -143,7 +143,7 @@ Lemma prime_decomp_correct :
   let pd_val pd := \prod_(f <- pd) pfactor f.1 f.2 in 
   let lb_dvd q m := ~~ has [pred d | d %| m] (index_iota 2 q) in
   let pf_ok f := lb_dvd f.1 f.1 && (0 < f.2) in
-  let pd_ord q pd := path ltn q (maps (@fst _ _) pd) in
+  let pd_ord q pd := path ltn q (unzip1 pd) in
   let pd_ok q n pd := [/\ n = pd_val pd, all pf_ok pd & pd_ord q pd] in
   forall n, n > 0 -> pd_ok 1 n (prime_decomp n).
 Proof.
@@ -341,10 +341,10 @@ move=> n p e; case: (posnP n) => [-> //| ].
 case/prime_decomp_correct=> def_n mem_pd ord_pd pd_pe.
 have:= allP mem_pd _ pd_pe; case/andP=> pr_p ->; split=> //; last first.
   case/splitPr: pd_pe def_n => pd1 pd2 ->.
-  by rewrite big_cat big_adds /= mulnCA dvdn_mulr.
+  by rewrite big_cat big_cons /= mulnCA dvdn_mulr.
 have lt1p: 1 < p.
   apply: (allP (order_path_min ltn_trans ord_pd)).
-  by apply/mapsP; exists (p, e).
+  by apply/mapP; exists (p, e).
 apply/primeP; split=> // d dv_d_p; apply/norP=> [[nd1 ndp]].
 case/hasP: pr_p; exists d => //.
 rewrite mem_index_iota andbC 2!ltn_neqAle ndp eq_sym nd1.
@@ -384,7 +384,7 @@ Lemma mem_primes : forall p n,
   (p \in primes n) = [&& prime p, n > 0 & p %| n].
 Proof.
 move=> p n; rewrite andbCA; case: posnP => [-> // | /= n_pos].
-apply/mapsP/andP=> [[[q e]]|[pr_p]] /=.
+apply/mapP/andP=> [[[q e]]|[pr_p]] /=.
   case/mem_prime_decomp=> pr_q e_pos; case/dvdnP=> u -> <- {p}.
   by rewrite -(prednK e_pos) expnS mulnCA dvdn_mulr.
 rewrite {1}(prod_prime_decomp n_pos) big_cond_seq /=.
@@ -645,24 +645,24 @@ by rewrite muln1 (dvdn_trans _ dv_d_pn) // def_d dvdn_mulr.
 Qed.
 
 Lemma prime_decompE : forall n,
-  prime_decomp n = maps (fun p => (p, logn p n)) (primes n).
+  prime_decomp n = map (fun p => (p, logn p n)) (primes n).
 Proof.
-move=> [//|n]; pose f0 := (0, 0); rewrite -maps_comp.
-apply: (@eq_from_sub _ f0) => [|i lt_i_n]; first by rewrite size_maps.
-rewrite (sub_maps f0) //; case def_f: (sub _ _ i) => [p e] /=.
+move=> [//|n]; pose f0 := (0, 0); rewrite -map_comp.
+apply: (@eq_from_nth _ f0) => [|i lt_i_n]; first by rewrite size_map.
+rewrite (nth_map f0) //; case def_f: (nth _ _ i) => [p e] /=.
 congr (_, _); rewrite [n.+1]prod_prime_decomp //.
-have: (p, e) \in prime_decomp n.+1 by rewrite -def_f mem_sub.
+have: (p, e) \in prime_decomp n.+1 by rewrite -def_f mem_nth.
 case/mem_prime_decomp=> pr_p _ _.
-rewrite (big_sub f0) big_mkord (bigD1 (Ordinal lt_i_n)) //=.
+rewrite (big_nth f0) big_mkord (bigD1 (Ordinal lt_i_n)) //=.
 rewrite def_f mulnC logn_gauss ?pfactorK //.
 apply big_prop => [|m1 m2 com1 com2| [j ltj] /=]; first exact: coprimen1.
   by rewrite coprime_mulr com1.
-rewrite -val_eqE /= => nji; case def_j: (sub _ _ j) => [q e1] /=.
-have: (q, e1) \in prime_decomp n.+1 by rewrite -def_j mem_sub.
+rewrite -val_eqE /= => nji; case def_j: (nth _ _ j) => [q e1] /=.
+have: (q, e1) \in prime_decomp n.+1 by rewrite -def_j mem_nth.
 case/mem_prime_decomp=> pr_q e1_pos _; rewrite coprime_pexpr //.
 rewrite prime_coprime // dvdn_prime2 //; apply: contra nji => eq_pq.
-rewrite -(sub_uniq 0 _ _ (uniq_primes n.+1)) ?size_maps //=.
-by rewrite !(sub_maps f0) //  def_f def_j /= eq_sym.
+rewrite -(nth_uniq 0 _ _ (uniq_primes n.+1)) ?size_map //=.
+by rewrite !(nth_map f0) //  def_f def_j /= eq_sym.
 Qed.
 
 (* pi- parts *)
@@ -800,7 +800,7 @@ Qed.
 
 Lemma partn_pi : forall n, n > 0 -> n`_\pi(n) = n.
 Proof.
-move=> n n_pos; rewrite {3}(prod_prime_decomp n_pos) prime_decompE big_maps.
+move=> n n_pos; rewrite {3}(prod_prime_decomp n_pos) prime_decompE big_map.
 by rewrite -[n`__]big_filter filter_pi_of.
 Qed.
 
@@ -982,8 +982,8 @@ Proof.
 move=> n; move/prod_prime_decomp=> def_n; rewrite {4}def_n {def_n}.
 have: all prime (primes n) by apply/allP=> p; rewrite mem_primes; case/andP.
 have:= uniq_primes n; rewrite /primes /divisors; move/prime_decomp: n.
-elim=> [|[p e] pd] /=; first by split=> // d; rewrite big_seq0 dvdn1 mem_seq1.
-rewrite big_adds /=; move: (foldr _ _ pd) => divs IHpd.
+elim=> [|[p e] pd] /=; first by split=> // d; rewrite big_nil dvdn1 mem_seq1.
+rewrite big_cons /=; move: (foldr _ _ pd) => divs IHpd.
 case/andP=> npd_p Upd; case/andP=> pr_p pr_pd.
 have lt0p: 0 < p by exact: ltn_0prime.
 case: {IHpd Upd}(IHpd Upd pr_pd) => Udivs Odivs mem_divs.
@@ -994,24 +994,24 @@ have ndivs_p: p * _ \notin divs.
   rewrite big_cond_seq /=; apply big_prop => [//|u v npu npv|[q f] /= pd_qf].
     by rewrite euclid //; apply/norP.
   elim: (f) => // f'; rewrite euclid // orbC negb_or => -> {f'}/=.
-  have pd_q: q \in maps (@fst _ _) pd by apply/mapsP; exists (q, f).
+  have pd_q: q \in unzip1 pd by apply/mapP; exists (q, f).
   by apply: contra npd_p; rewrite dvdn_prime2 // ?(allP pr_pd) //; move/eqP->.
 elim: e => [|e] /=; first by split=> // d; rewrite mul1n.
 have Tmulp_inj: injective (NatTrec.mul p).
   by move=> u v; move/eqP; rewrite !natTrecE eqn_pmul2l //; move/eqP.
 move: (iter e _ _) => divs' [Udivs' Odivs' mem_divs']; split=> [||d].
-- rewrite uniq_merge uniq_cat uniq_maps // Udivs Udivs' andbT /=.
-  apply/hasP=> [[d dv_d]]; case/mapsP=> d' _ def_d; case/idPn: dv_d.
+- rewrite uniq_merge uniq_cat uniq_map // Udivs Udivs' andbT /=.
+  apply/hasP=> [[d dv_d]]; case/mapP=> d' _ def_d; case/idPn: dv_d.
   by rewrite -def_d natTrecE.
 - rewrite (sorted_merge leq_total) //; case: (divs') Odivs' => //= d ds.
-  rewrite (@path_maps _ _ _ _ leq xpred0) ?has_pred0 // => u v _.
+  rewrite (@path_map _ _ _ _ leq xpred0) ?has_pred0 // => u v _.
   by rewrite !natTrecE leq_pmul2l.
 rewrite mem_merge mem_cat; case dv_d_p: (p %| d).
   case/dvdnP: dv_d_p => d' ->{d}; rewrite mulnC (negbTE (ndivs_p d')) orbF.
   rewrite expnS -mulnA dvdn_pmul2l // -mem_divs'.
-  by rewrite -(mem_maps Tmulp_inj divs') natTrecE.
+  by rewrite -(mem_map Tmulp_inj divs') natTrecE.
 case pdiv_d: (_ \in _).
-  by case/mapsP: pdiv_d dv_d_p => d' _ <-; rewrite natTrecE dvdn_mulr.
+  by case/mapP: pdiv_d dv_d_p => d' _ <-; rewrite natTrecE dvdn_mulr.
 by rewrite mem_divs gauss // coprime_sym coprime_expl ?prime_coprime ?dv_d_p.
 Qed.
 

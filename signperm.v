@@ -316,8 +316,8 @@ exists t1 => //; apply/setP=> t; apply/idP/imsetP=> [|[a _ ->{t}]]; last first.
   by apply: n_act_dtuple => //; apply/astabsP=> x; rewrite !inE.
 case/dtuple_onP=> injt _; have injf := inj_comp injt (@enum_rank_inj _).
 exists (perm injf); first by rewrite inE.
-apply: eq_from_tsub => i; rewrite tsub_maps /= [aperm _ _]permE; congr tsub.
-by rewrite (tsub_sub (enum_default i)) enum_valK.
+apply: eq_from_tnth => i; rewrite tnth_map /= [aperm _ _]permE; congr tnth.
+by rewrite (tnth_nth (enum_default i)) enum_valK.
 Qed.
 
 Lemma Alt_trans : [transitive * n.-2 ('Alt_T | 'P) on setT].
@@ -332,7 +332,7 @@ apply/idP/imsetP=> [|[a _ ->{u}]]; last first.
 case/(atransP2 tr_m dt)=> /= a _ ->{u}.
 case odd_a: (odd_perm a); last by exists a => //; rewrite !inE /= odd_a.
 exists (tperm x y * a); first by rewrite !inE /= odd_permM odd_tperm nxy odd_a.
-apply: val_inj; apply: eq_in_maps => z tz; rewrite actM /= /aperm; congr (a _).
+apply: val_inj; apply: eq_in_map => z tz; rewrite actM /= /aperm; congr (a _).
 by case: tpermP ntx nty => // <-; rewrite tz.
 Qed.
 

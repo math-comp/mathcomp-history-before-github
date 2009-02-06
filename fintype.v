@@ -32,12 +32,12 @@ Section CountAxiom.
 Variables (T : countType) (n : nat).
 Hypothesis ubT : forall x : T, pickle x < n.
 
-Definition count_enum := pmaps (@pickle_inv T) (iota 0 n).
+Definition count_enum := pmap (@pickle_inv T) (iota 0 n).
 
 Lemma count_enumP : axiom count_enum.
 Proof.
-apply: uniq_enumP (uniq_pmaps (@pickle_invK T) (uniq_iota _ _)) _ => x.
-by rewrite mem_pmaps -pickleK_inv maps_f // mem_iota ubT.
+apply: uniq_enumP (uniq_pmap (@pickle_invK T) (uniq_iota _ _)) _ => x.
+by rewrite mem_pmap -pickleK_inv map_f // mem_iota ubT.
 Qed.
 
 Definition CountMixin := Mixin count_enumP.
@@ -531,7 +531,7 @@ Lemma disjointU1 : forall x A B,
   [disjoint predU1 x A & B] = (x \notin B) && [disjoint A & B].
 Proof. by move=> x A B; rewrite disjointU disjoint1. Qed.
 
-Lemma disjoint_adds : forall x s B,
+Lemma disjoint_cons : forall x s B,
   [disjoint x :: s & B] = (x \notin B) && [disjoint s & B].
 Proof. move=> *; exact: disjointU1. Qed.
 
@@ -612,7 +612,7 @@ Section Injectiveb.
 Variables (aT : finType) (rT : eqType) (f : aT -> rT).
 Implicit Type D : pred aT.
 
-Definition dinjectiveb D := uniq (maps f (enum D)).
+Definition dinjectiveb D := uniq (map f (enum D)).
 
 Definition injectiveb := dinjectiveb aT.
 
@@ -622,15 +622,15 @@ Lemma dinjectivePn : forall D,
 Proof.
 move=> D; apply: (iffP idP) => [injf | [x Dx [y Dxy eqfxy]]]; last first.
   move: Dx; rewrite -(mem_enum D); case/rot_to=> i E defE.
-  rewrite /dinjectiveb -(uniq_rot i) -maps_rot defE /=; apply/nandP; left.
+  rewrite /dinjectiveb -(uniq_rot i) -map_rot defE /=; apply/nandP; left.
   rewrite inE /= -(mem_enum D) -(mem_rot i) defE inE in Dxy.
   rewrite andb_orr andbC andbN in Dxy.
-  by rewrite eqfxy maps_f //; case/andP: Dxy.
+  by rewrite eqfxy map_f //; case/andP: Dxy.
 pose p := [pred x \in D | existsb y, (y \in [predD1 D & x]) && (f x == f y)].
 case: (pickP p) => [x /= | no_p].
   case/andP=> Dx; case/existsP=> y; case/andP=> Dxy; move/eqP=> eqfxy.
   by exists x; last exists y.
-rewrite /dinjectiveb uniq_maps_in ?uniq_enum // in injf => x y Dx Dy eqfxy.
+rewrite /dinjectiveb uniq_map_in ?uniq_enum // in injf => x y Dx Dy eqfxy.
 move/(_ x): no_p; rewrite /= -mem_enum Dx; move/pred0P; move/(_ y).
 by rewrite inE /= -(mem_enum D) Dy eqfxy eqxx !andbT; move/eqP.
 Qed.
@@ -665,11 +665,11 @@ Section Def.
 
 Variable A : pred T.
 
-Definition image : pred T' := mem (maps f (enum A)).
+Definition image : pred T' := mem (map f (enum A)).
 
 Lemma imageP : forall y, reflect (exists2 x, A x & y = f x) (image y).
 Proof.
-move=> y; apply: (iffP mapsP) => [] [x Ax y_fx];
+move=> y; apply: (iffP mapP) => [] [x Ax y_fx];
  by exists x => //; rewrite mem_enum in Ax *.
 Qed.
 
@@ -703,7 +703,7 @@ Proof. by move=> x ax; apply/imageP; exists x. Qed.
 Hypothesis injf : injective f.
 
 Lemma image_f : forall x, image (f x) = A x.
-Proof. by move=> x; rewrite /image /= mem_maps ?mem_enum. Qed.
+Proof. by move=> x; rewrite /image /= mem_map ?mem_enum. Qed.
 
 Lemma pre_image : preim f image =1 A.
 Proof. by move=> x; rewrite /= image_f. Qed.
@@ -733,18 +733,18 @@ Proof. by move=> x; rewrite /image /= enum0. Qed.
 
 Lemma image_pre : forall B, injective f -> image (preim f B) =1 predI B codom.
 Proof.
-by move=> B injf y; rewrite /image -filter_maps /= mem_filter -enumT.
+by move=> B injf y; rewrite /image -filter_map /= mem_filter -enumT.
 Qed.
 
 End Codom.
 
 Fixpoint preim_seq s :=
   if s is y :: s' then
-    (if pick (preim f (pred1 y)) is Some x then adds x else id) (preim_seq s')
+    (if pick (preim f (pred1 y)) is Some x then cons x else id) (preim_seq s')
     else [::].
 
-Lemma maps_preim : forall s : seq T',
-  {subset s <= codom} -> maps f (preim_seq s) = s.
+Lemma map_preim : forall s : seq T',
+  {subset s <= codom} -> map f (preim_seq s) = s.
 Proof.
 elim=> [|y s IHs] //=; case: pickP => [x fx_y | nfTy] fTs.
   rewrite /= (eqP fx_y) IHs // => z s_z; apply fTs; exact: predU1r.
@@ -764,13 +764,13 @@ Variables (T T' : finType) (f : T -> T').
 Implicit Type A : pred T.
 
 Lemma leq_image_card : forall A, #|[image f of A]| <= #|A|.
-Proof. by move=> A; rewrite (cardE A) -(size_maps f) card_size. Qed.
+Proof. by move=> A; rewrite (cardE A) -(size_map f) card_size. Qed.
 
 Lemma card_in_image : forall A,
   {in A &, injective f} -> #|[image f of A]| = #|A|.
 Proof.
-move=> A injf; rewrite (cardE A) -(size_maps f); apply/card_uniqP.
-rewrite uniq_maps_in ?uniq_enum // => x y; rewrite !mem_enum; exact: injf.
+move=> A injf; rewrite (cardE A) -(size_map f); apply/card_uniqP.
+rewrite uniq_map_in ?uniq_enum // => x y; rewrite !mem_enum; exact: injf.
 Qed.
 
 Hypothesis injf : injective f.
@@ -834,7 +834,7 @@ Lemma eq_image : forall (A B : pred T) (f g : T -> T'),
   A =1 B -> f =1 g -> image f A =1 image g B.
 Proof.
 move=> A B f g eqAB eqfg x; congr (x \in _); rewrite (eq_enum eqAB).
-exact: eq_maps.
+exact: eq_map.
 Qed.
 
 Lemma eq_codom : forall f g : T -> T', f =1 g -> codom f =1 codom g.
@@ -865,24 +865,24 @@ Definition seq_sub_choiceMixin := [choiceMixin of seq_sub by <:].
 Canonical Structure seq_sub_choiceType :=
   Eval hnf in ChoiceType seq_sub_choiceMixin.
 
-Definition seq_sub_enum : seq seq_sub := undup (pmaps insub s).
+Definition seq_sub_enum : seq seq_sub := undup (pmap insub s).
 
 Lemma mem_seq_sub_enum : forall x, x \in seq_sub_enum.
-Proof. by move=> x; rewrite mem_undup mem_pmaps -valK maps_f ?ssvalP. Qed.
+Proof. by move=> x; rewrite mem_undup mem_pmap -valK map_f ?ssvalP. Qed.
 
-Lemma val_seq_sub_enum : uniq s -> maps val seq_sub_enum = s.
+Lemma val_seq_sub_enum : uniq s -> map val seq_sub_enum = s.
 Proof.
 move=> Us; rewrite /seq_sub_enum undup_uniq ?uniq_pmap_sub //.
-rewrite (pmaps_filter (@insubK _ _ _)); apply/all_filterP.
+rewrite (pmap_filter (@insubK _ _ _)); apply/all_filterP.
 by apply/allP => x; rewrite isSome_insub.
 Qed.
 
 Definition seq_sub_pickle x := index x seq_sub_enum.
-Definition seq_sub_unpickle n := sub None (maps some seq_sub_enum) n.
+Definition seq_sub_unpickle n := nth None (map some seq_sub_enum) n.
 Lemma seq_sub_pickleK : pcancel seq_sub_pickle seq_sub_unpickle.
 Proof.
 rewrite /seq_sub_unpickle => x.
-by rewrite (sub_maps x) ?sub_index ?index_mem ?mem_seq_sub_enum.
+by rewrite (nth_map x) ?nth_index ?index_mem ?mem_seq_sub_enum.
 Qed.
 
 Definition seq_sub_countMixin := CountMixin seq_sub_pickleK.
@@ -908,16 +908,16 @@ Section OptionFinType.
 
 Variable T : finType.
 
-Definition option_enum := None :: maps some (Finite.enum T).
+Definition option_enum := None :: map some (Finite.enum T).
 
 Lemma option_enumP : Finite.axiom option_enum.
-Proof. by case=> [x|]; rewrite /= count_maps (count_pred0, enumP). Qed.
+Proof. by case=> [x|]; rewrite /= count_map (count_pred0, enumP). Qed.
 
 Definition option_finMixin := FinMixin option_enumP.
 Canonical Structure option_finType := Eval hnf in FinType option_finMixin.
 
 Lemma card_option : #|{: option T}| = #|T|.+1.
-Proof. by rewrite !cardT !enumT unlock /= !size_maps. Qed.
+Proof. by rewrite !cardT !enumT unlock /= !size_map. Qed.
 
 End OptionFinType.
 
@@ -926,10 +926,10 @@ Section TransferFinType.
 Variables (eT : countType) (fT : finType) (f : eT -> fT).
 
 Lemma pcan_enumP : forall g,
-  pcancel f g -> Finite.axiom (undup (pmaps g (Finite.enum fT))).
+  pcancel f g -> Finite.axiom (undup (pmap g (Finite.enum fT))).
 Proof.
 move=> g fK x; rewrite count_pred1_uniq ?uniq_undup // mem_undup.
-by rewrite mem_pmaps -fK maps_f // -enumT mem_enum.
+by rewrite mem_pmap -fK map_f // -enumT mem_enum.
 Qed.
 
 Definition PcanFinMixin g fK := FinMixin (@pcan_enumP g fK).
@@ -971,7 +971,7 @@ Section FinTypeForSub.
 
 Variables (T : finType) (P : pred T) (sT : subCountType P).
 
-Definition sub_enum : seq sT := pmaps insub (Finite.enum T).
+Definition sub_enum : seq sT := pmap insub (Finite.enum T).
 
 Lemma mem_sub_enum : forall u, u \in sub_enum.
 Proof. by move=> u; rewrite mem_pmap_sub -enumT mem_enum. Qed.
@@ -979,9 +979,9 @@ Proof. by move=> u; rewrite mem_pmap_sub -enumT mem_enum. Qed.
 Lemma uniq_sub_enum : uniq sub_enum.
 Proof. by rewrite uniq_pmap_sub // -enumT uniq_enum. Qed.
 
-Lemma val_sub_enum : maps val sub_enum = enum P.
+Lemma val_sub_enum : map val sub_enum = enum P.
 Proof.
-rewrite pmaps_filter; last exact: insubK.
+rewrite pmap_filter; last exact: insubK.
 by apply: eq_filter => x; exact: isSome_insub.
 Qed.
 
@@ -995,7 +995,7 @@ Definition SubFinMixin_for (eT : eqType) of phant eT :=
 Let sfT := FinType SubFinMixin.
 
 Lemma card_sub : #|sfT| = #|[pred x | P x]|.
-Proof. by rewrite !cardE enumT unlock -(size_maps val) val_sub_enum. Qed.
+Proof. by rewrite !cardE enumT unlock -(size_map val) val_sub_enum. Qed.
 
 Lemma eq_card_sub : forall A : pred sfT,
   A =i predT -> #|A| = #|[pred x | P x]|.
@@ -1064,11 +1064,11 @@ Lemma ltn_ord : forall i : ordinal, i < n. Proof. exact: valP. Qed.
 
 Lemma ord_inj : injective nat_of_ord. Proof. exact: val_inj. Qed.
 
-Definition ord_enum : seq ordinal := pmaps insub (iota 0 n).
+Definition ord_enum : seq ordinal := pmap insub (iota 0 n).
 
-Lemma val_ord_enum : maps val ord_enum = iota 0 n.
+Lemma val_ord_enum : map val ord_enum = iota 0 n.
 Proof.
-rewrite pmaps_filter; last exact: insubK.
+rewrite pmap_filter; last exact: insubK.
 by apply/all_filterP; apply/allP=> i; rewrite mem_iota isSome_insub.
 Qed.
 
@@ -1077,7 +1077,7 @@ Proof. by rewrite uniq_pmap_sub ?uniq_iota. Qed.
 
 Lemma mem_ord_enum : forall i, i \in ord_enum.
 Proof.
-by move=> i; rewrite -(mem_maps ord_inj) val_ord_enum mem_iota ltn_ord.
+by move=> i; rewrite -(mem_map ord_inj) val_ord_enum mem_iota ltn_ord.
 Qed.
 
 Definition ordinal_finMixin := UniqFinMixin uniq_ord_enum mem_ord_enum.
@@ -1095,27 +1095,27 @@ Section OrdinalEnum.
 
 Variable n : nat.
 
-Lemma val_enum_ord : maps val (enum 'I_n) = iota 0 n.
+Lemma val_enum_ord : map val (enum 'I_n) = iota 0 n.
 Proof. by rewrite enumT unlock val_ord_enum. Qed.
 
 Lemma size_enum_ord : size (enum 'I_n) = n.
-Proof. by rewrite -(size_maps val) val_enum_ord size_iota. Qed.
+Proof. by rewrite -(size_map val) val_enum_ord size_iota. Qed.
 
 Lemma card_ord : #|'I_n| = n.
 Proof. by rewrite cardE size_enum_ord. Qed.
 
-Lemma sub_enum_ord : forall i0 m, m < n -> sub i0 (enum 'I_n) m = m :> nat.
+Lemma nth_enum_ord : forall i0 m, m < n -> nth i0 (enum 'I_n) m = m :> nat.
 Proof.
-by move=> *; rewrite -(sub_maps _ 0) (size_enum_ord, val_enum_ord) // sub_iota.
+by move=> *; rewrite -(nth_map _ 0) (size_enum_ord, val_enum_ord) // nth_iota.
 Qed.
 
-Lemma sub_ord_enum : forall i0 i : 'I_n, sub i0 (enum 'I_n) i = i.
-Proof. move=> i0 i; apply: val_inj; exact: sub_enum_ord. Qed.
+Lemma nth_ord_enum : forall i0 i : 'I_n, nth i0 (enum 'I_n) i = i.
+Proof. move=> i0 i; apply: val_inj; exact: nth_enum_ord. Qed.
 
 Lemma index_enum_ord : forall i : 'I_n, index i (enum 'I_n) = i.
 Proof.
 move=> i.
-by rewrite -{1}(sub_ord_enum i i) index_uniq ?(uniq_enum, size_enum_ord).
+by rewrite -{1}(nth_ord_enum i i) index_uniq ?(uniq_enum, size_enum_ord).
 Qed.
 
 End OrdinalEnum.
@@ -1140,18 +1140,18 @@ Definition enum_rank (x : T) := Ordinal (enum_rank_subproof x).
 Lemma enum_default : 'I_(#|T|) -> T.
 Proof. by rewrite cardE; case: (enum T) => [|//] []. Qed.
 
-Definition enum_val i := sub (enum_default i) (enum T) i.
+Definition enum_val i := nth (enum_default i) (enum T) i.
 
-Lemma enum_val_sub : forall x i, enum_val i = sub x (enum T) i.
+Lemma enum_val_nth : forall x i, enum_val i = nth x (enum T) i.
 Proof.
-move=> x i; apply: set_sub_default; rewrite cardE in i *; exact: ltn_ord.
+move=> x i; apply: set_nth_default; rewrite cardE in i *; exact: ltn_ord.
 Qed. 
 
-Lemma sub_enum_rank : forall x, cancel enum_rank (sub x (enum T)).
-Proof. by move=> x y; rewrite sub_index ?mem_enum. Qed.
+Lemma nth_enum_rank : forall x, cancel enum_rank (nth x (enum T)).
+Proof. by move=> x y; rewrite nth_index ?mem_enum. Qed.
 
 Lemma enum_rankK : cancel enum_rank enum_val.
-Proof. move=> x; exact: sub_enum_rank. Qed.
+Proof. move=> x; exact: nth_enum_rank. Qed.
 
 Lemma enum_valK : cancel enum_val enum_rank.
 Proof.
@@ -1341,10 +1341,10 @@ Proof. by move=> m lt_m; rewrite val_insubd lt_m. Qed.
 Lemma inord_val : forall i : 'I_n, inord i = i.
 Proof. by move=> i; rewrite /inord /insubd valK. Qed.
 
-Lemma enum_ordS : enum 'I_n = ord0 :: maps (lift ord0) (enum 'I_(n.-1)).
+Lemma enum_ordS : enum 'I_n = ord0 :: map (lift ord0) (enum 'I_(n.-1)).
 Proof.
-apply: (inj_maps val_inj); rewrite val_enum_ord /= -maps_comp.
-by rewrite (maps_comp (addn 1)) val_enum_ord -iota_addl -{1}(@prednK n).
+apply: (inj_map val_inj); rewrite val_enum_ord /= -map_comp.
+by rewrite (map_comp (addn 1)) val_enum_ord -iota_addl -{1}(@prednK n).
 Qed.
 
 End OrdinalPos.
@@ -1360,13 +1360,13 @@ Section ProdFinType.
 Variable T1 T2 : finType.
 
 Definition prod_enum :=
-  foldr (fun x1 => cat (maps (pair x1) (enum T2))) [::] (enum T1).
+  foldr (fun x1 => cat (map (pair x1) (enum T2))) [::] (enum T1).
 
 Lemma predX_prod_enum : forall (A1 : pred T1) (A2 : pred T2),
   count [predX A1 & A2] prod_enum = #|A1| * #|A2|.
 Proof.
 move=> A1 A2; rewrite !cardE -!count_filter -!enumT /prod_enum.
-elim: (enum T1) => //= x1 s1 IHs; rewrite count_cat {}IHs count_maps /preim /=.
+elim: (enum T1) => //= x1 s1 IHs; rewrite count_cat {}IHs count_map /preim /=.
 by case: (x1 \in A1); rewrite ?count_pred0.
 Qed.
 
@@ -1398,14 +1398,14 @@ Section TagFinType.
 Variables (I : finType) (T_ : I -> finType).
 
 Definition tag_enum :=
-  let tagged_enum i := maps (Tagged T_) (Finite.enum (T_ i)) in
-  flatten (maps tagged_enum (Finite.enum I)).
+  let tagged_enum i := map (Tagged T_) (Finite.enum (T_ i)) in
+  flatten (map tagged_enum (Finite.enum I)).
 
 Lemma tag_enumP : Finite.axiom tag_enum.
 Proof.
 case=> i x; rewrite -(enumP i) /tag_enum -enumT.
 elim: (enum I) => //= j e IHe.
-rewrite count_cat count_maps {}IHe; congr (_ + _).
+rewrite count_cat count_map {}IHe; congr (_ + _).
 rewrite count_filter -cardE; case: eqP => [-> | ne_j_i].
   by apply: (@eq_card1 _ x) => y; rewrite -topredE /= tagged_asE eqxx.
 by apply: eq_card0 => y; apply/andP; case; move/eqP.
@@ -1415,10 +1415,10 @@ Definition tag_finMixin := FinMixin tag_enumP.
 Canonical Structure tag_finType := Eval hnf in FinType tag_finMixin.
 
 Lemma card_tagged :
-  #|{: {i : I & T_ i}}| = sumn (maps (fun i => #|T_ i|) (enum I)).
+  #|{: {i : I & T_ i}}| = sumn (map (fun i => #|T_ i|) (enum I)).
 Proof.
-rewrite cardE !enumT unlock size_flatten /shape -maps_comp.
-by congr (sumn _); apply: eq_maps => i; rewrite /= size_maps -enumT -cardE.
+rewrite cardE !enumT unlock size_flatten /shape -map_comp.
+by congr (sumn _); apply: eq_map => i; rewrite /= size_map -enumT -cardE.
 Qed.
 
 End TagFinType.
@@ -1428,22 +1428,22 @@ Section SumFinType.
 Variables T1 T2 : finType.
 
 Definition sum_enum :=
-  maps (@inl _ _) (Finite.enum T1) ++ maps (@inr _ _) (Finite.enum T2).
+  map (@inl _ _) (Finite.enum T1) ++ map (@inr _ _) (Finite.enum T2).
 
 Lemma uniq_sum_enum : uniq sum_enum.
 Proof.
-rewrite uniq_cat -!enumT !(uniq_enum, uniq_maps) ?andbT => [|? ? []|? ? []] //.
-by apply/hasP=> [[u]]; case/mapsP=> x _ <-; case/mapsP.
+rewrite uniq_cat -!enumT !(uniq_enum, uniq_map) ?andbT => [|? ? []|? ? []] //.
+by apply/hasP=> [[u]]; case/mapP=> x _ <-; case/mapP.
 Qed.
 
 Lemma mem_sum_enum : forall u, u \in sum_enum.
-Proof. by case=> x; rewrite mem_cat -!enumT maps_f ?mem_enum ?orbT. Qed.
+Proof. by case=> x; rewrite mem_cat -!enumT map_f ?mem_enum ?orbT. Qed.
 
 Definition sum_finMixin := UniqFinMixin uniq_sum_enum mem_sum_enum.
 Canonical Structure sum_finType := Eval hnf in FinType sum_finMixin.
 
 Lemma card_sum : #|{: T1 + T2}| = #|T1| + #|T2|.
-Proof. by rewrite !cardT !enumT unlock size_cat !size_maps. Qed.
+Proof. by rewrite !cardT !enumT unlock size_cat !size_map. Qed.
 
 End SumFinType.
 
@@ -1453,9 +1453,9 @@ Section BijectionCard.
 Lemma can_card_leq :  forall (T T' : finType) (f : T -> T') (g : T' -> T),
   cancel f g -> #|T| <= #|T'|.
 Proof.
-move=> T T' f g Hfg; rewrite (cardT T') -(size_maps g).
+move=> T T' f g Hfg; rewrite (cardT T') -(size_map g).
 apply: (leq_trans (subset_leq_card _) (card_size _)).
-by apply/subsetP => x _; apply/mapsP; exists (f x); rewrite ?mem_enum.
+by apply/subsetP => x _; apply/mapP; exists (f x); rewrite ?mem_enum.
 Qed.
 
 Lemma bij_eq_card_predT : forall T T' : finType,
@@ -1483,7 +1483,7 @@ Lemma assoc_finTypeK : forall T1 T2 Ed12 Ed21,
   cancel (@assoc_finType T1 T2 Ed12) (@assoc_finType T2 T1 Ed21).
 Proof.
 rewrite /assoc_finType => T1 T2 Ed12 Ed21 x.
-by rewrite enum_valK (enum_val_sub x) sub_enum_rank.
+by rewrite enum_valK (enum_val_nth x) nth_enum_rank.
 Qed.
 
 Lemma eq_card_predT_bij : forall T1 T2 : finType,

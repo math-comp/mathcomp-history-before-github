@@ -131,11 +131,11 @@ Variables (gT : finGroupType) (sT : finType).
 Variable to : {action gT &-> sT}.
 Variable n :  nat.
 
-Definition n_act (t : n.-tuple sT) a := [tuple of maps (to^~ a) t].
+Definition n_act (t : n.-tuple sT) a := [tuple of map (to^~ a) t].
 
 Lemma n_act_is_action : is_action n_act.
 Proof.
-by split=> [t|t a b]; apply: eq_from_tsub=> i; rewrite !tsub_maps ?act1 ?actM.
+by split=> [t|t a b]; apply: eq_from_tnth => i; rewrite !tnth_map ?act1 ?actM.
 Qed.
 
 Canonical Structure n_act_action := Action n_act_is_action.
@@ -156,11 +156,11 @@ Definition dtuple_on := [set t : n.-tuple sT | uniq t && (t \subset S)].
 Definition ntransitive := [transitive (A | to * n) on dtuple_on].
 
 Lemma dtuple_onP : forall t,
-  reflect (injective (tsub t) /\ forall i, tsub t i \in S) (t \in dtuple_on).
+  reflect (injective (tnth t) /\ forall i, tnth t i \in S) (t \in dtuple_on).
 Proof.
-move=> t; rewrite inE subset_all -maps_tsub_enum.
-case: (uniq _) / (injectiveP (tsub t)) => f_inj; last by right; case.
-rewrite -[all _ _]negbK -has_predC has_maps has_predC negbK /=.
+move=> t; rewrite inE subset_all -map_tnth_enum.
+case: (uniq _) / (injectiveP (tnth t)) => f_inj; last by right; case.
+rewrite -[all _ _]negbK -has_predC has_map has_predC negbK /=.
 by apply: (iffP allP) => [Sf|[]//]; split=> // i; rewrite Sf ?mem_enum.
 Qed.
 
@@ -168,7 +168,7 @@ Lemma n_act_dtuple : forall t a,
   a \in 'N_(|to)(S) -> t \in dtuple_on -> n_act to t a \in dtuple_on.
 Proof.
 move=> t a; move/astabsP=> toSa; case/dtuple_onP=> t_inj St; apply/dtuple_onP.
-split=> [i j | i]; rewrite !tsub_maps ?[_ \in S]toSa //.
+split=> [i j | i]; rewrite !tnth_map ?[_ \in S]toSa //.
 by move/act_inj; exact: t_inj.
 Qed.
 
@@ -223,7 +223,7 @@ Proof. by move=> *; exact: val_inj. Qed.
 Lemma ntransitive0 : [transitive * 0 (G | to) on S].
 Proof.
 have dt0: [tuple] \in 0.-dtuple(S) by rewrite inE memtE subset_all.
-apply/imsetP; exists [tuple of Seq0 sT] => //.
+apply/imsetP; exists [tuple of Nil sT] => //.
 by apply/setP=> x; rewrite [x]tuple0 orbit_refl.
 Qed.
 

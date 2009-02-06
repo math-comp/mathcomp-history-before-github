@@ -144,7 +144,7 @@ Definition basis A X :=
 
 Definition abel_type A :=
   if pick (basis A) is Some X then
-    sort leq (maps order (enum (mem X)))
+    sort leq (map order (enum (mem X)))
   else [::].
 
 Definition homocyclic A := [&& abelian A, p_group A & constant (abel_type A)].
@@ -511,7 +511,7 @@ move=> x; pose lp n := [pred p | p < n].
 have: (lp #[x].+1).-elt x by apply/pnatP=> // p _; exact: dvdn_leq.
 move/constt_p_elt=> def_x; symmetry; rewrite -{1}def_x {def_x}.
 elim: _.+1 => [|p IHp].
-  by rewrite big_seq0; apply/constt1P; exact/pgroupP.
+  by rewrite big_nil; apply/constt1P; exact/pgroupP.
 rewrite big_nat_recr /= -{}IHp -(consttC (lp p) x.`__); congr (_ * _).
   rewrite sub_in_constt // => q _; exact: leqW.
 set y := _.`__; rewrite -(consttC p y) (constt1P p^' _ _) ?mulg1.
@@ -764,12 +764,12 @@ Canonical Structure pseries_group : {group gT} := group pseries_group_set.
 
 End PseriesDefs.
 
-Notation Local AddPred := (@Adds nat_pred) (only parsing).
+Notation Local ConsPred := (@Cons nat_pred) (only parsing).
 Notation "''O_{' p1 , .. , pn } ( A )" :=
-  (pseries (AddPred p1 .. (AddPred pn [::]) ..) A)
+  (pseries (ConsPred p1 .. (ConsPred pn [::]) ..) A)
   (at level 8, format "''O_{' p1 , .. , pn } ( A )") : group_scope.
 Notation "''O_{' p1 , .. , pn } ( A )" :=
-  (pseries_group (AddPred p1 .. (AddPred pn [::]) ..) A) : subgroup_scope.
+  (pseries_group (ConsPred p1 .. (ConsPred pn [::]) ..) A) : subgroup_scope.
 
 Definition plength_1 (p : nat) (gT : finGroupType) (A : {set gT}) :=
   'O_{p^', p, p^'}(A) == A.
@@ -926,9 +926,9 @@ Qed.
 
 End PcoreMod.
 
-Lemma pseries_add_last : forall pi pis gT (A : {set gT}),
-  pseries (add_last pis pi) A = pcore_mod A pi (pseries pis A).
-Proof. by move=> pi pis gT A; rewrite /pseries rev_add_last. Qed.
+Lemma pseries_rcons : forall pi pis gT (A : {set gT}),
+  pseries (rcons pis pi) A = pcore_mod A pi (pseries pis A).
+Proof. by move=> pi pis gT A; rewrite /pseries rev_rcons. Qed.
 
 Lemma pseries_subfun : forall pis,
    [/\ forall gT (G : {group gT}), pseries pis G \subset G
@@ -941,7 +941,7 @@ set H := (mkhgFunc
   (fun gT (G:{group gT}) => pseries_group_set pis G) 
   sFpi (resp_of_dresp fFpi) (hereditary_of_dresp fFpi)).
 split=> [gT G | gT rT D G f];
-  rewrite !pseries_add_last -[pseries pis]/(BaseGFunctor.F H) ?pcore_mod_sub //.
+  rewrite !pseries_rcons -[pseries pis]/(BaseGFunctor.F H) ?pcore_mod_sub //.
 apply: morphim_pcore_mod => *; exact: groupP.
 Qed.
 
@@ -988,7 +988,7 @@ Lemma pseries_pop : forall pi pis gT (G : {group gT}),
   'O_pi(G) = 1 -> pseries (pi :: pis) G = pseries pis G.
 Proof.
 move=> pi pis gT G OG1.
-by rewrite /pseries rev_adds -cats1 foldr_cat /= pcore_mod1 OG1.
+by rewrite /pseries rev_cons -cats1 foldr_cat /= pcore_mod1 OG1.
 Qed.
 
 Lemma pseries_pop2 : forall pi1 pi2 gT (G : {group gT}),
@@ -999,13 +999,13 @@ Lemma pseries_sub_catl : forall pi1s pi2s gT (G : {group gT}),
   pseries pi1s G \subset pseries (pi1s ++ pi2s) G.
 Proof.
 move=> pi1s pis gT G; elim/last_ind: pis => [|pi pis IHpi]; rewrite ?cats0 //.
-rewrite -add_last_cat pseries_add_last; apply: subset_trans IHpi _.
+rewrite -rcons_cat pseries_rcons; apply: subset_trans IHpi _.
 by rewrite sub_cosetpre.
 Qed.
 
 Lemma quotient_pseries : forall pis pi gT (G : {group gT}),
-  pseries (add_last pis pi) G / pseries pis G = 'O_pi(G / pseries pis G).
-Proof. by move=> pis pi gT G; rewrite pseries_add_last quotient_pcore_mod. Qed.
+  pseries (rcons pis pi) G / pseries pis G = 'O_pi(G / pseries pis G).
+Proof. by move=> pis pi gT G; rewrite pseries_rcons quotient_pcore_mod. Qed.
 
 Lemma pseries_norm2 : forall pi1s pi2s gT (G : {group gT}),
   pseries pi2s G \subset 'N(pseries pi1s G).
@@ -1019,10 +1019,10 @@ Lemma pseries_sub_catr : forall pi1s pi2s gT (G : {group gT}),
 Proof.
 elim=> //= pi1 pi1s IH pi2s gT G; apply: subset_trans (IH _ _ _) _ => {IH}.
 elim/last_ind: {pi1s pi2s}(_ ++ _) => [|pis pi IHpi]; first exact: sub1G.
-rewrite -add_last_adds (pseries_add_last _ (pi1 :: pis)).
+rewrite -rcons_cons (pseries_rcons _ (pi1 :: pis)).
 rewrite -sub_morphim_pre ?pseries_norm2 //.
 apply: pcore_max; last by rewrite morphim_normal ?pseries_normal.
-have: pi.-group (pseries (add_last pis pi) G / pseries pis G).
+have: pi.-group (pseries (rcons pis pi) G / pseries pis G).
   by rewrite quotient_pseries pcore_pgroup.
 by apply: pnat_dvd; rewrite !card_quotient ?pseries_norm2 // indexgS.
 Qed.
@@ -1039,12 +1039,12 @@ move=> pi1s pis gT G; elim/last_ind: pis => [|pis pi IHpi].
   by rewrite cats0 trivg_quotient.
 have psN := pseries_normal _ G; set K := pseries _ G.
 case: (third_isom (pseries_sub_catl pi1s pis G) (psN _)) => //= f inj_f im_f.
-have nH2H: pseries pis (G / K) <| pseries (pi1s ++ add_last pis pi) G / K.
+have nH2H: pseries pis (G / K) <| pseries (pi1s ++ rcons pis pi) G / K.
   rewrite -IHpi morphim_normal // -cats1 catA.
   by apply/andP; rewrite pseries_sub_catl pseries_norm2.
 apply: (quotient_inj nH2H).
   by apply/andP; rewrite /= -cats1 pseries_sub_catl pseries_norm2. 
-rewrite /= quotient_pseries /= -IHpi -add_last_cat.
+rewrite /= quotient_pseries /= -IHpi -rcons_cat.
 rewrite -[G / _ / _](morphim_invm inj_f) //= {2}im_f //.
 have:= @bgFunc_asresp (bgFunc_pcore pi).
 move <-; rewrite /= ?injm_invm ?im_f // -quotient_pseries.
@@ -1056,13 +1056,13 @@ Lemma pseries_catl_id : forall pi1s pi2s gT (G : {group gT}),
 Proof.
 elim/last_ind=> [|pis pi IHpi] pi2s gT G; first by [].
 apply: (@quotient_inj _ (pseries_group pis G)).
-- rewrite /= -(IHpi (pi :: pi2s)) cat_add_last /(_ <| _) pseries_norm2.
+- rewrite /= -(IHpi (pi :: pi2s)) cat_rcons /(_ <| _) pseries_norm2.
   by rewrite -cats1 pseries_sub_catl.
 - by rewrite /= /(_ <| _) pseries_norm2 -cats1 pseries_sub_catl.
-rewrite /= cat_add_last -(IHpi (pi :: pi2s)) {1}quotient_pseries IHpi.
+rewrite /= cat_rcons -(IHpi (pi :: pi2s)) {1}quotient_pseries IHpi.
 apply/eqP; rewrite quotient_pseries eqEsubset !pcore_max ?pcore_pgroup //=.
   rewrite -quotient_pseries morphim_normal // /(_ <| _) pseries_norm2.
-  by rewrite -cat_add_last pseries_sub_catl.
+  by rewrite -cat_rcons pseries_sub_catl.
 apply: char_normal_trans (pcore_char pi _) (morphim_normal _ _).
 exact: pseries_normal.
 Qed.
@@ -1077,7 +1077,7 @@ Lemma pseries_catr_id : forall pi1s pi2s gT (G : {group gT}),
   pseries pi2s (pseries (pi1s ++ pi2s) G) = pseries pi2s G.
 Proof.
 move=> pi1s pis gT; elim/last_ind: pis => [|pis pi IHpi] G; first by [].
-have Epis: pseries pis (pseries (pi1s ++ add_last pis pi) G) = pseries pis G.
+have Epis: pseries pis (pseries (pi1s ++ rcons pis pi) G) = pseries pis G.
   by rewrite -cats1 catA -2!IHpi pseries_catl_id.
 apply: (@quotient_inj _ (pseries_group pis G)).
 - by rewrite /= -Epis /(_ <| _) pseries_norm2 -cats1 pseries_sub_catl.
@@ -1388,8 +1388,8 @@ rewrite morphim_gen //; congr <<_>>; rewrite !morphimEsub // -!imset_comp.
 symmetry; apply: eq_in_imset => x Gx /=; have Dx := subsetP sGD x Gx.
 have fx_x: #[f x] %| #[x] by exact: morph_order.
 rewrite /MhoFun (big_nat_widen _ _ #[x].+1) /=; last by rewrite ltnS dvdn_leq.
-elim: (index_iota _ _) => [|p r IHr]; first by rewrite !big_seq0 morph1.
-rewrite !big_adds {}IHr morphM ?groupX //; last first.
+elim: (index_iota _ _) => [|p r IHr]; first by rewrite !big_nil morph1.
+rewrite !big_cons {}IHr morphM ?groupX //; last first.
   by apply big_prop => // *; rewrite ?groupM ?groupX.
 rewrite morphX ?groupX // morph_constt // ltnS -if_neg; case: ifP => // p_fx.
 rewrite (constt1P _) ?exp1gn ?mul1g // /p_elt; apply/pnatP=> // q _ qfx.

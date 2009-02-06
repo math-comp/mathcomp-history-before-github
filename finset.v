@@ -273,7 +273,7 @@ Proof. move=> x a B; rewrite !inE; exact: predU1P. Qed.
 Lemma in_setU1 : forall x a B, (x \in a |: B) = (x == a) || (x \in B).
 Proof. by move=> x a B; rewrite !inE. Qed.
 
-Lemma set_adds : forall a s, [set x \in a :: s] = a |: [set x \in s].
+Lemma set_cons : forall a s, [set x \in a :: s] = a |: [set x \in s].
 Proof. by move=> a s; apply/setP=> x; rewrite !inE. Qed.
 
 Lemma setU11 : forall x B, x \in x |: B.
@@ -1539,7 +1539,7 @@ move=> P.
 have->: P = [set x \in enum (mem P)] by apply/setP=> x; rewrite inE mem_enum.
 elim: {P}(enum _) (uniq_enum (mem P)) => [_|A e IHe] /=.
   by rewrite /trivIset /cover !big_set0 cards0; left=> A; rewrite inE.
-case/andP; rewrite set_adds -(in_set (fun B => B \in e)) => PA.
+case/andP; rewrite set_cons -(in_set (fun B => B \in e)) => PA.
 move/IHe {IHe}; move: {e}[set x \in e] PA => P PA IHP.
 rewrite /trivIset /cover !big_setU1 //= eq_sym.
 move/(monotone_leqif (leq_add2l #|A|)): (leq_card_cover P).

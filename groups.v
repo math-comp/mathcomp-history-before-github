@@ -797,7 +797,7 @@ Proof. by move=> x A; rewrite -rcosetM mulVg mulg1. Qed.
 Lemma rcoset_inj : forall x, injective (fun A => A :* x).
 Proof. by move=> x; exact: can_inj (rcosetK x). Qed.
 
-(* Inverse maps lcosets to rcosets *)
+(* Inverse map lcosets to rcosets *)
 
 Lemma lcosets_invg : forall A B, lcosets A^-1 B^-1 = invg @^-1: rcosets A B.
 Proof.

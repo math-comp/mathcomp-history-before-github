@@ -49,7 +49,7 @@ Definition phi (A : M(R[X])) : M(R)[X] :=
 Lemma coef_phi : forall A i j k, coef (phi A) k i j = coef (A i j) k.
 Proof.
 move=> A i j k; rewrite /phi; rewrite coef_poly_of.
-case: (ltnP k _) => le_m_k; rewrite mxK // [coef _ _]sub_default //.
+case: (ltnP k _) => le_m_k; rewrite mxK // [coef _ _]nth_default //.
 apply: leq_trans (leq_trans (leq_bigmax i) le_m_k); exact: (leq_bigmax j).
 Qed.
 

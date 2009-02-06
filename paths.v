@@ -1,16 +1,11 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect.
-Require Import ssrbool.
-Require Import ssrfun.
-Require Import eqtype.
-Require Import ssrnat.
-Require Import seq.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-(* The basic theory of paths over a dataSet; this is essentially a   *)
+(* The basic theory of paths over an eqType; this is essentially a   *)
 (* complement to seq.v.                                              *)
 (* Paths are non-empty sequences that obey a progression relation.   *)
 (* They are passed around in three parts : the head and tail of the  *)
@@ -40,9 +35,9 @@ Import Prenex Implicits.
 (*        Elim can be used to select occurrences and generate an     *)
 (*        equation p = (cat p1 p2).                                  *)
 (*      - splitP applies when x is in p, and replaces p with         *)
-(*        (cat (add_last p1 x) p2), where x appears explicitly at    *)
+(*        (cat (rcons p1 x) p2), where x appears explicitly at       *)
 (*        the end of the left part.                                  *)
-(*      - splitPr similarly replaces p with (cat p1 (Adds x p2)),    *)
+(*      - splitPr similarly replaces p with (cat p1 (Cons x p2)),    *)
 (*        where appears explicitly at the right of the split, when x *)
 (*        is actually in p.                                          *)
 (*    The parts p1 and p2 are computed using index/take/drop. The    *)
@@ -56,10 +51,14 @@ Import Prenex Implicits.
 (*    (including the first, excluding the second). (arc p x y) is    *)
 (*    thus only meaningful if x and y are different points in p.     *)
 (*  - cycle traversal : next, prev                                   *)
-(*  - path order: mem2 checks whether two points belong to a         *)
+(*  - path order: mem2 checks whether two points belong to a path    *)
 (*    and appear in order (i.e., (mem2 p x y) checks that y appears  *)
 (*    after an occurrence of x in p). This predicate a crucial part  *)
 (*    of the definition of the abstract Jordan property.             *)
+(*  - sorting: sorted checks whether a sequence is sorted wrt a      *)
+(*    transitive relation; sorted e (x :: p) expands to path e x p.  *)
+(*    sort sorts a sequence recursively, using a "merge" function to *)
+(*    interleave sorted sublists.                                    *) 
 (*  - loop removal : shorten returns a shorter, duplicate-free path  *)
 (*    with the same endpoints as its argument. The related shortenP  *)
 (*    dependent predicate simultaneously substitutes a new path p',  *)
@@ -89,7 +88,7 @@ by move=> x p1 p2; elim: p1 x => [|y p1 Hrec] x //=; rewrite Hrec -!andbA.
 Qed.
 
 Lemma pathP : forall x p x0,
-  reflect (forall i, i < size p -> e (sub x0 (x :: p) i) (sub x0 p i))
+  reflect (forall i, i < size p -> e (nth x0 (x :: p) i) (nth x0 p i))
           (path x p).
 Proof.
 move=> x p x0; elim: p x => [|y p Hrec] x /=; first by left.
@@ -99,7 +98,7 @@ split; first exact: Hp 0 (leq0n (size p)).
 apply/(Hrec y) => i; exact: Hp i.+1.
 Qed.
 
-Definition cycle p := if p is x :: p' then path x (add_last p' x) else true.
+Definition cycle p := if p is x :: p' then path x (rcons p' x) else true.
 
 Lemma cycle_path : forall p, cycle p = path (last x0_cycle p) p.
 Proof. by move=> [|x p] //=; rewrite -cats1 path_cat /= andbT andbC. Qed.
@@ -139,14 +138,14 @@ Section EqPath.
 Variables (n0 : nat) (T : eqType) (x0_cycle : T) (e : rel T).
 
 CoInductive split x : seq T -> seq T -> seq T -> Type :=
-  Split p1 p2 : split x (add_last p1 x ++ p2) p1 p2.
+  Split p1 p2 : split x (rcons p1 x ++ p2) p1 p2.
 
 Lemma splitP : forall (p : seq T) x, x \in p ->
    let i := index x p in split x p (take i p) (drop i.+1 p).
 Proof.
 move=> p x Hx i; have := esym (cat_take_drop i p).
-have Hi := Hx; rewrite -index_mem -/i in Hi; rewrite (drop_sub x Hi).
-by rewrite -cat_add_last {2}/i (sub_index x Hx) => Dp; rewrite {1}Dp.
+have Hi := Hx; rewrite -index_mem -/i in Hi; rewrite (drop_nth x Hi).
+by rewrite -cat_rcons {2}/i (nth_index x Hx) => Dp; rewrite {1}Dp.
 Qed.
 
 CoInductive splitl (x1 x : T) : seq T -> Type :=
@@ -154,20 +153,20 @@ CoInductive splitl (x1 x : T) : seq T -> Type :=
 
 Lemma splitPl : forall x1 p x, x \in x1 :: p -> splitl x1 x p.
 Proof.
-move=> x1 p x; rewrite in_adds.
+move=> x1 p x; rewrite in_cons.
 case: eqP => [->| _]; first by rewrite -(cat0s p).
-case/splitP; split; exact: last_add_last.
+case/splitP; split; exact: last_rcons.
 Qed.
 
 CoInductive splitr x : seq T -> Type :=
   Splitr p1 p2 : splitr x (p1 ++ x :: p2).
 
 Lemma splitPr : forall (p : seq T) x, x \in p -> splitr x p.
-Proof. by move=> p x; case/splitP=> p1 p2; rewrite cat_add_last. Qed.
+Proof. by move=> p x; case/splitP=> p1 p2; rewrite cat_rcons. Qed.
 
 Fixpoint next_at (x y0 y : T) (p : seq T) {struct p} :=
   match p with
-  | seq0 => if x == y then y0 else x
+  | [::] => if x == y then y0 else x
   | y' :: p' => if x == y then y' else next_at x y0 y' p'
   end.
 
@@ -175,44 +174,44 @@ Definition next p x := if p is y :: p' then next_at x y y p' else x.
 
 Fixpoint prev_at (x y0 y : T) (p : seq T) {struct p} :=
   match p with
-  | seq0     => if x == y0 then y else x
+  | [::]     => if x == y0 then y else x
   | y' :: p' => if x == y' then y else prev_at x y0 y' p'
   end.
 
 Definition prev p x := if p is y :: p' then prev_at x y y p' else x.
 
-Lemma next_sub : forall p x,
+Lemma next_nth : forall p x,
   next p x = if x \in p then
-               if p is y :: p' then sub y p' (index x p) else x
+               if p is y :: p' then nth y p' (index x p) else x
              else x.
 Proof.
 move=> [|y0 p] x //=; elim: p {2 3 5}y0 => [|y' p Hrec] y /=;
-  by rewrite (eq_sym y) in_adds; case (x == y); try exact: Hrec.
+  by rewrite (eq_sym y) in_cons; case (x == y); try exact: Hrec.
 Qed.
 
-Lemma prev_sub : forall p x,
+Lemma prev_nth : forall p x,
   prev p x = if x \in p then
-               if p is y :: p' then sub y p (index x p') else x
+               if p is y :: p' then nth y p (index x p') else x
              else x.
 Proof.
-move=> [|y0 p] x //=; rewrite in_adds orbC.
-elim: p {2 5}y0 => [|y' p Hrec] y; rewrite /= ?in_adds // (eq_sym y').
+move=> [|y0 p] x //=; rewrite in_cons orbC.
+elim: p {2 5}y0 => [|y' p Hrec] y; rewrite /= ?in_cons // (eq_sym y').
 by case (x == y') => /=; auto.
 Qed.
 
 Lemma mem_next : forall (p : seq T) x, (next p x \in p) = (x \in p).
 Proof.
-move=> p x; rewrite next_sub; case Hpx: (x \in p) => //.
-case: p (index x p) Hpx => [|y0 p'] //= i _; rewrite in_adds.
-case: (ltnP i (size p')) => Hi; first by rewrite /= (mem_sub y0 Hi) orbT.
-by rewrite (sub_default y0 Hi) eqxx.
+move=> p x; rewrite next_nth; case Hpx: (x \in p) => //.
+case: p (index x p) Hpx => [|y0 p'] //= i _; rewrite in_cons.
+case: (ltnP i (size p')) => Hi; first by rewrite /= (mem_nth y0 Hi) orbT.
+by rewrite (nth_default y0 Hi) eqxx.
 Qed.
 
 Lemma mem_prev : forall (p : seq T) x, (prev p x \in p) = (x \in p).
 Proof.
-move=> p x; rewrite prev_sub; case Hpx: (x \in p) => //.
+move=> p x; rewrite prev_nth; case Hpx: (x \in p) => //.
 case: p Hpx => [|y0 p'] Hpx //.
-by apply mem_sub; rewrite /= ltnS index_size.
+by apply mem_nth; rewrite /= ltnS index_size.
 Qed.
 
 (* ucycleb is the boolean predicate, but ucycle is defined as a Prop *)
@@ -230,15 +229,15 @@ Proof. by move=> p; case/andP. Qed.
 Lemma next_cycle : forall p x, cycle e p -> x \in p -> e x (next p x).
 Proof.
 move=> [|y0 p] //= x.
-elim: p {1 3 5}y0 => [|y' p Hrec] y /=; rewrite in_adds.
+elim: p {1 3 5}y0 => [|y' p Hrec] y /=; rewrite in_cons.
   by rewrite andbT orbF => Hy Dy; rewrite Dy (eqP Dy).
 move/andP=> [Hy Hp]; case: (x =P y) => [->|_] //; exact: Hrec.
 Qed.
 
 Lemma prev_cycle : forall p x, cycle e p -> x \in p -> e (prev p x) x.
 Proof.
-move=> [|y0 p] //= x; rewrite in_adds orbC.
-elim: p {1 5}y0 => [|y' p Hrec] y /=; rewrite ?in_adds.
+move=> [|y0 p] //= x; rewrite in_cons orbC.
+elim: p {1 5}y0 => [|y' p Hrec] y /=; rewrite ?in_cons.
   by rewrite andbT=> Hy Dy; rewrite Dy (eqP Dy).
 move/andP=> [Hy Hp]; case: (x =P y') => [->|_] //; exact: Hrec.
 Qed.
@@ -294,7 +293,7 @@ Lemma mem2_splice1 : forall p1 p3 x y z,
   mem2 (p1 ++ p3) x y -> mem2 (p1 ++ z :: p3) x y.
 Proof. move=> p1 p3 x y z; exact: (mem2_splice [::z]). Qed.
 
-Lemma mem2_adds : forall x p y,
+Lemma mem2_cons : forall x p y,
   mem2 (x :: p) y =1 if x == y then predU1 x (mem p) : pred T else mem2 p y.
 Proof. by move=> x p y z; rewrite {1}/mem2 /=; case (x == y). Qed.
 
@@ -303,7 +302,7 @@ Lemma mem2_last : forall y0 p x,
 Proof.
 move=> y0 p x; apply/idP/idP; first by apply mem2l.
 rewrite -index_mem /mem2; move: (index x _) => i Hi.
-by rewrite lastI drop_add_last ?size_belast // mem_add_last mem_head.
+by rewrite lastI drop_rcons ?size_belast // mem_rcons mem_head.
 Qed.
 
 Lemma mem2l_cat : forall (p1 : seq T) x, (x \in p1) = false ->
@@ -331,14 +330,14 @@ Lemma splitP2r : forall p x y, mem2 p x y -> split2r x y p.
 Proof.
 move=> p x y Hxy; have Hx := mem2l Hxy.
 have Hi := Hx; rewrite -index_mem in Hi.
-move: Hxy; rewrite /mem2 (drop_sub x Hi) (sub_index x Hx).
-by case (splitP Hx); move=> p1 p2; rewrite cat_add_last; split.
+move: Hxy; rewrite /mem2 (drop_nth x Hi) (nth_index x Hx).
+by case (splitP Hx); move=> p1 p2; rewrite cat_rcons; split.
 Qed.
 
 Fixpoint shorten x (p : seq T) {struct p} :=
   if p is y :: p' then
     if x \in p then shorten x p' else y :: shorten y p'
-  else seq0.
+  else [::].
 
 CoInductive shorten_spec (x : T) (p : seq T) : T -> seq T -> Type :=
    ShortenSpec p' of path e x p' & uniq (x :: p') & subpred (mem p') (mem p) :
@@ -350,14 +349,14 @@ Proof.
 move=> x p Hp; have: x \in x :: p by exact: mem_head.
 elim: p x {1 3 5}x Hp => [|y2 p Hrec] x y1.
   by rewrite mem_seq1 => _; move/eqP->; split.
-rewrite in_adds orbC /=; case/andP=> Hy12 Hp.
+rewrite in_cons orbC /=; case/andP=> Hy12 Hp.
 case: ifP => y2p_x.
   case: (Hrec _ _ Hp y2p_x) => p' Hp' Up' Hp'p _.
   by split=> // y; move/Hp'p; exact: predU1r.
 case: (Hrec y2 _ Hp) => /= [|p' Hp' Up' Hp'p]; first by rewrite mem_head.
 have{Hp'p} Hp'p: subpred (mem (y2 :: p')) (mem (y2 :: p)).
-  by move=> z; rewrite /= !in_adds; case: (z == y2); last exact: Hp'p.
-rewrite y2p_x -(last_adds x); move/eqP=> xy1.
+  by move=> z; rewrite /= !in_cons; case: (z == y2); last exact: Hp'p.
+rewrite y2p_x -(last_cons x); move/eqP=> xy1.
 split=> //=; first by rewrite xy1 Hy12.
 by rewrite {}Up' andbT; apply/negP; move/Hp'p; case/negPf.
 Qed.
@@ -410,9 +409,9 @@ Proof.
 move=> leT_asym; elim=> [|x1 s1 IHs1] s2 //= ord_s1 ord_s2 eq_s12.
   by case: {+}s2 (perm_eq_size eq_s12).
 have s2_x1: x1 \in s2 by rewrite -(perm_eq_mem eq_s12) mem_head.
-case: s2 s2_x1 eq_s12 ord_s2 => //= x2 s2; rewrite in_adds.
+case: s2 s2_x1 eq_s12 ord_s2 => //= x2 s2; rewrite in_cons.
 case: eqP => [<- _| ne_x12 /= s2_x1] eq_s12 ord_s2.
-  by rewrite {IHs1}(IHs1 s2) ?(@path_sorted x1) // -(perm_adds x1).
+  by rewrite {IHs1}(IHs1 s2) ?(@path_sorted x1) // -(perm_cons x1).
 case: (ne_x12); apply: leT_asym; rewrite (allP (order_path_min ord_s2)) //.
 have: x2 \in x1 :: s1 by rewrite (perm_eq_mem eq_s12) mem_head.
 case/predU1P=> [eq_x12 | s1_x2]; first by case ne_x12.
@@ -464,8 +463,8 @@ Proof.
 move=> s1 s2; apply/perm_eqlP; rewrite perm_eq_sym.
 elim: s1 s2 => //= x1 s1 IHs1.
 elim=> [|x2 s2 IHs2]; rewrite /= ?cats0 //.
-case: ifP => _ /=; last by rewrite perm_adds.
-by rewrite (perm_catCA (_ :: _) [::x2]) perm_adds.
+case: ifP => _ /=; last by rewrite perm_cons.
+by rewrite (perm_catCA (_ :: _) [::x2]) perm_cons.
 Qed.
 
 Lemma mem_merge : forall s1 s2, merge s1 s2 =i s1 ++ s2.
@@ -580,7 +579,7 @@ Section Trajectory.
 Variables (T : Type) (f : T -> T).
 
 Fixpoint traject x (n : nat) {struct n} :=
-  if n is n'.+1 then x :: traject (f x) n' else seq0.
+  if n is n'.+1 then x :: traject (f x) n' else [::].
 
 Lemma size_traject : forall x n, size (traject x n) = n.
 Proof. by move=> x n; elim: n x => [|n Hrec] x //=; nat_congr. Qed.
@@ -588,8 +587,8 @@ Proof. by move=> x n; elim: n x => [|n Hrec] x //=; nat_congr. Qed.
 Lemma last_traject : forall x n, last x (traject (f x) n) = iter n f x.
 Proof. by move=> x n; elim: n x => [|n Hrec] x //; rewrite -iter_f -Hrec. Qed.
 
-Lemma sub_traject : forall i n, i < n ->
-  forall x, sub x (traject x n) i = iter i f x.
+Lemma nth_traject : forall i n, i < n ->
+  forall x, nth x (traject x n) i = iter i f x.
 Proof.
 move=> i n Hi x; elim: n {2 3}x i Hi => [|n Hrec] y [|i] Hi //=.
 by rewrite Hrec ?iter_f.
@@ -624,14 +623,14 @@ case: n => [|n] Hn //; elim=> [|m Hrec]; first by exact: predU1l.
 move: (fpath_traject x n) Hn; rewrite /looping -!f_iter -last_traject /=.
 rewrite /= in Hrec; case/splitPl: Hrec; move: (iter m f x) => y p1 p2 Ep1.
 rewrite path_cat last_cat Ep1; case: p2 => [|z p2] //; case/and3P=> [_ Dy _] _.
-by rewrite !(in_adds, mem_cat) (eqP Dy) eqxx !orbT.
+by rewrite !(in_cons, mem_cat) (eqP Dy) eqxx !orbT.
 Qed.
 
 Lemma trajectP : forall x n y,
   reflect (exists2 i, i < n & iter i f x = y) (y \in traject f x n).
 Proof.
 move=> x n y; elim: n x => [|n Hrec] x; first by right; case.
-  rewrite /= in_adds orbC; case: {Hrec}(Hrec (f x)) => Hrec.
+  rewrite /= in_cons orbC; case: {Hrec}(Hrec (f x)) => Hrec.
   by left; case: Hrec => [i Hi <-]; exists i.+1; last by rewrite iter_f.
 apply: (iffP eqP); first by exists 0; first by rewrite ltnNge.
 by move=> [[|i] Hi Dy] //; case Hrec; exists i; last by rewrite iter_f.
@@ -640,7 +639,7 @@ Qed.
 Lemma looping_uniq : forall x n, uniq (traject f x n.+1) = ~~ looping x n.
 Proof.
 move=> x n; rewrite /looping; elim: n x => [|n Hrec] x //.
-rewrite -iter_f {2}[succn]lock /= -lock {}Hrec -negb_or in_adds; bool_congr.
+rewrite -iter_f {2}[succn]lock /= -lock {}Hrec -negb_or in_cons; bool_congr.
 set y := iter n f (f x); case (trajectP (f x) n y); first by rewrite !orbT.
 rewrite !orbF => Hy; apply/idP/eqP => [Hx|Dy]; last first.
   by rewrite -{1}Dy /y -last_traject mem_last.
@@ -666,35 +665,35 @@ Hypothesis Up : uniq p.
 
 Lemma prev_next : cancel (next p) (prev p).
 Proof.
-move=> x; rewrite prev_sub mem_next next_sub.
+move=> x; rewrite prev_nth mem_next next_nth.
 case Hpx: (x \in p) => [|] //; case Dp: p Up Hpx => [|y p'] //.
 rewrite -(Dp) {1}Dp /=; move/andP=> [Hpy Hp'] Hx.
-set i := index x p; rewrite -(sub_index y Hx) -/i; congr (sub y).
+set i := index x p; rewrite -(nth_index y Hx) -/i; congr (nth y).
 rewrite -index_mem -/i Dp /= ltnS leq_eqVlt in Hx.
 case/predU1P: Hx => [Di|Hi]; last by apply: index_uniq.
-rewrite Di (sub_default y (leqnn _)).
+rewrite Di (nth_default y (leqnn _)).
 rewrite -index_mem -leqNgt in Hpy.
 by apply: eqP; rewrite eqn_leq Hpy /index find_size.
 Qed.
 
 Lemma next_prev : cancel (prev p) (next p).
 Proof.
-move=> x; rewrite next_sub mem_prev prev_sub.
+move=> x; rewrite next_nth mem_prev prev_nth.
 case Hpx: (x \in p) => [|] //; case Dp: p Up Hpx => [|y p'] //.
 rewrite -Dp => Hp Hpx; set i := index x p'.
 have Hi: i < size p by rewrite Dp /= ltnS /i /index find_size.
-rewrite (index_uniq y Hi Hp); case Hx: (x \in p'); first by apply: sub_index.
-rewrite Dp in_adds Hx orbF in Hpx; rewrite (eqP Hpx).
-by apply: sub_default; rewrite leqNgt /i index_mem Hx.
+rewrite (index_uniq y Hi Hp); case Hx: (x \in p'); first by apply: nth_index.
+rewrite Dp in_cons Hx orbF in Hpx; rewrite (eqP Hpx).
+by apply: nth_default; rewrite leqNgt /i index_mem Hx.
 Qed.
 
 Lemma cycle_next : fcycle (next p) p.
 Proof.
-case Dp: {-2}p Up => [|x p'] Up' //; apply/(pathP x)=> i; rewrite size_add_last => Hi.
-rewrite -cats1 -cat_adds sub_cat Hi /= next_sub {}Dp mem_sub //.
-rewrite index_uniq // sub_cat /=; rewrite ltnS leq_eqVlt in Hi.
+case Dp: {-2}p Up => [|x p'] Up' //; apply/(pathP x)=> i; rewrite size_rcons => Hi.
+rewrite -cats1 -cat_cons nth_cat Hi /= next_nth {}Dp mem_nth //.
+rewrite index_uniq // nth_cat /=; rewrite ltnS leq_eqVlt in Hi.
 case/predU1P: Hi => [Di|Hi]; last by rewrite Hi eqxx.
-by rewrite Di ltnn subnn sub_default ?leqnn /= ?eqxx.
+by rewrite Di ltnn subnn nth_default ?leqnn /= ?eqxx.
 Qed.
 
 Lemma cycle_prev : cycle (fun x y => x == prev p y) p.
@@ -722,14 +721,14 @@ Qed.
 Lemma next_rot : next (rot n0 p) =1 next p.
 Proof.
 move=> x; have Hp := cycle_next; rewrite -(cycle_rot n0) in Hp.
-case Hx: (x \in p); last by rewrite !next_sub mem_rot Hx.
+case Hx: (x \in p); last by rewrite !next_nth mem_rot Hx.
 rewrite -(mem_rot n0) in Hx; exact (esym (eqP (next_cycle Hp Hx))).
 Qed.
 
 Lemma prev_rot : prev (rot n0 p) =1 prev p.
 Proof.
 move=> x; have Hp := cycle_prev; rewrite -(cycle_rot n0) in Hp.
-case Hx: (x \in p); last by rewrite !prev_sub mem_rot Hx.
+case Hx: (x \in p); last by rewrite !prev_nth mem_rot Hx.
 rewrite -(mem_rot n0) in Hx; exact (eqP (prev_cycle Hp Hx)).
 Qed.
 
@@ -754,12 +753,12 @@ Variable T : eqType.
 Lemma prev_rev : forall p : seq T, uniq p -> prev (rev p) =1 next p.
 Proof.
 move=> p Up x; case Hx: (x \in p); last first.
-  by rewrite next_sub prev_sub mem_rev Hx.
+  by rewrite next_nth prev_nth mem_rev Hx.
 case/rot_to: Hx (Up) => [i p' Dp] Urp; rewrite -uniq_rev in Urp.
 rewrite -(prev_rotr i Urp); do 2 rewrite -(prev_rotr 1) ?uniq_rotr //.
 rewrite -rev_rot -(next_rot i Up) {i p Up Urp}Dp.
-case: p' => [|y p'] //; rewrite !rev_adds rotr1_add_last /= eqxx.
-by rewrite -add_last_adds rotr1_add_last /= eqxx.
+case: p' => [|y p'] //; rewrite !rev_cons rotr1_rcons /= eqxx.
+by rewrite -rcons_cons rotr1_rcons /= eqxx.
 Qed.
 
 Lemma next_rev : forall p : seq T, uniq p -> next (rev p) =1 prev p.
@@ -774,9 +773,9 @@ Variables (T T' : Type) (h : T' -> T) (e : rel T) (e' : rel T').
 Definition rel_base (b : pred T) :=
   forall x' y', ~~ b (h x') -> e (h x') (h y') = e' x' y'.
 
-Lemma path_maps : forall b x' p', rel_base b ->
+Lemma path_map : forall b x' p', rel_base b ->
     ~~ has (preim h b) (belast x' p') ->
-  path e (h x') (maps h p') = path e' x' p'.
+  path e (h x') (map h p') = path e' x' p'.
 Proof.
 move=> b x' p' Hb; elim: p' x' => [|y' p' Hrec] x' //=; move/norP=> [Hbx Hbp].
 congr andb; auto.
@@ -790,24 +789,24 @@ Variables (T T' : eqType) (h : T' -> T) (e : rel T) (e' : rel T').
 
 Hypothesis Hh : injective h.
 
-Lemma mem2_maps : forall x' y' p',
-  mem2 (maps h p') (h x') (h y') = mem2 p' x' y'.
-Proof. by move=> *; rewrite {1}/mem2 (index_maps Hh) -maps_drop mem_maps. Qed.
+Lemma mem2_map : forall x' y' p',
+  mem2 (map h p') (h x') (h y') = mem2 p' x' y'.
+Proof. by move=> *; rewrite {1}/mem2 (index_map Hh) -map_drop mem_map. Qed.
 
-Lemma next_maps : forall p, uniq p ->
-  forall x, next (maps h p) (h x) = h (next p x).
+Lemma next_map : forall p, uniq p ->
+  forall x, next (map h p) (h x) = h (next p x).
 Proof.
-move=> p Up x; case Hx: (x \in p); last by rewrite !next_sub (mem_maps Hh) Hx.
+move=> p Up x; case Hx: (x \in p); last by rewrite !next_nth (mem_map Hh) Hx.
 case/rot_to: Hx => [i p' Dp].
-rewrite -(next_rot i Up); rewrite -(uniq_maps Hh) in Up.
-rewrite -(next_rot i Up) -maps_rot {i p Up}Dp /=.
+rewrite -(next_rot i Up); rewrite -(uniq_map Hh) in Up.
+rewrite -(next_rot i Up) -map_rot {i p Up}Dp /=.
 by case: p' => [|y p] //=; rewrite !eqxx.
 Qed.
 
-Lemma prev_maps : forall p, uniq p ->
-  forall x, prev (maps h p) (h x) = h (prev p x).
+Lemma prev_map : forall p, uniq p ->
+  forall x, prev (map h p) (h x) = h (prev p x).
 Proof.
-by move=> p Up x; rewrite -{1}[x](next_prev Up) -(next_maps Up) prev_next ?uniq_maps.
+by move=> p Up x; rewrite -{1}[x](next_prev Up) -(next_map Up) prev_next ?uniq_map.
 Qed.
 
 End MapEqPath.
@@ -837,7 +836,7 @@ Lemma left_arc : forall x y p1 p2,
   let p := x :: p1 ++ y :: p2 in uniq p -> arc p x y = x :: p1.
 Proof.
 move=> x y p1 p2 p Up; rewrite /arc {1}/p /= eqxx rot0.
-move: Up; rewrite /p -cat_adds uniq_cat index_cat; move: (x :: p1) => xp1.
+move: Up; rewrite /p -cat_cons uniq_cat index_cat; move: (x :: p1) => xp1.
 rewrite /= negb_or -!andbA; move/and3P=> [_ Hy _].
 by rewrite (negbTE Hy) eqxx addn0 take_size_cat.
 Qed.
@@ -846,9 +845,9 @@ Lemma right_arc : forall x y p1 p2,
   let p := x :: p1 ++ y :: p2 in uniq p -> arc p y x = y :: p2.
 Proof.
 move=> x y p1 p2 p Up; set n := size (x :: p1); rewrite -(arc_rot n Up).
-  move: Up; rewrite -(uniq_rot n) /p -cat_adds /n rot_size_cat.
+  move: Up; rewrite -(uniq_rot n) /p -cat_cons /n rot_size_cat.
   by move=> *; rewrite /= left_arc.
-by rewrite /p -cat_adds mem_cat /= mem_head orbT.
+by rewrite /p -cat_cons mem_cat /= mem_head orbT.
 Qed.
 
 CoInductive rot_to_arc_spec (p : seq T) (x y : T) : Type :=
@@ -861,7 +860,7 @@ Lemma rot_to_arc : forall p x y,
   uniq p -> x \in p -> y \in p -> x != y -> rot_to_arc_spec p x y.
 Proof.
 move=> p x y Up Hx Hy Hxy; case: (rot_to Hx) (Hy) (Up) => [i p' Dp] Hy'.
-rewrite -(mem_rot i) Dp in_adds eq_sym (negPf Hxy) in Hy'.
+rewrite -(mem_rot i) Dp in_cons eq_sym (negPf Hxy) in Hy'.
 rewrite -(uniq_rot i) Dp.
 case/splitPr: p' / Hy' Dp => [p1 p2] Dp Up'; exists i p1 p2; auto.
   by rewrite -(arc_rot i Up Hx) Dp (left_arc Up').

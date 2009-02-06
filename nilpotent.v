@@ -108,7 +108,7 @@ Qed.
 Lemma nilpotent_class : forall G, nilpotent G = (nil_class G < #|G|).
 Proof.
 move=> G; rewrite -(size_mkseq (fun n => 'L_n(G)) #|G|) index_mem.
-apply/forallP/mapsP=> /= [nilG | [n _ Ln1] H]; last first.
+apply/forallP/mapP=> /= [nilG | [n _ Ln1] H]; last first.
   apply/implyP; rewrite subsetI; case/andP=> sHG sHR.
   rewrite -subG1 -{}Ln1; elim: n => // n IHn.
   apply: subset_trans sHR _; apply: genS; exact: imset2S.
@@ -125,7 +125,7 @@ Lemma lcnP : forall G, reflect (exists n, 'L_n(G) = 1) (nilpotent G).
 Proof.
 move=> G; apply: (iffP idP) => [| [n Ln1]].
   rewrite nilpotent_class -(size_mkseq (fun n => 'L_n(G)) #|G|) index_mem.
-  by case/mapsP=> n _ Ln1; exists n.
+  by case/mapP=> n _ Ln1; exists n.
 apply/forallP=> H; apply/implyP; rewrite subsetI; case/andP=> sHG sHR.
 rewrite -subG1 -{}Ln1; elim: n => // n IHn.
 apply: subset_trans sHR _; apply: genS; exact: imset2S.

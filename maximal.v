@@ -40,8 +40,8 @@ Lemma Fitting_group_set : forall G, group_set (Fitting G).
 Proof.
 move=> G; suff [F ->]: exists F : {group gT}, Fitting G = F by exact: groupP.
 rewrite /Fitting; elim: primes (uniq_primes #|G|) => [_|p r IHr] /=.
-  by exists [1 gT]%G; rewrite big_seq0.
-case/andP=> rp; case/IHr=> F defF; rewrite big_adds defF.
+  by exists [1 gT]%G; rewrite big_nil.
+case/andP=> rp; case/IHr=> F defF; rewrite big_cons defF.
 suffices{IHr}: p^'.-group F && (F <| G).
   case/and3P=> p'F sFG nFG; exists ('O_p(G) <*> F)%G.
   have nFO: 'O_p(G) \subset 'N(F) by exact: (subset_trans (pcore_sub _ _)).
@@ -51,8 +51,8 @@ suffices{IHr}: p^'.-group F && (F <| G).
   rewrite subsetI commg_subl commg_subr nFO.
   by rewrite (subset_trans sFG) // normal_norm ?pcore_normal.
 move/bigdprodEgen: defF => <- {F}; elim: r rp => [_|q r IHr] /=.
-  by rewrite big_seq0 gen0 pgroup1 normal1.
-rewrite inE eq_sym big_adds -mulgenE -mulgen_idr; case/norP=> qp.
+  by rewrite big_nil gen0 pgroup1 normal1.
+rewrite inE eq_sym big_cons -mulgenE -mulgen_idr; case/norP=> qp.
 move/IHr {IHr}; set F := <<_>>; case/andP=> p'F nFG; rewrite norm_mulgenEl.
   rewrite pgroupM p'F normalM ?pcore_normal //= !andbT.
   by apply: sub_in_pnat (pcore_pgroup q G) => q' _; move/eqnP->.

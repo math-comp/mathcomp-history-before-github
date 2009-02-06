@@ -48,8 +48,8 @@ case Hx: (x \in a).
   by rewrite disjoint_has /= Hx in Hpa.
 move Da': (x :: a) => a'; case Hya': (y \in a').
   rewrite (subsetP (subset_dfs n _ _) _ Hya'); left.
-  exists (Seq0 T); repeat split; last by rewrite disjoint_has /= Hx.
-  by rewrite -Da' in_adds in Hya'; case/predU1P: Hya' Hy => //= ->.
+  exists (Nil T); repeat split; last by rewrite disjoint_has /= Hx.
+  by rewrite -Da' in_cons in Hya'; case/predU1P: Hya' Hy => //= ->.
 have Hna': #|T| <= #|a'| + n by rewrite -Da' /= cardU1 Hx /= add1n addSnnS.
 move Db: (enum _) => b.
 suffices IHb:  reflect (exists2 x', x' \in b & dfs_path x' y a')
@@ -63,7 +63,7 @@ suffices IHb:  reflect (exists2 x', x' \in b & dfs_path x' y a')
     by rewrite -Da' Dy /= mem_head in Hya'.
   move/andP: Hp' => [Hxy' Hp']; move/andP: Up' => [Hp'x' _].
   exists y'; [ by rewrite -Db mem_enum | exists p'; auto ].
-  rewrite disjoint_sym -Da' /= disjoint_adds Hp'x' /= disjoint_sym.
+  rewrite disjoint_sym -Da' /= disjoint_cons Hp'x' /= disjoint_sym.
   apply: disjoint_trans Hpa; apply/subsetP=> z ?; apply: predU1r; exact: Hp'p.
 elim: b a' Hya' Hna' {a x Da' Db Hy Hn Hx} => [|x b IHb] a Hy Hn /=.
   by rewrite Hy; right; case.
@@ -82,24 +82,24 @@ case Hpa': [disjoint x' :: p & dfs n a x].
   move: (pred0P Hpa x'); rewrite /= mem_head /= => Hax'.
   case/idP: (pred0P Hpa' x'); rewrite /= mem_head //=.
   apply/(IHn _ _ _ Hn (negbT Hax')).
-  exists (Seq0 T)=> //; first by move/eqP: Dx'.
+  exists (Nil T)=> //; first by move/eqP: Dx'.
   by rewrite disjoint_has /= -(eqP Dx') Hax'.
 case/(IHn _ _ _ Hn (negbT Hy)): Hdfs_y.
 case/pred0Pn: Hpa' => [x'' H]; case/andP: H => [ /= Hpx'' Hdfs_x''].
 have Hax'' := pred0P Hpa x''; rewrite /= Hpx'' in Hax''.
 case/(IHn _ _ _ Hn (negbT Hax'')): Hdfs_x'' => [q Hq Eq Hqa].
 case/splitPl: {p}Hpx'' Hp Ep Hpa => [p1 p2 Ep1].
-rewrite path_cat -cat_adds disjoint_cat last_cat Ep1.
+rewrite path_cat -cat_cons disjoint_cat last_cat Ep1.
 move/andP=> [Hp1 Hp2] Ep2; case/andP=> [Hp1a Hp2a]; exists (cat q p2).
 - by rewrite path_cat Hq Eq.
 - by rewrite last_cat Eq.
-by rewrite -cat_adds disjoint_cat Hqa.
+by rewrite -cat_cons disjoint_cat Hqa.
 Qed.
 
 Lemma connectP : forall x y,
   reflect (exists2 p, path e x p & last x p = y) (connect x y).
 Proof.
-move=> x y; apply: (iffP (@dfsP _ x _ seq0 _ _)) => // [|[p]|[p]].
+move=> x y; apply: (iffP (@dfsP _ x _ nil _ _)) => // [|[p]|[p]].
 - by rewrite card0 leqnn.
 - by exists p.
 by exists p; rewrite // disjoint_sym disjoint_has.
@@ -113,7 +113,7 @@ by apply/connectP; exists (p1 ++ p2); rewrite ?path_cat ?Hp1 ?last_cat Ep1.
 Qed.
 
 Lemma connect0 : forall x, connect x x.
-Proof. by move=> x; apply/connectP; exists (Seq0 T). Qed.
+Proof. by move=> x; apply/connectP; exists (Nil T). Qed.
 
 Lemma eq_connect0 : forall x y : T, x = y -> connect x y.
 Proof. move=> x y <-; apply connect0. Qed.
@@ -392,7 +392,7 @@ Proof. by move=> x y; rewrite [_ y]fconnect_orbit -index_mem size_orbit. Qed.
 
 Lemma findex_iter : forall x i, i < order x -> findex x (iter i f x) = i.
 Proof.
-move=> x i Hi; rewrite -(sub_traject f Hi); rewrite -size_orbit in Hi.
+move=> x i Hi; rewrite -(nth_traject f Hi); rewrite -size_orbit in Hi.
 exact (index_uniq x Hi (uniq_orbit x)).
 Qed.
 
@@ -400,7 +400,7 @@ Lemma iter_findex : forall x y, fconnect f x y -> iter (findex x y) f x = y.
 Proof.
 move=> x y; rewrite [_ y]fconnect_orbit; move=> Hy.
 have Hi := Hy; rewrite -index_mem size_orbit in Hi.
-by rewrite -(sub_traject f Hi) -/(orbit x) sub_index.
+by rewrite -(nth_traject f Hi) -/(orbit x) nth_index.
 Qed.
 
 Lemma findex0 : forall x, findex x x = 0.
@@ -499,9 +499,9 @@ Lemma fpath_finv : forall x p,
   fpath finv x p = fpath f (last x p) (rev (belast x p)).
 Proof.
 move=> x p; elim: p x => [|y p Hrec] x //=.
-rewrite rev_adds -cats1 path_cat -{}Hrec andbC /= eq_sym andbT.
+rewrite rev_cons -cats1 path_cat -{}Hrec andbC /= eq_sym andbT.
 bool_congr; rewrite -(inj_eq Hf) f_finv.
-by case: p => [|z p] //=; rewrite rev_adds last_add_last.
+by case: p => [|z p] //=; rewrite rev_cons last_rcons.
 Qed.
 
 Lemma same_fconnect_finv : fconnect finv =2 fconnect f.

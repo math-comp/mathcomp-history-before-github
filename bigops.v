@@ -7,46 +7,46 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-Reserved Notation "\big [ op / nil ]_ i F"
-  (at level 36, F at level 36, op, nil at level 10, i at level 0,
+Reserved Notation "\big [ op / idx ]_ i F"
+  (at level 36, F at level 36, op, idx at level 10, i at level 0,
      right associativity,
-           format "'[' \big [ op / nil ]_ i '/  '  F ']'").
-Reserved Notation "\big [ op / nil ]_ ( <- r | P ) F"
-  (at level 36, F at level 36, op, nil at level 10, r at level 50,
-           format "'[' \big [ op / nil ]_ ( <-  r  |  P ) '/  '  F ']'").
-Reserved Notation "\big [ op / nil ]_ ( i <- r | P ) F"
-  (at level 36, F at level 36, op, nil at level 10, i, r at level 50,
-           format "'[' \big [ op / nil ]_ ( i  <-  r  |  P ) '/  '  F ']'").
-Reserved Notation "\big [ op / nil ]_ ( i <- r ) F"
-  (at level 36, F at level 36, op, nil at level 10, i, r at level 50,
-           format "'[' \big [ op / nil ]_ ( i  <-  r ) '/  '  F ']'").
-Reserved Notation "\big [ op / nil ]_ ( m <= i < n | P ) F"
-  (at level 36, F at level 36, op, nil at level 10, m, i, n at level 50,
-           format "'[' \big [ op / nil ]_ ( m  <=  i  <  n  |  P )  F ']'").
-Reserved Notation "\big [ op / nil ]_ ( m <= i < n ) F"
-  (at level 36, F at level 36, op, nil at level 10, i, m, n at level 50,
-           format "'[' \big [ op / nil ]_ ( m  <=  i  <  n ) '/  '  F ']'").
-Reserved Notation "\big [ op / nil ]_ ( i | P ) F"
-  (at level 36, F at level 36, op, nil at level 10, i at level 50,
-           format "'[' \big [ op / nil ]_ ( i  |  P ) '/  '  F ']'").
-Reserved Notation "\big [ op / nil ]_ ( i : t | P ) F"
-  (at level 36, F at level 36, op, nil at level 10, i at level 50,
-           format "'[' \big [ op / nil ]_ ( i   :  t   |  P ) '/  '  F ']'").
-Reserved Notation "\big [ op / nil ]_ ( i : t ) F"
-  (at level 36, F at level 36, op, nil at level 10, i at level 50,
-           format "'[' \big [ op / nil ]_ ( i   :  t ) '/  '  F ']'").
-Reserved Notation "\big [ op / nil ]_ ( i < n | P ) F"
-  (at level 36, F at level 36, op, nil at level 10, i, n at level 50,
-           format "'[' \big [ op / nil ]_ ( i  <  n  |  P ) '/  '  F ']'").
-Reserved Notation "\big [ op / nil ]_ ( i < n ) F"
-  (at level 36, F at level 36, op, nil at level 10, i, n at level 50,
-           format "'[' \big [ op / nil ]_ ( i  <  n )  F ']'").
-Reserved Notation "\big [ op / nil ]_ ( i \in A | P ) F"
-  (at level 36, F at level 36, op, nil at level 10, i, A at level 50,
-           format "'[' \big [ op / nil ]_ ( i  \in  A  |  P ) '/  '  F ']'").
-Reserved Notation "\big [ op / nil ]_ ( i \in A ) F"
-  (at level 36, F at level 36, op, nil at level 10, i, A at level 50,
-           format "'[' \big [ op / nil ]_ ( i  \in  A ) '/  '  F ']'").
+           format "'[' \big [ op / idx ]_ i '/  '  F ']'").
+Reserved Notation "\big [ op / idx ]_ ( <- r | P ) F"
+  (at level 36, F at level 36, op, idx at level 10, r at level 50,
+           format "'[' \big [ op / idx ]_ ( <-  r  |  P ) '/  '  F ']'").
+Reserved Notation "\big [ op / idx ]_ ( i <- r | P ) F"
+  (at level 36, F at level 36, op, idx at level 10, i, r at level 50,
+           format "'[' \big [ op / idx ]_ ( i  <-  r  |  P ) '/  '  F ']'").
+Reserved Notation "\big [ op / idx ]_ ( i <- r ) F"
+  (at level 36, F at level 36, op, idx at level 10, i, r at level 50,
+           format "'[' \big [ op / idx ]_ ( i  <-  r ) '/  '  F ']'").
+Reserved Notation "\big [ op / idx ]_ ( m <= i < n | P ) F"
+  (at level 36, F at level 36, op, idx at level 10, m, i, n at level 50,
+           format "'[' \big [ op / idx ]_ ( m  <=  i  <  n  |  P )  F ']'").
+Reserved Notation "\big [ op / idx ]_ ( m <= i < n ) F"
+  (at level 36, F at level 36, op, idx at level 10, i, m, n at level 50,
+           format "'[' \big [ op / idx ]_ ( m  <=  i  <  n ) '/  '  F ']'").
+Reserved Notation "\big [ op / idx ]_ ( i | P ) F"
+  (at level 36, F at level 36, op, idx at level 10, i at level 50,
+           format "'[' \big [ op / idx ]_ ( i  |  P ) '/  '  F ']'").
+Reserved Notation "\big [ op / idx ]_ ( i : t | P ) F"
+  (at level 36, F at level 36, op, idx at level 10, i at level 50,
+           format "'[' \big [ op / idx ]_ ( i   :  t   |  P ) '/  '  F ']'").
+Reserved Notation "\big [ op / idx ]_ ( i : t ) F"
+  (at level 36, F at level 36, op, idx at level 10, i at level 50,
+           format "'[' \big [ op / idx ]_ ( i   :  t ) '/  '  F ']'").
+Reserved Notation "\big [ op / idx ]_ ( i < n | P ) F"
+  (at level 36, F at level 36, op, idx at level 10, i, n at level 50,
+           format "'[' \big [ op / idx ]_ ( i  <  n  |  P ) '/  '  F ']'").
+Reserved Notation "\big [ op / idx ]_ ( i < n ) F"
+  (at level 36, F at level 36, op, idx at level 10, i, n at level 50,
+           format "'[' \big [ op / idx ]_ ( i  <  n )  F ']'").
+Reserved Notation "\big [ op / idx ]_ ( i \in A | P ) F"
+  (at level 36, F at level 36, op, idx at level 10, i, A at level 50,
+           format "'[' \big [ op / idx ]_ ( i  \in  A  |  P ) '/  '  F ']'").
+Reserved Notation "\big [ op / idx ]_ ( i \in A ) F"
+  (at level 36, F at level 36, op, idx at level 10, i, A at level 50,
+           format "'[' \big [ op / idx ]_ ( i  \in  A ) '/  '  F ']'").
 
 Reserved Notation "\sum_ i F"
   (at level 41, F at level 41, i at level 0,
@@ -172,8 +172,8 @@ Reserved Notation "\prod_ ( i \in A ) F"
 Delimit Scope big_scope with BIG.
 Open Scope big_scope.
 
-Definition reducebig R I nil op r (P : pred I) (F : I -> R) : R :=
-  foldr (fun i x => if P i then op (F i) x else x) nil r.
+Definition reducebig R I idx op r (P : pred I) (F : I -> R) : R :=
+  foldr (fun i x => if P i then op (F i) x else x) idx r.
 
 Module Type ReduceBigSig.
 Parameter bigop : forall R I,
@@ -202,36 +202,36 @@ Qed.
 Lemma filter_index_enum : forall T P, filter P (index_enum T) = enum P.
 Proof. by []. Qed.
 
-Notation "\big [ op / nil ]_ ( <- r | P ) F" :=
-  (bigop nil op r P F) : big_scope.
-Notation "\big [ op / nil ]_ ( i <- r | P ) F" :=
-  (bigop nil op r (fun i => P%B) (fun i => F)) : big_scope.
-Notation "\big [ op / nil ]_ ( i <- r ) F" :=
-  (bigop nil op r (fun _ => true) (fun  i => F)) : big_scope.
-Notation "\big [ op / nil ]_ ( m <= i < n | P ) F" :=
-  (bigop nil op (index_iota m n) (fun i : nat => P%B) (fun i : nat => F))
+Notation "\big [ op / idx ]_ ( <- r | P ) F" :=
+  (bigop idx op r P F) : big_scope.
+Notation "\big [ op / idx ]_ ( i <- r | P ) F" :=
+  (bigop idx op r (fun i => P%B) (fun i => F)) : big_scope.
+Notation "\big [ op / idx ]_ ( i <- r ) F" :=
+  (bigop idx op r (fun _ => true) (fun  i => F)) : big_scope.
+Notation "\big [ op / idx ]_ ( m <= i < n | P ) F" :=
+  (bigop idx op (index_iota m n) (fun i : nat => P%B) (fun i : nat => F))
      : big_scope.
-Notation "\big [ op / nil ]_ ( m <= i < n ) F" :=
-  (bigop nil op (index_iota m n) (fun _ => true) (fun i : nat => F))
+Notation "\big [ op / idx ]_ ( m <= i < n ) F" :=
+  (bigop idx op (index_iota m n) (fun _ => true) (fun i : nat => F))
      : big_scope.
-Notation "\big [ op / nil ]_ ( i | P ) F" :=
-  (bigop nil op (index_enum _) (fun i => P%B) (fun i => F)) : big_scope.
-Notation "\big [ op / nil ]_ i F" :=
-  (bigop nil op (index_enum _) (fun _ => true) (fun i => F)) : big_scope.
-Notation "\big [ op / nil ]_ ( i : t | P ) F" :=
-  (bigop nil op (index_enum _) (fun i : t => P%B) (fun i : t => F))
+Notation "\big [ op / idx ]_ ( i | P ) F" :=
+  (bigop idx op (index_enum _) (fun i => P%B) (fun i => F)) : big_scope.
+Notation "\big [ op / idx ]_ i F" :=
+  (bigop idx op (index_enum _) (fun _ => true) (fun i => F)) : big_scope.
+Notation "\big [ op / idx ]_ ( i : t | P ) F" :=
+  (bigop idx op (index_enum _) (fun i : t => P%B) (fun i : t => F))
      (only parsing) : big_scope.
-Notation "\big [ op / nil ]_ ( i : t ) F" :=
-  (bigop nil op (index_enum _) (fun _ => true) (fun i : t => F))
+Notation "\big [ op / idx ]_ ( i : t ) F" :=
+  (bigop idx op (index_enum _) (fun _ => true) (fun i : t => F))
      (only parsing) : big_scope.
-Notation "\big [ op / nil ]_ ( i < n | P ) F" :=
-  (\big[op/nil]_(i : ordinal n | P%B) F) : big_scope.
-Notation "\big [ op / nil ]_ ( i < n ) F" :=
-  (\big[op/nil]_(i : ordinal n) F) : big_scope.
-Notation "\big [ op / nil ]_ ( i \in A | P ) F" :=
-  (\big[op/nil]_(i | (i \in A) && P) F) : big_scope.
-Notation "\big [ op / nil ]_ ( i \in A ) F" :=
-  (\big[op/nil]_(i | i \in A) F) : big_scope.
+Notation "\big [ op / idx ]_ ( i < n | P ) F" :=
+  (\big[op/idx]_(i : ordinal n | P%B) F) : big_scope.
+Notation "\big [ op / idx ]_ ( i < n ) F" :=
+  (\big[op/idx]_(i : ordinal n) F) : big_scope.
+Notation "\big [ op / idx ]_ ( i \in A | P ) F" :=
+  (\big[op/idx]_(i | (i \in A) && P) F) : big_scope.
+Notation "\big [ op / idx ]_ ( i \in A ) F" :=
+  (\big[op/idx]_(i | i \in A) F) : big_scope.
 
 Notation Local "+%N" := addn (at level 0, only parsing).
 
@@ -347,32 +347,32 @@ Notation "\prod_ ( i \in A ) F" :=
 
 Section Extensionality.
 
-Variables (R : Type)  (nil : R) (op : R -> R -> R).
+Variables (R : Type)  (idx : R) (op : R -> R -> R).
 
 Section SeqExtension.
 
 Variable I : Type.
 
 Lemma big_filter : forall r (P : pred I) F,
-  \big[op/nil]_(i <- filter P r) F i = \big[op/nil]_(i <- r | P i) F i.
+  \big[op/idx]_(i <- filter P r) F i = \big[op/idx]_(i <- r | P i) F i.
 Proof. by rewrite unlock => r P F; elim: r => //= i r <-; case (P i). Qed.
 
 Lemma big_filter_cond : forall r (P1 P2 : pred I) F,
-  \big[op/nil]_(i <- filter P1 r | P2 i) F i
-     = \big[op/nil]_(i <- r | P1 i && P2 i) F i.
+  \big[op/idx]_(i <- filter P1 r | P2 i) F i
+     = \big[op/idx]_(i <- r | P1 i && P2 i) F i.
 Proof.
 move=> r P1 P2 F; rewrite -big_filter -(big_filter r); congr bigop.
 rewrite -filter_predI; apply: eq_filter => i; exact: andbC.
 Qed.
 
 Lemma eq_bigl : forall r (P1 P2 : pred I) F, P1 =1 P2 ->
-  \big[op/nil]_(i <- r | P1 i) F i = \big[op/nil]_(i <- r | P2 i) F i.
+  \big[op/idx]_(i <- r | P1 i) F i = \big[op/idx]_(i <- r | P2 i) F i.
 Proof.
 by move=> r P1 P2 F eqP12; rewrite -big_filter (eq_filter eqP12) big_filter.
 Qed.
 
 Lemma eq_bigr : forall r (P : pred I) F1 F2, (forall i, P i -> F1 i = F2 i) ->
-  \big[op/nil]_(i <- r | P i) F1 i = \big[op/nil]_(i <- r | P i) F2 i.
+  \big[op/idx]_(i <- r | P i) F1 i = \big[op/idx]_(i <- r | P i) F2 i.
 Proof.
 move=> r P F1 F2 eqF12; rewrite unlock.
 by elim: r => //= x r ->; case Px: (P x); rewrite // eqF12.
@@ -380,68 +380,68 @@ Qed.
 
 Lemma eq_big : forall r (P1 P2 : pred I) F1 F2,
   P1 =1 P2 -> (forall i, P1 i -> F1 i = F2 i) ->
-  \big[op/nil]_(i <- r | P1 i) F1 i = \big[op/nil]_(i <- r | P2 i) F2 i.
+  \big[op/idx]_(i <- r | P1 i) F1 i = \big[op/idx]_(i <- r | P2 i) F2 i.
 Proof. by move=> r P1 P2 F1 F2; move/eq_bigl <-; move/eq_bigr->. Qed.
 
 Lemma congr_big : forall r1 r2 (P1 P2 : pred I) F1 F2,
   r1 = r2 -> P1 =1 P2 -> (forall i, P1 i -> F1 i = F2 i) ->
-    \big[op/nil]_(i <- r1 | P1 i) F1 i = \big[op/nil]_(i <- r2 | P2 i) F2 i.
+    \big[op/idx]_(i <- r1 | P1 i) F1 i = \big[op/idx]_(i <- r2 | P2 i) F2 i.
 Proof. move=> r1 r2 P1 P2 F1 F2 <-{r2}; exact: eq_big. Qed.
 
-Lemma big_seq0 : forall (P : pred I) F,
-  \big[op/nil]_(i <- [::] | P i) F i = nil.
+Lemma big_nil : forall (P : pred I) F,
+  \big[op/idx]_(i <- [::] | P i) F i = idx.
 Proof. by rewrite unlock. Qed.
 
-Lemma big_adds : forall i r (P : pred I) F,
-  let x := \big[op/nil]_(j <- r | P j) F j in
-  \big[op/nil]_(j <- i :: r | P j) F j = if P i then op (F i) x else x.
+Lemma big_cons : forall i r (P : pred I) F,
+  let x := \big[op/idx]_(j <- r | P j) F j in
+  \big[op/idx]_(j <- i :: r | P j) F j = if P i then op (F i) x else x.
 Proof. by rewrite unlock. Qed.
 
-Lemma big_maps : forall (J : eqType) (h : J -> I) r F (P : pred I),
-  \big[op/nil]_(i <- maps h r | P i) F i
-     = \big[op/nil]_(j <- r | P (h j)) F (h j).
+Lemma big_map : forall (J : eqType) (h : J -> I) r F (P : pred I),
+  \big[op/idx]_(i <- map h r | P i) F i
+     = \big[op/idx]_(j <- r | P (h j)) F (h j).
 Proof. by rewrite unlock => J h r P F; elim: r => //= j r ->. Qed.
 
-Lemma big_sub : forall x0 r (P : pred I) F,
-  \big[op/nil]_(i <- r | P i) F i
-     = \big[op/nil]_(0 <= i < size r | P (sub x0 r i)) (F (sub x0 r i)).
+Lemma big_nth : forall x0 r (P : pred I) F,
+  \big[op/idx]_(i <- r | P i) F i
+     = \big[op/idx]_(0 <= i < size r | P (nth x0 r i)) (F (nth x0 r i)).
 Proof.
-by move=> x0 r P F; rewrite -{1}(mkseq_sub x0 r) big_maps /index_iota subn0.
+by move=> x0 r P F; rewrite -{1}(mkseq_nth x0 r) big_map /index_iota subn0.
 Qed.
 
 Lemma big_hasC : forall r (P : pred I) F,
-  ~~ has P r -> \big[op/nil]_(i <- r | P i) F i = nil.
+  ~~ has P r -> \big[op/idx]_(i <- r | P i) F i = idx.
 Proof.
 move=> r P F; rewrite -big_filter has_count count_filter.
-case: filter => // _; exact: big_seq0.
+case: filter => // _; exact: big_nil.
 Qed.
 
 Lemma big_pred0_eq : forall (r : seq I) F,
-  \big[op/nil]_(i <- r | false) F i = nil.
+  \big[op/idx]_(i <- r | false) F i = idx.
 Proof. by move=> r F; rewrite big_hasC // has_pred0. Qed.
 
 Lemma big_pred0 : forall r (P : pred I) F, P =1 xpred0 ->
-  \big[op/nil]_(i <- r | P i) F i = nil.
+  \big[op/idx]_(i <- r | P i) F i = idx.
 Proof. move=> r P F; move/eq_bigl->; exact: big_pred0_eq. Qed.
 
 Lemma big_cat_nested : forall r1 r2 (P : pred I) F,
-  let x := \big[op/nil]_(i <- r2 | P i) F i in
-  \big[op/nil]_(i <- r1 ++ r2 | P i) F i = \big[op/x]_(i <- r1 | P i) F i.
+  let x := \big[op/idx]_(i <- r2 | P i) F i in
+  \big[op/idx]_(i <- r1 ++ r2 | P i) F i = \big[op/x]_(i <- r1 | P i) F i.
 Proof. by move=> r1 r2 P F; rewrite unlock /reducebig foldr_cat. Qed.
 
 Lemma big_catl : forall r1 r2 (P : pred I) F, ~~ has P r2 ->
-  \big[op/nil]_(i <- r1 ++ r2 | P i) F i = \big[op/nil]_(i <- r1 | P i) F i.
+  \big[op/idx]_(i <- r1 ++ r2 | P i) F i = \big[op/idx]_(i <- r1 | P i) F i.
 Proof. by move=> r1 r2 P F; rewrite big_cat_nested; move/big_hasC->. Qed.
 
 Lemma big_catr : forall r1 r2 (P : pred I) F, ~~ has P r1 ->
-  \big[op/nil]_(i <- r1 ++ r2 | P i) F i = \big[op/nil]_(i <- r2 | P i) F i.
+  \big[op/idx]_(i <- r1 ++ r2 | P i) F i = \big[op/idx]_(i <- r2 | P i) F i.
 Proof.
 move=> r1 r2 P F; rewrite -big_filter -(big_filter r2) filter_cat.
 by rewrite has_count count_filter; case: filter.
 Qed.
 
 Lemma big_const_seq : forall r (P : pred I) x,
-  \big[op/nil]_(i <- r | P i) x = iter (count P r) (op x) nil.
+  \big[op/idx]_(i <- r | P i) x = iter (count P r) (op x) idx.
 Proof. by rewrite unlock => r P x; elim: r => //= i r ->; case: (P i). Qed.
 
 End SeqExtension.
@@ -454,8 +454,8 @@ End SeqExtension.
 (* elim), and the latter can't handle the eqType constraint on I, as *)
 (* it doesn't recognize canonical projections.                       *)
 Lemma big_cond_seq : forall (I : eqType) r (P : pred I) F,
-  \big[op/nil]_(i <- r | P i) F i
-    = \big[op/nil]_(i <- r | P i && (i \in r)) F i.
+  \big[op/idx]_(i <- r | P i) F i
+    = \big[op/idx]_(i <- r | P i && (i \in r)) F i.
 Proof.
 move=> I r P F; rewrite -!(big_filter r); congr bigop.
 by apply: eq_in_filter => i ->; rewrite andbT.
@@ -465,8 +465,8 @@ Lemma congr_big_nat : forall m1 n1 m2 n2 P1 P2 F1 F2,
     m1 = m2 -> n1 = n2 ->
     (forall i, m1 <= i < n2 -> P1 i = P2 i) ->
     (forall i, P1 i && (m1 <= i < n2) -> F1 i = F2 i) ->
-  \big[op/nil]_(m1 <= i < n1 | P1 i) F1 i
-    = \big[op/nil]_(m2 <= i < n2 | P2 i) F2 i.
+  \big[op/idx]_(m1 <= i < n1 | P1 i) F1 i
+    = \big[op/idx]_(m2 <= i < n2 | P2 i) F2 i.
 Proof.
 move=> m n _ _ P1 P2 F1 F2 <- <- eqP12 eqF12.
 rewrite big_cond_seq (big_cond_seq _ P2).
@@ -475,53 +475,53 @@ case inmn_i: (m <= i < n); rewrite ?(andbT, andbF) //; exact: eqP12.
 Qed.
 
 Lemma big_geq : forall m n (P : pred nat) F, m >= n ->
-  \big[op/nil]_(m <= i < n | P i) F i = nil.
+  \big[op/idx]_(m <= i < n | P i) F i = idx.
 Proof.
-by move=> m n P F ge_m_n; rewrite /index_iota (eqnP ge_m_n) big_seq0.
+by move=> m n P F ge_m_n; rewrite /index_iota (eqnP ge_m_n) big_nil.
 Qed.
 
 Lemma big_ltn_cond : forall m n (P : pred nat) F, m < n ->
-  let x := \big[op/nil]_(m.+1 <= i < n | P i) F i in
-  \big[op/nil]_(m <= i < n | P i) F i = if P m then op (F m) x else x.
+  let x := \big[op/idx]_(m.+1 <= i < n | P i) F i in
+  \big[op/idx]_(m <= i < n | P i) F i = if P m then op (F m) x else x.
 Proof.
-by move=> m [//|n] P F le_m_n; rewrite /index_iota leq_subS // big_adds.
+by move=> m [//|n] P F le_m_n; rewrite /index_iota leq_subS // big_cons.
 Qed.
 
 Lemma big_ltn : forall m n F, m < n ->
-  \big[op/nil]_(m <= i < n) F i = op (F m) (\big[op/nil]_(m.+1 <= i < n) F i).
+  \big[op/idx]_(m <= i < n) F i = op (F m) (\big[op/idx]_(m.+1 <= i < n) F i).
 Proof. move=> *; exact: big_ltn_cond. Qed.
 
 Lemma big_addn : forall m n a (P : pred nat) F,
-  \big[op/nil]_(m + a <= i < n | P i) F i =
-     \big[op/nil]_(m <= i < n - a | P (i + a)) F (i + a).
+  \big[op/idx]_(m + a <= i < n | P i) F i =
+     \big[op/idx]_(m <= i < n - a | P (i + a)) F (i + a).
 Proof.
-move=> m n a P F; rewrite /index_iota subn_sub addnC iota_addl big_maps.
+move=> m n a P F; rewrite /index_iota subn_sub addnC iota_addl big_map.
 by apply: eq_big => ? *; rewrite addnC.
 Qed.
 
 Lemma big_add1 : forall m n (P : pred nat) F,
-  \big[op/nil]_(m.+1 <= i < n | P i) F i =
-     \big[op/nil]_(m <= i < n.-1 | P (i.+1)) F (i.+1).
+  \big[op/idx]_(m.+1 <= i < n | P i) F i =
+     \big[op/idx]_(m <= i < n.-1 | P (i.+1)) F (i.+1).
 Proof.
 move=> m n P F; rewrite -addn1 big_addn subn1.
 by apply: eq_big => ? *; rewrite addn1.
 Qed.
 
 Lemma big_nat_recl : forall n F,
-  \big[op/nil]_(0 <= i < n.+1) F i =
-     op (F 0) (\big[op/nil]_(0 <= i < n) F i.+1).
+  \big[op/idx]_(0 <= i < n.+1) F i =
+     op (F 0) (\big[op/idx]_(0 <= i < n) F i.+1).
 Proof. by move=> n F; rewrite big_ltn // big_add1. Qed.
 
 Lemma big_mkord : forall n (P : pred nat) F,
-  \big[op/nil]_(0 <= i < n | P i) F i = \big[op/nil]_(i < n | P i) F i.
+  \big[op/idx]_(0 <= i < n | P i) F i = \big[op/idx]_(i < n | P i) F i.
 Proof.
-move=> n P F; rewrite /index_iota subn0 -(big_maps (@nat_of_ord n)).
+move=> n P F; rewrite /index_iota subn0 -(big_map (@nat_of_ord n)).
 by congr bigop; rewrite /index_enum unlock val_ord_enum.
 Qed.
 
 Lemma big_nat_widen : forall m n1 n2 (P : pred nat) F, n1 <= n2 ->
-  \big[op/nil]_(m <= i < n1 | P i) F i
-      = \big[op/nil]_(m <= i < n2 | P i && (i < n1)) F i.
+  \big[op/idx]_(m <= i < n1 | P i) F i
+      = \big[op/idx]_(m <= i < n2 | P i && (i < n1)) F i.
 Proof.
 move=> m n1 n2 P F len12; symmetry.
 rewrite -big_filter filter_predI big_filter.
@@ -539,8 +539,8 @@ Qed.
 
 Lemma big_ord_widen_cond : forall n1 n2 (P : pred nat) (F : nat -> R),
      n1 <= n2 ->
-  \big[op/nil]_(i < n1 | P i) F i
-      = \big[op/nil]_(i < n2 | P i && (i < n1)) F i.
+  \big[op/idx]_(i < n1 | P i) F i
+      = \big[op/idx]_(i < n2 | P i && (i < n1)) F i.
 Proof.
 move=> n1 n2 P F len12.
 by rewrite -big_mkord (big_nat_widen _ _ _ len12) big_mkord.
@@ -548,13 +548,13 @@ Qed.
 
 Lemma big_ord_widen : forall n1 n2 (F : nat -> R),
  n1 <= n2 ->
-  \big[op/nil]_(i < n1) F i = \big[op/nil]_(i < n2 | i < n1) F i.
+  \big[op/idx]_(i < n1) F i = \big[op/idx]_(i < n2 | i < n1) F i.
 Proof. move=> *; exact: (big_ord_widen_cond (predT)). Qed.
 
 Lemma big_ord_widen_leq : forall n1 n2 (P : pred 'I_(n1.+1)) F,
  n1 < n2 ->
-  \big[op/nil]_(i < n1.+1 | P i) F i
-      = \big[op/nil]_(i < n2 | P (inord i) && (i <= n1)) F (inord i).
+  \big[op/idx]_(i < n1.+1 | P i) F i
+      = \big[op/idx]_(i < n2 | P (inord i) && (i <= n1)) F (inord i).
 Proof.
 move=> n1 n2 P F len12; pose g G i := G (inord i : 'I_(n1.+1)).
 rewrite -(big_ord_widen_cond (g _ P) (g _ F) len12) {}/g.
@@ -564,8 +564,8 @@ Qed.
 Lemma big_ord_narrow_cond : forall n1 n2 (P : pred 'I_n2) F,
   forall le_n1_n2 : n1 <= n2,
   let w := widen_ord le_n1_n2 in
-  \big[op/nil]_(i < n2 | P i && (i < n1)) F i
-    = \big[op/nil]_(i < n1 | P (w i)) F (w i).
+  \big[op/idx]_(i < n2 | P i && (i < n1)) F i
+    = \big[op/idx]_(i < n1 | P (w i)) F (w i).
 Proof.
 move=> [|n1] n2 P F ltn12 /=.
   by rewrite !big_pred0 // => [[//] | i]; rewrite andbF.
@@ -578,25 +578,25 @@ Qed.
 Lemma big_ord_narrow_cond_leq : forall n1 n2 (P : pred 'I_(n2.+1)) F,
   forall le_n1_n2 : n1 <= n2,
   let w := @widen_ord n1.+1 n2.+1 le_n1_n2 in
-  \big[op/nil]_(i < n2.+1 | P i && (i <= n1)) F i
-  = \big[op/nil]_(i < n1.+1 | P (w i)) F (w i).
+  \big[op/idx]_(i < n2.+1 | P i && (i <= n1)) F i
+  = \big[op/idx]_(i < n1.+1 | P (w i)) F (w i).
 Proof. move=> n1 n2; exact: big_ord_narrow_cond n1.+1 n2.+1. Qed.
 
 Lemma big_ord_narrow : forall n1 n2 F,
   forall le_n1_n2 : n1 <= n2,
   let w := widen_ord le_n1_n2 in
-  \big[op/nil]_(i < n2 | i < n1) F i = \big[op/nil]_(i < n1) F (w i).
+  \big[op/idx]_(i < n2 | i < n1) F i = \big[op/idx]_(i < n1) F (w i).
 Proof. move=> *; exact: (big_ord_narrow_cond (predT)). Qed.
 
 Lemma big_ord_narrow_leq : forall n1 n2 F,
   forall le_n1_n2 : n1 <= n2,
   let w := @widen_ord n1.+1 n2.+1 le_n1_n2 in
-  \big[op/nil]_(i < n2.+1 | i <= n1) F i = \big[op/nil]_(i < n1.+1) F (w i).
+  \big[op/idx]_(i < n2.+1 | i <= n1) F i = \big[op/idx]_(i < n1.+1) F (w i).
 Proof. move=> *; exact: (big_ord_narrow_cond_leq (predT)). Qed.
 
 Lemma big_ord_recl : forall n F,
-  \big[op/nil]_(i < n.+1) F i =
-     op (F ord0) (\big[op/nil]_(i < n) F (@lift n.+1 ord0 i)).
+  \big[op/idx]_(i < n.+1) F i =
+     op (F ord0) (\big[op/idx]_(i < n) F (@lift n.+1 ord0 i)).
 Proof.
 move=> n F; pose G i := F (inord i).
 have eqFG: forall i, F i = G i by move=> i; rewrite /G inord_val.
@@ -606,15 +606,15 @@ by apply: eq_bigr => i _; rewrite eqFG.
 Qed.
 
 Lemma big_const : forall (I : finType) (A : pred I) x,
-  \big[op/nil]_(i \in A) x = iter #|A| (op x) nil.
+  \big[op/idx]_(i \in A) x = iter #|A| (op x) idx.
 Proof. by move=> I A x; rewrite big_const_seq count_filter cardE. Qed.
 
 Lemma big_const_nat : forall m n x,
-  \big[op/nil]_(m <= i < n) x = iter (n - m) (op x) nil.
+  \big[op/idx]_(m <= i < n) x = iter (n - m) (op x) idx.
 Proof. by move=> *; rewrite big_const_seq count_predT size_iota. Qed.
 
 Lemma big_const_ord : forall n x,
-  \big[op/nil]_(i < n) x = iter n (op x) nil.
+  \big[op/idx]_(i < n) x = iter n (op x) idx.
 Proof. by move=> *; rewrite big_const card_ord. Qed.
 
 End Extensionality.
@@ -625,8 +625,8 @@ Import Monoid.
 
 Variable R : Type.
 
-Variable nil : R.
-Notation Local "1" := nil.
+Variable idx : R.
+Notation Local "1" := idx.
 
 Section Plain.
 
@@ -635,21 +635,21 @@ Variable op : Monoid.law 1.
 Notation Local "*%M" := (operator op) (at level 0).
 Notation Local "x * y" := ( *%M x y).
 
-Lemma eq_big_nil_seq : forall nil' I r (P : pred I) F,
-     right_id nil' *%M -> has P r ->
-   \big[*%M/nil']_(i <- r | P i) F i =\big[*%M/1]_(i <- r | P i) F i.
+Lemma eq_big_idx_seq : forall idx' I r (P : pred I) F,
+     right_id idx' *%M -> has P r ->
+   \big[*%M/idx']_(i <- r | P i) F i =\big[*%M/1]_(i <- r | P i) F i.
 Proof.
-move=> nil' I r P F op_nil'.
+move=> idx' I r P F op_idx'.
 rewrite -!(big_filter _ _ r) has_count count_filter.
 case/lastP: (filter P r) => {r p}// r i _.
-by rewrite -cats1 !(big_cat_nested, big_adds, big_seq0) op_nil' mulm1.
+by rewrite -cats1 !(big_cat_nested, big_cons, big_nil) op_idx' mulm1.
 Qed.
 
-Lemma eq_big_nil  : forall nil' (I : finType) i0 (P : pred I) F,
-     P i0 -> right_id nil' *%M ->
-  \big[*%M/nil']_(i | P i) F i =\big[*%M/1]_(i | P i) F i.
+Lemma eq_big_idx  : forall idx' (I : finType) i0 (P : pred I) F,
+     P i0 -> right_id idx' *%M ->
+  \big[*%M/idx']_(i | P i) F i =\big[*%M/1]_(i | P i) F i.
 Proof.
-move=> nil' I i0 P F op_nil' Pi0; apply: eq_big_nil_seq => //.
+move=> idx' I i0 P F op_idx' Pi0; apply: eq_big_idx_seq => //.
 by apply/hasP; exists i0; first rewrite /index_enum -enumT mem_enum.
 Qed.
 
@@ -684,8 +684,8 @@ Lemma big_cat : forall I r1 r2 (P : pred I) F,
      \big[*%M/1]_(i <- r1 | P i) F i * \big[*%M/1]_(i <- r2 | P i) F i.
 Proof.
 move=> I r1 r2 P F; rewrite !(big_mkcond _ P).
-elim: r1 => [|i r1 IHr1]; first by rewrite big_seq0 mul1m.
-by rewrite /= !big_adds IHr1 mulmA.
+elim: r1 => [|i r1 IHr1]; first by rewrite big_nil mul1m.
+by rewrite /= !big_cons IHr1 mulmA.
 Qed.
 
 Lemma big_pred1_eq : forall (I : finType) (i : I) F,
@@ -741,7 +741,7 @@ move=> I r1 r2 P F; move/perm_eqP; rewrite !(big_mkcond _ _ P).
 elim: r1 r2 => [|i r1 IHr1] r2 eq_r12.
   by case: r2 eq_r12 => // i r2; move/(_ (pred1 i)); rewrite /= eqxx.
 have r2i: i \in r2 by rewrite -has_pred1 has_count -eq_r12 /= eqxx.
-case/splitPr: r2 / r2i => [r3 r4] in eq_r12 *; rewrite big_cat /= !big_adds.
+case/splitPr: r2 / r2i => [r3 r4] in eq_r12 *; rewrite big_cat /= !big_cons.
 rewrite mulmCA; congr (_ * _); rewrite -big_cat; apply: IHr1 => a.
 move/(_ a): eq_r12; rewrite !count_cat /= addnCA; exact: addnI.
 Qed.
@@ -906,63 +906,63 @@ End Abelian.
 
 End MonoidProperties.
 
-Implicit Arguments big_filter [R op nil I].
-Implicit Arguments big_filter_cond [R op nil I].
-Implicit Arguments congr_big [R op nil I r1 P1 F1].
-Implicit Arguments eq_big [R op nil I r P1  F1].
-Implicit Arguments eq_bigl [R op nil  I r P1].
-Implicit Arguments eq_bigr [R op nil I r  P F1].
-Implicit Arguments eq_big_nil [R op nil nil' I P F].
-Implicit Arguments big_cond_seq [R op nil I r].
-Implicit Arguments congr_big_nat [R op nil m1 n1 P1 F1].
-Implicit Arguments big_maps [R op nil I J r].
-Implicit Arguments big_sub [R op nil I r].
-Implicit Arguments big_catl [R op nil I r1 r2 P F].
-Implicit Arguments big_catr [R op nil I r1 r2  P F].
-Implicit Arguments big_geq [R op nil m n P F].
-Implicit Arguments big_ltn_cond [R op nil m n P F].
-Implicit Arguments big_ltn [R op nil m n F].
-Implicit Arguments big_addn [R op nil]. (* m n a *)
-Implicit Arguments big_mkord [R op nil n].
-Implicit Arguments big_nat_widen [R op nil] (* m n a *).
-Implicit Arguments big_ord_widen_cond [R op nil n1].
-Implicit Arguments big_ord_widen [R op nil n1].
-Implicit Arguments big_ord_widen_leq [R op nil n1].
-Implicit Arguments big_ord_narrow_cond [R op nil n1 n2 P F].
-Implicit Arguments big_ord_narrow_cond_leq [R op nil n1 n2 P F].
-Implicit Arguments big_ord_narrow [R op nil n1 n2 F].
-Implicit Arguments big_ord_narrow_leq [R op nil n1 n2 F].
-Implicit Arguments big_mkcond [R op nil I r].
-Implicit Arguments big1_eq [R op nil I].
-Implicit Arguments big1_seq [R op nil I].
-Implicit Arguments big1 [R op nil I].
-Implicit Arguments big_pred1 [R op nil I P F].
-Implicit Arguments eq_big_perm [R op nil I r1 P F].
-Implicit Arguments big_uniq [R op nil I F].
-Implicit Arguments bigID [R op nil I r].
-Implicit Arguments bigD1 [R op nil I P F].
-Implicit Arguments partition_big [R op nil I J P F].
-Implicit Arguments reindex_onto [R op nil I J P F].
-Implicit Arguments reindex [R op nil I J P F].
-Implicit Arguments pair_big_dep [R op nil I J].
-Implicit Arguments pair_big [R op nil I J].
-Implicit Arguments exchange_big_dep [R op nil I J P Q F].
-Implicit Arguments exchange_big_dep_nat [R op nil m1 n1 m2 n2 P Q F].
-Implicit Arguments big_ord_recl [R op nil].
-Implicit Arguments big_ord_recr [R op nil].
-Implicit Arguments big_nat_recl [R op nil].
-Implicit Arguments big_nat_recr [R op nil].
+Implicit Arguments big_filter [R op idx I].
+Implicit Arguments big_filter_cond [R op idx I].
+Implicit Arguments congr_big [R op idx I r1 P1 F1].
+Implicit Arguments eq_big [R op idx I r P1  F1].
+Implicit Arguments eq_bigl [R op idx  I r P1].
+Implicit Arguments eq_bigr [R op idx I r  P F1].
+Implicit Arguments eq_big_idx [R op idx idx' I P F].
+Implicit Arguments big_cond_seq [R op idx I r].
+Implicit Arguments congr_big_nat [R op idx m1 n1 P1 F1].
+Implicit Arguments big_map [R op idx I J r].
+Implicit Arguments big_nth [R op idx I r].
+Implicit Arguments big_catl [R op idx I r1 r2 P F].
+Implicit Arguments big_catr [R op idx I r1 r2  P F].
+Implicit Arguments big_geq [R op idx m n P F].
+Implicit Arguments big_ltn_cond [R op idx m n P F].
+Implicit Arguments big_ltn [R op idx m n F].
+Implicit Arguments big_addn [R op idx]. (* m n a *)
+Implicit Arguments big_mkord [R op idx n].
+Implicit Arguments big_nat_widen [R op idx] (* m n a *).
+Implicit Arguments big_ord_widen_cond [R op idx n1].
+Implicit Arguments big_ord_widen [R op idx n1].
+Implicit Arguments big_ord_widen_leq [R op idx n1].
+Implicit Arguments big_ord_narrow_cond [R op idx n1 n2 P F].
+Implicit Arguments big_ord_narrow_cond_leq [R op idx n1 n2 P F].
+Implicit Arguments big_ord_narrow [R op idx n1 n2 F].
+Implicit Arguments big_ord_narrow_leq [R op idx n1 n2 F].
+Implicit Arguments big_mkcond [R op idx I r].
+Implicit Arguments big1_eq [R op idx I].
+Implicit Arguments big1_seq [R op idx I].
+Implicit Arguments big1 [R op idx I].
+Implicit Arguments big_pred1 [R op idx I P F].
+Implicit Arguments eq_big_perm [R op idx I r1 P F].
+Implicit Arguments big_uniq [R op idx I F].
+Implicit Arguments bigID [R op idx I r].
+Implicit Arguments bigD1 [R op idx I P F].
+Implicit Arguments partition_big [R op idx I J P F].
+Implicit Arguments reindex_onto [R op idx I J P F].
+Implicit Arguments reindex [R op idx I J P F].
+Implicit Arguments pair_big_dep [R op idx I J].
+Implicit Arguments pair_big [R op idx I J].
+Implicit Arguments exchange_big_dep [R op idx I J P Q F].
+Implicit Arguments exchange_big_dep_nat [R op idx m1 n1 m2 n2 P Q F].
+Implicit Arguments big_ord_recl [R op idx].
+Implicit Arguments big_ord_recr [R op idx].
+Implicit Arguments big_nat_recl [R op idx].
+Implicit Arguments big_nat_recr [R op idx].
 
 Section BigProp.
 
 Variables (R : Type) (Pb : R -> Type).
-Variables (nil : R) (op1 op2 : R -> R -> R).
-Hypothesis (Pb_nil : Pb nil)
+Variables (idx : R) (op1 op2 : R -> R -> R).
+Hypothesis (Pb_idx : Pb idx)
            (Pb_op1 : forall x y, Pb x -> Pb y -> Pb (op1 x y))
            (Pb_eq_op : forall x y, Pb x -> Pb y -> op1 x y = op2 x y).
 
 Lemma big_prop : forall I r (P : pred I) F,
-  (forall i, P i -> Pb (F i)) -> Pb (\big[op1/nil]_(i <- r | P i) F i).
+  (forall i, P i -> Pb (F i)) -> Pb (\big[op1/idx]_(i <- r | P i) F i).
 Proof.
 by rewrite unlock => I r P F PbF; elim: r => //= i *; case Pi: (P i); auto.
 Qed.
@@ -971,13 +971,13 @@ Qed.
 (* unification will not handle the eqType constraint on I.                   *)
 Lemma big_prop_seq : forall (I : eqType) (r : seq I) (P : pred I) F,
   (forall i, P i && (i \in r) -> Pb (F i)) ->
-   Pb (\big[op1/nil]_(i <- r | P i) F i).
+   Pb (\big[op1/idx]_(i <- r | P i) F i).
 Proof. move=> I r P F; rewrite big_cond_seq; exact: big_prop. Qed.
 
 (* Change operation *)
 Lemma eq_big_op :  forall I r (P : pred I) F,
    (forall i, P i -> Pb (F i)) ->
-  \big[op1/nil]_(i <- r | P i) F i = \big[op2/nil]_(i <- r | P i) F i.
+  \big[op1/idx]_(i <- r | P i) F i = \big[op2/idx]_(i <- r | P i) F i.
 Proof.
 have:= big_prop; rewrite unlock => Pb_big I r P F Pb_F.
 by elim: r => //= i r <-; case Pi: (P i); auto.
@@ -986,28 +986,28 @@ Qed.
 (* See big_prop_seq above *)
 Lemma eq_big_op_seq :  forall (I : eqType) r (P : pred I) F,
     (forall i, P i && (i \in r) -> Pb (F i)) ->
-  \big[op1/nil]_(i <- r | P i) F i = \big[op2/nil]_(i <- r | P i) F i.
+  \big[op1/idx]_(i <- r | P i) F i = \big[op2/idx]_(i <- r | P i) F i.
 Proof. move=> I r P F Pb_F; rewrite !(big_cond_seq P); exact: eq_big_op. Qed.
 
 End BigProp.
 
 (* The implicit arguments expect an explicit Pb *)
-Implicit Arguments eq_big_op_seq [R nil op1 I r P F].
-Implicit Arguments eq_big_op [R nil op1 I P F].
+Implicit Arguments eq_big_op_seq [R idx op1 I r P F].
+Implicit Arguments eq_big_op [R idx op1 I P F].
 
 Section BigRel.
 
 Variables (R1 R2 : Type) (Pr : R1 -> R2 -> Type).
-Variables (nil1 : R1) (op1 : R1 -> R1 -> R1).
-Variables (nil2 : R2) (op2 : R2 -> R2 -> R2).
-Hypothesis Pr_nil : Pr nil1 nil2.
+Variables (idx1 : R1) (op1 : R1 -> R1 -> R1).
+Variables (idx2 : R2) (op2 : R2 -> R2 -> R2).
+Hypothesis Pr_idx : Pr idx1 idx2.
 Hypothesis Pr_rel : forall x1 x2 y1 y2,
   Pr x1 x2 -> Pr y1 y2 -> Pr (op1 x1 y1) (op2 x2 y2).
 
 (* Pr must be given explicitly *)
 Lemma big_rel : forall I r (P : pred I) F1 F2,
   (forall i, (P i) -> Pr (F1 i) (F2 i)) ->
-  Pr (\big[op1/nil1]_(i <- r | P i) F1 i) (\big[op2/nil2]_(i <- r | P i) F2 i).
+  Pr (\big[op1/idx1]_(i <- r | P i) F1 i) (\big[op2/idx2]_(i <- r | P i) F2 i).
 Proof.
 rewrite !unlock => I r P F1 F2 PrF.
 elim: r => //= i *; case Pi: (P i); auto.
@@ -1015,25 +1015,25 @@ Qed.
 
 Lemma big_rel_seq : forall (I : eqType) (r : seq I) (P : pred I) F1 F2,
     (forall i, P i && (i \in r) -> Pr (F1 i) (F2 i)) ->
-  Pr (\big[op1/nil1]_(i <- r | P i) F1 i) (\big[op2/nil2]_(i <- r | P i) F2 i).
+  Pr (\big[op1/idx1]_(i <- r | P i) F1 i) (\big[op2/idx2]_(i <- r | P i) F2 i).
 Proof. move=> I r P *; rewrite !(big_cond_seq P); exact: big_rel. Qed.
 
 End BigRel.
 
-Implicit Arguments big_rel_seq [R1 R2 nil1 op1 nil2 op2 I r P F1 F2].
-Implicit Arguments big_rel [R1 R2 nil1 op1 nil2 op2 I P F1 F2].
+Implicit Arguments big_rel_seq [R1 R2 idx1 op1 idx2 op2 I r P F1 F2].
+Implicit Arguments big_rel [R1 R2 idx1 op1 idx2 op2 I P F1 F2].
 
 Section Morphism.
 
 Variables R1 R2 : Type.
-Variables (nil1 : R1) (nil2 : R2).
+Variables (idx1 : R1) (idx2 : R2).
 Variables (op1 : R1 -> R1 -> R1) (op2 : R2 -> R2 -> R2).
 Variable phi : R1 -> R2.
-Hypothesis phi_morphism : Monoid.morphism nil1 nil2 op1 op2 phi.
+Hypothesis phi_morphism : Monoid.morphism idx1 idx2 op1 op2 phi.
 
 Lemma big_morph : forall I r (P : pred I) F,
-  phi (\big[op1/nil1]_(i <- r | P i) F i) =
-     \big[op2/nil2]_(i <- r | P i) phi (F i).
+  phi (\big[op1/idx1]_(i <- r | P i) F i) =
+     \big[op2/idx2]_(i <- r | P i) phi (F i).
 Proof.
 case: phi_morphism => [phi1 phiM] I r P F.
 by rewrite !unlock; elim: r => //= i r <-; case: (P i).
@@ -1041,7 +1041,7 @@ Qed.
 
 End Morphism.
 
-Implicit Arguments big_morph [R1 R2 nil1 nil2 op1 op2].
+Implicit Arguments big_morph [R1 R2 idx1 idx2 op1 op2].
 
 Section Distributivity.
 
@@ -1087,10 +1087,10 @@ transitivity (\big[+%M/0]_(f | Pf (mem r) f) \big[*%M/1]_(i <- r) F i (f i)).
   by apply: eq_forallb => i; rewrite /= mem_enum.
 have: uniq r by exact: uniq_enum.
 elim: {P}r => /= [_|i r IHr].
-  rewrite (big_pred1 [ffun => j0]) ?big_seq0 //= => f.
+  rewrite (big_pred1 [ffun => j0]) ?big_nil //= => f.
   apply/familyP/eqP=> /= [Df |->{f} i]; last by rewrite ffunE.
   apply/ffunP=> i; rewrite ffunE; exact/eqP.
-case/andP=> nri; rewrite big_adds big_distrl; move/IHr {IHr} <-.
+case/andP=> nri; rewrite big_cons big_distrl; move/IHr {IHr} <-.
 rewrite (partition_big (fun f : fIJ => f i) (Q i)); last first.
   by move=> f; move/familyP; move/(_ i); rewrite /= inE /= eqxx.
 pose seti j (f : fIJ) := [ffun k => if k == i then j else f k].
@@ -1098,13 +1098,13 @@ apply: eq_bigr => j Qij; rewrite (reindex_onto (seti j) (seti j0)); last first.
   move=> f /=; case/andP; move/familyP=> eq_f; move/eqP=> fi.
   by apply/ffunP => k; rewrite !ffunE; case: eqP => // ->.
 rewrite big_distrr; apply: eq_big => [f | f eq_f]; last first.
-  rewrite big_adds ffunE eq_refl !(big_cond_seq predT) /=; congr (_ * _).
+  rewrite big_cons ffunE eq_refl !(big_cond_seq predT) /=; congr (_ * _).
   by apply: eq_bigr => k; rewrite ffunE; case: eqP => // ->; case/idPn.
 rewrite !ffunE !eq_refl andbT; apply/andP/familyP=> [[Pjf fij0] k | Pff].
-  have:= familyP _ _ Pjf k; rewrite /= ffunE in_adds; case: eqP => // -> _.
+  have:= familyP _ _ Pjf k; rewrite /= ffunE in_cons; case: eqP => // -> _.
   by rewrite (negbTE nri) -(eqP fij0) !ffunE ?inE /= !eqxx.
 split.
-  apply/familyP=> k; move/(_ k): Pff; rewrite /= ffunE in_adds.
+  apply/familyP=> k; move/(_ k): Pff; rewrite /= ffunE in_cons.
   by case: eqP => // ->.
 apply/eqP; apply/ffunP=> k; have:= Pff k; rewrite !ffunE /=.
 by case: eqP => // ->; rewrite (negbTE nri) /=; move/eqP.
@@ -1128,10 +1128,10 @@ move=> I J Q F; case: (pickP J) => [j0 _ | J0].
    exact: (big_distr_big_dep j0).
 rewrite /index_enum -enumT; case: (enum I) (mem_enum I) => [I0 | i r _].
   have f0: I -> J by move=> i; have:= I0 i.
-  rewrite (big_pred1 (finfun f0)) ?big_seq0 // => g.
+  rewrite (big_pred1 (finfun f0)) ?big_nil // => g.
   by apply/familyP/eqP=> _; first apply/ffunP; move=> i; have:= I0 i.
 have Q0: Q _ =1 pred0 by move=> ? j; have:= J0 j.
-rewrite big_adds /= big_pred0 // mul0m big_pred0 // => f.
+rewrite big_cons /= big_pred0 // mul0m big_pred0 // => f.
 by apply/familyP; move/(_ i); rewrite Q0.
 Qed.
 

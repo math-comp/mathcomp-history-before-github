@@ -108,7 +108,7 @@ Variable T : Type.
 (* one-to-one (otherwise, the contents following the padding could  *)
 (* never exceed the capacity of the shape encoded by the padding.   *)
 
-Definition pad n s2 : seq (seq T) := addsn n [::] s2.
+Definition pad n s2 : seq (seq T) := ncons n [::] s2.
 
 Definition padding := find [pred s : seq T | size s > 0].
 
@@ -121,7 +121,7 @@ Lemma padKl : forall n s2, padding (pad n (strip s2)) = n.
 Proof. by move=> n s2; elim: n => /= [|n -> //]; elim: s2 => [|[]]. Qed.
 
 Lemma padKr : forall n s2, strip (pad n (strip s2)) = strip s2.
-Proof. by move=> n s2; rewrite /strip padKl addsnK. Qed.
+Proof. by move=> n s2; rewrite /strip padKl nconsK. Qed.
 
 Definition code s3 :=
   let sh := shape s3 in let s2' := strip (flatten s3) in
@@ -130,31 +130,31 @@ Definition code s3 :=
 Definition decode s2 :=
   let: (sh', s2') := let n := padding s2 in (Nat.decode n, drop n s2) in
   let m := sumn sh' in let m' := size s2' in
-  reshape (addsn (maxn m 1 <= m') (m' - m) sh') (pad (m - m') s2').
+  reshape (ncons (maxn m 1 <= m') (m' - m) sh') (pad (m - m') s2').
 
 Lemma codeK : cancel code decode.
 Proof.
 rewrite /code => s3; set sh := shape s3; set s2' := strip _.
-rewrite /decode padKl addsnK Nat.codeK.
+rewrite /decode padKl nconsK Nat.codeK.
 case le_s2': (maxn (sumn sh) 1 <= size s2'); last first.
   rewrite drop0 le_s2' /= -size_flatten size_drop subKn ?find_size // stripK.
   exact: flattenK.
 move: le_s2'; rewrite !leq_maxl size_drop size_flatten -/sh andbC ltn_0sub.
 case/andP=> lt_sh; rewrite lt_sh -eqn_sub0 subKn /s2' /strip; last exact: ltnW.
 move/eqP->; rewrite subn0 drop1 drop0; case def_sh: sh lt_sh => //= [n sh'] _.
-by rewrite leq_addl addnK addnC -subn_sub subnn -[addsn _ _ _]def_sh flattenK.
+by rewrite leq_addl addnK addnC -subn_sub subnn -[ncons _ _ _]def_sh flattenK.
 Qed.
 
 Lemma decodeK : cancel decode code.
 Proof.
 rewrite /decode => s2; set sh' := Nat.decode _; set s2' := drop _ _.
-set sh := addsn _ _ _; set s3' := pad _ _; have sz_s3': sumn sh = size s3'.
-  rewrite size_addsn {s3'}/sh addnC add_sub_maxn leq_maxl andbC.
+set sh := ncons _ _ _; set s3' := pad _ _; have sz_s3': sumn sh = size s3'.
+  rewrite size_ncons {s3'}/sh addnC add_sub_maxn leq_maxl andbC.
   case: posnP => [->|_]; first by rewrite max0n.
   case: leqP => [_|lt_m_m'] /=; first by rewrite addnC add_sub_maxn maxnC.
   by apply/eqP; rewrite eq_sym eqn_maxr ltnW.
-rewrite /code reshapeKl ?reshapeKr ?{}sz_s3' // padKr size_addsn addnC.
-by rewrite add_sub_maxn -maxnA leq_maxl leqnn {sh}addsnK Nat.decodeK stripK.
+rewrite /code reshapeKl ?reshapeKr ?{}sz_s3' // padKr size_ncons addnC.
+by rewrite add_sub_maxn -maxnA leq_maxl leqnn {sh}nconsK Nat.decodeK stripK.
 Qed.
 
 End Seq2.
@@ -167,7 +167,7 @@ Section OtherEncodings.
 
 Variable T : Type.
 
-Definition seq_of_opt := @oapp T _ (seqn 1) [::].
+Definition seq_of_opt := @oapp T _ (nseq 1) [::].
 Lemma seq_of_optK : cancel seq_of_opt ohead. Proof. by case. Qed.
 
 Definition seq2_of (x : T) := [::[::x]].
@@ -362,7 +362,7 @@ rewrite (insubT Q Qx0); exact: eq_xchoose.
 Qed.
 
 Definition PcanChoiceMixin sT f f' (fK : @pcancel T sT f f') :=
-  Choice.CanMixin2 (mapsK (maps_pK fK)).
+  Choice.CanMixin2 (mapK (map_pK fK)).
 
 Definition CanChoiceMixin sT f f' (fK : @cancel T sT f f') :=
   PcanChoiceMixin (can_pcan fK).
@@ -413,12 +413,12 @@ Section PickleSeq.
 Variables (T : Type) (p : T -> nat) (u : nat -> option T).
 Hypothesis pK : pcancel p u.
 
-Definition pickle_seq s := CodeSeq.Nat.code (maps p s).
+Definition pickle_seq s := CodeSeq.Nat.code (map p s).
 
-Definition unpickle_seq n := Some (pmaps u (CodeSeq.Nat.decode n)).
+Definition unpickle_seq n := Some (pmap u (CodeSeq.Nat.decode n)).
 
 Lemma pickle_seqK : pcancel pickle_seq unpickle_seq.
-Proof. by move=> s; rewrite /unpickle_seq CodeSeq.Nat.codeK maps_pK. Qed.
+Proof. by move=> s; rewrite /unpickle_seq CodeSeq.Nat.codeK map_pK. Qed.
 
 End PickleSeq.
 

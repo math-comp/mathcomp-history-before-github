@@ -54,8 +54,8 @@ Proof.
 move=> i j A m'; rewrite /annihilate_col_step.
 elim: m' A => [| m' Hm'] A k l //=; first by rewrite take0 /= ltn0 andbF.
 case: (ltnP m' m) => m'm.
-  rewrite (take_sub (Ordinal m'm)) 1?size_enum_ord //.
-  rewrite -(cats0 (add_last _ _)) cat_add_last (sub_ord_enum _ (Ordinal m'm)).
+  rewrite (take_nth (Ordinal m'm)) 1?size_enum_ord //.
+  rewrite -(cats0 ( _ _)) cat_rcons (nth_ord_enum _ (Ordinal m'm)).
   rewrite foldr_cat Hm' /=.
   case: ifP; first (case/andP => ki km').
   - rewrite ki (ltn_trans km' (ltnSn _)) !annihilate_col_funE.
@@ -137,8 +137,8 @@ rewrite leq_eqVlt ltnS; case/orP; first by move/eqP->.
 move=> j'j; apply: (leq_trans (Rj' j'j) _); rewrite {2}/rref_step.
 case: (leqP n j') => n_j'.
   by rewrite /rref_step !take_oversize 1?size_enum_ord // (leq_trans n_j').
-rewrite (take_sub (Ordinal n_j')) 1?size_enum_ord // -cats1 foldl_cat /=.
-rewrite -/(rref_step A j') (sub_ord_enum _ (Ordinal n_j')) /rref_fun.
+rewrite (take_nth (Ordinal n_j')) 1?size_enum_ord // -cats1 foldl_cat /=.
+rewrite -/(rref_step A j') (nth_ord_enum _ (Ordinal n_j')) /rref_fun.
 by case: insubP => //= [] [] _ ? _ _; case: pickP => [|k] /=.
 Qed.
 
@@ -147,8 +147,8 @@ Proof.
 move=> A j; case: (leqP n j) => n_j.
   by rewrite /rref_step !take_oversize 1?size_enum_ord // (leq_trans n_j).
 rewrite {1}/rref_step.
-rewrite (take_sub (Ordinal n_j)) 1?size_enum_ord // -cats1 foldl_cat /=.
-rewrite -/(rref_step A j) (sub_ord_enum _ (Ordinal n_j)) /rref_fun.
+rewrite (take_nth (Ordinal n_j)) 1?size_enum_ord // -cats1 foldl_cat /=.
+rewrite -/(rref_step A j) (nth_ord_enum _ (Ordinal n_j)) /rref_fun.
 by case: insubP => //= [] [] _ ? _ _; case: pickP => [|k] /=.
 Qed.
 
@@ -157,8 +157,8 @@ Proof.
 move=> A; elim=> [|j Rj]; first by rewrite /rref_step take0.
 case: (leqP n j) => n_j; first move: Rj.
   by rewrite /rref_step !take_oversize 1?size_enum_ord // 1?(leq_trans n_j).
-rewrite /rref_step (take_sub (Ordinal n_j)) 1?size_enum_ord // -cats1.
-rewrite foldl_cat /= -/(rref_step A j) (sub_ord_enum _ (Ordinal n_j)) /rref_fun.
+rewrite /rref_step (take_nth (Ordinal n_j)) 1?size_enum_ord // -cats1.
+rewrite foldl_cat /= -/(rref_step A j) (nth_ord_enum _ (Ordinal n_j)) /rref_fun.
 by case: insubP => //= [] [] _ ? _ _; case: pickP => [|k] /=.
 Qed.
 
@@ -168,8 +168,8 @@ move=> A; elim=> [|j Rj]; first by rewrite /rref_step take0 .
 case: (leqP n j) => n_j; first move: Rj.
   rewrite /rref_step !take_oversize 1?size_enum_ord // 1?(leq_trans n_j) //.
   by move=> H; rewrite (leq_trans H _).
-rewrite /rref_step (take_sub (Ordinal n_j)) 1?size_enum_ord // -cats1.
-rewrite foldl_cat /= -/(rref_step A j) (sub_ord_enum _ (Ordinal n_j)) /rref_fun.
+rewrite /rref_step (take_nth (Ordinal n_j)) 1?size_enum_ord // -cats1.
+rewrite foldl_cat /= -/(rref_step A j) (nth_ord_enum _ (Ordinal n_j)) /rref_fun.
 by case: insubP => //= [[] [] * /=|*]; first case: pickP => [*|*] /=; apply: (leq_trans Rj _).
 Qed.
 
@@ -192,8 +192,8 @@ Lemma rref_step_eq_rank : forall A (j : 'I_n),
  forall i : 'I_m, (rref_step A j).1 <= i -> (rref_step A j).2 i j = 0.
 Proof.
 move=> A j H1 i x_i; move: H1.
-rewrite {2}/rref_step (take_sub j) 1?size_enum_ord // -cats1 foldl_cat /=.
-rewrite -/(rref_step A j) (sub_ord_enum _ j) /rref_fun.
+rewrite {2}/rref_step (take_nth j) 1?size_enum_ord // -cats1 foldl_cat /=.
+rewrite -/(rref_step A j) (nth_ord_enum _ j) /rref_fun.
 case: insubP => //= [ [] [] /= _ _ x_m _ _ |]; last first.
   by move: (leq_ltn_trans x_i (ltn_ord i)) => ->.
 case: pickP; last by move/(_ i) => /=; rewrite x_i andbT; move/negPn; move/eqP.
@@ -210,8 +210,8 @@ move=> A i j j'; elim: j' i => // j' Rj' i H1 H2; case: (leqP n j') => n_j'.
   rewrite !take_oversize 1?size_enum_ord // ?(leq_trans n_j') // => -> //.
   - by rewrite (leq_trans _ n_j').
   rewrite (leq_trans _ H2) //; exact: rref_step_rank_mono.
-rewrite /rref_step (take_sub j) 1?size_enum_ord // -cats1 foldl_cat /=.
-rewrite -/(rref_step A j') (sub_ord_enum _ (Ordinal n_j')) /rref_fun.
+rewrite /rref_step (take_nth j) 1?size_enum_ord // -cats1 foldl_cat /=.
+rewrite -/(rref_step A j') (nth_ord_enum _ (Ordinal n_j')) /rref_fun.
 have x_i : (rref_step A j').1 <= i.
   by rewrite (leq_trans _ H2) //; apply: rref_step_rank_mono.
 case: insubP=> //= [ [] [] /= _ _ x_m _ _ |]; last first.
@@ -243,8 +243,8 @@ move=> A j; elim=> // j' Hj'; rewrite ltnS leq_eqVlt.
 case/orP => [|j_j' i]; first by move/eqP->.
 rewrite -Hj' //; case: (leqP n j') => nj'.
   by rewrite /rref_step !take_oversize 1?size_enum_ord // (leq_trans nj' _).
-rewrite {1}/rref_step (take_sub j) 1?size_enum_ord // -cats1 foldl_cat /=.
-rewrite (sub_ord_enum _ (Ordinal nj')) {Hj'}/= -/(rref_step A j').
+rewrite {1}/rref_step (take_nth j) 1?size_enum_ord // -cats1 foldl_cat /=.
+rewrite (nth_ord_enum _ (Ordinal nj')) {Hj'}/= -/(rref_step A j').
 elim: j' {-2}j' (leqnn j') j j_j' nj' A => [| k Hk] j' Hj' j j_j' nj' A.
   by rewrite leqn0 in Hj'; rewrite (eqP Hj') in j_j'.
 rewrite leq_eqVlt in Hj'; case/orP: Hj' => Hj'; last by rewrite (Hk j' _ _ _ nj').
@@ -287,8 +287,8 @@ have {H1 H2}Sx : (rref_step A j.+1).1 = (rref_step A j).1.+1.
 rewrite Sx ltn_neqAle; apply/andP; split => //; apply/eqP => {x_i}x_i.
 move/forallP: Zri => Zri; move: (Zri (Ordinal n_j)); move/implyP; move/(_ (ltnSn _)).
 move/eqP; move: Sx; rewrite x_i /rref_step.
-rewrite (take_sub (Ordinal n_j)) 1?size_enum_ord // -cats1 foldl_cat.
-rewrite -/(rref_step A j) (sub_ord_enum _ (Ordinal n_j)) /= /rref_fun.
+rewrite (take_nth (Ordinal n_j)) 1?size_enum_ord // -cats1 foldl_cat.
+rewrite -/(rref_step A j) (nth_ord_enum _ (Ordinal n_j)) /= /rref_fun.
 case: insubP => //= [[] [] /= _ _ x_m _ _|]; last by rewrite x_i ltn_ord.
 case: pickP => //= [k |_]; last first.
   by rewrite x_i; move/eqP; rewrite eq_sym eqn_leq ltnn /=.
@@ -299,8 +299,8 @@ suff -> : (i == k) = false.
   by apply/eqP; apply: val_inj => /=; rewrite x_i.
 case: (_ =P _) => // ik; rewrite -ik in Akj.
 move: (Zri (Ordinal n_j)); move/implyP; move/(_ (ltnSn _)).
-rewrite /rref_step (take_sub (Ordinal n_j)) 1?size_enum_ord // -cats1 foldl_cat.
-rewrite -/(rref_step A j) (sub_ord_enum _ (Ordinal n_j)) /= /rref_fun.
+rewrite /rref_step (take_nth (Ordinal n_j)) 1?size_enum_ord // -cats1 foldl_cat.
+rewrite -/(rref_step A j) (nth_ord_enum _ (Ordinal n_j)) /= /rref_fun.
 case: insubP => //= [[] [] /= _ _ x'_m _ _|]; last by rewrite x_i ltn_ord.
 case: pickP => //= [k' |_]; last by move/eqP=> H'; rewrite H' eqxx in Akj.
 case/andP=> Ak'j x'_k'; rewrite annihilate_colE !mxK eq_refl /=.
@@ -315,7 +315,7 @@ Proof.
 move=> T p x; rewrite /pick /enum -enumE /enum_rank /=.
 have : x \in (enum T) by rewrite mem_enum.
 elim: (enum T) (uniq_enum T) => //= x' s Rs; case/andP => x'_s Us.
-rewrite in_adds; case/orP; case: ifP => //.
+rewrite in_cons; case/orP; case: ifP => //.
 - by move=> _; move/eqP=> -> _; rewrite eq_refl /=; apply/pred0P.
 - by move=> _; move/eqP=> -> _; rewrite eq_refl /=; apply/pred0P.
 - by move=> _ _ [] ->; rewrite eq_refl /=; apply/pred0P.
@@ -386,8 +386,8 @@ move/forallP: Rj; move/(_ i); rewrite -/(pivot_nz (rref_step A j.+1).2 i j.+1).
 move: (@pivot_nz_first A i j).
 rewrite {1 3 4}/pivot_nz; case: pickP => [k /=|].
   case/andP => H1 H2; move/(_ is_true_true)=> -> H3; apply/eqP.
-  rewrite /rref_step (take_sub (Ordinal n_j)) 1?size_enum_ord // -cats1 foldl_cat.
-  rewrite -/(rref_step A j) (sub_ord_enum _ (Ordinal n_j)) /= /rref_fun.
+  rewrite /rref_step (take_nth (Ordinal n_j)) 1?size_enum_ord // -cats1 foldl_cat.
+  rewrite -/(rref_step A j) (nth_ord_enum _ (Ordinal n_j)) /= /rref_fun.
   case: insubP => //= [[] [] /= _ _ x_m _ _|]; last by rewrite (eqP H3).
   case: pickP => [k' /=|]; last by rewrite (eqP H3).
   case/andP; rewrite annihilate_colE !mxK eq_refl /=; move/eqP => Akk' x_k.
@@ -409,8 +409,8 @@ suff : [pred k | ((rref_step A j.+1).2 i k != 0) && (k < j.+1)] =1
     by rewrite rref_step_col 1?(ltn_trans k_j _) // (rref_step_col _ k_j).
   have x_i : (rref_step A j).1 <= i by apply: zrow_in_bottom.
   have {k_j}k_j : k = (Ordinal n_j) by apply: ord_inj => /=; rewrite (eqP k_j).
-  move: Aik; rewrite /rref_step (take_sub k) 1?size_enum_ord // -cats1 foldl_cat.
-  rewrite -/(rref_step A j) (sub_ord_enum _ (Ordinal n_j)) -k_j /= /rref_fun.
+  move: Aik; rewrite /rref_step (take_nth k) 1?size_enum_ord // -cats1 foldl_cat.
+  rewrite -/(rref_step A j) (nth_ord_enum _ (Ordinal n_j)) -k_j /= /rref_fun.
   case: insubP => //= [[] [] /= _ _ x_m _ _|]; last first.
   - by rewrite (leq_ltn_trans x_i (ltn_ord _)).
   case: pickP => [k' /=|]; last by move/(_ i) => /=; rewrite x_i andbT => ->.
@@ -443,8 +443,8 @@ case/andP => Aik k'j P0 _ _; apply/forallP => i'; apply/implyP => i'i.
 have x_i : (rref_step A j).1 <= i.
   apply: zrow_in_bottom; apply/forallP => j'; apply/implyP=> j'j.
   by move: (P0 j') => /=; rewrite j'j andbT; move/negPn.
-move: Aik; rewrite /rref_step (take_sub k') 1?size_enum_ord // -cats1 foldl_cat.
-rewrite -/(rref_step A j) (sub_ord_enum _ (Ordinal n_j)) /= /rref_fun.
+move: Aik; rewrite /rref_step (take_nth k') 1?size_enum_ord // -cats1 foldl_cat.
+rewrite -/(rref_step A j) (nth_ord_enum _ (Ordinal n_j)) /= /rref_fun.
 case: insubP => //= [[] [] /= _ _ x_m _ _|]; last first.
   by rewrite (leq_ltn_trans x_i (ltn_ord _)).
 case: pickP => [k /=|]; last (move/(_ i) => /=; rewrite x_i andbT); last first.

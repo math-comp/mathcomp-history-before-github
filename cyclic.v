@@ -20,7 +20,7 @@
 (*   Zp_unitm x    == the isomorphism from the multiplicative group of *)
 (*                    the units of the ring of integers mod #[x], with *)
 (*                    the group Aut <[x]> of automorphisms of <[x]>.   *)
-(*                    (Zp_unitm x maps u to cyclem x u)                *)
+(*                    (Zp_unitm x map u to cyclem x u)                *)
 (* Basic results for these notions, plus the classical result that     *)
 (* any finite group isomorphic to a subggroup of a field is cycle,     *)
 (* and the corollary that Aut G is cyclic when G is of prime order.    *)
@@ -483,16 +483,16 @@ have defH: H :=: [set x \in G | #[x] %| n].
   pose P : polynomial R := (\X ^+ n - \C 1)%R.
   have szP: size P = n.+1.
     by rewrite size_addl size_polyX_n // size_opp size_poly1 ltnS /n.
-  rewrite -ltnS -szP cardE -(size_maps f) max_ring_poly_roots //.
+  rewrite -ltnS -szP cardE -(size_map f) max_ring_poly_roots //.
   - by rewrite size_poly0_eq szP.
-  - apply/allP=> fx; case/mapsP=> x; rewrite mem_enum !inE order_dvdn.
+  - apply/allP=> fx; case/mapP=> x; rewrite mem_enum !inE order_dvdn.
     case/andP=> Gx; move/eqP=> xn1 <-{fx}; apply/eqP.
     by rewrite !(eval_poly_lin, eval_polyX_n) -fX // xn1 f1 GRing.subrr.
   set rs := enum _; have: uniq rs by exact: uniq_enum.
   have: all (mem G) rs by apply/allP=> x; rewrite mem_enum !inE; case/andP.
   elim: rs => //= x rs IHrs; case/andP=> Gx Grs; case/andP=> x_rs.
   move/IHrs=> -> {IHrs}//; rewrite andbT.
-  apply/allP=> fy; case/mapsP=> y rs_y <-{fy}.
+  apply/allP=> fy; case/mapP=> y rs_y <-{fy}.
   have{Grs} Gy := allP Grs y rs_y; rewrite /diff_root -!fM 1?(centsP abelG) //.
   rewrite eqxx -[f x]GRing.mul1r -(mulgKV x y) fM ?groupM ?groupV //.
   rewrite -GRing.mulNr -GRing.mulr_addl GRing.unitr_mull ?fU ?f1P //.

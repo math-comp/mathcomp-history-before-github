@@ -379,9 +379,9 @@ Lemma mgenP : forall A x,
 Proof.
 move=> A x; rewrite /mgen /em /index_enum -enumT.
 elim: {+}(enum _) x (uniq_enum gT) => /= [x _ | y s IHs x].
-  rewrite big_seq0 inE; apply: (iffP eqP) => [->|[]//].
+  rewrite big_nil inE; apply: (iffP eqP) => [->|[]//].
   exists (fun _ : gT => 0) => //=; exact/supP.
-case/andP=> nsy; move/IHs=> {IHs}IHs; rewrite big_adds.
+case/andP=> nsy; move/IHs=> {IHs}IHs; rewrite big_cons.
 case Ay: (y \in A); last first.
   apply: (iffP (IHs x)); case=> f Af <-; exists f => //;
     by rewrite (sup0P _ _ Af) (Ay, mul1g).
@@ -407,8 +407,8 @@ Lemma mgen_sub : forall (A : {set gT}) (G : {group gT}),
   A \subset G -> mgen A \subset G.
 Proof.
 move=> A G sAG; rewrite /mgen; elim: index_enum  => /= [| x s IHs].
-  by rewrite big_seq0 sub1set.
-rewrite big_adds; case Ax: (x \in A) => //=.
+  by rewrite big_nil sub1set.
+rewrite big_cons; case Ax: (x \in A) => //=.
 apply/subsetP=> y; case/mulsgP=> y1 y2.
 case/cycleP => i <-; move/(subsetP IHs)=> sy2 ->.
 by rewrite groupMr // groupX // (subsetP sAG).
@@ -659,9 +659,9 @@ case: (x ^+ (f x) =P 1) => [xfx1 | xfx].
     - by rewrite (cardsD1 x X) (supP _ _ fX x fx0) in cardX.  
     - apply: (asub abelX); exact: subset_trans (subset_gen X).
     exists (x :: B).
-      rewrite -cardsE set_adds cardsU1 ltnS inE cardsE.
+      rewrite -cardsE set_cons cardsU1 ltnS inE cardsE.
       by rewrite (leq_trans _ cardB) // -add1n leq_add2r leq_b1.
-    split; last first; rewrite set_adds.
+    split; last first; rewrite set_cons.
       by rewrite -XE; apply: genDU; rewrite ?sub1set.
     apply: free_predU1 => //=; last by rewrite BXx.
       by apply/eqP=> x1; rewrite -x1 Xx in notX1. 

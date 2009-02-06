@@ -907,7 +907,7 @@ Arguments Scope Forall [_ nat_scope term_scope].
 Arguments Scope tsubst [_ term_scope _].
 Arguments Scope fsubst [_ term_scope _].
 
-Notation Local "s `_ i" := (sub 0 s i).
+Notation Local "s `_ i" := (nth 0 s i).
 
 Section EvalTerm.
 
@@ -926,36 +926,14 @@ Fixpoint eval (t : term R) (e : seq R) {struct t} : R :=
   | Exp t1 n => eval t1 e ^+ n
   end.
 
-Lemma eq_eval : forall t e e', sub 0 e =1 sub 0 e' -> eval t e = eval t e'.
+Lemma eq_eval : forall t e e', nth 0 e =1 nth 0 e' -> eval t e = eval t e'.
 Proof. by move=> t e e' eq_e; elim: t => //= t1 -> // t2 ->. Qed.
 
-Definition set_nth s i v : seq R :=
-  take i (s ++ seqn i 0) ++ v :: drop i.+1 s.
-
-Lemma size_set_nth : forall s i v, size (set_nth s i v) = maxn i.+1 (size s).
-Proof.
-move=> s i v; rewrite size_cat size_takel ?size_cat ?size_seqn ?leq_addl //=.
-by rewrite -addSnnS size_drop add_sub_maxn.
-Qed.
-
-Lemma sub_set_nth : forall s i v,
-  sub 0 (set_nth s i v) =1 [fun j => s`_j with i |-> v].
-Proof.
-move=> s i v j; rewrite sub_cat size_takel ?size_cat ?size_seqn ?leq_addl //=.
-case: ltngtP => [ltji | ltij | ->]; last by [rewrite subnn]; last first.
-  by rewrite -subSS leq_subS //= sub_drop subnK.
-rewrite sub_take // sub_cat; case: ltnP => [// | lesj].
-rewrite (sub_default _ lesj); apply/eqP.
-have: all (pred1 0) (@seqn R i 0) by rewrite all_pred1_seqn eqxx orbT.
-move/allP; apply; rewrite mem_sub // size_seqn (leq_ltn_trans _ ltji) //.
-exact: leq_subr.
-Qed.
-
 Lemma eval_tsubst : forall t e s,
-  eval (tsubst t s) e = eval t (set_nth e s.1 (eval s.2 e)).
+  eval (tsubst t s) e = eval t (set_nth 0 e s.1 (eval s.2 e)).
 Proof.
 move=> t e [i u]; elim: t => //=; do 2?[move=> ? -> //] => j.
-by rewrite sub_set_nth /=; case: eq_op.
+by rewrite nth_set_nth /=; case: eq_op.
 Qed.
 
 Fixpoint holds (f : formula R) (e : seq R) {struct f} : Prop :=
@@ -966,17 +944,17 @@ Fixpoint holds (f : formula R) (e : seq R) {struct f} : Prop :=
   | Or f1 f2 => holds f1 e \/ holds f2 e
   | Implies f1 f2 => holds f1 e -> holds f2 e
   | Not f1 => ~ holds f1 e
-  | Exists i f1 => exists x, holds f1 (set_nth e i x)
-  | Forall i f1 => forall x, holds f1 (set_nth e i x)
+  | Exists i f1 => exists x, holds f1 (set_nth 0 e i x)
+  | Forall i f1 => forall x, holds f1 (set_nth 0 e i x)
   end.
 
 Lemma eq_holds : forall f e e',
-  sub 0 e =1 sub 0 e' -> (holds f e <-> holds f e').
+  nth 0 e =1 nth 0 e' -> (holds f e <-> holds f e').
 Proof.
-pose es1 e e' := @sub R 0 e =1 sub 0 e'.
-have eq_i: forall i v, let sv e := set_nth e i v in
+pose es1 e e' := @nth R 0 e =1 nth 0 e'.
+have eq_i: forall i v, let sv e := set_nth 0 e i v in
            forall e e', es1 e e' -> es1 (sv e) (sv e').
-  by move=> i v /= e e' eq_e j; rewrite !sub_set_nth /= eq_e.
+  by move=> i v /= e e' eq_e j; rewrite !nth_set_nth /= eq_e.
 elim=> /=.
 - by move=> t1 t2 e e' eq_e; rewrite !(eq_eval _ eq_e).
 - by move=> t e e' eq_e; rewrite (eq_eval _ eq_e).
@@ -991,31 +969,21 @@ elim=> /=.
 Qed.
 
 Lemma holds_fsubst : forall f e i v,
-  holds (fsubst f (i, Const v)) e <-> holds f (set_nth e i v).
+  holds (fsubst f (i, Const v)) e <-> holds f (set_nth 0 e i v).
 Proof.
-have setii: forall i e (v v' : R),
-  set_nth (set_nth e i v') i v = set_nth e i v.
-- move=> i e v v'; apply: (@eq_from_sub _ 0) => [|j _].
-    by rewrite !size_set_nth maxnA maxnn.
-  by do 2!rewrite !sub_set_nth /=; case: eqP.
-have setij: forall i j e (v v' : R), i != j ->
-  set_nth (set_nth e j v') i v = set_nth (set_nth e i v) j v'.
-- move=> i j e v v' ne_ij; apply: (@eq_from_sub _ 0) => [|k _].
-    by rewrite !size_set_nth maxnCA.
-  by do 2!rewrite !sub_set_nth /=; case: eqP => // ->; rewrite -if_neg ne_ij.
 move=> f e i v; elim: f e => /=; do [
   by move=> *; rewrite !eval_tsubst
 | move=> f1 IHf1 f2 IHf2 e; move: (IHf1 e) (IHf2 e); tauto
 | move=> f IHf e; move: (IHf e); tauto
 | move=> j f IHf e].
-- case: eqP => [->|] /=; last move/eqP=> ne_ji.
-    by split=> [] [x f_x]; exists x; rewrite setii in f_x *.
-  split=> [] [x f_x]; exists x; move: f_x; rewrite setij //;
-     have:= IHf (set_nth e j x); tauto.
-case: eqP => [->|] /=; last move/eqP=> ne_ji.
-  by split=> [] f_ x; move: (f_ x); rewrite setii.
-split=> [] f_ x; move: (f_ x); rewrite setij //;
-     have:= IHf (set_nth e j x); tauto.
+- case eq_ji: (j == i); first rewrite (eqP eq_ji).
+    by split=> [] [x f_x]; exists x; rewrite set_set_nth eqxx in f_x *.
+  split=> [] [x f_x]; exists x; move: f_x; rewrite set_set_nth eq_sym eq_ji;
+     have:= IHf (set_nth 0 e j x); tauto.
+case eq_ji: (j == i); first rewrite (eqP eq_ji).
+  by split=> [] f_ x; move: (f_ x); rewrite set_set_nth eqxx.
+split=> [] f_ x; move: (f_ x); rewrite set_set_nth eq_sym eq_ji;
+     have:= IHf (set_nth 0 e j x); tauto.
 Qed.
 
 End EvalTerm.
@@ -1307,16 +1275,19 @@ Lemma Exists_nP : forall f n e,
   reflect (exists s, (size s == n) && (sat f (s ++ drop n e)))
           (sat (Exists_n n f) e).
 Proof.
-have drop_set_nth: forall e n x, @drop F n (set_nth e n x) = x :: drop n.+1 e.
-  move=> e n x; rewrite drop_cat size_takel ?size_cat ?size_seqn ?leq_addl //.
-  by rewrite ltnn subnn drop0.  
+have drop_set_nth:
+  forall e n x, @drop F n (set_nth 0 e n x) = x :: drop n.+1 e.
+- move=> /= e n x; apply: (@eq_from_nth _ 0) => [|i _].
+    by rewrite /= !size_drop size_set_nth -add_sub_maxn addSnnS addKn.
+  rewrite nth_drop nth_set_nth /= -{2}[n]addn0 eqn_addl. 
+  by case: i => //= i; rewrite nth_drop addSnnS.
 move=> f n e; elim: n e => [|n IHn] e /=.
-  by rewrite drop0; apply: (iffP idP) => [f_e | [[|] //]]; exists (Seq0 F).
+  by rewrite drop0; apply: (iffP idP) => [f_e | [[|] //]]; exists (Nil F).
 case: satP => [sol | no_sol]; constructor.
   case: sol => x; move/satP; case/IHn=> /= s; case/andP=> sz_s.
-  rewrite drop_set_nth -cat_add_last => f_s; exists (add_last s x).
-  by rewrite size_add_last eqSS sz_s.
-case; case/lastP=> // s x; rewrite size_add_last eqSS cat_add_last => f_sx.
+  rewrite drop_set_nth -cat_rcons => f_s; exists (rcons s x).
+  by rewrite size_rcons eqSS sz_s.
+case; case/lastP=> // s x; rewrite size_rcons eqSS cat_rcons => f_sx.
 case: no_sol; exists x; apply/satP; apply/IHn.
 by exists s; rewrite drop_set_nth.
 Qed.
@@ -1324,7 +1295,7 @@ Qed.
 Definition sol f n :=
   if insub [::] : {? e | sat (Exists_n n f) e} is Some u then
     @xchoose _ (fun x => _) (Exists_nP _ _ _ (valP u))
-  else seqn n 0.
+  else nseq n 0.
 
 Lemma solP : forall f n,
   reflect (exists2 s, size s = n & holds f s) (sat f (sol f n)).
@@ -1334,13 +1305,13 @@ rewrite /sol => f n; case: insubP=> [u /= _ val_u | no_sol].
   move: {uP}(xchoose _) => s; rewrite {u}val_u cats0.
   move/eqP=> s_n f_s; rewrite f_s; left; exists s => //; exact/satP.
 apply: (iffP idP) => [f0 | [s s_n f_s]]; case/Exists_nP: no_sol.
-  by exists (@seqn F n 0); rewrite cats0 size_seqn eqxx.
+  by exists (@nseq F n 0); rewrite cats0 size_nseq eqxx.
 exists s; rewrite cats0 s_n eqxx; exact/satP.
 Qed.
 
 Lemma size_sol : forall f n, size (sol f n) = n.
 Proof.
-rewrite /sol => f n; case: insubP=> [u /= _ _ | _]; last exact: size_seqn.
+rewrite /sol => f n; case: insubP=> [u /= _ _ | _]; last exact: size_nseq.
 by set uP := Exists_nP _ _ _ _; case/andP: (xchooseP uP); move/eqP.
 Qed.
 
@@ -1649,7 +1620,7 @@ Notation "x ^+ n" := (GRing.exp x n) : ring_scope.
 Notation "x ^-1" := (GRing.inv x) : ring_scope.
 Notation "x ^- n" := (x ^+ n)^-1%R : ring_scope.
 Notation "x / y" := (GRing.mul x y^-1) : ring_scope.
-Notation "s `_ i" := (sub 0%R s%R i) : ring_scope.
+Notation "s `_ i" := (nth 0%R s%R i) : ring_scope.
 
 Implicit Arguments GRing.unitDef [].
 

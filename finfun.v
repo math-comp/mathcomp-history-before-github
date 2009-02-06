@@ -27,10 +27,10 @@ Notation "{ 'ffun' fT }" := (finfun_of (Phant fT))
   (at level 0, format "{ 'ffun'  '[hv' fT ']' }") : type_scope.
 
 Notation Local fun_of_fin_def :=
-  (fun aT rT f x => tsub (@fgraph aT rT f) (enum_rank x)).
+  (fun aT rT f x => tnth (@fgraph aT rT f) (enum_rank x)).
 
 Notation Local finfun_def :=
-  (fun aT rT f => @Finfun aT rT [tuple of maps f (enum aT)]).
+  (fun aT rT f => @Finfun aT rT [tuple of map f (enum aT)]).
 
 Module Type FunFinfunSig.
 Parameter fun_of_fin : forall aT rT, finfun_type aT rT -> aT -> rT.
@@ -73,23 +73,23 @@ Canonical Structure finfun_of_subType := (* Evhnf *) [subType of fT].
 
 Lemma ffunE : forall f : aT -> rT, finfun f =1 f.
 Proof.
-move=> f x; rewrite [@finfun _]unlock unlock tsub_maps.
-by rewrite -[tsub _ _]enum_val_sub enum_rankK.
+move=> f x; rewrite [@finfun _]unlock unlock tnth_map.
+by rewrite -[tnth _ _]enum_val_nth enum_rankK.
 Qed.
 
-Lemma fgraph_maps : forall f : fT, fgraph f = [tuple of maps f (enum aT)].
+Lemma fgraph_map : forall f : fT, fgraph f = [tuple of map f (enum aT)].
 Proof.
-move=> f; apply: eq_from_tsub => i; rewrite [@fun_of_fin _]unlock tsub_maps.
-by congr tsub; rewrite -[tsub _ _]enum_val_sub enum_valK.
+move=> f; apply: eq_from_tnth => i; rewrite [@fun_of_fin _]unlock tnth_map.
+by congr tnth; rewrite -[tnth _ _]enum_val_nth enum_valK.
 Qed.
 
-Lemma maps_ffun_enum : forall f : fT, maps f (enum aT) = val f.
-Proof. by move=> f; rewrite /= fgraph_maps. Qed.
+Lemma map_ffun_enum : forall f : fT, map f (enum aT) = val f.
+Proof. by move=> f; rewrite /= fgraph_map. Qed.
 
 Lemma ffunP : forall f1 f2 : fT, f1 =1 f2 <-> f1 = f2.
 Proof.
 move=> f1 f2; split=> [eq_f12 | -> //]; do 2!apply: val_inj => /=.
-by rewrite -!maps_ffun_enum (eq_maps eq_f12).
+by rewrite -!map_ffun_enum (eq_map eq_f12).
 Qed.
 
 Lemma ffunK : cancel (@fun_of_fin aT rT) (@finfun aT rT).
@@ -207,13 +207,13 @@ apply: eq_card => [] [y f] /=.
 apply/imageP/andP=> [[f' F_f'] [-> ->]| [Fy Ff]].
   split; first by have:= forallP F_f' x0; rewrite -[d _]eq_ds mem_head.
   apply/forallP=> x; have:= forallP F_f' x.
-  rewrite ffunE -[d _]eq_ds in_adds /=.
+  rewrite ffunE -[d _]eq_ds in_cons /=.
   by case: (x =P x0) => //= -> _; rewrite nsx0 /=.
 exists (g2 (y, f)); last first.
   congr (_, _); first by rewrite ffunE eqxx.
   apply/ffunP=> x; rewrite !ffunE /=; case: (x =P x0) => // ->{x}.
   by have:= forallP Ff x0; rewrite /= nsx0; move/eqP.
-apply/forallP=> x; have:= forallP Ff x; rewrite -[d _]eq_ds ffunE in_adds.
+apply/forallP=> x; have:= forallP Ff x; rewrite -[d _]eq_ds ffunE in_cons.
 by case: (x =P x0) => //= ->.
 Qed.
 

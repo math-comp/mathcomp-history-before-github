@@ -240,14 +240,14 @@ suff siso12 : (sisog ^~ H1) =1 (sisog ^~ H2) by rewrite (eq_pick siso12).
 by move=> x /=; apply:isog_transr.
 Qed.
 
-Definition mapsrepr (s : seq section) := maps srepr s.
+Definition maprepr (s : seq section) := map srepr s.
 
 Notation gTg := {group gT}.
 
 
 (*From a seq of groups to the associated seq of representatives of factors *)
 Definition mkfactors (G : gTg) (s : seq gTg) := 
-  mapsrepr (pairmap mkSec G s).
+  maprepr (pairmap mkSec G s).
 
 End SectionSeries.
 
@@ -286,7 +286,7 @@ move=> G1; case: s ls cs => // H s _ /=; case/andP; case/maxnormalP=> _.
 by rewrite G1 /proper sub1set group1 andbF.
 Qed.
 
-Lemma comps_adds : forall G H s, comps G (H :: s) -> comps H s.
+Lemma comps_cons : forall G H s, comps G (H :: s) -> comps H s.
 Proof. 
 by move=> G H s; case/andP => /= ls; case/andP=> _ p; rewrite /comps ls. 
 Qed.
@@ -297,7 +297,7 @@ Proof.
 move=> G s cs; apply: (iffP idP); last first.
   by move=> se; move: cs; rewrite se /=; case/andP=> /=; rewrite andbT.
 case: s cs; first by rewrite /comps /= andbT; move/eqP->; case/simpleP; rewrite eqxx.
-move=> H s cs sG; apply/eqP; rewrite eqseq_adds -(trivg_comps (comps_adds cs)).
+move=> H s cs sG; apply/eqP; rewrite eqseq_cons -(trivg_comps (comps_cons cs)).
 suff H1: H :=: 1 by rewrite H1 eqxx andbT; apply/eqP; apply: val_inj=> /=.
 case/compsP: cs=> /= ls; case/andP=> mH ps; case/maxnormalP: sG=> _ _.
 by apply; rewrite ?sub1set ?group1 ?maxN_norm // eq_sym proper_neq ?maxN_proper.
@@ -315,12 +315,12 @@ move=> G; elim: {G} #|G| {1 3}G (leqnn #|G|) => [G | n Hi G cG].
 case/orP: (orbN (simple G)) => [sG | nsG].
   by exists [:: (1%G : gTg) ]; rewrite /comps eqxx /= -/(simple G) sG.
 case/orP: (orbN (G :==: 1))=> [tG | ntG].
-  by exists (Seq0 gTg); rewrite /comps /= andbT.
+  by exists (Nil gTg); rewrite /comps /= andbT.
 case: (maxN_exists ntG)=> N pmN.
 have cN: #|N| <= n.
   by rewrite -ltnS (leq_trans _ cG) // proper_card // maxN_proper.
 case: (Hi _ cN)=> s; case/andP=> lasts ps; exists [:: N & s]; rewrite /comps.
-by rewrite last_adds lasts /= pmN.
+by rewrite last_cons lasts /= pmN.
 Qed.
 
 
@@ -353,7 +353,7 @@ have cN1 : #|N1| <= n.
 have cN2 : #|N2| <= n.
   by rewrite -ltnS (leq_trans _ cG) ?proper_card ?maxN_proper.
 case: (N1 =P N2) {s2 es2} => [eN12 |].
-  by rewrite eN12 /= perm_adds Hi // /comps ?lst2 //= -eN12 lst1.
+  by rewrite eN12 /= perm_cons Hi // /comps ?lst2 //= -eN12 lst1.
 move/eqP; rewrite -val_eqE /=; move/eqP=> neN12.
 have nN1G : N1 <| G by apply maxN_norm.
 have nN2G : N2 <| G by apply maxN_norm.
@@ -370,14 +370,14 @@ have iso2 : (G / N2)%G \isog (N1 / N)%G.
 case: (exists_comps N)=> sN; case/andP=> lsN csN.
 have i1 : perm_eq (mksrepr G N1 :: mkfactors N1 st1)
                   [:: mksrepr G N1, mksrepr N1 N & mkfactors N sN].
-  rewrite perm_adds -[mksrepr _ _ :: _]/(mkfactors N1 [:: N & sN]).
+  rewrite perm_cons -[mksrepr _ _ :: _]/(mkfactors N1 [:: N & sN]).
   apply: Hi=> //; rewrite /comps ?lst1 //= lsN csN andbT /=.
   apply: normal_simple_quo_maxN_.
   rewrite (normalS (subsetIl N1 N2) (normal_sub nN1G)) //.
   by apply: (isog_simpl iso2); apply: maxN_simple_quo.
 have i2 : perm_eq (mksrepr G N2 :: mkfactors N2 st2) 
                   [:: mksrepr G N2, mksrepr N2 N & mkfactors N sN].
-  rewrite perm_adds -[mksrepr _ _ :: _]/(mkfactors N2 [:: N & sN]).
+  rewrite perm_cons -[mksrepr _ _ :: _]/(mkfactors N2 [:: N & sN]).
   apply: Hi=> //; rewrite /comps ?lst2 //= lsN csN andbT /=.
   apply: normal_simple_quo_maxN_.
   rewrite (normalS (subsetIr N1 N2) (normal_sub nN2G)) //.
@@ -513,7 +513,7 @@ by rewrite G1 /proper sub1set group1 andbF.
 Qed.
 
 
-Lemma acomps_adds : forall G H s, acomps G (H :: s) -> acomps H s.
+Lemma acomps_cons : forall G H s, acomps G (H :: s) -> acomps H s.
 Proof. 
 by move=> G H s; case/andP => /= ls; case/andP=> _ p; rewrite /acomps ls. 
 Qed.
@@ -525,7 +525,7 @@ move=> G s cs; apply: (iffP idP); last first.
   by move=> se; move: cs; rewrite se /=; case/andP=> /=; rewrite andbT.
 case: s cs; first by rewrite /acomps /= andbT; move/eqP->; case/asimpleP; rewrite eqxx.
 move=> H s cs sG; apply/eqP.
-rewrite eqseq_adds -(trivg_acomps (acomps_adds cs)) andbC andbb.
+rewrite eqseq_cons -(trivg_acomps (acomps_cons cs)) andbC andbb.
 case/acompsP: cs => /= ls; case/andP=> mH ps.
 case/maxainvP: sG => _ ntG _ -> //; rewrite ?sub1G  ?(maxainv_norm mH) ?(maxainv_proper mH) //. 
 exact: (maxainv_ainvar mH).
@@ -541,12 +541,12 @@ move=> G; elim: {G} #|G| {1 3}G (leqnn #|G|) => [G | n Hi G cG].
 case/orP: (orbN (asimple A G)) => [sG | nsG].
   by exists [:: (1%G : gTg) ]; rewrite /acomps eqxx /= andbT; rewrite /asimple in sG.
 case/orP: (orbN (G :==: 1))=> [tG | ntG].
-  by exists (Seq0 gTg); rewrite /acomps /= andbT.
+  by exists (Nil gTg); rewrite /acomps /= andbT.
 case: (maxainv_exists A ntG)=> N pmN.
 have cN: #|N| <= n.
   by rewrite -ltnS (leq_trans _ cG) // proper_card // (maxainv_proper pmN).
 case: (Hi _ cN)=> s; case/andP=> lasts ps; exists [:: N & s]; rewrite /acomps.
-by rewrite last_adds lasts /= pmN.
+by rewrite last_cons lasts /= pmN.
 Qed.
 
 End RelativeCompositionSeries.

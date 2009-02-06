@@ -52,11 +52,11 @@ Definition c2 := mksquare 2.
 Definition c3 := mksquare 3.
 
 (*rotations*)
-Definition R1 (sc : square) : square := tsub [tuple c1; c2; c3; c0] sc.
+Definition R1 (sc : square) : square := tnth [tuple c1; c2; c3; c0] sc.
 
-Definition R2 (sc : square) : square := tsub [tuple c2; c3; c0; c1] sc.
+Definition R2 (sc : square) : square := tnth [tuple c2; c3; c0; c1] sc.
 
-Definition R3 (sc : square) : square := tsub [tuple c3; c0; c1; c2] sc.
+Definition R3 (sc : square) : square := tnth [tuple c3; c0; c1; c2] sc.
 
 Ltac get_inv elt l :=
   match l with
@@ -137,7 +137,7 @@ by rewrite [nat_of_ord _]/= e3 -rot_r1 ?(eqxx, orbT, rotations_is_rot, inE).
 Qed.
 
 (*symmetries*)
-Definition Sh (sc : square) : square := tsub [tuple c1; c0; c3; c2] sc.
+Definition Sh (sc : square) : square := tnth [tuple c1; c0; c3; c2] sc.
 
 Lemma Sh_inj: injective Sh.
 Proof.
@@ -152,7 +152,7 @@ apply:(mulIg sh);rewrite mulVg ;apply/permP.
 by case; do 4?case  => //=; move=> H;rewrite !permE /= !permE; apply /eqP.
 Qed.
 
-Definition Sv (sc : square) : square := tsub [tuple c3; c2; c1; c0] sc.
+Definition Sv (sc : square) : square := tnth [tuple c3; c2; c1; c0] sc.
 
 Lemma Sv_inj: injective Sv.
 Proof.
@@ -167,7 +167,7 @@ apply:(mulIg sv);rewrite mulVg ;apply/permP.
 by case; do 4?case  => //=; move=> H; rewrite !permE /= !permE; apply /eqP.
 Qed.
 
-Definition Sd1 (sc : square) : square := tsub [tuple c0; c3; c2; c1] sc.
+Definition Sd1 (sc : square) : square := tnth [tuple c0; c3; c2; c1] sc.
 
 Lemma Sd1_inj : injective Sd1.
 Proof.
@@ -182,7 +182,7 @@ apply: (mulIg sd1); rewrite mulVg; apply/permP.
 by case; do 4?case=> //=; move=> H; rewrite !permE /= !permE; apply /eqP.
 Qed.
 
-Definition Sd2 (sc : square) : square := tsub [tuple c2; c1; c0; c3] sc.
+Definition Sd2 (sc : square) : square := tnth [tuple c2; c1; c0; c3] sc.
 
 Lemma Sd2_inj : injective Sd2.
 Proof.
@@ -198,7 +198,7 @@ by case; do 4?case=> //=; move=> H; rewrite !permE /= !permE; apply/eqP.
 Qed.
 
 Lemma ord_enum4: enum 'I_4 = [:: c0; c1; c2; c3].
-Proof. by apply: (inj_maps val_inj); rewrite val_enum_ord. Qed.
+Proof. by apply: (inj_map val_inj); rewrite val_enum_ord. Qed.
 
 Lemma diff_id_sh: 1 != sh.
 Proof.
@@ -222,7 +222,7 @@ Definition isometries :=
   [set p | [|| p == 1, p == r1, p == r2, p == r3,
             p == sh, p == sv, p == sd1 | p == sd2 ]].
 
-Definition opp (sc : square) := tsub [tuple c2; c3; c0; c1] sc.
+Definition opp (sc : square) := tnth [tuple c2; c3; c0; c1] sc.
 
 Definition is_iso (p : {perm square}) := forall ci, p (opp ci) = opp (p ci).
 
@@ -272,7 +272,7 @@ Lemma card_rot: #|rot| = 4.
 Proof.
 rewrite -[4]/(size [:: id1; r1; r2; r3]) -(card_uniqP _).
   by apply: eq_card => x; rewrite rot_is_rot !inE -!orbA.
-by apply: maps_uniq (fun p : {perm square} => p c0) _ _; rewrite /= !permE.
+by apply: map_uniq (fun p : {perm square} => p c0) _ _; rewrite /= !permE.
 Qed.
 
 Lemma group_set_rotations : group_set rotations.
@@ -411,7 +411,7 @@ Proof.
 rewrite (burnside_formula [:: id1; sh]) => [||p]; last first.
 - by rewrite !inE.
 - by rewrite /= inE diff_id_sh.
-by rewrite 2!big_adds big_seq0 addn0 {1}card_Fid F_Sh card_n2.
+by rewrite 2!big_cons big_nil addn0 {1}card_Fid F_Sh card_n2.
 Qed.
 
 Lemma burnside_app_rot:
@@ -419,8 +419,8 @@ Lemma burnside_app_rot:
 Proof.
 rewrite (burnside_formula [:: id1; r1; r2; r3]) => [||p]; last first.
 - by rewrite !inE !orbA.
-- by apply: maps_uniq (fun p : {perm square} => p c0) _ _; rewrite /= !permE.
-rewrite !big_adds big_seq0 /= addn0 {1}card_Fid F_r1 F_r2 F_r3.
+- by apply: map_uniq (fun p : {perm square} => p c0) _ _; rewrite /= !permE.
+rewrite !big_cons big_nil /= addn0 {1}card_Fid F_r1 F_r2 F_r3.
 by rewrite card_n card_n2 //=; ring.
 Qed.
 
@@ -465,9 +465,9 @@ Proof.
 pose iso_list := [:: id1; r1; r2; r3; sh; sv; sd1; sd2].
 rewrite (burnside_formula iso_list) => [||p]; last first.
 - by rewrite /= !inE.
-- apply: maps_uniq (fun p : {perm square} => (p c0, p c1)) _ _.
+- apply: map_uniq (fun p : {perm square} => (p c0, p c1)) _ _.
   by rewrite /= !permE.
-rewrite !big_adds big_seq0 {1}card_Fid F_r1 F_r2 F_r3 F_Sh F_Sv F_Sd1 F_Sd2.
+rewrite !big_cons big_nil {1}card_Fid F_r1 F_r2 F_r3 F_Sh F_Sv F_Sd1 F_Sd2.
 by rewrite card_n !card_n3 // !card_n2 //=; ring.
 Qed.
 
@@ -494,58 +494,58 @@ Definition F5 := mkFcube 5.
 
 (* axial symetries*)
 Definition S05 := [:: F0; F4; F3; F2; F1; F5].
-Definition S05f (sc : cube) : cube := tsub [tuple of S05] sc.
+Definition S05f (sc : cube) : cube := tnth [tuple of S05] sc.
 
 
 Definition S14 := [:: F5; F1; F3; F2; F4; F0].
-Definition S14f (sc : cube) : cube := tsub [tuple of S14] sc.
+Definition S14f (sc : cube) : cube := tnth [tuple of S14] sc.
 
 Definition S23 := [:: F5; F4; F2; F3; F1; F0].
-Definition S23f (sc : cube) : cube := tsub [tuple of S23] sc.
+Definition S23f (sc : cube) : cube := tnth [tuple of S23] sc.
 
 (* rotations 90 *)
 Definition R05 := [:: F0; F2; F4; F1; F3; F5].
-Definition R05f (sc : cube) : cube := tsub [tuple of R05] sc.
+Definition R05f (sc : cube) : cube := tnth [tuple of R05] sc.
 Definition R50:= [:: F0; F3; F1; F4; F2; F5].
-Definition R50f (sc : cube) : cube := tsub  [tuple of R50] sc.
+Definition R50f (sc : cube) : cube := tnth  [tuple of R50] sc.
 Definition R14 := [:: F3; F1; F0; F5; F4; F2].
-Definition R14f (sc : cube) : cube := tsub [tuple of R14] sc.
+Definition R14f (sc : cube) : cube := tnth [tuple of R14] sc.
 Definition R41 := [:: F2; F1; F5; F0; F4; F3].
-Definition R41f (sc : cube) : cube := tsub [tuple of R41] sc.
+Definition R41f (sc : cube) : cube := tnth [tuple of R41] sc.
 Definition R23 := [:: F1; F5; F2; F3; F0; F4].
-Definition R23f (sc : cube) : cube := tsub [tuple of R23] sc.
+Definition R23f (sc : cube) : cube := tnth [tuple of R23] sc.
 Definition R32 := [:: F4; F0; F2; F3; F5; F1].
-Definition R32f (sc : cube) : cube := tsub [tuple of R32] sc.
+Definition R32f (sc : cube) : cube := tnth [tuple of R32] sc.
 (* rotations 120 *)
 Definition R024 := [:: F2; F5; F4; F1; F0; F3].
-Definition R024f (sc : cube) : cube := tsub [tuple of R024] sc.
+Definition R024f (sc : cube) : cube := tnth [tuple of R024] sc.
 Definition R042 := [:: F4; F3; F0; F5; F2; F1].
-Definition R042f (sc : cube) : cube := tsub [tuple of R042] sc.
+Definition R042f (sc : cube) : cube := tnth [tuple of R042] sc.
 Definition R012 := [:: F1; F2; F0; F5; F3; F4]. 
-Definition R012f (sc : cube) : cube := tsub [tuple of R012] sc. 
+Definition R012f (sc : cube) : cube := tnth [tuple of R012] sc. 
 Definition R021 := [:: F2; F0; F1; F4; F5; F3]. 
-Definition R021f (sc : cube) : cube := tsub [tuple of R021] sc. 
+Definition R021f (sc : cube) : cube := tnth [tuple of R021] sc. 
 Definition R031 := [:: F3; F0; F4; F1; F5; F2].
-Definition R031f (sc : cube) : cube := tsub [tuple of R031] sc.
+Definition R031f (sc : cube) : cube := tnth [tuple of R031] sc.
 Definition R013:= [:: F1; F3; F5; F0; F2; F4].
-Definition R013f (sc : cube) : cube := tsub [tuple of R013] sc. 
+Definition R013f (sc : cube) : cube := tnth [tuple of R013] sc. 
 Definition R043 := [:: F4; F2; F5; F0; F3; F1].
-Definition R043f (sc : cube) : cube := tsub [tuple of R043] sc.
+Definition R043f (sc : cube) : cube := tnth [tuple of R043] sc.
 Definition R034 := [:: F3; F5; F1; F4; F0; F2].
-Definition R034f (sc : cube) : cube := tsub [tuple of R034] sc. 
+Definition R034f (sc : cube) : cube := tnth [tuple of R034] sc. 
 (* last symmetries*)
 Definition S1 := [:: F5; F2; F1; F4; F3; F0].
-Definition S1f (sc : cube) : cube := tsub [tuple of S1] sc.
+Definition S1f (sc : cube) : cube := tnth [tuple of S1] sc.
 Definition S2 := [::  F5; F3; F4; F1; F2; F0].
-Definition S2f (sc : cube) : cube := tsub [tuple of S2] sc.
+Definition S2f (sc : cube) : cube := tnth [tuple of S2] sc.
 Definition S3 := [::  F1; F0; F3; F2; F5; F4].
-Definition S3f  (sc : cube) : cube := tsub [tuple of S3] sc.
+Definition S3f  (sc : cube) : cube := tnth [tuple of S3] sc.
 Definition S4:= [:: F4; F5; F3; F2; F0; F1].
-Definition S4f  (sc : cube) : cube := tsub [tuple of S4] sc.
+Definition S4f  (sc : cube) : cube := tnth [tuple of S4] sc.
 Definition S5 := [::  F2; F4; F0; F5; F1; F3].
-Definition S5f  (sc : cube) : cube := tsub [tuple of S5] sc.
+Definition S5f  (sc : cube) : cube := tnth [tuple of S5] sc.
 Definition S6 := [::F3; F4; F5; F0; F1; F2].
-Definition S6f  (sc : cube) : cube := tsub [tuple of S6] sc.
+Definition S6f  (sc : cube) : cube := tnth [tuple of S6] sc.
 
 Lemma S1_inv : involutive S1f.
 Proof. by move=> z; apply/eqP; case: z; do 6?case. Qed.
@@ -661,7 +661,7 @@ Definition dir_iso3l := [:: id3; s05; s14; s23; r05; r14; r23; r50; r41;
   s1 ; s2; s3; s4; s5; s6].
 
 Definition S0 := [:: F5; F4; F3; F2; F1; F0].
-Definition S0f (sc : cube) : cube := tsub [tuple of S0] sc.
+Definition S0f (sc : cube) : cube := tnth [tuple of S0] sc.
 
 Lemma S0_inv: involutive S0f.
 Proof. by move=> z; apply/eqP; case: z; do 6?case. Qed.
@@ -688,22 +688,22 @@ Lemma sop_inj : injective sop.
 Proof. do 2!apply: (inj_comp val_inj); exact: val_inj. Qed.
 
 Definition prod_tuple (t1 t2 : seq cube) :=
-  maps (fun n : 'I_6 => sub F0 t2 n) t1.
+  map (fun n : 'I_6 => nth F0 t2 n) t1.
 
-Lemma sop_spec : forall x (n0 : 'I_6), sub F0 (sop x) n0 = x n0.
-Proof. by move=> x n0; rewrite -pvalE unlock enum_rank_ord (tsub_sub F0). Qed.
+Lemma sop_spec : forall x (n0 : 'I_6), nth F0 (sop x) n0 = x n0.
+Proof. by move=> x n0; rewrite -pvalE unlock enum_rank_ord (tnth_nth F0). Qed.
 
 Lemma prod_t_correct : forall (x y : {perm cube}) (i : cube),
-  (x * y) i = sub F0 (prod_tuple (sop x) (sop y)) i.
+  (x * y) i = nth F0 (prod_tuple (sop x) (sop y)) i.
 Proof.
-move=> x y i; rewrite permM -!sop_spec (sub_maps F0) // size_tuple /=.
+move=> x y i; rewrite permM -!sop_spec (nth_map F0) // size_tuple /=.
 by rewrite card_ord ltn_ord.
 Qed.
 
 Lemma sop_morph : Monoid.morphism id3 (sop id3) mulg prod_tuple sop.
 Proof.
-split=> // x y; apply: (@eq_from_sub _ F0) => [|/= i].
-  by rewrite size_maps !size_tuple.
+split=> // x y; apply: (@eq_from_nth _ F0) => [|/= i].
+  by rewrite size_map !size_tuple.
 rewrite size_tuple card_ord => lti6.
 by rewrite -[i]/(val (Ordinal lti6)) sop_spec -prod_t_correct.
 Qed.
@@ -711,7 +711,7 @@ Qed.
 Definition ecubes : seq cube := [:: F0; F1; F2; F3; F4; F5].
 
 Lemma ecubes_def : ecubes = enum (@predT cube).
-Proof. by apply: (inj_maps val_inj); rewrite val_enum_ord. Qed.
+Proof. by apply: (inj_map val_inj); rewrite val_enum_ord. Qed.
 
 Definition seq_iso_L:= [::
    [:: F0; F1; F2; F3; F4; F5];
@@ -719,13 +719,13 @@ Definition seq_iso_L:= [::
    R024; R042; R012; R021; R031; R013; R043; R034;
    S1; S2; S3; S4; S5; S6].
 
-Lemma seqs1 : forall f injf, sop (@perm _ f injf) = maps f ecubes.
+Lemma seqs1 : forall f injf, sop (@perm _ f injf) = map f ecubes.
 Proof.
-move=> f ?; rewrite ecubes_def /sop /= -maps_ffun_enum pvalE.
-apply: eq_maps; exact: permE.
+move=> f ?; rewrite ecubes_def /sop /= -map_ffun_enum pvalE.
+apply: eq_map; exact: permE.
 Qed.
 
-Lemma Lcorrect: seq_iso_L == maps sop [:: id3; s05; s14; s23; r05; r14; r23;
+Lemma Lcorrect: seq_iso_L == map sop [:: id3; s05; s14; s23; r05; r14; r23;
   r50;  r41;  r32; r024;  r042;  r012;  r021;  r031;  r013;  r043 ;  r034;
   s1 ;  s2;  s3;  s4;  s5; s6].
 Proof. by rewrite /= !seqs1. Qed.
@@ -735,7 +735,7 @@ Proof. by move=> p; rewrite /= !inE /= -!(eq_sym p). Qed.
 
 Lemma L_iso : forall p, (p \in dir_iso3) = (sop p \in seq_iso_L).
 Proof.
-move=> p; rewrite (eqP Lcorrect) mem_maps ?iso0_1 //; exact: sop_inj.
+move=> p; rewrite (eqP Lcorrect) mem_map ?iso0_1 //; exact: sop_inj.
 Qed.
 
 Lemma stable: forall x y,
@@ -759,11 +759,11 @@ move=> p; rewrite !L_iso; case: sop_morph => _ ->; rewrite seqs1.
 by move/sop: p; apply/allP; vm_compute.
 Qed.
 
-Definition indir_iso3l := maps (mulg s0) dir_iso3l.
+Definition indir_iso3l := map (mulg s0) dir_iso3l.
 
 Definition iso3l:= dir_iso3l ++ indir_iso3l.
 
-Definition seq_iso3_L := maps sop iso3l.
+Definition seq_iso3_L := map sop iso3l.
 
 Lemma eqperm : forall p1 p2 : {perm cube},
   (p1 == p2) = all (fun s => p1 s == p2 s) ecubes.
@@ -777,9 +777,9 @@ Lemma iso_eq_F0_F1_F2: forall r s : {perm cube}, is_iso3 r ->
 Proof.
 move=> r s hr hs hrs0 hrs1 hrs2.
 have:= hrs0; have:= hrs1; have:= hrs2.
-have e23: F2 = s0 F3 by apply/eqP; rewrite permE /S0f (tsub_sub F0).
-have e14: F1 = s0 F4 by apply/eqP; rewrite permE /S0f (tsub_sub F0).
-have e05: F0 = s0 F5 by apply/eqP; rewrite permE /S0f (tsub_sub F0).
+have e23: F2 = s0 F3 by apply/eqP; rewrite permE /S0f (tnth_nth F0).
+have e14: F1 = s0 F4 by apply/eqP; rewrite permE /S0f (tnth_nth F0).
+have e05: F0 = s0 F5 by apply/eqP; rewrite permE /S0f (tnth_nth F0).
 rewrite e23 e14 e05; rewrite !hr !hs.
 move/perm_inj=> hrs3; move/perm_inj=> hrs4; move/perm_inj=> hrs5.
 by apply/eqP; rewrite eqperm /= hrs0 hrs1 hrs2 hrs3 hrs4 hrs5 !eqxx.
@@ -1146,7 +1146,7 @@ have: #|[predC [:: x; y; z; t; u]]| !=0.
 case/existsP => v; rewrite 2!inE (mem_cat _ [:: _; _; _; _]).
 case/norP=> Hv Huv; exists v.
 rewrite (uniq_cat [:: x; y; z; t]) Uxt andTb.
-by rewrite 2!negb_or /= [~~ _]Hu Hv in_adds eq_sym Huv.
+by rewrite 2!negb_or /= [~~ _]Hu Hv in_cons eq_sym Huv.
 Qed.
 
 Lemma card_n4 : forall x y z t : cube, uniq [:: x; y; z; t] ->
@@ -1277,12 +1277,12 @@ pose iso_list :=[::id3;  s05;  s14;  s23;  r05;  r14;  r23;  r50;  r41;  r32;
   s1 ;  s2;  s3;  s4;  s5;  s6].
 rewrite (burnside_formula iso_list) => [||p]; last first.
 - by rewrite  !inE /= !(eq_sym _ p).
-- apply: maps_uniq (fun p : {perm cube} => (p F0, p F1)) _ _.
+- apply: map_uniq (fun p : {perm cube} => (p F0, p F1)) _ _.
   have bsr:(fun p : {perm cube} => (p F0, p F1)) =1
-    (fun p  => (sub F0 p F0, sub F0 p F1)) \o sop.
+    (fun p  => (nth F0 p F0, nth F0 p F1)) \o sop.
     by move => x; rewrite /= -2!sop_spec.
-  by rewrite (eq_maps bsr) maps_comp  -(eqP Lcorrect); vm_compute.
-rewrite !big_adds big_seq0 {1}card_Fid3 /= F_s05 F_s14 F_s23 F_r05 F_r14 F_r23
+  by rewrite (eq_map bsr) map_comp  -(eqP Lcorrect); vm_compute.
+rewrite !big_cons big_nil {1}card_Fid3 /= F_s05 F_s14 F_s23 F_r05 F_r14 F_r23
   F_r50 F_r41 F_r32 F_r024 F_r042 F_r012 F_r021 F_r031 F_r013 F_r043  F_r034 
   F_s1  F_s2 F_s3 F_s4 F_s5 F_s6.
 by rewrite !card_n4 // !card_n3_3 // !card_n2_3 // !card_n3s //; ring.
