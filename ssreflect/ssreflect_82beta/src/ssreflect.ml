@@ -167,9 +167,9 @@ let pf_ids_of_proof_hyps gl =
 let convert_concl_no_check t = convert_concl_no_check t DEFAULTcast
 let convert_concl t = convert_concl t DEFAULTcast
 let reduct_in_concl t = reduct_in_concl (t, DEFAULTcast)
-(* assia : added dummy_location; HH : used pose_proof short-cut *)
+(* assia : added dummy_location*)
 (*let havetac id = forward None (IntroIdentifier id)*)
-let havetac id = pose_proof (Name id)
+let havetac id = forward None (Some (dummy_loc, (IntroIdentifier id)))
 (*assia : let settac id = letin_tac true (Name id)*)
 let settac id c = letin_tac None (Name id) c None
 let posetac id cl = settac id cl nowhere
@@ -1513,8 +1513,8 @@ let discharge_hyp (id', id) gl =
 
 let endclausestac id_map clseq gl_id cl0 gl =
   let not_hyp' id = not (List.mem_assoc id id_map) in
-  let orig_id id = try List.assoc id id_map with _ -> id in
-  let dc, c = Sign.decompose_prod_assum (pf_concl gl) in
+  let orig_id id = try List.assoc id id_map with _ -> id in 
+  let dc, c = Sign.decompose_prod_assum (pf_concl gl) in (* sidi add Sign. *)
   let hide_goal = hidden_clseq clseq in
   let c_hidden = hide_goal && c = mkVar gl_id in
   let rec fits forced = function
@@ -1893,11 +1893,11 @@ let anon_id = function
 let anontac (x, _, _) = intro_using (anon_id x)
 
 let intro_all gl =
-  let dc, _ = Sign.decompose_prod_assum (pf_concl gl) in
+  let dc, _ = Sign.decompose_prod_assum (pf_concl gl) in (* sidi : add Sign. *)
   tclTHENLIST (List.map anontac (List.rev dc)) gl
 
 let rec intro_anon gl =
-  try anontac (List.hd (fst (Sign.decompose_prod_n_assum 1 (pf_concl gl)))) gl
+  try anontac (List.hd (fst (Sign.decompose_prod_n_assum 1 (pf_concl gl)))) gl (* sidi : add Sign. *)
   with _ -> try tclTHEN red_in_concl intro_anon gl
   with _ -> error "No product even after reduction"
 
@@ -4803,7 +4803,7 @@ GEXTEND Gram
   | IDENT "assert"; c = constr; "as"; ipat = simple_intropattern -> 
        TacAssert (Some (TacId []), Some ipat, c)
   | IDENT "assert"; c = constr; "by"; tac = tactic_expr LEVEL "3" -> 
-       TacAssert (Some (TacComplete tac), Some (dummy_loc, IntroAnonymous), c)
+       TacAssert (Some (TacComplete tac), (Some (dummy_loc, IntroAnonymous)), c)
   ] ];
 END
 
