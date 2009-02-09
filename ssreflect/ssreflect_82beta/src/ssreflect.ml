@@ -167,9 +167,9 @@ let pf_ids_of_proof_hyps gl =
 let convert_concl_no_check t = convert_concl_no_check t DEFAULTcast
 let convert_concl t = convert_concl t DEFAULTcast
 let reduct_in_concl t = reduct_in_concl (t, DEFAULTcast)
-(* assia : added dummy_location*)
+(* assia : added dummy_location; HH : used pose_proof short-cut *)
 (*let havetac id = forward None (IntroIdentifier id)*)
-let havetac id = forward None (dummy_loc, (IntroIdentifier id))
+let havetac id = pose_proof (Name id)
 (*assia : let settac id = letin_tac true (Name id)*)
 let settac id c = letin_tac None (Name id) c None
 let posetac id cl = settac id cl nowhere
@@ -865,7 +865,7 @@ GEXTEND Gram
     | -> Vernacexpr.SearchOutside []
     ] ];
   ssr_search_item: [
-    [ qref = ssrqref -> (true, Vernacexpr.SearchRef qref)
+    [ qref = ssrqref -> (true, Vernacexpr.SearchSubPattern (CRef qref))
 (*assia    
     [ qref = ssrqref -> Vernacexpr.SearchRef qref
 | string = ne_string -> Vernacexpr.SearchString string*)
@@ -4796,14 +4796,14 @@ GEXTEND Gram
   simple_tactic: [
   [ IDENT "assert"; test_lpar_id_colon; "("; (loc,id) = identref; ":"; 
 	  c = lconstr; ")"; tac = tactic_expr LEVEL "3" -> 
-	  TacAssert (Some (TacComplete tac),(loc,IntroIdentifier id),c)
+	  TacAssert (Some (TacComplete tac),Some (loc,IntroIdentifier id),c)
   | IDENT "assert"; c = constr; "as"; ipat = simple_intropattern;
          "by"; tac = tactic_expr LEVEL "3" -> 
-       TacAssert (Some (TacComplete tac), ipat, c)
+       TacAssert (Some (TacComplete tac), Some ipat, c)
   | IDENT "assert"; c = constr; "as"; ipat = simple_intropattern -> 
-       TacAssert (Some (TacId []), ipat, c)
+       TacAssert (Some (TacId []), Some ipat, c)
   | IDENT "assert"; c = constr; "by"; tac = tactic_expr LEVEL "3" -> 
-       TacAssert (Some (TacComplete tac), (dummy_loc, IntroAnonymous), c)
+       TacAssert (Some (TacComplete tac), Some (dummy_loc, IntroAnonymous), c)
   ] ];
 END
 
@@ -4820,7 +4820,7 @@ END
 
 let rec ssr_add_relation n d deq pf_refl pf_sym pf_trans = function
   | [] ->
-    Setoid_replace.add_relation n d deq pf_refl pf_sym pf_trans
+    Class_tactics.declare_relation d deq n pf_refl pf_sym pf_trans
   | (aid, c) :: al -> match string_of_id aid with
   | "reflexivity" when pf_refl = None ->
     ssr_add_relation n d deq (Some c) pf_sym pf_trans al

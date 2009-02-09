@@ -1,24 +1,56 @@
--I theories
+-I theories 
 -custom "$(COQBIN)coqmktop -opt -o bin/ssrcoq src/ssreflect.cmx" "src/ssreflect.cmx" bin/ssrcoq
--custom "$(SSRCOQ) $(COQFLAGS) $*" "%.v $(SSRCOQ)" "%.vo"
+-custom "$(SSRCOQ) $(COQFLAGS) -compile $*" "%.v $(SSRCOQ)" "%.vo"
 CAMLP4OPTIONS = "-loc loc"
 SSRCOQ = bin/ssrcoq
-COQFLAGS = "-q $(OPT) $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -dump-glob $*.glob -compile "
+theories/abelian.v
+theories/action.v
+theories/alt.v
+theories/automorphism.v
 theories/bigops.v
+theories/binomial.v
+theories/burnside_app.v
+theories/center.v
+theories/charpoly.v
+theories/commutators.v
+theories/connect.v
+theories/coprime_act.v
+theories/coprime_comm.v
+theories/critical.v
+theories/cyclic.v
 theories/div.v
 theories/eqtype.v
 theories/finfun.v
 theories/finset.v
 theories/fintype.v
+theories/fp.v
+theories/frobenius.v
+theories/gprod.v
+theories/groupf.v
+theories/group_perm.v
 theories/groups.v
+theories/hall.v
+theories/jordanholder.v
+theories/matrix.v
+theories/maximal.v
+theories/morphisms.v
+theories/nilpotent.v
+theories/normal.v
 theories/paths.v
+theories/pgroups.v
+theories/poly.v
+theories/prim_act.v
 theories/prime.v
+theories/schurzass.v
 theories/seq.v
+theories/signperm.v
 theories/ssralg.v
 theories/ssrbool.v
 theories/ssreflect.v
 theories/ssrfun.v
 theories/ssrnat.v
+theories/sylow.v
+theories/theorem3_6.v
 theories/tuple.v
-theories/binomial.v
+theories/zp.v
 src/ssreflect.ml

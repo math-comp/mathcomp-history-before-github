@@ -736,6 +736,7 @@ Canonical Structure Mho_group : {group gT} := Eval hnf in [group of Mho].
 
 End Pfunctors.
 
+
 Notation "''O_' pi ( G )" := (pcore pi G)
   (at level 8, pi at level 2, format "''O_' pi ( G )") : group_scope.
 Notation "''O_' pi ( G )" := (pcore_group pi G) : subgroup_scope.
