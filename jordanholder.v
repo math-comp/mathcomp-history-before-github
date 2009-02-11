@@ -311,7 +311,7 @@ by recursion of the cardinal.
 Lemma exists_comps : forall G : gTg, exists s, comps G s.
 Proof.
 move=> G; elim: {G} #|G| {1 3}G (leqnn #|G|) => [G | n Hi G cG].
-  by rewrite leqNgt ltn_0group.
+  by rewrite leqNgt cardG_gt0.
 case/orP: (orbN (simple G)) => [sG | nsG].
   by exists [:: (1%G : gTg) ]; rewrite /comps eqxx /= -/(simple G) sG.
 case/orP: (orbN (G :==: 1))=> [tG | ntG].
@@ -333,7 +333,7 @@ Lemma JordanHolderUniqueness : forall (G : gTg) (s1 s2 : seq gTg),
   comps G s1 -> comps G s2 -> perm_eq (mkfactors G s1) (mkfactors G s2).
 Proof.
 move=> G; elim: {G} #|G| {-2}G (leqnn #|G|) => [G | n Hi G cG].
-  by rewrite leqNgt ltn_0group.
+  by rewrite leqNgt cardG_gt0.
 move=> s1 s2 cs1 cs2; case/orP: (orbN (G :==: 1)) => [tG | ntG].
   have -> : s1 = [::] by apply/eqP; rewrite -(trivg_comps cs1).
   have -> : s2 = [::] by apply/eqP; rewrite -(trivg_comps cs2).
@@ -537,7 +537,7 @@ by recursion of the cardinal.
 Lemma exists_acomps : forall G : gTg, exists s, acomps G s.
 Proof.
 move=> G; elim: {G} #|G| {1 3}G (leqnn #|G|) => [G | n Hi G cG].
-  by rewrite leqNgt ltn_0group.
+  by rewrite leqNgt cardG_gt0.
 case/orP: (orbN (asimple A G)) => [sG | nsG].
   by exists [:: (1%G : gTg) ]; rewrite /acomps eqxx /= andbT; rewrite /asimple in sG.
 case/orP: (orbN (G :==: 1))=> [tG | ntG].

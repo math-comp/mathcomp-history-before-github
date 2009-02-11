@@ -191,7 +191,7 @@ Canonical Structure finfun_of_subFinType := Eval hnf in [subFinType of fT].
 Lemma card_pfamily : forall y0 d (F : aT -> pred rT),
   #|pfamily y0 d F| = foldr (fun x m => #|F x| * m) 1 (enum d).
 Proof.
-move=> y0 d F; have:= uniq_enum d; have:= mem_enum d. 
+move=> y0 d F; have:= enum_uniq d; have:= mem_enum d. 
 elim: {d}enum {2 4}d => [|x0 s IHs] d eq_ds => [_|] /=.
   rewrite -(card1 [ffun=> y0]); apply: eq_card => f.
   apply/familyP/eqP => [f_y0 | ->{f} x]; last by rewrite ffunE -[d _]eq_ds /=.
@@ -232,12 +232,13 @@ Qed.
 Lemma card_pffun_on : forall y0 d r, #|pffun_on y0 d r| = #|r| ^ #|d|.
 Proof.
 move=> y0 d r; rewrite (cardE d) -(@eq_enum _ d) // card_pfamily.
-by elim: (enum _) => //= _ ? ->.
+by elim: (enum _) => //= _ ? ->; rewrite expnS.
 Qed.
 
 Lemma card_ffun_on : forall r, #|ffun_on r| = #|r| ^ #|aT|.
 Proof.
-by move=> r; rewrite card_family cardT; elim: enum => //= _ e ->.
+move=> r; rewrite card_family cardT.
+by elim: enum => //= _ e ->; rewrite expnS.
 Qed.
 
 Lemma card_ffun : #|fT| = #|rT| ^ #|aT|.

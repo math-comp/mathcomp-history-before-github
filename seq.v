@@ -277,7 +277,7 @@ Lemma nth_set_nth : forall s n y,
 Proof.
 elim=> [|x s IHs] [|n] y [|m] //=; rewrite ?nth_nil ?IHs // nth_ncons eqSS.
 case: ltngtP => // [lt_nm | ->]; last by rewrite subnn.
-by rewrite nth_default // ltn_0sub.
+by rewrite nth_default // subn_gt0.
 Qed.
 
 Lemma set_set_nth : forall s n1 y1 n2 y2,
@@ -480,7 +480,7 @@ Fixpoint drop n s {struct s} :=
   end.
 
 Lemma drop_behead : drop n0 =1 iter n0 behead.
-Proof. by elim: n0 => [|n IHn] [|x s] //; rewrite -iter_f -IHn. Qed.
+Proof. by elim: n0 => [|n IHn] [|x s] //; rewrite iterSr -IHn. Qed.
 
 Lemma drop0 : forall s, drop 0 s = s. Proof. by case. Qed.
 
@@ -580,7 +580,7 @@ move=> s i; case: (ltnP n0 (size s)) => [Hn|Hn].
   rewrite -{2}[s]cat_take_drop nth_cat size_take Hn /=.
   by rewrite ltnNge leq_addr addKn.
 rewrite !nth_default //; first by apply: (leq_trans Hn); apply: leq_addr.
-by rewrite -eqn_sub0 in Hn; rewrite size_drop (eqP Hn) leq0n.
+by rewrite -subn_eq0 in Hn; rewrite size_drop (eqP Hn) leq0n.
 Qed.
 
 Lemma nth_take : forall i, i < n0 -> forall s, nth (take n0 s) i = nth s i.
@@ -745,7 +745,7 @@ Qed.
 Lemma has_filter : forall a s, has a s = (filter a s != [::]).
 Proof. by move=> a s; rewrite has_count count_filter; case (filter a s). Qed.
 
-Lemma eq_size0 : forall s, (size s == 0) = (s == [::]).
+Lemma size_eq0 : forall s, (size s == 0) = (s == [::]).
 Proof. move=> s; apply/eqP/eqP=> [|-> //]; exact: size0nil. Qed.
 
 (* mem_seq and index. *)
@@ -935,10 +935,10 @@ Qed.
 Fixpoint uniq s :=
   if s is x :: s' then (x \notin s') && uniq s' else true.
 
-Lemma uniq_cons : forall x s, uniq (x :: s) = (x \notin s) && uniq s.
+Lemma cons_uniq : forall x s, uniq (x :: s) = (x \notin s) && uniq s.
 Proof. by []. Qed.
 
-Lemma uniq_cat : forall s1 s2,
+Lemma cat_uniq : forall s1 s2,
   uniq (s1 ++ s2) = [&& uniq s1, ~~ has (mem s1) s2 & uniq s2].
 Proof.
 move=> s1 s2; elim: s1 => [|x s1 IHs]; first by rewrite /= has_pred0.
@@ -946,34 +946,34 @@ by rewrite has_sym /= mem_cat !negb_orb has_sym IHs -!andbA; do !bool_congr.
 Qed.
 
 Lemma uniq_catC : forall s1 s2, uniq (s1 ++ s2) = uniq (s2 ++ s1).
-Proof. by move=> *; rewrite !uniq_cat has_sym andbCA andbA andbC. Qed.
+Proof. by move=> *; rewrite !cat_uniq has_sym andbCA andbA andbC. Qed.
 
 Lemma uniq_catCA : forall s1 s2 s3,
   uniq (s1 ++ s2 ++ s3) = uniq (s2 ++ s1 ++ s3).
 Proof.
 move=> s1 s2 s3.
-by rewrite !catA -!(uniq_catC s3) !(uniq_cat s3) uniq_catC !has_cat orbC.
+by rewrite !catA -!(uniq_catC s3) !(cat_uniq s3) uniq_catC !has_cat orbC.
 Qed.
 
-Lemma uniq_rcons : forall s x, uniq (rcons s x) = (x \notin s) && uniq s.
+Lemma rcons_uniq : forall s x, uniq (rcons s x) = (x \notin s) && uniq s.
 Proof. by move=> *; rewrite -cats1 uniq_catC. Qed.
 
-Lemma uniq_filter : forall s a, uniq s -> uniq (filter a s).
+Lemma filter_uniq : forall s a, uniq s -> uniq (filter a s).
 Proof.
 move=> s a; elim: s => [|x s IHs] //=; case/andP=> [Hx Hs]; case (a x); auto.
 by rewrite /= mem_filter /= (negbTE Hx) andbF; auto.
 Qed.
 
-Lemma uniq_rot : forall s, uniq (rot n0 s) = uniq s.
+Lemma rot_uniq : forall s, uniq (rot n0 s) = uniq s.
 Proof. by move=> *; rewrite /rot uniq_catC cat_take_drop. Qed.
 
-Lemma uniq_rev : forall s, uniq (rev s) = uniq s.
+Lemma rev_uniq : forall s, uniq (rev s) = uniq s.
 Proof.
 elim=> // x s IHs.
-by rewrite rev_cons -cats1 uniq_cat /= andbT andbC mem_rev orbF IHs.
+by rewrite rev_cons -cats1 cat_uniq /= andbT andbC mem_rev orbF IHs.
 Qed.
 
-Lemma count_pred1_uniq : forall s x, uniq s -> count (pred1 x) s = (x \in s).
+Lemma count_uniq_mem : forall s x, uniq s -> count (pred1 x) s = (x \in s).
 Proof.
 move=> s x; elim: s => //= [y s IHs]; case/andP; move/negbTE => Hy Us.
 by rewrite {}IHs {Us}// in_cons eq_sym; case: eqP => // ->; rewrite Hy.
@@ -993,12 +993,12 @@ move=> s x; elim: s => //= [y s IHs].
 by case Hy: (y \in s); rewrite in_cons IHs //; case: eqP => // ->.
 Qed.
 
-Lemma uniq_undup : forall s, uniq (undup s).
+Lemma undup_uniq : forall s, uniq (undup s).
 Proof.
 by elim=> //= [x s IHs]; case Hx: (x \in s); rewrite //= mem_undup Hx.
 Qed.
 
-Lemma undup_uniq : forall s, uniq s -> undup s = s.
+Lemma undup_id : forall s, uniq s -> undup s = s.
 Proof. by elim=> //= [x s IHs]; case/andP; move/negbTE->; move/IHs->. Qed.
 
 Lemma ltn_size_undup : forall s, (size (undup s) < size s) = ~~ uniq s.
@@ -1036,7 +1036,7 @@ Proof. by move=> *; rewrite /= eqxx. Qed.
 Lemma index_last : forall x s,
   uniq (x :: s) -> index (last x s) (x :: s) = size s.
 Proof.
-move=> x s; rewrite lastI uniq_rcons -cats1 index_cat size_belast.
+move=> x s; rewrite lastI rcons_uniq -cats1 index_cat size_belast.
 by case: (_ \in _) => //=; rewrite eqxx addn0.
 Qed.
 
@@ -1164,7 +1164,7 @@ Proof.
 move=> s1 s2; apply: (iffP allP) => [eq_cnt1 a | eq_cnt x _]; last exact/eqP.
 elim: {a}_.+1 {-2}a (ltnSn (count a (s1 ++ s2))) => // n IHn a le_an.
 case: (posnP (count a (s1 ++ s2))).
-  by move/eqP; rewrite count_cat eqn_add0; do 2 case: eqP => // ->.
+  by move/eqP; rewrite count_cat addn_eq0; do 2 case: eqP => // ->.
 rewrite -has_count; case/hasP=> x s12x a_x; pose a' := predD1 a x.
 have cnt_a': forall s, count a s = count (pred1 x) s + count a' s.
   move=> s; rewrite count_filter -(count_predC (pred1 x)) 2!count_filter.
@@ -1269,7 +1269,7 @@ Lemma leq_size_uniq : forall s1 s2 : seq T,
 Proof.
 elim=> [|x s1 IHs] s2 Hs1 Hs12; first by case s2.
 case: (@rot_to T s2 x); [ by apply: Hs12; apply: predU1l | move=> i s2' Ds2' ].
-  rewrite -(size_rot i) -(uniq_rot i) Ds2' /=; case Hs2': (x \in s2').
+  rewrite -(size_rot i) -(rot_uniq i) Ds2' /=; case Hs2': (x \in s2').
   rewrite ltnNge /=; case/negP; apply: (uniq_leq_size Hs1) => [y Hy].
   by move: (Hs12 _ Hy); rewrite /= -(mem_rot i) Ds2'; case/predU1P=> // ->.
 move: Hs1 => /=; case/andP=> Hx Hs1; apply: IHs => // [y /= Hy].
@@ -1298,7 +1298,7 @@ apply: uniq_leq_size => [|y] /=; first by rewrite Hxs1.
 case/predU1P=> [-> //|]; exact: Hs1.
 Qed.
 
-Lemma uniq_perm : forall s1 s2 : seq T,
+Lemma perm_uniq : forall s1 s2 : seq T,
   s1 =i s2 -> size s1 = size s2 -> uniq s1 = uniq s2.
 Proof.
 move=> s1 s2 Es12 Hs12; apply/idP/idP => Us;
@@ -1307,22 +1307,22 @@ Qed.
 
 Lemma perm_eq_uniq : forall s1 s2, perm_eq s1 s2 -> uniq s1 = uniq s2.
 Proof.
-move=> *; apply: uniq_perm; [exact: perm_eq_mem | exact: perm_eq_size].
+move=> *; apply: perm_uniq; [exact: perm_eq_mem | exact: perm_eq_size].
 Qed.
 
 Lemma uniq_perm_eq : forall s1 s2,
   uniq s1 -> uniq s2 -> s1 =i s2 -> perm_eq s1 s2.
 Proof.
 move=> s1 s2 uniq1 uniq2 eq12; apply/allP=> x _; apply/eqP.
-by rewrite !count_pred1_uniq ?eq12.
+by rewrite !count_uniq_mem ?eq12.
 Qed.
 
-Lemma uniq_count_pred1 : forall s : seq T,
+Lemma count_mem_uniq : forall s : seq T,
   (forall x, count (pred1 x) s = (x \in s)) -> uniq s.
 Proof.
-move=> s count1_s; have Uus := uniq_undup s.
+move=> s count1_s; have Uus := undup_uniq s.
 suff: perm_eq s (undup s) by move/perm_eq_uniq->.
-by apply/allP=> x _; apply/eqP; rewrite (count_pred1_uniq x Uus) mem_undup.
+by apply/allP=> x _; apply/eqP; rewrite (count_uniq_mem x Uus) mem_undup.
 Qed.
 
 End PermSeq.
@@ -1356,14 +1356,14 @@ Proof. by move=> *; rewrite -rot1_cons rotK. Qed.
 Lemma has_rotr : forall (a : pred T) s, has a (rotr n0 s) = has a s.
 Proof. by move=> *; rewrite has_rot. Qed.
 
-Lemma uniq_rotr : forall s : seq T', uniq (rotr n0 s) = uniq s.
-Proof. by move=> *; rewrite uniq_rot. Qed.
+Lemma rotr_uniq : forall s : seq T', uniq (rotr n0 s) = uniq s.
+Proof. by move=> *; rewrite rot_uniq. Qed.
 
 Lemma rotrK : cancel (@rotr T n0) (rot n0).
 Proof.
 move=> s; case (ltnP n0 (size s)); move=> Hs.
 rewrite -{1}(subKn (ltnW Hs)) -{1}[size s]size_rotr; first exact: rotK.
-rewrite -{2}(rot_oversize Hs); rewrite -eqn_sub0 in Hs.
+rewrite -{2}(rot_oversize Hs); rewrite -subn_eq0 in Hs.
 by rewrite /rotr (eqP Hs) rot0.
 Qed.
 
@@ -1501,7 +1501,7 @@ by move=> x m s; elim: s m => [|y p IHs] [|[|] m] //=;
  rewrite !in_cons; case (x == y) => /=; eauto.
 Qed.
 
-Lemma uniq_sieve : forall s : seq T, uniq s -> forall m, uniq (sieve m s).
+Lemma sieve_uniq : forall s : seq T, uniq s -> forall m, uniq (sieve m s).
 Proof.
 elim=> [|x s IHs] /= Hs [|b m] //.
 move/andP: Hs b => [Hx Hs] [|] /=; rewrite {}IHs // andbT.
@@ -1623,7 +1623,7 @@ elim=> [|x s IHs] //=; case/andP=> [Hsx Hs]; rewrite (IHs Hs) andbT.
 by apply/negP => Hx; case/mapP: Hsx; exists x.
 Qed.
 
-Lemma uniq_map_in : forall s : seq T1,
+Lemma map_inj_in_uniq : forall s : seq T1,
   {in s &, injective f} -> uniq (map f s) = uniq s.
 Proof.
 elim=> //= x s IHs //= injf; congr (~~ _ && _).
@@ -1646,8 +1646,8 @@ move=> s x; rewrite /index; elim: s => [|y s IHs] //=.
 by rewrite (inj_eq Hf) IHs.
 Qed.
 
-Lemma uniq_map : forall s, uniq (map f s) = uniq s.
-Proof. move=> s; apply: uniq_map_in; exact: in2W. Qed.
+Lemma map_inj_uniq : forall s, uniq (map f s) = uniq s.
+Proof. move=> s; apply: map_inj_in_uniq; exact: in2W. Qed.
 
 End EqMap.
 
@@ -1736,9 +1736,9 @@ move=> gK s u.
 by rewrite -(mem_map (pcan_inj gK)) pmap_filter // mem_filter gK.
 Qed.
 
-Lemma uniq_pmap : forall s, uniq s -> uniq (pmap f s).
+Lemma pmap_uniq : forall s, uniq s -> uniq (pmap f s).
 Proof.
-move=> s; move/(uniq_filter [eta f]); rewrite -(pmap_filter fK).
+move=> s; move/(filter_uniq [eta f]); rewrite -(pmap_filter fK).
 exact: map_uniq.
 Qed.
  
@@ -1765,8 +1765,8 @@ Lemma mem_pmap_sub : forall (s : seq T) u,
   (u \in pmap insT s) = (val u \in s).
 Proof. move=> s u; apply: (can2_mem_pmap (insubK _)); exact: valK. Qed.
 
-Lemma uniq_pmap_sub : forall s : seq T, uniq s -> uniq (pmap insT s).
-Proof. exact: (uniq_pmap (insubK _)). Qed.
+Lemma pmap_sub_uniq : forall s : seq T, uniq s -> uniq (pmap insT s).
+Proof. exact: (pmap_uniq (insubK _)). Qed.
 
 End EqPmapSub.
 
@@ -1803,7 +1803,7 @@ rewrite -addSnnS leq_eqVlt in_cons eq_sym.
 case: eqP => [->|_]; [by rewrite leq_addr | exact: IHn].
 Qed.
 
-Lemma uniq_iota : forall m n, uniq (iota m n).
+Lemma iota_uniq : forall m n, uniq (iota m n).
 Proof.
 by move=> m n; elim: n m => //= [n IHn] m; rewrite mem_iota ltnn /=.
 Qed.
@@ -1835,9 +1835,9 @@ Qed.
 
 End MakeSeq.
 
-Lemma uniq_mkseq : forall (T : eqType) (f : nat -> T) n,
+Lemma mkseq_uniq : forall (T : eqType) (f : nat -> T) n,
   injective f -> uniq (mkseq f n).
-Proof. by move=> *; rewrite /mkseq uniq_map // uniq_iota. Qed.
+Proof. by move=> *; rewrite /mkseq map_inj_uniq // iota_uniq. Qed.
 
 Section FoldRight.
 
@@ -1876,7 +1876,7 @@ Lemma natnseq0P : forall s : seq nat,
   reflect (s = nseq (size s) 0) (sumn s == 0).
 Proof.
 move=> s; apply: (iffP idP) => [|->]; last by rewrite sumn_nseq.
-elim: s => //= x s IHs; rewrite eqn_add0.
+elim: s => //= x s IHs; rewrite addn_eq0.
 by case/andP; move/eqP->; move/IHs <-.
 Qed.
 

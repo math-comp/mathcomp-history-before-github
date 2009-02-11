@@ -23,7 +23,7 @@ Record mixin_of (T : eqType) : Type :=
   Mixin {mixin_enum : seq T; _ : axiom mixin_enum}.
 
 Lemma uniq_enumP : forall T e, @uniq T e -> e =i T -> axiom e.
-Proof. by move=> T e Ue sT x; rewrite count_pred1_uniq ?sT. Qed.
+Proof. by move=> T e Ue sT x; rewrite count_uniq_mem ?sT. Qed.
 
 Definition UniqMixin T e Ue eT := Mixin (@uniq_enumP T e Ue eT).
 
@@ -36,7 +36,7 @@ Definition count_enum := pmap (@pickle_inv T) (iota 0 n).
 
 Lemma count_enumP : axiom count_enum.
 Proof.
-apply: uniq_enumP (uniq_pmap (@pickle_invK T) (uniq_iota _ _)) _ => x.
+apply: uniq_enumP (pmap_uniq (@pickle_invK T) (iota_uniq _ _)) _ => x.
 by rewrite mem_pmap -pickleK_inv map_f // mem_iota ubT.
 Qed.
 
@@ -184,9 +184,9 @@ Proof.
 by move=> q x; rewrite mem_filter andbC -has_pred1 has_count enumP.
 Qed.
 
-Lemma uniq_enum : uniq (enum P).
+Lemma enum_uniq : uniq (enum P).
 Proof.
-apply: uniq_filter; apply: uniq_count_pred1 => x.
+apply: filter_uniq; apply: count_mem_uniq => x.
 by rewrite enumP -enumT mem_enum.
 Qed.
 
@@ -622,7 +622,7 @@ Lemma dinjectivePn : forall D,
 Proof.
 move=> D; apply: (iffP idP) => [injf | [x Dx [y Dxy eqfxy]]]; last first.
   move: Dx; rewrite -(mem_enum D); case/rot_to=> i E defE.
-  rewrite /dinjectiveb -(uniq_rot i) -map_rot defE /=; apply/nandP; left.
+  rewrite /dinjectiveb -(rot_uniq i) -map_rot defE /=; apply/nandP; left.
   rewrite inE /= -(mem_enum D) -(mem_rot i) defE inE in Dxy.
   rewrite andb_orr andbC andbN in Dxy.
   by rewrite eqfxy map_f //; case/andP: Dxy.
@@ -630,7 +630,7 @@ pose p := [pred x \in D | existsb y, (y \in [predD1 D & x]) && (f x == f y)].
 case: (pickP p) => [x /= | no_p].
   case/andP=> Dx; case/existsP=> y; case/andP=> Dxy; move/eqP=> eqfxy.
   by exists x; last exists y.
-rewrite /dinjectiveb uniq_map_in ?uniq_enum // in injf => x y Dx Dy eqfxy.
+rewrite /dinjectiveb map_inj_in_uniq ?enum_uniq // in injf => x y Dx Dy eqfxy.
 move/(_ x): no_p; rewrite /= -mem_enum Dx; move/pred0P; move/(_ y).
 by rewrite inE /= -(mem_enum D) Dy eqfxy eqxx !andbT; move/eqP.
 Qed.
@@ -770,7 +770,7 @@ Lemma card_in_image : forall A,
   {in A &, injective f} -> #|[image f of A]| = #|A|.
 Proof.
 move=> A injf; rewrite (cardE A) -(size_map f); apply/card_uniqP.
-rewrite uniq_map_in ?uniq_enum // => x y; rewrite !mem_enum; exact: injf.
+rewrite map_inj_in_uniq ?enum_uniq // => x y; rewrite !mem_enum; exact: injf.
 Qed.
 
 Hypothesis injf : injective f.
@@ -872,7 +872,7 @@ Proof. by move=> x; rewrite mem_undup mem_pmap -valK map_f ?ssvalP. Qed.
 
 Lemma val_seq_sub_enum : uniq s -> map val seq_sub_enum = s.
 Proof.
-move=> Us; rewrite /seq_sub_enum undup_uniq ?uniq_pmap_sub //.
+move=> Us; rewrite /seq_sub_enum undup_id ?pmap_sub_uniq //.
 rewrite (pmap_filter (@insubK _ _ _)); apply/all_filterP.
 by apply/allP => x; rewrite isSome_insub.
 Qed.
@@ -889,7 +889,7 @@ Definition seq_sub_countMixin := CountMixin seq_sub_pickleK.
 Canonical Structure seq_sub_countType :=
   Eval hnf in CountType seq_sub_countMixin.
 Canonical Structure seq_sub_subCountType := [subCountType of seq_sub].
-Definition seq_sub_finMixin := UniqFinMixin (uniq_undup _) mem_seq_sub_enum.
+Definition seq_sub_finMixin := UniqFinMixin (undup_uniq _) mem_seq_sub_enum.
 Canonical Structure seq_sub_finType := Eval hnf in FinType seq_sub_finMixin.
 
 End SeqFinType.
@@ -928,7 +928,7 @@ Variables (eT : countType) (fT : finType) (f : eT -> fT).
 Lemma pcan_enumP : forall g,
   pcancel f g -> Finite.axiom (undup (pmap g (Finite.enum fT))).
 Proof.
-move=> g fK x; rewrite count_pred1_uniq ?uniq_undup // mem_undup.
+move=> g fK x; rewrite count_uniq_mem ?undup_uniq // mem_undup.
 by rewrite mem_pmap -fK map_f // -enumT mem_enum.
 Qed.
 
@@ -976,8 +976,8 @@ Definition sub_enum : seq sT := pmap insub (Finite.enum T).
 Lemma mem_sub_enum : forall u, u \in sub_enum.
 Proof. by move=> u; rewrite mem_pmap_sub -enumT mem_enum. Qed.
 
-Lemma uniq_sub_enum : uniq sub_enum.
-Proof. by rewrite uniq_pmap_sub // -enumT uniq_enum. Qed.
+Lemma sub_enum_uniq : uniq sub_enum.
+Proof. by rewrite pmap_sub_uniq // -enumT enum_uniq. Qed.
 
 Lemma val_sub_enum : map val sub_enum = enum P.
 Proof.
@@ -989,7 +989,7 @@ Qed.
 (* stated that subType_sort and FinType.sort unify via to the        *)
 (* subType_finType structure.                                        *)
 
-Definition SubFinMixin := UniqFinMixin uniq_sub_enum mem_sub_enum.
+Definition SubFinMixin := UniqFinMixin sub_enum_uniq mem_sub_enum.
 Definition SubFinMixin_for (eT : eqType) of phant eT :=
   eq_rect _ Finite.mixin_of SubFinMixin eT.
 Let sfT := FinType SubFinMixin.
@@ -1072,15 +1072,15 @@ rewrite pmap_filter; last exact: insubK.
 by apply/all_filterP; apply/allP=> i; rewrite mem_iota isSome_insub.
 Qed.
 
-Lemma uniq_ord_enum : uniq ord_enum.
-Proof. by rewrite uniq_pmap_sub ?uniq_iota. Qed.
+Lemma ord_enum_uniq : uniq ord_enum.
+Proof. by rewrite pmap_sub_uniq ?iota_uniq. Qed.
 
 Lemma mem_ord_enum : forall i, i \in ord_enum.
 Proof.
 by move=> i; rewrite -(mem_map ord_inj) val_ord_enum mem_iota ltn_ord.
 Qed.
 
-Definition ordinal_finMixin := UniqFinMixin uniq_ord_enum mem_ord_enum.
+Definition ordinal_finMixin := UniqFinMixin ord_enum_uniq mem_ord_enum.
 Canonical Structure ordinal_finType := Eval hnf in FinType ordinal_finMixin.
 Canonical Structure ordinal_subFinType := Eval hnf in [subFinType of ordinal].
 
@@ -1115,7 +1115,7 @@ Proof. move=> i0 i; apply: val_inj; exact: nth_enum_ord. Qed.
 Lemma index_enum_ord : forall i : 'I_n, index i (enum 'I_n) = i.
 Proof.
 move=> i.
-by rewrite -{1}(nth_ord_enum i i) index_uniq ?(uniq_enum, size_enum_ord).
+by rewrite -{1}(nth_ord_enum i i) index_uniq ?(enum_uniq, size_enum_ord).
 Qed.
 
 End OrdinalEnum.
@@ -1156,7 +1156,7 @@ Proof. move=> x; exact: nth_enum_rank. Qed.
 Lemma enum_valK : cancel enum_val enum_rank.
 Proof.
 move=> x; apply: ord_inj.
-by rewrite /= index_uniq // -?cardE (uniq_enum, valP x).
+by rewrite /= index_uniq // -?cardE (enum_uniq, valP x).
 Qed.
 
 Lemma enum_rank_inj : injective enum_rank.
@@ -1430,16 +1430,16 @@ Variables T1 T2 : finType.
 Definition sum_enum :=
   map (@inl _ _) (Finite.enum T1) ++ map (@inr _ _) (Finite.enum T2).
 
-Lemma uniq_sum_enum : uniq sum_enum.
+Lemma sum_enum_uniq : uniq sum_enum.
 Proof.
-rewrite uniq_cat -!enumT !(uniq_enum, uniq_map) ?andbT => [|? ? []|? ? []] //.
+rewrite cat_uniq -!enumT !(enum_uniq, map_inj_uniq) ?andbT => [|? ? []|? ? []] //.
 by apply/hasP=> [[u]]; case/mapP=> x _ <-; case/mapP.
 Qed.
 
 Lemma mem_sum_enum : forall u, u \in sum_enum.
 Proof. by case=> x; rewrite mem_cat -!enumT map_f ?mem_enum ?orbT. Qed.
 
-Definition sum_finMixin := UniqFinMixin uniq_sum_enum mem_sum_enum.
+Definition sum_finMixin := UniqFinMixin sum_enum_uniq mem_sum_enum.
 Canonical Structure sum_finType := Eval hnf in FinType sum_finMixin.
 
 Lemma card_sum : #|{: T1 + T2}| = #|T1| + #|T2|.

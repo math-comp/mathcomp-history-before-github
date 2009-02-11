@@ -12,8 +12,8 @@
 (*   'I_p == the subtype of integers less than p, taken here as the    *)
 (*           type of integers mod p.                                   *)
 (* This file:                                                          *)
-(*   inZp p_pos == the natural projection from nat into the integers   *)
-(*                 mod p (represented as 'I_p), when p_pos is a proof  *)
+(*   inZp p_gt0 == the natural projection from nat into the integers   *)
+(*                 mod p (represented as 'I_p), when p_gt0 is a proof  *)
 (*                 that p > 0.                                         *)
 (*  Zp_finGroupType pp == the canonical finGroupType on 'I_pp, when pp *)
 (*                        is a pos_nat.                                *)
@@ -25,8 +25,8 @@
 (*  Zp_units p == the set (and multiplicative group) of all 'I_p units *)
 (* We show that Zp and Zp_units are abelian, and compute their orders. *)
 (***********************************************************************)
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice div ssralg.
-Require Import fintype bigops finset prime groups.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice div.
+Require Import fintype bigops finset prime groups ssralg.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -41,21 +41,21 @@ Section ZpDef.
 (***********************************************************************)
 
 Variable p : nat.
-Hypothesis p_pos : 0 < p.
+Hypothesis p_gt0 : 0 < p.
 
 Definition Zp : {set 'I_p} := setT.
 
 Implicit Types x y z : 'I_p.
 
 (* Standard injection; val (inZp i) = i %% p *)
-Definition inZp i := Ordinal (ltn_pmod i p_pos).
+Definition inZp i := Ordinal (ltn_pmod i p_gt0).
 Lemma modZp : forall x, x %% p = x.
 Proof. by move=> x; rewrite modn_small ?ltn_ord. Qed.
 Lemma valZpK : forall x, inZp x = x.
 Proof. by move=> x; apply: val_inj; rewrite /= modZp. Qed.
 
 (* Operations *)
-Definition Zp0 := Ordinal p_pos.
+Definition Zp0 := Ordinal p_gt0.
 Definition Zp1 := inZp 1.
 Definition Zp_opp x := inZp (p - x).
 Definition Zp_add x y := inZp (x + y).
@@ -157,8 +157,8 @@ Lemma Zp_mulrn : forall x n,
   ((x : ZmodType Zp_zmodMixin) *+ n)%R = inZp (x * n).
 Proof.
 move=> x n; apply: val_inj => /=.
-elim: n => [|n IHn] /= ; first by rewrite muln0 modn_small.
-by rewrite IHn modn_addmr mulnS.
+elim: n => [|n IHn]; first by rewrite muln0 modn_small.
+by rewrite !GRing.mulrS /= IHn modn_addmr mulnS.
 Qed.
 
 (* Multiplicative (unit) group. *)
@@ -267,7 +267,7 @@ Lemma Zp_units_expgn : forall (u : Zp_unit p) n,
   u ^+ n = inZp (valP p) (u ^ n) :> 'I_p.
 Proof.
 move=> u n; apply: val_inj => /=; elim: n => [|n IHn] //.
-by rewrite expgS /= IHn modn_mulmr.
+by rewrite expgS /= IHn expnS modn_mulmr.
 Qed.
 
 End ZpGroup.
@@ -298,10 +298,9 @@ Definition Zp_unitMixin :=
 
 Definition Zp_ring := ComUnitRingType Zp_unitMixin.
 
-Lemma Zp_nat : forall n, n%:Zp_ring = inZp lt0p n.
+Lemma Zp_nat : forall n, n%:R = inZp lt0p n :> Zp_ring.
 Proof.
-move=> n; rewrite [n%:_]Zp_mulrn; apply: val_inj.
-by rewrite /= modn_mulml mul1n.
+by move=> n; apply: val_inj; rewrite [n%:R]Zp_mulrn /= modn_mulml mul1n.
 Qed.
 
 End ZpRing.

@@ -1,5 +1,5 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
-Require Import prime fintype paths finfun ssralg bigops finset.
+Require Import prime fintype paths finfun bigops finset ssralg.
 Require Import groups morphisms normal commutators.
 Require Import cyclic center pgroups sylow gprod schurzass hall. 
 Require Import coprime_act nilpotent.
@@ -98,8 +98,8 @@ have centr : forall v, v \in 'C_G(A) -> phi v = v^+ #|A|.
   have phiv: phi v = cphi v.
     congr (sgval _); apply: eq_bigr => x; rewrite /f => xin.
     by congr subg; rewrite /conjg -{2}(mulKg x v); congr (_ * _); apply: inC.
-  rewrite phiv /cphi sumr_const. 
-  by elim: {+}#|_| => [  | n indh]; first done; rewrite //= subgK // expgS indh.
+  rewrite phiv /cphi GRing.sumr_const. 
+  by case: {+}#|_| => //; elim=> [|n IHn]; rewrite /= subgK ?IHn.
 have v1: forall v, v \in G ->  v ^+ #|A| = 1 -> v = 1.
   move => v vin; move/eqP; rewrite -order_dvdn => div. 
   have ov1: #[ v ] = 1%nat.
@@ -144,10 +144,9 @@ have subC1: A \subset 'C(G1).
   - by apply: (solvableS (normal_sub G1nG)). 
 have lem: G \subset G1 * 'C_G(A).
   rewrite -quotientSK; last by apply:normal_norm. 
-  rewrite coprime_quotient_cent_weak; last done; last done; last done; last done.
-  by rewrite subsetI; apply/andP; split; first done; rewrite centsC.
+  by rewrite coprime_quotient_cent_weak // subsetI subxx /= centsC.
 have lem2: G1 * 'C_G(A) \subset 'C(A).
-  apply: mul_subG; first by rewrite centsC. by apply: subsetIr.
+  by apply: mul_subG; [rewrite centsC | exact: subsetIr].
 by rewrite centsC; apply: (subset_trans lem lem2).
 Qed.
 
@@ -239,8 +238,8 @@ suff sylowA: p.-Sylow(A <*> H) A.
   by rewrite (subsetP (morphpre_norm _ _)) ?mem_morphpre.
 rewrite pHallE sub_gen ?subsetUl //= norm_mulgenEl; last by apply: (subset_trans AsubG (normal_norm normH)).
 have co: coprime #|A| #|H| by apply: (pgroup_coprime pr).
-rewrite coprime_cardMg // partn_mul ?ltn_0mul ?ltn_0group //=.
-rewrite (@not_dvdn_partn1 #|H|); rewrite //=; last by apply: ltn_0group.
+rewrite coprime_cardMg // partn_mul ?muln_gt0 ?cardG_gt0 //=.
+rewrite (@not_dvdn_partn1 #|H|); rewrite //=; last by apply: cardG_gt0.
 by rewrite muln1; apply/eqP; apply: card_pgroup_p.
 Qed.
 

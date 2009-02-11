@@ -376,7 +376,7 @@ move/connectP=> [q' Hq' <-]; move/fpathP: Hq' => [m <-] {q'}.
 rewrite last_traject; apply: loopingP; apply looping_order.
 Qed.
 
-Lemma uniq_orbit : forall x, uniq (orbit x).
+Lemma orbit_uniq : forall x, uniq (orbit x).
 Proof.
 move=> x; rewrite /orbit -orderSpred looping_uniq.
 apply/trajectP => [[i Hi Ei]]; set n := (order x).-1; case/idP: (ltnn n).
@@ -393,7 +393,7 @@ Proof. by move=> x y; rewrite [_ y]fconnect_orbit -index_mem size_orbit. Qed.
 Lemma findex_iter : forall x i, i < order x -> findex x (iter i f x) = i.
 Proof.
 move=> x i Hi; rewrite -(nth_traject f Hi); rewrite -size_orbit in Hi.
-exact (index_uniq x Hi (uniq_orbit x)).
+exact (index_uniq x Hi (orbit_uniq x)).
 Qed.
 
 Lemma iter_findex : forall x y, fconnect f x y -> iter (findex x y) f x = y.
@@ -427,7 +427,7 @@ case/rot_to: Hx => [i q Dp] y; rewrite -(mem_rot i p) Dp.
 have Hp' := Hp; rewrite -(cycle_rot i) {i}Dp (cycle_path x) /=  in Hp'.
 case/andP: Hp'; move/eqP=> Eq Hq; apply/idP/idP; last exact: path_connect.
 move/connectP=> [q' Hq' <-] {y}; case/fpathP: Hq' => [m <-] {q'}.
-case/fpathP: Hq Eq => [n <-]; rewrite !last_traject f_iter; move=> Dx.
+case/fpathP: Hq Eq => [n <-]; rewrite !last_traject -iterS; move=> Dx.
 by apply: (@loopingP _ f x (n.+1) _ m); rewrite /looping Dx /= mem_head.
 Qed.
 
@@ -448,10 +448,10 @@ Hypothesis Hf : injective f.
 
 Lemma f_finv : cancel finv f.
 Proof.
-move=> x; move: (looping_order x) (uniq_orbit x).
+move=> x; move: (looping_order x) (orbit_uniq x).
 rewrite /looping /orbit -orderSpred looping_uniq /= /looping.
 set n := (order x).-1; case/predU1P; first done.
-move/trajectP=> [i Hi Dnx]; rewrite iter_f -f_iter in Dnx.
+move/trajectP=> [i Hi Dnx]; rewrite -iterSr iterS in Dnx.
 by case/trajectP; exists i; last by apply Hf.
 Qed.
 
@@ -478,15 +478,15 @@ apply: (connect_trans _ (fconnect_finv _)); auto.
 Qed.
 
 Lemma iter_order : forall x, iter (order x) f x = x.
-Proof. move=> x; rewrite -orderSpred -f_iter; exact (f_finv x). Qed.
+Proof. move=> x; rewrite -orderSpred iterS; exact (f_finv x). Qed.
 
 Lemma iter_finv : forall n x, n <= order x ->
   iter n finv x = iter (order x - n) f x.
 Proof.
 move=> n x Hn; set m := order x - n.
-rewrite -{1}[x]iter_order -(subnK Hn) -/m iter_addn.
+rewrite -{1}[x]iter_order -(subnK Hn) -/m iter_add.
 move: {m x Hn}(iter m f x) => x.
-by elim: n => // [n Hrec]; rewrite -iter_f /= finv_f.
+by elim: n => // [n Hrec]; rewrite iterSr /= finv_f.
 Qed.
 
 Lemma cycle_orbit : forall x, fcycle f (orbit x).
@@ -529,7 +529,7 @@ have <-: #|preim (froot f) b| = #|a|.
   by rewrite -(closed_connect Ha (connect_root _ x)).
 elim: {a b}#|b| {1 3 4}b (eqxx #|b|) Hb {Ha Han} => [|m Hrec] b Em Hb.
   rewrite -(@eq_card _ pred0) => [m|x].
-    by rewrite card0 !(eq_sym 0) eqn_mul0 eqn0Ngt Hn.
+    by rewrite card0 !(eq_sym 0) muln_eq0 eqn0Ngt Hn.
   by rewrite !inE /= (pred0P Em).
 case: (pickP b) => [x //= Hx|Hb0]; last by rewrite (eq_card Hb0) card0 in Em.
 case: (Hb _ Hx) => [Dx Hex].

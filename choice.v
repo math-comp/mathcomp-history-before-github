@@ -78,11 +78,11 @@ Qed.
 
 Lemma codeK : cancel code decode.
 Proof.
-elim=> //= v s IHs; rewrite -[_ * _]prednK ?ltn_0mul ?ltn_0exp //=.
+elim=> //= v s IHs; rewrite -[_ * _]prednK ?muln_gt0 ?expn_gt0 //=.
 rewrite -{3}[v]addn0; elim: v {1 4}0 => [|v IHv {IHs}] q.
   rewrite mul1n /= -{1}addnn -{4}IHs; move: (_ s) {IHs} => n.
   by elim: {1 3}n => //=; case: n.
-rewrite expnS -mulnA mul2n -{1}addnn -[_ * _]prednK ?ltn_0mul ?ltn_0exp //.
+rewrite expnS -mulnA mul2n -{1}addnn -[_ * _]prednK ?muln_gt0 ?expn_gt0 //.
 by rewrite doubleS addSn /= addSnnS; elim: {-2}_.-1 => //=.
 Qed.
 
@@ -139,8 +139,8 @@ rewrite /decode padKl nconsK Nat.codeK.
 case le_s2': (maxn (sumn sh) 1 <= size s2'); last first.
   rewrite drop0 le_s2' /= -size_flatten size_drop subKn ?find_size // stripK.
   exact: flattenK.
-move: le_s2'; rewrite !leq_maxl size_drop size_flatten -/sh andbC ltn_0sub.
-case/andP=> lt_sh; rewrite lt_sh -eqn_sub0 subKn /s2' /strip; last exact: ltnW.
+move: le_s2'; rewrite !leq_maxl size_drop size_flatten -/sh andbC subn_gt0.
+case/andP=> lt_sh; rewrite lt_sh -subn_eq0 subKn /s2' /strip; last exact: ltnW.
 move/eqP->; rewrite subn0 drop1 drop0; case def_sh: sh lt_sh => //= [n sh'] _.
 by rewrite leq_addl addnK addnC -subn_sub subnn -[ncons _ _ _]def_sh flattenK.
 Qed.

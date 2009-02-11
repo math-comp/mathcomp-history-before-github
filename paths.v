@@ -243,10 +243,10 @@ move/andP=> [Hy Hp]; case: (x =P y') => [->|_] //; exact: Hrec.
 Qed.
 
 Lemma ucycle_rot : forall p, ucycle (rot n0 p) = ucycle p.
-Proof. by move=> *; rewrite /ucycle uniq_rot cycle_rot. Qed.
+Proof. by move=> *; rewrite /ucycle rot_uniq cycle_rot. Qed.
 
 Lemma ucycle_rotr : forall p, ucycle (rotr n0 p) = ucycle p.
-Proof. by move=> *; rewrite /ucycle uniq_rotr cycle_rotr. Qed.
+Proof. by move=> *; rewrite /ucycle rotr_uniq cycle_rotr. Qed.
 
 (* The "appears no later" partial preorder defined by a path. *)
 
@@ -255,7 +255,7 @@ Definition mem2 (p : seq T) x y := y \in drop (index x p) p.
 Lemma mem2l : forall p x y, mem2 p x y -> x \in p.
 Proof.
 move=> p x y; rewrite /mem2 -!index_mem size_drop; move=> Hxy.
-by rewrite -ltn_0sub -(ltn_predK Hxy) ltnS leq0n.
+by rewrite -subn_gt0 -(ltn_predK Hxy) ltnS leq0n.
 Qed.
 
 Lemma mem2lf : forall (p : seq T) x,
@@ -473,7 +473,7 @@ Proof. by move=> s1 s2; apply: perm_eq_mem; rewrite perm_merge. Qed.
 Lemma size_merge : forall s1 s2, size (merge s1 s2) = size (s1 ++ s2).
 Proof. by move=> s1 s2; apply: perm_eq_size; rewrite perm_merge. Qed.
 
-Lemma uniq_merge : forall s1 s2, uniq (merge s1 s2) = uniq (s1 ++ s2).
+Lemma merge_uniq : forall s1 s2, uniq (merge s1 s2) = uniq (s1 ++ s2).
 Proof. by move=> s1 s2; apply: perm_eq_uniq; rewrite perm_merge. Qed.
 
 Fixpoint merge_sort_push (s1 : seq T) (ss : seq (seq T)) {struct ss} :=
@@ -532,7 +532,7 @@ Proof. by move=> s; apply: perm_eq_mem; rewrite perm_sort. Qed.
 Lemma size_sort : forall s, size (sort s) = size s.
 Proof. by move=> s; apply: perm_eq_size; rewrite perm_sort. Qed.
 
-Lemma uniq_sort : forall s, uniq (sort s) = uniq s.
+Lemma sort_uniq : forall s, uniq (sort s) = uniq s.
 Proof. by move=> s; apply: perm_eq_uniq; rewrite perm_sort. Qed.
 
 Lemma perm_sortP : transitive leT -> antisymmetric leT ->
@@ -559,7 +559,7 @@ Lemma sorted_iota : forall i n, sorted leq (iota i n).
 Proof. by move=> i n; elim: n i => // [[|n] //= IHn] i; rewrite IHn leqW. Qed.
 
 Lemma sorted_ltn_iota : forall i n, sorted ltn (iota i n).
-Proof. by move=> i n; rewrite sorted_ltn_uniq_leq sorted_iota uniq_iota. Qed.
+Proof. by move=> i n; rewrite sorted_ltn_uniq_leq sorted_iota iota_uniq. Qed.
 
 (* Function trajectories. *)
 
@@ -585,13 +585,13 @@ Lemma size_traject : forall x n, size (traject x n) = n.
 Proof. by move=> x n; elim: n x => [|n Hrec] x //=; nat_congr. Qed.
 
 Lemma last_traject : forall x n, last x (traject (f x) n) = iter n f x.
-Proof. by move=> x n; elim: n x => [|n Hrec] x //; rewrite -iter_f -Hrec. Qed.
+Proof. by move=> x n; elim: n x => [|n Hrec] x //; rewrite iterSr -Hrec. Qed.
 
 Lemma nth_traject : forall i n, i < n ->
   forall x, nth x (traject x n) i = iter i f x.
 Proof.
 move=> i n Hi x; elim: n {2 3}x i Hi => [|n Hrec] y [|i] Hi //=.
-by rewrite Hrec ?iter_f.
+by rewrite Hrec -?iterSr.
 Qed.
 
 End Trajectory.
@@ -620,7 +620,7 @@ Lemma loopingP : forall x n,
 Proof.
 move=> x n; apply introP; last by move=> Hn Hn'; rewrite /looping Hn' in Hn.
 case: n => [|n] Hn //; elim=> [|m Hrec]; first by exact: predU1l.
-move: (fpath_traject x n) Hn; rewrite /looping -!f_iter -last_traject /=.
+move: (fpath_traject x n) Hn; rewrite /looping !iterS -last_traject /=.
 rewrite /= in Hrec; case/splitPl: Hrec; move: (iter m f x) => y p1 p2 Ep1.
 rewrite path_cat last_cat Ep1; case: p2 => [|z p2] //; case/and3P=> [_ Dy _] _.
 by rewrite !(in_cons, mem_cat) (eqP Dy) eqxx !orbT.
@@ -631,22 +631,22 @@ Lemma trajectP : forall x n y,
 Proof.
 move=> x n y; elim: n x => [|n Hrec] x; first by right; case.
   rewrite /= in_cons orbC; case: {Hrec}(Hrec (f x)) => Hrec.
-  by left; case: Hrec => [i Hi <-]; exists i.+1; last by rewrite iter_f.
+  by left; case: Hrec => [i Hi <-]; exists i.+1; last by rewrite -iterSr.
 apply: (iffP eqP); first by exists 0; first by rewrite ltnNge.
-by move=> [[|i] Hi Dy] //; case Hrec; exists i; last by rewrite iter_f.
+by move=> [[|i] Hi Dy] //; case Hrec; exists i; last by rewrite -iterSr.
 Qed.
 
 Lemma looping_uniq : forall x n, uniq (traject f x n.+1) = ~~ looping x n.
 Proof.
 move=> x n; rewrite /looping; elim: n x => [|n Hrec] x //.
-rewrite -iter_f {2}[succn]lock /= -lock {}Hrec -negb_or in_cons; bool_congr.
+rewrite iterSr {2}[succn]lock /= -lock {}Hrec -negb_or in_cons; bool_congr.
 set y := iter n f (f x); case (trajectP (f x) n y); first by rewrite !orbT.
 rewrite !orbF => Hy; apply/idP/eqP => [Hx|Dy]; last first.
   by rewrite -{1}Dy /y -last_traject mem_last.
 case: {Hx}(trajectP _ n.+1 _ Hx) => [m Hm Dx].
-have Hx': looping x m.+1 by rewrite /looping -iter_f Dx mem_head.
-case/trajectP: (loopingP _ _ Hx' n.+1); rewrite -iter_f -/y.
-move=> [|i] Hi //; rewrite -iter_f => Dy.
+have Hx': looping x m.+1 by rewrite /looping iterSr Dx mem_head.
+case/trajectP: (loopingP _ _ Hx' n.+1); rewrite iterSr -/y.
+move=> [|i] Hi //; rewrite iterSr => Dy.
 by case: Hy; exists i; first exact (leq_trans Hi Hm).
 Qed.
 
@@ -754,15 +754,15 @@ Lemma prev_rev : forall p : seq T, uniq p -> prev (rev p) =1 next p.
 Proof.
 move=> p Up x; case Hx: (x \in p); last first.
   by rewrite next_nth prev_nth mem_rev Hx.
-case/rot_to: Hx (Up) => [i p' Dp] Urp; rewrite -uniq_rev in Urp.
-rewrite -(prev_rotr i Urp); do 2 rewrite -(prev_rotr 1) ?uniq_rotr //.
+case/rot_to: Hx (Up) => [i p' Dp] Urp; rewrite -rev_uniq in Urp.
+rewrite -(prev_rotr i Urp); do 2 rewrite -(prev_rotr 1) ?rotr_uniq //.
 rewrite -rev_rot -(next_rot i Up) {i p Up Urp}Dp.
 case: p' => [|y p'] //; rewrite !rev_cons rotr1_rcons /= eqxx.
 by rewrite -rcons_cons rotr1_rcons /= eqxx.
 Qed.
 
 Lemma next_rev : forall p : seq T, uniq p -> next (rev p) =1 prev p.
-Proof. by move=> p Up x; rewrite -{2}[p]revK prev_rev // uniq_rev. Qed.
+Proof. by move=> p Up x; rewrite -{2}[p]revK prev_rev // rev_uniq. Qed.
 
 End UniqCycleRev.
 
@@ -798,7 +798,7 @@ Lemma next_map : forall p, uniq p ->
 Proof.
 move=> p Up x; case Hx: (x \in p); last by rewrite !next_nth (mem_map Hh) Hx.
 case/rot_to: Hx => [i p' Dp].
-rewrite -(next_rot i Up); rewrite -(uniq_map Hh) in Up.
+rewrite -(next_rot i Up); rewrite -(map_inj_uniq Hh) in Up.
 rewrite -(next_rot i Up) -map_rot {i p Up}Dp /=.
 by case: p' => [|y p] //=; rewrite !eqxx.
 Qed.
@@ -806,7 +806,7 @@ Qed.
 Lemma prev_map : forall p, uniq p ->
   forall x, prev (map h p) (h x) = h (prev p x).
 Proof.
-by move=> p Up x; rewrite -{1}[x](next_prev Up) -(next_map Up) prev_next ?uniq_map.
+by move=> p Up x; rewrite -{1}[x](next_prev Up) -(next_map Up) prev_next ?map_inj_uniq.
 Qed.
 
 End MapEqPath.
@@ -824,7 +824,7 @@ Definition arc (p : seq T) x y :=
 Lemma arc_rot : forall i p, uniq p -> {in p, arc (rot i p) =2 arc p}.
 Proof.
 move=> i p Up x Hx y; congr (fun q => take (index y q) q); move: Up Hx {y}.
-rewrite -{1 2 5 6}(cat_take_drop i p) /rot uniq_cat; move/and3P=> [_ Hp _].
+rewrite -{1 2 5 6}(cat_take_drop i p) /rot cat_uniq; move/and3P=> [_ Hp _].
 rewrite !drop_cat !take_cat !index_cat mem_cat orbC.
 case Hx: (x \in drop i p) => /= => [_|Hx'].
   rewrite [x \in _](negbTE (hasPn Hp _ Hx)).
@@ -836,7 +836,7 @@ Lemma left_arc : forall x y p1 p2,
   let p := x :: p1 ++ y :: p2 in uniq p -> arc p x y = x :: p1.
 Proof.
 move=> x y p1 p2 p Up; rewrite /arc {1}/p /= eqxx rot0.
-move: Up; rewrite /p -cat_cons uniq_cat index_cat; move: (x :: p1) => xp1.
+move: Up; rewrite /p -cat_cons cat_uniq index_cat; move: (x :: p1) => xp1.
 rewrite /= negb_or -!andbA; move/and3P=> [_ Hy _].
 by rewrite (negbTE Hy) eqxx addn0 take_size_cat.
 Qed.
@@ -845,7 +845,7 @@ Lemma right_arc : forall x y p1 p2,
   let p := x :: p1 ++ y :: p2 in uniq p -> arc p y x = y :: p2.
 Proof.
 move=> x y p1 p2 p Up; set n := size (x :: p1); rewrite -(arc_rot n Up).
-  move: Up; rewrite -(uniq_rot n) /p -cat_cons /n rot_size_cat.
+  move: Up; rewrite -(rot_uniq n) /p -cat_cons /n rot_size_cat.
   by move=> *; rewrite /= left_arc.
 by rewrite /p -cat_cons mem_cat /= mem_head orbT.
 Qed.
@@ -861,7 +861,7 @@ Lemma rot_to_arc : forall p x y,
 Proof.
 move=> p x y Up Hx Hy Hxy; case: (rot_to Hx) (Hy) (Up) => [i p' Dp] Hy'.
 rewrite -(mem_rot i) Dp in_cons eq_sym (negPf Hxy) in Hy'.
-rewrite -(uniq_rot i) Dp.
+rewrite -(rot_uniq i) Dp.
 case/splitPr: p' / Hy' Dp => [p1 p2] Dp Up'; exists i p1 p2; auto.
   by rewrite -(arc_rot i Up Hx) Dp (left_arc Up').
 by rewrite -(arc_rot i Up Hy) Dp (right_arc Up').

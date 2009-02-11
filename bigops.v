@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype.
-Require Import finfun paths ssralg.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div choice fintype.
+Require Import finfun paths.
 (*Require Import div connect.*)
 
 Set Implicit Arguments.
@@ -169,6 +169,224 @@ Reserved Notation "\prod_ ( i \in A ) F"
   (at level 36, F at level 36, i, A at level 50,
            format "'[' \prod_ ( i  \in  A ) '/  '  F ']'").
 
+Module Monoid.
+
+Section Definitions.
+Variables (T : Type) (idm : T).
+
+Structure law : Type := Law {
+  operator :> T -> T -> T;
+  _ : associative operator;
+  _ : left_id idm operator;
+  _ : right_id idm operator
+}.
+
+Structure com_law : Type := ComLaw {
+   com_operator :> law;
+   _ : commutative com_operator
+}.
+
+Structure mul_law : Type := MulLaw {
+  mul_operator :> T -> T -> T;
+  _ : left_zero idm mul_operator;
+  _ : right_zero idm mul_operator
+}.
+
+Structure add_law (mul : T -> T -> T) : Type := AddLaw {
+  add_operator :> com_law;
+  _ : left_distributive mul add_operator;
+  _ : right_distributive mul add_operator
+}.
+
+Definition repack_law opL :=
+  let: Law _ opmA op1m opm1 := opL
+    return {type of Law for opL} -> law in
+  fun k => k opmA op1m opm1.
+
+Definition repack_mul_law opM :=
+  let: MulLaw _ op0m opm0 := opM
+    return {type of MulLaw for opM} -> mul_law in
+  fun k => k op0m opm0.
+
+Definition op_phant := phantom (T -> T -> T).
+Definition op_uni op1 op2 := op_phant op1 -> op_phant op2.
+
+Definition repack_com_law op (opL : law) (opC : com_law) :=
+  fun (_ : op_uni opL op) (_ : op_uni opC op) opEq =>
+  (let: ComLaw _ opmC := opC
+     return {type of ComLaw for opC} -> com_law in
+   fun k => k opmC)
+  (let: erefl in _ = opC := opEq
+     return {type of ComLaw for opC}
+   in @ComLaw opL).
+
+Definition repack_add_law mop aop (opC : com_law) (opA : add_law mop) :=
+  fun (_ : op_uni opC aop) (_ : op_uni opA aop) opEq =>
+  (let: AddLaw _ mopAm mopmA  := opA
+     return {type of @AddLaw mop for opA} -> add_law mop in
+   fun k => k mopAm mopmA)
+  (let: erefl in _ = opA := opEq
+     return {type of @AddLaw mop for opA}
+   in @AddLaw mop opC).
+
+End Definitions.
+
+(* Deprecated -- GG
+Definition morphism T1 T2 id1 id2 op1 op2 (phi : T1 -> T2) :=
+  phi id1 = id2 /\ {morph phi : x y / op1 x y >-> op2 x y}.
+*)
+
+Section CommutativeAxioms.
+
+Variable (T : Type) (zero one : T) (mul add : T -> T -> T) (inv : T -> T).
+Hypothesis mulC : commutative mul.
+
+Lemma mulC_id : left_id one mul -> right_id one mul.
+Proof. by move=>  mul1x x; rewrite mulC. Qed.
+
+Lemma mulC_zero : left_zero zero mul -> right_zero zero mul.
+Proof. by move=> mul0x x; rewrite mulC. Qed.
+
+Lemma mulC_dist : left_distributive mul add -> right_distributive mul add.
+Proof. by move=> mul_addl x y z; rewrite !(mulC x). Qed.
+
+End CommutativeAxioms.
+
+Module Theory.
+
+Section Theory.
+Variables (T : Type) (idm : T).
+
+Section Plain.
+Variable mul : law idm.
+Lemma mul1m : left_id idm mul. Proof. by case mul. Qed.
+Lemma mulm1 : right_id idm mul. Proof. by case mul. Qed.
+Lemma mulmA : associative mul. Proof. by case mul. Qed.
+Lemma iteropE : forall n x, iterop n mul x idm = iter n (mul x) idm.
+Proof. by case=> // n x; rewrite iterSr mulm1 iteropS. Qed.
+End Plain.
+
+Section Commutative.
+Variable mul : com_law idm.
+Lemma mulmC : commutative mul. Proof. by case mul. Qed.
+Lemma mulmCA : left_commutative mul.
+Proof. by move=> x y z; rewrite !mulmA (mulmC x). Qed.
+Lemma mulmAC : right_commutative mul.
+Proof. by move=> x y z; rewrite -!mulmA (mulmC y). Qed.
+End Commutative.
+
+Section Mul.
+Variable mul : mul_law idm.
+Lemma mul0m : left_zero idm mul. Proof. by case mul. Qed.
+Lemma mulm0 : right_zero idm mul. Proof. by case mul. Qed.
+End Mul.
+
+Section Add.
+Variables (mul : T -> T -> T) (add : add_law idm mul).
+Lemma addmA : associative add. Proof. exact: mulmA. Qed.
+Lemma addmC : commutative add. Proof. exact: mulmC. Qed.
+Lemma addmCA : left_commutative add. Proof. exact: mulmCA. Qed.
+Lemma addmAC : right_commutative add. Proof. exact: mulmAC. Qed.
+Lemma add0m : left_id idm add. Proof. exact: mul1m. Qed.
+Lemma addm0 : right_id idm add. Proof. exact: mulm1. Qed.
+Lemma mulm_addl : left_distributive mul add. Proof. by case add. Qed.
+Lemma mulm_addr : right_distributive mul add. Proof. by case add. Qed.
+End Add.
+
+Definition simpm := (mulm1, mulm0, mul1m, mul0m, mulmA).
+
+End Theory.
+
+End Theory.
+
+Import Theory. (* Will become Include Theory. in Coq 8.2 *)
+Definition mul1m :=  mul1m.
+Definition mulm1 := mulm1.
+Definition mulmA := mulmA.
+Definition iteropE := iteropE.
+Definition mulmC := mulmC.
+Definition mulmCA := mulmCA.
+Definition mulmAC := mulmAC.
+Definition mul0m := mul0m.
+Definition mulm0 := mulm0.
+Definition addmA := addmA.
+Definition addmC := addmC.
+Definition addmCA := addmCA.
+Definition addmAC := addmAC.
+Definition add0m := add0m.
+Definition addm0 := addm0.
+Definition mulm_addl := mulm_addl.
+Definition mulm_addr := mulm_addr.
+Definition simpm := simpm.
+
+End Monoid.
+
+Notation "[ 'law' 'of' f ]" :=
+    (Monoid.repack_law (fun fA => @Monoid.Law _ _ f fA))
+  (at level 0, format"[ 'law'  'of'  f ]") : form_scope.
+
+Notation "[ 'com_law' 'of' f ]" :=
+    (@Monoid.repack_com_law _ _ f _ _ id id (erefl _))
+  (at level 0, format "[ 'com_law'  'of'  f ]") : form_scope.
+
+Notation "[ 'mul_law' 'of' f ]" :=
+    (Monoid.repack_mul_law (fun f0m => @Monoid.MulLaw _ _ f f0m))
+  (at level 0, format"[ 'mul_law'  'of'  f ]") : form_scope.
+
+Notation "[ 'add_law' m 'of' a ]" :=
+    (@Monoid.repack_add_law _ _ m a _ _ id id (erefl _))
+  (at level 0, format "[ 'add_law'  m  'of'  a ]") : form_scope.
+
+Section PervasiveMonoids.
+
+Import Monoid.
+
+Canonical Structure andb_monoid := Law andbA andTb andbT.
+Canonical Structure andb_comoid := ComLaw andbC.
+
+Canonical Structure andb_muloid := MulLaw andFb andbF.
+Canonical Structure orb_monoid := Law orbA orFb orbF.
+Canonical Structure orb_comoid := ComLaw orbC.
+Canonical Structure orb_muloid := MulLaw orTb orbT.
+Canonical Structure addb_monoid := Law addbA addFb addbF.
+Canonical Structure addb_comoid := ComLaw addbC.
+Canonical Structure orb_addoid := AddLaw andb_orl andb_orr.
+Canonical Structure andb_addoid := AddLaw orb_andl orb_andr.
+Canonical Structure addb_addoid := AddLaw andb_addl andb_addr.
+
+Canonical Structure addn_monoid := Law addnA add0n addn0.
+Canonical Structure addn_comoid := ComLaw addnC.
+Canonical Structure muln_monoid := Law mulnA mul1n muln1.
+Canonical Structure muln_comoid := ComLaw mulnC.
+Canonical Structure muln_muloid := MulLaw mul0n muln0.
+Canonical Structure addn_addoid := AddLaw muln_addl muln_addr.
+
+Canonical Structure maxn_monoid := Law maxnA max0n maxn0.
+Canonical Structure maxn_comoid := ComLaw maxnC.
+Canonical Structure maxn_addoid := AddLaw maxn_mull maxn_mulr.
+
+Canonical Structure gcdn_monoid := Law gcdnA gcd0n gcdn0.
+Canonical Structure gcdn_comoid := ComLaw gcdnC.
+Canonical Structure gcdn_addoid := AddLaw muln_gcdl muln_gcdr.
+
+Canonical Structure lcmn_monoid := Law lcmnA lcm1n lcmn1.
+Canonical Structure lcmn_comoid := ComLaw lcmnC.
+Canonical Structure lcmn_addoid := AddLaw muln_lcml muln_lcmr.
+
+Canonical Structure cat_monoid T := Law (@catA T) (@cat0s T) (@cats0 T).
+
+End PervasiveMonoids.
+
+(* Unit test for the [...law of ...] Notations
+Definition myp := addn. Definition mym := muln.
+Canonical Structure myp_mon := [law of myp].
+Canonical Structure myp_cmon := [com_law of myp].
+Canonical Structure mym_mul := [mul_law of mym].
+Canonical Structure myp_add := [add_law _ of myp].
+Print myp_add.
+Print Canonical Projections.
+*)
+
 Delimit Scope big_scope with BIG.
 Open Scope big_scope.
 
@@ -196,7 +414,7 @@ Definition index_enum (T : finType) := Finite.enum T.
 Lemma mem_index_iota : forall m n i, i \in index_iota m n = (m <= i < n).
 Proof.
 move=> m n i; rewrite mem_iota; case le_m_i: (m <= i) => //=.
-by rewrite -leq_sub_add leq_subS // -ltn_0sub subn_sub subnK // ltn_0sub.
+by rewrite -leq_sub_add leq_subS // -subn_gt0 subn_sub subnK // subn_gt0.
 Qed.
 
 Lemma filter_index_enum : forall T P, filter P (index_enum T) = enum P.
@@ -234,34 +452,6 @@ Notation "\big [ op / idx ]_ ( i \in A ) F" :=
   (\big[op/idx]_(i | i \in A) F) : big_scope.
 
 Notation Local "+%N" := addn (at level 0, only parsing).
-
-Notation "\sum_ ( <- r | P ) F" :=
-  (\big[+%R/0%R]_(<- r | P%B) F%R) : ring_scope.
-Notation "\sum_ ( i <- r | P ) F" :=
-  (\big[+%R/0%R]_(i <- r | P%B) F%R) : ring_scope.
-Notation "\sum_ ( i <- r ) F" :=
-  (\big[+%R/0%R]_(i <- r) F%R) : ring_scope.
-Notation "\sum_ ( m <= i < n | P ) F" :=
-  (\big[+%R/0%R]_(m <= i < n | P%B) F%R) : ring_scope.
-Notation "\sum_ ( m <= i < n ) F" :=
-  (\big[+%R/0%R]_(m <= i < n) F%R) : ring_scope.
-Notation "\sum_ ( i | P ) F" :=
-  (\big[+%R/0%R]_(i | P%B) F%R) : ring_scope.
-Notation "\sum_ i F" :=
-  (\big[+%R/0%R]_i F%R) : ring_scope.
-Notation "\sum_ ( i : t | P ) F" :=
-  (\big[+%R/0%R]_(i : t | P%B) F%R) (only parsing) : ring_scope.
-Notation "\sum_ ( i : t ) F" :=
-  (\big[+%R/0%R]_(i : t) F%R) (only parsing) : ring_scope.
-Notation "\sum_ ( i < n | P ) F" :=
-  (\big[+%R/0%R]_(i < n | P%B) F%R) : ring_scope.
-Notation "\sum_ ( i < n ) F" :=
-  (\big[+%R/0%R]_(i < n) F%R) : ring_scope.
-Notation "\sum_ ( i \in A | P ) F" :=
-  (\big[+%R/0%R]_(i \in A | P%B) F%R) : ring_scope.
-Notation "\sum_ ( i \in A ) F" :=
-  (\big[+%R/0%R]_(i \in A) F%R) : ring_scope.
-
 Notation "\sum_ ( <- r | P ) F" :=
   (\big[+%N/0%N]_(<- r | P%B) F%N) : nat_scope.
 Notation "\sum_ ( i <- r | P ) F" :=
@@ -290,34 +480,6 @@ Notation "\sum_ ( i \in A ) F" :=
   (\big[+%N/0%N]_(i \in A) F%N) : nat_scope.
 
 Notation Local "*%N" := muln (at level 0, only parsing).
-
-Notation "\prod_ ( <- r | P ) F" :=
-  (\big[*%R/1%R]_(<- r | P%B) F%R) : ring_scope.
-Notation "\prod_ ( i <- r | P ) F" :=
-  (\big[*%R/1%R]_(i <- r | P%B) F%R) : ring_scope.
-Notation "\prod_ ( i <- r ) F" :=
-  (\big[*%R/1%R]_(i <- r) F%R) : ring_scope.
-Notation "\prod_ ( m <= i < n | P ) F" :=
-  (\big[*%R/1%R]_(m <= i < n | P%B) F%R) : ring_scope.
-Notation "\prod_ ( m <= i < n ) F" :=
-  (\big[*%R/1%R]_(m <= i < n) F%R) : ring_scope.
-Notation "\prod_ ( i | P ) F" :=
-  (\big[*%R/1%R]_(i | P%B) F%R) : ring_scope.
-Notation "\prod_ i F" :=
-  (\big[*%R/1%R]_i F%R) : ring_scope.
-Notation "\prod_ ( i : t | P ) F" :=
-  (\big[*%R/1%R]_(i : t | P%B) F%R) (only parsing) : ring_scope.
-Notation "\prod_ ( i : t ) F" :=
-  (\big[*%R/1%R]_(i : t) F%R) (only parsing) : ring_scope.
-Notation "\prod_ ( i < n | P ) F" :=
-  (\big[*%R/1%R]_(i < n | P%B) F%R) : ring_scope.
-Notation "\prod_ ( i < n ) F" :=
-  (\big[*%R/1%R]_(i < n) F%R) : ring_scope.
-Notation "\prod_ ( i \in A | P ) F" :=
-  (\big[*%R/1%R]_(i \in A | P%B) F%R) : ring_scope.
-Notation "\prod_ ( i \in A ) F" :=
-  (\big[*%R/1%R]_(i \in A) F%R) : ring_scope.
-
 Notation "\prod_ ( <- r | P ) F" :=
   (\big[*%N/1%N]_(<- r | P%B) F%N) : nat_scope.
 Notation "\prod_ ( i <- r | P ) F" :=
@@ -345,9 +507,54 @@ Notation "\prod_ ( i \in A | P ) F" :=
 Notation "\prod_ ( i \in A ) F" :=
   (\big[*%N/1%N]_(i \in A) F%N) : nat_scope.
 
+Notation "\max_ ( <- r | P ) F" :=
+  (\big[maxn/0%N]_(<- r | P%B) F%N) : nat_scope.
+Notation "\max_ ( i <- r | P ) F" :=
+  (\big[maxn/0%N]_(i <- r | P%B) F%N) : nat_scope.
+Notation "\max_ ( i <- r ) F" :=
+  (\big[maxn/0%N]_(i <- r) F%N) : nat_scope.
+Notation "\max_ ( i | P ) F" :=
+  (\big[maxn/0%N]_(i | P%B) F%N) : nat_scope.
+Notation "\max_ i F" :=
+  (\big[maxn/0%N]_i F%N) : nat_scope.
+Notation "\max_ ( i : I | P ) F" :=
+  (\big[maxn/0%N]_(i : I | P%B) F%N) (only parsing) : nat_scope.
+Notation "\max_ ( i : I ) F" :=
+  (\big[maxn/0%N]_(i : I) F%N) (only parsing) : nat_scope.
+Notation "\max_ ( m <= i < n | P ) F" :=
+ (\big[maxn/0%N]_(m <= i < n | P%B) F%N) : nat_scope.
+Notation "\max_ ( m <= i < n ) F" :=
+ (\big[maxn/0%N]_(m <= i < n) F%N) : nat_scope.
+Notation "\max_ ( i < n | P ) F" :=
+ (\big[maxn/0%N]_(i < n | P%B) F%N) : nat_scope.
+Notation "\max_ ( i < n ) F" :=
+ (\big[maxn/0%N]_(i < n) F%N) : nat_scope.
+Notation "\max_ ( i \in A | P ) F" :=
+ (\big[maxn/0%N]_(i \in A | P%B) F%N) : nat_scope.
+Notation "\max_ ( i \in A ) F" :=
+ (\big[maxn/0%N]_(i \in A) F%N) : nat_scope.
+
+(* Redundant, unparseable notation to print some constant sums and products. *)
+Notation "\su 'm_' ( i | P ) e" :=
+  (\sum_(<- index_enum _ | (fun i => P)) (fun _ => e%N))
+  (at level 41, e at level 41, format "\su 'm_' ( i  |  P )  e") : nat_scope.
+
+Notation "\su 'm_' ( i \in A ) e" :=
+  (\sum_(<- index_enum _ | (fun i => i \in A)) (fun _ => e%N))
+  (at level 41, e at level 41, format "\su 'm_' ( i  \in  A )  e") : nat_scope.
+
+Notation "\su 'm_' ( i \in A | P ) e" :=
+  (\sum_(<- index_enum _ | (fun i => (i \in A) && P)) (fun _ => e%N))
+  (at level 41, e at level 41, format "\su 'm_' ( i  \in  A  |  P )  e")
+    : nat_scope.
+
+Notation "\pro 'd_' ( i | P ) e" :=
+  (\prod_(<- index_enum _ | (fun i => P)) (fun _ => e%N))
+  (at level 36, e at level 36, format "\pro 'd_' ( i  |  P )  e") : nat_scope.
+
 Section Extensionality.
 
-Variables (R : Type)  (idx : R) (op : R -> R -> R).
+Variables (R : Type) (idx : R) (op : R -> R -> R).
 
 Section SeqExtension.
 
@@ -534,7 +741,7 @@ rewrite iota_add filter_cat has_filter /=; case: filter => // _.
 rewrite cats0; apply/all_filterP; apply/allP=> i.
 rewrite mem_iota; case/andP=> le_m_i lt_i_md1.
 apply: (leq_trans lt_i_md1); rewrite subnK // ltnW //.
-rewrite -ltn_0sub -(ltn_add2l m) addn0; exact: leq_trans lt_i_md1.
+rewrite -subn_gt0 -(ltn_add2l m) addn0; exact: leq_trans lt_i_md1.
 Qed.
 
 Lemma big_ord_widen_cond : forall n1 n2 (P : pred nat) (F : nat -> R),
@@ -594,6 +801,9 @@ Lemma big_ord_narrow_leq : forall n1 n2 F,
   \big[op/idx]_(i < n2.+1 | i <= n1) F i = \big[op/idx]_(i < n1.+1) F (w i).
 Proof. move=> *; exact: (big_ord_narrow_cond_leq (predT)). Qed.
 
+Lemma big_ord0 : forall P F, \big[op/idx]_(i < 0 | P i) F i = idx.
+Proof. by move=> P F; rewrite big_pred0 => [|[]]. Qed.
+
 Lemma big_ord_recl : forall n F,
   \big[op/idx]_(i < n.+1) F i =
      op (F ord0) (\big[op/idx]_(i < n) F (@lift n.+1 ord0 i)).
@@ -621,7 +831,7 @@ End Extensionality.
 
 Section MonoidProperties.
 
-Import Monoid.
+Import Monoid.Theory.
 
 Variable R : Type.
 
@@ -632,8 +842,8 @@ Section Plain.
 
 Variable op : Monoid.law 1.
 
-Notation Local "*%M" := (operator op) (at level 0).
-Notation Local "x * y" := ( *%M x y).
+Notation Local "*%M" := op (at level 0).
+Notation Local "x * y" := (op x y).
 
 Lemma eq_big_idx_seq : forall idx' I r (P : pred I) F,
      right_id idx' *%M -> has P r ->
@@ -728,10 +938,10 @@ End Plain.
 
 Section Abelian.
 
-Variable op : com_law 1.
+Variable op : Monoid.com_law 1.
 
-Notation Local "'*%M'" := (operator (com_operator op)) (at level 0).
-Notation Local "x * y" := ( *%M x y).
+Notation Local "'*%M'" := op (at level 0).
+Notation Local "x * y" := (op x y).
 
 Lemma eq_big_perm : forall (I : eqType) r1 r2 (P : pred I) F,
     perm_eq r1 r2 ->
@@ -750,7 +960,7 @@ Lemma big_uniq : forall (I : finType) (r : seq I) F,
   uniq r -> \big[*%M/1]_(i <- r) F i = \big[*%M/1]_(i | i \in r) F i.
 Proof.
 move=> I r F uniq_r; rewrite -(big_filter _ _ _ (mem r)); apply: eq_big_perm.
-by rewrite filter_index_enum uniq_perm_eq ?uniq_enum // => i; rewrite mem_enum.
+by rewrite filter_index_enum uniq_perm_eq ?enum_uniq // => i; rewrite mem_enum.
 Qed.
 
 Lemma big_split : forall I r (P : pred I) F1 F2,
@@ -767,10 +977,20 @@ Lemma bigID : forall I r (a P : pred I) F,
   = \big[*%M/1]_(i <- r | P i && a i) F i *
     \big[*%M/1]_(i <- r | P i && ~~ a i) F i.
 Proof.
-move=> I r a P F; rewrite !(big_mkcond _ _ _ F) -big_split; apply: eq_bigr => i.
-by case: (a i); rewrite !simpm.
+move=> I r a P F; rewrite !(big_mkcond _ _ _ F) -big_split.
+by apply: eq_bigr => i; case: (a i); rewrite !simpm.
 Qed.
 Implicit Arguments bigID [I r].
+
+Lemma bigU : forall (I : finType) (A B : pred I) F,
+  [disjoint A & B] ->
+  \big[*%M/1]_(i \in [predU A & B]) F i =
+    (\big[*%M/1]_(i \in A) F i) * (\big[*%M/1]_(i \in B) F i).
+Proof.
+move=> I A B F dAB; rewrite (bigID (mem A)).
+congr (_ * _); apply: eq_bigl => i; first by rewrite orbK.
+by have:= pred0P dAB i; rewrite andbC /= !inE; case: (i \in A).
+Qed.
 
 Lemma bigD1 : forall (I : finType) j (P : pred I) F,
   P j -> \big[*%M/1]_(i | P i) F i
@@ -849,7 +1069,7 @@ Lemma pair_big : forall (I J : finType) (P : pred I) (Q : pred J) F,
     \big[*%M/1]_(p | P p.1 && Q p.2) F p.1 p.2.
 Proof. move=> *; exact: pair_big_dep. Qed.
 
-Lemma pair_bigA_ : forall (I J : finType) (F : I -> J -> R),
+Lemma pair_bigA : forall (I J : finType) (F : I -> J -> R),
   \big[*%M/1]_i \big[*%M/1]_j F i j = \big[*%M/1]_p F p.1 p.2.
 Proof. move=> *; exact: pair_big_dep. Qed.
 
@@ -888,7 +1108,7 @@ transitivity
 - rewrite -{1}[m1]add0n big_addn big_mkord; apply: eq_bigr => i _.
   by rewrite -{1}[m2]add0n big_addn big_mkord.
 rewrite (exchange_big_dep (fun j: 'I__ => xQ (j + m2))) => [|i j]; last first.
-  by apply: PQxQ; rewrite leq_addl addnC -ltn_0sub -subn_sub ltn_0sub ltn_ord.
+  by apply: PQxQ; rewrite leq_addl addnC -subn_gt0 -subn_sub subn_gt0 ltn_ord.
 symmetry; rewrite -{1}[m2]add0n big_addn big_mkord; apply: eq_bigr => j _.
 by rewrite -{1}[m1]add0n big_addn big_mkord.
 Qed.
@@ -909,7 +1129,7 @@ End MonoidProperties.
 Implicit Arguments big_filter [R op idx I].
 Implicit Arguments big_filter_cond [R op idx I].
 Implicit Arguments congr_big [R op idx I r1 P1 F1].
-Implicit Arguments eq_big [R op idx I r P1  F1].
+Implicit Arguments eq_big [R op idx I r P1 F1].
 Implicit Arguments eq_bigl [R op idx  I r P1].
 Implicit Arguments eq_bigr [R op idx I r  P F1].
 Implicit Arguments eq_big_idx [R op idx idx' I P F].
@@ -940,6 +1160,7 @@ Implicit Arguments big_pred1 [R op idx I P F].
 Implicit Arguments eq_big_perm [R op idx I r1 P F].
 Implicit Arguments big_uniq [R op idx I F].
 Implicit Arguments bigID [R op idx I r].
+Implicit Arguments bigU [R op idx I].
 Implicit Arguments bigD1 [R op idx I P F].
 Implicit Arguments partition_big [R op idx I J P F].
 Implicit Arguments reindex_onto [R op idx I J P F].
@@ -1029,50 +1250,45 @@ Variables R1 R2 : Type.
 Variables (idx1 : R1) (idx2 : R2).
 Variables (op1 : R1 -> R1 -> R1) (op2 : R2 -> R2 -> R2).
 Variable phi : R1 -> R2.
-Hypothesis phi_morphism : Monoid.morphism idx1 idx2 op1 op2 phi.
+Hypothesis phiM : {morph phi : x y / op1 x y >-> op2 x y}.
+Hypothesis phi_id : phi idx1 = idx2.
 
 Lemma big_morph : forall I r (P : pred I) F,
   phi (\big[op1/idx1]_(i <- r | P i) F i) =
      \big[op2/idx2]_(i <- r | P i) phi (F i).
-Proof.
-case: phi_morphism => [phi1 phiM] I r P F.
-by rewrite !unlock; elim: r => //= i r <-; case: (P i).
-Qed.
+Proof. by rewrite !unlock => I r P F; elim: r => //= i r <-; case: (P i). Qed.
 
 End Morphism.
 
+(* Allows apply: (big_morph phi). *)
 Implicit Arguments big_morph [R1 R2 idx1 idx2 op1 op2].
 
 Section Distributivity.
 
-Import Monoid.
+Import Monoid.Theory.
 
 Variable R : Type.
 Variables zero one : R.
 Notation Local "0" := zero.
 Notation Local "1" := one.
-Variable times : mul_law 0.
-Notation Local "*%M" := (mul_operator times) (at level 0).
-Notation Local "x * y" := ( *%M x y).
-Variable plus : add_law 0 *%M.
-Notation Local "+%M" :=
-  (operator (com_operator (add_operator plus))) (at level 0).
-Notation Local "x + y" := ( +%M x y).
+Variable times : Monoid.mul_law 0.
+Notation Local "*%M" := times (at level 0).
+Notation Local "x * y" := (times x y).
+Variable plus : Monoid.add_law 0 *%M.
+Notation Local "+%M" := plus (at level 0).
+Notation Local "x + y" := (plus x y).
 
-Lemma big_distrl : forall I r alpha (P : pred I) F,
-  \big[+%M/0]_(i <- r | P i) F i * alpha
-    = \big[+%M/0]_(i <- r | P i) (F i * alpha).
+Lemma big_distrl : forall I r a (P : pred I) F,
+  \big[+%M/0]_(i <- r | P i) F i * a = \big[+%M/0]_(i <- r | P i) (F i * a).
 Proof.
-move=> *; apply: (big_morph ( *%M^~ _)).
-by split=> [|? * /=]; rewrite (mul0m,  mulm_addl).
+move=> I r a P F; apply: (big_morph ( *%M^~ a) _ (mul0m _ a)) => x y.
+exact: mulm_addl.
 Qed.
 
-Lemma big_distrr : forall I r alpha (P : pred I) F,
-  alpha * \big[+%M/0]_(i <- r | P i) F i
-    = \big[+%M/0]_(i <- r | P i) (alpha * F i).
+Lemma big_distrr : forall I r a (P : pred I) F,
+  a * \big[+%M/0]_(i <- r | P i) F i = \big[+%M/0]_(i <- r | P i) (a * F i).
 Proof.
-move=> *; apply: (big_morph ( *%M _)).
-by split=> [|? * /=]; rewrite (mulm0,  mulm_addr).
+move=> I r a P F; apply: (big_morph _ _ (mulm0 _ a)) => x y; exact: mulm_addr.
 Qed.
 
 Lemma big_distr_big_dep :
@@ -1085,7 +1301,7 @@ pose fIJ := {ffun I -> J}; pose Pf := pfamily j0 _ Q; symmetry.
 transitivity (\big[+%M/0]_(f | Pf (mem r) f) \big[*%M/1]_(i <- r) F i (f i)).
   apply: eq_big=> f; last by rewrite -big_filter filter_index_enum.
   by apply: eq_forallb => i; rewrite /= mem_enum.
-have: uniq r by exact: uniq_enum.
+have: uniq r by exact: enum_uniq.
 elim: {P}r => /= [_|i r IHr].
   rewrite (big_pred1 [ffun => j0]) ?big_nil //= => f.
   apply/familyP/eqP=> /= [Df |->{f} i]; last by rewrite ffunE.
@@ -1159,124 +1375,38 @@ Implicit Arguments bigA_distr_big_dep [R zero one times plus I J].
 Implicit Arguments bigA_distr_big [R zero one times plus I J].
 Implicit Arguments bigA_distr_bigA [R zero one times plus I J].
 
-Section Ring.
+Section NatConst.
 
-Import GRing.Theory.
-Open Scope ring_scope.
+Variables (I : finType) (A : pred I).
 
-Section Opp.
+Lemma sum_nat_const : forall n, \sum_(i \in A) n = #|A| * n.
+Proof. by move=> n; rewrite big_const; elim: #|A| => //= i ->. Qed.
 
-Variable R : zmodType.
+Lemma sum1_card : \sum_(i \in A) 1 = #|A|.
+Proof. by rewrite sum_nat_const muln1. Qed.
 
-Lemma sum_opp : forall I r P (F : I -> R),
-  \sum_(i <- r | P i) - F i = - (\sum_(i <- r | P i) F i).
-Proof.
-move=> *; symmetry; apply: big_morph.
-by split=> [|x y]; rewrite (oppr0, oppr_add).
-Qed.
+Lemma prod_nat_const : forall n, \prod_(i \in A) n = n ^ #|A|.
+Proof. by move=> n; rewrite big_const -Monoid.iteropE. Qed.
 
-Lemma sum_split_sub : forall I r (P : pred I) (F1 F2 : I -> R),
-  \sum_(i <- r | P i) (F1 i - F2 i)
-     = \sum_(i <- r | P i) F1 i - \sum_(i <- r | P i) F2 i.
-Proof. by move=> *; rewrite -sum_opp -big_split /=. Qed.
-
-Lemma sumr_const : forall (I : finType) (A : pred I) (x : R),
-  \sum_(i \in A) x = x *+ #|A|.
-Proof. exact: big_const. Qed.
-
-End Opp.
-
-Lemma prodr_const : forall (R : ringType) (I : finType) (A : pred I) (x : R),
-  \prod_(i \in A) x = x ^+ #|A|.
-Proof. move=> *; exact: big_const. Qed.
-
-End Ring.
-
-(* Redundant, unparseable notation to print constant sums and products. *)
-Notation "\su 'm_' ( i | P ) e" :=
-  (\sum_(<- index_enum _ | (fun i => P)) (fun _ => e%N))
-  (at level 41, e at level 41, format "\su 'm_' ( i  |  P )  e") : nat_scope.
-
-Notation "\su 'm_' ( i \in A ) e" :=
-  (\sum_(<- index_enum _ | (fun i => i \in A)) (fun _ => e%N))
-  (at level 41, e at level 41, format "\su 'm_' ( i  \in  A )  e") : nat_scope.
-
-Notation "\su 'm_' ( i \in A | P ) e" :=
-  (\sum_(<- index_enum _ | (fun i => (i \in A) && P)) (fun _ => e%N))
-  (at level 41, e at level 41, format "\su 'm_' ( i  \in  A  |  P )  e")
-    : nat_scope.
-
-Notation "\pro 'd_' ( i | P ) e" :=
-  (\prod_(<- index_enum _ | (fun i => P)) (fun _ => e%N))
-  (at level 36, e at level 36, format "\pro 'd_' ( i  |  P )  e") : nat_scope.
-
-Lemma sum_nat_const : forall (I : finType) (A : pred I) (n : nat),
-  \sum_(i \in A) n = #|A| * n.
-Proof. by move=> I A n; rewrite big_const; elim: #|A| => //= i ->. Qed.
-
-Lemma sum1_card : forall (I : finType) (A : pred I), \sum_(i \in A) 1 = #|A|.
-Proof. by move=> I A; rewrite sum_nat_const muln1. Qed.
-
-Lemma prod_nat_const : forall (I : finType) (A : pred I) (n : nat),
-  \prod_(i \in A) n = n ^ #|A|.
-Proof. by move=> I A n; rewrite big_const; elim: #|_| => //= ? ->. Qed.
-
-Lemma sum_nat_const_nat : forall n1 n2 n : nat,
+Lemma sum_nat_const_nat : forall n1 n2 n,
   \sum_(n1 <= i < n2) n = (n2 - n1) * n.
 Proof. by move=> *; rewrite big_const_nat; elim: (_ - _) => //= ? ->. Qed.
 
-Lemma prod_nat_const_nat : forall n1 n2 n : nat,
+Lemma prod_nat_const_nat : forall n1 n2 n,
   \prod_(n1 <= i < n2) n = n ^ (n2 - n1).
-Proof. by move=> *; rewrite big_const_nat; elim: (_ - _) => //= ? ->. Qed.
+Proof. by move=> *; rewrite big_const_nat -Monoid.iteropE. Qed.
 
-(* Beware: applying sum_predU to a [disjoint A & B] hypothesis will strip *)
-(* the mem wrappers from A and B, possibly exposing internal coercions.   *)
-Lemma sum_predU : forall (I : finType) (N : I -> nat) (a b : pred I),
-  [disjoint a & b] ->
-  \sum_(i | a i || b i) N i = (\sum_(i | a i) N i) + (\sum_(i | b i) N i).
-Proof.
-move => d N a b Hdisj; rewrite (bigID a) //=; congr addn; apply: eq_bigl => x0.
-  by rewrite andb_orl andbb andbC [_ && _](pred0P Hdisj) orbF.
-rewrite andbC; move/pred0P: Hdisj; move/(_ x0)=> /=.
-by rewrite -topredE /=; case: a.
-Qed.
+End NatConst.
 
-Lemma ltn_0prodn_cond : forall I r (P : pred I) F,
+Lemma prodn_cond_gt0 : forall I r (P : pred I) F,
   (forall i, P i -> 0 < F i) -> 0 < \prod_(i <- r | P i) F i.
 Proof.
-by move=> I r P F Fpos; apply big_prop => // n1 n2; rewrite ltn_0mul => ->.
+by move=> I r P F Fpos; apply big_prop => // n1 n2; rewrite muln_gt0 => ->.
 Qed.
 
-Lemma ltn_0prodn : forall I r (P : pred I) F,
+Lemma prodn_gt0 : forall I r (P : pred I) F,
   (forall i, 0 < F i) -> 0 < \prod_(i <- r | P i) F i.
-Proof. move=> I r P F Fpos; exact: ltn_0prodn_cond. Qed.
-
-Notation "\max_ ( <- r | P ) F" :=
-  (\big[maxn/0%N]_(<- r | P%B) F%N) : nat_scope.
-Notation "\max_ ( i <- r | P ) F" :=
-  (\big[maxn/0%N]_(i <- r | P%B) F%N) : nat_scope.
-Notation "\max_ ( i <- r ) F" :=
-  (\big[maxn/0%N]_(i <- r) F%N) : nat_scope.
-Notation "\max_ ( i | P ) F" :=
-  (\big[maxn/0%N]_(i | P%B) F%N) : nat_scope.
-Notation "\max_ i F" :=
-  (\big[maxn/0%N]_i F%N) : nat_scope.
-Notation "\max_ ( i : I | P ) F" :=
-  (\big[maxn/0%N]_(i : I | P%B) F%N) (only parsing) : nat_scope.
-Notation "\max_ ( i : I ) F" :=
-  (\big[maxn/0%N]_(i : I) F%N) (only parsing) : nat_scope.
-Notation "\max_ ( m <= i < n | P ) F" :=
- (\big[maxn/0%N]_(m <= i < n | P%B) F%N) : nat_scope.
-Notation "\max_ ( m <= i < n ) F" :=
- (\big[maxn/0%N]_(m <= i < n) F%N) : nat_scope.
-Notation "\max_ ( i < n | P ) F" :=
- (\big[maxn/0%N]_(i < n | P%B) F%N) : nat_scope.
-Notation "\max_ ( i < n ) F" :=
- (\big[maxn/0%N]_(i < n) F%N) : nat_scope.
-Notation "\max_ ( i \in A | P ) F" :=
- (\big[maxn/0%N]_(i \in A | P%B) F%N) : nat_scope.
-Notation "\max_ ( i \in A ) F" :=
- (\big[maxn/0%N]_(i \in A) F%N) : nat_scope.
+Proof. move=> I r P F Fpos; exact: prodn_cond_gt0. Qed.
 
 Lemma leq_bigmax_cond : forall (I : finType) (P : pred I) F i0,
   P i0 -> F i0 <= \max_(i | P i) F i.
@@ -1290,26 +1420,23 @@ Proof. by move=> *; exact: leq_bigmax_cond. Qed.
 Implicit Arguments leq_bigmax_cond [I P F].
 Implicit Arguments leq_bigmax [I F].
 
-Lemma eq_bigmax_cond : forall (I : finType) (P : pred I) F,
-  ~~ pred0b P -> exists i0, P i0 && (F i0 == \max_(i | P i) F i).
+Lemma eq_bigmax_cond : forall (I : finType) (A : pred I) F,
+  #|A| > 0 -> {i0 |i0 \in A & \max_(i \in A) F i = F i0}.
 Proof.
-move=> I P F n0P; set m := \max_(i | P i) F i.
-pose ub i := P i && (F i >= m); case: (pickP ub) => [i| ub0].
-  by case/andP=> Pi ubi; exists i; rewrite Pi eqn_leq leq_bigmax_cond.
-have ubm: forall i, P i -> F i < m.
-  by move=> i Pi; case/nandP: (ub0 i); rewrite (Pi, ltnNge).
+move=> I A F nzA; set m := \max_(i \in A) F i.
+pose ub i := (i \in A) && (F i >= m); case: (pickP ub) => [i | ub0].
+  case/andP=> Ai ubi; exists i => //.
+  by apply/eqP; rewrite eqn_leq ubi leq_bigmax_cond.
+have{ub0} ubm: {in A, forall i, F i < m}.
+  by move=> i Ai; case/nandP: (ub0 i); rewrite (Ai, ltnNge).
 case/idP: (ltnn m); apply: (@big_prop _ (fun n => n < m)) => // [|n1 n2].
-  by case/existsP: n0P => i; move/ubm; exact: leq_trans.
+  case: (pickP A) => [i Ai| A0]; last by rewrite eq_card0 in nzA.
+  exact: leq_trans (ubm i Ai).
 by rewrite !ltnNge leq_maxr negb_or => ->.
 Qed.
 
 Lemma eq_bigmax : forall (I : finType) F,
-  (~~ pred0b I) -> exists i0 : I, (F i0 == \max_i F i).
-Proof.
-by move=> I F; move/(eq_bigmax_cond F)=> [] x; move/andP=> [] _; exists x.
-Qed.
-
-Implicit Arguments eq_bigmax_cond [I P F].
-Implicit Arguments eq_bigmax [I F].
+  #|I| > 0 -> {i0 : I | \max_i F i = F i0}.
+Proof. by move=> I F; case/(eq_bigmax_cond F) => x _ ->; exists x. Qed.
 
 Unset Implicit Arguments.

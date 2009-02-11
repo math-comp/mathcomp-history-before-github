@@ -1,5 +1,5 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
-Require Import prime fintype paths finfun ssralg bigops finset.
+Require Import prime fintype paths finfun bigops ssralg finset.
 Require Import groups morphisms perm automorphism normal commutators.
 Require Import action cyclic center pgroups sylow gprod schurzass hall. 
 Require Import coprime_act nilpotent coprime_comm maximal.
@@ -68,7 +68,7 @@ have IHG: forall H1 R1 : {group gT},
   have ltG1n: #|G1| < n.
     have:= leqif_mul (leqif_geq (subset_leq_card sH1))
                      (leqif_geq (subset_leq_card sR1)).
-    rewrite -oG1 -coprime_cardMg // eqHR_G eqn0Ngt ltn_0group /= => leG1.
+    rewrite -oG1 -coprime_cardMg // eqHR_G eqn0Ngt cardG_gt0 /= => leG1.
     by apply: leq_trans leGn; rewrite ltn_neqAle !leG1 andbT negb_and -!ltnNge.
   have sG1G: G1 \subset G.
     by rewrite defG1 mul_subG // (subset_trans sH1, subset_trans sR1).
@@ -226,7 +226,7 @@ have nVH := subset_trans sHG nVG; have nVP := subset_trans sPH nVH.
 have sylVP: p.-Sylow(H) (V * P).
   have defVP: V * P = V <*> P by rewrite mulgenC -normC ?norm_mulgenEl.
   rewrite defVP pHallE /= -defVP mul_subG //= defVP.
-  rewrite -(LaGrange sVH) partn_mul ?ltn_0mul ?ltn_0group //=.
+  rewrite -(LaGrange sVH) partn_mul ?muln_gt0 ?cardG_gt0 //=.
   have: V \subset V <*> P by rewrite -defVP mulG_subl.
   move/LaGrange <-; rewrite part_pnat // eqn_pmul2l // /=.
   rewrite -!card_quotient //; last by rewrite gen_subG subUset normG.
@@ -344,7 +344,7 @@ have trCKR0_V: 'C_(K <*> R0)(V) = 1.
     rewrite -{2}(setIidPl sR0_KR0) -setIA; exact: HallSubnormal hallR0_K.
   have sC_R0: 'C_(K <*> R0)(V) \subset R0.
     apply/setIidPr; apply/eqP; rewrite setIA (setIidPl sR0_KR0) //=.
-    rewrite eqEcard -[#|'C_(K <*> R0)(V)|](partnC r) ?ltn_0group //.
+    rewrite eqEcard -[#|'C_(K <*> R0)(V)|](partnC r) ?cardG_gt0 //.
     case/pHallP: hallCR0 => -> <-; case/pHallP: hallCK => _ <-.
     rewrite -{2}(muln1 #|_|) leq_mul // -trivg_card_le1 -subG1 -trVN.
     rewrite /= -{1}(setIidPl sKH) -setIA -eqVC setIC setIS //.
@@ -392,7 +392,7 @@ have trCP_R0: 'C_P(R0) = 1.
   have pP := pHall_pgroup sylP; apply: card1_trivg.
   have: p.-group 'C_P(R0) by apply: pgroupS pP; exact: subsetIl.
   case/p_natP=> // [[-> //| i oC]].
-  have {i oC}: p %| #|'C_P(R0)| by rewrite oC dvdn_mulr.
+  have {i oC}: p %| #|'C_P(R0)| by rewrite oC dvdn_exp.
   case/Cauchy=> // x Cx oxp.
   suff x1: <[x]> = 1 by rewrite -oxp /order x1 cards1 in pr_p.
   apply/trivgP; rewrite -trVP subsetI andbC cycle_subG /=.
@@ -506,7 +506,7 @@ have{IHG} IHK: forall X : {group gT},
     by rewrite norms_mulgen ?nVP // commGC commg_norml.
   rewrite TI_cardMg /=; last first.
     by apply/trivgP; rewrite -trVK_P setSI ?genS ?setUS.
-  rewrite oH ltn_pmul2r ?ltn_0group // norm_mulgenEr ?(subset_trans sXK) //.
+  rewrite oH ltn_pmul2r ?cardG_gt0 // norm_mulgenEr ?(subset_trans sXK) //.
   rewrite orbF coprime_cardMg // ?ltn_pmul2l // (pnat_coprime pV) //.
   exact: pgroupS p'K.
 have defKP: K :=: [~: K, P].
@@ -612,7 +612,7 @@ have iK'K: 'C_(P <*> R / K')(K / K') = 1 -> #|K / K'| > q ^ 2.
       by move/trivg_center_pgroup; rewrite /= ['Z(_)]card1_trivg ?oZ // => ->.
     - apply: center_cyclic_abelian (prime_cyclic _).
       rewrite card_quotient ?normal_norm ?center_normal //.
-      by rewrite -divgS ?subsetIl // oZ oK mulnK // muln1 ltnW.
+      by rewrite -divgS ?subsetIl // oZ oK mulnK // ltnW.
     by symmetry; apply/eqP; rewrite eqEcard oK oZ subsetIl leqnn.
   have cuv: commute u v by apply: (centsP abK).
   have truv: <[u]> :&: <[v]> = 1.
@@ -766,7 +766,7 @@ case abelK: (abelian K); last first.
     by rewrite -(LaGrange (subsetIl _ ([~: K, R] :^ x))) iIKR_1 muln1 /=.
   have dKx: K :=: [~: K, R] * [~: K, R] :^ x.
     apply/eqP; rewrite eq_sym eqEcard mul_subG // ?proper_sub //.
-    rewrite -(leq_pmul2r (ltn_0group IKRx)) -mul_cardG cardJg.
+    rewrite -(leq_pmul2r (cardG_gt0 IKRx)) -mul_cardG cardJg.
     rewrite -(LaGrange (proper_sub sKR_K)) iKR -mulnA leq_pmul2l //.
     by rewrite -iIKRx mulnC LaGrange /= ?subsetIl.
   have sIKRxZ: IKRx \subset 'Z(K).
@@ -1000,10 +1000,10 @@ have nRfix_CR: forall Ki, Ki \in mxK -> ~~ (R \subset 'N(Vi Ki)) ->
     apply/subsetP=> y; case/morphpreP=> Vi_y; move/set1P=> /= fy1.
     have:= dprod_V; rewrite (bigD1 Ki) //=.
     case/dprodP=> [[_ W _ defW] _ _ <-]; rewrite defW inE Vi_y /=.
-    rewrite -groupV -(mulg1 y^-1) -fy1 /f big_ltn ?ltn_0prime // conjg1 mulKg.
+    rewrite -groupV -(mulg1 y^-1) -fy1 /f big_ltn ?prime_gt0 // conjg1 mulKg.
     rewrite big_cond_seq /=.
     apply big_prop=> [||i]; first 1 [exact: group1 | exact: groupM].
-    rewrite mem_index_iota; case/andP=> i_pos ltir.
+    rewrite mem_index_iota; case/andP=> i_gt0 ltir.
     rewrite -(bigdprodEgen defW) mem_gen //; apply/bigcupP.
     have Rxi: x ^+ i \in R by exact: groupX.
     have PRxi: x ^+ i \in P <*> R by apply: subsetP Rxi; exact: mulgen_subr.
@@ -1012,13 +1012,13 @@ have nRfix_CR: forall Ki, Ki \in mxK -> ~~ (R \subset 'N(Vi Ki)) ->
     rewrite (actsP actsPR_K) // mxKi -val_eqE (sameP eqP normP).
     apply/normP=> nVi_xi; have: x ^+ i \in 'N_R(Vi Ki).
       by rewrite inE Rxi; apply/normP; rewrite /= Vi_xi nVi_xi.
-    by rewrite regR_Vi // inE -order_dvdn ox /dvdn modn_small ?eqn0Ngt ?i_pos.
+    by rewrite regR_Vi // inE -order_dvdn ox /dvdn modn_small ?eqn0Ngt ?i_gt0.
   have im_f: Morphism fM @* Vi Ki \subset 'C_V(R).
     rewrite morphimEdom /=.
     apply/subsetP=> fy; case/imsetP=> y; case/setIP=> Vy _ -> {fy}.
     rewrite inE Vf //= -sub1set centsC -xR cycle_subG /= cent_set1 inE.
     rewrite conjg_set1 sub1set; apply/set1P.
-    have r1: r.-1.+1 = r by apply: prednK; exact: ltn_0prime.
+    have r1: r.-1.+1 = r by apply: prednK; exact: prime_gt0.
     rewrite /f -r1 {1}big_nat_recr big_nat_recl /= conjMg -conjgM -expgSr.
     rewrite r1 -{2}ox expg_order conjg1 abV //; last first.
       by rewrite memJ_norm ?(subsetP (subset_trans sRG nVG)) ?Vf.
@@ -1063,7 +1063,7 @@ have nVjR: forall Kj, Kj \in mxK ->
       case/imsetP=> y _ -> b; case/imsetP=> z _ ->{a b}.
       apply: (centsP (Aut_cycle_abelian v)); exact: Aut_aut.
     apply/eqP; rewrite -val_eqE eq_sym eqEcard sKRVj.
-    rewrite -(leq_pmul2r (ltn_0prime q_pr)).
+    rewrite -(leq_pmul2r (prime_gt0 q_pr)).
     have iKj: #|K : Kj| = q.
       by move: mxKj; rewrite inE; case/andP=> maxKj _; exact: p_maximal_index.
     rewrite -{1}iKj LaGrange ?normal_sub ?nKiK //.
@@ -1071,12 +1071,12 @@ have nVjR: forall Kj, Kj \in mxK ->
       rewrite -comm_center_dir_prod //.
       by rewrite oR coprime_sym prime_coprime // -p'natE.
     case/dprodP=> _ defKR _ trKR_C.
-    rewrite -{1}defKR (TI_cardMg trKR_C) leq_pmul2l ?ltn_0group //=.
+    rewrite -{1}defKR (TI_cardMg trKR_C) leq_pmul2l ?cardG_gt0 //=.
     have Z_CK: Zgroup 'C_K(R) by apply: ZgroupS ZCHR; exact: setSI.
     have:= forallP Z_CK 'C_K(R)%G; rewrite (@p_Sylow _ q) /=; last first.
       rewrite pHallE subxx part_pnat ?eqxx //.
       apply: pgroupS qK; exact: subsetIl.
-    case/cyclicP=> z defC; rewrite defC dvdn_leq ?ltn_0prime // order_dvdn.
+    case/cyclicP=> z defC; rewrite defC dvdn_leq ?prime_gt0 // order_dvdn.
     case/p_abelemP: abelemK => // _ -> //.
     by rewrite -cycle_subG -defC subsetIl.
   case/nRfix_CR=> // _ sCVj; case/nRfix_CR: nK1R => // _ sCV1.
@@ -1113,7 +1113,7 @@ have:= sub0set 'C_(Vi @: mxK)(P | 'JG); rewrite subEproper.
 case/predU1P=> [fix0|].
   case/negP: nrp; rewrite eq_sym -dvdn_prime2 //; apply/eqnP.
   have:= pgroup_fix_mod pP (subset_trans (mulgen_subl P R) actsPR).
-  by rewrite -{1}defV1R oV1R -fix0 cards0 (modn_small (ltn_0prime _)).
+  by rewrite -{1}defV1R oV1R -fix0 cards0 (modn_small (prime_gt0 _)).
 case/andP=> _; case/subsetPn=> Vj; case/setIP; case/imsetP=> Kj mxKj ->{Vj}.
 rewrite conjG_fix => nVjP.
 suffices trVj: Vi Kj :=: 1 by rewrite -(oVi Kj) // trVj cards1 in pr_p.

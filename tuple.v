@@ -224,7 +224,7 @@ rewrite -count_filter -(@eq_count _ (pred1 t)) => [|s /=]; last first.
 elim: n t t_n => [|m IHm] [|x t] //=.
 move/IHm; move: (iter m _ _) => em {IHm} IHm.
 transitivity (x \in T : nat); rewrite // -mem_enum.
-have:= uniq_enum T; rewrite enumT.
+have:= enum_uniq T; rewrite enumT.
 elim: (Finite.enum T) => //= y e IHe; case/andP; move/negPf=> ney.
 rewrite count_cat count_map inE /preim /= {1}/eq_op /= eq_sym; move/IHe->.
 by case: eqP => [->|_]; rewrite ?(ney, count_pred0, IHm).

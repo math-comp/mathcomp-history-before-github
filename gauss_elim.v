@@ -314,7 +314,7 @@ Lemma pick_enum_rank : forall (T : finType) (p : pred T) x,
 Proof.
 move=> T p x; rewrite /pick /enum -enumE /enum_rank /=.
 have : x \in (enum T) by rewrite mem_enum.
-elim: (enum T) (uniq_enum T) => //= x' s Rs; case/andP => x'_s Us.
+elim: (enum T) (enum_uniq T) => //= x' s Rs; case/andP => x'_s Us.
 rewrite in_cons; case/orP; case: ifP => //.
 - by move=> _; move/eqP=> -> _; rewrite eq_refl /=; apply/pred0P.
 - by move=> _; move/eqP=> -> _; rewrite eq_refl /=; apply/pred0P.

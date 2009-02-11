@@ -5,7 +5,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
 Require Import div seq fintype.
 (* Require Import connect. *)
-Require Import tuple finfun ssralg bigops finset.
+Require Import tuple finfun bigops finset.
 Require Import groups perm morphisms action maximal.
 
 (* n-transitive and primitive actions *)
@@ -256,7 +256,7 @@ Lemma ntransitive1 : forall m,
 Proof.
 have trdom1: forall x, ([tuple x] \in 1.-dtuple(S)) = (x \in S).
   by move=> x; rewrite dtuple_on_add !inE memtE subset_all andbT.
-move=> m m_pos; move/(ntransitive_weak m_pos)=> {m m_pos}.
+move=> m m_gt0; move/(ntransitive_weak m_gt0)=> {m m_gt0}.
 case/imsetP; case/tupleP=> x t0; rewrite {t0}(tuple0 t0) trdom1 => Sx trx.
 apply/imsetP; exists x => //; apply/setP=> y; rewrite -trdom1 trx.
 apply/imsetP/imsetP; case=> a Ga [->]; exists a => //; exact: val_inj.
@@ -300,7 +300,7 @@ Theorem stab_ntransitive : forall m x,
      0 < m -> x \in S ->  [transitive * m.+1 (G | to) on S]
   -> [transitive * m ('C_(G | to)[x] | to) on S :\ x].
 Proof.
-move=> m x m_pos Sx Gtr; have sSxS: S :\ x \subset S by rewrite subsetDl.
+move=> m x m_gt0 Sx Gtr; have sSxS: S :\ x \subset S by rewrite subsetDl.
 case: (imsetP Gtr); case/tupleP=> x1 t1; rewrite dtuple_on_add.
 case/and3P=> Sx1 nt1x1 dt1 trt1; have Gtr1 := ntransitive1 (ltn0Sn _) Gtr.
 case: (atransP2 Gtr1 Sx1 Sx) => // a Ga x1ax.

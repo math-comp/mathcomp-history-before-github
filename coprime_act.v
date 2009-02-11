@@ -3,8 +3,6 @@ Require Import fintype bigops finset.
 Require Import groups morphisms automorphism gprod normal action commutators.
 Require Import pgroups cyclic nilpotent sylow maximal schurzass hall.
 
-(* Require Import connect finfun ssralg perm center. *)
-
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
@@ -212,8 +210,8 @@ have oAb: #|Ab| = #|A|.
   by move: coGA; rewrite -(LaGrange sMG) coprime_mull; case/andP.
 case: (IHn _ Ab Gb _ Xb); do 1?[exact: quotient_sol | exact: morphim_norms].
 - rewrite -[#|_|]mul1n card_quotient //.
-  apply: leq_trans leGn; have:= ltn_0group G.
-  rewrite -(LaGrange sMG) ltn_0mul; case/andP=> _ M'pos.
+  apply: leq_trans leGn; have:= cardG_gt0 G.
+  rewrite -(LaGrange sMG) muln_gt0; case/andP=> _ M'pos.
   by rewrite ltn_pmul2r // ltnNge -trivg_card_le1.
 - rewrite card_quotient // oAb.
   by move: coGA; rewrite -(LaGrange sMG) coprime_mull; case/andP.
@@ -232,7 +230,7 @@ have{Xb sXHb} sXHM: X \subset HM.
 have{pi'Hb' sHGb} pi'HM': pi^'.-nat #|G : HM|.
   move: pi'Hb'; rewrite -!divgS // defHM !card_quotient //; last first.
   - exact: subset_trans nMG.
-  by rewrite -(divn_pmul2l (ltn_0group M)) !LaGrange.
+  by rewrite -(divn_pmul2l (cardG_gt0 M)) !LaGrange.
 have{Ab oAb nHbA} nHMA: A \subset 'N(HM).
   apply/subsetP=> x Ax; rewrite inE.
   apply/subsetP=> yx; case/imsetP=> y HMy ->{yx}.
@@ -247,7 +245,7 @@ have{Ab oAb nHbA} nHMA: A \subset 'N(HM).
 case pi_p: (p \in pi).
   exists HM; split=> //; apply/and3P; split=> //.
   rewrite /pgroup -(LaGrange sMHM) pnat_mul.
-  rewrite {1}/pnat pM /= pi_p ltn_0group.
+  rewrite {1}/pnat pM /= pi_p cardG_gt0.
   by rewrite defHM /pgroup card_quotient ?(subset_trans sHMG) in piHb.
 case: (ltnP #|HM| #|G|) => [ltHG | leGHM {n IHn leGn}].
   case: (IHn _ A HM (leq_trans ltHG leGn) X) => // [||H [hallH nHA sXH]].
@@ -260,7 +258,7 @@ case: (ltnP #|HM| #|G|) => [ltHG | leGHM {n IHn leGn}].
   by rewrite pnat_mul pi'H'.
 have{leGHM nHMA sHMG sMHM sXHM pi'HM'} eqHMG: HM = G.
   by apply/eqP; rewrite -val_eqE eqEcard sHMG.
-have pi'M: pi^'.-group M by apply/andP; rewrite ltn_0group pM /= inE /= pi_p.
+have pi'M: pi^'.-group M by apply/andP; rewrite cardG_gt0 pM /= inE /= pi_p.
 have{HM Hb defHM eqHMG piHb} hallM: pi^'.-Hall(G) M.
   apply/and3P; split; rewrite // /pgroup pnatNK.
   by rewrite defHM /pgroup /= eqHMG card_quotient in piHb.

@@ -1,9 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-(*  Commutators  *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat fintype finset.
 Require Import groups morphisms automorphism normal.
-
-(* Require Import seq paths connect div ssralg bigops perm. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit. 
@@ -61,7 +58,7 @@ Qed.
 Lemma commXg : [~ x ^+ i, y] = [~ x, y] ^+ i.
 Proof.
 elim: i => [|i' IHi]; first exact: comm1g.
-by rewrite expgS commMgJ /conjg commuteX // mulKg IHi.
+by rewrite !expgS commMgJ /conjg commuteX // mulKg IHi.
 Qed.
 
 End LeftComm.

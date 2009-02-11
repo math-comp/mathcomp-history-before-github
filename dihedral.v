@@ -40,7 +40,7 @@ Lemma involgen_order : forall (gT: finGroupType) (t: gT),
   (involg t) -> t !=1 -> #[t] = 2.
 move=> gT t Hi; have:= (trivg_card1 <[t]>); rewrite cycle_eq1=>-> /=.
 move/involgKP: Hi; have:= (expgS t 1); rewrite expg1=> <-.
-move/order_inf;move: (ltn_0order t); rewrite /order /=.
+move/order_inf;move: (order_gt0 t); rewrite /order /=.
 case : #|<[t]>| => [|n0] ; first by rewrite ltn0.
 by case :n0=> [|n1] // _; rewrite !ltnS leq_eqVlt ltn0 orbF; move/eqP->.
 Qed.
@@ -157,10 +157,10 @@ rewrite properEcard; move/andP=> [HCsub HCcard].
 rewrite -(D_order dhsub dhindex); move: (cardSg HCsub).
 move/dvdnP=> [k Hk]; rewrite Hk mulnC leq_mul2r.
 move/eqP: Hk; rewrite -(LaGrange HCsub) mulnC /= eqn_mul2r.
-move:(ltn_0group [group of C]); rewrite eqn0Ngt /= => -> /=.
+move:(cardG_gt0 [group of C]); rewrite eqn0Ngt /= => -> /=.
 move/eqP<-.
 case e: #|<<[set c * t; t]>> : C|=>[|n0];
-  first by move/eqP: e; rewrite eqn0Ngt ltn_0indexg.
+  first by move/eqP: e; rewrite eqn0Ngt indexg_gt0.
 rewrite ltnS; move:e; case n0=>[|n1]; last by rewrite ltn0Sn.
 by move/(index1g HCsub)=>Hcsub; move:HCcard; injection Hcsub=>->; rewrite ltnn.
 Qed.
@@ -253,7 +253,7 @@ Lemma DCindex : #|D : C| = 2.
 Proof.
 move: (divgI [group of D] [group of C]).
 rewrite /= -DCt -group_modl ?subset_refl // -(setIC C <[t]>) Ctcap mulg1.
-rewrite (TI_cardMg Ctcap) mulKn ?ltn_0order // =><- /=.
+rewrite (TI_cardMg Ctcap) mulKn ?order_gt0 // =><- /=.
 by rewrite [#|<[_]>|](involgen_order Hit Htn1).
 Qed.
 

@@ -1,5 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat div seq choice.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat div seq choice fintype.
+Require Import bigops.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -7,241 +8,14 @@ Import Prenex Implicits.
 
 (* Abstract algebra framework for ssreflect. *)
 (* We define a number of structures that "package" common algebraic *)
-(* properties of operations. The purpose of this packaging is NOT   *)
-(* to make generic definitions shorter, but to make proofs shorter, *)
-(* by providing canonical structures that automatically supply      *)
-(* canonical properties of operators required by generic lemmas.    *)
-(*   Therefore, as a rule, the "carrier" of such structures will    *)
-(* be the binary operation, rather than the data type or its        *)
-(* identity element.  *)
-(*   The primary application of these structures are the generic    *)
-(* indexed products and summations in bigops.v.                     *)
-(*   We then define a second class of structures that provide       *)
-(* generic notation in addition to generic algebraic properties.    *)
-(* For these the carrier is the data type.                          *)
+(* properties of operations. These extend the combinatorial classes *)
+(* with notation and theory for classical algebraic structures.     *)
 
 Reserved Notation "+%R" (at level 0).
-Reserved Notation "x *+ n" (at level 40, n at level 9, left associativity).
-Reserved Notation "x *- n" (at level 40, n at level 9, left associativity).
-
+Reserved Notation "-%R" (at level 0).
 Reserved Notation "*%R" (at level 0).
-Reserved Notation "n %: R"
-  (at level 2, R at level 1, left associativity, format "n %: R").
-Reserved Notation "x ^+ n" (at level 29, n at level 9, left associativity).
-Reserved Notation "x ^- n" (at level 29, n at level 9, left associativity).
-
-Module Monoid.
-
-Section Definitions.
-Variables (T : Type) (idm : T).
-
-Structure law : Type := Law {
-  operator :> T -> T -> T;
-  _ : associative operator;
-  _ : left_id idm operator;
-  _ : right_id idm operator
-}.
-
-Structure com_law : Type := ComLaw {
-   com_operator :> law;
-   _ : commutative com_operator
-}.
-
-Structure mul_law : Type := MulLaw {
-  mul_operator :> T -> T -> T;
-  _ : left_zero idm mul_operator;
-  _ : right_zero idm mul_operator
-}.
-
-Structure add_law (mul : T -> T -> T) : Type := AddLaw {
-  add_operator :> com_law;
-  _ : left_distributive mul add_operator;
-  _ : right_distributive mul add_operator
-}.
-
-Definition repack_law opL :=
-  let: Law _ opmA op1m opm1 := opL
-    return {type of Law for opL} -> law in
-  fun k => k opmA op1m opm1.
-
-Definition repack_mul_law opM :=
-  let: MulLaw _ op0m opm0 := opM
-    return {type of MulLaw for opM} -> mul_law in
-  fun k => k op0m opm0.
-
-Definition op_phant := phantom (T -> T -> T).
-Definition op_uni op1 op2 := op_phant op1 -> op_phant op2.
-
-Definition repack_com_law op (opL : law) (opC : com_law) :=
-  fun (_ : op_uni opL op) (_ : op_uni opC op) opEq =>
-  (let: ComLaw _ opmC := opC
-     return {type of ComLaw for opC} -> com_law in
-   fun k => k opmC)
-  (let: erefl in _ = opC := opEq
-     return {type of ComLaw for opC}
-   in @ComLaw opL).
-
-Definition repack_add_law mop aop (opC : com_law) (opA : add_law mop) :=
-  fun (_ : op_uni opC aop) (_ : op_uni opA aop) opEq =>
-  (let: AddLaw _ mopAm mopmA  := opA
-     return {type of @AddLaw mop for opA} -> add_law mop in
-   fun k => k mopAm mopmA)
-  (let: erefl in _ = opA := opEq
-     return {type of @AddLaw mop for opA}
-   in @AddLaw mop opC).
-
-End Definitions.
-
-Definition morphism T1 T2 id1 id2 op1 op2 (phi : T1 -> T2) :=
-  phi id1 = id2 /\ {morph phi : x y / op1 x y >-> op2 x y}.
-
-Section CommutativeAxioms.
-
-Variable (T : Type) (zero one : T) (mul add : T -> T -> T) (inv : T -> T).
-Hypothesis mulC : commutative mul.
-
-Lemma mulC_id : left_id one mul -> right_id one mul.
-Proof. by move=>  mul1x x; rewrite mulC. Qed.
-
-Lemma mulC_zero : left_zero zero mul -> right_zero zero mul.
-Proof. by move=> mul0x x; rewrite mulC. Qed.
-
-Lemma mulC_dist : left_distributive mul add -> right_distributive mul add.
-Proof. by move=> mul_addl x y z; rewrite !(mulC x). Qed.
-
-End CommutativeAxioms.
-
-Module Theory.
-
-Section Theory.
-Variables (T : Type) (idm : T).
-
-Section Plain.
-Variable mul : law idm.
-Lemma mul1m : left_id idm mul. Proof. by case mul. Qed.
-Lemma mulm1 : right_id idm mul. Proof. by case mul. Qed.
-Lemma mulmA : associative mul. Proof. by case mul. Qed.
-End Plain.
-
-Section Commutative.
-Variable mul : com_law idm.
-Lemma mulmC : commutative mul. Proof. by case mul. Qed.
-Lemma mulmCA : left_commutative mul.
-Proof. by move=> x y z; rewrite !mulmA (mulmC x). Qed.
-Lemma mulmAC : right_commutative mul.
-Proof. by move=> x y z; rewrite -!mulmA (mulmC y). Qed.
-End Commutative.
-
-Section Mul.
-Variable mul : mul_law idm.
-Lemma mul0m : left_zero idm mul. Proof. by case mul. Qed.
-Lemma mulm0 : right_zero idm mul. Proof. by case mul. Qed.
-End Mul.
-
-Section Add.
-Variables (mul : T -> T -> T) (add : add_law idm mul).
-Lemma addmA : associative add. Proof. exact: mulmA. Qed.
-Lemma addmC : commutative add. Proof. exact: mulmC. Qed.
-Lemma addmCA : left_commutative add. Proof. exact: mulmCA. Qed.
-Lemma addmAC : right_commutative add. Proof. exact: mulmAC. Qed.
-Lemma add0m : left_id idm add. Proof. exact: mul1m. Qed.
-Lemma addm0 : right_id idm add. Proof. exact: mulm1. Qed.
-Lemma mulm_addl : left_distributive mul add. Proof. by case add. Qed.
-Lemma mulm_addr : right_distributive mul add. Proof. by case add. Qed.
-End Add.
-
-Definition simpm := (mulm1, mulm0, mul1m, mul0m, mulmA).
-
-End Theory.
-
-End Theory.
-
-Import Theory. (* Will become Include Theory. in Coq 8.2 *)
-Definition mul1m :=  mul1m.
-Definition mulm1 := mulm1.
-Definition mulmA := mulmA.
-Definition mulmC := mulmC.
-Definition mulmCA := mulmCA.
-Definition mulmAC := mulmAC.
-Definition mul0m := mul0m.
-Definition mulm0 := mulm0.
-Definition addmA := addmA.
-Definition addmC := addmC.
-Definition addmCA := addmCA.
-Definition addmAC := addmAC.
-Definition add0m := add0m.
-Definition addm0 := addm0.
-Definition mulm_addl := mulm_addl.
-Definition mulm_addr := mulm_addr.
-Definition simpm := simpm.
-
-End Monoid.
-
-Notation "[ 'law' 'of' f ]" :=
-    (Monoid.repack_law (fun fA => @Monoid.Law _ _ f fA))
-  (at level 0, format"[ 'law'  'of'  f ]") : form_scope.
-
-Notation "[ 'com_law' 'of' f ]" :=
-    (@Monoid.repack_com_law _ _ f _ _ id id (erefl _))
-  (at level 0, format "[ 'com_law'  'of'  f ]") : form_scope.
-
-Notation "[ 'mul_law' 'of' f ]" :=
-    (Monoid.repack_mul_law (fun f0m => @Monoid.MulLaw _ _ f f0m))
-  (at level 0, format"[ 'mul_law'  'of'  f ]") : form_scope.
-
-Notation "[ 'add_law' m 'of' a ]" :=
-    (@Monoid.repack_add_law _ _ m a _ _ id id (erefl _))
-  (at level 0, format "[ 'add_law'  m  'of'  a ]") : form_scope.
-
-Section PervasiveMonoids.
-
-Import Monoid.
-
-Canonical Structure andb_monoid := Law andbA andTb andbT.
-Canonical Structure andb_comoid := ComLaw andbC.
-
-Canonical Structure andb_muloid := MulLaw andFb andbF.
-Canonical Structure orb_monoid := Law orbA orFb orbF.
-Canonical Structure orb_comoid := ComLaw orbC.
-Canonical Structure orb_muloid := MulLaw orTb orbT.
-Canonical Structure addb_monoid := Law addbA addFb addbF.
-Canonical Structure addb_comoid := ComLaw addbC.
-Canonical Structure orb_addoid := AddLaw andb_orl andb_orr.
-Canonical Structure andb_addoid := AddLaw orb_andl orb_andr.
-Canonical Structure addb_addoid := AddLaw andb_addl andb_addr.
-
-Canonical Structure addn_monoid := Law addnA add0n addn0.
-Canonical Structure addn_comoid := ComLaw addnC.
-Canonical Structure muln_monoid := Law mulnA mul1n muln1.
-Canonical Structure muln_comoid := ComLaw mulnC.
-Canonical Structure muln_muloid := MulLaw mul0n muln0.
-Canonical Structure addn_addoid := AddLaw muln_addl muln_addr.
-
-Canonical Structure maxn_monoid := Law maxnA max0n maxn0.
-Canonical Structure maxn_comoid := ComLaw maxnC.
-Canonical Structure maxn_addoid := AddLaw maxn_mull maxn_mulr.
-
-Canonical Structure gcdn_monoid := Law gcdnA gcd0n gcdn0.
-Canonical Structure gcdn_comoid := ComLaw gcdnC.
-Canonical Structure gcdn_addoid := AddLaw muln_gcdl muln_gcdr.
-
-Canonical Structure lcmn_monoid := Law lcmnA lcm1n lcmn1.
-Canonical Structure lcmn_comoid := ComLaw lcmnC.
-Canonical Structure lcmn_addoid := AddLaw muln_lcml muln_lcmr.
-
-Canonical Structure cat_monoid T := Law (@catA T) (@cat0s T) (@cats0 T).
-
-End PervasiveMonoids.
-
-(* Unit test for the [...law of ...] Notations
-Definition myp := addn. Definition mym := muln.
-Canonical Structure myp_mon := [law of myp].
-Canonical Structure myp_cmon := [com_law of myp].
-Canonical Structure mym_mul := [mul_law of mym].
-Canonical Structure myp_add := [add_law _ of myp].
-Print myp_add.
-Print Canonical Projections.
-*)
+Reserved Notation "n %:R"
+  (at level 2, R at level 1, left associativity, format "n %:R").
 
 Delimit Scope ring_scope with R.
 Delimit Scope term_scope with T.
@@ -285,15 +59,22 @@ Bind Scope ring_scope with Zmodule.sort.
 Definition zero M := Zmodule.zero (Zmodule.class M).
 Definition opp M := Zmodule.opp (Zmodule.class M).
 Definition add M := Zmodule.add (Zmodule.class M).
-Definition natmul M x n := nosimpl iter _ n (add x) (zero M).
 
 Notation Local "0" := (zero _).
+Notation Local "-%R" := (@opp _).
 Notation Local "- x" := (opp x).
 Notation Local "+%R" := (@add _).
 Notation Local "x + y" := (add x y).
 Notation Local "x - y" := (x + - y).
+
+Definition natmul M x n := nosimpl iterop _ n +%R x (zero M).
+
 Notation Local "x *+ n" := (natmul x n).
 Notation Local "x *- n" := ((- x) *+ n).
+
+Notation "\sum_ ( i <- r | P ) F" := (\big[+%R/0]_(i <- r | P) F).
+Notation "\sum_ ( m <= i < n ) F" := (\big[+%R/0]_(m <= i < n) F).
+Notation "\sum_ ( i \in A ) F" := (\big[+%R/0]_(i \in A) F).
 
 Section ZmoduleTheory.
 
@@ -303,11 +84,11 @@ Implicit Types x y : M.
 Lemma addrA : @associative M +%R. Proof. by case M => T [? []]. Qed.
 Lemma addrC : @commutative M +%R. Proof. by case M => T [? []]. Qed.
 Lemma add0r : @left_id M 0 +%R. Proof. by case M => T [? []]. Qed.
-Lemma addNr : left_inverse 0 (@opp M) +%R. Proof. by case M => T [? []]. Qed.
+Lemma addNr : @left_inverse M 0 -%R +%R. Proof. by case M => T [? []]. Qed.
 
 Lemma addr0 : @right_id M 0 +%R.
 Proof. by move=> x; rewrite addrC add0r. Qed.
-Lemma addrN : right_inverse 0 (@opp M) +%R.
+Lemma addrN : @right_inverse M 0 -%R +%R.
 Proof. by move=> x; rewrite addrC addNr. Qed.
 Definition subrr := addrN.
 
@@ -319,44 +100,49 @@ Lemma addrAC : @right_commutative M +%R. Proof. exact: mulmAC. Qed.
 
 Lemma addKr : forall x, cancel ( +%R x) ( +%R (- x)).
 Proof. by move=> x y; rewrite addrA addNr add0r. Qed.
+Lemma addNKr : forall x, cancel ( +%R (- x)) ( +%R x).
+Proof. by move=> x y; rewrite addrA addrN add0r. Qed.
 Lemma addrK : forall x, cancel ( +%R^~ x) ( +%R^~ (- x)).
 Proof. by move=> x y; rewrite -addrA addrN addr0. Qed.
-Lemma subrK : forall x, cancel ( +%R^~ (- x)) ( +%R^~ x).
+Lemma addrNK : forall x, cancel ( +%R^~ (- x)) ( +%R^~ x).
 Proof. by move=> x y; rewrite -addrA addNr addr0. Qed.
+Definition subrK := addrNK.
 Lemma addrI : forall y, injective (add y).
 Proof. move=> x; exact: can_inj (addKr x). Qed.
 Lemma addIr : forall y, injective ( +%R^~ y).
 Proof. move=> y; exact: can_inj (addrK y). Qed.
-Lemma opprK : involutive (@opp M).
+Lemma opprK : @involutive M -%R.
 Proof. by move=> x; apply: (@addIr (- x)); rewrite addNr addrN. Qed.
 Lemma oppr0 : -0 = 0 :> M.
 Proof. by rewrite -[-0]add0r subrr. Qed.
 Lemma oppr_eq0 : forall x, (- x == 0) = (x == 0).
 Proof. by move=> x; rewrite (inv_eq opprK) oppr0. Qed.
 
-Lemma oppr_add : forall x y, -(x + y) = - x - y.
+Lemma oppr_add : {morph -%R: x y / x + y : M}.
 Proof.
-move=> x y; apply: (@addrI (x + y)).
-by rewrite addrA subrr addrAC addrK subrr.
+by move=> x y; apply: (@addrI (x + y)); rewrite addrA subrr addrAC addrK subrr.
 Qed.
 
 Lemma mulr0n : forall x, x *+ 0 = 0. Proof. by []. Qed.
-Lemma mulrS : forall x n, x *+ n.+1 = x + x *+ n. Proof. by []. Qed.
+Lemma mulr1n : forall x, x *+ 1 = x. Proof. by []. Qed.
 
-Lemma mulr1n : forall x, x *+ 1 = x. Proof. exact: addr0. Qed.
+Lemma mulrS : forall x n, x *+ n.+1 = x + x *+ n.
+Proof. by move=> x [|n] //=; rewrite addr0. Qed.
 
 Lemma mulrSr : forall x n, x *+ n.+1 = x *+ n + x.
-Proof. by move=> x n; rewrite addrC. Qed.
+Proof. by move=> x n; rewrite addrC mulrS. Qed.
 
 Lemma mul0rn : forall n, 0 *+ n = 0 :> M.
 Proof. by elim=> // n IHn; rewrite mulrS add0r. Qed.
 
 Lemma oppr_muln : forall x n, - (x *+ n) = x *- n :> M.
-Proof. by move=> x; elim=> [|n IHn]; rewrite (oppr0, oppr_add) ?IHn. Qed.
-
-Lemma mulrn_addl : forall x y n, (x + y) *+ n = x *+ n + y *+ n.
 Proof.
-move=> x y; elim=> [|n IHn]; rewrite ?addr0 // !mulrS. 
+by move=> x; elim=> [|n IHn]; rewrite ?oppr0 // !mulrS oppr_add IHn.
+Qed.
+
+Lemma mulrn_addl : forall n, {morph (fun x => x *+ n) : x y / x + y}.
+Proof.
+move=> n x y; elim: n => [|n IHn]; rewrite ?addr0 // !mulrS. 
 by rewrite addrCA -!addrA -IHn -addrCA.
 Qed.
 
@@ -368,11 +154,31 @@ Qed.
 
 Lemma mulrnA : forall x m n, x *+ (m * n) = x *+ m *+ n.
 Proof.
-by move=> x m n; rewrite mulnC; elim: n => //= n IHn; rewrite mulrn_addr IHn.
+move=> x m n; rewrite mulnC.
+by elim: n => //= n IHn; rewrite mulrS mulrn_addr IHn.
 Qed.
 
 Lemma mulrnAC : forall x m n, x *+ m *+ n = x *+ n *+ m.
 Proof. by move=> x m n; rewrite -!mulrnA mulnC. Qed.
+
+Lemma sumr_opp : forall I r P (F : I -> M),
+  (\sum_(i <- r | P i) - F i = - (\sum_(i <- r | P i) F i)).
+Proof. by move=> I r P F; rewrite (big_morph _ oppr_add oppr0). Qed.
+
+Lemma sumr_sub : forall I r (P : pred I) (F1 F2 : I -> M),
+  \sum_(i <- r | P i) (F1 i - F2 i)
+     = \sum_(i <- r | P i) F1 i - \sum_(i <- r | P i) F2 i.
+Proof. by move=> *; rewrite -sumr_opp -big_split /=. Qed.
+
+Lemma sumr_muln :  forall I r P (F : I -> M) n,
+  \sum_(i <- r | P i) F i *+ n = (\sum_(i <- r | P i) F i) *+ n.
+Proof.
+by move=> I r P F n; rewrite (big_morph _ (mulrn_addl n) (mul0rn _)).
+Qed.
+
+Lemma sumr_const : forall (I : finType) (A : pred I) (x : M),
+  \sum_(i \in A) x = x *+ #|A|.
+Proof. by move=> I A x; rewrite big_const -iteropE. Qed.
 
 End ZmoduleTheory.
 
@@ -409,7 +215,7 @@ Definition pack := let k T c m := Pack (@Class T c m) T in Zmodule.unpack k.
 
 Definition eqType cT := Equality.Pack (class cT) cT.
 Definition choiceType cT := Choice.Pack (class cT) cT.
-Definition zmodType cT := Zmodule.Pack (class cT) cT.
+Coercion zmodType cT := Zmodule.Pack (class cT) cT.
 
 End Ring.
 
@@ -420,16 +226,18 @@ Canonical Structure Ring.zmodType.
 
 Definition one R := Ring.one (Ring.class R).
 Definition mul R := Ring.mul (Ring.class R).
-Definition exp R x n := nosimpl iter _ n (mul x) (one R).
-Definition idr R x : R := x.
+Definition exp R x n := nosimpl iterop _ n (@mul R) x (one R).
 
 Notation Local "1" := (one _).
 Notation Local "- 1" := (- (1)).
-Notation Local "n %: R" := (@idr R 1 *+ n).
+Notation Local "n %:R" := (1 *+ n).
 Notation Local "*%R" := (@mul _).
 Notation Local "x * y" := (mul x y).
 Notation Local "x ^+ n" := (exp x n).
 
+Notation "\prod_ ( i <- r | P ) F" := (\big[*%R/1]_(i <- r | P) F).
+Notation "\prod_ ( i \in A ) F" := (\big[*%R/1]_(i \in A) F).
+ 
 Section RingTheory.
 
 Variable R : Ring.type.
@@ -472,43 +280,42 @@ Canonical Structure mul_monoid := Monoid.Law mulrA mul1r mulr1.
 Canonical Structure muloid := Monoid.MulLaw mul0r mulr0.
 Canonical Structure addoid := Monoid.AddLaw mulr_addl mulr_addr.
 
-Lemma natr_cst : forall n, n%:R = (if n is m.+1 then iter m (add 1) 1 else 0).
-Proof. by case=> // n; rewrite /natmul -iter_f addr0. Qed.
-
 Lemma mulr_natr : forall x n, x * n%:R = x *+ n.
 Proof.
-by move=> x; elim=> [|n IHn]; rewrite (mulr0, mulr_addr) ?IHn ?mulr1.
+by move=> x; elim=> [|n IHn]; rewrite ?mulr0 // !mulrS mulr_addr IHn mulr1.
 Qed.
 
 Lemma mulr_natl : forall n x, n%:R * x = x *+ n.
 Proof.
-by move=> n x; elim: n => [|n IHn]; rewrite (mul0r, mulr_addl) ?mul1r ?IHn.
+move=> n x; elim: n => [|n IHn]; first exact: mul0r.
+by rewrite !mulrS mulr_addl mul1r IHn.
 Qed.
 
-Lemma natr_add : forall m n, (m + n)%:R = m%:R + n%:R.
+Lemma natr_add : forall m n, (m + n)%:R = m%:R + n%:R :> R.
 Proof. by move=> m n; exact: mulrn_addr. Qed.
 
-Lemma natr_mul : forall m n, (m * n)%:R = m%:R * n%:R.
+Lemma natr_mul : forall m n, (m * n)%:R = m%:R * n%:R :> R.
 Proof. by move=> m n; rewrite mulrnA -mulr_natr. Qed.
 
 Lemma expr0 : forall x, x ^+ 0 = 1. Proof. by []. Qed.
+Lemma expr1 : forall x, x ^+ 1 = x. Proof. by []. Qed.
 
-Lemma exprS : forall x n, x ^+ n.+1 = x * x ^+ n. Proof. by []. Qed.
-
-Lemma expr1 : forall x, x ^+ 1 = x. Proof. exact: mulr1. Qed.
+Lemma exprS : forall x n, x ^+ n.+1 = x * x ^+ n.
+Proof. by move=> x [] //; rewrite mulr1. Qed.
 
 Lemma exp1rn : forall n, 1 ^+ n = 1 :> R.
 Proof. by elim=> // n IHn; rewrite exprS mul1r. Qed.
 
 Lemma exprn_addr : forall x m n, x ^+ (m + n) = x ^+ m * x ^+ n.
 Proof.
-by move=> x m n; elim: m => [|m IHm]; rewrite ?mul1r // -mulrA -IHm.
+by move=> x m n; elim: m => [|m IHm]; rewrite ?mul1r // !exprS -mulrA -IHm.
 Qed.
 
 Lemma exprSr : forall x n, x ^+ n.+1 = x ^+ n * x.
 Proof. by move=> x n; rewrite -addn1 exprn_addr expr1. Qed.
 
-Definition comm x y := x * y = y * x.
+Definition commDef x y := x * y = y * x.
+Notation comm := commDef.
 
 Lemma commr_sym : forall x y, comm x y -> comm y x. Proof. done. Qed.
 Lemma commr_refl : forall x, comm x x. Proof. done. Qed.
@@ -531,7 +338,8 @@ Proof. by move=> x y z; rewrite /comm mulr_addl mulr_addr => -> ->. Qed.
 
 Lemma commr_muln : forall x y n, comm x y -> comm x (y *+ n).
 Proof.
-move=> x y n com_xy; elim: n => [|n IHn]; [exact: commr0 | exact: commr_add].
+rewrite /comm => x y n com_xy.
+by elim: n => [|n IHn]; rewrite ?commr0 // mulrS commr_add.
 Qed.
 
 Lemma commr_mul : forall x y z,
@@ -545,7 +353,8 @@ Proof. move=> x n; apply: commr_muln; exact: commr1. Qed.
 
 Lemma commr_exp : forall x y n, comm x y -> comm x (y ^+ n).
 Proof.
-move=> x y n com_xy; elim: n => [|n IHn]; [exact: commr1 | exact: commr_mul].
+rewrite /comm => x y n com_xy.
+by elim: n => [|n IHn]; rewrite ?commr1 // exprS commr_mul.
 Qed.
 
 Lemma commr_exp_mull : forall x y n,
@@ -565,13 +374,13 @@ Qed.
 Lemma exprn_mulr : forall x m n, x ^+ (m * n) = x ^+ m ^+ n.
 Proof.
 move=> x m n; elim: m => [|m IHm]; first by rewrite exp1rn.
-by rewrite mulSn exprn_addr IHm commr_exp_mull //; exact: commr_exp.
+by rewrite mulSn exprn_addr IHm exprS commr_exp_mull //; exact: commr_exp.
 Qed.
 
 Lemma signr_odd : forall n, (-1) ^+ (odd n) = (-1) ^+ n :> R.
 Proof.
 elim=> //= n IHn; rewrite exprS -{}IHn.
-by case/odd: n; rewrite //= !mulN1r expr1 opprK.
+by case/odd: n; rewrite !mulN1r ?opprK.
 Qed.
 
 Lemma signr_addb : forall b1 b2,
@@ -583,9 +392,25 @@ Proof.
 by move=> x n; rewrite -mulN1r commr_exp_mull // /comm mulN1r mulrN mulr1.
 Qed.
 
+Lemma prodr_const : forall (I : finType) (A : pred I) (x : R),
+  \prod_(i \in A) x = x ^+ #|A|.
+Proof. by move=> I A x; rewrite big_const -iteropE. Qed.
+
+Definition RevRingMixin :=
+  let mul' x y := y * x in
+  let mulrA' x y z := esym (mulrA z y x) in
+  let mulr_addl' x y z := mulr_addr z x y in
+  let mulr_addr' x y z := mulr_addl y z x in
+  @Ring.Mixin R 1 mul' mulrA' mulr1 mul1r mulr_addl' mulr_addr' nonzero1r.
+
+Definition RevRingType := Ring.Pack (Ring.Class RevRingMixin) R.
+
 End RingTheory.
 
-Prenex Implicits comm.
+Notation comm := (@commDef _).
+
+Notation rev :=
+  (let R := _ in fun (x : Ring.sort R) => x : Ring.sort (RevRingType R)).
 
 Module ComRing.
 
@@ -629,8 +454,14 @@ Canonical Structure mul_comoid := Monoid.ComLaw mulrC.
 Lemma mulrCA : @left_commutative R *%R. Proof. exact: mulmCA. Qed.
 Lemma mulrAC : @right_commutative R *%R. Proof. exact: mulmAC. Qed.
 
-Lemma exprn_mull : forall x y n, (x * y) ^+ n = x ^+ n * y ^+ n.
-Proof. move=> x y n; apply: commr_exp_mull; exact: mulrC. Qed.
+Lemma exprn_mull : forall n, {morph (fun x => x ^+ n) : x y / x * y}.
+Proof. move=> n x y; apply: commr_exp_mull; exact: mulrC. Qed.
+
+Lemma prodr_exp : forall n I r (P : pred I) (F : I -> R),
+  \prod_(i <- r | P i) F i ^+ n = (\prod_(i <- r | P i) F i) ^+ n.
+Proof.
+by move=> n I r P F; rewrite (big_morph _ (exprn_mull n) (exp1rn _ n)).
+Qed.
 
 End ComRingTheory.
 
@@ -695,7 +526,8 @@ Implicit Types x y : R.
 
 Lemma divrr : forall x, unit x -> x / x = 1.
 Proof. by case: R => T [? []]. Qed.
-
+Definition mulrV := divrr.
+ 
 Lemma mulVr : forall x, unit x -> x^-1 * x = 1.
 Proof. by case: R => T [? []]. Qed.
 
@@ -711,11 +543,15 @@ Qed.
 Lemma mulKr : forall x, unit x -> cancel (mul x) (mul x^-1).
 Proof. by move=> x Ux y; rewrite mulrA mulVr ?mul1r. Qed.
 
+Lemma mulVKr : forall x, unit x -> cancel (mul x^-1) (mul x).
+Proof. by move=> x Ux y; rewrite mulrA mulrV ?mul1r. Qed.
+
 Lemma mulrK : forall x, unit x -> cancel ( *%R^~ x) ( *%R^~ x^-1).
 Proof. by move=> x Ux y; rewrite -mulrA divrr ?mulr1. Qed.
 
-Lemma divrK : forall x, unit x -> cancel ( *%R^~ x^-1) ( *%R^~ x).
+Lemma mulrVK : forall x, unit x -> cancel ( *%R^~ x^-1) ( *%R^~ x).
 Proof. by move=> x Ux y; rewrite -mulrA mulVr ?mulr1. Qed.
+Definition divrK := mulrVK.
 
 Lemma mulrI : forall x, unit x -> injective (mul x).
 Proof. move=> x Ux; exact: can_inj (mulKr Ux). Qed.
@@ -807,7 +643,7 @@ Qed.
 
 Lemma unitr_exp : forall x n, unit x -> unit (x ^+ n).
 Proof.
-by move=> x n Ux; elim: n => [|n IHn]; rewrite ?unitr1 ?unitr_mull.
+by move=> x n Ux; elim: n => [|n IHn]; rewrite ?unitr1 // exprS unitr_mull.
 Qed.
 
 Lemma unitr_pexp : forall x n, n > 0 -> unit (x ^+ n) = unit x.
@@ -819,7 +655,7 @@ Qed.
 Lemma expr_inv : forall x n, x^-1 ^+ n = x ^- n.
 Proof.
 move=> x; elim=> [|n IHn]; first by rewrite !expr0 ?invr1.
-case Ux: (unit x); first by rewrite exprSr IHn -invr_mul // ?unitr_exp.
+case Ux: (unit x); first by rewrite exprSr exprS IHn -invr_mul // unitr_exp.
 by rewrite !invr_out ?unitr_pexp ?Ux.
 Qed.
 
@@ -1046,7 +882,7 @@ Section ComUnitRingTheory.
 Variable R : ComUnitRing.type.
 Implicit Types x y : R.
 
-Lemma unitrC_mul : forall x y, unit (x * y) = unit x && unit y.
+Lemma unitr_mul : forall x y, unit (x * y) = unit x && unit y.
 Proof. move=> x y; apply: commr_unit_mul; exact: mulrC. Qed.
 
 End ComUnitRingTheory.
@@ -1092,23 +928,33 @@ Section IntegralDomainTheory.
 Variable R : IntegralDomain.type.
 Implicit Types x y : R.
 
-Lemma mulr_eq0 : forall x y, (x * y == 0) = (x == 0) || (y == 0).
+Lemma mulf_eq0 : forall x y, (x * y == 0) = (x == 0) || (y == 0).
 Proof.
 move=> x y; apply/eqP/idP; first by case: R x y => T [].
 by case/pred2P=> ->; rewrite (mulr0, mul0r).
 Qed.
 
-Lemma mulr_neq0 : forall x y, x != 0 -> y != 0 -> x * y != 0.
-Proof. move=> x y x0 y0; rewrite mulr_eq0; exact/norP. Qed.
+Lemma mulf_neq0 : forall x y, x != 0 -> y != 0 -> x * y != 0.
+Proof. move=> x y x0 y0; rewrite mulf_eq0; exact/norP. Qed.
 
-Lemma expr_eq0 : forall x n, (x ^+ n == 0) = (n > 0) && (x == 0).
+Lemma expf_eq0 : forall x n, (x ^+ n == 0) = (n > 0) && (x == 0).
 Proof.
 move=> x; elim=> [|n IHn]; first by rewrite oner_eq0.
-by rewrite exprS mulr_eq0 IHn andKb.
+by rewrite exprS mulf_eq0 IHn andKb.
 Qed.
 
-Lemma expr_neq0 : forall x m, x != 0 -> x ^+ m != 0.
-Proof. by move=> x n x_nz; rewrite expr_eq0; apply/nandP; right. Qed.
+Lemma expf_neq0 : forall x m, x != 0 -> x ^+ m != 0.
+Proof. by move=> x n x_nz; rewrite expf_eq0; apply/nandP; right. Qed.
+
+Lemma mulfI : forall x, x != 0 -> injective ( *%R x).
+Proof.
+move=> x nz_x y z; rewrite -[x * z]add0r; move/(canLR (addrK _)).
+move/eqP; rewrite -mulrN -mulr_addr mulf_eq0 (negbTE nz_x) /=; move/eqP.
+by move/(canRL (subrK _)); rewrite add0r.
+Qed.
+
+Lemma mulIf : forall x, x != 0 -> injective ( *%R^~ x).
+Proof. move=> x nz_x y z; rewrite -!(mulrC x); exact: mulfI. Qed.
 
 End IntegralDomainTheory.
 
@@ -1196,23 +1042,27 @@ Lemma mulVf: forall x, x != 0 -> x^-1 * x = 1.
 Proof. by move=> x; rewrite -unitfE; exact: mulVr. Qed.
 Lemma divff: forall x, x != 0 -> x / x = 1.
 Proof. by move=> x; rewrite -unitfE; exact: divrr. Qed.
+Definition mulfV := divff.
 Lemma mulKf : forall x, x != 0 -> cancel ( *%R x) ( *%R x^-1).
 Proof. by move=> x; rewrite -unitfE; exact: mulKr. Qed.
+Lemma mulVKf : forall x, x != 0 -> cancel ( *%R x^-1) ( *%R x).
+Proof. by move=> x; rewrite -unitfE; exact: mulVKr. Qed.
 Lemma mulfK : forall x, x != 0 -> cancel ( *%R^~ x) ( *%R^~ x^-1).
 Proof. by move=> x; rewrite -unitfE; exact: mulrK. Qed.
-Lemma divfK : forall x, x != 0 -> cancel ( *%R^~ x^-1) ( *%R^~ x).
+Lemma mulfVK : forall x, x != 0 -> cancel ( *%R^~ x^-1) ( *%R^~ x).
 Proof. by move=> x; rewrite -unitfE; exact: divrK. Qed.
-Lemma mulfI : forall x, x != 0 -> injective ( *%R x).
-Proof. by move=> x; rewrite -unitfE; exact: mulrI. Qed.
-Lemma mulIf : forall x : F, x != 0 -> injective ( *%R^~ x).
-Proof. by move=> x; rewrite -unitfE; exact: mulIr. Qed.
+Definition divfK := mulfVK.
 
-Lemma invf_mul : forall x y, (x * y)^-1 = x^-1 * y^-1.
+Lemma invf_mul : {morph (fun x => x^-1) : x y / x * y}.
 Proof.
 move=> x y; case: (eqVneq x 0) => [-> |nzx]; first by rewrite !(mul0r, invr0).
 case: (eqVneq y 0) => [-> |nzy]; first by rewrite !(mulr0, invr0).
 by rewrite mulrC invr_mul ?unitfE.
 Qed.
+
+Lemma prodf_inv : forall I r (P : pred I) (E : I -> F),
+  \prod_(i <- r | P i) (E i)^-1 = (\prod_(i <- r | P i) E i)^-1.
+Proof. by move=> I r P E; rewrite (big_morph _ invf_mul (invr1 _)). Qed.
 
 End FieldTheory.
 
@@ -1269,11 +1119,11 @@ Definition sat := DecidableField.sat (DecidableField.class F).
 Lemma satP : DecidableField.axiom sat.
 Proof. exact: DecidableField.satP. Qed.
 
-Definition Exists_n R n f : formula R := iter_n n (fun i => Exists i) f.
+Definition nExists R n f : formula R := iteri n (fun i => Exists i) f.
 
-Lemma Exists_nP : forall f n e,
+Lemma nExistsP : forall f n e,
   reflect (exists s, (size s == n) && (sat f (s ++ drop n e)))
-          (sat (Exists_n n f) e).
+          (sat (nExists n f) e).
 Proof.
 have drop_set_nth:
   forall e n x, @drop F n (set_nth 0 e n x) = x :: drop n.+1 e.
@@ -1293,18 +1143,18 @@ by exists s; rewrite drop_set_nth.
 Qed.
 
 Definition sol f n :=
-  if insub [::] : {? e | sat (Exists_n n f) e} is Some u then
-    @xchoose _ (fun x => _) (Exists_nP _ _ _ (valP u))
+  if insub [::] : {? e | sat (nExists n f) e} is Some u then
+    @xchoose _ (fun x => _) (nExistsP _ _ _ (valP u))
   else nseq n 0.
 
 Lemma solP : forall f n,
   reflect (exists2 s, size s = n & holds f s) (sat f (sol f n)).
 Proof.
 rewrite /sol => f n; case: insubP=> [u /= _ val_u | no_sol].
-  set uP := Exists_nP _ _ _ _; case/andP: (xchooseP uP).
+  set uP := nExistsP _ _ _ _; case/andP: (xchooseP uP).
   move: {uP}(xchoose _) => s; rewrite {u}val_u cats0.
   move/eqP=> s_n f_s; rewrite f_s; left; exists s => //; exact/satP.
-apply: (iffP idP) => [f0 | [s s_n f_s]]; case/Exists_nP: no_sol.
+apply: (iffP idP) => [f0 | [s s_n f_s]]; case/nExistsP: no_sol.
   by exists (@nseq F n 0); rewrite cats0 size_nseq eqxx.
 exists s; rewrite cats0 s_n eqxx; exact/satP.
 Qed.
@@ -1312,7 +1162,7 @@ Qed.
 Lemma size_sol : forall f n, size (sol f n) = n.
 Proof.
 rewrite /sol => f n; case: insubP=> [u /= _ _ | _]; last exact: size_nseq.
-by set uP := Exists_nP _ _ _ _; case/andP: (xchooseP uP); move/eqP.
+by set uP := nExistsP _ _ _ _; case/andP: (xchooseP uP); move/eqP.
 Qed.
 
 Lemma eq_sat : forall f1 f2,
@@ -1324,13 +1174,13 @@ Lemma eq_sol : forall f1 f2,
 Proof.
 rewrite /sol => f1 f2; move/eq_sat=> eqf12 n.
 case: insubP=> [u /= _ val_u | no_sol].
-  have u2P: sat (Exists_n n f2) [::].
-    apply/Exists_nP; case/Exists_nP: (valP u) => s.
+  have u2P: sat (nExists n f2) [::].
+    apply/nExistsP; case/nExistsP: (valP u) => s.
     by rewrite eqf12 /= val_u; exists s.
   rewrite (insubT (sat _) u2P); apply: eq_xchoose => s.
   by rewrite /= val_u eqf12.
-rewrite insubN //; apply: contra no_sol; case/Exists_nP=> s f2_s.
-by apply/Exists_nP; exists s; rewrite eqf12.
+rewrite insubN //; apply: contra no_sol; case/nExistsP=> s f2_s.
+by apply/nExistsP; exists s; rewrite eqf12.
 Qed.
 
 End DecidableFieldTheory.
@@ -1342,7 +1192,7 @@ Module ClosedField.
 
 (* Axiom == all non-constant monic polynomials have a root *)
 Definition axiom (R : Ring.type) :=
-  forall p, p != [::] -> exists x, @foldr R R (fun c z => z * x + c) 1 p == 0.
+  forall n P, n > 0 -> exists x : R, x ^+ n = \sum_(0 <= i < n) P i * x ^+ i.
 
 Record class_of (F : Type) : Type :=
   Class {base :> DecidableField.class_of F; _ : axiom (Ring.Pack base F)}.
@@ -1389,7 +1239,7 @@ Section ClosedFieldTheory.
 
 Variable F : ClosedField.type.
 
-Lemma solve_monicseq : ClosedField.axiom F.
+Lemma solve_monicpoly : ClosedField.axiom F.
 Proof. by case: F => ? []. Qed.
 
 End ClosedFieldTheory.
@@ -1402,10 +1252,13 @@ Definition add0r := add0r.
 Definition addNr := addNr.
 Definition addr0 := addr0.
 Definition addrN := addrN.
+Definition subrr := subrr.
 Definition addrCA := addrCA.
 Definition addrAC := addrAC.
 Definition addKr := addKr.
+Definition addNKr := addNKr.
 Definition addrK := addrK.
+Definition addrNK := addrNK.
 Definition subrK := subrK.
 Definition addrI := addrI.
 Definition addIr := addIr.
@@ -1413,6 +1266,10 @@ Definition opprK := opprK.
 Definition oppr0 := oppr0.
 Definition oppr_eq0 := oppr_eq0.
 Definition oppr_add := oppr_add.
+Definition sumr_opp := sumr_opp.
+Definition sumr_sub := sumr_sub.
+Definition sumr_muln := sumr_muln.
+Definition sumr_const := sumr_const.
 Definition mulr0n := mulr0n.
 Definition mulrS := mulrS.
 Definition mulr1n := mulr1n.
@@ -1437,7 +1294,6 @@ Definition mulNr := mulNr.
 Definition mulrNN := mulrNN.
 Definition mulN1r := mulN1r.
 Definition mulrN1 := mulrN1.
-Definition natr_cst := natr_cst.
 Definition mulr_natr := mulr_natr.
 Definition mulr_natl := mulr_natl.
 Definition natr_add := natr_add.
@@ -1465,12 +1321,21 @@ Definition exprn_mulr := exprn_mulr.
 Definition signr_odd := signr_odd.
 Definition signr_addb := signr_addb.
 Definition exprN := exprN.
+Definition prodr_const := prodr_const.
+Definition mulrC := mulrC.
+Definition mulrCA := mulrCA.
+Definition mulrAC := mulrAC.
+Definition exprn_mull := exprn_mull.
+Definition prodr_exp := prodr_exp.
+Definition mulrV := mulrV.
 Definition divrr := divrr.
 Definition mulVr := mulVr.
 Definition invr_out := invr_out.
 Definition unitrP := unitrP.
 Definition mulKr := mulKr.
+Definition mulVKr := mulVKr.
 Definition mulrK := mulrK.
+Definition mulrVK := mulrVK.
 Definition divrK := divrK.
 Definition mulrI := mulrI.
 Definition mulIr := mulIr.
@@ -1498,30 +1363,30 @@ Definition eq_eval := eq_eval.
 Definition eval_tsubst := eval_tsubst.
 Definition eq_holds := eq_holds.
 Definition holds_fsubst := holds_fsubst.
-Definition mulrC := mulrC.
-Definition mulrCA := mulrCA.
-Definition mulrAC := mulrAC.
-Definition exprn_mull := exprn_mull.
-Definition unitrC_mul := unitrC_mul.
-Definition mulr_eq0 := mulr_eq0.
-Definition mulr_neq0 := mulr_neq0.
-Definition expr_eq0 := expr_eq0.
-Definition expr_neq0 := expr_neq0.
-Definition unitfE := unitfE.
-Definition mulVf := mulVf.
-Definition divff := divff.
-Definition mulKf := mulKf.
-Definition mulfK := mulfK.
-Definition divfK := divfK.
+Definition unitr_mul := unitr_mul.
+Definition mulf_eq0 := mulf_eq0.
+Definition mulf_neq0 := mulf_neq0.
+Definition expf_eq0 := expf_eq0.
+Definition expf_neq0 := expf_neq0.
 Definition mulfI := mulfI.
 Definition mulIf := mulIf.
+Definition unitfE := unitfE.
+Definition mulVf := mulVf.
+Definition mulfV := mulfV.
+Definition divff := divff.
+Definition mulKf := mulKf.
+Definition mulVKf := mulVKf.
+Definition mulfK := mulfK.
+Definition mulfVK := mulfVK.
+Definition divfK := divfK.
 Definition invf_mul := invf_mul.
+Definition prodf_inv := prodf_inv.
 Definition satP := @satP.
 Definition eq_sat := eq_sat.
 Definition solP := @solP.
 Definition eq_sol := eq_sol.
 Definition size_sol := size_sol.
-Definition solve_monicseq := solve_monicseq.
+
 Implicit Arguments satP [F f e].
 Implicit Arguments solP [F f n].
 Prenex Implicits satP solP.
@@ -1603,6 +1468,7 @@ Bind Scope ring_scope with GRing.DecidableField.sort.
 Bind Scope ring_scope with GRing.ClosedField.sort.
 
 Notation "0" := (GRing.zero _) : ring_scope.
+Notation "-%R" := (@GRing.opp _) : ring_scope.
 Notation "- x" := (GRing.opp x) : ring_scope.
 Notation "+%R" := (@GRing.add _).
 Notation "x + y" := (GRing.add x y) : ring_scope.
@@ -1613,14 +1479,14 @@ Notation "x *- n" := (GRing.natmul (- x) n) : ring_scope.
 Notation "1" := (GRing.one _) : ring_scope.
 Notation "- 1" := (- (1))%R : ring_scope.
 
-Notation "n %: R" := (GRing.natmul (@GRing.idr R 1%R) n) : ring_scope.
+Notation "n %:R" := (GRing.natmul 1 n) : ring_scope.
 Notation "*%R" := (@GRing.mul _).
 Notation "x * y" := (GRing.mul x y) : ring_scope.
 Notation "x ^+ n" := (GRing.exp x n) : ring_scope.
 Notation "x ^-1" := (GRing.inv x) : ring_scope.
 Notation "x ^- n" := (x ^+ n)^-1%R : ring_scope.
 Notation "x / y" := (GRing.mul x y^-1) : ring_scope.
-Notation "s `_ i" := (nth 0%R s%R i) : ring_scope.
+Notation "s `_ i" := (seq.nth 0%R s%R i) : ring_scope.
 
 Implicit Arguments GRing.unitDef [].
 
@@ -1629,7 +1495,7 @@ Bind Scope term_scope with GRing.formula.
 
 Notation "''X_' i" := (GRing.Var _ i)
   (at level 8, i at level 2, format "''X_' i") : term_scope.
-Notation "n %: R" := (GRing.NatConst R n) : term_scope.
+Notation "n %:R" := (GRing.NatConst _ n) : term_scope.
 Infix "+" := GRing.Add : term_scope.
 Notation "- t" := (GRing.Opp t) : term_scope.
 Notation "t - u" := (GRing.Add t (- u)) : term_scope.
@@ -1650,6 +1516,60 @@ Notation "'forall' ''X_' i , f" := (GRing.Forall i f)
   (at level 200, i at level 2,
    format "'[hv' 'forall'  ''X_' i , '/ '  f ']'") : term_scope.
 
+Notation "\sum_ ( <- r | P ) F" :=
+  (\big[+%R/0%R]_(<- r | P%B) F%R) : ring_scope.
+Notation "\sum_ ( i <- r | P ) F" :=
+  (\big[+%R/0%R]_(i <- r | P%B) F%R) : ring_scope.
+Notation "\sum_ ( i <- r ) F" :=
+  (\big[+%R/0%R]_(i <- r) F%R) : ring_scope.
+Notation "\sum_ ( m <= i < n | P ) F" :=
+  (\big[+%R/0%R]_(m <= i < n | P%B) F%R) : ring_scope.
+Notation "\sum_ ( m <= i < n ) F" :=
+  (\big[+%R/0%R]_(m <= i < n) F%R) : ring_scope.
+Notation "\sum_ ( i | P ) F" :=
+  (\big[+%R/0%R]_(i | P%B) F%R) : ring_scope.
+Notation "\sum_ i F" :=
+  (\big[+%R/0%R]_i F%R) : ring_scope.
+Notation "\sum_ ( i : t | P ) F" :=
+  (\big[+%R/0%R]_(i : t | P%B) F%R) (only parsing) : ring_scope.
+Notation "\sum_ ( i : t ) F" :=
+  (\big[+%R/0%R]_(i : t) F%R) (only parsing) : ring_scope.
+Notation "\sum_ ( i < n | P ) F" :=
+  (\big[+%R/0%R]_(i < n | P%B) F%R) : ring_scope.
+Notation "\sum_ ( i < n ) F" :=
+  (\big[+%R/0%R]_(i < n) F%R) : ring_scope.
+Notation "\sum_ ( i \in A | P ) F" :=
+  (\big[+%R/0%R]_(i \in A | P%B) F%R) : ring_scope.
+Notation "\sum_ ( i \in A ) F" :=
+  (\big[+%R/0%R]_(i \in A) F%R) : ring_scope.
+
+Notation "\prod_ ( <- r | P ) F" :=
+  (\big[*%R/1%R]_(<- r | P%B) F%R) : ring_scope.
+Notation "\prod_ ( i <- r | P ) F" :=
+  (\big[*%R/1%R]_(i <- r | P%B) F%R) : ring_scope.
+Notation "\prod_ ( i <- r ) F" :=
+  (\big[*%R/1%R]_(i <- r) F%R) : ring_scope.
+Notation "\prod_ ( m <= i < n | P ) F" :=
+  (\big[*%R/1%R]_(m <= i < n | P%B) F%R) : ring_scope.
+Notation "\prod_ ( m <= i < n ) F" :=
+  (\big[*%R/1%R]_(m <= i < n) F%R) : ring_scope.
+Notation "\prod_ ( i | P ) F" :=
+  (\big[*%R/1%R]_(i | P%B) F%R) : ring_scope.
+Notation "\prod_ i F" :=
+  (\big[*%R/1%R]_i F%R) : ring_scope.
+Notation "\prod_ ( i : t | P ) F" :=
+  (\big[*%R/1%R]_(i : t | P%B) F%R) (only parsing) : ring_scope.
+Notation "\prod_ ( i : t ) F" :=
+  (\big[*%R/1%R]_(i : t) F%R) (only parsing) : ring_scope.
+Notation "\prod_ ( i < n | P ) F" :=
+  (\big[*%R/1%R]_(i < n | P%B) F%R) : ring_scope.
+Notation "\prod_ ( i < n ) F" :=
+  (\big[*%R/1%R]_(i < n) F%R) : ring_scope.
+Notation "\prod_ ( i \in A | P ) F" :=
+  (\big[*%R/1%R]_(i \in A | P%B) F%R) : ring_scope.
+Notation "\prod_ ( i \in A ) F" :=
+  (\big[*%R/1%R]_(i \in A) F%R) : ring_scope.
+
 Notation zmodType := GRing.Zmodule.type.
 Notation ZmodType := GRing.Zmodule.pack.
 Notation ZmodMixin := GRing.Zmodule.Mixin.
@@ -1663,6 +1583,7 @@ Notation "[ 'zmodType' 'of' T ]" :=
 Notation ringType := GRing.Ring.type.
 Notation RingType := GRing.Ring.pack.
 Notation RingMixin := GRing.Ring.Mixin.
+Notation RevRingType := GRing.RevRingType.
 Notation "[ 'ringType' 'of' T 'for' cT ]" :=
     (@GRing.Ring.repack cT (@GRing.Ring.Pack T) T)
   (at level 0, format "[ 'ringType'  'of'  T  'for'  cT ]") : form_scope.

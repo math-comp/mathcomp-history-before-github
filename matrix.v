@@ -3,7 +3,7 @@
 (*                                                                     *)
 (***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype.
-Require Import finfun ssralg bigops groups perm signperm.
+Require Import finfun bigops ssralg groups perm signperm.
 
 (* Require Import div connect finset zp. *)
 
@@ -395,8 +395,8 @@ Canonical Structure matrix_zmodType m n :=
 Lemma mxK_sum : forall m n I r (P : pred I) (F : I -> 'M_(m, n)) i j,
   (\sum_(k <- r | P k) F k) i j = \sum_(k <- r | P k) F k i j.
 Proof.
-move=> m n I r P F i j; apply: (big_morph (fun A : 'M_(m, n) => A i j)).
-by split=> [|A B]; rewrite !mxK.
+move=> m n I r P F i j.
+by apply: (big_morph (fun A : 'M_(m, n) => A i j)) => [A B|]; rewrite !mxK.
 Qed.
 
 (* To make a true matrix ring the order needs to be positive!       *)
@@ -503,7 +503,7 @@ have Etr: forall s, odd_perm (tr s) = even_perm s.
   by move=> s; rewrite odd_permM odd_tperm Di12.
 rewrite /(\det _) (bigID (@even_perm _)) /=.
 set S1 := \sum_(<- _ | _) _; set T := S1 + _.
-rewrite -(addNr S1) addrC; congr (_ + _); rewrite {}/T {}/S1 -sum_opp.
+rewrite -(addNr S1) addrC; congr (_ + _); rewrite {}/T {}/S1 -sumr_opp.
 rewrite (reindex tr) /=; last by exists tr => ? _.
 symmetry; apply: eq_big => [s | s seven]; first by rewrite negbK Etr.
 rewrite -mulNr Etr seven (negbTE seven) expr1; congr (_ * _).

@@ -224,8 +224,8 @@ Proof. move=> pi G H sHG; exact: pnat_dvd (cardSg sHG). Qed.
 
 Lemma pgroupM : forall pi G H, pi.-group (G * H) = pi.-group G && pi.-group H.
 Proof.
-move=> pi G H; have GH_pos: 0 < #|G :&: H| := ltn_0group _.
-rewrite /pgroup -(mulnK #|_| GH_pos) -mul_cardG -(LaGrangeI G H) -mulnA.
+move=> pi G H; have GH_gt0: 0 < #|G :&: H| := cardG_gt0 _.
+rewrite /pgroup -(mulnK #|_| GH_gt0) -mul_cardG -(LaGrangeI G H) -mulnA.
 by rewrite mulKn // -(LaGrangeI H G) setIC !pnat_mul andbCA; case: (pnat _).
 Qed.
 
@@ -251,7 +251,7 @@ Lemma pgroup_1Vpr : forall p G, p.-group G ->
 Proof.
 move=> p G pG; case/p_groupP: (pgroup_p pG) => q pr_q.
 case/p_natP=> // [[|m] defG]; [left; exact: card1_trivg | right].
-have qG: q %| #|G| by rewrite defG dvdn_mulr.
+have qG: q %| #|G| by rewrite defG expnS dvdn_mulr.
 have <-: q = p by apply/eqP; move/pgroupP: pG; exact.
 by split; [|exact: dvdn_leq | exists m].
 Qed.
@@ -465,13 +465,13 @@ Qed.
 Lemma consttM : forall pi x y, commute x y -> (x * y).`_pi = x.`_pi * y.`_pi.
 Proof.
 move=> pi x y cxy; pose m := #|<<[set x; y]>>|.
-pose k := chinese m`_pi m`_pi^' 1 0; have m_pos: 0 < m := ltn_0group _.
+pose k := chinese m`_pi m`_pi^' 1 0; have m_gt0: 0 < m := cardG_gt0 _.
 suffices kXpi: forall z, z \in <<[set x; y]>> -> z.`_pi = z ^+ k.
   by rewrite !kXpi ?expMgn // ?groupM ?mem_gen // !inE eqxx ?orbT.
 move=> z xyz; have{xyz} zm: #[z] %| m by rewrite cardSg ?cycle_subG.
 apply/eqP; rewrite eq_expg_mod_order -{3 4}[#[z]](partnC pi) //.
 rewrite chinese_remainder ?chinese_modl ?chinese_modr ?coprime_partC //.
-rewrite -!(modn_dvdm k (partn_dvd _ m_pos zm)).
+rewrite -!(modn_dvdm k (partn_dvd _ m_gt0 zm)).
 rewrite chinese_modl ?chinese_modr ?coprime_partC //.
 by rewrite !modn_dvdm ?partn_dvd ?eqxx.
 Qed.
@@ -590,7 +590,7 @@ rewrite -sub1set -gen_subG (normal_sub_max_pgroup maxQ) //; last first.
   rewrite /normal subsetI !cycle_subG ?Gx ?cents_norm ?subIset ?andbT //=.
   by rewrite centsC cycle_subG Cx.
 rewrite /pgroup p'natE //= -[#|_|]/#[x]; apply/dvdnP=> [[m oxm]].
-have m_pos: 0 < m by apply: ltn_0dvd (ltn_0order x) _; rewrite oxm dvdn_mulr.
+have m_gt0: 0 < m by apply: dvdn_gt0 (order_gt0 x) _; rewrite oxm dvdn_mulr.
 case/idP: (no_x (x ^+ m)); rewrite /= groupX //= orderXgcd //= oxm.
 by rewrite gcdnC gcdn_mulr mulKn.
 Qed.
@@ -637,7 +637,7 @@ rewrite inE /= -pnatE // -card_quotient //.
 case/Cauchy=> //= Hx; rewrite -sub1set -gen_subG -/<[Hx]> /order.
 case/inv_quotientS=> //= K -> sHK sKG {Hx}.
 rewrite card_quotient ?(subset_trans sKG) // => iKH; apply/negP=> pi_p.
-rewrite -iKH -divgS // (maxH K) ?divnn ?ltn_0group // in pr_p.
+rewrite -iKH -divgS // (maxH K) ?divnn ?cardG_gt0 // in pr_p.
 by rewrite /psubgroup sKG /pgroup -(LaGrange sHK) mulnC pnat_mul iKH pi_p.
 Qed.
 
@@ -1360,7 +1360,7 @@ have: p.-elt x by exact: mem_p_elt pG Gx.
 case/pgroup_1Vpr=> [/= -> | [pr_p]].
   by rewrite cards1 dvd1n unlock /= !logn1.
 rewrite -/#[x] -ltnS => le_p_x [m defm]; rewrite {2 3}defm {defm}.
-rewrite pfactor_dvdn ?ltn_0exp ?ltn_0prime // pfactorK //; congr (_ <= n).
+rewrite pfactor_dvdn ?expn_gt0 ?prime_gt0 // pfactorK //; congr (_ <= n).
 apply/eqP; rewrite big_mkord eqn_leq andbC.
 rewrite (leq_trans _ (leq_bigmax (Ordinal le_p_x))) ?pfactorK //=.
 apply big_prop => // [n1 n2|q _]; first by rewrite leq_maxl => -> ->.
@@ -1497,14 +1497,14 @@ Proof.
 by move=> G; apply/exponentP=> s Gx; apply/eqP; rewrite -order_dvdn order_dvdG.
 Qed.
 
-Lemma ltn_0exponent : forall G, 0 < exponent G.
-Proof. move=> G; exact: ltn_0dvd (exponent_dvdn G). Qed.
-Hint Resolve ltn_0exponent.
+Lemma exponent_gt0 : forall G, 0 < exponent G.
+Proof. move=> G; exact: dvdn_gt0 (exponent_dvdn G). Qed.
+Hint Resolve exponent_gt0.
 
 Lemma pnat_exponent : forall pi G, pi.-nat (exponent G) = pi.-group G.
 Proof.
-move=> pi G; congr (_ && _); first by rewrite ltn_0group ltn_0exponent.
-apply: eq_all_r=> p; rewrite !mem_primes ltn_0group ltn_0exponent /=.
+move=> pi G; congr (_ && _); first by rewrite cardG_gt0 exponent_gt0.
+apply: eq_all_r=> p; rewrite !mem_primes cardG_gt0 exponent_gt0 /=.
 case pr_p: (prime p) => //=; apply/idP/idP=> pG.
   exact: dvdn_trans pG (exponent_dvdn G).
 case/Cauchy: pG => // x Gx <-; exact: dvdn_exponent.
@@ -1531,7 +1531,7 @@ move=> p E pr_p; rewrite /p_abelem -andbA; congr (_ && _).
 have e_E := exponent_dvdn E; apply/andP/idP => [[eE pE] | pE].
   case/p_natP: (pnat_dvd e_E pE) => // [[|k]] def_e; first by rewrite def_e.
   suff: (exponent E).-nat p by rewrite pnatE //; move/eqnP->.
-  by apply: pnat_dvd eE; apply: dvdn_trans e_E; rewrite def_e dvdn_mulr.
+  by apply: pnat_dvd eE; apply: dvdn_trans e_E; rewrite def_e expnS dvdn_mulr.
 have pgE: p.-group E by rewrite -pnat_exponent; exact: pnat_dvd (pnat_id _).
 split=> //; case/primeP: pr_p => _ pr_p; move/pr_p: pE.
 rewrite orbC; case/predU1P=> [-> // |].

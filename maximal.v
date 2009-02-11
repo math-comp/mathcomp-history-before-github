@@ -1,5 +1,5 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat fintype ssralg bigops.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat fintype bigops.
 Require Import seq div prime finfun finset groups morphisms normal perm.
 Require Import commutators automorphism cyclic pgroups center gprod sylow.
 Require Import nilpotent action gfunc.
@@ -39,7 +39,7 @@ Definition Fitting A := \big[dprod/1]_(p <- primes #|A|) 'O_p(A).
 Lemma Fitting_group_set : forall G, group_set (Fitting G).
 Proof.
 move=> G; suff [F ->]: exists F : {group gT}, Fitting G = F by exact: groupP.
-rewrite /Fitting; elim: primes (uniq_primes #|G|) => [_|p r IHr] /=.
+rewrite /Fitting; elim: primes (primes_uniq #|G|) => [_|p r IHr] /=.
   by exists [1 gT]%G; rewrite big_nil.
 case/andP=> rp; case/IHr=> F defF; rewrite big_cons defF.
 suffices{IHr}: p^'.-group F && (F <| G).
@@ -253,7 +253,7 @@ rewrite -(quotient_maximal _ nM) ?normal_refl // trivg_quotient in maxM.
 case/maxgroupP: maxM; rewrite properEneq eq_sym sub1G andbT /=.
 have: p.-group (P / M) by exact: morphim_pgroup.
 case/pgroup_1Vpr=> /= [->|[pr_p _ [k iM]] _ maxM]; first by case/eqP.
-have{k iM}: p %| #|P / M| by rewrite iM dvdn_mulr.
+have{k iM}: p %| #|P / M| by rewrite iM dvdn_exp.
 case/Cauchy=> // x; rewrite /order -cycle_subG.
 rewrite subEproper; case/predU1P=> [-> // | sxP ox].
 by rewrite -ox [<[x]>](maxM _ sxP) ?sub1G ?cards1 in pr_p.
@@ -366,7 +366,7 @@ have: p.-group (G <*> K :&: <[x]>)
   by apply: pgroupS (abelem_pgroup abP); rewrite subIset // cycle_subG Px orbT.
 case/pgroup_1Vpr=> /= [trGKx | [pr_p geGKp _]]; last first.
   rewrite -cycle_subG (sameP setIidPr eqP) eqEcard subsetIr /=.
-  apply: leq_trans geGKp; rewrite dvdn_leq ?ltn_0prime // order_dvdn.
+  apply: leq_trans geGKp; rewrite dvdn_leq ?prime_gt0 // order_dvdn.
   by case/p_abelemP: abP => // _ ->.
 rewrite -(maxK (<[x]> <*> K)%G) ?mulgen_subr //.
   by rewrite mulgenC -mulgenA -cycle_subG mulgen_subl.
@@ -403,7 +403,7 @@ case/splitsP: (abelem_splits abP sxP) => K; case/complP=> trKx defP.
 case/pgroup_1Vpr: (pgroupS sxP pP) => [/= -> // | [_ gexp _]].
 have{abP} [abP elP] := p_abelemP P pr_p abP.
 have{elP gexp} ox: #[x] = p.
-  by apply/eqP; rewrite eqn_leq gexp dvdn_leq ?ltn_0prime // order_dvdn elP.
+  by apply/eqP; rewrite eqn_leq gexp dvdn_leq ?prime_gt0 // order_dvdn elP.
 rewrite /= -trKx subsetI subxx cycle_subG.
 apply: (bigcapP Phi_x); apply/orP; right.
 apply: p_index_maximal; rewrite -?divgS -defP ?mulG_subr //.
@@ -563,7 +563,7 @@ apply/bigcupsP=> P; case/SylowP=> p _ SylP.
 case Gp: (p \in \pi(#|G|)); last first.
   rewrite card1_trivg ?sub1G // (card_Hall SylP).
   rewrite part_p'nat // (pnat_dvd (cardSg (normal_sub nHG))) //.
-  by rewrite /pnat ltn_0group all_predC has_pred1 Gp.
+  by rewrite /pnat cardG_gt0 all_predC has_pred1 Gp.
 move/nilpotent_Hall_pcore: SylP => ->{P} //.
 rewrite -(bigdprodEgen (erefl 'F(G))) sub_gen //.
 rewrite -(filter_pi_of (ltnSn _)) big_filter big_mkord.
@@ -680,7 +680,7 @@ Proof.
 move=> rT p A x pA Ax; rewrite -in_set1 -cycle_subG.
 have: p.-elt x := mem_p_elt (abelem_pgroup pA) Ax.
 case/pgroup_1Vpr=> [/= -> | [pr_p lepx _] _]; first by rewrite subxx.
-split=> //; apply/eqP; rewrite eqn_leq lepx dvdn_leq ?ltn_0prime // order_dvdn.
+split=> //; apply/eqP; rewrite eqn_leq lepx dvdn_leq ?prime_gt0 // order_dvdn.
 by case/p_abelemP: pA => // _ ->.
 Qed.
 

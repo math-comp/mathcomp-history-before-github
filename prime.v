@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq paths fintype.
-Require Import div ssralg bigops.
+Require Import div bigops.
 
 (*****************************************************************************)
 (* This files contains the definitions of:                                   *)
@@ -176,8 +176,8 @@ set kb := _.*2; set d := _ + c.
 case/and5P=> lt0k ltpm leppm ltc pr_p def_m; have def_k1 := ltn_predK lt0k.
 have def_kb1: kb.-1.+1 = kb by rewrite /kb -def_k1; case e.
 have eq_bc_0: (b == 0) && (c == 0) = (d == 0).
-  by rewrite eqn_add0 eqn_mul0 orbC -def_kb1. 
-have lt1p: 1 < p by rewrite ltnS ltn_0double.
+  by rewrite addn_eq0 muln_eq0 orbC -def_kb1. 
+have lt1p: 1 < p by rewrite ltnS double_gt0.
 have co_p_2: coprime p 2 by rewrite /coprime gcdnC gcdnE modn2 /= odd_double.
 have if_d0: d = 0 -> [/\ m = (p + a.*2) * p, lb_dvd p p & lb_dvd p (p + a.*2)].
   move=> d0; have{d0 def_m} def_m: m = (p + a.*2) * p.
@@ -210,14 +210,14 @@ case def_b': (b - _) => [|b']; last first.
   rewrite -2!addnA -!double_add -addnA -mulSnr -def_a -def_m /d.
   have ->: b * kb = b' * kb + (k.*2 - c * kb + kb).
     rewrite addnCA addnC -mulSnr -def_b' def_k2 -muln_subl -muln_addl addnC.
-    by rewrite subnK // ltnW // -ltn_0sub def_b'.
+    by rewrite subnK // ltnW // -subn_gt0 def_b'.
   rewrite -addnA; congr (_ + (_ + _).*2).
   case: (c) ltc; first by rewrite -addSnnS def_kb1 subn0 addn0 addnC.
   rewrite /kb; case e => [[] // _|e' c' _] /=; last first.
     by rewrite -subn_sub subnn addnC addSnnS.
   by rewrite mul1n -double_sub -double_add subn1 !addn1 def_k1.
 have ltdp: d < p.
-  move/eqP: def_b'; rewrite eqn_sub0 -(@leq_pmul2r kb); last first.
+  move/eqP: def_b'; rewrite subn_eq0 -(@leq_pmul2r kb); last first.
     by rewrite -def_kb1.
   rewrite muln_subl -def_k2 ltnS -(leq_add2r c); move/leq_trans; apply.
   have{ltc} ltc: c < k.*2.
@@ -306,7 +306,7 @@ move=> p; rewrite -[prime p]negbK; case: primePn => [npr_p | pr_p].
 case: leqP => [lep1 | lt1p]; first by case: pr_p; left.
 left; split=> // d dv_d_p; apply/norP=> [[nd1 ndp]]; case: pr_p; right.
 exists d; rewrite // andbC 2!ltn_neqAle ndp eq_sym nd1.
-by have lt0p := ltnW lt1p; rewrite dvdn_leq // (ltn_0dvd lt0p).
+by have lt0p := ltnW lt1p; rewrite dvdn_leq // (dvdn_gt0 lt0p).
 Qed.
 
 Implicit Arguments primeP [p].
@@ -316,12 +316,12 @@ Prenex Implicits primePn primeP.
 Lemma prime_gt1 : forall p, prime p -> 1 < p.
 Proof. by move=> p; case/primeP. Qed.
 
-Lemma ltn_0prime : forall p, prime p -> 0 < p.
+Lemma prime_gt0 : forall p, prime p -> 0 < p.
 Proof. by move=> *; rewrite ltnW ?prime_gt1. Qed.
 
-Hint Resolve prime_gt1 ltn_0prime.
+Hint Resolve prime_gt1 prime_gt0.
 
-Definition prime_pos_nat p pr_p := PosNat (@ltn_0prime p pr_p).
+Definition prime_pos_nat p pr_p := PosNat (@prime_gt0 p pr_p).
 
 Lemma prod_prime_decomp : forall n,
   n > 0 -> n = \prod_(f <- prime_decomp n) f.1 ^ f.2.
@@ -348,7 +348,7 @@ have lt1p: 1 < p.
 apply/primeP; split=> // d dv_d_p; apply/norP=> [[nd1 ndp]].
 case/hasP: pr_p; exists d => //.
 rewrite mem_index_iota andbC 2!ltn_neqAle ndp eq_sym nd1.
-by have lt0p := ltnW lt1p; rewrite dvdn_leq // (ltn_0dvd lt0p).
+by have lt0p := ltnW lt1p; rewrite dvdn_leq // (dvdn_gt0 lt0p).
 Qed.
 
 Lemma prime_coprime : forall p m, prime p -> coprime p m = ~~ (p %| m).
@@ -383,11 +383,11 @@ Qed.
 Lemma mem_primes : forall p n,
   (p \in primes n) = [&& prime p, n > 0 & p %| n].
 Proof.
-move=> p n; rewrite andbCA; case: posnP => [-> // | /= n_pos].
+move=> p n; rewrite andbCA; case: posnP => [-> // | /= n_gt0].
 apply/mapP/andP=> [[[q e]]|[pr_p]] /=.
-  case/mem_prime_decomp=> pr_q e_pos; case/dvdnP=> u -> <- {p}.
-  by rewrite -(prednK e_pos) expnS mulnCA dvdn_mulr.
-rewrite {1}(prod_prime_decomp n_pos) big_cond_seq /=.
+  case/mem_prime_decomp=> pr_q e_gt0; case/dvdnP=> u -> <- {p}.
+  by rewrite -(prednK e_gt0) expnS mulnCA dvdn_mulr.
+rewrite {1}(prod_prime_decomp n_gt0) big_cond_seq /=.
 apply big_prop => [| u v IHu IHv | [q e] /= mem_qe dv_p_qe].
 - by rewrite euclid1.
 - by rewrite euclid //; case/orP.
@@ -407,7 +407,7 @@ move=> m n; split=> [eqpr| -> //].
 by apply: (eq_sorted_irr ltn_trans ltnn); rewrite ?sorted_primes.
 Qed.
 
-Lemma uniq_primes : forall n, uniq (primes n).
+Lemma primes_uniq : forall n, uniq (primes n).
 Proof. move=> n; exact: (sorted_uniq ltn_trans ltnn (sorted_primes n)). Qed.
 
 (* The smallest prime divisor *)
@@ -429,11 +429,11 @@ by rewrite mem_primes; case/and3P.
 Qed.
 
 Lemma leq_pdiv : forall n, 0 < n -> pdiv n <= n.
-Proof. by move=> n n_pos; rewrite dvdn_leq // dvdn_pdiv. Qed.
+Proof. by move=> n n_gt0; rewrite dvdn_leq // dvdn_pdiv. Qed.
 
-Lemma ltn_0pdiv : forall n, 0 < pdiv n.
-Proof. by case=> [|[|n]] //; rewrite ltn_0prime ?prime_pdiv. Qed.
-Hint Resolve ltn_0pdiv.
+Lemma pdiv_gt0 : forall n, 0 < pdiv n.
+Proof. by case=> [|[|n]] //; rewrite prime_gt0 ?prime_pdiv. Qed.
+Hint Resolve pdiv_gt0.
 
 Lemma pdiv_min_dvd : forall m d, 1 < d -> d %| m -> pdiv m <= d.
 Proof.
@@ -464,7 +464,7 @@ Proof.
 move=> n; apply: (iffP idP) => [npr_p|]; last first.
   case=> [|[p [pr_p le_p2_n dv_p_n]]]; first by case: n => [|[]].
   apply/negP=> pr_n; move: dv_p_n le_p2_n; rewrite dvdn_prime2 //; move/eqP->.
-  by rewrite leqNgt -{1}[n]muln1 -mulnn ltn_pmul2l ?prime_gt1 ?ltn_0prime.
+  by rewrite leqNgt -{1}[n]muln1 -mulnn ltn_pmul2l ?prime_gt1 ?prime_gt0.
 case: leqP => [lt1p|]; [right | by left].
 exists (pdiv n); rewrite dvdn_pdiv prime_pdiv //; split=> //.
 by case: leqP npr_p => //; move/ltn_pdiv2_prime->; auto.
@@ -479,35 +479,35 @@ Proof. by move=> n lt1n; exists (pdiv n); rewrite ?dvdn_pdiv ?prime_pdiv. Qed.
 Lemma primes_mul : forall m n p, m > 0 -> n > 0 ->
   (p \in primes (m * n)) = (p \in primes m) || (p \in primes n).
 Proof.
-move=> m n p m_pos n_pos; rewrite !mem_primes ltn_0mul m_pos n_pos.
+move=> m n p m_gt0 n_gt0; rewrite !mem_primes muln_gt0 m_gt0 n_gt0.
 by case pr_p: (prime p); rewrite // euclid.
 Qed.
 
 Lemma primes_exp : forall m n, n > 0 -> primes (m ^ n) = primes m.
 Proof.
-move=> m [|n] // _; case: (posnP m) => [-> //| m_pos]; apply/eq_primes => /= p.
-elim: n => [|n IHn]; first by rewrite expn1.
-by rewrite expnS primes_mul ?(IHn, orbb, ltn_0exp, m_pos).
+move=> m [|n] // _; rewrite expnS; case: (posnP m) => [-> //| m_gt0].
+apply/eq_primes => /= p; elim: n => [|n IHn]; first by rewrite muln1.
+by rewrite primes_mul ?(expn_gt0, expnS, IHn, orbb, m_gt0).
 Qed.
 
 Lemma primes_prime : forall p, prime p -> primes p = [::p].
 Proof.
 move=> p pr_p; apply: (eq_sorted_irr ltn_trans ltnn) => // [|q].
   exact: sorted_primes.
-rewrite mem_seq1 mem_primes ltn_0prime //=.
+rewrite mem_seq1 mem_primes prime_gt0 //=.
 by apply/andP/idP=> [[pr_q q_p] | ]; [rewrite -dvdn_prime2 | move/eqP->].
 Qed.
 
 Lemma coprime_has_primes : forall m n, m > 0 -> n > 0 ->
   coprime m n = ~~ has (mem (primes m)) (primes n).
 Proof.
-move=> m n m_pos n_pos; apply/eqnP/hasPn=> [mn1 p | no_p_mn].
-  rewrite /= !mem_primes m_pos n_pos /=; case/andP=> pr_p p_n.
+move=> m n m_gt0 n_gt0; apply/eqnP/hasPn=> [mn1 p | no_p_mn].
+  rewrite /= !mem_primes m_gt0 n_gt0 /=; case/andP=> pr_p p_n.
   have:= prime_gt1 pr_p; rewrite pr_p ltnNge -mn1 /=; apply: contra => p_m.
-  by rewrite dvdn_leq ?ltn_0gcd ?m_pos // dvdn_gcd ?p_m.
-case: (ltngtP (gcdn m n) 1) => //; first by rewrite ltnNge ltn_0gcd ?m_pos.
+  by rewrite dvdn_leq ?gcdn_gt0 ?m_gt0 // dvdn_gcd ?p_m.
+case: (ltngtP (gcdn m n) 1) => //; first by rewrite ltnNge gcdn_gt0 ?m_gt0.
 move/prime_pdiv; set p := pdiv _ => pr_p.
-move/implyP: (no_p_mn p); rewrite /= !mem_primes m_pos n_pos pr_p /=.
+move/implyP: (no_p_mn p); rewrite /= !mem_primes m_gt0 n_gt0 pr_p /=.
 by rewrite !(dvdn_trans (dvdn_pdiv _)) // (dvdn_gcdl, dvdn_gcdr).
 Qed.
 
@@ -530,7 +530,7 @@ case: edivnP def_m => [[|q] [|r] -> _] // def_m; congr _.+1; rewrite [_.1]/=.
 have{m def_m}: q < m'.
   by rewrite -ltnS -def_m addn0 mulnC -{1}[q.+1]mul1n ltn_pmul2r // prime_gt1.
 elim: {m' q}_.+1 {-2}m' q.+1 (ltnSn m') (ltn0Sn q) => // s IHs.
-case=> [[]|r] //= m; rewrite ltnS => lt_rs m_pos le_mr.
+case=> [[]|r] //= m; rewrite ltnS => lt_rs m_gt0 le_mr.
 rewrite -{3}[m]prednK //=; case: edivnP => [[|q] [|_] def_q _] //.
 have{def_q} lt_qm': q < m.-1.
   by rewrite -[q.+1]muln1 -ltnS prednK // def_q addn0 ltn_pmul2l // prime_gt1.
@@ -538,7 +538,7 @@ have{le_mr} le_m'r: m.-1 <= r by rewrite -ltnS prednK.
 by rewrite (IHs r) ?(IHs m.-1) // ?(leq_trans lt_qm', leq_trans _ lt_rs).
 Qed.
 
-Lemma ltn_0log : forall p n, (0 < logn p n) = (p \in primes n).
+Lemma logn_gt0 : forall p n, (0 < logn p n) = (p \in primes n).
 Proof. by move=> p n; rewrite lognE -mem_primes; case: {+}(p \in _). Qed.
 
 Lemma ltn_log0 : forall p n, n < p -> logn p n = 0.
@@ -550,17 +550,18 @@ Proof. by move=> p; rewrite /logn if_same. Qed.
 Lemma logn1 : forall p, logn p 1 = 0.
 Proof. by move=> p; rewrite lognE dvdn1 /= andbC; case: eqP => // ->. Qed.
 
-Lemma ltn_0pfactor : forall p n, 0 < p ^ logn p n.
-Proof. by move=> p n; rewrite ltn_0exp lognE; case: (posnP p) => // ->. Qed.
-Hint Resolve ltn_0pfactor.
+Lemma pfactor_gt0 : forall p n, 0 < p ^ logn p n.
+Proof. by move=> p n; rewrite expn_gt0 lognE; case: (posnP p) => // ->. Qed.
+Hint Resolve pfactor_gt0.
 
 Lemma pfactor_dvdn : forall p n m,
   prime p -> m > 0 -> (p ^ n %| m) = (n <= logn p m).
 Proof.
-move=> p n m p_pr; elim: n m => [|n IHn] m m_pos; first exact: dvd1n.
-rewrite lognE p_pr m_pos /=; case dv_pm: (p %| m); last first.
-  by apply/dvdnP=> [] [/= q def_m]; rewrite def_m mulnCA dvdn_mulr in dv_pm.
-case/dvdnP: dv_pm m_pos => q ->{m}; rewrite ltn_0mul; case/andP=> p_pos q_pos.
+move=> p n m p_pr; elim: n m => [|n IHn] m m_gt0; first exact: dvd1n.
+rewrite lognE p_pr m_gt0 /=; case dv_pm: (p %| m); last first.
+  apply/dvdnP=> [] [/= q def_m].
+  by rewrite def_m expnS mulnCA dvdn_mulr in dv_pm.
+case/dvdnP: dv_pm m_gt0 => q ->{m}; rewrite muln_gt0; case/andP=> p_gt0 q_gt0.
 by rewrite expnSr dvdn_pmul2r // mulnK // IHn. 
 Qed.
 
@@ -572,31 +573,31 @@ Qed.
 
 Lemma logn_prime : forall p q, prime q -> logn p q = (p == q).
 Proof.
-move=> p q pr_q; have q_pos := ltn_0prime pr_q; rewrite lognE q_pos /=.
+move=> p q pr_q; have q_gt0 := prime_gt0 pr_q; rewrite lognE q_gt0 /=.
 case pr_p: (prime p); last by case: eqP pr_p pr_q => // -> ->.
-by rewrite dvdn_prime2 //; case: eqP => // ->; rewrite divnn q_pos logn1.
+by rewrite dvdn_prime2 //; case: eqP => // ->; rewrite divnn q_gt0 logn1.
 Qed.
 
 Lemma pfactor_coprime : forall p n, prime p -> n > 0 ->
   {m | coprime p m & n = m * p ^ logn p n}.
 Proof.
-move=> p n p_pr n_pos; set k := logn p n.
+move=> p n p_pr n_gt0; set k := logn p n.
 have dv_pk_n: p ^ k %| n by rewrite pfactor_dvdn.
 exists (n %/ p ^ k); last by rewrite divnK.
-rewrite prime_coprime // -(@dvdn_pmul2r (p ^ k)) ?ltn_0exp ?ltn_0prime //.
+rewrite prime_coprime // -(@dvdn_pmul2r (p ^ k)) ?expn_gt0 ?prime_gt0 //.
 by rewrite -expnS divnK // pfactor_dvdn // ltnn.
 Qed.
 
 Lemma pfactorK : forall p n, prime p -> logn p (p ^ n) = n.
 Proof.
-move=> p n p_pr; have pn_pos: p ^ n > 0 by rewrite ltn_0exp ltn_0prime.
+move=> p n p_pr; have pn_gt0: p ^ n > 0 by rewrite expn_gt0 prime_gt0.
 apply/eqP; rewrite eqn_leq -pfactor_dvdn // dvdnn andbT.
 by rewrite -(leq_exp2l _ _ (prime_gt1 p_pr)) dvdn_leq // pfactor_dvdn.
 Qed.
 
 Lemma dvdn_leq_log : forall p m n, 0 < n -> m %| n -> logn p m <= logn p n.
 Proof.
-move=> p m n n_pos dv_m_n; have m_pos := ltn_0dvd n_pos dv_m_n.
+move=> p m n n_gt0 dv_m_n; have m_gt0 := dvdn_gt0 n_gt0 dv_m_n.
 case p_pr: (prime p); last by do 2!rewrite lognE p_pr /=.
 by rewrite -pfactor_dvdn //; apply: dvdn_trans dv_m_n; rewrite pfactor_dvdn.
 Qed.
@@ -604,10 +605,10 @@ Qed.
 Lemma logn_gauss : forall p m n, coprime p m -> logn p (m * n) = logn p n.
 Proof.
 move=> p m n co_pm; case p_pr: (prime p); last by rewrite /logn p_pr.
-case: (posnP n) => [->|n_pos]; first by rewrite muln0.
-case: (posnP m) => [m0|m_pos].
+case: (posnP n) => [->|n_gt0]; first by rewrite muln0.
+case: (posnP m) => [m0|m_gt0].
   by rewrite m0 prime_coprime ?dvdn0 in co_pm.
-have mn_pos: m * n > 0 by rewrite ltn_0mul m_pos.
+have mn_gt0: m * n > 0 by rewrite muln_gt0 m_gt0.
 apply/eqP; rewrite eqn_leq andbC dvdn_leq_log ?dvdn_mull //.
 set k := logn p _; have: p ^ k %| m * n by rewrite pfactor_dvdn.
 by rewrite gauss ?coprime_expl // -pfactor_dvdn.
@@ -626,19 +627,19 @@ Lemma logn_exp : forall p m n, logn p (m ^ n) = n * logn p m.
 Proof.
 move=> p m n; case p_pr: (prime p); last by rewrite /logn p_pr muln0.
 elim: n => [|n IHn]; first by rewrite logn1.
-case: (posnP m) => [->|m_pos]; first by rewrite exp0n // lognE andbF muln0.
-by rewrite expnS logn_mul ?IHn // ltn_0exp m_pos.
+case: (posnP m) => [->|m_gt0]; first by rewrite exp0n // lognE andbF muln0.
+by rewrite expnS logn_mul ?IHn // expn_gt0 m_gt0.
 Qed.
 
 Lemma dvdn_pfactor : forall p d n, prime p ->
   reflect (exists2 m, m <= n & d = p ^ m) (d %| p ^ n).
 Proof.
-move=> p d n p_pr; have pn_pos: p ^ n > 0 by rewrite ltn_0exp ltn_0prime.
+move=> p d n p_pr; have pn_gt0: p ^ n > 0 by rewrite expn_gt0 prime_gt0.
 apply: (iffP idP) => [dv_d_pn|[m le_m_n ->]]; last first.
   by rewrite -(subnK le_m_n) expn_add dvdn_mulr.
 exists (logn p d); first by rewrite -(pfactorK n p_pr) dvdn_leq_log.
-have d_pos: d > 0 by exact: ltn_0dvd dv_d_pn.
-case: (pfactor_coprime p_pr d_pos) => q co_p_q def_d.
+have d_gt0: d > 0 by exact: dvdn_gt0 dv_d_pn.
+case: (pfactor_coprime p_pr d_gt0) => q co_p_q def_d.
 rewrite {1}def_d ((q =P 1) _) ?mul1n // -dvdn1.
 suff: q %| p ^ n * 1 by rewrite gauss // coprime_sym coprime_expl.
 by rewrite muln1 (dvdn_trans _ dv_d_pn) // def_d dvdn_mulr.
@@ -659,9 +660,9 @@ apply big_prop => [|m1 m2 com1 com2| [j ltj] /=]; first exact: coprimen1.
   by rewrite coprime_mulr com1.
 rewrite -val_eqE /= => nji; case def_j: (nth _ _ j) => [q e1] /=.
 have: (q, e1) \in prime_decomp n.+1 by rewrite -def_j mem_nth.
-case/mem_prime_decomp=> pr_q e1_pos _; rewrite coprime_pexpr //.
+case/mem_prime_decomp=> pr_q e1_gt0 _; rewrite coprime_pexpr //.
 rewrite prime_coprime // dvdn_prime2 //; apply: contra nji => eq_pq.
-rewrite -(nth_uniq 0 _ _ (uniq_primes n.+1)) ?size_map //=.
+rewrite -(nth_uniq 0 _ _ (primes_uniq n.+1)) ?size_map //=.
 by rewrite !(nth_map f0) //  def_f def_j /= eq_sym.
 Qed.
 
@@ -699,9 +700,9 @@ Notation "n `_ pi" := (partn n pi) : nat_scope.
 Lemma negnK : forall pi, pi^'^' =i pi.
 Proof. move=> pi p; exact: negbK. Qed.
 
-Lemma ltn_0part : forall pi n, 0 < n`_pi.
-Proof. move=> pi n; exact: ltn_0prodn. Qed.
-Hint Resolve ltn_0part.
+Lemma part_gt0 : forall pi n, 0 < n`_pi.
+Proof. move=> pi n; exact: prodn_gt0. Qed.
+Hint Resolve part_gt0.
 
 Lemma sub_in_partn : forall pi1 pi2 n,
   {in \pi(n), {subset pi1 <= pi2}} -> n`_pi1 %| n`_pi2.
@@ -751,21 +752,21 @@ Qed.
 Lemma partn_exp : forall pi m n, (m ^ n)`_pi = m`_pi ^ n.
 Proof.
 move=> pi m; elim=> [|n IHn]; first exact: partn1.
-case: (posnP m) => [->|m_pos]; first by rewrite partn0 exp1n.
-by rewrite expnS partn_mul ?IHn // ltn_0exp m_pos.
+rewrite expnS; case: (posnP m) => [->|m_gt0]; first by rewrite partn0 exp1n.
+by rewrite expnS partn_mul ?IHn // expn_gt0 m_gt0.
 Qed.
 
 Lemma partn_dvd : forall pi m n, n > 0 -> m %| n -> m`_pi %| n`_pi.
 Proof.
-move=> pi m n n_pos dvmn; case/dvdnP: dvmn n_pos => q ->{n}.
-by rewrite ltn_0mul; case/andP=> q_pos m_pos; rewrite partn_mul ?dvdn_mull.
+move=> pi m n n_gt0 dvmn; case/dvdnP: dvmn n_gt0 => q ->{n}.
+by rewrite muln_gt0; case/andP=> q_gt0 m_gt0; rewrite partn_mul ?dvdn_mull.
 Qed.
 
 Lemma p_part : forall p n : nat, n`_p = p ^ logn p n.
 Proof.
 move=> p n; case (posnP (logn p n)) => [log0 |].
   by rewrite log0 [n`_p]big1_seq // => q; case/andP; move/eqnP->; rewrite log0.
-rewrite ltn_0log mem_primes; case/and3P=> _ n_pos dv_p_n.
+rewrite logn_gt0 mem_primes; case/and3P=> _ n_gt0 dv_p_n.
 have le_p_n: p < n.+1 by rewrite ltnS dvdn_leq.
 by rewrite [n`_p]big_mkord (big_pred1 (Ordinal le_p_n)).
 Qed.
@@ -773,19 +774,19 @@ Qed.
 Lemma primes_part : forall pi n, primes n`_pi = filter (mem pi) (primes n).
 Proof.
 move=> pi n; have ltnT := ltn_trans.
-case: (posnP n) => [-> | n_pos]; first by rewrite partn0.
+case: (posnP n) => [-> | n_gt0]; first by rewrite partn0.
 apply: (eq_sorted_irr ltnT ltnn); rewrite ?(sorted_primes, sorted_filter) //.
-move=> p; rewrite mem_filter /= !mem_primes n_pos ltn_0part /=.
+move=> p; rewrite mem_filter /= !mem_primes n_gt0 part_gt0 /=.
 apply/andP/and3P=> [[p_pr] | [pi_p p_pr dv_p_n]].
   rewrite /partn; apply big_prop => [|n1 n2 IHn1 IHn2|q pi_q].
   - by rewrite dvdn1; case: eqP p_pr => // ->.
   - by rewrite euclid //; case/orP.
-  rewrite -{1}(expn1 p) pfactor_dvdn // logn_exp ltn_0mul.
-  rewrite ltn_0log mem_primes n_pos - andbA /=; case/and3P=> pr_q dv_q_n.
+  rewrite -{1}(expn1 p) pfactor_dvdn // logn_exp muln_gt0.
+  rewrite logn_gt0 mem_primes n_gt0 - andbA /=; case/and3P=> pr_q dv_q_n.
   by rewrite logn_prime //; case: eqP => // ->.
 have le_p_n: p < n.+1 by rewrite ltnS dvdn_leq.
 rewrite [n`_pi]big_mkord (bigD1 (Ordinal le_p_n)) //= dvdn_mulr //.
-by rewrite lognE p_pr n_pos dv_p_n dvdn_mulr.
+by rewrite lognE p_pr n_gt0 dv_p_n expnS dvdn_mulr.
 Qed.
 
 Lemma filter_pi_of : forall n m,
@@ -795,24 +796,24 @@ move=> n m lt_n_m; have ltnT := ltn_trans; apply: (eq_sorted_irr ltnT ltnn).
 - by rewrite sorted_filter // sorted_ltn_iota.
 - exact: sorted_primes.
 move=> p; rewrite mem_filter mem_index_iota /= mem_primes; case: and3P => //.
-case=> _ n_pos dv_p_n; apply: leq_ltn_trans lt_n_m; exact: dvdn_leq.
+case=> _ n_gt0 dv_p_n; apply: leq_ltn_trans lt_n_m; exact: dvdn_leq.
 Qed.
 
 Lemma partn_pi : forall n, n > 0 -> n`_\pi(n) = n.
 Proof.
-move=> n n_pos; rewrite {3}(prod_prime_decomp n_pos) prime_decompE big_map.
+move=> n n_gt0; rewrite {3}(prod_prime_decomp n_gt0) prime_decompE big_map.
 by rewrite -[n`__]big_filter filter_pi_of.
 Qed.
 
 Lemma partnT : forall n, n > 0 -> n`_predT = n.
 Proof.
-move=> n n_pos; rewrite -{2}(partn_pi n_pos) {2}/partn big_mkcond /=.
-by apply: eq_bigr => p _; rewrite -ltn_0log; case: (logn p _).
+move=> n n_gt0; rewrite -{2}(partn_pi n_gt0) {2}/partn big_mkcond /=.
+by apply: eq_bigr => p _; rewrite -logn_gt0; case: (logn p _).
 Qed.
 
 Lemma partnC : forall pi n, n > 0 -> n`_pi * n`_pi^' = n.
 Proof.
-move=> pi n n_pos; rewrite -{3}(partnT n_pos) /partn.
+move=> pi n n_gt0; rewrite -{3}(partnT n_gt0) /partn.
 do 2!rewrite mulnC big_mkcond /=; rewrite -big_split; apply: eq_bigr => p _ /=.
 by rewrite mulnC inE /=; case: (p \in pi); rewrite /= (muln1, mul1n).
 Qed.
@@ -849,8 +850,8 @@ Proof. by move=> pi rho n; rewrite /pnat andbCA all_predI !andbA andbb. Qed.
 
 Lemma pnat_mul : forall pi m n, pi.-nat (m * n) = pi.-nat m && pi.-nat n.
 Proof.
-move=> pi m n; rewrite /pnat ltn_0mul andbCA -andbA andbCA.
-case: posnP => // n_pos; case: posnP => //= m_pos.
+move=> pi m n; rewrite /pnat muln_gt0 andbCA -andbA andbCA.
+case: posnP => // n_gt0; case: posnP => //= m_gt0.
 apply/allP/andP=> [pi_mn | [pi_m pi_n] p].
   by split; apply/allP=> p m_p; apply: pi_mn; rewrite primes_mul // m_p ?orbT.
 rewrite primes_mul //; case/orP; [exact: (allP pi_m) | exact: (allP pi_n)].
@@ -858,18 +859,18 @@ Qed.
 
 Lemma pnat_exp : forall pi m n, pi.-nat (m ^ n) = pi.-nat m || (n == 0).
 Proof.
-by move=> pi m [|n]; rewrite orbC // /pnat ltn_0exp orbC primes_exp.
+by move=> pi m [|n]; rewrite orbC // /pnat expn_gt0 orbC primes_exp.
 Qed.
 
 Lemma pnat_part : forall pi n, pi.-nat n`_pi.
 Proof.
-move=> pi n; rewrite /pnat primes_part ltn_0part.
+move=> pi n; rewrite /pnat primes_part part_gt0.
 by apply/allP=> p; rewrite mem_filter; case/andP.
 Qed.
 
 Lemma pnatE : forall pi p, prime p -> pi.-nat p = (p \in pi).
 Proof.
-by move=> pi p pr_p; rewrite /pnat ltn_0prime ?primes_prime //= andbT.
+by move=> pi p pr_p; rewrite /pnat prime_gt0 ?primes_prime //= andbT.
 Qed.
 
 Lemma pnat_id : forall p, prime p -> p.-nat p.
@@ -878,14 +879,14 @@ Proof. by move=> p pr_p; rewrite pnatE ?inE /=. Qed.
 Lemma coprime_pi' : forall m n,
    m > 0 -> n > 0 -> coprime m n = \pi(m)^'.-nat n.
 Proof.
-by move=> m n m_pos n_pos; rewrite /pnat n_pos all_predC coprime_has_primes.
+by move=> m n m_gt0 n_gt0; rewrite /pnat n_gt0 all_predC coprime_has_primes.
 Qed.
 
 Lemma pnat_pi : forall n, n > 0 -> \pi(n).-nat n.
 Proof. rewrite /pnat => n ->; exact/allP. Qed.
 
 Lemma pi_of_exp : forall p n, n > 0 -> \pi(p ^ n) = \pi(p).
-Proof. by move=> p n n_pos; rewrite /pi_of primes_exp. Qed.
+Proof. by move=> p n n_gt0; rewrite /pi_of primes_exp. Qed.
 
 Lemma pi_of_prime : forall p, prime p -> \pi(p) =i (p : nat_pred).
 Proof. by move=> p pr_p q; rewrite /pi_of primes_prime // mem_seq1. Qed.
@@ -893,7 +894,7 @@ Proof. by move=> p pr_p q; rewrite /pi_of primes_prime // mem_seq1. Qed.
 Lemma p'natE : forall p n, prime p -> p^'.-nat n = ~~ (p %| n).
 Proof.
 move=> p [|n] pr_p //; rewrite ?dvdn0 // -prime_coprime //.
-rewrite ?coprime_pi' // ?ltn_0prime //.
+rewrite ?coprime_pi' // ?prime_gt0 //.
 by apply: eq_pnat => q; rewrite !inE /= pi_of_prime.
 Qed.
 
@@ -908,7 +909,7 @@ Qed.
 
 Lemma pnat_coprime : forall pi m n, pi.-nat m -> pi^'.-nat n -> coprime m n.
 Proof.
-move=> pi m n; case/andP=> m_pos pi_m; case/andP=> n_pos pi'_n.
+move=> pi m n; case/andP=> m_gt0 pi_m; case/andP=> n_gt0 pi'_n.
 rewrite coprime_has_primes //; apply/hasPn=> p; move/(allP pi'_n).
 apply: contra; exact: allP.
 Qed.
@@ -923,26 +924,26 @@ Qed.
 
 Lemma part_pnat : forall pi n, pi.-nat n -> n`_pi = n.
 Proof.
-move=> pi n; case/andP=> n_pos pi_n.
-rewrite -{2}(partnT n_pos) /partn big_mkcond; apply: eq_bigr=> p _.
+move=> pi n; case/andP=> n_gt0 pi_n.
+rewrite -{2}(partnT n_gt0) /partn big_mkcond; apply: eq_bigr=> p _.
 case: (posnP (logn p n)) => [-> |]; first by rewrite if_same.
-by rewrite ltn_0log; move/(allP pi_n)=> /= ->.
+by rewrite logn_gt0; move/(allP pi_n)=> /= ->.
 Qed.
 
 Lemma part_p'nat : forall pi n, pi^'.-nat n -> n`_pi = 1.
 Proof.
-move=> pi n; case/andP=> n_pos pi'_n; apply: big1_seq => p.
+move=> pi n; case/andP=> n_gt0 pi'_n; apply: big1_seq => p.
 case/andP=> pi_p _; case: (posnP (logn p n)) => [-> //|].
-by rewrite ltn_0log; move/(allP pi'_n); case/negP. 
+by rewrite logn_gt0; move/(allP pi'_n); case/negP. 
 Qed.
 
 Lemma pnatP : forall pi n,
   n > 0 -> reflect (forall p, prime p -> p %| n -> p \in pi) (pi.-nat n).
 Proof.
-move=> pi n n_pos; rewrite /pnat n_pos.
+move=> pi n n_gt0; rewrite /pnat n_gt0.
 apply: (iffP allP) => /= pi_n p => [pr_p p_n|].
-  by rewrite pi_n // mem_primes pr_p n_pos.
-by rewrite mem_primes n_pos /=; case/andP; move: p.
+  by rewrite pi_n // mem_primes pr_p n_gt0.
+by rewrite mem_primes n_gt0 /=; case/andP; move: p.
 Qed.
 
 Lemma p_natP : forall p n : nat, p.-nat n -> {k | n = p ^ k}.
@@ -952,8 +953,8 @@ Lemma partn_part : forall pi1 pi2 n,
   {subset pi2 <= pi1} -> n`_pi1`_pi2 = n`_pi2.
 Proof.
 move=> pi1 pi2 n pi21.
-case: (posnP n) => [->|n_pos]; first by rewrite !partn0 partn1.
-rewrite -{2}(partnC pi1 n_pos) partn_mul //.
+case: (posnP n) => [->|n_gt0]; first by rewrite !partn0 partn1.
+rewrite -{2}(partnC pi1 n_gt0) partn_mul //.
 suff: pi2^'.-nat n`_pi1^' by move/part_p'nat->; rewrite muln1.
 apply: sub_in_pnat (pnat_part _ _) => q _; apply: contra; exact: pi21.
 Qed.
@@ -981,11 +982,11 @@ Lemma divisors_correct : forall n, n > 0 ->
 Proof.
 move=> n; move/prod_prime_decomp=> def_n; rewrite {4}def_n {def_n}.
 have: all prime (primes n) by apply/allP=> p; rewrite mem_primes; case/andP.
-have:= uniq_primes n; rewrite /primes /divisors; move/prime_decomp: n.
+have:= primes_uniq n; rewrite /primes /divisors; move/prime_decomp: n.
 elim=> [|[p e] pd] /=; first by split=> // d; rewrite big_nil dvdn1 mem_seq1.
 rewrite big_cons /=; move: (foldr _ _ pd) => divs IHpd.
 case/andP=> npd_p Upd; case/andP=> pr_p pr_pd.
-have lt0p: 0 < p by exact: ltn_0prime.
+have lt0p: 0 < p by exact: prime_gt0.
 case: {IHpd Upd}(IHpd Upd pr_pd) => Udivs Odivs mem_divs.
 have ndivs_p: p * _ \notin divs.
   move=> m; suff: p \notin divs; rewrite !mem_divs.
@@ -993,14 +994,14 @@ have ndivs_p: p * _ \notin divs.
   have ndv_p_1: ~~(p %| 1) by rewrite dvdn1 neq_ltn orbC prime_gt1.
   rewrite big_cond_seq /=; apply big_prop => [//|u v npu npv|[q f] /= pd_qf].
     by rewrite euclid //; apply/norP.
-  elim: (f) => // f'; rewrite euclid // orbC negb_or => -> {f'}/=.
+  elim: (f) => // f'; rewrite expnS euclid // orbC negb_or => -> {f'}/=.
   have pd_q: q \in unzip1 pd by apply/mapP; exists (q, f).
   by apply: contra npd_p; rewrite dvdn_prime2 // ?(allP pr_pd) //; move/eqP->.
 elim: e => [|e] /=; first by split=> // d; rewrite mul1n.
 have Tmulp_inj: injective (NatTrec.mul p).
   by move=> u v; move/eqP; rewrite !natTrecE eqn_pmul2l //; move/eqP.
 move: (iter e _ _) => divs' [Udivs' Odivs' mem_divs']; split=> [||d].
-- rewrite uniq_merge uniq_cat uniq_map // Udivs Udivs' andbT /=.
+- rewrite merge_uniq cat_uniq map_inj_uniq // Udivs Udivs' andbT /=.
   apply/hasP=> [[d dv_d]]; case/mapP=> d' _ def_d; case/idPn: dv_d.
   by rewrite -def_d natTrecE.
 - rewrite (sorted_merge leq_total) //; case: (divs') Odivs' => //= d ds.
@@ -1018,12 +1019,12 @@ Qed.
 Lemma sorted_divisors : forall n, sorted leq (divisors n).
 Proof. by move=> n; case: (posnP n) => [-> //|]; case/divisors_correct. Qed.
 
-Lemma uniq_divisors : forall n, uniq (divisors n).
+Lemma divisors_uniq : forall n, uniq (divisors n).
 Proof. by move=> n; case: (posnP n) => [-> //|]; case/divisors_correct. Qed.
 
 Lemma sorted_divisors_ltn : forall n, sorted ltn (divisors n).
 Proof.
-by move=> n; rewrite sorted_ltn_uniq_leq uniq_divisors sorted_divisors.
+by move=> n; rewrite sorted_ltn_uniq_leq divisors_uniq sorted_divisors.
 Qed.
 
 Lemma dvdn_divisors : forall d m, 0 < m -> (d %| m) = (d \in divisors m).
@@ -1033,7 +1034,7 @@ Lemma divisor1 : forall n, 1 \in divisors n.
 Proof. by case=> // n; rewrite -dvdn_divisors // dvd1n. Qed.
 
 Lemma divisorn: forall n, 0 < n -> n \in divisors n.
-Proof. by move=> n n_pos; rewrite -dvdn_divisors. Qed.
+Proof. by move=> n n_gt0; rewrite -dvdn_divisors. Qed.
 
 (* Big sum / product lemmas*)
 
@@ -1044,13 +1045,13 @@ Proof. move=> I r K F d dF; apply big_prop => //; exact: dvdn_add. Qed.
 Lemma dvdn_partP : forall n m : nat, 0 < n ->
   reflect (forall p, p \in \pi(n) -> n`_p %| m) (n %| m).
 Proof.
-move=> n m n_pos; apply: (iffP idP) => n_dvd_m => [p _|].
+move=> n m n_gt0; apply: (iffP idP) => n_dvd_m => [p _|].
   apply: dvdn_trans n_dvd_m; exact: dvdn_part.
-case: (posnP m) => [-> // | m_pos].
-rewrite -(partnT n_pos) -(partnT m_pos).
+case: (posnP m) => [-> // | m_gt0].
+rewrite -(partnT n_gt0) -(partnT m_gt0).
 rewrite !(@widen_partn (m + n)) ?leq_addl ?leq_addr // /in_mem /=.
 apply (big_rel (fun n m => n %| m)) => // [*|q _]; first exact: dvdn_mul.
-case: (posnP (logn q n)) => [-> // | ]; rewrite ltn_0log => q_n.
+case: (posnP (logn q n)) => [-> // | ]; rewrite logn_gt0 => q_n.
 have pr_q: prime q by move: q_n; rewrite mem_primes; case/andP.
 by have:= n_dvd_m q q_n; rewrite p_part !pfactor_dvdn // pfactorK.
 Qed.
@@ -1060,26 +1061,26 @@ Qed.
 Lemma phiE : forall n,
   n > 0 -> phi n = \prod_(p <- primes n) (p.-1 * p ^ (logn p n).-1).
 Proof.
-move=> n n_pos; rewrite /phi n_pos prime_decompE unlock.
+move=> n n_gt0; rewrite /phi n_gt0 prime_decompE unlock.
 by elim: (primes n) => //= [p pr ->]; rewrite !natTrecE.
 Qed.
 
 Lemma phi_pfactor : forall p e,
   prime p -> e > 0 -> phi (p ^ e) = p.-1 * p ^ e.-1.
 Proof.
-move=> p e pr_p e_pos; rewrite phiE ?ltn_0exp ?ltn_0prime //.
+move=> p e pr_p e_gt0; rewrite phiE ?expn_gt0 ?prime_gt0 //.
 by rewrite primes_exp // primes_prime // unlock /= muln1 pfactorK.
 Qed.
 
 Lemma phi_coprime : forall m n,
   coprime m n -> phi (m * n) = phi m * phi n.
 Proof.
-move=> m n co_mn; case: (posnP m) => [-> //| m_pos].
-case: (posnP n) => [->|n_pos]; first by rewrite !muln0.
-rewrite !phiE ?ltn_0mul ?m_pos //.
+move=> m n co_mn; case: (posnP m) => [-> //| m_gt0].
+case: (posnP n) => [->|n_gt0]; first by rewrite !muln0.
+rewrite !phiE ?muln_gt0 ?m_gt0 //.
 have: perm_eq (primes (m * n)) (primes m ++ primes n).
-  apply: uniq_perm_eq => [||p]; first exact: uniq_primes.
-    by rewrite uniq_cat !uniq_primes -coprime_has_primes // co_mn.
+  apply: uniq_perm_eq => [||p]; first exact: primes_uniq.
+    by rewrite cat_uniq !primes_uniq -coprime_has_primes // co_mn.
   by rewrite mem_cat primes_mul.
 move/(eq_big_perm _)->; rewrite big_cat /= !(big_cond_seq xpredT) /=.
 congr (_ * _); apply: eq_bigr => p; rewrite mem_primes; case/and3P=> _ _ dvp.
@@ -1097,7 +1098,7 @@ pose p := pdiv n; have pr_p: prime p by exact: prime_pdiv.
 have p1 := prime_gt1 pr_p; have p0 := ltnW p1.
 pose np := n`_p; pose np' := n`_p^'.
 have co_npp' : coprime np np' by rewrite coprime_partC.
-have [n0 np0 np'0]: [/\ n > 0, np > 0 & np' > 0] by rewrite ltnW ?ltn_0part.
+have [n0 np0 np'0]: [/\ n > 0, np > 0 & np' > 0] by rewrite ltnW ?part_gt0.
 have def_n: n = np * np' by rewrite partnC.
 have lnp0: 0 < logn p n by rewrite lognE pr_p n0 dvdn_pdiv.
 pose in_mod k (k0 : k > 0) d := Ordinal (ltn_pmod d k0).

@@ -775,9 +775,9 @@ Lemma index_morphim_ker : forall G H,
   (#|f @* G : f @* H| * #|'ker_G f : H|)%N = #|G : H|.
 Proof.
 move=> G H sHG sGD; apply/eqP.
-rewrite -(eqn_pmul2l (ltn_0group (f @* H))) mulnA LaGrange ?morphimS //.
+rewrite -(eqn_pmul2l (cardG_gt0 (f @* H))) mulnA LaGrange ?morphimS //.
 rewrite !card_morphim (setIidPr sGD) (setIidPr (subset_trans sHG sGD)).
-rewrite -(eqn_pmul2l (ltn_0group ('ker_H f))) /=.
+rewrite -(eqn_pmul2l (cardG_gt0 ('ker_H f))) /=.
 by rewrite -{1}(setIidPr sHG) setIAC mulnCA mulnC mulnA !LaGrangeI LaGrange.
 Qed.
 
@@ -811,7 +811,7 @@ Lemma index_morphpre : forall L M,
 Proof.
 move=> L M dL; rewrite -!divgI -morphpreI card_morphpre //.
 have: L :&: M \subset f @* D by rewrite subIset ?dL.
-by move/card_morphpre->; rewrite divn_pmul2l ?ltn_0group.
+by move/card_morphpre->; rewrite divn_pmul2l ?cardG_gt0.
 Qed.
 
 End CardMorphism.

@@ -1,4 +1,4 @@
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq bigops fintype ssralg.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq bigops fintype.
 Require Import div prime choice.
 
 (**************************************************************************)
@@ -23,38 +23,22 @@ elim=> [|n Hrec] //; first by rewrite big_nil.
 by apply sym_equal; rewrite factS Hrec // !big_add1 big_nat_recr /= mulnC.
 Qed.
 
-Lemma wilson p: 1 < p -> (prime p <-> p %| (fact (p.-1)).+1).
+Theorem Wilson's_Theorem : forall p, p > 1 -> prime p = (p %| fact p.-1 + 1).
 Proof.
-have HF: forall p, 0 < p -> fact p.-1 = \prod_(0 <= i < p | i != 0) i.
+have dFact: forall p, 0 < p -> fact p.-1 = \prod_(0 <= i < p | i != 0) i.
   move=> p Hp; rewrite -big_filter fact_prod; symmetry; apply: congr_big=> //.
   rewrite /index_iota subn1 -[p]prednK //=; apply/all_filterP.
   by rewrite all_predC has_pred1 mem_iota.
-move=> p Hp; split; last first.
-  case: p Hp => //; (do 4 (case=> //)) => p Hp; set p1 := _.+4.
-  case Hp1: (prime p1); rewrite // -addn1 dvdn_addr ?dvdn1 // HF //.
-  move/idPn: Hp1; case/primePn => //; case=> d Hd1 Hd2.
-  pose d' := p1 %/ d; have Hd'd: d' * d = p1 := (divnK  Hd2).
-  have Hd3: d < p1 by case/andP: Hd1.
-  have Hd4: d != 0 by case: (d) Hd1.
-  rewrite big_mkord (bigD1 (Ordinal Hd3)) //=.
-  case: (d =P d') => He; last first.
-    have Hd'1: d' != 0 by apply/negP=> HH; move: Hd'd; rewrite (eqP HH).
-    have Hd'2: d' < p1; first rewrite -Hd'd -{1}[d']muln1 ltn_mul2l.
-      by case/andP: Hd1 => -> _; case: (d') Hd'1.
-    rewrite (bigD1 (Ordinal Hd'2)) //=.
-      by rewrite mulnA [d * _]mulnC Hd'd dvdn_mulr.
-    by rewrite Hd'1 eq_sym; apply/eqP; case.
-  have Hd5: 2 * d < p1; first rewrite -Hd'd -He ltn_mul2r.
-    by move: Hd1 Hd'd; rewrite -He; case: (d) => //; do 2 (case=> //).
-  have Hd6: 2 * d !=0 by case: (d) Hd4.
-  rewrite (bigD1 (Ordinal Hd5)) //=.
-    by rewrite -{1}[2 * d]mulnC !mulnA {1}He Hd'd -mulnA dvdn_mulr. 
-  by rewrite Hd6 -val_eqE /= neq_ltn orbC ltn_Pmull // lt0n.
-move=> p_prime; have lt1p := prime_gt1 p_prime; have lt0p := ltnW lt1p.
-pose Fp1 := Ordinal lt1p; pose Fp0 := Ordinal lt0p.
+move=> p lt1p; have p_gt0 := ltnW lt1p.
+apply/idP/idP=> [pr_p | dv_pF]; last first.
+  apply/primeP; split=> // d dv_dp; have: d <= p by exact: dvdn_leq.
+  rewrite orbC leq_eqVlt; case/orP=> [-> // | ltdp].
+  have:= dvdn_trans dv_dp dv_pF; rewrite dFact // big_mkord.
+  rewrite (bigD1 (Ordinal ltdp)) /=; last by rewrite -lt0n (dvdn_gt0 p_gt0).
+  by rewrite orbC dvdn_addr ?dvdn_mulr // dvdn1 => ->.
+pose Fp1 := Ordinal lt1p; pose Fp0 := Ordinal p_gt0.
 have ltp1p: p.-1 < p by [rewrite prednK]; pose Fpn1 := Ordinal ltp1p.
-case: (Fp1 =P Fpn1); first by rewrite -{2 3}[p]prednK => [[<-]|].
-move/eqP=> nFp1n1.
+case eqF1n1: (Fp1 == Fpn1); first by rewrite -{1}[p]prednK -1?((1 =P p.-1) _).
 have toFpP: _ %% p < p by move=> m; rewrite ltn_mod.
 pose toFp := Ordinal (toFpP _).
 pose mFp (i j : 'I_p) := toFp (i * j).
@@ -68,10 +52,10 @@ pose mFpLaw := Monoid.Law mFpA mFp1 mFp1r.
 pose mFpM := Monoid.operator (@Monoid.ComLaw _ _ mFpLaw mFpC).
 pose vFp (i : 'I_p) := toFp (egcdn i p).1.
 have vFpV: forall i, i != Fp0 -> mFp (vFp i) i = Fp1.
-  move=> i; rewrite -val_eqE /= -lt0n => i_pos; apply: val_inj => /=.
+  move=> i; rewrite -val_eqE /= -lt0n => i_gt0; apply: val_inj => /=.
   rewrite modn_mulml; case: egcdnP => //= _ km -> _; rewrite {km}modn_addl_mul.
   suff: coprime i p by move/eqnP->; rewrite modn_small.
-  rewrite coprime_sym prime_coprime //; apply/negP; move/(dvdn_leq i_pos).
+  rewrite coprime_sym prime_coprime //; apply/negP; move/(dvdn_leq i_gt0).
   by rewrite leqNgt ltn_ord.
 have vFp0: forall i, i != Fp0 -> vFp i != Fp0.
   move=> i; move/vFpV=> inv_i; apply/eqP=> vFp0.
@@ -94,16 +78,16 @@ have vFpId: forall i, (vFp i == i :> nat) = xpred2 Fp1 Fpn1 i.
     by rewrite euclid // -eqFp eq_sym orbC /dvdn Fp_mod eqn0Ngt lt0i.
   by rewrite -eqn_mod_dvd // Fp_mod modn_addl -(vFpV _ ni0) eqxx.
 suffices [mod_fact]: toFp (fact p.-1) = Fpn1.
-  by apply/eqP; rewrite -addn1 -modn_addml mod_fact addn1 prednK // modnn.
-rewrite HF //.
-have: Monoid.morphism 1 Fp1 muln mFpM toFp; last move/(@big_morph _ _ _ _)->.
-  by split=> [|i j]; apply: val_inj; rewrite /= (modn_mul2m, modn_small).
+  by rewrite /dvdn -modn_addml mod_fact addn1 prednK // modnn.
+rewrite dFact // (@big_morph _ _ _ Fp1 _ mFpM toFp) //; first last.
+- by apply: val_inj; rewrite /= modn_small.
+- by move=> i j; apply: val_inj; rewrite /= modn_mul2m.
 rewrite big_mkord (eq_bigr id) => [|i _]; last by apply: val_inj => /=.
 pose ltv i := vFp i < i; rewrite (bigID ltv) -/mFpM [mFpM _ _]mFpC.
 rewrite (bigD1 Fp1) -/mFpM; last by rewrite [ltv _]ltn_neqAle vFpId.
 rewrite [mFpM _ _]mFp1 (bigD1 Fpn1) -?mFpA -/mFpM; last first.
   rewrite -lt0n -ltnS prednK // lt1p.
-  by rewrite [ltv _]ltn_neqAle vFpId eqxx orbT eq_sym.
+  by rewrite [ltv _]ltn_neqAle vFpId eqxx orbT eq_sym eqF1n1.
 rewrite (reindex_onto vFp vFp) -/mFpM => [|i]; last by do 3!case/andP; auto.
 rewrite (eq_bigl (xpredD1 ltv Fp0)) => [|i]; last first.
   rewrite andbC -!andbA -2!negb_or -vFpId orbC -leq_eqVlt.
@@ -136,10 +120,10 @@ Qed.
 Lemma binn: forall n,  bin n n = 1.
 Proof. by elim=> [| n Hrec] //; rewrite binS bin_small. Qed.
 
-Lemma bin_posnat: forall m n, 0 < bin m n == (n <= m).
+Lemma bin_gt0: forall m n, 0 < bin m n == (n <= m).
 Proof.
 elim=> [| m Hrec]; case=> // n.
-rewrite binS ltn_0add !(eqP (Hrec _)) ltnS ltn_neqAle andbC.
+rewrite binS addn_gt0 !(eqP (Hrec _)) ltnS ltn_neqAle andbC.
 by case: (_ <= _) => //; rewrite orbT.
 Qed.
 
@@ -160,7 +144,7 @@ Lemma bin_sub: forall n m, n <= m -> bin m n = bin m (m - n).
 Proof.
 move=> n m Hmn; apply/eqP.
 move: (bin_fact Hmn); rewrite -(bin_fact (leq_subr n m)) subKn //.
-by rewrite [fact _ * _]mulnC; move/eqP; rewrite eqn_mul2r eqn_mul0 !eqn0Ngt !ltn_0fact.
+by rewrite [fact _ * _]mulnC; move/eqP; rewrite eqn_mul2r muln_eq0 !eqn0Ngt !fact_gt0.
 Qed.
 
 Theorem exp_pascal : forall a b n,
@@ -178,7 +162,7 @@ have->: forall x y z t, x + y + (z + t) = z + (x + t) + y
   by move=> x y z t; ring.
 do 2 congr addn; rewrite -big_split; apply: eq_big => //= x _; apply sym_equal.
 rewrite binS muln_addl addnC; congr addn; first by rewrite expnS subSS; ring.
-rewrite !mulnA; congr muln; rewrite [a * _]mulnC; congr muln.
+rewrite expnS !mulnA; congr muln; rewrite [a * _]mulnC; congr muln.
 case: (leqP x.+1 n) => E1; last by rewrite bin_small.
 by rewrite leq_subS // expnS mulnA.
 Qed.

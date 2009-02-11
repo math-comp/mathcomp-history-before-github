@@ -8,9 +8,8 @@
 (*                                                                     *)
 (***********************************************************************)
 (***********************************************************************)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice ssralg.
-Require Import bigops fintype finset groups morphisms normal.
-Require Import perm automorphism.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype.
+Require Import bigops finset groups morphisms normal perm automorphism.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

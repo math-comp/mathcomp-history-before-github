@@ -237,8 +237,8 @@ Proof.
 move=> a n; apply/eqP; rewrite eqn_dvd; apply/andP; split.
   rewrite order_dvdn -expgn_mul -gcdn_divnC //.
   by rewrite expgn_mul expg_order exp1gn.
-case: (posnP n) => [-> | n_pos]; first by rewrite gcdn0 divnn ltn_0order dvd1n.
-rewrite -(dvdn_pmul2r n_pos) divn_mulAC ?dvdn_gcdl // dvdn_lcm.
+case: (posnP n) => [-> | n_gt0]; first by rewrite gcdn0 divnn order_gt0 dvd1n.
+rewrite -(dvdn_pmul2r n_gt0) divn_mulAC ?dvdn_gcdl // dvdn_lcm.
 by rewrite order_dvdn mulnC expgn_mul expg_order eqxx dvdn_mulr.
 Qed.
 
@@ -317,7 +317,7 @@ Lemma cycle_sub_group : forall (a : gT) m, m %| #[a] ->
      = [set <[a ^+ (#[a] %/ m)]>%G].
 Proof.
 move=> a m Hdiv.
-have Hpos: 0 < m by apply (ltn_0dvd (ltn_0order a) Hdiv).
+have Hpos: 0 < m by apply (dvdn_gt0 (order_gt0 a) Hdiv).
 have Hcardm: #|<[a ^+ (#[a] %/ m)]>| == m.
   rewrite [#|_|]orderXgcd -(divn_pmul2r Hpos) muln_gcdl divnK // gcdnC.
   by rewrite gcdn_mulr mulKn.
@@ -469,7 +469,7 @@ Lemma div_ring_mul_group_cyclic :
 Proof.
 move=> gT G R f f1 fM f1P abelG.
 have fX: forall n, {in G, {morph f : u / u ^+ n >-> (u ^+ n)%R}}.
-  by move=> n x Gx; elim: n => //= n IHn; rewrite fM ?groupX ?IHn.
+  by case=> // n x Gx; elim: n => //= n IHn; rewrite expgS fM ?groupX ?IHn.
 have fU: forall x, x \in G -> GRing.unit (f x).
   move=> x Gx; apply/GRing.unitrP.
   by exists (f x^-1); rewrite -!fM ?groupV ?gsimp.
@@ -480,15 +480,15 @@ case/predU1P=> [<- //|]; case/andP=> sHG sGH maxH; set n := #|H|.
 have defH: H :=: [set x \in G | #[x] %| n].
   apply/eqP; rewrite eqEcard; apply/andP; split.
     by apply/subsetP=> x Hx; rewrite inE (subsetP _ x Hx) ?cardSg ?cycle_subG.
-  pose P : polynomial R := (\X ^+ n - \C 1)%R.
+  pose P : {poly R} := ('X^n - 1)%R.
   have szP: size P = n.+1.
-    by rewrite size_addl size_polyX_n // size_opp size_poly1 ltnS /n.
+    by rewrite size_addl size_polyXn // size_opp size_poly1 ltnS /n.
   rewrite -ltnS -szP cardE -(size_map f) max_ring_poly_roots //.
-  - by rewrite size_poly0_eq szP.
+  - by rewrite -size_poly_eq0 szP.
   - apply/allP=> fx; case/mapP=> x; rewrite mem_enum !inE order_dvdn.
     case/andP=> Gx; move/eqP=> xn1 <-{fx}; apply/eqP.
-    by rewrite !(eval_poly_lin, eval_polyX_n) -fX // xn1 f1 GRing.subrr.
-  set rs := enum _; have: uniq rs by exact: uniq_enum.
+    by rewrite !(horner_lin, hornerXn) -fX // xn1 f1 GRing.subrr.
+  set rs := enum _; have: uniq rs by exact: enum_uniq.
   have: all (mem G) rs by apply/allP=> x; rewrite mem_enum !inE; case/andP.
   elim: rs => //= x rs IHrs; case/andP=> Gx Grs; case/andP=> x_rs.
   move/IHrs=> -> {IHrs}//; rewrite andbT.
@@ -501,15 +501,15 @@ have defH: H :=: [set x \in G | #[x] %| n].
 have [x def_x] := cyclicP H cycH; case/subsetPn: sGH => y Hy.
 case/negP; rewrite defH inE Hy; apply/dvdn_partP=> // p.
 rewrite mem_primes; case/and3P=> pr_p _ py.
-rewrite p_part pfactor_dvdn // ?ltn_0group //.
+rewrite p_part pfactor_dvdn // ?cardG_gt0 //.
 set ky := logn p _; set kx := logn p n; rewrite leqNgt; apply/negP=> ltk.
 set yp := y ^+ (#[y] %/ p ^ kx.+1); set xp' := x ^+ (n`_p).
 have oyp : #[yp] = (p ^ kx.+1)%N.
   rewrite orderXgcd -[#[y]](partnC p) // p_part -/ky -(subnK ltk).
-  rewrite expn_add -mulnA mulKn ?ltn_0exp ?ltn_0prime //.
-  by rewrite gcdnC gcdn_mull mulnK // ltn_0mul ltn_0part ltn_0exp ?ltn_0prime.
+  rewrite expn_add -mulnA mulKn ?expn_gt0 ?prime_gt0 //.
+  by rewrite gcdnC gcdn_mull mulnK // muln_gt0 part_gt0 expn_gt0 ?prime_gt0.
 have oypp : #[yp ^+ p] = n`_p.
-  by rewrite orderXgcd oyp expnS gcdnC gcdn_mulr p_part mulKn ?ltn_0prime.
+  by rewrite orderXgcd oyp expnS gcdnC gcdn_mulr p_part mulKn ?prime_gt0.
 have oxp' : #[xp'] = n`_p^'.
   by rewrite orderXgcd -[#[x]](partnC p) // gcdnC /n def_x gcdn_mulr mulKn.
 case Hyp: (yp \in H).
@@ -616,8 +616,8 @@ Lemma generator_coprime : forall m, generator <[a]> (a ^+ m) = coprime #[a] m.
 Proof.
 move=> m; rewrite /generator eq_sym eqEcard cycleX -/#[a] [#|_|]orderXgcd /=.
 apply/idP/idP=> [le_a_am|co_am]; last by rewrite (eqnP co_am) divn1.
-have am_pos: 0 < gcdn #[a] m by rewrite ltn_0gcd ltn_0order.
-by rewrite /coprime eqn_leq am_pos andbT -(@leq_pmul2l #[a]) ?muln1 -?leq_divr.
+have am_gt0: 0 < gcdn #[a] m by rewrite gcdn_gt0 order_gt0.
+by rewrite /coprime eqn_leq am_gt0 andbT -(@leq_pmul2l #[a]) ?muln1 -?leq_divr.
 Qed.
 
 Lemma morphim_Zp_unitm : Zp_unitm @* Zp_units #[a] = Aut <[a]>.

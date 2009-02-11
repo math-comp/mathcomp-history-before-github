@@ -378,7 +378,7 @@ Proof.
 move=> x y z t Uxt; rewrite -[n]card_ord.
 pose f (p : col_squares) := (p x, p z); rewrite -(@card_in_image _ _ f).
   rewrite -mulnn -card_prod; apply: eq_card => [] [c d] /=; apply/imageP.
-  rewrite (uniq_cat [::x; y]) in Uxt; case/and3P: Uxt => _.
+  rewrite (cat_uniq [::x; y]) in Uxt; case/and3P: Uxt => _.
   rewrite /= !orbF !andbT; case/norP; rewrite !inE => nxzt nyzt _.
   exists [ffun i => if pred2 x y i then c else d].
     by rewrite !inE /= !ffunE !eqxx orbT (negbTE nxzt) (negbTE nyzt) !eqxx.
@@ -700,9 +700,9 @@ move=> x y i; rewrite permM -!sop_spec (nth_map F0) // size_tuple /=.
 by rewrite card_ord ltn_ord.
 Qed.
 
-Lemma sop_morph : Monoid.morphism id3 (sop id3) mulg prod_tuple sop.
+Lemma sop_morph : {morph sop : x y / x * y >-> prod_tuple x y}.
 Proof.
-split=> // x y; apply: (@eq_from_nth _ F0) => [|/= i].
+move=> x y; apply: (@eq_from_nth _ F0) => [|/= i].
   by rewrite size_map !size_tuple.
 rewrite size_tuple card_ord => lti6.
 by rewrite -[i]/(val (Ordinal lti6)) sop_spec -prod_t_correct.
@@ -741,7 +741,7 @@ Qed.
 Lemma stable: forall x y,
   x \in dir_iso3 -> y \in dir_iso3 -> x * y \in dir_iso3.
 Proof.
-move=> x y; rewrite !L_iso => Hx Hy; case: sop_morph => _ ->.
+move=> x y; rewrite !L_iso sop_morph => Hx Hy.
 by move/sop: y Hy; apply/allP; move/sop: x Hx; apply/allP; vm_compute.
 Qed.
 
@@ -755,7 +755,7 @@ Qed.
 
 Lemma ndir_s0p: forall p, p \in dir_iso3 -> s0 * p \notin dir_iso3.
 Proof.
-move=> p; rewrite !L_iso; case: sop_morph => _ ->; rewrite seqs1.
+move=> p; rewrite !L_iso sop_morph seqs1.
 by move/sop: p; apply/allP; vm_compute.
 Qed.
 
@@ -1145,7 +1145,7 @@ have: #|[predC [:: x; y; z; t; u]]| !=0.
  by apply: (leq_ltn_trans (card_size [:: x; y; z; t; u])).
 case/existsP => v; rewrite 2!inE (mem_cat _ [:: _; _; _; _]).
 case/norP=> Hv Huv; exists v.
-rewrite (uniq_cat [:: x; y; z; t]) Uxt andTb.
+rewrite (cat_uniq [:: x; y; z; t]) Uxt andTb.
 by rewrite 2!negb_or /= [~~ _]Hu Hv in_cons eq_sym Huv.
 Qed.
 
@@ -1165,10 +1165,10 @@ rewrite -(@card_in_image _ _ ff); first last.
 have ->:forall n, (n ^ 4)%N= (n*n*n*n)%N.
   by move => n0;rewrite (expn_add n0 2 2) -mulnn mulnA.
 rewrite -!card_prod; apply: eq_card => [] [[[c d]e ]g] /=; apply/imageP.
-rewrite (uniq_cat [::x; y;z;t]) in Uxv; case/and3P: Uxv => _ hasxt.
+rewrite (cat_uniq [::x; y;z;t]) in Uxv; case/and3P: Uxv => _ hasxt.
 rewrite /= !inE andbT.
 move/negbTE=> nuv .
-rewrite (uniq_cat [::x; y]) in Uxt; case/and3P: Uxt => _.
+rewrite (cat_uniq [::x; y]) in Uxt; case/and3P: Uxt => _.
 rewrite /= !andbT orbF; case/norP; rewrite !inE => nxyz nxyt _.
 move:hasxt; rewrite /= !orbF; case/norP; rewrite !inE orbA.
 case/norP  => nxyu nztu.
@@ -1201,7 +1201,7 @@ pose ff (p : col_cubes) := (p x, p u , p v);
 have ->:forall n, (n ^ 3)%N= (n*n*n)%N.
   by move => n0 ; rewrite (expn_add n0 2 1) -mulnn expn1.
 rewrite -!card_prod; apply: eq_card => [] [[c d]e ] /=; apply/imageP.
-rewrite (uniq_cat [::x; y;z;t]) in Uxv; case/and3P: Uxv => _ hasxt.
+rewrite (cat_uniq [::x; y;z;t]) in Uxv; case/and3P: Uxv => _ hasxt.
 rewrite /uniq !inE !andbT; move/negbTE=> nuv.
 exists
    [ffun i => if (i \in [:: x; y; z; t]) then c else if u == i then d else e].
@@ -1226,7 +1226,7 @@ pose ff (p : col_cubes) := (p x, p t); rewrite -(@card_in_image _ _ ff); first l
   by rewrite (subset_cardP _ (subset_predT _)) // (card_uniqP Uxv) card_ord.
 have ->:forall n, (n ^ 2)%N= (n*n)%N by move => n0 ; rewrite  -mulnn .
    rewrite -!card_prod; apply: eq_card => [] [c d]/=; apply/imageP.
-rewrite (uniq_cat [::x; y;z]) in Uxv; case/and3P: Uxv => Uxt hasxt nuv .
+rewrite (cat_uniq [::x; y;z]) in Uxv; case/and3P: Uxv => Uxt hasxt nuv .
 move:hasxt;rewrite /= !orbF; case/norP; rewrite !inE => nxyzt.
 case/norP => nxyzu nxyzv.
 exists [ffun i =>  if (i \in [:: x; y; z] ) then c else  d].
@@ -1253,8 +1253,8 @@ rewrite -(@card_in_image _ _ ff); first last.
 have ->:forall n, (n ^ 3)%N= (n*n*n)%N.
   by move => n0 ; rewrite (expn_add n0 2 1) -mulnn expn1.
 rewrite -!card_prod. apply: eq_card => [] [[c d]e ] /=; apply/imageP.
-rewrite (uniq_cat [::x; y;z;t]) in Uxv; case/and3P: Uxv => Uxt hasxt nuv .
-rewrite (uniq_cat [::x; y]) in Uxt; case/and3P: Uxt => _.
+rewrite (cat_uniq [::x; y;z;t]) in Uxv; case/and3P: Uxv => Uxt hasxt nuv .
+rewrite (cat_uniq [::x; y]) in Uxt; case/and3P: Uxt => _.
 rewrite /= !orbF !andbT; case/norP ; rewrite !inE => nxyz nxyt _.
 move: hasxt; rewrite /= !orbF; case/norP; rewrite !inE orbA.
 case/norP => nxyu nztu.

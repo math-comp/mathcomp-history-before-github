@@ -10,7 +10,7 @@
 (***********************************************************************)
 
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
-Require Import fintype div prime finset ssralg bigops.
+Require Import fintype div prime finset bigops.
 Require Import groups morphisms action normal pgroups automorphism.
 Require Import cyclic gprod abelian gfunc.
 

@@ -1,6 +1,5 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div choice fintype.
-Require Import finfun ssralg bigops.
-(* Require Import connect. *)
+Require Import finfun bigops.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -161,7 +160,7 @@ Proof. exact: eqVneq. Qed.
 
 End BasicSetTheory.
 
-Definition inE := (inE, in_set).
+Definition inE := (in_set, inE).
 
 Implicit Arguments set0 [T].
 Implicit Arguments setT [T].
@@ -586,7 +585,7 @@ Proof. by move=> A; rewrite (eq_sym A) eqEcard sub0set cards0 leqn0. Qed.
 Lemma set0Pn : forall A, reflect (exists x, x \in A) (A != set0).
 Proof. move=> A; rewrite -cards_eq0; exact: existsP. Qed.
 
-Lemma ltn_0card : forall A, (0 < #|A|) = (A != set0).
+Lemma card_gt0 : forall A, (0 < #|A|) = (A != set0).
 Proof. by move=> A; rewrite lt0n cards_eq0. Qed.
 
 Lemma cards0_eq : forall A, #|A| = 0 -> A = set0.
@@ -1537,7 +1536,7 @@ Lemma trivIsetP : forall P,
 Proof.
 move=> P.
 have->: P = [set x \in enum (mem P)] by apply/setP=> x; rewrite inE mem_enum.
-elim: {P}(enum _) (uniq_enum (mem P)) => [_|A e IHe] /=.
+elim: {P}(enum _) (enum_uniq (mem P)) => [_|A e IHe] /=.
   by rewrite /trivIset /cover !big_set0 cards0; left=> A; rewrite inE.
 case/andP; rewrite set_cons -(in_set (fun B => B \in e)) => PA.
 move/IHe {IHe}; move: {e}[set x \in e] PA => P PA IHP.

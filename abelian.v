@@ -79,9 +79,9 @@ Qed.
 Lemma sup0P : forall g (C : {set gT}),
   reflect (forall y, y \notin C -> g y = 0) (support g C).
 Proof.
-move=> g C; apply: (iffP (supP _ _)) => insupp y => [nCy | gy_pos].
-  by apply/eqP; apply/idPn; rewrite -lt0n => gy_pos; rewrite insupp in nCy.
-by apply/idPn=> nCy; rewrite insupp in gy_pos.
+move=> g C; apply: (iffP (supP _ _)) => insupp y => [nCy | gy_gt0].
+  by apply/eqP; apply/idPn; rewrite -lt0n => gy_gt0; rewrite insupp in nCy.
+by apply/idPn=> nCy; rewrite insupp in gy_gt0.
 Qed.
 
 Lemma sup_sub : A \subset B -> support f A -> support f B.
@@ -98,15 +98,15 @@ Qed.
 Lemma sup_addf : support f A && support h A = support (addf f h) A. 
 Proof.
 apply/andP/supP=> [[inf inh y]|infh].
-  rewrite ltn_0add; case/orP; [exact: (supP _ _ inf) | exact: (supP _ _ inh)].
-by split; apply/supP=> y fy_pos; rewrite infh // ltn_0add fy_pos ?orbT.
+  rewrite addn_gt0; case/orP; [exact: (supP _ _ inf) | exact: (supP _ _ inh)].
+by split; apply/supP=> y fy_gt0; rewrite infh // addn_gt0 fy_gt0 ?orbT.
 Qed.
 
 Lemma sup_peak : (x \in A) || (n == 0) = support (peak x n) A.
 Proof.
 apply: eq_true_iff_eq; rewrite/peak; split.
-  move=> Axn; apply/supP => /= y; case: (y =P x) Axn => // -> Axn n_pos.
-  by rewrite eqn0Ngt n_pos orbF in Axn.
+  move=> Axn; apply/supP => /= y; case: (y =P x) Axn => // -> Axn n_gt0.
+  by rewrite eqn0Ngt n_gt0 orbF in Axn.
 by move/supP; move/(_ x); rewrite eqxx orbC; case: n => // ? ->.
 Qed.
 
@@ -255,7 +255,7 @@ Qed.
 Lemma esum_peak : forall (y : gT) n, esum (peak y n) = n.
 Proof.
 move=> y n; have:= esums_peak y n (enum gT).
-rewrite /esum count_pred1_uniq; last exact: uniq_enum.
+rewrite /esum count_uniq_mem; last exact: enum_uniq.
 by rewrite mem_enum /= muln1. 
 Qed.
 
@@ -286,8 +286,8 @@ Qed.
 
 Lemma em_peak : forall (y : gT) n, em (peak y n) = y ^+ n.
 Proof.
-move=> y n; rewrite/em ems_peak count_pred1_uniq;
-last exact (uniq_enum gT). by rewrite mem_enum /= muln1. 
+move=> y n; rewrite/em ems_peak count_uniq_mem;
+last exact (enum_uniq gT). by rewrite mem_enum /= muln1. 
 Qed.
 
 Lemma em_not1 : forall (f : gT -> nat), em f <> 1 -> exists x, 0 < f x.
@@ -299,7 +299,7 @@ Lemma em1_not1 : forall (f : gT -> nat) x, em f = 1 -> x ^+ (f x) <> 1 ->
 exists2 y, y <> x & 0 < f y.
 Proof.
 rewrite/em; move=> f x emsf xfx; apply: (@ems1_not1 gT f (enum gT)) => //;
-[exact: uniq_enum | exact: mem_enum].
+[exact: enum_uniq | exact: mem_enum].
 Qed.
 
 End Combo_Enum.
@@ -378,7 +378,7 @@ Lemma mgenP : forall A x,
   reflect (exists2 f, support f A & em f = x) (x \in mgen A).
 Proof.
 move=> A x; rewrite /mgen /em /index_enum -enumT.
-elim: {+}(enum _) x (uniq_enum gT) => /= [x _ | y s IHs x].
+elim: {+}(enum _) x (enum_uniq gT) => /= [x _ | y s IHs x].
   rewrite big_nil inE; apply: (iffP eqP) => [->|[]//].
   exists (fun _ : gT => 0) => //=; exact/supP.
 case/andP=> nsy; move/IHs=> {IHs}IHs; rewrite big_cons.
@@ -540,7 +540,7 @@ Lemma freeb_free : forall B, freeb B -> free B.
 Proof.
 rewrite/free/freeb/em; move=> B sfB; split; first exact: freeb1.
 move=> f; rewrite -(eq_sup f (filter_enum B));
-elim: (enum gT) (uniq_enum gT) f sfB => /= [_ f _ f0 _ x | x s Hind];
+elim: (enum gT) (enum_uniq gT) f sfB => /= [_ f _ f0 _ x | x s Hind];
 first by case fx: (f x) => //; move/forallP: f0; move/(_ x); rewrite fx.
 case/andP => notsx us; case Bx: (B x) => /=; last first.
 - move=> f freeB fB; case fx: (f x) => /=; gsimpl; first exact: Hind.
@@ -580,7 +580,7 @@ Qed.
 Lemma free_freeb : forall B, abelian B -> free B -> freeb B.
 Proof.
 move=> B abelB; case => notB1 H; rewrite/free/freeb/em. 
-elim: (enum gT) (uniq_enum gT) => //= x s Hind. case/andP => notsx us.
+elim: (enum gT) (enum_uniq gT) => //= x s Hind. case/andP => notsx us.
 case Bx: (B x) => /=; last exact: Hind. apply/andP. split. 
 - apply/andP. split; last by exact: Hind.
   by  apply/negP; move/eqP=> x1; rewrite x1 in Bx. 
@@ -591,7 +591,7 @@ case Bx: (B x) => /=; last exact: Hind. apply/andP. split.
 
 
 rewrite/free/freeb/em; move=> B; case => notB1. 
-elim: (enum gT) (uniq_enum gT) => //= x s Hind. case/andP => notsx us H.
+elim: (enum gT) (enum_uniq gT) => //= x s Hind. case/andP => notsx us H.
 case Bx: (B x) => /=; last by apply: Hind => // f fB H2; 
 apply: H => //; rewrite (sup0P _ _ fB x) /=; gsimpl; rewrite Bx. 
 apply/andP. split. 
@@ -641,7 +641,7 @@ case E1: (1 \in E); last move/idPn: E1 => notE1.
 have{Ez} [f []]: exists f, [/\ support f E, em f = 1 & 0 < f z].
   exists (peak z #[z]); split; first by rewrite -sup_peak Ez.
     by rewrite em_peak expg_order. 
-  by rewrite /peak eqxx ltn_0order.
+  by rewrite /peak eqxx order_gt0.
 move: {-4 6}E cardE notE1 (erefl << E >>).
 elim: {f z}_.+1 {-2}f {-2}z (ltnSn (f z)) => // m mind f.
 elim: {f}_.+1 {-2}f (ltnSn (esum f)) => // M Mind f esumf.

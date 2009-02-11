@@ -35,6 +35,11 @@ Reserved Notation "e .[ x1 , x2 , .. , xn ]"
 Reserved Notation "x ^-1"
   (at level 3, left associativity, format "x ^-1").
 
+Reserved Notation "x *+ n" (at level 40, left associativity).
+Reserved Notation "x *- n" (at level 40, left associativity).
+Reserved Notation "x ^+ n" (at level 29, left associativity).
+Reserved Notation "x ^- n" (at level 29, left associativity).
+
 Reserved Notation "s `_ i"
   (at level 3, i at level 2, left associativity, format "s `_ i").
 

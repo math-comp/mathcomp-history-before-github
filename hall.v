@@ -1,5 +1,5 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div prime.
-Require Import fintype paths ssralg bigops finset.
+Require Import fintype paths bigops finset.
 Require Import groups morphisms gprod normal pgroups cyclic nilpotent.
 Require Import sylow maximal schurzass.
 
@@ -29,8 +29,8 @@ have{pM} pM: primes #|M| = [:: p].
   by rewrite primes_exp // primes_prime. 
 pose Gb := (G / M)%G; case: (IHn _ Gb) => [||Hb]; try exact: quotient_sol.
   rewrite -[#|_|]mul1n card_quotient; last by case/andP: nMG.
-  apply: leq_trans leGn; have:= ltn_0group G.
-  rewrite -(LaGrange sMG) ltn_0mul; case/andP=> _ M'pos.
+  apply: leq_trans leGn; have:= cardG_gt0 G.
+  rewrite -(LaGrange sMG) muln_gt0; case/andP=> _ M'pos.
   by rewrite ltn_pmul2r // ltnNge -trivg_card_le1.
 case/and3P=> [sHbGb piHb pi'Hb'] transHb.
 case: (inv_quotientS nMG sHbGb) => H def_H sMH sHG.
@@ -53,12 +53,12 @@ have{pi'Hb'} pi'H': pi^'.-nat #|G : H|.
   move: pi'Hb'; rewrite -!divgS // def_H !card_quotient //; last first.
   - by case/andP: nMG.
   - by apply: (subset_trans sHG); case/andP: nMG.
-  by rewrite -(divn_pmul2l (ltn_0group M)) !LaGrange.
+  by rewrite -(divn_pmul2l (cardG_gt0 M)) !LaGrange.
 case pi_p: (p \in pi).
   exists H => //; apply/and3P; split=> //.
   rewrite /pgroup -(LaGrange sMH) -card_quotient //; last first.
     case/andP: nMG => _; exact: subset_trans.
-  rewrite pnat_mul {1}/pnat pM ltn_0group /= pi_p.
+  rewrite pnat_mul {1}/pnat pM cardG_gt0 /= pi_p.
   by rewrite def_H in piHb.
 case: (ltnP #|H| #|G|) => [ltHG | leGH {n IHn leGn transH}].
   case: (IHn _ H (leq_trans ltHG leGn)) => [|H1].
@@ -78,7 +78,7 @@ case: (ltnP #|H| #|G|) => [ltHG | leGH {n IHn leGn transH}].
 have{leGH Gb sHbGb sHG sMH pi'H'} eqHG: H = G.
   by apply/eqP; rewrite -val_eqE eqEcard sHG.
 have{H Hb def_H eqHG piHb} hallM: pi^'.-Hall(G) M.
-  rewrite /pHall sMG /pgroup {1}/pnat pM /= inE /= pi_p ltn_0group /=.
+  rewrite /pHall sMG /pgroup {1}/pnat pM /= inE /= pi_p cardG_gt0 /=.
   apply: etrans piHb; rewrite -card_quotient ?normal_norm // -eqHG def_H.
   by rewrite pnatNK.
 case/splitsP: (SchurZass_split (pHall_Hall hallM) nMG) => H.
@@ -93,10 +93,10 @@ have defG1: M * K = G1 by rewrite -normC -?norm_mulgenEl.
 have sK1G1: K1 \subset M * K by rewrite defG1 subsetIr.
 have coMK: coprime #|M| #|K|.
   rewrite coprime_sym (pnat_coprime piK) //.
-  by rewrite /pnat pM ltn_0group //= inE /= pi_p.
+  by rewrite /pnat pM cardG_gt0 //= inE /= pi_p.
 case: (SchurZass_trans_sol _ nMK sK1G1 coMK) => [||x Mx defK1].
 - exact: solvableS solG.
-- apply/eqP; rewrite -(eqn_pmul2l (ltn_0group M)) -TI_cardMg //; last first.
+- apply/eqP; rewrite -(eqn_pmul2l (cardG_gt0 M)) -TI_cardMg //; last first.
     by apply/trivgP; rewrite -trMH /= setIA subsetIl.
   rewrite -coprime_cardMg // defG1; apply/eqP; congr #|(_ : {set _})|.
   rewrite group_modl; last by rewrite -defG1 mulG_subl.
@@ -170,7 +170,7 @@ suff: pi.-Hall(G) K.
   rewrite eq_sym -val_eqE eqEcard sHK /= (card_Hall hallH).
   by move/card_Hall->.
 rewrite /pHall sKG piK; case/and3P: hallH => _ _; apply: pnat_dvd.
-rewrite -(dvdn_pmul2l (ltn_0group K)) LaGrange // -(LaGrange sHK) mulnAC.
+rewrite -(dvdn_pmul2l (cardG_gt0 K)) LaGrange // -(LaGrange sHK) mulnAC.
 by rewrite LaGrange (subset_trans sHK, dvdn_mulr).
 Qed.
 

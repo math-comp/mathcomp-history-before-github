@@ -1,5 +1,5 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype.
-Require Import div ssralg bigops prime tuple finset groups morphisms normal.
+Require Import div bigops prime tuple finset groups morphisms normal.
 Require Import perm automorphism action cyclic pgroups sylow.
 Require Import maximal prim_act signperm.
 
@@ -146,8 +146,8 @@ have FF: forall H : {group _}, H <| 'Alt_T -> H :<>: 1 -> 20 %| #|H|.
       rewrite groupM // ?groupV // (conjgCV g) mulgK -mem_conjg.
       by case/normalP: Hh1 => _ ->.
     have: (g * (h ^+ 2) * g ^-1) x = (h ^+ 3) x.
-      rewrite !permM !perm1 -Hgx.
-      have ->: h (h x) = (h ^+ 2) x by rewrite /= permM mulg1.
+      rewrite !permM -Hgx.
+      have ->: h (h x) = (h ^+ 2) x by rewrite /= permM.
       by rewrite {1}Hgh3x -!permM /= mulgV mulg1 -expgSr.
     rewrite commuteX // mulgK {1}[expgn]lock expgS permM -lock.
     by move/perm_inj=> eqxhx; case/eqP: (diff_hnx_x 1%N tp tp); rewrite expg1.
@@ -320,7 +320,7 @@ elim => [| n Hrec T Hde]; first exact: simple_Alt5_base.
 have oT: 5 < #|T| by rewrite Hde addnC.
 apply/simpleP; split=> [|H Hnorm]; last have [Hh1 nH] := andP Hnorm. 
   rewrite trivg_card1 -[#|_|]half_double -mul2n card_Alt Hde addnC //.
-  by rewrite addSn /fact -/fact mulnC -(prednK (ltn_0fact _)).
+  by rewrite addSn /fact -/fact mulnC -(prednK (fact_gt0 _)).
 case E1: (pred0b T); first by rewrite /pred0b in E1; rewrite (eqP E1) in oT.
 case/pred0Pn: E1 => x _; have Hx := in_setT x.
 have F2: [transitive * 4 ('Alt_T | 'P) on setT].
@@ -376,7 +376,7 @@ have Hreg: forall g z, g \in H -> g z = z -> g = 1.
   by rewrite memJ_norm ?(subsetP nH).
 clear K F8 F12 F13 Ksub F14.
 have Hcard: 5 < #|H|.
-  apply: (leq_trans oT); apply dvdn_leq; first by exact: ltn_0group.
+  apply: (leq_trans oT); apply dvdn_leq; first by exact: cardG_gt0.
   by rewrite -cardsT (trans_div Hx F5).
 case Eh: (pred0b [predD1 H & 1]).
   by move: Hcard; rewrite /pred0b in Eh; rewrite (cardD1 1) group1 (eqP Eh).

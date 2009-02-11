@@ -230,11 +230,11 @@ Qed.
 
 Lemma edivn_eq : forall d q r, r < d -> edivn (q * d + r) d = (q, r).
 Proof.
-move=> d q r lt_rd; have d_pos: 0 < d by exact: leq_trans lt_rd.
-case: edivnP lt_rd => q' r'; rewrite d_pos /=.
+move=> d q r lt_rd; have d_gt0: 0 < d by exact: leq_trans lt_rd.
+case: edivnP lt_rd => q' r'; rewrite d_gt0 /=.
 wlog: q q' r r' / q <= q' by case (ltnP q q'); last symmetry; eauto.
 rewrite leq_eqVlt; case: eqP => [-> _|_] /=; first by move/addnI->.
-rewrite -(leq_pmul2r d_pos); move/leq_add=> Hqr Eqr _; move/Hqr {Hqr}.
+rewrite -(leq_pmul2r d_gt0); move/leq_add=> Hqr Eqr _; move/Hqr {Hqr}.
 by rewrite addnS ltnNge mulSn -addnA Eqr addnCA addnA leq_addr.
 Qed.
 
@@ -267,27 +267,27 @@ Qed.
 
 Lemma edivn_eq_right : forall d q r, r < d -> edivn (q * d + r) d = (q, r).
 Proof.
-move=> d q r lt_rd; have d_pos: 0 < d by exact: leq_trans lt_rd.
+move=> d q r lt_rd; have d_gt0: 0 < d by exact: leq_trans lt_rd.
 set m := q * d + r; have: m = q * d + r by [].
 set d' := d; have: d' = d by [].
 case: (edivnP_right m d') => {m d'} m d' q' r' -> lt_r'd' d'd q'd'r'.
-move: q'd'r' lt_r'd' lt_rd; rewrite d'd d_pos {d'd m} /=.
+move: q'd'r' lt_r'd' lt_rd; rewrite d'd d_gt0 {d'd m} /=.
 wlog: q q' r r' / q <= q' by case (ltnP q q'); last symmetry; eauto.
 rewrite leq_eqVlt; case: eqP => [-> _|_] /=; first by move/addnI->.
-rewrite -(leq_pmul2r d_pos); move/leq_add=> Hqr Eqr _; move/Hqr {Hqr}.
+rewrite -(leq_pmul2r d_gt0); move/leq_add=> Hqr Eqr _; move/Hqr {Hqr}.
 by rewrite addnS ltnNge mulSn -addnA -Eqr addnCA addnA leq_addr.
 Qed.
 
 
 Lemma edivn_eq_left : forall d q r, r < d -> edivn (q * d + r) d = (q, r).
 Proof.
-move=> d q r lt_rd; have d_pos: 0 < d by exact: leq_trans lt_rd.
-case: (edivnP_left (q * d + r) d) lt_rd; rewrite d_pos /=.
+move=> d q r lt_rd; have d_gt0: 0 < d by exact: leq_trans lt_rd.
+case: (edivnP_left (q * d + r) d) lt_rd; rewrite d_gt0 /=.
 set q':= (edivn (q * d + r) d).1; set r':= (edivn (q * d + r) d).2.
 rewrite (surjective_pairing (edivn (q * d + r) d)) -/q' -/r'. 
 wlog: q r q' r' / q <= q' by case (ltnP q q'); last symmetry; eauto.
 rewrite leq_eqVlt; case: eqP => [-> _|_] /=; first by move/addnI->.
-rewrite -(leq_pmul2r d_pos); move/leq_add=> Hqr Eqr _; move/Hqr {Hqr}.
+rewrite -(leq_pmul2r d_gt0); move/leq_add=> Hqr Eqr _; move/Hqr {Hqr}.
 by rewrite addnS ltnNge mulSn -addnA Eqr addnCA addnA leq_addr.
 Qed.
 

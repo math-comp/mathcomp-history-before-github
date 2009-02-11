@@ -10,7 +10,7 @@
 (***********************************************************************)
 
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
-Require Import fintype div prime finfun finset ssralg.
+Require Import fintype div prime finfun finset.
 Require Import bigops groups morphisms automorphism normal action.
 Require Import cyclic gprod pgroups commutators center nilpotent.
 
@@ -45,7 +45,7 @@ have: [acts (G | to) on S :\: 'C(G | to)]; last move/acts_sum_card_orbit <-.
   by apply: actsP Ga x; rewrite norm_act_fix ?normG.
 apply: dvdn_sum => X; case/imsetP=> x; case/setDP=> _ nfx ->{X}.
 have:= dvdn_orbit to G x; rewrite cardG.
-case/dvdn_pfactor=> [//|[_|m _ ->]]; last exact: dvdn_mulr.
+case/dvdn_pfactor=> [//|[_|m _ ->]]; last by rewrite expnS dvdn_mulr.
 move/card_orbit1=> fix_x; case/afixP: nfx => a Ga; apply/set1P.
 by rewrite -fix_x mem_imset.
 Qed.
@@ -115,7 +115,7 @@ have sylP: p.-Sylow(G) P.
   case p_pr: (prime p); last first.
     rewrite p_part lognE p_pr /=.
     by case/pgroup_1Vpr: pP p_pr => [-> _ | [-> //]]; rewrite cards1.
-  rewrite -(LaGrangeI G 'N(P)) /= mulnC partn_mul ?ltn_0group // part_p'nat.
+  rewrite -(LaGrangeI G 'N(P)) /= mulnC partn_mul ?cardG_gt0 // part_p'nat.
     by rewrite mul1n (card_Hall (sylS P S_P)).
   by rewrite p'natE // -indexgI -oSiN // /dvdn oS1.
 have eqS: forall Q, maxp G Q = p.-Sylow(G) Q.
@@ -226,7 +226,7 @@ Lemma trivg_center_pgroup : forall P, p.-group P -> 'Z(P) = 1 -> P :=: 1.
 Proof.
 move=> P pP Z1; case: (pgroup_1Vpr pP) => [// | [pr_p _ [n oPp]]].
 have: #|'Z(P)| %% p = 1%N by rewrite Z1 cards1 modn_small ?prime_gt1.
-rewrite /center -conjg_fix -pgroup_fix_mod ?oPp ?modn_mulr //.
+rewrite /center -conjg_fix -pgroup_fix_mod ?oPp ?expnS ?modn_mulr //.
 by rewrite conjg_astabs normG.
 Qed.
 
@@ -237,7 +237,7 @@ Lemma Sylow_transversal_gen : forall (T : {set {group gT}}) G,
 Proof.
 move=> T G G_T T_G; apply/eqP; rewrite eqEcard gen_subG.
 apply/andP; split; first exact/bigcupsP.
-apply: dvdn_leq (ltn_0group _) _; apply/dvdn_partP=> // q.
+apply: dvdn_leq (cardG_gt0 _) _; apply/dvdn_partP=> // q.
 case/T_G=> P T_P sylP; rewrite -(card_Hall sylP); apply: cardSg.
 by rewrite sub_gen // bigcup_sup.
 Qed.
@@ -404,7 +404,7 @@ have: p.-group (N :&: 'Z(P)) by apply: pgroupS pP; rewrite /= setICA subsetIl.
 case/pgroup_1Vpr=> [| [p_pr _ [k oZ]]].
   move/(nil_TI_Z (pgroup_nil pP) nNP)=> N1.
   by rewrite N1 cards1 logn1 in le_r.
-have{oZ}: p %| #|N :&: 'Z(P)| by rewrite oZ dvdn_mulr.
+have{oZ}: p %| #|N :&: 'Z(P)| by rewrite oZ dvdn_exp.
 case/Cauchy=> // z; rewrite -sub1set -gen_subG -[<<_>>]/<[z]> !subsetI /order.
 case/and3P=> sZN sZP cZP oZ.
 have{cZP} nZP: P \subset 'N(<[z]>) by rewrite cents_norm // centsC.
@@ -412,11 +412,11 @@ have: N / <[z]> <| P / <[z]> by rewrite morphim_normal.
 case/IHr=> [||Qb [sQNb nQPb]]; first exact: morphim_pgroup.
   rewrite card_quotient ?(subset_trans (normal_sub nNP)) // -ltnS.
   apply: (leq_trans le_r); rewrite -(LaGrange sZN) oZ.
-  by rewrite logn_mul // ?ltn_0prime // logn_prime ?eqxx.
+  by rewrite logn_mul // ?prime_gt0 // logn_prime ?eqxx.
 case/(inv_quotientN _): nQPb sQNb => [|Q -> sZQ nQP]; first exact/andP.
 have nZQ := subset_trans (normal_sub nQP) nZP.
 rewrite quotientSGK // card_quotient // => sQN.
-move/eqP; rewrite -(eqn_pmul2l (ltn_0group <[z]>)) LaGrange // oZ.
+move/eqP; rewrite -(eqn_pmul2l (cardG_gt0 <[z]>)) LaGrange // oZ -expnS.
 by move/eqP; exists Q.
 Qed.
 

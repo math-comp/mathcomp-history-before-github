@@ -10,7 +10,7 @@
 (***********************************************************************)
 
 Require Import ssreflect ssrbool ssrfun ssrnat.
-Require Import eqtype fintype div ssralg bigops prime finset.
+Require Import eqtype fintype div bigops prime finset.
 Require Import groups morphisms action normal cyclic center pgroups.
 
 (* Require Import seq paths connect zp. *)
@@ -34,13 +34,13 @@ Theorem Frobenius_Ldiv : forall (gT : finGroupType) (G : {group gT}) n,
 Proof.
 move=> gT G n nG; move: {2}_.+1 (ltnSn (#|G| %/ n)) => mq.
 elim: mq => // mq IHm in gT G n nG *; case/dvdnP: nG => q oG.
-have [q_pos n_pos] : 0 < q /\ 0 < n by apply/andP; rewrite -ltn_0mul -oG.
+have [q_gt0 n_gt0] : 0 < q /\ 0 < n by apply/andP; rewrite -muln_gt0 -oG.
 rewrite ltnS oG mulnK // => leqm.
-have:= q_pos; rewrite leq_eqVlt; case/predU1P=> [q1 | lt1q].
+have:= q_gt0; rewrite leq_eqVlt; case/predU1P=> [q1 | lt1q].
   rewrite -(mul1n n) q1 -oG (setIidPl _) //.
   by apply/subsetP=> x Gx; rewrite inE -order_dvdn order_dvdG.
 pose p := pdiv q; have pr_p: prime p by exact: prime_pdiv.
-have lt1p: 1 < p := prime_gt1 pr_p; have p_pos := ltnW lt1p.
+have lt1p: 1 < p := prime_gt1 pr_p; have p_gt0 := ltnW lt1p.
 have{leqm} lt_qp_mq: q %/ p < mq by apply: leq_trans leqm; rewrite ltn_Pdiv.
 have: n %| #|'Ldiv_(p * n)(G)|.
   have: p * n %| #|G| by rewrite oG dvdn_pmul2r ?dvdn_pdiv.
@@ -54,12 +54,12 @@ have pA: forall x, x \in A -> #[x]`_p = (n`_p * p)%N.
   move=> x; rewrite !inE -!order_dvdn; case/andP=> xn xnp.
   rewrite !p_part // -expnSr; congr (p ^ _)%N; apply/eqP.
   rewrite eqn_leq -{1}addn1 -(pfactorK 1 pr_p) -logn_mul ?expn1 // mulnC.
-  rewrite dvdn_leq_log ?ltn_0mul ?p_pos //= ltnNge; apply: contra xn => xn.
+  rewrite dvdn_leq_log ?muln_gt0 ?p_gt0 //= ltnNge; apply: contra xn => xn.
   move: xnp; rewrite -[#[x]](partnC p) //.
   rewrite !gauss_inv ?coprime_partC //; case/andP=> _.
   rewrite p_part ?pfactor_dvdn // xn gauss // coprime_sym.
   exact: pnat_coprime (pnat_id _) (pnat_part _ _).
-rewrite -(partnC p n_pos) gauss_inv ?coprime_partC //; apply/andP; split.
+rewrite -(partnC p n_gt0) gauss_inv ?coprime_partC //; apply/andP; split.
   rewrite -sum1_card (partition_big_imset (@cycle _)) /=.
   apply: dvdn_sum => X; case/imsetP=> x; case/setIP=> Gx Ax ->{X}.
   rewrite (eq_bigl (generator <[x]>)) => [|y].
@@ -75,10 +75,10 @@ set y := x.`_p; have oy: #[y] = (n`_p * p)%N by rewrite order_constt pA.
 rewrite (partition_big (fun x => x.`_p) (mem (y ^: G))) /= => [|z]; last first.
   by case/andP=> _; move/eqP <-; rewrite /= class_refl.
 pose G' := ('C_G[y] / <[y]>)%G; pose n' := gcdn #|G'| n`_p^'.
-have n'_pos: 0 < n' by rewrite ltn_0gcd ltn_0group.
+have n'_gt0: 0 < n' by rewrite gcdn_gt0 cardG_gt0.
 rewrite (eq_bigr (fun _ => #|'Ldiv_n'(G')|)) => [|ya].
   rewrite sum_nat_const -index_cent1 indexgI.
-  rewrite -(dvdn_pmul2l (ltn_0group 'C_G[y])) mulnA LaGrangeI.
+  rewrite -(dvdn_pmul2l (cardG_gt0 'C_G[y])) mulnA LaGrangeI.
   have oCy: #|'C_G[y]| = (#[y] * #|G'|)%N.
     rewrite card_quotient ?subcent1_cycle_norm // LaGrange //.
     by rewrite subcent1_cycle_sub ?groupX.
@@ -88,7 +88,7 @@ rewrite (eq_bigr (fun _ => #|'Ldiv_n'(G')|)) => [|ya].
   apply: IHm; [exact: dvdn_gcdl | apply: leq_ltn_trans lt_qp_mq].
   rewrite -(@divn_pmul2r n`_p^') // -muln_lcm_gcd mulnC divn_pmul2l //.
   rewrite leq_divr // divn_mulAC ?leq_divl ?dvdn_mulr ?dvdn_lcmr //.
-  rewrite dvdn_leq ?ltn_0mul ?q_pos //= mulnC muln_lcmr dvdn_lcm.
+  rewrite dvdn_leq ?muln_gt0 ?q_gt0 //= mulnC muln_lcmr dvdn_lcm.
   rewrite -(@dvdn_pmul2l n`_p) // mulnA -oy -oCy mulnCA partnC // -oG.
   by rewrite cardSg ?subsetIl // dvdn_mul ?dvdn_pdiv.
 case/imsetP=> a Ga ->{ya}.
@@ -135,12 +135,12 @@ have ozp: #[z ^ a^-1]`_p = #[y].
   by rewrite -order_constt consttJ zp_ya conjgK.
 split; rewrite zp_ya // -class_lcoset lcoset_id // eqxx andbT.
 rewrite -(conjgKV a z) !inE groupJ //= -!order_dvdn orderJ; apply/andP; split.
-  apply/negP; move/(partn_dvd p n_pos); apply/negP.
+  apply/negP; move/(partn_dvd p n_gt0); apply/negP.
   by rewrite ozp -(muln1 n`_p) oy dvdn_pmul2l // dvdn1 neq_ltn lt1p orbT.
-rewrite -(partnC p n_pos) mulnCA mulnA -oy -(@partnC p #[_]) // ozp.
+rewrite -(partnC p n_gt0) mulnCA mulnA -oy -(@partnC p #[_]) // ozp.
 apply dvdn_mul => //; apply: dvdn_trans (dvdn_trans n'Z (dvdn_gcdr _ _)).
 rewrite {2}/order -morphim_cycle // -quotientE card_quotient ?cycle_subG //.
-rewrite -(@dvdn_pmul2l #|<[z ^ a^-1]> :&: <[y]>|) ?ltn_0group // LaGrangeI.
-rewrite -[#|<[_]>|](partnC p) ?ltn_0order // dvdn_pmul2r // ozp.
+rewrite -(@dvdn_pmul2l #|<[z ^ a^-1]> :&: <[y]>|) ?cardG_gt0 // LaGrangeI.
+rewrite -[#|<[_]>|](partnC p) ?order_gt0 // dvdn_pmul2r // ozp.
 by rewrite cardSg ?subsetIr.
 Qed.

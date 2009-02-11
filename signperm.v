@@ -235,7 +235,7 @@ case Dy0: (z 0 == y) {x} => /=.
   rewrite -oddp1; congr oddp; apply/permP => x.
   by rewrite (eqP Dy0) perm1; case tpermP.
 have Ez: forall i, i < n -> index (z i) (enum T) = i.
-  move=> i ltid; exact: index_uniq ltid (uniq_enum T).
+  move=> i ltid; exact: index_uniq ltid (enum_uniq T).
 have Iz: exists2 i, i < n & z i = _ by move=> t; apply/subP; exact: mem_enum.
 have eqz: forall i j, i < n -> j < n -> (z i == z j) = (i == j).
   move=> i j; move/Ez=> Di; move/Ez=> Dj.
@@ -311,7 +311,7 @@ Qed.
 Lemma Sym_trans : [transitive * n ('Sym_T | 'P) on setT].
 Proof.
 apply/imsetP; pose t1 := [tuple of enum T].
-have dt1: t1 \in n.-dtuple(setT) by rewrite inE uniq_enum; apply/subsetP.
+have dt1: t1 \in n.-dtuple(setT) by rewrite inE enum_uniq; apply/subsetP.
 exists t1 => //; apply/setP=> t; apply/idP/imsetP=> [|[a _ ->{t}]]; last first.
   by apply: n_act_dtuple => //; apply/astabsP=> x; rewrite !inE.
 case/dtuple_onP=> injt _; have injf := inj_comp injt (@enum_rank_inj _).
@@ -325,8 +325,8 @@ Proof.
 case n_m2: n Sym_trans => [|[|m]] /= tr_m2; try exact: ntransitive0.
 have tr_m := ntransitive_weak (leqW (leqnSn m)) tr_m2.
 case/imsetP: tr_m2; case/tupleP=> x; case/tupleP=> y t.
-rewrite !dtuple_on_add 3!inE negb_or /= -!andbA; case/and4P=> nxy ntx nty dt _.
-apply/imsetP; exists t => //; apply/setP=> u.
+rewrite !dtuple_on_add 2!inE [x \in _]inE negb_or /= -!andbA.
+case/and4P=> nxy ntx nty dt _; apply/imsetP; exists t => //; apply/setP=> u.
 apply/idP/imsetP=> [|[a _ ->{u}]]; last first.
   by apply: n_act_dtuple => //; apply/astabsP=> z; rewrite !inE.
 case/(atransP2 tr_m dt)=> /= a _ ->{u}.

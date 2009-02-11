@@ -1,11 +1,6 @@
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div prime.
-Require Import ssralg bigops. 
-Require Import fintype finset groups commutators automorphism.
-Require Import morphisms normal center. 
-Require Import cyclic gprod gfunc.
-
-
-(* Require Import paths connect finfun ssralg bigops. *)
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype.
+Require Import bigops prime finset groups commutators automorphism.
+Require Import morphisms normal center cyclic gprod gfunc.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -113,7 +108,7 @@ apply/forallP/mapP=> /= [nilG | [n _ Ln1] H]; last first.
   rewrite -subG1 -{}Ln1; elim: n => // n IHn.
   apply: subset_trans sHR _; apply: genS; exact: imset2S.
 pose n := #|G|; have: n <= #|G| := leqnn _.
-have: #|G| < n + #|'L_n(G)| by rewrite -addn1 leq_add2l ltn_0group.
+have: #|G| < n + #|'L_n(G)| by rewrite -addn1 leq_add2l cardG_gt0.
 elim: n => [|n IHn leGn lt_nG]; first by rewrite ltnn.
 have:= nilG [group of 'L_n(G)]; rewrite /= -lcnSn subsetI lcn_sub0.
 rewrite -(lcn_sub G n) -eqEsubset eqEcard lcn_sub implybE /= -ltnNge orbC.
@@ -546,13 +541,13 @@ move=> G; apply: (iffP idP) => [solG | [n solGn]]; last first.
   rewrite -subG1 -{}solGn; elim: n => // n IHn.
   exact: subset_trans sH'H (commgSS _ _).
 suffices IHn: forall n, #|G^`(n)| - 1 <= #|G| - n.+1.
-  exists #|G|.-1; apply/eqP; rewrite trivg_card_le1 -eqn_sub0 -leqn0.
+  exists #|G|.-1; apply/eqP; rewrite trivg_card_le1 -subn_eq0 -leqn0.
   by rewrite (leq_trans (IHn _)) // prednK ?subnn.
 elim=> // n IHn; rewrite dergSn; have:= forallP solG (G^`(n))%G.
 case: eqP => /= [->|_]; first by rewrite commG1 cards1.
 rewrite -dergSn implybF subsetI der_sub0 /= => sGnGn1.
 rewrite -(addn1 n.+1) -subn_sub leq_sub2r //; apply: leq_trans IHn.
-by rewrite subn1 -ltnS prednK ?ltn_0group // proper_card // /proper der_sub.
+by rewrite subn1 -ltnS prednK ?cardG_gt0 // proper_card // /proper der_sub.
 Qed.
 
 End Solvable.

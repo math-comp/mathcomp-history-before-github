@@ -5,7 +5,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
 Require Import div seq fintype.
 (* Require Import connect. *)
-Require Import tuple finfun ssralg bigops finset.
+Require Import tuple finfun bigops finset.
 Require Import groups perm morphisms.
 
 Set Implicit Arguments.
@@ -269,7 +269,7 @@ Qed.
 Lemma card_orbit : forall A x, #|orbit to A x| = #|A : 'C_(A | to)[x]|.
 Proof.
 move=> A x; rewrite -divgS ?subsetIl //.
-by rewrite -(card_orbit_stab A x) mulnK ?ltn_0group.
+by rewrite -(card_orbit_stab A x) mulnK ?cardG_gt0.
 Qed.
 
 Lemma dvdn_orbit : forall A x, #|orbit to A x| %| #|A|.

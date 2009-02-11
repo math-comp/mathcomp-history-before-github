@@ -13,7 +13,6 @@ fintype.v
 connect.v
 tuple.v
 finfun.v
-ssralg.v
 bigops.v
 finset.v
 groups.v
@@ -25,6 +24,8 @@ jordanholder.v
 commutators.v
 perm.v
 automorphism.v
+ssralg.v
+poly.v
 zmodp.v
 cyclic.v
 pgroups.v
@@ -37,7 +38,6 @@ abelian.v
 signperm.v
 matrix.v
 gauss_elim.v
-poly.v
 charpoly.v
 schurzass.v
 hall.v

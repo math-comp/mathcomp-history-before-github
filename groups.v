@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype.
-Require Import div ssralg bigops finset.
+Require Import div bigops finset.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -170,7 +170,7 @@ Notation rT := (FinGroup.sort T).
 Definition oneg : rT := FinGroup.one T.
 Definition mulg : T -> T -> rT := FinGroup.mul T.
 Definition invg : T -> rT := FinGroup.inv T.
-Definition expgn_rec (x : T) n : rT := iter n (mulg x) oneg.
+Definition expgn_rec (x : T) n : rT := iterop n mulg x oneg.
 
 End ElementOps.
 
@@ -252,16 +252,16 @@ Canonical Structure finGroup_law := Monoid.Law mulgA mul1g mulg1.
 Lemma expgnE : forall x n, x ^+ n = expgn_rec x n. Proof. by []. Qed.
 
 Lemma expg0 : forall x, x ^+ 0 = 1. Proof. by []. Qed.
+Lemma expg1 : forall x, x ^+ 1 = x. Proof. by []. Qed.
 
-Lemma expgS : forall x n, x ^+ n.+1 = x * x ^+ n. Proof. by []. Qed.
-
-Lemma expg1 : forall x, x ^+ 1 = x. Proof. exact: mulg1. Qed.
+Lemma expgS : forall x n, x ^+ n.+1 = x * x ^+ n.
+Proof. by move=> x [|n]; rewrite ?mulg1. Qed.
 
 Lemma exp1gn : forall n, 1 ^+ n = 1 :> T.
 Proof. by elim=> // n IHn; rewrite expgS mul1g. Qed.
 
 Lemma expgn_add : forall x n m, x ^+ (n + m) = x ^+ n * x ^+ m.
-Proof. by move=> x; elim=> [|n IHn] m; rewrite ?mul1g // -mulgA -IHn. Qed.
+Proof. by move=> x; elim=> [|n IHn] m; rewrite ?mul1g // !expgS IHn mulgA. Qed.
 
 Lemma expgSr : forall x n, x ^+ n.+1 = x ^+ n * x.
 Proof. by move=> x n; rewrite -addn1 expgn_add expg1. Qed.
@@ -269,7 +269,7 @@ Proof. by move=> x n; rewrite -addn1 expgn_add expg1. Qed.
 Lemma expgn_mul : forall x n m, x ^+ (n * m) = x ^+ n ^+ m.
 Proof.
 move=> x n; elim=> [|m IHm]; first by rewrite muln0 expg0.
-by rewrite mulnS expgn_add IHm.
+by rewrite mulnS expgn_add IHm expgS.
 Qed.
 
 Definition commute x y := x * y = y * x.
@@ -289,7 +289,8 @@ Proof. by move=> x y z cxy cxz; rewrite /commute -mulgA -cxz !mulgA cxy. Qed.
 
 Lemma commuteX : forall x y n, commute x y ->  commute x (y ^+ n).
 Proof.
-move=> x y n cxy; elim: n => [|n IHn]; [exact: commute1 | exact: commuteM].
+rewrite /commute => x y n cxy.
+by elim: n => [|n IHn]; rewrite ?commute1 // !expgS commuteM.
 Qed.
 
 Lemma commuteX2 : forall x y m n, commute x y ->  commute (x ^+ m) (y ^+ n).
@@ -297,7 +298,7 @@ Proof. move=> *; apply: commuteX; apply: commute_sym; exact: commuteX. Qed.
 
 Lemma expVgn : forall x n, x^-1 ^+ n = x ^- n.
 Proof.
-by move=> x; elim=> [|n IHn]; rewrite ?invg1 // invMg -IHn expgSr.
+by move=> x; elim=> [|n IHn]; rewrite ?invg1 // expgSr expgS invMg IHn.
 Qed.
 
 Lemma expMgn : forall x y n, commute x y -> (x * y) ^+ n  = x ^+ n * y ^+ n.
@@ -382,7 +383,9 @@ Lemma conjJg : forall x y z, (x ^ y) ^ z = (x ^ z) ^ y ^ z.
 Proof. by move=> x y z; rewrite 2!conjMg conjVg. Qed.
 
 Lemma conjXg : forall x y n, (x ^+ n) ^ y = (x ^ y) ^+ n.
-Proof. by move=> x y; elim=> [| n IHn]; rewrite ?conj1g // conjMg IHn. Qed.
+Proof.
+by move=> x y; elim=> [|n IHn]; rewrite ?conj1g // !expgS conjMg IHn.
+Qed.
 
 Lemma conjgK : forall y, cancel (conjg^~ y) (conjg^~ y^-1).
 Proof. by move=> y x; rewrite -conjgM mulgV conjg1. Qed.
@@ -1095,10 +1098,10 @@ Proof. by rewrite eqEsubset sub1G andbT. Qed.
 
 Lemma repr_group : repr G = 1. Proof. by rewrite /repr group1. Qed.
 
-Lemma ltn_0group : 0 < #|G|.
+Lemma cardG_gt0 : 0 < #|G|.
 Proof. by rewrite lt0n; apply/existsP; exists (1 : gT). Qed.
 
-Lemma ltn_0indexg : forall A, 0 < #|G : A|.
+Lemma indexg_gt0 : forall A, 0 < #|G : A|.
 Proof.
 move=> A; rewrite lt0n; apply/existsP; exists A.
 rewrite -{2}[A]mulg1 -rcosetE; exact: mem_imset.
@@ -1123,7 +1126,7 @@ Lemma trivg_card_le1 : (G :==: 1) = (#|G| <= 1).
 Proof. by rewrite eq_sym eqEcard cards1 sub1G. Qed.
 
 Lemma trivg_card1 : (G :==: 1) = (#|G| == 1%N).
-Proof. by rewrite trivg_card_le1 eqn_leq ltn_0group andbT. Qed.
+Proof. by rewrite trivg_card_le1 eqn_leq cardG_gt0 andbT. Qed.
 
 Lemma card_le1_trivg : #|G| <= 1 -> G :=: 1.
 Proof. by rewrite -trivg_card_le1; move/eqP. Qed.
@@ -1165,7 +1168,9 @@ Lemma groupM : forall x y, x \in G -> y \in G -> x * y \in G.
 Proof. by case/group_setP: (valP G). Qed.
 
 Lemma groupX : forall x n, x \in G -> x ^+ n \in G.
-Proof. by move => x n Gx; elim: n => [|n IHn]; rewrite (group1, groupM). Qed.
+Proof.
+by move=> x n Gx; elim: n => [|n IHn]; rewrite ?group1 // expgS groupM.
+Qed.
 
 Lemma groupVr : forall x, x \in G -> x^-1 \in G.
 Proof.
@@ -1492,7 +1497,7 @@ End GroupProp.
 
 Hint Resolve group1 group1_class1 group1_class12 group1_class12.
 Hint Resolve group1_eqType group1_finType.
-Hint Resolve ltn_0group ltn_0indexg.
+Hint Resolve cardG_gt0 indexg_gt0.
 
 Notation "G :^ x" := (conjG_group G x) : subgroup_scope.
 
@@ -1544,13 +1549,13 @@ Canonical Structure mulgen_group A B : {group _} :=
 Canonical Structure cycle_group x : {group _} :=
   Eval hnf in [group of <[x]>].
 
-Lemma ltn_0order : forall x : gT, 0 < #[x].
-Proof. by move=> x; exact: ltn_0group. Qed.
-Canonical Structure order_pos_nat x := PosNat (ltn_0order x).
+Lemma order_gt0 : forall x : gT, 0 < #[x].
+Proof. by move=> x; exact: cardG_gt0. Qed.
+Canonical Structure order_pos_nat x := PosNat (order_gt0 x).
 
 End GroupInter.
 
-Hint Resolve ltn_0order.
+Hint Resolve order_gt0.
 
 Definition mulGen (gT : finGroupType) (G H : {group gT}) :=
   nosimpl (mulgen_group G H).
@@ -1607,7 +1612,7 @@ by rewrite group_modr sub1set // inE.
 Qed.
 
 Lemma divgI : forall G H, #|G| %/ #|G :&: H| = #|G : H|.
-Proof. by move=> G H; rewrite -(LaGrangeI G H) mulKn ?ltn_0group. Qed.
+Proof. by move=> G H; rewrite -(LaGrangeI G H) mulKn ?cardG_gt0. Qed.
 
 Lemma divg_index : forall G H, #|G| %/ #|G : H| = #|G :&: H|.
 Proof. by move=> G H; rewrite -(LaGrangeI G H) mulnK. Qed.
@@ -1628,12 +1633,12 @@ Lemma indexJg : forall G H x, #|G :^ x : H :^ x| = #|G : H|.
 Proof. by move=> G H x; rewrite -!divgI -conjIg !cardJg. Qed.
 
 Lemma indexgg : forall G, #|G : G| = 1%N.
-Proof. by move=> G; rewrite -divgS // divnn ltn_0group. Qed.
+Proof. by move=> G; rewrite -divgS // divnn cardG_gt0. Qed.
 
 Lemma LaGrange_index : forall G H K,
   H \subset G -> K \subset H -> (#|G : H| * #|H : K|)%N = #|G : K|.
 Proof.
-move=> G H K sHG sKH; apply/eqP; rewrite mulnC -(eqn_pmul2l (ltn_0group K)).
+move=> G H K sHG sKH; apply/eqP; rewrite mulnC -(eqn_pmul2l (cardG_gt0 K)).
 by rewrite mulnA !LaGrange // (subset_trans sKH).
 Qed.
 
@@ -1642,14 +1647,14 @@ Proof. by move=> G H; rewrite -divgI divgS ?subsetIl. Qed.
 
 Lemma indexgS : forall G H K, H \subset K -> #|G : K| %| #|G : H|.
 Proof.
-move=> G H K sHK; rewrite -(@dvdn_pmul2l #|G :&: K|) ?ltn_0group // LaGrangeI.
+move=> G H K sHK; rewrite -(@dvdn_pmul2l #|G :&: K|) ?cardG_gt0 // LaGrangeI.
 by rewrite -(LaGrange (setIS G sHK)) mulnAC LaGrangeI dvdn_mulr.
 Qed.
 
 Lemma indexSg : forall G H K,
   H \subset K -> K \subset G -> #|K : H| %| #|G : H|.
 Proof.
-move=> G H K sHK sKG; rewrite -(@dvdn_pmul2l #|H|) ?ltn_0group //.
+move=> G H K sHK sKG; rewrite -(@dvdn_pmul2l #|H|) ?cardG_gt0 //.
 by rewrite !LaGrange ?(cardSg, subset_trans sHK).
 Qed.
 
@@ -1681,7 +1686,7 @@ Lemma cardMg_TI : forall G H, #|G| * #|H| <= #|G * H| -> G :&: H = 1.
 Proof.
 move=> G H leGH; apply: card_le1_trivg.
 rewrite -(@leq_pmul2l #|G * H|); first by rewrite -mul_cardG muln1. 
-by apply: leq_trans leGH; rewrite ltn_0mul !ltn_0group.
+by apply: leq_trans leGH; rewrite muln_gt0 !cardG_gt0.
 Qed.
 
 Lemma coprime_TIg : forall G H, coprime #|G| #|H| -> G :&: H = 1.
