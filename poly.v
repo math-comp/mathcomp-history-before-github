@@ -312,8 +312,8 @@ Qed.
 Lemma size_sum : forall I r (P : pred I) (F : I -> {poly R}),
   size (\sum_(i <- r | P i) F i) <= \max_(i <- r | P i) size (F i).
 Proof.
-move=> I r P F; pose K p n := size p <= n.
-apply: (big_rel K) => // [|p1 n1 p2 n2 IH1 IH2]; first by rewrite size_poly0.
+move=> I r P F; pose K p := [fun n => size p <= n : Prop].
+apply: (big_rel K) => //= [|p1 n1 p2 n2 IH1 IH2]; first by rewrite size_poly0.
 apply: leq_trans (size_add p1 p2) _.
 by rewrite -eqn_maxl maxnAC !maxnA -maxnA (maxnl IH1) (maxnr IH2).
 Qed.
@@ -832,7 +832,7 @@ Qed.
 Lemma gcdpE : forall p q, 
   gcdp p q = if size p < size q then gcdp (q %% p) p else gcdp (p %% q) q.
 Proof.
-pose fix gcdp_rec (n : nat) (pp qq : {poly R}) {struct n} := 
+pose gcdp_rec := fix gcdp_rec (n : nat) (pp qq : {poly R}) {struct n} := 
    let rr := pp %% qq in
    if rr == 0 then qq else 
    if n is n1.+1 then gcdp_rec n1 qq rr else rr.
