@@ -167,9 +167,9 @@ let pf_ids_of_proof_hyps gl =
 let convert_concl_no_check t = convert_concl_no_check t DEFAULTcast
 let convert_concl t = convert_concl t DEFAULTcast
 let reduct_in_concl t = reduct_in_concl (t, DEFAULTcast)
-(* assia : added dummy_location*)
+(* assia : added dummy_location; HH : used pose_proof short-cut *)
 (*let havetac id = forward None (IntroIdentifier id)*)
-let havetac id = forward None (Some (dummy_loc, (IntroIdentifier id)))
+let havetac id = pose_proof (Name id)
 (*assia : let settac id = letin_tac true (Name id)*)
 let settac id c = letin_tac None (Name id) c None
 let posetac id cl = settac id cl nowhere
@@ -1513,8 +1513,8 @@ let discharge_hyp (id', id) gl =
 
 let endclausestac id_map clseq gl_id cl0 gl =
   let not_hyp' id = not (List.mem_assoc id id_map) in
-  let orig_id id = try List.assoc id id_map with _ -> id in 
-  let dc, c = Sign.decompose_prod_assum (pf_concl gl) in (* sidi add Sign. *)
+  let orig_id id = try List.assoc id id_map with _ -> id in
+  let dc, c = Sign.decompose_prod_assum (pf_concl gl) in
   let hide_goal = hidden_clseq clseq in
   let c_hidden = hide_goal && c = mkVar gl_id in
   let rec fits forced = function
@@ -1893,11 +1893,11 @@ let anon_id = function
 let anontac (x, _, _) = intro_using (anon_id x)
 
 let intro_all gl =
-  let dc, _ = Sign.decompose_prod_assum (pf_concl gl) in (* sidi : add Sign. *)
+  let dc, _ = Sign.decompose_prod_assum (pf_concl gl) in
   tclTHENLIST (List.map anontac (List.rev dc)) gl
 
 let rec intro_anon gl =
-  try anontac (List.hd (fst (Sign.decompose_prod_n_assum 1 (pf_concl gl)))) gl (* sidi : add Sign. *)
+  try anontac (List.hd (fst (Sign.decompose_prod_n_assum 1 (pf_concl gl)))) gl
   with _ -> try tclTHEN red_in_concl intro_anon gl
   with _ -> error "No product even after reduction"
 
@@ -2457,7 +2457,7 @@ let pf_understand_holes gl n na pat =
   let cp = whdEtaApp pat n in
   let locked = mkSsrConst "locked" in
   let cp' = if na = 0 then cp else
-    let f, args = Reductionops.whd_betaiota_stack cp in
+    let f, args = Reductionops.whd_betaiota_stack sigma cp in
     if List.length args <> na then anomaly "inconsistent pattern args" else
     let f = pop_let f in
     let tf = Retyping.get_type_of (push_rels_assum dc env) sigma f in
@@ -2479,7 +2479,7 @@ let pf_understand_holes gl n na pat =
     let expected_type = mkeq [|Retyping.get_type_of env sigma c'; c'; c'|] in
     Array.sub (snd (destApp (understand sigma phenv ~expected_type phrc))) 0 n
 
-let whd_app f args = Reductionops.whd_betaiota (mkApp (f, args))
+let whd_app f args = Reductionops.whd_betaiota Evd.empty (mkApp (f, args))
 
 let pf_match_pattern gl n pat c0 =
   if n = 0 then pat else
@@ -2519,7 +2519,7 @@ let pat_key c =  match kind_of_term c with
 
 let splay_pat gl n c0 =
   let dc, c = decompose_lam_n n c0 in
-  let f, argl = Reductionops.whd_betaiota_stack c in
+  let f, argl = Reductionops.whd_betaiota_stack (project gl) c in
   let args = Array.of_list argl in
   match kind_of_term f with
   | Rel i ->
@@ -4803,7 +4803,7 @@ GEXTEND Gram
   | IDENT "assert"; c = constr; "as"; ipat = simple_intropattern -> 
        TacAssert (Some (TacId []), Some ipat, c)
   | IDENT "assert"; c = constr; "by"; tac = tactic_expr LEVEL "3" -> 
-       TacAssert (Some (TacComplete tac), (Some (dummy_loc, IntroAnonymous)), c)
+       TacAssert (Some (TacComplete tac), Some (dummy_loc, IntroAnonymous), c)
   ] ];
 END
 
