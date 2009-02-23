@@ -528,7 +528,7 @@ Lemma alternate_determinant : forall n (A : 'M_n) i1 i2,
 Proof.
 move=> n A i1 i2 Di12 A12; pose r := 'I_n.
 pose t := tperm i1 i2; pose tr s := (t * s)%g.
-have trK : involutive tr by move=> s; rewrite /tr mulgA tperm2 mul1g.
+have trK : involutive tr by move=> s; rewrite /tr mulgA square_tperm mul1g.
 have Etr: forall s, odd_perm (tr s) = even_perm s.
   by move=> s; rewrite odd_permM odd_tperm Di12.
 rewrite /(\det _) (bigID (@even_perm _)) /=.

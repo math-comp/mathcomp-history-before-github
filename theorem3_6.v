@@ -238,7 +238,7 @@ case: (eqVneq [~: K, P] 1) => [trKP|ntKP].
     rewrite p_elt_gen_length1 // (_ : p_elt_gen p H = V).
       rewrite /pHall pcore_sub pcore_pgroup /= pnatNK.
       apply: pnat_dvd pV; exact: dvdn_indexg.
-    rewrite -(genGid V); congr <<_>>; apply/setP=> x; rewrite inE.
+   (rewrite -(genGid V); congr <<_>>; apply/setP=> x; rewrite inE).
     apply/andP/idP=> [[Hx p_x] | Vx].
       by rewrite (mem_normal_Hall sylVH) // /normal sVH.
     split; [exact: (subsetP sVH) | exact: mem_p_elt Vx].

@@ -174,9 +174,6 @@ Proof.
 by move=> x y; apply/permP => z; rewrite -{1}(tpermK x y z) permK.
 Qed.
 
-Lemma tperm2 : forall x y : T, tperm x y * tperm x y = 1.
-Proof. by move=> x y; rewrite -{1}tpermV mulVg. Qed.
-
 Lemma inj_tperm : forall (T' : finType) (f : T -> T') x y z,
   injective f -> f (tperm x y z) = tperm (f x) (f y) (f z).
 Proof.
@@ -202,7 +199,7 @@ have:= congr1 odd (cardUI (B x) (B y)); rewrite !odd_add.
 have->: #|B x| = #|B y|; last rewrite addbb.
   rewrite -(card_image (permpI (tperm x y))) -(card_image flipI).
   apply: eq_card => p; rewrite /= !inE /= im_flip inE /= im_permp inE /=.
-  rewrite tpermV inE /= !permp_flip flipK -permpM tperm2 permp1.
+  rewrite tpermV inE /= !permp_flip flipK -permpM square_tperm permp1.
   rewrite -!andbA; do !bool_congr.
   by case: p => x' y'; rewrite /= -!(inv_eq (tpermK _ _)) tpermL orbC.
 move/(canRL (addKb _)) => /=.

@@ -745,6 +745,30 @@ Arguments Scope fsubst [_ term_scope _].
 
 Notation Local "s `_ i" := (nth 0 s i).
 
+Notation "''X_' i" := (Var _ i)
+  (at level 8, i at level 2, format "''X_' i") : term_scope.
+Notation "n %:R" := (NatConst _ n) : term_scope.
+Infix "+" := Add : term_scope.
+Notation "- t" := (Opp t) : term_scope.
+Notation "t - u" := (Add t (- u)) : term_scope.
+Infix "*" := Mul : term_scope.
+Infix "*+" := NatMul : term_scope.
+Notation "t ^-1" := (Inv t) : term_scope.
+Notation "t / u" := (Mul t u^-1) : term_scope.
+Infix "^+" := Exp : term_scope.
+Infix "==" := Equal : term_scope.
+Infix "/\" := And : term_scope.
+Infix "\/" := Or : term_scope.
+Infix "==>" := Implies : term_scope.
+Notation "~ f" := (Not f) : term_scope.
+Notation "'exists' ''X_' i , f" := (Exists i f)
+  (at level 200, i at level 2, right associativity,
+   format "'[hv' 'exists'  ''X_' i , '/ '  f ']'") : term_scope.
+Notation "'forall' ''X_' i , f" := (Forall i f)
+  (at level 200, i at level 2,
+   format "'[hv' 'forall'  ''X_' i , '/ '  f ']'") : term_scope.
+
+
 Section EvalTerm.
 
 Variable R : UnitRing.type.
@@ -822,6 +846,234 @@ split=> [] f_ x; move: (f_ x); rewrite set_set_nth eq_sym eq_ji;
      have:= IHf (set_nth 0 e j x); tauto.
 Qed.
 
+Fixpoint ring_term (t : term R) := 
+  match t with
+  | Inv _ => false
+  | Add t1 t2 | Mul t1 t2 => ring_term t1 && ring_term t2
+  | Opp t1 | NatMul t1 _ | Exp t1 _ => ring_term t1
+  | _ => true
+  end.
+
+Fixpoint ring_formula (f : formula R) :=
+  match f with
+  | Equal t1 t2 => ring_term t1 && ring_term t2
+  | Unit t1 => false
+  | And f1 f2 | Or f1 f2 | Implies f1 f2 => ring_formula f1 && ring_formula f2
+  | Not f1 | Exists _ f1 | Forall _ f1 => ring_formula f1
+  end.
+
+Fixpoint constructible (f : formula R) :=
+  match f with
+  | Equal t1 (NatConst 0) => ring_term t1
+  | And f1 f2 | Or f1 f2 => constructible f1 && constructible f2 
+  | Not f1 => constructible f1
+  | _ => false
+  end.
+
+Fixpoint ub_var (t : term R) :=
+  match t with
+  | Var i => i.+1
+  | Add t1 t2 | Mul t1 t2 => maxn (ub_var t1) (ub_var t2)
+  | Opp t1 | NatMul t1 _ | Exp t1 _ | Inv t1 => ub_var t1
+  | _ => 0%N
+  end.
+    
+Fixpoint to_ring_term (t : term R) r n {struct t} :=
+  match t with
+  | Inv t1 =>
+    let: (t1', r1) := to_ring_term t1 r n in
+      (Var _ (n + size r1), rcons r1 t1')
+  | Add t1 t2 =>
+    let: (t1', r1) := to_ring_term t1 r n in
+    let: (t2', r2) := to_ring_term t2 r1 n in
+      (Add t1' t2', r2)
+  | Opp t1 =>
+   let: (t1', r1) := to_ring_term t1 r n in
+     (Opp t1', r1)
+  | NatMul t1 m =>
+   let: (t1', r1) := to_ring_term t1 r n in
+     (NatMul t1' m, r1)
+  | Mul t1 t2 =>
+    let: (t1', r1) := to_ring_term t1 r n in
+    let: (t2', r2) := to_ring_term t2 r1 n in
+      (Mul t1' t2', r2)
+  | Exp t1 m =>
+       let: (t1', r1) := to_ring_term t1 r n in
+     (Exp t1' m, r1)
+  | _ => (t, r)
+  end.
+
+Definition equal0_to_ring_formula t1 :=
+  let m := ub_var t1 in
+  let: (t1', r1) := to_ring_term t1 [::] m in
+  let fix loop (r : seq (term R)) (i : nat) {struct r}:=
+    (match r with 
+      | [::] => Equal t1' (NatConst _ 0)
+      | t :: r' => 
+        let f := 'X_i * t == 1%:R /\ t * 'X_i == 1%:R in
+          forall 'X_i, (f \/ 'X_i == t /\ ~ (exists 'X_i,  f)) ==> loop r' i.+1
+    end)%T
+    in loop r1 m.
+
+Fixpoint to_ring_formula f := 
+  match f with
+  | t1 == t2 => 
+      equal0_to_ring_formula (t1 - t2)
+  | Unit t1 => equal0_to_ring_formula (t1 * t1^-1 - 1%:R)
+  | f1 /\ f2 => to_ring_formula f1 /\ to_ring_formula f2
+  | f1 \/ f2 =>  to_ring_formula f1 \/ to_ring_formula f2
+  | f1 ==> f2 => to_ring_formula f1 ==> to_ring_formula f2
+  | ~ f1 => ~ to_ring_formula f1
+  | Exists i f1 => exists 'X_i, to_ring_formula f1
+  | Forall i f1 => forall 'X_i, to_ring_formula f1
+  end%T.
+
+(*
+Fixpoint to_ring_formula f := 
+  match f with
+  | t1 == t2 => 
+      equal0_to_ring_formula (t1 - t2)
+  | Unit t1 => equal0_to_ring_formula (t1 * t1^-1 - 1%:R)
+  | f1 /\ f2 => to_ring_formula f1 /\ to_ring_formula f2
+  | f1 \/ f2 =>  to_ring_formula f1 \/ to_ring_formula f2
+  | f1 ==> f2 => to_ring_formula f1 ==> to_ring_formula f2
+  | ~ f1 => ~ to_ring_formula f1
+  | Exists i f1 => exists 'X_i, to_ring_formula f1
+  | (forall 'X_i, f1) => forall 'X_i, to_ring_formula f1
+  end%T.
+
+Process coq erreur de segmentation
+*)
+
+Lemma to_ring_formula_ring : forall f, ring_formula (to_ring_formula f).
+Proof.
+suff eq0_ring : ring_formula (equal0_to_ring_formula _) by elim=> //= => f1 ->.
+move=> t1; rewrite /equal0_to_ring_formula; move: (ub_var t1) => m.
+set tr := _ m.
+suff : all ring_term (tr.1 :: tr.2).
+  case: tr => {t1} t1 r /=; case/andP=> t1_r.
+  elim: r m => [| t r IHr] m; rewrite /= ?andbT //.
+  case/andP=> ->; exact: IHr.
+have : all ring_term [::] by [].
+rewrite {}/tr; elim: t1 [::] => //=.
+- move=> t1 IHt1 t2 IHt2 r. 
+  move/IHt1; case: to_ring_term=> {t1 r IHt1} t1 r /=; case/andP=> t1_r.
+  move/IHt2; case: to_ring_term=> {t2 r IHt2} t2 r /=; case/andP=> t2_r.
+  by rewrite t1_r t2_r.
+- by move=> t1 IHt1 r; move/IHt1; case: to_ring_term. 
+- by move=> t1 IHt1 n r; move/IHt1; case: to_ring_term. 
+- move=> t1 IHt1 t2 IHt2 r. 
+  move/IHt1; case: to_ring_term=> {t1 r IHt1} t1 r /=; case/andP=> t1_r.
+  move/IHt2; case: to_ring_term=> {t2 r IHt2} t2 r /=; case/andP=> t2_r.
+  by rewrite t1_r t2_r.
+- move=> t1 IHt1 r.
+  by move/IHt1; case: to_ring_term=> {t1 r IHt1} t1 r /=; rewrite all_rcons.
+- by move=> t1 IHt1 n r; move/IHt1; case: to_ring_term. 
+Qed.
+
+Lemma to_ring_formula_equiv : forall f e,
+  holds (to_ring_formula f) e <-> holds f e.
+Proof.
+suff equal0_equiv : forall t1 t2 e, 
+  holds (equal0_to_ring_formula (t1 - t2)) e <-> (eval t1 e == eval t2 e).
+- elim => /= ; try tauto.
+  + move => t1 t2 e.
+    by split; [move/equal0_equiv; move/eqP | move/eqP; move/equal0_equiv].
+  + move=> t1 e; rewrite unitrE; exact: equal0_equiv.
+  + move=> f1 IHf1 f2 IHf2 e; move: (IHf1 e) (IHf2 e); tauto.
+  + move=> f1 IHf1 f2 IHf2 e; move: (IHf1 e) (IHf2 e); tauto.
+  + move=> f1 IHf1 f2 IHf2 e; move: (IHf1 e) (IHf2 e); tauto.
+  + move=> f1 IHf1 e; move: (IHf1 e); tauto.
+  + by move=> n f1 IHf1 e; split=> [] [x]; move/IHf1; exists x.
+  + by move=> n f1 IHf1 e; split=> Hx x; apply/IHf1.
+move=> t1 t2 e; rewrite -(add0r (eval t2 e)) -(can2_eq (subrK _) (addrK _)).
+rewrite -/(eval (t1 - t2) e); move: (t1 - t2)%T => {t1 t2} t.
+have sub_var_tsubst : forall s t, s.1 >= ub_var t -> tsubst t s = t.
+  move=> s; elim=> //=.
+  - by move=> n; case: ltngtP.
+  - move=> t1 IHt1 t2 IHt2; rewrite leq_maxl.
+    by case/andP; move/IHt1->; move/IHt2->.
+  - by move=> t1 IHt1; move/IHt1->.
+  - by move=> t1 IHt1 n; move/IHt1->.
+  - move=> t1 IHt1 t2 IHt2; rewrite leq_maxl.
+    by case/andP; move/IHt1->; move/IHt2->.
+  - by move=> t1 IHt1; move/IHt1->.
+  - by move=> t1 IHt1 n; move/IHt1->.
+(*pose rsub  t' := fix rsub m r :=
+  if r is u :: r' then tsubst (rsub m.+1 r') (m, t) else t'.
+Stack overflow ...
+*)
+pose rsub  t' := fix rsub m (r : seq (term R))  :=
+  if r is u :: r' then tsubst (rsub m.+1 r') (m, u^-1)%T else t'.
+pose ub_sub := fix ub_sub m (r : seq (term R))  :=
+  if r is u :: r' then ub_var u <= m /\ ub_sub m.+1 r' else True.
+suff rsub_to_r : forall t0 r0 m, m >= ub_var t0 -> ub_sub m r0 ->
+  let: (t', r) := to_ring_term t0 r0 m in
+  [/\ take (size r0) r = r0, ub_var t' <= m + size r, ub_sub m r & rsub t' m r = t0].
+- have:= rsub_to_r t [::] _ (leqnn _).
+  rewrite /equal0_to_ring_formula.
+  case: (to_ring_term _ _ _) => [t1' r1] [//|_ _ ub_r1 def_t]; rewrite -{2}def_t {def_t}.
+  elim: r1 (ub_var t) e ub_r1 => [|u r1 IHr1] m e /= => [_|[ub_u ub_r1]].
+    by split; move/eqP.
+  rewrite eval_tsubst /=; set y := eval u e; split=> t_eq0.
+    apply/IHr1=> //; apply: t_eq0.
+    rewrite nth_set_nth /= eqxx -(eval_tsubst u e (m, Const _)) sub_var_tsubst //= -/y.
+    case Uy: (unit y); [left | right]; first by rewrite mulVr ?divrr.
+    split; first by rewrite invr_out ?Uy.
+    case=> z; rewrite nth_set_nth /= eqxx.
+    rewrite -!(eval_tsubst _ _ (m, Const _)) !sub_var_tsubst // -/y => yz1.
+    by case/unitrP: Uy; exists z.
+  move=> x def_x; apply/IHr1=> //; suff ->: x = y^-1 by []; move: def_x.
+  rewrite nth_set_nth /= eqxx -(eval_tsubst u e (m, Const _)) sub_var_tsubst //= -/y.
+  case=> [[xy1 yx1] | [xy nUy]].
+    by rewrite -[y^-1]mul1r -[1]xy1 mulrK //; apply/unitrP; exists x.
+  rewrite invr_out //; apply/unitrP=> [[z yz1]]; case: nUy; exists z.
+  by rewrite nth_set_nth /= eqxx -!(eval_tsubst _ _ (m, Const _)) !sub_var_tsubst.
+have rsub_id : forall r t n, (ub_var t)<= n -> rsub t n r = t.
+  elim=> //= t0 r IHr t1 n hn; rewrite IHr ?sub_var_tsubst  ?(ltnW hn) //.
+  by  rewrite (leq_trans hn).
+have to_r_acc : forall t r n, exists s, 
+  let: (t', r') := to_ring_term t r n in r'  = r ++ s.
+  elim => [n | s | n | t1 IHt1 t2 IHt2 | t1 IHt1 | t1 IHt1 n | t1 IHt1 t2 IHt2 | t1 IHt1 | t1 IHt1 n] r m /=.
+  - by exists [::]; rewrite cats0.
+  - by exists [::]; rewrite cats0.
+  - by exists [::]; rewrite cats0.
+  - case: (IHt1 r m)=> s1; case: (to_ring_term _ _ _ )=> t1' s1' ->.
+    case: (IHt2 (r++s1) m)=> s2; case: (to_ring_term _ _ _ )=> t2' s2' ->.
+    by exists (s1 ++ s2); rewrite catA.
+  - case: (IHt1 r m)=> s1; case: (to_ring_term _ _ _ )=> t1' s1' ->.
+    by exists s1.
+  - case: (IHt1 r m)=> s1; case: (to_ring_term _ _ _ )=> t1' s1' ->.
+    by exists s1.
+  - case: (IHt1 r m)=> s1; case: (to_ring_term _ _ _ )=> t1' s1' ->.
+    case: (IHt2 (r++s1) m)=> s2; case: (to_ring_term _ _ _ )=> t2' s2' ->.
+    by exists (s1 ++ s2); rewrite catA.
+  - case: (IHt1 r m)=> s1; case: (to_ring_term _ _ _ )=> t1' s1' ->.
+    by exists (rcons s1 t1'); rewrite rcons_cat.
+  - case: (IHt1 r m)=> s1; case: (to_ring_term _ _ _ )=> t1' s1' ->.
+    by exists s1.
+elim=> /=.
+ - by move=>  n r m hlt hub; rewrite take_size (ltn_addr _ hlt); split; rewrite // rsub_id.
+ - by move=> n r m hlt hub; rewrite leq0n take_size; split; rewrite // rsub_id.
+ - by  move=> n r m hlt hub; rewrite leq0n take_size; split; rewrite // rsub_id.
+ - move=> t1 IHt1 t2 IHt2 r m; rewrite leq_maxl; case/andP=> hub1 hub2 hmr.
+   have := (IHt1 r m hub1 hmr); case e1: (to_ring_term _ _ _)=> [t1' r1].
+   case => htake1 hub1' hsub1 hrsub1.
+   have := (IHt2 r1 m hub2 hsub1); case e2: (to_ring_term _ _ _)=> [t2' r2].
+   case => htake2 hub2' hsub2 hrsub2 /=.
+   rewrite leq_maxl {}hub2' andbT; split=> //.
+   + rewrite -[r2]/((t2',r2).2) -{}e2 -[r1]/((t1',r1).2) -{}e1.
+     case: (to_r_acc t1 r m)=> s1; case: (to_ring_term _ _ _ ) => /= _ s2 -> {s2}.
+      case: (to_r_acc t2 (r++s1) m)=> s2; case: (to_ring_term _ _ _ ) => /= _ s3 -> {s3}.
+      rewrite -catA; exact: take_size_cat.
+   + rewrite (leq_trans hub1') // -[r2]/((t2',r2).2) -{}e2 leq_add2l.
+       case: (to_r_acc t2 r1 m)=> s1; case: (to_ring_term _ _ _ )=> /= _ s2 -> {s2}.
+       rewrite size_cat; exact: leq_addr.
+   + have -> : forall r t1 t2 n, rsub (t1 + t2)%T n r = ((rsub t1 n r) + (rsub t2 n r))%T.
+         by elim=> [|t' r0 IHr0] t3 t4 n //=; rewrite IHr0.
+      rewrite hrsub2 (_ : rsub _ _ _ = t1) // -hrsub1.
+Admitted.
+
 End EvalTerm.
 
 Module ComUnitRing.
@@ -836,7 +1088,6 @@ Coercion base2 R m := UnitRing.Class (@ext R m).
 Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
 Definition unpack K (k : forall T (c : class_of T), K T c) cT :=
-
   let: Pack T c _ := cT return K _ (class cT) in k _ c.
 Definition repack cT : _ -> Type -> type := let k T c p := p c in unpack k cT.
 
@@ -1085,7 +1336,7 @@ Definition repack cT : _ -> Type -> type := let k T c p := p c in unpack k cT.
 
 Definition pack := let k T c m := Pack (@Class T c m) T in Field.unpack k.
 
-(* Ultimately, there should be a QE Mixin comstrucutor *)
+(* Ultimately, there should be a QE Mixin construcutor *)
 
 Definition eqType cT := Equality.Pack (class cT) cT.
 Definition choiceType cT := Choice.Pack (class cT) cT.

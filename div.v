@@ -5,7 +5,6 @@ Require Import ssrbool.
 Require Import eqtype.
 Require Import ssrnat.
 Require Import seq.
-Require Import paths.
 
 (**************************************************************************)
 (* This files contains the definitions of:                                *)

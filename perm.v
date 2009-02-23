@@ -227,4 +227,6 @@ Qed.
 
 End Theory.
 
+Prenex Implicits tperm.
+
 Unset Implicit Arguments.
