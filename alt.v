@@ -264,7 +264,7 @@ have Hcp1: #|[set x | p1 x != x]| <= n.
     by move->; rewrite andbT; apply/eqP => HH3; rewrite HH3 in HH2.
   apply: (leq_trans (subset_leq_card F3)).
   by move: Hp; rewrite (cardD1 x1) inE Hx1.
-have ->: p = p1 * tperm x1 (p x1) by rewrite -mulgA square_tperm mulg1.
+have ->: p = p1 * tperm x1 (p x1) by rewrite -mulgA tperm2 mulg1.
 rewrite odd_permM odd_tperm eq_sym Hx1 morphM; last 2 first.
 - by rewrite 2!inE; exact/astab1P.
 - by rewrite 2!inE; apply/astab1P; rewrite -{1}Hpx /= /aperm -permM.

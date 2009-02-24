@@ -1059,6 +1059,8 @@ Proof. by case. Qed.
 
 Fixpoint odd n := if n is n'.+1 then ~~ odd n' else false.
 
+Lemma oddb : forall b : bool, odd b = b. Proof. by case. Qed.
+
 Lemma odd_add : forall m n, odd (m + n) = odd m (+) odd n.
 Proof.
 by move=> m n; elim: m => [|m IHn] //=; rewrite -addTb IHn addbA addTb.
@@ -1066,7 +1068,7 @@ Qed.
 
 Lemma odd_sub : forall m n, n <= m -> odd (m - n) = odd m (+) odd n.
 Proof.
-move=> m n le_nm; apply: (@canRL bool) (addKb _) _.
+move=> m n le_nm; apply: (@canRL bool) (addbK _) _.
 by rewrite -odd_add addnC subnK.
 Qed.
 

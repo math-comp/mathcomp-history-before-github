@@ -149,8 +149,11 @@ Proof. by move=> s x; rewrite -permM mulgV perm1. Qed.
 Lemma permKV : forall s : pT, cancel s^-1 s.
 Proof. by move=> s; have:= permK s^-1; rewrite invgK. Qed.
 
-Lemma permJ : forall (s t: pT) x, (s ^ t) (t x) = t (s x).
+Lemma permJ : forall (s t : pT) x, (s ^ t) (t x) = t (s x).
 Proof. by move=> *; rewrite !permM permK. Qed.
+
+Lemma permX : forall (s : pT) x n, (s ^+ n) x = iter n s x.
+Proof. by move=> s x; elim=> [|n /= <-]; rewrite ?perm1 // -permM expgSr. Qed.
 
 Definition perm_on (A : {set T}) : pred pT :=
   fun u => [pred x | u x != x] \subset A.
@@ -179,22 +182,54 @@ move=> H f x fH nHx; apply/eqP; apply: negbNE; apply: contra nHx.
 exact: (subsetP fH).
 Qed.
 
-Definition transpose x y z : T :=
- if x == z then y else if y == z then x else z.
-
-Lemma transposeK : forall x y, involutive (transpose x y).
+Lemma tperm_proof : forall x y : T,
+  involutive [fun z => z with x |-> y, y |-> x].
 Proof.
-move=> x y z; rewrite /transpose.
-case: (x =P z) => [->| nxz]; first by rewrite eqxx; case: eqP.
-by case: (y =P z) => [->| nyz]; [rewrite eqxx | do 2?case: eqP].
+move=> x y z /=.
+case: (z =P x) => [-> | ne_zx]; first by rewrite eqxx; case: eqP.
+by case: (z =P y) => [->| ne_zy]; [rewrite eqxx | do 2?case: eqP].
 Qed.
 
-Definition tperm x y := perm (can_inj (transposeK x y)).
+Definition tperm x y := perm (can_inj (tperm_proof x y)).
 
-Lemma square_tperm : forall x y, tperm x y * tperm x y = 1.
+CoInductive tperm_spec (x y z : T) : T -> Type :=
+  | TpermFirst of z = x          : tperm_spec x y z y
+  | TpermSecond of z = y         : tperm_spec x y z x
+  | TpermNone of z <> x & z <> y : tperm_spec x y z z.
+
+Lemma tpermP : forall x y z, tperm_spec x y z (tperm x y z).
 Proof.
-move=> x y; apply/permP=> z; rewrite permM !permE; exact: transposeK.
+by move=> x y z; rewrite permE /=; do 2?[case: eqP => /=]; constructor; auto.
 Qed.
+
+Lemma tpermL : forall x y : T, tperm x y x = y.
+Proof. by move=> x y; case tpermP. Qed.
+
+Lemma tpermR : forall x y : T, tperm x y y = x.
+Proof. by move=> x y; case tpermP. Qed.
+
+Lemma tpermD : forall x y z : T,  x != z -> y != z -> tperm x y z = z.
+Proof. by move => x y z; case tpermP => // ->; rewrite eqxx. Qed.
+
+Lemma tpermC : forall x y : T, tperm x y = tperm y x.
+Proof. by move=> *; apply/permP => ?; do 2![case: tpermP => //] => ->. Qed.
+
+Lemma tperm1 : forall x : T, tperm x x = 1.
+Proof. by move=> *; apply/permP => ?; rewrite perm1; case: tpermP. Qed.
+
+Lemma tpermK : forall x y : T, involutive (tperm x y).
+Proof. by move=> x y z; rewrite !permE tperm_proof. Qed.
+
+Lemma tpermKg : forall x y : T, involutive (mulg (tperm x y)).
+Proof. by move=> x s y; apply/permP=> z; rewrite !permM tpermK. Qed.
+
+Lemma tpermV : forall x y : T, (tperm x y)^-1 = tperm x y.
+Proof.
+by move=> x y; set t := tperm x y; rewrite -{2}(mulgK t t) -mulgA tpermKg.
+Qed.
+
+Lemma tperm2 : forall x y : T, tperm x y * tperm x y = 1.
+Proof. by move=> x y; rewrite -{1}tpermV mulVg. Qed.
 
 Lemma card_perm : forall A : {set T}, #|perm_on A| = fact #|A|.
 Proof.
@@ -211,22 +246,33 @@ have h_inj: injective h.
 rewrite -(card_imset _ h_inj); apply: eq_card=> [[/= y v]].
 apply/imsetP/andP=> /= [[u uA [-> -> {y v}]]|[Ay vA']].
   split; first by rewrite perm_closed.
-  apply/subsetP=> z; rewrite !inE permM permE /transpose.
-  rewrite (inj_eq (perm_inj u)) /= (eq_sym z).
-  case: (x =P z) => [<-|nxz nhuz /=]; first by case/eqP; case: eqP.
-  by apply: (subsetP uA); apply: contra nhuz; move/eqP->; case: (x =P z).
+  apply/subsetP=> z; rewrite !inE permM permE /=.
+  rewrite (inj_eq (perm_inj u)) /=.
+  case: (z =P x) => [->|nxz nhuz /=]; first by case/eqP; case: eqP.
+  by apply: (subsetP uA); apply: contra nhuz; move/eqP->; case: (z =P x).
 pose u : pT := v * tperm x y.
-have def_y: y = u x.
-  by rewrite permM permE /transpose (out_perm vA') ?inE eqxx.
-exists u; last by rewrite /h -def_y -mulgA square_tperm mulg1.
-apply/subsetP=> z; rewrite inE /= permM permE.
-rewrite (inv_eq (transposeK x y)) /transpose.
-do 2!case: (_ =P z) => [<- //| _].
+have def_y: y = u x by rewrite permM permE /= (out_perm vA') ?inE eqxx.
+exists u; last by rewrite /h -def_y -mulgA tperm2 mulg1.
+apply/subsetP=> z; rewrite inE /= permM (inv_eq (tpermK x y)) permE /=.
+do 2!case: (z =P _) => [-> //| _].
 by move/(subsetP vA'); rewrite inE; case/andP.
 Qed.
 
 End Theory.
 
 Prenex Implicits tperm.
+
+Lemma inj_tperm : forall (T T' : finType) (f : T -> T') x y z,
+  injective f -> f (tperm x y z) = tperm (f x) (f y) (f z).
+Proof.
+by move=> T T' f x y z injf; rewrite !permE /= !(inj_eq injf) !(fun_if f).
+Qed.
+
+Lemma tpermJ : forall (T : finType) x y (s : {perm T}),
+  (tperm x y) ^ s = tperm (s x) (s y).
+Proof.
+move=> T x y s; apply/permP => z; rewrite -(permKV s z) permJ.
+apply: inj_tperm; exact: perm_inj.
+Qed.
 
 Unset Implicit Arguments.

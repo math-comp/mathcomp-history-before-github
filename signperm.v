@@ -2,9 +2,9 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 (*                                                                     *)
 (***********************************************************************)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype.
-Require Import tuple finset groups perm action prim_act.
-Require Import morphisms normal.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq paths fintype.
+Require Import tuple bigops finset groups perm action prim_act.
+Require Import morphisms normal cyclic.
 
 (* Require Import paths finfun connect div zp. *)
 
@@ -13,10 +13,6 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 
 Import GroupScope.
-
-(* We don't use the bool group structure directly here, but we may need it *)
-(* to make the parity function is a morphism S_n -> bool, e.g., to define  *)
-(* A_n as its kernel.                                                      *)
 
 Definition bool_groupMixin := FinGroup.Mixin addbA addFb addbb.
 Canonical Structure bool_baseGroup :=
@@ -27,230 +23,145 @@ Section PermutationParity.
 
 Variable T : finType.
 
-(* Lifting permutations to pairs, with local shorthand. *)
+Implicit Type s : {perm T}.
+Implicit Types x y z : T.
 
-Definition perm_pair (s : {perm T}) p :=
-  let: (x, y) := p in (s x, s y).
-Notation Local permp := perm_pair.
+Definition pcycle s := orbit 'P%act <[s]>.
+Definition pcycles s := pcycle s @: T.
+Definition odd_perm (s : perm_type T) := odd #|T| (+) odd #|pcycles s|.
+Definition even_perm s := ~~ odd_perm s.
 
-Lemma perm_pair1 : forall p, permp 1 p = p. 
-Proof. by move=> [x y] /=; rewrite !perm1. Qed.
-Notation Local permp1 := perm_pair1.
+Lemma pcycleE : forall s, pcycle s = orbit 'P%act <[s]>. Proof. by []. Qed.
 
-Lemma perm_pairM : forall s t p, permp (s * t) p = permp t (permp s p).
-Proof. by move=> s t [x y] /=; rewrite !permM. Qed.
-Notation Local permpM := perm_pairM.
-
-Lemma perm_pairK : forall s, cancel (permp s) (permp s^-1).
-Proof. by move=> s p; rewrite -permpM mulgV permp1. Qed.
-Notation Local permpK := perm_pairK.
-
-Definition perm_pair_inj s := can_inj (permpK s).
-Notation Local permpI := (@perm_pair_inj).
-Hint Resolve perm_pair_inj.
-
-Lemma image_perm_pair : 
-  forall s A, image (permp s) A =i preim (permp s^-1) A.
+Lemma pcycle_traject : forall s x, pcycle s x =i traject s x #[s].
 Proof.
-move=> s A p.
-by rewrite -!topredE /= -{1}(permpK s^-1 p) invgK (image_f _ (permpI s)).
+move=> s x y; apply/orbitP/trajectP=> [[sn] | [k _ <-]].
+  by case/cyclePmin=> k lt_k_s <- <-; exists k; rewrite //= -permX.
+by exists (s ^+ k); rewrite ?mem_cycle //= -permX.
 Qed.
 
-Notation Local im_permp := image_perm_pair.
+Definition dpair := [pred t | t.1 != t.2 :> T].
 
-(* Flipping components of a pair *)
-
-Definition flip_pair A p : A * A := let: (x, y) := p in (y, x).
-Notation Local flip := (@flip_pair T).
-
-Lemma flip_pairK : involutive flip.
-Proof. by case. Qed.
-Notation Local flipK := flip_pairK.
-
-Definition flip_pair_inj := inv_inj flipK.
-Notation Local flipI := flip_pair_inj.
-
-Lemma image_flip_pair : forall A, image flip A =i preim flip A.
+Lemma prod_tpermP : forall s : {perm T},
+  {ts : seq (T * T) | s = \prod_(t <- ts) tperm t.1 t.2 & all dpair ts}.
 Proof.
-by move=> A p; rewrite -!topredE /= -{1}(flipK p) (image_f _ flipI).
-Qed.
-Notation Local im_flip := image_flip_pair.
-
-Lemma perm_flip_pair : forall s p, permp s (flip p) = flip (permp s p).
-Proof. by move=> s [x y]. Qed.
-Notation Local permp_flip := perm_flip_pair.
-
-(* Inversions are defined abstractly in terms of an "ordered_pair" relation. *)
-(* The only required properties for that relation are antisymmetry and       *)
-(* antirelexivity, which are conveniently expressed in terms of the "flip"   *)
-(* operation. The actual definition compares indices, but we don't use the   *)
-(* transitivity, except in an alternate proof that transpositions are odd.   *)
-
-Definition ordered_pair : pred (T * T) :=
-   fun p => enum_rank p.1 < enum_rank p.2.
-Notation Local opair := ordered_pair.
-
-Lemma ordered_pair_flip : forall p,
-  opair (flip p) = (flip p != p) && ~~ opair p.
-Proof.
-case=> x y; rewrite /opair ltn_neqAle -leqNgt; congr (~~ _ && _).
-by rewrite val_eqE (inj_eq (@enum_rank_inj T)) {2}/eq_op /= (eq_sym y) andbb.
-Qed.
-Notation Local opair_flip := ordered_pair_flip.
-
-Definition inversion s := [pred p | opair (flip (permp s p))].
-Notation Local invn := inversion.
-
-Definition odd_perm (s : perm_type T) := odd #|predI opair (inversion s)|.
-Notation Local oddp := (odd_perm : pred {perm T}).
-Definition even_perm s := ~~ oddp s.
-
-Lemma odd_permM : {morph oddp : s t / s * t >-> s (+) t}.
-Proof.
-move=> s t; rewrite /oddp -(cardID (inversion s)); symmetry.
-rewrite -(cardID (inversion (s * t))) addbC.
-rewrite -(card_image (permpI s^-1)) -(cardID opair).
-rewrite !odd_add addbCA !addbA -addbA addbC -addbA.
-set n1 := card _; set n2 := card _.
-suffices -> : n2 = n1.
-  rewrite addbK /=; congr 2 (odd _ (+) odd _); apply: eq_card=> p /=.
-    by rewrite !inE /= andbC andbCA andbA.
-  rewrite !inE im_permp !inE invgK /= /inversion.
-  rewrite -permpM !opair_flip -!permp_flip !(inj_eq (permpI _)).
-  by case: (_ != p); rewrite ?andbF //= negbK (andbC (opair p) _) andbA.
-rewrite /n2 -(card_image flipI); apply: eq_card => p /=.
-rewrite im_flip !inE im_permp !inE invgK /invn.
-rewrite !permp_flip !flipK -permpM !opair_flip -permp_flip.
-by rewrite (inj_eq (@permpI _)) -!andbA; do !bool_congr.
-Qed.
-Notation Local oddpM := odd_permM.
-
-Lemma odd_perm1 : oddp 1 = false.
-Proof. by rewrite -[1]mulg1 oddpM addbb. Qed.
-Notation Local oddp1 := odd_perm1.
-
-Lemma odd_permV : forall s, oddp s^-1 = oddp s.
-Proof. by move=> s; rewrite -{2}(mulgK s s) !oddpM addbb. Qed.
-Notation Local oddpV := odd_permV.
-
-Lemma odd_permJ : forall s t, oddp (s ^ t) = oddp s.
-Proof. by move=> *; rewrite /conjg !oddpM oddpV addbCA addbb addbF. Qed.
-Notation Local oddpJ := odd_permJ.
-
-
-(* Complements on tranpositions, starting with a shorter prenex alias. *)
-
-CoInductive tperm_spec (x y z : T) : T -> Type :=
-  | TpermFirst of z = x          : tperm_spec x y z y
-  | TpermSecond of z = y         : tperm_spec x y z x
-  | TpermNone of z <> x & z <> y : tperm_spec x y z z.
-
-Lemma tpermP : forall x y z, tperm_spec x y z (tperm x y z).
-Proof.
-move=> x y z; rewrite permE /transpose.
-by do 2?[case: eqP => /=]; constructor; auto.
+move=> s; elim: {s}_.+1 {-2}s (ltnSn #|[pred x | s x != x]|) => // n IHn s.
+rewrite ltnS => le_s_n; case: (pickP (fun x => s x != x)) => [x s_x | s_id].
+  have [|ts def_s ne_ts] := IHn (tperm x (s^-1 x) * s).
+    rewrite (cardD1 x) !inE s_x in le_s_n; apply: leq_ltn_trans le_s_n.
+    apply: subset_leq_card; apply/subsetP=> y.
+    rewrite !inE permM permE /= -(canF_eq (permK _)).
+    case: (y =P x) => [->|]; first by rewrite permKV eqxx.
+    by move/eqP=> ne_yx; case: (_ =P x) => // -> _; rewrite eq_sym.
+  exists ((x, s^-1 x) :: ts); last by rewrite /= -(canF_eq (permK _)) s_x.
+  by rewrite big_cons -def_s mulgA tperm2 mul1g.
+exists (Nil (T * T)); rewrite // big_nil; apply/permP=> x.
+by apply/eqP; apply/idPn; rewrite perm1 s_id.
 Qed.
 
-Lemma tpermL : forall x y : T, tperm x y x = y.
-Proof. by move=> x y; case tpermP. Qed.
-
-Lemma tpermR : forall x y : T, tperm x y y = x.
-Proof. by move=> x y; case tpermP. Qed.
-
-Lemma tpermD : forall x y z : T,  x != z -> y != z -> tperm x y z = z.
-Proof. by move => x y z; case tpermP => // ->; rewrite eqxx. Qed.
-
-Lemma tpermC : forall x y : T, tperm x y = tperm y x.
-Proof. by move=> *; apply/permP => ?; do 2![case: tpermP => //] => ->. Qed.
-
-Lemma tperm1 : forall x : T, tperm x x = 1.
-Proof. by move=> *; apply/permP => ?; rewrite perm1; case: tpermP. Qed.
-
-Lemma tpermK : forall x y : T, involutive (tperm x y).
-Proof. by move=> x y z; do 2![case tpermP => //] => ->. Qed.
-
-Lemma tpermV : forall x y : T, (tperm x y)^-1 = tperm x y.
+Lemma ncycles_mul_tperm : forall s x y (t := tperm x y),
+  #|pcycles (t * s)| + (x \notin pcycle s y).*2 = #|pcycles s| + (x != y).
 Proof.
-by move=> x y; apply/permP => z; rewrite -{1}(tpermK x y z) permK.
+pose xf s x y := find (pred2 x y) (traject s (s x) #[s]).
+have xf_size : forall s x y, xf s x y <= #[s].
+  by move=> s x y; rewrite (leq_trans (find_size _ _)) ?size_traject.
+have lt_xf: forall s x y n, n < xf s x y -> ~~ pred2 x y ((s ^+ n.+1) x).
+  move=> s x y n lt_n; move/negbT: (before_find (s x) lt_n).
+  by rewrite permX iterSr nth_traject // (leq_trans lt_n).
+pose t x y s := tperm x y * s.
+have tC: forall x y s, t x y s = t y x s by move=> x y s; rewrite /t tpermC.
+have tK : forall x y, involutive (t x y) by move=> x y s; exact: tpermKg.
+have tXC: forall s x y n, n <= xf s x y -> (t x y s ^+ n.+1) y = (s ^+ n.+1) x.
+  move=> s x y; elim=> [|n IHn] lt_n_f; first by rewrite permM tpermR.
+  rewrite !(expgSr _ n.+1) !permM {}IHn 1?ltnW //; congr (s _).
+  by move/lt_xf: lt_n_f; case/norP=> *; rewrite tpermD // eq_sym.
+have eq_xf: forall s x y, pred2 x y ((s ^+ (xf s x y).+1) x).
+  move=> s x y; simpl in s, x, y.
+  have has_f: has (pred2 x y) (traject s (s x) #[s]).
+    apply/hasP; exists x; rewrite /= ?eqxx // -pcycle_traject.
+    by apply/orbitP; exists s^-1; rewrite ?[_ s^-1]permK // groupV cycle_id.
+  have:= nth_find (s x) has_f; rewrite has_find size_traject in has_f.
+  by rewrite nth_traject // -iterSr -permX.
+have xfC: forall s x y, xf (t x y s) y x = xf s x y.
+  move=> s x y; wlog ltx: s x y / xf (t x y s) y x < xf s x y.
+    move=> IWxy; set m := xf _ y x; set n := xf s x y.
+    by case: (ltngtP m n) => // ltx; [exact: IWxy | rewrite /m -IWxy tC tK].
+  by move/lt_xf: (ltx); rewrite -(tXC s x y) 1?ltnW //= orbC [_ || _]eq_xf.
+move=> /= s x y; pose ts := t x y s; rewrite -[_ * s]/ts.
+pose dp s' := #|pcycles s' :\ pcycle s' y :\ pcycle s' x|.
+rewrite !(addnC #|_|) (cardsD1 (pcycle ts y)) mem_imset ?inE //.
+rewrite (cardsD1 (pcycle ts x)) inE mem_imset ?inE //= -/(dp ts).
+rewrite (cardsD1 (pcycle s y)) (cardsD1 (pcycle s x)) !(mem_imset, inE) //.
+rewrite -/(dp s) !addnA !orbit_eq_mem -!pcycleE andbT; congr (_ + _).
+  rewrite {dp}/ts; case: eqP => [<- | ne_xy].
+    by rewrite /t tperm1 mul1g orbit_refl.
+  suff ->: (x \in pcycle (t x y s) y) = (x \notin pcycle s y).
+    by case: (x \in _).
+  wlog xf_x: s x y ne_xy / (s ^+ (xf s x y).+1) x = x.
+    move=> IWs; have:= eq_xf s x y; set n := xf s x y.
+    case/pred2P=> [|snx]; first exact: IWs.
+    rewrite -[x \in _]negbK ![x \in _]orbit_sym -!pcycleE.
+    by rewrite -{}IWs; [rewrite tC tK | move/esym | rewrite xfC tXC].
+  rewrite -{1}xf_x -(tXC _ _ _ _ (leqnn _)) (orbit_to 'P) ?mem_cycle //.
+  rewrite orbit_sym; symmetry; apply/orbitP=> [[sn]]; case/cycleP=> n <-{sn}.
+  rewrite [_ x _]permX => snx.
+  have: looping s x (xf s x y).+1.
+    by rewrite permX in xf_x; apply/trajectP; exists 0.
+  move/loopingP; move/(_ n); rewrite {n}snx.
+  case/trajectP=> [[//|i]]; rewrite ltnS -permX => lt_i def_y.
+  by move/lt_xf: lt_i; rewrite def_y /= eqxx orbT.
+rewrite {}/ts; wlog: s / dp (t x y s) < dp s.
+  move=> IWs; case: (ltngtP (dp (t x y s)) (dp s)); [exact: IWs | | by []].
+  by move=> lt_s_ts; rewrite -IWs tK.
+rewrite ltnNge; case/negP; apply: subset_leq_card; apply/subsetP=> {dp} C.
+rewrite !inE andbA andbC !(eq_sym C); case/and3P; case/imsetP=> z _ ->{C}.
+rewrite 2!orbit_eq_mem -pcycleE => sxz syz.
+suff ts_z: pcycle (t x y s) z = pcycle s z.
+  by rewrite -ts_z !orbit_eq_mem -pcycleE {1 2}ts_z sxz syz mem_imset ?inE.
+suff exp_id: forall n, ((t x y s) ^+ n) z = (s ^+ n) z.
+  apply/setP=> u; apply/idP/idP; case/orbitP=> v; case/cycleP=> n <- <-{u v}.
+    by rewrite [_ z _]exp_id (orbit_to 'P) ?mem_cycle.
+  by rewrite -[_ z _]exp_id (orbit_to 'P) ?mem_cycle.
+elim=> // n IHn; rewrite !expgSr !permM {}IHn.
+by rewrite /t tpermD //; apply/eqP=> xy_z; [case/negP: sxz | case/negP: syz];
+   rewrite xy_z (orbit_to 'P) ?mem_cycle.
 Qed.
 
-Lemma inj_tperm : forall (T' : finType) (f : T -> T') x y z,
-  injective f -> f (tperm x y z) = tperm (f x) (f y) (f z).
+Lemma odd_perm1 : odd_perm 1 = false.
 Proof.
-move=> T' f x y z injf.
-by rewrite !permE /transpose !(inj_eq injf) !(fun_if f).
+rewrite /odd_perm card_imset ?addbb // => x y; move/eqP.
+by rewrite orbit_eq_mem /= cycle1; case/orbitP=> ?; move/set1P->; rewrite act1.
 Qed.
 
-Lemma tpermJ : forall x y (s : {perm T}), (tperm x y) ^ s = tperm (s x) (s y).
+Lemma odd_mul_tperm : forall x y s,
+  odd_perm (tperm x y * s) = (x != y) (+) odd_perm s.
 Proof.
-move=> x y s; apply/permP => z; rewrite -(permKV s z) permJ.
-apply: inj_tperm; exact: perm_inj.
+move=> x y s; rewrite addbC -addbA -[~~ _]oddb -odd_add -ncycles_mul_tperm.
+by rewrite odd_add odd_double addbF.
 Qed.
 
-Lemma odd_tperm : forall x y, oddp (tperm x y) = (x != y).
+Lemma odd_tperm : forall x y, odd_perm (tperm x y) = (x != y).
+Proof. by move=> x y; rewrite -[_ y]mulg1 odd_mul_tperm odd_perm1 addbF. Qed.
+
+Lemma odd_perm_prod : forall ts,
+  all dpair ts -> odd_perm (\prod_(t <- ts) tperm t.1 t.2) = odd (size ts).
 Proof.
-move=> x y; case Dxy: (x == y); first by rewrite (eqP Dxy) tperm1 oddp1.
-without loss Oxy: x y Dxy / opair (x, y).
-  case Oxy: (opair (x, y)); last rewrite tpermC; apply=> //; first by rewrite eq_sym.
-  by rewrite (opair_flip (x, y)) Oxy andbT; apply/nandP; right; rewrite Dxy.
-pose A z : pred (T * T) := fun p => let: (x', y') := p in pred2 x' y' z.
-pose B z := [pred p | opair p && inversion (tperm x y) p && A z p].
-have:= congr1 odd (cardUI (B x) (B y)); rewrite !odd_add.
-have->: #|B x| = #|B y|; last rewrite addbb.
-  rewrite -(card_image (permpI (tperm x y))) -(card_image flipI).
-  apply: eq_card => p; rewrite /= !inE /= im_flip inE /= im_permp inE /=.
-  rewrite tpermV inE /= !permp_flip flipK -permpM square_tperm permp1.
-  rewrite -!andbA; do !bool_congr.
-  by case: p => x' y'; rewrite /= -!(inv_eq (tpermK _ _)) tpermL orbC.
-move/(canRL (addKb _)) => /=.
-have->: odd #|predU (B x) (B y)| = oddp (tperm x y); last move->.
-  congr odd; apply: eq_card=> p /=; rewrite !inE /=.
-  case: (@andP (opair p)) => //=; case; rewrite opair_flip => Op.
-  case/andP=> _; case: p => /= x' y' in Op *.
-  by do 2![case: tpermP=> [->|->|_ _]; rewrite ?(eqxx, orbT) //]; case/negP.
-rewrite -[true]/(odd 1) -(card1 (x, y)); congr odd.
-apply: eq_card => /= [[x' y']]; rewrite inE /= !inE {A B}/= {5}/eq_op /=.
-rewrite !(eq_sym x) !(eq_sym y) andbA andbC.
-case: (x' == x) / (x' =P x) => [-> | _] /=.
-  rewrite Dxy; case: (y' == y) / (y' =P y) => //= ->.
-  by rewrite tpermL tpermR Oxy.
-case: (y' == x) / (y' =P x) => /= [->|]; last by rewrite !andbF.
-rewrite Dxy orbF -andbA; case: eqP => // ->; rewrite tpermL tpermR !andbb /=.
-by rewrite -(flipK (y, x)) opair_flip Oxy andbF.
+elim=> [_|t ts IHts] /=; first by rewrite big_nil odd_perm1.
+by case/andP=> dt12 dts; rewrite big_cons odd_mul_tperm dt12 IHts.
 Qed.
 
-  (* An alternate proof, based on reduction by conjugation.
-   It's less abstract, since it depends on the way pairs are ordered. *)
-(* NOT UPDATED
-Lemma odd_tperm' : forall x y, oddp (tperm x y) = (x != y).
+Lemma odd_permM : {morph odd_perm : s1 s2 / s1 * s2 >-> s1 (+) s2}.
 Proof.
-move=> x y; have x0 := x; pose z i := sub x0 (enum T) i; pose n := size (enum T).
-wlog ->: x y / x = z 0.
-  pose p := tperm x (z 0); rewrite -(inj_eq (@perm_inj _ p)) -(oddpJ _ p) tpermJ.
-  apply; exact: tpermL.
-case Dy0: (z 0 == y) {x} => /=.
-  rewrite -oddp1; congr oddp; apply/permP => x.
-  by rewrite (eqP Dy0) perm1; case tpermP.
-have Ez: forall i, i < n -> index (z i) (enum T) = i.
-  move=> i ltid; exact: index_uniq ltid (enum_uniq T).
-have Iz: exists2 i, i < n & z i = _ by move=> t; apply/subP; exact: mem_enum.
-have eqz: forall i j, i < n -> j < n -> (z i == z j) = (i == j).
-  move=> i j; move/Ez=> Di; move/Ez=> Dj.
-  by apply/eqP/eqP=> [Dzi | -> //]; rewrite -Di Dzi Dj.
-have lt1n: 1 < n; last have lt0n := ltnW lt1n.
-  case: (Iz y) => [i ltin Dy]; rewrite -{}Dy in Dy0.
-  by apply: leq_trans ltin; case: i Dy0 => //; rewrite eqxx.
-wlog{Dy0} ->: y / y = z 1%nat.
-  rewrite -(oddpJ _ (tperm y (z 1%nat))) tpermJ => Wy.
-  case: tpermP; by [move/eqP; rewrite ?Dy0 ?eqz | rewrite tpermL Wy].
-rewrite -[true]/(odd 1) -{2}(card1 (z 0, z 1%nat)) {y}; congr odd.
-apply: eq_card=> [[u1 u2]]; case: (Iz u1) (Iz u2) => [i1 i1P <-] [i2 i2P <-] {u1 u2}.
-do 2!rewrite /pred1 /=; rewrite /= /inversion /opair /= !Ez //.
-rewrite /fun_of_perm !ffunE /transpose -!(fun_if z) !eqz //.
-case: i2 i1 => [|[|i2]] [|[|i1]] //= in i1P i2P *; rewrite !Ez //= !ltnS.
-by apply/andP; case=> lti12; rewrite ltnNge ltnW.
+move=> s1 s2; case: (prod_tpermP s1) => ts1 ->{s1} dts1.
+case: (prod_tpermP s2) => ts2 ->{s2} dts2.
+by rewrite -big_cat !odd_perm_prod ?all_cat ?dts1 // size_cat odd_add.
 Qed.
-*)
+
+Lemma odd_permV : forall s, odd_perm s^-1 = odd_perm s.
+Proof. by move=> s; rewrite -{2}(mulgK s s) !odd_permM -addbA addKb. Qed.
+
+Lemma odd_permJ : forall s1 s2, odd_perm (s1 ^ s2) = odd_perm s1.
+Proof. by move=> s1 s2; rewrite !odd_permM odd_permV addbC addbK. Qed.
 
 (** Definitions of the alternate groups and some Properties **)
 Definition Sym of phant T : {set {perm T}} := setT.

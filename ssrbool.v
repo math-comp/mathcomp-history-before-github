@@ -501,8 +501,8 @@ Lemma addbCA : left_commutative addb.           Proof. by do 3!case. Qed.
 Lemma addbAC : right_commutative addb.          Proof. by do 3!case. Qed.
 Lemma andb_addl : left_distributive andb addb.  Proof. by do 3!case. Qed.
 Lemma andb_addr : right_distributive andb addb. Proof. by do 3!case. Qed.
-Lemma addbK : forall b, involutive (addb b).    Proof. by do 2!case. Qed.
-Lemma addKb : forall b, involutive (addb^~ b).  Proof. by do 2!case. Qed.
+Lemma addKb : forall b, involutive (addb b).    Proof. by do 2!case. Qed.
+Lemma addbK : forall b, involutive (addb^~ b).  Proof. by do 2!case. Qed.
 
 
 Lemma addTb : forall b, true (+) b = ~~ b. Proof. by []. Qed.

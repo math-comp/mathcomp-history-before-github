@@ -528,7 +528,7 @@ Lemma alternate_determinant : forall n (A : 'M_n) i1 i2,
 Proof.
 move=> n A i1 i2 Di12 A12; pose r := 'I_n.
 pose t := tperm i1 i2; pose tr s := (t * s)%g.
-have trK : involutive tr by move=> s; rewrite /tr mulgA square_tperm mul1g.
+have trK : involutive tr by move=> s; rewrite /tr mulgA tperm2 mul1g.
 have Etr: forall s, odd_perm (tr s) = even_perm s.
   by move=> s; rewrite odd_permM odd_tperm Di12.
 rewrite /(\det _) (bigID (@even_perm _)) /=.
@@ -665,11 +665,10 @@ have sign_ls: forall s i j, (-1)^+(ls i s j) = (-1) ^+s * (-1)^+(i + j) :> R.
   transitivity (((-1) ^+(tperm i i')) : R); last by rewrite odd_tperm ii'.
   congr (_ ^+(odd_perm _)); apply/permP => k.
   case: (unliftP i k) => [k'|] -> {k}; rewrite permE lsfE ?tpermL // perm1.
-  apply: val_inj; rewrite permE /transpose (negbTE (neq_lift _ _)) /pred1.
+  apply: val_inj; rewrite permE /= eq_sym (negbTE (neq_lift _ _)).
   rewrite fun_if -val_eqE /= im /bump; case mk': (m <= _).
-    by rewrite eqn_leq ltnNge leq_eqVlt m'm mk' orbT andbF.
-  rewrite add0n leq_eqVlt m'm mk'.
-  by case: (m.-1 == k') / (m.-1 =P k') => //= <-.
+    by rewrite eq_sym eqn_leq ltnNge leq_eqVlt m'm mk' orbT andbF.
+  by rewrite add0n leq_eqVlt m'm mk' 2!eq_sym; case: eqP => //= <-.
 move=> A i0 j0; rewrite (reindex (fun s => ls i0 s j0)); last first.
   pose ulsf i (s : 'S_n) k' :=
     if unlift (s i) (s (lift i k')) is Some k then k else k'.

@@ -878,7 +878,7 @@ Fixpoint ub_var (t : term R) :=
   | _ => 0%N
   end.
     
-Fixpoint to_ring_term (t : term R) r n {struct t} :=
+Fixpoint to_ring_term (t : term R) (r : seq (term R)) (n : nat) {struct t} :=
   match t with
   | Inv t1 =>
     let: (t1', r1) := to_ring_term t1 r n in
@@ -1040,9 +1040,9 @@ have to_r_acc : forall t r n, exists s,
   elim => 
     [n|s|n|t1 IHt1 t2 IHt2|t1 IHt1|t1 IHt1 n|t1 IHt1 t2 IHt2|t1 IHt1|t1 IHt1 n]
       r m /=.
-  - by exists [::]; rewrite cats0.
-  - by exists [::]; rewrite cats0.
-  - by exists [::]; rewrite cats0.
+  - by exists (Nil (term R)); rewrite cats0.
+  - by exists (Nil (term R)); rewrite cats0.
+  - by exists (Nil (term R)); rewrite cats0.
   - case: (IHt1 r m)=> s1; case: (to_ring_term _ _ _ )=> t1' s1' ->.
     case: (IHt2 (r++s1) m)=> s2; case: (to_ring_term _ _ _ )=> t2' s2' ->.
     by exists (s1 ++ s2); rewrite catA.

@@ -139,6 +139,9 @@ Proof. by case: to => ? []. Qed.
 Lemma actM : forall x a b, to x (a * b) = to (to x a) b.
 Proof. by case: to => ? []. Qed.
 
+Lemma actX : forall x a n, to x (a ^+ n) = iter n (to^~ a) x.
+Proof. by move=> x a; elim=> [|n /= <-]; rewrite ?act1 // -actM expgSr. Qed.
+
 Lemma actK : forall a, cancel (to^~ a) (to^~ a^-1).
 Proof. by move=> a x; rewrite -actM ?groupV // mulgV act1. Qed.
 
@@ -190,6 +193,12 @@ Lemma orbit_transr : forall A x y z,
   y \in orbit to A x -> (y \in orbit to A z) = (x \in orbit to A z).
 Proof.
 by move=> A x y z Axy; rewrite !(orbit_sym A z) (orbit_transl Axy).
+Qed.
+
+Lemma orbit_eq_mem : forall A x y,
+  (orbit to A x == orbit to A y) = (x \in orbit to A y).
+Proof.
+move=> A x y; apply/eqP/idP=> [<-|]; [exact: orbit_refl | exact: orbit_transl].
 Qed.
 
 Lemma afixP : forall (A : {set aT}) x,
