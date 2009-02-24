@@ -305,6 +305,12 @@ Qed.
 
 End ZpRing.
 
+Lemma ord1 : forall i : 'I_1, i = 0%R.
+Proof. case=> [[]] // ?; exact/eqP. Qed.
+
+Lemma lshift_ord1 : forall n (i : 'I_1), lshift n i = 0%R :> 'I_n.+1.
+Proof. by move=> n i; apply/eqP; rewrite [i]ord1. Qed.
+
 (* Field structure for primes. *)
 
 Section PrimeField.

@@ -196,6 +196,9 @@ Lemma quotientE : quotient = coset @* Q. Proof. by []. Qed.
 End Cosets.
 
 Prenex Implicits coset_of coset.
+Arguments Scope quotient [_ group_scope group_scope].
+
+Bind Scope group_scope with coset_of.
 
 Notation "A / B" := (quotient A B) : group_scope.
 

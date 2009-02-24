@@ -604,7 +604,7 @@ Lemma big_cons : forall i r (P : pred I) F,
   \big[op/idx]_(j <- i :: r | P j) F j = if P i then op (F i) x else x.
 Proof. by rewrite unlock. Qed.
 
-Lemma big_map : forall (J : eqType) (h : J -> I) r F (P : pred I),
+Lemma big_map : forall (J : eqType) (h : J -> I) r (P : pred I) F,
   \big[op/idx]_(i <- map h r | P i) F i
      = \big[op/idx]_(j <- r | P (h j)) F (h j).
 Proof. by rewrite unlock => J h r P F; elim: r => //= j r ->. Qed.
@@ -932,6 +932,28 @@ move=> n F; transitivity (\big[*%M/1]_(0 <= i < n.+1) F (inord i)).
 rewrite big_nat_recr big_mkord; congr (_ * F _); last first.
   by apply: val_inj; rewrite /= inordK.
 by apply: eq_bigr => [] i _; congr F; apply: ord_inj; rewrite inordK //= leqW.
+Qed.
+
+Lemma big_sumType : forall (I1 I2 : finType) (P : pred (I1 + I2)) F,
+  \big[*%M/1]_(i | P i) F i =
+        (\big[*%M/1]_(i | P (inl _ i)) F (inl _ i))
+      * (\big[*%M/1]_(i | P (inr _ i)) F (inr _ i)).
+Proof.
+move=> I1 I2 P F.
+by rewrite /index_enum [@Finite.enum _]unlock /= big_cat !big_map.
+Qed.
+
+Lemma big_split_ord : forall m n (P : pred 'I_(m + n)) F,
+  \big[*%M/1]_(i | P i) F i =
+        (\big[*%M/1]_(i | P (lshift n i)) F (lshift n i))
+      * (\big[*%M/1]_(i | P (rshift m i)) F (rshift m i)).
+Proof.
+move=> m n P F.
+rewrite -(big_map _ _ (lshift n) _ P F) -(big_map _ _ (@rshift m _) _ P F).
+rewrite -big_cat; congr bigop; apply: (inj_map val_inj).
+rewrite /index_enum -!enumT val_enum_ord map_cat -map_comp val_enum_ord.
+rewrite -map_comp (map_comp (addn m)) val_enum_ord.
+by rewrite -iota_addl addn0 iota_add.
 Qed.
 
 End Plain.

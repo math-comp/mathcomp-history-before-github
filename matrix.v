@@ -3,7 +3,7 @@
 (*                                                                     *)
 (***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype.
-Require Import finfun bigops ssralg groups zmodp perm signperm.
+Require Import finfun bigops ssralg groups perm signperm zmodp morphisms.
 
 (* Require Import div connect finset zp. *)
 
@@ -13,6 +13,10 @@ Import GRing.Theory.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
+
+Reserved Notation "''M_' n"       (at level 8, n at level 2, format "''M_' n").
+Reserved Notation "''M_' ( n )"   (at level 8, only parsing).
+Reserved Notation "''M_' ( m , n )" (at level 8, format "''M_' ( m ,  n )").
 
 Reserved Notation "\matrix_ ( i , j ) E"
   (at level 36, E at level 36, i, j at level 50,
@@ -24,30 +28,15 @@ Reserved Notation "\matrix_ ( i , j < n ) E"
   (at level 36, E at level 36, i, j, n at level 50,
    format "\matrix_ ( i ,  j  <  n )  E").
 
-Reserved Notation "''M_' n"       (at level 8, n at level 2, format "''M_' n").
-Reserved Notation "''M_' ( m , n )" (at level 8, format "''M_' ( m ,  n )").
-Reserved Notation "''M_' ( n )"   (at level 8, only parsing).
+Reserved Notation "x %:M"   (at level 8, format "x %:M").
+Reserved Notation "x *m: A" (at level 40, format "x  *m:  A").
+Reserved Notation "A *m B"  (at level 40, format "A  *m  B").
+Reserved Notation "A ^T"    (at level 8, format "A ^T").
+Reserved Notation "\tr A"   (at level 10, A at level 8, format "\tr  A").
+Reserved Notation "\det A"  (at level 10, A at level 8, format "\det  A").
+Reserved Notation "\adj A"  (at level 10, A at level 8, format "\adj  A").
 
-Reserved Notation "\0_ n"         (at level 8, n at level 2, format "\0_ n").
-Reserved Notation "\0_ ( m , n )" (at level 8, format "\0_ ( m ,  n )").
-Reserved Notation "\0_ ( n )"     (at level 8, only parsing).
-Reserved Notation "\0"            (at level 8, format "\0").
-Reserved Notation "\1_ n"         (at level 8, n at level 2, format "\1_ n").
-Reserved Notation "\1"            (at level 8, format "\1").
-Reserved Notation "\Z_ n x"       (at level 10, n at level 2, x at level 8,
-                                   format "\Z_ n  x").
-Reserved Notation "\Z x"          (at level 10, x at level 8, format "\Z  x").
-Reserved Notation "\P s"          (at level 10, s at level 8, format "\P  s").
-
-Reserved Notation "A +m B"    (at level 50, format "A  +m  B").
-Reserved Notation "x *s A"    (at level 40, format "x  *s  A").
-Reserved Notation "A *m B"    (at level 40, format "A  *m  B").
-Reserved Notation "\^t A"     (at level 10, A at level 8, format "\^t  A").
-Reserved Notation "\tr A"     (at level 10, A at level 8, format "\tr  A").
-Reserved Notation "\det A"    (at level 10, A at level 8, format "\det  A").
-Reserved Notation "\adj A"    (at level 10, A at level 8, format "\adj  A").
-
-Delimit Scope matrix_scope with MX.
+Delimit Scope matrix_scope with M.
 
 Notation Local simp := (Monoid.Theory.simpm, oppr0).
 
@@ -56,38 +45,26 @@ Open Local Scope matrix_scope.
 
 Section MatrixDef.
 
-Variable R : ringType. (* commutative_. *)
+Variable R : Type.
 Variables m n : nat.
 
 (* Basic linear algebra (matrices).                                       *)
 (*   We use dependent types (ordinals) for the indices so that ranges are *)
-(* mostly inferred automatically; we may have to reconsider this design   *)
-(* if it proves too unwieldly for block decomposition theory.             *)
+(* mostly inferred automatically                                          *)
 
 CoInductive matrix : predArgType := Matrix of {ffun 'I_m * 'I_n -> R}.
 
-Notation "''M_' ( m , n )" := (matrix m n).
-Notation "''M_' ( n )" := 'M_(n, n).
-Notation "''M_' n" := 'M_(n).
+Definition mx_val A := let: Matrix g := A in g.
 
-Definition matrix_val A := let: Matrix g := A in g.
-
-Lemma can_matrix_val : cancel matrix_val Matrix. Proof. by case. Qed.
-
-Definition matrix_eqMixin := CanEqMixin can_matrix_val.
-Canonical Structure matrix_eqType := Eval hnf in EqType matrix_eqMixin.
-
-Definition matrix_choiceMixin := CanChoiceMixin can_matrix_val.
-Canonical Structure matrix_choiceType :=
-  Eval hnf in ChoiceType matrix_choiceMixin.
+Lemma mx_valK : cancel mx_val Matrix. Proof. by case. Qed.
 
 Definition matrix_of_fun F := locked Matrix [ffun ij => F ij.1 ij.2].
 
-Definition fun_of_matrix := locked (fun A i j => matrix_val A (i, j)).
+Definition fun_of_matrix A (i : 'I_m) (j : 'I_n) := mx_val A (i, j).
 
 Coercion fun_of_matrix  : matrix >-> Funclass.
 
-Lemma mxK : forall F, matrix_of_fun F =2 F.
+Lemma mxE : forall F, matrix_of_fun F =2 F.
 Proof. by unlock matrix_of_fun fun_of_matrix => F i j; rewrite /= ffunE. Qed.
 
 Lemma matrixP : forall A B : matrix, A =2 B <-> A = B.
@@ -98,429 +75,682 @@ Qed.
 
 End MatrixDef.
 
-Open Scope matrix_scope.
+Bind Scope ring_scope with matrix.
+
+Notation "''M_' n"  := (matrix _ n n) : type_scope.
+Notation "''M_' ( n )" := 'M_n (only parsing) : type_scope.
+Notation "''M_' ( m , n )" := (matrix _ m n) : type_scope.
 
 Notation "\matrix_ ( i < m , j < n ) E" :=
-  (@matrix_of_fun _ m n (fun i j => E)) (only parsing) : matrix_scope.
+  (@matrix_of_fun _ m n (fun i j => E)) (only parsing) : ring_scope.
 
 Notation "\matrix_ ( i , j < n ) E" :=
-  (\matrix_(i < n, j < n) E) (only parsing) : matrix_scope.
+  (\matrix_(i < n, j < n) E) (only parsing) : ring_scope.
 
-Notation "\matrix_ ( i , j ) E" := (\matrix_(i < _, j < _) E) : matrix_scope.
+Notation "\matrix_ ( i , j ) E" := (\matrix_(i < _, j < _) E) : ring_scope.
 
-(* Definition of operations for matrix over a ring *)
+Definition matrix_eqMixin (R : eqType) m n :=
+  CanEqMixin (@mx_valK R m n).
+Canonical Structure matrix_eqType R m n:=
+  Eval hnf in EqType (matrix_eqMixin R m n).
+Definition matrix_choiceMixin (R : choiceType) m n :=
+  CanChoiceMixin (@mx_valK R m n).
+Canonical Structure matrix_choiceType R m n :=
+  Eval hnf in ChoiceType (matrix_choiceMixin R m n).
+
+Section Slicing.
+
+Variable R : Type.
+
+Definition mx_row m n i0 (A : 'M_(m, n)) :=
+  \matrix_(i < 1, j < n) (A i0 j : R).
+Definition mx_col m n j0 (A : 'M_(m, n)) :=
+  \matrix_(i < m, j < 1) (A i j0 : R).
+Definition mx_row' m n i0 (A : 'M_(m, n)) :=
+  \matrix_(i, j) (A (lift i0 i) j : R).
+Definition mx_col' m n j0 (A : 'M_(m, n)) :=
+  \matrix_(i, j) (A i (lift j0 j) : R).
+
+Definition rswap m n (A : 'M_(m, n)) i1 i2 :=
+  \matrix_(i, j) (A (tperm i1 i2 i) j : R). 
+    
+Definition cswap m n (A : 'M_(m, n)) i1 i2 :=
+  \matrix_(i, j) (A i (tperm i1 i2 j) : R). 
+    
+Definition trmx m n (A : 'M_(m, n)) := \matrix_(i, j) (A j i : R).
+
+Lemma trmxK : forall m n, cancel (@trmx m n) (@trmx n m).
+Proof. by move=> m n A; apply/matrixP=> i j; rewrite !mxE. Qed.
+
+Lemma trmx_inj : forall m n, injective (@trmx m n).
+Proof. move=> m n; exact: can_inj (@trmxK m n). Qed.
+
+Notation "A ^T" := (trmx A) : ring_scope.
+
+Lemma trmx_row : forall m n i0 (A : 'M_(m, n)),
+  (mx_row i0 A)^T = mx_col i0 A^T.
+Proof. by move=> m n i0 A; apply/matrixP=> i j; rewrite !mxE. Qed.
+
+Lemma trmx_row' : forall m n i0 (A : 'M_(m, n)),
+  (mx_row' i0 A)^T = mx_col' i0 A^T.
+Proof. by move=> m n i0 A; apply/matrixP=> i j; rewrite !mxE. Qed.
+
+Lemma trmx_col : forall m n j0 (A : 'M_(m, n)),
+  (mx_col j0 A)^T = mx_row j0 A^T.
+Proof. by move=> m n j0 A; apply/matrixP=> i j; rewrite !mxE. Qed.
+
+Lemma trmx_col' : forall m n j0 (A : 'M_(m, n)),
+  (mx_col' j0 A)^T = mx_row' j0 A^T.
+Proof. by move=> m n j0 A; apply/matrixP=> i j; rewrite !mxE. Qed.
+
+Lemma trmx_cswap : forall m n (A : 'M_(m, n)) i1 i2, 
+  (cswap A i1 i2)^T = rswap A^T i1 i2. 
+Proof. by move=> m n A i1 i2; apply/matrixP=> i j; rewrite !mxE. Qed. 
+
+Lemma trmx_rswap : forall m n (A : 'M_(m, n)) i1 i2, 
+  (rswap A i1 i2)^T = cswap A^T i1 i2. 
+Proof. by move=> m n A i1 i2; apply: trmx_inj; rewrite trmx_cswap !trmxK. Qed.
+
+Lemma mx_row_id : forall n (A : 'M_(1, n)), mx_row 0 A = A.
+Proof. by move=> n A; apply/matrixP=> i j; rewrite mxE [i]ord1. Qed.
+
+Lemma mx_row_eq : forall m1 m2 n i1 i2 (A1 : 'M_(m1, n)) (A2 : 'M_(m2, n)),
+  mx_row i1 A1 = mx_row i2 A2 -> A1 i1 =1 A2 i2.
+Proof.
+move=> m1 m2 n i1 i2 A1 A2; move/matrixP=> eqA12 j.
+by have:= eqA12 0 j; rewrite !mxE.
+Qed.
+
+Lemma mx_row'_eq : forall m n i0 (A B : 'M_(m, n)),
+  mx_row' i0 A = mx_row' i0 B -> {in predC1 i0, A =2 B}.
+Proof.
+move=> m n i0 A B; move/matrixP=> eqAB' i.
+rewrite !inE eq_sym; case/unlift_some=> i' -> _  j.
+by have:= eqAB' i' j; rewrite !mxE.
+Qed.
+
+Section CutPaste.
+
+Variables m n1 n2 : nat.
+
+(* The shape of the (dependent) width parameter of the type of A *)
+(* determines where the cut is made! *)
+
+Definition lcutmx (A : 'M_(m, n1 + n2)):=
+  \matrix_(i < m, j < n1) (A i (lshift n2 j) : R).
+
+Definition rcutmx (A : 'M_(m, n1 + n2)) :=
+  \matrix_(i < m, j < n2) (A i (rshift n1 j) : R).
+
+Definition pastemx (A1 : 'M_(m, n1)) (A2 : 'M_(m, n2)) :=
+   \matrix_(i < m, j < n1 + n2)
+      (match split j with inl j1 => A1 i j1 | inr j2 => A2 i j2 end : R).
+
+Lemma pastemxEl : forall A1 A2 i j, pastemx A1 A2 i (lshift n2 j) = A1 i j.
+Proof. by move=> A1 A2 i j; rewrite mxE (unsplitK (inl _ _)). Qed.
+  
+Lemma pastemxEr : forall A1 A2 i j, pastemx A1 A2 i (rshift n1 j) = A2 i j.
+Proof. by move=> A1 A2 i j; rewrite mxE (unsplitK (inr _ _)). Qed.
+
+Lemma pastemxKl : forall A1 A2, lcutmx (pastemx A1 A2) = A1.
+Proof. by move=> A1 A2; apply/matrixP=> i j; rewrite mxE pastemxEl. Qed.
+
+Lemma pastemxKr : forall A1 A2, rcutmx (pastemx A1 A2) = A2.
+Proof. by move=> A1 A2; apply/matrixP=> i j; rewrite mxE pastemxEr. Qed.
+
+Lemma cutmxK : forall A, pastemx (lcutmx A) (rcutmx A) = A.
+Proof.
+move=> A; apply/matrixP=> i j; rewrite !mxE.
+case: splitP => k Dk //=; rewrite !mxE //=; congr (A _ _); exact: val_inj.
+Qed.
+
+End CutPaste.
+
+Section Block.
+
+Variables m1 m2 n1 n2 : nat.
+
+Definition block_mx Aul Aur All Alr : 'M_(m1 + m2, n1 + n2) :=
+  (pastemx (pastemx Aul Aur)^T (pastemx All Alr)^T)^T.
+
+Section CutBlock.
+
+Variable A : matrix R (m1 + m2) (n1 + n2).
+
+Definition ulsubmx := lcutmx (lcutmx A^T)^T.
+Definition ursubmx := rcutmx (lcutmx A^T)^T.
+Definition llsubmx := lcutmx (rcutmx A^T)^T.
+Definition lrsubmx := rcutmx (rcutmx A^T)^T.
+
+Lemma submxK : block_mx ulsubmx ursubmx llsubmx lrsubmx = A.
+Proof. by rewrite /block_mx !(cutmxK, trmxK). Qed.
+
+End CutBlock.
+
+Section PasteBlock.
+
+Variables (Aul : matrix R m1 n1) (Aur : matrix R m1 n2).
+Variables (All : matrix R m2 n1) (Alr : matrix R m2 n2).
+
+Let A := block_mx Aul Aur All Alr.
+
+Lemma block_mxEul : forall i j, A (lshift m2 i) (lshift n2 j) = Aul i j.
+Proof. by move=> i j; rewrite mxE pastemxEl mxE pastemxEl. Qed.
+Lemma block_mxKul : ulsubmx A = Aul. 
+Proof. by rewrite /ulsubmx trmxK pastemxKl trmxK pastemxKl. Qed.
+
+Lemma block_mxEur : forall i j, A (lshift m2 i) (rshift n1 j) = Aur i j.
+Proof. by move=> i j; rewrite mxE pastemxEl mxE pastemxEr. Qed.
+Lemma block_mxKur : ursubmx A = Aur. 
+Proof. by rewrite /ursubmx trmxK pastemxKl trmxK pastemxKr. Qed.
+
+Lemma block_mxEll : forall i j, A (rshift m1 i) (lshift n2 j) = All i j.
+Proof. by move=> i j; rewrite mxE pastemxEr mxE pastemxEl. Qed.
+Lemma block_mxKll : llsubmx A = All. 
+Proof. by rewrite /llsubmx trmxK pastemxKr trmxK pastemxKl. Qed.
+
+Lemma block_mxElr : forall i j, A (rshift m1 i) (rshift n1 j) = Alr i j.
+Proof. by move=> i j; rewrite mxE pastemxEr mxE pastemxEr. Qed.
+Lemma block_mxKlr : lrsubmx A = Alr. 
+Proof. by rewrite /lrsubmx trmxK pastemxKr trmxK pastemxKr. Qed.
+
+End PasteBlock.
+
+End Block.
+
+Section TrBlock.
+
+Variables m1 m2 n1 n2 : nat.
+
+Section TrCut.
+
+Variable A : matrix R (m1 + m2) (n1 + n2).
+
+Lemma trmx_ulsub : (ulsubmx A)^T =  ulsubmx A^T.
+Proof. by apply/matrixP=> i j; rewrite !mxE. Qed.
+
+Lemma trmx_ursub : (ursubmx A)^T =  llsubmx A^T.
+Proof. by apply/matrixP=> i j; rewrite !mxE. Qed.
+
+Lemma trmx_llsub : (llsubmx A)^T =  ursubmx A^T.
+Proof. by apply/matrixP=> i j; rewrite !mxE. Qed.
+
+Lemma trmx_lrsub : (lrsubmx A)^T = lrsubmx A^T.
+Proof. by apply/matrixP=> i j; rewrite !mxE. Qed.
+
+End TrCut.
+
+Lemma trmx_block : forall Aul Aur All Alr,
+ (block_mx Aul Aur All Alr)^T =
+    block_mx Aul^T All^T Aur^T Alr^T :> 'M_(n1 + n2, m1 + m2).
+Proof.
+move=> Aul Aur All Alr; rewrite -[_^T]submxK.
+rewrite -trmx_ulsub -trmx_ursub -trmx_llsub -trmx_lrsub.
+by rewrite block_mxKul block_mxKur block_mxKll block_mxKlr.
+Qed.
+
+End TrBlock.
+
+End Slicing.
+
+Notation "A ^T" := (trmx A) : ring_scope.
+
+(* Definition of operations for matrices over a ring *)
 Section MatrixOpsDef.
 
 Variable R : ringType.
 
-Notation Local "''M_' ( m , n )" := (matrix R m n) : type_scope.
-Notation Local "''M_' ( n )" := 'M_(n, n) : type_scope.
-Notation Local "''M_' n" := 'M_(n) : type_scope.
+Section ZmodOps.
+(* The Zmodule structure *)
 
-Definition addmx m n (A B : 'M_(m, n)) :=
-  \matrix_(i, j) (A i j + B i j).
+Variables m n : nat.
+Implicit Types A B C : matrix R m n.
 
-Definition scalemx m n x (A : 'M_(m, n)) := \matrix_(i, j) (x * A i j).
+Definition null_mx := \matrix_(i < m, j < n) (0 : R).
+Definition oppmx A := \matrix_(i < m, j < n) (- A i j).
+Definition addmx A B := \matrix_(i < m, j < n) (A i j + B i j).
+Definition scalemx x A := \matrix_(i < m, j < n) (x * A i j).
 
+Lemma addmxA : associative addmx.
+Proof. by move=> A B C; apply/matrixP=> i j; rewrite !mxE addrA. Qed.
+
+Lemma addmxC : commutative addmx.
+Proof. by move=> A B; apply/matrixP=> i j; rewrite !mxE addrC. Qed.
+
+Lemma add0mx : left_id null_mx addmx.
+Proof. by move=> A; apply/matrixP=> i j; rewrite !mxE add0r. Qed.
+
+Lemma addNmx : left_inverse null_mx oppmx addmx.
+Proof. by move=> A; apply/matrixP=> i j; rewrite !mxE addNr. Qed.
+
+Definition matrix_zmodMixin := ZmodMixin addmxA addmxC add0mx addNmx.
+Canonical Structure matrix_zmodType := Eval hnf in ZmodType matrix_zmodMixin.
+
+Lemma summxE : forall I r (P : pred I) (E : I -> 'M_(m, n)) i j,
+  (\sum_(k <- r | P k) E k) i j = \sum_(k <- r | P k) E k i j.
+Proof.
+move=> I r P E i j.
+by apply: (big_morph (fun A => A i j)) => [A B|]; rewrite mxE.
+Qed.
+
+(* Vector space structure... pending the definition *)
+
+Notation "x *m: A" := (scalemx x A) : ring_scope.
+
+Lemma scale0mx : forall A, 0 *m: A = 0.
+Proof. by move=> A; apply/matrixP=> i j; rewrite !mxE mul0r. Qed.
+
+Lemma scalemx0 : forall x, x *m: 0 = 0.
+Proof. by move=> x; apply/matrixP=> i j; rewrite !mxE mulr0. Qed.
+
+Lemma scale1mx : forall A, 1 *m: A = A.
+Proof. by move=> A; apply/matrixP=> i j; rewrite !mxE mul1r. Qed.
+
+Lemma scaleNmx : forall x A, (- x) *m: A = - (x *m: A).
+Proof. by move=> x A; apply/matrixP=> i j; rewrite !mxE mulNr. Qed.
+
+Lemma scalemxN : forall x A, x *m: (- A) = - (x *m: A).
+Proof. by move=> x A; apply/matrixP=> i j; rewrite !mxE mulrN. Qed.
+
+Lemma scalemx_addl : forall x y A, (x + y) *m: A = x *m: A + y *m: A.
+Proof. by move=> x y A; apply/matrixP=> i j; rewrite !mxE mulr_addl. Qed.
+
+Lemma scalemx_addr : forall x A B, x *m: (A + B) = x *m: A + x *m: B.
+Proof. by move=> x A B; apply/matrixP=> i j; rewrite !mxE mulr_addr. Qed.
+
+Lemma scalemx_subl : forall x y A, (x - y) *m: A = x *m: A - y *m: A.
+Proof. by move=> x y A; rewrite scalemx_addl scaleNmx. Qed.
+
+Lemma scalemx_subr : forall x A B, x *m: (A - B) = x *m: A - x *m: B.
+Proof. by move=> x A B; rewrite scalemx_addr scalemxN. Qed.
+
+Lemma scalemxA : forall x y A, x *m: (y *m: A) = (x * y) *m: A.
+Proof. by move=> x y A; apply/matrixP=> i j; rewrite !mxE mulrA. Qed.
+
+(* Basis... *)
+
+Definition delta_mx i0 j0 :=
+  \matrix_(i < m, j < n) (((i == i0) && (j == j0))%:R : R).
+
+Lemma matrix_sum_delta : forall A,
+  A = \sum_(i < m) \sum_(j < n) A i j *m: delta_mx i j.
+Proof.
+move=> A; apply/matrixP=> i j.
+rewrite summxE (bigD1 i) // summxE (bigD1 j) //= !mxE.
+rewrite !eqxx !big1 ?simp //= => [i' ii' | j' jj'].
+  by rewrite summxE big1 // => j' _; rewrite !mxE eq_sym (negbTE ii') simp.
+by rewrite !mxE eqxx eq_sym (negbTE jj') simp.
+Qed.
+
+End ZmodOps.
+
+Notation "x *m: A" := (scalemx x A) : ring_scope.
+
+Lemma trmx0 : forall m n, 0^T = 0 :> matrix R n m.
+Proof. by move=> m n; apply/matrixP=> i j; rewrite !mxE. Qed.
+
+Lemma trmx_add : forall m n A B, (A + B)^T = A^T + B^T :> matrix R n m.
+Proof. by move=> m n A B; apply/matrixP=> i j; rewrite !mxE. Qed.
+
+Lemma trmx_scale : forall m n a A, (a *m: A)^T = a *m: A^T :> matrix R n m.
+Proof. by move=> m n a A; apply/matrixP=> i j; rewrite !mxE. Qed.
+
+Lemma pastemx0 : forall m n1 n2,
+  pastemx 0 0 = 0 :> matrix R m (n1 + n2).
+Proof.
+move=> m n1 n2; apply/matrixP=> i j.
+by rewrite !mxE; case: split=> i'; rewrite !mxE.
+Qed.
+
+Lemma addmx_paste : forall m n1 n2 A1 A2 B1 B2,
+  pastemx A1 A2 + pastemx B1 B2 = pastemx (A1 + B1) (A2 + B2)
+                              :> matrix R m (n1 + n2).
+Proof.
+move=> m n1 n2 A1 A2 B1 B2; apply/matrixP=> i j.
+by rewrite !mxE; case: split=> i'; rewrite !mxE.
+Qed.
+
+Lemma scalemx_paste : forall m n1 n2 a A1 A2,
+  a *m: pastemx A1 A2 = pastemx (a *m: A1) (a *m: A2) :> matrix R m (n1 + n2).
+Proof.
+move=> m n1 n2 a A1 A2; apply/matrixP=> i j.
+by rewrite !mxE; case: split=> i'; rewrite !mxE.
+Qed.
+
+Lemma block_mx0 : forall m1 m2 n1 n2,
+  block_mx 0 0 0 0 = 0 :> matrix R (m1 + m2) (n1 + n2).
+Proof. by move=> m1 m2 n1 n2; rewrite /block_mx !(pastemx0, trmx0). Qed.
+
+Lemma addmx_block : forall m1 m2 n1 n2 Aul Aur All Alr Bul Bur Bll Blr,
+  block_mx Aul Aur All Alr + block_mx Bul Bur Bll Blr
+    = block_mx (Aul + Bul) (Aur + Bur) (All + Bll) (Alr + Blr)
+    :> matrix R (m1 + m2) (n1 + n2).
+Proof.
+move=> m1 m2 n1 n2 Aul Aur All Alr Bul Bur Bll Blr.
+by rewrite /block_mx !(addmx_paste, (I, trmx_add)).
+Qed.
+
+Lemma scalemx_block : forall m1 m2 n1 n2 a Aul Aur All Alr,
+  a *m: block_mx Aul Aur All Alr
+     = block_mx (a *m: Aul) (a *m: Aur) (a *m: All) (a *m: Alr)
+    :> matrix R (m1 + m2) (n1 + n2).
+Proof.
+move=> m1 m2 n1 n2 a Aul Aur All Alr.
+by rewrite /block_mx !(scalemx_paste, (I, trmx_scale)).
+Qed.
+
+(* The graded ring structure *)
+
+Definition scalar_mx n x := \matrix_(i , j < n) (if i == j then x else 0 : R).
 Definition mulmx m n p (A : 'M_(m, n)) (B : 'M_(n, p)) :=
-  \matrix_(i, k) \sum_j (A i j * B j k).
+  \matrix_(i < m, k < p) \sum_(j < n) (A i j * B j k : R).
 
-Definition null_mx m n : 'M_(m, n) := \matrix_(i, j) 0.
+Notation "x %:M" := (scalar_mx _ x) : ring_scope.
+Notation "A *m B" := (mulmx A B) : ring_scope.
 
-Definition scalar_mx n x : 'M_n :=
-  \matrix_(i, j) (if i == j then x else 0).
+Lemma scalar_mx0 : forall n, 0%:M = 0 :> 'M_n.
+Proof. by move=> n; apply/matrixP=> i j; rewrite !mxE if_same. Qed.
 
-Definition unit_mx n := scalar_mx n 1.
+Lemma scalar_mx_opp : forall n a, (- a)%:M = - a%:M :> 'M_n.
+Proof. by move=> n a; apply/matrixP=> i j; rewrite !mxE (fun_if -%R) oppr0. Qed.
 
-Definition mx_row m n i0 (A : 'M_(m, n)) := \matrix_(i < 1, j < n) A i0 j.
-
-Definition mx_col m n j0 (A : 'M_(m, n)) := \matrix_(i < m, j < 1) A i j0.
-
-Definition mx_rem_row m n i0 (A : 'M_(m, n)) :=
-  \matrix_(i, j) A (lift i0 i) j.
-
-Definition mx_rem_col m n j0 (A : 'M_(m, n)) :=
-  \matrix_(i, j) A i (lift j0 j).
-
-(* The shape of the (dependent) height parameter determines where *)
-(* the cut is made! *)
-
-Definition mx_lcut m1 m2 n (A : 'M_(m1 + m2, n)) :=
-  \matrix_(i, j) A (lshift m2 i) j.
-
-Definition mx_rcut m1 m2 n (A : 'M_(m1 + m2, n)) :=
-  \matrix_(i, j) A (rshift m1 i) j.
-
-Definition mx_paste m1 m2 n (A1 : 'M_(m1, n)) (A2 : 'M_(m2, n)) :=
-   \matrix_(i, j) match split i with inl i1 => A1 i1 j | inr i2 => A2 i2 j end.
-
-Definition trmx m n (A : 'M_(m, n)) := \matrix_(i, j) A j i.
-
-Definition perm_mx n (s : 'S_n) : 'M_n :=
-   \matrix_(i, j) (if s i == j then 1 else 0).
-
-Definition rswap m n (A : 'M_(m, n)) i1 i2 := \matrix_(i, j) A (tperm i1 i2 i) j.
-
-Definition cswap m n (A : 'M_(m, n)) i1 i2 := \matrix_(i, j) A i (tperm i1 i2 j).
-
-Definition tperm_mx (k : nat) (i1 i2 : 'I_k) := perm_mx (tperm i1 i2).
-
-(* The trace, in 1/4 line. *)
-Definition mx_trace n (A : 'M_n) := \sum_i (A i i).
-
-(* The determinants, in one line. *)
-Definition determinant n (A : 'M_n) :=
- \sum_(s : 'S_n) (-1)^+s * \prod_i A i (s i).
-
-Notation Local "'\det' A" := (determinant A).
-Notation Local row' := mx_rem_row.
-Notation Local col' := mx_rem_col.
-
-(* And now, the Laplace formula. *)
-
-Definition cofactor n (A : 'M_n) (i j : 'I_n) :=
-   (-1) ^+(i + j) * \det (row' i (col' j A)).
-
-(* The final flurry: adjugates. *)
-
-Definition adjugate n (A : 'M_n) := \matrix_(i, j) (cofactor A j i).
-
-End MatrixOpsDef.
-
-Notation "\0_ ( m , n )" := (null_mx _ m n) (only parsing) : matrix_scope.
-Notation "\0_ ( n )" := \0_(n, n) (only parsing) : matrix_scope.
-Notation "\0_ n" := \0_(n) (only parsing) : matrix_scope.
-Notation "\0" := \0_(_, _) : matrix_scope.
-Notation "\1_ n" := (unit_mx _ n) (only parsing) : matrix_scope.
-Notation "\1" := \1_(_) : matrix_scope.
-Notation "\Z_ n x" := (scalar_mx n x) (only parsing) : matrix_scope.
-Notation "\Z x" := (\Z_(_) x) : matrix_scope.
-Notation "\P s" := (perm_mx _ s) : matrix_scope.
-Notation "A +m B" := (addmx A B) : matrix_scope.
-Notation "x *s A" := (scalemx x A) : matrix_scope.
-Notation "A *m B" := (mulmx A B) : matrix_scope.
-Notation "\^t A" := (trmx A) : matrix_scope.
-
-Notation "'\tr' A" := (mx_trace A) : ring_scope.
-Notation "'\det' A" := (determinant A) : ring_scope.
-Notation "'\adj' A" := (adjugate A) : ring_scope.
-
-Section MatrixOnRingProp.
-Variable R : ringType.
-
-Notation Local "''M_' ( m , n )" := (matrix R m n) : type_scope.
-Notation Local "''M_' ( n )" := 'M_(n, n) : type_scope.
-Notation Local "''M_' n" := 'M_(n) : type_scope.
-Notation Local row := mx_row.
-Notation Local row' := mx_rem_row.
-Notation Local col := mx_col.
-Notation Local col' := mx_rem_col.
-Notation Local lcut := mx_lcut.
-Notation Local rcut := mx_rcut.
-Notation Local paste := mx_paste.
-
-Lemma perm_mx1 : forall n, \P 1%g = \1 :> 'M_n.
-Proof. by move=> n; apply/matrixP=> i j; rewrite !mxK perm1. Qed.
-
-Lemma trmxK : forall m n, cancel (@trmx R m n) (@trmx R n m).
-Proof. by move=> m n A; apply/matrixP=> i j; rewrite !mxK. Qed.
-
-Lemma trmx_inj : forall m n, injective (@trmx R m n).
-Proof. move=> m n; exact: can_inj (@trmxK m n). Qed.
-
-Lemma trmx_perm : forall n (s : 'S_n), \^t (\P s) = \P (s^-1%g) :> 'M_n.
+Lemma scalar_mx_add : forall n a b, (a + b)%:M = a%:M + b%:M :> 'M_n.
 Proof.
-move=> n s; apply/matrixP=> i j.
-by rewrite !mxK -(inj_eq (@perm_inj _ s^-1%g)) permK eq_sym.
+move=> n a b; apply/matrixP=> i j; rewrite !mxE.
+by case: (i == j); rewrite ?simp.
 Qed.
 
-Lemma trmxZ : forall n x, \^t (\Z x) = \Z x :> 'M_n.
-
-Proof. by move=> n x; apply/matrixP=> i j; rewrite !mxK eq_sym. Qed.
-
-Lemma trmx1 : forall n, \^t \1 = \1 :> 'M_n.
-Proof. move=> n; exact: trmxZ. Qed.
-
-Lemma trmx0 : forall m n, \^t \0 = \0 :> 'M_(m, n).
-Proof. by move=> m n; apply/matrixP=> i j; rewrite !mxK. Qed.
-
-Lemma tr_addmx : forall m n (A B : 'M_(m, n)),
-  \^t (A +m B) = \^t A +m \^t B.
-Proof. by move=> m n A B; apply/matrixP=> i j; rewrite !mxK. Qed.
-
-Lemma tr_scalemx : forall m n x (A : 'M_(m, n)),
-  \^t (x *s A) = x *s \^t A.
-Proof. by move=> m n x A; apply/matrixP=> i j; rewrite !mxK. Qed.
-
-Lemma tr_row : forall m n i0 (A : 'M_(m, n)),
-  \^t (row i0 A) = col i0 (\^t A).
-Proof. by move=> m n i0 A; apply/matrixP=> i j; rewrite !mxK. Qed.
-
-Lemma tr_rem_row : forall m n i0 (A : 'M_(m, n)),
-  \^t (row' i0 A) = col' i0 (\^t A).
-Proof. by move=> m n i0 A; apply/matrixP=> i j; rewrite !mxK. Qed.
-
-Lemma tr_col : forall m n j0 (A : 'M_(m, n)),
-  \^t (col j0 A) = row j0 (\^t A).
-Proof. by move=> m n j0 A; apply/matrixP=> i j; rewrite !mxK. Qed.
-
-Lemma tr_rem_col : forall m n j0 (A : 'M_(m, n)),
-  \^t (col' j0 A) = row' j0 (\^t A).
-Proof. by move=> m n j0 A; apply/matrixP=> i j; rewrite !mxK. Qed.
-
-Lemma mx_eq_row : forall m n i0 (A : 'M_(m, n)) B,
-  row i0 A = B -> A i0 =1 B ord0.
-Proof. move=> m n i0 A B [eqAB] j; by rewrite -eqAB !mxK. Qed.
-
-Lemma mx_eq_rem_row : forall m n i i0 (A B : 'M_(m, n)),
-  i0 != i -> row' i0 A = row' i0 B -> A i =1 B i.
+Lemma mulmx_scalar : forall m n a A, a%:M *m A = a *m: A :> 'M_(m, n).
 Proof.
-move=> m n i i0 A B; case/unlift_some=> i' -> _  [eqAB] j.
-by move/matrixP: eqAB; move/(_ i' j); rewrite !mxK.
+move=> m n a A; apply/matrixP=> i j.
+rewrite !mxE (bigD1 i) //= !mxE eqxx big1 ?simp // => i' i'i.
+by rewrite mxE eq_sym -if_neg i'i simp.
 Qed.
 
-Lemma mx_paste_cut : forall m1 m2 n (A : 'M_(m1 + m2, n)),
-  paste (lcut A) (rcut A) = A.
+Lemma scalar_mx_mul : forall n a b, (a * b)%:M = a%:M *m b%:M :> 'M_n.
 Proof.
-move=> m1 m2 n A; apply/matrixP=> i j; rewrite !mxK.
-case: splitP => k Dk //=; rewrite !mxK //=; congr (A _ _); exact: val_inj.
+move=> n a b; apply/matrixP=> i j; rewrite mulmx_scalar !mxE.
+by case: (i == j); rewrite ?simp.
 Qed.
 
-Lemma tr_cswap : forall m n (A : matrix R m n) i1 i2,
-  \^t (cswap A i1 i2) = rswap (\^t A) i1 i2.
-Proof. by move=> m n A i1 i2; apply/matrixP=> i j; rewrite !mxK. Qed.
+Lemma trmx_scalar : forall n a, (a%:M)^T = a%:M :> 'M_n.
+Proof. by move=> n a; apply/matrixP=> i j; rewrite !mxE eq_sym. Qed.
 
-Lemma tperm_mx_mul : forall m n (A : matrix R m n) i1 i2, 
-  (tperm_mx R i1 i2) *m A = rswap A i1 i2.
-Proof.
-move=> m n A i1 i2; apply/matrixP=> i j; rewrite !mxK (bigD1 (tperm i1 i2 i)) //.
-rewrite  ?big1 //=; first by rewrite mxK eqxx addr0 mul1r.
-by move=> i0; rewrite mxK eq_sym -if_neg; move->; rewrite mul0r.
-Qed.
-
-(*This could be obtained from the previous but the use of tr_mulmx would require
-commutativity *)
-Lemma mul_tperm_mx : forall  m n (A : matrix R m n)  i1 i2, 
-   A *m (tperm_mx R i1 i2) =cswap A i1 i2.
-Proof.
-move=> m n A i1 i2; apply/matrixP=> i j; rewrite !mxK (bigD1 (tperm i1 i2 j)) //.
-rewrite  ?big1 //=; first by rewrite ?addr0 mxK tpermK eqxx mulr1.
-move=> i0; rewrite mxK -if_neg inv_eq; last exact: (tpermK i1 i2).
-by move->; rewrite mulr0.
-Qed.
-
-(* The matrix graded algebra. *)
-
-Lemma add0mx : forall m n (A : 'M_(m, n)), \0 +m A = A.
-Proof. by move=> *; apply/matrixP=> i j; rewrite !mxK simp. Qed.
-
-
-Lemma addmxC : forall m n (A B : 'M_(m, n)), A +m B = B +m A.
-Proof. by move=> *; apply/matrixP=> i j; rewrite !mxK addrC. Qed.
-
-Lemma addmxA : forall m n (A B C : 'M_(m, n)),
-  A +m (B +m C) = A +m B +m C.
-Proof. by move=> *; apply/matrixP=> i j; rewrite !mxK addrA. Qed.
-
-Lemma scale0mx : forall m n (A : 'M_(m, n)), 0 *s A = \0.
-Proof. by move=> *; apply/matrixP=> i j; rewrite !mxK simp. Qed.
-
-Lemma scalemx0 : forall m n c, c *s \0 = \0 :> 'M_(m, n).
-Proof. by move=> *; apply/matrixP=> i j; rewrite !mxK simp. Qed.
-
-Lemma scale1mx : forall m n (A : 'M_(m, n)), 1 *s A = A.
-Proof. by move=> *; apply/matrixP=> i j; rewrite !mxK simp. Qed.
-
-Lemma scalarmx0 : forall n, \Z 0 = \0 :> 'M_n.
-Proof. by move=> *; apply/matrixP=> i j; rewrite !mxK if_same. Qed.
-
-Lemma scalarmx1 : forall n, \Z 1 = \1 :> 'M_n.
-Proof. done. Qed.
-
-Lemma scalemxA : forall m n c1 c2 (A : 'M_(m, n)),
-  c1 *s (c2 *s A) = (c1 * c2) *s A.
-Proof. by move=> *; apply/matrixP=> i j; rewrite !mxK mulrA. Qed.
-
-Lemma scalemx1 : forall n c, c *s \1 = \Z c :> 'M_n.
-Proof. by move=> *; apply/matrixP=> i j; rewrite 2!mxK fun_if !simp mxK. Qed.
-
-Lemma scalemx_addl : forall m n x1 x2 (A : 'M_(m, n)),
-  (x1 + x2) *s A = x1 *s A +m x2 *s A.
-Proof. by move=> *; apply/matrixP=> i j; rewrite !mxK mulr_addl. Qed.
-
-Lemma scalemx_addr : forall m n x (A B : 'M_(m, n)),
-  x *s (A +m B) = x *s A +m x *s B.
-Proof. by move=> *; apply/matrixP=> i j; rewrite !mxK mulr_addr. Qed.
-
-Lemma scalemxAl : forall m n p x (A : 'M_(m, n)) (B : 'M_(n, p)),
-  x *s (A *m B) = (x *s A) *m B.
-Proof.
-move=> *; apply/matrixP=> i k; rewrite !mxK big_distrr /=.
-by apply: eq_bigr => j _; rewrite mulrA mxK.
-Qed.
-
-Lemma addmxN : forall m n (A : 'M_(m, n)), A +m (-1 *s A) = \0.
-Proof. by move=> m n A; apply/matrixP=> i j; rewrite !mxK mulN1r addrN. Qed.
-
-Lemma addNmx : forall m n (A : 'M_(m, n)), (- 1 *s A) +m A = \0.
-Proof. by move=> m n A; apply/matrixP=> i j; rewrite !mxK mulN1r addNr. Qed.
-
-Lemma mul1mx : forall m n (A : 'M_(m, n)), \1 *m A = A.
-Proof.
-move=> m n A; apply/matrixP=> i j; rewrite !mxK (bigD1 i) //= mxK eqxx.
-by rewrite big1 ?simp //= => k ne_ki; rewrite mxK eq_sym (negbTE ne_ki) simp.
-Qed.
-
-Lemma mult0mx : forall m n p (A : 'M_(n, p)), \0 *m A = \0 :> 'M_(m, p).
-Proof.
-move=> m n p A; apply/matrixP=> i k; rewrite !mxK big1 ?simp //= => j _.
-by rewrite mxK simp.
-Qed.
-
-Lemma multmx0 : forall m n p (A : 'M_(m, n)), A *m \0 = \0 :> 'M_(m, p).
-Proof.
-move=> m n p A; apply/matrixP=> i k; rewrite !mxK big1 ?simp //= => j _.
-by rewrite mxK simp.
-Qed.
-
-Lemma mulmx1 : forall m n (A : 'M_(m, n)), A *m \1 = A.
-Proof.
-move=> m n A; apply/matrixP=> i k; rewrite !mxK.
-rewrite (bigD1 k) //= !mxK eq_refl mulr1 -{-1}(addr0 (A i k)); congr (_ + _).
-by apply: big1 => j Hj; rewrite mxK (negbTE Hj) simp.
-Qed.
+Lemma mul1mx : forall m n A, 1%:M *m A = A :> 'M_(m, n).
+Proof. by move=> m n A; rewrite mulmx_scalar scale1mx. Qed.
 
 Lemma mulmx_addl : forall m n p (A1 A2 : 'M_(m, n)) (B : 'M_(n, p)),
-  (A1 +m A2) *m B = A1 *m B +m A2 *m B.
+  (A1 + A2) *m B = A1 *m B + A2 *m B.
 Proof.
-move=> m n p A1 A2 B; apply/matrixP=> i k; rewrite !mxK -big_split /=.
-by apply: eq_bigr => j _; rewrite mxK mulr_addl.
+move=> m n p A1 A2 B; apply/matrixP=> i k; rewrite !mxE -big_split /=.
+by apply: eq_bigr => j _; rewrite !mxE -mulr_addl.
+Qed.
+
+Lemma scalemx_add : forall n a1 a2, (a1 + a2)%:M = a1%:M + a2%:M :> 'M_n.
+Proof.
+move=> n a1 a2; apply/matrixP=> i j.
+by rewrite !mxE; case: (i == j); rewrite ?simp.
+Qed.
+
+Lemma scalemxAl : forall m n p a (A : 'M_(m, n)) (B : 'M_(n, p)),
+  a *m: (A *m B) = (a *m: A) *m B.
+Proof.
+move=> m n p a A B; apply/matrixP=> i k; rewrite !mxE big_distrr /=.
+by apply: eq_bigr => j _; rewrite mulrA mxE.
+Qed.
+
+Lemma mul0mx : forall m n p (A : 'M_(n, p)), 0 *m A = 0 :> 'M_(m, p).
+Proof.
+move=> m n p A; apply/matrixP=> i k; rewrite !mxE big1 ?simp //= => j _.
+by rewrite mxE simp.
+Qed.
+
+Lemma mulmx0 : forall m n p (A : 'M_(m, n)), A *m 0 = 0 :> 'M_(m, p).
+Proof.
+move=> m n p A; apply/matrixP=> i k; rewrite !mxE big1 ?simp //= => j _.
+by rewrite mxE simp.
+Qed.
+
+Lemma mulmx1 : forall m n (A : 'M_(m, n)), A *m 1%:M = A.
+Proof.
+move=> m n A; apply/matrixP=> i k; rewrite !mxE.
+rewrite (bigD1 k) //= !mxE eqxx mulr1 big1 ?simp //= => j ji.
+by rewrite mxE (negbTE ji) simp.
 Qed.
 
 Lemma mulmx_addr : forall m n p (A : 'M_(m, n)) (B1 B2 : 'M_(n, p)),
-  A *m (B1 +m B2) = A *m B1 +m A *m B2.
+  A *m (B1 + B2) = A *m B1 + A *m B2.
 Proof.
-move=> m n p A B1 B2; apply/matrixP=> i k; rewrite !mxK -big_split /=.
-by apply: eq_bigr => j _; rewrite mxK mulr_addr.
+move=> m n p A B1 B2; apply/matrixP=> i k; rewrite !mxE -big_split /=.
+by apply: eq_bigr => j _; rewrite mxE mulr_addr.
 Qed.
 
 Lemma mulmxA : forall m n p q (A : 'M_(m, n)) (B : 'M_(n, p)) (C : 'M_(p, q)),
   A *m (B *m C) = A *m B *m C.
 Proof.
-move=> m n p q A B C; apply/matrixP=> i l; rewrite !mxK.
+move=> m n p q A B C; apply/matrixP=> i l; rewrite !mxE.
 transitivity (\sum_j (\sum_k (A i j * (B j k * C k l)))).
-  by apply: eq_bigr => j _; rewrite mxK big_distrr.
-rewrite exchange_big; apply: eq_bigr => j _; rewrite mxK big_distrl /=.
+  by apply: eq_bigr => j _; rewrite mxE big_distrr.
+rewrite exchange_big; apply: eq_bigr => j _; rewrite mxE big_distrl /=.
 by apply: eq_bigr => k _; rewrite mulrA.
 Qed.
 
-Definition matrix_zmodMixin m n :=
-  ZmodMixin (@addmxA m n) (@addmxC m n) (@add0mx m n) (@addNmx m n).
+Definition perm_mx n (s : 'S_n) :=
+  \matrix_(i, j) (if s i == j then 1 else 0 : R).
 
-Canonical Structure matrix_zmodType m n :=
-  Eval hnf in ZmodType (matrix_zmodMixin m n).
+Definition tperm_mx n i1 i2 := @perm_mx n (tperm i1 i2). 
 
-(* the additive group structure provides generic sums. *)
-
-Lemma mxK_sum : forall m n I r (P : pred I) (F : I -> 'M_(m, n)) i j,
-  (\sum_(k <- r | P k) F k) i j = \sum_(k <- r | P k) F k i j.
+Lemma trmx_perm : forall n (s : 'S_n), (perm_mx s)^T = perm_mx s^-1.
 Proof.
-move=> m n I r P F i j.
-by apply: (big_morph (fun A : 'M_(m, n) => A i j)) => [A B|]; rewrite !mxK.
+by move=> n s; apply/matrixP=> i j; rewrite !mxE (canF_eq (permK _)) eq_sym.
 Qed.
 
-(* To make a true matrix ring the order needs to be positive!       *)
-(* We use a structure to encode that info; it is defined in ssrnat. *)
+Lemma trmx_tperm : forall n i1 i2, (@tperm_mx n i1 i2)^T = tperm_mx i1 i2.
+Proof. by move=> n i1 i2; rewrite trmx_perm tpermV. Qed.
+
+Lemma mulmx_perm : forall n (s t : 'S_n),
+  perm_mx s *m perm_mx t = perm_mx (s * t).
+Proof.
+move=> n s t; apply/matrixP=> i j; rewrite !mxE (bigD1 (s i)) //= !mxE eqxx.
+rewrite simp -permM big1 /= => [|k ne_k_si]; first by rewrite addrC simp.
+by rewrite mxE /= eq_sym (negbTE ne_k_si) simp.
+Qed.
+
+Lemma mul_tperm_mx : forall m n (A : matrix R m n) i1 i2, 
+  (tperm_mx i1 i2) *m A = rswap A i1 i2.
+Proof. 
+move=> m n' A i1 i2; apply/matrixP=> i j.
+rewrite !mxE (bigD1 (tperm i1 i2 i)) ?big1 //= => [|k ne_k_j].
+  by rewrite mxE eqxx addr0 mul1r. 
+by rewrite mxE eq_sym -if_neg ne_k_j mul0r. 
+Qed. 
+
+Lemma perm_mx1 : forall n, perm_mx 1%g = 1%:M :> 'M_n.
+Proof. by move=> n; apply/matrixP=> i j; rewrite !mxE perm1. Qed.
+
+(* The trace, in 1/4 line. *)
+Definition mx_trace n (A : 'M_n) := \sum_i A i i : R.
+Notation "'\tr' A" := (mx_trace A) : ring_scope.
+
+Lemma mx_trace0 : forall n, \tr (0 : 'M_n) = 0.
+Proof. by move=> n; apply: big1 => i _; rewrite mxE. Qed.
+
+Lemma mx_trace_scale : forall n a (A : 'M_n), \tr (a *m: A) = a * \tr A.
+Proof.
+by move=> n a A; rewrite big_distrr; apply: eq_bigr => i _; rewrite mxE.
+Qed.
+
+Lemma mx_trace_scalar : forall n a, \tr (a%:M : 'M_n) = a *+ n.
+Proof.
+move=> n a; rewrite -{5}(card_ord n) -sumr_const; apply: eq_bigr => i _.
+by rewrite mxE eqxx.
+Qed.
+
+Lemma mx_trace_add : forall n A B, \tr (A + B : 'M_n) = \tr A + \tr B.
+Proof.
+by move=> n A B; rewrite -big_split; apply: eq_bigr => i _; rewrite mxE.
+Qed.
+
+Lemma mx_trace_tr : forall n (A : 'M_n), \tr A^T = \tr A.
+Proof. by move=> n A; apply: eq_bigr=> i _; rewrite mxE. Qed.
+
+Lemma mx_trace_block : forall n1 n2 Aul Aur All Alr,
+  \tr (block_mx Aul Aur All Alr : 'M_(n1 + n2)) = \tr Aul + \tr Alr.
+Proof.
+move=> n1 n2 Aul Aur All Alr.
+rewrite /mx_trace (reindex (@unsplit _ _)) /=; last first.
+  by exists (@split n1 n2) => i _; [exact: unsplitK | exact: splitK].
+pose J := ('I_n1 + 'I_n2)%type; rewrite (bigID (@id J)) /=; congr (_ + _).
+  case: n1 => [|n] in J Aul All Aur Alr *; first by rewrite !big1; do 2?case.
+  rewrite (reindex (@inl _ _)) /=; last first.
+    by exists (fun j : J => if j is inl j1 then j1 else 0); case.
+  by apply: eq_bigr => j _; rewrite block_mxEul.
+case: n2 => [|n] in J Aul All Aur Alr *; first by rewrite !big1; do 2?case.
+rewrite (reindex (@inr _ _)); last first.
+  by exists (fun j : J => if j is inr j2 then j2 else 0); case.
+by apply: eq_bigr => j; rewrite block_mxElr.
+Qed.
+
+Lemma mulmx_paste : forall m n p1 p2 (A : 'M_(m, n)) B1 B2,
+  A *m (pastemx B1 B2) = pastemx (A *m B1) (A *m B2) :> 'M_(m, p1 + p2).
+Proof.
+move=> m n p1 p2 A B1 B2; apply/matrixP=> i k; rewrite !mxE.
+by case defk: (split k) => [k1 | k2]; 
+   rewrite mxE; apply: eq_bigr => j _; rewrite mxE defk.
+Qed.
+
+Lemma dotmx_paste : forall m n1 n2 p A1 A2 B1 B2,
+  (pastemx A1 A2 : 'M_(m, n1 + n2)) *m (pastemx B1 B2 : 'M_(p, n1 + n2))^T
+    = A1 *m B1^T + A2 *m B2^T.
+Proof.
+move=> m n1 n2 p A1 A2 B1 B2; apply/matrixP=> i k; rewrite !mxE.
+rewrite (reindex (@unsplit _ _)) /=; last first.
+  by exists (@split n1 n2) => j _; rewrite ?splitK ?unsplitK.
+pose J := ('I_n1 + 'I_n2)%type; rewrite (bigID (@id J)) /=; congr (_ + _).
+  case: n1 => [|n] in J A1 B1 *; first by rewrite !big1; do 2?case.
+  rewrite (reindex (@inl _ _)); last first.
+    by exists (fun j : J => if j is inl j1 then j1 else 0); case.
+  by apply: eq_bigr => j; rewrite !mxE unsplitK /=.
+case: n2 => [|n] in J A2 B2 *; first by rewrite !big1; do 2?case.
+rewrite (reindex (@inr _ _)); last first.
+  by exists (fun j : J => if j is inr j2 then j2 else 0); case.
+by apply: eq_bigr => j; rewrite !mxE unsplitK /=.
+Qed.
 
 Section MatrixRing.
 
 Variable n : pos_nat.
 
-Lemma nonzeromx1 : \1 != 0 :> 'M_n.
+Lemma matrix_nonzero1 : 1%:M != 0 :> 'M_n.
 Proof.
-rewrite -(ltn_predK (pos_natP n)); apply/eqP; move/matrixP; move/(_ ord0 ord0).
-by move/eqP; rewrite !mxK eqxx oner_eq0.
+by apply/eqP; move/matrixP; move/(_ 0 0); move/eqP; rewrite !mxE oner_eq0.
 Qed.
 
 Definition matrix_ringMixin :=
   RingMixin (@mulmxA n n n n) (@mul1mx n n) (@mulmx1 n n)
-            (@mulmx_addl n n n) (@mulmx_addr n n n) nonzeromx1.
-Canonical Structure matrix_ring := Eval hnf in RingType matrix_ringMixin.
+            (@mulmx_addl n n n) (@mulmx_addr n n n) matrix_nonzero1.
+Canonical Structure matrix_ringType := Eval hnf in RingType matrix_ringMixin.
+
+Lemma mulmxE : forall A B : 'M_n, A *m B = A * B. Proof. by []. Qed.
+Lemma idmxE : 1%:M = 1 :> 'M_n. Proof. by []. Qed.
 
 End MatrixRing.
+ 
+End MatrixOpsDef.
 
-Lemma perm_mxM : forall n (s t : 'S_n), \P (s * t)%g = \P s *m \P t :> 'M_n.
+Notation "a *m: A" := (scalemx a A) : ring_scope.
+Notation "a %:M" := (scalar_mx _ a) : ring_scope.
+Notation "A *m B" := (mulmx A B) : ring_scope.
+Notation "\tr A" := (mx_trace A) : ring_scope.
+
+Section TrMul.
+
+Variable R : ringType.
+
+Lemma trmx_mul_rev : forall m n p (A : matrix R m n) (B : matrix R n p),
+  (A *m B)^T = (B^T : matrix (RevRingType R) p n) *m A^T.
 Proof.
-move=> n s t; apply/matrixP=> i j; rewrite !mxK (bigD1 (s i)) //= !mxK eqxx.
-rewrite simp -permM big1 /= => [|k ne_k_si]; first by rewrite addrC simp.
-by rewrite mxK /= eq_sym (negbTE ne_k_si) simp.
+move=> m n p A B; apply/matrixP=> k i; rewrite !mxE.
+by apply: eq_bigr => j _; rewrite !mxE.
 Qed.
 
-Lemma trace_addmx : forall n (A B : 'M_n), \tr (A +m B) = \tr A + \tr B.
+Lemma mulmx_block : forall m1 m2 n1 n2 p1 p2 Aul Aur All Alr Bul Bur Bll Blr,
+  (block_mx Aul Aur All Alr : matrix R (m1 + m2) (n1 + n2))
+   *m (block_mx Bul Bur Bll Blr : 'M_(n1 + n2, p1 + p2))
+    = block_mx (Aul *m Bul + Aur *m Bll) (Aul *m Bur + Aur *m Blr)
+               (All *m Bul + Alr *m Bll) (All *m Bur + Alr *m Blr).
 Proof.
-by move=> n A B; rewrite -big_split; apply: eq_bigr => i _; rewrite mxK.
+move=> m1 m2 n1 n2 p1 p2 Aul Aur All Alr Bul Bur Bll Blr.
+rewrite -[_ *m _]trmxK trmx_mul_rev trmxK trmx_block dotmx_paste !trmxK.
+by rewrite !mulmx_paste -!trmx_mul_rev !mulmx_paste trmx_add addmx_block.
 Qed.
 
-Lemma trace_scalemx : forall n x (A : 'M_n), \tr (x *s A) = x * \tr A.
+Lemma mul_mx_tperm : forall m n (A : matrix R m n) i1 i2, 
+  A *m (tperm_mx R i1 i2) = cswap A i1 i2.
 Proof.
-by move=> *; rewrite big_distrr; apply: eq_bigr => i _; rewrite mxK.
-Qed.
+move=> m n A i1 i2; apply: trmx_inj.
+by rewrite trmx_mul_rev trmx_tperm mul_tperm_mx trmx_cswap.
+Qed.    
 
-Lemma trace_tr : forall n (A : 'M_n), \tr (\^t A) = \tr A.
-Proof. by move => *;  apply: eq_bigr => i _; rewrite mxK. Qed.
+End TrMul.
 
-End MatrixOnRingProp.
+Section ComMatrix.
 
-Section MatrixOnComRingProp.
 Variable R : comRingType.
 
-Notation Local "''M_' ( m , n )" := (matrix R m n) : type_scope.
-Notation Local "''M_' ( n )" := 'M_(n, n) : type_scope.
-Notation Local "''M_' n" := 'M_(n) : type_scope.
-Notation Local row := mx_row.
-Notation Local row' := mx_rem_row.
-Notation Local col := mx_col.
-Notation Local col' := mx_rem_col.
-Notation Local lcut := mx_lcut.
-Notation Local rcut := mx_rcut.
-Notation Local paste := mx_paste.
-
-Lemma scalemxAr : forall m n p x (A : 'M_(m, n)) (B : 'M_(n, p)),
-  x *s (A *m B) = A *m (x *s B).
+Lemma trmx_mul : forall m n p (A : matrix R m n) (B : 'M_(n, p)),
+  (A *m B)^T = B^T *m A^T.
 Proof.
-move=> *; apply/matrixP=> i k; rewrite !mxK big_distrr /=.
-by apply: eq_bigr => j _; rewrite mxK mulrCA.
+move=> m n p A B; rewrite trmx_mul_rev; apply/matrixP=> k i; rewrite !mxE.
+by apply: eq_bigr => j _; rewrite mulrC.
 Qed.
 
-Lemma tr_mulmx : forall m n p (A : 'M_(m, n)) (B : 'M_(n, p)),
-   \^t (A *m B) = \^t B *m \^t A.
+Lemma scalemxAr : forall m n p a (A : matrix R m n) (B : 'M_(n, p)),
+  a *m: (A *m B) = A *m (a *m: B).
 Proof.
-move=> *; apply/matrixP=> i k; rewrite !mxK; apply: eq_bigr => j _.
-by rewrite !mxK mulrC.
+move=> m n p a A B.
+by apply: trmx_inj; rewrite !(trmx_scale, trmx_mul) scalemxAl.
 Qed.
 
-Lemma trace_mulmxC : forall m n (A : 'M_(m, n)) (B : 'M_(n, m)),
+Lemma scalar_mx_comm : forall (n : pos_nat) a (A : matrix R n n),
+  GRing.comm A a%:M.
+Proof.
+move=> n a A; apply: trmx_inj; rewrite trmx_mul trmx_scalar -mulmxE.
+by rewrite !mulmx_scalar trmx_scale.
+Qed.
+
+Lemma mx_trace_mulC : forall m n (A : matrix R m n) B,
   \tr (A *m B) = \tr (B *m A).
 Proof.
 move=> m n A B; transitivity (\sum_i \sum_j A i j * B j i).
-  by apply: eq_bigr => i _; rewrite mxK.
-rewrite exchange_big; apply: eq_bigr => i _ /=; rewrite mxK.
+  by apply: eq_bigr => i _; rewrite mxE.
+rewrite exchange_big; apply: eq_bigr => i _ /=; rewrite mxE.
 apply: eq_bigr => j _; exact: mulrC.
 Qed.
 
+(* The determinant, in one line. *)
+Definition determinant n (A : 'M_n) :=
+  \sum_(s : 'S_n) (-1) ^+ s * \prod_i A i (s i) : R.
+
+Notation "'\det' A" := (determinant A).
+
+Definition cofactor n A (i j : 'I_n) : R :=
+  (-1) ^+ (i + j) * \det (mx_row' i (mx_col' j A)).
+
+Definition adjugate n A := \matrix_(i, j < n) (cofactor A j i : R).
+
 Lemma determinant_multilinear : forall n (A B C : 'M_n) i0 b c,
-    row i0 A =2 b *s row i0 B +m c *s row i0 C ->
-    row' i0 B =2 row' i0 A ->
-    row' i0 C =2 row' i0 A ->
-  \det A = b * \det B + c * \det C.
+    mx_row i0 A = b *m: mx_row i0 B + c *m: mx_row i0 C ->
+    mx_row' i0 B = mx_row' i0 A ->
+    mx_row' i0 C = mx_row' i0 A ->
+  \det A = b * \det B + c * \det C :> R.
 Proof.
-move=> n A B C i0 b c ABC; move/matrixP=> BA; move/matrixP=> CA.
-move/mx_eq_rem_row: BA => BA; move/mx_eq_rem_row: CA => CA.
+move=> n A B C i0 b c; rewrite -[_ + _]mx_row_id; move/mx_row_eq=> ABC.
+move/mx_row'_eq=> BA; move/mx_row'_eq=> CA.
 rewrite !big_distrr -big_split; apply: eq_bigr => s _ /=.
 rewrite -!(mulrCA (_ ^+s)) -mulr_addr; congr (_ * _).
-rewrite !(bigD1 i0 (_ : predT i0)) //=.
-move/matrixP: ABC => ABC; rewrite (mx_eq_row ABC) !mxK mulr_addl !mulrA.
-by congr (_ * _ + _ * _); apply: eq_bigr => i ?; rewrite ?BA ?CA // eq_sym.
+rewrite !(bigD1 i0 (_ : predT i0)) //= {}ABC !mxE mulr_addl !mulrA.
+by congr (_ * _ + _ * _); apply: eq_bigr => i i0i; rewrite ?BA ?CA.
 Qed.
 
 Lemma alternate_determinant : forall n (A : 'M_n) i1 i2,
@@ -542,42 +772,39 @@ apply: eq_bigr => i _; rewrite permM /t.
 by case: tpermP => // ->; rewrite A12.
 Qed.
 
-Lemma determinant_tr : forall n (A : 'M_n), \det (\^t A) = \det A.
+Lemma det_trmx : forall n (A : 'M_n), \det A^T = \det A.
 Proof.
 move=> n A; pose r := 'I_n; pose ip p : 'S_n := p^-1%g.
 rewrite /(\det _) (reindex ip) /=; last first.
   by exists ip => s _; rewrite /ip invgK.
 apply: eq_bigr => s _; rewrite !odd_permV /= (reindex s).
-  by congr (_ * _); apply: eq_bigr => i _; rewrite mxK permK.
+  by congr (_ * _); apply: eq_bigr => i _; rewrite mxE permK.
 by exists (s^-1%g : _ -> _) => i _; rewrite ?permK ?permKV.
 Qed.
 
-Lemma determinant_perm : forall n (s : 'S_n), \det (\P s) = (-1) ^+s :> R.
+Lemma det_perm_mx : forall n (s : 'S_n), \det (perm_mx R s) = (-1) ^+s.
 Proof.
 move=> n s; rewrite /(\det _) (bigD1 s) //=.
-rewrite big1 => [|i _]; last by rewrite /= !mxK eqxx.
+rewrite big1 => [|i _]; last by rewrite /= !mxE eqxx.
 rewrite big1 => /= [|t Dst]; first by rewrite !simp.
 case: (pickP (fun i => s i != t i)) => [i ist | Est].
-  by rewrite (bigD1 i) // mulrCA /= mxK (negbTE ist) simp.
+  by rewrite (bigD1 i) // mulrCA /= mxE (negbTE ist) simp.
 by case/eqP: Dst; apply/permP => i; move/eqP: (Est i).
 Qed.
 
-Lemma determinant1 : forall n, \det \1_n = 1 :> R.
-Proof.
-move=> n; have:= @determinant_perm n 1%g; rewrite odd_perm1 expr0 => <-.
-congr (\det _); symmetry; exact: perm_mx1.
-Qed.
+Lemma det1 : forall n, \det (1%:M : matrix R n n) = 1.
+Proof. by move=> n; rewrite -perm_mx1 det_perm_mx odd_perm1. Qed.
 
-Lemma determinant_scale : forall n x (A : 'M_n),
-  \det (x *s A) = x ^+n * \det A.
+Lemma det_scalemx : forall n x (A : 'M_n),
+  \det (x *m: A) = x ^+ n * \det A.
 Proof.
 move=> n x A; rewrite big_distrr /=; apply: eq_bigr => s _.
 rewrite mulrCA; congr (_ * _).
 rewrite -{10}[n]card_ord -prodr_const -big_split /=.
-by apply: eq_bigr=> i _; rewrite mxK.
+by apply: eq_bigr=> i _; rewrite mxE.
 Qed.
 
-Lemma determinantM : forall n (A B : 'M_n), \det (A *m B) = \det A * \det B.
+Lemma det_mulmx : forall n (A B : 'M_n), \det (A *m B) = \det A * \det B.
 Proof.
 move=> n A B; rewrite big_distrl /=.
 pose AB (f : {ffun _}) (s : 'S_n) i := A i (f i) * B (f i) (s i).
@@ -585,7 +812,7 @@ transitivity (\sum_f \sum_(s : 'S_n) (-1) ^+ s * \prod_i AB f s i).
   rewrite exchange_big; apply: eq_bigr => /= s _.
   rewrite -big_distrr /=; congr (_ * _).
   pose F i j := A i j * B j (s i); rewrite -(bigA_distr_bigA F) /=.
-  by apply: eq_bigr => x _; rewrite mxK.
+  by apply: eq_bigr => x _; rewrite mxE.
 rewrite (bigID (fun f : {ffun _} => injectiveb f)) /= addrC big1 ?simp => [|f Uf].
   rewrite (reindex (fun s => pval s)); last first.
     have s0 : 'S_n := 1%g; pose uf (f : {ffun 'I_n -> 'I_n}) := uniq (val f).
@@ -601,101 +828,108 @@ rewrite (bigID (fun f : {ffun _} => injectiveb f)) /= addrC big1 ?simp => [|f Uf
 transitivity (\det (\matrix_(i, j) B (f i) j) * \prod_i A i (f i)).
   rewrite mulrC big_distrr /=; apply: eq_bigr => s _.
   rewrite mulrCA big_split //=; congr (_ * (_ * _)).
-  by apply: eq_bigr => x _; rewrite mxK.
+  by apply: eq_bigr => x _; rewrite mxE.
 case/injectivePn: Uf => i1 [i2 Di12 Ef12].
-by rewrite (alternate_determinant Di12) ?simp //= => j; rewrite !mxK Ef12.
+by rewrite (alternate_determinant Di12) ?simp //= => j; rewrite !mxE Ef12.
+Qed.
+
+Definition lift_perm_fun n i j (s : 'S_n) k :=
+  if @unlift n.+1 i k is Some k' then @lift n.+1 j (s k') else j.
+
+Lemma lift_permK : forall n i j s,
+  cancel (@lift_perm_fun n i j s) (lift_perm_fun j i s^-1%g).
+Proof.
+move=> n i j s k; rewrite /lift_perm_fun.
+by case: (unliftP i k) => [j'|] ->; rewrite (liftK, unlift_none) ?permK.
+Qed.
+
+Definition lift_perm n i j s := perm (can_inj (@lift_permK n i j s)).
+
+Lemma lift_perm_id : forall n i j s, lift_perm i j s i = j :> 'I_n.+1.
+Proof. by move=> n i j s; rewrite permE /lift_perm_fun unlift_none. Qed.
+
+Lemma lift_perm_lift : forall n i j s k,
+  lift_perm i j s (lift i k) = lift j (s k) :> 'I_n.+1.
+Proof. by move=> n i j s k; rewrite permE /lift_perm_fun liftK. Qed.
+
+Lemma lift_permM : forall n i j k s t,
+  (@lift_perm n i j s * lift_perm j k t)%g = lift_perm i k (s * t)%g.
+Proof.
+move=> n i j k s t; apply/permP=> i1; case: (unliftP i i1) => [i2|] ->{i1}.
+  by rewrite !(permM, lift_perm_lift).
+by rewrite permM !lift_perm_id.
+Qed.
+
+Lemma lift_perm1 : forall n i, @lift_perm n i i 1 = 1%g.
+Proof.
+by move=> n i; apply: (mulgI (lift_perm i i 1)); rewrite lift_permM !mulg1.
+Qed.
+
+Lemma lift_permV : forall n i j s,
+  (@lift_perm n i j s)^-1%g = lift_perm j i s^-1.
+Proof.
+by move=> n i j s; apply/eqP; rewrite eq_invg_mul lift_permM mulgV lift_perm1.
+Qed.
+
+Lemma odd_lift_perm : forall n i j s,
+  @lift_perm n i j s = odd i (+) odd j (+) s :> bool.
+Proof.
+move=> n i j s; rewrite -{1}(mul1g s) -(lift_permM _ j) odd_permM.
+congr (_ (+) _); last first.
+  case: (prod_tpermP s) => ts ->{s} _.
+  elim: ts => [|t ts IHts] /=; first by rewrite big_nil lift_perm1 !odd_perm1.
+  rewrite big_cons odd_mul_tperm -(lift_permM _ j) odd_permM {}IHts //.
+  congr (_ (+) _); rewrite (_ : _ j _ = tperm (lift j t.1) (lift j t.2)).
+    by rewrite odd_tperm (inj_eq (@lift_inj _ _)).
+  apply/permP=> k; case: (unliftP j k) => [k'|] ->.
+    rewrite lift_perm_lift inj_tperm //; exact: lift_inj.
+  by rewrite lift_perm_id tpermD // eq_sym neq_lift.
+suff{i j s} odd_lift0: forall k : 'I_n.+1, lift_perm 0 k 1 = odd k :> bool.
+  rewrite -!odd_lift0 -{2}invg1 -lift_permV odd_permV -odd_permM.
+  by rewrite lift_permM mulg1.
+move=> k; elim: {k}(k : nat) {1 3}k (erefl (k : nat)) => [|m IHm] k def_k.
+  rewrite (_ : k = 0) ?lift_perm1 ?odd_perm1 //; exact: val_inj.
+have le_mn: m < n.+1 by [rewrite -def_k ltnW]; pose j := Ordinal le_mn.
+rewrite -(mulg1 1)%g -(lift_permM _ j) odd_permM {}IHm // addbC.
+rewrite (_ : _ k _ = tperm j k).
+  by rewrite odd_tperm neq_ltn def_k leqnn.
+apply/permP=> i; case: (unliftP j i) => [i'|] ->; last first.
+  by rewrite lift_perm_id tpermL.
+apply: ord_inj; rewrite lift_perm_lift !permE /= eq_sym -if_neg neq_lift.
+rewrite fun_if -val_eqE /= def_k /bump ltn_neqAle andbC.
+case: leqP => [_ | lt_i'm] /=; last by rewrite -if_neg neq_ltn leqW.
+by rewrite add1n eqSS eq_sym; case: eqP.
 Qed.
 
 Lemma expand_cofactor : forall n (A : 'M_n) i j,
   cofactor A i j =
-    \sum_(s : 'S_n | s i == j) (-1)^+s * \prod_(k | i != k) A k (s k).
+    \sum_(s : 'S_n | s i == j) (-1) ^+ s * \prod_(k | i != k) A k (s k).
 Proof.
-move=> n.
-pose lsf i (s : 'S_(n.-1)) j k :=
-  if unlift i k is Some k' then lift j (s k') else j.
-have lsfE: forall i s j, (lsf i s j i = j)
-                       * (forall k, lsf i s j (lift i k) = lift j (s k)).
-- by split=> *; rewrite /lsf ?unlift_none ?liftK.
-have inj_lsf : injective (lsf _ _ _).
-  move=> i s j; apply: can_inj (lsf j s^-1%g i) _ => k.
-  by case: (unliftP i k) => [k'|] ->; rewrite !lsfE ?permK.
-pose ls := perm (inj_lsf _ _ _).
-have ls1 : forall i, ls i 1%g i = 1%g.
-  move=> i; apply/permP => k.
-  by case: (unliftP i k) => [k'|] ->; rewrite permE lsfE !perm1.
-have lsM : forall i s j t k, (ls i s j * ls j t k)%g = ls i (s * t)%g k.
-  move=> i s j t k; apply/permP=> l; rewrite permM !permE.
-  by case: (unliftP i l) => [l'|] ->; rewrite !lsfE ?permM.
-have sign_ls: forall s i j, (-1)^+(ls i s j) = (-1) ^+s * (-1)^+(i + j) :> R.
-  pose nfp (s : 'S_(n.-1)) := [pred k | s k != k].
-  move=> s i j; elim: {s}_.+1 {-2}s (ltnSn #|nfp s|) => // m IHm s Hm.
-  case: (pickP (nfp s)) Hm => [k Dsk | s1 _ {m IHm}].
-    rewrite ltnS (cardD1 k) [k \in _]Dsk => Hm.
-    pose t := tperm k (fun_of_perm s^-1%g k).
-    rewrite -(mulKg t s) tpermV -(lsM _ _ i).
-    rewrite 2!odd_permM 2!signr_addb -mulrA -{}IHm; last first.
-      apply: {m} leq_trans Hm; apply: subset_leq_card; apply/subsetP=> k'.
-      rewrite !inE permM /t (eq_sym k').
-      case: tpermP=> [->|-> Ds|]; rewrite ?permKV; first by rewrite eqxx.
-        by rewrite andbb; apply/eqP=> Dk; case/eqP: Ds; rewrite {1}Dk permKV.
-      by move/eqP; rewrite eq_sym => ->.
-    suffices ->: ls i t i = tperm (lift i k) (lift i (fun_of_perm s^-1%g k)).
-      by rewrite !odd_tperm (inj_eq (@lift_inj _ _)).
-    apply/permP=> i'; rewrite permE.
-    case: (unliftP i i') => [i''|] ->; rewrite lsfE.
-      rewrite inj_tperm //; exact: lift_inj.
-    case tpermP => //; move/eqP; case/idPn; exact: neq_lift.
-  have ->: s = 1%g.
-    by apply/permP=> k; rewrite perm1; move/eqP: (s1 k).
-  rewrite odd_perm1 simp /=; without loss: i {s s1} j / j <= i.
-    case: (leqP j i); first by auto.
-    move/ltnW=> ij; move/(_ _ _ ij)=> Wji.
-    rewrite -(mulgK (ls j 1%g i) (ls i  _ j)) lsM !(ls1,mul1g).
-    by rewrite odd_permV addnC.
-  move Dm: i.+1 => m; elim: m i Dm => // m IHm i [im].
-  rewrite leq_eqVlt; case/predU1P=> [eqji|ltji].
-    rewrite (val_inj _ _ eqji) ls1 odd_perm1 expr0. 
-    by rewrite -signr_odd odd_add addbb.
-  have m'm: m.-1.+1 = m by rewrite -im (ltn_predK ltji).
-  have ltm'n : m.-1 < n by rewrite m'm -im leq_eqVlt orbC (ltn_ord i).
-  pose i' := Ordinal ltm'n; rewrite -{1}(mulg1 1%g) -(lsM _ _ i') odd_permM.
-  rewrite signr_addb mulrC {}IHm; try by rewrite /= - 1?ltnS ?m'm // -im.
-  rewrite im -m'm addSn -addn1 (exprn_addr _ _ 1); congr (_ * _).
-  have{j ltji} ii' : i != i' by rewrite -val_eqE /= im /= -m'm eqn_leq ltnn.
-  transitivity (((-1) ^+(tperm i i')) : R); last by rewrite odd_tperm ii'.
-  congr (_ ^+(odd_perm _)); apply/permP => k.
-  case: (unliftP i k) => [k'|] -> {k}; rewrite permE lsfE ?tpermL // perm1.
-  apply: val_inj; rewrite permE /= eq_sym (negbTE (neq_lift _ _)).
-  rewrite fun_if -val_eqE /= im /bump; case mk': (m <= _).
-    by rewrite eq_sym eqn_leq ltnNge leq_eqVlt m'm mk' orbT andbF.
-  by rewrite add0n leq_eqVlt m'm mk' 2!eq_sym; case: eqP => //= <-.
-move=> A i0 j0; rewrite (reindex (fun s => ls i0 s j0)); last first.
-  pose ulsf i (s : 'S_n) k' :=
-    if unlift (s i) (s (lift i k')) is Some k then k else k'.
-  have ulsfE: forall i (s : 'S_n) k',
-      lift (s i) (ulsf i s k') = s (lift i k').
-    rewrite /ulsf => i s k'; have:= neq_lift i k'.
+move=> [_ [] //|n] A i0 j0; rewrite (reindex (lift_perm i0 j0)); last first.
+  pose ulsf i (s : 'S_n.+1) k := odflt k (unlift (s i) (s (lift i k))).
+  have ulsfK: forall i (s : 'S__) k, lift (s i) (ulsf i s k) = s (lift i k).
+    rewrite /ulsf => i s k; have:= neq_lift i k.
     by rewrite -(inj_eq (@perm_inj _ s)); case/unlift_some=> ? ? ->.
   have inj_ulsf: injective (ulsf i0 _).
     move=> s; apply: can_inj (ulsf (s i0) s^-1%g) _ => k'.
-    by rewrite {1}/ulsf ulsfE !permK liftK.
+    by rewrite {1}/ulsf ulsfK !permK liftK.
   exists (fun s => perm (inj_ulsf s)) => [s _ | s].
-    by apply/permP=> k'; rewrite permE /ulsf !permE !lsfE liftK.
+    by apply/permP=> k'; rewrite permE /ulsf lift_perm_lift lift_perm_id liftK.
   move/(s _ =P _) => si0; apply/permP=> k.
-  by case: (unliftP i0 k) => [k'|] ->; rewrite permE lsfE // permE -si0 ulsfE.
+  case: (unliftP i0 k) => [k'|] ->; rewrite ?lift_perm_id //.
+  by rewrite lift_perm_lift -si0 permE ulsfK.
 rewrite /cofactor big_distrr /=.
-apply: eq_big => [s | s _]; first by rewrite permE lsfE eqxx.
-rewrite mulrCA mulrA -{}sign_ls; congr (_ * _).
-case: (pickP 'I_(n.-1)) => [k'0 _ | r'0]; last first.
-  rewrite !big_pred0 // => k; apply/idP; case/unlift_some=> k'.
-  by have:= r'0 k'.
+apply: eq_big => [s | s _]; first by rewrite lift_perm_id eqxx.
+rewrite -signr_odd mulrA -signr_addb odd_add -odd_lift_perm; congr (_ * _).
+case: (pickP 'I_n) => [k0 _ | n0]; last first.
+  by rewrite !big1 // => [j | i _]; first case/unlift_some=> i; have:= n0 i.
 rewrite (reindex (lift i0)).
-  by apply: eq_big => [k | k _] /=; rewrite ?neq_lift // !mxK permE lsfE.
-pose f k := if unlift i0 k is Some k' then k' else k'0.
-by exists f; rewrite /f => k; [rewrite liftK | case/unlift_some=> ? ? ->].
+  by apply: eq_big => [k | k _] /=; rewrite ?neq_lift // !mxE lift_perm_lift.
+exists (fun k => odflt k0 (unlift i0 k)) => k; first by rewrite liftK.
+by case/unlift_some=> k' -> ->.
 Qed.
 
-Lemma expand_determinant_row : forall n (A : 'M_n) i0,
+Lemma expand_det_row : forall n (A : 'M_n) i0,
   \det A = \sum_j A i0 j * cofactor A i0 j.
 Proof.
 move=> n A i0; rewrite /(\det A).
@@ -707,234 +941,177 @@ by apply: eq_bigl => i; rewrite eq_sym.
 Qed.
 
 Lemma cofactor_tr : forall n (A : 'M_n) i j,
-  cofactor (\^t A) i j = cofactor A j i.
+  cofactor A^T i j = cofactor A j i.
 Proof.
 move=> n A i j; rewrite /cofactor addnC; congr (_ * _).
-rewrite -tr_rem_row -tr_rem_col determinant_tr; congr (\det _).
-by apply/matrixP=> ? ?; rewrite !mxK.
+rewrite -trmx_row' -trmx_col' det_trmx; congr (\det _).
+by apply/matrixP=> ? ?; rewrite !mxE.
 Qed.
 
-Lemma expand_determinant_col : forall n (A : 'M_n) j0,
+Lemma expand_det_col : forall n (A : 'M_n) j0,
   \det A = \sum_i (A i j0 * cofactor A i j0).
 Proof.
-move=> n A j0; rewrite -determinant_tr (expand_determinant_row _ j0).
-by apply: eq_bigr => i _; rewrite cofactor_tr mxK.
+move=> n A j0; rewrite -det_trmx (expand_det_row _ j0).
+by apply: eq_bigr => i _; rewrite cofactor_tr mxE.
 Qed.
 
-Lemma mulmx_adjr : forall n (A : 'M_n), A *m adjugate A = \Z (\det A).
+Lemma mulmx_adjr : forall n (A : 'M_n), A *m adjugate A = (\det A)%:M.
 Proof.
-move=> n A; apply/matrixP=> i1 i2; rewrite !mxK; case Di: (i1 == i2).
-  rewrite (eqP Di) (expand_determinant_row _ i2) //=.
-  by apply: eq_bigr => j _; congr (_ * _); rewrite mxK.
+move=> n A; apply/matrixP=> i1 i2; rewrite !mxE; case Di: (i1 == i2).
+  rewrite (eqP Di) (expand_det_row _ i2) //=.
+  by apply: eq_bigr => j _; congr (_ * _); rewrite mxE.
 pose B := \matrix_(i, j) (if i == i2 then A i1 j else A i j).
-have EBi12: B i1 =1 B i2 by move=> j; rewrite /= !mxK Di eq_refl.
+have EBi12: B i1 =1 B i2 by move=> j; rewrite /= !mxE Di eq_refl.
 rewrite -{2}(alternate_determinant (negbT Di) EBi12).
-rewrite (expand_determinant_row _ i2); apply: eq_bigr => j _.
-rewrite !mxK eq_refl; congr (_ * (_ * _)).
+rewrite (expand_det_row _ i2); apply: eq_bigr => j _.
+rewrite !mxE eq_refl; congr (_ * (_ * _)).
 apply: eq_bigr => s _; congr (_ * _); apply: eq_bigr => i _.
-by rewrite !mxK eq_sym -if_neg neq_lift.
+by rewrite !mxE eq_sym -if_neg neq_lift.
 Qed.
 
-Lemma adjugate_tr : forall n (A : 'M_n), adjugate (\^t A) = \^t (adjugate A).
-Proof. by move=> n A; apply/matrixP=> i j; rewrite !mxK cofactor_tr. Qed.
+Lemma trmx_adj : forall n (A : 'M_n), (adjugate A)^T = adjugate A^T.
+Proof. by move=> n A; apply/matrixP=> i j; rewrite !mxE cofactor_tr. Qed.
 
-Lemma mulmx_adjl : forall n (A : 'M_n), adjugate A *m A = \Z (\det A).
+Lemma mulmx_adjl : forall n (A : 'M_n), adjugate A *m A = (\det A)%:M.
 Proof.
-move=> n A; apply: trmx_inj; rewrite tr_mulmx -adjugate_tr mulmx_adjr.
-by rewrite determinant_tr trmxZ.
+move=> n A; apply: trmx_inj; rewrite trmx_mul trmx_adj mulmx_adjr.
+by rewrite det_trmx trmx_scalar.
 Qed.
 
 Lemma detM : forall (n : pos_nat) (A B : 'M_n), \det (A * B) = \det A * \det B.
-Proof. move=> n; exact: determinantM. Qed.
+Proof. move=> n; exact: det_mulmx. Qed.
 
-Section CutPaste.
+Lemma mx11_scalar : forall A : matrix R 1 1, A = (A 0 0)%:M.
+Proof. by move=> A; apply/matrixP=> i j; rewrite [i]ord1 [j]ord1 mxE eqxx. Qed.
 
-Variables n1 n2 m p : nat.
-Variables (A1 : 'M_(n1, m)) (A2 : 'M_(n2, m)).
-
-Lemma mx_pasteEl : forall i j, paste A1 A2 (lshift n2 i) j = A1 i j.
-Proof. by move=> i j; rewrite mxK (unsplitK (inl _ _)). Qed.
-  
-Lemma mx_pasteEr : forall i j, paste A1 A2 (rshift n1 i) j = A2 i j.
-Proof. by move=> i j; rewrite mxK (unsplitK (inr _ _)). Qed.
-
-Lemma mx_pasteKl : lcut (paste A1 A2) = A1.
-Proof. by apply/matrixP=> i j; rewrite mxK mx_pasteEl. Qed.
-
-Lemma mx_pasteKr : rcut (paste A1 A2) = A2.
-Proof. by apply/matrixP=> i j; rewrite mxK mx_pasteEr. Qed.
-
-Lemma addmx_paste :
-  forall B1 B2, paste A1 A2 + paste B1 B2 = paste (A1 + B1) (A2 + B2).
+Lemma det_scalar : forall n a, \det (a%:M : 'M_n) = a ^+ n.
 Proof.
-move=> B1 B2; apply/matrixP=> i j; rewrite !mxK.
-by case: split => i'; rewrite mxK.
+move=> n a; rewrite -{1}(mulr1 a) scalar_mx_mul mulmx_scalar det_scalemx.
+by rewrite det1 simp.
 Qed.
 
-Lemma scalemx_paste : forall a, a *s paste A1 A2 = paste (a *s A1) (a *s A2).
+Lemma det_scalar1 : forall a, \det (a%:M : 'M_1) = a.
+Proof. exact: det_scalar. Qed.
+
+Lemma mx_row'_paste : forall m n1 n2 i0 A1 A2,
+  mx_row' i0 (pastemx A1 A2 : matrix R m (n1 + n2))
+    = pastemx (mx_row' i0 A1) (mx_row' i0 A2).
 Proof.
-move=> a; apply/matrixP=> i j; rewrite !mxK.
-by case: split => i'; rewrite mxK.
+move=> m n1 n2 i0 A1 A2; apply/matrixP=> i j; rewrite !mxE.
+by case: (split j) => j'; rewrite mxE.
 Qed.
 
-Lemma mulmx_paste : forall B : 'M_(m, p),
-  paste A1 A2 *m B = paste (A1 *m B) (A2 *m B).
+Lemma mx_col'_paste_left : forall m n1 n2 j0 A1 A2,
+  mx_col' (lshift n2 j0) (pastemx A1 A2 : matrix R m (n1.+1 + n2))
+    = pastemx (mx_col' j0 A1) A2.
 Proof.
-move=> B; apply/matrixP=> i j; rewrite !mxK.
-by case def_i: (split i) => [i1 | i2]; 
-   rewrite mxK; apply: eq_bigr => k _; rewrite mxK def_i.
+move=> m n1 n2 j0 A1 A2; apply/matrixP=> i j; rewrite !mxE.
+case: splitP => [j1 def_j1| j2 def_j2]; case: splitP => j' def_j.
+- by rewrite mxE; congr (A1 _ _); apply: val_inj; rewrite /= -def_j1 -def_j.
+- have:= ltn_ord j1; rewrite -def_j1 /= def_j /bump ltnS /=.
+  rewrite -subn_eq0 addnC -addnA addKn addn_eq0; case/andP; move/eqP->.
+  by rewrite addn0 -ltnS ltn_ord.
+- have:= ltn_ord j'; rewrite /= ltnNge -def_j; case/negP.
+  rewrite -ltnS -(leq_add2r j2) -def_j2 /=  addSnnS addnC leq_add2r.
+  by case: (_ <= j).
+congr (A2 _ _); apply: val_inj; apply: (@addnI n1.+1).
+by rewrite -def_j2 /= def_j /bump /= -ltnS -addSn ltn_addr.
 Qed.
 
-Lemma dotmx_paste : forall B1 B2,
-  \^t (paste B1 B2) *m paste A1 A2 = \^t B1 *m A1 + \^t B2 *m A2 :> 'M_(p, m).
+Lemma det_perm_mx_neq0 : forall n s, \det (@perm_mx R n s) != 0. 
 Proof.
-move: A1 A2 => A1' A2' B1 B2; apply/matrixP=> i k; rewrite !mxK.
-rewrite (reindex (@unsplit _ _)) /=; last first.
-  by exists (@split n1 n2) => j _; rewrite ?splitK ?unsplitK.
-pose J := ('I_n1 + 'I_n2)%type; rewrite (bigID (@id J)) /=; congr (_ + _).
-  case: n1 => [|n] in J A1' B1 *; first by rewrite !big1; do 2?case.
-  rewrite (reindex (@inl _ _)); last first.
-    by exists (fun j : J => if j is inl j1 then j1 else 0); case.
-  by apply: eq_bigr => j; rewrite !mxK unsplitK /=.
-case: n2 => [|n] in J A2' B2 *; first by rewrite !big1; do 2?case.
-rewrite (reindex (@inr _ _)); last first.
-  by exists (fun j : J => if j is inr j2 then j2 else 0); case.
-by apply: eq_bigr => j; rewrite !mxK unsplitK /=.
-Qed.
-End CutPaste.
-
-Definition block_mx m1 m2 n1 n2 A1 A2 A3 A4 : 'M_(m1 + m2, n1 + n2) :=
-  \^t (paste (\^t (paste A1 A3)) (\^t (paste A2 A4))).
-
-Section CutBlock.
-
-Variables (m1 m2 n1 n2 : nat) (A : 'M_(m1 + m2, n1 + n2)).
-
-Definition block_cut1 := lcut (\^t (lcut (\^t A))).
-Definition block_cut2 := lcut (\^t (rcut (\^t A))).
-Definition block_cut3 := rcut (\^t (lcut (\^t A))).
-Definition block_cut4 := rcut (\^t (rcut (\^t A))).
-
-Lemma block_mx_block_cut :
-  block_mx block_cut1 block_cut2 block_cut3 block_cut4 = A.
-Proof. by rewrite /block_mx !(mx_paste_cut, trmxK). Qed.
-
-End CutBlock.
-
-Section Tr_block_cut.
-
-Variables (m1 m2 n1 n2 : nat) (A : 'M_(m1 + m2, n1 + n2)).
-
-Lemma trmx_block_cut1 : \^t (block_cut1 A) = block_cut1 (\^t A).
-Proof. by apply/matrixP=> i j; rewrite !mxK. Qed.
-
-Lemma trmx_block_cut2 : \^t (block_cut2 A) = block_cut3 (\^t A).
-Proof. by apply/matrixP=> i j; rewrite !mxK. Qed.
-
-Lemma trmx_block_cut3 : \^t (block_cut3 A) = block_cut2 (\^t A).
-Proof. by apply/matrixP=> i j; rewrite !mxK. Qed.
-
-Lemma trmx_block_cut4 : \^t (block_cut4 A) = block_cut4 (\^t A).
-Proof. by apply/matrixP=> i j; rewrite !mxK. Qed.
-
-End Tr_block_cut.
-
-Section PasteBlock.
-
-Variables m1 m2 n1 n2 : nat.
-Variables (A1 : 'M_(m1, n1)) (A2 : 'M_(m1, n2)).
-Variables (A3 : 'M_(m2, n1)) (A4 : 'M_(m2, n2)).
-
-Let A := block_mx A1 A2 A3 A4.
-
-Lemma block_mxE1 : forall i j, A (lshift m2 i) (lshift n2 j) = A1 i j.
-Proof. by move=> i j; rewrite mxK mx_pasteEl mxK mx_pasteEl. Qed.
-Lemma block_cut_block_mx1 : block_cut1 A = A1. 
-Proof. by rewrite /block_cut1 trmxK mx_pasteKl trmxK mx_pasteKl. Qed.
-
-Lemma block_mxE2 : forall i j, A (lshift m2 i) (rshift n1 j) = A2 i j.
-Proof. by move=> i j; rewrite mxK mx_pasteEr mxK mx_pasteEl. Qed.
-Lemma block_cut_block_mx2 : block_cut2 A = A2. 
-Proof. by rewrite /block_cut2 trmxK mx_pasteKr trmxK mx_pasteKl. Qed.
-
-Lemma block_mxE3 : forall i j, A (rshift m1 i) (lshift n2 j) = A3 i j.
-Proof. by move=> i j; rewrite mxK mx_pasteEl mxK mx_pasteEr. Qed.
-Lemma block_cut_block_mx3 : block_cut3 A = A3. 
-Proof. by rewrite /block_cut3 trmxK mx_pasteKl trmxK mx_pasteKr. Qed.
-
-Lemma block_mxE4 : forall i j, A (rshift m1 i) (rshift n1 j) = A4 i j.
-Proof. by move=> i j; rewrite mxK mx_pasteEr mxK mx_pasteEr. Qed.
-Lemma block_cut_block_mx4 : block_cut4 A = A4. 
-Proof. by rewrite /block_cut4 trmxK mx_pasteKr trmxK mx_pasteKr. Qed.
-
-Lemma trmx_block : \^t A = block_mx (\^t A1) (\^t A3) (\^t A2) (\^t A4).
-Proof.
-rewrite -block_cut_block_mx1 trmx_block_cut1.
-rewrite -block_cut_block_mx2 trmx_block_cut2.
-rewrite -block_cut_block_mx3 trmx_block_cut3.
-by rewrite -block_cut_block_mx4 trmx_block_cut4 block_mx_block_cut.
+move=> n s; rewrite det_perm_mx.
+by case: (s : bool); rewrite ?oppr_eq0 nonzero1r.
 Qed.
 
-Lemma addmx_block : forall B1 B2 B3 B4,
-  A + block_mx B1 B2 B3 B4 = block_mx (A1 + B1) (A2 + B2) (A3 + B3) (A4 + B4).
+Lemma det_ublock : forall n1 n2 Aul Aur Alr,
+  \det (block_mx Aul Aur 0 Alr : 'M_(n1 + n2)) = \det Aul * \det Alr.
 Proof.
-by move=> B1 B2 B3 B4; do 2!rewrite -![_ + _]tr_addmx ![_ +m _]addmx_paste.
+move=> n1 n2 Aul Aur Alr; elim: n1 => [|n1 IHn1] in Aul Aur *.
+  have ->: Aul = 1%:M by apply/matrixP=> i [].
+  rewrite det1 mul1r; congr (\det _); apply/matrixP=> i j.
+  by do 2![rewrite !mxE; case: splitP => [[]|k] //=; move/val_inj=> <- {k}].
+rewrite 2!(expand_det_col _ 0).
+rewrite (reindex (@unsplit n1.+1 n2)); last first.
+  by exists (@split n1.+1 n2) => k _; rewrite (splitK, unsplitK).
+rewrite big_sumType /= addrC big1 /= ?simp => [|k _]; last first.
+  by rewrite mxE pastemxEr !mxE; case: splitP => // j _; rewrite mxE simp.
+rewrite big_distrl; apply: eq_bigr => i _ /=; rewrite -!mulrA; congr (_ * _).
+  rewrite mxE pastemxEl !mxE; case: splitP => //= j j0; congr (Aul _ _).
+  exact: val_inj.
+rewrite /cofactor !addn0 -/plus; congr (_ * _).
+rewrite -trmx_row' (@mx_row'_paste _ n1.+1 n2) -!trmx_col'.
+rewrite -((lshift n2 (0 : 'I_n1.+1) =P 0 :> 'I__.+1) _) // !mx_col'_paste_left.
+rewrite -!trmx_row' !mx_row'_paste (_ : mx_col' _ 0 = 0) ?IHn1 //.
+by apply/matrixP=> i' j'; rewrite !mxE.
 Qed.
 
-End PasteBlock.
-
-Lemma block_mxM : forall m1 m2 n1 n2 p1 p2 A1 A2 A3 A4 B1 B2 B3 B4,
-  let A : 'M_(m1 + m2, n1 + n2) := block_mx A1 A2 A3 A4 in
-  let B : 'M_(n1 + n2, p1 + p2) := block_mx B1 B2 B3 B4 in
-  A *m B = block_mx (A1 *m B1 + A2 *m B3) (A1 *m B2 + A2 *m B4)
-                    (A3 *m B1 + A4 *m B3) (A3 *m B2 + A4 *m B4).
+Lemma det_lblock :  forall n1 n2 Aul All Alr,
+  \det (block_mx Aul 0 All Alr : 'M_(n1 + n2)) = \det Aul * \det Alr.
 Proof.
-move=> m1 m2 n1 n2 p1 p2 A1 A2 A3 A4 B1 B2 B3 B4 A B.
-rewrite -[B]trmxK trmx_block trmxK dotmx_paste.
-by do 2!rewrite -!tr_mulmx !mulmx_paste; rewrite addmx_block.
+move=> n1 n2 Aul All Alr.
+by rewrite -det_trmx trmx_block trmx0 det_ublock !det_trmx.
 Qed.
 
-End MatrixOnComRingProp.
+End ComMatrix.
+
+Notation "\det A" := (determinant A) : ring_scope.
+Notation "\adj A" := (adjugate A) : ring_scope.
 
 Section MatrixInv.
 
 Variables (R : comUnitRingType) (n : pos_nat).
 
-Notation Local "''M_' n" := (matrix R n n) : matrix_scope.
+Definition unit_mx : pred 'M_n := fun A => GRing.unit (\det A : R).
+Definition invmx A := if unit_mx A then (\det A)^-1 *m: \adj A else A.
 
-Definition mx_unit : pred 'M_n := fun A => GRing.unit (\det A).
-Definition invmx A : 'M_n := if mx_unit A then (\det A)^-1 *s \adj A else A.
-
-Lemma mulVmx : {in mx_unit, left_inverse 1 invmx *%R}.
+Lemma mulVmx : {in unit_mx, left_inverse 1 invmx *%R}.
 Proof.
 move=> A; rewrite -topredE /= => nsA; rewrite /invmx nsA.
-by rewrite -[_ * _]scalemxAl mulmx_adjl -scalemx1 scalemxA mulVr ?scale1mx.
+by rewrite -mulmxE -scalemxAl mulmx_adjl -mulmx_scalar -scalar_mx_mul mulVr.
 Qed.
 
-Lemma mulmxV : {in mx_unit, right_inverse 1 invmx *%R}.
+Lemma mulmxV : {in unit_mx, right_inverse 1 invmx *%R}.
 Proof.
 move=> A; rewrite -topredE /= => nsA; rewrite /invmx nsA.
-by rewrite -[_ * _]scalemxAr mulmx_adjr -scalemx1 scalemxA mulVr ?scale1mx.
+by rewrite -mulmxE -scalemxAr mulmx_adjr -mulmx_scalar -scalar_mx_mul mulVr.
 Qed.
 
-Lemma intro_mx_unit : forall A B : 'M_n, B * A = 1 /\ A * B = 1 -> mx_unit A.
+Lemma intro_unit_mx : forall A B : 'M_n, B * A = 1 /\ A * B = 1 -> unit_mx A.
 Proof.
 move=> A B [BA1 AB1]; apply/unitrP; exists (\det B).
-by rewrite -!detM BA1 AB1 determinant1.
+by rewrite -!detM BA1 AB1 det1.
 Qed.
 
-Lemma invmx_out : {in predC mx_unit, invmx =1 id}.
+Lemma invmx_out : {in predC unit_mx, invmx =1 id}.
 Proof. by move=> A; rewrite inE /= /invmx -if_neg => ->. Qed.
 
 Definition matrix_unitRingMixin :=
-  UnitRingMixin mulVmx mulmxV intro_mx_unit invmx_out.
+  UnitRingMixin mulVmx mulmxV intro_unit_mx invmx_out.
 Canonical Structure matrix_unitRing :=
   Eval hnf in UnitRingType matrix_unitRingMixin.
 
-Lemma det_inv : forall A : 'M_n, \det A^-1 = (\det A)^-1.
+Lemma det_invmx : forall A : 'M_n, \det A^-1 = (\det A)^-1.
 Proof.
 move=> A; case/orP: (orbN (GRing.unit A)) => U_A; last by rewrite !invr_out.
-by apply: (@mulrI R (\det A) U_A); rewrite -detM !divrr // determinant1.
+by apply: (@mulrI R (\det A) U_A); rewrite -detM !divrr // det1.
+Qed.
+
+Lemma trmx_unit : forall A : 'M_n, GRing.unit A^T = GRing.unit A.
+Proof. by move=> A; rewrite /GRing.unit /= /unit_mx det_trmx. Qed.
+
+Lemma trmx_inv : forall A : 'M_n, A^-1^T = (A^T)^-1.
+Proof.
+move=> A; rewrite /GRing.inv /= /invmx /unit_mx det_trmx.
+by rewrite -trmx_adj -trmx_scale (fun_if (fun B => B^T)).
+Qed.
+
+Lemma perm_mxV : forall s : 'S_n, perm_mx R s^-1%g = (perm_mx R s)^-1.
+Proof.
+move=> s; set A' := perm_mx _ _.
+rewrite -[_^-1]mul1r; apply: (canRL (mulrK _)).
+  by apply/unitrP; exists A'; rewrite -!mulmxE !mulmx_perm ?gsimp ?perm_mx1.
+by rewrite -!mulmxE !mulmx_perm ?gsimp ?perm_mx1.
 Qed.
 
 End MatrixInv.

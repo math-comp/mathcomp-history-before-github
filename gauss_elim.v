@@ -36,9 +36,9 @@ Lemma annihilate_col_funE : forall (i : 'I_m) (j : 'I_n) m' A k l,
 Proof.
 move=> i j m' A k l; symmetry; rewrite /annihilate_col_fun.
 case: ifP; first case/andP.
-  by move=> H1 H2; rewrite H1 /mx_row_repl mxK H2 -(eqP H2) !mulNr.
+  by move=> H1 H2; rewrite H1 /mx_row_repl mxE H2 -(eqP H2) !mulNr.
 case/nandP; first by move/negbTE->.
-by case: ifP => // _; rewrite /mx_row_repl mxK; move/negbTE->.
+by case: ifP => // _; rewrite /mx_row_repl mxE; move/negbTE->.
 Qed.
 
 Definition annihilate_col_step (i : 'I_m) (j : 'I_n) (A : 'M_(m, n)) m' :=
@@ -180,7 +180,7 @@ move=> A j x i x_i; rewrite /rref_fun.
 case: insubP=> //=; last by rewrite (ltn_trans x_i _).
 move=> [] /= _ x_m _ _; case: pickP => //= [k|]; last first.
   by move/(_ i)=> /=; rewrite (ltnW x_i) andbT; move/negPn; move/eqP.
-case/andP=> Akj x_k; rewrite !annihilate_colE !mxK /=.
+case/andP=> Akj x_k; rewrite !annihilate_colE !mxE /=.
 have i_ne_x : i != Ordinal x_m.
   apply/eqP; move/(congr1 (@nat_of_ord m)) => /=; move/eqP.
   by rewrite eq_sym eqn_leq [_ <= x]leqNgt x_i /= andbF.
@@ -221,7 +221,7 @@ case: pickP => //= [k|]; last first.
   case/orP: H1 => H1; last by rewrite Rj'.
   suff -> : Ordinal n_j' = j; first by move/negPn; move/eqP.
   by apply: val_inj => /=; rewrite (eqP H1).
-case/andP=> Akj x_k; rewrite !annihilate_colE !mxK /=.
+case/andP=> Akj x_k; rewrite !annihilate_colE !mxE /=.
 case: ifP => H3; last first.
   move/negPn: H3 => H3; rewrite H3 eq_refl; rewrite ltnS leq_eqVlt in H1.
   case/orP: H1 => H1; last by rewrite Rj' ?mulr0.
@@ -250,7 +250,7 @@ elim: j' {-2}j' (leqnn j') j j_j' nj' A => [| k Hk] j' Hj' j j_j' nj' A.
 rewrite leq_eqVlt in Hj'; case/orP: Hj' => Hj'; last by rewrite (Hk j' _ _ _ nj').
 move: nj'; rewrite (eqP Hj') /rref_fun => nk.
 case: insubP=> //= [] [] _ x_m _ _; case: pickP => //= l; case/andP=> H1 H2.
-rewrite !annihilate_colE !mxK /= eqxx /=.
+rewrite !annihilate_colE !mxE /= eqxx /=.
 case: ifP => H3; last move/negPn: H3 => H3; rewrite ?H3 ?(negbTE H3).
   case: ifP => H4; rewrite H4.
   - rewrite mulVf // invr1 !mulr1 (eqP H4).
@@ -292,7 +292,7 @@ rewrite -/(rref_step A j) (nth_ord_enum _ (Ordinal n_j)) /= /rref_fun.
 case: insubP => //= [[] [] /= _ _ x_m _ _|]; last by rewrite x_i ltn_ord.
 case: pickP => //= [k |_]; last first.
   by rewrite x_i; move/eqP; rewrite eq_sym eqn_leq ltnn /=.
-case/andP=> Akj x_k _; rewrite annihilate_colE !mxK eq_refl /=.
+case/andP=> Akj x_k _; rewrite annihilate_colE !mxE eq_refl /=.
 suff -> : (i == k) = false.
   suff -> : i == Ordinal x_m => /=; first rewrite mulVf //.
     by move/eqP; rewrite oner_eq0.
@@ -303,7 +303,7 @@ rewrite /rref_step (take_nth (Ordinal n_j)) 1?size_enum_ord // -cats1 foldl_cat.
 rewrite -/(rref_step A j) (nth_ord_enum _ (Ordinal n_j)) /= /rref_fun.
 case: insubP => //= [[] [] /= _ _ x'_m _ _|]; last by rewrite x_i ltn_ord.
 case: pickP => //= [k' |_]; last by move/eqP=> H'; rewrite H' eqxx in Akj.
-case/andP=> Ak'j x'_k'; rewrite annihilate_colE !mxK eq_refl /=.
+case/andP=> Ak'j x'_k'; rewrite annihilate_colE !mxE eq_refl /=.
 suff -> : i == Ordinal x'_m; last by apply/eqP; apply: val_inj => /=; rewrite x_i.
 by rewrite /= mulVf // oner_eq0.
 Qed.
@@ -390,7 +390,7 @@ rewrite {1 3 4}/pivot_nz; case: pickP => [k /=|].
   rewrite -/(rref_step A j) (nth_ord_enum _ (Ordinal n_j)) /= /rref_fun.
   case: insubP => //= [[] [] /= _ _ x_m _ _|]; last by rewrite (eqP H3).
   case: pickP => [k' /=|]; last by rewrite (eqP H3).
-  case/andP; rewrite annihilate_colE !mxK eq_refl /=; move/eqP => Akk' x_k.
+  case/andP; rewrite annihilate_colE !mxE eq_refl /=; move/eqP => Akk' x_k.
   case: ifP => /= H4; last move/negPn: H4 => H4; rewrite 1?H4; last first.
   - rewrite rref_step_nil_mx 1?eq_refl // in H1.
     by move/eqP: H4; move/(congr1 (@nat_of_ord m)) => /= <-.
@@ -414,7 +414,7 @@ suff : [pred k | ((rref_step A j.+1).2 i k != 0) && (k < j.+1)] =1
   case: insubP => //= [[] [] /= _ _ x_m _ _|]; last first.
   - by rewrite (leq_ltn_trans x_i (ltn_ord _)).
   case: pickP => [k' /=|]; last by move/(_ i) => /=; rewrite x_i andbT => ->.
-  case/andP; move/eqP => Ak'k x_k'; rewrite annihilate_colE !mxK eq_refl /=.
+  case/andP; move/eqP => Ak'k x_k'; rewrite annihilate_colE !mxE eq_refl /=.
   case: ifP => /= H2; last by move/negPn: H2 => H2; rewrite 1?H2 mulfV.
   by rewrite (negbTE H2); rewrite mulfV // invf1 !mulr1 // addrN eq_refl.
 move=> k /=; rewrite ltnS leq_eqVlt andb_orr -{2}(orbF (_  && (k == j :> nat))).
@@ -452,7 +452,7 @@ case: pickP => [k /=|]; last (move/(_ i) => /=; rewrite x_i andbT); last first.
   move=> _; rewrite (@rref_step_nil_mx _ i k') 1?eq_refl //.
   rewrite ltnS leq_eqVlt in k'j; case/orP: k'j => // k'j; move/negP: k'_j => [].
   by apply/eqP; apply: ord_inj => /=; rewrite (eqP k'j).
-case/andP; move/eqP => Akj x_k; rewrite !annihilate_colE !mxK eq_refl.
+case/andP; move/eqP => Akj x_k; rewrite !annihilate_colE !mxE eq_refl.
 case: ifP => /= H1; last move/negPn: H1 => H1; rewrite 1?H1 1?(negbTE H1).
   rewrite mulfV // invf1 !mulr1; rewrite ltnS leq_eqVlt in k'j.
   case/orP: k'j => k'j; first suff -> : k' = Ordinal n_j.

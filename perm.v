@@ -53,6 +53,11 @@ End PermDefSection.
 Notation "{ 'perm' T }" := (perm_of (Phant T))
   (at level 0, format "{ 'perm'  T }") : type_scope.
 
+Arguments Scope pval [_ group_scope].
+
+Bind Scope group_scope with perm_type.
+Bind Scope group_scope with perm_of.
+
 Notation "''S_' n" := {perm 'I_n}
   (at level 8, n at level 2, format "''S_' n").
 
