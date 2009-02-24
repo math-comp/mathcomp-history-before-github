@@ -862,14 +862,6 @@ Fixpoint ring_formula (f : formula R) :=
   | Not f1 | Exists _ f1 | Forall _ f1 => ring_formula f1
   end.
 
-Fixpoint constructible (f : formula R) :=
-  match f with
-  | Equal t1 (NatConst 0) => ring_term t1
-  | And f1 f2 | Or f1 f2 => constructible f1 && constructible f2 
-  | Not f1 => constructible f1
-  | _ => false
-  end.
-
 Fixpoint ub_var (t : term R) :=
   match t with
   | Var i => i.+1
@@ -1143,6 +1135,117 @@ elim=> /=.
     rsub (t1 ^+n)%T m r = ((rsub t1 m r)^+n)%T by rewrite hrsub1.
   by elim=> [|t' r0 IHr0]  t2 k l //=; rewrite IHr0.
 Qed. 
+
+Fixpoint constructible (f : formula R) :=
+  match f with
+  | Equal t1 (NatConst 0) => ring_term t1
+  | And f1 f2 | Or f1 f2 => constructible f1 && constructible f2 
+  | Not f1 => constructible f1
+  | _ => false
+  end.
+
+Section RealiConstruct.
+
+Variable e : seq R.
+
+Fixpoint reali_construct f :=
+  match f with
+    | Equal t1 (NatConst 0) => (eval t1 e == 0)
+    | And f1 f2 => [rec f1] && [rec f2]
+    | Or f1 f2 => [rec f1] || [rec f2]
+    | Not f1 => ~~ [rec f1]
+    |_ => false
+  end where "[ 'rec' f ]" := (reali_construct f).
+
+End RealiConstruct.
+
+Lemma reali_construct_holds : forall f e,
+  constructible f -> ((holds f e) <-> (reali_construct e f)).
+Proof.
+elim=> //.
+- by move=> t1 t2 e cet12; case: t2 cet12=> //= [[|n]] // _; split; move/eqP.
+- move=> f1 IHf1 f2 IHf2 e /=; case/andP => cf1 cf2; split.
+   by case; move/(IHf1 _ cf1)->; move/(IHf2 _ cf2).
+  by case/andP; move/(IHf1 _ cf1)=> hf1e; move/(IHf2 _ cf2).
+- move=> f1 IHf1 f2 IHf2 e /=; case/andP => cf1 cf2; split.
+   by case; [move/(IHf1 _ cf1)-> | move/(IHf2 _ cf2)->; rewrite orbT].
+  by case/orP; [move/(IHf1 _ cf1); left| move/(IHf2 _ cf2); right].
+- move=> f IHf e /= cf; split; first by move/(IHf _ cf); move/negP.
+  by move/negP; move/(IHf _ cf).
+Qed.
+
+Definition tt_form : formula R := (0%:R == 0%:R)%T.
+
+Implicit Type bc : seq (term R) * seq (term R).
+
+Definition basic_formula :=
+  foldr (fun bc =>
+         Or (foldr (fun t => And (t == 0%:R)) tt_form bc.1
+             /\ foldr (fun t => And (~ (t == 0%:R))) tt_form bc.2))
+        (Not tt_form).
+
+Definition and_basic bcs1 bcs2 :=
+  \big[cat/nil]_(bc1 <- bcs1)
+     map (fun bc2 => (bc1.1 ++ bc2.1, bc1.2 ++ bc2.2)) bcs2.
+
+
+Fixpoint basic_of_construct f neg {struct f} := 
+  match f with
+    | Equal t1 _ => [:: if neg then ([::], [:: t1]) else ([:: t1], [::])]
+    | And f1 f2 => (if neg then cat else and_basic) [rec f1, neg] [rec f2, neg]
+    | Or f1 f2 => (if neg then and_basic else cat) [rec f1, neg] [rec f2, neg]
+    | Not f1 => [rec f1, (~~ neg)]
+    |_ =>  [:: ([::], [::])]
+  end where "[ 'rec' f , neg ]" := (basic_of_construct f neg).
+
+Lemma basic_formula_cat : forall bcs1 bcs2 e, 
+  reali_construct e (basic_formula (bcs1 ++ bcs2))
+ = reali_construct e (Or (basic_formula bcs1) (basic_formula bcs2)).
+Proof.
+elim=> [|bc1 bcs1 IH1] bcs2 e /=; first by rewrite eqxx.
+by rewrite -orbA; congr orb; rewrite IH1.
+Qed.
+
+Lemma and_basic_correct : forall bcs1 bcs2 e, 
+  reali_construct e (basic_formula (and_basic bcs1 bcs2))
+  = reali_construct e (And (basic_formula bcs1) (basic_formula bcs2)).
+Proof.
+elim=>[|bc1 bcs1 IH1] bcs2 /= e; first by rewrite /and_basic big_nil /= eqxx.
+rewrite /and_basic big_cons -/(and_basic bcs1 bcs2) basic_formula_cat  /=.
+rewrite {}IH1 /= andb_orl; congr orb.
+elim: bcs2 bc1 {bcs1} => [| bc2 bcs2 IH] bc1 /=; first by rewrite eqxx andbF.
+rewrite {}IH /= andb_orr; congr orb; rewrite {bcs2}. 
+suff aux : forall (l1 l2 : seq (term R)) g, 
+  reali_construct e (foldr (fun t => And (g t)) tt_form (l1 ++ l2)) =
+  reali_construct e 
+  (And (foldr (fun t => And (g t)) tt_form l1) (foldr (fun t => And (g t)) tt_form l2)).
+  rewrite 2!aux /= 2!andbA; congr andb; rewrite -2!andbA; congr andb.
+  by rewrite andbC.
+elim=> [| t1 l1 IHl1] l2 g /=; first by rewrite eqxx.
+by rewrite -andbA IHl1 /=; congr andb.
+Qed.
+
+
+Lemma basic_of_construct_correct : forall f, (constructible f) -> 
+  (forall e, reali_construct e f =
+    reali_construct e (basic_formula (basic_of_construct f false))).
+Proof.
+elim => //=.
+- by move=> t1 t2; case: t2 => //= [[|n]] // _ e; rewrite eqxx /= orbF !andbT.
+- move=> f1 IHf1 f2 IHf2; case/andP=> cf1 cf2 e; rewrite IHf1 // IHf2 //=.
+  by rewrite and_basic_correct.
+- move=> f1 IHf1 f2 IHf2; case/andP=> cf1 cf2 e; rewrite IHf1 // IHf2 //=.
+  by rewrite basic_formula_cat.
+- move=> f IHf cf e; rewrite {}IHf //; elim: f cf => //.
+  + by move=> t1 [] ? //=; rewrite eqxx /= 2!orbF !andbT.
+  + move=> f1 IHf1 f2 IHf2 /=; case/andP=> cf1 cf2.
+    rewrite and_basic_correct /= basic_formula_cat /= -IHf1 // negb_and.
+    by congr orb; rewrite IHf2.
+  + move=> f1 IHf1 f2 IHf2 /=; case/andP=> cf1 cf2.
+    rewrite and_basic_correct /= basic_formula_cat /= -IHf1 // negb_or.
+    by rewrite -IHf2.
+  + by move=> f IHf /= cf; rewrite -IHf // negbK.
+Qed.
 
 
 End EvalTerm.
