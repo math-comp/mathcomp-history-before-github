@@ -1027,28 +1027,6 @@ suff rsub_to_r : forall t0 r0 m, m >= ub_var t0 -> ub_sub m r0 ->
 have rsub_id : forall r t n, (ub_var t)<= n -> rsub t n r = t.
   elim=> //= t0 r IHr t1 n hn; rewrite IHr ?sub_var_tsubst  ?(ltnW hn) //.
   by  rewrite (leq_trans hn).
-have to_r_acc : forall t r n, exists s, 
-  let: (t', r') := to_ring_term t r n in r'  = r ++ s.
-  elim => 
-    [n|s|n|t1 IHt1 t2 IHt2|t1 IHt1|t1 IHt1 n|t1 IHt1 t2 IHt2|t1 IHt1|t1 IHt1 n]
-      r m /=.
-  - by exists (Nil (term R)); rewrite cats0.
-  - by exists (Nil (term R)); rewrite cats0.
-  - by exists (Nil (term R)); rewrite cats0.
-  - case: (IHt1 r m)=> s1; case: (to_ring_term _ _ _ )=> t1' s1' ->.
-    case: (IHt2 (r++s1) m)=> s2; case: (to_ring_term _ _ _ )=> t2' s2' ->.
-    by exists (s1 ++ s2); rewrite catA.
-  - case: (IHt1 r m)=> s1; case: (to_ring_term _ _ _ )=> t1' s1' ->.
-    by exists s1.
-  - case: (IHt1 r m)=> s1; case: (to_ring_term _ _ _ )=> t1' s1' ->.
-    by exists s1.
-  - case: (IHt1 r m)=> s1; case: (to_ring_term _ _ _ )=> t1' s1' ->.
-    case: (IHt2 (r++s1) m)=> s2; case: (to_ring_term _ _ _ )=> t2' s2' ->.
-    by exists (s1 ++ s2); rewrite catA.
-  - case: (IHt1 r m)=> s1; case: (to_ring_term _ _ _ )=> t1' s1' ->.
-    by exists (rcons s1 t1'); rewrite rcons_cat.
-  - case: (IHt1 r m)=> s1; case: (to_ring_term _ _ _ )=> t1' s1' ->.
-    by exists s1.
 have rsub_acc : forall r s t1 m, 
   ub_var t1 <= m + (size r) -> rsub t1 m (r ++ s) = rsub t1 m r.
   elim=> [|t1 r IHr] s t2 m /=; first by rewrite addn0; apply: rsub_id.
@@ -1059,72 +1037,59 @@ elim=> /=.
  - by move=> n r m hlt hub; rewrite leq0n take_size; split; rewrite // rsub_id.
  - by  move=> n r m hlt hub; rewrite leq0n take_size; split; rewrite // rsub_id.
  - move=> t1 IHt1 t2 IHt2 r m; rewrite leq_maxl; case/andP=> hub1 hub2 hmr.
-   have := (IHt1 r m hub1 hmr); case e1: (to_ring_term _ _ _)=> [t1' r1].
+   have {IHt1} := (IHt1 r m hub1 hmr); case: (to_ring_term _ _ _)=> [t1' r1].
    case => htake1 hub1' hsub1 hrsub1.
-   have := (IHt2 r1 m hub2 hsub1); case e2: (to_ring_term _ _ _)=> [t2' r2].
+   have {IHt2} := (IHt2 r1 m hub2 hsub1); case: (to_ring_term _ _ _)=> [t2' r2].
    case => htake2 hub2' hsub2 hrsub2 /=.
    rewrite leq_maxl {}hub2' andbT; split=> //.
-   + rewrite -[r2]/((t2',r2).2) -{}e2 -[r1]/((t1',r1).2) -{}e1.
-     case: (to_r_acc t1 r m)=> s1; case: (to_ring_term _ _ _ ) => /= _ s2 -> {s2}.
-     case: (to_r_acc t2 (r++s1) m)=> s2.
-     case: (to_ring_term _ _ _ ) => /= _ s3 -> {s3}. 
-     by rewrite -catA; exact: take_size_cat.
-   + rewrite (leq_trans hub1') // -[r2]/((t2',r2).2) -{}e2 leq_add2l.
-     case: (to_r_acc t2 r1 m)=> s1; case: (to_ring_term _ _ _ )=> /= _ s2 -> {s2}.
-     rewrite size_cat; exact: leq_addr.
+   + rewrite -(cat_take_drop (size r1) r2) htake2 takel_cat ?htake1 //.
+      by rewrite -(cat_take_drop (size r) r1) size_cat htake1 leq_addr.
+   + apply: (leq_trans hub1'); rewrite leq_add2l -(cat_take_drop (size r1) r2).
+      by rewrite htake2 size_cat leq_addr // leqnn.
    + have -> : forall r t1 t2 n, 
                rsub (t1 + t2)%T n r = ((rsub t1 n r) + (rsub t2 n r))%T.
        by elim=> [|t' r0 IHr0] t3 t4 n //=; rewrite IHr0.
-     rewrite hrsub2 (_ : rsub _ _ _ = t1) // -hrsub1. 
-     rewrite -[r2]/((t2',r2).2) -{}e2; case: (to_r_acc t2 r1 m)=> s1.
-     by case: (to_ring_term _ _ _ ) => /= _ s2 -> {s2}; rewrite rsub_acc.
+     rewrite hrsub2 (_ : rsub _ _ _ = t1) // -hrsub1 -(cat_take_drop (size r1) r2).
+     by rewrite htake2 rsub_acc.
  - move=> t1 IHt1 r m hub hmr.
-   have := (IHt1 r m hub hmr); case e1: (to_ring_term _ _ _)=> [t1' r1].
+   have {IHt1} := (IHt1 r m hub hmr); case: (to_ring_term _ _ _)=> [t1' r1].
    case => htake1 hub1' hsub1 hrsub1; split=> //.
    suff -> : forall r t1 n, 
              rsub (- t1)%T n r = (- (rsub t1 n r))%T by rewrite hrsub1.
    by elim=> [|t' r0 IHr0]  t2 n //=; rewrite IHr0.
  - move=> t1 IHt1 n r m hub hmr.
-   have := (IHt1 r m hub hmr); case e1: (to_ring_term _ _ _)=> [t1' r1].
+   have {IHt1} := (IHt1 r m hub hmr); case: (to_ring_term _ _ _)=> [t1' r1].
    case => htake1 hub1' hsub1 hrsub1; split=> //.
    suff -> : forall r t1 n m, 
              rsub (t1 *+n)%T m r = ((rsub t1 m r)*+n)%T by rewrite hrsub1.
    by elim=> [|t' r0 IHr0]  t2 k l //=; rewrite IHr0.
 - move=> t1 IHt1 t2 IHt2 r m; rewrite leq_maxl; case/andP=> hub1 hub2 hmr.
-   have := (IHt1 r m hub1 hmr); case e1: (to_ring_term _ _ _)=> [t1' r1].
+   have{IHt1}  := (IHt1 r m hub1 hmr); case: (to_ring_term _ _ _)=> [t1' r1].
    case => htake1 hub1' hsub1 hrsub1.
-   have := (IHt2 r1 m hub2 hsub1); case e2: (to_ring_term _ _ _)=> [t2' r2].
+   have {IHt2} := (IHt2 r1 m hub2 hsub1); case: (to_ring_term _ _ _)=> [t2' r2].
    case => htake2 hub2' hsub2 hrsub2 /=.
    rewrite leq_maxl {}hub2' andbT; split=> //.
-   + rewrite -[r2]/((t2',r2).2) -{}e2 -[r1]/((t1',r1).2) -{}e1.
-     case: (to_r_acc t1 r m)=> s1; case: (to_ring_term _ _ _ ) => /= _ s2 -> {s2}.
-     case: (to_r_acc t2 (r++s1) m)=> s2. 
-     case: (to_ring_term _ _ _ ) => /= _ s3 -> {s3}.
-     rewrite -catA; exact: take_size_cat.
-   + rewrite (leq_trans hub1') // -[r2]/((t2',r2).2) -{}e2 leq_add2l.
-       case: (to_r_acc t2 r1 m)=> s1.
-       case: (to_ring_term _ _ _ )=> /= _ s2 -> {s2}.
-       rewrite size_cat; exact: leq_addr.
+   + rewrite -(cat_take_drop (size r1) r2) htake2 takel_cat ?htake1 //.
+      by rewrite -(cat_take_drop (size r) r1) size_cat htake1 leq_addr.
+   + apply: (leq_trans hub1'); rewrite leq_add2l -(cat_take_drop (size r1) r2).
+      by rewrite htake2 size_cat leq_addr // leqnn.
    + have -> : forall r t1 t2 n, 
                rsub (t1 * t2)%T n r = ((rsub t1 n r) * (rsub t2 n r))%T.
        by elim=> [|t' r0 IHr0] t3 t4 n //=; rewrite IHr0.
-     rewrite hrsub2 (_ : rsub _ _ _ = t1) // -hrsub1. 
-     rewrite -[r2]/((t2',r2).2) -{}e2; case: (to_r_acc t2 r1 m)=> s1.
-     by case: (to_ring_term _ _ _ ) => /= _ s2 -> {s2}; rewrite rsub_acc.
+     rewrite hrsub2 (_ : rsub _ _ _ = t1) // -hrsub1 -(cat_take_drop (size r1) r2).
+     by rewrite htake2 rsub_acc.
 -  move=> t1 IHt1 r m hub hmr.
-   have := (IHt1 r m hub hmr); case e1: (to_ring_term _ _ _)=> [t1' r1].
+   have {IHt1} := (IHt1 r m hub hmr); case: (to_ring_term _ _ _)=> [t1' r1].
    case => htake1 hub1' hsub1 hrsub1; split=> //=.
-   + rewrite -[r1]/((t1',r1).2) -{}e1. 
-     case: (to_r_acc t1 r m)=> s1.
-     case: (to_ring_term _ _ _ ) => /= _ s2 -> {s2}.
-     by  rewrite rcons_cat take_cat ltnn subnn take0 cats0.
+   + rewrite -(cat_take_drop (size r) r1) rcons_cat.
+      by rewrite takel_cat htake1 ?(take_size, ltnn).
    + by rewrite size_rcons addnS ltnSn.
-   + elim: r1 m t1' hub1' hsub1 {e1 hrsub1 htake1 hub hmr} 
+   + elim: r1 m t1' hub1' hsub1 {hrsub1 htake1 hub hmr} 
          => [| t2 r2 IHr2] /= m t1' hhub1' hsub1.
        by split=> //; rewrite -(addn0 m).   
      by case: hsub1 => hub1 hsub1; split=> //; apply: IHr2; rewrite ?addSn -?addnS.
    + rewrite -hrsub1. 
-     elim: r1 m t1' hub1' {e1 hrsub1 hub hmr hsub1 htake1}
+     elim: r1 m t1' hub1' {hrsub1 hub hmr hsub1 htake1}
          => [| t2 r2 IHr2] /= m t1' hub1'.
        by rewrite addn0 eqxx //.
      by rewrite addnS -addSn IHr2 // addSn - addnS.
@@ -1135,6 +1100,7 @@ elim=> /=.
     rsub (t1 ^+n)%T m r = ((rsub t1 m r)^+n)%T by rewrite hrsub1.
   by elim=> [|t' r0 IHr0]  t2 k l //=; rewrite IHr0.
 Qed. 
+
 
 Fixpoint constructible (f : formula R) :=
   match f with
@@ -1246,6 +1212,15 @@ elim => //=.
     by rewrite -IHf2.
   + by move=> f IHf /= cf; rewrite -IHf // negbK.
 Qed.
+
+Variable basic_proj : nat -> (seq (term R) * seq (term R)) -> formula R.
+
+Hypothesis basic_proj_correct : forall i bc, 
+  constructible (basic_proj i bc)
+  /\ 
+  forall e, 
+    reali_construct e (basic_proj i bc)
+   <-> holds (Exists i (basic_formula [::bc])) e.
 
 
 End EvalTerm.
