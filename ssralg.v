@@ -1156,8 +1156,7 @@ Definition and_basic bcs1 bcs2 :=
   \big[cat/nil]_(bc1 <- bcs1)
      map (fun bc2 => (bc1.1 ++ bc2.1, bc1.2 ++ bc2.2)) bcs2.
 
-
-Fixpoint basic_of_construct f neg {struct f} := 
+Fixpoint basic_of_construct (f : formula R) (neg : bool) {struct f} := 
   match f with
     | Equal t1 _ => [:: if neg then ([::], [:: t1]) else ([:: t1], [::])]
     | And f1 f2 => (if neg then cat else and_basic) [rec f1, neg] [rec f2, neg]
@@ -1286,7 +1285,6 @@ Record class_of (R : Type) : Type := Class {
 }.
 
 Coercion base2 R m := UnitRing.Class (@ext R m).
-
 
 Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.

@@ -206,6 +206,68 @@ Qed.
 
 End CutPaste.
 
+Lemma mx_row_paste : forall m n1 n2 i0 (A1 : 'M_(m, n1)) (A2 : 'M_(m, n2)),
+  mx_row i0 (pastemx A1 A2) = pastemx (mx_row i0 A1) (mx_row i0 A2).
+Proof.
+move=> m n1 n2 i0 A1 A2; apply/matrixP=> i j; rewrite !mxE.
+by case: (split j) => j'; rewrite mxE.
+Qed.
+
+Lemma mx_row'_paste : forall m n1 n2 i0 (A1 : 'M_(m, n1)) (A2 : 'M_(m, n2)),
+  mx_row' i0 (pastemx A1 A2) = pastemx (mx_row' i0 A1) (mx_row' i0 A2).
+Proof.
+move=> m n1 n2 i0 A1 A2; apply/matrixP=> i j; rewrite !mxE.
+by case: (split j) => j'; rewrite mxE.
+Qed.
+
+Lemma mx_col_lshift : forall m n1 n2 j1 (A1 : 'M_(m, n1)) A2,
+  mx_col (lshift n2 j1) (pastemx A1 A2) = mx_col j1 A1.
+Proof.
+by move=> m n1 n2 j1 A1 A2; apply/matrixP=> i j; rewrite !(pastemxEl, mxE).
+Qed.
+
+Lemma mx_col_rshift : forall m n1 n2 j2 A1 (A2 : 'M_(m, n2)),
+  mx_col (rshift n1 j2) (pastemx A1 A2) = mx_col j2 A2.
+Proof.
+by move=> m n1 n2 j2 A1 A2; apply/matrixP=> i j; rewrite !(pastemxEr, mxE).
+Qed.
+
+Lemma mx_col'_lshift : forall m n1 n2 j1 (A1 : 'M_(m, n1.+1)) A2,
+  mx_col' (lshift n2 j1) (pastemx A1 A2) = pastemx (mx_col' j1 A1) A2.
+Proof.
+move=> m n1 n2 j1 A1 A2; apply/matrixP=> i /= j; symmetry; rewrite 2!mxE.
+case: splitP => j' def_j'.
+  rewrite mxE -(pastemxEl _ A2); congr (pastemx _ _ _); apply: ord_inj.
+  by rewrite /= def_j'.
+rewrite -(pastemxEr A1); congr (pastemx _ _ _); apply: ord_inj => /=.
+by rewrite /bump def_j' -ltnS -addSn ltn_addr.
+Qed.
+
+Lemma mx_col'_rcast : forall n1 n2, 'I_n2 -> (n1 + n2.-1)%N = (n1 + n2).-1.
+Proof. by move=> n1 n2 [j]; move/ltn_predK <-; rewrite addnS. Qed.
+
+Lemma paste_mx_col' : forall m n1 n2 j2 A1 (A2 : 'M_(m, n2)),
+  pastemx A1 (mx_col' j2 A2) 
+    = eq_rect _ (matrix R m) (mx_col' (rshift n1 j2) (pastemx A1 A2))
+              _ (esym (mx_col'_rcast n1 j2)).
+Proof.
+move=> m n1 n2 j2 A1 A2; apply/matrixP=> i /= j; rewrite mxE.
+case: splitP => j' def_j'; case: (n1 + n2.-1)%N / (esym _) => /= in j def_j' *.
+  rewrite mxE -(pastemxEl _ A2); congr (pastemx _ _ _); apply: ord_inj.
+  by rewrite /= def_j' /bump leqNgt ltn_addr.
+rewrite 2!mxE -(pastemxEr A1); congr (pastemx _ _ _ _); apply: ord_inj => /=.
+by rewrite def_j' /bump leq_add2l addnCA.
+Qed.
+
+Lemma mx_col'_rshift : forall m n1 n2 j2 A1 (A2 : 'M_(m, n2)),
+  mx_col' (rshift n1 j2) (pastemx A1 A2) 
+    = eq_rect _ (matrix R m) (pastemx A1 (mx_col' j2 A2))
+              _ (mx_col'_rcast n1 j2).
+Proof.
+move=> m n1 n2 j2 A1 A2; rewrite paste_mx_col'.
+by case: _.-1 / (mx_col'_rcast n1 j2) {A1 A2}(mx_col' _ _).
+Qed.
+
 Section Block.
 
 Variables m1 m2 n1 n2 : nat.
@@ -294,6 +356,7 @@ End TrBlock.
 End Slicing.
 
 Notation "A ^T" := (trmx A) : ring_scope.
+Prenex Implicits lcutmx rcutmx ulsubmx ursubmx llsubmx lrsubmx.
 
 (* Definition of operations for matrices over a ring *)
 Section MatrixOpsDef.
@@ -394,6 +457,18 @@ Proof. by move=> m n A B; apply/matrixP=> i j; rewrite !mxE. Qed.
 
 Lemma trmx_scale : forall m n a A, (a *m: A)^T = a *m: A^T :> matrix R n m.
 Proof. by move=> m n a A; apply/matrixP=> i j; rewrite !mxE. Qed.
+
+Lemma mx_row0 : forall m n i0, @mx_row R m n i0 0 = 0.
+Proof. by move=> m n i0; apply/matrixP=> i j; rewrite !mxE. Qed.
+
+Lemma mx_col0 : forall m n j0, @mx_col R m n j0 0 = 0.
+Proof. by move=> m n j0; apply/matrixP=> i j; rewrite !mxE. Qed.
+
+Lemma mx_row'0 : forall m n i0, @mx_row' R m n i0 0 = 0.
+Proof. by move=> m n i0; apply/matrixP=> i j; rewrite !mxE. Qed.
+
+Lemma mx_col'0 : forall m n j0, @mx_col' R m n j0 0 = 0.
+Proof. by move=> m n j0; apply/matrixP=> i j; rewrite !mxE. Qed.
 
 Lemma pastemx0 : forall m n1 n2,
   pastemx 0 0 = 0 :> matrix R m (n1 + n2).
@@ -597,18 +672,8 @@ Proof. by move=> n A; apply: eq_bigr=> i _; rewrite mxE. Qed.
 Lemma mx_trace_block : forall n1 n2 Aul Aur All Alr,
   \tr (block_mx Aul Aur All Alr : 'M_(n1 + n2)) = \tr Aul + \tr Alr.
 Proof.
-move=> n1 n2 Aul Aur All Alr.
-rewrite /mx_trace (reindex (@unsplit _ _)) /=; last first.
-  by exists (@split n1 n2) => i _; [exact: unsplitK | exact: splitK].
-pose J := ('I_n1 + 'I_n2)%type; rewrite (bigID (@id J)) /=; congr (_ + _).
-  case: n1 => [|n] in J Aul All Aur Alr *; first by rewrite !big1; do 2?case.
-  rewrite (reindex (@inl _ _)) /=; last first.
-    by exists (fun j : J => if j is inl j1 then j1 else 0); case.
-  by apply: eq_bigr => j _; rewrite block_mxEul.
-case: n2 => [|n] in J Aul All Aur Alr *; first by rewrite !big1; do 2?case.
-rewrite (reindex (@inr _ _)); last first.
-  by exists (fun j : J => if j is inr j2 then j2 else 0); case.
-by apply: eq_bigr => j; rewrite block_mxElr.
+move=> n1 n2 Aul Aur All Alr; rewrite /(\tr _) big_split_ord /=.
+by congr (_ + _); apply: eq_bigr => i _; rewrite (block_mxEul, block_mxElr).
 Qed.
 
 Lemma mulmx_paste : forall m n p1 p2 (A : 'M_(m, n)) B1 B2,
@@ -623,18 +688,9 @@ Lemma dotmx_paste : forall m n1 n2 p A1 A2 B1 B2,
   (pastemx A1 A2 : 'M_(m, n1 + n2)) *m (pastemx B1 B2 : 'M_(p, n1 + n2))^T
     = A1 *m B1^T + A2 *m B2^T.
 Proof.
-move=> m n1 n2 p A1 A2 B1 B2; apply/matrixP=> i k; rewrite !mxE.
-rewrite (reindex (@unsplit _ _)) /=; last first.
-  by exists (@split n1 n2) => j _; rewrite ?splitK ?unsplitK.
-pose J := ('I_n1 + 'I_n2)%type; rewrite (bigID (@id J)) /=; congr (_ + _).
-  case: n1 => [|n] in J A1 B1 *; first by rewrite !big1; do 2?case.
-  rewrite (reindex (@inl _ _)); last first.
-    by exists (fun j : J => if j is inl j1 then j1 else 0); case.
-  by apply: eq_bigr => j; rewrite !mxE unsplitK /=.
-case: n2 => [|n] in J A2 B2 *; first by rewrite !big1; do 2?case.
-rewrite (reindex (@inr _ _)); last first.
-  by exists (fun j : J => if j is inr j2 then j2 else 0); case.
-by apply: eq_bigr => j; rewrite !mxE unsplitK /=.
+move=> m n1 n2 p A1 A2 B1 B2.
+apply/matrixP=> i k; rewrite !mxE big_split_ord /=.
+by congr (_ + _); apply: eq_bigr => j _; rewrite !(pastemxEl, pastemxEr, mxE).
 Qed.
 
 Section MatrixRing.
@@ -993,31 +1049,6 @@ Qed.
 Lemma det_scalar1 : forall a, \det (a%:M : 'M_1) = a.
 Proof. exact: det_scalar. Qed.
 
-Lemma mx_row'_paste : forall m n1 n2 i0 A1 A2,
-  mx_row' i0 (pastemx A1 A2 : matrix R m (n1 + n2))
-    = pastemx (mx_row' i0 A1) (mx_row' i0 A2).
-Proof.
-move=> m n1 n2 i0 A1 A2; apply/matrixP=> i j; rewrite !mxE.
-by case: (split j) => j'; rewrite mxE.
-Qed.
-
-Lemma mx_col'_paste_left : forall m n1 n2 j0 A1 A2,
-  mx_col' (lshift n2 j0) (pastemx A1 A2 : matrix R m (n1.+1 + n2))
-    = pastemx (mx_col' j0 A1) A2.
-Proof.
-move=> m n1 n2 j0 A1 A2; apply/matrixP=> i j; rewrite !mxE.
-case: splitP => [j1 def_j1| j2 def_j2]; case: splitP => j' def_j.
-- by rewrite mxE; congr (A1 _ _); apply: val_inj; rewrite /= -def_j1 -def_j.
-- have:= ltn_ord j1; rewrite -def_j1 /= def_j /bump ltnS /=.
-  rewrite -subn_eq0 addnC -addnA addKn addn_eq0; case/andP; move/eqP->.
-  by rewrite addn0 -ltnS ltn_ord.
-- have:= ltn_ord j'; rewrite /= ltnNge -def_j; case/negP.
-  rewrite -ltnS -(leq_add2r j2) -def_j2 /=  addSnnS addnC leq_add2r.
-  by case: (_ <= j).
-congr (A2 _ _); apply: val_inj; apply: (@addnI n1.+1).
-by rewrite -def_j2 /= def_j /bump /= -ltnS -addSn ltn_addr.
-Qed.
-
 Lemma det_perm_mx_neq0 : forall n s, \det (@perm_mx R n s) != 0. 
 Proof.
 move=> n s; rewrite det_perm_mx.
@@ -1031,19 +1062,12 @@ move=> n1 n2 Aul Aur Alr; elim: n1 => [|n1 IHn1] in Aul Aur *.
   have ->: Aul = 1%:M by apply/matrixP=> i [].
   rewrite det1 mul1r; congr (\det _); apply/matrixP=> i j.
   by do 2![rewrite !mxE; case: splitP => [[]|k] //=; move/val_inj=> <- {k}].
-rewrite 2!(expand_det_col _ 0).
-rewrite (reindex (@unsplit n1.+1 n2)); last first.
-  by exists (@split n1.+1 n2) => k _; rewrite (splitK, unsplitK).
-rewrite big_sumType /= addrC big1 /= ?simp => [|k _]; last first.
-  by rewrite mxE pastemxEr !mxE; case: splitP => // j _; rewrite mxE simp.
-rewrite big_distrl; apply: eq_bigr => i _ /=; rewrite -!mulrA; congr (_ * _).
-  rewrite mxE pastemxEl !mxE; case: splitP => //= j j0; congr (Aul _ _).
-  exact: val_inj.
-rewrite /cofactor !addn0 -/plus; congr (_ * _).
-rewrite -trmx_row' (@mx_row'_paste _ n1.+1 n2) -!trmx_col'.
-rewrite -((lshift n2 (0 : 'I_n1.+1) =P 0 :> 'I__.+1) _) // !mx_col'_paste_left.
-rewrite -!trmx_row' !mx_row'_paste (_ : mx_col' _ 0 = 0) ?IHn1 //.
-by apply/matrixP=> i' j'; rewrite !mxE.
+rewrite (expand_det_col _ (lshift n2 0)) big_split_ord /=.
+rewrite addrC big1 1?simp => [|i _]; last by rewrite block_mxEll mxE simp.
+rewrite (expand_det_col _ 0) big_distrl /=; apply eq_bigr=> i _.
+rewrite block_mxEul -!mulrA; do 2!congr (_ * _).
+rewrite -trmx_row' mx_row'_paste -!trmx_col' !mx_col'_lshift -!trmx_row'.
+by rewrite !mx_row'_paste mx_col'0 IHn1.
 Qed.
 
 Lemma det_lblock :  forall n1 n2 Aul All Alr,
