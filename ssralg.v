@@ -963,6 +963,8 @@ rewrite {}/tr; elim: t1 [::] => //=.
 - by move=> t1 IHt1 n r; move/IHt1; case: to_ring_term. 
 Qed.
 
+
+
 Lemma to_ring_formula_equiv : forall f e,
   holds (to_ring_formula f) e <-> holds f e.
 Proof.
@@ -1102,6 +1104,7 @@ elim=> /=.
 Qed. 
 
 
+
 Fixpoint constructible (f : formula R) :=
   match f with
   | Equal t1 (NatConst 0) => ring_term t1
@@ -1126,19 +1129,18 @@ Fixpoint reali_construct f :=
 End RealiConstruct.
 
 Lemma reali_construct_holds : forall f e,
-  constructible f -> ((holds f e) <-> (reali_construct e f)).
+  constructible f -> reflect (holds f e) (reali_construct e f).
 Proof.
 elim=> //.
-- by move=> t1 t2 e cet12; case: t2 cet12=> //= [[|n]] // _; split; move/eqP.
-- move=> f1 IHf1 f2 IHf2 e /=; case/andP => cf1 cf2; split.
-   by case; move/(IHf1 _ cf1)->; move/(IHf2 _ cf2).
-  by case/andP; move/(IHf1 _ cf1)=> hf1e; move/(IHf2 _ cf2).
-- move=> f1 IHf1 f2 IHf2 e /=; case/andP => cf1 cf2; split.
-   by case; [move/(IHf1 _ cf1)-> | move/(IHf2 _ cf2)->; rewrite orbT].
-  by case/orP; [move/(IHf1 _ cf1); left| move/(IHf2 _ cf2); right].
-- move=> f IHf e /= cf; split; first by move/(IHf _ cf); move/negP.
-  by move/negP; move/(IHf _ cf).
+- move=> t1 t2 e cet12; case: t2 cet12=> //= [[|n]] // _; exact: eqP.
+- move=> f1 IHf1 f2 IHf2 e /=; case/andP => cf1 cf2.
+  by  apply: (iffP andP); case; move/(IHf1 _ cf1)=> r1; move/(IHf2 _ cf2); split.
+- move=> f1 IHf1 f2 IHf2 e /=; case/andP => cf1 cf2.
+  by apply: (iffP orP); 
+    (case; [move/(IHf1 _ cf1)=> H1; left | move/(IHf2 _ cf2); right]).
+- by move=> f IHf e /= cf; apply: (iffP negP)=> H; move/(IHf _ cf).
 Qed.
+
 
 Definition tt_form : formula R := (0%:R == 0%:R)%T.
 
@@ -1221,6 +1223,57 @@ Hypothesis basic_proj_correct : forall i bc,
   forall e, 
     reali_construct e (basic_proj i bc)
    <-> holds (Exists i (basic_formula [::bc])) e.
+
+Lemma to_ring_term_ring_term : forall t r n, ring_term t -> to_ring_term t r n = (t, r).
+Proof.
+elim=> //.
+- by move=> t1 IHt1 t2 IHt2 r n /=; case/andP=> rt1 rt2; rewrite {}IHt1 // {}IHt2.
+- by move=> t IHt r n /= rt; rewrite {}IHt.
+- by move=> t IHt r n m /= rt; rewrite {}IHt.
+- by move=> t1 IHt1 t2 IHt2 r n /=; case/andP=> rt1 rt2; rewrite {}IHt1 // {}IHt2.
+- by move=> t IHt r n m /= rt; rewrite {}IHt.
+Qed.
+
+Lemma QE : forall f : formula R, ring_formula f -> 
+  {s : formula R &  
+    (constructible s) & forall e, reflect (holds f e) (reali_construct e s)}.
+Proof.
+elim=> //.
+- move=> t1 t2; case/andP => rt1 rt2. 
+  have ce : constructible (to_ring_formula (t1 == t2)).
+   rewrite/=  /equal0_to_ring_formula /=; do 2! (rewrite to_ring_term_ring_term //=).
+   by rewrite rt1.
+  exists (to_ring_formula (t1 == t2))%T => // e.
+  by apply: (iffP (reali_construct_holds _ _ )) => //; move/to_ring_formula_equiv.
+Admitted.
+
+(*
+Lemma QE : forall f : formula R, ring_formula f -> 
+  {s : formula R &  
+    (constructible s) & forall e, reflect (holds f e) (reali_construct e s)}.
+Proof.
+elim=> //.
+- move=> t1 t2 /=; case/andP => rt1 rt2. 
+  exists (to_ring_formula (t1 == t2))%T; split; last first.
+    by move=> e; apply: (iff_trans (to_ring_formula_equiv _ _ )).
+  rewrite/=  /equal0_to_ring_formula /=; do 2! (rewrite to_ring_term_ring_term //=).
+  by rewrite rt1.
+- move=> f1 IHf1 f2 IHf2 /=; case/andP=> rf1 rf2.
+  case: {IHf1} (IHf1 rf1) => f1' [cf1' Hf1']; case: {IHf2} (IHf2 rf2) => f2' [cf2' Hf2'].
+  exists (f1' /\ f2')%T => /=; rewrite cf1'; split=> // e.
+    by split; (case=> hf1' hf2'; split; [apply/Hf1'| apply/Hf2']).
+- move=> f1 IHf1 f2 IHf2 /=; case/andP=> rf1 rf2.
+  case: {IHf1} (IHf1 rf1) => f1' [cf1' Hf1']; case: {IHf2} (IHf2 rf2) => f2' [cf2' Hf2'].
+  exists (f1' \/ f2')%T => /=; rewrite cf1'; split => // e.
+   by split; (case; [left; apply/Hf1' | right; apply/Hf2']).
+- move=> f1 IHf1 f2 IHf2 /=; case/andP=> rf1 rf2.
+  case: {IHf1} (IHf1 rf1) => f1' [cf1' Hf1']; case: {IHf2} (IHf2 rf2) => f2' [cf2' Hf2'].
+  exists ((~ f1') \/ f2')%T => /=; rewrite cf1'; split => // e.
+  split; first by case; [move/Hf1' | move/Hf2'].
+  move=> HI; right; apply/Hf2'; apply: HI; apply/Hf1'.
+ *)
+
+
 
 
 End EvalTerm.
