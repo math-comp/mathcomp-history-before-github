@@ -16,19 +16,19 @@ Notation Local "''M_' ( m , n )" := (matrix F m n) : type_scope.
 Implicit Type A B C : 'M_(m, n).
 
 (* Row Operations *)
-Definition mx_row_scale A i0 c :=
+Definition row_scale A i0 c :=
  \matrix_(i, j) if i == i0 then c * A i j else A i j.
 
-Definition mx_row_exchange A i1 i2 :=
+Definition row_exch A i1 i2 :=
  \matrix_(i, j) if i == i1 then A i2 j else if i== i2 then A i1 j else A i j.
 
-Definition mx_row_repl A i1 i2 c :=
+Definition row_repl A i1 i2 c :=
  \matrix_(i, j) if i == i1 then A i j + c * A i2 j else A i j.
 
 (* RREF operations *)
 (* annihilate all element of a colum expect the pivot *)
 Definition annihilate_col_fun i j x A :=
- if i != x then mx_row_repl A x i (-(A x j) * (A i j)^-1) else A.
+ if i != x then row_repl A x i (-(A x j) * (A i j)^-1) else A.
 
 Lemma annihilate_col_funE : forall A i j x k l,
   (annihilate_col_fun i j x A) k l =
@@ -93,8 +93,8 @@ Definition rref_fun (x : nat * 'M_(m, n)) (j : 'I_n) : nat * 'M_(m, n) :=
  let s_i := pick (rref_pred x.1 x.2 j) in 
  if (insub x) : option {y | (x.1 < m) } is Some (exist _ Hx) then
   if s_i is Some i then
-   let A1 := mx_row_exchange x.2 (Ordinal Hx) i in 
-   let A2 := mx_row_scale A1 (Ordinal Hx) (A1 (Ordinal Hx) j)^-1 in 
+   let A1 := row_exch x.2 (Ordinal Hx) i in 
+   let A2 := row_scale A1 (Ordinal Hx) (A1 (Ordinal Hx) j)^-1 in 
    let A3 := annihilate_col A2 (Ordinal Hx) j in
     ((x.1).+1, A3)
   else x
@@ -136,8 +136,8 @@ Definition pivot_mono A j := forallb i1,
   forallb i2, if pivot A i2 j is Some j2 then (i1 < i2) ==> (j1 < j2) else true
  else true.
 
-Definition is_rref A :=
- [&& zrows_in_bottom A n, pivot_eq1 A n, pivot_zcol A n & pivot_mono A n].
+Definition is_rref A j :=
+ [&& zrows_in_bottom A j, pivot_eq1 A j, pivot_zcol A j & pivot_mono A j].
 
 Section InvariantLemmas.
 
@@ -219,26 +219,24 @@ Qed.
 
 End InvariantLemmas.
 
-Lemma zrows_in_bottom_rref : forall A, zrows_in_bottom (rref_mx A) n.
+Lemma zrows_in_bottom_rref : forall A n', zrows_in_bottom (rref_mx A) n'.
 Proof.
-move=> A; apply/forallP => /= i; apply/implyP; move/zrowP => Zrn.
-apply/forallP => /= i'; apply/implyP => l_ii'; apply/zrowP=> k _.
+move=> A n'; apply/forallP => /= i; apply/implyP; move/zrowP => Zrn.
+apply/forallP => /= i'; apply/implyP => l_ii'; apply/zrowP=> k Hk.
 rewrite rref_mxE rref_mx_zcols 1?(leq_trans _ l_ii') //; apply: zrow_rank_leq.
-by apply/zrowP => ? _; apply: Zrn.
+by apply/zrowP => ? ?; apply: Zrn; apply: (leq_ltn_trans _ Hk).
 Qed.
 
-Lemma pivot_eq1_rref : forall A, pivot_eq1 (rref_mx A) n.
+Lemma pivot_eq1_rref : forall A n', pivot_eq1 (rref_mx A) n'.
 Proof.
-move=> A; apply/forallP => /= i; rewrite /pivot.
-case: pickP => /= [j | Pz]; last apply/zrowP => j _; last first.
-  elim: {1}(val j) {1 3}j (leqnn j) => [| l Rl] {j}j Lj.
-  - move: (Pz j); move: Lj; rewrite /= (ltn_ord j) leqn0 andbC; move/eqP->.
-    by suff -> : zrow (rref_mx A) i 0 => /=; [move/eqP | apply/zrowP => ?].
-  rewrite leq_eqVlt ltnS orbC in Lj; case/orP: Lj => Lj; first by apply: Rl.
-  move: (Pz j); rewrite /= (ltn_ord j) andbC.
-  suff -> : zrow (rref_mx A) i j => /=; first by move/eqP.
-  by apply/zrowP=> ? ?; apply: Rl; rewrite -ltnS -(eqP Lj).
-rewrite rref_mxE /rref; case/and3P => H1 _ Zj; move: H1.
+move=> A n'; apply/forallP => /= i; rewrite /pivot.
+case: pickP => /= [j | Pz]; last apply/zrowP => j Hj; last first.
+  elim: n' j Hj Pz => // n' Rn' j Hj Pz; move: (Pz j) => /=.
+  suff -> : zrow (rref_mx A) i j; first by rewrite Hj //= andbT; move/eqP.
+  apply/zrowP=> k Hk; apply: Rn' => [| l /=]; first by rewrite (leq_trans Hk).
+  move: (Pz l); rewrite /= ltnS leq_eqVlt andb_orl andb_orr.
+  by case/norP=> _; move/negbTE.
+rewrite rref_mxE /rref; case/and3P => H1 Hj Zj; move: H1.
 rewrite (take_nth j) 1?size_enum_ord // (nth_ord_enum _ j) -cats1 foldl_cat /=.
 rewrite {1 3}/rref_fun /=; case: insubP => /= [[] [] _ _ H0 _ _|]; last first.
   by rewrite (leq_ltn_trans _ (ltn_ord i)) => //; apply: zrow_rank_leq.
@@ -248,10 +246,10 @@ case/and3P => H1 H2 _; rewrite annihilate_colE !mxE eqxx mulVf // !invr1 !mulr1.
 by case: ifP; [move/negbTE-> | move/eqP->]; rewrite 1?addrN eqxx 1?mulVf.
 Qed.
 
-Lemma pivot_zcol_rref : forall A, pivot_zcol (rref_mx A) n.
+Lemma pivot_zcol_rref : forall A n', pivot_zcol (rref_mx A) n'.
 Proof.
-move=> A; apply/forallP => /= i; rewrite /pivot.
-case: pickP => //= j; case/and3P => Hj1 _ Hj2; apply/forallP=> /= k.
+move=> A n'; apply/forallP=> /= i; rewrite /pivot.
+case: pickP => //= j; case/and3P => Hj1 Hj Hj2; apply/forallP=> /= k.
 apply/implyP=> Hk; move: Hj1; rewrite !rref_mxE /rref.
 rewrite (take_nth j) 1?size_enum_ord // -cats1 (nth_ord_enum _ j) foldl_cat /=.
 rewrite {1 3}/rref_fun; case: insubP=> /= [[] [] _ _ H0 _ _ |]; last first.
@@ -265,8 +263,8 @@ Qed.
 Lemma pivot_mono_rref : forall A, pivot_mono (rref_mx A) n.
 Proof.
 move=> A; apply/forallP=> /= i; rewrite /pivot.
-case: pickP=> //= j; case/and3P=> Hj1 _ Hj2; apply/forallP=> /= k.
-case: pickP=> //= l; case/and3P=> Hl1 _ Hl2; apply/implyP=> ik.
+case: pickP=> //= j; case/and3P=> Hj1 Hj Hj2; apply/forallP=> /= k.
+case: pickP=> //= l; case/and3P=> Hl1 Hl Hl2; apply/implyP=> ik.
 case: (ltngtP j l)=> // lj.
   case/eqP: Hl1; suff : zrow (rref_mx A) k j; first by move/zrowP->.
   apply/zrowP=> y ?; rewrite rref_mxE rref_mx_zcols 1?(leq_trans _ (ltnW ik)) //.
@@ -283,7 +281,7 @@ case/and3P=> H1 H2 H3; rewrite !annihilate_colE !mxE eqxx mulVf // !invr1 !mulr1
 by case: ifP; [move/negbTE-> | move/eqP<-]; rewrite addrN eqxx neq_ltn orbC 1?ik.
 Qed.
 
-Lemma is_rref_rref : forall A, is_rref (rref_mx A).
+Lemma is_rref_rref : forall A, is_rref (rref_mx A) n.
 Proof.
 move=> A; rewrite /is_rref.
 by rewrite zrows_in_bottom_rref pivot_eq1_rref pivot_zcol_rref pivot_mono_rref.
@@ -295,5 +293,127 @@ Proof. by move=> A; apply: rank_rref_leq. Qed.
 End GaussianElimination.
 
 Section LinearSystem.
+Variable F : fieldType.
+Notation Local "''M_' ( m , n )" := (matrix F m n) : type_scope.
+
+Definition system_sol m n (A : 'M_(m, n)) (v : 'M_(m, 1)) :=
+ exists u, A *m u == v.
+
+(* equivalent system lemmas : row operations preserves system solution set *)
+
+(* row_scale *)
+Lemma rscale_pastemxK : forall m n (A : 'M_(m, n)) (v : 'M_(m, 1)) k c,
+ (row_scale (pastemx A v) k c) = pastemx (row_scale A k c) (row_scale v k c).
+Proof.
+by move=> *; apply/matrixP=> i j; rewrite !mxE; case: splitP => *; rewrite !mxE.
+Qed.
+
+Lemma rscale_sys_equiv : forall m n (A : 'M_(m, n)) v k c,
+ let A' := (row_scale (pastemx A v) k c) in c != 0 ->
+ (system_sol A v <-> (system_sol (lcutmx A') (rcutmx A'))).
+Proof.
+move=> /= m n A v k c Hc; split; case=> u; move/eqP=> Hu; exists u; apply/eqP.
+  rewrite rscale_pastemxK pastemxKl pastemxKr; apply/matrixP=> i j.
+  rewrite !mxE -{2}(mul1r (v i j)) -(fun_if ( *%R^~ (v i j))); move/matrixP: Hu.
+  move/(_ i j)<-; rewrite mxE big_distrr /=; apply: eq_bigr => /= l _.
+  by rewrite mxE -{2}(mul1r (A i l)) -(fun_if ( *%R^~ (A i l))) mulrA.
+rewrite rscale_pastemxK pastemxKl pastemxKr in Hu; apply/matrixP=> i j.
+move/matrixP: Hu; move/(_ i j); rewrite !mxE -{2}(mul1r (v i j)).
+rewrite -(fun_if ( *%R^~ (v i j))); set c' := if i == k then c else 1.
+move/(congr1 ( *%R c'^-1)); rewrite mulrA mulVf 1?mul1r => [<- |]; last first.
+  by rewrite /c'; case: ifP => // *; apply: nonzero1r.
+rewrite big_distrr /=; apply: eq_bigr => /= l _; rewrite !mxE.
+rewrite -{3}(mul1r (A i l)) -(fun_if ( *%R^~ (A i l))) !mulrA mulVf 1?mul1r //.
+by rewrite /c'; case: ifP => // *; apply: nonzero1r.
+Qed.
+
+(* row exchange *)
+Lemma rexchange_pastemxK : forall m n (A : 'M_(m, n)) (v : 'M_(m, 1)) k l,
+ (row_exch (pastemx A v) k l) = pastemx (row_exch A k l) (row_exch v k l).
+Proof.
+by move=> *; apply/matrixP=> i j; rewrite !mxE; case: splitP => *; rewrite !mxE.
+Qed.
+
+Lemma rexchange_sys_equiv : forall m n (A : 'M_(m, n)) v k l,
+ let A' := (row_exch (pastemx A v) k l) in
+ (system_sol A v <-> (system_sol (lcutmx A') (rcutmx A'))).
+Proof.
+move=> /= m n A v k l; split; case=> u; move/eqP=> Hu; exists u; apply/eqP.
+  rewrite rexchange_pastemxK pastemxKl pastemxKr; apply/matrixP=> i j.
+  move/matrixP: Hu => Hu; rewrite !mxE -!Hu !mxE.
+  case: ifP => Pik; first by apply: eq_bigr => x _; rewrite mxE Pik.
+  by case: ifP => Pil; apply: eq_bigr => x _; rewrite mxE Pik Pil.
+rewrite rexchange_pastemxK pastemxKl pastemxKr in Hu; apply/matrixP=> i j.
+move/matrixP: Hu => Hu; case Pil: (i == l).
+  move: (Hu l j); rewrite !mxE (eqP Pil) eqxx; case: ifP => [Plk <- | Plk _].
+  - by apply: eq_bigr => x _; rewrite mxE Plk.
+  by move: (Hu k j); rewrite !mxE eqxx => <-; apply: eq_bigr => *; rewrite mxE eqxx.
+move: (Hu i j); rewrite !mxE Pil; case: ifP => [Pik _ | Pik <-]; last first.
+  by apply: eq_bigr => x _; rewrite mxE Pik Pil.
+move: (Hu l j); rewrite !mxE eqxx -(eqP Pik) eq_sym Pil => <-.
+by apply: eq_bigr => *; rewrite mxE eqxx eq_sym Pil.
+Qed.
+
+Lemma rrepl_pastemxK : forall m n (A : 'M_(m, n)) (v : 'M_(m, 1)) k l c,
+ (row_repl (pastemx A v) k l c) = pastemx (row_repl A k l c) (row_repl v k l c).
+Proof.
+by move=> *; apply/matrixP=> i j; rewrite !mxE; case: splitP => *; rewrite !mxE.
+Qed.
+
+Lemma rrepl_sys_equiv : forall m n (A : 'M_(m, n)) v k l c,
+ let A' := (row_repl (pastemx A v) k l c) in l != k ->
+ (system_sol A v <-> (system_sol (lcutmx A') (rcutmx A'))).
+Proof.
+move=> /= m n A v k l c Hkl; split; case=> u; move/eqP=> Hu; exists u; apply/eqP.
+  rewrite rrepl_pastemxK pastemxKl pastemxKr; apply/matrixP=> i j.
+  move/matrixP: Hu => Hu; rewrite !mxE -{2}(addr0 (v i j)) -{2}(mulr1 c).
+  rewrite -{2}(mulr0 c) -{2}(mul0r (v l j)) -mulrA -(fun_if ( +%R (v i j))).
+  rewrite -(fun_if ( *%R c)) -(fun_if ( *%R^~ (v l j))) -!Hu !mxE.
+  rewrite !big_distrr -big_split /=; apply: eq_bigr => x _; rewrite mxE.
+  by case: ifP => ->; rewrite ?mul0r ?mulr0 1?addr0 // mul1r mulrA mulr_addl.
+rewrite rrepl_pastemxK pastemxKl pastemxKr in Hu; apply/matrixP=> i j.
+move/matrixP: Hu => Hu; move: (Hu i j); rewrite !mxE.
+case: ifP => [ik | ik <-]; last by apply: eq_bigr => /= x _; rewrite mxE ik.
+move/(congr1 ( +%R^~ (- (c * v l j)))); rewrite -addrA addrN addr0 => <-.
+move: (Hu l j); rewrite !mxE (negbTE Hkl) => <-; rewrite big_distrr -sumr_sub /=.
+apply: eq_bigr => /= *.
+by rewrite !mxE ik (negbTE Hkl) mulr_addl -addrA mulrA addrN addr0.
+Qed.
+
+Lemma anil_col_sys_equiv : forall m n (A : 'M_(m, n)) v k l,
+ let A' := (annihilate_col (pastemx A v) k (lshift 1 l)) in
+ (system_sol A v) <-> (system_sol (lcutmx A') (rcutmx A')).
+Proof.
+move=> /= m n A v k l; rewrite /annihilate_col.
+elim: {3 13 23}m A v (leqnn m) => [A v | m' Rm' A v Hm'].
+  by rewrite take0 /= pastemxKl pastemxKr.
+rewrite (take_nth (Ordinal Hm')) 1?size_enum_ord // -cats1.
+rewrite (nth_ord_enum _ (Ordinal Hm')) foldr_cat /= {2 4}/annihilate_col_fun.
+case: ifP => [Ik | ?]; last by apply: Rm'; apply: ltnW.
+rewrite rrepl_pastemxK -Rm' 1?ltnW // !pastemxEl.
+rewrite (rrepl_sys_equiv _ _ (- A (Ordinal Hm') l / A k l) Ik) rrepl_pastemxK.
+by rewrite pastemxKl pastemxKr.
+Qed.
+
+Lemma rref_sys_equiv : forall m n (A : 'M_(m, n)) v,
+ let A' := (rref (pastemx A v) n).2 in
+ (system_sol A v) <-> (system_sol (lcutmx A') (rcutmx A')).
+Proof.
+move=> m n A v /=; elim: {1 9 14}n (leqnn n) => [| n' Rn'] Hn; rewrite /rref.
+  by rewrite take0 /= pastemxKl pastemxKr.
+move: (Rn' (ltnW Hn)) => {Rn'} Rn'.
+have Hn' : n' < n + 1 by apply: (ltn_trans Hn); rewrite addn1.
+rewrite (take_nth (Ordinal Hn')) 1?size_enum_ord // -cats1.
+rewrite (nth_ord_enum _ (Ordinal Hn')) foldl_cat /= {1 3}/rref_fun /=.
+case: insubP=> //= [] [] _ H0 _ _; case: pickP => //= k; case/and3P=> Hk1 Hk Hk2.
+set A' := (rref (pastemx A v) n').2 in Rn' Hk1 Hk2 *.
+set r := (rref (pastemx A v) n').1 in H0 Hk Hk2 *.
+rewrite Rn' (rexchange_sys_equiv _ _ (Ordinal H0) k) cutmxK.
+have Z1 : ((row_exch A' (Ordinal H0) k) (Ordinal H0) (Ordinal Hn'))^-1 != 0.
+  by rewrite mxE eqxx invr_neq0.
+rewrite (rscale_sys_equiv _ _ (Ordinal H0) Z1) cutmxK.
+rewrite (anil_col_sys_equiv _ _ (Ordinal H0) (Ordinal Hn)) cutmxK.
+by suff -> : (lshift 1 (Ordinal Hn)) = (Ordinal Hn') => //; apply: val_inj.
+Qed.
 
 End LinearSystem.
