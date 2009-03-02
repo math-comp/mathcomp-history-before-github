@@ -1171,14 +1171,44 @@ elim => //=.
   + by move=> f IHf /= cf; rewrite -IHf // negbK.
 Qed.
 
+Lemma constructible_basic_formula : forall f,
+  constructible f -> constructible (basic_formula (basic_of_construct f false)).
+Proof.
+have aux1 : forall bcs1 bcs2,
+  constructible (basic_formula (bcs1 ++ bcs2))
+  = constructible (basic_formula bcs1) && (constructible (basic_formula bcs2)).
+  by elim=> [|bc1 bcs1 IH1] bcs2 //=; rewrite IH1 andbA.
+have aux2 : forall bcs1 bcs2, 
+  constructible (basic_formula bcs1) -> 
+  constructible (basic_formula bcs2) ->
+  constructible (basic_formula (and_basic bcs1 bcs2)).
+- elim=>[|bc1 bcs1 IH1] bcs2 /=; first by rewrite /and_basic big_nil.
+  rewrite /and_basic big_cons -/(and_basic bcs1 bcs2) aux1.
+  do 2![case/andP] => cf1 cf2 cbf1 cbf2; rewrite {}IH1 //= andbT. 
+  elim: bcs2 cbf2 {cbf1} => [| bsc2 bcf2 IH] //=.
+  do 2![case/andP] => h1 h2; move/IH->.
+  elim: bc1.1 cf1 => /= [_|t bc ?]; last by case/andP=> -> /=.
+  elim: bc1.2 cf2 => /= [_|t bc ?]; last by case/andP=> -> /=.
+  by rewrite h1 h2.
+move=> f; elim: f false => //.
+- by move=> t1 [] // [] [] //= ->.
+- move=> f1 IHf1 f2 IHf2 [] /=; case/andP; auto; rewrite aux1; move/IHf1->.
+  exact: IHf2.
+- move=> f1 IHf1 f2 IHf2 [] /=; case/andP; auto; rewrite aux1; move/IHf1->.
+  exact: IHf2.
+- move=> f IHf b; exact: IHf.
+Qed.
+
 Variable basic_proj : nat -> (seq (term R) * seq (term R)) -> formula R.
 
-Hypothesis basic_proj_correct : forall i bc, 
-  constructible (basic_proj i bc)
-  /\ 
-  forall e, 
-    reali_construct e (basic_proj i bc)
-   <-> holds (Exists i (basic_formula [::bc])) e.
+Hypothesis construct_basic_proj : forall i bc, constructible (basic_proj i bc).
+
+Hypothesis basic_proj_holds :  forall i bc e, 
+  constructible (basic_formula [:: bc]) ->
+  reflect 
+   (holds (Exists i (basic_formula [:: bc])) e)
+    (reali_construct e (basic_proj i bc)).
+   
 
 Lemma to_ring_term_ring_term : forall t r n, ring_term t -> to_ring_term t r n = (t, r).
 Proof.
@@ -1190,47 +1220,74 @@ elim=> //.
 - by move=> t IHt r n m /= rt; rewrite {}IHt.
 Qed.
 
-Lemma QE : forall f : formula R, ring_formula f -> 
-  {s : formula R &  
-    (constructible s) & forall e, reflect (holds f e) (reali_construct e s)}.
+Definition elim_aux f n := foldr (@Or R) (Not tt_form) 
+      (map (basic_proj n) 
+      (basic_of_construct f false)).
+
+Fixpoint quantifier_elim (f : formula R) : formula R :=
+  match f with
+    | t1 == t2 => t1 - t2 == 0%:R
+    | Unit _ => f
+    | f1 /\ f2 => (quantifier_elim f1) /\ (quantifier_elim f2)
+    | f1 \/ f2 => (quantifier_elim f1) \/ (quantifier_elim f2)
+    | f1 ==> f2 => (~ quantifier_elim f1) \/ (quantifier_elim f2)
+    | ~ f => ~ (quantifier_elim f)
+    | Exists n f => elim_aux (quantifier_elim f) n
+    | Forall n f => ~ elim_aux (~ quantifier_elim f) n
+  end%T.
+
+Lemma constructible_quantifier_elim : forall f, 
+  ring_formula f -> constructible (quantifier_elim f).
 Proof.
-elim=> //.
-- move=> t1 t2; case/andP => rt1 rt2. 
-  have ce : constructible (to_ring_formula (t1 == t2)).
-   rewrite/=  /equal0_to_ring_formula /=; do 2! (rewrite to_ring_term_ring_term //=).
-   by rewrite rt1.
-  exists (to_ring_formula (t1 == t2))%T => // e.
-  by apply: (iffP (reali_construct_holds _ _ )) => //; move/to_ring_formula_equiv.
-Admitted.
+have aux : forall f n, constructible (elim_aux f n).
+  move=> f n; rewrite /elim_aux; elim: basic_of_construct => //= x l ->.
+  by rewrite construct_basic_proj.
+by elim=> //= f1 IHf1 f2 IHf2 /=; case/andP=> rf1 rf2; rewrite IHf1 // IHf2.
+Qed.
 
-(*
-Lemma QE : forall f : formula R, ring_formula f -> 
-  {s : formula R &  
-    (constructible s) & forall e, reflect (holds f e) (reali_construct e s)}.
+
+Lemma quantifier_elim_ringf : forall f e, ring_formula f ->
+  reflect (holds f e) (reali_construct e (quantifier_elim f)).
 Proof.
+pose rc e n f := exists x, reali_construct (set_nth 0 e n x) f.
+have aux : forall f e n, constructible f ->
+  reflect  (rc e n f) (reali_construct e (elim_aux f n)).
+  rewrite /elim_aux => f e n cf.
+  apply: (@iffP (rc e n (basic_formula [rec f, false]))); last first.
+  - by case=> x; rewrite basic_of_construct_correct //; exists x.
+  - by case=> x; rewrite -basic_of_construct_correct //; exists x.
+  have := (constructible_basic_formula cf).
+  elim: {f cf} [rec f, false] => [| bc l IHl] /=.
+    by rewrite eqxx; right; case; rewrite /= eqxx.
+  case/andP=> hc.
+  have {hc} hc : constructible (basic_formula [:: bc]) by rewrite /= hc.
+  move/IHl=> {IHl} IHl; case: basic_proj_holds; rewrite // ?orTb ?orFb.
+    move=> hx; left; case: hx => x; move/(reali_construct_holds _ hc).
+    by rewrite /= eqxx orbF; exists x; apply/orP; left.
+  move=> hbf; apply: (iffP IHl).
+    by case=> x hx; exists x; apply/orP; right.
+  case=> x /=; case/orP=> hx; last by exists x.
+  by case: hbf; exists x; apply/(reali_construct_holds _ hc); rewrite /= hx.
 elim=> //.
-- move=> t1 t2 /=; case/andP => rt1 rt2. 
-  exists (to_ring_formula (t1 == t2))%T; split; last first.
-    by move=> e; apply: (iff_trans (to_ring_formula_equiv _ _ )).
-  rewrite/=  /equal0_to_ring_formula /=; do 2! (rewrite to_ring_term_ring_term //=).
-  by rewrite rt1.
-- move=> f1 IHf1 f2 IHf2 /=; case/andP=> rf1 rf2.
-  case: {IHf1} (IHf1 rf1) => f1' [cf1' Hf1']; case: {IHf2} (IHf2 rf2) => f2' [cf2' Hf2'].
-  exists (f1' /\ f2')%T => /=; rewrite cf1'; split=> // e.
-    by split; (case=> hf1' hf2'; split; [apply/Hf1'| apply/Hf2']).
-- move=> f1 IHf1 f2 IHf2 /=; case/andP=> rf1 rf2.
-  case: {IHf1} (IHf1 rf1) => f1' [cf1' Hf1']; case: {IHf2} (IHf2 rf2) => f2' [cf2' Hf2'].
-  exists (f1' \/ f2')%T => /=; rewrite cf1'; split => // e.
-   by split; (case; [left; apply/Hf1' | right; apply/Hf2']).
-- move=> f1 IHf1 f2 IHf2 /=; case/andP=> rf1 rf2.
-  case: {IHf1} (IHf1 rf1) => f1' [cf1' Hf1']; case: {IHf2} (IHf2 rf2) => f2' [cf2' Hf2'].
-  exists ((~ f1') \/ f2')%T => /=; rewrite cf1'; split => // e.
-  split; first by case; [move/Hf1' | move/Hf2'].
-  move=> HI; right; apply/Hf2'; apply: HI; apply/Hf1'.
- *)
-
-
-
+- by move=> t1 t2 //= e _; rewrite (can2_eq (subrK _) (addrK _)) add0r; exact: eqP.
+- move=> f1 IHf1 f2 IHf2 e /=; case/andP; case/(IHf1 e) => {IHf1} IHf1; last first.
+    by right; case.
+  case/(IHf2 e); constructor; tauto.
+- move=> f1 IHf1 f2 IHf2 e /=; case/andP; case/(IHf1 e) => {IHf1} IHf1.
+    by left; left.
+  case/(IHf2 e); constructor; tauto.
+- move=> f1 IHf1 f2 IHf2 e /=; case/andP; case/(IHf1 e) => {IHf1} IHf1; last first.
+    by left.
+  case/(IHf2 e); constructor; tauto.
+- move=> f IHf e /=; case/(IHf e); constructor; tauto.
+- move=> n f IHf e /= rf. 
+  apply: (iffP (aux _ _ _ (constructible_quantifier_elim rf)));
+    (case=> x hx; exists x; exact/IHf).
+- move=> n f IHf e /= rf. 
+  case: (aux (~_)%T e n (constructible_quantifier_elim rf)) => hf.
+    by right; case: hf => x hx; move/(_ x)=> hx'; case/IHf: hx.
+  by left=> x; apply/IHf=> //; apply/idPn=> hx; case: hf; exists x.
+Qed.
 
 End EvalTerm.
 
