@@ -37,7 +37,6 @@ sylow.v
 abelian.v
 signperm.v
 matrix.v
-gauss_elim.v
 charpoly.v
 schurzass.v
 hall.v
