@@ -26,7 +26,7 @@
 (* and the corollary that Aut G is cyclic when G is of prime order.    *)
 (***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
-Require Import seq fintype div prime ssralg poly.
+Require Import seq fintype div bigops prime ssralg poly.
 Require Import finset groups morphisms automorphism normal perm zmodp.
 
 (* Require Import paths connect bigops. *)
@@ -295,15 +295,13 @@ End Cyclic.
 
 (* Just for fun Euler's theorem *)
 
-Theorem Euler: forall a n: pos_nat, coprime a n -> a ^ phi n  = 1 %[mod n].
+Theorem Euler: forall a n, coprime a n -> a ^ phi n  = 1 %[mod n].
 Proof.
-move=> a n Cop.
-have Ha': coprime n (inZp (valP n) a) by rewrite coprime_sym coprime_modl.
-have Hp1: (ZpUnit Ha') ^+ (phi n) = 1.
-  apply/eqP; rewrite -order_dvdn -card_Zp_units.
-  by apply: cardSg; rewrite cycle_subG inE.
-move/val_eqP: (@Zp_units_expgn n (ZpUnit Ha') (phi n)).
-by rewrite /= modn_exp Hp1; move/eqP<-.
+move=> a n; case: (posnP n) => [-> //|n_gt0] co_a_n; pose n0 := PosNat n_gt0.
+have Ua: coprime n0 (inZp n_gt0 a) by rewrite coprime_sym coprime_modl.
+have: ZpUnit Ua ^+ phi n0 == 1.
+  by rewrite -card_Zp_units -order_dvdn order_dvdG ?inE.
+by rewrite -2!val_eqE /= (@Zp_units_expgn n0) /= modn_exp; move/eqP.
 Qed.
 
 Section CyclicSubGroup.
@@ -456,96 +454,6 @@ Qed.
 
 End IsoCyclic.
 
-(* A classic application to finite subgroups of fields. The proof is  *)
-(* slightly more involved than it should be because we're too early   *)
-(* in the library to use either the structure theorem of abelian      *)
-(* groups or p-constituents.                                          *)
-
-Lemma div_ring_mul_group_cyclic :
-  forall (gT : finGroupType) (G : {group gT}) (R : unitRingType) (f : gT -> R),
-    f 1 = 1%R -> {in G &, {morph f : u v / u * v >-> (u * v)%R}} ->
-    {in G^#, forall x, GRing.unit (f x - 1)%R} ->
-  abelian G -> cyclic G.
-Proof.
-move=> gT G R f f1 fM f1P abelG.
-have fX: forall n, {in G, {morph f : u / u ^+ n >-> (u ^+ n)%R}}.
-  by case=> // n x Gx; elim: n => //= n IHn; rewrite expgS fM ?groupX ?IHn.
-have fU: forall x, x \in G -> GRing.unit (f x).
-  move=> x Gx; apply/GRing.unitrP.
-  by exists (f x^-1); rewrite -!fM ?groupV ?gsimp.
-have: exists H : {group _}, cyclic H && (H \subset G). 
-  by exists [1 gT]%G; rewrite sub1G cyclic1.
-case/ex_maxgroup=> H; case/maxgroupP; case/andP=> cycH; rewrite subEproper.
-case/predU1P=> [<- //|]; case/andP=> sHG sGH maxH; set n := #|H|.
-have defH: H :=: [set x \in G | #[x] %| n].
-  apply/eqP; rewrite eqEcard; apply/andP; split.
-    by apply/subsetP=> x Hx; rewrite inE (subsetP _ x Hx) ?cardSg ?cycle_subG.
-  pose P : {poly R} := ('X^n - 1)%R.
-  have szP: size P = n.+1.
-    by rewrite size_addl size_polyXn // size_opp size_poly1 ltnS /n.
-  rewrite -ltnS -szP cardE -(size_map f) max_ring_poly_roots //.
-  - by rewrite -size_poly_eq0 szP.
-  - apply/allP=> fx; case/mapP=> x; rewrite mem_enum !inE order_dvdn.
-    case/andP=> Gx; move/eqP=> xn1 <-{fx}; apply/eqP.
-    by rewrite !(horner_lin, hornerXn) -fX // xn1 f1 GRing.subrr.
-  set rs := enum _; have: uniq rs by exact: enum_uniq.
-  have: all (mem G) rs by apply/allP=> x; rewrite mem_enum !inE; case/andP.
-  elim: rs => //= x rs IHrs; case/andP=> Gx Grs; case/andP=> x_rs.
-  move/IHrs=> -> {IHrs}//; rewrite andbT.
-  apply/allP=> fy; case/mapP=> y rs_y <-{fy}.
-  have{Grs} Gy := allP Grs y rs_y; rewrite /diff_root -!fM 1?(centsP abelG) //.
-  rewrite eqxx -[f x]GRing.mul1r -(mulgKV x y) fM ?groupM ?groupV //.
-  rewrite -GRing.mulNr -GRing.mulr_addl GRing.unitr_mull ?fU ?f1P //.
-  rewrite !inE groupM ?groupV // andbT -eq_mulgV1.
-  by apply: contra x_rs; move/eqP <-.
-have [x def_x] := cyclicP H cycH; case/subsetPn: sGH => y Hy.
-case/negP; rewrite defH inE Hy; apply/dvdn_partP=> // p.
-rewrite mem_primes; case/and3P=> pr_p _ py.
-rewrite p_part pfactor_dvdn // ?cardG_gt0 //.
-set ky := logn p _; set kx := logn p n; rewrite leqNgt; apply/negP=> ltk.
-set yp := y ^+ (#[y] %/ p ^ kx.+1); set xp' := x ^+ (n`_p).
-have oyp : #[yp] = (p ^ kx.+1)%N.
-  rewrite orderXgcd -[#[y]](partnC p) // p_part -/ky -(subnK ltk).
-  rewrite expn_add -mulnA mulKn ?expn_gt0 ?prime_gt0 //.
-  by rewrite gcdnC gcdn_mull mulnK // muln_gt0 part_gt0 expn_gt0 ?prime_gt0.
-have oypp : #[yp ^+ p] = n`_p.
-  by rewrite orderXgcd oyp expnS gcdnC gcdn_mulr p_part mulKn ?prime_gt0.
-have oxp' : #[xp'] = n`_p^'.
-  by rewrite orderXgcd -[#[x]](partnC p) // gcdnC /n def_x gcdn_mulr mulKn.
-case Hyp: (yp \in H).
-  by have:= order_dvdG Hyp; rewrite oyp pfactor_dvdn // ltnn.
-have Gx: x \in G by rewrite -cycle_subG -def_x.
-have yxpM: <[yp * xp']> = <[yp]> * <[xp']>.
-  apply: cycleM; first by apply: (centsP abelG); rewrite ?groupM ?groupX.
-  rewrite oyp oxp'; apply: pnat_coprime (pnat_part _ _).
-  by rewrite pnat_exp pnat_id.
-case/negP: Hyp; rewrite -(maxH <[yp * xp']>%G).
-- by rewrite -cycle_subG /= yxpM mulG_subl.
-- by rewrite cycle_cyclic cycle_subG groupM ?groupX.
-rewrite /= yxpM -((<[yp ^+ p]> * <[xp']> =P H) _) ?mulSg ?cycleX //.
-rewrite eqEcard coprime_cardMg {1}[#|<[_]>|]oypp [#|<[_]>|]oxp'; last first.
-  exact: coprime_partC.
-rewrite /n partnC // mul_subG //= cycle_subG.
-  by rewrite defH inE !groupX // oypp dvdn_part.
-by rewrite def_x groupX ?cycle_id.
-Qed.
-
-Lemma field_mul_group_cyclic :
-  forall (gT : finGroupType) (G : {group gT}) (F : fieldType) (f : gT -> F),
-    {in G &, {morph f : u v / u * v >-> (u * v)%R}} ->
-    {in G, forall x, f x = 1%R <-> x = 1} ->
-  cyclic G.
-Proof.
-move=> gT G F f fM f1P; have f1 : f 1 = 1%R by exact/f1P.
-apply: (div_ring_mul_group_cyclic f1 fM) => [x|].
-  case/setD1P=> x1 Gx; rewrite GRing.unitfE; apply: contra x1.
-  move/eqP; move/(canRL (GRing.subrK _)); rewrite GRing.add0r.
-  by move/f1P->.
-apply/centsP=> x Gx y Gy; apply/commgP; apply/eqP.
-apply/f1P; rewrite ?fM ?groupM ?groupV // GRing.mulrCA -!fM ?groupM ?groupV //.
-by rewrite mulKg mulVg.
-Qed.
-
 (***********************************************************************)
 (*                                                                     *)
 (*       Automorphisms of cyclic groups                                *)
@@ -597,7 +505,6 @@ End ZpUnitMorphism.
 Lemma Zp_unitmM : {in Zp_units #[a] &, {morph Zp_unitm : u v / u * v}}.
 Proof.
 move=> u v _ _; apply: (eq_Aut (Aut_aut _ _)) => [|x a_x].
-
   by rewrite groupM ?Aut_aut.
 rewrite permM !autE ?groupX //= /cyclem -expgn_mul.
 by rewrite -expg_mod_order modn_dvdm ?expg_mod_order // order_dvdG.
@@ -657,16 +564,6 @@ Qed.
 Lemma Aut_cycle_abelian : abelian (Aut <[a]>).
 Proof. by rewrite -morphim_Zp_unitm morphim_abelian ?Zp_units_abelian. Qed.
 
-Lemma Aut_prime_cycle_cyclic : prime #[a] -> cyclic (Aut <[a]>).
-Proof.
-move=> pr_a; pose ff f := invm injm_Zp_unitm f : Fp_field pr_a.
-apply: (@field_mul_group_cyclic _ _ _ ff) => [f g Af Ag | f Af].
-  by apply: val_inj; rewrite /ff morphM ?morphim_Zp_unitm.
-split=> [/= ff1 |->]; last by apply: val_inj; rewrite /ff morph1.
-apply: (injm1 (injm_invm injm_Zp_unitm)); first by rewrite /= morphim_Zp_unitm.
-by do 2!apply: val_inj; move/(congr1 val): ff1.
-Qed.
-
 End CycleAutomorphism.
 
 Variable G : {group gT}.
@@ -677,10 +574,139 @@ Proof. case/cyclicP=> x ->; exact: Aut_cycle_abelian. Qed.
 Lemma card_Aut_cyclic : cyclic G -> #|Aut G| = phi #|G|.
 Proof. case/cyclicP=> x ->; exact: card_Aut_cycle. Qed.
 
-Lemma Aut_prime_cyclic : prime #|G| -> cyclic (Aut G).
+Lemma sum_ncycle_phi :
+  \sum_(d < #|G|.+1) #|[set <[x]> | x <- G, #[x] == d]| * phi d = #|G|.
 Proof.
-move=> pr_G; case/cyclicP: (prime_cyclic pr_G) (pr_G) => x ->.
-exact: Aut_prime_cycle_cyclic.
+pose h (x : gT) : 'I_#|G|.+1 := inord #[x].
+symmetry; rewrite -{1}sum1_card (partition_big h xpredT) //=.
+apply: eq_bigr => d _; set Gd := finset _.
+rewrite -sum_nat_const sum1dep_card -sum1_card (_ : finset _ = Gd); last first.
+  apply/setP=> x; rewrite !inE; case Gx: (x \in G) => //.
+  by rewrite /eq_op /= inordK // ltnS subset_leq_card ?cycle_subG.
+rewrite (partition_big_imset cycle) {}/Gd; apply: eq_bigr => C /=.
+case/imsetP=> x; case/setIdP=> Gx; move/eqP=> <- -> {C d}.
+rewrite sum1dep_card phi_gen; apply: eq_card => y; rewrite !inE /generator.
+move: Gx; rewrite andbC eq_sym -!cycle_subG /order.
+by case: (<[x]> == <[y]>) / (<[x]> =P <[y]>) => // -> ->; exact: eqxx.
 Qed.
 
 End CyclicAutomorphism.
+
+Lemma sum_phi_dvd : forall n, \sum_(d < n.+1 | d %| n) phi d = n.
+Proof.
+move=> n; rewrite big_mkcond /=.
+case: (posnP n) => [-> | n_gt0]; first by rewrite big_ord_recl big_ord0.
+pose n0 := PosNat n_gt0; pose x1 : 'I_n0 := Zp_gen.
+have ox1 : #[x1] = n by rewrite /order -Zp_cycle card_Zp.
+rewrite -{8}ox1 -[#[_]]sum_ncycle_phi [#|_|]ox1; apply: eq_bigr => d _.
+rewrite -{2}ox1; case: ifP => [|ndv_dG]; last first.
+  rewrite eq_card0 // => C; apply/imsetP=> [[x]]; case/setIdP=> Gx oxd _{C}.
+  by rewrite -(eqP oxd) order_dvdG in ndv_dG.
+move/cycle_sub_group; set Gd := [set _] => def_Gd.
+rewrite (_ : _ @: _ = @gval _ @: Gd); first by rewrite imset_set1 cards1 mul1n.
+apply/setP=> C; apply/idP/imsetP=> [| [gC GdC ->{C}]].
+  case/imsetP=> x; case/setIdP=> _ oxd ->; exists <[x]>%G => //.
+  by rewrite -def_Gd inE -Zp_cycle subsetT.
+have:= GdC; rewrite -def_Gd; case/setIdP=> _; move/eqP=> <-.
+by rewrite (set1P GdC) /= mem_imset // inE eqxx (mem_cycle x1).
+Qed.
+
+Lemma phi_gt0 : forall n, (0 < phi n) = (0 < n).
+Proof.
+by case=> [|[|n]] //; rewrite phi_count_coprime unlock /= coprimen1.
+Qed.
+
+Section FieldMulCyclic.
+
+(* A classic application to finite multiplicative subgroups of fields. *)
+
+Variables (gT : finGroupType) (G : {group gT}).
+
+Lemma order_inj_cyclic :
+  {in G &, forall x y, #[x] = #[y] -> <[x]> = <[y]>} -> cyclic G.
+Proof.
+move=> ucG; apply: negbNE (contra _ (negbT (ltnn #|G|))) => ncG.
+rewrite -{2}[#|G|]sum_phi_dvd big_mkcond (bigD1 ord_max) ?dvdnn //=.
+rewrite -{1}[#|G|]sum_ncycle_phi (bigD1 ord_max) //= -addSn leq_add //.
+  rewrite eq_card0 ?phi_gt0 ?cardG_gt0 // => C.
+  apply/imsetP=> [[x]]; case/setIdP=> Gx; move/eqP=> oxG; case/cyclicP: ncG.
+  by exists x; apply/eqP; rewrite eq_sym eqEcard cycle_subG Gx -oxG /=.
+apply: (big_rel (fun a b => a <= b)) => // [*|d _]; first exact: leq_add.
+set Gd := _ @: _; case: (set_0Vmem Gd) => [-> | [C]]; first by rewrite cards0.
+rewrite {}/Gd; case/imsetP=> x; case/setIdP=> Gx; move/eqP=> <- _ {C d}.
+rewrite order_dvdG // (@eq_card1 _ <[x]>) ?mul1n // => C.
+apply/idP/eqP=> [|-> {C}]; last by rewrite mem_imset // inE Gx eqxx.
+by case/imsetP=> y; case/setIdP=> Gy; move/eqP; move/ucG->.
+Qed.
+
+Lemma div_ring_mul_group_cyclic : forall (R : unitRingType) (f : gT -> R),
+    f 1 = 1%R -> {in G &, {morph f : u v / u * v >-> (u * v)%R}} ->
+    {in G^#, forall x, GRing.unit (f x - 1)%R} ->
+  abelian G -> cyclic G.
+Proof.
+move=> R f f1 fM f1P abelG.
+have fX: forall n, {in G, {morph f : u / u ^+ n >-> (u ^+ n)%R}}.
+  by case=> // n x Gx; elim: n => //= n IHn; rewrite expgS fM ?groupX ?IHn.
+have fU: forall x, x \in G -> GRing.unit (f x).
+  move=> x Gx; apply/GRing.unitrP.
+  by exists (f x^-1); rewrite -!fM ?groupV ?gsimp.
+apply: order_inj_cyclic => x y Gx Gy; set n := #[x] => yn.
+apply/eqP; rewrite eq_sym eqEcard -[#|_|]/n yn leqnn andbT cycle_subG /=.
+suff{y Gy yn} ->: <[x]> = G :&: [set z | #[z] %| n] by rewrite !inE Gy yn /=.
+apply/eqP; rewrite eqEcard subsetI cycle_subG {}Gx /= cardE; set rs := enum _.
+apply/andP; split; first by apply/subsetP=> y xy; rewrite inE order_dvdG.
+pose P : {poly R} := ('X^n - 1)%R; have n_gt0: n > 0 by exact: order_gt0.
+have szP: size P = n.+1 by rewrite size_addl size_polyXn ?size_opp ?size_poly1.
+rewrite -ltnS -szP -(size_map f) max_ring_poly_roots -?size_poly_eq0 ?{}szP //.
+  apply/allP=> fy; case/mapP=> y; rewrite mem_enum !inE order_dvdn.
+  case/andP=> Gy; move/eqP=> yn1 <-{fy}; apply/eqP.
+  by rewrite !(horner_lin, hornerXn) -fX // yn1 f1 GRing.subrr.
+have: uniq rs by exact: enum_uniq.
+have: all (mem G) rs by apply/allP=> y; rewrite mem_enum; case/setIP.
+elim: rs => //= y rs IHrs; case/andP=> Gy Grs; case/andP=> y_rs; rewrite andbC.
+move/IHrs=> -> {IHrs}//; apply/allP=> fz; case/mapP=> z rs_z <-{fz}.
+have{Grs} Gz := allP Grs z rs_z; rewrite /diff_root -!fM // (centsP abelG) //.
+rewrite eqxx -[f y]GRing.mul1r -(mulgKV y z) fM ?groupM ?groupV //=.
+rewrite -GRing.mulNr -GRing.mulr_addl GRing.unitr_mull ?fU ?f1P // !inE.
+by rewrite groupM ?groupV // andbT -eq_mulgV1; apply: contra y_rs; move/eqP <-.
+Qed.
+
+Lemma field_mul_group_cyclic : forall (F : fieldType) (f : gT -> F),
+    {in G &, {morph f : u v / u * v >-> (u * v)%R}} ->
+    {in G, forall x, f x = 1%R <-> x = 1} ->
+  cyclic G.
+Proof.
+move=> F f fM f1P; have f1 : f 1 = 1%R by exact/f1P.
+apply: (div_ring_mul_group_cyclic f1 fM) => [x|].
+  case/setD1P=> x1 Gx; rewrite GRing.unitfE; apply: contra x1.
+  move/eqP; move/(canRL (GRing.subrK _)); rewrite GRing.add0r.
+  by move/f1P->.
+apply/centsP=> x Gx y Gy; apply/commgP; apply/eqP.
+apply/f1P; rewrite ?fM ?groupM ?groupV // GRing.mulrCA -!fM ?groupM ?groupV //.
+by rewrite mulKg mulVg.
+Qed.
+
+End FieldMulCyclic.
+
+Section AutPrime.
+
+Variable gT : finGroupType.
+
+Lemma Aut_prime_cycle_cyclic : forall a : gT, prime #[a] -> cyclic (Aut <[a]>).
+Proof.
+move=> a pr_a; pose ff f := invm (injm_Zp_unitm a) f : Fp_field pr_a.
+apply: (@field_mul_group_cyclic _ _ _ ff) => [f g Af Ag | f Af].
+  by apply: val_inj; rewrite /ff morphM ?morphim_Zp_unitm.
+split=> [/= ff1 |->]; last by apply: val_inj; rewrite /ff morph1.
+apply: (injm1 (injm_invm (injm_Zp_unitm a))).
+  by rewrite /= morphim_Zp_unitm.
+by do 2!apply: val_inj; move/(congr1 val): ff1.
+Qed.
+
+Lemma Aut_prime_cyclic : forall G : {group gT}, prime #|G| -> cyclic (Aut G).
+Proof.
+move=> G pr_G; case/cyclicP: (prime_cyclic pr_G) (pr_G) => x ->.
+exact: Aut_prime_cycle_cyclic.
+Qed.
+
+End AutPrime.
