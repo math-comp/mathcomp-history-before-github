@@ -1289,11 +1289,30 @@ apply/matrixP=> i j; rewrite !mxE (ord1 j); move: (tperm _ _ _) => {i}k.
 move/eqP: (no_k k) <-; congr (A _ _); exact: val_inj.
 Qed.
 
-Lemma cormen_lup_detU : forall n A, \det (@cormen_lup F n A).1.2 = 1.
+Lemma cormen_lup_detL : forall n A, \det (@cormen_lup F n A).1.2 = 1.
 Proof.
 elim=> [|n IHn] A /=; first by rewrite det1.
 set A' := _ - _; move/(_ A'): IHn; case: cormen_lup => [[P L U]] {A'}/= detL.
 by rewrite (@det_lblock _ 1) det1 mul1r.
+Qed.
+
+Lemma cormen_lup_lower : forall n A (i j : 'I_n.+1),
+  i <= j -> (cormen_lup A).1.2 i j = (i == j)%:R :> F.
+Proof.
+elim=> [|n IHn] A /= i j; first by rewrite (ord1 i) (ord1 j) mxE.
+set A' := _ - _; move/(_ A'): IHn; case: cormen_lup => [[P L U]] {A'}/= Ll.
+rewrite !mxE split1; case: unliftP => [i'|] -> /=; rewrite !mxE split1.
+  by case: unliftP => [j'|] -> //; exact: Ll.
+by case: unliftP => [j'|] ->; rewrite /= mxE.
+Qed.
+
+Lemma cormen_lup_upper : forall n A (i j : 'I_n.+1),
+  j < i -> (cormen_lup A).2 i j = 0 :> F.
+Proof.
+elim=> [|n IHn] A /= i j; first by rewrite (ord1 i).
+set A' := _ - _; move/(_ A'): IHn; case: cormen_lup => [[P L U]] {A'}/= Uu.
+rewrite !mxE split1; case: unliftP => [i'|] -> //=; rewrite !mxE split1.
+by case: unliftP => [j'|] ->; [exact: Uu | rewrite /= mxE].
 Qed.
 
 End CormenLUPCorrect.
