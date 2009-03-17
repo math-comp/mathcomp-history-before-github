@@ -1140,3 +1140,160 @@ Qed.
 
 End MatrixInv.
 
+Section CormenLUP.
+
+Variable F : fieldType.
+
+(*Décomposition de la matrice A en P A = L U avec :
+- P une matrice de permutation
+- L une matrice triangulaire inféreieure
+- U une matrice triangulaire supérieure 
+*)
+
+(* The cast (0 : 'I__) is probably not needed in Coq 8.2 -- GG *)
+Fixpoint cormen_lup n : let M := 'M_n.+1 in M -> M * M * M :=
+  match n return let M := 'M_(1 + n) in M -> M * M * M with
+  | 0 => fun A => (1%:M, 1%:M, A)
+  | n'.+1 => fun A =>
+    let k := odflt (0 : 'I__) (pick [pred k | A k 0 != 0]) in
+    let A1 := rswap A 0 k in
+    let P1 := tperm_mx F 0 k in
+    let Schur := ((A k 0)^-1 *m: llsubmx A1) *m ursubmx A1 in
+    let: (P2, L2, U2) := cormen_lup (lrsubmx A1 - Schur) in 
+    let P := block_mx 1 0 0 P2 * P1 in
+    let L := block_mx 1 0 ((A k 0)^-1 *m: (P2 *m llsubmx A1)) L2 in
+    let U := block_mx (ulsubmx A1) (ursubmx A1) 0 U2 in
+    (P, L, U)
+  end.
+
+End CormenLUP.
+
+Section MorePermMx.
+
+Variable R: ringType.
+Variable n : nat.
+
+Implicit Types A B : (matrix R n n).
+Implicit Type s : 'S_n.
+
+Definition is_perm_mx m (A : 'M_m) := existsb s, A == perm_mx R s.
+
+Lemma is_perm_mxP : forall m (A : 'M_m),
+  reflect (exists s, A = perm_mx R s) (is_perm_mx A).
+Proof. by move=> m A; apply: (iffP existsP) => [] [s]; move/eqP; exists s. Qed.
+
+Lemma perm_mx_is_perm : forall m (s : 'S_m), is_perm_mx (perm_mx R s).
+Proof. by move=> m s; apply/is_perm_mxP; exists s. Qed.
+
+Lemma is_perm_mxMl : forall A B,
+  is_perm_mx A -> is_perm_mx (A *m B) = is_perm_mx B.
+Proof.
+move=> A B; case/is_perm_mxP=> s ->.
+apply/is_perm_mxP/is_perm_mxP=> [[t def_t] | [t ->]].
+  exists (s^-1 * t)%g.
+  by rewrite -mulmx_perm -def_t mulmxA mulmx_perm mulVg perm_mx1 mul1mx.
+by exists (s * t)%g; rewrite -mulmx_perm.
+Qed.
+
+Lemma is_perm_mxMr : forall A B,
+  is_perm_mx B -> is_perm_mx (A *m B) = is_perm_mx A.
+Proof.
+move=> A B; case/is_perm_mxP=> s ->.
+apply/is_perm_mxP/is_perm_mxP=> [[t def_t] | [t ->]].
+  exists (t * s^-1)%g.
+  by rewrite -mulmx_perm -def_t -mulmxA mulmx_perm mulgV perm_mx1 mulmx1.
+by exists (t * s)%g; rewrite -mulmx_perm.
+Qed.
+
+Definition lift0_perm s := lift_perm 0 0 s.
+
+Lemma lift0_perm0 : forall s, lift0_perm s 0 = 0.
+Proof. by move=> s; exact: lift_perm_id. Qed.
+
+Lemma rshift1 : @rshift 1 n =1 lift (0 : 'I_n.+1).
+Proof. by move=> i; apply: val_inj. Qed.
+
+Lemma split1 : forall i : 'I_n.+1,
+  @split 1 n i = oapp (@inr _ _) (inl _ 0) (unlift 0 i).
+Proof.
+move=> i; case: unliftP => [i'|] -> /=.
+  by rewrite -rshift1 (unsplitK (inr _ _)).
+by rewrite -(lshift_ord1 n 0) (unsplitK (inl _ _)).
+Qed.
+
+Lemma lift0_perm_lift : forall s (i : 'I_n),
+  lift0_perm s (lift (0 : 'I_n.+1) i) = lift (0 : 'I_n.+1)(s i).
+Proof. by move=> s i; exact: lift_perm_lift. Qed.
+
+Lemma lift0_permK : forall s, cancel (lift0_perm s) (lift0_perm s^-1).
+Proof. by move=> s i; rewrite /lift0_perm -lift_permV permK. Qed.
+
+Lemma lift0_perm_eq0 : forall s i, (lift0_perm s i == 0) = (i == 0).
+Proof. by move=> s i; rewrite (canF_eq (lift0_permK s)) lift0_perm0. Qed.
+
+Definition lift0_mx A := block_mx (1 : 'M_(1, 1)) 0 0 A.
+
+Lemma lift0_mx_perm : forall s,
+  lift0_mx (perm_mx R s) = perm_mx R (lift0_perm s). 
+Proof.
+move=> s; apply/matrixP=> /= i j.
+rewrite !mxE split1 /=; case: unliftP => [i'|] -> /=.
+  rewrite lift0_perm_lift !mxE split1 /=.
+  by case: unliftP => [j'|] ->; rewrite ?(inj_eq (@lift_inj _ _)) /= mxE.
+rewrite lift0_perm0 !mxE split1 /=.
+by case: unliftP => [j'|] ->; rewrite /= mxE.
+Qed.
+
+Lemma lift0_mx_is_perm : forall s, is_perm_mx (lift0_mx (perm_mx R s)).
+Proof. by move=> s; rewrite lift0_mx_perm perm_mx_is_perm. Qed.
+
+Lemma is_perm_mx1 : is_perm_mx (1%:M : 'M_n).
+Proof. by rewrite -perm_mx1 perm_mx_is_perm. Qed.
+
+End MorePermMx.
+
+Lemma is_perm_mxV : forall (R : comUnitRingType) (n : pos_nat) A,
+  @is_perm_mx R n A -> is_perm_mx A^-1.
+Proof.
+by move=> R n A; case/is_perm_mxP=> s ->; rewrite -perm_mxV perm_mx_is_perm.
+Qed.
+
+Section CormenLUPCorrect.
+
+Variable F : fieldType.
+
+Lemma cormen_lup_perm :  forall n A, is_perm_mx (@cormen_lup F n A).1.1.
+Proof.
+elim=> [A | n IHn A /=]; first exact: is_perm_mx1.
+set A' := _ - _; move/(_ A'): IHn; case: cormen_lup => [[P L U]] {A'}/=.
+rewrite (is_perm_mxMr _ (perm_mx_is_perm _ _)).
+case/is_perm_mxP => s ->; exact: lift0_mx_is_perm.
+Qed.
+
+Lemma cormen_lup_correct : forall n A,
+  let: (P, L, U) := @cormen_lup F n A in P * A  = L * U.
+Proof.
+elim=> [|n IHn] A /=; first by rewrite !mul1r.
+set k := odflt _ _; set A1 := rswap (A : 'M_(1 + _)) _ _.
+set A' := _ - _; move/(_ A'): IHn; case: cormen_lup => [[P' L' U']] /= IHn.
+rewrite -mulrA [_ * A]mul_tperm_mx -/A1.
+rewrite -{1}(submxK A1) ![_ * _](@mulmx_block _ 1 _ 1 _ 1).
+rewrite !mul0mx !mulmx0 !addr0 !add0r !mul1mx -{L' U'}[L' *m U']IHn.
+rewrite addrC -scalemxAl !scalemxAr -!mulmxA -mulr_addr {A'}subrK.
+rewrite {}/A1 {}/k; case: pickP => /= [k nzAk0 | no_k].
+  rewrite (_ : _ *m: _ = 1) ?mulmx1 //; apply/matrixP=> i j.
+  rewrite !mxE [i]ord1 [j]ord1 !permE /= -(mulVf nzAk0).
+  congr (_ * A k _); exact: val_inj.
+rewrite (_ : llsubmx _ = 0) ?mul0mx //.
+apply/matrixP=> i j; rewrite !mxE (ord1 j); move: (tperm _ _ _) => {i}k.
+move/eqP: (no_k k) <-; congr (A _ _); exact: val_inj.
+Qed.
+
+Lemma cormen_lup_detU : forall n A, \det (@cormen_lup F n A).1.2 = 1.
+Proof.
+elim=> [|n IHn] A /=; first by rewrite det1.
+set A' := _ - _; move/(_ A'): IHn; case: cormen_lup => [[P L U]] {A'}/= detL.
+by rewrite (@det_lblock _ 1) det1 mul1r.
+Qed.
+
+End CormenLUPCorrect.
