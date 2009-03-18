@@ -167,7 +167,7 @@ have{def_m bc def_bc ltc2 ltbc3}:
    [&& k > 0, p < m, lb_dvd p m, c < kb & lb_dvd p p || (e == 0)]
     /\ m + (b * kb + c).*2 = p ^ 2 + (a * p).*2.
 - rewrite -{-2}def_m; split=> //=; last first.
-    by rewrite -def_bc addSn -double_add 2!addSn -addnA addnC subnK.
+    by rewrite -def_bc addSn -double_add 2!addSn -addnA subnKC // addnC.
   rewrite ltc2 /lb_dvd /index_iota /= dvdn2 -def_m.
   by rewrite [_.+2]lock /= odd_double.
 move: {2}a.+1 (ltnSn a) => n; clearbody k e.
@@ -209,8 +209,8 @@ case def_b': (b - _) => [|b']; last first.
   apply: (@addIn p.*2).
   rewrite -2!addnA -!double_add -addnA -mulSnr -def_a -def_m /d.
   have ->: b * kb = b' * kb + (k.*2 - c * kb + kb).
-    rewrite addnCA addnC -mulSnr -def_b' def_k2 -muln_subl -muln_addl addnC.
-    by rewrite subnK // ltnW // -subn_gt0 def_b'.
+    rewrite addnCA addnC -mulSnr -def_b' def_k2 -muln_subl -muln_addl subnK //.
+    by rewrite ltnW // -subn_gt0 def_b'.
   rewrite -addnA; congr (_ + (_ + _).*2).
   case: (c) ltc; first by rewrite -addSnnS def_kb1 subn0 addn0 addnC.
   rewrite /kb; case e => [[] // _|e' c' _] /=; last first.
@@ -222,7 +222,7 @@ have ltdp: d < p.
   rewrite muln_subl -def_k2 ltnS -(leq_add2r c); move/leq_trans; apply.
   have{ltc} ltc: c < k.*2.
     by apply: (leq_trans ltc); rewrite leq_double /kb; case e.
-  rewrite -{2}(subnK (ltnW ltc)) addnC leq_add2l leq_sub2l //.
+  rewrite -{2}(subnK (ltnW ltc)) leq_add2r leq_sub2l //.
   by rewrite -def_kb1 mulnS leq_addr.
 case def_d: d if_d0 => [|d'] => [[//|{def_m ltdp pr_p} def_m pr_p pr_m'] | _].
   rewrite eqxx -doubleS -addnS -def_a double_add -addSn -/p def_m.
@@ -234,10 +234,10 @@ case def_d: d if_d0 => [|d'] => [[//|{def_m ltdp pr_p} def_m pr_p pr_m'] | _].
   rewrite -[_.*2.+1]/p muln_addl double_add addnA -mul2n mulnA mul2n -mulSn.
   by rewrite -/p mulnn.
 have next_pm: lb_dvd p.+2 m.
-  rewrite /lb_dvd /index_iota -(subnK lt1p) 2!subSS subn0 addnC iota_add.
-  rewrite has_cat; apply/norP; split=> //=; rewrite orbF subnK // orbC.
+  rewrite /lb_dvd /index_iota 2!subSS subn0 -(subnK lt1p) iota_add.
+  rewrite has_cat; apply/norP; split=> //=; rewrite orbF subnKC // orbC.
   apply/norP; split; apply/dvdnP=> [[q def_q]].
-     case/hasP: leppm; exists 2; first by rewrite /p -(subnK lt0k).
+     case/hasP: leppm; exists 2; first by rewrite /p -(subnKC lt0k).
     by rewrite /= def_q dvdn_mull // dvdn2 /= odd_double.
   move/(congr1 (dvdn p)): def_m; rewrite -mulnn -!mul2n mulnA -muln_addl.
   rewrite dvdn_mull // dvdn_addr; last by rewrite def_q dvdn_mull.
@@ -636,7 +636,7 @@ Lemma dvdn_pfactor : forall p d n, prime p ->
 Proof.
 move=> p d n p_pr; have pn_gt0: p ^ n > 0 by rewrite expn_gt0 prime_gt0.
 apply: (iffP idP) => [dv_d_pn|[m le_m_n ->]]; last first.
-  by rewrite -(subnK le_m_n) expn_add dvdn_mulr.
+  by rewrite -(subnK le_m_n) expn_add dvdn_mull.
 exists (logn p d); first by rewrite -(pfactorK n p_pr) dvdn_leq_log.
 have d_gt0: d > 0 by exact: dvdn_gt0 dv_d_pn.
 case: (pfactor_coprime p_pr d_gt0) => q co_p_q def_d.

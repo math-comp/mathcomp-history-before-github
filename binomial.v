@@ -68,12 +68,12 @@ have eqFp : forall i j : 'I_p, (i == j) = (p %| p + i - j).
   by move=> i j; rewrite -eqn_mod_dvd ?(modn_addl, Fp_mod).
 have vFpId: forall i, (vFp i == i :> nat) = xpred2 Fp1 Fpn1 i.
   move=> i; symmetry; case: (i =P Fp0) => [->{i}|]; last move/eqP=> ni0.
-    by rewrite /= -!val_eqE /= -{2}[p]prednK //= modn_small //= -(subnK lt1p).
+    by rewrite /= -!val_eqE /= -{2}[p]prednK //= modn_small //= -(subnKC lt1p).
   rewrite 2!eqFp -euclid //= -[_ - p.-1]subSS prednK //.
   have lt0i: 0 < i by rewrite lt0n.
   rewrite -addnS addKn -addn_subA // muln_addl -{2}(addn1 i) -subn_sqr.
   rewrite addn_subA ?leq_sqr // mulnS -addnA -mulnn -muln_addl.
-  rewrite -(subnK (le_pmFp (vFp i) i)) muln_addl addnA addnC.
+  rewrite -(subnK (le_pmFp (vFp i) i)) muln_addl addnCA.
   rewrite -[1 ^ 2]/(Fp1 : nat) -addn_subA // dvdn_addl.
     by rewrite euclid // -eqFp eq_sym orbC /dvdn Fp_mod eqn0Ngt lt0i.
   by rewrite -eqn_mod_dvd // Fp_mod modn_addl -(vFpV _ ni0) eqxx.
@@ -99,70 +99,58 @@ Qed.
 
 (** Binomial *)
 
-Definition bin_rec := fix loop (m n : nat) {struct m} :=
-  if n is n'.+1 then (if m is m'.+1 then loop m' n + loop m' n' else 0)
-  else 1.
+Fixpoint bin_rec (m n : nat) {struct m} :=
+  match m, n with
+  | m'.+1, n'.+1 => bin_rec m' n + bin_rec m' n'
+  | _, 0 => 1
+  | 0, _.+1 => 0
+  end.
 
-Definition bin m n := nosimpl (bin_rec m n).
+Definition bin := nosimpl bin_rec.
 
-Lemma bin0: forall n,  bin n 0 = 1.
+Lemma binE : bin = bin_rec. Proof. by []. Qed.
+
+Lemma bin0 : forall n, bin n 0 = 1.
 Proof. by elim. Qed.
 
-Lemma binS: forall m n,  bin m.+1 n.+1 = bin m n.+1 + bin m n.
-Proof. by done. Qed.
+Lemma binS : forall m n,  bin m.+1 n.+1 = bin m n.+1 + bin m n.
+Proof. by []. Qed.
 
-Lemma bin_small: forall m n, m < n ->  bin m n = 0.
+Lemma bin_small : forall m n, m < n -> bin m n = 0.
+Proof. by elim=> [|m IHm] [|n] // lt_m_n; rewrite binS !IHm // ltnW. Qed.
+
+Lemma binn : forall n, bin n n = 1.
+Proof. by elim=> [|n IHn] //; rewrite binS bin_small. Qed.
+
+Lemma bin_gt0 : forall m n, (0 < bin m n) = (n <= m).
 Proof.
-elim=> [| m Hrec]; case => // n Hn; rewrite binS !Hrec //.
-by apply: ltn_trans Hn.
+by elim=> [|m IHm] [|n] //; rewrite binS addn_gt0 !IHm orbC ltn_neqAle andKb.
 Qed.
 
-Lemma binn: forall n,  bin n n = 1.
-Proof. by elim=> [| n Hrec] //; rewrite binS bin_small. Qed.
-
-Lemma bin_gt0: forall m n, 0 < bin m n == (n <= m).
+Lemma bin_fact : forall m n,
+  n <= m -> bin m n * (fact n * fact (m - n)) = fact m.
 Proof.
-elim=> [| m Hrec]; case=> // n.
-rewrite binS addn_gt0 !(eqP (Hrec _)) ltnS ltn_neqAle andbC.
-by case: (_ <= _) => //; rewrite orbT.
+move=> m n Hm; rewrite -{1 3}(subnKC Hm) {Hm}.
+elim: n {m}(m - n) => [m | n IHn]; first by rewrite bin0 !mul1n.
+elim=> [|m IHm]; first by rewrite addn0 binn mul1n muln1.
+rewrite {1}addnS binS muln_addl -2!{1}(mulnCA m.+1) {}IHm addSnnS.
+by rewrite -(mulnA n.+1) mulnCA {}IHn addnC -muln_addl.
 Qed.
 
-Lemma bin_fact: forall m n, n <= m -> bin m n * (fact n * fact (m - n)) = fact m.
+Lemma bin_sub : forall n m, n <= m -> bin m n = bin m (m - n).
 Proof.
-move=> m n Hm; rewrite -(subnK Hm) addKn.
-set p := m - n.
-elim: {m Hm} n p => [| m Hrec].
-  by case=> // n; rewrite bin0 // fact0 !mul1n add0n.
-elim=> [| n Hrec1].
-  by rewrite addn0 fact0 muln1 binS factS bin_small // binn add0n mul1n.
-by rewrite addnS binS muln_addl {1}(factS n) {2}(factS m)
-          -2!{1}(mulnCA (n.+1)) -(mulnA (m.+1)) -{1}(mulnCA (m.+1))
-          Hrec1 addSnnS Hrec -muln_addl factS addnC addSn.
-Qed.
-
-Lemma bin_sub: forall n m, n <= m -> bin m n = bin m (m - n).
-Proof.
-move=> n m Hmn; apply/eqP.
-move: (bin_fact Hmn); rewrite -(bin_fact (leq_subr n m)) subKn //.
-by rewrite [fact _ * _]mulnC; move/eqP; rewrite eqn_mul2r muln_eq0 !eqn0Ngt !fact_gt0.
+move=> n m le_n_m.
+apply/eqP; rewrite -(eqn_pmul2r (fact_gt0 (m - n))) -(eqn_pmul2r (fact_gt0 n)).
+by rewrite {1}mulnAC -!mulnA -{6}(subKn le_n_m) !bin_fact ?leq_subr.
 Qed.
 
 Theorem exp_pascal : forall a b n,
   (a + b) ^ n = \sum_(i < n.+1) (bin n i * (a ^ (n - i) * b ^ i)).
 Proof.
-move=> a b n; pose f n i := bin n i * (a ^ (n - i) * b ^ i).
-rewrite -!(big_mkord xpredT (f n)).
-elim: n => [| n Hrec]; first by rewrite big_nat_recr big_geq.
-rewrite big_nat_recr /= big_nat_recl /f /= subn0 subnn 
-       !expn0 binn bin0 !mul1n !muln1.
-rewrite expnS {}Hrec muln_addl !big_distrr /=.
-rewrite big_nat_recl /f /= bin0 mul1n subn0 expn0 muln1 -expnS.
-rewrite addnC big_nat_recr /= binn subnn expn0 !mul1n -expnS.
-have->: forall x y z t, x + y + (z + t) = z + (x + t) + y 
-  by move=> x y z t; ring.
-do 2 congr addn; rewrite -big_split; apply: eq_big => //= x _; apply sym_equal.
-rewrite binS muln_addl addnC; congr addn; first by rewrite expnS subSS; ring.
-rewrite expnS !mulnA; congr muln; rewrite [a * _]mulnC; congr muln.
-case: (leqP x.+1 n) => E1; last by rewrite bin_small.
-by rewrite leq_subS // expnS mulnA.
+move=> a b; elim=> [|n IHn]; first by rewrite big_ord_recl big_ord0.
+rewrite big_ord_recr big_ord_recl /= expnS {}IHn muln_addl !big_distrr.
+rewrite big_ord_recl big_ord_recr /= !bin0 !binn !subn0 !subnn !mul1n !muln1.
+rewrite -!expnS addnA; congr (_ + _); rewrite -addnA -big_split; congr (_ + _).
+apply: eq_bigr => i _ /=; rewrite 2!(mulnCA b) (mulnCA a) (mulnA a) -!expnS.
+by rewrite -leq_subS ?ltn_ord // -muln_addl -binS.
 Qed.

@@ -452,14 +452,17 @@ Proof. by move=> *; rewrite /leq subn_sub. Qed.
 Lemma leq_subr : forall m n, n - m <= n.
 Proof. by move=> *; rewrite leq_sub_add leq_addl. Qed.
 
-Lemma subnK : forall m n, m <= n -> m + (n - m) = n.
+Lemma subnKC : forall m n, m <= n -> m + (n - m) = n.
 Proof. by elim=> [|m IHm] [|n] // Hmn; congr _.+1; apply: IHm. Qed.
 
+Lemma subnK : forall m n, m <= n -> (n - m) + m = n.
+Proof. by move=> m n; rewrite addnC; exact: subnKC. Qed.
+
 Lemma addn_subA : forall m n p, p <= n -> m + (n - p) = m + n - p.
-Proof. by move=> m n p le_pn; rewrite -{2}(subnK le_pn) addnCA addKn. Qed.
+Proof. by move=> m n p le_pn; rewrite -{2}(subnK le_pn) addnA addnK. Qed.
 
 Lemma subn_subA : forall m n p, p <= n -> m - (n - p) = m + p - n.
-Proof. by move=> m n p le_pn; rewrite -{2}(subnK le_pn) addnC subn_add2l. Qed.
+Proof. by move=> m n p le_pn; rewrite -{2}(subnK le_pn) subn_add2r. Qed.
 
 Lemma subKn : forall m n, m <= n -> n - (n - m) = m.
 Proof. by move=> *; rewrite subn_subA // addKn. Qed.
@@ -497,14 +500,12 @@ Proof. move=> p m n; move/ltn_subS->; exact: leq_sub2l. Qed.
 Lemma ltn_add_sub : forall m n p, (m + n < p) = (n < p - m).
 Proof. by move=> m n p; rewrite !ltnNge leq_sub_add. Qed.
 
-(* Elimination of the common idiom for structurally decreasing compare and *)
-(* subtract. *)
-
+(* Eliminating the idiom for structurally decreasing compare and subtract. *)
 Lemma subn_if_gt : forall T m n F (E : T),
   (if m.+1 - n is m'.+1 then F m' else E) = (if n <= m then F (m - n) else E).
 Proof.
 move=> m n F E; case: leqP => [le_nm |]; last by move/eqnP->.
-by rewrite -{1}(subnK le_nm) -addnS addKn.
+by rewrite -{1}(subnK le_nm) -addSn addnK.
 Qed.
 
 (* Max and min *)
@@ -527,7 +528,7 @@ Proof. by move=> m n le_mn; rewrite maxnC maxnl. Qed.
 
 Lemma add_sub_maxn : forall m n, m + (n - m) = maxn m n.
 Proof.
-move=> m n; rewrite /maxn; case: leqP; last by move/ltnW; move/subnK.
+move=> m n; rewrite /maxn; case: leqP; last by move/ltnW; move/subnKC.
 by move/eqnP->; rewrite addn0.
 Qed.
 
@@ -1068,8 +1069,7 @@ Qed.
 
 Lemma odd_sub : forall m n, n <= m -> odd (m - n) = odd m (+) odd n.
 Proof.
-move=> m n le_nm; apply: (@canRL bool) (addbK _) _.
-by rewrite -odd_add addnC subnK.
+by move=> m n le_nm; apply: (@canRL bool) (addbK _) _; rewrite -odd_add subnK.
 Qed.
 
 Lemma odd_opp : forall i m, odd m = false -> i < m -> odd (m - i) = odd i.
@@ -1173,7 +1173,7 @@ by do 2!case: odd; rewrite /= ?add0n ?half_double ?uphalf_double.
 Qed.
 
 Lemma half_leq : forall m n, m <= n -> m./2 <= n./2.
-Proof. by move=> m n; move/subnK <-; rewrite half_add addnCA leq_addr. Qed.
+Proof. by move=> m n; move/subnK <-; rewrite half_add addnA leq_addl. Qed.
 
 Lemma half_gt0 : forall n, (0 < n./2) = (1 < n).
 Proof. by do 2?case. Qed.
@@ -1192,8 +1192,8 @@ Qed.
 Lemma sqrn_sub : forall m n, n <= m ->
   (m - n) ^ 2 = m ^ 2 + n ^ 2 - 2 * (m * n).
 Proof.
-move=> m n; move/subnK=> def_m; rewrite -{2}def_m sqrn_add addnC 2!addnA addnn.
-by rewrite -mul2n -addnA -!mulnn addnCA -2!muln_addr (mulnC n) def_m addnK.
+move=> m n; move/subnK=> def_m; rewrite -{2}def_m sqrn_add -addnA addnAC.
+by rewrite -2!addnA addnn -mul2n -muln_addr -muln_addl def_m addnK.
 Qed.
 
 Lemma sqrn_add_sub : forall m n, n <= m ->

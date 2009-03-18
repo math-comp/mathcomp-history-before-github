@@ -1006,7 +1006,7 @@ Proof.
 move=> H; case: (leqP #|H| 1) => [|lt1H].
   move/card_le1_trivg->; rewrite abelian1.
   by rewrite (leq_trans (index_size _ _)) // size_mkseq cards1.
-rewrite /nil_class -(subnK lt1H) /= lcnSn lcn0.
+rewrite /nil_class -(subnKC lt1H) /= lcnSn lcn0.
 case: eqP => [-> | _]; first by rewrite abelian1.
 by rewrite /abelian (sameP commG1P eqP); case: {+}(_ == 1).
 Qed.

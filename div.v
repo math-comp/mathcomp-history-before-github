@@ -1,10 +1,5 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect.
-Require Import ssrfun.
-Require Import ssrbool.
-Require Import eqtype.
-Require Import ssrnat.
-Require Import seq.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 
 (**************************************************************************)
 (* This files contains the definitions of:                                *)
@@ -35,7 +30,7 @@ Proof.
 move=> m [|d] //=; rewrite -{1}[m]/(0 * d.+1 + m).
 elim: m {-2}m 0 (leqnn m) => [|n IHn] [|m] q //=; rewrite ltnS => le_mn.
 rewrite subn_if_gt; case: ltnP => [// | le_dm].
-rewrite -{1}(subnK le_dm) -addSn addnA -mulSnr; apply: IHn.
+rewrite -{1}(subnKC le_dm) -addSn addnA -mulSnr; apply: IHn.
 apply: leq_trans le_mn; exact: leq_subr.
 Qed.
 
@@ -380,10 +375,10 @@ Lemma dvdn_add_eq : forall d m n, d %| m + n -> (d %| m) = (d %| n).
 Proof. by move=> *; apply/idP/idP; [move/dvdn_addr <-| move/dvdn_addl <-]. Qed.
 
 Lemma dvdn_subr : forall d m n, n <= m -> d %| m -> (d %| m - n) = (d %| n).
-Proof. by move=> *; apply dvdn_add_eq; rewrite addnC subnK. Qed.
+Proof. by move=> d m n le_n_m dv_d_m; apply: dvdn_add_eq; rewrite subnK. Qed.
 
 Lemma dvdn_subl : forall d m n, n <= m -> d %| n -> (d %| m - n) = (d %| m).
-Proof. by move=> d m n Hn; rewrite -{2}(subnK Hn); move/dvdn_addr. Qed.
+Proof. by move=> d m n le_n_m dv_d_m; rewrite -(dvdn_addl _ dv_d_m) subnK. Qed.
 
 Lemma dvdn_sub : forall d m n, d %|m -> d %| n -> d %| m - n.
 Proof.
@@ -399,7 +394,7 @@ Hint Resolve dvdn_add dvdn_sub dvdn_exp.
 Lemma eqn_mod_dvd : forall d m n, n <= m -> (m == n %[mod d]) = (d %| m - n).
 Proof.
 rewrite /dvdn => d m n le_nm; apply/eqP/eqP => [eq_mod | mod_mn_0]; last first.
-  by rewrite -(subnK le_nm) -modn_addmr mod_mn_0 addn0.
+  by rewrite -(subnK le_nm) -modn_addml mod_mn_0.
 by rewrite (divn_eq m d) (divn_eq n d) eq_mod subn_add2r -muln_subl modn_mull.
 Qed.
 
@@ -425,7 +420,7 @@ rewrite /gcdn => m; elim: m {-2}m (leqnn m) => [|s IHs] [|m] le_ms [|n] //=.
 case def_n': (_ %% _) => // [n'].
 have{def_n'} lt_n'm: n' < m by rewrite -def_n' -ltnS ltn_pmod.
 rewrite {}IHs ?(leq_trans lt_n'm) // subn_if_gt ltnW //=; congr gcdn_rec.
-by rewrite -{2}(subnK (ltnW lt_n'm)) -addSn modn_addl.
+by rewrite -{2}(subnK (ltnW lt_n'm)) -addnS modn_addr.
 Qed.
 
 Lemma gcdnn : idempotent gcdn.

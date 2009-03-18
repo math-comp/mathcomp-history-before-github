@@ -96,7 +96,7 @@ Qed.
 
 Lemma lcn_stable : forall G n m, n <= m ->  'L_n(G) = 1 -> 'L_m(G) = 1.
 Proof.
-move=> G n m le_mn Gn1; apply/trivgP; rewrite -{}Gn1 -(subnK le_mn) addnC.
+move=> G n m le_mn Gn1; apply/trivgP; rewrite -{}Gn1 -(subnKC le_mn) addnC.
 elim: {m le_mn}(m - n) => //= m; apply: subset_trans; exact: lcn_sub.
 Qed.
 

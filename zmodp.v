@@ -95,8 +95,7 @@ Proof. exact: valZpK. Qed.
 
 Lemma Zp_addNz : left_inverse Zp0 Zp_opp Zp_add.
 Proof.
-move=> x; apply: val_inj.
-by rewrite /= modn_addml addnC subnK ?modnn // ltnW ?ltn_ord.
+by move=> x; apply: val_inj; rewrite /= modn_addml subnK ?modnn // ltnW.
 Qed.
 
 Lemma Zp_addA : associative Zp_add.

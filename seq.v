@@ -541,8 +541,8 @@ Qed.
 
 Lemma size_takel : forall s, n0 <= size s -> size (take n0 s) = n0.
 Proof.
-move=> s Hn0; apply: (addIn (etrans _ (esym (subnK Hn0)))).
-by rewrite -size_drop -size_cat cat_take_drop.
+move=> s; move/subnKC; rewrite -{2}(cat_take_drop s) size_cat size_drop.
+by move/addIn.
 Qed.
 
 Lemma size_take : forall s,
@@ -690,7 +690,7 @@ Proof.
 move=> x0 n s; elim/last_ind: s n => [|s x IHs] n //.
 rewrite rev_rcons size_rcons ltnS subSS -cats1 nth_cat /=.
 case: n => [|n] Hn; first by rewrite subn0 ltnn subnn.
-rewrite -{2}[size s](subnK Hn) addSnnS leq_addl /=; auto.
+by rewrite -{2}(subnK Hn) -addSnnS leq_addr /= -IHs.
 Qed.
 
 End Rev.
@@ -1407,13 +1407,9 @@ Proof. exact: rot_addn 1. Qed.
 Lemma rot_add_mod : forall m n (s : seq T), n <= size s -> m <= size s ->
   rot m (rot n s) = rot (if m + n <= size s then m + n else m + n - size s) s.
 Proof.
-move=> m n s Hn Hm; case: (leqP (m + n) (size s)) => [Hmn|Hmn].
-  exact (esym (rot_addn Hmn)).
-have Hm': m + n - size s <= m by rewrite leq_sub_add addnC leq_add2r.
-rewrite -{1 2}(subnK Hm') in Hm |- *.
-rewrite rot_addn ?size_rot //; congr rot.
-rewrite -(subn_add2r n) -subn_sub (subKn (ltnW Hmn)) -(size_rot n).
-exact (rotK n s).
+move=> m n s Hn Hm; case: leqP; [by move/rot_addn | move/ltnW=> Hmn].
+symmetry.
+by rewrite -{2}(rotK n s) /rotr -rot_addn size_rot addn_subA ?subnK ?addnK.
 Qed.
 
 Lemma rot_rot : forall m n (s : seq T), rot m (rot n s) = rot n (rot m s).
@@ -1791,7 +1787,7 @@ Proof. by move=> m1 m2 n; elim: n m2 => //= n IHn m2; rewrite -addnS IHn. Qed.
 
 Lemma nth_iota : forall m n i, i < n -> nth 0 (iota m n) i = m + i.
 Proof.
-move=> m n i Hi; rewrite -(subnK Hi) addSnnS iota_add.
+move=> m n i Hi; rewrite -(subnKC Hi) addSnnS iota_add.
 by rewrite nth_cat size_iota ltnn subnn.
 Qed.
 

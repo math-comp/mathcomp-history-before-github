@@ -414,7 +414,7 @@ Definition index_enum (T : finType) := Finite.enum T.
 Lemma mem_index_iota : forall m n i, i \in index_iota m n = (m <= i < n).
 Proof.
 move=> m n i; rewrite mem_iota; case le_m_i: (m <= i) => //=.
-by rewrite -leq_sub_add leq_subS // -subn_gt0 subn_sub subnK // subn_gt0.
+by rewrite -leq_sub_add leq_subS // -subn_gt0 subn_sub subnKC // subn_gt0.
 Qed.
 
 Lemma filter_index_enum : forall T P, filter P (index_enum T) = enum P.
@@ -733,14 +733,14 @@ Proof.
 move=> m n1 n2 P F len12; symmetry.
 rewrite -big_filter filter_predI big_filter.
 congr bigop; rewrite /index_iota; set d1 := n1 - m; set d2 := n2 - m.
-rewrite -(@subnK d1 d2) /=; last by rewrite leq_sub2r ?leq_addr.
+rewrite -(@subnKC d1 d2) /=; last by rewrite leq_sub2r ?leq_addr.
 have: ~~ has (fun i => i < n1) (iota (m + d1) (d2 - d1)).
   apply/hasPn=> i; rewrite mem_iota -leqNgt; case/andP=> le_mn1_i _.
   by apply: leq_trans le_mn1_i; rewrite -leq_sub_add.
 rewrite iota_add filter_cat has_filter /=; case: filter => // _.
 rewrite cats0; apply/all_filterP; apply/allP=> i.
 rewrite mem_iota; case/andP=> le_m_i lt_i_md1.
-apply: (leq_trans lt_i_md1); rewrite subnK // ltnW //.
+apply: (leq_trans lt_i_md1); rewrite subnKC // ltnW //.
 rewrite -subn_gt0 -(ltn_add2l m) addn0; exact: leq_trans lt_i_md1.
 Qed.
 
@@ -913,7 +913,7 @@ Lemma big_cat_nat : forall n m p (P : pred nat) F, m <= n -> n <= p ->
    (\big[*%M/1]_(m <= i < n | P i) F i) * (\big[*%M/1]_(n <= i < p | P i) F i).
 Proof.
 move=> n m p F P le_mn le_np; rewrite -big_cat.
-by rewrite -{2}(subnK le_mn) -iota_add -subn_sub subnK // leq_sub2.
+by rewrite -{2}(subnKC le_mn) -iota_add -subn_sub subnKC // leq_sub2.
 Qed.
 
 Lemma big_nat1 : forall n F, \big[*%M/1]_(n <= i < n.+1) F i = F n.

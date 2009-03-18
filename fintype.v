@@ -1291,7 +1291,7 @@ CoInductive split_spec m n (i : 'I_(m + n)) : 'I_m + 'I_n -> bool -> Type :=
 Lemma splitP : forall m n (i : 'I_(m + n)), split_spec i (split i) (i < m).
 Proof.
 rewrite /split {-3}/leq => m n i.
-by case: (@ltnP i m) => cmp_i_m //=; constructor; rewrite ?subnK.
+by case: (@ltnP i m) => cmp_i_m //=; constructor; rewrite ?subnKC.
 Qed.
 
 Definition unsplit m n (jk : 'I_m + 'I_n) :=

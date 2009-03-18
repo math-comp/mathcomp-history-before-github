@@ -314,8 +314,7 @@ Lemma simple_Alt5 : forall T : finType, #|T| >= 5 -> simple 'Alt_T.
 Proof.
 pose tp := is_true_true.
 suff F1: forall n (T : finType), #|T| = n + 5 -> simple 'Alt_T.
-  move=> T H; apply: (F1 (#|T| - 5)).
-  by rewrite addnC subnK.
+  by move=> T; move/subnK; move/esym; move/F1.
 elim => [| n Hrec T Hde]; first exact: simple_Alt5_base.
 have oT: 5 < #|T| by rewrite Hde addnC.
 apply/simpleP; split=> [|H Hnorm]; last have [Hh1 nH] := andP Hnorm. 
@@ -324,7 +323,7 @@ apply/simpleP; split=> [|H Hnorm]; last have [Hh1 nH] := andP Hnorm.
 case E1: (pred0b T); first by rewrite /pred0b in E1; rewrite (eqP E1) in oT.
 case/pred0Pn: E1 => x _; have Hx := in_setT x.
 have F2: [transitive * 4 ('Alt_T | 'P) on setT].
-  by apply: ntransitive_weak (Alt_trans T); rewrite -(subnK oT).
+  by apply: ntransitive_weak (Alt_trans T); rewrite -(subnKC oT).
 have F3 := ntransitive1 (tp: 0 < 4) F2.
 have F4 := ntransitive_primitive (tp: 1 < 4) F2.
 case Hcard1: (#|H| == 1%N); move/eqP: Hcard1 => Hcard1.

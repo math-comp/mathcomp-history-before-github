@@ -268,10 +268,11 @@ Qed.
 Lemma esum_force : forall (f : gT -> nat) x n ,
 esum (force f x n) = esum f + n - f x.
 Proof.
-move=> f x n; apply: (@addnI (f x)); rewrite addnC subnK;
-last by apply: (leq_trans (esum_leq _ _)); apply: leq_addr. 
-by rewrite -(eq_esum (eq_force f x)) -{1}(esum_peak x (f x))
--{2}(esum_peak x n) -!esum_addf !(eq_esum (force_peak _ _ _ _)) addnC.
+move=> f x n; apply: (@addIn (f x)); rewrite subnK; last first.
+  by apply: (leq_trans (esum_leq _ _)); apply: leq_addr.
+rewrite -(eq_esum (eq_force f x)) -{1}(esum_peak x (f x)).
+rewrite -{2}(esum_peak x n) -!esum_addf !(eq_esum (force_peak _ _ _ _)).
+by rewrite addnC.
 Qed.
 
 Lemma eq_em : forall (f g : gT -> nat), f =1 g -> em f = em g.
@@ -711,7 +712,7 @@ apply: (Mind f' _ (x * y) _ X') => //; last 1 first.
 - by rewrite /f' /force (negPf notxyx) (negPf notxyy) eqxx.
 - rewrite !esum_force /force (negPf notxyx) eq_sym (negPf notxyy).
   rewrite (introF eqP ynotx) (sup0P _ _ fX (x * y)) ?Xxy //.
-  rewrite addn0 subn0 -addnA (subnK fxfy) addnK.
+  rewrite addn0 subn0 -addnA (subnKC fxfy) addnK.
   by rewrite -[M](subn1 M.+1) -leq_subS (esum_leq, leq_sub2) //.
 - by rewrite /f' /force eqxx (negPf notxyy).
 - by rewrite cardsU1 inE Xxy andbF -[~~ _]Xx -cardsD1.
@@ -735,7 +736,7 @@ rewrite !(aem_force abelX) /force => //; first 1 last; first exact: groupM.
   by case: eqP => // _; apply: (supP _ _ fgenX).
 rewrite emf !mul1g expMgn // mulKg (negPf notxyx) eq_sym (negPf notxyy).
 rewrite (introF eqP ynotx) (sup0P _ _ fX (x * y)) ?Xxy // invg1 mulg1.
-by rewrite -expgn_add subnK ?mulgV.
+by rewrite -expgn_add subnKC ?mulgV.
 Qed.
 
 Theorem abelian_base : forall G : {group gT},

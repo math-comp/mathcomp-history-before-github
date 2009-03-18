@@ -230,7 +230,7 @@ Qed.
 Lemma ntransitive_weak : forall k m,
   k <= m -> [transitive * m (G | to) on S] -> [transitive * k (G | to) on S].
 Proof.
-move=> k m; move/subnK <-; rewrite addnC; elim: {m}(m - k) => // m IHm.
+move=> k m; move/subnKC <-; rewrite addnC; elim: {m}(m - k) => // m IHm.
 rewrite addSn => tr_m1; apply: IHm; move: {m k}(m + k) tr_m1 => m tr_m1.
 have ext_t: forall t, t \in dtuple_on m S ->
   exists x, [tuple of x :: t] \in m.+1.-dtuple(S).

@@ -81,7 +81,7 @@ without loss lt_p12: p1 p2 eq_p12 / size p1 < size p2 => [wltn|].
   case: (ltngtP (size p1) (size p2)); try by move/wltn->.
   move/(@eq_from_nth _ 0); exact.
 case: p2 => p2 nz_p2 /= in lt_p12 eq_p12 *; case/eqP: nz_p2.
-by rewrite (last_nth 0) -(subnK lt_p12) /= -eq_p12 nth_default ?leq_addr.
+by rewrite (last_nth 0) -(subnKC lt_p12) /= -eq_p12 nth_default ?leq_addr.
 Qed.
 
 Lemma size1_polyC : forall p, size p <= 1 -> p = (p`_0)%:P.
@@ -504,11 +504,9 @@ Qed.
 
 Lemma coef_mulX : forall p i, (p * 'X)`_i = (if i is i'.+1 then p`_i' else 0).
 Proof.
-move=> p i; rewrite coef_mul (bigD1 (inord i.-1)) //= big1 => [|j].
-  by case: i => [|i]; rewrite coefX inordK ?subSnn ?simp /=.
-rewrite coefX -val_eqE /= inordK ?ltnS ?leq_pred //.
-rewrite -{2}[i](subnK (leq_ord j)) /= addnC; move/eqP.
-by case: eqP => [-> //|_]; rewrite simp.
+move=> p i; rewrite coef_mul_rev big_ord_recl coefX ?simp.
+case: i => [|i]; rewrite ?big_ord0 //= big_ord_recl polyseqX subn1 /=.
+by rewrite big1 ?simp // => j _; rewrite nth_nil !simp.
 Qed.
 
 Lemma coef_Xmul : forall p i, ('X * p)`_i = (if i is i'.+1 then p`_i' else 0).

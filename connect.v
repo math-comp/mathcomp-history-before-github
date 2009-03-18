@@ -484,7 +484,7 @@ Lemma iter_finv : forall n x, n <= order x ->
   iter n finv x = iter (order x - n) f x.
 Proof.
 move=> n x Hn; set m := order x - n.
-rewrite -{1}[x]iter_order -(subnK Hn) -/m iter_add.
+rewrite -{1}[x]iter_order -(subnKC Hn) -/m iter_add.
 move: {m x Hn}(iter m f x) => x.
 by elim: n => // [n Hrec]; rewrite iterSr /= finv_f.
 Qed.

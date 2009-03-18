@@ -98,8 +98,8 @@ Qed.
 Lemma Zpm_inj : forall a, injective (@Zpm #[a] a).
 Proof.
 move=> a i j; wlog ltij : i j / i < j.
-  by case (ltngtP i j); [|symmetry|move/val_inj]; auto.
-move/eqP; rewrite eq_mulVg1 /Zpm -(subnK ltij) addSnnS expgn_add mulKg.
+  move=> IWij; case (ltngtP i j); [ | symmetry | by move/val_inj]; exact: IWij.
+move/eqP; rewrite eq_mulVg1 /Zpm -(subnKC ltij) addSnnS expgn_add mulKg.
 move/order_inf; rewrite -leq_subS // subSS leqNgt; case/negP.
 exact: leq_ltn_trans (leq_subr i j) _.
 Qed.
@@ -256,10 +256,8 @@ Lemma eq_expg_mod_order : forall x m n,
 Proof.
 move=> x m n; wlog le_nm: m n / n <= m.
   by move=> IH; case/orP: (leq_total m n); move/IH; rewrite // eq_sym => ->.
-rewrite eqn_mod_dvd // -{1}(subnK le_nm) addnC expgn_add eq_mulgV1 mulgK.
-by rewrite order_dvdn.
+by rewrite -{1}(subnK le_nm) expgn_add eq_mulgV1 mulgK -order_dvdn eqn_mod_dvd.
 Qed.
-
 
 (***********************************************************************)
 (*                                                                     *)

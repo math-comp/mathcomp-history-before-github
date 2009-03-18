@@ -224,7 +224,7 @@ Proof.
 move=> m [|d] //=; rewrite -{1}[m]/(0 * d.+1 + m).
 elim: m {-2}m 0 (leqnn m) => [|n IHn] [|m] q //=; rewrite ltnS => le_mn.
 rewrite subn_if_gt; case: ltnP => // le_dm.
-rewrite -{1}(subnK le_dm) -addSn addnA -mulSnr; apply: IHn.
+rewrite -{1}(subnKC le_dm) -addSn addnA -mulSnr; apply: IHn.
 apply: leq_trans le_mn; exact: leq_subr.
 Qed.
 
@@ -252,7 +252,7 @@ Proof.
 move=> m [|d] //=; rewrite -{1}[m]/(0 * d.+1 + m).
 elim: m {-2}m 0 (leqnn m) => [|n IHn] [|m] q //=; rewrite ltnS => le_mn.
 rewrite subn_if_gt; case: ltnP => // le_dm.
-rewrite -{1}(subnK le_dm) -addSn addnA -mulSnr; apply: IHn.
+rewrite -{1}(subnKC le_dm) -addSn addnA -mulSnr; apply: IHn.
 apply: leq_trans le_mn; exact: leq_subr.
 Qed.
 
@@ -261,7 +261,7 @@ Proof.
 move=> m [|d] //=; rewrite -{1}[m]/(0 * d.+1 + m).
 elim: m {-2}m 0 (leqnn m) => [|n IHn] [|m] q //=; rewrite ltnS => le_mn.
 rewrite subn_if_gt; case: ltnP => // le_dm.
-rewrite -{1}(subnK le_dm) -addSn addnA -mulSnr; apply: IHn.
+rewrite -{1}(subnKC le_dm) -addSn addnA -mulSnr; apply: IHn.
 apply: leq_trans le_mn; exact: leq_subr.
 Qed.
 
