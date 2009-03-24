@@ -71,6 +71,9 @@ Notation fT := {ffun aT -> rT}.
 
 Canonical Structure finfun_of_subType := (* Evhnf *) [subType of fT].
 
+Lemma tnth_fgraph : forall (f : fT) i, tnth (fgraph f) i = f (enum_val i).
+Proof. by move=> f i; rewrite [@fun_of_fin _]unlock enum_valK. Qed.
+
 Lemma ffunE : forall f : aT -> rT, finfun f =1 f.
 Proof.
 move=> f x; rewrite [@finfun _]unlock unlock tnth_map.

@@ -123,6 +123,15 @@ Proof.
 by move=> x y; apply: (@addrI (x + y)); rewrite addrA subrr addrAC addrK subrr.
 Qed.
 
+Lemma oppr_sub : forall x y, - (x - y) = y - x.
+Proof. by move=> x y; rewrite oppr_add addrC opprK. Qed.
+
+Lemma subr_eq : forall x y z, (x - z == y) = (x == y + z).
+Proof. by move=> x y z; rewrite (can2_eq (subrK _) (addrK _)). Qed.
+
+Lemma subr_eq0 : forall x y, (x - y == 0) = (x == y).
+Proof. by move=> x y; rewrite subr_eq add0r. Qed.
+
 Lemma mulr0n : forall x, x *+ 0 = 0. Proof. by []. Qed.
 Lemma mulr1n : forall x, x *+ 1 = x. Proof. by []. Qed.
 
@@ -224,8 +233,8 @@ Canonical Structure Ring.eqType.
 Canonical Structure Ring.choiceType.
 Canonical Structure Ring.zmodType.
 
-Definition one R := Ring.one (Ring.class R).
-Definition mul R := Ring.mul (Ring.class R).
+Definition one (R : Ring.type) : R := Ring.one (Ring.class R).
+Definition mul (R : Ring.type) : R -> R -> R := Ring.mul (Ring.class R).
 Definition exp R x n := nosimpl iterop _ n (@mul R) x (one R).
 
 Notation Local "1" := (one _).
@@ -383,6 +392,11 @@ elim=> //= n IHn; rewrite exprS -{}IHn.
 by case/odd: n; rewrite !mulN1r ?opprK.
 Qed.
 
+Lemma signr_eq0 :  forall n, ((-1) ^+ n == 0 :> R) = false.
+Proof.
+by move=> n; rewrite -signr_odd; case: odd; rewrite ?oppr_eq0 oner_eq0.
+Qed.
+
 Lemma signr_addb : forall b1 b2,
   (-1) ^+ (b1 (+) b2) = (-1) ^+ b1 * (-1) ^+ b2 :> R.
 Proof. by do 2!case; rewrite ?expr1 ?mulN1r ?mul1r ?opprK. Qed.
@@ -513,7 +527,7 @@ Bind Scope ring_scope with UnitRing.sort.
 Definition unitDef (R : UnitRing.type) : pred R :=
   UnitRing.unit (UnitRing.class R).
 Notation unit := (@unitDef _).
-Definition inv R := UnitRing.inv (UnitRing.class R).
+Definition inv (R : UnitRing.type) : R -> R := UnitRing.inv (UnitRing.class R).
 
 Notation Local "x ^-1" := (inv x).
 Notation Local "x / y" := (x * y^-1).
@@ -1732,6 +1746,9 @@ Definition opprK := opprK.
 Definition oppr0 := oppr0.
 Definition oppr_eq0 := oppr_eq0.
 Definition oppr_add := oppr_add.
+Definition oppr_sub := oppr_sub.
+Definition subr_eq := subr_eq.
+Definition subr_eq0 := subr_eq0.
 Definition sumr_opp := sumr_opp.
 Definition sumr_sub := sumr_sub.
 Definition sumr_muln := sumr_muln.
@@ -1785,6 +1802,7 @@ Definition commr_exp_mull := commr_exp_mull.
 Definition exprn_mulnl := exprn_mulnl.
 Definition exprn_mulr := exprn_mulr.
 Definition signr_odd := signr_odd.
+Definition signr_eq0 := signr_eq0.
 Definition signr_addb := signr_addb.
 Definition exprN := exprN.
 Definition prodr_const := prodr_const.
