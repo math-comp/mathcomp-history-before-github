@@ -852,7 +852,7 @@ Lemma pcore_hereditary : forall (pi:nat_pred), hereditary (fun _ G => 'O_pi(G)).
 Proof. by move=> pi gT H G; move/pcoreS; rewrite setIC. Qed.
 
 Canonical Structure bgFunc_pcore (pi : nat_pred) :=
-  mkBasegFunc (fun gT (G:{group gT}) => groupP [group of 'O_pi(G)])
+  BGFunc (fun gT (G:{group gT}) => groupP [group of 'O_pi(G)])
   (pcore_sub pi)
   (aresp_of_resp (pcore_resp pi)).
 
@@ -860,7 +860,7 @@ Canonical Structure gFunc_pcore (pi:nat_pred) :=
   @GFunc (bgFunc_pcore pi) (pcore_resp pi).
 
 Canonical Structure hgFunc_pcore (pi:nat_pred) :=
-  @HgFunc (gFunc_pcore pi) (pcore_hereditary pi).
+  @HGFunc (gFunc_pcore pi) (pcore_hereditary pi).
 
 Lemma pcore_char : forall pi gT (G : {group gT}), 'O_pi(G) \char G.
 Proof.
@@ -937,11 +937,12 @@ Lemma pseries_subfun : forall pis,
 Proof.
 elim/last_ind=> [|pis pi [sFpi fFpi]].
   by split=> [gT G | gT rT D G f]; rewrite (sub1G, morphim1).
-set H := (mkhgFunc
+set H := (@HGFunc (@GFunc (BGFunc
   (fun gT (G:{group gT}) => pseries_group_set pis G) 
-  sFpi (resp_of_dresp fFpi) (hereditary_of_dresp fFpi)).
+  sFpi (aresp_of_resp (resp_of_dresp fFpi))) (resp_of_dresp fFpi))
+  (hereditary_of_dresp fFpi)).
 split=> [gT G | gT rT D G f];
-  rewrite !pseries_rcons -[pseries pis]/(BaseGFunctor.F H) ?pcore_mod_sub //.
+  rewrite !pseries_rcons -[pseries pis]/(FunctorDefs.Fobj H) ?pcore_mod_sub //.
 apply: morphim_pcore_mod => *; exact: groupP.
 Qed.
 
@@ -965,7 +966,7 @@ do 2!rewrite -(morphim_idm (subsetIl H _)) morphimIdom; exact: morphim_pseries.
 Qed.
 
 Canonical Structure bgFunc_pseries pis :=
-  mkBasegFunc (fun gT (G:{group gT}) => pseries_group_set pis G)
+  BGFunc (fun gT (G:{group gT}) => pseries_group_set pis G)
   (pseries_sub pis)
   (aresp_of_resp (pseries_resp pis)).
 
@@ -973,7 +974,7 @@ Canonical Structure gFunc_pseries pis :=
   @GFunc (bgFunc_pseries pis) (pseries_resp pis).
 
 Canonical Structure hgFunc_pseries pis :=
-  @HgFunc (gFunc_pseries pis) (pseriesS pis).
+  @HGFunc (gFunc_pseries pis) (pseriesS pis).
 
 Lemma pseries_char : forall pis gT (G : {group gT}), pseries pis G \char G.
 Proof. move=> pis; exact: bgFunc_char. Qed.
@@ -1425,7 +1426,7 @@ Qed.
 End generic.
 
 Canonical Structure bgFunc_Ohm (i:nat) :=
-  mkBasegFunc (fun gT (G:{group gT}) => groupP 'Ohm_i(G)%G)
+  BGFunc (fun gT (G:{group gT}) => groupP 'Ohm_i(G)%G)
   (Ohm_sub i)
   (aresp_of_resp (Ohm_resp i)).
 
@@ -1433,10 +1434,10 @@ Canonical Structure gFunc_Ohm (i:nat) :=
   @GFunc (bgFunc_Ohm i) (Ohm_resp i).
 
 Canonical Structure cgFunc_Ohm (i:nat) :=
-  @CgFunc (gFunc_Ohm i) (Ohm_compatible i).
+  @CGFunc (gFunc_Ohm i) (Ohm_compatible i).
 
 Canonical Structure bgFunc_Mho (i:nat) :=
-  mkBasegFunc (fun gT (G:{group gT}) => groupP 'Mho^i(G)%G)
+  BGFunc (fun gT (G:{group gT}) => groupP 'Mho^i(G)%G)
   (Mho_sub i)
   (aresp_of_resp (Mho_resp i)).
 
@@ -1448,7 +1449,7 @@ Lemma Mho_compatible : forall i,
 Proof. move=> i hT H G sHG; exact:MhoS. Qed.
 
 Canonical Structure cgFunc_Mho (i:nat) :=
-  @CgFunc (gFunc_Mho i) (Mho_compatible i).
+  @CGFunc (gFunc_Mho i) (Mho_compatible i).
 
 Section char.
 

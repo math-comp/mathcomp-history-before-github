@@ -309,7 +309,7 @@ Qed.
 End Frattini.
 
 Canonical Structure bgFunc_Frattini :=
-  mkBasegFunc (fun gT G => groupP 'Phi(G)%G) (fun gT => @Phi_sub gT)
+  BGFunc (fun gT G => groupP 'Phi(G)%G) (fun gT => @Phi_sub gT)
   (aresp_of_resp Frattini_resp).
 
 Canonical Structure gFunc_Frattini :=
@@ -624,7 +624,7 @@ Proof. by move=> gT H G; move/FittingS; rewrite setIC. Qed.
 End FittingFun.
 
 Canonical Structure bgFunc_Fitting :=
-  mkBasegFunc (fun gT G => groupP 'F(G)%G)
+  BGFunc (fun gT G => groupP 'F(G)%G)
            Fitting_sub
            (aresp_of_resp Fitting_resp).
 
@@ -632,7 +632,7 @@ Canonical Structure gFunc_Fitting :=
   @GFunc bgFunc_Fitting Fitting_resp.
 
 Canonical Structure hgFunc_Fitting :=
-  @HgFunc gFunc_Fitting Fitting_hereditary.
+  @HGFunc gFunc_Fitting Fitting_hereditary.
 
 Lemma Fitting_char : forall (gT:finGroupType) (G : {group gT}), 'F(G) \char G.
 Proof. exact: bgFunc_char. Qed.

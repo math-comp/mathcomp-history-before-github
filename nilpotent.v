@@ -148,7 +148,7 @@ by rewrite !lcnSn commgSS ?IH.
 Qed.
 
 Canonical Structure bgFunc_lcn (n:nat) :=
-  mkBasegFunc (fun gT (G:{group gT}) => lcn_group_set G n)
+  BGFunc (fun gT (G:{group gT}) => lcn_group_set G n)
              (fun gT G => (lcn_sub0 G n))
              (aresp_of_resp (lcn_resp n)).
 
@@ -156,7 +156,7 @@ Canonical Structure gFunc_lcn (n:nat) :=
   @GFunc (bgFunc_lcn n) (lcn_resp n).
 
 Canonical Structure cgFunc_lcn (n:nat) :=
-  @CgFunc (gFunc_lcn n) (lcn_compatible n).
+  @CGFunc (gFunc_lcn n) (lcn_compatible n).
 
 Notation "''L_' n ( G )" := (lower_central_at_group n G) : subgroup_scope.
 
@@ -247,9 +247,9 @@ Proof.
 elim => [|n [Hresp Hhereditary Hsub]].
 by split=> [gT0 hT0 G phi|gT0 H G sHG| gT0 G];
  rewrite ?ucn0 ?morphim1 ?sub1G ?subsetIl //.
-pose Zn := (mkhgFunc 
-  (fun gT0 (G0:{group gT0}) => ucn_group_set G0 n)
-  Hsub Hresp Hhereditary).
+pose Zn := (@HGFunc (@GFunc
+  (BGFunc (fun gT0 (G0:{group gT0}) => ucn_group_set G0 n)
+    Hsub (aresp_of_resp Hresp)) Hresp) Hhereditary).
 pose ZSn:= [hgFunc of (appmod center Zn)].
 split=> [gT hT G phi|gT H G sHG| gT G]; rewrite ucnSn.
 - apply: (gFunc_resp ZSn).
@@ -267,7 +267,7 @@ Lemma ucn_clos : forall n (gT:finGroupType) (H: {group gT}), 'Z_n(H) \subset H.
 Proof. by move=> n; case:(ucn_gFunc n). Qed.
 
 Canonical Structure bgFunc_ucn (n:nat) :=
-  mkBasegFunc (fun gT (G:{group gT}) => ucn_group_set G n)
+  BGFunc (fun gT (G:{group gT}) => ucn_group_set G n)
   (ucn_clos n)
   (aresp_of_resp (ucn_resp n)).
 
@@ -275,7 +275,7 @@ Canonical Structure gFunc_ucn (n:nat) :=
   @GFunc (bgFunc_ucn n) (ucn_resp n).
 
 Canonical Structure hgFunc_ucn (n:nat) :=
-  @HgFunc (gFunc_ucn n) (ucn_hereditary n).
+  @HGFunc (gFunc_ucn n) (ucn_hereditary n).
 
 Notation "''Z_' n ( G )" := (upper_central_at_group n G) : subgroup_scope.
 
@@ -467,7 +467,7 @@ by rewrite !dergSn commgSS ?IH.
 Qed.
 
 Canonical Structure bgFunc_der (n:nat) :=
-  mkBasegFunc (fun gT (G:{group gT}) => der_group_set G n)
+  BGFunc (fun gT (G:{group gT}) => der_group_set G n)
          (der_clos n)
          (aresp_of_resp (der_resp n)).
 
@@ -475,7 +475,7 @@ Canonical Structure gFunc_der (n:nat) :=
   @GFunc (bgFunc_der n) (der_resp n).
 
 Canonical Structure cgFunc_der (n:nat) :=
-  @CgFunc (gFunc_der n) (der_compatible n).
+  @CGFunc (gFunc_der n) (der_compatible n).
 
 Notation "G ^` ( n )" := (derived_at_group n G) : subgroup_scope.
 

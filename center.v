@@ -158,7 +158,7 @@ Qed.
 End Center.
 
 Canonical Structure bgFunc_center :=
-  @mkBasegFunc center 
+  @BGFunc center 
   (fun gT G => groupP 'Z(G)%G)
   (fun gT G => @center_sub gT G)
   (aresp_of_resp center_resp).
@@ -167,7 +167,7 @@ Canonical Structure gFunc_center :=
   @GFunc bgFunc_center center_resp.
 
 Canonical Structure hgFunc_center :=
-  @HgFunc gFunc_center center_hereditary.
+  @HGFunc gFunc_center center_hereditary.
 
 Section Product.
 
