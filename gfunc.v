@@ -420,35 +420,39 @@ Canonical Structure hgFunc_comp_gFunc (sF:hgFunc) (sF2:gFunc) :=
 
 Variables sF sF3:hgFunc.
 
-Lemma hgFunc_comp_dresp : dresp ([gFunc of (appmod sF sF3)]).
+Lemma hgFunc_comp_hereditary : hereditary (appmod sF sF3).
 Proof.
-move=> gT rT G D f /=; have nF := bgFunc_norm sF3.
-have kF := ker_coset (Group (bgFunc_groupset sF3 _)); simpl in kF.
-have sDF: D :&: G \subset 'dom (coset (sF3 _ G)) by rewrite setIC subIset ?nF.
-have sDFf: D :&: G \subset 'dom (coset (sF3 _ (f @* G)) \o f).
-  by rewrite -sub_morphim_pre ?subsetIl // morphimIdom nF.
-pose K := 'ker (restrm sDFf (coset (sF3 _ (f @* G)) \o f)).
-have sFK: 'ker (restrm sDF (coset (sF3 _ G))) \subset K.
-  rewrite /K  !ker_restrm ker_comp /= subsetI subsetIl /= -setIA.
-  by rewrite -sub_morphim_pre ?subsetIl // morphimIdom !kF (setIidPr _) ?hgFunc_morphim ?bgFunc_clos.
-have sOF := bgFunc_clos sF (G / sF3 _ G); have sGG: D :&: G \subset D :&: G by [].
-rewrite -sub_morphim_pre -?quotientE; last first.
-  by apply: subset_trans (nF _ _); rewrite morphimS ?hgFunc_comp_clos.
-suffices im_fact: forall H : {group gT}, sF3 _ G \subset H -> H \subset G ->
-  factm sGG sFK @* (H / sF3 _ G) = f @* H / sF3 _ (f @* G).
-- rewrite -2?im_fact ?hgFunc_comp_clos ?bgFunc_clos //.
-  by rewrite hgFunc_comp_quo hgFunc_morphim /=.
-  by rewrite -{1}kF morphpreS ?sub1G.
-move=> H sFH sHG; rewrite -(morphimIdom _ (H / _)) /= {2}morphim_restrm setIid.
-rewrite -morphimIG ?kF // -(morphim_restrm sDF) morphim_factm morphim_restrm.
-by rewrite morphim_comp -quotientE -setIA morphimIdom (setIidPr _).
+move=> gT H G sHG; rewrite -sub_morphim_pre; 
+  last exact: (subset_trans (subsetIr _ _) (bgFunc_norm _ _)).
+rewrite -[coset_morphism _ @* _]/(quotient _ _).
+have:= (morphim_restrm (bgFunc_norm sF3 H) (coset_morphism (sF3 _ H)) H).
+rewrite setIid=> rnorm_simpl.
+have sqKfK: ('ker (restrm_morphism (subset_trans sHG (bgFunc_norm sF3 _))
+                                   (coset_morphism (sF3 gT G)))
+     :<=: 'ker (restrm_morphism (bgFunc_norm sF3 _) (coset_morphism (sF3 _ H)))).
+  rewrite !ker_restrm !ker_coset (setIidPr (bgFunc_clos sF3 _)) setIC /=.
+  exact: (hgFunc_hereditary sF3).
+have sHrefl: (H \subset H) by [].
+rewrite {2}/quotient -rnorm_simpl /= -(morphim_factm sHrefl sqKfK) /=.
+apply: (subset_trans _ (gFunc_resp sF (factm_morphism _ _)))=>/=.
+rewrite {2}morphim_restrm setIid.
+apply: (subset_trans _ (morphimS (factm_morphism _ _)
+  (hgFunc_hereditary sF (quotientS [group of sF3 _ G] sHG))))=>/=.
+have:= (morphim_restrm (bgFunc_norm sF3 H) (coset_morphism (sF3 _ H)) 
+  (appmod sF sF3 G :&: H)).
+rewrite setIC setIA setIid {1}/quotient => <-.
+rewrite -(morphim_factm sHrefl sqKfK) /=; apply:morphimS.
+rewrite morphim_restrm setIA setIid -[coset _ @* _]/(quotient _ _).
+apply:(subset_trans (morphimI _ _ _)).
+rewrite morphpreK 1?setIC //=; apply:(subset_trans (bgFunc_clos sF _)).
+exact: (quotientS [group of sF3 _ G] (bgFunc_norm sF3 G)).
 Qed.
 
 End HereditaryIdentitySubFunctorProps.
 
 Canonical Structure hgFunc_comp_hgFunc (sF sF3:hgFunc)  :=
   @HgFunc (hgFunc_comp_gFunc sF sF3)
-  (hereditary_of_dresp (hgFunc_comp_dresp sF sF3)).
+  (hgFunc_comp_hereditary sF sF3).
 
 Module CompatibleGFunctor.
 
