@@ -5,6 +5,31 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
+(*****************************************************************************)
+(* Tuples, i.e., lists with a fixed (known) length. We define:               *)
+(*   n.-tuple T   : the type of n-tuples of elements of type T.              *)
+(*   [tuple of s] : the tuple whose underlying sequence (value) is s, which  *)
+(*                  must have a known size; specically, Coq must be able to  *)
+(*                  infer a tuple whose Canonical Projection is s, e.g.,     *)
+(*     [tuple]            is the empty tuples, and                           *)
+(*     [tuple x1; ..; xn] the explicit n.-tuple <x1; ..; xn>.                *)
+(* As n.-tuple T coerces to seq t, all destructors for seq (size, nth, ...)  *)
+(* can be applied to t : n.-tuple T; we provide a few specialized instances  *)
+(* when this avoids the need for a default value.                            *)
+(*   tsize t      : the size of t (the n in n.-tuple T)                      *)
+(*   tnth t i     : the i'th component of t, where i : 'I_n.                 *)
+(*   [tnth t i]   : the i'th component of t, when i and n are explicit.      *)
+(*   thead t      : the first element of t, when n is canonically positive.  *)
+(* Most seq constructors (behead, cat, belast, take, drop, rot, map, ...)    *)
+(* can be used to build tuples via the [tuple of s] construct.               *)
+(*   Tuples are actually a subType of seq, and inherit all combinatorial     *)
+(* structures, including the finType structure.                              *)
+(*   Some useful lemmas and definitions:                                     *)
+(*     tuple0 : [tuple] is the only 0.-tuple                                 *)
+(*     tupleP : elimination view for n.+1.-tuple                             *)
+(*     ord_tuple n : the n.-tuple of all i : 'I_n                            *)
+(*****************************************************************************)
+
 Section Def.
 
 Variables (n : nat) (T : Type).
@@ -14,10 +39,14 @@ Structure tuple_of : Type := Tuple {tval :> seq T; _ : size tval == n}.
 Canonical Structure tuple_subType :=
   Eval hnf in [subType for tval by tuple_of_rect].
 
-Lemma size_tuple : forall t : tuple_of, size t = n.
+Implicit Type t : tuple_of.
+
+Definition tsize of tuple_of := n.
+
+Lemma size_tuple : forall t, size t = n.
 Proof. move=> f; exact: (eqP (valP f)). Qed.
 
-Lemma tnth_default : forall (t : tuple_of) (i : 'I_n), T.
+Lemma tnth_default : forall t (i : 'I_n), T.
 Proof. by case=> [[|//]]; move/eqP <-; case. Qed.
 
 Definition tnth t i := nth (tnth_default t i) t i.
@@ -40,9 +69,11 @@ Proof.
 by move=> *; apply: val_inj; rewrite /= -!map_tnth_enum; exact: eq_map.
 Qed.
 
-Definition tuple t s & phantom (seq T) (tval t) -> phantom (seq T) s := t.
+Definition tuple t mkT : tuple_of :=
+  mkT (let: Tuple _ tP := t return size t == n in tP).
 
-Definition tsize of tuple_of := n.
+Lemma tupleE : forall t, tuple (fun sP => @Tuple t sP) = t.
+Proof. by case. Qed.
 
 End Def.
 
@@ -52,7 +83,7 @@ Notation "n .-tuple" := (tuple_of n)
 Notation "{ 'tuple' n 'of' T }" := (n.-tuple T : predArgType)
   (at level 0, only parsing) : form_scope.
 
-Notation "[ 'tuple' 'of' s ]" := (@tuple _ _ _ s id)
+Notation "[ 'tuple' 'of' s ]" := (tuple (fun sP => @Tuple _ _ s sP))
   (at level 0, format "[ 'tuple'  'of'  s ]") : form_scope.
 
 Notation "[ 'tnth' t i ]" := (tnth t (@Ordinal (tsize t) i (erefl true)))
