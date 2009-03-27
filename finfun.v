@@ -117,6 +117,13 @@ Proof. move=> r f; exact: forallP. Qed.
 
 End PlainTheory.
 
+Lemma nth_fgraph_ord : forall T n (x0 : T) (i : 'I_n) f,
+  nth x0 (fgraph f) i = f i.
+Proof.
+move=> T n x0 i f.
+by rewrite -{2}(enum_rankK i) -tnth_fgraph (tnth_nth x0) enum_rank_ord.
+Qed.
+
 Section EqTheory.
 
 Variables (aT : finType) (rT : eqType).

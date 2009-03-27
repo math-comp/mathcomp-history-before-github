@@ -112,7 +112,7 @@ apply: eq_bigl => z; apply/andP/andP=> [[]|[]].
   rewrite oy mulnAC partnC // [#|_|]orderJ; split.
     by rewrite !inE -!order_dvdn mulnC in Az; case/andP: Az.
   set Z := coset _ _; have NZ := repr_coset_norm Z; have:= coset_reprK Z.
-  case/kercoset_rcoset=> {NZ}// yi; case/cycleP=> i <- -> {yi Z}.
+  case/kercoset_rcoset=> {NZ}// yi; case/cycleP=> i -> -> {yi Z}.
   rewrite consttM; last by apply commute_sym; apply: commuteX; apply/cent1P.
   rewrite (constt1P _) ?p_eltNK 1?p_eltX ?p_elt_constt // mul1g.
   by rewrite conjMg consttJ conjgKV -zp_ya consttC.
@@ -123,7 +123,7 @@ have Nz: z ^ a^-1 \in 'N(<[y]>).
   by rewrite groupX ?repr_coset_norm.
 have{Cz}: z ^ a^-1 \in 'C_G[y]; last case/setIP=> Gz Cz.
   case/morphimP: Cz => u Nu Cu.
-  case/kercoset_rcoset=> // yi; case/cycleP=> i <-{yi} ->.
+  case/kercoset_rcoset=> // yi; case/cycleP=> i ->{yi} ->.
   by rewrite groupMr // groupX // inE groupX //; exact/cent1P.
 have{def_z} zp_ya: z.`_p = y ^ a.
   rewrite -def_z consttJ consttM.

@@ -643,14 +643,13 @@ Variable sT : finType.
 Notation gT := {perm sT}.
 Implicit Types a b c : gT.
 
-Definition aperm x (a : gT) := a x.
-
-Definition apermE : forall x a, aperm x a = a x. Proof. by []. Qed.
-
-Lemma aperm_is_action : is_action aperm.
+Lemma aperm_is_action : is_action (@aperm sT).
 Proof. by split=> [x|x a b]; rewrite apermE (perm1, permM). Qed.
 
 Canonical Structure perm_action := Action aperm_is_action.
+
+Lemma pcycleE : forall a, pcycle a = orbit perm_action <[a]>.
+Proof. by []. Qed.
 
 Lemma perm_act1P : forall a, reflect (forall x, aperm x a = x) (a == 1).
 Proof.

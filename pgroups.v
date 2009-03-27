@@ -848,24 +848,18 @@ Lemma pcore_resp : forall pi gT rT (D : {group gT}) (f : {morphism D >-> rT}),
   f @* 'O_pi(D) \subset 'O_pi(f @* D).
 Proof. move=> pi gT rT D; exact: morphim_pcore. Qed.
 
-Lemma pcore_hereditary : forall (pi:nat_pred), hereditary (fun _ G => 'O_pi(G)).
+Lemma pcore_hereditary : forall pi, hereditary (pcore pi).
 Proof. by move=> pi gT H G; move/pcoreS; rewrite setIC. Qed.
 
-Canonical Structure bgFunc_pcore (pi : nat_pred) :=
-  BGFunc (fun gT (G:{group gT}) => groupP [group of 'O_pi(G)])
-  (pcore_sub pi)
-  (aresp_of_resp (pcore_resp pi)).
+Canonical Structure bgFunc_pcore pi :=
+  [bgFunc by pcore_sub pi & pcore_resp pi].
 
-Canonical Structure gFunc_pcore (pi:nat_pred) :=
-  @GFunc (bgFunc_pcore pi) (pcore_resp pi).
+Canonical Structure gFunc_pcore pi := GFunc (pcore_resp pi).
 
-Canonical Structure hgFunc_pcore (pi:nat_pred) :=
-  @HGFunc (gFunc_pcore pi) (pcore_hereditary pi).
+Canonical Structure hgFunc_pcore pi := HGFunc (pcore_hereditary pi).
 
 Lemma pcore_char : forall pi gT (G : {group gT}), 'O_pi(G) \char G.
-Proof.
-move=> pi; exact: bgFunc_char.
-Qed.
+Proof. move=> pi; exact: bgFunc_char. Qed.
 
 Section PcoreMod.
 
@@ -892,23 +886,26 @@ Lemma morphim_pcore_mod : forall pi gT rT (D G : {group gT}),
   f @* pcore_mod G pi (F _ G) \subset pcore_mod (f @* G) pi (F _ (f @* G)).
 Proof.
 move=> pi gT rT D G f.
-have sDF: D :&: G \subset 'dom (coset (F _ G)) by rewrite setIC subIset ?bgFunc_norm.
+have sDF: D :&: G \subset 'dom (coset (F _ G)).
+  by rewrite setIC subIset ?bgFunc_norm.
 have sDFf: D :&: G \subset 'dom (coset (F _ (f @* G)) \o f).
   by rewrite -sub_morphim_pre ?subsetIl // morphimIdom bgFunc_norm.
 pose K := 'ker (restrm sDFf (coset (F _ (f @* G)) \o f)).
 have sFK: 'ker (restrm sDF (coset (F _ G))) \subset K.
-  rewrite /K  !ker_restrm ker_comp /= subsetI subsetIl /= -setIA -sub_morphim_pre ?subsetIl //.
-  by rewrite ?subsetIl // morphimIdom !ker_coset (setIidPr _) ?hgFunc_morphim ?bgFunc_clos.
+  rewrite /K !ker_restrm ker_comp /= subsetI subsetIl /= -setIA.
+  rewrite -sub_morphim_pre ?subsetIl //.
+  by rewrite morphimIdom !ker_coset (setIidPr _) ?hgFunc_morphim ?bgFunc_clos.
 have sOF := pcore_sub pi (G / F _ G); have sDD: D :&: G \subset D :&: G by [].
 rewrite -sub_morphim_pre -?quotientE; last first.
   by apply: subset_trans (bgFunc_norm F _); rewrite morphimS ?pcore_mod_sub.
 suffices im_fact: forall H : {group gT}, F _ G \subset H -> H \subset G ->
   factm sDD sFK @* (H / F _ G) = f @* H / F _ (f @* G).
-- rewrite -2?im_fact  ?pcore_mod_sub ?bgFunc_clos //;
-  try by rewrite -{1}[F _ G]ker_coset morphpreS ?sub1G.
+- rewrite -2?im_fact ?pcore_mod_sub ?bgFunc_clos //;
+    try by rewrite -{1}[F _ G]ker_coset morphpreS ?sub1G.
   by rewrite quotient_pcore_mod morphim_pcore.
 move=> H sFH sHG; rewrite -(morphimIdom _ (H / _)) /= {2}morphim_restrm setIid.
-rewrite -morphimIG ?ker_coset // -(morphim_restrm sDF) morphim_factm morphim_restrm.
+rewrite -morphimIG ?ker_coset //.
+rewrite -(morphim_restrm sDF) morphim_factm morphim_restrm.
 by rewrite morphim_comp -quotientE -setIA morphimIdom (setIidPr _).
 Qed.
 
@@ -932,18 +929,15 @@ Proof. by move=> pi pis gT A; rewrite /pseries rev_rcons. Qed.
 
 Lemma pseries_subfun : forall pis,
    [/\ forall gT (G : {group gT}), pseries pis G \subset G
-    & forall gT rT (G D: {group gT}) (f : {morphism D >-> rT}),
+    & forall gT rT (G D : {group gT}) (f : {morphism D >-> rT}),
       f @* (pseries pis G) \subset pseries pis (f @* G)].
 Proof.
 elim/last_ind=> [|pis pi [sFpi fFpi]].
   by split=> [gT G | gT rT D G f]; rewrite (sub1G, morphim1).
-set H := (@HGFunc (@GFunc (BGFunc
-  (fun gT (G:{group gT}) => pseries_group_set pis G) 
-  sFpi (aresp_of_resp (resp_of_dresp fFpi))) (resp_of_dresp fFpi))
-  (hereditary_of_dresp fFpi)).
-split=> [gT G | gT rT D G f];
-  rewrite !pseries_rcons -[pseries pis]/(FunctorDefs.Fobj H) ?pcore_mod_sub //.
-apply: morphim_pcore_mod => *; exact: groupP.
+have [rF hF] := (resp_of_dresp fFpi, hereditary_of_dresp fFpi).
+pose F := @HGFunc [gFunc by sFpi & rF] hF.
+split=> [gT G | gT rT D G f]; rewrite !pseries_rcons ?(pcore_mod_sub F) //.
+exact: (morphim_pcore_mod F).
 Qed.
 
 Lemma pseries_sub : forall pis gT (G : {group gT}), pseries pis G \subset G.
@@ -966,15 +960,11 @@ do 2!rewrite -(morphim_idm (subsetIl H _)) morphimIdom; exact: morphim_pseries.
 Qed.
 
 Canonical Structure bgFunc_pseries pis :=
-  BGFunc (fun gT (G:{group gT}) => pseries_group_set pis G)
-  (pseries_sub pis)
-  (aresp_of_resp (pseries_resp pis)).
+  [bgFunc by pseries_sub pis & pseries_resp pis].
 
-Canonical Structure gFunc_pseries pis :=
-  @GFunc (bgFunc_pseries pis) (pseries_resp pis).
+Canonical Structure gFunc_pseries pis := GFunc (pseries_resp pis).
 
-Canonical Structure hgFunc_pseries pis :=
-  @HGFunc (gFunc_pseries pis) (pseriesS pis).
+Canonical Structure hgFunc_pseries pis := HGFunc (pseriesS pis).
 
 Lemma pseries_char : forall pis gT (G : {group gT}), pseries pis G \char G.
 Proof. move=> pis; exact: bgFunc_char. Qed.
@@ -1368,7 +1358,7 @@ apply big_prop => // [n1 n2|q _]; first by rewrite leq_maxl => -> ->.
 by rewrite logn_exp logn_prime // -{2}[m.+1]muln1 leq_pmul2l ?leq_b1.
 Qed.
 
-Lemma Ohm_compatible : forall i, compatible (fun gT S => 'Ohm_i(S)).
+Lemma Ohm_compatible : forall i, compatible (Ohm i).
 Proof.
 move=> i hT H G Hsub; apply:genS; apply/subsetP=> x.
 by rewrite !inE; move/andP => [Hx ->]; rewrite (subsetP Hsub _ Hx).
@@ -1425,31 +1415,16 @@ Qed.
 
 End generic.
 
-Canonical Structure bgFunc_Ohm (i:nat) :=
-  BGFunc (fun gT (G:{group gT}) => groupP 'Ohm_i(G)%G)
-  (Ohm_sub i)
-  (aresp_of_resp (Ohm_resp i)).
+Canonical Structure bgFunc_Ohm i := [bgFunc by Ohm_sub i & Ohm_resp i].
+Canonical Structure gFunc_Ohm i := GFunc (Ohm_resp i).
+Canonical Structure cgFunc_Ohm i := CGFunc (Ohm_compatible i).
 
-Canonical Structure gFunc_Ohm (i:nat) :=
-  @GFunc (bgFunc_Ohm i) (Ohm_resp i).
+Lemma Mho_compatible : forall i, compatible (Mho i).
+Proof. move=> i hT H G sHG; exact: MhoS. Qed.
 
-Canonical Structure cgFunc_Ohm (i:nat) :=
-  @CGFunc (gFunc_Ohm i) (Ohm_compatible i).
-
-Canonical Structure bgFunc_Mho (i:nat) :=
-  BGFunc (fun gT (G:{group gT}) => groupP 'Mho^i(G)%G)
-  (Mho_sub i)
-  (aresp_of_resp (Mho_resp i)).
-
-Canonical Structure gFunc_Mho (i:nat) :=
-  @GFunc (bgFunc_Mho i) (Mho_resp i).
-
-Lemma Mho_compatible : forall i,
-  compatible (fun gT S => 'Mho^i(S)).
-Proof. move=> i hT H G sHG; exact:MhoS. Qed.
-
-Canonical Structure cgFunc_Mho (i:nat) :=
-  @CGFunc (gFunc_Mho i) (Mho_compatible i).
+Canonical Structure bgFunc_Mho i := [bgFunc by Mho_sub i & Mho_resp i].
+Canonical Structure gFunc_Mho i := GFunc (Mho_resp i).
+Canonical Structure cgFunc_Mho i := CGFunc (Mho_compatible i).
 
 Section char.
 
@@ -1474,6 +1449,7 @@ Implicit Type pi : nat_pred.
 
 Lemma dvdn_exponent : forall x G, x \in G -> #[x] %| exponent G.
 Proof. by move=> x G Gx; rewrite /exponent (bigD1 x) //= dvdn_lcml. Qed.
+
 
 Lemma exponentP : forall G n,
   reflect (forall x, x \in G -> x ^+ n = 1) (exponent G %| n).

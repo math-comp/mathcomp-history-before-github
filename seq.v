@@ -1603,14 +1603,14 @@ by case/predU1P=> [->|Hx]; [ exact: predU1l | apply: predU1r; auto ].
 Qed.
 
 Lemma mapP : forall (s : seq T1) y,
-  reflect (exists2 x, x \in s & f x = y) (y \in map f s).
+  reflect (exists2 x, x \in s & y = f x) (y \in map f s).
 Proof.
 move=> s y; elim: s => [|x s IHs]; first by right; case.
 rewrite /= in_cons eq_sym; case Hxy: (f x == y).
   by left; exists x; [ rewrite mem_head | rewrite (eqP Hxy) ].
-apply: (iffP IHs) => [[x' Hx' <-]|[x' Hx' Dy]].
+apply: (iffP IHs) => [[x' Hx' ->]|[x' Hx' Dy]].
   by exists x'; first exact: predU1r.
-by case: Dy Hxy => <-; case/predU1P: Hx' => [->|]; [rewrite eqxx | exists x'].
+by case: Dy Hxy => ->; case/predU1P: Hx' => [->|]; [rewrite eqxx | exists x'].
 Qed.
 
 Lemma map_uniq : forall s, uniq (map f s) -> uniq s.
@@ -1624,17 +1624,14 @@ Lemma map_inj_in_uniq : forall s : seq T1,
 Proof.
 elim=> //= x s IHs //= injf; congr (~~ _ && _).
   apply/mapP/idP=> [[y sy] |]; last by exists x.
-  by move/injf=> <-; rewrite ?inE //= (eqxx, predU1r).
+  by move/injf=> ->; rewrite ?inE //= (eqxx, predU1r).
 apply: IHs => y z sy sz; apply: injf => //; exact: predU1r.
 Qed.
 
 Hypothesis Hf : injective f.
 
 Lemma mem_map : forall s x, (f x \in map f s) = (x \in s).
-Proof.
-move=> s x; apply/mapP/idP; last by exists x.
-by move=> [y Hy Hfy]; rewrite -(Hf Hfy).
-Qed.
+Proof. by move=> s x; apply/mapP/idP=> [[y Hy]|]; [move/Hf-> | exists x]. Qed.
 
 Lemma index_map : forall s x, index (f x) (map f s) = index x s.
 Proof.
@@ -1701,7 +1698,7 @@ Lemma size_pmap : forall s, size (pmap s) = count [eta f] s.
 Proof. by elim=> //= x s <-; case f. Qed.
 
 Lemma pmapS_filter : forall s, map some (pmap s) = map f (filter [eta f] s).
-Proof. by elim=> //= x s; case: {-2}(f x) (erefl (f x)) => //= r -> <-. Qed.
+Proof. by elim=> //= x s; case fx: (f x) => //= [u] <-; congr (_ :: _). Qed.
 
 Hypothesis fK : ocancel f g.
 

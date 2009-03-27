@@ -27,6 +27,8 @@ automorphism.v
 ssralg.v
 poly.v
 zmodp.v
+matrix.v
+charpoly.v
 cyclic.v
 pgroups.v
 center.v
@@ -35,9 +37,6 @@ maximal.v
 prim_act.v
 sylow.v
 abelian.v
-signperm.v
-matrix.v
-charpoly.v
 schurzass.v
 hall.v
 coprime_act.v

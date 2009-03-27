@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype.
-Require Import div bigops finset.
+Require Import div paths bigops finset.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -1907,6 +1907,104 @@ by rewrite conjRg mem_commg ?memJ_conjg.
 Qed.
 
 End GeneratedGroup.
+
+Section Cycles.
+
+(* Elementary properties of cycles and order, needed in perm.v.  *)
+(* More advanced results on the structure of cyclic groups will  *)
+(* be given in cyclic.v.                                         *)
+
+Variable gT : finGroupType.
+Implicit Types x y : gT.
+Implicit Types G : {group gT}.
+
+Import Monoid.Theory.
+
+Lemma cycle1 : <[1]> = [1 gT].
+Proof. exact: genGid. Qed.
+
+Lemma order1 : #[1 : gT] = 1%N.
+Proof. by rewrite /order cycle1 cards1. Qed.
+
+Lemma cycle_id : forall x, x \in <[x]>.
+Proof. by move=> x; rewrite mem_gen // set11. Qed.
+
+Lemma mem_cycle : forall x i, x ^+ i \in <[x]>.
+Proof. by move=> x i; rewrite groupX // cycle_id. Qed.
+
+Lemma cycle_subG : forall x G, (<[x]> \subset G) = (x \in G).
+Proof. by move=> x G; rewrite gen_subG sub1set. Qed.
+
+Lemma cycle_traject : forall x, <[x]> =i traject (mulg x) 1 #[x].
+Proof.
+move=> x; set t := traject _ _; apply/subset_eqP.
+have tP: forall n y, y \in t n -> exists2 i, i < n & y = x ^+ i.
+  by move=> n y; case/trajectP=> i lt_i ->; rewrite -iteropE; exists i.
+have stx: t _ \subset <[x]>.
+  by move=> n; apply/subsetP=> xi; case/tP=> i _ ->{xi}; exact: mem_cycle.
+rewrite stx andbT -(eq_subset_r (in_set _)); set G := finset _.
+have Gx: x ^+ _ \in G.
+  move=> i; rewrite inE [x ^+ _]iteropE; move: i; apply/loopingP.
+  apply/idPn; rewrite -looping_uniq; move/card_uniqP => cardG.
+  by have:= subset_leq_card (stx #[x].+1); rewrite cardG size_traject ltnn.
+rewrite -[G]gen_set_id; first by rewrite cycle_subG mem_gen ?(Gx 1%N).
+apply/group_setP; split=> [|xi xj]; first exact: (Gx 0).
+by rewrite 2!inE; case/tP => i _ ->; case/tP => j _ ->; rewrite -expgn_add Gx.
+Qed.
+
+Lemma cyclePmin : forall x y,
+  reflect (exists2 i, i < #[x] & y = x ^+ i) (y \in <[x]>).
+Proof.
+move=> x y; rewrite cycle_traject.
+by apply: (iffP trajectP) => [] [i lt_i_x ->]; exists i; rewrite -?iteropE.
+Qed.
+
+Lemma cycleP : forall x y, reflect (exists i, y = x ^+ i) (y \in <[x]>).
+Proof.
+move=> x y; apply: (iffP idP) => [|[i ->]]; last exact: mem_cycle.
+by case/cyclePmin=> i _; exists i.
+Qed.
+
+Lemma expg_order : forall x, x ^+ #[x] = 1.
+Proof.
+move=> x; have: uniq (traject (mulg x) 1 #[x]).
+  by apply/card_uniqP; rewrite size_traject -(eq_card (cycle_traject x)).
+case/cyclePmin: (mem_cycle x #[x]) => [] [//|i] ltix.
+rewrite -(subnKC ltix) addSnnS /= expgn_add; move: (_ - _) => j x_j1.
+case/andP; case/trajectP; exists j; first exact: leq_addl.
+by apply: (mulgI (x ^+ i.+1)); rewrite -iterSr iterS -iteropE -expgS mulg1.
+Qed.
+
+Lemma expg_mod_order : forall x i, x ^+ (i %% #[x]) = x ^+ i. 
+Proof.
+move=> x i; rewrite {2}(divn_eq i #[x]) expgn_add mulnC expgn_mul.
+by rewrite expg_order exp1gn mul1g.
+Qed.
+
+Lemma invg_expg : forall x, x^-1 = x ^+ #[x].-1.
+Proof.
+by move=> x; apply/eqP; rewrite eq_invg_mul -expgS prednK ?expg_order.
+Qed.
+
+Lemma cycleX : forall x i, <[x ^+ i]> \subset <[x]>.
+Proof. move=> x i; rewrite cycle_subG; exact: mem_cycle. Qed.
+
+Lemma cycleV : forall x, <[x^-1]> = <[x]>.
+Proof.
+move=> x; symmetry; apply/eqP; rewrite eqEsubset.
+by rewrite !cycle_subG groupV -groupV !cycle_id. 
+Qed.
+
+Lemma orderV : forall x, #[x^-1] = #[x].
+Proof. by move=> x; rewrite /order cycleV. Qed.
+
+Lemma cycleJ : forall x y, <[x ^ y]> = <[x]> :^ y.
+Proof. by move=> x y; rewrite -genJ conjg_set1. Qed.
+
+Lemma orderJ : forall x y, #[x ^ y] = #[x].
+Proof. by move=> x y; rewrite /order cycleJ cardJg. Qed.
+
+End Cycles.
 
 Section Normaliser.
 

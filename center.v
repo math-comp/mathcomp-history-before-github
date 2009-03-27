@@ -142,14 +142,14 @@ Qed.
 
 (* Functoriality *)
 
-Lemma center_resp : resp (fun _ S => 'Z(S)).
+Lemma center_resp : resp center.
 Proof.
-move=> hT iT H phi /=; apply:(subset_trans (morphimI _ _ _ )).
-rewrite subsetI subsetIl /=; apply:(subset_trans (subsetIr (phi @* H) _) ).
-exact:morphim_cent.
+move=> hT iT H phi /=; apply: (subset_trans (morphimI _ _ _ )).
+rewrite subsetI subsetIl /=; apply: subset_trans (subsetIr (phi @* H) _) _.
+exact: morphim_cent.
 Qed.
 
-Lemma center_hereditary : hereditary (fun _ S => 'Z(S)).
+Lemma center_hereditary : hereditary center.
 Proof.
 move=> hT H G sHG; rewrite setIC /center setIA (setIidPl sHG) setIS //.
 by rewrite (centsS sHG).
@@ -158,16 +158,11 @@ Qed.
 End Center.
 
 Canonical Structure bgFunc_center :=
-  @BGFunc center 
-  (fun gT G => groupP 'Z(G)%G)
-  (fun gT G => @center_sub gT G)
-  (aresp_of_resp center_resp).
+  [bgFunc by fun _ _ => center_sub _ & center_resp].
 
-Canonical Structure gFunc_center :=
-  @GFunc bgFunc_center center_resp.
+Canonical Structure gFunc_center := GFunc center_resp.
 
-Canonical Structure hgFunc_center :=
-  @HGFunc gFunc_center center_hereditary.
+Canonical Structure hgFunc_center := HGFunc center_hereditary.
 
 Section Product.
 

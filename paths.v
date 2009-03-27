@@ -601,13 +601,13 @@ Section EqTrajectory.
 Variables (T : eqType) (f : T -> T).
 
 Lemma fpathP : forall x p,
-  reflect (exists n, traject f (f x) n = p) (fpath f x p).
+  reflect (exists n, p = traject f (f x) n) (fpath f x p).
 Proof.
 move=> x p; elim: p x => [|y p Hrec] x; first by left; exists 0.
 rewrite /= andbC; case: {Hrec}(Hrec y) => Hrec.
-  apply: (iffP eqP); first by case: Hrec => [n <-] <-; exists n.+1.
+  apply: (iffP eqP); first by case: Hrec => [n ->] <-; exists n.+1.
   by case=> [] [|n] // [Dp].
-by right; move=> [[|n] // [Dy Dp]]; case: Hrec; exists n; rewrite -Dy -Dp.
+by right; move=> [[|n] // [Dy Dp]]; case: Hrec; exists n; rewrite Dy -Dp.
 Qed.
 
 Lemma fpath_traject : forall x n, fpath f x (traject f (f x) n).
@@ -627,11 +627,11 @@ by rewrite !(in_cons, mem_cat) (eqP Dy) eqxx !orbT.
 Qed.
 
 Lemma trajectP : forall x n y,
-  reflect (exists2 i, i < n & iter i f x = y) (y \in traject f x n).
+  reflect (exists2 i, i < n & y = iter i f x) (y \in traject f x n).
 Proof.
 move=> x n y; elim: n x => [|n Hrec] x; first by right; case.
   rewrite /= in_cons orbC; case: {Hrec}(Hrec (f x)) => Hrec.
-  by left; case: Hrec => [i Hi <-]; exists i.+1; last by rewrite -iterSr.
+  by left; case: Hrec => [i Hi ->]; exists i.+1; last by rewrite -iterSr.
 apply: (iffP eqP); first by exists 0; first by rewrite ltnNge.
 by move=> [[|i] Hi Dy] //; case Hrec; exists i; last by rewrite -iterSr.
 Qed.
@@ -644,7 +644,7 @@ set y := iter n f (f x); case (trajectP (f x) n y); first by rewrite !orbT.
 rewrite !orbF => Hy; apply/idP/eqP => [Hx|Dy]; last first.
   by rewrite -{1}Dy /y -last_traject mem_last.
 case: {Hx}(trajectP _ n.+1 _ Hx) => [m Hm Dx].
-have Hx': looping x m.+1 by rewrite /looping iterSr Dx mem_head.
+have Hx': looping x m.+1 by rewrite /looping iterSr -Dx mem_head.
 case/trajectP: (loopingP _ _ Hx' n.+1); rewrite iterSr -/y.
 move=> [|i] Hi //; rewrite iterSr => Dy.
 by case: Hy; exists i; first exact (leq_trans Hi Hm).

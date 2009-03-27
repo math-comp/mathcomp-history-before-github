@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
-Require Import finfun finset groups.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq paths choice fintype.
+Require Import finfun bigops finset groups.
 Import GroupScope.
 
 Set Implicit Arguments.
@@ -279,5 +279,180 @@ Proof.
 move=> T x y s; apply/permP => z; rewrite -(permKV s z) permJ.
 apply: inj_tperm; exact: perm_inj.
 Qed.
+
+Section PermutationParity.
+
+Variable T : finType.
+
+Implicit Type s : {perm T}.
+Implicit Types x y z : T.
+
+(* Note that pcycle s x is the orbit of x by <[s]> under the action aperm. *)
+(* Hence, the pcycle lemmas below are special cases of more general lemmas *)
+(* on orbits that will be stated in action.v.                              *)
+(*   Defining pcycle directly here avoids a dependency of matrix.v on      *)
+(* action.v and hence morphism.v.                                          *)
+
+Definition aperm x s := s x.
+Definition pcycle s x := aperm x @: <[s]>.
+Definition pcycles s := pcycle s @: T.
+Definition odd_perm (s : perm_type T) := odd #|T| (+) odd #|pcycles s|.
+
+Lemma apermE : forall x a, aperm x a = a x. Proof. by []. Qed.
+
+Lemma mem_pcycle : forall s i x, (s ^+ i) x \in pcycle s x.
+Proof. by move=> s i x; rewrite (mem_imset (aperm x)) ?mem_cycle. Qed.
+
+Lemma pcycle_id : forall s x, x \in pcycle s x.
+Proof. by move=> s x; rewrite -{1}[x]perm1 (mem_pcycle s 0). Qed.
+
+Lemma pcycle_traject : forall s x, pcycle s x =i traject s x #[s].
+Proof.
+move=> s x y; apply/idP/trajectP=> [| [i _ ->]].
+  by case/imsetP=> si; case/cyclePmin=> i ? -> ->; exists i; rewrite // -permX.
+by rewrite -permX mem_pcycle.
+Qed.
+
+Lemma eq_pcycle_mem : forall s x y,
+  (pcycle s x == pcycle s y) = (x \in pcycle s y).
+Proof.
+move=> s x y; apply/eqP/idP=> [<-|]; first exact: pcycle_id.
+case/imsetP=> si s_si ->; apply/setP => z; apply/imsetP/imsetP.
+  by case=> sj s_sj ->; exists (si * sj); rewrite ?groupM /aperm ?permM.
+case=> sj s_sj ->; exists (si^-1 * sj); first by rewrite groupM ?groupV.
+by rewrite /aperm permM permK.
+Qed.
+
+Lemma pcycle_sym : forall s x y, (x \in pcycle s y) = (y \in pcycle s x).
+Proof. by move=> s x y; rewrite -!eq_pcycle_mem eq_sym. Qed.
+
+Lemma pcycle_perm : forall s i x y, pcycle s ((s ^+ i) x) = pcycle s x.
+Proof. by move=> s i x y; apply/eqP; rewrite eq_pcycle_mem mem_pcycle. Qed.
+
+Lemma ncycles_mul_tperm : forall s x y (t := tperm x y),
+  #|pcycles (t * s)| + (x \notin pcycle s y).*2 = #|pcycles s| + (x != y).
+Proof.
+pose xf s x y := find (pred2 x y) (traject s (s x) #[s]).
+have xf_size : forall s x y, xf s x y <= #[s].
+  by move=> s x y; rewrite (leq_trans (find_size _ _)) ?size_traject.
+have lt_xf: forall s x y n, n < xf s x y -> ~~ pred2 x y ((s ^+ n.+1) x).
+  move=> s x y n lt_n; move/negbT: (before_find (s x) lt_n).
+  by rewrite permX iterSr nth_traject // (leq_trans lt_n).
+pose t x y s := tperm x y * s.
+have tC: forall x y s, t x y s = t y x s by move=> x y s; rewrite /t tpermC.
+have tK : forall x y, involutive (t x y) by move=> x y s; exact: tpermKg.
+have tXC: forall s x y n, n <= xf s x y -> (t x y s ^+ n.+1) y = (s ^+ n.+1) x.
+  move=> s x y; elim=> [|n IHn] lt_n_f; first by rewrite permM tpermR.
+  rewrite !(expgSr _ n.+1) !permM {}IHn 1?ltnW //; congr (s _).
+  by move/lt_xf: lt_n_f; case/norP=> *; rewrite tpermD // eq_sym.
+have eq_xf: forall s x y, pred2 x y ((s ^+ (xf s x y).+1) x).
+  move=> s x y; simpl in s, x, y.
+  have has_f: has (pred2 x y) (traject s (s x) #[s]).
+    apply/hasP; exists x; rewrite /= ?eqxx // -pcycle_traject.
+    by rewrite pcycle_sym (mem_pcycle _ 1).
+  have:= nth_find (s x) has_f; rewrite has_find size_traject in has_f.
+    by rewrite nth_traject // -iterSr -permX.
+  have xfC: forall s x y, xf (t x y s) y x = xf s x y.
+  move=> s x y; wlog ltx: s x y / xf (t x y s) y x < xf s x y.
+    move=> IWxy; set m := xf _ y x; set n := xf s x y.
+    by case: (ltngtP m n) => // ltx; [exact: IWxy | rewrite /m -IWxy tC tK].
+  by move/lt_xf: (ltx); rewrite -(tXC s x y) 1?ltnW //= orbC [_ || _]eq_xf.
+move=> /= s x y; pose ts := t x y s; rewrite -[_ * s]/ts.
+pose dp s' := #|pcycles s' :\ pcycle s' y :\ pcycle s' x|.
+rewrite !(addnC #|_|) (cardsD1 (pcycle ts y)) mem_imset ?inE //.
+rewrite (cardsD1 (pcycle ts x)) inE mem_imset ?inE //= -/(dp ts) {}/ts.
+rewrite (cardsD1 (pcycle s y)) (cardsD1 (pcycle s x)) !(mem_imset, inE) //.
+rewrite -/(dp s) !addnA !eq_pcycle_mem andbT; congr (_ + _); last first.
+  wlog: s / dp (t x y s) < dp s.
+    move=> IWs; case: (ltngtP (dp (t x y s)) (dp s)); [exact: IWs | | by []].
+    by move=> lt_s_ts; rewrite -IWs tK.
+  rewrite ltnNge; case/negP; apply: subset_leq_card; apply/subsetP=> {dp} C.
+  rewrite !inE andbA andbC !(eq_sym C); case/and3P; case/imsetP=> z _ ->{C}.
+  rewrite 2!eq_pcycle_mem => sxz syz.
+  suff ts_z: pcycle (t x y s) z = pcycle s z.
+    by rewrite -ts_z !eq_pcycle_mem {1 2}ts_z sxz syz mem_imset ?inE.
+  suff exp_id: forall n, ((t x y s) ^+ n) z = (s ^+ n) z.
+    apply/setP=> u; apply/idP/idP; case/imsetP=> si; case/cycleP=> i -> ->.
+      by rewrite /aperm exp_id mem_pcycle.
+    by rewrite /aperm -exp_id mem_pcycle.
+  elim=> // n IHn; rewrite !expgSr !permM {}IHn tpermD //.
+    apply: contra sxz; move/eqP->; exact: mem_pcycle.
+  apply: contra syz; move/eqP->; exact: mem_pcycle.
+case: eqP {dp} => [<- | ne_xy]; first by rewrite /t tperm1 mul1g pcycle_id.
+suff ->: (x \in pcycle (t x y s) y) = (x \notin pcycle s y) by case: (x \in _).
+wlog xf_x: s x y ne_xy / (s ^+ (xf s x y).+1) x = x.
+  move=> IWs; have ne_yx := nesym ne_xy; have:= eq_xf s x y; set n := xf s x y.
+  case/pred2P=> [|snx]; first exact: IWs.
+  by rewrite -[x \in _]negbK ![x \in _]pcycle_sym -{}IWs ?xfC ?tXC // tC tK.
+rewrite -{1}xf_x -(tXC _ _ _ _ (leqnn _)) mem_pcycle; symmetry.
+rewrite -eq_pcycle_mem eq_sym eq_pcycle_mem pcycle_traject.
+apply/trajectP=> [[n _ snx]].
+have: looping s x (xf s x y).+1 by rewrite /looping -permX xf_x inE eqxx.
+move/loopingP; move/(_ n); rewrite -{n}snx.
+case/trajectP=> [[_|i]]; first exact: nesym; rewrite ltnS -permX => lt_i def_y.
+by move/lt_xf: lt_i; rewrite def_y /= eqxx orbT.
+Qed.
+
+Lemma odd_perm1 : odd_perm 1 = false.
+Proof.
+rewrite /odd_perm card_imset ?addbb // => x y; move/eqP.
+by rewrite eq_pcycle_mem /pcycle cycle1 imset_set1 /aperm perm1; move/set1P.
+Qed.
+
+Lemma odd_mul_tperm : forall x y s,
+  odd_perm (tperm x y * s) = (x != y) (+) odd_perm s.
+Proof.
+move=> x y s; rewrite addbC -addbA -[~~ _]oddb -odd_add -ncycles_mul_tperm.
+by rewrite odd_add odd_double addbF.
+Qed.
+
+Lemma odd_tperm : forall x y, odd_perm (tperm x y) = (x != y).
+Proof. by move=> x y; rewrite -[_ y]mulg1 odd_mul_tperm odd_perm1 addbF. Qed.
+
+Definition dpair (eT : eqType) := [pred t | t.1 != t.2 :> eT].
+Implicit Arguments dpair [eT].
+
+Lemma prod_tpermP : forall s : {perm T},
+  {ts : seq (T * T) | s = \prod_(t <- ts) tperm t.1 t.2 & all dpair ts}.
+Proof.
+move=> s; elim: {s}_.+1 {-2}s (ltnSn #|[pred x | s x != x]|) => // n IHn s.
+rewrite ltnS => le_s_n; case: (pickP (fun x => s x != x)) => [x s_x | s_id].
+  have [|ts def_s ne_ts] := IHn (tperm x (s^-1 x) * s).
+    rewrite (cardD1 x) !inE s_x in le_s_n; apply: leq_ltn_trans le_s_n.
+    apply: subset_leq_card; apply/subsetP=> y.
+    rewrite !inE permM permE /= -(canF_eq (permK _)).
+    case: (y =P x) => [->|]; first by rewrite permKV eqxx.
+    by move/eqP=> ne_yx; case: (_ =P x) => // -> _; rewrite eq_sym.
+  exists ((x, s^-1 x) :: ts); last by rewrite /= -(canF_eq (permK _)) s_x.
+  by rewrite big_cons -def_s mulgA tperm2 mul1g.
+exists (Nil (T * T)); rewrite // big_nil; apply/permP=> x.
+by apply/eqP; apply/idPn; rewrite perm1 s_id.
+Qed.
+
+Lemma odd_perm_prod : forall ts,
+  all dpair ts -> odd_perm (\prod_(t <- ts) tperm t.1 t.2) = odd (size ts).
+Proof.
+elim=> [_|t ts IHts] /=; first by rewrite big_nil odd_perm1.
+by case/andP=> dt12 dts; rewrite big_cons odd_mul_tperm dt12 IHts.
+Qed.
+
+Lemma odd_permM : {morph odd_perm : s1 s2 / s1 * s2 >-> s1 (+) s2}.
+Proof.
+move=> s1 s2; case: (prod_tpermP s1) => ts1 ->{s1} dts1.
+case: (prod_tpermP s2) => ts2 ->{s2} dts2.
+by rewrite -big_cat !odd_perm_prod ?all_cat ?dts1 // size_cat odd_add.
+Qed.
+
+Lemma odd_permV : forall s, odd_perm s^-1 = odd_perm s.
+Proof. by move=> s; rewrite -{2}(mulgK s s) !odd_permM -addbA addKb. Qed.
+
+Lemma odd_permJ : forall s1 s2, odd_perm (s1 ^ s2) = odd_perm s1.
+Proof. by move=> s1 s2; rewrite !odd_permM odd_permV addbC addbK. Qed.
+
+End PermutationParity.
+
+Coercion odd_perm : perm_type >-> bool.
+Implicit Arguments dpair [eT].
+Prenex Implicits pcycle dpair pcycles aperm.
 
 Unset Implicit Arguments.

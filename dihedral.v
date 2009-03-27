@@ -1,17 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect.
-Require Import ssrbool.
-Require Import ssralg.
-Require Import ssrfun.
-Require Import eqtype.
-Require Import ssrnat.
-Require Import fintype.
-Require Import connect.
-Require Import div.
-Require Import bigops.
-Require Import finset.
-Require Import groups.
-Require Import cyclic.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat div fintype connect.
+Require Import bigops finset groups cyclic ssralg.
 
 Import GroupScope.
 
@@ -19,9 +8,9 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-Definition involg (gT:finGroupType) (a:gT) := involutive (mulg a).
+Definition involg (gT : finGroupType) (a : gT) := involutive (mulg a).
 
-Lemma involgKP : forall (gT:finGroupType) (a:gT),
+Lemma involgKP : forall (gT : finGroupType) (a : gT),
   reflect (involg a) (a * a == 1).
 Proof.
 move=> gT a; apply:(iffP eqP)=> Ha; first by move=> x; rewrite mulgA Ha mul1g.
@@ -106,7 +95,7 @@ Lemma DmC_involP :
 Proof.
 rewrite DmC_coset; apply:(iffP eqP).
   move=> Heq x; move/rcosetP=> [a Ha]->.
-  move/cycleP: Ha => [n <-]; apply/involgKP; move/involgKP: Hit.
+  move/cycleP: Ha => [n ->]; apply/involgKP; move/involgKP: Hit.
   rewrite  -{2}(invgK t) -eq_mulgV1 =>Hti.
   rewrite {1}(eqP Hti) -mulgA -/(conjg (c ^+ n) t).
   by rewrite (invol_conjg_expn _ Hit) Heq expVgn mulgV.
@@ -132,7 +121,7 @@ Notation Local C := (cycle c).
 
 Lemma DmCJ : forall a y, a \in C -> y \in D:\:C -> a ^ y = a ^-1.
 Proof.
-move=> a y Ha Hy; move/cycleP:Ha=> [n] <-; move/involgKP:(dhinvol Hy) => Heq.
+move=> a y Ha Hy; move/cycleP:Ha=> [n] ->; move/involgKP:(dhinvol Hy) => Heq.
 apply/eqP; rewrite eq_sym eq_mulVg1 invgK conjgE mulgA.
 move: Heq; rewrite -{2}(invgK y) -eq_mulgV1; move/eqP<-.
 apply/involgKP; apply:dhinvol; rewrite (DmC_coset dhsub dhindex Hy).
@@ -222,9 +211,9 @@ apply/negP =>H; have {H}Hboth: (s \in C) && (t\in C).
   by case/orP: H=> H; move: (cycle_id (s * t)); 
     rewrite ?(groupMl _ H) ?(groupMr _ H) => Hcyc; rewrite H Hcyc.
 case e: (2 %| #[s * t]); move/andP:Hboth=> [Hsin]; move/cycleP=>[n0 H];
-move: (cycleX (s * t) n0); rewrite H; last first.
-  by move/cardSg; move: (involgen_order Hit Htn1); rewrite /order=>->;rewrite e.
-move/cycleP:Hsin =>[n1 H1]; move: (cycleX (s * t) n1); rewrite H1=> sCsub tCsub.
+move: (cycleX (s * t) n0); rewrite -H; last first.
+  by move/cardSg; rewrite [#|_|]involgen_order // e.
+move/cycleP:Hsin =>[n1 H1]; move: (cycleX (s * t) n1); rewrite -H1=> sCsub tCsub.
 set SG := [set H : {group gT} | (H \subset C) && (#|H| == 2)].
 rewrite /= in SG; have :[group of <[s]>] \in SG.
 by rewrite inE /= sCsub; move: (involgen_order His Hsn1); rewrite /order => ->.
@@ -253,6 +242,7 @@ Lemma DCindex : #|D : C| = 2.
 Proof.
 move: (divgI [group of D] [group of C]).
 rewrite /= -DCt -group_modl ?subset_refl // -(setIC C <[t]>) Ctcap mulg1.
+
 rewrite (TI_cardMg Ctcap) mulKn ?order_gt0 // =><- /=.
 by rewrite [#|<[_]>|](involgen_order Hit Htn1).
 Qed.

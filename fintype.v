@@ -710,9 +710,6 @@ Proof. by move=> x; rewrite /= image_f. Qed.
 
 End Def.
 
-Section Codom.
-(* Probably redundant -- consider deleting. *)
-
 Definition codom := image T.
 
 Lemma codom_f : forall x, codom (f x).
@@ -735,8 +732,6 @@ Lemma image_pre : forall B, injective f -> image (preim f B) =1 predI B codom.
 Proof.
 by move=> B injf y; rewrite /image -filter_map /= mem_filter -enumT.
 Qed.
-
-End Codom.
 
 Fixpoint preim_seq s :=
   if s is y :: s' then
@@ -1432,8 +1427,8 @@ Definition sum_enum :=
 
 Lemma sum_enum_uniq : uniq sum_enum.
 Proof.
-rewrite cat_uniq -!enumT !(enum_uniq, map_inj_uniq) ?andbT => [|? ? []|? ? []] //.
-by apply/hasP=> [[u]]; case/mapP=> x _ <-; case/mapP.
+rewrite cat_uniq -!enumT !(enum_uniq, map_inj_uniq); try by move=> ? ? [].
+by rewrite andbT; apply/hasP=> [[u]]; case/mapP=> x _ ->; case/mapP.
 Qed.
 
 Lemma mem_sum_enum : forall u, u \in sum_enum.
@@ -1447,8 +1442,12 @@ Proof. by rewrite !cardT !enumT unlock size_cat !size_map. Qed.
 
 End SumFinType.
 
+(* Deprecated: *)
+(*  - use enum_rank/enum_val for explicit bijections T <-> 'I_(#|T|) *)
+(*  - use rewrite -(@card_in_image _ _ f), or bigops, to prove       *)
+(*     #|A| = #|B| using a bijection f.                              *)
+(** Begin outcomment
 Section BijectionCard.
-(* Deprecated. *)
 
 Lemma can_card_leq :  forall (T T' : finType) (f : T -> T') (g : T' -> T),
   cancel f g -> #|T| <= #|T'|.
@@ -1501,5 +1500,5 @@ move=> T T' A A'; rewrite -card_sig -(card_sig A'); exact: eq_card_predT_bij.
 Qed.
 
 End BijectionCard.
-
+** End outcomment *)
 

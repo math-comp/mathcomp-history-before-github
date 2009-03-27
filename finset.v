@@ -94,8 +94,8 @@ Notation "[ 'set' x \in A | P ]" := [set x | (x \in A) && P]
 Notation "[ 'set' x \in A ]" := [set x | x \in A]
   (at level 0, x at level 69, format "[ 'set'  x  \in  A ]") : set_scope.
 
-(* Experimenting with an alternative, more compact symbolic notation for *)
-(* subset and proper subset.                                             *)
+(* Experimental alternative compact symbolic notation for subset and proper. *)
+(** Begin outcomment
 Notation "A :<=: B" := (pred_of_set A \subset pred_of_set B)
   (at level 70, B at next level, no associativity) : subset_scope.
 Notation "A :<: B" := (pred_of_set A \proper pred_of_set B)
@@ -109,6 +109,7 @@ Notation "A :<=: B :<: C" := ((A :<=: B) && (B :<: C))
   (at level 70, B at next level, no associativity) : subset_scope.
 Notation "A :<: B :<: C" := ((A :<: B) && (B :<: C))
   (at level 70, B at next level, no associativity) : subset_scope.
+** End outcomment *)
 
 (* Declare pred_of_set as a canonical instance of to_pred, but use the *)
 (* coercion to resolve mem A to @mem (predPredType T) (pred_of_set A). *)

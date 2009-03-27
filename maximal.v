@@ -12,7 +12,7 @@ Import GroupScope.
 
 Section Defs.
 
-Variables (gT : finGroupType).
+Variable gT : finGroupType.
 Implicit Types A B D : {set gT}.
 Implicit Types G : {group gT}.
 
@@ -308,12 +308,8 @@ Qed.
 
 End Frattini.
 
-Canonical Structure bgFunc_Frattini :=
-  BGFunc (fun gT G => groupP 'Phi(G)%G) (fun gT => @Phi_sub gT)
-  (aresp_of_resp Frattini_resp).
-
-Canonical Structure gFunc_Frattini :=
-  @GFunc bgFunc_Frattini Frattini_resp.
+Canonical Structure bgFunc_Frattini := [bgFunc by Phi_sub & Frattini_resp].
+Canonical Structure gFunc_Frattini := GFunc Frattini_resp.
 
 Section Frattini0.
 
@@ -618,28 +614,23 @@ Lemma Fitting_resp : forall gT rT (G : {group gT}) (f : {morphism G >-> rT}),
   f @* 'F(G) \subset 'F(f @* G).
 Proof. move=> gT rT G f; exact: morphim_Fitting. Qed.
 
-Lemma Fitting_hereditary : hereditary (fun _ G => 'F(G)).
+Lemma Fitting_hereditary : hereditary Fitting.
 Proof. by move=> gT H G; move/FittingS; rewrite setIC. Qed.
 
 End FittingFun.
 
-Canonical Structure bgFunc_Fitting :=
-  BGFunc (fun gT G => groupP 'F(G)%G)
-           Fitting_sub
-           (aresp_of_resp Fitting_resp).
+Canonical Structure bgFunc_Fitting := [bgFunc by Fitting_sub & Fitting_resp].
+Canonical Structure gFunc_Fitting := GFunc Fitting_resp.
+Canonical Structure hgFunc_Fitting := HGFunc Fitting_hereditary.
 
-Canonical Structure gFunc_Fitting :=
-  @GFunc bgFunc_Fitting Fitting_resp.
-
-Canonical Structure hgFunc_Fitting :=
-  @HGFunc gFunc_Fitting Fitting_hereditary.
-
-Lemma Fitting_char : forall (gT:finGroupType) (G : {group gT}), 'F(G) \char G.
+Lemma Fitting_char : forall (gT : finGroupType) (G : {group gT}),
+  'F(G) \char G.
 Proof. exact: bgFunc_char. Qed.
 
-Lemma injm_Fitting : forall (gT rT:finGroupType) (G D : {group gT}) (f : {morphism D >-> rT}),
+Lemma injm_Fitting :
+  forall (gT rT : finGroupType) (G D : {group gT}) (f : {morphism D >-> rT}),
   'injm f -> G \subset D -> f @* 'F(G) = 'F(f @* G).
-Proof. exact:bgFunc_asresp. Qed.
+Proof. exact: bgFunc_asresp. Qed.
 
 Section CharSimple.
 
@@ -1111,7 +1102,7 @@ have [chH sPhiZ sGH_Z scH] := krH; have clH := critical_class2 krH.
 have sHG := char_sub chH; set D := 'Ohm_1(H)%G; exists D.
 have chD: D \char G := char_trans (Ohm_char _ _) chH.
 have sDH: D \subset H := Ohm_sub _ _.
-have sDG_Z: [~: D, G] :<=: 'Z(D).
+have sDG_Z: [~: D, G] \subset 'Z(D).
   rewrite subsetI commg_subl char_norm // commGC.
   apply: subset_trans (subset_trans sGH_Z _); first by rewrite commgS.
   by rewrite subIset // orbC centS.

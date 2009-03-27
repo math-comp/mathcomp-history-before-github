@@ -1,23 +1,129 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype.
 Require Import div bigops prime tuple finset groups morphisms normal.
 Require Import perm automorphism action cyclic pgroups sylow.
-Require Import maximal prim_act signperm.
-
-(* Require Import paths connect finfun zp. *)
+Require Import maximal prim_act.
 
 Import Prenex Implicits.
 Set Implicit Arguments.
 Unset Strict Implicit.
 
-(***************************************************************************)
-(*                                                                         *)
-(*                                                                         *)
-(** Definitions of the alternate groups and some Properties                *)
-(*                                                                         *)
-(*                                                                         *)
-(***************************************************************************)
-
 Import GroupScope.
+
+Definition bool_groupMixin := FinGroup.Mixin addbA addFb addbb.
+Canonical Structure bool_baseGroup :=
+  Eval hnf in BaseFinGroupType bool_groupMixin.
+Canonical Structure boolGroup := Eval hnf in FinGroupType addbb. 
+
+(****************************************************************************)
+(*                                                                          *)
+(** Definitions of the symmetric and alternate groups, and some properties. *)
+(*                                                                          *)
+(****************************************************************************)
+
+Section SymAltDef.
+
+Variable T : finType.
+
+Implicit Type s : {perm T}.
+Implicit Types x y z : T.
+
+(** Definitions of the alternate groups and some Properties **)
+Definition Sym of phant T : {set {perm T}} := setT.
+
+Canonical Structure Sym_group phT := Eval hnf in [group of Sym phT].
+
+Notation Local "'Sym_T" := (Sym (Phant T)) (at level 0).
+
+Canonical Structure sign_morph := @Morphism _ _ 'Sym_T _ (in2W (@odd_permM _)).
+
+Definition Alt of phant T := 'ker (@odd_perm T).
+
+Canonical Structure Alt_group phT := Eval hnf in [group of Alt phT].
+
+Notation Local "'Alt_T" := (Alt (Phant T)) (at level 0).
+
+Lemma Alt_even : forall p, (p \in 'Alt_T) = ~~ p.
+Proof. by move=> p; rewrite !inE /=; case: odd_perm. Qed.
+
+Lemma Alt_subset : 'Alt_T \subset 'Sym_T.
+Proof. exact: subsetT. Qed.
+
+Lemma Alt_normal : 'Alt_T <| 'Sym_T.
+Proof. exact: ker_normal. Qed.
+
+Lemma Alt_norm : 'Sym_T \subset 'N('Alt_T).
+Proof. by case/andP: Alt_normal. Qed.
+
+Let n := #|T|.
+
+Lemma Alt_index : 1 < n -> #|'Sym_T : 'Alt_T| = 2.
+Proof.
+move=> lt1n; rewrite -card_quotient ?Alt_norm //=.
+have : ('Sym_T / 'Alt_T) \isog (@odd_perm T @* 'Sym_T) by apply: first_isog.
+case/isogP=> g; move/injmP; move/card_in_imset <-.
+rewrite /morphim setIid=> ->; rewrite -card_bool; apply: eq_card => b.
+apply/imsetP; case: b => /=; last first.
+ by exists (1 : {perm T}); [rewrite setIid inE | rewrite odd_perm1].
+case: (pickP T) lt1n => [x1 _ | d0]; last by rewrite /n eq_card0.
+rewrite /n (cardD1 x1) ltnS lt0n; case/existsP=> x2 /=.
+by rewrite eq_sym andbT -odd_tperm; exists (tperm x1 x2); rewrite ?inE.
+Qed.
+
+Lemma card_Sym : #|'Sym_T| = fact n.
+Proof.
+rewrite -[n]cardsE -card_perm; apply: eq_card => p.
+by apply/idP/subsetP=> [? ?|]; rewrite !inE.
+Qed.
+
+Lemma card_Alt : 1 < n -> (2 * #|'Alt_T|)%N = fact n.
+Proof.
+by move/Alt_index <-; rewrite mulnC (LaGrange Alt_subset) card_Sym.
+Qed.
+
+Lemma Sym_trans : [transitive * n ('Sym_T | 'P) on setT].
+Proof.
+apply/imsetP; pose t1 := [tuple of enum T].
+have dt1: t1 \in n.-dtuple(setT) by rewrite inE enum_uniq; apply/subsetP.
+exists t1 => //; apply/setP=> t; apply/idP/imsetP=> [|[a _ ->{t}]]; last first.
+  by apply: n_act_dtuple => //; apply/astabsP=> x; rewrite !inE.
+case/dtuple_onP=> injt _; have injf := inj_comp injt (@enum_rank_inj _).
+exists (perm injf); first by rewrite inE.
+apply: eq_from_tnth => i; rewrite tnth_map /= [aperm _ _]permE; congr tnth.
+by rewrite (tnth_nth (enum_default i)) enum_valK.
+Qed.
+
+Lemma Alt_trans : [transitive * n.-2 ('Alt_T | 'P) on setT].
+Proof.
+case n_m2: n Sym_trans => [|[|m]] /= tr_m2; try exact: ntransitive0.
+have tr_m := ntransitive_weak (leqW (leqnSn m)) tr_m2.
+case/imsetP: tr_m2; case/tupleP=> x; case/tupleP=> y t.
+rewrite !dtuple_on_add 2!inE [x \in _]inE negb_or /= -!andbA.
+case/and4P=> nxy ntx nty dt _; apply/imsetP; exists t => //; apply/setP=> u.
+apply/idP/imsetP=> [|[a _ ->{u}]]; last first.
+  by apply: n_act_dtuple => //; apply/astabsP=> z; rewrite !inE.
+case/(atransP2 tr_m dt)=> /= a _ ->{u}.
+case odd_a: (odd_perm a); last by exists a => //; rewrite !inE /= odd_a.
+exists (tperm x y * a); first by rewrite !inE /= odd_permM odd_tperm nxy odd_a.
+apply: val_inj; apply: eq_in_map => z tz; rewrite actM /= /aperm; congr (a _).
+by case: tpermP ntx nty => // <-; rewrite tz.
+Qed.
+
+Lemma aperm_faithful : forall A : {group {perm T}},
+  [faithful (A | 'P) on setT].
+Proof.
+move=> A; apply/faithfulP=> /= p _ np1; apply/eqP; apply/perm_act1P=> y.
+by rewrite np1 ?inE.
+Qed.
+
+End SymAltDef.
+
+Notation "''Sym_' T" := (Sym (Phant T))
+  (at level 8, T at level 2, format "''Sym_' T") : group_scope.
+Notation "''Sym_' T" := (Sym_group (Phant T)) : subgroup_scope.
+
+Notation "''Alt_' T" := (Alt (Phant T))
+  (at level 8, T at level 2, format "''Alt_' T") : group_scope.
+Notation "''Alt_' T" := (Alt_group (Phant T)) : subgroup_scope.
 
 Lemma trivial_Alt_2 : forall T : finType, #|T| <= 2 -> 'Alt_T = 1.
 Proof.
@@ -291,7 +397,7 @@ have sSd: 'C_('Alt_T | 'P)[x] \subset 'dom rfd.
 apply/isogP; exists [morphism of restrm sSd rfd] => /=; last first.
   rewrite morphim_restrm setIid; apply/setP=> z; apply/morphimP/idP=> [[p _]|].
     case/setIP; rewrite Alt_even => Hp; move/astab1P=> Hp1 ->.
-    by rewrite Alt_even /even_perm rfd_odd.
+    by rewrite Alt_even rfd_odd.
   have dz': rgd z x == x by rewrite rgd_x.
   move=> kz; exists (rgd z); last by rewrite /= rfd_rgd.
     by rewrite 2!inE (sameP astab1P eqP).

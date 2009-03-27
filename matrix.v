@@ -3,9 +3,7 @@
 (*                                                                     *)
 (***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype.
-Require Import finfun bigops ssralg groups perm signperm zmodp morphisms.
-
-(* Require Import div connect finset zp. *)
+Require Import finfun bigops ssralg groups perm zmodp.
 
 Import GroupScope.
 Import GRing.Theory.
@@ -813,18 +811,16 @@ Lemma alternate_determinant : forall n (A : 'M_n) i1 i2,
   i1 != i2 -> A i1 =1 A i2 -> \det A = 0.
 Proof.
 move=> n A i1 i2 Di12 A12; pose r := 'I_n.
-pose t := tperm i1 i2; pose tr s := (t * s)%g.
+pose t := tperm i1 i2; pose tr (s : 'S_n) := (t * s)%g.
 have trK : involutive tr by move=> s; rewrite /tr mulgA tperm2 mul1g.
-have Etr: forall s, odd_perm (tr s) = even_perm s.
+have Etr: forall s, tr s = ~~ s :> bool.
   by move=> s; rewrite odd_permM odd_tperm Di12.
-rewrite /(\det _) (bigID (@even_perm _)) /=.
-set S1 := \sum_(<- _ | _) _; set T := S1 + _.
-rewrite -(addNr S1) addrC; congr (_ + _); rewrite {}/T {}/S1 -sumr_opp.
+rewrite /(\det _) (bigID (@odd_perm _)) /=.
+apply: canLR (subrK _) _; rewrite add0r -sumr_opp.
 rewrite (reindex tr) /=; last by exists tr => ? _.
-symmetry; apply: eq_big => [s | s seven]; first by rewrite negbK Etr.
-rewrite -mulNr Etr seven (negbTE seven) expr1; congr (_ * _).
+apply: eq_big => // s; rewrite Etr; move/negPf->; rewrite mulN1r mul1r.
 rewrite (reindex t) /=; last by exists (t : _ -> _) => i _; exact: tpermK.
-apply: eq_bigr => i _; rewrite permM /t.
+congr (- _); apply: eq_bigr => i _; rewrite permM tpermK /t.
 by case: tpermP => // ->; rewrite A12.
 Qed.
 
@@ -869,7 +865,8 @@ transitivity (\sum_f \sum_(s : 'S_n) (-1) ^+ s * \prod_i AB f s i).
   rewrite -big_distrr /=; congr (_ * _).
   pose F i j := A i j * B j (s i); rewrite -(bigA_distr_bigA F) /=.
   by apply: eq_bigr => x _; rewrite mxE.
-rewrite (bigID (fun f : {ffun _} => injectiveb f)) /= addrC big1 ?simp => [|f Uf].
+rewrite (bigID (fun f : {ffun _} => injectiveb f)) /= addrC.
+rewrite big1 ?simp => [|f Uf].
   rewrite (reindex (fun s => pval s)); last first.
     have s0 : 'S_n := 1%g; pose uf (f : {ffun 'I_n -> 'I_n}) := uniq (val f).
     exists (insubd s0) => /= f Uf; first apply: val_inj; exact: insubdK.

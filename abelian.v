@@ -22,11 +22,13 @@ Import GroupScope.
 (*
 Structure theorem for abelian finite groups. The development involves:
 - definition of "base" (may be replaced by the one in pgroups).
-- a functional (from finGroupType to nat) representation for combination of elements in an abelian setting.
-- a reflection lemma relating generated groups to the above functional representation. 
+- a functional (from finGroupType to nat) representation for combination
+  of elements in an abelian setting.
+- a reflection lemma relating generated groups to the above functional
+  representation. 
 - the main result: every abelian finite group has a base.
-- a few lemmas that are presumably useful to working with abelian finite groups.
-
+- a few lemmas that are presumably useful for working with abelian finite
+  groups.
 Note: there is room for cleaning and improvment. 
 *)
 
@@ -387,7 +389,7 @@ case Ay: (y \in A); last first.
   apply: (iffP (IHs x)); case=> f Af <-; exists f => //;
     by rewrite (sup0P _ _ Af) (Ay, mul1g).
 apply: (iffP mulsgP) => [[x1 x2] | [f Af <-{x}]].
-  case/cycleP=> i <-{x1}; case/IHs=> f Af <- -> {x x2}.
+  case/cycleP=> i ->{x1}; case/IHs=> f Af <- -> {x x2}.
   exists (force f y i); first by rewrite -sup_force.
   rewrite /force eqxx; congr (_ * _).
   by apply: eq_foldr => x z sx; case: eqP => // eqxy; rewrite -eqxy sx in nsy.
@@ -411,7 +413,7 @@ move=> A G sAG; rewrite /mgen; elim: index_enum  => /= [| x s IHs].
   by rewrite big_nil sub1set.
 rewrite big_cons; case Ax: (x \in A) => //=.
 apply/subsetP=> y; case/mulsgP=> y1 y2.
-case/cycleP => i <-; move/(subsetP IHs)=> sy2 ->.
+case/cycleP => i ->; move/(subsetP IHs)=> sy2 ->.
 by rewrite groupMr // groupX // (subsetP sAG).
 Qed.
 
@@ -667,7 +669,7 @@ case: (x ^+ (f x) =P 1) => [xfx1 | xfx].
     apply: free_predU1 => //=; last by rewrite BXx.
       by apply/eqP=> x1; rewrite -x1 Xx in notX1. 
     by apply: (asub abelX); rewrite -gen_subG (@genDU _ _ _ X).
-  move/eqP; case/trivgPn=> y; case/setIP; case/cycleP => k <-{y}.
+  move/eqP; case/trivgPn=> y; case/setIP; case/cycleP => k ->{y}.
   rewrite (divn_eq k (f x)) expgn_add mulnC expgn_mul xfx1 exp1gn.
   rewrite mul1g -groupV; case/agenP=> [|g gX emg xknot1].
     by apply: (asub abelX); rewrite -gen_subG genS // subsetDr.
