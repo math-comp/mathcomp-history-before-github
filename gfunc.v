@@ -87,9 +87,9 @@ Implicit Types gT: finGroupType.
 Structure bgFunc : Type := BGFunc { 
   Fobj :> obmap;
   (* group preservation *)
-  _ : forall gT (G:{group gT}), group_set (Fobj G);
+  _ : forall gT (G:{group gT}), group_set (@Fobj _ G);
   (* submapping *)
-  _ : forall gT (G: {group gT}), Fobj G \subset G;
+  _ : forall gT (G: {group gT}), (@Fobj _ G) \subset G;
   (* functoriality condition *)
   _ : aresp Fobj}.
 
