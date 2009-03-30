@@ -4,21 +4,49 @@ Require Import BinNat.
 Require BinPos Ndec.
 Require Export Ring.
 
-(*   A "reflected" version of Arith, with an emphasis on boolean predicates *)
-(* and rewriting; this includes a canonical eqType for nat, as well as      *)
-(* reflected predicates, <= (leq) and < for comparison m < n is actually a  *)
-(* Notation for m.+1 < n. This has one serious advantage: reduction happens *)
-(* in the same way in <= and <, and one drawback: rewrites that match <=    *)
-(* will also match <.                                                       *)
-(*   Also <= is defined so that it does NOT simpl'ify; instead, rewrite     *)
-(* rules are provided for cases where it is useful to do simplification.    *)
-(* This makes the manipulation of assertions much more stable, while still  *)
-(* allowing conversion for trivial cases.                                   *)
-(*   Stable versions of plus and minus, addn and subn, respectively, are    *)
-(* provided for the same reasons, and the standard arithmetic lemmas are    *)
-(* replicated.                                                              *)
-(*   Also included are replacements for the div2 lemmas, that fit better    *)
-(* with the rest of the theory.                                             *)
+(*   We develop a version of arithmetic on nat (natural numbers) that is    *)
+(* better suited to small scale reflection than the Coq Arith library.      *)
+(*   We provide the following operations and notations,                     *)
+(* n.+1, n.+2, n.+3, n.+4 and n.-1, n.-2 :                                  *)
+(*   (iterated) successor and predecessor (frees the names "S" and "pred"). *)
+(* m + n, m - n, m * n :                                                    *)
+(*   basic arithmetic; the definitions use the nosimpl tag to prevent       *)
+(*   undesirable computation during simplification, but remain compatible   *)
+(*   with those in Peano.                                                   *)
+(* n.*2, n./2, odd n                                                        *)
+(*   doubling, halving, and parity; we let bool coerce to nat so we can     *)
+(*   write, e.g., n = odd n + n./2.*2.                                      *)
+(* iter n f x0, iteri n g x0, iterop n op x0 op x                           *)
+(*   iteration: f ( .. (f x0)), g n.-1 (g ... (g 0 x0)), op x (... op x x), *)
+(*   respectively. iterop defaults to x0 only when n = 0.                   *)
+(* m ^ n, fact n                                                            *)
+(*   exponentiation, factorial; m ^ n uses iterop, so that m ^ 1            *)
+(*   is convertible to m, and m ^ 2 to m * m.                               *)
+(* m <= n, m < n, m >= n, m > n, m == n, m <= n <= p, etc.                  *)
+(*   BOOLEAN comparison operators (m == n is the generic eqType operation). *)
+(*   Most compatibility lemmas are stated as boolean equalities; this keeps *)
+(*   the size of the library down. All the inequlities refer to the same    *)
+(*   constant, "leq"; in particular m < n is identical to m.+1 <= n.        *)
+(* maxn m n, minn m n                                                       *)
+(*   min and max; note that maxn m n = m + (m - n) (truncating subtraction) *)
+(* m <= n ?= iff condition                                                  *)
+(*   conditionally strict inequality, i.e., the conjunction of m <= n and   *)
+(*   (m == n) = condition. The transitivity lemma for leqif aggregates the  *)
+(*   conditions, making for arguments of the form "m <= n <= p <= m, so     *)
+(*   holds throughout".                                                     *)
+(* ex_minn : forall P : pred nat, (exists n, P n) -> nat                    *)
+(*   countable choice: returns the smallest n such that P n holds.          *)
+(* Num 3 082 241, [Num of n]                                                *)
+(*   support for input and output of large nat values.                      *)
+(* pos_nat                                                                  *)
+(*   a subType for positive integers, with Canonical projections for most   *)
+(*   arithmetic operations.                                                 *)
+(* Open NatTrec.                                                            *)
+(*   rebinds all arithmetic  notations to less convenient, but also less    *)
+(*   inefficient tail-recursive definitions.                                *)
+(* We provide an extensive equational theory (including, e.g., the AGM      *)
+(* inequality, as well as support for the ring tactic, and congruence       *)
+(* tactics.                                                                 *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -1484,7 +1512,7 @@ End NumberInterpretation.
 
 Record number : Type := Num {bin_of_number :> N}.
 
-Definition extend_number (nn : number) b := Num (nn * 1000 + b)%num.
+Definition extend_number (nn : number) m := Num (nn * 1000 + bin_of_nat m).
 
 Coercion extend_number : number >-> Funclass.
 
@@ -1531,7 +1559,7 @@ Ltac succn_to_add :=
     | ?n.+1 => pose x := n.+1; let G' := context G [x] in change G'
     | _ ?e' ?n => pose x := n; let G' := context G [x + e'] in change G'
     end; succn_to_add; rewrite {}/x
-			      | _ => idtac
+  | _ => idtac
   end.
 
 Add Ring nat_ring_ssr : nat_semi_ring (morphism nat_semi_morph,
