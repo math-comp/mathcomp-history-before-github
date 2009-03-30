@@ -1035,6 +1035,12 @@ Proof. exact: card_sub. Qed.
 
 End CardSig.
 
+(**********************************************************************)
+(*                                                                    *)
+(*  Ordinal finType : {0, ... , n-1}                                  *)
+(*                                                                    *)
+(**********************************************************************)
+
 Section OrdinalSub.
 
 Variable n : nat.
@@ -1123,6 +1129,7 @@ Lemma cast_ordP : forall n m (i : 'I_n), n = m -> i < m.
 Proof. by move=> n m i <-. Qed.
 Definition cast_ord n m eq_n_m i := Ordinal (@cast_ordP n m i eq_n_m).
 
+(* bijection between any finType T and the Ordinal finType of its cardinal *)
 Section EnumRank.
 
 Variable T : finType.
@@ -1350,6 +1357,7 @@ Implicit Arguments inord [n].
 
 Prenex Implicits ord_opp.
 
+(* Product of tow fintypes which is a fintype *)
 Section ProdFinType.
 
 Variable T1 T2 : finType.
@@ -1441,64 +1449,3 @@ Lemma card_sum : #|{: T1 + T2}| = #|T1| + #|T2|.
 Proof. by rewrite !cardT !enumT unlock size_cat !size_map. Qed.
 
 End SumFinType.
-
-(* Deprecated: *)
-(*  - use enum_rank/enum_val for explicit bijections T <-> 'I_(#|T|) *)
-(*  - use rewrite -(@card_in_image _ _ f), or bigops, to prove       *)
-(*     #|A| = #|B| using a bijection f.                              *)
-(** Begin outcomment
-Section BijectionCard.
-
-Lemma can_card_leq :  forall (T T' : finType) (f : T -> T') (g : T' -> T),
-  cancel f g -> #|T| <= #|T'|.
-Proof.
-move=> T T' f g Hfg; rewrite (cardT T') -(size_map g).
-apply: (leq_trans (subset_leq_card _) (card_size _)).
-by apply/subsetP => x _; apply/mapP; exists (f x); rewrite ?mem_enum.
-Qed.
-
-Lemma bij_eq_card_predT : forall T T' : finType,
-  (exists f : T -> T', bijective f) -> #|T| = #|T'|.
-Proof.
-move=> T T' [f [g Hfg Hgf]]; apply: eqP.
-by rewrite eqn_leq (can_card_leq Hfg) (can_card_leq Hgf).
-Qed.
-
-Lemma eq_card_predT : forall T T' : finType,
-  T = T' :> Type -> #|T| = #|T'|.
-Proof.
-move=> T [T' mT' T''] /= eqTT'; rewrite -{T'}eqTT' in mT' *.
-by apply: bij_eq_card_predT; do 2 exists (@id T).
-Qed.
-
-Lemma bij_eq_card : forall (T T' : finType) (A : pred T) (A' : pred T'),
- (exists f : {x | x \in A} -> {y | y \in A'}, bijective f) -> #|A| = #|A'|.
-Proof. by move=> T T' A A'; move/bij_eq_card_predT; rewrite !card_sub. Qed.
-
-Definition assoc_finType (T1 T2 : finType) (eqcT12 : #|T1| = #|T2|) x1 :=
-  enum_val (cast_ord eqcT12 (enum_rank x1)).
-
-Lemma assoc_finTypeK : forall T1 T2 Ed12 Ed21,
-  cancel (@assoc_finType T1 T2 Ed12) (@assoc_finType T2 T1 Ed21).
-Proof.
-rewrite /assoc_finType => T1 T2 Ed12 Ed21 x.
-by rewrite enum_valK (enum_val_nth x) nth_enum_rank.
-Qed.
-
-Lemma eq_card_predT_bij : forall T1 T2 : finType,
-  #|T1| = #|T2| -> {f : T1 -> T2 &  {g | cancel f g &  cancel g f}}.
-Proof.
-move=> T1 T2 E12; exists (assoc_finType E12).
-exists (assoc_finType (esym E12)); exact: assoc_finTypeK.
-Qed.
-
-Lemma eq_card_bij : forall (T T' : finType) (A : pred T) (A' : pred T'),
-   #|A| = #|A'| ->
- {f : {x | x \in A} -> {y | y \in A'} & {g | cancel f g &  cancel g f}}.
-Proof.
-move=> T T' A A'; rewrite -card_sig -(card_sig A'); exact: eq_card_predT_bij.
-Qed.
-
-End BijectionCard.
-** End outcomment *)
-

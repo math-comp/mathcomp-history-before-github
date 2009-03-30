@@ -1,3 +1,7 @@
+(***********************************************************************)
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
+(*                                                                     *)
+(***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype.
 Require Import bigops ssralg.
 

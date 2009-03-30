@@ -12,6 +12,26 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
+(***************************************************************************)
+(* Basic linear algebra : definition of the Matrix type. Matrix is defined *)
+(* as a double indexed list of coefficients. This is done by using the     *)
+(* finfun structure. We define the construction operators of a matrix form *)
+(* a given function : \matrix_ ( i < m , j < n ) E ,                       *)
+(*  \matrix_ ( i , j < n ) E and \matrix_ ( i , j ) E.                     *)
+(* We define :                                                             *)
+(* - row and column operations :  cut, drop and sawp                       *)
+(* - block operation : left cut, right cut and paste of matrices           *)
+(* - trace : \tr A                                                         *)
+(* - determinant : \det A. The definition is done with Leibniz formula     *)
+(* - adjugate matrix : \adj A                                              *)
+(* - algebraic operation for group, ring, module and unital ring           *)
+(* - LUP matrix decomposition                                              *)
+(* We prove some important results :                                       *)
+(* - determinant multilinear property                                      *)
+(* - Laplace formulas : expand_det_row & expand_det_col                    *)
+(* - Cramer rule : mulmx_adjr & mulmx_adjl                                 *)
+(***************************************************************************)
+
 Reserved Notation "''M_' n"       (at level 8, n at level 2, format "''M_' n").
 Reserved Notation "''M_' ( n )"   (at level 8, only parsing).
 Reserved Notation "''M_' ( m , n )" (at level 8, format "''M_' ( m ,  n )").
@@ -105,16 +125,17 @@ Definition mx_row m n i0 (A : 'M_(m, n)) :=
 Definition mx_col m n j0 (A : 'M_(m, n)) :=
   \matrix_(i < m, j < 1) (A i j0 : R).
 Definition mx_row' m n i0 (A : 'M_(m, n)) :=
-  \matrix_(i, j) (A (lift i0 i) j : R).
+  \matrix_(i, j) (A (lift i0 i) j : R).      (* Drop row *)
 Definition mx_col' m n j0 (A : 'M_(m, n)) :=
-  \matrix_(i, j) (A i (lift j0 j) : R).
+  \matrix_(i, j) (A i (lift j0 j) : R).      (* Drop col *)
 
 Definition rswap m n (A : 'M_(m, n)) i1 i2 :=
   \matrix_(i, j) (A (tperm i1 i2 i) j : R). 
     
 Definition cswap m n (A : 'M_(m, n)) i1 i2 :=
   \matrix_(i, j) (A i (tperm i1 i2 j) : R). 
-    
+
+(* Transpose *)    
 Definition trmx m n (A : 'M_(m, n)) := \matrix_(i, j) (A j i : R).
 
 Lemma trmxK : forall m n, cancel (@trmx m n) (@trmx n m).

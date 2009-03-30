@@ -5,8 +5,6 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype.
 Require Import bigops ssralg matrix poly.
 
-(* Require Import ssrfun paths finfun div groups. *)
-
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
