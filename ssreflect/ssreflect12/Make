@@ -1,0 +1,34 @@
+-I theories 
+-custom "$(COQBIN)coqmktop -opt -o bin/ssrcoq src/ssreflect.cmx" "src/ssreflect.cmx" bin/ssrcoq
+-custom "$(SSRCOQ) $(COQFLAGS) -compile $*" "%.v $(SSRCOQ)" "%.vo"
+CAMLP4OPTIONS = "-loc loc"
+SSRCOQ = bin/ssrcoq
+theories/automorphism.v
+theories/bigops.v
+theories/binomial.v
+theories/charpoly.v
+theories/choice.v
+theories/connect.v
+theories/cyclic.v
+theories/div.v
+theories/eqtype.v
+theories/finfun.v
+theories/finset.v
+theories/fintype.v
+theories/groups.v
+theories/matrix.v
+theories/morphisms.v
+theories/normal.v
+theories/paths.v
+theories/perm.v
+theories/poly.v
+theories/prime.v
+theories/seq.v
+theories/ssralg.v
+theories/ssrbool.v
+theories/ssreflect.v
+theories/ssrfun.v
+theories/ssrnat.v
+theories/tuple.v
+theories/zmodp.v
+src/ssreflect.ml
