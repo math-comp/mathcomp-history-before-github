@@ -40,13 +40,13 @@ let sprintf = Printf.sprintf
 
 let accept_before_syms syms strm =
   match Stream.npeek 2 strm with
-  | [_; "", sym] when List.mem sym syms -> Stream.junk strm
+  | [_; "", sym] when List.mem sym syms -> ()
   | _ -> raise Stream.Failure
 
 let accept_before_syms_or_id syms strm =
   match Stream.npeek 2 strm with
-  | [_; "", sym] when List.mem sym syms -> Stream.junk strm
-  | [_; "IDENT", _] -> Stream.junk strm
+  | [_; "", sym] when List.mem sym syms -> ()
+  | [_; "IDENT", _] -> ()
   | _ -> raise Stream.Failure
 
 
@@ -145,6 +145,8 @@ let msgtac gl = pf_msg gl; tclIDTAC gl
 
 (** Tactic utilities *)
 
+let introid = intro_mustbe_force
+
 let pf_image gl tac = let gls, _ = tac gl in first_goal gls
 
 let last_goal gls = let sigma, gll = Refiner.unpackage gls in
@@ -174,50 +176,176 @@ let havetac id = pose_proof (Name id)
 let settac id c = letin_tac None (Name id) c None
 let posetac id cl = settac id cl nowhere
 
+(** Ssreflect load check. *)
+
+(* To allow ssrcoq to be fully compatible with the "plain" Coq, we only *)
+(* turn on its incompatible features (the new rewrite syntax, and the   *)
+(* reserved identifiers) when the theory library (ssreflect.v) has      *)
+(* has actually been required, or is being defined. Because this check  *)
+(* needs to be done often (for each identifier lookup), we implement    *)
+(* some caching, repeating the test only when the environment changes.  *)
+
+let ssrdirpath = make_dirpath [id_of_string "ssreflect"]
+let ssrqid name = make_qualid ssrdirpath (id_of_string name) 
+let ssrtopqid name = make_short_qualid (id_of_string name) 
+
+let ssr_loaded =
+  let nl_env = ref (Some Environ.empty_env) in
+  fun () -> match !nl_env with
+  | None -> true
+  | Some env ->
+  let env' = Global.env() in
+  if env == env' then false else
+  let nl_env' =
+    try ignore (Nametab.locate_module (ssrqid "SsrSyntax")); None with _ ->
+    try ignore (Nametab.locate_module (ssrtopqid "SsrSyntax")); None with _ ->
+    Some env' in
+  nl_env := nl_env'; nl_env' = None
+
 (** Name generation *)
 
-(* Separator for composite ids; should be '_' or ' '. The latter avoids *)
-(* clashes with user names and gives prettier error, but may give       *)
-(* incorrect printouts of proofs, and cause extraction errors.          *)
+(* Since Coq now does repeated internal checks of its external lexical *)
+(* rules, we now need to carve ssreflect reserved identifiers out of   *)
+(* out of the user namespace. We use identifiers of the form _id_ for  *)
+(* this purpose, e.g., we "anonymize" an identifier id as _id_, adding *)
+(* an extra leading _ if this might clash with an internal identifier. *)
+(*    We check for ssreflect identifiers in the ident grammar rule;    *)
+(* when the ssreflect Module is present this is normally an error,     *)
+(* but we provide a compatibility flag to reduce this to a warning.    *)
 
-let tag_sep = ref '_'
-
-let id_of_tag s =
-(*  if !tag_sep = ' ' then id_of_string s else*) begin
-    let s' = String.copy s in
-    for i = 0 to String.length s - 1 do
-      if s.[i] = ' ' then s'.[i] <- !tag_sep
-    done;
-    id_of_string s'
-  end
-
-let tag_id tag id = id_of_tag (sprintf "%s %s" tag (string_of_id id))
-
-let is_tag_id tag id =
-  let n = String.length tag in let s = string_of_id id in
-  String.length s > n && s.[n] = !tag_sep && String.sub s 0 n = tag
-
-let sync_ids = ref []
-
-let mk_sync_id s =
-  let idref = ref (id_of_tag s) in sync_ids := (s, idref) :: !sync_ids; idref
-
-let set_tag_sep s =
-  if String.length s = 1 then begin
-    tag_sep := s.[0];
-    List.iter (fun (s, r) -> r := id_of_tag s) !sync_ids
-  end else
-  error "ssr internal ident separator must be a single character"
-
-let get_tag_sep () = String.make 1 !tag_sep
+let ssr_reserved_ids = ref true
 
 let _ =
-  Goptions.declare_string_option 
+  Goptions.declare_bool_option
     { Goptions.optsync  = true;
-      Goptions.optname  = "internal ident separator";
-      Goptions.optkey   = (PrimaryTable "SsrIdSeparator");
-      Goptions.optread  = get_tag_sep;
-      Goptions.optwrite = set_tag_sep }
+      Goptions.optname  = "ssreflect identifiers";
+      Goptions.optkey   = PrimaryTable ("SsrIdents");
+      Goptions.optread  = (fun _ -> !ssr_reserved_ids);
+      Goptions.optwrite = (fun b -> ssr_reserved_ids := b)
+    }
+
+let is_ssr_reserved s =
+  let n = String.length s in n > 2 && s.[0] = '_' && s.[n - 1] = '_'
+
+let internal_names = ref []
+let add_internal_name pt = internal_names := pt :: !internal_names
+let is_internal_name s = List.exists (fun p -> p s) !internal_names
+
+let ssr_id_of_string loc s =
+  if is_ssr_reserved s && ssr_loaded () then begin
+    if !ssr_reserved_ids then
+      loc_error loc ("The identifier " ^ s ^ " is reserved.")
+    else if is_internal_name s then
+      warning ("Conflict between " ^ s ^ " and ssreflect internal names.")
+    else warning (
+     "The name " ^ s ^ " fits the _xxx_ format used for anonymous variables.\n"
+  ^ "Scripts with explicit references to anonymous variables are fragile.")
+    end; id_of_string s
+
+let ssr_null_entry = Gram.Entry.of_parser "ssr_null" (fun _ -> ())
+
+GEXTEND Gram 
+  GLOBAL: Prim.ident ssr_null_entry;
+  Prim.ident: [[ s = IDENT; ssr_null_entry -> ssr_id_of_string loc s ]];
+END
+
+let mk_internal_id s =
+  let s' = sprintf "_%s_" s in
+  for i = 1 to String.length s do if s'.[i] = ' ' then s'.[i] <- '_' done;
+  add_internal_name ((=) s'); id_of_string s'
+
+let same_prefix s t n =
+  let rec loop i = i = n || s.[i] = t.[i] && loop (i + 1) in loop 0
+
+let skip_digits s =
+  let n = String.length s in 
+  let rec loop i = if i < n && is_digit s.[i] then loop (i + 1) else i in loop
+
+let mk_tagged_id t i = id_of_string (sprintf "%s%d_" t i)
+let is_tagged t s =
+  let n = String.length s - 1 and m = String.length t in
+  m < n && s.[n] = '_' && same_prefix s t m && skip_digits s m = n
+
+let perm_tag = "_perm_Hyp_"
+let _ = add_internal_name (is_tagged perm_tag)
+let mk_perm_id =
+  let salt = ref 1 in 
+  fun () -> salt := !salt mod 10000 + 1; mk_tagged_id perm_tag !salt
+
+let evar_tag = "_evar_"
+let _ = add_internal_name (is_tagged evar_tag)
+let mk_evar_name n = Name (mk_tagged_id evar_tag n)
+let nb_evar_deps = function
+  | Name id ->
+    let s = string_of_id id in
+    if not (is_tagged evar_tag s) then 0 else
+    let m = String.length evar_tag in
+    (try int_of_string (String.sub s m (String.length s - 1 - m)) with _ -> 0)
+  | _ -> 0
+
+let discharged_tag = "_discharged_"
+let mk_discharged_id id =
+  id_of_string (sprintf "%s%s_" discharged_tag (string_of_id id))
+let has_discharged_tag s =
+  let m = String.length discharged_tag and n = String.length s - 1 in
+  m < n && s.[n] = '_' && same_prefix s discharged_tag m
+let _ = add_internal_name has_discharged_tag
+let is_discharged_id id = has_discharged_tag (string_of_id id)
+
+let wildcard_tag = "_the_"
+let wildcard_post = "_wildcard_"
+let mk_wildcard_id i =
+  id_of_string (sprintf "%s%s%s" wildcard_tag (ordinal i) wildcard_post)
+let has_wildcard_tag s = 
+  let n = String.length s in let m = String.length wildcard_tag in
+  let m' = String.length wildcard_post in
+  n < m + m' + 2 && same_prefix s wildcard_tag m &&
+  String.sub s (n - m') m' = wildcard_post &&
+  skip_digits s m = n - m' - 2
+let _ = add_internal_name has_wildcard_tag
+
+let max_suffix m (t, j0 as tj0) id  =
+  let s = string_of_id id in let n = String.length s - 1 in
+  let dn = String.length t - 1 - n in let i0 = j0 - dn in
+  if not (i0 >= m && s.[n] = '_' && same_prefix s t m) then tj0 else
+  let rec loop i =
+    if i < i0 && s.[i] = '0' then loop (i + 1) else
+    if (if i < i0 then skip_digits s i = n else le_s_t i) then s, i else tj0
+  and le_s_t i =
+    let ds = s.[i] and dt = t.[i + dn] in
+    if ds = dt then i = n || le_s_t (i + 1) else
+    dt < ds && skip_digits s i = n in
+  loop m
+
+let mk_anon_id t gl =
+  let m, si0, id0 =
+    let s = ref (sprintf  "_%s_" t) in
+(try
+    if is_internal_name !s then s := "_" ^ !s
+with err0 -> msgnl (str ("is_internal_id failed on " ^ !s)); raise err0);
+    let n = String.length !s - 1 in
+    let rec loop i j =
+      let d = !s.[i] in if not (is_digit d) then i + 1, j else
+      loop (i - 1) (if d = '0' then j else i) in
+    let m, j = loop (n - 1) n in m, (!s, j), id_of_string !s in
+  let gl_ids = pf_ids_of_hyps gl in
+  if not (List.mem id0 gl_ids) then id0 else
+  let s, i = List.fold_left (max_suffix m) si0 gl_ids in
+  let n = String.length s - 1 in
+  let rec loop i =
+    if s.[i] = '9' then (s.[i] <- '0'; loop (i - 1)) else
+    if i < m then (s.[n] <- '0'; s.[m] <- '1'; s ^ "_") else
+    (s.[i] <- Char.chr (Char.code s.[i] + 1); s) in
+  id_of_string (loop (n - 1))
+  
+(* We must not anonymize context names discharged by the "in" tactical. *)
+
+let anontac (x, _, _) gl =
+  let id =  match x with
+  | Name id ->
+    if is_discharged_id id then id else mk_anon_id (string_of_id id) gl
+  | _ -> mk_anon_id "Hyp" gl in
+  introid id gl
 
 let rec constr_name c = match kind_of_term c with
   | Var id -> Name id
@@ -273,13 +401,14 @@ let mkRConstruct c = RRef (dummy_loc, ConstructRef c)
 
 let mkRInd mind = RRef (dummy_loc, IndRef mind)
 
-(* look up a name in the ssreflect internals module *)
+(** look up a name in the ssreflect internals module *)
 
+(*
 let ssrdirpath = make_dirpath [id_of_string "ssreflect"]
 
 let ssrqid name = make_qualid ssrdirpath (id_of_string name) 
 let ssrtopqid name = make_short_qualid (id_of_string name) 
-
+*)
 let mkSsrRef name =
   try Constrintern.locate_reference (ssrqid name) with Not_found ->
   try Constrintern.locate_reference (ssrtopqid name) with Not_found ->
@@ -339,56 +468,6 @@ let rec whdEtaApp c n =
 (* i.e., it will rewrite some subterm .. + (3 + ..) to .. + 3 + ...  *)
 (* The convention is also used for the argument of the congr tactic, *)
 (* e.g., congr (x + _ * 1).                                          *)
-
-(*
-let nf_etype sigma ev =
-  Evarutil.nf_evar sigma (Evd.existential_type sigma ev)
-
-let pf_abs_evars gl (sigma, c0) =
-  let sigma0 = project gl in
-  let rec put evlist c = match kind_of_term c with
-  | Evar (k, _ as ev) ->  
-    if List.mem ev evlist || Evd.mem sigma0 k then evlist else
-    if List.mem_assoc k evlist then error "Incompatible evar dependencies" else
-    ev :: put evlist (nf_etype sigma ev)
-  | _ -> fold_constr put evlist c in
-  let evlist = put [] c0 in
-  if evlist = [] then 0, c0 else
-  let rec lookup ev i = function
-    | [] -> mkEvar ev
-    | ev' :: evl -> if ev = ev' then mkRel i else lookup ev (i + 1) evl in
-  let rec get i c = match kind_of_term c with
-  | Evar ev -> lookup ev i evlist
-  | _ -> map_constr_with_binders ((+) 1) get i c in
-  let rec loop c i = function
-  | [] -> c
-  | ev :: evl ->
-    let t = get (i - 1) (nf_etype sigma ev) in
-    loop (mkLambda (Name (pf_type_id gl t), t, c)) (i - 1) evl in
-  List.length evlist, loop (get 1 c0) 1 evlist
-*)
-
-(* assia : Error: (*SSR*)evar_0_: an identifier should start with a letter
-
-let mk_evar_name n = Name (id_of_string (sprintf "(*SSR*)evar_%d_" n))
-
-let nb_evar_deps x =
-  try
-    let s = match x with Name id -> string_of_id id | _ -> "" in
-    if String.sub s 0 12 <> "(*SSR*)evar_" then raise Exit;
-    int_of_string (String.sub s 12 (String.rindex s '_' - 12))
-  with _ -> 0
-*)
-let mk_evar_name n = Name (id_of_string (sprintf "SSRevar_%d_" n))
-
-let nb_evar_deps x =
-  try
-    let s = match x with Name id -> string_of_id id | _ -> "" in
-    if String.sub s 0 8 <> "SSRevar_" then raise Exit;
-(*    if String.sub s 0 12 <> "SSRevar_" then raise Exit;*)
-    int_of_string (String.sub s 8 (String.rindex s '_' - 8))
-(*    int_of_string (String.sub s 12 (String.rindex s '_' - 12))*)
-  with _ -> 0
 
 let env_size env = List.length (Environ.named_context env)
 
@@ -582,7 +661,7 @@ ARGUMENT EXTEND ssrltacctx TYPED AS int PRINTED BY pr_ssrltacctx
 | [ ] -> [ rawltacctx ]
 END
 
-let tacarg_id = id_of_tag "tactical argument"
+let tacarg_id = mk_internal_id "tactical argument"
 let tacarg_expr = TacArg (Reference (Ident (dummy_loc, tacarg_id)))
 
 let get_ssrevaltac i = match !ssrltacctxs with
@@ -732,17 +811,17 @@ let declare_one_prenex_implicit loc f =
   let start_module = Declaremods.start_module Modintern.interp_modtype None in
   let submod_id = prenex_implicit_submod_id in
   let make_loc_qid id = loc, make_short_qualid id in
-  start_module mod_id [] None;
+  ignore (start_module mod_id [] None);
     Command.syntax_definition prenex_implicit_id ([],(mkCVar loc f)) false true;
     (** assia has this something to do with max implicits? previous is:
     Command.syntax_definition prenex_implicit_id (mkCVar loc f) false true;**)
-    start_module submod_id [] None;
+    ignore (start_module submod_id [] None);
       add_implicit_notation ();
       Command.syntax_definition f ([],(mkCExplVar loc f n)) false true;
       (** assia has this something to do with max implicits? previous is:
       Command.syntax_definition f (mkCExplVar loc f n) false true;**)
-    Declaremods.end_module submod_id;
-  Declaremods.end_module mod_id;
+    ignore (Declaremods.end_module submod_id);
+  ignore (Declaremods.end_module mod_id);
   let rref = RRef (loc, Nametab.locate (make_short_qualid f)) in
   let other_pp = Notation.uninterp_notations rref in
   Library.import_module true (make_loc_qid mod_id);
@@ -1466,16 +1545,12 @@ ARGUMENT EXTEND ssrclauses TYPED AS ssrclausehyps * ssrclseq
   | [ ]                                   -> [ mkclause []   InGoal ]
 END
 
-let ctx_tag = "discharged"
-let ctx_id = tag_id ctx_tag
-let is_ctx_id = is_tag_id ctx_tag
-
 let nohide = mkRel 0
-let hidden_goal_id = mk_sync_id "the hidden goal"
+let hidden_goal_tag = "the_hidden_goal"
 
 let pf_ctx_let_depth gl =
   let rec depth c = match kind_of_term c with
-  | LetIn (Name id, _, _, c') when is_ctx_id id -> 1 + depth c'
+  | LetIn (Name id, _, _, c') when is_discharged_id id -> 1 + depth c'
   | LetIn (_, _, _, c') -> lifted_depth c'
   | Prod (_, _, c') -> lifted_depth c'
   | _ -> 0
@@ -1543,8 +1618,8 @@ let endclausestac id_map clseq gl_id cl0 gl =
 let tclCLAUSES tac (clhyps, clseq) gl =
   if clseq = InGoal || clseq = InSeqGoal then tac gl else
   let cl_ids = pf_clauseids gl clhyps clseq in
-  let id_map = List.map (fun id -> ctx_id id, id) cl_ids in
-  let gl_id = fresh_id [] !hidden_goal_id gl in
+  let id_map = List.map (fun id -> mk_discharged_id id, id) cl_ids in
+  let gl_id = mk_anon_id hidden_goal_tag gl in
   let cl0 = pf_concl gl in
   let dtacs = List.map discharge_hyp (List.rev id_map) @ [clear cl_ids] in
   let endtac = endclausestac id_map clseq gl_id cl0 in
@@ -1821,18 +1896,16 @@ ARGUMENT EXTEND ssrintros TYPED AS ssripats PRINTED BY pr_ssrintros
   | [ ] -> [ [] ]
 END
 
-let introid = intro_mustbe_force
-
-let injecteq_id = mk_sync_id "injection equation"
+let injecteq_id = mk_internal_id "injection equation"
 
 let pf_nb_prod gl = nb_prod (pf_concl gl)
 
-let rev_id = mk_sync_id "rev concl"
+let rev_id = mk_internal_id "rev concl"
 
 let revtoptac n0 gl =
   let n = pf_nb_prod gl - n0 in
   let dc, cl = decompose_prod_n n (pf_concl gl) in
-  let dc' = dc @ [Name !rev_id, compose_prod (List.rev dc) cl] in
+  let dc' = dc @ [Name rev_id, compose_prod (List.rev dc) cl] in
   let f = compose_lam dc' (mkEtaApp (mkRel (n + 1)) (-n) 1) in
   refine (mkApp (f, [|Evarutil.mk_new_meta ()|])) gl
 
@@ -1855,7 +1928,7 @@ let injectl2rtac c = match kind_of_term c with
 let injectl2rtac c = match kind_of_term c with
 | Var id -> injectidl2rtac (mkVar id, NoBindings)
 | _ ->
-  let id = !injecteq_id in
+  let id = injecteq_id in
   tclTHENLIST [havetac id c; injectidl2rtac (mkVar id, NoBindings); clear [id]]
 (*assia
 let ssrscasetac c gl =
@@ -1879,18 +1952,10 @@ let ssrscasetac c gl =
   let cl = pf_concl gl in let n = List.length dc in
   let c_eq = mkEtaApp c n 2 in
   let cl1 = mkLambda (Anonymous, mkArrow eqt cl, mkApp (mkRel 1, [|c_eq|])) in
-  let id = !injecteq_id in
+  let id = injecteq_id in
   let id_with_ebind = (mkVar id, NoBindings) in
   let injtac =tclTHEN (introid id) (injectidl2rtac id_with_ebind) in 
   tclTHENLAST (apply (compose_lam dc cl1)) injtac gl  
-
-(* We must not anonymize context names discharged by the "in" tactical. *)
-
-let anon_id = function
-  | Name id -> if is_ctx_id id then id else tag_id "anon" id
-  | _ -> id_of_tag "anon hyp"
-
-let anontac (x, _, _) = intro_using (anon_id x)
 
 let intro_all gl =
   let dc, _ = Sign.decompose_prod_assum (pf_concl gl) in
@@ -1898,13 +1963,13 @@ let intro_all gl =
 
 let rec intro_anon gl =
   try anontac (List.hd (fst (Sign.decompose_prod_n_assum 1 (pf_concl gl)))) gl
-  with _ -> try tclTHEN red_in_concl intro_anon gl
-  with _ -> error "No product even after reduction"
+  with err0 -> try tclTHEN red_in_concl intro_anon gl with _ -> raise err0
+  (* with _ -> error "No product even after reduction" *)
 
-let top_id = mk_sync_id "top assumption"
+let top_id = mk_internal_id "top assumption"
 
 let with_top tac =
-  tclTHENLIST [introid !top_id; tac (mkVar !top_id); clear [!top_id]]
+  tclTHENLIST [introid top_id; tac (mkVar top_id); clear [top_id]]
 
 let rec mapLR f = function [] -> [] | x :: s -> let y = f x in y :: mapLR f s
 
@@ -1912,8 +1977,7 @@ let wild_ids = ref []
 
 let new_wild_id () =
   let i = 1 + List.length !wild_ids in
-  let sufx = match i with 1 -> "st" | 2 -> "nd" | 3 -> "rd" | _ -> "th" in
-  let id = id_of_tag (sprintf "the %d%s wildcard" i sufx) in
+  let id = mk_wildcard_id i in
   wild_ids := id :: !wild_ids;
   id
 
@@ -2183,13 +2247,15 @@ END
 let sq_brace_tacnames =
    ["first"; "solve"; "do"; "rewrite"; "have"; "suffices"; "wlog"]
    (* "by" is a keyword *)
-let input_ssrseqvar strm =
+let accept_ssrseqvar strm =
   match Stream.npeek 1 strm with
   | ["IDENT", id] when not (List.mem id sq_brace_tacnames) ->
-     accept_before_syms ["["] strm; id_of_string id
+     accept_before_syms ["["] strm
   | _ -> raise Stream.Failure
 
-let ssrseqvar = Gram.Entry.of_parser "ssrseqvar" input_ssrseqvar
+let test_ssrseqvar = Gram.Entry.of_parser "test_ssrseqvar" accept_ssrseqvar
+
+let ssrseqvar = Gram.Entry.create "ssrseqvar"
 
 let swaptacarg dtac = mk_tacarg dtac, Some dtac
 
@@ -2203,7 +2269,9 @@ let check_seqtacarg dir (_, ((is_or, _), atac3) as arg) = match atac3 with
 (* assia : is the 'false'flag for TacLeft/Right appropriate? *)
 let ssrorelse = Gram.Entry.create "ssrorelse"
 GEXTEND Gram
-  GLOBAL: ssrseqvar Prim.natural tactic_expr ssrorelse ssrseqarg;
+  GLOBAL: test_ssrseqvar Prim.ident ssrseqvar Prim.natural
+          tactic_expr ssrorelse ssrseqarg;
+  ssrseqvar: [[ test_ssrseqvar; id = Prim.ident -> id ]];
   ssrseqidx: [
     [ id = ssrseqvar -> ArgVar (loc, id)
     | n = Prim.natural -> ArgArg (check_index loc n)
@@ -2224,8 +2292,6 @@ GEXTEND Gram
     ] ];
 END
 
-let tclPERMsalt = ref 1
-
 let tclPERM perm tac gls =
   let mkpft n g r =
     {Proof_type.open_subgoals = n; Proof_type.goal = g; Proof_type.ref = r} in
@@ -2243,8 +2309,7 @@ let tclPERM perm tac gls =
     | (x, _, _ as d) :: e when not_section_id x -> d :: chop_section e
     | _ -> [] in
     let lhyps = Environ.named_context_of_val subgl.evar_hyps in
-    let salt = !tclPERMsalt in tclPERMsalt := salt mod 1000000000 + 1;
-    id_of_tag ("perm hyp" ^ string_of_int salt), subgl, chop_section lhyps in
+    mk_perm_id (), subgl, chop_section lhyps in
   let mkpfvar (hyp, subgl, lhyps) =
     let mkarg args (lhyp, body, _) =
       if body = None then mkVar lhyp :: args else args in
@@ -2301,14 +2366,6 @@ let tclseq_expr loc tac dir arg =
   let arg2 = in_gen rawwit_ssrseqdir dir in
   let arg3 = in_gen rawwit_ssrseqarg (check_seqtacarg dir arg) in
   ssrtac_expr loc "tclseq" [arg1; arg2; arg3]
-
-let input_ssrseqvar strm =
-  match Stream.npeek 1 strm with
-  | ["IDENT", id] when id <> "rewrite" ->
-     accept_before_syms ["["] strm; id_of_string id
-  | _ -> raise Stream.Failure
-
-let ssrseqvar = Gram.Entry.of_parser "ssrseqvar" input_ssrseqvar
 
 (*assia : is the patch for TacThen ok ?*)
 GEXTEND Gram
@@ -2388,7 +2445,7 @@ let pat_of_ssrterm n c =
 
 let pat_of_ssrterm n c =
   let rec mkvars i =
-    let v = mkVar (id_of_string (sprintf "_SSR_pat_var_%d" i)) in
+    let v = mkVar (id_of_string (sprintf "_patern_var_%d_" i)) in
     if i = 0 then [v] else v :: mkvars (i - 1) in
   if n <= 0 then c else substl (mkvars n) (snd (decompose_lam_n n c))
 
@@ -2444,8 +2501,8 @@ let pf_prod_ssrterm gl = function
 (* Coq's type inference engine. The problem setup is staged so that most *)
 (* of it is only done once during repeated matching in pf_fill_occ_pat.  *)
 
-let pattern_id = mk_sync_id "pattern value"
-let phantom_id = mk_sync_id "pattern phantom"
+let pattern_id = mk_internal_id "pattern value"
+let phantom_id = mk_internal_id "pattern phantom"
 
 let pop_let c = match kind_of_term c with
 | LetIn (_, b, t, v) when v = mkRel 1 -> b
@@ -2464,10 +2521,10 @@ let pf_understand_holes gl n na pat =
     applist (locked, tf :: f :: args) in
   let coq_eq = build_coq_eq () in
   let mkeq args = mkApp (coq_eq, args) in
-  let phdc = (Name !pattern_id, tp) :: dc in
+  let phdc = (Name pattern_id, tp) :: dc in
   let pht = compose_prod phdc (mkeq [|lift 1 tp; lift 1 cp'; mkRel 1|]) in
-  let phenv = Environ.push_named (!phantom_id, None, pht) env in
-  let phrc = mkRApp (mkRVar !phantom_id) (mkRHoles (n + 1)) in
+  let phenv = Environ.push_named (phantom_id, None, pht) env in
+  let phrc = mkRApp (mkRVar phantom_id) (mkRHoles (n + 1)) in
   fun c ->
     let c' = if na = 0 then c else
       let f, args = destApp c in
@@ -2846,8 +2903,8 @@ let genstac (gens, clr) =
 (* Common code to handle generalization lists along with the defective case *)
 
 let with_defective maintac deps clr =
-  let top_gen = mkclr clr, (notermkind, mkVar !top_id) in
-  tclTHEN (introid !top_id) (maintac deps top_gen)
+  let top_gen = mkclr clr, (notermkind, mkVar top_id) in
+  tclTHEN (introid top_id) (maintac deps top_gen)
 
 let with_dgens (gensl, clr) maintac = match gensl with
   | [deps; []] -> with_defective maintac deps clr
@@ -3059,22 +3116,29 @@ ARGUMENT EXTEND ssreqid TYPED AS ssripat option PRINTED BY pr_ssreqid
 | [ "(**)" ] -> [ Util.anomaly "Grammar placeholder match" ]
 END
 
-let input_ssreqid strm =
+let accept_ssreqid strm =
   match Stream.npeek 1 strm with
-  | ["IDENT", id] ->
-    accept_before_syms [":"] strm; Some (IpatId (id_of_string id))
-  | ["", "_"] -> accept_before_syms [":"] strm; Some (IpatWild)
-  | ["", "?"] -> accept_before_syms [":"] strm; Some (IpatAnon)
-  | ["", "->"] -> accept_before_syms [":"] strm; Some (IpatRw L2R)
-  | ["", "<-"] -> accept_before_syms [":"] strm; Some (IpatRw R2L)
-  | ["", ":"] -> None
+  | ["IDENT", _] -> accept_before_syms [":"] strm
+  | ["", ":"] -> ()
+  | ["", pat] when List.mem pat ["_"; "?"; "->"; "<-"] ->
+                      accept_before_syms [":"] strm
   | _ -> raise Stream.Failure
 
-let ssreqid_p4 = Gram.Entry.of_parser "ssreqid" input_ssreqid
+let test_ssreqid = Gram.Entry.of_parser "test_ssreqid" accept_ssreqid
 
 GEXTEND Gram
-  GLOBAL: ssreqid ssreqid_p4;
-  ssreqid: [[ eqid = ssreqid_p4 -> eqid ]];
+  GLOBAL: test_ssreqid Prim.ident ssreqid;
+  ssreqpat: [
+    [ id = Prim.ident -> IpatId id
+    | "_" -> IpatWild
+    | "?" -> IpatAnon
+    | "->" -> IpatRw L2R
+    | "<-" -> IpatRw R2L
+    ]];
+  ssreqid: [
+    [ test_ssreqid; pat = ssreqpat -> Some pat
+    | test_ssreqid -> None
+    ]];
 END
 
 (* creation *)
@@ -3139,17 +3203,17 @@ let no_ssrarg = [], (None, (([], []), []))
 
 let defdgenstac (gensl, clr) gl =
   match (match gensl with [gens] -> gens | [_; gens] -> gens | _ -> []) with
-  | [] -> introid !top_id gl
-  | (_, (SsrTerm (_, 0), c)) :: _ -> havetac !top_id c gl
+  | [] -> introid top_id gl
+  | (_, (SsrTerm (_, 0), c)) :: _ -> havetac top_id c gl
   | (_, t) :: gens' ->
     let gl' = pf_image gl (genstac (gens', clr)) in
-    havetac !top_id (snd (pf_fill_term gl' t)) gl
+    havetac top_id (snd (pf_fill_term gl' t)) gl
 
 let interp_ssrarg ist gl (gvs, garg) =
   let _, arg = interp_wit globwit_ssrarg wit_ssrarg ist gl ([], garg) in
   let _, (dgens, _) = arg in
   let interp_view_with_arg gv =
-    interp_view ist (pf_image gl (defdgenstac dgens)) gv !top_id in
+    interp_view ist (pf_image gl (defdgenstac dgens)) gv top_id in
   (List.map interp_view_with_arg gvs, arg)
 
 (** The "clear" tactic *)
@@ -3507,7 +3571,7 @@ let apply_id id gl =
   refine_with (loop 0) gl
 
 let apply_top_tac gl =
-  tclTHENLIST [introid !top_id; apply_id !top_id; clear [!top_id]] gl
+  tclTHENLIST [introid top_id; apply_id top_id; clear [top_id]] gl
 
 let ssrapplytac (lemmas, (_, (_, ((gens, clr), ipats)))) =
   let apptac = match lemmas, gens with
@@ -3812,7 +3876,7 @@ let nb_occ v =
   let rec add_occs n c = if c = v then n + 1 else fold_constr add_occs n c in
   add_occs 0
 
-let unfold_val = mkVar (id_of_tag "unfold occurrence")
+let unfold_val = mkVar (mk_internal_id "unfold occurrence")
 
 (* Strip a pattern generated by a prenex implicit to its constant. *)
 let strip_unfold_term t = match t with
@@ -3959,7 +4023,7 @@ let rec rwrxtac occ rdx_pat dir rule_pat gl =
   let c = whd_app lhs args in
   let eta_rule = whdEtaApp rule n in
   let c_rule = compose_ndep_lam dc ndeps eta_rule args in
-  let cl' = mkApp (mkLambda (Name !pattern_id, pf_type_of gl c, cl), [|c|]) in
+  let cl' = mkApp (mkLambda (Name pattern_id, pf_type_of gl c, cl), [|c|]) in
   rwcltac cl' dir c_rule gl
 
 (* Resolve forward reference *)
@@ -4086,18 +4150,17 @@ ARGUMENT EXTEND ssrfwdid TYPED AS ident PRINTED BY pr_ssrfwdid
   | [ "(**)" ] -> [ Util.anomaly "Grammar placeholder match" ]
 END
 
-let input_ssrfwdid strm =
+let accept_ssrfwdid strm =
   match Stream.npeek 1 strm with
-  | ["IDENT", id] ->
-    accept_before_syms_or_id [":"; ":="; "("] strm; id_of_string id
+  | ["IDENT", id] -> accept_before_syms_or_id [":"; ":="; "("] strm
   | _ -> raise Stream.Failure
 
 
-let ssrfwdid_p4 = Gram.Entry.of_parser "ssrfwdid" input_ssrfwdid
+let test_ssrfwdid = Gram.Entry.of_parser "test_ssrfwdid" accept_ssrfwdid
 
 GEXTEND Gram
-  GLOBAL: ssrfwdid_p4 ssrfwdid;
-  ssrfwdid: [[ id = ssrfwdid_p4 -> id ]];
+  GLOBAL: test_ssrfwdid Prim.ident ssrfwdid;
+  ssrfwdid: [[ test_ssrfwdid; id = Prim.ident -> id ]];
   END
 
 
@@ -4293,7 +4356,8 @@ let rec format_rawconstr h0 c0 = match h0, c0 with
   | _, c ->
     [], c
 
-let bname_id = function Name id -> id | _ -> id_of_tag "argument wildcard"
+let wildarg_id = mk_internal_id "argument wildcard"
+let bname_id = function Name id -> id | _ -> wildarg_id
 let substBvar x c = subst1 (mkVar (bname_id x)) c
 
 let rec strip_fix_type h0 c0 = match h0, kind_of_term c0 with
