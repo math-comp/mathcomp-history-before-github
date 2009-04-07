@@ -176,6 +176,21 @@ let havetac id = pose_proof (Name id)
 let settac id c = letin_tac None (Name id) c None
 let posetac id cl = settac id cl nowhere
 
+(** look up a name in the ssreflect internals module *)
+
+let ssrdirpath = make_dirpath [id_of_string "ssreflect"]
+let ssrqid name = make_qualid ssrdirpath (id_of_string name) 
+let ssrtopqid name = make_short_qualid (id_of_string name) 
+
+let mkSsrRef name =
+  try Constrintern.locate_reference (ssrqid name) with Not_found ->
+  try Constrintern.locate_reference (ssrtopqid name) with Not_found ->
+  error "Small scale reflection library not loaded"
+
+let mkSsrRRef name = RRef (dummy_loc, mkSsrRef name)
+
+let mkSsrConst name = constr_of_reference (mkSsrRef name)
+
 (** Ssreflect load check. *)
 
 (* To allow ssrcoq to be fully compatible with the "plain" Coq, we only *)
@@ -184,10 +199,8 @@ let posetac id cl = settac id cl nowhere
 (* has actually been required, or is being defined. Because this check  *)
 (* needs to be done often (for each identifier lookup), we implement    *)
 (* some caching, repeating the test only when the environment changes.  *)
-
-let ssrdirpath = make_dirpath [id_of_string "ssreflect"]
-let ssrqid name = make_qualid ssrdirpath (id_of_string name) 
-let ssrtopqid name = make_short_qualid (id_of_string name) 
+(*   We check for protect_term because it is the first constant loaded; *)
+(* ssr_have would ultimately be a better choice.                        *)
 
 let ssr_loaded =
   let nl_env = ref (Some Environ.empty_env) in
@@ -197,9 +210,7 @@ let ssr_loaded =
   let env' = Global.env() in
   if env == env' then false else
   let nl_env' =
-    try ignore (Nametab.locate_module (ssrqid "SsrSyntax")); None with _ ->
-    try ignore (Nametab.locate_module (ssrtopqid "SsrSyntax")); None with _ ->
-    Some env' in
+    try ignore (mkSsrRef "protect_term"); None with _ -> Some env' in
   nl_env := nl_env'; nl_env' = None
 
 (** Name generation *)
@@ -400,23 +411,6 @@ let mkRArrow rt1 rt2 = RProd (dummy_loc, Anonymous, Explicit, rt1, rt2)
 let mkRConstruct c = RRef (dummy_loc, ConstructRef c)
 
 let mkRInd mind = RRef (dummy_loc, IndRef mind)
-
-(** look up a name in the ssreflect internals module *)
-
-(*
-let ssrdirpath = make_dirpath [id_of_string "ssreflect"]
-
-let ssrqid name = make_qualid ssrdirpath (id_of_string name) 
-let ssrtopqid name = make_short_qualid (id_of_string name) 
-*)
-let mkSsrRef name =
-  try Constrintern.locate_reference (ssrqid name) with Not_found ->
-  try Constrintern.locate_reference (ssrtopqid name) with Not_found ->
-  error "Small scale reflection library not loaded"
-
-let mkSsrRRef name = RRef (dummy_loc, mkSsrRef name)
-
-let mkSsrConst name = constr_of_reference (mkSsrRef name)
 
 (** Constructors for constr *)
 
@@ -757,142 +751,41 @@ let interp_view_nbimps ist gl rc =
 (*    Prenex Implicits for all the visible constants that had been     *)
 (*    declared as Prenex Implicits.                                    *)
 
-let prenex_implicits f =
-  let args =
-    try Impargs.implicits_of_global (Nametab.locate (make_short_qualid f))
-    with _ -> errorstrm (pr_id f ++ str " is not declared") in
-  let rec loop i = function
-  | a :: args' when Impargs.is_status_implicit a -> loop (i + 1) args'
+let declare_one_prenex_implicit f =
+  let fref =
+    try Syntax_def.global_with_alias f 
+    with _ -> errorstrm (pr_reference f ++ str " is not declared") in
+  let rec loop = function
+  | a :: args' when Impargs.is_status_implicit a ->
+    (ExplByName (Impargs.name_of_implicit a), (true, false)) :: loop args'
   | args' when List.exists Impargs.is_status_implicit args' ->
-      errorstrm (str "Expected prenex implicits for " ++ pr_id f)
-  | _ when i = 0 ->
-      errorstrm (str "Expected some implicits for " ++ pr_id f)
-  | _ -> i, List.length args in
-  loop 0 args
-
-let prenex_implicit_id = id_of_string "prenex_implicit_constant"
-let prenex_implicit_submod_id = id_of_string "Prenex_Implicit_Notation"
-
-(* Fixup to get the right priorities amongst pretty-printing rules.   *)
-(* The dummy meta avoids a quirk in Notation.declare_uninterpretation. *)
-let redeclare_prenex_pp other_pp =
-  let dummy_meta = id_of_string "prenex_pp_override", (None, []) in
-(*assia  des espaces dangereux?
- let dummy_meta = id_of_string "prenex pp override", (None, []) in*)
-
-(*
-  let redeclare_pp (rule, (metas, pat), _) () =
-    Notation.declare_uninterpretation rule (metas @ [dummy_meta], pat) in
-  List.fold_right redeclare_pp other_pp ()
-    *)
-  let redeclare_pp (rule, ((metas1, metas2), pat), _) () =
-    Notation.declare_uninterpretation rule ((metas1 @ [dummy_meta], []), pat) in
-  List.fold_right redeclare_pp other_pp ()
-
-
-let declare_prenex_uninterpretation loc f =
-  let fkn = Nametab.locate_syntactic_definition (make_short_qualid f) in
-  let interpf = Syntax_def.search_syntactic_definition loc fkn in
-(** assia   Notation.declare_uninterpretation (Notation.SynDefRule fkn) interpf*)
-  let (interpfv, interpfc) = interpf in
-  Notation.declare_uninterpretation (Notation.SynDefRule fkn) 
-    ((interpfv, []),interpfc)
-    (** assia, previous is:
-   let rawf = Syntax_def.search_syntactic_definition loc fkn in
-   let fpat = aconstr_of_rawconstr [] rawf in
-  Notation.declare_uninterpretation (Notation.SynDefRule fkn) ([], interpf)
-**)
-let declare_one_prenex_implicit loc f =
-  let n, m = prenex_implicits f in
-  let add_implicit_notation () =
-    let atf = "@ '" ^ string_of_id f ^ "'", [SetLevel 10] in
-    Metasyntax.add_notation false (mkCExplVar loc f 0) atf None in
-  let mod_id = id_of_string ("Prenex_" ^ string_of_id f) in
-  let start_module = Declaremods.start_module Modintern.interp_modtype None in
-  let submod_id = prenex_implicit_submod_id in
-  let make_loc_qid id = loc, make_short_qualid id in
-  ignore (start_module mod_id [] None);
-    Command.syntax_definition prenex_implicit_id ([],(mkCVar loc f)) false true;
-    (** assia has this something to do with max implicits? previous is:
-    Command.syntax_definition prenex_implicit_id (mkCVar loc f) false true;**)
-    ignore (start_module submod_id [] None);
-      add_implicit_notation ();
-      Command.syntax_definition f ([],(mkCExplVar loc f n)) false true;
-      (** assia has this something to do with max implicits? previous is:
-      Command.syntax_definition f (mkCExplVar loc f n) false true;**)
-    ignore (Declaremods.end_module submod_id);
-  ignore (Declaremods.end_module mod_id);
-  let rref = RRef (loc, Nametab.locate (make_short_qualid f)) in
-  let other_pp = Notation.uninterp_notations rref in
-  Library.import_module true (make_loc_qid mod_id);
-  Library.import_module false (make_loc_qid submod_id);
-  declare_prenex_uninterpretation loc f;
-  redeclare_prenex_pp other_pp
-
-let declare_prenex_implicits loc fl =
-  List.iter (declare_one_prenex_implicit loc) fl;
-  Lib.add_frozen_state ()
-
-
-let import_one_prenex_implicit loc = function
-  | TrueGlobal _ -> ()
-  | SyntacticDef kn ->
-      let aref = snd (Syntax_def.search_syntactic_definition loc kn) in
-      try match aref with
-      | ARef (ConstRef knf as fref) ->
-      let f = id_of_label (con_label knf) in
-      if fref = Nametab.locate (make_short_qualid f) then
-      let submod_label = label_of_id prenex_implicit_submod_id in
-      let rref = rawconstr_of_aconstr dummy_loc aref in
-      let other_pp = Notation.uninterp_notations rref in
-      Declaremods.import_module false (MPdot (modpath kn, submod_label));
-      declare_prenex_uninterpretation loc f;
-      redeclare_prenex_pp other_pp
-(** assia previous is:
-    | Syntax_def kn ->
-    try match Syntax_def.search_syntactic_definition loc kn with
-    | RRef (_, (ConstRef knf as fref)) as rref ->
-      let f = id_of_label (con_label knf) in
-      if fref = Nametab.locate (make_short_qualid f) then
-      let submod_label = label_of_id prenex_implicit_submod_id in
-      let other_pp = Notation.uninterp_notations rref in
-      Declaremods.import_module false (MPdot (modpath kn, submod_label));
-      declare_prenex_uninterpretation loc f;
-      redeclare_prenex_pp other_pp**)
-    | _ -> ()
-    with _ -> ()
-
-
-let import_prenex_implicits loc =
-  let prenex_qid = make_short_qualid prenex_implicit_id in
-  let import_list = Nametab.extended_locate_all prenex_qid in
-  List.iter (import_one_prenex_implicit loc) import_list;
-  Lib.add_frozen_state ()
+      errorstrm (str "Expected prenex implicits for " ++ pr_reference f)
+  | _ -> [] in
+  match loop (Impargs.implicits_of_global fref)  with
+  | [] -> errorstrm (str "Expected some implicits for " ++ pr_reference f)
+  | impls -> Impargs.declare_manual_implicits false fref ~enriching:false impls
 
 VERNAC COMMAND EXTEND Ssrpreneximplicits
-  | [ "Import" "Prenex" "Implicits" ]
-  -> [ import_prenex_implicits dummy_loc ]
-  | [ "Prenex" "Implicits" ne_ident_list(fl) ]
-  -> [ declare_prenex_implicits dummy_loc fl ]
+  | [ "Prenex" "Implicits" ne_global_list(fl) ]
+  -> [ List.iter declare_one_prenex_implicit fl ]
 END
 
 (* Vernac grammar visibility patch *)
-
 
 let gallina_ext = Vernac_.gallina_ext in
 GEXTEND Gram
   GLOBAL: gallina_ext;
   gallina_ext:
    [ [ IDENT "Import"; IDENT "Prenex"; IDENT "Implicits" ->
-      Vernacexpr.VernacExtend ("Ssrpreneximplicits", [])
+      Vernacexpr.VernacUnsetOption
+        (TertiaryTable("Printing", "Implicit", "Defensive"))
    ] ]
   ;
 END
 
-
-(* Fixup to allow predicates with prenex implicits to be used *)
-(* as coercion classes (also allows syntactic notations for   *)
-(* long constants).                                           *)
+(* Remove the silly restriction that forces coercion classes to be  *)
+(* precise aliases; we allow notations that apply the class to some *)
+(* parameters. *)
 
 let qualify_ref clref =
   let loc, qid = qualid_of_reference clref in
@@ -901,125 +794,89 @@ let qualify_ref clref =
   | SyntacticDef kn ->
     let rec head_of = function
     |  ARef gref ->
-      Qualid (loc, Nametab.shortest_qualid_of_global Idset.empty gref)
+          Qualid (loc, Nametab.shortest_qualid_of_global Idset.empty gref)
     |  AApp (rc, _) -> head_of rc
     |  ACast (rc, _) -> head_of rc
     |  ALetIn (_, _, rc) -> head_of rc
-    | rc -> clref in
+    | rc ->
+       user_err_loc (loc, "qualify_ref",
+        str "The definition of " ++ Ppconstr.pr_qualid qid
+             ++ str " does not have a head constant") in
     head_of (snd (Syntax_def.search_syntactic_definition loc kn))
-      (** assia, previous is:
-  | SyntacticDef kn ->
-    let rec head_of = function
-    | RRef (_, gref) ->
-      Qualid (loc, Nametab.shortest_qualid_of_global Idset.empty gref)
-    | RApp (_, rc, _) -> head_of rc
-    | RCast (_, rc, _, _) -> head_of rc
-    | RLetIn (_, _, _, rc) -> head_of rc
-    | rc -> clref in
-    head_of (Syntax_def.search_syntactic_definition loc kn)**)
   with _ -> clref
-
-
-let ssrqref = Gram.Entry.create "ssrqref"
 
 let class_rawexpr = G_vernac.class_rawexpr in
 let global = Constr.global in
 GEXTEND Gram
-  GLOBAL: class_rawexpr global ssrqref;
+  GLOBAL: class_rawexpr global;
   ssrqref: [[ gref = global -> qualify_ref gref ]];
   class_rawexpr: [[ class_ref = ssrqref -> Vernacexpr.RefClass class_ref ]];
 END
 
-(* Unfortunately, the Vernac grammar does not define and/or export  *)
-(* entry points for the Search auxiliary non-termainals, so we have *)
-(* to paraphrase part of the Vernac grammar here.                   *)
-let command = Vernac_.command in
-let ne_string = Prim.ne_string in
-let global = Constr.global in
-GEXTEND Gram
-  GLOBAL: global ssrqref ne_string command;
-  ssr_modloc: [
-    [ IDENT "inside"; mods = LIST1 global -> Vernacexpr.SearchInside mods
-    | IDENT "outside"; mods = LIST1 global -> Vernacexpr.SearchOutside mods
-    | -> Vernacexpr.SearchOutside []
-    ] ];
-  ssr_search_item: [
-    [ qref = ssrqref -> (true, Vernacexpr.SearchSubPattern (CRef qref))
-(*assia    
-    [ qref = ssrqref -> Vernacexpr.SearchRef qref
-| string = ne_string -> Vernacexpr.SearchString string*)
-    | string = ne_string -> (true, Vernacexpr.SearchString (string, None))
-    ] ];
-  ssr_search_list: [
-    [ "["; list = LIST1 ssr_search_item; "]" -> list
-    | item = ssr_search_item -> [item]
-    ] ];
-  command: [
-    [ IDENT "Search"; head = ssrqref; modloc = ssr_modloc -> 
-      Vernacexpr.VernacSearch (Vernacexpr.SearchHead head, modloc)
-    | IDENT "SearchAbout"; list = ssr_search_list; modloc = ssr_modloc -> 
-      Vernacexpr.VernacSearch (Vernacexpr.SearchAbout list, modloc)
-    ] ];
+(** Extend Search to subsume SearchAbout, also adding hidden Type coercions. *)
+
+(* Main prefilter *)
+
+let pr_search_item = function
+  | Search.GlobSearchString s -> str s
+  | Search.GlobSearchSubPattern p -> pr_constr_pattern p
+
+let wit_ssr_searchitem, globwit_ssr_searchitem, rawwit_ssr_searchitem =
+  add_genarg "ssrsearchitem" pr_search_item
+
+let is_ident_part s =
+  let rec loop i = i < 0 || is_ident_tail s.[i] && loop (i - 1) in
+  loop (String.length s - 1)
+
+let interp_search_notation loc s opt_scope =
+  try
+    let interp = Notation.interp_notation_as_global_reference loc in
+    let ref = interp (fun _ -> true) s opt_scope in
+    Search.GlobSearchSubPattern (Pattern.PRef ref)
+  with _ ->
+    let diagnosis =
+      try
+        let ntns = Notation.locate_notation pr_rawconstr s in
+        let ambig = "This string refers to a complex or ambiguous notation." in
+        str ambig ++ str "\nTry searching with one of\n" ++ ntns
+      with _ -> str "This string is not part of an identifier or notation." in
+    user_err_loc (loc, "interp_search_notation", diagnosis)
+
+let pr_ssr_search_item _ _ _ = pr_search_item
+
+ARGUMENT EXTEND ssr_search_item TYPED AS ssr_searchitem
+  PRINTED BY pr_ssr_search_item
+  | [ string(s) ] ->
+    [ if is_ident_part s then Search.GlobSearchString s else
+      interp_search_notation loc s None ]
+  | [ string(s) "%" preident(key) ] ->
+    [ interp_search_notation loc s (Some key) ]
+  | [ constr_pattern(p) ] ->
+    [ let intern = Constrintern.intern_constr_pattern Evd.empty in
+      Search.GlobSearchSubPattern (snd (intern (Global.env()) p)) ]
 END
 
-(** Extend Search/SearchPattern to add hidden coercions to Sortclass *)
+let pr_ssr_search_arg _ _ _ =
+  let pr_item (b, p) = str (if b then "-" else "") ++ pr_search_item p in
+  pr_list spc pr_item
 
-(* Name string prefilter *)
-
-let pr_ssrlabs _ _ _ =
-  pr_list spc (fun (b, s) ->  str (if b then "~" else "") ++ qs s)
-
-ARGUMENT EXTEND ssrlabs TYPED AS (bool * string) list PRINTED BY pr_ssrlabs
-  | [ "~" string(s) ssrlabs(labs) ] -> [ (true, s) :: labs ]
-  | [ string(s) ssrlabs(labs) ] -> [ (false, s) :: labs ]
+ARGUMENT EXTEND ssr_search_arg TYPED AS (bool * ssr_searchitem) list
+  PRINTED BY pr_ssr_search_arg
+  | [ "-" ssr_search_item(p) ssr_search_arg(a) ] -> [ (false, p) :: a ]
+  | [ ssr_search_item(p) ssr_search_arg(a) ] -> [ (true, p) :: a ]
   | [ ] -> [ [] ]
 END
-
-let interp_labels labs =
-  if labs = [] then fun _ -> true else fun gr ->
-  let name = string_of_id (Nametab.id_of_global gr) in
-  let filter_by (b, s) = b != string_string_contains ~where:name ~what:s in
-  List.for_all filter_by labs
 
 (* Main type conclusion pattern filter *)
 
 let rec splay_search_pattern na = function 
   | Pattern.PApp (fp, args) -> splay_search_pattern (na + Array.length args) fp
- (* | Pattern.PLetIn (_, _, _, bp) -> splay_search_pattern na bp *)
-    (* would need support in raw_pattern_search *)
+  | Pattern.PLetIn (_, _, bp) -> splay_search_pattern na bp
   | Pattern.PRef hr -> hr, na
   | _ -> error "no head constant in head search pattern"
 
-(* assia : brain dead change
-let coerce_search_pattern_to_sort env sigma hpat =
-  let mkPApp fp n_imps args =
-    let args' = Array.append (Array.make n_imps (Pattern.PMeta None)) args in
-    Pattern.PApp (fp, args') in
-  let hr, na = splay_search_pattern 0 hpat in
-  let dc, ht = Reductionops.splay_prod env sigma (Global.type_of_global hr) in
-  let np = List.length dc in
-  if np < na then error "too many arguments in head search pattern" else
-  let hpat' = if np = na then hpat else mkPApp hpat (np - na) [||] in
-  if isSort ht then hpat' else
-  let coe_path =
-    try 
-      let _, hcl = Classops.class_of (push_rels_assum dc env) sigma ht in
-      Classops.lookup_path_to_sort_from hcl
-    with _ -> error "head search pattern is not a type, even up to coercion" in
-  let coerce hp coe_index =
-    let coe = Classops.get_coercion_value coe_index in
-    try
-      let coe_ref = reference_of_constr coe in
-      let n_imps = Option.get (Classops.hide_coercion coe_ref) in
-	(** assia, previous is:
-      let n_imps = out_some (Classops.hide_coercion coe_ref) in**)
-      mkPApp (Pattern.PRef coe_ref) n_imps [|hp|]
-    with _ ->
-    errorstrm (str "need explicit coercion " ++ pr_constr coe ++ spc ()
-            ++ str "to interpret head search pattern as type") in
-  List.fold_left coerce hpat' coe_path
-    *)
-let coerce_search_pattern_to_sort env sigma hpat =
+let coerce_search_pattern_to_sort hpat =
+  let env = Global.env () and sigma = Evd.empty in
   let mkPApp fp n_imps args =
     let args' = Array.append (Array.make n_imps (Pattern.PMeta None)) args in
     Pattern.PApp (fp, args') in
@@ -1037,9 +894,6 @@ let coerce_search_pattern_to_sort env sigma hpat =
     let coe = Classops.get_coercion_value coe_index in
     try
       let coe_ref = reference_of_constr coe in
-(* assia : out_some deprecated , no more in Util 
-      let n_imps = out_some (Classops.hide_coercion coe_ref) in
-	*)
       let n_imps = Option.get (Classops.hide_coercion coe_ref) in
       mkPApp (Pattern.PRef coe_ref) n_imps [|hp|]
     with _ ->
@@ -1047,88 +901,58 @@ let coerce_search_pattern_to_sort env sigma hpat =
             ++ str "to interpret head search pattern as type") in
   List.fold_left coerce hpat' (snd coe_path)
 
+let rec interp_head_pat hpat =
+  let p = coerce_search_pattern_to_sort hpat in
+  let rec loop c = match kind_of_term c with
+  | Prod (_, _, c') -> loop c'
+  | LetIn (_, _, _, c') -> loop c'
+  | _ -> Matching.is_matching p c in
+  loop
 
-let rec strip_null_app = function
-  | RApp (_, c, []) -> strip_null_app c
-  | c -> map_rawconstr strip_null_app c
+let all_true _ = true
 
-let interp_searchpat isarity env sigma pat =
-  let c = Constrintern.intern_gen isarity sigma env ~allow_patvar:true pat in
-    (** assia, previous is:
-  let c = Constrintern.intern_gen isarity sigma env ~allow_soapp: true pat in**)
-  snd (Pattern.pattern_of_rawconstr (strip_null_app c))
-
-
-let interp_headpat env sigma = function
-  | None ->
-    Search.gen_filtered_search
-  | Some rhpat ->
-    let hpat = interp_searchpat true env sigma rhpat in
-    let hpat' = coerce_search_pattern_to_sort env sigma hpat in
-    fun accept display -> Search.raw_pattern_search accept display hpat'
-
-(* Type subpattern postfilter *)
-
-let pr_ssrspats prc _ _ spats = str "[" ++  pr_list spc prc spats ++ str "]"
-
-ARGUMENT EXTEND ssrspats_ne TYPED AS constr list PRINTED BY pr_ssrspats
-  | [ "[" ne_constr_list(spats) "]" ] -> [ spats ]
-END
-
-ARGUMENT EXTEND ssrspats TYPED AS ssrspats_ne PRINTED BY pr_ssrspats
-  | [ ssrspats_ne(spats) ] -> [ spats ]
-  | [ ] -> [ [] ]
-END
-
-let interp_searchsubpats env sigma rpats =
-  let rec pwid = function
-    | Pattern.PApp(p, a) -> Array.length a + pwid p
-    | _ -> 0 in
-  let match_sub rp = match interp_searchpat false env sigma rp with
-  | Pattern.PRef gr -> Termops.occur_term (constr_of_reference gr)
-  | p ->
-    let na = pwid p in
-    let rec check c =
-      let c' =  match kind_of_term c with
-      | App(f, a) when na > 0 && Array.length a > na ->
-        mkApp (f, Array.sub a 0 na)
-      | _ -> c in
-      if Matching.is_matching p c' then raise Exit else iter_constr check c in
-      fun typ -> try check typ; false with Exit -> true in
-  let pats = List.map match_sub rpats in
-  fun typ -> List.for_all (fun p -> p typ) pats
+let interp_search_arg a =
+  let hpat, a1 = match a with
+  | (_, Search.GlobSearchSubPattern (Pattern.PMeta _)) :: a' -> all_true, a'
+  | (_, Search.GlobSearchSubPattern (Pattern.PVar _)) :: a' -> all_true, a'
+  | (true, Search.GlobSearchSubPattern p) :: a' -> interp_head_pat p, a'
+  | _ -> all_true, a in
+  let is_string =
+    function (_, Search.GlobSearchString _) -> true | _ -> false in
+  let a2, a3 = list_split_by is_string a1 in
+  hpat, a2 @ a3
 
 (* Module path postfilter *)
 
-let pr_modloc (inmod, mods) =
-  let keyword = if inmod then "inside " else "outside " in
-  str keyword ++ pr_list pr_spc pr_reference mods
-
-let pr_ssrmodloc _ _ _ = pr_modloc
+let pr_modloc (b, m) = if b then str "-" ++ pr_reference m else pr_reference m
 
 let wit_ssrmodloc, globwit_ssrmodloc, rawwit_ssrmodloc =
   add_genarg "ssrmodloc" pr_modloc
 
-let ssrmodloc = Gram.Entry.create "ssrmodloc"
+let pr_ssr_modlocs _ _ _ ml =
+  if ml = [] then str "" else spc () ++ str "in " ++ pr_list spc pr_modloc ml
 
-ARGUMENT EXTEND ssrmodloc_ne TYPED AS ssrmodloc PRINTED BY pr_ssrmodloc
-  | [ "inside" ne_global_list(mods) ] -> [ true, mods ]
-  | [ "outside" ne_global_list(mods) ] -> [ false, mods ]
+ARGUMENT EXTEND ssr_modlocs TYPED AS ssrmodloc list PRINTED BY pr_ssr_modlocs
+  | [ ] -> [ [] ]
 END
 
 GEXTEND Gram
-  GLOBAL: ssrmodloc ssrmodloc_ne;
-  ssrmodloc: [[ -> false, [] | modloc = ssrmodloc_ne -> modloc ]];
+  GLOBAL: ssr_modlocs global;
+  modloc: [[ "-"; m = global -> true, m | m = global -> false, m]];
+  ssr_modlocs: [[ "in"; ml = LIST1 modloc -> ml ]];
 END
 
-let interp_modloc env sigma (inmod, rmods) =
-  if rmods = [] then fun _ -> true else
-  let interp_mod mr =
-    let (loc,qid) = qualid_of_reference mr in
+let interp_modloc mr =
+  let interp_mod (_, mr) =
+    let (loc, qid) = qualid_of_reference mr in
     try Nametab.full_name_module qid with Not_found ->
-    user_err_loc (loc, "interp_modloc", str "Mo Module " ++ pr_qualid qid) in
-  let mods = List.map interp_mod rmods in
-  fun gr -> Search.filter_by_module_from_list (mods, not inmod) gr env sigma
+    user_err_loc (loc, "interp_modloc", str "No Module " ++ pr_qualid qid) in
+  let mr_out, mr_in = list_split_by fst mr in
+  let interp_bmod b rmods =
+    if rmods = [] then fun _ _ _ -> true else
+    Search.filter_by_module_from_list (List.map interp_mod rmods, b) in
+  let is_in = interp_bmod false mr_in and is_out = interp_bmod true mr_out in
+  fun gr env -> is_in gr env () && is_out gr env ()
 
 (* The unified, extended vernacular "Search" command *)
 
@@ -1136,24 +960,13 @@ let ssrdisplaysearch gr env t =
   let pr_res = pr_global gr ++ spc () ++ str " " ++ pr_lconstr_env env t in
   msg (hov 2 pr_res ++ fnl ())
 
-let ssrsearch rlabs rhpat rspats rmodloc =
-  let env = Global.env() and sigma = Evd.empty in
-  let labs = interp_labels rlabs in
-  let hpat = interp_headpat env sigma rhpat in
-  let spats = interp_searchsubpats env sigma rspats in
-  let modloc = interp_modloc env sigma rmodloc in
-  hpat (fun gr _ typ -> labs gr && modloc gr && spats typ) ssrdisplaysearch
-
 VERNAC COMMAND EXTEND SsrSearchPattern
-| [ "Search" ssrlabs(labs) ssrspats_ne(spats) ssrmodloc(modloc) ] ->
-  [ ssrsearch labs None spats modloc ]
-| [ "Search" ssrlabs(labs) ssrmodloc_ne(modloc) ] ->
-  [ ssrsearch labs None [] modloc ]
-| [ "Search" ssrlabs(labs) constr_opt(hpat)
-             ssrspats(spats) ssrmodloc(modloc) ] ->
-  [ ssrsearch labs hpat spats modloc ]
+| [ "Search" ssr_search_arg(a) ssr_modlocs(mr) ] ->
+  [ let hpat, a' = interp_search_arg a in
+    let in_mod = interp_modloc mr in
+    let post_filter gr env typ = in_mod gr env && hpat typ in
+    Search.raw_search_about post_filter ssrdisplaysearch a' ]
 END
-
 
 (** 3. Alternative notations for "match" (let or if with pattern). *)
 
@@ -3824,8 +3637,6 @@ ARGUMENT EXTEND ssrrwarg_nt
     [ mk_rwarg (R2L, nomult) norwocc (RWdef, t) ]
   | [ ssrmult_ne(m) ssrrwocc(docc) ssrredex(rx) ssrrule_ne(r) ] ->
     [ mk_rwarg (L2R, m) (docc, rx) r ]
-(*compat 
-  | [pattern_ident(c)] -> [mk_rwarg (R2L, (0, May)) norwocc (notermkind, c)]*)
   | [ "{" ne_ssrhyp_list(clr) "}" ssrredex_ne(rx) ssrrule_ne(r) ] ->
     [ mk_rwarg norwmult (mkclr clr, rx) r ]
   | [ "{" ne_ssrhyp_list(clr) "}" ssrrule(r) ] ->
@@ -4046,7 +3857,7 @@ let pr_ssrrwargs prc prlc _ = function
 
 ARGUMENT EXTEND ssrrwargs
        TYPED AS ssrrwarg list      PRINTED BY pr_ssrrwargs
-  | [ ssrrwarg_list(args) ] -> [ args ]
+  | [ "(**)" ssrrwarg_list(args) ] -> [ args ]
 END
 
 ARGUMENT EXTEND ssrrwargs_nt
@@ -4054,63 +3865,37 @@ ARGUMENT EXTEND ssrrwargs_nt
   | [ ssrrwarg_nt(arg) ssrrwargs(args) ] -> [ arg :: args ]
 END
 
-(** The "rewrite" tactic *)
-
 let ssr_rw_syntax = ref true
 
 let _ =
   Goptions.declare_bool_option
     { Goptions.optsync  = true;
-      Goptions.optname  = "Ssreflect rewrite syntax";
-      Goptions.optkey   = PrimaryTable ("SsrRewriteSyntax");
+      Goptions.optname  = "ssreflect rewrite";
+      Goptions.optkey   = PrimaryTable ("SsrRewrite");
       Goptions.optread  = (fun _ -> !ssr_rw_syntax);
       Goptions.optwrite = (fun b -> ssr_rw_syntax := b) }
 
 let test_ssr_rw_syntax =
-  let test _ =
-    if !ssr_rw_syntax then 
-      try ignore (mkSsrConst "locked") with _ -> raise Stream.Failure
-    else raise Stream.Failure in
+  let test strm  =
+    if not !ssr_rw_syntax then raise Stream.Failure else
+    if ssr_loaded () then () else
+    match Stream.npeek 1 strm with
+    | ["", key] when List.mem key.[0] ['{'; '['; '/'] -> ()
+    | _ -> raise Stream.Failure in
   Gram.Entry.of_parser "test_ssr_rw_syntax" test
 
-let pr_ssrtermspc prc _ _ dt = spc () ++ pr_term prc dt
-
-ARGUMENT EXTEND ssrtermspc TYPED AS ssrterm PRINTED BY pr_ssrtermspc
-  | [ "(**)" ssrterm(dt) ] -> [ dt ]
-END
-
 GEXTEND Gram
-  GLOBAL: ssrtermspc test_ssr_rw_syntax ssrterm;
-  ssrtermspc: [[ test_ssr_rw_syntax; dt = ssrterm -> dt ]];
+  GLOBAL: ssrrwargs test_ssr_rw_syntax ssrrwarg;
+  ssrrwargs: [[ test_ssr_rw_syntax; a = LIST1 ssrrwarg -> a ]];
 END
 
 let ssrrewritetac rwargs = tclTHENLIST (List.map rwargtac rwargs)
 
-(*assia
-let ssrrewritebindtac t bl =
-  Equality.general_rewrite_bindings 
-    true (force_term t, bl)
-in coq81/tactics/equality.mli:
-val general_rewrite_bindings : bool -> constr with_bindings -> tactic
-in coq82/tactics/equality.mli:
-val general_rewrite_bindings : 
-  bool -> occurrences -> constr with_bindings -> evars_flag -> tactic
-
-*)
-let ssrrewritebindtac t bl =
-  Equality.general_rewrite_bindings
-    true all_occurrences (force_term t, bl) false
-
+(** The "rewrite" tactic *)
 
 TACTIC EXTEND ssrrewrite
-  | [ "rewrite" ssrrwargs_nt(args) ssrclauses(clauses) ] ->
+  | [ "rewrite" ssrrwargs(args) ssrclauses(clauses) ] ->
     [ tclCLAUSES (ssrrewritetac args) clauses ]
-(*      assia : this line is NOT FIXED 
-  | [ "rewrite" ssrtermspc(r) "with" bindings(bl) ssrclauses(clauses) ] ->
-[ tclCLAUSES (ssrrewritebindtac r bl) clauses ]*)
-  | [ "rewrite" ssrtermspc(r) ssrrwargs(args) ssrclauses(clauses) ] ->
-    [ tclCLAUSES (tclTHEN (rwrxtac [] None L2R r)
-                          (ssrrewritetac args)) clauses ]
 END
 
 (** The "unlock" tactic *)
