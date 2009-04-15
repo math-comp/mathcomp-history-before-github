@@ -751,7 +751,7 @@ let interp_view_nbimps ist gl rc =
 (*    Prenex Implicits for all the visible constants that had been     *)
 (*    declared as Prenex Implicits.                                    *)
 
-let declare_one_prenex_implicit f =
+let declare_one_prenex_implicit locality f =
   let fref =
     try Syntax_def.global_with_alias f 
     with _ -> errorstrm (pr_reference f ++ str " is not declared") in
@@ -762,12 +762,15 @@ let declare_one_prenex_implicit f =
       errorstrm (str "Expected prenex implicits for " ++ pr_reference f)
   | _ -> [] in
   match loop (Impargs.implicits_of_global fref)  with
-  | [] -> errorstrm (str "Expected some implicits for " ++ pr_reference f)
-  | impls -> Impargs.declare_manual_implicits false fref ~enriching:false impls
+  | [] ->
+    errorstrm (str "Expected some implicits for " ++ pr_reference f)
+  | impls ->
+    Impargs.declare_manual_implicits locality fref ~enriching:false impls
 
 VERNAC COMMAND EXTEND Ssrpreneximplicits
   | [ "Prenex" "Implicits" ne_global_list(fl) ]
-  -> [ List.iter declare_one_prenex_implicit fl ]
+  -> [ let locality = Vernacexpr.use_section_locality () in
+       List.iter (declare_one_prenex_implicit locality) fl ]
 END
 
 (* Vernac grammar visibility patch *)
@@ -824,10 +827,6 @@ let pr_search_item = function
 let wit_ssr_searchitem, globwit_ssr_searchitem, rawwit_ssr_searchitem =
   add_genarg "ssrsearchitem" pr_search_item
 
-let is_ident_part s =
-  let rec loop i = i < 0 || is_ident_tail s.[i] && loop (i - 1) in
-  loop (String.length s - 1)
-
 let interp_search_notation loc s opt_scope =
   try
     let interp = Notation.interp_notation_as_global_reference loc in
@@ -843,6 +842,115 @@ let interp_search_notation loc s opt_scope =
     user_err_loc (loc, "interp_search_notation", diagnosis)
 
 let pr_ssr_search_item _ _ _ = pr_search_item
+
+(* Workaround the notation API that can only print notations *)
+
+let is_ident s = try Lexer.check_ident s; true with _ -> false
+
+let is_ident_part s = is_ident ("H" ^ s)
+
+let interp_search_notation loc tag okey =
+  let err msg = user_err_loc (loc, "interp_search_notation", msg) in
+  let mk_pntn s for_key =
+    let n = String.length s in
+    let s' = String.make (n + 2) ' ' in
+    let rec loop i i' =
+      if i >= n then s', i' - 2 else if s.[i] = ' ' then loop (i + 1) i' else
+      let j = try String.index_from s (i + 1) ' ' with _ -> n in
+      let m = j - i in
+      if s.[i] = '\'' && i < j - 2 && s.[j - 1] = '\'' then
+        (String.blit s (i + 1) s' i' (m - 2); loop (j + 1) (i' + m - 1))
+      else if for_key && is_ident (String.sub s i m) then
+         (s'.[i'] <- '_'; loop (j + 1) (i' + 2))
+      else (String.blit s i s' i' m; loop (j + 1) (i' + m + 1)) in
+    loop 0 1 in
+  let trim_ntn (pntn, m) = String.sub pntn 1 (max 0 m) in
+  let pr_ntn ntn = str "(" ++ str ntn ++ str ")" in
+  let pr_and_list pr = function
+    | [x] -> pr x
+    | x :: lx -> pr_list pr_coma pr lx ++ pr_coma () ++ str "and " ++ pr x
+    | [] -> mt () in
+  let pr_sc sc = str (if sc = "" then "independently" else sc) in
+  let pr_scs = function
+    | [""] -> pr_sc ""
+    | scs -> str "in " ++ pr_and_list pr_sc scs in
+  let generator, pr_tag_sc =
+    let ign _ = mt () in match okey with
+  | Some key ->
+    let sc = Notation.find_delimiters_scope loc key in
+    let pr_sc s_in = str s_in ++ spc() ++ str sc ++ pr_coma() in
+    Notation.pr_scope ign sc, pr_sc
+  | None -> Notation.pr_scopes ign, ign in
+  let qtag s_in = pr_tag_sc s_in ++ qstring tag ++ spc()in
+  let ptag, ttag =
+    let ptag, m = mk_pntn tag false in
+    if m <= 0 then err (str "empty notation fragment");
+    ptag, trim_ntn (ptag, m) in
+  let last = ref "" and last_sc = ref "" in
+  let scs = ref [] and ntns = ref [] in
+  let push_sc sc = match !scs with
+  | "" :: scs' ->  scs := "" :: sc :: scs'
+  | scs' -> scs := sc :: scs' in
+  let get s _ _ = match !last with
+  | "Scope " -> last_sc := s; last := ""
+(*  | "Delimiting key is " -> sc := "%" ^ s; last := "" *)
+  | "Lonely notation" -> last_sc := ""; last := ""
+  | "\"" ->
+      let pntn, m = mk_pntn s true in
+      if string_string_contains pntn ptag then begin
+(*  msgnl (str "match " ++ pr_ntn pntn ++ int m ++ str " in " ++ str !last_sc);
+*)
+        let ntn = trim_ntn (pntn, m) in
+        match !ntns with
+        | [] -> ntns := [ntn]; scs := [!last_sc]
+        | ntn' :: _ when ntn' = ntn -> push_sc !last_sc
+        | _ when ntn = ttag -> ntns := ntn :: !ntns; scs := [!last_sc]
+        | _ :: ntns' when List.mem ntn ntns' -> ()
+        | ntn' :: ntns' -> ntns := ntn' :: ntn :: ntns'
+      end;
+      last := ""
+  | _ -> last := s in
+  pp_with (Format.make_formatter get (fun _ -> ())) generator;
+  let ntn = match !ntns with
+  | [] ->
+    err (hov 0 (qtag "in" ++ str "does not occur in any notation"))
+  | ntn :: ntns' when ntn = ttag ->
+    if ntns' <> [] then begin
+      let pr_ntns' = pr_and_list pr_ntn ntns' in
+      msg_warning (hov 4 (qtag "In" ++ str "also occurs in " ++ pr_ntns'))
+    end; ntn
+  | [ntn] ->
+    msgnl (hov 4 (qtag "In" ++ str "is part of notation " ++ pr_ntn ntn)); ntn
+  | ntns' ->
+    let e = str "occurs in" ++ spc() ++ pr_and_list pr_ntn ntns' in
+    err (hov 4 (str "ambiguous: " ++ qtag "in" ++ e)) in
+  let ((nvars, _), body), ((_, pat), osc) = match !scs with
+  | [sc] -> Notation.interp_notation loc ntn (None, [sc])
+  | scs' ->
+    try Notation.interp_notation loc ntn (None, []) with _ ->
+    let e = pr_ntn ntn ++ spc() ++ str "is defined " ++ pr_scs scs' in
+    err (hov 4 (str "ambiguous: " ++ pr_tag_sc "in" ++ e)) in
+  let sc = Option.default "" osc in
+  let _ =
+    let m_sc =
+      if osc <> None then str "In " ++ str sc ++ pr_coma() else mt() in
+    let ntn_pat = trim_ntn (mk_pntn pat false) in
+    let rbody = rawconstr_of_aconstr loc body in
+    let m_body = hov 0 (Constrextern.without_symbols prl_rawconstr rbody) in
+    let m = m_sc ++ pr_ntn ntn_pat ++ spc () ++ str "denotes " ++ m_body in
+    msgnl (hov 0 m) in
+  if List.length !scs > 1 then
+    let scs' = list_remove sc !scs in
+    let w = pr_ntn ntn ++ str " is also defined " ++ pr_scs scs' in
+    msg_warning (hov 4 w)
+  else if string_string_contains ntn " .. " then
+    err (pr_ntn ntn ++ str " is an n-ary notation");
+  let rec sub () = function
+  | AVar x when List.mem_assoc x nvars -> RPatVar (loc, (false, x))
+  | c ->
+    rawconstr_of_aconstr_with_binders loc (fun _ x -> (), x) sub () c in
+  let _, npat = Pattern.pattern_of_rawconstr (sub () body) in
+  Search.GlobSearchSubPattern npat
 
 ARGUMENT EXTEND ssr_search_item TYPED AS ssr_searchitem
   PRINTED BY pr_ssr_search_item
@@ -904,6 +1012,7 @@ let coerce_search_pattern_to_sort hpat =
 let rec interp_head_pat hpat =
   let p = coerce_search_pattern_to_sort hpat in
   let rec loop c = match kind_of_term c with
+  | Cast (c', _, _) -> loop c'
   | Prod (_, _, c') -> loop c'
   | LetIn (_, _, _, c') -> loop c'
   | _ -> Matching.is_matching p c in
@@ -914,7 +1023,6 @@ let all_true _ = true
 let interp_search_arg a =
   let hpat, a1 = match a with
   | (_, Search.GlobSearchSubPattern (Pattern.PMeta _)) :: a' -> all_true, a'
-  | (_, Search.GlobSearchSubPattern (Pattern.PVar _)) :: a' -> all_true, a'
   | (true, Search.GlobSearchSubPattern p) :: a' -> interp_head_pat p, a'
   | _ -> all_true, a in
   let is_string =
@@ -3578,17 +3686,13 @@ let pr_ssrrule prc _ _ = pr_rule prc
 
 let noruleterm loc = notermkind, mkCProp loc
 
-ARGUMENT EXTEND ssrrule_nt TYPED AS ssrrwkind * ssrterm PRINTED BY pr_ssrrule
+ARGUMENT EXTEND ssrrule_ne TYPED AS ssrrwkind * ssrterm PRINTED BY pr_ssrrule
   | [ ssrsimpl_ne(s) ] -> [ RWred s, noruleterm loc ]
   | [ "/" ssrterm(t) ] -> [ RWdef, t ] 
-END
-
-ARGUMENT EXTEND ssrrule_ne TYPED AS ssrrule_nt PRINTED BY pr_ssrrule
-  | [ ssrrule_nt(r) ] -> [ r ]
   | [ ssrterm(t) ] -> [ RWeq, t ] 
 END
 
-ARGUMENT EXTEND ssrrule TYPED AS ssrrule_nt PRINTED BY pr_ssrrule
+ARGUMENT EXTEND ssrrule TYPED AS ssrrule_ne PRINTED BY pr_ssrrule
   | [ ssrrule_ne(r) ] -> [ r ]
   | [ ] -> [ RWred Nop, noruleterm loc ]
 END
@@ -3628,7 +3732,7 @@ END
 *)
 
 
-ARGUMENT EXTEND ssrrwarg_nt
+ARGUMENT EXTEND ssrrwarg
   TYPED AS (ssrdir * ssrmult) * ((ssrdocc * ssrredex) * ssrrule)
   PRINTED BY pr_ssrrwarg
   | [ "-" ssrmult(m) ssrrwocc(docc) ssrredex(rx) ssrrule_ne(r) ] ->
@@ -3647,22 +3751,9 @@ ARGUMENT EXTEND ssrrwarg_nt
     [ mk_rwarg norwmult (nodocc, rx) r ]
   | [ ssrredex_ne(rx) ssrrule_ne(r) ] ->
     [ mk_rwarg norwmult (noclr, rx) r ]
-  | [ ssrrule_nt(r) ] ->
+  | [ ssrrule_ne(r) ] ->
     [ mk_rwarg norwmult norwocc r ]
 END
-
-
-
-ARGUMENT EXTEND ssrrwarg TYPED AS ssrrwarg_nt PRINTED BY pr_ssrrwarg
-  | [ ssrrwarg_nt(arg) ] -> [ arg ]
-  | [ ssrterm(t) ] -> [mk_rwarg norwmult norwocc (RWeq, t) ]
-END
-
-
-
-
-
-
 
 let simplintac occ rdx sim gl = match rdx with
   | None -> simpltac sim gl
@@ -3856,13 +3947,8 @@ let pr_ssrrwargs prc prlc _ = function
   | rwargs -> spc() ++ pr_list spc (pr_rwarg prc prlc) rwargs
 
 ARGUMENT EXTEND ssrrwargs
-       TYPED AS ssrrwarg list      PRINTED BY pr_ssrrwargs
+       TYPED AS ssrrwarg list PRINTED BY pr_ssrrwargs
   | [ "(**)" ssrrwarg_list(args) ] -> [ args ]
-END
-
-ARGUMENT EXTEND ssrrwargs_nt
-       TYPED AS ssrrwarg list      PRINTED BY pr_ssrrwargs
-  | [ ssrrwarg_nt(arg) ssrrwargs(args) ] -> [ arg :: args ]
 END
 
 let ssr_rw_syntax = ref true
@@ -3889,9 +3975,9 @@ GEXTEND Gram
   ssrrwargs: [[ test_ssr_rw_syntax; a = LIST1 ssrrwarg -> a ]];
 END
 
-let ssrrewritetac rwargs = tclTHENLIST (List.map rwargtac rwargs)
-
 (** The "rewrite" tactic *)
+
+let ssrrewritetac rwargs = tclTHENLIST (List.map rwargtac rwargs)
 
 TACTIC EXTEND ssrrewrite
   | [ "rewrite" ssrrwargs(args) ssrclauses(clauses) ] ->
