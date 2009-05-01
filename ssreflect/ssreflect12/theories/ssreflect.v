@@ -306,7 +306,7 @@ Lemma nary_congruence : forall n : nat,
 Proof.
 move=> n k; have: k _ _ := _; rewrite {1}/k.
 elim: n k  => [|n IHn] k Hk /= A; auto.
-by apply: IHn => B e He; apply: Hk => f x1 x2 <-.
+by apply: IHn => B e He; apply: Hk => f x1 x2 <-. 
 Qed.
 
 (* View lemmas that don't use reflection.                       *)
