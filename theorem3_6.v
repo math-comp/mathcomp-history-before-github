@@ -801,6 +801,7 @@ have nKiK: forall Ki, Ki \in mxK -> Ki <| K.
 have nViK: forall Ki, Ki \in mxK -> K \subset 'N(Vi Ki).
   by move=> Ki mxKi; rewrite normsI // norms_cent // normal_norm // nKiK.
 have gen_mxK: << \bigcup_(Ki \in mxK) Vi Ki >> = V.
+  move: nViK. (* this avoids Coq bug 1822 on 8.1pl4 *)
   admit. (* B & G, Prop. 1.16 *)
 have dprod_V : \big[dprod/1]_(Ki \in mxK) Vi Ki = V.
   pose dp (sM : {set _}) := \big[dprod/1]_(Ki \in sM) Vi Ki.
