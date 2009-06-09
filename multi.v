@@ -12,52 +12,12 @@ Open Scope ring_scope.
 Import GRing.Theory.
 
 (* Should be included in ssralg.v. *)
-Section RingMorphism.
 
-Definition ring_morphism (aR rR : ringType) (f : aR -> rR) :=
-  [/\ {morph f : x y / x - y}, {morph f : x y / x * y} & f 1 = 1].
-
-Section MorphTheory.
+Section PolyRingMorphism.
 
 Variables aR' aR rR : ringType.
 Variables (f : aR -> rR) (g : aR' -> aR).
 Hypotheses (fM : ring_morphism f) (gM : ring_morphism g).
-
-Lemma ringM_sub : {morph f : x y / x - y}.
-Proof. by case fM. Qed.
-
-Lemma ringM_0 : f 0 = 0.
-Proof. by rewrite -(subrr 0) ringM_sub subrr. Qed.
-
-Lemma ringM_1 : f 1 = 1.
-Proof. by case fM. Qed.
-
-Lemma ringM_opp : {morph f : x / - x}.
-Proof. by move=> x /=; rewrite -[-x]add0r ringM_sub ringM_0 add0r. Qed.
-
-Lemma ringM_add : {morph f : x y / x + y}.
-Proof. by move=> x y /=; rewrite -(opprK y) ringM_opp ringM_sub. Qed.
-
-Definition ringM_sum := big_morph f ringM_add ringM_0.
-
-Lemma ringM_mul : {morph f : x y / x * y}.
-Proof. by case fM. Qed.
-
-Definition ringM_prod := big_morph f ringM_mul ringM_1.
-
-Lemma ringM_nat : forall n, f n%:R = n %:R.
-Proof.
-by elim=> [|n IHn]; rewrite ?ringM_0 // !mulrS ringM_add IHn ringM_1.
-Qed.
-
-Lemma ringM_exp : forall n, {morph f : x / x ^+ n}.
-Proof. by elim=> [|n IHn] x; rewrite ?ringM_1 // !exprS ringM_mul IHn. Qed.
-
-Lemma comp_ringM : ring_morphism (f \o g).
-Proof.
-case: fM gM => [fsub fmul f1] [gsub gmul g1].
-by split=> [x y | x y |] /=; rewrite ?g1 ?gsub ?gmul.
-Qed.
 
 Definition map_poly (p : {poly aR}) := Poly (map f p).
 
@@ -79,12 +39,13 @@ Lemma map_polyM : ring_morphism map_poly.
 Proof.
 split=> [x y | x y|]; apply/polyP=> i; last by rewrite map_polyC ringM_1.
   by rewrite !(coef_sub, coef_map) ringM_sub.
-rewrite coef_map !coef_mul ringM_sum; apply: eq_bigr => j _.
+rewrite coef_map !coef_mul ringM_sum //; apply: eq_bigr => j _.
 by rewrite !coef_map ringM_mul.
 Qed.
 
-End MorphTheory.
+End PolyRingMorphism.
 
+Section CatPoly.
 (* The categorical characterizaion of polynomials. *)
 
 Lemma map_poly_id : forall R, @map_poly R R id =1 id.
@@ -130,7 +91,8 @@ apply: (@poly_ind _ (fun p => f p = h p)) => [|p x f_p].
 by rewrite 2?ringM_add 2?ringM_mul // -{}f_p /h morph_polyX ?morph_polyC.
 Qed.
 
-End RingMorphism.
+
+End CatPoly.
 
 Lemma morph_poly_id : forall R x p, @morph_poly _ R id x p = p.[x].
 Proof. by move=> R x p; rewrite /morph_poly map_id. Qed.
@@ -275,9 +237,10 @@ have toX : forall s i, to s 'X_i = 'X_(si s i).
 have toC : forall s x, to s (multiC n x) = multiC n x.
   by move=> s x; rewrite /to (morph_multiC _  (multiC_morph _ _)).
 have toM : forall s t, to (s * t) =1 to t \o to s.
-  move=> /= s t q; rewrite multi_initial ?(multi_initial (comp_ringM _ _)) //.
+  move=> /= s t q; rewrite multi_initial ?(multi_initial (comp_ringM _ _ )) //.
   apply: eq_morph_multi => {q}[q | i]; first by rewrite /= !toC.
   by rewrite !nth_fgraph_ord !ffunE /= !toX /si enum_rankK permM.
+
 pose eq_sign (p1 p2 : multi R n) := {e : bool | p1 = (- 1) ^+ e * p2}%R.
 suffices ss: forall s, eq_sign (to s VdM) VdM.
   move=> s t /=; rewrite /odd_perm' toM /=.
@@ -288,6 +251,7 @@ suffices ss: forall s, eq_sign (to s VdM) VdM.
 pose pi (i j : 'I_n) := if i < j then (i, j) else (j, i).
 have piC : forall i j, pi i j = pi j i.
   by move=> i j; rewrite /pi; case: ltngtP => //; move/ord_inj->.
+
 have pi_lt: forall i j (p := pi i j), (p.1 < p.2) = (i != j).
   move=> i j; rewrite {1}/pi; case: ltnP => /=.
     by rewrite neq_ltn => ->.
@@ -374,5 +338,7 @@ by rewrite eqxx -if_neg neq_ltn lt_ij.
 Qed.
   
 End SignPerm.
+
+
 
 Unset Implicit Arguments.

@@ -6,7 +6,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-(* Abstract algebra framework for ssreflect. *)
+(* Abstract algebra framework for ssreflect.                        *)
 (* We define a number of structures that "package" common algebraic *)
 (* properties of operations. These extend the combinatorial classes *)
 (* with notation and theory for classical algebraic structures.     *)
@@ -74,6 +74,7 @@ Notation Local "x *- n" := ((- x) *+ n).
 
 Notation "\sum_ ( i <- r | P ) F" := (\big[+%R/0]_(i <- r | P) F).
 Notation "\sum_ ( m <= i < n ) F" := (\big[+%R/0]_(m <= i < n) F).
+Notation "\sum_ ( i < n ) F" := (\big[+%R/0]_(i < n) F).
 Notation "\sum_ ( i \in A ) F" := (\big[+%R/0]_(i \in A) F).
 
 Section ZmoduleTheory.
@@ -419,12 +420,63 @@ Definition RevRingMixin :=
 
 Definition RevRingType := Ring.Pack (Ring.Class RevRingMixin) R.
 
+
 End RingTheory.
 
 Notation comm := (@commDef _).
 
 Notation rev :=
   (let R := _ in fun (x : Ring.sort R) => x : Ring.sort (RevRingType R)).
+
+Definition ring_morphism (aR rR : Ring.type) (f : aR -> rR) :=
+  [/\ {morph f : x y / x - y}, {morph f : x y / x * y} & f 1 = 1].
+
+Section RingMorphTheory.
+
+Variables aR' aR rR : Ring.type.
+Variables (f : aR -> rR) (g : aR' -> aR).
+Hypotheses (fM : ring_morphism f) (gM : ring_morphism g).
+
+Lemma ringM_sub : {morph f : x y / x - y}.
+Proof. by case fM. Qed.
+
+Lemma ringM_0 : f 0 = 0.
+Proof. by rewrite -(subrr 0) ringM_sub subrr. Qed.
+
+Lemma ringM_1 : f 1 = 1.
+Proof. by case fM. Qed.
+
+Lemma ringM_opp : {morph f : x / - x}.
+Proof. by move=> x /=; rewrite -[-x]add0r ringM_sub ringM_0 add0r. Qed.
+
+Lemma ringM_add : {morph f : x y / x + y}.
+Proof. by move=> x y /=; rewrite -(opprK y) ringM_opp ringM_sub. Qed.
+
+Definition ringM_sum := big_morph f ringM_add ringM_0.
+
+Lemma ringM_mul : {morph f : x y / x * y}.
+Proof. by case fM. Qed.
+
+Definition ringM_prod := big_morph f ringM_mul ringM_1.
+
+Lemma ringM_nat : forall n, f n%:R = n %:R.
+Proof.
+by elim=> [|n IHn]; rewrite ?ringM_0 // !mulrS ringM_add IHn ringM_1.
+Qed.
+
+Lemma ringM_exp : forall n, {morph f : x / x ^+ n}.
+Proof.  by elim=> [|n IHn] x; rewrite ?ringM_1 //  !exprS ringM_mul IHn. Qed.
+
+Lemma comp_ringM : ring_morphism (f \o g).
+Proof.
+case: fM gM => [fsub fmul f1] [gsub gmul g1].
+by split=> [x y | x y |] /=; rewrite ?g1 ?gsub ?gmul.
+Qed.
+
+
+End RingMorphTheory.
+
+
 
 Module ComRing.
 
@@ -686,6 +738,7 @@ Qed.
 
 End UnitRingTheory.
 
+(* Reification of the theory of rings with units, in named style  *)
 Section TermDef.
 
 Variable R : Type.
@@ -787,6 +840,7 @@ Section EvalTerm.
 
 Variable R : UnitRing.type.
 
+(* Evaluation of a reified term into R a ring with units *)
 Fixpoint eval (t : term R) (e : seq R) {struct t} : R :=
   match t with
   | Var i => e`_i
@@ -810,6 +864,7 @@ move=> t e [i u]; elim: t => //=; do 2?[move=> ? -> //] => j.
 by rewrite nth_set_nth /=; case: eq_op.
 Qed.
 
+(* Evaluation of a reified formula *)
 Fixpoint holds (f : formula R) (e : seq R) {struct f} : Prop :=
   match f with
   | Equal t1 t2 => eval t1 e = eval t2 e
@@ -822,6 +877,7 @@ Fixpoint holds (f : formula R) (e : seq R) {struct f} : Prop :=
   | Forall i f1 => forall x, holds f1 (set_nth 0 e i x)
   end.
 
+(* Extentionality of formula evaluation *)
 Lemma eq_holds : forall f e e',
   nth 0 e =1 nth 0 e' -> (holds f e <-> holds f e').
 Proof.
@@ -842,6 +898,7 @@ elim=> /=.
   split=> [] f_e x; move: (f_e x) (IHf x); tauto.
 Qed.
 
+(* Evaluation and substituion by a constant *)
 Lemma holds_fsubst : forall f e i v,
   holds (fsubst f (i, Const v)) e <-> holds f (set_nth 0 e i v).
 Proof.
@@ -860,22 +917,25 @@ split=> [] f_ x; move: (f_ x); rewrite set_set_nth eq_sym eq_ji;
      have:= IHf (set_nth 0 e j x); tauto.
 Qed.
 
-Fixpoint ring_term (t : term R) := 
+(* Boolean test selecting terms in the language of rings *)
+Fixpoint rterm (t : term R) := 
   match t with
   | Inv _ => false
-  | Add t1 t2 | Mul t1 t2 => ring_term t1 && ring_term t2
-  | Opp t1 | NatMul t1 _ | Exp t1 _ => ring_term t1
+  | Add t1 t2 | Mul t1 t2 => rterm t1 && rterm t2
+  | Opp t1 | NatMul t1 _ | Exp t1 _ => rterm t1
   | _ => true
   end.
 
-Fixpoint ring_formula (f : formula R) :=
+(* Boolean test selecting formulas in the theory of rings *)
+Fixpoint rformula (f : formula R) :=
   match f with
-  | Equal t1 t2 => ring_term t1 && ring_term t2
+  | Equal t1 t2 => rterm t1 && rterm t2
   | Unit t1 => false
-  | And f1 f2 | Or f1 f2 | Implies f1 f2 => ring_formula f1 && ring_formula f2
-  | Not f1 | Exists _ f1 | Forall _ f1 => ring_formula f1
+  | And f1 f2 | Or f1 f2 | Implies f1 f2 => rformula f1 && rformula f2
+  | Not f1 | Exists _ f1 | Forall _ f1 => rformula f1
   end.
 
+(* Upper bound of the names used in a term *)
 Fixpoint ub_var (t : term R) :=
   match t with
   | Var i => i.+1
@@ -883,35 +943,38 @@ Fixpoint ub_var (t : term R) :=
   | Opp t1 | NatMul t1 _ | Exp t1 _ | Inv t1 => ub_var t1
   | _ => 0%N
   end.
-    
-Fixpoint to_ring_term (t : term R) (r : seq (term R)) (n : nat) {struct t} :=
+
+(* Replaces inverses in the term t  by fresh variables *)
+Fixpoint to_rterm (t : term R) (r : seq (term R)) (n : nat) {struct t} :=
   match t with
   | Inv t1 =>
-    let: (t1', r1) := to_ring_term t1 r n in
+    let: (t1', r1) := to_rterm t1 r n in
       (Var _ (n + size r1), rcons r1 t1')
   | Add t1 t2 =>
-    let: (t1', r1) := to_ring_term t1 r n in
-    let: (t2', r2) := to_ring_term t2 r1 n in
+    let: (t1', r1) := to_rterm t1 r n in
+    let: (t2', r2) := to_rterm t2 r1 n in
       (Add t1' t2', r2)
   | Opp t1 =>
-   let: (t1', r1) := to_ring_term t1 r n in
+   let: (t1', r1) := to_rterm t1 r n in
      (Opp t1', r1)
   | NatMul t1 m =>
-   let: (t1', r1) := to_ring_term t1 r n in
+   let: (t1', r1) := to_rterm t1 r n in
      (NatMul t1' m, r1)
   | Mul t1 t2 =>
-    let: (t1', r1) := to_ring_term t1 r n in
-    let: (t2', r2) := to_ring_term t2 r1 n in
+    let: (t1', r1) := to_rterm t1 r n in
+    let: (t2', r2) := to_rterm t2 r1 n in
       (Mul t1' t2', r2)
   | Exp t1 m =>
-       let: (t1', r1) := to_ring_term t1 r n in
+       let: (t1', r1) := to_rterm t1 r n in
      (Exp t1' m, r1)
   | _ => (t, r)
   end.
 
-Definition equal0_to_ring_formula t1 :=
+(* A ring formula stating that t1 is equal to 0 in the ring *)
+(*theory. Also applies to non commutative rings *)
+Definition eq0_rformula t1 :=
   let m := ub_var t1 in
-  let: (t1', r1) := to_ring_term t1 [::] m in
+  let: (t1', r1) := to_rterm t1 [::] m in
   let fix loop (r : seq (term R)) (i : nat) {struct r}:=
     (match r with 
       | [::] => Equal t1' (NatConst _ 0)
@@ -921,69 +984,54 @@ Definition equal0_to_ring_formula t1 :=
     end)%T
     in loop r1 m.
 
-Fixpoint to_ring_formula f := 
+(* Transformation of a formula in the theory of rings with units into an *)
+(*  equivalent formula in the sub-theory of rings : *)
+Fixpoint to_rformula f := 
   match f with
   | t1 == t2 => 
-      equal0_to_ring_formula (t1 - t2)
-  | Unit t1 => equal0_to_ring_formula (t1 * t1^-1 - 1%:R)
-  | f1 /\ f2 => to_ring_formula f1 /\ to_ring_formula f2
-  | f1 \/ f2 =>  to_ring_formula f1 \/ to_ring_formula f2
-  | f1 ==> f2 => to_ring_formula f1 ==> to_ring_formula f2
-  | ~ f1 => ~ to_ring_formula f1
-  | Exists i f1 => exists 'X_i, to_ring_formula f1
-  | Forall i f1 => forall 'X_i, to_ring_formula f1
+      eq0_rformula (t1 - t2)
+  | Unit t1 => eq0_rformula (t1 * t1^-1 - 1%:R)
+  | f1 /\ f2 => to_rformula f1 /\ to_rformula f2
+  | f1 \/ f2 =>  to_rformula f1 \/ to_rformula f2
+  | f1 ==> f2 => to_rformula f1 ==> to_rformula f2
+  | ~ f1 => ~ to_rformula f1
+  | Exists i f1 => exists 'X_i, to_rformula f1
+  | Forall i f1 => forall 'X_i, to_rformula f1
   end%T.
 
-(*
-Fixpoint to_ring_formula f := 
-  match f with
-  | t1 == t2 => 
-      equal0_to_ring_formula (t1 - t2)
-  | Unit t1 => equal0_to_ring_formula (t1 * t1^-1 - 1%:R)
-  | f1 /\ f2 => to_ring_formula f1 /\ to_ring_formula f2
-  | f1 \/ f2 =>  to_ring_formula f1 \/ to_ring_formula f2
-  | f1 ==> f2 => to_ring_formula f1 ==> to_ring_formula f2
-  | ~ f1 => ~ to_ring_formula f1
-  | Exists i f1 => exists 'X_i, to_ring_formula f1
-  | (forall 'X_i, f1) => forall 'X_i, to_ring_formula f1
-  end%T.
-
-Process coq erreur de segmentation
-*)
-
-Lemma to_ring_formula_ring : forall f, ring_formula (to_ring_formula f).
+(* The transformation gives a ring formula.*)
+Lemma rformula_to_rformula : forall f, rformula (to_rformula f).
 Proof.
-suff eq0_ring : ring_formula (equal0_to_ring_formula _) by elim=> //= => f1 ->.
-move=> t1; rewrite /equal0_to_ring_formula; move: (ub_var t1) => m.
+suff eq0_ring : rformula (eq0_rformula _) by elim=> //= => f1 ->.
+move=> t1; rewrite /eq0_rformula; move: (ub_var t1) => m.
 set tr := _ m.
-suff : all ring_term (tr.1 :: tr.2).
+suff : all rterm (tr.1 :: tr.2).
   case: tr => {t1} t1 r /=; case/andP=> t1_r.
   elim: r m => [| t r IHr] m; rewrite /= ?andbT //.
   case/andP=> ->; exact: IHr.
-have : all ring_term [::] by [].
+have : all rterm [::] by [].
 rewrite {}/tr; elim: t1 [::] => //=.
 - move=> t1 IHt1 t2 IHt2 r. 
-  move/IHt1; case: to_ring_term=> {t1 r IHt1} t1 r /=; case/andP=> t1_r.
-  move/IHt2; case: to_ring_term=> {t2 r IHt2} t2 r /=; case/andP=> t2_r.
+  move/IHt1; case: to_rterm=> {t1 r IHt1} t1 r /=; case/andP=> t1_r.
+  move/IHt2; case: to_rterm=> {t2 r IHt2} t2 r /=; case/andP=> t2_r.
   by rewrite t1_r t2_r.
-- by move=> t1 IHt1 r; move/IHt1; case: to_ring_term. 
-- by move=> t1 IHt1 n r; move/IHt1; case: to_ring_term. 
+- by move=> t1 IHt1 r; move/IHt1; case: to_rterm. 
+- by move=> t1 IHt1 n r; move/IHt1; case: to_rterm. 
 - move=> t1 IHt1 t2 IHt2 r. 
-  move/IHt1; case: to_ring_term=> {t1 r IHt1} t1 r /=; case/andP=> t1_r.
-  move/IHt2; case: to_ring_term=> {t2 r IHt2} t2 r /=; case/andP=> t2_r.
+  move/IHt1; case: to_rterm=> {t1 r IHt1} t1 r /=; case/andP=> t1_r.
+  move/IHt2; case: to_rterm=> {t2 r IHt2} t2 r /=; case/andP=> t2_r.
   by rewrite t1_r t2_r.
 - move=> t1 IHt1 r.
-  by move/IHt1; case: to_ring_term=> {t1 r IHt1} t1 r /=; rewrite all_rcons.
-- by move=> t1 IHt1 n r; move/IHt1; case: to_ring_term. 
+  by move/IHt1; case: to_rterm=> {t1 r IHt1} t1 r /=; rewrite all_rcons.
+- by move=> t1 IHt1 n r; move/IHt1; case: to_rterm. 
 Qed.
 
-
-
-Lemma to_ring_formula_equiv : forall f e,
-  holds (to_ring_formula f) e <-> holds f e.
+(* Correctness of the transformation. *)
+Lemma to_rformula_equiv : forall f e,
+  holds (to_rformula f) e <-> holds f e.
 Proof.
 suff equal0_equiv : forall t1 t2 e, 
-  holds (equal0_to_ring_formula (t1 - t2)) e <-> (eval t1 e == eval t2 e).
+  holds (eq0_rformula (t1 - t2)) e <-> (eval t1 e == eval t2 e).
 - elim => /= ; try tauto.
   + move => t1 t2 e.
     by split; [move/equal0_equiv; move/eqP | move/eqP; move/equal0_equiv].
@@ -1007,21 +1055,17 @@ have sub_var_tsubst : forall s t, s.1 >= ub_var t -> tsubst t s = t.
     by case/andP; move/IHt1->; move/IHt2->.
   - by move=> t1 IHt1; move/IHt1->.
   - by move=> t1 IHt1 n; move/IHt1->.
-(*pose rsub  t' := fix rsub m r :=
-  if r is u :: r' then tsubst (rsub m.+1 r') (m, t) else t'.
-Stack overflow ...
-*)
 pose rsub  t' := fix rsub m (r : seq (term R))  :=
   if r is u :: r' then tsubst (rsub m.+1 r') (m, u^-1)%T else t'.
 pose ub_sub := fix ub_sub m (r : seq (term R))  :=
   if r is u :: r' then ub_var u <= m /\ ub_sub m.+1 r' else True.
 suff rsub_to_r : forall t0 r0 m, m >= ub_var t0 -> ub_sub m r0 ->
-  let: (t', r) := to_ring_term t0 r0 m in
+  let: (t', r) := to_rterm t0 r0 m in
   [/\ take (size r0) r = r0, 
     ub_var t' <= m + size r, ub_sub m r & rsub t' m r = t0].
 - have:= rsub_to_r t [::] _ (leqnn _).
-  rewrite /equal0_to_ring_formula.
-  case: (to_ring_term _ _ _) => [t1' r1] [//|_ _ ub_r1 def_t].
+  rewrite /eq0_rformula.
+  case: (to_rterm _ _ _) => [t1' r1] [//|_ _ ub_r1 def_t].
   rewrite -{2}def_t {def_t}.
   elim: r1 (ub_var t) e ub_r1 => [|u r1 IHr1] m e /= => [_|[ub_u ub_r1]].
     by split; move/eqP.
@@ -1051,9 +1095,9 @@ elim=> /=; try do [
   by move=> n r m hlt hub; rewrite take_size (ltn_addr _ hlt) rsub_id
 | by move=> n r m hlt hub; rewrite leq0n take_size rsub_id
 | move=> t1 IHt1 t2 IHt2 r m; rewrite leq_maxl; case/andP=> hub1 hub2 hmr;
-  case: to_ring_term {IHt1 hub1 hmr}(IHt1 r m hub1 hmr) => t1' r1;
+  case: to_rterm {IHt1 hub1 hmr}(IHt1 r m hub1 hmr) => t1' r1;
   case=> htake1 hub1' hsub1 <-;
-  case: to_ring_term {IHt2 hub2 hsub1}(IHt2 r1 m hub2 hsub1) => t2' r2 /=;
+  case: to_rterm {IHt2 hub2 hsub1}(IHt2 r1 m hub2 hsub1) => t2' r2 /=;
   rewrite leq_maxl; case=> htake2 -> hsub2 /= <-;
   rewrite -{1 2}(cat_take_drop (size r1) r2) htake2; set r3 := drop _ _;
   rewrite size_cat addnA (leq_trans _ (leq_addr _ _)) //; 
@@ -1063,10 +1107,10 @@ elim=> /=; try do [
   by elim: r2 m => //= u r2 IHr2 m; rewrite IHr2
 | do [ move=> t1 IHt1 r m; do 2!move/IHt1=> {IHt1}IHt1
      | move=> t1 IHt1 n r m; do 2!move/IHt1=> {IHt1}IHt1];
-  case: to_ring_term IHt1 => t1' r1 [-> -> hsub1 <-]; split=> {hsub1}//;
+  case: to_rterm IHt1 => t1' r1 [-> -> hsub1 <-]; split=> {hsub1}//;
   by elim: r1 m => //= u r1 IHr1 m; rewrite IHr1].
 move=> t1 IHt1 r m; do 2!move/IHt1=> {IHt1}IHt1.
-case: to_ring_term IHt1 => t1' r1 /= [def_r ub_t1' ub_r1 <-].
+case: to_rterm IHt1 => t1' r1 /= [def_r ub_t1' ub_r1 <-].
 rewrite size_rcons addnS leqnn -{1}cats1 takel_cat ?def_r; last first.
   by rewrite -def_r size_take leq_minl leqnn orbT.
 elim: r1 m ub_r1 ub_t1' {def_r} => /= [|u r1 IHr1] m => [_|[->]].
@@ -1074,33 +1118,32 @@ elim: r1 m ub_r1 ub_t1' {def_r} => /= [|u r1 IHr1] m => [_|[->]].
 by rewrite -addSnnS; move/IHr1=> IH; case/IH=> _ _ ub_r1 ->.
 Qed. 
 
-
-
-Fixpoint constructible (f : formula R) :=
+(* Boolean test selecting fomulas which describe a constructible set, *)
+(* ie formulas without quantifiers. Here we also require zero rhs in *)
+(* equalities *)
+(* The job of qfree is to check that all the terms in the dnf are rterms..*)
+(* May be should we separate this check from bare quantifier elimination *)
+Fixpoint qfree (f : formula R) :=
   match f with
-  | Equal t1 (NatConst 0) => ring_term t1
-  | And f1 f2 | Or f1 f2 => constructible f1 && constructible f2 
-  | Not f1 => constructible f1
+  | Equal t1 (NatConst 0) => rterm t1
+  | And f1 f2 | Or f1 f2 => qfree f1 && qfree f2 
+  | Not f1 => qfree f1
   | _ => false
   end.
 
-Section RealiConstruct.
-
-Variable e : seq R.
-
-Fixpoint reali_construct f :=
-  match f with
+(* Boolean holds predicate for quantifier free formulas *)
+Definition qfree_eval e := fix loop f :=
+  match f with 
     | Equal t1 (NatConst 0) => (eval t1 e == 0)
-    | And f1 f2 => [rec f1] && [rec f2]
-    | Or f1 f2 => [rec f1] || [rec f2]
-    | Not f1 => ~~ [rec f1]
+    | And f1 f2 => loop f1 && loop f2
+    | Or f1 f2 => loop f1 || loop f2
+    | Not f1 => ~~ loop f1
     |_ => false
-  end where "[ 'rec' f ]" := (reali_construct f).
+  end.
 
-End RealiConstruct.
-
-Lemma reali_construct_holds : forall f e,
-  constructible f -> reflect (holds f e) (reali_construct e f).
+(* qfree_eval is equivalent to holds *)
+Lemma qfree_eval_holds : forall f e,
+  qfree f -> reflect (holds f e) (qfree_eval e f).
 Proof.
 elim=> //.
 - move=> t1 t2 e cet12; case: t2 cet12=> //= [[|n]] // _; exact: eqP.
@@ -1112,50 +1155,61 @@ elim=> //.
 - by move=> f IHf e /= cf; apply: (iffP negP)=> H; move/(IHf _ cf).
 Qed.
 
-
+(* The T truth formula *)
 Definition tt_form : formula R := (0%:R == 0%:R)%T.
 
 Implicit Type bc : seq (term R) * seq (term R).
 
-Definition basic_formula :=
+(* Quantifier-free formula are normalized into DNF. A DNF is *)
+(* represented by the type seq (seq (term R) * seq (term R)), where we *)
+(* separate positive and negative litterals *)
+
+(* DNF preserving conjunction *)
+Definition and_dnf bcs1 bcs2 :=
+  \big[cat/nil]_(bc1 <- bcs1)
+     map (fun bc2 => (bc1.1 ++ bc2.1, bc1.2 ++ bc2.2)) bcs2.
+
+(* Computes a DNF from a qfree formula *)
+Fixpoint qfree_to_dnf (f : formula R) (neg : bool) {struct f} := 
+  match f with
+    | Equal t1 _ => [:: if neg then ([::], [:: t1]) else ([:: t1], [::])]
+    | And f1 f2 => (if neg then cat else and_dnf) [rec f1, neg] [rec f2, neg]
+    | Or f1 f2 => (if neg then and_dnf else cat) [rec f1, neg] [rec f2, neg]
+    | Not f1 => [rec f1, (~~ neg)]
+    |_ =>  [:: ([::], [::])]
+  end where "[ 'rec' f , neg ]" := (qfree_to_dnf f neg).
+
+
+(* Conversly, transforms a DNF into a formula *)
+Definition dnf_to_formula :=
   foldr (fun bc =>
          Or (foldr (fun t => And (t == 0%:R)) tt_form bc.1
              /\ foldr (fun t => And (~ (t == 0%:R))) tt_form bc.2))
         (Not tt_form).
 
-Definition and_basic bcs1 bcs2 :=
-  \big[cat/nil]_(bc1 <- bcs1)
-     map (fun bc2 => (bc1.1 ++ bc2.1, bc1.2 ++ bc2.2)) bcs2.
 
-Fixpoint basic_of_construct (f : formula R) (neg : bool) {struct f} := 
-  match f with
-    | Equal t1 _ => [:: if neg then ([::], [:: t1]) else ([:: t1], [::])]
-    | And f1 f2 => (if neg then cat else and_basic) [rec f1, neg] [rec f2, neg]
-    | Or f1 f2 => (if neg then and_basic else cat) [rec f1, neg] [rec f2, neg]
-    | Not f1 => [rec f1, (~~ neg)]
-    |_ =>  [:: ([::], [::])]
-  end where "[ 'rec' f , neg ]" := (basic_of_construct f neg).
-
-Lemma basic_formula_cat : forall bcs1 bcs2 e, 
-  reali_construct e (basic_formula (bcs1 ++ bcs2))
- = reali_construct e (Or (basic_formula bcs1) (basic_formula bcs2)).
+(* Catenation of dnf is the Or of formulas *)
+Lemma dnf_to_formula_cat : forall bcs1 bcs2 e, 
+  qfree_eval e (dnf_to_formula (bcs1 ++ bcs2))
+ = qfree_eval e ((dnf_to_formula bcs1) \/ (dnf_to_formula bcs2)).
 Proof.
 elim=> [|bc1 bcs1 IH1] bcs2 e /=; first by rewrite eqxx.
 by rewrite -orbA; congr orb; rewrite IH1.
 Qed.
 
-Lemma and_basic_correct : forall bcs1 bcs2 e, 
-  reali_construct e (basic_formula (and_basic bcs1 bcs2))
-  = reali_construct e (And (basic_formula bcs1) (basic_formula bcs2)).
+(* and_dnf is the And of formulas *)
+Lemma and_dnf_correct : forall bcs1 bcs2 e, 
+  qfree_eval e (dnf_to_formula (and_dnf bcs1 bcs2))
+  = qfree_eval e ((dnf_to_formula bcs1) /\ (dnf_to_formula bcs2)).
 Proof.
-elim=>[|bc1 bcs1 IH1] bcs2 /= e; first by rewrite /and_basic big_nil /= eqxx.
-rewrite /and_basic big_cons -/(and_basic bcs1 bcs2) basic_formula_cat  /=.
+elim=>[|bc1 bcs1 IH1] bcs2 /= e; first by rewrite /and_dnf big_nil /= eqxx.
+rewrite /and_dnf big_cons -/(and_dnf bcs1 bcs2) dnf_to_formula_cat  /=.
 rewrite {}IH1 /= andb_orl; congr orb.
 elim: bcs2 bc1 {bcs1} => [| bc2 bcs2 IH] bc1 /=; first by rewrite eqxx andbF.
 rewrite {}IH /= andb_orr; congr orb; rewrite {bcs2}. 
 suff aux : forall (l1 l2 : seq (term R)) g, 
-  reali_construct e (foldr (fun t => And (g t)) tt_form (l1 ++ l2)) =
-  reali_construct e 
+  qfree_eval e (foldr (fun t => And (g t)) tt_form (l1 ++ l2)) =
+  qfree_eval e 
   (And (foldr (fun t => And (g t)) tt_form l1) (foldr (fun t => And (g t)) tt_form l2)).
   rewrite 2!aux /= 2!andbA; congr andb; rewrite -2!andbA; congr andb.
   by rewrite andbC.
@@ -1164,40 +1218,40 @@ by rewrite -andbA IHl1 /=; congr andb.
 Qed.
 
 
-Lemma basic_of_construct_correct : forall f, (constructible f) -> 
-  (forall e, reali_construct e f =
-    reali_construct e (basic_formula (basic_of_construct f false))).
+Lemma qfree_to_dnf_correct : forall f, (qfree f) -> 
+  (forall e, qfree_eval e f =
+    qfree_eval e (dnf_to_formula (qfree_to_dnf f false))).
 Proof.
 elim => //=.
 - by move=> t1 t2; case: t2 => //= [[|n]] // _ e; rewrite eqxx /= orbF !andbT.
 - move=> f1 IHf1 f2 IHf2; case/andP=> cf1 cf2 e; rewrite IHf1 // IHf2 //=.
-  by rewrite and_basic_correct.
+  by rewrite and_dnf_correct.
 - move=> f1 IHf1 f2 IHf2; case/andP=> cf1 cf2 e; rewrite IHf1 // IHf2 //=.
-  by rewrite basic_formula_cat.
+  by rewrite dnf_to_formula_cat.
 - move=> f IHf cf e; rewrite {}IHf //; elim: f cf => //.
   + by move=> t1 [] ? //=; rewrite eqxx /= 2!orbF !andbT.
   + move=> f1 IHf1 f2 IHf2 /=; case/andP=> cf1 cf2.
-    rewrite and_basic_correct /= basic_formula_cat /= -IHf1 // negb_and.
+    rewrite and_dnf_correct /= dnf_to_formula_cat /= -IHf1 // negb_and.
     by congr orb; rewrite IHf2.
   + move=> f1 IHf1 f2 IHf2 /=; case/andP=> cf1 cf2.
-    rewrite and_basic_correct /= basic_formula_cat /= -IHf1 // negb_or.
+    rewrite and_dnf_correct /= dnf_to_formula_cat /= -IHf1 // negb_or.
     by rewrite -IHf2.
   + by move=> f IHf /= cf; rewrite -IHf // negbK.
 Qed.
 
-Lemma constructible_basic_formula : forall f,
-  constructible f -> constructible (basic_formula (basic_of_construct f false)).
+Lemma qfree_dnf_to_formula : forall f,
+  qfree f -> qfree (dnf_to_formula (qfree_to_dnf f false)).
 Proof.
 have aux1 : forall bcs1 bcs2,
-  constructible (basic_formula (bcs1 ++ bcs2))
-  = constructible (basic_formula bcs1) && (constructible (basic_formula bcs2)).
+  qfree (dnf_to_formula (bcs1 ++ bcs2))
+  = qfree (dnf_to_formula bcs1) && (qfree (dnf_to_formula bcs2)).
   by elim=> [|bc1 bcs1 IH1] bcs2 //=; rewrite IH1 andbA.
 have aux2 : forall bcs1 bcs2, 
-  constructible (basic_formula bcs1) -> 
-  constructible (basic_formula bcs2) ->
-  constructible (basic_formula (and_basic bcs1 bcs2)).
-- elim=>[|bc1 bcs1 IH1] bcs2 /=; first by rewrite /and_basic big_nil.
-  rewrite /and_basic big_cons -/(and_basic bcs1 bcs2) aux1.
+  qfree (dnf_to_formula bcs1) -> 
+  qfree (dnf_to_formula bcs2) ->
+  qfree (dnf_to_formula (and_dnf bcs1 bcs2)).
+- elim=>[|bc1 bcs1 IH1] bcs2 /=; first by rewrite /and_dnf big_nil.
+  rewrite /and_dnf big_cons -/(and_dnf bcs1 bcs2) aux1.
   do 2![case/andP] => cf1 cf2 cbf1 cbf2; rewrite {}IH1 //= andbT. 
   elim: bcs2 cbf2 {cbf1} => [| bsc2 bcf2 IH] //=.
   do 2![case/andP] => h1 h2; move/IH->.
@@ -1213,18 +1267,8 @@ move=> f; elim: f false => //.
 - move=> f IHf b; exact: IHf.
 Qed.
 
-Variable basic_proj : nat -> (seq (term R) * seq (term R)) -> formula R.
 
-Hypothesis construct_basic_proj : forall i bc, constructible (basic_proj i bc).
-
-Hypothesis basic_proj_holds :  forall i bc e, 
-  constructible (basic_formula [:: bc]) ->
-  reflect 
-   (holds (Exists i (basic_formula [:: bc])) e)
-    (reali_construct e (basic_proj i bc)).
-   
-
-Lemma to_ring_term_ring_term : forall t r n, ring_term t -> to_ring_term t r n = (t, r).
+Lemma to_rterm_rterm : forall t r n, rterm t -> to_rterm t r n = (t, r).
 Proof.
 elim=> //.
 - by move=> t1 IHt1 t2 IHt2 r n /=; case/andP=> rt1 rt2; rewrite {}IHt1 // {}IHt2.
@@ -1234,74 +1278,6 @@ elim=> //.
 - by move=> t IHt r n m /= rt; rewrite {}IHt.
 Qed.
 
-Definition elim_aux f n := foldr (@Or R) (Not tt_form) 
-      (map (basic_proj n) 
-      (basic_of_construct f false)).
-
-Fixpoint quantifier_elim (f : formula R) : formula R :=
-  match f with
-    | t1 == t2 => t1 - t2 == 0%:R
-    | Unit _ => f
-    | f1 /\ f2 => (quantifier_elim f1) /\ (quantifier_elim f2)
-    | f1 \/ f2 => (quantifier_elim f1) \/ (quantifier_elim f2)
-    | f1 ==> f2 => (~ quantifier_elim f1) \/ (quantifier_elim f2)
-    | ~ f => ~ (quantifier_elim f)
-    | Exists n f => elim_aux (quantifier_elim f) n
-    | Forall n f => ~ elim_aux (~ quantifier_elim f) n
-  end%T.
-
-Lemma constructible_quantifier_elim : forall f, 
-  ring_formula f -> constructible (quantifier_elim f).
-Proof.
-have aux : forall f n, constructible (elim_aux f n).
-  move=> f n; rewrite /elim_aux; elim: basic_of_construct => //= x l ->.
-  by rewrite construct_basic_proj.
-by elim=> //= f1 IHf1 f2 IHf2 /=; case/andP=> rf1 rf2; rewrite IHf1 // IHf2.
-Qed.
-
-
-Lemma quantifier_elim_ringf : forall f e, ring_formula f ->
-  reflect (holds f e) (reali_construct e (quantifier_elim f)).
-Proof.
-pose rc e n f := exists x, reali_construct (set_nth 0 e n x) f.
-have aux : forall f e n, constructible f ->
-  reflect  (rc e n f) (reali_construct e (elim_aux f n)).
-  rewrite /elim_aux => f e n cf.
-  apply: (@iffP (rc e n (basic_formula [rec f, false]))); last first.
-  - by case=> x; rewrite basic_of_construct_correct //; exists x.
-  - by case=> x; rewrite -basic_of_construct_correct //; exists x.
-  have := (constructible_basic_formula cf).
-  elim: {f cf} [rec f, false] => [| bc l IHl] /=.
-    by rewrite eqxx; right; case; rewrite /= eqxx.
-  case/andP=> hc.
-  have {hc} hc : constructible (basic_formula [:: bc]) by rewrite /= hc.
-  move/IHl=> {IHl} IHl; case: basic_proj_holds; rewrite // ?orTb ?orFb.
-    move=> hx; left; case: hx => x; move/(reali_construct_holds _ hc).
-    by rewrite /= eqxx orbF; exists x; apply/orP; left.
-  move=> hbf; apply: (iffP IHl).
-    by case=> x hx; exists x; apply/orP; right.
-  case=> x /=; case/orP=> hx; last by exists x.
-  by case: hbf; exists x; apply/(reali_construct_holds _ hc); rewrite /= hx.
-elim=> //.
-- by move=> t1 t2 //= e _; rewrite (can2_eq (subrK _) (addrK _)) add0r; exact: eqP.
-- move=> f1 IHf1 f2 IHf2 e /=; case/andP; case/(IHf1 e) => {IHf1} IHf1; last first.
-    by right; case.
-  case/(IHf2 e); constructor; tauto.
-- move=> f1 IHf1 f2 IHf2 e /=; case/andP; case/(IHf1 e) => {IHf1} IHf1.
-    by left; left.
-  case/(IHf2 e); constructor; tauto.
-- move=> f1 IHf1 f2 IHf2 e /=; case/andP; case/(IHf1 e) => {IHf1} IHf1; last first.
-    by left.
-  case/(IHf2 e); constructor; tauto.
-- move=> f IHf e /=; case/(IHf e); constructor; tauto.
-- move=> n f IHf e /= rf. 
-  apply: (iffP (aux _ _ _ (constructible_quantifier_elim rf)));
-    (case=> x hx; exists x; exact/IHf).
-- move=> n f IHf e /= rf. 
-  case: (aux (~_)%T e n (constructible_quantifier_elim rf)) => hf.
-    by right; case: hf => x hx; move/(_ x)=> hx'; case/IHf: hx.
-  by left=> x; apply/IHf=> //; apply/idPn=> hx; case: hf; exists x.
-Qed.
 
 End EvalTerm.
 
@@ -1668,11 +1644,168 @@ End DecidableFieldTheory.
 Implicit Arguments satP [F f e].
 Implicit Arguments solP [F f n].
 
+(* Structure of field with quantifier elimination *)
+Module QE.
+
+(* p is the elimination of a single existential quantifier *)
+Definition qfree_proj_axiom (R : UnitRing.type)
+  (p : nat -> (seq (term R) * seq (term R)) -> formula R) :=
+  forall i dnf, qfree (p i dnf).
+
+(* The elimination operator p preserves  validity *)
+Definition holds_proj_axiom (R : UnitRing.type)
+  (p : nat -> (seq (term R) * seq (term R)) -> formula R) :=
+  forall i bc e,  qfree (dnf_to_formula [:: bc]) ->
+    reflect  (holds (Exists i (dnf_to_formula [:: bc])) e) (qfree_eval e (p i bc)).
+
+Record mixin_of (R : UnitRing.type) : Type := Mixin {
+  proj : nat -> (seq (term R) * seq (term R)) -> formula R;  
+  qfree_proj : qfree_proj_axiom proj;
+  holds_proj : holds_proj_axiom proj
+}.
+
+Record class_of (F : Type) : Type :=
+  Class {base :> Field.class_of F; mixin:> mixin_of (UnitRing.Pack base F)}.
+
+Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
+Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
+Definition unpack K (k : forall T (c : class_of T), K T c) cT :=
+  let: Pack T c _ := cT return K _ (class cT) in k _ c.
+Definition repack cT : _ -> Type -> type := let k T c p := p c in unpack k cT.
+
+Definition pack := let k T c m := Pack (@Class T c m) T in Field.unpack k.
+
+Definition eqType cT := Equality.Pack (class cT) cT.
+Definition choiceType cT := Choice.Pack (class cT) cT.
+Definition zmodType cT := Zmodule.Pack (class cT) cT.
+Definition ringType cT := Ring.Pack (class cT) cT.
+Definition comRingType cT := ComRing.Pack (class cT) cT.
+Definition unitRingType cT := UnitRing.Pack (class cT) cT.
+Definition comUnitRingType cT := ComUnitRing.Pack (class cT) cT.
+Definition idomainType cT := IntegralDomain.Pack (class cT) cT.
+Coercion fieldType cT := Field.Pack (class cT) cT.
+
+End QE.
+
+Canonical Structure QE.eqType.
+Canonical Structure QE.choiceType.
+Canonical Structure QE.zmodType.
+Canonical Structure QE.ringType.
+Canonical Structure QE.unitRingType.
+Canonical Structure QE.comRingType.
+Canonical Structure QE.comUnitRingType.
+Canonical Structure QE.idomainType.
+Canonical Structure QE.fieldType.
+Bind Scope ring_scope with QE.sort.
+
+Section QE_theory.
+
+Variable F : QE.type.
+
+Definition proj := QE.proj (QE.class F).
+
+(* pourquoi comme ca ? *)
+Lemma qfree_proj : QE.qfree_proj_axiom proj.
+Proof. exact: QE.qfree_proj. Qed.
+
+Lemma holds_proj : QE.holds_proj_axiom proj.
+Proof. exact: QE.holds_proj. Qed.
+
+Notation Local true_f := (tt_form F).
+
+Implicit Type f : (formula F).
+
+Definition elim_aux f n := foldr (@Or F) (Not true_f) 
+      (map (proj n) 
+      (qfree_to_dnf f false)).
+
+Fixpoint quantifier_elim (f : formula F) : formula F :=
+  match f with
+    | t1 == t2 => t1 - t2 == 0%:R
+    | Unit _ => f
+    | f1 /\ f2 => (quantifier_elim f1) /\ (quantifier_elim f2)
+    | f1 \/ f2 => (quantifier_elim f1) \/ (quantifier_elim f2)
+    | f1 ==> f2 => (~ quantifier_elim f1) \/ (quantifier_elim f2)
+    | ~ f => ~ (quantifier_elim f)
+    | Exists n f => elim_aux (quantifier_elim f) n
+    | Forall n f => ~ elim_aux (~ quantifier_elim f) n
+  end%T.
+
+Lemma qfree_quantifier_elim : forall f, 
+  rformula f -> qfree (quantifier_elim f).
+Proof.
+have aux : forall f n, qfree (elim_aux f n).
+  move=> f n; rewrite /elim_aux; elim: qfree_to_dnf => //= x l ->.
+  by rewrite qfree_proj.
+by elim=> //= f1 IHf1 f2 IHf2 /=; case/andP=> rf1 rf2; rewrite IHf1 // IHf2.
+Qed.
+
+
+Lemma quantifier_elim_ringf : forall f e, rformula f ->
+  reflect (holds f e) (qfree_eval e (quantifier_elim f)).
+Proof.
+pose rc e n f := exists x, qfree_eval (set_nth 0 e n x) f.
+have aux : forall f e n, qfree f ->
+  reflect  (rc e n f) (qfree_eval e (elim_aux f n)).
+  rewrite /elim_aux => f e n cf.
+  apply: (@iffP (rc e n (dnf_to_formula (qfree_to_dnf f false)))); last first.
+  - by case=> x; rewrite qfree_to_dnf_correct //; exists x.
+  - by case=> x; rewrite -qfree_to_dnf_correct //; exists x.
+  have := (qfree_dnf_to_formula cf).
+  elim: {f cf} (qfree_to_dnf f false) => [| bc l IHl] /=.
+    by rewrite eqxx; right; case; rewrite /= eqxx.
+  case/andP=> hc.
+  have {hc} hc : qfree (dnf_to_formula [:: bc]) by rewrite /= hc.
+  move/IHl=> {IHl} IHl /=; case: holds_proj; rewrite // ?orTb ?orFb.
+    move=> hx; left; case: hx => x; move/(qfree_eval_holds _ hc).
+    by rewrite /= eqxx orbF; exists x; apply/orP; left.
+  move=> hbf; apply: (iffP IHl).
+    by case=> x hx; exists x; apply/orP; right.
+  case=> x /=; case/orP=> hx; last by exists x.
+  by case: hbf; exists x; apply/(qfree_eval_holds _ hc); rewrite /= hx.
+elim=> //.
+- by move=> t1 t2 //= e _; rewrite (can2_eq (subrK _) (addrK _)) add0r; exact: eqP.
+- move=> f1 IHf1 f2 IHf2 e /=; case/andP; case/(IHf1 e) => {IHf1} IHf1; last first.
+    by right; case.
+  case/(IHf2 e); constructor; tauto.
+- move=> f1 IHf1 f2 IHf2 e /=; case/andP; case/(IHf1 e) => {IHf1} IHf1.
+    by left; left.
+  case/(IHf2 e); constructor; tauto.
+- move=> f1 IHf1 f2 IHf2 e /=; case/andP; case/(IHf1 e) => {IHf1} IHf1; last first.
+    by left.
+  case/(IHf2 e); constructor; tauto.
+- move=> f IHf e /=; case/(IHf e); constructor; tauto.
+- move=> n f IHf e /= rf. 
+  apply: (iffP (aux _ _ _ (qfree_quantifier_elim rf)));
+    (case=> x hx; exists x; exact/IHf).
+- move=> n f IHf e /= rf. 
+  case: (aux (~_)%T e n (qfree_quantifier_elim rf)) => hf.
+    by right; case: hf => x hx; move/(_ x)=> hx'; case/IHf: hx.
+  by left=> x; apply/IHf=> //; apply/idPn=> hx; case: hf; exists x.
+Qed.
+
+Definition proj_sat f e := qfree_eval e (quantifier_elim (to_rformula f)).
+
+Lemma proj_satP : DecidableField.axiom proj_sat.
+Proof. 
+rewrite /DecidableField.axiom /proj_sat; move=> f e.
+by apply: (iffP (quantifier_elim_ringf _ ( rformula_to_rformula _))); 
+move/to_rformula_equiv.
+Qed.
+
+Definition QEDecidableFieldMixin := DecidableField.Mixin proj_satP.
+
+Canonical Structure QEDecidableField := 
+  Eval hnf in DecidableField.pack QEDecidableFieldMixin.
+
+End QE_theory.
+
+
 Module ClosedField.
 
 (* Axiom == all non-constant monic polynomials have a root *)
 Definition axiom (R : Ring.type) :=
-  forall n P, n > 0 -> exists x : R, x ^+ n = \sum_(0 <= i < n) P i * x ^+ i.
+  forall n (P : nat -> R), n > 0 -> exists x : R, x ^+ n = \sum_(i < n) P i * (x ^+ i).
 
 Record class_of (F : Type) : Type :=
   Class {base :> DecidableField.class_of F; _ : axiom (Ring.Pack base F)}.
@@ -1870,6 +2003,60 @@ Definition eq_sat := eq_sat.
 Definition solP := @solP.
 Definition eq_sol := eq_sol.
 Definition size_sol := size_sol.
+Definition ring_morphism := ring_morphism.
+Definition solve_monicpoly := solve_monicpoly.
+
+Lemma ringM_sub : forall (aR rR : Ring.type) (f : aR -> rR),
+       ring_morphism (aR:=aR) (rR:=rR) f -> {morph f : x y / x - y >-> x - y}.
+Proof. exact: ringM_sub. Qed.
+
+Lemma ringM_0 : forall (aR rR : Ring.type) (f : aR -> rR),
+       ring_morphism (aR:=aR) (rR:=rR) f -> f 0 = 0.
+Proof. exact: ringM_0. Qed.
+
+Lemma ringM_1 : forall (aR rR : Ring.type) (f : aR -> rR),
+       ring_morphism (aR:=aR) (rR:=rR) f -> f 1 = 1.
+Proof. exact: ringM_1. Qed.
+
+Lemma ringM_opp : forall (aR rR : Ring.type) (f : aR -> rR),
+       ring_morphism (aR:=aR) (rR:=rR) f -> {morph f : x / - x >-> - x}.
+Proof. exact: ringM_opp. Qed.
+
+Lemma ringM_add : forall (aR rR : Ring.type) (f : aR -> rR),
+       ring_morphism (aR:=aR) (rR:=rR) f -> {morph f : x y / x + y >-> x + y}.
+Proof. exact: ringM_add. Qed.
+
+Lemma ringM_sum : forall (aR rR : Ring.type) (f : aR -> rR),
+       ring_morphism (aR:=aR) (rR:=rR) f ->
+       forall (I : Type) (r : seq I) (P : pred I) (F : I -> aR),
+       f (\sum_(i <- r | P i) F i) = \sum_(i <- r | P i) f (F i).
+Proof. exact: ringM_sum. Qed.
+
+Lemma ringM_mul : forall (aR rR : Ring.type) (f : aR -> rR),
+       ring_morphism (aR:=aR) (rR:=rR) f -> {morph f : x y / x * y >-> x * y}.
+Proof. exact: ringM_mul. Qed.
+
+Lemma ringM_prod : forall (aR rR : Ring.type) (f : aR -> rR),
+       ring_morphism (aR:=aR) (rR:=rR) f ->
+       forall (I : Type) (r : seq I) (P : pred I) (F : I -> aR),
+       f (\prod_(i <- r | P i) F i) = \prod_(i <- r | P i) f (F i).
+Proof. exact: ringM_prod. Qed.
+
+Lemma ringM_nat : forall (aR rR : Ring.type) (f : aR -> rR),
+       ring_morphism (aR:=aR) (rR:=rR) f -> forall n : nat, f n%:R = n%:R.
+Proof. exact: ringM_nat. Qed.
+
+Lemma ringM_exp : forall (aR rR : Ring.type) (f : aR -> rR),
+       ring_morphism (aR:=aR) (rR:=rR) f ->
+       forall n : nat, {morph f : x / x ^+ n >-> x ^+ n}.
+Proof. exact: ringM_exp. Qed.
+
+Lemma comp_ringM : forall (aR' aR rR : Ring.type) (f : aR -> rR) (g : aR' -> aR),
+       ring_morphism (aR:=aR) (rR:=rR) f ->
+       ring_morphism (aR:=aR') (rR:=aR) g ->
+       ring_morphism (aR:=aR') (rR:=rR) (f \o g).
+Proof. exact: comp_ringM. Qed.
+
 
 Implicit Arguments satP [F f e].
 Implicit Arguments solP [F f n].
