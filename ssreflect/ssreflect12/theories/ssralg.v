@@ -6,7 +6,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-(* Abstract algebra framework for ssreflect. *)
+(* Abstract algebra framework for ssreflect.                        *)
 (* We define a number of structures that "package" common algebraic *)
 (* properties of operations. These extend the combinatorial classes *)
 (* with notation and theory for classical algebraic structures.     *)
@@ -1704,6 +1704,7 @@ Variable F : QE.type.
 
 Definition proj := QE.proj (QE.class F).
 
+(* pourquoi comme ca ? *)
 Lemma qfree_proj : QE.qfree_proj_axiom proj.
 Proof. exact: QE.qfree_proj. Qed.
 
