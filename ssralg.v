@@ -1132,7 +1132,7 @@ Fixpoint qfree (f : formula R) :=
   end.
 
 (* Boolean holds predicate for quantifier free formulas *)
-Definition qfree_eval e := fix loop f :=
+Definition qfree_eval e := fix loop (f : formula R) : bool :=
   match f with 
     | Equal t1 (NatConst 0) => (eval t1 e == 0)
     | And f1 f2 => loop f1 && loop f2
