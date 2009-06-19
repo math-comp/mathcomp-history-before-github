@@ -11,7 +11,7 @@ Unset Strict Implicit.
 (* Parsing and format declarations. *)
 
 Reserved Notation "~~ b" (at level 35, right associativity).
-Reserved Notation "b ==> c" (at level 60, right associativity).
+Reserved Notation "b ==> c" (at level 55, right associativity).
 Reserved Notation "b1  (+)  b2" (at level 50, left associativity).
 Reserved Notation "x \in A" (at level 70, no associativity).
 Reserved Notation "x \notin A" (at level 70, no associativity).
