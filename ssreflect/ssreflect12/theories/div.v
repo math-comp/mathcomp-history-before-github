@@ -20,14 +20,14 @@ Import Prenex Implicits.
 Definition edivn_rec d := fix loop (m q : nat) {struct m} :=
   if m - d is m'.+1 then loop m' q.+1 else (q, m).
 
-Definition edivn m d := if d is d'.+1 then edivn_rec d' m 0 else (0, m).
+Definition edivn m d := if d > 0 then edivn_rec d.-1 m 0 else (0, m).
 
 CoInductive edivn_spec (m d : nat) : nat * nat -> Type :=
   EdivnSpec q r of m = q * d + r & (d > 0) ==> (r < d) : edivn_spec m d (q, r).
 
 Lemma edivnP : forall m d, edivn_spec m d (edivn m d).
 Proof.
-move=> m [|d] //=; rewrite -{1}[m]/(0 * d.+1 + m).
+rewrite /edivn => m [|d] //=; rewrite -{1}[m]/(0 * d.+1 + m).
 elim: m {-2}m 0 (leqnn m) => [|n IHn] [|m] q //=; rewrite ltnS => le_mn.
 rewrite subn_if_gt; case: ltnP => [// | le_dm].
 rewrite -{1}(subnKC le_dm) -addSn addnA -mulSnr; apply: IHn.
@@ -44,7 +44,7 @@ rewrite -(leq_pmul2r d_gt0); move/leq_add=> Hqr Eqr _; move/Hqr {Hqr}.
 by rewrite addnS ltnNge mulSn -addnA Eqr addnCA addnA leq_addr.
 Qed.
 
-Definition divn m d := nosimpl (edivn m d).1.
+Definition divn m d := (edivn m d).1.
 
 Notation "m %/ d" := (divn m d) (at level 40, no associativity) : nat_scope.
 
@@ -53,7 +53,7 @@ Notation "m %/ d" := (divn m d) (at level 40, no associativity) : nat_scope.
 Definition modn_rec d := fix loop (m : nat) :=
   if m - d is m'.+1 then loop m' else m.
 
-Definition modn m d := nosimpl (if d is d'.+1 then modn_rec d' m else m).
+Definition modn m d := if d > 0 then modn_rec d.-1 m else m.
 
 Notation "m %% d" := (modn m d) (at level 40, no associativity) : nat_scope.
 Notation "m = n %[mod d ]" := (m %% d = n %% d)
@@ -71,9 +71,10 @@ Notation "m != n %[mod d ]" := (m %% d != n %% d)
 
 Lemma modn_def : forall m d, m %% d = (edivn m d).2.
 Proof.
-rewrite /modn => m [|d] //=; elim: m {-2}m 0 (leqnn m) => [|n IHn] [|m] q //=.
-rewrite ltnS !subn_if_gt (fun_if (@snd _ _)) => le_mn; rewrite -{}IHn //.
-apply: leq_trans le_mn; exact: leq_subr.
+rewrite /modn /edivn => m [|d] //=.
+elim: m {-2}m 0 (leqnn m) => [|n IHn] [|m] q //=.
+rewrite ltnS !subn_if_gt; case: (d <= m) => // le_mn.
+by apply: IHn; apply: leq_trans le_mn; exact: leq_subr.
 Qed.
 
 Lemma edivn_def : forall m d, edivn m d = (m %/ d, m %% d).
@@ -242,7 +243,7 @@ Qed.
 
 Lemma modn_exp: forall m n a, (a %% n) ^ m = a ^ m %[mod n].
 Proof.
-by elim => // m Hrec n a; rewrite !expnS -modn_mulmr Hrec modn_mulml modn_mulmr.
+by elim=> // m Hrec n a; rewrite !expnS -modn_mulmr Hrec modn_mulml modn_mulmr.
 Qed.
 
 (** Divisibility **)
