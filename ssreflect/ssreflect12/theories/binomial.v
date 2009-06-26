@@ -94,7 +94,8 @@ rewrite (eq_bigl (xpredD1 ltv Fp0)) => [|i]; last first.
   rewrite andbA -ltnNge; symmetry; case: eqP => [->|].
     by case: eqP => // ->; rewrite !andbF.
   by move/eqP=> ni0; rewrite vFpK //eqxx vFp0.
-by rewrite -{2}[mFp]/mFpM -big_split big1 ?mFp1r //= => i; case/andP; auto.
+rewrite -{2}[mFp]/mFpM -[mFpM _ _]big_split -/mFpM.
+by rewrite big1 ?mFp1r //= => i; case/andP; auto.
 Qed.
 
 (** Binomial *)

@@ -130,7 +130,7 @@ Proof. by move=> x y; rewrite !equiv_elim canon_id. Qed.
 
 (* quotient theory *)
 Record quotient := Quotient {
-  repr :> T;
+  repr :> T; (* wrong : let's do it with subtype *)
   _ : (canon repr == repr) && (\dom repr)
 }.
 

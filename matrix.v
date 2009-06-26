@@ -676,7 +676,7 @@ Qed.
 
 Lemma mx_trace_scalar : forall n a, \tr (a%:M : 'M_n) = a *+ n.
 Proof.
-move=> n a; rewrite -{5}(card_ord n) -sumr_const; apply: eq_bigr => i _.
+move=> n a /=; rewrite -{3}(card_ord n) -sumr_const; apply: eq_bigr => i _.
 by rewrite mxE eqxx.
 Qed.
 

@@ -1020,7 +1020,7 @@ Qed.
 
 Lemma quotient_pseries2 : forall pi1 pi2 gT (G : {group gT}),
   'O_{pi1, pi2}(G) / 'O_pi1(G) = 'O_pi2(G / 'O_pi1(G)).
-Proof. by move=> pi1 pi2 gT G; rewrite -pseries1 quotient_pseries. Qed.
+Proof. by move=> pi1 pi2 gT G; rewrite -pseries1 -quotient_pseries. Qed.
 
 Lemma quotient_pseries_cat : forall pi1s pi2s gT (G : {group gT}),
   pseries (pi1s ++ pi2s) G / pseries pi1s G
@@ -1193,7 +1193,7 @@ have nOG: 'O_{p}(G) <| G by exact: pseries_normal.
 rewrite -(quotientSGK (normal_norm nOG)) ?(pseries_sub_catl [:: _]) //.
 have [|f f_inj im_f] := third_isom _ nHG nOG.
   by rewrite /= pseries1 pcore_max.
-rewrite quotient_pseries -{}im_f //=.
+rewrite (quotient_pseries [::_]) -{}im_f //=.
 rewrite -bgFunc_asresp; try by move: pcore_resp pcore_sub.
 rewrite {f f_inj}morphimS // pseries1 -pquotient_pcore // -(pseries1 p) /=.
 by rewrite -quotient_pseries /= (eqP pGH1).
@@ -1236,7 +1236,8 @@ apply/idP/idP=> [p1G | pU].
 have nOG: 'O_{p^', p}(G) <| G by exact: pseries_normal.
 rewrite eqEsubset pseries_sub.
 rewrite -(quotientSGK (normal_norm nOG)) ?(pseries_sub_catl [:: _; _]) //=.
-rewrite quotient_pseries pcore_max // /pgroup card_quotient ?normal_norm //.
+rewrite (quotient_pseries [::_;_]) pcore_max //.
+rewrite /pgroup card_quotient ?normal_norm //.
 apply: (@pnat_dvd _ #|G : p_elt_gen G|); last first.
   rewrite -card_quotient // p'natE //; apply/negP; case/Cauchy=> // Ux.
   case/morphimP=> x Nx Gx -> /= oUx_p; have:= prime_gt1 pr_p.
@@ -1247,7 +1248,7 @@ apply: indexgS.
 have nOU: p_elt_gen G \subset 'N('O_{p^'}(G)).
   by rewrite (subset_trans sUG) // normal_norm ?pseries_normal.
 rewrite -(quotientSGK nOU) ?(pseries_sub_catl [:: _]) //=.
-rewrite quotient_pseries pcore_max ?morphim_normal //.
+rewrite (quotient_pseries [::_]) pcore_max ?morphim_normal //.
 rewrite /pgroup card_quotient //= pseries1; apply: pnat_dvd pU.
 apply: indexgS; rewrite pcore_max ?pcore_pgroup //.
 apply: char_normal_trans nUG; exact: pcore_char.

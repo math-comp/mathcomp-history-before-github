@@ -456,7 +456,7 @@ have{IHG} IHG: forall X : {group gT},
       rewrite -card_quotient ?normal_norm ?pseries_normal //.
       have{ltX_G IHG} VXPR_1: p.-length_1 [~: V <*> X <*> P, R0].
         by apply: IHG ltX_G => //=; rewrite mul_subG ?normG.
-      rewrite -{1}((_ =P [~: _, _]) VXPR_1) quotient_pseries.
+      rewrite -{1}((_ =P [~: _, _]) VXPR_1) (quotient_pseries [::_;_]).
       exact: pcore_pgroup.
     exact: pcore_normal.
   have <-: K :&: 'O_p([~: (V <*> X) <*> P, R0]) = 1.

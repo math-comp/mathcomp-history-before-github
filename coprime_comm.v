@@ -91,7 +91,7 @@ have kerphi: forall c, c \in [~: G, A] -> c \in 'ker Mphi.
   have xinv : x^-1 \in G by apply:groupVr.
   have xconja: x ^ a \in G by rewrite memJ_norm //; apply: (subsetP norm).
   apply/morphpreP; split; rewrite/commg //=; first by apply: groupM.
-  by apply/set1P; rewrite morphic_phi // phia // (morphV Mphi) //; apply: mulVg.
+  by apply/set1P; rewrite morphic_phi // phia // [phi _](morphV Mphi) // mulVg.
 have centr : forall v, v \in 'C_G(A) -> phi v = v^+ #|A|.
   move=> v; rewrite inE; case/andP=> inG; move/centP=> inC.
   pose cphi y := sgval (\sum_(x \in A) (subg G y : gTG))%R.

@@ -400,7 +400,7 @@ Proof. by move=> C G nHG; rewrite -cosetpreSK quotientGK. Qed.
 (* Variant of ker_trivg_morphim. *)
 Lemma quotient_sub1 : forall A,
   A \subset 'N(H) -> (A / H \subset [1]) = (A \subset H).
-Proof. by move=> A nHA; rewrite -{12}ker_coset ker_trivg_morphim nHA. Qed.
+Proof. by move=> A nHA /=; rewrite -{10}ker_coset ker_trivg_morphim nHA. Qed.
 
 Lemma quotientSK : forall A B,
   A \subset 'N(H) -> (A / H \subset B / H) = (A \subset H * B).
