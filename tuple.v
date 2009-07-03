@@ -9,7 +9,7 @@ Import Prenex Implicits.
 (* Tuples, i.e., lists with a fixed (known) length. We define:               *)
 (*   n.-tuple T   : the type of n-tuples of elements of type T.              *)
 (*   [tuple of s] : the tuple whose underlying sequence (value) is s, which  *)
-(*                  must have a known size; specically, Coq must be able to  *)
+(*                  must have a known size; specifically, Coq must be able to  *)
 (*                  infer a tuple whose Canonical Projection is s, e.g.,     *)
 (*     [tuple]            is the empty tuples, and                           *)
 (*     [tuple x1; ..; xn] the explicit n.-tuple <x1; ..; xn>.                *)
