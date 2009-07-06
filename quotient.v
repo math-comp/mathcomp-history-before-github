@@ -60,13 +60,13 @@ Definition equiv_left_trans := left_trans equiv_sym equiv_trans.
 
 
 Reserved Notation "x === y" (at level 70, no associativity).
-Local Notation "x === y" := (equiv x y).
+ Notation "x === y" := (equiv x y).
 
 
 
 (* properties of the PER's domain *)
 Reserved Notation "\dom x" (at level 2, format "\dom  x").
-Local Notation "\dom x" :=  (x === x).
+Notation "\dom x" :=  (x === x).
 
 Lemma dom_coincide : forall x, \dom x = ((p x) != None).
 Proof. by move=> x; rewrite /equiv eqxx andTb. Qed.
