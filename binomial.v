@@ -3,7 +3,7 @@ Require Import div prime choice.
 
 (*****************************************************************************)
 (* This files contains the definitions of:                                   *)
-(*   fact n         <=> the factorial of n                                   *)
+(*   fact n         == the factorial of n                                   *)
 (*   bin m n        ==  binomial coef., i.e. m choose n                      *)
 (*                                                                           *)
 (* In additions to the properties of this function, wilson and pascal are    *)
