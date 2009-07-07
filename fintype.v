@@ -14,6 +14,24 @@ Import Prenex Implicits.
 (* provided by the Countable structure, this would yield a useless        *)
 (* computational interpretation due to the wasteful encoding into Peano   *)
 (* integers.                                                              *)
+(* We define operations on Finite Type expecting an applicative predicate *)
+(* as argument:                                                           *)
+(*   - enum to enumerate the elements filtered by pred                    *)
+(*   - pick, returning the first filtered element; we also give Notations *)
+(*   to supply the pred coercion as in [pick x | P]                       *)
+(*   - boolean quantifiers for finType: forallb x, F  and existsb x, F    *)
+(* We also define operations card, disjoint, subset and proper expecting  *)
+(* a mem_pred and  used through notations that supply the mem coercion.   *)
+(* We provide a serie of lemmas for all these operations on finType       *)    
+(* We define operations on functions on finTypes: the Boolean injectivity,*)
+(* image (image f of A), inverse function.                                *)
+(* Finally we define some standard finTypes the ordinals and the product  *)
+(* and the sum of two finTypes.                                           *)  
+(*   The Ordinal finType I_n : {0, ... , n-1} is provided with a coercion *)
+(*   nat_of_ord to  natural numbers, and                                  *)
+(*   -  the lift/unlift operations to avoid a messy dependent type;       *)
+(*      unlift is a partial operation (returns an option).                *)
+(*   -  shifting and splitting indices, for cutting and pasting arrays    *)
 
 Module Finite.
 
@@ -91,12 +109,6 @@ Canonical Structure Finite.countType.
 
 Canonical Structure finEnum_unlock := Unlockable Finite.EnumDef.enumDef.
 
-(* Operations enum, pick, and pred0b expect an applicative pred  *)
-(* argument; operations card, disjoint, and subset expect a      *)
-(* mem_pred and are used through notations that supply the mem   *)
-(* coercion. We lock the definitions of card and subset to       *)
-(* mitigate divergence in the Coq term comparison algorithm.     *)
-
 Definition enum T P := filter P (Finite.enum T).
 Definition pick T P := ohead (@enum T P).
 Prenex Implicits enum pick.
@@ -108,6 +120,10 @@ Notation "[ 'pick' x \in A ]" := (pick [pred x | x \in A])
   (at level 0, x ident, format "[ 'pick'  x  \in  A  ]") : form_scope.
 Notation "[ 'pick' x \in A | P ]" := (pick [pred x | (x \in A) && P])
   (at level 0, x ident, format "[ 'pick'  x  \in  A  |  P  ]") : form_scope.
+
+
+(*We lock the definitions of card and subset to       *)
+(* mitigate divergence in the Coq term comparison algorithm.     *)
 
 Notation Local card_type := (forall T : finType, mem_pred T -> nat).
 Notation Local card_def := (fun T A => size (enum A)).
@@ -1357,7 +1373,7 @@ Implicit Arguments inord [n].
 
 Prenex Implicits ord_opp.
 
-(* Product of tow fintypes which is a fintype *)
+(* Product of two fintypes which is a fintype *)
 Section ProdFinType.
 
 Variable T1 T2 : finType.
