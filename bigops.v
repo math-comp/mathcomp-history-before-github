@@ -1,7 +1,55 @@
-(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved.      *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div choice fintype.
 Require Import finfun paths.
-(*Require Import div connect.*)
+
+(****************************************************************************)
+(* This file provides a generic definition for iterating an operator over a *)
+(* set of indexes (reducebig); this big operator is parametrized by the     *)
+(* return type (R), the type of indexes (I), the operator (op), the default *)
+(* value on empty lists (idx), the range of indexes (r), the filter applied *) 
+(* on this range (P) and the expression we are iterating (F). The definition*)
+(* is not to be used directly, but via the wide range of notations provided *)
+(* and which allows a natural use of big operators.                         *)
+
+(* The lemmas can be classified according to the operator being iterated:   *)
+(* 1. results independent of the operator: extensionality with respect to   *)
+(*     the range  of indexes, to the filtering predicate or to the          *)
+(*     expression being iterated; reindexing, widening or narrowing of the  *)
+(*     range of indexes; we provide lemmas for the special case where       *)
+(*     indexes are natural numbers                                          *)
+(* 2. results depending on the properties of the operator:                  *)
+(*     we distinguish: monoid laws (op is associative, idx is the neutral   *)
+(*     element), abelian monoid laws (op is also comutative), the case      *)
+(*     where we have 2 operators compatible with a certain property, the    *)
+(*     case of 2 operators compatible with a certain relation (e.g. order)  *)
+(*     the case of 2 operators that interact through distributivity (e.g.   *)
+(*     the addition and multiplication in a ring structure).                *)
+
+(* A special section is dedicated to big operators on natural numbers.      *)
+
+(* Notations:                                                               *)
+(* - one can use the "\big[op/idx]" notations for any operator;             *)
+(* - the "\sum", "\prod" and "\maxn"  notations in nat_scope are used for   *)
+(*   natural numbers with addition, multiplication and maximum (and their   *)
+(*   corresponding neutral elements), respectively;                         *)
+(* - the "\sum"and "\prod" reserved notations are re-bounded in ssralg.v    *)
+(*   in ring_scope to the addition and multiplication big operators of a    *)
+(*   ring.                                                                  *)
+
+(* Tips for using lemmas in this file:                                      *)
+(* to apply a lemma for a specific operator: if no special property is      *)
+(* required for the operator, simply apply the lemma; if the lemma needs    *)
+(* certain properties for the operator, make sure the appropriate           *)
+(* Canonical Structures are declared before simply applying the lemma.      *)
+
+(* Additional documentation for this file:                                  *)
+(* Y. Bertot, G. Gonthier, S. Ould Biha and I. Pasca.                       *)
+(* Canonical Big Operators. In TPHOLs 2008, LNCS vol. 5170, Springer.       *)
+(* Author files available at:                                               *)
+(* http://hal.inria.fr/docs/00/33/11/93/PDF/main.pdf                        *)
+
+(* Examples of use in: poly.v, matrix.v                                     *)
+(****************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -231,11 +279,6 @@ Definition repack_add_law mop aop (opC : com_law) (opA : add_law mop) :=
 
 End Definitions.
 
-(* Deprecated -- GG
-Definition morphism T1 T2 id1 id2 op1 op2 (phi : T1 -> T2) :=
-  phi id1 = id2 /\ {morph phi : x y / op1 x y >-> op2 x y}.
-*)
-
 Section CommutativeAxioms.
 
 Variable (T : Type) (zero one : T) (mul add : T -> T -> T) (inv : T -> T).
@@ -299,7 +342,7 @@ End Theory.
 
 End Theory.
 
-Import Theory. (* Will become Include Theory. in Coq 8.2 *)
+Import Theory. 
 Definition mul1m :=  mul1m.
 Definition mulm1 := mulm1.
 Definition mulmA := mulmA.
@@ -1164,9 +1207,9 @@ Implicit Arguments big_catr [R op idx I r1 r2  P F].
 Implicit Arguments big_geq [R op idx m n P F].
 Implicit Arguments big_ltn_cond [R op idx m n P F].
 Implicit Arguments big_ltn [R op idx m n F].
-Implicit Arguments big_addn [R op idx]. (* m n a *)
+Implicit Arguments big_addn [R op idx].
 Implicit Arguments big_mkord [R op idx n].
-Implicit Arguments big_nat_widen [R op idx] (* m n a *).
+Implicit Arguments big_nat_widen [R op idx] .
 Implicit Arguments big_ord_widen_cond [R op idx n1].
 Implicit Arguments big_ord_widen [R op idx n1].
 Implicit Arguments big_ord_widen_leq [R op idx n1].
@@ -1226,7 +1269,6 @@ have:= big_prop; rewrite unlock => Pb_big I r P F Pb_F.
 by elim: r => //= i r <-; case Pi: (P i); auto.
 Qed.
 
-(* See big_prop_seq above *)
 Lemma eq_big_op_seq :  forall (I : eqType) r (P : pred I) F,
     (forall i, P i && (i \in r) -> Pb (F i)) ->
   \big[op1/idx]_(i <- r | P i) F i = \big[op2/idx]_(i <- r | P i) F i.
