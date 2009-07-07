@@ -53,7 +53,10 @@ Structure morphism (A : {set aT}) : Type := Morphism {
   _ : {in A &, {morph mfun : x y / x * y}}
 }.
 
-(* 'lightweight' specification: local congruence with the group law of aT *)
+(*  We give the morphism definition the most 'lightweight' specification:    *)
+(* local congruence with the group law of aT. We then provide the properties *)
+(* for the 'textbook' notion of morphism, when the required structures are   *)
+(* available (e.g. its domain is a group).                                   *)
 
 Definition morphism_for A of phant rT := morphism A.
 
