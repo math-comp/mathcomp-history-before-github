@@ -2,8 +2,7 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq bigops fintype.
 Require Import div prime choice.
 
 (*****************************************************************************)
-(* This files contains the definitions of:                                   *)
-(*   fact n         == the factorial of n                                   *)
+(* This files contains the definition  of:                                   *)
 (*   bin m n        ==  binomial coef., i.e. m choose n                      *)
 (*                                                                           *)
 (* In additions to the properties of this function, wilson and pascal are    *)
