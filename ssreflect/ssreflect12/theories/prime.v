@@ -3,7 +3,7 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq paths fintype.
 Require Import div bigops.
 
 (*****************************************************************************)
-(* This files contains the definitions of:                                   *)
+(* This file contains the definitions of:                                   *)
 (*   prime p        <=> p is a prime                                         *)
 (*   primes m       == the sorted list of prime divisors of m > 1, else [::] *)
 (*   pfactor        == the type of prime factors, syntax (p ^ e)%pfactor     *)

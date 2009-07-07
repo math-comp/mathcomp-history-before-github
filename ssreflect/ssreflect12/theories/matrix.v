@@ -1,7 +1,4 @@
-(***********************************************************************)
-(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-(*                                                                     *)
-(***********************************************************************)
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved.         *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype.
 Require Import finfun bigops ssralg groups perm zmodp.
 
@@ -12,25 +9,26 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-(***************************************************************************)
-(* Basic linear algebra : definition of the Matrix type. Matrix is defined *)
-(* as a double indexed list of coefficients. This is done by using the     *)
-(* finfun structure. We define the construction operators of a matrix form *)
-(* a given function : \matrix_ ( i < m , j < n ) E ,                       *)
-(*  \matrix_ ( i , j < n ) E and \matrix_ ( i , j ) E.                     *)
-(* We define :                                                             *)
-(* - row and column operations :  cut, drop and sawp                       *)
-(* - block operation : left cut, right cut and paste of matrices           *)
-(* - trace : \tr A                                                         *)
-(* - determinant : \det A. The definition is done with Leibniz formula     *)
-(* - adjugate matrix : \adj A                                              *)
-(* - algebraic operation for group, ring, module and unital ring           *)
-(* - LUP matrix decomposition                                              *)
-(* We prove some important results :                                       *)
-(* - determinant multilinear property                                      *)
-(* - Laplace formulas : expand_det_row & expand_det_col                    *)
-(* - Cramer rule : mulmx_adjr & mulmx_adjl                                 *)
-(***************************************************************************)
+(*******************************************************************************)
+(* Basic linear algebra : definition of the Matrix type. Matrix is defined     *)
+(* as a double indexed list of coefficients. This is done by using the         *)
+(* finfun structure. The files contains the definitions of:                    *)
+(*   matrix_of_fun : the construction operators of a matrix form a given       *)
+(*                   function. This is the RECOMMENDED interface to build      *)
+(*                   an element of matrix type.                                *)
+(* Its define also :                                                           *)
+(* - row and column operations :  cut, drop and sawp                           *)
+(* - block operation : left cut, right cut and paste of matrices               *)
+(* - trace : \tr A                                                             *)
+(* - determinant : \det A. The definition is done with Leibniz formula         *)
+(* - adjugate matrix : \adj A                                                  *)
+(* - algebraic operation for group, ring, module and unital ring               *)
+(* - LUP matrix decomposition                                                  *)
+(* We prove some important results :                                           *)
+(* - Determinant multilinear property                                          *)
+(* - Laplace formulas : expand_det_row & expand_det_col                        *)
+(* - Cramer rule : mulmx_adjr & mulmx_adjl                                     *)
+(*******************************************************************************)
 
 Reserved Notation "''M_' n"       (at level 8, n at level 2, format "''M_' n").
 Reserved Notation "''M_' ( n )"   (at level 8, only parsing).

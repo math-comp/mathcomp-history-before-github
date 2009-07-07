@@ -1,9 +1,18 @@
-(***********************************************************************)
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-(*                                                                     *)
-(***********************************************************************)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype.
 Require Import bigops ssralg matrix poly.
+
+(*******************************************************************************)
+(* This files contains the definitions of:                                     *)
+(*  - char_poly A  : Characteristic polynomial of A                            *)
+(*  - phi : the isomorphism between the rings  M(R[X]) and M(R)[X]             *)
+(*    with R a commutative and                                                 *)
+(*     M(R[X]) : matrices with coefficients in the polynomial ring of R        *)
+(*     M(R)[X] : polynomials with coefficients in the matrix ring of R         *)
+(*  - Zpoly : the injection from the polynomial ring to M(R)[X]                *)
+(* In addition to the lemmas relevant to these definitions, this file also     *)
+(* contains a proof of the Cayley-Hamilton Theorem.                            *)
+(*******************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -33,7 +42,7 @@ Notation Local "'M' ( 'R' [ 'X' ] )" :=
 Notation Local "'M' ( 'R' ) [ 'X' ]" := {poly (matrix R n n)}
   (at level 0, format "'M' ( 'R' ) [ 'X' ]").
 
-(* Defining the characteristic polynomial *)
+(* The characteristic polynomial *)
 Open Scope matrix_scope.
 Definition matrixC (A : M(R)) : M(R[X]) := \matrix_(i, j) (A i j)%:P.
 
@@ -93,7 +102,7 @@ rewrite exchange_big /=; apply: eq_bigr=> k2 _.
 by rewrite mxE; apply: eq_bigr=> k1 _; rewrite !coef_phi.
 Qed.
 
-(* Evaluating a polynomial on matrices *)
+(* Writing a polynomial as a polynomial on matrices *)
 
 Definition Zpoly (p : R[X]) : M(R)[X] := \poly_(i < size p) (p`_i)%:M.
 
