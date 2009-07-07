@@ -7,9 +7,22 @@
 (*  Cosets, quotients, and isomorphism theorems                        *)
 (*                                                                     *)
 (***********************************************************************)
+(* Definitions:                                                        *)
+(* In this file:                                                       *)
+(*   coset_of H           == right cosets by the group H (see below)   *)
+(*   coset_groupType H    == the groupType induced by 'N(H) / H        *)
+(*   coset H              == the canonical projection induced by H     *)
+(*   A / B                == the quotient of A by B,                   *)
+(*                               made to coincide w/ (A :&: 'N(B)) / B *)
+(*   quotm (nHG: H <| G) (nGf : f@* G = G) (nHf : f@*H = H)            *)
+(*                        == the quotient morphism induced by f and H  *)
 (***********************************************************************)
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq div choice fintype.
-Require Import finfun finset groups morphisms automorphism.
+(* Lemmas for these notions, plus the three isomorphism theorems, and  *)
+(* counting lemmas for morphisms.                                      *)
+(***********************************************************************)
+
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq div choice.
+Require Import fintype finfun finset groups morphisms automorphism.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -73,7 +86,7 @@ Canonical Structure coset_finType := Eval hnf in FinType coset_finMixin.
 Canonical Structure coset_subFinType := Eval hnf in [subFinType of coset_of].
 
 (* We build a new (canonical) structure of groupType for cosets.      *)
-(* When A is a group, this is the largest possible quotient 'N(H) / H *)
+(* When A is a group, this is the largest possible quotient 'N(A) / A *)
 
 Lemma coset_one_proof : coset_range H.
 Proof. by apply/rcosetsP; exists (1 : gT); rewrite (group1, mulg1). Qed.
