@@ -1,26 +1,40 @@
-(***********************************************************************)
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-(*                                                                     *)
-(***********************************************************************)
-(***********************************************************************)
-(*                                                                     *)
-(*  Definitions of conjugate set, normal set and quotient group        *)
-(*                                                                     *)
-(***********************************************************************)
-(***********************************************************************)
-Require Import ssreflect.
-Require Import ssrbool.
-Require Import ssrfun.
-Require Import eqtype.
-Require Import ssrnat.
-(* Require Import seq. *)
-(* Require Import paths. *)
-(* Require Import connect. *)
-Require Import fintype.
-Require Import finfun.
-Require Import finset.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat fintype finfun finset.
 Require Import groups.
 
+(*****************************************************************************)
+(* This file contains the definitions of:                                    *)
+(*                                                                           *)
+(*   {morphism A >-> gT} == The type of morphisms from domain set A of       *)
+(*                          elements of a groupType, to groupType gT         *)
+(*                                                                           *)
+(* if p is a morphism of domain A:                                           *)
+(*   dom p                  == A                                             *)
+(*   p @* B                 == the image of B, where defined (f @: (A :&: B))*)
+(*   p @*^-1 C              == the pre-image of C, where defined             *)
+(*                             (A :&: f @^-1: B)                             *)
+(*   'ker p                 == the kernel of p (p @*^-1: 1)                  *)
+(*   'injm p                <=> p injective (ker p \subset 1)                *)
+(*   invm p ('injm f)       == the inverse morphism for an injective p       *)
+(*   idm B                  == the identity morphism on B                    *)
+(*   restrm p (A \subset B) == the morphism that on its domain A,            *)
+(*                                              coincides with p             *)
+(*   trivm B                == the trivial morphism on B                     *)
+(*                                                                           *)
+(* if, moreover, q is a morphism of domain B:                                *)
+(*   factm (A \subset B) ('ker q \subset 'ker p) == the natural surjection   *)
+(*                                          between the ranges of q and f    *)
+(*                                                                           *)
+(*                                                                           *)
+(* for any function f between groupTypes :                                   *)
+(*   morphic A f            <=> forall x,y in A, f(x * y) = (f x) * (f y)    *)
+(*   isom A B f             <=> f @: (A  \: 1) = (B \: 1)                    *)
+(*   misom A B f            <=> morphic A f && isom A B f                    *)
+(*   A \isog B              <=> exists f, misom A B f                        *)
+(*   morphm (H:morphic B f) == f                                             *)
+(*                       we then define a canonical structure of morphism    *)
+(*                                             with domain B on (morphm H)   *)
+(*****************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -38,6 +52,8 @@ Structure morphism (A : {set aT}) : Type := Morphism {
   mfun :> aT -> FinGroup.sort rT;
   _ : {in A &, {morph mfun : x y / x * y}}
 }.
+
+(* 'lightweight' specification: local congruence with the group law of aT *)
 
 Definition morphism_for A of phant rT := morphism A.
 
@@ -71,6 +87,8 @@ Notation "[ 'morphism' 'of' f ]" :=
 Implicit Arguments morphimP [aT rT A B f y].
 Implicit Arguments morphpreP [aT rT A C f x].
 Prenex Implicits morphimP morphpreP.
+
+(* domain, image, preimage, kernel, using "phantom" types to infer the domain *)
 
 Section MorphismOps1.
 
@@ -121,6 +139,8 @@ Implicit Types L M : {group rT}.
 
 Variables (G : {group aT}) (f : {morphism G >-> rT}).
 
+(* the usual properties occur when the domain is a group. *)
+
 Lemma morph1 : f 1 = 1.
 Proof. by apply: (mulgI (f 1)); rewrite -morphM ?mulg1. Qed.
 
@@ -140,6 +160,8 @@ Qed.
 
 Lemma morphR : {in G &, {morph f : x y / [~ x, y]}}.
 Proof. by move=> * /=; rewrite morphM ?(groupV, groupJ) // morphJ ?morphV. Qed.
+
+(* morphic image,preimage properties w.r.t. set-theoretic operations *)
 
 Lemma morphimE : forall A, f @* A = f @: (G :&: A). Proof. by []. Qed.
 Lemma morphpreE : forall C, f @*^-1 C = G :&: f @^-1: C. Proof. by []. Qed.
@@ -237,6 +259,13 @@ exists y (y^-1 * x); last by rewrite mulKVg.
 by rewrite !inE groupM ?(morphM, morphV, groupV) // def_fx -def_fy mulKg.
 Qed.
 
+Lemma morphpreMr : forall C D,
+  D \subset f @* G -> f @*^-1 (C * D) = f @*^-1 C * f @*^-1 D.
+Proof.
+move=> C D sDfG; apply: invg_inj.
+by rewrite invMg -!morphpreV invMg morphpreMl // -invSg invgK invGid.
+Qed.
+
 Lemma morphimJ : forall A x, x \in G -> f @* (A :^ x) = f @* A :^ f x.
 Proof.
 move=> A x Gx; rewrite !conjsgE morphimMl ?(morphimMr, sub1set, groupV) //.
@@ -269,6 +298,8 @@ Proof. by move=> C D; rewrite -setIIr -preimsetI. Qed.
 
 Lemma morphpreD : forall C D, f @*^-1 (C :\: D) = f @*^-1 C :\: f @*^-1 D.
 Proof. by move=> C D; apply/setP=> x; rewrite !inE; case: (x \in G). Qed.
+
+(* kernel, domain properties *)
 
 Lemma kerP : forall x, x \in G -> reflect (f x = 1) (x \in 'ker f).
 Proof. move=> x Gx; rewrite 2!inE Gx; exact: set1P. Qed.
@@ -334,6 +365,8 @@ rewrite morphimS ?subsetIl // -[~: f @* H]setU0 -subDset setDE setCK.
 by rewrite -morphimIG //= setIAC -setIA setICr setI0 morphim0.
 Qed.
 
+(* group structure preservation *)
+
 Lemma morphpre_groupset : forall M, group_set (f @*^-1 M).
 Proof.
 move=> M; apply/group_setP; split=> [|x y]; rewrite !inE ?(morph1, group1) //.
@@ -366,6 +399,8 @@ Proof.
 move=> C D sDfG; apply: invg_inj.
 by rewrite invMg -!morphpreV invMg morphpreMl // -invSg invgK invGid.
 Qed.
+
+(* compatibility with inclusion *)
 
 Lemma morphimK : forall A, A \subset G -> f @*^-1 (f @* A) = 'ker f * A.
 Proof.
@@ -443,6 +478,8 @@ Lemma morphimSGK : forall A H,
   A \subset G -> 'ker f \subset H -> (f @* A \subset f @* H) = (A \subset H).
 Proof. by move=> H K sHG skfK; rewrite morphimSK // mulSGid. Qed.
 
+(* injectivity of image and preimage *)
+
 Lemma morphpre_inj :
   {in [pred C : {set _} | C \subset f @* G] &, injective (fun C => f @*^-1 C)}.
 Proof. exact: can_in_inj morphpreK. Qed.
@@ -461,6 +498,8 @@ Lemma morphim_inj : forall H1 H2,
   f @* H1 = f @* H2 -> H1 :=: H2.
 Proof. by move=> H1 H2 nH1f nH2f; move/morphim_injG->. Qed.
 
+(* commutation with the generated group *)
+
 Lemma morphim_gen : forall A, A \subset G -> f @* <<A>> = <<f @* A>>.
 Proof.
 move=> A sAG; apply/eqP.
@@ -477,6 +516,8 @@ rewrite -{1}(morphpreK sCG) -morphim_gen ?subsetIl // morphimGK //=.
   by rewrite sub_gen // setIS // preimsetS ?sub1set.
 by rewrite gen_subG subsetIl.
 Qed.
+
+(* commutator, normaliser, normal, center properties*)
 
 Lemma morphimR : forall A B,
   A \subset G -> B \subset G -> f @* [~: A, B] = [~: f @* A, f @* B].
@@ -621,6 +662,8 @@ Proof.
 move=> C A; rewrite -morphpreIdom -setIA setICA morphpreI setIS //.
 exact: morphpre_cent.
 Qed.
+
+(* local injectivity properties *)
 
 Lemma injmP : reflect {in G &, injective f} ('injm f).
 Proof.
