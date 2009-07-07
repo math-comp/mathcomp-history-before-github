@@ -1,21 +1,27 @@
-(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect.
-Require Import ssrbool.
-Require Import ssrfun.
-Require Import eqtype.
-Require Import ssrnat.
-(* Require Import seq. *)
-(* Require Import bigops. *)
-(* Require Import ssralg. *)
-(* Require Import paths. *)
-(* Require Import connect. *)
-(* Require Import div. *)
-Require Import fintype.
-Require Import finset.
-Require Import groups.
-Require Import perm.
-Require Import morphisms.
+(**********************************************************************)
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved.*)
+(**********************************************************************)
+(*                                                                    *)
+(*  Properties of automorphisms                                       *)
+(*                                                                    *)
+(**********************************************************************)
+(* Definitions:                                                       *)
+(* In this file:                                                      *)
+(*   Aut A                == the automorphism group of A.             *)
+(*   autm (Af:f\in Aut A) == the morphism induced by an element of    *)
+(*                                                            (Aut A) *)
+(*  perm_in (H1: {in B, injective f}) (H2: f @:B \subset B)           *)
+(*                        == the permutation induced by a             *)
+(*                             bijective endofunction                 *)
+(*  aut (H1: 'injm f) {H2: f @:G \subset G)                           *)
+(*                        == the element of Aut A induced by a        *)
+(*                             bijective enfomorphism of domain G     *)
+(*  conjgm A              == the conjugation automorphism on A        *)
+(*  G char H              == G is a characteristic subgroup of H      *)
+(***********************************************************************)
 
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat fintype finset.
+Require Import groups perm morphisms.
 
 Import GroupScope.
 
@@ -23,10 +29,13 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-Section Automorphism.
+(***********************************************************************)
+(* A group automorphism, defined as a permutation on a subset of a     *)
+(* finGroupType that respects the morphism law.                        *)
+(* Here perm_on is used as a closure rule for the set A.               *)
+(***********************************************************************)
 
-(* a group automorphism is a permutation on a subset of a finGroupType,*)
-(* that respects the morphism law                                      *)
+Section Automorphism.
 
 Variable gT : finGroupType.
 Implicit Type A : {set gT}.
@@ -45,6 +54,8 @@ Proof.
 move=> A f g Af Ag eqfg; apply/permP=> x.
 by case/orP: (orbN (x \in A)); [apply eqfg | move/out_Aut=> out; rewrite !out].
 Qed.
+
+(* The morphism that is represented by a given element of Aut A. *)
 
 Definition autm A f Af := morphm (@Aut_morphic A f Af).
 Lemma autmE : forall A f Af, @autm A f Af = f.
@@ -99,6 +110,9 @@ Notation "[ 'Aut' G ]" := (Aut_group G)
 
 Prenex Implicits Aut autm.
 
+(* The permutation function (total on the underlying groupType) that is the *)
+(* representant of a given morphism f with domain A in (Aut A).             *)
+
 Section PermIn.
 
 Variables (T : finType) (B : {set T}) (f : T -> T).
@@ -124,6 +138,8 @@ Lemma perm_inE : {in B, perm_in =1 f}.
 Proof. by move=> x Bx; rewrite /= permE Bx. Qed.
 
 End PermIn.
+
+(* properties of injective endomorphisms *)
 
 Section MakeAut.
 
@@ -172,6 +188,8 @@ End MakeAut.
 
 Implicit Arguments morphim_fixP [gT G f].
 Prenex Implicits aut morphim_fixP.
+
+(* conjugation automorphism *)
 
 Section ConjugationMorphism.
 
@@ -229,6 +247,8 @@ Prenex Implicits conjgm conj_aut.
 
 Reserved Notation "G \char H" (at level 70).
 
+(* Characteristic subgroup *)
+
 Section Characteristicity.
 
 Variable gT : finGroupType.
@@ -252,6 +272,8 @@ apply/forallP=> f; apply/implyP=> Af; have injf := injm_autm Af.
 move/(morphim_fixP injf _ sHG): (chHG _ injf (autm_dom Af)).
 by rewrite /morphim (setIidPr _).
 Qed.
+
+(* Characteristic subgroup properties : composition, relational properties *)
 
 Lemma trivg_char : forall G, 1 \char G.
 Proof.

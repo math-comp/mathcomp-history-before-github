@@ -15,15 +15,15 @@ Require Import groups.
 (*                             (A :&: f @^-1: B)                             *)
 (*   'ker p                 == the kernel of p (p @*^-1: 1)                  *)
 (*   'injm p                <=> p injective (ker p \subset 1)                *)
-(*   invm p ('injm f)       == the inverse morphism for an injective p       *)
+(*   invm p (H:'injm f)       == the inverse morphism for an injective p     *)
 (*   idm B                  == the identity morphism on B                    *)
-(*   restrm p (A \subset B) == the morphism that on its domain A,            *)
+(*   restrm p (H:A \subset B) == the morphism that on its domain A,          *)
 (*                                              coincides with p             *)
 (*   trivm B                == the trivial morphism on B                     *)
 (*                                                                           *)
 (* if, moreover, q is a morphism of domain B:                                *)
-(*   factm (A \subset B) ('ker q \subset 'ker p) == the natural surjection   *)
-(*                                          between the ranges of q and f    *)
+(*   factm (H1:A \subset B) (H2:'ker q \subset 'ker p) == the natural        *)
+(*                                  surjection between the ranges of q and p *)
 (*                                                                           *)
 (*                                                                           *)
 (* for any function f between groupTypes :                                   *)
@@ -454,7 +454,7 @@ Lemma sub_morphim_pre : forall A C,
 Proof.
 move=> A C sAG; rewrite -morphpreSK (morphimS, morphimK) //.
 apply/idP/idP; first by apply: subset_trans; exact: mulG_subr.
-by move/(mulgS ('ker f)); rewrite -morphpreMl ?(sub1G, mul1g). 
+by move/(mulgS ('ker f)); rewrite -morphpreMl ?(sub1G, mul1g).
 Qed.
 
 Lemma sub_morphpre_im : forall C H,
@@ -833,7 +833,7 @@ Proof. by apply: subset_trans; rewrite ker_restrm subsetIr. Qed.
 End Props.
 
 Lemma restrmP : forall f : {morphism B >-> rT}, A \subset 'dom f ->
-  exists g : {morphism A >-> rT}, 
+  exists g : {morphism A >-> rT},
     [/\ forall C, C \subset A -> f @* C = g @* C,
         'ker g = 'ker_A f & f = g :> (aT -> rT)].
 Proof.
@@ -1135,7 +1135,7 @@ move=> A C sAG; case: (restrmP f sAG) => g [_ _ fg] <-{C} injf.
 rewrite /isom -morphimEsub ?morphimDG ?morphim1 //.
 by rewrite subDset setUC subsetU ?sAG.
 Qed.
-  
+
 Lemma sub_isog : forall (A : {set aT}),
   A \subset G -> 'injm f -> isog A (f @* A).
 Proof. move=> A sAG injf; apply: (isom_isog f sAG); exact: sub_isom. Qed.

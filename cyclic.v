@@ -278,11 +278,11 @@ End MorphicImage.
 
 Section CyclicProps.
 
-Variables gT : finGroupType. 
+Variables gT : finGroupType.
 Implicit Types G H K : {group gT}.
 Implicit Types aT rT : finGroupType.
 
-Lemma cyclicS : forall G H, H \subset G -> cyclic G -> cyclic H. 
+Lemma cyclicS : forall G H, H \subset G -> cyclic G -> cyclic H.
 Proof.
 move=> G H HsubG; case/cyclicP=> x gex; apply/cyclicP.
 exists (x ^+ (#[x] %/ #|H|)); apply: congr_group; apply/set1P.

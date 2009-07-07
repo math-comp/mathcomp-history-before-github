@@ -111,7 +111,7 @@ Hint Resolve perm_inj.
 
 Lemma perm_onto : forall u : pT, codom u =i predT.
 Proof. by move=> u; apply/subset_cardP; rewrite ?card_codom ?subset_predT. Qed.
- 
+
 Definition perm_one := perm (@inj_id T).
 
 Lemma perm_invK : forall u : pT, cancel (fun x => iinv (perm_onto u x)) u.
@@ -149,7 +149,7 @@ Lemma permM : forall (s1 s2 : pT) x, (s1 * s2) x = s2 (s1 x).
 Proof. by move=> *; rewrite permE. Qed.
 
 Lemma permK : forall s : pT, cancel s s^-1.
-Proof. by move=> s x; rewrite -permM mulgV perm1. Qed. 
+Proof. by move=> s x; rewrite -permM mulgV perm1. Qed.
 
 Lemma permKV : forall s : pT, cancel s^-1 s.
 Proof. by move=> s; have:= permK s^-1; rewrite invgK. Qed.
@@ -168,7 +168,7 @@ Proof.
 move=> a u x; move/subsetP=> u_on_a.
 case: (u x =P x) => [-> //|]; move/eqP=> nfix_u_x.
 by rewrite !u_on_a // inE /= ?(inj_eq (perm_inj u)).
-Qed.  
+Qed.
 
 Lemma perm_on1 :  forall H, perm_on H 1.
 Proof. by move=> H; apply/subsetP=> x; rewrite inE /= perm1 eqxx. Qed.
