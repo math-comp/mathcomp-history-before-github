@@ -12,10 +12,13 @@ Import Prenex Implicits.
 (*******************************************************************************)
 (* Basic linear algebra : definition of the Matrix type. Matrix is defined     *)
 (* as a double indexed list of coefficients. This is done by using the         *)
-(* finfun structure. The files contains the definitions of:                    *)
+(* finfun structure. The file contains the definitions of:                     *)
+(*   fun_of_matrix : Coercion from matrix to FunClass. Allow to use matrices   *)
+(*                as functions.                                                *)
 (*   matrix_of_fun : the construction operators of a matrix form a given       *)
 (*                   function. This is the RECOMMENDED interface to build      *)
 (*                   an element of matrix type.                                *)
+(* *)
 (* Its define also :                                                           *)
 (* - row and column operations :  cut, drop and sawp                           *)
 (* - block operation : left cut, right cut and paste of matrices               *)
@@ -23,8 +26,10 @@ Import Prenex Implicits.
 (* - determinant : \det A. The definition is done with Leibniz formula         *)
 (* - adjugate matrix : \adj A                                                  *)
 (* - algebraic operation for group, ring, module and unital ring               *)
+(* - The Canonicals Structures for this algebraic structures are defined       *)
 (* - LUP matrix decomposition                                                  *)
-(* We prove some important results :                                           *)
+(* In addition to the lemmas relevant to these definitions, this file also     *)
+(* contains proofs :                                                           *)
 (* - Determinant multilinear property                                          *)
 (* - Laplace formulas : expand_det_row & expand_det_col                        *)
 (* - Cramer rule : mulmx_adjr & mulmx_adjl                                     *)
@@ -58,6 +63,10 @@ Notation Local simp := (Monoid.Theory.simpm, oppr0).
 
 Open Local Scope ring_scope.
 Open Local Scope matrix_scope.
+
+(*******************************************************************************)
+(****************************Type Definition************************************)
+(*******************************************************************************)
 
 Section MatrixDef.
 
@@ -114,22 +123,29 @@ Definition matrix_choiceMixin (R : choiceType) m n :=
 Canonical Structure matrix_choiceType R m n :=
   Eval hnf in ChoiceType (matrix_choiceMixin R m n).
 
+(*******************************************************************************)
+(****************************Matrix block operations****************************)
+(*******************************************************************************)
+
 Section Slicing.
 
 Variable R : Type.
 
+(* Row/Column sub matrices of a matrix *)
 Definition mx_row m n i0 (A : 'M_(m, n)) :=
   \matrix_(i < 1, j < n) (A i0 j : R).
 Definition mx_col m n j0 (A : 'M_(m, n)) :=
   \matrix_(i < m, j < 1) (A i j0 : R).
-Definition mx_row' m n i0 (A : 'M_(m, n)) :=
-  \matrix_(i, j) (A (lift i0 i) j : R).      (* Drop row *)
-Definition mx_col' m n j0 (A : 'M_(m, n)) :=
-  \matrix_(i, j) (A i (lift j0 j) : R).      (* Drop col *)
 
+(* Removing a row/column from a matrix *)
+Definition mx_row' m n i0 (A : 'M_(m, n)) :=
+  \matrix_(i, j) (A (lift i0 i) j : R).
+Definition mx_col' m n j0 (A : 'M_(m, n)) :=
+  \matrix_(i, j) (A i (lift j0 j) : R).
+
+(* Swaping two row/column of a matrix *)
 Definition rswap m n (A : 'M_(m, n)) i1 i2 :=
   \matrix_(i, j) (A (tperm i1 i2 i) j : R). 
-    
 Definition cswap m n (A : 'M_(m, n)) i1 i2 :=
   \matrix_(i, j) (A i (tperm i1 i2 j) : R). 
 
@@ -190,15 +206,16 @@ Section CutPaste.
 
 Variables m n1 n2 : nat.
 
+(* Left/Right cuting of colums of a matrix *)
 (* The shape of the (dependent) width parameter of the type of A *)
-(* determines where the cut is made! *)
-
+(* determines where the cut is made *)
 Definition lcutmx (A : 'M_(m, n1 + n2)):=
   \matrix_(i < m, j < n1) (A i (lshift n2 j) : R).
 
 Definition rcutmx (A : 'M_(m, n1 + n2)) :=
   \matrix_(i < m, j < n2) (A i (rshift n1 j) : R).
 
+(* Concatenating two matrices *)
 Definition pastemx (A1 : 'M_(m, n1)) (A2 : 'M_(m, n2)) :=
    \matrix_(i < m, j < n1 + n2)
       (match split j with inl j1 => A1 i j1 | inr j2 => A2 i j2 end : R).
@@ -289,6 +306,8 @@ Section Block.
 
 Variables m1 m2 n1 n2 : nat.
 
+(* Building a block matrix from 4 matrices :            *)
+(*  up left, up right, low left and low right component *)
 Definition block_mx Aul Aur All Alr : 'M_(m1 + m2, n1 + n2) :=
   (pastemx (pastemx Aul Aur)^T (pastemx All Alr)^T)^T.
 
@@ -375,6 +394,10 @@ End Slicing.
 Notation "A ^T" := (trmx A) : ring_scope.
 Prenex Implicits lcutmx rcutmx ulsubmx ursubmx llsubmx lrsubmx.
 
+(*******************************************************************************)
+(****************************Matrix algebraic operations************************)
+(*******************************************************************************)
+
 (* Definition of operations for matrices over a ring *)
 Section MatrixOpsDef.
 
@@ -413,7 +436,7 @@ move=> I r P E i j.
 by apply: (big_morph (fun A => A i j)) => [A B|]; rewrite mxE.
 Qed.
 
-(* Vector space structure... pending the definition *)
+(* Vector space structure *)
 
 Notation "x *m: A" := (scalemx x A) : ring_scope.
 
@@ -447,7 +470,7 @@ Proof. by move=> x A B; rewrite scalemx_addr scalemxN. Qed.
 Lemma scalemxA : forall x y A, x *m: (y *m: A) = (x * y) *m: A.
 Proof. by move=> x y A; apply/matrixP=> i j; rewrite !mxE mulrA. Qed.
 
-(* Basis... *)
+(* Basis *)
 
 Definition delta_mx i0 j0 :=
   \matrix_(i < m, j < n) (((i == i0) && (j == j0))%:R : R).
@@ -531,9 +554,9 @@ move=> m1 m2 n1 n2 a Aul Aur All Alr.
 by rewrite /block_mx !(scalemx_paste, (I, trmx_scale)).
 Qed.
 
-(* The graded ring structure *)
-
+(* Scalar matrix : a diagonal matrix with a constant on the diagonal *)
 Definition scalar_mx n x := \matrix_(i , j < n) (if i == j then x else 0 : R).
+(* Matrix multiplication with the bigops *)
 Definition mulmx m n p (A : 'M_(m, n)) (B : 'M_(n, p)) :=
   \matrix_(i < m, k < p) \sum_(j < n) (A i j * B j k : R).
 
@@ -627,6 +650,7 @@ rewrite exchange_big; apply: eq_bigr => j _; rewrite mxE big_distrl /=.
 by apply: eq_bigr => k _; rewrite mulrA.
 Qed.
 
+(* Permutation matrix *)
 Definition perm_mx n (s : 'S_n) :=
   \matrix_(i, j) (if s i == j then 1 else 0 : R).
 
@@ -710,9 +734,9 @@ apply/matrixP=> i k; rewrite !mxE big_split_ord /=.
 by congr (_ + _); apply: eq_bigr => j _; rewrite !(pastemxEl, pastemxEr, mxE).
 Qed.
 
+(* Matrix ring Structure *)
 Section MatrixRing.
-
-Variable n : pos_nat.
+Variable n : pos_nat. (* To require that the ring is not the trivial one *)
 
 Lemma matrix_nonzero1 : 1%:M != 0 :> 'M_n.
 Proof.
@@ -735,6 +759,8 @@ Notation "a *m: A" := (scalemx a A) : ring_scope.
 Notation "a %:M" := (scalar_mx _ a) : ring_scope.
 Notation "A *m B" := (mulmx A B) : ring_scope.
 Notation "\tr A" := (mx_trace A) : ring_scope.
+
+(*******************************************************************************)
 
 Section TrMul.
 
@@ -767,8 +793,9 @@ Qed.
 
 End TrMul.
 
-Section ComMatrix.
+(*******************************************************************************)
 
+Section ComMatrix.
 Variable R : comRingType.
 
 Lemma trmx_mul : forall m n p (A : matrix R m n) (B : 'M_(n, p)),
@@ -801,15 +828,17 @@ rewrite exchange_big; apply: eq_bigr => i _ /=; rewrite mxE.
 apply: eq_bigr => j _; exact: mulrC.
 Qed.
 
-(* The determinant, in one line. *)
+(* The determinant, in one line with the Leibniz Formula *)
 Definition determinant n (A : 'M_n) :=
   \sum_(s : 'S_n) (-1) ^+ s * \prod_i A i (s i) : R.
 
 Notation "'\det' A" := (determinant A).
 
+(* The cofactor of a matrix on the indexes i and j *)
 Definition cofactor n A (i j : 'I_n) : R :=
   (-1) ^+ (i + j) * \det (mx_row' i (mx_col' j A)).
 
+(* The adjugate matrix : defined as the transpose of the matrix of cofactors *)
 Definition adjugate n A := \matrix_(i, j < n) (cofactor A j i : R).
 
 Lemma determinant_multilinear : forall n (A B C : 'M_n) i0 b c,
@@ -973,6 +1002,7 @@ case: leqP => [_ | lt_i'm] /=; last by rewrite -if_neg neq_ltn leqW.
 by rewrite add1n eqSS eq_sym; case: eqP.
 Qed.
 
+(* Laplace expansion lemma *)
 Lemma expand_cofactor : forall n (A : 'M_n) i j,
   cofactor A i j =
     \sum_(s : 'S_n | s i == j) (-1) ^+ s * \prod_(k | i != k) A k (s k).
@@ -1027,6 +1057,7 @@ move=> n A j0; rewrite -det_trmx (expand_det_row _ j0).
 by apply: eq_bigr => i _; rewrite cofactor_tr mxE.
 Qed.
 
+(* Laplace formula : adjugate on the left *)
 Lemma mulmx_adjr : forall n (A : 'M_n), A *m adjugate A = (\det A)%:M.
 Proof.
 move=> n A; apply/matrixP=> i1 i2; rewrite !mxE; case Di: (i1 == i2).
@@ -1044,6 +1075,7 @@ Qed.
 Lemma trmx_adj : forall n (A : 'M_n), (adjugate A)^T = adjugate A^T.
 Proof. by move=> n A; apply/matrixP=> i j; rewrite !mxE cofactor_tr. Qed.
 
+(* Laplace formula : adjugate on the right *)
 Lemma mulmx_adjl : forall n (A : 'M_n), adjugate A *m A = (\det A)%:M.
 Proof.
 move=> n A; apply: trmx_inj; rewrite trmx_mul trmx_adj mulmx_adjr.
@@ -1097,6 +1129,10 @@ End ComMatrix.
 
 Notation "\det A" := (determinant A) : ring_scope.
 Notation "\adj A" := (adjugate A) : ring_scope.
+
+(*******************************************************************************)
+(******************************* Matrix unit ring ******************************)
+(*******************************************************************************)
 
 Section MatrixInv.
 
@@ -1156,14 +1192,17 @@ Qed.
 
 End MatrixInv.
 
-Section CormenLUP.
+(*******************************************************************************)
+(******************************* LUP decomposion *******************************)
+(*******************************************************************************)
 
+Section CormenLUP.
 Variable F : fieldType.
 
-(*Décomposition de la matrice A en P A = L U avec :
-- P une matrice de permutation
-- L une matrice triangulaire inféreieure
-- U une matrice triangulaire supérieure 
+(* Decomposition of the matrix A to P A = L U with :
+- P a permutation matrix
+- L a lower triangular matrix
+- U an upper triangular matrix 
 *)
 
 (* The cast (0 : 'I__) is probably not needed in Coq 8.2 -- GG *)
