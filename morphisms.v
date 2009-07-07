@@ -262,13 +262,6 @@ exists y (y^-1 * x); last by rewrite mulKVg.
 by rewrite !inE groupM ?(morphM, morphV, groupV) // def_fx -def_fy mulKg.
 Qed.
 
-Lemma morphpreMr : forall C D,
-  D \subset f @* G -> f @*^-1 (C * D) = f @*^-1 C * f @*^-1 D.
-Proof.
-move=> C D sDfG; apply: invg_inj.
-by rewrite invMg -!morphpreV invMg morphpreMl // -invSg invgK invGid.
-Qed.
-
 Lemma morphimJ : forall A x, x \in G -> f @* (A :^ x) = f @* A :^ f x.
 Proof.
 move=> A x Gx; rewrite !conjsgE morphimMl ?(morphimMr, sub1set, groupV) //.
