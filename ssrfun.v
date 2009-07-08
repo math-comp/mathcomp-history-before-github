@@ -7,12 +7,23 @@ Unset Strict Implicit.
 Delimit Scope fun_scope with FUN.
 Open Scope fun_scope.
 
-(* Basic constructions for intuitionistic functions : extensional equality   *)
-(* composition, override, update, inverse, and iteration, with some their    *)
-(* identities, and reflected equalities.                                     *)
+(*****************************************************************************)
+(* This file contains the basic definitions and notations for working with   *)
+(* functions. The definitions concern:                                       *)
+(* - partial functions using option type,                                    *)
+(* - extensional equality for functions and relations (i.e. functions of 2   *)
+(*   arguments),                                                             *)
+(* - composition for total and partial functions,                            *)
+(* - properties for operations (e.g. admits a neutral element, admits an     *)
+(*   inverse, associativity, commutativity, admits an absorbant element,     *)
+(*   distributivity  of an operation over another),                          *)
+(* - morphisms for functions and relations,                                  *)
+(* - injective functions,                                                    *)
+(* - bijective functions,                                                    *)
+(* - involutive functions.                                                   *)
+(* The file also contains some basic lemmas for the above concepts.          *)
+(*****************************************************************************)
 
-(* Miscellaneous notation bits (currrying, pair projections, evaluation *)
-(* inverse, subscripting), the last three tp be defined later.          *)
 
 Notation "f ^~ y" := (fun x => f x y)
   (at level 10, y at level 8, no associativity, format "f ^~  y") : fun_scope.
@@ -20,11 +31,13 @@ Notation "f ^~ y" := (fun x => f x y)
 Delimit Scope pair_scope with PAIR.
 Open Scope pair_scope.
 
+(* Notations for pair projections *)
 Notation "p .1" := (fst p)
   (at level 2, left associativity, format "p .1") : pair_scope.
 Notation "p .2" := (snd p)
   (at level 2, left associativity, format "p .2") : pair_scope.
 
+(* Reserved notations for evaluation *)
 Reserved Notation "e .[ x ]"
   (at level 2, left associativity, format "e .[ x ]").
 
@@ -32,6 +45,7 @@ Reserved Notation "e .[ x1 , x2 , .. , xn ]"
   (at level 2, left associativity,
    format "e '[ ' .[ x1 , '/'  x2 , '/'  .. , '/'  xn ] ']'").
 
+(* Reserved notations for subscripting and superscripting *)
 Reserved Notation "x ^-1"
   (at level 3, left associativity, format "x ^-1").
 
@@ -140,7 +154,7 @@ Notation "[ 'fun' ( x : xT ) ( y : yT ) => E ]" :=
 (* For delta functions in eqtype.v. *)
 Definition SimplFunDelta aT rT (f : aT -> aT -> rT) := [fun z => f z z].
 
-(* Shorthand for some basic equality lemmas lemmas. *)
+(* Shorthand for some basic equality lemmas. *)
 
 Definition erefl := refl_equal.
 Definition esym := sym_eq.
