@@ -7,7 +7,30 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-(* group of permutations *)
+(**************************************************************************)
+(* This file contains the definition and properties  associated to the    *)
+(* group of permutations.                                                 *)
+(*   {perm T} == the permutation of a finite type T                       *)
+(*                        (i.e. an injective function from T to T)        *)
+(*   'S_n == the permutations of {0,.., n-1}                              *)
+(*   perm_on A u <=> u is a permutation on T where only the elements of a *)
+(*                                 a subset A of T are affected           *)
+(*   tperm x y == the transposition of x, y                               *)
+(*   aperm x s == s(x)                                                    *)
+(*   pcycle s x == the set of all elements that are in the same cycle     *) 
+(*                 of permutation s as x                                  *)
+(*   pcycles s == the set of cycles of permutation s                      *)
+(*   odd_perm s <=> s is an odd permutation                               *)
+(*   dpair x <=> x is a pair of distinct objects                          *)
+(* Permutations are coerced to the underlying function.                   *)
+(* Canonical structures are defined allowing permutations to be an eqType,*)
+(* choiceType, countType, finType, subType, finGroupType (permutations    *)
+(* with the composition form a group, therefore all generic group         *)
+(* notations are inherited: 1 == identity permutation, * == composition,  *)
+(* ^-1 == inverse permutation).                                           *)
+(* Lemmas are given to establish the common properties for permutations.  *)
+(**************************************************************************)
+
 
 Section PermDefSection.
 
