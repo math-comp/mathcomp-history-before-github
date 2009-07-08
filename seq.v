@@ -5,13 +5,14 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
+(***************************************************************************)
 (* Seq is the ssreflect list Type; it is identical to the standard Coq     *)
 (* type, but comes with a much larger set of operations, including         *)
 (* generic eqType and predType structures. The operations are geared       *)
 (* towards reflection, e.g., they generally expect and provide boolean     *)
 (* predicates, and our membership predicates expects an eqType. To avoid   *)
 (* any confusion we do not Import the Coq List module, which forces us to  *)
-(* define our own Type since list is not dfined in the pervasives.         *)
+(* define our own Type since list is not defined in the pervasives.        *)
 (*   Since there is no true subtyping in Coq, we don't use a type for non  *)
 (* empty sequences; rather, we pass explicitly the head and "tail" of the  *)
 (* sequence.                                                               *)
@@ -26,7 +27,7 @@ Import Prenex Implicits.
 (*                        last, belast (non empty seqs)                    *)
 (*   - random access: nth & set_nth (w. default), incr_nth (for seq nat)   *)
 (*   - size: size (seq version of length), shape (= map size)              *)
-(*   - elemets lookup: index, mem_seq (implements the predType interface)  *)
+(*   - elements lookup: index, mem_seq (implements the predType interface) *)
 (*   - set operations: find, count, has, all, constant                     *)
 (*   - filtering : filter, subfilter (to subType), sieve (bitseq masking)  *)
 (*   - "no duplicates" predicate & function: uniq, undup                   *)
@@ -45,6 +46,7 @@ Import Prenex Implicits.
 (*    [:: x0, ... xn & s]      multiple cons                               *)
 (*    s`_i                     nth x0 s i for the appropriate x0           *)
 (*                             (to be defined in the appropriate scope)    *)
+(***************************************************************************)
 
 Delimit Scope seq_scope with SEQ.
 Open Scope seq_scope.

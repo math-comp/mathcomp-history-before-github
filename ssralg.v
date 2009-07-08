@@ -1625,7 +1625,7 @@ Definition divfK := mulfVK.
 
 Lemma invf_mul : {morph (fun x => x^-1) : x y / x * y}.
 Proof.
- move=> x y; case: (eqVneq x 0) => [-> |nzx]; first by rewrite !(mul0r, invr0).
+move=> x y; case: (eqVneq x 0) => [-> |nzx]; first by rewrite !(mul0r, invr0).
 case: (eqVneq y 0) => [-> |nzy]; first by rewrite !(mulr0, invr0).
 by rewrite mulrC invr_mul ?unitfE.
 Qed.

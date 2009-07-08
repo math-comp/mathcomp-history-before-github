@@ -149,9 +149,9 @@ Notation "[ 'th' 'e' sT 'of' v : 'Type' ]" := (@get Type sT v _ _)
 (*   Definition repack_str s :=                                           *)
 (*      let: Str _ x y ... z := s return {type of Str for s} -> str in    *)
 (*      fun k => k _ x y ... z.                                           *)
-(*    Notation "[ 'str' 'of' T 'for' s ]" := (@repack_str s (@str T))     *)
+(*    Notation "[ 'str' 'of' T 'for' s ]" := (@repack_str s (@Str T))     *)
 (*      (at level 0, format "[ 'str'  'of'  T  'for'  s ]") : form_scope. *)
-(*    Notation "[ 'str' 'of' T ]" := (repack_str (fun x => @str T x))     *)
+(*    Notation "[ 'str' 'of' T ]" := (repack_str (fun x => @Str T x))     *)
 (*      (at level 0, format "[ 'str'  'of'  T ]") : form_scope.           *)
 (* The notation for the match return predicate is defined below; the eta  *)
 (* expansion in the second form serves both to distinguish it from the    *)
@@ -259,8 +259,8 @@ Proof. case; split. Qed.
 
 Lemma master_key : unit. Proof. exact tt. Qed.
 
-(* This shoul be Definition locked := locked_with master_key, *)
-(* but for compatibility with the ml4 code.                   *)
+(* This should be Definition locked := locked_with master_key, *)
+(* but for compatibility with the ml4 code.                    *)
 Definition locked A := let: tt := master_key in fun x : A => x.
 
 Lemma lock : forall A x, x = locked x :> A.
