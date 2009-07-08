@@ -1,46 +1,25 @@
-(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved.         *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
+
+(*******************************************************************************)
+(* This file contains the definitions of:                                      *)
+(*  - choiceType : interface for type with choice operator                     *)
+(*  - countType : interface for countable type                                 *)
+(* In addition to the lemmas relevant to these definitions, this file also     *)
+(* contains definitions of Canonical Structure of choiceType for nat and       *)
+(* sub-type/ option type/ seq type/ sigma type of a choice type. It also       *)
+(* contains definitions of Canonical Structure of countType for nat, bool and  *)
+(* sub-type/ option type/ seq type/ sigma type/ of a countable type and        *)
+(* sum and prod types of two countable types.                                  *)
+(*******************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-(*   Structures for Types with a choice function, and for Types with *)
-(* countably many elements. The two concepts are closely linked: we  *)
-(* indeed make Countable a subclass of Choice, as countable choice   *)
-(* is valid in CiC. This apparent redundancy is needed to ensure the *)
-(* concistency of the Canonical Structure inference, as the          *)
-(* canonical Choice for a given type may differ from the countable   *)
-(* choice for its canonical Countable structure, e.g., for options.  *)
-(* Nevertheless for most standard datatype constructors, including   *)
-(* sums and pairs, Choice can only be satisfied constructively via   *)
-(* countability, so in practice we build most Choice and Countable   *)
-(* structures simultaneously.                                        *)
-(*   For T : choiceType and P : pred T, we have actually two choice  *)
-(* functions: xchoose : (exists x, P x) -> T, and choose : T -> T    *)
-(*   We always have P (xchoose exP), while P (choose P x0) only if   *)
-(* P x0 holds. Both xchoose and choose are extensional in P and do   *)
-(* not depend on the witness exP or x0 (provided P x0). Note that    *)
-(* xchoose is slightly more powerful, but less convenient to use.    *)
-(* The Choice structure actually contains an xchoose function for    *)
-(* seq (seq T), as this allows us to derive a Choice structure for   *)
-(* seq T (and thus for iter n seq T for any n).                      *)
-(*   For T : countType we have two functions:                        *)
-(*    pickle : T -> nat, and unpickle : nat -> option T              *)
-(* The two functions provide an effective embedding of T in nat: we  *)
-(* have pcancel pickle unpickle, i.e., unpickle \o pickle =1 some.   *)
-(* The names of the generic functions underline the correspondence   *)
-(* with the notion of "Serializable" types in programming languages. *)
-(* Note that unpickle needs to be a partial function to account for  *)
-(* a possibly empty T (e.g., T = {x | P x}). We derive a pickle_inv  *)
-(* function that is an exact inverse to pickle, i.e., we have both   *)
-(* pcancel pickle pickle_inv, and ocancel pickle_inv pickle.         *)
-(*   Finally, we need to provide a join class to let type inference  *)
-(* unify subType and countType class constraints, as we can have     *)
-(* a countable subType of an uncountable choiceType (the problem     *)
-(* did not arise earlier with eqType or choiceType because in        *)
-(* in practice the base type of an Equality/Choice subType is always *)
-(* an Equality/Choice Type).                                         *)
+(* Technical definitions about coding and decoding of  list. This results are  *)
+(* useful for the definition of Canonical Structure of choice and countable    *)
+(* types. *)
 
 Module CodeSeq.
 
@@ -190,7 +169,6 @@ Section ProdTag.
 
 Variables T1 T2 : Type.
 
-(* ??? Type inference bug: the type constraint on p should not be needed. *)
 Definition tag_of_pair (p : T1 * T2) :=  @Tagged T1 p.1 (fun _ => T2) p.2.
 
 Definition pair_of_tag (u : {i : T1 & T2}) := (tag u, tagged u).
@@ -222,7 +200,42 @@ Lemma sum_of_tagK : cancel sum_of_tag tag_of_sum. Proof. by do 2!case. Qed.
 
 End SumTag.
 
-(** The Choice structure *)
+(* Structures for Types with a choice function, and for Types with   *)
+(* countably many elements. The two concepts are closely linked: we  *)
+(* indeed make Countable a subclass of Choice, as countable choice   *)
+(* is valid in CiC. This apparent redundancy is needed to ensure the *)
+(* concistency of the Canonical Structure inference, as the          *)
+(* canonical Choice for a given type may differ from the countable   *)
+(* choice for its canonical Countable structure, e.g., for options.  *)
+(* Nevertheless for most standard datatype constructors, including   *)
+(* sums and pairs, Choice can only be satisfied constructively via   *)
+(* countability, so in practice we build most Choice and Countable   *)
+(* structures simultaneously.                                        *)
+(*   For T : choiceType and P : pred T, we have actually two choice  *)
+(* functions: xchoose : (exists x, P x) -> T, and choose : T -> T    *)
+(*   We always have P (xchoose exP), while P (choose P x0) only if   *)
+(* P x0 holds. Both xchoose and choose are extensional in P and do   *)
+(* not depend on the witness exP or x0 (provided P x0). Note that    *)
+(* xchoose is slightly more powerful, but less convenient to use.    *)
+(* The Choice structure actually contains an xchoose function for    *)
+(* seq (seq T), as this allows us to derive a Choice structure for   *)
+(* seq T (and thus for iter n seq T for any n).                      *)
+(*   For T : countType we have two functions:                        *)
+(*    pickle : T -> nat, and unpickle : nat -> option T              *)
+(* The two functions provide an effective embedding of T in nat: we  *)
+(* have pcancel pickle unpickle, i.e., unpickle \o pickle =1 some.   *)
+(* The names of the generic functions underline the correspondence   *)
+(* with the notion of "Serializable" types in programming languages. *)
+(* Note that unpickle needs to be a partial function to account for  *)
+(* a possibly empty T (e.g., T = {x | P x}). We derive a pickle_inv  *)
+(* function that is an exact inverse to pickle, i.e., we have both   *)
+(* pcancel pickle pickle_inv, and ocancel pickle_inv pickle.         *)
+(*   Finally, we need to provide a join class to let type inference  *)
+(* unify subType and countType class constraints, as we can have     *)
+(* a countable subType of an uncountable choiceType (the problem     *)
+(* did not arise earlier with eqType or choiceType because in        *)
+(* in practice the base type of an Equality/Choice subType is always *)
+(* an Equality/Choice Type).                                         *)
 
 Module Choice.
 
@@ -384,6 +397,7 @@ Notation "[ 'choiceMixin' 'of' T 'by' <: ]" :=
     (sub_choiceMixin _ : Choice.mixin_of (seq (seq T)))
   (at level 0, format "[ 'choiceMixin'  'of'  T  'by'  <: ]") : form_scope.
 
+(* Canonical Structure of choiceType *)
 Section SomeChoiceTypes.
 
 Variables (T : choiceType) (P : pred T).
@@ -521,7 +535,6 @@ Definition SubCountType_for sT :=
 
 End SubCountType.
 
-(* Kludge: the pretty printer does not recognize Type !!! *)
 Definition ereflType := @erefl Type.
 
 (* This assumes that T has both countType and subType structures. *)
@@ -551,6 +564,7 @@ Canonical Structure tag_countType := Eval hnf in CountType tag_countMixin.
 
 End TagCountType.
 
+(* Canonical Structure of countType *)
 Section CanonicalCount.
 
 Variables (T T1 T2 : countType) (P : pred T).

@@ -2,7 +2,7 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype tuple.
 
 (*******************************************************************************)
-(* This files contains the definitions of:                                     *)
+(* This file contains the definitions of:                                      *)
 (*   finfun_type : type of functions with finite domain. the function is       *)
 (*                 represented by its graph.                                   *)
 (*   fun_of_fin : Coercion from finfun_type to FunClass. Allow to use finfuns  *)
@@ -290,5 +290,3 @@ Lemma card_powerset : #|powerset| = 2 ^ #|A|.
 Proof. rewrite -card_bool; exact: card_pffun_on. Qed.
 
 End FinPowerSet.
-
-(*******************************************************************************)

@@ -2,7 +2,7 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 
 (*******************************************************************************)
-(* This files contains the definitions of:                                     *)
+(* This file contains the definitions of:                                      *)
 (*  - choiceType : interface for type with choice operator                     *)
 (*  - countType : interface for countable type                                 *)
 (* In addition to the lemmas relevant to these definitions, this file also     *)
@@ -20,6 +20,7 @@ Import Prenex Implicits.
 (* Technical definitions about coding and decoding of  list. This results are  *)
 (* useful for the definition of Canonical Structure of choice and countable    *)
 (* types. *)
+
 Module CodeSeq.
 
 (* Goedel-style one-to-one encoding of seq T into T, for T := nat    *)

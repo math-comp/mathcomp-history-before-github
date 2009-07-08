@@ -18,8 +18,7 @@ Import Prenex Implicits.
 (*   matrix_of_fun : the construction operators of a matrix form a given       *)
 (*                   function. This is the RECOMMENDED interface to build      *)
 (*                   an element of matrix type.                                *)
-(* *)
-(* Its define also :                                                           *)
+(* It defines also:                                                           *)
 (* - row and column operations :  cut, drop and sawp                           *)
 (* - block operation : left cut, right cut and paste of matrices               *)
 (* - trace : \tr A                                                             *)
@@ -556,6 +555,7 @@ Qed.
 
 (* Scalar matrix : a diagonal matrix with a constant on the diagonal *)
 Definition scalar_mx n x := \matrix_(i , j < n) (if i == j then x else 0 : R).
+
 (* Matrix multiplication with the bigops *)
 Definition mulmx m n p (A : 'M_(m, n)) (B : 'M_(n, p)) :=
   \matrix_(i < m, k < p) \sum_(j < n) (A i j * B j k : R).
@@ -736,7 +736,7 @@ Qed.
 
 (* Matrix ring Structure *)
 Section MatrixRing.
-Variable n : pos_nat. (* To require that the ring is not the trivial one *)
+Variable n : pos_nat. (* Require that n > 0 to avoid the trivial ring *)
 
 Lemma matrix_nonzero1 : 1%:M != 0 :> 'M_n.
 Proof.
@@ -796,6 +796,7 @@ End TrMul.
 (*******************************************************************************)
 
 Section ComMatrix.
+
 Variable R : comRingType.
 
 Lemma trmx_mul : forall m n p (A : matrix R m n) (B : 'M_(n, p)),
@@ -1057,7 +1058,7 @@ move=> n A j0; rewrite -det_trmx (expand_det_row _ j0).
 by apply: eq_bigr => i _; rewrite cofactor_tr mxE.
 Qed.
 
-(* Laplace formula : adjugate on the left *)
+(* Cramer Rule : adjugate on the left *)
 Lemma mulmx_adjr : forall n (A : 'M_n), A *m adjugate A = (\det A)%:M.
 Proof.
 move=> n A; apply/matrixP=> i1 i2; rewrite !mxE; case Di: (i1 == i2).
@@ -1075,7 +1076,7 @@ Qed.
 Lemma trmx_adj : forall n (A : 'M_n), (adjugate A)^T = adjugate A^T.
 Proof. by move=> n A; apply/matrixP=> i j; rewrite !mxE cofactor_tr. Qed.
 
-(* Laplace formula : adjugate on the right *)
+(* Cramer rule : adjugate on the right *)
 Lemma mulmx_adjl : forall n (A : 'M_n), adjugate A *m A = (\det A)%:M.
 Proof.
 move=> n A; apply: trmx_inj; rewrite trmx_mul trmx_adj mulmx_adjr.
@@ -1197,6 +1198,7 @@ End MatrixInv.
 (*******************************************************************************)
 
 Section CormenLUP.
+
 Variable F : fieldType.
 
 (* Decomposition of the matrix A to P A = L U with :

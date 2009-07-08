@@ -3,7 +3,7 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype.
 Require Import bigops ssralg matrix poly.
 
 (*******************************************************************************)
-(* This files contains the definitions of:                                     *)
+(* This file contains the definitions of:                                      *)
 (*  - char_poly A  : Characteristic polynomial of A                            *)
 (*  - phi : the isomorphism between the rings  M(R[X]) and M(R)[X]             *)
 (*    with R a commutative and                                                 *)
