@@ -3,8 +3,6 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat div seq choice fintype.
 Require Import bigops.
 
 
-
-
 (*****************************************************************************)
 (*   The Linear Algebraic part of the Algebraic Hierarchy, as described in   *)
 (*           "Packaging mathematical structures", TPHOL09, by                *)
@@ -82,12 +80,12 @@ Require Import bigops.
 (*                                                                           *)
 (*  * Field                                                                  *)
 (*      fieldType == type for field structure                                *)
-(*      FieldUnitMixin == builds a *non commutative unit ring* mixin, but    *)
-(*                        using a field mixin. (The underlying type should   *)
+(*      FieldUnitMixin == builds a *non commutative unit ring* mixin, using  *)
+(*                        some field properties. (The underlying type should *)
 (*                        have a *commutative ring* canonical structure)     *)
-(*      FieldIdomainMixin == builds an idomain mixin M, but using the        *)
-(*                           some field properties                           *)
-(*      FieldMixin == builds the field mixin.                                *)
+(*      FieldMixin == builds the field mixin. (The underlying type should    *)
+(*                    have a *commutative ring* canonical structure)         *)
+(*      FieldIdomainMixin == builds an *idomain* mixin, using a field mixin  *)
 (*      FieldType M == packs the field mixin M to build a field              *)
 (*                     (The underliying type should have a                   *)
 (*                     integral domain canonical structure)                  *)
@@ -113,7 +111,6 @@ Require Import bigops.
 (* NB: The module GRing should not be imported, only the main module and     *)
 (*     GRing.Theory should be.                                               *)
 (*****************************************************************************)
-
 
 
 Set Implicit Arguments.
