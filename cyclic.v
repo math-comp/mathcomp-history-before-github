@@ -100,7 +100,7 @@ by rewrite -[_ == _](inj_eq Zpm_inj (Za m) (Za n)) /Zpm !expg_mod_order.
 Qed.
 
 Lemma Zp_isom : isom (Zp #[a]) <[a]> Zpm.
-xsProof. by apply/isomP; rewrite injm_Zpm morphim_Zpm. Qed.
+Proof. by apply/isomP; rewrite injm_Zpm morphim_Zpm. Qed.
 
 Lemma Zp_isog : isog (Zp #[a]) <[a]>.
 Proof. exact: isom_isog Zp_isom. Qed.
