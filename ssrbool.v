@@ -91,6 +91,7 @@ Unset Strict Implicit.
 (* N : boolean negation                                                      *)
 (* T : boolean truth                                                         *)
 (* U : set union                                                             *)
+(* W : weakening                                                             *)
 (*****************************************************************************)
 
 
