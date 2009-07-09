@@ -12,6 +12,33 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
+
+
+(******************************************************************************)
+(* This file contains the definition of :                                     *)
+(*                                                                            *)
+(* connect        == a binary predicate parameterized by a boolean relation   *)
+(* root           == picks a representative of the orbit                      *)
+(* roots          == a boolean predicate for being a representative           *)
+(*                   of the orbit                                             *)
+(* n_comp         == number of orbits                                         *)
+(* connect_sym    == a predicate for symetric connectivity                    *)
+(* closed e a     == forall x y, e x y -> a x = a y                           *)
+(* closure e a    == closure under e of elements in a                         *)
+(* fconnect f     == connected under f iteration                              *)
+(* froot f        == root for the orbit of f                                  *)
+(* froots f       == representatives for the orbits of f                      *)
+(* fcard f        == number of orbits of f                                    *)
+(* fclosed f      == closed under iteration of f                              *)
+(* fclosure f     == closure under f iteration                                *)
+(* order          == cardinal of the orbit of an element under iteration of f *)
+(* orbit          == lists the f orbit                                        *)
+(* findex         == index in the f orbit                                     *)
+(* finv f x       == iter (order x).-1 f x.                                   *)
+(* order_set f n  == elements of order n for the iteration of f               *)
+(* fun_adjunction == rel_adjunction for (frel f)                              *)
+(******************************************************************************)
+
 (* Decidable connectivity in finite sets, with an application to the orbits *)
 (* and inverses of injective functions.                                     *)
 
