@@ -2,17 +2,17 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype.
 Require Import bigops ssralg matrix poly.
 
-(******************************************************************************)
-(* This file contains the definitions of:                                     *)
-(*  - char_poly A  : Characteristic polynomial of A                           *)
-(*  - phi : the isomorphism between the rings  M(R[X]) and M(R)[X]            *)
-(*    with R a commutative and                                                *)
-(*     M(R[X]) : matrices with coefficients in the polynomial ring of R       *)
-(*     M(R)[X] : polynomials with coefficients in the matrix ring of R        *)
-(*  - Zpoly : the injection from the polynomial ring to M(R)[X]               *)
-(* In addition to the lemmas relevant to these definitions, this file also    *)
-(* contains a proof of the Cayley-Hamilton Theorem.                           *)
-(******************************************************************************)
+(*****************************************************************************)
+(* This file contains the definitions of:                                    *)
+(*  - char_poly A  : Characteristic polynomial of A                          *)
+(*  - phi : the isomorphism between the rings  M(R[X]) and M(R)[X]           *)
+(*    with R a commutative and                                               *)
+(*     M(R[X]) : matrices with coefficients in the polynomial ring of R      *)
+(*     M(R)[X] : polynomials with coefficients in the matrix ring of R       *)
+(*  - Zpoly : the injection from the polynomial ring to M(R)[X]              *)
+(* In addition to the lemmas relevant to these definitions, this file also   *)
+(* contains a proof of the Cayley-Hamilton Theorem.                          *)
+(*****************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
