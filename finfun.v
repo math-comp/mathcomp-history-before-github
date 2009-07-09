@@ -1,20 +1,20 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype tuple.
 
-(*******************************************************************************)
-(* This file contains the definitions of:                                      *)
-(*   finfun_type : type of functions with finite domain. the function is       *)
-(*                 represented by its graph.                                   *)
-(*   fun_of_fin : Coercion from finfun_type to FunClass. Allow to use finfuns  *)
-(*                as functions.                                                *)
-(*   finfun : construct an element of finfun_type from a function that have a  *)
-(*            finite domain. This is the RECOMMENDED interface to build an     *) 
-(*            element of finfun_type.                                          *)
-(*   family : definition of family of set as a set of finite domain function.  *)
-(* In addition to the lemmas relevant to these definitions, this file also     *)
-(* contains generic lemmas when the codomain of the finite function is an      *) 
-(* eqType or a finType. Canonical Structure are also defined in this two cases *)
-(*******************************************************************************)
+(******************************************************************************)
+(* This file contains the definitions of:                                     *)
+(*   finfun_type : type of functions with finite domain. the function is      *)
+(*                 represented by its graph.                                  *)
+(*   fun_of_fin : Coercion from finfun_type to FunClass. Allow to use finfuns *)
+(*                as functions.                                               *)
+(*   finfun : construct an element of finfun_type from a function that have a *)
+(*            finite domain. This is the RECOMMENDED interface to build an    *)
+(*            element of finfun_type.                                         *)
+(*   family : definition of family of set as a set of finite domain function. *)
+(* In addition to the lemmas relevant to these definitions, this file also    *)
+(* contains generic lemmas when the codomain of the finite function is an     *)
+(* eqType or a finType. Canonical Structure are also defined in this two cases*)
+(******************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -132,7 +132,7 @@ Proof. move=> r f; exact: forallP. Qed.
 
 End PlainTheory.
 
-(*******************************************************************************)
+(******************************************************************************)
 
 Lemma nth_fgraph_ord : forall T n (x0 : T) (i : 'I_n) f,
   nth x0 (fgraph f) i = f i.
@@ -202,7 +202,7 @@ Canonical Structure finfun_subCountType aT (rT : countType) :=
 Canonical Structure finfun_of_subCountType (aT : finType) (rT : countType) :=
   Eval hnf in [subCountType of {ffun aT -> rT}].
 
-(*******************************************************************************)
+(******************************************************************************)
 
 Section FinTheory.
 
@@ -277,7 +277,7 @@ Qed.
 
 End FinTheory.
 
-(*******************************************************************************)
+(******************************************************************************)
 
 Section FinPowerSet.
 
