@@ -116,7 +116,7 @@ Reserved Notation "p1 =i p2" (at level 70, no associativity).
 (* and all arities for Prop operators).                                 *)
 (*   We also use the square brackets in comprehension-style notations   *)
 (* of the form                                                          *)
-(*    [type var seperator expr]                                         *)
+(*    [type var separator expr]                                         *)
 (* where "type" is the type of the comprehension (e.g., pred) and       *)
 (* separator is | or => . It is important that in other notations a      *)
 (* leading square bracket [ is always by an operator symbol or at least *)
