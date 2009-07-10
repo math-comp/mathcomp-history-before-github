@@ -555,7 +555,7 @@ Qed.
 Lemma rtrans_stabG : forall G, 'C_(| 'Msr)[G : {set gT}] = G.
 Proof.
 move=> G; apply/setP=> x.
-by apply/astab1P/idP=> /= [<- | Gx]; rewrite rcosetE (rcoset_refl, rcoset_id).
+by apply/astab1P/idP=> /= [<- | Gx]; rewrite rcosetE ?rcoset_refl ?rcoset_id.
 Qed.
 
 Lemma conjg_fix : forall A, 'C(A | 'J) = 'C(A).

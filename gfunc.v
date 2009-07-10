@@ -230,7 +230,7 @@ Lemma bgFunc_asresp_sub :
   'injm f -> H \subset G -> f @* (sF _ H) \subset sF _ (f @* H).
 Proof.
 move=> gT hT H G f injf sHG; apply/eqP; rewrite -(setIidPr (bgFunc_clos H)).
-by rewrite-{3}(setIid H) -!(morphim_restrm sHG) bgFunc_aresp ?injm_restrm //=.
+by rewrite-{3}(setIid H) -!(morphim_restrm sHG) bgFunc_aresp // injm_restrm.
 Qed.
 
 Lemma bgFunc_asresp :

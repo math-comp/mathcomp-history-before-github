@@ -810,7 +810,7 @@ Proof. by move=> s y x ys'x; rewrite lastI mem_rcons mem_behead. Qed.
 
 Lemma mem_nth : forall s n, n < size s -> nth s n \in s.
 Proof.
-by elim=> [|x s IHs] // [_|n sz_s]; rewrite (mem_head, mem_behead) ?IHs.
+by elim=> [|x s IHs] // [_|n sz_s]; rewrite ?mem_head // mem_behead ?IHs.
 Qed.
 
 Lemma mem_take : forall s x, x \in take n0 s -> x \in s.
@@ -1626,7 +1626,7 @@ Lemma map_inj_in_uniq : forall s : seq T1,
 Proof.
 elim=> //= x s IHs //= injf; congr (~~ _ && _).
   apply/mapP/idP=> [[y sy] |]; last by exists x.
-  by move/injf=> ->; rewrite ?inE //= (eqxx, predU1r).
+  by move/injf=> ->; rewrite ?inE ?eqxx //= predU1r.
 apply: IHs => y z sy sz; apply: injf => //; exact: predU1r.
 Qed.
 

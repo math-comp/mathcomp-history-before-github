@@ -735,7 +735,7 @@ Lemma coprime_pexpr : forall k m n, 0 < k -> coprime m (n ^ k) = coprime m n.
 Proof. by move=> k m n k_gt0; rewrite !(coprime_sym m) coprime_pexpl. Qed.
 
 Lemma coprime_expl : forall k m n, coprime m n -> coprime (m ^ k) n.
-Proof. by case=> [|k] p m co_pm; rewrite (coprime1n, coprime_pexpl). Qed.
+Proof. by case=> [|k] p m co_pm; rewrite ?coprime1n // coprime_pexpl. Qed.
 
 Lemma coprime_expr : forall k m n, coprime m n -> coprime m (n ^ k).
 Proof. by move=> k m n; rewrite !(coprime_sym m); exact: coprime_expl. Qed.

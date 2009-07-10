@@ -97,7 +97,7 @@ Proof.
 case n_m2: n Sym_trans => [|[|m]] /= tr_m2; try exact: ntransitive0.
 have tr_m := ntransitive_weak (leqW (leqnSn m)) tr_m2.
 case/imsetP: tr_m2; case/tupleP=> x; case/tupleP=> y t.
-rewrite !dtuple_on_add 2!inE [x \in _]inE negb_or /= -!andbA.
+rewrite !dtuple_on_add 2![x \in _]inE inE negb_or /= -!andbA.
 case/and4P=> nxy ntx nty dt _; apply/imsetP; exists t => //; apply/setP=> u.
 apply/idP/imsetP=> [|[a _ ->{u}]]; last first.
   by apply: n_act_dtuple => //; apply/astabsP=> z; rewrite !inE.
@@ -379,7 +379,7 @@ pose x2 : T' := Sub x1 nx1x; pose px2 : T' := Sub (p x1) npx1x.
 suff ->: rfd (tperm x1 (p x1)) = tperm x2 px2.
   by rewrite odd_tperm -val_eqE eq_sym.
 apply/permP => z; apply/val_eqP; rewrite permE /= tpermD // eqxx.
-case: (tpermP x2) => [->|->|HH1 HH2]; rewrite /x2 (tpermL, tpermR, tpermD) //.
+case: (tpermP x2) => [->|->|HH1 HH2]; rewrite /x2 ?tpermL ?tpermR 1?tpermD //.
   by apply/eqP=> HH3; case: HH1; apply: val_inj.
 by apply/eqP => HH3; case: HH2; apply: val_inj.
 Qed.

@@ -542,7 +542,7 @@ Lemma logn_gt0 : forall p n, (0 < logn p n) = (p \in primes n).
 Proof. by move=> p n; rewrite lognE -mem_primes; case: {+}(p \in _). Qed.
 
 Lemma ltn_log0 : forall p n, n < p -> logn p n = 0.
-Proof. by move=> p [|n] ltnp; rewrite lognE !(andbF, gtnNdvd). Qed.
+Proof. by move=> p [|n] ltnp; rewrite lognE ?andbF // gtnNdvd ?andbF. Qed.
 
 Lemma logn0 : forall p, logn p 0 = 0.
 Proof. by move=> p; rewrite /logn if_same. Qed.

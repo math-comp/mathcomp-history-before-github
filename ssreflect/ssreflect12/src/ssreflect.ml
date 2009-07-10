@@ -80,21 +80,6 @@ let pr_rawconstr_and_expr = function
   | _, Some c -> pr_constr_expr c
   | c, None -> pr_rawconstr c
 
-(* primitive intropatterns (for ltac argument substitution) *)
-
-let rec pr_intropattern (_, pat) =
-  match pat with
-    | IntroIdentifier id -> pr_id id
-    | IntroAnonymous -> str "?"
-    | IntroWildcard -> str "_"
-    | IntroRewrite true -> str "->"
-    | IntroRewrite false -> str "<-"
-    | IntroFresh id -> str "?" ++ pr_id id
-    | IntroOrAndPattern iorpat ->
-	let pr_iorpat = pr_list pr_bar (pr_list pr_spc pr_intropattern) in
-	  str "[" ++ (hv 0 (pr_iorpat iorpat)) ++ str "]"
-
-
 (* Term printing utilities functions for deciding bracketing.  *)
 
 let pr_paren prx x = hov 1 (str "(" ++ prx x ++ str ")")
@@ -417,6 +402,29 @@ let rec whdEtaApp c n =
   | Lambda (_, _, c') -> whdEtaApp c' (n - 1)
   | _ -> mkEtaApp (lift n c) n 1
 
+let isEvar_k k f =
+  match kind_of_term f with Evar (k', _) -> k = k' | _ -> false
+
+let mkSubArg i a = if i = Array.length a then a else Array.sub a 0 i
+let mkSubApp f i a = if i = 0 then f else mkApp (f, mkSubArg i a)
+
+let safeDestApp c =
+  match kind_of_term c with App (f, a) -> f, a | _ -> c, [| |]
+let nb_args c =
+  match kind_of_term c with App (_, a) -> Array.length a | _ -> 0
+
+let splay_app ise =
+  let rec loop c a = match kind_of_term c with
+  | App (f, a') -> loop f (Array.append a' a)
+  | Cast (c', _, _) -> loop c' a
+  | Evar ex ->
+    (try loop (existential_value (evars_of ise) ex) a with _ -> c, a)
+  | _ -> c, a in
+  fun c -> match kind_of_term c with
+  | App (f, a) -> loop f a
+  | Cast _ | Evar _ -> loop c [| |]
+  | _ -> c, [| |]
+
 (** Open term to lambda-term coercion *)
 
 (* This operation takes a goal gl and an open term (sigma, t), and   *)
@@ -700,14 +708,6 @@ let interp_refine ist gl rc =
    interp_wit globwit_casted_open_constr wit_casted_open_constr ist gl roc
 
 let pf_match = pf_apply (fun e s c t -> understand_tcc s e ~expected_type:t c)
-
-(*
-let pf_match gl rc t =
-  let tspec = Pretyping.OfType (Some t) in
-  let understand = Pretyping.Default.understand_ltac in
-  let (sigma, c) = understand (project gl) (pf_env gl) ([],[]) tspec rc in
-  (evars_of sigma, c)
-*)
 
 (* Estimate a bound on the number of arguments of a raw constr. *)
 (* This is not perfect, because the unifier may fail to         *)
@@ -1594,6 +1594,8 @@ let pr_dir = function L2R -> str "->" | R2L -> str "<-"
 
 let pr_rwdir = function L2R -> mt() | R2L -> str "-"
 
+let pr_dir_side = function L2R -> str "LHS" | R2L -> str "RHS"
+
 let rewritetac dir = Equality.general_rewrite (dir = L2R) all_occurrences
 
 let wit_ssrdir, globwit_ssrdir, rawwit_ssrdir =
@@ -1665,7 +1667,6 @@ let rec add_intro_pattern_hyps (loc, ipat) hyps = match ipat with
   | IntroAnonymous -> []
   | IntroFresh _ -> []
   | IntroRewrite _ -> hyps
-
 
 let rec interp_ipat ist gl =
   let ltacvar id = List.mem_assoc id ist.lfun in
@@ -1988,9 +1989,12 @@ END
 
 let tclID tac = tac
 
-let rec tclDOTRY n tac gl =
-  if n <= 0 then tclIDTAC gl else
-  tclTRY (tclTHEN tac (tclDOTRY (n - 1) tac)) gl
+let tclDOTRY n tac =
+  if n <= 0 then tclIDTAC else
+  let rec loop i gl =
+    if i = n then tclTRY tac gl else
+    tclTRY (tclTHEN tac (loop (i + 1))) gl in
+  loop 1
 
 let tclMULT = function
   | 0, May  -> tclREPEAT
@@ -2242,6 +2246,12 @@ let guard_term ch1 s i = match s.[i] with
 let mk_term k c = k, (mkRHole, Some c)
 let mk_lterm = mk_term ' '
 
+let hole_var = mkVar (id_of_string "_")
+let pr_constr_pat c0 =
+  let rec wipe_evar c =
+    if isEvar c then hole_var else map_constr wipe_evar c in
+  pr_constr (wipe_evar c0)
+
 let pat_of_ssrterm n c =
   let rec mkvars i =
     let v = mkVar (id_of_string (sprintf "_patern_var_%d_" i)) in
@@ -2310,21 +2320,13 @@ let whd_app f args = Reductionops.whd_betaiota Evd.empty (mkApp (f, args))
 (* relevant subterm.                                            *)
 (*   Additional twists:                                         *)
 (*    - If FO/HO fails then we attempt to fill evars using      *)
-(*      typeclasses/implicit tactics before raising an          *)
-(*      outright error. We also fill typeclasses even after a   *)
-(*      successful match, since beta-reduction and canonical    *)
-(*      instances may leave undefined evars (we can't use the   *)
-(*      implicit tactic in this case because the Coq API does   *)
-(*      not return the evar substitution).                      *)
+(*      typeclasses before raising an outright error. We also   *)
+(*      fill typeclasses even after a successful match, since   *)
+(*      beta-reduction and canonical instances may leave        *)
+(*      undefined evars.                                        *)
 (*    - We do postchecks to rule out matches that are not       *)
 (*      closed or that assign to a global evar; these can be    *)
 (*      disabled for rewrite or dependent family matches.       *)
-(*    - We duck issues due to the current implementation of     *)
-(*      unification, such as the incomplete propagation of type *)
-(*      constraints on evar-to-evar assignments, and incomplete *)
-(*      processing of deferred unification problems. Hopefully  *)
-(*      they'll get fixed in the Coq code before they become a  *)
-(*      problem for us.                                         *)
 (*    - We do a full FO scan before turning to HO, as the FO    *)
 (*      comparison can be much faster than the HO one.          *)
 
@@ -2389,15 +2391,11 @@ let nf_open_term sigma0 ise c =
 (* cause divergence. We also need to recheck type-correctness of all evar   *)
 (* assignments because the checks in both evarconv and unification are      *)
 (* INCOMPLETE.                                                              *)
-(*   BIG kludge: Evarutil/invert_definition/project_variable creates        *)
-(*   ill-typed subterms and unification problems, because it uses           *)
-(*   do_restrict_hyps_virtual to create new evars for unresolved evar       *)
-(*   context projection subproblems -- but the context variable and the     *)
-(*   evar do not necessarily have the same type! We thus need to rule out   *)
-(*   typing constraints on filtered variables.                              *)
+
+(* Workaround for Coq bug #2129. *)
 let is_unfiltered evi = List.for_all (fun b -> b) (Evd.evar_filter evi)
 
-let unif_end env sigma0 ise0 pt =
+let unif_end env sigma0 ise0 pt ok =
   let rec loop sigma ise m =
     if snd (extract_all_conv_pbs ise) != [] then
       if m = 0 then raise NoMatch
@@ -2421,71 +2419,19 @@ let unif_end env sigma0 ise0 pt =
       let s, t = nf_open_term sigma0 ise pt in
       let ise1 = create_evar_defs s in
       let ise2 = Typeclasses.resolve_typeclasses ~fail:true env ise1 in
+      if not (ok ise2) then raise NoMatch else (* RW progress check *)
       if ise2 == ise1 then (s, t) else nf_open_term sigma0 ise2 t in
    loop sigma0 ise0 10
 
-(* debug versions of unif_end and co.
-let unif_end' ise01 env sigma0 ise0 pt =
-  let rec loop sigma ise m hist =
-    if snd (extract_all_conv_pbs ise) != [] then
-      if m = 0 then raise NoMatch
-      else match Evarconv.consider_remaining_unif_problems env ise with
-      | ise', true -> loop sigma ise' (m - 1) (ise :: hist)
-      | _ -> raise NoMatch
-    else
-    let sigma' = evars_of ise in
-    if sigma' != sigma then
-      let undefined ev = try not (Evd.is_defined sigma ev) with _ -> true in
-      let unif_evtype ev evi ise' = match evi.evar_body with
-      | Evar_defined c when undefined ev && is_unfiltered evi ->
-        let ev_env = Evd.evar_env evi in
-        let t = Retyping.get_type_of ev_env (evars_of ise') c in
-begin try
-        unif_HOtype ev_env ise' t evi.evar_concl
-with err ->
-  msgnl (str "TC unif fails for (?" ++ int ev ++ str " : "
-     ++ pr_constr (Evarutil.nf_isevar ise' evi.evar_concl) ++ str ") == ("
-         ++ pr_constr (Evarutil.nf_isevar ise' c) ++ str " : "
-         ++ pr_constr (Evarutil.nf_isevar ise' t) ++ str ")"
-         ++ spc() ++ str " in " ++ pr_constr pt ++ str " with");
-  List.iter (fun ise2 -> msgnl (Evd.pr_evar_defs ise2)) (ise' :: ise :: hist);
-  raise err
-end
-      | _ -> ise' in
-      loop sigma' (Evd.fold unif_evtype sigma' ise) m (ise :: hist)   
-    else
-      (* Assume the proof engine ensures that typeclass evar assignments *)
-      (* are type-correct. *)
-      let s, t = nf_open_term sigma0 ise pt in
-      let ise1 = create_evar_defs s in
-      let ise2 = Typeclasses.resolve_typeclasses ~fail:true env ise1 in
-      if ise2 == ise1 then (s, t) else nf_open_term sigma0 ise2 t in
-try
-   loop sigma0 ise0 10 [ise01]
-with err ->
-  msgnl (str "unif_end fails for " ++ pr_constr (Evarutil.nf_isevar ise0 pt));
-  raise err
-
-let unif_HO' sigma0 t env ise p c =
-  let ise' = Evarconv.the_conv_x env p c ise in
-  let _ = unif_end' ise env sigma0 ise' t in
-  ise'
-
-let unif_HO_args' sigma0 t env ise0 pa i ca =
-  let n = Array.length pa in
-  let rec loop ise j =
-    if j = n then ise else loop (unif_HO' sigma0 t env ise pa.(j) ca.(i + j)) (j + 1) in
-  loop ise0 0
-*)
-
 (* This a version of unif_end without retyping; it should replace the one
    above if/when evarconv and unification get fixed.
-let unif_end env sigma0 ise0 pt =
+let unif_end env sigma0 ise0 pt _ =
   let rec loop ise m =
     if snd (extract_all_conv_pbs ise) = [] then
       let s, t = nf_open_term sigma0 ise pt in
       let ise1 = create_evar_defs s in
       let ise2 = Typeclasses.resolve_typeclasses ~fail:true env ise1 in
+      if not (ok ise2) then raise NoMatch else (* RW progress check *)
       if ise2 == ise1 then (s, t) else nf_open_term sigma0 ise2 t
     else if m = 0 then raise NoMatch
     else match Evarconv.consider_remaining_unif_problems env ise with
@@ -2497,7 +2443,7 @@ let unif_end env sigma0 ise0 pt =
 let pf_unif_HO gl sigma pt p c =
   let env = pf_env gl in
   let ise = unif_HO env (create_evar_defs sigma) p c in
-  unif_end env (project gl) ise pt
+  unif_end env (project gl) ise pt (fun _ -> true)
 
 (* This is what the definition of iter_constr should be... *)
 let iter_constr_LR f c = match kind_of_term c with
@@ -2511,27 +2457,15 @@ let iter_constr_LR f c = match kind_of_term c with
     for i = 0 to Array.length t - 1 do f t.(i); f b.(i) done
   | _ -> ()
 
-(* pf_fill_pat gl occ n pat, with pat of the form fun x1 .. xn => e,       *)
-(* matches pat _ ... _ (n wildcards) with a subterm of cl = pf_concl gl,   *)
-(* and returns the pair cl where the matched term is replaced with Rel 1   *)
-(* (suitably lifted) at the occurrences specified by occ, together with an *)
-(* array [|a1;...;an|] of terms such that the matched term is convertible  *)
-(*   pat a1 ... an == e[a1/x1;...;an/xn].                                  *)
-(* If n = 0 the comparison used to determine which subterms match pat is   *)
-(* KEYED CONVERSION. This looks for convertible terms that either have the *)
+(* The comparison used to determine which subterms matches is KEYED        *)
+(* CONVERSION. This looks for convertible terms that either have the same  *)
 (* same head constant as pat if pat is an application (after beta-iota),   *)
-(* or start with the same constr constructor (esp. for LetIn). An          *)
-(* application whose head is a LetIn is compared with any application with *)
-(* the same number of arguments (casts are ignored, but not removed).      *)
+(* or start with the same constr constructor (esp. for LetIn); this is     *)
+(* disregarded if the head term is let x := ... in x, and casts are always *)
+(* ignored and removed).                                                   *)
 (* Record projections get special treatment: in addition to the projection *)
 (* constant itself, ssreflect also recognizes head constants of canonical  *)
 (* projections.                                                            *)
-(* If n > 0, the matching uses the type inference engine (as per refine)   *)
-(* to fill in the wildcards, but otherwise behaves as in the n = 0 case    *)
-(* (a head wildcard is treated as a LetIn, but an error is reported if it  *)
-(* has no arguments). The matched term must not have any bound variables,  *)
-(* including let-bound, and the function reports whether the only matches  *)
-(* were ruled out by the free-variable check.                              *)
 
 type pattern_class =
   | KpatFixed
@@ -2546,8 +2480,11 @@ type upattern = {
   up_FO : constr;
   up_f : constr;
   up_a : constr array;
-  up_t : constr;  (* equation proof term or matched term *)
+  up_t : constr;                      (* equation proof term or matched term *)
+  up_ok : constr -> evar_defs -> bool; (* progess test for rewrite *)
   }
+
+let all_ok _ _ = true
 
 let proj_nparams c =
   try 1 + Recordops.find_projection_nparams (ConstRef c) with _ -> 0
@@ -2562,23 +2499,8 @@ let isRigid c = match kind_of_term c with
 
 exception UndefPat
 
-let mkSubArg i a = if i = Array.length a then a else Array.sub a 0 i
-let mkSubApp f i a = if i = 0 then f else mkApp (f, mkSubArg i a)
-
-let splay_app ise =
-  let rec loop c a = match kind_of_term c with
-  | App (f, a') -> loop f (Array.append a' a)
-  | Cast (c', _, _) -> loop c' a
-  | Evar ex ->
-    (try loop (existential_value (evars_of ise) ex) a with _ -> c, a)
-  | _ -> c, a in
-  fun c -> match kind_of_term c with
-  | App (f, a) -> loop f a
-  | Cast _ | Evar _ -> loop c [| |]
-  | _ -> c, [| |]
-
 (* Compile a match pattern from a term; t is the term to fill. *)
-let mk_upat env sigma0 ise t p =
+let mk_upat env sigma0 ise t ok p =
   let k, f, a =
     let f, a = Reductionops.whd_betaiota_stack (evars_of !ise) p in
     match kind_of_term f with
@@ -2595,18 +2517,19 @@ let mk_upat env sigma0 ise t p =
     | _ -> KpatRigid, f, a in
   let aa = Array.of_list a in
   let ise', p' = evars_for_FO env sigma0 !ise (mkApp (f, aa)) in
-  ise := ise'; {up_k = k; up_FO = p'; up_f = f; up_a = aa; up_t = t}
+  ise := ise';
+  {up_k = k; up_FO = p'; up_f = f; up_a = aa; up_ok = ok; up_t = t}
 
 (* Specialize a pattern after a successful match: assign a precise head *)
 (* kind and arity for Proj and Flex patterns.                           *)
-let ungen_upat f i a0 t =
+let ungen_upat lhs (sigma, t) u =
+  let f, a = safeDestApp lhs in
   let k = match kind_of_term f with
   | Var _ | Ind _ | Construct _ | Const _ -> KpatFixed
-  | Evar (k, _) -> KpatEvar k
+  | Evar (k, _) -> if is_defined sigma k then raise NoMatch else KpatEvar k
   | LetIn _ -> KpatLet
   | _ -> KpatRigid in
-  let a = mkSubArg i a0 in
-  {up_k = k; up_FO = mkApp (f, a);  up_f = f; up_a = a; up_t = t}
+  sigma, {u with up_k = k; up_FO = lhs; up_f = f; up_a = a; up_t = t}
 
 let nb_cs_proj_args pc f u =
   let na k =
@@ -2618,9 +2541,6 @@ let nb_cs_proj_args pc f u =
   | Var _ | Ind _ | Construct _ | Const _ -> na (Const_cs (global_of_constr f))
   | _ -> -1
   with Not_found -> -1
-
-let isEvar_k k f =
-  match kind_of_term f with Evar (k', _) -> k = k' | _ -> false
 
 let filter_upat i0 f n u fpats =
   let na = Array.length u.up_a in
@@ -2637,11 +2557,6 @@ let filter_upat i0 f n u fpats =
   if np < na then fpats else
   let () = if !i0 < np then i0 := np in (u, np) :: fpats
 
-let safeDestApp c =
-  match kind_of_term c with App (f, a) -> f, a | _ -> c, [| |]
-let nb_args c =
-  match kind_of_term c with App (_, a) -> Array.length a | _ -> 0
-
 let filter_upat_FO i0 f n u fpats =
   let np = nb_args u.up_FO in
   if n < np then fpats else
@@ -2654,7 +2569,7 @@ let filter_upat_FO i0 f n u fpats =
   | KpatFlex -> i0 := n; true in
   if ok then begin if !i0 < np then i0 := np; (u, np) :: fpats end else fpats
 
-exception FoundUnif of evar_map * upattern
+exception FoundUnif of (evar_map * upattern)
 (* Note: we don't update env as we descend into the term, as the primitive *)
 (* unification procedure always rejects subterms with bound variables.     *)
 
@@ -2680,9 +2595,6 @@ let match_upats_FO upats env sigma0 ise =
            if u.up_k == KpatFlex then begin i0 := i - 1; false end else
            begin if !i0 < np then i0 := np; true end in
          if skip || not (closed0 c') then () else try
-(* msgnl (str "match " ++ pr_constr u.up_FO 
-  ++ str "[" ++ int i ++ str "/" ++ int np ++ str "]"
-  ++ str " ~ " ++ pr_constr c'); *)
            let _ = match u.up_k with
            | KpatFlex ->
              let kludge v = mkLambda (Anonymous, mkProp, v) in
@@ -2696,17 +2608,11 @@ let match_upats_FO upats env sigma0 ise =
            | _ -> unif_FO env ise u.up_FO c' in
            let ise' = (* Unify again using HO to assign evars *)
              let p = mkApp (u.up_f, u.up_a) in
-             try unif_HO env ise p c'
-             with _ -> msgnl (str "FO/HO discrepancy on " ++ pr_constr p
-                       ++ spc() ++ str ":= " ++ pr_constr c'); raise NoMatch in
-           let sigma, pt' = unif_end env sigma0 ise' u.up_t in
-  (*  msgnl (str "FO end fail (maybe due to TC) on "
-             ++ pr_constr u.up_t ++ spc() ++ str ":= "
-             ++ pr_constr (Evarutil.nf_isevar ise' u.up_t)); raise err in *)
-            match u.up_k with
-            | KpatEvar k when is_defined sigma k -> raise NoMatch
-            | _ -> raise (FoundUnif (sigma, ungen_upat f i a pt'))
-        with FoundUnif _ as sigma_u -> raise sigma_u | _ -> () in
+             try unif_HO env ise p c' with _ -> raise NoMatch in
+           let lhs = mkSubApp f i a in
+           let pt' = unif_end env sigma0 ise' u.up_t (u.up_ok lhs) in
+           raise (FoundUnif (ungen_upat lhs pt' u))
+       with FoundUnif _ as sigma_u -> raise sigma_u | _ -> () in
     List.iter one_match fpats
   done;
   iter_constr_LR loop f; Array.iter loop a in
@@ -2737,10 +2643,9 @@ let rec match_upats_HO upats env sigma0 ise c =
           unif_HO env ise u.up_f (mkSubApp f (i - Array.length u.up_a) a)
         | _ -> unif_HO env ise u.up_f f in
         let ise'' = unif_HO_args env ise' u.up_a (i - Array.length u.up_a) a in
-        let sigma, pt' = unif_end env sigma0 ise'' u.up_t in
-        match u.up_k with
-        | KpatEvar k when is_defined sigma k -> raise Not_found
-        | _ -> raise (FoundUnif (sigma, ungen_upat f i a pt'))
+        let lhs = mkSubApp f i a in
+        let pt' = unif_end env sigma0 ise'' u.up_t (u.up_ok lhs) in
+        raise (FoundUnif (ungen_upat lhs pt' u))
       with FoundUnif _ as sigma_u -> raise sigma_u | _ -> () in
     List.iter one_match fpats
   done;
@@ -2758,27 +2663,9 @@ let fill_and_select_upat gl env sigma0 occ upats c ise =
   let sigma, ({up_f = pf; up_a = pa} as u) =
     if fixed_upats upats then sigma0, List.hd upats else try
       match_upats_FO upats env sigma0 ise c;
-(* msgnl (str "FO failed"); *)
-begin try
-   let u = List.hd upats in let p = mkApp (u.up_f, u.up_a) in
-   let np, ap = pf_abs_evars gl (evars_of ise, p) in
-   let ise0 = create_evar_defs sigma0 in
-   let tp = pf_type_of gl ap in
-   let env = pf_env gl in
-   let ise1, pa, _ = Clenv.clenv_environments ise0 (Some np) tp in
-   let p' = whd_app ap (Array.of_list pa) in
-   let ise2, t'' = Unification.w_unify_to_subterm env
-                  ~flags:flags_FO (u.up_FO, c) ise in
-   let _ = unif_FO env ise u.up_FO t'' in
-   let ise1 = unif_HO env ise p t'' in
-   let _ = unif_end env sigma0 ise1 u.up_t in
-   msgnl (str "FO rejected " ++ pr_constr u.up_FO ++
-          str " := " ++ pr_constr t'' ++
-          spc() ++ str " == " ++ pr_constr p'); ()
-with _ -> () end;
       match_upats_HO upats env sigma0 ise c;
       raise NoMatch
-    with FoundUnif (sigma, u') -> (sigma, u') in
+    with FoundUnif sigma_u -> sigma_u in
   let match_EQ = 
     match u.up_k with
     | KpatLet ->
@@ -2807,60 +2694,39 @@ with _ -> () end;
     if Array.length a >= pn && match_EQ f && unif_EQ_args env sigma pa a then
       let a1, a2 = array_chop (Array.length pa) a in
       let f' = if subst_occ () then mkRel h else mkApp (f, a1) in
-(*      let _ = msgnl (str "match(" ++ int (!nocc) ++ str "): " ++
-                                     pr_constr f ++ pr_cargs a
-                     ++ str (if isRel f' then " kept" else " skipped")) in *)
       mkApp (f', array_map_left (subst_loop h) a2)
     else
       let inc_h _ h' = h' + 1 in
       let f' = map_constr_with_binders_left_to_right inc_h subst_loop h f in
       mkApp (f', array_map_left (subst_loop h) a) in
   let cl' = subst_loop 1 c in let p' = mkApp (pf, pa) in
-  if max_occ <= !nocc then 
-(* let _ = msgnl (str "pattern" ++ pr_constr cl' ++ pr_cargs [|p'|]) in *)
-sigma, u.up_t, cl', p' else
+  if max_occ <= !nocc then sigma, u.up_t, cl', p' else
   raise (MissingOccs (!nocc, max_occ, p'))
 
-let pf_fill_occ gl occ p sigma t =
+let pf_fill_occ gl occ p sigma t ok =
   try
     let sigma0 = project gl in let env = pf_env gl in
     let ise = ref (create_evar_defs sigma) in
-    let u = [mk_upat env sigma0 ise t p] in
-(* let _ = let u = List.hd u in
-    msgnl (str "upat " ++ pr_constr u.up_f ++ pr_cargs u.up_a ++
-               str " for " ++ pr_constr u.up_t) in *)
-(* let _, _, _, t' as res = *)
+    let u = [mk_upat env sigma0 ise t ok p] in
     fill_and_select_upat gl env sigma0 occ u (pf_concl gl) !ise
-(* in try
-   let np, ap = pf_abs_evars gl (sigma, p) in
-   let ise0 = create_evar_defs sigma0 in
-   let tp = pf_type_of gl ap in
-   let env = pf_env gl in
-   let ise1, pa, _ = Clenv.clenv_environments ise0 (Some np) tp in
-   let p' = whd_app ap (Array.of_list pa) in
-   let ise2, t'' = Unification.w_unify_to_subterm env
-                  ~flags:flags_FO (p', pf_concl gl) ise1 in
-   try let _ = unif_HO env ise2 t' t'' in res with _ ->
-   msgnl (str "FO rejected " ++ pr_constr p ++ str " := " ++ pr_constr t''
-          ++ spc() ++ str "for " ++ pr_constr t'); res
-with _ -> res *)
   with
   | UndefPat -> error "indeterminate pattern"
   | MissingOccs (n, m, p') ->
     errorstrm (str "only " ++ int n ++ str " < " ++ int m
             ++ str (plural n " occurence")
-            ++ str " of" ++ spc () ++ pr_constr p')
+            ++ str " of" ++ spc () ++ pr_constr_pat p')
 
 let pf_fill_occ_term gl occ (sigma, t) =
   let sigma0 = project gl in
   try
-    let sigma', t', cl, _ = pf_fill_occ gl occ t sigma t in
+    let sigma', t', cl, _ = pf_fill_occ gl occ t sigma t all_ok in
     if sigma' != sigma0 then error "matching impacts evars" else cl, t'
   with NoMatch -> try
-    let sigma', t' = unif_end (pf_env gl) sigma0 (create_evar_defs sigma) t in
+    let sigma', t' =
+      unif_end (pf_env gl) sigma0 (create_evar_defs sigma) t (fun _ -> true) in
     if sigma' != sigma0 then raise NoMatch else pf_concl gl, t'
   with _ ->
-    errorstrm (str "partial term " ++ pf_pr_constr gl t
+    errorstrm (str "partial term " ++ pr_constr_pat t
             ++ str " does not match any subterm of the goal")
 
 (** Occurrence switch *)
@@ -3388,54 +3254,6 @@ TACTIC EXTEND ssrmove
 
 (** The "case" tactic *)
 
-(*
-let dep_x = Name (id_of_string "dep_var")
-
-let understand_dep sigma (i, env, rc) = function
-| _, (SsrError e, _) -> raise e
-| _, (SsrTerm (_, 0), c) when isVar c ->
-  i, env, mkRApp (rc, [mkRVar (destVar c)])
-| _, (SsrTerm (_, 2), c) when isAbsHole c ->
-  i, env, mkRApp (rc, mkRHoles 1)
-| _, (SsrTerm (_, n), c) ->
-  let t = Retyping.get_type_of sigma env c in
-  let id = id_of_string (sprintf "Kdep %d" i) in
-  let env' = Environ.push_named (id, Some c, None, t) in
-  (i + 1, env', mkRApp (rc, [mkRApp (mkRVar id, mkRHoles n)])
-
-let pf_understand_dep_case gl deps kt =
-  let kc = pf_abs_ssrterm gl kt in
-  let kct, mind = pf_reduce_to_quantified_ind gl (pf_type_of gl kc) in
-  let env = pf_env gl and sigma = project gl in
-  let npar, ndep = Inductiveops.inductive_nargs env mind in
-  let kdc, _ =
-     Reductionops.splay_arity env sigma
-        (Inductiveops.type_of_inductive env mind) in
-  let ndc = npar + ndep - List.length deps in
-  if ndc < npar then error "too many dependent patterns" else
-  let id1 = id_of_string "Rdep 1" and id2 = id_of_string "Rdep 2" in
-  let t2 = compose_prod kdc (mkEtaApp (mkInd mind) 1 (List.length kdc)) in
-  let env1 = Environ.push_named (id1, None, kct) in
-  let env2 = Environ.push_named (id2, None, t2) in
-  let rc1 = mkRApp (mkRVar id1) (mkRHoles (nb_prod kct)) in
-  let rc2 = mkRApp (mkRVar id2) (mkRHoles ndc) in
-  let _, env', rc =
-    List.fold_left (understand_dep sigma) (0, env2, rc2) deps in
-  let eqrc = RRef (dummy_loc, IndRef (destInd (build_coq_eq ()))) in
-  let rc' = mkRApp (eqrc, mkRHoles 1 @ [rc1, rc]) in
-  let n, dc, c1, d2 =
-    try
-      let n, c = pf_abs_evars gl (understand_tcc sigma env' rc') in
-      let dc, c' = decompose_lam_n n d in
-      let _, a = destApp c' in
-      let env'' = push_rels_assum dc env' in
-      let t2 = Retyping.get_type_of sigma (push_rels_assum dc env') a.(2) in
-      let _, a2 = destApp t2)) npar ndep in
-      n, dc, a.(1), Array.sub a2 npar ndep 
-    with _ -> error "dependent patterns do not match type instance" in
-  let 
-*)
-
 (* A case without explicit dependent terms but with both a view and an    *)
 (* occurrence switch and/or an equation is treated as dependent, with the *)
 (* viewed term as the dependent term (the occurrence switch would be      *)
@@ -3542,7 +3360,6 @@ END
 
 ARGUMENT EXTEND ssragen TYPED AS ssrgen PRINTED BY pr_ssrgen
 | [ "{" ne_ssrhyp_list(clr) "}" ssrterm(dt) ] -> [ mkclr clr, dt ]
-(* | [ "{" "}" ssrterm(dt) ] -> [ noclr, dt ] *)
 | [ ssrterm(dt) ] -> [ nodocc, dt ]
 END
 
@@ -3740,10 +3557,6 @@ let _ =
       Goptions.optkey   = SecondaryTable ("Match", "Strict");
       Goptions.optread  = (fun () -> !ssr_strict_match);
       Goptions.optwrite = (fun b -> ssr_strict_match := b) }
-
-(** Direction *)
-
-let pr_rwdir = function L2R -> mt () | R2L -> str "-"
 
 (** Rewrite multiplier *)
 
@@ -3945,51 +3758,74 @@ try
     let sigma', c =
       try pf_unif_HO gl sigma t t ut
       with _ ->
-        errorstrm (str "fold pattern " ++ pf_pr_constr gl t ++ spc ()
-            ++ str "does not match redex " ++ pf_pr_constr gl ut) in
+        errorstrm (str "fold pattern " ++ pr_constr_pat t ++ spc ()
+            ++ str "does not match redex " ++ pr_constr_pat ut) in
     if sigma' != sigma0 then error "evars in fold term" else (cl, c)
   | None ->
     let sigma, t = ft in
     let ut = try Tacred.red_product (pf_env gl) sigma t with _ -> t in
-(* try *)
-    let sigma', t', cl, _ = pf_fill_occ gl occ ut sigma t in
+    let sigma', t', cl, _ = pf_fill_occ gl occ ut sigma t all_ok in
     if sigma' == project gl then cl, t' else raise NoMatch in
-(* with err ->
-let u = mk_upat (pf_env gl) (project gl) (ref (create_evar_defs sigma)) t ut in
-msgnl (str "No match for -[" ++ pr_constr u.up_FO ++ str "]/" ++ pr_constr t);
-raise err in *)
   convert_concl (subst1 c cl) gl
 with NoMatch -> tclIDTAC gl
-(* errorstrm (str "no fold occurrence for " ++ pr_constr t) *)
+(* errorstrm (str "no fold occurrence for " ++ pr_constr_pat t) *)
 
 let coq_eq_prod = lazy (build_coq_eq_data (), build_prod ())
 
 let converse_dir = function L2R -> R2L | R2L -> L2R
 
-let rwcltac cl dir rule gl0 =
-  let cvttac gl =
-    try convert_concl cl gl with _ ->
-    errorstrm (str "dependent type error in rewrite of" ++ spc ()
-               ++ pf_pr_constr gl cl) in
-  let rwtac gl =
-    let gls, _ as tacres = rewritetac dir rule gl
-     (* try rewritetac dir rule gl with _ ->
-      anomaly "ssreflect internal rewrite failed" *) in
-    let cl' = pf_concl (first_goal gls) in
-    if not (eq_constr cl' (pf_concl gl0)) then tacres else
-    errorstrm (str "rewrite loop " ++ pf_pr_constr gl cl ++ spc ()
-              ++ str "<-> " ++ pf_pr_constr gl cl') in
-  tclTHEN cvttac rwtac gl0
+let rw_progress rhs lhs ise = not (eq_constr lhs (Evarutil.nf_isevar ise rhs))
+
+(* Coq has a more general form of "equation" (any type with a single *)
+(* constructor with no arguments with_rect_r elimination lemmas).    *)
+(* However there is no clear way of determining the LHS and RHS of   *)
+(* such a generic Leibnitz equation -- short of inspecting the type  *)
+(* of the elimination lemmas.                                        *)
+
+let rec strip_prod_assum c = match kind_of_term c with
+  | Prod (_, _, c') -> strip_prod_assum c'
+  | LetIn (_, v, _, c') -> strip_prod_assum (subst1 v c)
+  | Cast (c', _, _) -> strip_prod_assum c'
+  | _ -> c
+
+let rule_id = mk_internal_id "rewrite rule"
+
+let rwcltac cl rdx dir sr gl =
+  let n, r_n = pf_abs_evars gl sr in
+  let r' = subst_var pattern_id (pf_abs_cterm gl n r_n) in
+  let rdxt = Retyping.get_type_of (pf_env gl) (fst sr) rdx in
+  let cvtac, rwtac =
+    if closed0 r' then 
+      let cl' = mkApp (mkNamedLambda pattern_id rdxt cl, [|rdx|]) in
+      (convert_concl cl', rewritetac dir r')
+    else
+      let dc, r2 = decompose_lam_n n r' in
+      let r3, _, r3t  = 
+        try destCast r2 with _ ->
+        errorstrm (str "no cast from " ++ pr_constr_pat (snd sr)
+                    ++ str " to " ++ pr_constr r2) in
+      let cl' = mkNamedProd rule_id (compose_prod dc r3t) (lift 1 cl) in
+      let cl'' = mkNamedProd pattern_id rdxt cl' in
+      let itacs = [introid pattern_id; introid rule_id] in
+      let cltac = clear [pattern_id; rule_id] in
+      let rwtacs = [rewritetac dir (mkVar rule_id); cltac] in
+      (apply_type cl'' [rdx; compose_lam dc r3], tclTHENLIST (itacs @ rwtacs))
+    in
+  let cvtac' _ =
+    try cvtac gl with _ ->
+    errorstrm (str "dependent type error in rewrite of "
+                      ++ pf_pr_constr gl (mkNamedLambda pattern_id rdxt cl)) in
+  tclTHEN cvtac' rwtac gl
 
 let rec rwrxtac occ rdx_pat dir rule gl =
   let env = pf_env gl in
   let coq_eq, coq_prod = Lazy.force coq_eq_prod in
   let sigma, rules =
-    let rec loop d sigma r t rs =
-      match kind_of_term (Tacred.hnf_constr env sigma t) with
+    let rec loop d sigma r t rs red =
+      match kind_of_term t with
       | Prod (_, xt, at) ->
         let ise, x = Evarutil.new_evar (create_evar_defs sigma) env xt in
-        loop d (evars_of ise) (mkApp (r, [|x|])) (subst1 x at) rs
+        loop d (evars_of ise) (mkApp (r, [|x|])) (subst1 x at) rs 0
       | App (pr, a) when pr = coq_prod.Coqlib.typ ->
         let sr = match kind_of_term (Tacred.hnf_constr env sigma r) with
         | App (c, ra) when c = coq_prod.Coqlib.intro -> fun i -> ra.(i + 1)
@@ -3997,71 +3833,91 @@ let rec rwrxtac occ rdx_pat dir rule gl =
           function 1 -> mkApp (coq_prod.Coqlib.proj1, ra)
                 | _ ->  mkApp (coq_prod.Coqlib.proj2, ra) in
         if a.(0) = build_coq_True () then
-         loop (converse_dir d) sigma (sr 2) a.(1) rs
+         loop (converse_dir d) sigma (sr 2) a.(1) rs 0
         else
-         let sigma2, rs2 = loop d sigma (sr 2) a.(1) rs in
-         loop d sigma2 (sr 1) a.(0) rs2
-      | App (er, a) when er = coq_eq.Coqlib.eq ->
-        sigma, (d, r, mkApp (er, a)) :: rs
-      | _ -> sigma, (d, r, mkProp) :: rs (* Setoid *) in
+         let sigma2, rs2 = loop d sigma (sr 2) a.(1) rs 0 in
+         loop d sigma2 (sr 1) a.(0) rs2 0
+      | App (r_eq, a) when Hipattern.match_with_equality_type t != None ->
+        let ind = destInd r_eq and rhs = array_last a in
+        let np, ndep = Inductiveops.inductive_nargs env ind in
+        let ind_ct = Inductiveops.type_of_constructors env ind in
+        let lhs0 = last_arg (strip_prod_assum ind_ct.(0)) in
+        let rdesc = match kind_of_term lhs0 with
+        | Rel i ->
+          let lhs = a.(np - i) in
+          let lhs, rhs = if d = L2R then lhs, rhs else rhs, lhs in
+          d, r, lhs, rhs
+(* msgnl (str "RW: " ++ pr_rwdir d ++ str " " ++ pr_constr_pat r' ++ str " : "
+            ++ pr_constr_pat lhs ++ str " ~> " ++ pr_constr_pat rhs); *)
+(*
+          let l_i, r_i = if d = L2R then i, 1 - ndep else 1 - ndep, i in
+          let lhs = a.(np - l_i) and rhs = a.(np - r_i) in
+          let a' = Array.copy a in let _ = a'.(np - l_i) <- mkVar pattern_id in
+          let r' = mkCast (r, DEFAULTcast, mkApp (r_eq, a')) in
+          (d, r', lhs, rhs)
+*)
+        | _ ->
+          let lhs = substl (array_list_of_tl (Array.sub a 0 np)) lhs0 in
+          let lhs, rhs = if d = R2L then lhs, rhs else rhs, lhs in
+          let d' = if Array.length a = 1 then d else converse_dir d in
+          d', r, lhs, rhs in
+        sigma, rdesc :: rs
+      | App (s_eq, a) when Class_tactics.is_applied_setoid_relation t ->
+        let np = Array.length a and i = 3 - dir_org d in
+        let lhs = a.(np - i - 3) and rhs = a.(np + 3 - i) in
+        let a' = Array.copy a in let _ = a'.(np - i) <- mkVar pattern_id in
+        let r' = mkCast (r, DEFAULTcast, mkApp (s_eq, a')) in
+        sigma, (d, r', lhs, rhs) :: rs
+      | _ ->
+        if red = 0 then loop d sigma r (Tacred.hnf_constr env sigma t) rs 1
+        else errorstrm (str "not an equality type: " ++ pr_constr_pat t
+                        ++ spc() ++ str "in rule " ++ pr_constr_pat (snd rule))
+        in
     let sigma, r = rule in
     let t = Retyping.get_type_of env sigma r in
-    loop dir sigma r t [] in
-  let rw1 = match rdx_pat with
+    loop dir sigma r t [] 0 in
+  match rdx_pat with
   | Some rp ->
     let cl, rdx = pf_fill_occ_term gl occ rp in
     if closed0 cl then
       errorstrm (str "No occurrence of redex " ++ pf_pr_constr gl rdx)
-    else begin fun (d, r, t) _ ->
-      let lhs = match kind_of_term t with
-      | App (_, a) -> a.(if d = L2R then 1 else 2)
-      | _ -> match kind_of_term (Retyping.get_type_of env sigma r) with
-      | App (_, a) -> a.(Array.length a - (if d = L2R then 2 else 1))
-      | _ ->
-        errorstrm (str "not a rewrite rule: " ++ pf_pr_constr gl (snd rule)) in
-      let sr' =
-        try pf_unif_HO gl sigma r lhs rdx
-        with _ -> error "redex mismatch" in
-      let r' = let n, r' = pf_abs_evars gl sr' in pf_abs_cterm gl n r' in
-      let cl' =
-        mkApp (mkLambda (Name pattern_id, pf_type_of gl rdx, cl), [|rdx|]) in
-      rwcltac cl' d r' gl
-    end
-  | None ->
-    begin fun (d, r, t) _ -> match kind_of_term t with
-    | App (_, a) ->
-      let lhs = a.(if d = L2R then 1 else 2) in
-      let sigma', r', cl, rdx = 
-        try pf_fill_occ gl occ lhs sigma r
-        with NoMatch ->
+    else let rec rwtac = function
+      | [] ->
+        errorstrm (str "pattern " ++ pr_constr_pat rdx ++
+                   str " does not match " ++ pr_dir_side dir ++
+                   str " of " ++ pr_constr_pat (snd rule))
+      | (d, r, lhs, rhs) :: rs ->
         try
-          let sigma', r', cl, rdx = pf_fill_occ gl occ lhs sigma lhs in
-  errorstrm (str "Could not instantiate "
-             ++ pr_constr (Reductionops.nf_evar sigma' r)
-             ++ str " on " ++ pr_constr rdx)
-        with NoMatch ->
-  errorstrm (str "Could not match lhs "
-             ++ pr_constr lhs ++ str " of " ++ pr_constr r) in
-      if closed0 cl then error "no rewrite" else
-      let cl' =
-        mkApp (mkLambda (Name pattern_id, pf_type_of gl rdx, cl), [|rdx|]) in
-      let r'' =
-        let n, r_n = pf_abs_evars gl (sigma', r') in pf_abs_cterm gl n r_n in
-      rwcltac cl' d r'' gl
-    | _ ->
-      let occ' = get_occ_indices occ in
-      let n, r' = pf_abs_evars gl (sigma, r) in
-      let r'' = pf_abs_cterm gl n r' in
-      Equality.general_rewrite (dir = L2R) occ' r'' gl
-    end in
-  if List.length rules = 1 then rw1 (List.hd rules) gl else
-  try tclFIRST (List.map rw1 rules) gl with
-  | _ -> match rdx_pat with
-  | None -> 
-    errorstrm (str "cannot rewrite with " ++ pf_pr_constr gl (snd rule))
-  | Some (_, p) ->
-    errorstrm (str "cannot rewrite pattern " ++ pf_pr_constr gl p
-              ++ str " with " ++ pf_pr_constr gl (snd rule))
+          let ise = unif_HO env (create_evar_defs sigma) lhs rdx in
+          let sr' = unif_end env (project gl) ise r (rw_progress rhs rdx) in
+          rwcltac cl rdx d sr'
+        with _ -> rwtac rs in
+     rwtac rules gl
+  | None ->
+    let sigma0 = project gl and ise = ref (create_evar_defs sigma) in
+    let rpat (d, r, lhs, rhs) =
+      let r' = if d = L2R then r else mkLambda (Anonymous, mkProp, r) in
+      mk_upat env sigma0 ise r' (rw_progress rhs) lhs in
+    let rpats = List.map rpat rules in
+    let sigma', r, cl, rdx =
+      try
+        fill_and_select_upat gl env sigma0 occ rpats (pf_concl gl) !ise
+      with
+      | UndefPat ->
+        errorstrm (str "indeterminate " ++ pr_dir_side dir
+                   ++ str " of " ++ pr_constr_pat (snd rule))
+      | MissingOccs (n, m, p') ->
+        errorstrm (str "only " ++ int n ++ str " < " ++ int m ++
+          str (plural n " occurence") ++ spc () ++
+          str "of " ++ pr_dir_side dir ++ str " " ++ pr_constr_pat p' ++
+          spc () ++ str "of " ++ pr_constr_pat (snd rule))
+      | NoMatch ->
+        errorstrm (str "no valid match of " ++ pr_dir_side dir ++
+                   str " of " ++ pr_constr_pat (snd rule)) in
+    let d, r' = match kind_of_term r with
+    | Lambda (_, _, r') -> R2L, r'
+    | _ -> L2R, r in
+    rwcltac cl rdx d (sigma', r') gl
 
 (* Resolve forward reference *)
 let _ =
