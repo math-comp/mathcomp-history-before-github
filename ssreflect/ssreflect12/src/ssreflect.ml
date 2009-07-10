@@ -3864,7 +3864,7 @@ let rec rwrxtac occ rdx_pat dir rule gl =
         sigma, rdesc :: rs
       | App (s_eq, a) when Class_tactics.is_applied_setoid_relation t ->
         let np = Array.length a and i = 3 - dir_org d in
-        let lhs = a.(np - i - 3) and rhs = a.(np + 3 - i) in
+        let lhs = a.(np - i) and rhs = a.(np + i - 3) in
         let a' = Array.copy a in let _ = a'.(np - i) <- mkVar pattern_id in
         let r' = mkCast (r, DEFAULTcast, mkApp (s_eq, a')) in
         sigma, (d, r', lhs, rhs) :: rs
