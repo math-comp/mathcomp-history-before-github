@@ -1,4 +1,4 @@
-(* (c) Copyright Microsoft Corporation and Inria. All rights reserved.        *)
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved.       *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype.
 Require Import finfun bigops ssralg groups perm zmodp.
 
@@ -9,30 +9,30 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-(******************************************************************************)
-(* Basic linear algebra : definition of the Matrix type. Matrix is defined    *)
-(* as a double indexed list of coefficients. This is done by using the        *)
-(* finfun structure. The file contains the definitions of:                    *)
-(*   fun_of_matrix : Coercion from matrix to FunClass. Allow to use matrices  *)
-(*                as functions.                                               *)
-(*   matrix_of_fun : the construction operators of a matrix form a given      *)
-(*                   function. This is the RECOMMENDED interface to build     *)
-(*                   an element of matrix type.                               *)
-(* It defines also:                                                           *)
-(* - row and column operations :  cut, drop and sawp                          *)
-(* - block operation : left cut, right cut and paste of matrices              *)
-(* - trace : \tr A                                                            *)
-(* - determinant : \det A. The definition is done with Leibniz formula        *)
-(* - adjugate matrix : \adj A                                                 *)
-(* - algebraic operation for group, ring, module and unital ring              *)
-(* - The Canonicals Structures for this algebraic structures are defined      *)
-(* - LUP matrix decomposition                                                 *)
-(* In addition to the lemmas relevant to these definitions, this file also    *)
-(* contains proofs :                                                          *)
-(* - Determinant multilinear property                                         *)
-(* - Laplace formulas : expand_det_row & expand_det_col                       *)
-(* - Cramer rule : mulmx_adjr & mulmx_adjl                                    *)
-(******************************************************************************)
+(*****************************************************************************)
+(* Basic linear algebra : definition of the Matrix type. Matrix is defined   *)
+(* as a double indexed list of coefficients. This is done by using the       *)
+(* finfun structure. The file contains the definitions of:                   *)
+(*   fun_of_matrix : Coercion from matrix to FunClass. Allow to use matrices *)
+(*                as functions.                                              *)
+(*   matrix_of_fun : the construction operators of a matrix form a given     *)
+(*                   function. This is the RECOMMENDED interface to build    *)
+(*                   an element of matrix type.                              *)
+(* It defines also:                                                          *)
+(* - row and column operations :  cut, drop and swap                         *)
+(* - block operation : left cut, right cut and paste of matrices             *)
+(* - trace : \tr A                                                           *)
+(* - determinant : \det A. The definition is done with Leibniz formula       *)
+(* - adjugate matrix : \adj A                                                *)
+(* - algebraic operation for group, ring, module and unital ring             *)
+(* - The Canonicals Structures for this algebraic structures are defined     *)
+(* - LUP matrix decomposition                                                *)
+(* In addition to the lemmas relevant to these definitions, this file also   *)
+(* contains proofs :                                                         *)
+(* - Determinant multilinear property                                        *)
+(* - Laplace formulas : expand_det_row & expand_det_col                      *)
+(* - Cramer rule : mulmx_adjr & mulmx_adjl                                   *)
+(*****************************************************************************)
 
 Reserved Notation "''M_' n"       (at level 8, n at level 2, format "''M_' n").
 Reserved Notation "''M_' ( n )"   (at level 8, only parsing).
@@ -63,9 +63,9 @@ Notation Local simp := (Monoid.Theory.simpm, oppr0).
 Open Local Scope ring_scope.
 Open Local Scope matrix_scope.
 
-(******************************************************************************)
-(****************************Type Definition***********************************)
-(******************************************************************************)
+(*****************************************************************************)
+(****************************Type Definition**********************************)
+(*****************************************************************************)
 
 Section MatrixDef.
 
@@ -122,9 +122,9 @@ Definition matrix_choiceMixin (R : choiceType) m n :=
 Canonical Structure matrix_choiceType R m n :=
   Eval hnf in ChoiceType (matrix_choiceMixin R m n).
 
-(******************************************************************************)
-(****************************Matrix block operations***************************)
-(******************************************************************************)
+(*****************************************************************************)
+(****************************Matrix block operations**************************)
+(*****************************************************************************)
 
 Section Slicing.
 
@@ -393,9 +393,9 @@ End Slicing.
 Notation "A ^T" := (trmx A) : ring_scope.
 Prenex Implicits lcutmx rcutmx ulsubmx ursubmx llsubmx lrsubmx.
 
-(******************************************************************************)
-(****************************Matrix algebraic operations***********************)
-(******************************************************************************)
+(*****************************************************************************)
+(****************************Matrix algebraic operations**********************)
+(*****************************************************************************)
 
 (* Definition of operations for matrices over a ring *)
 Section MatrixAlgebraOps.
@@ -726,7 +726,7 @@ Notation "a %:M" := (scalar_mx _ a) : ring_scope.
 Notation "A *m B" := (mulmx A B) : ring_scope.
 Notation "\tr A" := (mx_trace A) : ring_scope.
 
-(******************************************************************************)
+(*****************************************************************************)
 
 (* Permutation matrix *)
 Section PermMatrix.
@@ -946,7 +946,7 @@ Qed.
 
 End TrMul.
 
-(******************************************************************************)
+(*****************************************************************************)
 
 (* Lemmas requiring that the coefficients are in a commutative ring *)
 Section ComMatrix.
@@ -1223,9 +1223,9 @@ End Determinant.
 Notation "\det A" := (determinant A) : ring_scope.
 Notation "\adj A" := (adjugate A) : ring_scope.
 
-(******************************************************************************)
-(******************************* Matrix unit ring *****************************)
-(******************************************************************************)
+(*****************************************************************************)
+(****************************** Matrix unit ring *****************************)
+(*****************************************************************************)
 
 Section MatrixInv.
 
@@ -1292,9 +1292,9 @@ Qed.
 
 End MatrixInv.
 
-(******************************************************************************)
-(******************************* LUP decomposion ******************************)
-(******************************************************************************)
+(*****************************************************************************)
+(****************************** LUP decomposion ******************************)
+(*****************************************************************************)
 
 Section CormenLUP.
 
