@@ -2,13 +2,11 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 (*                                                                     *)
 (***********************************************************************)
+
+
 (***********************************************************************)
+(* This file contains the definitions of:                              *)
 (*                                                                     *)
-(*  Cosets, quotients, and isomorphism theorems                        *)
-(*                                                                     *)
-(***********************************************************************)
-(* Definitions:                                                        *)
-(* In this file:                                                       *)
 (*   coset_of H           == right cosets by the group H (see below)   *)
 (*   coset_groupType H    == the groupType induced by 'N(H) / H        *)
 (*   coset H              == the canonical projection induced by H     *)
@@ -388,7 +386,7 @@ Qed.
 Lemma cosetpreK : forall C, coset H @*^-1 C / H = C.
 Proof. by move=> C; rewrite /quotient morphpreK ?coset_im. Qed.
 
-(* Variant of morhphim_ker*)
+(* Variant of morhphim_ker *)
 Lemma trivg_quotient : H / H = 1.
 Proof. by rewrite -{3}ker_coset /quotient morphim_ker. Qed.
 
