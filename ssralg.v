@@ -4,7 +4,7 @@ Require Import bigops.
 
 
 (*****************************************************************************)
-(*   The Linear Algebraic part of the Algebraic Hierarchy, as described in   *)
+(*   The algebraic part of the Algebraic Hierarchy, as described in          *)
 (*           "Packaging mathematical structures", TPHOL09, by                *)
 (*   Francois Garillot, Georges Gonthier, Assia Mahboubi, Laurence Rideau    *)
 (*                                                                           *)
@@ -105,8 +105,7 @@ Require Import bigops.
 (*                        closed field. (The underlying type should have     *)
 (*                        a decidable field canonical structure)             *)
 (*                                                                           *)
-(* The Lemmas about theses structures are all contained in GRing.Theory,     *)
-(* One should also take a look at the naming conventions (cf ???)            *)
+(* The Lemmas about theses structures are all contained in GRing.Theory.     *)
 (*                                                                           *)
 (* NB: The module GRing should not be imported, only the main module and     *)
 (*     GRing.Theory should be.                                               *)

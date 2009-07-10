@@ -30,6 +30,9 @@ Import Prenex Implicits.
 (*        evaluation of a polynomial expression (resp. in a non            *)
 (*        commutative case, under the appropriate assumptions)             *)
 (*                                                                         *)
+(* Degree is not defined as such, we rather use the size operation on      *)
+(* sequences. Hence the zero polynomial is the only polynomial of size 0.  *)
+(*                                                                         *)
 (*    We define pseudo division on polynomials over an integral domain :   *)
 (*        m %/ d == the pseudo-quotient                                    *)
 (*        m %% d == the pseudo remainder                                   *)
@@ -39,9 +42,14 @@ Import Prenex Implicits.
 (*                       := (p %| q) && (q %| p)                           *)
 (*       + In the case R is a field p and q are associate                  *)
 (*                                                                         *)
-(* We prove the factor_theorem, and the inequality relating the number     *)
-(* of discint root of a polynomial and its degree max_poly_roots           *)
+(*       gcdp p q  == pseudo-gcd, for poly with coefficients in a ring,    *)
+(*          idomain is only require of indempotence and commutativity      *)
+(*                                                                         *)
+(*       roots p   == roots of poly with coefficients in an idomain.       *)
+(* We prove the factor_theorem, and the max_poly_roots inequality relating *)
+(* the number of distinct roots of a polynomial and its size               *)
 (***************************************************************************)
+
 
 
 Import GRing.Theory.
@@ -246,6 +254,8 @@ Canonical Structure poly_zmodType := Eval hnf in ZmodType poly_zmodMixin.
 Canonical Structure polynomial_zmodType :=
   Eval hnf in [zmodType of polynomial for poly_zmodType].
 
+(* Properties of the zero polynomial *)
+
 Lemma polyC0 : 0%:P = 0 :> {poly R}. Proof. by []. Qed.
 
 Lemma seq_poly0 : (0 : {poly R}) = [::] :> seq R.
@@ -277,6 +287,7 @@ Qed.
 Lemma polyC_eq0 : forall c, (c%:P == 0) = (c == 0).
 Proof. by move=> c; rewrite -size_poly_eq0 size_polyC; case: (c == 0). Qed.
 
+(* Size, leading coef, morphism properties of coef *)
 Lemma leq_size_coef : forall p i,
   (forall j, i <= j -> p`_j = 0) -> size p <= i.
 Proof.
@@ -608,6 +619,7 @@ Lemma coef_mulXn : forall n p i,
   (p * 'X^n)`_i = if i < n then 0 else p`_(i - n).
 Proof. by move=> n p i; rewrite comm_polyXn coef_Xn_mul. Qed.
 
+(* Expansion of a polynomial as an indexed sum *)
 Lemma poly_def : forall n E, \poly_(i < n) E i = \sum_(i < n) (E i)%:P * 'X^i.
 Proof.
 elim=> [|n IHn] E; first by rewrite big_ord0.
@@ -669,7 +681,7 @@ Proof.
 by move=> p [|n] mp; [exact: monic1 | elim: n => // n; rewrite monic_mull].
 Qed.
 
-(* Pseudo division *)
+(* Pseudo division, defined on an arbitrary ring *)
 Definition edivp_rec (q : {poly R})  :=
   let sq := size q in
   let cq := lead_coef q in
@@ -919,6 +931,7 @@ Notation "m %/ d" := (divp m d) (at level 40, no associativity) : ring_scope.
 Notation "m %% d" := (modp m d) (at level 40, no associativity) : ring_scope.
 Notation "p %| q" := (dvdp p q) (at level 70, no associativity) : ring_scope.
 
+(* Horner evaluation of polynomials *)
 
 Section EvalPolynomial.
 
@@ -1135,8 +1148,6 @@ Qed.
 
 End PolynomialComRing.
 
-(*Module BeforeIdomain. End BeforeIdomain.*)
-
 Section PolynomialIdomain.
 
 Variable R : idomainType.
@@ -1172,7 +1183,7 @@ move=> p q; case: (eqVneq q 0) => [->|nzq].
 by case (scalp_spec p q) => m ->; rewrite expf_neq0 ?lead_coef_eq0.
 Qed.
 
-(* idomain structure *)
+(* idomain structure on poly *)
 
 Lemma poly_idomainMixin : forall p q, p * q = 0 -> (p == 0) || (q == 0).
 Proof.
