@@ -14,15 +14,16 @@ Require Import groups.
 (*   p @*^-1 C              == the pre-image of C, where defined             *)
 (*                             (A :&: f @^-1: B)                             *)
 (*   'ker p                 == the kernel of p (p @*^-1: 1)                  *)
+(*   'ker_H p               ==  (p @*^-1: 1), intersected with H             *)
 (*   'injm p                <=> p injective (ker p \subset 1)                *)
-(*   invm p (H:'injm f)       == the inverse morphism for an injective p     *)
+(*   invm p (H :'injm f)       == the inverse morphism for an injective p    *)
 (*   idm B                  == the identity morphism on B                    *)
-(*   restrm p (H:A \subset B) == the morphism that on its domain A,          *)
+(*   restrm p (H : A \subset B) == the morphism that on its domain A,        *)
 (*                                              coincides with p             *)
 (*   trivm B                == the trivial morphism on B                     *)
 (*                                                                           *)
 (* if, moreover, q is a morphism of domain B:                                *)
-(*   factm (H1:A \subset B) (H2:'ker q \subset 'ker p) == the natural        *)
+(*   factm (H1 : A \subset B) (H2 : 'ker q \subset 'ker p) == the natural    *)
 (*                                  surjection between the ranges of q and p *)
 (*                                                                           *)
 (*                                                                           *)
@@ -31,10 +32,10 @@ Require Import groups.
 (*   isom A B f             <=> f @: (A  \: 1) = (B \: 1)                    *)
 (*   misom A B f            <=> morphic A f && isom A B f                    *)
 (*   A \isog B              <=> exists f, misom A B f                        *)
-(*   morphm (H:morphic B f) == f                                             *)
-(*                       we then define a canonical structure of morphism    *)
-(*                                             with domain B on (morphm H)   *)
+(*   morphm (H : morphic B f) == f with a canonical structure of morphism    *)
+(*                               with domain B                               *)
 (*****************************************************************************)
+
 
 Set Implicit Arguments.
 Unset Strict Implicit.
