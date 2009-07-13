@@ -1,13 +1,13 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq bigops fintype.
 Require Import div prime choice.
 
-(*****************************************************************************)
-(* This files contains the definition  of:                                   *)
-(*   bin m n        ==  binomial coef., i.e. m choose n                      *)
-(*                                                                           *)
-(* In additions to the properties of this function, wilson and pascal are    *)
-(* two examples of how to manipulate expressions with bigops                 *)
-(*****************************************************************************)
+(****************************************************************************)
+(* This files contains the definition  of:                                  *)
+(*   bin m n        ==  binomial coeficients, i.e. m choose n               *)
+(*                                                                          *)
+(* In additions to the properties of this function, wilson and pascal are   *)
+(* two examples of how to manipulate expressions with bigops.               *)
+(****************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
