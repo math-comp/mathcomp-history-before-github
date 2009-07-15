@@ -3770,8 +3770,6 @@ try
 with NoMatch -> tclIDTAC gl
 (* errorstrm (str "no fold occurrence for " ++ pr_constr_pat t) *)
 
-let coq_eq_prod = lazy (build_coq_eq_data (), build_prod ())
-
 let converse_dir = function L2R -> R2L | R2L -> L2R
 
 let rw_progress rhs lhs ise = not (eq_constr lhs (Evarutil.nf_isevar ise rhs))
@@ -3817,11 +3815,44 @@ let rwcltac cl rdx dir sr gl =
                       ++ pf_pr_constr gl (mkNamedLambda pattern_id rdxt cl)) in
   tclTHEN cvtac' rwtac gl
 
+let lz_coq_prod =
+  let prod = lazy (build_prod ()) in fun () -> Lazy.force prod
+
+let lz_setoid_relation =
+  let sdir = ["Classes"; "SetoidTactics"] in
+  let last_srel = ref (Environ.empty_env, None) in
+  fun env -> match !last_srel with
+  | env', srel when env' == env -> srel
+  | _ ->
+    let srel =
+       try Some (coq_constant "Class_setoid" sdir "SetoidRelation")
+       with _ -> None in
+    last_srel := (env, srel); srel
+
+let ssr_is_setoid env =
+  match lz_setoid_relation env with
+  | None -> fun _ _ _ -> false
+  | Some srel ->
+  let ev_env = Environ.named_context_val env in
+  fun sigma r args ->
+  let n = Array.length args in if n < 2 then false else
+  let rel = mkSubApp r (n - 2) args in
+  let rel_t = Retyping.get_type_of env sigma args.(n - 1) in
+  let rel_cl = mkApp (srel, [| rel_t; rel |]) in
+  let rel_gls = re_sig [make_evar ev_env rel_cl] sigma in
+  let dummy_valid _ = anomaly "ssr_is_setoid" in
+  let eauto = Class_tactics.typeclasses_eauto false (true, 1) [] in
+  try let _ = eauto (rel_gls, dummy_valid) in true with _ -> false
+ 
 let rec rwrxtac occ rdx_pat dir rule gl =
   let env = pf_env gl in
-  let coq_eq, coq_prod = Lazy.force coq_eq_prod in
+  let coq_prod = lz_coq_prod () in
+  let is_setoid = ssr_is_setoid env in
   let sigma, rules =
-    let rec loop d sigma r t rs red =
+    let rec loop d sigma r t0 rs red =
+      let t =
+        if red = 1 then Tacred.hnf_constr env sigma t0
+        else Reductionops.whd_betaiotazeta sigma t0 in
       match kind_of_term t with
       | Prod (_, xt, at) ->
         let ise, x = Evarutil.new_evar (create_evar_defs sigma) env xt in
@@ -3862,15 +3893,15 @@ let rec rwrxtac occ rdx_pat dir rule gl =
           let d' = if Array.length a = 1 then d else converse_dir d in
           d', r, lhs, rhs in
         sigma, rdesc :: rs
-      | App (s_eq, a) when Class_tactics.is_applied_setoid_relation t ->
+      | App (s_eq, a) when is_setoid sigma s_eq a ->
         let np = Array.length a and i = 3 - dir_org d in
         let lhs = a.(np - i) and rhs = a.(np + i - 3) in
         let a' = Array.copy a in let _ = a'.(np - i) <- mkVar pattern_id in
         let r' = mkCast (r, DEFAULTcast, mkApp (s_eq, a')) in
         sigma, (d, r', lhs, rhs) :: rs
       | _ ->
-        if red = 0 then loop d sigma r (Tacred.hnf_constr env sigma t) rs 1
-        else errorstrm (str "not an equality type: " ++ pr_constr_pat t
+        if red = 0 then loop d sigma r t rs 1
+        else errorstrm (str "not a rewritable relation: " ++ pr_constr_pat t
                         ++ spc() ++ str "in rule " ++ pr_constr_pat (snd rule))
         in
     let sigma, r = rule in
