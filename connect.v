@@ -1,28 +1,19 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect.
-Require Import ssrbool.
-Require Import ssrfun.
-Require Import eqtype.
-Require Import ssrnat.
-Require Import seq.
-Require Import paths.
-Require Import fintype.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq paths fintype.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-
-
 (******************************************************************************)
 (* This file contains the definition of :                                     *)
 (*                                                                            *)
-(* connect        == a binary predicate parameterized by a boolean relation   *)
+(* connect        == a binary predicate parametrized by a Boolean relation   *)
 (* root           == picks a representative of the orbit                      *)
-(* roots          == a boolean predicate for being a representative           *)
+(* roots          == a Boolean predicate for being a representative           *)
 (*                   of the orbit                                             *)
 (* n_comp         == number of orbits                                         *)
-(* connect_sym    == a predicate for symetric connectivity                    *)
+(* connect_sym    == a predicate for symmetric connectivity                    *)
 (* closed e a     == forall x y, e x y -> a x = a y                           *)
 (* closure e a    == closure under e of elements in a                         *)
 (* fconnect f     == connected under f iteration                              *)
