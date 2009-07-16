@@ -1813,7 +1813,6 @@ Variable F : QE.type.
 
 Definition proj := QE.proj (QE.class F).
 
-(* TOFIX : pourquoi comme ca ? *)
 Lemma qfree_proj : QE.qfree_proj_axiom proj.
 Proof. exact: QE.qfree_proj. Qed.
 
