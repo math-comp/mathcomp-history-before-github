@@ -689,7 +689,7 @@ Qed.
 Lemma addn_minr : right_distributive addn minn.
 Proof. by move=> m n1 n2; rewrite !(addnC m) addn_minl. Qed.
 
-(* Quasi-cacellation (really, absorbtion) lemmas *)
+(* Quasi-cancellation (really, absorption) lemmas *)
 Lemma maxnK : forall m n, minn (maxn m n) m = m.
 Proof. by move=> m n; apply/eqP; rewrite eqn_minr leq_maxr leqnn. Qed.
 

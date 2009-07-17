@@ -31,7 +31,7 @@ Unset Strict Implicit.
 (*                            implication with arbitrary arity               *)
 (* and3P,...               == specific reflection lemmas for iterated        *)
 (*                            connectives                                    *)
-(* andTb, orbAC,...        == systematic names for booelan connective        *)
+(* andTb, orbAC,...        == systematic names for boolean connective        *)
 (*                            properties                                     *)
 (* prop_congr              == a tactic to move a boolean equality from       *)
 (*                            its coerced form in Prop to the equality       *)
