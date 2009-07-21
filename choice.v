@@ -204,7 +204,7 @@ End SumTag.
 (* countably many elements. The two concepts are closely linked: we  *)
 (* indeed make Countable a subclass of Choice, as countable choice   *)
 (* is valid in CiC. This apparent redundancy is needed to ensure the *)
-(* concistency of the Canonical Structure inference, as the          *)
+(* consistency of the Canonical Structure inference, as the          *)
 (* canonical Choice for a given type may differ from the countable   *)
 (* choice for its canonical Countable structure, e.g., for options.  *)
 (* Nevertheless for most standard datatype constructors, including   *)
