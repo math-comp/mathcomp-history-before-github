@@ -8,7 +8,7 @@ Unset Strict Implicit.
 (* Files that use the ssreflect plugin should always Require ssreflect and *)
 (* either Import ssreflect or Import ssreflect.SsrSyntax.                  *)
 (*   The contents of this file is quite technical and should only interest *)
-(* adavanced developers; features not covered  by the Ssreflect reference  *)
+(* advanced developers; features not covered by the Ssreflect reference    *)
 (* manual, such as the Unlockable interface, phantom types, and the        *)
 (* [the struct of T] construct, are covered by specific comments below.    *)
 
@@ -127,7 +127,7 @@ Notation "[ 'the' sT 'of' v ]" := (get ((fun s : sT => Put v (*coerce*)s s) _))
 
 (* The following are "format only" versions of the above notations.   *)
 (* Since Coq doesn't provide this option, we fake it by splitting the *)
-(* "the" keyword. We need do do this because the formatter will be    *)
+(* "the" keyword. We need to do this because the formatter will be    *)
 (* thrown off by application collapsing, coercion insertion and beta  *)
 (* reduction in the right hand sides of the above notations.          *)
 
