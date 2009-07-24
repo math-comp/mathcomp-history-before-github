@@ -1,10 +1,13 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq bigops fintype.
 Require Import div prime choice.
 
-(**************************************************************************)
-(* This files contains the definitions of:                                *)
-(* -binomial: definitions upto Pascal formula                             *)
-(**************************************************************************)
+(****************************************************************************)
+(* This files contains the definition  of:                                  *)
+(*   bin m n        ==  binomial coeficients, i.e. m choose n               *)
+(*                                                                          *)
+(* In additions to the properties of this function, wilson and pascal are   *)
+(* two examples of how to manipulate expressions with bigops.               *)
+(****************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -23,7 +26,7 @@ elim=> [|n Hrec] //; first by rewrite big_nil.
 by apply sym_equal; rewrite factS Hrec // !big_add1 big_nat_recr /= mulnC.
 Qed.
 
-Theorem Wilson's_Theorem : forall p, p > 1 -> prime p = (p %| fact p.-1 + 1).
+Theorem wilson : forall p, p > 1 -> prime p = (p %| (fact p.-1).+1).
 Proof.
 have dFact: forall p, 0 < p -> fact p.-1 = \prod_(0 <= i < p | i != 0) i.
   move=> p Hp; rewrite -big_filter fact_prod; symmetry; apply: congr_big=> //.
@@ -35,7 +38,7 @@ apply/idP/idP=> [pr_p | dv_pF]; last first.
   rewrite orbC leq_eqVlt; case/orP=> [-> // | ltdp].
   have:= dvdn_trans dv_dp dv_pF; rewrite dFact // big_mkord.
   rewrite (bigD1 (Ordinal ltdp)) /=; last by rewrite -lt0n (dvdn_gt0 p_gt0).
-  by rewrite orbC dvdn_addr ?dvdn_mulr // dvdn1 => ->.
+  by rewrite orbC -addn1 dvdn_addr ?dvdn_mulr // dvdn1 => ->.
 pose Fp1 := Ordinal lt1p; pose Fp0 := Ordinal p_gt0.
 have ltp1p: p.-1 < p by [rewrite prednK]; pose Fpn1 := Ordinal ltp1p.
 case eqF1n1: (Fp1 == Fpn1); first by rewrite -{1}[p]prednK -1?((1 =P p.-1) _).
@@ -78,7 +81,7 @@ have vFpId: forall i, (vFp i == i :> nat) = xpred2 Fp1 Fpn1 i.
     by rewrite euclid // -eqFp eq_sym orbC /dvdn Fp_mod eqn0Ngt lt0i.
   by rewrite -eqn_mod_dvd // Fp_mod modn_addl -(vFpV _ ni0) eqxx.
 suffices [mod_fact]: toFp (fact p.-1) = Fpn1.
-  by rewrite /dvdn -modn_addml mod_fact addn1 prednK // modnn.
+  by rewrite /dvdn -addn1 -modn_addml mod_fact addn1 prednK // modnn.
 rewrite dFact // (@big_morph _ _ _ Fp1 _ mFpM toFp) //; first last.
 - by apply: val_inj; rewrite /= modn_small.
 - by move=> i j; apply: val_inj; rewrite /= modn_mul2m.
@@ -145,7 +148,7 @@ apply/eqP; rewrite -(eqn_pmul2r (fact_gt0 (m - n))) -(eqn_pmul2r (fact_gt0 n)).
 by rewrite {1}mulnAC -!mulnA -{6}(subKn le_n_m) !bin_fact ?leq_subr.
 Qed.
 
-Theorem exp_pascal : forall a b n,
+Theorem pascal : forall a b n,
   (a + b) ^ n = \sum_(i < n.+1) (bin n i * (a ^ (n - i) * b ^ i)).
 Proof.
 move=> a b; elim=> [|n IHn]; first by rewrite big_ord_recl big_ord0.

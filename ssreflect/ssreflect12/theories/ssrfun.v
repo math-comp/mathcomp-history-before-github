@@ -7,12 +7,77 @@ Unset Strict Implicit.
 Delimit Scope fun_scope with FUN.
 Open Scope fun_scope.
 
-(* Basic constructions for intuitionistic functions : extensional equality   *)
-(* composition, override, update, inverse, and iteration, with some their    *)
-(* identities, and reflected equalities.                                     *)
+(****************************************************************************)
+(* This file contains the basic definitions and notations for working with  *)
+(* functions. The definitions concern:                                      *)
+(*                                                                          *)
+(*  Pair projections                                                        *)
+(*    p.1  == first element of a pair                                       *)
+(*    p.2  == second element of a pair                                      *)
+(*                                                                          *)
+(*  Function definitions                                                    *)
+(*           [fun : T => E] == constant function from type T that returns E *)
+(*             [fun x => E] == unary function                               *)
+(*         [fun x : T => E] == unary function with explicit domain          *)
+(*           [fun x y => E] == binary function                              *)
+(*       [fun x y : T => E] == binary function with explicit domain         *)
+(*     [fun (x : T) y => E] == binary function with explicit domain         *)
+(*     [fun x (y : T) => E] == binary function with explicit domain         *)
+(*    [fun (x : xT) (y : yT) => E]                                          *)
+(*                                                                          *)
+(* - partial functions using option type,                                   *)
+(*     oapp f d ox == if ox is some x returns f x,        d otherwise       *)
+(*      odflt d ox == if ox is some x returns x,          d otherwise       *)
+(*      obind f ox == if ox is some x returns f x,        none otherwise    *)
+(*       omap f ox == if ox is some x returns some (f x), none otherwise    *)
+(*                                                                          *)
+(* - extensional equality for functions and relations (i.e. functions of 2  *)
+(*   arguments),                                                            *)
+(*    f1 =1 f2      ==  f1 x is equal to f2 x forall x                      *)
+(*    f1 =1 f2 :>A  ==    ... and f2 is explicitly typed                    *)
+(*    f1 =2 f2      ==  f1 x y is equal to f2 x y forall x y                *)
+(*    f1 =2 f2 :> A ==    ... and f2 is explicitly types                    *)
+(*                                                                          *)
+(* - composition for total and partial functions,                           *)
+(*             f^~y == function f with y as second argument y               *)
+(*        f1 \o f2  == composition of f1 and f2                             *)
+(*      pcomb f1 f2 == composition of partial functions f1 and f2           *)
+(*                                                                          *)
+(* - properties of functions                                                *)
+(*        injective f == f is injective                                     *)
+(*         cancel f g == g is the inverse of f                              *)
+(*        pcancel f g == g is the inverse of f where g is partial           *)
+(*        ocancel f g == g is the inverse of f where f is partial           *)
+(*        bijective f == f is bijective                                     *)
+(*       involutive f == f is involutive                                    *)
+(*                                                                          *)
+(* - properties for operations                                              *)
+(*                left_id e op == e is a left unit for op                   *)
+(*               right_id e op == e is a right unit for op                  *)
+(*         left_inverse e i op == i is a left inverse for op with unit e    *)
+(*        right_inverse e i op == i is a right inverse for op with unit e   *)
+(*         self_inverse x e op == x is its own inverse for op               *)
+(*             idempotent x op == x is idempotent                           *)
+(*                associate op == op is associative                         *)
+(*              commutative op == op is commutative                         *)
+(*         left_commutative op == op is left commutative                    *)
+(*        right_commutative op == op is right commutative                   *)
+(*              left_zero z op == z is a right zero for op                  *)
+(*             right_zero z op == z is a right zero for op                  *)
+(*   left_distributive op1 op2 == op1 is left distributive for op2          *)
+(*  right_distributive op1 op2 == op1 is right distributive for op2         *)
+(*                                                                          *)
+(* - morphisms for functions and relations,                                 *)
+(*  {morph f : x / a >-> r } == f is a morphism with respect to functions   *)
+(*                                 (fun x => a) and (fun x => r)            *)
+(*  {morph f : x / a } == f is a morphism with respect to (fun x => a)      *)
+(*  {morph f : x y / a >-> r } == f is a morphism with respect to functions *)
+(*                                 (fun x y => a) and (fun x y => r)        *)
+(*  {morph f : x / a } == f is a morphism with respect to (fun x y => a)    *)
+(*                                                                          *)
+(* The file also contains some basic lemmas for the above concepts.         *)
+(****************************************************************************)
 
-(* Miscellaneous notation bits (currrying, pair projections, evaluation *)
-(* inverse, subscripting), the last three tp be defined later.          *)
 
 Notation "f ^~ y" := (fun x => f x y)
   (at level 10, y at level 8, no associativity, format "f ^~  y") : fun_scope.
@@ -20,11 +85,13 @@ Notation "f ^~ y" := (fun x => f x y)
 Delimit Scope pair_scope with PAIR.
 Open Scope pair_scope.
 
+(* Notations for pair projections *)
 Notation "p .1" := (fst p)
   (at level 2, left associativity, format "p .1") : pair_scope.
 Notation "p .2" := (snd p)
   (at level 2, left associativity, format "p .2") : pair_scope.
 
+(* Reserved notations for evaluation *)
 Reserved Notation "e .[ x ]"
   (at level 2, left associativity, format "e .[ x ]").
 
@@ -32,6 +99,7 @@ Reserved Notation "e .[ x1 , x2 , .. , xn ]"
   (at level 2, left associativity,
    format "e '[ ' .[ x1 , '/'  x2 , '/'  .. , '/'  xn ] ']'").
 
+(* Reserved notations for subscripting and superscripting *)
 Reserved Notation "x ^-1"
   (at level 3, left associativity, format "x ^-1").
 
@@ -140,7 +208,7 @@ Notation "[ 'fun' ( x : xT ) ( y : yT ) => E ]" :=
 (* For delta functions in eqtype.v. *)
 Definition SimplFunDelta aT rT (f : aT -> aT -> rT) := [fun z => f z z].
 
-(* Shorthand for some basic equality lemmas lemmas. *)
+(* Shorthand for some basic equality lemmas. *)
 
 Definition erefl := refl_equal.
 Definition esym := sym_eq.

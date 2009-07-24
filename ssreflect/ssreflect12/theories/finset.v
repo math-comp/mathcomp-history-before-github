@@ -1,19 +1,37 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div choice fintype.
 Require Import finfun bigops.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
+(* All our sets (defined on finType) are finite, so we should use set/Set as *)
+(* the type/constructor names; hawever, Set is a Coq keyword, and set could  *)
+(* become one, so as a precauton we use finset/FinSet instead.               *)
+(* The type of set on a gin=ven finType T, is given by the Notation          *)
+(* {set of T }, supplying the phantom coercion.                              *)
+(* We define equalities (boolean or not) and inequalities on set:            *)
+(* A :=: B, A :==: B,  A <> B, A != B, and reflection on set equalities by   *)
+(* A =P B  and we extend inE with the in_set predicate                       *)
+(* We define Notations to describe sets eventually using a predicate:        *)
+(* [set x | P], [set x \in A], [set x \in A | P]                             *)
+(* We define also the empty set: set0, the whole set on T: setT, and the     *)
+(* singleton set: set1 a                                                     *)
+(* We define the operations on sets                                          *)
+(* A :|: B (union), A :&: B (intersection), ~: A (complementary),            *)
+(* A :\: B   (difference)                                                    *)
+(* We give a lot of lemmas on these operations, on card,and on set inclusion *)
+(* Notations on all bigops variations of the set operations are also defined *)
+(* This allows the definition of partitions and their properties             *)
+(* Finally we define Maximum and Minimum (sub)sets wrt a given pred          *)
 
 Section SetType.
 
 Variable T : finType.
 
-(* All our sets are finite, so we should use set/Set as the type/constructor *)
-(* names; hawever, Set is a Coq keyword, and set could become one, so as a   *)
-(* precauton we use finset/FinSet instead.                                   *)
 (* We should really use a Record to declare set_type, but that runs against  *)
 (* a Coq bug that zaps the Type universe in Record declarations.             *)
+
 Inductive set_type : predArgType := FinSet of {ffun pred T}.
 Definition finfun_of_set A := let: FinSet f := A in f.
 Definition set_of of phant T := set_type.

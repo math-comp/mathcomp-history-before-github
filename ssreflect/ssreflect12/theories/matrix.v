@@ -1,4 +1,4 @@
-(* (c) Copyright Microsoft Corporation and Inria. All rights reserved.         *)
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved.       *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype.
 Require Import finfun bigops ssralg groups perm zmodp.
 
@@ -9,30 +9,30 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-(*******************************************************************************)
-(* Basic linear algebra : definition of the Matrix type. Matrix is defined     *)
-(* as a double indexed list of coefficients. This is done by using the         *)
-(* finfun structure. The file contains the definitions of:                     *)
-(*   fun_of_matrix : Coercion from matrix to FunClass. Allow to use matrices   *)
-(*                as functions.                                                *)
-(*   matrix_of_fun : the construction operators of a matrix form a given       *)
-(*                   function. This is the RECOMMENDED interface to build      *)
-(*                   an element of matrix type.                                *)
-(* It defines also:                                                           *)
-(* - row and column operations :  cut, drop and sawp                           *)
-(* - block operation : left cut, right cut and paste of matrices               *)
-(* - trace : \tr A                                                             *)
-(* - determinant : \det A. The definition is done with Leibniz formula         *)
-(* - adjugate matrix : \adj A                                                  *)
-(* - algebraic operation for group, ring, module and unital ring               *)
-(* - The Canonicals Structures for this algebraic structures are defined       *)
-(* - LUP matrix decomposition                                                  *)
-(* In addition to the lemmas relevant to these definitions, this file also     *)
-(* contains proofs :                                                           *)
-(* - Determinant multilinear property                                          *)
-(* - Laplace formulas : expand_det_row & expand_det_col                        *)
-(* - Cramer rule : mulmx_adjr & mulmx_adjl                                     *)
-(*******************************************************************************)
+(*****************************************************************************)
+(* Basic linear algebra : definition of the Matrix type. Matrix is defined   *)
+(* as a double indexed list of coefficients. This is done by using the       *)
+(* finfun structure. The file contains the definitions of:                   *)
+(*   fun_of_matrix : Coercion from matrix to FunClass. Allow to use matrices *)
+(*                as functions.                                              *)
+(*   matrix_of_fun : the construction operators of a matrix form a given     *)
+(*                   function. This is the RECOMMENDED interface to build    *)
+(*                   an element of matrix type.                              *)
+(* It defines also:                                                          *)
+(* - row and column operations :  cut, drop and swap                         *)
+(* - block operation : left cut, right cut and paste of matrices             *)
+(* - trace : \tr A                                                           *)
+(* - determinant : \det A. The definition is done with Leibniz formula       *)
+(* - adjugate matrix : \adj A                                                *)
+(* - algebraic operation for group, ring, module and unital ring             *)
+(* - The Canonicals Structures for this algebraic structures are defined     *)
+(* - LUP matrix decomposition                                                *)
+(* In addition to the lemmas relevant to these definitions, this file also   *)
+(* contains proofs :                                                         *)
+(* - Determinant multilinear property                                        *)
+(* - Laplace formulas : expand_det_row & expand_det_col                      *)
+(* - Cramer rule : mulmx_adjr & mulmx_adjl                                   *)
+(*****************************************************************************)
 
 Reserved Notation "''M_' n"       (at level 8, n at level 2, format "''M_' n").
 Reserved Notation "''M_' ( n )"   (at level 8, only parsing).
@@ -63,9 +63,9 @@ Notation Local simp := (Monoid.Theory.simpm, oppr0).
 Open Local Scope ring_scope.
 Open Local Scope matrix_scope.
 
-(*******************************************************************************)
-(****************************Type Definition************************************)
-(*******************************************************************************)
+(*****************************************************************************)
+(****************************Type Definition**********************************)
+(*****************************************************************************)
 
 Section MatrixDef.
 
@@ -73,7 +73,7 @@ Variable R : Type.
 Variables m n : nat.
 
 (* Basic linear algebra (matrices).                                       *)
-(*   We use dependent types (ordinals) for the indices so that ranges are *)
+(* We use dependent types (ordinals) for the indices so that ranges are   *)
 (* mostly inferred automatically                                          *)
 
 CoInductive matrix : predArgType := Matrix of {ffun 'I_m * 'I_n -> R}.
@@ -122,9 +122,9 @@ Definition matrix_choiceMixin (R : choiceType) m n :=
 Canonical Structure matrix_choiceType R m n :=
   Eval hnf in ChoiceType (matrix_choiceMixin R m n).
 
-(*******************************************************************************)
-(****************************Matrix block operations****************************)
-(*******************************************************************************)
+(*****************************************************************************)
+(****************************Matrix block operations**************************)
+(*****************************************************************************)
 
 Section Slicing.
 
@@ -393,12 +393,12 @@ End Slicing.
 Notation "A ^T" := (trmx A) : ring_scope.
 Prenex Implicits lcutmx rcutmx ulsubmx ursubmx llsubmx lrsubmx.
 
-(*******************************************************************************)
-(****************************Matrix algebraic operations************************)
-(*******************************************************************************)
+(*****************************************************************************)
+(****************************Matrix algebraic operations**********************)
+(*****************************************************************************)
 
 (* Definition of operations for matrices over a ring *)
-Section MatrixOpsDef.
+Section MatrixAlgebraOps.
 
 Variable R : ringType.
 
@@ -650,40 +650,6 @@ rewrite exchange_big; apply: eq_bigr => j _; rewrite mxE big_distrl /=.
 by apply: eq_bigr => k _; rewrite mulrA.
 Qed.
 
-(* Permutation matrix *)
-Definition perm_mx n (s : 'S_n) :=
-  \matrix_(i, j) (if s i == j then 1 else 0 : R).
-
-Definition tperm_mx n i1 i2 := @perm_mx n (tperm i1 i2). 
-
-Lemma trmx_perm : forall n (s : 'S_n), (perm_mx s)^T = perm_mx s^-1.
-Proof.
-by move=> n s; apply/matrixP=> i j; rewrite !mxE (canF_eq (permK _)) eq_sym.
-Qed.
-
-Lemma trmx_tperm : forall n i1 i2, (@tperm_mx n i1 i2)^T = tperm_mx i1 i2.
-Proof. by move=> n i1 i2; rewrite trmx_perm tpermV. Qed.
-
-Lemma mulmx_perm : forall n (s t : 'S_n),
-  perm_mx s *m perm_mx t = perm_mx (s * t).
-Proof.
-move=> n s t; apply/matrixP=> i j; rewrite !mxE (bigD1 (s i)) //= !mxE eqxx.
-rewrite simp -permM big1 /= => [|k ne_k_si]; first by rewrite addrC simp.
-by rewrite mxE /= eq_sym (negbTE ne_k_si) simp.
-Qed.
-
-Lemma mul_tperm_mx : forall m n (A : matrix R m n) i1 i2, 
-  (tperm_mx i1 i2) *m A = rswap A i1 i2.
-Proof. 
-move=> m n' A i1 i2; apply/matrixP=> i j.
-rewrite !mxE (bigD1 (tperm i1 i2 i)) ?big1 //= => [|k ne_k_j].
-  by rewrite mxE eqxx addr0 mul1r. 
-by rewrite mxE eq_sym -if_neg ne_k_j mul0r. 
-Qed. 
-
-Lemma perm_mx1 : forall n, perm_mx 1%g = 1%:M :> 'M_n.
-Proof. by move=> n; apply/matrixP=> i j; rewrite !mxE perm1. Qed.
-
 (* The trace, in 1/4 line. *)
 Definition mx_trace n (A : 'M_n) := \sum_i A i i : R.
 Notation "'\tr' A" := (mx_trace A) : ring_scope.
@@ -752,15 +718,202 @@ Lemma mulmxE : forall A B : 'M_n, A *m B = A * B. Proof. by []. Qed.
 Lemma idmxE : 1%:M = 1 :> 'M_n. Proof. by []. Qed.
 
 End MatrixRing.
- 
-End MatrixOpsDef.
+
+End MatrixAlgebraOps.
 
 Notation "a *m: A" := (scalemx a A) : ring_scope.
 Notation "a %:M" := (scalar_mx _ a) : ring_scope.
 Notation "A *m B" := (mulmx A B) : ring_scope.
 Notation "\tr A" := (mx_trace A) : ring_scope.
 
-(*******************************************************************************)
+(*****************************************************************************)
+
+(* Permutation matrix *)
+Section PermMatrix.
+Variable R : ringType.
+
+Definition perm_mx n (s : 'S_n) :=
+  \matrix_(i, j) (if s i == j then 1 else 0 : R).
+
+Definition tperm_mx n i1 i2 := @perm_mx n (tperm i1 i2).
+
+Lemma trmx_perm : forall n (s : 'S_n), (perm_mx s)^T = perm_mx s^-1.
+Proof.
+by move=> n s; apply/matrixP=> i j; rewrite !mxE (canF_eq (permK _)) eq_sym.
+Qed.
+
+Lemma trmx_tperm : forall n i1 i2, (@tperm_mx n i1 i2)^T = tperm_mx i1 i2.
+Proof. by move=> n i1 i2; rewrite trmx_perm tpermV. Qed.
+
+Lemma mulmx_perm : forall n (s t : 'S_n),
+ perm_mx s *m perm_mx t = perm_mx (s * t).
+Proof.
+move=> n s t; apply/matrixP=> i j; rewrite !mxE (bigD1 (s i)) //= !mxE eqxx.
+rewrite simp -permM big1 /= => [|k ne_k_si]; first by rewrite addrC simp.
+by rewrite mxE /= eq_sym (negbTE ne_k_si) simp.
+Qed.
+
+Lemma mul_tperm_mx : forall m n (A : matrix R m n) i1 i2, 
+  (tperm_mx i1 i2) *m A = rswap A i1 i2.
+Proof. 
+move=> m n' A i1 i2; apply/matrixP=> i j.
+rewrite !mxE (bigD1 (tperm i1 i2 i)) ?big1 //= => [|k ne_k_j].
+  by rewrite mxE eqxx addr0 mul1r. 
+by rewrite mxE eq_sym -if_neg ne_k_j mul0r. 
+Qed. 
+
+Lemma perm_mx1 : forall n, perm_mx 1%g = 1%:M :> 'M_n.
+Proof. by move=> n; apply/matrixP=> i j; rewrite !mxE perm1. Qed.
+
+Definition is_perm_mx n (A : 'M_n) := existsb s, A == perm_mx s.
+
+Lemma is_perm_mxP : forall n (A : 'M_n),
+  reflect (exists s, A = perm_mx s) (is_perm_mx A).
+Proof. by move=> n A; apply: (iffP existsP) => [] [s]; move/eqP; exists s. Qed.
+
+Lemma perm_mx_is_perm : forall n (s : 'S_n), is_perm_mx (perm_mx s).
+Proof. by move=> n s; apply/is_perm_mxP; exists s. Qed.
+
+Lemma is_perm_mxMl : forall n (A B : 'M_n),
+  is_perm_mx A -> is_perm_mx (A *m B) = is_perm_mx B.
+Proof.
+move=> n A B; case/is_perm_mxP=> s ->.
+apply/is_perm_mxP/is_perm_mxP=> [[t def_t] | [t ->]].
+  exists (s^-1 * t)%g.
+  by rewrite -mulmx_perm -def_t mulmxA mulmx_perm mulVg perm_mx1 mul1mx.
+by exists (s * t)%g; rewrite -mulmx_perm.
+Qed.
+
+Lemma is_perm_mxMr : forall n (A B : 'M_n),
+  is_perm_mx B -> is_perm_mx (A *m B) = is_perm_mx A.
+Proof.
+move=> n A B; case/is_perm_mxP=> s ->.
+apply/is_perm_mxP/is_perm_mxP=> [[t def_t] | [t ->]].
+  exists (t * s^-1)%g.
+  by rewrite -mulmx_perm -def_t -mulmxA mulmx_perm mulgV perm_mx1 mulmx1.
+by exists (t * s)%g; rewrite -mulmx_perm.
+Qed.
+
+(* Definitions and lemmas on permutations lifting : useful for Cramer proof *)
+(* and LUP decomposition *)
+Definition lift_perm_fun n i j (s : 'S_n) k :=
+  if @unlift n.+1 i k is Some k' then @lift n.+1 j (s k') else j.
+
+Lemma lift_permK : forall n i j s,
+  cancel (@lift_perm_fun n i j s) (lift_perm_fun j i s^-1%g).
+Proof.
+move=> n i j s k; rewrite /lift_perm_fun.
+by case: (unliftP i k) => [j'|] ->; rewrite (liftK, unlift_none) ?permK.
+Qed.
+
+Definition lift_perm n i j s := perm (can_inj (@lift_permK n i j s)).
+
+Lemma lift_perm_id : forall n i j s, lift_perm i j s i = j :> 'I_n.+1.
+Proof. by move=> n i j s; rewrite permE /lift_perm_fun unlift_none. Qed.
+
+Lemma lift_perm_lift : forall n i j s k,
+  lift_perm i j s (lift i k) = lift j (s k) :> 'I_n.+1.
+Proof. by move=> n i j s k; rewrite permE /lift_perm_fun liftK. Qed.
+
+Lemma lift_permM : forall n i j k s t,
+  (@lift_perm n i j s * lift_perm j k t)%g = lift_perm i k (s * t)%g.
+Proof.
+move=> n i j k s t; apply/permP=> i1; case: (unliftP i i1) => [i2|] ->{i1}.
+  by rewrite !(permM, lift_perm_lift).
+by rewrite permM !lift_perm_id.
+Qed.
+
+Lemma lift_perm1 : forall n i, @lift_perm n i i 1 = 1%g.
+Proof.
+by move=> n i; apply: (mulgI (lift_perm i i 1)); rewrite lift_permM !mulg1.
+Qed.
+
+Lemma lift_permV : forall n i j s,
+  (@lift_perm n i j s)^-1%g = lift_perm j i s^-1.
+Proof.
+by move=> n i j s; apply/eqP; rewrite eq_invg_mul lift_permM mulgV lift_perm1.
+Qed.
+
+Lemma odd_lift_perm : forall n i j s,
+  @lift_perm n i j s = odd i (+) odd j (+) s :> bool.
+Proof.
+move=> n i j s; rewrite -{1}(mul1g s) -(lift_permM _ j) odd_permM.
+congr (_ (+) _); last first.
+  case: (prod_tpermP s) => ts ->{s} _.
+  elim: ts => [|t ts IHts] /=; first by rewrite big_nil lift_perm1 !odd_perm1.
+  rewrite big_cons odd_mul_tperm -(lift_permM _ j) odd_permM {}IHts //.
+  congr (_ (+) _); rewrite (_ : _ j _ = tperm (lift j t.1) (lift j t.2)).
+    by rewrite odd_tperm (inj_eq (@lift_inj _ _)).
+  apply/permP=> k; case: (unliftP j k) => [k'|] ->.
+    rewrite lift_perm_lift inj_tperm //; exact: lift_inj.
+  by rewrite lift_perm_id tpermD // eq_sym neq_lift.
+suff{i j s} odd_lift0: forall k : 'I_n.+1, lift_perm 0 k 1 = odd k :> bool.
+  rewrite -!odd_lift0 -{2}invg1 -lift_permV odd_permV -odd_permM.
+  by rewrite lift_permM mulg1.
+move=> k; elim: {k}(k : nat) {1 3}k (erefl (k : nat)) => [|m IHm] k def_k.
+  rewrite (_ : k = 0) ?lift_perm1 ?odd_perm1 //; exact: val_inj.
+have le_mn: m < n.+1 by [rewrite -def_k ltnW]; pose j := Ordinal le_mn.
+rewrite -(mulg1 1)%g -(lift_permM _ j) odd_permM {}IHm // addbC.
+rewrite (_ : _ k _ = tperm j k).
+  by rewrite odd_tperm neq_ltn def_k leqnn.
+apply/permP=> i; case: (unliftP j i) => [i'|] ->; last first.
+  by rewrite lift_perm_id tpermL.
+apply: ord_inj; rewrite lift_perm_lift !permE /= eq_sym -if_neg neq_lift.
+rewrite fun_if -val_eqE /= def_k /bump ltn_neqAle andbC.
+case: leqP => [_ | lt_i'm] /=; last by rewrite -if_neg neq_ltn leqW.
+by rewrite add1n eqSS eq_sym; case: eqP.
+Qed.
+
+Variable n : nat.
+Implicit Type s t : 'S_n.
+Implicit Type A : matrix R n n.
+
+Definition lift0_perm s := lift_perm 0 0 s.
+
+Lemma lift0_perm0 : forall s, lift0_perm s 0 = 0.
+Proof. by move=> s; exact: lift_perm_id. Qed.
+
+Lemma rshift1 : @rshift 1 n =1 lift (0 : 'I_n.+1).
+Proof. by move=> i; apply: val_inj. Qed.
+
+Lemma split1 : forall i : 'I_n.+1,
+  @split 1 n i = oapp (@inr _ _) (inl _ 0) (unlift 0 i).
+Proof.
+move=> i; case: unliftP => [i'|] -> /=.
+  by rewrite -rshift1 (unsplitK (inr _ _)).
+by rewrite -(lshift_ord1 n 0) (unsplitK (inl _ _)).
+Qed.
+
+Lemma lift0_perm_lift : forall s (i : 'I_n),
+  lift0_perm s (lift (0 : 'I_n.+1) i) = lift (0 : 'I_n.+1)(s i).
+Proof. by move=> s i; exact: lift_perm_lift. Qed.
+
+Lemma lift0_permK : forall s, cancel (lift0_perm s) (lift0_perm s^-1).
+Proof. by move=> s i; rewrite /lift0_perm -lift_permV permK. Qed.
+
+Lemma lift0_perm_eq0 : forall s i, (lift0_perm s i == 0) = (i == 0).
+Proof. by move=> s i; rewrite (canF_eq (lift0_permK s)) lift0_perm0. Qed.
+
+Definition lift0_mx A := block_mx (1 : 'M_(1, 1)) 0 0 A.
+
+Lemma lift0_mx_perm : forall s,
+  lift0_mx (perm_mx s) = perm_mx (lift0_perm s). 
+Proof.
+move=> s; apply/matrixP=> /= i j.
+rewrite !mxE split1 /=; case: unliftP => [i'|] -> /=.
+  rewrite lift0_perm_lift !mxE split1 /=.
+  by case: unliftP => [j'|] ->; rewrite ?(inj_eq (@lift_inj _ _)) /= mxE.
+rewrite lift0_perm0 !mxE split1 /=.
+by case: unliftP => [j'|] ->; rewrite /= mxE.
+Qed.
+
+Lemma lift0_mx_is_perm : forall s, is_perm_mx (lift0_mx (perm_mx s)).
+Proof. by move=> s; rewrite lift0_mx_perm perm_mx_is_perm. Qed.
+
+Lemma is_perm_mx1 : is_perm_mx (1%:M : 'M_n).
+Proof. by rewrite -perm_mx1 perm_mx_is_perm. Qed.
+
+End PermMatrix.
 
 Section TrMul.
 
@@ -789,12 +942,13 @@ Lemma mul_mx_tperm : forall m n (A : matrix R m n) i1 i2,
 Proof.
 move=> m n A i1 i2; apply: trmx_inj.
 by rewrite trmx_mul_rev trmx_tperm mul_tperm_mx trmx_cswap.
-Qed.    
+Qed. 
 
 End TrMul.
 
-(*******************************************************************************)
+(*****************************************************************************)
 
+(* Lemmas requiring that the coefficients are in a commutative ring *)
 Section ComMatrix.
 
 Variable R : comRingType.
@@ -828,6 +982,12 @@ move=> m n A B; transitivity (\sum_i \sum_j A i j * B j i).
 rewrite exchange_big; apply: eq_bigr => i _ /=; rewrite mxE.
 apply: eq_bigr => j _; exact: mulrC.
 Qed.
+
+End ComMatrix.
+
+Section Determinant.
+
+Variable R : comRingType.
 
 (* The determinant, in one line with the Leibniz Formula *)
 Definition determinant n (A : 'M_n) :=
@@ -933,74 +1093,6 @@ transitivity (\det (\matrix_(i, j) B (f i) j) * \prod_i A i (f i)).
   by apply: eq_bigr => x _; rewrite mxE.
 case/injectivePn: Uf => i1 [i2 Di12 Ef12].
 by rewrite (alternate_determinant Di12) ?simp //= => j; rewrite !mxE Ef12.
-Qed.
-
-Definition lift_perm_fun n i j (s : 'S_n) k :=
-  if @unlift n.+1 i k is Some k' then @lift n.+1 j (s k') else j.
-
-Lemma lift_permK : forall n i j s,
-  cancel (@lift_perm_fun n i j s) (lift_perm_fun j i s^-1%g).
-Proof.
-move=> n i j s k; rewrite /lift_perm_fun.
-by case: (unliftP i k) => [j'|] ->; rewrite (liftK, unlift_none) ?permK.
-Qed.
-
-Definition lift_perm n i j s := perm (can_inj (@lift_permK n i j s)).
-
-Lemma lift_perm_id : forall n i j s, lift_perm i j s i = j :> 'I_n.+1.
-Proof. by move=> n i j s; rewrite permE /lift_perm_fun unlift_none. Qed.
-
-Lemma lift_perm_lift : forall n i j s k,
-  lift_perm i j s (lift i k) = lift j (s k) :> 'I_n.+1.
-Proof. by move=> n i j s k; rewrite permE /lift_perm_fun liftK. Qed.
-
-Lemma lift_permM : forall n i j k s t,
-  (@lift_perm n i j s * lift_perm j k t)%g = lift_perm i k (s * t)%g.
-Proof.
-move=> n i j k s t; apply/permP=> i1; case: (unliftP i i1) => [i2|] ->{i1}.
-  by rewrite !(permM, lift_perm_lift).
-by rewrite permM !lift_perm_id.
-Qed.
-
-Lemma lift_perm1 : forall n i, @lift_perm n i i 1 = 1%g.
-Proof.
-by move=> n i; apply: (mulgI (lift_perm i i 1)); rewrite lift_permM !mulg1.
-Qed.
-
-Lemma lift_permV : forall n i j s,
-  (@lift_perm n i j s)^-1%g = lift_perm j i s^-1.
-Proof.
-by move=> n i j s; apply/eqP; rewrite eq_invg_mul lift_permM mulgV lift_perm1.
-Qed.
-
-Lemma odd_lift_perm : forall n i j s,
-  @lift_perm n i j s = odd i (+) odd j (+) s :> bool.
-Proof.
-move=> n i j s; rewrite -{1}(mul1g s) -(lift_permM _ j) odd_permM.
-congr (_ (+) _); last first.
-  case: (prod_tpermP s) => ts ->{s} _.
-  elim: ts => [|t ts IHts] /=; first by rewrite big_nil lift_perm1 !odd_perm1.
-  rewrite big_cons odd_mul_tperm -(lift_permM _ j) odd_permM {}IHts //.
-  congr (_ (+) _); rewrite (_ : _ j _ = tperm (lift j t.1) (lift j t.2)).
-    by rewrite odd_tperm (inj_eq (@lift_inj _ _)).
-  apply/permP=> k; case: (unliftP j k) => [k'|] ->.
-    rewrite lift_perm_lift inj_tperm //; exact: lift_inj.
-  by rewrite lift_perm_id tpermD // eq_sym neq_lift.
-suff{i j s} odd_lift0: forall k : 'I_n.+1, lift_perm 0 k 1 = odd k :> bool.
-  rewrite -!odd_lift0 -{2}invg1 -lift_permV odd_permV -odd_permM.
-  by rewrite lift_permM mulg1.
-move=> k; elim: {k}(k : nat) {1 3}k (erefl (k : nat)) => [|m IHm] k def_k.
-  rewrite (_ : k = 0) ?lift_perm1 ?odd_perm1 //; exact: val_inj.
-have le_mn: m < n.+1 by [rewrite -def_k ltnW]; pose j := Ordinal le_mn.
-rewrite -(mulg1 1)%g -(lift_permM _ j) odd_permM {}IHm // addbC.
-rewrite (_ : _ k _ = tperm j k).
-  by rewrite odd_tperm neq_ltn def_k leqnn.
-apply/permP=> i; case: (unliftP j i) => [i'|] ->; last first.
-  by rewrite lift_perm_id tpermL.
-apply: ord_inj; rewrite lift_perm_lift !permE /= eq_sym -if_neg neq_lift.
-rewrite fun_if -val_eqE /= def_k /bump ltn_neqAle andbC.
-case: leqP => [_ | lt_i'm] /=; last by rewrite -if_neg neq_ltn leqW.
-by rewrite add1n eqSS eq_sym; case: eqP.
 Qed.
 
 (* Laplace expansion lemma *)
@@ -1126,14 +1218,14 @@ move=> n1 n2 Aul All Alr.
 by rewrite -det_trmx trmx_block trmx0 det_ublock !det_trmx.
 Qed.
 
-End ComMatrix.
+End Determinant.
 
 Notation "\det A" := (determinant A) : ring_scope.
 Notation "\adj A" := (adjugate A) : ring_scope.
 
-(*******************************************************************************)
-(******************************* Matrix unit ring ******************************)
-(*******************************************************************************)
+(*****************************************************************************)
+(****************************** Matrix unit ring *****************************)
+(*****************************************************************************)
 
 Section MatrixInv.
 
@@ -1168,6 +1260,8 @@ Definition matrix_unitRingMixin :=
 Canonical Structure matrix_unitRing :=
   Eval hnf in UnitRingType matrix_unitRingMixin.
 
+(* Lemmas requiring that the coefficients are in a unit ring *)
+
 Lemma det_invmx : forall A : 'M_n, \det A^-1 = (\det A)^-1.
 Proof.
 move=> A; case/orP: (orbN (GRing.unit A)) => U_A; last by rewrite !invr_out.
@@ -1191,11 +1285,16 @@ rewrite -[_^-1]mul1r; apply: (canRL (mulrK _)).
 by rewrite -!mulmxE !mulmx_perm ?gsimp ?perm_mx1.
 Qed.
 
+Lemma is_perm_mxV : forall A, @is_perm_mx R n A -> is_perm_mx A^-1.
+Proof.
+by move=> A; case/is_perm_mxP=> s ->; rewrite -perm_mxV perm_mx_is_perm.
+Qed.
+
 End MatrixInv.
 
-(*******************************************************************************)
-(******************************* LUP decomposion *******************************)
-(*******************************************************************************)
+(*****************************************************************************)
+(****************************** LUP decomposion ******************************)
+(*****************************************************************************)
 
 Section CormenLUP.
 
@@ -1207,7 +1306,6 @@ Variable F : fieldType.
 - U an upper triangular matrix 
 *)
 
-(* The cast (0 : 'I__) is probably not needed in Coq 8.2 -- GG *)
 Fixpoint cormen_lup n : let M := 'M_n.+1 in M -> M * M * M :=
   match n return let M := 'M_(1 + n) in M -> M * M * M with
   | 0 => fun A => (1%:M, 1%:M, A)
@@ -1224,96 +1322,6 @@ Fixpoint cormen_lup n : let M := 'M_n.+1 in M -> M * M * M :=
   end.
 
 End CormenLUP.
-
-Section MorePermMx.
-
-Variable R: ringType.
-Variable n : nat.
-
-Implicit Types A B : (matrix R n n).
-Implicit Type s : 'S_n.
-
-Definition is_perm_mx m (A : 'M_m) := existsb s, A == perm_mx R s.
-
-Lemma is_perm_mxP : forall m (A : 'M_m),
-  reflect (exists s, A = perm_mx R s) (is_perm_mx A).
-Proof. by move=> m A; apply: (iffP existsP) => [] [s]; move/eqP; exists s. Qed.
-
-Lemma perm_mx_is_perm : forall m (s : 'S_m), is_perm_mx (perm_mx R s).
-Proof. by move=> m s; apply/is_perm_mxP; exists s. Qed.
-
-Lemma is_perm_mxMl : forall A B,
-  is_perm_mx A -> is_perm_mx (A *m B) = is_perm_mx B.
-Proof.
-move=> A B; case/is_perm_mxP=> s ->.
-apply/is_perm_mxP/is_perm_mxP=> [[t def_t] | [t ->]].
-  exists (s^-1 * t)%g.
-  by rewrite -mulmx_perm -def_t mulmxA mulmx_perm mulVg perm_mx1 mul1mx.
-by exists (s * t)%g; rewrite -mulmx_perm.
-Qed.
-
-Lemma is_perm_mxMr : forall A B,
-  is_perm_mx B -> is_perm_mx (A *m B) = is_perm_mx A.
-Proof.
-move=> A B; case/is_perm_mxP=> s ->.
-apply/is_perm_mxP/is_perm_mxP=> [[t def_t] | [t ->]].
-  exists (t * s^-1)%g.
-  by rewrite -mulmx_perm -def_t -mulmxA mulmx_perm mulgV perm_mx1 mulmx1.
-by exists (t * s)%g; rewrite -mulmx_perm.
-Qed.
-
-Definition lift0_perm s := lift_perm 0 0 s.
-
-Lemma lift0_perm0 : forall s, lift0_perm s 0 = 0.
-Proof. by move=> s; exact: lift_perm_id. Qed.
-
-Lemma rshift1 : @rshift 1 n =1 lift (0 : 'I_n.+1).
-Proof. by move=> i; apply: val_inj. Qed.
-
-Lemma split1 : forall i : 'I_n.+1,
-  @split 1 n i = oapp (@inr _ _) (inl _ 0) (unlift 0 i).
-Proof.
-move=> i; case: unliftP => [i'|] -> /=.
-  by rewrite -rshift1 (unsplitK (inr _ _)).
-by rewrite -(lshift_ord1 n 0) (unsplitK (inl _ _)).
-Qed.
-
-Lemma lift0_perm_lift : forall s (i : 'I_n),
-  lift0_perm s (lift (0 : 'I_n.+1) i) = lift (0 : 'I_n.+1)(s i).
-Proof. by move=> s i; exact: lift_perm_lift. Qed.
-
-Lemma lift0_permK : forall s, cancel (lift0_perm s) (lift0_perm s^-1).
-Proof. by move=> s i; rewrite /lift0_perm -lift_permV permK. Qed.
-
-Lemma lift0_perm_eq0 : forall s i, (lift0_perm s i == 0) = (i == 0).
-Proof. by move=> s i; rewrite (canF_eq (lift0_permK s)) lift0_perm0. Qed.
-
-Definition lift0_mx A := block_mx (1 : 'M_(1, 1)) 0 0 A.
-
-Lemma lift0_mx_perm : forall s,
-  lift0_mx (perm_mx R s) = perm_mx R (lift0_perm s). 
-Proof.
-move=> s; apply/matrixP=> /= i j.
-rewrite !mxE split1 /=; case: unliftP => [i'|] -> /=.
-  rewrite lift0_perm_lift !mxE split1 /=.
-  by case: unliftP => [j'|] ->; rewrite ?(inj_eq (@lift_inj _ _)) /= mxE.
-rewrite lift0_perm0 !mxE split1 /=.
-by case: unliftP => [j'|] ->; rewrite /= mxE.
-Qed.
-
-Lemma lift0_mx_is_perm : forall s, is_perm_mx (lift0_mx (perm_mx R s)).
-Proof. by move=> s; rewrite lift0_mx_perm perm_mx_is_perm. Qed.
-
-Lemma is_perm_mx1 : is_perm_mx (1%:M : 'M_n).
-Proof. by rewrite -perm_mx1 perm_mx_is_perm. Qed.
-
-End MorePermMx.
-
-Lemma is_perm_mxV : forall (R : comUnitRingType) (n : pos_nat) A,
-  @is_perm_mx R n A -> is_perm_mx A^-1.
-Proof.
-by move=> R n A; case/is_perm_mxP=> s ->; rewrite -perm_mxV perm_mx_is_perm.
-Qed.
 
 Section CormenLUPCorrect.
 

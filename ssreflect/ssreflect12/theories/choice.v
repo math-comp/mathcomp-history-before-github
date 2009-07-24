@@ -1,24 +1,24 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved.         *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 
-(*******************************************************************************)
-(* This file contains the definitions of:                                      *)
-(*  - choiceType : interface for type with choice operator                     *)
-(*  - countType : interface for countable type                                 *)
-(* In addition to the lemmas relevant to these definitions, this file also     *)
-(* contains definitions of Canonical Structure of choiceType for nat and       *)
-(* sub-type/ option type/ seq type/ sigma type of a choice type. It also       *)
-(* contains definitions of Canonical Structure of countType for nat, bool and  *)
-(* sub-type/ option type/ seq type/ sigma type/ of a countable type and        *)
-(* sum and prod types of two countable types.                                  *)
-(*******************************************************************************)
+(*****************************************************************************)
+(* This file contains the definitions of:                                    *)
+(*  - choiceType : interface for type with choice operator                   *)
+(*  - countType : interface for countable type                               *)
+(* In addition to the lemmas relevant to these definitions, this file also   *)
+(* contains definitions of Canonical Structure of choiceType for nat and     *)
+(* sub-type/ option type/ seq type/ sigma type of a choice type. It also     *)
+(* contains definitions of Canonical Structure of countType for nat, bool and*)
+(* sub-type/ option type/ seq type/ sigma type/ of a countable type and      *)
+(* sum and prod types of two countable types.                                *)
+(*****************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-(* Technical definitions about coding and decoding of  list. This results are  *)
-(* useful for the definition of Canonical Structure of choice and countable    *)
+(* Technical definitions about coding and decoding of  list. This results are*)
+(* useful for the definition of Canonical Structure of choice and countable  *)
 (* types. *)
 
 Module CodeSeq.
@@ -204,7 +204,7 @@ End SumTag.
 (* countably many elements. The two concepts are closely linked: we  *)
 (* indeed make Countable a subclass of Choice, as countable choice   *)
 (* is valid in CiC. This apparent redundancy is needed to ensure the *)
-(* concistency of the Canonical Structure inference, as the          *)
+(* consistency of the Canonical Structure inference, as the          *)
 (* canonical Choice for a given type may differ from the countable   *)
 (* choice for its canonical Countable structure, e.g., for options.  *)
 (* Nevertheless for most standard datatype constructors, including   *)
