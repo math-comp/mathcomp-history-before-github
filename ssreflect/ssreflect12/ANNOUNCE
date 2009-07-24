@@ -1,14 +1,13 @@
 Announcing Ssreflect version 1.2
 
-
 We are pleased to announce the new release of the Ssreflect
 extension library for the Coq proof assistant, version
 8.2/8.2pl1. This release includes:
 - an update of the tactic language which complies with the new version
-of Coq;
+  of Coq;
 - an update of the combinatoric libraries distributed in the previous
-release of ssreflect;
-- a new set of libraries about abstract algebra.
+  release of ssreflect;
+- a new set of libraries for abstract algebra.
 
 The name Ssreflect stands for "small scale reflection", a style of
 proof that evolved from the computer-checked proof of the Four Colour
@@ -23,46 +22,43 @@ Along with documentation, also available at
 http://hal.inria.fr/inria-00258384 the Ssreflect distribution
 comprises two parts:
 - A new tactic language, which promotes more structured, concise and
-robust proof scripts, and is in fact independent from the "reflection"
-proof style. It is implemented as a linkable extension to the Coq
-system.
+  robust proof scripts, and is in fact independent from the "reflection"
+  proof style. It is implemented as a linkable extension to the Coq
+  system.
 - A set of Coq libraries that provide core "reflection-oriented"
-theories for 
-	 - basic combinatorics (roughly: arithmetic, lists, and finite
-	 sets).
-	 - abstract algebra (mainly: an algebraic hierarchy from
-	 equality types and choice types to closed fields,
-	 polynomials, matrix, basic finite group theory,
-	 infrastructure for finite summations,...)
+  theories for 
+  + basic combinatorics: arithmetic, lists, graphs, and finite sets.
+  + abstract algebra: an algebraic hierarchy from
+    additive groups to closed fields, polynomials, matrix,
+    basic finite group theory, infrastructure for finite summations,...)
 
 Some features of the tactic language:
 - It provides tacticals for most structural steps (e.g., moving
-assumptions), so that script steps mostly match logical steps.
+  assumptions), so that script steps mostly match logical steps.
 - It provides tactics and tatical to support structured layout,
-including reordering subgoals and supporting "without loss of
-generality" arguments.
+  including reordering subgoals and supporting "without loss of
+  generality" arguments.
 - It provides a powerful rewriting tactic that supports chained
-rules, automatic unfolding of definitions and conditional rewriting,
-as well as precise control over where and how much rewriting occurs.
-- It can be used in combination with the classic Coq tactic
-language.
+  rules, automatic unfolding of definitions and conditional rewriting,
+  as well as precise control over where and how much rewriting occurs.
+- It can be used in combination with the classic Coq tactic language.
 
 Some features of the library:
-- Exploits advanced features of Coq such as coercions an canonical
-projections to build generic theories (e.g., for decidable equality).
+- Exploits advanced features of Coq such as coercions and canonical
+  projections to build generic theories (e.g., for decidable equality).
 - Uses rewrite rules and dependent predicate families to state
-lemmas that can be applied deeply and bidirectionally. This means
-fewer structural steps and a smaller library, respectively.
+  lemmas that can be applied deeply and bidirectionally. This means
+  fewer structural steps and a smaller library, respectively.
 - Uses boolean functions to represent sets (i.e., comprehensions),
-rather than an ad hoc set algebra.
+  rather than an ad hoc set algebra.
 
 The Ssreflect 1.2 distribution is available at
 http://www.msr-inria.inria.fr/Projects/math-components It is
 distributed under the CeCill2 licence (the French equivalent of the
-GNU GPL licence).
-
+BSD licence, compatible with the GNU GPL).
+    
 The tactic language is quite stable; we have been using it
-internally for two years essentially without change. We will support
+internally for three years essentially without change. We will support
 new releases of Coq in due course. We also plan to extend the core
 library as our more advanced work on general and linear algebra
 progresses.
@@ -74,8 +70,7 @@ word ssreflect, or use the following web interface:
 https://www.msr-inria.inria.fr/sympa
 
 
-
 Enjoy!
 
-The Mathematical Components Team, at the Microsoft Research -Inria
+The Mathematical Components Team, at the Microsoft Research-Inria
 Joint Center
