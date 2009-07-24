@@ -100,7 +100,7 @@ permanently added to your PATH variable.
 COMPILING THE THEORIES 
 ======================
 
-- Go into the the theories directory of the ssreflect archive.
+- Go into the directory of the ssreflect archive.
 - Produce a Coq Makefile with the command:
 	coq_makefile -f Make -o Makefile 
 - Now a command:
