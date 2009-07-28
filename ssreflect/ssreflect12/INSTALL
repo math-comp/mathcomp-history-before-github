@@ -2,144 +2,88 @@ INSTALLATION PROCEDURE FOR SSREFLECT WITH COQ 8.2 SYSTEM
 --------------------------------------------------------
 
 
-Summary: - Requirements - Compiling the theories - Customisation of
-the Proof General Emacs interface - Compiling a Coqide interface for
-ssreflect
-
-DIR HIERARCHY
-=============
-+ ssreflect12 : ssreflect archives directory
---- bin
---- doc
---- src 
---- theories
+Summary: - Requirements - Producing the toplevel and compiling the
+theories - Customization of the Proof General Emacs interface -
+Compiling a Coqide interface for ssreflect
 
 REQUIREMENTS 
 ============ 
-- Sources of the Coq v8.2pl1 (or Coq v8.2) system 
-- Ocaml version >= 3.6 but <= 3.10.0 
+- Coq version 8.2pl1 (or Coq v8.2)
 - Gnu make version 3.81 or later
 
-Note that to compile the sources of the Coq system, you also need a C
-compiler.
+Note that the production of a Coqide interface requires the Lablgtk
+development files and the GTK libraries.
 
-Note that for Coqide, you need the Lablgtk development files and the
-GTK libraries.
+PRODUCING THE SSRCOQ TOPLEVEL & THEORIES
+========================================
 
-We describe the installation of ssreflect for Linux, Windows+Cygwin
-and MacOS operating systems.
+- We suppose that the Coq system, version 8.2 or 8.2 pl1 has been
+installed on your system, using a standard installation process. This
+means:
+  + your PATH variable value makes Coq binaries (coqtop,
+coq_makefile,...) accessible (by default they are put in
+/usr/local/bin).
+  + your Coq libraries are in /usr/local/lib/coq/.
 
-PRODUCING THE SSRCOQ TOPLEVEL 
-=============================
+- If your installation of Coq is not standard:
+  + make sure that your PATH variable contains the directory where Coq
+  v8.2/v8.2pl1 binaries (coqtop, coq_makefile,...) are located.
+  + make sure that you do not have any environment variable named
+  COQTOP, COQLIB or COQBIN. If you are a Windows+Cygwin user, make
+  sure that no such variable occurs in NEITHER Windows NOR Cygwin
+  environment variables.
+  + Set two environment variables COQTOP and COQLIB both
+   to the address of your Coq libraries directory.
+  + Set an environment variable COQBIN to the address of the directory
+    containing your Coq v82./v8.2pl1 binaries.
+  + If you are a Windows user, you may also add these variables
+    as Windows environment variables and update your Windows path. 
 
-We propose hereafter a way of compiling and installing (locally)
-ssreflect from standard 8.2pl1(or 8.2) sources.  Experienced Coq
-users may of course prefer and adopt different architecture choices.
+- Download and unpack the archive of the ssreflect distribution.
+  Again if you are a Windows user, make sure that the place where
+  you unpack sources should not be under a directory containing a
+  space in its name (like " Documents and Settings" ...).
 
+- Go to the root of the ssreflect directory creating by the previous
+  unpack.
 
-- Make sure that you do not have any environment variable named COQLIB
-or COQBIN. If you are a Windows+Cygwin user, make sure that no such
-variable occurs in NEITHER Windows NOR Cygwin environment variables.
-
-- If you are a Windows+Cygwin user, then open a Cygwin console.
-
-- Download and unpack the sources of the current version 8.2pl1
-(or 8.2) of Coq.
-  The sample directory and file names given above refer to the
-    coq-8.2pl1.tar.gz archive. We suppose that this action has created
-a directory called <my-coq-location>/coq-8.2pl1/bin.  Warning: If you
-are a Windows user, make sure that the place where you unpack the
-sources should not be under a directory containing a space in its name
-(like " Documents and Settings" ...) otherwise the next step will
-fail.
-
-- Follow the instructions contained in the Coq sources to quickly
-install Coq locally, briefly:
-	- in the directory of the sources, execute the commands:
-                ./configure -opt -local
-	(this builds the Makefile for the local installation)
-	  	make world
-	(this compiles the whole stuff) - DO NOT erase Coq sources by
-executing a make clean after the make world command.  - If you get an
-error message complaining about Coqide, skip it,
-  you still have succeeded in compiling all what is necessary for
-  ssreflect (without the Coqide interface).
-
-- In your <my-coq-location>/coq-8.2pl1/bin directory, you should find
-an
-   executable file called coqtop, which is the Coq toplevel.
-
-- Set two environment variables COQTOP and COQLIB both
-  to the value <my-coq-location>/coq-8.2pl1/.
-
-- Set an environment variable COQBIN to the value
-<my-coq-location>/coq-8.2pl1/bin/.
-
-- Add the <my-coq-location>/coq-8.2pl1/bin location to your PATH
-variable.  If you are a Windows user, you may also add these variables
-as Windows environment variables and update your Windows path.  Also
-make sure that the PATH variable of the system contains your directory
-<my-coq-location>/cygwin/bin.
-
-- Copy the src/ssreflect.ml file of the present ssreflect archive in
-the <my-coq-location>/coq-8.2pl1 directory. Change the extention of
-<my-coq-location>/coq-8.2pl1/ssreflect.ml to .ml4. 
-
-- In the <my-coq-location>/coq-8.2pl1 directory, execute the command:
-         make ssreflect.cmx
-
-Note for Mac OS users on a PowerPC: At this point, if you did not
-include the -opt argument at the ./configure step above, then replace
-the previous command by
-	make OCAMLOPT=ocamlopt.opt ssreflect.cmx.  
-Otherwise you may encounter a "stack overflow" error message.
-
-- Now you can build the ssreflect toplevel, by executing in the
-<my-coq-location>/coq-8.2pl1 directory the command:
-	coqmktop -opt -o bin/ssrcoq ssreflect.cmx 
-Note: If the system complains about a missing gramlib.cmxa, then find
-the place where this camlp4 library is installed (typing for
-  example locate gramlib.cmxa), and try again the command:
-        coqmktop -opt -R /rep/where/gramlib/is/ -o ssrcoq ssreflect.cmx
-
-
-- Make sure the <my-coq-location>/coq-8.2pl1/bin/ location is
-permanently added to your PATH variable.
-
-COMPILING THE THEORIES 
-======================
-
-- Go into the directory of the ssreflect archive.
 - Produce a Coq Makefile with the command:
-	coq_makefile -f Make -o Makefile 
-- Now a command:
-	make 
-produces all the .vo files compiled from the .v files of the
-distribution.
+	 coq_makefile -f Make -o Makefile 
 
+- Launch the compilation with the command:
+  	 make
 
-You can use this ssrcoq executable to compile vernacular .v files with
-the -compile flag (this also avoids the synchronisation problems for
-coqc under the Windows OS). For instance:
+- Note for Mac OS users on a PowerPC: At this point, if you
+  encounter a "stack overflow" error message, then replace
+  the previous command by:
+      	 make OCAMLOPT=ocamlopt.opt
+
+- This compilation should produce:
+  + a binary called ssrcoq, located in the bin/ subdirectory
+  + .vo compiled libraries in the theories/ subdirectory
+
+- You can use this ssrcoq executable to compile vernacular .v files with
+  the -compile flag (this also avoids the synchronization problems for
+  coqc under the Windows OS). For instance:
 	  ssrcoq -compile ssreflect.v 
-produces the ssreflect.vo binary file.
+  produces the ssreflect.vo binary file.
 
 Every Coq vernacular file processed by ssrcoq should import the
 ssreflect library with the line:
 	  Require Import ssreflect.
 
 The tactics described in the documentation doc/SsrDoc of the ssreflect
-distribution will not work properly without this library. Obviously,
-the ssreflect.vo file created by the command line above also needs to
-be in the library path.
+distribution will not work properly if this library is not
+loaded. Obviously, the ssreflect.vo file created by the command line
+above also needs to be in the Coq library path.
 
 
-CUSTOMISATION OF THE PROOF GENERAL EMACS INTERFACE
+CUSTOMIZATION OF THE PROOF GENERAL EMACS INTERFACE
 ==================================================
 
 The ssreflect distribution comes with a small configuration file
 src/pg-ssr.el to extend ProofGeneral (PG), a generic interface for
-proof assistants based on the customisable text editor Emacs, to the
+proof assistants based on the customizable text editor Emacs, to the
 syntax of ssreflect.
 
 The >= 3.7 versions of ProofGeneral support this extension.
@@ -168,10 +112,10 @@ automatically launch ProofGeneral. Try this on a foo.v file.
 In the menu 'ProofGeneral', choose the item:
 	'Advanced/Customize/Coq/Coq Prog Name' Change the value of the
 variable to
-	 <my-coq-location>/bin/ssrcoq 
+	 <my-ssreflect-location>/bin/ssrcoq 
 or
-	<my-coq-location>\\bin\\ssrcoq 
-for Windows+Cygwin users, where <my-coq-location> is the location of
+	<my-ssreflect-location>\\bin\\ssrcoq 
+for Windows+Cygwin users, where <my-ssreflect-location> is the location of
 your coq-8.2pl1 directory.
 
 
@@ -180,10 +124,11 @@ COMPILING A COQIDE INTERFACE FOR SSREFLECT
 ==========================================
 
 Alternatively, you can build a customized Coqide interface linked with
-ssreflect.  At the root <my-coq-location>/coq-8.2pl1 of the directory
-of the sources of Coq, execute the command:
-	coqmktop -ide -opt -o bin/ssrcoqide ssreflect.cmx This creates
-an ssrcoqide executable, which can use as an interface to develop your
+ssreflect. After having compiled ssreflect toplevel, go to the src/
+subdirectory and execute the command
+	coqmktop -ide -opt ssreflect.cmx -o ../bin/ssrcoqide This creates
+an ssrcoqide executable in the bin/ subdirectory of the ssreflect
+directory. This ssrcoqide can use as an interface to develop your
 theories to be compiled with ssrcoq. See Chapter 14 of the Coq
 Reference Manual (http://coq.inria.fr/coq/distrib/current/refman/) for
 more information on how to use and configure Coqide.
