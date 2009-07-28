@@ -62,6 +62,10 @@ coq_makefile,...) accessible (by default they are put in
   + a binary called ssrcoq, located in the bin/ subdirectory
   + .vo compiled libraries in the theories/ subdirectory
 
+- You might want to add the path to this bin/ subdirectory to your
+  PATH variable, or to install the ssrcoq binary in a place already
+  stored in the PATH.
+
 - You can use this ssrcoq executable to compile vernacular .v files with
   the -compile flag (this also avoids the synchronization problems for
   coqc under the Windows OS). For instance:

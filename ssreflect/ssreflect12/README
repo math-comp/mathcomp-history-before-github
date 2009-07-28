@@ -17,7 +17,22 @@ the archive, can be found in the doc/ directory.
 
 	This documentation is also available as an Inria Research
 Report at 
-	http://hal.inria.fr/inria-00258384. 
+	http://hal.inria.fr/inria-00258384 
+This online version may be updated between two successive releases of
+ssreflect.
+
+
+TUTORIAL
+========
+	A brief tutorial of the ssreflect extension can be found in
+	the doc/ directory. The doc/tutorial.v file contains the code
+	of the examples presented in this document.
+
+	
+	This tutorial is also available as an Inria Technical Report
+	at
+	http://hal.inria.fr/inria-00407778	
+
 This online version may be updated between two successive releases of
 ssreflect.
 
