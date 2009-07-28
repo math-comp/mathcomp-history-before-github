@@ -65,7 +65,7 @@ coq_makefile,...) accessible (by default they are put in
 - You can use this ssrcoq executable to compile vernacular .v files with
   the -compile flag (this also avoids the synchronization problems for
   coqc under the Windows OS). For instance:
-	  ssrcoq -compile ssreflect.v 
+	  ssrcoq -compile ssreflect
   produces the ssreflect.vo binary file.
 
 Every Coq vernacular file processed by ssrcoq should import the
