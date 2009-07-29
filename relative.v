@@ -9,7 +9,7 @@ Unset Strict Implicit.
 Import Prenex Implicits.
 
 
-Module Relatives. (* to be moved *)
+Module Relatives. 
 
 Definition axiom (z : {csquare nat}) := (z.1 == 0) || (z.2 == 0).
 Definition relative := { z | axiom z}.
@@ -38,8 +38,14 @@ Definition relW := @quotW _ relative_quotType.
 Definition relP := @quotP _ relative_quotType.
 Definition inRelP := insubP [subType of relative].
 
-Lemma relPN : forall P:(relative -> Prop), (forall x, P (\pi_relative (x,0)))
-  -> (forall x, P (\pi_relative (0,x))) -> forall x, P x.
+Notation zeroz := (\pi_relative (0,0)).
+Notation onez := (\pi_relative (1,0)).
+Notation natPz n := (\pi_relative (n,0)).
+Notation natNz n := (\pi_relative (0,n)).
+
+
+Lemma relPN : forall P:(relative -> Prop), 
+  (forall x, P (natPz x)) -> (forall x, P (natNz x)) -> forall x, P x.
 Proof.
 move=> P Ppos Pneg. elim/relP=> x <- /=.
 case/orP:(one_diff_eq0 x.1 x.2); move/eqP->; [exact:Pneg|exact:Ppos].
@@ -64,10 +70,6 @@ move=> P1. move/eqP. rewrite eq_sym subn_eq0 =>Py. move:P1.
 move/eqP. rewrite -(inj_eq (@addnI x.2)) subnKC //. move/eqP->.
 by rewrite addnAC -addnA subnKC // addnC.
 Qed.
-
-Notation zeroz := (\pi_relative (0,0)).
-Notation onez := (\pi_relative (1,0)).
-Notation natz n := (\pi_relative (n,0)).
 
 Lemma addz_compat : \compat2_relative _ 
   (fun x y => \pi_relative (x.1 + y.1 , x.2 + y.2)).
@@ -136,32 +138,31 @@ Canonical Structure z_zmodType := Eval hnf in ZmodType z_zmodMixin.
 
 Lemma mulzA : associative mulz.
 Proof.
-elim/relPN=>x; elim/relPN=>y; elim/relPN=>z; rewrite !qTE;
-apply/eqP; rewrite equivzP /equivz /=;
-by rewrite !sub0n !subn0 !mul0n ! muln0 !add0n !addn0 ?mulnA eqxx.
+elim/relW=>x; elim/relW=>y; elim/relW=>z; rewrite !qTE.
+apply/eqP; rewrite equivzP /equivz /=. apply/eqP.
+by rewrite !(muln_addl, muln_addr) !mulnA -!addnA; do ?nat_congr.
 Qed.
 
 Lemma mulzC : commutative mulz.
 Proof. 
-elim/relW=>x; elim/relW=>y. rewrite !qTE.
-apply/eqP; rewrite equivzP /equivz /=. apply/eqP.
+elim/relW=>x; elim/relW=>y. rewrite !qTE. apply/eqP; 
+rewrite equivzP /equivz /=. apply/eqP.
 by congr (_+_+_); rewrite mulnC // addnC mulnC; congr (_+_).
 Qed.
 
 
 Lemma mul1z : left_id onez mulz.
 Proof.
-elim/relPN=>x; rewrite !qTE; apply/eqP; rewrite equivzP /equivz /=; 
-by rewrite !(mul0n, muln0, add0n, addn0, mul1n) eqxx.
+elim/relW=>x; rewrite !qTE; apply/eqP; rewrite equivzP /equivz /=.
+by rewrite !mul0n !mul1n addnA !addn0.
 Qed.
 
 
 Lemma mulz_addl : left_distributive mulz addz.
 Proof.
-elim/relPN=>x; elim/relPN=>y; elim/relPN=>z;
-rewrite !qTE; apply/eqP; rewrite equivzP /equivz /=;
-rewrite !sub0n !subn0 !mul0n ! muln0 !add0n ?addn0 ?muln_addl ?muln_addr;
-by rewrite eqxx.
+elim/relW=>x; elim/relW=>y; elim/relW=>z. rewrite !qTE.
+apply/eqP; rewrite equivzP /equivz /=. apply/eqP.
+by rewrite !muln_addl -!addnA; do ?nat_congr.
 Qed.
 
 Lemma nonzero1z : onez != zeroz.
@@ -175,7 +176,7 @@ Canonical Structure z_comRing := Eval hnf in ComRingType mulzC.
 
 Definition unitz := [pred x : relative | ((repr x).1)+((repr x).2) == 1 ].
 Definition invz (x : relative) : relative := x.
-Notation natmz n := (\pi_relative (0,n)).
+
 
 
 Lemma mulVz : {in unitz, left_inverse 1%R invz *%R}.
@@ -211,4 +212,5 @@ Canonical Structure z_iDomain := Eval hnf in IdomainType idomain_axiomz.
 
 End Relatives.
 
+Definition relative := Relatives.relative.
 

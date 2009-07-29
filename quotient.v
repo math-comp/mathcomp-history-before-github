@@ -102,6 +102,11 @@ Proof.
 by move=> ?? Px; constructor; move=> x x'; rewrite in_equiv; move/Px. 
 Qed.
 
+Lemma compat1Epi : forall (op:T -> T),
+  (forall x y,  (x == y mod qT) -> (op x == op y mod qT)) 
+  -> compat1 (\pi_qT \o op).
+Proof. move=> op Hyp. apply:compat1E=> x y exy. apply/eqP. exact: Hyp. Qed.
+
 
 CoInductive compat2 S (op : T -> T -> S) : Type :=
   Compat2 : (forall x y:qT, {in x & y, forall x' y',
@@ -116,6 +121,14 @@ Lemma compat2E : forall S (op : T -> T -> S),
 Proof. 
 move=> S op Pxy; constructor; move=> x x' y y'.
 rewrite !in_equiv => ??; exact: Pxy. 
+Qed.
+
+Lemma compat2Epi : forall (op : T -> T -> T),
+  (forall x x' y y',  x == x' mod qT -> y == y' mod qT 
+    -> op x y == op x' y' mod qT ) -> compat2 (fun x y => \pi_qT (op x y)).
+Proof.
+move=> op Hyp. apply:compat2E=> x y x' y' exy exy'. 
+apply/eqP. exact: Hyp. 
 Qed.
 
 Lemma qT_op1E : forall S op cop x, 
