@@ -2,113 +2,117 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat div seq choice fintype.
 Require Import bigops.
 
-(*********************************************************************************)
-(*   The algebraic part of the Algebraic Hierarchy, as described in              *)
-(*           "Packaging mathematical structures", TPHOLs09, by                    *)
-(*   Francois Garillot, Georges Gonthier, Assia Mahboubi, Laurence Rideau        *)
-(*                                                                               *)
-(* This file defines for each Structure (Zmodule, Ring, etc ...) its type,       *)
-(* its packers and its canonical properties :                                    *)
-(*                                                                               *)
-(*  * Zmodule                                                                    *)
-(*      zmodType        == type for Zmodule structure                            *)
-(*      ZmodMixin       == builds the mixin containing the definition            *)
-(*                         of a Zmodule                                          *)
-(*      ZmodType M      == packs the mixin M to build a Zmodule of type          *)
-(*                         zmodType. (The underlying type should have a          *)
-(*                         choiceType canonical structure)                       *)
-(*      0               == the generic additive neutral element for a Zmodule    *)
-(*      x + y           == the generic addition operation in a Zmodule           *)
-(*      - x             == the generic opposite operation in a Zmodule           *)
-(*      x - y           == the generic substraction                              *)
-(*                      := x + - y                                               *)
-(*      x +* n , x -* n == the generic multiplication by a nat                   *)
-(*      \sum_           == generic bigop sum for a Zmodule (cf bigops.v)         *)
-(*      ... and a bunch of Classical Lemmas on these Zmodule laws                *)
-(*                                                                               *)
-(*  * Ring                                                                       *)
-(*      ringType      == type for ring structure                                 *)
-(*      RingMixin     == builds the mixin containing the definitions of a ring   *)
-(*                       (the underlying type should have a zmodType structure)  *)
-(*      RingType M    == packs the ring mixin M to build a ring                  *)
-(*      RevRingType T == repacks T to build the ring where the                   *)
-(*                       multiplicative law is reverted ( x *' y = y * x )       *)
-(*      1             == the generic multiplicative neutral element for a Ring   *)
-(*      n %:R         == the generic morphism between nat and the ring R         *)
-(*      x * y         == the generic multiplication operation for a ring         *)
-(*      \prod_        == generic bigop product for a ring (cf bigops.v)          *)
-(*      x ^+ y        == the generic exponentiation operation for a ring         *)
-(*                                                                               *)
-(*  * Commutative Ring                                                            *)
-(*      comRingType      == type for commutative ring structure                  *)
-(*      ComRingMixin     == builds the mixin containing the definitions of a     *)
-(*                          *non commutative* ring, but using the commutative    *)
-(*                          ring mixin mulC. (The underlying type should have    *)
-(*                          a Zmodule canonical structure)                       *)
-(*      ComRingType mulC == packs mulC to build a commutative ring.              *)
-(*                          (The underlying type should have a ring             *)
-(*                          canonical structure)                                 *)
-(*                                                                               *)
-(*                                                                               *)
-(*  * Unit Ring                                                                  *)
-(*      unitRingType   == type for unit ring structure                           *)
-(*      UnitRingMixin  == builds the mixin containing the definitions            *)
-(*                        of a unit ring. (The underlying type should           *)
-(*                        have a ring canonical structure)                       *)
-(*      UnitRingType M == packs the unit ring mixin M to build a unit ring       *)
-(*      x^-1           == the generic inversion operation element for a Ring     *)
-(*                        (returns x if is x is not an unit)                     *)
-(*      x / y          := x * y^-1                                               *)
-(*      x ^- n         := (x ^+ n)^-1                                            *)
-(*                                                                               *)
-(*  * Commutative Unit Ring                                                      *)
-(*      comUnitRingType   == type for unit ring structure                        *)
-(*      ComUnitRingMixin  == builds the mixin containing the definitions         *)
-(*                           of a *non commutative unit ring*, but using         *)
-(*                           the commutative property. (The underlying type      *)
-(*                           should have a ring canonical structure)             *)
-(*      ComUnitRingType M == packs the *unit ring mixin* M to build a unit       *)
-(*                           ring. (The underlying type should have a           *)
-(*                           commutative ring canonical structure)               *)
-(*                                                                               *)
-(*  * Integral Domain (integral, commutative, unit ring)                         *)
-(*      idomainType       == type for integral domain structure                  *)
-(*      IdomainType M     == packs the idomain mixin M to build a integral       *)
-(*                           domain. (The underlying type should have a         *)
-(*                           commutative unit ring canonical structure)          *)
-(*                                                                               *)
-(*  * Field                                                                      *)
-(*      fieldType         == type for field structure                            *)
-(*      FieldUnitMixin    == builds a *non commutative unit ring* mixin, using   *)
-(*                           some field properties. (The underlying type should  *)
-(*                           have a *commutative ring* canonical structure)      *)
-(*      FieldMixin        == builds the field mixin. (The underlying type should *)
-(*                           have a *commutative ring* canonical structure)      *)
-(*      FieldIdomainMixin == builds an *idomain* mixin, using a field mixin      *)
-(*      FieldType M       == packs the field mixin M to build a field            *)
-(*                           (The underlying type should have a                 *)
-(*                           integral domain canonical structure)                *)
-(*                                                                               *)
-(*  * Decidable Field                                                            *)
-(*      decFieldType      == type for decidable field structure                  *)
-(*      DecFieldMixin     == builds the mixin containing the definitions of a    *)
-(*                           decidable Field. (The underlying type should have   *)
-(*                           a unit ring canonical structure)                    *)
-(*      DecFieldType M    == packs the decidable field mixin M to build a        *)
-(*                           decidable field. (The underlying type should have   *)
-(*                           a field canonical structure)                        *)
-(*                                                                               *)
-(*  * Closed Field                                                               *)
-(*      closedFieldType   == type for closed field structure                     *)
-(*      ClosedFieldType M == packs the closed field mixin M to build a           *)
-(*                           closed field. (The underlying type should have      *)
-(*                           a decidable field canonical structure)              *)
-(*                                                                               *)
-(* The Lemmas about theses structures are all contained in GRing.Theory.         *)
-(*                                                                               *)
-(* NB: The module GRing should not be imported, only the main module and         *)
-(*     GRing.Theory should be.                                                   *)
-(*********************************************************************************)
+(******************************************************************************)
+(*   The algebraic part of the Algebraic Hierarchy, as described in           *)
+(*           "Packaging mathematical structures", TPHOLs09, by                *)
+(*   Francois Garillot, Georges Gonthier, Assia Mahboubi, Laurence Rideau     *)
+(*                                                                            *)
+(* This file defines for each Structure (Zmodule, Ring, etc ...) its type,    *)
+(* its packers and its canonical properties :                                 *)
+(*                                                                            *)
+(*  * Zmodule                                                                 *)
+(*      zmodType        == type for Zmodule structure                         *)
+(*      ZmodMixin       == builds the mixin containing the definition         *)
+(*                         of a Zmodule                                       *)
+(*      ZmodType M      == packs the mixin M to build a Zmodule of type       *)
+(*                         zmodType. (The underlying type should have a       *)
+(*                         choiceType canonical structure)                    *)
+(*      0               == the generic additive neutral element for a Zmodule *)
+(*      x + y           == the generic addition operation in a Zmodule        *)
+(*      - x             == the generic opposite operation in a Zmodule        *)
+(*      x - y           == the generic substraction                           *)
+(*                      := x + - y                                            *)
+(*      x +* n , x -* n == the generic multiplication by a nat                *)
+(*      \sum_           == generic bigop sum for a Zmodule (cf bigops.v)      *)
+(*      ... and a bunch of Classical Lemmas on these Zmodule laws             *)
+(*                                                                            *)
+(*  * Ring                                                                    *)
+(*      ringType      == type for ring structure                              *)
+(*      RingMixin     == builds the mixin containing the definitions of a     *)
+(*                       ring (the underlying type should have a zmodType     *)
+(*                       structure)                                           *)
+(*      RingType M    == packs the ring mixin M to build a ring               *)
+(*      RevRingType T == repacks T to build the ring where the                *)
+(*                       multiplicative law is reverted ( x *' y = y * x )    *)
+(*      1             == the generic multiplicative neutral element for a     *)
+(*                       Ring                                                 *)
+(*      n %:R         == the generic morphism between nat and the ring R      *)
+(*      x * y         == the generic multiplication operation for a ring      *)
+(*      \prod_        == generic bigop product for a ring (cf bigops.v)       *)
+(*      x ^+ y        == the generic exponentiation operation for a ring      *)
+(*                                                                            *)
+(*  * Commutative Ring                                                        *)
+(*      comRingType      == type for commutative ring structure               *)
+(*      ComRingMixin     == builds the mixin containing the definitions of a  *)
+(*                          *non commutative* ring, but using the commutative *)
+(*                          ring mixin mulC. (The underlying type should have *)
+(*                          a Zmodule canonical structure)                    *)
+(*      ComRingType mulC == packs mulC to build a commutative ring.           *)
+(*                          (The underlying type should have a ring           *)
+(*                          canonical structure)                              *)
+(*                                                                            *)
+(*                                                                            *)
+(*  * Unit Ring                                                               *)
+(*      unitRingType   == type for unit ring structure                        *)
+(*      UnitRingMixin  == builds the mixin containing the definitions         *)
+(*                        of a unit ring. (The underlying type should         *)
+(*                        have a ring canonical structure)                    *)
+(*      UnitRingType M == packs the unit ring mixin M to build a unit ring    *)
+(*      x^-1           == the generic inversion operation element for a Ring  *)
+(*                        (returns x if is x is not an unit)                  *)
+(*      x / y          := x * y^-1                                            *)
+(*      x ^- n         := (x ^+ n)^-1                                         *)
+(*                                                                            *)
+(*  * Commutative Unit Ring                                                   *)
+(*      comUnitRingType   == type for unit ring structure                     *)
+(*      ComUnitRingMixin  == builds the mixin containing the definitions      *)
+(*                           of a *non commutative unit ring*, but using      *)
+(*                           the commutative property. (The underlying type   *)
+(*                           should have a ring canonical structure)          *)
+(*      ComUnitRingType M == packs the *unit ring mixin* M to build a unit    *)
+(*                           ring. (The underlying type should have a         *)
+(*                           commutative ring canonical structure)            *)
+(*                                                                            *)
+(*  * Integral Domain (integral, commutative, unit ring)                      *)
+(*      idomainType       == type for integral domain structure               *)
+(*      IdomainType M     == packs the idomain mixin M to build a integral    *)
+(*                           domain. (The underlying type should have a       *)
+(*                           commutative unit ring canonical structure)       *)
+(*                                                                            *)
+(*  * Field                                                                   *)
+(*      fieldType         == type for field structure                         *)
+(*      FieldUnitMixin    == builds a *non commutative unit ring* mixin,      *)
+(*                           using some field properties. (The underlying     *)
+(*                           type should have a *commutative ring* canonical  *)
+(*                           structure)                                       *)
+(*      FieldMixin        == builds the field mixin. (The underlying type     *)
+(*                           should have a *commutative ring* canonical       *)
+(*                           structure)                                       *)
+(*      FieldIdomainMixin == builds an *idomain* mixin, using a field mixin   *)
+(*      FieldType M       == packs the field mixin M to build a field         *)
+(*                           (The underlying type should have a               *)
+(*                           integral domain canonical structure)             *)
+(*                                                                            *)
+(*  * Decidable Field                                                         *)
+(*      decFieldType      == type for decidable field structure               *)
+(*      DecFieldMixin     == builds the mixin containing the definitions of a *)
+(*                           decidable Field. (The underlying type should     *)
+(*                           have a unit ring canonical structure)            *)
+(*      DecFieldType M    == packs the decidable field mixin M to build a     *)
+(*                           decidable field. (The underlying type should     *)
+(*                           have a field canonical structure)                *)
+(*                                                                            *)
+(*  * Closed Field                                                            *)
+(*      closedFieldType   == type for closed field structure                  *)
+(*      ClosedFieldType M == packs the closed field mixin M to build a        *)
+(*                           closed field. (The underlying type should have   *)
+(*                           a decidable field canonical structure)           *)
+(*                                                                            *)
+(* The Lemmas about theses structures are all contained in GRing.Theory.      *)
+(*                                                                            *)
+(* NB: The module GRing should not be imported, only the main module and      *)
+(*     GRing.Theory should be.                                                *)
+(******************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -1191,7 +1195,8 @@ suff rsub_to_r : forall t0 r0 m, m >= ub_var t0 -> ub_sub m r0 ->
   rewrite sub_var_tsubst //= -/y; case=> [[xy1 yx1] | [xy nUy]].
     by rewrite -[y^-1]mul1r -[1]xy1 mulrK //; apply/unitrP; exists x.
   rewrite invr_out //; apply/unitrP=> [[z yz1]]; case: nUy; exists z.
-  by rewrite nth_set_nth /= eqxx -!(eval_tsubst _ _ (m, Const _)) !sub_var_tsubst.
+  by rewrite nth_set_nth /= eqxx -!(eval_tsubst _ _ (m, Const _))
+     !sub_var_tsubst.
 have rsub_id : forall r t n, (ub_var t)<= n -> rsub t n r = t.
   elim=> //= t0 r IHr t1 n hn; rewrite IHr ?sub_var_tsubst  ?(ltnW hn) //.
   by  rewrite (leq_trans hn).
@@ -1257,7 +1262,7 @@ Proof.
 elim=> //.
 - move=> t1 t2 e cet12; case: t2 cet12=> //= [[|n]] // _; exact: eqP.
 - move=> f1 IHf1 f2 IHf2 e /=; case/andP => cf1 cf2.
-  by  apply: (iffP andP); case; move/(IHf1 _ cf1)=> r1; move/(IHf2 _ cf2); split.
+  by apply: (iffP andP); case; move/(IHf1 _ cf1)=> r1; move/(IHf2 _ cf2); split.
 - move=> f1 IHf1 f2 IHf2 e /=; case/andP => cf1 cf2.
   by apply: (iffP orP); 
     (case; [move/(IHf1 _ cf1)=> H1; left | move/(IHf2 _ cf2); right]).
@@ -1318,12 +1323,10 @@ elim: bcs2 bc1 {bcs1} => [| bc2 bcs2 IH] bc1 /=; first by rewrite eqxx andbF.
 rewrite {}IH /= andb_orr; congr orb; rewrite {bcs2}. 
 suff aux : forall (l1 l2 : seq (term R)) g, 
   qfree_eval e (foldr (fun t => And (g t)) tt_form (l1 ++ l2)) =
-  qfree_eval e 
-  (And (foldr (fun t => And (g t)) tt_form l1) (foldr (fun t => And (g t)) tt_form l2)).
-  rewrite 2!aux /= 2!andbA; congr andb; rewrite -2!andbA; congr andb.
-  by rewrite andbC.
-elim=> [| t1 l1 IHl1] l2 g /=; first by rewrite eqxx.
-by rewrite -andbA IHl1 /=; congr andb.
+  qfree_eval e (And (foldr (fun t => And (g t)) tt_form l1)
+                    (foldr (fun t => And (g t)) tt_form l2)).
+  by rewrite 2!aux /= 2!andbA -andbA -andbCA andbA andbCA andbA.
+by elim=> [| ? ? IHl1] * /=; [rewrite eqxx | rewrite -andbA IHl1 /=].
 Qed.
 
 
@@ -1340,11 +1343,9 @@ elim => //=.
 - move=> f IHf cf e; rewrite {}IHf //; elim: f cf => //.
   + by move=> t1 [] ? //=; rewrite eqxx /= 2!orbF !andbT.
   + move=> f1 IHf1 f2 IHf2 /=; case/andP=> cf1 cf2.
-    rewrite and_dnf_correct /= dnf_to_formula_cat /= -IHf1 // negb_and.
-    by congr orb; rewrite IHf2.
+    by rewrite and_dnf_correct /= dnf_to_formula_cat /= -IHf1 // negb_and IHf2.
   + move=> f1 IHf1 f2 IHf2 /=; case/andP=> cf1 cf2.
-    rewrite and_dnf_correct /= dnf_to_formula_cat /= -IHf1 // negb_or.
-    by rewrite -IHf2.
+    by rewrite and_dnf_correct /= dnf_to_formula_cat /= -IHf1 // negb_or -IHf2.
   + by move=> f IHf /= cf; rewrite -IHf // negbK.
 Qed.
 
@@ -1367,23 +1368,22 @@ have aux2 : forall bcs1 bcs2,
   elim: bc1.1 cf1 => /= [_|t bc ?]; last by case/andP=> -> /=.
   elim: bc1.2 cf2 => /= [_|t bc ?]; last by case/andP=> -> /=.
   by rewrite h1 h2.
-move=> f; elim: f false => //.
+move=> f; elim: f false => //; last by move=> f IHf b; exact: IHf.
 - by move=> t1 [] // [] [] //= ->.
 - move=> f1 IHf1 f2 IHf2 [] /=; case/andP; auto; rewrite aux1; move/IHf1->.
   exact: IHf2.
-- move=> f1 IHf1 f2 IHf2 [] /=; case/andP; auto; rewrite aux1; move/IHf1->.
-  exact: IHf2.
-- move=> f IHf b; exact: IHf.
+move=> f1 IHf1 f2 IHf2 [] /=; case/andP; auto; rewrite aux1; move/IHf1->.
+exact: IHf2.
 Qed.
 
 
 Lemma to_rterm_rterm : forall t r n, rterm t -> to_rterm t r n = (t, r).
 Proof.
-elim=> //.
-- by move=> t1 IHt1 t2 IHt2 r n /=; case/andP=> rt1 rt2; rewrite {}IHt1 // {}IHt2.
+elim=> //. 
+- by move=> t1 IHt1 t2 IHt2 r n /=; case/andP=> rt1 rt2; rewrite {}IHt1 // IHt2.
 - by move=> t IHt r n /= rt; rewrite {}IHt.
 - by move=> t IHt r n m /= rt; rewrite {}IHt.
-- by move=> t1 IHt1 t2 IHt2 r n /=; case/andP=> rt1 rt2; rewrite {}IHt1 // {}IHt2.
+- by move=> t1 IHt1 t2 IHt2 r n /=; case/andP=> rt1 rt2; rewrite {}IHt1 // IHt2.
 - by move=> t IHt r n m /= rt; rewrite {}IHt.
 Qed.
 
@@ -1765,7 +1765,8 @@ Definition qfree_proj_axiom (R : UnitRing.type)
 Definition holds_proj_axiom (R : UnitRing.type)
   (p : nat -> (seq (term R) * seq (term R)) -> formula R) :=
   forall i bc e,  qfree (dnf_to_formula [:: bc]) ->
-    reflect  (holds (Exists i (dnf_to_formula [:: bc])) e) (qfree_eval e (p i bc)).
+    reflect  (holds (Exists i (dnf_to_formula [:: bc])) e)
+             (qfree_eval e (p i bc)).
 
 Record mixin_of (R : UnitRing.type) : Type := Mixin {
   proj : nat -> (seq (term R) * seq (term R)) -> formula R;  
@@ -1872,24 +1873,20 @@ have aux : forall f e n, qfree f ->
   case=> x /=; case/orP=> hx; last by exists x.
   by case: hbf; exists x; apply/(qfree_eval_holds _ hc); rewrite /= hx.
 elim=> //.
-- by move=> t1 t2 //= e _; rewrite (can2_eq (subrK _) (addrK _)) add0r; exact: eqP.
-- move=> f1 IHf1 f2 IHf2 e /=; case/andP; case/(IHf1 e) => {IHf1} IHf1; last first.
-    by right; case.
-  case/(IHf2 e); constructor; tauto.
-- move=> f1 IHf1 f2 IHf2 e /=; case/andP; case/(IHf1 e) => {IHf1} IHf1.
-    by left; left.
-  case/(IHf2 e); constructor; tauto.
-- move=> f1 IHf1 f2 IHf2 e /=; case/andP; case/(IHf1 e) => {IHf1} IHf1; last first.
-    by left.
-  case/(IHf2 e); constructor; tauto.
-- move=> f IHf e /=; case/(IHf e); constructor; tauto.
-- move=> n f IHf e /= rf. 
-  apply: (iffP (aux _ _ _ (qfree_quantifier_elim rf)));
-    (case=> x hx; exists x; exact/IHf).
-- move=> n f IHf e /= rf. 
-  case: (aux (~_)%T e n (qfree_quantifier_elim rf)) => hf.
-    by right; case: hf => x hx; move/(_ x)=> hx'; case/IHf: hx.
-  by left=> x; apply/IHf=> //; apply/idPn=> hx; case: hf; exists x.
+- move=> ? ? //= e _; rewrite (can2_eq (subrK _) (addrK _)) add0r; exact: eqP.
+- move=> ? IHf1 ? IHf2 e /=; case/andP; case/(IHf1 e) => ?; last by right; case.
+  by case/(IHf2 e); constructor; tauto.
+- move=> ? IHf1 ? IHf2 e /=; case/andP; case/(IHf1 e) => ?; first by left; left.
+  by case/(IHf2 e); constructor; tauto.
+- move=> ? IHf1 ? IHf2 e /=; case/andP; case/(IHf1 e) => ?; last by left.
+  by case/(IHf2 e); constructor; tauto.
+- by move=> f IHf e /=; case/(IHf e); constructor; tauto.
+- move=> n f IHf e /= rf.
+  by apply: (iffP (aux _ _ _ (qfree_quantifier_elim rf)));
+    case=> x hx; exists x; apply/IHf.
+- move=> n f IHf e /= rf; case: (aux (~_)%T e n (qfree_quantifier_elim rf)).
+    by move=> hf; right; case : hf => x hx; move/(_ x)=> hx'; case/IHf: hx.
+by move=> hf; left=> x; apply/IHf=> //; apply/idPn=> hx; case: hf; exists x.
 Qed.
 
 Definition proj_sat f e := qfree_eval e (quantifier_elim (to_rformula f)).
@@ -1913,7 +1910,8 @@ Module ClosedField.
 
 (* Axiom == all non-constant monic polynomials have a root *)
 Definition axiom (R : Ring.type) :=
-  forall n (P : nat -> R), n > 0 -> exists x : R, x ^+ n = \sum_(i < n) P i * (x ^+ i).
+  forall n (P : nat -> R), n > 0 ->
+   exists x : R, x ^+ n = \sum_(i < n) P i * (x ^+ i).
 
 Record class_of (F : Type) : Type :=
   Class {base :> DecidableField.class_of F; _ : axiom (Ring.Pack base F)}.
@@ -2115,54 +2113,53 @@ Definition ring_morphism := ring_morphism.
 Definition solve_monicpoly := solve_monicpoly.
 
 Lemma ringM_sub : forall (aR rR : Ring.type) (f : aR -> rR),
-       ring_morphism (aR:=aR) (rR:=rR) f -> {morph f : x y / x - y >-> x - y}.
+       ring_morphism f -> {morph f : x y / x - y >-> x - y}.
 Proof. exact: ringM_sub. Qed.
 
 Lemma ringM_0 : forall (aR rR : Ring.type) (f : aR -> rR),
-       ring_morphism (aR:=aR) (rR:=rR) f -> f 0 = 0.
+       ring_morphism f -> f 0 = 0.
 Proof. exact: ringM_0. Qed.
 
 Lemma ringM_1 : forall (aR rR : Ring.type) (f : aR -> rR),
-       ring_morphism (aR:=aR) (rR:=rR) f -> f 1 = 1.
+       ring_morphism f -> f 1 = 1.
 Proof. exact: ringM_1. Qed.
 
 Lemma ringM_opp : forall (aR rR : Ring.type) (f : aR -> rR),
-       ring_morphism (aR:=aR) (rR:=rR) f -> {morph f : x / - x >-> - x}.
+       ring_morphism f -> {morph f : x / - x >-> - x}.
 Proof. exact: ringM_opp. Qed.
 
 Lemma ringM_add : forall (aR rR : Ring.type) (f : aR -> rR),
-       ring_morphism (aR:=aR) (rR:=rR) f -> {morph f : x y / x + y >-> x + y}.
+       ring_morphism f -> {morph f : x y / x + y >-> x + y}.
 Proof. exact: ringM_add. Qed.
 
 Lemma ringM_sum : forall (aR rR : Ring.type) (f : aR -> rR),
-       ring_morphism (aR:=aR) (rR:=rR) f ->
+       ring_morphism f ->
        forall (I : Type) (r : seq I) (P : pred I) (F : I -> aR),
        f (\sum_(i <- r | P i) F i) = \sum_(i <- r | P i) f (F i).
 Proof. exact: ringM_sum. Qed.
 
 Lemma ringM_mul : forall (aR rR : Ring.type) (f : aR -> rR),
-       ring_morphism (aR:=aR) (rR:=rR) f -> {morph f : x y / x * y >-> x * y}.
+       ring_morphism f -> {morph f : x y / x * y >-> x * y}.
 Proof. exact: ringM_mul. Qed.
 
 Lemma ringM_prod : forall (aR rR : Ring.type) (f : aR -> rR),
-       ring_morphism (aR:=aR) (rR:=rR) f ->
+       ring_morphism f ->
        forall (I : Type) (r : seq I) (P : pred I) (F : I -> aR),
        f (\prod_(i <- r | P i) F i) = \prod_(i <- r | P i) f (F i).
 Proof. exact: ringM_prod. Qed.
 
 Lemma ringM_nat : forall (aR rR : Ring.type) (f : aR -> rR),
-       ring_morphism (aR:=aR) (rR:=rR) f -> forall n : nat, f n%:R = n%:R.
+       ring_morphism f -> forall n : nat, f n%:R = n%:R.
 Proof. exact: ringM_nat. Qed.
 
 Lemma ringM_exp : forall (aR rR : Ring.type) (f : aR -> rR),
-       ring_morphism (aR:=aR) (rR:=rR) f ->
+       ring_morphism f ->
        forall n : nat, {morph f : x / x ^+ n >-> x ^+ n}.
 Proof. exact: ringM_exp. Qed.
 
-Lemma comp_ringM : forall (aR' aR rR : Ring.type) (f : aR -> rR) (g : aR' -> aR),
-       ring_morphism (aR:=aR) (rR:=rR) f ->
-       ring_morphism (aR:=aR') (rR:=aR) g ->
-       ring_morphism (aR:=aR') (rR:=rR) (f \o g).
+Lemma comp_ringM :
+ forall (aR' aR rR : Ring.type) (f : aR -> rR) (g : aR' -> aR),
+       ring_morphism f -> ring_morphism g -> ring_morphism (f \o g).
 Proof. exact: comp_ringM. Qed.
 
 
