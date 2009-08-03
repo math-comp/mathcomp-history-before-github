@@ -3929,9 +3929,9 @@ let rec rwrxtac occ rdx_pat dir rule gl =
     let rpat (d, r, lhs, rhs) =
       let r' = if d = L2R then r else mkLambda (Anonymous, mkProp, r) in
       mk_upat env sigma0 ise r' (rw_progress rhs) lhs in
-    let rpats = List.map rpat rules in
     let sigma', r, cl, rdx =
       try
+        let rpats = List.map rpat rules in
         fill_and_select_upat gl env sigma0 occ rpats (pf_concl gl) !ise
       with
       | UndefPat ->
