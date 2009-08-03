@@ -3877,9 +3877,9 @@ let rec rwrxtac occ rdx_pat dir rule gl =
         | Rel i ->
           let lhs = a.(np - i) in
           let lhs, rhs = if d = L2R then lhs, rhs else rhs, lhs in
-          d, r, lhs, rhs
-(* msgnl (str "RW: " ++ pr_rwdir d ++ str " " ++ pr_constr_pat r' ++ str " : "
+(* msgnl (str "RW: " ++ pr_rwdir d ++ str " " ++ pr_constr_pat r ++ str " : "
             ++ pr_constr_pat lhs ++ str " ~> " ++ pr_constr_pat rhs); *)
+          d, r, lhs, rhs
 (*
           let l_i, r_i = if d = L2R then i, 1 - ndep else 1 - ndep, i in
           let lhs = a.(np - l_i) and rhs = a.(np - r_i) in
@@ -3936,15 +3936,19 @@ let rec rwrxtac occ rdx_pat dir rule gl =
       with
       | UndefPat ->
         errorstrm (str "indeterminate " ++ pr_dir_side dir
-                   ++ str " of " ++ pr_constr_pat (snd rule))
+                   ++ str " in " ++ pr_constr_pat (snd rule))
       | MissingOccs (n, m, p') ->
         errorstrm (str "only " ++ int n ++ str " < " ++ int m ++
           str (plural n " occurence") ++ spc () ++
-          str "of " ++ pr_dir_side dir ++ str " " ++ pr_constr_pat p' ++
+          str "of the " ++ pr_dir_side dir ++ str " " ++ pr_constr_pat p' ++
           spc () ++ str "of " ++ pr_constr_pat (snd rule))
       | NoMatch ->
         errorstrm (str "no valid match of " ++ pr_dir_side dir ++
                    str " of " ++ pr_constr_pat (snd rule)) in
+    if closed0 cl then
+      errorstrm (str "no occurrence of " ++ pr_constr rdx
+                 ++ str ", the " ++ pr_dir_side dir ++ str " of " ++
+                    pr_constr_pat (snd rule));
     let d, r' = match kind_of_term r with
     | Lambda (_, _, r') -> R2L, r'
     | _ -> L2R, r in
