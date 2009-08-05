@@ -3805,9 +3805,12 @@ let rwcltac cl rdx dir sr gl =
       let cl' = mkNamedProd rule_id (compose_prod dc r3t) (lift 1 cl) in
       let cl'' = mkNamedProd pattern_id rdxt cl' in
       let itacs = [introid pattern_id; introid rule_id] in
-      let cltac = clear [pattern_id; rule_id] in
-      let rwtacs = [rewritetac dir (mkVar rule_id); cltac] in
-      (apply_type cl'' [rdx; compose_lam dc r3], tclTHENLIST (itacs @ rwtacs))
+      let cltac gl' =
+        try clear [rule_id; pattern_id] gl' with _ ->
+        errorstrm (str "Setoid rewrite failed on "
+                    ++ pf_pr_constr gl' (subst1 (mkVar pattern_id) cl)) in
+      let rwtacs = itacs @ [rewritetac dir (mkVar rule_id); cltac] in
+      (apply_type cl'' [rdx; compose_lam dc r3], tclTHENLIST rwtacs)
     in
   let cvtac' _ =
     try cvtac gl with _ ->
@@ -3819,30 +3822,32 @@ let lz_coq_prod =
   let prod = lazy (build_prod ()) in fun () -> Lazy.force prod
 
 let lz_setoid_relation =
-  let sdir = ["Classes"; "SetoidTactics"] in
-  let last_srel = ref (Environ.empty_env, None) in
+  let ssdir = ["Classes"; "RelationClasses"] in
+  let srdir = ["Classes"; "SetoidTactics"] in
+  let last_srel = ref (Environ.empty_env, []) in
   fun env -> match !last_srel with
   | env', srel when env' == env -> srel
   | _ ->
     let srel =
-       try Some (coq_constant "Class_setoid" sdir "SetoidRelation")
-       with _ -> None in
+       try [coq_constant "Class_setoid" ssdir "Equivalence";
+            coq_constant "Class_setoid" srdir "SetoidRelation"]
+       with _ -> [] in
     last_srel := (env, srel); srel
 
 let ssr_is_setoid env =
-  match lz_setoid_relation env with
-  | None -> fun _ _ _ -> false
-  | Some srel ->
+  let srels = lz_setoid_relation env in
+  if srels = [] then (fun _ _ _ -> false) else
   let ev_env = Environ.named_context_val env in
   fun sigma r args ->
   let n = Array.length args in if n < 2 then false else
   let rel = mkSubApp r (n - 2) args in
-  let rel_t = Retyping.get_type_of env sigma args.(n - 1) in
-  let rel_cl = mkApp (srel, [| rel_t; rel |]) in
-  let rel_gls = re_sig [make_evar ev_env rel_cl] sigma in
+  let rel_args = [|Retyping.get_type_of env sigma args.(n - 1); rel|] in
   let dummy_valid _ = anomaly "ssr_is_setoid" in
   let eauto = Class_tactics.typeclasses_eauto false (true, 1) [] in
-  try let _ = eauto (rel_gls, dummy_valid) in true with _ -> false
+  let is_srel srel =
+    let rel_gls = re_sig [make_evar ev_env (mkApp (srel, rel_args))] sigma in
+    try let _ = eauto (rel_gls, dummy_valid) in true with _ -> false in
+  List.exists is_srel srels
  
 let rec rwrxtac occ rdx_pat dir rule gl =
   let env = pf_env gl in
