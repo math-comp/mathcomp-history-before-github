@@ -150,7 +150,7 @@ move=> T x y; pose proj z e := if x =P z is ReflectT e0 then e0 else e.
 suff: injective (proj y) by rewrite /proj => injp e e'; apply: injp; case: eqP.
 pose join (e : x = _) := etrans (esym e).
 apply: can_inj (join x y (proj x (erefl x))) _ => e.
-by case: y / e; case: {-1}x / (proj x _).
+by case: y / e; move: {-1}x (proj x _) => y; case: y /. 
 Qed.
 
 Corollary eq_axiomK : forall (T : eqType) (x : T) (e : x = x), e = erefl x.
@@ -399,8 +399,8 @@ CoInductive insub_spec x : option sT -> Type :=
 
 Lemma insubP : forall x, insub_spec x (insub x).
 Proof.
-rewrite/insub => x; case: {2}(P x) / idP; last by right; exact/negP.
-by left; rewrite ?SubK.
+rewrite/insub => x; move: {2}(P x) idP => b.
+by case: b /; [left; rewrite ?SubK | right; exact/negP].
 Qed.
   
 Lemma insubT : forall x Px, insub x = Some (Sub x Px).
@@ -450,7 +450,7 @@ Definition insub_eq x :=
 Lemma insub_eqE : insub_eq =1 insub.
 Proof.
 rewrite /insub_eq /insub => x.
-case: {2 4 5}(P x) / idP (erefl _) => // Px Px'.
+move: {2 4 5}(P x) idP (erefl _) => b; case: b / => // Px Px'.
 by congr Some; apply: val_inj; rewrite !SubK.
 Qed.
 
