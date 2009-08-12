@@ -53,9 +53,10 @@ Some features of the library:
   rather than an ad hoc set algebra.
 
 The Ssreflect 1.2 distribution is available at
-http://www.msr-inria.inria.fr/Projects/math-components It is
-distributed under the CeCill2 licence (the French equivalent of the
-BSD licence, compatible with the GNU GPL).
+   http://www.msr-inria.inria.fr/Projects/math-components
+It is distributed under either one of the CeCILL-B or CeCILL 2
+licences (the French equivalent of the BSD and GNU GPL licenses,
+respectively).
     
 The tactic language is quite stable; we have been using it
 internally for three years essentially without change. We will support
