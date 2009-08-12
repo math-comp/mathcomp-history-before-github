@@ -1,3 +1,7 @@
+(* (c) Copyright Microsoft Corporation and Inria. You may distribute      *)
+(* under the terms of either the CeCILL-B License or the CeCILL           *)
+(* version 2 License, as specified in the README file.                    *)
+
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 
 

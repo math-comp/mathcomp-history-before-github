@@ -1,6 +1,6 @@
-(* This file is distributed under the terms of the CECILL-B license see the*)
-(* LICENSE file included                                                   *)
-(* Copyright 2008, INRIA - Microsoft Corporation, All rights reserved.     *)
+(* (c) Copyright Microsoft Corporation and Inria. You may distribute      *)
+(* under the terms of either the CeCILL-B License or the CeCILL           *)
+(* version 2 License, as specified in the README file.                    *)
 
 (*i camlp4use: "pa_extend.cmo" i*)
 (*i camlp4deps: "parsing/grammar.cma" i*)
