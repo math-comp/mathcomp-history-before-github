@@ -3,12 +3,6 @@
 (* version 2 License, as specified in the README file.                 *)
 Require Import ssreflect.
 
-Set Implicit Arguments.
-Unset Strict Implicit.
-
-Delimit Scope fun_scope with FUN.
-Open Scope fun_scope.
-
 (****************************************************************************)
 (* This file contains the basic definitions and notations for working with  *)
 (* functions. The definitions concern:                                      *)
@@ -17,33 +11,33 @@ Open Scope fun_scope.
 (*    p.1  == first element of a pair                                       *)
 (*    p.2  == second element of a pair                                      *)
 (*                                                                          *)
-(*  Function definitions                                                    *)
+(*  Simplifying functions, beta-reduced by simpl and /= :                   *)
 (*           [fun : T => E] == constant function from type T that returns E *)
 (*             [fun x => E] == unary function                               *)
-(*         [fun x : T => E] == unary function with explicit domain          *)
+(*         [fun x : T => E] == unary function with explicit domain type     *)
 (*           [fun x y => E] == binary function                              *)
-(*       [fun x y : T => E] == binary function with explicit domain         *)
-(*     [fun (x : T) y => E] == binary function with explicit domain         *)
-(*     [fun x (y : T) => E] == binary function with explicit domain         *)
+(*       [fun x y : T => E] == binary function with explicit domain type    *)
+(*     [fun (x : T) y => E] == binary function with explicit domain type    *)
+(*     [fun x (y : T) => E] == binary function with explicit domain type    *)
 (*    [fun (x : xT) (y : yT) => E]                                          *)
 (*                                                                          *)
 (* - partial functions using option type,                                   *)
-(*     oapp f d ox == if ox is some x returns f x,        d otherwise       *)
-(*      odflt d ox == if ox is some x returns x,          d otherwise       *)
-(*      obind f ox == if ox is some x returns f x,        none otherwise    *)
-(*       omap f ox == if ox is some x returns some (f x), none otherwise    *)
+(*     oapp f d ox == if ox is Some x returns f x,        d otherwise       *)
+(*      odflt d ox == if ox is Some x returns x,          d otherwise       *)
+(*      obind f ox == if ox is Some x returns f x,        None otherwise    *)
+(*       omap f ox == if ox is Some x returns Some (f x), None otherwise    *)
 (*                                                                          *)
 (* - extensional equality for functions and relations (i.e. functions of 2  *)
 (*   arguments),                                                            *)
 (*    f1 =1 f2      ==  f1 x is equal to f2 x forall x                      *)
 (*    f1 =1 f2 :>A  ==    ... and f2 is explicitly typed                    *)
 (*    f1 =2 f2      ==  f1 x y is equal to f2 x y forall x y                *)
-(*    f1 =2 f2 :> A ==    ... and f2 is explicitly types                    *)
+(*    f1 =2 f2 :> A ==    ... and f2 is explicitly typed                    *)
 (*                                                                          *)
 (* - composition for total and partial functions,                           *)
 (*             f^~y == function f with y as second argument y               *)
 (*        f1 \o f2  == composition of f1 and f2                             *)
-(*      pcomb f1 f2 == composition of partial functions f1 and f2           *)
+(*      pcomp f1 f2 == composition of partial functions f1 and f2           *)
 (*                                                                          *)
 (* - properties of functions                                                *)
 (*        injective f == f is injective                                     *)
@@ -54,8 +48,8 @@ Open Scope fun_scope.
 (*       involutive f == f is involutive                                    *)
 (*                                                                          *)
 (* - properties for operations                                              *)
-(*                left_id e op == e is a left unit for op                   *)
-(*               right_id e op == e is a right unit for op                  *)
+(*                left_id e op == e is a left identity for op               *)
+(*               right_id e op == e is a right identity for op              *)
 (*         left_inverse e i op == i is a left inverse for op with unit e    *)
 (*        right_inverse e i op == i is a right inverse for op with unit e   *)
 (*         self_inverse x e op == x is its own inverse for op               *)
@@ -80,6 +74,12 @@ Open Scope fun_scope.
 (* The file also contains some basic lemmas for the above concepts.         *)
 (****************************************************************************)
 
+Set Implicit Arguments.
+Unset Strict Implicit.
+Import Prenex Implicits.
+
+Delimit Scope fun_scope with FUN.
+Open Scope fun_scope.
 
 Notation "f ^~ y" := (fun x => f x y)
   (at level 10, y at level 8, no associativity, format "f ^~  y") : fun_scope.

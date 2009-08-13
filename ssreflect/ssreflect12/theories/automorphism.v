@@ -1,12 +1,11 @@
-(**************************************************************************)
 (* (c) Copyright Microsoft Corporation and Inria. You may distribute      *)
 (* under the terms of either the CeCILL-B License or the CeCILL           *)
 (* version 2 License, as specified in the README file.                    *)
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat fintype finset.
+Require Import groups perm morphisms.
+
 (**************************************************************************)
-(*                                                                        *)
-(*  Properties of automorphisms                                           *)
-(*                                                                        *)
-(**************************************************************************)
+(* Group automorphisms and characteristic subgroups.                      *)
 (* Definitions:                                                           *)
 (* In this file:                                                          *)
 (*  Aut A                == the automorphism group of A.                  *)
@@ -18,17 +17,14 @@
 (*                       == the element of Aut A induced by a             *)
 (*                             bijective endomorphism of domain G         *)
 (*  conjgm A             == the conjugation automorphism on A             *)
-(*  G char H             == G is a characteristic subgroup of H           *)
+(*  H \char G            == H is a characteristic subgroup of G           *)
 (**************************************************************************)
-
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat fintype finset.
-Require Import groups perm morphisms.
-
-Import GroupScope.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
+
+Import GroupScope.
 
 (***********************************************************************)
 (* A group automorphism, defined as a permutation on a subset of a     *)

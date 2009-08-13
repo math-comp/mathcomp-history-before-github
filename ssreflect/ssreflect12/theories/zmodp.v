@@ -1,13 +1,11 @@
-(***********************************************************************)
 (* (c) Copyright Microsoft Corporation and Inria. You may distribute   *)
 (* under the terms of either the CeCILL-B License or the CeCILL        *)
 (* version 2 License, as specified in the README file.                 *)
-(*                                                                     *)
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice div.
+Require Import fintype bigops finset prime groups ssralg.
+
 (***********************************************************************)
-(***********************************************************************)
-(*                                                                     *)
 (*  Definition of the additive group and ring Zp, represented as 'I_p  *)
-(*                                                                     *)
 (***********************************************************************)
 (* Definitions:                                                        *)
 (* From fintype.v:                                                     *)
@@ -38,8 +36,6 @@
 (* Zp_unit_mul u v == multiplication in Zp_unit                        *)
 (* We show that Zp and Zp_units are abelian, and compute their orders. *)
 (***********************************************************************)
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice div.
-Require Import fintype bigops finset prime groups ssralg.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

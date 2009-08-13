@@ -3,10 +3,7 @@
 (* version 2 License, as specified in the README file.                 *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice.
 
-Set Implicit Arguments.
-Unset Strict Implicit.
-Import Prenex Implicits.
-
+(**************************************************************************)
 (* The Finite Structure describes Types with finitely many elements, by   *)
 (* supplying a duplicate-free sequence of all the elements. It is a       *)
 (* subclass of Countable and thus of Choice and Equality. As with         *)
@@ -34,6 +31,11 @@ Import Prenex Implicits.
 (*   -  the lift/unlift operations to avoid a messy dependent type;       *)
 (*      unlift is a partial operation (returns an option).                *)
 (*   -  shifting and splitting indices, for cutting and pasting arrays    *)
+(**************************************************************************)
+
+Set Implicit Arguments.
+Unset Strict Implicit.
+Import Prenex Implicits.
 
 Module Finite.
 

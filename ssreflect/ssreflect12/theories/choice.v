@@ -1,6 +1,6 @@
-(* (c) Copyright Microsoft Corporation and Inria. You may distribute           *)
-(* under the terms of either the CeCILL-B License or the CeCILL                *)
-(* version 2 License, as specified in the README file.                         *)
+(* (c) Copyright Microsoft Corporation and Inria. You may distribute *)
+(* under the terms of either the CeCILL-B License or the CeCILL      *)
+(* version 2 License, as specified in the README file.               *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 
 (*****************************************************************************)
@@ -9,9 +9,9 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 (*  - countType : interface for countable type                               *)
 (* In addition to the lemmas relevant to these definitions, this file also   *)
 (* contains definitions of Canonical Structure of choiceType for nat and     *)
-(* sub-type/ option type/ seq type/ sigma type of a choice type. It also     *)
-(* contains definitions of Canonical Structure of countType for nat, bool and*)
-(* sub-type/ option type/ seq type/ sigma type/ of a countable type and      *)
+(* subtype / option type / seq type / sigma type of a choice type. It also   *)
+(* contains definitions of Canonical Structure of countType for nat, bool    *)
+(* and subtype / option type / seq type / sigma type of a countable type and *)
 (* sum and prod types of two countable types.                                *)
 (*****************************************************************************)
 

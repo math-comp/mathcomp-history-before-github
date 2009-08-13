@@ -3,10 +3,7 @@
 (* version 2 License, as specified in the README file.                 *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 
-Set Implicit Arguments.
-Unset Strict Implicit.
-Import Prenex Implicits.
-
+(*********************************************************************)
 (* The basic theory of paths over an eqType; this is essentially a   *)
 (* complement to seq.v.                                              *)
 (* Paths are non-empty sequences that obey a progression relation.   *)
@@ -73,6 +70,11 @@ Import Prenex Implicits.
 (* path and cycle predicates, e.g., the path_cat equation can be     *)
 (* used to split the path predicate after splitting the underlying   *)
 (* sequence.                                                         *)
+(*********************************************************************)
+
+Set Implicit Arguments.
+Unset Strict Implicit.
+Import Prenex Implicits.
 
 Section Paths.
 

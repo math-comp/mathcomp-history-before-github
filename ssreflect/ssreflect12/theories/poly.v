@@ -1,16 +1,8 @@
-(***********************************************************************)
 (* (c) Copyright Microsoft Corporation and Inria. You may distribute   *)
 (* under the terms of either the CeCILL-B License or the CeCILL        *)
 (* version 2 License, as specified in the README file.                 *)
-(*                                                                     *)
-(***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype.
 Require Import bigops ssralg.
-
-Set Implicit Arguments.
-Unset Strict Implicit.
-Import Prenex Implicits.
-
 
 (***************************************************************************)
 (* This file provides a library for univariate polynomials over ring       *)
@@ -52,7 +44,9 @@ Import Prenex Implicits.
 (* the number of distinct roots of a polynomial and its size               *)
 (***************************************************************************)
 
-
+Set Implicit Arguments.
+Unset Strict Implicit.
+Import Prenex Implicits.
 
 Import GRing.Theory.
 Open Local Scope ring_scope.

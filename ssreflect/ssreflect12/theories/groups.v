@@ -3,6 +3,7 @@
 (* version 2 License, as specified in the README file.                 *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype.
 Require Import div paths bigops finset.
+
 (*****************************************************************************)
 (* This file defines the main interface for finite groups :                  *)
 (*          finGroupType == the structure for finite types with a group law  *)

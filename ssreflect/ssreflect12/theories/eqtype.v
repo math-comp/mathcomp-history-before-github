@@ -1,12 +1,9 @@
 (* (c) Copyright Microsoft Corporation and Inria. You may distribute   *)
 (* under the terms of either the CeCILL-B License or the CeCILL        *)
 (* version 2 License, as specified in the README file.                 *)
-Require Import ssreflect ssrbool ssrfun.
+Require Import ssreflect ssrfun ssrbool.
 
-Set Implicit Arguments.
-Unset Strict Implicit.
-Import Prenex Implicits.
-
+(***************************************************************************)
 (* This file defines two "base" combinatorial interfaces:                  *)
 (*    eqType == the structure for types with a decidable equality          *)
 (* subType p == the structure for types isomorphic to {x : T | p x} with   *)
@@ -81,6 +78,11 @@ Import Prenex Implicits.
 (* all the combinatorial interfaces (Choice, Countable, Finite).           *)
 (*   More generally, the eqType structure can be transfered by (partial)   *)
 (* injections, using InjEqMixin, PcanEqMixin, or CanEqMixin.               *)
+(***************************************************************************)
+
+Set Implicit Arguments.
+Unset Strict Implicit.
+Import Prenex Implicits.
 
 Module Equality.
 

@@ -3,10 +3,6 @@
 (* version 2 License, as specified in the README file.                 *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq paths fintype.
 
-Set Implicit Arguments.
-Unset Strict Implicit.
-Import Prenex Implicits.
-
 (*****************************************************************************)
 (* This file develops the theory of transitive closure in a finType T.       *)
 (* For e : rel T and f : T -> T we define:                                   *)
@@ -41,8 +37,11 @@ Import Prenex Implicits.
 (* fun_adjunction == rel_adjunction (frel f)                                 *)
 (*****************************************************************************)
 
-(* Decidable connectivity in finite sets, with an application to the orbits  *)
-(* and inverses of injective functions.                                      *)
+Set Implicit Arguments.
+Unset Strict Implicit.
+Import Prenex Implicits.
+
+(* Decidable connectivity in finite types.                                  *)
 
 Section Connect.
 
