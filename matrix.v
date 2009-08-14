@@ -1,13 +1,6 @@
-(* (c) Copyright Microsoft Corporation and Inria. All rights reserved.       *)
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype.
 Require Import finfun bigops ssralg groups perm zmodp.
-
-Import GroupScope.
-Import GRing.Theory.
-
-Set Implicit Arguments.
-Unset Strict Implicit.
-Import Prenex Implicits.
 
 (*****************************************************************************)
 (* Basic linear algebra : definition of the Matrix type. Matrix is defined   *)
@@ -33,6 +26,13 @@ Import Prenex Implicits.
 (* - Laplace formulas : expand_det_row & expand_det_col                      *)
 (* - Cramer rule : mulmx_adjr & mulmx_adjl                                   *)
 (*****************************************************************************)
+
+Set Implicit Arguments.
+Unset Strict Implicit.
+Import Prenex Implicits.
+
+Import GroupScope.
+Import GRing.Theory.
 
 Reserved Notation "''M_' n"       (at level 8, n at level 2, format "''M_' n").
 Reserved Notation "''M_' ( n )"   (at level 8, only parsing).

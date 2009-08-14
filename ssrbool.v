@@ -3,13 +3,9 @@ Require Import ssreflect.
 Require Import ssrfun.
 Require Export Bool.
 
-Set Implicit Arguments.
-Unset Strict Implicit.
-
-
 (*****************************************************************************)
-(* A theory of boolean predicates and operators. A                           *)
-(* significant part of this file is devoted to boolean reflection :          *)
+(* A theory of boolean predicates and operators. A large part of this file   *)
+(* is concerned with boolean reflection. Definitions and notations:          *)
 (*                                                                           *)
 (* a && b                  == boolean conjection                             *)
 (* a || b                  == boolean disjunction                            *)
@@ -37,8 +33,7 @@ Unset Strict Implicit.
 (*                            its coerced form in Prop to the equality       *)
 (*                            in bool                                        *)
 (* bool_congr              == resolution tactic for blindly weeding out      *)
-(*                            common terms from boolean equalities.          *)
-(*                            Can fail.                                      *)
+(*                            like terms from boolean equalities (can fail)  *)
 (*                                                                           *)
 (* This file provides a theory of boolean predicates and relations :         *)
 (*   pred T                == T -> bool                                      *)
@@ -140,6 +135,9 @@ Unset Strict Implicit.
 (* W : weakening                                                             *)
 (*****************************************************************************)
 
+Set Implicit Arguments.
+Unset Strict Implicit.
+Import Prenex Implicits.
 
 Reserved Notation "~~ b" (at level 35, right associativity).
 Reserved Notation "b ==> c" (at level 55, right associativity).

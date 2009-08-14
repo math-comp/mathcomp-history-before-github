@@ -1,14 +1,10 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat.
 
-Set Implicit Arguments.
-Unset Strict Implicit.
-Import Prenex Implicits.
-
 (***************************************************************************)
-(* Seq is the ssreflect list Type; it is identical to the standard Coq     *)
-(* type, but comes with a much larger set of operations, including         *)
-(* generic eqType and predType structures. The operations are geared       *)
+(* The seq type is the ssreflect type for sequences; it is identical to    *)
+(* the standard Coq list type, but supports a larger set of operations, as *)
+(* well as eqType and predType structures. The operations are geared       *)
 (* towards reflection, e.g., they generally expect and provide boolean     *)
 (* predicates, and our membership predicates expects an eqType. To avoid   *)
 (* any confusion we do not Import the Coq List module, which forces us to  *)
@@ -47,6 +43,10 @@ Import Prenex Implicits.
 (*    s`_i                     nth x0 s i for the appropriate x0           *)
 (*                             (to be defined in the appropriate scope)    *)
 (***************************************************************************)
+
+Set Implicit Arguments.
+Unset Strict Implicit.
+Import Prenex Implicits.
 
 Delimit Scope seq_scope with SEQ.
 Open Scope seq_scope.

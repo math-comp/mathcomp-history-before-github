@@ -1,11 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq paths choice fintype.
 Require Import finfun bigops finset groups.
-Import GroupScope.
-
-Set Implicit Arguments.
-Unset Strict Implicit.
-Import Prenex Implicits.
 
 (**************************************************************************)
 (* This file contains the definition and properties  associated to the    *)
@@ -31,6 +26,11 @@ Import Prenex Implicits.
 (* Lemmas are given to establish the common properties for permutations.  *)
 (**************************************************************************)
 
+Set Implicit Arguments.
+Unset Strict Implicit.
+Import Prenex Implicits.
+
+Import GroupScope.
 
 Section PermDefSection.
 

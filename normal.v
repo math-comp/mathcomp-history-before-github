@@ -1,8 +1,9 @@
 (***********************************************************************)
-(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
+(* version 2 License, as specified in the README file.                 *)
 (*                                                                     *)
 (***********************************************************************)
-
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq div choice.
+Require Import fintype finfun finset groups morphisms automorphism.
 
 (***********************************************************************)
 (* This file contains the definitions of:                              *)
@@ -19,15 +20,11 @@
 (* counting lemmas for morphisms.                                      *)
 (***********************************************************************)
 
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq div choice.
-Require Import fintype finfun finset groups morphisms automorphism.
-
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
 Import GroupScope.
-
 
 (********************************************************************)
 (*       Cosets are right cosets of elements in the normaliser      *)

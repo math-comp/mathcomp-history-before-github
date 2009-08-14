@@ -1,9 +1,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import Bool. (* For bool_scope delimiter 'bool'. *)
 
-Set Implicit Arguments.
-Unset Strict Implicit.
-
+(***************************************************************************)
 (* This file is the Gallina part of the ssreflect plugin implementation.   *)
 (* Files that use the ssreflect plugin should always Require ssreflect and *)
 (* either Import ssreflect or Import ssreflect.SsrSyntax.                  *)
@@ -11,6 +9,10 @@ Unset Strict Implicit.
 (* advanced developers; features not covered by the Ssreflect reference    *)
 (* manual, such as the Unlockable interface, phantom types, and the        *)
 (* [the struct of T] construct, are covered by specific comments below.    *)
+(***************************************************************************)
+
+Set Implicit Arguments.
+Unset Strict Implicit.
 
 Module SsrSyntax.
 

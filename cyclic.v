@@ -1,11 +1,10 @@
-(***********************************************************************)
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-(*                                                                     *)
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
+Require Import seq fintype div bigops prime ssralg poly.
+Require Import finset groups morphisms automorphism normal perm zmodp.
+
 (***********************************************************************)
-(***********************************************************************)
-(*                                                                     *)
 (*  Properties of cyclic groups                                        *)
-(*                                                                     *)
 (***********************************************************************)
 (* Definitions:                                                        *)
 (* Defined in groups.v:                                                *)
@@ -27,9 +26,6 @@
 (* any finite group isomorphic to a subggroup of a field is cycle,     *)
 (* and the corollary that Aut G is cyclic when G is of prime order.    *)
 (***********************************************************************)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
-Require Import seq fintype div bigops prime ssralg poly.
-Require Import finset groups morphisms automorphism normal perm zmodp.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

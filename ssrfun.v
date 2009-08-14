@@ -1,12 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect.
 
-Set Implicit Arguments.
-Unset Strict Implicit.
-
-Delimit Scope fun_scope with FUN.
-Open Scope fun_scope.
-
 (****************************************************************************)
 (* This file contains the basic definitions and notations for working with  *)
 (* functions. The definitions concern:                                      *)
@@ -78,6 +72,12 @@ Open Scope fun_scope.
 (* The file also contains some basic lemmas for the above concepts.         *)
 (****************************************************************************)
 
+Set Implicit Arguments.
+Unset Strict Implicit.
+Import Prenex Implicits.
+
+Delimit Scope fun_scope with FUN.
+Open Scope fun_scope.
 
 Notation "f ^~ y" := (fun x => f x y)
   (at level 10, y at level 8, no associativity, format "f ^~  y") : fun_scope.
