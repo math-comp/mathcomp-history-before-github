@@ -47,8 +47,7 @@ burnside_app.v
 theorem3_6.v
 gfunc.v
 dihedral.v
-quotient.v
-relative.v
+
 
 COQC = $(COQBIN)ssrcoq
 COQFLAGS = "-q $(OPT) -dont-load-proofs $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -compile"
