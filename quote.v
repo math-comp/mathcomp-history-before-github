@@ -6,7 +6,7 @@ Unset Strict Implicit.
 Import Prenex Implicits.
 
 Structure tProp := TProp {tProp_statement :> Prop; _ : tProp_statement}.
-Lemma claim : forall P : tProp, P. Proof. by case. Qed.
+Lemma claim : forall tP : tProp, tP. Proof. by case. Qed.
 Hint Resolve claim.
 
 Canonical Structure True_tProp := TProp Logic.I.
@@ -15,18 +15,23 @@ Canonical Structure true_tProp := @TProp true (erefl _).
 Canonical Structure and_tProp (P Q : tProp) :=
   TProp (conj (claim P) (claim Q)).
 
+Structure postProp (P : Prop) := PostProp {postProp_statement :> tProp; _ : P}.
+Canonical Structure tProp_postProp P claimP pP :=
+  PostProp (@TProp P claimP) (claim pP).
+
 Delimit Scope n_ary_op_scope with QOP.
 Delimit Scope quote_scope with QT.
 
-Module Quotation.
-
 Fixpoint n_ary n T := if n is n'.+1 then T -> n_ary n' T else T.
 Notation "n .-ary" := (n_ary n) (at level 2, format "n .-ary") : type_scope.
+
+Module Quotation.
 
 CoInductive n_ary_op T := NaryOp n of n.-ary T.
 Notation "f / n" := (@NaryOp _ n f) : n_ary_op_scope.
 Definition bind_op T R (op : n_ary_op T) ifun : R :=
   let: NaryOp n f := op in ifun n f.
+Definition arity T op := @bind_op T nat op (fun n _ => n).
 
 Structure type := Pack {sort :> Type; sym; _ : sym -> n_ary_op sort}.
 Notation QuoteType sf := (Pack sf%QOP).
@@ -77,12 +82,34 @@ Fixpoint interp e t := match t with
  | App s a => bind_op (symop s) (interp_app (interp e) a)
  end.
 
-Definition var_val := @id T.
-Definition sym_val := var_val.
-Definition op_val := sym_val.
+Fixpoint wf (t : term (sym T)) :=
+  match t with
+  | App s a => let: NaryOp n _ := symop s in (n == size a) && all wf a
+  | Var _ => true
+  end.
 
-Structure form e t P := Form {fval :> T; _ : P -> interp e t = Some fval}.
-Lemma formP : forall e t tP (f : form e t tP), interp e t = Some (f : T).
+Fixpoint eval x0 e t :=
+  match t with
+  | Var i => nth x0 e i
+  | App s a =>
+    odflt x0 (bind_op (symop s) (interp_app (fun x => Some (eval x0 e x)) a))
+  end.
+
+Lemma interp_wf_eval : forall y0 e t y,
+  interp e t = Some y -> wf t /\ eval y0 e t = y.
+Proof.
+move=> y0 e t; elim/term_ind': t => [i|s a IHa] y /=.
+  by elim: i e => [|i IHi] [|z e] //=; [case | elim: i {IHi} | exact: IHi].
+case: symop => /= n x1.
+elim: n x1 a IHa => [|n IHn] x1 [|f a] //=; first by move=> _  [].
+case: (interp e f) => //= x []; case/(_ x)=> // -> ->; exact: IHn.
+Qed.
+
+Definition var_val := @id T.
+Definition op_val := var_val.
+
+Structure form e t P := Form {fval; _ : P -> interp e t = Some fval}.
+Lemma formP : forall e t tP f, interp e t = Some (@fval e t tP f).
 Proof. by move=> e t tP [x <-]. Qed.
 
 Structure store i x P := Store {stval; _ : P -> lookup i stval = Some x}.
@@ -99,87 +126,67 @@ Lemma var_form_subproof : forall i x P (s : store i x P),
 Proof. by move=> i x P []. Qed.
 Canonical Structure var_form i x P s := Form (@var_form_subproof i x P s).
 
-Lemma sym_form_subproof : forall e t tP (f : form e t tP) x,
-  x = f :> T -> interp e t = Some (sym_val x).
+Lemma op_form_subproof : forall e t tP (f : form e t tP) x,
+  x = @fval e t tP f -> interp e t = Some (op_val x).
 Proof. by move=> e t tP f _ ->; exact: formP. Qed.
 
-Canonical Structure sym_form e t tP f x :=
-  Form (@sym_form_subproof e t tP f x).
+Canonical Structure op_form e t tP f x :=
+  Form (@op_form_subproof e t tP f x).
 
 Section OpForm.
 
 Variables (s : sym T) (e : seq T).
 
-Definition opform_axiom P a1 n (x1 : n.-ary T) :=
-  P -> forall a, interp e (App s (catrev a a1)) = interp_app (interp e) a x1.
-
-Structure opform a1 P :=
-  OpForm { opfval :> T -> T; _ : @opform_axiom P a1 1 opfval }.
-
-Lemma op_form_subproof : forall a1 t2 tP1 tP2 x1 x2 f1 f2,
-  (x1, op_val x2) = (@opfval a1 tP1 f1, @fval e t2 tP2 f2) ->
-  interp e (App s (catrev [::t2] a1)) = Some (op_val (x1 x2)).
-Proof.
-move=> a1 t2 tP1 tP2 _ x2 [x1 def_x1] [x2' def_x2'] [-> def_x2].
-by rewrite [x2]def_x2 def_x1 /= ?def_x2'.
-Qed.
-
-Canonical Structure op_form a1 t2 tP1 tP2 x1 x2 f1 f2 :=
-  Form (@op_form_subproof a1 t2 tP1 tP2 x1 x2 f1 f2).
-
-Fixpoint nOpForm_type xaT (xa fa : xaT) a n :=
+Fixpoint OpForm_type a xa fa n :=
   if n is n'.+1 then
-    forall x t tP (f : form e t tP),
-      nOpForm_type (xa, op_val x) (fa, f : T) (t :: a) n'
-  else opform a (xa = fa).
+    forall x t tP f, OpForm_type (t :: a) (x :: xa) (@fval e t tP f :: fa) n'
+  else form e (App s (rev a)) (map op_val (rev xa) = rev fa).
 
-Definition nForm_type (ops : n_ary_op T):=
-  if ops is (_/n.+1)%QOP then nOpForm_type 0 0 [::] n else form e '[s] True.
-  
-Definition nForm_rectype xaT (xa fa : xaT) a1 n :=
-  forall x1, (opform_axiom (xa = fa) a1) n.+1 x1 -> nOpForm_type xa fa a1 n.
+Definition OpForm_rechyp a (xa fa : seq T) n (x : n.-ary T) :=
+  forall a', map op_val (rev xa) = rev fa ->
+  interp e (App s (catrev a' a)) = interp_app (interp e) a' x.
 
-Lemma nForm_rec_subproof : forall xaT xa fa a1 n (x1 : n.+1.-ary T),
-  forall x t tP (f : form e t tP), opform_axiom (xa = fa) a1 x1 ->
-  opform_axiom ((xa, op_val x) = (fa : xaT, f : T)) (t :: a1) (x1 x).
+Definition OpForm_rectype a xa fa n (x : n.-ary T) :=
+  OpForm_rechyp a xa fa x -> OpForm_type a xa fa n.
+
+Definition OpForm_basetype P x a :=
+  (P -> interp e (App s a) = Some x) -> form e (App s a) P.
+
+Lemma OpForm_recproof : forall a xa fa n (x1 : n.+1.-ary T),
+  forall x t tP f, OpForm_rechyp a xa fa x1 ->
+  OpForm_rechyp (t :: a) (x :: xa) (@fval e t tP f :: fa) (x1 x).
 Proof.
-move=> xaT xa fa a1 n x1 x t tP f IHx [def_xa def_x] a.
-by rewrite (IHx _ (t :: a)) //= [x]def_x (formP f).
+move=> a xa fa n x1 x t tP f IHx a'; move/(_ (t :: a')): IHx => /=.
+rewrite !map_id (formP f) /= => IHx; case/(can_inj (@revK _)) => -> eq_xa.
+by rewrite {}IHx ?eq_xa.
 Qed.
 
-Fixpoint nForm_rec xaT xa fa a1 n : @nForm_rectype xaT xa fa a1 n :=
-  if n is 0 return nForm_rectype _ _ _ n then fun _ IHx => OpForm IHx else
-  fun _ IHx _ _ _ _ => nForm_rec (nForm_rec_subproof IHx).
+Fixpoint OpForm_rec a xa fa n : forall x, @OpForm_rectype a xa fa n x :=
+  if n is _.+1 return forall x, @OpForm_rectype a xa fa n x then
+  fun _ IHx _ _ _ _ => OpForm_rec (OpForm_recproof IHx) else
+  fun x IHx =>
+    (if rev a is (t :: a') as rev_a return OpForm_basetype _ _ rev_a then
+     fun IHx => Form IHx else fun IHx => Form IHx) (IHx [::]).
 
-Lemma nForm_base_subproof : forall n x,
-  symop s = (x/n)%QOP -> opform_axiom (0 = 0) [::] x.
-Proof. by move=> n x def_s _; rewrite /= def_s. Qed.
+Lemma OpForm_subproof : bind_op (symop s) (OpForm_rechyp [::] [::] [::]).
+Proof. by case def_s: (symop s) => [n x] a _; rewrite /= def_s. Qed.
 
-Lemma nForm_subproof : forall x,
-  symop s = (x/0)%QOP -> True -> interp e '[s] = Some x.
-Proof. by move=> x /= ->. Qed.
-
-Definition nForm :=
-  match symop s as ops return symop s = ops -> nForm_type ops with
-  |  _/0   => fun def_s => Form (nForm_subproof def_s)
-  | x/_.+1 => fun def_s => @nForm_rec _ _ _ _ _ x (nForm_base_subproof def_s)
-  end%QOP (erefl _).
+Definition OpForm :=
+  (let: (op/n)%QOP as op_n := symop s
+   return (bind_op op_n _ : Prop) -> @OpForm_type _ _ _ (arity op_n) in
+   @OpForm_rec _ _ _ n op)
+   OpForm_subproof.
 
 End OpForm.
 
 Section GenSimp.
 
-Variable simp : T -> seq T -> term (sym T) -> option T.
+Variable simp : seq T -> term (sym T) -> option T.
 
-Definition simp_axiom := forall e t x0 x y,
-  interp e t = Some x -> simp x0 e t = Some y -> x = y.
+Definition simp_axiom := forall e t x y,
+  interp e t = Some x -> simp e t = Some y -> x = y.
 
 Hypothesis simpP : simp_axiom.
-
-Structure post_opform e s a P P' := PostOpForm { pof_val :> opform e s a P }.
-
-Canonical Structure process_post_opform e s a P tP x xP :=
-  PostOpForm tP (@OpForm e s a P x xP).
 
 Structure closed := Closed {closed_val :> seq T}.
 Canonical Structure head_closed := Closed (Env [::]).
@@ -187,27 +194,15 @@ Canonical Structure tail_closed x (ce : closed) := Closed (x :: ce).
 Inductive close : seq T -> Prop := Close (ce : closed) : close ce.
 Canonical Structure close_tProp ce := TProp (Close ce).
 
-Lemma simp_opform : forall e s a1 tP1 x2 t2 tP2,
-  forall (f2 : form (Env e) t2 tP2) y,
-  forall def_y :
-    op_val x2 = f2 /\ close e /\ simp x2 e (App s (rev (t2 :: a1))) = Some y,
-  forall (pp : forall P, P -> tProp) tP3,
-  forall f1 : post_opform s (Env e) a1 tP1 (TProp def_y = pp _ (claim tP3)),
-  f1 x2 = y.
+Lemma simp_form : forall e t y ptP,
+  forall f : form (Env e) t
+      (@postProp_statement (close (Env e) /\ simp e t = Some y) ptP),
+  fval f = y.
 Proof.
-move=> e s a1 tP1 x2 t2 tP2 f2 y [def_x2 [_ def_y]] _ _ [[x1 /= def_x1]].
-apply: simpP {y} def_y.
-by rewrite (def_x1 _ [::t2]) //= (formP f2) // -def_x2.
+move=> e t y [tP [_ def_y]] [x /= def_x]; apply: simpP def_y; exact: def_x.
 Qed.
 
 End GenSimp.
-
-Fixpoint simp_term {S} (t : term S) := match t with
-| App s a =>
-  let ocons ot oa := obind (fun t' => omap (Cons _ t') oa) ot in
-  omap (App s) (foldr ocons (Some [::]) (map simp_term a))
-| _ => Some t
-end.
 
 Definition Econs := Cons.
 Definition Etag of nat := @idfun.
@@ -228,24 +223,29 @@ Notation "[ 'env' d1 ; .. ; d_n ]" := (Econs d1 .. (Econs d_n (Enil _)) ..)
 Notation "[ 'env' ]" := (Enil _)
   (at level 0, format "[ 'env' ]") : quote_scope.
 
-Definition unquote {x0} e t := odflt x0 (interp e t).
-Arguments Scope unquote [_ quote_scope quote_scope].
+Lemma unquote_default : false -> T. Proof. by []. Qed.
+Definition unquote e t :=
+  if interp e t is Some x as ox return ox -> T then fun _ => x else
+  unquote_default.
 
-Definition simp_quote x0 e t :=
-  obind (fun e' => omap (@unquote x0 e') (simp_term t)) (simp_env e 0).
+Arguments Scope unquote [quote_scope quote_scope _].
+
+Lemma end_unquote : true. Proof. by []. Qed.
+Definition simp_quote e t :=
+  obind (fun e' =>
+   (if interp e' t as b return (b -> _) -> _ then
+      fun wf_t' => Some (unquote (wf_t' end_unquote))
+   else fun _ => None) id)
+  (simp_env e 0).
 
 Lemma simp_quoteP : simp_axiom simp_quote.
 Proof.
-rewrite /simp_quote => e t x0 x y def_x.
-have ->: simp_env e 0 = Some e.
-  by elim: e {def_x} 0 => //= z e IHe i; rewrite IHe.
-suffices ->: simp_term t = Some t.
-  by rewrite /unquote; case: e def_x => /= [|z e] -> [].
-elim/term_ind': t {x y x0 e def_x} => //= s.
-by elim=> //= t a IHa [->]; move/IHa=> {IHa} /=; case: foldr => //= _ [->].
+rewrite /simp_quote => e t x y def_x.
+suff ->: simp_env e 0 = Some e by rewrite /unquote /= def_x; case.
+by elim: e {def_x} 0 => //= z e IHe i; rewrite IHe.
 Qed.
 
-Definition quote := simp_opform simp_quoteP.
+Definition quote := simp_form simp_quoteP.
 
 End OneType.
 
@@ -254,17 +254,15 @@ End Quotation.
 Canonical Structure Quotation.head_store.
 Canonical Structure Quotation.tail_store.
 Canonical Structure Quotation.var_form.
-Canonical Structure Quotation.sym_form.
 Canonical Structure Quotation.op_form.
 Canonical Structure Quotation.head_closed.
 Canonical Structure Quotation.tail_closed.
-Canonical Structure Quotation.process_post_opform.
 Canonical Structure Quotation.close_tProp.
 
 Notation QuoteType sf := (Quotation.Pack sf%QOP).
 Notation "f / n" := (@Quotation.NaryOp _ n f) : n_ary_op_scope.
 
-Notation nForm := Quotation.nForm.
+Notation OpForm := Quotation.OpForm.
 
 Notation "''K_' i" := (Quotation.Var _ i)
   (at level 8, i at level 2, format "''K_' i") : quote_scope.
@@ -284,22 +282,22 @@ Notation "[ 'env' d1 ; .. ; d_n ]" :=
 Notation "[ 'env' ]" := (Quotation.Enil _)
   (at level 0, format "[ 'env' ]") : quote_scope.
 
-Arguments Scope Quotation.unquote [_ quote_scope quote_scope].
-Notation unquote e t := (Quotation.unquote e t%QT).
-Definition quote := Quotation.quote.
+Arguments Scope Quotation.unquote [_ quote_scope quote_scope _].
+Notation unquote e t := (@Quotation.unquote _ e t%QT _).
 
 CoInductive bool_sym := bTrue | bAnd.
 Canonical Structure bool_quoteType :=
   QuoteType (fun s => match s with bTrue => true/0 | bAnd => andb/2 end).
-Canonical Structure and_form := nForm bAnd.
-Canonical Structure true_form := nForm bTrue.
+Canonical Structure and_form := Eval hnf in OpForm bAnd.
+Canonical Structure true_form := Eval hnf in OpForm bTrue.
 
-Lemma try1 : forall b1 b2 b3 : bool,
+Lemma try_bquote : forall b1 b2 b3,
   false && b1 && (b2 && true && b3) && (b2 && b1 && b2) = false && b2.
 Proof.
 move=> b1 b2 b3.
-rewrite !quote.
-done.
+Time rewrite Quotation.quote.
+Time rewrite !Quotation.quote.
+by [].
 Qed.
 
 Fixpoint bstore s bt := match bt with
@@ -315,13 +313,13 @@ Fixpoint bread ot i s := match s with
 end%QT.
 
 Fixpoint bnormed t i := match t with
-| '[bAnd t' 'K_j] => (j > 0) && ((i == 0) || (i == j.+1)) && bnormed t' j
-| 'K_j => (i <= 1) && (j == 0)
+| '[bAnd t' 'K_j] => bnormed t' 1
+| 'K_j => i > 0
 | '[bTrue] => i == 0
 | _ => false
 end%QT.
 
-Definition bsimp_fn (x0 : bool) e t :=
+Definition bsimp_fn e t :=
   if bnormed t 0 then None else
   Quotation.interp e (bread None 0 (bstore [::] t)).
 
@@ -331,7 +329,7 @@ pose oand ob1 ob2 := obind (fun b1 => omap (andb b1) ob2) ob1.
 have [oaC oaA oaI]: [/\ commutative oand, associative oand & idempotent oand].
   by split; do 6?case=> //.
 have oa1: left_id (Some true) oand by case=> [[]|].
-rewrite /bsimp_fn => e t _ b b'; case: bnormed => //=.
+rewrite /bsimp_fn => e t b b'; case: bnormed => //=.
 set ie := Quotation.interp e; set s := [::] => def_b.
 pose ir j s := ie (bread None j s).
 suff{b'} storeP: ir 0 (bstore s t) = oand (ir 0 s) (Some b).
@@ -352,14 +350,16 @@ rewrite addSnnS; case=> [|[|] s]; last exact: IHi.
 by rewrite !irT IHi oaA.
 Qed.
 
-Definition bsimp := Quotation.simp_opform bsimpP.
+Definition bsimp := Quotation.simp_form bsimpP.
 
-Lemma try2 : forall b1 b2 b3,
+Lemma try_bsimp : forall b1 b2 b3,
   true && b1 && (b2 && b3) && (b2 && b1 && b2) = b1 && b2 && true && b3.
 Proof.
 move=> b1 b2 b3.
-rewrite !bsimp.
-done.
+Time rewrite bsimp.
+Time rewrite !bsimp.
+by [].
 Qed.
+Print try_bsimp.
 
 
