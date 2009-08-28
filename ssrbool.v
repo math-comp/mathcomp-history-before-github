@@ -76,7 +76,7 @@ Require Export Bool.
 (* pred0                   == the empty predicate                            *)
 (* predT                   == the total (always true) predicate              *)
 (*                            if T : predArgType, then T coerces to predT    *)
-(* {:T}                    == T cast to predArgType (e.g., {:bool * nat})    *)
+(* {: T}                   == T cast to predArgType (e.g., {: bool * nat})   *)
 (*                                                                           *)
 (* [rel x y | E]           == simplifying relation                           *)
 (* [rel x y : T | E]       == relation, with a cast on the arguments         *)
@@ -105,9 +105,10 @@ Require Export Bool.
 (* Localization of (Prop) predicates; if P1 is convertible to forall x, Qx,  *)
 (* P2 to forall x y, Qxy and P3 to forall x y z, Qxyz :                      *)
 (*                                                                           *)
-(* {in d , P1}            == forall x, x \in d -> Qx                         *)
-(* {in d1 & d2 , P2}      == forall x y, x \in d1 -> y \in d2 -> Qxy         *)
-(* {in d & , P2}          == forall x y, x \in d -> y \in d -> Qxy           *)
+(* {for y, P1}            == Qx{y / x}                                       *)
+(* {in d, P1}             == forall x, x \in d -> Qx                         *)
+(* {in d1 & d2, P2}       == forall x y, x \in d1 -> y \in d2 -> Qxy         *)
+(* {in d &, P2}           == forall x y, x \in d -> y \in d -> Qxy           *)
 (* {in d1 & d2 &, Q3}     == forall x y z,                                   *)
 (*                            x \in d1 -> y \in d2 -> z \in d2 -> Qxyz       *)
 (*                            + Variants                                     *)
@@ -275,7 +276,16 @@ Lemma negbRL : forall b c, ~~ b = c -> b = ~~ c.
 Proof. by move=> [] ? <-. Qed.
 
 Lemma contra : forall c b : bool, (c -> b) -> ~~ b -> ~~ c.
-Proof. by case=> // ? ->. Qed.
+Proof. by do 2!case. Qed.
+
+Lemma contraL : forall c b : bool, (c -> ~~ b) -> b -> ~~ c.
+Proof. by do 2!case. Qed.
+
+Lemma contraR : forall c b : bool, (~~ c -> b) -> ~~ b -> c.
+Proof. by do 2!case. Qed.
+
+Lemma contraLR : forall c b : bool, (~~ c -> ~~ b) -> b -> c.
+Proof. by do 2!case. Qed.
 
 (* Coercion of sum-style datatypes into bool, which makes it possible *)
 (* to use ssr's boolean if rather than Coq's "generic" if.            *)
@@ -306,11 +316,11 @@ Section BoolIf.
 Variables (A B : Type) (x : A) (f : A -> B) (b : bool) (vT vF : A).
 
 CoInductive if_spec : A -> bool -> Set :=
-  | IfSpecTrue  of b         : if_spec vT true
-  | IfSpecFalse of b = false : if_spec vF false.
+  | IfSpecTrue  of  b         : if_spec vT true
+  | IfSpecFalse of  b = false : if_spec vF false.
 
 Lemma ifP : if_spec (if b then vT else vF) b.
-Proof. by case Db: b; constructor. Qed.
+Proof. by case def_b: b; constructor. Qed.
 
 Lemma if_same : (if b then vT else vT) = vT.
 Proof. by case b. Qed.
@@ -423,6 +433,13 @@ Proof. case; [exact: introT | exact: introF]. Qed.
 Lemma decPcases : if b then P else ~ P. Proof. by case Pb. Qed.
 
 Definition decP : {P} + {~ P}. by case: b decPcases; [left | right]. Defined.
+
+CoInductive exm_spec : bool -> Type :=
+  | ExmTrue of     P : exm_spec true
+  | ExmFalse of ~~ b : exm_spec false.
+
+Lemma exmP : exm_spec b.
+Proof. by case def_b: b / Pb; constructor; rewrite ?def_b. Qed.
 
 End Reflect.
 
@@ -537,6 +554,9 @@ Proof. by case b1; case b2; constructor; auto; case; auto. Qed.
 
 Lemma implyP: reflect (b1 -> b2) (b1 ==> b2).
 Proof. by case b1; case b2; constructor; auto. Qed.
+
+Lemma orbNP : exm_spec b1 b1 b1.
+Proof. by case: b1; constructor. Qed.
 
 End ReflectConnectives.
 
@@ -1005,6 +1025,10 @@ Variables T1 T2 T3 : Type.
 Variables (d1 : mem_pred T1) (d2 : mem_pred T2) (d3 : mem_pred T3).
 Notation Local ph := (phantom Prop).
 
+Definition prop_for (x : T1) P & ph {all1 P} := P x.
+
+Lemma forE : forall x P phP, @prop_for x P phP = P x. Proof. by []. Qed.
+
 Definition prop_in1 P & ph {all1 P} :=
   forall x, in_mem x d1 -> P x.
 
@@ -1046,6 +1070,10 @@ Definition bijective_in aT rT (d : mem_pred aT) (f : aT -> rT) :=
 Definition bijective_on aT rT (cd : mem_pred rT) (f : aT -> rT) :=
   exists2 g, prop_on1 cd (Phantom (cancel f)) (onPhantom (cancel f) g)
            & prop_in1 cd (inPhantom (cancel g f)).
+
+Notation "{ 'for' x , P }" :=
+  (prop_for x (inPhantom P))
+  (at level 0, format "{ 'for'  x ,  P }") : type_scope.
 
 Notation "{ 'in' d , P }" :=
   (prop_in1 (mem d) (inPhantom P))
