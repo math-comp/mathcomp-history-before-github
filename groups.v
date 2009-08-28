@@ -43,7 +43,7 @@ Require Import div paths bigops finset.
 (*  Operations on sets of a finite group                                     *)
 (*            H * G     == {xy | x \in H, y \in G}                           *)
 (*   1 or [1] or [1 gT] == the unit group                                    *)
-(* [setT]%G or [setT gT]%G == the group of all x : gT (in subgroup_scope)    *)
+(*          [set: gT]%G == the group of all x : gT (in subgroup_scope)       *)
 (*            subg_of G == the subtype of all x \in G                        *)
 (*                         if G is a group, subg_of G is a finGroupType      *)
 (*          subg, sgval == projection into, injection from subg_of G         *)
@@ -1078,10 +1078,10 @@ Proof. by rewrite /group_set set11 mulg1 subxx. Qed.
 Canonical Structure one_group := group group_set_one.
 Canonical Structure set1_group := @group [set 1] group_set_one.
 
-Lemma group_setT : group_set setT.
-Proof. apply/group_setP; split=> [|x y _ _]; exact: in_setT. Qed.
+Lemma group_setT : forall phT : phant gT, group_set (setTfor phT).
+Proof. by move=> ?; apply/group_setP; split=> [|x y _ _]; rewrite inE. Qed.
 
-Canonical Structure setT_group := group group_setT.
+Canonical Structure setT_group phT := group (group_setT phT).
 
 (* These definitions come early so we can establish the Notation. *)
 Definition generated A := \bigcap_(G : groupT | A \subset G) G.
@@ -1117,10 +1117,8 @@ Bind Scope subgroup_scope with group_of.
 Notation "1" := (one_group _) : subgroup_scope.
 Notation "[ 1 gT ]" := (1%G : {group gT})
   (at level 0, format "[ 1  gT ]") : subgroup_scope.
-Notation "[ 'setT' ]" := (setT_group _)
-  (at level 0, format "[ 'setT' ]") : subgroup_scope.
-Notation "[ 'setT' gT ]" := ([setT]%G : {group gT})
-  (at level 0, format "[ 'setT'  gT ]") : subgroup_scope.
+Notation "[ 'set' : gT ]" := (setT_group (Phant gT))
+  (at level 0, format "[ 'set' :  gT ]") : subgroup_scope.
 
 Notation "<< A >>"  := (generated A)
   (at level 0, format "<< A >>") : group_scope.
@@ -1577,9 +1575,9 @@ Hint Resolve cardG_gt0 indexg_gt0.
 
 Notation "G :^ x" := (conjG_group G x) : subgroup_scope.
 
-Notation "[ 'subg' G ]" := (@finset.setT (subg_finType G))
+Notation "[ 'subg' G ]" := [set: subg_of G]
   (at level 0, format "[ 'subg'  G ]") : group_scope.
-Notation "[ 'subg' G ]" := (setT_group (subFinGroupType G)) : subgroup_scope.
+Notation "[ 'subg' G ]" := [set: subg_of G]%G : subgroup_scope.
 
 Prenex Implicits subg sgval subg_of.
 

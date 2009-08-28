@@ -17,8 +17,8 @@ Require Import finfun bigops.
 (*                      in C)                                                *)
 (*     [set x \in D] == the A containing the x in the collective predicate D *)
 (* [set x \in D | C] == the A containing the x in D such that C holds        *)
-(*     [set] or set0 == the empty set                                        *)
-(*              setT == the full set (the A containing all x : T)            *)
+(*              set0 == the empty set                                        *)
+(*  [set: T] or setT == the full set (the A containing all x : T)            *)
 (*           A :|: B == the union of A and B                                 *)
 (*            x |: A == add x to A                                           *)
 (*           A :&: B == the intersection of A and B                          *)
@@ -31,6 +31,7 @@ Require Import finfun bigops.
 (*           cover P == the union of the set of sets P                       *)
 (*        trivIset P == the elements of P are pairwise disjoint              *)
 (*     partition P A == P is a partition of A                                *)
+(*          P ::&: A == those sets in P that are subsets of A                *)
 (*        minset p A == A is a minimal set satisfying p                      *)
 (*        maxset p A == A is a maximal set satisfying p                      *)
 (* We also provide notations A :=: B, A :<>: B, A :==: B, A :!=: B, A :=P: B *)
@@ -129,8 +130,8 @@ Notation "[ 'set' x \in A | P ]" := [set x | (x \in A) && P]
 Notation "[ 'set' x \in A ]" := [set x | x \in A]
   (at level 0, x at level 69, format "[ 'set'  x  \in  A ]") : set_scope.
 
-(* Experimental alternative compact symbolic notation for subset and proper. *)
 (** Begin outcomment
+(* Experimental alternative compact symbolic notation for subset and proper. *)
 Notation "A :<=: B" := (pred_of_set A \subset pred_of_set B)
   (at level 70, B at next level, no associativity) : subset_scope.
 Notation "A :<: B" := (pred_of_set A \proper pred_of_set B)
@@ -151,17 +152,18 @@ Notation "A :<: B :<: C" := ((A :<: B) && (B :<: C))
 Canonical Structure set_predType T :=
   Eval hnf in @mkPredType _ (let s := set_type T in s) (@pred_of_set T).
 
-(* Alternative: *)
+(** Begin outcomment Alternative:
 (* Use specific canonical structures for sets. This allows to have  *)
 (* smaller terms, because generic operators involve only two levels *)
 (* of nesting rather than three here; also, this lets Coq unify     *)
-(* sets with predType sorts after the fact.
+(* sets with predType sorts after the fact.                         *)
 Canonical Structure set_predType := Eval hnf in mkPredType pred_of_set.
 Canonical Structure set_of_predType := Eval hnf in [predType of sT].
   Not selected because having two different ways of coercing to
   pred causes apply to fail, e.g., the group1 lemma does not apply
   to a 1 \in G with G : group gT when this goal results from
-  rewriting A = G in 1 \in A, with A : set gT.                      *)
+  rewriting A = G in 1 \in A, with A : set gT.
+** End outcomment *)
 
 Section BasicSetTheory.
 
@@ -187,9 +189,10 @@ by have:= eqAB x; rewrite unlock.
 Qed.
 
 Definition set0 := [set x : T | false].
-Definition setT := [set x : T | true].
+Definition setTfor (phT : phant T) := [set x : T | true].
 
-Lemma in_setT : forall x, x \in setT. Proof. by move=> x; rewrite in_set. Qed.
+Lemma in_setT : forall x, x \in setTfor (Phant T).
+Proof. by move=> x; rewrite in_set. Qed.
 
 Lemma eqsVneq : forall A B : {set T}, {A = B} + {A != B}.
 Proof. exact: eqVneq. Qed.
@@ -199,9 +202,13 @@ End BasicSetTheory.
 Definition inE := (in_set, inE).
 
 Implicit Arguments set0 [T].
-Implicit Arguments setT [T].
-Prenex Implicits set0 setT.
+Prenex Implicits set0.
 Hint Resolve in_setT.
+
+Notation "[ 'set' : T ]" := (setTfor (Phant T))
+  (at level 0, format "[ 'set' :  T ]") : set_scope.
+
+Notation setT := [set: _] (only parsing).
 
 Section setOpsDefs.
 
@@ -633,7 +640,7 @@ Proof. by move=> x; rewrite cardsE card1. Qed.
 Lemma cardsUI : forall A B, #|A :|: B| + #|A :&: B| = #|A| + #|B|.
 Proof. by move=> A B; rewrite !cardsE cardUI. Qed.
 
-Lemma cardsT : #|@setT T| = #|T|.
+Lemma cardsT : #|[set: T]| = #|T|.
 Proof. by rewrite cardsE. Qed.
 
 Lemma cardsID : forall B A, #|A :&: B| + #|A :\: B| = #|A|.
