@@ -66,7 +66,7 @@ Proof.
 pose maxp A P := [max P | p.-subgroup(A) P]; pose S := [set P | maxp G P].
 pose oG := orbit 'JG%act G.
 have actS: [acts (G | 'JG) on S].
-  apply/subsetP=> x Gx; rewrite inE; apply/subsetP=> P; rewrite 3!inE.
+  apply/subsetP=> x Gx; rewrite 2!inE; apply/subsetP=> P; rewrite 3!inE.
   exact: max_pgroupJ.
 have S_pG: forall P, P \in S -> P \subset G /\ p.-group P.
   by move=> P; rewrite inE; case/maxgroupP; case/andP.

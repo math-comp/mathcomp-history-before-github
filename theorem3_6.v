@@ -876,7 +876,7 @@ have ViJ: forall x Ki, x \in P <*> R -> (Vi Ki :^ x = Vi (Ki :^ x))%G.
   move=> x Ki PRx; apply: group_inj; rewrite /= conjIg centJ (normP _) //.
   by apply: subsetP PRx; rewrite mulgen_subG nVP (subset_trans sRG).
 have actsPR_K: [acts (P <*> R | 'JG) on mxK].
-  apply/subsetP=> x PRx; rewrite inE; apply/subsetP=> Ki.
+  apply/subsetP=> x PRx; rewrite 2!inE; apply/subsetP=> Ki.
   rewrite !inE -ViJ // !trivg_card1 cardJg /=.
   case/andP; case/maxgroupP=> sKj mxKj ->.
   rewrite -(normsP nKPR x PRx) andbT.
@@ -884,7 +884,7 @@ have actsPR_K: [acts (P <*> R | 'JG) on mxK].
   rewrite !sub_conjg /= -sub_conjgV=> sQ.
   by move/mxKj <-; rewrite // conjsgKV.
 have actsPR: [acts (P <*> R | 'JG) on Vi @: mxK].
-  apply/subsetP=> x PRx; rewrite inE; apply/subsetP=> Vj.
+  apply/subsetP=> x PRx; rewrite 2!inE; apply/subsetP=> Vj.
   case/imsetP=> Kj mxKj ->{Vj}.
   by rewrite inE /= ViJ // mem_imset // (actsP actsPR_K).
 have transPR: [transitive (P <*> R | 'JG) on Vi @: mxK].

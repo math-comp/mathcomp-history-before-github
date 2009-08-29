@@ -296,12 +296,6 @@ Qed.
 
 Module AfterInner. End AfterInner.
 
-Definition quo_act (gT aT : finGroupType) (H : {set gT}) to :=
-  fun (Hx : coset_of H) (a : aT) =>
-    if 'N_(|to)(H) == setT then insubd Hx (to^~ a @: Hx) else Hx.
-
-Prenex Implicits quo_act.
-
 (*
 Section ExternalAction.
 

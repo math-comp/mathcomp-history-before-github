@@ -133,9 +133,10 @@ Variable n :  nat.
 
 Definition n_act (t : n.-tuple sT) a := [tuple of map (to^~ a) t].
 
-Lemma n_act_is_action : is_action n_act.
+Lemma n_act_is_action : is_action n_act setT.
 Proof.
-by split=> [t|t a b]; apply: eq_from_tnth => i; rewrite !tnth_map ?act1 ?actM.
+by apply: is_total_action => [t|t a b]; apply: eq_from_tnth => i;
+    rewrite !tnth_map ?act1 ?actM.
 Qed.
 
 Canonical Structure n_act_action := Action n_act_is_action.

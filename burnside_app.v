@@ -291,7 +291,7 @@ Proof. by move=> k; apply/ffunP=> a; rewrite ffunE invg1 permE. Qed.
 Lemma act_f_morph:  forall k x y, act_f k (x * y) = act_f (act_f k x) y.
 Proof. by move=> k x y; apply/ffunP=> a; rewrite !ffunE invMg permE. Qed.
 
-Definition to := Action (act_f_1, act_f_morph).
+Definition to := TotalAction act_f_1 act_f_morph.
 
 Definition square_coloring_number2 := #|orbit to isometries2 @: setT|.
 Definition square_coloring_number4 := #|orbit to rotations @: setT|.
@@ -871,7 +871,7 @@ Proof. by move=> k; apply/ffunP=> a; rewrite ffunE invg1 permE. Qed.
 Lemma act_g_morph:  forall k x y, act_g k (x * y) = act_g (act_g k x) y.
 Proof. by move=> k x y; apply/ffunP=> a; rewrite !ffunE invMg permE. Qed.
 
-Definition to_g := Action (act_g_1, act_g_morph).
+Definition to_g := TotalAction act_g_1 act_g_morph.
 
 Definition cube_coloring_number24 := #|orbit to_g diso_group3 @: setT|.
 

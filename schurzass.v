@@ -40,7 +40,7 @@ have toX: forall a n y, y \in G -> (to (a *+ n) y = to a y *+ n)%R.
 pose toB y Gy := big_morph (to^~ y) (toM y Gy) (to0 y Gy).
 (* Action on right cosets *)
 have act_Cayley: forall K L : {group gT}, [acts (L | 'Msr) on rcosets K L].
-  move=> K L; apply/subsetP=> x Lx; rewrite inE; apply/subsetP=> X.
+  move=> K L; apply/subsetP=> x Lx; rewrite 2!inE; apply/subsetP=> X.
   case/rcosetsP=> y Ly ->{X}; rewrite inE /= rcosetE -rcosetM -rcosetE.
   by rewrite mem_imset ?groupM.
 (* Get m == 1 / #|G : P| [mod #|H|] *)
