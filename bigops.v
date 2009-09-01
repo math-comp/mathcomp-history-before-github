@@ -464,7 +464,7 @@ Definition bigop := reducebig.
 Lemma bigopE : bigop = reducebig. Proof. by []. Qed.
 End ReduceBig.
 
-Notation bigop := ReduceBig.bigop.
+Notation bigop := ReduceBig.bigop (only parsing).
 Canonical Structure reduce_big_unlock := Unlockable ReduceBig.bigopE.
 
 Definition index_iota m n := iota m (n - m).
