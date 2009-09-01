@@ -1,7 +1,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import prime fintype paths finfun bigops ssralg finset.
 Require Import groups morphisms perm automorphism normal commutators.
-Require Import action cyclic center pgroups sylow gprod schurzass hall. 
+Require Import action cyclic center pgroups sylow gprod hall. 
 Require Import coprime_act nilpotent coprime_comm maximal.
 
 Set Implicit Arguments.

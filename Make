@@ -30,6 +30,7 @@ zmodp.v
 matrix.v
 charpoly.v
 cyclic.v
+gfunc.v
 pgroups.v
 center.v
 nilpotent.v
@@ -37,7 +38,7 @@ maximal.v
 prim_act.v
 sylow.v
 abelian.v
-schurzass.v
+dihedral.v
 hall.v
 coprime_act.v
 coprime_comm.v
@@ -45,8 +46,6 @@ frobenius.v
 alt.v
 burnside_app.v
 theorem3_6.v
-gfunc.v
-dihedral.v
 
 
 COQC = $(COQBIN)ssrcoq
