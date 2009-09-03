@@ -631,12 +631,15 @@ case abelK: (abelian K); last first.
     [/\ 'C_K(P) = 'Z(K), K^`(1) = 'Z(K) & 'Phi(K) = 'Z(K)].
   + (* C_K(P) = K^(1) = Phi(K)  = Z(K) by Asch. 24.7 *) admit.
   have xKq: exponent K %| q.
-    have [Q [chQ xQq qCKQ]]: exists Q : {group gT},
-      [/\ Q \char K, exponent Q %| q & q.-group 'C_(Aut K | 'P)(Q)].
-      (* B & G 1.13 *) admit.
+    have oddq: odd q.
+      move: oddG; rewrite !odd_2'nat; apply: pnat_dvd.
+      by apply: dvdn_trans (cardSg sHG); rewrite oH mulnAC dvdn_mull.
+    have ntK: K :!=: 1 by apply/eqP=> K1; rewrite K1 comm1G eqxx in ntKP.
+    have{oddq ntK} [Q [chQ _ _ xQq qCKQ]] := critical_odd oddq qK ntK.
     have: P <*> R \subset 'N(Q) by exact: char_norm_trans nKPR.
     have sQK := char_sub chQ.
-    case/IHK=> // [<- //|cQP]; case/eqP: ntKP; apply/commG1P.
+    case/IHK=> // [<- | cQP]; first by rewrite xQq.
+    case/eqP: ntKP; apply/commG1P.
     rewrite centsC -ker_conj_aut -sub_morphim_pre // -[_ @* _]setIid.
     apply/trivgP; apply: coprime_TIg.
     apply: pnat_coprime (morphim_pgroup _ pP) _.
@@ -875,7 +878,7 @@ have dprod_V : \big[dprod/1]_(Ki \in mxK) Vi Ki = V.
 have ViJ: forall x Ki, x \in P <*> R -> (Vi Ki :^ x = Vi (Ki :^ x))%G.
   move=> x Ki PRx; apply: group_inj; rewrite /= conjIg centJ (normP _) //.
   by apply: subsetP PRx; rewrite mulgen_subG nVP (subset_trans sRG).
-have actsPR_K: [acts (P <*> R | 'JG) on mxK].
+have actsPR_K: [acts P <*> R, on mxK | 'JG].
   apply/subsetP=> x PRx; rewrite 2!inE; apply/subsetP=> Ki.
   rewrite !inE -ViJ // !trivg_card1 cardJg /=.
   case/andP; case/maxgroupP=> sKj mxKj ->.
@@ -883,11 +886,11 @@ have actsPR_K: [acts (P <*> R | 'JG) on mxK].
   apply/maxgroupP; rewrite /proper !conjSg; split=> // Q.
   rewrite !sub_conjg /= -sub_conjgV=> sQ.
   by move/mxKj <-; rewrite // conjsgKV.
-have actsPR: [acts (P <*> R | 'JG) on Vi @: mxK].
+have actsPR: [acts P <*> R, on Vi @: mxK | 'JG].
   apply/subsetP=> x PRx; rewrite 2!inE; apply/subsetP=> Vj.
   case/imsetP=> Kj mxKj ->{Vj}.
   by rewrite inE /= ViJ // mem_imset // (actsP actsPR_K).
-have transPR: [transitive (P <*> R | 'JG) on Vi @: mxK].
+have transPR: [transitive P <*> R, on Vi @: mxK | 'JG].
   have [K1 mxK1]: exists K1, K1 \in mxK.
     have:= sub0set mxK; rewrite subEproper; case/predU1P=> [mx0|]; last first.
       by case/andP=> _; case/subsetPn=> K1; exists K1.
@@ -1107,10 +1110,10 @@ rewrite subEproper; case/predU1P=> [defV1R | ]; last first.
   have ViV1: Vi K1 \in Vi @: mxK by rewrite mem_imset.
   rewrite odd_2'nat in oddG; have: 2^'.-group (P <*> R).
     by  apply: pgroupS oddG; rewrite mulgen_subG sRG (subset_trans sPH).
-  move/(pnat_dvd (trans_div ViV1 transPR)).
+  move/(pnat_dvd (atrans_dvd ViV1 transPR)).
   rewrite defmxV cardsU1 (negPf V1Rj) oV1R -oR.
   rewrite -odd_2'nat /= odd_2'nat; case/negP; exact: pgroupS oddG.
-have:= sub0set 'C_(Vi @: mxK)(P | 'JG); rewrite subEproper.
+have:= sub0set 'Fix_(Vi @: mxK | 'JG)(P); rewrite subEproper.
 case/predU1P=> [fix0|].
   case/negP: nrp; rewrite eq_sym -dvdn_prime2 //; apply/eqnP.
   have:= pgroup_fix_mod pP (subset_trans (mulgen_subl P R) actsPR).

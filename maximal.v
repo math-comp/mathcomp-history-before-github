@@ -688,6 +688,16 @@ rewrite dprodE // cycle_subG; apply: subsetP Ax; rewrite centsC.
 by apply: subset_trans sBA _; case/andP: pA; case/andP.
 Qed.
 
+Lemma abelem_split_dprod : forall rT (p : nat) (A B : {group rT}),
+  p.-abelem A -> B \subset A -> exists C : {group rT}, B \x C = A.
+Proof.
+move=> rT p A B pA sBA.
+case/splitsP: (abelem_splits pA sBA) => C; case/complP=> trBC defA.
+exists C; rewrite dprodE // (subset_trans sBA) // centsC.
+case/andP: pA; case/andP=> abA _ _; apply: subset_trans abA.
+by rewrite -defA mulg_subr.
+Qed.
+
 Lemma isog_abelem_card : forall rT (p : nat) G (A : {group rT}),
   p.-abelem G -> isog G A = p.-abelem A && (#|A| == #|G|).
 Proof.
@@ -1045,7 +1055,7 @@ by rewrite comm1g !mul1g.
 Qed.
 
 Lemma critical_p_stab_Aut : forall H,
-  critical H G -> p.-group G -> p.-group 'C_(Aut G | 'P)(H).
+  critical H G -> p.-group G -> p.-group 'C_(Aut G)(H | 'P).
 Proof.
 move=> H [chH sPhiZ sRZ eqCZ] pG; have sHG := char_sub chH.
 have sdAG: idm (Aut G) @* Aut G \subset Aut G by rewrite morphim_idm.
@@ -1095,7 +1105,7 @@ Theorem critical_odd :
                         [~: H, G] \subset 'Z(H),
                         nil_class H <= 2,
                         exponent H = p
-                      & p.-group 'C_(Aut G | 'P)(H)]}.
+                      & p.-group 'C_(Aut G)(H | 'P)]}.
 Proof.
 move=> odd_p pG ntG; have [H krH]:= Thompson_critical pG.
 have [chH sPhiZ sGH_Z scH] := krH; have clH := critical_class2 krH.
@@ -1115,7 +1125,7 @@ split=> //.
   rewrite /= -(setIidPr (Ohm_sub _ _)); move/TI_Ohm1; rewrite setIid => H1.
   by rewrite H1 center1 cent1T !setIT in scH; case/eqP: ntG.
 apply/pgroupP=> q pr_q; case/Cauchy=> // f; case/setIdP=> Af cDf ofq.
-apply/idPn=> nqp {sDG_Z chD sDH}; suffices: f \in 'C_(Aut G | 'P)(H).
+apply/idPn=> nqp {sDG_Z chD sDH}; suffices: f \in 'C_(Aut G)(H | 'P).
   move/(mem_p_elt (critical_p_stab_Aut krH pG)); move/pnatP=> pf.
   by rewrite pf // ofq in nqp.
 rewrite inE Af; apply/astabP=> x Hx; rewrite /= /aperm /=.

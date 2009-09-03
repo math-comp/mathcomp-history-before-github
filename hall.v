@@ -157,31 +157,13 @@ Section Gaschutz.
 Variables (gT : finGroupType) (G H P : {group gT}).
 Implicit Types K L : {group gT}.
 
-(* Action on right cosets; should be in action.v *)
-Lemma act_Cayley: forall K L : {group gT}, [acts (L | 'Msr) on rcosets K L].
-Proof.
-move=> K L; apply/subsetP=> x Lx; rewrite 2!inE; apply/subsetP=> X.
-case/rcosetsP=> y Ly ->{X}; rewrite inE /= rcosetE -rcosetM -rcosetE.
-by rewrite mem_imset ?groupM.
-Qed.
-
-(* This should move to cyclic.v *)
-Definition expgn_inv k := (egcdn k #|H|).1.
-Lemma expgnK : forall k,
-  coprime #|H| k -> {in H, cancel (expgn^~ k) (expgn^~ (expgn_inv k))}.
-Proof.
-move=> k coHk x; move/order_dvdG=> Hx; apply/eqP.
-rewrite -expgn_mul (eq_expg_mod_order _ _ 1) -(modn_dvdm 1 Hx).
-by rewrite -(chinese_modl coHk 1 0) /chinese mul1n addn0 modn_dvdm.
-Qed.
-
 Hypotheses (nsHG : H <| G) (sHP : H \subset P) (sPG : P \subset G).
 Hypotheses (abelH : abelian H) (coHiPG : coprime #|H| #|G : P|).
 
 Let sHG := normal_sub nsHG.
 Let nHG := subsetP (normal_norm nsHG).
 
-Let m := (expgn_inv #|G : P|).
+Let m := (expgn_inv H #|G : P|).
 
 Import FiniteModule.
 Implicit Types a b : fmod_of abelH.
@@ -246,13 +228,13 @@ have{cocycle_mu} cocycle_nu : {in G &, forall y z,
   nu z + nu y ^@ z = mu y z *+ #|G : P| + nu (y * z)%g}%R.
 - move=> y z Gy Gz; rewrite /= (actr_sum z) /=.
   have ->: (nu z = \sum_(Px \in rcosets P G) mu (repr Px * y)%g z)%R.
-    rewrite /nu (reindex ('Msr%act^~ y)); last first.
-      by exists ('Msr%act^~ y^-1) => Px _; rewrite (actK, actKV).
-    symmetry; apply: eq_big => Px; first by rewrite (actsP (act_Cayley P G)).
+    rewrite /nu (reindex ('Rs%act^~ y)); last first.
+      by exists ('Rs%act^~ y^-1) => Px _; rewrite (actK, actKV).
+    symmetry; apply: eq_big => Px; first by rewrite (actsP (act_Cayley G P)).
     case/rcosetsP=> x Gx /= ->{Px}; rewrite rcosetE -rcosetM.
     case: repr_rcosetP=> p1 Pp1; case: repr_rcosetP=> p2 Pp2.
     by rewrite -mulgA [x * y]lock !mu_Pmul.
-  rewrite -GRing.sumr_const -!big_split /=; apply: eq_bigr => Px.
+  rewrite -sumr_const -!big_split /=; apply: eq_bigr => Px.
   case/rcosetsP=> x Gx ->{Px}; rewrite -cocycle_mu //.
   by case: repr_rcosetP=> p1 Pp1; rewrite groupMr // (subsetP sPG).
 move: nu => nu in nu_Hmul cocycle_nu.
@@ -306,10 +288,10 @@ have Gx: x \in G by rewrite sKG.
 rewrite conjVg -mulgA -fmvalJ ?nHG // -fmvalN -fmvalA (_ : _ + _ = nu x)%R.
   by rewrite val_nu // mulKVg groupV mem_remgr // eqHL groupV.
 rewrite actZr !oppr_muln -mulrn_addl actr_sum.
-rewrite addrC (reindex ('Msr%act^~ x)) /=; last first.
-  by exists ('Msr%act^~ x^-1) => Px _; rewrite (actK, actKV).
+rewrite addrC (reindex ('Rs%act^~ x)) /=; last first.
+  by exists ('Rs%act^~ x^-1) => Px _; rewrite (actK, actKV).
 rewrite (eq_bigl (mem (rcosets Q K))) => [/=|X]; last first.
-  by rewrite (actsP (act_Cayley _ K)).
+  by rewrite (actsP (act_Cayley K _)).
 rewrite -sumr_sub /= (eq_bigr (fun _ => nu x)%R) => [|X]; last first.
   case/imsetP=> y Ky ->{X}; rewrite !rcosetE.
   set yx1 := repr _; have: yx1 \in Q :* y :* x.
@@ -329,72 +311,24 @@ Qed.
 
 End Gaschutz.
 
-(* This should be in gprod. *)
-Lemma cprod_modl : forall (gT : finGroupType) U V (W G : {group gT}),
-  U \* V = W -> U \subset G -> U \* (V :&: G) = W :&: G.
-Proof.
-move=> gT A B W G; case/cprodP=> [[U V -> -> {A B}]] defW cUV sUG.
-rewrite cprodE; first by rewrite group_modl ?defW.
-by rewrite (subset_trans cUV) ?centS ?subsetIl.
-Qed.
-
-Lemma cprod_modr : forall (gT : finGroupType) U V (W G : {group gT}),
-  U \* V = W -> V \subset G -> (G :&: U) \* V = G :&: W.
-Proof.
-move=> gT U V W G; rewrite -!(cprodC V) !(setIC G); exact: cprod_modl.
-Qed.
-
-Lemma dprod_modl : forall (gT : finGroupType) U V (W G : {group gT}),
-  U \x V = W -> U \subset G -> U \x (V :&: G) = W :&: G.
-Proof.
-move=> gT A B W G; case/dprodP=> [[U V -> -> {A B}]] defW cUV trUV sUG.
-rewrite dprodEcprod; last by rewrite setIA trUV (setIidPl _) ?sub1G.
-by apply: cprod_modl; rewrite ?cprodE.
-Qed.
-
-Lemma dprod_modr : forall (gT : finGroupType) U V (W G : {group gT}),
-  U \x V = W -> V \subset G -> (G :&: U) \x V = G :&: W.
-Proof.
-move=> gT U V W G; rewrite -!(dprodC V) !(setIC G); exact: dprod_modl.
-Qed.
-
-(* This should be in maximal or even pgroups. *)
-Lemma abelem_splits : forall (gT : finGroupType) (V U : {group gT}) p,
-  p.-abelem V -> U \subset V -> exists W : {group gT}, U \x W = V.
-Proof.
-move=> gT V U p; elim: {V}_.+1 {-2}V U (ltnSn #|V|) => // n IHn V U.
-rewrite ltnS => leVn pV sUV.
-case: (eqsVneq U 1) => [-> |]; first by exists V; rewrite dprod1g.
-case/trivgPn=> x Ux x1; have Vx := subsetP sUV x Ux; rewrite -cycle_subG in Ux.
-have{x1} x_gt1: #[x] > 1 by rewrite ltnNge -trivg_card_le1 cycle_eq1.
-have{Vx} [H [sHV oH defV]] := p_abelem_split1 pV Vx.
-have{oH leVn x_gt1} ltHn: #|H| < n.
-  by apply: leq_trans leVn; rewrite oH ltn_Pdiv.
-have{ltHn} [W defH] := IHn _ _ ltHn (p_abelemS sHV pV) (subsetIl H U).
-by exists W; rewrite -(setIidPr sUV) -(dprod_modl defV Ux) -dprodA defH.
-Qed.
-
 (* This should be sufficient for B&G 1.20 *)
 Theorem Maeshke_abelem : forall (gT : finGroupType) (G V U : {group gT}) p,
-  p.-abelem V -> ~~ (p %| #|G|) -> U \subset V ->
-
+  p.-abelem V -> p^'.-group G -> U \subset V ->
     G \subset 'N(V) -> G \subset 'N(U) ->
   exists2 W : {group gT}, U \x W = V & G \subset 'N(W).
 Proof.
-move=> gT G V U p pV pG sUV nVG nUG.
+move=> gT G V U p pV p'G sUV nVG nUG.
 wlog pr_p: / prime p.
   case: (pgroup_1Vpr (abelem_pgroup pV)) => [V1 _ | [pr_p _ _]]; auto.
   exists 1%G; last by rewrite norms1.
   by rewrite dprodg1 V1; apply/trivgP; rewrite -V1.
-have splitU: [splits V, over U].
-  have [W] := abelem_splits pV sUV.
-  by case/dprodP=> _ defV _ trUW; apply/splitsP; exists W; exact/complP.
+have splitU: [splits V, over U] := abelem_splits pV sUV.
 case/andP: pV; case/andP=> abV _ pV; have cUV := subset_trans sUV abV.
 have sVVG := mulgen_subl V G.
 have{nUG} nUVG: U <| V <*> G.
   by rewrite /(U <| _) mulgen_subG (subset_trans sUV) // cents_norm // centsC.
 rewrite -{nUVG}(Gaschutz_split nUVG) ?(abelianS sUV) // in splitU; last first.
-  have coVG: coprime #|V| #|G| by rewrite (pnat_coprime pV) ?p'natE.
+  have coVG: coprime #|V| #|G| := pnat_coprime pV p'G.
   rewrite -divgS ?mulgen_subl //= norm_mulgenEr // coprime_cardMg // mulnC.
   by move: coVG; rewrite mulnK // -(LaGrange sUV) coprime_mull; case/andP.
 case/splitsP: splitU => WG; case/complP=> trUWG /= defVG.

@@ -573,7 +573,7 @@ rewrite ltnS => leGn pG; pose xpG := [pred x \in G | #[x] == p].
 case: (pickP xpG) => [x|no_x]; first by case/andP=> Gx; move/eqP; exists x.
 have{pG n leGn IHn} pZ: p %| #|'C_G(G)|.
   have:= pG; rewrite -(cardsID 'C(G)) dvdn_addl //.
-  have: [acts (G | 'J) on G :\: 'C(G)]; last move/acts_sum_card_orbit <-.
+  have: [acts G, on G :\: 'C(G) | 'J]; last move/acts_sum_card_orbit <-.
     by apply/actsP=> x Gx y; rewrite !inE -!mem_conjgV -centJ conjGid ?groupV.
   apply big_prop => // [|C]; first exact: dvdn_add.
   case/imsetP=> x; case/setDP=> Gx nCx ->{C}; rewrite card_orbit conjg_astab1.

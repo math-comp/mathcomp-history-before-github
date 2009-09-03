@@ -366,6 +366,18 @@ Qed.
 Canonical Structure cprod_law := Monoid.Law cprodA cprod1g cprodg1.
 Canonical Structure cprod_abelaw := Monoid.ComLaw cprodC.
 
+Lemma cprod_modl : forall A B G H,
+  A \* B = G -> A \subset H -> A \* (B :&: H) = G :&: H.
+Proof.
+move=> A B G H; case/cprodP=> [[U V -> -> {A B}]] defG cUV sUH.
+rewrite cprodE; first by rewrite group_modl ?defG.
+by rewrite (subset_trans cUV) ?centS ?subsetIl.
+Qed.
+
+Lemma cprod_modr : forall A B G H,
+  A \* B = G -> B \subset H -> (H :&: A) \* B = H :&: G.
+Proof. move=> A B G H; rewrite -!(cprodC B) !(setIC H); exact: cprod_modl. Qed.
+
 Lemma dprod1g : left_id 1 dprod.
 Proof. by move=> A; rewrite /dprod subsetIl cprod1g. Qed.
 
@@ -445,6 +457,18 @@ Qed.
 
 Canonical Structure dprod_law := Monoid.Law dprodA dprod1g dprodg1.
 Canonical Structure dprod_abelaw := Monoid.ComLaw dprodC.
+
+Lemma dprod_modl : forall A B G H,
+  A \x B = G -> A \subset H -> A \x (B :&: H) = G :&: H.
+Proof.
+move=> A B G H; case/dprodP=> [[U V -> -> {A B}]] defG cUV trUV sUH.
+rewrite dprodEcprod; first by apply: cprod_modl; rewrite ?cprodE.
+by rewrite setIA trUV (setIidPl _) ?sub1G.
+Qed.
+
+Lemma dprod_modr : forall A B G H,
+  A \x B = G -> B \subset H -> (H :&: A) \x B = H :&: G.
+Proof. move=> A B G H; rewrite -!(dprodC B) !(setIC H); exact: dprod_modl. Qed.
 
 End InternalDirProd.
 

@@ -34,13 +34,13 @@ Variable to : {action gT &-> sT}.
 (***********************************************************************)
 
 Lemma pgroup_fix_mod : forall (p : nat) (G : {group gT}) (S : {set sT}),
-  p.-group G -> [acts (G | to) on S] -> #|S| %% p = #|'C_S(G | to)| %% p.
+  p.-group G -> [acts G, on S | to] -> #|S| %% p = #|'Fix_(S | to)(G)| %% p.
 Proof.
 move=> p G S; case/pgroup_1Vpr=> [-> _|[p_pr _ [n cardG] GactS]].
   rewrite (setIidPl _) //; apply/subsetP=> x _.
   by rewrite inE sub1set inE act1.
-apply/eqP; rewrite -(cardsID 'C(G | to)) eqn_mod_dvd (leq_addr, addKn) //.
-have: [acts (G | to) on S :\: 'C(G | to)]; last move/acts_sum_card_orbit <-.
+apply/eqP; rewrite -(cardsID 'Fix_to(G)) eqn_mod_dvd (leq_addr, addKn) //.
+have: [acts G, on S :\: 'Fix_to(G) | to]; last move/acts_sum_card_orbit <-.
   apply/actsP=> a Ga x; rewrite !in_setD (actsP GactS) //; congr (~~ _ && _).
   by apply: actsP Ga x; rewrite norm_act_fix ?normG.
 apply: dvdn_sum => X; case/imsetP=> x; case/setDP=> _ nfx ->{X}.
@@ -59,13 +59,13 @@ Implicit Types P Q H K : {group gT}.
 
 Theorem Sylow's_theorem :
   [/\ forall P, [max P | p.-subgroup(G) P] = p.-Sylow(G) P,
-      [transitive (G | 'JG) on 'Syl_p(G)],
+      [transitive G, on 'Syl_p(G) | 'JG],
       forall P, p.-Sylow(G) P -> #|'Syl_p(G)| = #|G : 'N_G(P)|
    &  prime p -> #|'Syl_p(G)| %% p = 1%N ].
 Proof.
 pose maxp A P := [max P | p.-subgroup(A) P]; pose S := [set P | maxp G P].
 pose oG := orbit 'JG%act G.
-have actS: [acts (G | 'JG) on S].
+have actS: [acts G, on S | 'JG].
   apply/subsetP=> x Gx; rewrite 2!inE; apply/subsetP=> P; rewrite 3!inE.
   exact: max_pgroupJ.
 have S_pG: forall P, P \in S -> P \subset G /\ p.-group P.
@@ -79,7 +79,7 @@ have nrmG: forall P, P \subset G -> P <| 'N_G(P).
 have sylS: forall P, P \in S -> p.-Sylow('N_G(P)) P.
   move=> P S_P; have [sPG  pP] := S_pG P S_P.
   by rewrite normal_max_pgroup_Hall ?nrmG //; apply: SmaxN; rewrite ?normG.
-have{SmaxN} defCS: forall P, P \in S -> 'C_S(P | 'JG) = [set P].
+have{SmaxN} defCS: forall P, P \in S -> 'Fix_(S |'JG)(P) = [set P].
   move=> P S_P; apply/setP=> Q; rewrite {1}in_setI {1}conjG_fix.
   apply/andP/set1P=> [[S_Q nQP]|->{Q}]; last by rewrite normG.
   apply: val_inj; symmetry; case: (S_pG Q) => //= sQG _.
@@ -87,7 +87,7 @@ have{SmaxN} defCS: forall P, P \in S -> 'C_S(P | 'JG) = [set P].
 have{defCS} oG_mod: {in S &, forall P Q, #|oG P| %% p = (Q \in oG P) %% p}.
   move=> P Q S_P S_Q; have [sQG pQ] := S_pG _ S_Q.
   have soP_S: oG P \subset S by rewrite acts_orbit.
-  have: [acts (Q | 'JG) on oG P].
+  have: [acts Q, on oG P | 'JG].
     apply/actsP=> x; move/(subsetP sQG)=> Gx R; apply: orbit_transr.
     exact: mem_imset.
   move/pgroup_fix_mod=> -> //; rewrite -{1}(setIidPl soP_S) -setIA defCS //.
@@ -96,7 +96,7 @@ have{defCS} oG_mod: {in S &, forall P Q, #|oG P| %% p = (Q \in oG P) %% p}.
 have [P S_P]: exists P, P \in S.
   have: p.-subgroup(G) 1 by rewrite /psubgroup sub1G pgroup1.
   by case/(@maxgroup_exists _ (p.-subgroup(G))) => P; exists P; rewrite inE.
-have trS: [transitive (G | 'JG) on S].
+have trS: [transitive G, on S | 'JG].
   apply/imsetP; exists P => //; apply/eqP.
   rewrite eqEsubset andbC acts_orbit // S_P; apply/subsetP=> Q S_Q.
   have:= S_P; rewrite inE; case/maxgroupP; case/andP=> _.
@@ -142,7 +142,7 @@ Qed.
 Lemma Sylow_exists : {P : {group gT} | p.-Sylow(G) P}.
 Proof. by case: (Sylow_superset (sub1G G) (pgroup1 _ p)) => P; exists P. Qed.
 
-Lemma Syl_trans : [transitive (G | 'JG) on 'Syl_p(G)].
+Lemma Syl_trans : [transitive G, on 'Syl_p(G) | 'JG].
 Proof. by case Sylow's_theorem. Qed.
 
 Lemma Sylow_trans : forall P Q,
