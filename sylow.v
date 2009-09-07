@@ -42,7 +42,7 @@ move=> p G S; case/pgroup_1Vpr=> [-> _|[p_pr _ [n cardG] GactS]].
 apply/eqP; rewrite -(cardsID 'Fix_to(G)) eqn_mod_dvd (leq_addr, addKn) //.
 have: [acts G, on S :\: 'Fix_to(G) | to]; last move/acts_sum_card_orbit <-.
   apply/actsP=> a Ga x; rewrite !in_setD (actsP GactS) //; congr (~~ _ && _).
-  by apply: actsP Ga x; rewrite norm_act_fix ?normG.
+  by apply: actsP Ga x; rewrite acts_fix_norm ?normG.
 apply: dvdn_sum => X; case/imsetP=> x; case/setDP=> _ nfx ->{X}.
 have:= dvdn_orbit to G x; rewrite cardG.
 case/dvdn_pfactor=> [//|[_|m _ ->]]; last by rewrite expnS dvdn_mulr.
@@ -86,7 +86,7 @@ have{SmaxN} defCS: forall P, P \in S -> 'Fix_(S |'JG)(P) = [set P].
   by apply: uniq_normal_Hall (SmaxN Q _ _ _) => //=; rewrite ?sylS ?nrmG.
 have{defCS} oG_mod: {in S &, forall P Q, #|oG P| %% p = (Q \in oG P) %% p}.
   move=> P Q S_P S_Q; have [sQG pQ] := S_pG _ S_Q.
-  have soP_S: oG P \subset S by rewrite acts_orbit.
+  have soP_S: oG P \subset S by rewrite acts_sub_orbit.
   have: [acts Q, on oG P | 'JG].
     apply/actsP=> x; move/(subsetP sQG)=> Gx R; apply: orbit_transr.
     exact: mem_imset.
@@ -98,7 +98,7 @@ have [P S_P]: exists P, P \in S.
   by case/(@maxgroup_exists _ (p.-subgroup(G))) => P; exists P; rewrite inE.
 have trS: [transitive G, on S | 'JG].
   apply/imsetP; exists P => //; apply/eqP.
-  rewrite eqEsubset andbC acts_orbit // S_P; apply/subsetP=> Q S_Q.
+  rewrite eqEsubset andbC acts_sub_orbit // S_P; apply/subsetP=> Q S_Q.
   have:= S_P; rewrite inE; case/maxgroupP; case/andP=> _.
   case/pgroup_1Vpr=> [|[p_pr _ _] _].
     move/group_inj=> -> max1; move/andP: (S_pG _ S_Q) => sGQ.

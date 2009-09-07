@@ -2163,7 +2163,7 @@ Proof. by move=> x G; apply/normsP=> y; exact: classGidr. Qed.
 
 Section norm_trans.
 
-Variables A B C : {set gT}.
+Variables (A B C D : {set gT}).
 Hypotheses (nBA : A \subset 'N(B)) (nCA : A \subset 'N(C)).
 
 Lemma norms_gen : A \subset 'N(<<B>>).
@@ -2175,6 +2175,12 @@ Proof. by apply/normsP=> x Ax; rewrite -normJ (normsP nBA). Qed.
 Lemma normsI : A \subset 'N(B :&: C).
 Proof. by apply/normsP=> x Ax; rewrite conjIg !(normsP _ x Ax). Qed.
 
+Lemma normsIs : B \subset 'N(D) -> A :&: B \subset 'N(C :&: D).
+Proof.
+move/normsP=> nDB; apply/normsP=> x; case/setIP=> Ax Bx.
+by rewrite conjIg (normsP nCA) ?nDB.
+Qed.
+
 Lemma normsM : A \subset 'N(B * C).
 Proof. by apply/normsP=> x Ax; rewrite conjsMg !(normsP _ x Ax). Qed.
 
@@ -2185,6 +2191,12 @@ Lemma normsR : A \subset 'N([~: B, C]).
 Proof. by apply/normsP=> x Ax; rewrite conjsRg !(normsP _ x Ax). Qed.
 
 End norm_trans.
+
+Lemma normsIG : forall A B G, A \subset 'N(B) -> A :&: G \subset 'N(B :&: G).
+Proof. by move=> A B G; move/normsIs->; rewrite ?normG. Qed.
+
+Lemma normsGI : forall A B G, A \subset 'N(B) -> G :&: A \subset 'N(G :&: B).
+Proof. by move=> A B G nBA; rewrite !(setIC G) normsIG. Qed.
 
 Lemma normalP : forall A B,
   reflect (A \subset B /\ {in B, normalised A}) (A <| B).

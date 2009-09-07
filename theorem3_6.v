@@ -935,7 +935,7 @@ have transPR: [transitive P <*> R, on Vi @: mxK | 'JG].
   - move/trivgP; rewrite -(bigdprodEgen defN1) gen_subG.
     move/bigcupsP; move/(_ K1); rewrite mxK1 orbit_refl => trV1.
     by case/setIdP: mxK1 => _; rewrite -subG1 trV1.
-  have: S \subset Vi @: mxK by rewrite acts_orbit.
+  have: S \subset Vi @: mxK by rewrite acts_sub_orbit.
   rewrite subEproper; case/predU1P=> //; case/andP=> _; case/subsetPn=> V2.
   case/imsetP=> K2 mxK2 -> SV2; move/trivgP: trN12.
   rewrite /= N1V -(bigdprodEgen defN2) (setIidPr _) gen_subG.
@@ -958,7 +958,7 @@ case sR_IN: (forallb K1, (K1 \in mxK) ==> (R \subset 'N(Vi K1))).
     rewrite defP; apply: (subset_trans (commgS P sR_IN)).
     have:= subset_trans (mulgen_subl P R) nIPR.
     rewrite -commg_subr; move/subset_trans; apply; exact: bigcap_inf.
-  rewrite -conjG_fix; move/orbit1P <- => allV1.
+  rewrite -conjG_fix; move/orbit1P=> -> allV1.
   have defV1: V = Vi K1.
     apply/eqP; rewrite -val_eqE eqEsubset subsetIl /= andbT.
     rewrite -{1}(bigdprodEgen dprod_V) gen_subG; apply/bigcupsP=> Ki mxKi.
@@ -1046,7 +1046,7 @@ have oVi: forall Ki, Ki \in mxK -> #|Vi Ki| = p.
   have [||z _ ->]:= (atransP2 transPR) (Vi K1) (Vi Ki); try exact: mem_imset.
   by rewrite cardJg; case/nRfix_CR: nK1R.
 have: orbit 'JG%act R (Vi K1) \subset Vi @: mxK.
-  rewrite acts_orbit ?mem_imset //.
+  rewrite acts_sub_orbit ?mem_imset //.
   apply: subset_trans actsPR; exact: mulgen_subr.
 have nVjR: forall Kj, Kj \in mxK ->
   Vi Kj \notin orbit 'JG%act R (Vi K1) -> Kj = [~: K, R]%G.

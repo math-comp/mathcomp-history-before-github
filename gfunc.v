@@ -253,9 +253,8 @@ Lemma bgFunc_isom :
   forall gT hT (H G : {group gT}) (R : {group hT}) (f : {morphism G >-> hT}),
   H \subset G -> isom H R f -> isom (sF _ H) (sF _ R) f.
 Proof.
-move=> gT rT H G R f; case/(restrmP f)=> g [_ _ ->]; case/isomP=> injf <-.
-rewrite /isom -(bgFunc_asresp injf) // -morphimEsub ?morphimDG ?morphim1 //. 
-by rewrite subDset subsetU // bgFunc_clos orbT.
+move=> gT rT H G R f; case/(restrmP f)=> g [gf _ _ _]; rewrite -{f}gf.
+by case/isomP=> injg <-; rewrite sub_isom ?bgFunc_clos ?bgFunc_asresp.
 Qed.
 
 Lemma bgFunc_isog : forall gT hT (G : {group gT}) (R : {group hT}),
@@ -376,7 +375,7 @@ have sOF := bgFunc_clos sF (G / sF2 _ G); have sGG: G \subset G by [].
 rewrite -sub_morphim_pre -?quotientE; last first.
   by apply: subset_trans (nF _ _); rewrite morphimS ?hgFunc_comp_clos.
 suffices im_fact: forall H : {group gT}, sF2 _ G \subset H -> H \subset G ->
-  factm sGG sFK @* (H / sF2 _ G) = f @* H / sF2 _ (f @* G).
+  factm sFK sGG @* (H / sF2 _ G) = f @* H / sF2 _ (f @* G).
 - rewrite -2?im_fact ?hgFunc_comp_clos ?bgFunc_clos //.
   by rewrite hgFunc_comp_quo morphim_sFunctor /= ?morphim_restrm ?setIid //.
   by rewrite -{1}kF morphpreS ?sub1G.
@@ -405,12 +404,12 @@ pose rG := restrm nF3G (coset (sF3 _ G)); pose rGM := [morphism of rG].
 have sqKfK: 'ker rGM \subset 'ker rHM.
   rewrite !ker_restrm !ker_coset (setIidPr (bgFunc_clos sF3 _)) setIC /=.
   exact: (hgFunc_hereditary sF3).
-have sHH := subxx H; rewrite -rnorm_simpl /= -(morphim_factm sHH sqKfK) /=.
+have sHH := subxx H; rewrite -rnorm_simpl /= -(morphim_factm sqKfK sHH) /=.
 apply: subset_trans (gFunc_resp sF _); rewrite /= {2}morphim_restrm setIid /=.
 apply: subset_trans (morphimS _ (hgFunc_hereditary _ (quotientS _ sHG))) => /=.
 have ->: FGH / _ = restrm nF3H (coset _) @* FGH.
   by rewrite morphim_restrm setICA setIid.
-rewrite -(morphim_factm sHH sqKfK) morphimS //= morphim_restrm -quotientE.
+rewrite -(morphim_factm sqKfK sHH) morphimS //= morphim_restrm -quotientE.
 by rewrite setICA setIid (subset_trans (quotientI _ _ _)) // cosetpreK.
 Qed.
 

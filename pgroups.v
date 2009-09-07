@@ -899,7 +899,7 @@ have sOF := pcore_sub pi (G / F _ G); have sDD: D :&: G \subset D :&: G by [].
 rewrite -sub_morphim_pre -?quotientE; last first.
   by apply: subset_trans (bgFunc_norm F _); rewrite morphimS ?pcore_mod_sub.
 suffices im_fact: forall H : {group gT}, F _ G \subset H -> H \subset G ->
-  factm sDD sFK @* (H / F _ G) = f @* H / F _ (f @* G).
+  factm sFK sDD @* (H / F _ G) = f @* H / F _ (f @* G).
 - rewrite -2?im_fact ?pcore_mod_sub ?bgFunc_clos //;
     try by rewrite -{1}[F _ G]ker_coset morphpreS ?sub1G.
   by rewrite quotient_pcore_mod morphim_pcore.

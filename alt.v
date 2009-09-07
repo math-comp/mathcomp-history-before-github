@@ -197,7 +197,7 @@ have FF: forall H : {group _}, H <| 'Alt_T -> H :<>: 1 -> 20 %| #|H|.
     have F7: #|[set~ x]| = 4 by rewrite cardsC1 oT.
     case: (pickP (mem [set~ x])) => [y Hy | ?]; last by rewrite eq_card0 in F7.
     pose K := 'C_H[x | 'P]%G.
-    have F8 : K \subset H by apply: subset_astab.
+    have F8 : K \subset H by apply: subsetIl.
     pose Gx := 'C_('Alt_T)[x | 'P]%G.
     have F9: [transitive^2 Gx, on [set~ x] | 'P].
       by rewrite -[[set~ x]]setTI -setDE stab_ntransitive ?inE.
@@ -206,7 +206,7 @@ have FF: forall H : {group _}, H <| 'Alt_T -> H :<>: 1 -> 20 %| #|H|.
     have F11: [primitive Gx, on [set~ x] | 'P].
       exact: ntransitive_primitive F9.
     have F12: K \subset Gx by apply: setSI; exact: normal_sub.
-    have F13: K <| Gx by rewrite /(K <| _) F12 norm_stab // normal_norm.
+    have F13: K <| Gx by rewrite /(K <| _) F12 normsIG // normal_norm.
     case: (prim_trans_norm F11 F13) => Ksub; last first.
       apply: dvdn_trans (cardSg F8); rewrite -F7; exact: atrans_dvd Hy Ksub.
     have F14: [faithful Gx, on [set~ x] | 'P].
@@ -440,7 +440,7 @@ case E1: (pred0b (predD1 T x)).
   by rewrite (cardD1 x) (eqP E1); case: (T x).
 case/pred0Pn: E1 => y Hdy; case/andP: (Hdy) => diff_x_y Hy.
 pose K := 'C_H[x | 'P]%G.
-have F8: K \subset H by apply: subset_astab.
+have F8: K \subset H by apply: subsetIl.
 pose Gx := 'C_('Alt_T)[x | 'P]%G.
 have F9: [transitive^3 Gx, on [set~ x] | 'P].
   by rewrite -[[set~ x]]setTI -setDE stab_ntransitive ?inE.
@@ -449,7 +449,7 @@ have F10: [transitive Gx, on [set~ x] | 'P].
 have F11: [primitive Gx, on [set~ x] | 'P].
   by apply: ntransitive_primitive F9.
 have F12: K \subset Gx by rewrite setSI // normal_sub.
-have F13: K <| Gx by apply/andP; split; last apply: norm_stab.
+have F13: K <| Gx by apply/andP; rewrite normsIG.
 have:= prim_trans_norm F11; case/(_ K) => //= => Ksub; last first.
   have F14: Gx * H = 'Alt_T by exact/subgroup_transitiveP.
   have: simple Gx.

@@ -93,7 +93,7 @@ Implicit Arguments morphimP [aT rT A B f y].
 Implicit Arguments morphpreP [aT rT A C f x].
 Prenex Implicits morphimP morphpreP.
 
-(* domain, image, preimage, kernel, using "phantom" types to infer the domain *)
+(* domain, image, preimage, kernel, using phantom types to infer the domain *)
 
 Section MorphismOps1.
 
@@ -681,6 +681,10 @@ Proof. exact/trivgP. Qed.
 Lemma injmK : forall A, A \subset G -> f @*^-1 (f @* A) = A.
 Proof. by move=> A sAG; rewrite morphimK // ker_injm // mul1g. Qed.
 
+Lemma injm_morphim_inj : forall A B,
+  A \subset G -> B \subset G -> f @* A = f @* B -> A = B.
+Proof. by move=> A B sAG sBG eqAB; rewrite -(injmK sAG) eqAB injmK. Qed.
+
 Lemma card_injm : forall A, A \subset G -> #|f @* A| = #|A|.
 Proof.
 move=> A sAG; rewrite morphimEsub // card_in_imset //.
@@ -793,8 +797,6 @@ End IdentityMorphism.
 
 Prenex Implicits idm.
 
-Module AfterMorph. End AfterMorph.
-
 Section RestrictedMorphism.
 
 Variables aT rT : finGroupType.
@@ -828,18 +830,26 @@ Proof. by apply: subset_trans; rewrite ker_restrm subsetIr. Qed.
 End Props.
 
 Lemma restrmP : forall f : {morphism B >-> rT}, A \subset 'dom f ->
-  exists g : {morphism A >-> rT},
-    [/\ forall C, C \subset A -> f @* C = g @* C,
-        'ker g = 'ker_A f & f = g :> (aT -> rT)].
+  {g : {morphism A >-> rT} | [/\ g = f :> (aT -> rT), 'ker g = 'ker_A f,
+                                 forall R, g @*^-1 R = A :&: f @*^-1 R
+                               & forall C, C \subset A -> g @* C = f @* C]}.
 Proof.
 move=> f sAB; exists (restrm_morphism sAB f).
-by split=> // [C sCA|]; rewrite ?ker_restrm // morphim_restrm (setIidPr sCA).
+split=> // [|R|C sCA]; first 1 [exact: ker_restrm | exact: morphpre_restrm].
+by rewrite morphim_restrm (setIidPr sCA).
 Qed.
+
+Lemma domP : forall f : {morphism B >-> rT}, 'dom f = A ->
+  {g : {morphism A >-> rT} | [/\ g = f :> (aT -> rT), 'ker g = 'ker f,
+                                 forall R, g @*^-1 R = f @*^-1 R
+                               & forall C, f @* C = g @* C]}.
+Proof. by move=> f <-; exists f. Qed.
 
 End RestrictedMorphism.
 
 Prenex Implicits restrm.
 Implicit Arguments restrmP [aT rT A B].
+Implicit Arguments domP [aT rT A B].
 
 Section TrivMorphism.
 
@@ -850,7 +860,7 @@ Definition trivm of {set aT} & aT := 1 : FinGroup.sort rT.
 Lemma trivm_morphM : forall A : {set aT},
   {in A & , {morph trivm A : x y / x * y}}.
 Proof. by move=> A x y /=; rewrite mulg1. Qed.
-
+  
 Canonical Structure triv_morph A := Morphism (@trivm_morphM A).
 
 Lemma morphim_trivm : forall (G H : {group aT}), trivm G @* H = 1.
@@ -916,13 +926,13 @@ Variables G H : {group aT}.
 Variable f : {morphism G >-> rT}.
 Variable q : {morphism H >-> qT}.
 
-Definition factm of G \subset H & 'ker q \subset 'ker f :=
+Definition factm of 'ker q \subset 'ker f  & G \subset H :=
   fun x => f (repr (q @*^-1 [set x])).
 
-Hypothesis sGH : G \subset H.
 Hypothesis sKqKf : 'ker q \subset 'ker f.
+Hypothesis sGH : G \subset H.
 
-Notation ff := (factm sGH sKqKf).
+Notation ff := (factm sKqKf sGH).
 
 Lemma factmE : forall x, x \in G -> ff (q x) = f x.
 Proof.
@@ -988,7 +998,7 @@ Hypothesis injf : 'injm f.
 Lemma invm_subker : 'ker f \subset 'ker (idm G).
 Proof. by rewrite ker_idm. Qed.
 
-Definition invm := factm (subxx _) invm_subker.
+Definition invm := factm invm_subker (subxx _).
 
 Canonical Structure invm_morphism := Eval hnf in [morphism of invm].
 
@@ -1106,7 +1116,8 @@ Qed.
 
 Lemma isom_card : forall f : fMT, isom G H f -> #|G| = #|H|.
 Proof.
-by move=> f; case/isomP; move/injmP=> injf <-; rewrite morphimEdom card_in_imset.
+move=> f; case/isomP; move/injmP=> injf <-.
+by rewrite morphimEdom card_in_imset.
 Qed.
 
 Lemma isogP : reflect (exists2 f : fMT, 'injm f & f @* G = H) (G \isog H).
@@ -1121,13 +1132,15 @@ Variables (G : {group aT}) (f : {morphism G >-> rT}).
 
 Lemma morphim_isom : forall (H : {group aT}) (K : {group rT}),
   H \subset G -> isom H K f -> f @* H = K.
-Proof. by move=> H K; case/(restrmP f)=> g [-> // _ ->]; case/isomP. Qed.
+Proof.
+by move=> H K; case/(restrmP f)=> g [gf _ _ <- //]; rewrite -gf; case/isomP.
+Qed.
 
 Lemma sub_isom : forall (A : {set aT}) (C : {set rT}),
   A \subset G -> f @* A = C -> 'injm f -> isom A C f.
 Proof.
-move=> A C sAG; case: (restrmP f sAG) => g [_ _ fg] <-{C} injf.
-rewrite /isom -morphimEsub ?morphimDG ?morphim1 //.
+move=> A C sAG; case: (restrmP f sAG) => g [_ _ _ img] <-{C} injf.
+rewrite /isom -morphimEsub ?morphimDG ?morphim1 //. 
 by rewrite subDset setUC subsetU ?sAG.
 Qed.
 

@@ -50,24 +50,24 @@ apply/forallP/maximal_eqP=> /= [primG | [_ maxCx] Q].
   have Xx: x \in X by exact: orbit_refl.
   have defH: 'N_(G)(X | to) = H.
     have trH: [transitive H, on X | to] by apply/imsetP; exists x.
-    have sHN: H \subset 'N_G(X | to) by rewrite subsetI sHG trans_acts.
+    have sHN: H \subset 'N_G(X | to) by rewrite subsetI sHG atrans_acts.
     move/(subgroup_transitiveP Xx sHN): (trH) => /= <-.
       by rewrite mulSGid //= setIAC subIset ?sCH.
     apply/imsetP; exists x => //; apply/eqP.
-    by rewrite eqEsubset imsetS // acts_orbit ?subsetIr.
+    by rewrite eqEsubset imsetS // acts_sub_orbit ?subsetIr.
   move: (sCH); rewrite subEproper; case/predU1P; first by left.
   move/proper_card=> oCH; right; apply/eqP; rewrite eqEcard sHG leqNgt.
   apply: contra {primG}(primG Q) => oHG; apply/and3P; split; last first.
   - rewrite card_orbit astab1_set defH -(@ltn_pmul2l #|H|) ?LaGrange // muln1.
     rewrite oHG -(@ltn_pmul2l #|H|) ?LaGrange // -(card_orbit_stab to G x).
     by rewrite -(atransP trG x Sx) mulnC card_orbit ltn_pmul2r.
-  - by apply/actsP=> a Ga Y; apply: orbit_transr; exact: orbit_to.
+  - by apply/actsP=> a Ga Y; apply: orbit_transr; exact: orbit_act.
   apply/and3P; split; last 1 first.
   - rewrite orbit_sym; apply/imsetP=> [[a _]] /= defX.
-    by rewrite defX /set_act imset0 inE in Xx.
+    by rewrite defX /setact imset0 inE in Xx.
   - apply/eqP; apply/setP=> y; apply/bigcupP/idP=> [[Xa] | Sy].
       case/imsetP=> a Ga ->{Xa}; case/imsetP=> z; case/imsetP=> b Hb -> ->.
-      by rewrite !(actsP (trans_acts trG)) //; exact: subsetP Hb.
+      by rewrite !(actsP (atrans_acts trG)) //; exact: subsetP Hb.
     case: (atransP2 trG Sx Sy) => a Ga ->.
     by exists ((to^*)%act X a); apply: mem_imset; rewrite // orbit_refl.
   apply/trivIsetP=> Y Z; case/imsetP=> a Ga ->; case/imsetP=> b Gb ->{Y Z}.
@@ -89,7 +89,7 @@ have toX: forall Y a, Y \in Q -> a \in G -> to x a \in Y -> sto X a = Y.
     by rewrite (actsP actQ).
   by case/existsP; exists (to x a); rewrite /= Yxa; exact: mem_imset.
 have defQ: Q = orbit (to^*)%act G X.
-  apply/eqP; rewrite eqEsubset andbC acts_orbit // QX.
+  apply/eqP; rewrite eqEsubset andbC acts_sub_orbit // QX.
   apply/subsetP=> Y QY; have:= sub0set Y; rewrite subEproper.
   case/predU1P=> [Y0|]; first by rewrite Y0 QY in ntQ.
   case/andP=> _; case/subsetPn=> y Yy _.
@@ -272,18 +272,18 @@ have [x Sx _]:= imsetP trG; rewrite (trans_prim_astab Sx trG).
 apply/maximal_eqP; split=> [|H]; first exact: subsetIl; rewrite subEproper.
 case/predU1P; first by [left]; case/andP=> sCH; case/subsetPn=> a Ha nCa sHG.
 right; rewrite -(subgroup_transitiveP Sx sHG trG _) ?mulSGid //.
-have actH := subset_trans sHG (trans_acts trG).
+have actH := subset_trans sHG (atrans_acts trG).
 pose y := to x a; have Sy: y \in S by rewrite (actsP actH).
 have{nCa} yx: y != x by rewrite inE (sameP astab1P eqP) (subsetP sHG) in nCa.
 apply/imsetP; exists y => //; apply/eqP.
-rewrite eqEsubset acts_orbit // Sy andbT; apply/subsetP=> z Sz.
+rewrite eqEsubset acts_sub_orbit // Sy andbT; apply/subsetP=> z Sz.
 case: (z =P x) => [->|]; last move/eqP=> zx.
-  by rewrite orbit_sym orbit_to.
+  by rewrite orbit_sym orbit_act.
 pose ty := [tuple y; x]; pose tz := [tuple z; x].
 have [Sty Stz]: ty \in 2.-dtuple(S) /\ tz \in 2.-dtuple(S).
   rewrite !inE !memtE !subset_all /= !mem_seq1 !andbT; split; exact/and3P.
 case: (atransP2 tr2G Sty Stz) => b Gb [->]; move/esym; move/astab1P=> cxb.
-by rewrite orbit_to // (subsetP sCH) // inE Gb.
+by rewrite orbit_act // (subsetP sCH) // inE Gb.
 Qed.
 
 End NTransitveProp.
@@ -317,7 +317,7 @@ apply/setP=> t2; apply/idP/imsetP => [dt2|[b]].
 case/setIP=> Gb; move/astab1P=> xbx ->{t2}.
 rewrite n_act_dtuple //; last by rewrite dtuple_on_add_D1 Sx in dxt.
 apply/astabsP=> y; rewrite !inE -{1}xbx (inj_eq (act_inj _ _)).
-by rewrite (actsP (trans_acts Gtr1)).
+by rewrite (actsP (atrans_acts Gtr1)).
 Qed.
 
 (* Correspond to <= of 15.12.1 Aschbacher *)
@@ -335,13 +335,13 @@ have t_to_x: forall t, t \in m.+1.-dtuple(S) ->
   rewrite -(atransP Gtr _ Sy) in Sx; case/imsetP: Sx => a Ga toya.
   exists a^-1; first exact: groupVr.
   exists (n_act to t a); last by rewrite n_act_add toya !actK.
-  move/(n_act_dtuple (subsetP (trans_acts Gtr) a Ga)): St.
+  move/(n_act_dtuple (subsetP (atrans_acts Gtr) a Ga)): St.
   by rewrite n_act_add -toya dtuple_on_add_D1; case/andP.
 case: (imsetP Gntr) => t dt S_tG; pose xt := [tuple of x :: t].
 have dxt: xt \in m.+1.-dtuple(S) by rewrite dtuple_on_add_D1 Sx.
 apply/imsetP; exists xt => //; apply/setP=> t2.
 symmetry; apply/imsetP/idP=> [[a Ga ->] | ].
-  by apply: n_act_dtuple; rewrite // (subsetP (trans_acts Gtr)).
+  by apply: n_act_dtuple; rewrite // (subsetP (atrans_acts Gtr)).
 case/t_to_x=> a2 Ga2 [t2']; rewrite S_tG.
 case/imsetP=> a; case/setIP=> Ga; move/astab1P=> toxa -> -> {t2 t2'}.
 by exists (a * a2); rewrite (groupM, actM) //= !n_act_add toxa.
