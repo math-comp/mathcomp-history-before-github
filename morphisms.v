@@ -770,28 +770,33 @@ Notation "f @: G" := (morph_dom_group f G) : subgroup_scope.
 Section IdentityMorphism.
 
 Variable gT : finGroupType.
+Implicit Types A B : {set gT}.
+Implicit Type G : {group gT}.
 
 Definition idm of {set gT} := fun x : gT => x : FinGroup.sort gT.
 
-Lemma idm_morphM : forall A : {set gT}, {in A & , {morph idm A : x y / x * y}}.
+Lemma idm_morphM : forall A, {in A & , {morph idm A : x y / x * y}}.
 Proof. by []. Qed.
 
 Canonical Structure idm_morphism A := Morphism (@idm_morphM A).
 
-Lemma injm_idm : forall G : {group gT}, 'injm (idm G).
+Lemma injm_idm : forall G, 'injm (idm G).
 Proof. by move=> G; apply/injmP=> ?. Qed.
 
-Lemma ker_idm : forall G : {group gT}, 'ker (idm G) = 1.
+Lemma ker_idm : forall G, 'ker (idm G) = 1.
 Proof. by move=> G; apply/trivgP; exact: injm_idm. Qed.
 
-Lemma morphim_idm : forall A B : {set gT}, B \subset A -> idm A @* B = B.
+Lemma morphim_idm : forall A B, B \subset A -> idm A @* B = B.
 Proof.
 move=> A B; rewrite /morphim /= /idm; move/setIidPr->.
 by apply/setP=> x; apply/imsetP/idP=> [[y By ->]|Bx]; last exists x.
 Qed.
 
-Lemma morphpre_idm : forall A B : {set gT}, idm A @*^-1 B = A :&: B.
+Lemma morphpre_idm : forall A B, idm A @*^-1 B = A :&: B.
 Proof. by move=> A B; apply/setP=> x; rewrite !inE. Qed.
+
+Lemma im_idm : forall A, idm A @* A = A.
+Proof. move=> A; exact: morphim_idm. Qed.
 
 End IdentityMorphism.
 
@@ -1026,7 +1031,7 @@ Proof. by move/can_in_inj: invmK; move/injmP. Qed.
 Lemma ker_invm : 'ker invm = 1.
 Proof. by move/trivgP: injm_invm. Qed.
 
-Lemma invm_dom : invm @* (f @* G) = G.
+Lemma im_invm : invm @* (f @* G) = G.
 Proof. exact: morphim_invm. Qed.
 
 End InverseMorphism.
@@ -1184,7 +1189,7 @@ Proof. by move=> isoGH; rewrite !trivg_card1 isog_card. Qed.
 Lemma isog_symr : G \isog H -> H \isog G.
 Proof.
 case/isogP=> f injf <-; apply/isogP.
-by exists [morphism of invm injf]; rewrite /= ?injm_invm // invm_dom.
+by exists [morphism of invm injf]; rewrite /= ?injm_invm // im_invm.
 Qed.
 
 Lemma isog_trans : G \isog H -> H \isog K -> G \isog K.

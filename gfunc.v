@@ -207,7 +207,7 @@ Proof. by case sF. Qed.
 Lemma bgFunc_char : forall gT (G : {group gT}), sF _ G \char G.
 Proof.
 move=> gT G; apply/andP; split => //; first by apply: bgFunc_clos.
-apply/forallP=> f; apply/implyP=> Af; rewrite -{2}(autm_dom Af) -(autmE Af).
+apply/forallP=> f; apply/implyP=> Af; rewrite -{2}(im_autm Af) -(autmE Af).
 by rewrite -morphimEsub ?bgFunc_clos ?bgFunc_aresp ?injm_autm.
 Qed.
 

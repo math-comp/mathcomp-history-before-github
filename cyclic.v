@@ -417,13 +417,13 @@ rewrite -order_eq1 -dvdn1; move/eqnP: (valP u) => /= <-.
 by rewrite dvdn_gcd order_dvdG.
 Qed.
 
-Lemma cyclem_dom : cyclem u a @* <[a]> = <[a]>.
+Lemma im_cyclem : cyclem u a @* <[a]> = <[a]>.
 Proof.
 apply/morphim_fixP=> //; first exact: injm_cyclem.
 by rewrite morphim_cycle ?cycle_id ?cycleX.
 Qed.
 
-Definition Zp_unitm := aut injm_cyclem cyclem_dom.
+Definition Zp_unitm := aut injm_cyclem im_cyclem.
 
 End ZpUnitMorphism.
 
@@ -458,7 +458,7 @@ rewrite morphimEdom; apply/setP=> f; apply/imsetP/idP=> [[u _ ->] | Af].
   exact: Aut_aut.
 pose n := invm (injm_Zpm a) (f a).
 have a_fa: <[a]> = <[f a]>.
-  by rewrite -(autmE Af) -morphim_cycle ?autm_dom ?cycle_id.
+  by rewrite -(autmE Af) -morphim_cycle ?im_autm ?cycle_id.
 have def_n: a ^+ n = f a.
   by rewrite -/(Zpm n) invmK // morphim_Zpm a_fa cycle_id.
 have co_a_n : coprime #[a] n by rewrite -generator_coprime def_n; exact/eqP.

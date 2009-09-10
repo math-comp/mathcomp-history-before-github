@@ -191,13 +191,13 @@ Qed.
 Lemma coset_id : forall x, x \in A -> coset x = 1.
 Proof. move=> x Ax; apply: coset_mem; exact: mem_gen. Qed.
 
-Lemma coset_imT : coset @* 'N(A) = setT.
+Lemma im_coset : coset @* 'N(A) = setT.
 Proof.
 by apply/setP=> xbar; case: (cosetP xbar) => x Nx ->; rewrite inE mem_morphim.
 Qed.
 
-Lemma coset_im : forall C : {set coset_of}, C \subset coset @* 'N(A).
-Proof. by move=> C; rewrite coset_imT subsetT. Qed.
+Lemma sub_im_coset : forall C : {set coset_of}, C \subset coset @* 'N(A).
+Proof. by move=> C; rewrite im_coset subsetT. Qed.
 
 Definition quotient : {set coset_of} := coset @* Q.
 
@@ -288,7 +288,7 @@ Proof. by rewrite -kerE ker_coset. Qed.
 (* Variant of morphimEdom; mophimE[sub] covered by imset_coset. *)
 (* morph[im|pre]Iim are also covered by quotientT.              *)
 Lemma quotientT : 'N(H) / H = setT.
-Proof. exact: coset_imT. Qed.
+Proof. exact: im_coset. Qed.
 
 (* Variant of morphimIdom. *)
 Lemma quotientInorm : forall A, 'N_A(H) / H = A / H.
@@ -322,7 +322,7 @@ Proof. exact: morphimMr. Qed.
 
 Lemma cosetpreM : forall C D,
   coset H @*^-1 (C * D) = coset H @*^-1 C * coset H @*^-1 D.
-Proof. by move=> C D; rewrite morphpreMl ?coset_im. Qed.
+Proof. by move=> C D; rewrite morphpreMl ?sub_im_coset. Qed.
 
 Lemma quotientJ : forall A x, x \in 'N(H) -> A :^ x / H = (A / H) :^ coset H x.
 Proof. exact: morphimJ. Qed.
@@ -383,7 +383,7 @@ by rewrite cosetpre_set1 ?val_coset.
 Qed.
 
 Lemma cosetpreK : forall C, coset H @*^-1 C / H = C.
-Proof. by move=> C; rewrite /quotient morphpreK ?coset_im. Qed.
+Proof. by move=> C; rewrite /quotient morphpreK ?sub_im_coset. Qed.
 
 (* Variant of morhphim_ker *)
 Lemma trivg_quotient : H / H = 1.
@@ -397,7 +397,7 @@ Proof. rewrite -{3}ker_coset; exact: ker_normal_pre. Qed.
 
 Lemma cosetpreSK : forall C D,
   (coset H @*^-1 C \subset coset H @*^-1 D) = (C \subset D).
-Proof. by move=> C D; rewrite morphpreSK ?coset_im. Qed.
+Proof. by move=> C D; rewrite morphpreSK ?sub_im_coset. Qed.
 
 Lemma sub_quotient_pre : forall A C,
   A \subset 'N(H) -> (A / H \subset C) = (A \subset coset H @*^-1 C).
@@ -433,7 +433,7 @@ Proof. exact: morphim_gen. Qed.
 
 Lemma cosetpre_gen : forall C,
   1 \in C -> coset H @*^-1 <<C>> = <<coset H @*^-1 C>>.
-Proof. by move=> C C1; rewrite morphpre_gen ?coset_im. Qed.
+Proof. by move=> C C1; rewrite morphpre_gen ?sub_im_coset. Qed.
 
 Lemma quotientR : forall A B,
   A \subset 'N(H) -> B \subset 'N(H) -> [~: A, B] / H = [~: A / H, B / H].
@@ -484,12 +484,12 @@ Proof. exact: morphim_subcent. Qed.
 
 Lemma cosetpre_normal : forall C D,
   (coset H @*^-1 C <| coset H @*^-1 D) = (C <| D).
-Proof. by move=> C D; rewrite morphpre_normal ?coset_im. Qed.
+Proof. by move=> C D; rewrite morphpre_normal ?sub_im_coset. Qed.
 
 Lemma quotient_normG : forall G, H <| G -> 'N(G) / H = 'N(G / H).
 Proof.
 move=> G; case/andP=> sHG nHG.
-by rewrite [_ / _]morphim_normG ?ker_coset // coset_imT setTI.
+by rewrite [_ / _]morphim_normG ?ker_coset // im_coset setTI.
 Qed.
 
 Lemma quotient_subnormG : forall A G,
@@ -524,7 +524,7 @@ Proof. exact: morphpre_cent. Qed.
 
 Lemma cosetpre_cents : forall A C,
   coset H @*^-1 C \subset 'C(A) -> C \subset 'C(A / H).
-Proof. by move=> A C; apply: morphpre_cents; rewrite ?coset_im. Qed.
+Proof. by move=> A C; apply: morphpre_cents; rewrite ?sub_im_coset. Qed.
 
 Lemma cosetpre_subcent : forall C A,
   'C_(coset H @*^-1 C)(A) \subset coset H @*^-1 'C_C(A / H).
@@ -672,14 +672,14 @@ Variables (gT : finGroupType) (G H : {group gT}).
 
 Hypothesis (eqGH : G :=: H).
 
-Lemma qisom_dom_proof : 'N(H) \subset 'N(G). Proof. by rewrite eqGH. Qed.
+Lemma im_qisom_proof : 'N(H) \subset 'N(G). Proof. by rewrite eqGH. Qed.
 Lemma qisom_ker_proof : 'ker (coset G) \subset 'ker (coset H).
 Proof. by rewrite eqGH. Qed.
 Lemma qisom_restr_proof : setT \subset 'N(H) / G.
 Proof. by rewrite eqGH quotientT. Qed.
 
 Definition qisom :=
-  restrm qisom_restr_proof (factm qisom_ker_proof qisom_dom_proof).
+  restrm qisom_restr_proof (factm qisom_ker_proof im_qisom_proof).
 
 Canonical Structure qisom_morphism := Eval hnf in [morphism of qisom].
 
@@ -701,17 +701,17 @@ Proof. by move=> A; rewrite morphim_restrm setTI morphim_factm. Qed.
 Lemma morphpre_qisom : forall A, qisom @*^-1 (A / H) = A / G.
 Proof.
 move=> A; rewrite morphpre_restrm setTI morphpre_factm eqGH.
-by rewrite morphpreK // coset_imT subsetT.
+by rewrite morphpreK // im_coset subsetT.
 Qed.
 
 Lemma injm_qisom : 'injm qisom.
 Proof. by rewrite -quotient1 -morphpre_qisom morphpreS ?sub1G. Qed.
 
-Lemma qisom_dom : qisom @* setT = setT.
+Lemma im_qisom : qisom @* setT = setT.
 Proof. by rewrite -{2}quotientT morphim_qisom eqGH quotientT. Qed.
 
 Lemma qisom_isom : isom setT setT qisom.
-Proof. by apply/isomP; rewrite injm_qisom qisom_dom. Qed.
+Proof. by apply/isomP; rewrite injm_qisom im_qisom. Qed.
 
 Lemma qisom_isog : [set: coset_of G] \isog [set: coset_of H].
 Proof. exact: isom_isog qisom_isom. Qed.
@@ -844,8 +844,6 @@ Variables (aT rT : finGroupType) (D : {group aT}) (f : {morphism D >-> rT}).
 Implicit Types G H : {group aT}.
 Implicit Types L M : {group rT}.
 
-
-
 Lemma card_morphim : forall G, #|f @* G| = #|D :&: G : 'ker f|.
 Proof.
 move=> G; rewrite -morphimIdom -indexgI -card_quotient; last first.
@@ -929,9 +927,9 @@ by rewrite -(indexgI _ K) (setIidPl sGH_K) indexgg muln1.
 Qed.
 
 Lemma card_cosetpre : #|coset H @*^-1 L| = (#|H| * #|L|)%N.
-Proof. by rewrite card_morphpre ?ker_coset ?coset_im. Qed.
+Proof. by rewrite card_morphpre ?ker_coset ?sub_im_coset. Qed.
 
 Lemma index_cosetpre : #|coset H @*^-1 L : coset H @*^-1 M| = #|L : M|.
-Proof. by rewrite index_morphpre ?coset_im. Qed.
+Proof. by rewrite index_morphpre ?sub_im_coset. Qed.
 
 End CardCosetpre.

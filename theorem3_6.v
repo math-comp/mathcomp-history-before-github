@@ -192,7 +192,7 @@ have sUH: U \subset H.
   have: U / V \subset H / V by rewrite -defU normal_sub ?Fitting_normal.
   by rewrite morphimSGK ?ker_coset // (subset_trans sUG).
 have: exists2 K : {group gT}, p^'.-Hall(U) K & R \subset 'N(K).
-  apply: coprime_hall_exists => //; last exact: (solvableS sUG).
+  apply: coprime_Hall_exists => //; last exact: (solvableS sUG).
   by rewrite -(LaGrange sUH) coprime_mull in coHR; case/andP: coHR.
 case=> K hallK nKR; have [sKU _]:= andP hallK.
 have p'K: p^'.-group K by exact: pHall_pgroup hallK.
@@ -216,7 +216,7 @@ have defH: H :=: V * 'N_H(K).
 have [P sylP nPR]:
   exists2 P : {group gT}, p.-Sylow('N_H(K)) P & R \subset 'N(P).
 + have sNH: 'N_H(K) \subset H by exact: subsetIl.
-  apply: coprime_hall_exists.
+  apply: coprime_Hall_exists.
   - by apply/normsP=> x Rx /=; rewrite conjIg -normJ !(normsP _ _ Rx).
   - by move: coHR; rewrite -(LaGrange sNH) coprime_mull; case/andP.
   apply: solvableS solG; exact: subset_trans sHG.
@@ -283,7 +283,7 @@ have defK: K :=: 'F('N_H(K)).
   have isoV: 'injm (restrm nVN (coset V)).
     by rewrite ker_restrm ker_coset setIC trVN.
   have sKN: K \subset 'N_H(K) by rewrite subsetI sKH normG.
-  rewrite -['N_H(K)](invm_dom isoV) -injm_Fitting ?injm_invm //=.
+  rewrite -['N_H(K)](im_invm isoV) -injm_Fitting ?injm_invm //=.
   rewrite {2}morphim_restrm setIid -quotientE -quotient_mulgr -defH defU.
   rewrite defVK quotient_mulgr -{10}(setIidPr sKN) quotientE.
   by rewrite -(morphim_restrm nVN) morphim_invm.

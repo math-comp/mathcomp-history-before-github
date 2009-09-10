@@ -1896,10 +1896,14 @@ rewrite genS; last by rewrite subUset mulG_subl mulG_subr.
 by rewrite mulgSS ?(sub_gen, subsetUl, subsetUr).
 Qed.
 
+Lemma mulG_subG : forall G H K : {group gT},
+  (G * H \subset K) = (G \subset K) && (H \subset K).
+Proof. by move=> G H K; rewrite -gen_subG genM_mulgen mulgen_subG. Qed.
+
 Lemma trivMg : forall G H, (G * H == 1) = (G :==: 1) && (H :==: 1).
 Proof.
 move=> G H; rewrite !eqEsubset -{2}[1]mulGid mulgSS ?sub1G // !andbT.
-by rewrite -gen_subG genM_mulgen gen_subG subUset.
+by rewrite mulG_subG.
 Qed.
 
 Lemma comm_mulgenE : forall G H, commute G H -> G <*> H = G * H.

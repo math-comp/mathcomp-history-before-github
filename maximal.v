@@ -193,11 +193,11 @@ Variables (gT : finGroupType) (K G H : {group gT}).
 
 Lemma cosetpre_proper : forall Q R : {group coset_of K},
   (coset K @*^-1 Q \proper coset K @*^-1 R) = (Q \proper R).
-Proof. by move=> Q R; rewrite morphpre_proper ?coset_im. Qed.
+Proof. by move=> Q R; rewrite morphpre_proper ?sub_im_coset. Qed.
 
 Lemma cosetpre_maximal : forall Q R : {group coset_of K},
   maximal (coset K @*^-1 Q) (coset K @*^-1 R) = maximal Q R.
-Proof. by move=> Q R; rewrite morphpre_maximal ?coset_im. Qed.
+Proof. by move=> Q R; rewrite morphpre_maximal ?sub_im_coset. Qed.
 
 Lemma cosetpre_maximal_eq : forall Q R : {group coset_of K},
   maximal_eq (coset K @*^-1 Q) (coset K @*^-1 R) = maximal_eq Q R.
@@ -787,7 +787,7 @@ have defG: <<\bigcup_(f \in Aut G) f @: H>> = G.
   have sXG: \bigcup_(f \in Aut G) f @: H \subset G.
     apply big_prop => [|A B sAG sBG|f Af]; first exact: sub0set.
     - by rewrite subUset sAG.
-    by rewrite -(autm_dom Af) morphimEdom imsetS.
+    by rewrite -(im_autm Af) morphimEdom imsetS.
   apply: simG.
     apply: contra ntH; rewrite -!subG1; apply: subset_trans.
     by rewrite sub_gen // (bigcup_max 1) ?group1 ?defH.
@@ -805,18 +805,18 @@ case If: (f \in I).
   by case/negP: sfHM; rewrite -(bigdprodEgen defM) sub_gen // (bigcup_max f).
 case/idP: (If); rewrite -(maxI ([set f] :|: I)) ?subsetUr ?inE ?eqxx //.
 rewrite {maxI}/Iok subUset sub1set Af {}Aut_I; apply/existsP.
-have sfHG: autm Af @* H \subset G by rewrite -{4}(autm_dom Af) morphimS.
+have sfHG: autm Af @* H \subset G by rewrite -{4}(im_autm Af) morphimS.
 have{minH nHG}: minnormal (autm Af @* H) G.
-  apply/mingroupP; rewrite andbC -{1}(autm_dom Af) morphim_norms //=.
+  apply/mingroupP; rewrite andbC -{1}(im_autm Af) morphim_norms //=.
   rewrite -subG1 sub_morphim_pre // -kerE ker_autm subG1.
   split=> // N; case/andP=> ntN nNG sNfH.
   have sNG: N \subset G := subset_trans sNfH sfHG.
   apply/eqP; rewrite eqEsubset sNfH sub_morphim_pre //=.
   rewrite -(morphim_invmE (injm_autm Af)) [_ @* N]minH //=.
-    rewrite -subG1 sub_morphim_pre /= ?autm_dom // morphpre_invm morphim1.
+    rewrite -subG1 sub_morphim_pre /= ?im_autm // morphpre_invm morphim1.
     rewrite subG1 ntN.
-    by rewrite -{1}(invm_dom (injm_autm Af)) /= {2}autm_dom morphim_norms.
-  by rewrite sub_morphim_pre /= ?autm_dom // morphpre_invm.
+    by rewrite -{1}(im_invm (injm_autm Af)) /= {2}im_autm morphim_norms.
+  by rewrite sub_morphim_pre /= ?im_autm // morphpre_invm.
 case/mingroupP; case/andP=> ntfH nfHG minfH.
 have{minfH sfHM} trfHM: autm Af @* H :&: M = 1.
   apply/eqP; apply/idPn=> ntMfH; case/setIidPl: sfHM.
@@ -1058,16 +1058,19 @@ Lemma critical_p_stab_Aut : forall H,
   critical H G -> p.-group G -> p.-group 'C_(Aut G)(H | 'P).
 Proof.
 move=> H [chH sPhiZ sRZ eqCZ] pG; have sHG := char_sub chH.
-have sdAG: idm (Aut G) @* Aut G \subset Aut G by rewrite morphim_idm.
-pose G' := (sdpair1 sdAG @* G)%G; pose H' := (sdpair1 sdAG @* H)%G.
+have sdAG: actm (raction_in 'P (subsetT (Aut G))) @* Aut G \subset Aut G.
+  apply/subsetP=> fp; case/morphimP=> f Af _ ->{fp} /=.
+  by rewrite (_ : _ f = f) //; apply/permP=> x; rewrite permE.
+pose toA := GroupAction sdAG.
+Check sdpair1.
+pose G' := (sdpair1 toA @* G)%G; pose H' := (sdpair1 toA @* H)%G.
 apply/pgroupP=> q pr_q; case/Cauchy=> // f; case/setIP=> Af; move: (Af).
 rewrite -2!cycle_subG => sFA cHF ofq; apply: (pgroupP _ _ pG) => //.
-pose F' := (sdpair2 sdAG @* <[f]>)%G.
+pose F' := (sdpair2 toA @* <[f]>)%G.
 have trHF: [~: H', F'] = 1.
   apply/trivgP; rewrite gen_subG; apply/subsetP=> u; case/imset2P=> x' a'.
   case/morphimP=> x Gx Hx ->; case/morphimP=> a Aa Fa -> -> {u x' a'}.
-  rewrite inE commgEl sdpairJ //= [idm _ a x](astabP (subsetP cHF a Fa)) //.
-  by rewrite mulVg.
+  by rewrite inE commgEl -sdpair_act //= (astabP (subsetP cHF a Fa)) ?mulVg.
 have sGH_H: [~: G', H'] \subset H'.
   by rewrite -morphimR ?(char_sub chH) // morphimS // commg_subr char_norm.
 have{trHF sGH_H} trFGH: [~: F', G', H'] = 1.
@@ -1077,16 +1080,16 @@ apply/negP=> qG; case: (qG); rewrite -ofq.
 suffices ->: f = 1 by rewrite order1 dvd1n.
 apply/permP=> x; rewrite perm1; case Gx: (x \in G); last first.
   by apply: out_perm (negbT Gx); case/setIdP: Af.
-have Gfx: f x \in G by rewrite -(autm_dom Af) -{1}(autmE Af) mem_morphim.
+have Gfx: f x \in G by rewrite -(im_autm Af) -{1}(autmE Af) mem_morphim.
 pose y := x^-1 * f x; have Gy: y \in G by rewrite groupMl ?groupV.
-have inj1 := injm_sdpair1 sdAG; have inj2 := injm_sdpair2 sdAG.
+have inj1 := injm_sdpair1 toA; have inj2 := injm_sdpair2 toA.
 have Hy: y \in H.
   rewrite (subsetP (center_sub H)) // -eqCZ -cycle_subG.
   rewrite -(injmSK inj1) ?cycle_subG // injm_subcent // subsetI.
   rewrite morphimS ?morphim_cycle ?cycle_subG //=.
-  suffices: sdpair1 sdAG y \in [~: G', F'].
+  suffices: sdpair1 toA y \in [~: G', F'].
     by rewrite commGC; apply: subsetP; exact/commG1P.
-  rewrite morphM ?groupV ?morphV //= -sdpairJ // -commgEl.
+  rewrite morphM ?groupV ?morphV //= sdpair_act // -commgEl.
   by rewrite mem_commg ?mem_morphim ?cycle_id.
 have fy: f y = y by rewrite cycle_subG in cHF; exact: (astabP cHF).
 have: (f ^+ q) x = x * y ^+ q.
@@ -1149,7 +1152,7 @@ have expH': {in H &, forall y z, [~ y, z] ^+ p = 1}.
   case/setIP=> _; move/centP=> Cyp; apply/eqP; apply/commgP; exact: Cyp.
 have Hfx: f x \in H.
   case/charP: chH => _ chH.
-  rewrite -(chH _ (injm_autm Af) (autm_dom Af)) -{1}(autmE Af).
+  rewrite -(chH _ (injm_autm Af) (im_autm Af)) -{1}(autmE Af).
   rewrite mem_morphim // (subsetP sHG) //.
 set y := x^-1 * f x; set z := [~ f x, x^-1].
 have Hy: y \in H by rewrite groupM ?groupV.
