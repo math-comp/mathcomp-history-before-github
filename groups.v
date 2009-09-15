@@ -302,9 +302,10 @@ Section PreGroupIdentities.
 
 Variable T : baseFinGroupType.
 Implicit Types x y z : T.
+Local Notation mulgT := (@mulg T).
 
-Lemma mulgA : @associative T mulg.  Proof. by case: T => ? []. Qed.
-Lemma mul1g : @left_id T 1 mulg.  Proof. by case: T => ? []. Qed.
+Lemma mulgA : associative mulgT.  Proof. by case: T => ? []. Qed.
+Lemma mul1g : left_id 1 mulgT.  Proof. by case: T => ? []. Qed.
 Lemma invgK : @involutive T invg.   Proof. by case: T => ? []. Qed.
 Lemma invMg : forall x y, (x * y)^-1 = y^-1 * x^-1.
 Proof. by case: T => ? []. Qed.
@@ -320,7 +321,7 @@ Proof. by apply: invg_inj; rewrite -{1}[1^-1]mul1g invMg invgK mul1g. Qed.
 Lemma eq_invg1 : forall x, (x^-1 == 1 :> T) = (x == 1).
 Proof. by move=> x; rewrite eq_invg_sym invg1. Qed.
 
-Lemma mulg1 : @right_id T 1 mulg.
+Lemma mulg1 : right_id 1 mulgT.
 Proof. by move=> x; apply: invg_inj; rewrite invMg invg1 mul1g. Qed.
 
 Canonical Structure finGroup_law := Monoid.Law mulgA mul1g mulg1.
@@ -393,29 +394,30 @@ Section GroupIdentities.
 
 Variable T : finGroupType.
 Implicit Types x y z : T.
+Local Notation mulgT := (@mulg T).
 
-Lemma mulVg : @left_inverse T 1 invg mulg.
+Lemma mulVg : left_inverse 1 invg mulgT.
 Proof. by case T. Qed.
 
-Lemma mulgV : @right_inverse T 1 invg mulg.
+Lemma mulgV : right_inverse 1 invg mulgT.
 Proof. by move=> x; rewrite -{1}(invgK x) mulVg. Qed.
 
-Lemma mulKg : forall x, cancel (mulg x) (mulg x^-1).
+Lemma mulKg : left_loop invg mulgT.
 Proof. by move=> x y; rewrite mulgA mulVg mul1g. Qed.
 
-Lemma mulKVg : forall x, cancel (mulg x^-1) (mulg x).
+Lemma mulKVg : rev_left_loop invg mulgT.
 Proof. by move=> x y; rewrite mulgA mulgV mul1g. Qed.
 
-Lemma mulgI : forall x, injective (mulg x).
+Lemma mulgI : right_injective mulgT.
 Proof. move=> x; exact: can_inj (mulKg x). Qed.
 
-Lemma mulgK : forall x, cancel (mulg^~ x) (mulg^~ x^-1).
+Lemma mulgK : right_loop invg mulgT.
 Proof. by move=> x y; rewrite -mulgA mulgV mulg1. Qed.
 
-Lemma mulgKV : forall x, cancel (mulg^~ x^-1) (mulg^~ x).
+Lemma mulgKV : rev_right_loop invg mulgT.
 Proof. by move=> x y; rewrite -mulgA mulVg mulg1. Qed.
 
-Lemma mulIg : forall x, injective (mulg^~ x).
+Lemma mulIg : left_injective mulgT.
 Proof. move=> x; exact: can_inj (mulgK x). Qed.
 
 Lemma eq_invg_mul : forall x y, (x^-1 == y :> T) = (x * y == 1 :> T).
@@ -463,13 +465,13 @@ Proof.
 by move=> x y; elim=> [|n IHn]; rewrite ?conj1g // !expgS conjMg IHn.
 Qed.
 
-Lemma conjgK : forall y, cancel (conjg^~ y) (conjg^~ y^-1).
+Lemma conjgK : @right_loop T T invg conjg.
 Proof. by move=> y x; rewrite -conjgM mulgV conjg1. Qed.
 
-Lemma conjgKV : forall y, cancel (conjg^~ y^-1) (conjg^~ y).
+Lemma conjgKV : @rev_right_loop T T invg conjg.
 Proof. by move=> y x; rewrite -conjgM mulVg conjg1. Qed.
 
-Lemma conjg_inj : forall y, injective (conjg^~ y).
+Lemma conjg_inj : @left_injective T T T conjg.
 Proof. move=> y; exact: can_inj (conjgK y). Qed.
 
 Lemma commgEl : forall x y, [~ x, y] = x^-1 * x ^ y. Proof. by []. Qed.
@@ -867,13 +869,13 @@ Proof. by move=> A x y; rewrite -mulg_set1 mulgA. Qed.
 Lemma rcoset1 : forall A, A :* 1 = A.
 Proof. exact: mulg1. Qed.
 
-Lemma rcosetK : forall x, cancel (fun A => A :* x) (fun A => A :* x^-1).
+Lemma rcosetK : right_loop invg (fun A x => A :* x).
 Proof. by move=> x A; rewrite -rcosetM mulgV mulg1. Qed.
 
-Lemma rcosetKV : forall x, cancel (fun A => A :* x^-1) (fun A => A :* x).
+Lemma rcosetKV : rev_right_loop invg (fun A x => A :* x).
 Proof. by move=> x A; rewrite -rcosetM mulVg mulg1. Qed.
 
-Lemma rcoset_inj : forall x, injective (fun A => A :* x).
+Lemma rcoset_inj : left_injective (fun A x => A :* x).
 Proof. by move=> x; exact: can_inj (rcosetK x). Qed.
 
 (* Inverse map lcosets to rcosets *)
@@ -920,13 +922,13 @@ Proof. by move=> A; rewrite conjsgE invg1 mul1g mulg1. Qed.
 Lemma conjsgM : forall A x y, A :^ (x * y) = (A :^ x) :^ y.
 Proof. by move=> A x y; rewrite !conjsgE invMg -!mulg_set1 !mulgA. Qed.
 
-Lemma conjsgK : forall x, cancel (fun A => A :^ x) (fun A => A :^ x^-1).
+Lemma conjsgK : @right_loop _ gT invg conjugate.
 Proof. by move=> x A; rewrite -conjsgM mulgV conjsg1. Qed.
 
-Lemma conjsgKV : forall x, cancel (fun A => A :^ x^-1) (fun A => A :^ x).
+Lemma conjsgKV : @rev_right_loop _ gT invg conjugate.
 Proof. by move=> x A; rewrite -conjsgM mulVg conjsg1. Qed.
 
-Lemma conjsg_inj : forall x, injective (fun A => A :^ x).
+Lemma conjsg_inj : @left_injective _ gT _ conjugate.
 Proof. by move=> x; exact: can_inj (conjsgK x). Qed.
 
 Lemma conjSg : forall A B x, (A :^ x \subset B :^ x) = (A \subset B).

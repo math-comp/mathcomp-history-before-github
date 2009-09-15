@@ -757,7 +757,7 @@ rewrite /= !val_insubd !inE !group1 gact_stable ?Da ?Rx //=.
 by rewrite !mul1g mulVg invg1 mulg1 actKVin ?mul1g.
 Qed.
 
-Lemma sdpair_acts : forall (G : {set rT}) a, G \subset R -> a \in D ->
+Lemma sdpair_setact : forall (G : {set rT}) a, G \subset R -> a \in D ->
   sdpair1 @* (to^~ a @: G) = (sdpair1 @* G) :^ sdpair2 a.
 Proof.
 move=> G a sGR Da; have GtoR := subsetP sGR; apply/eqP.
@@ -769,20 +769,70 @@ rewrite mem_conjg -morphV // -sdpair_act ?groupV // def_xa actKin //.
 by rewrite mem_morphim ?GtoR.
 Qed.
 
-Lemma sdpairEdom: sdpair1 @* R ><| sdpair2 @* D = setT.
+Lemma im_sdpair_norm : sdpair2 @* D \subset 'N(sdpair1 @* R).
 Proof.
-apply/eqP; rewrite -subTset sdprodE /= !morphimEdom /=.
-- apply/subsetP=> /= u _; rewrite [u]sdpairE conjgCV.
-  case: u => [[a x] /=]; case/setXP=> Da Rx.
-  rewrite -morphV // -sdpair_act ?groupV // mem_mulg ?mem_imset //.
-  by rewrite gact_stable ?groupV.
-- apply/subsetP=> u; case/imsetP=> a Da ->{u}; rewrite inE.
-  rewrite -morphimEdom -sdpair_acts // morphimS //.
-  by apply/subsetP=> xa; case/imsetP=> x Rx ->{xa}; rewrite gact_stable.
-apply/trivgP; apply/subsetP=> u; case/setIP; case/imsetP=> a Da ->{u} /=.
-case/imsetP=> x Rx; move/eqP; rewrite inE -!val_eqE.
+apply/subsetP=> u; case/morphimP=> a _ Da ->{u}.
+rewrite inE -sdpair_setact // morphimS //.
+by apply/subsetP=> xa; case/imsetP=> x Rx ->{xa}; rewrite gact_stable.
+Qed.
+
+Lemma im_sdpair_TI : (sdpair1 @* R) :&: (sdpair2 @* D) = 1.
+Proof.
+apply/trivgP; apply/subsetP=> u; case/setIP; case/morphimP=> x _ Rx ->{u}.
+case/morphimP=> a _ Da; move/eqP; rewrite inE -!val_eqE.
 by rewrite !val_insubd !inE Da Rx !group1 /eq_op /= eqxx; case/andP.
 Qed.
+
+Lemma im_sdpair : (sdpair1 @* R) * (sdpair2 @* D) = setT.
+Proof.
+apply/eqP; rewrite -subTset -(normC im_sdpair_norm).
+apply/subsetP=> /= u _; rewrite [u]sdpairE.
+by case: u => [[a x] /=]; case/setXP=> Da Rx; rewrite mem_mulg ?mem_morphim.
+Qed.
+
+Lemma sdprod_sdpair : sdpair1 @* R ><| sdpair2 @* D = setT.
+Proof. by rewrite sdprodE ?(im_sdpair_norm, im_sdpair, im_sdpair_TI). Qed.
+
+Variables (A : {set aT}) (G : {set rT}).
+
+Lemma gacentEsd : 'C_(|to)(A) = sdpair1 @*^-1 'C(sdpair2 @* A).
+Proof.
+apply/setP=> x; apply/idP/idP.
+  case/setIP=> Rx; move/afixP=> cDAx; rewrite mem_morphpre //.
+  apply/centP=> a'; case/morphimP=> a Da Aa ->{a'}; red.
+  by rewrite conjgC -sdpair_act // cDAx // inE Da.
+case/morphpreP=> Rx cAx; rewrite inE Rx; apply/afixP=> a; case/setIP=> Da Aa.
+apply: (injmP _ injm_sdpair1); rewrite ?gact_stable /= ?sdpair_act //=.
+by rewrite /conjg (centP cAx) ?mulKg ?mem_morphim.
+Qed.
+
+Hypotheses (sAD : A \subset D) (sGR : G \subset R).
+
+Lemma astabEsd : 'C(G | to) = sdpair2 @*^-1 'C(sdpair1 @* G).
+Proof.
+have ssGR := subsetP sGR; apply/setP=> a; apply/idP/idP=> [cGa|].
+  rewrite mem_morphpre ?(astab_dom cGa) //.
+  apply/centP=> x'; case/morphimP=> x Rx Gx ->{x'}; symmetry.
+  by rewrite conjgC -sdpair_act ?(astab_act cGa)  ?(astab_dom cGa).
+case/morphpreP=> Da cGa; rewrite !inE Da; apply/subsetP=> x Gx; rewrite inE.
+apply/eqP; apply: (injmP _ injm_sdpair1); rewrite ?gact_stable ?ssGR //=.
+by rewrite sdpair_act ?ssGR // /conjg -(centP cGa) ?mulKg ?mem_morphim ?ssGR.
+Qed.
+
+Lemma astabsEsd : 'N(G | to) = sdpair2 @*^-1 'N(sdpair1 @* G).
+Proof.
+apply/setP=> a; apply/idP/idP=> [nGa|].
+  have Da := astabs_dom nGa; rewrite mem_morphpre // inE sub_conjg.
+  apply/subsetP=> x'; case/morphimP=> x Rx Gx->{x'}.
+  by rewrite mem_conjgV -sdpair_act // mem_morphim ?gact_stable ?astabs_act.
+case/morphpreP=> Da nGa; rewrite !inE Da; apply/subsetP=> x Gx.
+have Rx := subsetP sGR _ Gx; have Rxa: to x a \in R by rewrite gact_stable.
+rewrite inE -sub1set -(injmSK injm_sdpair1) ?morphim_set1 ?sub1set //=.
+by rewrite sdpair_act ?memJ_norm ?mem_morphim.
+Qed.
+
+Lemma actsEsd : [acts A, on G | to] = (sdpair2 @* A \subset 'N(sdpair1 @* G)).
+Proof. by rewrite sub_morphim_pre -?astabsEsd. Qed.
 
 End ExternalSDirProd.
 

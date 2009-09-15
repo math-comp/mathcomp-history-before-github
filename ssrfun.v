@@ -1,76 +1,90 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect.
 
-(****************************************************************************)
-(* This file contains the basic definitions and notations for working with  *)
-(* functions. The definitions concern:                                      *)
-(*                                                                          *)
-(*  Pair projections                                                        *)
-(*    p.1  == first element of a pair                                       *)
-(*    p.2  == second element of a pair                                      *)
-(*                                                                          *)
-(*  Simplifying functions, beta-reduced by simpl and /= :                   *)
-(*           [fun : T => E] == constant function from type T that returns E *)
-(*             [fun x => E] == unary function                               *)
-(*         [fun x : T => E] == unary function with explicit domain type     *)
-(*           [fun x y => E] == binary function                              *)
-(*       [fun x y : T => E] == binary function with explicit domain type    *)
-(*     [fun (x : T) y => E] == binary function with explicit domain type    *)
-(*     [fun x (y : T) => E] == binary function with explicit domain type    *)
-(*    [fun (x : xT) (y : yT) => E]                                          *)
-(*                                                                          *)
-(* - partial functions using option type,                                   *)
-(*     oapp f d ox == if ox is Some x returns f x,        d otherwise       *)
-(*      odflt d ox == if ox is Some x returns x,          d otherwise       *)
-(*      obind f ox == if ox is Some x returns f x,        None otherwise    *)
-(*       omap f ox == if ox is Some x returns Some (f x), None otherwise    *)
-(*                                                                          *)
-(* - extensional equality for functions and relations (i.e. functions of 2  *)
-(*   arguments),                                                            *)
-(*    f1 =1 f2      ==  f1 x is equal to f2 x forall x                      *)
-(*    f1 =1 f2 :>A  ==    ... and f2 is explicitly typed                    *)
-(*    f1 =2 f2      ==  f1 x y is equal to f2 x y forall x y                *)
-(*    f1 =2 f2 :> A ==    ... and f2 is explicitly typed                    *)
-(*                                                                          *)
-(* - composition for total and partial functions,                           *)
-(*             f^~y == function f with y as second argument y               *)
-(*        f1 \o f2  == composition of f1 and f2                             *)
-(*      pcomp f1 f2 == composition of partial functions f1 and f2           *)
-(*                                                                          *)
-(* - properties of functions                                                *)
-(*        injective f == f is injective                                     *)
-(*         cancel f g == g is the inverse of f                              *)
-(*        pcancel f g == g is the inverse of f where g is partial           *)
-(*        ocancel f g == g is the inverse of f where f is partial           *)
-(*        bijective f == f is bijective                                     *)
-(*       involutive f == f is involutive                                    *)
-(*                                                                          *)
-(* - properties for operations                                              *)
-(*                left_id e op == e is a left identity for op               *)
-(*               right_id e op == e is a right identity for op              *)
-(*         left_inverse e i op == i is a left inverse for op with unit e    *)
-(*        right_inverse e i op == i is a right inverse for op with unit e   *)
-(*         self_inverse x e op == x is its own inverse for op               *)
-(*             idempotent x op == x is idempotent                           *)
-(*                associate op == op is associative                         *)
-(*              commutative op == op is commutative                         *)
-(*         left_commutative op == op is left commutative                    *)
-(*        right_commutative op == op is right commutative                   *)
-(*              left_zero z op == z is a right zero for op                  *)
-(*             right_zero z op == z is a right zero for op                  *)
-(*   left_distributive op1 op2 == op1 is left distributive for op2          *)
-(*  right_distributive op1 op2 == op1 is right distributive for op2         *)
-(*                                                                          *)
-(* - morphisms for functions and relations,                                 *)
-(*  {morph f : x / a >-> r } == f is a morphism with respect to functions   *)
-(*                                 (fun x => a) and (fun x => r)            *)
-(*  {morph f : x / a } == f is a morphism with respect to (fun x => a)      *)
-(*  {morph f : x y / a >-> r } == f is a morphism with respect to functions *)
-(*                                 (fun x y => a) and (fun x y => r)        *)
-(*  {morph f : x / a } == f is a morphism with respect to (fun x y => a)    *)
-(*                                                                          *)
-(* The file also contains some basic lemmas for the above concepts.         *)
-(****************************************************************************)
+(*****************************************************************************)
+(* This file contains the basic definitions and notations for working with   *)
+(* functions. The definitions concern:                                       *)
+(*                                                                           *)
+(*  Pair projections                                                         *)
+(*    p.1  == first element of a pair                                        *)
+(*    p.2  == second element of a pair                                       *)
+(*                                                                           *)
+(*  Simplifying functions, beta-reduced by simpl and /= :                    *)
+(*           [fun : T => E] == constant function from type T that returns E  *)
+(*             [fun x => E] == unary function                                *)
+(*         [fun x : T => E] == unary function with explicit domain type      *)
+(*           [fun x y => E] == binary function                               *)
+(*       [fun x y : T => E] == binary function with explicit domain type     *)
+(*     [fun (x : T) y => E] == binary function with explicit domain type     *)
+(*     [fun x (y : T) => E] == binary function with explicit domain type     *)
+(* [fun (x : xT) (y : yT) => E]                                              *)
+(*                                                                           *)
+(* - partial functions using option type,                                    *)
+(*     oapp f d ox == if ox is Some x returns f x,        d otherwise        *)
+(*      odflt d ox == if ox is Some x returns x,          d otherwise        *)
+(*      obind f ox == if ox is Some x returns f x,        None otherwise     *)
+(*       omap f ox == if ox is Some x returns Some (f x), None otherwise     *)
+(*                                                                           *)
+(* - extensional equality for functions and relations (i.e. functions of two *)
+(*   arguments),                                                             *)
+(*    f1 =1 f2      ==  f1 x is equal to f2 x forall x                       *)
+(*    f1 =1 f2 :>A  ==    ... and f2 is explicitly typed                     *)
+(*    f1 =2 f2      ==  f1 x y is equal to f2 x y forall x y                 *)
+(*    f1 =2 f2 :> A ==    ... and f2 is explicitly typed                     *)
+(*                                                                           *)
+(* - composition for total and partial functions,                            *)
+(*            f^~ y == function f with y as second argument y                *)
+(*        f1 \o f2  == composition of f1 and f2                              *)
+(*      pcomp f1 f2 == composition of partial functions f1 and f2            *)
+(*                                                                           *)
+(* - properties of functions                                                 *)
+(*      injective f == f is injective                                        *)
+(*       cancel f g == g is a left inverse of f / f is a right inverse of g  *)
+(*      pcancel f g == g is a left inverse of f where g is partial           *)
+(*      ocancel f g == g is a left inverse of f where f is partial           *)
+(*      bijective f == f is bijective (has a left and right inverse)         *)
+(*       involutive f == f is involutive                                     *)
+(*                                                                           *)
+(* - properties for operations                                               *)
+(*              left_id e op == e is a left identity for op                  *)
+(*             right_id e op == e is a right identity for op                 *)
+(*       left_inverse e i op == i is a left inverse for op with identity e   *)
+(*      right_inverse e i op == i is a right inverse for op with identity e  *)
+(*         self_inverse e op == each x is its own op-inverse (op x x = e)    *)
+(*             idempotent op == op is idempotent for op                      *)
+(*              associate op == op is associative                            *)
+(*            commutative op == op is commutative                            *)
+(*       left_commutative op == op is left commutative                       *)
+(*      right_commutative op == op is right commutative                      *)
+(*            left_zero z op == z is a right zero for op                     *)
+(*           right_zero z op == z is a right zero for op                     *)
+(*  left_distributive op add == op distributes over add to the left          *)
+(* right_distributive op add == op distributes over add to the right         *)
+(*         left_injective op == op is injective in its left argument         *)
+(*        right_injective op == op is injective in its right argument        *)
+(*          left_loop inv op == op, inv obey the inverse loop left axiom:    *)
+(*                              op (inv x) (op x y) = y for all x, y, i.e.,  *)
+(*                              op (inv x) is always a left inverse of op x  *)
+(*      rev_left_loop inv op == op, inv obey the inverse loop reverse left   *)
+(*                              axiom: op x (op (inv x) y) = y, for all x, y *)
+(*         right_loop inv op == op, inv obey the inverse loop right axiom:   *)
+(*                              op (op x y) (inv y) = x for all x, y         *)
+(*     rev_right_loop inv op == op, inv obey the inverse loop reverse right  *)
+(*                              axiom: op (op x y) (inv y) = x for all x, y  *)
+(*   Note that familiar "cancellation" identities like x + y - y = x or      *)
+(* x - y + x = x are respectively instances of right_loop and rev_right_loop *)
+(* The corresponding lemmas will use the K and KV suffixes, respectively.    *)
+(*                                                                           *)
+(* - morphisms for functions and relations,                                  *)
+(*  {morph f : x / a >-> r } == f is a morphism with respect to functions    *)
+(*                                 (fun x => a) and (fun x => r)             *)
+(*  {morph f : x / a } == f is a morphism with respect to (fun x => a)       *)
+(*  {morph f : x y / a >-> r } == f is a morphism with respect to functions  *)
+(*                                 (fun x y => a) and (fun x y => r)         *)
+(*  {morph f : x / a } == f is a morphism with respect to (fun x y => a)     *)
+(*                                                                           *)
+(* The file also contains some basic lemmas for the above concepts.          *)
+(*****************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -276,6 +290,7 @@ Notation "f1 \o f2" := (comp f1 f2) (at level 50) : fun_scope.
 Definition idfun T := @id T.
 Prenex Implicits idfun.
 
+(*
 Section OperationProperties.
 
 Variable T : Type.
@@ -289,8 +304,8 @@ Notation Local "x ^-1" := (inv x).
 Notation Local "x * y"  := (mul x y).
 Notation Local "x + y"  := (add x y).
 
-Definition left_id          := forall x,     1 * x = x.
-Definition right_id         := forall x,     x * 1 = x.
+Definition left_id            := forall x,     1 * x = x.
+Definition right_id           := forall x,     x * 1 = x.
 Definition left_inverse       := forall x,     x^-1 * x = 1.
 Definition right_inverse      := forall x,     x * x^-1 = 1.
 Definition self_inverse       := forall x,     x * x = 1.
@@ -303,8 +318,15 @@ Definition left_zero          := forall x,     0 * x = 0.
 Definition right_zero         := forall x,     x * 0 = 0.
 Definition left_distributive  := forall x y z, (x + y) * z = x * z + y * z.
 Definition right_distributive := forall x y z, x * (y + z) = x * y + x * z.
+Definition left_injective     := forall x,     injective (mul^~ x).
+Definition right_injective    := forall y,     injective (mul y).
+Definition left_can_inv       := forall x,     cancel (mul x) (mul x^-1).
+Definition left_inv_can       := forall x,     cancel (mul x^-1) (mul x).
+Definition right_can_inv      := forall x,     cancel (mul^~ x) (mul^~ x^-1).
+Definition right_inv_can      := forall x,     cancel (mul^~ x^-1) (mul^~ x).
 
 End OperationProperties.
+*)
 
 Section Morphism.
 
@@ -459,6 +481,55 @@ Lemma inv_inj : injective f. Proof. exact: can_inj Hf. Qed.
 Lemma inv_bij : bijective f. Proof. by exists f. Qed.
 
 End Involutions.
+
+Section OperationProperties.
+
+Variables S T R : Type.
+
+Section SopTisR.
+Implicit Type op :  S -> T -> R.
+Definition left_inverse e inv op := forall x, op (inv x) x = e.
+Definition right_inverse e inv op := forall x, op x (inv x) = e.
+Definition left_injective op := forall x, injective (op^~ x).
+Definition right_injective op := forall y, injective (op y).
+End SopTisR.
+
+
+Section SopTisS.
+Implicit Type op :  S -> T -> S.
+Definition right_id e op := forall x, op x e = x.
+Definition left_zero z op := forall x, op z x = z.
+Definition right_commutative op := forall x y z, op (op x y) z = op (op x z) y.
+Definition left_distributive op add :=
+  forall x y z, op (add x y) z = add (op x z) (op y z).
+Definition right_loop inv op := forall y, cancel (op^~ y) (op^~ (inv y)).
+Definition rev_right_loop inv op := forall y, cancel (op^~ (inv y)) (op^~ y).
+End SopTisS.
+
+Section SopTisT.
+Implicit Type op :  S -> T -> T.
+Definition left_id e op := forall x, op e x = x.
+Definition right_zero z op := forall x, op x z = z.
+Definition left_commutative op := forall x y z, op x (op y z) = op y (op x z).
+Definition right_distributive op add :=
+  forall x y z, op x (add y z) = add (op x y) (op x z).
+Definition left_loop inv op := forall x, cancel (op x) (op (inv x)).
+Definition rev_left_loop inv op := forall x, cancel (op (inv x)) (op x).
+End SopTisT.
+
+Section SopSisT.
+Implicit Type op :  S -> S -> T.
+Definition self_inverse e op := forall x, op x x = e.
+Definition commutative op := forall x y, op x y = op y x.
+End SopSisT.
+
+Section SopSisS.
+Implicit Type op :  S -> S -> S.
+Definition idempotent op := forall x, op x x = x.
+Definition associative op := forall x y z, op x (op y z) = op (op x y) z.
+End SopSisS.
+
+End OperationProperties.
 
 
 

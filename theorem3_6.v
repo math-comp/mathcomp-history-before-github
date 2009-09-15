@@ -879,7 +879,7 @@ have ViJ: forall x Ki, x \in P <*> R -> (Vi Ki :^ x = Vi (Ki :^ x))%G.
   move=> x Ki PRx; apply: group_inj; rewrite /= conjIg centJ (normP _) //.
   by apply: subsetP PRx; rewrite mulgen_subG nVP (subset_trans sRG).
 have actsPR_K: [acts P <*> R, on mxK | 'JG].
-  apply/subsetP=> x PRx; rewrite 2!inE; apply/subsetP=> Ki.
+  apply/subsetP=> x PRx; rewrite 3!inE; apply/subsetP=> Ki.
   rewrite !inE -ViJ // !trivg_card1 cardJg /=.
   case/andP; case/maxgroupP=> sKj mxKj ->.
   rewrite -(normsP nKPR x PRx) andbT.
@@ -887,7 +887,7 @@ have actsPR_K: [acts P <*> R, on mxK | 'JG].
   rewrite !sub_conjg /= -sub_conjgV=> sQ.
   by move/mxKj <-; rewrite // conjsgKV.
 have actsPR: [acts P <*> R, on Vi @: mxK | 'JG].
-  apply/subsetP=> x PRx; rewrite 2!inE; apply/subsetP=> Vj.
+  apply/subsetP=> x PRx; rewrite 3!inE; apply/subsetP=> Vj.
   case/imsetP=> Kj mxKj ->{Vj}.
   by rewrite inE /= ViJ // mem_imset // (actsP actsPR_K).
 have transPR: [transitive P <*> R, on Vi @: mxK | 'JG].
@@ -958,7 +958,7 @@ case sR_IN: (forallb K1, (K1 \in mxK) ==> (R \subset 'N(Vi K1))).
     rewrite defP; apply: (subset_trans (commgS P sR_IN)).
     have:= subset_trans (mulgen_subl P R) nIPR.
     rewrite -commg_subr; move/subset_trans; apply; exact: bigcap_inf.
-  rewrite -conjG_fix; move/orbit1P=> -> allV1.
+  rewrite -afixJG; move/orbit1P=> -> allV1.
   have defV1: V = Vi K1.
     apply/eqP; rewrite -val_eqE eqEsubset subsetIl /= andbT.
     rewrite -{1}(bigdprodEgen dprod_V) gen_subG; apply/bigcupsP=> Ki mxKi.
@@ -980,7 +980,7 @@ have regR_Vi: forall Ki, Ki \in mxK ->
   case: (primeP pr_r) => _ dvr; move/dvr {dvr}; case/pred2P=> [//|oN].
   by case/setIidPl: fixVi; apply/eqP; rewrite eqEcard subsetIl oN oR leqnn.
 have oV1R: #|orbit 'JG%act R (Vi K1)| = r.
-  by rewrite card_orbit conjG_astab1 /= regR_Vi // indexg1 oR.
+  by rewrite card_orbit astab1JG /= regR_Vi // indexg1 oR.
 have nRfix_CR: forall Ki, Ki \in mxK -> ~~ (R \subset 'N(Vi Ki)) ->
            #|Vi Ki| = p /\ 'C_V(R) \subset << class_support (Vi Ki) R >>.
 - move=> Ki mxKi fixVi.
@@ -1119,7 +1119,7 @@ case/predU1P=> [fix0|].
   have:= pgroup_fix_mod pP (subset_trans (mulgen_subl P R) actsPR).
   by rewrite -{1}defV1R oV1R -fix0 cards0 (modn_small (prime_gt0 _)).
 case/andP=> _; case/subsetPn=> Vj; case/setIP; case/imsetP=> Kj mxKj ->{Vj}.
-rewrite conjG_fix => nVjP.
+rewrite afixJG => nVjP.
 suffices trVj: Vi Kj :=: 1 by rewrite -(oVi Kj) // trVj cards1 in pr_p.
 apply/trivgP; rewrite -trCVK subsetI subsetIl centsC defKP.
 rewrite -ker_conj_aut -sub_morphim_pre ?comm_subG ?morphimR ?nViK // andTb.

@@ -246,7 +246,7 @@ Implicit Type x : 'I_p.
 
 Definition Zp_gen := Zp1 (valP p).
 
-Lemma Zp_mulgC : @commutative 'I_p mulg.
+Lemma Zp_mulgC : @commutative 'I_p _ mulg.
 Proof. exact: Zp_addC. Qed.
 
 Lemma Zp_abelian : abelian (Zp p).
@@ -263,7 +263,7 @@ Proof.
 by apply/setP=> x; rewrite -[x]Zp_gen_expgz inE groupX ?mem_gen ?set11.
 Qed.
 
-Lemma Zp_unit_mulgC : @commutative (Zp_unit p) mulg.
+Lemma Zp_unit_mulgC : @commutative (Zp_unit p) _ mulg.
 Proof. exact: Zp_unit_mulC. Qed.
 
 Lemma Zp_units_abelian : abelian (Zp_units p).
@@ -296,7 +296,7 @@ Definition Zp_ringMixin :=
            (Zp_mulA _) (Zp_mulC _) (Zp_mul1z _) (Zp_mul_addl _) Zp_nontriv.
 
 Definition Zp_comRingMixin :
-   @commutative (RingType Zp_ringMixin) *%R := Zp_mulC _.
+   @commutative (RingType Zp_ringMixin) _ *%R := Zp_mulC _.
 
 Definition Zp_unitMixin :=
   @ComUnitRingMixin (ComRingType Zp_comRingMixin) (fun i => coprime p i)

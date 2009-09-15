@@ -314,7 +314,7 @@ Hypothesis card_T : 2 < #|T|.
 
 Lemma rfd_morph : {in 'C_('Sym_T)[x | 'P] &, {morph rfd : y z / y * z}}.
 Proof.
-move=> p q; rewrite !in_setI !in_setT; move/astab1P=> p_x; move/astab1P=> q_x.
+move=> p q; rewrite !setIA !setIid; move/astab1P=> p_x; move/astab1P=> q_x.
 apply/permP=> u; apply: val_inj.
 by rewrite permE /= !permM !permE /= [p x]p_x [q x]q_x eqxx permM /=.
 Qed.
@@ -441,7 +441,7 @@ case E1: (pred0b (predD1 T x)).
 case/pred0Pn: E1 => y Hdy; case/andP: (Hdy) => diff_x_y Hy.
 pose K := 'C_H[x | 'P]%G.
 have F8: K \subset H by apply: subsetIl.
-pose Gx := 'C_('Alt_T)[x | 'P]%G.
+pose Gx := 'C_('Alt_T)[x | 'P].
 have F9: [transitive^3 Gx, on [set~ x] | 'P].
   by rewrite -[[set~ x]]setTI -setDE stab_ntransitive ?inE.
 have F10: [transitive Gx, on [set~ x] | 'P].
@@ -462,9 +462,9 @@ have:= prim_trans_norm F11; case/(_ K) => //= => Ksub; last first.
     have [diff_x_z Hz] := andP Hdz.
     have: z \in [set~ x] by rewrite !inE.
     rewrite -(atransP Ksub y) ?inE //; case/imsetP => g.
-    rewrite /= HH2 inE; move/eqP => -> HH4.
+    rewrite /= HH2 inE; move/eqP=> -> HH4.
     by case/negP: diff_y_z; rewrite HH4 act1.
-  by apply: val_inj; rewrite /= -F14 /= -HH2 (mulSGid F8).
+  by rewrite /= -F14 -[Gx]HH2 (mulSGid F8).
 have F14: [faithful Gx, on [set~ x] | 'P].
   apply: subset_trans (aperm_faithful 'Sym_T); rewrite subsetI subsetT.
   apply/subsetP=> g; do 2![case/setIP]=> _ cgx cgx'; apply/astabP=> z _ /=.

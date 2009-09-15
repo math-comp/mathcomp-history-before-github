@@ -210,10 +210,10 @@ Proof. by move=> p *; elim p. Qed.
 Lemma eqn_addr : forall p m n, (m + p == n + p) = (m == n).
 Proof. by move=> p *; rewrite -!(addnC p) eqn_addl. Qed.
 
-Lemma addnI : forall p, injective (addn p).
+Lemma addnI : right_injective addn.
 Proof. by move=> p m n Heq; apply: eqP; rewrite -(eqn_addl p) Heq eqxx. Qed.
 
-Lemma addIn : forall p, injective (addn^~ p).
+Lemma addIn : left_injective addn.
 Proof. move=> p m n; rewrite -!(addnC p); apply addnI. Qed.
 
 Lemma addn2 : forall m, m + 2 = m.+2. Proof. by move=> *; rewrite addnC. Qed.

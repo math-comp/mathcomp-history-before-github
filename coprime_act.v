@@ -5,16 +5,15 @@ Require Import commutators pgroups nilpotent sylow maximal hall.
 
 (*****************************************************************************)
 (* This file develops the theory of coprime groups action on solvable groups *)
-(* along with some moe specific results for abelian groups and p-groups      *)
+(* along with some more specific results for abelian groups and p-groups     *)
 (* (roughly, Gorenstein chapt. 5 /Aschbacher chapt. 24 / B & G section 1).   *)
-(*   Note that we only develop the theory for internal action (conjugation). *)
-(* While in principle it's always possible to reduce to this case with a     *)
-(* semi-direct product construction (defined in gprod.v), in practice the    *)
-(* only situation that would require general (external) group actions is the *)
-(* consideration of actions induced on or by a quotient group, and this case *)
-(* can be readily dealt with by quotienting simultaneously the acting and    *)
-(* acted-on groups: as these are coprime, the "spurrious" quotient is        *)
-(* isomorphic to the original group.                                         *)
+(*   We mainly develop the theory for internal action (conjugation), though  *)
+(* we do provide a group action version of the main solvable coprime action  *)
+(* lemmas. It is unclear whether they are easier to use that the internal    *)
+(* ones: even when applying an induction hypothesis to a quotient of the     *)
+(* acted-on group, it is easy enough to quotient the acting group as well,   *)
+(* since this quotient is isomorphic to the acting group due to the coprime  *)
+(* orders.                                                                   *)
 (*****************************************************************************)
 
 Set Implicit Arguments.
@@ -304,64 +303,6 @@ case/setIP=> XMx cAx ->; exists (H :^ x)%G; split.
 by rewrite conjSg subsetIl.
 Qed.
 
-Section MoreSdprod.
-
-Variables (aT rT : finGroupType) (D : {group aT}) (R : {group rT}).
-Variable to : groupAction D R.
-
-Lemma astabsEsd : forall G : {set rT}, G \subset R ->
-  'N(G | to) = sdpair2 to @*^-1 'N(sdpair1 to @* G).
-Proof.
-move=> G; move/subsetP=> sGR; apply/setP=> a; apply/idP/idP=> [nGa|].
-  have Da := astabs_dom nGa; rewrite mem_morphpre // inE sub_conjg.
-  apply/subsetP=> x'; case/morphimP=> x Rx Gx->{x'}.
-  by rewrite mem_conjgV -sdpair_act // mem_morphim ?gact_stable ?astabs_act.
-case/morphpreP=> Da nGa; rewrite inE Da; apply/subsetP=> x Gx.
-have Rx := sGR _ Gx; have Rxa: to x a \in R by rewrite gact_stable.
-rewrite inE -sub1set -(injmSK (injm_sdpair1 to)) ?morphim_set1 ?sub1set //=.
-by rewrite sdpair_act ?memJ_norm ?mem_morphim.
-Qed.
-
-Lemma actsEsd : forall (A : {set aT}) (G : {set rT}),
-    A \subset D -> G \subset R ->
-  [acts A, on G | to] = (sdpair2 to @* A \subset 'N(sdpair1 to @* G)).
-Proof. by move=> A G sAD sGR; rewrite sub_morphim_pre -?astabsEsd. Qed.
-
-Lemma acentEsd : forall (A : {set aT}),
-  'C_(|to)(A) = sdpair1 to @*^-1 'C(sdpair2 to @* A).
-Proof.
-move=> A; apply/setP=> x; apply/idP/idP.
-  case/setIP=> Rx; move/afixP=> cDAx; rewrite mem_morphpre //.
-  apply/centP=> a'; case/morphimP=> a Da Aa ->{a'}; red.
-  by rewrite conjgC -sdpair_act // cDAx // inE Da.
-case/morphpreP=> Rx cAx; rewrite inE Rx; apply/afixP=> a; case/setIP=> Da Aa.
-apply: (injmP _ (injm_sdpair1 to)); rewrite ?gact_stable /= ?sdpair_act //=.
-by rewrite /conjg (centP cAx) ?mulKg ?mem_morphim.
-Qed.
-
-Lemma sdpair_acent : forall A : {set aT},
-  sdpair1 to @* 'C_(|to)(A) = 'C_(sdpair1 to @* R) (sdpair2 to @* A).
-Proof.
-by move=> A; rewrite acentEsd // -morphpreIim morphpreK ?subsetIl.
-Qed.
-
-Lemma astabEsd : forall (G : {set rT}),
-  G \subset R -> 'C(G | to) = sdpair2 to @*^-1 'C(sdpair1 to @* G).
-Proof.
-move=> G; move/subsetP=> sGR; apply/setP=> a; apply/idP/idP=> [cGa|].
-  rewrite mem_morphpre ?(astab_dom cGa) //.
-  apply/centP=> x'; case/morphimP=> x Rx Gx ->{x'}; symmetry.
-  by rewrite conjgC -sdpair_act ?(astab_act cGa)  ?(astab_dom cGa).
-case/morphpreP=> Da cGa; rewrite inE Da; apply/subsetP=> x Gx; rewrite inE.
-apply/eqP; apply: (injmP _ (injm_sdpair1 to)); rewrite ?gact_stable ?sGR //=.
-by rewrite sdpair_act ?sGR // /conjg -(centP cGa) ?mulKg ?mem_morphim ?sGR.
-Qed.
-
-Lemma im_sdpair_norm : sdpair2 to @* D \subset 'N(sdpair1 to @* R).
-Proof. by case/sdprodP: (sdpairEdom to). Qed.
-
-End MoreSdprod.
-
 Section ExternalAction.
 
 Variables (pi : nat_pred) (aT gT : finGroupType).
@@ -411,7 +352,7 @@ have [x'] := coprime_Hall_trans nGA' coGA' solG' hallH1' nH1A hallH2' nH2A.
 case/setIP=> /= Gx' cAx'; move/eqP=> defH1; pose x := invm injG x'.
 have Gx: x \in G by rewrite -(im_invm injG) mem_morphim.
 have def_x': x' = inG x by rewrite invmK.
-exists x; first by rewrite inE Gx acentEsd mem_morphpre /= -?def_x'.
+exists x; first by rewrite inE Gx gacentEsd mem_morphpre /= -?def_x'.
 apply/eqP; move: defH1; rewrite -!val_eqE def_x' /= -morphimJ //=.
 by rewrite !eqEsubset !injmSK // conj_subG.
 Qed.
@@ -421,7 +362,7 @@ Lemma ext_norm_conj_cent : forall (H : {group gT}) x,
      [acts A, on H :^ x | to] = [acts A, on H | to].
 Proof.
 move=> H x sHG; case/setIP=> Gx.
-rewrite acentEsd !actsEsd ?conj_subG ?morphimJ // 2!inE Gx /=.
+rewrite gacentEsd !actsEsd ?conj_subG ?morphimJ // 2!inE Gx /=.
 exact: norm_conj_cent.
 Qed.
 
@@ -447,54 +388,56 @@ Lemma ext_coprime_quotient_cent : forall H : {group gT},
 Proof.
 move=> H nHG nHA coHA solH; have sHG := normal_sub nHG; pose H' := inG @* H.
 have nHG': H' <| G' by exact: morphim_normal.
-have defN: 'N(H | to) = A.
-  by apply/eqP; rewrite eqEsubset nHA andbT; apply/subsetP; exact: astabs_dom.
-rewrite actsEsd // in nHA.
-have{coHA} coHA': coprime #|H'| #|A'| by rewrite !card_injm.
-have defCA := coprime_quotient_cent nHG' nHA coHA' (morphim_sol _ solH).
-rewrite !acentEsd -morphpreIim /=; set to_q := _ to H.
-have:= sdpairEdom to_q; set inAq := sdpair2 _; set inGq := sdpair1 _ => /=.
-set Gq := inGq @* _; set Aq := inAq @* _ => q_d.
+have defN: 'N(H | to) = A by apply/eqP; rewrite eqEsubset subsetIl.
 have def_Dq: qact_dom to H = A by rewrite qact_domE.
-have: 'dom (coset H' \o inA \o invm (injm_sdpair2 to_q)) = Aq.
-  by rewrite ['dom _]morphpre_invm /= -astabsEsd // -qact_domE.
+rewrite actsEsd // in nHA.
+have nH': 'N(H') = setT.
+  by apply/eqP; rewrite eqEsubset subsetT -im_sdpair mulG_subG normal_norm.
+have sAq: A \subset qact_dom to H by rewrite def_Dq.
+rewrite -{4}(setIid A) -(gacent_ract _ sAq); set to_q := (_ \ _)%gact.
+rewrite !gacentEsd -morphpreIim /=.
+have:= And3 (sdprod_sdpair to_q) (injm_sdpair1 to_q) (injm_sdpair2 to_q).
+set inAq := sdpair2 _; set inGq := sdpair1 _ => /=.
+set Gq := inGq @* _; set Aq := inAq @* _ => [[q_d iGq iAq]].
+have{coHA} coHA': coprime #|H'| #|A'| by rewrite !card_injm.
+have{solH} solH': solvable H' by exact: morphim_sol.
+have: 'dom (coset H' \o inA \o invm iAq) = Aq.
+  by rewrite ['dom _]morphpre_invm /= nH' morphpreT. 
 case/domP=> qA [def_qA ker_qA _ im_qA].
 have{ker_qA} injAq: 'injm qA.
   rewrite {}ker_qA !ker_comp ker_coset morphpre_invm -morphpreIim /= setIC.
   by rewrite coprime_TIg // -kerE (trivgP injA) morphim1.
-have: 'dom (quotm (sdpair1_morphism to) nHG \o invm (injm_sdpair1 to_q)) = Gq.
+have{im_qA} im_Aq : qA @* Aq = A' / H'.
+  by rewrite -{}im_qA !morphim_comp im_invm.
+have: 'dom (quotm (sdpair1_morphism to) nHG \o invm iGq) = Gq.
   by rewrite ['dom _]morphpre_invm.
 case/domP=> qG [def_qG ker_qG _ im_qG].
 have{ker_qG} injGq: 'injm qG.
   rewrite {}ker_qG ker_comp ker_quotm morphpre_invm (trivgP injG).
   by rewrite quotient1 morphim1.
+have im_Gq: qG @* Gq = G' / H'.
+  by rewrite -{}im_qG morphim_comp im_invm morphim_quotm.
 have{def_qA def_qG} q_J : {in Gq & Aq, morph_actJ qG qA}.
   move=> Hx' a'; case/morphimP=> Hx; case/morphimP=> x Nx Gx -> GHx ->{Hx Hx'}.
-  case/morphimP=> a Da; rewrite def_Dq => Aa ->{a'}.
+  case/morphimP=> a _ Aa ->{a'}.
   have Gxa: to x a \in G by rewrite gact_stable.
   have Nxa: to x a \in 'N(H) by rewrite (subsetP (normal_norm nHG)).
   rewrite !{}def_qG {}def_qA /= !invmE // -sdpair_act //.
-  rewrite invmE qactE ?quotmE ?mem_morphim //= sdpair_act ?morphJ //=.
-    by rewrite (subsetP (normal_norm nHG')) ?mem_morphim.
-  by rewrite (subsetP nHA) ?mem_morphim.
+  rewrite invmE qactE ?quotmE ?mem_morphim ?def_Dq //= sdpair_act //=.
+  by rewrite morphJ //= nH' inE.
 pose q := sdprodm q_d q_J.
 have{injAq injGq} injq: 'injm q.
-  rewrite injm_sdprodm injAq injGq /= -/Aq -/Gq.
-  rewrite -{}im_qG morphim_comp im_invm morphim_quotm /= -/H'.
-  rewrite -{}im_qA !morphim_comp im_invm /= -/H' -quotientE def_Dq.
-  rewrite -[qG @* _]morphimIdom; case/sdprodP: (q_d) => _ _ _ ->.
-  rewrite morphim1 -quotientGI ?morphimS //.
-  by case/sdprodP: (sdpairEdom to) => _ _ _ ->; rewrite quotient1.
+  rewrite injm_sdprodm injAq injGq /= {}im_Aq {}im_Gq -/Aq .
+  rewrite -(morphimIdom _ Aq) -quotientGI ?im_sdpair_TI ?morphimS //= -/H'.
+  by rewrite morphim1 quotient1.
 rewrite -[inGq @*^-1 _]morphpreIim -/Gq.
-rewrite -[_ / _](injmK (injm_sdpair1 to_q)); last first.
-  by rewrite quotientS ?subsetIl.
-congr (_ @*^-1 _); rewrite /= -/inGq.
-apply: (injm_morphim_inj injq); rewrite 1?injm_subcent ?subsetT //.
-rewrite 2?morphim_sdprodml // ?morphimS ?subsetIl //.
-rewrite -!{}im_qG !morphim_comp !morphim_invm ?morphimS ?subsetIl //.
-rewrite !morphim_quotm morphpreK ?subsetIl //= -/H'.
-rewrite morphim_sdprodmr ?morphimS /= ?def_Dq //.
-by rewrite -{}im_qA !morphim_comp morphim_invm /= ?def_Dq.
+rewrite -[_ / _](injmK iGq) /= -/inGq; last by rewrite quotientS ?subsetIl.
+congr (_ @*^-1 _).
+apply: (injm_morphim_inj injq); rewrite 1?injm_subcent ?subsetT //= -/q.
+rewrite 2?morphim_sdprodml // ?morphimS ?subsetIl //= im_Gq.
+rewrite morphim_sdprodmr ?morphimS //= im_Aq.
+rewrite -{}im_qG morphim_comp morphim_invm ?morphimS ?subsetIl //.
+by rewrite morphim_quotm morphpreK ?subsetIl //= -/H' coprime_quotient_cent.
 Qed.
 
 End ExternalAction.

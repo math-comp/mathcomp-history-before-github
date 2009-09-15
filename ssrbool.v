@@ -641,8 +641,8 @@ Proof. by do 2!case. Qed.
 
 (* addition (xor) *)
 
-Lemma addFb : left_id false addb.             Proof. by []. Qed.
-Lemma addbF : right_id false addb.            Proof. by case. Qed.
+Lemma addFb : left_id false addb.               Proof. by []. Qed.
+Lemma addbF : right_id false addb.              Proof. by case. Qed.
 Lemma addbb : self_inverse false addb.          Proof. by case. Qed.
 Lemma addbC : commutative addb.                 Proof. by do 2!case. Qed.
 Lemma addbA : associative addb.                 Proof. by do 3!case. Qed.
@@ -650,8 +650,8 @@ Lemma addbCA : left_commutative addb.           Proof. by do 3!case. Qed.
 Lemma addbAC : right_commutative addb.          Proof. by do 3!case. Qed.
 Lemma andb_addl : left_distributive andb addb.  Proof. by do 3!case. Qed.
 Lemma andb_addr : right_distributive andb addb. Proof. by do 3!case. Qed.
-Lemma addKb : forall b, involutive (addb b).    Proof. by do 2!case. Qed.
-Lemma addbK : forall b, involutive (addb^~ b).  Proof. by do 2!case. Qed.
+Lemma addKb : left_loop id addb.                Proof. by do 2!case. Qed.
+Lemma addbK : right_loop id addb.               Proof. by do 2!case. Qed.
 
 
 Lemma addTb : forall b, true (+) b = ~~ b. Proof. by []. Qed.

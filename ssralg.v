@@ -208,34 +208,34 @@ Variable M : Zmodule.type.
 Implicit Types x y : M.
 
 Lemma addrA : @associative M +%R. Proof. by case M => T [? []]. Qed.
-Lemma addrC : @commutative M +%R. Proof. by case M => T [? []]. Qed.
-Lemma add0r : @left_id M 0 +%R. Proof. by case M => T [? []]. Qed.
-Lemma addNr : @left_inverse M 0 -%R +%R. Proof. by case M => T [? []]. Qed.
+Lemma addrC : @commutative M M +%R. Proof. by case M => T [? []]. Qed.
+Lemma add0r : @left_id M M 0 +%R. Proof. by case M => T [? []]. Qed.
+Lemma addNr : @left_inverse M M M 0 -%R +%R. Proof. by case M => T [? []]. Qed.
 
-Lemma addr0 : @right_id M 0 +%R.
+Lemma addr0 : @right_id M M 0 +%R.
 Proof. by move=> x; rewrite addrC add0r. Qed.
-Lemma addrN : @right_inverse M 0 -%R +%R.
+Lemma addrN : @right_inverse M M M 0 -%R +%R.
 Proof. by move=> x; rewrite addrC addNr. Qed.
 Definition subrr := addrN.
 
 Canonical Structure add_monoid := Monoid.Law addrA add0r addr0.
 Canonical Structure add_comoid := Monoid.ComLaw addrC.
 
-Lemma addrCA : @left_commutative M +%R. Proof. exact: mulmCA. Qed.
-Lemma addrAC : @right_commutative M +%R. Proof. exact: mulmAC. Qed.
+Lemma addrCA : @left_commutative M M +%R. Proof. exact: mulmCA. Qed.
+Lemma addrAC : @right_commutative M M +%R. Proof. exact: mulmAC. Qed.
 
-Lemma addKr : forall x, cancel ( +%R x) ( +%R (- x)).
+Lemma addKr : @left_loop M M -%R +%R.
 Proof. by move=> x y; rewrite addrA addNr add0r. Qed.
-Lemma addNKr : forall x, cancel ( +%R (- x)) ( +%R x).
+Lemma addNKr : @rev_left_loop M M -%R +%R.
 Proof. by move=> x y; rewrite addrA addrN add0r. Qed.
-Lemma addrK : forall x, cancel ( +%R^~ x) ( +%R^~ (- x)).
+Lemma addrK : @right_loop M M -%R +%R.
 Proof. by move=> x y; rewrite -addrA addrN addr0. Qed.
-Lemma addrNK : forall x, cancel ( +%R^~ (- x)) ( +%R^~ x).
+Lemma addrNK : @rev_right_loop M M -%R +%R.
 Proof. by move=> x y; rewrite -addrA addNr addr0. Qed.
 Definition subrK := addrNK.
-Lemma addrI : forall y, injective (add y).
+Lemma addrI : @right_injective M M M +%R.
 Proof. move=> x; exact: can_inj (addKr x). Qed.
-Lemma addIr : forall y, injective ( +%R^~ y).
+Lemma addIr : @left_injective M M M +%R.
 Proof. move=> y; exact: can_inj (addrK y). Qed.
 Lemma opprK : @involutive M -%R.
 Proof. by move=> x; apply: (@addIr (- x)); rewrite addNr addrN. Qed.
@@ -379,20 +379,20 @@ Variable R : Ring.type.
 Implicit Types x y : R.
 
 Lemma mulrA : @associative R *%R. Proof. by case R => T [? []]. Qed.
-Lemma mul1r : @left_id R 1 *%R. Proof. by case R => T [? []]. Qed.
-Lemma mulr1 : @right_id R 1 *%R. Proof. by case R => T [? []]. Qed.
-Lemma mulr_addl : @left_distributive R *%R +%R.
+Lemma mul1r : @left_id R R 1 *%R. Proof. by case R => T [? []]. Qed.
+Lemma mulr1 : @right_id R R 1 *%R. Proof. by case R => T [? []]. Qed.
+Lemma mulr_addl : @left_distributive R R *%R +%R.
 Proof. by case R => T [? []]. Qed.
-Lemma mulr_addr : @right_distributive R *%R +%R.
+Lemma mulr_addr : @right_distributive R R *%R +%R.
 Proof. by case R => T [? []]. Qed.
 Lemma nonzero1r : 1 != 0 :> R. Proof. by case R => T [? []]. Qed.
 Lemma oner_eq0 : (1 == 0 :> R) = false. Proof. exact: negbTE nonzero1r. Qed.
 
-Lemma mul0r : @left_zero R 0 *%R.
+Lemma mul0r : @left_zero R R 0 *%R.
 Proof.
 by move=> x; apply: (@addIr _ (1 * x)); rewrite -mulr_addl !add0r mul1r.
 Qed.
-Lemma mulr0 : @right_zero R 0 *%R.
+Lemma mulr0 : @right_zero R R 0 *%R.
 Proof.
 by move=> x; apply: (@addIr _ (x * 1)); rewrite -mulr_addr !add0r mulr1.
 Qed.
@@ -640,10 +640,10 @@ Section ComRingTheory.
 Variable R : ComRing.type.
 Implicit Types x y : R.
 
-Lemma mulrC : @commutative R *%R. Proof. by case: R => T []. Qed.
+Lemma mulrC : @commutative R R *%R. Proof. by case: R => T []. Qed.
 Canonical Structure mul_comoid := Monoid.ComLaw mulrC.
-Lemma mulrCA : @left_commutative R *%R. Proof. exact: mulmCA. Qed.
-Lemma mulrAC : @right_commutative R *%R. Proof. exact: mulmAC. Qed.
+Lemma mulrCA : @left_commutative R R *%R. Proof. exact: mulmCA. Qed.
+Lemma mulrAC : @right_commutative R R *%R. Proof. exact: mulmAC. Qed.
 
 Lemma exprn_mull : forall n, {morph (fun x => x ^+ n) : x y / x * y}.
 Proof. move=> n x y; apply: commr_exp_mull; exact: mulrC. Qed.

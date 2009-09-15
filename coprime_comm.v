@@ -63,7 +63,7 @@ Lemma comm_center_triv:   forall A G : {group T},
  [~: G, A] :&: 'C_G(A) = 1.
 Proof.
 move => A G norm co abel.
-have mulGC : @commutative (subg_of G) mulg.
+have mulGC : @commutative (subg_of G) _ mulg.
   by case=> x Gx [y Gy]; apply: val_inj; rewrite /= (centsP abel).
 pose gTm := ZmodMixin (@mulgA _) mulGC (@mul1g _) (@mulVg _).
 pose gTG := ZmodType gTm; hnf in gTG.

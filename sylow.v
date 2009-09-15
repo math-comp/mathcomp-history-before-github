@@ -66,7 +66,7 @@ Proof.
 pose maxp A P := [max P | p.-subgroup(A) P]; pose S := [set P | maxp G P].
 pose oG := orbit 'JG%act G.
 have actS: [acts G, on S | 'JG].
-  apply/subsetP=> x Gx; rewrite 2!inE; apply/subsetP=> P; rewrite 3!inE.
+  apply/subsetP=> x Gx; rewrite 3!inE; apply/subsetP=> P; rewrite 3!inE.
   exact: max_pgroupJ.
 have S_pG: forall P, P \in S -> P \subset G /\ p.-group P.
   by move=> P; rewrite inE; case/maxgroupP; case/andP.
@@ -80,7 +80,7 @@ have sylS: forall P, P \in S -> p.-Sylow('N_G(P)) P.
   move=> P S_P; have [sPG  pP] := S_pG P S_P.
   by rewrite normal_max_pgroup_Hall ?nrmG //; apply: SmaxN; rewrite ?normG.
 have{SmaxN} defCS: forall P, P \in S -> 'Fix_(S |'JG)(P) = [set P].
-  move=> P S_P; apply/setP=> Q; rewrite {1}in_setI {1}conjG_fix.
+  move=> P S_P; apply/setP=> Q; rewrite {1}in_setI {1}afixJG.
   apply/andP/set1P=> [[S_Q nQP]|->{Q}]; last by rewrite normG.
   apply: val_inj; symmetry; case: (S_pG Q) => //= sQG _.
   by apply: uniq_normal_Hall (SmaxN Q _ _ _) => //=; rewrite ?sylS ?nrmG.
@@ -109,7 +109,7 @@ have oS1: prime p -> #|S| %% p = 1%N.
   move=> pr_p; rewrite -(atransP trS P S_P) (oG_mod P P) //.
   by rewrite orbit_refl modn_small ?prime_gt1.
 have oSiN: forall Q, Q \in S -> #|S| = #|G : 'N_G(Q)|.
-  by move=> Q S_Q; rewrite -(atransP trS Q S_Q) card_orbit conjG_astab1. 
+  by move=> Q S_Q; rewrite -(atransP trS Q S_Q) card_orbit astab1JG. 
 have sylP: p.-Sylow(G) P.
   rewrite pHallE; case: (S_pG P) => // -> /= pP.
   case p_pr: (prime p); last first.
@@ -180,7 +180,7 @@ Proof. by case Sylow's_theorem. Qed.
 Lemma Frattini_arg : forall H P, G <| H -> p.-Sylow(G) P -> G * 'N_H(P) = H.
 Proof.
 move=> H P; case/andP=> sGH nGH sylP.
-rewrite -normC ?subIset ?nGH ?orbT // -conjG_astab1.
+rewrite -normC ?subIset ?nGH ?orbT // -astab1JG.
 move/subgroup_transitiveP: Syl_trans => ->; rewrite ?inE //.
 apply/imsetP; exists P; rewrite ?inE //.
 apply/eqP; rewrite eqEsubset -{1}((atransP Syl_trans) P) ?inE // imsetS //=.
@@ -226,8 +226,8 @@ Lemma trivg_center_pgroup : forall P, p.-group P -> 'Z(P) = 1 -> P :=: 1.
 Proof.
 move=> P pP Z1; case: (pgroup_1Vpr pP) => [// | [pr_p _ [n oPp]]].
 have: #|'Z(P)| %% p = 1%N by rewrite Z1 cards1 modn_small ?prime_gt1.
-rewrite /center -conjg_fix -pgroup_fix_mod ?oPp ?expnS ?modn_mulr //.
-by rewrite conjg_astabs normG.
+rewrite /center -afixJ -pgroup_fix_mod ?oPp ?expnS ?modn_mulr //.
+by rewrite astabsJ normG.
 Qed.
 
 Lemma Sylow_transversal_gen : forall (T : {set {group gT}}) G,

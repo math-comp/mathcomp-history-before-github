@@ -56,7 +56,7 @@ Canonical Structure fmod_subFinType := [subFinType of fmodA].
 Canonical Structure fmod_baseFinGroupType := [baseFinGroupType of fmodA].
 Canonical Structure fmod_finGroupType := [finGroupType of fmodA].
 
-Lemma fmod_mulgC : @commutative fmodA (@mulg _).
+Lemma fmod_mulgC : @commutative fmodA fmodA (@mulg _).
 Proof. move=> x y; apply: val_inj; apply: (centsP abelA); exact: subgP. Qed.
 
 Definition fmod_zmodMixin := 
@@ -230,7 +230,7 @@ have{cocycle_mu} cocycle_nu : {in G &, forall y z,
   have ->: (nu z = \sum_(Px \in rcosets P G) mu (repr Px * y)%g z)%R.
     rewrite /nu (reindex ('Rs%act^~ y)); last first.
       by exists ('Rs%act^~ y^-1) => Px _; rewrite (actK, actKV).
-    symmetry; apply: eq_big => Px; first by rewrite (actsP (act_Cayley G P)).
+    apply: eq_big => Px; rewrite (actsP (actsRs_rcosets P G)) //.
     case/rcosetsP=> x Gx /= ->{Px}; rewrite rcosetE -rcosetM.
     case: repr_rcosetP=> p1 Pp1; case: repr_rcosetP=> p2 Pp2.
     by rewrite -mulgA [x * y]lock !mu_Pmul.
@@ -291,7 +291,7 @@ rewrite actZr !oppr_muln -mulrn_addl actr_sum.
 rewrite addrC (reindex ('Rs%act^~ x)) /=; last first.
   by exists ('Rs%act^~ x^-1) => Px _; rewrite (actK, actKV).
 rewrite (eq_bigl (mem (rcosets Q K))) => [/=|X]; last first.
-  by rewrite (actsP (act_Cayley K _)).
+  by rewrite (actsP (actsRs_rcosets _ K)).
 rewrite -sumr_sub /= (eq_bigr (fun _ => nu x)%R) => [|X]; last first.
   case/imsetP=> y Ky ->{X}; rewrite !rcosetE.
   set yx1 := repr _; have: yx1 \in Q :* y :* x.

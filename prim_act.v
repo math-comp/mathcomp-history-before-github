@@ -61,7 +61,7 @@ apply/forallP/maximal_eqP=> /= [primG | [_ maxCx] Q].
   - rewrite card_orbit astab1_set defH -(@ltn_pmul2l #|H|) ?LaGrange // muln1.
     rewrite oHG -(@ltn_pmul2l #|H|) ?LaGrange // -(card_orbit_stab to G x).
     by rewrite -(atransP trG x Sx) mulnC card_orbit ltn_pmul2r.
-  - by apply/actsP=> a Ga Y; apply: orbit_transr; exact: orbit_act.
+  - by apply/actsP=> a Ga Y; apply: orbit_transr; exact: mem_orbit.
   apply/and3P; split; last 1 first.
   - rewrite orbit_sym; apply/imsetP=> [[a _]] /= defX.
     by rewrite defX /setact imset0 inE in Xx.
@@ -118,7 +118,7 @@ case/(_ ('C_G[x | to] <*> H)%G) => /= [||cxH|]; first exact: mulgen_subl.
   apply/astabP=> y Sy; have [b Gb ->] := atransP2 trG Sx Sy.
   rewrite actCJV [to x (a ^ _)](astab1P _) ?(subsetP cxH) //.
   by rewrite -mem_conjg (normsP nHG).
-rewrite norm_mulgenEl ?subIset ?nHG //.
+rewrite norm_mulgenEl 1?subIset ?nHG //.
 by move/(subgroup_transitiveP Sx sHG trG); right.
 Qed.
 
@@ -133,7 +133,7 @@ Variable n :  nat.
 
 Definition n_act (t : n.-tuple sT) a := [tuple of map (to^~ a) t].
 
-Lemma n_act_is_action : is_action n_act setT.
+Lemma n_act_is_action : is_action setT n_act.
 Proof.
 by apply: is_total_action => [t|t a b]; apply: eq_from_tnth => i;
     rewrite !tnth_map ?act1 ?actM.
@@ -278,12 +278,12 @@ have{nCa} yx: y != x by rewrite inE (sameP astab1P eqP) (subsetP sHG) in nCa.
 apply/imsetP; exists y => //; apply/eqP.
 rewrite eqEsubset acts_sub_orbit // Sy andbT; apply/subsetP=> z Sz.
 case: (z =P x) => [->|]; last move/eqP=> zx.
-  by rewrite orbit_sym orbit_act.
+  by rewrite orbit_sym mem_orbit.
 pose ty := [tuple y; x]; pose tz := [tuple z; x].
 have [Sty Stz]: ty \in 2.-dtuple(S) /\ tz \in 2.-dtuple(S).
   rewrite !inE !memtE !subset_all /= !mem_seq1 !andbT; split; exact/and3P.
 case: (atransP2 tr2G Sty Stz) => b Gb [->]; move/esym; move/astab1P=> cxb.
-by rewrite orbit_act // (subsetP sCH) // inE Gb.
+by rewrite mem_orbit // (subsetP sCH) // inE Gb.
 Qed.
 
 End NTransitveProp.

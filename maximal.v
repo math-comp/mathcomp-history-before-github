@@ -1058,15 +1058,10 @@ Lemma critical_p_stab_Aut : forall H,
   critical H G -> p.-group G -> p.-group 'C_(Aut G)(H | 'P).
 Proof.
 move=> H [chH sPhiZ sRZ eqCZ] pG; have sHG := char_sub chH.
-have sdAG: actm (raction_in 'P (subsetT (Aut G))) @* Aut G \subset Aut G.
-  apply/subsetP=> fp; case/morphimP=> f Af _ ->{fp} /=.
-  by rewrite (_ : _ f = f) //; apply/permP=> x; rewrite permE.
-pose toA := GroupAction sdAG.
-Check sdpair1.
-pose G' := (sdpair1 toA @* G)%G; pose H' := (sdpair1 toA @* H)%G.
+pose G' := (sdpair1 'A_G @* G)%G; pose H' := (sdpair1 'A_G @* H)%G.
 apply/pgroupP=> q pr_q; case/Cauchy=> // f; case/setIP=> Af; move: (Af).
 rewrite -2!cycle_subG => sFA cHF ofq; apply: (pgroupP _ _ pG) => //.
-pose F' := (sdpair2 toA @* <[f]>)%G.
+pose F' := (sdpair2 'A_G @* <[f]>)%G.
 have trHF: [~: H', F'] = 1.
   apply/trivgP; rewrite gen_subG; apply/subsetP=> u; case/imset2P=> x' a'.
   case/morphimP=> x Gx Hx ->; case/morphimP=> a Aa Fa -> -> {u x' a'}.
@@ -1082,12 +1077,12 @@ apply/permP=> x; rewrite perm1; case Gx: (x \in G); last first.
   by apply: out_perm (negbT Gx); case/setIdP: Af.
 have Gfx: f x \in G by rewrite -(im_autm Af) -{1}(autmE Af) mem_morphim.
 pose y := x^-1 * f x; have Gy: y \in G by rewrite groupMl ?groupV.
-have inj1 := injm_sdpair1 toA; have inj2 := injm_sdpair2 toA.
+have inj1 := injm_sdpair1 'A_G; have inj2 := injm_sdpair2 'A_G.
 have Hy: y \in H.
   rewrite (subsetP (center_sub H)) // -eqCZ -cycle_subG.
   rewrite -(injmSK inj1) ?cycle_subG // injm_subcent // subsetI.
   rewrite morphimS ?morphim_cycle ?cycle_subG //=.
-  suffices: sdpair1 toA y \in [~: G', F'].
+  suffices: sdpair1 'A_G y \in [~: G', F'].
     by rewrite commGC; apply: subsetP; exact/commG1P.
   rewrite morphM ?groupV ?morphV //= sdpair_act // -commgEl.
   by rewrite mem_commg ?mem_morphim ?cycle_id.

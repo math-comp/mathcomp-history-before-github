@@ -3,12 +3,6 @@ Require Import fintype paths finfun ssralg bigops finset prime.
 Require Import groups morphisms perm action automorphism normal. 
 Require Import cyclic abelian gfunc.
 
-Set Implicit Arguments.
-Unset Strict Implicit.
-Import Prenex Implicits.
-
-Import GroupScope.
-
 (*****************************************************************************)
 (* Standard group notions and constructions based on the prime decomposition *)
 (* of the order of the group or its elements.                                *)
@@ -90,6 +84,12 @@ Import GroupScope.
 (* provided by a (canonical) group structure. Similarly, p-group properties  *)
 (* assume without test that p is a prime.                                    *)
 (*****************************************************************************)
+
+Set Implicit Arguments.
+Unset Strict Implicit.
+Import Prenex Implicits.
+
+Import GroupScope.
 
 Section PgroupDefs.
 
@@ -576,7 +576,7 @@ have{pG n leGn IHn} pZ: p %| #|'C_G(G)|.
   have: [acts G, on G :\: 'C(G) | 'J]; last move/acts_sum_card_orbit <-.
     by apply/actsP=> x Gx y; rewrite !inE -!mem_conjgV -centJ conjGid ?groupV.
   apply big_prop => // [|C]; first exact: dvdn_add.
-  case/imsetP=> x; case/setDP=> Gx nCx ->{C}; rewrite card_orbit conjg_astab1.
+  case/imsetP=> x; case/setDP=> Gx nCx ->{C}; rewrite card_orbit astab1J.
   move: pG; rewrite -(LaGrange (subsetIl G 'C[x]%G)) euclid //; case/orP => //.
   case/IHn=> [|y]; last first.
     by case/setIP=> Gy _; move/eqP=> oyp; case/andP: (no_x y).
