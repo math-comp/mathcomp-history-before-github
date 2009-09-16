@@ -1335,7 +1335,7 @@ Notation perm_eqr := (fun s1 s2 => perm_eq^~ s1 =1 perm_eq^~ s2).
 Implicit Arguments perm_eqP [T s1 s2].
 Implicit Arguments perm_eqlP [T s1 s2].
 Implicit Arguments perm_eqrP [T s1 s2].
-Prenex Implicits perm_eqP perm_eqlP perm_eqrP.
+Prenex Implicits perm_eq perm_eqP perm_eqlP perm_eqrP.
 Hint Resolve perm_eq_refl.
 
 Section RotrLemmas.
