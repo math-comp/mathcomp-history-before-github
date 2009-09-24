@@ -749,6 +749,14 @@ Proof. by case=> [|k] p m co_pm; rewrite ?coprime1n // coprime_pexpl. Qed.
 Lemma coprime_expr : forall k m n, coprime m n -> coprime m (n ^ k).
 Proof. by move=> k m n; rewrite !(coprime_sym m); exact: coprime_expl. Qed.
 
+Lemma coprime_dvdl : forall m n p, m %| n -> coprime n p -> coprime m p.
+Proof.
+by move=> m n p; case/dvdnP=> d ->; rewrite coprime_mull; case/andP.
+Qed.
+
+Lemma coprime_dvdr : forall m n p, m %| n -> coprime p n -> coprime p m.
+Proof. by move=> m n p; rewrite !(coprime_sym p); exact: coprime_dvdl. Qed.
+
 Lemma coprime_egcdn : forall n m, n > 0 ->
     coprime (egcdn n m).1 (egcdn n m).2.
 Proof.

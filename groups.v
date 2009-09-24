@@ -541,32 +541,39 @@ Implicit Arguments commgP [T x y].
 Implicit Arguments conjg_fixP [T x y].
 Prenex Implicits conjg_fixP commgP.
 
-Section SetMulDef.
-
-Variable gT : finGroupType.
-Notation Local sT := {set gT}.
-Implicit Types A B : sT.
-Implicit Type x y : gT.
-
+Section Repr.
 (* Plucking a set representative. *)
+
+Variable gT : baseFinGroupType.
+Implicit Type A: {set gT}.
 
 Definition repr A :=
   if 1 \in A then 1 else if [pick x \in A] is Some x then x else 1.
 
-Lemma mem_repr : forall x A, x \in A -> repr A \in A.
+Lemma mem_repr : forall A x, x \in A -> repr A \in A.
 Proof.
-rewrite /repr => x A; case: ifP => // _.
+rewrite /repr => A x; case: ifP => // _.
 by case: pickP => [//|A0]; rewrite [x \in A]A0.
 Qed.
 
 Lemma card_mem_repr : forall A, #|A| > 0 -> repr A \in A.
 Proof. by move=> A; rewrite lt0n; case/existsP=> x; exact: mem_repr. Qed.
 
-Lemma repr_set1 : forall x : gT, repr [set x] = x.
+Lemma repr_set1 : forall x, repr [set x] = x.
 Proof. by move=> x; apply/set1P; apply: card_mem_repr; rewrite cards1. Qed.
 
 Lemma repr_set0 : repr set0 = 1.
 Proof. by rewrite /repr; case: pickP => [x|_]; rewrite !inE. Qed.
+
+End Repr.
+
+Implicit Arguments mem_repr [gT A].
+
+Section SetMulDef.
+
+Variable gT : finGroupType.
+Implicit Types A B : {set gT}.
+Implicit Type x y : gT.
 
 (* Set-lifted group operations. *)
 
@@ -728,8 +735,6 @@ Notation "''C_' G [ x ]" := 'N_G([set x%g])
 Prenex Implicits repr lcoset rcoset lcosets rcosets.
 Prenex Implicits conjugate conjugates class classes class_support.
 Prenex Implicits commg_set normalised centralised abelian.
-
-Implicit Arguments mem_repr [gT A].
 
 Section SmulProp.
 
@@ -1704,6 +1709,12 @@ Proof. by move=> G H; move/LaGrange <-; rewrite dvdn_mulr. Qed.
 
 Lemma divgS : forall G H, H \subset G -> #|G| %/ #|H| = #|G : H|.
 Proof. by move=> G H; move/LaGrange <-; rewrite mulKn. Qed.
+
+Lemma coprimeSg : forall G H p, H \subset G -> coprime #|G| p -> coprime #|H| p.
+Proof. move=> G H p sHG; exact: coprime_dvdl (cardSg sHG). Qed.
+
+Lemma coprimegS : forall G H p, H \subset G -> coprime p #|G| -> coprime p #|H|.
+Proof. move=> G H p sHG; exact: coprime_dvdr (cardSg sHG). Qed.
 
 Lemma indexJg : forall G H x, #|G :^ x : H :^ x| = #|G : H|.
 Proof. by move=> G H x; rewrite -!divgI -conjIg !cardJg. Qed.

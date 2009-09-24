@@ -325,9 +325,9 @@ have nHG: H \subset 'N(G) by rewrite cents_norm // centsC.
 have sLG := lcn_sub0 G n; have [sLH nLH] := andP (lcn_normal0 H n).
 have cHL: H \subset 'C('L_n(G)) by rewrite centsC (subset_trans sLG).
 have nLGH := cents_norm cHL.
-rewrite -(cent_mulgenEl cGH) commMG /= ?(subset_trans sLH) //; last first.
-  by rewrite normsG ?mulgen_subr.
-rewrite cent_mulgenEl //; congr (_ * _); rewrite commGC commMG //.
+rewrite -(cent_mulgenEl cGH) commMG /=; last first.
+  by rewrite normsR ?(subset_trans sLH) // normsG ?mulgen_subr.
+rewrite cent_mulgenEl //; congr (_ * _); rewrite commGC commMG ?normsR //.
   by rewrite (commG1P cHL) mulg1 commGC.
 by rewrite (commG1P (subset_trans cGH (centS sLH))) mul1g commGC.
 Qed.

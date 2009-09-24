@@ -476,6 +476,15 @@ Lemma morphimSGK : forall A H,
   A \subset G -> 'ker f \subset H -> (f @* A \subset f @* H) = (A \subset H).
 Proof. by move=> H K sHG skfK; rewrite morphimSK // mulSGid. Qed.
 
+Lemma ltn_morphim : forall A, [1] \proper 'ker_A f -> #|f @* A| < #|A|.
+Proof.
+move=> A; case/properP; rewrite sub1set; case/setIP=> A1 _ [x].
+case/setIP=> Ax kx; rewrite (cardsD1 1 A) A1 ltnS => x1.
+rewrite -{1}(setD1K A1) morphimU morphim1 (setUidPr _) ?sub1set; last first.
+  by rewrite -(mker kx) mem_morphim ?(dom_ker kx) // inE x1.
+by rewrite (leq_trans (leq_imset_card _ _)) ?subset_leq_card ?subsetIr.
+Qed.
+
 (* injectivity of image and preimage *)
 
 Lemma morphpre_inj :

@@ -1451,7 +1451,6 @@ Implicit Type pi : nat_pred.
 Lemma dvdn_exponent : forall x G, x \in G -> #[x] %| exponent G.
 Proof. by move=> x G Gx; rewrite /exponent (bigD1 x) //= dvdn_lcml. Qed.
 
-
 Lemma exponentP : forall G n,
   reflect (forall x, x \in G -> x ^+ n = 1) (exponent G %| n).
 Proof.
@@ -1525,6 +1524,23 @@ Qed.
 
 Lemma abelem_pgroup : forall p E, p.-abelem E -> p.-group E.
 Proof. by move=> p E; case/andP. Qed.
+
+Lemma Ohm1Eprime : forall G, 'Ohm_1(G) = <<[set x \in G | prime #[x]]>>.
+Proof.
+move=> G; apply/eqP; rewrite eqEsubset andbC !gen_subG; apply/andP.
+split; apply/subsetP=> x; case/setIdP=> Gx x_pr.
+  rewrite mem_gen // inE Gx /= /OhmPred.
+  apply big_prop => // [p q xp_le1 xq_le1 | p _].
+    by rewrite leq_maxl xp_le1.
+  by rewrite logn_prime ?leq_b1.
+rewrite -(prod_constt x); pose R k (y : gT) := k <= 1 -> y \in <<_>>.
+apply: (big_rel (R _)) x_pr => [_ | m n y z ? ? | p _]; first exact: group1.
+  by move; rewrite leq_maxl; case/andP=> *; apply: groupM; auto.
+move; case: (eqVneq x.`_p 1) => [-> | ]; first by rewrite group1.
+rewrite -order_eq1 order_constt p_part leq_eqVlt ltnNge orbC {-3}lognE.
+case: and3P => [[p_pr _ _] _ | ] //=; move/eqP=> xp_1.
+by rewrite mem_gen ?inE ?groupX // order_constt p_part xp_1.
+Qed.
 
 Lemma abelem_Ohm1P : forall E,
   abelian E -> p_group E -> reflect ('Ohm_1(E) = E) (abelem E).

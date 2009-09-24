@@ -221,14 +221,13 @@ Lemma commMGr : forall G H K,
 Proof. by move=> G H K; rewrite mul_subG ?commSg ?(mulG_subl, mulG_subr). Qed.
 
 Lemma commMG : forall G H K,
-    H \subset 'N(G) -> H \subset 'N(K) ->
-  [~: G * H , K] = [~: G, K] * [~: H, K].
+  H \subset 'N([~: G, K]) -> [~: G * H , K] = [~: G, K] * [~: H, K].
 Proof.
-move=> G H K nGH nKH; apply/eqP; rewrite eqEsubset commMGr andbT.
-have defM := norm_mulgenEr (commg_normSl G nKH); rewrite -defM gen_subG /=.
+move=> G H K nRH; apply/eqP; rewrite eqEsubset commMGr andbT.
+have nRHK: [~: H, K] \subset 'N([~: G, K]) by rewrite comm_subG ?commg_normr.
+have defM := norm_mulgenEr nRHK; rewrite -defM gen_subG /=.
 apply/subsetP=> r; case/imset2P=> m z; case/imset2P=> x y Gx Hy -> Kz ->{r m}.
-rewrite commMgJ {}defM mem_mulg ?memJ_norm ?mem_commg //.
-apply: subsetP Hy; exact: normsR.
+by rewrite commMgJ {}defM mem_mulg ?memJ_norm ?mem_commg // (subsetP nRH).
 Qed.
 
 Lemma comm3G1P : forall A B C,

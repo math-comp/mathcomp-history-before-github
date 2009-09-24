@@ -1135,6 +1135,11 @@ by apply: eq_bigl => j; rewrite !inE; case Pi: (P _); rewrite //= hK ?eqxx.
 Qed.
 Implicit Arguments reindex [I J P F].
 
+Lemma reindex_inj : forall (I : finType) (h : I -> I) (P : pred I) F,
+  injective h -> \big[*%M/1]_(i | P i) F i = \big[*%M/1]_(j | P (h j)) F (h j).
+Proof. move=> I h P F injh; exact: reindex (onW_bij _ (injF_bij injh)). Qed.
+Implicit Arguments reindex_inj [I h P F].
+
 Lemma pair_big_dep : forall (I J : finType) (P : pred I) (Q : I -> pred J) F,
   \big[*%M/1]_(i | P i) \big[*%M/1]_(j | Q i j) F i j =
     \big[*%M/1]_(p | P p.1 && Q p.1 p.2) F p.1 p.2.
@@ -1247,6 +1252,7 @@ Implicit Arguments bigD1 [R op idx I P F].
 Implicit Arguments partition_big [R op idx I J P F].
 Implicit Arguments reindex_onto [R op idx I J P F].
 Implicit Arguments reindex [R op idx I J P F].
+Implicit Arguments reindex_inj [R op idx I h P F].
 Implicit Arguments pair_big_dep [R op idx I J].
 Implicit Arguments pair_big [R op idx I J].
 Implicit Arguments exchange_big_dep [R op idx I J P Q F].

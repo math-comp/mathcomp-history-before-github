@@ -218,7 +218,7 @@ Notation "{ 'acts' A , 'on' S | to }" := (acts_on A S to)
   (at level 0, format "{ 'acts'  A ,  'on'  S  |  to }") : form_scope.
 
 Notation "[ 'transitive' A , 'on' S | to ]" := (atrans A S to)
-  (at level 0, format "[ 'transitive'  A ,  'on'  S  | to ]") : form_scope.
+  (at level 0, format "[ 'transitive'  A ,  'on'  S  |  to ]") : form_scope.
 
 Notation "[ 'faithful' A , 'on' S | to ]" := (faithful A S to)
   (at level 0, format "[ 'faithful'  A ,  'on'  S  |  to ]") : form_scope.
@@ -324,7 +324,7 @@ Lemma astabs_setact : forall S a, a \in 'N(S | to) -> to^* S a = S.
 Proof.
 move=> S a nSa; apply/eqP; rewrite eqEcard card_setact leqnn andbT.
 by apply/subsetP=> xa; case/imsetP=> x Sx ->; rewrite astabs_act.
-Qed. 
+Qed.
 
 Lemma astab1_set : forall S, 'C[S | set_action] = 'N(S | to).
 Proof.
@@ -351,6 +351,23 @@ Lemma subset_faithful : forall A B S,
   B \subset A -> [faithful A, on S | to] -> [faithful B, on S | to].
 Proof. move=> A B S sAB; apply: subset_trans; exact: setSI. Qed.
 
+Section Reindex.
+
+Variables (vT : Type) (idx : vT) (op : Monoid.com_law idx) (S : {set rT}).
+
+Lemma reindex_astabs : forall a F, a \in 'N(S | to) ->
+  \big[op/idx]_(i \in S) F i = \big[op/idx]_(i \in S) F (to i a).
+Proof.
+move=> a F nSa; rewrite (reindex_inj (act_inj a)); apply: eq_bigl => x.
+exact: astabs_act.
+Qed.
+
+Lemma reindex_acts : forall A a F, [acts A, on S | to] -> a \in A ->
+  \big[op/idx]_(i \in S) F i = \big[op/idx]_(i \in S) F (to i a).
+Proof. move=> A a F nSA; move/(subsetP nSA); exact: reindex_astabs. Qed.
+
+End Reindex.
+
 End RawAction.
 
 (* Warning: this directive depends on names of bound variables in the *)
@@ -363,6 +380,9 @@ Implicit Arguments orbitP [aT D rT to A x y].
 Implicit Arguments afixP [aT D rT to A x].
 Implicit Arguments afix1P [aT D rT to a x].
 Prenex Implicits orbitP afixP afix1P.
+
+Implicit Arguments reindex_astabs [aT D rT vT idx op S F].
+Implicit Arguments reindex_acts [aT D rT vT idx op S A a F].
 
 Section PartialAction.
 (* Lemmas that require a (partial) group domain. *)
@@ -383,6 +403,11 @@ Proof. by move=> a Da /= x; rewrite -actMin ?groupV // mulgV act1. Qed.
 
 Lemma actKVin : {in D, rev_right_loop invg to}.
 Proof. by move=> a Da /= x; rewrite -{2}(invgK a) actKin ?groupV. Qed.
+
+Lemma setactVin : forall S a, a \in D -> to^* S a^-1 = to^~ a @^-1: S.
+Proof.
+move=> S a Da; apply: can2_imset_pre; [exact: actKVin | exact: actKin].
+Qed.
 
 Lemma orbit_refl : forall A x, x \in orbit to A x.
 Proof. by move=> A x; rewrite -{1}[x]act1 mem_orbit. Qed.
@@ -565,8 +590,7 @@ Lemma card_orbit_stab : forall A x,
 Proof.
 move=> A x; rewrite -[#|A|]sum1_card (partition_big_imset (to x)) /=.
 rewrite -sum_nat_const; apply: eq_bigr => y; case/imsetP=> a Aa ->{y}.
-rewrite (reindex (mulg^~ a)) /= -?sum1_card; last first.
-  by exists (mulg^~ a^-1) => b _; rewrite (mulgK, mulgKV).
+rewrite (reindex_inj (mulIg a)) /= -sum1_card.
 apply: eq_bigl => b; rewrite inE groupMr // actM !inE sub1set !inE.
 by rewrite (inj_eq (act_inj to a)). 
 Qed.
@@ -1471,6 +1495,12 @@ Lemma astabR : forall G, 'C(G | 'R) = 1.
 Proof.
 move=> G; apply/trivgP; apply/subsetP=> x cGx.
 by rewrite -(mul1g x) [1 * x](astabP cGx) group1.
+Qed.
+
+Lemma astabsR : forall G, 'N(G | 'R) = G.
+Proof.
+move=> G; apply/setP=> x; rewrite !inE -setactVin ?inE //=.
+by rewrite -groupV -{1 3}(mulg1 G) rcoset_sym -sub1set -mulGS -!rcosetE.
 Qed.
 
 Lemma atransR : forall G, [transitive G, on G | 'R].

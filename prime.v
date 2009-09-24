@@ -824,6 +824,7 @@ Proof. by move=> pi [|n] //; rewrite -{2}[n.+1](@partnC pi) // dvdn_mulr. Qed.
 Section PiNat.
 
 Implicit Type pi : nat_pred.
+Implicit Types p n : nat.
 
 Lemma sub_in_pnat : forall pi1 pi2 n,
   {in \pi(n), {subset pi1 <= pi2}} -> pi1.-nat n -> pi2.-nat n.
@@ -944,6 +945,12 @@ move=> pi n n_gt0; rewrite /pnat n_gt0.
 apply: (iffP allP) => /= pi_n p => [pr_p p_n|].
   by rewrite pi_n // mem_primes pr_p n_gt0.
 by rewrite mem_primes n_gt0 /=; case/andP; move: p.
+Qed.
+
+Lemma pi_pnat : forall pi p n, p.-nat n -> p \in pi -> pi.-nat n.
+Proof.
+move=> pi p n p_n pi_p; have [n_gt0 _] := andP p_n.
+by apply/pnatP=> // q q_pr; move/(pnatP _ n_gt0 p_n _ q_pr); move/eqnP->.
 Qed.
 
 Lemma p_natP : forall p n : nat, p.-nat n -> {k | n = p ^ k}.

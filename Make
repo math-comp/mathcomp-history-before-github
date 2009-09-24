@@ -41,7 +41,7 @@ abelian.v
 dihedral.v
 hall.v
 coprime_act.v
-coprime_comm.v
+BGsection1.v
 frobenius.v
 alt.v
 burnside_app.v

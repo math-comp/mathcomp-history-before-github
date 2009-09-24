@@ -985,8 +985,8 @@ rewrite [_ <*> K]maxK ?mulgen_subr //= andbC (cent_mulgenEl cXH).
 rewrite -center_prod // (subset_trans _ (mulG_subr _ _)).
   rewrite charM 1?charI ?(char_from_quotient (normal_cosetpre _)) //.
   by rewrite cosetpreK (char_trans _ (center_char _)) ?Ohm_char.
-rewrite Phi_prod ?(pgroupS _ pG) // subUset commGC.
-rewrite commMG; last exact: normsG; last by rewrite cents_norm // centsC.
+rewrite Phi_prod ?(pgroupS _ pG) // subUset commGC commMG; last first.
+  by rewrite normsR ?(normsG sKG) // cents_norm // centsC.
 rewrite !mul_subG 1?commGC //.
   apply: subset_trans (commgS _ (subsetIr _ _)) _.
   rewrite -quotient_cents2 ?subsetIl // centsC // cosetpreK //.

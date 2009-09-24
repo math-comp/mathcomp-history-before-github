@@ -431,12 +431,12 @@ Section Bijections.
 
 Variables (A B : Type) (f : B -> A).
 
-Definition bijective : Prop := exists2 g, cancel f g & cancel g f.
+CoInductive bijective : Prop := Bijective g of cancel f g & cancel g f.
 
 Hypothesis bijf : bijective.
 
 Lemma bij_inj : injective f.
-Proof. by case: bijf => [h fK _]; apply: can_inj fK. Qed.
+Proof. by case: bijf => [g fK _]; apply: can_inj fK. Qed.
 
 Lemma bij_can_sym : forall f', cancel f' f <-> cancel f f'.
 Proof.

@@ -184,7 +184,7 @@ Proof.
 move=> xbar; pose x := repr 'N_xbar(A).
 have [xbar_x Nx]: x \in xbar /\ x \in 'N(A).
   apply/setIP; rewrite {}/x; case: xbar => Hy /=.
-  by case/rcosetsP=> y Ny ->; apply: (@mem_repr _ y); rewrite inE rcoset_refl.
+  by case/rcosetsP=> y Ny ->; apply: (mem_repr y); rewrite inE rcoset_refl.
 by exists x; last rewrite (coset_mem xbar_x).
 Qed.
 
@@ -268,6 +268,12 @@ Qed.
 
 Lemma card_quotient_subnorm : forall A, #|A / H| = #|'N_A(H) : H|.
 Proof. by move=> A; rewrite -(card_imset _ val_inj) val_quotient. Qed.
+
+Lemma ltn_quotient : forall A,
+  H :!=: 1 -> H \subset A -> #|A / H| < #|A|.
+Proof.
+by move=> A ntH sHA; rewrite ltn_morphim // ker_coset (setIidPr sHA) proper1G.
+Qed.
 
 Lemma card_quotient : forall A, A \subset 'N(H) -> #|A / H| = #|A : H|.
 Proof. by move=> A nHA; rewrite card_quotient_subnorm (setIidPl nHA). Qed.
@@ -856,6 +862,16 @@ Proof.
 move=> G; rewrite card_morphim (dvdn_trans (dvdn_indexg _ _)) //.
 by rewrite cardSg ?subsetIr.
 Qed.
+
+Lemma coprime_morphl : forall G p, coprime #|G| p -> coprime #|f @* G| p.
+Proof. move=> G p; exact: coprime_dvdl (dvdn_morphim G). Qed.
+
+Lemma coprime_morphr : forall G p, coprime p #|G| -> coprime p #|f @* G|.
+Proof. move=> G p; exact: coprime_dvdr (dvdn_morphim G). Qed.
+
+Lemma coprime_morph : forall G H,
+ coprime #|G| #|H| -> coprime #|f @* G| #|f @* H|.
+Proof. by move=> G H coGH; rewrite coprime_morphl // coprime_morphr. Qed.
 
 Lemma index_morphim_ker : forall G H,
     H \subset G -> G \subset D ->
