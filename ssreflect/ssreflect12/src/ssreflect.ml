@@ -199,7 +199,7 @@ let _ =
   Goptions.declare_bool_option
     { Goptions.optsync  = true;
       Goptions.optname  = "ssreflect identifiers";
-      Goptions.optkey   = ["SsrIdents"];
+      Goptions.optkey   = PrimaryTable ("SsrIdents");
       Goptions.optread  = (fun _ -> !ssr_reserved_ids);
       Goptions.optwrite = (fun b -> ssr_reserved_ids := b)
     }
@@ -416,7 +416,7 @@ let splay_app ise =
   | App (f, a') -> loop f (Array.append a' a)
   | Cast (c', _, _) -> loop c' a
   | Evar ex ->
-    (try loop (existential_value ise ex) a with _ -> c, a)
+    (try loop (existential_value (evars_of ise) ex) a with _ -> c, a)
   | _ -> c, a in
   fun c -> match kind_of_term c with
   | App (f, a) -> loop f a
@@ -489,9 +489,9 @@ let pf_abs_evars gl (sigma, c0) =
   List.length evlist, loop (get 1 c0) 1 evlist
 
 (* A simplified version of the code above, to turn (new) evars into metas *)
-let evars_for_FO env sigma0 (ise0:evar_defs) c0 =
+let evars_for_FO env sigma0 ise0 c0 =
   let ise = ref ise0 in
-  let sigma = ref ise0 in
+  let sigma = ref (evars_of ise0) in
   let nenv = env_size env in
   let rec put c = match kind_of_term c with
   | Evar (k, a as ex) ->
@@ -507,7 +507,7 @@ let evars_for_FO env sigma0 (ise0:evar_defs) c0 =
       Sign.fold_named_context_reverse abs_dc ~init:([], evi.evar_concl) dc in
     let m = Evarutil.new_meta () in
     ise := meta_declare m t !ise;
-    sigma := Evd.define k (applist (mkMeta m, List.rev a)) !sigma;
+    sigma := Evd.define !sigma k (applist (mkMeta m, List.rev a));
     put (existential_value !sigma ex)
     end
   | _ -> map_constr put c in
@@ -755,11 +755,11 @@ let interp_view_nbimps ist gl rc =
 
 let declare_one_prenex_implicit locality f =
   let fref =
-    try Smartlocate.global_with_alias f 
+    try Syntax_def.global_with_alias f 
     with _ -> errorstrm (pr_reference f ++ str " is not declared") in
   let rec loop = function
   | a :: args' when Impargs.is_status_implicit a ->
-    (ExplByName (Impargs.name_of_implicit a), (true, false, false)) :: loop args'
+    (ExplByName (Impargs.name_of_implicit a), (true, false)) :: loop args'
   | args' when List.exists Impargs.is_status_implicit args' ->
       errorstrm (str "Expected prenex implicits for " ++ pr_reference f)
   | _ -> [] in
@@ -782,7 +782,8 @@ GEXTEND Gram
   GLOBAL: gallina_ext;
   gallina_ext:
    [ [ IDENT "Import"; IDENT "Prenex"; IDENT "Implicits" ->
-      Vernacexpr.VernacUnsetOption (None, ["Printing"; "Implicit"; "Defensive"])
+      Vernacexpr.VernacUnsetOption
+        (TertiaryTable("Printing", "Implicit", "Defensive"))
    ] ]
   ;
 END
@@ -792,9 +793,9 @@ END
 
 let qualify_ref clref =
   let loc, qid = qualid_of_reference clref in
-  try match Nametab.locate_extended qid with
+  try match Nametab.extended_locate qid with
   | TrueGlobal _ -> clref
-  | SynDef kn ->
+  | SyntacticDef kn ->
     let rec head_of = function
     |  ARef gref ->
           Qualid (loc, Nametab.shortest_qualid_of_global Idset.empty gref)
@@ -812,7 +813,7 @@ let class_rawexpr = G_vernac.class_rawexpr in
 GEXTEND Gram
   GLOBAL: class_rawexpr;
   ssrqref: [[ gref = global -> qualify_ref gref ]];
-  class_rawexpr: [[ class_ref = ssrqref -> Vernacexpr.RefClass (Genarg.AN class_ref) ]];
+  class_rawexpr: [[ class_ref = ssrqref -> Vernacexpr.RefClass class_ref ]];
 END
 
 (** Extend Search to subsume SearchAbout, also adding hidden Type coercions. *)
@@ -834,7 +835,7 @@ let interp_search_notation loc s opt_scope =
   with _ ->
     let diagnosis =
       try
-        let ntns = Notation.locate_notation pr_rawconstr s opt_scope in
+        let ntns = Notation.locate_notation pr_rawconstr s in
         let ambig = "This string refers to a complex or ambiguous notation." in
         str ambig ++ str "\nTry searching with one of\n" ++ ntns
       with _ -> str "This string is not part of an identifier or notation." in
@@ -1023,7 +1024,7 @@ let interp_search_arg a =
   | _ -> all_true, a in
   let is_string =
     function (_, Search.GlobSearchString _) -> true | _ -> false in
-  let a2, a3 = List.partition is_string a1 in
+  let a2, a3 = list_split_by is_string a1 in
   hpat, a2 @ a3
 
 (* Module path postfilter *)
@@ -1051,7 +1052,7 @@ let interp_modloc mr =
     let (loc, qid) = qualid_of_reference mr in
     try Nametab.full_name_module qid with Not_found ->
     user_err_loc (loc, "interp_modloc", str "No Module " ++ pr_qualid qid) in
-  let mr_out, mr_in = List.partition fst mr in
+  let mr_out, mr_in = list_split_by fst mr in
   let interp_bmod b rmods =
     if rmods = [] then fun _ _ _ -> true else
     Search.filter_by_module_from_list (List.map interp_mod rmods, b) in
@@ -1170,7 +1171,7 @@ END
 
 let donetac gl =
   let tacname = 
-    try Nametab.locate_tactic (qualid_of_ident (id_of_string "done"))
+    try Nametab.locate_tactic (make_short_qualid (id_of_string "done"))
     with Not_found -> try Nametab.locate_tactic (ssrqid "done")
     with Not_found -> Util.error "The ssreflect library was not loaded" in
   let tacexpr = Tacexpr.Reference (ArgArg (dummy_loc, tacname)) in
@@ -1483,7 +1484,7 @@ let discharge_hyp (id', id) gl =
 let endclausestac id_map clseq gl_id cl0 gl =
   let not_hyp' id = not (List.mem_assoc id id_map) in
   let orig_id id = try List.assoc id id_map with _ -> id in
-  let dc, c = Term.decompose_prod_assum (pf_concl gl) in
+  let dc, c = Sign.decompose_prod_assum (pf_concl gl) in
   let hide_goal = hidden_clseq clseq in
   let c_hidden = hide_goal && c = mkVar gl_id in
   let rec fits forced = function
@@ -1593,9 +1594,7 @@ let pr_rwdir = function L2R -> mt() | R2L -> str "-"
 
 let pr_dir_side = function L2R -> str "LHS" | R2L -> str "RHS"
 
-let rewritetac dir c =
-  (* Due to the new optional arg ?tac, application shouldn't be too partial *)
-  Equality.general_rewrite (dir = L2R) all_occurrences c
+let rewritetac dir = Equality.general_rewrite (dir = L2R) all_occurrences
 
 let wit_ssrdir, globwit_ssrdir, rawwit_ssrdir =
   add_genarg "ssrdir" pr_dir
@@ -1626,8 +1625,6 @@ let rec ipat_of_intro_pattern = function
   | IntroAnonymous -> IpatAnon
   | IntroRewrite b -> IpatRw (if b then L2R else R2L)
   | IntroFresh id -> IpatAnon
-  | IntroForthcoming _ -> (* Unable to determine which kind of ipat interp_introid could return [HH] *)
-      assert false
 
 let rec pr_ipat = function
   | IpatId id -> pr_id id
@@ -1668,9 +1665,6 @@ let rec add_intro_pattern_hyps (loc, ipat) hyps = match ipat with
   | IntroAnonymous -> []
   | IntroFresh _ -> []
   | IntroRewrite _ -> hyps
-  | IntroForthcoming _ -> 
-    (* As in ipat_of_intro_pattern, was unable to determine which kind
-      of ipat interp_introid could return [HH] *) assert false
 
 let rec interp_ipat ist gl =
   let ltacvar id = List.mem_assoc id ist.lfun in
@@ -1798,11 +1792,11 @@ let ssrscasetac c gl =
   tclTHENLAST (apply (compose_lam dc cl1)) injtac gl  
 
 let intro_all gl =
-  let dc, _ = Term.decompose_prod_assum (pf_concl gl) in
+  let dc, _ = Sign.decompose_prod_assum (pf_concl gl) in
   tclTHENLIST (List.map anontac (List.rev dc)) gl
 
 let rec intro_anon gl =
-  try anontac (List.hd (fst (Term.decompose_prod_n_assum 1 (pf_concl gl)))) gl
+  try anontac (List.hd (fst (Sign.decompose_prod_n_assum 1 (pf_concl gl)))) gl
   with err0 -> try tclTHEN red_in_concl intro_anon gl with _ -> raise err0
   (* with _ -> error "No product even after reduction" *)
 
@@ -1893,7 +1887,7 @@ let tclINTROS tac = tclEQINTROS tac tclIDTAC
 
 let ssrintros_sep =
   let atom_sep = function
-    | TacSplit (_,_, [NoBindings]) -> mt
+    | TacSplit (_,_, NoBindings) -> mt
     | TacLeft (_, NoBindings) -> mt
     | TacRight (_, NoBindings) -> mt
     (* | TacExtend (_, "ssrapply", []) -> mt *)
@@ -2373,7 +2367,7 @@ let unif_FO env ise p c =
 
 (* Perform evar substitution in main term and prune substitution. *)
 let nf_open_term sigma0 ise c =
-  let s = ise and s' = ref sigma0 in
+  let s = evars_of ise and s' = ref sigma0 in
   let rec nf c' = match kind_of_term c' with
   | Evar ex ->
     begin try nf (existential_value s ex) with _ ->
@@ -2386,7 +2380,7 @@ let nf_open_term sigma0 ise c =
   let copy_def k evi () =
     if evar_body evi != Evd.Evar_empty then () else
     match Evd.evar_body (Evd.find s k) with
-    | Evar_defined c' -> s' := Evd.define k (nf c') !s'
+    | Evar_defined c' -> s' := Evd.define !s' k (nf c')
     | _ -> () in
   let c' = nf c in let _ = Evd.fold copy_def sigma0 () in !s', c'
 
@@ -2407,13 +2401,13 @@ let unif_end env sigma0 ise0 pt ok =
       | ise', true -> loop sigma ise' (m - 1)
       | _ -> raise NoMatch
     else
-    let sigma' = ise in
+    let sigma' = evars_of ise in
     if sigma' != sigma then
       let undefined ev = try not (Evd.is_defined sigma ev) with _ -> true in
       let unif_evtype ev evi ise' = match evi.evar_body with
       | Evar_defined c when undefined ev && is_unfiltered evi ->
         let ev_env = Evd.evar_env evi in
-        let t = Retyping.get_type_of ev_env ise' c in
+        let t = Retyping.get_type_of ev_env (evars_of ise') c in
         unif_HOtype ev_env ise' t evi.evar_concl
       | _ -> ise' in
       loop sigma' (Evd.fold unif_evtype sigma' ise) m    
@@ -2506,7 +2500,7 @@ exception UndefPat
 (* Compile a match pattern from a term; t is the term to fill. *)
 let mk_upat env sigma0 ise t ok p =
   let k, f, a =
-    let f, a = Reductionops.whd_betaiota_stack !ise p in
+    let f, a = Reductionops.whd_betaiota_stack (evars_of !ise) p in
     match kind_of_term f with
     | Const p ->
       let np = proj_nparams p in
@@ -2573,7 +2567,7 @@ let filter_upat_FO i0 f n u fpats =
   | KpatFlex -> i0 := n; true in
   if ok then begin if !i0 < np then i0 := np; (u, np) :: fpats end else fpats
 
-exception FoundUnif of (evar_defs * upattern)
+exception FoundUnif of (evar_map * upattern)
 (* Note: we don't update env as we descend into the term, as the primitive *)
 (* unification procedure always rejects subterms with bound variables.     *)
 
@@ -2988,7 +2982,9 @@ let _ =
   Summary.declare_summary "ssrview"
     { Summary.freeze_function   = freeze;
       Summary.unfreeze_function = unfreeze;
-      Summary.init_function     = init }
+      Summary.init_function     = init;
+      Summary.survive_module = false;
+      Summary.survive_section   = false }
 
 let mapviewpos f n k = if n < 3 then f n else for i = 0 to k - 1 do f i done
 
@@ -3007,19 +3003,22 @@ let cache_viewhint (_, (i, lvh)) =
   let mem_raw h = List.exists (Topconstr.eq_rawconstr h) in 
   let add_hint h hdb = if mem_raw h hdb then hdb else h :: hdb in
   viewtab.(i) <- List.fold_right add_hint lvh viewtab.(i)
+  
+let export_viewhint x = Some x
 
 let subst_viewhint (_, subst, (i, lvh as ilvh)) =
   let lvh' = list_smartmap (Detyping.subst_rawconstr subst) lvh in
   if lvh' == lvh then ilvh else i, lvh'
       
-let classify_viewhint x = Libobject.Substitute x
+let classify_viewhint (_, x) = Libobject.Substitute x
 
 let (in_viewhint, out_viewhint)=
   Libobject.declare_object {(Libobject.default_object "VIEW_HINTS") with
        Libobject.open_function = (fun i o -> if i = 1 then cache_viewhint o);
        Libobject.cache_function = cache_viewhint;
        Libobject.subst_function = subst_viewhint;
-       Libobject.classify_function = classify_viewhint }
+       Libobject.classify_function = classify_viewhint;
+       Libobject.export_function = export_viewhint }
 
 let glob_view_hints lvh =
   List.map (Constrintern.intern_constr Evd.empty (Global.env ())) lvh
@@ -3337,10 +3336,7 @@ let ndefectelimtac view eqid deps ((_, occ), _ as gen) ist gl =
 
 let unprotecttac gl =
   let prot = destConst (mkSsrConst "protect_term") in
-  onClause (fun idopt ->
-    let hyploc = Option.map (fun id -> id, InHyp) idopt in
-    unfold_option [all_occurrences, EvalConstRef prot] hyploc)
-    allHypsAndConcl gl
+  onClauses (unfold_option [all_occurrences, EvalConstRef prot]) allClauses gl
 
 let popelimeqtac = function
 | None -> tclIDTAC
@@ -3556,7 +3552,7 @@ let _ =
   Goptions.declare_bool_option 
     { Goptions.optsync  = true;
       Goptions.optname  = "strict redex matching";
-      Goptions.optkey   = ["Match"; "Strict"];
+      Goptions.optkey   = SecondaryTable ("Match", "Strict");
       Goptions.optread  = (fun () -> !ssr_strict_match);
       Goptions.optwrite = (fun b -> ssr_strict_match := b) }
 
@@ -3807,10 +3803,13 @@ let rwcltac cl rdx dir sr gl =
       let cl' = mkNamedProd rule_id (compose_prod dc r3t) (lift 1 cl) in
       let cl'' = mkNamedProd pattern_id rdxt cl' in
       let itacs = [introid pattern_id; introid rule_id] in
-      let cltac = clear [pattern_id; rule_id] in
-      let rwtacs = [rewritetac dir (mkVar rule_id); cltac] in
-      (apply_type cl'' [rdx; compose_lam dc r3], tclTHENLIST (itacs @ rwtacs))
-  in
+      let cltac gl' =
+        try clear [rule_id; pattern_id] gl' with _ ->
+        errorstrm (str "Setoid rewrite failed on "
+                    ++ pf_pr_constr gl' (subst1 (mkVar pattern_id) cl)) in
+      let rwtacs = itacs @ [rewritetac dir (mkVar rule_id); cltac] in
+      (apply_type cl'' [rdx; compose_lam dc r3], tclTHENLIST rwtacs)
+    in
   let cvtac' _ =
     try cvtac gl with _ ->
     errorstrm (str "dependent type error in rewrite of "
@@ -3821,30 +3820,33 @@ let lz_coq_prod =
   let prod = lazy (build_prod ()) in fun () -> Lazy.force prod
 
 let lz_setoid_relation =
-  let sdir = ["Classes"; "SetoidTactics"] in
-  let last_srel = ref (Environ.empty_env, None) in
+  let ssdir = ["Classes"; "RelationClasses"] in
+  let srdir = ["Classes"; "SetoidTactics"] in
+  let last_srel = ref (Environ.empty_env, []) in
   fun env -> match !last_srel with
   | env', srel when env' == env -> srel
   | _ ->
     let srel =
-       try Some (coq_constant "Class_setoid" sdir "SetoidRelation")
-       with _ -> None in
+       try [coq_constant "Class_setoid" ssdir "Equivalence";
+            coq_constant "Class_setoid" srdir "SetoidRelation"]
+       with _ -> [] in
     last_srel := (env, srel); srel
 
 let ssr_is_setoid env =
-  match lz_setoid_relation env with
-  | None -> fun _ _ _ -> false
-  | Some srel ->
+  let srels = lz_setoid_relation env in
+  if srels = [] then (fun _ _ _ -> false) else
   let ev_env = Environ.named_context_val env in
   fun sigma r args ->
   let n = Array.length args in if n < 2 then false else
   let rel = mkSubApp r (n - 2) args in
-  let rel_t = Retyping.get_type_of env sigma args.(n - 1) in
-  let eauto = Class_tactics.eauto [Auto.searchtable_map Class_tactics.typeclasses_db] in
-  let rel_cl = mkApp (srel, [| rel_t; rel |]) in
-  let rel_gls = List.map (fun it -> re_sig it sigma) [make_evar ev_env rel_cl] in
-  try let _ = List.map eauto rel_gls in true with _ -> false
-
+  let rel_args = [|Retyping.get_type_of env sigma args.(n - 1); rel|] in
+  let dummy_valid _ = anomaly "ssr_is_setoid" in
+  let eauto = Class_tactics.typeclasses_eauto false (true, 1) [] in
+  let is_srel srel =
+    let rel_gls = re_sig [make_evar ev_env (mkApp (srel, rel_args))] sigma in
+    try let _ = eauto (rel_gls, dummy_valid) in true with _ -> false in
+  List.exists is_srel srels
+ 
 let rec rwrxtac occ rdx_pat dir rule gl =
   let env = pf_env gl in
   let coq_prod = lz_coq_prod () in
@@ -3857,7 +3859,7 @@ let rec rwrxtac occ rdx_pat dir rule gl =
       match kind_of_term t with
       | Prod (_, xt, at) ->
         let ise, x = Evarutil.new_evar (create_evar_defs sigma) env xt in
-        loop d ise (mkApp (r, [|x|])) (subst1 x at) rs 0
+        loop d (evars_of ise) (mkApp (r, [|x|])) (subst1 x at) rs 0
       | App (pr, a) when pr = coq_prod.Coqlib.typ ->
         let sr = match kind_of_term (Tacred.hnf_constr env sigma r) with
         | App (c, ra) when c = coq_prod.Coqlib.intro -> fun i -> ra.(i + 1)
@@ -3991,7 +3993,7 @@ let _ =
   Goptions.declare_bool_option
     { Goptions.optsync  = true;
       Goptions.optname  = "ssreflect rewrite";
-      Goptions.optkey   = ["SsrRewrite"];
+      Goptions.optkey   = PrimaryTable ("SsrRewrite");
       Goptions.optread  = (fun _ -> !ssr_rw_syntax);
       Goptions.optwrite = (fun b -> ssr_rw_syntax := b) }
 
@@ -4592,7 +4594,7 @@ by_arg_tac: [
   [ "by"; tac = tactic_expr LEVEL "3" -> Some tac ] ];
 END
 
-open Rewrite
+open Class_tactics
  
 let pr_ssrrelattr prc _ _ (a, c) = pr_id a ++ str " proved by " ++ prc c
 
@@ -4607,7 +4609,7 @@ END
 
 let rec ssr_add_relation n d b deq pf_refl pf_sym pf_trans = function
   | [] ->
-    Rewrite.declare_relation ~binders:b d deq n pf_refl pf_sym pf_trans
+    declare_relation ~binders:b d deq n pf_refl pf_sym pf_trans
   | (aid, c) :: al -> match string_of_id aid with
   | "reflexivity" when pf_refl = None ->
     ssr_add_relation n d b deq (Some c) pf_sym pf_trans al
