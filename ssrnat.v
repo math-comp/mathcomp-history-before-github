@@ -398,11 +398,11 @@ move=> m n; elim: {n}n.+1 {-1}n (erefl n.+1) => // n IHn _ [<-] lemn1 lemn2.
 pose def_n2 := erefl n; transitivity (eq_ind _ _ lemn2 _ def_n2) => //.
 move def_n1: {1 4 5 7}n lemn1 lemn2 def_n2 => n1 lemn1.
 case: n1 / lemn1 def_n1 => [|n1 lemn1] def_n1 [|n2 lemn2] def_n2.
-- by rewrite (eq_axiomK def_n2).
+- by rewrite [def_n2]eq_axiomK.
 - by move/leP: (lemn2); rewrite -{1}def_n2 ltnn.
 - by move/leP: (lemn1); rewrite {1}def_n2 ltnn.
 case: def_n2 (def_n2) lemn2 => ->{n2} def_n2 lemn2.
-rewrite (eq_axiomK def_n2) /=; congr le_S; exact: IHn.
+rewrite [def_n2]eq_axiomK /=; congr le_S; exact: IHn.
 Qed.
 
 Lemma ltP : forall m n, reflect (m < n)%coq_nat (m < n).

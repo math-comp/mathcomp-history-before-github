@@ -25,6 +25,10 @@ Require Import ssreflect.
 (*      obind f ox == if ox is Some x returns f x,        None otherwise     *)
 (*       omap f ox == if ox is Some x returns Some (f x), None otherwise     *)
 (*                                                                           *)
+(* - singleton types,                                                        *)
+(*  all_equal_to x0 == x0 is the only value in its type, so any such value   *)
+(*                     can be rewritten to x0.                               *)
+(*                                                                           *)
 (* - extensional equality for functions and relations (i.e. functions of two *)
 (*   arguments),                                                             *)
 (*    f1 =1 f2      ==  f1 x is equal to f2 x forall x                       *)
@@ -233,6 +237,11 @@ Definition congr2 := f_equal2.
 (* Force at least one implicit when used as a view. *)
 Prenex Implicits esym nesym.
 
+(* A predicate for singleton types.                                        *)
+Definition all_equal_to T (x0 : T) := forall x, x = x0.
+
+Lemma unitE : all_equal_to tt. Proof. by case. Qed.
+
 (* Extensional equality, for unary and binary functions, including syntactic *)
 (* sugar.                                                                    *)
 
@@ -289,44 +298,6 @@ Notation "f1 \o f2" := (comp f1 f2) (at level 50) : fun_scope.
 
 Definition idfun T := @id T.
 Prenex Implicits idfun.
-
-(*
-Section OperationProperties.
-
-Variable T : Type.
-Variables zero one: T.
-Variable inv : T -> T.
-Variables mul add : T -> T -> T.
-
-Notation Local "1" := one.
-Notation Local "0" := zero.
-Notation Local "x ^-1" := (inv x).
-Notation Local "x * y"  := (mul x y).
-Notation Local "x + y"  := (add x y).
-
-Definition left_id            := forall x,     1 * x = x.
-Definition right_id           := forall x,     x * 1 = x.
-Definition left_inverse       := forall x,     x^-1 * x = 1.
-Definition right_inverse      := forall x,     x * x^-1 = 1.
-Definition self_inverse       := forall x,     x * x = 1.
-Definition idempotent         := forall x,     x * x = x.
-Definition associative        := forall x y z, x * (y * z) = x * y * z.
-Definition commutative        := forall x y,   x * y = y * x.
-Definition left_commutative   := forall x y z, x * (y * z) = y * (x * z).
-Definition right_commutative  := forall x y z, x * y * z = x * z * y.
-Definition left_zero          := forall x,     0 * x = 0.
-Definition right_zero         := forall x,     x * 0 = 0.
-Definition left_distributive  := forall x y z, (x + y) * z = x * z + y * z.
-Definition right_distributive := forall x y z, x * (y + z) = x * y + x * z.
-Definition left_injective     := forall x,     injective (mul^~ x).
-Definition right_injective    := forall y,     injective (mul y).
-Definition left_can_inv       := forall x,     cancel (mul x) (mul x^-1).
-Definition left_inv_can       := forall x,     cancel (mul x^-1) (mul x).
-Definition right_can_inv      := forall x,     cancel (mul^~ x) (mul^~ x^-1).
-Definition right_inv_can      := forall x,     cancel (mul^~ x^-1) (mul^~ x).
-
-End OperationProperties.
-*)
 
 Section Morphism.
 
@@ -393,6 +364,14 @@ Lemma canRL : forall g x y, cancel g -> f x = y -> x = g y.
 Proof. by move=> g x y fK <-. Qed.
 
 End Injections.
+
+(* cancellation lemmas for dependent type casts.                             *)
+Lemma esymK : forall T x y, cancel (@esym T x y) (@esym T y x).
+Proof. by move=> T x y; case: y /. Qed.
+
+Lemma etrans_id : forall T x y (eqxy : x = y :> T),
+  etrans (erefl x) eqxy = eqxy.
+Proof. by move=> T x y; case: y /. Qed.
 
 Section InjectionsTheory.
 

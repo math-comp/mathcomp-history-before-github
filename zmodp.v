@@ -311,11 +311,22 @@ Qed.
 
 End ZpRing.
 
-Lemma ord1 : forall i : 'I_1, i = 0%R.
-Proof. case=> [[]] // ?; exact/eqP. Qed.
+Lemma ord1 : all_equal_to (0%R : 'I_1).
+Proof. by case=> [[] // ?]; exact: val_inj. Qed.
 
-Lemma lshift_ord1 : forall n (i : 'I_1), lshift n i = 0%R :> 'I_n.+1.
-Proof. by move=> n i; apply/eqP; rewrite [i]ord1. Qed.
+Lemma lshift0 : forall m n, lshift m (0%R : 'I_n.+1) = (0%R : 'I_(n + m).+1).
+Proof. move=> m n; exact: val_inj. Qed.
+
+Lemma rshift1 : forall n, @rshift 1 n =1 lift (0%R : 'I_n.+1).
+Proof. by move=> n i; apply: val_inj. Qed.
+
+Lemma split1 : forall n i,
+  split (i : 'I_(1 + n)) = oapp (@inr _ _) (inl _ 0%R) (unlift 0%R i).
+Proof.
+move=> n i; case: unliftP => [i'|] -> /=.
+  by rewrite -rshift1 (unsplitK (inr _ _)).
+by rewrite -(lshift0 n 0) (unsplitK (inl _ _)).
+Qed.
 
 (* Field structure for primes. *)
 

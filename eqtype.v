@@ -155,8 +155,8 @@ apply: can_inj (join x y (proj x (erefl x))) _ => e.
 by case: y / e; move: {-1}x (proj x _) => y; case: y /. 
 Qed.
 
-Corollary eq_axiomK : forall (T : eqType) (x : T) (e : x = x), e = erefl x.
-Proof. move=> *; exact: eq_irrelevance. Qed.
+Corollary eq_axiomK : forall (T : eqType) (x : T), all_equal_to (erefl x).
+Proof. move=> T x eq_x_x; exact: eq_irrelevance. Qed.
 
 (* We use the module system to circumvent a silly limitation that  *)
 (* forbids using the same constant to coerce to different targets. *)
@@ -664,7 +664,7 @@ Definition tagged_as u v :=
 Lemma tagged_asE : forall u x, tagged_as u (Tagged T_ x) = x.
 Proof.
 rewrite /tagged_as => u y /=; case: eqP => // eq_uu.
-by rewrite (eq_axiomK eq_uu).
+by rewrite [eq_uu]eq_axiomK.
 Qed.
 
 End TaggedAs.

@@ -34,16 +34,15 @@ Notation Local "'R'" := R
   (at level 0, format "'R'").
 Notation Local "'R' [ 'X' ]" := {poly R}
   (at level 0, format "'R' [ 'X' ]").
-Notation Local "'M' ( 'R' )" := (matrix R nn nn)
+Notation Local "'M' ( 'R' )" := 'M[R]_nn
   (at level 0, format "'M' ( 'R' )").
-Notation Local "'M' ( 'R' [ 'X' ] )" :=
-  (matrix (poly_ringType R) nn nn)
+Notation Local "'M' ( 'R' [ 'X' ] )" := 'M[R[X]]_nn
   (at level 0, format "'M' ( 'R' [ 'X' ] )").
-Notation Local "'M' ( 'R' ) [ 'X' ]" := {poly (matrix R n n)}
+Notation Local "'M' ( 'R' ) [ 'X' ]" := {poly 'M[R]_n}
   (at level 0, format "'M' ( 'R' ) [ 'X' ]").
 
 (* The characteristic polynomial *)
-Open Scope matrix_scope.
+
 Definition matrixC (A : M(R)) : M(R[X]) := \matrix_(i, j) (A i j)%:P.
 
 Definition char_poly (A : M(R)) : R[X] := \det ('X%:M - matrixC A).
@@ -129,7 +128,7 @@ Qed.
 Theorem Cayley_Hamilton : forall A, (Zpoly (char_poly A)).[A] = 0.
 Proof.
 move=> A; apply/eqP; apply/factor_theorem.
-rewrite -phi_Zpoly -mulmx_adjl phi_mul; move: (phi _) => q; exists q.
+rewrite -phi_Zpoly -mul_adj_mx phi_mul; move: (phi _) => q; exists q.
 by rewrite phi_add phi_opp phi_Zpoly phi_polyC ZpolyX.
 Qed.
 

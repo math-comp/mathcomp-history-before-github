@@ -1147,6 +1147,18 @@ Lemma cast_ordP : forall n m (i : 'I_n), n = m -> i < m.
 Proof. by move=> n m i <-. Qed.
 Definition cast_ord n m eq_n_m i := Ordinal (@cast_ordP n m i eq_n_m).
 
+Lemma cast_ord_id : forall n eq_n i, cast_ord eq_n i = i :> 'I_n.
+Proof. by move=> n eq_n i; apply: val_inj. Qed.
+
+Lemma cast_ord_comp : forall n1 n2 n3 eq_n2 eq_n3 i,
+  @cast_ord n2 n3 eq_n3 (@cast_ord n1 n2 eq_n2 i) =
+    cast_ord (etrans eq_n2 eq_n3) i.
+Proof. by move=> n1 n2 n3 eq_n2 eq_n3 i; apply: val_inj. Qed.
+
+Lemma cast_ordK : forall n1 n2 eq_n,
+  cancel (@cast_ord n1 n2 eq_n) (cast_ord (esym eq_n)).
+Proof. by move=> n1 n2 eq_n i; apply: val_inj. Qed.
+
 (* bijection between any finType T and the Ordinal finType of its cardinal *)
 Section EnumRank.
 

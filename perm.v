@@ -7,7 +7,7 @@ Require Import finfun bigops finset groups.
 (* group of permutations.                                                 *)
 (*   {perm T} == the permutation of a finite type T                       *)
 (*                        (i.e. an injective function from T to T)        *)
-(*   'S_n == the permutations of {0,.., n-1}                              *)
+(*   'S_n == the permutations of 'I_n, i.e., {0,.., n-1}                  *)
 (*   perm_on A u <=> u is a permutation on T where only the elements of a *)
 (*                                 a subset A of T are affected           *)
 (*   tperm x y == the transposition of x, y                               *)
@@ -17,6 +17,8 @@ Require Import finfun bigops finset groups.
 (*   pcycles s == the set of cycles of permutation s                      *)
 (*   odd_perm s <=> s is an odd permutation                               *)
 (*   dpair x <=> x is a pair of distinct objects                          *)
+(*   lift_perm i j s == the permutation obtained by lifting s : 'S_n.-1;  *)
+(*                      it maps i to j and lift i k to lift j (s k)       *)
 (* Permutations are coerced to the underlying function.                   *)
 (* Canonical structures are defined allowing permutations to be an eqType,*)
 (* choiceType, countType, finType, subType, finGroupType (permutations    *)
@@ -477,5 +479,81 @@ End PermutationParity.
 Coercion odd_perm : perm_type >-> bool.
 Implicit Arguments dpair [eT].
 Prenex Implicits pcycle dpair pcycles aperm.
+
+Section LiftPerm.
+(* Somewhat more specialised constructs for permutations on ordinals. *)
+
+Variable n : nat.
+Implicit Types i j : 'I_n.+1.
+Implicit Types s t : 'S_n.
+
+Definition lift_perm_fun i j s k :=
+  if unlift i k is Some k' then lift j (s k') else j.
+
+Lemma lift_permK : forall i j s,
+  cancel (lift_perm_fun i j s) (lift_perm_fun j i s^-1).
+Proof.
+rewrite /lift_perm_fun => i j s k.
+by case: (unliftP i k) => [j'|] ->; rewrite (liftK, unlift_none) ?permK.
+Qed.
+
+Definition lift_perm i j s := perm (can_inj (lift_permK i j s)).
+
+Lemma lift_perm_id : forall i j s, lift_perm i j s i = j.
+Proof. by move=> i j s; rewrite permE /lift_perm_fun unlift_none. Qed.
+
+Lemma lift_perm_lift : forall i j s k',
+  lift_perm i j s (lift i k') = lift j (s k') :> 'I_n.+1.
+Proof. by move=> i j s k'; rewrite permE /lift_perm_fun liftK. Qed.
+
+Lemma lift_permM : forall i j k s t,
+  lift_perm i j s * lift_perm j k t = lift_perm i k (s * t).
+Proof.
+move=> i j k s t; apply/permP=> i1; case: (unliftP i i1) => [i2|] ->{i1}.
+  by rewrite !(permM, lift_perm_lift).
+by rewrite permM !lift_perm_id.
+Qed.
+
+Lemma lift_perm1 : forall i, lift_perm i i 1 = 1.
+Proof.
+by move=> i; apply: (mulgI (lift_perm i i 1)); rewrite lift_permM !mulg1.
+Qed.
+
+Lemma lift_permV : forall i j s, (lift_perm i j s)^-1 = lift_perm j i s^-1.
+Proof.
+by move=> i j s; apply/eqP; rewrite eq_invg_mul lift_permM mulgV lift_perm1.
+Qed.
+
+Lemma odd_lift_perm : forall i j s,
+  lift_perm i j s = odd i (+) odd j (+) s :> bool.
+Proof.
+move=> i j s; rewrite -{1}(mul1g s) -(lift_permM _ j) odd_permM.
+congr (_ (+) _); last first.
+  case: (prod_tpermP s) => ts ->{s} _.
+  elim: ts => [|t ts IHts] /=; first by rewrite big_nil lift_perm1 !odd_perm1.
+  rewrite big_cons odd_mul_tperm -(lift_permM _ j) odd_permM {}IHts //.
+  congr (_ (+) _); rewrite (_ : _ j _ = tperm (lift j t.1) (lift j t.2)).
+    by rewrite odd_tperm (inj_eq (@lift_inj _ _)).
+  apply/permP=> k; case: (unliftP j k) => [k'|] ->.
+    rewrite lift_perm_lift inj_tperm //; exact: lift_inj.
+  by rewrite lift_perm_id tpermD // eq_sym neq_lift.
+suff{i j s} odd_lift0: forall k : 'I_n.+1, lift_perm ord0 k 1 = odd k :> bool.
+  rewrite -!odd_lift0 -{2}invg1 -lift_permV odd_permV -odd_permM.
+  by rewrite lift_permM mulg1.
+move=> k; elim: {k}(k : nat) {1 3}k (erefl (k : nat)) => [|m IHm] k def_k.
+  rewrite (_ : k = ord0) ?lift_perm1 ?odd_perm1 //; exact: val_inj.
+have le_mn: m < n.+1 by [rewrite -def_k ltnW]; pose j := Ordinal le_mn.
+rewrite -(mulg1 1)%g -(lift_permM _ j) odd_permM {}IHm // addbC.
+rewrite (_ : _ k _ = tperm j k).
+  by rewrite odd_tperm neq_ltn def_k leqnn.
+apply/permP=> i; case: (unliftP j i) => [i'|] ->; last first.
+  by rewrite lift_perm_id tpermL.
+apply: ord_inj; rewrite lift_perm_lift !permE /= eq_sym -if_neg neq_lift.
+rewrite fun_if -val_eqE /= def_k /bump ltn_neqAle andbC.
+case: leqP => [_ | lt_i'm] /=; last by rewrite -if_neg neq_ltn leqW.
+by rewrite add1n eqSS eq_sym; case: eqP.
+Qed.
+
+End LiftPerm.
 
 Unset Implicit Arguments.
