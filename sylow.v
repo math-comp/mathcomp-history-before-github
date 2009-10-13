@@ -198,7 +198,6 @@ Implicit Types G H P : {group gT}.
 Lemma pSylow_normalI : forall G H P,
   G <| H -> p.-Sylow(H) P -> p.-Sylow(G) (G :&: P).
 Proof.
-
 move=> G H P; case/normalP=> sGH nGH sylP.
 have [Q sylQ] := Sylow_exists p G.
 case/maxgroupP: (Hall_max sylQ); case/andP=> sQG pQ maxQ.

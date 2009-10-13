@@ -39,7 +39,7 @@ Require Import bigops finset groups perm morphisms normal automorphism.
 (*                        D :&: A via to                                     *)
 (*      'C_(G | to)[a] == the centraliser in R :&: G of a \in D, via to.     *)
 (*   These sets are groups when G is. G can be omitted: 'C(|to)(A) is the    *)
-(* cetraliser in R of the action of D :&: A via to.                          *)
+(* centraliser in R of the action of D :&: A via to.                         *)
 (*          [acts A, on S | to] == A \subset D acts on the set S via to      *)
 (*          {acts A, on S | to} == A acts on the set S (Prop statement)      *)
 (*    {acts A, on group G | to} == [acts A, on S | to] /\ G \subset R, i.e., *)
@@ -58,13 +58,14 @@ Require Import bigops finset groups perm morphisms normal automorphism.
 (*       'J == internal group action (conjugagtion) via _ ^ _                *)
 (*       'R == regular group action (right translation) via _ * _            *)
 (*             (but, to limit ambiguity, _ * _ is NOT a canonical action)    *)
-(*     to^* == the induced by to on {set rT} via to^* (== setact to)         *)
+(*     to^* == the action induced by to on {set rT} via to^* (== setact to)  *)
 (*      'Js == the internal action on subsets via _ :^ _, equivalent to 'J^* *)
 (*      'Rs == the regular action on subsets via rcoset, equivalent to 'R^*  *)
 (*      'JG == the conjugation action on {group rT} via _ :^ _               *)
 (*   to / H == the action induced by to on coset_of H via qact to H, and     *)
 (*             restricted to qact_dom to H == 'N(rcosets H 'N(H) | to^* )    *)
-(*       'Q == the action induced to cosets by conjugation (domain: 'N_D(H)) *)
+(*       'Q == the action induced to cosets by conjugation; the domain is    *)
+(*             qact_dom 'J H, which is provably equal to 'N(H).              *)
 (*  to %% A == the action of coset_of A via modact to A, with domain D / A   *)
 (*             and support restricted to 'C(D :&: A | to)                    *)
 (* to \ sAD == the action of A via ract to sAD == to, if sAD : A \subset D.  *)
@@ -84,7 +85,7 @@ Require Import bigops finset groups perm morphisms normal automorphism.
 (* actperm to == the morphism D >-> {perm rT} induced by to.                 *)
 (*  actm to a == if a \in D the function on D induced by the action to, else *)
 (*               else the identity function. If to is a group action with    *)
-(*               range R the actm to a is canonically a morphism on R.       *)
+(*               range R then actm to a is canonically a morphism on R.      *)
 (*  Finally, gprod.v will provide a semidirect group construction that maps  *)
 (* an external group action to an internal one.                              *)
 (*****************************************************************************)
@@ -578,6 +579,12 @@ Qed.
 Lemma astab1P : forall x a, reflect (to x a = x) (a \in 'C[x | to]).
 Proof. move=> x a; rewrite !inE sub1set inE; exact: eqP. Qed.
 
+Lemma sub_astab1 : forall A x, (A \subset 'C[x | to]) = (x \in 'Fix_to(A)).
+Proof.
+move=> A x; apply/subsetP/afixP=> cAx a; move/cAx;
+  by rewrite ?(sub1set, inE) /=; move/eqP.
+Qed.
+
 Lemma astabsP : forall S a,
   reflect (forall x, (to x a \in S) = (x \in S)) (a \in 'N(S | to)).
 Proof.
@@ -675,6 +682,15 @@ move=> A S AtrS; apply/subsetP=> a Aa; rewrite !inE.
 by apply/subsetP=> x; move/(atransP AtrS) <-; rewrite inE mem_imset.
 Qed.
 
+Lemma atrans_supgroup : forall A B S,
+   A \subset B -> [transitive A, on S | to] ->
+    [transitive B, on S | to] = [acts B, on S | to].
+Proof.
+move=> A B S sAB trA; apply/idP/idP=> [|actB]; first exact: atrans_acts.
+case/imsetP: trA => x Sx defS; apply/imsetP; exists x => //.
+by apply/eqP; rewrite eqEsubset acts_sub_orbit ?Sx // defS imsetS.
+Qed.
+
 Lemma atrans_acts_card : forall A S,
   [transitive A, on S | to] =
      [acts A, on S | to] && (#|orbit to A @: S| == 1%N).
@@ -730,6 +746,36 @@ apply/imsetP; exists x => //; apply/setP=> y; rewrite -(atransP trA Sx).
 apply/imsetP/imsetP=> [] [a]; last by exists a; first exact: (subsetP sBA).
 rewrite -defA; case/imset2P=> c b; case/setIP=> _; move/astab1P=> xc Bb -> ->.
 by exists b; rewrite // actM xc.
+Qed.
+
+(* Aschbacher 5.21 *)
+Lemma trans_subnorm_fixP : forall x A B S,
+  let C := 'C_A[x | to] in let T := 'Fix_(S | to)(B) in
+    [transitive A, on S | to] -> x \in S -> B \subset C ->
+  reflect ((B :^: A) ::&: C = B :^: C) [transitive 'N_A(B), on T | to].
+Proof.
+move=> x A B S C T trAS Sx sBC; have actAS := acts_act (atrans_acts trAS).
+have:= sBC; rewrite subsetI sub_astab1; case/andP=> sBA cBx.
+have Tx: x \in T by rewrite inE Sx.
+apply: (iffP idP) => [trN | trC].
+  apply/setP=> Ba; apply/setIdP/imsetP=> [[]|[a Ca ->{Ba}]]; last first.
+    by rewrite conj_subG //; case/setIP: Ca => Aa _; rewrite mem_imset.
+  case/imsetP=> a Aa ->{Ba}; rewrite subsetI !sub_conjg; case/andP=> _ sBCa.
+  have Txa: to x a^-1 \in T.
+    by rewrite inE -sub_astab1 astab1_act actAS ?Sx ?groupV.
+  have [b] := atransP2 trN Tx Txa; case/setIP=> Ab nBb cxba.
+  exists (b * a); last by rewrite conjsgM (normP nBb).
+  by rewrite inE groupM //; apply/astab1P; rewrite actM -cxba actKV.
+apply/imsetP; exists x => //; apply/setP=> y; apply/idP/idP=> [Ty|].
+  have [Sy cBy]:= setIP Ty; have [a Aa defy] := atransP2 trAS Sx Sy.
+  have: B :^ a^-1 \in B :^: C.
+    rewrite -trC inE subsetI mem_imset 1?conj_subG ?groupV // sub_conjgV.
+    by rewrite -astab1_act -defy sub_astab1.
+  case/imsetP=> b; case/setIP=> Ab; move/astab1P=> cxb defBb.
+  rewrite defy -{1}cxb -actM mem_orbit // inE groupM //.
+  by apply/normP; rewrite conjsgM -defBb conjsgKV.
+case/imsetP=> a; case/setIP=> Aa nBa ->{y}.
+by rewrite inE actAS // Sx (acts_act (acts_fix_norm _) nBa).
 Qed.
 
 End TotalActions.

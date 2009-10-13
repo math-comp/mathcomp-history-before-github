@@ -457,6 +457,75 @@ rewrite inE trMK2 eqxx eq_sym eqEcard /= -defMK andbC.
 by rewrite !coprime_cardMg ?cardJg ?oK1K ?leqnn //= mulGS -quotientSK -?eqK12.
 Qed.
 
+Lemma SchurZassenhaus_trans_actsol :
+    forall (gT : finGroupType) (G A B : {group gT}),
+    solvable A -> A \subset 'N(G) -> B \subset A <*> G ->
+    coprime #|G| #|A| -> #|A| = #|B| ->
+  exists2 x, x \in G & B :=: A :^ x.
+Proof.
+move=> gT G A B; set AG := A <*> G; move: {2}_.+1 (ltnSn #|AG|) => n.
+elim: n => // n IHn in gT A B G AG *.
+rewrite ltnS => leAn solA nGA sB_AG coGA oAB.
+case: (eqsVneq A 1) => [A1 | ntA].
+  by exists 1; rewrite // conjsg1 A1 (@card1_trivg _ B) // -oAB A1 cards1.
+have [M [sMA nsMA ntM]] := solvable_norm_abelem solA (normal_refl A) ntA.
+case/abelemP=> q q_pr; move/abelem_pgroup=> qM; have nMA := normal_norm nsMA.
+have defAG: AG = A * G := norm_mulgenEl nGA.
+have sA_AG: A \subset AG := mulgen_subl _ _.
+have sG_AG: G \subset AG := mulgen_subr _ _.
+have sM_AG := subset_trans sMA sA_AG.
+have oAG: #|AG| = (#|A| * #|G|)%N by rewrite defAG coprime_cardMg 1?coprime_sym.
+have q'G: #|G|`_q = 1%N.
+  rewrite part_p'nat ?p'natE -?prime_coprime // coprime_sym.
+  case: (pgroup_1Vpr qM) ntM => [-> | [_ _ [k oM]] _]; first by case/eqP.
+  by rewrite -(@coprime_pexpr k.+1) // -oM (coprimegS sMA).
+have coBG: coprime #|B| #|G| by rewrite -oAB coprime_sym.
+have defBG: B * G = AG.
+  by apply/eqP; rewrite eqEcard mul_subG ?sG_AG //= oAG oAB coprime_cardMg.
+case nMG: (G \subset 'N(M)).
+  have nsM_AG: M <| AG by rewrite /normal sM_AG mulgen_subG nMA.
+  have nMB: B \subset 'N(M) := subset_trans sB_AG (normal_norm nsM_AG).
+  have sMB: M \subset B.
+    have [Q sylQ]:= Sylow_exists q B; have sQB := pHall_sub sylQ.
+    apply: subset_trans (normal_sub_max_pgroup (Hall_max _) qM nsM_AG) (sQB).
+    rewrite pHallE (subset_trans sQB) //= oAG partn_mul // q'G muln1 oAB.
+    by rewrite (card_Hall sylQ).
+  have defAGq: AG / M = (A / M) <*> (G / M).
+    by rewrite quotient_gen ?quotientU ?subUset ?nMA.
+  have: B / M \subset (A / M) <*> (G / M) by rewrite -defAGq quotientS.
+  case/IHn; rewrite ?morphim_sol ?quotient_norms ?coprime_morph //.
+  - by rewrite -defAGq (leq_trans _ leAn) ?ltn_quotient.
+  - by rewrite !card_quotient // -!divgS // oAB.
+  move=> Mx; case/morphimP=> x Nx Gx ->{Mx} //; rewrite -quotientJ //= => defBq.
+  exists x => //; apply: quotient_inj defBq; first by rewrite /normal sMB.
+  by rewrite -(normsP nMG x Gx) /normal normJ !conjSg.
+pose K := M <*> G; pose R := K :&: B; pose N := 'N_G(M).
+have defK: K = M * G by rewrite -norm_mulgenEl ?(subset_trans sMA).
+have oK: #|K| = (#|M| * #|G|)%N.
+  by rewrite defK coprime_cardMg // coprime_sym (coprimegS sMA).
+have sylM: q.-Sylow(K) M.
+  by rewrite pHallE mulgen_subl /= oK partn_mul // q'G muln1 part_pnat.
+have sylR: q.-Sylow(K) R.
+  rewrite pHallE subsetIl /= -(card_Hall sylM) -(@eqn_pmul2r #|G|) // -oK.
+  rewrite -coprime_cardMg ?(coprimeSg _ coBG) ?subsetIr //=.
+  by rewrite group_modr ?mulgen_subr ?(setIidPl _) // defBG mulgen_subG sM_AG.
+have [mx] := Sylow_trans sylM sylR.
+rewrite /= -/K defK; case/imset2P=> m x Mm Gx ->{mx}.
+rewrite conjsgM conjGid {m Mm}// => defR.
+have sNG: N \subset G := subsetIl _ _.
+have pNG: N \proper G by rewrite /proper sNG subsetI subxx nMG.
+have nNA: A \subset 'N(N) by rewrite normsI ?norms_norm.
+have: B :^ x^-1 \subset A <*> N.
+  rewrite norm_mulgenEl ?group_modl // -defAG subsetI !sub_conjgV -normJ -defR.
+  rewrite conjGid ?(subsetP sG_AG) // normsI ?normsG // (subset_trans sB_AG) //.
+  by rewrite mulgen_subG normsM // -defK normsG ?mulgen_subr. 
+do [case/IHn; rewrite ?cardJg ?(coprimeSg _ coGA) //= -/N] => [|y Ny defB].
+  rewrite mulgenC norm_mulgenEr // coprime_cardMg ?(coprimeSg sNG) //.
+  by rewrite (leq_trans _ leAn) // oAG mulnC ltn_pmul2l // proper_card.
+exists (y * x); first by rewrite groupM // (subsetP sNG).
+by rewrite conjsgM -defB conjsgKV.
+Qed.
+
 Lemma HallSolvable : forall pi (gT : finGroupType) (G : {group gT}),
   solvable G -> exists2 H : {group gT}, pi.-Hall(G) H
                 & forall K : {group gT}, K \subset G -> pi.-group K ->
