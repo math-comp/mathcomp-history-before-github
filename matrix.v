@@ -1955,7 +1955,10 @@ Fixpoint emxrank m n : 'M[F]_(m, n) -> nat * 'M_m * 'M_n :=
   | _, _ => fun _ => (0%N, 1%:M, 1%:M)
   end.
 
-CoInductive emxrank_spec m n A : nat * 'M[F]_m * 'M_n -> Prop :=
+(* Regression patch: type inference in trunk needs redundant annotations. *)
+(* Coq 8.2 does not have this issue.                                      *)
+CoInductive emxrank_spec m n (A : 'M[F]_(m, n)) :
+                                nat * 'M[F]_m * 'M[F]_n -> Prop :=
   EmxrankSpec r L U of
       r <= m /\ r <= n & unitmx L & unitmx U & A = L *m pid_mx r *m U:
     emxrank_spec A (r, L, U).
