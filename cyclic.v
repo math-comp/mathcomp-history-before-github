@@ -228,7 +228,7 @@ Section CyclicSubGroup.
 
 Variable gT : finGroupType.
 
-(*  G. 1.3.1 (i) *)
+(*  Gorenstein, 1.3.1 (i) *)
 
 Lemma cycle_sub_group : forall (a : gT) m, m %| #[a] ->
   [set H : {group gT} | (H \subset <[a]>) && (#|H| == m)]

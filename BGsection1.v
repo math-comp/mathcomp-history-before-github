@@ -70,9 +70,9 @@ Qed.
 Section AbelianTI.
 (* B & G, Proposition 1.6(d) (TI-part only) *)
 (* We go with B & G rather than Aschbacher and will derive 1.6(e) from (d), *)
-(* rather than the converse, because the derivation of 24.6 from 24.3 in A. *)
-(* requires a separate reduction to p-groups to yield 1.6(d), making it     *)
-(* altogether longer than the direct Gaschutz-style proof.                  *)
+(* rather than the converse, because the derivation of 24.6 from 24.3 in *)
+(* Aschbacher requires a separate reduction to p-groups to yield 1.6(d), *)
+(* making it altogether longer than the direct Gaschutz-style proof. *)
 
 Import FiniteModule.
 
@@ -169,7 +169,7 @@ have [_ sHG _] := and3P nHGA.
 by rewrite (stable_factor_cent _ nHGA) ?IH_H ?(solvableS sHG) ?(coprimeSg sHG).
 Qed.
 
-(* Aschbacher, exercise 3.6 (used in proofs of B&G 1.10 and A. 24.7 *)
+(* Aschbacher, exercise 3.6 (used in proofs of B & G 1.10 and Aschbacher 24.7 *)
 Lemma comm_cent_cent_norm : forall A G H : {group gT},
     A \subset 'N(G) -> A \subset 'C(H) -> G \subset 'N(H) ->
   [~: G, A] \subset 'C(H).
@@ -200,7 +200,7 @@ rewrite comm_cent_cent_norm 1?centsC ?subsetIr // normsI // !norms_norm //.
 by rewrite cents_norm 1?centsC ?subsetIr.
 Qed.
 
-(* Aschbacher 24.7 (replaces G. 5.3.7) *)
+(* Aschbacher 24.7 (replaces Gorenstein 5.3.7) *)
 Theorem abelian_charsimple_special : forall (p : nat) (A G : {group gT}),
     p.-group G -> coprime #|G| #|A| -> [~: G, A] = G ->
     \bigcup_(H : {group gT} | (H \char G) && abelian H) H \subset 'C(A) ->
@@ -350,7 +350,7 @@ Qed.
 
 Section CoprimeQuotientPgroup.
 
-(* This is B&G, Lemma 1.14, which we divide in four lemmas, each one giving *)
+(* This is B & G, Lemma 1.14, which we divide in four lemmas, each one giving *)
 (* the (sub)centraliser or (sub)normaliser of a quotient by a coprime       *)
 (* pgroup acting on it. Note that we weaken the assumptions of B & G --     *)
 (* M does not need to be normal in G, T need not be a subgroup of G, p      *)

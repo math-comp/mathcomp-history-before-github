@@ -1145,7 +1145,7 @@ End SubPcore.
 
 Section Plength1.
 
-(* This is B&G Lemma 1.21 *)
+(* This is B & G Lemma 1.21 *)
 
 Variables (p : nat) (gT : finGroupType).
 Implicit Types G H : {group gT}.

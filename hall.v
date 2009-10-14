@@ -305,7 +305,7 @@ Qed.
 
 End Gaschutz.
 
-(* This should be sufficient for B&G 1.20 *)
+(* This should be sufficient for B & G 1.20 *)
 Theorem Maeshke_abelem : forall (gT : finGroupType) (G V U : {group gT}) p,
   p.-abelem V -> p^'.-group G -> U \subset V ->
     G \subset 'N(V) -> G \subset 'N(U) ->

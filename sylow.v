@@ -391,7 +391,7 @@ Section NilPGroups.
 Variables (p : nat) (gT : finGroupType).
 Implicit Type G P N : {group gT}.
 
-(* Bender 1.22 p.9 *)
+(* B & G 1.22 p.9 *)
 
 Lemma normal_pgroup : forall r P N, 
   p.-group P -> N <| P -> r <= logn p #|N| ->
