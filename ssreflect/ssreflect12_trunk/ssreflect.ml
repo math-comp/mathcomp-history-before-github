@@ -3821,13 +3821,13 @@ let lz_coq_prod =
   let prod = lazy (build_prod ()) in fun () -> Lazy.force prod
 
 let lz_setoid_relation =
-  let sdir = ["Classes"; "SetoidTactics"] in
+  let sdir = ["Classes"; "RelationClasses"] in
   let last_srel = ref (Environ.empty_env, None) in
   fun env -> match !last_srel with
   | env', srel when env' == env -> srel
   | _ ->
     let srel =
-       try Some (coq_constant "Class_setoid" sdir "SetoidRelation")
+       try Some (coq_constant "Class_setoid" sdir "RewriteRelation")
        with _ -> None in
     last_srel := (env, srel); srel
 
@@ -3835,15 +3835,9 @@ let ssr_is_setoid env =
   match lz_setoid_relation env with
   | None -> fun _ _ _ -> false
   | Some srel ->
-  let ev_env = Environ.named_context_val env in
   fun sigma r args ->
-  let n = Array.length args in if n < 2 then false else
-  let rel = mkSubApp r (n - 2) args in
-  let rel_t = Retyping.get_type_of env sigma args.(n - 1) in
-  let eauto = Class_tactics.eauto [Auto.searchtable_map Class_tactics.typeclasses_db] in
-  let rel_cl = mkApp (srel, [| rel_t; rel |]) in
-  let rel_gls = List.map (fun it -> re_sig it sigma) [make_evar ev_env rel_cl] in
-  try let _ = List.map eauto rel_gls in true with _ -> false
+    Rewrite.is_applied_rewrite_relation env 
+      sigma [] (mkApp (r, args)) <> None
 
 let rec rwrxtac occ rdx_pat dir rule gl =
   let env = pf_env gl in
