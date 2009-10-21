@@ -334,10 +334,9 @@ Proof. by move=> s x; rewrite -{1}[x]perm1 (mem_pcycle s 0). Qed.
 Lemma uniq_traject_pcycle : forall s x, uniq (traject s x #|pcycle s x|).
 Proof.
 move=> s x; case def_n: #|_| => // [n]; rewrite looping_uniq.
-apply: contraL (card_size (traject s x n)) => sct.
-rewrite -ltnNge size_traject -def_n ?subset_leq_card //.
-apply/subsetP=> y; case/imsetP=> si; case/cycleP=> i -> -> {y si}.
-by rewrite /aperm permX (loopingP sct).
+apply: contraL (card_size (traject s x n)); move/loopingP=> t_sx.
+rewrite -ltnNge size_traject -def_n ?subset_leq_card //; apply/subsetP=> y.
+by case/imsetP=> si; case/cycleP=> i -> -> {y si}; rewrite /aperm permX t_sx.
 Qed.
 
 (* improved #[s] to #|pcycle s x| *)
