@@ -23,6 +23,7 @@ Require Import bigops finset groups perm morphisms normal automorphism.
 (*                          toAut : actm to @* D \subset Aut R (actm to is   *)
 (*                          the morphism to {perm rT} associated to 'to').   *)
 (*      orbit to A x == the orbit of x under the action of A via to          *)
+(*    amove to A x y == the set of a in A whose action send x to y           *)
 (*      'C_A[x | to] == the stabiliser of x : rT in A :&: D                  *)
 (*      'C_A(S | to) == the pointwise stabiliser of S : {set rT} in D :&: A  *)
 (*      'N_A(S | to) == the global stabiliser of S : {set rT} in D :&: A     *)
@@ -47,10 +48,10 @@ Require Import bigops finset groups perm morphisms normal automorphism.
 (*                                 to : groupAction D R                      *)
 (*    [transitive A, on S | to] == A acts transitively on S                  *)
 (*      [faithful A, on S | to] == A acts faithfully on S                    *)
-(* Important caveat: the definitions of orbit, 'Fix_(S | to)(A), transitive, *)
-(* and faithful assume that A is a subset of the domain D. As most of the    *)
-(* actions we consider are total, this is usually harmless (note that the    *)
-(* theory of partial actions is only very partially developed).              *)
+(* Important caveat: the definitions of orbit, amove, 'Fix_(S | to)(A),      *)
+(* transitive, and faithful assume that A is a subset of the domain D.       *)
+(* As most of the actions we consider are total, this is usually harmless.   *)
+(* (Note that the theory of partial actions is only partially developed.)    *)
 (*   In all of the above, to is expected to be the actual action structure,  *)
 (* not merely the function. There is a special scope %act for actions, and   *)
 (* constructions and notations for many classical actions:                   *)
@@ -160,6 +161,8 @@ Definition setact to S a := [set to x a | x <- S].
 
 Definition orbit to A x := to x @: A.
 
+Definition amove to A x y := [set a \in A | to x a == y].
+
 Definition afix to A := [set x | A \subset [set a | to x a == x]].
 
 Definition astab S to := D :&: [set a | S \subset [set x | to x a == x]].
@@ -176,7 +179,7 @@ End ActionDefs.
 
 Notation "to ^*" := (setact to) (at level 2, format "to ^*") : fun_scope.
 
-Prenex Implicits orbit.
+Prenex Implicits orbit amove.
 
 Notation "''Fix_' to ( A )" := (afix to A)
  (at level 8, to at level 2, format "''Fix_' to ( A )") : group_scope.
@@ -501,6 +504,52 @@ Qed.
 Lemma atrans_orbit : forall A x, [transitive A, on orbit to A x | to].
 Proof. move=> A x; apply: mem_imset; exact: orbit_refl. Qed.
 
+Section OrbitStabilizer.
+
+Variables (A : {group aT}) (x : rT).
+Hypothesis sAD : A \subset D.
+Let ssAD := subsetP sAD.
+
+Lemma amove_act : forall a,
+  a \in A -> amove to A x (to x a) = 'C_A[x | to] :* a.
+Proof.
+move=> a Aa; apply/setP => b; have Da := ssAD Aa.
+rewrite mem_rcoset !(inE, sub1set) !groupMr ?groupV //.
+by case Ab: (b \in A); rewrite //= actMin ?groupV ?ssAD ?(canF_eq (actKVin Da)).
+Qed.
+
+Lemma amove_orbit : amove to A x @: orbit to A x = rcosets 'C_A[x | to] A.
+Proof.
+apply/setP => Ha; apply/imsetP/rcosetsP=> [[y] | [a Aa ->]].
+  by case/imsetP=> b Ab -> ->{Ha y}; exists b => //; rewrite amove_act.
+by rewrite -amove_act //; exists (to x a); first exact: mem_orbit.
+Qed.
+
+Lemma amoveK :
+  {in orbit to A x, cancel (amove to A x) (fun Ca => to x (repr Ca))}.
+Proof. 
+move=> y; case/orbitP=> a Aa <-{y}; rewrite amove_act //= -[A :&: _]/(gval _).
+case: repr_rcosetP => b; rewrite !(inE, sub1set); case/and3P=> Ab _ xbx.
+by rewrite actMin ?ssAD ?(eqP xbx). 
+Qed.
+
+Lemma orbit_stabilizer :
+  orbit to A x = [set to x (repr Ca) | Ca <- rcosets 'C_A[x | to] A].
+Proof.
+rewrite -amove_orbit -imset_comp /=; apply/setP=> z.
+by apply/idP/imsetP=> [xAz | [y xAy ->]]; first exists z; rewrite /= ?amoveK.
+Qed.
+
+Lemma act_reprK :
+  {in rcosets 'C_A[x | to] A, cancel (to x \o repr) (amove to A x)}.
+Proof.
+move=> Ca; case/rcosetsP=> a Aa ->{Ca} /=; rewrite amove_act ?rcoset_repr //.
+rewrite -[A :&: _]/(gval _); case: repr_rcosetP => b; case/setIP=> Ab _.
+exact: groupM.
+Qed.
+
+End OrbitStabilizer.
+
 End PartialAction.
 
 Implicit Arguments orbit1P [aT D rT to A x].
@@ -592,24 +641,18 @@ move=> S a; apply: (iffP idP) => [nSa x|nSa]; first exact: astabs_act.
 by rewrite !inE; apply/subsetP=> x; rewrite inE nSa.
 Qed.
 
-Lemma card_orbit_stab : forall A x,
-  (#|orbit to A x| * #|'C_A[x | to]|)%N = #|A|.
-Proof.
-move=> A x; rewrite -[#|A|]sum1_card (partition_big_imset (to x)) /=.
-rewrite -sum_nat_const; apply: eq_bigr => y; case/imsetP=> a Aa ->{y}.
-rewrite (reindex_inj (mulIg a)) /= -sum1_card.
-apply: eq_bigl => b; rewrite inE groupMr // actM !inE sub1set !inE.
-by rewrite (inj_eq (act_inj to a)). 
-Qed.
-
 Lemma card_orbit : forall A x, #|orbit to A x| = #|A : 'C_A[x | to]|.
 Proof.
-move=> A x; rewrite -divgS ?subsetIl //.
-by rewrite -(card_orbit_stab A x) mulnK ?cardG_gt0.
+move=> A x; have sAT := subsetT A.
+by rewrite orbit_stabilizer // (card_in_imset (can_in_inj (act_reprK sAT))).
 Qed.
 
 Lemma dvdn_orbit : forall A x, #|orbit to A x| %| #|A|.
-Proof. by move=> A x; rewrite -(card_orbit_stab A x) dvdn_mulr. Qed. 
+Proof. by move=> A x; rewrite card_orbit dvdn_indexg. Qed. 
+
+Lemma card_orbit_stab : forall A x,
+  (#|orbit to A x| * #|'C_A[x | to]|)%N = #|A|.
+Proof. by move=> A x; rewrite mulnC card_orbit LaGrange ?subsetIl. Qed.
 
 Lemma actsP : forall A S, reflect {acts A, on S | to} [acts A, on S | to].
 Proof.
@@ -787,57 +830,6 @@ Implicit Arguments atransP [aT rT to A S].
 Implicit Arguments actsP [aT rT to A S].
 Implicit Arguments faithfulP [aT rT to A S].
 Prenex Implicits astabP astab1P astabsP atransP actsP faithfulP.
-
-Section OrbitStabilizer.
-
-Variables (gT : finGroupType) (D : {group gT}) (rT : finType).
-Variables (to : action D rT) (G : {group gT}) (x : rT).
-Hypothesis (GsubD : G \subset D).
-
-Definition amove y := [set a \in G | to x a == y].
-
-Lemma amove_act : forall a, a \in G -> amove (to x a) = 'C_G[x | to] :* a.
-Proof.
-move=> a Ga; apply/setP => b; have Da := subsetP GsubD a Ga.
-rewrite mem_rcoset !(inE, sub1set) !groupMr ?groupV //.
-case Gb: (b \in G) => //=; have Db := subsetP GsubD b Gb.
-by rewrite -(canF_eq (actKVin to Da)) -actMin (Db, groupV).
-Qed.
-
-Lemma amove_im : amove @: orbit to G x = rcosets 'C_G[x | to] G.
-Proof.
-apply/setP => Ha; apply/imsetP/rcosetsP=> [[y] | [a Ga ->]].
-  by case/imsetP=> b Gb -> ->{Ha y}; exists b => //; rewrite amove_act.
-by exists (to x a); [apply: mem_orbit | rewrite amove_act].
-Qed.
-
-Lemma cancel_amove: {in orbit to G x, cancel amove (fun Cy => to x (repr Cy))}.
-Proof. 
-move=> y; case/orbitP=> a Ga <-{y}; rewrite amove_act //=.
-case: (repr _) / (repr_rcosetP 'C_G[x | to] a) => b stabxb.
-move: stabxb; rewrite //= setIA (setIidPl GsubD) !(inE, sub1set).
-by move/andP=> [Gb xbx]; rewrite actMin ?(subsetP GsubD) // (eqP xbx). 
-Qed.
-
-Lemma act_repr_im:
-  [set to x (repr Cy) | Cy <- rcosets 'C_G[x | to] G] = orbit to G x.
-Proof.
-rewrite -amove_im -imset_comp /=; apply/setP=> z.
-apply/imsetP/idP=> [[w orbw ->] | orbz]; [|exists z; first assumption];
-by rewrite /= (cancel_amove _) //.
-Qed.
-
-Lemma cancel_act_repr:
-  {in rcosets 'C_G[x | to] G, cancel (to x \o repr) amove}.
-Proof.
-move=>C; case/rcosetsP=> a Ga ->{C} /=; rewrite amove_act. 
-  exact: rcoset_repr.
-apply: ((subsetP _) _ (mem_repr a _)).
-  by rewrite mul_subG ?subsetIl ?sub1set //.
-by rewrite mem_rcoset mulgV group1.
-Qed.
-
-End OrbitStabilizer.
 
 Section Restrict.
 
@@ -1091,21 +1083,6 @@ by apply/permP=> x; apply/eqP; have:= a1 x; rewrite !inE actpermE perm1 => ->.
 Qed.
 
 End ActPerm.
-
-Section ActPermX.
-(* Is there an easier way or a better statement of actpermX? *)
-
-Variables (aT : finGroupType) (D : {group aT}) (rT : finType).
-Variables (to : action D rT).  
-
-Lemma actpermX : forall a, a \in D -> forall i x, 
-  (actperm to a ^+ i) x = actperm to (a ^+ i) x.
-Proof.
-move=>a Da; elim=>i; first by rewrite !expg0 !actpermE act1 perm1. 
-by move=> ih x; rewrite !expgS actpermM ?groupX // !permM ih.
-Qed.
-
-End ActPermX.
 
 Section RestrictActionTheory.
 

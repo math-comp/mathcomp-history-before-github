@@ -331,52 +331,31 @@ Proof. by move=> s i x; rewrite (mem_imset (aperm x)) ?mem_cycle. Qed.
 Lemma pcycle_id : forall s x, x \in pcycle s x.
 Proof. by move=> s x; rewrite -{1}[x]perm1 (mem_pcycle s 0). Qed.
 
-Lemma pcycle_traject_weak : forall s x, pcycle s x =i traject s x #[s].
+Lemma uniq_traject_pcycle : forall s x, uniq (traject s x #|pcycle s x|).
 Proof.
-move=> s x y; apply/idP/trajectP=> [| [i _ ->]].
-  by case/imsetP=> si; case/cyclePmin=> i ? -> ->; exists i; rewrite // -permX.
-by rewrite -permX mem_pcycle.
+move=> s x; case def_n: #|_| => // [n]; rewrite looping_uniq.
+apply: contraL (card_size (traject s x n)) => sct.
+rewrite -ltnNge size_traject -def_n ?subset_leq_card //.
+apply/subsetP=> y; case/imsetP=> si; case/cycleP=> i -> -> {y si}.
+by rewrite /aperm permX (loopingP sct).
 Qed.
 
 (* improved #[s] to #|pcycle s x| *)
 Lemma pcycle_traject : forall s x, pcycle s x =i traject s x #|pcycle s x|.
 Proof.
-move=> s x.
-have pcycle_sub: forall n, traject s x n \subset pcycle s x.
-  move=> n; apply/subsetP=> z; move/trajectP=> [i _ ->].
-  by rewrite -permX mem_pcycle.
-apply/subset_eqP; apply/andP; split; last exact: pcycle_sub.
-case looping: (looping s x #|pcycle s x|).
-  apply/subsetP => y; case/imsetP=> t; case/cycleP=> i -> ->. 
-  by rewrite [aperm _ _]permX; move/loopingP: looping.
-move: (subset_leq_card (pcycle_sub (#|pcycle s x|.+1))).
-move/idPn: looping; rewrite -looping_uniq; move/card_uniqP ->.
-by rewrite size_traject ltnn.
+move=> s x; apply: fsym; apply/subset_cardP.
+  by rewrite (card_uniqP _) ?size_traject ?uniq_traject_pcycle.
+by apply/subsetP=> y; case/trajectP=> i _ ->; rewrite -permX mem_pcycle.
 Qed.
 
-Lemma uniq_traject_pcycle : forall s x, uniq (traject s x #|pcycle s x|).
-Proof.
-move=> s x; apply/card_uniqP.
-by rewrite -(eq_card (pcycle_traject _ _)) size_traject.
-Qed.
-
-(* The proofs of looping and pcycle_sub are repeated. What to do? *)
 Lemma iter_pcycle : forall s x, iter #|pcycle s x| s x = x.
 Proof.
-move=> s x.
-have pcycle_sub: forall n, traject s x n \subset pcycle s x.
-  move=> n; apply/subsetP=> z; move/trajectP=> [i _ ->].
-  by rewrite -permX mem_pcycle.
-have looping: (looping s x #|pcycle s x|).
-  apply/negPn; rewrite -looping_uniq; apply/negP=> uniq.
-  move: (subset_leq_card (pcycle_sub (#|pcycle s x|.+1))).
-  by move/card_uniqP: uniq => ->; rewrite size_traject ltnn.
-case/trajectP: looping; case=> [|n]; first by [].
-move: (uniq_traject_pcycle s x) {pcycle_sub}; case: (#|_|); first done.
-move=> m uniqt lt; move/eqP; rewrite !iterS inj_eq; last exact: perm_inj.
-rewrite -!(@nth_traject _ _ _ m.+1) // ?(ltn_trans _ lt) //.
-rewrite nth_uniq ?size_traject // ?(ltn_trans _ lt) //.
-by move/eqP => meqn; move: meqn lt => ->; rewrite ltnn.
+move=> s x; case def_n: #|_| (uniq_traject_pcycle s x) => [//|n] Ut.
+have: looping s x n.+1.
+  by rewrite -def_n -[looping _ _ _]pcycle_traject -permX mem_pcycle.
+rewrite /looping; case/trajectP=> [[|i] //=]; rewrite ltn_neqAle eqSS.
+case/andP=> ne_i_n le_i_n; move/perm_inj=> eq_i_n_sx; case/negP: ne_i_n.
+by rewrite -(nth_uniq x _ _ Ut) ?size_traject ?nth_traject ?eq_i_n_sx.
 Qed.
 
 Lemma eq_pcycle_mem : forall s x y,
@@ -398,8 +377,8 @@ Proof. by move=> s i x y; apply/eqP; rewrite eq_pcycle_mem mem_pcycle. Qed.
 Lemma ncycles_mul_tperm : forall s x y (t := tperm x y),
   #|pcycles (t * s)| + (x \notin pcycle s y).*2 = #|pcycles s| + (x != y).
 Proof.
-pose xf s x y := find (pred2 x y) (traject s (s x) #[s]).
-have xf_size : forall s x y, xf s x y <= #[s].
+pose xf s x y := find (pred2 x y) (traject s (s x) #|pcycle s x|).
+have xf_size : forall s x y, xf s x y <= #|pcycle s x|.
   by move=> s x y; rewrite (leq_trans (find_size _ _)) ?size_traject.
 have lt_xf: forall s x y n, n < xf s x y -> ~~ pred2 x y ((s ^+ n.+1) x).
   move=> s x y n lt_n; move/negbT: (before_find (s x) lt_n).
@@ -413,12 +392,13 @@ have tXC: forall s x y n, n <= xf s x y -> (t x y s ^+ n.+1) y = (s ^+ n.+1) x.
   by move/lt_xf: lt_n_f; case/norP=> *; rewrite tpermD // eq_sym.
 have eq_xf: forall s x y, pred2 x y ((s ^+ (xf s x y).+1) x).
   move=> s x y; simpl in s, x, y.
-  have has_f: has (pred2 x y) (traject s (s x) #[s]).
-    apply/hasP; exists x; rewrite /= ?eqxx // -pcycle_traject_weak.
-    by rewrite pcycle_sym (mem_pcycle _ 1).
+  have sx_x: x \in pcycle s (s x) by rewrite pcycle_sym (mem_pcycle _ 1).
+  have has_f: has (pred2 x y) (traject s (s x) #|pcycle s (s x)|).
+    by apply/hasP; exists x; rewrite /= ?eqxx -?pcycle_traject.
   have:= nth_find (s x) has_f; rewrite has_find size_traject in has_f.
-    by rewrite nth_traject // -iterSr -permX.
-  have xfC: forall s x y, xf (t x y s) y x = xf s x y.
+  rewrite -eq_pcycle_mem in sx_x.
+  by rewrite nth_traject // -iterSr -permX -(eqP sx_x).
+have xfC: forall s x y, xf (t x y s) y x = xf s x y.
   move=> s x y; wlog ltx: s x y / xf (t x y s) y x < xf s x y.
     move=> IWxy; set m := xf _ y x; set n := xf s x y.
     by case: (ltngtP m n) => // ltx; [exact: IWxy | rewrite /m -IWxy tC tK].
@@ -451,7 +431,7 @@ wlog xf_x: s x y ne_xy / (s ^+ (xf s x y).+1) x = x.
   case/pred2P=> [|snx]; first exact: IWs.
   by rewrite -[x \in _]negbK ![x \in _]pcycle_sym -{}IWs ?xfC ?tXC // tC tK.
 rewrite -{1}xf_x -(tXC _ _ _ _ (leqnn _)) mem_pcycle; symmetry.
-rewrite -eq_pcycle_mem eq_sym eq_pcycle_mem pcycle_traject_weak.
+rewrite -eq_pcycle_mem eq_sym eq_pcycle_mem pcycle_traject.
 apply/trajectP=> [[n _ snx]].
 have: looping s x (xf s x y).+1 by rewrite /looping -permX xf_x inE eqxx.
 move/loopingP; move/(_ n); rewrite -{n}snx.
