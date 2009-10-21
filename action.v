@@ -788,6 +788,57 @@ Implicit Arguments actsP [aT rT to A S].
 Implicit Arguments faithfulP [aT rT to A S].
 Prenex Implicits astabP astab1P astabsP atransP actsP faithfulP.
 
+Section OrbitStabilizer.
+
+Variables (gT : finGroupType) (D : {group gT}) (rT : finType).
+Variables (to : action D rT) (G : {group gT}) (x : rT).
+Hypothesis (GsubD : G \subset D).
+
+Definition amove y := [set a \in G | to x a == y].
+
+Lemma amove_act : forall a, a \in G -> amove (to x a) = 'C_G[x | to] :* a.
+Proof.
+move=> a Ga; apply/setP => b; have Da := subsetP GsubD a Ga.
+rewrite mem_rcoset !(inE, sub1set) !groupMr ?groupV //.
+case Gb: (b \in G) => //=; have Db := subsetP GsubD b Gb.
+by rewrite -(canF_eq (actKVin to Da)) -actMin (Db, groupV).
+Qed.
+
+Lemma amove_im : amove @: orbit to G x = rcosets 'C_G[x | to] G.
+Proof.
+apply/setP => Ha; apply/imsetP/rcosetsP=> [[y] | [a Ga ->]].
+  by case/imsetP=> b Gb -> ->{Ha y}; exists b => //; rewrite amove_act.
+by exists (to x a); [apply: mem_orbit | rewrite amove_act].
+Qed.
+
+Lemma cancel_amove: {in orbit to G x, cancel amove (fun Cy => to x (repr Cy))}.
+Proof. 
+move=> y; case/orbitP=> a Ga <-{y}; rewrite amove_act //=.
+case: (repr _) / (repr_rcosetP 'C_G[x | to] a) => b stabxb.
+move: stabxb; rewrite //= setIA (setIidPl GsubD) !(inE, sub1set).
+by move/andP=> [Gb xbx]; rewrite actMin ?(subsetP GsubD) // (eqP xbx). 
+Qed.
+
+Lemma act_repr_im:
+  [set to x (repr Cy) | Cy <- rcosets 'C_G[x | to] G] = orbit to G x.
+Proof.
+rewrite -amove_im -imset_comp /=; apply/setP=> z.
+apply/imsetP/idP=> [[w orbw ->] | orbz]; [|exists z; first assumption];
+by rewrite /= (cancel_amove _) //.
+Qed.
+
+Lemma cancel_act_repr:
+  {in rcosets 'C_G[x | to] G, cancel (to x \o repr) amove}.
+Proof.
+move=>C; case/rcosetsP=> a Ga ->{C} /=; rewrite amove_act. 
+  exact: rcoset_repr.
+apply: ((subsetP _) _ (mem_repr a _)).
+  by rewrite mul_subG ?subsetIl ?sub1set //.
+by rewrite mem_rcoset mulgV group1.
+Qed.
+
+End OrbitStabilizer.
+
 Section Restrict.
 
 Variables (aT : finGroupType) (D : {set aT}) (rT : Type).
@@ -1040,6 +1091,21 @@ by apply/permP=> x; apply/eqP; have:= a1 x; rewrite !inE actpermE perm1 => ->.
 Qed.
 
 End ActPerm.
+
+Section ActPermX.
+(* Is there an easier way or a better statement of actpermX? *)
+
+Variables (aT : finGroupType) (D : {group aT}) (rT : finType).
+Variables (to : action D rT).  
+
+Lemma actpermX : forall a, a \in D -> forall i x, 
+  (actperm to a ^+ i) x = actperm to (a ^+ i) x.
+Proof.
+move=>a Da; elim=>i; first by rewrite !expg0 !actpermE act1 perm1. 
+by move=> ih x; rewrite !expgS actpermM ?groupX // !permM ih.
+Qed.
+
+End ActPermX.
 
 Section RestrictActionTheory.
 
