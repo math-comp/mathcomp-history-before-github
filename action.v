@@ -25,8 +25,7 @@ Require Import bigops finset groups perm morphisms normal automorphism.
 (*      orbit to A x == the orbit of x under the action of A via to          *)
 (*    amove to A x y == the set of a in A whose action send x to y           *)
 (*      'C_A[x | to] == the stabiliser of x : rT in A :&: D                  *)
-(*      'C_A(S | to) == the pointwise stabiliser of S : {set rT} in D :&: A  *)
-(*      'N_A(S | to) == the global stabiliser of S : {set rT} in D :&: A     *)
+(*      'C_A(S | to) == the point-wise stabiliser of S : {set rT} in D :&: A *)
 (*      'N_A(S | to) == the global stabiliser of S : {set rT} in D :&: A     *)
 (*  'Fix_(S | to)[a] == the set of fixpoints of a in S                       *)
 (*  'Fix_(S | to)(A) == the set of fixpoints of A in S                       *)
@@ -56,7 +55,7 @@ Require Import bigops finset groups perm morphisms normal automorphism.
 (* not merely the function. There is a special scope %act for actions, and   *)
 (* constructions and notations for many classical actions:                   *)
 (*       'P == natural action of a permutation group via aperm               *)
-(*       'J == internal group action (conjugagtion) via _ ^ _                *)
+(*       'J == internal group action (conjugation) via _ ^ _                 *)
 (*       'R == regular group action (right translation) via _ * _            *)
 (*             (but, to limit ambiguity, _ * _ is NOT a canonical action)    *)
 (*     to^* == the action induced by to on {set rT} via to^* (== setact to)  *)
@@ -81,13 +80,13 @@ Require Import bigops finset groups perm morphisms normal automorphism.
 (* where the %act omitted if to is an abstract action or a set action to0^*. *)
 (* Note that this form will simplify and expose the acting function.         *)
 (*   There is a %gact scope for group actions; the notations above are       *)
-(* recognized in %gact when they denote canonical group actions.             *)
+(* recognised in %gact when they denote canonical group actions.             *)
 (*   Actions can be used to define morphisms:                                *)
 (* actperm to == the morphism D >-> {perm rT} induced by to.                 *)
 (*  actm to a == if a \in D the function on D induced by the action to, else *)
 (*               else the identity function. If to is a group action with    *)
 (*               range R then actm to a is canonically a morphism on R.      *)
-(*  Finally, gprod.v will provide a semidirect group construction that maps  *)
+(*  Finally, gprod.v will provide a semi-direct group construction that maps *)
 (* an external group action to an internal one.                              *)
 (*****************************************************************************)
 
@@ -116,7 +115,7 @@ Definition repack_action to :=
 
 End ActionDef.
 
-(* Need to close the Section here to avoid redeclaring all Argument Scopes *)
+(* Need to close the Section here to avoid re-declaring all Argument Scopes *)
 Delimit Scope action_scope with act.
 Bind Scope action_scope with action.
 Arguments Scope
