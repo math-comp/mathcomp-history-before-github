@@ -6,13 +6,22 @@ Require Import div prime choice.
 (* This files contains the definition  of:                                  *)
 (*   bin m n        ==  binomial coeficients, i.e. m choose n               *)
 (*                                                                          *)
-(* In additions to the properties of this function, wilson and pascal are   *)
-(* two examples of how to manipulate expressions with bigops.               *)
+(* In additions to the properties of this function, triangular_sum, wilson  *)
+(* and pascal are examples of how to manipulate expressions with bigops.    *)
 (****************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
+
+Lemma triangular_sum : forall n, \sum_(0 <= i < n) i = (n * n.-1)./2.
+Proof.
+case=> [|n] /=; first exact: big_geq.
+apply/eqP; rewrite -divn2 eqn_div ?dvdn2 ?odd_mul ?andNb // muln2 -addnn.
+rewrite {2}big_nat_rev -big_split big_mkord /=.
+rewrite (eq_bigr (fun _ => n)) ?sum_nat_const ?card_ord //= => i _.
+by rewrite subSS subnKC ?leq_ord.
+Qed.
 
 (** Factorial lemma **)
 Lemma fact0 : fact 0 = 1.

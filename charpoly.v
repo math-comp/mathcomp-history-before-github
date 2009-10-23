@@ -27,16 +27,16 @@ Section Cayley.
 
 Variable R : comRingType.
 
-Variable n : pos_nat.
+Variable n' : nat.
 
-Notation Local nn := (pos_nat_val n) (only parsing).
+Notation Local n := n'.+1.
 Notation Local "'R'" := R
   (at level 0, format "'R'").
 Notation Local "'R' [ 'X' ]" := {poly R}
   (at level 0, format "'R' [ 'X' ]").
-Notation Local "'M' ( 'R' )" := 'M[R]_nn
+Notation Local "'M' ( 'R' )" := 'M[R]_n
   (at level 0, format "'M' ( 'R' )").
-Notation Local "'M' ( 'R' [ 'X' ] )" := 'M[R[X]]_nn
+Notation Local "'M' ( 'R' [ 'X' ] )" := 'M[R[X]]_n
   (at level 0, format "'M' ( 'R' [ 'X' ] )").
 Notation Local "'M' ( 'R' ) [ 'X' ]" := {poly 'M[R]_n}
   (at level 0, format "'M' ( 'R' ) [ 'X' ]").
@@ -80,7 +80,7 @@ Qed.
 Lemma phi_opp : forall A, phi (- A) = - phi A.
 Proof.
 move=> A; apply/polyP=> k; apply/matrixP=> i j.
-by rewrite coef_phi mxE coef_opp mxE coef_phi coef_opp.
+by rewrite coef_phi !(mxE, coef_opp) coef_phi.
 Qed.
 
 Lemma phi_one : phi 1 = 1.

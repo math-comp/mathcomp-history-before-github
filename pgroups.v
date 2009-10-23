@@ -29,7 +29,7 @@ Require Import cyclic abelian gfunc.
 (*                    := [set P : {group _} | p.-Sylow(G) P]                 *)
 (*   p_group P        <=> P is a p-group for some prime p                    *)
 (*                    <-> (pdiv #|P|).-group P                               *)
-(*   Hall G H         <=> G is a Hall pi-subgroup of G for some pi           *)
+(*   Hall G H         <=> H is a Hall pi-subgroup of G for some pi           *)
 (*                    <-> coprime #|H| #|G : H| && (H \subset G)             *)
 (*   Sylow G P        <=> P is a Sylow p-subgroup of G for some p            *)
 (*                    <-> p_group P && Hall G P                              *)
@@ -672,6 +672,16 @@ move=> pi G H dH; case/and3P=> sHG piH pi'GH.
 by rewrite /pHall morphimS // morphim_pgroup // morphim_p_index.
 Qed.
 
+Lemma pmorphim_pHall : forall pi G H,
+    G \subset D -> H \subset D -> pi.-subgroup(H :&: G) ('ker f) ->
+  pi.-Hall(f @* G) (f @* H) = pi.-Hall(G) H.
+Proof.
+move=> pi G H sGD sHD; case/andP; rewrite subsetI; case/andP=> sKH sKG piK.
+rewrite !pHallE morphimSGK //; case sHG: (H \subset G) => //=.
+rewrite -(LaGrange sKH) -(LaGrange sKG) partn_mul // (part_pnat piK).
+by rewrite !card_morphim !(setIidPr _) // eqn_pmul2l.
+Qed.
+
 Lemma morphim_Hall : forall G H,
    H \subset D -> Hall G H -> Hall (f @* G) (f @* H).
 Proof.
@@ -707,11 +717,22 @@ Qed.
 
 End Morphim.
 
-Lemma pquotient_pgroup : forall pi (gT : finGroupType) (G H : {group gT}),
-   pi.-group H -> G \subset 'N(H) -> pi.-group (G / H) = pi.-group G.
+Section Pquotient.
+
+Variables (pi : nat_pred) (gT : finGroupType) (G H K : {group gT}).
+Hypothesis piK : pi.-group K.
+
+Lemma pquotient_pgroup : G \subset 'N(K) -> pi.-group (G / K) = pi.-group G.
+Proof. by move=> nKG; rewrite pmorphim_pgroup ?ker_coset. Qed.
+
+Lemma pquotient_pHall :
+  K <| G -> K <| H -> pi.-Hall(G / K) (H / K) = pi.-Hall(G) H.
 Proof.
-move=> pi gT G H; rewrite -{1}(ker_coset H); exact: pmorphim_pgroup.
+case/andP=> sKG nKG; case/andP=> sKH nKH.
+by rewrite pmorphim_pHall // ker_coset /psubgroup subsetI sKH sKG.
 Qed.
+
+End Pquotient.
 
 Section Pfunctors.
 

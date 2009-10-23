@@ -1,7 +1,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
 Require Import seq fintype div bigops prime ssralg poly.
-Require Import finset groups morphisms automorphism normal perm zmodp.
+Require Import finset groups morphisms automorphism normal perm zmodp finalg.
 
 (***********************************************************************)
 (*  Properties of cyclic groups                                        *)
@@ -64,50 +64,47 @@ Section Zpm.
 
 Variable a : gT.
 
-Definition Zpm (i : 'I_#[a]) := a ^+ i.
+Definition Zpm (i : 'Z_#[a]) := a ^+ i.
 
 Lemma ZpmM : {in Zp #[a] &, {morph Zpm : x y / x * y}}.
-Proof. by move=> i j _ _; rewrite /Zpm /= expg_mod_order expgn_add. Qed.
+Proof.
+rewrite /Zpm; case: (eqVneq a 1) => [-> | nta] i j _ _.
+  by rewrite !exp1gn ?mulg1.
+by rewrite /= {3}Zp_cast ?order_gt1 // expg_mod_order expgn_add. 
+Qed.
 
 Canonical Structure Zpm_morphism := Morphism ZpmM.
 
-Lemma morphim_Zpm : Zpm @* Zp #[a] = <[a]>.
+Lemma im_Zpm : Zpm @* Zp #[a] = <[a]>.
 Proof.
-apply/eqP; rewrite morphimEdom eq_sym eqEcard andbC.
-rewrite -[#|<[a]>|]card_Zp leq_imset_card.
-apply/subsetP=> x; case/cyclePmin=> i lt_i_a ->.
-by apply/imsetP; exists (Ordinal lt_i_a); rewrite ?inE.
-Qed.
-
-Lemma Zpm_inj : injective Zpm.
-Proof.
-apply/injectiveP; apply/card_uniqP; rewrite size_map -cardE card_ord /=.
-rewrite {5}/order -morphim_Zpm morphimEdom /=; apply: eq_card => x.
-by apply/imageP/imsetP=> [] [i _ ->] /=; exists i; rewrite ?inE.
+apply/eqP; rewrite eq_sym eqEcard cycle_subG /= andbC morphimEdom.
+rewrite (leq_trans (leq_imset_card _ _)) ?card_Zp //= /Zp order_gt1.
+case: eqP => /= [a1 | _]; first by rewrite imset_set1 morph1 a1 set11.
+by apply/imsetP; exists 1%R; rewrite ?expg1 ?inE.
 Qed.
 
 Lemma injm_Zpm : 'injm Zpm.
-Proof. apply/injmP; exact: (in2W Zpm_inj). Qed.
+Proof.
+apply/injmP; apply/dinjectiveP; apply/card_uniqP.
+rewrite size_map -cardE card_Zp //= {5}/order -im_Zpm morphimEdom /=.
+by apply: eq_card => x; apply/imageP/imsetP=> [] [i Zp_i ->]; exists i.
+Qed.
 
 Lemma eq_expg_mod_order : forall m n,
   (a ^+ m == a ^+ n) = (m == n %[mod #[a]]).
 Proof.
-move=> m n; symmetry; pose Za := inZp (order_gt0 a).
-by rewrite -[_ == _](inj_eq Zpm_inj (Za m) (Za n)) /Zpm !expg_mod_order.
+case: (eqVneq a 1) => [-> *|]; first by rewrite order1 !modn1 !exp1gn eqxx.
+rewrite -order_gt1 => lt1a; have ZpT: Zp #[a] = setT by rewrite /Zp lt1a.
+have: injective Zpm by move=> i j; apply (injmP _ injm_Zpm); rewrite /= ZpT inE.
+move/inj_eq=> eqZ m n; symmetry; rewrite -(Zp_cast lt1a).
+by rewrite -[_ == _](eqZ (inZp m) (inZp n)) /Zpm /= Zp_cast ?expg_mod_order.
 Qed.
 
 Lemma Zp_isom : isom (Zp #[a]) <[a]> Zpm.
-Proof. by apply/isomP; rewrite injm_Zpm morphim_Zpm. Qed.
+Proof. by apply/isomP; rewrite injm_Zpm im_Zpm. Qed.
 
 Lemma Zp_isog : isog (Zp #[a]) <[a]>.
 Proof. exact: isom_isog Zp_isom. Qed.
-
-Lemma cycle_decomp : forall b,
-  b \in <[a]> -> {m : nat | m < #[a] & a ^+ m = b}.
-Proof.
-move=> b; rewrite -morphim_Zpm; move/(invmK injm_Zpm).
-by case: {+}(invm _ b) => m; exists m.
-Qed.
 
 End Zpm.
 
@@ -153,12 +150,6 @@ Proof. by move=> a n; rewrite (eq_expg_mod_order a n 0) mod0n. Qed.
 
 Lemma order_inf : forall a n, a ^+ n.+1 == 1 -> #[a] <= n.+1.
 Proof. move=> a n; rewrite -order_dvdn; exact: dvdn_leq. Qed.
-
-Lemma order_eq1 : forall a, (#[a] == 1%N) = (a == 1).
-Proof. by move=> a; rewrite -dvdn1 order_dvdn expg1. Qed.
-
-Lemma cycle_eq1 : forall a, (<[a]> == 1) = (a == 1).
-Proof. by move=> a; rewrite -order_eq1 trivg_card1. Qed.
 
 Lemma order_dvdG : forall G a, a \in G -> #[a] %| #|G|.
 Proof. by move=> G a Ga; apply: cardSg; rewrite cycle_subG. Qed.
@@ -217,11 +208,11 @@ End Cyclic.
 
 Theorem Euler: forall a n, coprime a n -> a ^ phi n  = 1 %[mod n].
 Proof.
-move=> a n; case: (posnP n) => [-> //|n_gt0] co_a_n; pose n0 := PosNat n_gt0.
-have Ua: coprime n0 (inZp n_gt0 a) by rewrite coprime_sym coprime_modl.
-have: ZpUnit Ua ^+ phi n0 == 1.
-  by rewrite -card_Zp_units -order_dvdn order_dvdG ?inE.
-by rewrite -2!val_eqE /= (@Zp_units_expgn n0) /= modn_exp; move/eqP.
+move=> a [|[|n']] //; [by rewrite !modn1 | set n := n'.+2 => co_a_n].
+have{co_a_n} Ua: coprime n (inZp a : 'I_n) by rewrite coprime_sym coprime_modl.
+have: (Sub _ : _ -> {unit 'I_n}) Ua ^+ phi n == 1.
+  by rewrite -card_units_Zp // -order_dvdn order_dvdG ?inE.
+by rewrite -2!val_eqE unit_Zp_expgn /= -/n modn_exp; move/eqP.
 Qed.
 
 Section CyclicSubGroup.
@@ -324,13 +315,10 @@ Proof. by move=> x G H Nx; apply: morph_generator. Qed.
 
 Lemma prime_cyclic : forall G, prime #|G| -> cyclic G.
 Proof.
-move=> G pG; case: (pickP (mem G^#)) => [x Hx| Hx]; last first.
-  by move: pG; rewrite (cardsD1 1 G) group1 (eq_card0 Hx).
-move: (Hx); rewrite /= in_setD1; case/andP => xD1; rewrite -cycle_subG=> xIG.
-case/primeP: pG => _; move/(_ _ (cardSg xIG)); case/orP;  move/eqP.
-  by rewrite (cardsD1 1) (cardsD1 x) group1 in_setD1 xD1 cycle_id.
-move=> CxG; apply/cyclicP; exists x.
-by apply/eqP; rewrite eq_sym eqEcard // CxG leqnn andbT.
+move=> G; case/primeP; rewrite ltnNge -trivg_card_le1.
+case/trivgPn=> x Gx ntx; move/(_ _ (order_dvdG Gx)).
+rewrite order_eq1 (negbTE ntx); move/eqnP=> oxG; apply/cyclicP.
+by exists x; apply/eqP; rewrite eq_sym eqEcard -oxG cycle_subG Gx leqnn.
 Qed.
 
 Lemma cyclic_small : forall G, #|G| <= 3 -> cyclic G.
@@ -364,8 +352,7 @@ Proof.
 move=> G H cycG; apply/idP/idP=> [isoGM | ].
   by rewrite (isog_card isoGM) -(isog_cyclic isoGM) cycG /=.
 case/cyclicP: cycG => x ->{G}; case/andP; case/cyclicP=> y ->{M} oy.
-apply: isog_trans (isog_symr _) (Zp_isog y).
-by rewrite ((order_pos_nat y =P order_pos_nat x) _) // Zp_isog.
+by apply: isog_trans (isog_symr _) (Zp_isog y); rewrite /order (eqP oy) Zp_isog.
 Qed.
 
 Lemma injm_generator : forall G H (f : {morphism G >-> rT}) x,
@@ -408,16 +395,17 @@ End CycleMorphism.
 
 Section ZpUnitMorphism.
 
-Variable u : Zp_unit #[a].
+Variable u : {unit 'Z_#[a]}.
 
-Lemma injm_cyclem : 'injm (cyclem u a).
+Lemma injm_cyclem : 'injm (cyclem (val u) a).
 Proof.
 apply/subsetP=> x; case/setIdP=> ax; rewrite !inE -order_dvdn.
+case: (eqVneq a 1) => [a1 | nta]; first by rewrite a1 cycle1 inE in ax.
 rewrite -order_eq1 -dvdn1; move/eqnP: (valP u) => /= <-.
-by rewrite dvdn_gcd order_dvdG.
+by rewrite dvdn_gcd {2}Zp_cast ?order_gt1 // order_dvdG.
 Qed.
 
-Lemma im_cyclem : cyclem u a @* <[a]> = <[a]>.
+Lemma im_cyclem : cyclem (val u) a @* <[a]> = <[a]>.
 Proof.
 apply/morphim_fixP=> //; first exact: injm_cyclem.
 by rewrite morphim_cycle ?cycle_id ?cycleX.
@@ -427,21 +415,26 @@ Definition Zp_unitm := aut injm_cyclem im_cyclem.
 
 End ZpUnitMorphism.
 
-Lemma Zp_unitmM : {in Zp_units #[a] &, {morph Zp_unitm : u v / u * v}}.
+Lemma Zp_unitmM : {in units_Zp #[a] &, {morph Zp_unitm : u v / u * v}}.
 Proof.
 move=> u v _ _; apply: (eq_Aut (Aut_aut _ _)) => [|x a_x].
   by rewrite groupM ?Aut_aut.
 rewrite permM !autE ?groupX //= /cyclem -expgn_mul.
-by rewrite -expg_mod_order modn_dvdm ?expg_mod_order // order_dvdG.
+rewrite -expg_mod_order modn_dvdm ?expg_mod_order //.
+case: (leqP #[a] 1) => [lea1 | lt1a]; last by rewrite Zp_cast ?order_dvdG.
+by rewrite card_le1_trivg // in a_x; rewrite (set1P a_x) order1 dvd1n.
 Qed.
 
 Canonical Structure Zp_unit_morphism := Morphism Zp_unitmM.
 
 Lemma injm_Zp_unitm : 'injm Zp_unitm.
 Proof.
-apply/subsetP=> u; case/morphpreP=> _; move/set1P=> /= um1.
+case: (eqVneq a 1) => [a1 | nta].
+  by rewrite subIset //= card_le1_trivg ?subxx // card_units_Zp a1 order1.
+apply/subsetP=> /= u; case/morphpreP=> _; move/set1P=> /= um1.
 have{um1}: Zp_unitm u a == Zp_unitm 1 a by rewrite um1 morph1.
-by rewrite !autE ?cycle_id // eq_expg_mod_order !modZp inE.
+rewrite !autE ?cycle_id // eq_expg_mod_order.
+by rewrite -{5 11}[#[a]]Zp_cast ?order_gt1 // !modZp inE.
 Qed.
 
 Lemma generator_coprime : forall m, generator <[a]> (a ^+ m) = coprime #[a] m.
@@ -452,41 +445,46 @@ have am_gt0: 0 < gcdn #[a] m by rewrite gcdn_gt0 order_gt0.
 by rewrite /coprime eqn_leq am_gt0 andbT -(@leq_pmul2l #[a]) ?muln1 -?leq_divr.
 Qed.
 
-Lemma morphim_Zp_unitm : Zp_unitm @* Zp_units #[a] = Aut <[a]>.
+Lemma im_Zp_unitm : Zp_unitm @* units_Zp #[a] = Aut <[a]>.
 Proof.
-rewrite morphimEdom; apply/setP=> f; apply/imsetP/idP=> [[u _ ->] | Af].
-  exact: Aut_aut.
-pose n := invm (injm_Zpm a) (f a).
+rewrite morphimEdom; apply/setP=> f; pose n := invm (injm_Zpm a) (f a).
+apply/imsetP/idP=> [[u _ ->] | Af]; first exact: Aut_aut.
+case: (eqVneq a 1) => [a1 | nta].
+  by rewrite a1 cycle1 Aut1 in Af; exists 1; rewrite // morph1 (set1P Af).
 have a_fa: <[a]> = <[f a]>.
   by rewrite -(autmE Af) -morphim_cycle ?im_autm ?cycle_id.
 have def_n: a ^+ n = f a.
-  by rewrite -/(Zpm n) invmK // morphim_Zpm a_fa cycle_id.
-have co_a_n : coprime #[a] n by rewrite -generator_coprime def_n; exact/eqP.
-exists (ZpUnit co_a_n); rewrite ?inE //.
+  by rewrite -/(Zpm n) invmK // im_Zpm a_fa cycle_id.
+have co_a_n: coprime #[a].-2.+2 n.
+  by rewrite {1}Zp_cast ?order_gt1 // -generator_coprime def_n; exact/eqP.
+exists ((Sub _ : _-> {unit 'Z__}) co_a_n); rewrite ?inE //.
 apply: eq_Aut (Af) (Aut_aut _ _) _ => x ax.
 rewrite autE //= /cyclem; case/cycleP: ax => k ->{x}.
 by rewrite -(autmE Af) morphX ?cycle_id //= autmE -def_n -!expgn_mul mulnC.
 Qed.
 
-Lemma Zp_unit_isom : isom (Zp_units #[a]) (Aut <[a]>) Zp_unitm.
-Proof. by apply/isomP; rewrite ?injm_Zp_unitm ?morphim_Zp_unitm. Qed.
+Lemma Zp_unit_isom : isom (units_Zp #[a]) (Aut <[a]>) Zp_unitm.
+Proof. by apply/isomP; rewrite ?injm_Zp_unitm ?im_Zp_unitm. Qed.
 
-Lemma Zp_unit_isog : isog (Zp_units #[a]) (Aut <[a]>).
+Lemma Zp_unit_isog : isog (units_Zp #[a]) (Aut <[a]>).
 Proof. exact: isom_isog Zp_unit_isom. Qed.
 
 Lemma card_Aut_cycle : #|Aut <[a]>| = phi #[a].
-Proof. by rewrite -(isog_card Zp_unit_isog) card_Zp_units. Qed.
+Proof. by rewrite -(isog_card Zp_unit_isog) card_units_Zp. Qed.
 
 Lemma phi_gen : phi #[a] = #|[set x | generator <[a]> x]|.
 Proof.
-rewrite -(card_injm (injm_invm (injm_Zpm a))) /= ?morphim_Zpm.
-  rewrite -card_Zp_units cardsE card_sub morphim_invmE.
-  by apply: eq_card => d; rewrite !inE /= -generator_coprime.
-apply/subsetP=> x; rewrite inE; exact: cycle_generator.
+case: (leqP #[a] 1) => [lea1 | lt1a].
+  rewrite /order card_le1_trivg // cards1 (@eq_card1 _ 1) // => x.
+  by rewrite !inE -cycle_eq1 eq_sym.
+rewrite -(card_injm (injm_invm (injm_Zpm a))) /= ?im_Zpm; last first.
+  by apply/subsetP=> x; rewrite inE; exact: cycle_generator.
+rewrite -card_units_Zp // cardsE card_sub morphim_invmE; apply: eq_card => /= d.
+by rewrite !inE /= /Zp lt1a inE /= generator_coprime -{2}(Zp_cast lt1a).
 Qed.
 
 Lemma Aut_cycle_abelian : abelian (Aut <[a]>).
-Proof. by rewrite -morphim_Zp_unitm morphim_abelian ?Zp_units_abelian. Qed.
+Proof. by rewrite -im_Zp_unitm morphim_abelian ?units_Zp_abelian. Qed.
 
 End CycleAutomorphism.
 
@@ -518,12 +516,11 @@ End CyclicAutomorphism.
 
 Lemma sum_phi_dvd : forall n, \sum_(d < n.+1 | d %| n) phi d = n.
 Proof.
-move=> n; rewrite big_mkcond /=.
-case: (posnP n) => [-> | n_gt0]; first by rewrite big_ord_recl big_ord0.
-pose n0 := PosNat n_gt0; pose x1 : 'I_n0 := Zp_gen.
+case=> [|[|n']]; try by rewrite big_mkcond !big_ord_recl big_ord0.
+set n := n'.+2; pose x1 : 'Z_n := 1%R.
 have ox1 : #[x1] = n by rewrite /order -Zp_cycle card_Zp.
-rewrite -{8}ox1 -[#[_]]sum_ncycle_phi [#|_|]ox1; apply: eq_bigr => d _.
-rewrite -{2}ox1; case: ifP => [|ndv_dG]; last first.
+rewrite -{8}ox1 -[#[_]]sum_ncycle_phi [#|_|]ox1 big_mkcond.
+apply: eq_bigr => d _; rewrite -{2}ox1; case: ifP => [|ndv_dG]; last first.
   rewrite eq_card0 // => C; apply/imsetP=> [[x]]; case/setIdP=> Gx oxd _{C}.
   by rewrite -(eqP oxd) order_dvdG in ndv_dG.
 move/cycle_sub_group; set Gd := [set _] => def_Gd.
@@ -610,7 +607,6 @@ Qed.
 
 End FieldMulCyclic.
 
-
 (***********************************************************************)
 (*  Cycles of prime order                                              *)
 (***********************************************************************)
@@ -622,13 +618,13 @@ Variable gT : finGroupType.
 
 Lemma Aut_prime_cycle_cyclic : forall a : gT, prime #[a] -> cyclic (Aut <[a]>).
 Proof.
-move=> a pr_a; pose ff f := invm (injm_Zp_unitm a) f : Fp_field pr_a.
-apply: (@field_mul_group_cyclic _ _ _ ff) => [f g Af Ag | f Af].
-  by apply: val_inj; rewrite /ff morphM ?morphim_Zp_unitm.
-split=> [/= ff1 |->]; last by apply: val_inj; rewrite /ff morph1.
-apply: (injm1 (injm_invm (injm_Zp_unitm a))).
-  by rewrite /= morphim_Zp_unitm.
-by do 2!apply: val_inj; move/(congr1 val): ff1.
+move=> a pr_a; have inj_um := injm_Zp_unitm a; have eq_a := Fp_Zcast pr_a.
+pose fm := cast_ord (esym eq_a) \o val \o invm inj_um.
+apply: (@field_mul_group_cyclic _ _ _ fm) => [f g Af Ag | f Af] /=.
+  by apply: val_inj; rewrite /= morphM ?im_Zp_unitm //= eq_a.
+split=> [/= fm1 |->]; last by apply: val_inj; rewrite /= morph1.
+apply: (injm1 (injm_invm inj_um)); first by rewrite /= im_Zp_unitm.
+by do 2!apply: val_inj; move/(congr1 val): fm1.
 Qed.
 
 Lemma Aut_prime_cyclic : forall G : {group gT}, prime #|G| -> cyclic (Aut G).

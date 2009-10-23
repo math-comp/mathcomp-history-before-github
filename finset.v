@@ -309,6 +309,9 @@ Proof. move=> x a; exact: in_set. Qed.
 Lemma set11 : forall x, x \in [set x].
 Proof. by move=> x; rewrite inE. Qed.
 
+Lemma set1_inj : injective (@set1 T).
+Proof. by move=> a b eqsab; apply/set1P; rewrite -eqsab set11. Qed.
+
 Lemma setU1P : forall x a B, reflect (x = a \/ x \in B) (x \in a |: B).
 Proof. move=> x a B; rewrite !inE; exact: predU1P. Qed.
 
@@ -819,6 +822,7 @@ Qed.
 End setOps.
 
 Implicit Arguments set1P [T x a].
+Implicit Arguments set1_inj [T].
 Implicit Arguments set2P [T x a b].
 Implicit Arguments setIdP [T x pA pB].
 Implicit Arguments setIP [T x A B].
@@ -832,8 +836,8 @@ Implicit Arguments setIidPr [T A B].
 Implicit Arguments setUidPl [T A B].
 Implicit Arguments setUidPr [T A B].
 Implicit Arguments setDidPl [T A B].
-Prenex Implicits set1P set2P setU1P setD1P setIdP setIP setUP setDP setCP.
-Prenex Implicits setIidPl setIidPr setUidPl setUidPr setDidPl.
+Prenex Implicits set1P set1_inj set2P setU1P setD1P setIdP setIP setUP setDP.
+Prenex Implicits setCP setIidPl setIidPr setUidPl setUidPr setDidPl.
 
 Section setOpsAlgebra.
 

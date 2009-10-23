@@ -321,8 +321,6 @@ Proof. by move=> *; rewrite ltnW ?prime_gt1. Qed.
 
 Hint Resolve prime_gt1 prime_gt0.
 
-Definition prime_pos_nat p pr_p := PosNat (@prime_gt0 p pr_p).
-
 Lemma prod_prime_decomp : forall n,
   n > 0 -> n = \prod_(f <- prime_decomp n) f.1 ^ f.2.
 Proof. by move=> n; case/prime_decomp_correct. Qed.

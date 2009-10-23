@@ -25,6 +25,7 @@ commutators.v
 perm.v
 automorphism.v
 ssralg.v
+finalg.v
 poly.v
 zmodp.v
 matrix.v

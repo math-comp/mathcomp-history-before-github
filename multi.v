@@ -17,7 +17,7 @@ Section PolyRingMorphism.
 
 Variables aR' aR rR : ringType.
 Variables (f : aR -> rR) (g : aR' -> aR).
-Hypotheses (fM : ring_morphism f) (gM : ring_morphism g).
+Hypotheses (fM : GRing.morphism f) (gM : GRing.morphism g).
 
 Definition map_poly (p : {poly aR}) := Poly (map f p).
 
@@ -35,7 +35,7 @@ Qed.
 Lemma map_polyX : map_poly 'X = 'X.
 Proof. by apply/polyP=> i; rewrite coef_map !coefX ringM_nat. Qed.
 
-Lemma map_polyM : ring_morphism map_poly.
+Lemma map_polyM : GRing.morphism map_poly.
 Proof.
 split=> [x y | x y|]; apply/polyP=> i; last by rewrite map_polyC ringM_1.
   by rewrite !(coef_sub, coef_map) ringM_sub.
@@ -61,14 +61,14 @@ Proof. by move=> f g eq_fg x p; rewrite /morph_poly (eq_map eq_fg). Qed.
 Lemma horner_map : forall f x p, (map_poly f p).[x] = morph_poly f x p.
 Proof. by move=> f x p; rewrite horner_Poly. Qed.
 
-Lemma morph_polyC : forall f x y, ring_morphism f -> morph_poly f x y%:P = f y.
+Lemma morph_polyC : forall f x y, GRing.morphism f -> morph_poly f x y%:P = f y.
 Proof. by move=> f x y fM; rewrite -horner_map map_polyC // hornerC. Qed.
 
-Lemma morph_polyX : forall f x, ring_morphism f -> morph_poly f x 'X = x.
+Lemma morph_polyX : forall f x, GRing.morphism f -> morph_poly f x 'X = x.
 Proof. by move=> f x fM; rewrite -horner_map map_polyX // hornerX. Qed.
 
 Lemma morph_polyM : forall f x,
-  ring_morphism f -> ring_morphism (morph_poly f x).
+  GRing.morphism f -> GRing.morphism (morph_poly f x).
 Proof.
 move=> f x; move/map_polyM=> fM.
 split=> [p q | p q |]; rewrite -!horner_map; last 1 first.
@@ -77,15 +77,15 @@ split=> [p q | p q |]; rewrite -!horner_map; last 1 first.
 by rewrite ringM_mul // horner_mul //; exact: mulrC.
 Qed.
 
-Lemma polyC_morph : forall R, ring_morphism (@polyC R).
+Lemma polyC_morph : forall R, GRing.morphism (@polyC R).
 Proof. by split=> // x y; rewrite ?polyC_sub ?polyC_mul. Qed.
 
 Lemma poly_initial : forall f : {poly aR} -> rR,
-  ring_morphism f -> f =1 morph_poly (f \o (@polyC aR)) (f 'X).
+  GRing.morphism f -> f =1 morph_poly (f \o (@polyC aR)) (f 'X).
 Proof.
 move=> f fM; set g := f \o _; set h := morph_poly g _.
-have gM: ring_morphism g := comp_ringM fM (@polyC_morph _).
-have hM: ring_morphism h := morph_polyM _ gM.
+have gM: GRing.morphism g := comp_ringM fM (@polyC_morph _).
+have hM: GRing.morphism h := morph_polyM _ gM.
 apply: (@poly_ind _ (fun p => f p = h p)) => [|p x f_p].
   by rewrite 2?ringM_0.
 by rewrite 2?ringM_add 2?ringM_mul // -{}f_p /h morph_polyX ?morph_polyC.
@@ -128,25 +128,25 @@ Notation "'X_ i" := (multi_var i).
 
 Definition multiC n : R -> multi n := cast_multi (addn0 n).
 
-Lemma inject_morph : forall m n, ring_morphism (@inject n m).
+Lemma inject_morph : forall m n, GRing.morphism (@inject n m).
 Proof. elim=> // m IHm n; exact: comp_ringM (@polyC_morph _) (IHm n). Qed.
 
-Lemma cast_multiM : forall i m n Enm, ring_morphism (@cast_multi i m n Enm).
+Lemma cast_multiM : forall i m n Enm, GRing.morphism (@cast_multi i m n Enm).
 Proof. by move=> i m n; case: n /; exact: inject_morph. Qed.
 
-Lemma multiC_morph : forall n, ring_morphism (multiC n).
+Lemma multiC_morph : forall n, GRing.morphism (multiC n).
 Proof. by move=> n; exact: (cast_multiM (addn0 n)). Qed.
 
 Section eval_multi.
 
 Variables (rR : comRingType) (fC : R -> rR) (fX : seq rR).
-Hypothesis fCM : ring_morphism fC.
+Hypothesis fCM : GRing.morphism fC.
 
 Fixpoint morph_multi n : multi n -> rR :=
   if n is i.+1 return multi n -> rR then morph_poly (@morph_multi i) fX`_i
   else fC.
 
-Lemma morph_multiM : forall n, ring_morphism (@morph_multi n).
+Lemma morph_multiM : forall n, GRing.morphism (@morph_multi n).
 Proof. elim=> //= n; exact: morph_polyM. Qed.
 
 Lemma morph_multiX : forall n (i : 'I_n), morph_multi 'X_i = fX`_i.
@@ -176,7 +176,7 @@ by rewrite (eqfgX (widen_ord (leqnSn n) i)).
 Qed.
 
 Lemma multi_initial : forall (rR : comRingType) n (f : multi n -> rR),
-  ring_morphism f ->
+  GRing.morphism f ->
   f =1 (morph_multi (f \o multiC n) (fgraph [ffun i => f 'X_i])) n.
 Proof.
 move=> rR; elim=> [|n IHn] f fM p /=.
@@ -226,7 +226,7 @@ Definition odd_perm' s := to s VdM != VdM.
 
 Lemma odd_perm'M : {morph odd_perm' : a b / a * b >-> a (+) b}.
 Proof.
-have to_morph : ring_morphism (to _).
+have to_morph : GRing.morphism (to _).
   move=> s; apply: morph_multiM; exact: multiC_morph.
 pose si (s : {perm T}) i := enum_rank (s (enum_val i)).
 have siK: forall s, cancel (si s) (si s^-1).
@@ -284,7 +284,7 @@ Canonical Structure odd_perm'_morphism :=
 
 Lemma odd_tperm' : forall x y : T, odd_perm' (tperm x y) = (x != y).
 Proof.
-have to_morph : ring_morphism (to _).
+have to_morph : GRing.morphism (to _).
   move=> s; apply: morph_multiM; exact: multiC_morph.
 pose si (s : {perm T}) i := enum_rank (s (enum_val i)).
 have toX : forall s i, to s 'X_i = 'X_(si s i).
@@ -307,7 +307,7 @@ rewrite {2}/VdM (bigD1 (i0, i1)) //= big_mkcond /=.
 rewrite ringM_prod // (bigD1 (i0, i1)) //= big_mkcond /=.
 rewrite ringM_sub // !toX /si tpermL tpermR !enum_valK.
 pose mi i := @morph_multi R R id (set_nth 0 [::] i 1%R) n.
-have miM: ring_morphism (mi _) by move=> i; exact: morph_multiM.
+have miM: GRing.morphism (mi _) by move=> i; exact: morph_multiM.
 rewrite -mulNr (addrC 'X_i0) oppr_add opprK -mulr_addr mulf_neq0 //.
   apply/eqP; move/(congr1 (mi 1%N)); move/eqP.
   by rewrite ringM_sub // ringM_0 // /mi !morph_multiX.

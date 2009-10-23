@@ -119,6 +119,9 @@ Require Import bigops.
 (*                           closed field. (The underlying type should have  *)
 (*                           a decidable field canonical structure)          *)
 (*                                                                           *)
+(* * Morphism                                                                *)
+(*      GRing.morphism f == f is a ring morphism                             *)
+(*                                                                           *)
 (* The Lemmas about theses structures are all contained in GRing.Theory.     *)
 (* Notations are defined in scope ring_scope (delimiter %R), except term and *)
 (* formula notations, which are in term_scope (delimiter %T).                *)
@@ -348,8 +351,8 @@ Definition repack cT : _ -> Type -> type := let k T c p := p c in unpack k cT.
 
 Definition pack := let k T c m := Pack (@Class T c m) T in Zmodule.unpack k.
 
-Definition eqType cT := Equality.Pack (class cT) cT.
-Definition choiceType cT := Choice.Pack (class cT) cT.
+Coercion eqType cT := Equality.Pack (class cT) cT.
+Coercion choiceType cT := Choice.Pack (class cT) cT.
 Coercion zmodType cT := Zmodule.Pack (class cT) cT.
 
 End Ring.
@@ -553,14 +556,14 @@ Notation comm := (@commDef _).
 Notation rev :=
   (let R := _ in fun (x : Ring.sort R) => x : Ring.sort (RevRingType R)).
 
-Definition ring_morphism (aR rR : Ring.type) (f : aR -> rR) :=
+Definition morphism (aR rR : Ring.type) (f : aR -> rR) :=
   [/\ {morph f : x y / x - y}, {morph f : x y / x * y} & f 1 = 1].
 
 Section RingMorphTheory.
 
 Variables aR' aR rR : Ring.type.
 Variables (f : aR -> rR) (g : aR' -> aR).
-Hypotheses (fM : ring_morphism f) (gM : ring_morphism g).
+Hypotheses (fM : morphism f) (gM : morphism g).
 
 Lemma ringM_sub : {morph f : x y / x - y}.
 Proof. by case fM. Qed.
@@ -584,24 +587,22 @@ Proof. by case fM. Qed.
 
 Definition ringM_prod := big_morph f ringM_mul ringM_1.
 
+Lemma ringM_natmul : forall n, {morph f : x / x *+ n}.
+Proof. by elim=> [|n IHn] x; rewrite ?ringM_0 // !mulrS ringM_add IHn. Qed.
+
 Lemma ringM_nat : forall n, f n%:R = n %:R.
-Proof.
-by elim=> [|n IHn]; rewrite ?ringM_0 // !mulrS ringM_add IHn ringM_1.
-Qed.
+Proof. by move=> n; rewrite ringM_natmul ringM_1. Qed.
 
 Lemma ringM_exp : forall n, {morph f : x / x ^+ n}.
 Proof.  by elim=> [|n IHn] x; rewrite ?ringM_1 //  !exprS ringM_mul IHn. Qed.
 
-Lemma comp_ringM : ring_morphism (f \o g).
+Lemma comp_ringM : morphism (f \o g).
 Proof.
 case: fM gM => [fsub fmul f1] [gsub gmul g1].
 by split=> [x y | x y |] /=; rewrite ?g1 ?gsub ?gmul.
 Qed.
 
-
 End RingMorphTheory.
-
-
 
 Module ComRing.
 
@@ -622,9 +623,9 @@ Definition RingMixin R one mul mulA mulC mul1x mul_addl :=
   let mul_addr := Monoid.mulC_dist mulC mul_addl in
   @Ring.EtaMixin R one mul mulA mul1x mulx1 mul_addl mul_addr.
 
-Definition eqType cT := Equality.Pack (class cT) cT.
-Definition choiceType cT := Choice.Pack (class cT) cT.
-Definition zmodType cT := Zmodule.Pack (class cT) cT.
+Coercion eqType cT := Equality.Pack (class cT) cT.
+Coercion choiceType cT := Choice.Pack (class cT) cT.
+Coercion zmodType cT := Zmodule.Pack (class cT) cT.
 Coercion ringType cT := Ring.Pack (class cT) cT.
 
 End ComRing.
@@ -689,9 +690,9 @@ Definition comPack := (* pack ComUnitRing mixin *)
     in fun m => Pack (Class m) T
   in ComRing.unpack k. 
 
-Definition eqType cT := Equality.Pack (class cT) cT.
-Definition choiceType cT := Choice.Pack (class cT) cT.
-Definition zmodType cT := Zmodule.Pack (class cT) cT.
+Coercion eqType cT := Equality.Pack (class cT) cT.
+Coercion choiceType cT := Choice.Pack (class cT) cT.
+Coercion zmodType cT := Zmodule.Pack (class cT) cT.
 Coercion ringType cT := Ring.Pack (class cT) cT.
 
 End UnitRing.
@@ -863,6 +864,28 @@ Qed.
 
 End UnitRingTheory.
 
+Section UnitRingMorphism.
+
+Variables (aR rR : UnitRing.type) (f : aR -> rR).
+Hypothesis fM : morphism f.
+
+Lemma ringM_unit : forall x, unit x -> unit (f x).
+Proof.
+move=> x; case/unitrP=> y [yx1 xy1]; apply/unitrP.
+by exists (f y); rewrite -!ringM_mul // yx1 xy1 ringM_1.
+Qed.
+
+Lemma ringM_inv : forall x, unit x -> f x^-1 = (f x)^-1.
+Proof.
+move=> x Ux; rewrite -[(f x)^-1]mul1r; apply: (canRL (mulrK (ringM_unit Ux))).
+by rewrite -ringM_mul // mulVr ?ringM_1.
+Qed.
+
+Lemma ringM_div : forall x y, unit y -> f (x / y) = f x / f y.
+Proof. by move=> x y Uy; rewrite ringM_mul ?ringM_inv. Qed.
+
+End UnitRingMorphism.
+
 (* Reification of the theory of rings with units, in named style  *)
 Section TermDef.
 
@@ -959,7 +982,6 @@ Notation "'exists' ''X_' i , f" := (Exists i f)
 Notation "'forall' ''X_' i , f" := (Forall i f)
   (at level 200, i at level 2,
    format "'[hv' 'forall'  ''X_' i , '/ '  f ']'") : term_scope.
-
 
 Section EvalTerm.
 
@@ -1342,7 +1364,6 @@ suff aux : forall (l1 l2 : seq (term R)) g,
 by elim=> [| ? ? IHl1] * /=; [rewrite eqxx | rewrite -andbA IHl1 /=].
 Qed.
 
-
 Lemma qfree_to_dnf_correct : forall f, (qfree f) -> 
   (forall e, qfree_eval e f =
     qfree_eval e (dnf_to_formula (qfree_to_dnf f false))).
@@ -1400,7 +1421,6 @@ elim=> //.
 - by move=> t IHt r n m /= rt; rewrite {}IHt.
 Qed.
 
-
 End EvalTerm.
 
 Module ComUnitRing.
@@ -1436,10 +1456,10 @@ End Mixin.
 
 Definition pack := let k T c m := Pack (@Class T c m) T in ComRing.unpack k.
 
-Definition eqType cT := Equality.Pack (class cT) cT.
-Definition choiceType cT := Choice.Pack (class cT) cT.
-Definition zmodType cT := Zmodule.Pack (class cT) cT.
-Definition ringType cT := Ring.Pack (class cT) cT.
+Coercion eqType cT := Equality.Pack (class cT) cT.
+Coercion choiceType cT := Choice.Pack (class cT) cT.
+Coercion zmodType cT := Zmodule.Pack (class cT) cT.
+Coercion ringType cT := Ring.Pack (class cT) cT.
 Coercion comRingType cT := ComRing.Pack (class cT) cT.
 Coercion unitRingType cT := UnitRing.Pack (class cT) cT.
 Definition com_unitRingType cT :=
@@ -1482,12 +1502,12 @@ Definition repack cT : _ -> Type -> type := let k T c p := p c in unpack k cT.
 Definition pack : forall R : ComUnitRing.type, axiom R -> type :=
   let k T c ax := Pack (@Class T c ax) T in ComUnitRing.unpack k.
 
-Definition eqType cT := Equality.Pack (class cT) cT.
-Definition choiceType cT := Choice.Pack (class cT) cT.
-Definition zmodType cT := Zmodule.Pack (class cT) cT.
-Definition ringType cT := Ring.Pack (class cT) cT.
-Definition comRingType cT := ComRing.Pack (class cT) cT.
-Definition unitRingType cT := UnitRing.Pack (class cT) cT.
+Coercion eqType cT := Equality.Pack (class cT) cT.
+Coercion choiceType cT := Choice.Pack (class cT) cT.
+Coercion zmodType cT := Zmodule.Pack (class cT) cT.
+Coercion ringType cT := Ring.Pack (class cT) cT.
+Coercion comRingType cT := ComRing.Pack (class cT) cT.
+Coercion unitRingType cT := UnitRing.Pack (class cT) cT.
 Coercion comUnitRingType cT := ComUnitRing.Pack (class cT) cT.
 
 End IntegralDomain.
@@ -1584,13 +1604,13 @@ Proof. by []. Qed.
 
 End Mixins.
 
-Definition eqType cT := Equality.Pack (class cT) cT.
-Definition choiceType cT := Choice.Pack (class cT) cT.
-Definition zmodType cT := Zmodule.Pack (class cT) cT.
-Definition ringType cT := Ring.Pack (class cT) cT.
-Definition comRingType cT := ComRing.Pack (class cT) cT.
-Definition unitRingType cT := UnitRing.Pack (class cT) cT.
-Definition comUnitRingType cT := ComUnitRing.Pack (class cT) cT.
+Coercion eqType cT := Equality.Pack (class cT) cT.
+Coercion choiceType cT := Choice.Pack (class cT) cT.
+Coercion zmodType cT := Zmodule.Pack (class cT) cT.
+Coercion ringType cT := Ring.Pack (class cT) cT.
+Coercion comRingType cT := ComRing.Pack (class cT) cT.
+Coercion unitRingType cT := UnitRing.Pack (class cT) cT.
+Coercion comUnitRingType cT := ComUnitRing.Pack (class cT) cT.
 Coercion idomainType cT := IntegralDomain.Pack (class cT) cT.
 
 End Field.
@@ -1644,6 +1664,34 @@ Proof. by move=> I r P E; rewrite (big_morph _ invf_mul (invr1 _)). Qed.
 
 End FieldTheory.
 
+Section FieldMorphism.
+
+Variables (aF rF : Field.type) (f : aF -> rF).
+Hypothesis fM : morphism f.
+
+Lemma fieldM_unit : forall x, unit (f x) = unit x.
+Proof.
+move=> x; apply/idP/idP; last exact: ringM_unit.
+by rewrite !unitfE; apply: contra; move/eqP->; rewrite ringM_0.
+Qed.
+
+Lemma fieldM_inv : {morph f : x / x^-1}.
+Proof.
+move=> x; case (eqVneq x 0) => [-> | nzx]; last by rewrite ringM_inv ?unitfE.
+by rewrite !(invr0, ringM_0 fM).
+Qed.
+
+Lemma fieldM_div : {morph f : x y / x / y}.
+Proof. by move=> x y; rewrite ringM_mul ?fieldM_inv. Qed.
+
+Lemma fieldM_inj : injective f.
+Proof. move=> x y eq_fxy; rewrite -[y]add0r; apply: (canRL (subrK _)).
+apply/eqP; apply/idPn; rewrite -unitfE -fieldM_unit unitfE ringM_sub //.
+by rewrite eq_fxy subrr eqxx.
+Qed.
+
+End FieldMorphism.
+
 Module DecidableField.
 
 Definition axiom (R : UnitRing.type) (s : formula R -> pred (seq R)) :=
@@ -1665,14 +1713,14 @@ Definition pack := let k T c m := Pack (@Class T c m) T in Field.unpack k.
 
 (* Ultimately, there should be a QE Mixin constructor *)
 
-Definition eqType cT := Equality.Pack (class cT) cT.
-Definition choiceType cT := Choice.Pack (class cT) cT.
-Definition zmodType cT := Zmodule.Pack (class cT) cT.
-Definition ringType cT := Ring.Pack (class cT) cT.
-Definition comRingType cT := ComRing.Pack (class cT) cT.
-Definition unitRingType cT := UnitRing.Pack (class cT) cT.
-Definition comUnitRingType cT := ComUnitRing.Pack (class cT) cT.
-Definition idomainType cT := IntegralDomain.Pack (class cT) cT.
+Coercion eqType cT := Equality.Pack (class cT) cT.
+Coercion choiceType cT := Choice.Pack (class cT) cT.
+Coercion zmodType cT := Zmodule.Pack (class cT) cT.
+Coercion ringType cT := Ring.Pack (class cT) cT.
+Coercion comRingType cT := ComRing.Pack (class cT) cT.
+Coercion unitRingType cT := UnitRing.Pack (class cT) cT.
+Coercion comUnitRingType cT := ComUnitRing.Pack (class cT) cT.
+Coercion idomainType cT := IntegralDomain.Pack (class cT) cT.
 Coercion fieldType cT := Field.Pack (class cT) cT.
 
 End DecidableField.
@@ -1798,14 +1846,14 @@ Definition repack cT : _ -> Type -> type := let k T c p := p c in unpack k cT.
 
 Definition pack := let k T c m := Pack (@Class T c m) T in Field.unpack k.
 
-Definition eqType cT := Equality.Pack (class cT) cT.
-Definition choiceType cT := Choice.Pack (class cT) cT.
-Definition zmodType cT := Zmodule.Pack (class cT) cT.
-Definition ringType cT := Ring.Pack (class cT) cT.
-Definition comRingType cT := ComRing.Pack (class cT) cT.
-Definition unitRingType cT := UnitRing.Pack (class cT) cT.
-Definition comUnitRingType cT := ComUnitRing.Pack (class cT) cT.
-Definition idomainType cT := IntegralDomain.Pack (class cT) cT.
+Coercion eqType cT := Equality.Pack (class cT) cT.
+Coercion choiceType cT := Choice.Pack (class cT) cT.
+Coercion zmodType cT := Zmodule.Pack (class cT) cT.
+Coercion ringType cT := Ring.Pack (class cT) cT.
+Coercion comRingType cT := ComRing.Pack (class cT) cT.
+Coercion unitRingType cT := UnitRing.Pack (class cT) cT.
+Coercion comUnitRingType cT := ComUnitRing.Pack (class cT) cT.
+Coercion idomainType cT := IntegralDomain.Pack (class cT) cT.
 Coercion fieldType cT := Field.Pack (class cT) cT.
 
 End QE.
@@ -1918,7 +1966,6 @@ Canonical Structure QEDecidableField :=
 
 End QE_theory.
 
-
 Module ClosedField.
 
 (* Axiom == all non-constant monic polynomials have a root *)
@@ -1941,15 +1988,15 @@ Definition pack :=
 (* There should eventually be a constructor from polynomial resolution *)
 (* that builds the DecidableField mixin using QE.                      *)
 
-Definition eqType cT := Equality.Pack (class cT) cT.
-Definition choiceType cT := Choice.Pack (class cT) cT.
-Definition zmodType cT := Zmodule.Pack (class cT) cT.
-Definition ringType cT := Ring.Pack (class cT) cT.
-Definition comRingType cT := ComRing.Pack (class cT) cT.
-Definition unitRingType cT := UnitRing.Pack (class cT) cT.
-Definition comUnitRingType cT := ComUnitRing.Pack (class cT) cT.
-Definition idomainType cT := IntegralDomain.Pack (class cT) cT.
-Definition fieldType cT := Field.Pack (class cT) cT.
+Coercion eqType cT := Equality.Pack (class cT) cT.
+Coercion choiceType cT := Choice.Pack (class cT) cT.
+Coercion zmodType cT := Zmodule.Pack (class cT) cT.
+Coercion ringType cT := Ring.Pack (class cT) cT.
+Coercion comRingType cT := ComRing.Pack (class cT) cT.
+Coercion unitRingType cT := UnitRing.Pack (class cT) cT.
+Coercion comUnitRingType cT := ComUnitRing.Pack (class cT) cT.
+Coercion idomainType cT := IntegralDomain.Pack (class cT) cT.
+Coercion fieldType cT := Field.Pack (class cT) cT.
 Coercion decFieldType cT := DecidableField.Pack (class cT) cT.
 
 End ClosedField.
@@ -2122,59 +2169,26 @@ Definition eq_sat := eq_sat.
 Definition solP := @solP.
 Definition eq_sol := eq_sol.
 Definition size_sol := size_sol.
-Definition ring_morphism := ring_morphism.
 Definition solve_monicpoly := solve_monicpoly.
-
-Lemma ringM_sub : forall (aR rR : Ring.type) (f : aR -> rR),
-       ring_morphism f -> {morph f : x y / x - y >-> x - y}.
-Proof. exact: ringM_sub. Qed.
-
-Lemma ringM_0 : forall (aR rR : Ring.type) (f : aR -> rR),
-       ring_morphism f -> f 0 = 0.
-Proof. exact: ringM_0. Qed.
-
-Lemma ringM_1 : forall (aR rR : Ring.type) (f : aR -> rR),
-       ring_morphism f -> f 1 = 1.
-Proof. exact: ringM_1. Qed.
-
-Lemma ringM_opp : forall (aR rR : Ring.type) (f : aR -> rR),
-       ring_morphism f -> {morph f : x / - x >-> - x}.
-Proof. exact: ringM_opp. Qed.
-
-Lemma ringM_add : forall (aR rR : Ring.type) (f : aR -> rR),
-       ring_morphism f -> {morph f : x y / x + y >-> x + y}.
-Proof. exact: ringM_add. Qed.
-
-Lemma ringM_sum : forall (aR rR : Ring.type) (f : aR -> rR),
-       ring_morphism f ->
-       forall (I : Type) (r : seq I) (P : pred I) (F : I -> aR),
-       f (\sum_(i <- r | P i) F i) = \sum_(i <- r | P i) f (F i).
-Proof. exact: ringM_sum. Qed.
-
-Lemma ringM_mul : forall (aR rR : Ring.type) (f : aR -> rR),
-       ring_morphism f -> {morph f : x y / x * y >-> x * y}.
-Proof. exact: ringM_mul. Qed.
-
-Lemma ringM_prod : forall (aR rR : Ring.type) (f : aR -> rR),
-       ring_morphism f ->
-       forall (I : Type) (r : seq I) (P : pred I) (F : I -> aR),
-       f (\prod_(i <- r | P i) F i) = \prod_(i <- r | P i) f (F i).
-Proof. exact: ringM_prod. Qed.
-
-Lemma ringM_nat : forall (aR rR : Ring.type) (f : aR -> rR),
-       ring_morphism f -> forall n : nat, f n%:R = n%:R.
-Proof. exact: ringM_nat. Qed.
-
-Lemma ringM_exp : forall (aR rR : Ring.type) (f : aR -> rR),
-       ring_morphism f ->
-       forall n : nat, {morph f : x / x ^+ n >-> x ^+ n}.
-Proof. exact: ringM_exp. Qed.
-
-Lemma comp_ringM :
- forall (aR' aR rR : Ring.type) (f : aR -> rR) (g : aR' -> aR),
-       ring_morphism f -> ring_morphism g -> ring_morphism (f \o g).
-Proof. exact: comp_ringM. Qed.
-
+Definition ringM_sub := ringM_sub.
+Definition ringM_0 := ringM_0.
+Definition ringM_1 := ringM_1.
+Definition ringM_opp := ringM_opp.
+Definition ringM_add := ringM_add.
+Definition ringM_sum := ringM_sum.
+Definition ringM_mul := ringM_mul.
+Definition ringM_prod := ringM_prod.
+Definition ringM_natmul := ringM_natmul.
+Definition ringM_nat := ringM_nat.
+Definition ringM_exp := ringM_exp.
+Definition comp_ringM := comp_ringM.
+Definition ringM_unit := ringM_unit.
+Definition ringM_inv := ringM_inv.
+Definition ringM_div := ringM_div.
+Definition fieldM_unit := fieldM_unit.
+Definition fieldM_inv := fieldM_inv.
+Definition fieldM_div := fieldM_div.
+Definition fieldM_inj := fieldM_inj.
 
 Implicit Arguments satP [F f e].
 Implicit Arguments solP [F f n].
@@ -2299,10 +2313,10 @@ Infix "\/" := GRing.Or : term_scope.
 Infix "==>" := GRing.Implies : term_scope.
 Notation "~ f" := (GRing.Not f) : term_scope.
 Notation "'exists' ''X_' i , f" := (GRing.Exists i f)
-  (at level 200, i at level 2,
+  (at level 200, i at level 2, right associativity,
    format "'[hv' 'exists'  ''X_' i , '/ '  f ']'") : term_scope.
 Notation "'forall' ''X_' i , f" := (GRing.Forall i f)
-  (at level 200, i at level 2,
+  (at level 200, i at level 2, right associativity,
    format "'[hv' 'forall'  ''X_' i , '/ '  f ']'") : term_scope.
 
 Notation "\sum_ ( <- r | P ) F" :=

@@ -1140,6 +1140,16 @@ Lemma reindex_inj : forall (I : finType) (h : I -> I) (P : pred I) F,
 Proof. move=> I h P F injh; exact: reindex (onW_bij _ (injF_bij injh)). Qed.
 Implicit Arguments reindex_inj [I h P F].
 
+Lemma big_nat_rev : forall m n P F,
+  \big[*%M/1]_(m <= i < n | P i) F i
+     = \big[*%M/1]_(m <= i < n | P (m + n - i.+1)) F (m + n - i.+1).
+Proof.
+move=> m n P F; case: (ltnP m n) => ltmn; last by rewrite !big_geq.
+rewrite -{3 4}(subnK (ltnW ltmn)) addnA.
+do 2!rewrite (big_addn _ _ 0) big_mkord; rewrite (reindex_inj rev_ord_inj) /=.
+by apply: eq_big => [i | i _]; rewrite /= -addSn subn_add2r addnC addn_subA.
+Qed.
+
 Lemma pair_big_dep : forall (I J : finType) (P : pred I) (Q : I -> pred J) F,
   \big[*%M/1]_(i | P i) \big[*%M/1]_(j | Q i j) F i j =
     \big[*%M/1]_(p | P p.1 && Q p.1 p.2) F p.1 p.2.
@@ -1525,5 +1535,9 @@ Qed.
 Lemma eq_bigmax : forall (I : finType) F,
   #|I| > 0 -> {i0 : I | \max_i F i = F i0}.
 Proof. by move=> I F; case/(eq_bigmax_cond F) => x _ ->; exists x. Qed.
+
+Lemma expn_sum : forall m I r (P : pred I) F,
+  (m ^ (\sum_(i <- r | P i) F i) = \prod_(i <- r | P i) m ^ F i)%N.
+Proof. move=> m; exact: big_morph (expn_add m) _. Qed.
 
 Unset Implicit Arguments.

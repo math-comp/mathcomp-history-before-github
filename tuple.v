@@ -163,7 +163,7 @@ Lemma zip_tupleP : forall t1 t2 : tT, size (zip t1 t2) == n.
 Proof. by move=> *; rewrite size1_zip !size_tuple. Qed.
 Canonical Structure zip_tuple t1 t2 := Tuple (zip_tupleP t1 t2).
 
-Definition thead (n : pos_nat) (t : n.-tuple T) := tnth t ord0.
+Definition thead n (t : n.+1.-tuple T) := tnth t ord0.
 
 Lemma tnth0 : forall x n (t : n.-tuple T), tnth [tuple of x :: t] ord0 = x.
 Proof. by []. Qed.
@@ -171,7 +171,7 @@ Proof. by []. Qed.
 Lemma theadE : forall x n (t : n.-tuple T), thead [tuple of x :: t] = x.
 Proof. by []. Qed.
 
-Lemma tuple0 : forall t : 0.-tuple T, t = [tuple].
+Lemma tuple0 : @all_equal_to (0.-tuple T) [tuple].
 Proof. by move=> t; apply: val_inj; case: t => [[]]. Qed.
 
 CoInductive tuple1_spec : n.+1.-tuple T -> Type :=
@@ -189,7 +189,7 @@ Proof. by move=> f t i; apply: nth_map; rewrite size_tuple. Qed.
 
 End SeqTuple.
 
-Lemma tnth_behead : forall (n : pos_nat) T (t : n.+1.-tuple T) i,
+Lemma tnth_behead : forall n T (t : n.+1.-tuple T) i,
   tnth [tuple of behead t] i = tnth t (inord i.+1).
 Proof.
 by move=> n T; case/tupleP=> x t i; rewrite !(tnth_nth x) inordK ?ltnS.

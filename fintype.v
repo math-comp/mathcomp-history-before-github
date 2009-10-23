@@ -143,10 +143,10 @@ Notation "#| A |" := (card (mem A))
 
 Definition pred0b (T : finType) (P : pred T) := #|P| == 0.
 Prenex Implicits pred0b.
-Notation "'forallb' x , F" := (pred0b (fun x => ~~ F))
+Notation "'forallb' x , F" := (pred0b (pred_of_simpl (predC (fun x => F%B))))
   (at level 200, x at level 99,
    format "'[hv' 'forallb'  x , '/ '  F ']'") : bool_scope.
-Notation "'forallb' x : T , F" := (pred0b (fun x : T => ~~ F))
+Notation "'forallb' x : T , F" := (pred0b (predC (fun x : T => F%B)))
   (at level 200, x at level 99, only parsing) : bool_scope.
 Notation "'existsb' x , F" := (~~ pred0b (fun x => F%B))
   (at level 200, x at level 99,
@@ -589,7 +589,7 @@ Implicit Type P : pred T.
 
 Lemma forallP : forall P, reflect (forall x, P x) (forallb x, P x).
 Proof.
-by move=> P; apply: (iffP pred0P) => allP x; first apply/idPn; rewrite allP.
+by move=> P; apply: (iffP pred0P) => P_ x /=; rewrite ?P_ ?(negbFE (P_ x)).
 Qed.
 
 Lemma existsP : forall P, reflect (exists x, P x) (existsb x, P x).
@@ -608,8 +608,8 @@ Proof. by []. Qed.
 
 Lemma negb_exists : forall P, ~~ (existsb x, P x) = (forallb x, ~~ P x).
 Proof.
-move=> P; rewrite negbK; congr (_ == _); apply: eq_card => x.
-by rewrite -!topredE /= negbK.
+move=> P; rewrite negbK; congr (_ == 0); apply: eq_card => x.
+by rewrite !inE /= negbK.
 Qed.
 
 End Quantifiers.
@@ -620,10 +620,9 @@ Prenex Implicits forallP existsP.
 
 (**********************************************************************)
 (*                                                                    *)
-(*  Boolean injective for finType                                     *)
+(*  Boolean injectivity test for functions with a finType domain      *)
 (*                                                                    *)
 (**********************************************************************)
-
 
 Section Injectiveb.
 
@@ -1139,13 +1138,13 @@ Qed.
 
 End OrdinalEnum.
 
-Lemma widen_ordP : forall n m (i : 'I_n), n <= m -> i < m.
-Proof. move=> *; exact: leq_trans. Qed.
-Definition widen_ord n m le_n_m i := Ordinal (@widen_ordP n m i le_n_m).
+Lemma widen_ord_proof : forall n m (i : 'I_n), n <= m -> i < m.
+Proof. move=> n m i; exact: leq_trans. Qed.
+Definition widen_ord n m le_n_m i := Ordinal (@widen_ord_proof n m i le_n_m).
 
-Lemma cast_ordP : forall n m (i : 'I_n), n = m -> i < m.
+Lemma cast_ord_proof : forall n m (i : 'I_n), n = m -> i < m.
 Proof. by move=> n m i <-. Qed.
-Definition cast_ord n m eq_n_m i := Ordinal (@cast_ordP n m i eq_n_m).
+Definition cast_ord n m eq_n_m i := Ordinal (@cast_ord_proof n m i eq_n_m).
 
 Lemma cast_ord_id : forall n eq_n i, cast_ord eq_n i = i :> 'I_n.
 Proof. by move=> n eq_n i; apply: val_inj. Qed.
@@ -1158,6 +1157,19 @@ Proof. by move=> n1 n2 n3 eq_n2 eq_n3 i; apply: val_inj. Qed.
 Lemma cast_ordK : forall n1 n2 eq_n,
   cancel (@cast_ord n1 n2 eq_n) (cast_ord (esym eq_n)).
 Proof. by move=> n1 n2 eq_n i; apply: val_inj. Qed.
+
+Lemma cast_ord_inj : forall n1 n2 eq_n, injective (@cast_ord n1 n2 eq_n).
+Proof. move=> n1 n2 eq_n; exact: can_inj (cast_ordK eq_n). Qed.
+
+Lemma rev_ord_proof : forall n (i : 'I_n), n - i.+1  < n.
+Proof. by case=> [|n] [i lt_i_n] //; rewrite ltnS subSS leq_subr. Qed.
+Definition rev_ord n i := Ordinal (@rev_ord_proof n i).
+
+Lemma rev_ordK : forall n, involutive (@rev_ord n).
+Proof. by case=> [|n] [i lti] //; apply: val_inj; rewrite /= !subSS subKn. Qed.
+
+Lemma rev_ord_inj : forall {n}, injective (@rev_ord n).
+Proof. move=> n; exact: inv_inj (@rev_ordK n). Qed.
 
 (* bijection between any finType T and the Ordinal finType of its cardinal *)
 Section EnumRank.
@@ -1232,40 +1244,77 @@ move=> h i; rewrite /bump eqn_leq.
 by case: (leqP h i) => Hhi; [rewrite ltnNge Hhi andbF | rewrite leqNgt Hhi].
 Qed.
 
-Lemma unbumpK : forall h, {in predC1 h, cancel (unbump h) (bump h)}.
+Lemma unbumpKcond : forall h i, bump h (unbump h i) = (i == h) + i.
 Proof.
-rewrite /bump /unbump => h i; move/eqP; move/nesym=> Dhi.
-case: (ltngtP h i) => // Hhi; last by rewrite subn0 leqNgt Hhi.
-by rewrite -ltnS subn1 (ltn_predK Hhi) Hhi add1n (ltn_predK Hhi).
+move=> h i; rewrite /bump /unbump leqNgt -predn_subS.
+case: (ltngtP i h) => /= [-> | ltih | ->] //; last by rewrite ltnn.
+by rewrite subn1 /= leqNgt !(ltn_predK ltih, ltih, add1n).
+Qed.
+
+Lemma unbumpK : forall h, {in predC1 h, cancel (unbump h) (bump h)}.
+Proof. by move=> h i; move/negbTE=> neq_h_i; rewrite unbumpKcond neq_h_i. Qed.
+
+Lemma bump_addl : forall h i k, bump (k + h) (k + i) = k + bump h i.
+Proof. by move=> h i k; rewrite /bump leq_add2l addnCA. Qed.
+
+Lemma bumpS : forall h i, bump h.+1 i.+1 = (bump h i).+1.
+Proof. move=> h i; exact: addnS. Qed.
+
+Lemma unbump_addl : forall h i k, unbump (k + h) (k + i) = k + unbump h i.
+Proof.
+move=> h i k; apply: (can_inj (bumpK (k + h))).
+by rewrite bump_addl !unbumpKcond eqn_addl addnCA.
+Qed.
+
+Lemma unbumpS : forall h i, unbump h.+1 i.+1 = (unbump h i).+1.
+Proof. move=> *; exact: unbump_addl 1. Qed.
+
+Lemma leq_bump : forall h i j, (i <= bump h j) = (unbump h i <= j).
+Proof.
+move=> h i j; rewrite /bump leq_sub_add.
+case: (leqP i h) (leqP h j) => [le_i_h | lt_h_i] [le_h_j | lt_j_h] //.
+  by rewrite leqW (leq_trans le_i_h).
+by rewrite !(leqNgt i) ltnW (leq_trans _ lt_h_i).
+Qed.
+
+Lemma leq_bump2 : forall h i j, (bump h i <= bump h j) = (i <= j).
+Proof. by move=> h i j; rewrite leq_bump bumpK. Qed.
+
+Lemma nat_negb : forall b, ~~ b = 1 - b :> nat. Proof. by case. Qed.
+
+Lemma bumpC : forall h1 h2 i,
+  bump h1 (bump h2 i) = bump (bump h1 h2) (bump (unbump h2 h1) i).
+Proof.
+move=> h1 h2 i; rewrite {1 5}/bump -leq_bump addnCA; congr (_ + (_ + _)).
+rewrite 2!leq_bump /unbump /bump; case: (leqP h1 h2) => [le_h12 | lt_h21].
+  by rewrite subn0 ltnS le_h12 subn1.
+by rewrite subn1 (ltn_predK lt_h21) (leqNgt h1) lt_h21 subn0.
 Qed.
 
 (* The lift operations on ordinals; to avoid a messy dependent type, *)
 (* unlift is a partial operation (returns an option).                *)
 
-Lemma lift_subproof : forall n h (i : 'I_(n.-1)), bump h i < n.
-Proof.
-by case=> [|n] h [i //= Hi]; rewrite /bump; case: (h <= _); last exact: ltnW.
-Qed.
+Lemma lift_subproof : forall n h (i : 'I_n.-1), bump h i < n.
+Proof. by case=> [_ []|n] //= h i; rewrite -addnS (leq_add (leq_b1 _)). Qed.
 
-Definition lift n (h : 'I_n) (i : 'I_(n.-1)) := Ordinal (lift_subproof h i).
+Definition lift n (h : 'I_n) (i : 'I_n.-1) := Ordinal (lift_subproof h i).
 
-Lemma unlift_subproof : forall n (h : 'I_n) (u : {j : 'I_n| j != h}),
+Lemma unlift_subproof : forall n (h : 'I_n) (u : {j | j != h}),
   unbump h (val u) < n.-1.
 Proof.
-move=> n h [j] /=; move/unbumpK; rewrite -ltnS (ltn_predK (valP j)) /bump.
-case: (leqP h _) => [_|lt_j'_h _]; first by rewrite add1n => ->.
-exact: leq_ltn_trans lt_j'_h _.
+case=> [|n h] [] //= j ne_jh; rewrite -(leq_bump2 h.+1) bumpS unbumpK // /bump.
+case: (ltngtP n h) => [|_|eq_nh]; rewrite ?(leqNgt _ h) ?ltn_ord //.
+by rewrite ltn_neqAle [j <= _](valP j) {2}eq_nh andbT.
 Qed.
 
 Definition unlift n (h i : 'I_n) :=
   omap (fun u : {j | j != h} => Ordinal (unlift_subproof u)) (insub i).
 
-CoInductive unlift_spec n (h i : 'I_n) : option 'I_(n.-1) -> Type :=
+CoInductive unlift_spec n h i : option 'I_n.-1 -> Type :=
   | UnliftSome j of i = lift h j : unlift_spec h i (Some j)
   | UnliftNone   of i = h        : unlift_spec h i None.
 
 Lemma unliftP : forall n (h i : 'I_n), unlift_spec h i (unlift h i).
-
 Proof.
 rewrite /unlift => n h i; case: insubP => [u nhi | ] def_i /=; constructor.
   by apply: val_inj; rewrite /= def_i unbumpK.
@@ -1343,27 +1392,20 @@ Qed.
 
 Section OrdinalPos.
 
-Variable n : pos_nat.
+Variable n' : nat.
+Local Notation n := n'.+1.
 
-Definition ord0 := Ordinal (pos_natP n).
+Definition ord0 := Ordinal (ltn0Sn n').
+Definition ord_max := Ordinal (ltnSn n').
 
-Lemma ord_maxP : n.-1 < n. Proof. by rewrite prednK. Qed. 
-Definition ord_max := Ordinal ord_maxP.
+Lemma leq_ord : forall i : 'I_n, i <= n'. Proof. exact: valP. Qed.
 
-Lemma leq_ord : forall i : 'I_n, i <= n.-1.
-Proof. by move=> i; rewrite -ltnS prednK ?ltn_ord. Qed.
+Lemma sub_ord_proof : forall m, n' - m < n.
+Proof.  by move=> m; rewrite ltnS leq_subr. Qed.
+Definition sub_ord m := Ordinal (sub_ord_proof m).
 
-Lemma ord_subP : forall m, n.-1 - m < n.
-Proof.  by move=> m; rewrite -{2}[n : nat]prednK // ltnS leq_subr. Qed.
-Definition ord_sub m := Ordinal (ord_subP m).
-
-Definition ord_opp (i : 'I_n) := ord_sub i.
-
-Lemma sub_ordK : forall i : 'I_n, n.-1 - (n.-1 - i) = i.
+Lemma sub_ordK : forall i : 'I_n, n' - (n' - i) = i.
 Proof. by move=> i; rewrite subKn ?leq_ord. Qed.
-
-Lemma ord_oppK : involutive ord_opp.
-Proof. move=> i; apply: val_inj; exact: sub_ordK. Qed.
 
 Definition inord m : 'I_n := insubd ord0 m.
 
@@ -1373,19 +1415,18 @@ Proof. by move=> m lt_m; rewrite val_insubd lt_m. Qed.
 Lemma inord_val : forall i : 'I_n, inord i = i.
 Proof. by move=> i; rewrite /inord /insubd valK. Qed.
 
-Lemma enum_ordS : enum 'I_n = ord0 :: map (lift ord0) (enum 'I_(n.-1)).
+Lemma enum_ordS : enum 'I_n = ord0 :: map (lift ord0) (enum 'I_n').
 Proof.
 apply: (inj_map val_inj); rewrite val_enum_ord /= -map_comp.
-by rewrite (map_comp (addn 1)) val_enum_ord -iota_addl -{1}(@prednK n).
+by rewrite (map_comp (addn 1)) val_enum_ord -iota_addl.
 Qed.
 
 End OrdinalPos.
 
-Implicit Arguments ord0 [n].
-Implicit Arguments ord_max [n].
-Implicit Arguments inord [n].
-
-Prenex Implicits ord_opp.
+Implicit Arguments ord0 [[n']].
+Implicit Arguments ord_max [[n']].
+Implicit Arguments inord [[n']].
+Implicit Arguments sub_ord [[n']].
 
 (* Product of two fintypes which is a fintype *)
 Section ProdFinType.

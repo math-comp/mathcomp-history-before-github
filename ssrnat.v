@@ -17,19 +17,22 @@ Require Export Ring.
 (*                                                                          *)
 (*   basic arithmetic                                                       *)
 (*     m + n, m - n, m * n                                                  *)
-(*     the definitions use the nosimpl tag to prevent undesirable           *)
-(*     computation during simplification, but remain compatible  with those *)
-(*     in Peano.                                                            *)
-(*     For computation, a module NatRec rebinds all arithmetic  notations   *)
-(*     to less convenient, but also less inefficient tail-recursive         *) 
-(*     definitions.                                                         *)
+(*   the definitions use the nosimpl tag to prevent undesirable computation *)
+(*   computation during simplification, but remain compatible with the ones *)
+(*   provided in the Coq.Init.Peano prelude.                                *)
+(*     For computation, a module NatTrec rebinds all arithmetic notations   *)
+(*   to less convenient but also less inefficient tail-recursive functions; *) 
+(*   the auxiliary functions used by these versions are flagged with %Nrec. *)
 (*     Also, there is support for input and output of large nat values.     *)
 (*       Num 3 082 241 inputs the number 3082241                            *) 
 (*         [Num of n]  outputs the value n                                  *)
+(*   There are coercions num >-> BinNat.N >-> nat; ssrnat rebinds the scope *)
+(*   delimter for BinNat.N to %num, as it uses the shorter %N for its own   *)
+(*   notations (Peano notations are flagged with %coq_nat).                 *)
 (*                                                                          *)
 (*   doubling, halving, and parity                                          *)
 (*      n.*2, n./2, odd n                                                   *)
-(*      bool coerces to nat so we can  write, e.g., n = odd n + n./2.*2.    *)
+(*    bool coerces to nat so we can write, e.g., n = odd n + n./2.*2.       *)
 (*                                                                          *)
 (*   iteration                                                              *)
 (*             iter n f x0  == f ( .. (f x0))                               *)
@@ -41,32 +44,28 @@ Require Export Ring.
 (*        m ^ 1 is convertible to m, and m ^ 2 to m * m                     *)
 (*                                                                          *)
 (*   comparison                                                             *)
-(*      m <= n, m < n, m >= n, m > n, m == n, m <= n <= p, etc.             *)
-(*     comparison are BOOLEAN operators, e.g. m == n is the generic eqType  *)
-(*     operation.                                                           *)
+(*      m <= n, m < n, m >= n, m > n, m == n, m <= n <= p, etc.,            *)
+(*   comparisons are BOOLEAN operators, and m == n is the generic eqType    *)
+(*   operation.                                                             *)
 (*     Most compatibility lemmas are stated as boolean equalities; this     *)
-(*     keeps the size of the library down. All the inequalities refer to    *)
-(*     the same constant, "leq"; in particular m < n is identical to        *)
-(*     m.+1 <= n.                                                           *)
+(*   keeps the size of the library down. All the inequalities refer to the  *)
+(*   same constant "leq"; in particular m < n is identical to m.+1 <= n.    *)
 (*                                                                          *)
-(*    conditionally strict inequality                                       *)
-(*      m <= n ?= iff c == m <= n &  (m == n) = condition                   *)
-(*     The transitivity lemma for leqif aggregates the conditions,          *)
-(*     making for arguments of the form "m <= n <= p <= m, so equality      *)
-(*     holds throughout".                                                   *)
+(*   conditionally strict inequality "leqif"                                *)
+(*      m <= n ?= iff condition   ==   (m <= n) and ((m == n) = condition)  *)
+(*   This is actually a pair of boolean equalities, so rewriting with an    *)
+(*   "leqif" lemma can affect several kinds of comparison. The transitivity *)
+(*   lemma for leqif aggregates the conditions, allowing for arguments of   *)
+(*   the form "m <= n <= p <= m, so equality holds throughout".             *)
 (*                                                                          *)
 (*   maximum and minimum                                                    *)
 (*     maxn m n, minn m n                                                   *)
-(*    note that maxn m n = m + (m - n) (truncating subtraction)             *)
+(*   Note that maxn m n = m + (m - n) (truncating subtraction).             *)
 (*                                                                          *)
 (*   countable choice                                                       *)
 (*     ex_minn : forall P : pred nat, (exists n, P n) -> nat                *)
-(*    returns the smallest n such that P n holds.                           *)
+(*   This returns the smallest n such that P n holds.                       *)
 (*                                                                          *)
-(*   positive interger                                                      *)
-(*     pos_nat                                                              *)
-(*     a subType for positive integers, with Canonical projections for most *)
-(*     arithmetic operations.                                               *)
 (****************************************************************************)
 
 Set Implicit Arguments.
@@ -264,6 +263,15 @@ Proof. move=> n; exact (addnK n 1). Qed.
 
 Lemma subn_sub : forall m n p, (n - m) - p = n - (m + p).
 Proof. by move=> m n p; elim: m n => [|m IHm] [|n]; try exact (IHm n). Qed.
+
+Lemma subnAC : right_commutative subn.
+Proof. by move=> m n p; rewrite !subn_sub addnC. Qed.
+
+Lemma predn_sub : forall m n, (m - n).-1 = m - n.+1.
+Proof. by move=> m n; rewrite -subn1 subn_sub addn1. Qed.
+
+Lemma predn_subS : forall m n, (m.+1 - n).-1 = m - n.
+Proof. by move=> m n; rewrite predn_sub. Qed.
 
 (* Integer ordering, and its interaction with the other operations.       *)
 
@@ -1045,58 +1053,8 @@ Proof. by move=> * m n; move/eqP; rewrite eqn_exp2r //; move/eqP. Qed.
 
 Fixpoint fact n := if n is n'.+1 then n * fact n' else 1.
 
-(* A (canonical) structure for positive integers.             *)
-(* Several types parametrized by integer posses an algebraic  *)
-(* structure only for non-zero values of the parameter, e.g., *)
-(* integers mod n, or square matrices of order n. The pos_nat *)
-(* structure allows the type inference to automatically       *)
-(* discharge this positivity condition. Note that pos_nat     *)
-(* should not be used for normal arithmetic side condition:   *)
-(* as Coq does not allow to declare new instances of a        *)
-(* structure in the midst of a proof, it would be difficult   *)
-(* to satisfy the conditions for arbitrary expressions.       *)
-
-Record pos_nat : Type := PosNat { pos_nat_val :> nat; _ : pos_nat_val > 0 }.
-
-Lemma pos_natP : forall n : pos_nat, n > 0. Proof. by case. Qed.
-Hint Resolve pos_natP.
-
-Canonical Structure pos_nat_subType :=
-  Eval hnf in [subType for pos_nat_val by pos_nat_rect].
-Definition pos_nat_eqMixin := Eval hnf in [eqMixin of pos_nat by <:].
-Canonical Structure pos_nat_eqType := Eval hnf in EqType pos_nat_eqMixin.
-
-Canonical Structure S_pos_nat n := PosNat (ltn0Sn n).
-
-Lemma addr_pos_natP : forall m (n : pos_nat), m + n > 0.
-Proof. by move=> m n; rewrite addn_gt0 pos_natP orbT. Qed.
-Canonical Structure addr_pos_nat m n := PosNat (addr_pos_natP m n).
-
-Lemma mul_pos_natP : forall (m n : pos_nat), m * n > 0.
-Proof. by move=> m n; rewrite muln_gt0 !pos_natP. Qed.
-Canonical Structure mul_pos_nat m n := PosNat (mul_pos_natP m n).
-
-Lemma exp_pos_natP : forall (n : pos_nat) m, n ^ m > 0.
-Proof. by move=> n m; rewrite expn_gt0 pos_natP. Qed.
-Canonical Structure exp_pos_nat m n := PosNat (exp_pos_natP m n).
-
-Lemma maxr_pos_natP : forall m (n : pos_nat), maxn m n > 0.
-Proof. by move=> n m; rewrite leq_maxr pos_natP orbT. Qed.
-Canonical Structure maxr_pos_nat m n := PosNat (maxr_pos_natP m n).
-
-Lemma min_pos_natP : forall (m n : pos_nat), minn m n > 0.
-Proof. by move=> n m; rewrite leq_minr !pos_natP. Qed.
-Canonical Structure min_pos_nat m n := PosNat (min_pos_natP m n).
-
 Lemma fact_gt0 : forall n, fact n > 0.
 Proof. by elim=> //= n IHn; rewrite muln_gt0. Qed.
-Canonical Structure fact_pos_nat n := PosNat (fact_gt0 n).
-
-Definition repack_pos_nat n :=
-  let: PosNat _ nP := n return (0 < n -> pos_nat) -> pos_nat in fun k => k nP.
-
-Notation "[ 'pos_nat' 'of' n ]" := (repack_pos_nat (fun nP => @PosNat n nP))
-  (at level 0, format "[ 'pos_nat'  'of'  n ]") : form_scope.
 
 (* Parity and bits. *)
 

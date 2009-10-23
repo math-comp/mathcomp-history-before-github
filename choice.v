@@ -588,15 +588,6 @@ Definition nat_choiceMixin := CountChoiceMixin nat_countMixin.
 Canonical Structure nat_choiceType := Eval hnf in ChoiceType nat_choiceMixin.
 Canonical Structure nat_countType := Eval hnf in CountType nat_countMixin.
 
-Definition pos_nat_choiceMixin := [choiceMixin of pos_nat by <:].
-Canonical Structure pos_nat_choiceType :=
-  Eval hnf in ChoiceType pos_nat_choiceMixin.
-Definition pos_nat_countMixin := [countMixin of pos_nat by <:].
-Canonical Structure pos_nat_countType :=
-  Eval hnf in CountType pos_nat_countMixin.
-Canonical Structure pos_nat_subCountType :=
-  Eval hnf in [subCountType of pos_nat].
-
 Canonical Structure bitseq_choiceType := Eval hnf in [choiceType of bitseq].
 Canonical Structure bitseq_countType :=  Eval hnf in [countType of bitseq].
 

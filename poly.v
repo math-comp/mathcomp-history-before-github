@@ -385,9 +385,8 @@ Qed.
 Lemma coef_mul_poly_rev : forall p1 p2 i,
   (mul_poly p1 p2)`_i = \sum_(j < i.+1) p1`_(i - j)%N * p2`_j.
 Proof.
-move=> p1 p2 i; rewrite coef_mul_poly (reindex ord_opp) /=.
-  by apply: eq_bigr => j _; rewrite (sub_ordK j).
-exists (@ord_opp _ : 'I_(i.+1) -> _) => j _; exact: ord_oppK.
+move=> p1 p2 i; rewrite coef_mul_poly (reindex_inj rev_ord_inj) /=.
+by apply: eq_bigr => j _; rewrite (sub_ordK j).
 Qed.
 
 Lemma mul_polyA : associative mul_poly.

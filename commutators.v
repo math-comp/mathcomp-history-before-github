@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat fintype finset.
-Require Import groups morphisms automorphism normal.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat fintype bigops finset.
+Require Import binomial groups morphisms automorphism normal.
 
 Set Implicit Arguments.
 Unset Strict Implicit. 
@@ -90,11 +90,10 @@ Proof. rewrite expgn_mul commgX commXg //; exact: commuteX. Qed.
 
 Lemma expMg_Rmul : (y * x) ^+ i = y ^+ i * x ^+ i * [~ x, y] ^+ (i * i.-1)./2.
 Proof.
-elim: i => [|k IHk]; first by rewrite !mulg1.
-rewrite expgS {}IHk mulgA -(mulgA y) (mulgA x) (commgC x _) commgX // 3!mulgA.
-rewrite -expgS -[_ * x ^+ k]mulgA -commuteX2 // -(mulgA _ x) (mulgA x).
-rewrite -expgS -2!mulgA mulgA -expgn_add; congr (_ * _ ^+ _); case: k => // k.
-by rewrite -add2n muln_addl mul2n half_add odd_double half_double mulnC.
+rewrite -triangular_sum; symmetry.
+elim: i => [|k IHk] /=; first by rewrite big_geq ?mulg1.
+rewrite big_nat_recr /= addnC expgn_add !expgS -{}IHk !mulgA; congr (_ * _).
+by rewrite -!mulgA commuteX2 // -commgX // [mulg y]lock 3!mulgA -commgC.
 Qed.
 
 End LeftRightComm.

@@ -50,6 +50,8 @@ Require Import div paths bigops finset.
 (*             [subg G] == the set (or group) of all u : subg_of G           *)
 (*            H^#       == the set H minus the unit element                  *)
 (*            repr H    == some element of H if 1 \notin H != set0, else 1   *)
+(*                         (repr is defined over sets of a baseFinGroupType, *)
+(*                         so it can be used, e.g., to pick right cosets.)   *)
 (*          x *: H      == left coset of H by x                              *)
 (*          lcosets H G == the set of the left cosets of H by elements of G  *)
 (*          H :* x      == right coset of H by x                             *)
@@ -569,43 +571,15 @@ End Repr.
 
 Implicit Arguments mem_repr [gT A].
 
-Section SetMulDef.
-
-Variable gT : finGroupType.
+Section BaseSetMulDef.
+(* We only assume a baseFinGroupType to allow this construct to be iterated. *)
+Variable gT : baseFinGroupType.
 Implicit Types A B : {set gT}.
-Implicit Type x y : gT.
 
 (* Set-lifted group operations. *)
 
 Definition set_mulg A B := mulg @2: (A, B).
 Definition set_invg A := invg @^-1: A.
-
-Definition lcoset A x := mulg x @: A.
-Definition rcoset A x := mulg^~ x @: A.
-Definition lcosets A B := lcoset A @: B.
-Definition rcosets A B := rcoset A @: B.
-Definition indexg B A := #|rcosets A B|.
-
-Definition conjugate A x := conjg^~ x @: A.
-Definition conjugates A B := conjugate A @: B.
-Definition class x B := conjg x @: B.
-Definition classes A := class^~ A @: A.
-Definition class_support A B := conjg @2: (A, B).
-
-Definition commg_set A B := commg @2: (A, B).
-
-(* These will only be used later, but are defined here so that we can *)
-(* keep all the Notation together.                                    *)
-Definition normaliser A := [set x | conjugate A x \subset A].
-Definition centraliser A := \bigcap_(x \in A) normaliser [set x].
-Definition abelian A := A \subset centraliser A.
-Definition normal A B := (A \subset B) && (B \subset normaliser A).
-
-(* "normalised" and "centralise[s|d]" are intended to be used with   *)
-(* the {in ...} form, as in abelian below.                           *)
-Definition normalised A := forall x, conjugate A x = A.
-Definition centralises x A := forall y, y \in A -> commute x y.
-Definition centralised A := forall x, centralises x A.
 
 (* The pre-group structure of group subsets. *)
 
@@ -645,7 +619,7 @@ Canonical Structure group_set_baseGroupType :=
 Canonical Structure group_set_of_baseGroupType :=
   Eval hnf in [baseFinGroupType of {set gT}].
 
-End SetMulDef.
+End BaseSetMulDef.
 
 (* Time to open the bag of dirty tricks. When we define groups down below *)
 (* as a subtype of {set gT}, we need them to be able to coerce to sets in *)
@@ -657,7 +631,7 @@ End SetMulDef.
 (* system to declare two different identity coercions on an alias class.  *)
 
 Module GroupSet.
-Definition sort (gT : finGroupType) := {set gT}.
+Definition sort (gT : baseFinGroupType) := {set gT}.
 Identity Coercion of_sort : sort >-> set_of.
 End GroupSet.
 
@@ -679,6 +653,43 @@ Canonical Structure group_set_countType gT :=
   Eval hnf in [countType of GroupSet.sort gT].
 Canonical Structure group_set_finType gT :=
   Eval hnf in [finType of GroupSet.sort gT].
+
+Section GroupSetMulDef.
+(* Some of these constructs could be defined on a baseFinGroupType. *)
+(* We restrict them to proper finGroupType because we only develop  *)
+(* the theory for that case.                                        *)
+Variable gT : finGroupType.
+Implicit Types A B : {set gT}.
+Implicit Type x y : gT.
+
+Definition lcoset A x := mulg x @: A.
+Definition rcoset A x := mulg^~ x @: A.
+Definition lcosets A B := lcoset A @: B.
+Definition rcosets A B := rcoset A @: B.
+Definition indexg B A := #|rcosets A B|.
+
+Definition conjugate A x := conjg^~ x @: A.
+Definition conjugates A B := conjugate A @: B.
+Definition class x B := conjg x @: B.
+Definition classes A := class^~ A @: A.
+Definition class_support A B := conjg @2: (A, B).
+
+Definition commg_set A B := commg @2: (A, B).
+
+(* These will only be used later, but are defined here so that we can *)
+(* keep all the Notation together.                                    *)
+Definition normaliser A := [set x | conjugate A x \subset A].
+Definition centraliser A := \bigcap_(x \in A) normaliser [set x].
+Definition abelian A := A \subset centraliser A.
+Definition normal A B := (A \subset B) && (B \subset normaliser A).
+
+(* "normalised" and "centralise[s|d]" are intended to be used with   *)
+(* the {in ...} form, as in abelian below.                           *)
+Definition normalised A := forall x, conjugate A x = A.
+Definition centralises x A := forall y, y \in A -> commute x y.
+Definition centralised A := forall x, centralises x A.
+
+End GroupSetMulDef.
 
 Arguments Scope conjugate [_ group_scope group_scope].
 Arguments Scope class [_ group_scope group_scope].
@@ -736,9 +747,9 @@ Prenex Implicits repr lcoset rcoset lcosets rcosets.
 Prenex Implicits conjugate conjugates class classes class_support.
 Prenex Implicits commg_set normalised centralised abelian.
 
-Section SmulProp.
-
-Variable gT : finGroupType.
+Section BaseSetMulProp.
+(* Properties of the purely multiplicative structure. *)
+Variable gT : baseFinGroupType.
 Notation sT := {set gT}.
 Implicit Types A B C D : sT.
 Implicit Type x y z : gT.
@@ -815,6 +826,15 @@ Proof. by move=> x y; rewrite [_ * _]imset2_set1l imset_set1. Qed.
 
 Lemma invg_set1 : forall x, [set x]^-1 = [set x^-1].
 Proof. move=> x; apply/setP=> y; rewrite !inE inv_eq //; exact: invgK. Qed.
+
+End BaseSetMulProp.
+
+Section GroupSetMulProp.
+(* Constructs that need a finGroupType *)
+Variable gT : finGroupType.
+Notation sT := {set gT}.
+Implicit Types A B C D : sT.
+Implicit Type x y z : gT.
 
 (* Cosets, left and right. *)
 
@@ -1097,7 +1117,7 @@ Definition commutator A B := generated (commg_set A B).
 Definition cycle x := generated [set x].
 Definition order x := #|cycle x|.
 
-End SmulProp.
+End GroupSetMulProp.
 
 Implicit Arguments mulsgP [gT A B x].
 Implicit Arguments set1gP [gT x].
@@ -1632,7 +1652,6 @@ Canonical Structure cycle_group x : {group _} :=
 
 Lemma order_gt0 : forall x : gT, 0 < #[x].
 Proof. by move=> x; exact: cardG_gt0. Qed.
-Canonical Structure order_pos_nat x := PosNat (order_gt0 x).
 
 End GroupInter.
 
@@ -1785,6 +1804,16 @@ Qed.
 Lemma coprime_cardMg : forall G H,
   coprime #|G| #|H| -> #|G * H| = (#|G| * #|H|)%N.
 Proof. by move=> G H coGH; rewrite TI_cardMg ?coprime_TIg. Qed.
+
+Lemma coprime_index_mulG : forall G H K,
+  H \subset G -> K \subset G -> coprime #|G : H| #|G : K| -> H * K = G.
+Proof.
+move=> G H K sHG sKG co_iG_HK; apply/eqP; rewrite eqEcard mul_subG //=.
+rewrite -(@leq_pmul2r #|H :&: K|) ?cardG_gt0 // -mul_cardG.
+rewrite -(LaGrange sHG) -(LaGrangeI K H) mulnAC setIC -mulnA.
+rewrite !leq_pmul2l ?cardG_gt0 // dvdn_leq // -(gauss _ co_iG_HK).
+by rewrite -(indexgI K) LaGrange_index ?indexgS ?subsetIl ?subsetIr.
+Qed.
 
 End LaGrange.
 
@@ -2026,28 +2055,34 @@ Proof. by move=> x i; rewrite groupX // cycle_id. Qed.
 Lemma cycle_subG : forall x G, (<[x]> \subset G) = (x \in G).
 Proof. by move=> x G; rewrite gen_subG sub1set. Qed.
 
+Lemma cycle_eq1 : forall x, (<[x]> == 1) = (x == 1).
+Proof. by move=> x; rewrite eqEsubset sub1G andbT cycle_subG inE. Qed.
+
+Lemma order_eq1 : forall x, (#[x] == 1%N) = (x == 1).
+Proof. by move=> a; rewrite -trivg_card1 cycle_eq1. Qed.
+
+Lemma order_gt1 : forall x, (#[x] > 1) = (x != 1).
+Proof. by move=> a; rewrite ltnNge -trivg_card_le1 cycle_eq1. Qed.
+
 Lemma cycle_traject : forall x, <[x]> =i traject (mulg x) 1 #[x].
 Proof.
-move=> x; set t := traject _ _; apply/subset_eqP.
-have tP: forall n y, y \in t n -> exists2 i, i < n & y = x ^+ i.
-  by move=> n y; case/trajectP=> i lt_i ->; rewrite -iteropE; exists i.
-have stx: t _ \subset <[x]>.
-  by move=> n; apply/subsetP=> xi; case/tP=> i _ ->{xi}; exact: mem_cycle.
-rewrite stx andbT -(eq_subset_r (in_set _)); set G := finset _.
-have Gx: x ^+ _ \in G.
-  move=> i; rewrite inE [x ^+ _]iteropE; move: i; apply/loopingP.
-  apply/idPn; rewrite -looping_uniq; move/card_uniqP => cardG.
-  by have:= subset_leq_card (stx #[x].+1); rewrite cardG size_traject ltnn.
-rewrite -[G]gen_set_id; first by rewrite cycle_subG mem_gen ?(Gx 1%N).
-apply/group_setP; split=> [|xi xj]; first exact: (Gx 0).
-by rewrite 2!inE; case/tP => i _ ->; case/tP => j _ ->; rewrite -expgn_add Gx.
+move=> x; set t := _ 1; apply: fsym; apply/subset_cardP; last first.
+  by apply/subsetP=> y; case/trajectP=> i _ ->; rewrite -iteropE mem_cycle.
+rewrite (card_uniqP _) ?size_traject //; case def_n: #[_] => // [n].
+rewrite looping_uniq; apply: contraL (card_size (t n)); move/loopingP => t_xi.
+rewrite -ltnNge size_traject -def_n ?subset_leq_card //.
+rewrite -(eq_subset_r (in_set _)) {}/t; set G := finset _.
+rewrite -[x]mulg1 -[G]gen_set_id ?genS ?sub1set ?inE ?(t_xi 1%N)//.
+apply/group_setP; split=> [|y z]; rewrite !inE ?(t_xi 0) //.
+by do 2!case/trajectP=> ? _ ->; rewrite -!iteropE -expgn_add [x ^+ _]iteropE.
 Qed.
 
-Lemma cyclePmin : forall x y,
-  reflect (exists2 i, i < #[x] & y = x ^+ i) (y \in <[x]>).
+Lemma cyclePmin : forall x y, y \in <[x]> -> {i | i < #[x] & y = x ^+ i}.
 Proof.
-move=> x y; rewrite cycle_traject.
-by apply: (iffP trajectP) => [] [i lt_i_x ->]; exists i; rewrite -?iteropE.
+move=> x y; rewrite cycle_traject; set tx := traject _ _ #[x] => tx_y.
+pose i := index y tx.
+have lt_i_x : i < #[x] by rewrite -index_mem size_traject in tx_y.
+by exists i; rewrite // [x ^+ i]iteropE /= -(nth_traject _ lt_i_x) nth_index.
 Qed.
 
 Lemma cycleP : forall x y, reflect (exists i, y = x ^+ i) (y \in <[x]>).
