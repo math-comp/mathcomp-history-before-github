@@ -140,7 +140,7 @@ Lemma ccycle_rcoset : forall g C D, g \in G -> C \in rcosets H G ->
 Proof.
 move=> g C D Gg; case/imsetP => h Gh ->{C}.
 case/imsetP=> p; case/cycleP=> i -> ->.
-rewrite apermE actpermX ?in_setT // actpermE ['Rs%act _ _]rcosetE.
+rewrite apermE -morphX ?in_setT // actpermE ['Rs%act _ _]rcosetE.
 by rewrite rcosetE -rcosetM -rcosetE mem_imset // groupM // groupX.
 Qed.
 
@@ -149,7 +149,7 @@ Lemma repr_repr_set_ccycle : forall (g : gT) C, C \in rcosets H G ->
 Proof.
 move=> g C rcosC.
 case/imsetP: (repr_set_ccycle g C) => p; case/cycleP=> i -> ->.
-rewrite apermE actpermX ?in_setT // actpermE ['Rs%act _ _]rcosetE.
+rewrite apermE -morphX ?in_setT // actpermE ['Rs%act _ _]rcosetE.
 case/imsetP: rcosC => h _ ->{C}.
 by rewrite rcosetE -rcosetM mem_repr_rcoset.
 Qed.
@@ -181,7 +181,7 @@ case/(nthP (repr_set (ccycle g C))): cycC=> i ilt nthi.
 rewrite -{2}nthi index_uniq ?uniq_traject_pcycle //.
 move: nthi; rewrite nth_traject; last first.
   by move: ilt; rewrite size_traject.
-rewrite -permX actpermX ?in_setT // actpermE => eqC.
+rewrite -permX -morphX ?in_setT // actpermE => eqC.
 by rewrite -{2}eqC /= rcosetE mem_rcoset mulgK repr_repr_set_ccycle.
 Qed.
 
@@ -200,7 +200,7 @@ have C'eq : C' = H :* repr C'.
 rewrite -C'eq.
 have C'geq : C':* g ^+ #|ccycle g C'| = C'.
   rewrite -{3}(iter_pcycle (actperm 'Rs g) C') -permX.
-  by rewrite actpermX ?in_setT // actpermE ['Rs%act _ _]rcosetE.
+  by rewrite -morphX ?in_setT // actpermE ['Rs%act _ _]rcosetE.
 by rewrite -{3}C'geq mem_rcoset mulgK C'eq mem_repr_rcoset.
 Qed.
 
@@ -213,7 +213,7 @@ rewrite pcycleE acts_sum_card_orbit; first done.
    could be useful -- but these is no lemma for passing to <[g]> *)
 apply/subsetP=> h; case/cycleP=> i ->{h}; rewrite /astabs !inE andTb.
 apply/subsetP=> C; case/rcosetsP=> h Gh ->{C}. 
-rewrite inE /= apermE actpermX ?inE // actpermE ['Rs%act _ _]rcosetE.
+rewrite inE /= apermE -morphX ?inE // actpermE ['Rs%act _ _]rcosetE.
 rewrite -rcosetM -rcosetE mem_imset // groupM // groupX //.
 Qed.
 
@@ -241,7 +241,7 @@ apply: (@trans_eq _ _ (fmod abelA (alpha
   apply congr1; apply congr1.
   have eq1 : C':* g ^+ #|ccycle g C'| = C'.
     rewrite -{3}(iter_pcycle (actperm 'Rs g) C') -permX.
-    by rewrite actpermX ?in_setT // actpermE ['Rs%act _ _]rcosetE.
+    by rewrite -morphX ?in_setT // actpermE ['Rs%act _ _]rcosetE.
   have pos_card_cyc: 0 < #|ccycle g C|.
     rewrite card_gt0; apply/set0Pn; exists (repr_set (ccycle g C)). 
     exact: repr_set_ccycle.
@@ -357,4 +357,33 @@ by rewrite (subsetP nS).
 Qed.
 
 End Focal_Subgroup.
+
+Section Burnside.
+
+Variables (gT : finGroupType) (G S : {group gT}) (p : nat).
+Hypothesis (primep : prime p) (psylS : p.-Sylow(G) S).
+Hypothesis (normScentS : 'N_G(S) \subset 'C_G(S)).
+
+Theorem Burnside : S * 'O_p^'(G) = G.
+Proof.
+have SsubG : S \subset G by case/andP: (psylS).
+have SsubCS : S \subset 'C_G(S). 
+  by apply: (subset_trans _ normScentS); rewrite subsetI normG SsubG.
+have abelS: abelian S by apply (subset_trans SsubCS); apply subsetIr.
+have SG'1: S :&: [~: G, G] = 1.
+  apply/setP; apply/subset_eqP; apply/andP; split; last first.
+    by apply/subsetP=> z; rewrite !inE; move/eqP=> ->{z}; rewrite !group1 //.
+  rewrite Focal_Subgroup ?(p_Sylow psylS) // gen_subG.
+  apply/subsetP=> z; case/imset2P=> x u Sx; rewrite inE; case/andP=> Gu Sxu ->.
+  rewrite inE; apply /eqP.
+  have SsubCx : S \subset 'C_G(<[x]>).
+    rewrite subsetI SsubG andTb centsC gen_subG. 
+    apply/subsetP=> w; rewrite inE; move/eqP=> ->{w}. 
+    by rewrite (subsetP abelS).
+  have SsubCy : S \subset 'C_G(<[x^u]>).
+    rewrite subsetI SsubG andTb centsC gen_subG. 
+    apply/subsetP=> w; rewrite inE; move/eqP=> ->{w}. 
+    by rewrite (subsetP abelS).
+  have SusubCxu : S :^ u \subset 'C_G(<[x^u]>).
+    by rewrite cycleJ centJ -(@conjGid _ G u) // -conjIg conjSg //.
 
