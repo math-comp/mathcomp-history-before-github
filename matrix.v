@@ -268,17 +268,20 @@ Canonical Structure matrix_eqType R m n:=
 Definition matrix_choiceMixin (R : choiceType) m n :=
   [choiceMixin of 'M[R]_(m, n) by <:].
 Canonical Structure matrix_choiceType R m n :=
-  Eval hnf in ChoiceType (matrix_choiceMixin R m n).
+  Eval hnf in [choiceType of 'M[R]_(m, n) 
+          for ChoiceType (matrix_choiceMixin R m n)].
 Definition matrix_countMixin (R : countType) m n :=
   [countMixin of 'M[R]_(m, n) by <:].
 Canonical Structure matrix_countType R m n :=
-  Eval hnf in CountType (matrix_countMixin R m n).
+  Eval hnf in [countType of 'M[R]_(m, n)
+           for CountType (matrix_countMixin R m n)].
 Canonical Structure matrix_subCountType (R : countType) m n :=
   Eval hnf in [subCountType of 'M[R]_(m, n)].
 Definition matrix_finMixin (R : finType) m n :=
   [finMixin of 'M[R]_(m, n) by <:].
 Canonical Structure matrix_finType R m n :=
-  Eval hnf in FinType (matrix_finMixin R m n).
+  Eval hnf in [finType of 'M[R]_(m, n)
+           for FinType (matrix_finMixin R m n)].
 Canonical Structure matrix_subFinType (R : finType) m n :=
   Eval hnf in [subFinType of 'M[R]_(m, n)].
 
@@ -901,7 +904,8 @@ Lemma addNmx : left_inverse (const_mx 0) oppmx addmx.
 Proof. by move=> A; apply/matrixP=> i j; rewrite !mxE addNr. Qed.
 
 Definition matrix_zmodMixin := ZmodMixin addmxA addmxC add0mx addNmx.
-Canonical Structure matrix_zmodType := Eval hnf in ZmodType matrix_zmodMixin.
+Canonical Structure matrix_zmodType :=
+  Eval hnf in [zmodType of 'M[M]_(m, n) for ZmodType matrix_zmodMixin].
 
 Lemma const_mx0 : const_mx 0 = 0. Proof. by []. Qed.
 Lemma const_mxN : forall a, const_mx (- a) = - const_mx a.
@@ -1492,7 +1496,8 @@ Qed.
 Definition matrix_ringMixin :=
   RingMixin (@mulmxA n n n n) (@mul1mx n n) (@mulmx1 n n)
             (@mulmx_addl n n n) (@mulmx_addr n n n) matrix_nonzero1.
-Canonical Structure matrix_ringType := Eval hnf in RingType matrix_ringMixin.
+Canonical Structure matrix_ringType :=
+  Eval hnf in [ringType of 'M[R]_n for RingType matrix_ringMixin].
 
 Lemma mulmxE : forall A B : 'M_n, A *m B = A * B. Proof. by []. Qed.
 Lemma idmxE : 1%:M = 1 :> 'M_n. Proof. by []. Qed.
@@ -1950,7 +1955,7 @@ Local Notation n := n'.+1.
 Definition matrix_unitRingMixin :=
   UnitRingMixin (@mulVmx n) (@mulmxV n) (@intro_unitmx n) (@invmx_out n).
 Canonical Structure matrix_unitRing :=
-  Eval hnf in UnitRingType matrix_unitRingMixin.
+  Eval hnf in [unitRingType of 'M[R]_n for UnitRingType matrix_unitRingMixin].
 
 (* Lemmas requiring that the coefficients are in a unit ring *)
 
@@ -2010,16 +2015,16 @@ Variables (n : nat) (R : finComUnitRingType).
 
 Canonical Structure GL_subType := [subType for @GLval n _ (Phant R)].
 Definition GL_eqMixin := Eval hnf in [eqMixin of {'GL_n[R]} by <:].
-Canonical Structure GL_eqType := EqType GL_eqMixin.
-Canonical Structure GL_choiceType := [choiceType of {'GL_n[R]}].
-Canonical Structure GL_countType := [countType of {'GL_n[R]}].
-Canonical Structure GL_subCountType := [subCountType of {'GL_n[R]}].
-Canonical Structure GL_finType := [finType of {'GL_n[R]}].
-Canonical Structure GL_subFinType := [subFinType of {'GL_n[R]}].
-Canonical Structure GL_baseFinGroupType := [baseFinGroupType of {'GL_n[R]}].
-Canonical Structure GL_finGroupType := [finGroupType of {'GL_n[R]}].
+Canonical Structure GL_eqType := Eval hnf in EqType GL_eqMixin.
+Canonical Structure GL_choiceType := Eval hnf in [choiceType of {'GL_n[R]}].
+Canonical Structure GL_countType := Eval hnf in [countType of {'GL_n[R]}].
+Canonical Structure GL_subCountType := Eval hnf in [subCountType of {'GL_n[R]}].
+Canonical Structure GL_finType := Eval hnf in [finType of {'GL_n[R]}].
+Canonical Structure GL_subFinType := Eval hnf in [subFinType of {'GL_n[R]}].
+Canonical Structure GL_baseFinGroupType := Eval hnf in [baseFinGroupType of {'GL_n[R]}].
+Canonical Structure GL_finGroupType := Eval hnf in [finGroupType of {'GL_n[R]}].
 Definition GLgroup of phant R := [set: {'GL_n[R]}].
-Canonical Structure GLgroup_group ph := [group of GLgroup ph].
+Canonical Structure GLgroup_group ph := Eval hnf in [group of GLgroup ph].
 
 Implicit Types u v : {'GL_n[R]}.
 
@@ -2818,11 +2823,11 @@ Lemma card_GL : forall n, n > 0 ->
   #|'GL_n[F]| = (#|F| ^ (n * n.-1)./2 * \prod_(1 <= i < n.+1) (#|F| ^ i - 1))%N.
 Proof.
 case=> // n' _; set n := n'.+1; set p := #|F|.
-pose fr m := [pred A : 'M[F]_(m, n) | \rank A == m].
-rewrite cardsT /= card_sub /= -{1}(@eq_card _ (fr n)) => [|A]; last first.
-  by rewrite /in_mem /= (sameP eqP (mxrank_unitP _)).
 rewrite big_nat_rev big_add1 -triangular_sum expn_sum -big_split /=.
-elim: {-2 4 6 8 10 13}(n) (leqnn n) => [|m IHm]; last move/ltnW=> le_mn.
+pose fr m := [pred A : 'M[F]_(m, n) | \rank A == m].
+set m := {-7}n; transitivity #|fr m|.
+  by rewrite cardsT /= card_sub; apply: eq_card => A; exact/mxrank_unitP/eqP.
+elim: m (leqnn m : m <= n) => [_|m IHm]; last move/ltnW=> le_mn.
   rewrite (@eq_card1 _ (0 : 'M_(0, n))) ?big_geq //= => A.
   by rewrite [A]flatmx0 !inE !eqxx.
 rewrite big_nat_recr -{}IHm //= !subSS muln_subr muln1 -expn_add subnKC //.
@@ -2851,7 +2856,7 @@ Lemma LUP_card_GL : forall n, n > 0 ->
   #|'GL_n[F]| = (#|F| ^ (n * n.-1)./2 * \prod_(1 <= i < n.+1) (#|F| ^ i - 1))%N.
 Proof.
 case=> // n' _; set n := n'.+1; set p := #|F|.
-rewrite cardsT card_sub /GRing.unit /= big_add1 /= -triangular_sum -/n.
+rewrite cardsT /= card_sub /GRing.unit /= big_add1 /= -triangular_sum -/n.
 elim: {n'}n => [|n IHn].
   rewrite !big_geq // mul1n (@eq_card _ _ predT) ?card_matrix //= => M.
   by rewrite [M]flatmx0 -(flatmx0 1%:M) !inE unitmx1.

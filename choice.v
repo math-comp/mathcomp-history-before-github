@@ -385,7 +385,8 @@ Section SubChoice.
 Variables (P : pred T) (sT : subType P).
 
 Definition sub_choiceMixin := PcanChoiceMixin (@valK T P sT).
-Canonical Structure sub_choiceType := Eval hnf in ChoiceType sub_choiceMixin.
+Canonical Structure sub_choiceType :=
+  Eval hnf in [choiceType of sT for ChoiceType sub_choiceMixin].
 
 End SubChoice.
 
@@ -403,14 +404,16 @@ Section SomeChoiceTypes.
 Variables (T : choiceType) (P : pred T).
 
 Definition seq_choiceMixin := Choice.CanMixin2 (@CodeSeq.Seq2.codeK T).
-Canonical Structure seq_choiceType := Eval hnf in ChoiceType seq_choiceMixin.
+Canonical Structure seq_choiceType :=
+  Eval hnf in [choiceType of seq T for ChoiceType seq_choiceMixin].
 
 Definition option_choiceMixin := CanChoiceMixin (@seq_of_optK T).
 Canonical Structure option_choiceType :=
-  Eval hnf in ChoiceType option_choiceMixin.
+  Eval hnf in [choiceType of option T for ChoiceType option_choiceMixin].
 
 Definition sig_choiceMixin := [choiceMixin of {x | P x} by <:].
-Canonical Structure sig_choiceType := Eval hnf in ChoiceType sig_choiceMixin.
+Canonical Structure sig_choiceType :=
+  Eval hnf in [choiceType of {x | P x} for ChoiceType sig_choiceMixin].
 
 End SomeChoiceTypes.
 
@@ -452,7 +455,7 @@ Definition repack cT : _ -> Type -> type := let k T c p := p c in unpack k cT.
 
 Definition pack := let k T c m := Pack (Class c m) T in Choice.unpack k.
 
-Definition eqType cT := Equality.Pack (class cT) cT.
+Coercion eqType cT := Equality.Pack (class cT) cT.
 Coercion choiceType cT := Choice.Pack (class cT) cT.
 
 End Countable.
@@ -507,7 +510,8 @@ Definition CanCountMixin sT f f' (fK : cancel f f') :=
 Definition sub_countMixin P sT := PcanCountMixin (@valK T P sT).
 
 Definition seq_countMixin := CountMixin (Countable.pickle_seqK pickleK).
-Canonical Structure seq_countType := Eval hnf in CountType seq_countMixin.
+Canonical Structure seq_countType :=
+  Eval hnf in [countType of seq T for CountType seq_countMixin].
 
 End CountableTheory.
 
@@ -559,7 +563,8 @@ Proof. by case=> i x; rewrite /tag_unpickle codeK /= pickleK /= pickleK. Qed.
 
 Definition tag_countMixin := CountMixin tag_pickleK.
 Definition tag_choiceMixin := CountChoiceMixin tag_countMixin.
-Canonical Structure tag_choiceType := Eval hnf in ChoiceType tag_choiceMixin.
+Canonical Structure tag_choiceType :=
+  Eval hnf in [choiceType of {i : I & T_ i} for ChoiceType tag_choiceMixin].
 Canonical Structure tag_countType := Eval hnf in CountType tag_countMixin.
 
 End TagCountType.
@@ -594,21 +599,24 @@ Canonical Structure bitseq_countType :=  Eval hnf in [countType of bitseq].
 Definition option_countMixin :=
   CountMixin (pcan_pickleK (can_pcan (@seq_of_optK T))).
 Canonical Structure option_countType :=
-  Eval hnf in CountType option_countMixin.
+  Eval hnf in [countType of option T for CountType option_countMixin].
 
 Definition sig_countMixin := [countMixin of {x | P x} by <:].
-Canonical Structure sig_countType := Eval hnf in CountType sig_countMixin.
+Canonical Structure sig_countType :=
+  Eval hnf in [countType of {x | P x} for CountType sig_countMixin].
 Canonical Structure sig_subCountType :=
   Eval hnf in [subCountType of {x | P x}].
 
 Definition prod_countMixin := CanCountMixin (@tag_of_pairK T1 T2).
 Definition prod_choiceMixin := CountChoiceMixin prod_countMixin.
-Canonical Structure prod_choiceType := Eval hnf in ChoiceType prod_choiceMixin.
+Canonical Structure prod_choiceType :=
+  Eval hnf in [choiceType of T1 * T2 for ChoiceType prod_choiceMixin].
 Canonical Structure prod_countType := Eval hnf in CountType prod_countMixin.
 
 Definition sum_countMixin := CanCountMixin (@tag_of_sumK _ T1 T2 id).
 Definition sum_choiceMixin := CountChoiceMixin sum_countMixin.
-Canonical Structure sum_choiceType := Eval hnf in ChoiceType sum_choiceMixin.
+Canonical Structure sum_choiceType :=
+  Eval hnf in [choiceType of T1 + T2 for ChoiceType sum_choiceMixin].
 Canonical Structure sum_countType := Eval hnf in CountType sum_countMixin.
 
 End CanonicalCount.

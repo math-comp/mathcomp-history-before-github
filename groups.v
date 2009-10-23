@@ -227,6 +227,9 @@ Canonical Structure finGroup_arg_finType := Eval hnf in [finType of T].
 
 End InheritedClasses.
 
+Coercion finGroup_arg_eqType : baseFinGroupType >-> eqType.
+Coercion finGroup_arg_choiceType : baseFinGroupType >-> choiceType.
+Coercion finGroup_arg_countType : baseFinGroupType >-> countType.
 Coercion finGroup_arg_finType : baseFinGroupType >-> finType.
 
 Notation "[ 'baseFinGroupType' 'of' T ]" :=

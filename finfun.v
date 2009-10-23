@@ -197,14 +197,16 @@ End EqTheory.
 Definition finfun_choiceMixin aT (rT : choiceType) :=
   [choiceMixin of finfun_type aT rT by <:].
 Canonical Structure finfun_choiceType aT rT :=
-  Eval hnf in ChoiceType (finfun_choiceMixin aT rT).
+  Eval hnf in [choiceType of finfun_type aT rT
+                         for ChoiceType (finfun_choiceMixin aT rT)].
 Canonical Structure finfun_of_choiceType (aT : finType) (rT : choiceType) :=
   Eval hnf in [choiceType of {ffun aT -> rT}].
 
 Definition finfun_countMixin aT (rT : countType) :=
   [countMixin of finfun_type aT rT by <:].
 Canonical Structure finfun_countType aT (rT : countType) :=
-  Eval hnf in CountType (finfun_countMixin aT rT).
+  Eval hnf in [countType of finfun_type aT rT
+                        for CountType (finfun_countMixin aT rT)].
 Canonical Structure finfun_of_countType (aT : finType) (rT : countType) :=
   Eval hnf in [countType of {ffun aT -> rT}].
 Canonical Structure finfun_subCountType aT (rT : countType) :=
@@ -222,7 +224,8 @@ Notation fT := {ffun aT -> rT}.
 Notation ffT := (finfun_type aT rT).
 
 Definition finfun_finMixin := [finMixin of ffT by <:].
-Canonical Structure finfun_finType := Eval hnf in FinType finfun_finMixin.
+Canonical Structure finfun_finType :=
+  Eval hnf in [finType of ffT for FinType finfun_finMixin].
 Canonical Structure finfun_subFinType := Eval hnf in [subFinType of ffT].
 Canonical Structure finfun_of_finType := Eval hnf in [finType of fT].
 Canonical Structure finfun_of_subFinType := Eval hnf in [subFinType of fT].

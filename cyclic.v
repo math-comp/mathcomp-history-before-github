@@ -585,7 +585,7 @@ have: uniq rs by exact: enum_uniq.
 have: all (mem G) rs by apply/allP=> y; rewrite mem_enum; case/setIP.
 elim: rs => //= y rs IHrs; case/andP=> Gy Grs; case/andP=> y_rs; rewrite andbC.
 move/IHrs=> -> {IHrs}//; apply/allP=> fz; case/mapP=> z rs_z ->{fz}.
-have{Grs} Gz := allP Grs z rs_z; rewrite /diff_root -!fM // (centsP abelG) //.
+have{Grs} Gz := allP Grs z rs_z; rewrite /diff_roots -!fM // (centsP abelG) //.
 rewrite eqxx -[f y]mul1r -(mulgKV y z) fM ?groupM ?groupV //=.
 rewrite -mulNr -mulr_addl unitr_mull ?fU ?f1P // !inE.
 by rewrite groupM ?groupV // andbT -eq_mulgV1; apply: contra y_rs; move/eqP <-.

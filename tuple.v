@@ -218,13 +218,13 @@ Definition tuple_choiceMixin n (T : choiceType) :=
   [choiceMixin of n.-tuple(T) by <:].
 
 Canonical Structure tuple_choiceType n T :=
-  Eval hnf in ChoiceType (tuple_choiceMixin n T).
+  Eval hnf in [choiceType of n.-tuple T for ChoiceType (tuple_choiceMixin n T)].
 
 Definition tuple_countMixin n (T : countType) :=
   [countMixin of n.-tuple(T) by <:].
 
 Canonical Structure tuple_countType n T :=
-  Eval hnf in CountType (tuple_countMixin n T).
+  Eval hnf in [countType of n.-tuple(T) for CountType (tuple_countMixin n T)].
 
 Canonical Structure tuple_subCountType n (T : countType) :=
   Eval hnf in [subCountType of n.-tuple(T)].
@@ -277,7 +277,8 @@ Variables (n : nat) (T : finType).
 Notation tT := (n.-tuple T).
 
 Canonical Structure tuple_finMixin := FinMixin (@FinTuple.enumP n T).
-Canonical Structure tuple_finType := Eval hnf in FinType tuple_finMixin.
+Canonical Structure tuple_finType :=
+  Eval hnf in [finType of tT for FinType tuple_finMixin].
 Canonical Structure tuple_subFinType := Eval hnf in [subFinType of tT].
 
 Lemma card_tuple : #|{:n.-tuple T}| = #|T| ^ n.

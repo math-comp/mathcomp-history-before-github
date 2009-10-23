@@ -89,8 +89,8 @@ End EnumDef.
 
 Notation enum := EnumDef.enum.
 
-Definition eqType cT := Equality.Pack (class cT) cT.
-Definition choiceType cT := Choice.Pack (class cT) cT.
+Coercion eqType cT := Equality.Pack (class cT) cT.
+Coercion choiceType cT := Choice.Pack (class cT) cT.
 Coercion countType cT := Countable.Pack (class cT) cT.
 
 End Finite.
@@ -926,7 +926,8 @@ Lemma option_enumP : Finite.axiom option_enum.
 Proof. by case=> [x|]; rewrite /= count_map (count_pred0, enumP). Qed.
 
 Definition option_finMixin := FinMixin option_enumP.
-Canonical Structure option_finType := Eval hnf in FinType option_finMixin.
+Canonical Structure option_finType :=
+  Eval hnf in [finType of option T for FinType option_finMixin].
 
 Lemma card_option : #|{: option T}| = #|T|.+1.
 Proof. by rewrite !cardT !enumT unlock /= !size_map. Qed.
@@ -1044,7 +1045,8 @@ Section CardSig.
 Variables (T : finType) (P : pred T).
 
 Definition sig_finMixin := [finMixin of {x | P x} by <:].
-Canonical Structure sig_finType := Eval hnf in FinType sig_finMixin.
+Canonical Structure sig_finType :=
+  Eval hnf in [finType of {x | P x} for FinType sig_finMixin].
 Canonical Structure sig_subFinType := Eval hnf in [subFinType of {x | P x}].
 
 Lemma card_sig : #|{: {x | P x}}| = #|[pred x | P x]|.
@@ -1450,7 +1452,8 @@ by case=> x1 x2; rewrite (predX_prod_enum (pred1 x1) (pred1 x2)) !card1.
 Qed.
 
 Definition prod_finMixin := FinMixin prod_enumP.
-Canonical Structure prod_finType := Eval hnf in FinType prod_finMixin.
+Canonical Structure prod_finType :=
+  Eval hnf in [finType of T1 * T2 for FinType prod_finMixin].
 
 Lemma cardX : forall (A1 : pred T1) (A2 : pred T2),
   #|[predX A1 & A2]| = #|A1| * #|A2|.
@@ -1486,7 +1489,8 @@ by apply: eq_card0 => y; apply/andP; case; move/eqP.
 Qed.
 
 Definition tag_finMixin := FinMixin tag_enumP.
-Canonical Structure tag_finType := Eval hnf in FinType tag_finMixin.
+Canonical Structure tag_finType :=
+  Eval hnf in [finType of {i : I & T_ i} for FinType tag_finMixin].
 
 Lemma card_tagged :
   #|{: {i : I & T_ i}}| = sumn (map (fun i => #|T_ i|) (enum I)).
@@ -1514,7 +1518,8 @@ Lemma mem_sum_enum : forall u, u \in sum_enum.
 Proof. by case=> x; rewrite mem_cat -!enumT map_f ?mem_enum ?orbT. Qed.
 
 Definition sum_finMixin := UniqFinMixin sum_enum_uniq mem_sum_enum.
-Canonical Structure sum_finType := Eval hnf in FinType sum_finMixin.
+Canonical Structure sum_finType :=
+  Eval hnf in [finType of T1 + T2 for FinType sum_finMixin].
 
 Lemma card_sum : #|{: T1 + T2}| = #|T1| + #|T2|.
 Proof. by rewrite !cardT !enumT unlock size_cat !size_map. Qed.

@@ -101,10 +101,12 @@ Lemma Zp_addC : commutative Zp_add.
 Proof. by move=> x y; apply: val_inj; rewrite /= addnC. Qed.
 
 Definition Zp_zmodMixin := ZmodMixin Zp_addA Zp_addC Zp_add0z Zp_addNz.
-Canonical Structure Zp_zmodType := ZmodType Zp_zmodMixin.
+Canonical Structure Zp_zmodType := Eval hnf in ZmodType Zp_zmodMixin.
 Canonical Structure Zp_finZmodType := Eval hnf in [finZmodType of 'I_p].
-Canonical Structure Zp_baseFinGroupType := [baseFinGroupType of 'I_p for +%R].
-Canonical Structure Zp_finGroupType := [finGroupType of 'I_p for +%R].
+Canonical Structure Zp_baseFinGroupType :=
+  Eval hnf in [baseFinGroupType of 'I_p for +%R].
+Canonical Structure Zp_finGroupType :=
+  Eval hnf in [finGroupType of 'I_p for +%R].
 
 (* Ring operations *)
 
@@ -205,16 +207,18 @@ Lemma Zp_nontrivial : Zp1 != 0 :> 'I_p. Proof. by []. Qed.
 Definition Zp_ringMixin :=
   ComRingMixin (@Zp_mulA _) (@Zp_mulC _) (@Zp_mul1z _) (@Zp_mul_addl _)
                Zp_nontrivial.
-Canonical Structure Zp_ringType := RingType Zp_ringMixin.
+Canonical Structure Zp_ringType := Eval hnf in RingType Zp_ringMixin.
 Canonical Structure Zp_finRingType := Eval hnf in [finRingType of 'I_p].
-Canonical Structure Zp_comRingType := ComRingType (@Zp_mulC _).
+Canonical Structure Zp_comRingType := Eval hnf in ComRingType (@Zp_mulC _).
 Canonical Structure Zp_finComRingType := Eval hnf in [finComRingType of 'I_p].
 
-Definition Zp_unitRingMixin : GRing.UnitRing.mixin_of Zp_ringType :=
+Definition Zp_unitRingMixin :=
   ComUnitRingMixin (@Zp_mulVz _) (@Zp_intro_unit _) (@Zp_inv_out _).
-Canonical Structure Zp_unitRingType := UnitRingType Zp_unitRingMixin.
+Canonical Structure Zp_unitRingType :=
+  Eval hnf in Com_UnitRingType Zp_unitRingMixin.
 Canonical Structure Zp_finUnitRingType := Eval hnf in [finUnitRingType of 'I_p].
-Canonical Structure Zp_comUnitRingType := ComUnitRingType Zp_unitRingMixin.
+Canonical Structure Zp_comUnitRingType :=
+  Eval hnf in ComUnitRingType Zp_unitRingMixin.
 Canonical Structure Zp_finComUnitRingType :=
   Eval hnf in [finComUnitRingType of 'I_p].
 
@@ -324,11 +328,11 @@ Qed.
 
 Definition Fp_idomainMixin := FieldIdomainMixin Fp_fieldMixin.
 
-Canonical Structure Fp_idomainType := IdomainType Fp_idomainMixin.
+Canonical Structure Fp_idomainType := Eval hnf in IdomainType Fp_idomainMixin.
 Canonical Structure Fp_finIdomainType := Eval hnf in [finIdomainType of 'F_p].
-Canonical Structure Fp_fieldType := FieldType Fp_fieldMixin.
+Canonical Structure Fp_fieldType := Eval hnf in FieldType Fp_fieldMixin.
 Canonical Structure Fp_finFieldType := Eval hnf in [finFieldType of 'F_p].
 Canonical Structure Fp_decFieldType :=
-  [decFieldType of 'F_p for Fp_finFieldType].
+  Eval hnf in [decFieldType of 'F_p for Fp_finFieldType].
 
 End PrimeField.
