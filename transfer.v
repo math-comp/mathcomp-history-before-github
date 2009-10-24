@@ -361,29 +361,74 @@ End Focal_Subgroup.
 Section Burnside.
 
 Variables (gT : finGroupType) (G S : {group gT}) (p : nat).
-Hypothesis (primep : prime p) (psylS : p.-Sylow(G) S).
-Hypothesis (normScentS : 'N_G(S) \subset 'C_G(S)).
+Hypothesis (psylS : p.-Sylow(G) S).
+Hypothesis (normScentS : 'N_G(S) \subset 'C(S)).
 
 Theorem Burnside : S * 'O_p^'(G) = G.
 Proof.
 have SsubG : S \subset G by case/andP: (psylS).
 have SsubCS : S \subset 'C_G(S). 
+  rewrite subsetI SsubG andTb.
   by apply: (subset_trans _ normScentS); rewrite subsetI normG SsubG.
 have abelS: abelian S by apply (subset_trans SsubCS); apply subsetIr.
 have SG'1: S :&: [~: G, G] = 1.
   apply/setP; apply/subset_eqP; apply/andP; split; last first.
-    by apply/subsetP=> z; rewrite !inE; move/eqP=> ->{z}; rewrite !group1 //.
+    by apply/subsetP=> z; rewrite !inE //; move/eqP=> ->{z}; rewrite !group1.
   rewrite Focal_Subgroup ?(p_Sylow psylS) // gen_subG.
-  apply/subsetP=> z; case/imset2P=> x u Sx; rewrite inE; case/andP=> Gu Sxu ->.
-  rewrite inE; apply /eqP.
+  apply/subsetP=> z; case/imset2P=> x u Sx; rewrite inE.
+  case/andP=> Gu Sxu ->{z}; rewrite inE; apply /eqP.
   have SsubCx : S \subset 'C_G(<[x]>).
     rewrite subsetI SsubG andTb centsC gen_subG. 
-    apply/subsetP=> w; rewrite inE; move/eqP=> ->{w}. 
+    apply/subsetP=> z; rewrite inE; move/eqP=> ->{z}. 
     by rewrite (subsetP abelS).
-  have SsubCy : S \subset 'C_G(<[x^u]>).
+  have SsubCxu : S \subset 'C_G(<[x^u]>).
     rewrite subsetI SsubG andTb centsC gen_subG. 
-    apply/subsetP=> w; rewrite inE; move/eqP=> ->{w}. 
+    apply/subsetP=> z; rewrite inE; move/eqP=> ->{z}. 
     by rewrite (subsetP abelS).
   have SusubCxu : S :^ u \subset 'C_G(<[x^u]>).
     by rewrite cycleJ centJ -(@conjGid _ G u) // -conjIg conjSg //.
+  have psylSu : p.-Sylow(G)(S :^ u) by rewrite pHallJ.
+  have CxusubG : 'C_G(<[x^u]>) \subset G by rewrite subIset ?subxx.
+  have psylS' :=  (pHall_subl SsubCxu CxusubG psylS).
+  have psylSu' := (pHall_subl SusubCxu CxusubG psylSu).
+  case: (Sylow_trans psylSu' psylS') => v Cxuv; rewrite -conjsgM; move => Seq.
+  case/subcentP: (Cxuv)=> Gv centvxu. 
+  have NSuv : u * v \in 'N_G(S). 
+    by rewrite inE groupM // andTb; apply /normP; rewrite -Seq.
+  have commutevxu := (centvxu _ (cycle_id _)).
+  have xuvx : x ^ (u * v) = x ^ u by rewrite conjgM conjgE -commutevxu mulKg.
+  have CSuv : u * v \in 'C_G(S) by rewrite inE groupM // (subsetP normScentS).
+  case/subcentP: CSuv => Guv centuvS.
+  have commuteuvx := (centuvS _ Sx).
+  have xux : x ^ u = x by rewrite -xuvx conjgE -commuteuvx mulKg.
+  by rewrite commgEl xux mulVg.
+set G' := (G^`(1))%G; set K := ('O_p^'(G))%G.
+have pSylG'S : p.-Sylow(G') (G' :&: S).
+  by rewrite (pSylow_normalI _ psylS) // ?der_normal.
+case/pHallP: pSylG'S => _.
+rewrite -[#|(_ :&: _)|%G]/(#|_ :&: _|) setIC SG'1 set1gE cards1; move=> eq1.
+have p'G' : p^'.-group G'. 
+  by rewrite /pgroup -(partnC p (cardG_gt0 G')) -eq1 mul1n pnat_part.
+have G'subK : G' \subset K by rewrite pcore_max // der_normal.
+have prodeq : (S <*> K) = S * K.
+  apply: comm_mulgenE; apply: normC; apply: (subset_trans SsubG).
+  by apply: normal_norm; apply: pcore_normal.
+have G'subSK : G' \subset (S <*> K).
+  by rewrite prodeq; apply: (subset_trans G'subK (mulG_subr _ _)).
+have KsubG : K \subset G by rewrite pcore_sub.
+have SKsubG : S <*> K \subset G by rewrite prodeq mul_subG // pcore_sub.
+have G'normSK : G' <| S <*> K.
+  by rewrite (normalS G'subSK SKsubG (der_normal G 0)).
+have SG'eq : S / G' = 'O_p(G / G').
+  apply: nilpotent_Hall_pcore; first by apply: abelian_nil; apply: der_abelian.
+  by rewrite morphim_pSylow // (subset_trans SsubG) // normal_norm // der_normal.
+have KG'eq : K / G' = 'O_p^'(G / G') by rewrite pquotient_pcore // der_normal //.
+rewrite -prodeq; apply: (quotient_inj G'normSK (der_normal G 0)).
+rewrite /= prodeq quotientMr; last first.
+  by rewrite normal_norm // (normalS G'subK KsubG) // der_normal.
+rewrite SG'eq KG'eq.
+have nilGG' : nilpotent (G / G') by apply: abelian_nil; apply: der_abelian.
+by case/dprodP: (nilpotent_pcoreC p nilGG').
+Qed.
 
+End Burnside.
