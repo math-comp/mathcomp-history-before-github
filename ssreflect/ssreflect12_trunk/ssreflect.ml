@@ -3008,7 +3008,7 @@ let cache_viewhint (_, (i, lvh)) =
   let add_hint h hdb = if mem_raw h hdb then hdb else h :: hdb in
   viewtab.(i) <- List.fold_right add_hint lvh viewtab.(i)
 
-let subst_viewhint (_, subst, (i, lvh as ilvh)) =
+let subst_viewhint ( subst, (i, lvh as ilvh)) =
   let lvh' = list_smartmap (Detyping.subst_rawconstr subst) lvh in
   if lvh' == lvh then ilvh else i, lvh'
       
