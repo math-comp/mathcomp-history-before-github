@@ -3,10 +3,8 @@
 (*                                                                     *)
 (***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
-Require Import div seq fintype.
-(* Require Import connect. *)
-Require Import tuple finfun bigops finset.
-Require Import groups perm morphisms action maximal.
+Require Import div seq fintype tuple finfun finset.
+Require Import groups action maximal.
 
 (* n-transitive and primitive actions *)
 

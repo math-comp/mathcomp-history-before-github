@@ -1,6 +1,5 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div paths.
-Require Import fintype bigops finset prime.
-Require Import groups morphisms perm automorphism gprod normal cyclic action.
+Require Import fintype finset prime groups morphisms gprod normal action.
 Require Import commutators pgroups nilpotent sylow maximal hall.
 
 (*****************************************************************************)

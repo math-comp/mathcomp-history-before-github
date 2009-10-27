@@ -1,7 +1,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import choice fintype finfun bigops ssralg finset prime.
-Require Import groups morphisms automorphism normal perm action gprod.
-Require Import commutators cyclic center pgroups sylow nilpotent maximal.
+Require Import groups morphisms automorphism normal action gprod.
+Require Import cyclic center pgroups sylow nilpotent maximal.
 
 (****************************************************************************)
 (*  Hall's generalization of Sylow's theorems to solvable groups, along     *)

@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype.
-Require Import bigops finset groups morphisms normal perm automorphism action.
+Require Import bigops finset groups morphisms automorphism action.
 
 (*****************************************************************************)
 (*  Partial, semidirect, central, and direct products.                       *)

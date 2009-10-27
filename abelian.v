@@ -11,7 +11,7 @@
 
 Require Import ssreflect ssrbool ssrfun ssrnat.
 Require Import eqtype seq fintype finset.
-Require Import groups div cyclic bigops.
+Require Import groups div bigops.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

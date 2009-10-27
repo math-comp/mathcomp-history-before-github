@@ -1,7 +1,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
-Require Import fintype paths finfun ssralg bigops finset prime.
-Require Import groups morphisms perm action automorphism normal. 
-Require Import cyclic abelian gfunc.
+Require Import fintype paths finfun bigops finset prime groups.
+Require Import morphisms perm action automorphism normal cyclic.
+Require Import abelian gfunc.
 
 (*****************************************************************************)
 (* Standard group notions and constructions based on the prime decomposition *)

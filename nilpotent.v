@@ -1,6 +1,6 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype.
 Require Import bigops prime finset groups commutators automorphism.
-Require Import morphisms normal center cyclic gprod gfunc.
+Require Import morphisms normal center gprod gfunc.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
