@@ -98,10 +98,11 @@ Record polynomial := Polynomial {polyseq :> seq R; _ : last 1 polyseq != 0}.
 Canonical Structure polynomial_subType :=
   Eval hnf in [subType for polyseq by polynomial_rect].
 Definition polynomial_eqMixin := Eval hnf in [eqMixin of polynomial by <:].
-Canonical Structure polynomial_eqType := Eval hnf in EqType polynomial_eqMixin.
+Canonical Structure polynomial_eqType :=
+  Eval hnf in EqType polynomial polynomial_eqMixin.
 Definition polynomial_choiceMixin := [choiceMixin of polynomial by <:].
 Canonical Structure polynomial_choiceType :=
-  Eval hnf in ChoiceType polynomial_choiceMixin.
+  Eval hnf in ChoiceType polynomial polynomial_choiceMixin.
 
 Lemma poly_inj : injective polyseq. Proof. exact: val_inj. Qed.
 
@@ -114,7 +115,7 @@ End Polynomial.
 (* directives take effect.                                         *)
 Bind Scope ring_scope with poly_of.
 Bind Scope ring_scope with polynomial.
-
+Arguments Scope poly_inj [_ ring_scope ring_scope _].
 Notation "{ 'poly' T }" := (poly_of (Phant T)).
 
 Section PolynomialTheory.
@@ -285,7 +286,8 @@ Qed.
 
 Definition poly_zmodMixin :=
   ZmodMixin add_polyA add_polyC add_poly0 add_poly_opp.
-Canonical Structure poly_zmodType := Eval hnf in ZmodType poly_zmodMixin.
+Canonical Structure poly_zmodType :=
+  Eval hnf in ZmodType {poly R} poly_zmodMixin.
 Canonical Structure polynomial_zmodType :=
   Eval hnf in [zmodType of polynomial R for poly_zmodType].
 
@@ -474,9 +476,10 @@ Lemma nonzero_poly1 : 1%:P != 0. Proof. by rewrite polyC_eq0 nonzero1r. Qed.
 Definition poly_ringMixin :=
   RingMixin mul_polyA mul_1poly mul_poly1 mul_poly_addl mul_poly_addr
             nonzero_poly1.
-Canonical Structure poly_ringType := Eval hnf in RingType poly_ringMixin.
+Canonical Structure poly_ringType :=
+  Eval hnf in RingType {poly R} poly_ringMixin.
 Canonical Structure polynomial_ringType :=
-   Eval hnf in [ringType of polynomial R for poly_ringType].
+  Eval hnf in [ringType of polynomial R for poly_ringType].
 
 Lemma polyC1 : 1%:P = 1. Proof. by []. Qed.
 
@@ -1155,7 +1158,7 @@ by apply: eq_bigr => j _; rewrite mulrC.
 Qed.
 
 Canonical Structure poly_comRingType :=
-  Eval hnf in [comRingType of {poly R} for ComRingType poly_mulC].
+  Eval hnf in ComRingType {poly R} poly_mulC.
 Canonical Structure polynomial_comRingType :=
   Eval hnf in [comRingType of polynomial R for poly_comRingType].
 
@@ -1262,24 +1265,19 @@ Definition poly_unitRingMixin :=
   ComUnitRingMixin poly_mulVp poly_intro_unit poly_inv_out.
 
 Canonical Structure poly_unitRingType :=
-   Eval hnf in [unitRingType of {poly R}
-            for Com_UnitRingType poly_unitRingMixin].
+  Eval hnf in UnitRingType {poly R} poly_unitRingMixin.
+Canonical Structure polynomial_unitRingType :=
+  Eval hnf in [unitRingType of polynomial R for poly_unitRingType].
 
 Canonical Structure poly_comUnitRingType :=
-   Eval hnf in [comUnitRingType of {poly R}
-            for ComUnitRingType poly_unitRingMixin].
+  Eval hnf in [comUnitRingType of {poly R}].
+Canonical Structure polynomial_comUnitRingType :=
+  Eval hnf in [comUnitRingType of polynomial R].
 
 Canonical Structure poly_idomainType :=
-   Eval hnf in IdomainType poly_idomainMixin.
-
-Canonical Structure polynomial_unitRingType :=
-   Eval hnf in [unitRingType of polynomial R for poly_unitRingType].
-
-Canonical Structure polynomial_comUnitRingType :=
-   Eval hnf in [comUnitRingType of polynomial R for poly_comUnitRingType].
-
+  Eval hnf in IdomainType {poly R} poly_idomainMixin.
 Canonical Structure polynomial_idomainType :=
-   Eval hnf in [idomainType of polynomial R for poly_idomainType].
+  Eval hnf in [idomainType of polynomial R for poly_idomainType].
 
 Lemma modp_mull : forall p q, p * q %% q = 0.
 Proof.
@@ -1551,4 +1549,3 @@ elim: rs Urs => //= x rs IHrs; case/andP=> rs_x; move/IHrs->; rewrite andbT.
 apply/allP=> y rs_y; rewrite /diff_roots mulrC eqxx unitfE.
 by rewrite (can2_eq (subrK _) (addrK _)) add0r; apply: contra rs_x; move/eqP<-.
 Qed.
-

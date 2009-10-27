@@ -149,7 +149,7 @@ by elim: n m => [|n IHn] [|m] //=; move/IHn->.
 Qed.
 
 Canonical Structure nat_eqMixin := EqMixin eqnP.
-Canonical Structure nat_eqType := Eval hnf in EqType nat_eqMixin.
+Canonical Structure nat_eqType := Eval hnf in EqType nat nat_eqMixin.
 
 Implicit Arguments eqnP [x y].
 Prenex Implicits eqnP.
@@ -1408,7 +1408,7 @@ by case: q; case: p => //; elim=> [p IHp|p IHp|] [q|q|] //=; case/IHp=> ->.
 Qed.
 
 Canonical Structure bin_nat_eqMixin := EqMixin eq_binP.
-Canonical Structure bin_nat_eqType := Eval hnf in EqType bin_nat_eqMixin.
+Canonical Structure bin_nat_eqType := Eval hnf in EqType N bin_nat_eqMixin.
 
 Section NumberInterpretation.
 
@@ -1499,7 +1499,7 @@ Coercion extend_number : number >-> Funclass.
 Canonical Structure number_subType :=
   [newType for bin_of_number by number_rect].
 Definition number_eqMixin := Eval hnf in [eqMixin of number by <:].
-Canonical Structure number_eqType := Eval hnf in EqType number_eqMixin.
+Canonical Structure number_eqType := Eval hnf in EqType number number_eqMixin.
 
 Notation "[ 'Num' 'of' e ]" := (Num (bin_of_nat e))
   (at level 0, format "[ 'Num'  'of'  e ]") : nat_scope.

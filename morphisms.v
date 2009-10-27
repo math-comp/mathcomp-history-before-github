@@ -62,7 +62,7 @@ Structure morphism (A : {set aT}) : Type := Morphism {
 
 Definition morphism_for A of phant rT := morphism A.
 
-Definition repack_morphism A f :=
+Definition clone_morphism A f :=
   let: Morphism _ fM := f
     return {type of @Morphism A for f} -> morphism_for A (Phant rT)
   in fun k => k fM.
@@ -84,9 +84,10 @@ End MorphismStructure.
 
 Notation "{ 'morphism' A >-> T }" := (morphism_for A (Phant T))
   (at level 0, format "{ 'morphism'  A  >->  T }") : group_scope.
-
-Notation "[ 'morphism' 'of' f ]" :=
-     (repack_morphism (fun fM => @Morphism _ _ _ f fM))
+Notation "[ 'morphism' A 'of' f ]" :=
+     (@clone_morphism _ _ A _ (fun fM => @Morphism _ _ A f fM))
+   (at level 0, format "[ 'morphism'  A  'of'  f ]") : form_scope.
+Notation "[ 'morphism' 'of' f ]" := (clone_morphism (@Morphism _ _ _ f))
    (at level 0, format "[ 'morphism'  'of'  f ]") : form_scope.
 
 Implicit Arguments morphimP [aT rT A B f y].
@@ -102,14 +103,14 @@ Variables (aT rT : finGroupType) (A : {set aT}) (f : {morphism A >-> rT}).
 Lemma morphM : {in A &, {morph f : x y / x * y}}.
 Proof. by case f. Qed.
 
-Notation morphantom := (phantom (aT -> rT)).
-Definition MorPhantom := @Phantom (aT -> rT).
+Notation morPhantom := (phantom (aT -> rT)).
+Definition MorPhantom := Phantom (aT -> rT).
 
-Definition dom of morphantom f := A.
+Definition dom of morPhantom f := A.
 
-Definition morphim of morphantom f := fun B => f @: (A :&: B).
+Definition morphim of morPhantom f := fun B => f @: (A :&: B).
 
-Definition morphpre of morphantom f := fun C : {set rT} => A :&: f @^-1: C.
+Definition morphpre of morPhantom f := fun C : {set rT} => A :&: f @^-1: C.
 
 Definition ker mph := morphpre mph 1.
 

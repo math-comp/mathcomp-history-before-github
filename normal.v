@@ -70,16 +70,19 @@ Record coset_of : Type :=
 Canonical Structure coset_subType :=
   Eval hnf in [subType for set_of_coset by coset_of_rect].
 Definition coset_eqMixin := Eval hnf in [eqMixin of coset_of by <:].
-Canonical Structure coset_eqType := Eval hnf in EqType coset_eqMixin.
+Canonical Structure coset_eqType :=
+  Eval hnf in EqType coset_of coset_eqMixin.
 Definition coset_choiceMixin := [choiceMixin of coset_of by <:].
 Canonical Structure coset_choiceType :=
-  Eval hnf in ChoiceType coset_choiceMixin.
+  Eval hnf in ChoiceType coset_of coset_choiceMixin.
 Definition coset_countMixin := [countMixin of coset_of by <:].
-Canonical Structure coset_countType := Eval hnf in CountType coset_countMixin.
+Canonical Structure coset_countType :=
+  Eval hnf in CountType coset_of coset_countMixin.
 Canonical Structure coset_subCountType :=
   Eval hnf in [subCountType of coset_of].
 Definition coset_finMixin := [finMixin of coset_of by <:].
-Canonical Structure coset_finType := Eval hnf in FinType coset_finMixin.
+Canonical Structure coset_finType :=
+  Eval hnf in FinType coset_of coset_finMixin.
 Canonical Structure coset_subFinType := Eval hnf in [subFinType of coset_of].
 
 (* We build a new (canonical) structure of groupType for cosets.      *)
@@ -128,7 +131,7 @@ Definition coset_of_groupMixin :=
   FinGroup.Mixin coset_mulP coset_oneP coset_invP.
 
 Canonical Structure coset_baseGroupType :=
-  Eval hnf in BaseFinGroupType coset_of_groupMixin.
+  Eval hnf in BaseFinGroupType coset_of coset_of_groupMixin.
 Canonical Structure coset_groupType := FinGroupType coset_invP.
 
 (* Projection of the initial group type over the cosets groupType  *)
@@ -643,8 +646,7 @@ Qed.
 
 Definition quotm := factm quotm_ker_proof nHG.
 
-Canonical Structure quotm_morphism :=
-  repack_morphism (fun qM => @Morphism _ _ (G / H) quotm qM).
+Canonical Structure quotm_morphism := [morphism G / H of quotm].
 
 Lemma quotmE : forall x, x \in G -> quotm (coset H x) = coset (f @* H) (f x).
 Proof. exact: factmE. Qed.

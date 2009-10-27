@@ -29,6 +29,29 @@ Require Import ssreflect.
 (*  all_equal_to x0 == x0 is the only value in its type, so any such value   *)
 (*                     can be rewritten to x0.                               *)
 (*                                                                           *)
+(* - identity functions                                                      *)
+(*    id           == NOTATION for the explicit identity function fun x => x *)
+(*    @id T        == notation for the explicit identity at type T           *)
+(*    idfun        == a constant whose definition is the identity function   *)
+(*    phant_id x y == the function type phantom _ x -> phantom _ y           *)
+(* *** In addition to their casual use in functional programming, identity   *)
+(* functions are often used to trigger static unification as part of the     *)
+(* construction of dependent Records and Structures. For example, if we need *)
+(* a structure sT over a type T, we take as arguments T, sT, and a "dummy"   *)
+(* function T -> sort sT:                                                    *)
+(*   Definition foo T sT & T -> sort sT := ...                               *)
+(* We can avoid specifying sT directly by calling foo (@id T), or specify    *)
+(* the call completely while still ensuring the consistency of T ans sT, by  *)
+(* calling @foo T sT idfun. The phant_id type allows us to extend this trick *)
+(* to non-Type canonical projections. It also allows us to sidestep          *)
+(* dependent type constraints when building explicit records, e.g., given    *)
+(*    Record r := R { x; y : T(x)}.                                          *)
+(* if we need to build an r from a given y0 while inferring some x0, such    *)
+(* that y0 : T(x0), we pose                                                  *)
+(*    Definition mk_r .. y .. (x := ...) y' & phant_id y y' := R x y'.       *)
+(* Calling @mk_r .. y0 .. id will cause Coq to use y' := y0, while checking  *)
+(* the dependent type constraint y0 : T(x0).                                 *)
+(*                                                                           *)
 (* - extensional equality for functions and relations (i.e. functions of two *)
 (*   arguments),                                                             *)
 (*    f1 =1 f2      ==  f1 x is equal to f2 x forall x                       *)
@@ -38,7 +61,10 @@ Require Import ssreflect.
 (*                                                                           *)
 (* - composition for total and partial functions,                            *)
 (*            f^~ y == function f with y as second argument y                *)
+(*                     caveat: conditional (non-maximal) implicit arguments  *)
+(*                     of f are NOT inserted in this context                 *)
 (*        f1 \o f2  == composition of f1 and f2                              *)
+(*                     note: (f1 \o f2) x simplifies to f1 (f2 x)            *)
 (*      pcomp f1 f2 == composition of partial functions f1 and f2            *)
 (*                                                                           *)
 (* - properties of functions                                                 *)
@@ -278,7 +304,8 @@ Section Composition.
 
 Variables A B C : Type.
 
-Definition comp (f : B -> A) (g : C -> B) := [fun x => f (g x)].
+Definition funcomp u (f : B -> A) (g : C -> B) x := let: tt := u in f (g x).
+Local Notation comp := (funcomp tt).
 
 Definition pcomp (f : B -> option A) (g : C -> option B) x := obind f (g x).
 
@@ -294,10 +321,14 @@ Notation id := (fun x => x).
 Notation "@ 'id' T " := (fun x : T => x)
   (at level 10, T at level 8, only parsing) : fun_scope.
 
+Notation comp := (funcomp tt).
+Notation "@ 'comp'" := (fun A B C => @funcomp A B C tt).
 Notation "f1 \o f2" := (comp f1 f2) (at level 50) : fun_scope.
 
 Definition idfun T := @id T.
 Prenex Implicits idfun.
+
+Definition phant_id T1 T2 v1 v2 := phantom T1 v1 -> phantom T2 v2.
 
 Section Morphism.
 

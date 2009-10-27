@@ -108,17 +108,19 @@ Coercion quotient_of_section (u : section) : GroupSet.sort _ := u.1 / u.2.
 Canonical Structure section_subType := 
   Eval hnf in [newType for pair_of_section by section_rect].
 Definition section_eqMixin := Eval hnf in [eqMixin of section by <:].
-Canonical Structure section_eqType := Eval hnf in EqType section_eqMixin.
+Canonical Structure section_eqType :=
+  Eval hnf in EqType section section_eqMixin.
 Definition section_choiceMixin := [choiceMixin of section by <:].
 Canonical Structure section_choiceType :=
-  Eval hnf in ChoiceType section_choiceMixin.
+  Eval hnf in ChoiceType section section_choiceMixin.
 Definition section_countMixin := [countMixin of section by <:].
 Canonical Structure section_countType :=
-   Eval hnf in CountType section_countMixin.
+   Eval hnf in CountType section section_countMixin.
 Canonical Structure section_subCountType :=
   Eval hnf in [subCountType of section].
 Definition section_finMixin := [finMixin of section by <:].
-Canonical Structure section_finType := Eval hnf in FinType section_finMixin.
+Canonical Structure section_finType :=
+  Eval hnf in FinType section section_finMixin.
 Canonical Structure section_subFinType := Eval hnf in [subFinType of section].
 Canonical Structure section_group (u : section) : {group coset_of u.2} :=
   Eval hnf in [group of u].

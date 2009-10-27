@@ -205,17 +205,10 @@ Implicit Arguments connectP [T e x y].
 Implicit Arguments rootP [T e x y].
 Prenex Implicits connectP rootP.
 
-Notation "'fconnect' f" := (connect (frel f))
-  (at level 10, f at level 8) : seq_scope.
-
-Notation "'froot' f" := (root (frel f))
-  (at level 10, f at level 8) : seq_scope.
-
-Notation "'froots' f" := (roots (frel f))
-  (at level 10, f at level 8) : seq_scope.
-
-Notation "'fcard' f" := (n_comp (frel f))
-  (at level 10, f at level 8) : seq_scope.
+Notation fconnect f := (connect (frel f)).
+Notation froot f := (root (frel f)).
+Notation froots f := (roots (frel f)).
+Notation fcard f := (n_comp (frel f)).
 
 Section EqConnect.
 
@@ -349,11 +342,8 @@ Qed.
 
 End Closure.
 
-Notation "'fclosed' f" := (closed (frel f))
-  (at level 10, f at level 8) : seq_scope.
-
-Notation "'fclosure' f" := (closure (frel f))
-  (at level 10, f at level 8) : seq_scope.
+Notation fclosed f := (closed (frel f)).
+Notation fclosure f := (closure (frel f)).
 
 Prenex Implicits closed closure.
 

@@ -34,35 +34,45 @@ Import Prenex Implicits.
 
 Module FinRing.
 
-Record mixin_of T b := Mixin {
-  count_ext; count_base := Countable.Class b count_ext;
-  fin_ext : Finite.mixin_of (@Equality.Pack T count_base T)
-}.
-Coercion fin_base T b m := Finite.Class (@fin_ext T b m).
+Local Notation mixin_of T b := (Finite.mixin_of (EqType T b)).
 
-Definition repack aft afc (Paf : forall T, afc T -> Type -> aft)
-           ac pac (Caf : forall T (c : ac T), @mixin_of T (pac T c) -> afc T)
-           Ta (c_a : ac Ta) T p_a :=
-   let k Tf cf :=
-     let: Finite.Class (Countable.Class cn mn) mf := cf
-        return (mixin_of cf -> _) -> _ in
-     fun p_f => Paf T (Caf T (p_a c_a) (p_f (@Mixin Tf cn mn mf))) T in
-   Finite.unpack k.
+Section Generic.
+
+(* Implicits *)
+Variables (type base_type : Type) (class_of base_of : Type -> Type).
+Variable to_choice : forall T, base_of T -> Choice.class_of T.
+Variable base_sort : base_type -> Type.
+
+(* Explicits *)
+Variable Pack : forall T, class_of T -> Type -> type.
+Variable Class : forall T b, mixin_of T (to_choice b) -> class_of T.
+Variable base_class : forall bT, base_of (base_sort bT).
+
+Definition gen_pack T :=
+  fun bT b & phant_id (base_class bT) b =>
+  fun fT m & phant_id (Finite.class fT) (Finite.Class m) =>
+  Pack (@Class T b m) T.
+
+End Generic.
+
+Implicit Arguments
+   gen_pack [type0 base_type class_of0 base_of to_choice base_sort].
+Local Notation fin_ class cT := (@Finite.Class _ (class cT) (class cT)).
 
 Module Zmodule.
 
 Record class_of M :=
-  Class { base :> GRing.Zmodule.class_of M; ext :> mixin_of base }.
+  Class { base :> GRing.Zmodule.class_of M; ext :> mixin_of M base }.
 Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition pack := GRing.Zmodule.unpack (repack Pack Class).
+Definition pack := gen_pack Pack Class GRing.Zmodule.class.
 
 Coercion eqType cT := Equality.Pack (class cT) cT.
 Coercion choiceType cT := Choice.Pack (class cT) cT.
-Coercion countType cT := Countable.Pack (class cT) cT.
-Coercion finType cT := Finite.Pack (class cT) cT.
+Coercion countType cT := Countable.Pack (fin_ class cT) cT.
+Coercion finType cT := Finite.Pack (fin_ class cT) cT.
 Coercion zmodType cT := GRing.Zmodule.Pack (class cT) cT.
-Definition join_finType cT := @Finite.Pack (zmodType cT) (class cT) cT.
+Definition join_finType cT := @Finite.Pack (zmodType cT) (fin_ class cT) cT.
 
 End Zmodule.
 
@@ -75,7 +85,7 @@ Canonical Structure Zmodule.zmodType.
 Definition zmod_GroupMixin : FinGroup.mixin_of M :=
   FinGroup.Mixin (@GRing.addrA _) (@GRing.add0r _) (@GRing.addNr _).
 
-Canonical Structure zmod_baseFinGroupType := BaseFinGroupType zmod_GroupMixin.
+Canonical Structure zmod_baseFinGroupType := BaseFinGroupType M zmod_GroupMixin.
 Canonical Structure zmod_finGroupType := FinGroupType (@GRing.addNr M).
 
 Lemma zmod1gE : 1%g = 0 :> M.                      Proof. by []. Qed.
@@ -96,20 +106,20 @@ Coercion zmod_finGroupType : Zmodule.type >-> finGroupType.
 Module Ring.
 
 Record class_of R :=
-  Class { base1 :> GRing.Ring.class_of R; ext :> mixin_of base1 }.
+  Class { base1 :> GRing.Ring.class_of R; ext :> mixin_of R base1 }.
 Coercion base2 R (c : class_of R) := Zmodule.Class c.
 Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition pack := GRing.Ring.unpack (repack Pack Class).
+Definition pack := gen_pack Pack Class GRing.Ring.class.
 
 Coercion eqType cT := Equality.Pack (class cT) cT.
 Coercion choiceType cT := Choice.Pack (class cT) cT.
-Coercion countType cT := Countable.Pack (class cT) cT.
-Coercion finType cT := Finite.Pack (class cT) cT.
+Coercion countType cT := Countable.Pack (fin_ class cT) cT.
+Coercion finType cT := Finite.Pack (fin_ class cT) cT.
 Coercion zmodType cT := GRing.Zmodule.Pack (class cT) cT.
 Coercion finZmodType cT := Zmodule.Pack (class cT) cT.
 Coercion ringType cT := GRing.Ring.Pack (class cT) cT.
-Definition join_finType cT := @Finite.Pack (ringType cT) (class cT) cT.
+Definition join_finType cT := @Finite.Pack (ringType cT) (fin_ class cT) cT.
 Definition join_finZmodType cT := @Zmodule.Pack (ringType cT) (class cT) cT.
 
 Section Unit.
@@ -154,22 +164,22 @@ End Ring.
 Module ComRing.
 
 Record class_of R :=
-  Class { base1 :> GRing.ComRing.class_of R; ext :> mixin_of base1 }.
+  Class { base1 :> GRing.ComRing.class_of R; ext :> mixin_of R base1 }.
 Coercion base2 R (c : class_of R) := Ring.Class c.
 Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition pack := GRing.ComRing.unpack (repack Pack Class).
+Definition pack := gen_pack Pack Class GRing.ComRing.class.
 
 Coercion eqType cT := Equality.Pack (class cT) cT.
 Coercion choiceType cT := Choice.Pack (class cT) cT.
-Coercion countType cT := Countable.Pack (class cT) cT.
-Coercion finType cT := Finite.Pack (class cT) cT.
+Coercion countType cT := Countable.Pack (fin_ class cT) cT.
+Coercion finType cT := Finite.Pack (fin_ class cT) cT.
 Coercion zmodType cT := GRing.Zmodule.Pack (class cT) cT.
 Coercion finZmodType cT := Zmodule.Pack (class cT) cT.
 Coercion ringType cT := GRing.Ring.Pack (class cT) cT.
 Coercion finRingType cT := Ring.Pack (class cT) cT.
 Coercion comRingType cT := GRing.ComRing.Pack (class cT) cT.
-Definition join_finType cT := @Finite.Pack (comRingType cT) (class cT) cT.
+Definition join_finType cT := @Finite.Pack (comRingType cT) (fin_ class cT) cT.
 Definition join_finZmodType cT := @Zmodule.Pack (comRingType cT) (class cT) cT.
 Definition join_finRingType cT := @Ring.Pack (comRingType cT) (class cT) cT.
 
@@ -178,22 +188,22 @@ End ComRing.
 Module UnitRing.
 
 Record class_of R :=
-  Class { base1 :> GRing.UnitRing.class_of R; ext :> mixin_of base1 }.
+  Class { base1 :> GRing.UnitRing.class_of R; ext :> mixin_of R base1 }.
 Coercion base2 R (c : class_of R) := Ring.Class c.
 Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition pack := GRing.UnitRing.unpack (repack Pack Class).
+Definition pack := gen_pack Pack Class GRing.UnitRing.class.
 
 Coercion eqType cT := Equality.Pack (class cT) cT.
 Coercion choiceType cT := Choice.Pack (class cT) cT.
-Coercion countType cT := Countable.Pack (class cT) cT.
-Coercion finType cT := Finite.Pack (class cT) cT.
+Coercion countType cT := Countable.Pack (fin_ class cT) cT.
+Coercion finType cT := Finite.Pack (fin_ class cT) cT.
 Coercion zmodType cT := GRing.Zmodule.Pack (class cT) cT.
 Coercion finZmodType cT := Zmodule.Pack (class cT) cT.
 Coercion ringType cT := GRing.Ring.Pack (class cT) cT.
 Coercion finRingType cT := Ring.Pack (class cT) cT.
 Coercion unitRingType cT := GRing.UnitRing.Pack (class cT) cT.
-Definition join_finType cT := @Finite.Pack (unitRingType cT) (class cT) cT.
+Definition join_finType cT := @Finite.Pack (unitRingType cT) (fin_ class cT) cT.
 Definition join_finZmodType cT := @Zmodule.Pack (unitRingType cT) (class cT) cT.
 Definition join_finRingType cT := @Ring.Pack (unitRingType cT) (class cT) cT.
 
@@ -218,14 +228,15 @@ Definition uval (u : uT) := let: Unit x _ := u in x.
 
 Canonical Structure unit_subType := [subType for uval by @unit_of_rect phR].
 Definition unit_eqMixin := Eval hnf in [eqMixin of uT by <:].
-Canonical Structure unit_eqType := Eval hnf in EqType unit_eqMixin.
+Canonical Structure unit_eqType := Eval hnf in EqType uT unit_eqMixin.
 Definition unit_choiceMixin := [choiceMixin of uT by <:].
-Canonical Structure unit_choiceType := Eval hnf in ChoiceType unit_choiceMixin.
+Canonical Structure unit_choiceType :=
+  Eval hnf in ChoiceType uT unit_choiceMixin.
 Definition unit_countMixin := [countMixin of uT by <:].
-Canonical Structure unit_countType := Eval hnf in CountType unit_countMixin.
+Canonical Structure unit_countType := Eval hnf in CountType uT unit_countMixin.
 Canonical Structure unit_subCountType := Eval hnf in [subCountType of uT].
 Definition unit_finMixin := [finMixin of uT by <:].
-Canonical Structure unit_finType := Eval hnf in FinType unit_finMixin.
+Canonical Structure unit_finType := Eval hnf in FinType uT unit_finMixin.
 Canonical Structure unit_subFinType := Eval hnf in [subFinType of uT].
 
 Definition unit1 := Unit phR (@GRing.unitr1 _).
@@ -243,8 +254,9 @@ Lemma unit_mulVu : left_inverse unit1 unit_inv unit_mul.
 Proof. move=> u; apply: val_inj; exact: GRing.mulVr (valP u). Qed.
 
 Definition unit_GroupMixin := FinGroup.Mixin unit_muluA unit_mul1u unit_mulVu.
-Canonical Structure unit_baseFinGroupType := BaseFinGroupType unit_GroupMixin.
-Canonical Structure unit_finGroupType := FinGroupType unit_mulVu.
+Canonical Structure unit_baseFinGroupType :=
+  Eval hnf in BaseFinGroupType uT unit_GroupMixin.
+Canonical Structure unit_finGroupType := Eval hnf in FinGroupType unit_mulVu.
 
 Definition unit_act x (u : uT) := x * val u.
 Lemma unit_actE : forall x u, unit_act x u = x * val u. Proof. by []. Qed.
@@ -264,17 +276,17 @@ End UnitsGroup.
 Module ComUnitRing.
 
 Record class_of R :=
-  Class { base1 :> GRing.ComUnitRing.class_of R; ext :> mixin_of base1 }.
+  Class { base1 :> GRing.ComUnitRing.class_of R; ext :> mixin_of R base1 }.
 Coercion base2 R (c : class_of R) := ComRing.Class c.
 Coercion base3 R (c : class_of R) := @UnitRing.Class R c c.
 Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition pack := GRing.ComUnitRing.unpack (repack Pack Class).
+Definition pack := gen_pack Pack Class GRing.ComUnitRing.class.
 
 Coercion eqType cT := Equality.Pack (class cT) cT.
 Coercion choiceType cT := Choice.Pack (class cT) cT.
-Coercion countType cT := Countable.Pack (class cT) cT.
-Coercion finType cT := Finite.Pack (class cT) cT.
+Coercion countType cT := Countable.Pack (fin_ class cT) cT.
+Coercion finType cT := Finite.Pack (fin_ class cT) cT.
 Coercion zmodType cT := GRing.Zmodule.Pack (class cT) cT.
 Coercion finZmodType cT := Zmodule.Pack (class cT) cT.
 Coercion ringType cT := GRing.Ring.Pack (class cT) cT.
@@ -289,7 +301,7 @@ Section Joins.
 Variable cT : type.
 Let clT := class cT.
 Let cT' := comUnitRingType cT.
-Definition join_finType := @Finite.Pack cT' clT cT.
+Definition join_finType := @Finite.Pack cT' (fin_ class cT) cT.
 Definition join_finZmodType := @Zmodule.Pack cT' clT cT.
 Definition join_finRingType := @Ring.Pack cT' clT cT.
 Definition join_finComRingType := @ComRing.Pack cT' clT cT.
@@ -304,16 +316,16 @@ End ComUnitRing.
 Module IntegralDomain.
 
 Record class_of R :=
-  Class { base1 :> GRing.IntegralDomain.class_of R; ext :> mixin_of base1 }.
+  Class { base1 :> GRing.IntegralDomain.class_of R; ext :> mixin_of R base1 }.
 Coercion base2 R (c : class_of R) := ComUnitRing.Class c.
 Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition pack := GRing.IntegralDomain.unpack (repack Pack Class).
+Definition pack := gen_pack Pack Class GRing.IntegralDomain.class.
 
 Coercion eqType cT := Equality.Pack (class cT) cT.
 Coercion choiceType cT := Choice.Pack (class cT) cT.
-Coercion countType cT := Countable.Pack (class cT) cT.
-Coercion finType cT := Finite.Pack (class cT) cT.
+Coercion countType cT := Countable.Pack (fin_ class cT) cT.
+Coercion finType cT := Finite.Pack (fin_ class cT) cT.
 Coercion zmodType cT := GRing.Zmodule.Pack (class cT) cT.
 Coercion finZmodType cT := Zmodule.Pack (class cT) cT.
 Coercion ringType cT := GRing.Ring.Pack (class cT) cT.
@@ -330,7 +342,7 @@ Section Joins.
 Variable cT : type.
 Let clT := class cT.
 Let cT' := idomainType cT.
-Definition join_finType := @Finite.Pack cT' clT cT.
+Definition join_finType := @Finite.Pack cT' (fin_ class cT) cT.
 Definition join_finZmodType := @Zmodule.Pack cT' clT cT.
 Definition join_finRingType := @Ring.Pack cT' clT cT.
 Definition join_finUnitRingType := @UnitRing.Pack cT' clT cT.
@@ -343,16 +355,16 @@ End IntegralDomain.
 Module Field.
 
 Record class_of R :=
-  Class { base1 :> GRing.Field.class_of R; ext :> mixin_of base1 }.
+  Class { base1 :> GRing.Field.class_of R; ext :> mixin_of R base1 }.
 Coercion base2 R (c : class_of R) := IntegralDomain.Class c.
 Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition pack := GRing.Field.unpack (repack Pack Class).
+Definition pack := gen_pack Pack Class GRing.Field.class.
 
 Coercion eqType cT := Equality.Pack (class cT) cT.
 Coercion choiceType cT := Choice.Pack (class cT) cT.
-Coercion countType cT := Countable.Pack (class cT) cT.
-Coercion finType cT := Finite.Pack (class cT) cT.
+Coercion countType cT := Countable.Pack (fin_ class cT) cT.
+Coercion finType cT := Finite.Pack (fin_ class cT) cT.
 Coercion zmodType cT := GRing.Zmodule.Pack (class cT) cT.
 Coercion finZmodType cT := Zmodule.Pack (class cT) cT.
 Coercion ringType cT := GRing.Ring.Pack (class cT) cT.
@@ -371,7 +383,7 @@ Section Joins.
 Variable cT : type.
 Let clT := class cT.
 Let cT' := fieldType cT.
-Definition join_finType := @Finite.Pack cT' clT cT.
+Definition join_finType := @Finite.Pack cT' (fin_ class cT) cT.
 Definition join_finZmodType := @Zmodule.Pack cT' clT cT.
 Definition join_finRingType := @Ring.Pack cT' clT cT.
 Definition join_finUnitRingType := @UnitRing.Pack cT' clT cT.
@@ -414,14 +426,15 @@ Definition DecidableFieldMixin := DecFieldMixin decidable.
 
 End DecideField.
 
+Canonical Structure Field.fieldType.
 Coercion decFieldType (F : Field.type) :=
-  @DecFieldType F (DecidableFieldMixin F).
+  Eval hnf in DecFieldType F (DecidableFieldMixin F).
 
 Section DecFieldJoins.
 Variable cT : Field.type.
 Let clT := Field.class cT.
 Let cT' := decFieldType cT.
-Definition decField_finType := @Finite.Pack cT' clT cT.
+Definition decField_finType := @Finite.Pack cT' (fin_ Field.class cT) cT.
 Definition decField_finZmodType := @Zmodule.Pack cT' clT cT.
 Definition decField_finRingType := @Ring.Pack cT' clT cT.
 Definition decField_finUnitRingType := @UnitRing.Pack cT' clT cT.
@@ -595,21 +608,22 @@ Notation finComUnitRingType := FinRing.ComUnitRing.type.
 Notation finIdomainType := FinRing.IntegralDomain.type.
 Notation finFieldType := FinRing.Field.type.
 
-Notation "[ 'finZmodType' 'of' T ]" := (@FinRing.Zmodule.pack _ T id _ id)
+Local Notation do_pack pack T := (pack T _ _ id _ _ id).
+Notation "[ 'finZmodType' 'of' T ]" := (do_pack FinRing.Zmodule.pack T)
   (at level 0, format "[ 'finZmodType'  'of'  T ]") : form_scope.
-Notation "[ 'finRingType' 'of' T ]" := (@FinRing.Ring.pack _ T id _ id)
+Notation "[ 'finRingType' 'of' T ]" := (do_pack FinRing.Ring.pack T)
   (at level 0, format "[ 'finRingType'  'of'  T ]") : form_scope.
-Notation "[ 'finComRingType' 'of' T ]" := (@FinRing.ComRing.pack _ T id _ id)
+Notation "[ 'finComRingType' 'of' T ]" := (do_pack FinRing.ComRing.pack T)
   (at level 0, format "[ 'finComRingType'  'of'  T ]") : form_scope.
-Notation "[ 'finUnitRingType' 'of' T ]" := (@FinRing.UnitRing.pack _ T id _ id)
+Notation "[ 'finUnitRingType' 'of' T ]" := (do_pack FinRing.UnitRing.pack T)
   (at level 0, format "[ 'finUnitRingType'  'of'  T ]") : form_scope.
 Notation "[ 'finComUnitRingType' 'of' T ]" :=
-  (@FinRing.ComUnitRing.pack _ T id _ id)
+    (do_pack FinRing.ComUnitRing.pack T)
   (at level 0, format "[ 'finComUnitRingType'  'of'  T ]") : form_scope.
 Notation "[ 'finIdomainType' 'of' T ]" :=
-  (@FinRing.IntegralDomain.pack _ T id _ id)
+    (do_pack FinRing.IntegralDomain.pack T)
   (at level 0, format "[ 'finIdomainType'  'of'  T ]") : form_scope.
-Notation "[ 'finFieldType' 'of' T ]" := (@FinRing.Field.pack _ T id _ id)
+Notation "[ 'finFieldType' 'of' T ]" := (do_pack FinRing.Field.pack T)
   (at level 0, format "[ 'finFieldType'  'of'  T ]") : form_scope.
 
 Notation "{ 'unit' R }" := (FinRing.unit_of (Phant R))
@@ -620,70 +634,68 @@ Notation "''U'" := (FinRing.unit_groupAction _)
   (at level 0) : groupAction_scope.
 
 Notation "[ 'baseFinGroupType' 'of' R 'for' +%R ]" :=
-  (@FinGroup.repack_base (FinRing.zmod_baseFinGroupType _)
-                         (@FinGroup.PackBase R))
+    (BaseFinGroupType R (FinRing.zmod_GroupMixin _))
   (at level 0, format "[ 'baseFinGroupType'  'of'  R  'for'  +%R ]")
-     : form_scope.
+    : form_scope.
 Notation "[ 'finGroupType' 'of' R 'for' +%R ]" :=
-  (@FinGroup.repack (FinRing.zmod_finGroupType _)
-                    (FinGroup.repack_arg (Phant R)))
+    (@FinGroup.clone R _ (FinRing.zmod_finGroupType _) id _ id)
   (at level 0, format "[ 'finGroupType'  'of'  R  'for'  +%R ]") : form_scope.
 
 Canonical Structure finRing_baseFinGroupType (R : finRingType) :=
-  [baseFinGroupType of R for +%R].
+  Eval hnf in [baseFinGroupType of R for +%R].
 Canonical Structure finRing_finGroupType (R : finRingType) :=
-  [finGroupType of R for +%R].
+  Eval hnf in [finGroupType of R for +%R].
 Canonical Structure finComRing_baseFinGroupType (R : finComRingType) :=
-  [baseFinGroupType of R for +%R].
+  Eval hnf in [baseFinGroupType of R for +%R].
 Canonical Structure finComRing_finGroupType (R : finComRingType) :=
-  [finGroupType of R for +%R].
+  Eval hnf in [finGroupType of R for +%R].
 Canonical Structure finUnitRing_baseFinGroupType (R : finUnitRingType) :=
-  [baseFinGroupType of R for +%R].
+  Eval hnf in [baseFinGroupType of R for +%R].
 Canonical Structure finUnitRing_finGroupType (R : finUnitRingType) :=
-  [finGroupType of R for +%R].
+  Eval hnf in [finGroupType of R for +%R].
 Canonical Structure finComUnitRing_baseFinGroupType (R : finComUnitRingType) :=
-  [baseFinGroupType of R for +%R].
+  Eval hnf in [baseFinGroupType of R for +%R].
 Canonical Structure finComUnitRing_finGroupType (R : finComUnitRingType) :=
-  [finGroupType of R for +%R].
+  Eval hnf in [finGroupType of R for +%R].
 Canonical Structure finIdomain_baseFinGroupType (R : finIdomainType) :=
-  [baseFinGroupType of R for +%R].
+  Eval hnf in [baseFinGroupType of R for +%R].
 Canonical Structure finIdomain_finGroupType (R : finIdomainType) :=
-  [finGroupType of R for +%R].
+  Eval hnf in [finGroupType of R for +%R].
 Canonical Structure finField_baseFinGroupType (F : finFieldType) :=
-  [baseFinGroupType of F for +%R].
+  Eval hnf in [baseFinGroupType of F for +%R].
 Canonical Structure finField_finGroupType (F : finFieldType) :=
-  [finGroupType of F for +%R].
+  Eval hnf in [finGroupType of F for +%R].
 
 Canonical Structure zmod_baseFinGroupType (M : finZmodType) :=
-  [baseFinGroupType of M : zmodType for +%R].
+  Eval hnf in [baseFinGroupType of M : zmodType for +%R].
 Canonical Structure zmod_finGroupType (M : finZmodType) :=
-  [finGroupType of M : zmodType for +%R].
+  Eval hnf in [finGroupType of M : zmodType for +%R].
 Canonical Structure ring_baseFinGroupType (R : finRingType) :=
-  [baseFinGroupType of R : ringType for +%R].
+  Eval hnf in [baseFinGroupType of R : ringType for +%R].
 Canonical Structure ring_finGroupType (R : finRingType) :=
-  [finGroupType of R : ringType for +%R].
+  Eval hnf in [finGroupType of R : ringType for +%R].
 Canonical Structure comRing_baseFinGroupType (R : finComRingType) :=
-  [baseFinGroupType of R : comRingType for +%R].
+  Eval hnf in [baseFinGroupType of R : comRingType for +%R].
 Canonical Structure comRing_finGroupType (R : finComRingType) :=
-  [finGroupType of R : comRingType for +%R].
+  Eval hnf in [finGroupType of R : comRingType for +%R].
 Canonical Structure unitRing_baseFinGroupType (R : finUnitRingType) :=
-  [baseFinGroupType of R : unitRingType for +%R].
+  Eval hnf in [baseFinGroupType of R : unitRingType for +%R].
 Canonical Structure unitRing_finGroupType (R : finUnitRingType) :=
-  [finGroupType of R : unitRingType for +%R].
+  Eval hnf in [finGroupType of R : unitRingType for +%R].
 Canonical Structure comUnitRing_baseFinGroupType (R : finComUnitRingType) :=
-  [baseFinGroupType of R : comUnitRingType for +%R].
+  Eval hnf in [baseFinGroupType of R : comUnitRingType for +%R].
 Canonical Structure comUnitRing_finGroupType (R : finComUnitRingType) :=
-  [finGroupType of R : comUnitRingType for +%R].
+  Eval hnf in [finGroupType of R : comUnitRingType for +%R].
 Canonical Structure idomain_baseFinGroupType (R : finIdomainType) :=
-  [baseFinGroupType of R : idomainType for +%R].
+  Eval hnf in [baseFinGroupType of R : idomainType for +%R].
 Canonical Structure idomain_finGroupType (R : finIdomainType) :=
-  [finGroupType of R : idomainType for +%R].
+  Eval hnf in [finGroupType of R : idomainType for +%R].
 Canonical Structure field_baseFinGroupType (F : finFieldType) :=
-  [baseFinGroupType of F : fieldType for +%R].
+  Eval hnf in [baseFinGroupType of F : fieldType for +%R].
 Canonical Structure field_finGroupType (F : finFieldType) :=
-  [finGroupType of F : fieldType for +%R].
+  Eval hnf in [finGroupType of F : fieldType for +%R].
 Canonical Structure decField_baseFinGroupType (F : finFieldType) :=
-  [baseFinGroupType of F : decFieldType for +%R].
+  Eval hnf in [baseFinGroupType of F : decFieldType for +%R].
 Canonical Structure decField_finGroupType (F : finFieldType) :=
-  [finGroupType of F : decFieldType for +%R].
+  Eval hnf in [finGroupType of F : decFieldType for +%R].
 

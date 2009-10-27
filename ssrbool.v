@@ -856,6 +856,10 @@ Coercion pred_of_mem mp : pred_sort predPredType :=
 
 Canonical Structure memPredType := Eval hnf in mkPredType pred_of_mem.
 
+Definition clone_pred U :=
+  fun pT & pred_sort pT -> U =>
+  fun a mP (pT' := @PredType U a mP) & phant_id pT' pT => pT'.
+
 End Predicates.
 
 Implicit Arguments pred0 [T].
@@ -873,11 +877,7 @@ Notation "[ 'rel' x y | E ]" := (SimplRel (fun x y => E))
 Notation "[ 'rel' x y : T | E ]" := (SimplRel (fun x y : T => E))
   (at level 0, x ident, y ident, only parsing) : fun_scope.
 
-Definition repack_pred T pT :=
-  let: PredType _ a mP := pT return {type of @PredType T for pT} -> _ in
-   fun k => k a mP.
-
-Notation "[ 'predType' 'of' T ]" := (repack_pred (fun a => @PredType _ T a))
+Notation "[ 'predType' 'of' T ]" := (@clone_pred _ T _ id _ _ id)
   (at level 0, format "[ 'predType'  'of'  T ]") : form_scope.
 
 (* This redundant coercion lets us "inherit" the simpl_predType canonical *)
@@ -1060,15 +1060,15 @@ Definition prop_on2 Pf P & phantom T3 (Pf f) & ph {all2 P} :=
 
 End LocalProperties.
 
-Definition inPhantom (P : Prop) := Phantom P.
-Definition onPhantom T (P : T -> Prop) x := Phantom (P x).
+Definition inPhantom := Phantom Prop.
+Definition onPhantom T P (x : T) := Phantom Prop (P x).
 
 Definition bijective_in aT rT (d : mem_pred aT) (f : aT -> rT) :=
   exists2 g, prop_in1 d (inPhantom (cancel f g))
-           & prop_on1 d (Phantom (cancel g)) (onPhantom (cancel g) f).
+           & prop_on1 d (Phantom _ (cancel g)) (onPhantom (cancel g) f).
 
 Definition bijective_on aT rT (cd : mem_pred rT) (f : aT -> rT) :=
-  exists2 g, prop_on1 cd (Phantom (cancel f)) (onPhantom (cancel f) g)
+  exists2 g, prop_on1 cd (Phantom _ (cancel f)) (onPhantom (cancel f) g)
            & prop_in1 cd (inPhantom (cancel g f)).
 
 Notation "{ 'for' x , P }" :=
@@ -1112,7 +1112,7 @@ Notation "{ 'on' cd & , P }" :=
   (at level 0, format "{ 'on'  cd  & ,  P }") : type_scope.
 
 Notation "{ 'on' cd , P & g }" :=
-  (prop_on1 (mem cd) (Phantom P) (onPhantom P g))
+  (prop_on1 (mem cd) (Phantom (_ -> Prop) P) (onPhantom P g))
   (at level 0, format "{ 'on'  cd ,  P  &  g }") : type_scope.
 
 Notation "{ 'in' d , 'bijective' f }" := (bijective_in (mem d) f)

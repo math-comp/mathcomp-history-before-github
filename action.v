@@ -109,7 +109,7 @@ Definition is_action to :=
 
 Record action := Action {act :> rT -> aT -> rT; _ : is_action act}.
 
-Definition repack_action to :=
+Definition clone_action to :=
   let: Action _ toP := to return {type of Action for to} -> action in
   fun k => k toP.
 
@@ -120,13 +120,12 @@ Delimit Scope action_scope with act.
 Bind Scope action_scope with action.
 Arguments Scope
   act [_ group_scope type_scope action_scope group_scope group_scope].
-Arguments Scope repack_action [_ group_scope type_scope action_scope _].
+Arguments Scope clone_action [_ group_scope type_scope action_scope _].
 
 Notation "{ 'action' aT &-> T }" := (action [set: aT] T)
   (at level 0, format "{ 'action'  aT  &->  T }") : type_scope.
 
-Notation "[ 'action' 'of' to ]" :=
-    (repack_action (fun aP => @Action _ _ _ to aP))
+Notation "[ 'action' 'of' to ]" := (clone_action (@Action _ _ _ to))
   (at level 0, format "[ 'action'  'of'  to ]") : form_scope.
 
 Definition act_dom aT D rT of @action aT D rT := D.
@@ -1194,7 +1193,7 @@ Definition is_groupAction (to : actT) :=
 
 Structure groupAction := GroupAction {gact :> actT; _ : is_groupAction gact}.
 
-Definition repack_groupAction to :=
+Definition clone_groupAction to :=
   let: GroupAction _ toA := to return {type of GroupAction for to} -> _ in
   fun k => k toA : groupAction.
 
@@ -1205,7 +1204,7 @@ Bind Scope groupAction_scope with groupAction.
 Arguments Scope gact [_ _ group_scope group_scope groupAction_scope].
 
 Notation "[ 'groupAction' 'of' to ]" :=
-    (repack_groupAction (fun toA => @GroupAction _ _ _ to))
+     (clone_groupAction (@GroupAction _ _ _ _ to))
   (at level 0, format "[ 'groupAction'  'of'  to ]") : form_scope.
 
 Section GroupActionDefs.

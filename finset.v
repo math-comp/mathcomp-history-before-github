@@ -58,14 +58,16 @@ Identity Coercion type_of_set_of : set_of >-> set_type.
 Canonical Structure set_subType :=
   Eval hnf in [newType for finfun_of_set by set_type_rect].
 Definition set_eqMixin := Eval hnf in [eqMixin of set_type by <:].
-Canonical Structure set_eqType := Eval hnf in EqType set_eqMixin.
+Canonical Structure set_eqType := Eval hnf in EqType set_type set_eqMixin.
 Definition set_choiceMixin := [choiceMixin of set_type by <:].
-Canonical Structure set_choiceType := Eval hnf in ChoiceType set_choiceMixin.
+Canonical Structure set_choiceType :=
+  Eval hnf in ChoiceType set_type set_choiceMixin.
 Definition set_countMixin := [countMixin of set_type by <:].
-Canonical Structure set_countType := Eval hnf in CountType set_countMixin.
+Canonical Structure set_countType :=
+  Eval hnf in CountType set_type set_countMixin.
 Canonical Structure set_subCountType := Eval hnf in [subCountType of set_type].
 Definition set_finMixin := [finMixin of set_type by <:].
-Canonical Structure set_finType := Eval hnf in FinType set_finMixin.
+Canonical Structure set_finType := Eval hnf in FinType set_type set_finMixin.
 Canonical Structure set_subFinType := Eval hnf in [subFinType of set_type].
 
 End SetType.

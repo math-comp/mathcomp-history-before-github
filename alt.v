@@ -11,7 +11,7 @@ Import GroupScope.
 
 Definition bool_groupMixin := FinGroup.Mixin addbA addFb addbb.
 Canonical Structure bool_baseGroup :=
-  Eval hnf in BaseFinGroupType bool_groupMixin.
+  Eval hnf in BaseFinGroupType bool bool_groupMixin.
 Canonical Structure boolGroup := Eval hnf in FinGroupType addbb. 
 
 (****************************************************************************)

@@ -542,7 +542,7 @@ Proof. by move=> x y z; congr (_, _); exact: mulgA. Qed.
 Definition extprod_groupMixin:=
   Eval hnf in FinGroup.Mixin extprod_mulgA extprod_mul1g extprod_mulVg.
 Canonical Structure extprod_baseFinGroupType :=
-  Eval hnf in BaseFinGroupType extprod_groupMixin.
+  Eval hnf in BaseFinGroupType (gT1 * gT2) extprod_groupMixin.
 Canonical Structure prod_group := FinGroupType extprod_mulVg.
 
 Lemma group_setX : forall (H1 : {group gT1}) (H2 : {group gT2}),
@@ -656,14 +656,14 @@ Notation sdval := (@pair_of_sd to).
 Canonical Structure sdprod_subType :=
   Eval hnf in [subType for sdval by @sdprod_of_rect to].
 Definition sdprod_eqMixin := Eval hnf in [eqMixin of sdT by <:].
-Canonical Structure sdprod_eqType := Eval hnf in EqType sdprod_eqMixin.
+Canonical Structure sdprod_eqType := Eval hnf in EqType sdT sdprod_eqMixin.
 Definition sdprod_choiceMixin := [choiceMixin of sdT by <:].
-Canonical Structure sdprod_choiceType := ChoiceType sdprod_choiceMixin.
+Canonical Structure sdprod_choiceType := ChoiceType sdT sdprod_choiceMixin.
 Definition sdprod_countMixin := [countMixin of sdT by <:].
-Canonical Structure sdprod_countType := CountType sdprod_countMixin.
+Canonical Structure sdprod_countType := CountType sdT sdprod_countMixin.
 Canonical Structure sdprod_subCountType := Eval hnf in [subCountType of sdT].
 Definition sdprod_finMixin := [finMixin of sdT by <:].
-Canonical Structure sdprod_finType := FinType sdprod_finMixin.
+Canonical Structure sdprod_finType := FinType sdT sdprod_finMixin.
 Canonical Structure sdprod_subFinType := Eval hnf in [subFinType of sdT].
 
 Definition sdprod_one := SdPair to (group1 _).
@@ -708,7 +708,7 @@ Canonical Structure sdprod_groupMixin :=
   FinGroup.Mixin sdprod_mulgA sdprod_mul1g sdprod_mulVg.
 
 Canonical Structure sdprod_baseFinGroupType :=
-  Eval hnf in BaseFinGroupType sdprod_groupMixin.
+  Eval hnf in BaseFinGroupType sdT sdprod_groupMixin.
 
 Canonical Structure sdprod_groupType := FinGroupType sdprod_mulVg.
 

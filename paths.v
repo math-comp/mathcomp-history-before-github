@@ -567,14 +567,9 @@ Proof. by move=> i n; rewrite sorted_ltn_uniq_leq sorted_iota iota_uniq. Qed.
 
 (* Function trajectories. *)
 
-Notation "'fpath' f" := (path (frel f))
-  (at level 10, f at level 8) : seq_scope.
-
-Notation "'fcycle' f" := (cycle (frel f))
-  (at level 10, f at level 8) : seq_scope.
-
-Notation "'ufcycle' f" := (ucycle (frel f))
-  (at level 10, f at level 8) : seq_scope.
+Notation fpath f := (path (frel f)).
+Notation fcycle f := (cycle (frel f)).
+Notation ufcycle f := (ucycle (frel f)).
 
 Prenex Implicits path next prev cycle ucycle mem2.
 
@@ -585,17 +580,28 @@ Variables (T : Type) (f : T -> T).
 Fixpoint traject x (n : nat) {struct n} :=
   if n is n'.+1 then x :: traject (f x) n' else [::].
 
-Lemma size_traject : forall x n, size (traject x n) = n.
-Proof. by move=> x n; elim: n x => [|n Hrec] x //=; nat_congr. Qed.
+Lemma trajectS : forall x n, traject x n.+1 = x :: traject (f x) n.
+Proof. by []. Qed.
+
+Lemma trajectSr : forall x n, traject x n.+1 = rcons (traject x n) (iter n f x).
+Proof. by move=> x n; elim: n x => //= n IHn x; rewrite IHn -iterSr. Qed.
 
 Lemma last_traject : forall x n, last x (traject (f x) n) = iter n f x.
-Proof. by move=> x n; elim: n x => [|n Hrec] x //; rewrite iterSr -Hrec. Qed.
+Proof. by move=> x [|n] //; rewrite iterSr trajectSr last_rcons. Qed.
+
+Lemma traject_iteri : forall x n,
+  traject x n = iteri n (fun i => rcons^~ (iter i f x)) [::].
+Proof. by move=> x; elim=> //= n <-; rewrite -trajectSr. Qed.
+
+Lemma size_traject : forall x n, size (traject x n) = n.
+Proof. by move=> x n; elim: n x => //= n IHn x //=; rewrite IHn. Qed.
 
 Lemma nth_traject : forall i n, i < n ->
   forall x, nth x (traject x n) i = iter i f x.
 Proof.
-move=> i n Hi x; elim: n {2 3}x i Hi => [|n Hrec] y [|i] Hi //=.
-by rewrite Hrec -?iterSr.
+move=> i; elim=> // n IHn; rewrite ltnS leq_eqVlt => le_i_n x.
+rewrite trajectSr nth_rcons size_traject.
+case: ltngtP le_i_n => [? _||->] //; exact: IHn.
 Qed.
 
 End Trajectory.

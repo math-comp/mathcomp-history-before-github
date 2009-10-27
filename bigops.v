@@ -263,36 +263,25 @@ Structure add_law (mul : T -> T -> T) : Type := AddLaw {
   _ : right_distributive mul add_operator
 }.
 
-Definition repack_law opL :=
-  let: Law _ opmA op1m opm1 := opL
-    return {type of Law for opL} -> law in
-  fun k => k opmA op1m opm1.
+Let op_id (op1 op2 : T -> T -> T) := phant_id op1 op2.
 
-Definition repack_mul_law opM :=
-  let: MulLaw _ op0m opm0 := opM
-    return {type of MulLaw for opM} -> mul_law in
-  fun k => k op0m opm0.
+Definition clone_law op :=
+  fun (opL : law) & op_id opL op =>
+  fun opmA op1m opm1 (opL' := @Law op opmA op1m opm1)
+    & phant_id opL' opL => opL'.
 
-Definition op_phant := phantom (T -> T -> T).
-Definition op_uni op1 op2 := op_phant op1 -> op_phant op2.
+Definition clone_com_law op :=
+  fun (opL : law) (opC : com_law) & op_id opL op & op_id opC op =>
+  fun opmC (opC' := @ComLaw opL opmC) & phant_id opC' opC => opC'.
 
-Definition repack_com_law op (opL : law) (opC : com_law) :=
-  fun (_ : op_uni opL op) (_ : op_uni opC op) opEq =>
-  (let: ComLaw _ opmC := opC
-     return {type of ComLaw for opC} -> com_law in
-   fun k => k opmC)
-  (let: erefl in _ = opC := opEq
-     return {type of ComLaw for opC}
-   in @ComLaw opL).
+Definition clone_mul_law op :=
+  fun (opM : mul_law) & op_id opM op =>
+  fun op0m opm0 (opM' := @MulLaw op op0m opm0) & phant_id opM' opM => opM'.
 
-Definition repack_add_law mop aop (opC : com_law) (opA : add_law mop) :=
-  fun (_ : op_uni opC aop) (_ : op_uni opA aop) opEq =>
-  (let: AddLaw _ mopAm mopmA  := opA
-     return {type of @AddLaw mop for opA} -> add_law mop in
-   fun k => k mopAm mopmA)
-  (let: erefl in _ = opA := opEq
-     return {type of @AddLaw mop for opA}
-   in @AddLaw mop opC).
+Definition clone_add_law mop aop :=
+  fun (opC : com_law) (opA : add_law mop) & op_id opC aop & op_id opA aop =>
+  fun mopDm mopmD (opA' := @AddLaw mop opC mopDm mopmD)
+    & phant_id opA' opA => opA'.
 
 End Definitions.
 
@@ -359,42 +348,21 @@ End Theory.
 
 End Theory.
 
-Import Theory. 
-Definition mul1m :=  mul1m.
-Definition mulm1 := mulm1.
-Definition mulmA := mulmA.
-Definition iteropE := iteropE.
-Definition mulmC := mulmC.
-Definition mulmCA := mulmCA.
-Definition mulmAC := mulmAC.
-Definition mul0m := mul0m.
-Definition mulm0 := mulm0.
-Definition addmA := addmA.
-Definition addmC := addmC.
-Definition addmCA := addmCA.
-Definition addmAC := addmAC.
-Definition add0m := add0m.
-Definition addm0 := addm0.
-Definition mulm_addl := mulm_addl.
-Definition mulm_addr := mulm_addr.
-Definition simpm := simpm.
+Include Theory. 
 
 End Monoid.
 
-Notation "[ 'law' 'of' f ]" :=
-    (Monoid.repack_law (fun fA => @Monoid.Law _ _ f fA))
+Notation "[ 'law' 'of' f ]" := (@Monoid.clone_law _ _ f _ id _ _ _ id)
   (at level 0, format"[ 'law'  'of'  f ]") : form_scope.
 
-Notation "[ 'com_law' 'of' f ]" :=
-    (@Monoid.repack_com_law _ _ f _ _ id id (erefl _))
+Notation "[ 'com_law' 'of' f ]" := (@Monoid.clone_com_law _ _ f _ _ id id _ id)
   (at level 0, format "[ 'com_law'  'of'  f ]") : form_scope.
 
-Notation "[ 'mul_law' 'of' f ]" :=
-    (Monoid.repack_mul_law (fun f0m => @Monoid.MulLaw _ _ f f0m))
+Notation "[ 'mul_law' 'of' f ]" := (@Monoid.clone_mul_law _ _ f _ id _ _ id)
   (at level 0, format"[ 'mul_law'  'of'  f ]") : form_scope.
 
 Notation "[ 'add_law' m 'of' a ]" :=
-    (@Monoid.repack_add_law _ _ m a _ _ id id (erefl _))
+    (@Monoid.clone_add_law _ _ m a _ _ id id _ _ id)
   (at level 0, format "[ 'add_law'  m  'of'  a ]") : form_scope.
 
 Section PervasiveMonoids.

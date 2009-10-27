@@ -203,8 +203,9 @@ Section EqTuple.
 
 Variables (n : nat) (T : eqType).
 
-Definition tuple_eqMixin := Eval hnf in [eqMixin of n.-tuple(T) by <:].
-Canonical Structure tuple_eqType := Eval hnf in EqType tuple_eqMixin.
+Definition tuple_eqMixin := Eval hnf in [eqMixin of n.-tuple T by <:].
+Canonical Structure tuple_eqType :=
+  Eval hnf in EqType (n.-tuple T) tuple_eqMixin.
 
 Canonical Structure tuple_predType :=
   Eval hnf in mkPredType (fun t : n.-tuple T => mem_seq t).
@@ -215,19 +216,19 @@ Proof. by []. Qed.
 End EqTuple.
 
 Definition tuple_choiceMixin n (T : choiceType) :=
-  [choiceMixin of n.-tuple(T) by <:].
+  [choiceMixin of n.-tuple T by <:].
 
-Canonical Structure tuple_choiceType n T :=
-  Eval hnf in [choiceType of n.-tuple T for ChoiceType (tuple_choiceMixin n T)].
+Canonical Structure tuple_choiceType n (T : choiceType) :=
+  Eval hnf in ChoiceType (n.-tuple T) (tuple_choiceMixin n T).
 
 Definition tuple_countMixin n (T : countType) :=
-  [countMixin of n.-tuple(T) by <:].
+  [countMixin of n.-tuple T by <:].
 
-Canonical Structure tuple_countType n T :=
-  Eval hnf in [countType of n.-tuple(T) for CountType (tuple_countMixin n T)].
+Canonical Structure tuple_countType n (T : countType) :=
+  Eval hnf in CountType (n.-tuple T) (tuple_countMixin n T).
 
 Canonical Structure tuple_subCountType n (T : countType) :=
-  Eval hnf in [subCountType of n.-tuple(T)].
+  Eval hnf in [subCountType of n.-tuple T].
 
 Module Type FinTupleSig.
 Section FinTupleSig.
@@ -242,7 +243,7 @@ Module FinTuple : FinTupleSig.
 Section FinTuple.
 Variables (n : nat) (T : finType).
 
-Definition enum : seq (n.-tuple(T)) :=
+Definition enum : seq (n.-tuple T) :=
   let extend e := flatten (map (fun x => map (cons x) e) (Finite.enum T)) in
   pmap insub (iter n extend [::[::]]).
 
@@ -276,9 +277,9 @@ Section UseFinTuple.
 Variables (n : nat) (T : finType).
 Notation tT := (n.-tuple T).
 
-Canonical Structure tuple_finMixin := FinMixin (@FinTuple.enumP n T).
-Canonical Structure tuple_finType :=
-  Eval hnf in [finType of tT for FinType tuple_finMixin].
+Canonical Structure tuple_finMixin :=
+  Eval hnf in FinMixin (@FinTuple.enumP n T).
+Canonical Structure tuple_finType := Eval hnf in FinType tT tuple_finMixin.
 Canonical Structure tuple_subFinType := Eval hnf in [subFinType of tT].
 
 Lemma card_tuple : #|{:n.-tuple T}| = #|T| ^ n.

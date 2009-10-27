@@ -263,25 +263,22 @@ Notation "\col_ ( i < n ) E" :=
 
 Definition matrix_eqMixin (R : eqType) m n :=
   Eval hnf in [eqMixin of 'M[R]_(m, n) by <:].
-Canonical Structure matrix_eqType R m n:=
-  Eval hnf in EqType (matrix_eqMixin R m n).
+Canonical Structure matrix_eqType (R : eqType) m n:=
+  Eval hnf in EqType 'M[R]_(m, n) (matrix_eqMixin R m n).
 Definition matrix_choiceMixin (R : choiceType) m n :=
   [choiceMixin of 'M[R]_(m, n) by <:].
-Canonical Structure matrix_choiceType R m n :=
-  Eval hnf in [choiceType of 'M[R]_(m, n) 
-          for ChoiceType (matrix_choiceMixin R m n)].
+Canonical Structure matrix_choiceType (R : choiceType) m n :=
+  Eval hnf in ChoiceType 'M[R]_(m, n) (matrix_choiceMixin R m n).
 Definition matrix_countMixin (R : countType) m n :=
   [countMixin of 'M[R]_(m, n) by <:].
-Canonical Structure matrix_countType R m n :=
-  Eval hnf in [countType of 'M[R]_(m, n)
-           for CountType (matrix_countMixin R m n)].
+Canonical Structure matrix_countType (R : countType) m n :=
+  Eval hnf in CountType 'M[R]_(m, n) (matrix_countMixin R m n).
 Canonical Structure matrix_subCountType (R : countType) m n :=
   Eval hnf in [subCountType of 'M[R]_(m, n)].
 Definition matrix_finMixin (R : finType) m n :=
   [finMixin of 'M[R]_(m, n) by <:].
-Canonical Structure matrix_finType R m n :=
-  Eval hnf in [finType of 'M[R]_(m, n)
-           for FinType (matrix_finMixin R m n)].
+Canonical Structure matrix_finType (R : finType) m n :=
+  Eval hnf in FinType 'M[R]_(m, n) (matrix_finMixin R m n).
 Canonical Structure matrix_subFinType (R : finType) m n :=
   Eval hnf in [subFinType of 'M[R]_(m, n)].
 
@@ -905,7 +902,7 @@ Proof. by move=> A; apply/matrixP=> i j; rewrite !mxE addNr. Qed.
 
 Definition matrix_zmodMixin := ZmodMixin addmxA addmxC add0mx addNmx.
 Canonical Structure matrix_zmodType :=
-  Eval hnf in [zmodType of 'M[M]_(m, n) for ZmodType matrix_zmodMixin].
+  Eval hnf in ZmodType 'M[M]_(m, n) matrix_zmodMixin.
 
 Lemma const_mx0 : const_mx 0 = 0. Proof. by []. Qed.
 Lemma const_mxN : forall a, const_mx (- a) = - const_mx a.
@@ -981,8 +978,10 @@ Section FinZmodMatrix.
 Variables (M : finZmodType) (m n : nat).
 Local Notation MM := 'M[M]_(m, n).
 Canonical Structure matrix_finZmodType := Eval hnf in [finZmodType of MM].
-Canonical Structure matrix_baseFinGroupType := [baseFinGroupType of MM for +%R].
-Canonical Structure matrix_finGroupType := [finGroupType of MM for +%R].
+Canonical Structure matrix_baseFinGroupType :=
+  Eval hnf in [baseFinGroupType of MM for +%R].
+Canonical Structure matrix_finGroupType :=
+  Eval hnf in [finGroupType of MM for +%R].
 End FinZmodMatrix.
 
 (*****************************************************************************)
@@ -1497,7 +1496,7 @@ Definition matrix_ringMixin :=
   RingMixin (@mulmxA n n n n) (@mul1mx n n) (@mulmx1 n n)
             (@mulmx_addl n n n) (@mulmx_addr n n n) matrix_nonzero1.
 Canonical Structure matrix_ringType :=
-  Eval hnf in [ringType of 'M[R]_n for RingType matrix_ringMixin].
+  Eval hnf in RingType 'M[R]_n  matrix_ringMixin.
 
 Lemma mulmxE : forall A B : 'M_n, A *m B = A * B. Proof. by []. Qed.
 Lemma idmxE : 1%:M = 1 :> 'M_n. Proof. by []. Qed.
@@ -1955,7 +1954,7 @@ Local Notation n := n'.+1.
 Definition matrix_unitRingMixin :=
   UnitRingMixin (@mulVmx n) (@mulmxV n) (@intro_unitmx n) (@invmx_out n).
 Canonical Structure matrix_unitRing :=
-  Eval hnf in [unitRingType of 'M[R]_n for UnitRingType matrix_unitRingMixin].
+  Eval hnf in UnitRingType 'M[R]_n matrix_unitRingMixin.
 
 (* Lemmas requiring that the coefficients are in a unit ring *)
 
@@ -2015,7 +2014,7 @@ Variables (n : nat) (R : finComUnitRingType).
 
 Canonical Structure GL_subType := [subType for @GLval n _ (Phant R)].
 Definition GL_eqMixin := Eval hnf in [eqMixin of {'GL_n[R]} by <:].
-Canonical Structure GL_eqType := Eval hnf in EqType GL_eqMixin.
+Canonical Structure GL_eqType := Eval hnf in EqType {'GL_n[R]} GL_eqMixin.
 Canonical Structure GL_choiceType := Eval hnf in [choiceType of {'GL_n[R]}].
 Canonical Structure GL_countType := Eval hnf in [countType of {'GL_n[R]}].
 Canonical Structure GL_subCountType := Eval hnf in [subCountType of {'GL_n[R]}].

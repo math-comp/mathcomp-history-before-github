@@ -191,16 +191,16 @@ Definition Mixin := BaseMixin mulA mul1 mk_invgK mk_invMg.
 
 End Mixin.
 
-Definition pack_base := let k T c m := PackBase m c in Finite.unpack k.
+Definition pack_base T m :=
+  fun c cT & phant_id (Finite.class cT) c => @PackBase T m c.
 
-Definition repack_base gT :=
-  let: PackBase _ m c := gT return {type of PackBase for sort gT} -> _ in
-  fun k => k m c.
+Definition clone_base T :=
+  fun bT & sort bT -> T =>
+  fun m c (bT' := @PackBase T m c) & phant_id bT' bT => bT'.
 
-Definition repack gT :=
-  let: Pack c ax := gT return {type of Pack for gT} -> _ in fun k => k ax.
-
-Definition repack_arg gT of phant (sort gT) := @Pack gT.
+Definition clone T :=
+  fun bT gT & sort bT * sort (base gT) -> T * T =>
+  fun m (gT' := @Pack bT m) & phant_id gT' gT => gT'.
 
 End FinGroup.
 
@@ -208,7 +208,7 @@ Bind Scope group_scope with FinGroup.sort.
 Bind Scope group_scope with FinGroup.arg_sort.
 
 Notation baseFinGroupType := FinGroup.base_type.
-Notation BaseFinGroupType := FinGroup.pack_base.
+Notation BaseFinGroupType T m := (@FinGroup.pack_base T m _ _ id).
 
 Section InheritedClasses.
 
@@ -232,15 +232,13 @@ Coercion finGroup_arg_choiceType : baseFinGroupType >-> choiceType.
 Coercion finGroup_arg_countType : baseFinGroupType >-> countType.
 Coercion finGroup_arg_finType : baseFinGroupType >-> finType.
 
-Notation "[ 'baseFinGroupType' 'of' T ]" :=
-    (FinGroup.repack_base (fun m => @FinGroup.PackBase T m))
+Notation "[ 'baseFinGroupType' 'of' T ]" := (@FinGroup.clone_base T _ id _ _ id)
   (at level 0, format "[ 'baseFinGroupType'  'of'  T ]") : form_scope.
 
 Notation finGroupType := FinGroup.type.
 Notation FinGroupType := FinGroup.Pack.
 
-Notation "[ 'finGroupType' 'of' T ]" :=
-    (FinGroup.repack (FinGroup.repack_arg (Phant T)))
+Notation "[ 'finGroupType' 'of' T ]" := (@FinGroup.clone T _ _ id _ id)
   (at level 0, format "[ 'finGroupType'  'of'  T ]") : form_scope.
 
 Section ElementOps.
@@ -613,11 +611,11 @@ apply/imset2P/imset2P=> [[x y Ax By] | [y x]]; last first.
 by move/(canRL invgK)->; exists y^-1 x^-1; rewrite ?invMg // inE invgK.
 Qed.
 
-Definition group_set_baseGroupMixin : FinGroup.mixin_of (set_type _) :=
+Definition group_set_baseGroupMixin : FinGroup.mixin_of (set_type gT) :=
   FinGroup.BaseMixin set_mulgA set_mul1g set_invgK set_invgM.
 
 Canonical Structure group_set_baseGroupType :=
-  Eval hnf in BaseFinGroupType group_set_baseGroupMixin.
+  Eval hnf in BaseFinGroupType (set_type gT) group_set_baseGroupMixin.
 
 Canonical Structure group_set_of_baseGroupType :=
   Eval hnf in [baseFinGroupType of {set gT}].
@@ -1062,16 +1060,18 @@ Identity Coercion type_of_group : group_of >-> group_type.
 Canonical Structure group_subType :=
   Eval hnf in [subType for gval by group_type_rect].
 Definition group_eqMixin := Eval hnf in [eqMixin of group_type by <:].
-Canonical Structure group_eqType := Eval hnf in EqType group_eqMixin.
+Canonical Structure group_eqType := Eval hnf in EqType group_type group_eqMixin.
 Definition group_choiceMixin := [choiceMixin of group_type by <:].
 Canonical Structure group_choiceType :=
-  Eval hnf in ChoiceType group_choiceMixin.
+  Eval hnf in ChoiceType group_type group_choiceMixin.
 Definition group_countMixin := [countMixin of group_type by <:].
-Canonical Structure group_countType := Eval hnf in CountType group_countMixin.
+Canonical Structure group_countType :=
+  Eval hnf in CountType group_type group_countMixin.
 Canonical Structure group_subCountType :=
   Eval hnf in [subCountType of group_type].
 Definition group_finMixin := [finMixin of group_type by <:].
-Canonical Structure group_finType := Eval hnf in FinType group_finMixin.
+Canonical Structure group_finType :=
+  Eval hnf in FinType group_type group_finMixin.
 Canonical Structure group_subFinType := Eval hnf in [subFinType of group_type].
 
 (* No predType or baseFinGroupType structures, as these would hide the *)
@@ -1088,7 +1088,7 @@ Canonical Structure group_of_subFinType := Eval hnf in [subFinType of groupT].
 
 Definition group (A : {set gT}) gA : groupT := @Group A gA.
 
-Definition repack_group G :=
+Definition clone_group G :=
   let: Group _ gP := G return {type of Group for G} -> groupT in fun k => k gP.
 
 Lemma group_inj : injective gval. Proof. exact: val_inj. Qed.
@@ -1139,7 +1139,7 @@ Arguments Scope generated [_ group_scope].
 Notation "{ 'group' gT }" := (group_of (Phant gT))
   (at level 0, format "{ 'group'  gT }") : type_scope.
 
-Notation "[ 'group' 'of' G ]" := (repack_group (fun gP => @group _ G gP))
+Notation "[ 'group' 'of' G ]" := (clone_group (@group _ G))
   (at level 0, format "[ 'group'  'of'  G ]") : form_scope.
 
 Bind Scope subgroup_scope with group_type.
@@ -1509,14 +1509,16 @@ Definition sgval u := let: Subg x _ := u in x.
 Canonical Structure subg_subType :=
   Eval hnf in [subType for sgval by subg_of_rect].
 Definition subg_eqMixin := Eval hnf in [eqMixin of subg_of by <:].
-Canonical Structure subg_eqType := Eval hnf in EqType subg_eqMixin.
+Canonical Structure subg_eqType := Eval hnf in EqType subg_of subg_eqMixin.
 Definition subg_choiceMixin := [choiceMixin of subg_of by <:].
-Canonical Structure subg_choiceType := Eval hnf in ChoiceType subg_choiceMixin.
+Canonical Structure subg_choiceType :=
+  Eval hnf in ChoiceType subg_of subg_choiceMixin.
 Definition subg_countMixin := [countMixin of subg_of by <:].
-Canonical Structure subg_countType := Eval hnf in CountType subg_countMixin.
+Canonical Structure subg_countType :=
+  Eval hnf in CountType subg_of subg_countMixin.
 Canonical Structure subg_subCountType := Eval hnf in [subCountType of subg_of].
 Definition subg_finMixin := [finMixin of subg_of by <:].
-Canonical Structure subg_finType := Eval hnf in FinType subg_finMixin.
+Canonical Structure subg_finType := Eval hnf in FinType subg_of subg_finMixin.
 Canonical Structure subg_subFinType := Eval hnf in [subFinType of subg_of].
 
 Lemma subgP : forall u, sgval u \in G.
@@ -1538,7 +1540,7 @@ Proof. move=> u v w; apply: val_inj; exact: mulgA. Qed.
 
 Definition subFinGroupMixin := FinGroup.Mixin subg_mulP subg_oneP subg_invP.
 Canonical Structure subBaseFinGroupType :=
-  Eval hnf in BaseFinGroupType subFinGroupMixin.
+  Eval hnf in BaseFinGroupType subg_of subFinGroupMixin.
 Canonical Structure subFinGroupType := FinGroupType subg_invP.
 
 Lemma sgvalM : {in setT &, {morph sgval : x y / x * y}}. Proof. by []. Qed.

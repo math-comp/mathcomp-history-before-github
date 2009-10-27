@@ -721,7 +721,7 @@ by apply: (iffP (IHs _)) => [<-|[]].
 Qed.
 
 Canonical Structure seq_eqMixin := EqMixin eqseqP.
-Canonical Structure seq_eqType := Eval hnf in EqType seq_eqMixin.
+Canonical Structure seq_eqType := Eval hnf in EqType (seq T) seq_eqMixin.
 
 Lemma eqseqE : eqseq = eq_op. Proof. by []. Qed.
 

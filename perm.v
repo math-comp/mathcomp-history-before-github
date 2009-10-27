@@ -49,15 +49,17 @@ Notation pT := (perm_of (Phant T)).
 Canonical Structure perm_subType :=
   Eval hnf in [subType for pval by perm_type_rect].
 Definition perm_eqMixin := Eval hnf in [eqMixin of perm_type by <:].
-Canonical Structure perm_eqType := Eval hnf in EqType perm_eqMixin.
+Canonical Structure perm_eqType := Eval hnf in EqType perm_type perm_eqMixin.
 Definition perm_choiceMixin := [choiceMixin of perm_type by <:].
-Canonical Structure perm_choiceType := Eval hnf in ChoiceType perm_choiceMixin.
+Canonical Structure perm_choiceType :=
+  Eval hnf in ChoiceType perm_type perm_choiceMixin.
 Definition perm_countMixin := [countMixin of perm_type by <:].
-Canonical Structure perm_countType := Eval hnf in CountType perm_countMixin.
+Canonical Structure perm_countType :=
+  Eval hnf in CountType perm_type perm_countMixin.
 Canonical Structure perm_subCountType :=
   Eval hnf in [subCountType of perm_type].
 Definition perm_finMixin := [finMixin of perm_type by <:].
-Canonical Structure perm_finType := Eval hnf in FinType perm_finMixin.
+Canonical Structure perm_finType := Eval hnf in FinType perm_type perm_finMixin.
 Canonical Structure perm_subFinType := Eval hnf in [subFinType of perm_type].
 
 Canonical Structure perm_for_subType := Eval hnf in [subType of pT].
@@ -158,7 +160,7 @@ Proof. by move=> u v w; apply/permP => x; do !rewrite permE /=. Qed.
 Definition perm_of_baseFinGroupMixin : FinGroup.mixin_of (perm_type T) :=
   FinGroup.Mixin perm_mulP perm_oneP perm_invP.
 Canonical Structure perm_baseFinGroupType :=
-  Eval hnf in BaseFinGroupType perm_of_baseFinGroupMixin.
+  Eval hnf in BaseFinGroupType (perm_type T) perm_of_baseFinGroupMixin.
 Canonical Structure perm_finGroupType :=
   @FinGroupType perm_baseFinGroupType perm_invP.
 

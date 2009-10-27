@@ -63,7 +63,7 @@ Proof. move=> x y; apply: val_inj; apply: (centsP abelA); exact: subgP. Qed.
 
 Definition fmod_zmodMixin := 
   @ZmodMixin fmodA _ _ _ (@mulgA _) fmod_mulgC (@mul1g _) (@mulVg _).
-Canonical Structure fmod_zmodType := ZmodType fmod_zmodMixin.
+Canonical Structure fmod_zmodType := ZmodType fmodA fmod_zmodMixin.
 
 Lemma fmodP : forall u, valA u \in A. Proof. exact: valP. Qed.
 Lemma fmod_inj : injective fmval. Proof. exact: val_inj. Qed.

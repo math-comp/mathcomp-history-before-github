@@ -14,8 +14,8 @@ Require Import bigops.
 (*      zmodType        == type for Zmodule structure                        *)
 (*      ZmodMixin       == builds the mixin containing the definition        *)
 (*                         of a Zmodule                                      *)
-(*      ZmodType M      == packs the mixin M to build a Zmodule of type      *)
-(*                         zmodType. (The underlying type should have a      *)
+(*      ZmodType R M    == packs the mixin M to build a Zmodule of type      *)
+(*                         zmodType. (The underlying type R should have a    *)
 (*                         choiceType canonical structure)                   *)
 (*      0               == the additive identity element of a Zmodule        *)
 (*      x + y           == the addition operation of a Zmodule               *)
@@ -32,7 +32,7 @@ Require Import bigops.
 (*      RingMixin     == builds the mixin containing the definitions of a    *)
 (*                       ring (the underlying type should have a zmodType    *)
 (*                       structure)                                          *)
-(*      RingType M    == packs the ring mixin M to build a ring              *)
+(*      RingType R M  == packs the ring mixin M to build a ring on type R    *)
 (*      RevRingType T == repacks T to build the ring where the               *)
 (*                       multiplicative law is reversed ( x *' y = y * x )   *)
 (*      1             == the multiplicative identity element of a Ring       *)
@@ -44,26 +44,25 @@ Require Import bigops.
 (*                                                                           *)
 (*  * Commutative Ring                                                       *)
 (*      comRingType      == type for commutative ring structure              *)
-(*      ComRingMixin     == builds the mixin containing the definitions of a *)
-(*                          *non commutative* ring, but using                *)
-(*                         commutative ring mixin mulC. (The underlying type *)
-(*                         should have a Zmodule canonical structure)        *)
-(*      ComRingType mulC == packs mulC to build a commutative ring.          *)
-(*                          (The underlying type should have a ring          *)
+(*    ComRingType R mulC == packs mulC to build a commutative ring.          *)
+(*                          (The underlying type R should have a ring        *)
 (*                          canonical structure)                             *)
+(*      ComRingMixin     == builds the mixin containing the definitions of a *)
+(*                          *non commutative* ring, using the commutativity  *)
+(*                          to decrease the number of axioms.                *)
 (*                                                                           *)
 (*  * Unit Ring                                                              *)
 (*      unitRingType   == type for unit ring structure                       *)
 (*      UnitRingMixin  == builds the mixin containing the definitions        *)
 (*                        of a unit ring. (The underlying type should        *)
 (*                        have a ring canonical structure)                   *)
-(*      UnitRingType M == packs the unit ring mixin M to build a unit ring.  *)
-(*                        WARNING: UnitRingType should NOT be used with      *)
-(*                        mixins produced by ComUnitRingMixin; typechecking  *)
-(*                        will not complain, but the structure will have the *)
-(*                        WRONG sort and will not be used by type inference. *)
-(*  Com_UnitRingType M == packs the unit ring mixin M produced by the        *)
-(*                        ComUnitRingMixin function below.                   *)
+(*    UnitRingType R M == packs the unit ring mixin M to build a unit ring.  *)
+(*                        WARNING: while it is possible to omit R for most   *)
+(*                        of the xxxType functions, R MUST be explicitly     *)
+(*                        given when UnitRingType is used with a mixin       *)
+(*                        produced by ComUnitRingMixin, otherwise the        *)
+(*                        resulting structure will have the WRONG sort and   *)
+(*                        will not be used by type inference.                *)
 (*      GRing.unit x   == x is a unit (i.e., has an inverse)                 *)
 (*      x^-1           == the inversion operation element of a unit ring     *)
 (*                        (returns x if is x is not an unit)                 *)
@@ -76,19 +75,14 @@ Require Import bigops.
 (*                           of a *non commutative unit ring*, but using     *)
 (*                           the commutative property. The underlying type   *)
 (*                           should have a commutative ring canonical        *)
-(*                           structure. WARNING: ALWAYS use Com_UnitRingType *)
-(*                           to build a unitRingType structure out of the    *)
-(*                           mixin produced by ComUnitRingMixin, otherwise   *)
-(*                           the resulting structure will have a WRONG sort  *)
-(*                           and will not be used by type inference.         *)
-(*      ComUnitRingType M == packs the *unit ring mixin* M to build a unit   *)
-(*                           ring. (The underlying type should have a        *)
-(*                           commutative ring canonical structure)           *)
+(*                           structure. WARNING: ALWAYS give an explicit     *)
+(*                           type argument to UnitRingType along with a      *)
+(*                           mixin produced by ComUnitRingMixin (see above). *)
 (*                                                                           *)
 (*  * Integral Domain (integral, commutative, unit ring)                     *)
 (*      idomainType       == type for integral domain structure              *)
-(*      IdomainType M     == packs the idomain mixin M to build a integral   *)
-(*                           domain. (The underlying type should have a      *)
+(*      IdomainType R M   == packs the idomain mixin M to build a integral   *)
+(*                           domain. (The underlying type R should have a    *)
 (*                           commutative unit ring canonical structure)      *)
 (*                                                                           *)
 (*  * Field                                                                  *)
@@ -101,8 +95,8 @@ Require Import bigops.
 (*                           should have a *commutative ring* canonical      *)
 (*                           structure)                                      *)
 (*      FieldIdomainMixin == builds an *idomain* mixin, using a field mixin  *)
-(*      FieldType M       == packs the field mixin M to build a field        *)
-(*                           (The underlying type should have a              *)
+(*      FieldType R M     == packs the field mixin M to build a field        *)
+(*                           (The underlying type R should have a            *)
 (*                           integral domain canonical structure)            *)
 (*                                                                           *)
 (*  * Decidable Field                                                        *)
@@ -110,8 +104,8 @@ Require Import bigops.
 (*      DecFieldMixin     == builds the mixin containing the definitions of  *)
 (*                           a decidable Field. (The underlying type should  *)
 (*                           have a unit ring canonical structure)           *)
-(*      DecFieldType M    == packs the decidable field mixin M to build a    *)
-(*                           decidable field. (The underlying type should    *)
+(*      DecFieldType R M  == packs the decidable field mixin M to build a    *)
+(*                           decidable field. (The underlying type R should  *)
 (*                           have a field canonical structure)               *)
 (*      GRing.term R      == the type of formal expressions in a unit ring R *)
 (*                           with formal variables 'X_i, i : nat             *)
@@ -126,9 +120,9 @@ Require Import bigops.
 (*                                                                           *)
 (*  * Closed Field                                                           *)
 (*      closedFieldType   == type for closed field structure                 *)
-(*      ClosedFieldType M == packs the closed field mixin M to build a       *)
-(*                           closed field. (The underlying type should have  *)
-(*                           a decidable field canonical structure)          *)
+(*    ClosedFieldType R M == packs the closed field mixin M to build a       *)
+(*                           closed field. (The underlying type R should     *)
+(*                           have a decidable field canonical structure.)    *)
 (*                                                                           *)
 (* * Morphism                                                                *)
 (*      GRing.morphism f == f is a ring morphism                             *)
@@ -180,13 +174,12 @@ Record class_of (M : Type) : Type :=
 
 Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition unpack K (k : forall T (c : class_of T), K T c) cT :=
-  let: Pack T c _ := cT return K _ (class cT) in k _ c.
-Definition repack cT : _ -> Type -> type := let k T c p := p c in unpack k cT.
+Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
 
-Definition pack := let k T c m := Pack (@Class T c m) T in Choice.unpack k.
+Definition pack T m :=
+  fun bT b & phant_id (Choice.class bT) b => Pack (@Class T b m) T.
 
-Definition eqType cT := Equality.Pack (class cT) cT.
+Coercion eqType cT := Equality.Pack (class cT) cT.
 Coercion choiceType cT := Choice.Pack (class cT) cT.
 
 End Zmodule.
@@ -325,6 +318,10 @@ Proof.
 by move=> I r P F n; rewrite (big_morph _ (mulrn_addl n) (mul0rn _)).
 Qed.
 
+Lemma sumr_muln_r :  forall x I r P (F : I -> nat),
+  \sum_(i <- r | P i) x *+ F i = x *+ (\sum_(i <- r | P i) F i).
+Proof. by move=> x I r P F; rewrite (big_morph _ (mulrn_addr x) (erefl _)). Qed.
+
 Lemma sumr_const : forall (I : finType) (A : pred I) (x : M),
   \sum_(i \in A) x = x *+ #|A|.
 Proof. by move=> I A x; rewrite big_const -iteropE. Qed.
@@ -356,11 +353,11 @@ Record class_of (R : Type) : Type := Class {
 
 Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition unpack K (k : forall T (c : class_of T), K T c) cT :=
-  let: Pack T c _ := cT return K _ (class cT) in k _ c.
-Definition repack cT : _ -> Type -> type := let k T c p := p c in unpack k cT.
+Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
 
-Definition pack := let k T c m := Pack (@Class T c m) T in Zmodule.unpack k.
+Definition pack T b0 (m0 : mixin_of (@Zmodule.Pack T b0 T)) :=
+  fun bT b & phant_id (Zmodule.class bT) b =>
+  fun    m & phant_id m0 m => Pack (@Class T b m) T.
 
 Coercion eqType cT := Equality.Pack (class cT) cT.
 Coercion choiceType cT := Choice.Pack (class cT) cT.
@@ -550,6 +547,18 @@ Lemma prodr_const : forall (I : finType) (A : pred I) (x : R),
   \prod_(i \in A) x = x ^+ #|A|.
 Proof. by move=> I A x; rewrite big_const -iteropE. Qed.
 
+Lemma prodr_exp_r : forall x I r P (F : I -> nat),
+  \prod_(i <- r | P i) x ^+ F i = x ^+ (\sum_(i <- r | P i) F i).
+Proof. by move=> x I r P F; rewrite (big_morph _ (exprn_addr _) (erefl _)). Qed.
+
+Lemma prodr_opp : forall (I : finType) (A : pred I) (F : I -> R),
+  \prod_(i \in A) - F i = (- 1) ^+ #|A| * \prod_(i \in A) F i.
+Proof.
+move=> I A F; rewrite -sum1_card /= -!(big_filter _ A) !unlock.
+elim: {A}(filter _ _) => /= [|i r ->]; first by rewrite mul1r.
+by rewrite mulrA -mulN1r (commr_exp _ (commrN1 _)) exprSr !mulrA.
+Qed.
+
 Definition RevRingMixin :=
   let mul' x y := y * x in
   let mulrA' x y z := esym (mulrA z y x) in
@@ -558,7 +567,6 @@ Definition RevRingMixin :=
   @Ring.Mixin R 1 mul' mulrA' mulr1 mul1r mulr_addl' mulr_addr' nonzero1r.
 
 Definition RevRingType := Ring.Pack (Ring.Class RevRingMixin) R.
-
 
 End RingTheory.
 
@@ -622,12 +630,11 @@ Record class_of (R : Type) : Type :=
 
 Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition unpack K (k : forall T (c : class_of T), K T c) cT :=
-  let: Pack T c _ := cT return K _ (class cT) in k _ c.
-Definition repack cT : _ -> Type -> type := let k T c p := p c in unpack k cT.
+Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
 
-Definition pack : forall R, commutative *%R -> type :=
-  let k T c m := Pack (@Class T c m) T in Ring.unpack k.
+Definition pack T mul0 (m0 : @commutative T T mul0) :=
+  fun bT b & phant_id (Ring.class bT) b =>
+  fun    m & phant_id m0 m => Pack (@Class T b m) T.
 
 Definition RingMixin R one mul mulA mulC mul1x mul_addl :=
   let mulx1 := Monoid.mulC_id mulC mul1x in
@@ -690,16 +697,11 @@ Record class_of (R : Type) : Type := Class {
 
 Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition unpack K (k : forall T (c : class_of T), K T c) cT :=
-  let: Pack T c _ := cT return K _ (class cT) in k _ c.
-Definition repack cT : _ -> Type -> type := let k T c p := p c in unpack k cT.
+Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
 
-Definition pack := let k T c m := Pack (@Class T c m) T in Ring.unpack k.
-Definition comPack := (* pack ComUnitRing mixin *)
-  let k T cc :=
-    let: ComRing.Class c _ := cc return mixin_of (Ring.Pack cc T) -> type
-    in fun m => Pack (Class m) T
-  in ComRing.unpack k. 
+Definition pack T b0 (m0 : mixin_of (@Ring.Pack T b0 T)) :=
+  fun bT b & phant_id (Ring.class bT) b =>
+  fun    m & phant_id m0 m => Pack (@Class T b m) T.
 
 Coercion eqType cT := Equality.Pack (class cT) cT.
 Coercion choiceType cT := Choice.Pack (class cT) cT.
@@ -1445,9 +1447,6 @@ Coercion base2 R m := UnitRing.Class (@ext R m).
 
 Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition unpack K (k : forall T (c : class_of T), K T c) cT :=
-  let: Pack T c _ := cT return K _ (class cT) in k _ c.
-Definition repack cT : _ -> Type -> type := let k T c p := p c in unpack k cT.
 
 Section Mixin.
 
@@ -1465,7 +1464,10 @@ Definition Mixin := UnitRing.EtaMixin mulVx mulC_mulrV mulC_unitP.
 
 End Mixin.
 
-Definition pack := let k T c m := Pack (@Class T c m) T in ComRing.unpack k.
+Definition pack T :=
+  fun bT b & phant_id (ComRing.class bT) (b : ComRing.class_of T) =>
+  fun mT m & phant_id (UnitRing.class mT) (@UnitRing.Class T b m) => 
+  Pack (@Class T b m) T.
 
 Coercion eqType cT := Equality.Pack (class cT) cT.
 Coercion choiceType cT := Choice.Pack (class cT) cT.
@@ -1506,12 +1508,11 @@ Record class_of (R : Type) : Type :=
 
 Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition unpack K (k : forall T (c : class_of T), K T c) cT :=
-  let: Pack T c _ := cT return K _ (class cT) in k _ c.
-Definition repack cT : _ -> Type -> type := let k T c p := p c in unpack k cT.
+Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
 
-Definition pack : forall R : ComUnitRing.type, axiom R -> type :=
-  let k T c ax := Pack (@Class T c ax) T in ComUnitRing.unpack k.
+Definition pack T b0 (m0 : axiom (@Ring.Pack T b0 T)) :=
+  fun bT b & phant_id (ComUnitRing.class bT) b =>
+  fun    m & phant_id m0 m => Pack (@Class T b m) T.
 
 Coercion eqType cT := Equality.Pack (class cT) cT.
 Coercion choiceType cT := Choice.Pack (class cT) cT.
@@ -1578,12 +1579,11 @@ Record class_of (F : Type) : Type := Class {
 
 Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition unpack K (k : forall T (c : class_of T), K T c) cT :=
-  let: Pack T c _ := cT return K _ (class cT) in k _ c.
-Definition repack cT : _ -> Type -> type := let k T c p := p c in unpack k cT.
+Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
 
-Definition pack : forall F : IntegralDomain.type, mixin_of F -> type :=
-  let k T c m := Pack (@Class T c m) T in IntegralDomain.unpack k.
+Definition pack T b0 (m0 : mixin_of (@UnitRing.Pack T b0 T)) :=
+  fun bT b & phant_id (IntegralDomain.class bT) b =>
+  fun    m & phant_id m0 m => Pack (@Class T b m) T.
 
 Lemma IdomainMixin : forall R, mixin_of R -> IntegralDomain.axiom R.
 Proof.
@@ -1716,11 +1716,11 @@ Record class_of (F : Type) : Type :=
 
 Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition unpack K (k : forall T (c : class_of T), K T c) cT :=
-  let: Pack T c _ := cT return K _ (class cT) in k _ c.
-Definition repack cT : _ -> Type -> type := let k T c p := p c in unpack k cT.
+Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
 
-Definition pack := let k T c m := Pack (@Class T c m) T in Field.unpack k.
+Definition pack T b0 (m0 : mixin_of (@UnitRing.Pack T b0 T)) :=
+  fun bT b & phant_id (Field.class bT) b =>
+  fun    m & phant_id m0 m => Pack (@Class T b m) T.
 
 (* Ultimately, there should be a QE Mixin constructor *)
 
@@ -1851,11 +1851,11 @@ Record class_of (F : Type) : Type :=
 
 Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition unpack K (k : forall T (c : class_of T), K T c) cT :=
-  let: Pack T c _ := cT return K _ (class cT) in k _ c.
-Definition repack cT : _ -> Type -> type := let k T c p := p c in unpack k cT.
+Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
 
-Definition pack := let k T c m := Pack (@Class T c m) T in Field.unpack k.
+Definition pack T b0 (m0 : mixin_of (@UnitRing.Pack T b0 T)) :=
+  fun bT b & phant_id (Field.class bT) b =>
+  fun    m & phant_id m0 m => Pack (@Class T b m) T.
 
 Coercion eqType cT := Equality.Pack (class cT) cT.
 Coercion choiceType cT := Choice.Pack (class cT) cT.
@@ -1972,8 +1972,8 @@ Qed.
 
 Definition QEDecidableFieldMixin := DecidableField.Mixin proj_satP.
 
-Canonical Structure QEDecidableField := 
-  Eval hnf in DecidableField.pack QEDecidableFieldMixin.
+Canonical Structure QEDecidableField :=
+  DecidableField.Pack (DecidableField.Class QEDecidableFieldMixin) F.
 
 End QE_theory.
 
@@ -1989,12 +1989,11 @@ Record class_of (F : Type) : Type :=
 
 Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition unpack K (k : forall T (c : class_of T), K T c) cT :=
-  let: Pack T c _ := cT return K _ (class cT) in k _ c.
-Definition repack cT : _ -> Type -> type := let k T c p := p c in unpack k cT.
+Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
 
-Definition pack :=
-  let k T c ax := Pack (@Class T c ax) T in DecidableField.unpack k.
+Definition pack T b0 (m0 : axiom (@Ring.Pack T b0 T)) :=
+  fun bT b & phant_id (DecidableField.class bT) b =>
+  fun    m & phant_id m0 m => Pack (@Class T b m) T.
 
 (* There should eventually be a constructor from polynomial resolution *)
 (* that builds the DecidableField mixin using QE.                      *)
@@ -2385,95 +2384,78 @@ Notation "\prod_ ( i \in A ) F" :=
   (\big[*%R/1%R]_(i \in A) F%R) : ring_scope.
 
 Notation zmodType := GRing.Zmodule.type.
-Notation ZmodType := GRing.Zmodule.pack.
+Notation ZmodType T m := (@GRing.Zmodule.pack T m _ _ id).
 Notation ZmodMixin := GRing.Zmodule.Mixin.
-Notation "[ 'zmodType' 'of' T 'for' cT ]" :=
-    (@GRing.Zmodule.repack cT (@GRing.Zmodule.Pack T) T)
+Notation "[ 'zmodType' 'of' T 'for' cT ]" := (@GRing.Zmodule.clone T cT _ idfun)
   (at level 0, format "[ 'zmodType'  'of'  T  'for'  cT ]") : form_scope.
-Notation "[ 'zmodType' 'of' T ]" :=
-    (GRing.Zmodule.repack (fun c => @GRing.Zmodule.Pack T c) T)
+Notation "[ 'zmodType' 'of' T ]" := (@GRing.Zmodule.clone T _ _ id)
   (at level 0, format "[ 'zmodType'  'of'  T ]") : form_scope.
 
 Notation ringType := GRing.Ring.type.
-Notation RingType := GRing.Ring.pack.
+Notation RingType T m := (@GRing.Ring.pack T _ m _ _ id _ id).
 Notation RingMixin := GRing.Ring.Mixin.
 Notation RevRingType := GRing.RevRingType.
-Notation "[ 'ringType' 'of' T 'for' cT ]" :=
-    (@GRing.Ring.repack cT (@GRing.Ring.Pack T) T)
+Notation "[ 'ringType' 'of' T 'for' cT ]" := (@GRing.Ring.clone T cT _ idfun)
   (at level 0, format "[ 'ringType'  'of'  T  'for'  cT ]") : form_scope.
-Notation "[ 'ringType' 'of' T ]" :=
-    (GRing.Ring.repack (fun c => @GRing.Ring.Pack T c) T)
+Notation "[ 'ringType' 'of' T ]" := (@GRing.Ring.clone T _ _ id)
   (at level 0, format "[ 'ringType'  'of'  T ]") : form_scope.
 
 Notation comRingType := GRing.ComRing.type.
-Notation ComRingType := GRing.ComRing.pack.
+Notation ComRingType T m := (@GRing.ComRing.pack T _ m _ _ id _ id).
 Notation ComRingMixin := GRing.ComRing.RingMixin.
 Notation "[ 'comRingType' 'of' T 'for' cT ]" :=
-    (@GRing.ComRing.repack cT (@GRing.ComRing.Pack T) T)
+    (@GRing.ComRing.clone T cT _ idfun)
   (at level 0, format "[ 'comRingType'  'of'  T  'for'  cT ]") : form_scope.
-Notation "[ 'comRingType' 'of' T ]" :=
-    (GRing.ComRing.repack (fun c => @GRing.ComRing.Pack T c) T)
+Notation "[ 'comRingType' 'of' T ]" := (@GRing.ComRing.clone T _ _ id)
   (at level 0, format "[ 'comRingType'  'of'  T ]") : form_scope.
 
 Notation unitRingType := GRing.UnitRing.type.
-Notation UnitRingType := GRing.UnitRing.pack.
+Notation UnitRingType T m := (@GRing.UnitRing.pack T _ m _ _ id _ id).
 Notation UnitRingMixin := GRing.UnitRing.EtaMixin.
-Notation Com_UnitRingType := GRing.UnitRing.comPack.
 Notation "[ 'unitRingType' 'of' T 'for' cT ]" :=
-    (@GRing.UnitRing.repack cT (@GRing.UnitRing.Pack T) T)
+    (@GRing.UnitRing.clone T cT _ idfun)
   (at level 0, format "[ 'unitRingType'  'of'  T  'for'  cT ]") : form_scope.
-Notation "[ 'unitRingType' 'of' T ]" :=
-    (GRing.UnitRing.repack (fun c => @GRing.UnitRing.Pack T c) T)
+Notation "[ 'unitRingType' 'of' T ]" := (@GRing.UnitRing.clone T _ _ id)
   (at level 0, format "[ 'unitRingType'  'of'  T ]") : form_scope.
 
 Notation comUnitRingType := GRing.ComUnitRing.type.
-Notation ComUnitRingType := GRing.ComUnitRing.pack.
 Notation ComUnitRingMixin := GRing.ComUnitRing.Mixin.
-Notation "[ 'comUnitRingType' 'of' T 'for' cT ]" :=
-    (@GRing.ComUnitRing.repack cT (@GRing.ComUnitRing.Pack T) T)
-  (at level 0,
-   format "[ 'comUnitRingType'  'of'  T  'for'  cT ]") : form_scope.
 Notation "[ 'comUnitRingType' 'of' T ]" :=
-    (GRing.ComUnitRing.repack (fun c => @GRing.ComUnitRing.Pack T c) T)
+    (@GRing.ComUnitRing.pack T _ _ id _ _ id)
   (at level 0, format "[ 'comUnitRingType'  'of'  T ]") : form_scope.
 
 Notation idomainType := GRing.IntegralDomain.type.
-Notation IdomainType := GRing.IntegralDomain.pack.
+Notation IdomainType T m := (@GRing.IntegralDomain.pack T _ m _ _ id _ id).
 Notation "[ 'idomainType' 'of' T 'for' cT ]" :=
-    (@GRing.IntegralDomain.repack cT (@GRing.IntegralDomain.Pack T) T)
+    (@GRing.IntegralDomain.clone T cT _ idfun)
   (at level 0, format "[ 'idomainType'  'of'  T  'for'  cT ]") : form_scope.
-Notation "[ 'idomainType' 'of' T ]" :=
-    (GRing.IntegralDomain.repack (fun c => @GRing.IntegralDomain.Pack T c) T)
+Notation "[ 'idomainType' 'of' T ]" := (@GRing.IntegralDomain.clone T _ _ id)
   (at level 0, format "[ 'idomainType'  'of'  T ]") : form_scope.
 
 Notation fieldType := GRing.Field.type.
-Notation FieldType := GRing.Field.pack.
+Notation FieldType T m := (@GRing.Field.pack T _ m _ _ id _ id).
 Notation FieldUnitMixin := GRing.Field.UnitMixin.
 Notation FieldIdomainMixin := GRing.Field.IdomainMixin.
 Notation FieldMixin := GRing.Field.Mixin.
-Notation "[ 'fieldType' 'of' T 'for' cT ]" :=
-    (@GRing.Field.repack cT (@GRing.Field.Pack T) T)
+Notation "[ 'fieldType' 'of' T 'for' cT ]" := (@GRing.Field.clone T cT _ idfun)
   (at level 0, format "[ 'fieldType'  'of'  T  'for'  cT ]") : form_scope.
-Notation "[ 'fieldType' 'of' T ]" :=
-    (GRing.Field.repack (fun c => @GRing.Field.Pack T c) T)
+Notation "[ 'fieldType' 'of' T ]" := (@GRing.Field.clone T _ _ id)
   (at level 0, format "[ 'fieldType'  'of'  T ]") : form_scope.
 
 Notation decFieldType := GRing.DecidableField.type.
-Notation DecFieldType := GRing.DecidableField.pack.
+Notation DecFieldType T m := (@GRing.DecidableField.pack T _ m _ _ id _ id).
 Notation DecFieldMixin := GRing.DecidableField.Mixin.
 Notation "[ 'decFieldType' 'of' T 'for' cT ]" :=
-    (@GRing.DecidableField.repack cT (@GRing.DecidableField.Pack T) T)
+    (@GRing.DecidableField.clone T cT _ idfun)
   (at level 0, format "[ 'decFieldType'  'of'  T  'for'  cT ]") : form_scope.
-Notation "[ 'decFieldType' 'of' T ]" :=
-    (GRing.DecidableField.repack (fun c => @GRing.DecidableField.Pack T c) T)
+Notation "[ 'decFieldType' 'of' T ]" := (@GRing.DecidableField.clone T _ _ id)
   (at level 0, format "[ 'decFieldType'  'of'  T ]") : form_scope.
 
 Notation closedFieldType := GRing.ClosedField.type.
-Notation ClosedFieldType := GRing.ClosedField.pack.
+Notation ClosedFieldType T m := (GRing.ClosedField.pack T _ m _ _ id _ id).
 Notation "[ 'closedFieldType' 'of' T 'for' cT ]" :=
-    (@GRing.ClosedField.repack cT (@GRing.ClosedField.Pack T) T)
+    (@GRing.ClosedField.clone T cT _ idfun)
   (at level 0,
    format "[ 'closedFieldType'  'of'  T  'for'  cT ]") : form_scope.
-Notation "[ 'closedFieldType' 'of' T ]" :=
-    (GRing.ClosedField.repack (fun c => @GRing.ClosedField.Pack T c) T)
+Notation "[ 'closedFieldType' 'of' T ]" := (@GRing.ClosedField.clone T _ _ id)
   (at level 0, format "[ 'closedFieldType'  'of'  T ]") : form_scope.
