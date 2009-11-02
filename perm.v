@@ -372,8 +372,8 @@ Qed.
 Lemma pcycle_sym : forall s x y, (x \in pcycle s y) = (y \in pcycle s x).
 Proof. by move=> s x y; rewrite -!eq_pcycle_mem eq_sym. Qed.
 
-Lemma pcycle_perm : forall s i x y, pcycle s ((s ^+ i) x) = pcycle s x.
-Proof. by move=> s i x y; apply/eqP; rewrite eq_pcycle_mem mem_pcycle. Qed.
+Lemma pcycle_perm : forall s i x, pcycle s ((s ^+ i) x) = pcycle s x.
+Proof. by move=> s i x; apply/eqP; rewrite eq_pcycle_mem mem_pcycle. Qed.
 
 Lemma ncycles_mul_tperm : forall s x y (t := tperm x y),
   #|pcycles (t * s)| + (x \notin pcycle s y).*2 = #|pcycles s| + (x != y).

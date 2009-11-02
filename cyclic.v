@@ -206,7 +206,7 @@ End Cyclic.
 
 (* Euler's theorem *)
 
-Theorem Euler: forall a n, coprime a n -> a ^ phi n  = 1 %[mod n].
+Theorem Euler : forall a n, coprime a n -> a ^ phi n  = 1 %[mod n].
 Proof.
 move=> a [|[|n']] //; [by rewrite !modn1 | set n := n'.+2 => co_a_n].
 have{co_a_n} Ua: coprime n (inZp a : 'I_n) by rewrite coprime_sym coprime_modl.

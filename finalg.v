@@ -88,9 +88,10 @@ Definition zmod_GroupMixin : FinGroup.mixin_of M :=
 Canonical Structure zmod_baseFinGroupType := BaseFinGroupType M zmod_GroupMixin.
 Canonical Structure zmod_finGroupType := FinGroupType (@GRing.addNr M).
 
-Lemma zmod1gE : 1%g = 0 :> M.                      Proof. by []. Qed.
-Lemma zmodVgE : forall x : M, x^-1%g = - x.        Proof. by []. Qed.
-Lemma zmodMgE : forall x y : M, (x * y)%g = x + y. Proof. by []. Qed.
+Lemma zmod1gE : 1%g = 0 :> M.                          Proof. by []. Qed.
+Lemma zmodVgE : forall x : M, x^-1%g = - x.            Proof. by []. Qed.
+Lemma zmodMgE : forall x y : M, (x * y)%g = x + y.     Proof. by []. Qed.
+Lemma zmodXgE : forall n (x : M), (x ^+ n)%g = x *+ n. Proof. by []. Qed.
 
 Lemma zmod_mulgC : forall x y : M, commute x y.
 Proof. exact: GRing.addrC. Qed.
@@ -448,6 +449,7 @@ Module Theory.
 Definition zmod1gE := zmod1gE.
 Definition zmodVgE := zmodVgE.
 Definition zmodMgE := zmodMgE.
+Definition zmodXgE := zmodMgE.
 Definition zmod_mulgC := zmod_mulgC.
 Definition zmod_abelian := zmod_abelian.
 Definition unit_actE := unit_actE.
