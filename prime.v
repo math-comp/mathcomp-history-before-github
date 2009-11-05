@@ -1061,6 +1061,21 @@ have pr_q: prime q by move: q_n; rewrite mem_primes; case/andP.
 by have:= n_dvd_m q q_n; rewrite p_part !pfactor_dvdn // pfactorK.
 Qed.
 
+Lemma modn_partP : forall n a b : nat, 0 < n ->
+       reflect (forall p : nat_eqType, p \in \pi(n) -> a = b %[mod n`_p]) (a == b %[mod n]).
+Proof.
+move=> n a b H; apply: (iffP idP) => [Hi p Hp | Hi]; wlog Hab: a b Hi/ b <= a => [Hj|]. 
+- case/orP: (leq_total b a) => Hab; first by apply Hj.
+  by apply sym_equal; apply Hj => //; rewrite eq_sym.
+- apply/eqP; rewrite eqn_mod_dvd //; move: p Hp.
+  by apply/dvdn_partP => //; rewrite -eqn_mod_dvd // Hi.
+- case/orP: (leq_total b a) => Hab; first by apply Hj.
+  by rewrite eq_sym; apply Hj => // p Hp; apply sym_equal; apply Hi.
+rewrite eqn_mod_dvd //; apply/dvdn_partP => // p Hp; rewrite -eqn_mod_dvd //.
+by apply/eqP; apply Hi.
+Qed.
+
+
 (* The Euler phi function *)
 
 Lemma phiE : forall n,
