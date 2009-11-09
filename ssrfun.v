@@ -41,7 +41,7 @@ Require Import ssreflect.
 (* function T -> sort sT:                                                    *)
 (*   Definition foo T sT & T -> sort sT := ...                               *)
 (* We can avoid specifying sT directly by calling foo (@id T), or specify    *)
-(* the call completely while still ensuring the consistency of T ans sT, by  *)
+(* the call completely while still ensuring the consistency of T and sT, by  *)
 (* calling @foo T sT idfun. The phant_id type allows us to extend this trick *)
 (* to non-Type canonical projections. It also allows us to sidestep          *)
 (* dependent type constraints when building explicit records, e.g., given    *)
@@ -55,7 +55,7 @@ Require Import ssreflect.
 (* - extensional equality for functions and relations (i.e. functions of two *)
 (*   arguments),                                                             *)
 (*    f1 =1 f2      ==  f1 x is equal to f2 x forall x                       *)
-(*    f1 =1 f2 :>A  ==    ... and f2 is explicitly typed                     *)
+(*    f1 =1 f2 :> A ==    ... and f2 is explicitly typed                     *)
 (*    f1 =2 f2      ==  f1 x y is equal to f2 x y forall x y                 *)
 (*    f1 =2 f2 :> A ==    ... and f2 is explicitly typed                     *)
 (*                                                                           *)
@@ -111,7 +111,7 @@ Require Import ssreflect.
 (*  {morph f : x / a } == f is a morphism with respect to (fun x => a)       *)
 (*  {morph f : x y / a >-> r } == f is a morphism with respect to functions  *)
 (*                                 (fun x y => a) and (fun x y => r)         *)
-(*  {morph f : x / a } == f is a morphism with respect to (fun x y => a)     *)
+(*  {morph f : x y / a } == f is a morphism with respect to (fun x y => a)     *)
 (*                                                                           *)
 (* The file also contains some basic lemmas for the above concepts.          *)
 (*****************************************************************************)
@@ -326,7 +326,7 @@ Notation "@ 'comp'" := (fun A B C => @funcomp A B C tt).
 Notation "f1 \o f2" := (comp f1 f2) (at level 50) : fun_scope.
 
 Definition idfun T := @id T.
-Prenex Implicits idfun.
+Prenex Implicits idfun. 
 
 Definition phant_id T1 T2 v1 v2 := phantom T1 v1 -> phantom T2 v2.
 
