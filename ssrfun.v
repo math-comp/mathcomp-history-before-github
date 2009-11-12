@@ -111,7 +111,7 @@ Require Import ssreflect.
 (*  {morph f : x / a } == f is a morphism with respect to (fun x => a)       *)
 (*  {morph f : x y / a >-> r } == f is a morphism with respect to functions  *)
 (*                                 (fun x y => a) and (fun x y => r)         *)
-(*  {morph f : x y / a } == f is a morphism with respect to (fun x y => a)     *)
+(*  {morph f : x y / a } == f is a morphism with respect to (fun x y => a)   *)
 (*                                                                           *)
 (* The file also contains some basic lemmas for the above concepts.          *)
 (*****************************************************************************)
