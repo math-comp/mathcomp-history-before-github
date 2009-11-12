@@ -516,7 +516,7 @@ Prenex Implicits svalP s2val s2valP s2valP'.
 Canonical Structure sig_subType T (P : pred T) :=
   Eval hnf in [subType for @sval T P by @sig_rect _ _].
 
-(* Shorhand for the return type of insub. *)
+(* Shorthand for the return type of insub. *)
 Notation "{ ? x : T | P }" := (option {x : T | is_true P})
   (at level 0, x at level 69, only parsing) : type_scope.
 Notation "{ ? x | P }" := {? x : _ | P}
