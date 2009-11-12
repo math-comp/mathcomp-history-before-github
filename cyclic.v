@@ -70,7 +70,7 @@ Lemma ZpmM : {in Zp #[a] &, {morph Zpm : x y / x * y}}.
 Proof.
 rewrite /Zpm; case: (eqVneq a 1) => [-> | nta] i j _ _.
   by rewrite !exp1gn ?mulg1.
-by rewrite /= {3}Zp_cast ?order_gt1 // expg_mod_order expgn_add. 
+by rewrite /= {3}Zp_cast ?order_gt1 // expg_mod_order expgn_add.
 Qed.
 
 Canonical Structure Zpm_morphism := Morphism ZpmM.
@@ -287,7 +287,7 @@ exists (x ^+ (#[x] %/ #|H|)); apply: congr_group; apply/set1P.
 by rewrite -cycle_sub_group /order -gex ?cardSg // inE HsubG eqxx.
 Qed.
 
-Lemma cyclicJ:  forall G x, cyclic (G :^ x) = cyclic G.
+Lemma cyclicJ :  forall G x, cyclic (G :^ x) = cyclic G.
 Proof.
 move=> G x; apply/cyclicP/cyclicP=> [[y] | [y ->]].
   by move/(canRL (conjsgK x)); rewrite -cycleJ; exists (y ^ x^-1).

@@ -301,7 +301,7 @@ by [].
 Qed.
 
 Fixpoint bstore s bt := match bt with
-| 'K_i => set_nth false s i true 
+| 'K_i => set_nth false s i true
 | '[bAnd t1 t2] => bstore (bstore s t1) t2
 | _ => s
 end%QT.

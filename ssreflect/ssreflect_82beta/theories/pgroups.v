@@ -1,6 +1,6 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import fintype paths finfun ssralg bigops finset prime.
-Require Import groups morphisms group_perm action automorphism normal. 
+Require Import groups morphisms group_perm action automorphism normal.
 Require Import cyclic abelian.
 
 Set Implicit Arguments.
@@ -246,7 +246,7 @@ move=> P; case: (ltnP 1 #|P|); first by move/prime_pdiv; exists (pdiv #|P|).
 move/card_le1_trivg=> -> _; exists 2 => //; exact: pgroup1.
 Qed.
 
-Lemma pgroup_1Vpr : forall p G, p.-group G -> 
+Lemma pgroup_1Vpr : forall p G, p.-group G ->
   G :=: 1 \/ [/\ prime p, p <= #|G| & exists m, #|G| = p ^ m.+1]%N.
 Proof.
 move=> p G pG; case/p_groupP: (pgroup_p pG) => q pr_q.
@@ -269,7 +269,7 @@ Lemma pHall_pgroup : forall pi A B, pi.-Hall(A) B -> pi.-group B.
 Proof. by move=> pi A B; case/and3P. Qed.
 
 Lemma pHallP : forall pi G H,
-  reflect (H \subset G /\ #|H| = #|G|`_pi) (pi.-Hall(G) H). 
+  reflect (H \subset G /\ #|H| = #|G|`_pi) (pi.-Hall(G) H).
 Proof.
 move=> pi G H; apply: (iffP idP) => [piH | [sHG oH]].
   split; [exact: pHall_sub piH | exact: card_Hall].
@@ -522,7 +522,7 @@ by rewrite !inE ltnS -leqNgt -eqn_leq.
 Qed.
 
 Lemma max_pgroupJ : forall pi M G x,
-  x \in G -> [max M | pi.-subgroup(G) M] -> 
+  x \in G -> [max M | pi.-subgroup(G) M] ->
    [max M :^ x of M | pi.-subgroup(G) M].
 Proof.
 move=> pi M G x Gx; case/maxgroupP=> piM maxM; apply/maxgroupP.
@@ -852,7 +852,7 @@ move=> gT G; apply/andP; split=> //; apply/forallP=> f; apply/implyP=> Af.
 by rewrite -{2}(autm_dom Af) -(morphimEsub (autm_morphism Af)) ?subF ?funF.
 Qed.
 
-Lemma morphim_gfunctor : forall gT rT (D G : {group gT}) 
+Lemma morphim_gfunctor : forall gT rT (D G : {group gT})
                                       (f : {morphism D >-> rT}),
   G \subset D -> f @* (F G) \subset F (f @* G).
 Proof.
@@ -860,7 +860,7 @@ move=> gT rT D G f sGD; rewrite -(setIidPr (subF G)) -{3}(setIid G).
 by rewrite -!(morphim_restrm sGD) funF.
 Qed.
 
-Lemma injm_gfunctor : forall gT rT (D G : {group gT}) 
+Lemma injm_gfunctor : forall gT rT (D G : {group gT})
                                    (f : {morphism D >-> rT}),
   'injm f -> G \subset D -> f @* (F G) = F (f @* G).
 Proof.
@@ -871,7 +871,7 @@ by rewrite -sub_morphim_pre (morphim_gfunctor, sFtr) ?morphimS.
 Qed.
 
 
-Lemma isom_gfunctor : forall gT rT (D G : {group gT}) (R : {group rT}) 
+Lemma isom_gfunctor : forall gT rT (D G : {group gT}) (R : {group rT})
                                    (f : {morphism D >-> rT}),
   G \subset D -> isom G R f -> isom (F G) (F R) f.
 Proof.
@@ -1085,12 +1085,12 @@ have nH2H: pseries pis (G / K) <| pseries (pi1s ++ add_last pis pi) G / K.
   rewrite -IHpi morphim_normal // -cats1 catA.
   by apply/andP; rewrite pseries_sub_catl pseries_norm2.
 apply: (quotient_inj nH2H).
-  by apply/andP; rewrite /= -cats1 pseries_sub_catl pseries_norm2. 
+  by apply/andP; rewrite /= -cats1 pseries_sub_catl pseries_norm2.
 rewrite /= quotient_pseries /= -IHpi -add_last_cat.
 rewrite -[G / _ / _](morphim_invm inj_f) //= {2}im_f //.
 have:= injm_gfunctor (pcore_sub pi) (gfunc_pcore pi).
 move <-; rewrite /= ?injm_invm ?im_f // -quotient_pseries.
-by rewrite -im_f ?morphim_invm ?morphimS ?normal_sub. 
+by rewrite -im_f ?morphim_invm ?morphimS ?normal_sub.
 Qed.
 
 Lemma pseries_catl_id : forall pi1s pi2s gT (G : {group gT}),
@@ -1520,7 +1520,7 @@ case pr_p: (prime p) => //=; apply/idP/idP=> pG.
 case/Cauchy: pG => // x Gx <-; exact: dvdn_exponent.
 Qed.
 
-Lemma abelem1: abelem [1 gT]. 
+Lemma abelem1: abelem [1 gT].
 Proof. by rewrite /abelem abelian1 pgroup1. Qed.
 
 Lemma p_abelem1: forall p: nat, p.-abelem (1 : {set gT}).
@@ -1582,7 +1582,7 @@ apply/abelemP; exists p => //; apply/(p_abelemP _ Pp); split => [|r Er] //.
   by apply: asub sEH.
 by apply: PH; apply: (subsetP sEH).
 Qed.
- 
+
 Lemma p_abelemS : forall p E H, E \subset H -> p.-abelem H -> p.-abelem E.
 Proof.
 move=> p E H sEH; case/andP=> abH pH.
@@ -1613,7 +1613,7 @@ case/Cauchy=> // x; case/setIP=> Hx Ex ox.
 suffices x1: x \in [1] by rewrite -ox (set1P x1) order1 in pr_p.
 rewrite -{}trHE inE Hx mem_gen // inE Ex /= /OhmPred.
 apply big_prop=> // [q1 q2|q _]; first by rewrite leq_maxl => ->.
-by rewrite ox logn_prime ?leq_b1. 
+by rewrite ox logn_prime ?leq_b1.
 Qed.
 
 Lemma pnElemE : forall p n G,

@@ -61,7 +61,7 @@ Canonical Structure fmod_morphism := [morphism of fmod].
 Lemma fmod_mulgC : @commutative fmodA fmodA (@mulg _).
 Proof. move=> x y; apply: val_inj; apply: (centsP abelA); exact: subgP. Qed.
 
-Definition fmod_zmodMixin := 
+Definition fmod_zmodMixin :=
   @ZmodMixin fmodA _ _ _ (@mulgA _) fmod_mulgC (@mul1g _) (@mulVg _).
 Canonical Structure fmod_zmodType := ZmodType fmodA fmod_zmodMixin.
 
@@ -137,13 +137,13 @@ Proof.
 by move=> x y Nx Ny /= u; apply: val_inj; rewrite !fmvalJ ?conjgM ?groupM.
 Qed.
 
-Lemma actrK : forall x, cancel (actr^~ x) (actr^~ x^-1%g). 
+Lemma actrK : forall x, cancel (actr^~ x) (actr^~ x^-1%g).
 Proof.
 move=> x u; apply: val_inj; rewrite !fmvalJcond groupV.
 by case: ifP => -> //; rewrite conjgK.
 Qed.
 
-Lemma actrKV : forall x, cancel (actr^~ x^-1%g) (actr^~ x). 
+Lemma actrKV : forall x, cancel (actr^~ x^-1%g) (actr^~ x).
 Proof. by move=> x u; rewrite -{2}(invgK x) actrK. Qed.
 
 End OneFinMod.
@@ -257,12 +257,12 @@ apply/setP=> x; apply/mulsgP/idP=> [[h y Hh fy ->{x}] | Gx].
   case/morphimP: fy => z _ Gz ->{x Hx y}.
   by rewrite /= /f groupMl ?GrH // (subsetP sHG) ?fmodP.
 exists (x * (f x)^-1) (f x); last first; first by rewrite mulgKV.
-  by apply/morphimP; exists x. 
+  by apply/morphimP; exists x.
 rewrite -groupV invMg invgK -mulgA (conjgC (val _)) mulgA.
 by rewrite groupMl -(mem_rcoset, mem_conjg) // (normP _) ?nHG ?fmodP.
 Qed.
 
-Theorem Gaschutz_transitive : {in [complements to H in G] &, 
+Theorem Gaschutz_transitive : {in [complements to H in G] &,
   forall K L,  K :&: P = L :&: P -> exists2 x, x \in H & L :=: K :^ x}.
 Proof.
 move=> K L /=; set Q := K :&: P; case/complP=> trHK eqHK cpHL QeqLP.
@@ -393,7 +393,7 @@ have cardZK: #|ZK| = (#|Z| * #|G : H|)%N.
 have: [splits ZK, over Z].
   rewrite (Gaschutz_split nZZK _ sZZK) ?abelian_center //; last first.
     rewrite -divgS // cardZK mulKn ?cardG_gt0 //.
-    by case/andP: hallH => _; exact: coprimeSg. 
+    by case/andP: hallH => _; exact: coprimeSg.
   by apply/splitsP; exists 1%G; rewrite inE -subG1 subsetIr mulg1 eqxx.
 case/splitsP=> K; case/complP=> trZK eqZK.
 have sKZK: K \subset ZK by rewrite -(mul1g K) -eqZK mulSg ?sub1G.
@@ -518,7 +518,7 @@ have nNA: A \subset 'N(N) by rewrite normsI ?norms_norm.
 have: B :^ x^-1 \subset A <*> N.
   rewrite norm_mulgenEl ?group_modl // -defAG subsetI !sub_conjgV -normJ -defR.
   rewrite conjGid ?(subsetP sG_AG) // normsI ?normsG // (subset_trans sB_AG) //.
-  by rewrite mulgen_subG normsM // -defK normsG ?mulgen_subr. 
+  by rewrite mulgen_subG normsM // -defK normsG ?mulgen_subr.
 do [case/IHn; rewrite ?cardJg ?(coprimeSg _ coGA) //= -/N] => [|y Ny defB].
   rewrite mulgenC norm_mulgenEr // coprime_cardMg ?(coprimeSg sNG) //.
   by rewrite (leq_trans _ leAn) // oAG mulnC ltn_pmul2l // proper_card.

@@ -74,7 +74,7 @@ Definition splits_over B A := complements_to_in A B != set0.
 
 (* Product remainder functions *)
 
-(* Deferring the left variant, as we don't need it for the moment 
+(* Deferring the left variant, as we don't need it for the moment
 Definition remgl A B x := repr (A :&: x *: B).
 Definition divgl A B x := (remgl A B x)^-1 * x.
 *)
@@ -284,7 +284,7 @@ Lemma sdprodP : forall A B G,
   A ><| B = G -> [/\ are_groups A B, A * B = G, B \subset 'N(A) & A :&: B = 1].
 Proof.
 rewrite /sdprod => A B G; case: ifP => [trAB|_]; last by case/group_not0.
-case/pprodP=> gAB defG nBA; split=> {defG nBA}//. 
+case/pprodP=> gAB defG nBA; split=> {defG nBA}//.
 by case: gAB trAB => H K -> ->; move/trivgP.
 Qed.
 
@@ -539,7 +539,7 @@ Proof. by move=> x; congr (_, _); exact: mulVg. Qed.
 Lemma extprod_mulgA : associative extprod_mulg.
 Proof. by move=> x y z; congr (_, _); exact: mulgA. Qed.
 
-Definition extprod_groupMixin:=
+Definition extprod_groupMixin :=
   Eval hnf in FinGroup.Mixin extprod_mulgA extprod_mul1g extprod_mulVg.
 Canonical Structure extprod_baseFinGroupType :=
   Eval hnf in BaseFinGroupType (gT1 * gT2) extprod_groupMixin.

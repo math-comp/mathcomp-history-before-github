@@ -616,7 +616,7 @@ Lemma cards0 : #|@set0 T| = 0.
 Proof. by rewrite cardsE card0. Qed.
 
 Lemma cards_eq0 : forall A, (#|A| == 0) = (A == set0).
-Proof. by move=> A; rewrite (eq_sym A) eqEcard sub0set cards0 leqn0. Qed. 
+Proof. by move=> A; rewrite (eq_sym A) eqEcard sub0set cards0 leqn0. Qed.
 
 Lemma set0Pn : forall A, reflect (exists x, x \in A) (A != set0).
 Proof. move=> A; rewrite -cards_eq0; exact: existsP. Qed.
@@ -751,7 +751,7 @@ move=> A B C; apply/subsetP/subsetP=> sABC x; rewrite !inE.
 by case Bx: (x \in B) => //; move/sABC; rewrite inE Bx.
 Qed.
 
-Lemma setDeq0 : forall A B, (A :\: B == set0) = (A \subset B). 
+Lemma setDeq0 : forall A B, (A :\: B == set0) = (A \subset B).
 Proof. by move=> A B; rewrite -subset0 subDset setU0. Qed.
 
 Lemma properD1 : forall A x, x \in A -> A :\ x \proper A.
@@ -759,15 +759,15 @@ Proof.
 move=> A x Ax; rewrite properE subsetD1; apply/subsetPn; exists x=> //.
 by rewrite in_setD1 Ax eqxx.
 Qed.
- 
+
 Lemma properIr :  forall A B, ~~ (B \subset A) -> A :&: B \proper B.
 Proof.
 by move=> A B nsAB; rewrite properE subsetIr subsetI negb_andb nsAB.
 Qed.
 
 Lemma properIl : forall A B, ~~ (A \subset B) -> A :&: B \proper A.
-Proof. 
-by move=> A B nsBA; rewrite properE subsetIl subsetI negb_andb nsBA orbT. 
+Proof.
+by move=> A B nsBA; rewrite properE subsetIl subsetI negb_andb nsBA orbT.
 Qed.
 
 Lemma properUr : forall A B, ~~ (A \subset B) ->  B \proper A :|: B.
@@ -783,7 +783,7 @@ Proof. by move=> A x; move/proper_sub; rewrite sub1set. Qed.
 
 Lemma properIset : forall A B C,
   (B \proper A) || (C \proper A) -> (B :&: C \proper A).
-Proof. 
+Proof.
 move=> A B C.
 by case/orP; apply: sub_proper_trans; rewrite (subsetIl, subsetIr).
 Qed.
@@ -1399,7 +1399,7 @@ Implicit Type F :  I -> {set T}.
 Lemma bigcup_sup : forall j P F, P j -> F j \subset \bigcup_(i | P i) F i.
 Proof. by move=> j P F Pj; rewrite (bigD1 j) //= subsetUl. Qed.
 
-Lemma bigcup_max : forall j U P F, P j -> 
+Lemma bigcup_max : forall j U P F, P j ->
   U \subset F j -> U \subset \bigcup_(i | P i) F i.
 Proof. by move=> j U P F Pj sUF; exact: subset_trans (bigcup_sup _ Pj). Qed.
 
@@ -1600,7 +1600,7 @@ Proof.
 move=> P D; apply/bigcupsP=> A; rewrite inE; case/andP=> PA sAD.
 by rewrite subsetI sAD andbT (bigcup_max A).
 Qed.
- 
+
 Definition cover_at x P := odflt set0 (pick [pred A \in P | x \in A]).
 
 Lemma mem_cover_at : forall P x, (x \in cover_at x P) = (x \in cover P).
@@ -1640,7 +1640,7 @@ Let op := Monoid.operator law.
 Let rhs P K F := \big[op/nil]_(A \in P) \big[op/nil]_(x \in A | K x) F x.
 
 Lemma big_trivIset : forall P (K : pred T) (F : T -> R),
-  trivIset P -> \big[op/nil]_(x \in cover P | K x) F x = rhs P K F. 
+  trivIset P -> \big[op/nil]_(x \in cover P | K x) F x = rhs P K F.
 Proof.
 move=> P K F tI; rewrite (partition_big (cover_at^~ P) (mem P)) -/op => [|x].
   by apply: eq_bigr => A PA; apply: eq_bigl => x; rewrite andbAC cover_at_eq.
@@ -1714,7 +1714,7 @@ Definition minset P A := forallb B : sT, (B \subset A) ==> ((B == A) == P B).
 Lemma minset_eq : forall P1 P2 A, P1 =1 P2 -> minset P1 A = minset P2 A.
 Proof. by move=> P1 P2 A eP12; apply: eq_forallb => B; rewrite eP12. Qed.
 
-Lemma minsetP : forall P A, 
+Lemma minsetP : forall P A,
   reflect ((P A) /\ (forall B, P B -> B \subset A -> B = A)) (minset P A).
 Proof.
 move=> P A; apply: (iffP forallP) => [minA | [PA minA] B].
@@ -1767,7 +1767,7 @@ move=> P A; unlock maxset; rewrite setCK; apply: minset_eq => B /=.
 by rewrite setCK.
 Qed.
 
-Lemma maxsetP : forall P A, 
+Lemma maxsetP : forall P A,
   reflect ((P A) /\ (forall B, P B -> A \subset B -> B = A)) (maxset P A).
 Proof.
 move=> P A; apply: (iffP minsetP); rewrite ?setCK -lock => [] [PA minA].

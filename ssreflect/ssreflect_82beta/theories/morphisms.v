@@ -417,7 +417,7 @@ Lemma sub_morphim_pre : forall A C,
 Proof.
 move=> A C sAG; rewrite -morphpreSK (morphimS, morphimK) //.
 apply/idP/idP; first by apply: subset_trans; exact: mulG_subr.
-by move/(mulgS ('ker f)); rewrite -morphpreMl ?(sub1G, mul1g). 
+by move/(mulgS ('ker f)); rewrite -morphpreMl ?(sub1G, mul1g).
 Qed.
 
 Lemma sub_morphpre_im : forall C H,
@@ -779,7 +779,7 @@ Proof. by apply: subset_trans; rewrite ker_restrm subsetIr. Qed.
 End Props.
 
 Lemma restrmP : forall f : {morphism B >-> rT}, A \subset 'dom f ->
-  exists g : {morphism A >-> rT}, 
+  exists g : {morphism A >-> rT},
     [/\ forall C, C \subset A -> f @* C = g @* C,
         'ker g = 'ker_A f & f = g :> (aT -> rT)].
 Proof.
@@ -1081,7 +1081,7 @@ move=> A C sAG; case: (restrmP f sAG) => g [_ _ fg] <-{C} injf.
 rewrite /isom -morphimEsub ?morphimDG ?morphim1 //.
 by rewrite subDset setUC subsetU ?sAG.
 Qed.
-  
+
 Lemma sub_isog : forall (A : {set aT}),
   A \subset G -> 'injm f -> isog A (f @* A).
 Proof. move=> A sAG injf; apply: (isom_isog f sAG); exact: sub_isom. Qed.

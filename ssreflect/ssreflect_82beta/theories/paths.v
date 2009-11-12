@@ -852,7 +852,7 @@ by rewrite /p -cat_adds mem_cat /= mem_head orbT.
 Qed.
 
 CoInductive rot_to_arc_spec (p : seq T) (x y : T) : Type :=
-    RotToArcSpec i p1 p2 of x :: p1 = arc p x y 
+    RotToArcSpec i p1 p2 of x :: p1 = arc p x y
                           & y :: p2 = arc p y x
                           & rot i p = x :: p1 ++ y :: p2 :
     rot_to_arc_spec p x y.

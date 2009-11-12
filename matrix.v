@@ -71,7 +71,7 @@ Require Import perm zmodp.
 (*           a%:M == the scalar matrix with a's on the main diagonal; in     *)
 (*                   particular 1%:M denotes the identity matrix, and is is  *)
 (*                   equal to 1%R when n is of the form n'.+1 (e.g., n = 1). *)
-(*      diag_mx d == the diagonal matrix whose main diagonal is d : 'rV_n.   *) 
+(*      diag_mx d == the diagonal matrix whose main diagonal is d : 'rV_n.   *)
 (*   delta_mx i j == the matrix with a 1 in row i, column j and 0 elsewhere. *)
 (*       pid_mx r == the partial identity matrix with 1s only on the r first *)
 (*                   rows of the main diagonal; the dimensions of pid_mx r   *)
@@ -309,7 +309,7 @@ Definition castmx m' n' (eq_mn : (m = m') * (n = n')) A : 'M_(m', n') :=
   let: erefl in _ = m' := eq_mn.1 return 'M_(m', n') in
   let: erefl in _ = n' := eq_mn.2 return 'M_(m, n') in A.
 
-(* Transpose a matrix *)    
+(* Transpose a matrix *)
 Definition trmx A := \matrix_(i, j) A j i.
 
 (* Permute a matrix vertically (rows) or horizontally (columns) *)
@@ -317,7 +317,7 @@ Definition row_perm (s : 'S_m) A := \matrix_(i, j) A (s i) j.
 Definition col_perm (s : 'S_n) A := \matrix_(i, j) A i (s j).
 
 (* Exchange two rows/columns of a matrix *)
-Definition xrow i1 i2 := row_perm (tperm i1 i2). 
+Definition xrow i1 i2 := row_perm (tperm i1 i2).
 Definition xcol j1 j2 := col_perm (tperm j1 j2).
 
 (* Row/Column sub matrices of a matrix *)
@@ -376,7 +376,7 @@ Proof. by move=> A; apply/matrixP=> i j; rewrite mxE perm1. Qed.
 
 Lemma row_perm1 : forall A, row_perm 1 A = A.
 Proof. by move=> A; apply/matrixP=> i j; rewrite mxE perm1. Qed.
- 
+
 Lemma col_permM : forall s t A, col_perm (s * t) A = col_perm s (col_perm t A).
 Proof. by move=> s t A; apply/matrixP=> i j; rewrite !mxE permM. Qed.
 
@@ -438,17 +438,17 @@ Qed.
 
 Lemma tr_row_perm : forall m n s (A : 'M_(m, n)),
   (row_perm s A)^T = col_perm s A^T.
-Proof. by move=> m n s A; apply/matrixP=> i j; rewrite !mxE. Qed. 
+Proof. by move=> m n s A; apply/matrixP=> i j; rewrite !mxE. Qed.
 
 Lemma tr_col_perm : forall m n s (A : 'M_(m, n)),
   (col_perm s A)^T = row_perm s A^T.
-Proof. by move=> m n s A; apply/matrixP=> i j; rewrite !mxE. Qed. 
+Proof. by move=> m n s A; apply/matrixP=> i j; rewrite !mxE. Qed.
 
-Lemma tr_xrow : forall m n i1 i2 (A : 'M_(m, n)), 
+Lemma tr_xrow : forall m n i1 i2 (A : 'M_(m, n)),
   (xrow i1 i2 A)^T = xcol i1 i2 A^T.
 Proof. by move=> m n A i1 i2; exact: tr_row_perm. Qed.
 
-Lemma tr_xcol : forall m n j1 j2 (A : 'M_(m, n)), 
+Lemma tr_xcol : forall m n j1 j2 (A : 'M_(m, n)),
   (xcol j1 j2 A)^T = xrow j1 j2 A^T.
 Proof. by move=> m n A j1 j2; exact: tr_col_perm. Qed.
 
@@ -714,7 +714,7 @@ Lemma mx'_cast : forall m n, 'I_n -> (m + n.-1)%N = (m + n).-1.
 Proof. by move=> m n [j]; move/ltn_predK <-; rewrite addnS. Qed.
 
 Lemma col'Kr : forall m n1 n2 j2 (A1 : 'M_(m, n1)) (A2 : 'M_(m, n2)),
-  col' (rshift n1 j2) (@row_mx m n1 n2 A1 A2) 
+  col' (rshift n1 j2) (@row_mx m n1 n2 A1 A2)
     = castmx (erefl m, mx'_cast n1 j2) (row_mx A1 (col' j2 A2)).
 Proof.
 move=> m n1 n2 j2 A1 A2; apply/matrixP=> i j; symmetry.
@@ -726,7 +726,7 @@ by rewrite /= def_j /bump leq_add2l addnCA.
 Qed.
 
 Lemma row'Kd : forall m1 m2 n i2 (A1 : 'M_(m1, n)) (A2 : 'M_(m2, n)),
-  row' (rshift m1 i2) (col_mx A1 A2) 
+  row' (rshift m1 i2) (col_mx A1 A2)
     = castmx (mx'_cast m1 i2, erefl n) (col_mx A1 (row' i2 A2)).
 Proof.
 move=> m n1 n2 j2 A1 A2; apply: trmx_inj.
@@ -778,22 +778,22 @@ Let A := block_mx Aul Aur Adl Adr.
 
 Lemma block_mxEul : forall i j, A (lshift m2 i) (lshift n2 j) = Aul i j.
 Proof. by move=> i j; rewrite col_mxEu row_mxEl. Qed.
-Lemma block_mxKul : ulsubmx A = Aul. 
+Lemma block_mxKul : ulsubmx A = Aul.
 Proof. by rewrite /ulsubmx col_mxKu row_mxKl. Qed.
 
 Lemma block_mxEur : forall i j, A (lshift m2 i) (rshift n1 j) = Aur i j.
 Proof. by move=> i j; rewrite col_mxEu row_mxEr. Qed.
-Lemma block_mxKur : ursubmx A = Aur. 
+Lemma block_mxKur : ursubmx A = Aur.
 Proof. by rewrite /ursubmx col_mxKu row_mxKr. Qed.
 
 Lemma block_mxEdl : forall i j, A (rshift m1 i) (lshift n2 j) = Adl i j.
 Proof. by move=> i j; rewrite col_mxEd row_mxEl. Qed.
-Lemma block_mxKdl : dlsubmx A = Adl. 
+Lemma block_mxKdl : dlsubmx A = Adl.
 Proof. by rewrite /dlsubmx col_mxKd row_mxKl. Qed.
 
 Lemma block_mxEdr : forall i j, A (rshift m1 i) (rshift n1 j) = Adr i j.
 Proof. by move=> i j; rewrite col_mxEd row_mxEr. Qed.
-Lemma block_mxKdr : drsubmx A = Adr. 
+Lemma block_mxKdr : drsubmx A = Adr.
 Proof. by rewrite /drsubmx col_mxKd row_mxKr. Qed.
 
 Lemma block_mxEv : A = col_mx (row_mx Aul Aur) (row_mx Adl Adr).
@@ -1074,7 +1074,7 @@ Lemma scale_block_mx : forall m1 m2 n1 n2 a,
                        forall (Aul : 'M_(m1, n1)) (Aur : 'M_(m1, n2)),
                        forall (Adl : 'M_(m2, n1)) (Adr : 'M_(m2, n2)),
   a *m: block_mx Aul Aur Adl Adr
-     = block_mx (a *m: Aul) (a *m: Aur) (a *m: Adl) (a *m: Adr).    
+     = block_mx (a *m: Aul) (a *m: Aur) (a *m: Adl) (a *m: Adr).
 Proof. by move=> *; rewrite scale_col_mx !scale_row_mx. Qed.
 
 (* Diagonal matrices *)
@@ -1126,7 +1126,7 @@ Proof. by move=> n; apply/matrixP=> i j; rewrite !mxE if_same. Qed.
 
 Lemma scalar_mx_opp : forall n a, (- a)%:M = - a%:M :> 'M_n.
 Proof. by move=> n a; apply/matrixP=> i j; rewrite !mxE (fun_if -%R) oppr0. Qed.
-  
+
 Lemma scalar_mx_add : forall n a b, (a + b)%:M = a%:M + b%:M :> 'M_n.
 Proof.
 move=> n a b; apply/matrixP=> i j; rewrite !mxE.
@@ -1300,7 +1300,7 @@ Qed.
 
 Lemma tr_tperm_mx : forall n i1 i2, (tperm_mx i1 i2)^T = tperm_mx i1 i2 :> 'M_n.
 Proof. by move=> n i1 i2; rewrite tr_perm_mx tpermV. Qed.
-  
+
 Lemma perm_mx1 : forall n, perm_mx 1 = 1%:M :> 'M_n.
 Proof. move=> n; exact: row_perm1. Qed.
 
@@ -1336,7 +1336,7 @@ move=> n A; apply/is_perm_mxP/is_perm_mxP=> [[t def_t] | [t ->]]; exists t^-1%g.
   by rewrite -tr_perm_mx -def_t trmxK.
 by rewrite tr_perm_mx.
 Qed.
-   
+
 Lemma is_perm_mxMr : forall n (A B : 'M_n),
   is_perm_mx B -> is_perm_mx (A *m B) = is_perm_mx A.
 Proof.
@@ -1533,7 +1533,7 @@ Proof. by move=> s i; rewrite (canF_eq (lift0_permK s)) lift0_perm0. Qed.
 
 Definition lift0_mx A : 'M_(1 + n) := block_mx 1 0 0 A.
 
-Lemma lift0_mx_perm : forall s, lift0_mx (perm_mx s) = perm_mx (lift0_perm s). 
+Lemma lift0_mx_perm : forall s, lift0_mx (perm_mx s) = perm_mx (lift0_perm s).
 Proof.
 move=> s; apply/matrixP=> /= i j.
 rewrite !mxE split1 /=; case: unliftP => [i'|] -> /=.
@@ -1714,7 +1714,7 @@ Proof.
 move=> n A B; rewrite big_distrl /=.
 pose F := {ffun 'I_n -> 'I_n}; pose AB s i j := A i j * B j (s i).
 transitivity (\sum_(f : F) \sum_(s : 'S_n) (-1) ^+ s * \prod_i AB s i (f i)).
-  rewrite exchange_big; apply: eq_bigr => /= s _; rewrite -big_distrr /=. 
+  rewrite exchange_big; apply: eq_bigr => /= s _; rewrite -big_distrr /=.
   congr (_ * _); rewrite -(bigA_distr_bigA (AB s)) /=.
   by apply: eq_bigr => x _; rewrite mxE.
 rewrite (bigID (fun f : F => injectiveb f)) /= addrC big1 ?add0r => [|f Uf].
@@ -2072,7 +2072,7 @@ Fixpoint cormen_lup {n} :=
     let A1 : 'M_(1 + _) := xrow 0 k A in
     let P1 : 'M_(1 + _) := tperm_mx 0 k in
     let Schur := ((A k 0)^-1 *m: dlsubmx A1) *m ursubmx A1 in
-    let: (P2, L2, U2) := cormen_lup (drsubmx A1 - Schur) in 
+    let: (P2, L2, U2) := cormen_lup (drsubmx A1 - Schur) in
     let P := block_mx 1 0 0 P2 *m P1 in
     let L := block_mx 1 0 ((A k 0)^-1 *m: (P2 *m dlsubmx A1)) L2 in
     let U := block_mx (ulsubmx A1) (ursubmx A1) 0 U2 in
@@ -2148,7 +2148,7 @@ Fixpoint emxrank m n : 'M[F]_(m, n) -> nat * 'M_m * 'M_n :=
   | _.+1, _.+1 => fun A : 'M_(1 + _, 1 + _) =>
     if pick (fun k => A k.1 k.2 != 0) is Some (i, j) then
       let a := A i j in let A1 := xrow i 0 (xcol j 0 A) in
-      let u := ursubmx A1 in let v :=  a^-1 *m: dlsubmx A1 in 
+      let u := ursubmx A1 in let v :=  a^-1 *m: dlsubmx A1 in
       let: (r, L, U) := emxrank (drsubmx A1 - v *m u) in
       (r.+1, xrow i 0 (block_mx 1 0 v L), xcol j 0 (block_mx a%:M u 0 U))
     else (0%N, 1%:M, 1%:M)
@@ -2487,13 +2487,13 @@ Lemma subsetmx_add : forall m1 m2 n,
 Proof.
 move=> m1 m2 n A B C; case/subsetmxP=> A' ->; case/subsetmxP=> B' ->.
 by rewrite -mulmx_addl subsetmxMl.
-Qed.  
+Qed.
 
 Lemma subsetmx_scale : forall m1 m2 n a (A : 'M_(m1, n)) (B : 'M_(m2, n)),
   (A <= B)%MR -> (a *m: A <= B)%MR.
 Proof.
 by move=> m1 m2 n a A B; case/subsetmxP=> A' ->; rewrite scalemxAl subsetmxMl.
-Qed.  
+Qed.
 
 Lemma subsetmx_trans : forall m1 m2 m3 n,
     forall (A : 'M_(m1, n)) (B : 'M_(m2, n)) (C : 'M_(m3, n)),

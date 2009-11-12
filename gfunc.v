@@ -74,7 +74,7 @@ Qed.
 (* Compatible w.r.t. inclusion *)
 
 Definition compatible (F : obmap) : Prop :=
-  forall gT (H G : {group gT}), H \subset G -> (F _ H) \subset (F _ G). 
+  forall gT (H G : {group gT}), H \subset G -> (F _ H) \subset (F _ G).
 
 End IdentitySubFunctorDefs.
 
@@ -82,7 +82,7 @@ Module FunctorDefs.
 
 Implicit Type gT : finGroupType.
 
-Structure bgFunc : Type := BGFunc { 
+Structure bgFunc : Type := BGFunc {
   Fobj :> obmap;
   (* group preservation *)
   _ : forall gT (G : {group gT}), group_set (@Fobj gT G);
@@ -91,15 +91,15 @@ Structure bgFunc : Type := BGFunc {
   (* functoriality condition *)
   _ : aresp Fobj}.
 
-Structure gFunc : Type := GFunc { 
+Structure gFunc : Type := GFunc {
   Fg_bgFunc :> bgFunc ;
    _ : resp Fg_bgFunc}.
 
-Structure hgFunc : Type := HGFunc { 
+Structure hgFunc : Type := HGFunc {
   Fh_gFunc :> gFunc;
    _ : hereditary Fh_gFunc}.
 
-Structure cgFunc : Type := CGFunc { 
+Structure cgFunc : Type := CGFunc {
   Fc_gFunc :> gFunc;
    _ : compatible Fc_gFunc}.
 
@@ -194,7 +194,7 @@ End BgGroup.
 Section BaseIdentitySubFunctorProps.
 
 Implicit Types gT hT : finGroupType.
-Variable sF: bgFunc.
+Variable sF : bgFunc.
 
 Lemma bgFunc_clos : forall gT (H : {group gT}), sF _ H \subset H.
 Proof. by case sF. Qed.

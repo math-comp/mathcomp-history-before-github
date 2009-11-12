@@ -239,7 +239,7 @@ Proof. by move=> x; rewrite -{2}(mulgK x^-1 x) -mulgA mulKVg. Qed.
 Lemma invg_inj : injective (fun x : elt => x^-1).
 Proof. exact: can_inj invgK. Qed.
 
-Lemma invMg : forall x1 x2 : elt, (x2 * x1)^-1 = x1^-1 * x2^-1. 
+Lemma invMg : forall x1 x2 : elt, (x2 * x1)^-1 = x1^-1 * x2^-1.
 Proof.
 by move=> x1 x2; apply: (mulg_injl (x2 * x1)); rewrite mulgA mulgK !mulgV.
 Qed.
@@ -348,7 +348,7 @@ rewrite /exp /exp_tag /= => x y n cxy; elim: n => /= [|n ->]; gsimpl.
 rewrite -(mulgA x y) -(commb_exp _ cxy); gsimpl.
 Qed.
 
-End natexp. 
+End natexp.
 
 Section SmulDef.
 
@@ -461,7 +461,7 @@ case/mulsgP=> x1 x2 Ax1 Ax2 ->{x12} Ax3; rewrite -mulgA => Dx.
 by exists x1 (x2 * x3) => //; apply/mulsgP; exists x2 x3.
 Qed.
 
-Lemma rcoset_smul : forall (A : set elt) (x : elt), rcoset A x = A * x. 
+Lemma rcoset_smul : forall (A : set elt) (x : elt), rcoset A x = A * x.
 Proof.
 move=> A x; apply/setP => y; apply/rcosetP/mulsgP => [[z]|[z x']].
   by exists z x; first 2 [exact: set11].
@@ -719,7 +719,7 @@ Proof. by move=> x y; apply/setP => z; rewrite !inE (can2_eq (conjgK y) (conjgKV
 
 Theorem sconjg_imset : forall x : elt, A ^ x = (fun y : elt => y ^ x) @: A.
 Proof.
-move=> x; apply/setP=> y; unlock imset; rewrite !inE. 
+move=> x; apply/setP=> y; unlock imset; rewrite !inE.
 rewrite -{2}(conjgKV x y) image_f ?inE //; exact: conjg_inj.
 Qed.
 
@@ -738,10 +738,10 @@ Lemma sconjgV : forall x y : elt, (H ^ x) y -> (H ^ x) y^-1.
 Proof. move=> x y; rewrite !inE conjVg; exact: groupVr. Qed.
 
 Lemma group_set_sconjg : forall x : elt, group_set (H ^ x).
-Proof. 
+Proof.
 move=> x; rewrite /group_set sconjg1; apply/subsetP=> y.
 case/mulsgP=> x1 x2 Hx1 Hx2 -> {z}.
-rewrite !inE conjMg in Hx1 Hx2 *; exact: groupM. 
+rewrite !inE conjMg in Hx1 Hx2 *; exact: groupM.
 Qed.
 
 Canonical Structure group_sconjg x := Group (group_set_sconjg x).
@@ -775,7 +775,7 @@ Qed.
 Lemma rcoset_trans : forall x y z : elt, y \in H * x -> z \in H * y -> z \in H * x.
 Proof. by move=> x y z; move/rcoset_trans1->. Qed.
 
-Lemma rcoset_trans1r : forall x y : elt, 
+Lemma rcoset_trans1r : forall x y : elt,
   y \in H * x -> forall z : elt, x \in H * z = y \in H * z.
 Proof. by move=> x y Hxy z; rewrite !(rcoset_sym z) (rcoset_trans1 Hxy). Qed.
 
@@ -819,7 +819,7 @@ move/imsetP=> [x Kx ->{A}]; case Dz: (repr _) / (repr_rcosetP x) => [z Hz].
 exists (y * z * x); first by rewrite groupMr // sHK // groupM.
 have Hxyx: y * z * x \in H * x by rewrite -rcoset_smul inE !gsimpl groupM.
 by rewrite rcoset_smul /f -(rcoset_trans1 Hxyx) Dz !gsimpl.
-Qed. 
+Qed.
 
 Lemma group_dvdn : dvdn (card H) (card K).
 Proof. by apply/dvdnP; exists (indexg K); rewrite mulnC [(_ * _)%N]LaGrange. Qed.
@@ -845,7 +845,7 @@ move=> x y Hxy; apply/setP => u; rewrite -!lcoset_smul !inE in Hxy *.
 by rewrite -{1}(mulKVg y u) mulgA groupMl.
 Qed.
 
-Lemma lcoset_trans1r : forall x y : elt, 
+Lemma lcoset_trans1r : forall x y : elt,
   y \in x * H -> forall z : elt, x \in z * H = y \in z * H.
 Proof. by move=> x y Hxy z; rewrite 2!(lcoset_sym z) (lcoset_trans1 Hxy). Qed.
 
@@ -994,8 +994,8 @@ Variable A : set elt.
 Definition normaliser := {x : elt, subset (A ^ x) A}.
 
 Theorem norm_sconjg : forall x, normaliser x -> A ^ x = A.
-Proof. 
-by move=> x Ax; apply/setP; apply/subset_cardP; [rewrite card_sconjg | rewrite inE in Ax]. 
+Proof.
+by move=> x Ax; apply/setP; apply/subset_cardP; [rewrite card_sconjg | rewrite inE in Ax].
 Qed.
 
 Theorem group_set_normaliser : group_set normaliser.
@@ -1007,7 +1007,7 @@ Qed.
 Canonical Structure group_normaliser := Group group_set_normaliser.
 
 Definition normalized (B : set elt) := subset B normaliser.
- 
+
 Lemma norm_smulC : forall B, normalized B -> A * B = B * A.
 Proof.
 move=> B; move/subsetP=> nB; apply/setP => u.
@@ -1043,7 +1043,7 @@ End Normalizer.
 
 Open Scope group_scope.
 
-Lemma norm_rcoset_lcoset : 
+Lemma norm_rcoset_lcoset :
   forall elt (H : group elt) x, normaliser H x -> H * x = x * H.
 Proof. move=> elt H x; rewrite -sub1set; exact: norm_smulC. Qed.
 

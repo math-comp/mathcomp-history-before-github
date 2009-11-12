@@ -6,7 +6,7 @@ Require Import groups morphisms automorphism normal.
 (* Require Import seq paths connect div ssralg bigops group_perm. *)
 
 Set Implicit Arguments.
-Unset Strict Implicit. 
+Unset Strict Implicit.
 Import Prenex Implicits.
 
 Import GroupScope.
@@ -117,7 +117,7 @@ Lemma commg_to_centraliser : forall y,
   {in H, forall x, [~ x, y] = 1} -> H \subset 'C_H[y].
 Proof.
 move=> y comm1; rewrite subsetI subxx /=.
-by apply/subsetP=> x Hx; apply/cent1P; apply/commgP; rewrite comm1. 
+by apply/subsetP=> x Hx; apply/cent1P; apply/commgP; rewrite comm1.
 Qed.
 
 Lemma centraliser_to_commg: forall x y, x \in 'C_H[y] -> [~ x, y] = 1.
@@ -154,7 +154,7 @@ Qed.
 Lemma commg_normr : forall G A, G \subset 'N([~: A, G]).
 Proof. by move=> G A; rewrite commGC commg_norml. Qed.
 
-Lemma commg_norm : forall G H, G <*> H \subset 'N([~: G, H]). 
+Lemma commg_norm : forall G H, G <*> H \subset 'N([~: G, H]).
 Proof. by move=> G H; rewrite mulgen_subG ?commg_norml ?commg_normr. Qed.
 
 Lemma commg_normal: forall G H, [~: G, H] <| G <*> H.
@@ -172,7 +172,7 @@ move=> G H; rewrite gen_subG; apply/subsetP/subsetP=> [sRH x Gx | nGH xy].
   rewrite inE; apply/subsetP=> yx; case/imsetP=> y Ky ->{yx}.
   by rewrite conjg_Rmul groupMr // sRH // mem_imset2 ?groupV.
 case/imset2P=> x y Gx Hy ->{xy}.
-by rewrite commgEr groupMr // memJ_norm (groupV, nGH). 
+by rewrite commgEr groupMr // memJ_norm (groupV, nGH).
 Qed.
 
 Lemma commg_subl : forall G H, ([~: G, H] \subset G) = (H \subset 'N(G)).
@@ -184,7 +184,7 @@ Lemma quotient_cents2 : forall A B K,
 Proof.
 move=> A B K nKA nKB.
 by rewrite (sameP commG1P trivgP) /= -quotientR // quotient_sub1 // comm_subG.
-Qed. 
+Qed.
 
 Lemma quotient_cents2r : forall A B K,
   [~: A, B] \subset K -> (A / K) \subset 'C(B / K).

@@ -9,7 +9,7 @@ Unset Strict Implicit.
 Import Prenex Implicits.
 
 
-Module Relatives. 
+Module Relatives.
 
 Definition axiom (z : {csquare nat}) := (z.1 == 0) || (z.2 == 0).
 Definition relative := { z | axiom z}.
@@ -21,7 +21,7 @@ move=> x y. case : (leqP x y); first by rewrite /leq=> ->.
 by move/ltnW; rewrite /leq=> ->; rewrite orbT.
 Qed.
 
-Definition canon (x : {csquare nat}) :=  
+Definition canon (x : {csquare nat}) :=
   @Relative ((x.1-x.2),(x.2-x.1)) (one_diff_eq0 _ _).
 
 Lemma canon_valK : forall x, canon (val x)  = x.
@@ -44,7 +44,7 @@ Notation natPz n := (\pi_relative (n,0)).
 Notation natNz n := (\pi_relative (0,n)).
 
 
-Lemma relPN : forall P:(relative -> Prop), 
+Lemma relPN : forall P:(relative -> Prop),
   (forall x, P (natPz x)) -> (forall x, P (natNz x)) -> forall x, P x.
 Proof.
 move=> P Ppos Pneg. elim/relP=> x <- /=.
@@ -61,9 +61,9 @@ apply/eqP/eqP=> [[]|Pxy]; last first.
    congr (_,_); rewrite -(subn_add2r y.2) Pxy addnC.
       by rewrite (subn_add2l x.2).
    by rewrite (subn_add2r x.2).
-case:(ltnP x.1 x.2); first move/ltnW; move=>Px; move:(Px); 
+case:(ltnP x.1 x.2); first move/ltnW; move=>Px; move:(Px);
      rewrite /leq; move/eqP->.
-  move/eqP. rewrite eq_sym subn_eq0 =>Py. 
+  move/eqP. rewrite eq_sym subn_eq0 =>Py.
   move/eqP. rewrite -(inj_eq (@addnI y.1)) subnKC //. move/eqP<-.
   by rewrite addnA addnAC subnKC // addnC.
 move=> P1. move/eqP. rewrite eq_sym subn_eq0 =>Py. move:P1.
@@ -71,10 +71,10 @@ move/eqP. rewrite -(inj_eq (@addnI x.2)) subnKC //. move/eqP->.
 by rewrite addnAC -addnA subnKC // addnC.
 Qed.
 
-Lemma addz_compat : \compat2_relative _ 
+Lemma addz_compat : \compat2_relative _
   (fun x y => \pi_relative (x.1 + y.1 , x.2 + y.2)).
 Proof.
-apply:compat2E=> x y x' y'. 
+apply:compat2E=> x y x' y'.
 rewrite !equivzP /equivz. move/eqP=>Px. move/eqP=>Py.
 apply/eqP. rewrite equivzP /=. apply/eqP.
 rewrite addnAC addnA Px -!addnA /=. congr (_+_).
@@ -83,16 +83,16 @@ by rewrite addnC.
 Qed.
 Notation addz := (qT_op2 addz_compat).
 
-Lemma oppz_compat : \compat1_relative _ 
+Lemma oppz_compat : \compat1_relative _
   (fun x => \pi_relative (x.2 , x.1)).
 Proof.
 apply:compat1E=> x x'. rewrite !equivzP /equivz. move/eqP=>Px.
-apply/eqP. rewrite equivzP /equivz /=. 
+apply/eqP. rewrite equivzP /equivz /=.
 by rewrite addnC -Px addnC eqxx.
 Qed.
 Notation oppz := (qT_op1 oppz_compat).
 
-Lemma mulz_compat : \compat2_relative _ (fun x y => \pi_relative 
+Lemma mulz_compat : \compat2_relative _ (fun x y => \pi_relative
     (x.1 * y.1 + x.2 * y.2 , x.1 * y.2 + x.2 * y.1)).
 Proof.
 apply:Compat2. elim/relPN=> x; elim/relPN=> y; move=> x' y';
@@ -103,7 +103,7 @@ rewrite !(sub0n, subn0, mul0n, muln0, add0n, addn0) /= in Px Py *.
   * rewrite Px -Py. ring.
   * rewrite -Px Py. ring.
   * rewrite -Px -Py. ring.
-Qed.  
+Qed.
 Notation mulz := (qT_op2 mulz_compat).
 
 Lemma addzA : associative addz.
@@ -115,13 +115,13 @@ Qed.
 
 
 Lemma addzC : commutative addz.
-Proof. 
+Proof.
 elim/relW=>x. elim/relW=>y.
 by rewrite !qTE; congr pi; congr (_,_); rewrite addnC.
 Qed.
 
 
-Lemma add0z: left_id zeroz addz.
+Lemma add0z : left_id zeroz addz.
 Proof. by elim/relW=> x; rewrite !qTE. Qed.
 
 
@@ -144,8 +144,8 @@ by rewrite !(muln_addl, muln_addr) !mulnA -!addnA; do ?nat_congr.
 Qed.
 
 Lemma mulzC : commutative mulz.
-Proof. 
-elim/relW=>x; elim/relW=>y. rewrite !qTE. apply/eqP; 
+Proof.
+elim/relW=>x; elim/relW=>y. rewrite !qTE. apply/eqP;
 rewrite equivzP /equivz /=. apply/eqP.
 by congr (_+_+_); rewrite mulnC // addnC mulnC; congr (_+_).
 Qed.
@@ -188,8 +188,8 @@ Qed.
 
 Lemma unitzPl : forall x y, mulz y x = onez -> unitz x.
 Proof.
-elim/relPN=>x; elim/relPN=>y; move/eqP; rewrite !qTE -(inj_eq val_inj) /=; 
-rewrite !muln0 !mul0n !add0n ?addn0 !sub0n !subn0 //; 
+elim/relPN=>x; elim/relPN=>y; move/eqP; rewrite !qTE -(inj_eq val_inj) /=;
+rewrite !muln0 !mul0n !add0n ?addn0 !sub0n !subn0 //;
 by case/eqP; move/eqP; rewrite eqn_mul1; case/andP.
 Qed.
 
@@ -199,16 +199,16 @@ Proof. exact. Qed.
 Definition z_comUnitRingMixin :=  ComUnitRingMixin mulVz unitzPl invz_out.
 Canonical Structure z_comUnitRing := Eval hnf in ComUnitRingType z_comUnitRingMixin.
 
-Lemma idomain_axiomz : forall x y, 
+Lemma idomain_axiomz : forall x y,
   (mulz x y = zeroz -> (x == zeroz) || (y == zeroz)).
 Proof.
 elim/relPN=>x; elim/relPN=>y; move/eqP; rewrite !qTE -!(inj_eq val_inj) /=;
 rewrite !muln0 !mul0n !add0n ?addn0 !sub0n !subn0 //;
-case/eqP; move/eqP; rewrite muln_eq0; case/orP; move/eqP->; 
+case/eqP; move/eqP; rewrite muln_eq0; case/orP; move/eqP->;
 by rewrite eqxx (orbT,orTb).
 Qed.
 
-Canonical Structure z_iDomain := Eval hnf in IdomainType idomain_axiomz. 
+Canonical Structure z_iDomain := Eval hnf in IdomainType idomain_axiomz.
 
 End Relatives.
 

@@ -152,7 +152,7 @@ move=> T x y; pose proj z e := if x =P z is ReflectT e0 then e0 else e.
 suff: injective (proj y) by rewrite /proj => injp e e'; apply: injp; case: eqP.
 pose join (e : x = _) := etrans (esym e).
 apply: can_inj (join x y (proj x (erefl x))) _ => e.
-by case: y / e; move: {-1}x (proj x _) => y; case: y /. 
+by case: y / e; move: {-1}x (proj x _) => y; case: y /.
 Qed.
 
 Corollary eq_axiomK : forall (T : eqType) (x : T), all_equal_to (erefl x).
@@ -289,7 +289,7 @@ Variables (rT1 rT2 : eqType) (f : aT -> aT) (h : rT1 -> rT2) (k : aT -> rT1).
 
 Lemma invariant_comp : subpred (invariant f k) (invariant f (h \o k)).
 Proof. by move=> x eq_kfx; rewrite /= (eqP eq_kfx). Qed.
- 
+
 Lemma invariant_inj : injective h -> invariant f (h \o k) =1 invariant f k.
 Proof. move=> inj_h x; exact: (inj_eq inj_h). Qed.
 
@@ -403,7 +403,7 @@ Proof.
 rewrite/insub => x; move: {2}(P x) idP => b.
 by case: b /; [left; rewrite ?SubK | right; exact/negP].
 Qed.
-  
+
 Lemma insubT : forall x Px, insub x = Some (Sub x Px).
 Proof.
 move=> x Px; case: insubP; last by case/negP.

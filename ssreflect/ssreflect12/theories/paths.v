@@ -57,7 +57,7 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 (*  - sorting: sorted checks whether a sequence is sorted wrt a      *)
 (*    transitive relation; sorted e (x :: p) expands to path e x p,  *)
 (*    and sort sorts a sequence recursively, using a "merge" function*)
-(*    to interleave sorted sublists.                                 *) 
+(*    to interleave sorted sublists.                                 *)
 (*  - loop removal : shorten returns a shorter, duplicate-free path  *)
 (*    with the same endpoints as its argument. The related shortenP  *)
 (*    dependent predicate simultaneously substitutes a new path p',  *)
@@ -855,7 +855,7 @@ by rewrite /p -cat_cons mem_cat /= mem_head orbT.
 Qed.
 
 CoInductive rot_to_arc_spec (p : seq T) (x y : T) : Type :=
-    RotToArcSpec i p1 p2 of x :: p1 = arc p x y 
+    RotToArcSpec i p1 p2 of x :: p1 = arc p x y
                           & y :: p2 = arc p y x
                           & rot i p = x :: p1 ++ y :: p2 :
     rot_to_arc_spec p x y.

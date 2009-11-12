@@ -73,7 +73,7 @@ case=> x Hx; apply: val_inj => /=.
 by rewrite -{2}(modn_small Hx) // modn_add2m addnC subnK ?modnn // ltnW.
 Qed.
 
-Lemma zp_addA : forall x1 x2 x3, 
+Lemma zp_addA : forall x1 x2 x3,
   add_zp x1 (add_zp x2 x3) = add_zp (add_zp x1 x2) x3.
 Proof.
 move => [x1 Hx1] [x2 Hx2] [x3 Hx3]; apply: val_inj => /=.
@@ -119,7 +119,7 @@ Qed.
 Lemma zp_nontriv: zp1 <> zp0.
 Proof. by []. Qed.
 
-Lemma zp_mulA : forall x1 x2 x3, 
+Lemma zp_mulA : forall x1 x2 x3,
   mul_zp x1 (mul_zp x2 x3) = mul_zp (mul_zp x1 x2) x3.
 Proof.
 move=>[x1 Hx1] [x2 Hx2] [x3 Hx3] ; apply: val_inj => /=.

@@ -1328,7 +1328,7 @@ Proof. by move=> x Gx; apply/setP=> y; rewrite mem_conjg groupJr ?groupV. Qed.
 
 Lemma conj_subG : forall x A, x \in G -> A \subset G -> A :^ x \subset G.
 Proof. by move=> x A Gx sAG; rewrite -(conjGid Gx) conjSg. Qed.
- 
+
 (* Classes *)
 
 Lemma class1G : 1 ^: G = 1. Proof. exact: class1g group1. Qed.
@@ -1656,7 +1656,7 @@ Proof. by move=> G H trGH; rewrite mul_cardG trGH cards1 muln1. Qed.
 Lemma cardMg_TI : forall G H, #|G| * #|H| <= #|G * H| -> G :&: H = 1.
 Proof.
 move=> G H leGH; apply: card_le1_trivg.
-rewrite -(@leq_pmul2l #|G * H|); first by rewrite -mul_cardG muln1. 
+rewrite -(@leq_pmul2l #|G * H|); first by rewrite -mul_cardG muln1.
 by apply: leq_trans leGH; rewrite ltn_0mul !ltn_0group.
 Qed.
 
@@ -2013,7 +2013,7 @@ Proof. by move=> G; rewrite /(G <| _) normG subxx. Qed.
 
 Lemma normalSG : forall G H, H \subset G -> H <| 'N_G(H).
 Proof.
-move=> G H sHG; rewrite /(H <| _) subsetI sHG normG subIset //. 
+move=> G H sHG; rewrite /(H <| _) subsetI sHG normG subIset //.
 by rewrite subxx orbT.
 Qed.
 
@@ -2144,7 +2144,7 @@ Proof.
 move=> A B; apply: (iffP (centsP A B)) => [cAB | cAB1 x Ax y By].
   apply/trivgP; rewrite gen_subG; apply/subsetP=> xy.
   by case/imset2P=> x y Ax Ay ->{xy}; rewrite inE; apply/commgP; exact: cAB.
-by apply/commgP; rewrite -in_set1 -[[set 1]]cAB1 mem_commg. 
+by apply/commgP; rewrite -in_set1 -[[set 1]]cAB1 mem_commg.
 Qed.
 
 Lemma abelianE : forall A, abelian A = (A \subset 'C(A)). Proof. by []. Qed.

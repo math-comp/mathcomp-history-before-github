@@ -525,10 +525,10 @@ Qed.
 
 Lemma amoveK :
   {in orbit to A x, cancel (amove to A x) (fun Ca => to x (repr Ca))}.
-Proof. 
+Proof.
 move=> y; case/orbitP=> a Aa <-{y}; rewrite amove_act //= -[A :&: _]/(gval _).
 case: repr_rcosetP => b; rewrite !(inE, sub1set); case/and3P=> Ab _ xbx.
-by rewrite actMin ?ssAD ?(eqP xbx). 
+by rewrite actMin ?ssAD ?(eqP xbx).
 Qed.
 
 Lemma orbit_stabilizer :
@@ -646,7 +646,7 @@ by rewrite orbit_stabilizer // (card_in_imset (can_in_inj (act_reprK sAT))).
 Qed.
 
 Lemma dvdn_orbit : forall A x, #|orbit to A x| %| #|A|.
-Proof. by move=> A x; rewrite card_orbit dvdn_indexg. Qed. 
+Proof. by move=> A x; rewrite card_orbit dvdn_indexg. Qed.
 
 Lemma card_orbit_stab : forall A x,
   (#|orbit to A x| * #|'C_A[x | to]|)%N = #|A|.
@@ -757,7 +757,7 @@ by move=> A S x Sx; move/atransP=> AtrS; rewrite -(AtrS x Sx) dvdn_orbit.
 Qed.
 
 (* Aschbacher 5.2 *)
-Lemma acts_fix_norm : forall A B, 
+Lemma acts_fix_norm : forall A B,
   A \subset 'N(B) -> [acts A, on 'Fix_to(B) | to].
 Proof.
 move=> A B nAB; have:= acts_subnorm_fix to B; rewrite !setTI.
@@ -893,7 +893,7 @@ apply/subsetP/subsetP=> [cBx a | cABx a Ba]; rewrite !inE.
   by case/andP=> Aa; move/cBx; rewrite inE Aa.
 by case: ifP => //= Aa; have:= cABx a; rewrite !inE Aa => ->.
 Qed.
- 
+
 Lemma astab_actby : forall S, 'C(S | <[nRA]>) = 'C_A(R :&: S | to).
 Proof.
 move=> S; apply/setP=> a; rewrite setIA (setIidPl (acts_dom nRA)) !inE.
@@ -947,7 +947,7 @@ Proof.
 split=> [a u v eq_uv | u a b Na Nb]; apply: val_inj.
   move/(congr1 val): eq_uv; rewrite !val_subact.
   by case: (a \in _); first move/act_inj.
-have Da := astabs_dom Na; have Db := astabs_dom Nb. 
+have Da := astabs_dom Na; have Db := astabs_dom Nb.
 by rewrite !val_subact Na Nb groupM ?actMin.
 Qed.
 
@@ -1037,7 +1037,7 @@ Proof.
 split=> [Aa x y | x Aa Ab]; last first.
   case/morphimP=> a Na Da ->{Aa}; case/morphimP=> b Nb Db ->{Ab}.
   rewrite -morphM //= !modactEcond // ?groupM ?(introT setIP _) //.
-  by case: ifP => Cx; rewrite ?(acts_dom, Cx, actMin, introT setIP _). 
+  by case: ifP => Cx; rewrite ?(acts_dom, Cx, actMin, introT setIP _).
 case: (set_0Vmem (D :&: Aa)) => [Da0 | [a]].
   by rewrite /modact Da0 repr_set0 !act1 !if_same.
 case/setIP=> Da NAa; have Na := subsetP (coset_norm _) _ NAa.
@@ -1349,7 +1349,7 @@ Lemma injm_actm : forall a, 'injm (actm to a).
 Proof.
 move=> a; apply/injmP=> x y Rx Ry; rewrite /= /actm; case: ifP => Da //.
 exact: act_inj.
-Qed. 
+Qed.
 
 Lemma im_actm : forall a, actm to a @* R = R.
 Proof.
@@ -1384,7 +1384,7 @@ move=> a Aa; rewrite /= inE; apply/andP; split.
 apply/morphicP=> x y Gx Gy; rewrite !actpermE /= /actby Aa groupM ?Gx ?Gy //=.
 by case nGAg; move/acts_dom; do 2!move/subsetP=> ?; rewrite gactM; auto.
 Qed.
-  
+
 Canonical Structure actby_groupAction := GroupAction actby_is_groupAction.
 
 Lemma gacent_actby : forall B,
@@ -1641,7 +1641,7 @@ Lemma sub_afixRs_norms : forall G x A,
 Proof.
 move=> G x A; rewrite inE /=; apply: eq_subset_r => a.
 rewrite inE rcosetE -(can2_eq (rcosetKV x) (rcosetK x)) -!rcosetM.
-rewrite eqEcard card_rcoset leqnn andbT mulgA (conjgCV x) mulgK. 
+rewrite eqEcard card_rcoset leqnn andbT mulgA (conjgCV x) mulgK.
 by rewrite -{2 3}(mulGid G) mulGS sub1set -mem_conjg.
 Qed.
 
@@ -1692,7 +1692,7 @@ Lemma qactJ : forall G (Gy : coset_of G) x,
   'Q%act Gy x = if x \in 'N(G) then Gy ^ coset G x else Gy.
 Proof.
 move=> G Gy; case: (cosetP Gy) => y Ny ->{Gy} x.
-by rewrite qactEcond // dom_qactJ; case Nx: (x \in 'N(G)); rewrite ?morphJ. 
+by rewrite qactEcond // dom_qactJ; case Nx: (x \in 'N(G)); rewrite ?morphJ.
 Qed.
 
 Lemma astabQ : forall G Abar, 'C(Abar |'Q) = coset G @*^-1 'C(Abar).

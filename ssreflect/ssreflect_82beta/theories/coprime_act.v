@@ -147,7 +147,7 @@ Lemma coprime_quotient_cent_weak : forall A G H,
     H <| G -> A \subset 'N(H) -> coprime #|G| #|A| -> solvable G ->
   'C_G(A) / H = 'C_(G / H)(A / H).
 move=> A G H normH nHA co so; have sHG := normal_sub normH.
-apply: coprime_quotient_cent => //; last exact: solvableS so.  
+apply: coprime_quotient_cent => //; last exact: solvableS so.
 by rewrite -(LaGrange sHG) coprime_mull in co; case/andP: co.
 Qed.
 
@@ -318,7 +318,7 @@ Hypothesis coGA : coprime #|A| #|G|.
 
 Hypothesis solG : solvable G.
 
-Lemma ext_coprime_hall_exists : 
+Lemma ext_coprime_hall_exists :
   exists2 H : {group gT}, hall_for pi G H & [acts (A | to) on H].
 Proof.
 Admitted.

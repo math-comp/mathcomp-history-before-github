@@ -20,7 +20,7 @@ Import GroupScope.
 
 Canonical Structure boolPreGroup :=
   [baseFinGroupType of bool by addbA, addFb, frefl id & addbC].
-Canonical Structure boolGroup := FinGroupType addbb. 
+Canonical Structure boolGroup := FinGroupType addbb.
 
 Section PermutationParity.
 
@@ -32,7 +32,7 @@ Definition perm_pair (s : {perm T}) p :=
   let: (x, y) := p in (s x, s y).
 Notation Local permp := perm_pair.
 
-Lemma perm_pair1 : forall p, permp 1 p = p. 
+Lemma perm_pair1 : forall p, permp 1 p = p.
 Proof. by move=> [x y] /=; rewrite !perm1. Qed.
 Notation Local permp1 := perm_pair1.
 
@@ -48,7 +48,7 @@ Definition perm_pair_inj s := can_inj (permpK s).
 Notation Local permpI := (@perm_pair_inj).
 Hint Resolve perm_pair_inj.
 
-Lemma image_perm_pair : 
+Lemma image_perm_pair :
   forall s A, image (permp s) A =i preim (permp s^-1) A.
 Proof.
 move=> s A p.

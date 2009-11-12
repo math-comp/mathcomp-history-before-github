@@ -875,7 +875,7 @@ Definition trivm of {set aT} & aT := 1 : FinGroup.sort rT.
 Lemma trivm_morphM : forall A : {set aT},
   {in A & , {morph trivm A : x y / x * y}}.
 Proof. by move=> A x y /=; rewrite mulg1. Qed.
-  
+
 Canonical Structure triv_morph A := Morphism (@trivm_morphM A).
 
 Lemma morphim_trivm : forall (G H : {group aT}), trivm G @* H = 1.
@@ -1155,7 +1155,7 @@ Lemma sub_isom : forall (A : {set aT}) (C : {set rT}),
   A \subset G -> f @* A = C -> 'injm f -> isom A C f.
 Proof.
 move=> A C sAG; case: (restrmP f sAG) => g [_ _ _ img] <-{C} injf.
-rewrite /isom -morphimEsub ?morphimDG ?morphim1 //. 
+rewrite /isom -morphimEsub ?morphimDG ?morphim1 //.
 by rewrite subDset setUC subsetU ?sAG.
 Qed.
 

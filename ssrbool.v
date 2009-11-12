@@ -552,7 +552,7 @@ Proof. by case b1; case b2; constructor; auto; case; auto. Qed.
 Lemma norP : reflect (~~ b1 /\ ~~ b2) (~~ (b1 || b2)).
 Proof. by case b1; case b2; constructor; auto; case; auto. Qed.
 
-Lemma implyP: reflect (b1 -> b2) (b1 ==> b2).
+Lemma implyP : reflect (b1 -> b2) (b1 ==> b2).
 Proof. by case b1; case b2; constructor; auto. Qed.
 
 Lemma orbNP : exm_spec b1 b1 b1.

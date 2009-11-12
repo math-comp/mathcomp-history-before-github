@@ -87,7 +87,7 @@ Lemma morphim_center : forall rT A D (f : {morphism D >-> rT}),
   f @* 'Z(A) \subset 'Z(f @* A).
 Proof. move=> rT A D f; exact: morphim_subcent. Qed.
 
-Lemma abelian_center: forall G, abelian 'Z(G).
+Lemma abelian_center : forall G, abelian 'Z(G).
 Proof.
 by move=> P; rewrite /abelian subIset // centsC subIset // subxx orbT.
 Qed.

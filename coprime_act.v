@@ -296,7 +296,7 @@ have hallY: pi.-Hall(XM) Y.
   rewrite /pHall sYXM piY -divgS // -(_ : Y * M = XM).
     by rewrite coprime_cardMg ?co_pi_M // mulKn //.
   rewrite /= setIC group_modr ?mulgen_subr //=; apply/setIidPl.
-  rewrite ((H * M =P G) _) // eqEcard mul_subG //= coprime_cardMg ?co_pi_M //. 
+  rewrite ((H * M =P G) _) // eqEcard mul_subG //= coprime_cardMg ?co_pi_M //.
   by rewrite (card_Hall hallM) (card_Hall hallH) partnC.
 have nXMA: A \subset 'N(XM) by rewrite norms_mulgen.
 have:= coprime_Hall_trans nXMA _ _ hallX nXA hallY.
@@ -332,14 +332,14 @@ Let solG' : solvable G' := morphim_sol _ solG.
 
 Let nGA' := im_sdpair_norm to.
 
-Lemma ext_coprime_Hall_exists : 
+Lemma ext_coprime_Hall_exists :
   exists2 H : {group gT}, pi.-Hall(G) H & [acts A, on H | to].
 Proof.
 have [H' hallH' nHA'] := coprime_Hall_exists pi nGA' coGA' solG'.
 have sHG' := pHall_sub hallH'.
 exists (inG @*^-1 H')%G => /=.
   by rewrite -(morphim_invmE injG) -{1}(im_invm injG) morphim_pHall.
-by rewrite actsEsd ?morphpreK // subsetIl. 
+by rewrite actsEsd ?morphpreK // subsetIl.
 Qed.
 
 Lemma ext_coprime_Hall_trans : forall H1 H2 : {group gT},
@@ -437,7 +437,7 @@ have im_Gq: qG @* Gq = G' / H'.
   by rewrite -morphimIdom setIAC setIid.
 have{def_qA def_qG} q_J : {in Gq & Aq, morph_actJ qG qA}.
   move=> x' a'; case/morphimP=> Hx; case/morphimP=> x nHx Gx -> GHx ->{Hx x'}.
-  case/morphimP=> a _ Aa ->{a'} /=; rewrite -/inAq -/inGq. 
+  case/morphimP=> a _ Aa ->{a'} /=; rewrite -/inAq -/inGq.
   rewrite !{}def_qG {}def_qA /= !invmE // -sdpair_act //= -/inG -/inA.
   have Nx: x \in N by rewrite inE Gx.
   have Nxa: to x a \in N by case: (nNA); move/acts_act->.

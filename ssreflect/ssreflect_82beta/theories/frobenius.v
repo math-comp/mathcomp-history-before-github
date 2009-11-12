@@ -47,7 +47,7 @@ have: n %| #|'Ldiv_(p * n)(G)|.
   move/IHm=> IH; apply: dvdn_trans (IH _); first exact: dvdn_mull.
   by rewrite oG divn_pmul2r.
 rewrite -(cardsID 'Ldiv_n()) dvdn_addl.
-  rewrite -setIA ['Ldiv_n(_)](setIidPr _) //. 
+  rewrite -setIA ['Ldiv_n(_)](setIidPr _) //.
   apply/subsetP=> x; rewrite !inE -!order_dvd; exact: dvdn_mull.
 rewrite setDE -setIA -setDE; set A := _ :\: _.
 have pA: forall x, x \in A -> #[x]`_p = (n`_p * p)%N.

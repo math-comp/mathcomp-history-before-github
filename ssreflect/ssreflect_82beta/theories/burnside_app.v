@@ -12,7 +12,7 @@ Import Prenex Implicits.
 Import GroupScope.
 
 Lemma burnside_formula : forall (gT : finGroupType) s (G : {group gT}),
-   uniq s -> s =i G -> 
+   uniq s -> s =i G ->
    forall (sT : finType) (to : {action gT &-> sT}),
    (#|orbit to G @: setT| * size s)%N = \sum_(p <- s) #|'C[p | to]|.
 Proof.
@@ -512,18 +512,18 @@ Definition R024 := [:: F2; F5; F4; F1; F0; F3].
 Definition R024f (sc : cube) : cube := tsub [tuple of R024] sc.
 Definition R042 := [:: F4; F3; F0; F5; F2; F1].
 Definition R042f (sc : cube) : cube := tsub [tuple of R042] sc.
-Definition R012 := [:: F1; F2; F0; F5; F3; F4]. 
-Definition R012f (sc : cube) : cube := tsub [tuple of R012] sc. 
-Definition R021 := [:: F2; F0; F1; F4; F5; F3]. 
-Definition R021f (sc : cube) : cube := tsub [tuple of R021] sc. 
+Definition R012 := [:: F1; F2; F0; F5; F3; F4].
+Definition R012f (sc : cube) : cube := tsub [tuple of R012] sc.
+Definition R021 := [:: F2; F0; F1; F4; F5; F3].
+Definition R021f (sc : cube) : cube := tsub [tuple of R021] sc.
 Definition R031 := [:: F3; F0; F4; F1; F5; F2].
 Definition R031f (sc : cube) : cube := tsub [tuple of R031] sc.
 Definition R013:= [:: F1; F3; F5; F0; F2; F4].
-Definition R013f (sc : cube) : cube := tsub [tuple of R013] sc. 
+Definition R013f (sc : cube) : cube := tsub [tuple of R013] sc.
 Definition R043 := [:: F4; F2; F5; F0; F3; F1].
 Definition R043f (sc : cube) : cube := tsub [tuple of R043] sc.
 Definition R034 := [:: F3; F5; F1; F4; F0; F2].
-Definition R034f (sc : cube) : cube := tsub [tuple of R034] sc. 
+Definition R034f (sc : cube) : cube := tsub [tuple of R034] sc.
 (* last symmetries*)
 Definition S1 := [:: F5; F2; F1; F4; F3; F0].
 Definition S1f (sc : cube) : cube := tsub [tuple of S1] sc.
@@ -599,7 +599,7 @@ Lemma R031_inj : injective R031f.
 Proof. by apply: can_inj R013f _ => z; apply/eqP; case: z; do 6?case. Qed.
 
 
-Lemma R013_inj : injective R013f. 
+Lemma R013_inj : injective R013f.
 Proof. by apply: can_inj R031f _ => z; apply/eqP; case: z; do 6?case. Qed.
 
 Lemma R043_inj : injective R043f.
@@ -643,7 +643,7 @@ Definition s6 := (perm (inv_inj S6_inv)).
 
 Definition dir_iso3 := [set p |
 [|| id3 == p, s05 == p, s14 == p, s23 == p, r05 == p, r14 == p, r23 == p,
- r50 == p, r41 == p, r32 == p, r024 == p, r042 == p, r012 == p, r021 == p, 
+ r50 == p, r41 == p, r32 == p, r024 == p, r042 == p, r012 == p, r021 == p,
  r031 == p, r013 == p, r043 == p, r034 == p,
  s1 == p, s2 == p, s3 == p, s4 == p, s5 == p | s6 == p]].
 
@@ -1280,7 +1280,7 @@ rewrite (burnside_formula iso_list) => [||p]; last first.
     by move => x; rewrite /= -2!sop_spec.
   by rewrite (eq_maps bsr) maps_comp  -(eqP Lcorrect); vm_compute.
 rewrite !big_adds big_seq0 {1}card_Fid3 /= F_s05 F_s14 F_s23 F_r05 F_r14 F_r23
-  F_r50 F_r41 F_r32 F_r024 F_r042 F_r012 F_r021 F_r031 F_r013 F_r043  F_r034 
+  F_r50 F_r41 F_r32 F_r024 F_r042 F_r012 F_r021 F_r031 F_r013 F_r043  F_r034
   F_s1  F_s2 F_s3 F_s4 F_s5 F_s6.
 by rewrite !card_n4 // !card_n3_3 // !card_n2_3 // !card_n3s //; ring.
 Qed.

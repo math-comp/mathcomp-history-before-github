@@ -828,7 +828,7 @@ Proof.
 move=> a x [|n] //=; rewrite eq_sym; case: eqP => // -> {y}.
 by elim: n => //= n ->; rewrite eqxx.
 Qed.
- 
+
 Lemma constant_seqn : forall n x, constant (seqn n x).
 Proof. by case=> //= n x; rewrite all_pred1_seqn eqxx orbT. Qed.
 
@@ -909,7 +909,7 @@ Proof. by elim=> //= [x s IHs]; case/andP; move/negbET->; move/IHs->. Qed.
 Lemma ltn_size_undup : forall s, (size (undup s) < size s) = ~~ uniq s.
 Proof.
 by elim=> //= [x s IHs]; case Hx: (x \in s); rewrite //= ltnS size_undup.
-Qed. 
+Qed.
 
 (* Lookup *)
 
@@ -1676,7 +1676,7 @@ Qed.
 
 Hypothesis fK : ocancel f g.
 
-Lemma can2_mem_pmaps : pcancel g f -> 
+Lemma can2_mem_pmaps : pcancel g f ->
   forall s u, (u \in pmaps f s) = (g u \in s).
 Proof.
 move=> gK s u.
@@ -1688,7 +1688,7 @@ Proof.
 move=> s; move/(uniq_filter [eta f]); rewrite -(pmaps_filter fK).
 exact: maps_uniq.
 Qed.
- 
+
 End EqPmap.
 
 Section PmapSub.
@@ -1872,7 +1872,7 @@ Lemma scanlK :
   (forall x, cancel (g x) (f x)) -> forall x, cancel (scanl x) (pairmap x).
 Proof. by move=> Hfg x s; elim: s x => [|y s IHs] x //=; rewrite Hfg IHs. Qed.
 
-Lemma pairmapK : 
+Lemma pairmapK :
   (forall x, cancel (f x) (g x)) -> forall x, cancel (pairmap x) (scanl x).
 Proof. by move=> Hgf x s; elim: s x => [|y s IHs] x //=; rewrite Hgf IHs. Qed.
 

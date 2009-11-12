@@ -12,7 +12,7 @@ Require Import finfun bigops finset groups.
 (*                                 a subset A of T are affected           *)
 (*   tperm x y == the transposition of x, y                               *)
 (*   aperm x s == s(x)                                                    *)
-(*   pcycle s x == the set of all elements that are in the same cycle     *) 
+(*   pcycle s x == the set of all elements that are in the same cycle     *)
 (*                 of permutation s as x                                  *)
 (*   pcycles s == the set of cycles of permutation s                      *)
 (*   odd_perm s <=> s is an odd permutation                               *)

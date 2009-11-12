@@ -370,7 +370,7 @@ Lemma quotientIG : forall A G, H \subset G -> (A :&: G) / H = A / H :&: G / H.
 Proof. rewrite -{1}ker_coset. exact: morphimIG. Qed.
 
 Lemma quotientD : forall A B, A / H :\: B / H \subset (A :\: B) / H.
-Proof. exact: morphimD. Qed. 
+Proof. exact: morphimD. Qed.
 
 Lemma quotientDG : forall A G, H \subset G -> (A :\: G) / H = A / H :\: G / H.
 Proof. rewrite -{1}ker_coset; exact: morphimDG. Qed.
@@ -826,7 +826,7 @@ Lemma char_from_quotient : forall (gT : finGroupType) (G H K : {group gT}),
   H <| K -> H \char G -> K / H \char G / H -> K \char G.
 Proof.
 move=> gT G H K; case/andP=> sHK nHK chHG.
-have nsHG := char_normal chHG; have [sHG nHG] := andP nsHG. 
+have nsHG := char_normal chHG; have [sHG nHG] := andP nsHG.
 case/charP; rewrite quotientSGK // => sKG /= chKG.
 apply/charP; split=> // f injf Gf; apply/morphim_fixP => //.
 rewrite -(quotientSGK _ sHK); last by rewrite -morphimIim Gf subIset ?nHG.

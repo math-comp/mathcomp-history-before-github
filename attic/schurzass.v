@@ -138,7 +138,7 @@ split=> [|K L].
     case/morphimP: fy => z _ Gz ->{x Hx y}.
     by rewrite /= /f groupMl ?GrH // (subsetP sHG) ?subgP.
   exists (x * (f x)^-1) (f x); last first; first by rewrite mulgKV.
-    by apply/morphimP; exists x. 
+    by apply/morphimP; exists x.
   rewrite -groupV invMg invgK -mulgA (conjgC (val _)) mulgA.
   by rewrite groupMl -(mem_rcoset, mem_conjg) // (normsP nHG) // subgP.
 case/complP=> trHK eqHK cpHL; case/complP: (cpHL) => trHL eqHL KPeqLP.
@@ -260,7 +260,7 @@ have cardZK: #|ZK| = (#|Z| * #|G : H|)%N.
 have: [splits ZK, over Z].
   case: (Gaschutz nZZK _ sZZK) => // [||-> _].
   - apply: subset_trans (centS sZP); exact: subsetIr.
-  - rewrite -divgS // cardZK mulKn //. 
+  - rewrite -divgS // cardZK mulKn //.
     by case/andP: hallH=> _; rewrite -(LaGrange sZH) coprime_mull; case/andP.
   by apply/splitsP; exists [1 gT]%G; rewrite inE -subG1 subsetIr mulg1 eqxx.
 case/splitsP=> K; case/complP=> trZK eqZK.

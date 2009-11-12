@@ -748,7 +748,7 @@ have [H minH sHG]: {H : {group gT} | minnormal H G & H \subset G}.
   by apply: mingroup_exists; rewrite ntG normG.
 case/mingroupP: minH; case/andP=> ntH nHG minH.
 pose Iok (I : {set {perm gT}}) :=
-  (I \subset Aut G) && 
+  (I \subset Aut G) &&
   (existsb M : {group gT}, (M <| G) &&
     (\big[dprod/1]_(f \in I) f @: H == M)).
 have defH: (1 : {perm gT}) @: H = H.
@@ -867,5 +867,5 @@ Qed.
 
 End CharSimple.
 
-              
+
 

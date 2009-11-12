@@ -200,7 +200,7 @@ Proof. move=> n d m Hn; move/dvdnP => [n1 ->]; auto. Qed.
 Lemma dvdn_eq : forall d m, dvdn d m = (divn m d * d == m).
 Proof.
 move=> d m; apply/idP/eqP=> [Hm | <-]; auto.
-by rewrite {2}(divn_eq m d) (eqnP Hm) addn0. 
+by rewrite {2}(divn_eq m d) (eqnP Hm) addn0.
 Qed.
 
 Lemma dvdn_leq : forall d m, 0 < m -> dvdn d m -> d <= m.
@@ -445,7 +445,7 @@ Qed.
 
 Lemma ltn_0exp : forall m n, (0 < expn m n) = (0 < m) || (n == 0).
 Proof. by move=> [|m]; elim=> //= n IHn; rewrite ltn_0add IHn. Qed.
- 
+
 Lemma ltn_expl : forall m n, 1 < m -> n < expn m n.
 Proof.
 move=> m n Hm; elim: n => //= n; rewrite -(leq_pmul2l (ltnW Hm)).
@@ -465,8 +465,8 @@ Proof. by move=> *; rewrite !ltnNge leq_exp2l. Qed.
 
 Lemma leq_pexp2l : forall m n1 n2, 0 < m -> n1 <= n2 -> expn m n1 <= expn m n2.
 Proof. by move=> [|[|m]] // *; [rewrite !exp1n | rewrite leq_exp2l]. Qed.
- 
-Lemma ltn_pexp2l : forall m n1 n2, 0 < m -> expn m n1 < expn m n2 -> n1 < n2. 
+
+Lemma ltn_pexp2l : forall m n1 n2, 0 < m -> expn m n1 < expn m n2 -> n1 < n2.
 Proof. by move=> [|[|m]] // n1 n2; [rewrite !exp1n | rewrite ltn_exp2l]. Qed.
 
 Fixpoint logn_rec (d m r : nat) {struct r} : nat :=
@@ -556,7 +556,7 @@ rewrite {1}Dm -mulnA logn_gauss // {1}Dn mulnCA logn_gauss // /p_part -expn_add.
 by rewrite logn_exp // prime_gt1.
 Qed.
 
-Lemma dvdn_exp_prime: forall p d n, prime p -> 
+Lemma dvdn_exp_prime: forall p d n, prime p ->
   reflect (exists2 m, m <= n & d = expn p m) (dvdn d (expn p n)).
 Proof.
 move=> p d n Hp; case/primeP: (Hp) => [Hp1 Hdivp]; have Hp0 := ltnW Hp1.

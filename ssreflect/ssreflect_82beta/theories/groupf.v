@@ -38,7 +38,7 @@ Definition resp (F : obmap): Prop :=
 (* Functoriality on grp whose arrows are restricted to automorphisms *)
 
 Definition aresp (F : obmap) : Prop :=
-  forall gT (G:{group gT}) phi (HA:phi \in Aut G), 
+  forall gT (G:{group gT}) phi (HA:phi \in Aut G),
         (autm_morphism HA) @* (F _ G) \subset F _ ((autm_morphism HA) @* G).
 
 Lemma aresp_of_resp : forall (F:obmap), resp F -> aresp F.
@@ -54,12 +54,12 @@ Implicit Types gT: finGroupType.
 
 Structure mixin (Fobj : obmap) : Type := Mixin { _ : aresp Fobj}.
 
-Structure class : Type := Class { Fobj :> obmap ; 
+Structure class : Type := Class { Fobj :> obmap ;
    _ : forall gT (G : {group gT}), group_set (@Fobj gT G);
    _ : forall gT (G: {group gT}), @Fobj gT G \subset G;
    _ : mixin Fobj}.
 
-Definition group_of F := let: Class _ g _ _ := F return 
+Definition group_of F := let: Class _ g _ _ := F return
   forall gT (G : {group gT}), group_set (F gT G) in g.
 Definition subset_of F := let: Class _ _ s _ := F return
   forall gT (G: {group gT}), F gT G \subset G in s.
@@ -72,7 +72,7 @@ Notation bisFc := BaseIdSubFunctor.class.
 Notation BisFc := BaseIdSubFunctor.Class.
 Notation BisFMixin := BaseIdSubFunctor.Mixin.
 
-Definition mkBaseisFc F FM Fsub Fresp := 
+Definition mkBaseisFc F FM Fsub Fresp :=
   BisFc FM Fsub (@BisFMixin F Fresp).
 
 Notation "[ 'bisFc' 'of' F ]" :=
@@ -92,7 +92,7 @@ Implicit Types G H : {group gT}.
 Lemma bisfc_groupset : forall G, group_set ('e_sF(G)).
 Proof. by case sF. Qed.
 
-Canonical Structure bisfc_group G := 
+Canonical Structure bisfc_group G :=
   Group (bisfc_groupset G).
 
 Lemma bisfc_clos : forall (fT:finGroupType) (H:{group fT}),
@@ -106,7 +106,7 @@ Lemma bisfc_norm : forall G, G \subset 'N('e_sF(G)).
 Proof.
 move=> G; apply/subsetP=> x Gx; rewrite inE -{2}(conjGid Gx) -{2}(setIid G).
 rewrite -(setIidPr (bisfc_clos G)) -!morphim_conj.
-pose conjgx := (autm (Aut_aut (@injm_conj _ G _) 
+pose conjgx := (autm (Aut_aut (@injm_conj _ G _)
                (norm_conj_dom (valP (insigd (group1 _) x))))).
 rewrite -!(@eq_morphim _ _ _ [morphism of conjgx] (conjgm_morphism _ x)) =>/=;
 rewrite ?bisfc_clos ?bisfc_aresp // => y; apply: (conj_autE Gx).
@@ -138,13 +138,13 @@ Implicit Types gT: finGroupType.
 
 Structure mixin (Fobj : obmap) : Type := Mixin { _ : resp Fobj}.
 
-Structure class : Type := Class { 
+Structure class : Type := Class {
   Fobj :> obmap ;
    _ : forall gT (G : {group gT}), group_set (@Fobj gT G);
    _ : forall gT (G: {group gT}), @Fobj gT G \subset G;
    _ : mixin Fobj}.
 
-Definition group_of F := let: Class _ g _ _ := F return 
+Definition group_of F := let: Class _ g _ _ := F return
   forall gT (G : {group gT}), group_set (F gT G) in g.
 Definition subset_of F := let: Class _ _ s _ := F return
   forall gT (G: {group gT}), F gT G \subset G in s.
@@ -154,7 +154,7 @@ Coercion mixin_of F := let: Class _ _ _ m := F return mixin F in m.
 Lemma isfc_resp (sF: class): resp sF.
 Proof. by case => F FM Fs; case. Qed.
 
-Coercion bmixin_of_mixin Fobj (m : mixin Fobj) := 
+Coercion bmixin_of_mixin Fobj (m : mixin Fobj) :=
   let: Mixin mresp := m return BaseIdSubFunctor.mixin Fobj in
   BisFMixin (aresp_of_resp mresp).
 
@@ -164,7 +164,7 @@ Notation isFc := IdSubFunctor.class.
 Notation IsFc := IdSubFunctor.Class.
 Notation IsFMixin := IdSubFunctor.Mixin.
 
-Definition mkIsFc F FM Fsub Fresp := 
+Definition mkIsFc F FM Fsub Fresp :=
   IsFc FM Fsub (@IsFMixin F Fresp).
 
 Notation "[ 'isFc' 'of' F ]" :=
@@ -172,7 +172,7 @@ Notation "[ 'isFc' 'of' F ]" :=
     | IsFc _ g s m => fun k => k g s m end
   (@IsFc F)) (at level 0, only parsing) : form_scope.
 
-Coercion isFc_bisFc (sF : isFc) := 
+Coercion isFc_bisFc (sF : isFc) :=
   BisFc (IdSubFunctor.group_of sF) (IdSubFunctor.subset_of sF) sF.
 
 Canonical Structure isFc_bisFc.
@@ -202,12 +202,12 @@ have sFtr := subset_trans (bisfc_clos _ _).
 by rewrite -sub_morphim_pre (morphim_sfunctor, sFtr) ?morphimS.
 Qed.
 
-Lemma isom_sfunctor : forall gT hT (D G : {group gT}) (R : {group hT}) 
+Lemma isom_sfunctor : forall gT hT (D G : {group gT}) (R : {group hT})
                                    (f : {morphism D >-> hT}),
   G \subset D -> isom G R f -> isom ('e_sF(G)) ('e_sF(R)) f.
 Proof.
 move=> gT rT D G R f; case/(restrmP f)=> g [_ _ ->]; case/isomP=> injf <-.
-rewrite /isom -(injm_sfunctor injf) // -morphimEsub ?morphimDG ?morphim1 //. 
+rewrite /isom -(injm_sfunctor injf) // -morphimEsub ?morphimDG ?morphim1 //.
 by rewrite subDset subsetU // bisfc_clos orbT.
 Qed.
 
@@ -274,7 +274,7 @@ elim; first by move=> gT G; rewrite derg0.
 by move=> n0 IH gT G; rewrite dergSn (comm_subG (IH _ _) (IH _ _)).
 Qed.
 
-Lemma der_resp : forall n, 
+Lemma der_resp : forall n,
   resp (fun gT G => derived_at G n).
 Proof.
 elim => [|n IH] gT hT H phi; first by rewrite derg0.
@@ -335,11 +335,11 @@ Implicit Types G M N B:{group gT}.
 Lemma norm_morphim_conj : forall G M (nMG : M <| G) x,
   x \in 'N(M) ->
   (conjgm G x) @* M = M.
-by move=> G M *; rewrite morphim_conj (setIidPr (normal_sub _)) //; apply:normP. 
+by move=> G M *; rewrite morphim_conj (setIidPr (normal_sub _)) //; apply:normP.
 Qed.
 
 Definition max_ucn (G M : {group gT}) (nMG:M <| G) B :=
-  [max B of N | (M \subset N) && (N <| G) && 
+  [max B of N | (M \subset N) && (N <| G) &&
     forallb x, (x \in G) ==> forallb y, (y \in N / M) ==>
     ((coset M \o conjgm N x) (repr y) == y)].
 
@@ -365,7 +365,7 @@ move=> G M nMG N; apply: (iffP maxgroupP) => [[]|[sMN nNG Hid max]].
     by rewrite cosetpre_set1_coset.
   move=> H [sMH nHG HHid sNH]; apply:val_inj; apply:(max H) =>//.
   rewrite sMH nHG !andTb; apply/forallP=> x; apply/implyP=> Hx.
-  apply/forallP=> y; apply/implyP=> Hy;apply/eqP. 
+  apply/forallP=> y; apply/implyP=> Hy;apply/eqP.
   by rewrite -cosetpre_set1_coset; apply:HHid.
 rewrite sMN nNG; split=>/= [|H]; last first.
   case/andP; case/andP => sMH nHG HHid sNH; rewrite (max H); split =>//.

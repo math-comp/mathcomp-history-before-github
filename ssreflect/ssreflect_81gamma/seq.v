@@ -619,7 +619,7 @@ Proof. by elim=> //= [x s IHs]; case/andP; move/negbET->; move/IHs->. Qed.
 Lemma ltn_size_undup : forall s, (size (undup s) < size s) = ~~ uniq s.
 Proof.
 by elim=> //= [x s IHs]; case Hx: (s x); rewrite //= ltnS size_undup.
-Qed. 
+Qed.
 
 (* Lookup *)
 
@@ -1385,7 +1385,7 @@ Lemma uniq_subfilter : forall s, uniq s -> uniq (subfilter s).
 Proof.
 move=> s; move/(uniq_filter a); rewrite -val_subfilter; exact: maps_uniq.
 Qed.
- 
+
 End SubFilter.
 
 (* Index sequence *)
@@ -1526,7 +1526,7 @@ Lemma scanlK :
   (forall x, cancel (g x) (f x)) -> forall x, cancel (scanl x) (pairmap x).
 Proof. by move=> Hfg x s; elim: s x => [|y s Hrec] x //=; rewrite Hfg Hrec. Qed.
 
-Lemma pairmapK : 
+Lemma pairmapK :
   (forall x, cancel (f x) (g x)) -> forall x, cancel (pairmap x) (scanl x).
 Proof. by move=> Hgf x s; elim: s x => [|y s Hrec] x //=; rewrite Hgf Hrec. Qed.
 

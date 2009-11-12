@@ -43,7 +43,7 @@ Definition splits_over B A := complements_to_in A B != set0.
 
 (* Product remainder functions *)
 
-(* Deferring the left variant, as we don't need it for the moment 
+(* Deferring the left variant, as we don't need it for the moment
 Definition remgl A B x := repr (A :&: x *: B).
 Definition divgl A B x := (remgl A B x)^-1 * x.
 *)
@@ -253,7 +253,7 @@ Lemma sdprodP : forall A B G,
   A ><| B = G -> [/\ are_groups A B, A * B = G, B \subset 'N(A) & A :&: B = 1].
 Proof.
 rewrite /sdprod => A B G; case: ifP => [trAB|_]; last by case/group_not0.
-case/pprodP=> gAB defG nBA; split=> {defG nBA}//. 
+case/pprodP=> gAB defG nBA; split=> {defG nBA}//.
 by case: gAB trAB => H K -> ->; move/trivgP.
 Qed.
 
@@ -633,7 +633,7 @@ Lemma sdprod_mulgA : associative sdprod_mul.
 Proof.
 move=> u v w; apply: val_inj; case: u => [[x a]] /=; case/setXP=> Hx Ka.
 case: v w => [[y b]] /=; case/setXP=> Hy Kb [[z c]] /=; case/setXP=> Hz Kc.
-by rewrite !mulgA -(autmE (toA Kc)) !morphM ?permM ?sdprod_closed. 
+by rewrite !mulgA -(autmE (toA Kc)) !morphM ?permM ?sdprod_closed.
 Qed.
 
 Canonical Structure sdprod_baseFinGroupType := Eval hnf in

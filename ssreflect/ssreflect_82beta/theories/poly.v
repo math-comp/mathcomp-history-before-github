@@ -259,13 +259,13 @@ by apply: eq_bigr => j _; rewrite coef_add_poly mulr_addl.
 Qed.
 
 Lemma poly_mul0P : forall p, \C0 *p p = \C0.
-Proof. 
-by move=> p; apply/coef_eqP=> i; rewrite coef_mul_C_poly coef0 mul0r. 
+Proof.
+by move=> p; apply/coef_eqP=> i; rewrite coef_mul_C_poly coef0 mul0r.
 Qed.
 
 Lemma poly_mulP0 : forall p, p *p \C0 = \C0.
-Proof. 
-by move=> p; apply/coef_eqP=> i; rewrite coef_mul_poly_C coef0 mulr0. 
+Proof.
+by move=> p; apply/coef_eqP=> i; rewrite coef_mul_poly_C coef0 mulr0.
 Qed.
 
 Lemma poly_nontriv : poly1 <> poly0.
@@ -361,7 +361,7 @@ Lemma size_mul: forall p q: poly, p != 0 -> size (p * q) < size p + size q.
 Proof.
 move=> p q Dp; have Pp: 0 < size p.
  by case: size (size_poly0_eq p) => // HH; case/negP: Dp; rewrite HH.
-rewrite -(ltn_predK Pp) addSn; apply: leq_size_coef => j Hj. 
+rewrite -(ltn_predK Pp) addSn; apply: leq_size_coef => j Hj.
 rewrite coef_mul_poly; apply: big1 => [[i Hi]] /= _.
 case: (leqP (size p) i) => Cpi; first by rewrite (coef_default Cpi) !simpl01.
 suff Cqi: size q <= j - i by rewrite (coef_default Cqi) !simpl01.
@@ -418,7 +418,7 @@ elim: n i Hl => [| n Hrec] [| i] //; first by case: i.
 by move=> Hi; rewrite Hrec.
 Qed.
 
-Lemma coef_mul_Xn_poly : forall n p i, 
+Lemma coef_mul_Xn_poly : forall n p i,
   coef (\X^ n * p) i = if i < n then 0 else coef p (i - n).
 Proof.
 move=> n p i; rewrite coef_mul_poly; case: ltnP => Cin.
@@ -432,7 +432,7 @@ move=> Ejn; case/negP: Hd.
 by do 2 apply/val_eqP => /=; apply/eqP.
 Qed.
 
-Lemma coef_mul_poly_Xn : forall n p i, 
+Lemma coef_mul_poly_Xn : forall n p i,
   coef (p * \X^ n) i = if i < n then 0 else coef p (i - n).
 Proof.
 move=> n p i; rewrite coef_mul_poly_rev; case: ltnP => Cin.
@@ -468,9 +468,9 @@ Proof. by move=> n; rewrite seq_polyXn size_addsn addnC. Qed.
 
 Lemma polyC_mul: forall c1 c2, \C (c1 * c2) = \C c1 * \C c2.
 Proof.
-move=> c1 c2; 
+move=> c1 c2;
 apply/val_eqP; apply/eqP; rewrite /polyC {2}/mul /= /mul_poly /= !val_insubd /normal /=.
-(do 3 (case: (@eqP R))) => Hc1 Hc2; rewrite ?(seq_horner, seq_poly0) //=; 
+(do 3 (case: (@eqP R))) => Hc1 Hc2; rewrite ?(seq_horner, seq_poly0) //=;
     try (by rewrite (Hc1, Hc2) (mul0r, mulr0); case).
 - by move=> ->; rewrite /= add0r seq_poly0.
 by rewrite addr0 /polyC val_insubd /normal; move/eqP->.
@@ -553,7 +553,7 @@ by move=> m r1 r2 Dr1 Dr2; elim: m => [| m Hrec] //=;
    apply/eqP; case/idR=> Dr; [case/eqP: Dr1 | case/eqP: Hrec].
 Qed.
 
-Lemma size_mul_id: forall p q: poly, 
+Lemma size_mul_id: forall p q: poly,
   p != 0 -> q != 0 -> size (p * q) = (size p + size q).-1.
 Proof.
 move=> p q Dp Dq; apply: anti_leq.
@@ -572,10 +572,10 @@ case: eqP Dp Dq (lead_coefE p) (lead_coefE q) (lead_coef_nz p) (lead_coef_nz q);
 by case/idR=> Cpq; [case/negP: Cp | case/negP: Cq]; apply/eqP.
 Qed.
 
-Lemma lead_coef_mul_id: forall p q: poly, 
+Lemma lead_coef_mul_id: forall p q: poly,
   p != 0 -> q != 0 -> lead_coef (p * q) = lead_coef p * lead_coef q.
 Proof.
-move=> p q; rewrite !lead_coefE; 
+move=> p q; rewrite !lead_coefE;
     (do 3 (case: eqP)) => // E1 E2 E3 _ _; last first.
   by rewrite size_mul_id // ?lead_coef_mul //; apply/eqP.
 move: (lead_coef_mul p q); rewrite E1 coef0.
@@ -613,7 +613,7 @@ rewrite HH mulr_addl -!addrA; congr add.
 by rewrite addrC -addrA addrC -!addrA addKr.
 Qed.
 
-Lemma edivp_mod_spec: forall q n c (qq r: poly), q != 0 -> 
+Lemma edivp_mod_spec: forall q n c (qq r: poly), q != 0 ->
   size r <= n -> size (edivp_rec q n c qq r).2 < size q.
 Proof.
 move=> q; elim=> [| n Hrec] c qq r Hq Hqq /=; case: (@ltnP (size r)) => Hl //=.
@@ -621,7 +621,7 @@ move=> q; elim=> [| n Hrec] c qq r Hq Hqq /=; case: (@ltnP (size r)) => Hl //=.
    by case: size (leq_trans Hl Hqq).
 apply: Hrec => //.
 apply: leq_size_coef => j Hj.
-rewrite coef_add_poly coef_opp -!mulrA coef_mul_poly_C 
+rewrite coef_add_poly coef_opp -!mulrA coef_mul_poly_C
         coef_mul_C_poly coef_mul_Xn_poly.
 move: Hj; rewrite leq_eqVlt; case/orP => Hj; last first.
   rewrite coef_default; last by rewrite (leq_trans Hqq).
@@ -724,7 +724,7 @@ Qed.
 Lemma divp1: forall p, p /p 1 = p.
 Proof.
 by move=> p; rewrite {2}(divp_mon_spec p monic1) modp1 !simpl01.
-Qed. 
+Qed.
 
 Lemma modp_mon_mull : forall p q: poly, monic q -> p * q %p q = 0.
 Proof.

@@ -178,7 +178,7 @@ Proof.
 move=> F f; apply: (iffP forallP) => [f_pfam | [f_supp f_fam] x].
   split=> [x | x dx]; move/(_ x): f_pfam; last by rewrite dx.
   by rewrite /support /=; case: (d x) => //= ->.
-case dx: (d x); [exact: f_fam | by apply/idPn; move/f_supp; rewrite dx].  
+case dx: (d x); [exact: f_fam | by apply/idPn; move/f_supp; rewrite dx].
 Qed.
 
 Definition pffun_on r := pfamily (fun _ => r).
@@ -233,7 +233,7 @@ Canonical Structure finfun_of_subFinType := Eval hnf in [subFinType of fT].
 Lemma card_pfamily : forall y0 d (F : aT -> pred rT),
   #|pfamily y0 d F| = foldr (fun x m => #|F x| * m) 1 (enum d).
 Proof.
-move=> y0 d F; have:= enum_uniq d; have:= mem_enum d. 
+move=> y0 d F; have:= enum_uniq d; have:= mem_enum d.
 elim: {d}enum {2 4}d => [|x0 s IHs] d eq_ds => [_|] /=.
   rewrite -(card1 [ffun=> y0]); apply: eq_card => f.
   apply/familyP/eqP => [f_y0 | ->{f} x]; last by rewrite ffunE -[d _]eq_ds /=.

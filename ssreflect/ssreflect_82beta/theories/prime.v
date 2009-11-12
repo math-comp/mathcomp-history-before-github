@@ -135,7 +135,7 @@ Definition prime_decomp n :=
 (* using a merge_sort variant to obtain a sorted list.                 *)
 
 Definition add_divisors pe divs :=
-  let: p ^ e := pe in 
+  let: p ^ e := pe in
   let add1 divs' := merge leq (maps (NatTrec.mul p) divs') divs in
   iter e add1 divs.
 
@@ -150,7 +150,7 @@ Definition pdiv n := head 1 (primes n).
 Definition divisors n := foldr add_divisors [:: 1] (prime_decomp n).
 
 Lemma prime_decomp_correct :
-  let pd_val (pd : seq pfactor) := \prod_(pf <- pd) pf in 
+  let pd_val (pd : seq pfactor) := \prod_(pf <- pd) pf in
   let lb_dvd q m := ~~ has [pred d | d %| m] (index_iota 2 q) in
   let pf_ok pf := let: p ^ e := pf in lb_dvd p p && (0 < e) in
   let pd_ord q pd := path ltn q (maps pfactor_base pd) in
@@ -160,7 +160,7 @@ Proof.
 rewrite unlock => pd_val lb_dvd pf_ok pd_ord pd_ok.
 have leq_pd_ok : forall m p q pd, q <= p -> pd_ok p m pd -> pd_ok q m pd.
   rewrite /pd_ok /pd_ord => m p q [|[r _] pd] //= leqp [<- ->].
-  by case/andP; move/(leq_trans _)=> ->. 
+  by case/andP; move/(leq_trans _)=> ->.
 have apd_ok: forall m e q p pd, lb_dvd p p || (e == 0) -> q < p ->
      pd_ok p m pd -> pd_ok q (p ^ e * m) (p ^? e :: pd).
 - move=> m [|e] q p pd; rewrite orbC /= => pr_p ltqp.
@@ -186,7 +186,7 @@ set kb := _.*2; set d := _ + c.
 case/and5P=> lt0k ltpm leppm ltc pr_p def_m; have def_k1 := ltn_predK lt0k.
 have def_kb1: kb.-1.+1 = kb by rewrite /kb -def_k1; case e.
 have eq_bc_0: (b == 0) && (c == 0) = (d == 0).
-  by rewrite eqn_add0 eqn_mul0 orbC -def_kb1. 
+  by rewrite eqn_add0 eqn_mul0 orbC -def_kb1.
 have lt1p: 1 < p by rewrite ltnS ltn_0double.
 have co_p_2: coprime p 2 by rewrite /coprime gcdnC gcdnE modn2 /= odd_double.
 have if_d0: d = 0 -> [/\ m = (p + a.*2) * p, lb_dvd p p & lb_dvd p (p + a.*2)].
@@ -572,7 +572,7 @@ move=> p n m p_pr; elim: n m => [|n IHn] m m_pos; first exact: dvd1n.
 rewrite lognE p_pr m_pos /=; case dv_pm: (p %| m); last first.
   by apply/dvdnP=> [] [/= q def_m]; rewrite def_m mulnCA dvdn_mulr in dv_pm.
 case/dvdnP: dv_pm m_pos => q ->{m}; rewrite ltn_0mul; case/andP=> p_pos q_pos.
-by rewrite expnSr dvdn_pmul2r // mulnK // IHn. 
+by rewrite expnSr dvdn_pmul2r // mulnK // IHn.
 Qed.
 
 Lemma pfactor_dvdnn : forall p n, p ^ logn p n %| n.
@@ -938,7 +938,7 @@ Lemma part_p'nat : forall pi n, pi^'.-nat n -> n`_pi = 1.
 Proof.
 move=> pi n; case/andP=> n_pos pi'_n; apply: big1_seq => p.
 case/andP=> pi_p _; case: (posnP (logn p n)) => [-> //|].
-by rewrite ltn_0log; move/(allP pi'_n); case/negP. 
+by rewrite ltn_0log; move/(allP pi'_n); case/negP.
 Qed.
 
 Lemma pnatP : forall pi n,

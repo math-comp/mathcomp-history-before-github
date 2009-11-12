@@ -23,7 +23,7 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice.
 (* We define operations on functions on finTypes: the Boolean injectivity,*)
 (* image (image f of A), inverse function.                                *)
 (* Finally we define some standard finTypes the ordinals and the product  *)
-(* and the sum of two finTypes.                                           *)  
+(* and the sum of two finTypes.                                           *)
 (*   The Ordinal finType I_n : {0, ... , n-1} is provided with a coercion *)
 (* nat_of_ord to  natural numbers, and                                    *)
 (*   -  the lift/unlift operations to avoid a messy dependent type;       *)
@@ -321,7 +321,7 @@ Lemma card0_eq : forall A, #|A| = 0 -> A =i pred0.
 Proof. by move=> A A0 x; apply/idP => Ax; rewrite (cardD1 x) Ax in A0. Qed.
 
 Lemma pred0P : forall P, reflect (P =1 pred0) (pred0b P).
-Proof. move=> p; apply: (iffP eqP); [exact: card0_eq | exact: eq_card0]. Qed. 
+Proof. move=> p; apply: (iffP eqP); [exact: card0_eq | exact: eq_card0]. Qed.
 
 Lemma pred0Pn : forall P, reflect (exists x, P x) (~~ pred0b P).
 Proof.
@@ -435,7 +435,7 @@ Proof.
 move=> A B; rewrite properE; apply: (iffP andP); case=>->; case/subsetPn=> //.
 by move=> x Bx nAx; split=> //; exists x.
 Qed.
- 
+
 Lemma proper_sub : forall A B, A \proper B -> A \subset B.
 Proof. by move=> A B; case/andP. Qed.
 
@@ -467,7 +467,7 @@ Qed.
 
 Lemma proper_card : forall A B, A \proper B -> #|A| < #|B|.
 Proof.
-move=> A B; case/andP=> sAB nsBA; rewrite ltn_neqAle. 
+move=> A B; case/andP=> sAB nsBA; rewrite ltn_neqAle.
 by case: (subset_leqif_card sAB)=> -> ->; rewrite andbT.
 Qed.
 
@@ -486,7 +486,7 @@ Lemma eq_proper_r : forall A B, A =i B ->
 Proof.
 move=> A B eAB [C]; congr andb; first by apply: (eq_subset_r eAB).
 by rewrite (eq_subset eAB).
-Qed. 
+Qed.
 
 Lemma disjoint_sym : forall A B, [disjoint A & B] = [disjoint B & A].
 Proof. by move=> A B; congr eqn; apply: eq_card => x; apply: andbC. Qed.
@@ -732,7 +732,7 @@ Definition codom := image T.
 
 Lemma codom_f : forall x, codom (f x).
 Proof. by move=> x; exact: mem_image. Qed.
-  
+
 Lemma iinv_f : forall x fTfx, injective f -> @iinv T (f x) fTfx = x.
 Proof. by move=> x fAfx injf; apply: in_iinv_f; first exact: in2W. Qed.
 
@@ -1165,7 +1165,7 @@ Definition enum_val i := nth (enum_default i) (enum T) i.
 Lemma enum_val_nth : forall x i, enum_val i = nth x (enum T) i.
 Proof.
 move=> x i; apply: set_nth_default; rewrite cardE in i *; exact: ltn_ord.
-Qed. 
+Qed.
 
 Lemma nth_enum_rank : forall x, cancel enum_rank (nth x (enum T)).
 Proof. by move=> x y; rewrite nth_index ?mem_enum. Qed.
@@ -1335,7 +1335,7 @@ Variable n : pos_nat.
 
 Definition ord0 := Ordinal (pos_natP n).
 
-Lemma ord_maxP : n.-1 < n. Proof. by rewrite prednK. Qed. 
+Lemma ord_maxP : n.-1 < n. Proof. by rewrite prednK. Qed.
 Definition ord_max := Ordinal ord_maxP.
 
 Lemma leq_ord : forall i : 'I_n, i <= n.-1.
@@ -1402,7 +1402,7 @@ Canonical Structure prod_finType := Eval hnf in FinType prod_finMixin.
 Lemma cardX : forall (A1 : pred T1) (A2 : pred T2),
   #|[predX A1 & A2]| = #|A1| * #|A2|.
 Proof.
-by move=> A1 A2; rewrite -predX_prod_enum unlock -count_filter unlock. 
+by move=> A1 A2; rewrite -predX_prod_enum unlock -count_filter unlock.
 Qed.
 
 Lemma card_prod : #|{: T1 * T2}| = #|T1| * #|T2|.

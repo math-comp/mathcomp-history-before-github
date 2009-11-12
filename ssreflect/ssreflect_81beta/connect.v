@@ -603,7 +603,7 @@ Qed.
 
 Lemma eq_froot : froot f =1 froot f'.
 Proof. exact: eq_root eq_set1f. Qed.
- 
+
 Lemma eq_froots : froots f =1 froots f'.
 Proof. exact: eq_roots eq_set1f. Qed.
 

@@ -321,7 +321,7 @@ Record eq_sum : Type := EqSum {sum_tag : index; sum_tagged : dom_at sum_tag}.
 
 Definition tagged_as (u v : eq_sum) : dom_at (sum_tag u) :=
   if sum_tag u =P sum_tag v is Reflect_true Huv then
-    eq_rect_r dom_at (sum_tagged v) Huv 
+    eq_rect_r dom_at (sum_tagged v) Huv
   else sum_tagged u.
 
 Lemma tagged_as_same : forall i (x y : dom_at i),

@@ -444,7 +444,7 @@ Lemma leq_mul : forall m1 m2 n1 n2, m1 <= n1 -> m2 <= n2 -> m1 * m2 <= n1 * n2.
 Proof.
 move=> m1 m2 n1 n2 Hmn1 Hmn2; apply (@leq_trans (m1 * n2)).
   by rewrite leq_mul2l Hmn2 orbT.
-by rewrite leq_mul2r Hmn1 orbT. 
+by rewrite leq_mul2r Hmn1 orbT.
 Qed.
 
 Lemma eqn_mul2l : forall m n1 n2, (m * n1 == m * n2) = (m == 0) || (n1 == n2).

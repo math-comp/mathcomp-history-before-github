@@ -277,7 +277,7 @@ Qed.
 Definition bool_groupMixin := FinGroup.Mixin addbA addFb addbb.
 Canonical Structure bool_baseGroup :=
   Eval hnf in BaseFinGroupType bool_groupMixin.
-Canonical Structure boolGroup := Eval hnf in FinGroupType addbb. 
+Canonical Structure boolGroup := Eval hnf in FinGroupType addbb.
 
 Canonical Structure odd_perm'_morphism :=
   @Morphism _ _ setT _ (in2W odd_perm'M).
@@ -336,7 +336,7 @@ apply/eqP; move/(congr1 (mi j)); apply/eqP.
 rewrite ringM_0 // ringM_sub // /mi !morph_multiX // !nth_set_nth /= !nth_nil.
 by rewrite eqxx -if_neg neq_ltn lt_ij.
 Qed.
-  
+
 End SignPerm.
 
 

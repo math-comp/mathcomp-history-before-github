@@ -3,7 +3,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-Require Import ssreflect. 
+Require Import ssreflect.
 Require Import ssrbool.
 Require Import ssrfun.
 Require Import eqtype.
@@ -117,7 +117,7 @@ Implicit Types G : gT.
 
 Definition simple (A : sT) := maxnormal A 1%G.
 
-Lemma simpleP : forall G, 
+Lemma simpleP : forall G,
   reflect (G :!=: 1 /\ forall H : gT, H <| G -> H :=: 1 \/ H :=: G)
           (simple G).
 Proof.
@@ -215,7 +215,7 @@ Infix "/" := mkSec : section_scope.
 Coercion pair_of_section s := let: Sec u := s in u.
 Coercion quotient_of_section (u : section) : GroupSet.sort _ := u.1 / u.2.
 
-Canonical Structure section_subType := 
+Canonical Structure section_subType :=
   NewType pair_of_section section_rect vrefl.
 Canonical Structure section_eqType :=
   Eval hnf in [subEqType for pair_of_section].
@@ -232,7 +232,7 @@ Coercion section_group : section >-> group_of.
 Definition sisog := [rel x y : section | x \isog y].
 
 (* A representant of the isomorphism class of a section *)
-Definition srepr (H : section) := 
+Definition srepr (H : section) :=
   if (pick (sisog ^~ H)) is Some s then s else (mkSec 1 1)%sec.
 
 Definition mksrepr G1 G2 := srepr (mkSec G1 G2).
@@ -256,7 +256,7 @@ Notation gTg := {group gT}.
 
 
 (*From a seq of groups to the associated seq of representatives of factors *)
-Definition mkfactors (G : gTg) (s : seq gTg) := 
+Definition mkfactors (G : gTg) (s : seq gTg) :=
   mapsrepr (pairmap mkSec G s).
 
 End SectionSeries.
@@ -297,8 +297,8 @@ by rewrite G1 /proper sub1set group1 andbF.
 Qed.
 
 Lemma comps_adds : forall G H s, comps G (H :: s) -> comps H s.
-Proof. 
-by move=> G H s; case/andP => /= ls; case/andP=> _ p; rewrite /comps ls. 
+Proof.
+by move=> G H s; case/andP => /= ls; case/andP=> _ p; rewrite /comps ls.
 Qed.
 
 Lemma simple_compsP : forall G s, comps G s ->
@@ -315,7 +315,7 @@ Qed.
 
 
 
-(* Existence of a composition serie for a finite group, 
+(* Existence of a composition serie for a finite group,
 by recursion of the cardinal.
 *)
 Lemma exists_comps : forall G : gTg, exists s, comps G s.
@@ -385,7 +385,7 @@ have i1 : perm_eq (mksrepr G N1 :: mkfactors N1 st1)
   apply: normal_simple_quo_maxN_.
   rewrite (normalS (subsetIl N1 N2) (normal_sub nN1G)) //.
   by apply: (isog_simpl iso2); apply: maxN_simple_quo.
-have i2 : perm_eq (mksrepr G N2 :: mkfactors N2 st2) 
+have i2 : perm_eq (mksrepr G N2 :: mkfactors N2 st2)
                   [:: mksrepr G N2, mksrepr N2 N & mkfactors N sN].
   rewrite perm_adds -[mksrepr _ _ :: _]/(mkfactors N2 [:: N & sN]).
   apply: Hi=> //; rewrite /comps ?lst2 //= lsN csN andbT /=.
@@ -423,7 +423,7 @@ Lemma ainvar_refl : forall A : {group gT}, ainvar A A.
 Proof. rewrite /ainvar; exact: normG. Qed.
 
 
-Definition maxainv (A B C : {set gT}) := 
+Definition maxainv (A B C : {set gT}) :=
   [max C of G | [&& (G <| B), ~~ (B \subset G) & ainvar A G]].
 
 (* garder le != pour aller avec maxnormalP ou bien changer les deux en  ~\subset*)
@@ -474,7 +474,7 @@ End MaxAinvProps.
 
 Definition asimple (A G : {set gT}) := maxainv A G 1.
 
-Lemma asimpleP : forall A G : {group gT}, 
+Lemma asimpleP : forall A G : {group gT},
   reflect (G :!=: 1 /\ (forall H : {group gT}, H <| G -> ainvar A H -> H :=: 1 \/ H :=: G)) (asimple A G).
 Proof.
 move=> A G; apply: (iffP idP).
@@ -524,8 +524,8 @@ Qed.
 
 
 Lemma acomps_adds : forall G H s, acomps G (H :: s) -> acomps H s.
-Proof. 
-by move=> G H s; case/andP => /= ls; case/andP=> _ p; rewrite /acomps ls. 
+Proof.
+by move=> G H s; case/andP => /= ls; case/andP=> _ p; rewrite /acomps ls.
 Qed.
 
 Lemma asimple_acompsP : forall G s,
@@ -537,11 +537,11 @@ case: s cs; first by rewrite /acomps /= andbT; move/eqP->; case/asimpleP; rewrit
 move=> H s cs sG; apply/eqP.
 rewrite eqseq_adds -(trivg_acomps (acomps_adds cs)) andbC andbb.
 case/acompsP: cs => /= ls; case/andP=> mH ps.
-case/maxainvP: sG => _ ntG _ -> //; rewrite ?sub1G  ?(maxainv_norm mH) ?(maxainv_proper mH) //. 
+case/maxainvP: sG => _ ntG _ -> //; rewrite ?sub1G  ?(maxainv_norm mH) ?(maxainv_proper mH) //.
 exact: (maxainv_ainvar mH).
 Qed.
 
-(* Existence of a composition serie for a finite group, 
+(* Existence of a composition serie for a finite group,
 by recursion of the cardinal.
 *)
 Lemma exists_acomps : forall G : gTg, exists s, acomps G s.
@@ -576,7 +576,7 @@ Variables A G N : {group gT}.
 
 Lemma maxainv_asimple_quo : maxainv A G N -> asimple (A / N) (G / N).
 Proof.
-case/maxainvP=> nNG pNG Ninv Nmax; apply/asimpleP; split; last move=> K' nK'Q. 
+case/maxainvP=> nNG pNG Ninv Nmax; apply/asimpleP; split; last move=> K' nK'Q.
   by rewrite -subG1 quotient_sub1 ?normal_norm ?proper_subn.
 have : (K' \proper (G / N)) || (G / N == K').
   by rewrite properE eqEsubset andbC (normal_sub nK'Q) !andbT orbC orb_negb_r.
@@ -597,7 +597,7 @@ suff : ~~ (G \subset K) by rewrite properE (normal_sub nKG).
 by rewrite -(quotientGK nNG) morphpreSK /= ?proper_subn // ?morphimS ?normal_norm.
 Qed.
 
-Lemma asimple_quo_maxainv : 
+Lemma asimple_quo_maxainv :
   ainvar A N -> N <| G -> asimple (A / N) (G / N) -> maxainv A G N.
 Proof.
 move=> aiN nNG; move/asimpleP=> [nt sQ]; apply/maxainvP; rewrite nNG properE.

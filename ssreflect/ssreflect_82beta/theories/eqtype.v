@@ -221,7 +221,7 @@ Variables (rT1 rT2 : eqType) (f : aT -> aT) (h : rT1 -> rT2) (k : aT -> rT1).
 (* pouquoi Type -> Type demande de reecrire eqxx??? *)
 Lemma invariant_comp : subpred (invariant f k) (invariant f (h \o k)).
 Proof.  by move=> x eq_kfx; rewrite /comp /= (eqP eq_kfx) eqxx. Qed.
- 
+
 Lemma invariant_inj : injective h -> invariant f (h \o k) =1 invariant f k.
 Proof. move=> inj_h x; exact: (inj_eq inj_h). Qed.
 
@@ -341,7 +341,7 @@ Proof.
 rewrite/insub => x; case: {2}(p x) / idP; last by right; exact/negP.
 by left; rewrite ?SubK.
 Qed.
-  
+
 Lemma insubT : forall x p_x, insub x = Some (Sub x p_x).
 Proof.
 move=> x p_x; case: insubP; last by case/negP.
@@ -578,7 +578,7 @@ Record eq_sum : Type := EqSum {sum_tag : I; sum_tagged : T sum_tag}.
 
 Definition tagged_as (u v : eq_sum) : T (sum_tag u) :=
   if sum_tag u =P sum_tag v is Reflect_true Huv then
-    eq_rect_r T (sum_tagged v) Huv 
+    eq_rect_r T (sum_tagged v) Huv
   else sum_tagged u.
 
 Lemma tagged_as_same : forall i (x y : T i),

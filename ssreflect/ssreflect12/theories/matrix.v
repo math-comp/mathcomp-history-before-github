@@ -144,11 +144,11 @@ Definition mx_col' m n j0 (A : 'M_(m, n)) :=
 
 (* Swaping two row/column of a matrix *)
 Definition rswap m n (A : 'M_(m, n)) i1 i2 :=
-  \matrix_(i, j) (A (tperm i1 i2 i) j : R). 
+  \matrix_(i, j) (A (tperm i1 i2 i) j : R).
 Definition cswap m n (A : 'M_(m, n)) i1 i2 :=
-  \matrix_(i, j) (A i (tperm i1 i2 j) : R). 
+  \matrix_(i, j) (A i (tperm i1 i2 j) : R).
 
-(* Transpose *)    
+(* Transpose *)
 Definition trmx m n (A : 'M_(m, n)) := \matrix_(i, j) (A j i : R).
 
 Lemma trmxK : forall m n, cancel (@trmx m n) (@trmx n m).
@@ -175,12 +175,12 @@ Lemma trmx_col' : forall m n j0 (A : 'M_(m, n)),
   (mx_col' j0 A)^T = mx_row' j0 A^T.
 Proof. by move=> m n j0 A; apply/matrixP=> i j; rewrite !mxE. Qed.
 
-Lemma trmx_cswap : forall m n (A : 'M_(m, n)) i1 i2, 
-  (cswap A i1 i2)^T = rswap A^T i1 i2. 
-Proof. by move=> m n A i1 i2; apply/matrixP=> i j; rewrite !mxE. Qed. 
+Lemma trmx_cswap : forall m n (A : 'M_(m, n)) i1 i2,
+  (cswap A i1 i2)^T = rswap A^T i1 i2.
+Proof. by move=> m n A i1 i2; apply/matrixP=> i j; rewrite !mxE. Qed.
 
-Lemma trmx_rswap : forall m n (A : 'M_(m, n)) i1 i2, 
-  (rswap A i1 i2)^T = cswap A^T i1 i2. 
+Lemma trmx_rswap : forall m n (A : 'M_(m, n)) i1 i2,
+  (rswap A i1 i2)^T = cswap A^T i1 i2.
 Proof. by move=> m n A i1 i2; apply: trmx_inj; rewrite trmx_cswap !trmxK. Qed.
 
 Lemma mx_row_id : forall n (A : 'M_(1, n)), mx_row 0 A = A.
@@ -221,7 +221,7 @@ Definition pastemx (A1 : 'M_(m, n1)) (A2 : 'M_(m, n2)) :=
 
 Lemma pastemxEl : forall A1 A2 i j, pastemx A1 A2 i (lshift n2 j) = A1 i j.
 Proof. by move=> A1 A2 i j; rewrite mxE (unsplitK (inl _ _)). Qed.
-  
+
 Lemma pastemxEr : forall A1 A2 i j, pastemx A1 A2 i (rshift n1 j) = A2 i j.
 Proof. by move=> A1 A2 i j; rewrite mxE (unsplitK (inr _ _)). Qed.
 
@@ -280,7 +280,7 @@ Lemma mx_col'_rcast : forall n1 n2, 'I_n2 -> (n1 + n2.-1)%N = (n1 + n2).-1.
 Proof. by move=> n1 n2 [j]; move/ltn_predK <-; rewrite addnS. Qed.
 
 Lemma paste_mx_col' : forall m n1 n2 j2 A1 (A2 : 'M_(m, n2)),
-  pastemx A1 (mx_col' j2 A2) 
+  pastemx A1 (mx_col' j2 A2)
     = eq_rect _ (matrix R m) (mx_col' (rshift n1 j2) (pastemx A1 A2))
               _ (esym (mx_col'_rcast n1 j2)).
 Proof.
@@ -293,7 +293,7 @@ by rewrite def_j' /bump leq_add2l addnCA.
 Qed.
 
 Lemma mx_col'_rshift : forall m n1 n2 j2 A1 (A2 : 'M_(m, n2)),
-  mx_col' (rshift n1 j2) (pastemx A1 A2) 
+  mx_col' (rshift n1 j2) (pastemx A1 A2)
     = eq_rect _ (matrix R m) (pastemx A1 (mx_col' j2 A2))
               _ (mx_col'_rcast n1 j2).
 Proof.
@@ -333,22 +333,22 @@ Let A := block_mx Aul Aur All Alr.
 
 Lemma block_mxEul : forall i j, A (lshift m2 i) (lshift n2 j) = Aul i j.
 Proof. by move=> i j; rewrite mxE pastemxEl mxE pastemxEl. Qed.
-Lemma block_mxKul : ulsubmx A = Aul. 
+Lemma block_mxKul : ulsubmx A = Aul.
 Proof. by rewrite /ulsubmx trmxK pastemxKl trmxK pastemxKl. Qed.
 
 Lemma block_mxEur : forall i j, A (lshift m2 i) (rshift n1 j) = Aur i j.
 Proof. by move=> i j; rewrite mxE pastemxEl mxE pastemxEr. Qed.
-Lemma block_mxKur : ursubmx A = Aur. 
+Lemma block_mxKur : ursubmx A = Aur.
 Proof. by rewrite /ursubmx trmxK pastemxKl trmxK pastemxKr. Qed.
 
 Lemma block_mxEll : forall i j, A (rshift m1 i) (lshift n2 j) = All i j.
 Proof. by move=> i j; rewrite mxE pastemxEr mxE pastemxEl. Qed.
-Lemma block_mxKll : llsubmx A = All. 
+Lemma block_mxKll : llsubmx A = All.
 Proof. by rewrite /llsubmx trmxK pastemxKr trmxK pastemxKl. Qed.
 
 Lemma block_mxElr : forall i j, A (rshift m1 i) (rshift n1 j) = Alr i j.
 Proof. by move=> i j; rewrite mxE pastemxEr mxE pastemxEr. Qed.
-Lemma block_mxKlr : lrsubmx A = Alr. 
+Lemma block_mxKlr : lrsubmx A = Alr.
 Proof. by rewrite /lrsubmx trmxK pastemxKr trmxK pastemxKr. Qed.
 
 End PasteBlock.
@@ -687,7 +687,7 @@ Lemma mulmx_paste : forall m n p1 p2 (A : 'M_(m, n)) B1 B2,
   A *m (pastemx B1 B2) = pastemx (A *m B1) (A *m B2) :> 'M_(m, p1 + p2).
 Proof.
 move=> m n p1 p2 A B1 B2; apply/matrixP=> i k; rewrite !mxE.
-by case defk: (split k) => [k1 | k2]; 
+by case defk: (split k) => [k1 | k2];
    rewrite mxE; apply: eq_bigr => j _; rewrite mxE defk.
 Qed.
 
@@ -753,14 +753,14 @@ rewrite simp -permM big1 /= => [|k ne_k_si]; first by rewrite addrC simp.
 by rewrite mxE /= eq_sym (negbTE ne_k_si) simp.
 Qed.
 
-Lemma mul_tperm_mx : forall m n (A : matrix R m n) i1 i2, 
+Lemma mul_tperm_mx : forall m n (A : matrix R m n) i1 i2,
   (tperm_mx i1 i2) *m A = rswap A i1 i2.
-Proof. 
+Proof.
 move=> m n' A i1 i2; apply/matrixP=> i j.
 rewrite !mxE (bigD1 (tperm i1 i2 i)) ?big1 //= => [|k ne_k_j].
-  by rewrite mxE eqxx addr0 mul1r. 
-by rewrite mxE eq_sym -if_neg ne_k_j mul0r. 
-Qed. 
+  by rewrite mxE eqxx addr0 mul1r.
+by rewrite mxE eq_sym -if_neg ne_k_j mul0r.
+Qed.
 
 Lemma perm_mx1 : forall n, perm_mx 1%g = 1%:M :> 'M_n.
 Proof. by move=> n; apply/matrixP=> i j; rewrite !mxE perm1. Qed.
@@ -897,7 +897,7 @@ Proof. by move=> s i; rewrite (canF_eq (lift0_permK s)) lift0_perm0. Qed.
 Definition lift0_mx A := block_mx (1 : 'M_(1, 1)) 0 0 A.
 
 Lemma lift0_mx_perm : forall s,
-  lift0_mx (perm_mx s) = perm_mx (lift0_perm s). 
+  lift0_mx (perm_mx s) = perm_mx (lift0_perm s).
 Proof.
 move=> s; apply/matrixP=> /= i j.
 rewrite !mxE split1 /=; case: unliftP => [i'|] -> /=.
@@ -937,12 +937,12 @@ rewrite -[_ *m _]trmxK trmx_mul_rev trmxK trmx_block dotmx_paste !trmxK.
 by rewrite !mulmx_paste -!trmx_mul_rev !mulmx_paste trmx_add addmx_block.
 Qed.
 
-Lemma mul_mx_tperm : forall m n (A : matrix R m n) i1 i2, 
+Lemma mul_mx_tperm : forall m n (A : matrix R m n) i1 i2,
   A *m (tperm_mx R i1 i2) = cswap A i1 i2.
 Proof.
 move=> m n A i1 i2; apply: trmx_inj.
 by rewrite trmx_mul_rev trmx_tperm mul_tperm_mx trmx_cswap.
-Qed. 
+Qed.
 
 End TrMul.
 
@@ -1190,7 +1190,7 @@ Qed.
 Lemma det_scalar1 : forall a, \det (a%:M : 'M_1) = a.
 Proof. exact: det_scalar. Qed.
 
-Lemma det_perm_mx_neq0 : forall n s, \det (@perm_mx R n s) != 0. 
+Lemma det_perm_mx_neq0 : forall n s, \det (@perm_mx R n s) != 0.
 Proof.
 move=> n s; rewrite det_perm_mx.
 by case: (s : bool); rewrite ?oppr_eq0 nonzero1r.
@@ -1303,7 +1303,7 @@ Variable F : fieldType.
 (* Decomposition of the matrix A to P A = L U with :
 - P a permutation matrix
 - L a lower triangular matrix
-- U an upper triangular matrix 
+- U an upper triangular matrix
 *)
 
 Fixpoint cormen_lup n : let M := 'M_n.+1 in M -> M * M * M :=
@@ -1314,7 +1314,7 @@ Fixpoint cormen_lup n : let M := 'M_n.+1 in M -> M * M * M :=
     let A1 := rswap A 0 k in
     let P1 := tperm_mx F 0 k in
     let Schur := ((A k 0)^-1 *m: llsubmx A1) *m ursubmx A1 in
-    let: (P2, L2, U2) := cormen_lup (lrsubmx A1 - Schur) in 
+    let: (P2, L2, U2) := cormen_lup (lrsubmx A1 - Schur) in
     let P := block_mx 1 0 0 P2 * P1 in
     let L := block_mx 1 0 ((A k 0)^-1 *m: (P2 *m llsubmx A1)) L2 in
     let U := block_mx (ulsubmx A1) (ursubmx A1) 0 U2 in

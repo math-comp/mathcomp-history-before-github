@@ -1,7 +1,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import prime fintype paths finfun bigops finset ssralg.
 Require Import groups morphisms normal automorphism commutators.
-Require Import cyclic center pgroups nilpotent sylow maximal gprod hall. 
+Require Import cyclic center pgroups nilpotent sylow maximal gprod hall.
 Require Import coprime_act.
 
 (******************************************************************************)
@@ -140,13 +140,13 @@ rewrite -quotientSK // coprime_quotient_cent ?(pgroup_sol pG) // subsetI subxx.
 by rewrite (sameP commG1P trivgP) /= -morphimR ?quotient_sub1 // comm_subG.
 Qed.
 
-Definition stable_factor (A : {set gT}) (H G : {group gT}) := 
+Definition stable_factor (A : {set gT}) (H G : {group gT}) :=
   ([~: G, A] \subset H) && (H <| G). (* this orders allows and3P to be used *)
 
 Definition stable_series A s := path (stable_factor A) 1%G s.
 
 (* B & G, Proposition 1.9, base (and most common) case *)
-Theorem stable_factor_cent : forall A G H : {group gT}, 
+Theorem stable_factor_cent : forall A G H : {group gT},
     A \subset 'C(H) -> stable_factor A H G ->
     coprime #|G| #|A| -> solvable G ->
   A \subset 'C(G).
@@ -158,7 +158,7 @@ by rewrite coprime_quotient_cent ?cents_norm ?subsetI ?subxx ?quotient_cents2r.
 Qed.
 
 (* B & G, Proposition 1.9 *)
-Theorem stable_series_cent : forall (A G : {group gT}) s, 
+Theorem stable_series_cent : forall (A G : {group gT}) s,
    last 1%G s :=: G -> stable_series A s -> coprime #|G| #|A| -> solvable G ->
   A \subset 'C(G).
 Proof.
@@ -335,7 +335,7 @@ have{cCEA} cCEA: A \subset 'C('Ohm_1('C_G(E))).
   rewrite gen_subG; apply/subsetP=> x; case/setIdP=> CEx.
   rewrite expn1 -order_dvdn; case/primeP: p_pr => _ p_pr; move/p_pr.
   rewrite order_eq1; case/predU1P=> [-> | defM]; first exact: group1.
-  by rewrite mem_gen // inE CEx.  
+  by rewrite mem_gen // inE CEx.
 apply: coprime_nil_faithful_cent_stab (pgroup_nil pG) _ => //.
 rewrite subsetI subsetIl centsC /=; set CC := 'C_G(_).
 have sCCG: CC \subset G := subsetIl _ _; have pCC := pgroupS sCCG pG.
@@ -360,7 +360,7 @@ Variables (p : nat) (T M G : {group gT}).
 Hypothesis pT : p.-group T.
 Hypotheses (nMT : T \subset 'N(M)) (coMT : coprime #|M| #|T|).
 
-Lemma coprime_norm_quotient_pgroup : 'N(T / M) = 'N(T) / M. 
+Lemma coprime_norm_quotient_pgroup : 'N(T / M) = 'N(T) / M.
 Proof.
 case: (pgroup_1Vpr pT) => [-> | [p_pr _ [m oMpm]]].
   by rewrite quotient1 !norm1 -quotientInorm setTI quotientT.
@@ -382,7 +382,7 @@ rewrite mem_morphim //; first by rewrite groupM // (subsetP (normG M)).
 by rewrite inE !(conjsgM, defTx) conjsgK conjGid.
 Qed.
 
-Lemma coprime_cent_quotient_pgroup : 'C(T / M) = 'C(T) / M. 
+Lemma coprime_cent_quotient_pgroup : 'C(T / M) = 'C(T) / M.
 Proof.
 symmetry; rewrite -quotientInorm -quotient_mulgr -['C(T / M)]cosetpreK.
 congr (_ / M); set Cq := _ @*^-1 _; set C := 'N__(M).

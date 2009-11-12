@@ -109,7 +109,7 @@ have oS1: prime p -> #|S| %% p = 1%N.
   move=> pr_p; rewrite -(atransP trS P S_P) (oG_mod P P) //.
   by rewrite orbit_refl modn_small ?prime_gt1.
 have oSiN: forall Q, Q \in S -> #|S| = #|G : 'N_G(Q)|.
-  by move=> Q S_Q; rewrite -(atransP trS Q S_Q) card_orbit conjG_astab1. 
+  by move=> Q S_Q; rewrite -(atransP trS Q S_Q) card_orbit conjG_astab1.
 have sylP: p.-Sylow(G) P.
   rewrite pHallE; case: (S_pG P) => // -> /= pP.
   case p_pr: (prime p); last first.
@@ -298,7 +298,7 @@ Proof.
 move=> pi G H nilG; case/maxgroupP; case/andP=> sHG piH maxH.
 have nHN: H <| 'N_G(H) by rewrite normal_subnorm.
 have{maxH} hallH: pi.-Hall('N_G(H)) H.
-  apply: normal_max_pgroup_Hall => //; apply/maxgroupP. 
+  apply: normal_max_pgroup_Hall => //; apply/maxgroupP.
   rewrite /psubgroup normal_sub // piH; split=> // K.
   rewrite subsetI -andbA andbCA; case/andP=> _; exact: maxH.
 rewrite /normal sHG; apply/setIidPl; symmetry.
@@ -337,7 +337,7 @@ Qed.
 
 End Nilpotent.
 
-Definition Zgroup (gT : finGroupType) (A : {set gT}) := 
+Definition Zgroup (gT : finGroupType) (A : {set gT}) :=
   forallb V : {group gT}, Sylow A V ==> cyclic V.
 
 Section Zgroups.
@@ -345,7 +345,7 @@ Section Zgroups.
 Variables (gT rT : finGroupType) (D : {group gT}) (f : {morphism D >-> rT}).
 Implicit Types G H K : {group gT}.
 
-Lemma ZgroupS : forall G H, H \subset G -> Zgroup G -> Zgroup H. 
+Lemma ZgroupS : forall G H, H \subset G -> Zgroup G -> Zgroup H.
 Proof.
 move=> G H sHG; move/forallP=> zgG; apply/forallP=> V; apply/implyP.
 case/SylowP=> p pr_p; case/and3P=> sVH.
@@ -353,7 +353,7 @@ case/(Sylow_superset (subset_trans sVH sHG))=> P sylP sVP _.
 have:= zgG P; rewrite (p_Sylow sylP); exact: cyclicS.
 Qed.
 
-Lemma morphim_Zgroup : forall G, Zgroup G -> Zgroup (f @* G). 
+Lemma morphim_Zgroup : forall G, Zgroup G -> Zgroup (f @* G).
 Proof.
 move=> G zgG; wlog sGD: G zgG / G \subset D.
   by rewrite -morphimIdom; apply; rewrite (ZgroupS _ zgG, subsetIl) ?subsetIr.
@@ -394,7 +394,7 @@ Implicit Type G P N : {group gT}.
 
 (* Bender 1.22 p.9 *)
 
-Lemma normal_pgroup : forall r P N, 
+Lemma normal_pgroup : forall r P N,
   p.-group P -> N <| P -> r <= logn p #|N| ->
   exists Q : {group gT}, [/\ Q \subset N, Q <| P & #|Q| = (p ^ r)%N].
 Proof.

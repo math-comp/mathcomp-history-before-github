@@ -87,7 +87,7 @@ have FF: forall H : {group _}, H <| 'Alt_T -> H :<>: 1 -> 20 %| #|H|.
   have F4: [primitive ('Alt_T | 'P) on setT] by exact: ntransitive_primitive F2.
   case: (prim_trans_norm F4 Hh1) => F5.
     case: Hh3; apply/trivgP; exact: subset_trans F5 (aperm_faithful _).
-  have F6: 5 %| #|H| by rewrite -oT -cardsT; apply: trans_div (in_setT x) F5. 
+  have F6: 5 %| #|H| by rewrite -oT -cardsT; apply: trans_div (in_setT x) F5.
   have F7: 4 %| #|H|.
     have F7: #|[set~ x]| = 4 by rewrite cardsC1 oT.
     case: (pickP (mem [set~ x])) => [y Hy | ?]; last by rewrite eq_card0 in F7.
@@ -169,7 +169,7 @@ have nSyl5: #|'Syl_5(H)| = 1%N.
   move: (dvdn_leq  (tp: (0 < 20)%N) Hdiv).
   by move: (n) Hdiv; do 20 (case => //).
 case: (Sylow_exists 5 H) => S; case/pHallP=> sSH oS.
-have{oS} oS: #|S| = 5 by rewrite oS p_part Hcard20. 
+have{oS} oS: #|S| = 5 by rewrite oS p_part Hcard20.
 suff: 20 %| #|S| by rewrite oS.
 apply FF => [|S1]; last by rewrite S1 cards1 in oS.
 apply: char_normal_trans Hnorm; apply: lone_subgroup_char => // Q sQH isoQS.
@@ -253,7 +253,7 @@ have Hcp1: #|[set x | p1 x != x]| <= n.
   have F1: forall y, p y = y -> p1 y = y.
     move=> y Hy; rewrite /p1 permM Hy.
     case tpermP => //; first by move => <-.
-    by move=> Hpx1; apply: (@perm_inj _ p); rewrite -Hpx1.  
+    by move=> Hpx1; apply: (@perm_inj _ p); rewrite -Hpx1.
   have F2: p1 x1 = x1 by rewrite /p1 permM tpermR.
   have F3: [set x | p1 x != x] \subset [predD1 [set x | p x != x] & x1].
     apply/subsetP => z; rewrite !inE permM.
@@ -319,7 +319,7 @@ suff F1: forall n (T : finType), #|T| = n + 5 -> simple 'Alt_T.
   by rewrite addnC subnK.
 elim => [| n Hrec T Hde]; first exact: simple_Alt5_base.
 have oT: 5 < #|T| by rewrite Hde addnC.
-apply/simpleP; split=> [|H Hnorm]; last have [Hh1 nH] := andP Hnorm. 
+apply/simpleP; split=> [|H Hnorm]; last have [Hh1 nH] := andP Hnorm.
   rewrite trivg_card1 -[#|_|]half_double -mul2n card_Alt Hde addnC //.
   by rewrite addSn /fact -/fact mulnC -(prednK (ltn_0fact _)).
 case E1: (pred0b T); first by rewrite /pred0b in E1; rewrite (eqP E1) in oT.
@@ -354,7 +354,7 @@ have:= prim_trans_norm F11; case/(_ K) => //= => Ksub; last first.
   case/simpleP=> _ simGx; case/simGx: F13 => /= [] [HH2].
     case Ez: (pred0b (predD1 (predD1 T x) y)).
       move: oT; rewrite /pred0b in Ez.
-      by rewrite (cardD1 x) (cardD1 y) (eqP Ez) inE /= inE /= diff_x_y.  
+      by rewrite (cardD1 x) (cardD1 y) (eqP Ez) inE /= inE /= diff_x_y.
     case/pred0Pn: Ez => z; case/andP => diff_y_z Hdz.
     have [diff_x_z Hz] := andP Hdz.
     have: z \in [set~ x] by rewrite !inE.

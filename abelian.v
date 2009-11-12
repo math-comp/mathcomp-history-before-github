@@ -25,11 +25,11 @@ Structure theorem for abelian finite groups. The development involves:
 - a functional (from finGroupType to nat) representation for combination
   of elements in an abelian setting.
 - a reflection lemma relating generated groups to the above functional
-  representation. 
+  representation.
 - the main result: every abelian finite group has a base.
 - a few lemmas that are presumably useful for working with abelian finite
   groups.
-Note: there is room for cleaning and improvment. 
+Note: there is room for cleaning and improvment.
 *)
 
 
@@ -40,7 +40,7 @@ Section Function_Misc_Def.
 Variables (gT : finGroupType) (f g : gT -> nat).
 Variables (x : gT) (n : nat) (A : {set gT}).
 
-Definition addf f g := fun y : gT => f y + g y. 
+Definition addf f g := fun y : gT => f y + g y.
 
 Definition peak y := if y == x then n else 0.
 
@@ -52,25 +52,25 @@ End Function_Misc_Def.
 
 (* Lemmas involving the above definitions, predU1, predD1 and foldr *)
 
-Section Function_Pred_Misc_Prop. 
+Section Function_Pred_Misc_Prop.
 
 Variables (gT : finGroupType) (f h : gT -> nat) (x : gT).
 Variables (n m : nat) (A B : {set gT}).
 
 Lemma eq_force : force f x (f x) =1 f.
 Proof.
-by move=> y; rewrite/force; case yx: (y == x) => //; move/eqP: yx ->. 
+by move=> y; rewrite/force; case yx: (y == x) => //; move/eqP: yx ->.
 Qed.
 
 Lemma force_peak : addf (force f x n) (peak x m) =1 force f x (n + m).
 Proof.
 by move=> y; rewrite/addf/peak/force; case: (y == x).
-Qed.  
+Qed.
 
 Lemma neq_force : forall y, y <> x -> force f x n y = f y.
 Proof.
 by move=> y xy; rewrite/force; case yx: (y == x) => //; move/eqP: yx xy.
-Qed. 
+Qed.
 
 Lemma supP : forall g (C : {set gT}),
   reflect (forall y, 0 < g y -> y \in C) (support g C).
@@ -97,7 +97,7 @@ Proof.
 by move=> AB; apply/supP/supP=> insupp y; move/(_ y): insupp; rewrite AB.
 Qed.
 
-Lemma sup_addf : support f A && support h A = support (addf f h) A. 
+Lemma sup_addf : support f A && support h A = support (addf f h) A.
 Proof.
 apply/andP/supP=> [[inf inh y]|infh].
   rewrite addn_gt0; case/orP; [exact: (supP _ _ inf) | exact: (supP _ _ inh)].
@@ -114,9 +114,9 @@ Qed.
 
 Lemma sup_force : x \in A -> support f A = support (force f x n) A.
 Proof.
-by rewrite/force; move=> Ax; apply: eq_true_iff_eq; split; 
+by rewrite/force; move=> Ax; apply: eq_true_iff_eq; split;
 move/supP => H; apply/supP => y; [| move: (H y)];
-case yx: (y == x); try done; try exact: H; move/eqP: yx ->. 
+case yx: (y == x); try done; try exact: H; move/eqP: yx ->.
 Qed.
 
 Lemma sup_predU1_force : support f (x |: A) = support (force f x 0) A.
@@ -125,7 +125,7 @@ rewrite/force; apply/idP/idP; move/supP => H; apply/supP => y;
   by move/(_ y): H; rewrite !inE; case: (y == x).
 Qed.
 
-Lemma predU1_sub : (x |: B) \subset A -> B \subset A /\ x \in A. 
+Lemma predU1_sub : (x |: B) \subset A -> B \subset A /\ x \in A.
 Proof. by rewrite subUset sub1set andbC; move/andP. Qed.
 
 Lemma predU1_super : A \subset (x |: A).
@@ -137,11 +137,11 @@ by move=> Ax; apply/setP=> y; rewrite !inE; case: (y =P x) => //= ->.
 Qed.
 
 Lemma eq_foldr : forall (f1 f2 : gT -> gT -> gT)(s : seq gT),
-  (forall y z, y \in s -> f1 y z = f2 y z) -> foldr f1 1 s = foldr f2 1 s.  
-Proof. 
+  (forall y z, y \in s -> f1 y z = f2 y z) -> foldr f1 1 s = foldr f2 1 s.
+Proof.
 move=> f1 f2; elim => //= y s Hind H.
 rewrite Hind; first by apply: H; rewrite inE eqxx.
-by move=> z p sz; apply: H; rewrite inE sz orbT. 
+by move=> z p sz; apply: H; rewrite inE sz orbT.
 Qed.
 
 End Function_Pred_Misc_Prop.
@@ -150,7 +150,7 @@ End Function_Pred_Misc_Prop.
 
 (* Definition of and lemmas on combinations of elements by exponentiation
    according to a function and multiplication along a sequence.
-   "esums" stands for sum of exponents along the sequence.   
+   "esums" stands for sum of exponents along the sequence.
    "ems" stands for exponentiation and multiplication along the sequence *)
 
 Section Combo_Sequence.
@@ -166,7 +166,7 @@ Definition ems (f : gT -> nat) (s : seq gT) :=
 Lemma eq_esums : forall (f g : gT -> nat), f =1 g ->
 forall s, esums f s = esums g s.
 Proof.
-by move=> f g fg; elim => //= x s ->; rewrite (fg x). 
+by move=> f g fg; elim => //= x s ->; rewrite (fg x).
 Qed.
 
 Lemma esums_addf : forall (f g : gT -> nat),
@@ -179,7 +179,7 @@ Qed.
 Lemma esums_peak : forall (y : gT) n s,
   esums (peak y n) s = (n * count (pred1 y) s)%N.
 Proof.
-move=> y n; elim => //= x s ->; rewrite/peak eq_sym muln_addr. 
+move=> y n; elim => //= x s ->; rewrite/peak eq_sym muln_addr.
 by case yx: (y == x) => //=; [rewrite muln1 | rewrite muln0].
 Qed.
 
@@ -188,18 +188,18 @@ Proof.
 by move => f g fg; elim => //= x s ->; rewrite fg.
 Qed.
 
-Lemma ems1: forall s, ems (fun _ => 0) s = 1.
-Proof. 
-elim => //= x s ->; gsimpl.   
+Lemma ems1 : forall s, ems (fun _ => 0) s = 1.
+Proof.
+elim => //= x s ->; gsimpl.
 Qed.
 
 Lemma ems_peak : forall (y : gT) n s,
   ems (peak y n) s = y ^+ (n * count (pred1 y) s).
 Proof.
-rewrite/peak; move=> y n; elim => //=; first by rewrite muln0 /=; gsimpl.  
+rewrite/peak; move=> y n; elim => //=; first by rewrite muln0 /=; gsimpl.
 move=> x s ->; rewrite eq_sym muln_addr expgn_add.
 by case yx: (y == x) => //=; [rewrite (eqP yx) muln1 | rewrite muln0].
-Qed. 
+Qed.
 
 Lemma ems_not1 : forall (f : gT -> nat) s,
   ems f s <> 1 -> exists2 x, x \in s & 0 < f x.
@@ -258,13 +258,13 @@ Lemma esum_peak : forall (y : gT) n, esum (peak y n) = n.
 Proof.
 move=> y n; have:= esums_peak y n (enum gT).
 rewrite /esum count_uniq_mem; last exact: enum_uniq.
-by rewrite mem_enum /= muln1. 
+by rewrite mem_enum /= muln1.
 Qed.
 
 Lemma esum_leq : forall (f : gT -> nat) x, f x <= esum f.
 Proof.
-by move=> f x; rewrite -(eq_esum (eq_force f x)) -(add0n (f x))  
--(eq_esum (force_peak _ _ _ _)) esum_addf esum_peak leq_add2r. 
+by move=> f x; rewrite -(eq_esum (eq_force f x)) -(add0n (f x))
+-(eq_esum (force_peak _ _ _ _)) esum_addf esum_peak leq_add2r.
 Qed.
 
 Lemma esum_force : forall (f : gT -> nat) x n ,
@@ -282,15 +282,15 @@ Proof.
 move => f g fg; exact: eq_ems.
 Qed.
 
-Lemma em1: em (fun _ => 0) = 1.
-Proof. 
+Lemma em1 : em (fun _ => 0) = 1.
+Proof.
 exact: ems1.
 Qed.
 
 Lemma em_peak : forall (y : gT) n, em (peak y n) = y ^+ n.
 Proof.
 move=> y n; rewrite/em ems_peak count_uniq_mem;
-last exact (enum_uniq gT). by rewrite mem_enum /= muln1. 
+last exact (enum_uniq gT). by rewrite mem_enum /= muln1.
 Qed.
 
 Lemma em_not1 : forall (f : gT -> nat), em f <> 1 -> exists x, 0 < f x.
@@ -307,7 +307,7 @@ Qed.
 
 End Combo_Enum.
 
-(* Definition of and lemmas on 
+(* Definition of and lemmas on
    abelian sets and combinations in abelian sets *)
 
 Section Abelian.
@@ -323,13 +323,13 @@ Qed.
 
 Lemma aems_com : forall (f : gT -> nat) x n,
    x \in A -> support f A ->
-   forall s, (x ^+ n) * ems f s = ems f s * (x ^+ n). 
+   forall s, (x ^+ n) * ems f s = ems f s * (x ^+ n).
 Proof.
 move=> f x n Ax fA; elim => /=; first by gsimpl. move=> y s Hind;
 rewrite -mulgA -{}Hind !mulgA -commuteX //; apply: commute_sym.
 case fy: (f y); first exact: commute1.
 apply: commuteX; apply: (centsP abelA) => //.
-by apply: (supP _ _ fA); rewrite fy. 
+by apply: (supP _ _ fA); rewrite fy.
 Qed.
 
 Lemma aems_addf : forall f g : gT -> nat,
@@ -349,7 +349,7 @@ Proof. move=> f g fA gA; exact: aems_addf. Qed.
 Lemma aem_force : forall f x n,
   x \in A -> support f A ->
   em (force f x n) = em f * (x ^+ n) * (x ^+ (f x))^-1.
-Proof. 
+Proof.
 move=> f x n Ax fA; apply: (mulIg (x ^+ (f x))); gsimpl.
 by rewrite -(eq_em (eq_force f x)) -!(em_peak) -!aem_addf;
 first rewrite !(eq_em (force_peak _ _ _ _)) addnC;
@@ -445,7 +445,7 @@ apply/andP; split.
   apply/mgenP; exists (fun _ : gT => 0); first by apply/supP.
   by rewrite/em; elim: enum => //= x s ->; rewrite mulg1.
 apply/subsetP=> xy; case/mulsgP=> x y.
-case/mgenP => f Af <-; case/mgenP => g Ag <- -> {x y xy}. 
+case/mgenP => f Af <-; case/mgenP => g Ag <- -> {x y xy}.
 apply/mgenP; exists (addf f g); first by rewrite -sup_addf Af.
 by apply: (aem_addf abelA).
 Qed.
@@ -489,7 +489,7 @@ Lemma Free_free : forall B, Free B -> free B.
 Proof.
 move=> B [nB1 frB]; split=> // f fB emf x.
 rewrite (frB f (fun _ => 0)) => //; first by apply/supP.
-by rewrite em1 emf. 
+by rewrite em1 emf.
 Qed.
 
 Lemma afree_Free : forall B, abelian B -> free B -> Free B.
@@ -504,7 +504,7 @@ have Bhg: support (addf h g) B by rewrite -sup_addf Bh Bg.
 have Bhf: support (addf h f) B by rewrite -sup_addf Bh Bf.
 have Hf := frB _ Bhf emhf; have Hg := frB _ Bhg emhg.
 move=> x; apply: (mulgI (x ^+ (h x))).
-by rewrite -!expgn_add; rewrite Hf Hg. 
+by rewrite -!expgn_add; rewrite Hf Hg.
 Qed.
 
 Lemma free_predU1 : forall B x, x != 1 -> abelian (x |: B) ->
@@ -514,13 +514,13 @@ move=> B x nx1 abelxB xB1 [nB1 frB].
 split=> [|f xBf]; first by rewrite !inE negb_or eq_sym nx1.
 rewrite (@aem_force0 _ _ abelxB f x _ xBf); last by rewrite setU11.
 move/(canRL (mulgK _)); rewrite mul1g; set z := _^-1 => def_z.
-have xz: z \in <[x]> by rewrite groupV; apply: groupX; exact: cycle_id.    
+have xz: z \in <[x]> by rewrite groupV; apply: groupX; exact: cycle_id.
 have genBz: z \in << B >>.
-  rewrite -def_z; apply/agenP; first by rewrite (asub abelxB) ?predU1_super. 
+  rewrite -def_z; apply/agenP; first by rewrite (asub abelxB) ?predU1_super.
   by exists (force f x 0) => //; rewrite -sup_predU1_force.
 have{xz genBz} z1: z = 1 by apply/set1P; rewrite -[[set 1]]xB1 inE xz.
 move=> y; case: (y =P x) => [->|nyx]; first by apply: invg_inj; rewrite invg1.
-by rewrite -(neq_force f 0 nyx) frB ?{}def_z // -sup_predU1_force. 
+by rewrite -(neq_force f 0 nyx) frB ?{}def_z // -sup_predU1_force.
 Qed.
 
 (*
@@ -534,8 +534,8 @@ Definition freeb (B : pred gT) := sfreeb (enum B).
 Lemma freeb1 : forall B, freeb B -> ~B 1.
 Proof.
 move=> B. rewrite/freeb -(filter_enum B).
-elim: (enum gT) => //= x s Hind. 
-case Bx: (B x) => //=. case/andP; case/andP; move/negP => notx1 Hfree _. 
+elim: (enum gT) => //= x s Hind.
+case Bx: (B x) => //=. case/andP; case/andP; move/negP => notx1 Hfree _.
 case/orP => //=; exact: Hind. exact: Hind.
 Qed.
 
@@ -548,20 +548,20 @@ first by case fx: (f x) => //; move/forallP: f0; move/(_ x); rewrite fx.
 case/andP => notsx us; case Bx: (B x) => /=; last first.
 - move=> f freeB fB; case fx: (f x) => /=; gsimpl; first exact: Hind.
   by move: (supP _ _ fB x); rewrite mem_filter Bx fx; move/implyP.
-- move=> f; case/andP; case/andP => _ sfB Inter fB. 
+- move=> f; case/andP; case/andP => _ sfB Inter fB.
   rewrite -{2}(mulgV (x ^+ f x)); move/mulgI => xfx.
   have xfx1:  x ^+ f x = 1. apply: sym_eq; apply/set1P;
   apply: (subsetP Inter); apply/setIP; split; first by apply/cycleP;
-  exists (f x). rewrite -groupV -xfx; clear Hind sfB Inter xfx. 
-  elim: s f x Bx notsx fB us => /= [* | y s Hind f x Bx]; first exact: group1. 
+  exists (f x). rewrite -groupV -xfx; clear Hind sfB Inter xfx.
+  elim: s f x Bx notsx fB us => /= [* | y s Hind f x Bx]; first exact: group1.
     rewrite negb_or; case/andP; move/negP => ynotx notsx; case By: (B y);
     last first.
   + move=> fB; case/andP => notsy us; case fy: (f y) => /=; first by gsimpl;
     apply: (Hind _ x). by move/implyP: (supP _ _ fB y);
-    rewrite /= fy eq_sym (mem_filter B s y) By /= orbF.  
-  + move=> fB; case/andP => sy us; apply: groupM; first by apply: groupX; 
+    rewrite /= fy eq_sym (mem_filter B s y) By /= orbF.
+  + move=> fB; case/andP => sy us; apply: groupM; first by apply: groupX;
     apply: (subsetP (subset_generated _)); rewrite /= eq_refl.
-    have: subset << filter B s >> << y :: filter B s >>. by apply: sub_gen; 
+    have: subset << filter B s >> << y :: filter B s >>. by apply: sub_gen;
     apply/subsetP => z /= ->; rewrite orbT. move/subsetP; apply.
     rewrite (@eq_foldr gT (fun a b => (a ^+ f a) * b)
     (fun a b => (a ^+ force f x 0 a) * b) s);
@@ -571,38 +571,38 @@ case/andP => notsx us; case Bx: (B x) => /=; last first.
   move=> y; case xy: (x == y); first by move/eqP: xy <-.
   rewrite -!(@neq_force gT f x 0); last by move=> yx;
   rewrite yx eq_refl in xy. apply: Hind => //=;
-  first by rewrite -sup_predU1_force. 
+  first by rewrite -sup_predU1_force.
   rewrite -(@eq_foldr gT (fun a b => (a ^+ f a) * b)
   (fun a b => (a ^+ (force f x 0 a)) * b)); first by rewrite xfx xfx1;
   gsimpl. by move=> a b sa; rewrite neq_force => // ax; rewrite ax in sa;
   apply: (negP notsx).
-Qed. 
+Qed.
 *)
 
 (*
 Lemma free_freeb : forall B, abelian B -> free B -> freeb B.
 Proof.
-move=> B abelB; case => notB1 H; rewrite/free/freeb/em. 
+move=> B abelB; case => notB1 H; rewrite/free/freeb/em.
 elim: (enum gT) (enum_uniq gT) => //= x s Hind. case/andP => notsx us.
-case Bx: (B x) => /=; last exact: Hind. apply/andP. split. 
+case Bx: (B x) => /=; last exact: Hind. apply/andP. split.
 - apply/andP. split; last by exact: Hind.
-  by  apply/negP; move/eqP=> x1; rewrite x1 in Bx. 
-- apply/subsetP => y. case/setIP. case/cycleP => n. move/eqP <-.  
+  by  apply/negP; move/eqP=> x1; rewrite x1 in Bx.
+- apply/subsetP => y. case/setIP. case/cycleP => n. move/eqP <-.
   case/agenP; first by apply: (@asub _ B _) => //; apply/subsetP => z;
   rewrite mem_filter; case/andP. move=> f fB. emxn. apply
 
 
 
-rewrite/free/freeb/em; move=> B; case => notB1. 
+rewrite/free/freeb/em; move=> B; case => notB1.
 elim: (enum gT) (enum_uniq gT) => //= x s Hind. case/andP => notsx us H.
-case Bx: (B x) => /=; last by apply: Hind => // f fB H2; 
-apply: H => //; rewrite (sup0P _ _ fB x) /=; gsimpl; rewrite Bx. 
-apply/andP. split. 
+case Bx: (B x) => /=; last by apply: Hind => // f fB H2;
+apply: H => //; rewrite (sup0P _ _ fB x) /=; gsimpl; rewrite Bx.
+apply/andP. split.
 - apply/andP. split; last first. apply: Hind => //.
 
 by exact: Hind.
-  by  apply/negP; move/eqP=> x1; rewrite x1 in Bx. 
-- apply/subsetP => y. case/setIP. case/cycleP => n. move/eqP <-. 
+  by  apply/negP; move/eqP=> x1; rewrite x1 in Bx.
+- apply/subsetP => y. case/setIP. case/cycleP => n. move/eqP <-.
 *)
 
 End Free.
@@ -643,7 +643,7 @@ case E1: (1 \in E); last move/idPn: E1 => notE1.
   by move=> B; move/(ltn_addl 1) => cardB baseB; exists B.
 have{Ez} [f []]: exists f, [/\ support f E, em f = 1 & 0 < f z].
   exists (peak z #[z]); split; first by rewrite -sup_peak Ez.
-    by rewrite em_peak expg_order. 
+    by rewrite em_peak expg_order.
   by rewrite /peak eqxx order_gt0.
 move: {-4 6}E cardE notE1 (erefl << E >>).
 elim: {f z}_.+1 {-2}f {-2}z (ltnSn (f z)) => // m mind f.
@@ -657,9 +657,9 @@ have sXxX: X :\ _ \subset X.
   by move=> y; apply/subsetP=> z; rewrite inE; case/andP.
 have sxX: [set x] \subset X by rewrite sub1set.
 case: (x ^+ (f x) =P 1) => [xfx1 | xfx].
-  case: (<[x]> :&: << X :\ x >> =P 1) => [X1x|]. 
+  case: (<[x]> :&: << X :\ x >> =P 1) => [X1x|].
     case: (IHn (X :\ x)) => [|| B cardB [FreeB BXx]].
-    - by rewrite (cardsD1 x X) (supP _ _ fX x fx0) in cardX.  
+    - by rewrite (cardsD1 x X) (supP _ _ fX x fx0) in cardX.
     - apply: (asub abelX); exact: subset_trans (subset_gen X).
     exists (x :: B).
       rewrite -cardsE set_cons cardsU1 ltnS inE cardsE.
@@ -667,7 +667,7 @@ case: (x ^+ (f x) =P 1) => [xfx1 | xfx].
     split; last first; rewrite set_cons.
       by rewrite -XE; apply: genDU; rewrite ?sub1set.
     apply: free_predU1 => //=; last by rewrite BXx.
-      by apply/eqP=> x1; rewrite -x1 Xx in notX1. 
+      by apply/eqP=> x1; rewrite -x1 Xx in notX1.
     by apply: (asub abelX); rewrite -gen_subG (@genDU _ _ _ X).
   move/eqP; case/trivgPn=> y; case/setIP; case/cycleP => k ->{y}.
   rewrite (divn_eq k (f x)) expgn_add mulnC expgn_mul xfx1 exp1gn.
@@ -702,8 +702,8 @@ case Xxy: (x * y \in X).
 case: (ltnP (f y) (f x)) => fxfy.
   apply: (mind f y _ X) => //; exact: leq_trans fxfy _.
 case: (x * y =P 1) => [xy1 | xynot1].
-  case: (IHn (X :\ y)) => [||B cardB [FreeB genB]]. 
-  - by rewrite (cardsD1 y) (supP _ _ fX) in cardX. 
+  case: (IHn (X :\ y)) => [||B cardB [FreeB genB]].
+  - by rewrite (cardsD1 y) (supP _ _ fX) in cardX.
   - by apply: (asub abelX); apply: subset_trans (subset_gen X).
   exists B; [exact: ltnW | split => //].
   rewrite genB -XE; apply: genD1; rewrite -{1}(mulKg x y) xy1 mulg1 groupV.
@@ -732,7 +732,7 @@ apply: (Mind f' _ (x * y) _ X') => //; last 1 first.
   rewrite -sup_force; last by rewrite setU11.
   rewrite -sup_predU1_force; apply/supP => t ft /=.
   by rewrite !inE (supP _ _ fX t ft); case (t == x); rewrite ?orbT.
-rewrite !(aem_force abelX) /force => //; first 1 last; first exact: groupM.  
+rewrite !(aem_force abelX) /force => //; first 1 last; first exact: groupM.
 - by apply/supP => t; case tx: (t == x) => // ft; exact: (supP _ _ fgenX).
 - apply/supP => t; case: eqP => [-> _ | _]; first exact: groupM.
   by case: eqP => // _; apply: (supP _ _ fgenX).

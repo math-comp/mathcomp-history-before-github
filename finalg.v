@@ -419,7 +419,7 @@ elim; try by move=> f1 IH1 f2 IH2 e /=; case IH1; case IH2; constructor; tauto.
 - by move=> t1 t2 e; exact: eqP.
 - by move=> t e; exact: idP.
 - by move=> f IH e /=; case: IH; constructor.
-- by move=> i f IH e; apply: (iffP existsP) => [] [x fx]; exists x; exact/IH. 
+- by move=> i f IH e; apply: (iffP existsP) => [] [x fx]; exists x; exact/IH.
 by move=> i f IH e; apply: (iffP forallP) => f_ x; exact/IH.
 Qed.
 

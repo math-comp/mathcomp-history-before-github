@@ -264,7 +264,7 @@ rewrite -sum_nat_const; apply: eq_bigr => y; case/imsetP=> a Aa ->{y}.
 rewrite (reindex (mulg^~ a)) /= -?sum1_card; last first.
   by exists (mulg^~ a^-1) => b _; rewrite (mulgK, mulgKV).
 apply: eq_bigl => b; rewrite inE groupMr // actM inE sub1set inE.
-by rewrite (inj_eq (@act_inj a)). 
+by rewrite (inj_eq (@act_inj a)).
 Qed.
 
 Lemma card_orbit : forall A x, #|orbit to A x| = #|A : 'C_(A | to)[x]|.
@@ -274,7 +274,7 @@ by rewrite -(card_orbit_stab A x) mulnK ?ltn_0group.
 Qed.
 
 Lemma dvdn_orbit : forall A x, #|orbit to A x| %| #|A|.
-Proof. by move=> A x; rewrite -(card_orbit_stab A x) dvdn_mulr. Qed. 
+Proof. by move=> A x; rewrite -(card_orbit_stab A x) dvdn_mulr. Qed.
 
 Lemma card_orbit1 : forall A x,
   #|orbit to A x| = 1%N -> orbit to A x = [set x].
@@ -383,7 +383,7 @@ by move=> A S x Sx; move/atransP=> AtrS; rewrite -(AtrS x Sx) dvdn_orbit.
 Qed.
 
 (* Aschbacher 5.2 *)
-Lemma norm_act_fix : forall A B, 
+Lemma norm_act_fix : forall A B,
   A \subset 'N(B) -> [acts (A | to) on 'C(B | to)].
 Proof.
 move=> A B; move/subsetP=> nBA; apply/actsP=> a Aa x.
@@ -392,7 +392,7 @@ apply/afixP/afixP=> fix_x b Bb.
 by rewrite actCJV fix_x // memJ_norm // groupV nBA.
 Qed.
 
-Lemma norm_stab : forall A B S, 
+Lemma norm_stab : forall A B S,
   A \subset 'N(B) -> 'C_(A | to)(S) \subset 'N('C_(B | to)(S)).
 Proof.
 move=> A B S nAB; apply/normsP=> a; case/setIP=> Aa; move/astabP=> toSa.

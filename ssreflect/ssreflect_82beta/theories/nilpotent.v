@@ -1,7 +1,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div prime.
-Require Import ssralg bigops. 
+Require Import ssralg bigops.
 Require Import fintype finset groups commutators automorphism.
-Require Import morphisms normal center. 
+Require Import morphisms normal center.
 Require Import cyclic gprod.
 
 
@@ -289,7 +289,7 @@ rewrite cent_mulgenEl //; congr (_ * _); rewrite commGC commMG //.
 by rewrite (commG1P (subset_trans cGH (centS sLH))) mul1g commGC.
 Qed.
 
-Lemma mulg_nil : forall G H, G \subset 'C(H) -> 
+Lemma mulg_nil : forall G H, G \subset 'C(H) ->
   nilpotent (G * H) = nilpotent G && nilpotent H.
 Proof.
 move=> G H cGH; apply/idP/andP=> [nilGH | []].
@@ -351,8 +351,8 @@ apply big_prop => [_ _|A B IHA IHB G defG| i Pi _ _]; last exact: nilF.
   exact: nilpotent1.
 case: (dprodP defG) => [[H K defH defK] _ _ _].
 by rewrite defG (dprod_nil defG) ?(IHA _ defH) ?(IHB _ defK).
-Qed. 
- 
+Qed.
+
 End DirectProdProperties.
 
 Section Derived.

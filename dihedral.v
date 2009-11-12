@@ -22,7 +22,7 @@ Lemma invol_conjg_expn : forall (gT:finGroupType) (a t:gT),
 Proof.
 move=> gT a t Hi; move/involgKP: Hi=> Heq.
 elim =>[|n IHn]; first by rewrite !expg0 conj1g.
-by rewrite !expgS conjMg IHn. 
+by rewrite !expgS conjMg IHn.
 Qed.
 
 Lemma involgen_order : forall (gT: finGroupType) (t: gT),
@@ -48,7 +48,7 @@ by rewrite -[[set 1; t]]/(gval (group G1t)) gen_subG /= sub1set inE !in_set1 eq_
 Qed.
 
 Module Type  Dihedral.
-Parameter gT: finGroupType.
+Parameter gT : finGroupType.
 Parameter D : {group gT}.
 Parameter c : gT.
 Axiom dhntriv : (cycle c) != 1.
@@ -58,7 +58,7 @@ Axiom dhinvol : forall t, (t \in (D:\: (cycle c))) -> involg t.
 End Dihedral.
 
 Section Involutions.
-Variable gT: finGroupType.
+Variable gT : finGroupType.
 Variable D : {group gT}.
 Variable c : gT.
 Hypothesis dhsub : c \in D.
@@ -89,7 +89,7 @@ move/rcosetP:Hx=> [a Heq] ->; move: Ht; rewrite inE; move/andP=> [HnC].
 by move=> [_]; rewrite (groupMl _ Heq).
 Qed.
 
-Lemma DmC_involP : 
+Lemma DmC_involP :
  reflect (forall u, (u \in D:\:C) -> involg u)
  (c ^ t == c ^-1).
 Proof.
@@ -158,7 +158,7 @@ End DihedralTheory.
 
 Section InvoGen.
 
-Variable gT:finGroupType.
+Variable gT :finGroupType.
 Variables s t : gT.
 Hypothesis His : involg s.
 Hypothesis Hit: involg t.
@@ -198,7 +198,7 @@ suff : (s \in C * (cycle t)) && (t \in C * (cycle t)).
     apply/comm_group_setP; apply:commute_sym; apply:normC; move: DC_norm.
     by move/setIP=>[_]; rewrite -sub1set -gen_subG.
   by rewrite -[C * <[t]>]/(gval (group GCt)) gen_subG subUset !sub1set /=.
-by apply: mul_subG; rewrite gen_subG ?subUset sub1set ?groupM ?mem_gen // 
+by apply: mul_subG; rewrite gen_subG ?subUset sub1set ?groupM ?mem_gen //
   in_setU !in_set1 eq_refl ?orbT.
 rewrite -{1}(mulg1 s) -(mulgV t) -{5}(mul1g t).
 move/involgKP: Hit; rewrite -{2}(invgK t) -eq_mulgV1 mulgA; move/eqP<-.
@@ -208,7 +208,7 @@ Qed.
 Lemma Cnotst : ~~ ((s \in C) || (t \in C)).
 Proof.
 apply/negP =>H; have {H}Hboth: (s \in C) && (t\in C).
-  by case/orP: H=> H; move: (cycle_id (s * t)); 
+  by case/orP: H=> H; move: (cycle_id (s * t));
     rewrite ?(groupMl _ H) ?(groupMr _ H) => Hcyc; rewrite H Hcyc.
 case e: (2 %| #[s * t]); move/andP:Hboth=> [Hsin]; move/cycleP=>[n0 H];
 move: (cycleX (s * t) n0); rewrite -H; last first.
@@ -250,7 +250,7 @@ Qed.
 End InvoGen.
 
 Module Involuted : Dihedral.
-Variable gT:finGroupType.
+Variable gT :finGroupType.
 Variables s t : gT.
 Hypothesis His : involg s.
 Hypothesis Hit: involg t.
@@ -266,7 +266,7 @@ Proof.
 apply/generatedP=> G; rewrite subUset !sub1set; move/andP=>[Gs Gt].
 by apply:groupM.
 Qed.
-Definition dhindex : #|D : (cycle c)| = 2 := 
+Definition dhindex : #|D : (cycle c)| = 2 :=
   DCindex His Hit Hdistinct Htn1 Hsn1.
 Lemma dhinvol : forall t, (t \in (D:\: (cycle c))) -> involg t.
 Proof.

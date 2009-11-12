@@ -766,7 +766,7 @@ have [H minH sHG]: {H : {group gT} | minnormal H G & H \subset G}.
   by apply: mingroup_exists; rewrite ntG normG.
 case/mingroupP: minH; case/andP=> ntH nHG minH.
 pose Iok (I : {set {perm gT}}) :=
-  (I \subset Aut G) && 
+  (I \subset Aut G) &&
   (existsb M : {group gT}, (M <| G) &&
     (\big[dprod/1]_(f \in I) f @: H == M)).
 have defH: (1 : {perm gT}) @: H = H.
@@ -896,7 +896,7 @@ Proof. by move=> A; apply: (iffP setIdP) => [] [->]; move/eqP. Qed.
 Lemma SCN_max : forall A, A \in 'SCN(G) -> [max A | (A <| G) && abelian A].
 Proof.
 move=> A; case/SCN_P => nAG scA; apply/maxgroupP; split=> [|H].
-  by rewrite nAG /abelian -{1}scA subsetIr. 
+  by rewrite nAG /abelian -{1}scA subsetIr.
 do 2![case/andP]=> sHG _ abelH sAH; apply/eqP.
 by rewrite eqEsubset sAH -scA subsetI sHG centsC (subset_trans sAH).
 Qed.
@@ -911,7 +911,7 @@ move=> A; move/pgroup_nil=> nilG; rewrite /abelian.
 case/maxgroupP; case/andP=> nAG abelA maxA; have [sAG sGnA] := andP nAG.
 rewrite inE nAG eqEsubset /= andbC subsetI abelA normal_sub //=.
 rewrite -quotient_sub1; last by rewrite subIset 1?normal_norm.
-apply/trivgP; apply: (nil_TI_Z (quotient_nil A nilG)). 
+apply/trivgP; apply: (nil_TI_Z (quotient_nil A nilG)).
   by rewrite quotient_normal // /normal subsetIl normsI ?normG ?norms_cent.
 apply/trivgP; apply/subsetP=> Ax; case/setIP; case/morphimP=> x Nx.
 case/setIP=> _; rewrite -cycle_subG /= => Cx -> {Ax}; case/setIP=> GAx CAx.

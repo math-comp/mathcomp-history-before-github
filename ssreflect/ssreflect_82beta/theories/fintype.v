@@ -97,7 +97,7 @@ Coercion finmod.sort : finType >-> predArgType.
 End MakeFinTypePred.
 Module FinTypePred := MakeFinTypePred FinType.
 
-Notation Local card_def := 
+Notation Local card_def :=
   (fun (T : finType) (A : mem_pred T) => count (A : pred T) (FinType.enum T)).
 
 Module Type CardSig.
@@ -314,7 +314,7 @@ Lemma card0_eq : forall A, #|A| = 0 -> A =i pred0.
 Proof. by move=> A A0 x; apply/idP => Ax; rewrite (cardD1 x) Ax in A0. Qed.
 
 Lemma pred0P : forall p, reflect (p =1 pred0) (pred0b p).
-Proof. move=> p; apply: (iffP eqP); [exact: card0_eq | exact: eq_card0]. Qed. 
+Proof. move=> p; apply: (iffP eqP); [exact: card0_eq | exact: eq_card0]. Qed.
 
 Lemma pred0Pn : forall p, reflect (exists x, p x) (~~ pred0b p).
 Proof.
@@ -424,7 +424,7 @@ Proof.
 move=> A B; rewrite properE; apply: (iffP andP); case=>->; case/subsetPn=> //.
 by move=> x Bx nAx; split=> //; exists x.
 Qed.
- 
+
 Lemma proper_sub : forall A B, A \proper B -> A \subset B.
 Proof. by move=> A B; case/andP. Qed.
 
@@ -460,7 +460,7 @@ Qed.
 
 Lemma proper_card : forall A B, A \proper B -> #|A| < #|B|.
 Proof.
-move=> A B; case/andP=> sAB nsBA; rewrite ltn_neqAle. 
+move=> A B; case/andP=> sAB nsBA; rewrite ltn_neqAle.
 by case: (subset_leqif_card sAB)=> -> ->; rewrite andbT.
 Qed.
 
@@ -479,7 +479,7 @@ Lemma eq_proper_r : forall A B, A =i B ->
 Proof.
 move=> A B eAB [C]; congr andb; first by apply: (eq_subset_r eAB).
 by rewrite (eq_subset eAB).
-Qed. 
+Qed.
 
 Lemma disjoint_sym : forall A B, [disjoint A & B] = [disjoint B & A].
 Proof. by move=> A B; congr eqn; apply: eq_card => x; apply: andbC. Qed.
@@ -698,7 +698,7 @@ Definition iinv f y (fy : codom f y) := sval (iinv_exists fy).
 
 Lemma codom_f : forall f x, codom f (f x).
 Proof. by move=> f x; apply/existsP; exists x => /=. Qed.
-  
+
 Lemma f_iinv : forall f y (Hy : codom f y), f (iinv Hy) = y.
 Proof. by rewrite /iinv => f y Hy; case: iinv_exists => x /=; move/eqP. Qed.
 
@@ -1059,7 +1059,7 @@ Proof. by rewrite cardE; case: (enum T) => [|//] []. Qed.
 Definition enum_val i := sub (enum_default i) (enum T) i.
 
 Lemma enum_val_sub : forall x i, enum_val i = sub x (enum T) i.
-Proof. by move=> x i; apply: set_sub_default; rewrite -cardE (valP i). Qed. 
+Proof. by move=> x i; apply: set_sub_default; rewrite -cardE (valP i). Qed.
 
 Lemma sub_enum_rank : forall x, cancel enum_rank (sub x (enum T)).
 Proof. by move=> x y; rewrite sub_index ?mem_enum. Qed.
@@ -1229,7 +1229,7 @@ Variable n : pos_nat.
 
 Definition ord0 := Ordinal (pos_natP n).
 
-Lemma ord_maxP : n.-1 < n. Proof. by rewrite prednK. Qed. 
+Lemma ord_maxP : n.-1 < n. Proof. by rewrite prednK. Qed.
 Definition ord_max := Ordinal ord_maxP.
 
 Lemma leq_ord : forall i : 'I_n, i <= n.-1.
@@ -1318,7 +1318,7 @@ Variables (I : finType) (T_ : I -> finType).
 Definition sum_enum_val :=
   let cat_Ti i := cat (maps (@EqSum I [eta T_] i) (enum (T_ i))) in
   foldr cat_Ti [::] (enum I).
-  
+
 Lemma sum_enumeration : enumeration sum_enum_val.
 Proof.
 case=> i x; rewrite -(FinType.enumP I i) -enumE /sum_enum_val.
@@ -1448,7 +1448,7 @@ Section FinCancel.
 Variables (T : finType) (f g : T -> T).
 
 Lemma injF_codom : injective f -> forall x, codom f x.
-Proof. 
+Proof.
 by move=> injf; apply/subset_cardP; rewrite ?card_codom ?subset_predT.
 Qed.
 

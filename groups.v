@@ -548,7 +548,7 @@ Section Repr.
 (* Plucking a set representative. *)
 
 Variable gT : baseFinGroupType.
-Implicit Type A: {set gT}.
+Implicit Type A : {set gT}.
 
 Definition repr A :=
   if 1 \in A then 1 else if [pick x \in A] is Some x then x else 1.

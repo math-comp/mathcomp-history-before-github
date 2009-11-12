@@ -129,7 +129,7 @@ Notation "[ 'i' 's' c <: sT ]" := (@get Type sT c _ _)
 Definition argumentType T P & forall x : T, P x := T.
 Definition dependentReturnType T P & forall x : T, P x := P.
 Definition returnType aT rT & aT -> rT := rT.
-Definition StructureOf sT cT (construct : cT) K : sT := K construct. 
+Definition StructureOf sT cT (construct : cT) K : sT := K construct.
 
 Notation "{ 'type' 'of' c 'for' s }" := (dependentReturnType c s)
   (at level 0, format "{ 'type'  'of'  c  'for'  s }") : type_scope.

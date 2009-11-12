@@ -23,7 +23,7 @@ rewrite subEproper; case/orP => PMC; first by move/eqP: PMC.
 set H := 'C_P(M)%G; pose P' := (P / M)%G; pose H' := (H / M)%G.
 have F1: H' <| P'.
   rewrite morphim_normal // /normal subIset ?subxx //=.
-  apply/normsP=> p IpP; rewrite /H conjIg conjGid // -centJ. 
+  apply/normsP=> p IpP; rewrite /H conjIg conjGid // -centJ.
   by case/andP: NMP => _; move/normsP; move/(_ _ IpP) => ->.
 have F2: H' :!=: 1.
   by rewrite -subG1 quotient_sub1 ?proper_subn ?subIset // normal_norm.
@@ -58,7 +58,7 @@ suff F7: M \subset 'Z(X).
     by apply: normalS NMP => //;  move/normal_sub: SXP.
   by rewrite quotient_cyclic //= -DX;  apply/cyclicP; exists X'.
 have F7: M \subset H by case/andP: PMC.
-rewrite subsetI SMX centsC. 
+rewrite subsetI SMX centsC.
 have: <[X']> \subset H'.
   by rewrite /H' /H cycle_subG.
 rewrite DX quotientSGK //; first by rewrite subsetI; case/andP.
@@ -66,7 +66,7 @@ by rewrite normal_norm // (normalS _ _ NMP) //; case/andP: SXP.
 Qed.
 
 (* Gorenstein 5.3.11 *)
-Lemma pgroup_crit: forall P, p_group P ->  
+Lemma pgroup_crit: forall P, p_group P ->
   {C: {group gT} | [/\ C \char P,
                        (nil_class C <= 2 /\ abelem (C/'Z(C))),
                        [~: P , C] \subset 'Z(C) &
@@ -99,7 +99,7 @@ have ECC': C' :=: C / D by rewrite /= cosetpreK.
 move: SDM; rewrite subEproper; case/orP => PDM.
   by case: ChM; rewrite -(eqP PDM).
 have PDH: D \proper H.
-  by rewrite (proper_sub_trans PDM) // subsetI (normal_sub NMP) 
+  by rewrite (proper_sub_trans PDM) // subsetI (normal_sub NMP)
              centsC (subset_trans (proper_sub PDM)).
 have ChH: H \char P := subcent_char (char_refl _) ChD.
 have nTH: H' :!=: 1.
@@ -133,7 +133,7 @@ have F1: [~: P, C] \subset 'Z(C).
 split => //.
   - split; last first.
       by rewrite EZCD cosetpreK /= (abelemS (subsetIr _ _)) //
-        Ohm_abelian // ?abelian_center // (@pgroup_p _ (pdiv #|P|)) // 
+        Ohm_abelian // ?abelian_center // (@pgroup_p _ (pdiv #|P|)) //
                 (@pgroupS _ _ (P/D)) // (center_sub,  morphim_pgroup).
    rewrite /nil_class; case: #|C| => [|[|[|n]]] //=;
      case: (_ == _) => //; case: (_ == _) => //.
@@ -171,7 +171,7 @@ have TQ'C': Q' :&: C' = 1.
 have NQ'P': Q' <| P'.
   apply: morphim_normal.
   rewrite /normal subIset ?subxx; last by done.
-  apply/normsP=> p IpP; rewrite /H conjIg conjGid -?centJ; last by done. 
+  apply/normsP=> p IpP; rewrite /H conjIg conjGid -?centJ; last by done.
   have: C <| P by apply: char_normal.
   by case/andP => _; move/normsP; move/(_ _ IpP) => ->.
 have TQ': Q' :!=: 1.

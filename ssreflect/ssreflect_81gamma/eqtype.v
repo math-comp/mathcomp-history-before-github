@@ -308,7 +308,7 @@ Proof. by move=> [x1 x2] [y1 y2]; case/andP. Qed.
 Lemma pair_eq2 : forall u v : prod_eqType, u == v -> eq_pi2 u == eq_pi2 v.
 Proof. by move=> [x1 x2] [y1 y2]; case/andP. Qed.
 
-Definition eq_prod a1 a2 : set prod_eqType := 
+Definition eq_prod a1 a2 : set prod_eqType :=
   fun u => a1 (eq_pi1 u) && a2 (eq_pi2 u).
 
 End ProdEqType.
@@ -324,7 +324,7 @@ Record eq_tagged : Type := EqTagged {tag : index; tagged : dom_at tag}.
 
 Definition tagged_as (u v : eq_tagged) : dom_at (tag u) :=
   if tag u =P tag v is Reflect_true Huv then
-    eq_rect_r dom_at (tagged v) Huv 
+    eq_rect_r dom_at (tagged v) Huv
   else tagged u.
 
 Lemma tagged_as_same : forall i (x y : dom_at i),

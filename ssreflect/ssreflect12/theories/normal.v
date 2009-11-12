@@ -359,7 +359,7 @@ Lemma quotientIG : forall A G, H \subset G -> (A :&: G) / H = A / H :&: G / H.
 Proof. rewrite -{1}ker_coset. exact: morphimIG. Qed.
 
 Lemma quotientD : forall A B, A / H :\: B / H \subset (A :\: B) / H.
-Proof. exact: morphimD. Qed. 
+Proof. exact: morphimD. Qed.
 
 Lemma quotientDG : forall A G, H \subset G -> (A :\: G) / H = A / H :\: G / H.
 Proof. rewrite -{1}ker_coset; exact: morphimDG. Qed.

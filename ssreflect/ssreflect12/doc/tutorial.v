@@ -6,29 +6,29 @@ Section HilbertSaxiom.
 
 Variables A B C : Prop.
 
-Lemma HilbertS : (A -> B -> C) -> (A -> B) -> A -> C. 
+Lemma HilbertS : (A -> B -> C) -> (A -> B) -> A -> C.
 Proof.
 move=> hAiBiC hAiB hA.
 move: hAiBiC.
 apply.
-  by []. 
-by apply: hAiB. 
+  by [].
+by apply: hAiB.
 Qed.
 
 Hypotheses (hAiBiC : A -> B -> C) (hAiB : A -> B) (hA : A).
 
-Lemma HilbertS2 : C. 
+Lemma HilbertS2 : C.
 Proof.
-apply: hAiBiC; first by apply: hA. 
+apply: hAiBiC; first by apply: hA.
 exact: hAiB.
 Qed.
 
 Check (hAiB hA).
 
-Lemma HilbertS3 : C. 
+Lemma HilbertS3 : C.
 Proof. by apply: hAiBiC; last exact: hAiB. Qed.
 
-Lemma HilbertS4 : C. 
+Lemma HilbertS4 : C.
 Proof. exact:  (hAiBiC _ (hAiB _)). Qed.
 
 Lemma HilbertS5 : C.
@@ -46,10 +46,10 @@ Section Symmetric_Conjunction_Disjunction.
 Print bool.
 
 Lemma andb_sym : forall A B : bool, A && B -> B && A.
-Proof. 
+Proof.
 case.
   by case.
-by []. 
+by [].
 Qed.
 
 Lemma andb_sym2 : forall A B : bool, A && B -> B && A.
@@ -90,9 +90,9 @@ Hypothesis R_sym : forall x y, R x y -> R y x.
 Hypothesis R_trans : forall x y z, R x y -> R y z -> R x z.
 
 Lemma refl_if : forall x : D, (exists y, R x y) -> R x x.
-Proof. 
-move=> x [y Rxy]. 
-exact: R_trans (R_sym _ y _). 
+Proof.
+move=> x [y Rxy].
+exact: R_trans (R_sym _ y _).
 Qed.
 
 End R_sym_trans.
@@ -109,7 +109,7 @@ Proof.
 (* case: (EM (exists y, ~P y)) => [[y notPy]| nonotPy] *)
 have [[y notPy]| nonotPy] := EM (exists y, ~P y); first by exists y.
 exists d => _ y; case: (EM (P y)) => // notPy.
-by case: nonotPy; exists y. 
+by case: nonotPy; exists y.
 Qed.
 
 End Smullyan_drinker.
@@ -164,16 +164,16 @@ Qed.
 Lemma subset_trans2 : transitive set subset.
 Proof.
 move=> x y z subxy subyz t.
-by move/subxy; move/subyz. 
+by move/subxy; move/subyz.
 Qed.
 
 End Using_Definition.
- 
+
 
 Section Basic_ssrnat.
 
 
-Lemma three : S (S (S O)) = 3 /\ 3 = 0.+1.+1.+1. 
+Lemma three : S (S (S O)) = 3 /\ 3 = 0.+1.+1.+1.
 Proof. by []. Qed.
 
 Lemma concrete_plus : plus 16 64 = 80.
@@ -191,7 +191,7 @@ Proof. by auto 47 with arith. Qed.
 Lemma concrete_big_leq : 0 <= 51.
 Proof. by []. Qed.
 
-Lemma semi_concrete_leq : forall n m, n <= m -> 51 + n <= 51 + m. 
+Lemma semi_concrete_leq : forall n m, n <= m -> 51 + n <= 51 + m.
 Proof. by []. Qed.
 
 Lemma concrete_arith : (50 < 100) && (3 + 4 < 3 * 4 <= 17 - 2).
@@ -240,7 +240,7 @@ by rewrite addnS ltnNge mulSn -addnA Eqr addnCA addnA leq_addr.
 Qed.
 
 CoInductive edivn_spec_right : nat -> nat -> nat * nat -> Type :=
-  EdivnSpec_right m d q r of m = q * d + r & (d > 0) ==> (r < d) : 
+  EdivnSpec_right m d q r of m = q * d + r & (d > 0) ==> (r < d) :
   edivn_spec_right m d (q, r).
 
 CoInductive edivn_spec_left (m d : nat)(qr : nat * nat) : Type :=
@@ -285,7 +285,7 @@ Proof.
 move=> d q r lt_rd; have d_gt0: 0 < d by exact: leq_trans lt_rd.
 case: (edivnP_left (q * d + r) d) lt_rd; rewrite d_gt0 /=.
 set q':= (edivn (q * d + r) d).1; set r':= (edivn (q * d + r) d).2.
-rewrite (surjective_pairing (edivn (q * d + r) d)) -/q' -/r'. 
+rewrite (surjective_pairing (edivn (q * d + r) d)) -/q' -/r'.
 wlog: q r q' r' / q <= q' by case (ltnP q q'); last symmetry; eauto.
 rewrite leq_eqVlt; case: eqP => [-> _|_] /=; first by move/addnI->.
 rewrite -(leq_pmul2r d_gt0); move/leq_add=> Hqr Eqr _; move/Hqr {Hqr}.

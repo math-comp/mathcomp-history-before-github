@@ -9,7 +9,7 @@ Import Prenex Implicits.
 
 Section EquivProps.
 
-Lemma left_trans : forall T0 (e:rel T0), 
+Lemma left_trans : forall T0 (e:rel T0),
   symmetric e -> transitive e -> left_transitive e.
 Proof.
 move=> T0 e sym tr x y exy z; apply/idP/idP; last do [move/tr:exy; exact].
@@ -30,10 +30,10 @@ Proof. by move=> P x0 Px0; rewrite /choose insubF. Qed.
 Check eq_choose.
 Check choose_id.
 
-Lemma eq_choose_id : forall P Q x y, 
+Lemma eq_choose_id : forall P Q x y,
   P =1 Q -> P x -> Q y -> choose P x = choose Q y.
 Proof.
-move=> P Q x y eQP; rewrite eQP => Qx Qy; 
+move=> P Q x y eQP; rewrite eQP => Qx Qy;
 have ->: choose P x = choose Q x; [exact: eq_choose | exact: choose_id].
 Qed.
 
@@ -53,9 +53,9 @@ Definition Domd := @insubd _ _ [subType of dom].
 Definition domP := @valP _ _ [subType of dom].
 Definition DomdP := @insubP _ _ [subType of dom].
 
-Notation "'\n_' x"  := (sval x).1 
+Notation "'\n_' x"  := (sval x).1
   (at level 8, x at level 2, format "'\n_' x").
-Notation "'\d_' x"  := 
+Notation "'\d_' x"  :=
   (sval x).2 (at level 8, x at level 2, format "'\d_' x").
 
 Lemma PDom_prop : forall x y, y != 0 -> indom (x, y).
@@ -72,7 +72,7 @@ Proof. by move=> x y; rewrite /equivq eq_sym; congr (_==_); rewrite mulrC. Qed.
 
 Lemma equivq_trans : transitive equivq.
 Proof.
-move=> [x Px] [y Py] [z Pz]. rewrite /equivq /=. 
+move=> [x Px] [y Py] [z Pz]. rewrite /equivq /=.
 rewrite mulrC. move/eqP=>exy. move/eqP=>eyz.
 rewrite -(inj_eq (mulfI Px)) mulrA exy -mulrA eyz.
 by rewrite !mulrA [_.2 * _]mulrC.
@@ -84,7 +84,7 @@ Definition canon x := choose (equivq x) x.
 Lemma canon_id : forall x, canon (canon x) = canon x.
 Proof.
 move=> x. rewrite /canon; apply: eq_choose_id; rewrite ?equivq_refl //.
-by apply: equivq_ltrans; rewrite equivq_sym chooseP // equivq_refl. 
+by apply: equivq_ltrans; rewrite equivq_sym chooseP // equivq_refl.
 Qed.
 
 
@@ -100,7 +100,7 @@ Definition canon_rat (x:dom) := @Rational (canon x) (canon_rat_axiom x).
 
 
 Lemma canon_rat_valK : forall x:rational, canon_rat (val x)  = x.
-Proof. 
+Proof.
 by move=> [x /=]; rewrite /axiom=> Px; apply:val_inj=>/=; rewrite (eqP Px).
 Qed.
 
@@ -122,7 +122,7 @@ Lemma equivqP : forall x y, x == y mod rational = equivq x y.
 Proof.
 move=> x y. rewrite -(inj_eq val_inj) /= /canon.
 apply/eqP/idP => Hxy.
-   apply: (@equivq_trans (choose (equivq x) x)); 
+   apply: (@equivq_trans (choose (equivq x) x));
    last rewrite Hxy equivq_sym; by rewrite chooseP // equivq_refl.
 apply: eq_choose_id; rewrite ?equivq_refl //.
 exact: equivq_ltrans.
@@ -131,12 +131,12 @@ Qed.
 Lemma mul_dom : forall x y : dom, \d_x * \d_y != 0.
 Proof. move=> x y. rewrite mulf_neq0 //; apply:domP. Qed.
 
-Lemma addq_compat : \compat2_rational _ 
-  (fun x y => \pi_rational 
+Lemma addq_compat : \compat2_rational _
+  (fun x y => \pi_rational
     (PDom (\n_x*\d_y + \n_y*\d_x) (mul_dom x y) )
   ).
 Proof.
-apply:compat2Epi=> x y x' y'. 
+apply:compat2Epi=> x y x' y'.
 rewrite !equivqP /equivq /=. move/eqP=>Px. move/eqP=>Py.
 apply/eqP. rewrite mulr_addl mulr_addr. congr (_+_).
    by rewrite !mulrA (mulrAC \n_x) Px (mulrAC \d_x).
@@ -145,34 +145,34 @@ by congr (_*_); rewrite mulrC.
 Qed.
 Notation addq := (qT_op2 addq_compat).
 
-Lemma oppq_compat : \compat1_rational _ 
+Lemma oppq_compat : \compat1_rational _
   (fun x => \pi_rational (PDom (- \n_x) (domP x )) ).
-Proof. 
+Proof.
 apply:compat1Epi=> x y. rewrite !equivqP /equivq /=.
 by rewrite mulNr mulrN; move/eqP->.
 Qed.
 Notation oppq := (qT_op1 oppq_compat).
 
-Lemma mulq_compat : \compat2_rational _ 
+Lemma mulq_compat : \compat2_rational _
   (fun x y => \pi_rational (PDom (\n_x*\n_y) (mul_dom x y) )  ).
 Proof.
-apply:compat2Epi=> x y x' y'. 
+apply:compat2Epi=> x y x' y'.
 rewrite !equivqP /equivq /=. move/eqP=>Px. move/eqP=>Py.
 by rewrite !mulrA (mulrAC \n_x) Px -!mulrA Py !mulrA (mulrAC \d_x).
 Qed.
 Notation mulq := (qT_op2 mulq_compat).
 
-Lemma invq_compat : \compat1_rational _ 
+Lemma invq_compat : \compat1_rational _
   (fun x => \pi_rational (Domd x (\d_x ,\n_x)) ).
 Proof.
-apply: compat1Epi=> x y. 
+apply: compat1Epi=> x y.
 rewrite !equivqP /equivq /=. move/eqP=>Px.
 case nx: (\n_x != 0).
    case ny : (\n_y != 0).
       by rewrite !val_insubd /indom nx ny /= -Px.
-   move:Px. move/eqP:ny->. rewrite mulr0. move/eqP. 
+   move:Px. move/eqP:ny->. rewrite mulr0. move/eqP.
    by rewrite mulf_eq0  (negPf (domP _)); move/negPf:nx->.
-move:Px. move/eqP:nx=>nx. rewrite nx mul0r. move/eqP. 
+move:Px. move/eqP:nx=>nx. rewrite nx mul0r. move/eqP.
 rewrite eq_sym mulf_eq0 (negPf (domP _)) /=. move/eqP=> ny.
 by rewrite ny !val_insubd /indom /= !eqxx /= nx ny mulr0 mul0r.
 Qed.
@@ -188,7 +188,7 @@ Proof.
 elim/ratW=> x. elim/ratW=> y. elim/ratW=> z.
 rewrite !qTE. congr pi. apply: val_inj=> /=.
 congr (_,_); last by rewrite mulrA.
-rewrite !mulr_addl addrA -!mulrA. 
+rewrite !mulr_addl addrA -!mulrA.
 by congr (_+_+_); congr (_*_); rewrite mulrC.
 Qed.
 
@@ -199,7 +199,7 @@ elim/ratW=> x. elim/ratW=> y. rewrite !qTE. congr pi. apply: val_inj=> /=.
 by congr (_,_); [rewrite addrC; congr (_+_)|rewrite mulrC].
 Qed.
 
-Lemma add0q: left_id zeroq addq.
+Lemma add0q : left_id zeroq addq.
 Proof.
 elim/ratW=> x. rewrite !qTE. congr pi. apply: val_inj=> /=.
 rewrite mul0r mulr1 mul1r add0r. by rewrite -surjective_pairing.
@@ -250,7 +250,7 @@ Qed.
 Lemma nonzero1q : oneq != zeroq.
 Proof. by rewrite -equivP equivqP /equivq /= !mul1r GRing.nonzero1r. Qed.
 
-Definition rat_comRingMixin := 
+Definition rat_comRingMixin :=
   ComRingMixin mulqA mulqC mul1q mulq_addl nonzero1q.
 Canonical Structure  rat_Ring := Eval hnf in RingType rat_comRingMixin.
 Canonical Structure rat_comRing := Eval hnf in ComRingType mulqC.
@@ -271,16 +271,16 @@ Qed.
 
 
 Definition RatFieldUnitMixin := FieldUnitMixin mulVq invq0.
-Canonical Structure rat_unitRing := 
+Canonical Structure rat_unitRing :=
   Eval hnf in UnitRingType RatFieldUnitMixin.
-Canonical Structure rat_comUnitRing :=  
+Canonical Structure rat_comUnitRing :=
   Eval hnf in ComUnitRingType RatFieldUnitMixin.
 
 Lemma field_axiom : GRing.Field.mixin_of rat_unitRing.
 Proof. exact. Qed.
 
 Definition RatFieldIdomainMixin := (FieldIdomainMixin field_axiom).
-Canonical Structure rat_iDomain := 
+Canonical Structure rat_iDomain :=
   Eval hnf in IdomainType (FieldIdomainMixin field_axiom).
 Canonical Structure rat_fieldMixin := FieldType field_axiom.
 

@@ -535,7 +535,7 @@ case: (Hb _ Hx) => [Dx Hex]; rewrite -(cardIC (fconnect f x)); congr addn.
   rewrite -{}Hex /setI /preimage; apply: eq_card => y; rewrite andbC.
   by case Hy: (fconnect f x y); rewrite //= -(reprP fconnect_sym Hy) Dx.
 apply: eq_card => y; rewrite /preimage /setI /setD1 /setC; do 2 bool_congr.
-by rewrite -(repr_connect fconnect_sym) Dx. 
+by rewrite -(repr_connect fconnect_sym) Dx.
 Qed.
 
 Lemma fclosed1 : forall a, fclosed f a -> forall x, a x = a (f x).
@@ -599,7 +599,7 @@ Qed.
 
 Lemma eq_frepr : frepr f =1 frepr f'.
 Proof. exact: eq_repr eq_set1f. Qed.
- 
+
 Lemma eq_ftraversal : ftraversal f =1 ftraversal f'.
 Proof. exact: eq_traversal eq_set1f. Qed.
 

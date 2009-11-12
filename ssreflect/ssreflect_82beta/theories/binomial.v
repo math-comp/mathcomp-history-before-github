@@ -49,7 +49,7 @@ move=> p Hp; split; last first.
     by move: Hd1 Hd'd; rewrite -He; case: (d) => //; do 2 (case=> //).
   have Hd6: 2 * d !=0 by case: (d) Hd4.
   rewrite (bigD1 (Ordinal Hd5)) //=.
-    by rewrite -{1}[2 * d]mulnC !mulnA {1}He Hd'd -mulnA dvdn_mulr. 
+    by rewrite -{1}[2 * d]mulnC !mulnA {1}He Hd'd -mulnA dvdn_mulr.
   rewrite Hd6; apply/negP; move/eqP; move/val_eqP=> /=.
   by rewrite -{2}[d]mul1n eqn_mul2r orbF; case: (_ == _) Hd4.
 move=> p_prime; have lt1p := prime_gt1 p_prime; have lt0p := ltnW lt1p.
@@ -174,12 +174,12 @@ Proof.
 move=> a b n; pose f n i := bin n i * (a ^ (n - i) * b ^ i).
 rewrite -!(big_mkord xpredT (f n)).
 elim: n => [| n Hrec]; first by rewrite big_nat_recr big_geq.
-rewrite big_nat_recr /= big_nat_recl /f /= subn0 subnn 
+rewrite big_nat_recr /= big_nat_recl /f /= subn0 subnn
        !expn0 binn bin0 !mul1n !muln1.
 rewrite expnS {}Hrec muln_addl !big_distrr /=.
 rewrite big_nat_recl /f /= bin0 mul1n subn0 expn0 muln1 -expnS.
 rewrite addnC big_nat_recr /= binn subnn expn0 !mul1n -expnS.
-have->: forall x y z t, x + y + (z + t) = z + (x + t) + y 
+have->: forall x y z t, x + y + (z + t) = z + (x + t) + y
   by move=> x y z t; ring.
 do 2 congr addn; rewrite -big_split; apply: eq_big => //= x _; apply sym_equal.
 rewrite binS muln_addl addnC; congr addn; first by rewrite expnS subSS; ring.

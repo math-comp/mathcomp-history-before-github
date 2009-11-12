@@ -47,7 +47,7 @@ move=> m d //=; have Dm: m = m + (d - d) + 0 * (S d) by rewrite subnn addn0.
 rewrite {1}Dm {Dm} /edivn; elim: m 0 {1 4 8}d (leqnn d) => [|m IHm] q /=.
   by split; [rewrite addnC | rewrite leq_subr].
 (*
-case=> [|r] /= Hr; last first; 
+case=> [|r] /= Hr; last first;
   by rewrite addSnnS -(leq_subS Hr); apply: IHm; auto.
 *)
 case=> [|r] /= Hr; last
@@ -124,7 +124,7 @@ Lemma mod0n : forall d, modn 0 d = 0.
 Proof. case=> // d; exact: subnn. Qed.
 
 Lemma modn_small : forall m d, m < d -> modn m d = m.
-Proof. 
+Proof.
 by move=> m [|d] // Hm; rewrite /modn [edivn _ _](@edivn_eq d 0 m). Qed.
 
 Lemma modn_mod : forall m d, modn (modn m d) d = modn m d.
@@ -202,7 +202,7 @@ Proof. move=> n d m Hn; move/dvdnP => [n1 ->]; auto. Qed.
 Lemma dvdn_eq : forall d m, dvdn d m = (divn m d * d == m).
 Proof.
 move=> d m; apply/idP/eqP=> [Hm | <-]; auto.
-by rewrite {2}(divn_eq m d) (eqnP Hm) addn0. 
+by rewrite {2}(divn_eq m d) (eqnP Hm) addn0.
 Qed.
 
 Lemma dvdn_leq : forall d m, 0 < m -> dvdn d m -> d <= m.
@@ -256,11 +256,11 @@ move=> d n m; case: (leqP m n) => Hm; first by move/dvdn_subr <-.
 by rewrite (eqnP (ltnW Hm)) dvdn0.
 Qed.
 
-Lemma divn_mod: forall n a b, a <= b -> 
+Lemma divn_mod: forall n a b, a <= b ->
   dvdn n (b - a) = (modn a n == modn b n).
 Proof.
 move => n a b Hab; rewrite /dvdn; apply/idP/idP => H1.
-  by rewrite -(leq_add_sub Hab) -modn_add (eqP H1) 
+  by rewrite -(leq_add_sub Hab) -modn_add (eqP H1)
              addn0 modn_mod eq_refl.
 by rewrite (divn_eq b n) (divn_eq a n) (eqP H1)
            subn_add2r -muln_subl modn_mull.
@@ -318,7 +318,7 @@ Proof.
 move=> m [|p] //; rewrite /gcdn /= /modn.
 case: edivnP => /= _ r _ {m}.
 elim: r {1 4 5}r p (S p) (leqnn r) => [|n1 IHn1] [|p] [|n2] m //=.
-rewrite /modn; case: edivnP => /= _ r _ {m} Hr Hn1; 
+rewrite /modn; case: edivnP => /= _ r _ {m} Hr Hn1;
   apply: IHn1; exact: leq_trans Hr Hn1.
 Qed.
 
@@ -407,7 +407,7 @@ by move => m n; rewrite !(gcdnC _ n) -gcdn_modr.
 Qed.
 
 Lemma gcdn_def: forall p m n,
-  dvdn p m -> dvdn p n -> 
+  dvdn p m -> dvdn p n ->
   (forall p1, dvdn p1 m -> dvdn p1 n -> dvdn p1 p) -> gcdn m n = p.
 intros p m n H1 H2 H3; apply/eqP; rewrite eqn_dvd H3 /=.
 - by apply dvdn_gcd.
@@ -416,13 +416,13 @@ exact: dvdn_gcdr.
 Qed.
 
 
-Lemma gcdn_divnC: forall n m, 0 < n -> 0 < m -> 
+Lemma gcdn_divnC: forall n m, 0 < n -> 0 < m ->
    n * divn m (gcdn n m)  = m * divn n (gcdn n m).
 Proof.
 move => n m H1 H2.
 have F1: 0 < gcdn n m.
   by rewrite ltn_0gcd H1.
-case/dvdnP: (dvdn_gcdl n m) => k1 Hk1; rewrite {3}Hk1. 
+case/dvdnP: (dvdn_gcdl n m) => k1 Hk1; rewrite {3}Hk1.
 case/dvdnP: (dvdn_gcdr n m) => k2 Hk2; rewrite {1}Hk2.
 rewrite !divn_mull // Hk1 {2}Hk2.
 by rewrite (mulnC k1) (mulnC k2) -!mulnA (mulnC k1).
@@ -519,7 +519,7 @@ Definition chinese (n1 m1 n m: nat) :=
       x * n1 * n2 * (S m2) + y * m1 * m2 * (S n2)
     else 0
   else 0.
-     
+
 
 Lemma chinese_remainder1: forall a b m n, 0 < m -> 0 < n ->
   coprime m n -> modn a m = modn (chinese a b m n) m.
@@ -528,7 +528,7 @@ move => a b [|m] // [|n] // _ _ H.
 rewrite /chinese; case bezoutl; case bezoutr.
 rewrite /coprime in H; rewrite (eqP H).
 move => x1 Hx1; case/dvdnP => k1 Hk1.
-move => x2 Hx2; case/dvdnP => k2 Hk2.  
+move => x2 Hx2; case/dvdnP => k2 Hk2.
 rewrite addnC modn_addl_mul.
 symmetry; rewrite -(modn_addl_mul (a * k2)) -mulnA -Hk2.
 rewrite muln_addr muln1 mulnA (mulnC a) -!mulnA -addnA.
@@ -543,7 +543,7 @@ move => a b [|m] // [|n] // _ _ H.
 rewrite /chinese; case bezoutl; case bezoutr.
 rewrite /coprime in H; rewrite (eqP H).
 move => x1 Hx1; case/dvdnP => k1 Hk1.
-move => x2 Hx2; case/dvdnP => k2 Hk2.  
+move => x2 Hx2; case/dvdnP => k2 Hk2.
 rewrite modn_addl_mul.
 symmetry; rewrite -(modn_addl_mul (b * k1)) -mulnA -Hk1.
 rewrite muln_addr muln1 mulnA (mulnC b) -!mulnA -addnA.
@@ -571,7 +571,7 @@ by rewrite -divn_mod // gauss_inv // !divn_mod // H1.
 Qed.
 
 Lemma chinese_remainderf: forall a m n, 0 < n -> 0 < m ->
-  coprime m n -> modn a (m*n) = 
+  coprime m n -> modn a (m*n) =
                  modn (chinese (modn a m) (modn a n) m n) (m * n).
 Proof.
 move => a m n H1 H2 H3; apply/eqP; rewrite chinese_remainder //.
@@ -614,7 +614,7 @@ Qed.
 
 Lemma ltn_0exp : forall m n, (0 < m ^ n) = (0 < m) || (n == 0).
 Proof. by move=> [|m]; elim=> //= n IHn; rewrite ltn_0add IHn. Qed.
- 
+
 Lemma ltn_expl : forall m n, 1 < m -> n < m ^ n.
 Proof.
 move=> m n Hm; elim: n => //= n; rewrite -(leq_pmul2l (ltnW Hm)).
@@ -623,7 +623,7 @@ Qed.
 
 Lemma leq_exp2l : forall m n1 n2, 1 < m -> (m ^ n1 <= m ^ n2) = (n1 <= n2).
 Proof.
-(* 
+(*
 move=> m n1 n2 Hm; elim: n1 n2 => [|n1 IHn] [|n2] //=; last 1 first.
 *)
 move=> m n1 n2 Hm; elim: n1 n2 => [|n1 IHn] [|n2] //=.
@@ -637,8 +637,8 @@ Proof. by move=> *; rewrite !ltnNge leq_exp2l. Qed.
 
 Lemma leq_pexp2l : forall m n1 n2, 0 < m -> n1 <= n2 -> m ^ n1 <= m ^ n2.
 Proof. by move=> [|[|m]] // *; [rewrite !exp1n | rewrite leq_exp2l]. Qed.
- 
-Lemma ltn_pexp2l : forall m n1 n2, 0 < m -> m ^ n1 < m ^ n2 -> n1 < n2. 
+
+Lemma ltn_pexp2l : forall m n1 n2, 0 < m -> m ^ n1 < m ^ n2 -> n1 < n2.
 Proof. by move=> [|[|m]] // n1 n2; [rewrite !exp1n | rewrite ltn_exp2l]. Qed.
 
 Fixpoint logn_rec (d m r : nat) {struct r} : nat :=
@@ -728,11 +728,11 @@ rewrite {1}Dm -mulnA logn_gauss // {1}Dn mulnCA logn_gauss // /p_part -expn_add.
 by rewrite logn_exp // prime_gt1.
 Qed.
 
-Lemma dvdn_exp_prime: forall p d n, prime p -> 
+Lemma dvdn_exp_prime: forall p d n, prime p ->
   reflect (exists2 m, m <= n & d = p ^ m) (dvdn d (p ^ n)).
 Proof.
 move=> p d n Hp; case/primeP: (Hp) => [Hp1 Hdivp]; have Hp0 := ltnW Hp1.
-apply: (iffP dvdnP) => [[q Dq]|[m Hm Dd]]; last 
+apply: (iffP dvdnP) => [[q Dq]|[m Hm Dd]]; last
   by exists (p ^ (n - m)); rewrite Dd -expn_add addnC leq_add_sub.
 have Hpn: 0 < p ^ n by rewrite ltn_0exp Hp0.
 have [Hq Hd]: 0 < q /\ 0 < d by apply/andP; rewrite -ltn_0mul -Dq.
@@ -745,7 +745,7 @@ Qed.
 Lemma dvdn_expS : forall n a b, dvdn a b -> dvdn a (b ^ (S n)).
 Proof. by simpl; auto. Qed.
 
-Lemma prime_coprime_expn: forall k p m, 
+Lemma prime_coprime_expn: forall k p m,
   prime p -> coprime p m = coprime (p ^ (S k)) m.
 Proof.
 move => k p m Hp; elim: k => [| k Hrec] //;

@@ -6,7 +6,7 @@ Require Import finfun paths.
 (* This file provides a generic definition for iterating an operator over a *)
 (* set of indexes (reducebig); this big operator is parametrized by the     *)
 (* return type (R), the type of indexes (I), the operator (op), the default *)
-(* value on empty lists (idx), the range of indexes (r), the filter applied *) 
+(* value on empty lists (idx), the range of indexes (r), the filter applied *)
 (* on this range (P) and the expression we are iterating (F). The definition*)
 (* is not to be used directly, but via the wide range of notations provided *)
 (* and which allows a natural use of big operators.                         *)
@@ -348,7 +348,7 @@ End Theory.
 
 End Theory.
 
-Include Theory. 
+Include Theory.
 
 End Monoid.
 

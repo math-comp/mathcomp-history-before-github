@@ -97,7 +97,7 @@ have defQ: Q = orbit (to^*)%act G X.
   have [a Ga def_y] := atransP2 trG Sx Sy.
   by apply/imsetP; exists a; rewrite // (toX Y) // -def_y.
 rewrite defQ card_orbit; case: (maxCx 'C_(G | sto)[X]%G) => /= [||->|->].
-- apply/subsetP=> a; case/setIP=> Ga cxa; rewrite inE Ga /=. 
+- apply/subsetP=> a; case/setIP=> Ga cxa; rewrite inE Ga /=.
   by apply/astab1P; rewrite (toX X) // (astab1P cxa).
 - exact: subsetIl.
 - by right; rewrite -card_orbit (atransP trG).
@@ -308,7 +308,7 @@ pose t := n_act to t1 a.
 have dxt: [tuple of x :: t] \in m.+1.-dtuple(S).
   rewrite trt1 x1ax; apply/imsetP; exists a => //; exact: val_inj.
 apply/imsetP; exists t.
-  by rewrite dtuple_on_add_D1 Sx in dxt. 
+  by rewrite dtuple_on_add_D1 Sx in dxt.
 apply/setP=> t2; apply/idP/imsetP => [dt2|[b]].
   have: [tuple of x :: t2] \in dtuple_on _ S by rewrite dtuple_on_add_D1 Sx.
   case/(atransP2 Gtr dxt)=> b Gb [xbx tbt2].

@@ -15,7 +15,7 @@ Import GRing.Theory FiniteModule.
 
 Section Transfer.
 
-Variables (gT aT : finGroupType) (G H : {group gT}). 
+Variables (gT aT : finGroupType) (G H : {group gT}).
 Variable alpha : {morphism H >-> aT}.
 
 Hypotheses (sHG : H \subset G) (abelA : abelian (alpha @* H)).
@@ -147,7 +147,7 @@ apply/astabsP=> Hy; rewrite /= actpermK (actsP (actsRs_rcosets _ _)) //.
 by apply: subsetP gx; rewrite cycle_subG.
 Qed.
 
-Lemma transfer_eq : 
+Lemma transfer_eq :
   transfer g = \sum_(C \in ccycles) fmalpha (g ^+ #|C| ^ (repr (repr C))^-1).
 Proof.
 rewrite (transfer_indep coset_transversal_transX Gg).
@@ -210,12 +210,12 @@ have G'ker : G' \subset ker_trans.
   exact: (addrC (transfer _ _ _)).
 have transg0: transfer G abelSK g = 0.
   by move/kerP: (subsetP G'ker g G'g); apply.
-have gGSeq0: fmod abelSK (alpha g) *+ #|G : S| = 0. 
+have gGSeq0: fmod abelSK (alpha g) *+ #|G : S| = 0.
   rewrite -transg0 (transfer_eq abelSK Gg) -(transfer_eq2 S Gg).
   rewrite -GRing.sumr_muln_r /restrm.
   apply: eq_bigr=> cyc cyccyc; rewrite -[_ *+ _]morphX ?mem_morphim //=.
   rewrite -morphX //= /restrm; congr fmod.
-  apply/rcoset_kercosetP; rewrite /= -/K. 
+  apply/rcoset_kercosetP; rewrite /= -/K.
   - by rewrite (subsetP nKS) ?groupX.
   - by rewrite (subsetP nKS) ?(transfer_eq1 Gg).
   rewrite mem_rcoset -{1}[g ^+ _]invgK -conjVg -commgEl mem_gen ?mem_imset2 //.
@@ -237,7 +237,7 @@ case/andP=> sKG nKG; have{nKG} nKS := subset_trans sSG nKG.
 have{pS p'K} tiKS: K :&: S = 1 by rewrite setIC coprime_TIg ?(pnat_coprime pS).
 suffices{tiKS nKS} hallK: p^'.-Hall(G) K.
   rewrite sdprodE //= -/K; apply/eqP; rewrite eqEcard ?mul_subG //=.
-  by rewrite TI_cardMg //= (card_Hall sylS) (card_Hall hallK) mulnC partnC. 
+  by rewrite TI_cardMg //= (card_Hall sylS) (card_Hall hallK) mulnC partnC.
 pose G' := G^`(1); have nsG'G : G' <| G by rewrite der_normal.
 suffices{K sKG} p'G': p^'.-group G'.
   have nsG'K: G' <| K by rewrite (normalS _ sKG) ?pcore_max.

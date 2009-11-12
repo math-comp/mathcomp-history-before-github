@@ -394,7 +394,7 @@ Proof. move=> a n; rewrite cycle_subG; exact: mem_cycle. Qed.
 Lemma cycleV : forall a, <[a^-1]> = <[a]>.
 Proof.
 move=> a; symmetry; apply/eqP; rewrite eqEsubset.
-by rewrite !cycle_subG // -2!groupV invgK !cycle_id. 
+by rewrite !cycle_subG // -2!groupV invgK !cycle_id.
 Qed.
 
 Lemma orderV : forall x, #[x^-1] = #[x].
@@ -460,11 +460,11 @@ End MorphicImage.
 
 Section CyclicProps.
 
-Variables gT : finGroupType. 
+Variables gT : finGroupType.
 Implicit Types G H K : {group gT}.
 Implicit Type rT : finGroupType.
 
-Lemma cyclicS : forall G H, H \subset G -> cyclic G -> cyclic H. 
+Lemma cyclicS : forall G H, H \subset G -> cyclic G -> cyclic H.
 Proof.
 move=> G H HsubG; case/cyclicP=> x gex; apply/cyclicP.
 exists (x ^+ (#[x] %/ #|H|)); apply: congr_group; apply/set1P.
@@ -595,7 +595,7 @@ Canonical Structure cycle_expgm_morphism a k :=
 Lemma cycle_expgm_inj : forall a k, coprime #[a] k -> 'injm (cycle_expgm a k).
 Proof. move=> a k coak; apply/injmP; exact: inj_gexpn. Qed.
 
-Lemma cycle_expgm_on : forall a k, coprime #[a] k -> 
+Lemma cycle_expgm_on : forall a k, coprime #[a] k ->
   cycle_expgm a k @* <[a]> = <[a]>.
 Proof.
 move=> a k coak; apply/morphim_fixP=> //; first exact: cycle_expgm_inj.
@@ -646,7 +646,7 @@ Proof.
 move=> f x autf /=; set n := cycle_to_zp x (f x).
 have Hfx: f x \in <[x]>.
   by rewrite -[<[x]>](autm_dom autf) mem_imset // setIid cycle_id.
-have:= cycle_to_zp_corr Hfx; rewrite eq_sym -/n. 
+have:= cycle_to_zp_corr Hfx; rewrite eq_sym -/n.
 case: (posnP n) => [-> {n} | npos Hn].
   rewrite -{3}(permK f x); move/eqP->.
   by rewrite -groupV in autf; rewrite -(autmE autf) morph1 order1.
@@ -691,7 +691,7 @@ Definition cycle_to_fp (a: gT) :=
 
 Lemma fp_inj : forall x : gT, 'injm [morphism of cycle_to_fp x].
 Proof.
-move=> x; move: (injm_invm (fp_to_cycle_injm x)); rewrite /=. 
+move=> x; move: (injm_invm (fp_to_cycle_injm x)); rewrite /=.
 by rewrite /ker /morphpre; rewrite {1}(fp_to_cycle_imset x); apply.
 Qed.
 
