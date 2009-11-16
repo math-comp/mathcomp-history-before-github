@@ -3,7 +3,7 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq paths choice fintype.
 Require Import finfun bigops finset groups.
 
 (**************************************************************************)
-(* This file contains the definition and properties  associated to the    *)
+(* This file contains the definition and properties associated to the     *)
 (* group of permutations.                                                 *)
 (*   {perm T} == the permutation of a finite type T                       *)
 (*                        (i.e. an injective function from T to T)        *)
