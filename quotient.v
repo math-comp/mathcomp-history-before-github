@@ -48,7 +48,7 @@ Proof. by move=> K PK u; rewrite (quot_sortquot_Sub u); apply:PK. Qed.
 
 Canonical Structure quot_subType := SubType _ _ _ reprP reprK.
 Definition quot_eqMixin := Eval hnf in [eqMixin of qT by <:].
-Canonical Structure quot_eqType := Eval hnf in EqType quot_eqMixin.
+Canonical Structure quot_eqType := Eval hnf in EqType qT quot_eqMixin.
 
 Definition repack_quot qT :=
   let: QuotType _ repr' pi' can := qT
@@ -179,7 +179,8 @@ Definition csquareEqMixin := CanEqMixin csquare_tupleK.
 (* Canonical Structure csquareEqType := Eval hnf in EqType csquareEqMixin. *)
 Canonical Structure csquareEqType := Eval hnf in [eqType of cartesianSquare].
 Definition csquareChoiceMixin := CanChoiceMixin csquare_tupleK.
-Canonical Structure csquareChoiceType := Eval hnf in ChoiceType csquareChoiceMixin.
+Canonical Structure csquareChoiceType :=
+  Eval hnf in ChoiceType cartesianSquare csquareChoiceMixin.
 
 Identity Coercion csquareToProd : cartesianSquare >-> prod.
 

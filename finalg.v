@@ -403,6 +403,7 @@ Canonical Structure Field.unitRingType.
 
 Fixpoint sat f e :=
   match f with
+  | GRing.Bool b => b
   | t1 == t2 => (GRing.eval t1 e == GRing.eval t2 e)%bool
   | GRing.Unit t => GRing.unit (GRing.eval t e)
   | f1 /\ f2 => sat f1 e && sat f2 e
@@ -416,6 +417,7 @@ Fixpoint sat f e :=
 Lemma decidable : GRing.DecidableField.axiom sat.
 Proof.
 elim; try by move=> f1 IH1 f2 IH2 e /=; case IH1; case IH2; constructor; tauto.
+- by move=> b e; exact: idP.
 - by move=> t1 t2 e; exact: eqP.
 - by move=> t e; exact: idP.
 - by move=> f IH e /=; case: IH; constructor.

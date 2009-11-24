@@ -1508,4 +1508,26 @@ Lemma expn_sum : forall m I r (P : pred I) F,
   (m ^ (\sum_(i <- r | P i) F i) = \prod_(i <- r | P i) m ^ F i)%N.
 Proof. move=> m; exact: big_morph (expn_add m) _. Qed.
 
+Section BigBool.
+
+Variables (I : finType) (P : pred I).
+
+Lemma big_orE : forall B,
+  \big[orb/false]_(i | P i) B i = (existsb i, P i && B i).
+Proof.
+move=> B; case: existsP => [[i] | no_i].
+  by case/andP=> Pi Bi; rewrite (bigD1 i) // Bi.
+by rewrite big1 // => i Pi; apply/idP=> Bi; case: no_i; exists i; rewrite Pi.
+Qed.
+
+Lemma big_andE : forall B,
+  \big[andb/true]_(i | P i) B i = (forallb i, P i ==> B i).
+Proof.
+move=> B; apply: negb_inj.
+rewrite (big_morph negb negb_and (erefl (~~ true))) big_orE negb_forall.
+by apply: eq_existsb => i; case: (P i).
+Qed.
+
+End BigBool.
+
 Unset Implicit Arguments.

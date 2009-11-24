@@ -1198,6 +1198,10 @@ Lemma cast_ordK : forall n1 n2 eq_n,
   cancel (@cast_ord n1 n2 eq_n) (cast_ord (esym eq_n)).
 Proof. by move=> n1 n2 eq_n i; apply: val_inj. Qed.
 
+Lemma cast_ordKV : forall n1 n2 eq_n,
+  cancel (cast_ord (esym eq_n)) (@cast_ord n1 n2 eq_n).
+Proof. by move=> n1 n2 eq_n i; apply: val_inj. Qed.
+
 Lemma cast_ord_inj : forall n1 n2 eq_n, injective (@cast_ord n1 n2 eq_n).
 Proof. move=> n1 n2 eq_n; exact: can_inj (cast_ordK eq_n). Qed.
 

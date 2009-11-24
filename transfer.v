@@ -1,7 +1,8 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq paths div.
 Require Import choice fintype finfun bigops ssralg finset prime.
-Require Import groups zmodp morphisms automorphism normal perm action gprod.
-Require Import commutators cyclic center pgroups sylow nilpotent maximal hall.
+Require Import groups finalg morphisms automorphism normal perm action zmodp.
+Require Import gprod commutators cyclic center pgroups sylow nilpotent maximal.
+Require Import hall.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -11,7 +12,7 @@ Local Open Scope ring_scope.
 
 Import GroupScope.
 
-Import GRing.Theory FiniteModule.
+Import GRing.Theory FinRing.Theory FiniteModule.
 
 Section Transfer.
 
@@ -35,22 +36,23 @@ Proof.
 move=> s t Gs Gt /=.
 rewrite [transfer t](reindex_acts 'Rs _ Gs) ?actsRs_rcosets //= -big_split /=.
 apply: eq_bigr => C; case/rcosetsP=> x Gx ->{C}; rewrite !rcosetE -!rcosetM.
-rewrite -[_ + _]morphM -?mem_rcoset; first by rewrite !mulgA mulgKV rcosetM.
+rewrite -zmodMgE -morphM -?mem_rcoset; first by rewrite !mulgA mulgKV rcosetM.
   by rewrite rcoset_repr rcosetM mem_rcoset mulgK mem_repr_rcoset.
 by rewrite rcoset_repr (rcosetM _ _ t) mem_rcoset mulgK mem_repr_rcoset.
 Qed.
 
-Canonical Structure transfer_morphism :=
-  @Morphism gT (subFinGroupType _) G transfer transferM.
+Canonical Structure transfer_morphism := Morphism transferM.
 
 Lemma transfer1 : transfer 1 = 0. Proof. exact: morph1. Qed.
 
-Lemma transferV : {in G, {morph transfer: x / x^-1%g >-> - x}}. Proof. exact: morphV. Qed.
+Lemma transferV : {in G, {morph transfer: x / x^-1%g >-> - x}}.
+Proof. exact: morphV. Qed.
 
 Lemma transferX : forall n, {in G, {morph transfer: x / (x ^+ n)%g >-> x *+ n}}.
 Proof. exact: morphX. Qed.
 
-Definition coset_transversal X := {in rcosets H G, forall Hx : {set gT}, X Hx \in Hx}.
+Definition coset_transversal X :=
+  {in rcosets H G, forall Hx : {set gT}, X Hx \in Hx}.
 
 (* Aschbacher 37.1 *)
 Lemma transfer_indep : forall X, coset_transversal X -> {in G, transfer =1 V X}.
@@ -64,7 +66,7 @@ have: H :* (x * g) \in rcosets H G by rewrite -rcosetE mem_imset ?groupM.
 have: H :* x \in rcosets H G by rewrite -rcosetE mem_imset.
 move/repsX; case/rcosetP=> h3 Hh3 ->; move/repsX; case/rcosetP=> h4 Hh4 ->.
 rewrite -!(mulgA h1) -!(mulgA h2) -!(mulgA h3) !(mulKVg, invMg).
-by rewrite addrC -![_ + _]morphM ?groupM ?groupV // -!mulgA !mulKg.
+by rewrite addrC -!zmodMgE -!morphM ?groupM ?groupV // -!mulgA !mulKg.
 Qed.
 
 (* The next few lemmas have to do with picking representatives of orbits
@@ -171,7 +173,7 @@ rewrite def_n; elim: {1 3}n 0%N (addn0 n) => [|m IHm] i def_i /=.
 rewrite big_cons transXE; last by rewrite -def_i leq_addl.
 rewrite permE /= rcosetE -rcosetM -(mulgA _ _ g) -expgSr.
 rewrite addSnnS in def_i; rewrite transXE; last by rewrite -def_i leq_addl.
-by rewrite mulgV [fmalpha 1]morph1 add0r IHm.
+by rewrite mulgV [_ 1%g]morph1 add0r IHm.
 Qed.
 
 End FactorTransfer.
@@ -203,7 +205,7 @@ have abelSK : abelian (alpha @* S).
   rewrite alphim sub_der1_abelian // genS //.
   apply/subsetP=> xy; case/imset2P=> x y Sx Sy ->{xy}.
   by rewrite mem_imset2 // inE (subsetP sSG) ?groupJ.
-set ker_trans := 'ker (transfer G abelSK : _ -> subg_of _).
+set ker_trans := 'ker (transfer G abelSK).
 have G'ker : G' \subset ker_trans.
   rewrite gen_subG; apply/subsetP=> h; case/imset2P=> h1 h2 Gh1 Gh2 ->{h}.
   rewrite !inE groupR // morphR //; apply/commgP.

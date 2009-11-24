@@ -1,6 +1,6 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import choice fintype finfun bigops ssralg finset prime.
-Require Import groups morphisms automorphism normal action gprod.
+Require Import groups morphisms perm finalg automorphism normal action gprod.
 Require Import cyclic center pgroups sylow nilpotent maximal.
 
 (****************************************************************************)
@@ -24,48 +24,75 @@ Import Prenex Implicits.
 
 Import GroupScope GRing.Theory.
 
+Bind Scope group_scope with subg_of.
+
 Module FiniteModule.
 
 Reserved Notation "u ^@ x" (at level 31, left associativity).
 
+Inductive fmod_of (gT : finGroupType) (A : {group gT}) (abelA : abelian A) :=
+  Fmod x & x \in A.
+
+Bind Scope ring_scope with fmod_of.
+Local Open Scope ring_scope.
+
 Section OneFinMod.
 
+Let f2sub (gT : finGroupType) (A : {group gT}) (abA : abelian A) :=
+  fun u : fmod_of abA => let : Fmod x Ax := u in Subg Ax : FinGroup.arg_sort _.
+Local Coercion f2sub : fmod_of >-> FinGroup.arg_sort.
+
 Variables (gT : finGroupType) (A : {group gT}) (abelA : abelian A).
-Implicit Types x y z : gT.
-
-Definition fmod_of of abelian A := subg_of A.
-Bind Scope ring_scope with fmod_of.
-Open Scope ring_scope.
-
 Local Notation fmodA := (fmod_of abelA).
+Implicit Types x y z : gT.
 Implicit Types u v w : fmodA.
 
-Definition fmval u := sgval (idfun u).
-Definition fmod x : fmodA := subg A x.
-Definition actr u x := if x \in 'N(A) then fmod (fmval u ^ x) else u.
-Notation "u ^@ x" := (actr u x) : ring_scope.
+Let sub2f (s : subg_of A) := Fmod abelA (valP s).
 
-Canonical Structure fmod_subType := [subType for fmval].
+Definition fmval u := val (f2sub u).
+Canonical Structure fmod_subType := [subType for fmval by @fmod_of_rect _ _ _].
 Local Notation valA := (@val _ _ fmod_subType) (only parsing).
-Canonical Structure fmod_eqType := [eqType of fmodA].
-Canonical Structure fmod_choiceType := [choiceType of fmodA].
-Canonical Structure fmod_countType := [countType of fmodA].
-Canonical Structure fmod_finType := [finType of fmodA].
-Canonical Structure fmod_subCountType := [subCountType of fmodA].
-Canonical Structure fmod_subFinType := [subFinType of fmodA].
-Canonical Structure fmod_baseFinGroupType := [baseFinGroupType of fmodA].
-Canonical Structure fmod_finGroupType := [finGroupType of fmodA].
-Canonical Structure fmval_morphism := [morphism of fmval].
-Canonical Structure fmod_morphism := [morphism of fmod].
+Definition fmod_eqMixin := Eval hnf in [eqMixin of fmodA by <:].
+Canonical Structure fmod_eqType := Eval hnf in EqType fmodA fmod_eqMixin.
+Definition fmod_choiceMixin := [choiceMixin of fmodA by <:].
+Canonical Structure fmod_choiceType :=
+  Eval hnf in ChoiceType fmodA fmod_choiceMixin.
+Definition fmod_countMixin := [countMixin of fmodA by <:].
+Canonical Structure fmod_countType :=
+  Eval hnf in CountType fmodA fmod_countMixin.
+Canonical Structure fmod_subCountType := Eval hnf in [subCountType of fmodA].
+Definition fmod_finMixin := [finMixin of fmodA by <:].
+Canonical Structure fmod_finType := Eval hnf in FinType fmodA fmod_finMixin.
+Canonical Structure fmod_subFinType := Eval hnf in [subFinType of fmodA].
 
-Lemma fmod_mulgC : @commutative fmodA fmodA (@mulg _).
-Proof. move=> x y; apply: val_inj; apply: (centsP abelA); exact: subgP. Qed.
+Definition fmod x := sub2f (subg A x).
+Definition actr u x := if x \in 'N(A) then fmod (fmval u ^ x) else u.
 
-Definition fmod_zmodMixin :=
-  @ZmodMixin fmodA _ _ _ (@mulgA _) fmod_mulgC (@mul1g _) (@mulVg _).
-Canonical Structure fmod_zmodType := ZmodType fmodA fmod_zmodMixin.
+Definition fmod_opp u := sub2f u^-1.
+Definition fmod_add u v := sub2f (u * v).
 
-Lemma fmodP : forall u, valA u \in A. Proof. exact: valP. Qed.
+Lemma fmod_add0r : left_id (sub2f 1) fmod_add.
+Proof. move=> u; apply: val_inj; exact: mul1g. Qed.
+
+Lemma fmod_addrA : associative fmod_add.
+Proof. move=> u v w; apply: val_inj; exact: mulgA. Qed.
+
+Lemma fmod_addNr : left_inverse (sub2f 1) fmod_opp fmod_add.
+Proof. move=> u; apply: val_inj; exact: mulVg. Qed.
+
+Lemma fmod_addrC : commutative fmod_add.
+Proof. case=> x Ax [y Ay]; apply: val_inj; exact: (centsP abelA). Qed.
+
+Definition fmod_zmodMixin := 
+  ZmodMixin fmod_addrA fmod_addrC fmod_add0r fmod_addNr.
+Canonical Structure fmod_zmodType := Eval hnf in ZmodType fmodA fmod_zmodMixin.
+Canonical Structure fmod_finZmodType := Eval hnf in [finZmodType of fmodA].
+Canonical Structure fmod_baseFinGroupType :=
+  Eval hnf in [baseFinGroupType of fmodA for +%R].
+Canonical Structure fmod_finGroupType :=
+  Eval hnf in [finGroupType of fmodA for +%R].
+
+Lemma fmodP : forall u, val u \in A. Proof. exact: valP. Qed.
 Lemma fmod_inj : injective fmval. Proof. exact: val_inj. Qed.
 Lemma congr_fmod : forall u v, u = v -> fmval u = fmval v.
 Proof. exact: congr1. Qed.
@@ -73,25 +100,34 @@ Proof. exact: congr1. Qed.
 Lemma fmvalA : {morph valA : x y / x + y >-> (x * y)%g}. Proof. by []. Qed.
 Lemma fmvalN : {morph valA : x / - x >-> x^-1%g}. Proof. by []. Qed.
 Lemma fmval0 : valA 0 = 1%g. Proof. by []. Qed.
+Canonical Structure fmval_morphism := @Morphism _ _ setT fmval (in2W fmvalA).
+
 Lemma fmvalZ : forall n, {morph valA : x / x *+ n >-> (x ^+ n)%g}.
-Proof. by case=> // n x /=; elim: n => //= n IHn; congr (_ * _)%g. Qed.
+Proof. by move=> n u; rewrite /= morphX ?inE. Qed.
 
 Lemma fmodKcond : forall x, val (fmod x) = if x \in A then x else 1%g.
-Proof. move=> x; case: ifP => Ax; [exact: subgK | exact: subg_default]. Qed.
+Proof. by move=> x; rewrite /= /fmval /= val_insubd. Qed.
 Lemma fmodK : {in A, cancel fmod val}. Proof. exact: subgK. Qed.
-Lemma fmvalK : cancel val fmod. Proof. exact: sgvalK. Qed.
+Lemma fmvalK : cancel val fmod.
+Proof. by case=> x Ax; apply: val_inj; rewrite /fmod /= sgvalK. Qed.
 Lemma fmod1 : fmod 1 = 0. Proof. by rewrite -fmval0 fmvalK. Qed.
 Lemma fmodM : {in A &, {morph fmod : x y / (x * y)%g >-> x + y}}.
-Proof. exact: subgM. Qed.
+Proof. by move=> x y Ax Ay /=; apply: val_inj; rewrite /fmod morphM. Qed.
+Canonical Structure fmod_morphism := Morphism fmodM.
 Lemma fmodX : forall n, {in A, {morph fmod : x / (x ^+ n)%g >-> x *+ n}}.
-Proof.
-by elim=> [|n IHn] x Ax; rewrite ?fmod1 // expgS mulrS fmodM ?groupX ?IHn.
-Qed.
+Proof. exact: morphX. Qed.
 Lemma fmodV : {morph fmod : x / x^-1%g >-> - x}.
-Proof.
+Proof. 
 move=> x; apply: val_inj; rewrite fmvalN !fmodKcond groupV.
 by case: (x \in A); rewrite ?invg1.
 Qed.
+
+Lemma injm_fmod : 'injm fmod.
+Proof. 
+apply/injmP=> x y Ax Ay []; move/val_inj; exact: (injmP _ (injm_subg A)).
+Qed.
+
+Notation "u ^@ x" := (actr u x) : ring_scope.
 
 Lemma fmvalJcond : forall u x,
   val (u ^@ x) = if x \in 'N(A) then val u ^ x else val u.
@@ -108,8 +144,19 @@ move=> x y Ny; apply: val_inj; rewrite fmvalJ ?fmodKcond ?memJ_norm //.
 by case: ifP => -> //; rewrite conj1g.
 Qed.
 
+Lemma actr_is_action : is_action 'N(A) actr.
+Proof.
+split=> [a u v eq_uv_a | u a b Na Nb].
+  case Na: (a \in 'N(A)); last by rewrite /actr Na in eq_uv_a.
+  by apply: val_inj; apply: (conjg_inj a); rewrite -!fmvalJ ?eq_uv_a.
+by apply: val_inj; rewrite !fmvalJ ?groupM ?conjgM.
+Qed.
+
+Canonical Structure actr_action := Action actr_is_action.
+Notation "''M'" := actr_action (at level 0) : action_scope.
+
 Lemma act0r : forall x, 0 ^@ x = 0.
-Proof. by move=> x; rewrite /actr conj1g fmod1 if_same. Qed.
+Proof. by move=> x; rewrite /actr conj1g morph1 if_same. Qed.
 
 Lemma actAr : forall x, {morph actr^~ x : u v / u + v}.
 Proof.
@@ -129,21 +176,31 @@ Proof.
 by move=> x n u; elim: n => [|n IHn]; rewrite ?act0r // !mulrS actAr IHn.
 Qed.
 
+Lemma actr_is_groupAction : is_groupAction setT 'M.
+Proof.
+move=> a Na /=; rewrite inE; apply/andP; split.
+  by apply/subsetP=> u _; rewrite inE.
+by apply/morphicP=> u v _ _; rewrite !permE /= actAr.
+Qed.
+
+Canonical Structure actr_groupAction := GroupAction actr_is_groupAction.
+Notation "''M'" := actr_groupAction (at level 0) : groupAction_scope.
+
 Lemma actr1 : forall u, u ^@ 1 = u.
-Proof. by move=> u; apply: val_inj; rewrite fmvalJ ?group1 ?conjg1. Qed.
+Proof. exact: act1. Qed.
 
 Lemma actrM : {in 'N(A) &, forall x y u, u ^@ (x * y) = u ^@ x ^@ y}.
 Proof.
 by move=> x y Nx Ny /= u; apply: val_inj; rewrite !fmvalJ ?conjgM ?groupM.
 Qed.
 
-Lemma actrK : forall x, cancel (actr^~ x) (actr^~ x^-1%g).
+Lemma actrK : forall x, cancel (actr^~ x) (actr^~ x^-1%g). 
 Proof.
 move=> x u; apply: val_inj; rewrite !fmvalJcond groupV.
 by case: ifP => -> //; rewrite conjgK.
 Qed.
 
-Lemma actrKV : forall x, cancel (actr^~ x^-1%g) (actr^~ x).
+Lemma actrKV : forall x, cancel (actr^~ x^-1%g) (actr^~ x). 
 Proof. by move=> x u; rewrite -{2}(invgK x) actrK. Qed.
 
 End OneFinMod.
@@ -151,6 +208,8 @@ End OneFinMod.
 Bind Scope ring_scope with fmod_of.
 Prenex Implicits fmval fmod actr.
 Notation "u ^@ x" := (actr u x) : ring_scope.
+Notation "''M'" := actr_action (at level 0) : action_scope.
+Notation "''M'" := actr_groupAction : groupAction_scope.
 
 End FiniteModule.
 
@@ -200,7 +259,7 @@ have rH_Hmul: forall h y, h \in H -> rH (h * y) = rH y.
 pose mu x y := fmod ((rH x * rH y)^-1 * rH (x * y)).
 pose nu y := (\sum_(Px \in rcosets P G) mu (repr Px) y)%R.
 have rHmul : {in G &, forall x y, rH (x * y) = rH x * rH y * val (mu x y)}.
-  move=> x y Gx Gy; rewrite /= subgK ?mulKVg // -mem_lcoset lcoset_sym.
+  move=> x y Gx Gy; rewrite /= fmodK ?mulKVg // -mem_lcoset lcoset_sym.
   rewrite -norm_rlcoset; last by rewrite nHG ?GrH ?groupM.
   by rewrite (rcoset_transl (HrH _)) -rcoset_mul ?nHG ?GrH // mem_mulg.
 have actrH : forall a x, x \in G -> (a ^@ rH x = a ^@ x)%R.
@@ -279,7 +338,7 @@ have nu_cocycle: {in G &, forall x y, nu (x * y)%g = nu x ^@ y + nu y}%R.
 have nuL: forall x, x \in L -> nu x = 0%R.
   move=> x Lx; apply: val_inj; rewrite val_nu ?sLG //.
   by rewrite /divgr remgr_id ?groupV ?mulgV.
-exists (val ((\sum_(X \in rcosets Q K) nu (repr X)) *+ m)%R).
+exists (fmval ((\sum_(X \in rcosets Q K) nu (repr X)) *+ m)).
   exact: fmodP.
 apply/eqP; rewrite eq_sym eqEcard; apply/andP; split; last first.
   by rewrite cardJg -(leq_pmul2l (cardG_gt0 H)) -!TI_cardMg // eqHL eqHK.

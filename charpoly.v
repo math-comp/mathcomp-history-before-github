@@ -86,8 +86,8 @@ Qed.
 Lemma phi_one : phi 1 = 1.
 Proof.
 apply/polyP=> k; apply/matrixP=> i j.
-rewrite coef_phi mxE (fun_if (fun p : {poly _} => p`_k)) coef0 !coefC.
-by case: k => [|k]; rewrite /= !mxE // if_same.
+rewrite coef_phi mxE coef_natmul !coefC.
+by case: k => [|k]; rewrite /= !mxE ?mul0rn.
 Qed.
 
 Lemma phi_mul : forall (A1 A2 : M(R[X])), phi (A1 * A2) = (phi A1) * (phi A2).
@@ -114,7 +114,7 @@ Qed.
 Lemma ZpolyX : Zpoly 'X = 'X.
 Proof.
 apply/polyP=> k; apply/matrixP=> i j; rewrite coef_Zpoly !coefX.
-by case: (k == _); rewrite !mxE ?if_same.
+by case: (k == _); rewrite !mxE ?mul0rn.
 Qed.
 
 Lemma phi_Zpoly : forall p, phi p%:M = Zpoly p.

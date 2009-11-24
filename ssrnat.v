@@ -1060,11 +1060,13 @@ Proof. by elim=> //= n IHn; rewrite muln_gt0. Qed.
 
 Coercion nat_of_bool (b : bool) := if b then 1 else 0.
 
-Lemma leq_b1 : forall b : bool, b <= 1.
-Proof. by case. Qed.
+Lemma leq_b1 : forall b : bool, b <= 1. Proof. by case. Qed.
 
-Lemma addn_negb : forall b : bool, ~~ b + b = 1.
-Proof. by case. Qed.
+Lemma addn_negb : forall b : bool, ~~ b + b = 1. Proof. by case. Qed.
+
+Lemma sub1b : forall b : bool, 1 - b = ~~ b. Proof. by case. Qed.
+
+Lemma mulnb : forall b1 b2 : bool, b1 * b2 = b1 && b2. Proof. by do 2!case. Qed.
 
 Fixpoint odd n := if n is n'.+1 then ~~ odd n' else false.
 
@@ -1285,6 +1287,9 @@ Proof. by move=> m n lemn; split=> //; rewrite eqn_leq lemn. Qed.
 
 Lemma leqif_eq : forall m n, m <= n -> m <= n ?= iff (m == n).
 Proof. by []. Qed.
+
+Lemma geq_leqif : forall a b C, a <= b ?= iff C -> (b <= a) = C.
+Proof. by move=> a b C [le_ab]; rewrite eqn_leq le_ab. Qed.
 
 Lemma leqif_add : forall m1 n1 c1 m2 n2 c2,
     m1 <= n1 ?= iff c1 -> m2 <= n2 ?= iff c2 ->

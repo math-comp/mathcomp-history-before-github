@@ -936,6 +936,12 @@ case/andP=> pi_p _; case: (posnP (logn p n)) => [-> //|].
 by rewrite logn_gt0; move/(allP pi'_n); case/negP.
 Qed.
 
+Lemma partn_eq1 : forall pi n, n > 0 -> (n`_pi == 1) = pi^'.-nat n.
+Proof.
+move=> pi n n_gt0; apply/eqP/idP=> [pi_n_1|]; last exact: part_p'nat.
+by rewrite -(partnC pi n_gt0) pi_n_1 mul1n pnat_part.
+Qed.
+
 Lemma pnatP : forall pi n,
   n > 0 -> reflect (forall p, prime p -> p %| n -> p \in pi) (pi.-nat n).
 Proof.
@@ -1062,19 +1068,14 @@ by have:= n_dvd_m q q_n; rewrite p_part !pfactor_dvdn // pfactorK.
 Qed.
 
 Lemma modn_partP : forall n a b : nat, 0 < n ->
-       reflect (forall p : nat_eqType, p \in \pi(n) -> a = b %[mod n`_p]) (a == b %[mod n]).
+  reflect (forall p : nat, p \in \pi(n) -> a = b %[mod n`_p]) (a == b %[mod n]).
 Proof.
-move=> n a b H; apply: (iffP idP) => [Hi p Hp | Hi]; wlog Hab: a b Hi/ b <= a => [Hj|]. 
-- case/orP: (leq_total b a) => Hab; first by apply Hj.
-  by apply sym_equal; apply Hj => //; rewrite eq_sym.
-- apply/eqP; rewrite eqn_mod_dvd //; move: p Hp.
-  by apply/dvdn_partP => //; rewrite -eqn_mod_dvd // Hi.
-- case/orP: (leq_total b a) => Hab; first by apply Hj.
-  by rewrite eq_sym; apply Hj => // p Hp; apply sym_equal; apply Hi.
-rewrite eqn_mod_dvd //; apply/dvdn_partP => // p Hp; rewrite -eqn_mod_dvd //.
-by apply/eqP; apply Hi.
+move=> n a b n_gt0; wlog le_b_a: a b / b <= a.
+  move=> IH; case: (leqP b a); last move/ltnW; move/IH => {IH}// IH.
+  by rewrite eq_sym; apply: (iffP IH) => eqab p; move/eqab.
+rewrite eqn_mod_dvd //; apply: (iffP (dvdn_partP _ n_gt0)) => eqab p;
+  by move/eqab; rewrite -eqn_mod_dvd //; move/eqP.   
 Qed.
-
 
 (* The Euler phi function *)
 
