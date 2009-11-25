@@ -43,6 +43,7 @@ dihedral.v
 hall.v
 coprime_act.v
 BGsection1.v
+BGsection6.v
 frobenius.v
 alt.v
 burnside_app.v
