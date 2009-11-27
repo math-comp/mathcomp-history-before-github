@@ -12,28 +12,13 @@ Import Prenex Implicits.
 
 Import GroupScope.
 
-Section Test.
-
-(* move to sylow *)
-
-Lemma cyclic_pgroup_quo_der1_cyclic : 
-  forall (gT : finGroupType) (P : {group gT}) (p : nat), 
-   p.-group P -> cyclic (P / P^`(1)) -> cyclic P.
-Proof.
-move=> gT P p pP cPP'; rewrite (isog_cyclic (quotient1_isog P)) /=.
-suffices: 'L_1(P) == 1 by move/eqP <-.
-apply: (implyP (forallP (pgroup_nil pP) _)); rewrite subsetI lcn_sub0 -lcnSn /=.
-rewrite -quotient_cents2 ?lcn_norm0 //.
-rewrite {1}[_ / _]center_cyclic_abelian ?subsetIr //=.
-rewrite -(isog_cyclic (third_isog (lcn_central P 1) _ _)) ?center_normal //=.
-  rewrite quotient_cyclic // (isog_cyclic (third_isog _ _ _)) ?lcn_normal0 //.
-  exact: lcn_sub.
-by rewrite quotientR ?lcn_norm0 ?(der_normal _ 0).
-Qed.
+Section Six.
 
 Variable gT : finGroupType. 
+Implicit Types G H K : {group gT}.
 
-Lemma six3a : forall G H K : {group gT},
+(* 6.3(a), page ... *)
+Lemma solvable_hall_dprod_der_subset_comm_centr_compl : forall G H K,
    solvable G -> Hall G H -> H ><| K = G -> H \subset G^`(1) -> 
    [~: H, K] = H /\ 'C_H(K) \subset H^`(1).
 Proof.
@@ -68,15 +53,18 @@ have nH'K : K \subset 'N(H^`(1)) by apply: char_norm_trans nHK; apply: der_char.
 by rewrite coprime_quotient_cent //= -{4}fstHalf quotientR ?coprime_abel_cent_TI.
 Qed.
 
+Let six3a := solvable_hall_dprod_der_subset_comm_centr_compl.
+
 (* TODO: 
     - weaken to solvable H 6.3a and remove solvable G in 6.3b 
     - see if #|G : G'| is more convenient for 6.3b
 *)
 
-Lemma six3b : forall G : {group gT},
+(* 6.3(b) *)
+Lemma der_nil_prime_idx_hall_comm_compl: forall G,
    solvable G -> nilpotent G^`(1) -> prime #|G / G^`(1)| -> 
     Hall G G^`(1) /\ 
-    (forall K : {group gT}, G^`(1) ><| K = G -> G^`(1) = [~: G, K]).
+    (forall K, G^`(1) ><| K = G -> G^`(1) = [~: G, K]).
 Proof.
 move=> G solG nilG' /=; set G' := G^`(1); set p := #|G / G'| => prime_p.
 have nsG'G: G' <| G := der_normal G 0; have [sG'G nG'G] := andP nsG'G.
@@ -104,5 +92,4 @@ move: prime_p; rewrite /p card_quotient ?normal_norm // -divgS ?normal_sub //.
 by rewrite /= -/G' -GHK TI_cardMg ?mulKn.
 Qed.
 
-
-End Test.
+End Six.

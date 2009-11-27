@@ -391,6 +391,20 @@ Section NilPGroups.
 Variables (p : nat) (gT : finGroupType).
 Implicit Type G P N : {group gT}.
 
+Lemma cyclic_pgroup_quo_der1_cyclic : 
+  forall P, p.-group P -> cyclic (P / P^`(1)) -> cyclic P.
+Proof.
+move=> P pP cPP'; rewrite (isog_cyclic (quotient1_isog P)) /=.
+suffices: 'L_1(P) == 1 by move/eqP <-.
+apply: (implyP (forallP (pgroup_nil pP) _)); rewrite subsetI lcn_sub0 -lcnSn /=.
+rewrite -quotient_cents2 ?lcn_norm0 //.
+rewrite {1}[_ / _]center_cyclic_abelian ?subsetIr //=.
+rewrite -(isog_cyclic (third_isog (lcn_central P 1) _ _)) ?center_normal //=.
+  rewrite quotient_cyclic // (isog_cyclic (third_isog _ _ _)) ?lcn_normal0 //.
+  exact: lcn_sub.
+by rewrite quotientR ?lcn_norm0 ?(der_normal _ 0).
+Qed.
+
 (* B & G 1.22 p.9 *)
 
 Lemma normal_pgroup : forall r P N,
