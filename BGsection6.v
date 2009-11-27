@@ -1,8 +1,10 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import fintype paths finfun bigops finset prime groups.
 Require Import morphisms perm action automorphism normal cyclic.
-Require Import abelian gfunc pgroups nilpotent gprod commutators.
-Require Import BGsection1 coprime_act.
+Require Import abelian gfunc pgroups nilpotent gprod center commutators.
+Require Import BGsection1 coprime_act sylow.
+(*****************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -12,7 +14,24 @@ Import GroupScope.
 
 Section Test.
 
-Variable gT : finGroupType.
+(* move to sylow *)
+
+Lemma cyclic_pgroup_quo_der1_cyclic : 
+  forall (gT : finGroupType) (P : {group gT}) (p : nat), 
+   p.-group P -> cyclic (P / P^`(1)) -> cyclic P.
+Proof.
+move=> gT P p pP cPP'; rewrite (isog_cyclic (quotient1_isog P)) /=.
+suffices: 'L_1(P) == 1 by move/eqP <-.
+apply: (implyP (forallP (pgroup_nil pP) _)); rewrite subsetI lcn_sub0 -lcnSn /=.
+rewrite -quotient_cents2 ?lcn_norm0 //.
+rewrite {1}[_ / _]center_cyclic_abelian ?subsetIr //=.
+rewrite -(isog_cyclic (third_isog (lcn_central P 1) _ _)) ?center_normal //=.
+  rewrite quotient_cyclic // (isog_cyclic (third_isog _ _ _)) ?lcn_normal0 //.
+  exact: lcn_sub.
+by rewrite quotientR ?lcn_norm0 ?(der_normal _ 0).
+Qed.
+
+Variable gT : finGroupType. 
 
 Lemma six3a : forall G H K : {group gT},
    solvable G -> Hall G H -> H ><| K = G -> H \subset G^`(1) -> 
@@ -21,7 +40,7 @@ Proof.
 move=> G H K solG hallH; case/sdprodP=> _ defG nHK tiHK sHG'.
 case/andP: hallH => sHG; case/andP: (der_normal H 0) =>  sHH' nH'H.
 rewrite -divgS // -defG TI_cardMg // mulKn // => coHK.
-have solH : solvable H by apply: solvableS solG.
+have{solG} solH : solvable H by apply: solvableS solG.
 set R := [~: H, K]; have sRH: R \subset H by rewrite commg_subl.
 have tiHbKb : H / R :&: K / R = 1 by rewrite -quotientGI ?tiHK ?quotient1.
 have sHbH'K' : H / R \subset (H / R)^`(1) * (K / R)^`(1).
@@ -48,5 +67,42 @@ have nKH'HH' : K / H^`(1) \subset 'N(H / H^`(1)) by rewrite quotient_norms.
 have nH'K : K \subset 'N(H^`(1)) by apply: char_norm_trans nHK; apply: der_char.
 by rewrite coprime_quotient_cent //= -{4}fstHalf quotientR ?coprime_abel_cent_TI.
 Qed.
+
+(* TODO: 
+    - weaken to solvable H 6.3a and remove solvable G in 6.3b 
+    - see if #|G : G'| is more convenient for 6.3b
+*)
+
+Lemma six3b : forall G : {group gT},
+   solvable G -> nilpotent G^`(1) -> prime #|G / G^`(1)| -> 
+    Hall G G^`(1) /\ 
+    (forall K : {group gT}, G^`(1) ><| K = G -> G^`(1) = [~: G, K]).
+Proof.
+move=> G solG nilG' /=; set G' := G^`(1); set p := #|G / G'| => prime_p.
+have nsG'G: G' <| G := der_normal G 0; have [sG'G nG'G] := andP nsG'G.
+pose D := G / 'O_p^'(G').
+have nsOG'G: 'O_p^'(G') <| G := char_normal_trans (pcore_char _ _) nsG'G.
+have nOG'G := normal_norm nsOG'G.
+have{nilG'} pgD : p.-group(D).
+  rewrite /pgroup card_quotient -?(LaGrange_index sG'G (pcore_sub _ _)) //= -/G'.
+  rewrite pnat_mul // -card_quotient // pnat_id //= -pnatNK.
+  by case/and3P: (nilpotent_pcore_Hall p^' nilG').
+have cyD : cyclic D.
+  apply: (cyclic_pgroup_quo_der1_cyclic pgD).
+  rewrite -[_^`(1)]quotientR //= (isog_cyclic (third_isog _ _ _)) ?pcore_sub //=.
+  exact: prime_cyclic.
+have eG'OpG' : G' = 'O_p^'(G').
+  apply/eqP; rewrite eqEsubset pcore_sub -quotient_cents2 ?normal_norm //= -/D.
+  by rewrite -abelianE cyclic_abelian.
+have hallG' : Hall G G'.
+  rewrite /Hall sG'G -?card_quotient // eG'OpG' //= -/p.
+  by rewrite coprime_sym (pnat_coprime _ (pcore_pgroup _ _)) ?pnat_id.
+split=> // K sdG'K; case/six3a: (sdG'K) => //=; rewrite -/G' => defG' _.
+case/sdprodP: sdG'K=> _ GHK nKG' tiG'K; rewrite -GHK commMG /= ?defG' //.
+rewrite (commG1P _) ?mulg1 //; apply: cyclic_abelian; apply: prime_cyclic.
+move: prime_p; rewrite /p card_quotient ?normal_norm // -divgS ?normal_sub //.
+by rewrite /= -/G' -GHK TI_cardMg ?mulKn.
+Qed.
+
 
 End Test.
