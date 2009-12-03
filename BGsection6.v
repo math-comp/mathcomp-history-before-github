@@ -4,7 +4,7 @@ Require Import fintype paths finfun bigops finset prime groups.
 Require Import morphisms perm action automorphism normal cyclic.
 Require Import abelian gfunc pgroups nilpotent gprod center commutators.
 Require Import BGsection1 coprime_act sylow.
-(*****************************************************************************)
+(*******************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -15,17 +15,16 @@ Import GroupScope.
 Section Six.
 
 Variable gT : finGroupType. 
-Implicit Types G H K : {group gT}.
+Implicit Types G H K U: {group gT}.
 
-(* 6.3(a), page ... *)
+(* 6.3(a), page 49 *)
 Lemma solvable_hall_dprod_der_subset_comm_centr_compl : forall G H K,
-   solvable G -> Hall G H -> H ><| K = G -> H \subset G^`(1) -> 
+   solvable H -> Hall G H -> H ><| K = G -> H \subset G^`(1) -> 
    [~: H, K] = H /\ 'C_H(K) \subset H^`(1).
 Proof.
 move=> G H K solG hallH; case/sdprodP=> _ defG nHK tiHK sHG'.
 case/andP: hallH => sHG; case/andP: (der_normal H 0) =>  sHH' nH'H.
 rewrite -divgS // -defG TI_cardMg // mulKn // => coHK.
-have{solG} solH : solvable H by apply: solvableS solG.
 set R := [~: H, K]; have sRH: R \subset H by rewrite commg_subl.
 have tiHbKb : H / R :&: K / R = 1 by rewrite -quotientGI ?tiHK ?quotient1.
 have sHbH'K' : H / R \subset (H / R)^`(1) * (K / R)^`(1).
@@ -53,24 +52,21 @@ have nH'K : K \subset 'N(H^`(1)) by apply: char_norm_trans nHK; apply: der_char.
 by rewrite coprime_quotient_cent //= -{4}fstHalf quotientR ?coprime_abel_cent_TI.
 Qed.
 
-Let six3a := solvable_hall_dprod_der_subset_comm_centr_compl.
-
 (* TODO: 
-    - weaken to solvable H 6.3a and remove solvable G in 6.3b 
     - see if #|G : G'| is more convenient for 6.3b
 *)
 
 (* 6.3(b) *)
 Lemma der_nil_prime_idx_hall_comm_compl: forall G,
-   solvable G -> nilpotent G^`(1) -> prime #|G / G^`(1)| -> 
+   nilpotent G^`(1) -> prime #|G / G^`(1)| -> 
     Hall G G^`(1) /\ 
     (forall K, G^`(1) ><| K = G -> G^`(1) = [~: G, K]).
 Proof.
-move=> G solG nilG' /=; set G' := G^`(1); set p := #|G / G'| => prime_p.
+move=> G nilG' /=; set G' := G^`(1); set p := #|G / G'| => prime_p.
 have nsG'G: G' <| G := der_normal G 0; have [sG'G nG'G] := andP nsG'G.
 pose D := G / 'O_p^'(G').
 have nsOG'G: 'O_p^'(G') <| G := char_normal_trans (pcore_char _ _) nsG'G.
-have nOG'G := normal_norm nsOG'G.
+have nOG'G := normal_norm nsOG'G; have solG' := nilpotent_sol nilG'.
 have{nilG'} pgD : p.-group(D).
   rewrite /pgroup card_quotient -?(LaGrange_index sG'G (pcore_sub _ _)) //= -/G'.
   rewrite pnat_mul // -card_quotient // pnat_id //= -pnatNK.
@@ -85,11 +81,112 @@ have eG'OpG' : G' = 'O_p^'(G').
 have hallG' : Hall G G'.
   rewrite /Hall sG'G -?card_quotient // eG'OpG' //= -/p.
   by rewrite coprime_sym (pnat_coprime _ (pcore_pgroup _ _)) ?pnat_id.
-split=> // K sdG'K; case/six3a: (sdG'K) => //=; rewrite -/G' => defG' _.
+have six3a := solvable_hall_dprod_der_subset_comm_centr_compl.
+split=> // K sdG'K; case/six3a: (sdG'K); rewrite //= -/G' => defG' _ {six3a}.
 case/sdprodP: sdG'K=> _ GHK nKG' tiG'K; rewrite -GHK commMG /= ?defG' //.
 rewrite (commG1P _) ?mulg1 //; apply: cyclic_abelian; apply: prime_cyclic.
 move: prime_p; rewrite /p card_quotient ?normal_norm // -divgS ?normal_sub //.
 by rewrite /= -/G' -GHK TI_cardMg ?mulKn.
 Qed.
+
+Lemma six5a : forall G K U H, 
+  K * U = G -> K <| G -> H \subset U -> coprime #|H| #|K| ->
+   H :&: G^`(1) = H :&: U^`(1).
+Proof.
+move=> G K U H defG nKG sHU copHK; set pi := \pi(#|H|).
+have comKU : commute K U by apply/comm_group_setP; rewrite defG groupP.
+set G' :=  G^`(1); set U' := U^`(1); case/andP: nKG=> sKG sGnK.
+have sUG : U \subset G by rewrite -defG mulg_subr.
+have sUnK : U \subset 'N(K) by apply: (subset_trans sUG sGnK).
+have nKU' : U' \subset 'N(K) by rewrite comm_subG.
+have keyprop : G' \subset K * U'.
+  rewrite /G' dergSn derg0 /U' dergSn derg0 -defG.
+  rewrite -{2}comm_mulgenE // commMG ?normsRr ?mulgen_subr //= ?comm_mulgenE //.
+  rewrite commGC comKU commMG ?normsRr // [[~:_, _ * _]]commGC -comKU.
+  rewrite commMG  ?normsRr // mulgA -mulgA -commMG ?normsRr // mulgA.
+  rewrite [[~:K,_]]commGC -comm_mulgenE // -commMG ?normsRl ?mulgen_subl //=.
+  rewrite comm_mulgenE // -comKU -mulgA mulGid comKU.
+  rewrite -normC ?normsR // ?(subset_trans (der_sub0 U 1)) // ?normsM ?normG //. 
+  rewrite commMG ?normsRr // mulgA.
+  rewrite [[~:_,_]*_]normC ?(subset_trans (der_sub0 U 1)) ?normsRl //.
+  rewrite -[K*_]normC // [[~:U,K]]commGC -{4}(@mulGid _ K) [_*(K*_)]mulgA. 
+  by rewrite [[~:_,_]*K]normC // mulgSS ?(der_sub0 _ 1) // mulSg // commg_subl.
+have abelGKU : abelian ( G / (K * U')).
+  by rewrite -norm_mulgenEr //= sub_der1_abelian //= norm_mulgenEr.
+have sKU'G : K * U' \subset G. 
+  by rewrite mul_subG // (subset_trans _ sUG) // (der_sub0 _ 1).
+have nKU'G : G \subset 'N(K * U').
+  rewrite -norm_mulgenEr //= -commg_subl /= norm_mulgenEr //=.
+  by rewrite (subset_trans _ keyprop) // commgSS //.
+have {abelGKU}sG'KU': G' \subset K * U'.
+  rewrite /G' {1}[_^`(_)]derg1 -norm_mulgenEr //=.
+  by rewrite -quotient_cents2 //= norm_mulgenEr. 
+have nUKU' : (U :&: K) \subset 'N(U') by apply: normsRl; rewrite subIset ?subxx.
+have{sG'KU'} sHG'UKU': H :&: G' \subset (U :&: K) * U'.
+  by rewrite group_modr ?der_sub0 // (subset_trans _ (setIS _ sG'KU')) // setSI.
+have {keyprop} squot: (U :&: G') / U' \subset (U :&: K) <*> U' / U'.
+  by apply: quotientS; rewrite norm_mulgenEl //= group_modr ?der_sub0 // setISS.
+have isoquot: (U :&: K) <*> U' / U' \isog (U :&: K) / (U' :&: K).
+  have <- : (U' :&: (U :&: K)) = (U' :&: K).
+    rewrite setIA (_:U^`(1) :&: U = U^`(1)) //; apply/eqP; rewrite eqEsubset.
+    by rewrite subsetIl subsetI der_sub0 subxx.
+  rewrite quotient_mulgen // isog_sym; apply: second_isog. 
+  exact: (subset_trans (subsetIl _ _) (lcn_norm0 U 1)). 
+have pi'UKU'K : pi^'.-group ((U :&: K) / (U' :&: K)).
+  rewrite morphim_pgroup // -[_.-group _]coprime_pi' //.
+  by rewrite (@coprimegS _ K) ?subsetIr.
+have {squot isoquot} pi'UG'U'  : pi^'.-group((U :&: G') / U').
+  by apply: (pgroupS squot); rewrite /pgroup (isog_card isoquot).
+have piHG'U' : pi.-group ((H :&: G') / U').
+  apply: morphim_pgroup=> /=.
+  by apply: (@pgroupS _ _ H); rewrite ?subIset ?subxx // /pi /pgroup pnat_pi.
+have pi'HG'U' : pi^'.-group ((H :&: G') / U').
+  by rewrite (pgroupS _ pi'UG'U') // quotientS // setSI.
+have c1 : #|(H :&: G') / U'| = 1%N := (pnat_1 piHG'U' pi'HG'U').
+have sHG'U' : H :&: G' \subset U'.
+  have ? : (H :&: G') \subset 'N(U').
+    by rewrite (subset_trans _ (lcn_norm0 _ 1)) // subIset // sHU.
+  by rewrite -quotient_sub1 //= -(card1_trivg c1).
+by apply/eqP; rewrite eqEsubset subsetI sHG'U' subsetIl /= setIS // (lcnS 1).
+Qed.
+
+Lemma six5c : forall G K U H, 
+  solvable G -> K * U = G -> K <| G -> H \subset U -> coprime #|H| #|K| ->
+   forall g, g \in G -> H :^ g \subset U -> 
+     exists2 c, c \in 'C_K(H) & exists2 u, u \in U & g = c * u.
+Proof.
+move=> G K U H solG defG; case/andP=> sKG sGnK sHU copHK g; rewrite -defG.
+case/mulsgP=> k u kK uU defg sHgU.
+have comKU : commute K U by apply/comm_group_setP; rewrite defG groupP.
+have ? : U \subset G by rewrite -defG mulg_subr.
+have comKH : commute H K. 
+  by apply: normC; rewrite (subset_trans _ sGnK) // (subset_trans sHU).
+have sHkU : H :^ k \subset U.
+  rewrite -(@lcoset_id _ U u^-1^-1) ?groupV // -(@rcoset_id _ U u^-1) ?groupV //.
+  by rewrite -conjsgE; move: sHgU; rewrite defg conjsgM sub_conjg.
+have sHkHK : H :^ k \subset H * K.
+  by rewrite -(@mulGid _ K) mulgA comKH -mulgA conjsgE !mulgSS ?sub1set ?groupV. 
+have sHkHKU : H :^ k \subset H * K :&: U by rewrite subsetI sHkHK sHkU.
+have ? : H \subset 'N(K).
+  by rewrite (subset_trans _ sGnK) // (subset_trans sHU) // -defG mulg_subr.
+have sHHK : H \subset H <*> K by exact: mulgen_subl.
+have hallH : Hall (H * K) H.
+  rewrite /Hall mulg_subl // -norm_mulgenEl -?divgS //=.
+  by rewrite norm_mulgenEl ?(coprime_cardMg copHK) 1?mulnC ?mulnK.
+case/andP: hallH=> _ => cpHK.
+have hallH : Hall ((H * K) :&: U) H.
+  rewrite /Hall subsetI sHU mulg_subl //=.
+  apply: (coprime_dvdr _ cpHK); rewrite -norm_mulgenEl //=.
+  by apply: indexSg=> /=; rewrite ?subIset ?subxx // subsetI sHU sHHK.
+have hallHk : Hall ((H * K) :&: U) (H :^ k).
+  rewrite /Hall (subset_trans sHkHKU) ?subxx //= cardJg. 
+  rewrite -comm_mulgenE -?divgS //= comm_mulgenE //.  
+  rewrite cardJg -comm_mulgenE // divgS /= ?comm_mulgenE ?subsetI ?mulg_subl //.
+  rewrite (coprime_dvdr _ cpHK) // -comm_mulgenE // indexSg ?subIset ?subxx //.
+  by rewrite subsetI sHU /= comm_mulgenE // mulg_subl.
+STOP
+Qed.
+
+
 
 End Six.
