@@ -1123,55 +1123,71 @@ Prenex Implicits imsetP imset2P.
 
 Section BigOps.
 
-Variables (R : Type) (nil : R).
-Variables (law : @Monoid.law R nil) (alaw : @Monoid.com_law R nil).
-Let op := Monoid.operator law.
-Let aop := Monoid.operator alaw.
+Variables (R : Type) (idx : R).
+Variables (op : Monoid.law idx) (aop : Monoid.com_law idx).
 Variables I J : finType.
 Implicit Type A B : {set I}.
 Implicit Type h : I -> J.
 Implicit Type P : pred I.
 Implicit Type F : I -> R.
 
-Lemma big_set0 : forall F, \big[op/nil]_(i \in set0) F i = nil.
+Lemma big_set0 : forall F, \big[op/idx]_(i \in set0) F i = idx.
 Proof. by move=> F; apply: big_pred0 => i; rewrite inE. Qed.
 
-Lemma big_set1 : forall a F, \big[op/nil]_(i \in [set a]) F i = F a.
+Lemma big_set1 : forall a F, \big[op/idx]_(i \in [set a]) F i = F a.
 Proof. by move=> a F; apply: big_pred1 => i; rewrite !inE. Qed.
 
 Lemma big_setID : forall A B P F,
-  \big[aop/nil]_(i \in A | P i) F i =
-     aop (\big[aop/nil]_(i \in A :&: B | P i) F i)
-         (\big[aop/nil]_(i \in A :\: B | P i) F i).
+  \big[aop/idx]_(i \in A | P i) F i =
+     aop (\big[aop/idx]_(i \in A :&: B | P i) F i)
+         (\big[aop/idx]_(i \in A :\: B | P i) F i).
 Proof.
 move=> A B P F; rewrite (bigID (mem B)) setDE.
-by congr aop; apply: eq_bigl => i; rewrite !inE andbAC.
+by congr (aop _); apply: eq_bigl => i; rewrite !inE andbAC.
 Qed.
 
 Lemma big_setD1 : forall a A F, a \in A ->
-  \big[aop/nil]_(i \in A) F i = aop (F a) (\big[aop/nil]_(i \in A :\ a) F i).
+  \big[aop/idx]_(i \in A) F i = aop (F a) (\big[aop/idx]_(i \in A :\ a) F i).
 Proof.
-move=> a A F Aa; rewrite (bigD1 a Aa); congr aop.
+move=> a A F Aa; rewrite (bigD1 a Aa); congr (aop _).
 by apply: eq_bigl=> x; rewrite !inE andbC.
 Qed.
 
 Lemma big_setU1 : forall a A F, a \notin A ->
-  \big[aop/nil]_(i \in a |: A) F i = aop (F a) (\big[aop/nil]_(i \in A) F i).
+  \big[aop/idx]_(i \in a |: A) F i = aop (F a) (\big[aop/idx]_(i \in A) F i).
 Proof. by move=> a A F Aa; rewrite (@big_setD1 a) ?setU11 //= setU1K. Qed.
 
+Lemma big_imset : forall h A G, {in A &, injective h} ->
+  \big[aop/idx]_(j \in h @: A) G j = \big[aop/idx]_(i \in A) G (h i).
+Proof.
+move=> h A G injh; pose hA := [image h of A].
+case: (set_0Vmem A)=> [-> | [x0 Ax0]].
+  by rewrite imset0 !big_pred0 //=; move=> x //=; rewrite inE.
+rewrite (eq_bigl hA) => [|j]; last by exact/imsetP/imageP.
+pose h' j := if insub j : {? j | hA j} is Some u then iinv (svalP u) else x0.
+rewrite (reindex_onto h h') => [|j hAj]; rewrite {}/h'; last first.
+  by rewrite (insubT hA hAj) f_iinv.
+apply: eq_bigl => i; case: insubP => [u -> /= def_u | nhAhi].
+  set i' := iinv _; have Ai' : i' \in A := mem_iinv (svalP u).
+  by apply/eqP/idP=> [<- // | Ai]; apply: injh; rewrite ?f_iinv.
+symmetry; rewrite (negbTE nhAhi); apply/idP=> Ai.
+by case/imageP: nhAhi; exists i.
+Qed.
+
 Lemma partition_big_imset : forall h A F,
-  \big[aop/nil]_(i \in A) F i =
-     \big[aop/nil]_(j \in h @: A) \big[aop/nil]_(i \in A | h i == j) F i.
+  \big[aop/idx]_(i \in A) F i =
+     \big[aop/idx]_(j \in h @: A) \big[aop/idx]_(i \in A | h i == j) F i.
 Proof.
 by move=> h A F; apply: partition_big => i Ai; apply/imsetP; exists i.
 Qed.
 
 End BigOps.
 
-Implicit Arguments big_setID [R nil alaw I A].
-Implicit Arguments big_setD1 [R nil alaw I A F].
-Implicit Arguments big_setU1 [R nil alaw I A F].
-Implicit Arguments partition_big_imset [R nil alaw I J].
+Implicit Arguments big_setID [R idx aop I A].
+Implicit Arguments big_setD1 [R idx aop I A F].
+Implicit Arguments big_setU1 [R idx aop I A F].
+Implicit Arguments big_imset [R idx aop h I J A].
+Implicit Arguments partition_big_imset [R idx aop I J].
 
 Section Fun2Set1.
 
@@ -1648,12 +1664,11 @@ Qed.
 
 Section BigOps.
 
-Variables (R : Type) (nil : R) (law : Monoid.com_law nil).
-Let op := Monoid.operator law.
-Let rhs P K F := \big[op/nil]_(A \in P) \big[op/nil]_(x \in A | K x) F x.
+Variables (R : Type) (idx : R) (op : Monoid.com_law idx).
+Let rhs P K F := \big[op/idx]_(A \in P) \big[op/idx]_(x \in A | K x) F x.
 
 Lemma big_trivIset : forall P (K : pred T) (F : T -> R),
-  trivIset P -> \big[op/nil]_(x \in cover P | K x) F x = rhs P K F.
+  trivIset P -> \big[op/idx]_(x \in cover P | K x) F x = rhs P K F.
 Proof.
 move=> P K F tI; rewrite (partition_big (cover_at^~ P) (mem P)) -/op => [|x].
   by apply: eq_bigr => A PA; apply: eq_bigl => x; rewrite andbAC cover_at_eq.
@@ -1661,7 +1676,7 @@ by case/andP=> Px _; exact: cover_at_mem.
 Qed.
 
 Lemma set_partition_big : forall P D (K : pred T) (F : T -> R),
-  partition P D -> \big[op/nil]_(x \in D | K x) F x = rhs P K F.
+  partition P D -> \big[op/idx]_(x \in D | K x) F x = rhs P K F.
 Proof. move=> P D K F; case/and3P; move/eqP=> <- *; exact: big_trivIset. Qed.
 
 End BigOps.
@@ -1702,8 +1717,8 @@ Qed.
 End Partitions.
 
 Implicit Arguments trivIsetP [T P].
-Implicit Arguments big_trivIset [T R nil law K F].
-Implicit Arguments set_partition_big [T R nil law D K F].
+Implicit Arguments big_trivIset [T R idx op K F].
+Implicit Arguments set_partition_big [T R idx op D K F].
 
 Prenex Implicits cover trivIset partition cover_at trivIsetP.
 Prenex Implicits preim_at preim_partition.
