@@ -150,6 +150,7 @@ have sHG'U' : H :&: G' \subset U'.
 by apply/eqP; rewrite eqEsubset subsetI sHG'U' subsetIl /= setIS // (lcnS 1).
 Qed.
 
+(*
 Lemma six5c : forall G K U H, 
   solvable G -> K * U = G -> K <| G -> H \subset U -> coprime #|H| #|K| ->
    forall g, g \in G -> H :^ g \subset U -> 
@@ -186,7 +187,7 @@ have hallHk : Hall ((H * K) :&: U) (H :^ k).
   by rewrite subsetI sHU /= comm_mulgenE // mulg_subl.
 STOP
 Qed.
-
+*)
 
 
 End Six.
