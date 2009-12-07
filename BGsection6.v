@@ -150,7 +150,6 @@ have sHG'U' : H :&: G' \subset U'.
 by apply/eqP; rewrite eqEsubset subsetI sHG'U' subsetIl /= setIS // (lcnS 1).
 Qed.
 
-(*
 Lemma six5c : forall G K U H, 
   solvable G -> K * U = G -> K <| G -> H \subset U -> coprime #|H| #|K| ->
    forall g, g \in G -> H :^ g \subset U -> 
@@ -168,7 +167,7 @@ have sHkU : H :^ k \subset U.
 have sHkHK : H :^ k \subset H * K.
   by rewrite -(@mulGid _ K) mulgA comKH -mulgA conjsgE !mulgSS ?sub1set ?groupV. 
 have sHkHKU : H :^ k \subset H * K :&: U by rewrite subsetI sHkHK sHkU.
-have ? : H \subset 'N(K).
+have sHnK : H \subset 'N(K).
   by rewrite (subset_trans _ sGnK) // (subset_trans sHU) // -defG mulg_subr.
 have sHHK : H \subset H <*> K by exact: mulgen_subl.
 have hallH : Hall (H * K) H.
@@ -196,30 +195,53 @@ case:(coprime_Hall_trans (sub1G _) _ solHKU phallHk (sub1G _) phallH (sub1G _)).
   by rewrite /coprime gcdn1.
 move=> w /= wT /= HkHw {solHKU hallH hallHk phallH phallHk pi}. 
 have wHKU : [set w] \subset H * (K :&: U).
-  rewrite -sub1set in wT.
-  rewrite (subset_trans wT) // subIset // comm_mulgenE //. 
-  by rewrite group_modl // subxx.
-have wHU : [set w] \subset K :&: U; last first.
-pose c := k * w^-1; pose v := w * u.
-have cK : c \in K. 
-  by rewrite groupM // groupV -sub1set (subset_trans wHU) // subIset ?subxx.
-have ? : v \in U.
-  by rewrite /v groupM // -sub1set (subset_trans wHU) // subIset ?subxx 1?orbC.
+  rewrite -sub1set in wT; 
+  by rewrite (subset_trans wT) // subIset ?comm_mulgenE // group_modl // subxx.
+rewrite sub1set in wHKU; case/mulsgP: wHKU=> h1 w1 H1H w1KU defw.
+pose c := k * w1^-1; pose v := w1 * u.
+have cK : c \in K by rewrite groupM // groupV; case/setIP: w1KU. 
+have ? : v \in U by rewrite /v groupM //; case/setIP: w1KU.   
 have ? : g = c * v by rewrite defg /c /v; gsimpl.
 have HcH : H :^ c = H.
-  by rewrite /c conjsgM (congr_group HkHw) -conjsgM mulgV conjsg1.
+  rewrite /c conjsgM (congr_group HkHw) defw -conjsgM -mulgA mulgV mulg1.
+  by apply/normP; rewrite -sub1set normsG // sub1set.
 exists c; last by exists v.
-rewrite -sub1set subsetI !sub1set cK /=; apply/centP=> h hH.
-STOP
-Qed
+rewrite in_setI cK /=; apply/centP=> h hH.
+have hhc : K :* h^c = K :* h.
+  have c1K : [set c^-1] \subset K by rewrite sub1set groupV.
+  rewrite conjgE rcosetM (mulGSgid (set11 _) c1K) rcosetM norm_rlcoset.
+    by rewrite -mulgA (mulGSgid (set11 _) _) // sub1set.
+  by rewrite -sub1set (subset_trans _ sHnK) // sub1set.
+have hh :  K :* (h^c * h^-1) = K :* 1.
+  by rewrite rcosetM -(mulgV h) hhc rcosetM.
+have hchK : h^c * h^-1 \in K.
+  by rewrite -sub1set -(mulg1 K) -mulGS hh subxx. 
+have cc :  (h^c * h^-1) \in (H :&: K).
+  apply/setIP; split=> //; rewrite groupM ?groupV // -HcH.
+  by rewrite conjsgE conjgE !mem_mulg // set11.
+have ccc : (h^c * h^-1) = 1 by rewrite (coprime_TIg copHK) in cc; move/set1P:cc.
+apply/eqP; rewrite -(inj_eq (@mulgI _ c^-1)) -(inj_eq (@mulIg _ h^-1)).
+by apply/eqP; gsimpl; rewrite conjgE mulgA in ccc.
+Qed.
 
 Lemma six5b : forall G K U H, 
   solvable G -> K * U = G -> K <| G -> H \subset U -> coprime #|H| #|K| ->
   'N_G(H) = 'C_K(H) * 'N_U(H).
 Proof.
 move=> G K U H solG defG nKG sHU copHK.
-
+apply/eqP; rewrite eqEsubset; apply/andP; split; last first.
+  apply/subsetP=> c; case/mulsgP=>k u; case/setIP=> kK kC.
+  case/setIP=> uU uN ->; rewrite -defG in_setI mem_mulg //=.
+  by rewrite groupM // -sub1set (subset_trans _ (cent_sub _)) ?sub1set.
+apply/subsetP=> n; case/setIP=> nG; move/normP=>HnH.
+have HU : H :^ n \subset U by rewrite HnH (subset_trans sHU).
+case: (six5c solG defG nKG sHU copHK nG HU)=> c cC [u uU defn]; rewrite defn.
+apply: mem_mulg; rewrite // in_setI uU /=.
+have Hc : H :^ c = H.
+  apply/normP; rewrite -sub1set (subset_trans _ (cent_sub _)) //.
+  by rewrite -sub1set subsetI in cC; case/andP: cC.
+by apply/normP; rewrite -{1}Hc -conjsgM -defn. 
 Qed.
-*)
+
 
 End Six.
