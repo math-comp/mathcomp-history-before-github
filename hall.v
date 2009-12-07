@@ -24,8 +24,6 @@ Import Prenex Implicits.
 
 Import GroupScope GRing.Theory.
 
-Bind Scope group_scope with subg_of.
-
 Module FiniteModule.
 
 Reserved Notation "u ^@ x" (at level 31, left associativity).

@@ -308,23 +308,32 @@ Open Scope ring_scope.
 
 Variable p : nat.
 
-Lemma Fp_Zcast : prime p -> (Zp_trunc (pdiv p)).+2 = (Zp_trunc p).+2.
-Proof. by move=> p_pr; rewrite /pdiv primes_prime. Qed.
+Section F_prime.
 
-Lemma Fp_cast : prime p -> (Zp_trunc (pdiv p)).+2 = p.
-Proof. by move=> p_pr; rewrite Fp_Zcast ?Zp_cast ?prime_gt1. Qed.
+Hypothesis p_pr : prime p.
 
-Lemma card_Fp : prime p -> #|'F_p| = p.
-Proof. by rewrite card_ord; exact: Fp_cast. Qed.
+Lemma Fp_Zcast : (Zp_trunc (pdiv p)).+2 = (Zp_trunc p).+2.
+Proof. by rewrite /pdiv primes_prime. Qed.
 
-Lemma val_Fp_nat : prime p -> forall n, (n%:R : 'F_p) = (n %% p)%N :> nat.
-Proof. by move=> p_pr n; rewrite Zp_nat /= Fp_cast. Qed.
+Lemma Fp_cast : (Zp_trunc (pdiv p)).+2 = p.
+Proof. by rewrite Fp_Zcast ?Zp_cast ?prime_gt1. Qed.
 
-Lemma Fp_nat_mod : prime p -> forall m, (m %% p)%:R = m%:R :> 'F_p.
-Proof. by move=> p_pr m; apply: ord_inj; rewrite !val_Fp_nat // modn_mod. Qed.
+Lemma card_Fp : #|'F_p| = p.
+Proof. by rewrite card_ord Fp_cast. Qed.
 
-Lemma char_Fp : prime p -> p%:R = 0 :> 'F_p.
-Proof. by move=> p_pr; rewrite -Fp_nat_mod ?modnn. Qed.
+Lemma val_Fp_nat : forall n, (n%:R : 'F_p) = (n %% p)%N :> nat.
+Proof. by move=> n; rewrite Zp_nat /= Fp_cast. Qed.
+
+Lemma Fp_nat_mod : forall m, (m %% p)%:R = m%:R :> 'F_p.
+Proof. by move=> m; apply: ord_inj; rewrite !val_Fp_nat // modn_mod. Qed.
+
+Lemma char_Fp : p \in [char 'F_p].
+Proof. by rewrite !inE -Fp_nat_mod p_pr ?modnn. Qed.
+
+Lemma char_Fp_0 : p%:R = 0 :> 'F_p.
+Proof. exact: GRing.charf0 char_Fp. Qed.
+
+End F_prime.
 
 Lemma Fp_fieldMixin : GRing.Field.mixin_of [the unitRingType of 'F_p].
 Proof.

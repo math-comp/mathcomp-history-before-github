@@ -222,6 +222,9 @@ Proof. by move=> pi; rewrite /pgroup cards1. Qed.
 Lemma pgroupS : forall pi G H, H \subset G -> pi.-group G -> pi.-group H.
 Proof. move=> pi G H sHG; exact: pnat_dvd (cardSg sHG). Qed.
 
+Lemma oddSg : forall G H, H \subset G -> odd #|G| -> odd #|H|.
+Proof. move=> G H; rewrite !odd_2'nat; exact: pgroupS. Qed.
+
 Lemma pgroupM : forall pi G H, pi.-group (G * H) = pi.-group G && pi.-group H.
 Proof.
 move=> pi G H; have GH_gt0: 0 < #|G :&: H| := cardG_gt0 _.

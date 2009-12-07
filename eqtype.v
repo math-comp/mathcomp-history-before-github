@@ -606,6 +606,10 @@ Canonical Structure prod_eqType := Eval hnf in EqType (T1 * T2) prod_eqMixin.
 
 Lemma pair_eqE : pair_eq = eq_op :> rel _. Proof. by []. Qed.
 
+Lemma xpair_eqE : forall (x1 y1 : T1) (x2 y2 : T2),
+  ((x1, x2) == (y1, y2)) = ((x1 == y1) && (x2 == y2)).
+Proof. by []. Qed.
+
 Lemma pair_eq1 : forall u v : T1 * T2, u == v -> u.1 == v.1.
 Proof. by move=> [x1 x2] [y1 y2]; case/andP. Qed.
 

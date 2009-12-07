@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat div seq choice fintype.
-Require Import finfun bigops.
+Require Import finfun bigops prime binomial.
 
 (*****************************************************************************)
 (*   The algebraic part of the Algebraic Hierarchy, as described in          *)
@@ -40,7 +40,17 @@ Require Import finfun bigops.
 (*      x * y         == the multiplication operation of a ring              *)
 (*    \prod_<range> e == iterated product for a ring (cf bigops.v)           *)
 (*      x ^+ y        == the exponentiation operation of a ring              *)
-(*      GRing.comm x y <=> x and y commute, i.e., x * y = y * x              *)
+(*     GRing.comm x y <=> x and y commute, i.e., x * y = y * x               *)
+(*      [char R]      == the characteristic of R, i.e., the set of prime     *)
+(*                       numbers p such that p%:R = 0 in R. The set [char p] *)
+(*                       has a most one element, and is represented as a     *)
+(*                       pred_nat collective predicate (see prime.v); thus   *)
+(*                       the statement p \in [char R] can be read as "R has  *)
+(*                       characteristic p", while [char R] =i pred0 means    *)
+(*                       "R has characteristic 0" when R is a field.         *)
+(* Frobenius_aut chRp == the Frobenius automorphism mapping x : R to x ^+ p, *)
+(*                       where chRp : p \in [char R] is a proof that R has   *)
+(*                       indeed (non-zero) characteristic p.                 *)
 (*                                                                           *)
 (*  * Commutative Ring                                                       *)
 (*      comRingType      == type for commutative ring structure              *)
@@ -108,15 +118,28 @@ Require Import finfun bigops.
 (*                           decidable field. (The underlying type R should  *)
 (*                           have a field canonical structure)               *)
 (*      GRing.term R      == the type of formal expressions in a unit ring R *)
-(*                           with formal variables 'X_i, i : nat             *)
-(*      GRing.formula R   == the type of first order formulas over R         *)
-(*      GRing.eval t e    == the value of term t with valuation e : seq R    *)
+(*                           with formal variables 'X_k, k : nat, and        *)
+(*                           manifest constants x%:T, x : R. The notation of *)
+(*                           all the ring operations is redefined for terms, *)
+(*                           in scope %T.                                    *)
+(*      GRing.formula R   == the type of first order formulas over R; the %T *)
+(*                           scope binds the logical connectives /\, \/, ~,  *)
+(*                           ==>, ==, and != to formulae; GRing.True/False   *)
+(*                           and GRing.Bool b denote constant formulae, and  *)
+(*                           quantifiers are written 'forall/'exists 'X_k, f *)
+(*                           GRing.Unit x tests for ring units, and the      *)
+(*                           the construct Pick p_f t_f e_f can be used to   *)
+(*                           emulate the pick function defined in fintype.v. *)
+(*      GRing.eval e t    == the value of term t with valuation e : seq R    *)
 (*                           (e maps 'X_i to e`_i)                           *)
-(*      GRing.holds f e   == the intuitionistic CiC interpretation of the    *)
+(*  GRing.same_env e1 e2 <=> environments e1 and e2 are extensionally equal  *)
+(*    GRing.qf_eval e f   == the value (in bool) of a quantifier-free f.     *)
+(*      GRing.qf_form f   == f is quantifier-free.                           *)
+(*      GRing.holds e f   == the intuitionistic CiC interpretation of the    *)
 (*                           formula f holds with valuation e                *)
-(*      GRing.sat f e     == valuation e satisfies f                         *)
-(*      GRing.sol f n     == a sequence e of size n such that e satisfies f, *)
-(*                           if one exists, or nil if there is no such e     *)
+(*      GRing.sat e f     == valuation e satisfies f (only in a decField)    *)
+(*      GRing.sol n f     == a sequence e of size n such that e satisfies f, *)
+(*                           if one exists, or [::] if there is no such e    *)
 (*                                                                           *)
 (*  * Closed Field                                                           *)
 (*      closedFieldType   == type for closed field structure                 *)
@@ -125,7 +148,14 @@ Require Import finfun bigops.
 (*                           have a decidable field canonical structure.)    *)
 (*                                                                           *)
 (* * Morphism                                                                *)
-(*      GRing.morphism f == f is a ring morphism                             *)
+(*     GRing.morphism f <=> f is a ring morphism: f commutes with 0, +, -,   *)
+(*                          *, 1, and with ^-1 and / in integral domains.    *)
+(*                   x^f == the image of x under some morphism. This         *)
+(*                          notation is only reserved (not defined) here;    *)
+(*                          it is bound locally in sections where some       *)
+(*                          morphism is used heavily (e.g., the container    *)
+(*                          morphism in the parametricity sections of poly   *)
+(*                          and matrix, or the Frobenius section here).      *)
 (*                                                                           *)
 (* The Lemmas about theses structures are all contained in GRing.Theory.     *)
 (* Notations are defined in scope ring_scope (delimiter %R), except term and *)
@@ -148,6 +178,8 @@ Reserved Notation "+%R" (at level 0).
 Reserved Notation "-%R" (at level 0).
 Reserved Notation "*%R" (at level 0).
 Reserved Notation "n %:R" (at level 2, left associativity, format "n %:R").
+Reserved Notation "[ 'char' F ]" (at level 0, format "[ 'char'  F ]").
+
 Reserved Notation "x %:T" (at level 2, left associativity, format "x %:T").
 Reserved Notation "''X_' i" (at level 8, i at level 2, format "''X_' i").
 (* Patch for recurring Coq parser bug: Coq seg faults when a level 200 *)
@@ -158,6 +190,8 @@ Reserved Notation "''exists' ''X_' i , f"
 Reserved Notation "''forall' ''X_' i , f"
   (at level 199, i at level 2, right associativity,
    format "'[hv' ''forall'  ''X_' i , '/ '  f ']'").
+
+Reserved Notation "x ^f" (at level 2, left associativity, format "x ^f").
 
 Delimit Scope ring_scope with R.
 Delimit Scope term_scope with T.
@@ -262,6 +296,9 @@ Lemma oppr0 : -0 = 0 :> M.
 Proof. by rewrite -[-0]add0r subrr. Qed.
 Lemma oppr_eq0 : forall x, (- x == 0) = (x == 0).
 Proof. by move=> x; rewrite (inv_eq opprK) oppr0. Qed.
+
+Lemma subr0 : forall x, x - 0 = x. Proof. by move=> x; rewrite oppr0 addr0. Qed.
+Lemma sub0r : forall x, 0 - x = - x. Proof. by move=> x; rewrite add0r. Qed.
 
 Lemma oppr_add : {morph -%R: x y / x + y : M}.
 Proof.
@@ -389,15 +426,23 @@ Definition one (R : Ring.type) : R := Ring.one (Ring.class R).
 Definition mul (R : Ring.type) : R -> R -> R := Ring.mul (Ring.class R).
 Definition exp R x n := nosimpl iterop _ n (@mul R) x (one R).
 
-Notation Local "1" := (one _).
-Notation Local "- 1" := (- (1)).
-Notation Local "n %:R" := (1 *+ n).
-Notation Local "*%R" := (@mul _).
-Notation Local "x * y" := (mul x y).
-Notation Local "x ^+ n" := (exp x n).
+Local Notation "1" := (one _).
+Local Notation "- 1" := (- (1)).
+Local Notation "n %:R" := (1 *+ n).
+Local Notation "*%R" := (@mul _).
+Local Notation "x * y" := (mul x y).
+Local Notation "x ^+ n" := (exp x n).
 
-Notation "\prod_ ( i <- r | P ) F" := (\big[*%R/1]_(i <- r | P) F).
-Notation "\prod_ ( i \in A ) F" := (\big[*%R/1]_(i \in A) F).
+Local Notation "\prod_ ( i <- r | P ) F" := (\big[*%R/1]_(i <- r | P) F).
+Local Notation "\prod_ ( i \in A ) F" := (\big[*%R/1]_(i \in A) F).
+
+(* The "field" characteristic; the definition, and many of the theorems,     *)
+(* has to apply to rings as well; indeed, we need the Frobenius automorphism *)
+(* results for a non commutative ring in the proof of Gorenstein 2.6.3.      *)
+Definition char (R : Ring.type) of phant R : nat_pred :=
+  [pred p | prime p && (p%:R == 0 :> R)].
+
+Local Notation "[ 'char' R ]" := (char (Phant R)) : ring_scope.
 
 Section RingTheory.
 
@@ -440,6 +485,12 @@ Proof. by move=> x; rewrite mulrN mulr1. Qed.
 Canonical Structure mul_monoid := Monoid.Law mulrA mul1r mulr1.
 Canonical Structure muloid := Monoid.MulLaw mul0r mulr0.
 Canonical Structure addoid := Monoid.AddLaw mulr_addl mulr_addr.
+
+Lemma mulr_subl : forall x y z, (y - z) * x = y * x - z * x.
+Proof. by move=> x y z; rewrite mulr_addl mulNr. Qed.
+
+Lemma mulr_subr : forall x y z, x * (y - z) = x * y - x * z.
+Proof. by move=> x y z; rewrite mulr_addr mulrN. Qed.
 
 Lemma mulrnAl : forall x y n, (x *+ n) * y = (x * y) *+ n.
 Proof.
@@ -530,6 +581,9 @@ move=> x y n com_xy; elim: n => /= [|n IHn]; first by rewrite mulr1.
 by rewrite !exprS IHn !mulrA; congr (_ * _); rewrite -!mulrA -commr_exp.
 Qed.
 
+Lemma commr_sign : forall x n, comm x ((-1) ^+ n).
+Proof. move=> x n; exact: (commr_exp n (commrN1 x)). Qed.
+
 Lemma exprn_mulnl : forall x m n, (x *+ m) ^+ n = x ^+ n *+ (m ^ n) :> R.
 Proof.
 move=> x m; elim=> [|n IHn]; first by rewrite mulr1n.
@@ -578,6 +632,120 @@ move=> I A F; rewrite -sum1_card /= -!(big_filter _ A) !unlock.
 elim: {A}(filter _ _) => /= [|i r ->]; first by rewrite mul1r.
 by rewrite mulrA -mulN1r (commr_exp _ (commrN1 _)) exprSr !mulrA.
 Qed.
+
+Lemma exprn_addl_comm : forall x y n, comm x y ->
+  (x + y) ^+ n = \sum_(i < n.+1) (x ^+ (n - i) * y ^+ i) *+ bin n i.
+Proof.
+move=> x y n cxy.
+elim: n => [|n IHn]; rewrite big_ord_recl mulr1 ?big_ord0 ?addr0 //=.
+rewrite exprS {}IHn /= mulr_addl !big_distrr /= big_ord_recl mulr1 subn0.
+rewrite !big_ord_recr /= !binn !subnn !mul1r !subn0 bin0 !exprS -addrA.
+congr (_ + _); rewrite addrA -big_split /=; congr (_ + _).
+apply: eq_bigr => i _; rewrite !mulrnAr !mulrA -exprS -leq_subS ?(valP i) //.
+by rewrite  subSS (commr_exp _ (commr_sym cxy)) -mulrA -exprS -mulrn_addr.
+Qed.
+
+Lemma exprn_subl_comm : forall x y n, comm x y ->
+  (x - y) ^+ n = \sum_(i < n.+1) ((-1) ^+ i * x ^+ (n - i) * y ^+ i) *+ bin n i.
+Proof.
+move=> x y n cxy; rewrite exprn_addl_comm; last exact: commr_opp.
+by apply: eq_bigr => i _; congr (_ *+ _); rewrite -commr_sign -mulrA -exprN.
+Qed.
+
+Lemma subr_expn_comm : forall x y n, comm x y ->
+  x ^+ n - y ^+ n = (x - y) * (\sum_(i < n) x ^+ (n.-1 - i) * y ^+ i).
+Proof.
+move=> x y [|n] cxy; first by rewrite big_ord0 mulr0 subrr.
+rewrite mulr_subl !big_distrr big_ord_recl big_ord_recr /= subnn mulr1 mul1r.
+rewrite subn0 -!exprS oppr_add -!addrA; congr (_ + _); rewrite addrA -sumr_sub.
+rewrite big1 ?add0r // => i _; rewrite !mulrA -exprS -leq_subS ?(valP i) //.
+by rewrite subSS (commr_exp _ (commr_sym cxy)) -mulrA -exprS subrr.
+Qed.
+
+Lemma subr_expn_1 : forall x n, x ^+ n - 1 = (x - 1) * (\sum_(i < n) x ^+ i).
+Proof.
+move=> x n; rewrite -!(oppr_sub 1) mulNr -{1}(exp1rn n).
+rewrite (subr_expn_comm _ (commr_sym (commr1 x))); congr (- (_ * _)).
+by apply: eq_bigr => i _; rewrite exp1rn mul1r.
+Qed.
+
+Definition Frobenius_aut p of p \in [char R] := fun x => x ^+ p.
+
+Section Frobenius.
+
+Variable p : nat.
+Hypothesis charFp : p \in [char R].
+
+Lemma charf0 : p%:R = 0 :> R. Proof. by apply/eqP; case/andP: charFp. Qed.
+Lemma charf_prime : prime p. Proof. by case/andP: charFp. Qed.
+Hint Resolve charf_prime.
+
+Lemma dvdn_charf : forall n, (p %| n)%N = (n%:R == 0 :> R).
+Proof.
+move=> n; apply/idP/eqP=> [|n0].
+  by case/dvdnP=> n' ->; rewrite natr_mul charf0 mulr0.
+apply/idPn; rewrite -prime_coprime //; move/eqnP=> pn1.
+have [a _] := bezoutl n (prime_gt0 charf_prime); case/dvdnP=> b.
+move/(congr1 (fun m => m%:R : R)); move/eqP.
+by rewrite natr_add !natr_mul charf0 n0 !mulr0 pn1 addr0 oner_eq0.
+Qed.
+
+Lemma charf_eq : [char R] =i (p : nat_pred).
+Proof.
+move=> q; apply/andP/eqP=> [[q_pr q0] | ->]; last by rewrite charf0.
+by apply/eqP; rewrite eq_sym -dvdn_prime2 // dvdn_charf.
+Qed.
+
+Lemma bin_lt_charf_0 : forall k, 0 < k < p -> (bin p k)%:R = 0 :> R.
+Proof. by move=> k lt0kp; apply/eqP; rewrite -dvdn_charf prime_dvd_bin. Qed.
+
+Local Notation "x ^f" := (Frobenius_aut charFp x).
+
+Lemma Frobenius_autE : forall x, x^f = x ^+ p. Proof. by []. Qed.
+Local Notation fE := Frobenius_autE.
+
+Lemma Frobenius_aut_0 : 0^f = 0.
+Proof. by rewrite fE -(prednK (prime_gt0 charf_prime)) exprS mul0r. Qed.
+
+Lemma Frobenius_aut_1 : 1^f = 1.
+Proof. by rewrite fE exp1rn. Qed.
+
+Lemma Frobenius_aut_add_comm : forall x y, comm x y -> (x + y)^f = x^f + y^f.
+Proof.
+move=> x y cxy; have defp := prednK (prime_gt0 charf_prime).
+rewrite !fE exprn_addl_comm // big_ord_recr subnn -defp big_ord_recl /= defp.
+rewrite subn0 mulr1 mul1r bin0 binn big1 ?addr0 // => i _.
+by rewrite -mulr_natl bin_lt_charf_0 ?mul0r //= -{2}defp ltnS (valP i).
+Qed.
+
+Lemma Frobenius_aut_muln : forall x n, (x *+ n)^f = x^f *+ n.
+Proof.
+move=> x; elim=> [|n IHn]; first exact: Frobenius_aut_0.
+rewrite !mulrS Frobenius_aut_add_comm ?IHn //; exact: commr_muln.
+Qed.
+
+Lemma Frobenius_aut_nat : forall n, (n%:R)^f = n%:R.
+Proof. by move=> n; rewrite Frobenius_aut_muln Frobenius_aut_1. Qed.
+
+Lemma Frobenius_aut_mul_comm : forall x y, comm x y -> (x * y)^f = x^f * y^f.
+Proof. by move=> x y; exact: commr_exp_mull. Qed.
+
+Lemma Frobenius_aut_exp : forall x n, (x ^+ n)^f = x^f ^+ n.
+Proof. by move=> x n; rewrite !fE -!exprn_mulr mulnC. Qed.
+
+Lemma Frobenius_aut_opp : forall x, (- x)^f = - x^f.
+Proof.
+move=> x; apply/eqP; rewrite -subr_eq0 opprK addrC.
+by rewrite -(Frobenius_aut_add_comm (commr_opp _)) // subrr Frobenius_aut_0.
+Qed.
+
+Lemma Frobenius_aut_sub_comm : forall x y, comm x y -> (x - y)^f = x^f - y^f.
+Proof.
+move=> x y; move/commr_opp; move/Frobenius_aut_add_comm->.
+by rewrite Frobenius_aut_opp.
+Qed.
+
+End Frobenius.
 
 Definition RevRingMixin :=
   let mul' x y := y * x in
@@ -633,12 +801,29 @@ Lemma ringM_nat : forall n, f n%:R = n %:R.
 Proof. by move=> n; rewrite ringM_natmul ringM_1. Qed.
 
 Lemma ringM_exp : forall n, {morph f : x / x ^+ n}.
-Proof.  by elim=> [|n IHn] x; rewrite ?ringM_1 //  !exprS ringM_mul IHn. Qed.
+Proof. by elim=> [|n IHn] x; rewrite ?ringM_1 //  !exprS ringM_mul IHn. Qed.
+
+Lemma ringM_sign : forall k, f ((- 1) ^+ k) = (- 1) ^+ k.
+Proof. by move=> k; rewrite ringM_exp ringM_opp ringM_1. Qed.
+
+Lemma ringM_char : forall p, p \in [char aR] -> p \in [char rR].
+Proof.
+move=> p; rewrite !inE -ringM_nat.
+by case/andP=> -> /=; move/eqP->; rewrite ringM_0.
+Qed.
 
 Lemma comp_ringM : morphism (f \o g).
 Proof.
 case: fM gM => [fsub fmul f1] [gsub gmul g1].
 by split=> [x y | x y |] /=; rewrite ?g1 ?gsub ?gmul.
+Qed.
+
+Lemma ringM_isom :
+  bijective f -> exists f', [/\ cancel f f', cancel f' f & morphism f'].
+Proof.
+case=> f' fK f'K; exists f'; split=> //.
+split=> [x y|x y|]; apply: (canLR fK);
+ by rewrite (ringM_sub, ringM_mul, ringM_1) ?f'K.
 Qed.
 
 End RingMorphTheory.
@@ -691,6 +876,30 @@ Lemma prodr_exp : forall n I r (P : pred I) (F : I -> R),
   \prod_(i <- r | P i) F i ^+ n = (\prod_(i <- r | P i) F i) ^+ n.
 Proof.
 by move=> n I r P F; rewrite (big_morph _ (exprn_mull n) (exp1rn _ n)).
+Qed.
+
+Lemma exprn_addl : forall x y n,
+  (x + y) ^+ n = \sum_(i < n.+1) (x ^+ (n - i) * y ^+ i) *+ bin n i.
+Proof. by move=> x y n; rewrite exprn_addl_comm //; exact: mulrC. Qed.
+
+Lemma exprn_subl : forall x y n,
+  (x - y) ^+ n = \sum_(i < n.+1) ((-1) ^+ i * x ^+ (n - i) * y ^+ i) *+ bin n i.
+Proof. by move=> x y n; rewrite exprn_subl_comm //; exact: mulrC. Qed.
+
+Lemma subr_expn : forall x y n,
+  x ^+ n - y ^+ n = (x - y) * (\sum_(i < n) x ^+ (n.-1 - i) * y ^+ i).
+Proof. by move=> x y n; rewrite -subr_expn_comm //; exact: mulrC. Qed.
+
+Lemma ringM_comm : forall (rR : Ring.type) (f : R -> rR), 
+  morphism f -> forall x y, comm (f x) (f y).
+Proof. by move=> rR f fRM x y; red; rewrite -!ringM_mul // mulrC. Qed.
+
+Lemma Frobenius_aut_RM : forall p (charRp : p \in [char R]),
+  morphism (Frobenius_aut charRp).
+Proof.
+move=> p charRp; split=> [x y|x y|]; last exact: Frobenius_aut_1.
+  exact: Frobenius_aut_sub_comm (mulrC _ _).
+exact: Frobenius_aut_mul_comm (mulrC _ _).
 Qed.
 
 End ComRingTheory.
@@ -1031,55 +1240,55 @@ Section EvalTerm.
 Variable R : UnitRing.type.
 
 (* Evaluation of a reified term into R a ring with units *)
-Fixpoint eval (t : term R) (e : seq R) {struct t} : R :=
+Fixpoint eval (e : seq R) (t : term R) {struct t} : R :=
   match t with
   | ('X_i)%T => e`_i
   | (x%:T)%T => x
   | (n%:R)%T => n%:R
-  | (t1 + t2)%T => eval t1 e + eval t2 e
-  | (- t1)%T => - eval t1 e
-  | (t1 *+ n)%T => eval t1 e *+ n
-  | (t1 * t2)%T => eval t1 e * eval t2 e
-  | t1^-1%T => (eval t1 e)^-1
-  | (t1 ^+ n)%T => eval t1 e ^+ n
+  | (t1 + t2)%T => eval e t1 + eval e t2
+  | (- t1)%T => - eval e t1
+  | (t1 *+ n)%T => eval e t1 *+ n
+  | (t1 * t2)%T => eval e t1 * eval e t2
+  | t1^-1%T => (eval e t1)^-1
+  | (t1 ^+ n)%T => eval e t1 ^+ n
   end.
 
 Definition same_env (e e' : seq R) := nth 0 e =1 nth 0 e'.
 
-Lemma eq_eval : forall t e e', same_env e e' -> eval t e = eval t e'.
-Proof. by move=> t e e' eq_e; elim: t => //= t1 -> // t2 ->. Qed.
+Lemma eq_eval : forall e e' t, same_env e e' -> eval e t = eval e' t.
+Proof. by move=> e e' t eq_e; elim: t => //= t1 -> // t2 ->. Qed.
 
-Lemma eval_tsubst : forall t e s,
-  eval (tsubst t s) e = eval t (set_nth 0 e s.1 (eval s.2 e)).
+Lemma eval_tsubst : forall e t s,
+  eval e (tsubst t s) = eval (set_nth 0 e s.1 (eval e s.2)) t.
 Proof.
-move=> t e [i u]; elim: t => //=; do 2?[move=> ? -> //] => j.
-by rewrite nth_set_nth /=; case: eq_op.
+move=> e t [i u]; elim: t => //=; do 2?[move=> ? -> //] => j.
+by rewrite nth_set_nth /=; case: (_ == _).
 Qed.
 
 (* Evaluation of a reified formula *)
-Fixpoint holds (f : formula R) (e : seq R) {struct f} : Prop :=
+Fixpoint holds (e : seq R) (f : formula R) {struct f} : Prop :=
   match f with
   | Bool b => b
-  | (t1 == t2)%T => eval t1 e = eval t2 e
-  | Unit t1 => unit (eval t1 e)
-  | (f1 /\ f2)%T => holds f1 e /\ holds f2 e
-  | (f1 \/ f2)%T => holds f1 e \/ holds f2 e
-  | (f1 ==> f2)%T => holds f1 e -> holds f2 e
-  | (~ f1)%T => ~ holds f1 e
-  | ('exists 'X_i, f1)%T => exists x, holds f1 (set_nth 0 e i x)
-  | ('forall 'X_i, f1)%T => forall x, holds f1 (set_nth 0 e i x)
+  | (t1 == t2)%T => eval e t1 = eval e t2
+  | Unit t1 => unit (eval e t1)
+  | (f1 /\ f2)%T => holds e f1 /\ holds e f2
+  | (f1 \/ f2)%T => holds e f1 \/ holds e f2
+  | (f1 ==> f2)%T => holds e f1 -> holds e f2
+  | (~ f1)%T => ~ holds e f1
+  | ('exists 'X_i, f1)%T => exists x, holds (set_nth 0 e i x) f1
+  | ('forall 'X_i, f1)%T => forall x, holds (set_nth 0 e i x) f1
   end.
 
 Lemma same_env_sym : forall e e', same_env e e' -> same_env e' e.
 Proof. by move=> e e'; exact: fsym. Qed.
 
 (* Extensionality of formula evaluation *)
-Lemma eq_holds : forall f e e', same_env e e' -> holds f e -> holds f e'.
+Lemma eq_holds : forall e e' f, same_env e e' -> holds e f -> holds e' f.
 Proof.
 pose sv := set_nth (0 : R).
 have eq_i: forall i v e e', same_env e e' -> same_env (sv e i v) (sv e' i v).
   by move=> i v /= e e' eq_e j; rewrite !nth_set_nth /= eq_e.
-elim=> //=.
+move=> e e' t; elim: t e e' => //=.
 - by move=> t1 t2 e e' eq_e; rewrite !(eq_eval _ eq_e).
 - by move=> t e e' eq_e; rewrite (eq_eval _ eq_e).
 - by move=> f1 IH1 f2 IH2 e e' eq_e; move/IH2: (eq_e); move/IH1: eq_e; tauto.
@@ -1091,10 +1300,10 @@ by move=> i f1 IH1 e e'; move/(eq_i i); eauto.
 Qed.
 
 (* Evaluation and substitution by a constant *)
-Lemma holds_fsubst : forall f e i v,
-  holds (fsubst f (i, v%:T)%T) e <-> holds f (set_nth 0 e i v).
+Lemma holds_fsubst : forall e f i v,
+  holds e (fsubst f (i, v%:T)%T) <-> holds (set_nth 0 e i v) f.
 Proof.
-move=> f e i v; elim: f e => //=; do [
+move=> e f i v; elim: f e => //=; do [
   by move=> *; rewrite !eval_tsubst
 | move=> f1 IHf1 f2 IHf2 e; move: (IHf1 e) (IHf2 e); tauto
 | move=> f IHf e; move: (IHf e); tauto
@@ -1174,8 +1383,8 @@ elim=> //.
 - by move=> t IHt r n m /= rt; rewrite {}IHt.
 Qed.
 
-(* A ring formula stating that t1 is equal to 0 in the ring *)
-(* theory. Also applies to non commutative rings.           *)
+(* A ring formula stating that t1 is equal to 0 in the ring theory. *)
+(* Also applies to non commutative rings.                           *)
 Definition eq0_rform t1 :=
   let m := ub_var t1 in
   let: (t1', r1) := to_rterm t1 [::] m in
@@ -1188,7 +1397,7 @@ Definition eq0_rform t1 :=
   in loop r1 m.
 
 (* Transformation of a formula in the theory of rings with units into an *)
-(*  equivalent formula in the sub-theory of rings : *)
+(* equivalent formula in the sub-theory of rings.                        *)
 Fixpoint to_rform f :=
   match f with
   | Bool b => f
@@ -1202,7 +1411,7 @@ Fixpoint to_rform f :=
   | ('forall 'X_i, f1) => 'forall 'X_i, to_rform f1
   end%T.
 
-(* The transformation gives a ring formula.*)
+(* The transformation gives a ring formula. *)
 Lemma to_rform_rformula : forall f, rformula (to_rform f).
 Proof.
 suffices eq0_ring : rformula (eq0_rform _) by elim=> //= => f1 ->.
@@ -1229,11 +1438,11 @@ rewrite {}/tr; elim: t1 [::] => //=.
 Qed.
 
 (* Correctness of the transformation. *)
-Lemma to_rformP : forall f e, holds (to_rform f) e <-> holds f e.
+Lemma to_rformP : forall e f, holds e (to_rform f) <-> holds e f.
 Proof.
-suffices equal0_equiv : forall t1 t2 e,
-  holds (eq0_rform (t1 - t2)) e <-> (eval t1 e == eval t2 e).
-- elim => /= ; try tauto.
+suffices equal0_equiv : forall e t1 t2,
+  holds e (eq0_rform (t1 - t2)) <-> (eval e t1 == eval e t2).
+- move=> e f; elim: f e => /=; try tauto.
   + move => t1 t2 e.
     by split; [move/equal0_equiv; move/eqP | move/eqP; move/equal0_equiv].
   + move=> t1 e; rewrite unitrE; exact: equal0_equiv.
@@ -1243,8 +1452,8 @@ suffices equal0_equiv : forall t1 t2 e,
   + move=> f1 IHf1 e; move: (IHf1 e); tauto.
   + by move=> n f1 IHf1 e; split=> [] [x]; move/IHf1; exists x.
   + by move=> n f1 IHf1 e; split=> Hx x; apply/IHf1.
-move=> t1 t2 e; rewrite -(add0r (eval t2 e)) -(can2_eq (subrK _) (addrK _)).
-rewrite -/(eval (t1 - t2) e); move: (t1 - t2)%T => {t1 t2} t.
+move=> e t1 t2; rewrite -(add0r (eval e t2)) -(can2_eq (subrK _) (addrK _)).
+rewrite -/(eval e (t1 - t2)); move: (t1 - t2)%T => {t1 t2} t.
 have sub_var_tsubst: forall s t, s.1 >= ub_var t -> tsubst t s = t.
   move=> s; elim=> //=.
   - by move=> n; case: ltngtP.
@@ -1270,9 +1479,9 @@ suffices rsub_to_r: forall t0 r0 m, m >= ub_var t0 -> ub_sub m r0 ->
   rewrite -{2}def_t {def_t}.
   elim: r1 (ub_var t) e ub_r1 => [|u r1 IHr1] m e /= => [_|[ub_u ub_r1]].
     by split; move/eqP.
-  rewrite eval_tsubst /=; set y := eval u e; split=> t_eq0.
+  rewrite eval_tsubst /=; set y := eval e u; split=> t_eq0.
     apply/IHr1=> //; apply: t_eq0.
-    rewrite nth_set_nth /= eqxx -(eval_tsubst u e (m, Const _)).
+    rewrite nth_set_nth /= eqxx -(eval_tsubst e u (m, Const _)).
     rewrite sub_var_tsubst //= -/y.
     case Uy: (unit y); [left | right]; first by rewrite mulVr ?divrr.
     split; first by rewrite invr_out ?Uy.
@@ -1280,7 +1489,7 @@ suffices rsub_to_r: forall t0 r0 m, m >= ub_var t0 -> ub_sub m r0 ->
     rewrite -!(eval_tsubst _ _ (m, Const _)) !sub_var_tsubst // -/y => yz1.
     by case/unitrP: Uy; exists z.
   move=> x def_x; apply/IHr1=> //; suff ->: x = y^-1 by []; move: def_x.
-  rewrite nth_set_nth /= eqxx -(eval_tsubst u e (m, Const _)).
+  rewrite nth_set_nth /= eqxx -(eval_tsubst e u (m, Const _)).
   rewrite sub_var_tsubst //= -/y; case=> [[xy1 yx1] | [xy nUy]].
     by rewrite -[y^-1]mul1r -[1]xy1 mulrK //; apply/unitrP; exists x.
   rewrite invr_out //; apply/unitrP=> [[z yz1]]; case: nUy; exists z.
@@ -1335,8 +1544,8 @@ Fixpoint qf_form (f : formula R) :=
 Definition qf_eval e := fix loop (f : formula R) : bool :=
   match f with
   | Bool b => b
-  | t1 == t2 => (eval t1 e == eval t2 e)%bool
-  | Unit t1 => unit (eval t1 e)
+  | t1 == t2 => (eval e t1 == eval e t2)%bool
+  | Unit t1 => unit (eval e t1)
   | f1 /\ f2 => loop f1 && loop f2
   | f1 \/ f2 => loop f1 || loop f2
   | f1 ==> f2 => (loop f1 ==> loop f2)%bool
@@ -1345,17 +1554,17 @@ Definition qf_eval e := fix loop (f : formula R) : bool :=
   end%T.
 
 (* qf_eval is equivalent to holds *)
-Lemma qf_evalP : forall f e, qf_form f -> reflect (holds f e) (qf_eval e f).
+Lemma qf_evalP : forall e f, qf_form f -> reflect (holds e f) (qf_eval e f).
 Proof.
-elim=> //=; try by move=> *; exact: idP.
-- move=> t1 t2 e _; exact: eqP.
-- move=> f1 IHf1 f2 IHf2 e /=; case/andP; case/IHf1=> f1T; last by right; case.
+move=> e; elim=> //=; try by move=> *; exact: idP.
+- move=> t1 t2 _; exact: eqP.
+- move=> f1 IHf1 f2 IHf2 /=; case/andP; case/IHf1=> f1T; last by right; case.
   by case/IHf2; [left | right; case].
-- move=> f1 IHf1 f2 IHf2 e /=; case/andP; case/IHf1=> f1F; first by do 2 left.
+- move=> f1 IHf1 f2 IHf2 /=; case/andP; case/IHf1=> f1F; first by do 2 left.
   by case/IHf2; [left; right | right; case].
-- move=> f1 IHf1 f2 IHf2 e /=; case/andP; case/IHf1=> f1T; last by left.
+- move=> f1 IHf1 f2 IHf2 /=; case/andP; case/IHf1=> f1T; last by left.
   by case/IHf2; [left | right; move/(_ f1T)].
-by move=> f1 IHf1 e; case/IHf1; [right | left].
+by move=> f1 IHf1; case/IHf1; [right | left].
 Qed.
 
 Implicit Type bc : seq (term R) * seq (term R).
@@ -1388,19 +1597,20 @@ Definition dnf_to_form :=
   foldr cls False.
 
 (* Catenation of dnf is the Or of formulas *)
-Lemma cat_dnfP : forall bcs1 bcs2 e,
+Lemma cat_dnfP : forall e bcs1 bcs2,
   qf_eval e (dnf_to_form (bcs1 ++ bcs2))
     = qf_eval e (dnf_to_form bcs1 \/ dnf_to_form bcs2).
 Proof.
-by elim=> //= bc1 bcs1 IH1 bcs2 e; rewrite -orbA; congr orb; rewrite IH1.
+move=> e.
+by elim=> //= bc1 bcs1 IH1 bcs2; rewrite -orbA; congr orb; rewrite IH1.
 Qed.
 
 (* and_dnf is the And of formulas *)
-Lemma and_dnfP : forall bcs1 bcs2 e,
+Lemma and_dnfP : forall e bcs1 bcs2,
   qf_eval e (dnf_to_form (and_dnf bcs1 bcs2))
    = qf_eval e (dnf_to_form bcs1 /\ dnf_to_form bcs2).
 Proof.
-elim=> [|bc1 bcs1 IH1] bcs2 /= e; first by rewrite /and_dnf big_nil.
+move=> e; elim=> [|bc1 bcs1 IH1] bcs2 /=; first by rewrite /and_dnf big_nil.
 rewrite /and_dnf big_cons -/(and_dnf bcs1 bcs2) cat_dnfP  /=.
 rewrite {}IH1 /= andb_orl; congr orb.
 elim: bcs2 bc1 {bcs1} => [| bc2 bcs2 IH] bc1 /=; first by rewrite andbF.
@@ -1469,7 +1679,19 @@ Definition Pick :=
     ((\big[And/True]_i (if p i then pred_f i else ~ pred_f i))
     /\ (if pick p is Some i then then_f i else else_f))%T.
 
-Lemma qf_eval_Pick : forall e (qev := qf_eval e),
+Lemma Pick_form_qf :
+   (forall i, qf_form (pred_f i)) ->
+   (forall i, qf_form (then_f i)) ->
+    qf_form else_f ->
+  qf_form Pick.
+Proof.
+move=> qfp qft qfe; have mA := @big_morph _ _ _ true _ andb qf_form.
+rewrite mA // big1 //= => p _.
+rewrite mA // big1 => [|i _]; first by case: pick.
+by rewrite fun_if if_same /= qfp.
+Qed.
+
+Lemma eval_Pick : forall e (qev := qf_eval e),
   let P i := qev (pred_f i) in
   qev Pick = (if pick P is Some i then qev (then_f i) else qev else_f).
 Proof.
@@ -1495,8 +1717,8 @@ Implicit Type I : seq nat.
 Implicit Type e : seq R.
 
 Lemma foldExistsP : forall I e,
-  (exists2 e', {in [predC I], same_env e e'} & holds f e')
-    <-> holds (foldr Exists f I) e.
+  (exists2 e', {in [predC I], same_env e e'} & holds e' f)
+    <-> holds e (foldr Exists f I).
 Proof.
 elim=> /= [|i I IHi] e.
   by split=> [[e' eq_e] |]; [apply: eq_holds => i; rewrite eq_e | exists e].
@@ -1508,8 +1730,8 @@ by have:= eq_e j; rewrite nth_set_nth /= !inE; case: eqP.
 Qed.
 
 Lemma foldForallP : forall I e,
-  (forall e', {in [predC I], same_env e e'} -> holds f e')
-    <-> holds (foldr Forall f I) e.
+  (forall e', {in [predC I], same_env e e'} -> holds e' f)
+    <-> holds e (foldr Forall f I).
 Proof.
 elim=> /= [|i I IHi] e.
   by split=> [|f_e e' eq_e]; [exact | apply: eq_holds f_e => i; rewrite eq_e].
@@ -1763,43 +1985,88 @@ Lemma prodf_inv : forall I r (P : pred I) (E : I -> F),
   \prod_(i <- r | P i) (E i)^-1 = (\prod_(i <- r | P i) E i)^-1.
 Proof. by move=> I r P E; rewrite (big_morph _ invf_mul (invr1 _)). Qed.
 
-End FieldTheory.
-
-Section FieldMorphism.
-
-Variables (aF rF : Field.type) (f : aF -> rF).
-Hypothesis fM : morphism f.
-
-Lemma fieldM_unit : forall x, unit (f x) = unit x.
+Lemma natf0_char : forall n,
+  n > 0 -> n%:R == 0 :> F -> exists p, p \in [char F].
 Proof.
-move=> x; apply/idP/idP; last exact: ringM_unit.
-by rewrite !unitfE; apply: contra; move/eqP->; rewrite ringM_0.
+move=> n; elim: {n}_.+1 {-2}n (ltnSn n) => // m IHm n; rewrite ltnS => le_n_m.
+rewrite leq_eqVlt -primes_pdiv mem_primes; move: (pdiv n) => p.
+case/predU1P=> [<-|]; [by rewrite oner_eq0 | case/and3P=> p_pr n_gt0].
+case/dvdnP=> n' def_n; rewrite def_n muln_gt0 andbC prime_gt0 // in n_gt0 *.
+rewrite natr_mul mulf_eq0 orbC; case/orP; first by exists p; exact/andP.
+by apply: IHm (leq_trans _ le_n_m) _; rewrite // def_n ltn_Pmulr // prime_gt1.
 Qed.
 
-Lemma fieldM_inv : {morph f : x / x^-1}.
+Lemma charf'_nat : forall n, [char F]^'.-nat n = (n%:R != 0 :> F).
+Proof.
+move=> n; case: (posnP n) => [-> | n_gt0]; first by rewrite eqxx.
+apply/idP/idP => [|nz_n]; last first.
+  by apply/pnatP=> // p p_pr p_dvd_n; apply: contra nz_n; move/dvdn_charf <-.
+apply: contraL => n0; have [// | p charFp] := natf0_char _ n0.
+have [p_pr _] := andP charFp; rewrite (eq_pnat _ (eq_negn (charf_eq charFp))).
+by rewrite p'natE // (dvdn_charf charFp) n0.
+Qed.
+
+Lemma charf0P : [char F] =i pred0 <-> (forall n, (n%:R == 0 :> F) = (n == 0)%N).
+Proof.
+split=> charF0 n; last by rewrite !inE charF0 andbC; case: eqP => // ->.
+case: posnP => [-> | n_gt0]; first exact: eqxx.
+by apply/negP; case/natf0_char=> // p; rewrite charF0.
+Qed.
+
+Section FieldMorphismInj.
+
+Variables (R : Ring.type) (f : F -> R).
+Hypothesis fRM : morphism f.
+
+Lemma fieldM_eq0 : forall x, (f x == 0) = (x == 0).
+Proof.
+move=> x; case: (eqVneq x 0) => [-> | nz_x]; first by rewrite ringM_0 ?eqxx.
+rewrite (negbTE nz_x); apply/eqP; move/(congr1 ( *%R (f x^-1))); move/eqP.
+by rewrite -ringM_mul // mulVf // mulr0 ringM_1 ?oner_eq0.
+Qed.
+
+Lemma fieldM_inj : injective f.
+Proof.
+move=> x y eqfxy; apply/eqP; rewrite -subr_eq0 -fieldM_eq0 ringM_sub //.
+by rewrite eqfxy subrr.
+Qed.
+
+Lemma fieldM_char : [char R] =i [char F].
+Proof. by move=> p; rewrite !inE -fieldM_eq0 ringM_nat. Qed.
+
+End FieldMorphismInj.
+
+Section FieldMorphismInv.
+
+Variables (R : UnitRing.type) (f : F -> R).
+Hypothesis fRM : morphism f.
+
+Lemma fieldM_unit : forall x, unit (f x) = (x != 0).
+Proof.
+move=> x; case: eqP => [-> |]; first by rewrite ringM_0 ?unitr0.
+by move/eqP; rewrite -unitfE; exact: ringM_unit.
+Qed.
+
+Lemma fieldM_inv : {morph f: x / x^-1}.
 Proof.
 move=> x; case (eqVneq x 0) => [-> | nzx]; last by rewrite ringM_inv ?unitfE.
-by rewrite !(invr0, ringM_0 fM).
+by rewrite !(invr0, ringM_0 fRM).
 Qed.
 
 Lemma fieldM_div : {morph f : x y / x / y}.
 Proof. by move=> x y; rewrite ringM_mul ?fieldM_inv. Qed.
 
-Lemma fieldM_inj : injective f.
-Proof. move=> x y eq_fxy; rewrite -[y]add0r; apply: (canRL (subrK _)).
-apply/eqP; apply/idPn; rewrite -unitfE -fieldM_unit unitfE ringM_sub //.
-by rewrite eq_fxy subrr eqxx.
-Qed.
+End FieldMorphismInv.
 
-End FieldMorphism.
+End FieldTheory.
 
 Module DecidableField.
 
-Definition axiom (R : UnitRing.type) (s : formula R -> pred (seq R)) :=
-  forall f e, reflect (holds f e) (s f e).
+Definition axiom (R : UnitRing.type) (s : seq R -> pred (formula R)) :=
+  forall e f, reflect (holds e f) (s e f).
 
 Record mixin_of (R : UnitRing.type) : Type :=
-  Mixin { sat : formula R -> pred (seq R); satP : axiom sat}.
+  Mixin { sat : seq R -> pred (formula R); satP : axiom sat}.
 
 Record class_of (F : Type) : Type :=
   Class {base :> Field.class_of F; mixin:> mixin_of (UnitRing.Pack base F)}.
@@ -1846,11 +2113,11 @@ Definition sat := DecidableField.sat (DecidableField.class F).
 Lemma satP : DecidableField.axiom sat.
 Proof. exact: DecidableField.satP. Qed.
 
-Lemma sol_subproof : forall f n,
-  reflect (exists s, (size s == n) && sat f s)
-          (sat (foldr Exists f (iota 0 n)) [::]).
+Lemma sol_subproof : forall n f,
+  reflect (exists s, (size s == n) && sat s f)
+          (sat [::] (foldr Exists f (iota 0 n))).
 Proof.
-move=> f n; apply: (iffP (satP _ _)) => [|[s]]; last first.
+move=> n f; apply: (iffP (satP _ _)) => [|[s]]; last first.
   case/andP; move/eqP=> sz_s; move/satP=> f_s; apply/foldExistsP.
   exists s => // i; rewrite !inE mem_iota -leqNgt add0n => le_n_i.
   by rewrite !nth_default ?sz_s.
@@ -1862,19 +2129,19 @@ case: (leqP n i) => [le_n_i | lt_i_n].
 by rewrite nth_take // nth_set_nth /= eq_sym eqn_leq leqNgt lt_i_n.
 Qed.
 
-Definition sol f n :=
-  if sol_subproof f n is ReflectT sP then xchoose sP else nseq n 0.
+Definition sol n f :=
+  if sol_subproof n f is ReflectT sP then xchoose sP else nseq n 0.
 
-Lemma size_sol : forall f n, size (sol f n) = n.
+Lemma size_sol : forall n f, size (sol n f) = n.
 Proof.
-rewrite /sol => f n; case: sol_subproof => [sP | _]; last exact: size_nseq.
+rewrite /sol => n f; case: sol_subproof => [sP | _]; last exact: size_nseq.
 by case/andP: (xchooseP sP); move/eqP.
 Qed.
 
-Lemma solP : forall f n,
-  reflect (exists2 s, size s = n & holds f s) (sat f (sol f n)).
+Lemma solP : forall n f,
+  reflect (exists2 s, size s = n & holds s f) (sat (sol n f) f).
 Proof.
-rewrite /sol => f n; case: sol_subproof => [sP | sPn].
+rewrite /sol => n f; case: sol_subproof => [sP | sPn].
   case/andP: (xchooseP sP) => _ ->; left.
   by case: sP => s; case/andP; move/eqP=> <-; move/satP; exists s.
 apply: (iffP (satP _ _)); first by exists (nseq n 0); rewrite ?size_nseq.
@@ -1882,11 +2149,11 @@ by case=> s sz_s; move/satP=> f_s; case: sPn; exists s; rewrite sz_s eqxx.
 Qed.
 
 Lemma eq_sat : forall f1 f2,
-  (forall e, holds f1 e <-> holds f2 e) -> sat f1 =1 sat f2.
+  (forall e, holds e f1 <-> holds e f2) -> sat^~ f1 =1 sat^~ f2.
 Proof. by move=> f1 f2 eqf12 e; apply/satP/satP; case: (eqf12 e). Qed.
 
 Lemma eq_sol : forall f1 f2,
-  (forall e, holds f1 e <-> holds f2 e) -> sol f1 =1 sol f2.
+  (forall e, holds e f1 <-> holds e f2) -> sol^~ f1 =1 sol^~ f2.
 Proof.
 rewrite /sol => f1 f2; move/eq_sat=> eqf12 n.
 do 2![case: sol_subproof] => //= [f1s f2s | ns1 [s f2s] | [s f1s] []].
@@ -1897,8 +2164,8 @@ Qed.
 
 End DecidableFieldTheory.
 
-Implicit Arguments satP [F f e].
-Implicit Arguments solP [F f n].
+Implicit Arguments satP [F e f].
+Implicit Arguments solP [F n f].
 
 (* Structure of field with quantifier elimination *)
 Module QE.
@@ -1915,7 +2182,7 @@ Definition wf_proj_axiom :=
 (* The elimination operator p preserves  validity *)
 Definition holds_proj_axiom :=
   forall i bc (ex_i_bc := ('exists 'X_i, dnf_to_form [:: bc])%T) e,
-  dnf_rterm bc -> reflect (holds ex_i_bc e) (qf_eval e (proj i bc)).
+  dnf_rterm bc -> reflect (holds e ex_i_bc) (qf_eval e (proj i bc)).
 
 End Axioms.
 
@@ -1995,8 +2262,8 @@ rewrite /elim_aux => f n; elim: (_ f _) => //= bc bcs.
 by rewrite andbC andbAC andbA wf_proj.
 Qed.
 
-Lemma quantifier_elim_rformP : forall f e,
-  rformula f -> reflect (holds f e) (qf_eval e (quantifier_elim f)).
+Lemma quantifier_elim_rformP : forall e f,
+  rformula f -> reflect (holds e f) (qf_eval e (quantifier_elim f)).
 Proof.
 pose rc e n f := exists x, qf_eval (set_nth 0 e n x) f.
 have auxP: forall f e n, qf_form f && rformula f ->
@@ -2016,7 +2283,7 @@ have auxP: forall f e n, qf_form f && rformula f ->
     by exists x; rewrite /= bcs_x orbT.
   case/orP => [bc_x|]; last by exists x.
   by case: no_x; exists x; apply/(qf_evalP _ f_qf); rewrite /= bc_x.
-elim=> //.
+move=> e f; elim: f e => //.
 - move=> b e _; exact: idP.
 - move=> t1 t2 e _; exact: eqP.
 - move=> f1 IH1 f2 IH2 e /=; case/andP; case/IH1=> f1e; last by right; case.
@@ -2033,11 +2300,11 @@ case: auxP => // [f_x|no_x]; first by right=> no_x; case: f_x => x; case/IHf.
 by left=> x; apply/IHf=> //; apply/idPn=> f_x; case: no_x; exists x.
 Qed.
 
-Definition proj_sat f e := qf_eval e (quantifier_elim (to_rform f)).
+Definition proj_sat e f := qf_eval e (quantifier_elim (to_rform f)).
 
 Lemma proj_satP : DecidableField.axiom proj_sat.
 Proof.
-move=> f e; have fP := quantifier_elim_rformP e (to_rform_rformula f).
+move=> e f; have fP := quantifier_elim_rformP e (to_rform_rformula f).
 by apply: (iffP fP); move/to_rformP.
 Qed.
 
@@ -2127,6 +2394,8 @@ Definition oppr0 := oppr0.
 Definition oppr_eq0 := oppr_eq0.
 Definition oppr_add := oppr_add.
 Definition oppr_sub := oppr_sub.
+Definition subr0 := subr0.
+Definition sub0r := sub0r.
 Definition subr_eq := subr_eq.
 Definition subr_eq0 := subr_eq0.
 Definition sumr_opp := sumr_opp.
@@ -2159,6 +2428,8 @@ Definition mulNr := mulNr.
 Definition mulrNN := mulrNN.
 Definition mulN1r := mulN1r.
 Definition mulrN1 := mulrN1.
+Definition mulr_subl := mulr_subl.
+Definition mulr_subr := mulr_subr.
 Definition mulrnAl := mulrnAl.
 Definition mulrnAr := mulrnAr.
 Definition mulr_natl := mulr_natl.
@@ -2183,12 +2454,32 @@ Definition commr_mul := commr_mul.
 Definition commr_nat := commr_nat.
 Definition commr_exp := commr_exp.
 Definition commr_exp_mull := commr_exp_mull.
+Definition commr_sign := commr_sign.
 Definition exprn_mulnl := exprn_mulnl.
 Definition exprn_mulr := exprn_mulr.
 Definition signr_odd := signr_odd.
 Definition signr_eq0 := signr_eq0.
 Definition signr_addb := signr_addb.
 Definition exprN := exprN.
+Definition exprn_addl_comm := exprn_addl_comm.
+Definition exprn_subl_comm := exprn_subl_comm.
+Definition subr_expn_comm := subr_expn_comm.
+Definition subr_expn_1 := subr_expn_1.
+Definition charf0 := charf0.
+Definition charf_prime := charf_prime.
+Definition dvdn_charf := dvdn_charf.
+Definition charf_eq := charf_eq.
+Definition bin_lt_charf_0 := bin_lt_charf_0.
+Definition Frobenius_autE := Frobenius_autE.
+Definition Frobenius_aut_0 := Frobenius_aut_0.
+Definition Frobenius_aut_1 := Frobenius_aut_1.
+Definition Frobenius_aut_add_comm := Frobenius_aut_add_comm.
+Definition Frobenius_aut_muln := Frobenius_aut_muln.
+Definition Frobenius_aut_nat := Frobenius_aut_nat.
+Definition Frobenius_aut_mul_comm := Frobenius_aut_mul_comm.
+Definition Frobenius_aut_exp := Frobenius_aut_exp.
+Definition Frobenius_aut_opp := Frobenius_aut_opp.
+Definition Frobenius_aut_sub_comm := Frobenius_aut_sub_comm.
 Definition prodr_const := prodr_const.
 Definition mulrC := mulrC.
 Definition mulrCA := mulrCA.
@@ -2197,6 +2488,9 @@ Definition exprn_mull := exprn_mull.
 Definition prodr_exp := prodr_exp.
 Definition prodr_exp_r := prodr_exp_r.
 Definition prodr_opp := prodr_opp.
+Definition exprn_addl := exprn_addl.
+Definition exprn_subl := exprn_subl.
+Definition subr_expn := subr_expn.
 Definition mulrV := mulrV.
 Definition divrr := divrr.
 Definition mulVr := mulVr.
@@ -2251,6 +2545,9 @@ Definition mulfVK := mulfVK.
 Definition divfK := divfK.
 Definition invf_mul := invf_mul.
 Definition prodf_inv := prodf_inv.
+Definition natf0_char := natf0_char.
+Definition charf'_nat := charf'_nat.
+Definition charf0P := charf0P.
 Definition satP := @satP.
 Definition eq_sat := eq_sat.
 Definition solP := @solP.
@@ -2268,17 +2565,24 @@ Definition ringM_prod := ringM_prod.
 Definition ringM_natmul := ringM_natmul.
 Definition ringM_nat := ringM_nat.
 Definition ringM_exp := ringM_exp.
+Definition ringM_sign := ringM_sign.
+Definition ringM_char := ringM_char.
 Definition comp_ringM := comp_ringM.
+Definition ringM_isom := ringM_isom.
+Definition ringM_comm := ringM_comm.
 Definition ringM_unit := ringM_unit.
+Definition Frobenius_aut_RM := Frobenius_aut_RM.
+Definition fieldM_eq0 := fieldM_eq0.
+Definition fieldM_inj := fieldM_inj.
 Definition ringM_inv := ringM_inv.
+Definition fieldM_char := fieldM_char.
 Definition ringM_div := ringM_div.
 Definition fieldM_unit := fieldM_unit.
 Definition fieldM_inv := fieldM_inv.
 Definition fieldM_div := fieldM_div.
-Definition fieldM_inj := fieldM_inj.
 
-Implicit Arguments satP [F f e].
-Implicit Arguments solP [F f n].
+Implicit Arguments satP [F e f].
+Implicit Arguments solP [F n f].
 Prenex Implicits satP solP.
 
 End Theory.
@@ -2365,18 +2669,20 @@ Notation "x + y" := (GRing.add x y) : ring_scope.
 Notation "x - y" := (GRing.add x (- y)) : ring_scope.
 Notation "x *+ n" := (GRing.natmul x n) : ring_scope.
 Notation "x *- n" := (GRing.natmul (- x) n) : ring_scope.
+Notation "s `_ i" := (seq.nth 0%R s%R i) : ring_scope.
 
 Notation "1" := (GRing.one _) : ring_scope.
 Notation "- 1" := (- (1))%R : ring_scope.
 
 Notation "n %:R" := (GRing.natmul 1 n) : ring_scope.
+Notation "[ 'char' R ]" := (GRing.char (Phant R)) : ring_scope.
+Notation Frobenius_aut chRp := (GRing.Frobenius_aut chRp).
 Notation "*%R" := (@GRing.mul _).
 Notation "x * y" := (GRing.mul x y) : ring_scope.
 Notation "x ^+ n" := (GRing.exp x n) : ring_scope.
 Notation "x ^-1" := (GRing.inv x) : ring_scope.
 Notation "x ^- n" := (x ^+ n)^-1%R : ring_scope.
 Notation "x / y" := (GRing.mul x y^-1) : ring_scope.
-Notation "s `_ i" := (seq.nth 0%R s%R i) : ring_scope.
 
 Implicit Arguments GRing.unitDef [].
 

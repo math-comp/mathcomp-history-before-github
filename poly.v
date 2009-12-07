@@ -46,6 +46,12 @@ Require Import bigops ssralg.
 (*       com_coef p x == x commutes with all the coefficients of p (clearly,  *)
 (*                       this implies com_poly p x).                          *)
 (*           root p x == x is a root of p, i.e., p.[x] = 0                    *)
+(*       map_poly f p == the image of the polynomial by the function f (which *)
+(*                       should be a ring morphism).                          *)
+(*     comm_ringM f u == u commutes with the image of f (i.e., with all f x)  *)
+(*   horner_morph f u == the function mapping p to the value of map_poly f p  *)
+(*                       at u; this is a morphism from {poly R} to the image  *)
+(*                       ring of f when f is a morphism and comm_ringM f u.   *)
 (*  We define pseudo division on polynomials over an integral domain :        *)
 (*             m %/ d == the pseudo-quotient                                  *)
 (*             m %% d == the pseudo remainder                                 *)
@@ -67,6 +73,8 @@ Require Import bigops ssralg.
 (*                       to just x != y).                                     *)
 (*       uniq_roots s == s is a sequence or pairwise distinct roots, in the   *)
 (*                       sense of diff_roots p above.                         *)
+(*   *** We only show that these operations and properties are transferred by *)
+(*       morphisms whose domain is a field (thus ensuring injectivity).       *)
 (* We prove the factor_theorem, and the max_poly_roots inequality relating    *)
 (* the number of distinct roots of a polynomial and its size.                 *)
 (******************************************************************************)
@@ -961,6 +969,7 @@ Qed.
 
 End PolynomialTheory.
 
+Prenex Implicits polyC.
 Notation "{ 'poly' T }" := (poly_of (Phant T)) : type_scope.
 Notation "\poly_ ( i < n ) E" := (Poly (mkseq (fun i => E) n)) : ring_scope.
 Notation "c %:P" := (polyC c) : ring_scope.
@@ -1135,6 +1144,132 @@ Qed.
 End EvalPolynomial.
 
 Notation "p .[ x ]" := (horner p x) : ring_scope.
+
+(* Container morphism. *)
+Section MapPoly.
+
+Variables (aR rR : ringType) (f : aR -> rR).
+
+Definition map_poly (p : {poly aR}) := \poly_(i < size p) f p`_i.
+
+Local Notation "p ^f" := (map_poly p) : ring_scope.
+
+(* Alternative definition; the one above is more convenient because it lets *)
+(* us use the lemmas on \poly, e.g., size (map_poly p) <= size p is an      *)
+(* instance of size_poly.                                                   *)
+Lemma map_polyE : forall p, p^f = Poly (map f p).
+Proof.
+move=> p; congr Poly.
+apply: (@eq_from_nth _ 0); rewrite size_mkseq ?size_map // => i lt_i_p.
+by rewrite (nth_map 0) ?nth_mkseq.
+Qed.
+
+Hypothesis fRM : GRing.morphism f.
+
+Lemma coef_map : forall p i, p^f`_i = f p`_i.
+Proof.
+move=> p i; rewrite coef_poly; case: ltnP => // le_p_i.
+by rewrite nth_default ?ringM_0.
+Qed.
+
+Lemma map_polyRM : GRing.morphism map_poly.
+Proof.
+split=> [p q|p q|]; apply/polyP=> i; last 1 first.
+- by rewrite !(coef_map, coef1) ringM_nat.
+- by rewrite !(coef_sub, coef_map) ringM_sub.
+rewrite coef_map !coef_mul ringM_sum //; apply: eq_bigr => j _.
+by rewrite !coef_map ringM_mul.
+Qed.
+Hint Resolve map_polyRM.
+
+Lemma map_polyX : ('X)^f = 'X.
+Proof. by apply/polyP=> i; rewrite coef_map !coefX ringM_nat. Qed.
+
+Lemma map_polyXn : forall n, ('X^n)^f = 'X^n.
+Proof. by move=> n; rewrite (ringM_exp map_polyRM) map_polyX. Qed.
+
+Lemma map_polyC : forall a, (a%:P)^f = (f a)%:P.
+Proof.
+by move=> a; apply/polyP=> i; rewrite !(coef_map, coefC) -!mulrb ringM_natmul.
+Qed.
+
+Lemma horner_map : forall p x, p^f.[f x] = f p.[x].
+Proof.
+move=> p x; rewrite map_polyE horner_Poly; move/polyseq: p.
+by elim=> /= [|a p ->]; rewrite !(ringM_0, ringM_add, ringM_mul).
+Qed.
+
+Lemma lead_coef_map_eq : forall p,
+  f (lead_coef p) != 0 -> lead_coef p^f = f (lead_coef p).
+Proof.
+move=> p fp_nz; rewrite lead_coef_poly // lt0n size_poly_eq0.
+by apply: contra fp_nz; move/eqP->; rewrite lead_coef0 ringM_0.
+Qed.
+
+Lemma map_poly_monic : forall p, monic p -> monic p^f.
+Proof.
+rewrite /monic => p; move/eqP=> mon_p.
+by rewrite lead_coef_map_eq mon_p ringM_1 ?oner_eq0.
+Qed.
+
+Lemma map_com_poly : forall p x, com_poly p x -> com_poly p^f (f x).
+Proof. by move=> p x; rewrite /com_poly horner_map -!ringM_mul // => ->. Qed.
+
+Lemma map_com_coef : forall p x, com_coef p x -> com_coef p^f (f x).
+Proof. by move=> p x cpx i; rewrite coef_map -!ringM_mul ?cpx. Qed.
+
+Lemma root_map_poly : forall p x, root p x -> root p^f (f x).
+Proof. by rewrite /root => p x px0; rewrite horner_map (eqP px0) ringM_0. Qed.
+
+Definition comm_ringM u := forall x, GRing.comm u (f x).
+
+Definition horner_morph u := fun p => p^f.[u].
+
+Lemma horner_morphC : forall u a, horner_morph u a%:P = f a.
+Proof. by move=> u a; rewrite /horner_morph map_polyC // hornerC. Qed.
+
+Lemma horner_morphX : forall u, horner_morph u 'X = u.
+Proof. by move=> u; rewrite /horner_morph map_polyX // hornerX. Qed.
+
+Lemma horner_morphRM : forall u,
+  comm_ringM u -> GRing.morphism (horner_morph u).
+Proof.
+rewrite /horner_morph=> u cuf.
+split=> [p q|p q|]; last by rewrite ringM_1 ?hornerC.
+  by rewrite ringM_sub // horner_add horner_opp.
+rewrite ringM_mul // horner_mul_com //; apply: com_coef_poly => i.
+by rewrite coef_map cuf.
+Qed.
+
+End MapPoly.
+
+(* Morphisms from the polynomial ring, and the initiality of polynomials  *)
+(* with respect to these.                                                 *)
+Section MorphPoly.
+
+Variable (aR rR : ringType) (pf : {poly aR} -> rR).
+Hypothesis pfRM : GRing.morphism pf.
+
+Local Notation fC := (@polyC aR).
+
+Lemma polyC_RM : GRing.morphism fC.
+Proof. by split=> // a b; rewrite ?(polyC_opp, polyC_add, polyC_mul). Qed.
+
+Lemma poly_morphX_comm : comm_ringM (pf \o fC) (pf 'X).
+Proof. by move=> a; red; rewrite /= -!ringM_mul // comm_polyX. Qed.
+
+Let fC_RM := (comp_ringM pfRM polyC_RM).
+Definition poly_morphRM := horner_morphRM fC_RM poly_morphX_comm.
+Let ipfRM := poly_morphRM.
+
+Lemma poly_initial : pf =1 horner_morph (pf \o fC) (pf 'X).
+Proof.
+elim/poly_ind=> [|p a IHp]; first by rewrite (ringM_0 ipfRM) ringM_0.
+rewrite (ringM_add ipfRM) (ringM_mul ipfRM) -{}IHp ringM_add // ringM_mul //.
+by rewrite horner_morphC ?horner_morphX.
+Qed.
+
+End MorphPoly.
 
 Section PolynomialComRing.
 
@@ -1514,6 +1649,93 @@ Proof. by move=> p q; rewrite /eqp !dvdp_gcd !dvdp_gcdl !dvdp_gcdr. Qed.
 
 End PolynomialIdomain.
 
+Section MapFieldPoly.
+
+Variables (F : fieldType) (R : ringType) (f : F -> R).
+
+Local Notation "p ^f" := (map_poly f p) : ring_scope.
+
+Hypothesis fRM : GRing.morphism f.
+Let pfRM := map_polyRM fRM.
+
+Lemma size_map_poly : forall p, size p^f = size p.
+Proof.
+move=> p; case: (eqVneq p 0) => [-> | p_nz].
+  by rewrite (ringM_0 pfRM) !size_poly0.
+by rewrite size_poly_eq // fieldM_eq0 // lead_coef_eq0.
+Qed.
+
+Lemma lead_coef_map : forall p, lead_coef p^f = f (lead_coef p).
+Proof.
+move=> p; case: (eqVneq p 0) => [-> | p_nz].
+  by rewrite (ringM_0 pfRM) !lead_coef0 ringM_0.
+by rewrite lead_coef_map_eq // fieldM_eq0 // lead_coef_eq0. 
+Qed.
+
+Lemma map_poly_eq0 : forall p, (p^f == 0) = (p == 0).
+Proof. by move=> p; rewrite -!size_poly_eq0 size_map_poly. Qed.
+
+Lemma map_poly_inj : injective (map_poly f).
+Proof.
+move=> p q eqfpq; apply/eqP; rewrite -subr_eq0 -map_poly_eq0.
+by rewrite (ringM_sub pfRM) eqfpq subrr.
+Qed.
+
+Lemma map_field_poly_monic : forall p, monic p^f = monic p.
+Proof.
+by move=> p; rewrite /monic lead_coef_map -(inj_eq (fieldM_inj fRM)) ringM_1.
+Qed.
+
+Lemma map_poly_com : forall p x, com_poly p^f (f x).
+Proof. move=> p x; exact: map_com_poly (mulrC x _). Qed.
+
+Lemma root_field_map_poly : forall p x, root p^f (f x) = root p x.
+Proof. by move=> p x; rewrite /root horner_map // fieldM_eq0. Qed.
+
+Lemma edivp_map : forall p q,
+  edivp p^f q^f = (f (scalp p q), (p %/ q)^f, (p %% q)^f).
+Proof.
+move=> p q; rewrite /divp /scalp /modp /edivp map_poly_eq0 size_map_poly.
+case: eqP; rewrite /= -(ringM_0 pfRM) -(ringM_1 fRM) //; move/eqP=> q_nz.
+move: (size p) => m; elim: m 1 0 p => [|m IHm] qq r p /=.
+  rewrite !size_map_poly !lead_coef_map -ringM_mul //.
+  rewrite -(map_polyXn fRM) -!(map_polyC fRM) -!(ringM_mul pfRM).
+  by rewrite -(ringM_sub pfRM) -(ringM_add pfRM); case: (_ < _).
+rewrite !size_map_poly !lead_coef_map -ringM_mul //.
+rewrite -(map_polyXn fRM) -!(map_polyC fRM) -!(ringM_mul pfRM).
+by rewrite -(ringM_sub pfRM) -(ringM_add pfRM) IHm; case: (_ < _).
+Qed.
+
+Lemma scalp_map : forall p q, scalp p^f q^f = f (scalp p q).
+Proof. by move=> p q; rewrite /scalp edivp_map. Qed.
+
+Lemma map_divp : forall p q, (p %/ q)^f = p^f %/ q^f.
+Proof. by move=> p q; rewrite /divp edivp_map. Qed.
+
+Lemma map_modp : forall p q, (p %% q)^f = p^f %% q^f.
+Proof. by move=> p q; rewrite /modp edivp_map. Qed.
+
+Lemma dvdp_map : forall p q, (p^f %| q^f) = (p %| q).
+Proof. by move=> p q; rewrite /dvdp -map_modp map_poly_eq0. Qed.
+
+Lemma eqp_map : forall p q, (p^f %= q^f) = (p %= q).
+Proof. by move=> p q; rewrite /eqp !dvdp_map. Qed.
+
+Lemma gcdp_map : forall p q, (gcdp p q)^f = gcdp p^f q^f.
+Proof.
+move=> p q; wlog lt_p_q: p q / size p < size q.
+  move=> IH; case: (ltnP (size p) (size q)) => [|le_q_p]; first exact: IH.
+  rewrite gcdpE (gcdpE p^f) !size_map_poly ltnNge le_q_p /= -map_modp.
+  case: (eqVneq q 0) => [-> | q_nz]; first by rewrite (ringM_0 pfRM) !gcdp0.
+  by rewrite IH ?modp_spec.
+elim: {q}_.+1 p {-2}q (ltnSn (size q)) lt_p_q => // m IHm p q le_q_m lt_p_q.
+rewrite gcdpE (gcdpE p^f) !size_map_poly lt_p_q -map_modp.
+case: (eqVneq p 0) => [-> | q_nz]; first by rewrite (ringM_0 pfRM) !gcdp0.
+by rewrite IHm ?(leq_trans lt_p_q) ?modp_spec.
+Qed.
+
+End MapFieldPoly.
+
 Section MaxRoots.
 
 Variable R : unitRingType.
@@ -1549,3 +1771,22 @@ elim: rs Urs => //= x rs IHrs; case/andP=> rs_x; move/IHrs->; rewrite andbT.
 apply/allP=> y rs_y; rewrite /diff_roots mulrC eqxx unitfE.
 by rewrite (can2_eq (subrK _) (addrK _)) add0r; apply: contra rs_x; move/eqP<-.
 Qed.
+
+Section MapPolyRoots.
+
+Variables (F : fieldType) (R : unitRingType) (f : F -> R).
+Hypothesis fRM : GRing.morphism f.
+
+Lemma map_diff_roots : forall x y, diff_roots (f x) (f y) = (x != y).
+Proof.
+move=> x y; rewrite /diff_roots -ringM_sub // fieldM_unit // subr_eq0 //.
+by rewrite ringM_comm // eqxx eq_sym.
+Qed.
+
+Lemma map_uniq_roots : forall s, uniq_roots (map f s) = uniq s.
+Proof.
+elim=> //= x s ->; congr (_ && _); elim: s => //= y s ->.
+by rewrite map_diff_roots -negb_or.
+Qed.
+
+End MapPolyRoots.

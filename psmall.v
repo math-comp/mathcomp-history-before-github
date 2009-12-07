@@ -12,37 +12,7 @@ Import Prenex Implicits.
 Local Open Scope ring_scope.
 *)
 
-Lemma binn1 : forall n, bin n 1 = n.
-Proof.
-elim=> [|n ih]; by [|rewrite binS bin0 ih addn1].
-Qed.
-
-Lemma binn2 : forall n, bin n 2 = (n * n.-1)./2.
-Proof.
-case; first by rewrite muln0 -divn2 div0n.
-case=>[| n]; first by rewrite mul1n -subn1 subnn -divn2 div0n.
-have g1 : 1 < n.+2 by []; move: (bin_fact g1) => {g1}.
-rewrite -{2}add2n addnC addnK !factS !fact0 !muln1 !mulnA.
-move/eqP; rewrite eqn_mul2r; case/orP; move/eqP.
-  by move=> facteq; move: (fact_gt0 n); rewrite facteq //=.
-move/eqP; rewrite -eqn_div //=; first by move/eqP; rewrite divn2.
-rewrite dvdn2 odd_mul -addn2 -addn1 -(addn1 n) !odd_add //=.
-by case: (odd n); rewrite //=.
-Qed.
-
-(* another proof 
-Lemma binn2 : forall n, bin n 2 = (n * n.-1)./2.
-Proof.
-case; first by rewrite muln0 -divn2 div0n.
-elim; first by rewrite mul1n -subn1 subnn -divn2 div0n.
-move=> n ih; rewrite binS ih binn1 -[n.+1.-1]/n -[n.+2.-1]/n.+1.
-have calc : (n.+2 * n.+1 = n.+1 * n + n.+1.*2)%N.
-  rewrite -addn2 -(addn1 n) -muln2 !muln_addl !muln_addr !muln1 !mul1n.
-  by rewrite (mulnC 2).
-by move: calc => ->; rewrite half_add odd_mul andNb andFb add0n //= doubleK.
-Qed.
-*)
-
+(* GG -- not needed anymore : prime_dvd_bin is now in binomial
 Lemma dvdn_fact : forall m, 0 < m -> forall n, m <= n -> (m %| fact n).
 Proof.
 move=> m mpos; elim=>[|n ih]; first by case: m mpos.
@@ -58,16 +28,7 @@ elim: n => [|n ih].
 rewrite factS euclid //; case/orP; first by exact: dvdn_leq. 
 by move/ih; move/leq_trans; apply.
 Qed.
-
-Lemma prime_dvd_bin : forall p, prime p -> 
-  forall n, 0 < n -> n < p -> p %| bin p n.
-Proof.
-move=> p primep n ng0 nlp.
-have pnlp : p - n < p by rewrite -{2}(subn0 p) ltn_sub2l // prime_gt0.
-have pdvd : p %| (fact p) by rewrite dvdn_fact // prime_gt0.
-move: pdvd; rewrite -(bin_fact (ltnW nlp)).
-by rewrite !euclid // !prime_dvd_fact // leqNgt nlp //= leqNgt pnlp //= orbF.
-Qed.
+*)
 
 Import GroupScope.
 
@@ -108,8 +69,7 @@ have eq42: forall u w n, u \in R -> w \in R ->
   rewrite ih //; rewrite mulgA -(mulgA [~ _ , _]).
   rewrite (commute_sym (commuteX n _)); last first.
     by apply: commute_sym; apply RRRcom; rewrite // groupX ?groupR //.
-  rewrite mulgA -expgS -mulgA -expgn_add.
-  by rewrite -!triangular_sum big_nat_recr addnC.
+  by rewrite mulgA -expgS -mulgA -expgn_add -!bin2 binS bin1 addnC.
 pose f n := bin n 3; pose g n := 2 * bin n 3 + bin n 2.
 have fS : forall n, f (n.+1) = bin n 2 + f n.
   by move=> n; rewrite /f binS //= addnC. 
@@ -120,7 +80,7 @@ have pdivbin2: p %| bin p 2.
   apply: prime_dvd_bin; rewrite //= ltn_neqAle prime_gt1 // andbT.
   by apply/eqP=> peq; move: peq oddp => <-.
 have pdivfp : p > 3 -> p %| f p.
-  by apply: prime_dvd_bin; rewrite  //.
+  by move=> p_gt3; exact: prime_dvd_bin.
 have pdivgp : p > 3 -> p %| g p.
   by move=> pg3; rewrite dvdn_add // dvdn_mull // pdivfp.
 have nilclass2 : nil_class R <= 2 -> forall u v w, u \in R -> v \in R -> 
@@ -160,7 +120,7 @@ have {fS gS} eq44 : forall u v, u \in R -> v \in R -> forall n,
   rewrite -!mulgA (commute_sym (commuteX (_ + _) _)); last first.
     by rewrite /commute RRRcom ?(groupX, groupR, groupM).
   rewrite !mulgA -(mulgA _ _ (_ ^+ bin n 2)) -expgn_add.
-  rewrite -mulgA -expgn_add gS -binn2 binS binn1 addnC. 
+  rewrite -mulgA -expgn_add gS -bin2 binS bin1 addnC. 
   rewrite (addnC (_ + _) (_ + _)). rewrite addnCA 2!addnA.
   by rewrite -[(2 * _)%N]/((1 + 1) * _)%N muln_addl mul1n.
 have expOhm : exponent 'Ohm_1(R) %| p.

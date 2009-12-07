@@ -1,8 +1,8 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
-Require Import prime fintype paths finfun bigops finset ssralg.
+Require Import fintype paths finfun bigops prime binomial finset ssralg.
 Require Import groups morphisms normal automorphism commutators.
 Require Import cyclic center pgroups nilpotent sylow maximal gprod hall.
-Require Import coprime_act.
+Require Import coprime_act mxrepresentation.
 
 (******************************************************************************)
 (* This file contains most of the material in B & G, section 1, including the *)
@@ -310,16 +310,12 @@ set u := x^-1; set v := x ^ a; pose w := [~ v, u].
 have [Gu Gv]: u \in G /\ v \in G by rewrite groupV memJ_norm ?(subsetP nGA).
 have Zw: w \in 'Z(G) by rewrite -defG' mem_commg.
 rewrite (OhmE 1 pG) mem_gen // inE expn1 groupM //=.
-rewrite expMg_Rmul /commute ?(cGZ w) //.
-rewrite {4}(divn_eq p 2) modn2 oddp addn1 mulnA muln2 doubleK expgn_mul.
+rewrite expMg_Rmul /commute ?(cGZ w) // bin2odd // expgn_mul.
 case/(p_abelemP _ p_pr): elemZ => _; move/(_ w)=> -> //.
 rewrite exp1gn mulg1 expVgn -conjXg (sameP commgP eqP) cAZ //.
 rewrite -defPhi (Phi_mulgen pG) (MhoE 1 pG) mulgen_idr mem_gen // !inE.
 by rewrite orbC expn1 (mem_imset (expgn^~ p)).
 Qed.
-
-Lemma oddSg : forall G H : {group gT}, H \subset G -> odd #|G| -> odd #|H|.
-Proof. move=> G H; rewrite !odd_2'nat; exact: pgroupS. Qed.
 
 (* B & G, Corollary 1.12 *)
 Corollary coprime_odd_faithful_cent_abelem : forall p (A G E : {group gT}),
@@ -351,10 +347,11 @@ Qed.
 Section CoprimeQuotientPgroup.
 
 (* This is B & G, Lemma 1.14, which we divide in four lemmas, each one giving *)
-(* the (sub)centraliser or (sub)normaliser of a quotient by a coprime       *)
-(* pgroup acting on it. Note that we weaken the assumptions of B & G --     *)
-(* M does not need to be normal in G, T need not be a subgroup of G, p      *)
-(* need not be prime, and M only needs to be coprime with T.                *)
+(* the (sub)centraliser or (sub)normaliser of a quotient by a coprime p-group *)
+(* acting on it. Note that we weaken the assumptions of B & G -- M does not   *)
+(* need to be normal in G, T need not be a subgroup of G, p need not be a     *)
+(* prime, and M only needs to be coprime with T. Note also that the subcenter *)
+(* quotient lemma is special case of a lemma in coprime_act.                  *)
 
 Variables (p : nat) (T M G : {group gT}).
 Hypothesis pT : p.-group T.
@@ -407,5 +404,77 @@ Lemma coprime_subcent_quotient_pgroup : 'C_(G / M)(T / M) = 'C_G(T) / M.
 Proof. by rewrite quotientGI -?coprime_cent_quotient_pgroup. Qed.
 
 End CoprimeQuotientPgroup.
+
+(* This is B & G, Proposition 1.16, second assertion. Contrary to the text,  *)
+(* we derive this directly, rather than by induction on the first, because   *)
+(* this is actually how the proof is done in Gorenstein. Note that the non   *)
+(* cyclic assumption for A is not needed here.                               *)
+Lemma coprime_abelian_gen_cent : forall A G : {group gT},
+   abelian A -> A \subset 'N(G) -> coprime #|G| #|A| ->
+  G = (\prod_(B : {group gT} | cyclic (A / B) && (B <| A)) 'C_G(B))%G.
+Proof.
+move=> A G abelA nGA coGA; apply: val_inj; rewrite /= bigprodGE.
+move: {2}_.+1 (ltnSn #|G|) => n.
+elim: n gT => // n IHn aT in A G abelA nGA coGA *; rewrite ltnS => leGn.
+without loss nilG: G nGA coGA leGn / nilpotent G.
+  move=> {IHn} IHn; apply/eqP; rewrite eqEsubset gen_subG.
+  apply/andP; split; last by apply/bigcupsP=> B _; exact: subsetIl.
+  pose T := [set P : {group aT} | Sylow G P && (A \subset 'N(P))].
+  rewrite -{1}(@Sylow_transversal_gen _ T G) => [|P | p _]; first 1 last.
+  - by rewrite inE -!andbA; case/and4P.
+  - have [//|P sylP nPA] := sol_coprime_Sylow_exists p (abelian_sol abelA) nGA.
+    by exists P; rewrite ?inE ?(p_Sylow sylP).
+  rewrite gen_subG; apply/bigcupsP=> P; rewrite {T}inE.
+  case/andP; case/SylowP=> p _ sylP nPA; have sPG := pHall_sub sylP.
+  rewrite (IHn P) ?(pgroup_nil (pHall_pgroup sylP)) ?(coprimeSg sPG) ?genS //.
+    by apply/bigcupsP=> B cycBq; rewrite (bigcup_max B) ?setSI.
+  by rewrite (leq_trans (subset_leq_card sPG)).
+apply/eqP; rewrite eqEsubset gen_subG.
+apply/andP; split; last by apply/bigcupsP=> B _; exact: subsetIl.
+case: (eqsVneq 'Z(G) 1) => [Z1 | ntZ].
+  by rewrite (nil_TI_Z _ (normal_refl G)) ?Z1 ?(setIidPr _) ?sub1G.
+have nZA: A \subset 'N('Z(G)) := char_norm_trans (center_char G) nGA.
+have{ntZ nZA} [M /= minM] := minnormal_exists ntZ nZA.
+rewrite subsetI centsC; case/andP=> sMG; move/cents_norm=> nMG. 
+have coMA := coprimeSg sMG coGA; have{nilG} solG := nilpotent_sol nilG.
+have [nMA ntM abelM] := minnormal_solvable minM sMG solG.
+set GC := <<_>>; have sMGC: M \subset GC.
+  rewrite sub_gen ?(bigcup_max 'C_A(M)%G) //=; last first.
+    by rewrite subsetI sMG centsC subsetIr.
+  case/abelemP: abelM => p _ abelM; rewrite -(ker_abelem_repr abelM ntM nMA).
+  have ker_q_cyc := mx_repr_faithful_irr_abelian_cyclic _ (kquo_mx_faithful _).
+  rewrite mx_repr_ker_normal {}ker_q_cyc ?morphim_abelian //.
+  by apply/quo_mx_irr=> //; exact/abelem_mx_irrP.
+rewrite -(quotientSGK nMG sMGC).
+have: A / M \subset 'N(G / M) by rewrite morphim_norms.
+move/IHn->; rewrite ?morphim_abelian ?coprime_morph {IHn}//; first 1 last.
+  by rewrite (leq_trans _ leGn) ?ltn_quotient.
+rewrite gen_subG; apply/bigcupsP=> Bq; rewrite andbC; case/andP.
+have: A :&: M = 1 by rewrite setIC coprime_TIg.
+move/(quotient_isom nMA); case/isomP=> /=; set qM := restrm _ _ => injqM <-.
+move=> nsBqA; have sBqA := normal_sub nsBqA.
+rewrite -(morphpreK sBqA) /= -/qM; set B := qM @*^-1 Bq.
+move: nsBqA; rewrite -(morphpre_normal sBqA) ?injmK //= -/B => nsBA.
+rewrite -(morphim_quotm _ nsBA) /= -/B injm_cyclic ?injm_quotm //= => cycBA.
+rewrite morphim_restrm -quotientE morphpreIdom -/B; have sBA := normal_sub nsBA.
+rewrite -coprime_quotient_cent ?(coprimegS sBA, subset_trans sBA) //= -/B.
+by rewrite quotientS ?sub_gen // (bigcup_max [group of B]) ?cycBA.
+Qed.
+
+(* B & G, Proposition 1.16, first assertion. *)
+Lemma coprime_abelian_gen_cent1 : forall A G : {group gT},
+   abelian A -> ~~ cyclic A -> A \subset 'N(G) -> coprime #|G| #|A| ->
+  G = (\prod_(a \in A^#) 'C_G[a])%G.
+Proof.
+move=> A G abelA ncycA nGA coGA.
+apply/eqP; rewrite -val_eqE eqEsubset /= bigprodGE gen_subG.
+apply/andP; split; last by apply/bigcupsP=> B _; exact: subsetIl.
+rewrite {1}(coprime_abelian_gen_cent abelA nGA) // bigprodGE genS //.
+apply/bigcupsP=> B; case: (eqsVneq B 1) => [-> |].
+  by rewrite injm_cyclic ?coset1_injm ?norms1 ?(negbTE ncycA).
+case/trivgPn=> a Ba n1a; case/and3P=> _ sBA _.
+rewrite (bigcup_max a) ?inE ?n1a ?(subsetP sBA) // setIS //=.
+by rewrite -cent_set1 centS // sub1set.
+Qed.
 
 End BGsection1.

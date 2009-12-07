@@ -401,22 +401,23 @@ Variable F : Field.type.
 Canonical Structure Field.finType.
 Canonical Structure Field.unitRingType.
 
-Fixpoint sat f e :=
+Fixpoint sat e f :=
   match f with
   | GRing.Bool b => b
-  | t1 == t2 => (GRing.eval t1 e == GRing.eval t2 e)%bool
-  | GRing.Unit t => GRing.unit (GRing.eval t e)
-  | f1 /\ f2 => sat f1 e && sat f2 e
-  | f1 \/ f2 => sat f1 e || sat f2 e
-  | f1 ==> f2 => (sat f1 e ==> sat f2 e)%bool
-  | ~ f1 => ~~ sat f1 e
-  | GRing.Exists i f1 => (existsb x : F, sat f1 (set_nth 0%R e i x))
-  | GRing.Forall i f1 => (forallb x : F, sat f1 (set_nth 0%R e i x))
+  | t1 == t2 => (GRing.eval e t1 == GRing.eval e t2)%bool
+  | GRing.Unit t => GRing.unit (GRing.eval e t)
+  | f1 /\ f2 => sat e f1 && sat e f2
+  | f1 \/ f2 => sat e f1 || sat e f2
+  | f1 ==> f2 => (sat e f1 ==> sat e f2)%bool
+  | ~ f1 => ~~ sat e f1
+  | ('exists 'X_k, f1) => (existsb x : F, sat (set_nth 0%R e k x) f1)
+  | ('forall 'X_k, f1) => (forallb x : F, sat (set_nth 0%R e k x) f1)
   end%T.
 
 Lemma decidable : GRing.DecidableField.axiom sat.
 Proof.
-elim; try by move=> f1 IH1 f2 IH2 e /=; case IH1; case IH2; constructor; tauto.
+move=> e f; elim: f e;
+  try by move=> f1 IH1 f2 IH2 e /=; case IH1; case IH2; constructor; tauto.
 - by move=> b e; exact: idP.
 - by move=> t1 t2 e; exact: eqP.
 - by move=> t e; exact: idP.
@@ -451,7 +452,7 @@ Module Theory.
 Definition zmod1gE := zmod1gE.
 Definition zmodVgE := zmodVgE.
 Definition zmodMgE := zmodMgE.
-Definition zmodXgE := zmodMgE.
+Definition zmodXgE := zmodXgE.
 Definition zmod_mulgC := zmod_mulgC.
 Definition zmod_abelian := zmod_abelian.
 Definition unit_actE := unit_actE.

@@ -670,6 +670,7 @@ Qed.
 
 Definition nat_pred := simpl_pred nat.
 Canonical Structure nat_pred_pred := Eval hnf in [predType of nat_pred].
+Implicit Type pi : nat_pred.
 
 Coercion nat_pred_of_nat (p : nat) : nat_pred := pred1 p.
 
@@ -698,6 +699,9 @@ Notation "n `_ pi" := (partn n pi) : nat_scope.
 Lemma negnK : forall pi, pi^'^' =i pi.
 Proof. move=> pi p; exact: negbK. Qed.
 
+Lemma eq_negn : forall pi1 pi2, pi1 =i pi2 -> pi1^' =i pi2^'.
+Proof. by move=> pi1 pi2 eq_pi n; rewrite 3!inE eq_pi. Qed.
+
 Lemma part_gt0 : forall pi n, 0 < n`_pi.
 Proof. move=> pi n; exact: prodn_gt0. Qed.
 Hint Resolve part_gt0.
@@ -708,7 +712,7 @@ Proof.
 move=> pi1 pi2 n pi12; rewrite ![n`__]big_mkcond /=.
 apply (big_rel (fun m1 m2 => m1 %| m2)) => // [*|p _]; first exact: dvdn_mul.
 rewrite lognE -mem_primes; case: ifP => pi1p; last exact: dvd1n.
-by case: ifP => pr_p; rewrite ?pr_p 1?(if_same, pi12).
+by case: ifP => pr_p; [rewrite pi12 | rewrite if_same].
 Qed.
 
 Lemma eq_in_partn : forall pi1 pi2 n,
@@ -821,7 +825,6 @@ Proof. by move=> pi [|n] //; rewrite -{2}[n.+1](@partnC pi) // dvdn_mulr. Qed.
 
 Section PiNat.
 
-Implicit Type pi : nat_pred.
 Implicit Types p n : nat.
 
 Lemma sub_in_pnat : forall pi1 pi2 n,

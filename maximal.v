@@ -1,8 +1,8 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat fintype bigops.
-Require Import seq div prime finfun finset groups morphisms normal perm.
-Require Import commutators automorphism cyclic pgroups center gprod sylow.
-Require Import nilpotent action gfunc.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype finfun.
+Require Import bigops finset prime binomial groups morphisms normal perm.
+Require Import commutators automorphism action cyclic pgroups center gprod.
+Require Import nilpotent sylow gfunc.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -1048,10 +1048,8 @@ case/setIdP=> Hx; move/eqP=> xp1; case/setIdP=> Hy; move/eqP=> yp1.
 rewrite inE groupM //.
 have: [~ y, x] \in 'Z(H) by rewrite (subsetP sH'Z) ?mem_commg.
 case/setIP=> _; move/centP=> czH.
-rewrite expMg_Rmul ?xp1 ?yp1; try by apply: commute_sym; exact: czH.
-rewrite {2}(divn_eq p 2) modn2 odd_p addn1 /= mulnA muln2 half_double.
-rewrite -commXXg ?yp1; try by apply: commute_sym; exact: czH.
-by rewrite comm1g !mul1g.
+rewrite expMg_Rmul ?xp1 ?yp1 /commute ?czH //= !mul1g.
+by rewrite bin2odd // -commXXg ?yp1 /commute ?czH // comm1g.
 Qed.
 
 Lemma critical_p_stab_Aut : forall H,
@@ -1156,9 +1154,8 @@ have: z \in 'Z(H); last case/centerP=> _ Zz.
 have fy: f y = y.
   apply: (IHi); first by rewrite groupM ?groupV.
   rewrite expMg_Rmul; try by apply: commute_sym; apply: Zz; rewrite ?groupV.
-  rewrite -/z {4}(divn_eq (p ^ _) 2) modn2 odd_exp odd_p addn1 mulnA muln2.
-  rewrite half_double {3}expnS -mulnA expgn_mul expH' ?groupV // exp1gn mulg1.
-  rewrite expVgn -(autmE Af) -morphX ?(subsetP sHG) //= autmE.
+  rewrite -/z bin2odd ?odd_exp // {3}expnS -mulnA expgn_mul expH' ?groupV //.
+  rewrite exp1gn mulg1 expVgn -(autmE Af) -morphX ?(subsetP sHG) //= autmE.
   rewrite IHi ?mulVg ?groupX // {2}expnS expgn_mul -(expgn_mul x _ p) -expnSr.
   by rewrite xp1 exp1gn.
 have: (f ^+ q) x = x * y ^+ q.

@@ -88,7 +88,7 @@ Hypotheses (cxz : commute x [~ x, y]) (cyz : commute y [~ x, y]).
 Lemma commXXg : [~ x ^+ i, y ^+ j] = [~ x, y] ^+ (i * j).
 Proof. rewrite expgn_mul commgX commXg //; exact: commuteX. Qed.
 
-Lemma expMg_Rmul : (y * x) ^+ i = y ^+ i * x ^+ i * [~ x, y] ^+ (i * i.-1)./2.
+Lemma expMg_Rmul : (y * x) ^+ i = y ^+ i * x ^+ i * [~ x, y] ^+ bin i 2.
 Proof.
 rewrite -triangular_sum; symmetry.
 elim: i => [|k IHk] /=; first by rewrite big_geq ?mulg1.

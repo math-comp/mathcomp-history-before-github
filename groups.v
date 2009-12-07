@@ -1308,6 +1308,10 @@ Proof. by move=> x y Gy; rewrite groupMl (groupMr, groupV). Qed.
 Lemma groupR : forall x y, x \in G -> y \in G -> [~ x, y] \in G.
 Proof. by move=> x y Gx Gy; rewrite !in_group. Qed.
 
+Lemma group_prod : forall I r (P : pred I) F,
+  (forall i, P i -> F i \in G) -> \prod_(i <- r | P i) F i \in G.
+Proof. exact: (@big_prop _ (fun x => x \in G)) group1 groupM. Qed.
+
 (* Inverse is an anti-morphism. *)
 
 Lemma invGid : G^-1 = G. Proof. by apply/setP=> x; rewrite inE groupV. Qed.
@@ -1612,6 +1616,7 @@ Notation "[ 'subg' G ]" := [set: subg_of G]
 Notation "[ 'subg' G ]" := [set: subg_of G]%G : subgroup_scope.
 
 Prenex Implicits subg sgval subg_of.
+Bind Scope group_scope with subg_of.
 
 Implicit Arguments trivgP [gT G].
 Implicit Arguments trivGP [gT G].
