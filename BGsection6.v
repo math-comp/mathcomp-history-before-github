@@ -89,7 +89,7 @@ move: prime_p; rewrite /p card_quotient ?normal_norm // -divgS ?normal_sub //.
 by rewrite /= -/G' -GHK TI_cardMg ?mulKn.
 Qed.
 
-
+(* 6.5(a) *)
 Lemma prod_norm_coprime_subs_derI : forall G K U H, 
   K * U = G -> K <| G -> H \subset U -> coprime #|H| #|K| ->
    H :&: G^`(1) = H :&: U^`(1).
@@ -147,7 +147,8 @@ have sHG'U' : H :&: G' \subset U'.
 by apply/eqP; rewrite eqEsubset subsetI sHG'U' subsetIl /= setIS // (lcnS 1).
 Qed.
 
-Lemma sol_prod_normal_coprime_subs_centralise_conjg : forall G K U H, 
+(* 6.5(c) *)
+Lemma sol_prod_norm_coprime_subs_centralise_conjg : forall G K U H, 
   solvable G -> K * U = G -> K <| G -> H \subset U -> coprime #|H| #|K| ->
    forall g, g \in G -> H :^ g \subset U -> 
      exists2 c, c \in 'C_K(H) & exists2 u, u \in U & g = c * u.
@@ -207,7 +208,8 @@ have{HcH} hch1 :  c^-1 * h * c * h^-1 = 1.
 by rewrite -(inj_eq (mulgI c^-1)) -(inj_eq (mulIg h^-1)); gsimpl; apply/eqP.
 Qed.
 
-Lemma sol_prod_normal_coprime_subs_norm_cent_prod : forall G K U H, 
+(* 6.5(b) *)
+Lemma sol_prod_norm_coprime_subs_norm_cent_prod : forall G K U H, 
   solvable G -> K * U = G -> K <| G -> H \subset U -> coprime #|H| #|K| ->
   'N_G(H) = 'C_K(H) * 'N_U(H).
 Proof.
@@ -218,7 +220,7 @@ apply/eqP; rewrite eqEsubset; apply/andP; split; last first.
   by rewrite groupM // -sub1set (subset_trans _ (cent_sub _)) ?sub1set.
 apply/subsetP=> n; case/setIP=> nG; move/normP=> HnH.
 have sHnU : H :^ n \subset U by rewrite HnH (subset_trans sHU).
-case: (sol_prod_normal_coprime_subs_centralise_conjg _ _ nKG sHU _ nG) =>//.
+case: (sol_prod_norm_coprime_subs_centralise_conjg _ _ nKG sHU _ nG) =>//.
 move=> c cC [u uU defn]; rewrite defn mem_mulg // in_setI uU /=. 
 have HcH : H :^ c = H.
   apply/normP; rewrite -sub1set (subset_trans _ (cent_sub _)) // sub1set.
@@ -226,5 +228,5 @@ have HcH : H :^ c = H.
 by apply/normP; rewrite -{1}HcH -conjsgM -defn. 
 Qed.
 
-
 End Six.
+
