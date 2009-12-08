@@ -100,29 +100,27 @@ set G' :=  G^`(1); set U' := U^`(1); case/andP: nKG=> sKG sGnK.
 have sUG : U \subset G by rewrite -defG mulg_subr.
 have sUnK : U \subset 'N(K) by apply: (subset_trans sUG sGnK).
 have nKU' : U' \subset 'N(K) by rewrite comm_subG.
-have keyprop : G' \subset K * U'.
-  rewrite /G' /U' !dergSn !derg0 -defG -{2}comm_mulgenE //.
+have keyprop : G' \subset K <*> U'.
+  rewrite norm_mulgenEr //= /G' /U' !dergSn !derg0 -defG -{2}comm_mulgenE //.
   rewrite commMG ?normsRr ?mulgen_subr //= ?comm_mulgenE //.
   rewrite commGC comKU commMG ?normsRr // [[~:_, _ * _]]commGC -comKU.
-  rewrite commMG  ?normsRr // -commMG ?normsRr // mulgA.
+  rewrite commMG ?normsRr // -commMG ?normsRr // mulgA.
   rewrite [[~:K,_]]commGC -comm_mulgenE // -commMG ?normsRl ?mulgen_subl //=.
   rewrite comm_mulgenE // -comKU -mulgA mulGid comKU mulSg // commMG ?normsRr //.
   by rewrite -{4}(@mulGid _ K) mulgSS ?(der_sub0 _ 1) ?commg_subr.
-have abelGKU : abelian ( G / (K * U')).
-  by rewrite -norm_mulgenEr //= sub_der1_abelian //= norm_mulgenEr.
-have sKU'G : K * U' \subset G. 
-  by rewrite mul_subG // (subset_trans _ sUG) // (der_sub0 _ 1).
-have nKU'G : G \subset 'N(K * U').
-  rewrite -norm_mulgenEr //= -commg_subl /= norm_mulgenEr //=.
-  by rewrite (subset_trans _ keyprop) // commgSS //.
-have {abelGKU}sG'KU': G' \subset K * U'.
-  rewrite /G' {1}[_^`(_)]derg1 -norm_mulgenEr //=.
-  by rewrite -quotient_cents2 //= norm_mulgenEr. 
+have abelGKU : abelian ( G / (K <*> U')) by rewrite sub_der1_abelian.
+have sKU'G : K <*> U' \subset G. 
+  by rewrite mulgen_subG // sKG (subset_trans _ sUG) // (der_sub0 _ 1).
+have nKU'G : G \subset 'N(K <*> U').
+  by rewrite -commg_subl //= (subset_trans _ keyprop) // commgSS.
+have{abelGKU} sG'KU' : G' \subset K * U'.
+  by rewrite /G' {1}[_^`(_)]derg1 -norm_mulgenEr // -quotient_cents2.
 have nUKU' : (U :&: K) \subset 'N(U') by apply: normsRl; rewrite subIset ?subxx.
 have{sG'KU'} sHG'UKU': H :&: G' \subset (U :&: K) * U'.
   by rewrite group_modr ?der_sub0 // (subset_trans _ (setIS _ sG'KU')) // setSI.
 have {keyprop} squot: (U :&: G') / U' \subset (U :&: K) <*> U' / U'.
-  by apply: quotientS; rewrite norm_mulgenEl //= group_modr ?der_sub0 // setISS.
+  rewrite quotientS // norm_mulgenEl // group_modr ?setIS ?der_sub0 //. 
+  by rewrite -norm_mulgenEr ?keyprop. 
 have isoquot: (U :&: K) <*> U' / U' \isog (U :&: K) / (U' :&: K).
   have <- : (U' :&: (U :&: K)) = (U' :&: K).
     rewrite setIA (_:U^`(1) :&: U = U^`(1)) //; apply/eqP; rewrite eqEsubset.
