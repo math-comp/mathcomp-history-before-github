@@ -4,7 +4,7 @@ Require Import finfun bigops prime binomial.
 
 (*****************************************************************************)
 (*   The algebraic part of the Algebraic Hierarchy, as described in          *)
-(*           "Packaging mathematical structures", TPHOLs09, by               *)
+(*          ``Packaging mathematical structures'', TPHOLs09, by              *)
 (*   Francois Garillot, Georges Gonthier, Assia Mahboubi, Laurence Rideau    *)
 (*                                                                           *)
 (* This file defines for each Structure (Zmodule, Ring, etc ...) its type,   *)
@@ -45,9 +45,9 @@ Require Import finfun bigops prime binomial.
 (*                       numbers p such that p%:R = 0 in R. The set [char p] *)
 (*                       has a most one element, and is represented as a     *)
 (*                       pred_nat collective predicate (see prime.v); thus   *)
-(*                       the statement p \in [char R] can be read as "R has  *)
-(*                       characteristic p", while [char R] =i pred0 means    *)
-(*                       "R has characteristic 0" when R is a field.         *)
+(*                       the statement p \in [char R] can be read as ``R has *)
+(*                       characteristic p'', while [char R] =i pred0 means   *)
+(*                       ``R has characteristic 0'' when R is a field.       *)
 (* Frobenius_aut chRp == the Frobenius automorphism mapping x : R to x ^+ p, *)
 (*                       where chRp : p \in [char R] is a proof that R has   *)
 (*                       indeed (non-zero) characteristic p.                 *)
@@ -169,10 +169,10 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-(* Abstract algebra framework for ssreflect.                        *)
-(* We define a number of structures that "package" common algebraic *)
-(* properties of operations. These extend the combinatorial classes *)
-(* with notation and theory for classical algebraic structures.     *)
+(* Abstract algebra framework for ssreflect.                          *)
+(* We define a number of structures that ``package'' common algebraic *)
+(* properties of operations. These extend the combinatorial classes   *)
+(* with notation and theory for classical algebraic structures.       *)
 
 Reserved Notation "+%R" (at level 0).
 Reserved Notation "-%R" (at level 0).
@@ -436,7 +436,7 @@ Local Notation "x ^+ n" := (exp x n).
 Local Notation "\prod_ ( i <- r | P ) F" := (\big[*%R/1]_(i <- r | P) F).
 Local Notation "\prod_ ( i \in A ) F" := (\big[*%R/1]_(i \in A) F).
 
-(* The "field" characteristic; the definition, and many of the theorems,     *)
+(* The ``field'' characteristic; the definition, and many of the theorems,   *)
 (* has to apply to rings as well; indeed, we need the Frobenius automorphism *)
 (* results for a non commutative ring in the proof of Gorenstein 2.6.3.      *)
 Definition char (R : Ring.type) of phant R : nat_pred :=
