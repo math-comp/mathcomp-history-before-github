@@ -89,7 +89,8 @@ move: prime_p; rewrite /p card_quotient ?normal_norm // -divgS ?normal_sub //.
 by rewrite /= -/G' -GHK TI_cardMg ?mulKn.
 Qed.
 
-Lemma six5a : forall G K U H, 
+
+Lemma prod_norm_coprime_subs_derI : forall G K U H, 
   K * U = G -> K <| G -> H \subset U -> coprime #|H| #|K| ->
    H :&: G^`(1) = H :&: U^`(1).
 Proof.
@@ -100,17 +101,13 @@ have sUG : U \subset G by rewrite -defG mulg_subr.
 have sUnK : U \subset 'N(K) by apply: (subset_trans sUG sGnK).
 have nKU' : U' \subset 'N(K) by rewrite comm_subG.
 have keyprop : G' \subset K * U'.
-  rewrite /G' dergSn derg0 /U' dergSn derg0 -defG.
-  rewrite -{2}comm_mulgenE // commMG ?normsRr ?mulgen_subr //= ?comm_mulgenE //.
+  rewrite /G' /U' !dergSn !derg0 -defG -{2}comm_mulgenE //.
+  rewrite commMG ?normsRr ?mulgen_subr //= ?comm_mulgenE //.
   rewrite commGC comKU commMG ?normsRr // [[~:_, _ * _]]commGC -comKU.
-  rewrite commMG  ?normsRr // mulgA -mulgA -commMG ?normsRr // mulgA.
+  rewrite commMG  ?normsRr // -commMG ?normsRr // mulgA.
   rewrite [[~:K,_]]commGC -comm_mulgenE // -commMG ?normsRl ?mulgen_subl //=.
-  rewrite comm_mulgenE // -comKU -mulgA mulGid comKU.
-  rewrite -normC ?normsR // ?(subset_trans (der_sub0 U 1)) // ?normsM ?normG //. 
-  rewrite commMG ?normsRr // mulgA.
-  rewrite [[~:_,_]*_]normC ?(subset_trans (der_sub0 U 1)) ?normsRl //.
-  rewrite -[K*_]normC // [[~:U,K]]commGC -{4}(@mulGid _ K) [_*(K*_)]mulgA. 
-  by rewrite [[~:_,_]*K]normC // mulgSS ?(der_sub0 _ 1) // mulSg // commg_subl.
+  rewrite comm_mulgenE // -comKU -mulgA mulGid comKU mulSg // commMG ?normsRr //.
+  by rewrite -{4}(@mulGid _ K) mulgSS ?(der_sub0 _ 1) ?commg_subr.
 have abelGKU : abelian ( G / (K * U')).
   by rewrite -norm_mulgenEr //= sub_der1_abelian //= norm_mulgenEr.
 have sKU'G : K * U' \subset G. 
@@ -150,7 +147,7 @@ have sHG'U' : H :&: G' \subset U'.
 by apply/eqP; rewrite eqEsubset subsetI sHG'U' subsetIl /= setIS // (lcnS 1).
 Qed.
 
-Lemma six5c : forall G K U H, 
+Lemma sol_prod_normal_coprime_subs_centralise_conjg : forall G K U H, 
   solvable G -> K * U = G -> K <| G -> H \subset U -> coprime #|H| #|K| ->
    forall g, g \in G -> H :^ g \subset U -> 
      exists2 c, c \in 'C_K(H) & exists2 u, u \in U & g = c * u.
@@ -164,24 +161,23 @@ have comKH : commute H K.
 have sHkU : H :^ k \subset U.
   rewrite -(@lcoset_id _ U u^-1^-1) ?groupV // -(@rcoset_id _ U u^-1) ?groupV //.
   by rewrite -conjsgE; move: sHgU; rewrite defg conjsgM sub_conjg.
-have sHkHK : H :^ k \subset H * K.
-  by rewrite -(@mulGid _ K) mulgA comKH -mulgA conjsgE !mulgSS ?sub1set ?groupV. 
-have sHkHKU : H :^ k \subset H * K :&: U by rewrite subsetI sHkHK sHkU.
+have sHkHK : H :^ k \subset H <*> K.
+  rewrite comm_mulgenE // -(@mulGid _ K) mulgA comKH -mulgA.
+  by rewrite conjsgE !mulgSS ?sub1set ?groupV. 
+have sHkHKU : H :^ k \subset H <*> K :&: U by rewrite subsetI sHkHK sHkU.
 have sHnK : H \subset 'N(K).
   by rewrite (subset_trans _ sGnK) // (subset_trans sHU) // -defG mulg_subr.
 have sHHK : H \subset H <*> K by exact: mulgen_subl.
 have cpHK : coprime #|H| #|H <*> K : H|. 
-  by rewrite -?divgS //= norm_mulgenEl ?(coprime_cardMg copHK) 1?mulnC ?mulnK.
+  by rewrite -?divgS //= comm_mulgenE // (coprime_cardMg copHK) 1?mulnC ?mulnK.
 have{sHHK} phallH : pi.-Hall ((H <*> K) :&: U) H.
   rewrite /pi Hall_pi // /Hall subsetI sHU mulgen_subl ?(coprime_dvdr _ cpHK) //.
   by apply: indexSg=> /=; rewrite ?subIset ?subxx // subsetI sHU sHHK.
 have phallHk : pi.-Hall ((H <*> K) :&: U) (H :^ k).
-  rewrite /pi -(@cardJg _ _ k) Hall_pi // /Hall;
-  rewrite (subset_trans sHkHKU) //= ?comm_mulgenE ?subxx //= cardJg. 
-  rewrite -comm_mulgenE -?divgS //= comm_mulgenE //.  
-  rewrite cardJg -comm_mulgenE // divgS /= ?comm_mulgenE ?subsetI ?mulg_subl //.
-  rewrite (coprime_dvdr _ cpHK) // -comm_mulgenE // indexSg ?subIset ?subxx //.
-  by rewrite subsetI sHU /= comm_mulgenE // mulg_subl.
+  rewrite /pi -(@cardJg _ _ k) Hall_pi // /Hall //=. 
+  rewrite (subset_trans sHkHKU) ?subxx //= cardJg -?divgS //=. 
+  rewrite cardJg divgS /= ?subsetI ?mulgen_subl // (coprime_dvdr _ cpHK) //.
+  by rewrite indexSg ?subIset ?subxx // subsetI sHU /= mulgen_subl.
 have solHKU : solvable ((H <*> K) :&: U).
   by apply: (solvableS _ solG); rewrite subIset // sUG orbC.
 case:(coprime_Hall_trans (sub1G _) _ solHKU phallHk (sub1G _) phallH (sub1G _)).
@@ -211,7 +207,7 @@ have{HcH} hch1 :  c^-1 * h * c * h^-1 = 1.
 by rewrite -(inj_eq (mulgI c^-1)) -(inj_eq (mulIg h^-1)); gsimpl; apply/eqP.
 Qed.
 
-Lemma six5b : forall G K U H, 
+Lemma sol_prod_normal_coprime_subs_norm_cent_prod : forall G K U H, 
   solvable G -> K * U = G -> K <| G -> H \subset U -> coprime #|H| #|K| ->
   'N_G(H) = 'C_K(H) * 'N_U(H).
 Proof.
@@ -222,11 +218,11 @@ apply/eqP; rewrite eqEsubset; apply/andP; split; last first.
   by rewrite groupM // -sub1set (subset_trans _ (cent_sub _)) ?sub1set.
 apply/subsetP=> n; case/setIP=> nG; move/normP=> HnH.
 have sHnU : H :^ n \subset U by rewrite HnH (subset_trans sHU).
-case: (six5c solG defG nKG sHU copHK nG sHnU)=> c cC [u uU defn]; rewrite defn.
+case: (sol_prod_normal_coprime_subs_centralise_conjg _ _ nKG sHU _ nG) =>//.
+move=> c cC [u uU defn]; rewrite defn mem_mulg // in_setI uU /=. 
 have HcH : H :^ c = H.
   apply/normP; rewrite -sub1set (subset_trans _ (cent_sub _)) // sub1set.
   by case/setIP: cC. 
-apply: mem_mulg; rewrite // in_setI uU /=. 
 by apply/normP; rewrite -{1}HcH -conjsgM -defn. 
 Qed.
 
