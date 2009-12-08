@@ -43,13 +43,14 @@ dihedral.v
 hall.v
 coprime_act.v
 mxrepresentation.v
+transfer.v
 BGsection1.v
+BGsection2.v
 BGsection6.v
 frobenius.v
 alt.v
 burnside_app.v
 theorem3_6.v
-transfer.v
 psmall.v
 
 
