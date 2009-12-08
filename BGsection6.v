@@ -118,10 +118,10 @@ have{abelGKU} sG'KU' : G' \subset K * U'.
 have nUKU' : (U :&: K) \subset 'N(U') by apply: normsRl; rewrite subIset ?subxx.
 have{sG'KU'} sHG'UKU': H :&: G' \subset (U :&: K) * U'.
   by rewrite group_modr ?der_sub0 // (subset_trans _ (setIS _ sG'KU')) // setSI.
-have {keyprop} squot: (U :&: G') / U' \subset (U :&: K) <*> U' / U'.
+have {keyprop} squot : (U :&: G') / U' \subset (U :&: K) <*> U' / U'.
   rewrite quotientS // norm_mulgenEl // group_modr ?setIS ?der_sub0 //. 
   by rewrite -norm_mulgenEr ?keyprop. 
-have isoquot: (U :&: K) <*> U' / U' \isog (U :&: K) / (U' :&: K).
+have isoquot : (U :&: K) <*> U' / U' \isog (U :&: K) / (U' :&: K).
   have <- : (U' :&: (U :&: K)) = (U' :&: K).
     rewrite setIA (_:U^`(1) :&: U = U^`(1)) //; apply/eqP; rewrite eqEsubset.
     by rewrite subsetIl subsetI der_sub0 subxx.
@@ -130,7 +130,7 @@ have isoquot: (U :&: K) <*> U' / U' \isog (U :&: K) / (U' :&: K).
 have pi'UKU'K : pi^'.-group ((U :&: K) / (U' :&: K)).
   rewrite morphim_pgroup // -[_.-group _]coprime_pi' //.
   by rewrite (@coprimegS _ K) ?subsetIr.
-have {squot isoquot} pi'UG'U'  : pi^'.-group((U :&: G') / U').
+have {squot isoquot} pi'UG'U' : pi^'.-group((U :&: G') / U').
   by apply: (pgroupS squot); rewrite /pgroup (isog_card isoquot).
 have piHG'U' : pi.-group ((H :&: G') / U').
   apply: morphim_pgroup=> /=.
