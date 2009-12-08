@@ -185,18 +185,17 @@ case:(coprime_Hall_trans (sub1G _) _ solHKU phallHk (sub1G _) phallH (sub1G _)).
 move=> w wT /= HkHw {solHKU phallH phallHk pi}. 
 have wHKU : w \in H * (K :&: U).
   by rewrite (subsetP _ _ wT) //= subIset ?comm_mulgenE // group_modl // subxx.
-case/mulsgP: wHKU => h1 w1 H1H; case/setIP => w1K w1U defw.
+case/mulsgP: wHKU => h1 w1 h1H; case/setIP => w1K w1U defw.
 pose c := k * w1^-1; pose v := w1 * u.
 have cK : c \in K by rewrite groupM ?groupV.
 have HcH : H :^ c = H.
   rewrite /c conjsgM (congr_group HkHw) defw -conjsgM -mulgA mulgV mulg1.
-  by apply/normP; rewrite -sub1set normsG // sub1set.
+  by apply/normP; rewrite (subsetP (normsG _) _ h1H).
 exists c; last by exists v; rewrite ?defg /c /v ?groupM //; gsimpl.
 rewrite in_setI cK //=; apply/centP=> h hH; apply/eqP.
 have KhcKh : K :* h^c = K :* h.
-  rewrite conjgE rcosetM (mulGSgid (set11 _) _) ?sub1set ?groupV //. 
-  rewrite rcosetM norm_rlcoset -?mulgA ?(mulGSgid (set11 _) _) ?sub1set //.
-  by rewrite -sub1set (subset_trans _ sHnK) // sub1set.
+  rewrite conjgE rcosetM rcoset_id ?groupV // rcosetM.
+  by rewrite norm_rlcoset -?mulgA ?rcoset_id ?(subsetP sHnK).
 have KhchK :  K :* (h^c * h^-1) = K.
   by rewrite rcosetM KhcKh -rcosetM mulgV mulg1.
 have hchK : h^c * h^-1 \in K by rewrite -sub1set -KhchK -mulGS subxx. 
@@ -213,16 +212,14 @@ Lemma sol_prod_norm_coprime_subs_norm_cent_prod : forall G K U H,
 Proof.
 move=> G K U H solG defG nKG sHU copHK.
 apply/eqP; rewrite eqEsubset; apply/andP; split; last first.
-  apply/subsetP=> c; case/mulsgP=>k u; case/setIP=> kK kC.
-  case/setIP=> uU uN ->; rewrite -defG in_setI mem_mulg //=.
-  by rewrite groupM // -sub1set (subset_trans _ (cent_sub _)) ?sub1set.
+  apply/subsetP=> c; case/mulsgP=>k u; case/setIP=> kK kC; case/setIP=> uU uN ->.
+  by rewrite -defG in_setI mem_mulg //= groupM // (subsetP (cent_sub _)).
 apply/subsetP=> n; case/setIP=> nG; move/normP=> HnH.
 have sHnU : H :^ n \subset U by rewrite HnH (subset_trans sHU).
 case: (sol_prod_norm_coprime_subs_centralise_conjg _ _ nKG sHU _ nG) =>//.
 move=> c cC [u uU defn]; rewrite defn mem_mulg // in_setI uU /=. 
 have HcH : H :^ c = H.
-  apply/normP; rewrite -sub1set (subset_trans _ (cent_sub _)) // sub1set.
-  by case/setIP: cC. 
+  by apply/normP; rewrite (subsetP (cent_sub _)) //; case/setIP: cC. 
 by apply/normP; rewrite -{1}HcH -conjsgM -defn. 
 Qed.
 
