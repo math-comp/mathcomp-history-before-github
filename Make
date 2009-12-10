@@ -46,6 +46,7 @@ mxrepresentation.v
 transfer.v
 BGsection1.v
 BGsection2.v
+BGappendixAB.v
 BGsection6.v
 frobenius.v
 alt.v

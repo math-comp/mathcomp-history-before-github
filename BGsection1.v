@@ -25,6 +25,34 @@ Section BGsection1.
 Variable gT : finGroupType.
 Implicit Type p : nat.
 
+(* This is B & G, Proposition 1.3. We give a direct proof for now, in lieu of *)
+(* applying the (stronger) Proposition 1.2.                                   *)
+Lemma cent_sub_Fitting : forall G : {group gT},
+  solvable G -> 'C_G('F(G)) \subset 'F(G).
+Proof.
+move=> G solG; rewrite -quotient_sub1 ?cents_norm ?subsetIr //.
+apply/trivgP; apply/eqP; apply/idPn => /=; set Cq := (_ / _).
+have [sFG nFG]:= andP (Fitting_normal G).
+have nsCq: Cq <| G / 'F(G).
+  by rewrite quotient_normal // -{3}(setIidPl nFG) subcent_normal.
+case/(solvable_norm_abelem _ nsCq) => [|Mq [sMCq nMGq ntMq]].
+  by rewrite morphim_sol // (solvableS (subsetIl _ _)).
+case/abelemP=> p p_pr; case/andP=> _ pMq; case/negP: ntMq.
+case/(inv_quotientN (Fitting_normal G)): nMGq => M defMq sFM nsMG.
+have sMG := normal_sub nsMG; have nFM := subset_trans sMG nFG.
+rewrite defMq (sameP eqP trivgP) quotient_sub1 // Fitting_max //.
+move: sMCq; rewrite defMq quotientSK //; move/setIidPr.
+rewrite -group_modl //= setIAC (setIidPr sMG) => defC.
+have [P sylP]:= Sylow_exists p 'C_M('F(G)); have [sPC pP _]:= and3P sylP.
+have [sPM sPCF]: P \subset M /\ 'F(G) \subset 'C(P).
+  by apply/andP; rewrite centsC -subsetI.
+suffices <-: 'F(G) * P = M by rewrite mulg_nil // Fitting_nil (pgroup_nil pP).
+apply/eqP; rewrite eqEsubset -{1}defC mulgS //= -quotientSK // -defMq.
+rewrite -subset_leqif_card; last by rewrite defMq quotientS.
+rewrite -(part_pnat pMq) defMq -defC quotient_mulgr; apply/eqP.
+by apply: card_Hall; rewrite morphim_pSylow ?(subset_trans sPM).
+Qed.
+
 (* Stronger variant of B & G 1.6(a) *)
 Lemma coprimeR_cent_prod : forall A G : {group gT},
     A \subset 'N(G) -> coprime #|[~: G, A]| #|A| -> solvable [~: G, A] ->
@@ -174,7 +202,6 @@ Lemma comm_cent_cent_norm : forall A G H : {group gT},
     A \subset 'N(G) -> A \subset 'C(H) -> G \subset 'N(H) ->
   [~: G, A] \subset 'C(H).
 Proof.
-
 move=> A G H nGA; move/centsP=> cHA nHG; rewrite commGC gen_subG centsC.
 apply/centsP=> x Hx ay; case/imset2P=> a y Aa Gy ->{ay}; red.
 rewrite mulgA -[x * _]cHA ?groupV // -!mulgA; congr (_ * _).
