@@ -260,5 +260,84 @@ have HcH : H :^ c = H.
 by apply/normP; rewrite -{1}HcH -conjsgM -defn. 
 Qed.
 
+Lemma plenght1_pSylow : forall G p,
+  p.-length_1 G ->
+    p.-Sylow(G / 'O_p^'(G)) 'O_p(G / 'O_p^'(G)).
+move=> G p; rewrite /plength_1 lastI [rcons]lock /= -lock; move/eqP=> pl1G.
+rewrite /pHall pcore_pgroup -{1}quotient_pcore_mod quotientS ?pcore_mod_sub //=. 
+rewrite -card_quotient ?normal_norm ?pcore_normal //=.
+have ? := @pcore_normal p^' _ G; have ? := @pseries_normal _ _ G.
+have ? : 'O_{p^'}(G) \subset 'O_{p^',_}(G) by move=>*; rewrite pseries_sub_catl.
+rewrite -quotient_pseries2 -pseries1 (isog_card (third_isog _ _ _)) //=.
+by rewrite -{5}pl1G quotient_pseries /= [pnat _ _]pcore_pgroup.
+Qed.
+
+Lemma six6a : forall G S : {group gT}, forall p : nat, 
+  solvable G -> p.-Sylow(G) S -> p.-length_1 G ->
+    S \subset 'O_{p^',p}(G) /\ 'O_p^'(G) * 'N_G(S) = G.
+Proof.
+move=> G S p solG psylS pl1G; set M := 'O_p^'(G); set U := 'N_G(S).
+have sSG : S \subset G by case/andP: psylS.
+have nOp'G : G \subset 'N('O_p^'(G)) := char_norm (pcore_char _ _).
+have nSOp'G : S \subset 'N('O_p^'(G)) := subset_trans sSG nOp'G.
+have {pl1G} pl1G := plenght1_pSylow pl1G.
+have nOp'pGG : 'O_{p^',p}(G) <| G by apply: pseries_normal.
+have defOp'pG : M * S = 'O_{p^',p}(G).
+  rewrite -norm_mulgenEr //=; apply: (@quotient_inj _ 'O_p^'(G))=>/=.
+    by rewrite /normal mulgen_subl (subset_trans _ nOp'G) // mulgen_subG pcore_sub sSG.
+    by rewrite -pseries1 /normal pseries_norm2 pseries_sub_catl.
+  rewrite mulgenC quotient_mulgen ?(subset_trans _ nOp'G) //. 
+  have {pl1G} pl1G : p.-Sylow(G / 'O_p^'(G)) ('O_{p^',p}(G) / 'O_p^'(G)).
+    by rewrite -pseries1  [[:: p^'; _]]lastI [rcons]lock /= -lock quotient_pseries pseries1.
+  rewrite (uniq_normal_Hall pl1G _ _) ?normal_norm ?quotient_normal //=. 
+  by apply: Hall_max; exact: morphim_pSylow.
+split; first by rewrite -defOp'pG mulg_subr // group1.
+have sylOP'pS: p.-Sylow('O_{p^',p}(G)) S.
+  by apply: (pHall_subl _ _ psylS); rewrite ?pseries_sub //= -defOp'pG mulg_subr // group1.
+rewrite -(Frattini_arg nOp'pGG sylOP'pS) /= -defOp'pG -/U -mulgA (@mulSGid _ _ S) //= subsetI.
+by rewrite sSG normG.
+Qed.
+
+Lemma six6b : forall G S : {group gT}, forall p : nat, 
+  solvable G -> p.-Sylow(G) S -> p.-length_1 G ->
+   S \subset G^`(1) -> S \subset ('N_G(S))^`(1).
+Proof.
+move=> G S p solG psylS pl1G sSG'; case: (six6a solG psylS pl1G)=> _ defG {pl1G solG}.
+have [sSG pgS _] := and3P psylS; have nOp'G : 'O_p^'(G) <| G := char_normal (pcore_char _ _).
+have {sSG} sSNS : S \subset 'N_G(S) by rewrite subsetI sSG normG.
+have cop : coprime #|S| #|'O_p^'(G)| by apply: (pnat_coprime pgS); apply: pcore_pgroup.
+rewrite (subset_trans _ (subsetIr S _)) // -(prod_norm_coprime_subs_derI defG nOp'G sSNS cop).
+by rewrite subsetI sSG' subxx.
+Qed.
+
+Lemma six6c : forall G S : {group gT}, forall p : nat, 
+  solvable G -> p.-Sylow(G) S -> p.-length_1 G ->
+  forall Y, Y != set0 -> Y \subset S -> forall x, x \in G -> 
+  Y :^ x \subset S -> 
+     exists2 c, c \in 'C_G(Y) & exists2 g, g \in 'N_G(S) & c * g = x.
+Proof.
+move=> G S p solG psylS pl1G Y neY sYS x xG YxS. case/and3P: (psylS)=> sSG pgS _.
+have cop : coprime #|<<Y>>| #|'O_p^'(G)|.
+  by apply: (pnat_coprime _ (pcore_pgroup _ _)); apply: (pgroupS _ pgS); rewrite gen_subG.
+have [_ defG] := (six6a solG psylS pl1G). 
+have nOp'G : 'O_p^'(G) <| G := char_normal (pcore_char _ _).
+have sYNS : <<Y>> \subset 'N_G(S).
+  by rewrite gen_subG subsetI (subset_trans sYS) // (subset_trans _ (normG _)).
+have sYxNS :  <<Y>> :^ x \subset 'N_G(S).
+  by rewrite -genJ gen_subG (subset_trans YxS) // subsetI sSG normG.
+case: (sol_prod_norm_coprime_subs_centralise_conjg _ defG _ _ _ _ sYxNS)=>// a aCY [b bNS ->].
+exists a; last exists b=>//; case/setIP: aCY=> aO aCY; rewrite in_setI.
+by rewrite (subsetP (pcore_sub p^' G)) //= (subsetP (centS (sub_gen (subxx _ )))).
+Qed.
+
+(*
+Lemma six6d : forall G S : {group gT}, forall p : nat, 
+  solvable G -> p.-Sylow(G) S -> p.-length_1 G ->
+   forall Q, p.-subgroup(G) Q -> exists2 x, x \in 'C_G(Q :&: S) & Q :^ x \subset S.
+Proof.
+move=> G S p solG psylS pl1G Q psgQ.
+Qed.
+*)
+
 End Six.
 
