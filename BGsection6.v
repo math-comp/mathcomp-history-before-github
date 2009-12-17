@@ -3,7 +3,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import fintype paths finfun bigops finset prime groups.
 Require Import morphisms perm action automorphism normal cyclic.
 Require Import abelian gfunc pgroups nilpotent gprod center commutators.
-Require Import maximal sylow coprime_act BGsection1 BGappendixAB.
+Require Import maximal sylow hall coprime_act BGsection1 BGappendixAB.
 (*******************************************************************************)
 
 Set Implicit Arguments.
@@ -274,7 +274,7 @@ Qed.
 
 Lemma six6a : forall G S : {group gT}, forall p : nat, 
   solvable G -> p.-Sylow(G) S -> p.-length_1 G ->
-    S \subset 'O_{p^',p}(G) /\ 'O_p^'(G) * 'N_G(S) = G.
+    S * 'O_p^'(G) = 'O_{p^',p}(G) /\ 'O_p^'(G) * 'N_G(S) = G.
 Proof.
 move=> G S p solG psylS pl1G; set M := 'O_p^'(G); set U := 'N_G(S).
 have sSG : S \subset G by case/andP: psylS.
@@ -283,61 +283,104 @@ have nSOp'G : S \subset 'N('O_p^'(G)) := subset_trans sSG nOp'G.
 have {pl1G} pl1G := plenght1_pSylow pl1G.
 have nOp'pGG : 'O_{p^',p}(G) <| G by apply: pseries_normal.
 have defOp'pG : M * S = 'O_{p^',p}(G).
-  rewrite -norm_mulgenEr //=; apply: (@quotient_inj _ 'O_p^'(G))=>/=.
-    by rewrite /normal mulgen_subl (subset_trans _ nOp'G) // mulgen_subG pcore_sub sSG.
-    by rewrite -pseries1 /normal pseries_norm2 pseries_sub_catl.
-  rewrite mulgenC quotient_mulgen ?(subset_trans _ nOp'G) //. 
+  rewrite -norm_mulgenEr //=; apply: (@quotient_inj _ 'O_p^'(G));rewrite /normal.
+    by rewrite mulgen_subl (subset_trans _ nOp'G) // mulgen_subG pcore_sub sSG.
+    by rewrite /= -pseries1 pseries_norm2 pseries_sub_catl.
+  rewrite /= mulgenC quotient_mulgen ?(subset_trans _ nOp'G) //=. 
   have {pl1G} pl1G : p.-Sylow(G / 'O_p^'(G)) ('O_{p^',p}(G) / 'O_p^'(G)).
-    by rewrite -pseries1  [[:: p^'; _]]lastI [rcons]lock /= -lock quotient_pseries pseries1.
+    by rewrite lastI -pseries1 quotient_pseries pseries1 /=.
   rewrite (uniq_normal_Hall pl1G _ _) ?normal_norm ?quotient_normal //=. 
   by apply: Hall_max; exact: morphim_pSylow.
-split; first by rewrite -defOp'pG mulg_subr // group1.
+split; first by rewrite normC // defOp'pG.
 have sylOP'pS: p.-Sylow('O_{p^',p}(G)) S.
-  by apply: (pHall_subl _ _ psylS); rewrite ?pseries_sub //= -defOp'pG mulg_subr // group1.
-rewrite -(Frattini_arg nOp'pGG sylOP'pS) /= -defOp'pG -/U -mulgA (@mulSGid _ _ S) //= subsetI.
-by rewrite sSG normG.
+  by rewrite (pHall_subl _ _ psylS) ?pseries_sub //= -defOp'pG mulg_subr ?group1.
+rewrite -(Frattini_arg nOp'pGG sylOP'pS) /= -defOp'pG -/U -mulgA.
+by rewrite (@mulSGid _ _ S) //= subsetI sSG normG.
 Qed.
 
 Lemma six6b : forall G S : {group gT}, forall p : nat, 
   solvable G -> p.-Sylow(G) S -> p.-length_1 G ->
    S \subset G^`(1) -> S \subset ('N_G(S))^`(1).
 Proof.
-move=> G S p solG psylS pl1G sSG'; case: (six6a solG psylS pl1G)=> _ defG {pl1G solG}.
-have [sSG pgS _] := and3P psylS; have nOp'G : 'O_p^'(G) <| G := char_normal (pcore_char _ _).
+move=> G S p solG psylS; case/(six6a solG psylS) => _ defG sSG' {pl1G solG}.
+have [sSG pgS _] := and3P psylS; have nOp'G := char_normal (pcore_char p^' G).
 have {sSG} sSNS : S \subset 'N_G(S) by rewrite subsetI sSG normG.
-have cop : coprime #|S| #|'O_p^'(G)| by apply: (pnat_coprime pgS); apply: pcore_pgroup.
-rewrite (subset_trans _ (subsetIr S _)) // -(prod_norm_coprime_subs_derI defG nOp'G sSNS cop).
-by rewrite subsetI sSG' subxx.
+have cop : coprime #|S| #|'O_p^'(G)|.
+  by rewrite (pnat_coprime pgS) // [_.-nat_]pcore_pgroup.
+rewrite (subset_trans _ (subsetIr S _)) //.
+by rewrite -(prod_norm_coprime_subs_derI defG nOp'G sSNS cop) subsetI sSG' subxx.
 Qed.
 
 Lemma six6c : forall G S : {group gT}, forall p : nat, 
   solvable G -> p.-Sylow(G) S -> p.-length_1 G ->
-  forall Y, Y != set0 -> Y \subset S -> forall x, x \in G -> 
+  forall Y : {set gT}, Y \subset S -> forall x, x \in G -> 
   Y :^ x \subset S -> 
      exists2 c, c \in 'C_G(Y) & exists2 g, g \in 'N_G(S) & c * g = x.
 Proof.
-move=> G S p solG psylS pl1G Y neY sYS x xG YxS. case/and3P: (psylS)=> sSG pgS _.
+move=> G S p solG psylS pl1G Y sYS x xG YxS. case/and3P: (psylS)=> sSG pgS _.
 have cop : coprime #|<<Y>>| #|'O_p^'(G)|.
-  by apply: (pnat_coprime _ (pcore_pgroup _ _)); apply: (pgroupS _ pgS); rewrite gen_subG.
+  by rewrite (pnat_coprime (pgroupS _ pgS) (pcore_pgroup _ _)) ?gen_subG.
 have [_ defG] := (six6a solG psylS pl1G). 
 have nOp'G : 'O_p^'(G) <| G := char_normal (pcore_char _ _).
 have sYNS : <<Y>> \subset 'N_G(S).
   by rewrite gen_subG subsetI (subset_trans sYS) // (subset_trans _ (normG _)).
 have sYxNS :  <<Y>> :^ x \subset 'N_G(S).
   by rewrite -genJ gen_subG (subset_trans YxS) // subsetI sSG normG.
-case: (sol_prod_norm_coprime_subs_centralise_conjg _ defG _ _ _ _ sYxNS)=>// a aCY [b bNS ->].
-exists a; last exists b=>//; case/setIP: aCY=> aO aCY; rewrite in_setI.
-by rewrite (subsetP (pcore_sub p^' G)) //= (subsetP (centS (sub_gen (subxx _ )))).
+case: (sol_prod_norm_coprime_subs_centralise_conjg _ defG _ _ _ _ sYxNS) => // a.
+case/setIP => a0 aCY [b bNS ->]; exists a; last exists b=>//; rewrite in_setI.
+by rewrite (subsetP (pcore_sub p^' G)) //= (subsetP (centS (sub_gen (subxx _)))).
 Qed.
 
-(*
+(* very ugly, to be polished *)
 Lemma six6d : forall G S : {group gT}, forall p : nat, 
   solvable G -> p.-Sylow(G) S -> p.-length_1 G ->
-   forall Q, p.-subgroup(G) Q -> exists2 x, x \in 'C_G(Q :&: S) & Q :^ x \subset S.
+  forall Q : {group gT}, p.-subgroup(G) Q -> 
+    exists2 x, x \in 'C_G(Q :&: S) & Q :^ x \subset S. 
 Proof.
-move=> G S p solG psylS pl1G Q psgQ.
+move=> G S p solG psS pl1G; case: (six6a solG psS pl1G)=> defOp'pG defG Q psgQ.
+have {pl1G} pl1G := plenght1_pSylow pl1G; have [sQG pgQ] := andP psgQ.
+have nOp'G : G \subset 'N('O_p^'(G)) := char_norm (pcore_char _ _).
+have sOp'Op'p : 'O_p^'(G) \subset 'O_{p^',p}(G).
+  by rewrite -pseries1 pseries_sub_catl.
+have [sSG pgS cpSG] := and3P psS; have sSnOp' := subset_trans sSG nOp'G.
+have sQOp'pG : Q \subset 'O_{p^',p}(G).
+  case: (Sylow_subJ psS sQG pgQ) => x xG sQSx; rewrite (subset_trans sQSx) //.
+  have defGC :'N_G(S) * 'O_p^'(G) = G by rewrite normC // subIset // nOp'G.
+  rewrite -defGC in xG; case/imset2P: xG=> s o sS oO ->.
+  have snS : s \in 'N(S) by case/setIP: sS.
+  rewrite conjsgM (normP snS) -defOp'pG -(mulGid 'O_p^'(G)) mulgA normC /=.
+    by rewrite conjsgE !mulgSS ?sub1set ?groupV.
+  by rewrite mul_subG ?normG //; case/andP: psS.
+have psSOp'p : p.-Sylow('O_p^'(G) <*> S) S.
+  rewrite mulgenC norm_mulgenEl // defOp'pG (pHall_subl _ _ psS) ?pseries_sub //.
+  by rewrite /= -defOp'pG mulg_subl // group1.
+have {sQOp'pG} sQOp'pG : Q \subset 'O_p^'(G) <*> S. (* clenaup *)
+  by rewrite mulgenC norm_mulgenEl // defOp'pG.
+case: (Sylow_Jsub psSOp'p sQOp'pG pgQ)=> w /=; rewrite norm_mulgenEr //.
+case/imset2P=> x y xM yS -> sQxyS {w}.
+have sQxS : Q :^ x \subset S.
+  have y'S : y^-1 \in 'N(S) by rewrite (subsetP (normG S)) // ?groupV.
+  by rewrite -(normP y'S) -sub_conjgV invgK -conjsgM.
+exists x=>//; rewrite in_setI (subsetP (pcore_sub _ G) _ xM) /=.
+apply/centP=>z zQS; apply/eqP; case/setIP: zQS => zQ zS.
+(* redo this last part bottom up *)
+have zxz'S : z^x * z^-1 \in S.
+   by rewrite groupM ?groupV // (subsetP sQxS) // memJ_conjg.
+have ezxz : 'O_p^'(G) :* (z^x) = 'O_p^'(G) :* z.
+  rewrite conjgE rcosetM rcoset_id ?groupV //=.
+  have ? : z \in 'N('O_p^'(G)) by rewrite (subsetP sSnOp').
+  rewrite -normC -?mulg_set1 ?mul_subG ?sub1set ?(subsetP (normG _) x) //.
+  by rewrite -mulgA lcoset_id //= normC ?sub1set.
+have tiSOp' : S :&: 'O_p^'(G) = 1.
+  by apply: coprime_TIg; rewrite (pnat_coprime pgS) // [_.-nat_]pcore_pgroup.
+have zxz : z^x = z.
+  have z1 : z^x * z^-1 \in S :&: 'O_p^'(G).
+    by rewrite in_setI zxz'S /= -mem_rcoset -ezxz rcoset_refl.
+  apply/eqP; rewrite -(inj_eq (mulIg z^-1)); gsimpl.
+  by rewrite tiSOp' in z1; move/set1P: z1 => ->.
+by rewrite -(inj_eq (mulgI x^-1)) -conjgE zxz; gsimpl.
 Qed.
-*)
+
 
 End Six.
 
