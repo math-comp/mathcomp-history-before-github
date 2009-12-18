@@ -9,7 +9,7 @@ Require Import groups.
 (*                          elements of a groupType, to groupType gT         *)
 (*                                                                           *)
 (* if p is a morphism of domain A:                                           *)
-(*   dom p                      == A                                         *)
+(*   'dom p                     == A                                         *)
 (*   p @* B                     == the image of B, where defined             *)
 (*                              := p @: (A :&: B)                            *)
 (*   p @*^-1 C                  == the pre-image of C, where defined         *)

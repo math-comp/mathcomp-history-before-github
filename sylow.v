@@ -61,7 +61,7 @@ Theorem Sylow's_theorem :
   [/\ forall P, [max P | p.-subgroup(G) P] = p.-Sylow(G) P,
       [transitive G, on 'Syl_p(G) | 'JG],
       forall P, p.-Sylow(G) P -> #|'Syl_p(G)| = #|G : 'N_G(P)|
-   &  prime p -> #|'Syl_p(G)| %% p = 1%N ].
+   &  prime p -> #|'Syl_p(G)| %% p = 1%N].
 Proof.
 pose maxp A P := [max P | p.-subgroup(A) P]; pose S := [set P | maxp G P].
 pose oG := orbit 'JG%act G.
@@ -84,7 +84,7 @@ have{SmaxN} defCS: forall P, P \in S -> 'Fix_(S |'JG)(P) = [set P].
   apply/andP/set1P=> [[S_Q nQP]|->{Q}]; last by rewrite normG.
   apply: val_inj; symmetry; case: (S_pG Q) => //= sQG _.
   by apply: uniq_normal_Hall (SmaxN Q _ _ _) => //=; rewrite ?sylS ?nrmG.
-have{defCS} oG_mod: {in S &, forall P Q, #|oG P| %% p = (Q \in oG P) %% p}.
+have{defCS} oG_mod: {in S &, forall P Q, #|oG P| = (Q \in oG P) %[mod p]}.
   move=> P Q S_P S_Q; have [sQG pQ] := S_pG _ S_Q.
   have soP_S: oG P \subset S by rewrite acts_sub_orbit.
   have: [acts Q, on oG P | 'JG].
@@ -106,8 +106,8 @@ have trS: [transitive G, on S | 'JG].
   have:= oG_mod _ _ S_P S_P; rewrite (oG_mod _ Q) // orbit_refl.
   by case: {+}(Q \in _) => //; rewrite mod0n modn_small ?prime_gt1.
 have oS1: prime p -> #|S| %% p = 1%N.
-  move=> pr_p; rewrite -(atransP trS P S_P) (oG_mod P P) //.
-  by rewrite orbit_refl modn_small ?prime_gt1.
+  move/prime_gt1 => p_gt1.
+  by rewrite -(atransP trS P S_P) (oG_mod P P) // orbit_refl modn_small.
 have oSiN: forall Q, Q \in S -> #|S| = #|G : 'N_G(Q)|.
   by move=> Q S_Q; rewrite -(atransP trS Q S_Q) card_orbit astab1JG.
 have sylP: p.-Sylow(G) P.

@@ -104,7 +104,7 @@ Require Import perm zmodp.
 (*                   a column permutation of a lower triangular invertible   *)
 (*                   matrix, U a row permutation of an upper triangular      *)
 (*                   invertible matrix, and r the rank of A, all satisfying  *)
-(*                   the identity L *m pid_mx r *m U.                        *)
+(*                   the identity L *m pid_mx r *m U = A.                    *)
 (*        \rank A == the rank of A.                                          *)
 (*    row_free A <=> the rows of A are linearly free (i.e., the rank and     *)
 (*                   height of A are equal).                                 *)
@@ -2337,7 +2337,7 @@ move=> A; case uA : (A \in unitmx); last by rewrite /invmx !uA.
 by apply: (can_inj (mulKVmx uA)); rewrite mulVmx // mulmxV ?unitmx_inv.
 Qed.
 
-Lemma mulmx1_unit : forall A B, A *m B = 1%:M -> unitmx A /\ unitmx B.
+Lemma mulmx1_unit : forall A B, A *m B = 1%:M -> A \in unitmx /\ B \in unitmx.
 Proof.
 by move=> A B AB1; apply/andP; rewrite -unitr_mul -det_mulmx AB1 det1 unitr1.
 Qed.
@@ -2620,11 +2620,17 @@ rewrite /mxrank; elim=> [|m IHm] [|n] //= A; case: pickP=> [[i j] _|] //=.
 by move: (_ - _) => B; case: emxrank (IHm _ B) => [[L U] r] /=.
 Qed.
 
+Lemma row_leq_rank : forall m n (A : 'M_(m, n)), (m <= \rank A) = row_free A.
+Proof. by move=> m n A; rewrite /row_free eqn_leq rank_leq_row. Qed.
+
 Lemma rank_leq_col : forall m n (A : 'M_(m, n)), \rank A <= n.
 Proof.
 rewrite /mxrank; elim=> [|m IHm] [|n] //= A; case: pickP=> [[i j] _|] //=.
 by move: (_ - _) => B; case: emxrank (IHm _ B) => [[L U] r] /=.
 Qed.
+
+Lemma col_leq_rank : forall m n (A : 'M_(m, n)), (n <= \rank A) = row_full A.
+Proof. by  move=> m n A; rewrite /row_full eqn_leq rank_leq_col. Qed.
 
 Let unitmx1F := @unitmx1 F.
 Lemma row_ebase_unit : forall m n (A : 'M_(m, n)), row_ebase A \in unitmx.
@@ -2927,7 +2933,7 @@ Proof. by move=> m n A; rewrite subsetmx_full // row_full_unit unitmx1. Qed.
 Lemma subset1mx : forall m n (A : 'M[F]_(m, n)), (1%:M <= A)%MR = row_full A.
 Proof.
 move=> m n A; apply/idP/idP; last exact: subsetmx_full.
-by move/mxrankS; rewrite mxrank1 leq_eqVlt orbC ltnNge rank_leq_col eq_sym.
+by move/mxrankS; rewrite mxrank1 col_leq_rank.
 Qed.
 
 Lemma eqmxP : forall m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)),
@@ -3165,6 +3171,12 @@ Lemma mxrank_ker : forall m n (A : 'M_(m, n)),
   \rank (kermx A) = (m - \rank A)%N.
 Proof.
 by move=> m n A; rewrite mxrankMfree ?row_free_unit ?unitmx_inv ?rank_copid_mx.
+Qed.
+
+Lemma mxrank_coker : forall m n (A : 'M_(m, n)),
+  \rank (cokermx A) = (n - \rank A)%N.
+Proof.
+by move=> m n A; rewrite eqmxMfull ?row_full_unit ?unitmx_inv ?rank_copid_mx.
 Qed.
 
 Lemma mulmx_ker : forall m n (A : 'M_(m, n)), kermx A *m A = 0.

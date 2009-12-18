@@ -9,9 +9,8 @@ Require Import coprime_act mxrepresentation.
 (* definitions:                                                               *)
 (*   stable_factor A H G == H <| G and A centralises G / H (H G : {group gT}) *)
 (*   stable_series A s   == A stabilises the series 1%G :: s                  *)
-(* This file currently covers B & G 1.6, 1.8-1.12, and 1.14, as well as       *)
-(* Aschbacher 23.7 and 24.7. Other results from B & G section 1 should slot   *)
-(* in here as well.                                                           *)
+(* This file currently covers B & G 1.3, 1.6, 1.8-1.12, 1.14, 1.16-1.19 as    *)
+(* well as Aschbacher 23.7 and 24.7.                                          *)
 (******************************************************************************)
 
 Set Implicit Arguments.
@@ -468,9 +467,9 @@ have [nMA ntM abelM] := minnormal_solvable minM sMG solG.
 set GC := <<_>>; have sMGC: M \subset GC.
   rewrite sub_gen ?(bigcup_max 'C_A(M)%G) //=; last first.
     by rewrite subsetI sMG centsC subsetIr.
-  case/abelemP: abelM => p _ abelM; rewrite -(ker_abelem_repr abelM ntM nMA).
+  case/abelemP: abelM => p _ abelM; rewrite -(rker_abelem abelM ntM nMA).
   have ker_q_cyc := mx_repr_faithful_irr_abelian_cyclic _ (kquo_mx_faithful _).
-  rewrite mx_repr_ker_normal {}ker_q_cyc ?morphim_abelian //.
+  rewrite rker_normal {}ker_q_cyc ?morphim_abelian //.
   by apply/quo_mx_irr=> //; exact/abelem_mx_irrP.
 rewrite -(quotientSGK nMG sMGC).
 have: A / M \subset 'N(G / M) by rewrite morphim_norms.

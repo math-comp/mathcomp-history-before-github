@@ -591,6 +591,19 @@ Qed.
 
 End Fitting.
 
+Section FittingQuotient.
+
+Variables (gT : finGroupType) (p : nat) (G : {group gT}).
+ 
+Lemma Fitting_quotient_p'core : 'F(G / 'O_p^'(G)) = 'O_p(G / 'O_p^'(G)).
+Proof.
+case/dprodP: (nilpotent_pcoreC p (Fitting_nil (G / 'O_p^'(G)))) => _ /= <- _ _.
+rewrite p_core_Fitting /= ['O_p^'('F(_))](trivgP _) ?mulg1 //.
+by rewrite (subset_trans (pcore_Fitting _ _)) //= trivg_pcore_quotient.
+Qed.
+
+End FittingQuotient.
+
 Section FittingFun.
 
 Implicit Types gT rT : finGroupType.

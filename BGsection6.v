@@ -4,7 +4,7 @@ Require Import fintype paths finfun bigops finset prime groups.
 Require Import morphisms perm action automorphism normal cyclic.
 Require Import abelian gfunc pgroups nilpotent gprod center commutators.
 Require Import maximal sylow hall coprime_act BGsection1 BGappendixAB.
-(*******************************************************************************)
+(******************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -20,38 +20,11 @@ Implicit Type p : nat.
 
 (* This is B & G, Theorem A.4(b) and 6.1, or Gorenstein 6.5.2, the main Hall- *)
 (* Higman style p-stability result used in the proof of the Odd Order Theorem *)
-Theorem odd_p_stability : forall p (G S A : {group gT}),
-    odd #|G| -> solvable G -> p.-Sylow(G) S -> abelian A -> A <| S ->
-  A \subset 'O_{p^', p}(G).
+Theorem odd_p_abelian_constrained : forall p (G : {group gT}),
+  odd #|G| -> solvable G -> p.-abelian_constrained G.
 Proof.
-move=> p G S A oddG solG sylS cAA; case/andP=> sAS nAS.
-pose K := 'O_p^'(G); have [sSG pS _] := and3P sylS.
-have defFq: 'F(G / K) = 'O_p(G / K).
-  case/dprodP: (nilpotent_pcoreC p (Fitting_nil (G / K))) => _ /= <- _ _.
-  rewrite !p_core_Fitting /= ['O_p^'(_)](trivgP _) ?mulg1 //.
-  by rewrite (subset_trans (pcore_Fitting _ _)) //= trivg_pcore_quotient.
-have sAG: A \subset G by exact: subset_trans sSG.
-have sAGq: A / K \subset G / K by exact: quotientS.
-have{cAA} sRCq: [~: 'F(G / K), A / K, A / K] = 1.
-  apply/commG1P; apply: subset_trans (quotient_cents _ cAA).
-  rewrite commg_subr; apply: subset_trans (quotient_norms _ nAS).
-  rewrite /= defFq pcore_sub_Hall // morphim_pHall //.
-  by rewrite (subset_trans sSG) // normal_norm // pcore_normal.
-have pAq: p.-group (A / K) by rewrite morphim_pgroup // (pgroupS sAS).
-pose C := 'C_(G / K)('F(G / K)).
-have solGq: solvable (G / K) by exact: morphim_sol.
-have sCF: C \subset 'F(G / K) by exact: cent_sub_Fitting.
-have pFq: p.-group 'F(G / K) by rewrite /= defFq pcore_pgroup.
-have nsFq: 'F(G / K) <| G / K by exact: Fitting_normal.
-have: (A / K) / C \subset 'O_p((G / K) / C).
-  move/odd_cent_comm_normal_subset_pcore: sRCq; apply => //.
-  by rewrite odd_2'nat [pnat _ _]morphim_pgroup // -[pgroup _ _] odd_2'nat.
-have nsCGq: C <| G / K by rewrite -(setIidPl (normal_norm nsFq)) subcent_normal.
-rewrite pquotient_pcore ?(pgroupS sCF) // quotientSGK /= -?defFq //; last first.
-  by rewrite (subset_trans sAGq) // normal_norm.
-rewrite defFq -quotient_pseries2 quotientSGK //.
-  by rewrite (subset_trans (subset_trans sAS sSG)) // normal_norm ?pcore_normal.
-by rewrite /= -pseries1 (pseries_sub_catl [::_]).
+move=> p G; move/odd_p_stable=> stabG; move/solvable_p_constrained=> constrG.
+exact: p_stable_abelian_constrained.
 Qed.
 
 (* 6.3(a), page 49 *)
