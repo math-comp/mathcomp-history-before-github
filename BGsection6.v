@@ -331,54 +331,42 @@ case/setIP => a0 aCY [b bNS ->]; exists a; last exists b=>//; rewrite in_setI.
 by rewrite (subsetP (pcore_sub p^' G)) //= (subsetP (centS (sub_gen (subxx _)))).
 Qed.
 
-(* very ugly, to be polished *)
 Lemma six6d : forall G S : {group gT}, forall p : nat, 
   solvable G -> p.-Sylow(G) S -> p.-length_1 G ->
   forall Q : {group gT}, p.-subgroup(G) Q -> 
     exists2 x, x \in 'C_G(Q :&: S) & Q :^ x \subset S. 
 Proof.
 move=> G S p solG psS pl1G; case: (six6a solG psS pl1G)=> defOp'pG defG Q psgQ.
-have {pl1G} pl1G := plenght1_pSylow pl1G; have [sQG pgQ] := andP psgQ.
-have nOp'G : G \subset 'N('O_p^'(G)) := char_norm (pcore_char _ _).
-have sOp'Op'p : 'O_p^'(G) \subset 'O_{p^',p}(G).
-  by rewrite -pseries1 pseries_sub_catl.
-have [sSG pgS cpSG] := and3P psS; have sSnOp' := subset_trans sSG nOp'G.
-have sQOp'pG : Q \subset 'O_{p^',p}(G).
+have {pl1G} pl1G := plenght1_pSylow pl1G; have {psgQ} [sQG pgQ] := andP psgQ.
+pose M := 'O_p^'(G); have nMG : G \subset 'N(M) := char_norm (pcore_char _ _).
+have sMOp'p : M \subset 'O_{p^',p}(G) by rewrite /M -pseries1 pseries_sub_catl.
+have [sSG pgS _] := and3P psS; have sSnOp' := subset_trans sSG nMG.
+have {defG} defG :'N_G(S) * M = G by rewrite normC // subIset // nMG.
+have {defG sQG} sQMS : Q \subset M <*> S.
+  rewrite mulgenC norm_mulgenEl // defOp'pG.
   case: (Sylow_subJ psS sQG pgQ) => x xG sQSx; rewrite (subset_trans sQSx) //.
-  have defGC :'N_G(S) * 'O_p^'(G) = G by rewrite normC // subIset // nOp'G.
-  rewrite -defGC in xG; case/imset2P: xG=> s o sS oO ->.
-  have snS : s \in 'N(S) by case/setIP: sS.
+  rewrite -defG in xG; case/imset2P: xG=> s o sS oO ->; case/setIP: sS=> _ snS.
   rewrite conjsgM (normP snS) -defOp'pG -(mulGid 'O_p^'(G)) mulgA normC /=.
     by rewrite conjsgE !mulgSS ?sub1set ?groupV.
   by rewrite mul_subG ?normG //; case/andP: psS.
-have psSOp'p : p.-Sylow('O_p^'(G) <*> S) S.
+have {psS defOp'pG} psSMS : p.-Sylow(M <*> S) S.
   rewrite mulgenC norm_mulgenEl // defOp'pG (pHall_subl _ _ psS) ?pseries_sub //.
   by rewrite /= -defOp'pG mulg_subl // group1.
-have {sQOp'pG} sQOp'pG : Q \subset 'O_p^'(G) <*> S. (* clenaup *)
-  by rewrite mulgenC norm_mulgenEl // defOp'pG.
-case: (Sylow_Jsub psSOp'p sQOp'pG pgQ)=> w /=; rewrite norm_mulgenEr //.
-case/imset2P=> x y xM yS -> sQxyS {w}.
+case: (Sylow_Jsub psSMS sQMS pgQ)=> w /=; rewrite norm_mulgenEr //= -/M.
+case/imset2P=> x y xM yS -> sQxyS {w psSMS sQMS pgQ sMOp'p sSG nMG psGQ pl1G}.
 have sQxS : Q :^ x \subset S.
   have y'S : y^-1 \in 'N(S) by rewrite (subsetP (normG S)) // ?groupV.
   by rewrite -(normP y'S) -sub_conjgV invgK -conjsgM.
-exists x=>//; rewrite in_setI (subsetP (pcore_sub _ G) _ xM) /=.
-apply/centP=>z zQS; apply/eqP; case/setIP: zQS => zQ zS.
-(* redo this last part bottom up *)
-have zxz'S : z^x * z^-1 \in S.
-   by rewrite groupM ?groupV // (subsetP sQxS) // memJ_conjg.
-have ezxz : 'O_p^'(G) :* (z^x) = 'O_p^'(G) :* z.
-  rewrite conjgE rcosetM rcoset_id ?groupV //=.
-  have ? : z \in 'N('O_p^'(G)) by rewrite (subsetP sSnOp').
-  rewrite -normC -?mulg_set1 ?mul_subG ?sub1set ?(subsetP (normG _) x) //.
-  by rewrite -mulgA lcoset_id //= normC ?sub1set.
-have tiSOp' : S :&: 'O_p^'(G) = 1.
-  by apply: coprime_TIg; rewrite (pnat_coprime pgS) // [_.-nat_]pcore_pgroup.
-have zxz : z^x = z.
-  have z1 : z^x * z^-1 \in S :&: 'O_p^'(G).
-    by rewrite in_setI zxz'S /= -mem_rcoset -ezxz rcoset_refl.
-  apply/eqP; rewrite -(inj_eq (mulIg z^-1)); gsimpl.
-  by rewrite tiSOp' in z1; move/set1P: z1 => ->.
-by rewrite -(inj_eq (mulgI x^-1)) -conjgE zxz; gsimpl.
+exists x=>//; rewrite in_setI (subsetP (pcore_sub _ G) _ xM) /= -(invgK x).
+apply/centP=>z; case/setIP=> zQ zS; apply: (commute_sym (commuteV _)); apply/eqP.
+rewrite eq_sym -(inj_eq (mulIg (x * z^-1))); gsimpl; apply/eqP; apply/set1P.
+rewrite -set1gE -(coprime_TIg (pnat_coprime pgS (pcore_pgroup p^' G))) /= -/M.
+apply/setIP; split.
+  by rewrite groupM ?groupV // (subsetP sQxS) // -mulgA -conjgE memJ_conjg. 
+rewrite -mem_rcoset /= /M -(rcoset_id (groupVr xM)) /= -/M -[_*[set z]]mulgA.
+rewrite -normC ?mul_subG ?sub1set ?groupV ?(subsetP (normG _) x) //=.
+  by rewrite -sub1set mulg_set1 -(mulg_set1 _ x) mulgS ?sub1set. 
+exact: (subsetP sSnOp').
 Qed.
 
 
