@@ -187,8 +187,8 @@ Notation "''E_' p ^ n ( G )" := (pnElem p n G)
 Notation "''E' ^ n ( G )" := (nElem n G)
   (at level 8, n at level 2, format "''E' ^ n ( G )") : group_scope.
 
-Notation "''E_' p ^* ( G )" := (pmaxElem p G)
-  (at level 8, p at level 2, format "''E_' p ^* ( G )") : group_scope.
+Notation "''E*_' p ( G )" := (pmaxElem p G)
+  (at level 8, p at level 2, format "''E*_' p ( G )") : group_scope.
 
 Notation "''m' ( A )" := (rank A)
   (at level 8, format "''m' ( A )") : group_scope.
@@ -215,6 +215,9 @@ Qed.
 Lemma pgroupP : forall pi G,
   reflect (forall p, prime p -> p %| #|G| -> p \in pi) (pi.-group G).
 Proof. move=> pi G; exact: pnatP. Qed.
+
+Lemma eq_pgroup : forall pi1 pi2 A, pi1 =i pi2 -> pi1.-group A = pi2.-group A.
+Proof. move=> pi1 pi2 A; exact: eq_pnat. Qed.
 
 Lemma pgroup1 : forall pi, pi.-group (1 : {set gT}).
 Proof. by move=> pi; rewrite /pgroup cards1. Qed.
@@ -653,6 +656,9 @@ Implicit Types G H P : {group aT}.
 Lemma morphim_pgroup : forall pi G, pi.-group G -> pi.-group (f @* G).
 Proof. move=> pi G; apply: pnat_dvd; exact: dvdn_morphim. Qed.
 
+Lemma morphim_odd : forall G, odd #|G| -> odd #|f @* G|.
+Proof. move=> G; rewrite !odd_2'nat; exact: morphim_pgroup. Qed.
+
 Lemma pmorphim_pgroup : forall pi G,
    pi.-group ('ker f) -> G \subset D -> pi.-group (f @* G) = pi.-group G.
 Proof.
@@ -724,6 +730,10 @@ Section Pquotient.
 
 Variables (pi : nat_pred) (gT : finGroupType) (G H K : {group gT}).
 Hypothesis piK : pi.-group K.
+
+Lemma quotient_pgroup : pi.-group (K / H). Proof. exact: morphim_pgroup. Qed.
+
+Lemma quotient_odd : odd #|K| -> odd #|K / H|. Proof. exact: morphim_odd. Qed.
 
 Lemma pquotient_pgroup : G \subset 'N(K) -> pi.-group (G / K) = pi.-group G.
 Proof. by move=> nKG; rewrite pmorphim_pgroup ?ker_coset. Qed.
@@ -1131,6 +1141,15 @@ Lemma trivg_pcore_quotient : forall pi gT (G : {group gT}),
 Proof.
 move=> pi gT G; rewrite pquotient_pcore ?pcore_normal ?pcore_pgroup //.
 exact: trivg_quotient.
+Qed.
+
+Lemma pseries_rcons_id : forall pis pi gT (G : {group gT}),
+  pseries (rcons (rcons pis pi) pi) G = pseries (rcons pis pi) G.
+Proof.
+move=> pis pi gT G; apply/eqP; rewrite -!cats1 eqEsubset pseries_sub_catl andbT.
+rewrite -catA -(quotientSGK _ (pseries_sub_catl _ _ _)) ?pseries_norm2 //.
+rewrite !quotient_pseries_cat -quotient_sub1 ?pseries_norm2 //.
+by rewrite quotient_pseries_cat /= !pseries1 trivg_pcore_quotient.
 Qed.
 
 End MorphPcore.
