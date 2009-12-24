@@ -267,13 +267,9 @@ apply/idP/idP; last by move/eqP->.
 move => Hm {p2}.
 have : inject i m1 = inject i m2; last first.
    by move/eqP; rewrite (inj_eq (@inject_inj _ _ _)).
-pose f N (P:(i + n)%N = N) := cast_multi P m1 == cast_multi P m2.
-have fn' : f n' p1; first exact: Hm.
-have fni : f (i+n)%N (erefl (i+n)%N).
-   have: {q | f (i+n)%N q}; first by rewrite {-1 3}p1; exists p1.
-   case=>Pm. 
-   by have ->: Pm=(@erefl nat (addn i n)); first exact: nat_irrelevance.
-by move:fni; move/eqP.
+move: Hm; move:(p1); rewrite -p1 => p2. 
+rewrite (_ : p2 = erefl (i+n)%N); last exact: nat_irrelevance. 
+by move/eqP.
 Qed.
 
 Lemma Emj_Enk : forall i j k m n (Emj : (m + i)%N = j) 
@@ -287,13 +283,9 @@ Lemma cast_multiS : forall n i n'
   (cast_multi pS m) = (cast_multi p m)%:P.
 Proof.
 move=> n i n' m p pS.
-pose f N := forall (p : (i + n)%N = N) (pS : (i.+1 + n)%N = N.+1) ,  
-  cast_multi pS m = (cast_multi p m)%:P.
-have : f n'; last done. 
-rewrite -p /f /= => p0 pS0.
-have ->: (p0 = erefl (i + n)%N); first exact: nat_irrelevance.
-have ->: (pS0 = erefl (i.+1 + n)%N); first exact: nat_irrelevance.
-by rewrite /=.
+move:(p) (pS); rewrite -p => pr pSr.
+have ->: (pr = erefl (i + n)%N); first exact: nat_irrelevance.
+by have ->: (pSr = erefl (i.+1 + n)%N); first exact: nat_irrelevance.
 Qed.
 
 Lemma injectnm_cast_multi : forall i m n p, 
@@ -301,19 +293,15 @@ Lemma injectnm_cast_multi : forall i m n p,
   ((@cast_multi R (m+i)%N n ((n+m)+i)%N (addnA _ _ _)) \o (inject m)) p.
 Proof.
 move=>i m n p; elim:n=>/=.
-  move: (addnA 0%N m i) => EK.
-  pose f c := forall (EK : (0+(m+i) = c+i)%N), 
-    inject c p = cast_multi EK (inject m p).
-  have: (f (0+m)%N); last done.
-  rewrite !add0n /f => EK0. 
-  by have ->: (EK0 = erefl (m + i)%N); first exact: nat_irrelevance.
+  move: (addnA 0%N m i); rewrite [(0+m)%N]add0n=> Hm.
+  by have ->: (Hm = erefl (m + i)%N); first exact: nat_irrelevance.
 move=> n ->; set inj := inject _ _ .
-pose f N := forall (p : (n+(m+i))%N = N) (pS : (n.+1+(m+i))%N = N.+1) ,  
-  (cast_multi p inj)%:P = cast_multi pS inj.
-have: f (n+m+i)%N; last done.
-rewrite -addnA /f /= => p0 pS0.
-have ->: (p0 = erefl (n + (m + i))%N); first exact: nat_irrelevance.
-by have ->: (pS0 = erefl (n.+1 + (m + i))%N); first exact: nat_irrelevance.
+move:(addnA n m i) (addnA n.+1 m i).
+change (n.+1 + m + i)%N with ((n + m + i).+1)%N.
+change (addn_rec (addn_rec n m) i) with (n+m+i)%N.
+rewrite -[(n+m+i)%N]addnA => pr pSr.
+have ->: (pr = erefl (n + (m + i))%N); first exact: nat_irrelevance.
+by have ->: (pSr = erefl (n.+1 + (m + i))%N); first exact: nat_irrelevance.
 Qed.
 
 Lemma cast_multi_add : forall i j k m n Emj Enk p,
@@ -321,15 +309,14 @@ Lemma cast_multi_add : forall i j k m n Emj Enk p,
   @cast_multi R i (n+m)%N k (Emj_Enk Emj Enk) p.
 Proof.
 move=> i j k m n Emj Enk p.
-pose f J K := forall (Emj : (m + i)%N = J) (Enk : (n + J)%N = K),
-   cast_multi Enk (cast_multi Emj p) = cast_multi (Emj_Enk Emj Enk) p.
-have: f j k; last done.
-rewrite -Enk -Emj addnA /f. move=> Emje Enke.
-have ->: ((Emj_Enk Emje Enke) = erefl (n+m+i)%N); first exact: nat_irrelevance.
-rewrite /=. rewrite injectnm_cast_multi /=.
-apply/eqP. rewrite cast_multi_inj.
-have ->: (Emje = erefl (m+i)%N); first exact: nat_irrelevance.
-by rewrite (inj_eq (@inject_inj _ _ _)).
+move:(Emj) (Enk) (Emj_Enk Emj Enk).
+rewrite -Enk -Emj.
+change (addn_rec n (addn_rec m i)) with (n+m+i)%N.
+rewrite {-1}[(n+(m+i))%N]addnA=> Emj0 Enk0 Enmi.
+have ->: (Emj0 = erefl (m+i)%N); first exact: nat_irrelevance.
+have ->: (Enmi = erefl (n+m+i)%N); first exact: nat_irrelevance.
+rewrite /= injectnm_cast_multi /=.
+by apply/eqP; rewrite cast_multi_inj.
 Qed.
 
 
@@ -342,22 +329,9 @@ elim: m nltn' dmltn dmltn'.
   apply/eqP; rewrite /multiC. 
   by rewrite cast_multi_add /= cast_multi_inj.
 - move=> N /= nltn' dmltn dmltn'.
-  have : {Nn : N < n = (N < n) | {Nn' : N < n' = (N < n') |
-    (if N < n' as b return ((N < n') = b -> multi R n')
-      then fun iltn  =>  cast_multi (subnK iltn) 'X_(Ordinal (leqnn N.+1))
-      else fun _ => 0) Nn' =
-  cast_multi (subnK nltn')
-  ((if N < n as b return ((N < n) = b -> multi R n)
-    then
-      fun iltn => cast_multi (subnK iltn) 'X_(Ordinal (leqnn N.+1))
-    else fun _ => 0) Nn) }}.
-     rewrite {2 4 5}dmltn; exists dmltn. 
-     rewrite {2 4 5}dmltn'; exists dmltn'.
-     rewrite cast_multi_add.
-     by apply/eqP; rewrite cast_multi_inj.
-   move=> [Nn] [Nn'].
-   have ->: (Nn = (erefl (N<n))); first exact: bool_irrelevance.
-   by have ->: (Nn' = (erefl (N<n'))); first exact: bool_irrelevance.
+  move: (refl_equal (N < n')) (refl_equal (N < n)).
+  rewrite {2 3}[N<n]dmltn {2 3}[N<n']dmltn' => Nn' Nn.
+  by apply/eqP; rewrite cast_multi_add cast_multi_inj.
 - move=> m1 Hm1 m2 Hm2 nltn' /=; rewrite !leq_maxl.
   move/andP=>[dm1n dm1n']; move/andP=>[dm2n dm2n'].
   rewrite (Hm1 nltn') // (Hm2 nltn') //.
@@ -571,18 +545,12 @@ case:(ltngtP (deg_term m) n.+1); last by move->.
   rewrite ltnS=> i; apply:Hn=> {dmSn} //.
   move:uiSn. 
   have nltSn: n <= 1 + n; first by rewrite leqnSn.
-  rewrite (interp_cast_multi nltSn i) /=.
-  pose f N := forall (EN : ((n.+1 - n)+ n = N)%N),
-    GRing.unit (cast_multi EN (interp n m)) -> GRing.unit (interp n m).
-  have: f  ((n.+1 - n) + n)%N.
-    move=> EN.
-    have ->: EN = (erefl ((n.+1 - n) + n)%N); first exact: nat_irrelevance.
-    rewrite /=. 
-    pose g N := GRing.unit (inject N (interp n m)) -> GRing.unit (interp n m).
-    have: g (n.+1 - n)%N; last done.
-    by rewrite subSnn /=; case/andP; rewrite coefC eqxx.
-  rewrite subnK -add1n ?leq_addl // => fN.
-  exact: (fN (subnK nltSn)).
+  rewrite (interp_cast_multi nltSn i).
+  move: (subnK nltSn); rewrite -[n.+1]/(1+n)%N.
+  rewrite {2 3 5}(_ : (1 + n = 1 + n - n + n)%N) ?subnK // => EN. 
+  have ->: EN = (erefl (1 + n - n + n)%N); first exact: nat_irrelevance.
+  rewrite /= [(n.+1-n)%N]subSnn -[GRing.unit _]/(poly_unit _).
+  by case/andP; rewrite coefC.
 by move/(leq_ltn_trans dmSn); rewrite ltnn.
 Qed.
 
@@ -602,9 +570,96 @@ Qed.
 Notation unitm := (qT_op1 unitm_compat).
 
 
+Fixpoint reify n (m : multi R n) := 
+  match n return multi R n -> multi_term with
+    | 0%N => fun m => Coef m
+    | n'.+1 => fun m =>
+      let: Polynomial s _:= m in
+        foldr (fun c p => Sum (reify c) (Prod (Var n') p)) (Coef 0) s
+  end m.
 
+Lemma deg_term_reify : forall n (m : multi R n), deg_term (reify m) <= n.
+Proof.
+elim; first done.
+move=>n Hn /= [p].
+elim: p; first done.
+set f := foldr _ _.
+move=> a s /= Hs ls.
+rewrite maxnr.
+  rewrite maxnl ?ltnSn // Hs //.
+  move=> {Hs}.
+  case : s ls=> /=; first by rewrite GRing.nonzero1r.
+  by move=> b s ->.
+by rewrite leq_maxr (leqW (Hn _)).
+Qed. 
+
+Lemma interp_reify : forall n (m : multi R n), interp n (reify m) = m.
+Proof.
+elim=> /=.
+  move=> m; rewrite /multiC.
+  by have ->: addn0 0%N = erefl 0%N; first exact: nat_irrelevance.
+move=> n Hn m.
+elim: m => p i.
+apply: val_inj=> /=.
+set f := foldr _ _.
+elim: p i.
+  by rewrite /= (ringM_0 (multiC_morph _ _)) val_insubd /= eqxx.
+move=> t s Hs.
+rewrite [f _]/= [interp _ _]/=.
+rewrite (interp_cast_multi (leqnSn n)); last by rewrite deg_term_reify.
+rewrite [last _ _]/= => ls.
+move: (subnK (leqnSn n)); rewrite subSnn => En.
+have ->: En = (erefl (n.+1)); first exact: nat_irrelevance.
+rewrite [cast_multi _ _]/=.
+rewrite Hn.
+move: (refl_equal (n < n.+1)).
+rewrite {2 3}[n<n.+1]ltnSn=> e.
+rewrite /multi_var.
+move:(subnK _) (subnK _). 
+rewrite [val _]/= subnn=> subnK subnK'.
+have ->: subnK = erefl (n.+1); first exact: nat_irrelevance.
+have ->: subnK' = erefl (n.+1); first exact: nat_irrelevance.
+rewrite ![cast_multi _ _]/= addrC mulrC -poly_cons_def polyseq_cons Hs.
+  move=> {Hs En e subnK' subnK}.
+  case:s ls; last by move=> a s /=.
+  rewrite /=.
+  move=> tn0.
+  by rewrite val_insubd tn0.
+move=> {Hs En e subnK' subnK}.
+case:s ls; first by rewrite GRing.nonzero1r.
+by move=> a s ->.
+Qed.
+
+Lemma interp_reify_cast_multi : forall n n' (ltnn' : n <= n') (m : multi R n) ,
+  interp n' (reify m) = cast_multi (subnK ltnn') m.
+Proof.
+move=> n n' ltnn' m.
+rewrite (interp_cast_multi ltnn'); last by rewrite deg_term_reify. 
+by apply/eqP; rewrite cast_multi_inj interp_reify.
+Qed.
+  
 Lemma invm_compat : \compat1_multinom _
-  (fun m => \pi_multinom ((interp (deg_term m) m)^-1)).
+  (fun m => \pi_multinom (reify ((interp (deg_term m) m)^-1))).
+Proof.
+apply:compat1Epi=> x y; rewrite !equivmP.
+set ix := reify _; set iy := reify _.
+rewrite {1}/equivm /=.
+have ixyleqxy : maxn (deg_term ix) (deg_term iy) 
+  <= maxn (deg_term x) (deg_term y).
+  by rewrite leq_maxl !leq_maxr !deg_term_reify orbT.
+rewrite (interp_gtn ixyleqxy).
+have xleqxy : deg_term x <= maxn (deg_term x) (deg_term y).
+  by rewrite leq_maxr leqnn.
+have yleqxy : deg_term y <= maxn (deg_term x) (deg_term y).
+  by rewrite leq_maxr leqnn orbT.
+rewrite (interp_reify_cast_multi xleqxy). 
+rewrite (interp_reify_cast_multi yleqxy).
+rewrite !(ringM_inv (cast_multiM _ _)). 
+rewrite -!interp_cast_multi //.
+by move/eqP->.
+Qed.
+
+
 
 Lemma mulVm : {in unitm, left_inverse onem invm mulm}.
 Proof.
