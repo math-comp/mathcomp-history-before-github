@@ -54,6 +54,50 @@ Inductive multi_term :=
 | Sum   of multi_term & multi_term
 | Prod  of multi_term & multi_term.
 
+Fixpoint eqm m m':=
+  match m with
+    | Coef x => if m' is Coef y then x == y else false
+    | Var n => if m' is Var n' then n == n' else false
+    | Sum p q => if m' is Sum p' q' then (eqm p p') && (eqm q q') else false
+    | Prod p q => if m' is Prod p' q' then (eqm p p') && (eqm q q') else false
+  end.
+
+Lemma eqm_eq : Equality.axiom eqm.
+Proof.
+move=> m m'.
+apply:(@iffP (eqm m m')); first exact: idP.
+move:m'. elim:m.
+  - by move=> s [] //= s'; move/eqP->.
+  - by move=> s [] //= s'; move/eqP->.
+  - move=> p Hp q Hq [] //= p' q'.
+    case/andP=> epp' eqq'. 
+    by rewrite (Hp p') // (Hq q').
+  - move=> p Hp q Hq [] //= p' q'.
+    case/andP=> epp' eqq'. 
+    by rewrite (Hp p') // (Hq q').
+move->; elim:m'=>/=.
+- by move=> s.
+- by move=> n.
+- by move=> p -> q ->.
+- by move=> p -> q ->.
+Qed.
+
+Definition multi_term_eqMixin := EqMixin eqm_eq.
+Canonical Structure multi_term_eqT := Eval hnf in EqType _ multi_term_eqMixin.
+
+Inductive multi_term_skel :=
+| CoefS of nat
+| VarS of nat
+| SumS   of multi_term_skel & multi_term_skel
+| ProdS  of multi_term_skel & multi_term_skel.
+
+
+Lemma multi_term_choiceMixin : Choice.mixin_of (seq (seq multi_term)). Admitted.
+Canonical Structure multi_term_cT := ChoiceType _ multi_term_choiceMixin.
+
+
+
+
 Fixpoint deg_term t := 
   match t with
     | Coef _ => 0%N
@@ -174,14 +218,13 @@ move=> n n'; elim.
     then
       fun iltn => cast_multi (subnK iltn) 'X_(Ordinal (leqnn N.+1))
     else fun _ => 0) Nn) }}.
-  rewrite {2 4 5}dmltn'.
-  rewrite {2 4 5}dmltn.
-  exists dmltn. exists dmltn'.
- 
-  
-
- Set Printing All.
-  admit.
+     rewrite {2 4 5}dmltn; exists dmltn. 
+     rewrite {2 4 5}dmltn'; exists dmltn'.
+     rewrite cast_multi_add.
+     by apply/eqP; rewrite cast_multi_inj.
+   move=> [Nn] [Nn'].
+   have ->: (Nn = (erefl (N<n))); first exact: bool_irrelevance.
+   by have ->: (Nn' = (erefl (N<n'))); first exact: bool_irrelevance.
 - move=> m1 Hm1 m2 Hm2 nltn' /=; rewrite !leq_maxl.
   move/andP=>[dm1n dm1n']; move/andP=>[dm2n dm2n'].
   rewrite (Hm1 nltn') // (Hm2 nltn') //.
@@ -221,11 +264,8 @@ rewrite !(@interp_gtn (maxn (maxn (deg_term x) (deg_term y)) (deg_term z))).
 - by rewrite maxnC leq_maxr leqnn.
 Qed.
 
-Lemma multi_term_eqMixin : Equality.mixin_of multi_term. Admitted.
-Canonical Structure multi_term_eqT := EqType _ multi_term_eqMixin.
 
-Lemma multi_term_choiceMixin : Choice.mixin_of (seq (seq multi_term)). Admitted.
-Canonical Structure multi_term_cT := ChoiceType _ multi_term_choiceMixin.
+
 
 Definition equivm_ltrans := left_trans equivm_sym equivm_trans.
 
