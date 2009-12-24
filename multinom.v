@@ -139,11 +139,11 @@ Definition multi_skel_eqMixin :=
   Countable.EqMixin multi_skel_countMixin.
 
 Canonical Structure multi_skel_eqType := 
-  EqType _ multi_skel_eqMixin.
+  EqType multi_skel multi_skel_eqMixin.
 Canonical Structure multi_skel_choiceType := 
-  ChoiceType _ multi_skel_choiceMixin.
+  ChoiceType multi_skel multi_skel_choiceMixin.
 Canonical Structure multi_skel_countType := 
-  CountType _ multi_skel_countMixin.
+  CountType multi_skel multi_skel_countMixin.
 
 Fixpoint encode_multi_term_rec (s:seq R) (m:multi_term):=
   match m with
@@ -229,7 +229,7 @@ Qed.
 Definition multi_term_choiceMixin := 
   @CanChoiceMixin _ multi_term _ _ code_multi_termK.
 Canonical Structure multi_term_choiceType :=
-  ChoiceType _ multi_term_choiceMixin.
+  ChoiceType multi_term multi_term_choiceMixin.
 
 Fixpoint deg_term t := 
   match t with
@@ -249,11 +249,6 @@ Fixpoint interp n m : multi R n :=
     | Sum p q => interp n p + interp n q
     | Prod p q => interp n p * interp n q
   end.
-
-Definition equivm m1 m2 := 
-  let n1 := deg_term m1 in
-    let n2 := deg_term m2 in
-      interp (maxn n1 n2) m1 == interp (maxn n1 n2) m2.
 
 Lemma cast_multi_inj : forall n i i' n' (m1 m2 : multi R n) 
   (p1: (i+n)%N=n') (p2: (i'+n)%N=n'),
@@ -341,6 +336,79 @@ elim: m nltn' dmltn dmltn'.
   rewrite (Hm1 nltn') // (Hm2 nltn') //.
   by rewrite (ringM_mul (cast_multiM _ _)).
 Qed.
+
+Fixpoint reify n (m : multi R n) := 
+  match n return multi R n -> multi_term with
+    | 0%N => fun m => Coef m
+    | n'.+1 => fun m =>
+      let: Polynomial s _:= m in
+        foldr (fun c p => Sum (reify c) (Prod (Var n') p)) (Coef 0) s
+  end m.
+
+Lemma deg_term_reify : forall n (m : multi R n), deg_term (reify m) <= n.
+Proof.
+elim; first done.
+move=>n Hn /= [p].
+elim: p; first done.
+set f := foldr _ _.
+move=> a s /= Hs ls.
+rewrite maxnr.
+  rewrite maxnl ?ltnSn // Hs //.
+  move=> {Hs}.
+  case : s ls=> /=; first by rewrite GRing.nonzero1r.
+  by move=> b s ->.
+by rewrite leq_maxr (leqW (Hn _)).
+Qed. 
+
+Lemma interp_reify : forall n (m : multi R n), interp n (reify m) = m.
+Proof.
+elim=> /=.
+  move=> m; rewrite /multiC.
+  by have ->: addn0 0%N = erefl 0%N; first exact: nat_irrelevance.
+move=> n Hn m.
+elim: m => p i.
+apply: val_inj=> /=.
+set f := foldr _ _.
+elim: p i.
+  by rewrite /= (ringM_0 (multiC_morph _ _)) val_insubd /= eqxx.
+move=> t s Hs.
+rewrite [f _]/= [interp _ _]/=.
+rewrite (interp_cast_multi (leqnSn n)); last by rewrite deg_term_reify.
+rewrite [last _ _]/= => ls.
+move: (subnK (leqnSn n)); rewrite subSnn => En.
+have ->: En = (erefl (n.+1)); first exact: nat_irrelevance.
+rewrite [cast_multi _ _]/=.
+rewrite Hn.
+move: (refl_equal (n < n.+1)).
+rewrite {2 3}[n<n.+1]ltnSn=> e.
+rewrite /multi_var.
+move:(subnK _) (subnK _). 
+rewrite [val _]/= subnn=> subnK subnK'.
+have ->: subnK = erefl (n.+1); first exact: nat_irrelevance.
+have ->: subnK' = erefl (n.+1); first exact: nat_irrelevance.
+rewrite ![cast_multi _ _]/= addrC mulrC -poly_cons_def polyseq_cons Hs.
+  move=> {Hs En e subnK' subnK}.
+  case:s ls; last by move=> a s /=.
+  rewrite /=.
+  move=> tn0.
+  by rewrite val_insubd tn0.
+move=> {Hs En e subnK' subnK}.
+case:s ls; first by rewrite GRing.nonzero1r.
+by move=> a s ->.
+Qed.
+
+Lemma interp_reify_cast_multi : forall n n' (ltnn' : n <= n') (m : multi R n) ,
+  interp n' (reify m) = cast_multi (subnK ltnn') m.
+Proof.
+move=> n n' ltnn' m.
+rewrite (interp_cast_multi ltnn'); last by rewrite deg_term_reify. 
+by apply/eqP; rewrite cast_multi_inj interp_reify.
+Qed.
+  
+Definition equivm m1 m2 := 
+  let n1 := deg_term m1 in
+    let n2 := deg_term m2 in
+      interp (maxn n1 n2) m1 == interp (maxn n1 n2) m2.
 
 Lemma interp_gtn : forall n m1 m2, 
   maxn (deg_term m1) (deg_term m2) <= n -> 
@@ -528,7 +596,8 @@ by rewrite GRing.nonzero1r.
 Qed.
 
 
-Definition multinom_comRingMixin := ComRingMixin mulmA mulmC mul1m mulm_addl nonzero1m.
+Definition multinom_comRingMixin := 
+  ComRingMixin mulmA mulmC mul1m mulm_addl nonzero1m.
 Canonical Structure  multinom_Ring := 
   Eval hnf in RingType multinom multinom_comRingMixin.
 Canonical Structure multinom_comRing := Eval hnf in ComRingType multinom mulmC.
@@ -567,77 +636,8 @@ have yltxy : (deg_term y) <= (maxn (deg_term x) (deg_term y)).
    by rewrite leq_maxr leqnn orbT.
 by apply/idP/idP; rewrite (unit_interp xltxy) (unit_interp yltxy) ixy.
 Qed.
-Notation unitm := (qT_op1 unitm_compat).
+Notation unitm := [pred m : multinom | qT_op1 unitm_compat m ].
 
-
-Fixpoint reify n (m : multi R n) := 
-  match n return multi R n -> multi_term with
-    | 0%N => fun m => Coef m
-    | n'.+1 => fun m =>
-      let: Polynomial s _:= m in
-        foldr (fun c p => Sum (reify c) (Prod (Var n') p)) (Coef 0) s
-  end m.
-
-Lemma deg_term_reify : forall n (m : multi R n), deg_term (reify m) <= n.
-Proof.
-elim; first done.
-move=>n Hn /= [p].
-elim: p; first done.
-set f := foldr _ _.
-move=> a s /= Hs ls.
-rewrite maxnr.
-  rewrite maxnl ?ltnSn // Hs //.
-  move=> {Hs}.
-  case : s ls=> /=; first by rewrite GRing.nonzero1r.
-  by move=> b s ->.
-by rewrite leq_maxr (leqW (Hn _)).
-Qed. 
-
-Lemma interp_reify : forall n (m : multi R n), interp n (reify m) = m.
-Proof.
-elim=> /=.
-  move=> m; rewrite /multiC.
-  by have ->: addn0 0%N = erefl 0%N; first exact: nat_irrelevance.
-move=> n Hn m.
-elim: m => p i.
-apply: val_inj=> /=.
-set f := foldr _ _.
-elim: p i.
-  by rewrite /= (ringM_0 (multiC_morph _ _)) val_insubd /= eqxx.
-move=> t s Hs.
-rewrite [f _]/= [interp _ _]/=.
-rewrite (interp_cast_multi (leqnSn n)); last by rewrite deg_term_reify.
-rewrite [last _ _]/= => ls.
-move: (subnK (leqnSn n)); rewrite subSnn => En.
-have ->: En = (erefl (n.+1)); first exact: nat_irrelevance.
-rewrite [cast_multi _ _]/=.
-rewrite Hn.
-move: (refl_equal (n < n.+1)).
-rewrite {2 3}[n<n.+1]ltnSn=> e.
-rewrite /multi_var.
-move:(subnK _) (subnK _). 
-rewrite [val _]/= subnn=> subnK subnK'.
-have ->: subnK = erefl (n.+1); first exact: nat_irrelevance.
-have ->: subnK' = erefl (n.+1); first exact: nat_irrelevance.
-rewrite ![cast_multi _ _]/= addrC mulrC -poly_cons_def polyseq_cons Hs.
-  move=> {Hs En e subnK' subnK}.
-  case:s ls; last by move=> a s /=.
-  rewrite /=.
-  move=> tn0.
-  by rewrite val_insubd tn0.
-move=> {Hs En e subnK' subnK}.
-case:s ls; first by rewrite GRing.nonzero1r.
-by move=> a s ->.
-Qed.
-
-Lemma interp_reify_cast_multi : forall n n' (ltnn' : n <= n') (m : multi R n) ,
-  interp n' (reify m) = cast_multi (subnK ltnn') m.
-Proof.
-move=> n n' ltnn' m.
-rewrite (interp_cast_multi ltnn'); last by rewrite deg_term_reify. 
-by apply/eqP; rewrite cast_multi_inj interp_reify.
-Qed.
-  
 Lemma invm_compat : \compat1_multinom _
   (fun m => \pi_multinom (reify ((interp (deg_term m) m)^-1))).
 Proof.
@@ -654,57 +654,92 @@ have yleqxy : deg_term y <= maxn (deg_term x) (deg_term y).
   by rewrite leq_maxr leqnn orbT.
 rewrite (interp_reify_cast_multi xleqxy). 
 rewrite (interp_reify_cast_multi yleqxy).
-rewrite !(ringM_inv (cast_multiM _ _)). 
-rewrite -!interp_cast_multi //.
-by move/eqP->.
+move/eqP=> exy.
+case ux: (GRing.unit (interp (deg_term x) x));
+    move:(ux); rewrite (unit_interp xleqxy) exy -(unit_interp yleqxy) => uy.
+  rewrite !(ringM_inv (cast_multiM _ _)) //. 
+  by rewrite -!interp_cast_multi // exy.
+by rewrite !invr_out ?ux ?uy // -!interp_cast_multi // exy.
 Qed.
+Notation invm := (qT_op1 invm_compat).
 
-
+Definition interpretable n := [pred m : multi_term | deg_term m <= n ].
 
 Lemma mulVm : {in unitm, left_inverse onem invm mulm}.
 Proof.
-elim/multiW=> m; rewrite in_simpl.
-case/orP; move/eqP->; rewrite /invm !qTE; 
-apply/eqP; rewrite equivP equivmP /equivm /=.
-  by rewrite (ringM_1 (multiC_morph _ _)) mulr1.
-rewrite (ringM_opp (multiC_morph _ _)).
-by rewrite (ringM_1 (multiC_morph _ _)) mulrNN mulr1.
+elim/multiW=> m; rewrite !inE.
+rewrite !qTE=> um; apply/eqP; rewrite -equivP equivmP.
+set im :=  reify _.
+rewrite /equivm /= maxn0.
+have mlimm : deg_term m <= maxn (deg_term im) (deg_term m).
+  by rewrite leq_maxr leqnn orbT.
+rewrite (interp_reify_cast_multi mlimm).
+rewrite (ringM_inv (cast_multiM _ _)) ?um //.
+rewrite -interp_cast_multi //.
+rewrite (ringM_1 (multiC_morph _ _)).
+rewrite mulVr //.
+by rewrite -(unit_interp mlimm).
 Qed.
 
 
 Lemma unitmPl : forall x y, mulm y x = onem -> unitm x.
 Proof.
-elim/multiW=> x; elim/multiW=> y; rewrite !qTE simpl_predE.
+elim/multiW=> x; elim/multiW=> y; rewrite inE !qTE.
 move/eqP; rewrite -!equivP !equivmP /=.
-rewrite !(@interp_gtn (maxn (deg_term x) (deg_term y))) /=.
-rewrite (ringM_opp (multiC_morph _ _)).
+rewrite /equivm /= maxn0.
 rewrite (ringM_1 (multiC_morph _ _)).
-rewrite unitr_mul.
-rewrite 
- 
-apply/orP; left.
-rewrite equivmP.
-move<-
-
-Set Printing All.
-
- rewrite /pi_of !equivP !equivmP. rewrute -equivP. /equivm /=.
+move/eqP=> ixiy1.
+rewrite (unit_interp (_ : deg_term x <= maxn (deg_term y) (deg_term x))).
+  apply/unitrP.
+  exists (interp (maxn (deg_term y) (deg_term x)) y).
+  by rewrite ixiy1 mulrC ixiy1.
+by rewrite leq_maxr leqnn orbT.
 Qed.
+
 
 Lemma  invm_out : {in predC unitm, invm =1 id}.
 Proof.
+elim/multiW=> x; rewrite !inE !qTE=> nux.
+rewrite invr_out //.
+apply/eqP; rewrite -equivP equivmP /equivm /=.
+set rx := reify _.
+have xltrxx: deg_term x <= (maxn (deg_term rx) (deg_term x)).
+  by rewrite leq_maxr leqnn orbT.
+rewrite (interp_reify_cast_multi xltrxx).
+by rewrite -interp_cast_multi.
 Qed.
 
 Definition multinom_comUnitRingMixin :=  ComUnitRingMixin mulVm unitmPl invm_out.
-Canonical Structure multinom_comUnitRing := 
-  Eval hnf in ComUnitRingType multinom_comUnitRingMixin.
+Canonical Structure multinom_unitRing := 
+  Eval hnf in UnitRingType multinom multinom_comUnitRingMixin.
+
 
 Lemma idomain_axiomm : forall x y,
   (mulm x y = zerom -> (x == zerom) || (y == zerom)).
 Proof.
+elim/multiW=> x; elim/multiW=> y; rewrite !qTE.
+move/eqP; rewrite -!equivP equivmP /equivm {1}[_ == _]/=.
+rewrite maxn0 (ringM_0 (multiC_morph _ _)).
+rewrite mulf_eq0.
+case/orP.
+  rewrite -!equivP equivmP.
+  rewrite (@interp_gtn (maxn (deg_term x) (deg_term y))).
+    by move/eqP->=> /=; rewrite (ringM_0 (multiC_morph _ _)) eqxx.
+  by rewrite maxn0 leq_maxr leqnn.
+move/eqP=> y0.
+apply/orP; right.
+rewrite -!equivP equivmP.
+rewrite (@interp_gtn (maxn (deg_term x) (deg_term y))).
+  by rewrite y0 /= (ringM_0 (multiC_morph _ _)) eqxx.
+by rewrite maxn0 leq_maxr leqnn orbT.
 Qed.
 
-Canonical Structure multinom_iDomain := Eval hnf in IdomainType idomain_axiomm.
+(* (* Why can't we have simply : *) *)
+(* Canonical Structure multinom_iDomain := *)
+(*   Eval hnf in IdomainType multi idomain_axiomm. *)
+
+Canonical Structure multinom_iDomain := 
+  Eval hnf in IdomainType [comUnitRingType of multinom] idomain_axiomm.
 
 End MultinomialTerm.
 
