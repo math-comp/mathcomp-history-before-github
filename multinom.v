@@ -83,30 +83,67 @@ move->; elim:m'=>/=.
 Qed.
 
 Definition multi_term_eqMixin := EqMixin eqm_eq.
-Canonical Structure multi_term_eqT := Eval hnf in EqType _ multi_term_eqMixin.
+Canonical Structure multi_term_eqType := 
+  Eval hnf in EqType multi_term multi_term_eqMixin.
 
-Inductive multi_term_skel :=
+Inductive multi_skel :=
 | CoefS of nat
 | VarS of nat
-| SumS   of multi_term_skel & multi_term_skel
-| ProdS  of multi_term_skel & multi_term_skel.
+| SumS   of multi_skel & multi_skel
+| ProdS  of multi_skel & multi_skel.
 
-Lemma multi_term_skel_countMixin : Countable.mixin_of multi_term_skel. 
-Admitted.
+Fixpoint encode_multi_skel m :=
+  match m with
+    | CoefS i => [::0%N; i]
+    | VarS n => [::1%N; n]
+    | SumS p q => 2%N::(encode_multi_skel p)++(encode_multi_skel q)
+    | ProdS p q => 3%N::(encode_multi_skel p)++(encode_multi_skel q)
+  end.
 
+Fixpoint decode_multi_skel_rec s :=
+  match s with
+    | 0%N::i::r => (CoefS i)::(decode_multi_skel_rec r)
+    | 1%N::n::r => (VarS n)::(decode_multi_skel_rec r)
+    | 2%N::r => match (decode_multi_skel_rec r) with
+                  | p::q::r' => (SumS p q)::r'
+                  | _ => [::]
+                end
+    | 3%N::r => match (decode_multi_skel_rec r) with
+                  | p::q::r' => (ProdS p q)::r'
+                  | _ => [::]
+                end
+    | _ => [::]
+  end.
 
+Definition decode_multi_skel s :=
+  if (decode_multi_skel_rec s) is [::m] then Some m else None.
 
-Definition multi_term_skel_choiceMixin := 
-  CountChoiceMixin multi_term_skel_countMixin.
-Definition multi_term_skel_eqMixin := 
-  Countable.EqMixin multi_term_skel_countMixin.
+Lemma code_multi_skel_recK :
+forall s m, decode_multi_skel_rec ((encode_multi_skel m) ++ s) 
+  = m::(decode_multi_skel_rec s).
+Proof.
+by move=> s m; elim:m s=> //=; move=> p Hp q Hq s; rewrite -catA Hp Hq.
+Qed. 
 
-Canonical Structure multi_term_skel_eqType := 
-  EqType _ multi_term_skel_eqMixin.
-Canonical Structure multi_term_skel_choiceType := 
-  ChoiceType _ multi_term_skel_choiceMixin.
-Canonical Structure multi_term_skel_countType := 
-  CountType _ multi_term_skel_countMixin.
+Lemma code_multi_skelK : pcancel encode_multi_skel decode_multi_skel.
+Proof.
+rewrite /decode_multi_skel=> m.
+by have := (code_multi_skel_recK [::] m); rewrite cats0 => ->.
+Qed.
+
+Definition multi_skel_countMixin := PcanCountMixin code_multi_skelK. 
+
+Definition multi_skel_choiceMixin := 
+  CountChoiceMixin multi_skel_countMixin.
+Definition multi_skel_eqMixin := 
+  Countable.EqMixin multi_skel_countMixin.
+
+Canonical Structure multi_skel_eqType := 
+  EqType _ multi_skel_eqMixin.
+Canonical Structure multi_skel_choiceType := 
+  ChoiceType _ multi_skel_choiceMixin.
+Canonical Structure multi_skel_countType := 
+  CountType _ multi_skel_countMixin.
 
 Fixpoint encode_multi_term_rec (s:seq R) (m:multi_term):=
   match m with
@@ -122,10 +159,10 @@ Fixpoint encode_multi_term_rec (s:seq R) (m:multi_term):=
         ((ProdS p' q'), s'')
 end.
 
-Definition encode_multi_term (m:multi_term) : multi_term_skel * (seq R):=
+Definition encode_multi_term (m:multi_term) : multi_skel * (seq R):=
   encode_multi_term_rec [::] m.
 
-Fixpoint decode_multi_term_rec (s:seq R) (m : multi_term_skel) :=
+Fixpoint decode_multi_term_rec (s:seq R) (m : multi_skel) :=
     match m with
     | CoefS i => Coef (nth (0:R) s i)
     | VarS n => Var n
@@ -135,7 +172,7 @@ Fixpoint decode_multi_term_rec (s:seq R) (m : multi_term_skel) :=
       Prod (decode_multi_term_rec s  p) (decode_multi_term_rec s  q)
   end.
 
-Definition decode_multi_term (ms : multi_term_skel * (seq R)) :=
+Definition decode_multi_term (ms : multi_skel * (seq R)) :=
   decode_multi_term_rec ms.2 ms.1.
 
 Lemma encode_multi_term_ds : forall s m,
@@ -160,38 +197,37 @@ move=> s m; elim:m s=> //=.
   by move=> <- <-; rewrite catA; move->.
 Qed.
 
-Lemma code_multi_term_recK_rec : forall s ds m,
+Lemma code_multi_term_recK : forall s ds m,
    decode_multi_term_rec 
    ((encode_multi_term_rec s m).2 ++ ds)
    (encode_multi_term_rec s m).1 = m.
 Proof.
 move=>s ds m; rewrite /decode_multi_term; elim:m s ds=> //=.
 - by move=> x s ds; rewrite nth_cat size_rcons leqnn nth_rcons ltnn eqxx.
-- move=> m Hm m' Hm' s ds.
-  move:(Hm s ((snd (encode_multi_term m')++ds))).
+- move=> p Hp q Hq s ds.
+  move:(Hp s ((snd (encode_multi_term q)++ds))).
   rewrite catA encode_multi_term_ds.
-  case: (encode_multi_term_rec _ m)=> /= m0 s'.
-  move:(Hm' s' ds).
-  case: (encode_multi_term_rec _ m')=> /= m1 s''.
+  case: (encode_multi_term_rec _ p)=> /= p' s'.
+  move:(Hq s' ds).
+  case: (encode_multi_term_rec _ q)=> /= q' s''.
   by move=> -> ->.
-- move=> m Hm m' Hm' s ds.
-  move:(Hm s ((snd (encode_multi_term m')++ds))).
+- move=> p Hp q Hq s ds.
+  move:(Hp s ((snd (encode_multi_term q)++ds))).
   rewrite catA encode_multi_term_ds.
-  case: (encode_multi_term_rec _ m)=> /= m0 s'.
-  move:(Hm' s' ds).
-  case: (encode_multi_term_rec _ m')=> /= m1 s''.
+  case: (encode_multi_term_rec _ p)=> /= p' s'.
+  move:(Hq s' ds).
+  case: (encode_multi_term_rec _ q)=> /= q' s''.
   by move=> -> ->.
 Qed.
 
-Lemma code_multi_term_recK : cancel encode_multi_term decode_multi_term.
+Lemma code_multi_termK : cancel encode_multi_term decode_multi_term.
 Proof.
 rewrite /encode_multi_term /decode_multi_term=> m.
-have := (code_multi_term_recK_rec [::] [::] m).
-by rewrite cats0.
+by have := (code_multi_term_recK [::] [::] m); rewrite cats0.
 Qed.
 
 Definition multi_term_choiceMixin := 
-  @CanChoiceMixin _ multi_term _ _ code_multi_term_recK.
+  @CanChoiceMixin _ multi_term _ _ code_multi_termK.
 Canonical Structure multi_term_choiceType :=
   ChoiceType _ multi_term_choiceMixin.
 
@@ -298,10 +334,10 @@ Qed.
 
 
 Lemma interp_cast_multi : forall n n' m (nltn' : n <= n'),
-  deg_term m <= n -> deg_term m <= n' ->
-   interp n' m = cast_multi (subnK nltn') (interp n m).
+  deg_term m <= n -> interp n' m = cast_multi (subnK nltn') (interp n m).
 Proof.
-move=> n n'; elim.
+move=> n n' m nltn' dmltn; have dmltn' := (leq_trans dmltn nltn').
+elim: m nltn' dmltn dmltn'.
 - move=> a /= nltn' dmltn dmltn'. 
   apply/eqP; rewrite /multiC. 
   by rewrite cast_multi_add /= cast_multi_inj.
@@ -338,11 +374,9 @@ Lemma interp_gtn : forall n m1 m2,
 Proof.
 move=> n m1 m2 p.
 rewrite !(interp_cast_multi p).
-  - by rewrite cast_multi_inj.
-  - by rewrite leq_maxr leqnn orbT.
-  - by move:p; rewrite leq_maxl; move/andP=>[].
-  - by rewrite leq_maxr leqnn.
-  - by move:p; rewrite leq_maxl; move/andP=>[].
+- by rewrite cast_multi_inj.
+- by rewrite leq_maxr leqnn orbT.
+- by rewrite leq_maxr leqnn.
 Qed.
 
 Lemma equivm_refl : reflexive equivm.
@@ -360,9 +394,6 @@ rewrite !(@interp_gtn (maxn (maxn (deg_term x) (deg_term y)) (deg_term z))).
 - by rewrite maxnAC leq_maxr leqnn.
 - by rewrite maxnC leq_maxr leqnn.
 Qed.
-
-
-
 
 Definition equivm_ltrans := left_trans equivm_sym equivm_trans.
 
@@ -382,16 +413,15 @@ Definition Multinom := @Sub _ _ [subType of multinom].
 Lemma canon_axiom : forall x, axiom (canon x).
 Proof. by move=> x; rewrite /axiom canon_id. Qed.
 
-Definition canonM x := @Multinom (canon x) (canon_axiom x).
+Definition canonm x := @Multinom (canon x) (canon_axiom x).
 
-
-Lemma canonM_valK : forall x : multinom, canonM (val x) = x.
+Lemma canonm_valK : forall x : multinom, canonm (val x) = x.
 Proof.
 by move=> [x /=]; rewrite /axiom=> Px; apply:val_inj=>/=; rewrite (eqP Px).
 Qed.
 
 Canonical Structure multinom_quotType := Eval hnf in
-  @QuotType _ multinom [eta val] [eta canonM] canonM_valK.
+  @QuotType _ multinom [eta val] [eta canonm] canonm_valK.
 
 
 Definition multiW := @quotW _ multinom_quotType.
@@ -400,6 +430,7 @@ Definition inRatP := insubP [subType of multinom].
 
 Notation zerom := (\pi_multinom (Coef 0)).
 Notation onem := (\pi_multinom (Coef 1)).
+Notation cstm c := (\pi_multinom (Coef c)).
 Notation varm n := (\pi_multinom (Var n)).
 
 Lemma equivmP : forall x y, x == y mod multinom = equivm x y.
@@ -418,11 +449,12 @@ Lemma addm_compat : \compat2_multinom _
   (fun x y => \pi_multinom (Sum x y)).
 Proof.
 apply:compat2Epi=> x y x' y'; rewrite !equivmP /=.
-rewrite !(@interp_gtn (maxn (maxn (deg_term x) (deg_term x'))
-  (maxn (deg_term y) (deg_term y')))) //=.
+rewrite !(@interp_gtn (maxn (maxn (deg_term x) (deg_term y))
+  (maxn (deg_term x') (deg_term y')))) //=.
 - by move/eqP->; move/eqP->.
-- admit.
-- admit. 
+- by rewrite !maxnA; rewrite [maxn (maxn (deg_term _) _) _]maxnAC.
+- by rewrite leq_maxr leqnn orbT.
+- by rewrite leq_maxr leqnn.
 Qed.
 Notation addm := (qT_op2 addm_compat).
 
@@ -438,16 +470,14 @@ Lemma mulm_compat : \compat2_multinom _
   (fun x y => \pi_multinom (Prod x y)).
 Proof.
 apply:compat2Epi=> x y x' y'; rewrite !equivmP /=.
-rewrite !(@interp_gtn (maxn (maxn (deg_term x) (deg_term x'))
-  (maxn (deg_term y) (deg_term y')))) //=.
+rewrite !(@interp_gtn (maxn (maxn (deg_term x) (deg_term y))
+  (maxn (deg_term x') (deg_term y')))) //=.
 - by move/eqP->; move/eqP->.
-- admit.
-- admit. 
+- by rewrite !maxnA; rewrite [maxn (maxn (deg_term _) _) _]maxnAC.
+- by rewrite leq_maxr leqnn orbT.
+- by rewrite leq_maxr leqnn.
 Qed.
 Notation mulm := (qT_op2 mulm_compat).
-
-
-
 
 Lemma addmA : associative addm.
 Proof.
@@ -455,7 +485,6 @@ elim/multiW=> x; elim/multiW=> y; elim/multiW=> z.
 rewrite !qTE; apply/eqP; rewrite -equivP equivmP.
 by rewrite /equivm /= addrA.
 Qed.
-
 
 Lemma addmC : commutative addm.
 Proof.
@@ -481,9 +510,149 @@ rewrite (ringM_1 (multiC_morph _ _)).
 by rewrite mulN1r addrC subrr.
 Qed.
 
+Definition multinom_zmodMixin :=  ZmodMixin addmA addmC add0m addmN.
+Canonical Structure multinom_zmodType := Eval hnf in ZmodType 
+  multinom multinom_zmodMixin.
 
-Definition multi_zmodMixin :=  ZmodMixin addmA addmC add0m addmN.
-Canonical Structure multi_zmodType := Eval hnf in ZmodType _ multi_zmodMixin.
+
+Lemma mulmA : associative mulm.
+Proof.
+elim/multiW=> x; elim/multiW=> y; elim/multiW=> z.
+rewrite !qTE; apply/eqP; rewrite -equivP equivmP.
+by rewrite /equivm /= mulrA.
+Qed.
+
+Lemma mulmC : commutative mulm.
+Proof.
+elim/multiW=> x; elim/multiW=> y.
+rewrite !qTE; apply/eqP; rewrite -equivP equivmP.
+by rewrite /equivm /= mulrC.
+Qed.
+
+
+Lemma mul1m : left_id onem mulm.
+Proof.
+Proof.
+elim/multiW=> x.
+rewrite !qTE; apply/eqP; rewrite -equivP equivmP.
+by rewrite /equivm /= (ringM_1 (multiC_morph _ _)) mul1r.
+Qed.
+
+Lemma mulm_addl : left_distributive mulm addm.
+Proof.
+elim/multiW=> x; elim/multiW=> y; elim/multiW=> z.
+rewrite !qTE; apply/eqP; rewrite -equivP equivmP.
+by rewrite /equivm /= mulr_addl.
+Qed.
+
+Lemma nonzero1m : onem != zerom.
+Proof.
+rewrite -equivP equivmP /equivm /=.
+rewrite (ringM_0 (multiC_morph _ _)).
+rewrite (ringM_1 (multiC_morph _ _)).
+by rewrite GRing.nonzero1r.
+Qed.
+
+
+Definition multinom_comRingMixin := ComRingMixin mulmA mulmC mul1m mulm_addl nonzero1m.
+Canonical Structure  multinom_Ring := 
+  Eval hnf in RingType multinom multinom_comRingMixin.
+Canonical Structure multinom_comRing := Eval hnf in ComRingType multinom mulmC.
+
+Lemma unit_interp : forall n m, (deg_term m) <= n ->
+  GRing.unit (interp (deg_term m) m) = GRing.unit (interp n m).
+Proof.
+move=> n m dm; apply/idP/idP.
+  move/(ringM_unit (cast_multiM _ (subnK dm))).
+  by rewrite -interp_cast_multi.
+elim:n dm; first by rewrite leqn0; move/eqP->.
+move=> n Hn dmSn uiSn.
+case:(ltngtP (deg_term m) n.+1); last by move->.
+  rewrite ltnS=> i; apply:Hn=> {dmSn} //.
+  move:uiSn. 
+  have nltSn: n <= 1 + n; first by rewrite leqnSn.
+  rewrite (interp_cast_multi nltSn i) /=.
+  pose f N := forall (EN : ((n.+1 - n)+ n = N)%N),
+    GRing.unit (cast_multi EN (interp n m)) -> GRing.unit (interp n m).
+  have: f  ((n.+1 - n) + n)%N.
+    move=> EN.
+    have ->: EN = (erefl ((n.+1 - n) + n)%N); first exact: nat_irrelevance.
+    rewrite /=. 
+    pose g N := GRing.unit (inject N (interp n m)) -> GRing.unit (interp n m).
+    have: g (n.+1 - n)%N; last done.
+    by rewrite subSnn /=; case/andP; rewrite coefC eqxx.
+  rewrite subnK -add1n ?leq_addl // => fN.
+  exact: (fN (subnK nltSn)).
+by move/(leq_ltn_trans dmSn); rewrite ltnn.
+Qed.
+
+Lemma unitm_compat : \compat1_multinom _
+  (fun m => GRing.unit (interp (deg_term m) m)).
+Proof.
+apply:compat1E=> x y.
+rewrite equivmP (@interp_gtn (maxn (deg_term x) (deg_term y))); last first.
+  by rewrite leqnn.
+move/eqP=> ixy.
+have xltxy : (deg_term x) <= (maxn (deg_term x) (deg_term y)).
+   by rewrite leq_maxr leqnn.
+have yltxy : (deg_term y) <= (maxn (deg_term x) (deg_term y)).
+   by rewrite leq_maxr leqnn orbT.
+by apply/idP/idP; rewrite (unit_interp xltxy) (unit_interp yltxy) ixy.
+Qed.
+Notation unitm := (qT_op1 unitm_compat).
+
+
+
+Lemma invm_compat : \compat1_multinom _
+  (fun m => \pi_multinom ((interp (deg_term m) m)^-1)).
+
+Lemma mulVm : {in unitm, left_inverse onem invm mulm}.
+Proof.
+elim/multiW=> m; rewrite in_simpl.
+case/orP; move/eqP->; rewrite /invm !qTE; 
+apply/eqP; rewrite equivP equivmP /equivm /=.
+  by rewrite (ringM_1 (multiC_morph _ _)) mulr1.
+rewrite (ringM_opp (multiC_morph _ _)).
+by rewrite (ringM_1 (multiC_morph _ _)) mulrNN mulr1.
+Qed.
+
+
+Lemma unitmPl : forall x y, mulm y x = onem -> unitm x.
+Proof.
+elim/multiW=> x; elim/multiW=> y; rewrite !qTE simpl_predE.
+move/eqP; rewrite -!equivP !equivmP /=.
+rewrite !(@interp_gtn (maxn (deg_term x) (deg_term y))) /=.
+rewrite (ringM_opp (multiC_morph _ _)).
+rewrite (ringM_1 (multiC_morph _ _)).
+rewrite unitr_mul.
+rewrite 
+ 
+apply/orP; left.
+rewrite equivmP.
+move<-
+
+Set Printing All.
+
+ rewrite /pi_of !equivP !equivmP. rewrute -equivP. /equivm /=.
+Qed.
+
+Lemma  invm_out : {in predC unitm, invm =1 id}.
+Proof.
+Qed.
+
+Definition multinom_comUnitRingMixin :=  ComUnitRingMixin mulVm unitmPl invm_out.
+Canonical Structure multinom_comUnitRing := 
+  Eval hnf in ComUnitRingType multinom_comUnitRingMixin.
+
+Lemma idomain_axiomm : forall x y,
+  (mulm x y = zerom -> (x == zerom) || (y == zerom)).
+Proof.
+Qed.
+
+Canonical Structure multinom_iDomain := Eval hnf in IdomainType idomain_axiomm.
+
+End MultinomialTerm.
+
 
 
 
