@@ -73,8 +73,8 @@ Proof.
 move=> f x; move/map_polyM=> fM.
 split=> [p q | p q |]; rewrite -!horner_map; last 1 first.
 - by rewrite ringM_1 // hornerC.
-- by rewrite ringM_sub // horner_add horner_opp.
-by rewrite ringM_mul // horner_mul //; exact: mulrC.
+- by rewrite (ringM_sub fM) // horner_add horner_opp.
+by rewrite (ringM_mul fM) // horner_mul //; exact: mulrC.
 Qed.
 
 Lemma polyC_morph : forall R, GRing.morphism (@polyC R).
@@ -208,7 +208,7 @@ Require Import finset groups perm zmodp morphisms.
 Import GroupScope.
 (* Open Scope ring_scope. *)
 
-Let R := @Fp_field 3 is_true_true.
+Let R := @Fp_fieldType 3.
 
 Variable T : finType.
 
@@ -245,7 +245,8 @@ pose eq_sign (p1 p2 : multi R n) := {e : bool | p1 = (- 1) ^+ e * p2}%R.
 suffices ss: forall s, eq_sign (to s VdM) VdM.
   move=> s t /=; rewrite /odd_perm' toM /=.
   case: (to s VdM =P VdM) => [-> // | ]; move/eqP.
-  case: (ss s) => [[] ->]; rewrite ?mul1r ?eqxx // mulN1r ringM_opp //= negbK.
+  case: (ss s) => [[] ->]; rewrite ?mul1r ?eqxx // mulN1r.
+  rewrite (ringM_opp (to_morph _)) //= negbK.
   case: (ss t) => [[] ->]; rewrite ?mul1r ?mulN1r ?opprK eqxx //.
   by move/negbTE.
 pose pi (i j : 'I_n) := if i < j then (i, j) else (j, i).
@@ -262,7 +263,7 @@ have psiK: forall s i j, psi s^-1 (psi s (i, j)) = pi i j.
   by rewrite if_same !siK.
 move=> s; rewrite {2}/VdM (reindex_onto (psi s) (psi s^-1)) /=; last first.
   by case=> /= i j ltij; rewrite -{1}[s]invgK psiK /pi ltij.
-rewrite big_mkcond ringM_prod //= big_mkcond /=.
+rewrite big_mkcond (ringM_prod (to_morph _)) //= big_mkcond /=.
 apply: (big_rel eq_sign); first by exists false; rewrite mul1r.
   move=> /= _ p1 _ p2 [e1 ->] [e2 ->]; exists (e1 (+) e2).
   by rewrite mulrCA !mulrA -signr_addb addbC.
@@ -270,13 +271,13 @@ case=> /= i j _; rewrite psiK pi_lt (inj_eq (can_inj (siK _))) /= /psi /pi.
 case: ifP => lt_ij; last first.
   by exists false; rewrite lt_ij andbC -andbA andbN andbF mul1r.
 rewrite neq_ltn {}lt_ij eqxx /=; move: (_ < _) => e; exists (~~ e).
-rewrite ringM_sub // !toX; case: e; rewrite ?mulNr mul1r //=.
+rewrite (ringM_sub (to_morph _)) // !toX; case: e; rewrite ?mulNr mul1r //=.
 by rewrite oppr_add opprK addrC.
 Qed.
 
 Definition bool_groupMixin := FinGroup.Mixin addbA addFb addbb.
 Canonical Structure bool_baseGroup :=
-  Eval hnf in BaseFinGroupType bool_groupMixin.
+  Eval hnf in BaseFinGroupType _ bool_groupMixin.
 Canonical Structure boolGroup := Eval hnf in FinGroupType addbb.
 
 Canonical Structure odd_perm'_morphism :=
@@ -304,13 +305,14 @@ have ->: y = s x1 by rewrite permM tpermR.
 rewrite -tpermJ 2!odd_perm'M addbCA -!odd_perm'M mulgA {x y eq_xy s s0}mulgKV.
 set t := tperm x0 x1; rewrite /odd_perm' -subr_eq0.
 rewrite {2}/VdM (bigD1 (i0, i1)) //= big_mkcond /=.
-rewrite ringM_prod // (bigD1 (i0, i1)) //= big_mkcond /=.
-rewrite ringM_sub // !toX /si tpermL tpermR !enum_valK.
+rewrite (ringM_prod (to_morph _)) // (bigD1 (i0, i1)) //= big_mkcond /=.
+rewrite (ringM_sub (to_morph _)) // !toX /si tpermL tpermR !enum_valK.
 pose mi i := @morph_multi R R id (set_nth 0 [::] i 1%R) n.
 have miM: GRing.morphism (mi _) by move=> i; exact: morph_multiM.
 rewrite -mulNr (addrC 'X_i0) oppr_add opprK -mulr_addr mulf_neq0 //.
   apply/eqP; move/(congr1 (mi 1%N)); move/eqP.
-  by rewrite ringM_sub // ringM_0 // /mi !morph_multiX.
+    rewrite (ringM_sub (miM _)) //=. 
+    by rewrite (ringM_0 (miM _)) // /mi !morph_multiX.
 pose h ij := (tperm i0 i1 ij.1, ij.2 : 'I_n).
 have hD: forall j : 'I_n, j > 1 -> tperm i0 i1 j = j.
   move=> j; rewrite ltn_neqAle lt0n -(eq_sym 0%N).
@@ -322,7 +324,7 @@ rewrite (reindex h) /=; last first.
   by exists h => [] [i j] _ /=; rewrite /h tpermK.
 elim: (index_enum _) => [|[i j] e IHe].
   rewrite !big_nil; apply/eqP; move/(congr1 (mi 2)); apply/eqP.
-  by rewrite ringM_add // ringM_0 // !(ringM_1 (miM _)).
+  by rewrite (ringM_add (miM _)) // (ringM_0 (miM _)) // !(ringM_1 (miM _)).
 rewrite !big_cons /= {1}/h /= !negb_andb /=; case eq_j1: (j == i1).
   by rewrite !orbF (eqP eq_j1) !ltnS !leqn0 !andbN !mul1r.
 rewrite !orbT !andbT; case: (leqP j 1) => [| {eq_j1}lt_1j].
@@ -331,9 +333,11 @@ case: (leqP j i) => [le_ji | lt_ij].
   by rewrite ltnNge hD ?(leq_trans lt_1j) ?le_ji // !mul1r.
 case: ifP => [_|]; last first.
   by case/idP; case: tpermP => //; rewrite ltnW.
-rewrite ringM_sub // !toX !sit tpermK hD // -mulr_addr mulf_neq0 {IHe}//.
+rewrite (ringM_sub (to_morph _)) // !toX !sit tpermK hD //.
+rewrite -mulr_addr mulf_neq0 {IHe}//.
 apply/eqP; move/(congr1 (mi j)); apply/eqP.
-rewrite ringM_0 // ringM_sub // /mi !morph_multiX // !nth_set_nth /= !nth_nil.
+rewrite (ringM_0 (miM _)) // (ringM_sub (miM _)) //.
+rewrite  /mi !morph_multiX // !nth_set_nth /= !nth_nil.
 by rewrite eqxx -if_neg neq_ltn lt_ij.
 Qed.
 
