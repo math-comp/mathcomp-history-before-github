@@ -66,7 +66,7 @@ Lemma eqm_eq : Equality.axiom eqm.
 Proof.
 move=> m m'.
 apply:(@iffP (eqm m m')); first exact: idP.
-move:m'. elim:m.
+move:m'; elim:m.
   - by move=> s [] //= s'; move/eqP->.
   - by move=> s [] //= s'; move/eqP->.
   - move=> p Hp q Hq [] //= p' q'.
@@ -91,12 +91,109 @@ Inductive multi_term_skel :=
 | SumS   of multi_term_skel & multi_term_skel
 | ProdS  of multi_term_skel & multi_term_skel.
 
-
-Lemma multi_term_choiceMixin : Choice.mixin_of (seq (seq multi_term)). Admitted.
-Canonical Structure multi_term_cT := ChoiceType _ multi_term_choiceMixin.
-
+Lemma multi_term_skel_countMixin : Countable.mixin_of multi_term_skel. 
+Admitted.
 
 
+
+Definition multi_term_skel_choiceMixin := 
+  CountChoiceMixin multi_term_skel_countMixin.
+Definition multi_term_skel_eqMixin := 
+  Countable.EqMixin multi_term_skel_countMixin.
+
+Canonical Structure multi_term_skel_eqType := 
+  EqType _ multi_term_skel_eqMixin.
+Canonical Structure multi_term_skel_choiceType := 
+  ChoiceType _ multi_term_skel_choiceMixin.
+Canonical Structure multi_term_skel_countType := 
+  CountType _ multi_term_skel_countMixin.
+
+Fixpoint encode_multi_term_rec (s:seq R) (m:multi_term):=
+  match m with
+    | Coef x => ((CoefS (size s)), (rcons s x))
+    | Var n => ((VarS n), s)
+    | Sum p q => 
+      let: (p',s') := encode_multi_term_rec s p in
+      let: (q',s'') := encode_multi_term_rec s' q in
+        ((SumS p' q'), s'')
+    | Prod p q => 
+      let: (p',s') := encode_multi_term_rec s p in
+      let: (q',s'') := encode_multi_term_rec s' q in
+        ((ProdS p' q'), s'')
+end.
+
+Definition encode_multi_term (m:multi_term) : multi_term_skel * (seq R):=
+  encode_multi_term_rec [::] m.
+
+Fixpoint decode_multi_term_rec (s:seq R) (m : multi_term_skel) :=
+    match m with
+    | CoefS i => Coef (nth (0:R) s i)
+    | VarS n => Var n
+    | SumS p q =>  
+      Sum (decode_multi_term_rec s  p) (decode_multi_term_rec s  q)
+    | ProdS p q =>  
+      Prod (decode_multi_term_rec s  p) (decode_multi_term_rec s  q)
+  end.
+
+Definition decode_multi_term (ms : multi_term_skel * (seq R)) :=
+  decode_multi_term_rec ms.2 ms.1.
+
+Lemma encode_multi_term_ds : forall s m,
+   s ++ (snd (encode_multi_term m)) = (snd (encode_multi_term_rec s m)).
+Proof.
+move=> s m; elim:m s=> //=.
+- by move=> x s; rewrite cats1.
+- by move=> x s; rewrite cats0.
+- rewrite /encode_multi_term /=; move=> p Hp q Hq s.
+  case:(encode_multi_term_rec [::] p) (Hp s)=> /= p0 sp0.
+  case:(encode_multi_term_rec sp0 q) (Hq sp0) => /= qs0 sqsp0.
+  case:(encode_multi_term_rec s p)=> /= ps sps.
+  case:(encode_multi_term_rec sps q) (Hq sps)=> /= qss sqsps.
+  case:(encode_multi_term_rec [::] q)=> /= q0 sq0.
+  by move=> <- <-; rewrite catA; move->.
+- rewrite /encode_multi_term /=; move=> p Hp q Hq s.
+  case:(encode_multi_term_rec [::] p) (Hp s)=> /= p0 sp0.
+  case:(encode_multi_term_rec sp0 q) (Hq sp0) => /= qs0 sqsp0.
+  case:(encode_multi_term_rec s p)=> /= ps sps.
+  case:(encode_multi_term_rec sps q) (Hq sps)=> /= qss sqsps.
+  case:(encode_multi_term_rec [::] q)=> /= q0 sq0.
+  by move=> <- <-; rewrite catA; move->.
+Qed.
+
+Lemma code_multi_term_recK_rec : forall s ds m,
+   decode_multi_term_rec 
+   ((encode_multi_term_rec s m).2 ++ ds)
+   (encode_multi_term_rec s m).1 = m.
+Proof.
+move=>s ds m; rewrite /decode_multi_term; elim:m s ds=> //=.
+- by move=> x s ds; rewrite nth_cat size_rcons leqnn nth_rcons ltnn eqxx.
+- move=> m Hm m' Hm' s ds.
+  move:(Hm s ((snd (encode_multi_term m')++ds))).
+  rewrite catA encode_multi_term_ds.
+  case: (encode_multi_term_rec _ m)=> /= m0 s'.
+  move:(Hm' s' ds).
+  case: (encode_multi_term_rec _ m')=> /= m1 s''.
+  by move=> -> ->.
+- move=> m Hm m' Hm' s ds.
+  move:(Hm s ((snd (encode_multi_term m')++ds))).
+  rewrite catA encode_multi_term_ds.
+  case: (encode_multi_term_rec _ m)=> /= m0 s'.
+  move:(Hm' s' ds).
+  case: (encode_multi_term_rec _ m')=> /= m1 s''.
+  by move=> -> ->.
+Qed.
+
+Lemma code_multi_term_recK : cancel encode_multi_term decode_multi_term.
+Proof.
+rewrite /encode_multi_term /decode_multi_term=> m.
+have := (code_multi_term_recK_rec [::] [::] m).
+by rewrite cats0.
+Qed.
+
+Definition multi_term_choiceMixin := 
+  @CanChoiceMixin _ multi_term _ _ code_multi_term_recK.
+Canonical Structure multi_term_choiceType :=
+  ChoiceType _ multi_term_choiceMixin.
 
 Fixpoint deg_term t := 
   match t with
@@ -320,8 +417,13 @@ Qed.
 Lemma addm_compat : \compat2_multinom _
   (fun x y => \pi_multinom (Sum x y)).
 Proof.
-apply:compat2Epi=> x y x' y'; rewrite !equivmP /equivm /=.
-Admitted.
+apply:compat2Epi=> x y x' y'; rewrite !equivmP /=.
+rewrite !(@interp_gtn (maxn (maxn (deg_term x) (deg_term x'))
+  (maxn (deg_term y) (deg_term y')))) //=.
+- by move/eqP->; move/eqP->.
+- admit.
+- admit. 
+Qed.
 Notation addm := (qT_op2 addm_compat).
 
 Lemma oppm_compat : \compat1_multinom _
@@ -335,8 +437,13 @@ Notation oppm := (qT_op1 oppm_compat).
 Lemma mulm_compat : \compat2_multinom _
   (fun x y => \pi_multinom (Prod x y)).
 Proof.
-apply:compat2Epi=> x y x' y'; rewrite !equivmP /equivm /=.
-Admitted.
+apply:compat2Epi=> x y x' y'; rewrite !equivmP /=.
+rewrite !(@interp_gtn (maxn (maxn (deg_term x) (deg_term x'))
+  (maxn (deg_term y) (deg_term y')))) //=.
+- by move/eqP->; move/eqP->.
+- admit.
+- admit. 
+Qed.
 Notation mulm := (qT_op2 mulm_compat).
 
 
@@ -378,246 +485,5 @@ Qed.
 Definition multi_zmodMixin :=  ZmodMixin addmA addmC add0m addmN.
 Canonical Structure multi_zmodType := Eval hnf in ZmodType _ multi_zmodMixin.
 
-
-
-
-
-
-
-
-
-
-Definition canon_multinom (n:nat) : (multi R n) -> bool :=
-  if n is m.+1 then fun (p:multi R m.+1) => size p >= 2
-    else fun _ => true.
-
-Fixpoint surj_multi (t : multi_term) : multi R (deg_term t) :=
-  match t return multi R (deg_term t) with
-    | Coef c => c
-    | Monom n => ('X_(Ordinal (ltnSn n)))
-    | Prod t1 t2 => 
-      let p1 := (surj_multi t1) in
-      let p2 := (surj_multi t2) in
-        (cast_multi (to_maxn (deg_term t1) (deg_term t2)) p1) 
-        * (cast_multi (to_maxm (deg_term t1) (deg_term t2)) p2) 
-    | Sum t1 t2 => 
-      let p1 := (surj_multi t1) in
-      let p2 := (surj_multi t2) in
-        (cast_multi (to_maxn (deg_term t1) (deg_term t2)) p1) 
-        + (cast_multi (to_maxm (deg_term t1) (deg_term t2)) p2) 
-  end.
-
-Fixpoint inj_seq  (n:nat) (M:ringType) 
-  (f : M -> multi_term)  (p:seq M) : multi_term :=
-  if p is c::q 
-    then Sum (f c) (Prod (Monom n) (inj_seq n f q))
-    else Coef 0%R.
-
-Fixpoint inj_multi (n:nat) : (multi R n)  -> multi_term :=
-  if n is m.+1 return multi R n -> multi_term
-    then  fun p => inj_seq  m (@inj_multi m) p
-    else  fun (p:R) => Coef p.
-
-
-Record pre_multinom := PreMultinom {
-  preNbVar : nat ;
-  prePoly : multi R preNbVar
-}.
-
-Record multinom := Multinom {
-  nbVar : nat ;
-  poly : multi R nbVar ;
-  _ : canon_multinom poly
-}.
-
-Definition multinom_Sub pm (p : canon_multinom (prePoly pm)) :=  
-  Multinom p.
-Definition multinom_val p := PreMultinom (poly p).
-
-Lemma multinom_subtype_rec : 
-  forall K (_ : forall x Px, K (@multinom_Sub x Px)) u, K u.
-Proof.
-  move=> K Px [n m p].
-  by rewrite (_ : Multinom p = @multinom_Sub (PreMultinom m) p).
-Qed.
-
-Lemma multinom_subtype_valSubK : 
-  forall x Px, multinom_val (@multinom_Sub x Px) = x.
-Proof. by case. Qed.
-
-Canonical Structure multinom_subtype := SubType _ _ _ 
-  multinom_subtype_rec multinom_subtype_valSubK.
-
-
-
-
-Fixpoint canonize n : multi R n -> multinom :=
-  if n is m.+1 return multi R n -> multinom 
-    then (fun p =>
-      match p with
-        | Polynomial [::] _ => @Multinom 0 0%R is_true_true
-        | Polynomial [::c] _ => canonize c
-        | Polynomial (a::b::q) pr  => 
-          @Multinom m.+1  (Polynomial pr) is_true_true
-      end)
-    else fun (p:multi R 0) => @Multinom _ p is_true_true.
-
-
-
-(* Notation ord x y := (Ordinal (erefl _ : x<y)). *)
-
-Function surj (t : multi_term) : multinom :=
-  canonize (surj_multi t).
-  (* match t with *)
-  (*   | Coef c => @canonize 0 c *)
-  (*   | Monom n => canonize ('X_(Ordinal (ltnSn n))) *)
-  (*   | Prod t1 t2 =>  *)
-  (*     let: Multinom n1 p1 _ := (surj t1) in *)
-  (*     let: Multinom n2 p2 _ := (surj t2) in *)
-  (*       canonize ((cast_multi (to_maxn n1 n2) p1) * (cast_multi (to_maxm n1 n2) p2)) *)
-  (*   | Sum t1 t2 =>  *)
-  (*     let: Multinom n1 p1 _:= (surj t1) in *)
-  (*     let: Multinom n2 p2 _ := (surj t2) in *)
-  (*       canonize ((cast_multi (to_maxn n1 n2) p1) + (cast_multi (to_maxm n1 n2) p2)) *)
-  (* end. *)
-
-Function inj (p : multinom) : multi_term := inj_multi (poly p).
-
-Open Scope nat_scope.
-Lemma strong_nat_ind : forall P : nat-> Type, 
-  (forall n, (forall i : 'I_n, P i) -> P n) -> 
-  forall n, P n.
-Proof.
-move=> P Hn.
-suff: forall n, forall i : 'I_n, P i.
-   move=> SP n; exact: (SP (n.+1) (ord_max)).
-elim; first by case.
-move=> n Pn [m]; case: (ltngtP n m) => /=.
-   - by move=> Lnm Lmn; move: (leq_trans Lnm Lmn); rewrite ltnn.
-   - move=> Lmn _. exact: (Pn (Ordinal Lmn)).
-   - move=> <- /= _; exact: Hn.
-Defined.
- 
-Open Scope ring_scope.
-
-
-Lemma surj_injK : forall (m : multinom), surj (inj m) = m.
-Proof.
-case. elim/strong_nat_ind. case.
-  move=> _ /= p i; congr Multinom; exact: bool_irrelevance.
-move=> /= n /= Pt. rewrite /inj /=.
-move=> [] /=. elim. exact.
-move=> a. elim. exact.
-move=> b. elim.
-   move=>  /= _ _ bn0 i. rewrite /surj /=.
-apply: val_inj=> /=.
-   rewrite /maxn /=.
-  move=>[n m c].
-  move=> /= p i. exists (Coef p). congr Multinom. exact: bool_irrelevance.
-
-
-
-Lemma surj_surj : forall m : multinom, {t | surj t = m}.
-Proof.
-case. elim.
-  move=> /= p i. exists (Coef p). congr Multinom. exact: bool_irrelevance.
-
-
-   
-case; elim/strong_nat_ind; case.
-   move=>  /= _ c i; exists (Coef c).
-   rewrite /surj  /= /multiC /=. Set Printing All.
-   congr Multinom. apply: bool_irrelevance.
-move=> /= n /= Pt.
-have: forall (poly0 : {poly multi R n}) (i : 1 < size poly0),
-   {t : multi_term | surj t = Multinom i}.
-
-
- []. elim=> /=; first exact.
-move=> a; elim=> /=; first exact.
-move=> b; elim=> //=.
-move=> _ _ . 
-   - move=> bneq0 i.
-   - have: exists i : ordinal n.+1 nbVar (canonize a) =  
-   - have:=  (Pt _ (poly (canonize a))).
-   - have:= (Pt (ord_max) b).
-   
-
- exists (Sum (canonize a) (Prod (Monom n) (canonize b))).
-
- Hq j k. Set Printing All.
-
-Admitted.
-
-
-
-Definition inj (m : multinom) := sval (surj_surj m).
-Lemma surj_injK : forall m : multinom, surj (inj m) = m.
-Proof. move=> m. exact: (svalP (surj_surj m)). Qed.
-
-
-
-have : (Hq
-
-
-
-
-
-
-
-
-
-
-Lemma multi_var_max : forall n, 'X_(Ordinal (ltnSn n)) = 'X :> (multi R (n.+1)).
-Proof.
-move:R. move=>I n. elim:n I.
-  rewrite /multi_var /cast_multi /=.
-  by rewrite (nat_irrelevance (@subnK (S 0) (S 0) (valP (Ordinal (ltnSn 0)))) (erefl _)) /=.
-move=> n EX J.
-move:(@EX [idomainType of {poly J}]).
-(* Set Printing All. *)
-
-(* move<-.  *)
-(* Check cast_multi. *)
-(* move/eqP. *)
-(* Check inj_eq. *)
-(* rewrite -(inj_eq (@inject_inj _ _ 1%N)) /=. *)
-(* move/eqP. *)
-
-
-(* rewrite ((cast_multi (_:(1+n)%N = n.+1)) EX). *)
-
-(* rewrite /multi_var /cast_multi /=. *)
-
-Admitted.
-
-
-Lemma surj_injK : forall p : multinom, surj (inj_multi p) = p.
-Proof.
-case. elim; first by move=> p i; congr Multinom; apply: bool_irrelevance.
-move=> /= n Hp [[]]; first exact.
-move=> /= a p i j /=.
-rewrite multi_var_max. 
-have -> : 'X = @Polynomial (multi R n) [::0;1] (GRing.nonzero1r _); last first.
-
-rewrite H.
-
-
-/polyX /= /poly_cons /= /polyC /insubd /odflt /oapp.
-rewrite -!insub_eqE /= /insub_eq /=.
-
-
-rewrite /multi_var. 
-
-
-/cast_multi /=.
-move=> /= b p i j /=.
-Set Printing All.
-
-rewrite Hp.
-
-rewrite /inj_multi /=.
-rewrite /poly_rect /=.
-rewrite /eq_rect /=.
 
 
