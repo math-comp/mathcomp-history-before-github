@@ -15,7 +15,7 @@ Import GroupScope.
 Section Six.
 
 Variable gT : finGroupType. 
-Implicit Types G H K U : {group gT}.
+Implicit Types G H K S U : {group gT}.
 Implicit Type p : nat.
 
 (* This is B & G, Theorem A.4(b) and 6.1, or Gorenstein 6.5.2, the main Hall- *)
@@ -26,6 +26,20 @@ Proof.
 move=> p G; move/odd_p_stable=> stabG; move/solvable_p_constrained=> constrG.
 exact: p_stable_abelian_constrained.
 Qed.
+
+(* The two parts of B & G, Theorem 6.2 are established in BGappendixAB. *)
+
+Theorem Puig_factorisation : forall p G S,
+ odd #|G| -> solvable G -> p.-Sylow(G) S -> 'O_p^'(G) * 'N_G('Z('L(S))) = G.
+Proof. exact: BGappendixAB.Puig_factorization. Qed.
+
+Theorem Puig_center_normal : forall p G S,
+ odd #|G| -> solvable G -> p.-Sylow(G) S -> 'O_p^'(G) = 1 -> 'Z('L(S)) <| G.
+Proof. exact: BGappendixAB.Puig_center_normal. Qed.
+
+(* Auxiliary results from AppendixAB, necessary to exploit the results above. *)
+Definition center_Puig_char := BGappendixAB.center_Puig_char.
+Definition trivg_center_Puig_pgroup := BGappendixAB.trivg_center_Puig_pgroup.
 
 (* 6.3(a), page 49 *)
 Lemma solvable_hall_dprod_der_subset_comm_centr_compl : forall G H K,

@@ -2,7 +2,8 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq paths div.
 Require Import choice fintype finfun bigops ssralg finset prime binomial.
 Require Import groups zmodp morphisms automorphism normal perm action gprod.
 Require Import commutators cyclic center pgroups sylow nilpotent maximal hall.
-Require Import transfer.
+Require Import BGsection1.
+Require abelian.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
