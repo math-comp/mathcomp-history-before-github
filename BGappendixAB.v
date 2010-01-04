@@ -182,8 +182,8 @@ rewrite leq_eqVlt ltnS leq_eqVlt ltnNge dA_gt0 orbF orbC; case/pred2P=> def_dA.
 move: (kquo_repr _) (kquo_mx_faithful rAG) => /=; set K := rker _.
 rewrite def_dA => r2G; move/der1_odd_GL2_charf; move/implyP.
 rewrite quotient_odd //= -/G; apply: etrans; apply: eq_pgroup => p'.
-rewrite (fieldM_char (genRM _ _)) (charf_eq (char_Fp _)) //.
-by case: (pgroup_1Vpr pE) (ntE) => [-> | [] //]; rewrite eqxx.
+have [p_pr _ _] := pgroup_pdiv pE ntE.
+by rewrite (fieldM_char (genRM _ _)) (charf_eq (char_Fp _)).
 Qed.
 
 Section A5.

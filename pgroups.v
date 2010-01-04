@@ -260,14 +260,13 @@ move=> P; case: (ltnP 1 #|P|); first by move/prime_pdiv; exists (pdiv #|P|).
 move/card_le1_trivg=> -> _; exists 2 => //; exact: pgroup1.
 Qed.
 
-Lemma pgroup_1Vpr : forall p G, p.-group G ->
-  G :=: 1 \/ [/\ prime p, p <= #|G| & exists m, #|G| = p ^ m.+1]%N.
+Lemma pgroup_pdiv : forall p G,
+    p.-group G -> G :!=: 1 ->
+  [/\ prime p, p %| #|G| & exists m, #|G| = p ^ m.+1]%N.
 Proof.
-move=> p G pG; case/p_groupP: (pgroup_p pG) => q pr_q.
-case/p_natP=> // [[|m] defG]; [left; exact: card1_trivg | right].
-have qG: q %| #|G| by rewrite defG expnS dvdn_mulr.
-have <-: q = p by apply/eqP; move/pgroupP: pG; exact.
-by split; [|exact: dvdn_leq | exists m].
+move=> p G pG; rewrite trivg_card1; case/p_groupP: (pgroup_p pG) => q q_pr qG.
+move/implyP: (pgroupP _ _ pG q q_pr); case/p_natP: qG => // [[|m] ->] //.
+by rewrite dvdn_exp //; move/eqnP=> <- _; split; rewrite ?dvdn_exp //; exists m.
 Qed.
 
 Lemma card_Hall : forall pi G H, pi.-Hall(G) H -> #|H| = #|G|`_pi.
@@ -1230,16 +1229,15 @@ Lemma OhmE : forall (p : nat) G,
   p.-group G -> 'Ohm_n(G) = <<[set x \in G | x ^+ (p ^ n) == 1]>>.
 Proof.
 move=> p G pG; congr <<_>>; apply/setP=> x; rewrite !inE.
-case Gx: (x \in G) => //=; rewrite -order_dvdn /OhmPred /order.
+case Gx: (x \in G) => //=; rewrite -order_dvdn /OhmPred.
 have: p.-elt x by exact: mem_p_elt pG Gx.
-case/pgroup_1Vpr=> [/= -> | [pr_p]].
-  by rewrite cards1 dvd1n unlock /= !logn1.
-rewrite -/#[x] -ltnS => le_p_x [m defm]; rewrite {2 3}defm {defm}.
-rewrite pfactor_dvdn ?expn_gt0 ?prime_gt0 // pfactorK //; congr (_ <= n).
-apply/eqP; rewrite big_mkord eqn_leq andbC.
-rewrite (leq_trans _ (leq_bigmax (Ordinal le_p_x))) ?pfactorK //=.
-apply big_prop => // [n1 n2|q _]; first by rewrite leq_maxl => -> ->.
-by rewrite logn_exp logn_prime // -{2}[m.+1]muln1 leq_pmul2l ?leq_b1.
+case: (eqVneq x 1) => [-> _ |]; first by rewrite order1 dvd1n unlock.
+rewrite -cycle_eq1 => nt_x; case/pgroup_pdiv=> // p_pr p_x [m def_m].
+have le_p_x: p < #[x].+1 by rewrite ltnS dvdn_leq.
+apply: eqP; rewrite {-1}[#[x]]def_m big_mkord (bigD1 (Ordinal le_p_x)) //=.
+rewrite big1 => [|q ne_q_p].
+  by rewrite maxn0 pfactor_dvdn ?pfactorK // expn_gt0 prime_gt0.
+by rewrite logn_exp logn_prime // [_ == _](negbTE ne_q_p).
 Qed.
 
 Lemma Ohm_compatible : forall i, compatible (Ohm i).
@@ -1283,12 +1281,12 @@ Lemma MhoE : forall (p : nat) G,
 Proof.
 move=> p G pG; congr <<_>>; apply: eq_in_imset => x Gx.
 have p_x: p.-elt x by exact: mem_p_elt pG Gx.
-case: (pgroup_1Vpr p_x) => [/= x1 | [pr_p]].
-  have ->: x = 1 by apply/set1gP; rewrite -x1 cycle_id.
+case: (eqVneq x 1) => [-> |].
   rewrite exp1gn; apply/set1P; apply: (subsetP (Mho_sub 1)).
   by rewrite mem_gen // mem_imset.
-rewrite -/#[x] /MhoFun -ltnS => le_p_x _.
-rewrite (big_cat_nat _ _ _ _ (ltnW le_p_x)) //= (big_ltn le_p_x).
+rewrite -cycle_eq1 => nt_x; have [p_pr dv_p_x _] := pgroup_pdiv p_x nt_x.
+have{dv_p_x} le_p_x: p < #[x].+1 by rewrite ltnS dvdn_leq.
+rewrite /MhoFun (big_cat_nat _ _ _ _ (ltnW le_p_x)) //= (big_ltn le_p_x).
 have xq1: forall q, (q > p) || (q < p) -> x.`_q ^+ (q ^ n) = 1.
   move=> q; rewrite -neq_ltn => nqp; rewrite (constt1P _) ?exp1gn //.
   by apply: sub_in_pnat p_x => r _; move/eqnP->.
@@ -1409,6 +1407,16 @@ Qed.
 Lemma abelem_pgroup : forall p E, p.-abelem E -> p.-group E.
 Proof. by move=> p E; case/andP. Qed.
 
+Lemma abelem_order_p : forall p E x,
+  p.-abelem E -> x \in E -> x != 1 -> prime p /\ #[x] = p.
+Proof.
+move=> p E x pE Ex; rewrite -cycle_eq1 => nt_x.
+have p_x: p.-elt x := mem_p_elt (abelem_pgroup pE) Ex.
+have{p_x nt_x} [p_pr p_x _] := pgroup_pdiv p_x nt_x.
+split=> //; apply/eqP; rewrite eqn_dvd p_x andbT order_dvdn.
+by case/p_abelemP: pE => // _ ->.
+Qed.
+
 Lemma Ohm1Eprime : forall G, 'Ohm_1(G) = <<[set x \in G | prime #[x]]>>.
 Proof.
 move=> G; apply/eqP; rewrite eqEsubset andbC !gen_subG; apply/andP.
@@ -1486,14 +1494,12 @@ Proof.
 move=> p G cycG pG ntG; set K := 'Ohm_1(G).
 have sKG: K \subset G := Ohm_sub _ _.
 case/cyclicP: (cyclicS sKG cycG) => x /=; rewrite -/K => defK.
-have Kx: x \in K by rewrite defK cycle_id.
+have nt_x: x != 1.
+  apply: contra ntG; move/eqP=> x1; rewrite -(setIid G) TI_Ohm1 //.
+  by rewrite -/K defK x1 cycle1 (setIidPr (sub1G _)).
 have abK: abelem K by rewrite Ohm_abelian ?(pgroup_p pG) ?cyclic_abelian.
 have{abK} abK: p.-abelem K by rewrite /p_abelem abK (pgroupS sKG).
-have p_pr: prime p by case/pgroup_1Vpr: pG ntG => [-> | [] //]; case/eqP.
-case/p_abelemP: abK => // _; move/(_ x Kx); move/eqP; rewrite -order_dvdn.
-case/primeP: p_pr => _ p_pr; move/p_pr; rewrite defK; case/pred2P=> // x1.
-case/eqP: ntG; rewrite -(setIid G) TI_Ohm1 //.
-by rewrite (setIidPr sKG) defK card1_trivg.
+by case/(abelem_order_p abK): nt_x => [|_ <-]; rewrite /= -/K defK ?cycle_id.
 Qed.
 
 Lemma cyclic_pgroup_dprod_trivg : forall p A B C,
@@ -1505,8 +1511,7 @@ case/dprodP: defC => [] [G H -> ->{A B}] defC _ tiGH; rewrite -defC.
 case: (eqVneq <[x]> 1) => [|ntC].
   move/trivgP; rewrite -defC mulG_subG; case/andP; move/trivgP=> -> _.
   by rewrite mul1g; left.
-have pr_p: prime p by case/pgroup_1Vpr: pC ntC => [-> | [] //]; case/eqP.
-pose K := 'Ohm_1(<[x]>).
+have [pr_p _ _] := pgroup_pdiv pC ntC; pose K := 'Ohm_1(<[x]>).
 have prK : prime #|K| by rewrite (Ohm1_cyclic_pgroup_prime _ pC) ?cycle_cyclic.
 case: (prime_subgroupVti G prK) => [sKG |]; last first.
   move/TI_Ohm1; rewrite -defC (setIidPl (mulG_subl _ _)) => ->.

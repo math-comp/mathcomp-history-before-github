@@ -263,9 +263,6 @@ Variables aT rT : finGroupType.
 Variables (D : {group aT}) (f : {morphism D >-> rT}) (x : aT).
 Hypothesis Dx : x \in D.
 
-Lemma morphim_cycle : f @* <[x]> = <[f x]>.
-Proof. by rewrite morphim_gen (sub1set, morphim_set1). Qed.
-
 Lemma morph_order : #[f x] %| #[x].
 Proof. by rewrite order_dvdn -morphX // expg_order morph1. Qed.
 

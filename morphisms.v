@@ -506,7 +506,7 @@ Lemma morphim_inj : forall H1 H2,
   f @* H1 = f @* H2 -> H1 :=: H2.
 Proof. by move=> H1 H2 nH1f nH2f; move/morphim_injG->. Qed.
 
-(* commutation with the generated group *)
+(* commutation with generated groups and cycles *)
 
 Lemma morphim_gen : forall A, A \subset G -> f @* <<A>> = <<f @* A>>.
 Proof.
@@ -514,6 +514,9 @@ move=> A sAG; apply/eqP.
 rewrite eqEsubset andbC gen_subG morphimS; last exact: subset_gen.
 by rewrite sub_morphim_pre gen_subG // -sub_morphim_pre // subset_gen.
 Qed.
+
+Lemma morphim_cycle : forall x, x \in G -> f @* <[x]> = <[f x]>.
+Proof. by move=> x Gx; rewrite morphim_gen (sub1set, morphim_set1). Qed.
 
 Lemma morphpre_gen : forall C,
   1 \in C -> C \subset f @* G -> f @*^-1 <<C>> = <<f @*^-1 C>>.

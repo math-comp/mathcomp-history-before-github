@@ -100,30 +100,6 @@ End LeftRightComm.
 
 End Basic_commutator_properties.
 
-(* GG -- outcommenting the whole section -- lemmas are not used
-Section Commutators_and_centralizers.
-
-Variable T : finGroupType.
-(* should not be a group but a set *)
-Variable H : {set T}.
-
-(* This is a composite reflections, so it should be a reflection as well. *)
-(* I don't see why the centraliser has to be localised. *)
-Lemma commg_to_centraliser : forall y,
-  {in H, forall x, [~ x, y] = 1} -> H \subset 'C_H[y].
-Proof.
-move=> y comm1; rewrite subsetI subxx /=.
-by apply/subsetP=> x Hx; apply/cent1P; apply/commgP; rewrite comm1.
-Qed.
-
-Lemma centraliser_to_commg : forall x y, x \in 'C_H[y] -> [~ x, y] = 1.
-Proof.
-move=> x y; case/setIP=> _; rewrite (sameP cent1P commgP); exact: eqP.
-Qed.
-
-End Commutators_and_centralizers.
-*)
-
 (***** Set theoretic commutators *****)
 Section Commutator_properties.
 
@@ -249,7 +225,6 @@ by rewrite cGHK ?groupV // cHKG ?groupV // !conj1g !mul1g conjgKV.
 Qed.
 
 (* GG -- unsure about the usefulness of this lemma; keeping it for now. *)
-
 Lemma commgAC : forall G x y z, x \in G -> y \in G -> z \in G ->
   commute y z -> abelian [~: [set x], G] -> [~ x, y, z] = [~ x, z, y].
 Proof.
@@ -262,6 +237,18 @@ suffices RxGcx': forall u, u \in G -> cx' u \in [~: [set x], G].
 move=> u Gu; suffices: [~ x, u] ^ x^-1 \in [~: [set x], G].
   by move/groupMl <-; rewrite -commMgJ mulgV comm1g group1.
 by rewrite memJ_norm ?mem_commg ?set11 // groupV (subsetP (commg_normr _ _)).
+Qed.
+
+(* Aschbacher, exercise 3.6 (used in proofs of Aschbacher 24.7 and B & G 1.10 *)
+Lemma comm_norm_cent_cent : forall H G K,
+    H \subset 'N(G) -> H \subset 'C(K) -> G \subset 'N(K) ->
+  [~: G, H] \subset 'C(K).
+Proof.
+move=> H G K nGH; move/centsP=> cKH nKG; rewrite commGC gen_subG centsC.
+apply/centsP=> x Kx yz; case/imset2P=> y z Hy Gz ->{yz}; red.
+rewrite mulgA -[x * _]cKH ?groupV // -!mulgA; congr (_ * _).
+rewrite (mulgA x) (conjgC x) (conjgCV z) 3!mulgA; congr (_ * _).
+by rewrite -2!mulgA (cKH y) // -mem_conjg (normsP nKG).
 Qed.
 
 Lemma charR : forall H K G, H \char G -> K \char G -> [~: H, K] \char G.

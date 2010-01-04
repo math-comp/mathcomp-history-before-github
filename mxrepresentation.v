@@ -3253,7 +3253,7 @@ Variables (p : nat) (gT : finGroupType) (E : {group gT}).
 Hypotheses (abelE : p.-abelem E) (ntE : E :!=: 1%g).
 
 Let pE : p.-group E := abelem_pgroup abelE.
-Let p_pr : prime p. Proof. by move/eqP: ntE; case/pgroup_1Vpr: pE => [|[]]. Qed.
+Let p_pr : prime p. Proof. by have [] := pgroup_pdiv pE ntE. Qed.
 
 Local Notation n' := (abelem_dim' (gval E)).
 Local Notation n := n'.+1.
@@ -3261,7 +3261,7 @@ Local Notation rVn := 'rV['F_p](gval E).
 
 Lemma dim_abelemE : n = logn p #|E|.
 Proof.
-have:= ntE; rewrite trivg_card1 /n'; case/p_natP: pE => [[|k] ->] // _.
+rewrite /n'; have [_ _ [k ->]] :=  pgroup_pdiv pE ntE.
 by rewrite /pdiv primes_exp ?primes_prime // pfactorK.
 Qed.
 

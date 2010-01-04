@@ -3,7 +3,6 @@ Require Import choice fintype finfun bigops ssralg finset prime binomial.
 Require Import groups zmodp morphisms automorphism normal perm action gprod.
 Require Import commutators cyclic center pgroups sylow nilpotent maximal hall.
 Require Import BGsection1.
-Require abelian.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -52,7 +51,7 @@ Qed.
 Lemma abelian_exponent_gen : forall (A : {set gT}), 
   abelian A -> exponent << A >> = exponent A.
 Proof.
-move=> A abelA.
+move=> A; rewrite -abelian_gen => abelA.
 apply/eqP; rewrite eqn_dvd; apply/andP; split; last first.
   exact: exponentS (subset_gen _).
 apply/exponentP.
@@ -65,8 +64,8 @@ rewrite -[[set x | _]]gen_set_id.
 apply/group_setP; split; first by rewrite inE exp1gn eq_refl group1.
 move=> x y; rewrite !inE; case/andP=> cycAx; move/eqP => xexpA.
 case/andP=> cycAy; move/eqP => yexpA; rewrite groupM //=.
-rewrite expMgn; first by rewrite xexpA yexpA mulg1 eq_refl.
-exact: (centsP (abelian.agen abelA)).
+rewrite expMgn; first by rewrite xexpA yexpA mulg1 eqxx.
+exact: (centsP abelA).
 Qed.
 
 End Exponent.
@@ -431,15 +430,13 @@ case e1 : (e == 1%N).
     by rewrite -ordery expg_order Ry eqxx.
   rewrite pnElemE // inE /= Ohm1_eq orderR eqxx andbT.
   rewrite inE Ohm_sub andTb. apply: abelian_Ohm1 => //.
-  rewrite Ohm1_eq Req //= abelian.agen // abelianE.
-  apply/subsetP => w; rewrite inE.
-  case/orP; rewrite inE; move/eqP => ->; apply/centP => z; 
-    case/set2P => -> //.  (* a no-no *)
+  rewrite Ohm1_eq Req //= abelian_gen // abelianE.
+  by apply/centsP=> ?; case/set2P=> -> ?; case/set2P=> ->.
 have egt1 : e > 1 by rewrite ltn_neqAle eq_sym e1 //=.
 pose cyc1 := <[y * x ^- m]>; pose cyc2 := <[ x ^+ (p ^ e.-1)]>.
 pose K := cyc1 <*> cyc2.
 have [_ divp] := (primeP primep).
-have yxmp : (y * x^-m)^+p = 1.
+have yxmp : (y * x ^- m) ^+ p = 1.
   have comm1 : commute (x ^+ m) ([~ x, y] ^+ m).
     by apply: commuteX; apply: commute_sym; apply: commuteX; apply: commute_sym.
   rewrite expMg_Rmul ?commVg ?commXg //; first last.
@@ -490,20 +487,20 @@ have cardK : #|K| = (p ^ 2)%N.
   rewrite [K]comm_mulgenE /=.
     by rewrite TI_cardMg // order_cyc1 order_cyc2.
   by apply: centC; apply: cents_cycle.
-have sxpZR : <[x^+p]> \subset 'Z(R).
+have sxpZR : <[x ^+ p]> \subset 'Z(R).
   rewrite gen_subG sub1set; apply/centerP; split; first by rewrite groupX.
   apply/centP; rewrite Req cent_gen //=; apply/centP => w; rewrite !inE. 
   case/orP; case/eqP => -> //.
   by apply: commute_sym; apply: commuteX.
-have ordxp : #[x^+p] = (p^e.-1)%N.
+have ordxp : #[x ^+ p] = (p ^ e.-1)%N.
   rewrite orderXdiv ordx -{1}[e]prednK // expnSr ?dvdn_mull ?dvdnn //.
   by rewrite mulnK ?prime_gt0.
 have nxpR : R \subset 'N(<[x ^+ p]>).
   apply: (subset_trans _ (cent_sub _)); rewrite centsC.
   by apply: (subset_trans sxpZR); apply: subsetIr.
-have sxpX : <[x^+p]> \subset <[x]>.
+have sxpX : <[x ^+ p]> \subset <[x]>.
   by rewrite gen_subG sub1set mem_cycle.
-have sR'xp : R^`(1) \subset <[x^+p]>.
+have sR'xp : R^`(1) \subset <[x ^+ p]>.
   apply: der1_min => //.
   apply: (order_prime_squared_abelian primep). 
   rewrite card_quotient // -(LaGrange_index sXR) // cardRX -divgS //=.
@@ -513,7 +510,7 @@ have nil_class2_R : nil_class R <= 2.
   by rewrite nil_class2 (subset_trans sR'xp sxpZR).
 have exponent_Ohm1 : exponent 'Ohm_1(R) %| p.
   exact: exponent_Ohm1_class2.
-have Ohm1IXsub : 'Ohm_1(R) :&: <[x]> \subset <[ x ^+ (p ^ e.-1) ]>.
+have Ohm1IXsub : 'Ohm_1(R) :&: <[x]> \subset <[x ^+ (p ^ e.-1)]>.
   apply/subsetP=> w; rewrite !inE; case/andP.
   move/(exponentP _ _ exponent_Ohm1)=> wp1; case/cycleP => t t_def.
   move: wp1; rewrite t_def -expgn_mul; move/eqP; rewrite -order_dvdn.
@@ -526,10 +523,8 @@ have Ohm1eq : 'Ohm_1(R) = K.
   by rewrite -cardRX; apply: subset_leq_card; apply: imsetS; apply: Ohm_sub.
 rewrite pnElemE // inE /= Ohm1eq cardK eqxx andbT.
 rewrite /pElem inE Ohm_sub //=; apply: abelian_Ohm1 => //.
-rewrite Ohm1eq [K]mulgen_idr mulgen_idl mulgenE abelian.agen // abelianE.
-apply/subsetP => w; rewrite !inE.
-by case/orP; move/eqP => ->; apply/centP => z; rewrite !inE; case/orP;
-  move/eqP => ->; rewrite //=.
+rewrite Ohm1eq [K]mulgen_idr mulgen_idl mulgenE abelian_gen // abelianE.
+by apply/centsP=> ?; case/set2P=> -> ?; case/set2P=> ->.
 Qed.
 
 End Four_dot_Five.

@@ -2400,9 +2400,11 @@ Qed.
 
 Lemma cent_gen : forall A, 'C(<<A>>) = 'C(A).
 Proof.
-move=> A; apply/eqP; rewrite eqEsubset centS ?subset_gen //=.
-by rewrite -centsC gen_subG centsC.
+by move=> A; apply/setP=> x; rewrite -!sub1set centsC gen_subG centsC.
 Qed.
+
+Lemma abelian_gen : forall A, abelian <<A>> = abelian A.
+Proof. by move=> A; rewrite /abelian cent_gen gen_subG. Qed.
 
 Lemma cent_mulgen : forall A B, 'C(A <*> B) = 'C(A) :&: 'C(B).
 Proof. by move=> G H; rewrite cent_gen centU. Qed.

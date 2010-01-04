@@ -35,15 +35,14 @@ gfunc.v
 pgroups.v
 center.v
 nilpotent.v
+finmod.v
 maximal.v
 prim_act.v
 sylow.v
 abelian.v
 dihedral.v
 hall.v
-coprime_act.v
 mxrepresentation.v
-transfer.v
 BGsection1.v
 BGsection2.v
 BGappendixAB.v

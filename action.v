@@ -1183,6 +1183,27 @@ Prenex Implicits perm_act1P.
 
 Notation "'P" := (perm_action _) (at level 0) : action_scope.
 
+Section ActpermOrbits.
+
+Variables (aT : finGroupType) (D : {group aT}) (rT : finType).
+Variable to : action D rT.
+
+Lemma orbit_morphim_actperm : forall A : {set aT},
+  A \subset D -> orbit 'P (actperm to @* A) =1 orbit to A.
+Proof.
+move=> A sAD x; rewrite morphimEsub // /orbit -imset_comp.
+by apply: eq_imset => a //=; rewrite actpermK.
+Qed.
+
+Lemma pcycle_actperm : forall a : aT,
+  a \in D -> pcycle (actperm to a) =1 orbit to <[a]>.
+Proof.
+move=> a Da x.
+by rewrite pcycleE -orbit_morphim_actperm ?cycle_subG ?morphim_cycle.
+Qed.
+
+End ActpermOrbits.
+
 Section GroupAction.
 
 Variables (aT rT : finGroupType) (D : {set aT}) (R : {set rT}).

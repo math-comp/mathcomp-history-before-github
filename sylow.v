@@ -34,14 +34,14 @@ Variable to : {action gT &-> sT}.
 (***********************************************************************)
 
 Lemma pgroup_fix_mod : forall (p : nat) (G : {group gT}) (S : {set sT}),
-  p.-group G -> [acts G, on S | to] -> #|S| %% p = #|'Fix_(S | to)(G)| %% p.
+  p.-group G -> [acts G, on S | to] -> #|S| = #|'Fix_(S | to)(G)| %[mod p].
 Proof.
-move=> p G S; case/pgroup_1Vpr=> [-> _|[p_pr _ [n cardG] GactS]].
-  rewrite (setIidPl _) //; apply/subsetP=> x _.
-  by rewrite inE sub1set inE act1.
+move=> p G S pG; case: (eqsVneq G 1) => [-> _ | ntG].
+  by rewrite (setIidPl _) //; apply/subsetP=> x _; rewrite inE sub1set inE act1.
+case/pgroup_pdiv: pG => // p_pr _ [n cardG] nSG.
 apply/eqP; rewrite -(cardsID 'Fix_to(G)) eqn_mod_dvd (leq_addr, addKn) //.
 have: [acts G, on S :\: 'Fix_to(G) | to]; last move/acts_sum_card_orbit <-.
-  apply/actsP=> a Ga x; rewrite !in_setD (actsP GactS) //; congr (~~ _ && _).
+  apply/actsP=> a Ga x; rewrite !in_setD (actsP nSG) //; congr (~~ _ && _).
   by apply: actsP Ga x; rewrite acts_fix_norm ?normG.
 apply: dvdn_sum => X; case/imsetP=> x; case/setDP=> _ nfx ->{X}.
 have:= dvdn_orbit to G x; rewrite cardG.
@@ -99,12 +99,13 @@ have [P S_P]: exists P, P \in S.
 have trS: [transitive G, on S | 'JG].
   apply/imsetP; exists P => //; apply/eqP.
   rewrite eqEsubset andbC acts_sub_orbit // S_P; apply/subsetP=> Q S_Q.
-  have:= S_P; rewrite inE; case/maxgroupP; case/andP=> _.
-  case/pgroup_1Vpr=> [|[p_pr _ _] _].
+  have:= S_P; rewrite inE; case/maxgroupP; case/andP=> _ pP.
+  case: (eqsVneq P 1) => [| ntP].
     move/group_inj=> -> max1; move/andP: (S_pG _ S_Q) => sGQ.
     by rewrite (group_inj (max1 Q sGQ (sub1G Q))) orbit_refl.
   have:= oG_mod _ _ S_P S_P; rewrite (oG_mod _ Q) // orbit_refl.
-  by case: {+}(Q \in _) => //; rewrite mod0n modn_small ?prime_gt1.
+  have p_gt1: p > 1 by apply: prime_gt1; case/pgroup_pdiv: pP.
+  by case: {+}(Q \in _) => //; rewrite mod0n modn_small.
 have oS1: prime p -> #|S| %% p = 1%N.
   move/prime_gt1 => p_gt1.
   by rewrite -(atransP trS P S_P) (oG_mod P P) // orbit_refl modn_small.
@@ -113,8 +114,8 @@ have oSiN: forall Q, Q \in S -> #|S| = #|G : 'N_G(Q)|.
 have sylP: p.-Sylow(G) P.
   rewrite pHallE; case: (S_pG P) => // -> /= pP.
   case p_pr: (prime p); last first.
-    rewrite p_part lognE p_pr /=.
-    by case/pgroup_1Vpr: pP p_pr => [-> _ | [-> //]]; rewrite cards1.
+    rewrite p_part lognE p_pr /= -trivg_card1; apply/idPn=> ntP.
+    by case/pgroup_pdiv: pP p_pr => // ->.
   rewrite -(LaGrangeI G 'N(P)) /= mulnC partn_mul ?cardG_gt0 // part_p'nat.
     by rewrite mul1n (card_Hall (sylS P S_P)).
   by rewrite p'natE // -indexgI -oSiN // /dvdn oS1.
@@ -223,10 +224,10 @@ Qed.
 
 Lemma trivg_center_pgroup : forall P, p.-group P -> 'Z(P) = 1 -> P :=: 1.
 Proof.
-move=> P pP Z1; case: (pgroup_1Vpr pP) => [// | [pr_p _ [n oPp]]].
-have: #|'Z(P)| %% p = 1%N by rewrite Z1 cards1 modn_small ?prime_gt1.
-rewrite /center -afixJ -pgroup_fix_mod ?oPp ?expnS ?modn_mulr //.
-by rewrite astabsJ normG.
+move=> P pP Z1; apply/eqP; apply/idPn=> ntP.
+have{ntP} [p_pr p_dv_P _] := pgroup_pdiv pP ntP.
+suff: p %| #|'Z(P)| by rewrite Z1 cards1 gtnNdvd ?prime_gt1.
+by rewrite /center /dvdn -afixJ -pgroup_fix_mod // astabsJ normG.
 Qed.
 
 Lemma Sylow_transversal_gen : forall (T : {set {group gT}}) G,
@@ -413,24 +414,21 @@ Lemma normal_pgroup : forall r P N,
 Proof.
 move=> r; elim: r gT => [|r IHr] gTr P N pP nNP le_r.
   by exists (1%G : {group gTr}); rewrite sub1G normal1 cards1.
+case: (eqVneq (N :&: 'Z(P)) 1) => [NZ_1 | ntNZ].
+  by rewrite (nil_TI_Z (pgroup_nil pP)) // cards1 logn1 in le_r.
 have: p.-group (N :&: 'Z(P)) by apply: pgroupS pP; rewrite /= setICA subsetIl.
-case/pgroup_1Vpr=> [| [p_pr _ [k oZ]]].
-  move/(nil_TI_Z (pgroup_nil pP) nNP)=> N1.
-  by rewrite N1 cards1 logn1 in le_r.
-have{oZ}: p %| #|N :&: 'Z(P)| by rewrite oZ dvdn_exp.
-case/Cauchy=> // z; rewrite -sub1set -gen_subG -[<<_>>]/<[z]> !subsetI /order.
-case/and3P=> sZN sZP cZP oZ.
-have{cZP} nZP: P \subset 'N(<[z]>) by rewrite cents_norm // centsC.
+case/pgroup_pdiv=> // p_pr; case/Cauchy=> // z.
+rewrite -cycle_subG !subsetI; case/and3P=> szN szP cPz ozp _.
+have{cPz} nzP: P \subset 'N(<[z]>) by rewrite cents_norm // centsC.
 have: N / <[z]> <| P / <[z]> by rewrite morphim_normal.
 case/IHr=> [||Qb [sQNb nQPb]]; first exact: morphim_pgroup.
   rewrite card_quotient ?(subset_trans (normal_sub nNP)) // -ltnS.
-  apply: (leq_trans le_r); rewrite -(LaGrange sZN) oZ.
+  apply: (leq_trans le_r); rewrite -(LaGrange szN) [#|_|]ozp.
   by rewrite logn_mul // ?prime_gt0 // logn_prime ?eqxx.
-case/(inv_quotientN _): nQPb sQNb => [|Q -> sZQ nQP]; first exact/andP.
-have nZQ := subset_trans (normal_sub nQP) nZP.
-rewrite quotientSGK // card_quotient // => sQN.
-move/eqP; rewrite -(eqn_pmul2l (cardG_gt0 <[z]>)) LaGrange // oZ -expnS.
-by move/eqP; exists Q.
+case/(inv_quotientN _): nQPb sQNb => [|Q -> szQ nQP]; first exact/andP.
+have nzQ := subset_trans (normal_sub nQP) nzP.
+rewrite quotientSGK // card_quotient // => sQN izQ.
+by exists Q; split=> //; rewrite expnS -izQ -ozp LaGrange.
 Qed.
 
 Theorem Baer_Suzuki : forall x G,
