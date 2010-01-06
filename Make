@@ -47,6 +47,7 @@ BGsection1.v
 BGsection2.v
 BGappendixAB.v
 BGsection6.v
+BGsection7.v
 frobenius.v
 alt.v
 burnside_app.v
