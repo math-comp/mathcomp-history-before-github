@@ -558,7 +558,70 @@ move=> n G H; apply/setP=> E; apply/nElemP/setIP=> [[p] | []].
 by case/nElemP=> p EpnG_E sHE; exists p; rewrite pnElemI inE EpnG_E.
 Qed.
 
+Section SubAbelian.
+
+Variables G H : {group gT}.
+Hypothesis cGG : abelian G.
+
+Lemma sub_abelian_cent : H \subset G -> G \subset 'C(H).
+Proof. by move=> sHG; rewrite centsC (subset_trans sHG). Qed.
+
+Lemma sub_abelian_norm : H \subset G -> G \subset 'N(H).
+Proof. by move=> sHG; rewrite cents_norm ?sub_abelian_cent. Qed.
+
+Lemma sub_abelian_normal : (H \subset G) = (H <| G).
+Proof.
+by rewrite /normal; case sHG: (H \subset G); rewrite // sub_abelian_norm.
+Qed.
+
+End SubAbelian.
+
+Definition dim_gen (A : {set gT}) := #|gT| - \max_(B | <<~: B>> == A) #|B|.
+
+Lemma dim_gen_min : forall B : {set gT}, dim_gen <<B>> <= #|B|.
+Proof.
+by move=> B; rewrite cardsCs leq_sub2l // (bigmax_sup (~: B)) ?setCK.
+Qed.
+
+Lemma dim_gen_witness : forall G, {B | <<B>> = G & #|B| = dim_gen G}.
+Proof.
+move=> G; have: 0 < #|[pred B | <<~: B>> == G]|.
+  by rewrite lt0n; apply/existsP; exists (~: G); rewrite /= setCK genGid.
+case/(eq_bigmax_cond (fun B : {set gT} => #|B|)) => B /= defG def_d.
+by exists (~: B); [exact/eqP | rewrite cardsCs setCK -def_d].
+Qed.
+
 End P_rank.
+
+Section Morph_p_rank.
+
+Variables (aT rT : finGroupType) (D : {group aT}) (f : {morphism D >-> rT}).
+Implicit Types G H E : {group aT}.
+
+Lemma exponent_morphim : forall G, exponent (f @* G) %| exponent G.
+Proof.
+move=> G; apply/exponentP=> fx; case/morphimP=> x Dx Gx ->{fx}.
+by rewrite -morphX // (exponentP _ _ (dvdnn _)) // morph1.
+Qed.
+
+Lemma morphim_p_abelem : forall p G, p.-abelem G -> p.-abelem (f @* G).
+Proof.
+move=> p G; case: (eqsVneq G 1) => [-> | ntG] abelG.
+  by rewrite morphim1 p_abelem1.
+have [p_pr _ _] := pgroup_pdiv (abelem_pgroup abelG) ntG.
+
+case/p_abelemP: abelG => // abG elemG.
+apply/p_abelemP; rewrite ?morphim_abelian //; split=> // fx.
+by case/morphimP=> x Dx Gx ->{fx}; rewrite -morphX // elemG ?morph1.
+Qed.
+
+Lemma morphim_abelem : forall G, abelem G -> abelem (f @* G).
+Proof.
+move=> G; case/abelemP=> p p_pr abelG; apply/abelemP; exists p => //.
+exact: morphim_p_abelem abelG.
+Qed.
+
+End Morph_p_rank.
 
 Section InitialReduction.
 
@@ -942,9 +1005,9 @@ have{mB3} ncycC: ~~ cyclic C.
 have [z]: exists z, (z \in C^#) && ('C_Q2[z] != 1).
   apply/existsP; apply: contraR ntQ2; rewrite negb_exists; move/forallP=> trQ2.
   have nQ2C := subset_trans sCB (subset_trans sBA nQ2A).
-  rewrite (coprime_abelian_gen_cent1 _ ncycC nQ2C) ?(abelianS sCB) //; last first.
-    by rewrite (coprimegS sCB) ?q'B.
-  by rewrite big1 //= => z Cz; apply/eqP; have:= trQ2 z; rewrite Cz negbK.
+  rewrite (coprime_abelian_gen_cent1 _ ncycC nQ2C) ?(abelianS sCB) //.
+    by rewrite big1 //= => z Cz; apply/eqP; have:= trQ2 z; rewrite Cz negbK.
+  by rewrite (coprimegS sCB) ?q'B.
 rewrite 2!inE -andbA; case/and3P=> ntz Cz ntzQ2.
 have prCz: 'C[z] \proper G.
   by rewrite -cent_set1 -cent_gen proper_cent_minSimple ?cycle_eq1.
@@ -1203,44 +1266,30 @@ have [B [E2_B nsBP sBZ]]: exists B, [/\ B \in 'E_p^2(A), B <| P
     have: 2 <= 'm_p(Z) by rewrite p_rank_abelem // oZ pfactorK.
     case/p_rank_geP=> B; rewrite /= -/Z => Ep2Z_B; exists B.
     rewrite (subsetP (pnElemS _ _ sZA)) //.
-    move: Ep2Z_B; rewrite !inE -andbA; case/andP=> sBZ _; split=> //; last by left.
-   
-    exists B; rewrite sBZ 2!inE (p_abelemS sBZ abelZ) oB pfactorK //.
+    move: Ep2Z_B; rewrite !inE -andbA; case/andP=> sBZ _.
+    split=> //; last by left.
     have sBZP := subset_trans sBZ sZ_ZP.
     rewrite /normal ?(subset_trans sBZP) ?center_sub ?cents_norm //.
-      by split=> //; left.
     by rewrite centsC (subset_trans sBZP) ?subsetIr.
-  case: (eqVneq (('Ohm_1(A) / Z) :&: 'Z(P / Z)) 1).
-    move/nil_TI_Z; rewrite quotient_nil ?(pgroup_nil pP) ?quotient_normal //.
-    move=> A1q1; have{A1q1} sA1Z: 'Ohm_1(A) \subset Z.
-      by rewrite -quotient_sub1 ?(subset_trans (normal_sub nsA1)) ?A1q1.
-    move: lt1mA; rewrite ltnNge /rank; case/negP.
-    apply big_prop => // [? ? | q _]; first by rewrite leq_maxl => ->.
-    rewrite /p_rank; apply big_prop => // [? ? | E].
-      by rewrite leq_maxl => ->.
-    rewrite inE; case/and3P=> sEA abelE _.
-    have{abelE}: p.-abelem E by apply/andP; rewrite (pgroupS sEA).
-    case/p_abelemP=> // _ pE.
-    have sEZ: E \subset Z.
-      apply: subset_trans sA1Z; rewrite (OhmE _ pA) sub_gen //.
-      by apply/subsetP=> z Ez; rewrite inE (subsetP sEA) ?pE /=.
-    apply: leq_trans (dvdn_leq_log _ (cardG_gt0 _) (cardSg sEZ)) _.
-    by rewrite oZ logn_prime ?leq_b1.
+  have: ('Ohm_1(A) / Z) :&: 'Z(P / Z) != 1.
+    rewrite nil_meet_Z // ?quotient_nil ?(pgroup_nil pP) ?quotient_normal //.
+    rewrite -subG1 quotient_sub1 ?(subset_trans (normal_sub nsA1) nZP) //= -/Z.
+    apply: contraL lt1mA => sA1Z; rewrite -leqNgt -grank_Ohm1.
+    by rewrite (leq_trans (grankS sA1Z)) // (grank_abelem abelZ) oZ pfactorK.
   case/trivgPn=> Zx; case/setIP; case/morphimP=> x Nx A1x defZx Z_Zx ntZx.
   pose B := Z <*> <[x]>; rewrite -cycle_subG in Nx; exists [group of B].
   split; last by right; rewrite mulgen_subl.
     have sBA1: B \subset 'Ohm_1(A) by rewrite mulgen_subG cycle_subG OhmS.
     rewrite 2!inE (subset_trans _ (Ohm_sub 1 A)) //=.
-    have abelA1: p.-abelem 'Ohm_1(A).
-      by rewrite /p_abelem (pgroupS (Ohm_sub 1 A)) ?Ohm_abelian ?(pgroup_p pA).
-    have{ntZx} nZx: x \notin Z.
-      by apply: contra ntZx; rewrite defZx /=; move/coset_id->.
-    have [|_ ox] := abelem_order_p abelA1 A1x _.
-      by apply: contra nZx; move/eqP->; rewrite group1.
-    rewrite (p_abelemS sBA1) // /B norm_mulgenEr //= TI_cardMg.
-      by rewrite oZ [#|_|]ox -expnSr pfactorK.
-    rewrite -ox in p_pr; case: (prime_subgroupVti [group of Z] p_pr) => //.
-    by rewrite cycle_subG (negbTE nZx).
+    have abelB: p.-abelem B by rewrite (p_abelemS sBA1) ?Ohm1_p_abelian.
+    have sZB: Z \subset B by rewrite mulgen_subl.
+    rewrite abelB -(LaGrange sZB) oZ -card_quotient ?mulgen_subG ?normG //= -/Z.
+    rewrite norm_mulgenEr // quotient_mulgr quotient_cycle -?cycle_subG //.
+    have abelBZ: p.-abelem (B / Z) := morphim_p_abelem _ abelB.
+    have B_Zx: Zx \in B / Z.
+      by rewrite defZx mem_morphim -?cycle_subG ?mulgen_subr.
+    have [_ oBx] := abelem_order_p abelBZ B_Zx ntZx.
+    by rewrite -defZx -orderE oBx -expnSr pfactorK.
   rewrite /= -(quotientGK nsZP) /B norm_mulgenEr //= -quotientK //= -/Z.
   rewrite morphpre_normal ?quotientS // quotient_cycle -?cycle_subG // -defZx.
   case/setIP: Z_Zx => P_Zx cP_Zx.
@@ -1393,3 +1442,4 @@ by apply: SCN_normed_constrained sylP _; rewrite inE SCN_A ltnW.
 Qed.
 
 End Seven.
+
