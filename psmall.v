@@ -301,7 +301,7 @@ Qed.
 
 End CentralizerSCNpgroup.
 
-Section Four_dot_Five.
+Section OddPrime.
 
 Variables (gT : finGroupType) (p : nat).
 Hypotheses (primep : prime p) (oddp : odd p).
@@ -694,7 +694,35 @@ Qed.
 
 End Four_dot_Five_ac.
 
-End Four_dot_Five.
+Section Four_dot_Six.
+
+Variables (R S : {group gT}). 
+Hypotheses (pgroupR : p.-group R) (nSR : S <| R) (ncycS : ~ cyclic S).
+
+Lemma four_dot_six : exists H, (H : {group gT}) <| R /\ H \in 'E_p^2(R).
+Proof.
+pose Z := 'Ohm_1('Z_2(S)).
+have nZR := (char_normal_trans (char_trans (Ohm_char 1 _) (ucn_char S 2)) nSR).
+have pZ := (pgroupS (normal_sub nZR) pgroupR).
+have pS := (pgroupS (normal_sub nSR) pgroupR).
+case: (four_dot_five_c pS ncycS) => ncycZ expZ; case/p_natP: pZ => e cardZ.
+have ege2 : 2 <= e.
+  rewrite ltnNge leq_eqVlt ltnS leq_eqVlt ltn0 orbF. 
+  apply/negP; case/orP; case/eqP => e_eq; apply: ncycZ; move: cardZ.
+    by rewrite e_eq expn1 => cardZ; apply: prime_cyclic; rewrite cardZ.
+  by rewrite e_eq expn0; move/(card1_trivg)=> ->; apply: cyclic1.
+have lognpZ : 2 <= logn p #|Z| by rewrite cardZ pfactorK //.
+case: (normal_pgroup pgroupR nZR lognpZ) => H [sHZ nHR cardH].
+exists H; split; first done.
+rewrite pnElemE // inE cardH eqxx andbT inE (normal_sub nHR) /=.
+rewrite p_abelemE // (order_prime_squared_abelian primep) //=.
+by apply: (dvdn_trans _ expZ); apply: exponentS.
+Qed.
+
+End Four_dot_Six.
+
+End OddPrime.
+
 
 (*
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
