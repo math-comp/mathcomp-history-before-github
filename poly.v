@@ -1790,3 +1790,54 @@ by rewrite map_diff_roots -negb_or.
 Qed.
 
 End MapPolyRoots.
+
+
+Section Deriv.
+
+Variable R: ringType.
+
+Implicit Types p q : {poly R}.
+
+Definition deriv p :=
+  \poly_(i < (size p).-1) (p`_i.+1 *+ i.+1).
+
+Lemma coef_deriv : forall p i, (deriv p)`_i = p`_i.+1 *+ i.+1.
+Proof.
+move=> [p Hp] i; rewrite coef_poly /=; case: leqP => //.
+by case: {Hp}p => [|c p] /=; try move/(nth_default 0)->; rewrite mul0rn.
+Qed.
+
+Lemma deriv_cons c : deriv c%:P = 0.
+Proof.
+by move=> c; apply/polyP=> [[|i]]; rewrite coef_deriv !coefC /= mul0rn.
+Qed.
+
+Lemma deriv_Xn n : deriv 'X^n = 'X^n.-1 *+ n.
+Proof.
+move=> n; apply/polyP=> i; rewrite coef_deriv coef_natmul !coef_Xn.
+case: n=> [|n] /=; first by  case: i => [|i]; rewrite mul0rn mulr0n.
+by rewrite eqSS; case: eqP; [move=>->| rewrite !mul0rn].
+Qed.
+
+Lemma deriv_add: {morph deriv : p q / p + q}.
+Proof.
+by move=> p q; apply/polyP=> i; rewrite !(coef_deriv, coef_add) mulrn_addl.
+Qed.
+
+Lemma deriv_mul p q: deriv (p * q) = deriv p * q + p * deriv q.
+Proof.
+move=> p q; apply/polyP=> i; rewrite !(coef_deriv, coef_add, coef_mul).
+have->: (\sum_(j < i.+2) p`_j * q`_(i.+1 - j)) *+ i.+1 =
+  (\sum_(j < i.+2) p`_j *+ j * q`_(i.+1 - j)) +
+  \sum_(j < i.+2) p`_j * (q`_(i.+1 - j) *+ (i.+1 - j)).
+  rewrite -sumr_muln -big_split /=. 
+  apply: eq_big => [] j => // _.
+  by rewrite mulrnAl mulrnAr -mulrn_addr subnKC // leq_ord.
+congr (_ + _).
+  rewrite big_ord_recl mulr0n mul0r add0r.
+  by apply: eq_big=> // j _; rewrite coef_deriv.
+rewrite big_ord_recr subnn mulr0n mulr0 /= addr0.
+by apply: eq_big=> // j _; rewrite coef_deriv // leq_subS // leq_ord.
+Qed.
+
+End Deriv.
