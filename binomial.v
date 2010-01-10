@@ -21,6 +21,15 @@ Proof. by done. Qed.
 Lemma factS : forall n, fact n.+1  = n.+1 * fact n.
 Proof. by done. Qed.
 
+Lemma fact_smonotone m n: 1 < n -> m < n -> fact m < fact n.
+Proof.
+move=> m n; elim: n m => // n Hrec m Hn; rewrite factS.
+rewrite ltnS leq_eqVlt; case/orP=> Hmn.
+  by move/eqP: Hmn=>->; rewrite ltn_Pmull // fact_gt0.
+case: {Hn}n Hrec Hmn => // [[|n]] Hrec Hmn; first by case: m Hmn.
+by apply: leq_trans (Hrec _ is_true_true Hmn) _; rewrite leq_pmull.
+Qed.
+
 Lemma fact_prod n : fact n = \prod_(1 <= i < n.+1) i.
 Proof.
 elim=> [|n Hrec] //; first by rewrite big_nil.
@@ -118,6 +127,9 @@ Lemma binE : bin = bin_rec. Proof. by []. Qed.
 Lemma bin0 : forall n, bin n 0 = 1.
 Proof. by case. Qed.
 
+Lemma bi0n : forall n, bin 0 n = if n is S _ then 0 else 1.
+Proof. by case. Qed.
+
 Lemma binS : forall m n,  bin m.+1 n.+1 = bin m n.+1 + bin m n.
 Proof. by []. Qed.
 
@@ -147,6 +159,18 @@ Proof.
 move=> m n; move/subnKC; move: (m - n) => m0 <-{m}.
 elim: n => [|n IHn]; first by rewrite bin0 !mul1n.
 by rewrite -mulnA mulnCA mulnA -mul_Sm_binm -mulnA IHn.
+Qed.
+
+(* In fact the only exception is m = 0 and n = 1 *)
+Lemma bin_factd : forall m n, 1 < n ->
+    bin m n  = fact m %/ (fact n * fact (m - n)).
+Proof.
+move=> m n Hn.
+case: (leqP n m) => Hmn.
+  rewrite -(bin_fact Hmn) mulnK //.
+  by exact (ltn_mul (fact_gt0 _) (fact_gt0 _)).
+have->: m - n = 0 by apply/eqP; rewrite subn_eq0 ltnW.
+by rewrite bin_small // fact0 muln1 divn_small // fact_smonotone.
 Qed.
 
 Lemma bin_sub : forall n m, n <= m -> bin m (m - n) = bin m n.
