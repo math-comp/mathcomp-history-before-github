@@ -4,9 +4,10 @@ Require Import div prime choice.
 
 (****************************************************************************)
 (* This files contains the definition  of:                                  *)
+(*   ninj m n       ==  number of injections of n elements into n elements  *)
 (*   bin m n        ==  binomial coeficients, i.e. m choose n               *)
 (*                                                                          *)
-(* In additions to the properties of this function, triangular_sum, Wilson  *)
+(* In additions to the properties of these functions, triangular_sum, Wilson*)
 (* and Pascal are examples of how to manipulate expressions with bigops.    *)
 (****************************************************************************)
 
@@ -111,6 +112,54 @@ rewrite -{2}[mFp]/mFpM -[mFpM _ _]big_split -/mFpM.
 by rewrite big1 ?mFp1r //= => i; case/andP; auto.
 Qed.
 
+(** Number of injections from a set of n element to a set of m elements*)
+
+Fixpoint ninj_rec (m n : nat) {struct m} :=
+  match m, n with
+  | m'.+1, n'.+1 => m * ninj_rec m' n'
+  | _, 0 => 1
+  | 0, _.+1 => 0
+  end.
+
+Definition ninj := nosimpl ninj_rec.
+
+Lemma ninjE : ninj = ninj_rec. Proof. by []. Qed.
+
+Lemma ninj0 : forall n, ninj n 0 = 1.
+Proof. by case. Qed.
+
+Lemma ninj0n : forall n, ninj 0 n = if n is S _ then 0 else 1.
+Proof. by case. Qed.
+
+Lemma ninjS : forall m n,  ninj m.+1 n.+1 = m.+1 * ninj m n.
+Proof. by []. Qed.
+
+Lemma ninj1 : forall n, ninj n 1 = n.
+Proof. by elim=> //= n IHn; rewrite ninjS ninj0 muln1. Qed.
+
+Lemma ninj_gt0 : forall m n, (0 < ninj m n) = (n <= m).
+Proof.
+by elim=> [|m IHm] [|n] //; rewrite ninjS (ltn_mul2r _ 0) IHm andbT.
+Qed.
+
+Lemma ninj_small : forall m n, m < n -> ninj m n = 0.
+Proof. by move=> m n; rewrite ltnNge -ninj_gt0; case: posnP. Qed.
+
+Lemma ninjn : forall n, ninj n n = fact n.
+Proof. by elim=> [|n IHn] //; rewrite ninjS IHn. Qed.
+
+Lemma ninj_fact : forall m n, n <= m -> ninj m n * fact (m - n) = fact m.
+Proof.
+move=> m n; move/subnKC; move: (m - n) => m0 <-{m}.
+elim: n => [|n IHn]; first by rewrite ninj0 !mul1n.
+by rewrite addSn ninjS factS -mulnA IHn.
+Qed.
+
+Lemma ninj_factd : forall m n, n <= m -> ninj m n = fact m %/ fact (m - n).
+Proof.
+by move=> m n Hn; rewrite -(ninj_fact Hn) mulnK // fact_gt0.
+Qed.
+
 (** Binomial coefficients *)
 
 Fixpoint bin_rec (m n : nat) {struct m} :=
@@ -171,6 +220,18 @@ case: (leqP n m) => Hmn.
   by exact (ltn_mul (fact_gt0 _) (fact_gt0 _)).
 have->: m - n = 0 by apply/eqP; rewrite subn_eq0 ltnW.
 by rewrite bin_small // fact0 muln1 divn_small // fact_smonotone.
+Qed.
+
+Lemma bin_ninjn : forall m n, bin m n = ninj m n %/ fact n.
+Proof.
+move=> m [|[|n]]; first by rewrite bin0 ninj0 fact0.
+  by rewrite bin1 ninj1 divn1.
+rewrite bin_factd //.
+case: (leqP n.+2 m) => Hmn.
+  by rewrite ninj_factd // divn_divl mulnC.
+rewrite ninj_small // div0n divn_small //.
+apply: leq_trans (fact_smonotone (is_true_true: 1 < n.+2) Hmn) _.
+by rewrite -{1}[fact _]muln1 leq_pmul2l fact_gt0.
 Qed.
 
 Lemma bin_sub : forall n m, n <= m -> bin m (m - n) = bin m n.
