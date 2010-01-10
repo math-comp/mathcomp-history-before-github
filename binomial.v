@@ -4,7 +4,7 @@ Require Import div prime choice.
 
 (****************************************************************************)
 (* This files contains the definition  of:                                  *)
-(*   ninj m n       ==  number of injections of n elements into n elements  *)
+(*   ninj m n       ==  number of injections of n elements into m elements  *)
 (*   bin m n        ==  binomial coeficients, i.e. m choose n               *)
 (*                                                                          *)
 (* In additions to the properties of these functions, triangular_sum, Wilson*)
