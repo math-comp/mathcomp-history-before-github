@@ -1051,7 +1051,11 @@ Proof. by move=> * m n; move/eqP; rewrite eqn_exp2r //; move/eqP. Qed.
 
 (* Factorial. *)
 
-Fixpoint fact n := if n is n'.+1 then n * fact n' else 1.
+Fixpoint fact_rec n := if n is n'.+1 then n * fact_rec n' else 1.
+
+Definition fact := nosimpl fact_rec.
+
+Lemma factE : fact = fact_rec. Proof. by []. Qed.
 
 Lemma fact_gt0 : forall n, fact n > 0.
 Proof. by elim=> //= n IHn; rewrite muln_gt0. Qed.
