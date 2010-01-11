@@ -1057,6 +1057,10 @@ Definition fact := nosimpl fact_rec.
 
 Lemma factE : fact = fact_rec. Proof. by []. Qed.
 
+Lemma fact0 : fact 0 = 1. Proof. by []. Qed.
+
+Lemma factS : forall n, fact n.+1  = n.+1 * fact n. Proof. by []. Qed.
+
 Lemma fact_gt0 : forall n, fact n > 0.
 Proof. by elim=> //= n IHn; rewrite muln_gt0. Qed.
 

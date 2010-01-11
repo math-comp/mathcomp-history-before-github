@@ -16,11 +16,6 @@ Unset Strict Implicit.
 Import Prenex Implicits.
 
 (** More properties of the factorial **)
-Lemma fact0 : fact 0 = 1.
-Proof. by done. Qed.
-
-Lemma factS : forall n, fact n.+1  = n.+1 * fact n.
-Proof. by done. Qed.
 
 Lemma fact_smonotone m n: 1 < n -> m < n -> fact m < fact n.
 Proof.
@@ -131,28 +126,35 @@ Proof. by case. Qed.
 Lemma ninj0n : forall n, ninj 0 n = if n is S _ then 0 else 1.
 Proof. by case. Qed.
 
-Lemma ninjS : forall m n,  ninj m.+1 n.+1 = m.+1 * ninj m n.
+Lemma ninjSS : forall m n,  ninj m.+1 n.+1 = m.+1 * ninj m n.
 Proof. by []. Qed.
 
 Lemma ninj1 : forall n, ninj n 1 = n.
-Proof. by elim=> //= n IHn; rewrite ninjS ninj0 muln1. Qed.
+Proof. by elim=> //= n IHn; rewrite ninjSS ninj0 muln1. Qed.
+
+Lemma ninjS : forall m n,  ninj m n.+1 = (m - n) * ninj m n.
+Proof.
+elim=> [|m Hrec] n; first by rewrite ninj0n mul0n. 
+case: n=> [|n]; first by rewrite ninj1 ninj0 subn0 muln1.
+by rewrite !ninjSS Hrec mulnCA.
+Qed.
 
 Lemma ninj_gt0 : forall m n, (0 < ninj m n) = (n <= m).
 Proof.
-by elim=> [|m IHm] [|n] //; rewrite ninjS (ltn_mul2r _ 0) IHm andbT.
+by elim=> [|m IHm] [|n] //; rewrite ninjSS (ltn_mul2r _ 0) IHm andbT.
 Qed.
 
 Lemma ninj_small : forall m n, m < n -> ninj m n = 0.
 Proof. by move=> m n; rewrite ltnNge -ninj_gt0; case: posnP. Qed.
 
 Lemma ninjn : forall n, ninj n n = fact n.
-Proof. by elim=> [|n IHn] //; rewrite ninjS IHn. Qed.
+Proof. by elim=> [|n IHn] //; rewrite ninjSS IHn. Qed.
 
 Lemma ninj_fact : forall m n, n <= m -> ninj m n * fact (m - n) = fact m.
 Proof.
 move=> m n; move/subnKC; move: (m - n) => m0 <-{m}.
 elim: n => [|n IHn]; first by rewrite ninj0 !mul1n.
-by rewrite addSn ninjS factS -mulnA IHn.
+by rewrite addSn ninjSS factS -mulnA IHn.
 Qed.
 
 Lemma ninj_factd : forall m n, n <= m -> ninj m n = fact m %/ fact (m - n).
@@ -222,7 +224,13 @@ have->: m - n = 0 by apply/eqP; rewrite subn_eq0 ltnW.
 by rewrite bin_small // fact0 muln1 divn_small // fact_smonotone.
 Qed.
 
-Lemma bin_ninjn : forall m n, bin m n = ninj m n %/ fact n.
+Lemma bin_ninjn : forall m n, n <= m -> fact n * bin m n = ninj m n.
+Proof.
+move=>m n H; apply/eqP.
+by rewrite -(eqn_pmul2r (fact_gt0 (m - n))) ninj_fact // mulnAC mulnC bin_fact.
+Qed.
+
+Lemma bin_ninjnd : forall m n, bin m n = ninj m n %/ fact n.
 Proof.
 move=> m [|[|n]]; first by rewrite bin0 ninj0 fact0.
   by rewrite bin1 ninj1 divn1.

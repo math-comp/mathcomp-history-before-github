@@ -266,11 +266,11 @@ Proof. by move=> x y; rewrite -{1}tpermV mulVg. Qed.
 Lemma card_perm : forall A : {set T}, #|perm_on A| = fact #|A|.
 Proof.
 move=> A; elim: {A}#|A| {1 3}A (eqxx #|A|) => [|n IHn] A /=.
-  move/pred0P=> A0; rewrite -(card1 (1 : pT)); apply: eq_card => u.
+  move/pred0P=> A0; rewrite fact0 -(card1 (1 : pT)); apply: eq_card => u.
   apply/idP/eqP => /= [uA | -> {u}]; last exact: perm_on1.
   by apply/permP => x; rewrite perm1 (out_perm uA) // -topredE /= A0.
 case: (pickP (mem A)) => [x /= Ax An1|]; last by move/eq_card0->.
-have:= An1; rewrite (cardsD1 x) Ax eqSS; move/IHn=> {IHn} <-.
+have:= An1; rewrite (cardsD1 x) Ax eqSS factS; move/IHn=> {IHn} <-.
 move/eqP: An1 => <- {n}; rewrite -cardX.
 pose h (u : pT) := (u x, u * tperm x (u x)).
 have h_inj: injective h.

@@ -424,7 +424,7 @@ elim => [| n Hrec T Hde]; first exact: simple_Alt5_base.
 have oT: 5 < #|T| by rewrite Hde addnC.
 apply/simpleP; split=> [|H Hnorm]; last have [Hh1 nH] := andP Hnorm.
   rewrite trivg_card1 -[#|_|]half_double -mul2n card_Alt Hde addnC //.
-  by rewrite addSn /fact -/fact mulnC -(prednK (fact_gt0 _)).
+  by rewrite addSn factS mulnC -(prednK (fact_gt0 _)).
 case E1: (pred0b T); first by rewrite /pred0b in E1; rewrite (eqP E1) in oT.
 case/pred0Pn: E1 => x _; have Hx := in_setT x.
 have F2: [transitive^4 'Alt_T, on setT | 'P].
