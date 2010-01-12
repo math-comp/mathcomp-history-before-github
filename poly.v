@@ -95,8 +95,8 @@ Reserved Notation "''X^' n" (at level 3, n at level 2, format "''X^' n").
 Reserved Notation "\poly_ ( i < n ) E"
   (at level 36, E at level 36, i, n at level 50,
    format "\poly_ ( i  <  n )  E").
-Reserved Notation "a ^'( n )" (at level 3, format "a ^'( n )").
-Reserved Notation "a ^'"(at level 3, format "a ^'").
+Reserved Notation "a ^{'}"(at level 3, format "a ^{'}").
+Reserved Notation "a ^{' n }" (at level 3, format "a ^{' n }").
 
 Local Notation simp := Monoid.simpm.
 
@@ -1816,25 +1816,25 @@ Implicit Types p q : {poly R}.
 Definition deriv p :=
   \poly_(i < (size p).-1) (p`_i.+1 *+ i.+1).
 
-Notation "a ^'" := (deriv a).
+Notation "a ^{'}" := (deriv a).
 
-Lemma coef_deriv : forall p i, p^'`_i = p`_i.+1 *+ i.+1.
+Lemma coef_deriv : forall p i, p^{'}`_i = p`_i.+1 *+ i.+1.
 Proof.
 move=> [p Hp] i; rewrite coef_poly /=; case: leqP => //.
 by case: {Hp}p => [|c p] /=; try move/(nth_default 0)->; rewrite mul0rn.
 Qed.
 
-Lemma derivC c : c%:P^' = 0.
+Lemma derivC c : c%:P^{'} = 0.
 Proof.
 by move=> c; apply/polyP=> [[|i]]; rewrite coef_deriv !coefC /= mul0rn.
 Qed.
 
-Lemma derivX: ('X)^' = 1.
+Lemma derivX: ('X)^{'} = 1.
 Proof.
 by apply/polyP=> [[|i]]; rewrite coef_deriv coef1 coefX ?mul0rn.
 Qed.
 
-Lemma derivXn n : 'X^n^' = 'X^n.-1 *+ n.
+Lemma derivXn n : 'X^n^{'} = 'X^n.-1 *+ n.
 Proof.
 move=> n; apply/polyP=> i; rewrite coef_deriv coef_natmul !coef_Xn.
 case: n=> [|n] /=; first by  case: i => [|i]; rewrite mul0rn mulr0n.
@@ -1846,7 +1846,7 @@ Proof.
 by move=> p q; apply/polyP=> i; rewrite !(coef_deriv, coef_add) mulrn_addl.
 Qed.
 
-Lemma deriv_mul p q: (p * q)^' = p^' * q + p * q^'.
+Lemma deriv_mul p q: (p * q)^{'} = p^{'} * q + p * q^{'}.
 Proof.
 move=> p q; apply/polyP=> i; rewrite !(coef_deriv, coef_add, coef_mul).
 have->: (\sum_(j < i.+2) p`_j * q`_(i.+1 - j)) *+ i.+1 =
@@ -1862,59 +1862,59 @@ rewrite big_ord_recr subnn mulr0n mulr0 /= addr0.
 by apply: eq_big=> // j _; rewrite coef_deriv // leq_subS // leq_ord.
 Qed.
 
-Lemma deriv_mulr p n: (p *+ n)^' = p^' *+ n.
+Lemma deriv_mulr p n: (p *+ n)^{'} = p^{'} *+ n.
 Proof.
 move=> p n; apply/polyP=>i.
 by rewrite coef_deriv !coef_natmul coef_deriv -!mulrnA mulnC.
 Qed.
 
-Lemma deriv_amulX p c: (p * 'X + c%:P)^' = p + p^' * 'X.
+Lemma deriv_amulX p c: (p * 'X + c%:P)^{'} = p + p^{'} * 'X.
 Proof.
 by move=> p c; rewrite deriv_add derivC addr0 deriv_mul derivX mulr1 addrC.
 Qed.
 
 Definition derivn p n := iter n deriv p.
 
-Notation "a ^'( n )" := (derivn a n).
+Notation "a ^{' n }" := (derivn a n).
 
-Lemma derivn0 p: p^'(0) = p.
+Lemma derivn0 p: p^{'0} = p.
 Proof. done. Qed.
 
-Lemma derivn1 p: p^'(1) = p^'.
+Lemma derivn1 p: p^{'1} = p^{'}.
 Proof. done. Qed.
 
-Lemma derivnS p n: p ^'(n.+1) = (p^'(n))^'.
+Lemma derivnS p n: p ^{'n.+1} = p^{'n}^{'}.
 Proof. done. Qed.
 
-Lemma derivSn p n: p ^'(n.+1) = (p^')^'(n).
+Lemma derivSn p n: p ^{'n.+1} = p^{'}^{'n}.
 Proof. by move=> p n; rewrite /derivn iterSr. Qed.
 
-Lemma derivnC c n: c%:P ^'(n) = if (n == 0)%nat then c%:P else 0.
+Lemma derivnC c n: c%:P ^{'n} = if (n == 0)%nat then c%:P else 0.
 Proof.
 by move=> c; elim=> [|[|n] Hrec] //; rewrite derivnS Hrec -?polyC0 derivC.
 Qed.
 
-Lemma derivn_mulr p m n: (p *+ m)^'(n) = p^'(n) *+ m.
+Lemma derivn_mulr p m n: (p *+ m)^{'n} = p^{'n} *+ m.
 Proof.
 move=> p m n; elim: n m => [|n Hrec] m; first by rewrite !derivn0.
 by rewrite derivnS Hrec deriv_mulr derivnS.
 Qed.
 
-Lemma derivnXn m n : 'X^m^'(n) = 'X^(m - n) *+ ninj m n.
+Lemma derivnXn m n : 'X^m^{'n} = 'X^(m - n) *+ ninj m n.
 Proof.
 move=> m n; elim: n m => [|n Hrec] m.
   by rewrite derivn0 subn0 ninj0 mulr1n.
 by rewrite derivnS Hrec deriv_mulr derivXn predn_sub ninjS mulrnA.
 Qed.
 
-Lemma derivn_amulX n p c: (p * 'X + c%:P)^'(n.+1) = p^'(n) *+ n.+1  + p^'(n.+1) * 'X.
+Lemma derivn_amulX n p c: (p * 'X + c%:P)^{'n.+1} = p^{'n} *+ n.+1  + p^{'n.+1} * 'X.
 Proof.
 elim=> [|n Hrec] p c; first by rewrite derivn0 !derivn1 deriv_amulX mulr1n.
 rewrite derivnS Hrec deriv_add deriv_mul derivX mulr1 deriv_mulr -!derivnS.
-by rewrite addrA addrAC (mulrS _ n.+1) (addrC p^'(n.+1)).
+by rewrite addrA addrAC (mulrS _ n.+1) (addrC p^{'n.+1}).
 Qed.
 
-Lemma derivn_poly0 p n: size p < n -> p^'(n) = 0.
+Lemma derivn_poly0 p n: size p < n -> p^{'n} = 0.
 Proof.
 elim/poly_ind => [|p c Hrec] [|n] Hc //; first by rewrite derivnC; case: eqP.
 move: Hc; rewrite size_amulX; case: eqP=> Hs.
@@ -1925,8 +1925,8 @@ Qed.
 
 End Deriv.
 
-Notation "a ^'" := (deriv a).
-Notation "a ^'( n )" := (derivn a n).
+Notation "a ^{'}" := (deriv a).
+Notation "a ^{' n }" := (derivn a n).
 
 Section DTaylor.
 
@@ -1937,7 +1937,7 @@ Implicit Types p q : {poly R}.
 Lemma deriv_taylor p x h:
   p.[x + h] *+ fact ((size p).+1) = 
    \sum_(i < (size p).+1) 
-       p^'(i).[x] * h^+i *+ ninj (size p).+1 ((size p).+1 - i).
+       p^{'i}.[x] * h^+i *+ ninj (size p).+1 ((size p).+1 - i).
 Proof.
 elim/poly_ind => [|p c Hrec] x h.
 by rewrite size_poly0 big_ord_recl big_ord0 derivn0 !horner0 !simp.
@@ -1955,9 +1955,9 @@ rewrite mulr_addr {1}big_ord_recl /= !simp ninjn mulrn_addl
 congr (_ + _).
 have->: 
   \sum_(i < n)
-    (deriv p^'(i)).[x] * h ^+ bump 0 i *+ ninj n.+1 (n.+1 - bump 0 i) =
+    (deriv p^{'i}).[x] * h ^+ bump 0 i *+ ninj n.+1 (n.+1 - bump 0 i) =
   \sum_(i < n.+1)
-    p^'(i.+1).[x] * h ^+ i.+1 *+ ninj n.+1 (n - i).
+    p^{'i.+1}.[x] * h ^+ i.+1 *+ ninj n.+1 (n - i).
   rewrite big_ord_recr /= -derivnS derivn_poly0 // horner0 simp mul0rn !simp.
   by apply eq_big.
 rewrite -!sumr_muln !big_distrl -big_split.
@@ -1975,7 +1975,7 @@ by rewrite !mulrnAl -!mulrnA -!mulrA [x * _]mulrC
 Qed.
 
 Lemma deriv_taylor_wide n p x h: size p < n ->
-  p.[x + h] *+ fact n =  \sum_(i < n) p^'(i).[x] * h^+i *+ ninj n (n - i).
+  p.[x + h] *+ fact n =  \sum_(i < n) p^{'i}.[x] * h^+i *+ ninj n (n - i).
 Proof.
 elim=> [|n Hrec] // p x h.
 rewrite ltnS leq_eqVlt; case/orP; first by move/eqP=><-; exact: deriv_taylor.
@@ -1984,4 +1984,4 @@ rewrite big_ord_recr /= derivn_poly0 // horner0 !simp mul0rn !simp.
 by apply eq_big => // i _; rewrite -mulrnA mulnC -ninjSS leq_subS // ltnW.
 Qed.
 
-End DTaylor.
+End DTaylor. 
