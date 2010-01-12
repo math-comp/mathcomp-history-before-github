@@ -700,7 +700,8 @@ Lemma negnK : forall pi, pi^'^' =i pi.
 Proof. move=> pi p; exact: negbK. Qed.
 
 Lemma eq_negn : forall pi1 pi2, pi1 =i pi2 -> pi1^' =i pi2^'.
-Proof. by move=> pi1 pi2 eq_pi n; rewrite 3!inE eq_pi. Qed.
+Proof. by move=> pi1 pi2 eq_pi n; rewrite 3!inE /= eq_pi.
+Qed.
 
 Lemma part_gt0 : forall pi n, 0 < n`_pi.
 Proof. move=> pi n; exact: prodn_gt0. Qed.
