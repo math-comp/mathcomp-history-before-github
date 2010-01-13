@@ -453,6 +453,11 @@ apply/idP/idP; first by apply: subset_trans; exact: mulG_subr.
 by move/(mulgS ('ker f)); rewrite -morphpreMl ?(sub1G, mul1g).
 Qed.
 
+Lemma morphpre_proper : forall C D,
+  C \subset f @* G -> D \subset f @* G ->
+  (f @*^-1 C \proper f @*^-1 D) = (C \proper D).
+Proof. by move=> Q R dQ dR; rewrite /proper !morphpreSK. Qed.
+
 Lemma sub_morphpre_im : forall C H,
     'ker f \subset H -> H \subset G -> C \subset f @* G ->
   (f @*^-1 C \subset H) = (C \subset f @* H).
@@ -1036,6 +1041,13 @@ Lemma morphim_invmE : forall C, invm @* C = f @*^-1 C.
 Proof.
 move=> C; rewrite -morphpreIdom -(morphim_invm (subsetIl _ _)).
 by rewrite morphimIdom -morphpreIim morphpreK (subsetIl, morphimIdom).
+Qed.
+
+Lemma injm_proper : forall A B,
+  A \subset G -> B \subset G -> (f @* A \proper f @* B) = (A \proper B).
+Proof.
+move=> A B dA dB; rewrite -morphpre_invm -(morphpre_invm B).
+by rewrite morphpre_proper ?morphim_invm.
 Qed.
 
 Lemma injm_invm : 'injm invm.

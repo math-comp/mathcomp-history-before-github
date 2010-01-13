@@ -164,11 +164,6 @@ Section MorphPreMax.
 Variables (gT rT : finGroupType) (D : {group gT}) (f : {morphism D >-> rT}).
 Implicit Types Q R : {group rT}.
 
-Lemma morphpre_proper : forall Q R,
-  Q \subset f @* D -> R \subset f @* D ->
-  (f @*^-1 Q \proper f @*^-1 R) = (Q \proper R).
-Proof. by move=> Q R dQ dR; rewrite /proper !morphpreSK. Qed.
-
 Lemma morphpre_maximal : forall Q R,
   Q \subset f @* D -> R \subset f @* D ->
   maximal (f @*^-1 Q) (f @*^-1 R) = maximal Q R.
@@ -204,13 +199,6 @@ Variables G H K : {group gT}.
 
 Hypothesis injf : 'injm f.
 
-Lemma injm_proper :
-  G \subset D -> H \subset D -> (f @* G \proper f @* H) = (G \proper H).
-Proof.
-move=> dG dH; rewrite -(morphpre_invm injf) -(morphpre_invm injf H).
-by rewrite morphpre_proper ?morphim_invm.
-Qed.
-
 Lemma injm_maximal :
   G \subset D -> H \subset D -> maximal (f @* G) (f @* H) = maximal G H.
 Proof.
@@ -230,10 +218,6 @@ Section QuoMax.
 
 Variables (gT : finGroupType) (K G H : {group gT}).
 
-Lemma cosetpre_proper : forall Q R : {group coset_of K},
-  (coset K @*^-1 Q \proper coset K @*^-1 R) = (Q \proper R).
-Proof. by move=> Q R; rewrite morphpre_proper ?sub_im_coset. Qed.
-
 Lemma cosetpre_maximal : forall Q R : {group coset_of K},
   maximal (coset K @*^-1 Q) (coset K @*^-1 R) = maximal Q R.
 Proof. by move=> Q R; rewrite morphpre_maximal ?sub_im_coset. Qed.
@@ -244,10 +228,6 @@ Proof.
 by move=> Q R; rewrite /maximal_eq !eqEsubset !cosetpreSK cosetpre_maximal.
 Qed.
 
-Lemma quotient_proper :
-  K <| G -> K <| H -> (G / K \proper H / K) = (G \proper H).
-Proof. by move=> nKG nKH; rewrite -cosetpre_proper ?quotientGK. Qed.
-
 Lemma quotient_maximal :
   K <| G -> K <| H -> maximal (G / K) (H / K) = maximal G H.
 Proof. by move=> nKG nKH; rewrite -cosetpre_maximal ?quotientGK. Qed.
@@ -255,9 +235,6 @@ Proof. by move=> nKG nKH; rewrite -cosetpre_maximal ?quotientGK. Qed.
 Lemma quotient_maximal_eq :
   K <| G -> K <| H -> maximal_eq (G / K) (H / K) = maximal_eq G H.
 Proof. by move=> nKG nKH; rewrite -cosetpre_maximal_eq ?quotientGK. Qed.
-
-Lemma properJ : forall x, (G :^ x \proper H :^ x) = (G \proper H).
-Proof. by move=> x; rewrite /proper !conjSg. Qed.
 
 Lemma maximalJ : forall x, maximal (G :^ x) (H :^ x) = maximal G H.
 Proof.

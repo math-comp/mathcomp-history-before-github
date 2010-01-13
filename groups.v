@@ -968,6 +968,9 @@ Qed.
 Lemma sub_conjg : forall A B x, (A :^ x \subset B) = (A \subset B :^ x^-1).
 Proof. by move=> A B x; rewrite -(conjSg A _ x) conjsgKV. Qed.
 
+Lemma properJ : forall A B x, (A :^ x \proper B :^ x) = (A \proper B).
+Proof. by move=> A B x; rewrite /proper !conjSg. Qed.
+
 Lemma sub_conjgV : forall A B x, (A :^ x^-1 \subset B) = (A \subset B :^ x).
 Proof. by move=> A B x; rewrite -(conjSg _ B x) conjsgKV. Qed.
 

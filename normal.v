@@ -202,6 +202,10 @@ Qed.
 Lemma sub_im_coset : forall C : {set coset_of}, C \subset coset @* 'N(A).
 Proof. by move=> C; rewrite im_coset subsetT. Qed.
 
+Lemma cosetpre_proper : forall C D,
+  (coset @*^-1 C \proper coset @*^-1 D) = (C \proper D).
+Proof. by move=> C D; rewrite morphpre_proper ?sub_im_coset. Qed.
+
 Definition quotient : {set coset_of} := coset @* Q.
 
 Lemma quotientE : quotient = coset @* Q. Proof. by []. Qed.
@@ -400,6 +404,10 @@ Proof. by rewrite -{3}ker_coset /quotient morphim_ker. Qed.
 
 Lemma sub_cosetpre : forall M, H \subset coset H @*^-1 M.
 Proof. rewrite -{3}ker_coset; exact: ker_sub_pre. Qed.
+
+Lemma quotient_proper : forall G K,
+  H <| G -> H <| K -> (G / H \proper K / H) = (G \proper K).
+Proof. by move=> G K nHG nHK; rewrite -cosetpre_proper ?quotientGK. Qed.
 
 Lemma normal_cosetpre : forall M, H <| coset H @*^-1 M.
 Proof. rewrite -{3}ker_coset; exact: ker_normal_pre. Qed.

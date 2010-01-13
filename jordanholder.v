@@ -467,18 +467,20 @@ case: (Hi _ cN)=> s; case/andP=> lasts ps; exists [:: N & s]; rewrite /acomps.
 by rewrite last_cons lasts /= pmN.
 Qed.
 
+
 End StrongJordanHolderAux.
 
 Section StrongJordanHolder.
 
-Section Aux1.
+
+Section Aux.
 
 Variables (aT rT : finGroupType).
 Variables (A : {group aT})(D : {group rT}).
 Variable to : groupAction A D.
 
 (* very dirty. I probably use external action lib. well enough. also should
-extract properties of quotient actions *)
+extract properties of quotient actions and combination of actions & morphisms *)
 Lemma maxainv_asimple_quo : forall G H : {group rT},
    H \subset D -> maxainv to G H -> asimple (to / H) (G / H).
 Proof.
@@ -493,7 +495,6 @@ have eK'I : K' \subset (coset H) @* 'N(H).
   by rewrite (subset_trans (normal_sub nK'Q)) ?morphimS ?normal_norm.
 have eKK' : K' :=: K / H by rewrite /(K / H) morphpreK //=.
 suff eKH : K :=: H by rewrite -trivg_quotient eKK' eKH.
-(*have nKG : K <| K by rewrite /normal subxx normG.*)
 have sHK : H \subset K by rewrite -ker_coset kerE morphpreS // sub1set group1.
 have aK : [acts A, on K | to].
   apply/subsetP=> x Ax.
@@ -540,14 +541,6 @@ rewrite /= -trivg_quotient; move=> tK'; apply:(congr1 (@gval _)); move: tK'.
 by apply: (@quotient_injG _ H); rewrite ?inE /= ?normal_refl.
 Qed.
 
-End Aux1.
-
-Section Aux2.
-
-Variables (aT rT : finGroupType).
-Variables (A : {group aT})(D : {group rT}).
-Variable to : groupAction A D.
-
 Lemma asimpleI : forall N1 N2: {group rT}, 
   N2 \subset 'N(N1) -> N1 \subset D ->
   [acts A, on N1 | to] -> [acts A, on N2 | to] -> 
@@ -555,7 +548,6 @@ Lemma asimpleI : forall N1 N2: {group rT},
 Proof.
 move=> N1 N2 nN21 sN1D aN1 aN2; case/asimpleP=> ntQ1 max1.
 case: (restrmP (coset_morphism N1) nN21) => f1 [f1e f1ker f1pre f1im].
-(*pose f1 := restrm_morphism nN21 (coset_morphism N1).*)
 have hf2' : N2 \subset 'N(N2 :&: N1) by apply: normsI => //; rewrite normG.
 have hf2'' : 'ker (coset (N2 :&: N1)) \subset 'ker f1 by rewrite f1ker !ker_coset.
 pose f2 := factm_morphism  hf2'' hf2'.
@@ -605,46 +597,7 @@ move: (second_isog nN21); rewrite setIC; move/isog_card->; rewrite -he.
 by move/isog_card: iHK=> <-; rewrite leqnn.
 Qed.
 
-Lemma asimpleIr : forall N1 N2: {group rT}, 
-  N1 \subset 'N(N2) -> N2 \subset D ->
-  [acts A, on N1 | to] -> [acts A, on N2 | to] -> 
-  asimple (to / N2) (N1 / N2) -> asimple (to / (N2 :&: N1)) (N1 / (N2 :&: N1)).
-Proof.
-move=> N1 N2 nN21 sN1D aN1 aN2 has.
-have h := (asimpleI nN21 sN1D aN2 aN1 has).
-case/asimpleP : h => h1 h2.
-apply/asimpleP; split; first by rewrite /= setIC.
-rewrite /= => H nH aH.
-have e : N2 :&: N1 = N1 :&: N2 by rewrite setIC.
-pose K := (qisom e) @* H.
-have eq : (qisom e) @* (N1 / (N2 :&: N1)) = N1 / (N1 :&: N2) by rewrite morphim_qisom. 
-have nK : K <| N1 / (N1 :&: N2) by rewrite -eq; apply: morphim_normal.
-pose H':= coset (N2 :&: N1)@*^-1 H.
-have eHH' : H :=: H' / (N2 :&: N1) by rewrite cosetpreK.
-have aK : [acts qact_dom to (N1 :&: N2), on K | to / (N1 :&: N2)].
-  apply/subsetP=> x Ax; rewrite inE Ax /= inE; apply/subsetP=> y.
-have Ax' : x \in qact_dom to (N2 :&: N1).
-  by move: Ax; rewrite !inE; case/andP=> ->; rewrite /= setIC.
-  move=> Ky; rewrite inE; case/morphimP: (Ky)=> /= z _.
-  rewrite eHH'; case/morphimP=> t nt H't /= ezt; rewrite ezt qisomE.
-  move=> eyt; rewrite eyt qactE //= ; last by rewrite setIC.
-  apply/morphimP; exists (coset (N2 :&: N1) (to t x))=> //; last by rewrite /= qisomE.
-  rewrite -qactE //= astabs_act; last by move/subsetP: aH; apply.
-  by rewrite eHH' mem_quotient.    
-have iHK : H \isog K.
-  apply/isogP. exists (restrm_morphism (subsetT H) (qisom_morphism e)).
-    by rewrite injm_restrm // injm_qisom.
-  by rewrite morphim_restrm setIid.
-case: (h2 _ nK aK).
-  by move/eqP; rewrite -(isog_triv iHK); move/eqP->; left.
-rewrite /= !eHH' morphim_qisom /H'; move/quotient_inj=> /= ->; first by right.
-  by rewrite setIC normal_cosetpre.
-rewrite /normal subsetIl /=; exact: (normsI (normG N1) nN21).
-Qed.
-
-
-
-End Aux2.
+End Aux.
 
 
 
@@ -725,7 +678,7 @@ have i2 : perm_eq (mksrepr G N2 :: mkfactors N2 st2)
   apply: Hi=> //; rewrite /acomps ?lst2 //= lsN csN andbT /=.
   apply: asimple_quo_maxainv=> //; first by apply: subIset; rewrite sN1D.
   have e : N1 :&: N2 :=: N2 :&: N1 by rewrite setIC.
-  apply: asimpleIr => //.
+    rewrite (group_inj (setIC N1 N2)); apply: asimpleI => //.
     apply: subset_trans (normal_norm nN1G); exact: normal_sub.
   by rewrite -quotient_mulgr (maxainvM _ _ maxN_1) //; apply: maxainv_asimple_quo.
 pose fG1 := [:: mksrepr G N1, mksrepr N1 N & mkfactors N sN].
