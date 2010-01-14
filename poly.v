@@ -42,7 +42,7 @@ Require Import bigops ssralg binomial.
 (*                       assumptions).                                        *)
 (*             p^{'}  == formal derivative of p                               *)
 (*             p^{'n} == formal n-derivative of p                             *)
-(*            p^{N'n} == formal n-derivative of p divised by n!               *)
+(*            p^{N'n} == formal n-derivative of p divided by n!               *)
 (*       com_poly p x == x and p.[x] commute; this is a sufficient condition  *)
 (*                       for evaluating (q * p).[x] as q.[x] * p.[x] when R   *)
 (*                       is not commutative.                                  *)
