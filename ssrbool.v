@@ -1011,6 +1011,10 @@ Definition right_transitive := forall x y, R x y -> R^~ x =1 R^~ y.
 
 End RelationProperties.
 
+Lemma rev_trans : forall T (R : rel T),
+  transitive R -> transitive (fun x y => R y x).
+Proof. by move=> T R trR x y z Ryx Rzy; exact: trR Rzy Ryx. Qed.
+
 (* Property localization *)
 
 Notation Local "{ 'all1' P }" := (forall x, P x : Prop) (at level 0).

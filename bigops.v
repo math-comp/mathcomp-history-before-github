@@ -1478,26 +1478,40 @@ Lemma leq_bigmax_cond : forall (I : finType) (P : pred I) F i0,
 Proof.
 by move=> I P F i0 Pi0; rewrite -eqn_maxr (bigD1 i0) // maxnA /= maxnn eqxx.
 Qed.
+Implicit Arguments leq_bigmax_cond [I P F].
 
 Lemma leq_bigmax : forall (I : finType) F (i0 : I), F i0 <= \max_i F i.
 Proof. by move=> *; exact: leq_bigmax_cond. Qed.
-
-Implicit Arguments leq_bigmax_cond [I P F].
 Implicit Arguments leq_bigmax [I F].
 
-Lemma eq_bigmax_cond : forall (I : finType) (A : pred I) F,
-  #|A| > 0 -> {i0 |i0 \in A & \max_(i \in A) F i = F i0}.
+Lemma bigmax_leqP : forall (I : finType) (P : pred I) m F,
+  reflect (forall i, P i -> F i <= m) (\max_(i | P i) F i <= m).
 Proof.
-move=> I A F nzA; set m := \max_(i \in A) F i.
-pose ub i := (i \in A) && (F i >= m); case: (pickP ub) => [i | ub0].
-  case/andP=> Ai ubi; exists i => //.
-  by apply/eqP; rewrite eqn_leq ubi leq_bigmax_cond.
-have{ub0} ubm: {in A, forall i, F i < m}.
-  by move=> i Ai; case/nandP: (ub0 i); rewrite (Ai, ltnNge).
-case/idP: (ltnn m); apply: (@big_prop _ (fun n => n < m)) => // [|n1 n2].
-  case: (pickP A) => [i Ai| A0]; last by rewrite eq_card0 in nzA.
-  exact: leq_trans (ubm i Ai).
-by rewrite !ltnNge leq_maxr negb_or => ->.
+move=> I P m F; apply: (iffP idP) => leFm => [i Pi|].
+  by apply: leq_trans leFm; exact: leq_bigmax_cond.
+by apply big_prop => // m1 m2; rewrite leq_maxl => ->.
+Qed.
+
+Lemma bigmax_sup : forall (I : finType) i0 (P : pred I) m F,
+  P i0 -> m <= F i0 -> m <= \max_(i | P i) F i.
+Proof.
+by move=> I i0 P m F Pi0 le_m_Fi0; exact: leq_trans (leq_bigmax_cond i0 Pi0).
+Qed.
+Implicit Arguments bigmax_sup [I P m F].
+
+Lemma bigmax_eq_arg : forall (I : finType) i0 (P : pred I) F,
+  P i0 -> \max_(i | P i) F i = F [arg max_(i > i0 | P i) F i].
+Proof.
+move=> I i0 P F Pi0; case: arg_maxP => //= i Pi maxFi.
+by apply/eqP; rewrite eqn_leq leq_bigmax_cond // andbT; exact/bigmax_leqP.
+Qed.
+Implicit Arguments bigmax_eq_arg [I P F].
+
+Lemma eq_bigmax_cond : forall (I : finType) (A : pred I) F,
+  #|A| > 0 -> {i0 | i0 \in A & \max_(i \in A) F i = F i0}.
+Proof.
+move=> I A F; case: (pickP A) => [i0 Ai0 _ | ]; last by move/eq_card0->.
+by exists [arg max_(i > i0 \in A) F i]; [case: arg_maxP | exact: bigmax_eq_arg].
 Qed.
 
 Lemma eq_bigmax : forall (I : finType) F,
@@ -1507,6 +1521,37 @@ Proof. by move=> I F; case/(eq_bigmax_cond F) => x _ ->; exists x. Qed.
 Lemma expn_sum : forall m I r (P : pred I) F,
   (m ^ (\sum_(i <- r | P i) F i) = \prod_(i <- r | P i) m ^ F i)%N.
 Proof. move=> m; exact: big_morph (expn_add m) _. Qed.
+
+Lemma dvdn_biglcmP : forall (I : finType) (P : pred I) F m,
+  reflect (forall i, P i -> F i %| m) (\big[lcmn/1%N]_(i | P i) F i %| m).
+Proof.
+move=> I P F m; apply: (iffP idP) => [dvFm i Pi | dvFm].
+  by rewrite (bigD1 i) // dvdn_lcm in dvFm; case/andP: dvFm.
+by apply big_prop => // [p q p_m]; rewrite dvdn_lcm p_m.
+Qed. 
+
+Lemma biglcmn_sup : forall (I : finType) i0 (P : pred I) F m,
+  P i0 -> m %| F i0 -> m %| \big[lcmn/1%N]_(i | P i) F i.
+Proof.
+move=> I i0 P F m Pi0 m_Fi0.
+by rewrite (dvdn_trans m_Fi0) // (bigD1 i0) ?dvdn_lcml.
+Qed.
+Implicit Arguments biglcmn_sup [I P F m].
+
+Lemma dvdn_biggcdP : forall (I : finType) (P : pred I) F m,
+  reflect (forall i, P i -> m %| F i) (m %| \big[gcdn/0]_(i | P i) F i).
+Proof.
+move=> I P F m; apply: (iffP idP) => [dvmF i Pi | dvmF].
+  by rewrite (bigD1 i) // dvdn_gcd in dvmF; case/andP: dvmF.
+by apply big_prop => // [p q m_p]; rewrite dvdn_gcd m_p.
+Qed. 
+
+Lemma biggcdn_inf : forall (I : finType) i0 (P : pred I) F m,
+  P i0 -> F i0 %| m -> \big[gcdn/0]_(i | P i) F i %| m.
+Proof.
+by move=> I i0 P F m Pi0; apply: dvdn_trans; rewrite (bigD1 i0) ?dvdn_gcdl.
+Qed.
+Implicit Arguments biggcdn_inf [I P F m].
 
 Section BigBool.
 

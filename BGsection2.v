@@ -1,7 +1,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import fintype bigops prime binomial finset ssralg.
 Require Import groups morphisms normal automorphism commutators zmodp.
-Require Import gprod cyclic center pgroups nilpotent sylow maximal.
+Require Import gprod cyclic center pgroups nilpotent sylow abelian maximal.
 Require Import matrix mxrepresentation BGsection1.
 
 (******************************************************************************)

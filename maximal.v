@@ -1,8 +1,8 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype finfun.
 Require Import bigops finset prime binomial groups morphisms normal perm.
-Require Import commutators automorphism action cyclic gfunc pgroups center gprod.
-Require Import nilpotent sylow finmod.
+Require Import commutators automorphism action cyclic gfunc pgroups center.
+Require Import gprod nilpotent sylow abelian finmod.
 
 (******************************************************************************)
 (*   This file establishes basic properties of several important classes of   *)
@@ -22,7 +22,7 @@ Require Import nilpotent sylow finmod.
 (*                      all its maximal proper subgroups.                     *)
 (*             'F(G) == the Fitting subgroup of G, i.e., the largest normal   *)
 (*                      nilpotent subgroup of G (defined as the (direct)      *)
-(*                      product of all the p-cores of G.                      *)
+(*                      product of all the p-cores of G).                     *)
 (*      critical C G == C is a critical subgroup of G: C is characteristic    *)
 (*                      (but not functorial) in G, the center of C contains   *)
 (*                      both its Frattini subgroup and the commutator [G, C], *)
@@ -112,7 +112,7 @@ Definition extra_special A := special A /\ prime #|'Z(A)|.
 
 Definition SCN B := [set A : {group gT} | (A <| B) && ('C_B(A) == A)].
 
-Definition SCN_at n B := [set A \in SCN B | n <= 'm(A)].
+Definition SCN_at n B := [set A \in SCN B | n <= 'r(A)].
 
 End Defs.
 
@@ -360,35 +360,13 @@ Qed.
 
 Variables (p : nat) (P : {group gT}).
 
-Lemma abelem_splits : forall G,
-  p.-abelem P -> G \subset P -> [splits P, over G].
-Proof.
-move=> G abP; have: exists K : {group gT}, (K \subset P) && (G :&: K == 1).
-  by exists [1 gT]%G; rewrite (setIidPr _) sub1G /=.
-case/ex_maxgroup=> K; case/maxgroupP; case/andP=> sKP trGK maxK sGP.
-apply/splitsP; exists K; rewrite inE trGK eqEsubset mul_subG //=.
-have cKP: P \subset 'C(K).
-  by rewrite centsC (subset_trans sKP) //; case/andP: abP; case/andP.
-have cKG := subset_trans sGP cKP.
-rewrite -cent_mulgenEl //; apply/subsetP=> x Px.
-case: (eqVneq x 1) => [-> | nt_x]; first by rewrite group1.
-have: prime #[x] by have [p_pr ->] := abelem_order_p abP Px nt_x.
-case/(prime_subgroupVti (G <*> K)) => [|tiGKx]; first by rewrite cycle_subG.
-rewrite -(maxK (<[x]> <*> K)%G) ?mulgen_subr //.
-  by rewrite mulgenC -mulgenA -cycle_subG mulgen_subl.
-rewrite mulgen_subG cycle_subG Px sKP /=.
-rewrite -(mulg1 G) -(eqP trGK) /= (setIC G) group_modl // setIAC.
-rewrite cent_mulgenEl ?(subset_trans _ cKP) ?cycle_subG //= -cent_mulgenEl //.
-by rewrite -group_modr ?mulgen_subr // tiGKx mul1g setIC.
-Qed.
-
 Lemma trivg_Phi : p.-group P -> ('Phi(P) == 1) = p.-abelem P.
 Proof.
 move=> pP; case: (eqsVneq P 1) => [P1 | ntP].
-  by rewrite P1 p_abelem1 -subG1 -P1 Phi_sub.
+  by rewrite P1 abelem1 -subG1 -P1 Phi_sub.
 have [p_pr _ _] := pgroup_pdiv pP ntP.
 apply/eqP/idP=> [trPhi | abP].
-  apply/p_abelemP=> //; split=> [|x Px].
+  apply/abelemP=> //; split=> [|x Px].
     apply/commG1P; apply/trivgP; rewrite -trPhi.
     apply/bigcapsP=> M; case/predU1P=> [-> | maxM]; first exact: der1_subG.
     have [_ nMP] := andP (p_maximal_normal pP maxM).
@@ -432,7 +410,7 @@ apply/eqP; rewrite eqEsubset mulgen_subG.
 case: (eqsVneq P 1) => [-> | ntP] in sPhiP *.
   by rewrite /= (trivgP sPhiP) sub1G der_sub Mho_sub.
 have [p_pr _ _] := pgroup_pdiv pP ntP.
-have [abP x1P] := p_abelemP _ p_pr Phi_quotient_abelem.
+have [abP x1P] := abelemP p_pr Phi_quotient_abelem.
 apply/andP; split.
   have nMP: P \subset 'N(P^`(1) <*> 'Mho^1(P)).
     by rewrite norms_mulgen // char_norm ?der_char ?Mho_char.
@@ -440,7 +418,7 @@ apply/andP; split.
   suffices <-: 'Phi(P / (P^`(1) <*> 'Mho^1(P))) = 1.
     exact: morphim_sFunctor.
   apply/eqP; rewrite (trivg_Phi (morphim_pgroup _ pP)) /= -quotientE.
-  apply/p_abelemP=> //; rewrite [abelian _]quotient_cents2 ?mulgen_subl //.
+  apply/abelemP=> //; rewrite [abelian _]quotient_cents2 ?mulgen_subl //.
   split=> // Mx; case/morphimP=> x Nx Px ->{Mx} /=.
   rewrite -morphX //= coset_id // (MhoE 1 pP) mulgen_idr expn1.
   by rewrite mem_gen //; apply/setUP; right; exact: mem_imset.
@@ -692,7 +670,7 @@ case/splitsP: (abelem_splits pA sxA) => B; case/complP=> trxB defA.
 have sBA: B \subset A by rewrite -defA mulG_subr.
 exists B; split => //; first by rewrite -defA (TI_cardMg trxB) mulKn.
 rewrite dprodE // cycle_subG; apply: subsetP Ax; rewrite centsC.
-by apply: subset_trans sBA _; case/andP: pA; case/andP.
+by apply: subset_trans sBA _; case/and3P: pA.
 Qed.
 
 Lemma abelem_split_dprod : forall rT (p : nat) (A B : {group rT}),
@@ -701,34 +679,8 @@ Proof.
 move=> rT p A B pA sBA.
 case/splitsP: (abelem_splits pA sBA) => C; case/complP=> trBC defA.
 exists C; rewrite dprodE // (subset_trans sBA) // centsC.
-case/andP: pA; case/andP=> abA _ _; apply: subset_trans abA.
+case/and3P: pA => _ abA _; apply: subset_trans abA.
 by rewrite -defA mulg_subr.
-Qed.
-
-Lemma isog_abelem_card : forall rT (p : nat) G (A : {group rT}),
-  p.-abelem G -> isog G A = p.-abelem A && (#|A| == #|G|).
-Proof.
-move=> rT p G A pG; apply/idP/idP=> [isoAG | ].
-  rewrite (isog_card isoAG) eqxx andbT; case/isogP: isoAG => f injf <- {A}.
-  case: (eqsVneq G 1) => [G1 | ntG]; first by rewrite {3}G1 morphim1 p_abelem1.
-  have [p_pr _ _] := pgroup_pdiv (abelem_pgroup pG) ntG.
-  case/p_abelemP: pG => // abG pG; apply/p_abelemP=> //; split=> [|fx].
-    by apply/setIidPl; rewrite // -injm_cent // -morphimIdom (setIidPl _).
-  by case/morphimP=> x Gx _ ->{fx}; rewrite -morphX ?pG ?morph1.
-elim: {A}_.+1 {-2}A (ltnSn #|A|) => // n IHn A leAn in G pG *.
-rewrite ltnS in leAn; case/andP=> pA; move/eqP=> oA.
-case: (eqsVneq G 1) => [G1 | ntG].
-  by rewrite isog_cyclic_card 1?(@card1_trivg _ A) ?oA G1 ?cards1 ?cyclic1.
-have: A :!=: 1 by rewrite trivg_card1 oA -trivg_card1.
-case/trivgPn: ntG => x Gx; case/(abelem_order_p pG)=> // p_pr ox.
-case/trivgPn=> y Ay; case/(abelem_order_p pA)=> // _ oy.
-have [H [sHG oH defG]] := p_abelem_split1 pG Gx.
-have [B [sBA oB defA]] := p_abelem_split1 pA Ay.
-rewrite (isog_dprod defG defA) //.
-  by rewrite isog_cyclic_card ?cycle_cyclic // [#|_|]oy -ox eqxx.
-apply: IHn; rewrite ?(p_abelemS sHG, p_abelemS sBA) //=; last first.
-  by rewrite oB oH oA ox oy.
-by apply: leq_trans leAn; rewrite oB ltn_Pdiv // oy prime_gt1.
 Qed.
 
 Lemma abelem_charsimple : forall (p : nat) G,
@@ -743,7 +695,7 @@ case/trivgPn: ntK => y Ky; have Gy := subsetP sKG y Ky.
 case/(abelem_order_p pG) => // _ oy.
 have [B [sBG oB defB]] := p_abelem_split1 pG Gy.
 have: isog A B; last case/isogP=> fAB injAB defAB.
-  rewrite (isog_abelem_card _ (p_abelemS sAG pG)) (p_abelemS sBG) //=.
+  rewrite (isog_abelem_card _ (abelemS sAG pG)) (abelemS sBG) //=.
   by rewrite oA oB ox oy.
 have: isog <[x]> <[y]>; last case/isogP=> fxy injxy /= defxy.
   by rewrite isog_cyclic_card ?cycle_cyclic // [#|_|]oy -ox eqxx.
@@ -835,7 +787,7 @@ by rewrite defM -(autmE Af) -morphimEsub // dprodE // cent_mulgenEl ?eqxx.
 Qed.
 
 Lemma charsimple_solvable : forall G,
-  charsimple G -> solvable G -> abelem G.
+  charsimple G -> solvable G -> is_abelem G.
 Proof.
 move=> G; case/charsimple_dprodg=> H [sHG simH [I Aut_I defG]] solG.
 case/simpleP: simH => ntH simH; pose p := pdiv #|H|.
@@ -849,24 +801,24 @@ have{simH} oHp: #|H| = p.
   case: (simH <[x]>%G) => [|/= x1|<- //].
     by rewrite /normal cents_norm 1?centsC cycle_subG ?Hx ?(subsetP abH).
   by rewrite -ox /order x1 cards1 in pr_p.
-apply/abelemP; exists p => //; move: (G) defG.
-apply big_prop => [_ <-|A1 A2 IH1 IH2 M|f If _ <-]; first exact: p_abelem1.
+apply/is_abelemP; exists p => //; move: (G) defG.
+apply big_prop => [_ <-|A1 A2 IH1 IH2 M|f If _ <-]; first exact: abelem1.
   case/dprodP=> [[G1 G2 dG1 dG2]]; rewrite dG1 dG2 => defM cG12 _.
-  have [abG1 pG1] := p_abelemP G1 pr_p (IH1 G1 dG1).
-  have [abG2 pG2] := p_abelemP G2 pr_p (IH2 G2 dG2).
-  apply/p_abelemP; rewrite // -{M}defM /abelian !centM !subsetI.
+  have [abG1 pG1] := abelemP pr_p (IH1 G1 dG1).
+  have [abG2 pG2] := abelemP pr_p (IH2 G2 dG2).
+  apply/abelemP; rewrite // -{M}defM /abelian !centM !subsetI.
   rewrite !mul_subG // 1?centsC //; split=> // x.
   case/imset2P=> x1 x2 Gx1 Gx2 ->; rewrite expMgn; last exact: (centsP cG12).
   by rewrite pG1 // pG2 // mulg1.
 have Af := subsetP Aut_I f If; rewrite -(autmE Af) -morphimEsub //.
-apply/p_abelemP; rewrite /abelian ?morphim_cents //; split=> // fx.
+apply/abelemP; rewrite /abelian ?morphim_cents //; split=> // fx.
 case/morphimP=> x Gx Hx ->{fx}; rewrite -morphX 1?((x ^+ p =P 1) _) ?morph1 //.
 by rewrite -order_dvdn -oHp cardSg // cycle_subG.
 Qed.
 
 Lemma minnormal_solvable : forall L G H : {group gT},
   minnormal H L -> H \subset G -> solvable G ->
-  [/\ L \subset 'N(H), H :!=: 1  & abelem H].
+  [/\ L \subset 'N(H), H :!=: 1 & is_abelem H].
 Proof.
 move=> L G H minH sHG solG; have [ntH nHL] := andP (mingroupp minH).
 split=> //; apply: (charsimple_solvable (minnormal_charsimple minH)).
@@ -875,7 +827,7 @@ Qed.
 
 Lemma solvable_norm_abelem : forall L G : {group gT},
   solvable G -> G <| L -> G :!=: 1 ->
-  exists H : {group gT}, [/\ H \subset G, H <| L, H :!=: 1 & abelem H].
+  exists H : {group gT}, [/\ H \subset G, H <| L, H :!=: 1 & is_abelem H].
 Proof.
 move=> L G solG; case/andP=> sGL nGL ntG.
 have [H minH sHG]: {H : {group gT} | minnormal H L & H \subset G}.
@@ -894,12 +846,12 @@ Variables (gT : finGroupType) (p : nat) (A G : {group gT}).
 Lemma center_special_abelem : p.-group G -> special G -> p.-abelem 'Z(G).
 Proof.
 move=> pG [defPhi defG'].
-case: (eqsVneq G 1) => [-> | ntG]; first by rewrite center1 p_abelem1. 
+case: (eqsVneq G 1) => [-> | ntG]; first by rewrite center1 abelem1. 
 have [p_pr _ _] := pgroup_pdiv pG ntG.  
 have fM: {in 'Z(G) &, {morph expgn^~ p : x y / x * y}}.
   move=> x y; case/setIP=> _ CxG; case/setIP=> Gy _.
   rewrite expMgn //; exact: (centP CxG).
-rewrite p_abelemE //= abelian_center; apply/exponentP=> /= z Zz.
+rewrite abelemE //= abelian_center; apply/exponentP=> /= z Zz.
 apply: (@kerP _ _ _ (Morphism fM)) => //; apply: subsetP z Zz.
 rewrite -{1}defG' gen_subG; apply/subsetP=> xy.
 case/imset2P=> x y Gx Gy ->{xy}.
@@ -954,7 +906,7 @@ have:= pG; rewrite -pnat_exponent; case/p_natP=> n expGpn.
 rewrite -(subnn n.-1); elim: {2}n.-1 => [|m IHm].
   rewrite (MhoE _ pG) gen_subG; apply/subsetP=> xp; case/imsetP=> x Gx ->{xp}.
   rewrite subn0 -subn1 -add1n add_sub_maxn maxnC -add_sub_maxn expn_add.
-  by rewrite expgn_mul -expGpn (exponentP _ _ (dvdnn _)) ?groupX ?group1.
+  by rewrite expgn_mul -expGpn expg_exponent ?groupX ?group1.
 rewrite cChaG ?Mho_char //= (MhoE _ pG) /abelian cent_gen gen_subG.
 apply/centsP=> xp; case/imsetP=> x Gx -> yp; case/imsetP=> y Gy ->{xp yp}.
 move: sG'Z; rewrite subsetI centsC; case/andP=> _; move/centsP=> cGG'.
@@ -1079,11 +1031,10 @@ have nZX := subset_trans sXG nZG; have pX : p.-group gX by exact: pgroupS pG.
 rewrite -quotient_sub1 ?(subset_trans (Phi_sub _)) //=.
 have pXZ: p.-group (gX / 'Z(K)) by exact: morphim_pgroup.
 rewrite (quotient_Phi pX nZX) subG1 (trivg_Phi pXZ).
-apply: (p_abelemS (quotientS _ (subsetIr _ _))); rewrite /= cosetpreK /=.
+apply: (abelemS (quotientS _ (subsetIr _ _))); rewrite /= cosetpreK /=.
 have pZ: p.-group 'Z(G / 'Z(K)).
   by rewrite (pgroupS (center_sub _)) ?morphim_pgroup.
-rewrite /p_abelem Ohm_abelian ?abelian_center ?(pgroup_p pZ) //.
-exact: pgroupS (Ohm_sub _ _) pZ.
+by rewrite Ohm1_abelem ?abelian_center.
 Qed.
 
 Lemma nil_class1 : forall H, (nil_class H <= 1) = abelian H.

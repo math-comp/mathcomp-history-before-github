@@ -1,7 +1,8 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import choice fintype finfun bigops prime binomial ssralg poly finset.
 Require Import groups morphisms automorphism normal perm finalg action gprod.
-Require Import zmodp matrix commutators cyclic center pgroups sylow maximal.
+Require Import zmodp matrix commutators cyclic center pgroups sylow abelian.
+Require Import maximal.
 
 (****************************************************************************)
 (*  This file provides linkage between classic Group Theory and commutative *)
@@ -3219,7 +3220,7 @@ Local Notation Mmn := 'M['F_p]_(m, n).
 
 Lemma mx_Fp_abelem : prime p -> p.-abelem [set: Mmn].
 Proof.
-move=> p_pr; apply/p_abelemP=> //; rewrite zmod_abelian.
+move=> p_pr; apply/abelemP=> //; rewrite zmod_abelian.
 split=> //= v _; rewrite FinRing.zmodXgE -scalemx_nat.
 by case/andP: (char_Fp p_pr) => _; move/eqP->; rewrite scale0mx.
 Qed.

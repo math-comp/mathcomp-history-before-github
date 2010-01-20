@@ -192,7 +192,7 @@ have FF: forall H : {group _}, H <| 'Alt_T -> H :<>: 1 -> 20 %| #|H|.
   have F4: [primitive 'Alt_T, on setT | 'P] by exact: ntransitive_primitive F2.
   case: (prim_trans_norm F4 Hh1) => F5.
     case: Hh3; apply/trivgP; exact: subset_trans F5 (aperm_faithful _).
-  have F6: 5 %| #|H| by rewrite -oT -cardsT (atrans_dvd (in_setT x) F5).
+  have F6: 5 %| #|H| by rewrite -oT -cardsT (atrans_dvd F5).
   have F7: 4 %| #|H|.
     have F7: #|[set~ x]| = 4 by rewrite cardsC1 oT.
     case: (pickP (mem [set~ x])) => [y Hy | ?]; last by rewrite eq_card0 in F7.
@@ -208,7 +208,7 @@ have FF: forall H : {group _}, H <| 'Alt_T -> H :<>: 1 -> 20 %| #|H|.
     have F12: K \subset Gx by apply: setSI; exact: normal_sub.
     have F13: K <| Gx by rewrite /(K <| _) F12 normsIG // normal_norm.
     case: (prim_trans_norm F11 F13) => Ksub; last first.
-      apply: dvdn_trans (cardSg F8); rewrite -F7; exact: atrans_dvd Hy Ksub.
+      apply: dvdn_trans (cardSg F8); rewrite -F7; exact: atrans_dvd Ksub.
     have F14: [faithful Gx, on [set~ x] | 'P].
       apply/subsetP=> g; do 2![case/setIP] => Altg cgx cgx'.
       apply: (subsetP (aperm_faithful 'Alt_T)).
@@ -481,7 +481,7 @@ have Hreg: forall g z, g \in H -> g z = z -> g = 1.
 clear K F8 F12 F13 Ksub F14.
 have Hcard: 5 < #|H|.
   apply: (leq_trans oT); apply dvdn_leq; first by exact: cardG_gt0.
-  by rewrite -cardsT (atrans_dvd Hx F5).
+  by rewrite -cardsT (atrans_dvd F5).
 case Eh: (pred0b [predD1 H & 1]).
   by move: Hcard; rewrite /pred0b in Eh; rewrite (cardD1 1) group1 (eqP Eh).
 case/pred0Pn: Eh => h; case/andP => diff_1_h /= Hh.
@@ -540,5 +540,6 @@ have g_k_com: g * k = k * g.
 have HH: (k * (h * g) * k ^-1) x = z.
    by rewrite 2!permM -Hkx Hkhgx -permM mulgV perm1.
 case/negP: diff_hgx_z.
-by rewrite -HH !mulgA -h_k_com -!mulgA [k * _]mulgA -g_k_com -!mulgA mulgV mulg1.
+rewrite -HH !mulgA -h_k_com -!mulgA [k * _]mulgA.
+by rewrite -g_k_com -!mulgA mulgV mulg1.
 Qed.

@@ -1,8 +1,8 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import fintype bigops prime binomial finset ssralg.
 Require Import groups morphisms normal automorphism commutators zmodp.
-Require Import gprod gfunc cyclic center pgroups nilpotent sylow maximal.
-Require Import matrix mxrepresentation BGsection1 BGsection2.
+Require Import gprod gfunc cyclic center pgroups nilpotent sylow abelian.
+Require Import maximal matrix mxrepresentation BGsection1 BGsection2.
 
 (******************************************************************************)
 (* This file contains the useful material in B & G, appendices A and B, i.e., *)
@@ -95,8 +95,8 @@ have{Q ncEQ p'Q sQG} minE_EG: minnormal E (E <*> G).
   rewrite /p_xp -!sub1set !morph_p_elt -?quotient_set1 ?nDGi //=.
   by rewrite -!quotientR ?quotient_cents ?sub1set ?nDGi.
 have abelE: p.-abelem E.
-  by apply/andP; case: (minnormal_solvable minE_EG _ solE).
-have cEE: abelian E by case/andP: abelE; case/andP.
+  by rewrite -is_abelem_pgroup //; case: (minnormal_solvable minE_EG _ solE).
+have cEE: abelian E by case/and3P: abelE.
 have{minE_EG} minE: minnormal E G.
   case/mingroupP: minE_EG => _ minE; apply/mingroupP; rewrite ntE.
   split=> // D ntD sDE; apply: minE => //; rewrite mulgen_subG cents_norm //.

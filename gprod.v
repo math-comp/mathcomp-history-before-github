@@ -518,6 +518,9 @@ Lemma dprod_modr : forall A B G H,
   A \x B = G -> B \subset H -> (H :&: A) \x B = H :&: G.
 Proof. move=> A B G H; rewrite -!(dprodC B) !(setIC H); exact: dprod_modl. Qed.
 
+Lemma dprod_card : forall A B G, A \x B = G -> (#|A| * #|B|)%N = #|G|.
+Proof. by move=> A B G; case/dprodP=> [[H K -> ->] <- _]; move/TI_cardMg. Qed.
+
 End InternalDirProd.
 
 Implicit Arguments complP [gT K A B].

@@ -360,6 +360,26 @@ apply: subset_trans sNH; rewrite subsetI ucn_sub0 -commg_subr.
 apply: subset_trans sZH; apply: subset_trans (ucn_comm G i); exact: commgS.
 Qed.
 
+Lemma nilpotent_proper_norm : forall G H,
+  nilpotent G -> H \proper G -> H \proper 'N_G(H).
+Proof.
+move=> G H nilG; rewrite properEneq properE subsetI normG; case/andP=> neHG sHG.
+by rewrite sHG; apply: contra neHG; move/(nilpotent_sub_norm nilG)->.
+Qed.
+
+Lemma nilpotent_subnormal : forall G H,
+  nilpotent G -> H \subset G -> H <|<| G.
+Proof.
+move=> G H nilG; elim: {H}_.+1 {-2}H (ltnSn (#|G| - #|H|)) => // m IHm H.
+rewrite ltnS => leGHm sHG; have:= sHG; rewrite subEproper.
+case/predU1P=> [->|]; first exact: subnormal_refl.
+move/(nilpotent_proper_norm nilG); set K := 'N_G(H) => prHK.
+have snHK: H <|<| K by rewrite normal_subnormal ?normalSG.
+have sKG: K \subset G by rewrite subsetIl.
+apply: subnormal_trans snHK (IHm _ (leq_trans _ leGHm) sKG).
+by rewrite ltn_sub2l ?proper_card ?(proper_sub_trans prHK).
+Qed.
+
 Lemma nil_TI_Z : forall G H,
   nilpotent G -> H <| G -> H :&: 'Z(G) = 1 -> H :=: 1.
 Proof.
@@ -371,6 +391,10 @@ rewrite -commg_subr commGC in nHG.
 rewrite -IHn subsetI (subset_trans _ nHG) ?commSg ?subsetIl //=.
 by rewrite (subset_trans _ (ucn_comm G n)) ?commSg ?subsetIr.
 Qed.
+
+Lemma nil_meet_Z : forall G H,
+  nilpotent G -> H <| G -> H :!=: 1 -> H :&: 'Z(G) != 1.
+Proof. by move=> G H nilG nsHG; apply: contra; move/eqP; move/nil_TI_Z->. Qed.
 
 End Properties.
 

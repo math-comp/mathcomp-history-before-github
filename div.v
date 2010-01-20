@@ -261,6 +261,8 @@ Definition dvdn d m := m %% d == 0.
 
 Notation "m %| d" := (dvdn m d) (at level 70, no associativity) : nat_scope.
 
+Definition multn := [rel m d | d %| m].
+
 Lemma dvdn2 : forall n, (2 %| n) = ~~ odd n.
 Proof. by move=> n; rewrite /dvdn modn2; case (odd n). Qed.
 
@@ -371,6 +373,18 @@ Implicit Arguments dvdn_pmul2l [p m d].
 Lemma dvdn_pmul2r : forall p d m, 0 < p -> (d * p %| m * p) = (d %| m).
 Proof. by move=> n d m Hn; rewrite -!(mulnC n) dvdn_pmul2l. Qed.
 Implicit Arguments dvdn_pmul2r [p m d].
+
+Lemma dvdn_exp2l : forall p m n, m <= n -> p ^ m %| p ^ n.
+Proof. by move=> p m n; move/subnK <-; rewrite expn_add dvdn_mull. Qed.
+
+Lemma dvdn_Pexp2l : forall p m n, p > 1 -> (p ^ m %| p ^ n) = (m <= n).
+Proof.
+move=> p m n p_gt1; case: leqP => [|gt_n_m]; first exact: dvdn_exp2l.
+by rewrite gtnNdvd ?ltn_exp2l ?expn_gt0 // ltnW.
+Qed.
+
+Lemma dvdn_exp2r : forall m n k, m %| n -> m ^ k %| n ^ k.
+Proof. by move=> m n k; case/dvdnP=> q ->; rewrite expn_mull dvdn_mull. Qed.
 
 Lemma dvdn_addr : forall m d n, d %| m -> (d %| m + n) = (d %| n).
 Proof. by move=> n d m; move/dvdnP=> [k ->]; rewrite /dvdn modn_addl_mul. Qed.
@@ -765,6 +779,21 @@ have [u defn] := dvdnP (dvdn_gcdl n m); have [v defm] := dvdnP (dvdn_gcdr n m).
 rewrite -[gcdn n m]mul1n {1}defm {1}defn !mulnA -muln_addl addnC.
 rewrite eqn_pmul2r ?gcdn_gt0 ?n_gt0 //; move/eqP; case: kn => // kn def_knu _.
 by apply/coprimeP=> //; exists (u, v); rewrite mulnC def_knu mulnC addnK.
+Qed.
+
+Lemma dvdn_pexp2r : forall m n k, k > 0 -> (m ^ k %| n ^ k) = (m %| n).
+Proof.
+move=> m n k k_gt0; apply/idP/idP=> [dv_mn_k|]; last exact: dvdn_exp2r.
+case: (posnP n) => [-> | n_gt0]; first by rewrite dvdn0.
+have [n' def_n] := dvdnP (dvdn_gcdr m n); set d := gcdn m n in def_n.
+have [m' def_m] := dvdnP (dvdn_gcdl m n); rewrite -/d in def_m.
+have d_gt0: d > 0 by rewrite gcdn_gt0 n_gt0 orbT.
+rewrite def_m def_n !expn_mull dvdn_pmul2r ?expn_gt0 ?d_gt0 // in dv_mn_k.
+have: coprime (m' ^ k) (n' ^ k).
+  rewrite coprime_pexpl // coprime_pexpr // /coprime -(eqn_pmul2r d_gt0) mul1n.
+  by rewrite muln_gcdl -def_m -def_n.
+rewrite /coprime -gcdn_modr (eqnP dv_mn_k) gcdn0 -(exp1n k).
+by rewrite (inj_eq (expIn k_gt0)) def_m; move/eqP->; rewrite mul1n dvdn_gcdr.
 Qed.
 
 Section Chinese.

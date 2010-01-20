@@ -64,7 +64,11 @@ Require Export Ring.
 (*                                                                          *)
 (*   countable choice                                                       *)
 (*     ex_minn : forall P : pred nat, (exists n, P n) -> nat                *)
-(*   This returns the smallest n such that P n holds.                       *)
+(*       This returns the smallest n such that P n holds.                   *)
+(*     ex_maxn : forall (P : pred nat) m,                                   *)
+(*        (exists n, P n) -> (forall n, P n -> n <= m) -> nat               *)
+(*       This returns the largest n such that P n holds (given an explicit  *)
+(*       upper bound).                                                      *)
 (*                                                                          *)
 (****************************************************************************)
 
@@ -283,7 +287,9 @@ Notation "m >= n" := (n <= m) (only parsing) : nat_scope.
 Notation "m > n"  := (n < m) (only parsing)  : nat_scope.
 
 (* For sorting, etc. *)
+Definition geq := [rel m n | m >= n].
 Definition ltn := [rel m n | m < n].
+Definition gtn := [rel m n | m > n].
 
 Notation "m <= n <= p" := ((m <= n) && (n <= p)) : nat_scope.
 Notation "m < n <= p" := ((m < n) && (n <= p)) : nat_scope.
@@ -766,12 +772,43 @@ Proof. by rewrite /ex_minn; case: find_ex_minn. Qed.
 
 End ExMinn.
 
+Section ExMaxn.
+
+Variables (P : pred nat) (m : nat).
+Hypotheses (exP : exists i, P i) (ubP : forall i, P i -> i <= m).
+
+Lemma ex_maxn_subproof : exists i, P (m - i).
+Proof. by case: exP => i Pi; exists (m - i); rewrite subKn ?ubP. Qed.
+
+Definition ex_maxn := m - ex_minn ex_maxn_subproof.
+
+CoInductive ex_maxn_spec : nat -> Type :=
+  ExMaxnSpec i of P i & (forall j, P j -> j <= i) : ex_maxn_spec i.
+
+Lemma ex_maxnP : ex_maxn_spec ex_maxn.
+Proof.
+rewrite /ex_maxn; case: ex_minnP => i Pmi min_i; split=> // j Pj.
+have le_i_mj: i <= m - j by rewrite min_i // subKn // ubP.
+rewrite -subn_eq0 subn_subA ?(leq_trans le_i_mj) ?leq_subr //.
+by rewrite addnC -subn_subA ?ubP.
+Qed.
+
+End ExMaxn.
+
 Lemma eq_ex_minn : forall P Q exP exQ,
   P =1 Q -> @ex_minn P exP = @ex_minn Q exQ.
 Proof.
 move=> P Q exP exQ eqPQ.
 case: ex_minnP => m1 Pm1 m1_lb; case: ex_minnP => m2 Pm2 m2_lb.
 by apply/eqP; rewrite eqn_leq m1_lb (m2_lb, eqPQ) // -eqPQ.
+Qed.
+
+Lemma eq_ex_maxn : forall (P Q : pred nat) m n exP ubP exQ ubQ,
+  P =1 Q -> @ex_maxn P m exP ubP = @ex_maxn Q n exQ ubQ.
+Proof.
+move=> P Q m n exP ubP exQ ubQ eqPQ.
+case: ex_maxnP => i Pi max_i; case: ex_maxnP => j Pj max_j.
+by apply/eqP; rewrite eqn_leq max_i ?eqPQ // max_j -?eqPQ.
 Qed.
 
 Section Iteration.

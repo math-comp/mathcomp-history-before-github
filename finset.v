@@ -302,6 +302,9 @@ Proof. by move=> A; apply/subsetP=> x; rewrite inE. Qed.
 Lemma subTset : forall A, (setT \subset A) = (A == setT).
 Proof. by move=> A; rewrite eqEsubset subsetT. Qed.
 
+Lemma properT : forall A, (A \proper setT) = (A != setT).
+Proof. by move=> A; rewrite properEneq subsetT andbT. Qed.
+
 Lemma set1P : forall x a, reflect (x = a) (x \in [set a]).
 Proof. move=> x a; rewrite inE; exact: eqP. Qed.
 
@@ -1466,6 +1469,16 @@ move=> A B F; apply/setP=> x; apply/bigcupP/setUP=> [[i]|].
 by case; case/bigcupP=> i Pi; exists i; rewrite // inE Pi ?orbT.
 Qed.
 
+Lemma bigcup_seq : forall r F, \bigcup_(i <- r) F i = \bigcup_(i \in r) F i.
+Proof.
+move=> r F; elim: r => [|i r IHr]; first by rewrite big_nil big_pred0.
+rewrite big_cons {}IHr; case r_i: (i \in r).
+  rewrite (setUidPr _) ?bigcup_sup //.
+  by apply: eq_bigl => j; rewrite !inE; case: eqP => // ->.
+rewrite (bigD1 i (mem_head i r)) /=; congr (_ :|: _).
+by apply: eq_bigl => j /=; rewrite andbC; case: eqP => // ->.
+Qed.
+
 (* Unlike its setU counterpart, this lemma is useable. *)
 Lemma bigcap_inf : forall j P F, P j -> \bigcap_(i | P i) F i \subset F j.
 Proof. by move=> j P F Pj; rewrite (bigD1 j) //= subsetIl. Qed.
@@ -1490,19 +1503,13 @@ move=> x P F; rewrite -sub1set.
 by apply: (iffP (bigcapsP _ _ _)) => Fx i; move/Fx; rewrite sub1set.
 Qed.
 
-Lemma setC_bigcup : forall P F,
-  ~: (\bigcup_(i | P i) F i) = \bigcap_(i | P i) ~: F i.
-Proof.
-move=> P F; pose R (U V : {set T}) := ~: U = V.
-by apply: (big_rel R) => // [|U1 _ U2 _ <- <-]; rewrite /R ?setC0 ?setCU.
-Qed.
+Lemma setC_bigcup : forall r P F,
+  ~: (\bigcup_(i <- r | P i) F i) = \bigcap_(i <- r | P i) ~: F i.
+Proof. by move=> r P F; apply: big_morph => [? *|]; rewrite ?setC0 ?setCU. Qed.
 
-Lemma setC_bigcap : forall P F,
-  ~: (\bigcap_(i | P i) F i) = \bigcup_(i | P i) ~: F i.
-Proof.
-move=> P F; apply: setC_inj; rewrite setCK setC_bigcup.
-by apply: eq_bigr => i Pi; rewrite setCK.
-Qed.
+Lemma setC_bigcap : forall r P F,
+  ~: (\bigcap_(i <- r | P i) F i) = \bigcup_(i <- r | P i) ~: F i.
+Proof. by move=> r P F; apply: big_morph => [? *|]; rewrite ?setCT ?setCI. Qed.
 
 Lemma bigcap_setU : forall A B F,
   (\bigcap_(i \in A :|: B) F i) =
@@ -1510,6 +1517,9 @@ Lemma bigcap_setU : forall A B F,
 Proof.
 by move=> A B F; apply: setC_inj; rewrite setCI !setC_bigcap bigcup_setU.
 Qed.
+
+Lemma bigcap_seq : forall r F, \bigcap_(i <- r) F i = \bigcap_(i \in r) F i.
+Proof. by move=> r F; apply: setC_inj; rewrite !setC_bigcap bigcup_seq. Qed.
 
 End BigSetOps.
 

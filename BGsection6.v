@@ -3,7 +3,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import fintype paths finfun bigops finset prime groups.
 Require Import morphisms perm action automorphism normal cyclic.
 Require Import gfunc pgroups nilpotent gprod center commutators.
-Require Import maximal sylow hall BGsection1 BGappendixAB.
+Require Import sylow abelian maximal hall BGsection1 BGappendixAB.
 (******************************************************************************)
 
 Set Implicit Arguments.

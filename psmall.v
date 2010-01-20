@@ -1,8 +1,8 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq paths div.
 Require Import choice fintype finfun bigops ssralg finset prime binomial.
 Require Import groups zmodp morphisms automorphism normal perm action gprod.
-Require Import commutators cyclic center pgroups sylow nilpotent maximal hall.
-Require Import BGsection1.
+Require Import commutators cyclic center pgroups sylow nilpotent abelian.
+Require Import maximal hall BGsection1.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -109,10 +109,7 @@ Qed.
 
 (* strengthens Ohm_abelian *)
 Lemma abelian_Ohm1 : abelian 'Ohm_1(G) -> p.-abelem 'Ohm_1(G).
-Proof.
-move=> abelOhm1; rewrite p_abelemE // abelOhm1 //= abelian_OhmE //.
-by apply/exponentP'=> x; rewrite inE expn1; case/andP=> Rx; move/eqP.
-Qed.
+Proof. by rewrite abelem_Ohm1. Qed.
 
 End ElementaryAbelian.
 
@@ -348,7 +345,7 @@ have Req : R = << [set x; y] >>%G.
 have sR_NX : R \subset 'N(<[x]>) by apply: normal_norm nXR.
 have Xyp : y ^+ p \in <[x]>.
   rewrite coset_idr ?(subsetP sR_NX) ?groupX // morphX ?(subsetP sR_NX) //=.
-  apply: (exponentP (R / <[x]>)); last by apply: mem_quotient.
+  apply: exponentP (mem_quotient _ Ry).
   by rewrite (dvdn_trans (exponent_dvdn _)) // card_quotient // indexRX.
 have Xxy : x^y \in <[x]> by rewrite memJ_norm ?cycle_id // (subsetP sR_NX). 
 case/cycleP: Xxy => l l_def.
@@ -573,7 +570,7 @@ have exponent_Ohm1 : exponent 'Ohm_1(R) %| p.
   exact: exponent_Ohm1_class2.
 have Ohm1IXsub : 'Ohm_1(R) :&: <[x]> \subset <[ x ^+ (p ^ e.-1) ]>.
   apply/subsetP=> w; rewrite !inE; case/andP.
-  move/(exponentP _ _ exponent_Ohm1)=> wp1; case/cycleP => t t_def.
+  move/(exponentP exponent_Ohm1)=> wp1; case/cycleP => t t_def.
   move: wp1; rewrite t_def -expgn_mul; move/eqP; rewrite -order_dvdn.
   rewrite ordx -{1}[e]prednK // expnSr dvdn_pmul2r ?prime_gt0 //.
   by case/dvdnP => s ->; rewrite -mulnC expgn_mul groupX // cycle_id.
@@ -635,7 +632,7 @@ Let Z := 'Ohm_1('Z_2(R)).
 
 Lemma four_dot_five_c : ~ cyclic Z /\ exponent Z %| p.
 Proof. 
-case: (four_dot_five_a) => S [nSR]; rewrite pnElemE // !inE p_abelemE //.
+case: (four_dot_five_a) => S [nSR]; rewrite pnElemE // !inE abelemE //.
 case/andP; case/and3P=> sSR abelS expS cardS.
 have nilpotentR := (pgroup_nil pgroupR).
 set SR := [~: S, R]; set SRR := [~: S, R, R].
@@ -677,12 +674,12 @@ have pgroupZ : p.-group Z.
 have sSZ : S \subset Z.
   rewrite /Z (OhmE 1 pgroup_Z2R) (subset_trans _ (subset_gen _)) //.
   apply/subsetP=> s Ss; rewrite inE (subsetP sS_Z2R) //= expn1.
-  by rewrite (exponentP _ _ expS).
+  by rewrite (exponentP expS).
 have ncycX : ~ cyclic S.
   case/cyclicP=> x Seq.
   have ordx : #[x] = (p^2)%N by rewrite /order -Seq (eqP cardS).
   have Sx : x \in S by rewrite Seq cycle_id.
-  move: (exponentP _ _ expS x Sx); move/eqP; rewrite -order_dvdn ordx. 
+  move: (exponentP expS x Sx); move/eqP; rewrite -order_dvdn ordx. 
   by rewrite pfactor_dvdn ?prime_gt0 // -{2}(expn1 p) pfactorK.
 split; first by move=> cycZ; apply: ncycX; apply: (cyclicS sSZ).
 (* should this be proved for arbitrary n? *)
@@ -715,7 +712,7 @@ have lognpZ : 2 <= logn p #|Z| by rewrite cardZ pfactorK.
 case: (normal_pgroup pgroupR nZR lognpZ) => H [sHZ nHR cardH].
 exists H; split; first done.
 rewrite pnElemE // inE cardH eqxx andbT inE (normal_sub nHR) /=.
-rewrite p_abelemE // (order_prime_squared_abelian primep) //=.
+rewrite abelemE // (order_prime_squared_abelian primep) //=.
 by apply: (dvdn_trans _ expZ); apply: exponentS.
 Qed.
 
@@ -794,7 +791,6 @@ have nZG : Z <| G by apply: (char_normal_trans (Ohm_char 1 _) nAG).
 have sGNZ := (normal_norm nZG).
 have sANZ := (subset_trans (normal_sub nAG) sGNZ).
 have sACA : A \subset 'C(A) by rewrite -abelianE; apply: (SCN_abelian SCN_A).
-
 have sCGZ_G := (subsetIl G ('C(Z))); have pgroupCGZ := (pgroupS sCGZ_G pgroupG).
 rewrite (OhmE 1 pgroupCGZ) gen_subG expn1; apply/subsetP=> x; rewrite 2!inE /=.
 case/andP; case/andP=> Gx CZx xpeq1.
@@ -853,7 +849,7 @@ have sOY_XA : 'Ohm_1(Y) \subset <[x]> * Z.
   rewrite groupMl; last first.
     rewrite groupX //= (OhmE _ pgroupY) mem_gen // inE expn1 xpeq1 andbT.
     by apply: (subsetP (mulgen_subl _ _)); apply: cycle_id.
-  pose expOY := (exponentP _ _ (exponent_Ohm1_class2 oddp pgroupY nil_classY)).
+  pose expOY := (exponentP (exponent_Ohm1_class2 oddp pgroupY nil_classY)).
   move/(expOY _)=> apeq; apply: mem_imset2; first exact: mem_cycle.
   by rewrite [Z](OhmE 1 pgroupA) mem_gen // inE Aa expn1 apeq eq_refl.
 have sNXAY_NXAOY : 'N_XA(Y) \subset 'N_XA('Ohm_1(Y)).

@@ -509,6 +509,12 @@ move/implyP: (no_p_mn p); rewrite /= !mem_primes m_gt0 n_gt0 pr_p /=.
 by rewrite !(dvdn_trans (dvdn_pdiv _)) // (dvdn_gcdl, dvdn_gcdr).
 Qed.
 
+Lemma pdiv_id : forall p, prime p -> pdiv p = p.
+Proof. by move=> p p_pr; rewrite /pdiv primes_prime. Qed.
+
+Lemma pdiv_pfactor : forall p k, prime p -> pdiv (p ^ k.+1) = p.
+Proof. by move=> p k p_pr; rewrite /pdiv primes_exp ?primes_prime. Qed.
+
 (* "prime" logarithms and p-parts. *)
 
 Fixpoint logn_rec (d m r : nat) {struct r} : nat :=
@@ -629,6 +635,13 @@ case: (posnP m) => [->|m_gt0]; first by rewrite exp0n // lognE andbF muln0.
 by rewrite expnS logn_mul ?IHn // expn_gt0 m_gt0.
 Qed.
 
+Lemma logn_div : forall p m n, m %| n -> logn p (n %/ m) = logn p n - logn p m.
+Proof.
+move=> p m n; rewrite dvdn_eq; move/eqP=> def_n.
+case: (posnP n) => [-> |]; first by rewrite div0n logn0.
+by rewrite -{1 3}def_n muln_gt0; case/andP=> *; rewrite logn_mul ?addnK.
+Qed.
+
 Lemma dvdn_pfactor : forall p d n, prime p ->
   reflect (exists2 m, m <= n & d = p ^ m) (d %| p ^ n).
 Proof.
@@ -701,6 +714,12 @@ Proof. move=> pi p; exact: negbK. Qed.
 
 Lemma eq_negn : forall pi1 pi2, pi1 =i pi2 -> pi1^' =i pi2^'.
 Proof. by move=> pi1 pi2 eq_pi n; rewrite 3!inE /= eq_pi.
+Qed.
+
+Lemma eq_piP : forall m n, \pi(m) =i \pi(n) <-> \pi(m) = \pi(n).
+Proof.
+rewrite /pi_of => m n; have eqs := eq_sorted_irr ltn_trans ltnn.
+by split=> [|-> //]; move/(eqs _ _ (sorted_primes m) (sorted_primes n)) ->.
 Qed.
 
 Lemma part_gt0 : forall pi n, 0 < n`_pi.
@@ -823,6 +842,63 @@ Qed.
 
 Lemma dvdn_part : forall pi n, n`_pi %| n.
 Proof. by move=> pi [|n] //; rewrite -{2}[n.+1](@partnC pi) // dvdn_mulr. Qed.
+
+Lemma logn_part : forall p m, logn p m`_p = logn p m.
+Proof.
+move=> p m; case p_pr: (prime p); first by rewrite p_part pfactorK.
+by rewrite lognE (lognE p m) p_pr.
+Qed.
+    
+Lemma partn_lcm : forall pi m n,
+  m > 0 -> n > 0 -> (lcmn m n)`_pi = lcmn m`_pi n`_pi.
+Proof.
+move=> pi m n m_gt0 n_gt0; have p_gt0: lcmn m n > 0 by rewrite lcmn_gt0 m_gt0.
+apply/eqP; rewrite eqn_dvd dvdn_lcm !partn_dvd ?dvdn_lcml ?dvdn_lcmr //.
+rewrite -(dvdn_pmul2r (part_gt0 pi^' (lcmn m n))) partnC // dvdn_lcm !andbT.
+rewrite -{1}(partnC pi m_gt0) andbC -{1}(partnC pi n_gt0).
+by rewrite !dvdn_mul ?partn_dvd ?dvdn_lcml ?dvdn_lcmr.
+Qed. 
+
+Lemma partn_gcd : forall pi m n,
+  m > 0 -> n > 0 -> (gcdn m n)`_pi = gcdn m`_pi n`_pi.
+Proof.
+move=> pi m n m_gt0 n_gt0; have p_gt0: gcdn m n > 0 by rewrite gcdn_gt0 m_gt0.
+apply/eqP; rewrite eqn_dvd dvdn_gcd !partn_dvd ?dvdn_gcdl ?dvdn_gcdr //=.
+rewrite -(dvdn_pmul2r (part_gt0 pi^' (gcdn m n))) partnC // dvdn_gcd.
+rewrite -{3}(partnC pi m_gt0) andbC -{3}(partnC pi n_gt0).
+by rewrite !dvdn_mul ?partn_dvd ?dvdn_gcdl ?dvdn_gcdr.
+Qed. 
+
+Lemma partn_biglcm : forall (I : finType) (P : pred I) F pi,
+    (forall i, P i -> F i > 0) ->
+  (\big[lcmn/1%N]_(i | P i) F i)`_pi = \big[lcmn/1%N]_(i | P i) (F i)`_pi.
+Proof.
+move=> I P F pi F_gt0; set m := \big[lcmn/1%N]_(i | P i) F i.
+have m_gt0: 0 < m by apply big_prop => // p q p_gt0; rewrite lcmn_gt0 p_gt0.
+apply/eqP; rewrite eqn_dvd andbC; apply/andP; split.
+  by apply/dvdn_biglcmP=> i Pi; rewrite partn_dvd // (@biglcmn_sup _ i).
+rewrite -(dvdn_pmul2r (part_gt0 pi^' m)) partnC //.
+apply/dvdn_biglcmP=> i Pi; rewrite -(partnC pi (F_gt0 i Pi)) dvdn_mul //.
+  by rewrite (@biglcmn_sup _ i).
+by rewrite partn_dvd // (@biglcmn_sup _ i).
+Qed.
+
+Lemma partn_biggcd : forall (I : finType) (P : pred I) F pi,
+    #|SimplPred P| > 0 -> (forall i, P i -> F i > 0) ->
+  (\big[gcdn/0]_(i | P i) F i)`_pi = \big[gcdn/0]_(i | P i) (F i)`_pi.
+Proof.
+move=> I P F pi ntP F_gt0; set d := \big[gcdn/0]_(i | P i) F i.
+have d_gt0: 0 < d.
+  case/card_gt0P: ntP => i /= Pi; have:= F_gt0 i Pi.
+  rewrite !lt0n -!dvd0n; apply: contra => dv0d.
+  by rewrite (dvdn_trans dv0d) // (@biggcdn_inf _ i).
+apply/eqP; rewrite eqn_dvd; apply/andP; split.
+  by apply/dvdn_biggcdP=> i Pi; rewrite partn_dvd ?F_gt0 // (@biggcdn_inf _ i).
+rewrite -(dvdn_pmul2r (part_gt0 pi^' d)) partnC //.
+apply/dvdn_biggcdP=> i Pi; rewrite -(partnC pi (F_gt0 i Pi)) dvdn_mul //.
+  by rewrite (@biggcdn_inf _ i).
+by rewrite partn_dvd ?F_gt0 // (@biggcdn_inf _ i).
+Qed.
 
 Section PiNat.
 

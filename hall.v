@@ -2,7 +2,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import choice fintype finfun bigops ssralg finset prime.
 Require Import groups morphisms perm finalg automorphism normal action gprod.
 Require Import cyclic commutators center pgroups.
-Require Import finmod sylow nilpotent maximal.
+Require Import finmod sylow nilpotent abelian maximal.
 
 (*****************************************************************************)
 (*  In this files we prove the Schur-Zassenhaus splitting and transitivity   *)
@@ -113,7 +113,7 @@ have sHG: H \subset G by exact: mulgen_subl.
 have sKG: K \subset G by exact: mulgen_subr.
 have nHG: H <| G by rewrite /(H <| G) sHG mulgen_subG normG.
 case/(solvable_norm_abelem solH nHG)=> M [sMH nMG ntM].
-case/andP=> abelM _; rewrite -defG => sK1G coHK oK1K.
+case/and3P=> _ abelM _; rewrite -defG => sK1G coHK oK1K.
 have nMsG: forall L : {set gT}, L \subset G -> L \subset 'N(M).
   by move=> L sLG; exact: subset_trans (normal_norm nMG).
 have [coKM coHMK]: coprime #|M| #|K| /\ coprime #|H / M| #|K|.
@@ -158,7 +158,7 @@ rewrite ltnS => leAn solA nGA sB_AG coGA oAB.
 case: (eqsVneq A 1) => [A1 | ntA].
   by exists 1; rewrite // conjsg1 A1 (@card1_trivg _ B) // -oAB A1 cards1.
 have [M [sMA nsMA ntM]] := solvable_norm_abelem solA (normal_refl A) ntA.
-case/abelemP=> q q_pr; move/abelem_pgroup=> qM; have nMA := normal_norm nsMA.
+case/is_abelemP=> q q_pr; move/abelem_pgroup=> qM; have nMA := normal_norm nsMA.
 have defAG: AG = A * G := norm_mulgenEl nGA.
 have sA_AG: A \subset AG := mulgen_subl _ _.
 have sG_AG: G \subset AG := mulgen_subr _ _.
@@ -227,7 +227,7 @@ case: (eqsVneq G 1) => [G1 | ntG].
     by rewrite pHallE sub1G cards1 part_p'nat.
   by exists 1; rewrite ?set11 ?sub1G.
 case: (solvable_norm_abelem solG (normal_refl _)) => // M [sMG nsMG ntM].
-case/abelemP=> p pr_p; do 2![case/andP]=> abelM _ pM.
+case/is_abelemP=> p pr_p; case/and3P=> pM cMM _.
 pose Gb := (G / M)%G; case: (IHn _ Gb) => [||Hb]; try exact: quotient_sol.
   by rewrite (leq_trans (ltn_quotient _ _)).
 case/and3P=> [sHbGb piHb pi'Hb'] transHb.
@@ -475,11 +475,7 @@ Qed.
 (* A complement to the above: 'C(A) acts on 'Nby(A) *)
 Lemma norm_conj_cent : forall A G x, x \in 'C(A) ->
   (A \subset 'N(G :^ x)) = (A \subset 'N(G)).
-Proof.
-move=> A G x; move/centP=> cAx; apply/normsP/normsP=> nGA y Ay.
-  by rewrite -[G :^ y](conjsgK x) -(conjsgM _ y) -cAx // conjsgM nGA ?conjsgK.
-by rewrite -conjsgM cAx // conjsgM nGA.
-Qed.
+Proof. by move=> A G x cAx; rewrite norm_conj_norm ?(subsetP (cent_sub A)). Qed.
 
 (* Strongest version of the centraliser lemma -- not found in textbooks!  *)
 (* Obviously, the solvability condition could be removed once we have the *)
@@ -610,7 +606,7 @@ case: (solvable_norm_abelem solG nsG_AG) => // M [sMG nsMAG ntM].
 have{nsMAG} [nMA nMG]: A \subset 'N(M) /\ G \subset 'N(M).
   by apply/andP; rewrite -mulgen_subG normal_norm.
 have nMX: X \subset 'N(M) by exact: subset_trans nMG.
-case/abelemP=> p pr_p; do 2![case/andP]=> abelM _ pM.
+case/is_abelemP=> p pr_p; case/and3P=> pM cMM _.
 have: #|G / M| < n by rewrite (leq_trans (ltn_quotient _ _)).
 move/(IHn _ (A / M)%G _ (X / M)%G); rewrite !(quotient_norms, quotientS) //.
 rewrite !(coprime_morph, quotient_sol, morphim_pgroup) //.

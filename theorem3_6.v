@@ -1,8 +1,8 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import prime fintype finfun bigops ssralg finset.
 Require Import groups morphisms perm automorphism normal commutators.
-Require Import action zmodp cyclic center gprod pgroups maximal sylow hall.
-Require Import nilpotent mxrepresentation BGsection1 BGsection2.
+Require Import action zmodp cyclic center gprod pgroups nilpotent sylow.
+Require Import abelian maximal hall mxrepresentation BGsection1 BGsection2.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -150,7 +150,7 @@ wlog abV: / p.-abelem V.
   move: nWH; rewrite -commg_subr; apply: subset_trans.
   by rewrite commgSS // cycle_subG //.
 have{sCV_V} eqVC: V :=: 'C_H(V).
-  by apply/eqP; rewrite eqEsubset sCV_V subsetI andbT sVH; case/p_abelemP: abV.
+  by apply/eqP; rewrite eqEsubset sCV_V subsetI andbT sVH; case/abelemP: abV.
 wlog{IHquo} nondecV:  / forall N1 N2,
       N1 \x N2 = V -> G \subset 'N(N1) :&: 'N(N2) -> N1 = 1 \/ N1 = V.
   pose decV := [pred N | [&& N.1 \x N.2 == V, G \subset 'N(N.1) :&: 'N(N.2),
@@ -239,7 +239,7 @@ case: (eqVneq [~: K, P] 1) => [trKP|ntKP].
   rewrite (subset_normal_Hall _ sylV); last exact/andP.
   by rewrite /psubgroup ?sPU (pHall_pgroup sylP).
 have{sylVP} dp: [~: V, K] \x 'C_V(K) :=: V.
-  apply: coprime_abelian_cent_dprod; last by case/p_abelemP: abV.
+  apply: coprime_abelian_cent_dprod; last by case/abelemP: abV.
     exact: subset_trans sKU nVU.
   exact: pnat_coprime pV p'K.
 have trVeq: 'C_V(K) = 1 \/ 'C_V(K) = V.
@@ -369,7 +369,7 @@ have oCVR0: #|'C_V(R0)| = p.
   have: #[x] %| p.
     rewrite order_dvdn; apply/eqP.
     have:= cycle_id x; rewrite -defC setIC; case/setIP=> _.
-    by case/p_abelemP: abV => // _; exact.
+    by case/abelemP: abV => // _; exact.
   case/primeP: pr_p => _ pr_p; move/pr_p; case/orP; move/eqnP=> // ox1.
   by rewrite trivg_card1 /= defC [#|_|]ox1 in ntCVR0.
 have trCP_R0: 'C_P(R0) = 1.
@@ -579,7 +579,7 @@ have iK'K: 'C_(P <*> R / K')(K / K') = 1 -> #|K / K'| > q ^ 2.
     case: k lek2 oK => [|[|[|//]]] _ oK.
     - by rewrite (card1_trivg oK) cyclic1 in cycK.
     - by rewrite prime_cyclic ?oK in cycK.
-    split=> //; apply/p_abelemP=> //=; split=> [|K'x KK'x].
+    split=> //; apply/abelemP=> //=; split=> [|K'x KK'x].
       suff ->: K / K' = 'Z(K / _) by exact: abelian_center.
       have:= center_sub (K / K'); move/cardSg; rewrite oK.
       case/dvdn_pfactor=> [//|[|[|[|//]]] _ oZ].
@@ -770,7 +770,7 @@ case abelK: (abelian K); last first.
 have trCK_P: 'C_K(P) = 1.
   by rewrite defKP coprime_abel_cent_TI // coprime_sym (pnat_coprime pP).
 have abelemK: q.-abelem K.
-  rewrite /p_abelem qK andbC; apply/abelem_Ohm1P; rewrite ?(pgroup_p qK) //.
+  apply/abelem_Ohm1P => //.
   case/IHK: (Ohm_sub 1 K) => // [|cPK1].
     by apply: char_norm_trans (Ohm_char 1 K) _; rewrite mulgen_subG nKP.
   case/Cauchy: qKdv => // x Kx oxq.
@@ -796,9 +796,9 @@ have gen_mxK: << \bigcup_(Ki \in mxK) Vi Ki >> = V.
   case: (eqsVneq (Vi Kj) 1) => [/= -> | ntVKj]; first by rewrite sub1G.
   rewrite sub_gen // (bigD1 Kj) ?subsetUl //= inE p_index_maximal //.
   have abelKj: q.-abelem (K / Kj).
-    apply/p_abelemP; rewrite ?quotient_abelian //; split=> // Kjx.
+    apply/abelemP; rewrite ?quotient_abelian //; split=> // Kjx.
     case/morphimP=> x NKjx Kx ->; rewrite -morphX //.
-    by case/p_abelemP: abelemK => // _; move/(_ x Kx)->; rewrite morph1.
+    by case/abelemP: abelemK => // _; move/(_ x Kx)->; rewrite morph1.
   rewrite -card_quotient //; case/cyclicP: cycKj => Kjx /= defKj.
   case: (eqVneq Kjx 1) => [Kjx1 | ntKjx].
     case/eqP: ntVKj; rewrite /= (index1g sKjK) // -card_quotient // defKj.
@@ -825,7 +825,7 @@ have dprod_V : \big[dprod/1]_(Ki \in mxK) Vi Ki = V.
       by rewrite !inE andbC; case: eqP => // ->; rewrite (negPf nsKj).
     have cWM: Vi Kj \subset 'C(W).
       rewrite subIset // centsC; apply/orP; left.
-      case/andP: abV; case/andP=> abV _ _; apply: subset_trans abV.
+      case/and3P: abV => _ abV _; apply: subset_trans abV.
       move/bigdprodEgen: defW => <-; rewrite gen_subG.
       apply/bigcupsP=> M1 _; exact: subsetIl.
     rewrite defW dprodE //; first by rewrite -cent_mulgenEl ?groupP.
@@ -928,7 +928,7 @@ have transPR: [transitive P <*> R, on Vi @: mxK | 'JG].
         by have:= congr1 val (ViJ _ Ki PRx2) => /= ->.
       case/andP: mxKi => mxKi _; rewrite mul_subG ?nViK //.
       rewrite cents_norm // centsC subIset //; apply/orP; left.
-      by case/andP: abV; case/andP.
+      by case/and3P: abV.
     rewrite (nN2 _ _ _ defN1) // (nN2 _ _ _ defN2) ?subxx // => y Ki PRy.
     by congr (~~ _); exact: idS.
   - move/trivgP; rewrite -(bigdprodEgen defN1) gen_subG.
@@ -993,7 +993,7 @@ have nRfix_CR: forall Ki, Ki \in mxK -> ~~ (R \subset 'N(Vi Ki)) ->
   have Vf: forall m y, y \in V -> f m y \in V.
     rewrite /f => m y Vy.
     apply big_prop => [||i _]; [exact: group1 | exact: groupM | exact: nVx].
-  case/andP: abV; case/andP; move/centsP=> abV _ _.
+  case/and3P: abV=> _; move/centsP=> abV _.
   have fM: {in Vi Ki &, {morph f r: y z / y * z}}.
     rewrite /f => y z; case/setIP=> Vy _; case/setIP=> Vz _ /=.
     elim: (r) => [|m IHm]; first by rewrite !big_geq ?mulg1.
@@ -1081,7 +1081,7 @@ have nVjR: forall Kj, Kj \in mxK ->
       rewrite pHallE subxx part_pnat ?eqxx //.
       apply: pgroupS qK; exact: subsetIl.
     case/cyclicP=> z defC; rewrite defC dvdn_leq ?prime_gt0 // order_dvdn.
-    case/p_abelemP: abelemK => // _ -> //.
+    case/abelemP: abelemK => // _ -> //.
     by rewrite -cycle_subG -defC subsetIl.
   case/nRfix_CR=> // _ sCVj; case/nRfix_CR: nK1R => // _ sCV1.
   suff trCVR: 'C_V(R) = 1 by rewrite -oCVR trCVR cards1 in pr_p.
@@ -1110,7 +1110,7 @@ rewrite subEproper; case/predU1P=> [defV1R | ]; last first.
   have ViV1: Vi K1 \in Vi @: mxK by rewrite mem_imset.
   rewrite odd_2'nat in oddG; have: 2^'.-group (P <*> R).
     by apply: pgroupS oddG; rewrite mulgen_subG sRG (subset_trans sPH).
-  move/(pnat_dvd (atrans_dvd ViV1 transPR)).
+  move/(pnat_dvd (atrans_dvd transPR)).
   rewrite defmxV cardsU1 (negPf V1Rj) oV1R -oR.
   rewrite -odd_2'nat /= odd_2'nat; case/negP; exact: pgroupS oddG.
 have:= sub0set 'Fix_(Vi @: mxK | 'JG)(P); rewrite subEproper.

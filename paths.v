@@ -91,6 +91,10 @@ Proof.
 by move=> x p1 p2; elim: p1 x => [|y p1 Hrec] x //=; rewrite Hrec -!andbA.
 Qed.
 
+Lemma path_rcons : forall x p y,
+  path x (rcons p y) = path x p && e (last x p) y.
+Proof. by move=> x p y; rewrite -cats1 path_cat /= andbT. Qed.
+
 Lemma pathP : forall x p x0,
   reflect (forall i, i < size p -> e (nth x0 (x :: p) i) (nth x0 p i))
           (path x p).
@@ -105,7 +109,7 @@ Qed.
 Definition cycle p := if p is x :: p' then path x (rcons p' x) else true.
 
 Lemma cycle_path : forall p, cycle p = path (last x0_cycle p) p.
-Proof. by move=> [|x p] //=; rewrite -cats1 path_cat /= andbT andbC. Qed.
+Proof. by move=> [|x p] //=; rewrite path_rcons andbC. Qed.
 
 Lemma cycle_rot : forall p, cycle (rot n0 p) = cycle p.
 Proof.
@@ -130,6 +134,14 @@ Lemma sub_path : forall e e', subrel e e' ->
 Proof.
 move=> e e' He x p; elim: p x => [|y p Hrec] x //=.
 by move/andP=> [Hx Hp]; rewrite (He _ _ Hx) (Hrec _ Hp).
+Qed.
+
+Lemma path_rev : forall e x p,
+  path e (last x p) (rev (belast x p)) = path (fun z y => e y z) x p.
+Proof.
+move=> e x p; elim: p x => //= y p IHp x.
+rewrite rev_cons path_rcons -IHp andbC.
+by rewrite -(last_cons x) -rev_rcons -lastI rev_cons last_rcons.
 Qed.
 
 End Paths.
@@ -549,6 +561,10 @@ by rewrite perm_sort (perm_eqlP eq12) -perm_sort.
 Qed.
 
 End SortSeq.
+
+Lemma sorted_rev : forall (T : eqType) (leT : rel T) s,
+  sorted leT (rev s) = sorted (fun y x => leT x y) s.
+Proof. by move=> T leT [|x p] //=; rewrite -path_rev lastI rev_rcons. Qed.
 
 Lemma sorted_ltn_uniq_leq : forall s, sorted ltn s = uniq s && sorted leq s.
 Proof.

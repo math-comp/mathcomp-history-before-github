@@ -335,6 +335,20 @@ rewrite (sameP commG1P trivgP) -trO subsetI commg_subl commg_subr.
 by rewrite !(subset_trans (pcore_sub _ _)) ?normal_norm ?pcore_normal.
 Qed.
 
+Lemma pi_center_nilpotent : forall G, nilpotent G -> \pi(#|'Z(G)|) = \pi(#|G|).
+Proof.
+move=> G nilG; apply/eq_piP => p.
+apply/idP/idP=> [|pG]; first exact: (piSg (center_sub _)).
+move: (pG); rewrite !mem_primes !cardG_gt0; case/andP=> p_pr _.
+pose Z := 'O_p(G) :&: 'Z(G); have ntZ: Z != 1.
+  rewrite nil_meet_Z ?pcore_normal // trivg_card_le1 -ltnNge.
+  rewrite (card_Hall (nilpotent_pcore_Hall p nilG)) p_part.
+  by rewrite (ltn_exp2l 0 _ (prime_gt1 p_pr)) logn_gt0.
+have pZ: p.-group Z := pgroupS (subsetIl _ _) (pcore_pgroup _ _).
+have{ntZ pZ} [_ pZ _] := pgroup_pdiv pZ ntZ.
+by rewrite p_pr (dvdn_trans pZ) // cardSg ?subsetIr.
+Qed.
+
 End Nilpotent.
 
 Definition Zgroup (gT : finGroupType) (A : {set gT}) :=
@@ -407,7 +421,6 @@ by rewrite quotientR ?lcn_norm0 ?(der_normal _ 0).
 Qed.
 
 (* B & G 1.22 p.9 *)
-
 Lemma normal_pgroup : forall r P N,
   p.-group P -> N <| P -> r <= logn p #|N| ->
   exists Q : {group gT}, [/\ Q \subset N, Q <| P & #|Q| = (p ^ r)%N].

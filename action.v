@@ -750,11 +750,8 @@ apply/subsetP=> y Sy; have:= card0_eq AtrS (orbit to A y).
 rewrite !inE /= mem_imset // andbT; move/eqP <-; exact: orbit_refl.
 Qed.
 
-Lemma atrans_dvd : forall A S x,
-  x \in S -> [transitive A, on S | to] -> #|S| %| #|A|.
-Proof.
-by move=> A S x Sx; move/atransP=> AtrS; rewrite -(AtrS x Sx) dvdn_orbit.
-Qed.
+Lemma atrans_dvd : forall A S, [transitive A, on S | to] -> #|S| %| #|A|.
+Proof. by move=> A S; case/imsetP=> x _ ->; exact: dvdn_orbit. Qed.
 
 (* Aschbacher 5.2 *)
 Lemma acts_fix_norm : forall A B,

@@ -150,6 +150,14 @@ Qed.
 Lemma commg_subl : forall G H, ([~: G, H] \subset G) = (H \subset 'N(G)).
 Proof. by move=> G H; rewrite commGC commg_subr. Qed.
 
+Lemma commg_subI : forall G H K L : {group gT},
+  G \subset 'N_K(L) -> H \subset 'N_L(K) -> [~: G, H] \subset K :&: L.
+Proof.
+move=> G H K L; rewrite !subsetI -commg_subr -commg_subl.
+case/andP=> sGK sRL; case/andP=> sHL sRK.
+by rewrite (subset_trans _ sRK) ?commSg // (subset_trans _ sRL) ?commgS.
+Qed.
+
 Lemma quotient_cents2 : forall A B K,
     A \subset 'N(K) -> B \subset 'N(K) ->
   (A / K \subset 'C(B / K)) = ([~: A, B] \subset K).

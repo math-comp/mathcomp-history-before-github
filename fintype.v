@@ -21,6 +21,15 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice.
 (*   - pick, returning the first filtered element; we also give Notations *)
 (*   to supply the pred coercion as in [pick x | P]                       *)
 (*   - boolean quantifiers for finType: forallb x, F  and existsb x, F    *)
+(*  [arg min_(i < i0 | P i) F i] == a value of i minimizing F i : nat     *)
+(*     subject to the condition P i, and provided P i0 holds (here i must *)
+(*     range over a finType).                                             *)
+(*  [arg max_(i > i0 | P i) F i] == a value of i maximizing F i subject   *)
+(*     to the condition P i, and provided P i0 holds.                     *)
+(*  [arg min_(i < i0 \in A) F i] == an i \in A minimizing F i if i0 \in A *)
+(*  [arg max_(i > i0 | P i) F i] == an i \in A maximizing F i if i0 \in A *)
+(*  [arg min_(i < i0) F i] == an i minimizing F i in the finType of i0.   *)
+(*  [arg max_(i > i0) F i] == an i maximizing F i in the finType of i0.   *)
 (* We also define operations card, disjoint, subset and proper expecting  *)
 (* a mem_pred and  used through notations that supply the mem coercion.   *)
 (* We provide a serie of lemmas for all these operations on finType       *)
@@ -36,7 +45,7 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice.
 (*   -  lift/unlift operations; to avoid a messy dependent type,          *)
 (*      unlift is a partial operation (returns an option).                *)
 (*   -  shifting and splitting indices, for cutting and pasting arrays    *)
-(*   -  fijection with finite types: enum_rank and enum_ord.              *)
+(*   -  bijection with finite types: enum_rank and enum_ord.              *)
 (**************************************************************************)
 
 Set Implicit Arguments.
@@ -356,6 +365,9 @@ move=> P; case: (pickP P) => [x Px | P0].
 by rewrite -lt0n eq_card0 //; right=> [[x]]; rewrite P0.
 Qed.
 
+Lemma card_gt0P : forall A, reflect (exists i, i \in A) (#|A| > 0).
+Proof. move=> A; rewrite lt0n; exact: pred0Pn. Qed.
+
 Lemma subsetE : forall A B, (A \subset B) = pred0b [predD A & B].
 Proof. by rewrite unlock. Qed.
 
@@ -643,6 +655,79 @@ End Quantifiers.
 Implicit Arguments forallP [T P].
 Implicit Arguments existsP [T P].
 Prenex Implicits forallP existsP.
+
+Section Extrema.
+
+Variables (I : finType) (i0 : I) (P : pred I) (F : I -> nat).
+
+Let arg_pred ord := [pred i | P i && (forallb j, P j ==> ord (F i) (F j))].
+
+Definition arg_min := odflt i0 (pick (arg_pred leq)).
+
+Definition arg_max := odflt i0 (pick (arg_pred geq)).
+
+CoInductive extremum_spec (ord : rel nat) : I -> Type :=
+  ExtremumSpec i of P i & (forall j, P j -> ord (F i) (F j))
+    : extremum_spec ord i.
+
+Hypothesis Pi0 : P i0.
+
+Let FP n := existsb i, P i && (F i == n).
+Let FP_F : forall i, P i -> FP (F i).
+Proof. by move=> i Pi; apply/existsP; exists i; rewrite Pi /=. Qed.
+Let exFP : exists n, FP n. Proof. by exists (F i0); exact: FP_F. Qed.
+
+Lemma arg_minP : extremum_spec leq arg_min.
+Proof.
+rewrite /arg_min; case: pickP => [i | no_i].
+  by case/andP=> Pi; move/forallP=> min_i; split=> // j; exact/implyP.
+case/ex_minnP: exFP => n ex_i min_i; case/pred0P: ex_i => i.
+apply/andP=> [[Pi def_n]]; case/idP: (no_i i); rewrite /= Pi.
+by apply/forallP=> j; apply/implyP=> Pj; rewrite (eqP def_n) min_i ?FP_F.
+Qed.
+
+Lemma arg_maxP : extremum_spec geq arg_max.
+Proof.
+rewrite /arg_max; case: pickP => [i | no_i].
+  by case/andP=> Pi; move/forallP=> max_i; split=> // j; exact/implyP.
+have: forall n, FP n -> n <= foldr maxn 0 (map F (enum P)).
+  move=> n; case/existsP=> i; rewrite -[P i]mem_enum andbC; case/andP.
+  move/eqP <-; elim: (enum P) => //= j e IHe; rewrite leq_maxr orbC !inE.
+  by case/predU1P=> [-> | ]; [rewrite leqnn orbT | move/IHe->].
+case/ex_maxnP=> // n ex_i max_i; case/pred0P: ex_i => i.
+apply/andP=> [[Pi def_n]]; case/idP: (no_i i); rewrite /= Pi.
+by apply/forallP=> j; apply/implyP=> Pj; rewrite (eqP def_n) max_i ?FP_F.
+Qed.
+
+End Extrema.
+
+Notation "[ 'arg' 'min_' ( i < i0 | P ) F ]" :=
+    (arg_min i0 (fun i => P) (fun i => F))
+  (at level 0, i, i0 at level 10,
+   format "[ 'arg'  'min_' ( i  <  i0  |  P )  F ]") : form_scope.
+ 
+Notation "[ 'arg' 'min_' ( i < i0 \in A ) F ]" :=
+    [arg min_(i < i0 | i \in A) F]
+  (at level 0, i, i0 at level 10,
+   format "[ 'arg'  'min_' ( i  <  i0  \in  A )  F ]") : form_scope.
+
+Notation "[ 'arg' 'min_' ( i < i0 ) F ]" := [arg min_(i < i0 | true) F]
+  (at level 0, i, i0 at level 10,
+   format "[ 'arg'  'min_' ( i  <  i0 )  F ]") : form_scope.
+ 
+Notation "[ 'arg' 'max_' ( i > i0 | P ) F ]" :=
+     (arg_max i0 (fun i => P) (fun i => F))
+  (at level 0, i, i0 at level 10,
+   format "[ 'arg'  'max_' ( i  >  i0  |  P )  F ]") : form_scope.
+ 
+Notation "[ 'arg' 'max_' ( i > i0 \in A ) F ]" :=
+    [arg max_(i > i0 | i \in A) F]
+  (at level 0, i, i0 at level 10,
+   format "[ 'arg'  'max_' ( i  >  i0  \in  A )  F ]") : form_scope.
+
+Notation "[ 'arg' 'max_' ( i > i0 ) F ]" := [arg max_(i > i0 | true) F]
+  (at level 0, i, i0 at level 10,
+   format "[ 'arg'  'max_' ( i  >  i0 ) F ]") : form_scope.
 
 (**********************************************************************)
 (*                                                                    *)
