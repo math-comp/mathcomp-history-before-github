@@ -99,7 +99,7 @@ Definition Puig_rec D := iter n (Puig_succ D) 1.
 
 End Definitions.
 
-(* This must be defined ouside a Section to avoid spurrious delta-reduction *)
+(* This must be defined outside a Section to avoid spurrious delta-reduction *)
 Definition Puig_at := nosimpl Puig_rec.
 
 Definition Puig_inf (gT : finGroupType) (G : {set gT}) := Puig_at #|G|.*2 G.
