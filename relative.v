@@ -1,8 +1,7 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat div seq.
 Require Import choice fintype finfun tuple.
 Require Import bigops ssralg.
-
-Require Import quotient.
+Require Import quotient zmodp.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -217,10 +216,8 @@ Canonical Structure z_iDomain := Eval hnf in IdomainType relative idomain_axiomz
 
 Variable p: nat.
 
-Require Import zmodp.
-
 Lemma zprojp_compat : \compat1_relative _
-  (fun x => Ordinal (ltn_pmod (x.1 + (p.-2.+2- x.2%%p.-2.+2)) (is_true_true:0<p.-2.+2))).
+  (fun x => (inZp (x.1 + (p.-2.+2- x.2%%p.-2.+2))): 'Z_p).
 Proof.
 apply:compat1E=> x x'; rewrite !equivzP /equivz; move/eqP=>Px.
 apply/val_eqP.
