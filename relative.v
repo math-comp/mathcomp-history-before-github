@@ -8,10 +8,12 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
+Definition csquare (A: Type) := (A * A)%type.
+
 
 Module Relatives.
 
-Definition axiom (z : {csquare nat}) := (z.1 == 0) || (z.2 == 0).
+Definition axiom (z : csquare nat) := (z.1 == 0) || (z.2 == 0).
 Definition relative := { z | axiom z}.
 Definition Relative z (pz : axiom z) : relative := @exist _ axiom _ pz.
 
@@ -21,7 +23,7 @@ move=> x y. case : (leqP x y); first by rewrite /leq=> ->.
 by move/ltnW; rewrite /leq=> ->; rewrite orbT.
 Qed.
 
-Definition canon (x : {csquare nat}) :=
+Definition canon (x : csquare nat) :=
   @Relative ((x.1-x.2),(x.2-x.1)) (one_diff_eq0 _ _).
 
 Lemma canon_valK : forall x, canon (val x)  = x.
@@ -53,7 +55,7 @@ Qed.
 
 Notation SubRel := (@Sub _ _ [subType of relative]).
 
-Definition equivz (x y : {csquare nat}) := x.1 + y.2 == y.1 + x.2.
+Definition equivz (x y : csquare nat) := x.1 + y.2 == y.1 + x.2.
 Lemma equivzP : forall x y, x == y mod relative = equivz x y.
 Proof.
 move=> x y. rewrite /equivz /= /canon -(inj_eq val_inj) /=.
@@ -133,7 +135,7 @@ Qed.
 
 
 Definition z_zmodMixin :=  ZmodMixin addzA addzC add0z addzN.
-Canonical Structure z_zmodType := Eval hnf in ZmodType z_zmodMixin.
+Canonical Structure z_zmodType := Eval hnf in ZmodType relative z_zmodMixin.
 
 
 Lemma mulzA : associative mulz.
@@ -170,8 +172,8 @@ Proof. by rewrite -(inj_eq val_inj) /=. Qed.
 
 
 Definition z_comRingMixin := ComRingMixin mulzA mulzC mul1z mulz_addl nonzero1z.
-Canonical Structure  z_Ring := Eval hnf in RingType z_comRingMixin.
-Canonical Structure z_comRing := Eval hnf in ComRingType mulzC.
+Canonical Structure  z_Ring := Eval hnf in RingType relative z_comRingMixin.
+Canonical Structure z_comRing := Eval hnf in ComRingType relative mulzC.
 
 
 Definition unitz := [pred x : relative | ((repr x).1)+((repr x).2) == 1 ].
@@ -197,7 +199,10 @@ Lemma  invz_out : {in predC unitz, invz =1 id}.
 Proof. exact. Qed.
 
 Definition z_comUnitRingMixin :=  ComUnitRingMixin mulVz unitzPl invz_out.
-Canonical Structure z_comUnitRing := Eval hnf in ComUnitRingType z_comUnitRingMixin.
+Canonical Structure z_unitRingType :=
+  Eval hnf in UnitRingType relative z_comUnitRingMixin.
+
+Canonical Structure z_comUnitRing := Eval hnf in [comUnitRingType of relative].
 
 Lemma idomain_axiomz : forall x y,
   (mulz x y = zeroz -> (x == zeroz) || (y == zeroz)).
@@ -208,9 +213,66 @@ case/eqP; move/eqP; rewrite muln_eq0; case/orP; move/eqP->;
 by rewrite eqxx (orbT,orTb).
 Qed.
 
-Canonical Structure z_iDomain := Eval hnf in IdomainType idomain_axiomz.
+Canonical Structure z_iDomain := Eval hnf in IdomainType relative idomain_axiomz.
+
+Variable p: nat.
+
+Require Import zmodp.
+
+Lemma zprojp_compat : \compat1_relative _
+  (fun x => Ordinal (ltn_pmod (x.1 + (p.-2.+2- x.2%%p.-2.+2)) (is_true_true:0<p.-2.+2))).
+Proof.
+apply:compat1E=> x x'; rewrite !equivzP /equivz; move/eqP=>Px.
+apply/val_eqP.
+rewrite -(modn_add2l x.2).
+rewrite -modn_addml addnC -addnA subnK; last by rewrite ltnW // ltn_pmod.
+rewrite modn_addr addnA [x.2 + _]addnC -Px [x.1 + _]addnC -addnA.
+by rewrite -modn_addml addnC -addnA subnK ?modn_addr // ltnW // ltn_pmod.
+Qed.
+
+Definition zprojp: relative-> 'Z_p := (qT_op1 zprojp_compat).
+
+Lemma zprojp_morph: GRing.morphism zprojp.
+Proof.
+have F1: forall x, x %% p.-2.+2 <= p.-2.+2.
+  by move=>*; rewrite ltnW // ltn_pmod.
+split; first 2 last.
+- rewrite /zprojp !qTE; apply/val_eqP=>/=;apply/eqP.
+  by rewrite subn0 modn_addr.
+- elim/relPN=>x; elim/relPN=>y;
+  rewrite /zprojp !qTE; apply/val_eqP=>/=;apply/eqP;
+  rewrite !subn0 ?sub0n !add0n ?addn0 ?modn_addr ?modn_add2m //;
+  set q := p.-2.+2.
+  - by apply sym_eq;apply/eqP; 
+       rewrite -(modn_add2l ((q - y %% q) %% q))
+                addnC -addnA subnK ?F1 // modn_addml addnA modn_addr 
+               -modn_addmr addnC addnA  subnKC ?modn_addl // F1.
+  - by apply/eqP; 
+       rewrite -(modn_add2l ((x + y) %% q)) subnKC ?F1 //
+                -[(x + _) %% _]modn_add2m modn_addml [_ %% _ + _]addnC 
+                -addnA addnC addnA subnKC ?F1 // -addnA subnK ?modn_addl // F1.
+  apply/eqP; 
+    by rewrite addnC -(modn_add2l (x %% q)) addnA subnKC ?F1 //
+               modn_addl addnA subnKC ?F1 //
+               eq_sym modn_addl -(modn_add2l ((q - y %% q) %% q)) subnKC
+               ?F1 // modn_addml -modn_addmr subnK // F1.
+elim/relPN=>x; elim/relPN=>y;
+  rewrite /zprojp !qTE; apply/val_eqP=>/=;apply/eqP;
+  rewrite !subn0 ?sub0n !mul0n !muln0 !add0n ?addn0 ?mod0n ?subn0 
+          !modn_addr modn_mul2m //; set q := p.-2.+2.
+  - by apply/eqP; 
+       rewrite -(modn_add2l ((x*y) %% q)) subnKC ?F1 //
+              -modn_mulmr modn_addml -muln_addr subnKC ?F1 // modn_mull modnn.
+  - by apply/eqP;
+       rewrite -(modn_add2l ((x*y) %% q)) subnKC ?F1 //
+               -modn_mulml modn_addml -muln_addl subnKC ?F1 //
+               modn_mulr modnn.
+by apply sym_eq;apply/eqP; 
+   rewrite -(modn_add2l ((x %% q) * (q - y %% q))) -muln_addl subnKC ?F1 //
+           modn_mulr -modn_add2m modn_mulml -[(_ * y)%%_]modn_mulmr modn_add2m
+          -muln_addr subnK ?modn_mull // F1.
+Qed.
 
 End Relatives.
 
 Definition relative := Relatives.relative.
-
