@@ -226,6 +226,18 @@ Proof. by move=> m n d; rewrite !(addnC m) modn_addml. Qed.
 Lemma modn_add2m : forall m n d, m %% d  + n %% d = m + n %[mod d].
 Proof. by move=> m n d; rewrite modn_addml modn_addmr. Qed.
 
+Lemma modn_add2l : forall p m n d, (p + m == p + n %[mod d]) = (m == n %[mod d]).
+Proof.
+move=> p m n d; apply/eqP/eqP=> Hp; last by rewrite -modn_addmr Hp modn_addmr.
+case: d Hp => [|d].
+  by rewrite !modn0; move/eqP; rewrite eqn_addl; move/eqP.
+by move=> Hp; rewrite -(modn_addl_mul p) mulnSr -addnA 
+                      -modn_addmr Hp modn_addmr addnA -mulnSr modn_addl_mul.
+Qed.
+
+Lemma modn_add2r : forall p m n d, (m + p == n + p %[mod d]) = (m == n %[mod d]).
+Proof. by move=> p *; rewrite -!(addnC p) modn_add2l. Qed.
+
 Lemma modn_mulml : forall m n d, m %% d * n = m * n %[mod d].
 Proof.
 by move=> m n d; rewrite {2}(divn_eq m d) muln_addl mulnAC modn_addl_mul.
@@ -417,9 +429,7 @@ Hint Resolve dvdn_add dvdn_sub dvdn_exp.
 
 Lemma eqn_mod_dvd : forall d m n, n <= m -> (m == n %[mod d]) = (d %| m - n).
 Proof.
-rewrite /dvdn => d m n le_nm; apply/eqP/eqP => [eq_mod | mod_mn_0]; last first.
-  by rewrite -(subnK le_nm) -modn_addml mod_mn_0.
-by rewrite (divn_eq m d) (divn_eq n d) eq_mod subn_add2r -muln_subl modn_mull.
+by move=> d m n le_nm; rewrite -{1}(add0n n) -{1}(subnK le_nm) modn_add2r mod0n.
 Qed.
 
 Lemma divn_addl : forall m n d, d %| m -> (m + n) %/ d = m %/ d + n %/ d.
