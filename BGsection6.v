@@ -450,7 +450,7 @@ Qed.
 Lemma sol_plength1_odd_pamxElem_pcore : 
  forall gT : finGroupType, forall G E L: {group gT}, 
   forall p : nat, solvable G -> p.-length_1 G -> odd p -> prime p -> 
-   E \in 'E*_p(G) -> p^'.-subgroup(G) L -> L \subset 'N(E) ->
+   E \in 'E*_p(G) -> p^'.-subgroup(G) L -> E \subset 'N(L) ->
     L \subset 'O_p^'(G). 
 Proof.
 move=> gT G E L p solG pl1G oddp pp Emax; case/andP=> sLG p'L nEL.
@@ -509,8 +509,7 @@ have cLS : L \subset 'C_G(S).
   have cLE : L \subset 'C(E).
     apply/commG1P; apply/eqP; rewrite eqEsubset sub1set in_group.
     rewrite -(coprime_TIg (pnat_coprime pgS p'L)) andbC.
-    rewrite subsetI (subset_trans _ sES) ?commg_subr //= commg_subl.
-    (* XXX *) admit.
+    by rewrite setIC commg_subI // subsetI ?subxx ?sES.
   have ? : coprime #|S| #|L| by exact: (pnat_coprime pgS p'L). 
   have ? : odd #|S|.
     rewrite odd_2'nat; apply/pgroupP=> q pq qd.
