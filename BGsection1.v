@@ -132,6 +132,32 @@ Section BGsection1.
 Implicit Type gT : finGroupType.
 Implicit Type p : nat.
 
+
+(* First part of Elementary lemma 1.1 is covered by minnormal_solvable.
+Here just for sake of convenience *)
+Lemma minnormal_solvable_abelem : forall gT (M G : {group gT}),
+  minnormal M G ->  solvable M -> is_abelem M.
+Proof.
+by move=> gT M G minM solM; case: (minnormal_solvable minM (subxx _) solM).
+Qed.
+
+(* Second part of lemma 1.1 *)
+Lemma minnormal_solvable_Fitting_center : forall gT (M G : {group gT}),
+  minnormal M G ->  M \subset G -> solvable M -> M \subset 'Z('F(G)).
+Proof.
+move=> gT M G minM sMG solM.
+have nZG : 'Z('F(G)) <| G.
+  apply: (char_normal_trans (center_char _)); exact: Fitting_normal.
+suff: M :&: 'Z('F(G)) = M by move<-; apply: subsetIr.
+case/mingroupP: (minM); case/andP=> ntM nMG minM'; apply: (minM'); last exact:subsetIl.
+apply/andP; split; last by apply: normsI => //; apply: normal_norm.
+apply: nil_meet_Z => //; first by apply: Fitting_nil.
+rewrite /normal; apply/andP; split; last by apply: subset_trans nMG; exact: Fitting_sub.
+apply: Fitting_max; rewrite // /normal ?sMG //; apply: abelian_nil. 
+by case: (minnormal_solvable_abelem minM solM); move/abelem_abelian.
+Qed.
+
+
 (* This is B & G, Proposition 1.3. We give a direct proof for now, in lieu of *)
 (* applying the (stronger) Proposition 1.2.                                   *)
 Lemma cent_sub_Fitting : forall gT (G : {group gT}),
