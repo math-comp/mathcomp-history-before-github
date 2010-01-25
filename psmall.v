@@ -66,27 +66,6 @@ apply big_prop=> [|p' q p'n qn|x Ax]; [exact: dvd1n | by rewrite dvdn_lcm p'n | 
 by rewrite order_dvdn eAn.
 Qed.
 
-(* In this end, I didn't need this. But is it useful? *)
-Lemma abelian_exponent_gen : forall (A : {set gT}), 
-  abelian A -> exponent << A >> = exponent A.
-Proof.
-move=> A; rewrite -abelian_gen => abelA.
-apply/eqP; rewrite eqn_dvd; apply/andP; split; last first.
-  exact: exponentS (subset_gen _).
-apply/exponentP.
-suffices genAsub : << A >> \subset [set x \in << A >> | x ^+ exponent A == 1].
-  move=> x /= cycAx; move/(subsetP genAsub _): (cycAx). 
-  by rewrite inE cycAx; case/eqP. 
-rewrite -[[set x | _]]gen_set_id.
-  apply: genS; apply/subsetP => x Ax; rewrite inE (subsetP (subset_gen _)) //.
-  by rewrite -order_dvdn dvdn_exponent'.
-apply/group_setP; split; first by rewrite inE exp1gn eq_refl group1.
-move=> x y; rewrite !inE; case/andP=> cycAx; move/eqP => xexpA.
-case/andP=> cycAy; move/eqP => yexpA; rewrite groupM //=.
-rewrite expMgn; first by rewrite xexpA yexpA mulg1 eqxx.
-exact: (centsP abelA).
-Qed.
-
 End Exponent.
 
 Section ElementaryAbelian.

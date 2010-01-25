@@ -4,7 +4,6 @@ Require Import fintype paths finfun bigops finset prime groups.
 Require Import morphisms perm action automorphism normal cyclic.
 Require Import gfunc pgroups nilpotent gprod center commutators.
 Require Import sylow abelian maximal hall BGsection1 BGappendixAB.
-Require Import psmall. (* for the out of place lemma about exponent *)
 (*******************************************************************************)
 
 Set Implicit Arguments.
@@ -76,10 +75,6 @@ have nKH'HH' : K / H^`(1) \subset 'N(H / H^`(1)) by rewrite quotient_norms.
 have nH'K : K \subset 'N(H^`(1)) by apply: char_norm_trans nHK; apply: der_char.
 by rewrite coprime_quotient_cent //= -{4}fstHalf quotientR ?coprime_abel_cent_TI.
 Qed.
-
-(* TODO: 
-    - see if #|G : G'| is more convenient for 6.3b
-*)
 
 (* 6.3(b) *)
 Lemma der_nil_prime_idx_hall_comm_compl: forall G,
@@ -255,7 +250,7 @@ Lemma plenght1_pSylow : forall G p,
 move=> G p; rewrite /plength_1 lastI [rcons]lock /= -lock; move/eqP=> pl1G.
 rewrite /pHall pcore_pgroup -{1}quotient_pcore_mod quotientS ?pcore_mod_sub //=.
 rewrite -card_quotient ?normal_norm ?pcore_normal //=.
-have ? := @pcore_normal p^' _ G; have ? := @pseries_normal _ _ G.
+have nOp := @pcore_normal p^' _ G; have nOp'p := @pseries_normal _ _ G.
 have ? : 'O_{p^'}(G) \subset 'O_{p^',_}(G) by move=>*; rewrite pseries_sub_catl.
 rewrite -quotient_pseries2 -pseries1 (isog_card (third_isog _ _ _)) //=.
 by rewrite -{5}pl1G quotient_pseries /= [pnat _ _]pcore_pgroup.
@@ -368,36 +363,8 @@ rewrite -normC ?mul_subG ?sub1set ?groupV ?(subsetP (normG _) x) //=.
 exact: (subsetP sSnOp').
 Qed.
 
-Lemma Ohm_cent : forall E S : {group gT}, forall p, prime p -> 
-  E \in 'E*_p(S) ->
-  p.-group S -> 'Ohm_1('C_S(E)) = E.
-Proof.
-move=> E S p pp; case/pmaxElemP; case/pElemP=> sES paE maxES pgS; apply/eqP.
-case/(abelemP pp): (paE) => aE Ep1; have pgE := abelem_pgroup paE.
-have pgSCE : p.-group 'C_S(E) by rewrite (pgroupS _ pgS) // subIset // subxx.
-rewrite -{2}(abelem_Ohm1P _ _ paE) // eqEsubset andbC OhmS ?subsetI ?sES //=.
-rewrite (OhmE 1 pgSCE) (OhmE 1 pgE) genS //; apply/subsetP=> x; rewrite !in_set.
-case/andP; case/andP=> xS xCE xp1; rewrite xp1; case xE: (x \in E) =>//=.
-have abxE : abelian (x |: E).
-  rewrite /abelian centU subsetI !subUset !sub1set [E \subset 'C(E)]aE.
-  rewrite {1}cent_set1 -(@centsC _ [set x]) sub1set !xCE andbC /= andbC /=. 
-  by apply/cent1P; exact: commute_refl.
-have ? : E \subset << x |: E >> by rewrite sub_gen // subsetUr.
-rewrite -xE -(maxES [group of <<x |: E>>]) /= ?mem_gen ?in_setU ?set11 //.
-apply/pElemP; apply/andP; rewrite /= gen_subG subUset sub1set xS sES /abelem. 
-rewrite abelian_gen abxE /=.
-rewrite -!pnat_exponent // abelian_exponent_gen //.
-case: (primeP pp)=> _ p1p; rewrite -order_dvdn in xp1.
-have dxp : #[x] = p. 
-  case/orP: (p1p _ xp1); last move/eqP=> -> //.
-  by rewrite order_eq1 => H; rewrite (eqP H) group1 in xE.
-rewrite /exponent big_setU1 ?xE //= -/(exponent E) dxp. 
-have deflcmnpp : lcmn p p = p by rewrite /lcmn gcdnn mulnK //; move: pp; case p.
-have divEp : exponent E %| p by apply/exponentP.
-by case/orP: (p1p _ divEp); move/eqP=>->; rewrite ?lcmn1 ?deflcmnpp ?pnat_id ?dvdnn.
-Qed.
-
-Lemma in_pmaxElem: 
+(* now unused, I'll wait to finish 7.5 before killing it *)
+Lemma in_pmaxElemE: 
   forall S : {group gT},
   forall p, prime p -> p.-group S -> forall E : {group gT},
     (E \in 'E*_p(S)) = ([set x \in 'C_S(E) | x ^+p == 1 ] == E).
@@ -412,7 +379,7 @@ move=> S p pp pgS E; apply/idP/eqP.
 move=> defE; apply/pmaxElemP; split; last first. 
   move=> H; case/pElemP=> sHS; case/(abelemP pp)=> aH Hp1 sEH. 
   apply/eqP; rewrite eqEsubset sEH andbC /= -defE; apply/subsetP=> x xH.
-  by rewrite in_set in_setI (subsetP sHS) // Hp1 // (subsetP (centsS _ aH)) // eqxx.
+  by rewrite in_set in_setI (subsetP sHS) // Hp1 ?(subsetP (centsS _ aH)) ?eqxx.
 apply/pElemP; rewrite -defE; split.
   by apply/subsetP=> x; rewrite in_set; case/andP;case/setIP.
 rewrite defE; apply/(abelemP pp); split.
@@ -422,29 +389,6 @@ by move=>x; rewrite -defE in_set; case/andP=> _; move/eqP.
 Qed.
 
 End Six.
-
-Lemma morphim_pmaxElem : 
-     forall gT rT: finGroupType, forall E S : {group gT},
-      forall f : {morphism S >-> rT}, 'injm f ->
-       forall p, prime p -> p.-group S ->
-        E \in 'E*_p(S) -> (f @* E)%G \in 'E*_p(f @* S).
-Proof.
-move=> gT rT E S f injf p pp pS; rewrite (in_pmaxElem pp pS); move/eqP=> defE.
-have pfS : p.-group (f @* S) by apply: morphim_pgroup.
-have sES : E \subset S.
-  by apply/subsetP=> x; rewrite -defE in_set; case/andP; case/setIP.
-rewrite (in_pmaxElem pp pfS); apply/eqP; apply/setP=> fx; apply/idP/idP; rewrite in_set.
-  case/andP; case/setIP=> fxfS; case/morphimP: (fxfS) => x xS _ defx; move: fxfS.
-  rewrite defx => /= fxfS; rewrite -morphX // -sub1set => fxCfE; move/eqP=> fxp1.
-  rewrite -(morphpre_invm injf) mem_morphpre //= invmE // -defE in_set.
-  rewrite (injm1 injf _ fxp1) ?in_group // in_setI xS eq_refl /= andbC /=.
-  have := morphim_cents [morphism of invm injf] fxCfE.
-  by rewrite -morphim_set1 // !morphim_invm ?sub1set. 
-move=> /= fxfE; case/morphimP: (fxfE) => x xS xE defx.
-move: (xE); rewrite -{1}defE in_set; case/andP=> xCE xp1.
-rewrite defx /= -morphX // (eqP xp1) morph1 eqxx andbC /=.
-by rewrite (subsetP (morphim_subcent f S E)) //= mem_morphim.
-Qed.
 
 (* 6.7 *)
 Lemma sol_plength1_odd_pamxElem_pcore : 
@@ -487,7 +431,7 @@ wlog K1: gT G E L solG pl1G Emax sLG p'L nEL / 'O_p^'(G) = 1.
     case/isomP: (quotient_isom nKS TISK) => /=; set f := restrm _ _ => injf <-.
     rewrite -(group_inj(setIidPr sES)) /quotient /=.
     rewrite -[(_ / _)%G](group_inj (morphim_restrm nKS _ _)).
-    by apply: (morphim_pmaxElem injf pp pgS maxES).
+    by apply: (morphim_pmaxElem injf maxES).
   have defSK: S / K = D / K.
     apply/eqP; rewrite eqEcard quotientS //.
     rewrite (card_Hall (morphim_pHall _ nKS psylS)).
@@ -499,7 +443,8 @@ case/pmaxElemP: (Emax); case/pElemP=> sEG pabE maxEG.
 case/(abelemP pp): (pabE) => aE pexp1; have pgE := abelem_pgroup pabE.
 case:(Sylow_superset sEG pgE) => S psS; case/and3P: (psS) => sSG pgS idxS sES.
 have defS : 'O_{p^',p}(G) = S.
-  by case: (sol_Sylow_plength1_pseries_pcore _ psS pl1G)=>// <- _; rewrite K1 mulg1.
+  case: (sol_Sylow_plength1_pseries_pcore _ psS pl1G)=>// <- _;
+  by rewrite K1 mulg1.
 have psOp'pS : p.-Sylow('O_{p^',p}(G)) S.
   by apply: (pHall_subl _ (pseries_sub _ _) psS); rewrite -defS.
 have cLS : L \subset 'C_G(S).

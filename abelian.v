@@ -268,6 +268,26 @@ have inGp := mem_normal_Hall (nilpotent_pcore_Hall _ nilG) (pcore_normal _ _).
 by apply: (centsP cGpGp'); rewrite inGp ?p_elt_constt ?groupX.
 Qed.
 
+Lemma abelian_exponent_gen : forall (A : {set gT}),
+  abelian A -> exponent << A >> = exponent A.
+Proof.
+move=> A; rewrite -abelian_gen => abelA.
+apply/eqP; rewrite eqn_dvd; apply/andP; split; last first.
+  exact: exponentS (subset_gen _).
+apply/exponentP.
+suffices genAsub : << A >> \subset [set x \in << A >> | x ^+ exponent A == 1].
+  move=> x /= cycAx; move/(subsetP genAsub _): (cycAx).
+  by rewrite inE cycAx; case/eqP.
+rewrite -[[set x | _]]gen_set_id.
+  apply: genS; apply/subsetP => x Ax; rewrite inE (subsetP (subset_gen _)) //.
+  by rewrite -order_dvdn /exponent (bigD1 x) //= dvdn_lcml.
+apply/group_setP; split; first by rewrite inE exp1gn eq_refl group1.
+move=> x y; rewrite !inE; case/andP=> cycAx; move/eqP => xexpA.
+case/andP=> cycAy; move/eqP => yexpA; rewrite groupM //=.
+rewrite expMgn; first by rewrite xexpA yexpA mulg1 eqxx.
+exact: (centsP abelA).
+Qed.
+
 Lemma abelem_pgroup : forall p A, p.-abelem A -> p.-group A.
 Proof. by move=> p A; case/andP. Qed.
 
@@ -656,6 +676,23 @@ Qed.
 (* There are no general morphism relations for the p-rank. *)
 
 End MorphAbelem.
+
+Lemma morphim_pmaxElem : 
+  forall (aT rT : finGroupType) (G : {group aT}) 
+  (f : {morphism G >-> rT}) p (E : {group aT}), 'injm f ->
+  E \in 'E*_p(G) -> (f @* E)%G \in 'E*_p(f @* G).
+Proof.
+move=> aT rT G f p E injf; case/pmaxElemP=> pElemE maxE.
+have [sEG paE] := pElemP pElemE; have pElemfE := (morphim_pElem f pElemE).
+apply/pmaxElemP; split=> // fH pElemfH sfEfH {pElemfE}.
+have kfE : 'ker f \subset E by rewrite (ker_injm injf) sub1G.
+have kfG := subset_trans kfE sEG; have [sfHG aefH] := pElemP pElemfH.
+apply/eqP; rewrite eqEsubset sfEfH -sub_morphpre_im //.
+rewrite (maxE [group of f @*^-1 fH]) ?subxx //= -?sub_morphim_pre //=.
+have := morphim_pElem [morphism of invm injf] pElemfH.
+rewrite /= morphim_invmE !injmK ?subxx //;
+by case/pElemP=> *; apply/pElemP; split; rewrite /= -(morphim_invmE injf).
+Qed.
 
 Section QuotientAbelem.
 
@@ -1046,6 +1083,36 @@ move=> G H tiHG1; case: (trivgVpdiv (H :&: G)) => // [[p pr_p]].
 case/Cauchy=> // x; case/setIP=> Hx Gx ox.
 suffices x1: x \in [1] by rewrite -ox (set1P x1) order1 in pr_p.
 by rewrite -{}tiHG1 inE Hx Ohm1Eprime mem_gen // inE Gx ox.
+Qed.
+
+Lemma Ohm_cent : forall G E p, prime p -> 
+  E \in 'E*_p(G) ->
+  p.-group G -> 'Ohm_1('C_G(E)) = E.
+Proof.
+move=> G E p pp; case/pmaxElemP; case/pElemP=> sEG paE maxEG pgG; apply/eqP.
+case/(abelemP pp): (paE) => aE Ep1; have pgE := abelem_pgroup paE.
+have pgGCE : p.-group 'C_G(E) by rewrite (pgroupS _ pgG) // subIset // subxx.
+rewrite -{2}(abelem_Ohm1P _ _ paE) // eqEsubset andbC OhmS ?subsetI ?sEG //=.
+rewrite (OhmE 1 pgGCE) (OhmE 1 pgE) genS //; apply/subsetP=> x; rewrite !in_set.
+case/andP; case/andP=> xG xCE xp1; rewrite xp1; case xE: (x \in E) =>//=.
+have abxE : abelian (x |: E).
+  rewrite /abelian centU subsetI !subUset !sub1set [E \subset 'C(E)]aE.
+  rewrite {1}cent_set1 -(@centsC _ [set x]) sub1set !xCE andbC /= andbC /=. 
+  by apply/cent1P; exact: commute_refl.
+have ? : E \subset << x |: E >> by rewrite sub_gen // subsetUr.
+rewrite -xE -(maxEG [group of <<x |: E>>]) /= ?mem_gen ?in_setU ?set11 //.
+apply/pElemP; apply/andP; rewrite /= gen_subG subUset sub1set xG sEG /abelem. 
+rewrite abelian_gen abxE /=.
+rewrite -!pnat_exponent // abelian_exponent_gen //.
+case: (primeP pp)=> _ p1p; rewrite -order_dvdn in xp1.
+have dxp : #[x] = p. 
+  case/orP: (p1p _ xp1); last move/eqP=> -> //.
+  by rewrite order_eq1 => H; rewrite (eqP H) group1 in xE.
+rewrite /exponent big_setU1 ?xE //= -/(exponent E) dxp. 
+have deflcmnpp : lcmn p p = p by rewrite /lcmn gcdnn mulnK //; move: pp; case p.
+have divEp : exponent E %| p by apply/exponentP.
+case/orP: (p1p _ divEp); move/eqP=> ->; rewrite ?lcmn1 ?pnat_id ?dvdnn //.
+by rewrite deflcmnpp dvdnn pnat_id .
 Qed.
 
 Lemma Ohm1_cyclic_pgroup_prime : forall p G,
