@@ -597,6 +597,9 @@ move=> x m n; elim: m => [|m IHm]; first by rewrite exp1rn.
 by rewrite mulSn exprn_addr IHm exprS commr_exp_mull //; exact: commr_exp.
 Qed.
 
+Lemma natr_exp : forall n k, (n ^ k)%:R = n%:R ^+ k :> R.
+Proof. by move=> n k; rewrite exprn_mulnl exp1rn. Qed.
+
 Lemma signr_odd : forall n, (-1) ^+ (odd n) = (-1) ^+ n :> R.
 Proof.
 elim=> //= n IHn; rewrite exprS -{}IHn.

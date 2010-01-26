@@ -3,7 +3,7 @@
 (*                                                                     *)
 (***********************************************************************)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq div choice.
-Require Import fintype finfun finset groups morphisms automorphism.
+Require Import fintype finfun prime finset groups morphisms automorphism.
 
 (***********************************************************************)
 (* This file contains the definitions of:                              *)
@@ -875,6 +875,9 @@ Proof.
 move=> G; rewrite card_morphim (dvdn_trans (dvdn_indexg _ _)) //.
 by rewrite cardSg ?subsetIr.
 Qed.
+
+Lemma logn_morphim : forall p G, logn p #|f @* G| <= logn p #|G|.
+Proof. by move=> p G; rewrite dvdn_leq_log ?dvdn_morphim. Qed.
 
 Lemma coprime_morphl : forall G p, coprime #|G| p -> coprime #|f @* G| p.
 Proof. move=> G p; exact: coprime_dvdl (dvdn_morphim G). Qed.

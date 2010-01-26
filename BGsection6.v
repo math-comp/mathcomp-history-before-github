@@ -367,12 +367,12 @@ Qed.
 Lemma in_pmaxElemE: 
   forall S : {group gT},
   forall p, prime p -> p.-group S -> forall E : {group gT},
-    (E \in 'E*_p(S)) = ([set x \in 'C_S(E) | x ^+p == 1 ] == E).
+    (E \in 'E*_p(S)) = ([set x \in 'C_S(E) | x ^+ p == 1 ] == E).
 Proof.
 move=> S p pp pgS E; apply/idP/eqP. 
   have pgSCE : p.-group 'C_S(E) by rewrite (pgroupS _ pgS) // subIset // subxx.
-  move=> Emax; rewrite -{2}(Ohm_cent pp Emax pgS) (OhmE 1 pgSCE) expn1. 
-  apply/eqP; rewrite eqEsubset sub_gen //= -(OhmE 1 pgSCE) (Ohm_cent _ _ pgS) //.
+  move=> Emax; rewrite -{2}(Ohm_cent Emax pgS) (OhmE 1 pgSCE) expn1. 
+  apply/eqP; rewrite eqEsubset sub_gen //= -(OhmE 1 pgSCE) (Ohm_cent _ pgS) //.
   apply/subsetP=> e eE; rewrite in_set in_setI. 
   case/pmaxElemP: Emax; case/pElemP=> sES; case/(abelemP pp)=> aE xp1 _.
   by rewrite (subsetP sES) // (subsetP aE) // xp1 // eqxx.
@@ -422,16 +422,15 @@ wlog K1: gT G E L solG pl1G Emax sLG p'L nEL / 'O_p^'(G) = 1.
     apply/pmaxElemP; split; first by apply/pElemP; split.
     move=> H; case/pElemP=> sHS abH sEH; rewrite maxEG //.
     by apply/pElemP; split; rewrite ?abH ?(subset_trans sHS _).
-  have l66a : 'Ohm_1('C_S(E)) = E by exact: (Ohm_cent pp).
+  have l66a : 'Ohm_1('C_S(E)) = E by exact: Ohm_cent pgS.
   have nKS: S \subset 'N(K) := (subset_trans sSG (char_norm (pcore_char _ _))).
   have TISK: S :&: K = 1.
     by rewrite coprime_TIg ?(pnat_coprime _ (pcore_pgroup _ _)).
   have l66b : (E / K)%G \in 'E*_p(S / K).
     have pgSK : p.-group (S / K) by rewrite quotient_pgroup.
     case/isomP: (quotient_isom nKS TISK) => /=; set f := restrm _ _ => injf <-.
-    rewrite -(group_inj(setIidPr sES)) /quotient /=.
-    rewrite -[(_ / _)%G](group_inj (morphim_restrm nKS _ _)).
-    by apply: (morphim_pmaxElem injf maxES).
+    rewrite -(group_inj (setIidPr sES)) /quotient /=.
+    by rewrite -[(_ / _)%G](group_inj (morphim_restrm nKS _ _)) injm_pmaxElem.
   have defSK: S / K = D / K.
     apply/eqP; rewrite eqEcard quotientS //.
     rewrite (card_Hall (morphim_pHall _ nKS psylS)).
@@ -470,7 +469,7 @@ have cLS : L \subset 'C_G(S).
     by apply/pElemP; split; rewrite // (subset_trans _ sSG).
   apply/subsetP=> l lL; apply/centP=>e.
   rewrite in_set; case/andP; case/setIP=> eS eCE orde.
-  apply: (centsP cLE); rewrite // -(Ohm_cent pp maxES pgS) Ohm1Eprime.
+  apply: (centsP cLE); rewrite // -(Ohm_cent maxES pgS) Ohm1Eprime.
   apply/generatedP=> G0 P; apply: (subsetP P).
   by rewrite in_set in_setI eS eCE /= (eqP orde).
 have sLS : L \subset S.   
