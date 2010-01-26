@@ -1,7 +1,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import fintype paths finfun bigops finset prime groups.
 Require Import morphisms perm action automorphism normal cyclic.
-Require Import gfunc gprod pgroups nilpotent sylow.
+Require Import gfunc gprod center pgroups nilpotent sylow.
 
 (*****************************************************************************)
 (* Constructions based on abelian groups and their structure, with some      *)
@@ -363,6 +363,19 @@ Lemma dprod_abelem : forall p A B G,
 Proof.
 move=> p A B G defG; case/dprodP: (defG) => _ _ _ tiHK.
 by apply: cprod_abelem; rewrite -dprodEcprod.
+Qed.
+
+Lemma p2group_abelian : forall G p, p.-group G -> logn p #|G| <= 2 -> abelian G.
+Proof.
+move=> G p pG leGp2; pose Z := 'Z(G); have sZG: Z \subset G := center_sub G.
+case: (eqVneq Z 1); first by move/(trivg_center_pgroup pG)->; exact: abelian1.
+case/(pgroup_pdiv (pgroupS sZG pG)) => p_pr _ [k oZ].
+rewrite (@center_cyclic_abelian _ G) ?abelian_center //.
+case: (eqVneq (G / Z) 1) => [-> |]; first exact: cyclic1.
+have pGq := quotient_pgroup 'Z(G) pG; case/(pgroup_pdiv pGq) => _ _ [j oGq].
+rewrite prime_cyclic // oGq; case: j oGq leGp2 => //= j.
+rewrite card_quotient ?gfunc.bgFunc_norm // -(LaGrange sZG) logn_mul // => ->.
+by rewrite oZ !pfactorK ?addnS.
 Qed.
 
 Lemma is_abelem_pgroup : forall p G, p.-group G -> is_abelem G = p.-abelem G.

@@ -2439,6 +2439,7 @@ Definition mulr_natl := mulr_natl.
 Definition mulr_natr := mulr_natr.
 Definition natr_add := natr_add.
 Definition natr_mul := natr_mul.
+Definition natr_exp := natr_exp.
 Definition expr0 := expr0.
 Definition exprS := exprS.
 Definition expr1 := expr1.
