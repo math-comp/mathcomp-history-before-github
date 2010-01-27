@@ -92,7 +92,7 @@ Require Import maximal.
 (* val/in_factmod rG U == the projections for factmod_repr r G U.           *)
 (* mx_reducible rG == the representation r of G is reducible: it is either  *)
 (*                 trivial, or it has a non-trivial proper submodule.       *)
-(* mx_irrreducible rG == the representation r of G is not reducible; as it  *)
+(* mx_irreducible rG == the representation r of G is not reducible; as it   *)
 (*                 is not possible to decide reducibility in general, this  *)
 (*                 is a negation in Prop.                                   *)
 (* MatrixFormula.redmx_sat rG == the representation of G via rG is          *)
