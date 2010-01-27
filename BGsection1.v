@@ -194,7 +194,7 @@ suff : x.1 / x.2 \subset 'Z('F(G / x.2)) by rewrite /center subsetI; case/andP.
 have s1G : x.1 \subset G by rewrite (subset_trans sx12) // ?normal_sub.
 apply: minnormal_solvable_Fitting_center=> //; first by rewrite quotientS.
 by rewrite quotient_sol // (solvableS s1G).
-
+Qed.
 
 End ChiefFactors.
 
