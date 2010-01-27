@@ -38,14 +38,18 @@ Local Notation mixin_of T b := (Finite.mixin_of (EqType T b)).
 
 Section Generic.
 
+(* The BF-prefixed bound variable names are a backward-compatibility patch
+   between coq-8.2-1 and coq-trunk r12661 and later 
+*)
+
 (* Implicits *)
-Variables (type base_type : Type) (class_of base_of : Type -> Type).
+Variables (BFtype base_type : Type) (BFclass_of base_of : Type -> Type).
 Variable to_choice : forall T, base_of T -> Choice.class_of T.
 Variable base_sort : base_type -> Type.
 
 (* Explicits *)
-Variable Pack : forall T, class_of T -> Type -> type.
-Variable Class : forall T b, mixin_of T (to_choice b) -> class_of T.
+Variable Pack : forall T, BFclass_of T -> Type -> BFtype.
+Variable Class : forall T b, mixin_of T (to_choice b) -> BFclass_of T.
 Variable base_class : forall bT, base_of (base_sort bT).
 
 Definition gen_pack T :=
@@ -56,7 +60,7 @@ Definition gen_pack T :=
 End Generic.
 
 Implicit Arguments
-   gen_pack [type0 base_type class_of0 base_of to_choice base_sort].
+   gen_pack [BFtype base_type BFclass_of base_of to_choice base_sort].
 Local Notation fin_ class cT := (@Finite.Class _ (class cT) (class cT)).
 
 Module Zmodule.
