@@ -1075,8 +1075,8 @@ Qed.
 
 Lemma horner_Cmul : forall c p x, (c%:P * p).[x] = c * p.[x].
 Proof.
-move=> c p x.
-elim/(@poly_ind R): p => [|p d IHp]; first by rewrite !(simp, horner0).
+move=> c p x; move:p.
+apply:(@poly_ind R) => [|p d IHp]; first by rewrite !(simp, horner0).
 rewrite mulr_addr -polyC_mul mulrA -!poly_cons_def !horner_cons IHp.
 by rewrite -mulrA -mulr_addr.
 Qed.
@@ -1109,8 +1109,8 @@ Proof. by move=> *; rewrite /com_poly !hornerX. Qed.
 Lemma horner_mul_com : forall p q x,
   com_poly q x -> (p * q).[x] = p.[x] * q.[x].
 Proof.
-move=> p q x com_qx.
-elim/(@poly_ind R): p => [|p c IHp]; first by rewrite !(simp, horner0).
+move=> p q x com_qx; move:p.
+apply:(@poly_ind R)=> [|p c IHp]; first by rewrite !(simp, horner0).
 rewrite mulr_addl -poly_cons_def horner_cons mulr_addl -!mulrA.
 rewrite com_qx -comm_polyX !mulrA -{}IHp -[_ * 'X]addr0 -poly_cons_def.
 by rewrite horner_add horner_cons simp horner_Cmul.
@@ -1287,7 +1287,7 @@ Let ipfRM := poly_morphRM.
 
 Lemma poly_initial : pf =1 horner_morph (pf \o fC) (pf 'X).
 Proof.
-elim/poly_ind=> [|p a IHp]; first by rewrite (ringM_0 ipfRM) ringM_0.
+apply:poly_ind=> [|p a IHp]; first by rewrite (ringM_0 ipfRM) ringM_0.
 rewrite (ringM_add ipfRM) (ringM_mul ipfRM) -{}IHp ringM_add // ringM_mul //.
 by rewrite horner_morphC ?horner_morphX.
 Qed.
@@ -1997,7 +1997,7 @@ Qed.
 Lemma nderiv_taylor p x h: GRing.comm x h ->
   p.[x + h] = \sum_(i < size p) p^{N'i}.[x] * h^+i.
 Proof.
-move=> p x h Cxh; elim/poly_ind: p => [|p c Hrec].
+move=> p x h Cxh; move:p; apply:poly_ind=> [|p c Hrec].
   by rewrite size_poly0 big_ord0 horner0.
 rewrite horner_amulX size_amulX; case: eqP=> Hs.
   move/eqP: Hs; rewrite size_poly_eq0; move/eqP=>->; rewrite  hornerC !simp.

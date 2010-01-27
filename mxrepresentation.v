@@ -653,7 +653,7 @@ Qed.
 
 Lemma horner_mx_sub : forall p, (mxvec (horner_mx p) <= Ad)%MR.
 Proof.
-elim/poly_ind=> [|p a IHp]; first by rewrite ringM_0 // linear0 subset0mx.
+apply:poly_ind=> [|p a IHp]; first by rewrite ringM_0 // linear0 subset0mx.
 rewrite ringM_add // ringM_mul // horner_mx_C horner_mx_X.
 rewrite addrC -scalemx1 linearP /= -(mul_vec_lin (mulmxr_linear _ A)).
 case/subsetmxP: IHp => u ->{i}.
@@ -732,7 +732,7 @@ rewrite leqNgt -(eqnP minpoly_mx_free); apply/scalP/idP=> [|[[B]]].
   case scalA: (is_scalar_mx A); [by right | left].
   by exists A; rewrite ?scalA // -horner_mx_X horner_mx_sub.
 move/mx_inv_hornerK=> <- nsB; case/is_scalar_mxP=> a defA; case/negP: nsB.
-elim/poly_ind: {B}(_ B) => [|p c]; first by rewrite ringM_0 ?mx0_is_scalar.
+move:{B}(_ B); apply:poly_ind=> [|p c]; first by rewrite ringM_0 ?mx0_is_scalar.
 rewrite ringM_add ?ringM_mul // horner_mx_X defA; case/is_scalar_mxP=> b ->.
 by rewrite -(ringM_mul zRM) horner_mx_C -scalar_mx_add scalar_mx_is_scalar.
 Qed.
@@ -1247,7 +1247,7 @@ case sub1EI: (1%:M <= E_G :+: pK I)%MR; [left | right=> _].
     congr (_ *m _) => {A}; apply/eqP; rewrite -subr_eq0 -mxrank_eq0 -leqn0.
     rewrite (leq_trans _ pE'_I) // mxrankS // sub_capmx.
     rewrite {1 2}defE' mulmx_subl mul1mx oppr_sub addrCA mulmx_subr mulmx1.
-    rewrite !addrA addrAC addrK 2!mulmxA -!mulNmx.
+    rewrite !addrA addrAC addrK mulmxA [(lin_mx _) *m (_ *m _)]mulmxA -!mulNmx.
     by rewrite !subsetmx_add ?subsetmxMl // -mulmxA subsetmxMtrans ?Emod.
   rewrite -[B]mul1mx -repr_mx1 -(mul_vec_lin (mulmxr_linear _ _)).
   set A := mxvec _; have ->: A = A *m E'.
@@ -2864,7 +2864,8 @@ Variables (rG : mx_representation F G n) (A : 'M[F]_n).
 Hypotheses (irrG : mx_irreducible rG) (cGA : centgmx rG A).
 Notation FA := (gen_of irrG cGA).
 
-Definition gen_countMixin := [countMixin of FA by <:].
+(* This should be [countMixin of FA by <:]*)
+Definition gen_countMixin := (sub_countMixin (gen_subType irrG cGA)).
 Canonical Structure gen_countType := Eval hnf in CountType FA gen_countMixin.
 Canonical Structure gen_subCountType := Eval hnf in [subCountType of FA].
 Definition gen_finMixin := [finMixin of FA by <:].
