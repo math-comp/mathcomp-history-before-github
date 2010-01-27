@@ -157,6 +157,46 @@ apply: Fitting_max; rewrite // /normal ?sMG //; apply: abelian_nil.
 by case: (minnormal_solvable_abelem minM solM); move/abelem_abelian.
 Qed.
 
+Section ChiefFactors.
+
+Variables (gT : finGroupType).
+Implicit Type x : {group gT} * {group gT}.
+Implicit Type G : {group gT}.
+
+(* Implicit Type is not enough to type H *)
+Definition chiefs (G : {set gT}) := 
+  [set x : {group gT} * {group gT} | 
+    [&& minnormal (x.1 / x.2) (G / x.2), x.1 \subset x.2 & x.2 <| G]].
+
+Variables (G G' : {group gT}).
+
+Hypothesis solG : solvable G.
+Hypothesis nGG' : G' <| G.
+
+Let D' := [set x \in (chiefs G) | (x.1 \subset 'F(G'))].
+
+Let H := \bigcap_(x \in (chiefs G)) 'C_G'(x.1 / x.2 | 'J / x.2).
+
+Let H':= \bigcap_(x \in D') 'C_G'(x.1 / x.2 | 'J / x.2).
+
+Lemma incl1 : 'F(G') \subset H.
+Proof.
+apply/bigcapsP=> x; rewrite inE; case/and3P=> minx sx12 nx1G; rewrite astabQ.
+rewrite  subsetI Fitting_sub /= -sub_quotient_pre; last first.
+apply: (subset_trans (Fitting_sub _)); apply: (subset_trans (normal_sub nGG')).
+apply: normal_norm; rewrite ?chiefs_normal //.
+have nilq : nilpotent ('F(G') / x.2) by apply: quotient_nil; exact: Fitting_nil.
+have nq : 'F(G') / x.2 <| G / x.2.
+  apply: quotient_normal; apply: (char_normal_trans _ nGG'); exact: Fitting_char.
+have {nq nilq} sqf : 'F(G') / x.2 \subset 'F(G / x.2) by apply: Fitting_max.
+rewrite centsC; apply: subset_trans (centS sqf).
+suff : x.1 / x.2 \subset 'Z('F(G / x.2)) by rewrite /center subsetI; case/andP.
+have s1G : x.1 \subset G by rewrite (subset_trans sx12) // ?normal_sub.
+apply: minnormal_solvable_Fitting_center=> //; first by rewrite quotientS.
+by rewrite quotient_sol // (solvableS s1G).
+
+
+End ChiefFactors.
 
 (* This is B & G, Proposition 1.3. We give a direct proof for now, in lieu of *)
 (* applying the (stronger) Proposition 1.2.                                   *)

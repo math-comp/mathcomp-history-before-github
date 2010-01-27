@@ -563,7 +563,7 @@ Variables (aT rT : finGroupType).
 Variables (A : {group aT})(D : {group rT}).
 Variable to : groupAction A D.
 
-(* very dirty. I probably use external action lib. well enough. also should
+(* very dirty. I probably don't use external action lib. properly. also should
 extract properties of quotient actions and combination of actions & morphisms *)
 Lemma maxainv_asimple_quo : forall G H : {group rT},
    H \subset D -> maxainv to G H -> asimple (to / H) (G / H).
