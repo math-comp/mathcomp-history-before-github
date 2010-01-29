@@ -521,6 +521,29 @@ Lemma pmaxElemP : forall p G E,
           (E \in 'E*_p(G)).
 Proof. move=> p G E; rewrite [E \in 'E*_p(G)]inE; exact: (iffP maxgroupP). Qed.
 
+Lemma in_pmaxElemE: forall (S E : {group gT}) p,
+  prime p -> (E \in 'E*_p(S)) = ([set x \in 'C_S(E) | x ^+ p == 1 ] == E).
+Proof.
+move=> S E p pp; apply/idP/eqP=> [|defE].
+  case/pmaxElemP; case/pElemP=> sES abelE maxE.
+  apply/setP=> x; rewrite !inE -andbA; apply/and3P/idP=> [[Sx cEx xp1] | [Ex]].
+    rewrite -(maxE (<[x]> <*> E)%G) ?mulgen_subr //.
+      by rewrite -cycle_subG mulgen_subl.
+    rewrite inE mulgen_subG cycle_subG Sx sES /=.
+    rewrite (cprod_abelem _ (cprodEgen _)) ?cycle_subG //.
+    by rewrite cycle_abelem ?pp ?orbT // order_dvdn xp1.
+  by case/abelemP: abelE => // cEE -> //; rewrite (subsetP sES) ?(subsetP cEE).
+apply/pmaxElemP; split; last first.
+  move=> H; case/pElemP=> sHS; case/(abelemP _ pp)=> aH Hp1 sEH. 
+  apply/eqP; rewrite eqEsubset sEH andbC /= -defE; apply/subsetP=> x xH.
+  by rewrite in_set in_setI (subsetP sHS) // Hp1 ?(subsetP (centsS _ aH)) ?eqxx.
+apply/pElemP; rewrite -defE; split.
+  by apply/subsetP=> x; rewrite in_set; case/andP;case/setIP.
+rewrite defE; apply/(abelemP _ pp); split.
+  by rewrite /abelian -{1}defE; apply/subsetP=> x; case/setIdP; case/setIP.
+by move=>x; rewrite -defE in_set; case/andP=> _; move/eqP.
+Qed.
+
 Lemma pmaxElemS : forall p G H,
   G \subset H -> 'E*_p(H) :&: subgroups G \subset 'E*_p(G).
 Proof.
@@ -1133,15 +1156,15 @@ Lemma Ohm_cent : forall G E p,
   E \in 'E*_p(G) -> p.-group G -> 'Ohm_1('C_G(E)) = E.
 Proof.
 move=> G E p; case/pmaxElemP; case/pElemP=> sEG abelE maxEG pG.
+have pCE : p.-group 'C_G(E) := pgroupS (subsetIl _ _) pG.
 apply/eqP; rewrite eqEsubset andbC -{1}(Ohm1_id abelE).
 rewrite OhmS /=; last by rewrite subsetI sEG; exact: abelem_abelian abelE.
-have pCE: p.-group 'C_G(E) by exact: pgroupS (subsetIl _ _) pG.
 rewrite (OhmE _ pCE) gen_subG; apply/subsetP=> x; rewrite !inE -andbA.
 rewrite -!cycle_subG -order_dvdn; case/and3P=> Gx cEx xp1.
 have sxE_G: <[x]> <*> E \subset G by rewrite mulgen_subG Gx.
 rewrite -(maxEG (<[x]> <*> E)%G) ?mulgen_subl ?mulgen_subr // inE sxE_G /=.
-rewrite (cprod_abelem p (cprodEgen cEx)) abelE andbT cycle_abelem //.
-by rewrite (mem_p_elt pG) // -cycle_subG.
+rewrite (cprod_abelem p (cprodEgen cEx)) abelE andbT cycle_abelem //. 
+by rewrite (mem_p_elt pCE) // -cycle_subG subsetI Gx cEx.
 Qed.
 
 Lemma Ohm1_cyclic_pgroup_prime : forall p G,

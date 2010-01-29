@@ -4,7 +4,12 @@ Require Import fintype paths finfun bigops finset prime groups.
 Require Import morphisms perm action automorphism normal cyclic.
 Require Import gfunc pgroups nilpotent gprod center commutators.
 Require Import sylow abelian maximal hall BGsection1 BGappendixAB.
-(*******************************************************************************)
+
+(******************************************************************************)
+(*   This file covers most of B & G section 6.                                *)
+(* Theorem 6.4 is not proved, since it is not needed for the revised proof of *)
+(* the odd order theorem.                                                     *)
+(******************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -30,11 +35,11 @@ Qed.
 (* The two parts of B & G, Theorem 6.2 are established in BGappendixAB. *)
 
 Theorem Puig_factorisation : forall p G S,
- odd #|G| -> solvable G -> p.-Sylow(G) S -> 'O_p^'(G) * 'N_G('Z('L(S))) = G.
+  odd #|G| -> solvable G -> p.-Sylow(G) S -> 'O_p^'(G) * 'N_G('Z('L(S))) = G.
 Proof. exact: BGappendixAB.Puig_factorization. Qed.
 
 Theorem Puig_center_normal : forall p G S,
- odd #|G| -> solvable G -> p.-Sylow(G) S -> 'O_p^'(G) = 1 -> 'Z('L(S)) <| G.
+  odd #|G| -> solvable G -> p.-Sylow(G) S -> 'O_p^'(G) = 1 -> 'Z('L(S)) <| G.
 Proof. exact: BGappendixAB.Puig_center_normal. Qed.
 
 (* Auxiliary results from AppendixAB, necessary to exploit the results above. *)
@@ -43,8 +48,8 @@ Definition trivg_center_Puig_pgroup := BGappendixAB.trivg_center_Puig_pgroup.
 
 (* 6.3(a), page 49 *)
 Lemma solvable_hall_dprod_der_subset_comm_centr_compl : forall G H K,
-   solvable H -> Hall G H -> H ><| K = G -> H \subset G^`(1) -> 
-   [~: H, K] = H /\ 'C_H(K) \subset H^`(1).
+    solvable H -> Hall G H -> H ><| K = G -> H \subset G^`(1) -> 
+  [~: H, K] = H /\ 'C_H(K) \subset H^`(1).
 Proof.
 move=> G H K solG hallH; case/sdprodP=> _ defG nHK tiHK sHG'.
 case/andP: hallH => sHG; case/andP: (der_normal H 0) =>  sHH' nH'H.
@@ -78,9 +83,8 @@ Qed.
 
 (* 6.3(b) *)
 Lemma der_nil_prime_idx_hall_comm_compl: forall G,
-   nilpotent G^`(1) -> prime #|G / G^`(1)| -> 
-    Hall G G^`(1) /\ 
-    (forall K, G^`(1) ><| K = G -> G^`(1) = [~: G, K]).
+    nilpotent G^`(1) -> prime #|G / G^`(1)| -> 
+  Hall G G^`(1) /\ (forall K, G^`(1) ><| K = G -> G^`(1) = [~: G, K]).
 Proof.
 move=> G nilG' /=; set G' := G^`(1); set p := #|G / G'| => prime_p.
 have nsG'G: G' <| G := der_normal G 0; have [sG'G nG'G] := andP nsG'G.
@@ -111,8 +115,8 @@ Qed.
 
 (* 6.5(a) *)
 Lemma prod_norm_coprime_subs_derI : forall G K U H, 
-  K * U = G -> K <| G -> H \subset U -> coprime #|H| #|K| ->
-   H :&: G^`(1) = H :&: U^`(1).
+    K * U = G -> K <| G -> H \subset U -> coprime #|H| #|K| ->
+  H :&: G^`(1) = H :&: U^`(1).
 Proof.
 move=> G K U H defG nKG sHU copHK; set pi := \pi(#|H|).
 have comKU : commute K U by apply/comm_group_setP; rewrite defG groupP.
@@ -166,12 +170,12 @@ by apply/eqP; rewrite eqEsubset subsetI sHG'U' subsetIl /= setIS // (lcnS 1).
 Qed.
 
 (* 6.5(c) *)
-Lemma sol_prod_norm_coprime_subs_centralise_conjg : forall G K U H, 
-  solvable G -> K * U = G -> K <| G -> H \subset U -> coprime #|H| #|K| ->
-   forall g, g \in G -> H :^ g \subset U -> 
-     exists2 c, c \in 'C_K(H) & exists2 u, u \in U & g = c * u.
+Lemma sol_prod_norm_coprime_subs_centralise_conjg : forall G K U H g, 
+    solvable G -> K * U = G -> K <| G -> H \subset U -> coprime #|H| #|K| ->
+    g \in G -> H :^ g \subset U -> 
+  exists2 c, c \in 'C_K(H) & exists2 u, u \in U & g = c * u.
 Proof.
-move=> G K U H solG defG; case/andP=> sKG sGnK sHU copHK g; rewrite -defG.
+move=> G K U H g solG defG; case/andP=> sKG sGnK sHU copHK; rewrite -defG.
 case/mulsgP=> k u kK uU defg sHgU; pose pi := \pi(#|H|).
 have comKU : commute K U by apply/comm_group_setP; rewrite defG groupP.
 have sUG : U \subset G by rewrite -defG mulg_subr.
@@ -227,7 +231,7 @@ Qed.
 
 (* 6.5(b) *)
 Lemma sol_prod_norm_coprime_subs_norm_cent_prod : forall G K U H, 
-  solvable G -> K * U = G -> K <| G -> H \subset U -> coprime #|H| #|K| ->
+    solvable G -> K * U = G -> K <| G -> H \subset U -> coprime #|H| #|K| ->
   'N_G(H) = 'C_K(H) * 'N_U(H).
 Proof.
 move=> G K U H solG defG nKG sHU copHK.
@@ -245,8 +249,8 @@ Qed.
 
 (* TODO: move away *)
 Lemma plenght1_pSylow : forall G p,
-  p.-length_1 G ->
-    p.-Sylow(G / 'O_p^'(G)) 'O_p(G / 'O_p^'(G)).
+  p.-length_1 G -> p.-Sylow(G / 'O_p^'(G)) 'O_p(G / 'O_p^'(G)).
+Proof.
 move=> G p; rewrite /plength_1 lastI [rcons]lock /= -lock; move/eqP=> pl1G.
 rewrite /pHall pcore_pgroup -{1}quotient_pcore_mod quotientS ?pcore_mod_sub //=.
 rewrite -card_quotient ?normal_norm ?pcore_normal //=.
@@ -257,10 +261,9 @@ by rewrite -{5}pl1G quotient_pseries /= [pnat _ _]pcore_pgroup.
 Qed.
 
 (* 6.6(a) *)
-Lemma sol_Sylow_plength1_pseries_pcore: 
- forall G S : {group gT}, forall p : nat, 
-  solvable G -> p.-Sylow(G) S -> p.-length_1 G ->
-   S * 'O_p^'(G) = 'O_{p^',p}(G) /\ 'O_p^'(G) * 'N_G(S) = G.
+Lemma sol_Sylow_plength1_pseries_pcore: forall G S p, 
+    solvable G -> p.-Sylow(G) S -> p.-length_1 G ->
+  S * 'O_p^'(G) = 'O_{p^',p}(G) /\ 'O_p^'(G) * 'N_G(S) = G.
 Proof.
 move=> G S p solG psylS pl1G; set M := 'O_p^'(G); set U := 'N_G(S).
 have sSG : S \subset G by case/andP: psylS.
@@ -285,10 +288,9 @@ by rewrite (@mulSGid _ _ S) //= subsetI sSG normG.
 Qed.
 
 (* 6.6(b) *)
-Lemma sol_Sylow_plength1_sub_norm_der:
- forall G S : {group gT}, forall p : nat, 
-  solvable G -> p.-Sylow(G) S -> p.-length_1 G ->
-   S \subset G^`(1) -> S \subset ('N_G(S))^`(1).
+Lemma sol_Sylow_plength1_sub_norm_der: forall G S p, 
+    solvable G -> p.-Sylow(G) S -> p.-length_1 G -> S \subset G^`(1) -> 
+  S \subset ('N_G(S))^`(1).
 Proof.
 move=> G S p solG psylS;
 case/(sol_Sylow_plength1_pseries_pcore solG psylS)=> _ defG sSG' {pl1G solG}.
@@ -302,13 +304,12 @@ Qed.
 
 (* 6.6(c) *)
 Lemma sol_Sylow_plength1_norm_conj: 
- forall G S : {group gT}, forall p : nat, 
-  solvable G -> p.-Sylow(G) S -> p.-length_1 G ->
-   forall Y : {set gT}, Y \subset S -> forall x, x \in G -> 
-    Y :^ x \subset S -> 
-     exists2 c, c \in 'C_G(Y) & exists2 g, g \in 'N_G(S) & c * g = x.
+    forall G S (Y : {set gT}) x p, 
+    solvable G -> p.-Sylow(G) S -> p.-length_1 G ->
+    Y \subset S -> x \in G -> Y :^ x \subset S -> 
+  exists2 c, c \in 'C_G(Y) & exists2 g, g \in 'N_G(S) & c * g = x.
 Proof.
-move=> G S p solG psylS pl1G Y sYS x xG YxS. case/and3P: (psylS)=> sSG pgS _.
+move=> G S Y x p solG psylS pl1G sYS xG YxS. case/and3P: (psylS)=> sSG pgS _.
 have cop : coprime #|<<Y>>| #|'O_p^'(G)|.
   by rewrite (pnat_coprime (pgroupS _ pgS) (pcore_pgroup _ _)) ?gen_subG.
 have [_ defG] := (sol_Sylow_plength1_pseries_pcore solG psylS pl1G). 
@@ -323,14 +324,12 @@ by rewrite (subsetP (pcore_sub p^' G)) //= (subsetP (centS (sub_gen (subxx _))))
 Qed.
 
 (* 6.6(d) *)
-Lemma sol_Sylow_plength1_cent_conj: 
- forall G S : {group gT}, forall p : nat, 
-  solvable G -> p.-Sylow(G) S -> p.-length_1 G ->
-   forall Q : {group gT}, p.-subgroup(G) Q -> 
-    exists2 x, x \in 'C_G(Q :&: S) & Q :^ x \subset S. 
+Lemma sol_Sylow_plength1_cent_conj: forall G S (Q : {group gT}) p, 
+    solvable G -> p.-Sylow(G) S -> p.-length_1 G -> p.-subgroup(G) Q -> 
+  exists2 x, x \in 'C_G(Q :&: S) & Q :^ x \subset S. 
 Proof.
-move=> G S p solG psS pl1G.
-case: (sol_Sylow_plength1_pseries_pcore solG psS pl1G) => defOp'pG defG Q psgQ.
+move=> G S Q p solG psS pl1G.
+case: (sol_Sylow_plength1_pseries_pcore solG psS pl1G) => defOp'pG defG psgQ.
 have {pl1G} pl1G := plenght1_pSylow pl1G; have {psgQ} [sQG pgQ] := andP psgQ.
 pose M := 'O_p^'(G); have nMG : G \subset 'N(M) := char_norm (pcore_char _ _).
 have sMOp'p : M \subset 'O_{p^',p}(G) by rewrite /M -pseries1 pseries_sub_catl.
@@ -363,39 +362,14 @@ rewrite -normC ?mul_subG ?sub1set ?groupV ?(subsetP (normG _) x) //=.
 exact: (subsetP sSnOp').
 Qed.
 
-(* now unused, I'll wait to finish 7.5 before killing it *)
-Lemma in_pmaxElemE: 
-  forall S : {group gT},
-  forall p, prime p -> p.-group S -> forall E : {group gT},
-    (E \in 'E*_p(S)) = ([set x \in 'C_S(E) | x ^+ p == 1 ] == E).
-Proof.
-move=> S p pp pgS E; apply/idP/eqP. 
-  have pgSCE : p.-group 'C_S(E) by rewrite (pgroupS _ pgS) // subIset // subxx.
-  move=> Emax; rewrite -{2}(Ohm_cent Emax pgS) (OhmE 1 pgSCE) expn1. 
-  apply/eqP; rewrite eqEsubset sub_gen //= -(OhmE 1 pgSCE) (Ohm_cent _ pgS) //.
-  apply/subsetP=> e eE; rewrite in_set in_setI. 
-  case/pmaxElemP: Emax; case/pElemP=> sES; case/(abelemP pp)=> aE xp1 _.
-  by rewrite (subsetP sES) // (subsetP aE) // xp1 // eqxx.
-move=> defE; apply/pmaxElemP; split; last first. 
-  move=> H; case/pElemP=> sHS; case/(abelemP pp)=> aH Hp1 sEH. 
-  apply/eqP; rewrite eqEsubset sEH andbC /= -defE; apply/subsetP=> x xH.
-  by rewrite in_set in_setI (subsetP sHS) // Hp1 ?(subsetP (centsS _ aH)) ?eqxx.
-apply/pElemP; rewrite -defE; split.
-  by apply/subsetP=> x; rewrite in_set; case/andP;case/setIP.
-rewrite defE; apply/(abelemP pp); split.
-  rewrite /abelian -{1}defE; apply/subsetP=>x; rewrite in_set.
-  by case/andP; case/setIP.
-by move=>x; rewrite -defE in_set; case/andP=> _; move/eqP.
-Qed.
-
 End Six.
 
 (* 6.7 *)
 Lemma sol_plength1_odd_pamxElem_pcore : 
- forall gT : finGroupType, forall G E L: {group gT}, 
-  forall p : nat, solvable G -> p.-length_1 G -> odd p -> prime p -> 
-   E \in 'E*_p(G) -> p^'.-subgroup(G) L -> E \subset 'N(L) ->
-    L \subset 'O_p^'(G). 
+    forall (gT : finGroupType) (G E L: {group gT}) (p : nat), 
+    solvable G -> p.-length_1 G -> odd p -> prime p -> 
+    E \in 'E*_p(G) -> p^'.-subgroup(G) L -> E \subset 'N(L) ->
+  L \subset 'O_p^'(G). 
 Proof.
 move=> gT G E L p solG pl1G oddp pp Emax; case/andP=> sLG p'L nEL.
 wlog K1: gT G E L solG pl1G Emax sLG p'L nEL / 'O_p^'(G) = 1.
@@ -469,7 +443,7 @@ have cLS : L \subset 'C_G(S).
     by apply/pElemP; split; rewrite // (subset_trans _ sSG).
   apply/subsetP=> l lL; apply/centP=>e.
   rewrite in_set; case/andP; case/setIP=> eS eCE orde.
-  apply: (centsP cLE); rewrite // -(Ohm_cent maxES pgS) Ohm1Eprime.
+  apply: (centsP cLE); rewrite // -(Ohm_cent maxES) // Ohm1Eprime.
   apply/generatedP=> G0 P; apply: (subsetP P).
   by rewrite in_set in_setI eS eCE /= (eqP orde).
 have sLS : L \subset S.   

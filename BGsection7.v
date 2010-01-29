@@ -156,7 +156,6 @@ apply: solvableS (subsetIr _ _) (proper_minSimple_sol _).
 by rewrite proper_norm_minSimple.
 Qed.
 
-
 Definition max_groups := [set M : {group gT} | maximal M G].
 Definition max_supgroups (H : {set gT}) := [set M \in max_groups | H \subset M].
 Definition uniq_max_subgroups := [set U : {group gT} | #|max_supgroups U| <= 1].
@@ -634,11 +633,32 @@ Qed.
 
 End NormedConstrained.
 
+(* B&G 7.5(a). Since it is used in 10.10 under the assumption A \in E*_p(G), *)
+(* we avoid the in_pmaxElemE detour: A == [set x \in 'C_G(A) | x^+p == 1]    *)
+(* and state the assumptions in a slightly different way                     *)
 Lemma plenght_1_normed_constrained : forall p A,
-    A :!=: 1 -> A :=: [set x \in 'C(A) | x ^+ p == 1] ->
+    A :!=: 1 -> A \in 'E*_p(G) ->
     (forall M, M \proper G -> p.-length_1 M) ->
   normed_constrained A.
-Proof. Admitted. (* Requires B & G 6.7 *)
+Proof. 
+move=> p A ntA maxelemA pl1subG.
+case/pmaxElemP: (maxelemA);case/pElemP=> sAG; case/and3P=> pA cAA _ _. 
+have properA : A \proper G := (sub_proper_trans cAA (proper_cent_minSimple ntA)).
+exists=>// X Y sAX Xp nY.
+have pl1X := pl1subG _ Xp; have solX := proper_minSimple_sol Xp.
+have {nY} [p'Y nXA]: \pi(#|A|)^'.-subgroup(X) Y /\ A \subset 'N(Y).
+  by move: nY; rewrite in_set; move/andP.
+have [p_pr pdvA [r oApr]] := pgroup_pdiv pA ntA.
+have oddp : odd p by move: (minSimple_odd A); rewrite oApr odd_exp; case/orP.
+have def_pi: \pi(#|A|)^' =i p^'.
+  by apply: eq_negn=>p'; rewrite !inE oApr primes_exp // primes_prime ?inE.
+have {p'Y} p'Y : p^'.-subgroup(X) Y.
+  case/andP: p'Y=> sYS p'A; apply/andP; split=> //. 
+  by rewrite -(eq_pgroup _ def_pi).
+rewrite (eq_pcore _ def_pi); apply: sol_plength1_odd_pamxElem_pcore nXA => //.
+have := subsetP (pmaxElemS p (proper_sub Xp)) A; apply. (* ?? *)
+by apply/setIP; split; rewrite // inE.
+Qed.
 
 Lemma SCN_normed_constrained : forall p P A,
   p.-Sylow(G) P -> A \in 'SCN_2(P) -> normed_constrained A.
