@@ -284,51 +284,6 @@ Qed.
 
 End zprojp.
 
-Require Import prime poly.
-
-Section Pol.
-Variable pol : {poly relative}.
-
-Variable p : nat.
-Hypothesis primep: prime p.
-Variable i : nat.
-Variable a : relative.
-Variable P : {poly relative}.
-
-Notation "p %% n" := (zprojp n p).
-
-Let Pia := (P.[a])%R %% p^i.
-Let Pa' := ((deriv P).[a])%R %% p.
-
-Hypothesis Epia: Pia  = 0%R.
-Hypothesis Ep'a: Pa'  <> 0%R.
-
-Lemma Hensel: (P.[a - (P.[a] * pliftz (Pa'^-1))])%R %% p^i.+1  = 0%R.
-Proof.
-rewrite nderiv_taylor; last by apply: mulzC.
-rewrite (GRing.ringM_sum (zprojp_morph _)).
-change
-(\sum_i0
-    
-      (((nderivn P i0).[a] * (- (P.[a] * pliftz Pa'^-1)) ^+ i0))%R %%  (p ^ i.+1))%R  = 0%R
-
-rewrite /=.
-
-
-2: rewrite mulzC.
-Check deriv_def.
-
-Print Epia.
-Hypothesis Epia: zprojp (p^i) (P.[a])%R  = 0%R.
-
-(* Transforming to 'Z_p^i)
-
-
-{poly 'Z_p}.
-Check (fun pol => map_poly (zprojp p) pol). 
-
-Check (fun u => horner_morph zprojp u). 
-
 End Relatives.
 
 Definition relative := Relatives.relative.
