@@ -214,6 +214,8 @@ Qed.
 
 Canonical Structure z_iDomain := Eval hnf in IdomainType relative idomain_axiomz.
 
+Section zprojp.
+
 Variable p: nat.
 
 Lemma zprojp_compat : \compat1_relative _
@@ -269,6 +271,63 @@ by apply sym_eq;apply/eqP;
            modn_mulr -modn_add2m modn_mulml -[(_ * y)%%_]modn_mulmr modn_add2m
           -muln_addr subnK ?modn_mull // F1.
 Qed.
+
+Definition axiomn0: forall n, axiom (n,0).
+Proof. move=> *. exact: orbT. Qed.
+
+Definition pliftz (x: 'Z_p) := Relative (axiomn0 x).
+
+Lemma pliftz_zprojp: forall x, zprojp (pliftz x) = x.
+Proof.
+move=> [x Hx]; apply/val_eqP=> /=; by rewrite subn0 modn_addr modn_small.
+Qed.
+
+End zprojp.
+
+Require Import prime poly.
+
+Section Pol.
+Variable pol : {poly relative}.
+
+Variable p : nat.
+Hypothesis primep: prime p.
+Variable i : nat.
+Variable a : relative.
+Variable P : {poly relative}.
+
+Notation "p %% n" := (zprojp n p).
+
+Let Pia := (P.[a])%R %% p^i.
+Let Pa' := ((deriv P).[a])%R %% p.
+
+Hypothesis Epia: Pia  = 0%R.
+Hypothesis Ep'a: Pa'  <> 0%R.
+
+Lemma Hensel: (P.[a - (P.[a] * pliftz (Pa'^-1))])%R %% p^i.+1  = 0%R.
+Proof.
+rewrite nderiv_taylor; last by apply: mulzC.
+rewrite (GRing.ringM_sum (zprojp_morph _)).
+change
+(\sum_i0
+    
+      (((nderivn P i0).[a] * (- (P.[a] * pliftz Pa'^-1)) ^+ i0))%R %%  (p ^ i.+1))%R  = 0%R
+
+rewrite /=.
+
+
+2: rewrite mulzC.
+Check deriv_def.
+
+Print Epia.
+Hypothesis Epia: zprojp (p^i) (P.[a])%R  = 0%R.
+
+(* Transforming to 'Z_p^i)
+
+
+{poly 'Z_p}.
+Check (fun pol => map_poly (zprojp p) pol). 
+
+Check (fun u => horner_morph zprojp u). 
 
 End Relatives.
 
