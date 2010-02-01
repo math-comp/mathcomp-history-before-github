@@ -2521,7 +2521,7 @@ let mk_upat env sigma0 ise t ok p =
       if Evd.mem sigma0 k then KpatEvar k, f, a else
       if a = [] then raise UndefPat else KpatFlex, f, a
     | LetIn (_, v, _, b) ->
-      if b != mkRel 1 then KpatLet, f, a else KpatFlex, v, a
+      if b <> mkRel 1 then KpatLet, f, a else KpatFlex, v, a
     | _ -> KpatRigid, f, a in
   let aa = Array.of_list a in
   let ise', p' = evars_for_FO env sigma0 !ise (mkApp (f, aa)) in
@@ -4556,23 +4556,30 @@ END
 (* export the non-terminals we need to patch. Fortunately, the CamlP5  *)
 (* API provides a backdoor access (with loads of Obj.magic trickery).  *)
 
+(* Coq v8.3 defines "by" as a keyword, some hacks are not needed any   *)
+(* longer and thus comment out. Such comments are marked with v8.3     *)
+
 let tac_ent = List.fold_left Grammar.Entry.find (Obj.magic simple_tactic) in
 let hypident_ent =
   tac_ent ["clause_dft_all"; "in_clause"; "hypident_occ"; "hypident"] in
 let id_or_meta : Obj.t Gram.Entry.e = Obj.magic
    (Grammar.Entry.find hypident_ent "id_or_meta") in
+(*v8.3
 let by_tactic : raw_tactic_expr Gram.Entry.e = Obj.magic
   (tac_ent ["by_tactic"]) in
 let opt_by_tactic : raw_tactic_expr option Gram.Entry.e = Obj.magic
   (tac_ent ["opt_by_tactic"]) in
+*)
 let hypident : (Obj.t * hyp_location_flag) Gram.Entry.e =
    Obj.magic hypident_ent in
 GEXTEND Gram
-  GLOBAL: opt_by_tactic by_tactic hypident;
+  GLOBAL: (*v8.3 opt_by_tactic by_tactic*) hypident;
+(*v8.3
 opt_by_tactic: [
   [ "by"; tac = tactic_expr LEVEL "3" -> Some tac ] ];
 by_tactic: [
   [ "by"; tac = tactic_expr LEVEL "3" -> TacComplete tac ] ];
+*)
 hypident: [
   [ "("; IDENT "type"; "of"; id = id_or_meta; ")" -> id, InHypTypeOnly
   | "("; IDENT "value"; "of"; id = id_or_meta; ")" -> id, InHypValueOnly
@@ -4580,17 +4587,20 @@ hypident: [
 END
 
 GEXTEND Gram
-  GLOBAL: hloc by_arg_tac;
+  GLOBAL: hloc (*v8.3 by_arg_tac*);
 hloc: [
   [ "in"; "("; "Type"; "of"; id = ident; ")" -> 
     HypLocation ((Util.dummy_loc,id), InHypTypeOnly)
   | "in"; "("; IDENT "Value"; "of"; id = ident; ")" -> 
     HypLocation ((Util.dummy_loc,id), InHypValueOnly)
   ] ];
+(*v8.3
 by_arg_tac: [
   [ "by"; tac = tactic_expr LEVEL "3" -> Some tac ] ];
+*)
 END
 
+(*v8.3
 open Rewrite
  
 let pr_ssrrelattr prc _ _ (a, c) = pr_id a ++ str " proved by " ++ prc c
@@ -4626,3 +4636,4 @@ VERNAC COMMAND EXTEND SsrAddParametricRelation
          constr(d) constr(deq) ssrrelattr_list(al) "as" ident(n) ]
  -> [ ssr_add_relation n d b deq None None None al ]
 END
+*)
