@@ -442,7 +442,7 @@ Section ScalarMatrix.
 
 Variables (F : fieldType) (n m : nat).
 
-Definition is_scalar_mx (A : 'M[F]_n) := (mxvec A <= mxvec 1%:M)%MR.
+Definition is_scalar_mx (A : 'M[F]_n) := (mxvec A <= mxvec 1%:M)%MS.
 
 Lemma is_scalar_mxP : forall A, reflect (exists a, A = a%:M) (is_scalar_mx A).
 Proof.
@@ -458,13 +458,13 @@ Lemma mx0_is_scalar : is_scalar_mx 0.
 Proof. by rewrite /is_scalar_mx linear0 subset0mx. Qed.
 
 Lemma has_non_scalar_mxP : forall E : 'M_(m, n * n), 
-  reflect (exists2 A, mxvec A <= E & ~~ is_scalar_mx A)%MR
-          ((mxvec 1%:M <= E)%MR < \rank E).
+  reflect (exists2 A, mxvec A <= E & ~~ is_scalar_mx A)%MS
+          ((mxvec 1%:M <= E)%MS < \rank E).
 Proof.
 move=> E; case: (eqVneq E 0) => [-> | nzE].
   rewrite mxrank0; right=> [[A]];  case/subsetmxP=> D; move/(canRL mxvecK)->.
   by rewrite !linear0 mx0_is_scalar.
-case E_1: (_ <= E)%MR => /=; last first.
+case E_1: (_ <= E)%MS => /=; last first.
   rewrite lt0n mxrank_eq0 nzE; left.
   case/rowV0Pn: nzE => v svE nzv; exists (vec_mx v); first by rewrite vec_mxK.
   apply/is_scalar_mxP=> [[a]]; move/(canRL vec_mxK) => def_v; case/idP: E_1.
@@ -504,7 +504,7 @@ Definition cent_mx := kermx (lin_mx cent_mx_fun).
 
 Lemma subset_cent_rowP : forall B,
   reflect (forall i (A := vec_mx (row i E)), A *m B = B *m A)
-          (mxvec B <= cent_mx)%MR.
+          (mxvec B <= cent_mx)%MS.
 Proof.
 move=> B; apply: (iffP subsetmx_kerP); rewrite mul_vec_lin => cBE.
   move/(canRL mxvecK): cBE => cBE i A /=; move/(congr1 (row i)): cBE.
@@ -515,8 +515,8 @@ by rewrite row_mul mul_rV_lin /= cBE subrr !linear0.
 Qed.
 
 Lemma subset_cent_mxP : forall B,
-  reflect (forall A, mxvec A <= E -> A *m B = B *m A)%MR
-          (mxvec B <= cent_mx)%MR.
+  reflect (forall A, mxvec A <= E -> A *m B = B *m A)%MS
+          (mxvec B <= cent_mx)%MS.
 Proof.
 move=> B; apply: (iffP (subset_cent_rowP B)) => cEB => [A sAE | i A].
   rewrite -[A]mxvecK -(mulmxKpV sAE); move: (mxvec A *m _) => u.
@@ -525,7 +525,7 @@ move=> B; apply: (iffP (subset_cent_rowP B)) => cEB => [A sAE | i A].
 by rewrite cEB // vec_mxK row_sub.
 Qed.
 
-Lemma scalar_mx_cent : forall a, (mxvec a%:M <= cent_mx)%MR.
+Lemma scalar_mx_cent : forall a, (mxvec a%:M <= cent_mx)%MS.
 Proof. by move=> a; apply/subset_cent_mxP=> A _; exact: scalar_mxC. Qed.
 
 End CentMx.
@@ -651,13 +651,13 @@ move/(_ d'); move/implyP; rewrite ltnn implybF -ltnS ltn_neqAle.
 by rewrite rank_leq_row andbT negbK.
 Qed.
 
-Lemma horner_mx_sub : forall p, (mxvec (horner_mx p) <= Ad)%MR.
+Lemma horner_mx_sub : forall p, (mxvec (horner_mx p) <= Ad)%MS.
 Proof.
 apply:poly_ind=> [|p a IHp]; first by rewrite ringM_0 // linear0 subset0mx.
 rewrite ringM_add // ringM_mul // horner_mx_C horner_mx_X.
 rewrite addrC -scalemx1 linearP /= -(mul_vec_lin (mulmxr_linear _ A)).
 case/subsetmxP: IHp => u ->{i}.
-have: (minpoly_mx (1 + d) <= Ad)%MR.
+have: (minpoly_mx (1 + d) <= Ad)%MS.
   rewrite -(geq_leqif (mxrank_leqif_sup _)).
     by rewrite (eqnP minpoly_mx_free) /d; case: ex_minnP.
   rewrite addnC; apply/row_subP=> {i}i.
@@ -675,7 +675,7 @@ Lemma mx_inv_horner0 :  mx_inv_horner 0 = 0.
 Proof. by rewrite /mx_inv_horner linear0 mul0mx rVpoly0. Qed.
 
 Lemma mx_inv_hornerK : forall B,
-  (mxvec B <= Ad)%MR -> horner_mx (mx_inv_horner B) = B.
+  (mxvec B <= Ad)%MS -> horner_mx (mx_inv_horner B) = B.
 Proof. by move=> B sBAd; rewrite horner_rVpoly mulmxKpV ?mxvecK. Qed.
 
 Definition mxminpoly := 'X^d - mx_inv_horner (A ^+ d).
@@ -803,7 +803,7 @@ Definition rfix_mx :=
   kermx (lin1_mx (mxvec \o (add_lin rfix_mx_fun (-%R \o mulmx (const_mx 1))))).
 
 Lemma subsetmx_rfixP : forall m (W : 'M_(m, n)),
-  reflect (forall x, x \in G -> W *m rG x = W) (W <= rfix_mx)%MR.
+  reflect (forall x, x \in G -> W *m rG x = W) (W <= rfix_mx)%MS.
 Proof.
 move=> m W; apply: (iffP subsetmx_kerP) => [cWG x Gx | cWG].
   apply/row_matrixP=> i; move/row_matrixP: cWG; move/(_ i).
@@ -822,7 +822,7 @@ Section Stabilisers.
 Variables (m : nat) (U : 'M[F]_(m, n)).
 
 Definition rstab := [set x \in G | U *m rG x == U].
-Definition rstabs := [set x \in G | U *m rG x <= U]%MR.
+Definition rstabs := [set x \in G | U *m rG x <= U]%MS.
 
 Lemma rstab_sub : rstab \subset G.
 Proof. by apply/subsetP=> x; case/setIdP. Qed.
@@ -847,14 +847,14 @@ Qed.
 Canonical Structure rstab_group := Group rstab_group_set.
 
 Lemma rstab_act : forall x m1 (W : 'M_(m1, n)),
-  x \in rstab -> (W <= U)%MR -> W *m rG x = W.
+  x \in rstab -> (W <= U)%MS -> W *m rG x = W.
 Proof.
 move=> x m1 W; case/setIdP=> _; move/eqP=> cUx.
 by case/subsetmxP=> w ->; rewrite -mulmxA cUx.
 Qed.
 
 Lemma rstabs_act : forall x m1 (W : 'M_(m1, n)),
-  x \in rstabs -> (W <= U)%MR -> (W *m rG x <= U)%MR.
+  x \in rstabs -> (W <= U)%MS -> (W *m rG x <= U)%MS.
 Proof.
 move=> x m1 W; case/setIdP=> _ nUx sWU; apply: subsetmx_trans nUx.
 exact: subsetmxMr.
@@ -862,19 +862,19 @@ Qed.
 
 End Stabilisers.
 
-Lemma rstabS : forall m1 m2 U V, (U <= V)%MR -> @rstab m2 V \subset @rstab m1 U.
+Lemma rstabS : forall m1 m2 U V, (U <= V)%MS -> @rstab m2 V \subset @rstab m1 U.
 Proof.
 move=> m1 m2 U V; case/subsetmxP=> u ->; apply/subsetP=> x; rewrite !inE.
 by case/andP=> -> /= cVx; rewrite -mulmxA (eqP cVx).
 Qed.
 
-Lemma eqmx_rstab : forall m1 m2 U V, (U :=: V)%MR -> @rstab m1 U = @rstab m2 V.
+Lemma eqmx_rstab : forall m1 m2 U V, (U :=: V)%MS -> @rstab m1 U = @rstab m2 V.
 Proof.
 by move=> m1 m2 U V eqUV; apply/eqP; rewrite eqEsubset !rstabS ?eqUV.
 Qed.
 
 Lemma eqmx_rstabs : forall m1 m2 U V,
-  (U :=: V)%MR -> @rstabs m1 U = @rstabs m2 V.
+  (U :=: V)%MS -> @rstabs m1 U = @rstabs m2 V.
 Proof.
 by move=> m1 m2 U V eqUV; apply/setP=> x; rewrite !inE eqUV (eqmxMr _ eqUV).
 Qed.
@@ -905,7 +905,7 @@ apply: (iffP subsetP) => cGU x Gx;
   by have:= cGU x Gx; rewrite !inE Gx /=; move/eqP.
 Qed.
 
-Lemma subsetmx_cent_envelop : (mxvec U <= cent_mx E_G)%MR = centgmx.
+Lemma subsetmx_cent_envelop : (mxvec U <= cent_mx E_G)%MS = centgmx.
 Proof.
 apply/subset_cent_rowP/centgmxP=> [cUG x Gx | cUG i].
   by have [i ->] := row_envelopI Gx; rewrite cUG.
@@ -914,7 +914,7 @@ Qed.
 
 Definition submodmx := G \subset rstabs U.
 
-Lemma submodmxP : reflect (forall x, x \in G -> U *m rG x <= U)%MR submodmx.
+Lemma submodmxP : reflect (forall x, x \in G -> U *m rG x <= U)%MS submodmx.
 Proof.
 by apply: (iffP subsetP) => modU x Gx; have:= modU x Gx; rewrite !inE ?Gx.
 Qed.
@@ -925,7 +925,7 @@ Definition in_submod m : 'M_(m, n) -> 'M_(m, \rank U) :=
 Canonical Structure val_submod_linear m := [linear of @val_submod m].
 Canonical Structure in_submod_linear m := [linear of @in_submod m].
 
-Lemma val_submodP : forall m W, (@val_submod m W <= U)%MR.
+Lemma val_submodP : forall m W, (@val_submod m W <= U)%MS.
 Proof. by move=> m W; rewrite subsetmxMtrans ?eq_row_base. Qed.
 
 Lemma val_submodK : forall m, cancel (@val_submod m) (@in_submod m).
@@ -938,20 +938,20 @@ Lemma val_submod_inj : forall m, injective (@val_submod m).
 Proof. move=> m; exact: can_inj (@val_submodK m). Qed.
 
 Lemma val_submodS : forall m1 m2 (V : 'M_(m1, \rank U)) (W : 'M_(m2, \rank U)),
-  (val_submod V <= val_submod W)%MR = (V <= W)%MR.
+  (val_submod V <= val_submod W)%MS = (V <= W)%MS.
 Proof.
 move=> m1 m2 V W; apply/idP/idP=> sVW; last exact: subsetmxMr.
 by rewrite -[V]val_submodK -[W]val_submodK subsetmxMr.
 Qed.
 
-Lemma in_submodK : forall m W, (W <= U)%MR -> val_submod (@in_submod m W) = W.
+Lemma in_submodK : forall m W, (W <= U)%MS -> val_submod (@in_submod m W) = W.
 Proof.
 move=> m W; case/subsetmxP=> w ->; rewrite /val_submod /= -!mulmxA.
 congr (_ *m _); rewrite -{1}[U]mulmx_ebase !mulmxA mulmxK ?row_ebase_unit //.
 by rewrite -2!(mulmxA (col_ebase U)) !pid_mx_id ?rank_leq_row // mulmx_ebase.
 Qed.
 
-Lemma in_submod_eq0 : forall m W, (@in_submod m W == 0) = (W <= U^C)%MR.
+Lemma in_submod_eq0 : forall m W, (@in_submod m W == 0) = (W <= U^C)%MS.
 Proof.
 move=> m W; apply/eqP/subsetmxP=> [W_U0 | [w ->{W}]].
   exists (W *m invmx (row_ebase U)).
@@ -968,7 +968,7 @@ Definition in_factmod m : 'M_(m, n) -> _ := mulmxr (col_base (cokermx U)).
 Canonical Structure val_factmod_linear m := [linear of @val_factmod m].
 Canonical Structure in_factmod_linear m := [linear of @in_factmod m].
 
-Lemma val_factmodP : forall m W, (@val_factmod m W <= U^C)%MR.
+Lemma val_factmodP : forall m W, (@val_factmod m W <= U^C)%MS.
 Proof.
 move=> m W; rewrite subsetmxMtrans {m W}// -[_ *m _]mul1mx.
 case/row_fullP: (col_base_full (cokermx U)) => Uc' <-.
@@ -981,7 +981,7 @@ move=> m W /=; rewrite /in_factmod /=; set Uc := cokermx U.
 case/row_freeP: (row_base_free Uc) => Uc' UcK; rewrite -{1}[_ *m _]mulmx1 -UcK.
 rewrite -mulmxA (mulmxA _ _ Uc') mulmx_base -2!mulmxA.
 rewrite -(mulmxA _ _ Uc') mulKVmx ?row_ebase_unit //.
-have: (row_base Uc <= Uc)%MR by rewrite eq_row_base.
+have: (row_base Uc <= Uc)%MS by rewrite eq_row_base.
 case/subsetmxP=> u defUcr; rewrite defUcr -mulmxA (mulmxA Uc) -[Uc *m _]mulmxA.
 by rewrite copid_mx_id ?rank_leq_row // (mulmxA u) -defUcr UcK mulmx1.
 Qed.
@@ -990,21 +990,21 @@ Lemma val_factmod_inj : forall m, injective (@val_factmod m).
 Proof. move=> m; exact: can_inj (@val_factmodK m). Qed.
 
 Lemma val_factmodS : forall m1 m2 (V : 'M_(m1, _)) (W : 'M_(m2, _)),
-  (val_factmod V <= val_factmod W)%MR = (V <= W)%MR.
+  (val_factmod V <= val_factmod W)%MS = (V <= W)%MS.
 Proof.
 move=> m1 m2 V W; apply/idP/idP=> sVW; last exact: subsetmxMr.
 by rewrite -[V]val_factmodK -[W]val_factmodK subsetmxMr.
 Qed.
 
 Lemma in_factmod_eq0 : forall m (W : 'M_(m, n)),
-  (in_factmod W == 0) = (W <= U)%MR.
+  (in_factmod W == 0) = (W <= U)%MS.
 Proof.
-move=> m W; unlock subsetmx; rewrite -!mxrank_eq0 -{2}[_ U]mulmx_base mulmxA.
+move=> m W; rewrite subsetmxE -!mxrank_eq0 -{2}[_ U]mulmx_base mulmxA.
 by rewrite (mxrankMfree _ (row_base_free _)).
 Qed.
 
 Lemma in_factmodK : forall m (W : 'M_(m, n)),
-  (W <= U^C)%MR -> val_factmod (in_factmod W) = W.
+  (W <= U^C)%MS -> val_factmod (in_factmod W) = W.
 Proof.
 move=> m W; case/subsetmxP=> w ->{W}; rewrite /val_factmod /= -2!mulmxA.
 congr (_ *m _); rewrite (mulmxA (col_base _)) mulmx_base -2!mulmxA.
@@ -1030,7 +1030,7 @@ Definition factmod_mx of submodmx :=
 Hypothesis Umod : submodmx.
 
 Lemma in_submodJ : forall m (W : 'M_(m, n)) x,
-  (W <= U)%MR -> in_submod (W *m rG x) = in_submod W *m submod_mx Umod x.
+  (W <= U)%MS -> in_submod (W *m rG x) = in_submod W *m submod_mx Umod x.
 Proof.
 by move=> m W x sWU; rewrite mulmxA (mulmxA _ _ (rG x)) -{1}(in_submodK sWU).
 Qed.
@@ -1086,7 +1086,7 @@ Qed.
 
 Lemma mx_Maeshke : forall U,
     [char F]^'.-group G -> submodmx U ->
-  {W : 'M_n | [/\ submodmx W, row_full (U :+: W) & U :&: W = 0]}%MR.
+  {W : 'M_n | [/\ submodmx W, row_full (U + W)%MS & (U :&: W)%MS = 0]}.
 Proof.
 rewrite /pgroup charf'_nat; set nG := _%:R => U nzG; move/submodmxP=> Umod.
 pose phi := nG^-1 *m: (\sum_(x \in G) rG x^-1 *m pinvmx U *m U *m rG x).
@@ -1099,14 +1099,14 @@ have Uphi: U *m phi = U.
   rewrite -scalemxAr mulmx_sumr (eq_bigr (fun _ => U)) => [|x Gx].
     by rewrite sumr_const -scalemx_nat scalemxA mulVf ?scale1mx.
   by rewrite 3!mulmxA mulmxKpV ?repr_mxKV ?Umod ?groupV.
-have tiUker: (U :&: kermx phi = 0)%MR.
+have tiUker: (U :&: kermx phi = 0)%MS.
   apply/eqP; apply/rowV0P=> v; rewrite sub_capmx; case/andP.
   by case/subsetmxP=> u ->; move/subsetmx_kerP; rewrite -mulmxA Uphi.
 exists (kermx phi); split=> //.
   apply/submodmxP=> x Gx; apply/subsetmx_kerP.
   by rewrite -mulmxA -phiG // mulmxA mulmx_ker mul0mx.
-rewrite /row_full mxrank_direct_sum // mxrank_ker.
-suffices ->: (U :=: phi)%MR by rewrite subnKC ?rank_leq_row.
+rewrite /row_full mxrank_disjoint_sum // mxrank_ker.
+suffices ->: (U :=: phi)%MS by rewrite subnKC ?rank_leq_row.
 apply/eqmxP; rewrite -{1}Uphi subsetmxMl subsetmx_scale //.
 by rewrite subsetmx_sum // => x Gx; rewrite -mulmxA subsetmxMtrans ?Umod.
 Qed.
@@ -1207,27 +1207,27 @@ by rewrite linearZ /= subsetmx_scale // (submodmxP _ Umod).
 Qed.
 
 Lemma decide_mx_Jacobson_density :
-  (cent_mx (cent_mx E_G) <= E_G)%MR + mx_reducible.
+  (cent_mx (cent_mx E_G) <= E_G)%MS + mx_reducible.
 Proof.
-have Emod: forall x, x \in G -> (E_G *m lin_mx (mulmxr (rG x)) <= E_G)%MR.
+have Emod: forall x, x \in G -> (E_G *m lin_mx (mulmxr (rG x)) <= E_G)%MS.
   move=> x Gx; apply/row_subP=> i; rewrite row_mul mul_rV_lin /=.
   case: (row_envelopE i) => y Gy ->{i}; rewrite mxvecK -repr_mxM //.
   by case: (row_envelopI (groupM Gy Gx)) => i ->; rewrite vec_mxK row_sub.
 pose pB (I : {set 'I_n}) : 'M[F]_n := \sum_(i \in I) delta_mx i i.
 pose pK I := kermx (lin_mx (mulmx (pB I)) : 'M_(n * n)).
-have pKmod: forall I A, (pK I *m lin_mx (mulmxr A) <= pK I)%MR.
+have pKmod: forall I A, (pK I *m lin_mx (mulmxr A) <= pK I)%MS.
   move=> I A; apply/row_subP=> i; rewrite row_mul mul_rV_lin /=.
   apply/subsetmx_kerP; move/subsetmx_kerP: (row_sub i (pK I)).
   rewrite mul_vec_lin /= mulmxA mul_rV_lin /=; move/(canRL mxvecK) => ->.
   by rewrite !(linear0, mul0mx).
-pose pE' I := \rank (E_G :&: pK I)%MR <= 0.
+pose pE' I := \rank (E_G :&: pK I)%MS <= 0.
 have: exists I, pE' I; last do [case/ex_minset=> I; case/minsetP=> pE'_I Imin].
   exists setT; apply: leq_trans (mxrankS (capmxSr _ _)) _ => /=.
   rewrite mxrank_ker (_ : lin_mx _ = 1%:M) ?mxrank1 ?subnn //.
   apply/row_matrixP=> u; rewrite rowE mul_rV_lin row1 /=.
   by rewrite [pB _](eq_bigl _ _ (@in_setT _)) -mx1_sum_delta mul1mx vec_mxK.
-case sub1EI: (1%:M <= E_G :+: pK I)%MR; [left | right=> _].
-  move: sub1EI; rewrite eqmx_gsum; case/subsetmxP=> EI'.
+case sub1EI: (1%:M <= E_G + pK I)%MS; [left | right=> _].
+  move: sub1EI; rewrite sumsmxE; case/subsetmxP=> EI'.
   rewrite -[EI']hsubmxK mul_row_col; move/(canLR (addrK _)).
   set E' := _ - _ => defE'.
   apply/row_subP=> iB; rewrite -[row iB _]vec_mxK; set B := vec_mx _.
@@ -1265,17 +1265,17 @@ case sub1EI: (1%:M <= E_G :+: pK I)%MR; [left | right=> _].
   rewrite row_mul -![row j _](mul_rV_lin1 [linear of fE' i j]).
   by rewrite -!mulmxA cBfE'.
 case/row_subPn: sub1EI; case/mxvec_indexP=> i0 j0; rewrite row1 -mxvec_delta.
-set u := mxvec _ => nEIu; pose W := (E_G :&: pK (I :\ i0))%MR.
+set u := mxvec _ => nEIu; pose W := (E_G :&: pK (I :\ i0))%MS.
 have Ii0: i0 \in I.
-  apply: contraR nEIu => nIi0; apply: subsetmx_trans (gsummxSr _ _).
+  apply: contraR nEIu => nIi0; apply: subsetmx_trans (sumsmxSr _ _).
   apply/subsetmx_kerP; rewrite mul_vec_lin /= mulmx_suml big1 ?linear0 //.
   by move=> i Ii; rewrite mul_delta_mx_cond; case: eqP Ii nIi0 => // -> ->.
 pose fU : 'rV[F]_(n * n) -> 'rV_n := row i0 \o vec_mx.
-pose U := W *m lin1_mx fU; exists <<U>>%MR; rewrite eqmx_gen; apply/andP; split.
-  apply/submodmxP=> x Gx; rewrite eqmx_gen (eqmxMr _ (eqmx_gen U)).
+pose U := W *m lin1_mx fU; exists <<U>>%MS; rewrite genmxE; apply/andP; split.
+  apply/submodmxP=> x Gx; rewrite genmxE (eqmxMr _ (genmxE U)).
   apply/row_subP=> iG; rewrite 2!row_mul mul_rV_lin1 /= !rowE.
   rewrite -mulmxA -[_ *m rG x](mx_rV_lin (mulmxr_linear _ _)) /=.
-  have: (W *m lin_mx (mulmxr (rG x)) <= W)%MR.
+  have: (W *m lin_mx (mulmxr (rG x)) <= W)%MS.
     by apply: subsetmx_trans (capmxMr _ _ _) (capmxS _ _); rewrite ?Emod.
   rewrite -mulmxA; case/subsetmxP=> w ->; rewrite mulmxA -!rowE.
   by rewrite -[row _ _](mul_rV_lin1 [linear of fU]) -mulmxA subsetmxMl.
@@ -1295,7 +1295,7 @@ rewrite ltnNge col_leq_rank; apply: contra nEIu; case/row_fullP=> U' U'U1.
 set v : 'rV_(n * n) := delta_mx 0 j0 *m U' *m W.
 have ->: u = row_mx 1 1 *m col_mx v (u - v).
   by rewrite mul_row_col !mul1mx addrC subrK.
-rewrite subsetmxMtrans // -eqmx_gsum gsummxS //.
+rewrite subsetmxMtrans // -sumsmxE sumsmxS //.
   by rewrite !(capmxSl, subsetmxMtrans).
 apply/subsetmx_kerP; rewrite mul_rV_lin //= [pB _](big_setD1 i0) //= -/(pB _).
 apply: (canLR vec_mxK); rewrite mulmx_addl linear0 !linearD !linearN /=.
@@ -1307,7 +1307,7 @@ rewrite mxvecK !mul_delta_mx subrr add0r mulmx_suml big1 ?add0r => [|i'].
 by case/setD1P=> ne_i'i _; rewrite mul_delta_mx_0.
 Qed.
 
-Lemma mx_Jacobson_density : mx_irreducible -> (cent_mx (cent_mx E_G) <= E_G)%MR.
+Lemma mx_Jacobson_density : mx_irreducible -> (cent_mx (cent_mx E_G) <= E_G)%MS.
 Proof. by case decide_mx_Jacobson_density. Qed.
 
 Lemma cent_mx_scalar_abs_irr :
@@ -1337,7 +1337,7 @@ by split=> [|x y Hx Hy]; rewrite (repr_mx1, repr_mxM) ?(subsetP sHG).
 Qed.
 Definition subg_repr := MxRepresentation subg_mx_repr.
 
-Lemma rfix_subg : (rfix_mx rG <= rfix_mx subg_repr)%MR.
+Lemma rfix_subg : (rfix_mx rG <= rfix_mx subg_repr)%MS.
 Proof.
 apply/row_subP=> i; apply/subsetmx_rfixP => /= x; move/(subsetP sHG); move: x.
 by apply/subsetmx_rfixP; exact: row_sub.
@@ -1374,7 +1374,7 @@ Variables (rG : mx_representation G n) (U : 'M[F]_n) (Umod : submodmx rG U).
 Local Notation rU := (submod_repr Umod).
 Local Notation rU' := (factmod_repr Umod).
 
-Lemma rfix_submod : (rfix_mx rU :=: in_submod U (U :&: rfix_mx rG))%MR.
+Lemma rfix_submod : (rfix_mx rU :=: in_submod U (U :&: rfix_mx rG))%MS.
 Proof.
 apply/eqmxP; apply/andP; split.
   rewrite -[rfix_mx _]val_submodK subsetmxMr // sub_capmx val_submodP.
@@ -1384,7 +1384,7 @@ apply/subsetmx_rfixP=> x Gx; rewrite -in_submodJ ?capmxSl //.
 by rewrite (subsetmx_rfixP rG _ _) ?capmxSr.
 Qed.
 
-Lemma rfix_factmod_mx : (in_factmod U (rfix_mx rG) <= rfix_mx rU')%MR.
+Lemma rfix_factmod_mx : (in_factmod U (rfix_mx rG) <= rfix_mx rU')%MS.
 Proof.
 apply/subsetmx_rfixP=> x Gx; rewrite -(in_factmodJ Umod) //.
 by rewrite (subsetmx_rfixP rG _ _).
@@ -1412,16 +1412,16 @@ by rewrite inE Gx -in_factmodJ //= cUW.
 Qed.
 
 Lemma rstabs_factmod : forall m (W : 'M_(m, \rank (cokermx U))),
-  rstabs rU' W = rstabs rG (U :+: val_factmod W)%MR.
+  rstabs rU' W = rstabs rG (U + val_factmod W)%MS.
 Proof.
 move=> m W; apply/setP=> x; rewrite !inE; case Gx: (x \in G) => //=.
-rewrite gsummxMr gsummx_sub (subsetmx_trans _ (gsummxSl _ _)) /=; last first.
+rewrite sumsmxMr sumsmx_sub (subsetmx_trans _ (sumsmxSl _ _)) /=; last first.
   by move/submodmxP: Umod; apply.
 rewrite -[_ *m rG x](sum_sub_fact_mod U) -val_factmodS val_factmodJ //.
 apply/idP/idP=> nWx.
-  rewrite subsetmx_add // ?(subsetmx_trans nWx) ?gsummxSr //.
-  by rewrite (subsetmx_trans _ (gsummxSl _ _)) ?val_submodP.
-case/sub_gsummxP: nWx => W'; set U' := val_submod _; set W'' := val_factmod _.
+  rewrite subsetmx_add // ?(subsetmx_trans nWx) ?sumsmxSr //.
+  by rewrite (subsetmx_trans _ (sumsmxSl _ _)) ?val_submodP.
+case/sub_sumsmxP: nWx => W'; set U' := val_submod _; set W'' := val_factmod _.
 move=> sU'U sW'W; suff: W'' == W' by move/eqP->.
 rewrite -subr_eq0 -subsetmx0 -(capmx_compl U) sub_capmx andbC.
 rewrite subsetmx_add ?eqmx_opp ?(subsetmx_trans sW'W) ?val_factmodP //.
@@ -1508,7 +1508,7 @@ Proof. by []. Qed.
 Lemma rconj_mxJ : forall m (W : 'M_(m, n)) x, W *m rGB x *m B = W *m B *m rG x.
 Proof. by move=> m W x; rewrite !mulmxA mulmxKV. Qed.
 
-Lemma rfix_conj : (rfix_mx rGB :=: B *m rfix_mx rG *m invmx B)%MR.
+Lemma rfix_conj : (rfix_mx rGB :=: B *m rfix_mx rG *m invmx B)%MS.
 Proof.
 apply/eqmxP; apply/andP; split.
   rewrite -mulmxA (eqmxMfull (_ *m _)) ?row_full_unit //.
@@ -1593,7 +1593,7 @@ Lemma quo_repr_coset : forall x, x \in G -> rGH (coset H x) = rG x.
 Proof. exact: quo_mx_coset. Qed.
 
 Lemma quo_mx_quotient :
-  (enveloping_algebra_mx rGH :=: enveloping_algebra_mx rG)%MR.
+  (enveloping_algebra_mx rGH :=: enveloping_algebra_mx rG)%MS.
 Proof.
 apply/eqmxP; apply/andP; split; apply/row_subP=> i.
   case: (row_envelopE rGH i) => Hx; case/morphimP=> x _ Gx ->{Hx} ->{i}.
@@ -1604,7 +1604,7 @@ have: coset H x \in (G / H)%g by rewrite mem_quotient.
 by case/(row_envelopI rGH) => i ->; rewrite vec_mxK row_sub.
 Qed.
 
-Lemma rfix_quo : (rfix_mx rGH :=: rfix_mx rG)%MR.
+Lemma rfix_quo : (rfix_mx rGH :=: rfix_mx rG)%MS.
 Proof.
 apply/eqmxP; apply/andP; (split; apply/subsetmx_rfixP) => [x Gx | Hx].
   rewrite -quo_mx_coset //.
@@ -1850,15 +1850,15 @@ by rewrite (morphAnd (@qf_form _)) ?big1 //= => r _; rewrite !mxrank_form_qf.
 Qed.
 
 Lemma eval_subsetmx : forall e,
-  qf_eval e subsetmx_form = (eval_mx e A <= eval_mx e B)%MR.
+  qf_eval e subsetmx_form = (eval_mx e A <= eval_mx e B)%MS.
 Proof.
 move=> e; rewrite (morphAnd (qf_eval e)) //= big_andE /=.
 apply/forallP/idP=> [|sAB d]; last first.
-  rewrite !eval_mxrank eval_col_mx -eqmx_gsum; apply/implyP; move/eqP <-.
-  by rewrite mxrank_leqif_sup ?gsummxSr // gsummx_sub sAB /=.
+  rewrite !eval_mxrank eval_col_mx -sumsmxE; apply/implyP; move/eqP <-.
+  by rewrite mxrank_leqif_sup ?sumsmxSr // sumsmx_sub sAB /=.
 move/(_ (inord (\rank (eval_mx e (col_mx A B))))).
 rewrite inordK ?ltnS ?rank_leq_col // !eval_mxrank eqxx /= eval_col_mx.
-by rewrite -eqmx_gsum mxrank_leqif_sup ?gsummxSr // gsummx_sub; case/andP.
+by rewrite -sumsmxE mxrank_leqif_sup ?sumsmxSr // sumsmx_sub; case/andP.
 Qed.
 
 End Subsetmx.
@@ -2422,8 +2422,8 @@ have rBj: \rank Bj = d.
   move/(congr1 (mulmx^~ (mxval x^-1))); rewrite mul0mx /= -mulmxA -mxvalM.
   rewrite divff // mxval1 mulmx1.
   by move/rowP; move/(_ j); move/eqP; rewrite !mxE !eqxx oner_eq0.
-rewrite {1}mulSn -Bfree -{1}rBj {rBj} -mxrank_direct_sum.
-  rewrite mxrankS // gsummx_sub; apply/andP; split.
+rewrite {1}mulSn -Bfree -{1}rBj {rBj} -mxrank_disjoint_sum.
+  rewrite mxrankS // sumsmx_sub; apply/andP; split.
     apply/row_subP=> k; rewrite row_mul mul_rV_lin1 /=.
     apply: eq_row_sub (mxvec_index (lshift _ 0) k) _.
     by rewrite !rowK mxvecK mxvecE mxE row_mxEl mxE -row_mul mul1mx.
@@ -2464,7 +2464,7 @@ Definition val_gen (W : 'M[FA]_(m1, m)) : 'M[F]_(m1, n) :=
 Lemma in_genK : cancel in_gen val_gen.
 Proof.
 move=> W; apply/row_matrixP=> i; rewrite rowK; set w := row i W.
-have b_w: (w <= base)%MR by rewrite subsetmx_full ?base_full.
+have b_w: (w <= base)%MS by rewrite subsetmx_full ?base_full.
 rewrite -{b_w}(mulmxKpV b_w); congr (_ *m _).
 by apply/rowP; case/mxvec_indexP=> j k; rewrite mxvecE !mxE.
 Qed.
@@ -2560,7 +2560,7 @@ Qed.
 End Bijection2.
 
 Lemma subsetmx_in_gen : forall m1 m2 (U : 'M_(m1, n)) (V : 'M_(m2, n)),
-  (U <= V -> in_gen U <= in_gen V)%MR.
+  (U <= V -> in_gen U <= in_gen V)%MS.
 Proof.
 move=> m1 m2 U V sUV; apply/row_subP=> i; rewrite -in_gen_row.
 case/subsetmxP: (row_subP sUV i) => u ->{i}.
@@ -2569,7 +2569,7 @@ by rewrite in_genZ in_gen_row subsetmx_scale ?row_sub.
 Qed.
 
 Lemma subsetmx_in_gen_eq : forall m1 m2 (U : 'M_(m1, n)) (V : 'M_(m2, n)),
-  (V *m A <= V -> (in_gen U <= in_gen V) = (U <= V))%MR.
+  (V *m A <= V -> (in_gen U <= in_gen V) = (U <= V))%MS.
 Proof.
 move=> m1 m2 U V sVA_V; apply/idP/idP=> siUV; last exact: subsetmx_in_gen.
 apply/row_subP=> i; rewrite -[row i U]in_genK in_gen_row.
@@ -2613,7 +2613,7 @@ Proof.
 by move=> m g Gg /= v; apply: (canLR val_genK); rewrite val_genJ ?in_genK.
 Qed.
 
-Lemma gen_rfix_mx : (rfix_mx rGA :=: in_gen (rfix_mx rG))%MR.
+Lemma gen_rfix_mx : (rfix_mx rGA :=: in_gen (rfix_mx rG))%MS.
 Proof.
 apply/eqmxP; apply/andP; split; last first.
   by apply/subsetmx_rfixP=> g Gg; rewrite -in_genJ ?(subsetmx_rfixP rG _ _).
@@ -2623,12 +2623,12 @@ Qed.
 
 Definition rowval_gen m1 U :=
   <<\matrix_ik
-      mxvec (\matrix_(i < m1, k < d) (row i (val_gen U) *m A ^+ k)) 0 ik>>%MR.
+      mxvec (\matrix_(i < m1, k < d) (row i (val_gen U) *m A ^+ k)) 0 ik>>%MS.
 
 Lemma subsetmx_rowval_gen : forall m1 m2 (U : 'M_(m1, n)) (V : 'M_(m2, m)),
-  (U <= rowval_gen V)%MR = (in_gen U <= V)%MR.
+  (U <= rowval_gen V)%MS = (in_gen U <= V)%MS.
 Proof.
-move=> m1 m2 U V; rewrite eqmx_gen; apply/idP/idP=> sUV.
+move=> m1 m2 U V; rewrite genmxE; apply/idP/idP=> sUV.
   apply: subsetmx_trans (subsetmx_in_gen sUV) _.
   apply/row_subP; case/mxvec_indexP=> i k; rewrite -in_gen_row rowK mxvecE mxE.
   rewrite -mxval_grootX -val_gen_row -val_genZ val_genK subsetmx_scale //.
@@ -2643,14 +2643,14 @@ by apply: (eq_row_sub (mxvec_index i k)); rewrite rowK mxvecE mxE.
 Qed.
 
 Lemma rowval_genK : forall m1 (U : 'M_(m1, m)),
-  (in_gen (rowval_gen U) :=: U)%MR.
+  (in_gen (rowval_gen U) :=: U)%MS.
 Proof.
 move=> m1 U; apply/eqmxP; rewrite -subsetmx_rowval_gen subsetmx_refl /=.
 by rewrite -{1}[U]val_genK subsetmx_in_gen // subsetmx_rowval_gen val_genK.
 Qed.
 
 Lemma rowval_gen_stable : forall m1 (U : 'M_(m1, m)),
-  (rowval_gen U *m A <= rowval_gen U)%MR.
+  (rowval_gen U *m A <= rowval_gen U)%MS.
 Proof.
 move=> m1 U; rewrite -[A]mxval_groot -{1}[_ U]in_genK -val_genZ.
 by rewrite subsetmx_rowval_gen val_genK subsetmx_scale // rowval_genK.
@@ -2967,9 +2967,9 @@ Section RowGroup.
 Variable n : nat.
 Local Notation rVn := 'rV[F]_n.
 
-Definition rowg m (A : 'M[F]_(m, n)) : {set rVn} := [set u | u <= A]%MR.
+Definition rowg m (A : 'M[F]_(m, n)) : {set rVn} := [set u | u <= A]%MS.
 
-Lemma mem_rowg : forall m A v, (v \in @rowg m A) = (v <= A)%MR.
+Lemma mem_rowg : forall m A v, (v \in @rowg m A) = (v <= A)%MS.
 Proof. by move=> m A v; rewrite inE. Qed.
 
 Lemma rowg_group_set : forall m A, group_set (@rowg m A).
@@ -2985,7 +2985,7 @@ by move=> m A; apply/actsP=> a _ v; rewrite !inE eqmx_scale // -unitfE (valP a).
 Qed.
 
 Lemma rowgS : forall m1 m2 (A : 'M_(m1, n)) (B : 'M_(m2, n)),
-  (rowg A \subset rowg B) = (A <= B)%MR.
+  (rowg A \subset rowg B) = (A <= B)%MS.
 Proof.
 move=> m1 m2 A B; apply/subsetP/idP=> sAB => [| u].
   by apply/row_subP=> i; move/(_ (row i A)): sAB; rewrite !inE row_sub => ->.
@@ -2993,7 +2993,7 @@ by rewrite !inE => suA; exact: subsetmx_trans sAB.
 Qed.
 
 Lemma eq_rowg : forall m1 m2 (A : 'M_(m1, n)) (B : 'M_(m2, n)),
-  (A :=: B)%MR -> rowg A = rowg B.
+  (A :=: B)%MS -> rowg A = rowg B.
 Proof.
 by move=> m1 m2 A B eqAB; apply/eqP; rewrite eqEsubset !rowgS !eqAB andbb.
 Qed.
@@ -3010,11 +3010,11 @@ Lemma trivg_rowg : forall m (A : 'M_(m, n)), (rowg A == 1%g) = (A == 0).
 Proof. by move=> m A; rewrite -subsetmx0 -rowgS rowg0 (sameP trivgP eqP). Qed.
 
 Definition rowg_mx (L : {set rVn}) :=
-  <<\matrix_i val (enum_val i : subg_of <<L>>)>>%MR.
+  <<\matrix_i val (enum_val i : subg_of <<L>>)>>%MS.
 
-Lemma rowgK : forall m (A : 'M_(m, n)), (rowg_mx (rowg A) :=: A)%MR.
+Lemma rowgK : forall m (A : 'M_(m, n)), (rowg_mx (rowg A) :=: A)%MS.
 Proof.
-move=> m A; apply/eqmxP; rewrite !eqmx_gen; apply/andP; split.
+move=> m A; apply/eqmxP; rewrite !genmxE; apply/andP; split.
   apply/row_subP=> i; rewrite rowK; case: (enum_val _) => u /=.
   by rewrite genGid inE.
 apply/row_subP=> i; apply: (eq_row_sub (enum_rank (subg <<rowg A>> (row i A)))).
@@ -3022,16 +3022,16 @@ by rewrite rowK enum_rankK subgK //= genGid inE row_sub.
 Qed.
 
 Lemma rowg_mxS : forall L M : {set 'rV[F]_n},
-  L \subset M -> (rowg_mx L <= rowg_mx M)%MR.
+  L \subset M -> (rowg_mx L <= rowg_mx M)%MS.
 Proof.
-move=> L M; move/genS; move/subsetP=> sLM; rewrite !eqmx_gen.
+move=> L M; move/genS; move/subsetP=> sLM; rewrite !genmxE.
 apply/row_subP=> i; rewrite rowK; case: (enum_val _) => v /=; move/sLM=> Mv.
 by apply: (eq_row_sub (enum_rank (subg _ v))); rewrite rowK enum_rankK subgK.
 Qed.
 
 Lemma sub_rowg_mx : forall L : {set rVn}, L \subset rowg (rowg_mx L).
 Proof.
-move=> L; rewrite -gen_subG; apply/subsetP=> v Lv; rewrite inE eqmx_gen.
+move=> L; rewrite -gen_subG; apply/subsetP=> v Lv; rewrite inE genmxE.
 by apply: (eq_row_sub (enum_rank (subg _ v))); rewrite rowK enum_rankK subgK.
 Qed.
 
@@ -3039,7 +3039,7 @@ Lemma stable_rowg_mxK : forall L : {group rVn},
   [acts setT, on L | 'Zm] -> rowg (rowg_mx L) = L.
 Proof.
 move=> L linL; apply/eqP; rewrite eqEsubset sub_rowg_mx andbT.
-apply/subsetP => v; rewrite inE eqmx_gen; case/subsetmxP=> u ->{v}.
+apply/subsetP => v; rewrite inE genmxE; case/subsetmxP=> u ->{v}.
 rewrite mulmx_sum_row group_prod // => i _.
 rewrite rowK; case: (enum_val _) => v; rewrite /= genGid => Lv.
 case: (eqVneq (u 0 i) 0) => [-> |]; first by rewrite scale0mx group1.
@@ -3057,7 +3057,7 @@ by move/eqP->; rewrite rowg_mx1 rowg0.
 Qed.
 
 Lemma rowgI : forall m1 m2 (A : 'M_(m1, n)) (B : 'M_(m2, n)),
-  rowg (A :&: B)%MR = rowg A :&: rowg B.
+  rowg (A :&: B)%MS = rowg A :&: rowg B.
 Proof. by move=> m1 m2 A B; apply/setP=> u; rewrite !inE sub_capmx. Qed.
 
 Lemma card_rowg : forall m (A : 'M_(m, n)), #|rowg A| = (#|F| ^ \rank A)%N.
@@ -3071,21 +3071,21 @@ by rewrite inE -(eq_row_base A); apply/subsetmxP/imageP=> [] [u]; exists u.
 Qed.
 
 Lemma rowgD : forall m1 m2 (A : 'M_(m1, n)) (B : 'M_(m2, n)),
-  rowg (A :+: B)%MR = (rowg A * rowg B)%g.
+  rowg (A + B)%MS = (rowg A * rowg B)%g.
 Proof.
 move=> m1 m2 A B; apply/eqP; rewrite eq_sym eqEcard mulG_subG /= !rowgS.
-rewrite gsummxSl gsummxSr -(@leq_pmul2r #|rowg A :&: rowg B|) ?cardG_gt0 //=.
+rewrite sumsmxSl sumsmxSr -(@leq_pmul2r #|rowg A :&: rowg B|) ?cardG_gt0 //=.
 by rewrite -mul_cardG -rowgI !card_rowg -!expn_add mxrank_sum_cap.
 Qed.
 
 (* An alternative proof, which avoids the counting argument.
    It's outcommented because the mem_mulg rewrite takes forever to execute.
 Lemma rowgD' : forall m1 m2 (A : 'M_(m1, n)) (B : 'M_(m2, n)),
-  rowg (A :+: B)%MR = (rowg A * rowg B)%g.
+  rowg (A + B)%MS = (rowg A * rowg B)%g.
 Proof.
 move=> m1 m2 A B; apply/eqP; rewrite eq_sym eqEsubset mulG_subG /= !rowgS.
-rewrite gsummxSl gsummxSr; apply/subsetP=> u; rewrite !inE.
-by case/sub_gsummxP=> v suvA svB; rewrite -(mulgKV v u) mem_mulg ?inE.
+rewrite sumsmxSl sumsmxSr; apply/subsetP=> u; rewrite !inE.
+by case/sub_sumsmxP=> v suvA svB; rewrite -(mulgKV v u) mem_mulg ?inE.
 Qed.
 *)
 
@@ -3243,7 +3243,7 @@ Lemma rowg_mxK : forall L : {group rVn}, rowg (rowg_mx L) = L.
 Proof. move=> L; apply: stable_rowg_mxK; exact: mx_Fp_stable. Qed.
 
 Lemma rowg_mxSK : forall (L : {set rVn}) (M : {group rVn}),
-  (rowg_mx L <= rowg_mx M)%MR = (L \subset M).
+  (rowg_mx L <= rowg_mx M)%MS = (L \subset M).
 Proof.
 move=> L M; apply/idP/idP; last exact: rowg_mxS.
 by rewrite -rowgS rowg_mxK; apply: subset_trans; exact: sub_rowg_mx.
@@ -3470,14 +3470,14 @@ apply: contra ntL; rewrite rowg_mx_eq0 !(sameP eqP trivgP).
 by rewrite sub_abelem_rV_im // morphim1.
 Qed.
 
-Lemma rfix_abelem : (rfix_mx rG :=: rowg_mx (ErV @* 'C_E(G)))%MR.
+Lemma rfix_abelem : (rfix_mx rG :=: rowg_mx (ErV @* 'C_E(G)))%MS.
 Proof.
 apply/eqmxP; apply/andP; split.
   rewrite -rowgS rowg_mxK -sub_rVabelem_im // subsetI sub_rVabelem /=.
   apply/centsP=> y; case/morphimP=> v _; rewrite inE => cHv ->{y} x Hx.
   apply/commgP; apply/conjg_fixP; rewrite /= -rVabelemJ ?sHG //.
   by rewrite (subsetmx_rfixP _ _ cHv).
-rewrite eqmx_gen; apply/subsetmx_rfixP=> x Hx.
+rewrite genmxE; apply/subsetmx_rfixP=> x Hx.
 apply/row_matrixP=> i; rewrite row_mul rowK; case: (enum_val i) => /= v.
 rewrite genGid; case/morphimP=> z Ez; case/setIP=> _ cHz -> {v}.
 by rewrite -abelem_rV_J ?sHG // conjgE (centP cHz) ?mulKg.

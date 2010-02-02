@@ -150,27 +150,27 @@ have: dA <= 2.
   case Ax0: (Ax == 0).
     by rewrite subr_eq0 in Ax0; case/eqP: ncxy; rewrite (eqP Ax0) mulmx1 mul1mx.
   case/rowV0Pn: Ax0 => v; case/subsetmxP => u def_v nzv.
-  pose U := col_mx v (v *m Ay); pose UA := <<inFA _ U>>%MR.
+  pose U := col_mx v (v *m Ay); pose UA := <<inFA _ U>>%MS.
   pose rvalFA := @rowval_gen _ _ _ _ _ _ irrG cAG.
   have Umod: submodmx rAG UA.
     rewrite /submodmx gen_subG subUset !sub1set !inE Gx Gy /= andbC.
-    apply/andP; split; rewrite (eqmxMr _ (eqmx_gen _)) -in_genJ // eqmx_gen.
+    apply/andP; split; rewrite (eqmxMr _ (genmxE _)) -in_genJ // genmxE.
       rewrite subsetmx_in_gen // -[rG y](subrK 1%R) -/Ay mulmx_addr mulmx1.
       rewrite subsetmx_add // mul_col_mx -mulmxA Ay2 mulmx0.
-      by rewrite -!eqmx_gsum gsummx0 gsummxSr.
+      by rewrite -!sumsmxE sumsmx0 sumsmxSr.
     rewrite -[rG x](subrK 1%R) -/Ax mulmx_addr mulmx1 in_genD mul_col_mx.
     pose A' := A; rewrite -mulmxA -[Ay *m Ax](addKr (Ax *m Ay)) -/A mulmx_addr.
     rewrite -mulmxN mulmxA {1 2}def_v -(mulmxA u) Ax2 mulmx0 mul0mx add0r.
     rewrite -(mul0mx _ A') -mul_col_mx -[A'](mxval_groot irrG cAG).
     rewrite -[_ 0 v](in_genK irrG cAG) -val_genZ val_genK.
     rewrite subsetmx_add ?subsetmx_scale ?subsetmx_in_gen //.
-    by rewrite -!eqmx_gsum gsum0mx gsummxSl.
+    by rewrite -!sumsmxE sums0mx sumsmxSl.
   have nzU: UA != 0.
-    rewrite -mxrank_eq0 eqmx_gen mxrank_eq0; apply/eqP.
+    rewrite -mxrank_eq0 genmxE mxrank_eq0; apply/eqP.
     move/(canRL ((in_genK _ _) _)); rewrite val_gen0; apply/eqP.
-    by rewrite -subsetmx0 -eqmx_gsum gsummx_sub subsetmx0 negb_and nzv.
+    by rewrite -subsetmx0 -sumsmxE sumsmx_sub subsetmx0 negb_and nzv.
   case/mx_irrP: irrAG => _; move/(_ UA Umod nzU); move/eqnP <-.
-  by rewrite eqmx_gen rank_leq_row.
+  by rewrite genmxE rank_leq_row.
 rewrite leq_eqVlt ltnS leq_eqVlt ltnNge dA_gt0 orbF orbC; case/pred2P=> def_dA.
   rewrite [_^`(1)](commG1P _) ?pgroup1 // quotient_cents2r // gen_subG.
   apply/subsetP=> zt; case/imset2P=> z t Gz Gt ->{zt}.
