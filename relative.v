@@ -9,26 +9,22 @@ Import Prenex Implicits.
 
 Definition csquare (A: Type) := (A * A)%type.
 
-
 Module Relatives.
 
 Definition axiom (z : csquare nat) := (z.1 == 0) || (z.2 == 0).
 Definition relative := { z | axiom z}.
 Definition Relative z (pz : axiom z) : relative := @exist _ axiom _ pz.
 
-Lemma one_diff_eq0 : forall x y, ((x-y) == 0) || ((y-x) == 0).
-Proof.
-move=> x y. case : (leqP x y); first by rewrite /leq=> ->.
-by move/ltnW; rewrite /leq=> ->; rewrite orbT.
-Qed.
+Lemma one_diff_eq0 : forall x y, (x - y == 0) || (y - x == 0).
+Proof. elim=> [| x Ih] [| y] //; exact: Ih. Qed.
 
 Definition canon (x : csquare nat) :=
   @Relative ((x.1-x.2),(x.2-x.1)) (one_diff_eq0 _ _).
 
 Lemma canon_valK : forall x, canon (val x)  = x.
 Proof.
-move=> [[n m] /= p]. apply: val_inj=> /=. move: p.
-by rewrite /axiom /=; case/orP; move/eqP->; rewrite subn0.
+move=> [[x y] Hx]; apply/val_eqP=> /=.
+by case/orP: Hx; move/eqP=> /= ->; rewrite sub0n subn0.
 Qed.
 
 
@@ -39,103 +35,90 @@ Definition relW := @quotW _ relative_quotType.
 Definition relP := @quotP _ relative_quotType.
 Definition inRelP := insubP [subType of relative].
 
+
+Notation "[ n ]%z" := (\pi_relative (n:nat,0)).
+Notation "[- n ]%z" := (\pi_relative (0,n:nat)).
+(*
 Notation zeroz := (\pi_relative (0,0)).
 Notation onez := (\pi_relative (1,0)).
-Notation natPz n := (\pi_relative (n,0)).
-Notation natNz n := (\pi_relative (0,n)).
-
+*)
 
 Lemma relPN : forall P:(relative -> Prop),
-  (forall x, P (natPz x)) -> (forall x, P (natNz x)) -> forall x, P x.
+  (forall x: nat, P [x]%z) -> (forall x, P [-x]%z) -> forall x, P x.
 Proof.
-move=> P Ppos Pneg. elim/relP=> x <- /=.
+move=> P Ppos Pneg; elim/relP=> x <- /=.
 case/orP:(one_diff_eq0 x.1 x.2); move/eqP->; [exact:Pneg|exact:Ppos].
 Qed.
 
 Notation SubRel := (@Sub _ _ [subType of relative]).
 
 Definition equivz (x y : csquare nat) := x.1 + y.2 == y.1 + x.2.
+
 Lemma equivzP : forall x y, x == y mod relative = equivz x y.
 Proof.
-move=> x y. rewrite /equivz /= /canon -(inj_eq val_inj) /=.
-apply/eqP/eqP=> [[]|Pxy]; last first.
-   congr (_,_); rewrite -(subn_add2r y.2) Pxy addnC.
-      by rewrite (subn_add2l x.2).
-   by rewrite (subn_add2r x.2).
-case:(ltnP x.1 x.2); first move/ltnW; move=>Px; move:(Px);
-     rewrite /leq; move/eqP->.
-  move/eqP. rewrite eq_sym subn_eq0 =>Py.
-  move/eqP. rewrite -(inj_eq (@addnI y.1)) subnKC //. move/eqP<-.
-  by rewrite addnA addnAC subnKC // addnC.
-move=> P1. move/eqP. rewrite eq_sym subn_eq0 =>Py. move:P1.
-move/eqP. rewrite -(inj_eq (@addnI x.2)) subnKC //. move/eqP->.
-by rewrite addnAC -addnA subnKC // addnC.
+move=> x y; rewrite /equivz /= /canon -(inj_eq val_inj) /=.
+apply/eqP/eqP=> /= [[Hx Hy]|H]; last first.
+  rewrite -(subn_add2r y.2) H addnC subn_add2l; congr (_,_).
+  by rewrite -(subn_add2l y.1) -H [y.1 + _]addnC subn_add2l.
+case:(leqP x.1 x.2); last move/ltnW; move=>Px.
+  by rewrite -(subnK Px) Hy addnA subnKC /leq -?Hx // addnC.
+by rewrite -(subnKC Px) Hx -addnA subnK // /leq -?Hy // addnC.
 Qed.
 
 Lemma addz_compat : \compat2_relative _
   (fun x y => \pi_relative (x.1 + y.1 , x.2 + y.2)).
 Proof.
 apply:compat2E=> x y x' y'.
-rewrite !equivzP /equivz. move/eqP=>Px. move/eqP=>Py.
-apply/eqP. rewrite equivzP /=. apply/eqP.
-rewrite addnAC addnA Px -!addnA /=. congr (_+_).
-symmetry. rewrite addnA addnAC -Py addnC. congr(_+_).
-by rewrite addnC.
+rewrite !equivzP /equivz; move/eqP=>Px; move/eqP=>Py.
+apply/eqP; rewrite equivzP; apply/eqP=> /=.
+by rewrite addnAC addnA Px -addnA [y'.2 + _]addnC Py 
+           addnAC -!addnA [x'.2 + _]addnC.
 Qed.
 Notation addz := (qT_op2 addz_compat).
 
 Lemma oppz_compat : \compat1_relative _
   (fun x => \pi_relative (x.2 , x.1)).
 Proof.
-apply:compat1E=> x x'. rewrite !equivzP /equivz. move/eqP=>Px.
-apply/eqP. rewrite equivzP /equivz /=.
-by rewrite addnC -Px addnC eqxx.
+apply:compat1E=> x x'; rewrite !equivzP /equivz; move/eqP=>Px.
+apply/eqP; rewrite equivzP /equivz /=.
+by rewrite addnC -Px addnC.
 Qed.
 Notation oppz := (qT_op1 oppz_compat).
 
 Lemma mulz_compat : \compat2_relative _ (fun x y => \pi_relative
     (x.1 * y.1 + x.2 * y.2 , x.1 * y.2 + x.2 * y.1)).
 Proof.
-apply:Compat2. elim/relPN=> x; elim/relPN=> y; move=> x' y';
-rewrite !in_qTE /pi_of !equivzP /equivz; move/eqP=>Px; move/eqP=>Py;
-apply/eqP; rewrite equivzP /=; apply/eqP;
-rewrite !(sub0n, subn0, mul0n, muln0, add0n, addn0) /= in Px Py *.
-  * rewrite Px Py. ring.
-  * rewrite Px -Py. ring.
-  * rewrite -Px Py. ring.
-  * rewrite -Px -Py. ring.
+apply:Compat2; elim/relPN=> x; elim/relPN=> y; move=> x' y';
+  rewrite !in_qTE /pi_of !equivzP /equivz=> Px Py;
+  apply/eqP; rewrite equivzP /=; apply/eqP;
+  move/eqP: Px; move/eqP: Py; rewrite /= !(sub0n, subn0, mul0n, muln0, add0n, addn0)=> Px Py;
+  rewrite (Px,esym Px) (Py,esym Py); ring.
 Qed.
 Notation mulz := (qT_op2 mulz_compat).
 
 Lemma addzA : associative addz.
 Proof.
-elim/relW=>x. elim/relW=>y. elim/relW=>z.
-rewrite !qTE. congr pi. rewrite /=.
-by congr (_,_); rewrite addnA.
+elim/relW=>x; elim/relW=>y; elim/relW=>z.
+by rewrite !qTE; congr pi; rewrite !addnA.
 Qed.
-
 
 Lemma addzC : commutative addz.
 Proof.
-elim/relW=>x. elim/relW=>y.
+elim/relW=>x; elim/relW=>y.
 by rewrite !qTE; congr pi; congr (_,_); rewrite addnC.
 Qed.
 
-
-Lemma add0z : left_id zeroz addz.
+Lemma add0z : left_id [0]%z addz.
 Proof. by elim/relW=> x; rewrite !qTE. Qed.
 
-
-Lemma addzN : left_inverse zeroz oppz addz.
+Lemma addzN : left_inverse [0]%z oppz addz.
 Proof.
-elim/relW=>x. rewrite !qTE. apply/eqP. rewrite equivzP /equivz /=.
-by rewrite add0n addn0 /= addnC.
+elim/relW=>x. rewrite !qTE. apply/eqP.
+by rewrite equivzP /equivz /= addn0 addnC.
 Qed.
-
 
 Definition z_zmodMixin :=  ZmodMixin addzA addzC add0z addzN.
 Canonical Structure z_zmodType := Eval hnf in ZmodType relative z_zmodMixin.
-
 
 Lemma mulzA : associative mulz.
 Proof.
@@ -146,13 +129,12 @@ Qed.
 
 Lemma mulzC : commutative mulz.
 Proof.
-elim/relW=>x; elim/relW=>y. rewrite !qTE. apply/eqP;
-rewrite equivzP /equivz /=. apply/eqP.
+elim/relW=>x; elim/relW=>y; rewrite !qTE; apply/eqP;
+ rewrite equivzP /equivz /=; apply/eqP.
 by congr (_+_+_); rewrite mulnC // addnC mulnC; congr (_+_).
 Qed.
 
-
-Lemma mul1z : left_id onez mulz.
+Lemma mul1z : left_id [1]%z mulz.
 Proof.
 elim/relW=>x; rewrite !qTE; apply/eqP; rewrite equivzP /equivz /=.
 by rewrite !mul0n !mul1n addnA !addn0.
@@ -161,12 +143,12 @@ Qed.
 
 Lemma mulz_addl : left_distributive mulz addz.
 Proof.
-elim/relW=>x; elim/relW=>y; elim/relW=>z. rewrite !qTE.
-apply/eqP; rewrite equivzP /equivz /=. apply/eqP.
+elim/relW=>x; elim/relW=>y; elim/relW=>z; rewrite !qTE.
+apply/eqP; rewrite equivzP /equivz /=; apply/eqP.
 by rewrite !muln_addl -!addnA; do ?nat_congr.
 Qed.
 
-Lemma nonzero1z : onez != zeroz.
+Lemma nonzero1z : [1]%z != [0]%z.
 Proof. by rewrite -(inj_eq val_inj) /=. Qed.
 
 
@@ -174,11 +156,16 @@ Definition z_comRingMixin := ComRingMixin mulzA mulzC mul1z mulz_addl nonzero1z.
 Canonical Structure  z_Ring := Eval hnf in RingType relative z_comRingMixin.
 Canonical Structure z_comRing := Eval hnf in ComRingType relative mulzC.
 
+Lemma relPM : forall P: relative -> Prop,
+  (forall x: nat, P [x]%z) -> (forall x, P x -> P (- x)%R) -> forall x, P x.
+Proof.
+move=> P Ppos Pneg x; apply: relPN=> // y.
+suff->: [-y]%z = oppz [y]%z by apply: Pneg; apply: Ppos.
+by rewrite /oppz /= sub0n subn0.
+Qed.
 
 Definition unitz := [pred x : relative | ((repr x).1)+((repr x).2) == 1 ].
 Definition invz (x : relative) : relative := x.
-
-
 
 Lemma mulVz : {in unitz, left_inverse 1%R invz *%R}.
 Proof.
@@ -187,7 +174,7 @@ by move/eqP=> -> /=; apply:val_inj=>/=; congr(_,_).
 Qed.
 
 
-Lemma unitzPl : forall x y, mulz y x = onez -> unitz x.
+Lemma unitzPl : forall x y, mulz y x = [1]%z -> unitz x.
 Proof.
 elim/relPN=>x; elim/relPN=>y; move/eqP; rewrite !qTE -(inj_eq val_inj) /=;
 rewrite !muln0 !mul0n !add0n ?addn0 !sub0n !subn0 //;
@@ -204,7 +191,7 @@ Canonical Structure z_unitRingType :=
 Canonical Structure z_comUnitRing := Eval hnf in [comUnitRingType of relative].
 
 Lemma idomain_axiomz : forall x y,
-  (mulz x y = zeroz -> (x == zeroz) || (y == zeroz)).
+  mulz x y = [0]%z -> (x == [0]%z) || (y == [0]%z).
 Proof.
 elim/relPN=>x; elim/relPN=>y; move/eqP; rewrite !qTE -!(inj_eq val_inj) /=;
 rewrite !muln0 !mul0n !add0n ?addn0 !sub0n !subn0 //;
@@ -272,18 +259,161 @@ by apply sym_eq;apply/eqP;
           -muln_addr subnK ?modn_mull // F1.
 Qed.
 
-Definition axiomn0: forall n, axiom (n,0).
-Proof. move=> *. exact: orbT. Qed.
-
-Definition pliftz (x: 'Z_p) := Relative (axiomn0 x).
-
-Lemma pliftz_zprojp: forall x, zprojp (pliftz x) = x.
+Lemma zp_opp: forall x: 'Z_p, 
+  x <> 0%R -> [(-x)%R]%z = ([p.-2.+2]%z - [x]%z)%R.
 Proof.
-move=> [x Hx]; apply/val_eqP=> /=; by rewrite subn0 modn_addr modn_small.
+move=> [x Hx] Dx.
+have {Dx}F1: x <> 0  by move=> F1; case Dx; apply/val_eqP; apply/eqP.
+apply/val_eqP; case: eqP=> /=; rewrite !sub0n !subn0 !addn0 !add0n;
+  set k := p.-2.+2; rewrite modn_small;
+   try (by have ->: x - k = 0 by apply/eqP; rewrite subn_eq0 ltnW);
+   by rewrite -subn_gt0 subKn; [case: x {Hx}F1 |rewrite ltnW].
+Qed.
+
+Lemma zprojp0: zprojp 0%R = 0%R.
+Proof. by apply/val_eqP=> /=; rewrite !subn0 modnn. Qed.
+
+Hypothesis Hp: p > 1.
+
+Lemma zprojp0P: forall x, 
+  reflect (exists n: relative, x = (n * [p]%z)%R)
+          (zprojp x == 0%R).
+Proof.
+move=> x; apply: (iffP eqP); last first.
+  move=> [n ->].
+  rewrite /zprojp !qTE; apply/val_eqP=> /=.
+  rewrite !subn0 !muln0 addn0 /= Zp_cast // modn_mull subn0.
+  by rewrite -modn_add2m modnn modn_mull mod0n.
+elim/relPN: x=> x.
+  rewrite /zprojp !qTE; move/val_eqP=>/=.
+  rewrite Zp_cast // mod0n subn0 modn_addr.
+  case/dvdnP=> n ->; exists [n]%z.
+    apply/val_eqP=> /=.
+    by rewrite !subn0 !sub0n !addn0 muln0 subn0 sub0n.
+rewrite /zprojp !qTE; move/val_eqP=>/=.
+rewrite Zp_cast // => Hp1.
+suff: p %| x.
+  case/dvdnP=> n ->; exists [-n]%z.
+  apply/val_eqP=> /=.
+  by rewrite !subn0 !sub0n muln0 subn0 sub0n.
+have: p %| (p - x %% p) by done.
+rewrite -eqn_mod_dvd.
+rewrite modnn modn_small.
+by rewrite /dvdn; move/eqP<-.
+by rewrite ltn_mod; case: p Hp.
+by rewrite ltnW //ltn_mod; case: p Hp.
+Qed.
+
+Lemma zprojp_mul0l: forall n, zprojp (n * [p]%z)%R = 0%R.
+Proof. by move=> n; apply/eqP; apply/zprojp0P; exists n. Qed.
+
+Lemma zprojp_mul0r: forall n, zprojp ([p]%z * n)%R = 0%R.
+Proof.
+by move=> n; apply/eqP; apply/zprojp0P; exists n; rewrite GRing.mulrC.
+Qed.
+
+Lemma expn_expr: forall i n: nat, [n ^ i]%z = ([n]%z ^+ i)%R.
+Proof.
+elim=> [|i Hrec] n; apply/val_eqP; rewrite  /= !subn0 !sub0n //.
+rewrite GRing.exprS /= !subn0 !sub0n !mul0n !addn0.
+move: (Hrec n); move/val_eqP=>/=; rewrite !subn0 !sub0n //.
+case: sval=> x y; rewrite xpair_eqE; case/andP.
+by move/eqP<-; move/eqP<-; rewrite muln0 sub0n subn0 expnS.
 Qed.
 
 End zprojp.
 
+Notation "p %% n" := (zprojp n p).
+
+Require Import prime poly.
+
+Section Pol.
+Variable pol : {poly relative}.
+
+Variable p : nat.
+Hypothesis primep: prime p.
+Variable i : nat.
+Hypothesis Hi: i > 0.
+
+Let Hpi: p ^ i > 1.
+Proof. by rewrite -[1](exp1n i) ltn_exp2r // prime_gt1. Qed.
+Let Hpi1: p ^ i.+1 > 1.
+Proof.
+apply: (leq_trans (prime_gt1 primep)).
+by rewrite -{1}[p]muln1 expnS leq_pmul2l ltnW // prime_gt1.
+Qed.
+
+Hypothesis a: relative.
+Hypothesis P: {poly relative}.
+
+Let Pia := (P.[a])%R %% p^i.
+Let Pa' := ((deriv P).[a])%R %% p.
+
+Hypothesis Epia: Pia  = 0%R.
+Hypothesis Ep'a: Pa' <> 0%R.
+
+Lemma hensel: (P.[a - (P.[a] * [Pa'^-1]%z)])%R %% p^i.+1  = 0%R.
+Proof.
+rewrite nderiv_taylor; last by apply: mulzC.
+move/eqP: Epia; case/(zprojp0P Hpi)=> n Hn.
+case HP: (size P)=> [|[|s]]; first by rewrite big_ord0 zprojp0.
+case: Ep'a. 
+  have F1: size P <= 1 by rewrite HP.
+  by rewrite /Pa' (size1_polyC F1) derivC horner0 zprojp0.
+rewrite 2!big_ord_recl nderivn0 nderivn1 GRing.expr0 GRing.expr1 GRing.mulr1
+        Hn GRing.addrA (GRing.ringM_add (zprojp_morph (p^ i.+1))).
+set f := (n * [p ^ i]%z)%R.
+rewrite -GRing.mulrN GRing.mulrA [(_ * f)%R]GRing.mulrC
+        -GRing.mulrA -{1}[f](GRing.mulr1) -GRing.mulr_addr.
+have: (1 + (deriv P).[a] * - [Pa'^-1]%z)%R %% p == 0%R.
+  move: Ep'a; rewrite/Pa'.
+  elim/relPM: (horner _) => x Hx.
+    rewrite /zprojp !qTE /= !sub0n !subn0 !muln0 !mul0n !add0n sub0n subn0.
+    apply/eqP;apply/val_eqP=>/=.
+    set k := p.-2.+2.
+    have->: inZp (x + k) = (inZp x: 'Z_p).
+      by apply/val_eqP=>/=; rewrite modn_addr.
+    rewrite !addn0 -modn_mulml.
+    have: ((inZp x: 'Z_p) * (inZp x)^-1)%R = 1%R.
+      apply: GRing.divrr=> //.
+      rewrite /GRing.unit /= -/k prime_coprime //.
+        apply/negP=> Hh; case Hx; apply/val_eqP=>/=.
+        rewrite subn0 sub0n mod0n subn0 modn_addr.
+        by move: Hh; rewrite /dvdn modn_mod.
+      by move: primep; rewrite /k; case: p => [|[|p1]].
+    move/val_eqP=> /=; rewrite -/k; move/eqP=> ->.
+    by rewrite [(1 %% k)%N]modn_small // subnKC // modnn.
+  move=> H; rewrite (GRing.ringM_opp (zprojp_morph p)) GRing.invrN.
+  rewrite (@zp_opp p ((zprojp p x)^-1)%R).
+    rewrite GRing.mulrN GRing.mulNr GRing.opprK GRing.mulr_addr
+            [(x * _ + _)%R]GRing.addrC GRing.addrA
+            (GRing.ringM_add (zprojp_morph p)).
+    have F1: p.-2.+2 = p by rewrite Zp_cast // prime_gt1.
+    rewrite {3}F1 zprojp_mul0l // ?prime_gt1 // GRing.addr0.
+    apply Hx=> Hy; case H.
+    by rewrite (GRing.ringM_opp (zprojp_morph p)) Hy // GRing.oppr0.
+  apply/eqP; apply: GRing.invr_neq0; apply/eqP=> Hy; case H.
+  by rewrite (GRing.ringM_opp (zprojp_morph p)) Hy // GRing.oppr0.
+case/(zprojp0P (prime_gt1 primep))=> k ->.
+have->: (f * (k * [p]%z) = [p ^ i.+1]%z * (n * k))%R.
+  rewrite /f !expn_expr GRing.exprS.
+  rewrite !GRing.mulrA GRing.mulrC !GRing.mulrA; congr (_ * _)%R.
+  rewrite -!GRing.mulrA; congr (_ * _)%R; first by exact: GRing.mulrC.
+  rewrite zprojp_mul0r // GRing.add0r  (GRing.ringM_sum (zprojp_morph _))
+          (eq_bigr (fun i => 0%R)).
+  by rewrite GRing.Theory.sumr_const GRing.mul0rn.
+move=> j _; set v1 := (_.[a])%R.
+rewrite /f [(n * _)%R]GRing.mulrC -[(([_]%z * _) * _)%R]GRing.mulrA.
+set v2 := (n * _ )%R.
+by rewrite GRing.mulrC [(_ * v2)%R]GRing.mulrC GRing.exprS -2!GRing.mulrA 
+           GRing.mulrC GRing.exprS [(v2 * _)%R]GRing.mulrC !GRing.mulrA
+           expn_expr -GRing.exprn_addr -{4}(ltn_predK Hi) -addSnnS 
+           GRing.exprn_addr -!GRing.mulrA -!expn_expr zprojp_mul0r.
+Qed.
+
+End Pol.
+
 End Relatives.
+
 
 Definition relative := Relatives.relative.
