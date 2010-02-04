@@ -45,15 +45,16 @@ hall.v
 mxrepresentation.v
 BGsection1.v
 BGsection2.v
+psmall.v
 BGappendixAB.v
 BGsection6.v
 BGsection7.v
 BGsection8.v
+BGsection9.v
 frobenius.v
 alt.v
 burnside_app.v
 theorem3_6.v
-psmall.v
 
 
 COQC = $(COQBIN)ssrcoq
