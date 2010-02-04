@@ -17,77 +17,43 @@ Import Prenex Implicits.
 
 Import GroupScope.
 
-Section ToLibrary.
-
-Variables (pi : nat_pred) (gT : finGroupType).
-Implicit Type G : {group gT}.
-
-Lemma bigcap_p'core : forall G,
-  G :&: \bigcap_(p < #|G|.+1 | (p : nat) \in pi) 'O_p^'(G) = 'O_pi^'(G).
+(* This should be the statement of B & G, Lemma 5.1a *)
+Lemma p_rank_3_SCN : forall (gT : finGroupType) (p : nat) (G : {group gT}),
+  p.-group G -> odd #|G| -> 'r_p(G) >= 3 -> 'SCN_3(G) != set0.
 Proof.
-move=> G; apply/eqP; rewrite eqEsubset subsetI pcore_sub pcore_max /=.
-- by apply/bigcapsP=> p pi_p; apply: sub_pcore => r; apply: contra; move/eqnP->.
-- apply/pgroupP=> q q_pr qGpi'; apply: contraL (eqxx q) => /= pi_q.
-  apply: (pgroupP _ _ (pcore_pgroup q^' G)) => //.
-  have qG: q %| #|G| by rewrite (dvdn_trans qGpi') // cardSg ?subsetIl.
-  have ltqG: q < #|G|.+1 by rewrite ltnS dvdn_leq.
-  rewrite (dvdn_trans qGpi') ?cardSg ?subIset //= orbC.
-  by rewrite (bigcap_inf (Ordinal ltqG)).
-rewrite /normal subsetIl normsI ?normG //.
-apply big_prop => [|H K nHG nKG|p _]; rewrite ?normsI ?bgFunc_norm //.
-by rewrite normsG // subsetT.
-Qed.
-
-Lemma trivg_Fitting : forall G, solvable G -> ('F(G) == 1) = (G :==: 1).
-Proof.
-move=> G solG; apply/idP/idP=> [F1|]; last first.
-  by rewrite -!subG1; apply: subset_trans; exact: Fitting_sub.
-apply/idPn; case/(solvable_norm_abelem _ (normal_refl _)) => // M [_] nsMG ntM.
-case/is_abelemP=> p _; case/and3P=> pM _ _; case/negP: ntM.
-by rewrite -subG1 -(eqP F1) Fitting_max ?(pgroup_nil pM).
-Qed.
-
-Lemma coprime_pcoreC : forall (xT : finGroupType) G (H : {group xT}),
-  coprime #|'O_pi(G)| #|'O_pi^'(H)|.
-Proof. move=> *; exact: pnat_coprime (pcore_pgroup _ _) (pcore_pgroup _ _). Qed.
-
-Lemma TI_pcoreC : forall G H : {group gT}, 'O_pi(G) :&: 'O_pi^'(H) = 1.
-Proof. by move=> G H; rewrite coprime_TIg ?coprime_pcoreC. Qed.
-
-End ToLibrary.
+Admitted.
 
 Section Eight.
 
 Variable gT : minSimpleOddGroupType.
 Local Notation G := (TheMinSimpleOddGroup gT).
-Implicit Types H M A X P: {group gT}.
-Variable p : nat.
+Implicit Types H M A X P : {group gT}.
+Implicit Types p q r : nat.
 
-Local Notation "K ` q" := 'O_(nat_pred_of_nat q)(K)
-  (at level 8, q at level 2, format "K ` q") : group_scope.
-Local Notation "K ` q" := 'O_(nat_pred_of_nat q)(K)%G : subgroup_scope.
+Local Notation "K ` p" := 'O_(nat_pred_of_nat p)(K)
+  (at level 8, q at level 2, format "K ` p") : group_scope.
+Local Notation "K ` p" := 'O_(nat_pred_of_nat p)(K)%G : subgroup_scope.
 
 (* This is B & G, Theorem 8.1(a) *)
-Lemma non_pcore_Fitting_Uniqueness : forall M A0,
+Lemma non_pcore_Fitting_Uniqueness : forall p M A0,
     M \in 'M -> ~~ p.-group ('F(M)) -> A0 \in 'E*_p('F(M)) -> 'm(A0) >= 3 ->
   'C_('F(M))(A0)%G \in 'U.
 Proof.
-move=> M A0 maxM; set F := 'F(M) => p'F; case/pmaxElemP; rewrite 2!inE /= -/F.
+move=> p M A0 maxM; set F := 'F(M) => p'F; case/pmaxElemP; rewrite 2!inE /= -/F.
 case/andP=> sA0F abelA0 maxA0; have [pA0 cA0A0 _] := and3P abelA0.
 rewrite grank_abelian // (rank_abelem abelA0) => dimA0_3.
 set A := 'C_F(A0); pose pi := \pi(#|A|).
 have [sZA sAF]: 'Z(F) \subset A /\ A \subset F by rewrite subsetIl setIS ?centS.
-have piZ: \pi(#|'Z(F)|) = \pi(#|F|) by rewrite pi_center_nilpotent ?Fitting_nil.
+have nilF: nilpotent F := Fitting_nil _.
+have nilZ := nilpotentS (center_sub _) nilF.
+have piZ: \pi(#|'Z(F)|) = \pi(#|F|) by rewrite pi_center_nilpotent.
 have def_pi: pi = \pi(#|F|).
   by apply/eq_piP=> q; apply/idP/idP; last rewrite -piZ; exact: piSg.
 have def_nZq: forall q, q \in pi -> 'N('Z(F)`q) = M.
-  move=> q; rewrite def_pi -piZ -[q \in _]logn_gt0 -logn_part.
-  rewrite -(card_Hall (nilpotent_pcore_Hall _ _)) /= -/F => [qZ|]; last first.
-    by rewrite abelian_nil ?abelian_center.
-  apply: normal_max_group => //=.
-    apply: char_normal_trans (char_trans (pcore_char _ _) (center_char _)) _.
-    exact: Fitting_normal.
-  by apply: contraL qZ; move/eqP->; rewrite cards1 logn1.
+  move=> q; rewrite def_pi -piZ -p_part_gt1.
+  rewrite -(card_Hall (nilpotent_pcore_Hall _ nilZ)) cardG_gt1 /= -/F => ntZ.
+  apply: mmax_normal => //=; apply: char_normal_trans (Fitting_normal _).
+  exact: char_trans (pcore_char _ _) (center_char _).
 have sCqM: forall q, q \in pi -> 'C(A`q) \subset M.
   move=> q; move/def_nZq <-; rewrite cents_norm // centS //.
   rewrite (subset_normal_Hall _ (nilpotent_pcore_Hall _ _)) ?pcore_normal //.
@@ -98,7 +64,8 @@ have pi_p: p \in pi.
   by apply: (piSg sA0A); rewrite -[p \in _]logn_gt0 (leq_trans _ dimA0_3).
 have sCAM: 'C(A) \subset M.
   by rewrite (subset_trans (centS (pcore_sub p _))) ?sCqM.
-have prM: M \proper G by rewrite inE in maxM; case/maxgroupP: maxM.
+have prM: M \proper G := mmax_proper maxM.
+have solM := proper_minSimple_sol prM.
 have piCA: pi.-group('C(A)).
   apply/pgroupP=> q q_pr; case/Cauchy=> // x cAx oxq; apply/idPn=> pi'q.
   have Mx := subsetP sCAM x cAx; pose C := 'C_F(<[x]>).
@@ -106,16 +73,16 @@ have piCA: pi.-group('C(A)).
   have sCFC_C: 'C_F(C) \subset C.
     by rewrite (subset_trans _ sAC) ?setIS // centS ?(subset_trans _ sAC). 
   have cFx: x \in 'C_M(F).
-    rewrite inE Mx -cycle_subG coprime_nil_faithful_cent_stab ?Fitting_nil //=.
+    rewrite inE Mx -cycle_subG coprime_nil_faithful_cent_stab //=.
       by rewrite cycle_subG (subsetP (bgFunc_norm _ _)).
     by rewrite -orderE coprime_pi' ?cardG_gt0 // -def_pi oxq pnatE.
   case/negP: pi'q; rewrite def_pi mem_primes q_pr cardG_gt0 -oxq cardSg //.
-  by rewrite cycle_subG (subsetP (cent_sub_Fitting _)) ?proper_minSimple_sol.
+  by rewrite cycle_subG (subsetP (cent_sub_Fitting _)).
 have{p'F} pi_alt: forall q, exists2 r, r \in pi & r != q.
   move=> q; case: (eqVneq p q) => [<-{q} | ]; last by exists p.
   rewrite def_pi; apply/allPn; apply: contra p'F; move/allP=> /= pF.
   by apply/pgroupP=> q q_pr qF; rewrite !inE pF // mem_primes q_pr cardG_gt0.
-have sNZqXq': forall (q : nat) X,
+have sNZqXq': forall q X,
   A \subset X -> X \proper G -> 'O_q^'('N_X('Z(F)`q)) \subset 'O_q^'(X).
 - move=> q X sAX prX.
   have sZqX: 'Z(F)`q \subset X.
@@ -138,8 +105,7 @@ have sArXq': forall q r X,
   rewrite -setIA (setIidPr (pcore_sub _ _)) subsetI.
   rewrite (subset_trans (pcore_sub _ _)) //= def_nZq //.
   apply: subset_trans (pcore_Fitting _ _); rewrite -/F.
-  have hallFq' := nilpotent_pcore_Hall q^' (Fitting_nil M).
-  rewrite (subset_normal_Hall _ hallFq') ?pcore_normal //.
+  rewrite (subset_normal_Hall _ (nilpotent_pcore_Hall _ nilF)) ?pcore_normal //.
   rewrite /psubgroup (subset_trans (pcore_sub _ _)) //=.
   by apply: (pi_pnat (pcore_pgroup _ _)); rewrite !inE eq_sym.
 have cstrA: normed_constrained A.
@@ -192,51 +158,40 @@ have{cstrA} nbyApi'1: forall q, q \in pi^' -> |/|*(A; q) = [set 1%G].
     by apply: subsetP Mx; exact: bgFunc_norm.
   have{nQM} nsQM: Q <| M.
     rewrite inE in maxM; case/maxgroupP: maxM => _ maxM.
-    rewrite -(maxM 'N(Q)%G) ?normalG ?proper_norm_minSimple // properT.
-    by apply: contraL (pgroup_sol qQ); move/eqP->; exact: minSimple_nonSolvable.
+    rewrite -(maxM 'N(Q)%G) ?normalG ?proper_norm_minSimple //.
+    exact: proper_pgroup_minSimple qQ.
   have sQF: Q \subset F by rewrite Fitting_max ?(pgroup_nil qQ).
   rewrite -(setIidPr sQF) coprime_TIg ?eqxx // in ntQ.
   by rewrite coprime_pi' ?cardG_gt0 // -def_pi (pi_pnat qQ).
 rewrite -(cards1 M) subset_leq_card //; apply/subsetP=> H.
 case/setIdP=> maxH sAH; rewrite inE -val_eqE /=; pose D := 'F(H).
-have prH: H \proper G by rewrite inE in maxH; exact: (maxgroupp maxH).
+have prH: H \proper G by exact: mmax_proper.
+have solH := proper_minSimple_sol prH.
+have nilD: nilpotent D := Fitting_nil _.
+have card_pcore_nil := card_Hall (nilpotent_pcore_Hall _ _).
 have piD: \pi(#|D|) = pi.
   set sigma := \pi(_); have pi_sig: {subset sigma <= pi}.
-    move=> q; rewrite -[q \in _]logn_gt0 -logn_part.
-    rewrite -(card_Hall (nilpotent_pcore_Hall _ (Fitting_nil _))) /= -/D.
-    case: (eqVneq D`q 1) => [-> | ntDq _]; first by rewrite cards1 logn1.
-    apply: contraR ntDq; move/nbyApi'1=> defAmax; rewrite -subG1.
-    pose qnA Q := q.-group Q && (A \subset 'N(Q)).
-    have [|Q /= maxQ] := @maxgroup_exists _ qnA [group of D`q].
-      rewrite /qnA pcore_pgroup (char_norm_trans (pcore_char _ _)) //.
+    move=> q; rewrite -p_part_gt1 -card_pcore_nil // cardG_gt1 /= -/D.
+    apply: contraR; move/nbyApi'1=> defAmax.
+    have nDqA: A \subset 'N(D`q).
+      rewrite (char_norm_trans (pcore_char _ _)) //.
       by rewrite (subset_trans sAH) ?bgFunc_norm.
-    by rewrite (@set1P _ Q 1%G _) // -defAmax inE.
+    have [Q]:= max_normed_exists (pcore_pgroup _ _) nDqA.
+    by rewrite defAmax -subG1; move/set1P->.
   apply/eq_piP=> q; apply/idP/idP=> [|pi_q]; first exact: pi_sig.
-  apply/idPn=> sig'q; case: (eqVneq A`q 1) => [Aq1 | ntAq].
-    move: pi_q; rewrite -[q \in _]logn_gt0 -logn_part.
-    have nilA := nilpotentS sAF (Fitting_nil _).
-    by rewrite -(card_Hall (nilpotent_pcore_Hall _ nilA)) /= Aq1 cards1 logn1.
-  case/negP: ntAq; rewrite -subG1.
+  apply: contraLR (pi_q) => sig'q; have nilA := nilpotentS sAF nilF.
+  rewrite -p_part_eq1 -card_pcore_nil // -trivg_card1 -subG1 /= -/A.
   have <-: 'O_sigma^'(H) = 1.
-    apply/eqP; rewrite -trivg_Fitting; last first.
-      by rewrite proper_minSimple_sol ?(sub_proper_trans (pcore_sub _ _)).
-    have sFs'D: 'F(('O_sigma^'(H))) \subset D.
-      rewrite Fitting_max ?Fitting_nil ?(char_normal_trans (Fitting_char _)) //.
-      exact: pcore_normal.
-    rewrite -(setIidPr sFs'D) coprime_TIg // coprime_pi' ?cardG_gt0 //.
-    exact: pgroupS (Fitting_sub _) (pcore_pgroup _ _).
+    apply/eqP; rewrite -trivg_Fitting ?(solvableS (pcore_sub _ _)) //.
+    rewrite Fitting_pcore -(setIidPr (pcore_sub _ _)) coprime_TIg //.
+    by rewrite coprime_pi' ?cardG_gt0 //; exact: pcore_pgroup.
   rewrite -bigcap_p'core subsetI (subset_trans (pcore_sub _ _)) //=.
   apply/bigcapsP=> [[r /= _] sig_r]; apply: sArXq' => //; first exact: pi_sig.
   by apply: contra sig'q; move/eqP <-.
 have cAD: forall q r, q != r -> D`q \subset 'C(A`r).
   move=> q r r'q; case: (eqVneq D`q 1) => [-> |]; first by rewrite sub1G.
-  case/(pgroup_pdiv (pcore_pgroup _ _))=> q_pr qDq _.
-(*
-  case: (eqVneq A`r 1) => [-> |]; first by rewrite cents1.
-  case/(pgroup_pdiv (pcore_pgroup _ _))=> r_pr rAr _. *)
-  have sArHq': A`r \subset 'O_q^'(H).
-    rewrite sArXq' // -piD mem_primes cardG_gt0 q_pr (dvdn_trans qDq) //.
-    by rewrite cardSg ?pcore_sub.
+  rewrite -cardG_gt1 card_pcore_nil // p_part_gt1 piD => pi_q.
+  have sArHq': A`r \subset 'O_q^'(H) by rewrite sArXq'.
   have coHqHq': coprime #|D`q| #|'O_q^'(H)| by rewrite coprime_pcoreC.
   rewrite (sameP commG1P trivgP) -(coprime_TIg coHqHq') commg_subI //.
     rewrite subsetI subxx /= p_core_Fitting (subset_trans (pcore_sub _ _)) //.
@@ -244,35 +199,27 @@ have cAD: forall q r, q != r -> D`q \subset 'C(A`r).
   rewrite subsetI sArHq' (subset_trans (subset_trans (pcore_sub _ _) sAH)) //.
   by rewrite /= p_core_Fitting bgFunc_norm.
 have sDM: D \subset M.
-  rewrite -[D]Sylow_gen gen_subG; apply/bigcupsP=> Q; case/SylowP=> q _.
-  move/nilpotent_Hall_pcore=> ->; rewrite ?Fitting_nil //= -/D.
-  have [r pi_r r'q] := pi_alt q.
+  rewrite [D]FittingEgen gen_subG; apply/bigcupsP=> [[q /= _] _].
+  rewrite -p_core_Fitting -/D; have [r pi_r r'q] := pi_alt q.
   by apply: subset_trans (sCqM r pi_r); apply: cAD; rewrite eq_sym.
 have cApHp': A`p \subset 'C('O_p^'(H)).
   have coApHp': coprime #|'O_p^'(H)| #|A`p|.
     by rewrite coprime_sym coprime_pcoreC.
-  have solHp': solvable 'O_p^'(H).
-    exact: solvableS (pcore_sub _ _) (proper_minSimple_sol prH).
+  have solHp': solvable 'O_p^'(H) by rewrite (solvableS (pcore_sub _ _)).
   have nHp'Ap: A`p \subset 'N('O_p^'(H)).
     by rewrite (subset_trans (subset_trans (pcore_sub _ _) sAH)) ?bgFunc_norm.
   apply: subset_trans (coprime_cent_Fitting nHp'Ap coApHp' solHp').
-  rewrite subsetI subxx centsC /= -['F(_)]Sylow_gen gen_subG.
-  apply/bigcupsP=> Q; case/SylowP=> q q_pr.
-  move/nilpotent_Hall_pcore=> ->; rewrite ?Fitting_nil //=.
-  case: (eqVneq q p) => [-> |].
-    rewrite -(setIidPl (subset_trans (pcore_sub _ _) (Fitting_sub _))).
-    by rewrite TI_pcoreC sub1G.
-  move/cAD; apply: subset_trans; rewrite !p_core_Fitting.
-  by rewrite pcore_max ?pcore_pgroup //= -pcoreI pcore_normal.
+  rewrite subsetI subxx centsC /= FittingEgen gen_subG.
+  apply/bigcupsP=> [[q /= _] _]; case: (eqVneq q p) => [-> |].
+    by rewrite -(setIidPl (pcore_sub p _)) TI_pcoreC sub1G.
+  move/cAD; apply: subset_trans; rewrite p_core_Fitting -pcoreI.
+  by apply: sub_pcore => r; case/andP.
 have sHp'M: 'O_p^'(H) \subset M.
   by apply: subset_trans (sCqM p pi_p); rewrite centsC.
-have ntDp: D`p != 1.
-  apply: contraL pi_p; rewrite trivg_card1; move/eqnP=> Dq1.
-  rewrite -piD -[p \in _]logn_gt0 -logn_part.
-  by rewrite -(card_Hall (nilpotent_pcore_Hall _ (Fitting_nil _))) Dq1 logn1.
+have ntDp: D`p != 1 by rewrite -cardG_gt1 card_pcore_nil // p_part_gt1 piD.
 have sHp'_NMDp': 'O_p^'(H) \subset 'O_p^'('N_M(D`p)).
   apply: subset_trans (pcoreS _ (subsetIr _ _)).
-  rewrite -setIA (setIidPr (pcore_sub _ _)) /= (normal_max_group maxH) //.
+  rewrite -setIA (setIidPr (pcore_sub _ _)) /= (mmax_normal maxH) //.
     by rewrite subsetI sHp'M subxx.
   by rewrite /= p_core_Fitting pcore_normal.
 have{sHp'_NMDp'} sHp'Mp': 'O_p^'(H) \subset 'O_p^'(M).
@@ -286,7 +233,7 @@ have{sHp'_NMDp'} sHp'Mp': 'O_p^'(H) \subset 'O_p^'(M).
   rewrite -(coprime_TIg coHp'Dp) subsetI commg_subl commg_subr /=.
   by rewrite p_core_Fitting !(subset_trans (pcore_sub _ _)) ?bgFunc_norm.
 have sMp'H: 'O_p^'(M) \subset H.
-  rewrite -(normal_max_group maxH (pcore_normal p H)) /= -p_core_Fitting //.
+  rewrite -(mmax_normal maxH (pcore_normal p H)) /= -p_core_Fitting //.
   rewrite -/D (subset_trans _ (cent_sub _)) // centsC.
   have solMp' := solvableS (pcore_sub p^' _) (proper_minSimple_sol prM).
   have coMp'Dp: coprime #|'O_p^'(M)| #|D`p|.
@@ -294,44 +241,177 @@ have sMp'H: 'O_p^'(M) \subset H.
   have nMp'Dp: D`p \subset 'N('O_p^'(M)).
     by rewrite (subset_trans (subset_trans (pcore_sub _ _) sDM)) ?bgFunc_norm.
   apply: subset_trans (coprime_cent_Fitting nMp'Dp coMp'Dp solMp').
-  rewrite subsetI subxx centsC /= -['F(_)]Sylow_gen gen_subG.
-  apply/bigcupsP=> Q; case/SylowP=> q _.
-  move/nilpotent_Hall_pcore=> ->{Q}; rewrite ?Fitting_nil //.
-  case: (eqVneq p q) => [<- |].
-    rewrite -(setIidPl (subset_trans (pcore_sub _ _) (Fitting_sub _))).
-    by rewrite TI_pcoreC sub1G.
-  move/cAD; rewrite centsC; apply: subset_trans; rewrite !p_core_Fitting.
-  rewrite pcore_max ?pcore_pgroup //= /normal subsetI Fitting_max; last first.
-  - exact: pgroup_nil (pcore_pgroup _ _).
-  - by rewrite /= -pcoreI pcore_normal.
-  rewrite (subset_trans (pcore_sub _ _)) /=; last first.
-    have sA0Fp: A0 \subset F`p.
-      have hallFp: p.-Sylow(F) F`p := nilpotent_pcore_Hall p (Fitting_nil M).
-      by rewrite (subset_normal_Hall _ hallFp) ?pcore_normal // /psubgroup sA0F.
-    rewrite centsC (subset_trans sA0Fp) // (sameP commG1P trivgP).
-    rewrite -(TI_pcoreC p M M) /= p_core_Fitting subsetI commg_subl commg_subr.
-    by rewrite !(subset_trans (pcore_sub _ _)) ?bgFunc_norm.
-  rewrite (subset_trans (subset_trans sAF (Fitting_sub _))) //.
-  by rewrite -pcoreI bgFunc_norm.
+  rewrite subsetI subxx centsC /= FittingEgen gen_subG.
+  apply/bigcupsP=> [[q /= _] _]; case: (eqVneq p q) => [<- |].
+    by rewrite -(setIidPl (pcore_sub p _)) TI_pcoreC sub1G.
+  move/cAD; rewrite centsC; apply: subset_trans.
+  rewrite -p_core_Fitting Fitting_pcore pcore_max ?pcore_pgroup //=.
+  rewrite /normal subsetI -pcoreI pcore_sub subIset ?bgFunc_norm //=.
+  rewrite pcoreI (subset_trans (pcore_sub _ _)) //= -/F centsC.
+  case/dprodP: (nilpotent_pcoreC p nilF) => _ _ /= cFpp' _.
+  apply: subset_trans cFpp'; have hallFp := nilpotent_pcore_Hall p nilF.
+  by rewrite (subset_normal_Hall _ hallFp) ?pcore_normal // /psubgroup sA0F.
 have{sHp'Mp' sMp'H} eqHp'Mp': 'O_p^'(H) = 'O_p^'(M).
   apply/eqP; rewrite eqEsubset sHp'Mp'.
   apply: subset_trans (sNZqXq' p H sAH prH).
   apply: subset_trans (pcoreS _ (subsetIr _ _)).
   rewrite -setIA (setIidPr (pcore_sub _ _)) subsetI sMp'H /=.
-  rewrite (normal_max_group maxM (char_normal_trans (pcore_char _ _) _)) //.
+  rewrite (mmax_normal maxM (char_normal_trans (pcore_char _ _) _)) //.
     by rewrite (char_normal_trans (center_char _)) ?Fitting_normal.
-  apply: contraL pi_p; rewrite def_pi -piZ trivg_card1; move/eqnP=> Zp1.
-  have sylZp := nilpotent_pcore_Hall p (abelian_nil (abelian_center 'F(M))).
-  by rewrite -[p \in _]logn_gt0 -logn_part -(card_Hall sylZp) Zp1 logn1.
+  by rewrite -cardG_gt1 card_pcore_nil // p_part_gt1 piZ -def_pi.
 have ntHp': 'O_p^'(H) != 1.
-  have [q pi_q p'q] := pi_alt p; apply: contraL pi_q => Hp'1.
-  have sylDq: q.-Sylow(D) D`q := nilpotent_pcore_Hall q (Fitting_nil H).
-  have Dq1: #|D`q| = 1%N.
-    apply/eqP; rewrite -trivg_card1 -subG1 -(eqP Hp'1) /= p_core_Fitting.
-    by rewrite sub_pcore // => r; move/eqnP->.
-  by rewrite -piD -[q \in _]logn_gt0 -logn_part -(card_Hall sylDq) Dq1 logn1.
-rewrite -(normal_max_group maxH (pcore_normal p^' H)) //= eqHp'Mp'.
-by rewrite (normal_max_group maxM (pcore_normal _ _)) //= -eqHp'Mp'.
+  have [q pi_q p'q] := pi_alt p; have: D`q \subset 'O_p^'(H).
+    by rewrite p_core_Fitting sub_pcore // => r; move/eqnP->.
+  rewrite -proper1G; apply: proper_sub_trans; rewrite proper1G.
+  by rewrite -cardG_gt1 card_pcore_nil // p_part_gt1 piD.
+rewrite -(mmax_normal maxH (pcore_normal p^' H)) //= eqHp'Mp'.
+by rewrite (mmax_normal maxM (pcore_normal _ _)) //= -eqHp'Mp'.
+Qed.
+
+(* This is B & G, Theorem 8.1(b) *)
+Lemma SCN_Fitting_Uniqueness : forall p M P A,
+    M \in 'M -> p.-group ('F(M)) -> p.-Sylow(M) P ->
+    'r_p('F(M)) >= 3 -> A \in 'SCN_3(P) ->
+  [/\ p.-Sylow(G) P, A \subset 'F(M) & A \in 'U].
+Proof.
+move=> p M P A maxM; set F := 'F(M) => pF sylP dimFp3 SCN3_A.
+have [SCN_A dimA3] := setIdP SCN3_A; have [nsAP defCA] := SCN_P _ _ SCN_A.
+have cAA := SCN_abelian SCN_A; have sAP := normal_sub nsAP.
+have{dimA3} ntA: A :!=: 1 by case: eqP dimA3 => // ->; rewrite rank1.
+have prM := mmax_proper maxM; have solM := proper_minSimple_sol prM.
+have{pF} Mp'1: 'O_p^'(M) = 1.
+  apply/eqP; rewrite -trivg_Fitting ?(solvableS (pcore_sub _ _)) //.
+  rewrite Fitting_pcore -(setIidPr (pcore_sub _ _)) coprime_TIg //.
+  exact: pnat_coprime (pcore_pgroup _ _).
+have defF: F = M`p := Fitting_eq_pcore Mp'1.
+have sAF: A \subset F.
+  rewrite defF -(pseries_pop2 _ Mp'1).
+  exact: (odd_p_abelian_constrained (minSimple_odd _) solM sylP cAA nsAP).
+have sZA: 'Z(F) \subset A.
+  by rewrite -defCA setISS ?centS // defF pcore_sub_Hall.
+have sCAM: 'C(A) \subset M.
+  have nsZM: 'Z(F) <| M := char_normal_trans (center_char _) (Fitting_normal _).
+  rewrite -(mmax_normal maxM nsZM); last first.
+    rewrite /= -(setIidPr (center_sub _)) nil_meet_Z ?Fitting_nil //.
+    by rewrite -proper1G (proper_sub_trans _ sAF) ?proper1G.
+  by rewrite (subset_trans _ (cent_sub _)) ?centS.
+have nsZL_M: 'Z('L(P)) <| M.
+  by rewrite (Puig_center_normal (minSimple_odd _) solM sylP).
+have sNPM: 'N(P) \subset M.
+  rewrite -(mmax_normal maxM nsZL_M).
+    by rewrite (char_norm_trans (center_Puig_char P)).
+  apply/eqP; move/(trivg_center_Puig_pgroup (pHall_pgroup sylP))=> P1.
+  by rewrite -subG1 -P1 sAP in ntA.
+have sylPG: p.-Sylow(G) P := mmax_sigma_Sylow maxM sylP sNPM.
+split=> //; have{SCN3_A} SCN3_A: A \in 'SCN_3[p].
+  by apply/bigcupP; exists P; rewrite // inE.
+pose K := 'O_p^'('C(A)).
+have sKM: K \subset M := subset_trans (pcore_sub _ _) sCAM.
+have sFP: F \subset P by rewrite defF (pcore_sub_Hall sylP).
+have{sKM} sKF: K \subset F.
+  apply: subset_trans (cent_sub_Fitting solM).
+  rewrite subsetI sKM coprime_nil_faithful_cent_stab ?Fitting_nil //.
+  - by rewrite (subset_trans (subset_trans (pcore_sub _ _) sCAM)) ?bgFunc_norm.
+  - by rewrite /= -/F defF coprime_pcoreC.
+  have sACK: A \subset 'C_F(K) by rewrite subsetI sAF centsC pcore_sub.
+  by rewrite /= -/F -/K (subset_trans _ sACK) //= -defCA setISS ?centS.
+have{sKF} K1: K = 1 by rewrite -(setIidPr sKF) defF TI_pcoreC.
+have p'nbyA_1: forall q, q != p -> |/|*(A; q) = [set 1%G].
+  move=> q p'q.
+  have: [transitive K, on |/|*(A; q) | 'JG] by exact: Thompson_transitivity.
+  case/imsetP=> Q maxQ; rewrite K1 /orbit imset_set1 act1 => defAmax.
+  have nQNA: 'N(A) \subset 'N(Q).
+    apply/normsP=> x Nx; apply: congr_group; apply/set1P; rewrite -defAmax.
+    by rewrite (acts_act (norm_acts_max_norm _ _)).
+  have{nQNA} nQF: F \subset 'N(Q).
+    exact: subset_trans (subset_trans (normal_norm nsAP) nQNA).
+  have defFmax: |/|*(F; q) = [set Q] := max_normed_uniq defAmax sAF nQF.
+  have nQM: M \subset 'N(Q).
+    apply/normsP=> x Mx; apply: congr_group; apply/set1P; rewrite -defFmax.
+    rewrite (acts_act (norm_acts_max_norm _ _)) ?defFmax ?set11 //.
+    by rewrite (subsetP (bgFunc_norm _ _)).
+  case: (eqVneq Q 1%G) => [<- // | ntQ].
+  rewrite inE in maxQ; have [qQ _] := andP (maxgroupp maxQ).
+  have{nQM} defNQ: 'N(Q) = M.
+    by rewrite (mmax_norm maxM) // (proper_pgroup_minSimple qQ).
+  case/negP: ntQ; rewrite -[_ == _]subG1 -Mp'1 -defNQ pcore_max ?normalG //.
+  exact: pi_pnat qQ _.
+have{p'nbyA_1} p'nbyA_1: forall X,
+  X \proper G -> p^'.-group X -> A \subset 'N(X) -> X :=: 1.
+- move=> X prX p'X nXA; have solX := proper_minSimple_sol prX.
+  apply/eqP; rewrite -trivg_Fitting // -subG1 /= FittingEgen gen_subG.
+  apply/bigcupsP=> [[q /= _] _]; case: (eqVneq q p) => [-> | p'q].
+    rewrite -(setIidPl (pcore_sub _ _)) coprime_TIg //.
+    by rewrite (pnat_coprime (pcore_pgroup _ _)).
+  have [|R] := max_normed_exists (pcore_pgroup q X) (char_norm_trans _ nXA).
+    exact: pcore_char.
+  by rewrite p'nbyA_1 //; move/set1P->.
+rewrite inE -(cards1 M) subset_leq_card //; apply/subsetPn=> [[H0 MA_H0 neH0M]].
+have:= erefl [arg max_(H > H0 | (H \in 'M(A)) && (H != M)) #|H :&: M|`_p].
+case: arg_maxP => [|H {H0 MA_H0 neH0M}]; first by rewrite MA_H0 -in_set1.
+rewrite /= inE -andbA; case/and3P=> maxH sAH neHM maxHM _.
+have prH: H \proper G by rewrite inE in maxH; exact: maxgroupp maxH.
+have [sPM pP _] := and3P sylP; have sAM := subset_trans sAP sPM.
+have sAHM: A \subset H :&: M by rewrite subsetI sAH.
+have [R sylR_HM sAR]:= Sylow_superset sAHM (pgroupS sAP pP).
+have [] := and3P sylR_HM; rewrite subsetI; case/andP=> sRH sRM pR _.
+have{sylR_HM} sylR_H: p.-Sylow(H) R. 
+  have [Q sylQ] := Sylow_superset sRM pR; have [sQM pQ _] := and3P sylQ.
+  rewrite subEproper; case/predU1P=> [defR | ].
+    apply: (pHall_subl sRH (subsetT _)); rewrite pHallE subsetT /=.
+    by rewrite -(card_Hall sylPG) (card_Hall sylP) defR (card_Hall sylQ).
+  move/(nilpotent_proper_norm (pgroup_nil pQ))=> sRN.
+  case/maximal_exists: (subsetT 'N(R)) => [[nRG] | [D maxD sND]].
+    case/negP: (proper_irrefl (mem G)); rewrite -{1}nRG.
+    rewrite proper_norm_minSimple ?(proper_pgroup_minSimple pR) //.
+    by rewrite -proper1G (proper_sub_trans _ sAR) ?proper1G.
+  move/implyP: (maxHM D); rewrite 2!inE {}maxD leqNgt.
+  case: eqP sND => [->{D} sNM _ | _ sND].
+    rewrite -Sylow_subnorm (pHall_subl _ _ sylR_HM) ?setIS //.
+    by rewrite subsetI sRH normG.
+  rewrite (subset_trans (subset_trans sAR (normG R)) sND); case/negP.
+  rewrite -(card_Hall sylR_HM) (leq_trans (proper_card sRN)) //.
+  rewrite -(part_pnat (pgroupS (subsetIl _ _) pQ)) dvdn_leq //.
+  by rewrite partn_dvd ?cardG_gt0 // cardSg //= setIC setISS.
+have Hp'1: 'O_p^'(H) = 1.
+  apply: p'nbyA_1 (pcore_pgroup _ _) (subset_trans sAH (bgFunc_norm _ _)).
+  exact: sub_proper_trans (pcore_sub _ _) prH.
+have nsZLR_H: 'Z('L(R)) <| H.
+  have solH := proper_minSimple_sol prH.
+  exact: Puig_center_normal (minSimple_odd _) solH sylR_H _.
+have ntZLR: 'Z('L(R)) != 1.
+  apply/eqP; move/(trivg_center_Puig_pgroup pR)=> R1.
+  by rewrite -subG1 -R1 sAR in ntA.
+have defH: 'N('Z('L(R))) = H := mmax_normal maxH nsZLR_H ntZLR.
+have{sylR_H} sylR: p.-Sylow(G) R.
+  rewrite -Sylow_subnorm setTI (pHall_subl _ _ sylR_H) ?normG //=.
+  by rewrite -defH (char_norm_trans (center_Puig_char R)).
+have nsZLR_M: 'Z('L(R)) <| M.
+  have sylR_M := pHall_subl sRM (subsetT _) sylR.
+  exact: Puig_center_normal (minSimple_odd _) solM sylR_M _.
+case/eqP: neHM; apply: group_inj.
+by rewrite -defH (mmax_normal maxM nsZLR_M).
+Qed.
+
+(* This summarizes the two branches of B & G, Theorem 8.1 *)
+Lemma Fitting_Uniqueness : forall M,
+  M \in 'M -> 'r('F(M)) >= 3 -> 'F(M)%G \in 'U.
+Proof.
+move=> M maxM; have [p _ -> dimF3] := rank_witness 'F(M).
+case/orP: (orbN (p.-group 'F(M))) => [pF | npF].
+  have [P sylP] := Sylow_exists p M; have [sPM pP _] := and3P sylP.
+  have dimP3: 'r_p(P) >= 3.
+    by rewrite -(p_rank_Sylow sylP) (leq_trans dimF3) // p_rankS ?Fitting_sub.
+  have [A] := set0Pn _ (p_rank_3_SCN pP (minSimple_odd _) dimP3).
+  by case/(SCN_Fitting_Uniqueness maxM pF)=> // _ sAF; exact: uniq_mmaxS. 
+case/p_rank_geP: dimF3 => A; case/setIdP=> EpA dimA3.
+have [A0 maxA0 sAA0] := @maxgroup_exists _ [pred X \in 'E_p('F(M))] _ EpA.
+have [_ abelA] := pElemP EpA; have pmaxA0: A0 \in 'E*_p('F(M)) by rewrite inE.
+case/pElemP: (maxgroupp maxA0) => sA0F; case/and3P=> _ cA0A0 _.
+have dimA0_3: 'm(A0) >= 3.
+  by rewrite (grank_abelian cA0A0) -(eqP dimA3) -(rank_abelem abelA) rankS.
+have:= non_pcore_Fitting_Uniqueness maxM npF pmaxA0 dimA0_3.
+exact: uniq_mmaxS (subsetIl _ _).
 Qed.
 
 End Eight.

@@ -584,6 +584,19 @@ case/dprodP: (nilpotent_pcoreC p (Fitting_nil G)) => _  /= <- _ _.
 by rewrite p_core_Fitting ['O_p^'(_)](trivgP _) ?mulg1 // -p'G1 pcore_Fitting.
 Qed.
 
+Lemma FittingEgen : forall G,
+  'F(G) = <<\bigcup_(p < #|G|.+1 | (p : nat) \in \pi(#|G|)) 'O_p(G)>>.
+Proof.
+move=> G; apply/eqP; rewrite eqEsubset gen_subG /=.
+rewrite -{1}(bigdprodEgen (erefl 'F(G))) (big_nth 0) big_mkord genS.
+  by apply/bigcupsP=> p _; rewrite -p_core_Fitting pcore_sub.
+apply/bigcupsP=> [[i /= lti]] _; set p := nth _ _ i.
+have pi_p: p \in \pi(#|G|) by rewrite mem_nth.
+have p_dv_G: p %| #|G| by rewrite mem_primes in pi_p; case/and3P: pi_p.
+have lepG: p < #|G|.+1 by rewrite ltnS dvdn_leq.
+by rewrite (bigcup_max (Ordinal lepG)).
+Qed.
+
 End Fitting.
 
 Section FittingFun.
@@ -825,7 +838,7 @@ split=> //; apply: (charsimple_solvable (minnormal_charsimple minH)).
 exact: solvableS solG.
 Qed.
 
-Lemma solvable_norm_abelem : forall L G : {group gT},
+Lemma solvable_norm_abelem : forall L G,
   solvable G -> G <| L -> G :!=: 1 ->
   exists H : {group gT}, [/\ H \subset G, H <| L, H :!=: 1 & is_abelem H].
 Proof.
@@ -834,6 +847,26 @@ have [H minH sHG]: {H : {group gT} | minnormal H L & H \subset G}.
   by apply: mingroup_exists; rewrite ntG.
 have [nHL ntH abH] := minnormal_solvable minH sHG solG.
 by exists H; split; rewrite // /normal (subset_trans sHG).
+Qed.
+
+Lemma trivg_Fitting : forall G, solvable G -> ('F(G) == 1) = (G :==: 1).
+Proof.
+move=> G solG; apply/idP/idP=> [F1|]; last first.
+  by rewrite -!subG1; apply: subset_trans; exact: Fitting_sub.
+apply/idPn; case/(solvable_norm_abelem _ (normal_refl _)) => // M [_] nsMG ntM.
+case/is_abelemP=> p _; case/and3P=> pM _ _; case/negP: ntM.
+by rewrite -subG1 -(eqP F1) Fitting_max ?(pgroup_nil pM).
+Qed.
+
+Lemma Fitting_pcore : forall pi G, 'F('O_pi(G)) = 'O_pi('F(G)).
+Proof.
+move=> pi G; apply/eqP; rewrite eqEsubset.
+rewrite (subset_trans _ (pcoreS _ (Fitting_sub _))); last first.
+  rewrite subsetI Fitting_sub Fitting_max ?Fitting_nil //.
+  by rewrite (char_normal_trans (Fitting_char _)) ?pcore_normal.
+rewrite (subset_trans _ (FittingS (pcore_sub _ _))) // subsetI pcore_sub.
+rewrite pcore_max ?pcore_pgroup //.
+by rewrite (char_normal_trans (pcore_char _ _)) ?Fitting_normal.
 Qed.
 
 End CharSimple.

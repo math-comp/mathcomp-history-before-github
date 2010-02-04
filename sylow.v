@@ -349,6 +349,20 @@ have{ntZ pZ} [_ pZ _] := pgroup_pdiv pZ ntZ.
 by rewrite p_pr (dvdn_trans pZ) // cardSg ?subsetIr.
 Qed.
 
+Lemma Sylow_subnorm : forall p G P,
+  p.-Sylow('N_G(P)) P = p.-Sylow(G) P.
+Proof.
+move=> p G P; apply/idP/idP=> sylP; last first.
+  apply: pHall_subl (subsetIl _ _) (sylP).
+  by rewrite subsetI normG (pHall_sub sylP).
+have [] := and3P sylP; rewrite subsetI; case/andP=> sPG sPN pP _.
+have [Q sylQ sPQ] := Sylow_superset sPG pP; have [sQG pQ _] := and3P sylQ.
+rewrite -(nilpotent_sub_norm (pgroup_nil pQ) sPQ) {sylQ}//.
+rewrite subEproper eq_sym eqEcard subsetI sPQ sPN dvdn_leq //.
+rewrite -(part_pnat (pgroupS (subsetIl _ _) pQ)) (card_Hall sylP).
+by rewrite partn_dvd // cardSg ?setSI.
+Qed.
+
 End Nilpotent.
 
 Definition Zgroup (gT : finGroupType) (A : {set gT}) :=

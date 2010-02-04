@@ -1085,5 +1085,28 @@ apply/andP; split; first by apply: sub_pcore => p; case/andP.
 apply: subset_trans (pcore_sub _ _) (normal_norm _); exact: pcore_normal.
 Qed.
 
+Lemma bigcap_p'core : forall pi G,
+  G :&: \bigcap_(p < #|G|.+1 | (p : nat) \in pi) 'O_p^'(G) = 'O_pi^'(G).
+Proof.
+move=> pi G; apply/eqP; rewrite eqEsubset subsetI pcore_sub pcore_max /=.
+- by apply/bigcapsP=> p pi_p; apply: sub_pcore => r; apply: contra; move/eqnP->.
+- apply/pgroupP=> q q_pr qGpi'; apply: contraL (eqxx q) => /= pi_q.
+  apply: (pgroupP _ _ (pcore_pgroup q^' G)) => //.
+  have qG: q %| #|G| by rewrite (dvdn_trans qGpi') // cardSg ?subsetIl.
+  have ltqG: q < #|G|.+1 by rewrite ltnS dvdn_leq.
+  rewrite (dvdn_trans qGpi') ?cardSg ?subIset //= orbC.
+  by rewrite (bigcap_inf (Ordinal ltqG)).
+rewrite /normal subsetIl normsI ?normG //.
+apply big_prop => [|H K nHG nKG|p _]; rewrite ?normsI ?bgFunc_norm //.
+by rewrite normsG // subsetT.
+Qed.
+
+Lemma coprime_pcoreC : forall (xT : finGroupType) pi G (H : {group xT}),
+  coprime #|'O_pi(G)| #|'O_pi^'(H)|.
+Proof. move=> *; exact: pnat_coprime (pcore_pgroup _ _) (pcore_pgroup _ _). Qed.
+
+Lemma TI_pcoreC : forall pi (G H : {group gT}), 'O_pi(G) :&: 'O_pi^'(H) = 1.
+Proof. by move=> pi G H; rewrite coprime_TIg ?coprime_pcoreC. Qed.
+
 End SubPcore.
 

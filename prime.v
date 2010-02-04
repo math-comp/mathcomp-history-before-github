@@ -793,6 +793,17 @@ have le_p_n: p < n.+1 by rewrite ltnS dvdn_leq.
 by rewrite [n`_p]big_mkord (big_pred1 (Ordinal le_p_n)).
 Qed.
 
+Lemma p_part_eq1 : forall p n : nat, (n`_p == 1) = (p \notin \pi(n)).
+Proof.
+move=> p n; rewrite mem_primes p_part lognE; case: and3P => // [[p_pr _ _]].
+by rewrite -dvdn1 pfactor_dvdn // logn1.
+Qed.
+
+Lemma p_part_gt1 : forall p n : nat, (n`_p > 1) = (p \in \pi(n)).
+Proof.
+by move=> p n; rewrite ltn_neqAle part_gt0 andbT eq_sym p_part_eq1 negbK.
+Qed.
+
 Lemma primes_part : forall pi n, primes n`_pi = filter (mem pi) (primes n).
 Proof.
 move=> pi n; have ltnT := ltn_trans.

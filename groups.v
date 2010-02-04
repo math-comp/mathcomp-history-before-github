@@ -1260,6 +1260,9 @@ Proof. by rewrite eq_sym eqEcard cards1 sub1G. Qed.
 Lemma trivg_card1 : (G :==: 1) = (#|G| == 1%N).
 Proof. by rewrite trivg_card_le1 eqn_leq cardG_gt0 andbT. Qed.
 
+Lemma cardG_gt1 : (#|G| > 1) = (G :!=: 1).
+Proof. by rewrite trivg_card_le1 ltnNge. Qed.
+
 Lemma card_le1_trivg : #|G| <= 1 -> G :=: 1.
 Proof. by rewrite -trivg_card_le1; move/eqP. Qed.
 
