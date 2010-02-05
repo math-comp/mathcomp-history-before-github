@@ -97,10 +97,7 @@ have pBs : p.-group Bs.
   by rewrite pgroupM pE (pgroupS _ pB) ?subIset ?subxx.
 have cardB : logn p #|B| = 3 by case/pnElemP: pnelemB.
 have abelianB : abelian B by case/pnElemP: pnelemB=> _; case/and3P.
-case: (ltnP (logn p #|Bs|) 3); last first.
-  have := centralizer_scn_pgroup_eq.
-  admit.
-move=> cardBs.
+case: (ltnP (logn p #|Bs|) 3); move=> cardBs.
   have defE : Bs :=: E.
     apply/eqP; rewrite eq_sym eqEcard mulgen_subl.
     rewrite (logn_injcard pBs pE) // cardE -(@ltnS _ 2) cardBs.
@@ -117,13 +114,15 @@ move=> cardBs.
   have defE' : 'C_B(E) :=: E.
     apply/eqP; rewrite eqEcard sCE (logn_injcard pE) // 1?cardE ?cardCBE //=.
     by rewrite (@pgroupS _ _ B) // subIset ?subxx.
-  have {defE'} abs1 : E \proper B.
+  have abs1 : E \proper B.
     rewrite -defE' properEcard subIset ?subxx //= defE'.
     by rewrite (logn_injcard1 pE pB) // !cardE cardB.
   have abs2 : 'C_B(E) :=: B.
     apply/eqP; rewrite eqEsubset subIset ?subxx // subsetI subxx /=.
     by rewrite sub_abelian_cent // proper_sub.
-by move/eqP: abs2; rewrite eqEproper; case/andP=> _; case/negP; rewrite defE'.
+  by move/eqP: abs2; rewrite eqEproper; case/andP=> _; case/negP; rewrite defE'.
+have := centralizer_scn_pgroup_eq.
+admit.
 Qed.
 
 End Five.
