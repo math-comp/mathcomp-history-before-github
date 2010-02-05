@@ -110,20 +110,19 @@ move=> cardBs.
   have cardBq' : logn p #| B / 'C_B(E) | <= 1.
     rewrite card_quotient ?normsI ?normG ?(subset_trans _ (cent_norm E)) //.
     by rewrite logn_quotient_cent_abelem ?cardE ?(subset_trans sBR).
-  have ? : 2 <= logn p #|'C_B(E)|.
-    rewrite -cardE. 
-    (* still unused cardBq' *)
-    admit.
+  have cardCBE : 2 <= logn p #|'C_B(E)|.
+    move: cardBq'; rewrite card_quotient ?normsI ?normG ?(subset_trans nEB (norms_cent _)) //. 
+    rewrite -divgS ?subIset ?subxx //= logn_div ?cardB ?cardSg ?subIset ?subxx //.
+    by case: (logn _ _)=> //; case.
   have defE' : 'C_B(E) :=: E.
-    apply/eqP; rewrite eqEcard sCE (logn_injcard pE) // 1?cardE //=.
+    apply/eqP; rewrite eqEcard sCE (logn_injcard pE) // 1?cardE ?cardCBE //=.
     by rewrite (@pgroupS _ _ B) // subIset ?subxx.
-  have abs1 : E \proper B.
+  have {defE'} abs1 : E \proper B.
     rewrite -defE' properEcard subIset ?subxx //= defE'.
     by rewrite (logn_injcard1 pE pB) // !cardE cardB.
   have abs2 : 'C_B(E) :=: B.
-    apply/eqP; rewrite eqEsubset subIset ?subxx //.
-    (* still unused cardBq' *)
-    admit.
+    apply/eqP; rewrite eqEsubset subIset ?subxx // subsetI subxx /=.
+    by rewrite sub_abelian_cent // proper_sub.
 by move/eqP: abs2; rewrite eqEproper; case/andP=> _; case/negP; rewrite defE'.
 Qed.
 
