@@ -2394,6 +2394,12 @@ move=> x y; rewrite inE conjg_set1 sub1set inE (sameP eqP conjg_fixP).
 rewrite commg1_sym; exact: commgP.
 Qed.
 
+Lemma cent1E : forall x y, (x \in 'C[y]) = (x * y == y * x).
+Proof. by move=> x y; rewrite (sameP (cent1P x y) eqP). Qed.
+
+Lemma cent1C : forall x y, (x \in 'C[y]) = (y \in 'C[x]).
+Proof. by move=> x y; rewrite !cent1E eq_sym. Qed.
+
 Canonical Structure centraliser_group A : {group _} :=
   Eval hnf in [group of 'C(A)].
 
@@ -2487,6 +2493,9 @@ Qed.
 
 Lemma cent_cycle : forall x, 'C(<[x]>) = 'C[x].
 Proof. by move=> x; rewrite cent_gen cent_set1. Qed.
+
+Lemma sub_cent1 : forall A x, (A \subset 'C[x]) = (x \in 'C(A)).
+Proof. by move=> A x; rewrite -cent_cycle centsC cycle_subG. Qed.
 
 Lemma cent_mulgen : forall A B, 'C(A <*> B) = 'C(A) :&: 'C(B).
 Proof. by move=> G H; rewrite cent_gen centU. Qed.

@@ -700,12 +700,17 @@ Proof.
 by move=> A x; rewrite -subset_pred1; apply: eq_subset=> y; rewrite !inE.
 Qed.
 
+Lemma cards1P : forall A, reflect (exists x, A = [set x]) (#|A| == 1).
+Proof.
+move=> A; apply: (iffP idP) => [|[x ->]]; last by rewrite cards1.
+rewrite eq_sym eqn_leq card_gt0; case/andP; case/set0Pn=> x Ax leA1.
+by exists x; apply/eqP; rewrite eq_sym eqEcard sub1set Ax cards1 leA1.
+Qed.
+
 Lemma subset1 : forall A x, (A \subset [set x]) = (A == [set x]) || (A == set0).
 Proof.
-move=> A x; rewrite {1}eqEsubset.
-case e: (A == set0); first by move/eqP:e->; rewrite sub0set orbT.
-move/set0Pn: e=> [y Hy]; case f:(A \subset [set x]); last by [].
-by move/subsetP: f; move/(_ _ Hy); move/set1P<-; rewrite sub1set orbF.
+move=> A x; rewrite eqEcard cards1 -cards_eq0 orbC andbC.
+by case: posnP => // A0; rewrite (cards0_eq A0) sub0set.
 Qed.
 
 Lemma subsetD1 : forall A x, A :\ x \subset A.
@@ -835,6 +840,7 @@ Implicit Arguments setU1P [T x a B].
 Implicit Arguments setD1P [T x A b].
 Implicit Arguments setUP [T x A B].
 Implicit Arguments setDP [T x A B].
+Implicit Arguments cards1P [T A].
 Implicit Arguments setCP [T x A].
 Implicit Arguments setIidPl [T A B].
 Implicit Arguments setIidPr [T A B].
@@ -842,7 +848,7 @@ Implicit Arguments setUidPl [T A B].
 Implicit Arguments setUidPr [T A B].
 Implicit Arguments setDidPl [T A B].
 Prenex Implicits set1P set1_inj set2P setU1P setD1P setIdP setIP setUP setDP.
-Prenex Implicits setCP setIidPl setIidPr setUidPl setUidPr setDidPl.
+Prenex Implicits cards1P setCP setIidPl setIidPr setUidPl setUidPr setDidPl.
 
 Section setOpsAlgebra.
 

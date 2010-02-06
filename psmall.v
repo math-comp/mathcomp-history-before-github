@@ -13,24 +13,14 @@ Import GroupScope.
 (* belongs in commutators.v *)
 Lemma der1_mulgen_cycles : forall (gT : finGroupType) (x y : gT), 
   let XY := <[x]> <*> <[y]> in let xy := [~ x, y] in
-  xy \in 'C(XY) -> XY^`(1) = <[ xy ]>.
+  xy \in 'C(XY) -> XY^`(1) = <[xy]>.
 Proof. 
-move=> gT x y XY xy; rewrite /XY{XY} mulgen_idr mulgen_idl=> cXY_xy; apply/eqP.
-have sXY_Cxy : [set x; y] \subset 'C(<[ xy ]>).
-  by rewrite -gen_subG centsC cycle_subG.
-rewrite eqEsubset derg1 cycle_subG mem_commg ?mem_gen ?inE ?eqxx ?orbT //=.
-rewrite andbT der1_min //.
-  rewrite mulgen_subG !cents_norm //= (subset_trans _ sXY_Cxy) // ?subsetUl //. 
-  by rewrite subsetUr.
-rewrite quotient_gen /=; last exact: cents_norm.
-rewrite abelian_gen abelianE quotient_cents2 ?cents_norm //= gen_subG.
-apply/subsetP=>g; case/imset2P=> a b.
-rewrite !inE; case/orP; case/eqP=> ->; case/orP; case/eqP=> -> ->{a b g}.
-(* is there a more efficient way to do this? *)
-- by rewrite commgg group1.
-- by rewrite mem_gen // inE.
-- by rewrite -groupV invg_comm mem_gen // inE. 
-by rewrite commgg group1.
+move=> gT x y; rewrite mulgen_idl mulgen_idr /= -sub_cent1; move/norms_gen=> ?.
+apply/eqP; rewrite eqEsubset cycle_subG mem_commg ?mem_gen ?set21 ?set22 //.
+rewrite der1_min // quotient_gen -1?gen_subG // quotientU abelian_gen.
+rewrite /abelian subUset centU !subsetI andbC centsC -andbA -!abelianE.
+rewrite !quotient_abelian ?(abelianS (subset_gen _) (cycle_abelian _)) //=.
+by rewrite andbb quotient_cents2r ?genS // /commg_set imset2_set1l imset_set1.
 Qed.
 
 Section Section4.
@@ -734,24 +724,16 @@ End Twenty_Three_dot_Sixteen.
 Lemma pgroup_odd_card: forall (gT : finGroupType) (P : {group gT}) p,
   p.-group P -> odd p -> odd #|P|.
 Proof.
-move=> gT P p pgroupP oddp; case Peq1 : (P == 1%G).
-  by rewrite (eqP Peq1) cards1.
-by case: (pgroup_pdiv pgroupP (negbT Peq1)) => _ _ [m ->]; rewrite odd_exp oddp.
+move=> gT P p pP oddp; rewrite odd_2'nat (pi_pnat pP) //; apply: contraL oddp.
+by move/eqnP->.
 Qed.
 
 Lemma pgroup_proper_logn_card: forall (gT : finGroupType) (P Q : {group gT}) p,
-  p.-group P -> (Q \proper P) -> logn p #|Q| < logn p #|P|.
+  p.-group P -> Q \proper P -> logn p #|Q| < logn p #|P|.
 Proof. 
-move=> gT P Q p pgroupP pQP. have pgroupQ := (pgroupS (proper_sub pQP) pgroupP).
-have Pne1 : (P != 1%G).
-  apply/negP; move/eqP=> Peq1; move: (proper_card pQP).
-  by rewrite Peq1 cards1 ltnS => qlt0; move: (leq_trans (cardG_gt0 _) qlt0).
-case: (pgroup_pdiv pgroupP Pne1)=> primep pdiv [m cardPeq].
-rewrite cardPeq pfactorK //.
-case Qeq1 : (Q == 1)%G; first by rewrite (eqP Qeq1) cards1 logn1.
-case: (pgroup_pdiv pgroupQ (negbT Qeq1)) => _ _ [n cardQeq].
-rewrite cardQeq pfactorK //.
-by move: (proper_card pQP); rewrite cardPeq cardQeq ltn_exp2l ?prime_gt1.
+move=> gT P Q p pP; rewrite properEneq eqEcard andbC ltnNge; case/andP=> sQP.
+rewrite sQP /= -{1}(part_pnat pP) -{1}(part_pnat (pgroupS sQP pP)) !p_part {pP}.
+by apply: contra; case: p => [|p] lePQ; rewrite ?logn0 // leq_pexp2l.
 Qed.
 
 Lemma SCN3_empty_iff : forall (gT : finGroupType) (R : {group gT}) p,

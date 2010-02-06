@@ -884,7 +884,7 @@ have [p_pr _ _] := pgroup_pdiv pG ntG.
 have fM: {in 'Z(G) &, {morph expgn^~ p : x y / x * y}}.
   move=> x y; case/setIP=> _ CxG; case/setIP=> Gy _.
   rewrite expMgn //; exact: (centP CxG).
-rewrite abelemE //= abelian_center; apply/exponentP=> /= z Zz.
+rewrite abelemE //= center_abelian; apply/exponentP=> /= z Zz.
 apply: (@kerP _ _ _ (Morphism fM)) => //; apply: subsetP z Zz.
 rewrite -{1}defG' gen_subG; apply/subsetP=> xy.
 case/imset2P=> x y Gx Gy ->{xy}.
@@ -905,7 +905,7 @@ Theorem abelian_charsimple_special :
 Proof.
 move=> pG coGA defG; move/bigcupsP=> cChaA.
 have cZA: 'Z(G) \subset 'C_G(A).
-  by rewrite subsetI center_sub cChaA // center_char abelian_center.
+  by rewrite subsetI center_sub cChaA // center_char center_abelian.
 have cChaG: forall H : {group gT}, H \char G -> abelian H -> H \subset 'Z(G).
   move=> H chH abH; rewrite subsetI char_sub //= centsC -defG.
   rewrite comm_norm_cent_cent ?(char_norm chH) -?commg_subl ?defG //.
@@ -1067,7 +1067,7 @@ rewrite (quotient_Phi pX nZX) subG1 (trivg_Phi pXZ).
 apply: (abelemS (quotientS _ (subsetIr _ _))); rewrite /= cosetpreK /=.
 have pZ: p.-group 'Z(G / 'Z(K)).
   by rewrite (pgroupS (center_sub _)) ?morphim_pgroup.
-by rewrite Ohm1_abelem ?abelian_center.
+by rewrite Ohm1_abelem ?center_abelian.
 Qed.
 
 Lemma nil_class1 : forall H, (nil_class H <= 1) = abelian H.

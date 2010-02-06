@@ -370,7 +370,7 @@ Proof.
 move=> G p pG leGp2; pose Z := 'Z(G); have sZG: Z \subset G := center_sub G.
 case: (eqVneq Z 1); first by move/(trivg_center_pgroup pG)->; exact: abelian1.
 case/(pgroup_pdiv (pgroupS sZG pG)) => p_pr _ [k oZ].
-rewrite (@center_cyclic_abelian _ G) ?abelian_center //.
+rewrite (@center_cyclic_abelian _ G) ?center_abelian //.
 case: (eqVneq (G / Z) 1) => [-> |]; first exact: cyclic1.
 have pGq := quotient_pgroup 'Z(G) pG; case/(pgroup_pdiv pGq) => _ _ [j oGq].
 rewrite prime_cyclic // oGq; case: j oGq leGp2 => //= j.

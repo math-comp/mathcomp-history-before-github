@@ -423,7 +423,7 @@ have [C defC sCY_C nsCG] := inv_quotientN nsCY_G (pcore_normal p _).
 have sLG: L \subset G by rewrite (subset_trans _ (pHall_sub sylS)) ?Puig_sub.
 have nsL_nCS: L <| 'N_G(C :&: S).
   have sYLiS: Y \subset 'L_*(S).
-    rewrite abelian_norm_Puig ?double_gt0 ?abelian_center //.
+    rewrite abelian_norm_Puig ?double_gt0 ?center_abelian //.
     apply: normalS (pHall_sub sylS) (char_normal chY).
     by rewrite subIset // (subset_trans sLTS) ?Puig_sub.
   have gYL: Y --> L := norm_abgenS sYLiS (Puig_gen _ _).

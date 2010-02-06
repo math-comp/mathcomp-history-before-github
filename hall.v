@@ -81,7 +81,7 @@ have cardZK: #|ZK| = (#|Z| * #|G : H|)%N.
   rewrite -!card_quotient ?normal_norm //= -/Gbar -/Hbar.
   by rewrite -eqHKbar (TI_cardMg trHKbar) mulKn.
 have: [splits ZK, over Z].
-  rewrite (Gaschutz_split nZZK _ sZZK) ?abelian_center //; last first.
+  rewrite (Gaschutz_split nZZK _ sZZK) ?center_abelian //; last first.
     rewrite -divgS // cardZK mulKn ?cardG_gt0 //.
     by case/andP: hallH => _; exact: coprimeSg.
   by apply/splitsP; exists 1%G; rewrite inE -subG1 subsetIr mulg1 eqxx.

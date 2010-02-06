@@ -482,12 +482,23 @@ Proof.
 move=> pi H M G maxM piH sHG; move/normC; exact: comm_sub_max_pgroup piH sHG.
 Qed.
 
+Lemma sub_pHall : forall pi H G K,
+  pi.-Hall(G) H -> pi.-group K -> H \subset K -> K \subset G -> K :=: H.
+Proof.
+move=> pi H G K hallH piK sHK sKG; apply/eqP; rewrite eq_sym eqEcard sHK.
+by rewrite (card_Hall hallH) -(part_pnat piK) dvdn_leq ?partn_dvd ?cardSg.
+Qed.
+
 Lemma Hall_max : forall pi H G, pi.-Hall(G) H -> [max H | pi.-subgroup(G) H].
 Proof.
 move=> pi H G hallH; apply/maxgroupP; split=> [|K].
   by rewrite /psubgroup; case/and3P: hallH => ->.
-case/andP=> sKG piK sHK; apply/eqP; rewrite eq_sym eqEcard sHK.
-by rewrite (card_Hall hallH) -(part_pnat piK) dvdn_leq ?partn_dvd ?cardSg.
+case/andP=> sKG piK sHK; exact: (sub_pHall hallH).
+Qed.
+
+Lemma pHall_id : forall pi H G, pi.-Hall(G) H -> pi.-group G -> H :=: G.
+Proof.
+by move=> pi H G hallH piG; rewrite (sub_pHall hallH piG) ?(pHall_sub hallH).
 Qed.
 
 Lemma psubgroup1 : forall pi G, pi.-subgroup(G) 1.

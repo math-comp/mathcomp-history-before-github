@@ -43,18 +43,6 @@ Local Notation G := (TheMinSimpleOddGroup gT).
 Implicit Types H M A X P B : {group gT}.
 Implicit Types p q r : nat.
 
-Lemma mmax_exists : forall H, H \proper G -> {M | M \in 'M(H)}.
-Proof.
-move=> H; case/(@maxgroup_exists _ (fun M => M \proper G)) => M maxM sHM.
-by exists M; rewrite !inE sHM andbT.
-Qed.
-
-Lemma mmax_sub_eq : {in 'M &, forall M H, M \subset H -> M :=: H}.
-Proof.
-move=> M H; rewrite !inE; case/maxgroupP=> _ maxM; case/maxgroupP=> prH _.
-by move/maxM->.
-Qed.
-
 (* This is B & G, Theorem 9.1(b) *)
 Lemma noncyclic_normed_sub_Uniqueness : forall p M B,
     M \in 'M -> B \in 'E_p(M) -> ~~ cyclic B ->
@@ -62,9 +50,10 @@ Lemma noncyclic_normed_sub_Uniqueness : forall p M B,
   B \in 'U.
 Proof.
 move=> p M B maxM; case/pElemP=> sBM abelB ncycB snbBp'_M.
-have prM := mmax_proper maxM; have solM := proper_minSimple_sol prM.
+have prM := mmax_proper maxM; have solM := mFT_sol prM.
 have [pB cBB _] := and3P abelB.
-rewrite inE -(cards1 M) subset_leq_card //; apply/subsetPn=> [[H0 MB_H0 neH0M]].
+apply/uniq_mmaxP; exists M; symmetry; apply/eqP.
+rewrite eqEsubset sub1set inE maxM sBM; apply/subsetPn=> [[H0 MB_H0 neH0M]].
 have:= erefl [arg max_(H > H0 | (H \in 'M(B)) && (H :!=: M)) #|H :&: M|`_p].
 have [|H] := arg_maxP; first by rewrite MB_H0; rewrite inE in neH0M.
 rewrite inE -andbA; case/and3P=> maxH sBH neHM maxHM _ {H0 MB_H0 neH0M}.
@@ -96,12 +85,11 @@ have{snbBp'_M} defMp': <<\bigcup_(K \in |/|_G(P; p^')) K>> = 'O_p^'(M).
   apply: subset_trans (pcore_sub_Hall (quotient_pHall nMp'P sylP)) _.
   by rewrite quotient_norms.
 have ntR: R :!=: 1.
-  apply: contra ncycB; move/eqP=> R1; rewrite R1 in sBR.
-  by rewrite (trivgP sBR) cyclic1.
+  by case: eqP sBR ncycB => // ->; move/trivgP->; rewrite cyclic1.
 have{defMp'} sNPM: 'N(P) \subset M.
   case: (eqVneq 'O_p^'(M) 1) => [Mp'1 | ntMp'].
     have nsZLP: 'Z('L(P)) <| M.
-      apply: Puig_center_normal Mp'1 => //; exact: minSimple_odd.
+      apply: Puig_center_normal Mp'1 => //; exact: mFT_odd.
     rewrite -(mmax_normal maxM nsZLP).
       exact: char_norm_trans (center_Puig_char P) _.
     apply: contra ntR; move/eqP; move/(trivg_center_Puig_pgroup pP)=> P1.
@@ -115,8 +103,8 @@ have sylPG := mmax_sigma_Sylow maxM sylP sNPM.
 have{sNPM} [sNRM sylRH]: 'N(R) \subset M /\ p.-Sylow(H) R.
   have:= sRP; rewrite subEproper; case/predU1P=> [defR | ltRP].
     by split; rewrite defR // (pHall_subl _ (subsetT _)) // -defR.
-  have [|D]:= @mmax_exists 'N(R).
-    by rewrite proper_norm_minSimple // (proper_pgroup_minSimple pR).
+  have [|D]:= @mmax_exists _ 'N(R).
+    by rewrite mFT_norm_proper // (mFT_pgroup_proper pR).
   case/setIdP=> maxD sND; move/implyP: (maxHM D); rewrite inE {}maxD /= leqNgt.
   rewrite (subset_trans (subset_trans sBR (normG R))) //= implybN.
   have ltRN := nilpotent_proper_norm (pgroup_nil pP) ltRP.
@@ -129,19 +117,18 @@ have sFH_RHp': 'F(H) \subset R * 'O_p^'(H).
   case/dprodP: (nilpotent_pcoreC p (Fitting_nil H)) => _ /= <- _ _.
   by rewrite p_core_Fitting mulgSS ?(pcore_sub_Hall sylRH) ?pcore_Fitting.
 have sFH_M: 'F(H) \subset M by rewrite (subset_trans sFH_RHp') ?mul_subG.
-case/eqP: neHM; case: (ltnP 2 'r('F(H))) => [le3r | ge2r].
-  apply: congr_group.
-  apply: (uniq_mmaxP (Fitting_Uniqueness maxH le3r)); rewrite inE ?maxM //.
-  by rewrite maxH Fitting_sub.
+case/(H :=P: M): neHM; case: (ltnP 2 'r('F(H))) => [le3r | ge2r].
+  have [D uF_D] := uniq_mmaxP (Fitting_Uniqueness maxH le3r).
+  by rewrite (eq_uniq_mmax uF_D maxM) // (eq_uniq_mmax uF_D maxH) ?Fitting_sub.
 have nHp'R: R \subset 'N('O_p^'(H)) by rewrite (subset_trans sRH) ?bgFunc_norm.
 have nsRHp'H: R <*> 'O_p^'(H) <| H.
   rewrite sub_der1_normal //= ?mulgen_subG ?sRH ?pcore_sub //.
   rewrite norm_mulgenEl // (subset_trans _ sFH_RHp') //.
-  rewrite p_rank_2_der1_sub_Fitting ?minSimple_odd //.
-  by rewrite proper_minSimple_sol ?mmax_proper.
+  rewrite p_rank_2_der1_sub_Fitting ?mFT_odd //.
+  by rewrite mFT_sol ?mmax_proper.
 have sylR_RHp': p.-Sylow(R <*> 'O_p^'(H)) R.
   by apply: (pHall_subl _ _ sylRH); rewrite ?mulgen_subl // normal_sub.
-apply: mmax_sub_eq; rewrite // -(Frattini_arg nsRHp'H sylR_RHp') /=.
+rewrite (mmax_max maxH) // -(Frattini_arg nsRHp'H sylR_RHp') /=.
 by rewrite mulG_subG mulgen_subG sRM sHp'M /= setIC subIset ?sNRM.
 Qed.
 

@@ -580,7 +580,7 @@ have iK'K: 'C_(P <*> R / K')(K / K') = 1 -> #|K / K'| > q ^ 2.
     - by rewrite (card1_trivg oK) cyclic1 in cycK.
     - by rewrite prime_cyclic ?oK in cycK.
     split=> //; apply/abelemP=> //=; split=> [|K'x KK'x].
-      suff ->: K / K' = 'Z(K / _) by exact: abelian_center.
+      suff ->: K / K' = 'Z(K / _) by exact: center_abelian.
       have:= center_sub (K / K'); move/cardSg; rewrite oK.
       case/dvdn_pfactor=> [//|[|[|[|//]]] _ oZ].
       - have: q.-group (K / K') by exact: morphim_pgroup.
