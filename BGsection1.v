@@ -160,29 +160,116 @@ Qed.
 Section ChiefFactors.
 
 Variables (gT : finGroupType).
-Implicit Type x : {group gT} * {group gT}.
 Implicit Type G : {group gT}.
 
-(* Implicit Type is not enough to type H *)
-Definition chiefs (G : {set gT}) := 
-  [set x : {group gT} * {group gT} | 
-    [&& minnormal (x.1 / x.2) (G / x.2), x.1 \subset x.2 & x.2 <| G]].
+Definition chief_factor G (x y : {set gT}) := 
+  [max y of H | [&& (H \proper x), x \subset 'N(H) & H <| G]] && (x <| G).
+
+Lemma chief_factor_minnormal : forall (G x y : {group gT}),
+  chief_factor G x y -> minnormal (x / y) (G / y).
+Proof.
+move=> G x y; case/andP; case/maxgroupP; case/and3P=> pyx Nxy nyG miny nxG.
+apply/mingroupP; rewrite quotient_norms ?normal_norm //.
+split; first  by rewrite -subG1 (quotient_sub1 Nxy) proper_subn.
+have nyx : y <| x by rewrite /normal proper_sub.
+move=> H; case/andP=> ntH nH sH; pose K := coset y @*^-1 H.
+have eH : H :=: K / y by rewrite cosetpreK.
+suff eKx : K :=: x by rewrite eH eKx.
+case eKx: (K == x); first by rewrite (eqP eKx).
+suff eKy : K :=: y.
+  by move: (eH); rewrite eKy trivg_quotient; move/eqP; move/negP: ntH.
+apply: miny; rewrite ?sub_cosetpre // properEneq eKx /=.
+rewrite -{1}(quotientGK nyx) cosetpreSK sH /=.
+have: K <| x.
+  rewrite -(quotientGK nyx) cosetpre_normal /normal sH; apply: subset_trans nH.
+  by apply: quotientS; rewrite normal_sub.
+move/normal_norm->.
+rewrite /= -(quotientGK nyG) cosetpre_normal /normal nH (subset_trans sH) //.
+by apply: quotientS; rewrite normal_sub.
+Qed.
+
+(* sounds useless *)
+Lemma chief_factor_exists : forall G : {group gT}, G :!=: 1 ->
+  exists x : {group gT} * {group gT}, chief_factor G x.1 x.2.
+Proof.
+move=> G ntG.
+suff [N hN]: exists N :{group gT}, 
+  [max N of H | [&& (H \proper G), G \subset 'N(H) & H <| G]].
+  by exists (G, N); rewrite /chief_factor hN normal_refl.
+pose f (H : {group gT}) := [&& H \proper G, G \subset 'N(H) & H <| G].
+suff : exists N : {group gT}, f N by case/ex_maxgroup=> N hN; exists N; exact: hN.
+by exists 1%G; rewrite /f  normal1 norm1 subsetT proper1G /= andbT.
+Qed.
+
+
+
+Local Notation "A .-chief" := (chief_factor A)
+  (at level 2, format "A .-chief") : group_scope.
+
+
+
+Lemma chief_series_exists : forall G K : {group gT}, 
+  K <| G -> exists2 s, G.-chief.-series 1%G s & last 1%G s = K.
+Admitted.
+
+
+Definition central (G x y : {set gT}):= [~: G, y] \subset x.
+
+Local Notation "A .-central" := (central A)
+  (at level 2, format "A .-central") : group_scope.
+
+
+Lemma centralP : forall G : {group gT},
+  reflect (exists2 s, G.-central.-series 1%G s & last 1%G s = G) (nilpotent G).
+Proof.
+move=> G; apply: (iffP idP)=> [| [s hs slast]].
+  move/ucnP=> [n hzn].
+  exists (mkseq (fun i => ('Z_i(G)))%G n.+1); last first.
+    by rewrite (@last_nth _  1%G) size_mkseq /= nth_mkseq ?ltnSn //; apply: val_inj.
+  rewrite /central.
+  apply/(@pathP _ _ 1%G _ 1%G)=> i; rewrite size_mkseq => ltiSn /=.
+  rewrite nth_mkseq //; case ei: i => [|i'] /=.
+    by rewrite /= ucn0; apply/trivgP; apply/commG1P; apply: cents1.
+  rewrite nth_mkseq 1?commGC ?ucn_comm //; apply: ltn_trans ltiSn; rewrite ei.
+  by rewrite ltnSn.
+apply/forallP=> H; apply/implyP; rewrite subsetI; case/andP=> sHG sHR.
+rewrite -subG1.
+suff i: forall n, H \subset nth G (1%G :: s) ((size s) - n).
+  by move: (i (size s)); rewrite subnn /=.
+elim=> [|n ihn].
+  by rewrite subn0 /= nth_last last_cons slast.
+case sns : (n < size s); last first.
+  move: ihn; rewrite (_ : size s - n = 0) //=; last first.
+   (* really ugly *)  
+    apply/eqP. 
+    suff: size s <= n by rewrite /leq.
+    by rewrite leqNgt sns.
+  rewrite (_ : size s - n.+1 = 0) //=.
+  by apply/eqP; apply: leqW; rewrite leqNgt sns.
+have e: (size s - n.+1 < size s) by rewrite -ltn_subS // leq_subr.
+  move/(pathP G): hs; move/(_ _ e)=> /=. rewrite /central. apply: subset_trans.
+  apply: subset_trans sHR _; rewrite commGC; apply: genS; apply: imset2S; rewrite ?subxx //.
+  by move: ihn; rewrite ltn_subS // -ltn_subS // leq_subr.
+Qed.
+
 
 Variables (G G' : {group gT}).
 
 Hypothesis solG : solvable G.
 Hypothesis nGG' : G' <| G.
+(*Hypothesis ntG : G :!=: 1.*)
 
-Let D' := [set x \in (chiefs G) | (x.1 \subset 'F(G'))].
 
-Let H := \bigcap_(x \in (chiefs G)) 'C_G'(x.1 / x.2 | 'J / x.2).
+Let H := \bigcap_(x : {group gT} * {group gT} | G.-chief x.1 x.2) 'C_G'(x.1 / x.2 | 'J / x.2).
 
-Let H':= \bigcap_(x \in D') 'C_G'(x.1 / x.2 | 'J / x.2).
+Let H':= \bigcap_(x : {group gT} * {group gT} | G.-chief x.1 x.2 && (x.1 \subset 'F(G')))
+  'C_G'(x.1 / x.2 | 'J / x.2).
+
 
 Lemma incl1 : 'F(G') \subset H.
 Proof.
-apply/bigcapsP=> x; rewrite inE; case/and3P=> minx sx12 nx1G; rewrite astabQ.
-rewrite  subsetI Fitting_sub /= -sub_quotient_pre; last first.
+apply/bigcapsP=> x xchief; case/andP: (xchief); case/maxgroupP; case/and3P=> px21 nx12 nx2G maxx2 nx1G. 
+rewrite astabQ subsetI Fitting_sub /= -sub_quotient_pre; last first.
 apply: (subset_trans (Fitting_sub _)); apply: (subset_trans (normal_sub nGG')).
 apply: normal_norm; rewrite ?chiefs_normal //.
 have nilq : nilpotent ('F(G') / x.2) by apply: quotient_nil; exact: Fitting_nil.
@@ -191,10 +278,82 @@ have nq : 'F(G') / x.2 <| G / x.2.
 have {nq nilq} sqf : 'F(G') / x.2 \subset 'F(G / x.2) by apply: Fitting_max.
 rewrite centsC; apply: subset_trans (centS sqf).
 suff : x.1 / x.2 \subset 'Z('F(G / x.2)) by rewrite /center subsetI; case/andP.
-have s1G : x.1 \subset G by rewrite (subset_trans sx12) // ?normal_sub.
-apply: minnormal_solvable_Fitting_center=> //; first by rewrite quotientS.
-by rewrite quotient_sol // (solvableS s1G).
+apply: minnormal_solvable_Fitting_center.
+- by apply: chief_factor_minnormal.
+- by apply: quotientS; rewrite normal_sub.
+- rewrite quotient_sol ?(solvableS (normal_sub nx1G)) //.
 Qed.
+
+Lemma norm_bigcap_sub : forall (I : finType) (P : pred I) (F : I -> {group gT}),
+  \bigcap_(i | P i)'N(F i) \subset 'N(\bigcap_(i | P i) F i).
+Proof.
+move=> I P F.
+Admitted.
+
+
+
+Lemma incl2 : 'F(G') :!=: 1 -> H' \subset 'F(G').
+Proof.
+move=> ntF'.
+have nF'G : 'F(G') <| G by rewrite (char_normal_trans (Fitting_char G')).
+have sH'G : H' \subset G'.
+  apply/subsetP=> x; move/bigcapP=> hx.
+  suff [i hi]: exists i : {group gT} * {group gT}, G.-chief i.1 i.2 &&
+    (i.1 \subset 'F(G')) by case/setIP: (hx i hi).
+    suff [N hN] : exists N : {group gT}, G.-chief 'F(G') N.
+      by exists ('F(G')%G, N) => /=; rewrite subxx hN.
+  rewrite /chief_factor nF'G.
+  pose f (H0 : {group gT}) := [&& H0 \proper 'F(G'), 'F(G') \subset 'N(H0) & H0 <| G].
+  have exf : exists N : {group gT}, f N.
+    by rewrite /f; exists 1%G; rewrite norm1 subsetT normal1 proper1G !andbT.
+  by case/ex_maxgroup: exf=> N maxN; exists N; rewrite maxN.
+have nH'G : H' <| G.
+ rewrite /normal; apply/andP; split. 
+   apply: (subset_trans sH'G); exact: (normal_sub nGG').
+ have hincl : forall x : {group gT} * {group gT}, G.-chief x.1 x.2 -> 
+   x.1 \subset 'F(G') -> G \subset 'N('C_G'(x.1 / x.2 |'Q)).
+ case=> x1 x2 /=; case/and3P=> max2 sx1G nx1G sx1F.
+ case/maxgroupP: (max2); case/and3P=> px21 nx21 nx2G ismax2.
+ apply: normsI; first by apply: normal_norm.
+ apply: subset_trans (astab_norm ('J / x2) (x1 / x2)).
+ apply/subsetP=> x Gx; rewrite !inE /=; apply/andP; split; last first.
+   apply/subsetP=> y Qy; rewrite inE qactJ.
+   move/subsetP: (normal_norm nx2G); move/(_ _ Gx)->.
+   rewrite -mem_conjgV.
+   suff :  (coset x2 x)^-1 \in 'N(x1 / x2) by move/normP->.
+     have h : G / x2 \subset 'N(x1 / x2).
+       by apply: subset_trans (quotient_norm x2 x1); apply: quotientS.
+     by apply: (subsetP h); rewrite groupV mem_quotient.
+   apply/subsetP=> y; case/rcosetsP=> z Nz ->; rewrite inE /= setactJ.
+   apply/rcosetsP; exists (z^x); first by rewrite groupJ // (subsetP (normal_norm nx2G)).
+   have Nx : x \in 'N(x2) by apply: (subsetP (normal_norm nx2G)).
+   rewrite !conjsgE conjgE -rcosetM norm_rlcoset ?groupM ?groupV //.
+   by rewrite lcosetM norm_rlcoset ?groupM.
+   have trans : G \subset 
+     \bigcap_(x : {group gT} * {group gT} | 
+       G.-chief x.1 x.2 && (x.1 \subset 'F(G'))) 'N('C_G'(x.1 / x.2 |'Q)).
+     by apply/bigcapsP => x; case/andP; apply: hincl.
+   apply: (subset_trans trans).
+   apply/subsetP=> x. move/bigcapP=> xI.
+   have {xI} xI : x \in \bigcap_(x : {group gT} * {group gT} | G.-chief x.1 x.2 && (x.1 \subset 'F(G')))
+     'N('C_G'(x.1 / x.2 | 'Q)).
+   by apply/bigcapP.
+   by rewrite /H'; apply: (subsetP (norm_bigcap_sub _ _)).
+case abs : (H'\subset 'F(G')) => //.
+have : exists x : {group gT}, 
+  [&& x <| G, (x \subset H') & ~~(x \subset 'F(G'))].
+  by exists [group of H']; rewrite subxx abs /= andbT.
+case/ex_mingroup => K; case/mingroupP; case/and3P=> nKG sKH' nsKF minK.
+have : K <| G'. 
+  by apply: (normalS _ _ nKG); [apply: (subset_trans sKH') | rewrite normal_sub].
+suff nilK : nilpotent K.
+  by move/Fitting_max; move/(_ nilK); rewrite (negbTE nsKF).
+apply/centralP.
+case: (chief_series_exists nKG)=> s; move/(pathP 1%G)=> /= schief slast; exists s => //.
+apply/(pathP 1%G) => i ltis /=; rewrite /central.
+(* then a case on the length of s, and a combination of quotient_cents2 and of
+the abelianity of K / nth 1 s *)
+Admitted.
 
 End ChiefFactors.
 
@@ -222,6 +381,7 @@ have [sPM sPCF]: P \subset M /\ 'F(G) \subset 'C(P).
 suffices <-: 'F(G) * P = M by rewrite mulg_nil // Fitting_nil (pgroup_nil pP).
 apply/eqP; rewrite eqEsubset -{1}defC mulgS //= -quotientSK // -defMq.
 rewrite -subset_leqif_card; last by rewrite defMq quotientS.
+
 rewrite -(part_pnat pMq) defMq -defC quotient_mulgr; apply/eqP.
 by apply: card_Hall; rewrite morphim_pSylow ?(subset_trans sPM).
 Qed.
