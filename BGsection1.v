@@ -349,11 +349,26 @@ have : K <| G'.
 suff nilK : nilpotent K.
   by move/Fitting_max; move/(_ nilK); rewrite (negbTE nsKF).
 apply/centralP.
-case: (chief_series_exists nKG)=> s; move/(pathP 1%G)=> /= schief slast; exists s => //.
-apply/(pathP 1%G) => i ltis /=; rewrite /central.
+case: (chief_series_exists nKG)=> s; move/(pathP K)=> /= schief slast; exists s => //.
+apply/(pathP K) => i ltis /=; rewrite /central.
+case/lastP: s schief slast i ltis => /=; first by move=> _ _ i; rewrite ltn0.
+move=> s K0 hs slast i; rewrite size_rcons ltnS leq_eqVlt nth_rcons; case/orP=> hi.
+  rewrite hi (eqP hi) ltnn; move: slast; rewrite last_rcons => eKK0.
+  case: s hs hi => /=.
+    move/(_ 0 (ltn0Sn _)); rewrite /= /chief_factor; case/andP; case/maxgroupP.
+    by rewrite /proper sub1G andbF /=.
+  move=> Kn s hs ei; rewrite eKK0.
+  case e : (size s > 0); last first.
+    have s0 : size s = 0 by apply/eqP; rewrite eqn0Ngt e.
+    rewrite s0 /=; move: (hs 0); rewrite (size0nil s0) /=; move/(_ (ltn0Sn _)).
+    by rewrite /chief_factor; case/andP; case/maxgroupP; rewrite /proper sub1G andbF.
+  rewrite -(prednK e) /= nth_rcons.
+Admitted.
+
+
 (* then a case on the length of s, and a combination of quotient_cents2 and of
 the abelianity of K / nth 1 s *)
-Admitted.
+
 
 End ChiefFactors.
 
@@ -381,6 +396,7 @@ have [sPM sPCF]: P \subset M /\ 'F(G) \subset 'C(P).
 suffices <-: 'F(G) * P = M by rewrite mulg_nil // Fitting_nil (pgroup_nil pP).
 apply/eqP; rewrite eqEsubset -{1}defC mulgS //= -quotientSK // -defMq.
 rewrite -subset_leqif_card; last by rewrite defMq quotientS.
+
 
 rewrite -(part_pnat pMq) defMq -defC quotient_mulgr; apply/eqP.
 by apply: card_Hall; rewrite morphim_pSylow ?(subset_trans sPM).
