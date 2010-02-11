@@ -287,6 +287,15 @@ Proof. by do 2!case. Qed.
 Lemma contraLR : forall c b : bool, (~~ c -> ~~ b) -> b -> c.
 Proof. by do 2!case. Qed.
 
+Lemma contraFT : forall c b : bool, (~~ c -> b) -> b = false -> c.
+Proof. by case=> [] [] // ->. Qed.
+
+Lemma contraTF : forall c b : bool, (c -> ~~ b) -> b -> c = false.
+Proof. by case=> [] [] //= ->. Qed.
+
+Lemma contraFF : forall c b : bool, (c -> b) -> b = false -> c = false.
+Proof. by case=> [] [] // ->. Qed.
+
 (* Coercion of sum-style datatypes into bool, which makes it possible *)
 (* to use ssr's boolean if rather than Coq's "generic" if.            *)
 
@@ -610,6 +619,24 @@ Lemma andb_orr : right_distributive andb orb. Proof. by do 3!case. Qed.
 Lemma orb_andl : left_distributive orb andb.  Proof. by do 3!case. Qed.
 Lemma orb_andr : right_distributive orb andb. Proof. by do 3!case. Qed.
 
+Lemma andb_idl : forall a b : bool, (b -> a) -> a && b = b.
+Proof. by case=> [] [] // ->. Qed.
+Lemma andb_idr : forall a b : bool, (a -> b) -> a && b = a.
+Proof. by case=> [] [] // ->. Qed.
+Lemma andb_id2l : forall a b c : bool, (a -> b = c) -> a && b = a && c.
+Proof. by case=> [] [] [] // ->. Qed.
+Lemma andb_id2r : forall a b c : bool, (b -> a = c) -> a && b = c && b.
+Proof. by case=> [] [] [] // ->. Qed.
+
+Lemma orb_idl : forall a b : bool, (a -> b) -> a || b = b.
+Proof. by case=> [] [] // ->. Qed.
+Lemma orbb_idr : forall a b : bool, (b -> a) -> a || b = a.
+Proof. by case=> [] [] // ->. Qed.
+Lemma orb_id2l : forall a b c : bool, (~~ a -> b = c) -> a || b = a || c.
+Proof. by case=> [] [] [] // ->. Qed.
+Lemma orb_id2r : forall a b c : bool, (~~ b -> a = c) -> a || b = c || b.
+Proof. by move=> [] [] [] // ->. Qed.
+
 Lemma negb_and : forall b1 b2, ~~ (b1 && b2) = ~~ b1 || ~~ b2.
 Proof. by do 2!case. Qed.
 
@@ -639,6 +666,13 @@ Proof. by do 2!case. Qed.
 Lemma implybN : forall b1 b2, (~~ b1 ==> ~~ b2) = b2 ==> b1.
 Proof. by do 2!case. Qed.
 
+Lemma implyb_idl : forall a b : bool, (~~ a -> b) -> (a ==> b) = b.
+Proof. by case=> [] [] // ->. Qed.
+Lemma implyb_idr : forall a b : bool, (b -> ~~ a) -> (a ==> b) = ~~ a.
+Proof. by case=> [] [] // ->. Qed.
+Lemma implyb_id2l : forall a b c : bool, (a -> b = c) -> (a ==> b) = (a ==> c).
+Proof. by case=> [] [] [] // ->. Qed. 
+
 (* addition (xor) *)
 
 Lemma addFb : left_id false addb.               Proof. by []. Qed.
@@ -652,7 +686,8 @@ Lemma andb_addl : left_distributive andb addb.  Proof. by do 3!case. Qed.
 Lemma andb_addr : right_distributive andb addb. Proof. by do 3!case. Qed.
 Lemma addKb : left_loop id addb.                Proof. by do 2!case. Qed.
 Lemma addbK : right_loop id addb.               Proof. by do 2!case. Qed.
-
+Lemma addIb : left_injective addb.              Proof. by do 3!case. Qed.
+Lemma addbI : right_injective addb.             Proof. by do 3!case. Qed.
 
 Lemma addTb : forall b, true (+) b = ~~ b. Proof. by []. Qed.
 Lemma addbT : forall b, b (+) true = ~~ b. Proof. by case. Qed.
@@ -673,10 +708,10 @@ Ltac bool_congr :=
   match goal with
   | |- (?X1 && ?X2 = ?X3) => first
   [ symmetry; rewrite -1?(andbC X1) -?(andbCA X1); congr 1 (andb X1); symmetry
-  | case X1; [ rewrite ?andTb ?andbT | by rewrite /= ?andbF ] ]
+  | case: (X1); [ rewrite ?andTb ?andbT // | by rewrite ?andbF /= ] ]
   | |- (?X1 || ?X2 = ?X3) => first
   [ symmetry; rewrite -1?(orbC X1) -?(orbCA X1); congr 1 (orb X1); symmetry
-  | case X1; [ by rewrite /= ?orbT | rewrite ?orFb ?orbF ] ]
+  | case: (X1); [ by rewrite ?orbT //= | rewrite ?orFb ?orbF ] ]
   | |- (?X1 (+) ?X2 = ?X3) =>
     symmetry; rewrite -1?(addbC X1) -?(addbCA X1); congr 1 (addb X1); symmetry
   | |- (~~ ?X1 = ?X2) => congr 1 negb
