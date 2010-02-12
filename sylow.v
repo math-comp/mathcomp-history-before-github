@@ -1,20 +1,15 @@
-(***********************************************************************)
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-(*                                                                     *)
-(***********************************************************************)
-(***********************************************************************)
-(*                                                                     *)
-(*          The Sylow theorem and its consequences                     *)
-(*                                                                     *)
-(***********************************************************************)
-(***********************************************************************)
-
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 Require Import fintype div prime finfun finset.
 Require Import bigops groups morphisms automorphism normal action.
 Require Import cyclic gprod pgroups commutators center nilpotent.
 
-(* Require Import paths connect. *)
+(******************************************************************************)
+(*   The Sylow theorem and its consequences, including the Frattini argument, *)
+(* the nilpotence of p-groups, and the Baer-Suzuki theorem.                   *)
+(*   This file also defines:                                                  *)
+(*      Zgroup G == G is a Z-group, i.e., has only cyclic Sylow p-subgroups.  *)
+(******************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -193,7 +188,7 @@ End Sylow.
 
 Section MoreSylow.
 
-Variables (p : nat) (gT : finGroupType).
+Variables (gT : finGroupType) (p : nat).
 Implicit Types G H P : {group gT}.
 
 Lemma pSylow_normalI : forall G H P,
@@ -230,6 +225,26 @@ suff: p %| #|'Z(P)| by rewrite Z1 cards1 gtnNdvd ?prime_gt1.
 by rewrite /center /dvdn -afixJ -pgroup_fix_mod // astabsJ normG.
 Qed.
 
+Lemma p2group_abelian : forall P, p.-group P -> logn p #|P| <= 2 -> abelian P.
+Proof.
+move=> P pP lePp2; pose Z := 'Z(P); have sZP: Z \subset P := center_sub P.
+case: (eqVneq Z 1); first by move/(trivg_center_pgroup pP)->; exact: abelian1.
+case/(pgroup_pdiv (pgroupS sZP pP)) => p_pr _ [k oZ].
+rewrite (@center_cyclic_abelian _ P) ?center_abelian //.
+case: (eqVneq (P / Z) 1) => [-> |]; first exact: cyclic1.
+have pPq := quotient_pgroup 'Z(P) pP; case/(pgroup_pdiv pPq) => _ _ [j oPq].
+rewrite prime_cyclic // oPq; case: j oPq lePp2 => //= j.
+rewrite card_quotient ?gfunc.bgFunc_norm // -(LaGrange sZP) logn_mul // => ->.
+by rewrite oZ !pfactorK ?addnS.
+Qed.
+
+Lemma card_p2group_abelian : forall P, prime p -> #|P| = (p ^ 2)%N -> abelian P.
+Proof.
+move=> P primep oP.
+have pP: p.-group P by rewrite /pgroup oP pnat_exp pnat_id.
+by rewrite (p2group_abelian pP) // oP pfactorK.
+Qed.
+
 Lemma Sylow_transversal_gen : forall (T : {set {group gT}}) G,
   (forall P, P \in T -> P \subset G) ->
   (forall p, p \in \pi(#|G|) -> exists2 P, P \in T & p.-Sylow(G) P) ->
@@ -253,15 +268,6 @@ case: (Sylow_exists q G) => P sylP; exists P => //.
 by rewrite inE (p_Sylow sylP).
 Qed.
 
-Lemma quotient_nilZ : forall G, nilpotent (G / 'Z(G)) = nilpotent G.
-Proof.
-move=> G; apply/idP/idP; last exact: quotient_nil.
-have nZG: G \subset 'N('Z(G)) by rewrite normal_norm ?center_normal.
-case/lcnP=> n /=; move/trivgP; rewrite /= -morphim_lcn //.
-rewrite quotient_sub1 ?(subset_trans _ nZG) ?lcn_sub0 // subsetI.
-case/andP=> _ cLnG; apply/lcnP; exists n.+1; rewrite lcnSn; exact/commG1P.
-Qed.
-
 End MoreSylow.
 
 Section Nilpotent.
@@ -276,7 +282,7 @@ move=> p P; move: {2}_.+1 (ltnSn #|P|) => n.
 elim: n gT P => // n IHn pT P; rewrite ltnS=> lePn pP.
 case: (eqVneq 'Z(P) 1) => [Z1 | ntZ].
   by rewrite (trivg_center_pgroup pP Z1) nilpotent1.
-rewrite -quotient_nilZ IHn ?morphim_pgroup // (leq_trans _ lePn) //.
+rewrite -quotient_center_nil IHn ?morphim_pgroup // (leq_trans _ lePn) //.
 rewrite card_quotient ?normal_norm ?center_normal // -divgS ?subsetIl //.
 by rewrite ltn_Pdiv // ltnNge -trivg_card_le1.
 Qed.
@@ -290,6 +296,20 @@ move=> G leK5; case: (ltnP 5 #|G|) => [lt5G | leG5 {leK5}].
   by rewrite nilpotent_class (leq_ltn_trans leK5).
 apply: pgroup_nil (pdiv #|G|) _ _; apply/andP; split=> //.
 by case: #|G| leG5 => //; do 5!case=> //.
+Qed.
+
+Lemma nil_class2 : forall G, (nil_class G <= 2) = (G^`(1) \subset 'Z(G)).
+Proof.
+move=> G; rewrite subsetI der_sub; apply/idP/commG1P=> [clG2 | L3G1].
+  by apply/(lcn_nil_classP 2); rewrite ?small_nil_class ?(leq_trans clG2).
+by apply/(lcn_nil_classP 2); rewrite //; apply/lcnP; exists 2.
+Qed.
+
+Lemma nil_class3 : forall G, (nil_class G <= 3) = ('L_3(G) \subset 'Z(G)).
+Proof.
+move=> G; rewrite subsetI lcn_sub; apply/idP/commG1P=> [clG3 | L4G1].
+  by apply/(lcn_nil_classP 3); rewrite ?small_nil_class ?(leq_trans clG3).
+by apply/(lcn_nil_classP 3); rewrite //; apply/lcnP; exists 3.
 Qed.
 
 Lemma nilpotent_maxp_normal : forall pi G H,
@@ -365,6 +385,21 @@ Qed.
 
 End Nilpotent.
 
+Lemma nil_class_pgroup : forall (gT : finGroupType) (p : nat) (P : {group gT}),
+  p.-group P -> nil_class P <= maxn 1 (logn p #|P|).-1.
+Proof.
+move=> gT p P pP; move def_c: (nil_class P) => c.
+elim: c => // c IHc in gT P def_c pP *; set e := logn p _.
+have nilP := pgroup_nil pP; have sZP := center_sub P.
+case: (leqP e 2) => [e_le2 | e_gt2].
+  by rewrite -def_c leq_maxr nil_class1 (p2group_abelian pP).
+have pPq: p.-group (P / 'Z(P)) by exact: quotient_pgroup.
+rewrite -(subnKC e_gt2) maxnr // 2!addSn ltnS.
+rewrite (leq_trans (IHc _ _ _ pPq)) ?nil_class_quotient_center ?def_c //.
+rewrite leq_maxl /= -subn1 -subSS -leq_sub_add subn_sub leq_sub2r //.
+by rewrite ltn_log_quotient //= -(setIidPr sZP) nil_meet_Z // -nil_class0 def_c.
+Qed.
+
 Definition Zgroup (gT : finGroupType) (A : {set gT}) :=
   forallb V : {group gT}, Sylow A V ==> cyclic V.
 
@@ -423,15 +458,16 @@ Implicit Type G P N : {group gT}.
 Lemma cyclic_pgroup_quo_der1_cyclic : 
   forall P, p.-group P -> cyclic (P / P^`(1)) -> cyclic P.
 Proof.
-move=> P pP cPP'; rewrite (isog_cyclic (quotient1_isog P)) /=.
-suffices: 'L_1(P) == 1 by move/eqP <-.
-apply: (implyP (forallP (pgroup_nil pP) _)); rewrite subsetI lcn_sub0 -lcnSn /=.
-rewrite -quotient_cents2 ?lcn_norm0 //.
-rewrite {1}[_ / _]center_cyclic_abelian ?subsetIr //=.
-rewrite -(isog_cyclic (third_isog (lcn_central P 1) _ _)) ?center_normal //=.
-  rewrite quotient_cyclic // (isog_cyclic (third_isog _ _ _)) ?lcn_normal0 //.
-  exact: lcn_sub.
-by rewrite quotientR ?lcn_norm0 ?(der_normal _ 0).
+move=> P pP; rewrite (isog_cyclic (quotient1_isog P)).
+case: (eqVneq P^`(1) 1) => [-> // | ntP' cPP'].
+suffices: 'L_2(P) == 1 by move/eqP <-.
+apply: (implyP (forallP (pgroup_nil pP) _)); rewrite subsetI lcn_sub -lcnSn /=.
+rewrite -quotient_cents2 ?lcn_norm // -abelianE.
+rewrite [_ / _]center_cyclic_abelian ?center_abelian //.
+rewrite -(isog_cyclic (third_isog (lcn_central 2 P) _ _)) ?center_normal //=.
+  rewrite quotient_cyclic // (isog_cyclic (third_isog _ _ _)) ?lcn_normal //.
+  exact: lcn_subS.
+by rewrite quotient_normal ?lcn_normal.
 Qed.
 
 (* B & G 1.22 p.9 *)

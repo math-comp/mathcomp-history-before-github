@@ -112,14 +112,6 @@ End Zpm.
 (*        Central and direct product of cycles                         *)
 (***********************************************************************)
 
-Lemma cents_cycle : forall a b, commute a b -> <[a]> \subset 'C(<[b]>).
-Proof.
-move=> a b cab; rewrite gen_subG centsC cent_set1 cycle_subG; exact/cent1P.
-Qed.
-
-Lemma cycle_abelian : forall a, abelian <[a]>.
-Proof. move=> a; exact: cents_cycle. Qed.
-
 Lemma cyclic_abelian : forall A, cyclic A -> abelian A.
 Proof. move=> A; case/cyclicP=> a ->; exact: cycle_abelian. Qed.
 

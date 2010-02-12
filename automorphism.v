@@ -236,6 +236,9 @@ apply/permP=> y; case Gy: (y \in G); last by rewrite !permE Gy.
 by rewrite perm1 norm_conj_autE // conjgE -cGx ?mulKg.
 Qed.
 
+Lemma Aut_conj_aut : forall A : {set gT}, conj_aut @* A \subset Aut G.
+Proof. move=> A; apply/subsetP=> p; case/imsetP=> x _ ->; exact: Aut_aut. Qed.
+
 End ConjugationMorphism.
 
 Prenex Implicits conjgm conj_aut.

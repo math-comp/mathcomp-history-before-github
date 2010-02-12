@@ -478,8 +478,8 @@ Lemma id_compatible : compatible id_sF.
 Proof. by []. Qed.
 
 Canonical Structure bgFunc_id := [bgFunc by fun _ _ => subxx _ & id_resp].
-
 Canonical Structure gFunc_id := GFunc id_resp.
+Canonical Structure cgFunc_id := CGFunc id_compatible.
 
 Definition triv_sF gT of {set gT} := [1 gT].
 
@@ -488,6 +488,8 @@ Proof. by move=> gT hT H f; rewrite morphim1. Qed.
 
 Canonical Structure bgFunc_triv := [bgFunc by sub1G & triv_resp].
 Canonical Structure gFunc_triv := GFunc triv_resp.
+Canonical Structure hgFunc_triv :=
+  @HGFunc gFunc_triv (fun gT G _ _ => subsetIl 1 G).
 
 End IdentitySubFunctorsExamples.
 

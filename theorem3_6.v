@@ -549,9 +549,9 @@ have{defK} qK: q.-group K.
   case/eqP: ntKP; apply/commG1P; rewrite -{}defK mul_subG //.
   case: (IHpi q^') => // defK; case/idPn: qKdv.
   rewrite -p'natE // -defK; exact: pcore_pgroup.
-pose K' := 'L_1(K)%G; have nK'K: K' <| K := der_normal K 0.
+pose K' := (K)^`(1); have nK'K: K' <| K := der_normal 1 K.
 have nK'PR: P <*> R \subset 'N(K').
-  exact: char_norm_trans (der_char K 1) nKPR.
+  exact: char_norm_trans (der_char 1 K) nKPR.
 have iK'K: 'C_(P <*> R / K')(K / K') = 1 -> #|K / K'| > q ^ 2.
   have: q.-group (K / K') by exact: morphim_pgroup qK.
   case/p_natP=> // k oK; rewrite oK ltn_exp2l ?prime_gt1 // ltnNge.
@@ -564,7 +564,7 @@ have iK'K: 'C_(P <*> R / K')(K / K') = 1 -> #|K / K'| > q ^ 2.
     rewrite -(setIidPl sPR_K') coprime_TIg //.
     apply: pnat_coprime (pgroupS (normal_sub nK'K) p'K).
     by apply: pgroupS pP; rewrite /= commGC commg_subr.
-  rewrite -quotient_cents2 ?(char_norm_trans (der_char K 1)) //.
+  rewrite -quotient_cents2 ?(char_norm_trans (der_char 1 K)) //.
   suffices abPR: abelian (P <*> R / K').
     by apply: subset_trans (subset_trans abPR (centS _));
       rewrite quotientS ?mulgen_subl ?mulgen_subr.

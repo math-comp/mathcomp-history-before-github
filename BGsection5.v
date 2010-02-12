@@ -154,11 +154,11 @@ have [p_pr pdvR [r oRpr]] := pgroup_pdiv pR ntR.
 have nZR : R \subset 'N(Z).
   exact: char_norm_trans (Ohm_char 1 _) (char_norm (center_char R)).
 have nWR : R \subset 'N(W). 
-  exact: char_norm_trans (Ohm_char 1 _) (char_norm (ucn_char R 2)) .
+  exact: char_norm_trans (Ohm_char 1 _) (char_norm (ucn_char 2 R)) .
 have defEZ : E <*> Z :=: E * Z.
   by rewrite /= norm_mulgenEl ?(subset_trans sER).
 have pZ : p.-group 'Z(R) by rewrite (pgroupS (center_sub _)).
-have ? := abelian_center R.
+have ? := center_abelian R.
 have abelemEZ : p.-abelem (E <*> Z).
   apply/(abelemP p_pr); split.
     rewrite /= defEZ abelianM (abelem_abelian abelemE).
@@ -213,11 +213,11 @@ have ncR : ~~ cyclic R.
   rewrite (odd_pgroup_rank1_cyclic pR oddR) leqNgt -(rank_pgroup pR).
   by rewrite (leq_trans _ rankR).
 case: (four_dot_five_c pR oddR ncR); rewrite -/W => ncW exponentW.
-have sWR : W \subset R := (subset_trans (Ohm_sub 1 _) (ucn_sub0 _ _)).
+have sWR : W \subset R := (subset_trans (Ohm_sub 1 _) (ucn_sub _ _)).
 have pW : p.-groupW := pgroupS sWR pR.
 have abelemZ : p.-abelem Z by exact: (Ohm1_abelem pZ).
 have five2a : Z \proper W.
-  rewrite properEneq OhmS /= -?ucn1 ?ucn_sub 1?andbC //=; apply/negP; move/eqP=>defZ.
+  rewrite properEneq OhmS /= -?ucn1 ?ucn_subS 1?andbC //=; apply/negP; move/eqP=>defZ.
   move: ncW; rewrite (odd_pgroup_rank1_cyclic pW (oddSg sWR oddR)) /= -ltnNge. 
   by rewrite -/W -defZ (p_rank_abelem abelemZ) five1b -{2}(expn1 p) (pfactorK _ p_pr).
 have five2b : [~: W, R] \subset Z.

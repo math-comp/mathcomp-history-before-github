@@ -150,6 +150,20 @@ Proof. move=> pi G H sHG; exact: pnat_dvd (cardSg sHG). Qed.
 Lemma oddSg : forall G H, H \subset G -> odd #|G| -> odd #|H|.
 Proof. move=> G H; rewrite !odd_2'nat; exact: pgroupS. Qed.
 
+Lemma odd_pgroup_odd : forall p G, odd p -> p.-group G -> odd #|G|.
+Proof.
+move=> p G p_odd pG; rewrite odd_2'nat (pi_pnat pG) // !inE.
+by case: eqP p_odd => // ->.
+Qed.
+
+Lemma properG_ltn_log : forall p G H,
+  p.-group G -> H \proper G -> logn p #|H| < logn p #|G|.
+Proof. 
+move=> p G H pG; rewrite properEneq eqEcard andbC ltnNge; case/andP=> sHG.
+rewrite sHG /= -{1}(part_pnat pG) -{1}(part_pnat (pgroupS sHG pG)) !p_part {pG}.
+by apply: contra; case: p => [|p] leGH; rewrite ?logn0 // leq_pexp2l.
+Qed.
+
 Lemma pgroupM : forall pi G H, pi.-group (G * H) = pi.-group G && pi.-group H.
 Proof.
 move=> pi G H; have GH_gt0: 0 < #|G :&: H| := cardG_gt0 _.
@@ -660,7 +674,7 @@ End Morphim.
 
 Section Pquotient.
 
-Variables (pi : nat_pred) (gT : finGroupType) (G H K : {group gT}).
+Variables (pi : nat_pred) (gT : finGroupType) (p : nat) (G H K : {group gT}).
 Hypothesis piK : pi.-group K.
 
 Lemma quotient_pgroup : pi.-group (K / H). Proof. exact: morphim_pgroup. Qed.
@@ -681,7 +695,47 @@ case/andP=> sKG nKG; case/andP=> sKH nKH.
 by rewrite pmorphim_pHall // ker_coset /psubgroup subsetI sKH sKG.
 Qed.
 
+Lemma ltn_log_quotient :
+  p.-group G -> H :!=: 1 -> H \subset G -> logn p #|G / H| < logn p #|G|.
+Proof.
+move=> pG ntH sHG; apply: contraLR (ltn_quotient ntH sHG); rewrite -!leqNgt.
+rewrite -{2}(part_pnat pG) -{2}(part_pnat (morphim_pgroup _ pG)) !p_part.
+by case: (posnP p) => [-> //|]; exact: leq_pexp2l.
+Qed.
+
 End Pquotient.
+
+(* Application of card_Aut_cyclic to internal faithful action on cyclic *)
+(* p-subgroups.                                                         *)
+Section InnerAutCyclicPgroup.
+
+Variables (gT : finGroupType) (p : nat) (G C : {group gT}).
+Hypothesis nCG : G \subset 'N(C).
+
+Lemma logn_quotient_cent_cyclic_pgroup : 
+  p.-group C -> cyclic C -> logn p #|G / 'C_G(C)| <= (logn p #|C|).-1.
+Proof.
+move=> pC cycC; case: (eqsVneq C 1) => [-> | ntC].
+  by rewrite cent1T setIT trivg_quotient cards1 logn1.
+have [p_pr _ [e oC]] := pgroup_pdiv pC ntC.
+rewrite -ker_conj_aut (isog_card (first_isog_loc _ _)) //.
+apply: leq_trans (dvdn_leq_log _ _ (cardSg (Aut_conj_aut _ _))) _ => //.
+rewrite card_Aut_cyclic // oC phi_pfactor //= logn_gauss ?pfactorK //.
+by rewrite prime_coprime // gtnNdvd // -(subnKC (prime_gt1 p_pr)).
+Qed.
+
+Lemma p'group_quotient_cent_prime :
+  prime p -> #|C| %| p -> p^'.-group (G / 'C_G(C)).
+Proof.
+move=> p_pr pC; have pgC: p.-group C := pnat_dvd pC (pnat_id p_pr).
+have [_ dv_p] := primeP p_pr; case/pred2P: {dv_p pC}(dv_p _ pC) => [|pC].
+  by move/card1_trivg->; rewrite cent1T setIT trivg_quotient pgroup1.
+have le_oGC := logn_quotient_cent_cyclic_pgroup pgC.
+rewrite /pgroup -partn_eq1 ?cardG_gt0 // -dvdn1 p_part pfactor_dvdn // logn1.
+by rewrite (leq_trans (le_oGC _)) ?prime_cyclic // pC ?(pfactorK 1).
+Qed.
+
+End InnerAutCyclicPgroup.
 
 Section PcoreDef.
 

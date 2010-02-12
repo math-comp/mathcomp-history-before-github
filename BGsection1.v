@@ -1051,7 +1051,7 @@ have{pS p'K} tiKS: K :&: S = 1 by rewrite setIC coprime_TIg ?(pnat_coprime pS).
 suffices{tiKS nKS} hallK: p^'.-Hall(G) K.
   rewrite sdprodE //= -/K; apply/eqP; rewrite eqEcard ?mul_subG //=.
   by rewrite TI_cardMg //= (card_Hall sylS) (card_Hall hallK) mulnC partnC.
-pose G' := G^`(1); have nsG'G : G' <| G by rewrite der_normal.
+pose G' := G^`(1); have nsG'G : G' <| G by rewrite der_normalS.
 suffices{K sKG} p'G': p^'.-group G'.
   have nsG'K: G' <| K by rewrite (normalS _ sKG) ?pcore_max.
   rewrite -(pquotient_pHall p'G') -?pquotient_pcore //= -/G'.
@@ -1098,7 +1098,7 @@ case/sdprodP: (Burnside_normal_complement cSN) => _ /= defG _ _.
 set Q := 'O_p^'(G) in defG; have nQG: G \subset 'N(Q) := bgFunc_norm _ _.
 left; rewrite coprime_TIg ?(pnat_coprime pS) //.
 apply: pgroupS (pcore_pgroup _ G); rewrite /= -/Q.
-rewrite -quotient_sub1 ?(subset_trans (der_sub0 _ _)) ?quotientR //= -/Q.
+rewrite -quotient_sub1 ?(subset_trans (der_sub _ _)) ?quotientR //= -/Q.
 rewrite -defG quotient_mulgr (sameP trivgP commG1P) -abelianE.
 by rewrite morphim_abelian ?cyclic_abelian.
 Qed.
@@ -1109,7 +1109,7 @@ End Focal_Subgroup.
 Lemma Zgroup_der1_Hall : forall gT (G : {group gT}), Zgroup G -> Hall G G^`(1).
 Proof.
 move=> gT G ZgG; set G' := G^`(1).
-rewrite /Hall der_sub0 coprime_sym coprime_pi' ?cardG_gt0 //=.
+rewrite /Hall der_sub coprime_sym coprime_pi' ?cardG_gt0 //=.
 apply/pgroupP=> p p_pr pG'; have [P sylP]:= Sylow_exists p G.
 have cycP: cyclic P by have:= forallP ZgG P; rewrite (p_Sylow sylP).
 case: (cyclic_Sylow_tiVsub_der1 sylP cycP) => [tiPG' | sPG'].
@@ -1207,6 +1207,17 @@ rewrite (quotient_pseries [::_]) -{}im_f //=.
 rewrite -bgFunc_asresp; try by move: pcore_resp pcore_sub.
 rewrite {f f_inj}morphimS // pseries1 -pquotient_pcore // -(pseries1 p) /=.
 by rewrite -quotient_pseries /= (eqP pGH1).
+Qed.
+
+(* An elementary converse to B & G, Lemma 1.21d   *)
+Lemma plenght1_pSylow : forall G,
+  p.-length_1 G -> p.-Sylow(G / 'O_p^'(G)) 'O_p(G / 'O_p^'(G)).
+Proof.
+move=> G; move/(_ :=P: G) => defG; set K := 'O_p^'(G); set P := 'O_p(G / K).
+rewrite -(pquotient_pHall _ _ (normal_refl _)) ?pcore_normal ?pcore_pgroup //=.
+rewrite trivg_quotient pHallE sub1G cards1 part_p'nat //= -/P -/K -defG {}/P.
+rewrite -[K]pseries1 (quotient_pseries_cat [:: _]) quotient_pseries2.
+exact: pcore_pgroup.
 Qed.
 
 Canonical Structure p_elt_gen_group A : {group gT} :=

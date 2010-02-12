@@ -435,6 +435,9 @@ Lemma setIdP : forall x (pA pB : pred T),
   reflect (pA x /\ pB x) (x \in [set y | pA y && pB y]).
 Proof. move=> x pA pB; rewrite !inE; exact: andP. Qed.
 
+Lemma setIdE: forall A (p : pred T), [set x \in A | p x] = A :&: [set x | p x].
+Proof. by move=> A p; apply/setP=> x; rewrite !inE. Qed.
+
 Lemma setIP : forall x A B,
   reflect (x \in A /\ x \in B) (x \in A :&: B).
 Proof. move=> x A B; exact: (iffP (@setIdP _ _ _)). Qed.

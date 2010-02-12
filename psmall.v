@@ -48,7 +48,7 @@ have fS : forall n, f n.+1 = bin n 2 + f n.
 have gS : forall n, g n.+1 = (bin n 2).*2 + bin n 1 + g n.
   by move=> n; rewrite /g !binS double_add -!addnA; do 3!nat_congr.
 case: (eqsVneq R 1) => [-> |].
-  rewrite Ohm1 exponent1 der_sub0 dvd1n; split=> // _ u v; do 2!move/set1P->.
+  rewrite Ohm1 exponent1 der_sub dvd1n; split=> // _ u v; do 2!move/set1P->.
   by rewrite !(mulg1, exp1gn).
 case/(pgroup_pdiv pR)=> p_pr p_dv_R _.
 have pdivbin2: p %| bin p 2.
@@ -71,7 +71,7 @@ have{fS gS} eq44 : {in R &, forall u v n (r := [~ v, u]),
 - move=> u v Ru Rv; move=> n r; have Rr: r \in R by exact: groupR.
   have cRr: {in R &, forall x y, commute x [~ r, y]}.
     move=> x y Rx Ry /=; red; rewrite (centerC Rx) //.
-    have: [~ r, y] \in 'L_2(R) by rewrite !mem_commg.
+    have: [~ r, y] \in 'L_3(R) by rewrite !mem_commg.
     by apply: subsetP; rewrite -nil_class3 (leq_trans classR) // !ltnS leq_b1.
   elim: n => [| n IHn]; first by rewrite !mulg1.
   rewrite 3!expgSr {}IHn -!mulgA (mulgA (_ ^+ f n)); congr (_ * _).
@@ -317,11 +317,10 @@ have sSR_ZR : [~: S, R] \subset 'Z(R).
   by rewrite subsetI sSR_R /=; apply/commG1P.
 have sS_Z2R : S \subset 'Z_2(R).
   rewrite ucnSnR; apply/subsetP=> s Ss; rewrite inE (subsetP sSR) //= ucn1.
-  apply: (subset_trans _ sSR_ZR); apply: (subset_trans _ (subset_gen _)).
-  by rewrite -imset2_set1l imset2S // sub1set.
-have sZ2R_R := ucn_sub0 R 2; have pZ2R := pgroupS sZ2R_R pR.
+  by apply: subset_trans sSR_ZR; rewrite commSg ?sub1set.
+have sZ2R_R := ucn_sub 2 R; have pZ2R := pgroupS sZ2R_R pR.
 have pZ : p.-group Z. 
-  apply: pgroupS pR; exact: subset_trans (Ohm_sub _ _) (ucn_sub0 R 2).
+  apply: pgroupS pR; exact: subset_trans (Ohm_sub _ _) (ucn_sub 2 R).
 have sSZ : S \subset Z.
   apply/subsetP=> s Ss; rewrite /Z (OhmE 1 pZ2R) mem_gen // inE.
   by rewrite (subsetP sS_Z2R) //= (exponentP expSp).
@@ -329,7 +328,7 @@ have ncycX: ~~ cyclic S by rewrite (abelem_cyclic abelS) dimS2.
 split; first by apply: contra ncycX; exact: cyclicS.
 (* should this be proved for arbitrary n? *)
 have nilclassZ : nil_class 'Z_2(R) <= 2.
-  rewrite nil_class2 subsetI der_sub0 /= (subset_trans (commgS _ sZ2R_R)) //.
+  rewrite nil_class2 subsetI der_sub /= (subset_trans (commgS _ sZ2R_R)) //.
   by apply: (subset_trans (ucn_comm _ _)); rewrite ucn1 subIset // centS ?orbT.
 by case: (four_dot_three pZ2R (oddSg sZ2R_R oddR) (leq_trans nilclassZ _)).
 Qed.
@@ -342,7 +341,7 @@ Lemma four_dot_six : forall gT (R S : {group gT}) p,
 Proof.
 move=> gT R S p pR oddR nsSR ncycS; pose Z := 'Ohm_1('Z_2(S)).
 have nsZR: Z <| R.
-  by rewrite (char_normal_trans (char_trans (Ohm_char 1 _) (ucn_char S 2))).
+  by rewrite (char_normal_trans (char_trans (Ohm_char 1 _) (ucn_char 2 S))).
 have pZ: p.-group Z := pgroupS (normal_sub nsZR) pR.
 have [sSR _] := andP nsSR; have pS := pgroupS sSR pR.
 have [] := four_dot_five_c pS (oddSg sSR oddR) ncycS; rewrite -/Z.
@@ -405,7 +404,7 @@ Proof.
 case/SCN_P: SCN_A=> nsAG CGAeq; have nAG := (normal_norm nsAG).
 have nZG := (normal_norm (char_normal_trans (Ohm_char 1 _) nsAG)).
 rewrite -{4}CGAeq subsetI; apply/andP; split.
-  by apply: (subset_trans (der_sub0 _ _)); rewrite subIset // subsetIl orbT.
+  by apply: (subset_trans (der_sub _ _)); rewrite subIset // subsetIl orbT.
 rewrite gen_subG; apply/subsetP=> w; case/imset2P=> u v.
 rewrite astabsQR_point ?(subset_trans (normal_sub nsAG)) // !inE.
 case/andP; move/centP=> centuZ; case/andP=> Gu /= s_commguA_Z.

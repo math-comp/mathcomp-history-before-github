@@ -2497,6 +2497,12 @@ Proof. by move=> x; rewrite cent_gen cent_set1. Qed.
 Lemma sub_cent1 : forall A x, (A \subset 'C[x]) = (x \in 'C(A)).
 Proof. by move=> A x; rewrite -cent_cycle centsC cycle_subG. Qed.
 
+Lemma cents_cycle : forall x y, commute x y -> <[x]> \subset 'C(<[y]>).
+Proof. move=> x y cxy; rewrite cent_cycle cycle_subG; exact/cent1P. Qed.
+
+Lemma cycle_abelian : forall x, abelian <[x]>.
+Proof. move=> x; exact: cents_cycle. Qed.
+
 Lemma cent_mulgen : forall A B, 'C(A <*> B) = 'C(A) :&: 'C(B).
 Proof. by move=> G H; rewrite cent_gen centU. Qed.
 

@@ -103,7 +103,7 @@ have{minE_EG} minE: minnormal E G.
   by rewrite centsC (subset_trans sDE).
 have nCG: G \subset 'N('C_G(E)) by rewrite normsI ?normG ?norms_cent.
 suffices{p'Gc} pG'c: p.-group (G / 'C_G(E))^`(1).
-  have [Pc sylPc sGc'Pc]:= Sylow_superset (der_sub _ _) pG'c.
+  have [Pc sylPc sGc'Pc]:= Sylow_superset (der_subS _ _) pG'c.
   have nsPc: Pc <| G / 'C_G(E) by rewrite sub_der1_normal ?(pHall_sub sylPc).
   case/negP: p'Gc; rewrite /pgroup -(isog_card (second_isog _)) ?norms_cent //.
   rewrite setIC; apply: pgroupS (pHall_pgroup sylPc) => /=.

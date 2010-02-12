@@ -50,10 +50,10 @@ have nPG: G \subset 'N(P).
   suffices p'G': p^'.-group G^`(1) by case/eqnP: (pgroupP _ _ p'G' p p_pr pG').
   apply: pgroupS (pcore_pgroup p^' G); rewrite -quotient_cents2 //= -/K.
   by rewrite -defG quotient_mulgr /= -/K quotient_cents ?(subset_trans sPN).
-pose Q := G^`(1) :&: P; have sQG: Q \subset G by rewrite subIset ?der_sub.
-have nQG: G \subset 'N(Q) by rewrite normsI // normal_norm ?der_normal.
+pose Q := G^`(1) :&: P; have sQG: Q \subset G by rewrite subIset ?der_subS.
+have nQG: G \subset 'N(Q) by rewrite normsI // normal_norm ?der_normalS.
 have pQ: p %| #|Q|.
-  have sylQ: p.-Sylow(G^`(1)) Q by apply: pSylow_normalI (der_normal _ _) _.
+  have sylQ: p.-Sylow(G^`(1)) Q by apply: pSylow_normalI (der_normalS _ _) _.
   apply: contraLR pG'; rewrite -!p'natE // (card_Hall sylQ) -!partn_eq1 //.
   by rewrite part_pnat ?pnat_part.
 have{IHm} abelQ: abelian Q.
@@ -198,7 +198,7 @@ exact: der1_odd_GL2_charf ffG.
 Qed.
 
 (* This is B & G, Theorem 2.6 (b) *)
-Theorem charf_GL2_der_sub_abelian_Sylow :
+Theorem charf_GL2_der_subS_abelian_Sylow :
     forall p (F : fieldType) (G : {group gT}) (rG : mx_representation F G 2),
     odd #|G| -> mx_repr_faithful rG -> p \in [char F] ->
   exists P : {group gT}, [/\ p.-Sylow(G) P, abelian P & G^`(1) \subset P].
@@ -207,7 +207,7 @@ move=> p F G rG oddG ffG charFp.
 have{oddG} pG': p.-group G^`(1).
   rewrite /pgroup -(eq_pnat _ (charf_eq charFp)).
   exact: der1_odd_GL2_charf ffG.
-have{pG'} [P SylP sG'P]:= Sylow_superset (der_sub0 _ _) pG'.
+have{pG'} [P SylP sG'P]:= Sylow_superset (der_sub _ _) pG'.
 exists P; split=> {sG'P}//; case/and3P: SylP => sPG pP _.
 apply/commG1P; apply/trivgP; apply: subset_trans ffG; rewrite gen_subG.
 apply/subsetP=> yz; case/imset2P=> y z Py Pz ->{yz}.

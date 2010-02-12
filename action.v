@@ -1737,6 +1737,13 @@ move=> A B G nGA nGB; rewrite astabsQ nGA /= (sameP commG1P eqP).
 by rewrite eqEsubset sub1G andbT -quotientR // quotient_sub1 // comm_subG.
 Qed.
 
+Lemma astabQR : forall A G, A \subset 'N(G) ->
+  'C(A / G | 'Q) = [set x \in 'N(G) | [~: [set x], A] \subset G].
+Proof.
+move=> A G nGA; apply/setP=> x; rewrite astabQ -morphpreIdom 2!inE -astabQ.
+by case nGx: (x \in _); rewrite //= -sub1set astabsQR ?sub1set.
+Qed.
+
 Lemma quotient_astabQ : forall G Abar, 'C(Abar | 'Q) / G = 'C(Abar).
 Proof. by move=> G Abar; rewrite astabQ cosetpreK. Qed.
 
