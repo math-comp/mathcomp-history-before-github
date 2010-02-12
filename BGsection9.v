@@ -3,7 +3,8 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import fintype paths finfun bigops finset prime binomial groups.
 Require Import morphisms perm action automorphism normal zmodp cyclic.
 Require Import gfunc pgroups nilpotent gprod center commutators sylow abelian.
-Require Import maximal hall BGsection1 psmall BGsection6 BGsection7 BGsection8.
+Require Import maximal hall.
+Require Import BGsection1 BGsection4 BGsection6 BGsection7 BGsection8.
 
 (******************************************************************************)
 (*   This file covers B & G, section 9, i.e., the proof the Uniqueness        *)
