@@ -231,12 +231,32 @@ have nEW : W \subset 'N(E).
 have sCWEE : 'C_W(E) \subset E.
   have expCWE : exponent 'C_W(E) %| p.
     exact: dvdn_trans (exponentS (subsetIl _ _)) exponentW.
-  have pCWE : p.-group 'C_W(E).
-    exact: pgroupS (subsetIl _ _) pW.
-  have abelemCWE : p.-abelem 'C_W(E). (* ??? *)
-    rewrite abelian.abelemE /= -/W // expCWE andbC /=.
-    admit.
-  admit.  
+  apply/subsetP=> z zC; move/exponentP: expCWE=> expCWE; have zp1 := (expCWE _ zC).
+  have abelemX : (E <*> <[z]>)%G \in 'E_p(R).
+    rewrite inE /= mulgen_subG sER cycle_subG (subsetP _ _ zC) ?subIset ?sWR //=.
+    rewrite (cprod_abelem p (cprodEgen _)) ?abelemE ?cycle_abelem ?order_dvdn ?zp1 ?eqxx //.
+      by rewrite 1?orbC p_pr.
+    by rewrite centsC cycle_subG; case/setIP: zC.
+  by rewrite -(maxE _ abelemX) ?mulgen_subl // (subsetP (mulgen_subr E <[z]>) z) ?cycle_id. 
+have sZCWE : Z \subset 'C_W(E).  (* there must be a smarter way *)
+  rewrite subsetI (proper_sub _) //= (subset_trans (Ohm_sub 1 _)) //=.
+  apply/subsetP=> z; case/centerP=> zR zc; apply/centP=> e Ee.
+  exact: zc e (subsetP sER _ Ee).
+case: (eqsVneq E 'C_W(E)) => [defCEW | CEWnE].
+  have sCERE : [~: E, R] \proper E.
+    rewrite (sub_proper_trans _ five1a) // (subset_trans _ five2b) // commSg //.
+    by rewrite defCEW subsetIl.
+  have nER : E <| R by rewrite /normal sER -commg_subl (proper_sub sCERE).
+  have Ep2E : E \in 'E_p^2(R).
+    by apply/pnElemP; rewrite abelemE sER -(rank_abelem abelemE) rankE.
+  case: (five_1b pR oddR rankR Ep2E nER) => B scn3B sEB.
+  case/setIdP: scn3B=> scnB rankB; case/SCN_P: scnB=> nBR CB.
+  move: rankB; rewrite (maxE _ _ sEB) ?rankE // inE abelian.abelemE /abelian //.
+  rewrite -{2}CB subsetIr (normal_sub nBR) //=.
+  admit. (* hum... *)
+have defCWE : 'C_W(E) = Z.
+  have propE : 'C_W(E) \proper E by rewrite properEneq eq_sym CEWnE sCWEE.
+  admit.
 admit.
 Qed.
 
