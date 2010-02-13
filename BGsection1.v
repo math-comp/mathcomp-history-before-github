@@ -266,7 +266,7 @@ Let H':= \bigcap_(x : {group gT} * {group gT} | G.-chief x.1 x.2 && (x.1 \subset
   'C_G'(x.1 / x.2 | 'J / x.2).
 
 
-Lemma incl1 : 'F(G') \subset H.
+Lemma Fitting_centI_sub : 'F(G') \subset H.
 Proof.
 apply/bigcapsP=> x xchief; case/andP: (xchief); case/maxgroupP; case/and3P=> px21 nx12 nx2G maxx2 nx1G. 
 rewrite astabQ subsetI Fitting_sub /= -sub_quotient_pre; last first.
@@ -291,8 +291,17 @@ move=> I P F.
 Admitted.
 
 
+Lemma sol_chief_abelian : forall K0 K1 : {group gT}, 
+   G.-chief K0 K1 -> abelian (K0 / K1).
+Proof.
+move=> K0 K1 hchief; case/andP: (hchief); case/maxgroupP.
+case/and3P=> pK01 nK01 nK1G hmax nK0G; move: (chief_factor_minnormal hchief)=> hminn.
+have h1 :  (K0 / K1) \subset (G / K1) by rewrite quotientS // normal_sub.
+have h2 : solvable (G / K1) by rewrite quotient_sol.
+by case: (minnormal_solvable hminn h1 h2)=> _ _; move/abelem_abelian.
+Qed.
 
-Lemma incl2 : 'F(G') :!=: 1 -> H' \subset 'F(G').
+Lemma  Fitt_centI_Fitting_sub : 'F(G') :!=: 1 -> H' \subset 'F(G').
 Proof.
 move=> ntF'.
 have nF'G : 'F(G') <| G by rewrite (char_normal_trans (Fitting_char G')).
@@ -357,12 +366,16 @@ move=> s K0 hs slast i; rewrite size_rcons ltnS leq_eqVlt nth_rcons; case/orP=> 
   case: s hs hi => /=.
     move/(_ 0 (ltn0Sn _)); rewrite /= /chief_factor; case/andP; case/maxgroupP.
     by rewrite /proper sub1G andbF /=.
-  move=> Kn s hs ei; rewrite eKK0.
+  rewrite !eKK0;  move=> Kn s hs ei.
   case e : (size s > 0); last first.
     have s0 : size s = 0 by apply/eqP; rewrite eqn0Ngt e.
     rewrite s0 /=; move: (hs 0); rewrite (size0nil s0) /=; move/(_ (ltn0Sn _)).
     by rewrite /chief_factor; case/andP; case/maxgroupP; rewrite /proper sub1G andbF.
-  rewrite -(prednK e) /= nth_rcons.
+  move: (hs (size s)); rewrite size_rcons; move/(_ (leqnSn _)).
+  set K1 := nth K (Kn :: _) _; case/andP; case/maxgroupP.
+  case/and3P => pK1K2 nK1K2 nK1G maxK1 nK2G.
+  have nKK1 : K \subset 'N(K1) by apply: subset_trans (normal_sub nKG) _; exact: normal_norm.
+  rewrite  -quotient_cents2 //  -abelianE; apply: sol_chief_abelian.
 Admitted.
 
 
@@ -376,6 +389,7 @@ End ChiefFactors.
 (* applying the (stronger) Proposition 1.2.                                   *)
 Lemma cent_sub_Fitting : forall gT (G : {group gT}),
   solvable G -> 'C_G('F(G)) \subset 'F(G).
+
 Proof.
 move=> gT G solG; rewrite -quotient_sub1 ?cents_norm ?subsetIr //.
 apply/trivgP; apply/eqP; apply/idPn => /=; set Cq := (_ / _).
