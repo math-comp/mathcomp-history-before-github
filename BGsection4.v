@@ -411,19 +411,14 @@ Qed.
 Lemma pgroup_rank_le2_exponentp : forall gT (R : {group gT}) p,
   p.-group R -> rank R <= 2 -> exponent R %| p -> logn p #|R| <= 3.
 Proof.
-move=> gT R p pgroupR rankR expR.
-(* Is it really worth it to avoid the hypothesis "prime p" all the time? *)
-case Req1 : (R == 1%G); first by rewrite (eqP Req1) cards1 logn1.
-case: (pgroup_pdiv pgroupR (negbT Req1)) => primep _ _ {Req1}.
-(* It takes four lines to get an SCN group. Make this a lemma? *)
-pose normal_abelian := [pred K | ((K : {group gT}) <| R) && (abelian K)].
-have na1 : normal_abelian 1%G by rewrite /= normal1 abelian1.
-case: {na1} (maxgroup_exists na1) => A max_na_A _.
-have {max_na_A} SCN_A := (max_SCN pgroupR max_na_A).
+move=> gT R p pR rankR expR.
+have [A max_na_A]: {A | [max A | (A <| R) && abelian A]}.
+  by apply: ex_maxgroup; exists 1%G; rewrite normal1 abelian1.
+have {max_na_A} SCN_A := max_SCN pR max_na_A.
 have abelA := SCN_abelian SCN_A; case/SCN_P: SCN_A => nAR cRAA.
-have sAR := normal_sub nAR; have pgroupA := (pgroupS sAR pgroupR).
+have sAR := normal_sub nAR; have pA := pgroupS sAR pR.
 have pabelemA : p.-abelem A.
-  by rewrite abelemE // abelA /= (dvdn_trans (exponentS sAR) expR).
+  by rewrite /abelem pA abelA /= (dvdn_trans (exponentS sAR) expR).
 have cardA : logn p #|A| <= 2.
   by rewrite -rank_abelem // (leq_trans (rankS sAR) rankR). 
 have cardRA : logn p #|R : A| <= 1.
@@ -441,10 +436,9 @@ case Req1 : (R == 1%G); first by rewrite (eqP Req1) Ohm1 exponent1 dvd1n.
 case: (pgroup_pdiv pR (negbT Req1)) => primep _ _ {Req1}.
 case: (even_prime primep) => oddp; first by rewrite oddp in pgt3.
 apply/negPn; apply/negP => expOR_ndivp.
-pose counterexample := [pred K | ~~ (exponent 'Ohm_1(K : {group gT}) %| p)]. 
-have counterR : counterexample R by rewrite /= expOR_ndivp.
-case: {counterR expOR_ndivp} (mingroup_exists counterR) => U.
-case/mingroupP => /= expUR_ndivp minU sUR {counterexample}.
+have [U]: {U | [min U | ~~ (exponent 'Ohm_1(U) %| p)] & (U \subset R)}.
+  by apply: mingroup_exists; rewrite expOR_ndivp.
+case/mingroupP => /= expUR_ndivp minU sUR {expOR_ndivp}.
 apply: (negP expUR_ndivp); have pU := pgroupS sUR pR.
 apply: (proj1 (exponent_odd_nil23 pU (odd_pgroup_odd oddp pU) _)). 
 rewrite pgt3 addn1.
@@ -467,10 +461,10 @@ have XneqU : ~ (<[x]> = U).
   apply: (dvdn_trans (exponentS (Ohm_sub _ _))).
   by apply: (dvdn_trans (exponent_dvdn _)); rewrite order_dvdn.
 case: (maximal_exists sXU); first by move/XneqU.
-case=> S maxS sXS; have nsSU := (p_maximal_normal pU maxS).
-move: (maxgroupp maxS) => /= pSU; have neSU := (proper_neq pSU).
-have sSU := (normal_sub nsSU); have pgrpS := (pgroupS sSU pU).
-have nsOS_U := (char_normal_trans (Ohm_char 1 S) nsSU).
+case=> S maxS sXS; have nsSU := p_maximal_normal pU maxS.
+move: (maxgroupp maxS) => /= pSU; have neSU := proper_neq pSU.
+have sSU := normal_sub nsSU; have pgrpS := pgroupS sSU pU.
+have nsOS_U := char_normal_trans (Ohm_char 1 S) nsSU.
 have sOS_U := normal_sub nsOS_U; have nOS_U := normal_norm nsOS_U.
 have OSx : x \in 'Ohm_1(S).
   by rewrite (OhmE 1 pgrpS) mem_gen // inE (subsetP sXS) ?cycle_id //=.
@@ -481,8 +475,8 @@ pose OS_Y := 'Ohm_1(S) <*> <[y]>; have Ueq : OS_Y = U.
 have expOS : exponent 'Ohm_1(S) %| p.
   apply/negPn; apply/negP => expOS_ndivp; apply: (negP neSU); apply/eqP.
   by apply: minU => //.
-have pOS := (pgroupS (Ohm_sub 1 _) pgrpS).
-have sOS_R := (subset_trans sOS_U sUR).
+have pOS := pgroupS (Ohm_sub 1 _) pgrpS.
+have sOS_R := subset_trans sOS_U sUR.
 have cardOS : logn p #|'Ohm_1(S)| <= 3.
   by apply: pgroup_rank_le2_exponentp => //; apply: (leq_trans (rankS sOS_R)).
 have cardUOS : logn p #|U / 'Ohm_1(S)| <= 1.
