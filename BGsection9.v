@@ -18,7 +18,7 @@ Import Prenex Implicits.
 
 Import GroupScope.
 
-(* This is what the definition of chief factor should be !! *)
+(* This is what the definition of chief factor should be !!
 Definition chief_factor (gT : finGroupType) (G V U : {set gT}) :=
   maxnormal V U G && (U <| G).
 
@@ -52,7 +52,7 @@ have [||s ch_s defV] := IHm V; first exact: leq_trans (proper_card ltVU) _.
   by rewrite /normal (subset_trans (proper_sub ltVU) (normal_sub nsUG)).
 exists (rcons s U); last by rewrite last_rcons.
 rewrite path_rcons defV /= ch_s /chief_factor; exact/and3P.
-Qed.
+Qed. *)
 
 (* This is B & G, Corollary 4.19 *)
 Lemma rank2_cent_chief : forall (gT : finGroupType) (p : nat),
