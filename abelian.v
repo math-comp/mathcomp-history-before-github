@@ -170,7 +170,7 @@ Proof.
 move=> x; case: (eqVneq x 1) => [-> | nt_x].
   by rewrite exp1gn eqxx; left; exists 2; rewrite ?exp1gn.
 apply: (iffP idP) => [ | [p p_pr]].
-  by move/eqP; exists (pdiv #[x]); rewrite ?prime_pdiv ?order_gt1.
+  by move/eqP; exists (pdiv #[x]); rewrite ?pdiv_prime ?order_gt1.
 move/eqP=> x_pn; rewrite (@pdiv_p_elt p) //; rewrite -order_dvdn in x_pn.
 by rewrite [p_elt _ _](pnat_dvd x_pn) // pnat_exp pnat_id.
 Qed.
@@ -377,7 +377,7 @@ Lemma is_abelemP : forall G,
 Proof.
 move=> G; apply: (iffP idP) => [abelG | [p p_pr abelG]].
   case: (eqsVneq G 1) => [-> | ntG]; first by exists 2; rewrite ?abelem1.
-  by exists (pdiv #|G|); rewrite ?prime_pdiv // ltnNge -trivg_card_le1.
+  by exists (pdiv #|G|); rewrite ?pdiv_prime // ltnNge -trivg_card_le1.
 by rewrite (is_abelem_pgroup (abelem_pgroup abelG)).
 Qed.
 
@@ -1101,7 +1101,7 @@ Proof.
 move=> G; rewrite -['Ohm_1(G)](genD1 (group1 _)); congr <<_>>.
 apply/setP=> x; rewrite !inE andbCA -order_dvdn -order_gt1; congr (_ && _).
 apply/andP/idP=> [[p_gt1] | p_pr]; last by rewrite prime_gt1 ?pdiv_id.
-set p := pdiv _ => ox_p; have p_pr: prime p by rewrite prime_pdiv.
+set p := pdiv _ => ox_p; have p_pr: prime p by rewrite pdiv_prime.
 by have [_ dv_p] := primeP p_pr; case/pred2P: (dv_p _ ox_p) p_gt1 => ->.
 Qed.
 
@@ -1459,12 +1459,12 @@ apply/eqP; rewrite -def_t size_map eqn_leq andbC; apply/andP; split.
 case/lastP def_b: b => // [b' x]; pose p := pdiv #[x].
 have p_pr: prime p.
   have:= abelian_type_gt1 G; rewrite -def_t def_b map_rcons -cats1 all_cat.
-  by rewrite /= andbT; case/andP=> _; exact: prime_pdiv.
+  by rewrite /= andbT; case/andP=> _; exact: pdiv_prime.
 suffices: all [pred y | logn p #[y] > 0] b.
   rewrite all_count (count_logn_dprod_cycle _ _ defG) -def_b; move/eqP <-.
   by rewrite Ohm0 indexg1 -p_rank_abelian ?p_rank_le_rank.
 apply/allP=> y; rewrite def_b mem_rcons inE /= => b_y.
-rewrite lognE p_pr order_gt0 (dvdn_trans (dvdn_pdiv _)) //.
+rewrite lognE p_pr order_gt0 (dvdn_trans (pdiv_dvd _)) //.
 case/predU1P: b_y => [-> // | b'_y].
 have:= abelian_type_dvdn_sorted G; rewrite -def_t def_b.
 case/splitP: b'_y => b1 b2; rewrite -cats1 -catA map_cat map_rcons.
@@ -1497,8 +1497,8 @@ case p_x: (p_group <[x]>); last first.
   rewrite mulnCA -mulnA mulnCA mulnA.
   rewrite !{}IHm ?(dprod_card def_x) ?(leq_trans _ lexm) {m lexm}//.
     rewrite /order -(dprod_card def_x) -!orderE !order_constt ltn_Pmull //.
-    rewrite p_part -(expn0 p) ltn_exp2l 1?lognE ?prime_gt1 ?prime_pdiv //.
-    by rewrite order_gt0 dvdn_pdiv.
+    rewrite p_part -(expn0 p) ltn_exp2l 1?lognE ?prime_gt1 ?pdiv_prime //.
+    by rewrite order_gt0 pdiv_dvd.
   rewrite proper_card // properEneq cycle_subG mem_cycle andbT.
   by apply: contra (negbT p'x); move/eqP <-; exact: p_elt_constt.
 case/p_groupP: p_x => p p_pr p_x.

@@ -123,7 +123,7 @@ Lemma trivgVpdiv : forall G, G :=: 1 \/ (exists2 p, prime p & p %| #|G|).
 Proof.
 move=> G; case: (leqP #|G| 1) => [leG1|lt1G]; [left | right].
   exact: card_le1_trivg.
-by exists (pdiv #|G|); rewrite ?dvdn_pdiv ?prime_pdiv.
+by exists (pdiv #|G|); rewrite ?pdiv_dvd ?pdiv_prime.
 Qed.
 
 Lemma prime_subgroupVti : forall G H, prime #|G| -> G \subset H \/ H :&: G = 1.
@@ -178,13 +178,13 @@ Lemma pgroup_p : forall p P, p.-group P -> p_group P.
 Proof.
 move=> p P pgP; case: (leqP #|P| 1).
   by move/card_le1_trivg->; exact: pgroup1.
-move/prime_pdiv=> pr_q; have:= pgroupP _ _ pgP _ pr_q (dvdn_pdiv _).
+move/pdiv_prime=> pr_q; have:= pgroupP _ _ pgP _ pr_q (pdiv_dvd _).
 by rewrite /p_group; move/eqnP->.
 Qed.
 
 Lemma p_groupP : forall P, p_group P -> exists2 p, prime p & p.-group P.
 Proof.
-move=> P; case: (ltnP 1 #|P|); first by move/prime_pdiv; exists (pdiv #|P|).
+move=> P; case: (ltnP 1 #|P|); first by move/pdiv_prime; exists (pdiv #|P|).
 move/card_le1_trivg=> -> _; exists 2 => //; exact: pgroup1.
 Qed.
 
@@ -298,10 +298,10 @@ Proof.
 move=> G P; apply: (iffP idP) => [| [p _]]; last exact: p_Sylow.
 case/andP; case/p_groupP=> p p_pr; case/p_natP=> // [[P1 _ | n oP]].
   have{p p_pr P1} ->: P :=: 1 by apply: card1_trivg; rewrite P1.
-  pose p := pdiv #|G|.+1; have pr_p: prime p by rewrite prime_pdiv ?ltnS.
+  pose p := pdiv #|G|.+1; have pr_p: prime p by rewrite pdiv_prime ?ltnS.
   exists p; rewrite // pHallE sub1G cards1 part_p'nat //.
   apply/pgroupP=> q pr_q qG; apply/eqnP=> def_q.
-  have: p %| #|G| + 1 by rewrite addn1 dvdn_pdiv.
+  have: p %| #|G| + 1 by rewrite addn1 pdiv_dvd.
   by rewrite dvdn_addr -def_q // euclid1.
 move/Hall_pi; rewrite oP pi_of_exp // (eq_pHall _ _ (pi_of_prime _)) //.
 by exists p.

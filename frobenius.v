@@ -39,11 +39,11 @@ rewrite ltnS oG mulnK // => leqm.
 have:= q_gt0; rewrite leq_eqVlt; case/predU1P=> [q1 | lt1q].
   rewrite -(mul1n n) q1 -oG (setIidPl _) //.
   by apply/subsetP=> x Gx; rewrite inE -order_dvdn order_dvdG.
-pose p := pdiv q; have pr_p: prime p by exact: prime_pdiv.
+pose p := pdiv q; have pr_p: prime p by exact: pdiv_prime.
 have lt1p: 1 < p := prime_gt1 pr_p; have p_gt0 := ltnW lt1p.
 have{leqm} lt_qp_mq: q %/ p < mq by apply: leq_trans leqm; rewrite ltn_Pdiv.
 have: n %| #|'Ldiv_(p * n)(G)|.
-  have: p * n %| #|G| by rewrite oG dvdn_pmul2r ?dvdn_pdiv.
+  have: p * n %| #|G| by rewrite oG dvdn_pmul2r ?pdiv_dvd.
   move/IHm=> IH; apply: dvdn_trans (IH _); first exact: dvdn_mull.
   by rewrite oG divn_pmul2r.
 rewrite -(cardsID 'Ldiv_n()) dvdn_addl.
@@ -84,13 +84,13 @@ rewrite (eq_bigr (fun _ => #|'Ldiv_n'(G')|)) => [|ya].
     by rewrite subcent1_cycle_sub ?groupX.
   rewrite oCy -mulnA -(muln_lcm_gcd #|G'|) -/n' mulnA dvdn_mul //.
     rewrite muln_lcmr -oCy order_constt pA // mulnAC partnC // dvdn_lcm.
-    by rewrite cardSg ?subsetIl // mulnC oG dvdn_pmul2r ?dvdn_pdiv.
+    by rewrite cardSg ?subsetIl // mulnC oG dvdn_pmul2r ?pdiv_dvd.
   apply: IHm; [exact: dvdn_gcdl | apply: leq_ltn_trans lt_qp_mq].
   rewrite -(@divn_pmul2r n`_p^') // -muln_lcm_gcd mulnC divn_pmul2l //.
   rewrite leq_divr // divn_mulAC ?leq_divl ?dvdn_mulr ?dvdn_lcmr //.
   rewrite dvdn_leq ?muln_gt0 ?q_gt0 //= mulnC muln_lcmr dvdn_lcm.
   rewrite -(@dvdn_pmul2l n`_p) // mulnA -oy -oCy mulnCA partnC // -oG.
-  by rewrite cardSg ?subsetIl // dvdn_mul ?dvdn_pdiv.
+  by rewrite cardSg ?subsetIl // dvdn_mul ?pdiv_dvd.
 case/imsetP=> a Ga ->{ya}.
 pose h := [fun z => coset <[y]> (z ^ a^-1)].
 pose h' := [fun Z : coset_of <[y]> => (y * (repr Z).`_p^') ^ a].

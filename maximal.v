@@ -815,12 +815,12 @@ Lemma charsimple_solvable : forall G,
 Proof.
 move=> G; case/charsimple_dprod=> H [sHG simH [I Aut_I defG]] solG.
 case/simpleP: simH => ntH simH; pose p := pdiv #|H|.
-have pr_p: prime p by rewrite prime_pdiv // ltnNge -trivg_card_le1.
+have pr_p: prime p by rewrite pdiv_prime // ltnNge -trivg_card_le1.
 have{solG ntH} abH: abelian H.
   apply/commG1P; case/simH: (der_normal 1 H) => //; move/eqP; case/idPn.
   by rewrite proper_neq // (sol_der1_proper solG).
 have{simH} oHp: #|H| = p.
-  have [x Hx ox] := Cauchy pr_p (dvdn_pdiv _).
+  have [x Hx ox] := Cauchy pr_p (pdiv_dvd _).
   case: (simH <[x]>%G) => [|/= x1|<- //].
     by rewrite /normal cents_norm 1?centsC cycle_subG ?Hx ?(subsetP abH).
   by rewrite -ox /order x1 cards1 in pr_p.

@@ -339,7 +339,7 @@ Lemma Fp_fieldMixin : GRing.Field.mixin_of [the unitRingType of 'F_p].
 Proof.
 move=> x nzx; rewrite /GRing.unit /= prime_coprime ?gtnNdvd ?lt0n //.
 case: (ltnP 1 p) => [lt1p | ]; last by case: p => [|[|p']].
-by rewrite Zp_cast ?prime_gt1 ?prime_pdiv.
+by rewrite Zp_cast ?prime_gt1 ?pdiv_prime.
 Qed.
 
 Definition Fp_idomainMixin := FieldIdomainMixin Fp_fieldMixin.

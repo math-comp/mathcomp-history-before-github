@@ -22,7 +22,6 @@ Import GroupScope.
 Definition chief_factor (gT : finGroupType) (G V U : {set gT}) :=
   maxnormal V U G && (U <| G).
 
-
 Notation "G .-chief" := (chief_factor G)
   (at level 2, format "G .-chief") : group_rel_scope.
 
@@ -70,9 +69,11 @@ Lemma p_rank_2_der1_sub_Fitting : forall (gT : finGroupType) (G : {group gT}),
 Proof.
 Admitted.
 
+(*
 (* This is a dual to pdiv, and it should probably be equipped with a similar  *)
 (* set of lemmas.                                                             *)
 Definition max_pdiv n := last 1%N (primes n).
+*)
 
 (* This is a consequence of B & G, Lemma 4.20, specifically of 4.20(c), which *)
 (* asserts that 'O_q^'(G) is a q^'.-Hall subgroup, where q is the smallest    *)
@@ -354,9 +355,10 @@ move=> K; have xwK: exists p, prime p && ('r(K) == 'r_p(K)).
 by case/andP: (xchooseP xwK); exists (xchoose xwK) => //; exact/eqP.
 Qed.
 
+(*
 Lemma pi_max_pdiv : forall n, (max_pdiv n \in \pi(n)) = (n > 1).
 Proof.
-move=> n; rewrite !inE -primes_pdiv /max_pdiv /pdiv.
+move=> n; rewrite !inE -pi_pdiv /max_pdiv /pdiv.
 by case: primes => //= p ps; rewrite mem_head mem_last.
 Qed.
 
@@ -377,7 +379,7 @@ rewrite headI /= path_cat -(last_cons 0) -headI last_rcons; case/andP=> _.
 move/(order_path_min ltn_trans); case/lastP: p2 => //= p2 q.
 by rewrite all_rcons last_rcons ltn_neqAle -andbA; case/and3P.
 Qed.
-
+*)
 Implicit Type R : {group gT}.
 
 Lemma p_rank_gt0 : forall p H, ('r_p(H) > 0) = (p \in \pi(#|H|)).

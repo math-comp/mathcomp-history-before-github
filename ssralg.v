@@ -1992,7 +1992,7 @@ Lemma natf0_char : forall n,
   n > 0 -> n%:R == 0 :> F -> exists p, p \in [char F].
 Proof.
 move=> n; elim: {n}_.+1 {-2}n (ltnSn n) => // m IHm n; rewrite ltnS => le_n_m.
-rewrite leq_eqVlt -primes_pdiv mem_primes; move: (pdiv n) => p.
+rewrite leq_eqVlt -pi_pdiv mem_primes; move: (pdiv n) => p.
 case/predU1P=> [<-|]; [by rewrite oner_eq0 | case/and3P=> p_pr n_gt0].
 case/dvdnP=> n' def_n; rewrite def_n muln_gt0 andbC prime_gt0 // in n_gt0 *.
 rewrite natr_mul mulf_eq0 orbC; case/orP; first by exists p; exact/andP.
