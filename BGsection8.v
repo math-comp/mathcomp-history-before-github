@@ -3,7 +3,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import fintype paths finfun bigops finset prime binomial groups.
 Require Import morphisms perm action automorphism normal zmodp cyclic.
 Require Import gfunc pgroups nilpotent gprod center commutators sylow abelian.
-Require Import maximal hall BGsection1 (* BGsection *) BGsection6 BGsection7.
+Require Import maximal hall BGsection1 BGsection5 BGsection6 BGsection7.
 
 (******************************************************************************)
 (*   This file covers B & G, section 8, i.e., the proof of two special cases  *)
@@ -16,12 +16,6 @@ Unset Strict Implicit.
 Import Prenex Implicits.
 
 Import GroupScope.
-
-(* This should be the statement of B & G, Lemma 5.1a *)
-Lemma p_rank_3_SCN : forall (gT : finGroupType) (p : nat) (G : {group gT}),
-  p.-group G -> odd #|G| -> 'r_p(G) >= 3 -> 'SCN_3(G) != set0.
-Proof.
-Admitted.
 
 Section Eight.
 
@@ -36,12 +30,12 @@ Local Notation "K ` p" := 'O_(nat_pred_of_nat p)(K)%G : subgroup_scope.
 
 (* This is B & G, Theorem 8.1(a) *)
 Lemma non_pcore_Fitting_Uniqueness : forall p M A0,
-    M \in 'M -> ~~ p.-group ('F(M)) -> A0 \in 'E*_p('F(M)) -> 'm(A0) >= 3 ->
+    M \in 'M -> ~~ p.-group ('F(M)) -> A0 \in 'E*_p('F(M)) -> 'r_p(A0) >= 3 ->
   'C_('F(M))(A0)%G \in 'U.
 Proof.
 move=> p M A0 maxM; set F := 'F(M) => p'F; case/pmaxElemP; rewrite /= -/F.
 case/setIdP=> sA0F abelA0 maxA0; have [pA0 cA0A0 _] := and3P abelA0.
-rewrite grank_abelian //= (rank_abelem abelA0) => dimA0_3.
+rewrite (p_rank_abelem abelA0) => dimA0_3.
 rewrite (uniq_mmax_subset1 maxM) //= -/F; last by rewrite subIset ?Fitting_sub.
 set A := 'C_F(A0); pose pi := \pi(#|A|).
 have [sZA sAF]: 'Z(F) \subset A /\ A \subset F by rewrite subsetIl setIS ?centS.
@@ -396,16 +390,17 @@ move=> M maxM; have [p _ -> dimF3] := rank_witness 'F(M).
 have prF: 'F(M) \proper G := sub_mmax_proper maxM (Fitting_sub M).
 case/orP: (orbN (p.-group 'F(M))) => [pF | npF].
   have [P sylP] := Sylow_exists p M; have [sPM pP _] := and3P sylP.
-  have dimP3: 'r_p(P) >= 3.
-    by rewrite -(p_rank_Sylow sylP) (leq_trans dimF3) // p_rankS ?Fitting_sub.
-  have [A] := set0Pn _ (p_rank_3_SCN pP (mFT_odd _) dimP3).
+  have dimP3: 'r(P) >= 3.
+    rewrite (rank_pgroup pP) -(p_rank_Sylow sylP) (leq_trans dimF3) //.
+    by rewrite p_rankS ?Fitting_sub.
+  have [A] := p_rank_3_SCN pP (mFT_odd _) dimP3.
   by case/(SCN_Fitting_Uniqueness maxM pF)=> // _ sAF; exact: uniq_mmaxS.
 case/p_rank_geP: dimF3 => A; case/setIdP=> EpA dimA3.
 have [A0 maxA0 sAA0] := @maxgroup_exists _ [pred X \in 'E_p('F(M))] _ EpA.
 have [_ abelA] := pElemP EpA; have pmaxA0: A0 \in 'E*_p('F(M)) by rewrite inE.
 case/pElemP: (maxgroupp maxA0) => sA0F; case/and3P=> _ cA0A0 _.
-have dimA0_3: 'm(A0) >= 3.
-  by rewrite (grank_abelian cA0A0) -(eqP dimA3) -(rank_abelem abelA) rankS.
+have dimA0_3: 'r_p(A0) >= 3.
+  by rewrite -(eqP dimA3) -(p_rank_abelem abelA) p_rankS.
 have:= non_pcore_Fitting_Uniqueness maxM npF pmaxA0 dimA0_3.
 exact: uniq_mmaxS (subsetIl _ _) prF.
 Qed.

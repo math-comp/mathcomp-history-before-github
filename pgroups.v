@@ -137,6 +137,7 @@ Qed.
 Lemma pgroupP : forall pi G,
   reflect (forall p, prime p -> p %| #|G| -> p \in pi) (pi.-group G).
 Proof. move=> pi G; exact: pnatP. Qed.
+Implicit Arguments pgroupP [pi G].
 
 Lemma eq_pgroup : forall pi1 pi2 A, pi1 =i pi2 -> pi1.-group A = pi2.-group A.
 Proof. move=> pi1 pi2 A; exact: eq_pnat. Qed.
@@ -178,7 +179,7 @@ Lemma pgroup_p : forall p P, p.-group P -> p_group P.
 Proof.
 move=> p P pgP; case: (leqP #|P| 1).
   by move/card_le1_trivg->; exact: pgroup1.
-move/pdiv_prime=> pr_q; have:= pgroupP _ _ pgP _ pr_q (pdiv_dvd _).
+move/pdiv_prime=> pr_q; have:= pgroupP pgP _ pr_q (pdiv_dvd _).
 by rewrite /p_group; move/eqnP->.
 Qed.
 
@@ -193,7 +194,7 @@ Lemma pgroup_pdiv : forall p G,
   [/\ prime p, p %| #|G| & exists m, #|G| = p ^ m.+1]%N.
 Proof.
 move=> p G pG; rewrite trivg_card1; case/p_groupP: (pgroup_p pG) => q q_pr qG.
-move/implyP: (pgroupP _ _ pG q q_pr); case/p_natP: qG => // [[|m] ->] //.
+move/implyP: (pgroupP pG q q_pr); case/p_natP: qG => // [[|m] ->] //.
 by rewrite dvdn_exp //; move/eqnP=> <- _; split; rewrite ?dvdn_exp //; exists m.
 Qed.
 
@@ -576,8 +577,9 @@ Qed.
 
 End PgroupProps.
 
+Implicit Arguments pgroupP [gT pi G].
 Implicit Arguments constt1P [gT pi x].
-Prenex Implicits constt1P.
+Prenex Implicits pgroupP constt1P.
 
 Lemma normal_max_pgroup_Hall :
   forall pi (gT : finGroupType) (G H : {group gT}),
@@ -1156,7 +1158,7 @@ Proof.
 move=> pi G; apply/eqP; rewrite eqEsubset subsetI pcore_sub pcore_max /=.
 - by apply/bigcapsP=> p pi_p; apply: sub_pcore => r; apply: contra; move/eqnP->.
 - apply/pgroupP=> q q_pr qGpi'; apply: contraL (eqxx q) => /= pi_q.
-  apply: (pgroupP _ _ (pcore_pgroup q^' G)) => //.
+  apply: (pgroupP (pcore_pgroup q^' G)) => //.
   have qG: q %| #|G| by rewrite (dvdn_trans qGpi') // cardSg ?subsetIl.
   have ltqG: q < #|G|.+1 by rewrite ltnS dvdn_leq.
   rewrite (dvdn_trans qGpi') ?cardSg ?subIset //= orbC.

@@ -4,6 +4,12 @@ Require Import groups zmodp morphisms automorphism normal perm action gprod.
 Require Import commutators cyclic center pgroups sylow nilpotent abelian. 
 Require Import maximal hall BGsection1.
 
+(******************************************************************************)
+(*   This file covers B & G, section 4, i.e., the proof the a structure       *)
+(* theorem for solvable groups with a small (of rank at most 2) Fitting       *)
+(* subgroup.                                                                  *)
+(******************************************************************************)
+
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
@@ -488,5 +494,33 @@ rewrite (leq_trans (nil_class_pgroup pU)) // leq_maxl /= -[3]succnK.
 rewrite -!subn1 leq_sub2r // -(LaGrange sOS_U) logn_mul // -card_quotient //.
 by apply: (leq_trans (leq_add cardOS cardUOS)).
 Qed.
+
+(* This is B & G, Corollary 4.19 *)
+Lemma rank2_cent_chief : forall gT p (G Gs U V : {group gT}),
+    Gs <| G -> solvable G -> 'r_p(Gs) <= 2 -> odd #|G| ->
+    chief_factor G V U -> p.-group (U / V) -> U \subset Gs ->
+  G^`(1) \subset 'C(U / V | 'Q).
+Proof.
+Admitted.
+
+(* This is B & G, Lemma 4.20(a) *)
+Lemma p_rank_2_der1_sub_Fitting : forall gT (G : {group gT}),
+  odd #|G| -> solvable G -> 'r('F(G)) <= 2 -> G^`(1) \subset 'F(G).
+Proof.
+Admitted.
+
+(* This is the first statement of B & G, Lemma 4.20(c) *)
+Lemma p_rank_2_min_p'core_Hall : forall gT (G : {group gT}),
+    odd #|G| -> solvable G -> 'r('F(G)) <= 2 ->
+  let p := pdiv #|G| in p.-Hall(G) 'O_p^'(G).
+Proof.
+Admitted.
+
+(* This is a consequence of B & G, Lemma 4.20(c) *)
+Lemma p_rank_2_max_pcore_Sylow : forall gT (G : {group gT}),
+    odd #|G| -> solvable G -> 'r('F(G)) <= 2 ->
+  let p := max_pdiv #|G| in (p.-Sylow(G) 'O_p(G) : Prop).
+Proof.
+Admitted.
 
 End Section4.

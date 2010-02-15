@@ -508,6 +508,13 @@ Lemma pmaxElemP : forall p G E,
           (E \in 'E*_p(G)).
 Proof. move=> p G E; rewrite [E \in 'E*_p(G)]inE; exact: (iffP maxgroupP). Qed.
 
+Lemma pmaxElem_exists : forall p G D,
+  D \in 'E_p(G) -> {E | E \in 'E*_p(G) & D \subset E}.
+Proof.
+move=> p G D EpD; have [E maxE sDE] := maxgroup_exists (EpD : mem 'E_p(G) D).
+by exists E; rewrite // inE.
+Qed.
+
 Lemma in_pmaxElemE: forall (S E : {group gT}) p,
   prime p -> (E \in 'E*_p(S)) = ([set x \in 'C_S(E) | x ^+ p == 1 ] == E).
 Proof.
@@ -551,21 +558,7 @@ rewrite /gen_rank => G; case: arg_minP => [|B defG _]; first by rewrite genGid.
 by exists B; first exact/eqP.
 Qed.
 
-Lemma p_rank_pi' : forall p G, p \notin \pi(#|G|) -> 'r_p(G) = 0.
-Proof.
-move=> p G; rewrite mem_primes cardG_gt0 /= => pi'p.
-apply: big1_seq => E; rewrite inE -andbA; case/andP=> sEG _.
-rewrite lognE; case: ifP => //; case/and3P=> p_pr _ pE; case/negP: pi'p.
-by rewrite p_pr (dvdn_trans pE (cardSg sEG)).
-Qed.
-
-Lemma p_rank1 : forall p, 'r_p([1 gT]) = 0.
-Proof. by move=> p; rewrite p_rank_pi' ?cards1. Qed.
-
-Lemma logn_le_p_rank : forall p G E, E \in 'E_p(G) -> logn p #|E| <= 'r_p(G).
-Proof. by move=> p G E EpG_E; rewrite (bigmax_sup E). Qed.
-
-Lemma p_rank_witness : forall p G, exists E, E \in 'E_p^('r_p(G))(G).
+Lemma p_rank_witness : forall p G, {E | E \in 'E_p^('r_p(G))(G)}.
 Proof.
 move=> p G; have [E EG_E mE]: {E | E \in 'E_p(G) & 'r_p(G) = logn p #|E| }.
   by apply: eq_bigmax_cond; rewrite (cardD1 1%G) inE sub1G abelem1.
@@ -580,6 +573,22 @@ move=> p n G; apply: (iffP idP) => [|[E]]; last first.
 have [D] := p_rank_witness p G; case/pnElemP=> sDG abelD <-.
 by case/abelem_pnElem=> // E; exists E; exact: (subsetP (pnElemS _ _ sDG)).
 Qed.
+
+Lemma p_rank_gt0 : forall p H, ('r_p(H) > 0) = (p \in \pi(#|H|)).
+Proof.
+move=> p H; rewrite mem_primes cardG_gt0 /=.
+apply/p_rank_geP/andP=> [[E] | [p_pr]].
+  case/pnElemP=> sEG _; rewrite lognE; case: and3P => // [[-> _ pE] _].
+  by rewrite (dvdn_trans _ (cardSg sEG)).
+case/Cauchy=> // x Hx ox; exists <[x]>%G; rewrite 2!inE [#|_|]ox cycle_subG.
+by rewrite Hx (pfactorK 1) ?abelemE // cycle_abelian -ox exponent_dvdn.
+Qed.
+
+Lemma p_rank1 : forall p, 'r_p([1 gT]) = 0.
+Proof. by move=> p; apply/eqP; rewrite eqn0Ngt p_rank_gt0 cards1. Qed.
+
+Lemma logn_le_p_rank : forall p G E, E \in 'E_p(G) -> logn p #|E| <= 'r_p(G).
+Proof. by move=> p G E EpG_E; rewrite (bigmax_sup E). Qed.
 
 Lemma p_rank_abelem : forall p G, p.-abelem G -> 'r_p(G) = logn p #|G|.
 Proof.
@@ -609,24 +618,23 @@ have [x _ ->] := Sylow_trans sylP sylH.
 by rewrite p_rankJ -(p_rank_abelem abelE) (p_rankS _ sEP).
 Qed.
 
+Lemma p_rank_pmaxElem_exists : forall p r G,
+   'r_p(G) >= r -> exists2 E, E \in 'E*_p(G) & 'r_p(E) >= r.
+Proof.
+move=> p r G; case/p_rank_geP=> D; case/setIdP=> EpD; move/eqP=> <- {r}.
+have [E EpE sDE] := pmaxElem_exists EpD; exists E => //.
+case/pmaxElemP: EpE; case/setIdP=> _ abelE _.
+by rewrite (p_rank_abelem abelE) lognSg.
+Qed.
+
 Lemma rank1 : 'r([1 gT]) = 0.
 Proof. by rewrite ['r(1)]big1_seq // => p _; rewrite p_rank1. Qed.
 
 Lemma p_rank_le_rank : forall p G, 'r_p(G) <= 'r(G).
 Proof.
-move=> p G; case/orP: (orbN (p \in \pi(#|G|))); last by move/p_rank_pi'->.
-rewrite mem_primes; case/and3P=> p_pr _ pG.
-have lepg: p < #|G|.+1 by rewrite ltnS dvdn_leq.
+move=> p G; case: (posnP 'r_p(G)) => [-> //|]; rewrite p_rank_gt0 mem_primes.
+case/and3P=> p_pr _ pG; have lepg: p < #|G|.+1 by rewrite ltnS dvdn_leq.
 by rewrite ['r(G)]big_mkord (bigmax_sup (Ordinal lepg)).
-Qed.
-
-Lemma rank_witness : forall G, exists2 p, prime p & 'r(G) = 'r_p(G).
-Proof.
-move=> G; have [p _ defmG]: {p : 'I_(#|G|.+1) | true & 'r(G) = 'r_p(G)}.
-  by rewrite ['r(G)]big_mkord; apply: eq_bigmax_cond; rewrite card_ord.
-case p_pr: (prime p); first by exists p.
-rewrite p_rank_pi' ?mem_primes ?p_pr // in defmG.
-by exists 2 => //; apply/eqP; rewrite eqn_leq p_rank_le_rank defmG.
 Qed.
 
 Lemma rank_gt0 : forall G, ('r(G) > 0) = (G :!=: 1).
@@ -639,12 +647,20 @@ have EpGx: <[x]>%G \in 'E_p(G).
 by apply: leq_trans (logn_le_p_rank EpGx); rewrite -orderE oxp logn_prime ?eqxx.
 Qed.
 
+Lemma rank_witness : forall G, {p | prime p & 'r(G) = 'r_p(G)}.
+Proof.
+move=> G; have [p _ defmG]: {p : 'I_(#|G|.+1) | true & 'r(G) = 'r_p(G)}.
+  by rewrite ['r(G)]big_mkord; apply: eq_bigmax_cond; rewrite card_ord.
+case: (eqsVneq G 1) => [-> | ]; first by exists 2; rewrite // rank1 p_rank1.
+by rewrite -rank_gt0 defmG p_rank_gt0 mem_primes; case/andP; exists p.
+Qed.
+
 Lemma rank_pgroup : forall p G, p.-group G -> 'r(G) = 'r_p(G).
 Proof.
 move=> p G pG; apply/eqP; rewrite eqn_leq p_rank_le_rank andbT.
 rewrite ['r(G)]big_mkord; apply/bigmax_leqP=> [[q /= _] _].
-case: (eqVneq q p) => [-> //| ne_q_p]; rewrite p_rank_pi' // mem_primes.
-by apply: contra ne_q_p; case/and3P=> q_pr _; apply: (pgroupP _ _ pG).
+case: (posnP 'r_q(G)) => [-> // |]; rewrite p_rank_gt0 mem_primes.
+by case/and3P=> q_pr _ qG; rewrite (eqnP (pgroupP pG q q_pr qG)).
 Qed.
 
 Lemma rank_abelem : forall p G, p.-abelem G -> 'r(G) = logn p #|G|.
@@ -1222,7 +1238,8 @@ Qed.
 Lemma p_rank_abelian : forall p G, abelian G -> 'r_p(G) = logn p #|'Ohm_1(G)|.
 Proof.
 move=> p G cGG; have nilG := abelian_nil cGG.
-case p_pr: (prime p); last by rewrite lognE p_rank_pi' ?mem_primes p_pr.
+case p_pr: (prime p); last first.
+  by apply/eqP; rewrite lognE p_pr eqn0Ngt p_rank_gt0 mem_primes p_pr.
 case/dprodP: (Ohm_dprod 1 (nilpotent_pcoreC p nilG)) => _ <- _.
 move/TI_cardMg->; rewrite mulnC logn_gauss; last first.
   rewrite prime_coprime // -p'natE // -/(pgroup _ _).

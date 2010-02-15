@@ -4,7 +4,8 @@ Require Import fintype paths finfun bigops finset prime binomial groups.
 Require Import morphisms perm action automorphism normal zmodp cyclic.
 Require Import gfunc pgroups nilpotent gprod center commutators sylow abelian.
 Require Import maximal hall.
-Require Import BGsection1 BGsection4 BGsection6 BGsection7 BGsection8.
+Require Import BGsection1 BGsection4 BGsection5 BGsection6.
+Require Import BGsection7 BGsection8.
 
 (******************************************************************************)
 (*   This file covers B & G, section 9, i.e., the proof the Uniqueness        *)
@@ -18,77 +19,11 @@ Import Prenex Implicits.
 
 Import GroupScope.
 
-(* This is what the definition of chief factor should be !!
-Definition chief_factor (gT : finGroupType) (G V U : {set gT}) :=
-  maxnormal V U G && (U <| G).
-
-Notation "G .-chief" := (chief_factor G)
-  (at level 2, format "G .-chief") : group_rel_scope.
-
-Lemma chief_factor_minnormal : forall (gT : finGroupType) (G V U : {group gT}),
-  chief_factor G V U -> minnormal (U / V) (G / V).
-Proof.
-move=> gT G V U; case/and3P=> maxV sUG nUG.
-case/maxgroupP: maxV; do 2![case/andP]=> sVU VltU nVG maxV.
-have nVU := subset_trans sUG nVG.
-apply/mingroupP; rewrite -subG1 quotient_sub1 ?VltU ?quotient_norms //.
-split=> // Wbar ntWbar sWbarU; case/andP: ntWbar. 
-have{sWbarU} [|W ->{Wbar} sVW] := inv_quotientS _ sWbarU; first exact/andP.
-rewrite subEproper; case/predU1P=> [-> // | WltU ntWV].
-have nVW := subset_trans (proper_sub WltU) nVU; have nWV := normsG sVW.
-rewrite -quotient_normG ?quotientSGK // => [nWG|]; last exact/andP.
-by rewrite (maxV W) ?trivg_quotient ?eqxx ?WltU in ntWV.
-Qed.
-
-Lemma chief_series_exists : forall (gT : finGroupType) (H G : {group gT}),
-  H <| G -> {s | (G.-chief).-series 1%G s & last 1%G s = H}.
-Proof.
-move=> gT H G; elim: {H}_.+1 {-2}H (ltnSn #|H|) => // m IHm U leUm nsUG.
-case: (eqVneq U 1%G) => [-> | ntU]; first by exists [::].
-have [V maxV]: {V : {group gT} | maxnormal V U G}.
-  by apply: ex_maxgroup; exists 1%G; rewrite proper1G ntU norms1.
-have [ltVU nVG] := andP (maxgroupp maxV).
-have [||s ch_s defV] := IHm V; first exact: leq_trans (proper_card ltVU) _.
-  by rewrite /normal (subset_trans (proper_sub ltVU) (normal_sub nsUG)).
-exists (rcons s U); last by rewrite last_rcons.
-rewrite path_rcons defV /= ch_s /chief_factor; exact/and3P.
-Qed. *)
-
-(* This is B & G, Corollary 4.19 *)
-Lemma rank2_cent_chief : forall (gT : finGroupType) (p : nat),
-                         forall G Gs U V : {group gT},
-    Gs <| G -> solvable G -> 'r_p(Gs) <= 2 -> odd #|G| ->
-    chief_factor G V U -> p.-group (U / V) -> U \subset Gs ->
-  G^`(1) \subset 'C(U / V | 'Q).
-Proof.
-Admitted.
-
-(* This should be the statement of B & G, Lemma 4.20(a) *)
-Lemma p_rank_2_der1_sub_Fitting : forall (gT : finGroupType) (G : {group gT}),
-  odd #|G| -> solvable G -> 'r('F(G)) <= 2 -> G^`(1) \subset 'F(G).
-Proof.
-Admitted.
-
-(*
-(* This is a dual to pdiv, and it should probably be equipped with a similar  *)
-(* set of lemmas.                                                             *)
-Definition max_pdiv n := last 1%N (primes n).
-*)
-
-(* This is a consequence of B & G, Lemma 4.20, specifically of 4.20(c), which *)
-(* asserts that 'O_q^'(G) is a q^'.-Hall subgroup, where q is the smallest    *)
-(* prime divisor of #|G| -- namely, pdiv #|G|.                                *)
-Lemma p_rank_2_max_pcore_Sylow : forall (gT : finGroupType) (G : {group gT}),
-    odd #|G| -> solvable G -> 'r('F(G)) <= 2 ->
-  let p := max_pdiv #|G| in p.-Sylow(G) 'O_p(G).
-Proof.
-Admitted.
-
 Section Nine.
 
 Variable gT : minSimpleOddGroupType.
 Local Notation G := (TheMinSimpleOddGroup gT).
-Implicit Types H K M A X P B : {group gT}.
+Implicit Types H K L M A B P Q R : {group gT}.
 Implicit Types p q r : nat.
 
 (* This is B & G, Theorem 9.1(b) *)
@@ -196,54 +131,6 @@ rewrite bigprodGE gen_subG (subset_trans _ sCB_M) //.
 by apply/bigcupsP=> b Bb; rewrite (bigcup_max b) // subsetIr.
 Qed.
 
-Lemma mmax_neq1 : forall M, M \in 'M -> M :!=: 1.
-Proof.
-move=> M maxM; apply: contra (mFT_nonAbelian gT); move/eqP=> M1.
-case: (eqVneq G 1) => [-> | ]; first exact: abelian1.
-case/trivgPn=> x; rewrite -cycle_subG -cycle_eq1 subEproper /=.
-case/predU1P=> [<- | ]; first by rewrite cycle_abelian.
-by move/(mmax_max maxM)=> ->; rewrite M1 ?sub1G ?eqxx.
-Qed.
-
-Lemma norm_mmax : forall M, M \in 'M -> 'N(M) = M.
-Proof.
-move=> M maxM; apply: mmax_max (normG M) => //.
-exact: (mFT_norm_proper (mmax_neq1 maxM) (mmax_proper maxM)).
-Qed.
-
-Lemma mmaxJ : forall M x, (M :^ x \in 'M)%G = (M \in 'M).
-Proof.
-by move=> M x; rewrite !inE /= -{1}[G](@conjGid _ _ x) ?maximalJ ?inE.
-Qed.
-
-Lemma mmax_ofJ : forall K x M, ((M :^ x)%G \in 'M(K :^ x)) = (M \in 'M(K)).
-Proof. by move=> K x M; rewrite inE mmaxJ conjSg !inE. Qed.
-
-Lemma uniq_mmaxJ : forall K x, ((K :^ x)%G \in 'U) = (K \in 'U).
-Proof.
-move=> K x; apply/uniq_mmaxP/uniq_mmaxP=> [] [M uK_M].
-  exists (M :^ x^-1)%G; apply/setP=> H; rewrite -(mmax_ofJ _ x) uK_M !inE.
-  by rewrite (canF_eq (actK 'JG _)).
-exists (M :^ x)%G; apply/setP=> H; rewrite -{1}(actKV 'JG x H) mmax_ofJ uK_M.
-by rewrite !inE (canF_eq (actKV 'JG _)).
-Qed.
-
-Lemma uniq_mmax_norm_sub : forall M U : {group gT},
-  'M(U) = [set M] -> 'N(U) \subset M.
-Proof.
-move=> M U uU_M; have [maxM _] := mem_uniq_mmax uU_M.
-apply/subsetP=> x nUx; rewrite -(norm_mmax maxM) inE.
-have:= set11 M; rewrite -uU_M -(mmax_ofJ _ x) (normP nUx) uU_M.
-by move/set1P; move/congr_group->.
-Qed.
-
-Lemma uniq_mmax_neq1 : forall U : {group gT}, U \in 'U -> U :!=: 1.
-Proof.
-move=> U; case/uniq_mmaxP=> M uU_M; have [maxM _] := mem_uniq_mmax uU_M.
-apply: contraL (uniq_mmax_norm_sub uU_M); move/eqP->.
-by rewrite norm1 subTset -properT mmax_proper.
-Qed.
-
 (* This is B & G, Corollary 9.2 *)
 Lemma cent_uniq_Uniqueness : forall K L,
   L \in 'U -> K \subset 'C(L) -> 'r(K) >= 2 -> K \in 'U.
@@ -302,22 +189,6 @@ apply: cent_uniq_Uniqueness cDCA _; last by rewrite (rank_abelem abelD) dimD2.
 by apply: cent_uniq_Uniqueness uA _ CADge2; rewrite subIset // -abelianE cAA.
 Qed.
 
-Lemma pmaxElem_exists : forall p H D,
-  D \in 'E_p(H) -> {E | E \in 'E*_p(H) & D \subset E}.
-Proof.
-move=> p H D EpD; have [E maxE sDE] := maxgroup_exists (EpD : mem 'E_p(H) D).
-by exists E; rewrite // inE.
-Qed.
-
-Lemma p_rank_pmaxElem_exists : forall p r H,
-   'r_p(H) >= r -> exists2 E, E \in 'E*_p(H) & 'm(E) >= r.
-Proof.
-move=> p r H; case/p_rank_geP=> D; case/setIdP=> EpD; move/eqP=> <- {r}.
-have [E EpE sDE] := pmaxElem_exists EpD; exists E => //.
-case/pmaxElemP: EpE; case/setIdP=> _ abelE _.
-by rewrite (grank_abelian (abelem_abelian abelE)) (rank_abelem abelE) lognSg.
-Qed.
-
 (* This is B & G, Lemma 9.4 *)
 Lemma any_rank3_Fitting_Uniqueness : forall p M P,
   M \in 'M -> 'r_p('F(M)) >= 3 -> p.-group P -> 'r(P) >= 3 -> P \in 'U.
@@ -331,9 +202,8 @@ apply: {P pP}uniq_mmaxS sBP (mFT_pgroup_proper pP) _.
 case/orP: (orbN (p.-group 'F(M))) => [pFM | pFM'].
   have [P sylP sFP] := Sylow_superset (Fitting_sub _) pFM.
   have pP := pHall_pgroup sylP.
-  have [A SCN_A]: exists A, A \in 'SCN_3(P).
-    apply/set0Pn; rewrite (p_rank_3_SCN pP) ?mFT_odd //.
-    by rewrite (leq_trans FMge3) ?p_rankS.
+  have [|A SCN_A]:= p_rank_3_SCN pP (mFT_odd _).
+    by rewrite (rank_pgroup pP) (leq_trans FMge3) ?p_rankS.
   have [_ _ uA] := SCN_Fitting_Uniqueness maxM pFM sylP FMge3 SCN_A.
   case/setIdP: SCN_A => SCN_A dimA3; case: (setIdP SCN_A); case/andP=> sAP _ _.
   have cAA := SCN_abelian SCN_A; have pA := pgroupS sAP pP.
@@ -341,53 +211,9 @@ case/orP: (orbN (p.-group 'F(M))) => [pFM | pFM'].
 have [A0 EpA0 A0ge3] := p_rank_pmaxElem_exists FMge3.
 have uA := non_pcore_Fitting_Uniqueness maxM pFM' EpA0 A0ge3.
 case/pmaxElemP: EpA0; case/setIdP=> _ abelA0 _.
-have [pA0 cA0A0 _] := and3P abelA0; rewrite grank_abelian // in A0ge3.
+have [pA0 cA0A0 _] := and3P abelA0; rewrite -rank_pgroup // in A0ge3.
 rewrite (any_cent_rank3_Uniquness _ pA0) // (cent_uniq_Uniqueness uA) 1?ltnW //.
 by rewrite centsC subsetIr.
-Qed.
-
-Import choice.
-
-Lemma rank_witness : forall K, {p | prime p & 'r(K) = 'r_p(K)}.
-Proof.
-move=> K; have xwK: exists p, prime p && ('r(K) == 'r_p(K)).
-  by case: (rank_witness K) => p p_pr ->; exists p; rewrite p_pr /=.
-by case/andP: (xchooseP xwK); exists (xchoose xwK) => //; exact/eqP.
-Qed.
-
-(*
-Lemma pi_max_pdiv : forall n, (max_pdiv n \in \pi(n)) = (n > 1).
-Proof.
-move=> n; rewrite !inE -pi_pdiv /max_pdiv /pdiv.
-by case: primes => //= p ps; rewrite mem_head mem_last.
-Qed.
-
-Lemma max_pdiv_dvd : forall n, max_pdiv n %| n.
-Proof.
-move=> n; case: n (pi_max_pdiv n) => [|[|n]] //.
-by rewrite mem_primes; case/andP.
-Qed.
-
-Lemma max_pdiv_prime : forall n, n > 1 -> prime (max_pdiv n).
-Proof. by move=> n; rewrite -pi_max_pdiv mem_primes; case/andP. Qed.
-
-Lemma max_pdiv_max : forall n p, p \in \pi(n) -> p <= max_pdiv n.
-Proof.
-move=> n p; rewrite /max_pdiv !inE => n_p.
-case/splitP: n_p (sorted_primes n) => p1 p2; rewrite last_cat last_rcons.
-rewrite headI /= path_cat -(last_cons 0) -headI last_rcons; case/andP=> _.
-move/(order_path_min ltn_trans); case/lastP: p2 => //= p2 q.
-by rewrite all_rcons last_rcons ltn_neqAle -andbA; case/and3P.
-Qed.
-*)
-Implicit Type R : {group gT}.
-
-Lemma p_rank_gt0 : forall p H, ('r_p(H) > 0) = (p \in \pi(#|H|)).
-Proof.
-move=> p H; apply/idP/idP; first by apply: contraLR; move/p_rank_pi'->.
-rewrite mem_primes; case/and3P=> p_pr _; case/Cauchy=> // x Hx ox.
-apply/p_rank_geP; exists <[x]>%G; rewrite 2!inE -orderE ox cycle_subG Hx.
-by rewrite logn_prime // eqxx andbT abelemE // cycle_abelian -ox exponent_dvdn.
 Qed.
 
 (* This is B & G, Lemma 9.5 *)
@@ -550,10 +376,8 @@ have uNP0_mCA: forall M, M \in 'M('C(A)) -> 'M('N(P0)) = [set M].
       rewrite IHs ?(subset_trans sVU) // /stable_factor /normal sVU nVU !andbT.
       have nVP0 := subset_trans (subset_trans sP0_LM' (der_sub _ _)) nV_LM.
       rewrite commGC -astabsQR // (subset_trans sP0_LM') //. 
-      have: is_abelem (U / V).
-        apply: minnormal_solvable_abelem (chief_factor_minnormal chUV) _.
-        exact: quotient_sol (solvableS sUDL solDL).
-      case/is_abelemP=> q q_pr; case/andP=> qUV _.
+      have: is_abelem (U / V) := sol_chief_abelem solLM chUV.
+      case/is_abelemP=> q _; case/andP=> qUV _.
       apply: rank2_cent_chief qUV sUDL; rewrite ?mFT_odd //.
       exact: leq_trans (p_rank_le_rank _ _) DLle2.
     rewrite centsC (subset_trans cDL_P0) ?centS ?setIS //.
@@ -565,13 +389,11 @@ have uNP0_mCA: forall M, M \in 'M('C(A)) -> 'M('N(P0)) = [set M].
       by rewrite -(p_rank_Sylow (nilpotent_pcore_Hall _ (Fitting_nil _))).
     have uMq: 'O_q(M)%G \in 'U.
       exact: any_rank3_Fitting_Uniqueness Fq3 (pcore_pgroup _ _) Mq3.
-    have sMqNP0: 'O_q(M) \subset 'N(P0).
-      rewrite cents_norm // centsC (subset_trans cDP0) ?centS //.
-      rewrite -p_core_Fitting sub_pcore // => q1; move/eqnP=> ->{q1}.
-      by apply/eqnP=> def_q; rewrite ltnNge def_q FmCAp_le2 in Fq3.
-    have prNP0 := mFT_norm_proper ntP0 (mFT_pgroup_proper pP0).
-    apply: def_uniq_mmax => //; first exact: uniq_mmaxS uMq.
-    by apply: sub_uniq_mmax sMqNP0 prNP0; exact: def_uniq_mmax (pcore_sub _ _).
+    apply: def_uniq_mmaxS (def_uniq_mmax uMq maxM (pcore_sub q _)); last first.
+      exact: mFT_norm_proper ntP0 (mFT_pgroup_proper pP0).
+    rewrite cents_norm // centsC (subset_trans cDP0) ?centS //=.
+    rewrite -p_core_Fitting sub_pcore // => q1; move/eqnP=> ->{q1}.
+    by apply/eqnP=> def_q; rewrite ltnNge def_q FmCAp_le2 in Fq3.
   rewrite (mmax_normal maxM) ?mmax_sup_id //.
   have sNP_M := sNP_mCA M mCA_M; have sPM := subset_trans (normG P) sNP_M.
   rewrite /normal comm_subG //= -/P0.
@@ -620,10 +442,9 @@ case/pnElemP=> sBK abelB dimB3; have [pB cBB _] := and3P abelB.
 suffices: B \in 'U by exact: uniq_mmaxS.
 have [P sylP sBP] := Sylow_superset (subsetT _) pB.
 have pP := pHall_pgroup sylP.
-have: 'SCN_3(P) != set0.
-  apply: (p_rank_3_SCN pP (mFT_odd _)).
-  by rewrite -dimB3 -(p_rank_abelem abelB) p_rankS.
-case/set0Pn=> A SCN3_A; have [SCN_A Age3] := setIdP SCN3_A.
+have [|A SCN3_A] :=  p_rank_3_SCN pP (mFT_odd _).
+  by rewrite -dimB3 -(rank_abelem abelB) rankS.
+have [SCN_A Age3] := setIdP SCN3_A.
 have: A \in 'SCN_3[p] by apply/bigcupP; exists P; rewrite // inE.
 move/SCN_3_Uniqueness=> uA; have cAA := SCN_abelian SCN_A.
 case/setIdP: SCN_A; case/andP=> sAP _ _; have pA := pgroupS sAP pP.
@@ -634,9 +455,9 @@ Qed.
 
 (* This is B & G, Theorem 9.6, second assertion *)
 Theorem cent_rank3_Uniqueness : forall K,
-  K \proper G -> 'r(K) >= 2 -> 'r('C(K)) >= 3 -> K \in 'U.
+  'r(K) >= 2 -> 'r('C(K)) >= 3 -> K \in 'U.
 Proof.
-move=> K prK Kge2 CKge3; have cCK_K: K \subset 'C('C(K)) by rewrite centsC.
+move=> K Kge2 CKge3; have cCK_K: K \subset 'C('C(K)) by rewrite centsC.
 apply: cent_uniq_Uniqueness cCK_K _ => //.
 apply: rank3_Uniqueness (mFT_cent_proper _) CKge3.
 by rewrite -rank_gt0 ltnW.
@@ -648,8 +469,7 @@ Theorem nonmaxElem2_Uniqueness : forall p A,
 Proof.
 move=> p A; case/setDP=> EpA nmaxA; have [_ abelA dimA2]:= pnElemP EpA.
 case/setIdP: EpA => EpA _; have [pA _] := andP abelA.
-apply: cent_rank3_Uniqueness (mFT_pgroup_proper pA) _ _.
-  by rewrite -dimA2 -(rank_abelem abelA).
+apply: cent_rank3_Uniqueness; first by rewrite -dimA2 -(rank_abelem abelA).
 have [E maxE sAE] := pmaxElem_exists EpA.
 have [] := pmaxElemP maxE; case/pElemP=> _ abelE _.
 have [pE cEE _] := and3P abelE.

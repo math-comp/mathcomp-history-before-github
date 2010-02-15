@@ -504,7 +504,7 @@ have defKP: K :=: [~: K, P].
 have nrp: r != p.
   move: coHR; rewrite oR coprime_sym prime_coprime -?p'natE // => r'H.
   have sCH: 'C_V(R) \subset H by apply: subset_trans sVH; exact: subsetIl.
-  by rewrite eq_sym; apply: (pgroupP _ _ (pgroupS sCH r'H)); rewrite ?oCVR.
+  by rewrite eq_sym; apply: (pgroupP (pgroupS sCH r'H)); rewrite ?oCVR.
 have nKPR: P <*> R \subset 'N(K) by rewrite mulgen_subG nKP.
 have trCPR_K: 'C_(P <*> R)(K) = 1.
   have solPR: solvable (P <*> R).
@@ -537,8 +537,8 @@ have trCPR_K: 'C_(P <*> R)(K) = 1.
   by rewrite -(card_Hall hallRC) trCR muln1 /= trCP cards1.
 have [K1 | [q q_pr qKdv]] := trivgVpdiv K.
   by rewrite K1 comm1G eqxx in ntKR.
-have nqp: q != p by exact: (pgroupP _ _ p'K).
-have nrq: r != q by rewrite eq_sym; exact: (pgroupP _ _ r'K).
+have nqp: q != p by exact: (pgroupP p'K).
+have nrq: r != q by rewrite eq_sym; exact: (pgroupP r'K).
 have{defK} qK: q.-group K.
   have IHpi: forall pi, 'O_pi(K) = K \/ 'O_pi(K) \subset 'C(P).
     move=> pi; apply: IHK (pcore_sub _ _).

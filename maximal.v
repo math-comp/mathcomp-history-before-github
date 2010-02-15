@@ -1243,7 +1243,7 @@ Proof.
 move=> H [chH sPhiZ sRZ eqCZ] pG; have sHG := char_sub chH.
 pose G' := (sdpair1 'A_G @* G)%G; pose H' := (sdpair1 'A_G @* H)%G.
 apply/pgroupP=> q pr_q; case/Cauchy=> // f; case/setIP=> Af; move: (Af).
-rewrite -2!cycle_subG => sFA cHF ofq; apply: (pgroupP _ _ pG) => //.
+rewrite -2!cycle_subG => sFA cHF ofq; apply: (pgroupP pG) => //.
 pose F' := (sdpair2 'A_G @* <[f]>)%G.
 have trHF: [~: H', F'] = 1.
   apply/trivgP; rewrite gen_subG; apply/subsetP=> u; case/imset2P=> x' a'.

@@ -47,7 +47,7 @@ have nPG: G \subset 'N(P).
   case/sdprodP: (Burnside_normal_complement sylP cPN) => _ /=.
   set K := 'O_p^'(G) => defG nKP _.
   have nKG: G \subset 'N(K) by rewrite normal_norm ?pcore_normal.
-  suffices p'G': p^'.-group G^`(1) by case/eqnP: (pgroupP _ _ p'G' p p_pr pG').
+  suffices p'G': p^'.-group G^`(1) by case/eqnP: (pgroupP p'G' p p_pr pG').
   apply: pgroupS (pcore_pgroup p^' G); rewrite -quotient_cents2 //= -/K.
   by rewrite -defG quotient_mulgr /= -/K quotient_cents ?(subset_trans sPN).
 pose Q := G^`(1) :&: P; have sQG: Q \subset G by rewrite subIset ?der_subS.

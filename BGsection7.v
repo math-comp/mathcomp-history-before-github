@@ -227,11 +227,34 @@ move=> p P M maxM sylP sNM; rewrite -Sylow_subnorm setTI.
 exact: pHall_subl (normG P) sNM sylP.
 Qed.
 
+Lemma mmax_neq1 : forall M, M \in 'M -> M :!=: 1.
+Proof.
+move=> M maxM; apply: contra mFT_nonAbelian; move/eqP=> M1.
+case: (eqVneq G 1) => [-> | ]; first exact: abelian1.
+case/trivgPn=> x; rewrite -cycle_subG -cycle_eq1 subEproper /=.
+case/predU1P=> [<- | ]; first by rewrite cycle_abelian.
+by move/(mmax_max maxM)=> ->; rewrite M1 ?sub1G ?eqxx.
+Qed.
+
+Lemma norm_mmax : forall M, M \in 'M -> 'N(M) = M.
+Proof.
+move=> M maxM; apply: mmax_max (normG M) => //.
+exact: (mFT_norm_proper (mmax_neq1 maxM) (mmax_proper maxM)).
+Qed.
+
+Lemma mmaxJ : forall M x, (M :^ x \in 'M)%G = (M \in 'M).
+Proof.
+by move=> M x; rewrite !inE /= -{1}[G](@conjGid _ _ x) ?maximalJ ?inE.
+Qed.
+
 Lemma mmax_ofS : forall H K, H \subset K -> 'M(K) \subset 'M(H).
 Proof.
 move=> H K sHK; apply/subsetP=> M; rewrite !inE; case/andP=> ->.
 exact: subset_trans.
 Qed.
+
+Lemma mmax_ofJ : forall K x M, ((M :^ x)%G \in 'M(K :^ x)) = (M \in 'M(K)).
+Proof. by move=> K x M; rewrite inE mmaxJ conjSg !inE. Qed.
 
 Lemma uniq_mmaxP : forall U, reflect (exists M, 'M(U) = [set M]) (U \in 'U).
 Proof. by move=> U; rewrite inE; exact: cards1P. Qed.
@@ -278,12 +301,49 @@ Qed.
 Lemma mmax_uniq_id : {subset 'M <= 'U}.
 Proof. by move=> M maxM; apply/uniq_mmaxP; exists M; exact: mmax_sup_id. Qed.
 
+Lemma def_uniq_mmaxJ : forall M K x,
+  'M(K) = [set M] -> 'M(K :^ x) = [set M :^ x]%G.
+Proof.
+move=> M K x uK_M; apply/setP=> L; rewrite -(actKV 'JG x L) mmax_ofJ uK_M.
+by rewrite !inE (inj_eq (act_inj 'JG x)).
+Qed.
+
+Lemma uniq_mmaxJ : forall K x, ((K :^ x)%G \in 'U) = (K \in 'U).
+Proof.
+move=> K x; apply/uniq_mmaxP/uniq_mmaxP=> [] [M uK_M].
+  exists (M :^ x^-1)%G; rewrite -(conjsgK x K); exact: def_uniq_mmaxJ.
+by exists (M :^ x)%G; exact: def_uniq_mmaxJ.
+Qed.
+
+Lemma uniq_mmax_norm_sub : forall M U : {group gT},
+  'M(U) = [set M] -> 'N(U) \subset M.
+Proof.
+move=> M U uU_M; have [maxM _] := mem_uniq_mmax uU_M.
+apply/subsetP=> x nUx; rewrite -(norm_mmax maxM) inE.
+have:= set11 M; rewrite -uU_M -(mmax_ofJ _ x) (normP nUx) uU_M.
+by move/set1P; move/congr_group->.
+Qed.
+
+Lemma uniq_mmax_neq1 : forall U : {group gT}, U \in 'U -> U :!=: 1.
+Proof.
+move=> U; case/uniq_mmaxP=> M uU_M; have [maxM _] := mem_uniq_mmax uU_M.
+apply: contraL (uniq_mmax_norm_sub uU_M); move/eqP->.
+by rewrite norm1 subTset -properT mmax_proper.
+Qed.
+
+Lemma def_uniq_mmaxS : forall M U V,
+  U \subset V -> V \proper G -> 'M(U) = [set M] -> 'M(V) = [set M].
+Proof.
+move=> M U V sUV prV uU_M; apply/eqP; rewrite eqEsubset sub1set -uU_M.
+rewrite mmax_ofS //= inE (sub_uniq_mmax uU_M) //.
+by case/mem_uniq_mmax: uU_M => ->.
+Qed.
+
 Lemma uniq_mmaxS : forall U V,
   U \subset V -> V \proper G -> U \in 'U -> V \in 'U.
 Proof.
 move=> U V sUV prV; case/uniq_mmaxP=> M uU_M; apply/uniq_mmaxP; exists M.
-apply/eqP; rewrite eqEsubset sub1set -uU_M mmax_ofS //= inE.
-by rewrite (sub_uniq_mmax uU_M) //; case/mem_uniq_mmax: uU_M => ->.
+exact: def_uniq_mmaxS uU_M.
 Qed.
 
 End MinSimpleOdd.
