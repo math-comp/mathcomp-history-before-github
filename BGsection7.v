@@ -897,7 +897,7 @@ apply: subset_trans (cent_sub_Fitting (quotient_sol _ solX)).
 by rewrite subsetI quotientS.
 Qed.
 
-(* This is B & G, Theorem 7.8 (the Thompson Transitivity Theorem). *)
+(* This is B & G, Theorem 7.6 (the Thompson Transitivity Theorem). *)
 Theorem Thompson_transitivity : forall p q A,
     A \in 'SCN_3[p] -> q \in p^' ->
   [transitive 'O_p^'('C(A)), on |/|*(A; q) | 'JG].
