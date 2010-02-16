@@ -63,7 +63,7 @@ Variable F : ClosedField.type.
 Lemma solve_monicpoly : ClosedField.axiom F.
 Proof. by case: F => ? []. Qed.
   
-Notation fF := (formula F).
+Notation fF := (formula  F).
 
 Definition ifF (th el f: fF) : fF :=
   ((f /\ th) \/ ((~ f) /\ el))%T.
@@ -77,40 +77,76 @@ by case: (qf_eval _ _).
 Qed.
 
 Definition polyF := seq (term F).
-Lemma eval_poly : seq F -> polyF -> {poly F}.
-Admitted.
+Fixpoint eval_poly (e:seq F) pf := 
+  if pf is c::qf then (eval_poly e qf)*'X + (eval e c)%:P else 0.
 
-Lemma deg (k : nat -> fF) :  polyF -> fF.
-Admitted.
+
+Fixpoint deg (k : nat -> fF) (p:polyF) :=
+  if p is c::q then 
+    deg (fun n => if n is m.+1 then k m.+2 else ifF (k 0%N) (k 1%N) (Equal c (Const 0))) q 
+    else k O%N.
 Lemma degP : forall k P,
   (forall n e, qf_eval e (k n) = P e n)
-  -> forall p e, qf_eval e (deg k p) = P e (size (eval_poly e p)).  
-Admitted.
+  -> forall p e, qf_eval e (deg k p) = P e (size (eval_poly e p)).
+Proof.
+move=> k P Pk.
+move=> pf e. 
+elim: pf e P k Pk; first by move=> e P k Pk; rewrite Pk size_poly0.
+move=> c qf Pqf e P k Pk.
+rewrite [deg _ _ ]/=. 
+set kn := (fun n => _).
+have Pkn : forall P, (forall (n : nat) (e : seq F), qf_eval e (k n) = P e n) ->
+        forall n e, qf_eval e (kn n) = 
+          (if n is m.+1 then P e n.+1 else if eval e c == 0 then P e 0%N else P e 1%N).
+  move=> P' Pk' n e'.
+  elim: n=> /=; first by case: (eval e' c == 0)=> /=; rewrite ?orbF Pk'.
+  by move=> n'; rewrite Pk'.
+rewrite (Pqf e _ kn (Pkn _ Pk)).
+move: (erefl (size (eval_poly e qf))).
+case: {-1}(size (eval_poly e qf)).
+  move=> qf0; rewrite [eval_poly e _]/= size_amulX qf0.
+  by case c0: (eval e c == 0).
+move=> n sqf.
+by rewrite [eval_poly e _]/= size_amulX sqf.
+Qed.
 
 
-Lemma leq_deg (k : fF -> fF) : polyF -> polyF -> fF.
-Admitted.
+Fixpoint isnull (k : fF -> fF) (p: polyF) : fF :=
+  if p is a::q 
+    then isnull (ifF (k (Equal a (Const 0))) (k (Bool false))) q
+    else k (Bool true).
+Lemma isnullP : forall k P,
+  (forall b e, qf_eval e (k b) = P e (qf_eval e b))
+    -> forall p e, qf_eval e (isnull k p) = P e (eval_poly e p == 0).
+Proof.
+move=> k P Pk p e.
+elim: p e k P Pk => /=; first by move=> e k P Pk; rewrite Pk eqxx.
+move=> a q Pq e k P Pk.
+rewrite (Pq e _ _ (ifFP (k (Equal a (Const 0))) (k (Bool false)))) /=.
+rewrite -[_*'X+_ == _]size_poly_eq0 size_amulX.
+case q0: (eval_poly e q == 0); rewrite Pk /=.
+  by case a0 : (eval e a == 0); rewrite (eqP q0) size_poly0.
+by rewrite size_poly_eq0 q0 /=.
+Qed.
+
+Fixpoint leq_deg (k : fF -> fF) (p q : polyF) : fF :=
+  if p is a::p' then  
+    if q is b::q' then isnull (ifF (k (Bool false)) (leq_deg k p' q')) q
+      else k (Bool false)
+    else k (Bool true).
 Lemma leq_degP : forall k P,
   (forall b e, qf_eval e (k b) = P e (qf_eval e b))
     -> forall p q e, qf_eval e (leq_deg k p q) = P e (size (eval_poly e p) < size (eval_poly e q)).
 Admitted.
-(* Lemma same_deg (p: seq (term F)) (k : fF -> fF) :  seq (term F) -> fF. *)
-(* Admitted. *)
-(* Lemma same_degP : forall p (k:contF (@qf_eval _)) q e,  *)
-(*   qf_eval e (same_deg p k q) =  *)
-(*   (fun e q => (Pcont k) e (size (eval_poly e p) == size q)) e (eval_poly e q). *)
-(* Admitted. *)
-(* Canonical Structure contF_same p (k:contF _) := ContF (same_degP p k). *)
 
-Lemma isnull (k : fF -> fF) :  polyF -> fF.
+Lemma same_deg (k : fF -> fF) (p q : polyF) : fF.
 Admitted.
-Lemma isnullP : forall k P,
+Lemma same_degP : forall k P,
   (forall b e, qf_eval e (k b) = P e (qf_eval e b))
-    -> forall p e, qf_eval e (isnull k p) = P e (eval_poly e p == 0).
+  -> forall p q e, qf_eval e (same_deg k p q) = P e (size (eval_poly e p) == size (eval_poly e q)).
 Admitted.
 
-
-Lemma remp (p : polyF) (k:polyF -> fF) :  polyF -> fF.
+Lemma remp (p : polyF) (k:polyF -> fF) (q : polyF) : fF.
 Admitted.
 Lemma rempP : forall k P,
   (forall p e, qf_eval e (k p) = P e (eval_poly e p))
@@ -144,12 +180,12 @@ case: (eval_poly e p %% eval_poly e q == 0); first by rewrite Pk.
 by rewrite (rempP (Pn1 q : forall r _, _ = (fun _ r => _ ( _ r)) _ _)).
 Qed.
 
-Definition gcdpT p k q : fF :=
+Definition gcdpT (p:polyF) k (q:polyF) : fF :=
   let aux p1 k q1 := isnull (ifF (k q1) (deg (fun n => (loopT p1 k n q1)) p1)) p1
     in (leq_deg (ifF (aux q k p) (aux p k q)) p q). 
 
 Lemma gcdpP : forall k P,
-  (forall p e, qf_eval e (k p) = P e (eval_poly e p))
+  (forall (p:polyF) e, qf_eval e (k p) = P e (eval_poly e p))
     -> forall p q e, qf_eval e (gcdpT p k q) = P e (gcdp (eval_poly e p) (eval_poly e q)).
 Proof.
 move=> k P Pk.
@@ -172,8 +208,38 @@ by rewrite /loop /gcdp lqp p0 /=.
 Qed.
    
 
-Fixpoint gcdpTs k ps : fF :=
-  if ps is p::pr then gcdpTs (gcdpT p k) pr else k [::Const 1].
+Fixpoint gcdpTs k (ps : seq polyF) : fF :=
+  if ps is p::pr then gcdpTs (gcdpT p k) pr else k [::Const 0].
+Lemma gcdpTsP : forall k P,
+  (forall p e, qf_eval e (k p) = P e (eval_poly e p))
+    -> forall ps e, qf_eval e (gcdpTs k ps) = P e (\big[@gcdp _/0%:P]_(i <- ps)(eval_poly e i)).
+Proof.
+move=> k P Pk ps.
+elim: ps k P Pk; first by move=> k P Pk e; rewrite Pk /= mul0r add0r big_nil.
+move=> p ps Pps k P Pk e /=.
+rewrite (Pps _ _ (gcdpP Pk p : forall q _, _ = (fun _ q => _ (_  q)) _ (_ q))) /=.
+by rewrite big_cons.
+Qed.
+
+
+Definition ex_elim_seq (p : seq polyF) (q : polyF) :=
+  Not (gcdpTs (fun d => gcdpT d (same_deg (@id _) d) q) p).
+Lemma ex_elim_seqP :
+  forall ps q e,
+    let ge := (\big[@gcdp _/0%:P]_(i <- ps)(eval_poly e i)) in
+      qf_eval e (ex_elim_seq ps q) = (size ge != size (gcdp ge (eval_poly e q))).
+Proof.
+move=> ps q e /=.
+set dgcd := (fun d =>  _).
+have dP : forall d e, qf_eval e (dgcd d) 
+  = (size (eval_poly e d) == size (gcdp (eval_poly e d) (eval_poly e q))).
+  move=> d e'; rewrite /dgcd.
+  have sP := @same_degP (@id _) (fun _ => @id _) (fun b e => erefl (qf_eval e b)) d.
+  by rewrite (@gcdpP (same_deg id d) (fun e q => (size (eval_poly e d) == size q)) sP).
+by rewrite (gcdpTsP (dP : forall d _,
+  _ = (fun _ (d:{poly F}) => (size d == size (gcdp d _))) _ (_ d))).
+Qed.
+
 
 
 End ClosedFieldTheory.
