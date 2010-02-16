@@ -205,51 +205,6 @@ exists (rcons s U); last by rewrite last_rcons.
 rewrite path_rcons defV /= ch_s /chief_factor; exact/and3P.
 Qed.
 
-(*
-Definition chief_factor G (x y : {set gT}) := 
-  [max x of H | [&& (H \proper y), y \subset 'N(H) & H <| G]] && (y <| G).
-
-
-Local Notation "A .-chief" := (chief_factor A)
-  (at level 2, format "A .-chief") : group_scope.
-
-Lemma chief_factor_minnormal : forall (G x y : {group gT}),
-  G.-chief x y -> minnormal (y / x) (G / x).
-Proof.
-move=> G x y; case/andP; case/maxgroupP; case/and3P=> pyx Nxy nyG miny nxG.
-apply/mingroupP; rewrite quotient_norms ?normal_norm //.
-split; first  by rewrite -subG1 (quotient_sub1 Nxy) proper_subn.
-have nyx : x <| y by rewrite /normal proper_sub.
-move=> H; case/andP=> ntH nH sH; pose K := coset x @*^-1 H.
-have eH : H :=: K / x by rewrite cosetpreK.
-suff eKx : K :=: y by rewrite eH eKx.
-case eKx: (K == y); first by rewrite (eqP eKx).
-suff eKy : K :=: x.
-  by move: (eH); rewrite eKy trivg_quotient; move/eqP; move/negP: ntH.
-apply: miny; rewrite ?sub_cosetpre // properEneq eKx /=.
-rewrite -{1}(quotientGK nyx) cosetpreSK sH /=.
-have: K <| y.
-  rewrite -(quotientGK nyx) cosetpre_normal /normal sH; apply: subset_trans nH.
-  by apply: quotientS; rewrite normal_sub.
-move/normal_norm->.
-rewrite /= -(quotientGK nyG) cosetpre_normal /normal nH (subset_trans sH) //.
-by apply: quotientS; rewrite normal_sub.
-Qed.
-
-(* sounds useless *)
-Lemma chief_factor_exists : forall G : {group gT}, G :!=: 1 ->
-  exists x : {group gT} * {group gT}, G.-chief x.1 x.2.
-Proof.
-move=> G ntG.
-suff [N hN]: exists N :{group gT}, 
-  [max N of H | [&& (H \proper G), G \subset 'N(H) & H <| G]].
-  by exists (N, G); rewrite /chief_factor hN normal_refl.
-pose f (H : {group gT}) := [&& H \proper G, G \subset 'N(H) & H <| G].
-suff : exists N : {group gT}, f N by case/ex_maxgroup=> N hN; exists N; exact: hN.
-by exists 1%G; rewrite /f  normal1 norm1 subsetT proper1G /= andbT.
-Qed.
-*)
-
 Lemma sol_chief_abelem : forall (gT : finGroupType)(G K0 K1 : {group gT}), 
    solvable G -> chief_factor G K0 K1 -> is_abelem (K1 / K0).
 Proof.
@@ -260,50 +215,6 @@ have h1 :  (K1 / K0) \subset (G / K0) by rewrite quotientS // normal_sub.
 have h2 : solvable (G / K0) by rewrite quotient_sol.
 by case: (minnormal_solvable hminn h1 h2)=> _ _.
 Qed.
-
-
-(*
-Definition central (G x y : {set gT}):= [~: G, y] \subset x.
-
-Local Notation "A .-central" := (central A)
-  (at level 2, format "A .-central") : group_rel_scope.
-
-
-Lemma centralP : forall G : {group gT},
-  reflect (exists2 s, G.-central.-series 1%G s & last 1%G s = G) (nilpotent G).
-Proof.
-move=> G; apply: (iffP idP)=> [| [s hs slast]].
-  move/ucnP=> [n hzn].
-  exists (mkseq (fun i => ('Z_i(G)))%G n.+1); last first.
-    by rewrite (@last_nth _  1%G) size_mkseq /= nth_mkseq ?ltnSn //; apply: val_inj.
-  rewrite /central.
-  apply/(@pathP _ _ 1%G _ 1%G)=> i; rewrite size_mkseq => ltiSn /=.
-  rewrite nth_mkseq //; case ei: i => [|i'] /=.
-    by rewrite /= ucn0; apply/trivgP; apply/commG1P; apply: cents1.
-  rewrite nth_mkseq 1?commGC ?ucn_comm //; apply: ltn_trans ltiSn; rewrite ei.
-  by rewrite ltnSn.
-apply/forallP=> H; apply/implyP; rewrite subsetI; case/andP=> sHG sHR.
-rewrite -subG1.
-suff i: forall n, H \subset nth G (1%G :: s) ((size s) - n).
-  by move: (i (size s)); rewrite subnn /=.
-elim=> [|n ihn].
-  by rewrite subn0 /= nth_last last_cons slast.
-case sns : (n < size s); last first.
-  move: ihn; rewrite (_ : size s - n = 0) //=; last first.
-   (* really ugly *)  
-    apply/eqP. 
-    suff: size s <= n by rewrite /leq.
-    by rewrite leqNgt sns.
-  rewrite (_ : size s - n.+1 = 0) //=.
-  by apply/eqP; apply: leqW; rewrite leqNgt sns.
-have e: (size s - n.+1 < size s) by rewrite -ltn_subS // leq_subr.
-  move/(pathP G): hs; move/(_ _ e)=> /=. rewrite /central. apply: subset_trans.
-  apply: subset_trans sHR _; rewrite commGC; apply: genS; apply: imset2S; rewrite ?subxx //.
-  by move: ihn; rewrite ltn_subS // -ltn_subS // leq_subr.
-Qed.
-
-*)
-
 
 
 Section HallLemma.
@@ -419,19 +330,50 @@ suff nilK : nilpotent K.
 case Knilp : (nilpotent K) => //.
 move/negbT: Knilp; rewrite /nilpotent negb_forall; case/existsP=> L.
 rewrite negb_imply subsetI; (do 2!case/andP) => sLK sLC ntL.
-pose U := <<class_support [~: L, K] G>>.
+pose U := <<class_support [~: L, K] G>>%G.
 have sUG : U \subset G.
   rewrite gen_subG class_support_sub_norm ?normG //.
   by rewrite comm_subG ?(subset_trans sLK) // normal_sub.
 have nUG : U <| G.
-  rewrite /normal sUG /= norms_gen //. 
-Admitted.
-
-
-
-(* then a case on the length of s, and a combination of quotient_cents2 and of
-the abelianity of K / nth 1 s *)
-
+  rewrite /normal sUG /= norms_gen //; apply/normsP; exact: class_supportGidr.
+have sUC : U \subset [~: U, K].
+  rewrite gen_subG class_supportEr; apply/bigcupsP=> x Gx /=.
+  have sC : [~: L, K] :^x \subset [~: L, K, K] :^x.
+    by rewrite (conjSg _ _ x); apply: commSg.
+  apply: (subset_trans sC) => {sC}.
+  have sC : [~: L, K, K] :^ x \subset [~: U, K] :^ x.
+    rewrite (conjSg _ _ x) commSg //; apply: subset_trans (subset_gen _).
+    by rewrite sub_class_support.
+  apply: (subset_trans sC) => {sC}.
+  suff : x \in 'N([~: U, K]) by rewrite inE.
+  suff : G \subset 'N([~: U, K]) by move/subsetP; move/(_ _ Gx).
+  by apply: normsR; apply: normal_norm.
+have ntK : K :!=: 1.
+  by move: ntL; rewrite -2!proper1G; move/proper_sub_trans; apply.
+have pK1K : [~: K , K ] \proper K.
+  by apply: (sol_der1_proper solG); rewrite ?normal_sub.
+have ntU : U :!=: 1.
+  move: ntL; rewrite -2!proper1G; move/proper_sub_trans; apply.
+  apply: subset_trans sLC _; apply: subset_trans (subset_gen _).
+  by rewrite sub_class_support.
+have pCK : [~: L, K] \proper K by apply: sub_proper_trans pK1K; rewrite commSg.
+have pUK : U \proper K.
+  apply: sub_proper_trans pK1K; rewrite gen_subG.
+  by apply: class_support_sub_norm; rewrite ?commSg // normsR ?normal_norm.
+(* should be a lemma, cf existence of a chief_series *)
+have [V maxV]: {V : {group gT} | maxnormal V U G}.
+  by apply: ex_maxgroup; exists 1%G; rewrite proper1G ntU norms1.
+case sUF': (U \subset 'F(G')); last first.
+  suff e: U :=: K by move: pUK; rewrite properE e subxx /=.
+  apply: minK; last by apply: proper_sub.
+  by rewrite nUG sUF' proper_sub // (proper_sub_trans pUK).
+case/maxgroupP: (maxV); (do 2!case/andP)=> sVU pVU nVG ismaxV.
+suff : [~: U, K] \subset V by move/(subset_trans sUC); rewrite (negbTE pVU).
+rewrite commGC -astabsQR ?(subset_trans _ nVG) // ?(normal_sub nKG) //.
+have VUchief : chief_factor G V U by rewrite /chief_factor maxV.
+move/bigcapsP: sKH' => sKH'; move: (sKH' (V, U)); rewrite VUchief; move/(_ sUF').
+by  rewrite subsetI; case/andP.
+Qed.
 
 End HallLemma.
 
