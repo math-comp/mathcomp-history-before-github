@@ -2318,61 +2318,6 @@ Canonical Structure QEDecidableField :=
 
 End QE_theory.
 
-Module ClosedField.
-
-(* Axiom == all non-constant monic polynomials have a root *)
-Definition axiom (R : Ring.type) :=
-  forall n (P : nat -> R), n > 0 ->
-   exists x : R, x ^+ n = \sum_(i < n) P i * (x ^+ i).
-
-Record class_of (F : Type) : Type :=
-  Class {base :> DecidableField.class_of F; _ : axiom (Ring.Pack base F)}.
-
-Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
-Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
-
-Definition pack T b0 (m0 : axiom (@Ring.Pack T b0 T)) :=
-  fun bT b & phant_id (DecidableField.class bT) b =>
-  fun    m & phant_id m0 m => Pack (@Class T b m) T.
-
-(* There should eventually be a constructor from polynomial resolution *)
-(* that builds the DecidableField mixin using QE.                      *)
-
-Coercion eqType cT := Equality.Pack (class cT) cT.
-Coercion choiceType cT := Choice.Pack (class cT) cT.
-Coercion zmodType cT := Zmodule.Pack (class cT) cT.
-Coercion ringType cT := Ring.Pack (class cT) cT.
-Coercion comRingType cT := ComRing.Pack (class cT) cT.
-Coercion unitRingType cT := UnitRing.Pack (class cT) cT.
-Coercion comUnitRingType cT := ComUnitRing.Pack (class cT) cT.
-Coercion idomainType cT := IntegralDomain.Pack (class cT) cT.
-Coercion fieldType cT := Field.Pack (class cT) cT.
-Coercion decFieldType cT := DecidableField.Pack (class cT) cT.
-
-End ClosedField.
-
-Canonical Structure ClosedField.eqType.
-Canonical Structure ClosedField.choiceType.
-Canonical Structure ClosedField.zmodType.
-Canonical Structure ClosedField.ringType.
-Canonical Structure ClosedField.unitRingType.
-Canonical Structure ClosedField.comRingType.
-Canonical Structure ClosedField.comUnitRingType.
-Canonical Structure ClosedField.idomainType.
-Canonical Structure ClosedField.fieldType.
-Canonical Structure ClosedField.decFieldType.
-
-Bind Scope ring_scope with ClosedField.sort.
-
-Section ClosedFieldTheory.
-
-Variable F : ClosedField.type.
-
-Lemma solve_monicpoly : ClosedField.axiom F.
-Proof. by case: F => ? []. Qed.
-
-End ClosedFieldTheory.
 
 Module Theory.
 
