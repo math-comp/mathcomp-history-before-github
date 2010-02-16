@@ -6,6 +6,8 @@ Require Import gfunc pgroups nilpotent gprod center commutators.
 Require Import sylow abelian maximal hall BGsection1 BGsection2.
 Require Import BGsection4.
 
+
+
 (******************************************************************************)
 (*   This file covers B & G section 5.                                        *)
 (******************************************************************************)
@@ -52,6 +54,7 @@ case: (pgroup_pdiv pH ntH) => [_ _ [m ->]].
 by rewrite !pfactorK // ltn_exp2l //; case/primeP: pr_p.
 Qed.
 
+(* B&G 5.1(a) *)
 Lemma p_rank_3_SCN : forall p R, 
   p.-group R -> odd #|R| -> 2 < 'r(R) -> exists A, A \in 'SCN_3(R).
 Proof.
@@ -60,8 +63,8 @@ by rewrite -(rank2_SCN3_empty pR oddR) leqNgt rRgt2.
 Qed.
 
 
-(* B&G 5.1 *)
-Lemma normal_abelem_SCN_ex : forall p R E, 
+(* B&G 5.1(b) *)
+Lemma p_rank_3_normal_abelem_SCN : forall p R E, 
   p.-group R -> odd #|R| -> 2 < 'r(R) -> E \in 'E_p^2(R) -> E <| R ->
     exists2 B, B \in 'SCN_3(R) & E \subset B.
 Proof.
@@ -139,7 +142,7 @@ apply/setIdP; split; first exact: (max_SCN pR).
 by rewrite (leq_trans cardBs) // -(rank_abelem abeBs) rankS.
 Qed.
 
-Lemma five_2 : forall R E p,
+Lemma p_rank_3_maxElem_2_Ohm_ucl : forall R E p,
     odd #|R| -> p.-group(R) -> 2 < 'r(R) -> E \in 'E*_p(R) -> 'r(E) = 2 ->
     let T := 'C_R('Ohm_1('Z_2(R))) in
   [/\ ~~ (E \subset T), 
@@ -252,11 +255,15 @@ case: (eqsVneq E 'C_W(E)) => [defCEW | CEWnE].
   have nER : E <| R by rewrite /normal sER -commg_subl (proper_sub sCERE).
   have Ep2E : E \in 'E_p^2(R).
     by apply/pnElemP; rewrite abeE sER -(rank_abelem abeE) rankE.
-  case: (normal_abelem_SCN_ex pR oddR rankR Ep2E nER) => B scn3B sEB.
+  case: (p_rank_3_normal_abelem_SCN pR oddR rankR Ep2E nER) => B scn3B sEB.
   case/setIdP: scn3B=> scnB rankB; case/SCN_P: scnB=> nBR CB.
-  move: rankB; rewrite (maxE _ _ sEB) ?rankE // inE abelemE /abelian //.
-  rewrite -{2}CB subsetIr (normal_sub nBR) //=.
-  admit. (* hum... *)
+  suff rb :'r(B) = 2 by rewrite rb in rankB. 
+  rewrite (rank_pgroup (pgroupS _ pR)); last by rewrite -CB subIset ?subxx.
+  have sEOB : E \subset 'Ohm_1(B) by rewrite -(Ohm1_id abeE) OhmS.
+  rewrite -p_rank_Ohm1 (maxE _ _ sEOB) -?(rank_pgroup (abelem_pgroup abeE)) ?rankE //.
+  rewrite inE Ohm1_abelem ?(pgroupS _ pR) ?(@normal_sub _ B) 1?andbC //=; last first.
+    by rewrite /abelian -{1}CB subIset // orbC subxx.
+  exact: subset_trans (char_sub (Ohm_char 1 B)) (normal_sub nBR).
 have {CEWnE sCWEE} CWEpE : 'C_W(E) \proper E.
   by rewrite properEneq eq_sym CEWnE sCWEE.
 have defCWE : 'C_W(E) = Z.
@@ -294,6 +301,7 @@ have idxRT :  #| R : T | = p.
 have charTR : T \char R.
   by rewrite subcent_char ?char_refl //= (char_trans (Ohm_char 1 _)) ?ucn_char.
 have sET : ~~ (E \subset T).
+  case: subsetP => //.
   admit.
 rewrite idxRT five1b; split => //.
 by rewrite (pnElemE _ _ p_pr) inE cardW eqxx inE pabW sWR.
