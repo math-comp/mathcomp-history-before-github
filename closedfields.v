@@ -80,11 +80,26 @@ Definition polyF := seq (term F).
 Fixpoint eval_poly (e:seq F) pf := 
   if pf is c::qf then (eval_poly e qf)*'X + (eval e c)%:P else 0.
 
+(*
+Definition deg (k : nat -> fF) (p : polyF) :=
+  Pick 
+  (fun i : 'I_(size p) => 
+    nth 0 p i != 0 /\ \big[And/True]_(j < size p | j > i) (nth 0 p j == 0))%T
+  (fun i => k i.+1) (k 0%N).
+*)
 
 Fixpoint deg (k : nat -> fF) (p:polyF) :=
   if p is c::q then 
-    deg (fun n => if n is m.+1 then k m.+2 else ifF (k 0%N) (k 1%N) (Equal c (Const 0))) q 
+    deg (fun n => 
+      if n is m.+1 then k m.+2 
+        else ifF (k 0%N) (k 1%N) (Equal c (Const 0))) q 
     else k O%N.
+
+(*
+Lemma degP : forall k, 
+  forall p e, qf_eval e (deg k p) = qf_eval e (k (size (eval_poly e p))).
+*)
+
 Lemma degP : forall k P,
   (forall n e, qf_eval e (k n) = P e n)
   -> forall p e, qf_eval e (deg k p) = P e (size (eval_poly e p)).
@@ -115,6 +130,7 @@ Fixpoint isnull (k : fF -> fF) (p: polyF) : fF :=
   if p is a::q 
     then isnull (ifF (k (Equal a (Const 0))) (k (Bool false))) q
     else k (Bool true).
+
 Lemma isnullP : forall k P,
   (forall b e, qf_eval e (k b) = P e (qf_eval e b))
     -> forall p e, qf_eval e (isnull k p) = P e (eval_poly e p == 0).
