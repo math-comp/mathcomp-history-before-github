@@ -260,14 +260,32 @@ case: (eqsVneq E 'C_W(E)) => [defCEW | CEWnE].
   suff rb :'r(B) = 2 by rewrite rb in rankB. 
   rewrite (rank_pgroup (pgroupS _ pR)); last by rewrite -CB subIset ?subxx.
   have sEOB : E \subset 'Ohm_1(B) by rewrite -(Ohm1_id abeE) OhmS.
-  rewrite -p_rank_Ohm1 (maxE _ _ sEOB) -?(rank_pgroup (abelem_pgroup abeE)) ?rankE //.
-  rewrite inE Ohm1_abelem ?(pgroupS _ pR) ?(@normal_sub _ B) 1?andbC //=; last first.
-    by rewrite /abelian -{1}CB subIset // orbC subxx.
-  exact: subset_trans (char_sub (Ohm_char 1 B)) (normal_sub nBR).
+  have pE := (abelem_pgroup abeE).
+  rewrite -p_rank_Ohm1 (maxE _ _ sEOB) -?(rank_pgroup pE) ?rankE //.
+  rewrite inE Ohm1_abelem ?(pgroupS (normal_sub nBR) pR) 1?andbC //=.
+    exact: subset_trans (char_sub (Ohm_char 1 B)) (normal_sub nBR).
+  by rewrite /abelian -{1}CB subIset // orbC subxx.
 have {CEWnE sCWEE} CWEpE : 'C_W(E) \proper E.
   by rewrite properEneq eq_sym CEWnE sCWEE.
 have defCWE : 'C_W(E) = Z.
-  admit.
+  apply/eqP; rewrite eq_sym eqEcard sZCWE andbC /= andbC.
+  apply: (logn_injcard (pgroupS _ pR) pZZ).
+  rewrite (subset_trans (subsetIl _ _)) //.
+  move: CWEpE; rewrite properEcard five1b (logn_prime _ p_pr) eqxx -/W. 
+  have -> : #|E| = (p^2)%N.
+    have ntE : E :!=: 1 by move: rankE; case: eqP => // ->; rewrite rank1.
+    have [_ _ [t cE]] := pgroup_pdiv (pgroupS sER pR) ntE.
+    by move: rankE; rewrite (rank_abelem abeE) cE => <-; rewrite pfactorK.
+  have ntCE : 'C_W(E) :!=: 1.
+    apply/negP; move/eqP=> defCWE; move: sZCWE; rewrite defCWE.
+    rewrite subG1 /=; move/eqP => abs; move: five1b; rewrite /Z abs cards1=> p1.
+    by case/primeP: p_pr; rewrite p1 ltnn.
+  have [_ _ [s ->]] := pgroup_pdiv (pgroupS (subsetIl _ _) pW) ntCE.
+  case/andP=> _; case s; rewrite ?logn_prime ?expn1 ?eqxx // => m.
+  rewrite !expnS; case/primeP : p_pr => gtp0 _.
+  rewrite ltn_mul2l [0 < _](leqW gtp0) ltn_mul2l [0 < _](leqW gtp0) //= expn0.
+  rewrite -(exp1n m); case m; rewrite ?expn0 // => w; rewrite ltn_exp2r //.
+  by move/(leq_trans gtp0).
 have WCWEgt0 : 1 < #| W / 'C_W(E) |.
   rewrite defCWE (_:1%N = #| Z / Z |); last first.
     by apply/eqP; rewrite eq_sym trivg_quotient -trivg_card1 eqxx.
