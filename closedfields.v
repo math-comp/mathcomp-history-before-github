@@ -95,167 +95,255 @@ Fixpoint deg (k : nat -> fF) (p:polyF) :=
         else ifF (k 0%N) (k 1%N) (Equal c (Const 0))) q 
     else k O%N.
 
-(*
 Lemma degP : forall k, 
   forall p e, qf_eval e (deg k p) = qf_eval e (k (size (eval_poly e p))).
-*)
-
-Lemma degP : forall k P,
-  (forall n e, qf_eval e (k n) = P e n)
-  -> forall p e, qf_eval e (deg k p) = P e (size (eval_poly e p)).
 Proof.
-move=> k P Pk.
-move=> pf e. 
-elim: pf e P k Pk; first by move=> e P k Pk; rewrite Pk size_poly0.
-move=> c qf Pqf e P k Pk.
-rewrite [deg _ _ ]/=. 
-set kn := (fun n => _).
-have Pkn : forall P, (forall (n : nat) (e : seq F), qf_eval e (k n) = P e n) ->
-        forall n e, qf_eval e (kn n) = 
-          (if n is m.+1 then P e n.+1 else if eval e c == 0 then P e 0%N else P e 1%N).
-  move=> P' Pk' n e'.
-  elim: n=> /=; first by case: (eval e' c == 0)=> /=; rewrite ?orbF Pk'.
-  by move=> n'; rewrite Pk'.
-rewrite (Pqf e _ kn (Pkn _ Pk)).
+move=> k pf e. 
+elim: pf e k; first by move=> *; rewrite size_poly0.
+move=> c qf Pqf e k.
+rewrite Pqf.
 move: (erefl (size (eval_poly e qf))).
-case: {-1}(size (eval_poly e qf)).
-  move=> qf0; rewrite [eval_poly e _]/= size_amulX qf0.
-  by case c0: (eval e c == 0).
-move=> n sqf.
-by rewrite [eval_poly e _]/= size_amulX sqf.
+case: {-1}(size (eval_poly e qf))=> /= [|n].
+  rewrite size_amulX => ->.
+  by case c0: (eval e c == 0); rewrite // orbF.
+by rewrite [eval_poly e _]/= size_amulX => ->.
 Qed.
 
+Definition isnull (k : bool -> fF) (p: polyF) := deg (fun n => k (n == 0%N)) p.
+Lemma isnullP : forall k,
+  forall p e, qf_eval e (isnull k p) = qf_eval e (k (eval_poly e p == 0)).
+Proof. by move=> k p e; rewrite degP size_poly_eq0. Qed.
 
-Fixpoint isnull (k : fF -> fF) (p: polyF) : fF :=
-  if p is a::q 
-    then isnull (ifF (k (Equal a (Const 0))) (k (Bool false))) q
-    else k (Bool true).
 
-Lemma isnullP : forall k P,
-  (forall b e, qf_eval e (k b) = P e (qf_eval e b))
-    -> forall p e, qf_eval e (isnull k p) = P e (eval_poly e p == 0).
+Definition lt_deg (k : bool -> fF) (p q : polyF) : fF :=
+  deg (fun n => deg (fun m => k (n<m)) q) p.
+Lemma lt_degP : forall k ,
+  forall p q e, qf_eval e (lt_deg k p q) = 
+    qf_eval e (k (size (eval_poly e p) < size (eval_poly e q))).
+Proof. by move=> k p q e; rewrite !degP. Qed.
+
+Definition same_deg (k : bool -> fF) (p q : polyF) : fF :=
+  deg (fun n => deg (fun m => k (n==m)) q) p.
+Lemma same_degP : forall k ,
+  forall p q e, qf_eval e (same_deg k p q) = 
+    qf_eval e (k (size (eval_poly e p) == size (eval_poly e q))).
+Proof. by move=> k p q e; rewrite !degP. Qed.
+
+Definition lift (p : {poly F}) := let: q := p in map Const q.
+Lemma eval_lift : forall e p, eval_poly e (lift p) = p.
 Proof.
-move=> k P Pk p e.
-elim: p e k P Pk => /=; first by move=> e k P Pk; rewrite Pk eqxx.
-move=> a q Pq e k P Pk.
-rewrite (Pq e _ _ (ifFP (k (Equal a (Const 0))) (k (Bool false)))) /=.
-rewrite -[_*'X+_ == _]size_poly_eq0 size_amulX.
-case q0: (eval_poly e q == 0); rewrite Pk /=.
-  by case a0 : (eval e a == 0); rewrite (eqP q0) size_poly0.
-by rewrite size_poly_eq0 q0 /=.
+move=> e; elim/poly_ind; first by rewrite /lift seq_poly0 /=.
+move=> p c.
+rewrite -poly_cons_def /lift polyseq_cons.
+case pn0: (_==_)=> /=. 
+  move=> _; rewrite polyseqC.
+  case c0: (_==_)=> /=.
+    move: pn0; rewrite (eqP c0) size_poly_eq0; move/eqP->. 
+    by apply:val_inj=> /=; rewrite polyseq_cons // size_poly0 eqxx.
+  rewrite mul0r add0r.
+  by apply:val_inj=> /=; rewrite polyseq_cons // pn0.
+by move->; rewrite -poly_cons_def.
 Qed.
 
-Fixpoint leq_deg (k : fF -> fF) (p q : polyF) : fF :=
-  if p is a::p' then  
-    if q is b::q' then isnull (ifF (k (Bool false)) (leq_deg k p' q')) q
-      else k (Bool false)
-    else k (Bool true).
-Lemma leq_degP : forall k P,
-  (forall b e, qf_eval e (k b) = P e (qf_eval e b))
-    -> forall p q e, qf_eval e (leq_deg k p q) = P e (size (eval_poly e p) < size (eval_poly e q)).
+Fixpoint lead_coefF (k : term F -> fF) p :=  
+  if p is c::q then 
+    lead_coefF (fun l =>
+      ifF (k c) (k l) (Equal l (Const 0))
+    ) q 
+    else k (Const 0).
+
+Lemma edivpT (p : polyF) (k : term F * polyF * polyF -> fF) (q : polyF) : fF. 
+Admitted.
+Lemma edivpTP : forall k,
+  (forall c qq r e,  qf_eval e (k (c,qq,r)) 
+    = qf_eval e (k (Const (eval e c), lift (eval_poly e qq), lift (eval_poly e r))))
+  -> forall p q e (d := (edivp (eval_poly e p) (eval_poly e q))),
+    qf_eval e (edivpT p k q) = qf_eval e (k (Const d.1.1, lift d.1.2, lift d.2)).
 Admitted.
 
-Lemma same_deg (k : fF -> fF) (p q : polyF) : fF.
-Admitted.
-Lemma same_degP : forall k P,
-  (forall b e, qf_eval e (k b) = P e (qf_eval e b))
-  -> forall p q e, qf_eval e (same_deg k p q) = P e (size (eval_poly e p) == size (eval_poly e q)).
-Admitted.
+Definition modpT (p : polyF) (k:polyF -> fF) (q : polyF) : fF :=
+  edivpT p (fun d => k d.2) q.
+Definition divpT (p : polyF) (k:polyF -> fF) (q : polyF) : fF :=
+  edivpT p (fun d => k d.1.2) q.
+Definition scalpT (p : polyF) (k:term F -> fF) (q : polyF) : fF :=
+  edivpT p (fun d => k d.1.1) q.
+Definition dvdpT (p : polyF) (k:bool -> fF) (q : polyF) : fF :=
+  modpT p (isnull k) q.
 
-Lemma remp (p : polyF) (k:polyF -> fF) (q : polyF) : fF.
-Admitted.
-Lemma rempP : forall k P,
-  (forall p e, qf_eval e (k p) = P e (eval_poly e p))
-    -> forall p q e, qf_eval e (remp p k q) = P e ((eval_poly e p) %% (eval_poly e q)).
-Admitted.
 
 Fixpoint loop n (pp qq : {poly F}) {struct n} :=
   if pp %% qq == 0 then qq 
     else if n is n1.+1 then loop n1 qq (pp %% qq)
         else pp %% qq.
 Fixpoint loopT pp k n qq {struct n} :=
-  remp pp (isnull (ifF (k qq) (if n is n1.+1 then remp pp (loopT qq k n1) qq 
-        else remp pp k qq))) qq.
+  modpT pp (isnull 
+    (fun b => if b 
+      then (k qq) 
+      else (if n is n1.+1 
+        then modpT pp (loopT qq k n1) qq 
+        else modpT pp k qq)
+    )
+  ) qq.
 
-Lemma loopP: forall k P,
-  (forall p e, qf_eval e (k p) = P e (eval_poly e p))
-    -> forall n p q e, qf_eval e (loopT p k n q) = 
-      (fun e q => P e (loop n (eval_poly e p) q)) e (eval_poly e q).
+Lemma loopP: forall k,
+  (forall p e, qf_eval e (k p) = qf_eval e (k (lift (eval_poly e p))))
+  -> forall n p q e, qf_eval e (loopT p k n q) = 
+    qf_eval e (k (lift (loop n (eval_poly e p) (eval_poly e q)))).
 Proof.
-move=> k P Pk.
-move=> n p q e.
+move=> k Pk n p q e.
 elim: n p q e => /=.
   move=> p q e.
-  rewrite  (rempP (isnullP (ifFP (k q) (remp p k q)) : 
-    forall _ _, _ = (fun _ f =>  if f == 0 then _ else _) _ _)).
-  by case: (eval_poly e p %% eval_poly e q == 0); rewrite ?Pk ?(rempP Pk).
-move=> n1 Pn1 p q e.
-rewrite (rempP (isnullP (ifFP (k q) (remp p (loopT q k n1)  q)) : 
-  forall _ _, _ = (fun _ f =>  if f == 0 then _ else _) _ _)).
-case: (eval_poly e p %% eval_poly e q == 0); first by rewrite Pk.
-by rewrite (rempP (Pn1 q : forall r _, _ = (fun _ r => _ ( _ r)) _ _)).
+  rewrite edivpTP; last by move=>*; rewrite !isnullP eval_lift.
+  rewrite isnullP eval_lift.
+  case: (_ == 0); first by rewrite Pk.
+  by rewrite edivpTP; last by move=>*; rewrite Pk.
+move=> m Pm p q e.
+rewrite edivpTP; last by move=>*; rewrite !isnullP eval_lift.
+rewrite isnullP eval_lift.
+case: (_ == 0); first by rewrite Pk.
+by rewrite edivpTP; move=>*; rewrite ?Pm !eval_lift.
 Qed.
 
 Definition gcdpT (p:polyF) k (q:polyF) : fF :=
-  let aux p1 k q1 := isnull (ifF (k q1) (deg (fun n => (loopT p1 k n q1)) p1)) p1
-    in (leq_deg (ifF (aux q k p) (aux p k q)) p q). 
+  let aux p1 k q1 := isnull 
+    (fun b => if b 
+      then (k q1) 
+      else (deg (fun n => (loopT p1 k n q1)) p1)) p1
+    in (lt_deg (fun b => if b then (aux q k p) else (aux p k q)) p q). 
 
-Lemma gcdpP : forall k P,
-  (forall (p:polyF) e, qf_eval e (k p) = P e (eval_poly e p))
-    -> forall p q e, qf_eval e (gcdpT p k q) = P e (gcdp (eval_poly e p) (eval_poly e q)).
+Lemma gcdpTP : forall k,
+  (forall p e, qf_eval e (k p) = qf_eval e (k (lift (eval_poly e p))))
+    -> forall p q e, qf_eval e (gcdpT p k q) = qf_eval e (k (lift (gcdp (eval_poly e p) (eval_poly e q)))).
 Proof.
-move=> k P Pk.
-move=> p q e.
-rewrite /gcdpT.
-set isn1 := isnull _ _.
-set isn2 := isnull _ _.
-rewrite (leq_degP (ifFP (isn1) (isn2))).
-case lqp: (_ < _).
-  rewrite /isn1.
-  rewrite (isnullP (ifFP (k p) (deg ((loopT q k)^~ p) q)) q).
-  case q0: (eval_poly e q == 0); first by rewrite Pk (eqP q0) gcdp0.
-  rewrite (degP (fun n e => (loopP Pk) n q p e)).
-  by rewrite /loop /gcdp lqp q0 /=.
-rewrite /isn2.
-rewrite (isnullP (ifFP (k q) (deg ((loopT p k)^~ q) p)) p).
-case p0: (eval_poly e p == 0); first by rewrite Pk (eqP p0) gcd0p.
-rewrite (degP (fun n e => (loopP Pk) n p q e)).
-by rewrite /loop /gcdp lqp p0 /=.
+move=> k Pk p q e.
+rewrite /gcdpT lt_degP.
+case lqp: (_ < _).  
+  rewrite isnullP.
+  case q0: (_ == _); first by rewrite Pk (eqP q0) gcdp0.
+  rewrite degP loopP; first by rewrite /gcdp lqp q0.
+  by move=> e' p'; rewrite Pk.
+rewrite isnullP.
+case p0: (_ == _); first by rewrite Pk (eqP p0) gcd0p.
+rewrite degP loopP; first by rewrite /gcdp lqp p0.
+by move=> e' q'; rewrite Pk.
 Qed.
-   
 
 Fixpoint gcdpTs k (ps : seq polyF) : fF :=
   if ps is p::pr then gcdpTs (gcdpT p k) pr else k [::Const 0].
-Lemma gcdpTsP : forall k P,
-  (forall p e, qf_eval e (k p) = P e (eval_poly e p))
-    -> forall ps e, qf_eval e (gcdpTs k ps) = P e (\big[@gcdp _/0%:P]_(i <- ps)(eval_poly e i)).
+Lemma gcdpTsP : forall k,
+  (forall p e, qf_eval e (k p) = qf_eval e (k (lift (eval_poly e p))))
+  -> forall ps e, qf_eval e (gcdpTs k ps) = qf_eval e (k (lift (\big[@gcdp _/0%:P]_(i <- ps)(eval_poly e i)))).
 Proof.
-move=> k P Pk ps.
-elim: ps k P Pk; first by move=> k P Pk e; rewrite Pk /= mul0r add0r big_nil.
-move=> p ps Pps k P Pk e /=.
-rewrite (Pps _ _ (gcdpP Pk p : forall q _, _ = (fun _ q => _ (_  q)) _ (_ q))) /=.
-by rewrite big_cons.
+move=> k Pk ps e.
+elim: ps k Pk; first by move=> p Pk; rewrite /= big_nil Pk /= mul0r add0r.
+move=> p ps Pps /= k Pk /=.
+rewrite big_cons Pps.
+  by rewrite gcdpTP; first by rewrite eval_lift.
+by move=>  p' e'; rewrite !gcdpTP; first by rewrite Pk !eval_lift .
 Qed.
 
 
-Definition ex_elim_seq (p : seq polyF) (q : polyF) :=
-  Not (gcdpTs (fun d => gcdpT d (same_deg (@id _) d) q) p).
+(* begin to be put in poly *)
+
+Definition coprimep (p q :  {poly F}) := size (gcdp p q) == 1%N.
+Lemma coprime1p: forall p, coprimep 1 p.
+Admitted.
+
+(* "gdcop Q P" is the Greatest Divisor of P which is coprime to Q *)
+(* if P null, we pose that gdcop returns 1 *)
+
+Fixpoint gdcop_rec (q p : {poly F}) n :=
+  if n is m.+1 then
+    if coprimep p q then p
+      else gdcop_rec q (p %/ (gcdp p q)) m
+    else 1.
+Definition gdcop q p := gdcop_rec q p (size p).
+
+CoInductive gdcop_spec q p : {poly F} -> Type :=
+  GdcopSpec r of (r %| p) & (coprimep r q) 
+  & (forall d,  p != 0 -> d %| p -> coprimep d q -> d %| r) : gdcop_spec q p r.
+
+Lemma divp_dvd : forall (p d : {poly F}), d %| p ->  p %/ d %| p.
+Proof.
+move=> p d dp.
+apply/dvdpPc.
+have := divp_spec p d.
+move: (dp); rewrite {1}/dvdp; move/eqP->.
+rewrite addr0.
+set c := (scalp _ _)=> f.
+exists c.
+exists d.
+by rewrite scalp_id /= f  mulrC.
+Qed.
+ 
+
+Lemma gdcop_recP : forall (q p : {poly F}) n, 
+  size p <= n -> gdcop_spec q p (gdcop_rec q p n).
+Proof.
+move=> q p n.
+elim: n p => [p | n Pn p].
+  rewrite leqn0 size_poly_eq0; move/eqP=> p0.
+  constructor; rewrite ?p0 ?dvdp0 ?coprime1p //=.
+  by move=> d; rewrite eqxx.
+move=> sp /=.
+case cpq: (coprimep _ _).
+  by constructor; rewrite ?dvdpp // cpq.
+set p' := _ %/ _.
+have sp' : size p' <= n; first admit.
+case (Pn _ sp').
+move=> r' dr'p' cr'q maxr'.
+constructor=> //=.
+  apply: (dvdp_trans dr'p').
+  by rewrite divp_dvd // dvdp_gcdl.
+move=> d p0 dp cdq.
+apply: maxr'; last by rewrite cdq.
+  admit.
+admit.
+Qed.
+
+Lemma gdcopP : forall q p, gdcop_spec q p (gdcop q p).
+Proof. by move=> q p; rewrite /gdcop; apply: gdcop_recP. Qed.
+
+Lemma coprimep_dvd : forall p q,
+  reflect (exists d, (d %| gcdp p q) && (size d > 1))  (~~ coprimep p q).
+Admitted.
+
+Lemma dvdp_gdco : forall (p q d : {poly F}), 
+  p != 0 -> size d == 2%N ->
+  (d %| p) && ~~(d %| q) = (d %| (gdcop q p)).
+Proof.
+move=> p q d p0 sd.
+apply/idP/idP.
+  case/andP=> dp dq.
+  case: gdcopP=> r rp crq maxr.
+  apply: maxr=> //.
+  admit.
+case: gdcopP=> r rp crq maxr dr.
+rewrite (dvdp_trans dr) //=.
+move: crq.
+apply: contraL=> dq.
+apply/coprimep_dvd.
+exists d.
+by rewrite dvdp_gcd dr dq //= (eqP sd).
+Qed.
+
+(* end to be put in poly *)
+
+Variable gdcopT : polyF -> (polyF -> fF) -> (polyF) -> fF.
+Lemma gdcopTP : forall k,
+  (forall p e, qf_eval e (k p) = qf_eval e (k (lift (eval_poly e p))))
+    -> forall p q e, qf_eval e (gdcopT p k q) = qf_eval e (k (lift (gdcop (eval_poly e p) (eval_poly e q)))).
+Admitted.
+
+
+Definition ex_elim_seq (ps : seq polyF) (q : polyF) :=
+  (gcdpTs (gdcopT q (deg (fun n => Bool (n > 1%N)))) ps).
 Lemma ex_elim_seqP :
   forall ps q e,
-    let ge := (\big[@gcdp _/0%:P]_(i <- ps)(eval_poly e i)) in
-      qf_eval e (ex_elim_seq ps q) = (size ge != size (gcdp ge (eval_poly e q))).
+    let gp := (\big[@gcdp _/0%:P]_(i <- ps)(eval_poly e i)) in
+      qf_eval e (ex_elim_seq ps q) = (size (gdcop (eval_poly e q) gp) > 1).
 Proof.
-move=> ps q e /=.
-set dgcd := (fun d =>  _).
-have dP : forall d e, qf_eval e (dgcd d) 
-  = (size (eval_poly e d) == size (gcdp (eval_poly e d) (eval_poly e q))).
-  move=> d e'; rewrite /dgcd.
-  have sP := @same_degP (@id _) (fun _ => @id _) (fun b e => erefl (qf_eval e b)) d.
-  by rewrite (@gcdpP (same_deg id d) (fun e q => (size (eval_poly e d) == size q)) sP).
-by rewrite (gcdpTsP (dP : forall d _,
-  _ = (fun _ (d:{poly F}) => (size d == size (gcdp d _))) _ (_ d))).
+by do ![rewrite (gcdpTsP,gdcopTP,degP,eval_lift) //= | move=> * //=].
 Qed.
-
-
 
 End ClosedFieldTheory.
