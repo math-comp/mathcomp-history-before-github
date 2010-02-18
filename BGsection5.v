@@ -322,6 +322,7 @@ rewrite idxRT five1b; split => //.
 by rewrite (pnElemE _ _ p_pr) inE cardW eqxx inE pabW sWR.
 Qed.
 
+(*
 Lemma foo : forall p, odd #|R| -> p.-group(R) -> 2 < 'r(R) ->
   'E_p^2(R) :&: 'E*_p(R) != set0 ->
   [/\ (forall H, H \subset T -> ~~ (H \in 'E_p^2(R) :&: 'E*_p(R))),
@@ -335,6 +336,6 @@ Proof.
 move=> p oddR pR rRgt2 nR.
 
 Qed.
-
+*)
 
 End Five.
