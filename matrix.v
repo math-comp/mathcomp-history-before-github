@@ -3835,16 +3835,19 @@ Section SumExpr.
 (* mxsum_axiom dependent predicate expresses the correctness of both of these *)
 (* simultaneously.                                                            *)
 (*   The main technical difficulty we need to overcome is the fact that       *)
-(* canonical structures are deterministic and do not provide a "catch-all"    *)
-(* case, which is needed here at the leaves of the sum, where we should allow *)
-(* any matrix exrpession. (The default projection supported by Coq is not     *)
-(* appropriate here because it would not let us recognize defined sums, e.g., *)
-(* in let S := (\sum_(i | P i) LargeExpression i)%MS in mxdirect S -> ...)    *)
+(* the "catch-all" case of canonical structures has a priority lower than     *)
+(* constant expansion. However, it is undesireable that local abbreviations   *)
+(* be opaque for the direct-sum predicate, e.g., not be able to handle        *)
+(* let S := (\sum_(i | P i) LargeExpression i)%MS in mxdirect S -> ...).      *)
 (*   As in "quote", we use the interleaving of constant expansion and         *)
-(* canonical projection matching to achieve our goal: we introduce two "tags" *)
-(* (identity functions, really) that give us fine control over the type and   *)
-(* structure inference process. The innermost tag flags trivial sums; it is   *)
-(* initially hidden by an outer MxSum tag. The Canonical Strucure for MxSum   *)
+(* canonical projection matching to achieve our goal: we use a "wrapper" type *)
+(* with two convertible constructors to gain finer control over the type and  *)
+(* structure inference process. The innermost, primitive, constructor flags   *)
+(* trivial sums; it is initially hidden by an eta-expansion, which has been   *)
+(* made into a (default) canonical structure -- this lets type inference      *)
+(* automatically insert this outer tag.                                       *)
+
+(* GG -- will update -- *)
 (* simply removes both tags and attemps to recognise a real sum (binary or    *)
 (* n-ary), expanding definitions if necessary; if this fails, then delta      *)
 (* expansion turns MxSum into MxTrivialSum; this enables the default handler. *)
@@ -3870,121 +3873,122 @@ Section SumExpr.
 (* Correspondingly, the correctness property of mxsum_expr incorporates a     *)
 (* T = S precondition.                                                        *)
 
+Structure wrapped T := Wrap {unwrap : T}.
+Canonical Structure wrap T x := @Wrap T x.
+
 Variable n : nat.
 Implicit Type J : finType.
 
-Inductive mxsum_axiom : forall m, 'M[F]_(m, n) -> nat -> Prop :=
- | MxSumBaseAxiom m A : @mxsum_axiom m A (\rank A)
- | MxSumRecAxiom m1 m2 S1 S2 r1 r2
-     of @mxsum_axiom m1 S1 r1 & @mxsum_axiom m2 S2 r2
-      : mxsum_axiom (S1 + S2)%MS (r1 + r2)%N.
+Inductive mxterm_spec : forall m, 'M[F]_(m, n) -> nat -> Prop :=
+ | TrivialMxTerm m A
+    : @mxterm_spec m A (\rank A)
+ | SumMxTerm m1 m2 T1 T2 r1 r2 of @mxterm_spec m1 T1 r1 & @mxterm_spec m2 T2 r2
+    : mxterm_spec (T1 + T2)%MS (r1 + r2)%N.
+Arguments Scope mxterm_spec [nat_scope matrix_set_scope nat_scope].
 
-Structure mxsum_expr m (T S : 'M[F]_(m, n)) := MxSumExpr {
-  mxsum_val :> 'M_(m, n);
-  mxsum_rank : nat;
-  _ : T = S -> mxsum_axiom mxsum_val mxsum_rank
+Structure mxterm_expr m := MxTermExpr {
+  mxterm_val :> wrapped 'M_(m, n);
+  mxterm_rank : wrapped nat;
+  _ : mxterm_spec (unwrap mxterm_val) (unwrap mxterm_rank)
 }.
 
-Definition MxTrivialSum k m (A : 'M[F]_(m, n)) := let: tt := k in A.
-Definition MxSum := MxTrivialSum.
+Canonical Structure trivial_mxterm_expr m A :=
+  @MxTermExpr m (Wrap A) (Wrap (\rank A)) (TrivialMxTerm A).
 
-Fact trivial_mxsum_proof : forall m (A : 'M_(m, n)),
-  A = A -> mxsum_axiom (MxTrivialSum tt A) (\rank A).
-Proof. by left. Qed.
-Canonical Structure trivial_mxsum m A := MxSumExpr (@trivial_mxsum_proof m A).
+Structure mxsum_expr := MxSumExpr {
+  mxsum_val :> 'M_n;
+  mxsum_rank : nat;
+  _ : mxterm_spec mxsum_val mxsum_rank
+}.
 
-(* The let prevents Coq from registering mxsum_rank as a canonical value for  *)
-(* itself, which could cause divergence. The "proof" is made transparent so   *)
-(* that redundant tags (see below) do not lead to non-convertible structures. *)
-Fact proper_mxsum_proof : forall m (T S : 'M_(m, n)) (E : mxsum_expr T S),
-  T = S -> mxsum_axiom (MxSum tt E) (let r := mxsum_rank E in r).
-Proof. by move=> m T S []. Defined.
-Canonical Structure proper_mxsum m T S E :=
-  MxSumExpr (@proper_mxsum_proof m T S E).
+Definition mxsum_exprP S :=
+  let: MxSumExpr _ _ termS := S return mxterm_spec S (mxsum_rank S) in termS.
 
-Fact binary_mxsum_proof : forall m1 m2 T1 T2 S1 S2,
-    forall (E1 : @mxsum_expr m1 S1 S1) (E2 : @mxsum_expr m2 S2 S2),
-    (@MxSum tt m1 T1 + @MxSum tt m2 T2 = E1 + E2)%MS ->
-  mxsum_axiom (T1 + T2)%MS (mxsum_rank E1 + mxsum_rank E2)%N.
-Proof. by move=> m1 m2 T1 T2 S1 S2 [A1 r1 A1P] [A2 r2 A2P] ->; right; auto. Qed.
-Canonical Structure binary_mxsum m1 m2 T1 T2 S1 S2 E1 E2 :=
-  MxSumExpr (@binary_mxsum_proof m1 m2 T1 T2 S1 S2 E1 E2).
+Canonical Structure sum_mxterm_expr S :=
+  @MxTermExpr n (wrap (mxsum_val S)) (wrap (mxsum_rank S)) (mxsum_exprP S).
 
-(* The double tag prevents obscure (and probably buggy) behaviour of the SO   *)
-(* unification code of Coq. Since the lemma is opaque, it must be invoked     *)
-(* with explicit eta expansions by the Canonical Structure constructor, else  *)
-(* the eta-stripping hack in the Coq SO unification code will cause           *)
-(* conversion failures.                                                       *)
-Fact nary_mxsum_proof : forall P T S (E : forall i, mxsum_expr (S i) (S i)),
-   (\sum_(i | P i) MxSum tt (MxSum tt (T i)) = \sum_(i | P i) E i)%MS ->
-  mxsum_axiom (\sum_(i | P i) T i)%MS (\sum_(i | P i) mxsum_rank (E i)).
+Fact binary_mxsum_proof : forall m1 m2 T1 T2,
+  mxterm_spec (unwrap (@mxterm_val m1 T1) + unwrap (@mxterm_val m2 T2))
+              (unwrap (mxterm_rank T1) + unwrap (mxterm_rank T2)).
+Proof. by move=> m1 m2 [A1 r1 A1P] [A2 r2 A2P]; right. Qed.
+Canonical Structure binary_mxsum m1 m2 W1 W2 :=
+  MxSumExpr (@binary_mxsum_proof m1 m2 W1 W2).
+
+Fact nary_mxsum_proof : forall P T_,
+  mxterm_spec (\sum_(i | P i) unwrap (mxterm_val (T_ i)))
+              (\sum_(i | P i) unwrap (mxterm_rank (T_ i))).
 Proof.
-move=> P _ S E ->; rewrite -!(big_filter _ P) !unlock.
+move=> P T_; rewrite -!(big_filter _ P) !unlock.
 elim: {P}filter => /= [|i e IHe]; first by rewrite -(mxrank0 n n); left.
-by right=> //; case: (E i) => A r; exact.
+by right=> //; case: (T_ i) => A r; exact.
 Qed.
-Canonical Structure nary_mxsum P T S E :=
-  MxSumExpr (@nary_mxsum_proof [eta P] [eta T] [eta S] [eta E]).
+Canonical Structure nary_mxsum P T_ :=
+  MxSumExpr (@nary_mxsum_proof [eta P] [eta T_]).
 
-Definition mxdirect_def m S (E : mxsum_expr S S) of phantom 'M_(m, n) E :=
-  \rank E == mxsum_rank E.
+Definition mxdirect_def m T of phantom 'M_(m, n) (unwrap (mxterm_val T)) :=
+  \rank (unwrap T) == unwrap (mxterm_rank T).
 
 End SumExpr.
 
-Notation mxdirect S := (mxdirect_def (Phantom 'M_(_,_) S%MS)).
+Notation mxdirect T := (mxdirect_def (Phantom 'M_(_,_) T%MS)).
 
-Lemma mxdirectP : forall m n (S : 'M_(m, n)) (E : mxsum_expr S S),
-  reflect (\rank E = mxsum_rank E) (mxdirect E).
-Proof. move=> m n S E; exact: eqnP. Qed.
-Implicit Arguments mxdirectP [m n S E].
+Lemma mxdirectP : forall n (S : mxsum_expr n),
+  reflect (\rank S = mxsum_rank S) (mxdirect S).
+Proof. move=> n S; exact: eqnP. Qed.
+Implicit Arguments mxdirectP [n S].
 
-Lemma mxdirect_trivial : forall m n (A : 'M_(m, n)),
-  mxdirect (MxTrivialSum tt A).
-Proof. move=> m x A; exact: eqxx. Qed.
+Lemma mxdirect_trivial : forall m n A,
+  @mxdirect_def m n (trivial_mxterm_expr A) (Phantom _ A).
+Proof. move=> m n A; exact: eqxx. Qed.
 
-Lemma mxrank_sum_leqif : forall m n (S : 'M_(m, n)) (E : mxsum_expr S S),
-  \rank E <= mxsum_rank E ?= iff mxdirect E.
+Lemma mxrank_sum_leqif : forall m n (T : mxterm_expr n m),
+  \rank (unwrap T) <= unwrap (mxterm_rank T) ?= iff mxdirect (unwrap T).
 Proof.
-rewrite /mxdirect_def => m n S [A r /=]; move/(_ (erefl S))=> {S}defAr.
-split=> //; elim: m A r / defAr => // m1 m2 A1 A2 r1 r2 _ leAr1 _ leAr2.
+rewrite /mxdirect_def => m n [[A] [r] /= defAr]; split=> //=.
+elim: m A r / defAr => // m1 m2 A1 A2 r1 r2 _ leAr1 _ leAr2.
 by apply: leq_trans (leq_add leAr1 leAr2); rewrite mxrank_sums_leqif.
 Qed.
 
-Lemma mxdirectE : forall n (S : 'M_n) (E : mxsum_expr S S),
-  mxdirect E = (\rank E == mxsum_rank E).
+Lemma mxdirectE : forall m n (T : mxterm_expr n m),
+  mxdirect (unwrap T) = (\rank (unwrap T) == unwrap (mxterm_rank T)).
 Proof. by []. Qed.
 
-Lemma mxdirectEgeq : forall n (S : 'M_n) (E : mxsum_expr S S),
-  mxdirect E = (\rank E >= mxsum_rank E).
+Lemma mxdirectEgeq : forall m n (T : mxterm_expr n m),
+  mxdirect (unwrap T) = (\rank (unwrap T) >= unwrap (mxterm_rank T)).
 Proof.
-by move=> n S E; rewrite leq_eqVlt ltnNge eq_sym !mxrank_sum_leqif orbF.
+by move=> m n T; rewrite leq_eqVlt ltnNge eq_sym !mxrank_sum_leqif orbF.
 Qed.
 
-Lemma mxdirect_sumsP : forall m1 m2 n (S1 : 'M_(m1, n)) (S2 : 'M_(m2, n)),
-    forall (E1 : mxsum_expr S1 S1) (E2 : mxsum_expr S2 S2),
-  reflect [/\ mxdirect E1, mxdirect E2 & E1 :&: E2 = 0]%MS (mxdirect (E1 + E2)).
+Lemma mxdirect_sumsP : forall m1 m2 n (T1 : mxterm_expr n m1)
+                                      (T2 : mxterm_expr n m2),
+  reflect [/\ mxdirect (unwrap T1), mxdirect (unwrap T2)
+            & unwrap T1 :&: unwrap T2 = 0]%MS
+          (mxdirect (unwrap T1 + unwrap T2)).
 Proof.
-move=> m1 m2 n S1 S2 E1 E2; rewrite mxdirectE /=.
-have:= leqif_add (mxrank_sum_leqif E1) (mxrank_sum_leqif E2).
-move/(leqif_trans (mxrank_sums_leqif E1 E2))->; rewrite andbC -andbA subsetmx0.
+move=> m1 m2 n T1 T2; rewrite (@mxdirectE n) /=.
+have:= leqif_add (mxrank_sum_leqif T1) (mxrank_sum_leqif T2).
+move/(leqif_trans (mxrank_sums_leqif (unwrap T1) (unwrap T2)))=> ->.
+rewrite andbC -andbA subsetmx0.
 by apply: (iffP and3P); case=> -> ->; move/eqP.
 Qed.
 
-Lemma mxdirect_bigsumsP : forall P n (S : I -> 'M_n),
-                         forall E : forall i, mxsum_expr (S i) (S i),
+Lemma mxdirect_bigsumsP : forall P n (T_ : I -> mxterm_expr n n),
   reflect (forall i, P i ->
-             mxdirect (E i) /\ E i :&: (\sum_(j | P j && (j != i)) E j) = 0)%MS
-          (mxdirect (\sum_(i | P i) E i)).
+             mxdirect (unwrap (T_ i))
+              /\ unwrap (T_ i) :&: (\sum_(j | P j && (j != i)) unwrap (T_ j))
+                   = 0)%MS
+          (mxdirect (\sum_(i | P i) (unwrap (T_ i)))).
 Proof.
-move=> P n S E; apply: (iffP eqnP) => /= [dxE i Pi | dxE].
-  set Si := (\sum_(i|_)_)%MS; suff: mxdirect (E i + Si) by case/mxdirect_sumsP.
+move=> P n T_; apply: (iffP eqnP) => /= [dxT i Pi | dxT].
+  set Si := (\sum_(i|_)_)%MS.
+  suffices: mxdirect (unwrap (T_ i) + Si) by case/mxdirect_sumsP.
   by apply/eqnP; rewrite /= -!(bigD1 i).
 elim: _.+1 {-2 4}P (subxx P) (ltnSn #|P|) => // m IHm Q; move/subsetP=> sQP.
 case: (pickP Q) => [i Qi | Q0]; last by rewrite !big_pred0 ?mxrank0.
 rewrite (cardD1x Qi) !((bigD1 i) Q) //=.
 move/IHm=> <- {IHm}/=; last by apply/subsetP=> j; case/andP; move/sQP.
-case: (dxE i (sQP i Qi)); move/eqnP=> <- EiQ_0; rewrite mxrank_disjoint_sum //.
-apply/eqP; rewrite -subsetmx0 -{2}EiQ_0 capmxS //=; apply/bigsumsmx_subP=> j /=.
+case: (dxT i (sQP i Qi)); move/eqnP=> <- TiQ_0; rewrite mxrank_disjoint_sum //.
+apply/eqP; rewrite -subsetmx0 -{2}TiQ_0 capmxS //=; apply/bigsumsmx_subP=> j /=.
 by case/andP=> Qj i'j; rewrite (bigsumsmx_sup j) ?[P j]sQP.
 Qed.
 
@@ -4060,9 +4064,9 @@ Implicit Arguments subsetmx_kerP [F p m n A B].
 Implicit Arguments det0P [F n A].
 Implicit Arguments bigcapmx_inf [F I P m n A_ B].
 Implicit Arguments sub_bigcapmxP [F I P m n A B_].
-Implicit Arguments mxdirectP [F m n S E].
-Implicit Arguments mxdirect_sumsP [F m1 m2 n S1 S2 E1 E2].
-Implicit Arguments mxdirect_bigsumsP [F I P n S E].
+Implicit Arguments mxdirectP [F n S].
+Implicit Arguments mxdirect_sumsP [F m1 m2 n T1 T2].
+Implicit Arguments mxdirect_bigsumsP [F I P n T_].
 
 Arguments Scope mxrank [_ nat_scope nat_scope matrix_set_scope].
 Arguments Scope complmx [_ nat_scope nat_scope matrix_set_scope].
