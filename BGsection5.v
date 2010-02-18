@@ -24,36 +24,6 @@ Variable gT : finGroupType.
 Implicit Types G H K E R: {group gT}.
 Implicit Type p : nat.
 
-(* lemmas whose pragmatics is still unclear to me *)
-Lemma logn_ntG : forall G p, 0 < logn p #|G| -> G :!=: 1.
-Proof. by move=> G p; case: eqP => // ->; rewrite cards1 logn1. Qed.
-
-Lemma logn_injcard : forall G H p, 
-    p.-group G -> p.-group H -> 0 < logn p #|G| <= logn p #|H| -> 
-  #|G| <= #|H|.
-Proof.
-move=> G H p pG pH; case/andP=> cardG_ge0 HgeG.
-have cardH_ge0 := leq_trans cardG_ge0 HgeG.
-have ntG := logn_ntG cardG_ge0.
-have ntH := logn_ntG cardH_ge0.
-move: HgeG; case: (pgroup_pdiv pG ntG) => [pr_p _ [n ->]].
-case: (pgroup_pdiv pH ntH) => [_ _ [m ->]].
-by rewrite !pfactorK // leq_exp2l //; case/primeP: pr_p.
-Qed.
-
-Lemma logn_injcard1 : forall G H p, 
-    p.-group G -> p.-group H -> 0 < logn p #|G| < logn p #|H| -> 
-  #|G| < #|H|.
-Proof.
-move=> G H p pG pH; case/andP=> cardG_ge0 HgeG.
-have cardH_ge0 := ltn_trans cardG_ge0 HgeG.
-have ntG := logn_ntG cardG_ge0.
-have ntH := logn_ntG cardH_ge0.
-move: HgeG; case: (pgroup_pdiv pG ntG) => [pr_p _ [n ->]].
-case: (pgroup_pdiv pH ntH) => [_ _ [m ->]].
-by rewrite !pfactorK // ltn_exp2l //; case/primeP: pr_p.
-Qed.
-
 (* B&G 5.1(a) *)
 Lemma p_rank_3_SCN : forall p R, 
   p.-group R -> odd #|R| -> 2 < 'r(R) -> exists A, A \in 'SCN_3(R).
@@ -70,7 +40,7 @@ Lemma p_rank_3_normal_abelem_SCN : forall p R E,
 Proof.
 move=> p R E pR oddR rRgt2 EE nER.
 have ntR : R != 1%G by rewrite -rank_gt0 (ltn_trans _ rRgt2).
-have [p_pr pdvR [r oRpr]] := pgroup_pdiv pR ntR.
+have [p_pr pdvR [r oRpr]] := pgroup_pdiv pR ntR;  have pgt1 := prime_gt1 p_pr.
 have pE := pgroupS (normal_sub nER) pR.
 case/pnElemP: EE=> sER abeE cardE.
 have {nER} nER := normal_norm nER.
@@ -100,9 +70,8 @@ have cardB : logn p #|B| = 3 by case/pnElemP: pnelemB.
 have abelianB : abelian B by case/pnElemP: pnelemB=> _; case/and3P.
 case: (ltnP (logn p #|Bs|) 3); move=> cardBs.
   have defE : Bs :=: E.
-    apply/eqP; rewrite eq_sym eqEcard mulgen_subl.
-    rewrite (logn_injcard pBs pE) // cardE -(@ltnS _ 2) cardBs.
-    by rewrite (leq_trans _ (lognSg p (mulgen_subl _ _))) // cardE.
+    apply/eqP; rewrite eq_sym eqEcard mulgen_subl -(part_pnat pE).
+    by rewrite -(part_pnat pBs) !p_part cardE leq_exp2l.
   have sCE : 'C_B(E) \subset E by rewrite -{2}defE /Bs mulgen_subr.
   have nEB : B \subset 'N(E) by exact: subset_trans sBR nER.
   have cardBq' : logn p #| B / 'C_B(E) | <= 1.
@@ -115,11 +84,11 @@ case: (ltnP (logn p #|Bs|) 3); move=> cardBs.
     rewrite logn_div ?cardB ?cardSg ?subIset ?subxx //.
     by case: (logn _ _)=> //; case.
   have defE' : 'C_B(E) :=: E.
-    apply/eqP; rewrite eqEcard sCE (logn_injcard pE) // 1?cardE ?cardCBE //=.
-    by rewrite (@pgroupS _ _ B) // subIset ?subxx.
+    apply/eqP; rewrite eqEcard sCE -{1}(part_pnat pE) p_part cardE.
+    by rewrite -(part_pnat (pgroupS (subsetIl _ _) pB)) p_part leq_exp2l.
   have abs1 : E \proper B.
-    rewrite -defE' properEcard subIset ?subxx //= defE'.
-    by rewrite (logn_injcard1 pE pB) // !cardE cardB.
+    rewrite -defE' properEcard subIset ?subxx //= defE' -(part_pnat pE).
+    by rewrite -(part_pnat pB) !p_part ltn_exp2l ?cardE ?cardB.
   have abs2 : 'C_B(E) :=: B.
     apply/eqP; rewrite eqEsubset subIset ?subxx // subsetI subxx /=.
     by rewrite sub_abelian_cent // proper_sub.
