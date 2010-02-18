@@ -147,7 +147,7 @@ Let Z := 'Ohm_1('Z(R)).
 Let W := 'Ohm_1('Z_2(R)).
 Let T := 'C_R(W).
 
-Lemma p_rank_3_maxElem_2_Ohm_ucl : forall (*R*) E p,
+Lemma p_rank_3_maxElem_2_Ohm_ucn : forall (*R*) E p,
     odd #|R| -> p.-group(R) -> 2 < 'r(R) -> E \in 'E*_p(R) -> 'r(E) = 2 ->
   [/\ ~~ (E \subset T), 
       #| Z | = p, (*'Ohm_1('Z_2(R))%G*) [group of W] \in 'E_p^2(R),
@@ -204,6 +204,8 @@ have ncR : ~~ cyclic R.
   rewrite (odd_pgroup_rank1_cyclic pR oddR) leqNgt -(rank_pgroup pR).
   by rewrite (leq_trans _ rankR).
 case: (Ohm1_odd_ucn2 pR oddR ncR); rewrite -/W => ncW exponentW.
+have Wexp1 : W \subset [set x | x ^+ (p ^ 1) == 1].
+  by apply/subsetP=> x Wx; rewrite inE (exponentP exponentW).
 have sWR : W \subset R := (subset_trans (Ohm_sub 1 _) (ucn_sub _ _)).
 have pW : p.-groupW := pgroupS sWR pR.
 have five2a : Z \proper W.
@@ -212,21 +214,9 @@ have five2a : Z \proper W.
   move: ncW; rewrite (odd_pgroup_rank1_cyclic pW (oddSg sWR oddR)) /= -ltnNge. 
   by rewrite -defZ (p_rank_abelem abeZ) five1b (logn_prime _ p_pr) eqxx.
 have five2b : [~: W, R] \subset Z.
-  (* have sWC : [~: W, R] \subset W by rewrite commg_subl.
-  rewrite -(setIidPl sWC). *)
-  have foo : [~: 'Z_2(R), R] \subset 'Z(R).
-    have nZ1R : R \subset 'N('Z(R)).
-      by rewrite -ucn1 (subset_trans _ (ucn_norm 1 _)).
-    have nZ1Z2 : 'Z_2(R) \subset 'N('Z(R)).
-      by rewrite (subset_trans _ nZ1R) // char_sub // ucn_char.
-    by rewrite -quotient_cents2 //= -ucn1 ucn_central subsetIr.
-
-  (*
-  rewrite (subset_trans (commSg _ (Ohm_sub 1 _))) //= (subset_trans foo) //.
-  rewrite /Z (@Ohm1_id _ p) ?subxx // (abelemE _ p_pr) abC /=.
-  apply: (dvdn_trans _ exponentW); rewrite exponentS // -/W.
-  *)
-  admit.
+  rewrite [Z](OhmE 1 pZ) sub_gen // setIdE subsetI.
+  rewrite /= -ucn1 (subset_trans (commSg _ (Ohm_sub _ _))) ?ucn_comm //=.
+  by rewrite (subset_trans (_ : _ \subset W)) ?commg_subl.
 have EWpE: [~: E, W] \proper E.
   by rewrite (sub_proper_trans (subset_trans _ five2b) five1a) 1?commGC ?commgS.
 have nEW : W \subset 'N(E). 
@@ -311,8 +301,13 @@ have cardRT : #| R / T | = p.
   rewrite -card_quotient  ?normsI ?normG ?norms_cent //.
   have pQ : p.-group (R/'C_R(W)) := quotient_pgroup _ pR.
   have diffTR : T != R.
-    apply/negP; move/eqP; move/setIidPl.
-    admit.
+    apply/negP; move/eqP; move/setIidPl; rewrite centsC => abs.
+    have sWZ : W \subset 'Z(R) by rewrite subsetI sWR (subset_trans abs).
+    have sWZZ : W \subset Z.
+      rewrite [Z](OhmE 1 pZ) sub_gen //; apply/subsetP=> x Wx.
+      have Zx := (subsetP sWZ _ Wx); have := (subsetP Wexp1 _ Wx).
+      by rewrite 2?inE Zx /=.
+    by have:= proper_subn five2a; rewrite sWZZ.
   case: (eqsVneq (R/T) 1) => [defRT | ntQ].
     suff eqTR : T == R by case/negP: diffTR.
     by rewrite eqEsubset subIset ?subxx //= -(quotient_sub1 nTR) defRT subxx.
@@ -322,20 +317,16 @@ have idxRT :  #| R : T | = p by rewrite -card_quotient.
 have charTR : T \char R.
   by rewrite subcent_char ?char_refl //= (char_trans (Ohm_char 1 _)) ?ucn_char.
 have sET : ~~ (E \subset T).
-  case: subsetP => //.
-  admit.
+  by have:= proper_subn five2a; rewrite -defCWE !subsetI subxx sER centsC.
 rewrite idxRT five1b; split => //.
 by rewrite (pnElemE _ _ p_pr) inE cardW eqxx inE pabW sWR.
 Qed.
 
-(* split at  least last conclusion 
 Lemma foo : forall p, odd #|R| -> p.-group(R) -> 2 < 'r(R) ->
   'E_p^2(R) :&: 'E*_p(R) != set0 ->
   [/\ (forall H, H \subset T -> ~~ (H \in 'E_p^2(R) :&: 'E*_p(R))),
-      #|Z| = p, 
-      [group of W] \in 'E_p^2(R) /\
-      T \char R,
-      #|R : T| = p &
+      #|Z| = p /\ [group of W] \in 'E_p^2(R),
+      T \char R /\ #|R : T| = p &
       forall (S : {group gT}), #|S| = p -> S \subset R ->
         'r('C_R(S)) <= 2 -> 
           [/\ cyclic 'C_T(S), S :&: R^`(1) = 1, S :&: T = 1 &
@@ -344,6 +335,6 @@ Proof.
 move=> p oddR pR rRgt2 nR.
 
 Qed.
-*)
+
 
 End Five.
