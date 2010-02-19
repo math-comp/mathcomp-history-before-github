@@ -73,11 +73,14 @@ Qed.
 
 Definition coprimep p q := size (gcdp p q) == 1%N.
 
-Lemma coprime1p: forall p, coprimep 1 p.
+Lemma coprimep1p: forall p, coprimep 1 p.
 Proof.
 move=> p; rewrite /coprimep -[1%N](size_poly1 R); apply/eqP; apply: size_eqp.
 exact: gcd1p.
 Qed.
+
+Lemma coprimep0p : forall p, coprimep p 0 = (size p == 1%N).
+Proof. by move=> p; rewrite /coprimep gcdp0. Qed.
 
 Lemma coprimepP : forall p q,
   reflect (forall d, d %| p -> d %| q -> d %= 1) (coprimep p q).
@@ -89,9 +92,13 @@ move=> p q; apply: (iffP idP)=> [|h].
 by case/andP: (dvdp_gcd2 p q)=> h1 h2; rewrite /coprimep size1_dvdp1; apply: h.
 Qed.
 
+(* Doesn't this sound false Cyril? (take d = gcdp p q)
+Still fortunately you do not seem to need it
+
 Lemma coprimepPn : forall p q,
   reflect (exists d, (d %| gcdp p q) && (d %= 1))  (~~ coprimep p q).
 Admitted.
+*)
 
 
 Lemma modp_dvd : forall p q, (q %| p) -> p %% q = 0.
@@ -111,8 +118,6 @@ CoInductive gdcop_spec q p : {poly R} -> Type :=
   GdcopSpec r of (r %| p) & (coprimep r q) 
   & (forall d,  p != 0 -> d %| p -> coprimep d q -> d %| r)
   : gdcop_spec q p r.
-
-
 
 
 (* Lemma divp_dvd : forall (p q : {poly F}), q %| p  *)
@@ -138,9 +143,46 @@ CoInductive gdcop_spec q p : {poly R} -> Type :=
 
 (* Lemma dvd_coprimepr : forall p q d, d %| q -> coprimep p q -> coprimep p d. *)
 
+Lemma gcopp0 : forall q, gdcop q 0 = 1.
+Proof. by move=> q; rewrite /gdcop size_poly0. Qed.
+
+Lemma dvdpn0 : forall p q, p %| q -> q != 0 -> p != 0.
+Proof.
+move=> p q; case/dvdpPc=> c [p' [n0c' e]] n0q.
+case abs : (p == 0)=> //; move: e; rewrite (eqP abs) mulr0; move/eqP.
+by rewrite  -size_poly_eq0 size_polyC_mul // size_poly_eq0 (negbTE n0q).
+Qed.
+
+Lemma dvdp_mulIl : forall p q, p %| p * q.
+Proof. by move=> p q; apply: dvdp_mulr; exact: dvdpp. Qed.
+
+Lemma dvdp_mulIr : forall p q, q %| p * q.
+Proof. by move=> p q; apply: dvdp_mull; exact: dvdpp. Qed.
+
 
 Lemma gdcop_recP : forall (q p : {poly R}) n, 
   size p <= n -> gdcop_spec q p (gdcop_rec q p n).
+Proof.
+move=> q p n; elim: n p => [p | n ihn p] /=.
+  rewrite leqn0 size_poly_eq0; move/eqP->.
+  by split; rewrite ?coprimep1p ?dvdp0 ?eqxx.
+move=> hs; case cop : (coprimep _ _); first by split; rewrite ?dvdpp ?cpq.
+case p0 : (p == 0).
+  by rewrite (eqP p0) div0p; apply: ihn; rewrite size_poly0 leq0n.
+(* should we have a spec for dvdn ? *)
+case: (divp_spec p (gcdp p q)); rewrite modp_dvd ?dvdp_gcdl // addr0 => e.
+have p'n0 : p %/ gcdp p q != 0.
+  move: (dvdp_mulIl (p %/ gcdp p q) (gcdp p q)); move/dvdpn0; apply; rewrite -e.
+  by rewrite -size_poly_eq0 size_polyC_mul ?scalp_id //size_poly_eq0 p0.
+have gn0 : gcdp p q != 0.
+  move: (dvdp_mulIr (p %/ gcdp p q) (gcdp p q)); move/dvdpn0; apply; rewrite -e.
+  by rewrite -size_poly_eq0 size_polyC_mul ?scalp_id //size_poly_eq0 p0.
+move/(congr1 (size \o (@polyseq R))): (e) => /=.
+rewrite size_polyC_mul ?scalp_id // => e'; move: hs; rewrite e' {e'}.
+rewrite size_mul_id //.
+Admitted.
+
+(*
 Proof.
 move=> q p n.
 elim: n p => [p | n Pn p].
@@ -182,6 +224,7 @@ case dpq: (d %| gcdp p q).
 admit.
 admit.
 Qed.
+*)
 
 Lemma gdcopP : forall q p, gdcop_spec q p (gdcop q p).
 Proof. by move=> q p; rewrite /gdcop; apply: gdcop_recP. Qed.
