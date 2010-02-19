@@ -1514,7 +1514,7 @@ apply/dvdpPc; exists (c1 * c2); exists (q1 * q2); split.
 by rewrite polyC_mul mulrCA -!mulrA mulrCA mulrA Hq1 Hq2 mulrCA -!mulrA mulrCA.
 Qed.
 
-Lemma dvdp_trans : forall n d m, d %| n -> n %| m -> d %| m.
+Lemma dvdp_trans : transitive (@dvdp R).
 Proof.
 move=> n d m; case/dvdpPc=> c1 [q1 [Hc1 Hq1]];
   case/dvdpPc=> c2 [q2 [Hc2 Hq2]].
@@ -1638,13 +1638,13 @@ have:= size_mul_id nz_q1 nz_q2; rewrite def_q12 size_polyC mulf_neq0 //=.
 by rewrite polySpred // => ->; rewrite leq_addl.
 Qed.
 
-Lemma eqpxx : forall p, p %= p.
+Lemma eqpxx : reflexive (@eqp R).
 Proof. by move=> p; rewrite /eqp dvdpp. Qed.
 
-Lemma eqp_sym : forall p q, (p %= q) = (q %= p).
+Lemma eqp_sym : symmetric (@eqp R).
 Proof. by move=> p q; rewrite /eqp andbC. Qed.
 
-Lemma eqp_trans : forall p q r, p %= q -> q %= r -> p %= r.
+Lemma eqp_trans : transitive (@eqp R).
 Proof.
 move=> p q r; case/andP => Dp pD; case/andP => Dq qD.
 by rewrite /eqp (dvdp_trans Dp) // (dvdp_trans qD).
