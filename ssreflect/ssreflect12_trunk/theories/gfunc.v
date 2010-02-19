@@ -7,11 +7,9 @@ Require Import ssrnat.
 Require Import fintype.
 Require Import finset.
 Require Import groups.
-Require Import perm.
 Require Import normal.
 Require Import morphisms.
 Require Import automorphism.
-Require Import bigops.
 
 Import GroupScope.
 
@@ -76,7 +74,7 @@ Qed.
 (* Compatible w.r.t. inclusion *)
 
 Definition compatible (F : obmap) : Prop :=
-  forall gT (H G : {group gT}), H \subset G -> (F _ H) \subset (F _ G). 
+  forall gT (H G : {group gT}), H \subset G -> (F _ H) \subset (F _ G).
 
 End IdentitySubFunctorDefs.
 
@@ -84,7 +82,7 @@ Module FunctorDefs.
 
 Implicit Type gT : finGroupType.
 
-Structure bgFunc : Type := BGFunc { 
+Structure bgFunc : Type := BGFunc {
   Fobj :> obmap;
   (* group preservation *)
   _ : forall gT (G : {group gT}), group_set (@Fobj gT G);
@@ -93,15 +91,15 @@ Structure bgFunc : Type := BGFunc {
   (* functoriality condition *)
   _ : aresp Fobj}.
 
-Structure gFunc : Type := GFunc { 
+Structure gFunc : Type := GFunc {
   Fg_bgFunc :> bgFunc ;
    _ : resp Fg_bgFunc}.
 
-Structure hgFunc : Type := HGFunc { 
+Structure hgFunc : Type := HGFunc {
   Fh_gFunc :> gFunc;
    _ : hereditary Fh_gFunc}.
 
-Structure cgFunc : Type := CGFunc { 
+Structure cgFunc : Type := CGFunc {
   Fc_gFunc :> gFunc;
    _ : compatible Fc_gFunc}.
 
@@ -196,7 +194,7 @@ End BgGroup.
 Section BaseIdentitySubFunctorProps.
 
 Implicit Types gT hT : finGroupType.
-Variable sF: bgFunc.
+Variable sF : bgFunc.
 
 Lemma bgFunc_clos : forall gT (H : {group gT}), sF _ H \subset H.
 Proof. by case sF. Qed.
@@ -207,7 +205,7 @@ Proof. by case sF. Qed.
 Lemma bgFunc_char : forall gT (G : {group gT}), sF _ G \char G.
 Proof.
 move=> gT G; apply/andP; split => //; first by apply: bgFunc_clos.
-apply/forallP=> f; apply/implyP=> Af; rewrite -{2}(autm_dom Af) -(autmE Af).
+apply/forallP=> f; apply/implyP=> Af; rewrite -{2}(im_autm Af) -(autmE Af).
 by rewrite -morphimEsub ?bgFunc_clos ?bgFunc_aresp ?injm_autm.
 Qed.
 
@@ -253,9 +251,8 @@ Lemma bgFunc_isom :
   forall gT hT (H G : {group gT}) (R : {group hT}) (f : {morphism G >-> hT}),
   H \subset G -> isom H R f -> isom (sF _ H) (sF _ R) f.
 Proof.
-move=> gT rT H G R f; case/(restrmP f)=> g [_ _ ->]; case/isomP=> injf <-.
-rewrite /isom -(bgFunc_asresp injf) // -morphimEsub ?morphimDG ?morphim1 //. 
-by rewrite subDset subsetU // bgFunc_clos orbT.
+move=> gT rT H G R f; case/(restrmP f)=> g [gf _ _ _]; rewrite -{f}gf.
+by case/isomP=> injg <-; rewrite sub_isom ?bgFunc_clos ?bgFunc_asresp.
 Qed.
 
 Lemma bgFunc_isog : forall gT hT (G : {group gT}) (R : {group hT}),
@@ -376,7 +373,7 @@ have sOF := bgFunc_clos sF (G / sF2 _ G); have sGG: G \subset G by [].
 rewrite -sub_morphim_pre -?quotientE; last first.
   by apply: subset_trans (nF _ _); rewrite morphimS ?hgFunc_comp_clos.
 suffices im_fact: forall H : {group gT}, sF2 _ G \subset H -> H \subset G ->
-  factm sGG sFK @* (H / sF2 _ G) = f @* H / sF2 _ (f @* G).
+  factm sFK sGG @* (H / sF2 _ G) = f @* H / sF2 _ (f @* G).
 - rewrite -2?im_fact ?hgFunc_comp_clos ?bgFunc_clos //.
   by rewrite hgFunc_comp_quo morphim_sFunctor /= ?morphim_restrm ?setIid //.
   by rewrite -{1}kF morphpreS ?sub1G.
@@ -405,12 +402,12 @@ pose rG := restrm nF3G (coset (sF3 _ G)); pose rGM := [morphism of rG].
 have sqKfK: 'ker rGM \subset 'ker rHM.
   rewrite !ker_restrm !ker_coset (setIidPr (bgFunc_clos sF3 _)) setIC /=.
   exact: (hgFunc_hereditary sF3).
-have sHH := subxx H; rewrite -rnorm_simpl /= -(morphim_factm sHH sqKfK) /=.
+have sHH := subxx H; rewrite -rnorm_simpl /= -(morphim_factm sqKfK sHH) /=.
 apply: subset_trans (gFunc_resp sF _); rewrite /= {2}morphim_restrm setIid /=.
 apply: subset_trans (morphimS _ (hgFunc_hereditary _ (quotientS _ sHG))) => /=.
 have ->: FGH / _ = restrm nF3H (coset _) @* FGH.
   by rewrite morphim_restrm setICA setIid.
-rewrite -(morphim_factm sHH sqKfK) morphimS //= morphim_restrm -quotientE.
+rewrite -(morphim_factm sqKfK sHH) morphimS //= morphim_restrm -quotientE.
 by rewrite setICA setIid (subset_trans (quotientI _ _ _)) // cosetpreK.
 Qed.
 
@@ -481,8 +478,8 @@ Lemma id_compatible : compatible id_sF.
 Proof. by []. Qed.
 
 Canonical Structure bgFunc_id := [bgFunc by fun _ _ => subxx _ & id_resp].
-
 Canonical Structure gFunc_id := GFunc id_resp.
+Canonical Structure cgFunc_id := CGFunc id_compatible.
 
 Definition triv_sF gT of {set gT} := [1 gT].
 
@@ -491,6 +488,8 @@ Proof. by move=> gT hT H f; rewrite morphim1. Qed.
 
 Canonical Structure bgFunc_triv := [bgFunc by sub1G & triv_resp].
 Canonical Structure gFunc_triv := GFunc triv_resp.
+Canonical Structure hgFunc_triv :=
+  @HGFunc gFunc_triv (fun gT G _ _ => subsetIl 1 G).
 
 End IdentitySubFunctorsExamples.
 

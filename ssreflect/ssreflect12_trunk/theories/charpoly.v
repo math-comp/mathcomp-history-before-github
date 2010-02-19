@@ -27,23 +27,22 @@ Section Cayley.
 
 Variable R : comRingType.
 
-Variable n : pos_nat.
+Variable n' : nat.
 
-Notation Local nn := (pos_nat_val n) (only parsing).
+Notation Local n := n'.+1.
 Notation Local "'R'" := R
   (at level 0, format "'R'").
 Notation Local "'R' [ 'X' ]" := {poly R}
   (at level 0, format "'R' [ 'X' ]").
-Notation Local "'M' ( 'R' )" := (matrix R nn nn)
+Notation Local "'M' ( 'R' )" := 'M[R]_n
   (at level 0, format "'M' ( 'R' )").
-Notation Local "'M' ( 'R' [ 'X' ] )" :=
-  (matrix (poly_ringType R) nn nn)
+Notation Local "'M' ( 'R' [ 'X' ] )" := 'M[R[X]]_n
   (at level 0, format "'M' ( 'R' [ 'X' ] )").
-Notation Local "'M' ( 'R' ) [ 'X' ]" := {poly (matrix R n n)}
+Notation Local "'M' ( 'R' ) [ 'X' ]" := {poly 'M[R]_n}
   (at level 0, format "'M' ( 'R' ) [ 'X' ]").
 
 (* The characteristic polynomial *)
-Open Scope matrix_scope.
+
 Definition matrixC (A : M(R)) : M(R[X]) := \matrix_(i, j) (A i j)%:P.
 
 Definition char_poly (A : M(R)) : R[X] := \det ('X%:M - matrixC A).
@@ -81,14 +80,14 @@ Qed.
 Lemma phi_opp : forall A, phi (- A) = - phi A.
 Proof.
 move=> A; apply/polyP=> k; apply/matrixP=> i j.
-by rewrite coef_phi mxE coef_opp mxE coef_phi coef_opp.
+by rewrite coef_phi !(mxE, coef_opp) coef_phi.
 Qed.
 
 Lemma phi_one : phi 1 = 1.
 Proof.
 apply/polyP=> k; apply/matrixP=> i j.
-rewrite coef_phi mxE (fun_if (fun p : {poly _} => p`_k)) coef0 !coefC.
-by case: k => [|k]; rewrite /= !mxE // if_same.
+rewrite coef_phi mxE coef_natmul !coefC.
+by case: k => [|k]; rewrite /= !mxE ?mul0rn.
 Qed.
 
 Lemma phi_mul : forall (A1 A2 : M(R[X])), phi (A1 * A2) = (phi A1) * (phi A2).
@@ -115,7 +114,7 @@ Qed.
 Lemma ZpolyX : Zpoly 'X = 'X.
 Proof.
 apply/polyP=> k; apply/matrixP=> i j; rewrite coef_Zpoly !coefX.
-by case: (k == _); rewrite !mxE ?if_same.
+by case: (k == _); rewrite !mxE ?mul0rn.
 Qed.
 
 Lemma phi_Zpoly : forall p, phi p%:M = Zpoly p.
@@ -129,7 +128,7 @@ Qed.
 Theorem Cayley_Hamilton : forall A, (Zpoly (char_poly A)).[A] = 0.
 Proof.
 move=> A; apply/eqP; apply/factor_theorem.
-rewrite -phi_Zpoly -mulmx_adjl phi_mul; move: (phi _) => q; exists q.
+rewrite -phi_Zpoly -mul_adj_mx phi_mul; move: (phi _) => q; exists q.
 by rewrite phi_add phi_opp phi_Zpoly phi_polyC ZpolyX.
 Qed.
 

@@ -3,20 +3,22 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq paths choice fintype.
 Require Import finfun bigops finset groups.
 
 (**************************************************************************)
-(* This file contains the definition and properties  associated to the    *)
+(* This file contains the definition and properties associated to the     *)
 (* group of permutations.                                                 *)
 (*   {perm T} == the permutation of a finite type T                       *)
 (*                        (i.e. an injective function from T to T)        *)
-(*   'S_n == the permutations of {0,.., n-1}                              *)
+(*   'S_n == the permutations of 'I_n, i.e., {0,.., n-1}                  *)
 (*   perm_on A u <=> u is a permutation on T where only the elements of a *)
 (*                                 a subset A of T are affected           *)
 (*   tperm x y == the transposition of x, y                               *)
 (*   aperm x s == s(x)                                                    *)
-(*   pcycle s x == the set of all elements that are in the same cycle     *) 
+(*   pcycle s x == the set of all elements that are in the same cycle     *)
 (*                 of permutation s as x                                  *)
 (*   pcycles s == the set of cycles of permutation s                      *)
 (*   odd_perm s <=> s is an odd permutation                               *)
 (*   dpair x <=> x is a pair of distinct objects                          *)
+(*   lift_perm i j s == the permutation obtained by lifting s : 'S_n.-1;  *)
+(*                      it maps i to j and lift i k to lift j (s k)       *)
 (* Permutations are coerced to the underlying function.                   *)
 (* Canonical structures are defined allowing permutations to be an eqType,*)
 (* choiceType, countType, finType, subType, finGroupType (permutations    *)
@@ -47,15 +49,17 @@ Notation pT := (perm_of (Phant T)).
 Canonical Structure perm_subType :=
   Eval hnf in [subType for pval by perm_type_rect].
 Definition perm_eqMixin := Eval hnf in [eqMixin of perm_type by <:].
-Canonical Structure perm_eqType := Eval hnf in EqType perm_eqMixin.
+Canonical Structure perm_eqType := Eval hnf in EqType perm_type perm_eqMixin.
 Definition perm_choiceMixin := [choiceMixin of perm_type by <:].
-Canonical Structure perm_choiceType := Eval hnf in ChoiceType perm_choiceMixin.
+Canonical Structure perm_choiceType :=
+  Eval hnf in ChoiceType perm_type perm_choiceMixin.
 Definition perm_countMixin := [countMixin of perm_type by <:].
-Canonical Structure perm_countType := Eval hnf in CountType perm_countMixin.
+Canonical Structure perm_countType :=
+  Eval hnf in CountType perm_type perm_countMixin.
 Canonical Structure perm_subCountType :=
   Eval hnf in [subCountType of perm_type].
 Definition perm_finMixin := [finMixin of perm_type by <:].
-Canonical Structure perm_finType := Eval hnf in FinType perm_finMixin.
+Canonical Structure perm_finType := Eval hnf in FinType perm_type perm_finMixin.
 Canonical Structure perm_subFinType := Eval hnf in [subFinType of perm_type].
 
 Canonical Structure perm_for_subType := Eval hnf in [subType of pT].
@@ -156,7 +160,7 @@ Proof. by move=> u v w; apply/permP => x; do !rewrite permE /=. Qed.
 Definition perm_of_baseFinGroupMixin : FinGroup.mixin_of (perm_type T) :=
   FinGroup.Mixin perm_mulP perm_oneP perm_invP.
 Canonical Structure perm_baseFinGroupType :=
-  Eval hnf in BaseFinGroupType perm_of_baseFinGroupMixin.
+  Eval hnf in BaseFinGroupType (perm_type T) perm_of_baseFinGroupMixin.
 Canonical Structure perm_finGroupType :=
   @FinGroupType perm_baseFinGroupType perm_invP.
 
@@ -262,11 +266,11 @@ Proof. by move=> x y; rewrite -{1}tpermV mulVg. Qed.
 Lemma card_perm : forall A : {set T}, #|perm_on A| = fact #|A|.
 Proof.
 move=> A; elim: {A}#|A| {1 3}A (eqxx #|A|) => [|n IHn] A /=.
-  move/pred0P=> A0; rewrite -(card1 (1 : pT)); apply: eq_card => u.
+  move/pred0P=> A0; rewrite fact0 -(card1 (1 : pT)); apply: eq_card => u.
   apply/idP/eqP => /= [uA | -> {u}]; last exact: perm_on1.
   by apply/permP => x; rewrite perm1 (out_perm uA) // -topredE /= A0.
 case: (pickP (mem A)) => [x /= Ax An1|]; last by move/eq_card0->.
-have:= An1; rewrite (cardsD1 x) Ax eqSS; move/IHn=> {IHn} <-.
+have:= An1; rewrite (cardsD1 x) Ax eqSS factS; move/IHn=> {IHn} <-.
 move/eqP: An1 => <- {n}; rewrite -cardX.
 pose h (u : pT) := (u x, u * tperm x (u x)).
 have h_inj: injective h.
@@ -329,11 +333,30 @@ Proof. by move=> s i x; rewrite (mem_imset (aperm x)) ?mem_cycle. Qed.
 Lemma pcycle_id : forall s x, x \in pcycle s x.
 Proof. by move=> s x; rewrite -{1}[x]perm1 (mem_pcycle s 0). Qed.
 
-Lemma pcycle_traject : forall s x, pcycle s x =i traject s x #[s].
+Lemma uniq_traject_pcycle : forall s x, uniq (traject s x #|pcycle s x|).
 Proof.
-move=> s x y; apply/idP/trajectP=> [| [i _ ->]].
-  by case/imsetP=> si; case/cyclePmin=> i ? -> ->; exists i; rewrite // -permX.
-by rewrite -permX mem_pcycle.
+move=> s x; case def_n: #|_| => // [n]; rewrite looping_uniq.
+apply: contraL (card_size (traject s x n)); move/loopingP=> t_sx.
+rewrite -ltnNge size_traject -def_n ?subset_leq_card //; apply/subsetP=> y.
+by case/imsetP=> si; case/cycleP=> i -> -> {y si}; rewrite /aperm permX t_sx.
+Qed.
+
+(* improved #[s] to #|pcycle s x| *)
+Lemma pcycle_traject : forall s x, pcycle s x =i traject s x #|pcycle s x|.
+Proof.
+move=> s x; apply: fsym; apply/subset_cardP.
+  by rewrite (card_uniqP _) ?size_traject ?uniq_traject_pcycle.
+by apply/subsetP=> y; case/trajectP=> i _ ->; rewrite -permX mem_pcycle.
+Qed.
+
+Lemma iter_pcycle : forall s x, iter #|pcycle s x| s x = x.
+Proof.
+move=> s x; case def_n: #|_| (uniq_traject_pcycle s x) => [//|n] Ut.
+have: looping s x n.+1.
+  by rewrite -def_n -[looping _ _ _]pcycle_traject -permX mem_pcycle.
+rewrite /looping; case/trajectP=> [[|i] //=]; rewrite ltn_neqAle eqSS.
+case/andP=> ne_i_n le_i_n; move/perm_inj=> eq_i_n_sx; case/negP: ne_i_n.
+by rewrite -(nth_uniq x _ _ Ut) ?size_traject ?nth_traject ?eq_i_n_sx.
 Qed.
 
 Lemma eq_pcycle_mem : forall s x y,
@@ -349,14 +372,14 @@ Qed.
 Lemma pcycle_sym : forall s x y, (x \in pcycle s y) = (y \in pcycle s x).
 Proof. by move=> s x y; rewrite -!eq_pcycle_mem eq_sym. Qed.
 
-Lemma pcycle_perm : forall s i x y, pcycle s ((s ^+ i) x) = pcycle s x.
-Proof. by move=> s i x y; apply/eqP; rewrite eq_pcycle_mem mem_pcycle. Qed.
+Lemma pcycle_perm : forall s i x, pcycle s ((s ^+ i) x) = pcycle s x.
+Proof. by move=> s i x; apply/eqP; rewrite eq_pcycle_mem mem_pcycle. Qed.
 
 Lemma ncycles_mul_tperm : forall s x y (t := tperm x y),
   #|pcycles (t * s)| + (x \notin pcycle s y).*2 = #|pcycles s| + (x != y).
 Proof.
-pose xf s x y := find (pred2 x y) (traject s (s x) #[s]).
-have xf_size : forall s x y, xf s x y <= #[s].
+pose xf s x y := find (pred2 x y) (traject s (s x) #|pcycle s x|).
+have xf_size : forall s x y, xf s x y <= #|pcycle s x|.
   by move=> s x y; rewrite (leq_trans (find_size _ _)) ?size_traject.
 have lt_xf: forall s x y n, n < xf s x y -> ~~ pred2 x y ((s ^+ n.+1) x).
   move=> s x y n lt_n; move/negbT: (before_find (s x) lt_n).
@@ -370,12 +393,13 @@ have tXC: forall s x y n, n <= xf s x y -> (t x y s ^+ n.+1) y = (s ^+ n.+1) x.
   by move/lt_xf: lt_n_f; case/norP=> *; rewrite tpermD // eq_sym.
 have eq_xf: forall s x y, pred2 x y ((s ^+ (xf s x y).+1) x).
   move=> s x y; simpl in s, x, y.
-  have has_f: has (pred2 x y) (traject s (s x) #[s]).
-    apply/hasP; exists x; rewrite /= ?eqxx // -pcycle_traject.
-    by rewrite pcycle_sym (mem_pcycle _ 1).
+  have sx_x: x \in pcycle s (s x) by rewrite pcycle_sym (mem_pcycle _ 1).
+  have has_f: has (pred2 x y) (traject s (s x) #|pcycle s (s x)|).
+    by apply/hasP; exists x; rewrite /= ?eqxx -?pcycle_traject.
   have:= nth_find (s x) has_f; rewrite has_find size_traject in has_f.
-    by rewrite nth_traject // -iterSr -permX.
-  have xfC: forall s x y, xf (t x y s) y x = xf s x y.
+  rewrite -eq_pcycle_mem in sx_x.
+  by rewrite nth_traject // -iterSr -permX -(eqP sx_x).
+have xfC: forall s x y, xf (t x y s) y x = xf s x y.
   move=> s x y; wlog ltx: s x y / xf (t x y s) y x < xf s x y.
     move=> IWxy; set m := xf _ y x; set n := xf s x y.
     by case: (ltngtP m n) => // ltx; [exact: IWxy | rewrite /m -IWxy tC tK].
@@ -477,5 +501,81 @@ End PermutationParity.
 Coercion odd_perm : perm_type >-> bool.
 Implicit Arguments dpair [eT].
 Prenex Implicits pcycle dpair pcycles aperm.
+
+Section LiftPerm.
+(* Somewhat more specialised constructs for permutations on ordinals. *)
+
+Variable n : nat.
+Implicit Types i j : 'I_n.+1.
+Implicit Types s t : 'S_n.
+
+Definition lift_perm_fun i j s k :=
+  if unlift i k is Some k' then lift j (s k') else j.
+
+Lemma lift_permK : forall i j s,
+  cancel (lift_perm_fun i j s) (lift_perm_fun j i s^-1).
+Proof.
+rewrite /lift_perm_fun => i j s k.
+by case: (unliftP i k) => [j'|] ->; rewrite (liftK, unlift_none) ?permK.
+Qed.
+
+Definition lift_perm i j s := perm (can_inj (lift_permK i j s)).
+
+Lemma lift_perm_id : forall i j s, lift_perm i j s i = j.
+Proof. by move=> i j s; rewrite permE /lift_perm_fun unlift_none. Qed.
+
+Lemma lift_perm_lift : forall i j s k',
+  lift_perm i j s (lift i k') = lift j (s k') :> 'I_n.+1.
+Proof. by move=> i j s k'; rewrite permE /lift_perm_fun liftK. Qed.
+
+Lemma lift_permM : forall i j k s t,
+  lift_perm i j s * lift_perm j k t = lift_perm i k (s * t).
+Proof.
+move=> i j k s t; apply/permP=> i1; case: (unliftP i i1) => [i2|] ->{i1}.
+  by rewrite !(permM, lift_perm_lift).
+by rewrite permM !lift_perm_id.
+Qed.
+
+Lemma lift_perm1 : forall i, lift_perm i i 1 = 1.
+Proof.
+by move=> i; apply: (mulgI (lift_perm i i 1)); rewrite lift_permM !mulg1.
+Qed.
+
+Lemma lift_permV : forall i j s, (lift_perm i j s)^-1 = lift_perm j i s^-1.
+Proof.
+by move=> i j s; apply/eqP; rewrite eq_invg_mul lift_permM mulgV lift_perm1.
+Qed.
+
+Lemma odd_lift_perm : forall i j s,
+  lift_perm i j s = odd i (+) odd j (+) s :> bool.
+Proof.
+move=> i j s; rewrite -{1}(mul1g s) -(lift_permM _ j) odd_permM.
+congr (_ (+) _); last first.
+  case: (prod_tpermP s) => ts ->{s} _.
+  elim: ts => [|t ts IHts] /=; first by rewrite big_nil lift_perm1 !odd_perm1.
+  rewrite big_cons odd_mul_tperm -(lift_permM _ j) odd_permM {}IHts //.
+  congr (_ (+) _); rewrite (_ : _ j _ = tperm (lift j t.1) (lift j t.2)).
+    by rewrite odd_tperm (inj_eq (@lift_inj _ _)).
+  apply/permP=> k; case: (unliftP j k) => [k'|] ->.
+    rewrite lift_perm_lift inj_tperm //; exact: lift_inj.
+  by rewrite lift_perm_id tpermD // eq_sym neq_lift.
+suff{i j s} odd_lift0: forall k : 'I_n.+1, lift_perm ord0 k 1 = odd k :> bool.
+  rewrite -!odd_lift0 -{2}invg1 -lift_permV odd_permV -odd_permM.
+  by rewrite lift_permM mulg1.
+move=> k; elim: {k}(k : nat) {1 3}k (erefl (k : nat)) => [|m IHm] k def_k.
+  rewrite (_ : k = ord0) ?lift_perm1 ?odd_perm1 //; exact: val_inj.
+have le_mn: m < n.+1 by [rewrite -def_k ltnW]; pose j := Ordinal le_mn.
+rewrite -(mulg1 1)%g -(lift_permM _ j) odd_permM {}IHm // addbC.
+rewrite (_ : _ k _ = tperm j k).
+  by rewrite odd_tperm neq_ltn def_k leqnn.
+apply/permP=> i; case: (unliftP j i) => [i'|] ->; last first.
+  by rewrite lift_perm_id tpermL.
+apply: ord_inj; rewrite lift_perm_lift !permE /= eq_sym -if_neg neq_lift.
+rewrite fun_if -val_eqE /= def_k /bump ltn_neqAle andbC.
+case: leqP => [_ | lt_i'm] /=; last by rewrite -if_neg neq_ltn leqW.
+by rewrite add1n eqSS eq_sym; case: eqP.
+Qed.
+
+End LiftPerm.
 
 Unset Implicit Arguments.

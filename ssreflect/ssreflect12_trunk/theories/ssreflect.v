@@ -139,7 +139,7 @@ Notation "[ 'th' 'e' sT 'of' v 'by' f ]" := (@get_by _ sT f v _ _)
 Notation "[ 'th' 'e' sT 'of' v ]" := (@get _ sT v _ _)
   (at level 0, format "[ 'th' 'e'  sT   'of'  v ]") : form_scope.
 
-(* We would like to recognize 
+(* We would like to recognize
 Notation "[ 'th' 'e' sT 'of' v : 'Type' ]" := (@get Type sT v _ _)
   (at level 0, format "[ 'th' 'e'  sT   'of'  v  :  'Type' ]") : form_scope.
 *)
@@ -199,11 +199,12 @@ Notation "{ 'type' 'of' c 'for' s }" := (dependentReturnType c s)
 (* definitions that use a phantom argument to infer and display the true *)
 (* value of p (in practice, the "indt" constructor often performs        *)
 (* additional functions, like "locking" the representation (see below).  *)
-(*   We also define a simpler version ("phant" / "Phant") for the common *)
-(* case where p_type is Type.                                            *)
+(*   We also define a simpler version ("phant" / "Phant") of phantom for *)
+(* the common case where p_type is Type.                                 *)
 
 CoInductive phantom (T :  Type) (p : T) :  Type := Phantom.
 Implicit Arguments phantom [].
+Implicit Arguments Phantom [].
 CoInductive phant (p : Type) :  Type := Phant.
 
 (* Internal tagging used by the implementation of the ssreflect elim. *)

@@ -117,7 +117,7 @@ Proof. by move=> *; rewrite mulnC mulnK. Qed.
 Lemma modn1 : forall m, m %% 1 = 0.
 Proof. by move=> m; rewrite modn_def; case: edivnP => ? []. Qed.
 
-Lemma divn1: forall m, m %/ 1 = m.
+Lemma divn1 : forall m, m %/ 1 = m.
 Proof. by move=> m; rewrite {2}(@divn_eq m 1) // modn1 addn0 muln1. Qed.
 
 Lemma divnn : forall d, d %/ d = (0 < d).
@@ -226,6 +226,19 @@ Proof. by move=> m n d; rewrite !(addnC m) modn_addml. Qed.
 Lemma modn_add2m : forall m n d, m %% d  + n %% d = m + n %[mod d].
 Proof. by move=> m n d; rewrite modn_addml modn_addmr. Qed.
 
+Lemma modn_add2l : forall p m n d,
+  (p + m == p + n %[mod d]) = (m == n %[mod d]).
+Proof.
+move=> p m n [|d]; first by rewrite !modn0 eqn_addl.
+apply/eqP/eqP=> eq_mn; last by rewrite -modn_addmr eq_mn modn_addmr.
+rewrite -(modn_addl_mul p m) -(modn_addl_mul p n) !mulnSr -!addnA.
+by rewrite -modn_addmr eq_mn modn_addmr.
+Qed.
+
+Lemma modn_add2r : forall p m n d,
+  (m + p == n + p %[mod d]) = (m == n %[mod d]).
+Proof. by move=> p *; rewrite -!(addnC p) modn_add2l. Qed.
+
 Lemma modn_mulml : forall m n d, m %% d * n = m * n %[mod d].
 Proof.
 by move=> m n d; rewrite {2}(divn_eq m d) muln_addl mulnAC modn_addl_mul.
@@ -250,7 +263,7 @@ Proof.
 by move=> m d d_even; rewrite {2}(divn_eq m d) odd_add odd_mul d_even andbF.
 Qed.
 
-Lemma modn_exp: forall m n a, (a %% n) ^ m = a ^ m %[mod n].
+Lemma modn_exp : forall m n a, (a %% n) ^ m = a ^ m %[mod n].
 Proof.
 by elim=> // m Hrec n a; rewrite !expnS -modn_mulmr Hrec modn_mulml modn_mulmr.
 Qed.
@@ -260,6 +273,8 @@ Qed.
 Definition dvdn d m := m %% d == 0.
 
 Notation "m %| d" := (dvdn m d) (at level 70, no associativity) : nat_scope.
+
+Definition multn := [rel m d | d %| m].
 
 Lemma dvdn2 : forall n, (2 %| n) = ~~ odd n.
 Proof. by move=> n; rewrite /dvdn modn2; case (odd n). Qed.
@@ -287,24 +302,24 @@ Proof. by move=> m; rewrite /dvdn modn1. Qed.
 Lemma dvdn_gt0 : forall d m, m > 0 -> d %| m -> d > 0.
 Proof. by do 2!case. Qed.
 
-Lemma dvdnn: forall m, m %| m.
+Lemma dvdnn : forall m, m %| m.
 Proof. by move=> m; rewrite /dvdn modnn. Qed.
 
-Lemma dvdn_mull: forall d m n, d %| n -> d %| m * n.
+Lemma dvdn_mull : forall d m n, d %| n -> d %| m * n.
 Proof. by move=> d m n; case/dvdnP=> n' ->; rewrite /dvdn mulnA modn_mull. Qed.
 
-Lemma dvdn_mulr: forall d m n, d %| m -> d %| m * n.
+Lemma dvdn_mulr : forall d m n, d %| m -> d %| m * n.
 Proof. by move=> d m n d_m; rewrite mulnC dvdn_mull. Qed.
 
 Hint Resolve dvdn0 dvd1n dvdnn dvdn_mull dvdn_mulr.
 
-Lemma dvdn_mul: forall d1 d2 m1 m2, d1 %| m1 -> d2 %| m2 -> d1 * d2 %| m1 * m2.
+Lemma dvdn_mul : forall d1 d2 m1 m2, d1 %| m1 -> d2 %| m2 -> d1 * d2 %| m1 * m2.
 Proof.
 move=> d1 d2 m1 m2; case/dvdnP=> q1 ->; case/dvdnP=> q2 ->.
 by rewrite mulnCA -mulnA 2?dvdn_mull.
 Qed.
 
-Lemma dvdn_trans: forall n d m, d %| n -> n %| m -> d %| m.
+Lemma dvdn_trans : forall n d m, d %| n -> n %| m -> d %| m.
 Proof. move=> n d m Hn; move/dvdnP => [n1 ->]; exact: dvdn_mull. Qed.
 
 Lemma dvdn_eq : forall d m, (d %| m) = (m %/ d * d == m).
@@ -372,6 +387,18 @@ Lemma dvdn_pmul2r : forall p d m, 0 < p -> (d * p %| m * p) = (d %| m).
 Proof. by move=> n d m Hn; rewrite -!(mulnC n) dvdn_pmul2l. Qed.
 Implicit Arguments dvdn_pmul2r [p m d].
 
+Lemma dvdn_exp2l : forall p m n, m <= n -> p ^ m %| p ^ n.
+Proof. by move=> p m n; move/subnK <-; rewrite expn_add dvdn_mull. Qed.
+
+Lemma dvdn_Pexp2l : forall p m n, p > 1 -> (p ^ m %| p ^ n) = (m <= n).
+Proof.
+move=> p m n p_gt1; case: leqP => [|gt_n_m]; first exact: dvdn_exp2l.
+by rewrite gtnNdvd ?ltn_exp2l ?expn_gt0 // ltnW.
+Qed.
+
+Lemma dvdn_exp2r : forall m n k, m %| n -> m ^ k %| n ^ k.
+Proof. by move=> m n k; case/dvdnP=> q ->; rewrite expn_mull dvdn_mull. Qed.
+
 Lemma dvdn_addr : forall m d n, d %| m -> (d %| m + n) = (d %| n).
 Proof. by move=> n d m; move/dvdnP=> [k ->]; rewrite /dvdn modn_addl_mul. Qed.
 
@@ -403,9 +430,7 @@ Hint Resolve dvdn_add dvdn_sub dvdn_exp.
 
 Lemma eqn_mod_dvd : forall d m n, n <= m -> (m == n %[mod d]) = (d %| m - n).
 Proof.
-rewrite /dvdn => d m n le_nm; apply/eqP/eqP => [eq_mod | mod_mn_0]; last first.
-  by rewrite -(subnK le_nm) -modn_addml mod_mn_0.
-by rewrite (divn_eq m d) (divn_eq n d) eq_mod subn_add2r -muln_subl modn_mull.
+by move=> d m n le_mn; rewrite -{1}[n]add0n -{1}(subnK le_mn) modn_add2r mod0n.
 Qed.
 
 Lemma divn_addl : forall m n d, d %| m -> (m + n) %/ d = m %/ d + n %/ d.
@@ -472,10 +497,10 @@ Qed.
 Lemma gcdn_addl_mul : forall k m n, gcdn m (k * m + n) = gcdn m n.
 Proof. by move=> k m n; rewrite !(gcdnE m) modn_addl_mul mulnC; case: m. Qed.
 
-Lemma gcdn_addl: forall m n, gcdn m (m + n) = gcdn m n.
+Lemma gcdn_addl : forall m n, gcdn m (m + n) = gcdn m n.
 Proof. by move => m n; rewrite -{2}(mul1n m) gcdn_addl_mul. Qed.
 
-Lemma gcdn_addr: forall m n, gcdn m (n + m) = gcdn m n.
+Lemma gcdn_addr : forall m n, gcdn m (n + m) = gcdn m n.
 Proof. by move=> m n; rewrite addnC gcdn_addl. Qed.
 
 Lemma gcdn_mull : forall n m, gcdn n (m * n) = n.
@@ -579,7 +604,7 @@ Qed.
 Lemma gcdn_modr : forall m n, gcdn m (n %% m) = gcdn m n.
 Proof. by move=> m n; rewrite {2}(divn_eq n m) gcdn_addl_mul. Qed.
 
-Lemma gcdn_modl: forall m n, gcdn (m %% n) n = gcdn m n.
+Lemma gcdn_modl : forall m n, gcdn (m %% n) n = gcdn m n.
 Proof. by move=> m n; rewrite !(gcdnC _ n) gcdn_modr. Qed.
 
 Lemma gcdnAC : right_commutative gcdn.
@@ -749,6 +774,14 @@ Proof. by case=> [|k] p m co_pm; rewrite ?coprime1n // coprime_pexpl. Qed.
 Lemma coprime_expr : forall k m n, coprime m n -> coprime m (n ^ k).
 Proof. by move=> k m n; rewrite !(coprime_sym m); exact: coprime_expl. Qed.
 
+Lemma coprime_dvdl : forall m n p, m %| n -> coprime n p -> coprime m p.
+Proof.
+by move=> m n p; case/dvdnP=> d ->; rewrite coprime_mull; case/andP.
+Qed.
+
+Lemma coprime_dvdr : forall m n p, m %| n -> coprime p n -> coprime p m.
+Proof. by move=> m n p; rewrite !(coprime_sym p); exact: coprime_dvdl. Qed.
+
 Lemma coprime_egcdn : forall n m, n > 0 ->
     coprime (egcdn n m).1 (egcdn n m).2.
 Proof.
@@ -757,6 +790,21 @@ have [u defn] := dvdnP (dvdn_gcdl n m); have [v defm] := dvdnP (dvdn_gcdr n m).
 rewrite -[gcdn n m]mul1n {1}defm {1}defn !mulnA -muln_addl addnC.
 rewrite eqn_pmul2r ?gcdn_gt0 ?n_gt0 //; move/eqP; case: kn => // kn def_knu _.
 by apply/coprimeP=> //; exists (u, v); rewrite mulnC def_knu mulnC addnK.
+Qed.
+
+Lemma dvdn_pexp2r : forall m n k, k > 0 -> (m ^ k %| n ^ k) = (m %| n).
+Proof.
+move=> m n k k_gt0; apply/idP/idP=> [dv_mn_k|]; last exact: dvdn_exp2r.
+case: (posnP n) => [-> | n_gt0]; first by rewrite dvdn0.
+have [n' def_n] := dvdnP (dvdn_gcdr m n); set d := gcdn m n in def_n.
+have [m' def_m] := dvdnP (dvdn_gcdl m n); rewrite -/d in def_m.
+have d_gt0: d > 0 by rewrite gcdn_gt0 n_gt0 orbT.
+rewrite def_m def_n !expn_mull dvdn_pmul2r ?expn_gt0 ?d_gt0 // in dv_mn_k.
+have: coprime (m' ^ k) (n' ^ k).
+  rewrite coprime_pexpl // coprime_pexpr // /coprime -(eqn_pmul2r d_gt0) mul1n.
+  by rewrite muln_gcdl -def_m -def_n.
+rewrite /coprime -gcdn_modr (eqnP dv_mn_k) gcdn0 -(exp1n k).
+by rewrite (inj_eq (expIn k_gt0)) def_m; move/eqP->; rewrite mul1n dvdn_gcdr.
 Qed.
 
 Section Chinese.

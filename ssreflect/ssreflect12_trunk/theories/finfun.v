@@ -94,7 +94,7 @@ Section PlainTheory.
 Variables (aT : finType) (rT : Type).
 Notation fT := {ffun aT -> rT}.
 
-Canonical Structure finfun_of_subType := [subType of fT].
+Canonical Structure finfun_of_subType := Eval hnf in [subType of fT].
 
 Lemma tnth_fgraph : forall (f : fT) i, tnth (fgraph f) i = f (enum_val i).
 Proof. by move=> f i; rewrite [@fun_of_fin _]unlock enum_valK. Qed.
@@ -159,7 +159,8 @@ Notation fT := {ffun aT -> rT}.
 
 Definition finfun_eqMixin :=
   Eval hnf in [eqMixin of finfun_type aT rT by <:].
-Canonical Structure finfun_eqType := Eval hnf in EqType finfun_eqMixin.
+Canonical Structure finfun_eqType := Eval hnf in EqType _ finfun_eqMixin.
+
 Canonical Structure finfun_of_eqType := Eval hnf in [eqType of fT].
 
 Section Partial.
@@ -177,7 +178,7 @@ Proof.
 move=> F f; apply: (iffP forallP) => [f_pfam | [f_supp f_fam] x].
   split=> [x | x dx]; move/(_ x): f_pfam; last by rewrite dx.
   by rewrite /support /=; case: (d x) => //= ->.
-case dx: (d x); [exact: f_fam | by apply/idPn; move/f_supp; rewrite dx].  
+case dx: (d x); [exact: f_fam | by apply/idPn; move/f_supp; rewrite dx].
 Qed.
 
 Definition pffun_on r := pfamily (fun _ => r).
@@ -197,14 +198,14 @@ End EqTheory.
 Definition finfun_choiceMixin aT (rT : choiceType) :=
   [choiceMixin of finfun_type aT rT by <:].
 Canonical Structure finfun_choiceType aT rT :=
-  Eval hnf in ChoiceType (finfun_choiceMixin aT rT).
+  Eval hnf in ChoiceType _ (finfun_choiceMixin aT rT).
 Canonical Structure finfun_of_choiceType (aT : finType) (rT : choiceType) :=
   Eval hnf in [choiceType of {ffun aT -> rT}].
 
 Definition finfun_countMixin aT (rT : countType) :=
   [countMixin of finfun_type aT rT by <:].
 Canonical Structure finfun_countType aT (rT : countType) :=
-  Eval hnf in CountType (finfun_countMixin aT rT).
+  Eval hnf in CountType _ (finfun_countMixin aT rT).
 Canonical Structure finfun_of_countType (aT : finType) (rT : countType) :=
   Eval hnf in [countType of {ffun aT -> rT}].
 Canonical Structure finfun_subCountType aT (rT : countType) :=
@@ -222,15 +223,17 @@ Notation fT := {ffun aT -> rT}.
 Notation ffT := (finfun_type aT rT).
 
 Definition finfun_finMixin := [finMixin of ffT by <:].
-Canonical Structure finfun_finType := Eval hnf in FinType finfun_finMixin.
+Canonical Structure finfun_finType := Eval hnf in FinType ffT finfun_finMixin.
 Canonical Structure finfun_subFinType := Eval hnf in [subFinType of ffT].
-Canonical Structure finfun_of_finType := Eval hnf in [finType of fT].
+
+Canonical Structure finfun_of_finType := Eval hnf in [finType of fT for finfun_finType].
+
 Canonical Structure finfun_of_subFinType := Eval hnf in [subFinType of fT].
 
 Lemma card_pfamily : forall y0 d (F : aT -> pred rT),
   #|pfamily y0 d F| = foldr (fun x m => #|F x| * m) 1 (enum d).
 Proof.
-move=> y0 d F; have:= enum_uniq d; have:= mem_enum d. 
+move=> y0 d F; have:= enum_uniq d; have:= mem_enum d.
 elim: {d}enum {2 4}d => [|x0 s IHs] d eq_ds => [_|] /=.
   rewrite -(card1 [ffun=> y0]); apply: eq_card => f.
   apply/familyP/eqP => [f_y0 | ->{f} x]; last by rewrite ffunE -[d _]eq_ds /=.

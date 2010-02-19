@@ -163,7 +163,7 @@ Lemma zip_tupleP : forall t1 t2 : tT, size (zip t1 t2) == n.
 Proof. by move=> *; rewrite size1_zip !size_tuple. Qed.
 Canonical Structure zip_tuple t1 t2 := Tuple (zip_tupleP t1 t2).
 
-Definition thead (n : pos_nat) (t : n.-tuple T) := tnth t ord0.
+Definition thead n (t : n.+1.-tuple T) := tnth t ord0.
 
 Lemma tnth0 : forall x n (t : n.-tuple T), tnth [tuple of x :: t] ord0 = x.
 Proof. by []. Qed.
@@ -171,7 +171,7 @@ Proof. by []. Qed.
 Lemma theadE : forall x n (t : n.-tuple T), thead [tuple of x :: t] = x.
 Proof. by []. Qed.
 
-Lemma tuple0 : forall t : 0.-tuple T, t = [tuple].
+Lemma tuple0 : @all_equal_to (0.-tuple T) [tuple].
 Proof. by move=> t; apply: val_inj; case: t => [[]]. Qed.
 
 CoInductive tuple1_spec : n.+1.-tuple T -> Type :=
@@ -189,7 +189,7 @@ Proof. by move=> f t i; apply: nth_map; rewrite size_tuple. Qed.
 
 End SeqTuple.
 
-Lemma tnth_behead : forall (n : pos_nat) T (t : n.+1.-tuple T) i,
+Lemma tnth_behead : forall n T (t : n.+1.-tuple T) i,
   tnth [tuple of behead t] i = tnth t (inord i.+1).
 Proof.
 by move=> n T; case/tupleP=> x t i; rewrite !(tnth_nth x) inordK ?ltnS.
@@ -203,8 +203,9 @@ Section EqTuple.
 
 Variables (n : nat) (T : eqType).
 
-Definition tuple_eqMixin := Eval hnf in [eqMixin of n.-tuple(T) by <:].
-Canonical Structure tuple_eqType := Eval hnf in EqType tuple_eqMixin.
+Definition tuple_eqMixin := Eval hnf in [eqMixin of n.-tuple T by <:].
+Canonical Structure tuple_eqType :=
+  Eval hnf in EqType (n.-tuple T) tuple_eqMixin.
 
 Canonical Structure tuple_predType :=
   Eval hnf in mkPredType (fun t : n.-tuple T => mem_seq t).
@@ -215,19 +216,19 @@ Proof. by []. Qed.
 End EqTuple.
 
 Definition tuple_choiceMixin n (T : choiceType) :=
-  [choiceMixin of n.-tuple(T) by <:].
+  [choiceMixin of n.-tuple T by <:].
 
-Canonical Structure tuple_choiceType n T :=
-  Eval hnf in ChoiceType (tuple_choiceMixin n T).
+Canonical Structure tuple_choiceType n (T : choiceType) :=
+  Eval hnf in ChoiceType (n.-tuple T) (tuple_choiceMixin n T).
 
 Definition tuple_countMixin n (T : countType) :=
-  [countMixin of n.-tuple(T) by <:].
+  [countMixin of n.-tuple T by <:].
 
-Canonical Structure tuple_countType n T :=
-  Eval hnf in CountType (tuple_countMixin n T).
+Canonical Structure tuple_countType n (T : countType) :=
+  Eval hnf in CountType (n.-tuple T) (tuple_countMixin n T).
 
 Canonical Structure tuple_subCountType n (T : countType) :=
-  Eval hnf in [subCountType of n.-tuple(T)].
+  Eval hnf in [subCountType of n.-tuple T].
 
 Module Type FinTupleSig.
 Section FinTupleSig.
@@ -242,7 +243,7 @@ Module FinTuple : FinTupleSig.
 Section FinTuple.
 Variables (n : nat) (T : finType).
 
-Definition enum : seq (n.-tuple(T)) :=
+Definition enum : seq (n.-tuple T) :=
   let extend e := flatten (map (fun x => map (cons x) e) (Finite.enum T)) in
   pmap insub (iter n extend [::[::]]).
 
@@ -276,8 +277,9 @@ Section UseFinTuple.
 Variables (n : nat) (T : finType).
 Notation tT := (n.-tuple T).
 
-Canonical Structure tuple_finMixin := FinMixin (@FinTuple.enumP n T).
-Canonical Structure tuple_finType := Eval hnf in FinType tuple_finMixin.
+Canonical Structure tuple_finMixin :=
+  Eval hnf in FinMixin (@FinTuple.enumP n T).
+Canonical Structure tuple_finType := Eval hnf in FinType tT tuple_finMixin.
 Canonical Structure tuple_subFinType := Eval hnf in [subFinType of tT].
 
 Lemma card_tuple : #|{:n.-tuple T}| = #|T| ^ n.

@@ -10,25 +10,42 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice.
 (* more simply by giving a bound on the range of the pickle function      *)
 (* provided by the Countable structure, this would yield a useless        *)
 (* computational interpretation due to the wasteful encoding into Peano   *)
-(* integers.                                                              *)
+(* integers. However, because the Countable structure is so closely tied  *)
+(* to the Finite structure, and is not much used on its own, we include   *)
+(* the Countable mixin inside the Finite mixin; this is invisible to      *)
+(* clients of the class, but makes it much easier to derive Finite        *)
+(* variants of interfaces, in this file for subFinType, and in finalg.v.  *)
 (* We define operations on Finite Type expecting an applicative predicate *)
 (* as argument:                                                           *)
 (*   - enum to enumerate the elements filtered by pred                    *)
 (*   - pick, returning the first filtered element; we also give Notations *)
 (*   to supply the pred coercion as in [pick x | P]                       *)
 (*   - boolean quantifiers for finType: forallb x, F  and existsb x, F    *)
+(*  [arg min_(i < i0 | P i) F i] == a value of i minimizing F i : nat     *)
+(*     subject to the condition P i, and provided P i0 holds (here i must *)
+(*     range over a finType).                                             *)
+(*  [arg max_(i > i0 | P i) F i] == a value of i maximizing F i subject   *)
+(*     to the condition P i, and provided P i0 holds.                     *)
+(*  [arg min_(i < i0 \in A) F i] == an i \in A minimizing F i if i0 \in A *)
+(*  [arg max_(i > i0 | P i) F i] == an i \in A maximizing F i if i0 \in A *)
+(*  [arg min_(i < i0) F i] == an i minimizing F i in the finType of i0.   *)
+(*  [arg max_(i > i0) F i] == an i maximizing F i in the finType of i0.   *)
 (* We also define operations card, disjoint, subset and proper expecting  *)
 (* a mem_pred and  used through notations that supply the mem coercion.   *)
 (* We provide a serie of lemmas for all these operations on finType       *)
 (* We define operations on functions on finTypes: the Boolean injectivity,*)
 (* image (image f of A), inverse function.                                *)
 (* Finally we define some standard finTypes the ordinals and the product  *)
-(* and the sum of two finTypes.                                           *)  
+(* and the sum of two finTypes.                                           *)
 (*   The Ordinal finType I_n : {0, ... , n-1} is provided with a coercion *)
-(* nat_of_ord to  natural numbers, and                                    *)
-(*   -  the lift/unlift operations to avoid a messy dependent type;       *)
+(* nat_of_ord to natural numbers, and                                     *)
+(*   -  dependent type casts: cast_ord, widen_ord                         *)
+(*   -  reversal: rev_ord, sub_ord                                        *)
+(*   -  injection: inord, min and max : ord0 and ord_max (when n = m.+1)  *)
+(*   -  lift/unlift operations; to avoid a messy dependent type,          *)
 (*      unlift is a partial operation (returns an option).                *)
 (*   -  shifting and splitting indices, for cutting and pasting arrays    *)
+(*   -  bijection with finite types: enum_rank and enum_ord.              *)
 (**************************************************************************)
 
 Set Implicit Arguments.
@@ -37,22 +54,39 @@ Import Prenex Implicits.
 
 Module Finite.
 
-Definition axiom T e := forall x, count (@pred1 T x) e = 1.
+Section RawMixin.
 
-Record mixin_of (T : eqType) : Type :=
-  Mixin {mixin_enum : seq T; _ : axiom mixin_enum}.
+Variable T : eqType.
 
-Lemma uniq_enumP : forall T e, @uniq T e -> e =i T -> axiom e.
-Proof. by move=> T e Ue sT x; rewrite count_uniq_mem ?sT. Qed.
+Definition axiom e := forall x, count (@pred1 T x) e = 1.
 
-Definition UniqMixin T e Ue eT := Mixin (@uniq_enumP T e Ue eT).
+Lemma uniq_enumP : forall e, uniq e -> e =i T -> axiom e.
+Proof. by move=> e Ue sT x; rewrite count_uniq_mem ?sT. Qed.
 
-Section CountAxiom.
+Record mixin_of := Mixin {
+  mixin_base :> Countable.mixin_of T;
+  mixin_enum : seq T;
+  _ : axiom mixin_enum
+}.
 
-Variables (T : countType) (n : nat).
-Hypothesis ubT : forall x : T, pickle x < n.
+End RawMixin.
+
+Section Mixins.
+
+Variable T : countType.
+
+Definition EnumMixin :=
+  let: Countable.Pack _ (Countable.Class _ m) _ as cT := T
+    return forall e : seq cT, axiom e -> mixin_of cT in
+  @Mixin (EqType _ _) m.
+
+Definition UniqMixin e Ue eT := @EnumMixin e (uniq_enumP Ue eT).
+
+Variable n : nat.
 
 Definition count_enum := pmap (@pickle_inv T) (iota 0 n).
+
+Hypothesis ubT : forall x : T, pickle x < n.
 
 Lemma count_enumP : axiom count_enum.
 Proof.
@@ -60,22 +94,23 @@ apply: uniq_enumP (pmap_uniq (@pickle_invK T) (iota_uniq _ _)) _ => x.
 by rewrite mem_pmap -pickleK_inv map_f // mem_iota ubT.
 Qed.
 
-Definition CountMixin := Mixin count_enumP.
+Definition CountMixin := EnumMixin count_enumP.
 
-End CountAxiom.
+End Mixins.
 
-Record class_of (T : Type) : Type := Class {
-  base :> Countable.class_of T;
+Record class_of T := Class {
+  base :> Choice.class_of T;
   mixin :> mixin_of (Equality.Pack base T)
 }.
+Coercion base2 T (c : class_of T) := Countable.Class c c.
 
 Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition unpack K (k : forall T (c : class_of T), K T c) cT :=
-  let: Pack T c _ := cT return K _ (class cT) in k _ c.
-Definition repack cT : _ -> Type -> type := let k T c p := p c in unpack k cT.
+Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
 
-Definition pack := let k T c m := Pack (@Class T c m) T in Countable.unpack k.
+Definition pack T b0 (m0 : mixin_of (EqType T b0)) :=
+  fun bT b & phant_id (Choice.class bT) b =>
+  fun m & phant_id m0 m => Pack (@Class T b m) T.
 
 Module Type EnumSig.
 Parameter enum : forall cT : type, seq cT.
@@ -89,21 +124,19 @@ End EnumDef.
 
 Notation enum := EnumDef.enum.
 
-Definition eqType cT := Equality.Pack (class cT) cT.
-Definition choiceType cT := Choice.Pack (class cT) cT.
+Coercion eqType cT := Equality.Pack (class cT) cT.
+Coercion choiceType cT := Choice.Pack (class cT) cT.
 Coercion countType cT := Countable.Pack (class cT) cT.
 
 End Finite.
 
 Notation finType := Finite.type.
-Notation FinType := Finite.pack.
-Notation FinMixin := Finite.Mixin.
+Notation FinType T m := (@Finite.pack T _ m _ _ id _ id).
+Notation FinMixin := Finite.EnumMixin.
 Notation UniqFinMixin := Finite.UniqMixin.
-Notation "[ 'finType' 'of' T 'for' cT ]" :=
-    (@Finite.repack cT (@Finite.Pack T) T)
+Notation "[ 'finType' 'of' T 'for' cT ]" := (@Finite.clone T cT _ idfun)
   (at level 0, format "[ 'finType'  'of'  T  'for'  cT ]") : form_scope.
-Notation "[ 'finType' 'of' T ]" :=
-    (Finite.repack (fun c => @Finite.Pack T c) T)
+Notation "[ 'finType' 'of' T ]" := (@Finite.clone T _ _ id)
   (at level 0, format "[ 'finType'  'of'  T ]") : form_scope.
 Canonical Structure Finite.eqType.
 Canonical Structure Finite.choiceType.
@@ -135,7 +168,9 @@ End CardDefSig.
 Module CardDef : CardDefSig.
 Definition card : card_type := card_def. Definition cardEdef := erefl card.
 End CardDef.
-Export CardDef. (* Should become Include in 8.2. *)
+(* Should be Include, but for a silly restriction: can't Include at toplevel! *)
+Export CardDef.
+
 Canonical Structure card_unlock := Unlockable cardEdef.
 (* A is at level 99 to allow the notation #|G : H| in groups. *)
 Notation "#| A |" := (card (mem A))
@@ -143,10 +178,10 @@ Notation "#| A |" := (card (mem A))
 
 Definition pred0b (T : finType) (P : pred T) := #|P| == 0.
 Prenex Implicits pred0b.
-Notation "'forallb' x , F" := (pred0b (fun x => ~~ F))
+Notation "'forallb' x , F" := (pred0b (pred_of_simpl (predC (fun x => F%B))))
   (at level 200, x at level 99,
    format "'[hv' 'forallb'  x , '/ '  F ']'") : bool_scope.
-Notation "'forallb' x : T , F" := (pred0b (fun x : T => ~~ F))
+Notation "'forallb' x : T , F" := (pred0b (predC (fun x : T => F%B)))
   (at level 200, x at level 99, only parsing) : bool_scope.
 Notation "'existsb' x , F" := (~~ pred0b (fun x => F%B))
   (at level 200, x at level 99,
@@ -321,7 +356,7 @@ Lemma card0_eq : forall A, #|A| = 0 -> A =i pred0.
 Proof. by move=> A A0 x; apply/idP => Ax; rewrite (cardD1 x) Ax in A0. Qed.
 
 Lemma pred0P : forall P, reflect (P =1 pred0) (pred0b P).
-Proof. move=> p; apply: (iffP eqP); [exact: card0_eq | exact: eq_card0]. Qed. 
+Proof. move=> p; apply: (iffP eqP); [exact: card0_eq | exact: eq_card0]. Qed.
 
 Lemma pred0Pn : forall P, reflect (exists x, P x) (~~ pred0b P).
 Proof.
@@ -329,6 +364,9 @@ move=> P; case: (pickP P) => [x Px | P0].
   by rewrite (introN (pred0P P)) => [|P0]; [left; exists x | rewrite P0 in Px].
 by rewrite -lt0n eq_card0 //; right=> [[x]]; rewrite P0.
 Qed.
+
+Lemma card_gt0P : forall A, reflect (exists i, i \in A) (#|A| > 0).
+Proof. move=> A; rewrite lt0n; exact: pred0Pn. Qed.
 
 Lemma subsetE : forall A B, (A \subset B) = pred0b [predD A & B].
 Proof. by rewrite unlock. Qed.
@@ -435,7 +473,7 @@ Proof.
 move=> A B; rewrite properE; apply: (iffP andP); case=>->; case/subsetPn=> //.
 by move=> x Bx nAx; split=> //; exists x.
 Qed.
- 
+
 Lemma proper_sub : forall A B, A \proper B -> A \subset B.
 Proof. by move=> A B; case/andP. Qed.
 
@@ -467,7 +505,7 @@ Qed.
 
 Lemma proper_card : forall A B, A \proper B -> #|A| < #|B|.
 Proof.
-move=> A B; case/andP=> sAB nsBA; rewrite ltn_neqAle. 
+move=> A B; case/andP=> sAB nsBA; rewrite ltn_neqAle.
 by case: (subset_leqif_card sAB)=> -> ->; rewrite andbT.
 Qed.
 
@@ -486,7 +524,7 @@ Lemma eq_proper_r : forall A B, A =i B ->
 Proof.
 move=> A B eAB [C]; congr andb; first by apply: (eq_subset_r eAB).
 by rewrite (eq_subset eAB).
-Qed. 
+Qed.
 
 Lemma disjoint_sym : forall A B, [disjoint A & B] = [disjoint B & A].
 Proof. by move=> A B; congr eqn; apply: eq_card => x; apply: andbC. Qed.
@@ -589,7 +627,7 @@ Implicit Type P : pred T.
 
 Lemma forallP : forall P, reflect (forall x, P x) (forallb x, P x).
 Proof.
-by move=> P; apply: (iffP pred0P) => allP x; first apply/idPn; rewrite allP.
+by move=> P; apply: (iffP pred0P) => P_ x /=; rewrite ?P_ ?(negbFE (P_ x)).
 Qed.
 
 Lemma existsP : forall P, reflect (exists x, P x) (existsb x, P x).
@@ -608,8 +646,8 @@ Proof. by []. Qed.
 
 Lemma negb_exists : forall P, ~~ (existsb x, P x) = (forallb x, ~~ P x).
 Proof.
-move=> P; rewrite negbK; congr (_ == _); apply: eq_card => x.
-by rewrite -!topredE /= negbK.
+move=> P; rewrite negbK; congr (_ == 0); apply: eq_card => x.
+by rewrite !inE /= negbK.
 Qed.
 
 End Quantifiers.
@@ -618,12 +656,84 @@ Implicit Arguments forallP [T P].
 Implicit Arguments existsP [T P].
 Prenex Implicits forallP existsP.
 
-(**********************************************************************)
-(*                                                                    *)
-(*  Boolean injective for finType                                     *)
-(*                                                                    *)
-(**********************************************************************)
+Section Extrema.
 
+Variables (I : finType) (i0 : I) (P : pred I) (F : I -> nat).
+
+Let arg_pred ord := [pred i | P i && (forallb j, P j ==> ord (F i) (F j))].
+
+Definition arg_min := odflt i0 (pick (arg_pred leq)).
+
+Definition arg_max := odflt i0 (pick (arg_pred geq)).
+
+CoInductive extremum_spec (ord : rel nat) : I -> Type :=
+  ExtremumSpec i of P i & (forall j, P j -> ord (F i) (F j))
+    : extremum_spec ord i.
+
+Hypothesis Pi0 : P i0.
+
+Let FP n := existsb i, P i && (F i == n).
+Let FP_F : forall i, P i -> FP (F i).
+Proof. by move=> i Pi; apply/existsP; exists i; rewrite Pi /=. Qed.
+Let exFP : exists n, FP n. Proof. by exists (F i0); exact: FP_F. Qed.
+
+Lemma arg_minP : extremum_spec leq arg_min.
+Proof.
+rewrite /arg_min; case: pickP => [i | no_i].
+  by case/andP=> Pi; move/forallP=> min_i; split=> // j; exact/implyP.
+case/ex_minnP: exFP => n ex_i min_i; case/pred0P: ex_i => i.
+apply/andP=> [[Pi def_n]]; case/idP: (no_i i); rewrite /= Pi.
+by apply/forallP=> j; apply/implyP=> Pj; rewrite (eqP def_n) min_i ?FP_F.
+Qed.
+
+Lemma arg_maxP : extremum_spec geq arg_max.
+Proof.
+rewrite /arg_max; case: pickP => [i | no_i].
+  by case/andP=> Pi; move/forallP=> max_i; split=> // j; exact/implyP.
+have: forall n, FP n -> n <= foldr maxn 0 (map F (enum P)).
+  move=> n; case/existsP=> i; rewrite -[P i]mem_enum andbC; case/andP.
+  move/eqP <-; elim: (enum P) => //= j e IHe; rewrite leq_maxr orbC !inE.
+  by case/predU1P=> [-> | ]; [rewrite leqnn orbT | move/IHe->].
+case/ex_maxnP=> // n ex_i max_i; case/pred0P: ex_i => i.
+apply/andP=> [[Pi def_n]]; case/idP: (no_i i); rewrite /= Pi.
+by apply/forallP=> j; apply/implyP=> Pj; rewrite (eqP def_n) max_i ?FP_F.
+Qed.
+
+End Extrema.
+
+Notation "[ 'arg' 'min_' ( i < i0 | P ) F ]" :=
+    (arg_min i0 (fun i => P) (fun i => F))
+  (at level 0, i, i0 at level 10,
+   format "[ 'arg'  'min_' ( i  <  i0  |  P )  F ]") : form_scope.
+ 
+Notation "[ 'arg' 'min_' ( i < i0 \in A ) F ]" :=
+    [arg min_(i < i0 | i \in A) F]
+  (at level 0, i, i0 at level 10,
+   format "[ 'arg'  'min_' ( i  <  i0  \in  A )  F ]") : form_scope.
+
+Notation "[ 'arg' 'min_' ( i < i0 ) F ]" := [arg min_(i < i0 | true) F]
+  (at level 0, i, i0 at level 10,
+   format "[ 'arg'  'min_' ( i  <  i0 )  F ]") : form_scope.
+ 
+Notation "[ 'arg' 'max_' ( i > i0 | P ) F ]" :=
+     (arg_max i0 (fun i => P) (fun i => F))
+  (at level 0, i, i0 at level 10,
+   format "[ 'arg'  'max_' ( i  >  i0  |  P )  F ]") : form_scope.
+ 
+Notation "[ 'arg' 'max_' ( i > i0 \in A ) F ]" :=
+    [arg max_(i > i0 | i \in A) F]
+  (at level 0, i, i0 at level 10,
+   format "[ 'arg'  'max_' ( i  >  i0  \in  A )  F ]") : form_scope.
+
+Notation "[ 'arg' 'max_' ( i > i0 ) F ]" := [arg max_(i > i0 | true) F]
+  (at level 0, i, i0 at level 10,
+   format "[ 'arg'  'max_' ( i  >  i0 ) F ]") : form_scope.
+
+(**********************************************************************)
+(*                                                                    *)
+(*  Boolean injectivity test for functions with a finType domain      *)
+(*                                                                    *)
+(**********************************************************************)
 
 Section Injectiveb.
 
@@ -732,7 +842,7 @@ Definition codom := image T.
 
 Lemma codom_f : forall x, codom (f x).
 Proof. by move=> x; exact: mem_image. Qed.
-  
+
 Lemma iinv_f : forall x fTfx, injective f -> @iinv T (f x) fTfx = x.
 Proof. by move=> x fAfx injf; apply: in_iinv_f; first exact: in2W. Qed.
 
@@ -868,15 +978,16 @@ Section SeqFinType.
 
 Variables (T : choiceType) (s : seq T).
 
-Record seq_sub : Type := SeqSub { ssval : T; ssvalP : ssval \in s }.
+Record seq_sub : Type := SeqSub {ssval : T; ssvalP : in_mem ssval (@mem T _ s)}.
 
 Canonical Structure seq_sub_subType :=
   Eval hnf in [subType for ssval by seq_sub_rect].
 Definition seq_sub_eqMixin := Eval hnf in [eqMixin of seq_sub by <:].
-Canonical Structure seq_sub_eqType := Eval hnf in EqType seq_sub_eqMixin.
+Canonical Structure seq_sub_eqType :=
+  Eval hnf in EqType seq_sub seq_sub_eqMixin.
 Definition seq_sub_choiceMixin := [choiceMixin of seq_sub by <:].
 Canonical Structure seq_sub_choiceType :=
-  Eval hnf in ChoiceType seq_sub_choiceMixin.
+  Eval hnf in ChoiceType seq_sub seq_sub_choiceMixin.
 
 Definition seq_sub_enum : seq seq_sub := undup (pmap insub s).
 
@@ -900,21 +1011,24 @@ Qed.
 
 Definition seq_sub_countMixin := CountMixin seq_sub_pickleK.
 Canonical Structure seq_sub_countType :=
-  Eval hnf in CountType seq_sub_countMixin.
-Canonical Structure seq_sub_subCountType := [subCountType of seq_sub].
-Definition seq_sub_finMixin := UniqFinMixin (undup_uniq _) mem_seq_sub_enum.
-Canonical Structure seq_sub_finType := Eval hnf in FinType seq_sub_finMixin.
+  Eval hnf in CountType seq_sub seq_sub_countMixin.
+Canonical Structure seq_sub_subCountType :=
+  Eval hnf in [subCountType of seq_sub].
+Definition seq_sub_finMixin :=
+  Eval hnf in UniqFinMixin (undup_uniq _) mem_seq_sub_enum.
+Canonical Structure seq_sub_finType :=
+  Eval hnf in FinType seq_sub seq_sub_finMixin.
 
 End SeqFinType.
 
 Lemma unit_enumP : Finite.axiom [::tt]. Proof. by case. Qed.
-Definition unit_finMixin := FinMixin unit_enumP.
-Canonical Structure unit_finType := Eval hnf in FinType unit_finMixin.
+Definition unit_finMixin := Eval hnf in FinMixin unit_enumP.
+Canonical Structure unit_finType := Eval hnf in FinType unit unit_finMixin.
 Lemma card_unit : #|{: unit}| = 1. Proof. by rewrite cardT enumT unlock. Qed.
 
 Lemma bool_enumP : Finite.axiom [:: true; false]. Proof. by case. Qed.
-Definition bool_finMixin := FinMixin bool_enumP.
-Canonical Structure bool_finType := Eval hnf in FinType bool_finMixin.
+Definition bool_finMixin := Eval hnf in FinMixin bool_enumP.
+Canonical Structure bool_finType := Eval hnf in FinType bool bool_finMixin.
 Lemma card_bool : #|{: bool}| = 2. Proof. by rewrite cardT enumT unlock. Qed.
 
 Section OptionFinType.
@@ -926,8 +1040,9 @@ Definition option_enum := None :: map some (Finite.enum T).
 Lemma option_enumP : Finite.axiom option_enum.
 Proof. by case=> [x|]; rewrite /= count_map (count_pred0, enumP). Qed.
 
-Definition option_finMixin := FinMixin option_enumP.
-Canonical Structure option_finType := Eval hnf in FinType option_finMixin.
+Definition option_finMixin := Eval hnf in FinMixin option_enumP.
+Canonical Structure option_finType :=
+  Eval hnf in FinType (option T) option_finMixin.
 
 Lemma card_option : #|{: option T}| = #|T|.+1.
 Proof. by rewrite !cardT !enumT unlock /= !size_map. Qed.
@@ -956,25 +1071,31 @@ Section SubFinType.
 Variables (T : choiceType) (P : pred T).
 Import Finite.
 
-Structure subFinType : Type := SubFinType {
-  subFin_sort :> subCountType P;
-  _ : @mixin_of subFin_sort
+Structure subFinType := SubFinType {
+  subFin_sort :> subType P;
+  _ : mixin_of (sub_eqType subFin_sort)
 }.
 
-Coercion subFinType_finType sT :=
-  Eval hnf in pack (let: SubFinType _ m := sT return mixin_of sT in m).
-Canonical Structure subFinType_finType.
+Definition pack_subFinType U :=
+  fun cT b m & phant_id (class cT) (@Class U b m) =>
+  fun sT m'  & phant_id m' m => @SubFinType sT m'.
 
-Definition subFinType_for scT :=
-  let k T c of phant T :=
-    let: Class _ m := c return _ = Equality.Pack c T -> _ in fun eq_eT =>
-    eq_rect _ (fun eT => mixin_of eT -> _) (@SubFinType scT) _ eq_eT m
-  in unpack k.
+Implicit Type sT : subFinType.
+
+Definition subFin_mixin sT :=
+  let: SubFinType _ m := sT return mixin_of (sub_eqType sT) in m.
+
+Coercion subFinType_subCountType sT := @SubCountType _ _ sT (subFin_mixin sT).
+Canonical Structure subFinType_subCountType.
+
+Coercion subFinType_finType sT :=
+  Pack (@Class sT (sub_choiceClass sT) (subFin_mixin sT)) sT.
+Canonical Structure subFinType_finType.
 
 End SubFinType.
 
 (* This assumes that T has both finType and subCountType structures. *)
-Notation "[ 'subFinType' 'of' T ]" := (subFinType_for (Phant T) (erefl _))
+Notation "[ 'subFinType' 'of' T ]" := (@pack_subFinType _ _ T _ _ _ id _ _ id)
   (at level 0, format "[ 'subFinType'  'of'  T ]") : form_scope.
 
 Canonical Structure seq_sub_subFinType T s :=
@@ -1005,7 +1126,7 @@ Qed.
 Definition SubFinMixin := UniqFinMixin sub_enum_uniq mem_sub_enum.
 Definition SubFinMixin_for (eT : eqType) of phant eT :=
   eq_rect _ Finite.mixin_of SubFinMixin eT.
-Let sfT := FinType SubFinMixin.
+Let sfT := FinType sT SubFinMixin.
 
 Lemma card_sub : #|sfT| = #|[pred x | P x]|.
 Proof. by rewrite !cardE enumT unlock -(size_map val) val_sub_enum. Qed.
@@ -1026,14 +1147,14 @@ Notation "[ 'finMixin' 'of' T 'by' <: ]" :=
 Record myb : Type := MyB {myv : bool; _ : ~~ myv}.
 Canonical Structure myb_sub := Eval hnf in [subType for myv by myb_rect].
 Definition myb_eqm := Eval hnf in [eqMixin of myb by <:].
-Canonical Structure myb_eq := Eval hnf in EqType myb_eqm.
+Canonical Structure myb_eq := Eval hnf in EqType myb myb_eqm.
 Definition myb_chm := [choiceMixin of myb by <:].
-Canonical Structure myb_ch := Eval hnf in ChoiceType myb_chm.
+Canonical Structure myb_ch := Eval hnf in ChoiceType myb myb_chm.
 Definition myb_cntm := [countMixin of myb by <:].
-Canonical Structure myb_cnt := Eval hnf in CountType myb_cntm.
+Canonical Structure myb_cnt := Eval hnf in CountType myb myb_cntm.
 Canonical Structure myb_scnt := Eval hnf in [subCountType of myb].
 Definition myb_finm := [finMixin of myb by <:].
-Canonical Structure myb_fin := Eval hnf in FinType myb_finm.
+Canonical Structure myb_fin := Eval hnf in FinType myb myb_finm.
 Canonical Structure myb_sfin := Eval hnf in [subFinType of myb].
 Print Canonical Projections.
 Print myb_finm.
@@ -1045,7 +1166,7 @@ Section CardSig.
 Variables (T : finType) (P : pred T).
 
 Definition sig_finMixin := [finMixin of {x | P x} by <:].
-Canonical Structure sig_finType := Eval hnf in FinType sig_finMixin.
+Canonical Structure sig_finType := Eval hnf in FinType {x | P x} sig_finMixin.
 Canonical Structure sig_subFinType := Eval hnf in [subFinType of {x | P x}].
 
 Lemma card_sig : #|{: {x | P x}}| = #|[pred x | P x]|.
@@ -1070,13 +1191,14 @@ Coercion nat_of_ord i := let: Ordinal m _ := i in m.
 Canonical Structure ordinal_subType :=
   [subType for nat_of_ord by ordinal_rect].
 Definition ordinal_eqMixin := Eval hnf in [eqMixin of ordinal by <:].
-Canonical Structure ordinal_eqType := Eval hnf in EqType ordinal_eqMixin.
+Canonical Structure ordinal_eqType :=
+  Eval hnf in EqType ordinal ordinal_eqMixin.
 Definition ordinal_choiceMixin := [choiceMixin of ordinal by <:].
 Canonical Structure ordinal_choiceType :=
-  Eval hnf in ChoiceType ordinal_choiceMixin.
+  Eval hnf in ChoiceType ordinal ordinal_choiceMixin.
 Definition ordinal_countMixin := [countMixin of ordinal by <:].
 Canonical Structure ordinal_countType :=
-  Eval hnf in CountType ordinal_countMixin.
+  Eval hnf in CountType ordinal ordinal_countMixin.
 Canonical Structure ordinal_subCountType := [subCountType of ordinal].
 
 Lemma ltn_ord : forall i : ordinal, i < n. Proof. exact: valP. Qed.
@@ -1099,8 +1221,10 @@ Proof.
 by move=> i; rewrite -(mem_map ord_inj) val_ord_enum mem_iota ltn_ord.
 Qed.
 
-Definition ordinal_finMixin := UniqFinMixin ord_enum_uniq mem_ord_enum.
-Canonical Structure ordinal_finType := Eval hnf in FinType ordinal_finMixin.
+Definition ordinal_finMixin :=
+  Eval hnf in UniqFinMixin ord_enum_uniq mem_ord_enum.
+Canonical Structure ordinal_finType :=
+  Eval hnf in FinType ordinal ordinal_finMixin.
 Canonical Structure ordinal_subFinType := Eval hnf in [subFinType of ordinal].
 
 End OrdinalSub.
@@ -1139,13 +1263,42 @@ Qed.
 
 End OrdinalEnum.
 
-Lemma widen_ordP : forall n m (i : 'I_n), n <= m -> i < m.
-Proof. move=> *; exact: leq_trans. Qed.
-Definition widen_ord n m le_n_m i := Ordinal (@widen_ordP n m i le_n_m).
+Lemma widen_ord_proof : forall n m (i : 'I_n), n <= m -> i < m.
+Proof. move=> n m i; exact: leq_trans. Qed.
+Definition widen_ord n m le_n_m i := Ordinal (@widen_ord_proof n m i le_n_m).
 
-Lemma cast_ordP : forall n m (i : 'I_n), n = m -> i < m.
+Lemma cast_ord_proof : forall n m (i : 'I_n), n = m -> i < m.
 Proof. by move=> n m i <-. Qed.
-Definition cast_ord n m eq_n_m i := Ordinal (@cast_ordP n m i eq_n_m).
+Definition cast_ord n m eq_n_m i := Ordinal (@cast_ord_proof n m i eq_n_m).
+
+Lemma cast_ord_id : forall n eq_n i, cast_ord eq_n i = i :> 'I_n.
+Proof. by move=> n eq_n i; apply: val_inj. Qed.
+
+Lemma cast_ord_comp : forall n1 n2 n3 eq_n2 eq_n3 i,
+  @cast_ord n2 n3 eq_n3 (@cast_ord n1 n2 eq_n2 i) =
+    cast_ord (etrans eq_n2 eq_n3) i.
+Proof. by move=> n1 n2 n3 eq_n2 eq_n3 i; apply: val_inj. Qed.
+
+Lemma cast_ordK : forall n1 n2 eq_n,
+  cancel (@cast_ord n1 n2 eq_n) (cast_ord (esym eq_n)).
+Proof. by move=> n1 n2 eq_n i; apply: val_inj. Qed.
+
+Lemma cast_ordKV : forall n1 n2 eq_n,
+  cancel (cast_ord (esym eq_n)) (@cast_ord n1 n2 eq_n).
+Proof. by move=> n1 n2 eq_n i; apply: val_inj. Qed.
+
+Lemma cast_ord_inj : forall n1 n2 eq_n, injective (@cast_ord n1 n2 eq_n).
+Proof. move=> n1 n2 eq_n; exact: can_inj (cast_ordK eq_n). Qed.
+
+Lemma rev_ord_proof : forall n (i : 'I_n), n - i.+1  < n.
+Proof. by case=> [|n] [i lt_i_n] //; rewrite ltnS subSS leq_subr. Qed.
+Definition rev_ord n i := Ordinal (@rev_ord_proof n i).
+
+Lemma rev_ordK : forall n, involutive (@rev_ord n).
+Proof. by case=> [|n] [i lti] //; apply: val_inj; rewrite /= !subSS subKn. Qed.
+
+Lemma rev_ord_inj : forall {n}, injective (@rev_ord n).
+Proof. move=> n; exact: inv_inj (@rev_ordK n). Qed.
 
 (* bijection between any finType T and the Ordinal finType of its cardinal *)
 Section EnumRank.
@@ -1165,7 +1318,7 @@ Definition enum_val i := nth (enum_default i) (enum T) i.
 Lemma enum_val_nth : forall x i, enum_val i = nth x (enum T) i.
 Proof.
 move=> x i; apply: set_nth_default; rewrite cardE in i *; exact: ltn_ord.
-Qed. 
+Qed.
 
 Lemma nth_enum_rank : forall x, cancel enum_rank (nth x (enum T)).
 Proof. by move=> x y; rewrite nth_index ?mem_enum. Qed.
@@ -1220,40 +1373,77 @@ move=> h i; rewrite /bump eqn_leq.
 by case: (leqP h i) => Hhi; [rewrite ltnNge Hhi andbF | rewrite leqNgt Hhi].
 Qed.
 
-Lemma unbumpK : forall h, {in predC1 h, cancel (unbump h) (bump h)}.
+Lemma unbumpKcond : forall h i, bump h (unbump h i) = (i == h) + i.
 Proof.
-rewrite /bump /unbump => h i; move/eqP; move/nesym=> Dhi.
-case: (ltngtP h i) => // Hhi; last by rewrite subn0 leqNgt Hhi.
-by rewrite -ltnS subn1 (ltn_predK Hhi) Hhi add1n (ltn_predK Hhi).
+move=> h i; rewrite /bump /unbump leqNgt -predn_subS.
+case: (ltngtP i h) => /= [-> | ltih | ->] //; last by rewrite ltnn.
+by rewrite subn1 /= leqNgt !(ltn_predK ltih, ltih, add1n).
+Qed.
+
+Lemma unbumpK : forall h, {in predC1 h, cancel (unbump h) (bump h)}.
+Proof. by move=> h i; move/negbTE=> neq_h_i; rewrite unbumpKcond neq_h_i. Qed.
+
+Lemma bump_addl : forall h i k, bump (k + h) (k + i) = k + bump h i.
+Proof. by move=> h i k; rewrite /bump leq_add2l addnCA. Qed.
+
+Lemma bumpS : forall h i, bump h.+1 i.+1 = (bump h i).+1.
+Proof. move=> h i; exact: addnS. Qed.
+
+Lemma unbump_addl : forall h i k, unbump (k + h) (k + i) = k + unbump h i.
+Proof.
+move=> h i k; apply: (can_inj (bumpK (k + h))).
+by rewrite bump_addl !unbumpKcond eqn_addl addnCA.
+Qed.
+
+Lemma unbumpS : forall h i, unbump h.+1 i.+1 = (unbump h i).+1.
+Proof. move=> *; exact: unbump_addl 1. Qed.
+
+Lemma leq_bump : forall h i j, (i <= bump h j) = (unbump h i <= j).
+Proof.
+move=> h i j; rewrite /bump leq_sub_add.
+case: (leqP i h) (leqP h j) => [le_i_h | lt_h_i] [le_h_j | lt_j_h] //.
+  by rewrite leqW (leq_trans le_i_h).
+by rewrite !(leqNgt i) ltnW (leq_trans _ lt_h_i).
+Qed.
+
+Lemma leq_bump2 : forall h i j, (bump h i <= bump h j) = (i <= j).
+Proof. by move=> h i j; rewrite leq_bump bumpK. Qed.
+
+Lemma nat_negb : forall b, ~~ b = 1 - b :> nat. Proof. by case. Qed.
+
+Lemma bumpC : forall h1 h2 i,
+  bump h1 (bump h2 i) = bump (bump h1 h2) (bump (unbump h2 h1) i).
+Proof.
+move=> h1 h2 i; rewrite {1 5}/bump -leq_bump addnCA; congr (_ + (_ + _)).
+rewrite 2!leq_bump /unbump /bump; case: (leqP h1 h2) => [le_h12 | lt_h21].
+  by rewrite subn0 ltnS le_h12 subn1.
+by rewrite subn1 (ltn_predK lt_h21) (leqNgt h1) lt_h21 subn0.
 Qed.
 
 (* The lift operations on ordinals; to avoid a messy dependent type, *)
 (* unlift is a partial operation (returns an option).                *)
 
-Lemma lift_subproof : forall n h (i : 'I_(n.-1)), bump h i < n.
-Proof.
-by case=> [|n] h [i //= Hi]; rewrite /bump; case: (h <= _); last exact: ltnW.
-Qed.
+Lemma lift_subproof : forall n h (i : 'I_n.-1), bump h i < n.
+Proof. by case=> [_ []|n] //= h i; rewrite -addnS (leq_add (leq_b1 _)). Qed.
 
-Definition lift n (h : 'I_n) (i : 'I_(n.-1)) := Ordinal (lift_subproof h i).
+Definition lift n (h : 'I_n) (i : 'I_n.-1) := Ordinal (lift_subproof h i).
 
-Lemma unlift_subproof : forall n (h : 'I_n) (u : {j : 'I_n| j != h}),
+Lemma unlift_subproof : forall n (h : 'I_n) (u : {j | j != h}),
   unbump h (val u) < n.-1.
 Proof.
-move=> n h [j] /=; move/unbumpK; rewrite -ltnS (ltn_predK (valP j)) /bump.
-case: (leqP h _) => [_|lt_j'_h _]; first by rewrite add1n => ->.
-exact: leq_ltn_trans lt_j'_h _.
+case=> [|n h] [] //= j ne_jh; rewrite -(leq_bump2 h.+1) bumpS unbumpK // /bump.
+case: (ltngtP n h) => [|_|eq_nh]; rewrite ?(leqNgt _ h) ?ltn_ord //.
+by rewrite ltn_neqAle [j <= _](valP j) {2}eq_nh andbT.
 Qed.
 
 Definition unlift n (h i : 'I_n) :=
   omap (fun u : {j | j != h} => Ordinal (unlift_subproof u)) (insub i).
 
-CoInductive unlift_spec n (h i : 'I_n) : option 'I_(n.-1) -> Type :=
+CoInductive unlift_spec n h i : option 'I_n.-1 -> Type :=
   | UnliftSome j of i = lift h j : unlift_spec h i (Some j)
   | UnliftNone   of i = h        : unlift_spec h i None.
 
 Lemma unliftP : forall n (h i : 'I_n), unlift_spec h i (unlift h i).
-
 Proof.
 rewrite /unlift => n h i; case: insubP => [u nhi | ] def_i /=; constructor.
   by apply: val_inj; rewrite /= def_i unbumpK.
@@ -1331,27 +1521,20 @@ Qed.
 
 Section OrdinalPos.
 
-Variable n : pos_nat.
+Variable n' : nat.
+Local Notation n := n'.+1.
 
-Definition ord0 := Ordinal (pos_natP n).
+Definition ord0 := Ordinal (ltn0Sn n').
+Definition ord_max := Ordinal (ltnSn n').
 
-Lemma ord_maxP : n.-1 < n. Proof. by rewrite prednK. Qed. 
-Definition ord_max := Ordinal ord_maxP.
+Lemma leq_ord : forall i : 'I_n, i <= n'. Proof. exact: valP. Qed.
 
-Lemma leq_ord : forall i : 'I_n, i <= n.-1.
-Proof. by move=> i; rewrite -ltnS prednK ?ltn_ord. Qed.
+Lemma sub_ord_proof : forall m, n' - m < n.
+Proof.  by move=> m; rewrite ltnS leq_subr. Qed.
+Definition sub_ord m := Ordinal (sub_ord_proof m).
 
-Lemma ord_subP : forall m, n.-1 - m < n.
-Proof.  by move=> m; rewrite -{2}[n : nat]prednK // ltnS leq_subr. Qed.
-Definition ord_sub m := Ordinal (ord_subP m).
-
-Definition ord_opp (i : 'I_n) := ord_sub i.
-
-Lemma sub_ordK : forall i : 'I_n, n.-1 - (n.-1 - i) = i.
+Lemma sub_ordK : forall i : 'I_n, n' - (n' - i) = i.
 Proof. by move=> i; rewrite subKn ?leq_ord. Qed.
-
-Lemma ord_oppK : involutive ord_opp.
-Proof. move=> i; apply: val_inj; exact: sub_ordK. Qed.
 
 Definition inord m : 'I_n := insubd ord0 m.
 
@@ -1361,19 +1544,18 @@ Proof. by move=> m lt_m; rewrite val_insubd lt_m. Qed.
 Lemma inord_val : forall i : 'I_n, inord i = i.
 Proof. by move=> i; rewrite /inord /insubd valK. Qed.
 
-Lemma enum_ordS : enum 'I_n = ord0 :: map (lift ord0) (enum 'I_(n.-1)).
+Lemma enum_ordS : enum 'I_n = ord0 :: map (lift ord0) (enum 'I_n').
 Proof.
 apply: (inj_map val_inj); rewrite val_enum_ord /= -map_comp.
-by rewrite (map_comp (addn 1)) val_enum_ord -iota_addl -{1}(@prednK n).
+by rewrite (map_comp (addn 1)) val_enum_ord -iota_addl.
 Qed.
 
 End OrdinalPos.
 
-Implicit Arguments ord0 [n].
-Implicit Arguments ord_max [n].
-Implicit Arguments inord [n].
-
-Prenex Implicits ord_opp.
+Implicit Arguments ord0 [[n']].
+Implicit Arguments ord_max [[n']].
+Implicit Arguments inord [[n']].
+Implicit Arguments sub_ord [[n']].
 
 (* Product of two fintypes which is a fintype *)
 Section ProdFinType.
@@ -1396,13 +1578,13 @@ Proof.
 by case=> x1 x2; rewrite (predX_prod_enum (pred1 x1) (pred1 x2)) !card1.
 Qed.
 
-Definition prod_finMixin := FinMixin prod_enumP.
-Canonical Structure prod_finType := Eval hnf in FinType prod_finMixin.
+Definition prod_finMixin := Eval hnf in FinMixin prod_enumP.
+Canonical Structure prod_finType := Eval hnf in FinType (T1 * T2) prod_finMixin.
 
 Lemma cardX : forall (A1 : pred T1) (A2 : pred T2),
   #|[predX A1 & A2]| = #|A1| * #|A2|.
 Proof.
-by move=> A1 A2; rewrite -predX_prod_enum unlock -count_filter unlock. 
+by move=> A1 A2; rewrite -predX_prod_enum unlock -count_filter unlock.
 Qed.
 
 Lemma card_prod : #|{: T1 * T2}| = #|T1| * #|T2|.
@@ -1432,8 +1614,9 @@ rewrite count_filter -cardE; case: eqP => [-> | ne_j_i].
 by apply: eq_card0 => y; apply/andP; case; move/eqP.
 Qed.
 
-Definition tag_finMixin := FinMixin tag_enumP.
-Canonical Structure tag_finType := Eval hnf in FinType tag_finMixin.
+Definition tag_finMixin := Eval hnf in FinMixin tag_enumP.
+Canonical Structure tag_finType :=
+  Eval hnf in FinType {i : I & T_ i} tag_finMixin.
 
 Lemma card_tagged :
   #|{: {i : I & T_ i}}| = sumn (map (fun i => #|T_ i|) (enum I)).
@@ -1460,8 +1643,8 @@ Qed.
 Lemma mem_sum_enum : forall u, u \in sum_enum.
 Proof. by case=> x; rewrite mem_cat -!enumT map_f ?mem_enum ?orbT. Qed.
 
-Definition sum_finMixin := UniqFinMixin sum_enum_uniq mem_sum_enum.
-Canonical Structure sum_finType := Eval hnf in FinType sum_finMixin.
+Definition sum_finMixin := Eval hnf in UniqFinMixin sum_enum_uniq mem_sum_enum.
+Canonical Structure sum_finType := Eval hnf in FinType (T1 + T2) sum_finMixin.
 
 Lemma card_sum : #|{: T1 + T2}| = #|T1| + #|T2|.
 Proof. by rewrite !cardT !enumT unlock size_cat !size_map. Qed.

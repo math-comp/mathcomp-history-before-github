@@ -1,12 +1,11 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 (***********************************************************************)
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 (*                                                                     *)
 (***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
-Require Import div seq fintype.
-(* Require Import connect. *)
-Require Import tuple finfun bigops finset.
-Require Import groups perm morphisms action maximal.
+Require Import div seq fintype tuple finfun finset.
+Require Import groups action maximal.
 
 (* n-transitive and primitive actions *)
 
@@ -22,15 +21,15 @@ Variables (aT : finGroupType) (sT : finType).
 Variables (A : {set aT}) (to : {action aT &-> sT}) (S : {set sT}).
 
 Definition imprimitivity_system Q :=
-  [&& partition Q S, [acts (A | to^*) on Q] & 1 < #|Q| < #|S|].
+  [&& partition Q S, [acts A, on Q | to^*] & 1 < #|Q| < #|S|].
 
 Definition primitive :=
-  [transitive (A | to) on S] && ~~ existsb Q, imprimitivity_system Q.
+  [transitive A, on S | to] && ~~ existsb Q, imprimitivity_system Q.
 
 End PrimitiveDef.
 
-Notation "[ 'primitive' ( A | to ) 'on' S ]" := (primitive A to S)
-  (at level 0, format "[ 'primitive'  (  A  |  to  )  'on'  S ]") : form_scope.
+Notation "[ 'primitive' A , 'on' S | to ]" := (primitive A to S)
+  (at level 0, format "[ 'primitive'  A ,  'on'  S  |  to ]") : form_scope.
 
 Prenex Implicits imprimitivity_system.
 
@@ -40,34 +39,34 @@ Variables (aT : finGroupType) (sT : finType).
 Variables (G : {group aT}) (to : {action aT &-> sT}) (S : {set sT}).
 
 Lemma trans_prim_astab : forall x,
-  x \in S -> [transitive (G | to) on S] ->
-    [primitive (G | to) on S] = maximal_eq 'C_(G | to)[x] G.
+  x \in S -> [transitive G, on S | to] ->
+    [primitive G, on S | to] = maximal_eq 'C_G[x | to] G.
 Proof.
 move=> x Sx trG; rewrite /primitive trG negb_exists.
 apply/forallP/maximal_eqP=> /= [primG | [_ maxCx] Q].
   split=> [|H sCH sHG]; first exact: subsetIl.
   pose X := orbit to H x; pose Q := orbit (to^*)%act G X.
   have Xx: x \in X by exact: orbit_refl.
-  have defH: 'N_(G | to)(X) = H.
-    have trH: [transitive (H | to) on X] by apply/imsetP; exists x.
-    have sHN: H \subset 'N_(G | to)(X) by rewrite subsetI sHG trans_acts.
+  have defH: 'N_(G)(X | to) = H.
+    have trH: [transitive H, on X | to] by apply/imsetP; exists x.
+    have sHN: H \subset 'N_G(X | to) by rewrite subsetI sHG atrans_acts.
     move/(subgroup_transitiveP Xx sHN): (trH) => /= <-.
       by rewrite mulSGid //= setIAC subIset ?sCH.
     apply/imsetP; exists x => //; apply/eqP.
-    by rewrite eqEsubset imsetS // acts_orbit ?subsetIr.
+    by rewrite eqEsubset imsetS // acts_sub_orbit ?subsetIr.
   move: (sCH); rewrite subEproper; case/predU1P; first by left.
   move/proper_card=> oCH; right; apply/eqP; rewrite eqEcard sHG leqNgt.
   apply: contra {primG}(primG Q) => oHG; apply/and3P; split; last first.
   - rewrite card_orbit astab1_set defH -(@ltn_pmul2l #|H|) ?LaGrange // muln1.
     rewrite oHG -(@ltn_pmul2l #|H|) ?LaGrange // -(card_orbit_stab to G x).
     by rewrite -(atransP trG x Sx) mulnC card_orbit ltn_pmul2r.
-  - by apply/actsP=> a Ga Y; apply: orbit_transr; exact: orbit_to.
+  - by apply/actsP=> a Ga Y; apply: orbit_transr; exact: mem_orbit.
   apply/and3P; split; last 1 first.
   - rewrite orbit_sym; apply/imsetP=> [[a _]] /= defX.
-    by rewrite defX /set_act imset0 inE in Xx.
+    by rewrite defX /setact imset0 inE in Xx.
   - apply/eqP; apply/setP=> y; apply/bigcupP/idP=> [[Xa] | Sy].
       case/imsetP=> a Ga ->{Xa}; case/imsetP=> z; case/imsetP=> b Hb -> ->.
-      by rewrite !(actsP (trans_acts trG)) //; exact: subsetP Hb.
+      by rewrite !(actsP (atrans_acts trG)) //; exact: subsetP Hb.
     case: (atransP2 trG Sx Sy) => a Ga ->.
     by exists ((to^*)%act X a); apply: mem_imset; rewrite // orbit_refl.
   apply/trivIsetP=> Y Z; case/imsetP=> a Ga ->; case/imsetP=> b Gb ->{Y Z}.
@@ -89,15 +88,15 @@ have toX: forall Y a, Y \in Q -> a \in G -> to x a \in Y -> sto X a = Y.
     by rewrite (actsP actQ).
   by case/existsP; exists (to x a); rewrite /= Yxa; exact: mem_imset.
 have defQ: Q = orbit (to^*)%act G X.
-  apply/eqP; rewrite eqEsubset andbC acts_orbit // QX.
+  apply/eqP; rewrite eqEsubset andbC acts_sub_orbit // QX.
   apply/subsetP=> Y QY; have:= sub0set Y; rewrite subEproper.
   case/predU1P=> [Y0|]; first by rewrite Y0 QY in ntQ.
   case/andP=> _; case/subsetPn=> y Yy _.
   have Sy: y \in S by rewrite -defS; apply/bigcupP; exists Y.
   have [a Ga def_y] := atransP2 trG Sx Sy.
   by apply/imsetP; exists a; rewrite // (toX Y) // -def_y.
-rewrite defQ card_orbit; case: (maxCx 'C_(G | sto)[X]%G) => /= [||->|->].
-- apply/subsetP=> a; case/setIP=> Ga cxa; rewrite inE Ga /=. 
+rewrite defQ card_orbit; case: (maxCx 'C_G[X | sto]%G) => /= [||->|->].
+- apply/subsetP=> a; case/setIP=> Ga cxa; rewrite inE Ga /=.
   by apply/astab1P; rewrite (toX X) // (astab1P cxa).
 - exact: subsetIl.
 - by right; rewrite -card_orbit (atransP trG).
@@ -105,20 +104,20 @@ by left; rewrite indexgg.
 Qed.
 
 Lemma prim_trans_norm : forall H : {group aT},
-  [primitive (G | to) on S] -> H <| G ->
-     H \subset 'C_(G | to)(S) \/ [transitive (H | to) on S].
+  [primitive G, on S | to] -> H <| G ->
+     H \subset 'C_G(S | to) \/ [transitive H, on S | to].
 Proof.
 move=> H primG; case/andP=> sHG nHG; rewrite subsetI sHG.
 have [trG _] := andP primG; have [x Sx defS] := imsetP trG.
 move: primG; rewrite (trans_prim_astab Sx) //; case/maximal_eqP=> _.
-case/(_ ('C_(G | to)[x] <*> H)%G) => /= [||cxH|]; first exact: mulgen_subl.
+case/(_ ('C_G[x | to] <*> H)%G) => /= [||cxH|]; first exact: mulgen_subl.
 - by rewrite mulgen_subG subsetIl.
-- have{cxH} cxH: H \subset 'C_(G | to)[x] by rewrite -cxH mulgen_subr.
+- have{cxH} cxH: H \subset 'C_G[x | to] by rewrite -cxH mulgen_subr.
   rewrite subsetI sHG /= in cxH; left; apply/subsetP=> a Ha.
   apply/astabP=> y Sy; have [b Gb ->] := atransP2 trG Sx Sy.
   rewrite actCJV [to x (a ^ _)](astab1P _) ?(subsetP cxH) //.
   by rewrite -mem_conjg (normsP nHG).
-rewrite norm_mulgenEl ?subIset ?nHG //.
+rewrite norm_mulgenEl 1?subIset ?nHG //.
 by move/(subgroup_transitiveP Sx sHG trG); right.
 Qed.
 
@@ -133,9 +132,10 @@ Variable n :  nat.
 
 Definition n_act (t : n.-tuple sT) a := [tuple of map (to^~ a) t].
 
-Lemma n_act_is_action : is_action n_act.
+Lemma n_act_is_action : is_action setT n_act.
 Proof.
-by split=> [t|t a b]; apply: eq_from_tnth => i; rewrite !tnth_map ?act1 ?actM.
+by apply: is_total_action => [t|t a b]; apply: eq_from_tnth => i;
+    rewrite !tnth_map ?act1 ?actM.
 Qed.
 
 Canonical Structure n_act_action := Action n_act_is_action.
@@ -149,11 +149,11 @@ Section NTransitive.
 Variables (gT : finGroupType) (sT : finType).
 Variable n :  nat.
 Variable A : {set gT}.
-Variable to : {action gT &-> sT}.
 Variable S : {set sT}.
+Variable to : {action gT &-> sT}.
 
 Definition dtuple_on := [set t : n.-tuple sT | uniq t && (t \subset S)].
-Definition ntransitive := [transitive (A | to * n) on dtuple_on].
+Definition ntransitive := [transitive A, on dtuple_on | to * n].
 
 Lemma dtuple_onP : forall t,
   reflect (injective (tnth t) /\ forall i, tnth t i \in S) (t \in dtuple_on).
@@ -165,7 +165,7 @@ by apply: (iffP allP) => [Sf|[]//]; split=> // i; rewrite Sf ?mem_enum.
 Qed.
 
 Lemma n_act_dtuple : forall t a,
-  a \in 'N_(|to)(S) -> t \in dtuple_on -> n_act to t a \in dtuple_on.
+  a \in 'N(S | to) -> t \in dtuple_on -> n_act to t a \in dtuple_on.
 Proof.
 move=> t a; move/astabsP=> toSa; case/dtuple_onP=> t_inj St; apply/dtuple_onP.
 split=> [i j | i]; rewrite !tnth_map ?[_ \in S]toSa //.
@@ -179,9 +179,9 @@ Implicit Arguments n_act [gT sT n].
 Notation "n .-dtuple ( S )" := (dtuple_on n S)
   (at level 8, format "n .-dtuple ( S )") : set_scope.
 
-Notation "[ 'transitive' * n ( A | to ) 'on' S ]" := (ntransitive n A to S)
+Notation "[ 'transitive' ^ n A , 'on' S | to ]" := (ntransitive n A S to)
   (at level 0, n at level 8,
-   format "[ 'transitive'  *  n  ( A  |  to )  'on'  S ]") : form_scope.
+   format "[ 'transitive' ^ n  A ,  'on'  S  |  to ]") : form_scope.
 
 Section NTransitveProp.
 
@@ -220,7 +220,7 @@ Lemma n_act_add n x (t : n.-tuple sT) a :
   n_act to [tuple of x :: t] a = [tuple of to x a :: n_act to t a].
 Proof. by move=> *; exact: val_inj. Qed.
 
-Lemma ntransitive0 : [transitive * 0 (G | to) on S].
+Lemma ntransitive0 : [transitive^0 G, on S | to].
 Proof.
 have dt0: [tuple] \in 0.-dtuple(S) by rewrite inE memtE subset_all.
 apply/imsetP; exists [tuple of Nil sT] => //.
@@ -228,7 +228,7 @@ by apply/setP=> x; rewrite [x]tuple0 orbit_refl.
 Qed.
 
 Lemma ntransitive_weak : forall k m,
-  k <= m -> [transitive * m (G | to) on S] -> [transitive * k (G | to) on S].
+  k <= m -> [transitive^m G, on S | to] -> [transitive^k G, on S | to].
 Proof.
 move=> k m; move/subnKC <-; rewrite addnC; elim: {m}(m - k) => // m IHm.
 rewrite addSn => tr_m1; apply: IHm; move: {m k}(m + k) tr_m1 => m tr_m1.
@@ -252,7 +252,7 @@ by rewrite n_act_add dtuple_on_add; case/and3P.
 Qed.
 
 Lemma ntransitive1 : forall m,
-  0 < m -> [transitive * m (G | to) on S] -> [transitive (G | to) on S].
+  0 < m -> [transitive^m G, on S | to] -> [transitive G, on S | to].
 Proof.
 have trdom1: forall x, ([tuple x] \in 1.-dtuple(S)) = (x \in S).
   by move=> x; rewrite dtuple_on_add !inE memtE subset_all andbT.
@@ -263,26 +263,26 @@ apply/imsetP/imsetP; case=> a Ga [->]; exists a => //; exact: val_inj.
 Qed.
 
 Lemma ntransitive_primitive : forall m,
-  1 < m -> [transitive * m (G | to) on S] -> [primitive (G | to) on S].
+  1 < m -> [transitive^m G, on S | to] -> [primitive G, on S | to].
 Proof.
 move=> m lt1m; move/(ntransitive_weak lt1m) => {m lt1m} tr2G.
-have trG: [transitive (G | to) on S] by exact: ntransitive1 tr2G.
+have trG: [transitive G, on S | to] by exact: ntransitive1 tr2G.
 have [x Sx _]:= imsetP trG; rewrite (trans_prim_astab Sx trG).
 apply/maximal_eqP; split=> [|H]; first exact: subsetIl; rewrite subEproper.
 case/predU1P; first by [left]; case/andP=> sCH; case/subsetPn=> a Ha nCa sHG.
 right; rewrite -(subgroup_transitiveP Sx sHG trG _) ?mulSGid //.
-have actH := subset_trans sHG (trans_acts trG).
+have actH := subset_trans sHG (atrans_acts trG).
 pose y := to x a; have Sy: y \in S by rewrite (actsP actH).
 have{nCa} yx: y != x by rewrite inE (sameP astab1P eqP) (subsetP sHG) in nCa.
 apply/imsetP; exists y => //; apply/eqP.
-rewrite eqEsubset acts_orbit // Sy andbT; apply/subsetP=> z Sz.
+rewrite eqEsubset acts_sub_orbit // Sy andbT; apply/subsetP=> z Sz.
 case: (z =P x) => [->|]; last move/eqP=> zx.
-  by rewrite orbit_sym orbit_to.
+  by rewrite orbit_sym mem_orbit.
 pose ty := [tuple y; x]; pose tz := [tuple z; x].
 have [Sty Stz]: ty \in 2.-dtuple(S) /\ tz \in 2.-dtuple(S).
   rewrite !inE !memtE !subset_all /= !mem_seq1 !andbT; split; exact/and3P.
 case: (atransP2 tr2G Sty Stz) => b Gb [->]; move/esym; move/astab1P=> cxb.
-by rewrite orbit_to // (subsetP sCH) // inE Gb.
+by rewrite mem_orbit // (subsetP sCH) // inE Gb.
 Qed.
 
 End NTransitveProp.
@@ -297,8 +297,8 @@ Variable S : {set sT}.
 
 (* Corresponds to => of 15.12.1 Aschbacher *)
 Theorem stab_ntransitive : forall m x,
-     0 < m -> x \in S ->  [transitive * m.+1 (G | to) on S]
-  -> [transitive * m ('C_(G | to)[x] | to) on S :\ x].
+     0 < m -> x \in S ->  [transitive^m.+1 G, on S | to]
+  -> [transitive^m 'C_G[x | to], on S :\ x | to].
 Proof.
 move=> m x m_gt0 Sx Gtr; have sSxS: S :\ x \subset S by rewrite subsetDl.
 case: (imsetP Gtr); case/tupleP=> x1 t1; rewrite dtuple_on_add.
@@ -308,7 +308,7 @@ pose t := n_act to t1 a.
 have dxt: [tuple of x :: t] \in m.+1.-dtuple(S).
   rewrite trt1 x1ax; apply/imsetP; exists a => //; exact: val_inj.
 apply/imsetP; exists t.
-  by rewrite dtuple_on_add_D1 Sx in dxt. 
+  by rewrite dtuple_on_add_D1 Sx in dxt.
 apply/setP=> t2; apply/idP/imsetP => [dt2|[b]].
   have: [tuple of x :: t2] \in dtuple_on _ S by rewrite dtuple_on_add_D1 Sx.
   case/(atransP2 Gtr dxt)=> b Gb [xbx tbt2].
@@ -316,14 +316,14 @@ apply/setP=> t2; apply/idP/imsetP => [dt2|[b]].
 case/setIP=> Gb; move/astab1P=> xbx ->{t2}.
 rewrite n_act_dtuple //; last by rewrite dtuple_on_add_D1 Sx in dxt.
 apply/astabsP=> y; rewrite !inE -{1}xbx (inj_eq (act_inj _ _)).
-by rewrite (actsP (trans_acts Gtr1)).
+by rewrite (actsP (atrans_acts Gtr1)).
 Qed.
 
 (* Correspond to <= of 15.12.1 Aschbacher *)
 Theorem stab_ntransitiveI : forall m x,
-     x \in S ->  [transitive (G | to) on S]
-  -> [transitive * m ('C_(G | to)[x] | to) on S :\ x]
-  -> [transitive * m.+1 (G | to) on S].
+     x \in S ->  [transitive G, on S | to]
+  -> [transitive^m 'C_G[x | to], on S :\ x | to]
+  -> [transitive^m.+1 G, on S | to].
 Proof.
 move=> m x Sx Gtr Gntr.
 have t_to_x: forall t, t \in m.+1.-dtuple(S) ->
@@ -334,13 +334,13 @@ have t_to_x: forall t, t \in m.+1.-dtuple(S) ->
   rewrite -(atransP Gtr _ Sy) in Sx; case/imsetP: Sx => a Ga toya.
   exists a^-1; first exact: groupVr.
   exists (n_act to t a); last by rewrite n_act_add toya !actK.
-  move/(n_act_dtuple (subsetP (trans_acts Gtr) a Ga)): St.
+  move/(n_act_dtuple (subsetP (atrans_acts Gtr) a Ga)): St.
   by rewrite n_act_add -toya dtuple_on_add_D1; case/andP.
 case: (imsetP Gntr) => t dt S_tG; pose xt := [tuple of x :: t].
 have dxt: xt \in m.+1.-dtuple(S) by rewrite dtuple_on_add_D1 Sx.
 apply/imsetP; exists xt => //; apply/setP=> t2.
 symmetry; apply/imsetP/idP=> [[a Ga ->] | ].
-  by apply: n_act_dtuple; rewrite // (subsetP (trans_acts Gtr)).
+  by apply: n_act_dtuple; rewrite // (subsetP (atrans_acts Gtr)).
 case/t_to_x=> a2 Ga2 [t2']; rewrite S_tG.
 case/imsetP=> a; case/setIP=> Ga; move/astab1P=> toxa -> -> {t2 t2'}.
 by exists (a * a2); rewrite (groupM, actM) //= !n_act_add toxa.

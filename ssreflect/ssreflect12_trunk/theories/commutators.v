@@ -1,12 +1,55 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat fintype finset.
-Require Import groups morphisms automorphism normal.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat fintype bigops finset.
+Require Import binomial groups morphisms automorphism normal gfunc gprod.
+
+(******************************************************************************)
+(*   This files contains the proofs of several key properties of commutators, *)
+(* including the Hall-Witt identity and the Three Subgroup Lemma.             *)
+(*   The definition and notation for both pointwise and set wise commutators  *)
+(* ([~x, y, ...] and [~: A, B ,...], respectively) are give in groups.v. This *)
+(* file defines the derived group series:                                     *)
+(*           G^`(0) ==  G                                                     *)
+(*       G^`(n.+1) == [~: G^`(n), G^`(n)]                                     *)
+(* as several classical results involve the (first) derived group G^`(1),     *)
+(* such as the equivalence H <| G /\ G / H abelian <-> G^`(1) \subset H. The  *)
+(* connection between the derived series and solvable groups will only be     *)
+(* established in nilpotent.v, however.                                       *)
+(******************************************************************************)
 
 Set Implicit Arguments.
-Unset Strict Implicit. 
+Unset Strict Implicit.
 Import Prenex Implicits.
 
 Import GroupScope.
+
+Definition derived_at_rec n (gT : finGroupType) (A : {set gT}) :=
+  iter n (fun B => [~: B, B]) A.
+
+(* Note: 'nosimpl' MUST be used outside of a section -- the end of section   *)
+(* "cooking" destroys it.                                                    *)
+Definition derived_at := nosimpl derived_at_rec.
+
+Notation "G ^` ( n )" := (derived_at n G)
+  (at level 8, format "G ^` ( n )") : group_scope.
+
+Section DerivedBasics.
+
+Variables gT : finGroupType.
+Implicit Type A : {set gT}.
+Implicit Types G : {group gT}.
+
+Lemma derg0 : forall A, A^`(0) = A. Proof. by []. Qed.
+Lemma derg1 : forall A, A^`(1) = [~: A, A]. Proof. by []. Qed.
+Lemma dergSn : forall n A, A^`(n.+1) = [~: A^`(n), A^`(n)]. Proof. by []. Qed.
+
+Lemma der_group_set : forall G n, group_set G^`(n).
+Proof. move=> G [|n]; exact: groupP. Qed.
+
+Canonical Structure derived_at_group G n := Group (der_group_set G n).
+
+End DerivedBasics.
+
+Notation "G ^` ( n )" := (derived_at_group G n) : subgroup_scope.
 
 Section Basic_commutator_properties.
 
@@ -88,49 +131,25 @@ Hypotheses (cxz : commute x [~ x, y]) (cyz : commute y [~ x, y]).
 Lemma commXXg : [~ x ^+ i, y ^+ j] = [~ x, y] ^+ (i * j).
 Proof. rewrite expgn_mul commgX commXg //; exact: commuteX. Qed.
 
-Lemma expMg_Rmul : (y * x) ^+ i = y ^+ i * x ^+ i * [~ x, y] ^+ (i * i.-1)./2.
+Lemma expMg_Rmul : (y * x) ^+ i = y ^+ i * x ^+ i * [~ x, y] ^+ bin i 2.
 Proof.
-elim: i => [|k IHk]; first by rewrite !mulg1.
-rewrite expgS {}IHk mulgA -(mulgA y) (mulgA x) (commgC x _) commgX // 3!mulgA.
-rewrite -expgS -[_ * x ^+ k]mulgA -commuteX2 // -(mulgA _ x) (mulgA x).
-rewrite -expgS -2!mulgA mulgA -expgn_add; congr (_ * _ ^+ _); case: k => // k.
-by rewrite -add2n muln_addl mul2n half_add odd_double half_double mulnC.
+rewrite -triangular_sum; symmetry.
+elim: i => [|k IHk] /=; first by rewrite big_geq ?mulg1.
+rewrite big_nat_recr /= addnC expgn_add !expgS -{}IHk !mulgA; congr (_ * _).
+by rewrite -!mulgA commuteX2 // -commgX // [mulg y]lock 3!mulgA -commgC.
 Qed.
 
 End LeftRightComm.
 
 End Basic_commutator_properties.
 
-(* GG -- outcommenting the whole section -- lemmas are not used
-Section Commutators_and_centralizers.
-
-Variable T : finGroupType.
-(* should not be a group but a set *)
-Variable H : {set T}.
-
-(* This is a composite reflections, so it should be a reflection as well. *)
-(* I don't see why the centraliser has to be localised. *)
-Lemma commg_to_centraliser : forall y,
-  {in H, forall x, [~ x, y] = 1} -> H \subset 'C_H[y].
-Proof.
-move=> y comm1; rewrite subsetI subxx /=.
-by apply/subsetP=> x Hx; apply/cent1P; apply/commgP; rewrite comm1. 
-Qed.
-
-Lemma centraliser_to_commg: forall x y, x \in 'C_H[y] -> [~ x, y] = 1.
-Proof.
-move=> x y; case/setIP=> _; rewrite (sameP cent1P commgP); exact: eqP.
-Qed.
-
-End Commutators_and_centralizers.
-*)
-
 (***** Set theoretic commutators *****)
 Section Commutator_properties.
 
 Variable gT : finGroupType.
+Implicit Type rT : finGroupType.
 Implicit Types A B C : {set gT}.
-Implicit Types G H K : {group gT}.
+Implicit Types D G H K : {group gT}.
 
 Lemma commG1 : forall A, [~: A, 1] = 1.
 Proof. by move=> A; apply/commG1P; rewrite centsC sub1G. Qed.
@@ -151,10 +170,10 @@ Qed.
 Lemma commg_normr : forall G A, G \subset 'N([~: A, G]).
 Proof. by move=> G A; rewrite commGC commg_norml. Qed.
 
-Lemma commg_norm : forall G H, G <*> H \subset 'N([~: G, H]). 
+Lemma commg_norm : forall G H, G <*> H \subset 'N([~: G, H]).
 Proof. by move=> G H; rewrite mulgen_subG ?commg_norml ?commg_normr. Qed.
 
-Lemma commg_normal: forall G H, [~: G, H] <| G <*> H.
+Lemma commg_normal : forall G H, [~: G, H] <| G <*> H.
 Proof. by move=> G H; rewrite /(_ <| _) commg_sub commg_norm. Qed.
 
 Lemma normsRl : forall A G B, A \subset G -> A \subset 'N([~: G, B]).
@@ -169,11 +188,19 @@ move=> G H; rewrite gen_subG; apply/subsetP/subsetP=> [sRH x Gx | nGH xy].
   rewrite inE; apply/subsetP=> yx; case/imsetP=> y Ky ->{yx}.
   by rewrite conjg_Rmul groupMr // sRH // mem_imset2 ?groupV.
 case/imset2P=> x y Gx Hy ->{xy}.
-by rewrite commgEr groupMr // memJ_norm (groupV, nGH). 
+by rewrite commgEr groupMr // memJ_norm (groupV, nGH).
 Qed.
 
 Lemma commg_subl : forall G H, ([~: G, H] \subset G) = (H \subset 'N(G)).
 Proof. by move=> G H; rewrite commGC commg_subr. Qed.
+
+Lemma commg_subI : forall A B G H,
+  A \subset 'N_G(H) -> B \subset 'N_H(G) -> [~: A, B] \subset G :&: H.
+Proof.
+move=> A B G H; rewrite !subsetI -(gen_subG _ 'N(G)) -(gen_subG _ 'N(H)).
+rewrite -commg_subr -commg_subl; case/andP=> sAG sRH; case/andP=> sBH sRG.
+by rewrite (subset_trans _ sRG) ?(subset_trans _ sRH) ?commgSS ?subset_gen.
+Qed.
 
 Lemma quotient_cents2 : forall A B K,
     A \subset 'N(K) -> B \subset 'N(K) ->
@@ -181,32 +208,33 @@ Lemma quotient_cents2 : forall A B K,
 Proof.
 move=> A B K nKA nKB.
 by rewrite (sameP commG1P trivgP) /= -quotientR // quotient_sub1 // comm_subG.
-Qed. 
+Qed.
 
 Lemma quotient_cents2r : forall A B K,
   [~: A, B] \subset K -> (A / K) \subset 'C(B / K).
 Proof.
-move=> A B K sABK.
-rewrite -2![_ / _]morphimIdom -!quotientE quotient_cents2 ?subsetIl //.
-by apply: subset_trans sABK; rewrite commgSS ?subsetIr.
+move=> A B K sABK; rewrite -2![_ / _]morphimIdom -!quotientE.
+by rewrite quotient_cents2 ?subsetIl ?(subset_trans _ sABK) ?commgSS ?subsetIr.
 Qed.
 
 Lemma sub_der1_norm : forall G H,
-  [~: G, G] \subset H -> H \subset G -> G \subset 'N(H).
+   G^`(1) \subset H -> H \subset G -> G \subset 'N(H).
 Proof.
 by move=> G H sG'H sHG; rewrite -commg_subr (subset_trans _ sG'H) ?commgS.
 Qed.
 
-Lemma sub_der1_normal : forall G H,
-  [~: G, G] \subset H -> H \subset G -> H <| G.
+Lemma sub_der1_normal : forall G H, G^`(1) \subset H -> H \subset G -> H <| G.
 Proof. by move=> G H sG'H sHG; rewrite /(H <| G) sHG sub_der1_norm. Qed.
 
-Lemma sub_der1_abelian : forall G H, [~: G, G] \subset H -> abelian (G / H).
+Lemma sub_der1_abelian : forall G H, G^`(1) \subset H -> abelian (G / H).
 Proof. move=> G H sG'H; exact: quotient_cents2r. Qed.
 
 Lemma der1_min : forall G H,
-  G \subset 'N(H) -> abelian (G / H) -> [~: G, G] \subset H.
+  G \subset 'N(H) -> abelian (G / H) -> G^`(1) \subset H.
 Proof. by move=> G H nHG abGH; rewrite -quotient_cents2. Qed.
+
+Lemma der_abelian : forall n G, abelian (G^`(n) / G^`(n.+1)).
+Proof. by move=> n G; rewrite sub_der1_abelian // der_subS. Qed.
 
 Lemma commg_normSl :  forall G H K,
   G \subset 'N(H) -> [~: G, H] \subset 'N([~: K, H]).
@@ -221,14 +249,13 @@ Lemma commMGr : forall G H K,
 Proof. by move=> G H K; rewrite mul_subG ?commSg ?(mulG_subl, mulG_subr). Qed.
 
 Lemma commMG : forall G H K,
-    H \subset 'N(G) -> H \subset 'N(K) ->
-  [~: G * H , K] = [~: G, K] * [~: H, K].
+  H \subset 'N([~: G, K]) -> [~: G * H , K] = [~: G, K] * [~: H, K].
 Proof.
-move=> G H K nGH nKH; apply/eqP; rewrite eqEsubset commMGr andbT.
-have defM := norm_mulgenEr (commg_normSl G nKH); rewrite -defM gen_subG /=.
+move=> G H K nRH; apply/eqP; rewrite eqEsubset commMGr andbT.
+have nRHK: [~: H, K] \subset 'N([~: G, K]) by rewrite comm_subG ?commg_normr.
+have defM := norm_mulgenEr nRHK; rewrite -defM gen_subG /=.
 apply/subsetP=> r; case/imset2P=> m z; case/imset2P=> x y Gx Hy -> Kz ->{r m}.
-rewrite commMgJ {}defM mem_mulg ?memJ_norm ?mem_commg //.
-apply: subsetP Hy; exact: normsR.
+by rewrite commMgJ {}defM mem_mulg ?memJ_norm ?mem_commg // (subsetP nRH).
 Qed.
 
 Lemma comm3G1P : forall A B C,
@@ -250,8 +277,19 @@ rewrite -(conj1g y) -(Hall_Witt_identity y^-1 z x) invgK.
 by rewrite cGHK ?groupV // cHKG ?groupV // !conj1g !mul1g conjgKV.
 Qed.
 
-(* GG -- unsure about the usefulness of this lemma; keeping it for now. *)
+Lemma der1_mulgen_cycles : forall x y : gT, 
+  let XY := <[x]> <*> <[y]> in let xy := [~ x, y] in
+  xy \in 'C(XY) -> XY^`(1) = <[xy]>.
+Proof. 
+move=> x y; rewrite mulgen_idl mulgen_idr /= -sub_cent1; move/norms_gen=> nRxy.
+apply/eqP; rewrite eqEsubset cycle_subG mem_commg ?mem_gen ?set21 ?set22 //.
+rewrite der1_min // quotient_gen -1?gen_subG // quotientU abelian_gen.
+rewrite /abelian subUset centU !subsetI andbC centsC -andbA -!abelianE.
+rewrite !quotient_abelian ?(abelianS (subset_gen _) (cycle_abelian _)) //=.
+by rewrite andbb quotient_cents2r ?genS // /commg_set imset2_set1l imset_set1.
+Qed.
 
+(* GG -- unsure about the usefulness of this lemma; keeping it for now. *)
 Lemma commgAC : forall G x y z, x \in G -> y \in G -> z \in G ->
   commute y z -> abelian [~: [set x], G] -> [~ x, y, z] = [~ x, z, y].
 Proof.
@@ -266,10 +304,66 @@ move=> u Gu; suffices: [~ x, u] ^ x^-1 \in [~: [set x], G].
 by rewrite memJ_norm ?mem_commg ?set11 // groupV (subsetP (commg_normr _ _)).
 Qed.
 
+(* Aschbacher, exercise 3.6 (used in proofs of Aschbacher 24.7 and B & G 1.10 *)
+Lemma comm_norm_cent_cent : forall H G K,
+    H \subset 'N(G) -> H \subset 'C(K) -> G \subset 'N(K) ->
+  [~: G, H] \subset 'C(K).
+Proof.
+move=> H G K nGH; move/centsP=> cKH nKG; rewrite commGC gen_subG centsC.
+apply/centsP=> x Kx yz; case/imset2P=> y z Hy Gz ->{yz}; red.
+rewrite mulgA -[x * _]cKH ?groupV // -!mulgA; congr (_ * _).
+rewrite (mulgA x) (conjgC x) (conjgCV z) 3!mulgA; congr (_ * _).
+by rewrite -2!mulgA (cKH y) // -mem_conjg (normsP nKG).
+Qed.
+
 Lemma charR : forall H K G, H \char G -> K \char G -> [~: H, K] \char G.
 Proof.
 move=> H K G; case/charP=> sHG chH; case/charP=> sKG chK; apply/charP.
 by split=> [|f infj Gf]; [rewrite comm_subG | rewrite morphimR // chH // chK].
 Qed.
 
+Lemma der_char : forall n G, G^`(n) \char G.
+Proof.
+by move=> n G; elim: n => [|n IHn]; rewrite ?char_refl // dergSn charR.
+Qed.
+
+Lemma der_sub : forall n G, G^`(n) \subset G.
+Proof. by move=> n G; rewrite char_sub ?der_char. Qed.
+
+Lemma der_norm : forall n G, G \subset 'N(G^`(n)).
+Proof. by move=> n G; rewrite char_norm ?der_char. Qed.
+
+Lemma der_normal : forall n G, G^`(n) <| G.
+Proof. by move=> n G; rewrite char_normal ?der_char. Qed.
+
+Lemma der_subS : forall n G, G^`(n.+1) \subset G^`(n).
+Proof. by move=> n G; rewrite comm_subG. Qed.
+
+Lemma der_normalS : forall n G, G^`(n.+1) <| G^`(n).
+Proof. by move=> n G; rewrite sub_der1_normal // der_subS. Qed.
+
+Lemma morphim_der : forall rT D (f : {morphism D >-> rT}) n G,
+   G \subset D -> f @* G^`(n) = (f @* G)^`(n).
+Proof.
+move=> rT D f n G sGD; elim: n => // n IHn.
+by rewrite !dergSn -IHn morphimR ?(subset_trans (der_sub n G)).
+Qed.
+
+Lemma dergS : forall n G H, G \subset H -> G^`(n) \subset H^`(n).
+Proof. by move=> n G H sGH; elim: n => // n IHn; exact: commgSS. Qed.
+
+Lemma quotient_der : forall n G H, G \subset 'N(H) -> G^`(n) / H = (G / H)^`(n).
+Proof. by move=> n G H; exact: morphim_der. Qed.
+
 End Commutator_properties.
+
+Lemma der_resp : forall n, resp (derived_at n).
+
+Proof. by move=> n aT rT G f; rewrite morphim_der. Qed.
+
+Canonical Structure bgFunc_der n :=
+  [bgFunc by fun gT => @der_sub gT n & der_resp n].
+Canonical Structure gFunc_der n := GFunc (der_resp n).
+Canonical Structure cgFunc_der n := CGFunc (fun _ => dergS n).
+
+

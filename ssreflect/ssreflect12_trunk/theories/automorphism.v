@@ -84,7 +84,7 @@ Proof. apply/injmP; apply: in2W; exact: perm_inj. Qed.
 Lemma ker_autm : 'ker fm = 1.
 Proof. by case/trivgP: injm_autm. Qed.
 
-Lemma autm_dom : fm @* G = G.
+Lemma im_autm : fm @* G = G.
 Proof.
 apply/setP=> x; rewrite morphimEdom (can_imset_pre _ (permK f)) inE.
 by have:= Af; rewrite inE; case/andP; move/perm_closed=> <-; rewrite permKV.
@@ -205,11 +205,11 @@ Variable G : {group gT}.
 Lemma injm_conj : forall x, 'injm (conjgm G x).
 Proof. move=> x; apply/injmP; apply: in2W; exact: conjg_inj. Qed.
 
-Lemma norm_conj_dom : forall x, x \in 'N(G) -> conjgm G x @* G = G.
+Lemma im_conjgm_norm : forall x, x \in 'N(G) -> conjgm G x @* G = G.
 Proof. move=> x; rewrite morphimEdom; exact: normP. Qed.
 
 Definition conj_aut x :=
-  aut (injm_conj _) (norm_conj_dom (valP (insigd (group1 _) x))).
+  aut (injm_conj _) (im_conjgm_norm (valP (insigd (group1 _) x))).
 
 Lemma norm_conj_autE : {in 'N(G) & G, forall x y, conj_aut x y = y ^ x}.
 Proof. by move=> x y nGx Gy; rewrite /= autE //= val_insubd nGx. Qed.
@@ -235,6 +235,9 @@ rewrite 2!inE /=; apply/eqP/centP=> [cx1 y Gy | cGx].
 apply/permP=> y; case Gy: (y \in G); last by rewrite !permE Gy.
 by rewrite perm1 norm_conj_autE // conjgE -cGx ?mulKg.
 Qed.
+
+Lemma Aut_conj_aut : forall A : {set gT}, conj_aut @* A \subset Aut G.
+Proof. move=> A; apply/subsetP=> p; case/imsetP=> x _ ->; exact: Aut_aut. Qed.
 
 End ConjugationMorphism.
 
@@ -264,7 +267,7 @@ move=> H G; apply: (iffP andP); case=> sHG chHG; split=> //.
   move=> f injf Gf; apply/morphim_fixP=> //.
   by have:= forallP chHG (aut injf Gf); rewrite Aut_aut imset_autE.
 apply/forallP=> f; apply/implyP=> Af; have injf := injm_autm Af.
-move/(morphim_fixP injf _ sHG): (chHG _ injf (autm_dom Af)).
+move/(morphim_fixP injf _ sHG): (chHG _ injf (im_autm Af)).
 by rewrite /morphim (setIidPr _).
 Qed.
 

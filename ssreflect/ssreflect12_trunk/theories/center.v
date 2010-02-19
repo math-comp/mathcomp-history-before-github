@@ -1,3 +1,4 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 (***********************************************************************)
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 (*                                                                     *)
@@ -9,10 +10,9 @@
 (***********************************************************************)
 (***********************************************************************)
 
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
-Require Import fintype div prime finset bigops.
-Require Import groups morphisms action normal pgroups automorphism.
-Require Import cyclic gprod abelian gfunc.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype div.
+Require Import finset bigops groups morphisms normal automorphism cyclic.
+Require Import gprod gfunc.
 
 (* Require Import seq paths connecct bigops perm. *)
 
@@ -84,11 +84,16 @@ Proof. by move=> A; apply/centsP; rewrite centsC subsetIr. Qed.
 Lemma center_normal : forall G, 'Z(G) <| G.
 Proof. by move=> G; rewrite -{2}(setIidPl (normG G)) subcent_normal. Qed.
 
+Lemma sub_center_normal : forall H G, H \subset 'Z(G) -> H <| G.
+Proof.
+by move=> H G; rewrite subsetI centsC /normal; case/andP=> ->; move/cents_norm.
+Qed.
+
 Lemma morphim_center : forall rT A D (f : {morphism D >-> rT}),
   f @* 'Z(A) \subset 'Z(f @* A).
 Proof. move=> rT A D f; exact: morphim_subcent. Qed.
 
-Lemma abelian_center: forall G, abelian 'Z(G).
+Lemma center_abelian : forall G, abelian 'Z(G).
 Proof.
 by move=> P; rewrite /abelian subIset // centsC subIset // subxx orbT.
 Qed.

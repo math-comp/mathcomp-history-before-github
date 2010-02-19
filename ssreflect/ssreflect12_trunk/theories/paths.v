@@ -57,7 +57,7 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 (*  - sorting: sorted checks whether a sequence is sorted wrt a      *)
 (*    transitive relation; sorted e (x :: p) expands to path e x p,  *)
 (*    and sort sorts a sequence recursively, using a "merge" function*)
-(*    to interleave sorted sublists.                                 *) 
+(*    to interleave sorted sublists.                                 *)
 (*  - loop removal : shorten returns a shorter, duplicate-free path  *)
 (*    with the same endpoints as its argument. The related shortenP  *)
 (*    dependent predicate simultaneously substitutes a new path p',  *)
@@ -91,6 +91,10 @@ Proof.
 by move=> x p1 p2; elim: p1 x => [|y p1 Hrec] x //=; rewrite Hrec -!andbA.
 Qed.
 
+Lemma path_rcons : forall x p y,
+  path x (rcons p y) = path x p && e (last x p) y.
+Proof. by move=> x p y; rewrite -cats1 path_cat /= andbT. Qed.
+
 Lemma pathP : forall x p x0,
   reflect (forall i, i < size p -> e (nth x0 (x :: p) i) (nth x0 p i))
           (path x p).
@@ -105,7 +109,7 @@ Qed.
 Definition cycle p := if p is x :: p' then path x (rcons p' x) else true.
 
 Lemma cycle_path : forall p, cycle p = path (last x0_cycle p) p.
-Proof. by move=> [|x p] //=; rewrite -cats1 path_cat /= andbT andbC. Qed.
+Proof. by move=> [|x p] //=; rewrite path_rcons andbC. Qed.
 
 Lemma cycle_rot : forall p, cycle (rot n0 p) = cycle p.
 Proof.
@@ -130,6 +134,14 @@ Lemma sub_path : forall e e', subrel e e' ->
 Proof.
 move=> e e' He x p; elim: p x => [|y p Hrec] x //=.
 by move/andP=> [Hx Hp]; rewrite (He _ _ Hx) (Hrec _ Hp).
+Qed.
+
+Lemma path_rev : forall e x p,
+  path e (last x p) (rev (belast x p)) = path (fun z y => e y z) x p.
+Proof.
+move=> e x p; elim: p x => //= y p IHp x.
+rewrite rev_cons path_rcons -IHp andbC.
+by rewrite -(last_cons x) -rev_rcons -lastI rev_cons last_rcons.
 Qed.
 
 End Paths.
@@ -550,6 +562,10 @@ Qed.
 
 End SortSeq.
 
+Lemma sorted_rev : forall (T : eqType) (leT : rel T) s,
+  sorted leT (rev s) = sorted (fun y x => leT x y) s.
+Proof. by move=> T leT [|x p] //=; rewrite -path_rev lastI rev_rcons. Qed.
+
 Lemma sorted_ltn_uniq_leq : forall s, sorted ltn s = uniq s && sorted leq s.
 Proof.
 case=> //= n s; elim: s n => //= m s IHs n.
@@ -567,14 +583,9 @@ Proof. by move=> i n; rewrite sorted_ltn_uniq_leq sorted_iota iota_uniq. Qed.
 
 (* Function trajectories. *)
 
-Notation "'fpath' f" := (path (frel f))
-  (at level 10, f at level 8) : seq_scope.
-
-Notation "'fcycle' f" := (cycle (frel f))
-  (at level 10, f at level 8) : seq_scope.
-
-Notation "'ufcycle' f" := (ucycle (frel f))
-  (at level 10, f at level 8) : seq_scope.
+Notation fpath f := (path (frel f)).
+Notation fcycle f := (cycle (frel f)).
+Notation ufcycle f := (ucycle (frel f)).
 
 Prenex Implicits path next prev cycle ucycle mem2.
 
@@ -585,17 +596,28 @@ Variables (T : Type) (f : T -> T).
 Fixpoint traject x (n : nat) {struct n} :=
   if n is n'.+1 then x :: traject (f x) n' else [::].
 
-Lemma size_traject : forall x n, size (traject x n) = n.
-Proof. by move=> x n; elim: n x => [|n Hrec] x //=; nat_congr. Qed.
+Lemma trajectS : forall x n, traject x n.+1 = x :: traject (f x) n.
+Proof. by []. Qed.
+
+Lemma trajectSr : forall x n, traject x n.+1 = rcons (traject x n) (iter n f x).
+Proof. by move=> x n; elim: n x => //= n IHn x; rewrite IHn -iterSr. Qed.
 
 Lemma last_traject : forall x n, last x (traject (f x) n) = iter n f x.
-Proof. by move=> x n; elim: n x => [|n Hrec] x //; rewrite iterSr -Hrec. Qed.
+Proof. by move=> x [|n] //; rewrite iterSr trajectSr last_rcons. Qed.
+
+Lemma traject_iteri : forall x n,
+  traject x n = iteri n (fun i => rcons^~ (iter i f x)) [::].
+Proof. by move=> x; elim=> //= n <-; rewrite -trajectSr. Qed.
+
+Lemma size_traject : forall x n, size (traject x n) = n.
+Proof. by move=> x n; elim: n x => //= n IHn x //=; rewrite IHn. Qed.
 
 Lemma nth_traject : forall i n, i < n ->
   forall x, nth x (traject x n) i = iter i f x.
 Proof.
-move=> i n Hi x; elim: n {2 3}x i Hi => [|n Hrec] y [|i] Hi //=.
-by rewrite Hrec -?iterSr.
+move=> i; elim=> // n IHn; rewrite ltnS leq_eqVlt => le_i_n x.
+rewrite trajectSr nth_rcons size_traject.
+case: ltngtP le_i_n => [? _||->] //; exact: IHn.
 Qed.
 
 End Trajectory.
@@ -855,7 +877,7 @@ by rewrite /p -cat_cons mem_cat /= mem_head orbT.
 Qed.
 
 CoInductive rot_to_arc_spec (p : seq T) (x y : T) : Type :=
-    RotToArcSpec i p1 p2 of x :: p1 = arc p x y 
+    RotToArcSpec i p1 p2 of x :: p1 = arc p x y
                           & y :: p2 = arc p y x
                           & rot i p = x :: p1 ++ y :: p2 :
     rot_to_arc_spec p x y.

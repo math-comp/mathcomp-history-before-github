@@ -6,7 +6,7 @@ Require Import finfun paths.
 (* This file provides a generic definition for iterating an operator over a *)
 (* set of indexes (reducebig); this big operator is parametrized by the     *)
 (* return type (R), the type of indexes (I), the operator (op), the default *)
-(* value on empty lists (idx), the range of indexes (r), the filter applied *) 
+(* value on empty lists (idx), the range of indexes (r), the filter applied *)
 (* on this range (P) and the expression we are iterating (F). The definition*)
 (* is not to be used directly, but via the wide range of notations provided *)
 (* and which allows a natural use of big operators.                         *)
@@ -263,36 +263,25 @@ Structure add_law (mul : T -> T -> T) : Type := AddLaw {
   _ : right_distributive mul add_operator
 }.
 
-Definition repack_law opL :=
-  let: Law _ opmA op1m opm1 := opL
-    return {type of Law for opL} -> law in
-  fun k => k opmA op1m opm1.
+Let op_id (op1 op2 : T -> T -> T) := phant_id op1 op2.
 
-Definition repack_mul_law opM :=
-  let: MulLaw _ op0m opm0 := opM
-    return {type of MulLaw for opM} -> mul_law in
-  fun k => k op0m opm0.
+Definition clone_law op :=
+  fun (opL : law) & op_id opL op =>
+  fun opmA op1m opm1 (opL' := @Law op opmA op1m opm1)
+    & phant_id opL' opL => opL'.
 
-Definition op_phant := phantom (T -> T -> T).
-Definition op_uni op1 op2 := op_phant op1 -> op_phant op2.
+Definition clone_com_law op :=
+  fun (opL : law) (opC : com_law) & op_id opL op & op_id opC op =>
+  fun opmC (opC' := @ComLaw opL opmC) & phant_id opC' opC => opC'.
 
-Definition repack_com_law op (opL : law) (opC : com_law) :=
-  fun (_ : op_uni opL op) (_ : op_uni opC op) opEq =>
-  (let: ComLaw _ opmC := opC
-     return {type of ComLaw for opC} -> com_law in
-   fun k => k opmC)
-  (let: erefl in _ = opC := opEq
-     return {type of ComLaw for opC}
-   in @ComLaw opL).
+Definition clone_mul_law op :=
+  fun (opM : mul_law) & op_id opM op =>
+  fun op0m opm0 (opM' := @MulLaw op op0m opm0) & phant_id opM' opM => opM'.
 
-Definition repack_add_law mop aop (opC : com_law) (opA : add_law mop) :=
-  fun (_ : op_uni opC aop) (_ : op_uni opA aop) opEq =>
-  (let: AddLaw _ mopAm mopmA  := opA
-     return {type of @AddLaw mop for opA} -> add_law mop in
-   fun k => k mopAm mopmA)
-  (let: erefl in _ = opA := opEq
-     return {type of @AddLaw mop for opA}
-   in @AddLaw mop opC).
+Definition clone_add_law mop aop :=
+  fun (opC : com_law) (opA : add_law mop) & op_id opC aop & op_id opA aop =>
+  fun mopDm mopmD (opA' := @AddLaw mop opC mopDm mopmD)
+    & phant_id opA' opA => opA'.
 
 End Definitions.
 
@@ -359,42 +348,21 @@ End Theory.
 
 End Theory.
 
-Import Theory. 
-Definition mul1m :=  mul1m.
-Definition mulm1 := mulm1.
-Definition mulmA := mulmA.
-Definition iteropE := iteropE.
-Definition mulmC := mulmC.
-Definition mulmCA := mulmCA.
-Definition mulmAC := mulmAC.
-Definition mul0m := mul0m.
-Definition mulm0 := mulm0.
-Definition addmA := addmA.
-Definition addmC := addmC.
-Definition addmCA := addmCA.
-Definition addmAC := addmAC.
-Definition add0m := add0m.
-Definition addm0 := addm0.
-Definition mulm_addl := mulm_addl.
-Definition mulm_addr := mulm_addr.
-Definition simpm := simpm.
+Include Theory.
 
 End Monoid.
 
-Notation "[ 'law' 'of' f ]" :=
-    (Monoid.repack_law (fun fA => @Monoid.Law _ _ f fA))
+Notation "[ 'law' 'of' f ]" := (@Monoid.clone_law _ _ f _ id _ _ _ id)
   (at level 0, format"[ 'law'  'of'  f ]") : form_scope.
 
-Notation "[ 'com_law' 'of' f ]" :=
-    (@Monoid.repack_com_law _ _ f _ _ id id (erefl _))
+Notation "[ 'com_law' 'of' f ]" := (@Monoid.clone_com_law _ _ f _ _ id id _ id)
   (at level 0, format "[ 'com_law'  'of'  f ]") : form_scope.
 
-Notation "[ 'mul_law' 'of' f ]" :=
-    (Monoid.repack_mul_law (fun f0m => @Monoid.MulLaw _ _ f f0m))
+Notation "[ 'mul_law' 'of' f ]" := (@Monoid.clone_mul_law _ _ f _ id _ _ id)
   (at level 0, format"[ 'mul_law'  'of'  f ]") : form_scope.
 
 Notation "[ 'add_law' m 'of' a ]" :=
-    (@Monoid.repack_add_law _ _ m a _ _ id id (erefl _))
+    (@Monoid.clone_add_law _ _ m a _ _ id id _ _ id)
   (at level 0, format "[ 'add_law'  m  'of'  a ]") : form_scope.
 
 Section PervasiveMonoids.
@@ -464,7 +432,7 @@ Definition bigop := reducebig.
 Lemma bigopE : bigop = reducebig. Proof. by []. Qed.
 End ReduceBig.
 
-Notation bigop := ReduceBig.bigop.
+Notation bigop := ReduceBig.bigop (only parsing).
 Canonical Structure reduce_big_unlock := Unlockable ReduceBig.bigopE.
 
 Definition index_iota m n := iota m (n - m).
@@ -1135,6 +1103,21 @@ by apply: eq_bigl => j; rewrite !inE; case Pi: (P _); rewrite //= hK ?eqxx.
 Qed.
 Implicit Arguments reindex [I J P F].
 
+Lemma reindex_inj : forall (I : finType) (h : I -> I) (P : pred I) F,
+  injective h -> \big[*%M/1]_(i | P i) F i = \big[*%M/1]_(j | P (h j)) F (h j).
+Proof. move=> I h P F injh; exact: reindex (onW_bij _ (injF_bij injh)). Qed.
+Implicit Arguments reindex_inj [I h P F].
+
+Lemma big_nat_rev : forall m n P F,
+  \big[*%M/1]_(m <= i < n | P i) F i
+     = \big[*%M/1]_(m <= i < n | P (m + n - i.+1)) F (m + n - i.+1).
+Proof.
+move=> m n P F; case: (ltnP m n) => ltmn; last by rewrite !big_geq.
+rewrite -{3 4}(subnK (ltnW ltmn)) addnA.
+do 2!rewrite (big_addn _ _ 0) big_mkord; rewrite (reindex_inj rev_ord_inj) /=.
+by apply: eq_big => [i | i _]; rewrite /= -addSn subn_add2r addnC addn_subA.
+Qed.
+
 Lemma pair_big_dep : forall (I J : finType) (P : pred I) (Q : I -> pred J) F,
   \big[*%M/1]_(i | P i) \big[*%M/1]_(j | Q i j) F i j =
     \big[*%M/1]_(p | P p.1 && Q p.1 p.2) F p.1 p.2.
@@ -1247,6 +1230,7 @@ Implicit Arguments bigD1 [R op idx I P F].
 Implicit Arguments partition_big [R op idx I J P F].
 Implicit Arguments reindex_onto [R op idx I J P F].
 Implicit Arguments reindex [R op idx I J P F].
+Implicit Arguments reindex_inj [R op idx I h P F].
 Implicit Arguments pair_big_dep [R op idx I J].
 Implicit Arguments pair_big [R op idx I J].
 Implicit Arguments exchange_big_dep [R op idx I J P Q F].
@@ -1494,30 +1478,101 @@ Lemma leq_bigmax_cond : forall (I : finType) (P : pred I) F i0,
 Proof.
 by move=> I P F i0 Pi0; rewrite -eqn_maxr (bigD1 i0) // maxnA /= maxnn eqxx.
 Qed.
+Implicit Arguments leq_bigmax_cond [I P F].
 
 Lemma leq_bigmax : forall (I : finType) F (i0 : I), F i0 <= \max_i F i.
 Proof. by move=> *; exact: leq_bigmax_cond. Qed.
-
-Implicit Arguments leq_bigmax_cond [I P F].
 Implicit Arguments leq_bigmax [I F].
 
-Lemma eq_bigmax_cond : forall (I : finType) (A : pred I) F,
-  #|A| > 0 -> {i0 |i0 \in A & \max_(i \in A) F i = F i0}.
+Lemma bigmax_leqP : forall (I : finType) (P : pred I) m F,
+  reflect (forall i, P i -> F i <= m) (\max_(i | P i) F i <= m).
 Proof.
-move=> I A F nzA; set m := \max_(i \in A) F i.
-pose ub i := (i \in A) && (F i >= m); case: (pickP ub) => [i | ub0].
-  case/andP=> Ai ubi; exists i => //.
-  by apply/eqP; rewrite eqn_leq ubi leq_bigmax_cond.
-have{ub0} ubm: {in A, forall i, F i < m}.
-  by move=> i Ai; case/nandP: (ub0 i); rewrite (Ai, ltnNge).
-case/idP: (ltnn m); apply: (@big_prop _ (fun n => n < m)) => // [|n1 n2].
-  case: (pickP A) => [i Ai| A0]; last by rewrite eq_card0 in nzA.
-  exact: leq_trans (ubm i Ai).
-by rewrite !ltnNge leq_maxr negb_or => ->.
+move=> I P m F; apply: (iffP idP) => leFm => [i Pi|].
+  by apply: leq_trans leFm; exact: leq_bigmax_cond.
+by apply big_prop => // m1 m2; rewrite leq_maxl => ->.
+Qed.
+
+Lemma bigmax_sup : forall (I : finType) i0 (P : pred I) m F,
+  P i0 -> m <= F i0 -> m <= \max_(i | P i) F i.
+Proof.
+by move=> I i0 P m F Pi0 le_m_Fi0; exact: leq_trans (leq_bigmax_cond i0 Pi0).
+Qed.
+Implicit Arguments bigmax_sup [I P m F].
+
+Lemma bigmax_eq_arg : forall (I : finType) i0 (P : pred I) F,
+  P i0 -> \max_(i | P i) F i = F [arg max_(i > i0 | P i) F i].
+Proof.
+move=> I i0 P F Pi0; case: arg_maxP => //= i Pi maxFi.
+by apply/eqP; rewrite eqn_leq leq_bigmax_cond // andbT; exact/bigmax_leqP.
+Qed.
+Implicit Arguments bigmax_eq_arg [I P F].
+
+Lemma eq_bigmax_cond : forall (I : finType) (A : pred I) F,
+  #|A| > 0 -> {i0 | i0 \in A & \max_(i \in A) F i = F i0}.
+Proof.
+move=> I A F; case: (pickP A) => [i0 Ai0 _ | ]; last by move/eq_card0->.
+by exists [arg max_(i > i0 \in A) F i]; [case: arg_maxP | exact: bigmax_eq_arg].
 Qed.
 
 Lemma eq_bigmax : forall (I : finType) F,
   #|I| > 0 -> {i0 : I | \max_i F i = F i0}.
 Proof. by move=> I F; case/(eq_bigmax_cond F) => x _ ->; exists x. Qed.
+
+Lemma expn_sum : forall m I r (P : pred I) F,
+  (m ^ (\sum_(i <- r | P i) F i) = \prod_(i <- r | P i) m ^ F i)%N.
+Proof. move=> m; exact: big_morph (expn_add m) _. Qed.
+
+Lemma dvdn_biglcmP : forall (I : finType) (P : pred I) F m,
+  reflect (forall i, P i -> F i %| m) (\big[lcmn/1%N]_(i | P i) F i %| m).
+Proof.
+move=> I P F m; apply: (iffP idP) => [dvFm i Pi | dvFm].
+  by rewrite (bigD1 i) // dvdn_lcm in dvFm; case/andP: dvFm.
+by apply big_prop => // [p q p_m]; rewrite dvdn_lcm p_m.
+Qed. 
+
+Lemma biglcmn_sup : forall (I : finType) i0 (P : pred I) F m,
+  P i0 -> m %| F i0 -> m %| \big[lcmn/1%N]_(i | P i) F i.
+Proof.
+move=> I i0 P F m Pi0 m_Fi0.
+by rewrite (dvdn_trans m_Fi0) // (bigD1 i0) ?dvdn_lcml.
+Qed.
+Implicit Arguments biglcmn_sup [I P F m].
+
+Lemma dvdn_biggcdP : forall (I : finType) (P : pred I) F m,
+  reflect (forall i, P i -> m %| F i) (m %| \big[gcdn/0]_(i | P i) F i).
+Proof.
+move=> I P F m; apply: (iffP idP) => [dvmF i Pi | dvmF].
+  by rewrite (bigD1 i) // dvdn_gcd in dvmF; case/andP: dvmF.
+by apply big_prop => // [p q m_p]; rewrite dvdn_gcd m_p.
+Qed. 
+
+Lemma biggcdn_inf : forall (I : finType) i0 (P : pred I) F m,
+  P i0 -> F i0 %| m -> \big[gcdn/0]_(i | P i) F i %| m.
+Proof.
+by move=> I i0 P F m Pi0; apply: dvdn_trans; rewrite (bigD1 i0) ?dvdn_gcdl.
+Qed.
+Implicit Arguments biggcdn_inf [I P F m].
+
+Section BigBool.
+
+Variables (I : finType) (P : pred I).
+
+Lemma big_orE : forall B,
+  \big[orb/false]_(i | P i) B i = (existsb i, P i && B i).
+Proof.
+move=> B; case: existsP => [[i] | no_i].
+  by case/andP=> Pi Bi; rewrite (bigD1 i) // Bi.
+by rewrite big1 // => i Pi; apply/idP=> Bi; case: no_i; exists i; rewrite Pi.
+Qed.
+
+Lemma big_andE : forall B,
+  \big[andb/true]_(i | P i) B i = (forallb i, P i ==> B i).
+Proof.
+move=> B; apply: negb_inj.
+rewrite (big_morph negb negb_and (erefl (~~ true))) big_orE negb_forall.
+by apply: eq_existsb => i; case: (P i).
+Qed.
+
+End BigBool.
 
 Unset Implicit Arguments.

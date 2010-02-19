@@ -1,3 +1,4 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype.
 Require Import div bigops prime tuple finset groups morphisms normal.
 Require Import perm automorphism action cyclic pgroups sylow.
@@ -11,8 +12,8 @@ Import GroupScope.
 
 Definition bool_groupMixin := FinGroup.Mixin addbA addFb addbb.
 Canonical Structure bool_baseGroup :=
-  Eval hnf in BaseFinGroupType bool_groupMixin.
-Canonical Structure boolGroup := Eval hnf in FinGroupType addbb. 
+  Eval hnf in BaseFinGroupType bool bool_groupMixin.
+Canonical Structure boolGroup := Eval hnf in FinGroupType addbb.
 
 (****************************************************************************)
 (*                                                                          *)
@@ -80,7 +81,7 @@ Proof.
 by move/Alt_index <-; rewrite mulnC (LaGrange Alt_subset) card_Sym.
 Qed.
 
-Lemma Sym_trans : [transitive * n ('Sym_T | 'P) on setT].
+Lemma Sym_trans : [transitive^n 'Sym_T, on setT | 'P].
 Proof.
 apply/imsetP; pose t1 := [tuple of enum T].
 have dt1: t1 \in n.-dtuple(setT) by rewrite inE enum_uniq; apply/subsetP.
@@ -92,7 +93,7 @@ apply: eq_from_tnth => i; rewrite tnth_map /= [aperm _ _]permE; congr tnth.
 by rewrite (tnth_nth (enum_default i)) enum_valK.
 Qed.
 
-Lemma Alt_trans : [transitive * n.-2 ('Alt_T | 'P) on setT].
+Lemma Alt_trans : [transitive^n.-2 'Alt_T, on setT | 'P].
 Proof.
 case n_m2: n Sym_trans => [|[|m]] /= tr_m2; try exact: ntransitive0.
 have tr_m := ntransitive_weak (leqW (leqnSn m)) tr_m2.
@@ -108,8 +109,7 @@ apply: val_inj; apply: eq_in_map => z tz; rewrite actM /= /aperm; congr (a _).
 by case: tpermP ntx nty => // <-; rewrite tz.
 Qed.
 
-Lemma aperm_faithful : forall A : {group {perm T}},
-  [faithful (A | 'P) on setT].
+Lemma aperm_faithful : forall A : {group {perm T}}, [faithful A, on setT | 'P].
 Proof.
 move=> A; apply/faithfulP=> /= p _ np1; apply/eqP; apply/perm_act1P=> y.
 by rewrite np1 ?inE.
@@ -144,7 +144,7 @@ case/orP=> eqK; [right | left]; apply/eqP.
 by rewrite eq_sym eqEcard sub1G (eqP eqK) cards1.
 Qed.
 
-Lemma not_simple_Alt_4: forall T : finType, #|T| = 4 -> ~~ simple 'Alt_T.
+Lemma not_simple_Alt_4 : forall T : finType, #|T| = 4 -> ~~ simple 'Alt_T.
 Proof.
 move=> T oT; set A := 'Alt_T.
 have oA: #|A| = 12 by apply: double_inj; rewrite -mul2n card_Alt oT.
@@ -180,7 +180,7 @@ Qed.
 
 Module Alt_CP_1. End Alt_CP_1.
 
-Lemma simple_Alt5_base: forall T : finType, #|T| = 5 -> simple 'Alt_T.
+Lemma simple_Alt5_base : forall T : finType, #|T| = 5 -> simple 'Alt_T.
 Proof.
 move=> T oT.
 pose tp := is_true_true.
@@ -189,28 +189,28 @@ have FF: forall H : {group _}, H <| 'Alt_T -> H :<>: 1 -> 20 %| #|H|.
 - move=> H Hh1 Hh3.
   have [x _]: exists x, x \in T by apply/existsP; rewrite /pred0b oT.
   have F2 := Alt_trans T; rewrite oT /= in F2.
-  have F3: [transitive ('Alt_T | 'P) on setT] by exact: ntransitive1 F2.
-  have F4: [primitive ('Alt_T | 'P) on setT] by exact: ntransitive_primitive F2.
+  have F3: [transitive 'Alt_T, on setT | 'P] by exact: ntransitive1 F2.
+  have F4: [primitive 'Alt_T, on setT | 'P] by exact: ntransitive_primitive F2.
   case: (prim_trans_norm F4 Hh1) => F5.
     case: Hh3; apply/trivgP; exact: subset_trans F5 (aperm_faithful _).
-  have F6: 5 %| #|H| by rewrite -oT -cardsT; apply: trans_div (in_setT x) F5. 
+  have F6: 5 %| #|H| by rewrite -oT -cardsT (atrans_dvd F5).
   have F7: 4 %| #|H|.
     have F7: #|[set~ x]| = 4 by rewrite cardsC1 oT.
     case: (pickP (mem [set~ x])) => [y Hy | ?]; last by rewrite eq_card0 in F7.
-    pose K := 'C_(H | 'P)[x]%G.
-    have F8 : K \subset H by apply: subset_astab.
-    pose Gx := 'C_('Alt_T | 'P)[x]%G.
-    have F9: [transitive * 2 (Gx | 'P) on [set~ x]].
+    pose K := 'C_H[x | 'P]%G.
+    have F8 : K \subset H by apply: subsetIl.
+    pose Gx := 'C_('Alt_T)[x | 'P]%G.
+    have F9: [transitive^2 Gx, on [set~ x] | 'P].
       by rewrite -[[set~ x]]setTI -setDE stab_ntransitive ?inE.
-    have F10: [transitive (Gx | 'P) on [set~ x]].
+    have F10: [transitive Gx, on [set~ x] | 'P].
       exact: ntransitive1 F9.
-    have F11: [primitive (Gx | 'P) on [set~ x]].
+    have F11: [primitive Gx, on [set~ x] | 'P].
       exact: ntransitive_primitive F9.
     have F12: K \subset Gx by apply: setSI; exact: normal_sub.
-    have F13: K <| Gx by rewrite /(K <| _) F12 norm_stab // normal_norm.
+    have F13: K <| Gx by rewrite /(K <| _) F12 normsIG // normal_norm.
     case: (prim_trans_norm F11 F13) => Ksub; last first.
-      apply: dvdn_trans (cardSg F8); rewrite -F7; exact: trans_div Hy Ksub.
-    have F14: [faithful (Gx | 'P) on [set~ x]].
+      apply: dvdn_trans (cardSg F8); rewrite -F7; exact: atrans_dvd Ksub.
+    have F14: [faithful Gx, on [set~ x] | 'P].
       apply/subsetP=> g; do 2![case/setIP] => Altg cgx cgx'.
       apply: (subsetP (aperm_faithful 'Alt_T)).
       rewrite inE Altg /=; apply/astabP=> z _.
@@ -275,7 +275,7 @@ have nSyl5: #|'Syl_5(H)| = 1%N.
   move: (dvdn_leq  (tp: (0 < 20)%N) Hdiv).
   by move: (n) Hdiv; do 20 (case => //).
 case: (Sylow_exists 5 H) => S; case/pHallP=> sSH oS.
-have{oS} oS: #|S| = 5 by rewrite oS p_part Hcard20. 
+have{oS} oS: #|S| = 5 by rewrite oS p_part Hcard20.
 suff: 20 %| #|S| by rewrite oS.
 apply FF => [|S1]; last by rewrite S1 cards1 in oS.
 apply: char_normal_trans Hnorm; apply: lone_subgroup_char => // Q sQH isoQS.
@@ -313,9 +313,9 @@ Definition rfd p := perm (@rfdP p).
 
 Hypothesis card_T : 2 < #|T|.
 
-Lemma rfd_morph : {in 'C_('Sym_T | 'P)[x] &, {morph rfd : y z / y * z}}.
+Lemma rfd_morph : {in 'C_('Sym_T)[x | 'P] &, {morph rfd : y z / y * z}}.
 Proof.
-move=> p q; rewrite !in_setI !in_setT; move/astab1P=> p_x; move/astab1P=> q_x.
+move=> p q; rewrite !setIA !setIid; move/astab1P=> p_x; move/astab1P=> q_x.
 apply/permP=> u; apply: val_inj.
 by rewrite permE /= !permM !permE /= [p x]p_x [q x]q_x eqxx permM /=.
 Qed.
@@ -359,7 +359,7 @@ have Hcp1: #|[set x | p1 x != x]| <= n.
   have F1: forall y, p y = y -> p1 y = y.
     move=> y Hy; rewrite /p1 permM Hy.
     case tpermP => //; first by move => <-.
-    by move=> Hpx1; apply: (@perm_inj _ p); rewrite -Hpx1.  
+    by move=> Hpx1; apply: (@perm_inj _ p); rewrite -Hpx1.
   have F2: p1 x1 = x1 by rewrite /p1 permM tpermR.
   have F3: [set x | p1 x != x] \subset [predD1 [set x | p x != x] & x1].
     apply/subsetP => z; rewrite !inE permM.
@@ -384,7 +384,7 @@ case: (tpermP x2) => [->|->|HH1 HH2]; rewrite /x2 ?tpermL ?tpermR 1?tpermD //.
 by apply/eqP => HH3; case: HH2; apply: val_inj.
 Qed.
 
-Lemma rfd_iso: 'C_('Alt_T | 'P)[x] \isog 'Alt_T'.
+Lemma rfd_iso : 'C_('Alt_T)[x | 'P] \isog 'Alt_T'.
 Proof.
 have rgd_x: forall p, rgd p x = x.
   by move=> p; rewrite permE /= insubF //= eqxx.
@@ -392,7 +392,7 @@ have rfd_rgd: forall p, rfd (rgd p) = p.
   move=> p; apply/permP => [[z Hz]]; apply/val_eqP; rewrite !permE.
   rewrite /= [rgd _ _]permE /= insubF eq_refl // permE /=.
   by rewrite (@insubT _ (xpredC1 x) _ _ Hz).
-have sSd: 'C_('Alt_T | 'P)[x] \subset 'dom rfd.
+have sSd: 'C_('Alt_T)[x | 'P] \subset 'dom rfd.
   by apply/subsetP=> p; rewrite !inE /=; case/andP.
 apply/isogP; exists [morphism of restrm sSd rfd] => /=; last first.
   rewrite morphim_restrm setIid; apply/setP=> z; apply/morphimP/idP=> [[p _]|].
@@ -423,12 +423,12 @@ suff F1: forall n (T : finType), #|T| = n + 5 -> simple 'Alt_T.
   by move=> T; move/subnK; move/esym; move/F1.
 elim => [| n Hrec T Hde]; first exact: simple_Alt5_base.
 have oT: 5 < #|T| by rewrite Hde addnC.
-apply/simpleP; split=> [|H Hnorm]; last have [Hh1 nH] := andP Hnorm. 
+apply/simpleP; split=> [|H Hnorm]; last have [Hh1 nH] := andP Hnorm.
   rewrite trivg_card1 -[#|_|]half_double -mul2n card_Alt Hde addnC //.
-  by rewrite addSn /fact -/fact mulnC -(prednK (fact_gt0 _)).
+  by rewrite addSn factS mulnC -(prednK (fact_gt0 _)).
 case E1: (pred0b T); first by rewrite /pred0b in E1; rewrite (eqP E1) in oT.
 case/pred0Pn: E1 => x _; have Hx := in_setT x.
-have F2: [transitive * 4 ('Alt_T | 'P) on setT].
+have F2: [transitive^4 'Alt_T, on setT | 'P].
   by apply: ntransitive_weak (Alt_trans T); rewrite -(subnKC oT).
 have F3 := ntransitive1 (tp: 0 < 4) F2.
 have F4 := ntransitive_primitive (tp: 1 < 4) F2.
@@ -440,17 +440,17 @@ case E1: (pred0b (predD1 T x)).
   rewrite /pred0b in E1; move: oT.
   by rewrite (cardD1 x) (eqP E1); case: (T x).
 case/pred0Pn: E1 => y Hdy; case/andP: (Hdy) => diff_x_y Hy.
-pose K := 'C_(H | 'P)[x]%G.
-have F8: K \subset H by apply: subset_astab.
-pose Gx := 'C_('Alt_T | 'P)[x]%G.
-have F9: [transitive * 3 (Gx | 'P) on [set~ x]].
+pose K := 'C_H[x | 'P]%G.
+have F8: K \subset H by apply: subsetIl.
+pose Gx := 'C_('Alt_T)[x | 'P].
+have F9: [transitive^3 Gx, on [set~ x] | 'P].
   by rewrite -[[set~ x]]setTI -setDE stab_ntransitive ?inE.
-have F10: [transitive (Gx | 'P) on [set~ x]].
+have F10: [transitive Gx, on [set~ x] | 'P].
   by apply: ntransitive1 F9.
-have F11: [primitive (Gx | 'P) on [set~ x]].
+have F11: [primitive Gx, on [set~ x] | 'P].
   by apply: ntransitive_primitive F9.
 have F12: K \subset Gx by rewrite setSI // normal_sub.
-have F13: K <| Gx by apply/andP; split; last apply: norm_stab.
+have F13: K <| Gx by apply/andP; rewrite normsIG.
 have:= prim_trans_norm F11; case/(_ K) => //= => Ksub; last first.
   have F14: Gx * H = 'Alt_T by exact/subgroup_transitiveP.
   have: simple Gx.
@@ -458,15 +458,15 @@ have:= prim_trans_norm F11; case/(_ K) => //= => Ksub; last first.
   case/simpleP=> _ simGx; case/simGx: F13 => /= HH2.
     case Ez: (pred0b (predD1 (predD1 T x) y)).
       move: oT; rewrite /pred0b in Ez.
-      by rewrite (cardD1 x) (cardD1 y) (eqP Ez) inE /= inE /= diff_x_y.  
+      by rewrite (cardD1 x) (cardD1 y) (eqP Ez) inE /= inE /= diff_x_y.
     case/pred0Pn: Ez => z; case/andP => diff_y_z Hdz.
     have [diff_x_z Hz] := andP Hdz.
     have: z \in [set~ x] by rewrite !inE.
     rewrite -(atransP Ksub y) ?inE //; case/imsetP => g.
-    rewrite /= HH2 inE; move/eqP => -> HH4.
+    rewrite /= HH2 inE; move/eqP=> -> HH4.
     by case/negP: diff_y_z; rewrite HH4 act1.
-  by apply: val_inj; rewrite /= -F14 /= -HH2 (mulSGid F8).
-have F14: [faithful (Gx | 'P) on [set~ x]].
+  by rewrite /= -F14 -[Gx]HH2 (mulSGid F8).
+have F14: [faithful Gx, on [set~ x] | 'P].
   apply: subset_trans (aperm_faithful 'Sym_T); rewrite subsetI subsetT.
   apply/subsetP=> g; do 2![case/setIP]=> _ cgx cgx'; apply/astabP=> z _ /=.
   case: (z =P x) => [->|]; first exact: (astab1P cgx).
@@ -482,7 +482,7 @@ have Hreg: forall g z, g \in H -> g z = z -> g = 1.
 clear K F8 F12 F13 Ksub F14.
 have Hcard: 5 < #|H|.
   apply: (leq_trans oT); apply dvdn_leq; first by exact: cardG_gt0.
-  by rewrite -cardsT (trans_div Hx F5).
+  by rewrite -cardsT (atrans_dvd F5).
 case Eh: (pred0b [predD1 H & 1]).
   by move: Hcard; rewrite /pred0b in Eh; rewrite (cardD1 1) group1 (eqP Eh).
 case/pred0Pn: Eh => h; case/andP => diff_1_h /= Hh.
@@ -541,5 +541,6 @@ have g_k_com: g * k = k * g.
 have HH: (k * (h * g) * k ^-1) x = z.
    by rewrite 2!permM -Hkx Hkhgx -permM mulgV perm1.
 case/negP: diff_hgx_z.
-by rewrite -HH !mulgA -h_k_com -!mulgA [k * _]mulgA -g_k_com -!mulgA mulgV mulg1.
+rewrite -HH !mulgA -h_k_com -!mulgA [k * _]mulgA.
+by rewrite -g_k_com -!mulgA mulgV mulg1.
 Qed.

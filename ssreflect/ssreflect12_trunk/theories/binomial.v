@@ -4,22 +4,27 @@ Require Import div prime choice.
 
 (****************************************************************************)
 (* This files contains the definition  of:                                  *)
+(*   ninj m n       ==  number of injections of n elements into m elements  *)
 (*   bin m n        ==  binomial coeficients, i.e. m choose n               *)
 (*                                                                          *)
-(* In additions to the properties of this function, wilson and pascal are   *)
-(* two examples of how to manipulate expressions with bigops.               *)
+(* In additions to the properties of these functions, triangular_sum, Wilson*)
+(* and Pascal are examples of how to manipulate expressions with bigops.    *)
 (****************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-(** Factorial lemma **)
-Lemma fact0 : fact 0 = 1.
-Proof. by done. Qed.
+(** More properties of the factorial **)
 
-Lemma factS : forall n, fact n.+1  = n.+1 * fact n.
-Proof. by done. Qed.
+Lemma fact_smonotone m n: 1 < n -> m < n -> fact m < fact n.
+Proof.
+move=> m n; elim: n m => // n Hrec m Hn; rewrite factS.
+rewrite ltnS leq_eqVlt; case/orP=> Hmn.
+  by move/eqP: Hmn=>->; rewrite ltn_Pmull // fact_gt0.
+case: {Hn}n Hrec Hmn => // [[|n]] Hrec Hmn; first by case: m Hmn.
+by apply: leq_trans (Hrec _ is_true_true Hmn) _; rewrite leq_pmull.
+Qed.
 
 Lemma fact_prod n : fact n = \prod_(1 <= i < n.+1) i.
 Proof.
@@ -27,7 +32,7 @@ elim=> [|n Hrec] //; first by rewrite big_nil.
 by apply sym_equal; rewrite factS Hrec // !big_add1 big_nat_recr /= mulnC.
 Qed.
 
-Theorem wilson : forall p, p > 1 -> prime p = (p %| (fact p.-1).+1).
+Theorem Wilson : forall p, p > 1 -> prime p = (p %| (fact p.-1).+1).
 Proof.
 have dFact: forall p, 0 < p -> fact p.-1 = \prod_(0 <= i < p | i != 0) i.
   move=> p Hp; rewrite -big_filter fact_prod; symmetry; apply: congr_big=> //.
@@ -102,7 +107,62 @@ rewrite -{2}[mFp]/mFpM -[mFpM _ _]big_split -/mFpM.
 by rewrite big1 ?mFp1r //= => i; case/andP; auto.
 Qed.
 
-(** Binomial *)
+(** Number of injections from a set of n element to a set of m elements*)
+
+Fixpoint ninj_rec (m n : nat) {struct m} :=
+  match m, n with
+  | m'.+1, n'.+1 => m * ninj_rec m' n'
+  | _, 0 => 1
+  | 0, _.+1 => 0
+  end.
+
+Definition ninj := nosimpl ninj_rec.
+
+Lemma ninjE : ninj = ninj_rec. Proof. by []. Qed.
+
+Lemma ninj0 : forall n, ninj n 0 = 1.
+Proof. by case. Qed.
+
+Lemma ninj0n : forall n, ninj 0 n = if n is S _ then 0 else 1.
+Proof. by case. Qed.
+
+Lemma ninjSS : forall m n,  ninj m.+1 n.+1 = m.+1 * ninj m n.
+Proof. by []. Qed.
+
+Lemma ninj1 : forall n, ninj n 1 = n.
+Proof. by elim=> //= n IHn; rewrite ninjSS ninj0 muln1. Qed.
+
+Lemma ninjS : forall m n,  ninj m n.+1 = (m - n) * ninj m n.
+Proof.
+elim=> [|m Hrec] n; first by rewrite ninj0n mul0n. 
+case: n=> [|n]; first by rewrite ninj1 ninj0 subn0 muln1.
+by rewrite !ninjSS Hrec mulnCA.
+Qed.
+
+Lemma ninj_gt0 : forall m n, (0 < ninj m n) = (n <= m).
+Proof.
+by elim=> [|m IHm] [|n] //; rewrite ninjSS (ltn_mul2r _ 0) IHm andbT.
+Qed.
+
+Lemma ninj_small : forall m n, m < n -> ninj m n = 0.
+Proof. by move=> m n; rewrite ltnNge -ninj_gt0; case: posnP. Qed.
+
+Lemma ninjn : forall n, ninj n n = fact n.
+Proof. by elim=> [|n IHn] //; rewrite ninjSS IHn. Qed.
+
+Lemma ninj_fact : forall m n, n <= m -> ninj m n * fact (m - n) = fact m.
+Proof.
+move=> m n; move/subnKC; move: (m - n) => m0 <-{m}.
+elim: n => [|n IHn]; first by rewrite ninj0 !mul1n.
+by rewrite addSn ninjSS factS -mulnA IHn.
+Qed.
+
+Lemma ninj_factd : forall m n, n <= m -> ninj m n = fact m %/ fact (m - n).
+Proof.
+by move=> m n Hn; rewrite -(ninj_fact Hn) mulnK // fact_gt0.
+Qed.
+
+(** Binomial coefficients *)
 
 Fixpoint bin_rec (m n : nat) {struct m} :=
   match m, n with
@@ -116,46 +176,132 @@ Definition bin := nosimpl bin_rec.
 Lemma binE : bin = bin_rec. Proof. by []. Qed.
 
 Lemma bin0 : forall n, bin n 0 = 1.
-Proof. by elim. Qed.
+Proof. by case. Qed.
+
+Lemma bi0n : forall n, bin 0 n = if n is S _ then 0 else 1.
+Proof. by case. Qed.
 
 Lemma binS : forall m n,  bin m.+1 n.+1 = bin m n.+1 + bin m n.
 Proof. by []. Qed.
 
-Lemma bin_small : forall m n, m < n -> bin m n = 0.
-Proof. by elim=> [|m IHm] [|n] // lt_m_n; rewrite binS !IHm // ltnW. Qed.
-
-Lemma binn : forall n, bin n n = 1.
-Proof. by elim=> [|n IHn] //; rewrite binS bin_small. Qed.
+Lemma bin1 : forall n, bin n 1 = n.
+Proof. by elim=> //= n IHn; rewrite binS bin0 IHn addn1. Qed.
 
 Lemma bin_gt0 : forall m n, (0 < bin m n) = (n <= m).
 Proof.
 by elim=> [|m IHm] [|n] //; rewrite binS addn_gt0 !IHm orbC ltn_neqAle andKb.
 Qed.
 
+Lemma bin_small : forall m n, m < n -> bin m n = 0.
+Proof. by move=> m n; rewrite ltnNge -bin_gt0; case: posnP. Qed.
+
+Lemma binn : forall n, bin n n = 1.
+Proof. by elim=> [|n IHn] //; rewrite binS bin_small. Qed.
+
+Lemma mul_Sm_binm : forall m n, m.+1 * bin m n = n.+1 * bin m.+1 n.+1.
+Proof.
+elim=> [|m IHm] [|n] //; first by rewrite bin0 bin1 muln1 mul1n.
+by rewrite mulSn {2}binS muln_addr addnCA !IHm -muln_addr.
+Qed.
+
 Lemma bin_fact : forall m n,
   n <= m -> bin m n * (fact n * fact (m - n)) = fact m.
 Proof.
-move=> m n Hm; rewrite -{1 3}(subnKC Hm) {Hm}.
-elim: n {m}(m - n) => [m | n IHn]; first by rewrite bin0 !mul1n.
-elim=> [|m IHm]; first by rewrite addn0 binn mul1n muln1.
-rewrite {1}addnS binS muln_addl -2!{1}(mulnCA m.+1) {}IHm addSnnS.
-by rewrite -(mulnA n.+1) mulnCA {}IHn addnC -muln_addl.
+move=> m n; move/subnKC; move: (m - n) => m0 <-{m}.
+elim: n => [|n IHn]; first by rewrite bin0 !mul1n.
+by rewrite -mulnA mulnCA mulnA -mul_Sm_binm -mulnA IHn.
 Qed.
 
-Lemma bin_sub : forall n m, n <= m -> bin m n = bin m (m - n).
+(* In fact the only exception is m = 0 and n = 1 *)
+Lemma bin_factd : forall m n, 1 < n ->
+    bin m n  = fact m %/ (fact n * fact (m - n)).
 Proof.
-move=> n m le_n_m.
-apply/eqP; rewrite -(eqn_pmul2r (fact_gt0 (m - n))) -(eqn_pmul2r (fact_gt0 n)).
-by rewrite {1}mulnAC -!mulnA -{6}(subKn le_n_m) !bin_fact ?leq_subr.
+move=> m n Hn.
+case: (leqP n m) => Hmn.
+  rewrite -(bin_fact Hmn) mulnK //.
+  by exact (ltn_mul (fact_gt0 _) (fact_gt0 _)).
+have->: m - n = 0 by apply/eqP; rewrite subn_eq0 ltnW.
+by rewrite bin_small // fact0 muln1 divn_small // fact_smonotone.
 Qed.
 
-Theorem pascal : forall a b n,
+Lemma bin_ninjn : forall m n, n <= m -> fact n * bin m n = ninj m n.
+Proof.
+move=>m n H; apply/eqP.
+by rewrite -(eqn_pmul2r (fact_gt0 (m - n))) ninj_fact // mulnAC mulnC bin_fact.
+Qed.
+
+Lemma bin_ninjnd : forall m n, bin m n = ninj m n %/ fact n.
+Proof.
+move=> m [|[|n]]; first by rewrite bin0 ninj0 fact0.
+  by rewrite bin1 ninj1 divn1.
+rewrite bin_factd //.
+case: (leqP n.+2 m) => Hmn.
+  by rewrite ninj_factd // divn_divl mulnC.
+rewrite ninj_small // div0n divn_small //.
+apply: leq_trans (fact_smonotone (is_true_true: 1 < n.+2) Hmn) _.
+by rewrite -{1}[fact _]muln1 leq_pmul2l fact_gt0.
+Qed.
+
+Lemma bin_sub : forall n m, n <= m -> bin m (m - n) = bin m n.
+Proof.
+move=> n m le_n_m; apply/eqP; move/eqP: (bin_fact (leq_subr n m)).
+by rewrite subKn // -(bin_fact le_n_m) !mulnA mulnAC !eqn_pmul2r // fact_gt0.
+Qed.
+
+Lemma binSn : forall n, bin n.+1 n = n.+1.
+Proof. by move=> n; rewrite -bin_sub ?leqnSn // subSnn bin1. Qed.
+
+Lemma bin2 : forall n, bin n 2 = (n * n.-1)./2.
+Proof. by case=> //= n; rewrite -{3}[n]bin1 mul_Sm_binm mul2n half_double. Qed.
+
+Lemma bin2odd : forall n, odd n -> bin n 2 = n * n.-1./2.
+Proof. by case=> // n oddn; rewrite bin2 -!divn2 divn_mulA ?dvdn2. Qed.
+
+Lemma prime_dvd_bin : forall k p, prime p -> 0 < k < p -> p %| bin p k.
+Proof.
+move=> k p p_pr; case/andP=> k_gt0 lt_k_p; have def_p := ltn_predK lt_k_p.
+have: p %| p * bin p.-1 k.-1 by rewrite dvdn_mulr.
+by rewrite -def_p mul_Sm_binm def_p prednK // euclid // gtnNdvd.
+Qed.
+
+Lemma triangular_sum : forall n, \sum_(0 <= i < n) i = bin n 2.
+Proof.
+by elim=> [|n IHn]; [rewrite big_geq | rewrite big_nat_recr IHn binS bin1].
+Qed.
+
+Lemma textbook_triangular_sum : forall n, \sum_(0 <= i < n) i = bin n 2.
+Proof.
+move=> n; rewrite bin2; apply: canRL half_double _.
+rewrite -addnn {1}big_nat_rev -big_split big_mkord /= ?add0n.
+rewrite (eq_bigr (fun _ => n.-1)); first by rewrite sum_nat_const card_ord.
+by case: n => [|n] [i le_i_n] //=; rewrite subSS subnK.
+Qed.
+
+Theorem Pascal : forall a b n,
   (a + b) ^ n = \sum_(i < n.+1) (bin n i * (a ^ (n - i) * b ^ i)).
 Proof.
-move=> a b; elim=> [|n IHn]; first by rewrite big_ord_recl big_ord0.
-rewrite big_ord_recr big_ord_recl /= expnS {}IHn muln_addl !big_distrr.
-rewrite big_ord_recl big_ord_recr /= !bin0 !binn !subn0 !subnn !mul1n !muln1.
-rewrite -!expnS addnA; congr (_ + _); rewrite -addnA -big_split; congr (_ + _).
-apply: eq_bigr => i _ /=; rewrite 2!(mulnCA b) (mulnCA a) (mulnA a) -!expnS.
-by rewrite -leq_subS ?ltn_ord // -muln_addl -binS.
+move=> a b; elim=> [|n IHn]; rewrite big_ord_recl muln1 ?big_ord0 //.
+rewrite expnS {}IHn /= muln_addl !big_distrr /= big_ord_recl muln1 subn0.
+rewrite !big_ord_recr /= !binn !subnn bin0 !subn0 !mul1n -!expnS -addnA.
+congr (_ + _); rewrite addnA -big_split /=; congr (_ + _).
+apply: eq_bigr => i _; rewrite mulnCA (mulnA a) -expnS -ltn_subS //.
+by rewrite (mulnC b) -2!mulnA -expnSr -muln_addl.
+Qed.
+Definition expn_addl := Pascal.
+
+Lemma subn_exp : forall m n k,
+  m ^ k - n ^ k = (m - n) * (\sum_(i < k) m ^ (k.-1 -i) * n ^ i).
+Proof.
+move=> m n [|k]; first by rewrite big_ord0.
+rewrite muln_subl !big_distrr big_ord_recl big_ord_recr /= subn0 muln1.
+rewrite subnn mul1n -!expnS -subn_sub; congr (_ - _).
+set F := fun _ => _ : nat; rewrite (eq_bigr F) ?addnK {}/F // => i _.
+by rewrite mulnCA -expnS mulnA -expnS -ltn_subS.
+Qed.
+
+Lemma predn_exp : forall m k, (m ^ k).-1 = m.-1 * (\sum_(i < k) m ^ i).
+Proof.
+move=> m k; rewrite -!subn1 -{1}(exp1n k) subn_exp; congr (_ * _).
+symmetry; rewrite (reindex_inj rev_ord_inj); apply: eq_bigr => i _ /=.
+by rewrite -subn1 subn_sub exp1n muln1.
 Qed.

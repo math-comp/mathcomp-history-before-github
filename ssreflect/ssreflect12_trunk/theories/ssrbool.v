@@ -18,7 +18,7 @@ Require Export Bool.
 (* elimT                   == coercion reflect >-> Funclass, to apply        *)
 (*                            reflection lemmas to boolean assertions        *)
 (* [ /\ P1 , P2 & P3 ]     == iterated logical conjonction, up to 5          *)
-(* [ \/ P1 , P2 & P3 ]     == iterated logical disjonction, up to 4          *)
+(* [ \/ P1 , P2 | P3 ]     == iterated logical disjonction, up to 4          *)
 (* [&& a, b, c & d]        == iterated, right associated boolean conjunction *)
 (*                            with arbitrary arity                           *)
 (* [|| a, b, c | d]        == iterated, right associated boolean disjunction *)
@@ -62,7 +62,7 @@ Require Export Bool.
 (* and relations:                                                            *)
 (*                                                                           *)
 (* [pred x | E]            == simplifying (see ssrfun) predicate x => E      *)
-(* [pred x : T| E]         == predicate x => T, with a cast on the argument  *)
+(* [pred x : T | E]        == predicate x => T, with a cast on the argument  *)
 (* [pred : T | E]          == constant predicate E on type T                 *)
 (* [pred x \in A]          == [pred x | x \in A]                             *)
 (* [pred x \in A | E]      == [pred x | (x \in A) && E]                      *)
@@ -76,7 +76,7 @@ Require Export Bool.
 (* pred0                   == the empty predicate                            *)
 (* predT                   == the total (always true) predicate              *)
 (*                            if T : predArgType, then T coerces to predT    *)
-(* {:T}                    == T cast to predArgType (e.g., {:bool * nat})    *)
+(* {: T}                   == T cast to predArgType (e.g., {: bool * nat})   *)
 (*                                                                           *)
 (* [rel x y | E]           == simplifying relation                           *)
 (* [rel x y : T | E]       == relation, with a cast on the arguments         *)
@@ -105,9 +105,10 @@ Require Export Bool.
 (* Localization of (Prop) predicates; if P1 is convertible to forall x, Qx,  *)
 (* P2 to forall x y, Qxy and P3 to forall x y z, Qxyz :                      *)
 (*                                                                           *)
-(* {in d , P1}            == forall x, x \in d -> Qx                         *)
-(* {in d1 & d2 , P2}      == forall x y, x \in d1 -> y \in d2 -> Qxy         *)
-(* {in d & , P2}          == forall x y, x \in d -> y \in d -> Qxy           *)
+(* {for y, P1}            == Qx{y / x}                                       *)
+(* {in d, P1}             == forall x, x \in d -> Qx                         *)
+(* {in d1 & d2, P2}       == forall x y, x \in d1 -> y \in d2 -> Qxy         *)
+(* {in d &, P2}           == forall x y, x \in d -> y \in d -> Qxy           *)
 (* {in d1 & d2 &, Q3}     == forall x y z,                                   *)
 (*                            x \in d1 -> y \in d2 -> z \in d2 -> Qxyz       *)
 (*                            + Variants                                     *)
@@ -275,7 +276,25 @@ Lemma negbRL : forall b c, ~~ b = c -> b = ~~ c.
 Proof. by move=> [] ? <-. Qed.
 
 Lemma contra : forall c b : bool, (c -> b) -> ~~ b -> ~~ c.
-Proof. by case=> // ? ->. Qed.
+Proof. by do 2!case. Qed.
+
+Lemma contraL : forall c b : bool, (c -> ~~ b) -> b -> ~~ c.
+Proof. by do 2!case. Qed.
+
+Lemma contraR : forall c b : bool, (~~ c -> b) -> ~~ b -> c.
+Proof. by do 2!case. Qed.
+
+Lemma contraLR : forall c b : bool, (~~ c -> ~~ b) -> b -> c.
+Proof. by do 2!case. Qed.
+
+Lemma contraFT : forall c b : bool, (~~ c -> b) -> b = false -> c.
+Proof. by case=> [] [] // ->. Qed.
+
+Lemma contraTF : forall c b : bool, (c -> ~~ b) -> b -> c = false.
+Proof. by case=> [] [] //= ->. Qed.
+
+Lemma contraFF : forall c b : bool, (c -> b) -> b = false -> c = false.
+Proof. by case=> [] [] // ->. Qed.
 
 (* Coercion of sum-style datatypes into bool, which makes it possible *)
 (* to use ssr's boolean if rather than Coq's "generic" if.            *)
@@ -306,11 +325,11 @@ Section BoolIf.
 Variables (A B : Type) (x : A) (f : A -> B) (b : bool) (vT vF : A).
 
 CoInductive if_spec : A -> bool -> Set :=
-  | IfSpecTrue  of b         : if_spec vT true
-  | IfSpecFalse of b = false : if_spec vF false.
+  | IfSpecTrue  of  b         : if_spec vT true
+  | IfSpecFalse of  b = false : if_spec vF false.
 
 Lemma ifP : if_spec (if b then vT else vF) b.
-Proof. by case Db: b; constructor. Qed.
+Proof. by case def_b: b; constructor. Qed.
 
 Lemma if_same : (if b then vT else vT) = vT.
 Proof. by case b. Qed.
@@ -424,6 +443,13 @@ Lemma decPcases : if b then P else ~ P. Proof. by case Pb. Qed.
 
 Definition decP : {P} + {~ P}. by case: b decPcases; [left | right]. Defined.
 
+CoInductive exm_spec : bool -> Type :=
+  | ExmTrue of     P : exm_spec true
+  | ExmFalse of ~~ b : exm_spec false.
+
+Lemma exmP : exm_spec b.
+Proof. by case def_b: b / Pb; constructor; rewrite ?def_b. Qed.
+
 End Reflect.
 
 Hint View for move/ elimTF|3 elimNTF|3 elimTFn|3 introT|2 introTn|2 introN|2.
@@ -535,8 +561,11 @@ Proof. by case b1; case b2; constructor; auto; case; auto. Qed.
 Lemma norP : reflect (~~ b1 /\ ~~ b2) (~~ (b1 || b2)).
 Proof. by case b1; case b2; constructor; auto; case; auto. Qed.
 
-Lemma implyP: reflect (b1 -> b2) (b1 ==> b2).
+Lemma implyP : reflect (b1 -> b2) (b1 ==> b2).
 Proof. by case b1; case b2; constructor; auto. Qed.
+
+Lemma orbNP : exm_spec b1 b1 b1.
+Proof. by case: b1; constructor. Qed.
 
 End ReflectConnectives.
 
@@ -590,6 +619,24 @@ Lemma andb_orr : right_distributive andb orb. Proof. by do 3!case. Qed.
 Lemma orb_andl : left_distributive orb andb.  Proof. by do 3!case. Qed.
 Lemma orb_andr : right_distributive orb andb. Proof. by do 3!case. Qed.
 
+Lemma andb_idl : forall a b : bool, (b -> a) -> a && b = b.
+Proof. by case=> [] [] // ->. Qed.
+Lemma andb_idr : forall a b : bool, (a -> b) -> a && b = a.
+Proof. by case=> [] [] // ->. Qed.
+Lemma andb_id2l : forall a b c : bool, (a -> b = c) -> a && b = a && c.
+Proof. by case=> [] [] [] // ->. Qed.
+Lemma andb_id2r : forall a b c : bool, (b -> a = c) -> a && b = c && b.
+Proof. by case=> [] [] [] // ->. Qed.
+
+Lemma orb_idl : forall a b : bool, (a -> b) -> a || b = b.
+Proof. by case=> [] [] // ->. Qed.
+Lemma orbb_idr : forall a b : bool, (b -> a) -> a || b = a.
+Proof. by case=> [] [] // ->. Qed.
+Lemma orb_id2l : forall a b c : bool, (~~ a -> b = c) -> a || b = a || c.
+Proof. by case=> [] [] [] // ->. Qed.
+Lemma orb_id2r : forall a b c : bool, (~~ b -> a = c) -> a || b = c || b.
+Proof. by move=> [] [] [] // ->. Qed.
+
 Lemma negb_and : forall b1 b2, ~~ (b1 && b2) = ~~ b1 || ~~ b2.
 Proof. by do 2!case. Qed.
 
@@ -619,10 +666,17 @@ Proof. by do 2!case. Qed.
 Lemma implybN : forall b1 b2, (~~ b1 ==> ~~ b2) = b2 ==> b1.
 Proof. by do 2!case. Qed.
 
+Lemma implyb_idl : forall a b : bool, (~~ a -> b) -> (a ==> b) = b.
+Proof. by case=> [] [] // ->. Qed.
+Lemma implyb_idr : forall a b : bool, (b -> ~~ a) -> (a ==> b) = ~~ a.
+Proof. by case=> [] [] // ->. Qed.
+Lemma implyb_id2l : forall a b c : bool, (a -> b = c) -> (a ==> b) = (a ==> c).
+Proof. by case=> [] [] [] // ->. Qed. 
+
 (* addition (xor) *)
 
-Lemma addFb : left_id false addb.             Proof. by []. Qed.
-Lemma addbF : right_id false addb.            Proof. by case. Qed.
+Lemma addFb : left_id false addb.               Proof. by []. Qed.
+Lemma addbF : right_id false addb.              Proof. by case. Qed.
 Lemma addbb : self_inverse false addb.          Proof. by case. Qed.
 Lemma addbC : commutative addb.                 Proof. by do 2!case. Qed.
 Lemma addbA : associative addb.                 Proof. by do 3!case. Qed.
@@ -630,9 +684,10 @@ Lemma addbCA : left_commutative addb.           Proof. by do 3!case. Qed.
 Lemma addbAC : right_commutative addb.          Proof. by do 3!case. Qed.
 Lemma andb_addl : left_distributive andb addb.  Proof. by do 3!case. Qed.
 Lemma andb_addr : right_distributive andb addb. Proof. by do 3!case. Qed.
-Lemma addKb : forall b, involutive (addb b).    Proof. by do 2!case. Qed.
-Lemma addbK : forall b, involutive (addb^~ b).  Proof. by do 2!case. Qed.
-
+Lemma addKb : left_loop id addb.                Proof. by do 2!case. Qed.
+Lemma addbK : right_loop id addb.               Proof. by do 2!case. Qed.
+Lemma addIb : left_injective addb.              Proof. by do 3!case. Qed.
+Lemma addbI : right_injective addb.             Proof. by do 3!case. Qed.
 
 Lemma addTb : forall b, true (+) b = ~~ b. Proof. by []. Qed.
 Lemma addbT : forall b, b (+) true = ~~ b. Proof. by case. Qed.
@@ -653,10 +708,10 @@ Ltac bool_congr :=
   match goal with
   | |- (?X1 && ?X2 = ?X3) => first
   [ symmetry; rewrite -1?(andbC X1) -?(andbCA X1); congr 1 (andb X1); symmetry
-  | case X1; [ rewrite ?andTb ?andbT | by rewrite /= ?andbF ] ]
+  | case: (X1); [ rewrite ?andTb ?andbT // | by rewrite ?andbF /= ] ]
   | |- (?X1 || ?X2 = ?X3) => first
   [ symmetry; rewrite -1?(orbC X1) -?(orbCA X1); congr 1 (orb X1); symmetry
-  | case X1; [ by rewrite /= ?orbT | rewrite ?orFb ?orbF ] ]
+  | case: (X1); [ by rewrite ?orbT //= | rewrite ?orFb ?orbF ] ]
   | |- (?X1 (+) ?X2 = ?X3) =>
     symmetry; rewrite -1?(addbC X1) -?(addbCA X1); congr 1 (addb X1); symmetry
   | |- (~~ ?X1 = ?X2) => congr 1 negb
@@ -836,6 +891,10 @@ Coercion pred_of_mem mp : pred_sort predPredType :=
 
 Canonical Structure memPredType := Eval hnf in mkPredType pred_of_mem.
 
+Definition clone_pred U :=
+  fun pT & pred_sort pT -> U =>
+  fun a mP (pT' := @PredType U a mP) & phant_id pT' pT => pT'.
+
 End Predicates.
 
 Implicit Arguments pred0 [T].
@@ -853,11 +912,7 @@ Notation "[ 'rel' x y | E ]" := (SimplRel (fun x y => E))
 Notation "[ 'rel' x y : T | E ]" := (SimplRel (fun x y : T => E))
   (at level 0, x ident, y ident, only parsing) : fun_scope.
 
-Definition repack_pred T pT :=
-  let: PredType _ a mP := pT return {type of @PredType T for pT} -> _ in
-   fun k => k a mP.
-
-Notation "[ 'predType' 'of' T ]" := (repack_pred (fun a => @PredType _ T a))
+Notation "[ 'predType' 'of' T ]" := (@clone_pred _ T _ id _ _ id)
   (at level 0, format "[ 'predType'  'of'  T ]") : form_scope.
 
 (* This redundant coercion lets us "inherit" the simpl_predType canonical *)
@@ -991,6 +1046,10 @@ Definition right_transitive := forall x y, R x y -> R^~ x =1 R^~ y.
 
 End RelationProperties.
 
+Lemma rev_trans : forall T (R : rel T),
+  transitive R -> transitive (fun x y => R y x).
+Proof. by move=> T R trR x y z Ryx Rzy; exact: trR Rzy Ryx. Qed.
+
 (* Property localization *)
 
 Notation Local "{ 'all1' P }" := (forall x, P x : Prop) (at level 0).
@@ -1004,6 +1063,10 @@ Variables T1 T2 T3 : Type.
 
 Variables (d1 : mem_pred T1) (d2 : mem_pred T2) (d3 : mem_pred T3).
 Notation Local ph := (phantom Prop).
+
+Definition prop_for (x : T1) P & ph {all1 P} := P x.
+
+Lemma forE : forall x P phP, @prop_for x P phP = P x. Proof. by []. Qed.
 
 Definition prop_in1 P & ph {all1 P} :=
   forall x, in_mem x d1 -> P x.
@@ -1036,16 +1099,20 @@ Definition prop_on2 Pf P & phantom T3 (Pf f) & ph {all2 P} :=
 
 End LocalProperties.
 
-Definition inPhantom (P : Prop) := Phantom P.
-Definition onPhantom T (P : T -> Prop) x := Phantom (P x).
+Definition inPhantom := Phantom Prop.
+Definition onPhantom T P (x : T) := Phantom Prop (P x).
 
 Definition bijective_in aT rT (d : mem_pred aT) (f : aT -> rT) :=
   exists2 g, prop_in1 d (inPhantom (cancel f g))
-           & prop_on1 d (Phantom (cancel g)) (onPhantom (cancel g) f).
+           & prop_on1 d (Phantom _ (cancel g)) (onPhantom (cancel g) f).
 
 Definition bijective_on aT rT (cd : mem_pred rT) (f : aT -> rT) :=
-  exists2 g, prop_on1 cd (Phantom (cancel f)) (onPhantom (cancel f) g)
+  exists2 g, prop_on1 cd (Phantom _ (cancel f)) (onPhantom (cancel f) g)
            & prop_in1 cd (inPhantom (cancel g f)).
+
+Notation "{ 'for' x , P }" :=
+  (prop_for x (inPhantom P))
+  (at level 0, format "{ 'for'  x ,  P }") : type_scope.
 
 Notation "{ 'in' d , P }" :=
   (prop_in1 (mem d) (inPhantom P))
@@ -1084,7 +1151,7 @@ Notation "{ 'on' cd & , P }" :=
   (at level 0, format "{ 'on'  cd  & ,  P }") : type_scope.
 
 Notation "{ 'on' cd , P & g }" :=
-  (prop_on1 (mem cd) (Phantom P) (onPhantom P g))
+  (prop_on1 (mem cd) (Phantom (_ -> Prop) P) (onPhantom P g))
   (at level 0, format "{ 'on'  cd ,  P  &  g }") : type_scope.
 
 Notation "{ 'in' d , 'bijective' f }" := (bijective_in (mem d) f)

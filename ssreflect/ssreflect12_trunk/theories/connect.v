@@ -205,17 +205,10 @@ Implicit Arguments connectP [T e x y].
 Implicit Arguments rootP [T e x y].
 Prenex Implicits connectP rootP.
 
-Notation "'fconnect' f" := (connect (frel f))
-  (at level 10, f at level 8) : seq_scope.
-
-Notation "'froot' f" := (root (frel f))
-  (at level 10, f at level 8) : seq_scope.
-
-Notation "'froots' f" := (roots (frel f))
-  (at level 10, f at level 8) : seq_scope.
-
-Notation "'fcard' f" := (n_comp (frel f))
-  (at level 10, f at level 8) : seq_scope.
+Notation fconnect f := (connect (frel f)).
+Notation froot f := (root (frel f)).
+Notation froots f := (roots (frel f)).
+Notation fcard f := (n_comp (frel f)).
 
 Section EqConnect.
 
@@ -349,11 +342,8 @@ Qed.
 
 End Closure.
 
-Notation "'fclosed' f" := (closed (frel f))
-  (at level 10, f at level 8) : seq_scope.
-
-Notation "'fclosure' f" := (closure (frel f))
-  (at level 10, f at level 8) : seq_scope.
+Notation fclosed f := (closed (frel f)).
+Notation fclosure f := (closure (frel f)).
 
 Prenex Implicits closed closure.
 
@@ -561,7 +551,7 @@ elim: {a b}#|b| {1 3 4}b (eqxx #|b|) Hb {Ha Han} => [|m Hrec] b Em Hb.
   by rewrite !inE /= (pred0P Em).
 case: (pickP b) => [x //= Hx|Hb0]; last by rewrite (eq_card Hb0) card0 in Em.
 case: (Hb _ Hx) => [Dx Hex].
-case=> [|m']; rewrite mulnC /=; first by rewrite (cardD1 x) inE /= Dx Hx. 
+case=> [|m']; rewrite mulnC /=; first by rewrite (cardD1 x) inE /= Dx Hx.
 rewrite (cardD1 x) [x \in b]Hx in Em; rewrite mulSn mulnC eqSS.
 rewrite -{Hrec}(Hrec _ Em) => [|y]; last by case/andP; auto.
 apply: etrans (congr1 (fun p => p == _) _) (eqn_addl _ _ _).
@@ -623,7 +613,7 @@ Qed.
 
 Lemma eq_froot : froot f =1 froot f'.
 Proof. exact: eq_root eq_pred1. Qed.
- 
+
 Lemma eq_froots : froots f =1 froots f'.
 Proof. exact: eq_roots eq_pred1. Qed.
 
@@ -680,7 +670,7 @@ apply: connect_trans (Hrec _ Hp Dz' Hy); auto.
 Qed.
 
 Lemma strict_adjunction :
-    injective h -> a \subset codom h -> rel_base h e e' (predC a) -> 
+    injective h -> a \subset codom h -> rel_base h e e' (predC a) ->
   rel_adjunction.
 Proof.
 move=> /= Hh Hha He'e.

@@ -721,7 +721,7 @@ by apply: (iffP (IHs _)) => [<-|[]].
 Qed.
 
 Canonical Structure seq_eqMixin := EqMixin eqseqP.
-Canonical Structure seq_eqType := Eval hnf in EqType seq_eqMixin.
+Canonical Structure seq_eqType := Eval hnf in EqType (seq T) seq_eqMixin.
 
 Lemma eqseqE : eqseq = eq_op. Proof. by []. Qed.
 
@@ -919,7 +919,7 @@ Proof.
 move=> a x [|n] //=; rewrite eq_sym; case: eqP => // -> {y}.
 by elim: n => //= n ->; rewrite eqxx.
 Qed.
- 
+
 Lemma constant_nseq : forall n x, constant (nseq n x).
 Proof. by case=> //= n x; rewrite all_pred1_nseq eqxx orbT. Qed.
 
@@ -1006,7 +1006,7 @@ Proof. by elim=> //= [x s IHs]; case/andP; move/negbTE->; move/IHs->. Qed.
 Lemma ltn_size_undup : forall s, (size (undup s) < size s) = ~~ uniq s.
 Proof.
 by elim=> //= [x s IHs]; case Hx: (x \in s); rewrite //= ltnS size_undup.
-Qed. 
+Qed.
 
 (* Lookup *)
 
@@ -1335,7 +1335,7 @@ Notation perm_eqr := (fun s1 s2 => perm_eq^~ s1 =1 perm_eq^~ s2).
 Implicit Arguments perm_eqP [T s1 s2].
 Implicit Arguments perm_eqlP [T s1 s2].
 Implicit Arguments perm_eqrP [T s1 s2].
-Prenex Implicits perm_eqP perm_eqlP perm_eqrP.
+Prenex Implicits perm_eq perm_eqP perm_eqlP perm_eqrP.
 Hint Resolve perm_eq_refl.
 
 Section RotrLemmas.
@@ -1724,7 +1724,7 @@ Qed.
 
 Hypothesis fK : ocancel f g.
 
-Lemma can2_mem_pmap : pcancel g f -> 
+Lemma can2_mem_pmap : pcancel g f ->
   forall s u, (u \in pmap f s) = (g u \in s).
 Proof.
 move=> gK s u.
@@ -1736,7 +1736,7 @@ Proof.
 move=> s; move/(filter_uniq [eta f]); rewrite -(pmap_filter fK).
 exact: map_uniq.
 Qed.
- 
+
 End EqPmap.
 
 Section Pmapub.
@@ -1925,7 +1925,7 @@ Lemma scanlK :
   (forall x, cancel (g x) (f x)) -> forall x, cancel (scanl x) (pairmap x).
 Proof. by move=> Hfg x s; elim: s x => [|y s IHs] x //=; rewrite Hfg IHs. Qed.
 
-Lemma pairmapK : 
+Lemma pairmapK :
   (forall x, cancel (f x) (g x)) -> forall x, cancel (pairmap x) (scanl x).
 Proof. by move=> Hgf x s; elim: s x => [|y s IHs] x //=; rewrite Hgf IHs. Qed.
 
