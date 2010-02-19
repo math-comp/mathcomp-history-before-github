@@ -29,6 +29,18 @@ Require Import ssreflect.
 (*  all_equal_to x0 == x0 is the only value in its type, so any such value   *)
 (*                     can be rewritten to x0.                               *)
 (*                                                                           *)
+(* - a generic wrapper type,                                                 *)
+(*       wrapped T == the inductive type with values Wrap x for x : T        *)
+(*        unwrap w == the projection of w : wrapped T on T                   *)
+(*          wrap x == the canonical injection of x : T into wrapped T; it is *)
+(*                    equivalent to Wrap x, but is declared as a (default)   *)
+(*                    Canonical Structure, which lets the Coq HO unification *)
+(*                    automatically expand x into unwrap (wrap x). The delta *)
+(*                    reduction of wrap x to Wrap can be exploited to        *)
+(*                    introduce controlled nondeterminism in Canonical       *)
+(*                    Structure inference, as in the implementation of       *)
+(*                    the mxdirect predicate in matrix.v.                    *)
+(*                                                                           *)
 (* - identity functions                                                      *)
 (*    id           == NOTATION for the explicit identity function fun x => x *)
 (*    @id T        == notation for the explicit identity at type T           *)
@@ -267,6 +279,13 @@ Prenex Implicits esym nesym.
 Definition all_equal_to T (x0 : T) := forall x, x = x0.
 
 Lemma unitE : all_equal_to tt. Proof. by case. Qed.
+
+(* A generic wrapper type *)
+
+Structure wrapped T := Wrap {unwrap : T}.
+Canonical Structure wrap T x := @Wrap T x.
+
+Prenex Implicits unwrap wrap Wrap.
 
 (* Extensional equality, for unary and binary functions, including syntactic *)
 (* sugar.                                                                    *)
