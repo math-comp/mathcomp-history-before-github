@@ -16,6 +16,22 @@ Definition axiom (R : Ring.type) :=
   forall n (P : nat -> R), n > 0 ->
    exists x : R, x ^+ n = \sum_(i < n) P i * (x ^+ i).
 
+Definition axiomp (R : Ring.type) :=
+  forall p : {poly R}, monic p -> size p > 1 -> exists x, p.[x] == 0.
+
+Lemma axiomP : forall R, axiom R <-> axiomp R.
+Proof.
+move=> R.
+rewrite /axiom /axiomp.
+constructor.
+  move=> HnP p mp sp.
+  have := HnP ((size p).-1) (fun k => - nth 0 p k).
+  rewrite -subn1 subn_gt0=> {HnP} Hsp.
+  have := (Hsp sp) => {Hsp} [[x Px]]; exists x.
+  move:Px.
+  move/eqP=> /=.
+Admitted.
+
 Record class_of (F : Type) : Type :=
   Class {base :> Field.class_of F; _ : axiom (Ring.Pack base F)}.
 
@@ -100,8 +116,7 @@ Lemma sizeTP : forall k,
 Proof.
 move=> k pf e. 
 elim: pf e k; first by move=> *; rewrite size_poly0.
-move=> c qf Pqf e k.
-rewrite Pqf.
+move=> c qf Pqf e k; rewrite Pqf.
 move: (erefl (size (eval_poly e qf))).
 case: {-1}(size (eval_poly e qf))=> /= [|n].
   rewrite size_amulX => ->.
@@ -378,9 +393,34 @@ Qed.
 
 (* begin to be put in poly *)
 
+Lemma eqp_polyC: forall c : F, (c != 0) = (c%:P %= 1).
+Proof.
+move=> c; apply/idP/idP.
+  move=> c0. apply/eqpP.
+  by exists 1; exists c; rewrite c0 GRing.nonzero1r mulrC.
+move/eqpP=> [x [y]]; case c0: (c == 0)=> //.
+rewrite mulr1 (eqP c0) mulr0.
+case=> _ yn0; move/eqP; rewrite eq_sym polyC_eq0=> y0.
+by rewrite y0 in yn0.
+Qed.
+
 Definition coprimep (p q :  {poly F}) := size (gcdp p q) == 1%N.
+Lemma gcd1p : forall (p : {poly F}), gcdp 1 p %= 1.
+Proof.
+move=> p; rewrite gcdpE size_poly1.
+case: ltnP; first by rewrite modp1 gcd0p eqpxx. 
+move=> sp1; rewrite [p]size1_polyC //.
+case p0: (p`_0 == 0); first by rewrite (eqP p0) modp0 gcdp0 eqpxx.
+by rewrite modpC ?gcd0p -?eqp_polyC ?p0.
+Qed.
+
 Lemma coprime1p: forall p, coprimep 1 p.
-Admitted.
+Proof.
+move=> p; rewrite /coprimep.
+rewrite -[1%N](size_poly1 F).
+apply/eqP; apply: size_eqp.
+exact: gcd1p.
+Qed.
 
 (* "gdcop Q P" is the Greatest Divisor of P which is coprime to Q *)
 (* if P null, we pose that gdcop returns 1 *)
@@ -397,24 +437,39 @@ CoInductive gdcop_spec q p : {poly F} -> Type :=
   & (forall d,  p != 0 -> d %| p -> coprimep d q -> d %| r)
   : gdcop_spec q p r.
 
-Lemma divp_dvd : forall (p d : {poly F}), d %| p ->  p %/ d %| p.
-Proof.
-move=> p d dp.
-apply/dvdpPc.
-have := divp_spec p d.
-move: (dp); rewrite {1}/dvdp; move/eqP->.
-rewrite addr0.
-set c := (scalp _ _)=> f.
-exists c; exists d.
-by rewrite scalp_id /= f  mulrC.
-Qed.
+Lemma modp_dvd : forall (p q : {poly F}), (q %| p) -> p %% q = 0.
+Proof. by move=> p q; rewrite /dvdp; move/eqP. Qed.
+
+(* Lemma divp_dvd : forall (p q : {poly F}), q %| p  *)
+(*   ->  p %/ q * q == (scalp p q)%:P*p. *)
+(* Proof. *)
+(* move=> p q qp. *)
+(* case: (divp_spec p q). *)
+(* by rewrite modp_dvd // addr0 => ->. *)
+(* Qed. *)
+
+(* Lemma divp_dvd : forall (p d : {poly F}), d %| p ->  p %/ d %| p. *)
+(* Proof. *)
+(* move=> p d dp. *)
+(* apply/dvdpPc. *)
+(* have := divp_spec p d. *)
+(* move: (dp); rewrite {1}/dvdp; move/eqP->. *)
+(* rewrite addr0. *)
+(* set c := (scalp _ _)=> f. *)
+(* exists c; exists d. *)
+(* by rewrite scalp_id /= f  mulrC. *)
+(* Qed. *)
  
 
 (* Lemma dvd_coprimepr : forall p q d, d %| q -> coprimep p q -> coprimep p d. *)
-
 Lemma coprimepP : forall p q,
-  reflect (exists d, (d %| gcdp p q) && (size d > 1))  (~~ coprimep p q).
+  reflect (forall d, d %| p -> d %| q -> d %= 1) (coprimep p q).
 Admitted.
+
+Lemma coprimepPn : forall p q,
+  reflect (exists d, (d %| gcdp p q) && (d %= 1))  (~~ coprimep p q).
+Admitted.
+
 
 Lemma gdcop_recP : forall (q p : {poly F}) n, 
   size p <= n -> gdcop_spec q p (gdcop_rec q p n).
@@ -427,16 +482,36 @@ elim: n p => [p | n Pn p].
 move=> sp /=.
 case cpq: (coprimep _ _).
   by constructor; rewrite ?dvdpp // cpq.
-set p' := _ %/ _.
-have sp' : size p' <= n; first admit.
+case: (divp_spec p (gcdp p q)).
+rewrite modp_dvd ?dvdp_gcdl // addr0.
+set p' := _ %/ _ => relpp'.
+have sp' : size p' <= n. admit.
 case (Pn _ sp').
 move=> r' dr'p' cr'q maxr'.
 constructor=> //=.
   apply: (dvdp_trans dr'p').
-  by rewrite divp_dvd // dvdp_gcdl.
+  apply/dvdpPc; exists (scalp p (gcdp p q)); exists (gcdp p q).
+  by rewrite relpp' mulrC scalp_id.
 move=> d p0 dp cdq.
 apply: maxr'; last by rewrite cdq.
+  case p'0: (_ == _)=> //.
+  move: relpp'; rewrite (eqP p'0) mul0r.
+  move/eqP; apply:contraL=> _; rewrite mulf_neq0 //.
+  by rewrite polyC_eq0 scalp_id.
+case d1: (d %= 1).
+  
+
+case dpq: (d %| gcdp p q).
+  move: (dpq); rewrite dvdp_gcd dp /= => dq.
+  move: cdq. apply: contraLR=> ndp'.
+  apply/coprimepPn; exists d; rewrite dvdp_gcd dvdpp dq /=.
+  
+
+ (*    by rewrite divp_dvd // dvdp_gcdl. *)
+(* move=> d p0 dp cdq. *)
+(* p %| d -> (p %/ d) * d %= p *)
   admit.
+admit.
 admit.
 Qed.
 
@@ -457,7 +532,7 @@ case: gdcopP=> r rp crq maxr dr.
 rewrite (dvdp_trans dr) //=.
 move: crq.
 apply: contraL=> dq.
-apply/coprimepP.
+apply/coprimepPn.
 exists d.
 by rewrite dvdp_gcd dr dq //= (eqP sd).
 Qed.
@@ -488,15 +563,16 @@ Qed.
 Definition gdcopT q k p := sizeT (gdcop_recT q k p) p.
 Lemma gdcopTP : forall k,
   (forall p e, qf_eval e (k p) = qf_eval e (k (lift (eval_poly e p))))
-    -> forall p q e, qf_eval e (gdcopT p k q) = qf_eval e (k (lift (gdcop (eval_poly e p) (eval_poly e q)))).
+    -> forall p q e, qf_eval e (gdcopT p k q)
+      = qf_eval e (k (lift (gdcop (eval_poly e p) (eval_poly e q)))).
 Proof. by move=> *; rewrite sizeTP gdcop_recTP 1?Pk. Qed.
 
 Definition ex_elim_seq (ps : seq polyF) (q : polyF) :=
-  (gcdpTs (gdcopT q (sizeT (fun n => Bool (n > 1%N)))) ps).
+  (gcdpTs (gdcopT q (sizeT (fun n => Bool (n == 1%N)))) ps).
 Lemma ex_elim_seqP :
   forall ps q e,
     let gp := (\big[@gcdp _/0%:P]_(i <- ps)(eval_poly e i)) in
-      qf_eval e (ex_elim_seq ps q) = (size (gdcop (eval_poly e q) gp) > 1).
+      qf_eval e (ex_elim_seq ps q) = (size (gdcop (eval_poly e q) gp) == 1).
 Proof.
 by do ![rewrite (gcdpTsP,gdcopTP,sizeTP,eval_lift) //= | move=> * //=].
 Qed.
