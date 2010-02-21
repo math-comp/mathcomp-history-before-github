@@ -80,6 +80,7 @@ Lemma solve_monicpoly : ClosedField.axiom F.
 Proof. by case: F => ? []. Qed.
   
 Notation fF := (formula  F).
+Notation QFR f := (qf_form f && rformula f).
 
 Definition ifF (th el f: fF) : fF :=
   ((f /\ th) \/ ((~ f) /\ el))%T.
@@ -422,13 +423,68 @@ Lemma gdcopTP : forall k,
 Proof. by move=> *; rewrite sizeTP gdcop_recTP 1?Pk. Qed.
 
 Definition ex_elim_seq (ps : seq polyF) (q : polyF) :=
-  (gcdpTs (gdcopT q (sizeT (fun n => Bool (n == 1%N)))) ps).
+  (gcdpTs (gdcopT q (sizeT (fun n => Bool (n != 1%N)))) ps).
 Lemma ex_elim_seqP :
   forall ps q e,
-    let gp := (\big[@gcdp _/0%:P]_(i <- ps)(eval_poly e i)) in
-      qf_eval e (ex_elim_seq ps q) = (size (gdcop (eval_poly e q) gp) == 1%N).
+    let gp := (\big[@gcdp _/0%:P]_(p <- ps)(eval_poly e p)) in
+      qf_eval e (ex_elim_seq ps q) = (size (gdcop (eval_poly e q) gp) != 1%N).
 Proof.
 by do ![rewrite (gcdpTsP,gdcopTP,sizeTP,eval_lift) //= | move=> * //=].
 Qed.
+
+Fixpoint abstrX (i : nat) (t : term F) :=
+  match t with
+    | (Var n) => if n == i then [::Const 0; Const 1] else [::t]
+    | (Opp x) => mulpT [::Const (-1)] (abstrX i x)
+    | (Add x y) => sumpT (abstrX i x) (abstrX i y)
+    | (Mul x y) => mulpT (abstrX i x) (abstrX i y)
+    | (NatMul x n) => mulpT [::NatConst F n] (abstrX i x)
+    | (Inv x) => (abstrX i x)
+    | (Exp x n) => let ax := (abstrX i x) in
+      let fix loop n := 
+        if n is n'.+1 then mulpT ax (loop n') else [::Const 1]
+          in loop n
+    | _ => [::t]
+  end.
+Lemma abstrXP : forall i t e, 
+  (eval_poly e (abstrX i t)).[nth 0 e i] = eval e t.
+Admitted.
+
+Definition ex_elim (x : nat) (pqs : seq (term F) * seq (term F)) :=
+  ex_elim_seq (map (abstrX x) pqs.1) 
+  (abstrX x (\big[Mul/Const 1]_(q <- pqs.2) q)).
+
+Lemma has_rootP : forall i bc e
+  (ex_i_bc := ('exists 'X_i, dnf_to_form [:: bc])%T)
+  (gp := (\big[@gcdp _/0%:P]_(p <- bc.1)(eval_poly e (abstrX i p))))
+  (mq := (eval_poly e (abstrX i (\big[Mul/(1%R%:T)%T]_(q <- bc.2) q)))),
+  reflect (holds e ex_i_bc) (size (gdcop mq gp) != 1%N).
+Admitted.
+
+Variable term_eq : term F -> term F -> bool.
+Hypothesis term_eq_axiom : Equality.axiom term_eq.
+Canonical Structure term_eqType := EqType (term F) (EqMixin term_eq_axiom).
+
+Lemma holds_ex_elim : QE.holds_proj_axiom ex_elim.
+Proof.
+move=> i bc ex_i_bc e dnfbc.
+pose gp := (\big[@gcdp _/0%:P]_(p <- bc.1)(eval_poly e (abstrX i p))).
+pose mq := (eval_poly e (abstrX i (\big[Mul/(1%R%:T)%T]_(q <- bc.2) q))).
+suff ->: (qf_eval e (ex_elim i bc)) = (size (gdcop mq gp) != 1%N).
+  exact: has_rootP.
+by rewrite ex_elim_seqP big_map.
+Qed.
+
+Lemma wf_ex_elim : QE.wf_proj_axiom ex_elim.
+move=> i bc bc_i; rewrite /bc_i {bc_i} /ex_elim.
+case: bc=> ps qs /=.
+move: (abstrX i (\big[Mul/(1%R%:T)%T]_(q <- qs) q))=> {qs} q.
+move: (map (abstrX i) ps)=> {ps} ps.
+Admitted.
+
+Definition closed_fields_QEMixin := 
+  QE.Mixin wf_ex_elim holds_ex_elim.
+Canonical Structure closed_fields_qe := 
+  QE.Pack (QE.Class closed_fields_QEMixin) F.
 
 End ClosedFieldTheory.
