@@ -186,9 +186,12 @@ Qed.
 
 Lemma eqp_transl : left_transitive (@eqp R).
 Proof. 
-apply: left_trans; first exact: eqp_sym.
-by move=> p q r pr qr; apply: eqp_trans qr.
+move=> p q r pq.
+by apply/idP/idP=> e; apply: eqp_trans e; rewrite // eqp_sym.
 Qed.
+
+Lemma eqp_transr : right_transitive (@eqp R).
+Proof. by move=> x y xy z; rewrite eqp_sym (eqp_transl xy) eqp_sym. Qed.
 
 Lemma gcdp_eq0 : forall p q, gcdp p q == 0 = (p == 0) && (q == 0).
 Proof.
@@ -299,9 +302,6 @@ Proof.
 move=> p q sqp; rewrite /egcdp //=.
 apply: egcdp_recP; rewrite ?leqnn // sqp.
 Qed.
-
-Lemma eqp_transr : right_transitive (@eqp R).
-Proof. by move=> x y xy z; rewrite eqp_sym (eqp_transl xy) eqp_sym. Qed.
 
 Lemma egcdpPW : forall p q r, exists u, exists v, (u*p + v*q) %= (gcdp p q).
 Proof.
