@@ -345,21 +345,21 @@ by rewrite mulrA dvdp_mull ?dvdpp.
 Qed.
 
 (* "gdcop Q P" is the Greatest Divisor of P which is coprime to Q *)
-(* if P null, we pose that gdcop returns 1 *)
+(* if P null, we pose that gdcop returns 0 *)
 Fixpoint gdcop_rec q p n :=
   if n is m.+1 then
       if coprimep p q then p
         else gdcop_rec q (p %/ (gcdp p q)) m
-    else 1.
+    else 0.
 Definition gdcop q p := gdcop_rec q p (size p).
 
 CoInductive gdcop_spec q p : {poly R} -> Type :=
-  GdcopSpec r of (r %| p) & (coprimep r q) 
-  & (forall d,  p != 0 -> d %| p -> coprimep d q -> d %| r)
+  GdcopSpec r of (r %| p) & ((coprimep r q) || (p == 0)) 
+  & (forall d,  d %| p -> coprimep d q -> d %| r)
   : gdcop_spec q p r.
 
 
-Lemma gcopp0 : forall q, gdcop q 0 = 1.
+Lemma gdcop0 : forall q, gdcop q 0 = 0.
 Proof. by move=> q; rewrite /gdcop size_poly0. Qed.
 
 Lemma eqPn0 : (forall n, (n.-1 == 0) = ((n==0) || (n==1)))%N. 
@@ -378,33 +378,29 @@ Lemma gdcop_recP : forall q p n,
 Proof.
 move=> q p n; elim: n p => [p | n ihn p] /=.
   rewrite leqn0 size_poly_eq0; move/eqP->.
-  by split; rewrite ?coprime1p ?dvdp0 ?eqxx.
-move=> hs; case cop : (coprimep _ _); first by split; rewrite ?dvdpp ?cpq.
+  by split; rewrite ?coprime1p ?dvdp0 ?eqxx ?orbT.
+move=> hs; case cop : (coprimep _ _); first by split; rewrite ?dvdpp ?cop.
 case p0 : (p == 0).
   by rewrite (eqP p0) div0p; apply: ihn; rewrite size_poly0 leq0n.
 (* should we have a spec for dvdn ? => I also wondered *)
 case: (divp_spec p (gcdp p q)); rewrite modp_dvd ?dvdp_gcdl // addr0 => e.
-have p'n0 : p %/ gcdp p q != 0.
+have : p %/ gcdp p q != 0; last move/negPf=>p'n0.
   move: (dvdp_mulIl (p %/ gcdp p q) (gcdp p q)); move/dvdpn0; apply; rewrite -e.
   by rewrite -size_poly_eq0 size_polyC_mul ?scalp_id //size_poly_eq0 p0.
 have gn0 : gcdp p q != 0.
   move: (dvdp_mulIr (p %/ gcdp p q) (gcdp p q)); move/dvdpn0; apply; rewrite -e.
   by rewrite -size_poly_eq0 size_polyC_mul ?scalp_id //size_poly_eq0 p0.
 have sp' : size (p %/ (gcdp p q)) <= n.
-  rewrite size_divp// leq_sub_add (leq_trans hs)//.
+  rewrite size_divp ?p'n0// leq_sub_add (leq_trans hs)//.
   rewrite -add1n leq_add2r lt0n eqPn0 negb_orb size_poly_eq0 gn0 /=.
   by rewrite size_gcdp1 cop.
-case (ihn _ sp')=> r' dr'p' cr'q maxr'.
-constructor=> //=.
+case (ihn _ sp')=> r' dr'p'. rewrite p'n0 orbF=> cr'q maxr'.
+constructor=> //=; rewrite ?p0 ?orbF //.
   apply: (dvdp_trans dr'p').
   apply/dvdpPc; exists (scalp p (gcdp p q)); exists (gcdp p q).
   by rewrite e mulrC scalp_id.
-move=> d _ dp cdq.
+move=> d dp cdq.
 apply: maxr'; last by rewrite cdq.
-  case p'0: (_ == _)=> //.
-  move: e; rewrite (eqP p'0) mul0r.
-  move/eqP; apply:contraL=> _; rewrite mulf_neq0 ?p0 //.
-  by rewrite polyC_eq0 scalp_id.
 case dpq: (d %| gcdp p q).
   move: (dpq); rewrite dvdp_gcd dp /= => dq.
   apply: eqp1_dvd; move: cdq; apply: contraLR=> nd1.
@@ -445,7 +441,8 @@ apply/idP/idP.
     by rewrite (eqp_dvdl _ exd) in xq; rewrite xq in dq.
 case: gdcopP=> r rp crq maxr dr.
 rewrite (dvdp_trans dr) //=.
-move: crq; apply: contraL=> dq; apply/coprimepPn.
+move/negPf: (p0) => p0f;
+move: crq; apply: contraL=> dq; rewrite p0f orbF; apply/coprimepPn.
   by move:p0; apply: contra=> r0; move: rp; rewrite (eqP r0) dvd0p.
 by exists d; rewrite dvdp_gcd dr dq -size1_dvdp1 (eqP sd).
 Qed.

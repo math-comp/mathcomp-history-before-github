@@ -400,7 +400,7 @@ Fixpoint gdcop_recT (q: polyF) k  (p : polyF) n :=
       if sd == 1%N then k p
         else gcdpT p (divpT p (fun r => gdcop_recT q k r m)) q
     )) q
-    else k [::Const 1].
+    else k [::Const 0].
 Lemma gdcop_recTP : forall k,
   (forall p e, qf_eval e (k p) = qf_eval e (k (lift (eval_poly e p))))
   -> forall p q n e, qf_eval e (gdcop_recT p k q n) 
