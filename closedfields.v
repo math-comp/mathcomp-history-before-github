@@ -688,7 +688,16 @@ case: (ltnP (size p).-1 1)=> [|s2].
 have := solve_monicpoly (fun n => -p`_n*(lead_coef p)^-1) s2.
 case=> x; exists x.
 rewrite /root horner_coef.
-admit.
+rewrite -[size p]prednK; last first.
+  by rewrite lt0n size_poly_eq0 p0.
+rewrite -(big_mkord (fun _ => true) (fun i => p`_i * x ^+ i)).
+rewrite  big_nat_recr /= -/(lead_coef p) H.
+rewrite (big_morph _ (mulr_addr _) (mulr0 _)) addrC.
+rewrite -(big_mkord (fun _ => true) (fun i => lead_coef p * (- p`_i / lead_coef p * x ^+ i))).
+rewrite (eq_bigr (fun i => - (p`_i * x ^+ i))).
+  by rewrite sumr_opp addrC subrr.
+move=> i _; rewrite -mulNr !mulrA; congr (_*_).
+by rewrite mulrAC divrr ?mul1r // unitfE lead_coef_eq0 p0.
 Qed.
 
 Lemma root0 : forall x : F, root 0 x.
