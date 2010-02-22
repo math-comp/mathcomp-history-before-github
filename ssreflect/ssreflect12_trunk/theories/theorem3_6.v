@@ -190,7 +190,7 @@ have defVK: U :=: V * K.
   apply/eqP; rewrite eqEsubset mul_subG //= andbT -quotientSK //.
   rewrite subEproper eq_sym eqEcard.
   have: p^'.-Hall(U / V) (K / V) by exact: morphim_pHall.
-  by case/pHallP=> -> ->; rewrite part_pnat ?leqnn //= -defU.
+  by case/pHallP=> -> ->; rewrite part_pnat_id ?leqnn //= -defU.
 have sylV: p.-Sylow(U) V.
   have coVK: coprime #|V| #|K| := pnat_coprime pV p'K.
   by rewrite /pHall sVU [_.-group _]pV -card_quotient // -defU.
@@ -213,7 +213,7 @@ have sylVP: p.-Sylow(H) (V * P).
   rewrite defVP pHallE /= -defVP mul_subG //= defVP.
   rewrite -(LaGrange sVH) partn_mul ?muln_gt0 ?cardG_gt0 //=.
   have: V \subset V <*> P by rewrite -defVP mulG_subl.
-  move/LaGrange <-; rewrite part_pnat // eqn_pmul2l // /=.
+  move/LaGrange <-; rewrite part_pnat_id // eqn_pmul2l // /=.
   rewrite -!card_quotient //; last by rewrite gen_subG subUset normG.
   rewrite -defVP defH !quotient_mulgr.
   have: p.-Sylow('N_H(K) / V) (P / V) by exact: morphim_pHall.
@@ -475,7 +475,7 @@ have trVK_P: V <*> K :&: P = 1.
   apply/trivgP; rewrite -trVP /= -{1}(setIid P) setIA setSI //=.
   have sV_VK: V \subset V <*> K by rewrite sub_gen ?subsetUl.
   have sylV: p.-Sylow(V <*> K) V.
-    by rewrite pHallE sV_VK oVK partn_mul // /= part_pnat ?part_p'nat ?muln1.
+    by rewrite pHallE sV_VK oVK partn_mul // /= part_pnat_id ?part_p'nat ?muln1.
   rewrite (subset_normal_Hall _ sylV) /=.
     rewrite /psubgroup subsetIl; apply: pgroupS pP; exact: subsetIr.
   by rewrite /normal sV_VK gen_subG subUset normG.
@@ -632,7 +632,7 @@ case abelK: (abelian K); last first.
   have nZK := normal_norm (center_normal K).
   have trCPR_K': 'C_(P <*> R / 'Z(K))(K / 'Z(K)) = 1.
     rewrite -quotient_astabQ -quotientIG /=; last first.
-      by rewrite astabsQ normG trivg_quotient sub1G.
+      by rewrite sub_astabQ normG trivg_quotient sub1G.
     apply/trivgP; rewrite -quotient1 quotientS // -trCPR_K subsetI subsetIl /=.
     rewrite (coprime_cent_Phi qK) ?(coprimegS (subsetIl _ _)) //=.
       rewrite norm_mulgenEr // coprime_cardMg ?(coprimeSg sPH) //.
@@ -1079,7 +1079,7 @@ have nVjR: forall Kj, Kj \in mxK ->
     rewrite -{1}defKR (TI_cardMg trKR_C) leq_pmul2l ?cardG_gt0 //=.
     have Z_CK: Zgroup 'C_K(R) by apply: ZgroupS ZCHR; exact: setSI.
     have:= forallP Z_CK 'C_K(R)%G; rewrite (@p_Sylow _ q) /=; last first.
-      rewrite pHallE subxx part_pnat ?eqxx //.
+      rewrite pHallE subxx part_pnat_id ?eqxx //.
       apply: pgroupS qK; exact: subsetIl.
     case/cyclicP=> z defC; rewrite defC dvdn_leq ?prime_gt0 // order_dvdn.
     case/abelemP: abelemK => // _ -> //.

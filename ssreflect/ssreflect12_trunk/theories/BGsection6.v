@@ -400,7 +400,7 @@ wlog K1: gT G E L solG pl1G Emax sLG p'L nEL / 'O_p^'(G) = 1.
   have defSK: S / K = D / K.
     apply/eqP; rewrite eqEcard quotientS //.
     rewrite (card_Hall (morphim_pHall _ nKS psylS)).
-    by rewrite /= (part_pnat (abelem_pgroup pabDK)).
+    by rewrite /= (part_pnat_id (abelem_pgroup pabDK)).
   rewrite -defSK; rewrite inE in l66b; case/maxgroupP: l66b => _ -> //.
     by apply/pElemP; split; rewrite ?subxx /= ?defSK.
   by rewrite quotientS.

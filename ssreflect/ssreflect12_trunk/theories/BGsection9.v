@@ -92,7 +92,7 @@ have{sNPM} [sNRM sylRH]: 'N(R) \subset M /\ p.-Sylow(H) R.
   rewrite (subset_trans (subset_trans sBR (normG R))) //= implybN.
   have ltRN := nilpotent_proper_norm (pgroup_nil pP) ltRP.
   rewrite -(card_Hall sylR) (leq_trans (proper_card ltRN)) /=; last first.
-    rewrite setIC -(part_pnat (pgroupS (subsetIr _ _) pP)) dvdn_leq //.
+    rewrite setIC -(part_pnat_id (pgroupS (subsetIr _ _) pP)) dvdn_leq //.
     by rewrite partn_dvd ?cardG_gt0 // cardSg // setISS.
   move/eqP=> defD; rewrite defD in sND; split; rewrite // -Sylow_subnorm.
   by rewrite (pHall_subl _ _ sylR) ?setIS // subsetI sRH normG.
@@ -107,7 +107,7 @@ have nHp'R: R \subset 'N('O_p^'(H)) by rewrite (subset_trans sRH) ?bgFunc_norm.
 have nsRHp'H: R <*> 'O_p^'(H) <| H.
   rewrite sub_der1_normal //= ?mulgen_subG ?sRH ?pcore_sub //.
   rewrite norm_mulgenEl // (subset_trans _ sFH_RHp') //.
-  rewrite p_rank_2_der1_sub_Fitting ?mFT_odd //.
+  rewrite rank2_der1_sub_Fitting ?mFT_odd //.
   by rewrite mFT_sol ?mmax_proper.
 have sylR_RHp': p.-Sylow(R <*> 'O_p^'(H)) R.
   by apply: (pHall_subl _ _ sylRH); rewrite ?mulgen_subl // normal_sub.
@@ -255,7 +255,7 @@ have sNP_mCA: forall M, M \in 'M('C(A)) -> 'N(P) \subset M.
         by rewrite -rank_gt0 2?ltnW ?(leq_trans Mqge3) ?rankS.
       set q := max_pdiv _ => qQ _ sMqQ.
       have sylMq: q.-Sylow(M) 'O_q(M).
-        by rewrite [pHall _ _ _]p_rank_2_max_pcore_Sylow ?mFT_odd ?mmax_sol.
+        by rewrite [pHall _ _ _]rank2_pcore_max_Sylow ?mFT_odd ?mmax_sol.
       have defNMq: 'N('O_q(M)) = M.
         rewrite (mmax_normal maxM (pcore_normal _ _)) // -rank_gt0.
         rewrite (rank_pgroup (pcore_pgroup _ _)) -(p_rank_Sylow sylMq).
@@ -375,7 +375,7 @@ have uNP0_mCA: forall M, M \in 'M('C(A)) -> 'M('N(P0)) = [set M].
       have nVU := subset_trans sUDL (subset_trans sDL nV_LM).
       rewrite IHs ?(subset_trans sVU) // /stable_factor /normal sVU nVU !andbT.
       have nVP0 := subset_trans (subset_trans sP0_LM' (der_sub _ _)) nV_LM.
-      rewrite commGC -astabsQR // (subset_trans sP0_LM') //. 
+      rewrite commGC -sub_astabQR // (subset_trans sP0_LM') //. 
       have: is_abelem (U / V) := sol_chief_abelem solLM chUV.
       case/is_abelemP=> q _; case/andP=> qUV _.
       apply: rank2_cent_chief qUV sUDL; rewrite ?mFT_odd //.
@@ -402,7 +402,7 @@ have uNP0_mCA: forall M, M \in 'M('C(A)) -> 'M('N(P0)) = [set M].
     apply: Frattini_arg (pHall_subl (mulgen_subr _ _) (subsetT _) sylP).
     rewrite -(quotientGK (Fitting_normal M)) /= norm_mulgenEr //= -/F.
     rewrite -quotientK // cosetpre_normal -sub_abelian_normal ?quotientS //.
-    by rewrite sub_der1_abelian ?p_rank_2_der1_sub_Fitting ?mFT_odd ?mmax_sol.
+    by rewrite sub_der1_abelian ?rank2_der1_sub_Fitting ?mFT_odd ?mmax_sol.
   case/dprodP: (nilpotent_pcoreC p (Fitting_nil M)) => _ /= defF cDFp _.
   rewrite norm_mulgenEr //= -{}defF (centC cDFp) -/D p_core_Fitting /= -/F.
   rewrite -!mulgA mul_subG //; first by rewrite cents_norm // centsC.

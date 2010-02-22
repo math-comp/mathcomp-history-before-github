@@ -2180,7 +2180,8 @@ Variable proj : nat -> seq (term R) * seq (term R) -> formula R.
 (* proj is the elimination of a single existential quantifier *)
 
 Definition wf_proj_axiom :=
-  forall i bc (bc_i := proj i bc), qf_form bc_i && rformula bc_i : Prop.
+  forall i bc (bc_i := proj i bc), 
+    dnf_rterm bc -> qf_form bc_i && rformula bc_i : Prop.
 
 (* The elimination operator p preserves  validity *)
 Definition holds_proj_axiom :=
@@ -2259,10 +2260,29 @@ Fixpoint quantifier_elim (f : formula F) : formula F :=
 Lemma quantifier_elim_wf : forall f (qf := quantifier_elim f),
   rformula f -> qf_form qf && rformula qf.
 Proof.
-suffices aux_wf: forall f n (qf := elim_aux f n), qf_form qf && rformula qf.
-  by elim=> //= f1 IH1 f2 IH2; case/andP; move/IH1; case/andP=> -> -> /=.
-rewrite /elim_aux => f n; elim: (_ f _) => //= bc bcs.
-by rewrite andbC andbAC andbA wf_proj.
+suffices aux_wf: forall f n (qf := elim_aux f n), 
+     rformula f -> qf_form qf && rformula qf.
+  by elim=> //=; do ?[  move=> f1 IH1 f2 IH2;
+                     case/andP=> rf1 rf2;
+                     case/andP:(IH1 rf1)=> -> ->;
+                     case/andP:(IH2 rf2)=> -> -> //
+                  |  move=> n f1 IH rf1;
+                     case/andP: (IH rf1)=> qff rf;
+                     rewrite aux_wf ].
+rewrite /elim_aux => f n rf.
+suff or_wf: forall fs (ofs := foldr Or False fs), 
+  all (@qf_form F) fs && all (@rformula F) fs 
+  -> qf_form ofs && rformula ofs.
+  apply: or_wf.
+  suff map_proj_wf: forall bcs (mbcs := map (proj n) bcs),
+    all dnf_rterm bcs 
+    -> all (@qf_form _) mbcs && all (@rformula _) mbcs.
+    apply: map_proj_wf.
+    exact: qf_to_dnf_rterm.
+  elim=> [|bc bcs ihb] bcsr //=.
+  by case/andP=> rbc rbcs; rewrite andbAC andbA wf_proj //= andbC ihb.
+elim=> //= g gs ihg; rewrite -andbA; case/and4P=> -> qgs -> rgs /=.
+by apply: ihg; rewrite qgs rgs.
 Qed.
 
 Lemma quantifier_elim_rformP : forall e f,

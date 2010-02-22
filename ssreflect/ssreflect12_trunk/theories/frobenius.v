@@ -59,7 +59,7 @@ have pA: forall x, x \in A -> #[x]`_p = (n`_p * p)%N.
   move: xnp; rewrite -[#[x]](partnC p) //.
   rewrite !gauss_inv ?coprime_partC //; case/andP=> _.
   rewrite p_part ?pfactor_dvdn // xn gauss // coprime_sym.
-  exact: pnat_coprime (pnat_id _) (pnat_part _ _).
+  exact: pnat_coprime (pnat_id _) (part_pnat _ _).
 rewrite -(partnC p n_gt0) gauss_inv ?coprime_partC //; apply/andP; split.
   rewrite -sum1_card (partition_big_imset (@cycle _)) /=.
   apply: dvdn_sum => X; case/imsetP=> x; case/setIP=> Gx Ax ->{X}.
@@ -98,7 +98,7 @@ pose h' := [fun Z : coset_of <[y]> => (y * (repr Z).`_p^') ^ a].
 rewrite -sum1_card (reindex_onto h h') /= => [|Z]; last first.
   rewrite conjgK coset_kerl ?cycle_id ?morph_constt ?repr_coset_norm //.
   rewrite /= coset_reprK 2!inE -order_dvdn dvdn_gcd; case/and3P=> _ _ p'Z.
-  apply: constt_p_elt (pnat_dvd p'Z _); exact: pnat_part.
+  apply: constt_p_elt (pnat_dvd p'Z _); exact: part_pnat.
 apply: eq_bigl => z; apply/andP/andP=> [[]|[]].
   rewrite inE -andbA; case/and3P=> Gz Az _; move/eqP=> zp_ya.
   have czy: z ^ a^-1 \in 'C[y].

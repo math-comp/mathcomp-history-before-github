@@ -3270,7 +3270,7 @@ Qed.
 
 Lemma card_abelem_rV : #|rVn| = #|E|.
 Proof.
-by rewrite dim_abelemE card_matrix mul1n card_Fp // -p_part part_pnat.
+by rewrite dim_abelemE card_matrix mul1n card_Fp // -p_part part_pnat_id.
 Qed.
 
 Lemma isog_abelem_rV : E \isog [set: rVn].

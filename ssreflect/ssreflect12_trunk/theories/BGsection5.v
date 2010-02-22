@@ -70,8 +70,8 @@ have cardB : logn p #|B| = 3 by case/pnElemP: pnelemB.
 have abelianB : abelian B by case/pnElemP: pnelemB=> _; case/and3P.
 case: (ltnP (logn p #|Bs|) 3); move=> cardBs.
   have defE : Bs :=: E.
-    apply/eqP; rewrite eq_sym eqEcard mulgen_subl -(part_pnat pE).
-    by rewrite -(part_pnat pBs) !p_part cardE leq_exp2l.
+    apply/eqP; rewrite eq_sym eqEcard mulgen_subl -(part_pnat_id pE).
+    by rewrite -(part_pnat_id pBs) !p_part cardE leq_exp2l.
   have sCE : 'C_B(E) \subset E by rewrite -{2}defE /Bs mulgen_subr.
   have nEB : B \subset 'N(E) by exact: subset_trans sBR nER.
   have cardBq' : logn p #| B / 'C_B(E) | <= 1.
@@ -84,11 +84,11 @@ case: (ltnP (logn p #|Bs|) 3); move=> cardBs.
     rewrite logn_div ?cardB ?cardSg ?subIset ?subxx //.
     by case: (logn _ _)=> //; case.
   have defE' : 'C_B(E) :=: E.
-    apply/eqP; rewrite eqEcard sCE -{1}(part_pnat pE) p_part cardE.
-    by rewrite -(part_pnat (pgroupS (subsetIl _ _) pB)) p_part leq_exp2l.
+    apply/eqP; rewrite eqEcard sCE -{1}(part_pnat_id pE) p_part cardE.
+    by rewrite -(part_pnat_id (pgroupS (subsetIl _ _) pB)) p_part leq_exp2l.
   have abs1 : E \proper B.
-    rewrite -defE' properEcard subIset ?subxx //= defE' -(part_pnat pE).
-    by rewrite -(part_pnat pB) !p_part ltn_exp2l ?cardE ?cardB.
+    rewrite -defE' properEcard subIset ?subxx //= defE' -(part_pnat_id pE).
+    by rewrite -(part_pnat_id pB) !p_part ltn_exp2l ?cardE ?cardB.
   have abs2 : 'C_B(E) :=: B.
     apply/eqP; rewrite eqEsubset subIset ?subxx // subsetI subxx /=.
     by rewrite sub_abelian_cent // proper_sub.

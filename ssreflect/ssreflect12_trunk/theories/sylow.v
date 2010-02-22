@@ -379,7 +379,7 @@ have [] := and3P sylP; rewrite subsetI; case/andP=> sPG sPN pP _.
 have [Q sylQ sPQ] := Sylow_superset sPG pP; have [sQG pQ _] := and3P sylQ.
 rewrite -(nilpotent_sub_norm (pgroup_nil pQ) sPQ) {sylQ}//.
 rewrite subEproper eq_sym eqEcard subsetI sPQ sPN dvdn_leq //.
-rewrite -(part_pnat (pgroupS (subsetIl _ _) pQ)) (card_Hall sylP).
+rewrite -(part_pnat_id (pgroupS (subsetIl _ _) pQ)) (card_Hall sylP).
 by rewrite partn_dvd // cardSg ?setSI.
 Qed.
 
@@ -505,7 +505,7 @@ have{pE} pE: {in E &, forall x1 x2, p.-group <<[set x1; x2]>>}.
   rewrite -(mulgKV y1 y2) conjgM -2!conjg_set1 -conjUg genJ pgroupJ.
   by rewrite pE // groupMl ?groupV.
 have sEG: <<E>> \subset G by rewrite gen_subG class_subG.
-have nEG: G \subset 'N(E) by exact: norm_class.
+have nEG: G \subset 'N(E) by exact: class_normG.
 have Ex: x \in E by exact: class_refl.
 have [P Px sylP]: exists2 P : {group gT}, x \in P & p.-Sylow(<<E>>) P.
   have sxxE: <<[set x; x]>> \subset <<E>> by rewrite genS // setUid sub1set.

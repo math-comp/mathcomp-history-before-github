@@ -361,7 +361,7 @@ have{sylR_HM} sylR_H: p.-Sylow(H) R.
     by rewrite subsetI sRH normG.
   rewrite (subset_trans (subset_trans sAR (normG R)) sND); case/negP.
   rewrite -(card_Hall sylR_HM) (leq_trans (proper_card sRN)) //.
-  rewrite -(part_pnat (pgroupS (subsetIl _ _) pQ)) dvdn_leq //.
+  rewrite -(part_pnat_id (pgroupS (subsetIl _ _) pQ)) dvdn_leq //.
   by rewrite partn_dvd ?cardG_gt0 // cardSg //= setIC setISS.
 have Hp'1: 'O_p^'(H) = 1.
   apply: p'nbyA_1 (pcore_pgroup _ _) (subset_trans sAH (bgFunc_norm _ _)).

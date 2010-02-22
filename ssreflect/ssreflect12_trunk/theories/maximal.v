@@ -1066,12 +1066,12 @@ rewrite -!cycle_subG => sXG cZX xp1 /=; have cXX := cycle_abelian x.
 have nZX := cents_norm cZX; have{nAG} nAX := subset_trans sXG nAG.
 pose XA := <[x]> <*> A; pose C := 'C(<[x]> / Z | 'Q); pose CA := A :&: C.
 pose Y := <[x]> <*> CA; pose W := 'Ohm_1(Y). 
-have sXC: <[x]> \subset C by rewrite astabsQ nZX (quotient_cents _ cXX).
+have sXC: <[x]> \subset C by rewrite sub_astabQ nZX (quotient_cents _ cXX).
 have defY : Y = <[x]> * CA by rewrite -norm_mulgenEl // normsI ?nAX ?normsG.
 have{nAX} defXA: XA = <[x]> * A := norm_mulgenEl nAX.
 suffices{sXC}: XA \subset Y.
-  rewrite subsetI sXG /= astabsQ nZX centsC defY group_modl //= -/Z -/C.
-  by rewrite subsetI defXA subxx astabsQ quotientMl //= !mulG_subG; case/and3P.
+  rewrite subsetI sXG /= sub_astabQ nZX centsC defY group_modl //= -/Z -/C.
+  by rewrite subsetI defXA subxx sub_astabQ quotientMl //= !mulG_subG; case/and3P.
 have sZCA: Z \subset CA by rewrite subsetI sZA [C]astabQ sub_cosetpre.
 have cZCA: CA \subset 'C(Z) by rewrite subIset 1?(sub_abelian_cent2 cAA).
 have sZY: Z \subset Y by rewrite (subset_trans sZCA) ?mulgen_subr.
@@ -1097,7 +1097,7 @@ have sYXA: Y \subset XA by rewrite defY defXA mulgS ?subsetIl.
 rewrite -[Y](nilpotent_sub_norm nilXA) {nilXA sYXA}//= -/Y -/XA.
 apply: subset_trans (setIS _ (char_norm_trans (Ohm_char 1 _) (subxx _))) _.
 rewrite {XA}defXA -group_modl ?normsG /= -/W ?{W}defW ?mulG_subl //.
-rewrite {Y}defY mulgS // {CA}subsetI subsetIl {C}astabsQ subIset ?nZA //= -/Z.
+rewrite {Y}defY mulgS // {CA}subsetI subsetIl {C}sub_astabQ subIset ?nZA //= -/Z.
 rewrite (subset_trans (quotient_subnorm _ _ _)) //= quotient_mulg /= -/Z.
 rewrite -quotient_sub1 ?subIset ?cent_norm ?orbT //.
 rewrite (subset_trans (quotientI _ _ _)) ?coprime_TIg //.
