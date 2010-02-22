@@ -735,9 +735,17 @@ Lemma ex_px_neq0 : forall p : {poly F}, p != 0 -> exists x, p.[x] != 0.
 Proof.
 move=> p p0.
 case sp1: (size p == 1%N).
-  admit. (* constante => pas de racine *)
-move/size1_root: (1 + p). (* une racine de 1+p n'est pas racine de p, ouf ! *)
-Admitted.
+  by move/size1_is_polyC: sp1=> [x [x0 ->]]; exists x; rewrite hornerC.
+have: (size (1 + p) != 1%N).
+  rewrite addrC size_addl ?sp1 //. 
+  move/negPf: p0 => p0f.
+  by rewrite size_poly1 ltnNge leqn1 size_poly_eq0 p0f sp1.
+move/size1_root=> [x rx]; exists x.
+move: rx; rewrite /root horner_add hornerC.
+rewrite addrC -(inj_eq (@addIr _ (-1))) addrK sub0r.
+move/eqP->; rewrite eq_sym -(inj_eq (@addrI _ 1)).
+by rewrite addr0 subrr oner_eq0.
+Qed.
 
 Lemma holds_conj : forall e i x ps, all (@rterm _) ps ->
   (holds (set_nth 0 e i x) (foldr (fun t : term F => And (t == 0)) True ps)
