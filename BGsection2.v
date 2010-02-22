@@ -55,7 +55,7 @@ have nQG: G \subset 'N(Q) by rewrite normsI // normal_norm ?der_normalS.
 have pQ: p %| #|Q|.
   have sylQ: p.-Sylow(G^`(1)) Q by apply: pSylow_normalI (der_normalS _ _) _.
   apply: contraLR pG'; rewrite -!p'natE // (card_Hall sylQ) -!partn_eq1 //.
-  by rewrite part_pnat ?pnat_part.
+  by rewrite part_pnat_id ?part_pnat.
 have{IHm} abelQ: abelian Q.
   apply/commG1P; apply/eqP; apply/idPn => ntQ'.
   have{IHm} p'Q': [char F].-group Q^`(1).

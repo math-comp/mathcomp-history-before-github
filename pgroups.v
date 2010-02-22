@@ -161,7 +161,7 @@ Lemma properG_ltn_log : forall p G H,
   p.-group G -> H \proper G -> logn p #|H| < logn p #|G|.
 Proof. 
 move=> p G H pG; rewrite properEneq eqEcard andbC ltnNge; case/andP=> sHG.
-rewrite sHG /= -{1}(part_pnat pG) -{1}(part_pnat (pgroupS sHG pG)) !p_part {pG}.
+rewrite sHG /= -{1}(part_pnat_id pG) -{1}(part_pnat_id (pgroupS sHG pG)) !p_part {pG}.
 by apply: contra; case: p => [|p] leGH; rewrite ?logn0 // leq_pexp2l.
 Qed.
 
@@ -201,7 +201,7 @@ Qed.
 Lemma card_Hall : forall pi G H, pi.-Hall(G) H -> #|H| = #|G|`_pi.
 Proof.
 move=> pi G H; case/and3P=> sHG piH pi'H.
-by rewrite -(LaGrange sHG) partn_mul ?LaGrange // part_pnat ?part_p'nat ?muln1.
+by rewrite -(LaGrange sHG) partn_mul ?LaGrange // part_pnat_id ?part_p'nat ?muln1.
 Qed.
 
 Lemma pHall_sub : forall pi A B, pi.-Hall(A) B -> B \subset A.
@@ -216,7 +216,7 @@ Proof.
 move=> pi G H; apply: (iffP idP) => [piH | [sHG oH]].
   split; [exact: pHall_sub piH | exact: card_Hall].
 rewrite /pHall sHG -divgS // /pgroup oH.
-by rewrite -{2}(@partnC pi #|G|) ?mulKn ?pnat_part.
+by rewrite -{2}(@partnC pi #|G|) ?mulKn ?part_pnat.
 Qed.
 
 Lemma pHallE : forall pi G H,
@@ -312,10 +312,10 @@ Lemma p_elt_exp : forall pi x m, pi.-elt (x ^+ m) = (#[x]`_pi^' %| m).
 Proof.
 move=> pi x m; apply/idP/idP=> [pi_xm|].
   rewrite -(@gauss _ #[x ^+ m]); last first.
-    by rewrite coprime_sym (pnat_coprime pi_xm) ?pnat_part.
+    by rewrite coprime_sym (pnat_coprime pi_xm) ?part_pnat.
   apply: (@dvdn_trans #[x]); first by rewrite -{2}[#[x]](partnC pi) ?dvdn_mull.
   by rewrite order_dvdn mulnC expgn_mul expg_order.
-case/dvdnP=> q ->{m}; rewrite mulnC; apply: pnat_dvd (pnat_part pi #[x]).
+case/dvdnP=> q ->{m}; rewrite mulnC; apply: pnat_dvd (part_pnat pi #[x]).
 by rewrite order_dvdn -expgn_mul mulnC mulnA partnC // -order_dvdn dvdn_mulr.
 Qed.
 
@@ -400,7 +400,7 @@ Qed.
 Lemma order_constt : forall pi (x : gT), #[x.`_pi] = #[x]`_pi.
 Proof.
 move=> pi x; rewrite -{2}(consttC pi x) orderM; [|exact: commuteX2|].
-  rewrite partn_mul // part_pnat ?part_p'nat ?muln1 //; exact: p_elt_constt.
+  rewrite partn_mul // part_pnat_id ?part_p'nat ?muln1 //; exact: p_elt_constt.
 apply: (@pnat_coprime pi); exact: p_elt_constt.
 Qed.
 
@@ -459,7 +459,7 @@ rewrite big_nat_recr /= -{}IHp -(consttC (lp p) x.`__); congr (_ * _).
 set y := _.`__; rewrite -(consttC p y) (constt1P p^' _ _) ?mulg1.
   by rewrite 2?sub_in_constt // => q _; move/eqnP->; rewrite !inE ?ltnn.
 rewrite /p_elt pnatNK !order_constt -partnI.
-apply: sub_in_pnat (pnat_part _ _) => q _.
+apply: sub_in_pnat (part_pnat _ _) => q _.
 by rewrite !inE ltnS -leqNgt -eqn_leq.
 Qed.
 
@@ -501,7 +501,7 @@ Lemma sub_pHall : forall pi H G K,
   pi.-Hall(G) H -> pi.-group K -> H \subset K -> K \subset G -> K :=: H.
 Proof.
 move=> pi H G K hallH piK sHK sKG; apply/eqP; rewrite eq_sym eqEcard sHK.
-by rewrite (card_Hall hallH) -(part_pnat piK) dvdn_leq ?partn_dvd ?cardSg.
+by rewrite (card_Hall hallH) -(part_pnat_id piK) dvdn_leq ?partn_dvd ?cardSg.
 Qed.
 
 Lemma Hall_max : forall pi H G, pi.-Hall(G) H -> [max H | pi.-subgroup(G) H].
@@ -635,7 +635,7 @@ Lemma pmorphim_pHall : forall pi G H,
 Proof.
 move=> pi G H sGD sHD; case/andP; rewrite subsetI; case/andP=> sKH sKG piK.
 rewrite !pHallE morphimSGK //; case sHG: (H \subset G) => //=.
-rewrite -(LaGrange sKH) -(LaGrange sKG) partn_mul // (part_pnat piK).
+rewrite -(LaGrange sKH) -(LaGrange sKG) partn_mul // (part_pnat_id piK).
 by rewrite !card_morphim !(setIidPr _) // eqn_pmul2l.
 Qed.
 
@@ -701,7 +701,7 @@ Lemma ltn_log_quotient :
   p.-group G -> H :!=: 1 -> H \subset G -> logn p #|G / H| < logn p #|G|.
 Proof.
 move=> pG ntH sHG; apply: contraLR (ltn_quotient ntH sHG); rewrite -!leqNgt.
-rewrite -{2}(part_pnat pG) -{2}(part_pnat (morphim_pgroup _ pG)) !p_part.
+rewrite -{2}(part_pnat_id pG) -{2}(part_pnat_id (morphim_pgroup _ pG)) !p_part.
 by case: (posnP p) => [-> //|]; exact: leq_pexp2l.
 Qed.
 
@@ -808,6 +808,9 @@ Proof.
 move=> G H piH nHG; apply/bigcapsP=> M maxM.
 exact: normal_sub_max_pgroup piH nHG.
 Qed.
+
+Lemma pcore_pgroup_id : forall G, pi.-group G -> 'O_pi(G) = G.
+Proof. by move=> G piG; apply/eqP; rewrite eqEsubset pcore_sub pcore_max. Qed.
 
 Lemma pcore_normal : forall G, 'O_pi(G) <| G.
 Proof.

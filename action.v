@@ -1000,6 +1000,26 @@ Lemma qactE : forall x a,
   quotient_action (coset H x) a = coset H (to x a).
 Proof. by move=> x a Nx nNa; rewrite qactEcond ?nNa. Qed.
 
+Lemma acts_quotient : forall (A : {set aT}) (B : {set rT}),
+   A \subset 'N_qact_dom(B | to) -> [acts A, on B / H | quotient_action].
+Proof.
+move=> A B nBA; apply: subset_trans {A}nBA _; apply/subsetP=> a.
+case/setIP=> dHa nBa; rewrite inE dHa inE; apply/subsetP=> Hx.
+case/morphimP=> x nHx Bx ->; rewrite inE /= qactE //.
+by rewrite mem_morphim ?(acts_act acts_qact_dom) ?(astabs_act _ nBa).
+Qed.
+
+Lemma astabs_quotient : forall G : {group rT},
+   H <| G -> 'N(G / H | quotient_action) = 'N_qact_dom(G | to).
+Proof.
+move=> G nsHG; have [_ nHG] := andP nsHG.
+apply/eqP; rewrite eqEsubset acts_quotient // andbT.
+apply/subsetP=> a nGa; have dHa := astabs_dom nGa; have [Da _]:= setIdP dHa.
+rewrite inE dHa 2!inE Da; apply/subsetP=> x Gx; have nHx := subsetP nHG x Gx.
+rewrite -(quotientGK nsHG) 2!inE (acts_act acts_qact_dom) ?nHx //= inE.
+by rewrite -qactE // (astabs_act _ nGa) mem_morphim.
+Qed.
+
 End QuotientAction.
 
 Notation "to / H" := (quotient_action to H) : action_scope.
@@ -1642,9 +1662,9 @@ Lemma astab1J : forall x : gT, 'C[x |'J] = 'C[x].
 
 Proof. by move=> x; rewrite astabJ cent_set1. Qed.
 
-Lemma astabsJ : forall G, 'N(G | 'J) = 'N(G).
+Lemma astabsJ : forall A, 'N(A | 'J) = 'N(A).
 Proof.
-by move=> G; apply/setP=> x; rewrite -2!groupV !inE -conjg_preim -sub_conjg.
+by move=> A; apply/setP=> x; rewrite -2!groupV !inE -conjg_preim -sub_conjg.
 Qed.
 
 Lemma setactJ : forall A x, 'J^*%act A x = A :^ x. Proof. by []. Qed.
@@ -1713,6 +1733,15 @@ move=> G Gy; case: (cosetP Gy) => y Ny ->{Gy} x.
 by rewrite qactEcond // dom_qactJ; case Nx: (x \in 'N(G)); rewrite ?morphJ.
 Qed.
 
+Lemma actsQ : forall A B H,
+  A \subset 'N(H) -> A \subset 'N(B) -> [acts A, on B / H | 'Q].
+Proof.
+by move=> A B H nHA nBA; rewrite acts_quotient // subsetI dom_qactJ nHA astabsJ.
+Qed. 
+
+Lemma astabsQ : forall G H, H <| G -> 'N(G / H | 'Q) = 'N(H) :&: 'N(G).
+Proof. by move=> G H nsHG; rewrite astabs_quotient // dom_qactJ astabsJ. Qed. 
+
 Lemma astabQ : forall G Abar, 'C(Abar |'Q) = coset G @*^-1 'C(Abar).
 Proof.
 move=> G Abar; apply/setP=> x; rewrite inE /= dom_qactJ morphpreE in_setI /=.
@@ -1722,18 +1751,18 @@ apply/setP=> Gy; rewrite inE qactJ Nx (sameP eqP conjg_fixP).
 by rewrite (sameP cent1P eqP) (sameP commgP eqP).
 Qed.
 
-Lemma astabsQ : forall A G Bbar,
+Lemma sub_astabQ : forall A G Bbar,
   (A \subset 'C(Bbar | 'Q)) = (A \subset 'N(G)) && (A / G \subset 'C(Bbar)).
 Proof.
 move=> A G Bbar; rewrite astabQ -morphpreIdom subsetI.
 by case nGA: (A \subset 'N(G)) => //=; rewrite -sub_quotient_pre.
 Qed.
 
-Lemma astabsQR : forall A B G,
+Lemma sub_astabQR : forall A B G,
      A \subset 'N(G) -> B \subset 'N(G) ->
   (A \subset 'C(B / G | 'Q)) = ([~: A, B] \subset G).
 Proof.
-move=> A B G nGA nGB; rewrite astabsQ nGA /= (sameP commG1P eqP).
+move=> A B G nGA nGB; rewrite sub_astabQ nGA /= (sameP commG1P eqP).
 by rewrite eqEsubset sub1G andbT -quotientR // quotient_sub1 // comm_subG.
 Qed.
 
@@ -1741,7 +1770,7 @@ Lemma astabQR : forall A G, A \subset 'N(G) ->
   'C(A / G | 'Q) = [set x \in 'N(G) | [~: [set x], A] \subset G].
 Proof.
 move=> A G nGA; apply/setP=> x; rewrite astabQ -morphpreIdom 2!inE -astabQ.
-by case nGx: (x \in _); rewrite //= -sub1set astabsQR ?sub1set.
+by case nGx: (x \in _); rewrite //= -sub1set sub_astabQR ?sub1set.
 Qed.
 
 Lemma quotient_astabQ : forall G Abar, 'C(Abar | 'Q) / G = 'C(Abar).

@@ -2293,8 +2293,11 @@ Proof. by move=> x A B Nx; rewrite normJ -sub_conjgV (normP _) ?groupV. Qed.
 Lemma norm_gen : forall A, 'N(A) \subset 'N(<<A>>).
 Proof. by move=> A; apply/normsP=> x Nx; rewrite -genJ (normP Nx). Qed.
 
-Lemma norm_class : forall x G, G \subset 'N(x ^: G).
+Lemma class_normG : forall x G, G \subset 'N(x ^: G).
 Proof. by move=> x G; apply/normsP=> y; exact: classGidr. Qed.
+
+Lemma class_support_normG : forall A G, G \subset 'N(class_support A G).
+Proof. by move=> A G; apply/normsP; exact: class_supportGidr. Qed.
 
 Lemma class_support_sub_norm : forall A B G,
   A \subset G -> B \subset 'N(G) -> class_support A B \subset G.
@@ -2346,6 +2349,13 @@ Proof. by move=> A B G; move/normsIs->; rewrite ?normG. Qed.
 
 Lemma normsGI : forall A B G, A \subset 'N(B) -> G :&: A \subset 'N(G :&: B).
 Proof. by move=> A B G nBA; rewrite !(setIC G) normsIG. Qed.
+
+Lemma norms_bigcap : forall (I : finType) (P : pred I) A (B_ : I -> {set gT}),
+  A \subset \bigcap_(i | P i) 'N(B_ i) -> A \subset 'N(\bigcap_(i | P i) B_ i).
+Proof.
+move=> I P A B_ sAB; apply: subset_trans {A}sAB _.
+by apply: (big_rel (fun A B => A \subset 'N(B))) => *; rewrite ?normG ?normsIs.
+Qed.
 
 Lemma normalP : forall A B,
   reflect (A \subset B /\ {in B, normalised A}) (A <| B).
@@ -2589,8 +2599,8 @@ move=> H G; apply: (iffP andP) => [[sHG snHG] | [s Hsn <-{G}]].
   rewrite iterSr; case/IHm=> [|s Hsn defG].
     by rewrite sub_gen // class_supportEr (bigD1 1) //= conjsg1 subsetUl.
   exists (rcons s G); rewrite ?last_rcons // -cats1 path_cat Hsn defG /=.
-  rewrite /normal gen_subG class_support_subG ?norms_gen //.
-  by apply/normsP=> x Gx; exact: class_supportGidr.
+  rewrite /normal gen_subG class_support_subG //=.
+  by rewrite norms_gen ?class_support_normG.
 set f := fun _ => <<_>>; have idf: iter _ f H == H.
   by elim=> //= m IHm; rewrite (eqP IHm) /f class_support_id genGid.
 elim: {s}(size s) {-2}s (eqxx (size s)) Hsn => [[] //= | m IHm s].
@@ -2645,8 +2655,7 @@ have nKA: A \subset 'N(K) by rewrite norms_gen ?norms_class_support.
 have sHK: H \subset K by rewrite sub_gen ?sub_class_support.
 case/IHm=> // s Hsn defK; exists (rcons s G); last by rewrite last_rcons.
 rewrite path_rcons Hsn !andbA defK nGA nKA /= -/K.
-rewrite gen_subG class_support_subG ?norms_gen //.
-apply/normsP; exact: class_supportGidr.
+by rewrite gen_subG class_support_subG ?norms_gen ?class_support_normG.
 Qed.
 
 Lemma subnormalEsupport : forall G H,

@@ -463,7 +463,7 @@ have [P sylP] := Sylow_exists p <[x]>; have [sPx pP _]:= and3P sylP.
 suffices: P \subset K.
   have nKP: P \subset 'N(K) by rewrite (subset_trans sPx) ?cycle_subG.
   rewrite -quotient_sub1 //= -/K (sameP trivgP eqP) trivg_card1.
-  rewrite (card_Hall (morphim_pHall _ nKP sylP)) def_p part_pnat ?pnat_id //.
+  rewrite (card_Hall (morphim_pHall _ nKP sylP)) def_p part_pnat_id ?pnat_id //.
   by case: eqnP p_pr => // ->.
 suffices sP_pAC: P \subset 'O_pi^'(A <*> 'C(A)).
   rewrite (subset_trans sP_pAC) ?pcore_max ?pcore_pgroup //.
@@ -618,7 +618,7 @@ have ntQ: Q != 1%G.
 have ntRC: 'C_R(A) != 1.
   have sR0CR: R0 \subset 'C_R(A) by rewrite subsetI sR0R.
   suffices: R0 :!=: 1 by rewrite -!proper1G; move/proper_sub_trans->.
-  move: ntR; rewrite -!cardG_gt1 -(part_pnat qR) (card_Hall sylR0) !p_part_gt1.
+  move: ntR; rewrite -!cardG_gt1 -(part_pnat_id qR) (card_Hall sylR0) !p_part_gt1.
   by rewrite !mem_primes !cardG_gt0 qC; case/and3P=> ->.
 have: existsb z, ('C_Q[z] != 1) && (z \in B^#).
   apply: contraR ntQ => trQ; have:= subset_trans sBA nQA.
@@ -740,10 +740,10 @@ have [k KBk defQ2]:= atransP2 trnB S_Q0 S_Q2.
 have [qQ2 nQ2P] := mem_max_normed maxQ2.
 have hallP: pi.-Hall('N_KBP(Q2)) P.
   have sPN: P \subset 'N_KBP(Q2) by rewrite subsetI mulgen_subr.
-  rewrite pHallE eqn_leq -{1}(part_pnat piP) dvdn_leq ?partn_dvd ?cardSg //.
+  rewrite pHallE eqn_leq -{1}(part_pnat_id piP) dvdn_leq ?partn_dvd ?cardSg //.
   have ->: #|P| = #|KBP|`_pi.
     rewrite /KBP mulgenC norm_mulgenEl // coprime_cardMg ?(pnat_coprime piP) //.
-    by rewrite partn_mul // part_pnat // part_p'nat // muln1.
+    by rewrite partn_mul // part_pnat_id // part_p'nat // muln1.
   by rewrite sPN dvdn_leq ?partn_dvd ?cardSg ?cardG_gt0 ?subsetIl.
 have hallPk: pi.-Hall('N_KBP(Q2)) (P :^ k).
   rewrite pHallE -(card_Hall hallP) cardJg eqxx andbT subsetI /=.
@@ -869,7 +869,7 @@ wlog Zb: b X Y defX B'b p'Y nYA sYX / b \in Z.
   have defB: Z * <[b]> = B.
     apply/eqP; rewrite eqEcard mulG_subG sZB cycle_subG Bb.
     have [_ obp] := abelem_order_p abelB Bb ntb.
-    rewrite -(part_pnat pB) p_part //= (eqP dimB2) TI_cardMg -/#[_] ?oZ ?obp //.
+    rewrite -(part_pnat_id pB) p_part //= (eqP dimB2) TI_cardMg -/#[_] ?oZ ?obp //.
     rewrite -obp in p_pr; case: (prime_subgroupVti [group of Z] p_pr) => //.
     by rewrite cycle_subG Zb.
   pose P1 := P :&: X; have sP1P: P1 \subset P := subsetIl _ _.
@@ -885,9 +885,9 @@ wlog Zb: b X Y defX B'b p'Y nYA sYX / b \in Z.
     have: logn p #|P2 : P1| <= 1.
       apply: leq_trans dimPP1; rewrite dvdn_leq_log //.
       rewrite -(dvdn_pmul2l (cardG_gt0 [group of P1])) !LaGrange ?subsetIl //.
-      by rewrite -(part_pnat pP2) (card_Hall sylP) partn_dvd ?cardSg ?subsetT.
+      by rewrite -(part_pnat_id pP2) (card_Hall sylP) partn_dvd ?cardSg ?subsetT.
     rewrite -(pfactorK 1 p_pr) -pfactor_dvdn ?prime_gt0 // -p_part.
-    rewrite part_pnat ?(pnat_dvd (dvdn_indexg _ _)) //=.
+    rewrite part_pnat_id ?(pnat_dvd (dvdn_indexg _ _)) //=.
     case: (primeP p_pr) => _ dv_p; move/dv_p=> {dv_p}.
     case/pred2P=> oP21; first by rewrite -(index1g sP12 oP21) normal_refl.
     by rewrite (p_maximal_normal pP2) ?p_index_maximal ?oP21.

@@ -193,7 +193,7 @@ have defK: K = M * G by rewrite -norm_mulgenEl ?(subset_trans sMA).
 have oK: #|K| = (#|M| * #|G|)%N.
   by rewrite defK coprime_cardMg // coprime_sym (coprimegS sMA).
 have sylM: q.-Sylow(K) M.
-  by rewrite pHallE mulgen_subl /= oK partn_mul // q'G muln1 part_pnat.
+  by rewrite pHallE mulgen_subl /= oK partn_mul // q'G muln1 part_pnat_id.
 have sylR: q.-Sylow(K) R.
   rewrite pHallE subsetIl /= -(card_Hall sylM) -(@eqn_pmul2r #|G|) // -oK.
   rewrite -coprime_cardMg ?(coprimeSg _ coBG) ?subsetIr //=.

@@ -301,7 +301,7 @@ have SRR1: SRR = 1.
   have pSR := pgroupS sSR_R pR; have pSRR := pgroupS sSRR_SR pSR.
   have [_ _ [e oSR]] := pgroup_pdiv pSR ntSR; have [f oSRR] := p_natP pSRR.
   have e0: e = 0.
-    have:= proper_card prSR; rewrite oSR -(part_pnat pS) p_part dimS2.
+    have:= proper_card prSR; rewrite oSR -(part_pnat_id pS) p_part dimS2.
     by rewrite ltn_exp2l ?prime_gt1 // !ltnS leqn0; move/eqP.
   apply/eqP; have:= proper_card prSRR; rewrite trivg_card1 oSR oSRR e0.
   by rewrite ltn_exp2l ?prime_gt1 // ltnS; case f.
@@ -386,7 +386,7 @@ have{ncycR} [Z nsZR] := ex_odd_normal_abelem2 pR oddR ncycR.
 case/pnElemP=> sZR abelZ dimZ2; have [pZ cZZ _] := and3P abelZ.
 have{SCN_3_empty} defZ: 'Ohm_1('C_R(Z)) = Z.
   apply: (Ohm1_cent_max_normal_abelem _ pR).
-    by have:= oddSg sZR oddR; rewrite -(part_pnat pZ) p_part dimZ2 odd_exp.
+    by have:= oddSg sZR oddR; rewrite -(part_pnat_id pZ) p_part dimZ2 odd_exp.
   apply/maxgroupP; split=> [|H]; first exact/andP.
   case/andP=> nsHR abelH sZH; have [pH cHH _] := and3P abelH.
   apply/eqP; rewrite eq_sym eqEproper sZH /=.
@@ -495,32 +495,152 @@ rewrite -!subn1 leq_sub2r // -(LaGrange sOS_U) logn_mul // -card_quotient //.
 by apply: (leq_trans (leq_add cardOS cardUOS)).
 Qed.
 
+(* This is B & G, Theorem 4.18(b) *)
+Lemma rank2_pdiv_complement : forall gT (G : {group gT}) (p := pdiv #|G|),
+  odd #|G| -> solvable G -> 'r_p(G) <= 2 -> p^'.-Hall(G) 'O_p^'(G).
+Proof.
+Admitted.
+
 (* This is B & G, Corollary 4.19 *)
 Lemma rank2_cent_chief : forall gT p (G Gs U V : {group gT}),
-    Gs <| G -> solvable G -> 'r_p(Gs) <= 2 -> odd #|G| ->
+    odd #|G| -> solvable G -> Gs <| G -> 'r_p(Gs) <= 2 -> 
     chief_factor G V U -> p.-group (U / V) -> U \subset Gs ->
   G^`(1) \subset 'C(U / V | 'Q).
 Proof.
 Admitted.
 
 (* This is B & G, Lemma 4.20(a) *)
-Lemma p_rank_2_der1_sub_Fitting : forall gT (G : {group gT}),
+Lemma rank2_der1_sub_Fitting : forall gT (G : {group gT}),
   odd #|G| -> solvable G -> 'r('F(G)) <= 2 -> G^`(1) \subset 'F(G).
 Proof.
-Admitted.
+move=> gT G oddG solG Fle2.
+apply: subset_trans (chief_stab_sub_Fitting solG _) => //.
+rewrite subsetI der_sub; apply/bigcapsP=> [[U V] /=]; case/andP=> chiefUV sUF.
+have [p p_pr] := is_abelemP (sol_chief_abelem solG chiefUV).
+case/andP=> pUV _; apply: rank2_cent_chief (Fitting_normal _) _ _ pUV sUF => //.
+exact: leq_trans (p_rank_le_rank p _) Fle2.
+Qed.
+
+(* This is B & G, Lemma 4.20(b) *)
+Lemma rank2_char_Sylow_normal : forall gT (G S T : {group gT}),
+  odd #|G| -> solvable G -> 'r('F(G)) <= 2 -> 
+  Sylow G S -> T \char S -> T \subset S^`(1) -> T <| G.
+Proof.
+move=> gT G S T oddG solG; set F := 'F(G) => Fle2.
+case/SylowP=> p p_pr sylS charT sTS'; have [sSG pS _] := and3P sylS.
+have nsFG: F <| G := Fitting_normal G; have [sFG nFG] := andP nsFG.
+have nFS := subset_trans sSG nFG; have nilF: nilpotent F := Fitting_nil _.
+have cGGq: abelian (G / F).
+  by rewrite sub_der1_abelian ?rank2_der1_sub_Fitting.
+have nsFS_G: F <*> S <| G.
+  rewrite -(quotientGK nsFG) norm_mulgenEr // -(quotientK nFS) cosetpre_normal.
+  by rewrite -sub_abelian_normal ?quotientS.
+have sylSF: p.-Sylow(F <*> S) S.
+  by rewrite (pHall_subl _ _ sylS) ?mulgen_subr // mulgen_subG sFG.
+have defG: G :=: F * 'N_G(S).
+  rewrite -{1}(Frattini_arg nsFS_G sylSF) /= norm_mulgenEr // -mulgA.
+  by congr (_ * _); rewrite mulSGid // subsetI sSG normG.
+rewrite /normal (subset_trans (char_sub charT)) //= defG mulG_subG /= -/F.
+rewrite setIC andbC subIset /=; last by rewrite (char_norm_trans charT).
+case/dprodP: (nilpotent_pcoreC p nilF); rewrite /= -/F => _ defF cFpFp' _.
+have defFp: 'O_p(F) = F :&: S.
+  rewrite -{2}defF -group_modl ?coprime_TIg ?mulg1 //.
+    by rewrite coprime_sym (pnat_coprime pS (pcore_pgroup _ _)).
+  by rewrite p_core_Fitting pcore_sub_Hall.
+rewrite -defF mulG_subG /= -/F defFp setIC subIset ?(char_norm charT) //=.
+rewrite cents_norm // centsC (subset_trans _ cFpFp') // defFp subsetI.
+rewrite (char_sub charT) (subset_trans (subset_trans sTS' (dergS 1 sSG))) //.
+exact: rank2_der1_sub_Fitting.
+Qed.
 
 (* This is the first statement of B & G, Lemma 4.20(c) *)
 Lemma p_rank_2_min_p'core_Hall : forall gT (G : {group gT}),
     odd #|G| -> solvable G -> 'r('F(G)) <= 2 ->
-  let p := pdiv #|G| in p.-Hall(G) 'O_p^'(G).
+  let p := pdiv #|G| in (p^'.-Hall(G) 'O_p^'(G) : Prop).
 Proof.
-Admitted.
+move=> gT G oddG solG; set F := 'F(G) => Fle2 p.
+have nsFG: F <| G := Fitting_normal G; have [sFG nFG] := andP nsFG.
+have [H] := inv_quotientN nsFG  (pcore_normal p^' _).
+rewrite /= -/F => defH sFH nsHG; have [sHG nHG] := andP nsHG.
+have [P sylP] := Sylow_exists p H; have [sPH pP _] := and3P sylP.
+have sPF: P \subset F.
+  rewrite -quotient_sub1 ?(subset_trans (subset_trans sPH sHG)) //.
+  rewrite -(setIidPl (quotientS _ sPH)) -defH coprime_TIg //.
+  by rewrite coprime_morphl // (pnat_coprime pP (pcore_pgroup _ _)).
+have nilGq: nilpotent (G / F).
+  by rewrite abelian_nil ?sub_der1_abelian ?rank2_der1_sub_Fitting.
+have pGq: p.-group (G / H).
+  rewrite /pgroup -(isog_card (third_isog sFH nsFG nsHG)) /= -/F -/(pgroup _ _).
+  case/dprodP: (nilpotent_pcoreC p nilGq) => /= _ <- _ _.
+  by rewrite defH quotient_mulg quotient_pgroup ?pcore_pgroup.
+rewrite pHallE pcore_sub -(LaGrange sHG) partn_mul // -card_quotient //=.
+have hallHp': p^'.-Hall(H) 'O_p^'(H).
+  case p'H: (p^'.-group H).
+    by rewrite pHallE /= pcore_pgroup_id ?subxx //= part_pnat_id.
+  have def_p: p = pdiv #|H|.
+    have [p_pr pH]: prime p /\ p %| #|H|.
+      apply/andP; apply: contraFT p'H => p'H; apply/pgroupP=> q q_pr qH.
+      by apply: contra p'H; move/eqnP <-; rewrite q_pr qH.
+    apply/eqP; rewrite eqn_leq ?pdiv_min_dvd ?prime_gt1 //.
+      rewrite pdiv_prime // cardG_gt1.
+      by case: eqP p'H => // ->; rewrite pgroup1.
+    exact: dvdn_trans (pdiv_dvd _) (cardSg (normal_sub nsHG)).
+  rewrite def_p rank2_pdiv_complement ?(oddSg sHG) ?(solvableS sHG) -?def_p //.
+  rewrite (p_rank_Sylow sylP) (leq_trans (p_rank_le_rank _ _)) //.
+  exact: leq_trans (rankS sPF) Fle2.
+rewrite -(card_Hall hallHp') part_p'nat ?pnatNK ?muln1 // subset_leqif_card.
+  by rewrite pcore_max ?pcore_pgroup ?(char_normal_trans (pcore_char _ _)).
+rewrite pcore_max ?pcore_pgroup // (normalS _ _ (pcore_normal _ _)) //.
+rewrite -quotient_sub1 ?(subset_trans (pcore_sub _ _)) //.
+rewrite -(setIidPr (quotientS _ (pcore_sub _ _))) coprime_TIg //.
+by rewrite coprime_morphr // (pnat_coprime pGq (pcore_pgroup _ _)).
+Qed.
 
 (* This is a consequence of B & G, Lemma 4.20(c) *)
-Lemma p_rank_2_max_pcore_Sylow : forall gT (G : {group gT}),
+Lemma rank2_pcore_geq_Hall : forall gT m (G : {group gT}),
+    odd #|G| -> solvable G -> 'r('F(G)) <= 2 ->
+  let pi := [pred p | p >= m] in (pi.-Hall(G) 'O_pi(G) : Prop).
+Proof.
+move=> gT m G; elim: {G}_.+1 {-2}G (ltnSn #|G|) => // n IHn G.
+rewrite ltnS => leGn oddG solG Fle2 pi; pose p := pdiv #|G|.
+case: (eqVneq 'O_pi(G) G) => [defGpi | not_pi_G].
+  by rewrite /pHall pcore_sub pcore_pgroup defGpi indexgg.
+have pi'_p: (p \in pi^').
+  apply: contra not_pi_G => pi_p; rewrite eqEsubset pcore_sub pcore_max //.
+  apply/pgroupP=> q q_pr qG; apply: leq_trans pi_p _.
+  by rewrite pdiv_min_dvd ?prime_gt1.
+pose Gp' := 'O_p^'(G); have sGp'G: Gp' \subset G := pcore_sub _ _.
+have hallGp'pi: pi.-Hall(Gp') 'O_pi(Gp').
+  apply: IHn; rewrite ?(oddSg sGp'G) ?(solvableS sGp'G) //; last first.
+    by apply: leq_trans (rankS _) Fle2; rewrite /= Fitting_pcore pcore_sub.
+  apply: leq_trans (proper_card _) leGn.
+  rewrite properEneq pcore_sub andbT; apply/eqP=> defG.
+  suff: p \in p^' by case/eqnP.
+  have p'G: p^'.-group G by rewrite -defG pcore_pgroup.
+  rewrite (pgroupP p'G) ?pdiv_dvd ?pdiv_prime // cardG_gt1.
+  by apply: contra not_pi_G; move/eqP->; rewrite (trivgP (pcore_sub _ _)).
+have defGp'pi: 'O_pi(Gp') = 'O_pi(G).
+  rewrite -pcoreI; apply: eq_pcore => q; apply: andb_idr.
+  by apply: contraL => /=; move/eqnP->.
+have hallGp': p^'.-Hall(G) Gp' by rewrite p_rank_2_min_p'core_Hall.
+rewrite pHallE pcore_sub /= -defGp'pi (card_Hall hallGp'pi) (card_Hall hallGp').
+by rewrite partn_part // => q; apply: contraL => /=; move/eqnP->.
+Qed.
+
+(* This is another consequence of B & G, Lemma 4.20(c) *)
+Lemma rank2_pcore_max_Sylow : forall gT (G : {group gT}),
     odd #|G| -> solvable G -> 'r('F(G)) <= 2 ->
   let p := max_pdiv #|G| in (p.-Sylow(G) 'O_p(G) : Prop).
 Proof.
-Admitted.
+move=> gT G oddG solG Fle2 p; pose pi := [pred q | p <= q].
+rewrite pHallE pcore_sub eqn_leq -{1}(part_pnat_id (pcore_pgroup _ _)).
+rewrite dvdn_leq ?partn_dvd ?cardSg ?pcore_sub // /=.
+rewrite (@eq_in_partn _ pi) => [|q piGq]; last first.
+  by rewrite !inE eqn_leq; apply: andb_idl => le_q_p; exact: max_pdiv_max.
+rewrite -(card_Hall (rank2_pcore_geq_Hall p oddG solG Fle2)) -/pi.
+rewrite subset_leq_card // pcore_max ?pcore_normal //.
+apply: sub_in_pnat (pcore_pgroup _ _) => q; move/(piSg (pcore_sub _ _)) => piGq.
+by rewrite !inE eqn_leq max_pdiv_max.
+Qed.
 
 End Section4.

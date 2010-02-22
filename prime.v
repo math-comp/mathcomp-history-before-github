@@ -985,7 +985,7 @@ Proof.
 by move=> pi m [|n]; rewrite orbC // /pnat expn_gt0 orbC primes_exp.
 Qed.
 
-Lemma pnat_part : forall pi n, pi.-nat n`_pi.
+Lemma part_pnat : forall pi n, pi.-nat n`_pi.
 Proof.
 move=> pi n; rewrite /pnat primes_part part_gt0.
 by apply/allP=> p; rewrite mem_filter; case/andP.
@@ -1038,14 +1038,14 @@ apply: contra; exact: allP.
 Qed.
 
 Lemma coprime_partC : forall pi m n, coprime m`_pi n`_pi^'.
-Proof. move=> pi m n; apply: (@pnat_coprime pi); exact: pnat_part. Qed.
+Proof. move=> pi m n; apply: (@pnat_coprime pi); exact: part_pnat. Qed.
 
 Lemma pnat_1 : forall pi n, pi.-nat n -> pi^'.-nat n -> n = 1.
 Proof.
 by move=> pi n pi_n pi'_n; rewrite -(eqnP (pnat_coprime pi_n pi'_n)) gcdnn.
 Qed.
 
-Lemma part_pnat : forall pi n, pi.-nat n -> n`_pi = n.
+Lemma part_pnat_id : forall pi n, pi.-nat n -> n`_pi = n.
 Proof.
 move=> pi n; case/andP=> n_gt0 pi_n.
 rewrite -{2}(partnT n_gt0) /partn big_mkcond; apply: eq_bigr=> p _.
@@ -1063,7 +1063,7 @@ Qed.
 Lemma partn_eq1 : forall pi n, n > 0 -> (n`_pi == 1) = pi^'.-nat n.
 Proof.
 move=> pi n n_gt0; apply/eqP/idP=> [pi_n_1|]; last exact: part_p'nat.
-by rewrite -(partnC pi n_gt0) pi_n_1 mul1n pnat_part.
+by rewrite -(partnC pi n_gt0) pi_n_1 mul1n part_pnat.
 Qed.
 
 Lemma pnatP : forall pi n,
@@ -1082,7 +1082,7 @@ by apply/pnatP=> // q q_pr; move/(pnatP _ n_gt0 p_n _ q_pr); move/eqnP->.
 Qed.
 
 Lemma p_natP : forall p n : nat, p.-nat n -> {k | n = p ^ k}.
-Proof. by move=> p n p_n; exists (logn p n); rewrite -p_part part_pnat. Qed.
+Proof. by move=> p n p_n; exists (logn p n); rewrite -p_part part_pnat_id. Qed.
 
 Lemma partn_part : forall pi1 pi2 n,
   {subset pi2 <= pi1} -> n`_pi1`_pi2 = n`_pi2.
@@ -1091,15 +1091,15 @@ move=> pi1 pi2 n pi21.
 case: (posnP n) => [->|n_gt0]; first by rewrite !partn0 partn1.
 rewrite -{2}(partnC pi1 n_gt0) partn_mul //.
 suff: pi2^'.-nat n`_pi1^' by move/part_p'nat->; rewrite muln1.
-apply: sub_in_pnat (pnat_part _ _) => q _; apply: contra; exact: pi21.
+apply: sub_in_pnat (part_pnat _ _) => q _; apply: contra; exact: pi21.
 Qed.
 
 Lemma partnI : forall pi1 pi2 n, n`_[predI pi1 & pi2] = n`_pi1`_pi2.
 Proof.
 move=> pi1 pi2 n; rewrite -(@partnC [predI pi1 & pi2] _`_pi2) //.
 symmetry; rewrite 2?partn_part; try by move=> p; case/andP.
-rewrite mulnC part_p'nat ?mul1n // pnatNK pnatI pnat_part andbT.
-exact: pnat_dvd (dvdn_part _ _) (pnat_part _ _).
+rewrite mulnC part_p'nat ?mul1n // pnatNK pnatI part_pnat andbT.
+exact: pnat_dvd (dvdn_part _ _) (part_pnat _ _).
 Qed.
 
 Lemma odd_2'nat : forall n, odd n = 2^'.-nat n.

@@ -934,11 +934,11 @@ move=> p x p_x; apply/eqP; rewrite (OhmE p_x) eqEsubset cycle_subG mem_gen.
   have def_y: <[y]> = <[x ^+ (#[x] %/ #[y])]>.
     apply: congr_group; apply/set1P.
     by rewrite -cycle_sub_group ?cardSg ?inE ?cycle_subG ?x_y /=.
-  rewrite -cycle_subG def_y cycle_subG -{1}(part_pnat p_x) p_part.
+  rewrite -cycle_subG def_y cycle_subG -{1}(part_pnat_id p_x) p_part.
   rewrite -{1}(subnK (ltnW lt_n_x)) expn_add -divn_mulA ?order_dvdn //.
   by rewrite expgn_mul mem_cycle.
 rewrite inE mem_cycle -expgn_mul -expn_add addnC add_sub_maxn -order_dvdn.
-by rewrite -{1}(part_pnat p_x) p_part dvdn_exp2l // leq_maxr leqnn orbT.
+by rewrite -{1}(part_pnat_id p_x) p_part dvdn_exp2l // leq_maxr leqnn orbT.
 Qed.
 
 Lemma Ohm_dprod : forall A B G,
@@ -1520,7 +1520,7 @@ case p_x: (p_group <[x]>); last first.
   by apply: contra (negbT p'x); move/eqP <-; exact: p_elt_constt.
 case/p_groupP: p_x => p p_pr p_x.
 rewrite (Ohm_p_cycle n p_x) (Mho_p_cycle n p_x) -!orderE.
-set k := logn p #[x]; have ox: #[x] = (p ^ k)%N by rewrite -p_part part_pnat.
+set k := logn p #[x]; have ox: #[x] = (p ^ k)%N by rewrite -p_part part_pnat_id.
 case: (leqP k n) => [le_k_n | lt_n_k].
   rewrite -(subnKC le_k_n) -subn_sub subnn expg1 expn_add expgn_mul -ox.
   by rewrite expg_order exp1gn order1 muln1.
@@ -1615,7 +1615,7 @@ rewrite -expnS dvdn_leq // ?gcdn_gt0 ?order_gt0 // dvdn_gcd.
 rewrite pfactor_dvdn // dvdn_exp2l.
   by rewrite -{2}[logn p _]subn0 ltn_sub2l // lognE p_pr order_gt0 p_dv_x.
 rewrite ltn_sub2r // ltnNge -(dvdn_Pexp2l _ _ (prime_gt1 p_pr)) -!p_part.
-by rewrite !part_pnat // (pnat_dvd (exponent_dvdn G)).
+by rewrite !part_pnat_id // (pnat_dvd (exponent_dvdn G)).
 Qed.
 
 Lemma abelem_homocyclic : forall p G, p.-abelem G -> homocyclic G.
