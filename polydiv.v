@@ -490,6 +490,73 @@ have:= (egcdpPW p q)=> [[u [v]]]; rewrite eqp_sym=> e.
 by rewrite (eqp_dvdr _ e) dvdp_addl dvdp_mull.
 Qed.
 
+Lemma root0 : forall x, root 0 x.
+Proof. by move=> x; rewrite /root ?hornerC. Qed.
+
+Lemma root1n : forall x, ~~root 1 x.
+Proof. by move=> x; rewrite /root ?hornerC oner_eq0. Qed.
+
+Lemma root_biggcd : forall x (ps : seq {poly R}),
+  root (\big[@gcdp _/0]_(p<-ps)p) x = all (fun p => root p x) ps.
+Proof.
+move=> x; elim; first by rewrite big_nil root0.
+by move=> p ps ihp; rewrite big_cons /= root_gcd ihp.
+Qed.
+
+Lemma root_bigmul : forall x (ps : seq {poly R}),
+  ~~root (\big[@mul _/1]_(p<-ps)p) x = all (fun p => ~~ root p x) ps.
+Proof.
+move=> x; elim; first by rewrite big_nil root1n.
+by move=> p ps ihp; rewrite big_cons /= root_mul negb_or ihp.
+Qed.
+
 End ExtraPolynomialIdomain.
+
+Section ExtraPolynomialFields.
+
+Variable F : ClosedField.type.
+
+
+Lemma root_size_neq1 : forall p : {poly F}, 
+  reflect (exists x, root p x) (size p != 1%N).
+Proof.
+move=> p; case p0: (p == 0).
+  rewrite (eqP p0) /= /root size_poly0 /=.
+  by constructor; exists 0; rewrite horner0.
+apply: (iffP idP); last first.
+  case=> x; rewrite root_factor_theorem.
+  apply: contraL; rewrite size1_dvdp1; move/eqp_dvdr->. 
+  rewrite -eqp1_dvd1 -size1_dvdp1 size_addl size_polyX //.
+  by rewrite size_opp size_polyC; case: (x != 0).
+move/negPf => sp.
+case: (ltnP (size p).-1 1)=> [|s2].
+  by rewrite prednK ?lt0n ?leqn1 ?size_poly_eq0 p0 // sp.
+have := solve_monicpoly (fun n => -p`_n*(lead_coef p)^-1) s2.
+case=> x; exists x.
+have : 0 < size p by apply: leq_trans s2 _; apply: leq_pred.
+rewrite /root horner_coef; move/prednK<-; rewrite big_ord_recr /= H.
+apply/eqP; rewrite big_distrr -big_split big1 //= => i _.
+rewrite mulrA [ _ * (_ / _)]mulrCA mulfV; last by rewrite lead_coef_eq0 p0.
+by rewrite mulr1 mulNr addrN.
+Qed.
+
+
+Lemma ex_px_neq0 : forall p : {poly F}, p != 0 -> exists x, p.[x] != 0.
+Proof.
+move=> p p0.
+case sp1: (size p == 1%N).
+  by move/size1_is_polyC: sp1=> [x [x0 ->]]; exists x; rewrite hornerC.
+have: (size (1 + p) != 1%N).
+  rewrite addrC size_addl ?sp1 //. 
+  move/negPf: p0 => p0f.
+  by rewrite size_poly1 ltnNge leqn1 size_poly_eq0 p0f sp1.
+move/root_size_neq1 => [x rx]; exists x.
+move: rx; rewrite /root horner_add hornerC.
+rewrite addrC -(inj_eq (@addIr _ (-1))) addrK sub0r.
+move/eqP->; rewrite eq_sym -(inj_eq (@addrI _ 1)).
+by rewrite addr0 subrr oner_eq0.
+Qed.
+
+End ExtraPolynomialFields.
 
 
