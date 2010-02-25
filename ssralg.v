@@ -2346,7 +2346,7 @@ Definition axiom (R : Ring.type) :=
    exists x : R, x ^+ n = \sum_(i < n) P i * (x ^+ i).
 
 Record class_of (F : Type) : Type :=
-  Class {base :> DecidableField.class_of F; _ : axiom (Ring.Pack base F)}.
+  Class {base :> Field.class_of F; _ : axiom (Ring.Pack base F)}.
 
 Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
@@ -2368,7 +2368,6 @@ Coercion unitRingType cT := UnitRing.Pack (class cT) cT.
 Coercion comUnitRingType cT := ComUnitRing.Pack (class cT) cT.
 Coercion idomainType cT := IntegralDomain.Pack (class cT) cT.
 Coercion fieldType cT := Field.Pack (class cT) cT.
-Coercion decFieldType cT := DecidableField.Pack (class cT) cT.
 
 End ClosedField.
 
@@ -2381,7 +2380,6 @@ Canonical Structure ClosedField.comRingType.
 Canonical Structure ClosedField.comUnitRingType.
 Canonical Structure ClosedField.idomainType.
 Canonical Structure ClosedField.fieldType.
-Canonical Structure ClosedField.decFieldType.
 
 Bind Scope ring_scope with ClosedField.sort.
 

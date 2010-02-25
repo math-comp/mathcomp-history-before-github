@@ -727,4 +727,4 @@ Definition closed_fields_QEMixin :=
 Canonical Structure closed_fields_qe := 
   QE.Pack (QE.Class closed_fields_QEMixin) F.
 
-End ClosedFieldTheory.
+End ClosedFieldQE.
