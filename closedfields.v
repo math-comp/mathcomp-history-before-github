@@ -63,7 +63,9 @@ End TermEqType.
 
 Section ClosedFieldQE.
 
-Variable F : ClosedField.type.
+Variable F : Field.type.
+
+Variable axiom : ClosedField.axiom F.
 
 Notation fF := (formula  F).
 Notation qf f := (qf_form f && rformula f).
@@ -698,14 +700,14 @@ case g0: (\big[(@gcdp F)/0%:P]_(j <- map (eval_poly e \o abstrX i) ps) j == 0).
     case=> _; move/holds_conjn=> hc; move/hc:rqs.
     by rewrite -root_bigmul //= (eqP m0) root0.
   constructor; move/negP:m0; move/negP=>m0.
-  case: (ex_px_neq0 m0)=> x {m0}.
+  case: (ex_px_neq0 axiom m0)=> x {m0}.
   rewrite abstrX_bigmul eval_bigmul -bigmap_id.
   rewrite -[_ == 0]/(root _ x).
   rewrite root_bigmul=> m0.
   exists x; do 2?constructor=> //.
     by apply/holds_conj; rewrite //= -root_biggcd (eqP g0) root0.
   by apply/holds_conjn.
-apply:(iffP (root_size_neq1 _)); case=> x Px; exists x; move:Px => //=.
+apply:(iffP (root_size_neq1 axiom _)); case=> x Px; exists x; move:Px => //=.
   rewrite -root_gdco ?g0 // root_biggcd.
   rewrite abstrX_bigmul eval_bigmul -bigmap_id root_bigmul.
   case/andP=> psr qsr.
@@ -724,7 +726,6 @@ Proof. by move=> i bc /= rbc; apply: ex_elim_qf. Qed.
 
 Definition closed_fields_QEMixin := 
   QE.Mixin wf_ex_elim holds_ex_elim.
-Canonical Structure closed_fields_qe := 
-  QE.Pack (QE.Class closed_fields_QEMixin) F.
 
 End ClosedFieldQE.
+

@@ -514,7 +514,10 @@ End ExtraPolynomialIdomain.
 
 Section ExtraPolynomialFields.
 
-Variable F : ClosedField.type.
+Variable F : Field.type.
+
+Variable axiom : ClosedField.axiom F.
+
 
 
 Lemma root_size_neq1 : forall p : {poly F}, 
@@ -531,7 +534,7 @@ apply: (iffP idP); last first.
 move/negPf => sp.
 case: (ltnP (size p).-1 1)=> [|s2].
   by rewrite prednK ?lt0n ?leqn1 ?size_poly_eq0 p0 // sp.
-have := solve_monicpoly (fun n => -p`_n*(lead_coef p)^-1) s2.
+have := axiom (fun n => -p`_n*(lead_coef p)^-1) s2.
 case=> x; exists x.
 have : 0 < size p by apply: leq_trans s2 _; apply: leq_pred.
 rewrite /root horner_coef; move/prednK<-; rewrite big_ord_recr /= H.
