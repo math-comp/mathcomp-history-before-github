@@ -2,7 +2,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq paths div.
 Require Import choice fintype finfun bigops ssralg finset prime binomial.
 Require Import groups zmodp morphisms automorphism normal perm action gprod.
 Require Import commutators cyclic center pgroups sylow nilpotent abelian. 
-Require Import maximal hall BGsection1.
+Require Import maximal hall gfunc BGsection1.
 
 (******************************************************************************)
 (*   This file covers B & G, section 4, i.e., the proof the a structure       *)
@@ -493,6 +493,126 @@ have cardUOS : logn p #|U / 'Ohm_1(S)| <= 1.
 rewrite (leq_trans (nil_class_pgroup pU)) // leq_maxl /= -[3]succnK. 
 rewrite -!subn1 leq_sub2r // -(LaGrange sOS_U) logn_mul // -card_quotient //.
 by apply: (leq_trans (leq_add cardOS cardUOS)).
+Qed.
+
+(* This is B & G, Lemma 4.9 *)
+Lemma pgroup_Ohm1_p2_normal_p2 : forall gT (R : {group gT}) p,
+  p.-groupR -> p > 3 -> logn p #|'Ohm_1(R)| <= 2 ->
+    forall (T : {group gT}), T <| R -> logn p #|'Ohm_1(R/T)| <= 2.
+Proof. 
+move=> gT R p pR pgt3; move: {2}_.+1 (ltnSn #|R|) => n.
+elim: n gT => // n IHn gT in R pR *; move=> cardRlt cardOR T nsTR.
+case Req1 : (R == 1%G); first by rewrite (eqP Req1) quotient1 Ohm1 cards1 logn1.
+case: (pgroup_pdiv pR (negbT Req1)) => primep _ _.
+case: (even_prime primep) => oddp; first by rewrite oddp in pgt3.
+have oddR := odd_pgroup_odd oddp pR; rewrite leqNgt; apply/negP => cardO1RTgt.
+have [U minU] : {U | [min U | (U <| R) && (2 < logn p #|'Ohm_1(R / U)|)]}.
+  by apply: ex_mingroup; exists T; rewrite nsTR.
+case/mingroupP: minU; case/andP => nsUR cardO1RUgt minU {T nsTR cardO1RTgt}.
+have [sUR nUR] := (andP nsUR); have pU := pgroupS sUR pR.   
+have neU1 : U != 1%G.
+  apply: contraL cardO1RUgt; move/eqP => ->.
+  have : 'Ohm_1(R) \isog 'Ohm_1(R / 1) by rewrite bgFunc_isog ?quotient1_isog.
+  move/isog_card <-; by rewrite -leqNgt.
+case (eqVneq (logn p #|U|) 1%N) => [cardU|] {T nsTR cardO1RTgt}; last first.
+  case: (pgroup_pdiv pU neU1) => _ _ [m cardU].
+  rewrite neq_ltn ltnS leqn0 {1}cardU pfactorK //= => cardUlt.
+  case/idPn: cardO1RUgt; rewrite -leqNgt.
+  case/trivgPn: (nil_meet_Z (pgroup_nil pR) nsUR neU1) => x.
+  case/setIP => /= Ux ZRx nx1; pose X := <[x]>%G.
+  have sXU : X \subset U by rewrite cycle_subG.
+  have pX := pgroupS sXU pU.
+  have nX1 : X != 1%G by apply/trivgPn; exists x; rewrite // cycle_id.
+  case: (pgroup_pdiv pX nX1) => _ _ [k cardX].
+  have cardXgt : 1 <= logn p #|X| by rewrite cardX pfactorK.
+  case: (normal_pgroup pX (normal_refl X) cardXgt) => Z [sZX nsZX cardZ].
+  have nZ1 : Z != 1%G by rewrite -cardG_gt1 cardZ prime_gt1.
+  have sZU := subset_trans sZX sXU; have sZR := subset_trans sZU sUR.
+  have nsZR : Z <| R.
+    rewrite /normal sZR /= cents_norm // centsC (subset_trans sZX) //.
+    by rewrite cycle_subG (subsetP _ _ ZRx) // subsetIr.
+  have neZU : ~ Z = U by move=> eZU; move: cardUlt; rewrite -eZU cardZ pfactorK.
+  have cardORZle : logn p #|'Ohm_1(R / Z) | <= 2.
+    rewrite leqNgt; apply/negP => cardORZgt; apply: neZU; apply: val_inj.
+    by apply: (minU Z); rewrite // nsZR.
+  have RUZUisog := third_isog sZU nsZR nsUR.
+  have : 'Ohm_1(R / Z / (U / Z)) \isog 'Ohm_1(R / U) by apply: bgFunc_isog.
+  have cardRZlt := ltn_quotient nZ1 sZR.
+  move/isog_card <-; apply: IHn; rewrite ?quotient_pgroup ?quotient_normal //. 
+  by rewrite (leq_trans cardRZlt).
+case eO1RU: (R / U == 'Ohm_1(R / U)); last first.
+  have nsO1RU_RU := (char_normal (Ohm_char 1 (R / U))).
+  case: (inv_quotientN nsUR nsO1RU_RU)=> K eO1RUKU sUK nsKR.
+  have sKR := (normal_sub nsKR); have nsUK := (normalS sUK sKR nsUR).
+  rewrite ltnNge in cardO1RUgt; move/negP: cardO1RUgt; apply.
+  rewrite -Ohm_id eO1RUKU; apply: IHn; rewrite ?(pgroupS sKR) //.
+    rewrite ltnS in cardRlt; rewrite (leq_trans _ cardRlt) // proper_card //.
+    by rewrite properEneq sKR (contra _ (negbT eO1RU)) //= eO1RUKU; move/eqP ->.
+  by apply: (leq_trans _ cardOR); apply: lognSg; apply: OhmS.
+have pRU := (quotient_pgroup U pR).
+have [cardRU expRU] : logn p #| R / U | = 3 /\ exponent (R / U) %| p.
+  case rankRU: ('r(R / U) > 2). 
+    move/idP: rankRU; rewrite ltnNge (rank2_SCN3_empty pRU) ?quotient_odd //.
+    case/set0Pn=> E; rewrite inE; case/andP=> SCN_E rankE.
+    have abelE := SCN_abelian SCN_E; have [nsERU _] := (SCN_P _ _ SCN_E).
+    have pE := (pgroupS (normal_sub nsERU) pRU); pose OE := 'Ohm_1(E).
+    have nsOE_RU := (char_normal_trans (Ohm_char 1 _) nsERU).
+    have pabelemOE : p.-abelem OE by apply: Ohm1_abelem.
+    have pOE := (pgroupS (Ohm_sub _ _) pE).
+    have cardOEgt : logn p #|'Ohm_1(E)| >= 3.
+      by rewrite -rank_abelem // rank_Ohm1.
+    case: (normal_pgroup pRU nsOE_RU cardOEgt) => E1 [sE1_OE nsE1_RU cardE1].
+    have pabelemE1 := (abelemS sE1_OE pabelemOE).
+    case: (inv_quotientN nsUR nsE1_RU)=> K eE1KU sUK nsKR.
+    have sKR := (normal_sub nsKR); have pK := pgroupS sKR pR.
+    have cardOKle : logn p #|'Ohm_1(K)| <= 2.
+      by rewrite (leq_trans _ cardOR) ?dvdn_leq_log ?cardG_gt0 ?cardSg // OhmS.
+    have cardOKUgt : logn p #|'Ohm_1(K / U)| > 2.
+      by rewrite -eE1KU (Ohm1_id pabelemE1) cardE1 pfactorK.
+    have nsKU := (normalS sUK sKR nsUR).
+    have <- : K = R.
+      apply/eqP; apply: contraLR cardOKUgt => neKR; rewrite -leqNgt.
+      have pKR : K \proper R by rewrite properEneq neKR.
+      by apply: IHn => //; apply: (leq_trans (proper_card pKR)); rewrite -ltnS.
+    rewrite -eE1KU; split; first by rewrite cardE1 pfactorK.
+    rewrite (dvdn_trans (exponentS sE1_OE)) // exponent_Ohm1_class2 //.
+    by rewrite (leq_trans _ (leqnSn _)) // nil_class1.
+  move: rankRU; move/negbT; rewrite -leqNgt=> rankRU.
+  have expRU : exponent (R / U) %| p.
+    by rewrite (eqP eO1RU) pgroup_rank_le2_Ohm1.
+  split => //; apply/eqP; rewrite eqn_leq pgroup_rank_le2_exponentp //=.
+  by rewrite (eqP eO1RU).
+have {cardRU} cardR : logn p #|R| = 4.
+  rewrite -(LaGrange sUR) logn_mul ?cardG_gt0 // cardU.
+  by rewrite -card_quotient ?(normal_norm nsUR) // cardRU. 
+have neRU : (R / U) != 1.
+  by apply/negP=> eRU1; rewrite (eqP eRU1) Ohm1 cards1 logn1 in cardO1RUgt. 
+have ncycR : ~~ cyclic R.
+  apply/negP=> cycR; move: cardO1RUgt; have cycRU := quotient_cyclic U cycR. 
+  by rewrite (Ohm1_cyclic_pgroup_prime cycRU pRU neRU) (pfactorK 1).
+case: (ex_odd_normal_abelem2 pR oddR ncycR)=> S nSR {ncycR}.
+case/pnElemP=> sSR pabelS cardS.
+have cardO1R : logn p #|'Ohm_1(R)| = 2.
+  apply/eqP; rewrite eqn_leq cardOR /= -cardS lognSg // -(Ohm1_id pabelS).
+  exact: OhmS.
+have pRO1R : p.-group (R / 'Ohm_1(R)) by rewrite quotient_pgroup.
+have nsO1R := char_normal (Ohm_char 1 R); have [sO1R nO1R] := (andP nsO1R).
+have nilclassR : nil_class R <= 3.
+  by rewrite (leq_trans (nil_class_pgroup pR)) // cardR.
+have sR'O1R : R^`(1) \subset 'Ohm_1(R).
+  rewrite der1_min // (p2group_abelian pRO1R) //.
+  by rewrite card_quotient // -divgS // logn_div ?cardSg // cardR cardO1R.
+case: (exponent_odd_nil23 pR oddR _) => [|_ morph_exp]; first by rewrite pgt3.
+pose expp := Morphism (morph_exp sR'O1R).
+have : logn p #|R / 'ker expp| <= 1.
+  rewrite (isog_card (first_isog expp)) -cardU lognSg //= morphimEsub //.
+  apply/subsetP=> x; case/imsetP=> g Rg ->{x} /=; apply: coset_idr.
+    by rewrite groupX ?(subsetP nUR).
+  by rewrite morphX ?(subsetP nUR) // (exponentP expRU) // mem_quotient.
+apply/negP; rewrite -ltnNge card_quotient ?ker_norm // -divgS ?subsetIl //.
+rewrite logn_div ?cardSg ?subsetIl // cardR -ltn_add_sub addn1 !ltnS. 
+rewrite -cardO1R lognSg //; apply/subsetP=> g /=; case/setIP=> Rg.
+by rewrite !inE /= (OhmE _ pR) => gp1; rewrite mem_gen // inE Rg.
 Qed.
 
 (* This is B & G, Theorem 4.18(b) *)
