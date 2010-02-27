@@ -495,31 +495,32 @@ Canonical Structure poly_ringType :=
 Canonical Structure polynomial_ringType :=
   Eval hnf in [ringType of polynomial R for poly_ringType].
 
-Definition smul_pol a p := \poly_(i < size p) (a * p`_i).
+Definition scale_pol a p := \poly_(i < size p) (a * p`_i).
 
-Lemma smul_polA: forall a b u,  smul_pol a (smul_pol b u) = smul_pol (a * b) u.
+Lemma scale_polA: forall a b p,  
+  scale_pol a (scale_pol b p) = scale_pol (a * b) p.
 Proof.
-move=> a p u; apply/polyP=> n.
-move: (@leq_coef_size (smul_pol p u) n); rewrite !coef_poly.
+move=> a b p; apply/polyP=> n.
+move: (@leq_coef_size (scale_pol b p) n); rewrite !coef_poly.
 case: ltP=> Hu; last by rewrite mulr0 if_same.
 case: ltP=> Hv; first by rewrite mulrA.
 case: eqP=> He; first by rewrite -mulrA He mulr0.
 by move/(_ is_true_true).
 Qed.
 
-Lemma smul_pol1: left_id 1 smul_pol.
+Lemma scale1_pol: left_id 1 scale_pol.
 Proof.
 by move=> p; apply/polyP=> n; rewrite !coef_poly mul1r -coef_poly coefK.
 Qed.
 
-Lemma smul_pol_addr: forall a, {morph smul_pol a : p q / p + q}.
+Lemma scale_pol_addr: forall a, {morph scale_pol a : p q / p + q}.
 Proof.
 move=> a p q; apply/polyP=> n.
-by rewrite coef_add ![(smul_pol _ _)`_n]coef_poly -{2 4 6}(mulr0 a) 
+by rewrite coef_add ![(scale_pol _ _)`_n]coef_poly -{2 4 6}(mulr0 a) 
            -!fun_if -mulr_addr -!coef_poly !coefK coef_add.
 Qed. 
 
-Lemma smul_pol_addl: forall p, {morph smul_pol^~ p : a b / a + b}.
+Lemma scale_pol_addl: forall p, {morph scale_pol^~ p : a b / a + b}.
 Proof.
 move=> p a b; apply/polyP=> n.
 by rewrite coef_add !coef_poly -{2}(mulr0 (a + b)) -{4}(mulr0 a) -{6}(mulr0 b)
@@ -527,7 +528,7 @@ by rewrite coef_add !coef_poly -{2}(mulr0 (a + b)) -{4}(mulr0 a) -{6}(mulr0 b)
 Qed.
 
 Definition poly_lmoduleMixin := 
-  LModuleMixin smul_polA smul_pol1 smul_pol_addr smul_pol_addl.
+  LModuleMixin scale_polA scale1_pol scale_pol_addr scale_pol_addl.
 Canonical Structure poly_lmoduleType :=
   Eval hnf in LModuleType R {poly R} poly_lmoduleMixin.
 Canonical Structure polynomial_lmoduleType :=
@@ -2070,4 +2071,4 @@ move: Hs; rewrite leq_eqVlt; case/orP=> Hc.
 by rewrite big_ord_recr -Hrec // nderivn_poly0 // horner0 !simp.
 Qed.
 
-End Deriv. 
+End Deriv.
