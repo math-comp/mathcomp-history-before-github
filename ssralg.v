@@ -380,6 +380,7 @@ Proof. by move=> I A x; rewrite big_const -iteropE. Qed.
 
 End ZmoduleTheory.
 
+
 Module Ring.
 
 Record mixin_of (R : Zmodule.type) : Type := Mixin {
@@ -2394,6 +2395,103 @@ Proof. by case: F => ? []. Qed.
 
 End ClosedFieldTheory.
 
+Module LModule.
+
+Structure mixin_of (R : Ring.type) (V : Zmodule.type) : Type := Mixin {
+ mul : R -> V -> V;
+ _ : forall a b u,  mul a (mul b u) = mul (a * b) u;
+ _ : left_id 1 mul;
+ _ : forall a, {morph mul a : u v / u + v};
+ _ : forall u, {morph mul^~ u : a b / a + b}
+}.
+
+Structure class_of (R : Ring.type) (V : Type) : Type := Class {
+  base :> Zmodule.class_of V;
+  ext :> mixin_of R (Zmodule.Pack base V)
+}.
+
+Structure type R : Type :=  Pack {sort :> Type; _ : class_of R sort; _ : Type}.
+Definition class R cT := let: Pack _ c _ :=  cT return class_of R cT in c.
+Definition clone R T (cT: type R) c of phant_id (class cT) c := @Pack R T c T.
+Definition pack R T b0 (m0 : mixin_of R (@Zmodule.Pack T b0 T)) :=
+  fun bT b & phant_id (Zmodule.class bT) b =>
+  fun    m & phant_id m0 m => Pack (@Class R T b m) T.
+
+Coercion eqType R cT := Equality.Pack (@class R cT) cT.
+Coercion choiceType R cT := Choice.Pack (@class R cT) cT.
+Coercion zmodType R cT := Zmodule.Pack (@class R cT) cT.
+
+End LModule.
+
+Canonical Structure LModule.eqType.
+Canonical Structure LModule.choiceType.
+Canonical Structure LModule.zmodType.
+Bind Scope ring_scope with LModule.sort.
+
+Definition smul R (M: LModule.type R): R -> M -> M := 
+  LModule.mul (LModule.class M).
+
+Local Notation "*:%R" := (@smul _ _) : ring_scope.
+Local Notation "a *: m" := (smul a m) (at level 40) : ring_scope.
+
+Section LModuleTheory.
+Variable (R : Ring.type) (M : LModule.type R).
+Implicit Type a b c : R.
+Implicit Type m : M.
+
+Lemma smulA : forall a b m, a *: (b *: m) = a * b *: m.
+Proof. by case: M => ? [] ? []. Qed.
+
+Lemma smul1 : @left_id R M 1 *:%R.
+Proof. by case: M => ? [] ? []. Qed.
+
+Lemma smul_addr : forall a, 
+  @morphism_2 M M (smul a) (fun x y => x + y) (fun x y => x + y).
+Proof. by case: M => ? [] ? []. Qed.
+
+Lemma smul_addl : forall m, 
+  @morphism_2 R M (fun x => smul x m) (fun x y => x + y) (fun x y => x + y).
+Proof. by case: M => ? [] ? []. Qed.
+
+Lemma smu0l : forall m, 0 *: m = 0.
+Proof. by move=> m; apply: (@addIr _ (1 *:m)); rewrite -smul_addl !add0r. Qed.
+
+Lemma smul0 : forall a, a *: 0 = 0 :> M.
+Proof. by move=> a; rewrite -{1}(smu0l 0) smulA mulr0 smu0l. Qed.
+
+Lemma smul_oppl : forall a m, - a *: m = - (a *: m).
+Proof.
+by move=> a m; apply: (@addIr _ (a *: m)); rewrite -smul_addl !addNr smu0l.
+Qed.
+
+Lemma smul_oppr : forall a m, a *: - m = - (a *: m).
+Proof.
+by move=> a v; apply: (@addIr _ (a *: v)); rewrite -smul_addr !addNr smul0.
+Qed.
+
+Lemma smul_nat : forall n m, n%:R *: m = m *+ n.
+Proof.
+move=> n v; elim: n => /= [|n ]; first by rewrite smu0l.
+by rewrite !mulrS smul_addl ?smul1 => ->.
+Qed.
+
+Lemma smul_distrl : forall I (r : seq I) P (F : I -> M) a,
+ \sum_(i <- r | P i) a *: F i = a *: \sum_(i <- r | P i) F i.
+Proof.
+move=> I r P F a.
+by rewrite (big_morph (fun v => a *: v) (smul_addr a) (smul0 a)).
+Qed.
+
+Lemma smul_distrr : forall I (r : seq I) P (F : I -> R) m,
+ \sum_(i <- r | P i) F i *: m = (\sum_(i <- r | P i) F i) *: m.
+Proof.
+move=> I r P F m; symmetry.
+by apply: (big_morph (fun x => x *: m) _ (smu0l m)) => x y; rewrite smul_addl.
+Qed.
+
+End LModuleTheory.
+
+
 Module Theory.
 
 Definition addrA := addrA.
@@ -2604,6 +2702,17 @@ Definition ringM_div := ringM_div.
 Definition fieldM_unit := fieldM_unit.
 Definition fieldM_inv := fieldM_inv.
 Definition fieldM_div := fieldM_div.
+Definition smulA := smulA.
+Definition smul1 := smul1.
+Definition smul_addr := smul_addr.
+Definition smul_addl := smul_addl.
+Definition smu0l := smu0l.
+Definition smul0 := smul0.
+Definition smul_oppl := smul_oppl.
+Definition smul_oppr := smul_oppr.
+Definition smul_nat := smul_nat.
+Definition smul_distrl := smul_distrl.
+Definition smul_distrr := smul_distrr.
 
 Implicit Arguments satP [F e f].
 Implicit Arguments solP [F n f].
@@ -2675,6 +2784,10 @@ Canonical Structure GRing.mul_comoid.
 Canonical Structure GRing.muloid.
 Canonical Structure GRing.addoid.
 
+Canonical Structure GRing.LModule.eqType.
+Canonical Structure GRing.LModule.choiceType.
+Canonical Structure GRing.LModule.zmodType.
+
 Bind Scope ring_scope with GRing.Zmodule.sort.
 Bind Scope ring_scope with GRing.Ring.sort.
 Bind Scope ring_scope with GRing.ComRing.sort.
@@ -2684,6 +2797,7 @@ Bind Scope ring_scope with GRing.IntegralDomain.sort.
 Bind Scope ring_scope with GRing.Field.sort.
 Bind Scope ring_scope with GRing.DecidableField.sort.
 Bind Scope ring_scope with GRing.ClosedField.sort.
+Bind Scope ring_scope with GRing.LModule.sort.
 
 Notation "0" := (GRing.zero _) : ring_scope.
 Notation "-%R" := (@GRing.opp _) : ring_scope.
@@ -2734,6 +2848,9 @@ Infix "==>" := GRing.Implies : term_scope.
 Notation "~ f" := (GRing.Not f) : term_scope.
 Notation "''exists' ''X_' i , f" := (GRing.Exists i f) : term_scope.
 Notation "''forall' ''X_' i , f" := (GRing.Forall i f) : term_scope.
+
+Notation "*:%R" := (@GRing.smul _ _) : ring_scope.
+Notation "a *: m" := (GRing.smul a m) (at level 40) : ring_scope.
 
 Notation "\sum_ ( <- r | P ) F" :=
   (\big[+%R/0%R]_(<- r | P%B) F%R) : ring_scope.
@@ -2865,3 +2982,11 @@ Notation "[ 'closedFieldType' 'of' T 'for' cT ]" :=
    format "[ 'closedFieldType'  'of'  T  'for'  cT ]") : form_scope.
 Notation "[ 'closedFieldType' 'of' T ]" := (@GRing.ClosedField.clone T _ _ id)
   (at level 0, format "[ 'closedFieldType'  'of'  T ]") : form_scope.
+
+Notation lmoduleType := GRing.LModule.type.
+Notation LModuleType R T m := (@GRing.LModule.pack R T _ m _ _ id _ id).
+Notation LModuleMixin := GRing.LModule.Mixin.
+Notation "[ 'lmoduleType' [ R ] 'of' T 'for' cT ]" := (@GRing.LModule.clone R T cT _ idfun)
+  (at level 0, format "[ 'lmoduleType' [ R ]  'of'  T  'for'  cT ]") : form_scope.
+Notation "[ 'lmoduleType' [ R ] 'of' T ]" := (@GRing.LModule.clone R T _ _ id)
+  (at level 0, format "[ 'lmoduleType' [ R ] 'of'  T ]") : form_scope.
