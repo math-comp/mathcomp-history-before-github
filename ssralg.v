@@ -2397,17 +2397,17 @@ End ClosedFieldTheory.
 
 Module LModule.
 
-Structure mixin_of (R : Ring.type) (V : Zmodule.type) : Type := Mixin {
- scalem : R -> V -> V;
- _ : forall a b u,  scalem a (scalem b u) = scalem (a * b) u;
+Structure mixin_of (R : Ring.type) (M : Zmodule.type) : Type := Mixin {
+ scalem : R -> M -> M;
+ _ : forall a b m,  scalem a (scalem b m) = scalem (a * b) m;
  _ : left_id 1 scalem;
- _ : forall a, {morph scalem a : u v / u + v};
- _ : forall u, {morph scalem^~ u : a b / a + b}
+ _ : forall a, {morph scalem a : m n / m + n};
+ _ : forall m, {morph scalem^~ m : a b / a + b}
 }.
 
-Structure class_of (R : Ring.type) (V : Type) : Type := Class {
-  base :> Zmodule.class_of V;
-  ext :> mixin_of R (Zmodule.Pack base V)
+Structure class_of (R : Ring.type) (M : Type) : Type := Class {
+  base :> Zmodule.class_of M;
+  ext :> mixin_of R (Zmodule.Pack base M)
 }.
 
 Structure type R : Type :=  Pack {sort :> Type; _ : class_of R sort; _ : Type}.
@@ -2489,15 +2489,13 @@ Qed.
 Lemma scalem_suml : forall m I r (P: pred I) F,
  (\sum_(i <- r | P i) F i) *: m = \sum_(i <- r | P i) F i *: m.
 Proof.
-move=> m; apply: (big_morph (fun x => x *: m) _ (scale0m m)).
-by apply: scalem_addl.
+move=> m; exact: (big_morph _ (scalem_addl m) (scale0m m)).
 Qed.
 
 Lemma scalem_sumr : forall a I r (P : pred I) (F: I -> M),
    a *: (\sum_(i <- r | P i) F i) = \sum_(i <- r | P i) a *: F i.
 Proof.
-move=> a; apply: (big_morph (scalem a) _ (scalem0 a)).
-by apply scalem_addr.
+move=> m; exact: (big_morph _ (scalem_addr m) (scalem0 m)).
 Qed.
 
 End LModuleTheory.
