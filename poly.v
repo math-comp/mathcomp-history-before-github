@@ -508,7 +508,7 @@ case: eqP=> He; first by rewrite -mulrA He mulr0.
 by move/(_ is_true_true).
 Qed.
 
-Lemma scale1_pol: left_id 1 scale_pol.
+Lemma scale_pol1: left_id 1 scale_pol.
 Proof.
 by move=> p; apply/polyP=> n; rewrite !coef_poly mul1r -coef_poly coefK.
 Qed.
@@ -528,7 +528,7 @@ by rewrite coef_add !coef_poly -{2}(mulr0 (a + b)) -{4}(mulr0 a) -{6}(mulr0 b)
 Qed.
 
 Definition poly_lmoduleMixin := 
-  LModuleMixin scale_polA scale1_pol scale_pol_addr scale_pol_addl.
+  LModuleMixin scale_polA scale_pol1 scale_pol_addr scale_pol_addl.
 Canonical Structure poly_lmoduleType :=
   Eval hnf in LModuleType R {poly R} poly_lmoduleMixin.
 Canonical Structure polynomial_lmoduleType :=

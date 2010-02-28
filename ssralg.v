@@ -2398,11 +2398,11 @@ End ClosedFieldTheory.
 Module LModule.
 
 Structure mixin_of (R : Ring.type) (M : Zmodule.type) : Type := Mixin {
- scalem : R -> M -> M;
- _ : forall a b m,  scalem a (scalem b m) = scalem (a * b) m;
- _ : left_id 1 scalem;
- _ : forall a, {morph scalem a : m n / m + n};
- _ : forall m, {morph scalem^~ m : a b / a + b}
+ scale : R -> M -> M;
+ _ : forall a b m,  scale a (scale b m) = scale (a * b) m;
+ _ : left_id 1 scale;
+ _ : forall a, {morph scale a : m n / m + n};
+ _ : forall m, {morph scale^~ m : a b / a + b}
 }.
 
 Structure class_of (R : Ring.type) (M : Type) : Type := Class {
@@ -2430,72 +2430,72 @@ Canonical Structure LModule.choiceType.
 Canonical Structure LModule.zmodType.
 Bind Scope ring_scope with LModule.sort.
 
-Definition scalem R (M: LModule.type R): R -> M -> M := 
-  LModule.scalem (LModule.class M).
+Definition scale R (M: LModule.type R): R -> M -> M := 
+  LModule.scale (LModule.class M).
 
-Local Notation "*:%R" := (@scalem _ _) : ring_scope.
-Local Notation "a *: m" := (scalem a m) (at level 40) : ring_scope.
+Local Notation "*:%R" := (@scale _ _) : ring_scope.
+Local Notation "a *: m" := (scale a m) (at level 40) : ring_scope.
 
 Section LModuleTheory.
 Variable (R : Ring.type) (M : LModule.type R).
 Implicit Type a b c : R.
 Implicit Type m : M.
 
-Lemma scalemA : forall a b m, a *: (b *: m) = a * b *: m.
+Lemma scaleA : forall a b m, a *: (b *: m) = a * b *: m.
 Proof. by case: M => ? [] ? []. Qed.
 
-Lemma scale1m : @left_id R M 1 *:%R.
+Lemma scale1 : @left_id R M 1 *:%R.
 Proof. by case: M => ? [] ? []. Qed.
 
-Lemma scalem_addr : forall a, 
-  @morphism_2 M M (scalem a) (fun x y => x + y) (fun x y => x + y).
+Lemma scale_addr : forall a, 
+  @morphism_2 M M (scale a) (fun x y => x + y) (fun x y => x + y).
 Proof. by case: M => ? [] ? []. Qed.
 
-Lemma scalem_addl : forall m, 
-  @morphism_2 R M (fun x => scalem x m) (fun x y => x + y) (fun x y => x + y).
+Lemma scale_addl : forall m, 
+  @morphism_2 R M (fun x => scale x m) (fun x y => x + y) (fun x y => x + y).
 Proof. by case: M => ? [] ? []. Qed.
 
-Lemma scale0m : forall m, 0 *: m = 0.
-Proof. by move=> m; apply: (@addIr _ (1 *:m)); rewrite -scalem_addl !add0r. Qed.
+Lemma scale0l : forall m, 0 *: m = 0.
+Proof. by move=> m; apply: (@addIr _ (1 *:m)); rewrite -scale_addl !add0r. Qed.
 
-Lemma scalem0 : forall a, a *: 0 = 0 :> M.
-Proof. by move=> a; rewrite -{1}(scale0m 0) scalemA mulr0 scale0m. Qed.
+Lemma scale0r : forall a, a *: 0 = 0 :> M.
+Proof. by move=> a; rewrite -{1}(scale0l 0) scaleA mulr0 scale0l. Qed.
 
-Lemma scaleNm : forall a m, - a *: m = - (a *: m).
+Lemma scaleNl : forall a m, - a *: m = - (a *: m).
 Proof.
-by move=> a m; apply: (@addIr _ (a *: m)); rewrite -scalem_addl !addNr scale0m.
+by move=> a m; apply: (@addIr _ (a *: m)); rewrite -scale_addl !addNr scale0l.
 Qed.
 
-Lemma scaleN1m : forall m, (- 1) *: m = - m.
-Proof. by move=> m; rewrite scaleNm scale1m. Qed.
+Lemma scaleN1l : forall m, (- 1) *: m = - m.
+Proof. by move=> m; rewrite scaleNl scale1. Qed.
 
-Lemma scalemN : forall a m, a *: (- m) = - (a *: m).
+Lemma scaleNr : forall a m, a *: (- m) = - (a *: m).
 Proof.
-by move=> a v; apply: (@addIr _ (a *: v)); rewrite -scalem_addr !addNr scalem0.
+by move=> a v; apply: (@addIr _ (a *: v)); rewrite -scale_addr !addNr scale0r.
 Qed.
 
-Lemma scalem_subl : forall a b m, (a - b) *: m = a *: m - b *: m.
-Proof. by move=> a b m; rewrite scalem_addl scaleNm. Qed.
+Lemma scale_subl : forall a b m, (a - b) *: m = a *: m - b *: m.
+Proof. by move=> a b m; rewrite scale_addl scaleNl. Qed.
 
-Lemma scalem_subr : forall a m1 m2, a *: (m1 - m2) = a *: m1 - a *: m2.
-Proof. by move=> a m1 m2; rewrite scalem_addr scalemN. Qed.
+Lemma scale_subr : forall a m1 m2, a *: (m1 - m2) = a *: m1 - a *: m2.
+Proof. by move=> a m1 m2; rewrite scale_addr scaleNr. Qed.
 
-Lemma scalem_nat : forall n m, n%:R *: m = m *+ n.
+Lemma scale_nat : forall n m, n%:R *: m = m *+ n.
 Proof.
-move=> n v; elim: n => /= [|n ]; first by rewrite scale0m.
-by rewrite !mulrS scalem_addl ?scale1m => ->.
+move=> n v; elim: n => /= [|n ]; first by rewrite scale0l.
+by rewrite !mulrS scale_addl ?scale1 => ->.
 Qed.
 
-Lemma scalem_suml : forall m I r (P: pred I) F,
+Lemma scale_suml : forall m I r (P: pred I) F,
  (\sum_(i <- r | P i) F i) *: m = \sum_(i <- r | P i) F i *: m.
 Proof.
-move=> m; exact: (big_morph _ (scalem_addl m) (scale0m m)).
+move=> m; exact: (big_morph _ (scale_addl m) (scale0l m)).
 Qed.
 
-Lemma scalem_sumr : forall a I r (P : pred I) (F: I -> M),
+Lemma scale_sumr : forall a I r (P : pred I) (F: I -> M),
    a *: (\sum_(i <- r | P i) F i) = \sum_(i <- r | P i) a *: F i.
 Proof.
-move=> m; exact: (big_morph _ (scalem_addr m) (scalem0 m)).
+move=> m; exact: (big_morph _ (scale_addr m) (scale0r m)).
 Qed.
 
 End LModuleTheory.
@@ -2711,20 +2711,20 @@ Definition ringM_div := ringM_div.
 Definition fieldM_unit := fieldM_unit.
 Definition fieldM_inv := fieldM_inv.
 Definition fieldM_div := fieldM_div.
-Definition scalemA := scalemA.
-Definition scale1m := scale1m.
-Definition scalem_addr := scalem_addr.
-Definition scalem_addl := scalem_addl.
-Definition scale0m := scale0m.
-Definition scalem0 := scalem0.
-Definition scaleNm := scaleNm.
-Definition scaleN1m := scaleN1m.
-Definition scalemN := scalemN.
-Definition scalem_subl := scalem_subl.
-Definition scalem_subr := scalem_subr.
-Definition scalem_nat := scalem_nat.
-Definition scalem_suml := scalem_suml.
-Definition scalem_sumr := scalem_sumr.
+Definition scaleA := scaleA.
+Definition scale1 := scale1.
+Definition scale_addr := scale_addr.
+Definition scale_addl := scale_addl.
+Definition scale0l := scale0l.
+Definition scale0r := scale0r.
+Definition scaleNl := scaleNl.
+Definition scaleN1l := scaleN1l.
+Definition scaleNr := scaleNr.
+Definition scale_subl := scale_subl.
+Definition scale_subr := scale_subr.
+Definition scale_nat := scale_nat.
+Definition scale_suml := scale_suml.
+Definition scale_sumr := scale_sumr.
 
 Implicit Arguments satP [F e f].
 Implicit Arguments solP [F n f].
@@ -2861,8 +2861,8 @@ Notation "~ f" := (GRing.Not f) : term_scope.
 Notation "''exists' ''X_' i , f" := (GRing.Exists i f) : term_scope.
 Notation "''forall' ''X_' i , f" := (GRing.Forall i f) : term_scope.
 
-Notation "*:%R" := (@GRing.scalem _ _) : ring_scope.
-Notation "a *: m" := (GRing.scalem a m) (at level 40) : ring_scope.
+Notation "*:%R" := (@GRing.scale _ _) : ring_scope.
+Notation "a *: m" := (GRing.scale a m) (at level 40) : ring_scope.
 
 Notation "\sum_ ( <- r | P ) F" :=
   (\big[+%R/0%R]_(<- r | P%B) F%R) : ring_scope.
