@@ -261,6 +261,71 @@ rewrite -card_quotient ?cZ //; split => //.
 by rewrite (pnElemE _ _ p_pr) inE cW eqxx inE abeW sWR.
 Qed.
 
+Definition narrow p G := 
+    ('E_p^3(G) == set0) ||
+    existsb R0 : {set gT}, existsb R1, 
+      [&& R0 \x R1 == 'C_G(R0), R0 \subset G, R1 \subset G, #|R0| == p & cyclic R1]. 
+
+Lemma narrow_maxp2Elem_set0 : forall p, p.-group R -> 2 < 'r(R) -> narrow p R -> 
+  'E_p^2(R) :&: 'E*_p(R) != set0.
+Proof.
+move=> p pR rR; case/orP. 
+  move/eqP; move/setP=> abs; rewrite (rank_pgroup pR) in rR. 
+  by case: (p_rank_geP rR) => x; rewrite (abs x) in_set0.
+case/existsP=> ?; case/existsP=>?; case/and5P; move/eqP; case/dprodP=>[[R0 R1 ->->]].
+move=> defCRR0 sR0CR1 TI_R10 sR0R sR1R cR0 cyR1. 
+have [|[p_pr _ [r cR]]] := pgroup_pdiv pR. 
+  by case: eqP rR => // ->; rewrite rank1.
+move: (p_pr); rewrite -(eqP cR0); move/prime_cyclic=> cyR0.
+have rCRR0 : 'r('C_R(R0)) < 'r(R).
+  rewrite (leq_ltn_trans _ rR) // (@rank_pgroup _ p) ?(pgroupS (subsetIl _ _) pR) //=.
+  have aR0R1 : abelian 'C_R(R0) by rewrite -defCRR0 abelianM ?cyclic_abelian.
+  case: (eqsVneq R1 1)=> [defR1|ntR1].
+    rewrite -defCRR0 defR1 mulGSid ?sub1G // p_rank_abelian ?cyclic_abelian //.
+    rewrite (Ohm1_cyclic_pgroup_prime cyR0 (pgroupS sR0R pR)) ?logn_prime ?eqxx //.
+    case: (eqVneq R0 1%G) cR0 (prime_gt1 p_pr) => // ->.
+    by rewrite /= set1gE cards1; move/eqP=> <-. 
+  have sOR1NR0 : 'Ohm_1(R1)\subset 'N(R0).
+    by rewrite (subset_trans (Ohm_sub 1 _)) // (subset_trans _ (cent_sub _)) // centsC.
+  (* factor out pabelem of C_R(R0) and its card being p^2 *)
+  rewrite p_rank_abelian // (leq_trans (@lognSg _ p _ (R0 <*> 'Ohm_1(R1)) _)) //=.
+    rewrite (OhmEabelian (pgroupS (subsetIl _ _) pR) (abelianS (Ohm_sub _ _ ) aR0R1)) -defCRR0.
+    apply/subsetP=> x; rewrite /= !inE expn1; case/andP; case/mulsgP=> x0 x1 xR0 xR1 -> xp1.
+    rewrite norm_mulgenEr // mem_mulg // mem_gen // inE xR1.
+    have ? : p.-elt x1 by exact: (mem_p_elt (pgroupS sR1R pR) xR1).
+    have ? : x0 \in 'C[x1].
+      by rewrite (subsetP _ _ xR0) // (subset_trans sR0CR1) -?cent_set1 ?centS ?sub1set.
+    case: (eqVneq x1 1) => [->|ntx1]; rewrite ?exp1gn ?eqxx //=.
+    have def_pdivx1 : pdiv #[x1] = p by rewrite (@pdiv_p_elt _ p _ _ ntx1) ?exp1gn ?mul1g.
+    move: xp1; rewrite expMgn; last by apply/cent1P.
+    case: (eqVneq x0 1) => [->|]; first by rewrite def_pdivx1 exp1gn mul1g.
+    move => ntx0; rewrite // -eq_invg_mul -expVgn; move/eqP=> xp0.
+    rewrite def_pdivx1 -xp0 -order_dvdn.
+    by case/cyclicP: cyR0 cR0 xR0 => b ->; move/eqP=> <-; move/groupVr=> x0b; apply: order_dvdG.
+  have TI_R0OR1 : R0 :&: 'Ohm_1(R1) = 1.
+    by apply/eqP; rewrite eqEsubset sub1G -TI_R10 setISS ?subxx ?Ohm_sub.
+  rewrite norm_mulgenEr // (TI_cardMg TI_R0OR1) (eqP cR0).
+  by rewrite (Ohm1_cyclic_pgroup_prime cyR1 (pgroupS sR1R pR)) ?(@pfactorK _ 2 p_pr).
+have foo : ~~ (R0 \subset Z).
+  admit.
+have bar : R0 :&: Z = 1.
+  admit.
+have baz : R0 \proper 'C_R(R0).
+  rewrite (proper_sub_trans _ (_:R0 * Z \subset _)) -?defCRR0 ?mulgS //.
+    admit.
+  admit.
+have ntR1 : R1 :!=: 1.
+  admit.
+pose E := 'Ohm_1('C_R(R0))%G.
+have defE : R0 \x 'Ohm_1(R1) = E.
+  admit.
+apply/set0Pn; exists E; rewrite in_setI.
+have pE : p.-group E by rewrite (pgroupS (subset_trans (Ohm_sub 1 _) _) pR) ?subsetIl.
+have pCRR0 : p.-group 'C_R(R0) by rewrite (pgroupS _ pR) ?subsetIl.
+rewrite (eqP cR0) (pnElemE _ _ p_pr) (in_pmaxElemE _ _ p_pr) inE eqEsubset /=.
+ admit (* {4}(OhmE 1 pCRR0). *).
+Qed.
+
 (*
 Lemma foo : forall p, odd #|R| -> p.-group(R) -> 2 < 'r(R) ->
   'E_p^2(R) :&: 'E*_p(R) != set0 ->
@@ -273,7 +338,6 @@ Lemma foo : forall p, odd #|R| -> p.-group(R) -> 2 < 'r(R) ->
               'C_R(S) = S \x 'C_T(S)]].
 Proof.
 move=> p oddR pR rRgt2 nR.
-
 
 Qed.
 *)
