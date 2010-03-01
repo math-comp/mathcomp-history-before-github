@@ -4230,7 +4230,7 @@ Section CardGL.
 Variable F : finFieldType.
 
 Lemma card_GL : forall n, n > 0 ->
-  #|'GL_n[F]| = (#|F| ^ bin n 2 * \prod_(1 <= i < n.+1) (#|F| ^ i - 1))%N.
+  #|'GL_n[F]| = (#|F| ^ 'C(n, 2) * \prod_(1 <= i < n.+1) (#|F| ^ i - 1))%N.
 Proof.
 case=> // n' _; set n := n'.+1; set p := #|F|.
 rewrite big_nat_rev big_add1 -triangular_sum expn_sum -big_split /=.
@@ -4264,7 +4264,7 @@ Qed.
 (* An alternate, somewhat more elementary proof, that does not rely on the *)
 (* row-space theory, but directly performs the LUP decomposition.          *)
 Lemma LUP_card_GL : forall n, n > 0 ->
-  #|'GL_n[F]| = (#|F| ^ bin n 2 * \prod_(1 <= i < n.+1) (#|F| ^ i - 1))%N.
+  #|'GL_n[F]| = (#|F| ^ 'C(n, 2) * \prod_(1 <= i < n.+1) (#|F| ^ i - 1))%N.
 Proof.
 case=> // n' _; set n := n'.+1; set p := #|F|.
 rewrite cardsT /= card_sub /GRing.unit /= big_add1 /= -triangular_sum -/n.
@@ -4321,7 +4321,7 @@ Qed.
 
 End CardGL.
 
-Lemma logn_card_GL_p : forall n p, prime p -> logn p #|'GL_n(p)| = bin n 2.
+Lemma logn_card_GL_p : forall n p, prime p -> logn p #|'GL_n(p)| = 'C(n, 2).
 Proof.
 move=> n p p_pr; have p_gt1 := prime_gt1 p_pr.
 have p_i_gt0: p ^ _ > 0 by move=> i; rewrite expn_gt0 ltnW.

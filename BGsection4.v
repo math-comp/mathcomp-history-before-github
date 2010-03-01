@@ -34,16 +34,16 @@ Lemma exponent_odd_nil23 : forall gT (R : {group gT}) p,
  /\ (R^`(1) \subset 'Ohm_1(R) -> {in R &, {morph expgn^~ p : x y / x * y}}).
 Proof.
 move=> gT R p pR oddR classR.
-pose f n := bin n 3; pose g n := (bin n 3).*2 + bin n 2.
-have fS : forall n, f n.+1 = bin n 2 + f n.
+pose f n := 'C(n, 3); pose g n := 'C(n, 3).*2 + 'C(n, 2).
+have fS : forall n, f n.+1 = 'C(n, 2) + f n.
   by move=> n; rewrite /f binS addnC. 
-have gS : forall n, g n.+1 = (bin n 2).*2 + bin n 1 + g n.
+have gS : forall n, g n.+1 = 'C(n, 2).*2 + 'C(n, 1) + g n.
   by move=> n; rewrite /g !binS double_add -!addnA; do 3!nat_congr.
 case: (eqsVneq R 1) => [-> |].
   rewrite Ohm1 exponent1 der_sub dvd1n; split=> // _ u v; do 2!move/set1P->.
   by rewrite !(mulg1, exp1gn).
 case/(pgroup_pdiv pR)=> p_pr p_dv_R _.
-have pdivbin2: p %| bin p 2.
+have pdivbin2: p %| 'C(p, 2).
   rewrite prime_dvd_bin //= ltn_neqAle prime_gt1 // andbT.
   by apply: contraL oddR; rewrite -dvdn2; move/eqP->.
 have pdivfp : p > 3 -> p %| f p by move=> pgt3; apply: prime_dvd_bin.
@@ -58,7 +58,7 @@ have p3_L21: p <= 3 -> {in R & &, forall u v w, [~ u, v, w] = 1}.
   apply/eqP; apply/commgP; red; rewrite (centerC Rw) //.
   by rewrite (subsetP classR) // mem_commg.
 have{fS gS} eq44 : {in R &, forall u v n (r := [~ v, u]),
-  (u * v) ^+ n = u ^+ n * v ^+ n * r ^+ bin n 2
+  (u * v) ^+ n = u ^+ n * v ^+ n * r ^+ 'C(n, 2)
                   * [~ r, u] ^+ f n * [~ r, v] ^+ g n}.
 - move=> u v Ru Rv; move=> n r; have Rr: r \in R by exact: groupR.
   have cRr: {in R &, forall x y, commute x [~ r, y]}.
@@ -70,7 +70,7 @@ have{fS gS} eq44 : {in R &, forall u v n (r := [~ v, u]),
   rewrite -commuteM; try by apply: commuteX; red; rewrite cRr ?groupM.
   rewrite -mulgA; do 2!rewrite (mulgA _ u) (commgC _ u) -2!mulgA.
   congr (_ * (_ * _)); rewrite (mulgA _ v).
-  have ->: [~ v ^+ n, u] = r ^+ n * [~ r, v] ^+ bin n 2. 
+  have ->: [~ v ^+ n, u] = r ^+ n * [~ r, v] ^+ 'C(n, 2). 
     elim: n => [|n IHn]; first by rewrite comm1g mulg1.
     rewrite !expgS commMgR -/r {}IHn commgX; last exact: cRr.
     rewrite binS bin1 addnC expgn_add -2!mulgA; congr (_ * _); rewrite 2!mulgA.

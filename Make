@@ -7,14 +7,14 @@ seq.v
 choice.v
 paths.v
 div.v
-prime.v
-binomial.v
 fintype.v
 connect.v
 tuple.v
 finfun.v
 bigops.v
+prime.v
 finset.v
+binomial.v
 groups.v
 morphisms.v
 gprod.v

@@ -638,7 +638,7 @@ by rewrite mulrA -mulN1r (commr_exp _ (commrN1 _)) exprSr !mulrA.
 Qed.
 
 Lemma exprn_addl_comm : forall x y n, comm x y ->
-  (x + y) ^+ n = \sum_(i < n.+1) (x ^+ (n - i) * y ^+ i) *+ bin n i.
+  (x + y) ^+ n = \sum_(i < n.+1) (x ^+ (n - i) * y ^+ i) *+ 'C(n, i).
 Proof.
 move=> x y n cxy.
 elim: n => [|n IHn]; rewrite big_ord_recl mulr1 ?big_ord0 ?addr0 //=.
@@ -650,7 +650,8 @@ by rewrite  subSS (commr_exp _ (commr_sym cxy)) -mulrA -exprS -mulrn_addr.
 Qed.
 
 Lemma exprn_subl_comm : forall x y n, comm x y ->
-  (x - y) ^+ n = \sum_(i < n.+1) ((-1) ^+ i * x ^+ (n - i) * y ^+ i) *+ bin n i.
+  (x - y) ^+ n =
+      \sum_(i < n.+1) ((-1) ^+ i * x ^+ (n - i) * y ^+ i) *+ 'C(n, i).
 Proof.
 move=> x y n cxy; rewrite exprn_addl_comm; last exact: commr_opp.
 by apply: eq_bigr => i _; congr (_ *+ _); rewrite -commr_sign -mulrA -exprN.
@@ -700,7 +701,7 @@ move=> q; apply/andP/eqP=> [[q_pr q0] | ->]; last by rewrite charf0.
 by apply/eqP; rewrite eq_sym -dvdn_prime2 // dvdn_charf.
 Qed.
 
-Lemma bin_lt_charf_0 : forall k, 0 < k < p -> (bin p k)%:R = 0 :> R.
+Lemma bin_lt_charf_0 : forall k, 0 < k < p -> 'C(p, k)%:R = 0 :> R.
 Proof. by move=> k lt0kp; apply/eqP; rewrite -dvdn_charf prime_dvd_bin. Qed.
 
 Local Notation "x ^f" := (Frobenius_aut charFp x).
@@ -883,11 +884,12 @@ by move=> n I r P F; rewrite (big_morph _ (exprn_mull n) (exp1rn _ n)).
 Qed.
 
 Lemma exprn_addl : forall x y n,
-  (x + y) ^+ n = \sum_(i < n.+1) (x ^+ (n - i) * y ^+ i) *+ bin n i.
+  (x + y) ^+ n = \sum_(i < n.+1) (x ^+ (n - i) * y ^+ i) *+ 'C(n, i).
 Proof. by move=> x y n; rewrite exprn_addl_comm //; exact: mulrC. Qed.
 
 Lemma exprn_subl : forall x y n,
-  (x - y) ^+ n = \sum_(i < n.+1) ((-1) ^+ i * x ^+ (n - i) * y ^+ i) *+ bin n i.
+  (x - y) ^+ n =
+     \sum_(i < n.+1) ((-1) ^+ i * x ^+ (n - i) * y ^+ i) *+ 'C(n, i).
 Proof. by move=> x y n; rewrite exprn_subl_comm //; exact: mulrC. Qed.
 
 Lemma subr_expn : forall x y n,

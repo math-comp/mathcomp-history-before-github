@@ -1871,51 +1871,50 @@ move=> [p Hp] i; rewrite coef_poly /=; case: leqP => //.
 by case: {Hp}p => [|c p] /=; try move/(nth_default 0)->; rewrite mul0rn.
 Qed.
 
-Lemma derivC c : c%:P^`() = 0.
+Lemma derivC : forall c, c%:P^`() = 0.
 Proof.
 by move=> c; apply/polyP=> [[|i]]; rewrite coef_deriv !coefC /= mul0rn.
 Qed.
 
-Lemma derivX: ('X)^`() = 1.
+Lemma derivX : ('X)^`() = 1.
 Proof.
 by apply/polyP=> [[|i]]; rewrite coef_deriv coef1 coefX ?mul0rn.
 Qed.
 
-Lemma derivXn n : 'X^n^`() = 'X^n.-1 *+ n.
+Lemma derivXn : forall n, 'X^n^`() = 'X^n.-1 *+ n.
 Proof.
 move=> n; apply/polyP=> i; rewrite coef_deriv coef_natmul !coef_Xn.
 case: n=> [|n] /=; first by  case: i => [|i]; rewrite mul0rn mulr0n.
 by rewrite eqSS; case: eqP; [move=>->| rewrite !mul0rn].
 Qed.
 
-Lemma deriv_add: {morph deriv : p q / p + q}.
+Lemma deriv_add : {morph deriv : p q / p + q}.
 Proof.
 by move=> p q; apply/polyP=> i; rewrite !(coef_deriv, coef_add) mulrn_addl.
 Qed.
 
-Lemma deriv_mul p q: (p * q)^`() = p^`() * q + p * q^`().
+Lemma deriv_mul : forall p q, (p * q)^`() = p^`() * q + p * q^`().
 Proof.
 move=> p q; apply/polyP=> i; rewrite !(coef_deriv, coef_add, coef_mul).
-have->: (\sum_(j < i.+2) p`_j * q`_(i.+1 - j)) *+ i.+1 =
-  (\sum_(j < i.+2) p`_j *+ j * q`_(i.+1 - j)) +
-  \sum_(j < i.+2) p`_j * (q`_(i.+1 - j) *+ (i.+1 - j)).
-  rewrite -sumr_muln -big_split /=. 
-  apply: eq_big => [] j => // _.
-  by rewrite mulrnAl mulrnAr -mulrn_addr subnKC // leq_ord.
-congr (_ + _).
+pose pq j a b :=  p`_j *+ a * (q`_(i.+1 - j) *+ b).
+transitivity (\sum_(j < i.+2) (pq j j 1%N + pq j 1%N (i.+1 - j)%N)).
+  rewrite -sumr_muln; apply: eq_bigr => j _.
+  by rewrite /pq !mulr1n mulrnAl mulrnAr -mulrn_addr subnKC // leq_ord.
+rewrite big_split /= {}/pq; congr (_ + _).
   rewrite big_ord_recl mulr0n mul0r add0r.
-  by apply: eq_big=> // j _; rewrite coef_deriv.
+  by apply: eq_bigr => j _; rewrite coef_deriv.
 rewrite big_ord_recr subnn mulr0n mulr0 /= addr0.
-by apply: eq_big=> // j _; rewrite coef_deriv // leq_subS // leq_ord.
+by apply: eq_bigr => j _; rewrite coef_deriv // leq_subS // leq_ord.
 Qed.
 
-Lemma deriv_mulr p n: (p *+ n)^`() = p^`() *+ n.
+Lemma deriv_mulr : forall p n, (p *+ n)^`() = p^`() *+ n.
 Proof.
-move=> p n; apply/polyP=>i.
+move=> p n; apply/polyP=> i.
 by rewrite coef_deriv !coef_natmul coef_deriv -!mulrnA mulnC.
 Qed.
 
-Lemma deriv_amulX p c: (p * 'X + c%:P)^`() = p + p^`() * 'X.
+
+Lemma deriv_amulX : forall p c, (p * 'X + c%:P)^`() = p + p^`() * 'X.
 Proof.
 by move=> p c; rewrite deriv_add derivC addr0 deriv_mul derivX mulr1 addrC.
 Qed.
@@ -1924,51 +1923,52 @@ Definition derivn p n := iter n deriv p.
 
 Notation "a ^`( n )" := (derivn a n).
 
-Lemma derivn0 p: p^`(0) = p.
+Lemma derivn0 : forall p, p^`(0) = p.
 Proof. done. Qed.
 
-Lemma derivn1 p: p^`(1) = p^`().
+Lemma derivn1 : forall p, p^`(1) = p^`().
 Proof. done. Qed.
 
-Lemma derivnS p n: p ^`(n.+1) = p^`(n)^`().
+Lemma derivnS : forall p n, p ^`(n.+1) = p^`(n)^`().
 Proof. done. Qed.
 
-Lemma derivSn p n: p ^`(n.+1) = p^`()^`(n).
+Lemma derivSn : forall p n, p ^`(n.+1) = p^`()^`(n).
 Proof. by move=> p n; rewrite /derivn iterSr. Qed.
 
-Lemma coef_derivn : forall n p i, p^`(n)`_i = p`_(n + i) *+ ninj (n + i) n.
+Lemma coef_derivn : forall n p i, p^`(n)`_i = p`_(n + i) *+ (n + i) ^_ n.
 Proof.
-elim=> [|n Hrec] p i; first by rewrite ninj0 mulr1n.
-by rewrite derivnS coef_deriv Hrec -mulrnA ninjS mulnC addSnnS addKn.
+elim=> [|n Hrec] p i; first by rewrite ffactn0 mulr1n.
+by rewrite derivnS coef_deriv Hrec -mulrnA ffactnSr addSnnS addKn.
 Qed.
 
-Lemma derivnC c n: c%:P ^`(n) = if (n == 0)%nat then c%:P else 0.
+Lemma derivnC : forall c n, c%:P ^`(n) = if n == 0%N then c%:P else 0.
 Proof.
 by move=> c; elim=> [|[|n] Hrec] //; rewrite derivnS Hrec -?polyC0 derivC.
 Qed.
 
-Lemma derivn_mulr p m n: (p *+ m)^`(n) = p^`(n) *+ m.
+Lemma derivn_mulr : forall p m n, (p *+ m)^`(n) = p^`(n) *+ m.
 Proof.
 move=> p m n; apply/polyP=>i.
 by rewrite coef_natmul !coef_derivn coef_natmul -!mulrnA mulnC.
 Qed.
 
-Lemma derivnXn m n : 'X^m^`(n) = 'X^(m - n) *+ ninj m n.
+Lemma derivnXn : forall m n, 'X^m^`(n) = 'X^(m - n) *+ m ^_ n.
 Proof.
 move=> m n; apply/polyP=>i; rewrite coef_derivn coef_natmul !coef_Xn.
-(do 2 case: eqP)=> Hi Hm; rewrite ?mul0rn -?Hm //; first by case Hi; rewrite -Hm addKn.
-case: (leqP n m)=> Hmn; last by rewrite ninj_small.
-by case Hm; rewrite Hi subnKC.
+case: (ltnP m n) => [lt_m_n | le_m_n].
+  by rewrite eqn_leq leqNgt ltn_addr // mul0rn ffact_small.
+by rewrite -{1 3}(subnKC le_m_n) eqn_addl; case: eqP => [->|]; rewrite ?mul0rn.
 Qed.
 
-Lemma derivn_amulX n p c: (p * 'X + c%:P)^`(n.+1) = p^`(n) *+ n.+1  + p^`(n.+1) * 'X.
+Lemma derivn_amulX : forall n p c,
+ (p * 'X + c%:P)^`(n.+1) = p^`(n) *+ n.+1  + p^`(n.+1) * 'X.
 Proof.
 elim=> [|n Hrec] p c; first by rewrite derivn0 !derivn1 deriv_amulX mulr1n.
 rewrite derivnS Hrec deriv_add deriv_mul derivX mulr1 deriv_mulr -!derivnS.
 by rewrite addrA addrAC (mulrS _ n.+1) (addrC p^`(n.+1)).
 Qed.
 
-Lemma derivn_poly0 p n: size p <= n -> p^`(n) = 0.
+Lemma derivn_poly0 : forall p n, size p <= n -> p^`(n) = 0.
 Proof.
 move=> p n Hpn; apply/polyP=>i; rewrite coef_derivn.
 rewrite nth_default; first by rewrite mul0rn coef0.
@@ -1977,82 +1977,81 @@ Qed.
 
 (* A normalising version of derivation to get the division by n! in Taylor *)
 
-Definition nderivn p n := \poly_(i < size p - n) (p`_(n+i) *+  bin (n+i) n).
+Definition nderivn p n := \poly_(i < size p - n) (p`_(n + i) *+  'C(n + i, n)).
 
 Notation "a ^`N( n )" := (nderivn a n).
 
-Lemma coef_nderivn : forall n p i, p^`N(n)`_i = p`_(n+i) *+  bin (n+i) n.
+Lemma coef_nderivn : forall n p i, p^`N(n)`_i = p`_(n + i) *+  'C(n + i, n).
 Proof.
 move=> n p i; rewrite coef_poly; case: leqP=> // Hp.
 by rewrite nth_default ?mul0rn // -leq_sub_add.
 Qed.
 
 (* Here is the division by n! *)
-Lemma nderivn_def : forall n p, p^`(n) = p^`N(n) *+ fact n.
+Lemma nderivn_def : forall n p, p^`(n) = p^`N(n) *+ n`!.
 Proof.
-move=> m n; apply/polyP=>p.
-by rewrite coef_natmul coef_nderivn coef_derivn -mulrnA mulnC bin_ninjn // leq_addr.
+move=> m n; apply/polyP=> p; rewrite coef_natmul coef_nderivn coef_derivn.
+by rewrite -mulrnA bin_ffact.
 Qed.
 
-Lemma nderivn0 p: p^`N(0) = p.
+Lemma nderivn0 : forall p, p^`N(0) = p.
 Proof. by move=> p; apply/polyP=>i; rewrite coef_nderivn bin0 mulr1n. Qed.
 
-Lemma nderivn1 p: p^`N(1) = p^`().
+Lemma nderivn1 : forall p, p^`N(1) = p^`().
 Proof. by move=> p; rewrite -derivn1 nderivn_def mulr1n. Qed.
 
-Lemma nderivnC c n: c%:P ^`N(n) = if (n == 0)%nat then c%:P else 0.
+Lemma nderivnC : forall c n, c%:P ^`N(n) = if n == 0%N then c%:P else 0.
 Proof.
 move=> c n; apply/polyP=>i.
 rewrite coef_nderivn; case: n=> [|n]; first by rewrite bin0 mulr1n.
 by rewrite coefC mul0rn coef0.
 Qed.
 
-Lemma nderivn_mulr p m n: (p *+ m)^`N(n) = p^`N(n) *+ m.
+Lemma nderivn_mulr : forall p m n, (p *+ m)^`N(n) = p^`N(n) *+ m.
 Proof.
 move=> p m n; apply/polyP=>i.
 by rewrite coef_natmul !coef_nderivn coef_natmul -!mulrnA mulnC.
 Qed.
 
-Lemma nderivnXn m n : 'X^m^`N(n) = 'X^(m - n) *+ bin m n.
+Lemma nderivnXn : forall m n, 'X^m^`N(n) = 'X^(m - n) *+ 'C(m, n).
 Proof.
 move=> m n; apply/polyP=>i; rewrite coef_nderivn coef_natmul !coef_Xn.
-(do 2 case: eqP)=> Hi Hm; rewrite ?mul0rn -?Hm //; first by case Hi; rewrite -Hm addKn.
-case: (leqP n m)=> Hmn; last by rewrite bin_small.
-by case Hm; rewrite Hi subnKC.
+case: (ltnP m n) => [lt_m_n | le_n_m].
+  by rewrite eqn_leq leqNgt ltn_addr // mul0rn bin_small.
+by rewrite -{1 3}(subnKC le_n_m) eqn_addl; case: eqP => [->|]; rewrite ?mul0rn.
 Qed.
 
-Lemma nderivn_amulX n p c: (p * 'X + c%:P)^`N(n.+1) = p^`N(n) + p^`N(n.+1) * 'X.
+Lemma nderivn_amulX : forall n p c,
+  (p * 'X + c%:P)^`N(n.+1) = p^`N(n) + p^`N(n.+1) * 'X.
 Proof.
-move=> n p c; apply/polyP=>i.
-rewrite coef_nderivn !coef_add !coef_mulX coefC !coef_nderivn.
-case:i=>[|i]; first by rewrite !addn0 !binn !mulr1n !simp.
-by rewrite addr0 !addnS -mulrn_addr binS [(bin _ _ +   _)%N]addnC.
+move=> n p c; apply/polyP=> i; rewrite coef_nderivn !coef_add !coef_mulX coefC.
+rewrite !addSn /= !coef_nderivn addr0 binS mulrn_addr addrC; congr (_ + _).
+by rewrite addSnnS; case: i; rewrite // addn0 bin_small.
 Qed.
 
-Lemma nderivn_poly0 p n: size p <= n -> p^`N(n) = 0.
+Lemma nderivn_poly0 : forall p n, size p <= n -> p^`N(n) = 0.
 Proof.
-move=> p n Hpn; apply/polyP=>i; rewrite coef_nderivn.
+move=> p n Hpn; apply/polyP=> i; rewrite coef_nderivn.
 rewrite nth_default; first by rewrite mul0rn coef0.
 by apply: leq_trans Hpn _; apply leq_addr.
 Qed.
 
-Lemma nderiv_taylor p x h: GRing.comm x h ->
-  p.[x + h] = \sum_(i < size p) p^`N(i).[x] * h^+i.
+Lemma nderiv_taylor : forall p x h,
+  GRing.comm x h -> p.[x + h] = \sum_(i < size p) p^`N(i).[x] * h ^+ i.
 Proof.
 move=> p x h Cxh; move:p; apply:poly_ind=> [|p c Hrec].
   by rewrite size_poly0 big_ord0 horner0.
-rewrite horner_amulX size_amulX; case: eqP=> Hs.
-  move/eqP: Hs; rewrite size_poly_eq0; move/eqP=>->; rewrite  hornerC !simp.
-  by case: eqP=> Hc; rewrite ?size_poly0 ?big_ord_recl big_ord0 // 
-                              nderivn0 hornerC expr0 !simp.
+rewrite horner_amulX size_amulX; case: eqP => Hs.
+  move/eqP: Hs; rewrite size_poly_eq0; move/eqP->; rewrite hornerC !simp.
+  case: eqP => [-> | _]; rewrite ?size_poly0 ?big_ord_recl big_ord0 //.
+  by rewrite nderivn0 hornerC !simp.
 case: (size p)(@nderivn_poly0 p) Hs Hrec => [|n] // Hd _ Hrec.
 rewrite big_ord_recl nderivn0 !simp horner_amulX.
-set S := \sum_(i<n.+1) _.
-rewrite -addrA [c + S]addrC addrA; congr (_ + _).
+set S := \sum_i _; rewrite -addrA [c + S]addrC addrA; congr (_ + _).
 rewrite Hrec mulr_addr !big_distrl /= big_ord_recl nderivn0 !simp -!addrA.
-congr (_ + _).
-have->: S = \sum_(i<n.+1) (p^`N(i).[x] * h^+ i.+1 + p^`N(i.+1).[x] * x * h^+ i.+1).
-  apply eq_big => // i _.
+congr (_ + _); have ->: S
+  = \sum_(i < n.+1) (p^`N(i).[x] * h ^+ i.+1 + p^`N(i.+1).[x] * x * h ^+ i.+1).
+- apply eq_big => // i _.
   by rewrite nderivn_amulX horner_add horner_mulX mulr_addl.
 rewrite big_split /= addrC.
 congr (_ + _); first by apply eq_big => // i _; rewrite exprSr mulrA.
@@ -2060,8 +2059,9 @@ rewrite big_ord_recr /= Hd // horner0 !simp.
 by apply eq_big => // i _; rewrite -!mulrA commr_exp.
 Qed.
 
-Lemma nderiv_taylor_wide n p x h: GRing.comm x h -> size p <= n ->
-  p.[x + h] = \sum_(i < n) p^`N(i).[x] * h^+i.
+Lemma nderiv_taylor_wide : forall n p x h,
+    GRing.comm x h -> size p <= n ->
+  p.[x + h] = \sum_(i < n) p^`N(i).[x] * h ^+ i.
 Proof.
 move=> n p x h Cxh; elim: n => [|n Hrec] Hs.
   suff ->: p = 0 by rewrite horner0 big_ord0.

@@ -1,48 +1,130 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat.
 
-(***************************************************************************)
-(* The seq type is the ssreflect type for sequences; it is identical to    *)
-(* the standard Coq list type, but supports a larger set of operations, as *)
-(* well as eqType and predType structures. The operations are geared       *)
-(* towards reflection, e.g., they generally expect and provide boolean     *)
-(* predicates, and our membership predicates expects an eqType. To avoid   *)
-(* any confusion we do not Import the Coq List module, which forces us to  *)
-(* define our own Type since list is not defined in the pervasives.        *)
-(*   Since there is no true subtyping in Coq, we don't use a type for non  *)
-(* empty sequences; rather, we pass explicitly the head and "tail" of the  *)
-(* sequence.                                                               *)
-(*   The empty sequence is especially bothersome for subscripting, since   *)
-(* it forces us to have a default value. We use a combination of syntactic *)
-(* extensions/prettyprinting to hide it in most of the development.        *)
-(*   Here is the list of seq operations :                                  *)
-(*   - constructors : Nil, Cons (nil, cons if polymorphic), rcons          *)
-(*   - factories : ncons, nseq (repeat sequence), seqn (n-ary).            *)
-(*   - items from indexes : iota (index generation), mkseq.                *)
-(*   - sequential access: ohead (option), head (w. default), behead,       *)
-(*                        last, belast (non empty seqs)                    *)
-(*   - random access: nth & set_nth (w. default), incr_nth (for seq nat)   *)
-(*   - size: size (seq version of length), shape (= map size)              *)
-(*   - elements lookup: index, mem_seq (implements the predType interface) *)
-(*   - set operations: find, count, has, all, constant                     *)
-(*   - filtering : filter, subfilter (to subType), sieve (bitseq masking)  *)
-(*   - "no duplicates" predicate & function: uniq, undup                   *)
-(*   - permutation equivalence: perm_eq, perm_eql & r (left & right trans) *)
-(*   - surgery: cat, drop, take, rot, rotr, rev                            *)
-(*   - iterators: map, pmap (partial funs), foldr (fold_right), foldl,     *)
-(*                sumn, scanl, pairmap zip, unzip1 & 2, flatten, reshape   *)
-(* The sieve operator uses a boolean sequence to select a subsequence; it  *)
-(* is used heavily for the correctness of the config compilation.          *)
-(* We are quite systematic in providing lemmas to rewrite any composition  *)
-(* of two operations. "rev", whose simplifications are not natural, is     *)
-(* protected with nosimpl.                                                 *)
-(*  Notations:                                                             *)
-(*    [::], x :: s, s1 ++ s2   nil, cons x s, cat s1 s2                    *)
-(*    [:: x0; ... xn]          explicit seq                                *)
-(*    [:: x0, ... xn & s]      multiple cons                               *)
-(*    s`_i                     nth x0 s i for the appropriate x0           *)
-(*                             (to be defined in the appropriate scope)    *)
-(***************************************************************************)
+(******************************************************************************)
+(* The seq type is the ssreflect type for sequences; it is identical to the   *)
+(* standard Coq list type, but supports a larger set of operations, as well   *)
+(* as eqType and predType (and, later, choiceType) structures. The operations *)
+(* are geared towards reflection, e.g., they generally expect and provide     *)
+(* boolean predicates, e.g., the membership predicate expects an eqType. To   *)
+(* avoid any confusion we do not Import the Coq List module, which forces us  *)
+(* to define our own Type since list is not defined in the pervasives.        *)
+(*   As there is no true subtyping in Coq, we don't use a type for non-empty  *)
+(* sequences; rather, we pass explicitly the head and tail of the sequence.   *)
+(*   The empty sequence is especially bothersome for subscripting, since it   *)
+(* forces us to pass a default value. This default value can often be hidden  *)
+(* by a notation.                                                             *)
+(*   Here is the list of seq operations:                                      *)
+(*  ** constructors:                                                          *)
+(*                        seq T == the type of sequences with items of type T *)
+(*                       bitseq == seq bool                                   *)
+(*             [::], nil, Nil T == the empty sequence (of type T)             *)
+(* x :: s, cons x s, Cons T x s == the sequence x followed by s (of type T)   *)
+(*                       [:: x] == the singleton sequence                     *)
+(*           [:: x_0; ...; x_n] == the explicit sequence of the x_i           *)
+(*       [:: x_0, ..., x_n & s] == the sequence of the x_i, followed by s     *)
+(*                    rcons s x == the sequence s, followed by x              *)
+(*  All of the above, except rcons, can be used in patterns. We define a view *)
+(* lastP and and induction principle last_ind that can be used to decompose   *)
+(* or traverse a sequence in a right to left order. The view lemma lastP has  *)
+(* a dependent family type, so the ssreflect tactic case/lastP: p => [|p' x]  *)
+(* will generate two subgoals in which p has been replaced by [::] and by     *)
+(* rcons p' x, respectively.                                                  *)
+(*  ** factories:                                                             *)
+(*             nseq n x == a sequence of n x's                                *)
+(*          ncons n x s == a sequence of n x's, followed by s                 *)
+(* seqn n x_0 ... x_n-1 == the sequence of the x_i (can be partially applied) *)
+(*             iota m n == the sequence m, m + 1, ..., m + n - 1              *)
+(*            mkseq f n == the sequence f 0, f 1, ..., f (n - 1)              *)
+(*  ** sequential access:                                                     *)
+(*      head x0 s == the head (zero'th item) of s if s is non-empty, else x0  *)
+(*        ohead s == None if s is empty, else Some x where x is the head of s *)
+(*       behead s == s minus its head, i.e., s' if s = x :: s', else [::]     *)
+(*       last x s == the last element of x :: s (which is non-empty)          *)
+(*     belast x s == x :: s minus its last item                               *)
+(*  ** dimensions:                                                            *)
+(*         size s == the number of items (length) in s                        *)
+(*       shape ss == the sequence of sizes of the items of the sequence of    *)
+(*                   sequences ss                                             *)
+(*  ** random access:                                                         *)
+(*         nth x0 s i == the item i of s (numbered from 0), or x0 if s does   *)
+(*                       not have at least i+1 items (i.e., size x <= i)      *)
+(*               s`_i == standard notation for nth x0 s i for a default x0,   *)
+(*                       e.g., 0 for rings.                                   *)
+(*   set_nth x0 s i y == s where item i has been changed to y; if s does not  *)
+(*                       have an item i it is first padded with copieds of x0 *)
+(*                       to size i+1.                                         *)
+(*       incr_nth s i == the nat sequence s with item i incremented (s is     *)
+(*                       first padded with 0's to size i+1, if needed).       *)
+(*  ** predicates:                                                            *)
+(*         x \in s == x appears in s (this requires an eqType for T)          *)
+(*       index x s == the first index at which x appears in s, or size s if   *)
+(*                    x \notin s                                              *)
+(*         has p s == the (applicative, boolean) predicate p holds for some   *)
+(*                    item in s                                               *)
+(*         all p s == p holds for all items in s                              *)
+(*        find p s == the number of items of s for which p holds              *)
+(*      constant s == all items in s are identical (trivial if s = [::])      *)
+(*          uniq s == all the items in s are pairwise different               *)
+(*   perm_eq s1 s2 == s2 is a permutation of s1, i.e., s1 and s2 have the     *)
+(*                    items (with the same repetitions), but possibly in a    *)
+(*                    different order.                                        *)
+(*  perm_eql s1 s2 <-> s1 and s2 behave identically on the left of perm_eq    *)
+(*  perm_eqr s1 s2 <-> s1 and s2 behave identically on the rightt of perm_eq  *)
+(*    These left/right transitive versions of perm_eq make it easier to chain *)
+(* a sequence of equivalences.                                                *)
+(*  ** filtering:                                                             *)
+(*           filter p s == the subsequence of s consisting of all the items   *)
+(*                         for which the (boolean) predicate p holds          *)
+(* subfilter s : seq sT == when sT has a subType p structure, the sequence    *)
+(*                         of items of type sT corresponding to items of s    *)
+(*                         for which p holds                                  *)
+(*              undup s == the subsequence of s containing only the first     *)
+(*                         occurrence of each item in s, i.e., s with all     *)
+(*                         duplicates removed.                                *)
+(*             mask m s == the subsequence of s selected by m : bitseq, with  *)
+(*                         item i of s selected by bit i in m (extra items or *)
+(*                         bits are ignored.                                  *)
+(*  ** surgery:                                                               *)
+(* s1 ++ s2, cat s1 s2 == the concatenation of s1 and s2                      *)
+(*            take n s == the sequence containing only the first n items of s *)
+(*                        (or all of s if size s <= n)                        *)
+(*            drop n s == s minus its first n items ([::] if size s <= n)     *)
+(*             rot n s == s rotated left n times (or s if size s <= n)        *)
+(*                     := drop n s ++ take n s                                *)
+(*            rotr n s == s rotated right n times (or s if size s <= n)       *)
+(*               rev s == the (linear time) reversal of s                     *)
+(*        catrev s2 s1 == the reversal of s1 followed by s2 (this is the      *)
+(*                        recursive form of rev)                              *)
+(*  ** iterators: for s == [:: x_0, ..., x_n],                                *)
+(*        map f s == the sequence [:: f x_0, ..., f x_n]                      *)
+(*      pmap pf s == the sequence [:: y_i0, ..., y_ik] where i0 < ... < ik,   *)
+(*                   pf x_i = Some y_i, and pf x_j = None iff j is not in     *)
+(*                   {i0, ..., ik}.                                           *)
+(*   foldr f a s == the right fold of s by f (i.e., the natural iterator)     *)
+(*               := f x_0 (f x_1 ... (f x_n a))                               *)
+(*        sumn s == x_0 + (x_1 + ... + (x_n + 0)) (when s : seq nat)          *)
+(*   foldl f a s == the left fold of s by f                                   *)
+(*               := f (f ... (f a x_0) ... x_n-1) x_n                         *)
+(*   scanl f a s == the sequence of partial accumulators of foldl f a s       *)
+(*               := [:: f a x_0; ...; foldl f a s]                            *)
+(* pairmap f a s == the sequence of f applied to consecutie items in a :: s   *)
+(*               := [:: f a x_0; f x_0 x_1; ...; f x_n-1 x_n]                 *)
+(*     zip s1 s2 == itemwise pairing of s1 and s2 (dropping any extra items)  *)
+(*               := [:: (x1_0, x2_0); ...; (x1_n, x2_n)]                      *)
+(*      unzip1 s == [:: (x_0).1; ...; (x_n).1] when s : seq (T1 * T2)         *)
+(*      unzip2 s == [:: (x_0).2; ...; (x_n).2] when s : seq (T1 * T2)         *)
+(*     flatten s == x_0 ++ ... ++ x_n ++ [::] when s : seq (seq T)            *)
+(*   reshape r s == s reshaped into a sequence of sequences whose sizes are   *)
+(*                  given by r (trucating if s is too long or too short)      *)
+(*               := [:: [:: x_0; ...; x_(r0 - 1)];                            *)
+(*                      [:: x_r0; ...; x_(r0 + r1 - 1)];                      *)
+(*                      ...;                                                  *)
+(*                      [:: x_(r0 + ... + r(k-1)); ...; x_(r0 + ... rk - 1)]] *)
+(*   We are quite systematic in providing lemmas to rewrite any composition   *)
+(* of two operations. "rev", whose simplifications are not natural, is        *)
+(* protected with nosimpl.                                                    *)
+(******************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -1432,85 +1514,85 @@ Proof. by move=> *; rewrite /rotr !size_rot rot_rot. Qed.
 
 End RotCompLemmas.
 
-Section Sieve.
+Section Mask.
 
 Variables (n0 : nat) (T : Type).
 
-Fixpoint sieve (m : bitseq) (s : seq T) {struct m} : seq T :=
+Fixpoint mask (m : bitseq) (s : seq T) {struct m} : seq T :=
   match m, s with
-  | b :: m', x :: s' => if b then x :: sieve m' s' else sieve m' s'
+  | b :: m', x :: s' => if b then x :: mask m' s' else mask m' s'
   | _, _ => [::]
   end.
 
-Lemma sieve_false : forall s n, sieve (nseq n false) s = [::].
+Lemma mask_false : forall s n, mask (nseq n false) s = [::].
 Proof. by elim=> [|x s IHs] [|n] /=. Qed.
 
-Lemma sieve_true : forall s n, size s <= n -> sieve (nseq n true) s = s.
+Lemma mask_true : forall s n, size s <= n -> mask (nseq n true) s = s.
 Proof. by elim=> [|x s IHs] [|n] //= Hn; congr Cons; apply: IHs. Qed.
 
-Lemma sieve0 : forall m, sieve m [::] = [::].
+Lemma mask0 : forall m, mask m [::] = [::].
 Proof. by case. Qed.
 
-Lemma sieve1 : forall b x, sieve [:: b] [:: x] = nseq b x.
+Lemma mask1 : forall b x, mask [:: b] [:: x] = nseq b x.
 Proof. by case. Qed.
 
-Lemma sieve_cons : forall b m x s,
-  sieve (b :: m) (x :: s) = nseq b x ++ sieve m s.
+Lemma mask_cons : forall b m x s,
+  mask (b :: m) (x :: s) = nseq b x ++ mask m s.
 Proof. by case. Qed.
 
-Lemma size_sieve : forall m s,
-  size m = size s -> size (sieve m s) = count id m.
+Lemma size_mask : forall m s,
+  size m = size s -> size (mask m s) = count id m.
 Proof. by elim=> [|b m IHm] [|x s] //= [Hs]; case: b; rewrite /= IHm. Qed.
 
-Lemma sieve_cat : forall m1 s1, size m1 = size s1 ->
-  forall m2 s2, sieve (m1 ++ m2) (s1 ++ s2) = sieve m1 s1 ++ sieve m2 s2.
+Lemma mask_cat : forall m1 s1, size m1 = size s1 ->
+  forall m2 s2, mask (m1 ++ m2) (s1 ++ s2) = mask m1 s1 ++ mask m2 s2.
 Proof.
 move=> m1 s1 Hm1 m2 s2; elim: m1 s1 Hm1 => [|b1 m1 IHm] [|x1 s1] //= [Hm1].
 by rewrite (IHm _ Hm1); case b1.
 Qed.
 
-Lemma has_sieve_cons : forall a b m x s,
-  has a (sieve (b :: m) (x :: s)) = b && a x || has a (sieve m s).
+Lemma has_mask_cons : forall a b m x s,
+  has a (mask (b :: m) (x :: s)) = b && a x || has a (mask m s).
 Proof. by move=> a [|]. Qed.
 
-Lemma sieve_rot : forall m s, size m = size s ->
- sieve (rot n0 m) (rot n0 s) = rot (count id (take n0 m)) (sieve m s).
+Lemma mask_rot : forall m s, size m = size s ->
+   mask (rot n0 m) (rot n0 s) = rot (count id (take n0 m)) (mask m s).
 Proof.
 move=> m s Hs; have Hsn0: (size (take n0 m) = size (take n0 s)).
   by rewrite !size_take Hs.
-rewrite -(size_sieve Hsn0) {1 2}/rot sieve_cat ?size_drop ?Hs //.
-rewrite -{4}(cat_take_drop n0 m) -{4}(cat_take_drop n0 s) sieve_cat //.
+rewrite -(size_mask Hsn0) {1 2}/rot mask_cat ?size_drop ?Hs //.
+rewrite -{4}(cat_take_drop n0 m) -{4}(cat_take_drop n0 s) mask_cat //.
 by rewrite rot_size_cat.
 Qed.
 
-End Sieve.
+End Mask.
 
-Section EqSieve.
+Section EqMask.
 
 Variables (n0 : nat) (T : eqType).
 
-Lemma mem_sieve_cons : forall x b m y (s : seq T),
-  (x \in sieve (b :: m) (y :: s)) = b && (x == y) || (x \in sieve m s).
+Lemma mem_mask_cons : forall x b m y (s : seq T),
+  (x \in mask (b :: m) (y :: s)) = b && (x == y) || (x \in mask m s).
 Proof. by move=> x [|]. Qed.
 
-Lemma mem_sieve : forall x m (s : seq T), (x \in sieve m s) -> (x \in s).
+Lemma mem_mask : forall x m (s : seq T), (x \in mask m s) -> (x \in s).
 Proof.
 by move=> x m s; elim: s m => [|y p IHs] [|[|] m] //=;
  rewrite !in_cons; case (x == y) => /=; eauto.
 Qed.
 
-Lemma sieve_uniq : forall s : seq T, uniq s -> forall m, uniq (sieve m s).
+Lemma mask_uniq : forall s : seq T, uniq s -> forall m, uniq (mask m s).
 Proof.
 elim=> [|x s IHs] /= Hs [|b m] //.
 move/andP: Hs b => [Hx Hs] [|] /=; rewrite {}IHs // andbT.
-apply/negP => [Hmx]; case/negP: Hx; exact (mem_sieve Hmx).
+apply/negP => [Hmx]; case/negP: Hx; exact (mem_mask Hmx).
 Qed.
 
-Lemma mem_sieve_rot : forall m (s : seq T), size m = size s ->
-  sieve (rot n0 m) (rot n0 s) =i sieve m s.
-Proof. by move=> m s Hm x; rewrite sieve_rot // mem_rot. Qed.
+Lemma mem_mask_rot : forall m (s : seq T), size m = size s ->
+  mask (rot n0 m) (rot n0 s) =i mask m s.
+Proof. by move=> m s Hm x; rewrite mask_rot // mem_rot. Qed.
 
-End EqSieve.
+End EqMask.
 
 Section Map.
 
@@ -1580,7 +1662,7 @@ Qed.
 Lemma map_rev : forall s, map (rev s) = rev (map s).
 Proof. by elim=> [|x s IHs] //=; rewrite !rev_cons -!cats1 map_cat IHs. Qed.
 
-Lemma map_sieve : forall m s, map (sieve m s) = sieve m (map s).
+Lemma map_mask : forall m s, map (mask m s) = mask m (map s).
 Proof. by elim=> [|[|] m IHm] [|x p] //=; rewrite IHm. Qed.
 
 Hypothesis Hf : injective f.
@@ -1649,7 +1731,7 @@ End EqMap.
 Implicit Arguments mapP [T1 T2 f s y].
 Prenex Implicits mapP.
 
-Lemma filter_sieve : forall T a (s : seq T), filter a s = sieve (map a s) s.
+Lemma filter_mask : forall T a (s : seq T), filter a s = mask (map a s) s.
 Proof. by move=> T a; elim=> //= [x s <-]; case: (a x). Qed.
 
 Section MapComp.
@@ -1931,7 +2013,7 @@ Proof. by move=> Hgf x s; elim: s x => [|y s IHs] x //=; rewrite Hgf IHs. Qed.
 
 End Scan.
 
-Prenex Implicits sieve map pmap foldr foldl scanl pairmap.
+Prenex Implicits mask map pmap foldr foldl scanl pairmap.
 
 Section Zip.
 
