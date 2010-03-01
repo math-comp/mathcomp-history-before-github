@@ -286,8 +286,18 @@ have pCRR0 : p.-group 'C_R(R0) := pgroupS (subsetIl _ _) pR.
 have ntR0 : R0 != 1%G. 
   case: (eqVneq R0 1%G) cR0 (prime_gt1 p_pr) => // ->.
   by rewrite /= set1gE cards1; move/eqP=> <-. 
-have key : 'Ohm_1('C_R(R0)) \subset R0 * 'Ohm_1(R1).
+have key : R0 * 'Ohm_1(R1) = 'Ohm_1('C_R(R0)).
   rewrite (OhmEabelian (pgroupS (subsetIl _ _) pR) (abelianS (Ohm_sub _ _ ) aCRR0)) -defCRR0.
+  apply/eqP; rewrite eqEsubset; apply/andP; split. (* factor *)
+    apply/subsetP=> x; rewrite /= !inE; case/mulsgP => x0 x1 xR0 xR1 -> {x}.
+    have ? : x1 \in R1 by exact: subsetP (Ohm_sub 1 _) _ xR1.
+    rewrite mem_mulg //=.
+    have peltx1 : p.-elt x1 by exact: mem_p_elt (pgroupS sR1R pR) _.
+    have ? : x0 \in 'C[x1]. 
+      by rewrite (subsetP _ _ xR0) // (subset_trans sR0CR1) -?cent_set1 ?centS ?sub1set.
+    rewrite expMgn; last by apply/cent1P.
+    case/(abelemP p_pr): pabR0 => _ -> //; case/(abelemP p_pr): pabOR1 => _ -> //.
+    by rewrite mulg1 eqxx.
   apply/subsetP=> x; rewrite /= !inE expn1; case/andP; case/mulsgP=> x0 x1 xR0 xR1 -> xp1 {x}.
   rewrite mem_mulg // mem_gen // inE xR1.
   have peltx1 : p.-elt x1 by exact: (mem_p_elt (pgroupS sR1R pR) xR1).
@@ -312,7 +322,8 @@ have rCRR0 : 'r('C_R(R0)) < 'r(R).
     by rewrite (Ohm1_cyclic_pgroup_prime cyR1 (pgroupS sR1R pR)).
   have {cOR1 TI_R0OR1} lgCRR0 : logn p #|R0 <*> 'Ohm_1(R1)| <= 2.
     by rewrite norm_mulgenEr // (TI_cardMg TI_R0OR1) (eqP cR0) cOR1 (@pfactorK _ 2).
-  by rewrite p_rank_abelian // (leq_trans _ lgCRR0) // lognSg //= {lgCRR0} norm_mulgenEr.
+  rewrite p_rank_abelian // (leq_trans _ lgCRR0) // lognSg //= {lgCRR0} norm_mulgenEr //. 
+  by rewrite key subxx.
 have nsR0Z : ~~ (R0 \subset Z).
   apply/negP; move/centS; move/(setIS R); move/rankS => sR0Z.
   move: (leq_ltn_trans sR0Z rCRR0); rewrite /= (_:'C_R(Z) = R) ?ltnn //; apply/eqP.
@@ -329,16 +340,11 @@ have ntR1 : R1 :!=: 1.
   move: pR0CRR0; rewrite -defCRR0; case: (eqVneq R1 1%G) => [->| //].
   by rewrite mulg1 properE !subxx andbC. 
 pose E := 'Ohm_1('C_R(R0))%G.
-have defE : R0 \x 'Ohm_1(R1) = E.
-  rewrite dprodE // ?(centsS (Ohm_sub 1 _)) //; apply/eqP; rewrite eqEsubset.
-  rewrite key.
-  admit.
-apply/set0Pn; exists E; rewrite in_setI.
-have pE : p.-group E by rewrite (pgroupS (subset_trans (Ohm_sub 1 _) _) pR) ?subsetIl.
+have defE : R0 \x 'Ohm_1(R1) = E by rewrite dprodE // ?(centsS (Ohm_sub 1 _)). (* useless *)
+have pabE : p.-abelem E by rewrite Ohm1_abelem.
+apply/set0Pn; exists E; rewrite in_setI (eqP cR0).
+rewrite (pnElemE _ _ p_pr) !inE (subset_trans (Ohm_sub _ _)) ?pabE ?subsetIl //=.
 admit.
-(*
-rewrite (eqP cR0) (pnElemE _ _ p_pr) (in_pmaxElemE _ _ p_pr) inE eqEsubset /=.
- {4}(OhmE 1 pCRR0). *).
 Qed.
 
 (*
