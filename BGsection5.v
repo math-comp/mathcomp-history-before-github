@@ -338,12 +338,18 @@ have nsR0Z : ~~ (R0 \subset Z).
   apply/eqP; rewrite eqEsubset subsetIl subsetI subxx.
   by rewrite /Z (subset_trans _ (centS (Ohm_sub 1 _))) //= centsC subsetIr.
 have TI_R0Z : R0 :&: Z = 1 by rewrite prime_TIg //= cR0.
+have sZR : Z \subset R := subset_trans (char_sub (Ohm_char 1 _)) (center_sub _).
+have ntZ : Z != 1.
+  case: eqP (nil_TI_Z (pgroup_nil pR) (normal_refl R)) rR => // defZ ABS.
+  by rewrite ABS ?rank1 // TI_Ohm1 // -/Z defZ (setIidPr (sub1G _)).
 have pR0CRR0 : R0 \proper 'C_R(R0).
-  rewrite (proper_sub_trans _ (_:R0 * Z \subset _)) -?defCRR0 ?mulgS //.
-    rewrite properEneq mulG_subl andbC; apply/negP; move/eqP=> defR0.
-    move: TI_R0Z; rewrite defR0.
-    admit. (* Z != 1 missing *)
-  admit. (* mhhhmm....*)
+  rewrite (proper_sub_trans _ (_:R0 * Z \subset _)) //; last first.
+    rewrite subsetI !mul_subG ?sR0R ?sZR ?[_ \subset _](cyclic_abelian cyR0) //.
+    by rewrite (subset_trans (Ohm_sub _ _)) // subIset //= centS ?sR0R 1?orbC.
+  rewrite properEcard mulG_subl (TI_cardMg TI_R0Z) cR0 /= -/Z.
+  have [_ _ [s /= ->]] := pgroup_pdiv (pgroupS sZR pR) ntZ.
+  rewrite expnS ltn_Pmulr ?(prime_gt0 p_pr) // (leq_trans (prime_gt1 p_pr)) //.
+  by rewrite leq_pmulr ?expn_gt0 // (prime_gt0 p_pr).
 have ntR1 : R1 :!=: 1.
   move: pR0CRR0; rewrite -defCRR0; case: (eqVneq R1 1%G) => [->| //].
   by rewrite mulg1 properE !subxx andbC. 
