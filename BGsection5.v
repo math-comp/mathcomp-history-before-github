@@ -429,7 +429,13 @@ have defCRS : S \x 'C_T(S) == 'C_R(S).
     admit.
   admit.
 have cyCTS : cyclic 'C_T(S). (* duplicate with 5.3 *)
-  admit.
+  have sCTSR : 'C_T(S) \subset R by rewrite !subIset // subxx.
+  have oddR : odd #|R|.
+    admit.
+  have rCTS : 'r('C_T(S)) = 1%N.
+    admit.
+  rewrite (odd_pgroup_rank1_cyclic (pgroupS _ pR) (oddSg _ oddR)) //= -?rCTS.
+  by rewrite -(rank_pgroup (pgroupS _ pR)) //.
 apply/orP; right; apply/existsP; exists (val S); apply/existsP; exists 'C_T(S).
 by rewrite cS cyCTS defCRS sSR !subIset ?subxx.
 Qed.
