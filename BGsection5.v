@@ -378,22 +378,61 @@ Lemma maxp2Elem_set0n_narrow: forall p,
   narrow p R.
 Proof.
 move=> p pR rR; case/set0Pn=>E; case/setIP; case/pnElemP=> sER abeE cE maxE.
+have [|[p_pr _ [r cR]]] := pgroup_pdiv pR. 
+  by case: eqP rR => // ->; rewrite rank1.
+have cZ : #| Z | = p.
+  (* duplicate *)
+  have ntZ : Z != 1.
+    case: eqP (nil_TI_Z (pgroup_nil pR) (normal_refl R)) rR => // defZ R1.
+    by rewrite R1 ?rank1 // TI_Ohm1 // -/Z defZ (setIidPr (sub1G _)).
+  have pZZ : p.-group Z.
+    by rewrite (pgroupS _ pR) //= (subset_trans (Ohm_sub 1 _) (center_sub _)).
+  case: (pgroup_pdiv pZZ ntZ)=> _ _ [q]; case:q=> //= q; rewrite -/Z => cZ.
+  have rCRE : 'r('C_R(E)%G) = 2.
+    by rewrite -rank_Ohm1 (Ohm_cent maxE pR) (rank_abelem abeE).
+  suff defR: 'C_R(E) = R by move: rR; rewrite -rCRE /= defR ltnn.
+  suff sEZ : E \subset 'Z(R).
+    apply/eqP; rewrite eqEsubset subsetIl /= subsetI subxx.
+    by rewrite centsC (subset_trans sEZ) // subsetIr.
+  have pZ := (pgroupS (center_sub _) pR); have aZ := center_abelian R.
+  have abeZ : p.-abelem (Z) by rewrite (Ohm1_abelem pZ).
+  have sWR : W \subset R := (subset_trans (Ohm_sub 1 _) (ucn_sub _ _)).
+  have cZE : E \subset 'C(Z).
+    by rewrite (centSS sER (Ohm_sub _ _)) // centsC subsetIr.
+  have abeEZ : p.-abelem (E <*> Z).
+    by rewrite (cprod_abelem p (cprodEgen cZE)) ?abeE ?abeZ.
+  have sZR := subset_trans (char_sub (Ohm_char 1 _)) (center_sub _).
+  have defE : E <*> Z = E.
+    case/pmaxElemP: maxE => _ maxE.
+    by rewrite maxE ?mulgen_subl //; rewrite inE abeEZ mulgen_subG sER sZR.
+  have sZE : Z \subset E by rewrite -defE mulgen_subr.
+  rewrite (eqP (_: E :==: Z)) ?Ohm_sub // eq_sym eqEcard sZE cZ.
+  rewrite (_: #|E| = (p^2)%N) ?leq_pexp2l ?prime_gt0 // -?cE -?p_part.  
+  by rewrite (part_pnat_id (abelem_pgroup abeE)).
+have {cE} cE : #|E| = (p^2)%N.
+  by rewrite -cE -p_part (part_pnat_id (abelem_pgroup abeE)).
 have pZE : Z \proper E.
-  admit.
-have S : {set gT}.
-  admit.
+  rewrite properEcard cE cZ ltn_Pmulr ?prime_gt0 ?prime_gt1 //.
+  admit. (* required defE, there and duplicate *)
+have [S] := splitsP (abelem_splits abeE (proper_sub pZE)).
+case/complP; rewrite /= -/Z => TI_ZS defE.
 have cS : #|S| == p.
-  admit.
+  have := (prime_gt0 p_pr); have : #|Z * S| == #|E| by rewrite defE.
+  rewrite cE (TI_cardMg TI_ZS) /= cZ expnS eqn_mul2l; case/orP.
+    by move/eqP=> ->; rewrite ltnn.
+  by move/eqP => -> *; exact: eqxx.
 have sSR : S \subset R.
-  admit.
+  by rewrite (subset_trans _ sER) // -defE mulG_subr.
 have defCRS : S \x 'C_T(S) == 'C_R(S).
+  rewrite dprodE /= -/T. (* duplicate with 5.3 *)
+    admit.
+    admit.
   admit.
-have cyCTS : cyclic 'C_T(S).
+have cyCTS : cyclic 'C_T(S). (* duplicate with 5.3 *)
   admit.
-apply/orP; right; apply/existsP; exists S; apply/existsP; exists 'C_T(S).
+apply/orP; right; apply/existsP; exists (val S); apply/existsP; exists 'C_T(S).
 by rewrite cS cyCTS defCRS sSR !subIset ?subxx.
 Qed.
-
 
 (* B&G 5.3 *)
 Theorem odd_rank3_narrow : forall p, 
