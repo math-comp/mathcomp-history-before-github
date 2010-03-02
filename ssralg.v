@@ -2399,31 +2399,37 @@ End ClosedFieldTheory.
 
 Module LModule.
 
-Structure mixin_of (R : Ring.type) (M : Zmodule.type) : Type := Mixin {
- scale : R -> M -> M;
- _ : forall a b m,  scale a (scale b m) = scale (a * b) m;
- _ : left_id 1 scale;
- _ : forall a, {morph scale a : m n / m + n};
- _ : forall m, {morph scale^~ m : a b / a + b}
+Section LModule.
+
+Variable R : Ring.type.
+Implicit Type phR : phant R.
+
+Structure mixin_of (M : Zmodule.type) : Type := Mixin {
+  scale : R -> M -> M;
+  _ : forall a b m,  scale a (scale b m) = scale (a * b) m;
+  _ : left_id 1 scale;
+  _ : forall a, {morph scale a : m n / m + n};
+  _ : forall m, {morph scale^~ m : a b / a + b}
 }.
 
-Structure class_of (R : Ring.type) (M : Type) : Type := Class {
+Structure class_of M := Class {
   base :> Zmodule.class_of M;
-  ext :> mixin_of R (Zmodule.Pack base M)
+  ext :> mixin_of (Zmodule.Pack base M)
 }.
 
-Structure type R : Type :=  Pack {sort :> Type; _ : class_of R sort; _ : Type}.
-Definition class R cT := let: Pack _ c _ :=  cT return class_of R cT in c.
-Definition clone R T (cT: type R) c of phant_id (class cT) c := @Pack R T c T.
-Definition pack R T b0 (m0 : mixin_of R (@Zmodule.Pack T b0 T)) :=
+Structure type phR := Pack {sort :> Type; _ : class_of sort; _ : Type}.
+Definition class phR (cT : type phR) :=
+  let: Pack _ c _ :=  cT return class_of cT in c.
+Definition clone phR T cT c of phant_id (@class phR cT) c := @Pack phR T c T.
+Definition pack phR T b0 (m0 : mixin_of (@Zmodule.Pack T b0 T)) :=
   fun bT b & phant_id (Zmodule.class bT) b =>
-  fun    m & phant_id m0 m => Pack (@Class R T b m) T.
-Definition type_of (R: Ring.type) of phant R := type R.
-Identity Coercion type_type_of : type_of >-> type.
+  fun    m & phant_id m0 m => Pack phR (@Class T b m) T.
 
-Coercion eqType R cT := Equality.Pack (@class R cT) cT.
-Coercion choiceType R cT := Choice.Pack (@class R cT) cT.
-Coercion zmodType R cT := Zmodule.Pack (@class R cT) cT.
+Coercion eqType phR cT := Equality.Pack (@class phR cT) cT.
+Coercion choiceType phR cT := Choice.Pack (@class phR cT) cT.
+Coercion zmodType phR cT := Zmodule.Pack (@class phR cT) cT.
+
+End LModule.
 
 End LModule.
 
@@ -2432,72 +2438,71 @@ Canonical Structure LModule.choiceType.
 Canonical Structure LModule.zmodType.
 Bind Scope ring_scope with LModule.sort.
 
-Definition scale R (M: LModule.type R): R -> M -> M := 
+Definition scale R (M : @LModule.type R (Phant R)) : R -> M -> M := 
   LModule.scale (LModule.class M).
 
 Local Notation "*:%R" := (@scale _ _) : ring_scope.
 Local Notation "a *: m" := (scale a m) (at level 40) : ring_scope.
 
 Section LModuleTheory.
-Variable (R : Ring.type) (M : LModule.type R).
+
+Variable (R : Ring.type) (M : LModule.type (Phant R)).
 Implicit Type a b c : R.
 Implicit Type m : M.
 
-Lemma scaleA : forall a b m, a *: (b *: m) = a * b *: m.
+Lemma scalerA : forall a b m, a *: (b *: m) = a * b *: m.
 Proof. by case: M => ? [] ? []. Qed.
 
-Lemma scale1 : @left_id R M 1 *:%R.
+Lemma scale1r : @left_id R M 1 *:%R.
 Proof. by case: M => ? [] ? []. Qed.
 
-Lemma scale_addr : forall a, 
-  @morphism_2 M M (scale a) (fun x y => x + y) (fun x y => x + y).
+Lemma scaler_addr : forall a, {morph (scale a : M -> M) : x y / x + y}.
 Proof. by case: M => ? [] ? []. Qed.
 
-Lemma scale_addl : forall m, 
-  @morphism_2 R M (fun x => scale x m) (fun x y => x + y) (fun x y => x + y).
+Lemma scaler_addl : forall m, {morph (@scale _ _)^~ m : a b / a + b}.
 Proof. by case: M => ? [] ? []. Qed.
 
-Lemma scale0l : forall m, 0 *: m = 0.
-Proof. by move=> m; apply: (@addIr _ (1 *:m)); rewrite -scale_addl !add0r. Qed.
+Lemma scale0r : forall m, 0 *: m = 0.
+Proof. by move=> m; apply: (@addIr _ (1 *:m)); rewrite -scaler_addl !add0r. Qed.
 
-Lemma scale0r : forall a, a *: 0 = 0 :> M.
-Proof. by move=> a; rewrite -{1}(scale0l 0) scaleA mulr0 scale0l. Qed.
+Lemma scaler0 : forall a, a *: 0 = 0 :> M.
+Proof. by move=> a; rewrite -{1}(scale0r 0) scalerA mulr0 scale0r. Qed.
 
-Lemma scaleNl : forall a m, - a *: m = - (a *: m).
+Lemma scaleNr : forall a m, - a *: m = - (a *: m).
 Proof.
-by move=> a m; apply: (@addIr _ (a *: m)); rewrite -scale_addl !addNr scale0l.
+by move=> a m; apply: (@addIr _ (a *: m)); rewrite -scaler_addl !addNr scale0r.
 Qed.
 
-Lemma scaleN1l : forall m, (- 1) *: m = - m.
-Proof. by move=> m; rewrite scaleNl scale1. Qed.
+Lemma scaleN1r : forall m, (- 1) *: m = - m.
+Proof. by move=> m; rewrite scaleNr scale1r. Qed.
 
-Lemma scaleNr : forall a m, a *: (- m) = - (a *: m).
+Lemma scalerN : forall a m, a *: (- m) = - (a *: m).
 Proof.
-by move=> a v; apply: (@addIr _ (a *: v)); rewrite -scale_addr !addNr scale0r.
+by move=> a v; apply: (@addIr _ (a *: v)); rewrite -scaler_addr !addNr scaler0.
 Qed.
 
-Lemma scale_subl : forall a b m, (a - b) *: m = a *: m - b *: m.
-Proof. by move=> a b m; rewrite scale_addl scaleNl. Qed.
+Lemma scaler_subl : forall a b m, (a - b) *: m = a *: m - b *: m.
+Proof. by move=> a b m; rewrite scaler_addl scaleNr. Qed.
 
-Lemma scale_subr : forall a m1 m2, a *: (m1 - m2) = a *: m1 - a *: m2.
-Proof. by move=> a m1 m2; rewrite scale_addr scaleNr. Qed.
+Lemma scaler_subr : forall a m1 m2, a *: (m1 - m2) = a *: m1 - a *: m2.
+Proof. by move=> a m1 m2; rewrite scaler_addr scalerN. Qed.
 
-Lemma scale_nat : forall n m, n%:R *: m = m *+ n.
+Lemma scaler_nat : forall n m, n%:R *: m = m *+ n.
 Proof.
-move=> n v; elim: n => /= [|n ]; first by rewrite scale0l.
-by rewrite !mulrS scale_addl ?scale1 => ->.
+move=> n v; elim: n => /= [|n ]; first by rewrite scale0r.
+by rewrite !mulrS scaler_addl ?scale1r => ->.
 Qed.
 
-Lemma scale_suml : forall m I r (P: pred I) F,
+Lemma scaler_suml : forall m I r (P : pred I) F,
  (\sum_(i <- r | P i) F i) *: m = \sum_(i <- r | P i) F i *: m.
 Proof.
-move=> m; exact: (big_morph _ (scale_addl m) (scale0l m)).
+move=> m; exact: (big_morph _ (scaler_addl m) (scale0r m)).
 Qed.
 
-Lemma scale_sumr : forall a I r (P : pred I) (F: I -> M),
+Lemma scaler_sumr : forall a I r (P : pred I) (F : I -> M),
    a *: (\sum_(i <- r | P i) F i) = \sum_(i <- r | P i) a *: F i.
 Proof.
-move=> m; exact: (big_morph _ (scale_addr m) (scale0r m)).
+move=> m; exact: (big_morph _ (scaler_addr m) (scaler0 m)).
 Qed.
 
 End LModuleTheory.
@@ -2713,20 +2718,20 @@ Definition ringM_div := ringM_div.
 Definition fieldM_unit := fieldM_unit.
 Definition fieldM_inv := fieldM_inv.
 Definition fieldM_div := fieldM_div.
-Definition scaleA := scaleA.
-Definition scale1 := scale1.
-Definition scale_addr := scale_addr.
-Definition scale_addl := scale_addl.
-Definition scale0l := scale0l.
+Definition scalerA := scalerA.
+Definition scale1r := scale1r.
+Definition scaler_addr := scaler_addr.
+Definition scaler_addl := scaler_addl.
+Definition scaler0 := scaler0.
 Definition scale0r := scale0r.
-Definition scaleNl := scaleNl.
-Definition scaleN1l := scaleN1l.
 Definition scaleNr := scaleNr.
-Definition scale_subl := scale_subl.
-Definition scale_subr := scale_subr.
-Definition scale_nat := scale_nat.
-Definition scale_suml := scale_suml.
-Definition scale_sumr := scale_sumr.
+Definition scaleN1r := scaleN1r.
+Definition scalerN := scalerN.
+Definition scaler_subl := scaler_subl.
+Definition scaler_subr := scaler_subr.
+Definition scaler_nat := scaler_nat.
+Definition scaler_suml := scaler_suml.
+Definition scaler_sumr := scaler_sumr.
 
 Implicit Arguments satP [F e f].
 Implicit Arguments solP [F n f].
@@ -2997,11 +3002,14 @@ Notation "[ 'closedFieldType' 'of' T 'for' cT ]" :=
 Notation "[ 'closedFieldType' 'of' T ]" := (@GRing.ClosedField.clone T _ _ id)
   (at level 0, format "[ 'closedFieldType'  'of'  T ]") : form_scope.
 
-
-Notation lmoduleType T := (GRing.LModule.type_of (Phant T)).
-Notation LModuleType R T m := (@GRing.LModule.pack R T _ m _ _ id _ id).
+Notation lmoduleType R := (GRing.LModule.type (Phant R)).
+Notation LModuleType R T m :=
+   (@GRing.LModule.pack _ (Phant R) T _ m _ _ id _ id).
 Notation LModuleMixin := GRing.LModule.Mixin.
-Notation "[ 'lmoduleType' [ R ] 'of' T 'for' cT ]" := (@GRing.LModule.clone R T cT _ idfun)
-  (at level 0, format "[ 'lmoduleType' [ R ]  'of'  T  'for'  cT ]") : form_scope.
-Notation "[ 'lmoduleType' [ R ] 'of' T ]" := (@GRing.LModule.clone R T _ _ id)
+Notation "[ 'lmoduleType' [ R ] 'of' T 'for' cT ]" :=
+  (@GRing.LModule.clone _ (Phant R) T cT _ idfun)
+  (at level 0, format "[ 'lmoduleType' [ R ]  'of'  T  'for'  cT ]")
+  : form_scope.
+Notation "[ 'lmoduleType' [ R ] 'of' T ]" :=
+  (@GRing.LModule.clone _ (Phant R) T _ _ id)
   (at level 0, format "[ 'lmoduleType' [ R ] 'of'  T ]") : form_scope.
