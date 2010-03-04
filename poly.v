@@ -495,45 +495,6 @@ Canonical Structure poly_ringType :=
 Canonical Structure polynomial_ringType :=
   Eval hnf in [ringType of polynomial R for poly_ringType].
 
-Definition scale_poly a p := \poly_(i < size p) (a * p`_i).
-
-Lemma scale_polyA : forall a b p,  
-  scale_poly a (scale_poly b p) = scale_poly (a * b) p.
-Proof.
-move=> a b p; apply/polyP=> n.
-move: (@leq_coef_size (scale_poly b p) n); rewrite !coef_poly.
-case: ltP=> Hu; last by rewrite mulr0 if_same.
-case: ltP=> Hv; first by rewrite mulrA.
-case: eqP=> He; first by rewrite -mulrA He mulr0.
-by move/(_ is_true_true).
-Qed.
-
-Lemma scale_poly1 : left_id 1 scale_poly.
-Proof.
-by move=> p; apply/polyP=> n; rewrite !coef_poly mul1r -coef_poly coefK.
-Qed.
-
-Lemma scale_poly_addr: forall a, {morph scale_poly a : p q / p + q}.
-Proof.
-move=> a p q; apply/polyP=> n.
-by rewrite coef_add ![(scale_poly _ _)`_n]coef_poly -{2 4 6}(mulr0 a) 
-           -!fun_if -mulr_addr -!coef_poly !coefK coef_add.
-Qed. 
-
-Lemma scale_poly_addl: forall p, {morph scale_poly^~ p : a b / a + b}.
-Proof.
-move=> p a b; apply/polyP=> n.
-by rewrite coef_add !coef_poly -{2}(mulr0 (a + b)) -{4}(mulr0 a) -{6}(mulr0 b)
-          -!fun_if -mulr_addl.
-Qed.
-
-Definition poly_lmoduleMixin := 
-  LModuleMixin scale_polyA scale_poly1 scale_poly_addr scale_poly_addl.
-Canonical Structure poly_lmoduleType :=
-  Eval hnf in LModuleType R {poly R} poly_lmoduleMixin.
-Canonical Structure polynomial_lmoduleType :=
-  Eval hnf in [lmoduleType[R] of polynomial R for poly_lmoduleType].
-
 Lemma polyC1 : 1%:P = 1. Proof. by []. Qed.
 
 Lemma polyseq1 : (1 : {poly R}) = [:: 1] :> seq R.
@@ -616,6 +577,51 @@ Qed.
 
 Lemma polyC_exp : forall n, {morph polyC : c / c ^+ n}.
 Proof. by elim=> // n IHn c; rewrite !exprS polyC_mul IHn. Qed.
+
+Definition scale_poly a p := \poly_(i < size p) (a * p`_i).
+
+Lemma scale_polyE: forall a p, scale_poly a p = a%:P * p.
+Proof.
+move=> a p; apply/polyP=> n.
+move: (@leq_coef_size (scale_poly a p) n).
+rewrite !coef_poly size_polyC.
+case: (a =P 0)=> /= Heq.
+  rewrite Heq mul0r if_same => _; case: ltP=> Hu //.
+  rewrite (eq_bigr (fun x => 0)); last by move=>*; rewrite coef0 mul0r.
+  by rewrite big_const; elim: #|_|=> //= m Hm; rewrite add0r.
+case: ltP=> // Hlt _.
+rewrite big_ord_recl (eq_bigr (fun x => 0)); last first.
+  by move=>*; rewrite coefC mul0r.
+rewrite big_const coefC /= subn0.
+by elim: #|_|=>  [|n1]; rewrite /= (addr0,add0r).
+Qed.
+
+Lemma scale_polyA : forall a b p,  
+  scale_poly a (scale_poly b p) = scale_poly (a * b) p.
+Proof. by move=>*; rewrite !scale_polyE mulrA polyC_mul. Qed.
+
+Lemma scale_poly1 : left_id 1 scale_poly.
+Proof. by move=> p; rewrite scale_polyE mul1r. Qed.
+
+Lemma scale_poly_addr: forall a, {morph scale_poly a : p q / p + q}.
+Proof. by move=> a p q; rewrite !scale_polyE mulr_addr. Qed.
+
+Lemma scale_poly_addl: forall p, {morph scale_poly^~ p : a b / a + b}.
+Proof. by move=> a p q; rewrite !scale_polyE polyC_add mulr_addl. Qed.
+
+Lemma scale_poly_mull: forall a p q, scale_poly a (p * q) = scale_poly a p * q.
+Proof. by move=>*; rewrite !scale_polyE mulrA. Qed.
+
+Definition poly_lmodMixin := 
+  LmodMixin scale_polyA scale_poly1 scale_poly_addr scale_poly_addl.
+Canonical Structure poly_lmodType :=
+  Eval hnf in LmodType R {poly R} poly_lmodMixin.
+Canonical Structure polynomial_lmodType :=
+  Eval hnf in [lmodType[R] of polynomial R for poly_lmodType].
+Canonical Structure poly_ncalgebraType :=
+  Eval hnf in  NCalgebraType R {poly R} poly_lmodMixin scale_poly_mull.
+Canonical Structure polynomial_ncalgebraType :=
+  Eval hnf in [ncalgebraType[R] of polynomial R for poly_ncalgebraType].
 
 (* Indeterminate, at last! *)
 

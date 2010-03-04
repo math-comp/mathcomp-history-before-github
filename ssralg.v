@@ -156,6 +156,14 @@ Require Import finfun bigops prime binomial.
 (*                          morphism is used heavily (e.g., the container    *)
 (*                          morphism in the parametricity sections of poly   *)
 (*                          and matrix, or the Frobenius section here).      *)
+(*  * Lmodule                                                                *)
+(*      lmodType R      == type for Lmodule structure over the ring R        *)
+(*      LmodMixin R     == builds the mixin containing the definition        *)
+(*                         of a Lmodule over the ring R                      *)
+(*      LmodType R T M  == packs the mixin M to build a Lmodule of type      *)
+(*                         lmodType R. (The underlying type T should have a  *)
+(*                         zmodType canonical structure)                     *)
+(*      a *: x          == the external operation of a Lmodule               *)
 (*                                                                           *)
 (* The Lemmas about theses structures are all contained in GRing.Theory.     *)
 (* Notations are defined in scope ring_scope (delimiter %R), except term and *)
@@ -2397,9 +2405,9 @@ Proof. by case: F => ? []. Qed.
 
 End ClosedFieldTheory.
 
-Module LModule.
+Module Lmodule.
 
-Section LModule.
+Section Lmodule.
 
 Variable R : Ring.type.
 Implicit Type phR : phant R.
@@ -2429,24 +2437,24 @@ Coercion eqType phR cT := Equality.Pack (@class phR cT) cT.
 Coercion choiceType phR cT := Choice.Pack (@class phR cT) cT.
 Coercion zmodType phR cT := Zmodule.Pack (@class phR cT) cT.
 
-End LModule.
+End Lmodule.
 
-End LModule.
+End Lmodule.
 
-Canonical Structure LModule.eqType.
-Canonical Structure LModule.choiceType.
-Canonical Structure LModule.zmodType.
-Bind Scope ring_scope with LModule.sort.
+Canonical Structure Lmodule.eqType.
+Canonical Structure Lmodule.choiceType.
+Canonical Structure Lmodule.zmodType.
+Bind Scope ring_scope with Lmodule.sort.
 
-Definition scale R (M : @LModule.type R (Phant R)) : R -> M -> M := 
-  LModule.scale (LModule.class M).
+Definition scale R (M : @Lmodule.type R (Phant R)) : R -> M -> M := 
+  Lmodule.scale (Lmodule.class M).
 
 Local Notation "*:%R" := (@scale _ _) : ring_scope.
 Local Notation "a *: m" := (scale a m) (at level 40) : ring_scope.
 
-Section LModuleTheory.
+Section LmoduleTheory.
 
-Variable (R : Ring.type) (M : LModule.type (Phant R)).
+Variable (R : Ring.type) (M : Lmodule.type (Phant R)).
 Implicit Type a b c : R.
 Implicit Type m : M.
 
@@ -2505,8 +2513,73 @@ Proof.
 move=> m; exact: (big_morph _ (scaler_addr m) (scaler0 m)).
 Qed.
 
-End LModuleTheory.
+End LmoduleTheory.
 
+
+Module NCalgebra.
+
+Section NCalgebra.
+
+Variable R : Ring.type.
+Implicit Type phR : phant R.
+
+Notation scale T L := (@scale R (@Lmodule.pack _ (Phant R) T _ L _ _ id _ id)).
+Definition axiom (T: Ring.type) (L: Lmodule.mixin_of R T) :=
+  forall k x y, scale T L k (x * y) = scale T L k x * y.
+
+Record class_of (T : Type) : Type := Class {
+  base1 :> Ring.class_of T;
+  mixin :> Lmodule.mixin_of R (Zmodule.Pack base1 T);
+  ext : @axiom (Ring.Pack base1 T) mixin
+}.
+
+Coercion base2 R m := Lmodule.Class (@mixin R m).
+
+Structure type phR := Pack {sort :> Type; _ : class_of sort; _ : Type}.
+Definition class phR (cT : type phR) :=
+  let: Pack _ c _ :=  cT return class_of cT in c.
+Definition clone phR T cT c of phant_id (@class phR cT) c := @Pack phR T c T.
+Definition pack phR T b0 m0 (axT: @axiom (@Ring.Pack T b0 T) m0) :=
+  fun bT b & phant_id (Ring.class bT) (b : Ring.class_of T) =>
+  fun mT m & phant_id (@Lmodule.class R phR mT) (@Lmodule.Class R T b m) =>
+  fun ax &  phant_id axT ax =>
+  Pack  (Phant R) (@Class T b m ax) T.
+
+Coercion eqType phR cT := Equality.Pack (@class phR cT) cT.
+Coercion choiceType phR cT := Choice.Pack (@class phR cT) cT.
+Coercion zmodType phR cT := Zmodule.Pack (@class phR cT) cT.
+Coercion ringType phR cT := Ring.Pack (@class phR cT) cT.
+Coercion lmoduleType phR cT := Lmodule.Pack phR (@class phR cT) cT.
+
+End NCalgebra.
+
+End NCalgebra.
+
+Canonical Structure NCalgebra.eqType.
+Canonical Structure NCalgebra.choiceType.
+Canonical Structure NCalgebra.zmodType.
+Canonical Structure NCalgebra.ringType.
+Canonical Structure NCalgebra.lmoduleType.
+Bind Scope ring_scope with NCalgebra.sort.
+
+Section NCalgebraTheory.
+
+Variable R : Ring.type.
+Variable A : NCalgebra.type (Phant R).
+Implicit Types k: R.
+Implicit Types x y: A.
+
+Lemma scaler_mull: forall k x y, k *: (x * y) = k *: x * y.
+Proof. exact: NCalgebra.ext. Qed.
+
+Lemma morph_sunit: morphism (fun k => k *: (1: A)).
+Proof.
+split=> [x y | x y |]; last by apply: scale1r.
+  by apply: scaler_subl.
+by rewrite -scaler_mull mul1r scalerA.
+Qed.
+
+End NCalgebraTheory.
 
 Module Theory.
 
@@ -2732,6 +2805,8 @@ Definition scaler_subr := scaler_subr.
 Definition scaler_nat := scaler_nat.
 Definition scaler_suml := scaler_suml.
 Definition scaler_sumr := scaler_sumr.
+Definition scaler_mull := scaler_mull.
+Definition morph_sunit := morph_sunit.
 
 Implicit Arguments satP [F e f].
 Implicit Arguments solP [F n f].
@@ -2803,9 +2878,15 @@ Canonical Structure GRing.mul_comoid.
 Canonical Structure GRing.muloid.
 Canonical Structure GRing.addoid.
 
-Canonical Structure GRing.LModule.eqType.
-Canonical Structure GRing.LModule.choiceType.
-Canonical Structure GRing.LModule.zmodType.
+Canonical Structure GRing.Lmodule.eqType.
+Canonical Structure GRing.Lmodule.choiceType.
+Canonical Structure GRing.Lmodule.zmodType.
+
+Canonical Structure GRing.NCalgebra.eqType.
+Canonical Structure GRing.NCalgebra.choiceType.
+Canonical Structure GRing.NCalgebra.zmodType.
+Canonical Structure GRing.NCalgebra.ringType.
+Canonical Structure GRing.NCalgebra.lmoduleType.
 
 Bind Scope ring_scope with GRing.Zmodule.sort.
 Bind Scope ring_scope with GRing.Ring.sort.
@@ -2816,7 +2897,8 @@ Bind Scope ring_scope with GRing.IntegralDomain.sort.
 Bind Scope ring_scope with GRing.Field.sort.
 Bind Scope ring_scope with GRing.DecidableField.sort.
 Bind Scope ring_scope with GRing.ClosedField.sort.
-Bind Scope ring_scope with GRing.LModule.sort.
+Bind Scope ring_scope with GRing.Lmodule.sort.
+Bind Scope ring_scope with GRing.NCalgebra.sort.
 
 Notation "0" := (GRing.zero _) : ring_scope.
 Notation "-%R" := (@GRing.opp _) : ring_scope.
@@ -3002,14 +3084,25 @@ Notation "[ 'closedFieldType' 'of' T 'for' cT ]" :=
 Notation "[ 'closedFieldType' 'of' T ]" := (@GRing.ClosedField.clone T _ _ id)
   (at level 0, format "[ 'closedFieldType'  'of'  T ]") : form_scope.
 
-Notation lmoduleType R := (GRing.LModule.type (Phant R)).
-Notation LModuleType R T m :=
-   (@GRing.LModule.pack _ (Phant R) T _ m _ _ id _ id).
-Notation LModuleMixin := GRing.LModule.Mixin.
-Notation "[ 'lmoduleType' [ R ] 'of' T 'for' cT ]" :=
-  (@GRing.LModule.clone _ (Phant R) T cT _ idfun)
-  (at level 0, format "[ 'lmoduleType' [ R ]  'of'  T  'for'  cT ]")
+Notation lmodType R := (GRing.Lmodule.type (Phant R)).
+Notation LmodType R T m :=
+   (@GRing.Lmodule.pack _ (Phant R) T _ m _ _ id _ id).
+Notation LmodMixin := GRing.Lmodule.Mixin.
+Notation "[ 'lmodType' [ R ] 'of' T 'for' cT ]" :=
+  (@GRing.Lmodule.clone _ (Phant R) T cT _ idfun)
+  (at level 0, format "[ 'lmodType' [ R ]  'of'  T  'for'  cT ]")
   : form_scope.
-Notation "[ 'lmoduleType' [ R ] 'of' T ]" :=
-  (@GRing.LModule.clone _ (Phant R) T _ _ id)
-  (at level 0, format "[ 'lmoduleType' [ R ] 'of'  T ]") : form_scope.
+Notation "[ 'lmodType' [ R ] 'of' T ]" :=
+  (@GRing.Lmodule.clone _ (Phant R) T _ _ id)
+  (at level 0, format "[ 'lmodType' [ R ] 'of'  T ]") : form_scope.
+
+Notation ncalgebraType R := (GRing.NCalgebra.type (Phant R)).
+Notation NCalgebraType R T m a :=
+   (@GRing.NCalgebra.pack _ (Phant R) T _ m a _ _ id _ _ id _ id).
+Notation "[ 'ncalgebraType' [ R ] 'of' T 'for' cT ]" :=
+  (@GRing.NCalgebra.clone _ (Phant R) T cT _ idfun)
+  (at level 0, format "[ 'ncalgebraType' [ R ]  'of'  T  'for'  cT ]")
+  : form_scope.
+Notation "[ 'ncalgebraType' [ R ] 'of' T ]" :=
+  (@GRing.NCalgebra.clone _ (Phant R) T _ _ id)
+  (at level 0, format "[ 'ncalgebraType' [ R ] 'of'  T ]") : form_scope.

@@ -451,18 +451,18 @@ Definition decField_finComUnitRingType := @ComUnitRing.Pack cT' clT cT.
 Definition decField_finIdomainType := @IntegralDomain.Pack cT' clT cT.
 End DecFieldJoins.
 
-Module LModule.
-Section LModule.
+Module Lmodule.
+Section Lmodule.
 Variable R : ringType.
 Implicit Type phR : phant R.
 
 Record class_of M :=
-  Class { base1 :> GRing.LModule.class_of R M ; ext :> mixin_of M base1 }.
+  Class { base1 :> GRing.Lmodule.class_of R M ; ext :> mixin_of M base1 }.
 Coercion base2 M (c : class_of M) := Zmodule.Class c.
 Structure type phR : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
 Definition class phR (cT : type phR) :=
   let: Pack _ c _ := cT return class_of cT in c.
-Definition pack phR := gen_pack (Pack phR) Class (@GRing.LModule.class R phR).
+Definition pack phR := gen_pack (Pack phR) Class (@GRing.Lmodule.class R phR).
 
 Coercion eqType phR cT := Equality.Pack (@class phR cT) cT.
 Coercion choiceType phR cT := Choice.Pack (@class phR cT) cT.
@@ -470,14 +470,14 @@ Coercion countType phR cT := Countable.Pack (fin_ (@class phR) cT) cT.
 Coercion finType phR cT := Finite.Pack (fin_ (@class phR) cT) cT.
 Coercion zmodType phR (cT : type phR) := GRing.Zmodule.Pack (@class phR cT) cT.
 Coercion finZmodType phR cT := Zmodule.Pack (@class phR cT) cT.
-Coercion lmoduleType phR cT := GRing.LModule.Pack phR (@class phR cT) cT.
+Coercion lmodType phR cT := GRing.Lmodule.Pack phR (@class phR cT) cT.
 Definition join_finType phR cT := 
-  @Finite.Pack (lmoduleType cT) (fin_ (@class phR) cT) cT.
+  @Finite.Pack (lmodType cT) (fin_ (@class phR) cT) cT.
 Definition join_finZmodType phR cT := 
-  @Zmodule.Pack (lmoduleType cT) (@class phR cT) cT.
+  @Zmodule.Pack (lmodType cT) (@class phR cT) cT.
 
-End LModule.
-End LModule.
+End Lmodule.
+End Lmodule.
 
 Module Theory.
 
@@ -628,13 +628,13 @@ Canonical Structure FinRing.decField_finUnitRingType.
 Canonical Structure FinRing.decField_finComUnitRingType.
 Canonical Structure FinRing.decField_finIdomainType.
 
-Canonical Structure FinRing.LModule.eqType.
-Canonical Structure FinRing.LModule.choiceType.
-Canonical Structure FinRing.LModule.countType.
-Canonical Structure FinRing.LModule.finType.
-Canonical Structure FinRing.LModule.zmodType.
-Canonical Structure FinRing.LModule.finZmodType.
-Canonical Structure FinRing.LModule.lmoduleType.
+Canonical Structure FinRing.Lmodule.eqType.
+Canonical Structure FinRing.Lmodule.choiceType.
+Canonical Structure FinRing.Lmodule.countType.
+Canonical Structure FinRing.Lmodule.finType.
+Canonical Structure FinRing.Lmodule.zmodType.
+Canonical Structure FinRing.Lmodule.finZmodType.
+Canonical Structure FinRing.Lmodule.lmodType.
 
 Bind Scope ring_scope with FinRing.Zmodule.sort.
 Bind Scope ring_scope with FinRing.Ring.sort.
@@ -643,7 +643,7 @@ Bind Scope ring_scope with FinRing.UnitRing.sort.
 Bind Scope ring_scope with FinRing.ComUnitRing.sort.
 Bind Scope ring_scope with FinRing.IntegralDomain.sort.
 Bind Scope ring_scope with FinRing.Field.sort.
-Bind Scope ring_scope with FinRing.LModule.sort.
+Bind Scope ring_scope with FinRing.Lmodule.sort.
 Bind Scope group_scope with FinRing.unit_of.
 
 Notation finZmodType := FinRing.Zmodule.type.
@@ -653,7 +653,7 @@ Notation finUnitRingType := FinRing.UnitRing.type.
 Notation finComUnitRingType := FinRing.ComUnitRing.type.
 Notation finIdomainType := FinRing.IntegralDomain.type.
 Notation finFieldType := FinRing.Field.type.
-Notation finLModuleType R := (FinRing.LModule.type (Phant R)).
+Notation finLmoduleType R := (FinRing.Lmodule.type (Phant R)).
 
 Local Notation do_pack pack T := (pack T _ _ id _ _ id).
 Notation "[ 'finZmodType' 'of' T ]" := (do_pack FinRing.Zmodule.pack T)
@@ -672,9 +672,9 @@ Notation "[ 'finIdomainType' 'of' T ]" :=
   (at level 0, format "[ 'finIdomainType'  'of'  T ]") : form_scope.
 Notation "[ 'finFieldType' 'of' T ]" := (do_pack FinRing.Field.pack T)
   (at level 0, format "[ 'finFieldType'  'of'  T ]") : form_scope.
-Notation "[ 'finLModuleType' [ R ] 'of' T ]" :=
-    (do_pack (@FinRing.LModule.pack _ (Phant R)) T)
-  (at level 0, format "[ 'finLModuleType' [ R ] 'of'  T ]") : form_scope.
+Notation "[ 'finLmoduleType' [ R ] 'of' T ]" :=
+    (do_pack (@FinRing.Lmodule.pack _ (Phant R)) T)
+  (at level 0, format "[ 'finLmoduleType' [ R ] 'of'  T ]") : form_scope.
 
 Notation "{ 'unit' R }" := (FinRing.unit_of (Phant R))
   (at level 0, format "{ 'unit'  R }") : type_scope.
@@ -715,8 +715,8 @@ Canonical Structure finField_baseFinGroupType (F : finFieldType) :=
   Eval hnf in [baseFinGroupType of F for +%R].
 Canonical Structure finField_finGroupType (F : finFieldType) :=
   Eval hnf in [finGroupType of F for +%R].
-Canonical Structure finLModule_baseFinGroupType
-                      (R : ringType) (M : finLModuleType R) :=
+Canonical Structure finLmodule_baseFinGroupType
+                      (R : ringType) (M : finLmoduleType R) :=
   Eval hnf in [baseFinGroupType of M for +%R].
 
 Canonical Structure zmod_baseFinGroupType (M : finZmodType) :=
@@ -751,10 +751,10 @@ Canonical Structure decField_baseFinGroupType (F : finFieldType) :=
   Eval hnf in [baseFinGroupType of F : decFieldType for +%R].
 Canonical Structure decField_finGroupType (F : finFieldType) :=
   Eval hnf in [finGroupType of F : decFieldType for +%R].
-Canonical Structure lmodule_baseFinGroupType
-                      (R : ringType) (M : finLModuleType R) :=
-  Eval hnf in [baseFinGroupType of M : lmoduleType R  for +%R].
-Canonical Structure lmodule_finGroupType
-                      (R : ringType) (M : finLModuleType R) :=
-  Eval hnf in [finGroupType of M : lmoduleType R for +%R].
+Canonical Structure lmod_baseFinGroupType
+                      (R : ringType) (M : finLmoduleType R) :=
+  Eval hnf in [baseFinGroupType of M : lmodType R  for +%R].
+Canonical Structure lmod_finGroupType
+                      (R : ringType) (M : finLmoduleType R) :=
+  Eval hnf in [finGroupType of M : lmodType R for +%R].
 
