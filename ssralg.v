@@ -2602,9 +2602,9 @@ Definition axiom T1 T2 (scalop: T1->T2->T2) (mulop: T2->T2->T2) :=
 
 Record class_of (T : Type) : Type :=
   Class {base :> NCalgebra.class_of R T; 
-   _ : axiom (Lmodule.scale (NCalgebra.mixin  base)) (Ring.mul (NCalgebra.base1 base))}.
+         _ : axiom (Lmodule.scale (NCalgebra.mixin  base)) (Ring.mul (NCalgebra.base1 base))}.
 
-Coercion base2 b   c A := Lmodule.Class (@NCalgebra.mixin b c A).
+(* Coercion base2 b   c A := Lmodule.Class (@NCalgebra.mixin b c A).*)
 
 
 Structure type phR :Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
@@ -2636,6 +2636,7 @@ Canonical Structure Algebra.eqType.
 Canonical Structure Algebra.choiceType.
 Canonical Structure Algebra.zmodType.
 Canonical Structure Algebra.ringType.
+Canonical Structure Algebra.lmoduleType.
 Canonical Structure Algebra.ncalgebraType.
 
 Bind Scope ring_scope with Algebra.sort.
@@ -2648,10 +2649,8 @@ Implicit Types k: R.
 Implicit Types x y: A.
 
 
-(* PB de typage un element de l'algebre A , n'est pas reconnu comme un element du Lmodule associé
-
-Lemma scaler_com: forall (k:R)  (x y:A) , k *: x * y = x * (k *: y).
-Proof. exact: Algebra.axiom. Qed. *)
+Lemma scaler_com: forall (k:R)  (x y:A) , k *: (x * y) = x * (k *: y).
+Proof. by case : A => T []. Qed.
 
 
 End AlgebraTheory.
