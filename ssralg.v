@@ -2551,6 +2551,10 @@ Coercion zmodType phR cT := Zmodule.Pack (@class phR cT) cT.
 Coercion ringType phR cT := Ring.Pack (@class phR cT) cT.
 Coercion lmoduleType phR cT := Lmodule.Pack phR (@class phR cT) cT.
 
+Definition lmod_ringType phR  cT :=
+  @Lmodule.Pack (@ringType phR cT)  (Phant cT)  cT.
+
+
 End NCalgebra.
 
 End NCalgebra.
