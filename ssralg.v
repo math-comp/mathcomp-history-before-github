@@ -2552,7 +2552,11 @@ Coercion ringType phR cT := Ring.Pack (@class phR cT) cT.
 Coercion lmoduleType phR cT := Lmodule.Pack phR (@class phR cT) cT.
 
 Definition lmod_ringType phR  cT :=
-  @Lmodule.Pack (@ringType phR cT)  (Phant cT)  cT.
+  @Lmodule.Pack R phR  (Ring.sort (@ringType phR cT)) (base2 (class cT)) (Ring.sort (ringType cT)).
+
+(* Definition ring_lmodType phR cT  :=
+  @Ring.Pack  (Lmodule.sort (lmoduleType cT)) (@class phR cT) cT.
+*)
 
 
 End NCalgebra.
