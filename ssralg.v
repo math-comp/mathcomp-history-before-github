@@ -2581,6 +2581,81 @@ Qed.
 
 End NCalgebraTheory.
 
+Module Algebra.
+
+Section Algebra.
+
+Variable R : Ring.type.
+Implicit Type phR : phant R.
+
+(* Definition axiom (A: (NCalgebra.type (Phant R))) :=
+  forall k (x y:A),  k *: (x * y) = x * (k *: y).*)
+
+
+Definition axiom T1 T2 (scalop: T1->T2->T2) (mulop: T2->T2->T2) :=  
+               forall k x y,  (scalop k (mulop  x  y)) = (mulop x (scalop k y)) .
+
+
+(*Record class_of (T : Type) : Type :=
+  Class {base :> NCalgebra.class_of R T; _ : axiom (NCalgebra.Pack  (Phant R)  base R)}.*)
+
+
+Record class_of (T : Type) : Type :=
+  Class {base :> NCalgebra.class_of R T; 
+   _ : axiom (Lmodule.scale (NCalgebra.mixin  base)) (Ring.mul (NCalgebra.base1 base))}.
+
+Coercion base2 b   c A := Lmodule.Class (@NCalgebra.mixin b c A).
+
+
+Structure type phR :Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
+Definition class phR (cT : type phR) :=
+  let: Pack _ c _ :=  cT return class_of cT in c.
+Definition clone phR T cT c of phant_id (@class phR cT) c := @Pack phR T c T.
+
+ Definition pack phR T scale0 mul0 (axT : @axiom R T scale0 mul0) :=
+  fun bT b & phant_id (@NCalgebra.class R phR bT) b =>
+  fun    ax  & phant_id axT ax => Pack phR (@Class T b ax) T.
+
+(* Definition pack phR T  (axT : @axiom T ) :=
+  fun bT b & phant_id (@NCalgebra.class R phR bT) b =>
+  fun    ax  & phant_id axT ax => Pack phR (@Class T b ax) T.*)
+
+
+Coercion eqType phR cT := Equality.Pack (@class phR cT) cT.
+Coercion choiceType phR cT := Choice.Pack (@class phR cT) cT.
+Coercion zmodType phR cT := Zmodule.Pack (@class phR cT) cT.
+Coercion ringType phR cT := Ring.Pack (@class phR cT) cT.
+Coercion lmoduleType phR cT := Lmodule.Pack phR (@class phR cT) cT.
+Coercion ncalgebraType phR cT := NCalgebra.Pack phR (@class phR cT) cT.
+
+End Algebra.
+
+End Algebra.
+
+Canonical Structure Algebra.eqType.
+Canonical Structure Algebra.choiceType.
+Canonical Structure Algebra.zmodType.
+Canonical Structure Algebra.ringType.
+Canonical Structure Algebra.ncalgebraType.
+
+Bind Scope ring_scope with Algebra.sort.
+
+Section AlgebraTheory.
+
+Variable R : Ring.type.
+Variable A : Algebra.type (Phant R).
+Implicit Types k: R.
+Implicit Types x y: A.
+
+
+(* PB de typage un element de l'algebre A , n'est pas reconnu comme un element du Lmodule associé
+
+Lemma scaler_com: forall (k:R)  (x y:A) , k *: x * y = x * (k *: y).
+Proof. exact: Algebra.axiom. Qed. *)
+
+
+End AlgebraTheory.
+
 Module Theory.
 
 Definition addrA := addrA.
