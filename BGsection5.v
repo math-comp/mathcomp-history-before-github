@@ -27,27 +27,28 @@ Definition narrow p G := exists2 E, E \in 'E_p^2(G) & E \in 'E*_p(G).
 Notation "p .-narrow" := (narrow p)
   (at level 2, format "p .-narrow") : group_scope.
 
-Variables (R : {group gT}) (p : nat) (pR : p.-group R) (rR : 2 < 'r(R)).
+Variables (R : {group gT}) (p : nat).
+Hypotheses (pR : p.-group R) (oddR : odd #|R|) (rR : 2 < 'r(R)).
 
 Let ntR : R != 1%G. Proof. by case: eqP rR => // ->; rewrite rank1. Qed.
 Let p_pr : prime p. Proof. by case: (pgroup_pdiv pR ntR). Qed.
 
 (* B&G 5.1(a) *)
-Lemma p_rank_3_SCN : odd #|R| -> exists A, A \in 'SCN_3(R).
+Lemma p_rank_3_SCN : exists A, A \in 'SCN_3(R).
 Proof.
-by move=> oddR; apply/set0Pn; rewrite -(rank2_SCN3_empty pR oddR) leqNgt rR.
+by apply/set0Pn; rewrite -(rank2_SCN3_empty pR oddR) leqNgt rR.
 Qed.
 
 (* B&G 5.1(b) *)
 Lemma p_rank_3_normal_abelem_SCN : forall E, 
-    odd #|R| -> E \in 'E_p^2(R) -> E <| R ->
+  E \in 'E_p^2(R) -> E <| R ->
   exists2 B, B \in 'SCN_3(R) & E \subset B.
 Proof.
-move=> E oddR EE nER.
+move=> E EE nER.
 have pgt1 := prime_gt1 p_pr; have pE := pgroupS (normal_sub nER) pR.
 case/pnElemP: EE=> sER abeE cardE; have {nER} nER := normal_norm nER.
 have [B nBR pnelemB] : exists2 B : {group gT}, B <| R & B \in 'E_p^3(R). 
-  have [C] := p_rank_3_SCN oddR.
+  have [C] := p_rank_3_SCN.
   case/setIdP=> scnC rC; have [nCR cCC] := SCN_P _ _ scnC.
   case/maxgroupP: (SCN_max scnC); case/andP => _ abelianC maxC.
   have pC : p.-group C := pgroupS (normal_sub nCR) pR.
@@ -146,12 +147,12 @@ Proof. exact: char_norm_trans (Ohm_char 1 _) (char_norm (ucn_char 2 R)). Qed.
 
 (* B&G 5.2 *)
 Lemma p_rank_3_maxElem_2_Ohm_ucn : forall E,
-    odd #|R| -> E \in 'E*_p(R) -> 'r(E) = 2 ->
+    E \in 'E*_p(R) -> 'r(E) = 2 ->
   [/\ ~~ (E \subset T), 
       #| Z | = p, [group of W] \in 'E_p^2(R),
       T \char R & #| R : T | = p ].
 Proof.
-move=> E oddR maE rE; case/pmaxElemP:(maE); case/pElemP=> sER abeE maxE.
+move=> E maE rE; case/pmaxElemP:(maE); case/pElemP=> sER abeE maxE.
 have pZ := (pgroupS (center_sub _) pR).
 have cE : #|E| = (p^2)%N.
   case: (pgroup_pdiv (pgroupS sER pR)) => [|[_ _ [r cE]]].
@@ -215,7 +216,7 @@ case: (eqsVneq E 'C_W(E)) => [defCEW | CEWnE].
   have nER : E <| R by rewrite /normal sER -commg_subl (proper_sub sCERE).
   have Ep2E : E \in 'E_p^2(R).
     by apply/pnElemP; rewrite abeE sER cE pfactorK.
-  case: (p_rank_3_normal_abelem_SCN oddR Ep2E nER) => B scn3B sEB.
+  case: (p_rank_3_normal_abelem_SCN Ep2E nER) => B scn3B sEB.
   case/setIdP: scn3B=> scnB rankB; case/SCN_P: scnB=> nBR CB.
   suff rb :'r(B) = 2 by rewrite rb in rankB. 
   rewrite (rank_pgroup (pgroupS _ pR)); last by rewrite -CB subIset ?subxx.
@@ -377,9 +378,9 @@ rewrite centsC (subset_trans _ aH) // (subset_trans _ sEH)//.
 by rewrite /E /= -defOCRR0 mulG_subl.
 Qed.
 
-Lemma narrow_CR0R1 : odd #|R| -> p.-narrow R -> CR0R1 p R.
+Lemma narrow_CR0R1 : p.-narrow R -> CR0R1 p R.
 Proof.
-move=> oddR [E]; case/pnElemP=> sER abeE cE maxE.
+move=> [E]; case/pnElemP=> sER abeE cE maxE.
 have rCRE : 'r('C_R(E)) = 2.
   by rewrite -rank_Ohm1 (Ohm_cent maxE pR) (rank_abelem abeE).
 have {cE} cE : #|E| = (p^2)%N.
@@ -441,7 +442,7 @@ Qed.
 
 (* B&G 5.3 *)
 Theorem odd_rank3_narrow : 
-    odd #|R| -> p.-narrow R ->
+    p.-narrow R ->
   [/\ (forall H, H \subset T -> ~~ (H \in 'E_p^2(R) :&: 'E*_p(R))),
       #|Z| = p /\ [group of W] \in 'E_p^2(R),
       T \char R /\ #|R : T| = p &
@@ -450,14 +451,14 @@ Theorem odd_rank3_narrow :
           [/\ cyclic 'C_T(S), S :&: R^`(1) = 1, S :&: T = 1 &
               'C_R(S) = S \x 'C_T(S)]].
 Proof.
-move=> oddR nR; have [E pab2E pmaxE] := nR.
+move=> nR; have [E pab2E pmaxE] := nR.
 have rE : 'r(E) = 2.
   by case/pnElemP: pab2E=> _ pabE rE; rewrite (rank_abelem pabE).
-case: (p_rank_3_maxElem_2_Ohm_ucn oddR pmaxE rE)=> nsET cZ e2W charT idxT.
+case: (p_rank_3_maxElem_2_Ohm_ucn pmaxE rE)=> nsET cZ e2W charT idxT.
 rewrite charT idxT e2W cZ; split=> // [H sHT|S cS sSR rS].
   apply/negP; case/setIP=> e2H maxH.
   have rH : 'r(H) = 2 by case/pnElemP: e2H=> _ pabH; rewrite (rank_abelem pabH).
-  case: (p_rank_3_maxElem_2_Ohm_ucn oddR maxH rH)=> nsHT *.
+  case: (p_rank_3_maxElem_2_Ohm_ucn maxH rH)=> nsHT *.
   by move/negP: nsHT; apply.
 have TI_SZ : S :&: Z = 1.
   rewrite prime_TIg ?cS //= -/Z.
@@ -489,7 +490,7 @@ have maxSZ : SZ \in 'E*_p(R).
   move=> _ _ [[->|[-> //| n cH]]]; first rewrite leq_exp2l ?prime_gt1 //.
   admit.
 have nsSZT : ~~ (SZ \subset T).
-  by case: (p_rank_3_maxElem_2_Ohm_ucn oddR maxSZ rSZ).
+  by case: (p_rank_3_maxElem_2_Ohm_ucn maxSZ rSZ).
 have sZT : Z \subset T.
   rewrite subsetI sZR centsC (subset_trans _ (subsetIr R _)) // defCRZ.
   exact: (subset_trans (Ohm_sub 1 _) (ucn_sub _ _)).
