@@ -70,13 +70,13 @@ rewrite /n (cardD1 x1) ltnS lt0n; case/existsP=> x2 /=.
 by rewrite eq_sym andbT -odd_tperm; exists (tperm x1 x2); rewrite ?inE.
 Qed.
 
-Lemma card_Sym : #|'Sym_T| = fact n.
+Lemma card_Sym : #|'Sym_T| = n`!.
 Proof.
 rewrite -[n]cardsE -card_perm; apply: eq_card => p.
 by apply/idP/subsetP=> [? ?|]; rewrite !inE.
 Qed.
 
-Lemma card_Alt : 1 < n -> (2 * #|'Alt_T|)%N = fact n.
+Lemma card_Alt : 1 < n -> (2 * #|'Alt_T|)%N = n`!.
 Proof.
 by move/Alt_index <-; rewrite mulnC (LaGrange Alt_subset) card_Sym.
 Qed.

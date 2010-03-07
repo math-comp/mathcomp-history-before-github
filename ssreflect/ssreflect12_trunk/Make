@@ -14,14 +14,14 @@ theories/seq.v
 theories/choice.v
 theories/paths.v
 theories/div.v
-theories/prime.v
-theories/binomial.v
 theories/fintype.v
 theories/connect.v
 theories/tuple.v
 theories/finfun.v
 theories/bigops.v
+theories/prime.v
 theories/finset.v
+theories/binomial.v
 theories/groups.v
 theories/morphisms.v
 theories/gprod.v

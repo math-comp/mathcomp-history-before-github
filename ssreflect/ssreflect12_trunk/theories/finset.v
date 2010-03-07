@@ -1742,7 +1742,6 @@ Implicit Arguments set_partition_big [T R idx op D K F].
 Prenex Implicits cover trivIset partition cover_at trivIsetP.
 Prenex Implicits preim_at preim_partition.
 
-
 (**********************************************************************)
 (*                                                                    *)
 (*  Maximum and minimun (sub)set with respect to a given pred         *)

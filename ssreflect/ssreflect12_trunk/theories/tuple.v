@@ -296,6 +296,12 @@ Lemma tuple_map_ord : forall T' (t : n.-tuple T'),
   t = [tuple of map (tnth t) ord_tuple].
 Proof. by move=> T' t; apply: val_inj => /=; rewrite map_tnth_enum. Qed.
 
+Lemma tnth_ord_tuple : forall i, tnth ord_tuple i = i.
+Proof.
+move=> i; apply: val_inj; rewrite (tnth_nth i) -(nth_map _ 0) ?size_tuple //.
+by rewrite /= enumT unlock val_ord_enum nth_iota.
+Qed.
+
 End UseFinTuple.
 
 

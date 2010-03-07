@@ -156,6 +156,14 @@ Require Import finfun bigops prime binomial.
 (*                          morphism is used heavily (e.g., the container    *)
 (*                          morphism in the parametricity sections of poly   *)
 (*                          and matrix, or the Frobenius section here).      *)
+(*  * Lmodule                                                                *)
+(*      lmodType R      == type for Lmodule structure over the ring R        *)
+(*      LmodMixin R     == builds the mixin containing the definition        *)
+(*                         of a Lmodule over the ring R                      *)
+(*      LmodType R T M  == packs the mixin M to build a Lmodule of type      *)
+(*                         lmodType R. (The underlying type T should have a  *)
+(*                         zmodType canonical structure)                     *)
+(*      a *: x          == the external operation of a Lmodule               *)
 (*                                                                           *)
 (* The Lemmas about theses structures are all contained in GRing.Theory.     *)
 (* Notations are defined in scope ring_scope (delimiter %R), except term and *)
@@ -379,6 +387,7 @@ Lemma sumr_const : forall (I : finType) (A : pred I) (x : M),
 Proof. by move=> I A x; rewrite big_const -iteropE. Qed.
 
 End ZmoduleTheory.
+
 
 Module Ring.
 
@@ -637,7 +646,7 @@ by rewrite mulrA -mulN1r (commr_exp _ (commrN1 _)) exprSr !mulrA.
 Qed.
 
 Lemma exprn_addl_comm : forall x y n, comm x y ->
-  (x + y) ^+ n = \sum_(i < n.+1) (x ^+ (n - i) * y ^+ i) *+ bin n i.
+  (x + y) ^+ n = \sum_(i < n.+1) (x ^+ (n - i) * y ^+ i) *+ 'C(n, i).
 Proof.
 move=> x y n cxy.
 elim: n => [|n IHn]; rewrite big_ord_recl mulr1 ?big_ord0 ?addr0 //=.
@@ -649,7 +658,8 @@ by rewrite  subSS (commr_exp _ (commr_sym cxy)) -mulrA -exprS -mulrn_addr.
 Qed.
 
 Lemma exprn_subl_comm : forall x y n, comm x y ->
-  (x - y) ^+ n = \sum_(i < n.+1) ((-1) ^+ i * x ^+ (n - i) * y ^+ i) *+ bin n i.
+  (x - y) ^+ n =
+      \sum_(i < n.+1) ((-1) ^+ i * x ^+ (n - i) * y ^+ i) *+ 'C(n, i).
 Proof.
 move=> x y n cxy; rewrite exprn_addl_comm; last exact: commr_opp.
 by apply: eq_bigr => i _; congr (_ *+ _); rewrite -commr_sign -mulrA -exprN.
@@ -699,7 +709,7 @@ move=> q; apply/andP/eqP=> [[q_pr q0] | ->]; last by rewrite charf0.
 by apply/eqP; rewrite eq_sym -dvdn_prime2 // dvdn_charf.
 Qed.
 
-Lemma bin_lt_charf_0 : forall k, 0 < k < p -> (bin p k)%:R = 0 :> R.
+Lemma bin_lt_charf_0 : forall k, 0 < k < p -> 'C(p, k)%:R = 0 :> R.
 Proof. by move=> k lt0kp; apply/eqP; rewrite -dvdn_charf prime_dvd_bin. Qed.
 
 Local Notation "x ^f" := (Frobenius_aut charFp x).
@@ -882,11 +892,12 @@ by move=> n I r P F; rewrite (big_morph _ (exprn_mull n) (exp1rn _ n)).
 Qed.
 
 Lemma exprn_addl : forall x y n,
-  (x + y) ^+ n = \sum_(i < n.+1) (x ^+ (n - i) * y ^+ i) *+ bin n i.
+  (x + y) ^+ n = \sum_(i < n.+1) (x ^+ (n - i) * y ^+ i) *+ 'C(n, i).
 Proof. by move=> x y n; rewrite exprn_addl_comm //; exact: mulrC. Qed.
 
 Lemma exprn_subl : forall x y n,
-  (x - y) ^+ n = \sum_(i < n.+1) ((-1) ^+ i * x ^+ (n - i) * y ^+ i) *+ bin n i.
+  (x - y) ^+ n =
+     \sum_(i < n.+1) ((-1) ^+ i * x ^+ (n - i) * y ^+ i) *+ 'C(n, i).
 Proof. by move=> x y n; rewrite exprn_subl_comm //; exact: mulrC. Qed.
 
 Lemma subr_expn : forall x y n,
@@ -2394,6 +2405,264 @@ Proof. by case: F => ? []. Qed.
 
 End ClosedFieldTheory.
 
+Module Lmodule.
+
+Section Lmodule.
+
+Variable R : Ring.type.
+Implicit Type phR : phant R.
+
+Structure mixin_of (M : Zmodule.type) : Type := Mixin {
+  scale : R -> M -> M;
+  _ : forall a b m,  scale a (scale b m) = scale (a * b) m;
+  _ : left_id 1 scale;
+  _ : forall a, {morph scale a : m n / m + n};
+  _ : forall m, {morph scale^~ m : a b / a + b}
+}.
+
+Structure class_of M := Class {
+  base :> Zmodule.class_of M;
+  ext :> mixin_of (Zmodule.Pack base M)
+}.
+
+Structure type phR := Pack {sort :> Type; _ : class_of sort; _ : Type}.
+Definition class phR (cT : type phR) :=
+  let: Pack _ c _ :=  cT return class_of cT in c.
+Definition clone phR T cT c of phant_id (@class phR cT) c := @Pack phR T c T.
+Definition pack phR T b0 (m0 : mixin_of (@Zmodule.Pack T b0 T)) :=
+  fun bT b & phant_id (Zmodule.class bT) b =>
+  fun    m & phant_id m0 m => Pack phR (@Class T b m) T.
+
+Coercion eqType phR cT := Equality.Pack (@class phR cT) cT.
+Coercion choiceType phR cT := Choice.Pack (@class phR cT) cT.
+Coercion zmodType phR cT := Zmodule.Pack (@class phR cT) cT.
+
+End Lmodule.
+
+End Lmodule.
+
+Canonical Structure Lmodule.eqType.
+Canonical Structure Lmodule.choiceType.
+Canonical Structure Lmodule.zmodType.
+Bind Scope ring_scope with Lmodule.sort.
+
+Definition scale R (M : @Lmodule.type R (Phant R)) : R -> M -> M := 
+  Lmodule.scale (Lmodule.class M).
+
+Local Notation "*:%R" := (@scale _ _) : ring_scope.
+Local Notation "a *: m" := (scale a m) (at level 40) : ring_scope.
+
+Section LmoduleTheory.
+
+Variable (R : Ring.type) (M : Lmodule.type (Phant R)).
+Implicit Type a b c : R.
+Implicit Type m : M.
+
+Lemma scalerA : forall a b m, a *: (b *: m) = a * b *: m.
+Proof. by case: M => ? [] ? []. Qed.
+
+Lemma scale1r : @left_id R M 1 *:%R.
+Proof. by case: M => ? [] ? []. Qed.
+
+Lemma scaler_addr : forall a, {morph (scale a : M -> M) : x y / x + y}.
+Proof. by case: M => ? [] ? []. Qed.
+
+Lemma scaler_addl : forall m, {morph (@scale _ _)^~ m : a b / a + b}.
+Proof. by case: M => ? [] ? []. Qed.
+
+Lemma scale0r : forall m, 0 *: m = 0.
+Proof. by move=> m; apply: (@addIr _ (1 *:m)); rewrite -scaler_addl !add0r. Qed.
+
+Lemma scaler0 : forall a, a *: 0 = 0 :> M.
+Proof. by move=> a; rewrite -{1}(scale0r 0) scalerA mulr0 scale0r. Qed.
+
+Lemma scaleNr : forall a m, - a *: m = - (a *: m).
+Proof.
+by move=> a m; apply: (@addIr _ (a *: m)); rewrite -scaler_addl !addNr scale0r.
+Qed.
+
+Lemma scaleN1r : forall m, (- 1) *: m = - m.
+Proof. by move=> m; rewrite scaleNr scale1r. Qed.
+
+Lemma scalerN : forall a m, a *: (- m) = - (a *: m).
+Proof.
+by move=> a v; apply: (@addIr _ (a *: v)); rewrite -scaler_addr !addNr scaler0.
+Qed.
+
+Lemma scaler_subl : forall a b m, (a - b) *: m = a *: m - b *: m.
+Proof. by move=> a b m; rewrite scaler_addl scaleNr. Qed.
+
+Lemma scaler_subr : forall a m1 m2, a *: (m1 - m2) = a *: m1 - a *: m2.
+Proof. by move=> a m1 m2; rewrite scaler_addr scalerN. Qed.
+
+Lemma scaler_nat : forall n m, n%:R *: m = m *+ n.
+Proof.
+move=> n v; elim: n => /= [|n ]; first by rewrite scale0r.
+by rewrite !mulrS scaler_addl ?scale1r => ->.
+Qed.
+
+Lemma scaler_suml : forall m I r (P : pred I) F,
+ (\sum_(i <- r | P i) F i) *: m = \sum_(i <- r | P i) F i *: m.
+Proof.
+move=> m; exact: (big_morph _ (scaler_addl m) (scale0r m)).
+Qed.
+
+Lemma scaler_sumr : forall a I r (P : pred I) (F : I -> M),
+   a *: (\sum_(i <- r | P i) F i) = \sum_(i <- r | P i) a *: F i.
+Proof.
+move=> m; exact: (big_morph _ (scaler_addr m) (scaler0 m)).
+Qed.
+
+End LmoduleTheory.
+
+
+Module NCalgebra.
+
+Section NCalgebra.
+
+Variable R : Ring.type.
+Implicit Type phR : phant R.
+
+Notation scale T L := (@scale R (@Lmodule.pack _ (Phant R) T _ L _ _ id _ id)).
+Definition axiom (T: Ring.type) (L: Lmodule.mixin_of R T) :=
+  forall k x y, scale T L k (x * y) = scale T L k x * y.
+
+Record class_of (T : Type) : Type := Class {
+  base1 :> Ring.class_of T;
+  mixin :> Lmodule.mixin_of R (Zmodule.Pack base1 T);
+  ext : @axiom (Ring.Pack base1 T) mixin
+}.
+
+Coercion base2 R m := Lmodule.Class (@mixin R m).
+
+Structure type phR := Pack {sort :> Type; _ : class_of sort; _ : Type}.
+Definition class phR (cT : type phR) :=
+  let: Pack _ c _ :=  cT return class_of cT in c.
+Definition clone phR T cT c of phant_id (@class phR cT) c := @Pack phR T c T.
+Definition pack phR T b0 m0 (axT: @axiom (@Ring.Pack T b0 T) m0) :=
+  fun bT b & phant_id (Ring.class bT) (b : Ring.class_of T) =>
+  fun mT m & phant_id (@Lmodule.class R phR mT) (@Lmodule.Class R T b m) =>
+  fun ax &  phant_id axT ax =>
+  Pack  (Phant R) (@Class T b m ax) T.
+
+Coercion eqType phR cT := Equality.Pack (@class phR cT) cT.
+Coercion choiceType phR cT := Choice.Pack (@class phR cT) cT.
+Coercion zmodType phR cT := Zmodule.Pack (@class phR cT) cT.
+Coercion ringType phR cT := Ring.Pack (@class phR cT) cT.
+Coercion lmoduleType phR cT := Lmodule.Pack phR (@class phR cT) cT.
+
+Definition lmod_ringType phR  cT :=
+  @Lmodule.Pack R phR  (Ring.sort (@ringType phR cT)) (base2 (class cT)) (Ring.sort (ringType cT)).
+
+(* Definition ring_lmodType phR cT  :=
+  @Ring.Pack  (Lmodule.sort (lmoduleType cT)) (@class phR cT) cT.
+*)
+
+
+End NCalgebra.
+
+End NCalgebra.
+
+Canonical Structure NCalgebra.eqType.
+Canonical Structure NCalgebra.choiceType.
+Canonical Structure NCalgebra.zmodType.
+Canonical Structure NCalgebra.ringType.
+Canonical Structure NCalgebra.lmoduleType.
+Bind Scope ring_scope with NCalgebra.sort.
+
+Section NCalgebraTheory.
+
+Variable R : Ring.type.
+Variable A : NCalgebra.type (Phant R).
+Implicit Types k: R.
+Implicit Types x y: A.
+
+Lemma scaler_mull: forall k x y, k *: (x * y) = k *: x * y.
+Proof. exact: NCalgebra.ext. Qed.
+
+Lemma morph_sunit: morphism (fun k => k *: (1: A)).
+Proof.
+split=> [x y | x y |]; last by apply: scale1r.
+  by apply: scaler_subl.
+by rewrite -scaler_mull mul1r scalerA.
+Qed.
+
+End NCalgebraTheory.
+
+Module Algebra.
+
+Section Algebra.
+
+Variable R : Ring.type.
+Implicit Type phR : phant R.
+
+(* Definition axiom (A: (NCalgebra.type (Phant R))) :=
+  forall k (x y:A),  k *: (x * y) = x * (k *: y).*)
+
+
+Definition axiom T1 T2 (scalop: T1->T2->T2) (mulop: T2->T2->T2) :=  
+               forall k x y,  (scalop k (mulop  x  y)) = (mulop x (scalop k y)) .
+
+
+(*Record class_of (T : Type) : Type :=
+  Class {base :> NCalgebra.class_of R T; _ : axiom (NCalgebra.Pack  (Phant R)  base R)}.*)
+
+
+Record class_of (T : Type) : Type :=
+  Class {base :> NCalgebra.class_of R T; 
+         _ : axiom (Lmodule.scale (NCalgebra.mixin  base)) (Ring.mul (NCalgebra.base1 base))}.
+
+(* Coercion base2 b   c A := Lmodule.Class (@NCalgebra.mixin b c A).*)
+
+
+Structure type phR :Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
+Definition class phR (cT : type phR) :=
+  let: Pack _ c _ :=  cT return class_of cT in c.
+Definition clone phR T cT c of phant_id (@class phR cT) c := @Pack phR T c T.
+
+ Definition pack phR T scale0 mul0 (axT : @axiom R T scale0 mul0) :=
+  fun bT b & phant_id (@NCalgebra.class R phR bT) b =>
+  fun    ax  & phant_id axT ax => Pack phR (@Class T b ax) T.
+
+(* Definition pack phR T  (axT : @axiom T ) :=
+  fun bT b & phant_id (@NCalgebra.class R phR bT) b =>
+  fun    ax  & phant_id axT ax => Pack phR (@Class T b ax) T.*)
+
+
+Coercion eqType phR cT := Equality.Pack (@class phR cT) cT.
+Coercion choiceType phR cT := Choice.Pack (@class phR cT) cT.
+Coercion zmodType phR cT := Zmodule.Pack (@class phR cT) cT.
+Coercion ringType phR cT := Ring.Pack (@class phR cT) cT.
+Coercion lmoduleType phR cT := Lmodule.Pack phR (@class phR cT) cT.
+Coercion ncalgebraType phR cT := NCalgebra.Pack phR (@class phR cT) cT.
+
+End Algebra.
+
+End Algebra.
+
+Canonical Structure Algebra.eqType.
+Canonical Structure Algebra.choiceType.
+Canonical Structure Algebra.zmodType.
+Canonical Structure Algebra.ringType.
+Canonical Structure Algebra.lmoduleType.
+Canonical Structure Algebra.ncalgebraType.
+
+Bind Scope ring_scope with Algebra.sort.
+
+Section AlgebraTheory.
+
+Variable R : Ring.type.
+Variable A : Algebra.type (Phant R).
+Implicit Types k: R.
+Implicit Types x y: A.
+
+
+Lemma scaler_com: forall (k:R)  (x y:A) , k *: (x * y) = x * (k *: y).
+Proof. by case : A => T []. Qed.
+
+
+End AlgebraTheory.
+
 Module Theory.
 
 Definition addrA := addrA.
@@ -2604,6 +2873,22 @@ Definition ringM_div := ringM_div.
 Definition fieldM_unit := fieldM_unit.
 Definition fieldM_inv := fieldM_inv.
 Definition fieldM_div := fieldM_div.
+Definition scalerA := scalerA.
+Definition scale1r := scale1r.
+Definition scaler_addr := scaler_addr.
+Definition scaler_addl := scaler_addl.
+Definition scaler0 := scaler0.
+Definition scale0r := scale0r.
+Definition scaleNr := scaleNr.
+Definition scaleN1r := scaleN1r.
+Definition scalerN := scalerN.
+Definition scaler_subl := scaler_subl.
+Definition scaler_subr := scaler_subr.
+Definition scaler_nat := scaler_nat.
+Definition scaler_suml := scaler_suml.
+Definition scaler_sumr := scaler_sumr.
+Definition scaler_mull := scaler_mull.
+Definition morph_sunit := morph_sunit.
 
 Implicit Arguments satP [F e f].
 Implicit Arguments solP [F n f].
@@ -2675,6 +2960,16 @@ Canonical Structure GRing.mul_comoid.
 Canonical Structure GRing.muloid.
 Canonical Structure GRing.addoid.
 
+Canonical Structure GRing.Lmodule.eqType.
+Canonical Structure GRing.Lmodule.choiceType.
+Canonical Structure GRing.Lmodule.zmodType.
+
+Canonical Structure GRing.NCalgebra.eqType.
+Canonical Structure GRing.NCalgebra.choiceType.
+Canonical Structure GRing.NCalgebra.zmodType.
+Canonical Structure GRing.NCalgebra.ringType.
+Canonical Structure GRing.NCalgebra.lmoduleType.
+
 Bind Scope ring_scope with GRing.Zmodule.sort.
 Bind Scope ring_scope with GRing.Ring.sort.
 Bind Scope ring_scope with GRing.ComRing.sort.
@@ -2684,6 +2979,8 @@ Bind Scope ring_scope with GRing.IntegralDomain.sort.
 Bind Scope ring_scope with GRing.Field.sort.
 Bind Scope ring_scope with GRing.DecidableField.sort.
 Bind Scope ring_scope with GRing.ClosedField.sort.
+Bind Scope ring_scope with GRing.Lmodule.sort.
+Bind Scope ring_scope with GRing.NCalgebra.sort.
 
 Notation "0" := (GRing.zero _) : ring_scope.
 Notation "-%R" := (@GRing.opp _) : ring_scope.
@@ -2734,6 +3031,9 @@ Infix "==>" := GRing.Implies : term_scope.
 Notation "~ f" := (GRing.Not f) : term_scope.
 Notation "''exists' ''X_' i , f" := (GRing.Exists i f) : term_scope.
 Notation "''forall' ''X_' i , f" := (GRing.Forall i f) : term_scope.
+
+Notation "*:%R" := (@GRing.scale _ _) : ring_scope.
+Notation "a *: m" := (GRing.scale a m) (at level 40) : ring_scope.
 
 Notation "\sum_ ( <- r | P ) F" :=
   (\big[+%R/0%R]_(<- r | P%B) F%R) : ring_scope.
@@ -2865,3 +3165,26 @@ Notation "[ 'closedFieldType' 'of' T 'for' cT ]" :=
    format "[ 'closedFieldType'  'of'  T  'for'  cT ]") : form_scope.
 Notation "[ 'closedFieldType' 'of' T ]" := (@GRing.ClosedField.clone T _ _ id)
   (at level 0, format "[ 'closedFieldType'  'of'  T ]") : form_scope.
+
+Notation lmodType R := (GRing.Lmodule.type (Phant R)).
+Notation LmodType R T m :=
+   (@GRing.Lmodule.pack _ (Phant R) T _ m _ _ id _ id).
+Notation LmodMixin := GRing.Lmodule.Mixin.
+Notation "[ 'lmodType' [ R ] 'of' T 'for' cT ]" :=
+  (@GRing.Lmodule.clone _ (Phant R) T cT _ idfun)
+  (at level 0, format "[ 'lmodType' [ R ]  'of'  T  'for'  cT ]")
+  : form_scope.
+Notation "[ 'lmodType' [ R ] 'of' T ]" :=
+  (@GRing.Lmodule.clone _ (Phant R) T _ _ id)
+  (at level 0, format "[ 'lmodType' [ R ] 'of'  T ]") : form_scope.
+
+Notation ncalgebraType R := (GRing.NCalgebra.type (Phant R)).
+Notation NCalgebraType R T m a :=
+   (@GRing.NCalgebra.pack _ (Phant R) T _ m a _ _ id _ _ id _ id).
+Notation "[ 'ncalgebraType' [ R ] 'of' T 'for' cT ]" :=
+  (@GRing.NCalgebra.clone _ (Phant R) T cT _ idfun)
+  (at level 0, format "[ 'ncalgebraType' [ R ]  'of'  T  'for'  cT ]")
+  : form_scope.
+Notation "[ 'ncalgebraType' [ R ] 'of' T ]" :=
+  (@GRing.NCalgebra.clone _ (Phant R) T _ _ id)
+  (at level 0, format "[ 'ncalgebraType' [ R ] 'of'  T ]") : form_scope.

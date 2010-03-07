@@ -37,10 +37,10 @@ Require Export Ring.
 (*   iteration                                                              *)
 (*             iter n f x0  == f ( .. (f x0))                               *)
 (*             iteri n g x0 == g n.-1 (g ... (g 0 x0))                      *)
-(*         iterop n op x x0 == op x (... op x x) or x0 if n = 0             *)
+(*         iterop n op x x0 == op x (... op x x) (n x's) or x0 if n = 0     *)
 (*                                                                          *)
 (*   exponentiation, factorial                                              *)
-(*        m ^ n, fact n                                                     *)
+(*        m ^ n, n`!                                                        *)
 (*        m ^ 1 is convertible to m, and m ^ 2 to m * m                     *)
 (*                                                                          *)
 (*   comparison                                                             *)
@@ -1090,15 +1090,17 @@ Proof. by move=> * m n; move/eqP; rewrite eqn_exp2r //; move/eqP. Qed.
 
 Fixpoint fact_rec n := if n is n'.+1 then n * fact_rec n' else 1.
 
-Definition fact := nosimpl fact_rec.
+Definition factorial := nosimpl fact_rec.
 
-Lemma factE : fact = fact_rec. Proof. by []. Qed.
+Notation "n `!" := (factorial n) (at level 2, format "n `!") : nat_scope.
 
-Lemma fact0 : fact 0 = 1. Proof. by []. Qed.
+Lemma factE : factorial = fact_rec. Proof. by []. Qed.
 
-Lemma factS : forall n, fact n.+1  = n.+1 * fact n. Proof. by []. Qed.
+Lemma fact0 : 0`! = 1. Proof. by []. Qed.
 
-Lemma fact_gt0 : forall n, fact n > 0.
+Lemma factS : forall n, (n.+1)`!  = n.+1 * n`!. Proof. by []. Qed.
+
+Lemma fact_gt0 : forall n, n`! > 0.
 Proof. by elim=> //= n IHn; rewrite muln_gt0. Qed.
 
 (* Parity and bits. *)

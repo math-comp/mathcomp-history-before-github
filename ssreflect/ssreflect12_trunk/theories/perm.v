@@ -1,32 +1,31 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq paths choice fintype.
-Require Import finfun bigops finset groups.
+Require Import finfun bigops finset binomial groups.
 
-(**************************************************************************)
-(* This file contains the definition and properties associated to the     *)
-(* group of permutations.                                                 *)
-(*   {perm T} == the permutation of a finite type T                       *)
-(*                        (i.e. an injective function from T to T)        *)
-(*   'S_n == the permutations of 'I_n, i.e., {0,.., n-1}                  *)
-(*   perm_on A u <=> u is a permutation on T where only the elements of a *)
-(*                                 a subset A of T are affected           *)
-(*   tperm x y == the transposition of x, y                               *)
-(*   aperm x s == s(x)                                                    *)
-(*   pcycle s x == the set of all elements that are in the same cycle     *)
-(*                 of permutation s as x                                  *)
-(*   pcycles s == the set of cycles of permutation s                      *)
-(*   odd_perm s <=> s is an odd permutation                               *)
-(*   dpair x <=> x is a pair of distinct objects                          *)
-(*   lift_perm i j s == the permutation obtained by lifting s : 'S_n.-1;  *)
-(*                      it maps i to j and lift i k to lift j (s k)       *)
-(* Permutations are coerced to the underlying function.                   *)
-(* Canonical structures are defined allowing permutations to be an eqType,*)
-(* choiceType, countType, finType, subType, finGroupType (permutations    *)
-(* with the composition form a group, therefore all generic group         *)
-(* notations are inherited: 1 == identity permutation, * == composition,  *)
-(* ^-1 == inverse permutation).                                           *)
-(* Lemmas are given to establish the common properties for permutations.  *)
-(**************************************************************************)
+(******************************************************************************)
+(* This file contains the definition and properties associated to the group   *)
+(* of permutations of an arbitrary finite type.                               *)
+(*     {perm T} == the type of permutations of a finite type T, i.e.,         *)
+(*                 injective (finite) functions from T to T. Permutations     *)
+(*                 coerce to CiC functions.                                   *)
+(*         'S_n == the set of all permutations of 'I_n, i.e., of {0,.., n-1}  *)
+(*  perm_on A u == u is a permutation with support A, i.e., u only displaces  *)
+(*                 elements of A (u x != x implies x \in A).                  *)
+(*    tperm x y == the transposition of x, y                                  *)
+(*    aperm x s == the image of x under the action of the permutation s       *)
+(*              := s x                                                        *)
+(*   pcycle s x == the set of all elements that are in the same cycle of the  *)
+(*                 permutation s as x, i.e., {x, s x, (s ^+ 2) x, ...}        *)
+(*    pcycles s == the set of all the cycles of the permutation s             *)
+(*   (s : bool) == s is an odd permutation (the coercion is called odd_perm)  *)
+(*      dpair u == u is a pair (x, y) of distinct objects (i.e., x != y)      *)
+(* lift_perm i j s == the permutation obtained by lifting s : 'S_n.-1 over    *)
+(*                 (i |-> j), that maps i to j and lift i k to lift j (s k).  *)
+(* Canonical structures are defined allowing permutations to be an eqType,    *)
+(* choiceType, countType, finType, subType, finGroupType; permutations with   *)
+(* composition form a group, therefore inherit all generic group notations:   *)
+(* 1 == identity permutation, * == composition, ^-1 == inverse permutation.   *)
+(******************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -263,31 +262,29 @@ Qed.
 Lemma tperm2 : forall x y : T, tperm x y * tperm x y = 1.
 Proof. by move=> x y; rewrite -{1}tpermV mulVg. Qed.
 
-Lemma card_perm : forall A : {set T}, #|perm_on A| = fact #|A|.
+Lemma card_perm : forall A : {set T}, #|perm_on A| = (#|A|)`!.
 Proof.
-move=> A; elim: {A}#|A| {1 3}A (eqxx #|A|) => [|n IHn] A /=.
-  move/pred0P=> A0; rewrite fact0 -(card1 (1 : pT)); apply: eq_card => u.
-  apply/idP/eqP => /= [uA | -> {u}]; last exact: perm_on1.
-  by apply/permP => x; rewrite perm1 (out_perm uA) // -topredE /= A0.
-case: (pickP (mem A)) => [x /= Ax An1|]; last by move/eq_card0->.
-have:= An1; rewrite (cardsD1 x) Ax eqSS factS; move/IHn=> {IHn} <-.
-move/eqP: An1 => <- {n}; rewrite -cardX.
-pose h (u : pT) := (u x, u * tperm x (u x)).
-have h_inj: injective h.
-  move=> u1 u2; rewrite /h [mulg]lock; case=> ->; unlock; exact: mulIg.
-rewrite -(card_imset _ h_inj); apply: eq_card=> [[/= y v]].
-apply/imsetP/andP=> /= [[u uA [-> -> {y v}]]|[Ay vA']].
-  split; first by rewrite perm_closed.
-  apply/subsetP=> z; rewrite !inE permM permE /=.
-  rewrite (inj_eq (perm_inj u)) /=.
-  case: (z =P x) => [->|nxz nhuz /=]; first by case/eqP; case: eqP.
-  by apply: (subsetP uA); apply: contra nhuz; move/eqP->; case: (z =P x).
-pose u : pT := v * tperm x y.
-have def_y: y = u x by rewrite permM permE /= (out_perm vA') ?inE eqxx.
-exists u; last by rewrite /h -def_y -mulgA tperm2 mulg1.
-apply/subsetP=> z; rewrite inE /= permM (inv_eq (tpermK x y)) permE /=.
-do 2!case: (z =P _) => [-> //| _].
-by move/(subsetP vA'); rewrite inE; case/andP.
+move=> A; pose ffA := {ffun {x | x \in A} -> T}.
+rewrite -ffactnn -{2}(card_sig (mem A)) /= -card_inj_ffuns_on.
+pose fT (f : ffA) := [ffun x => if insub x is Some u then f u else x].
+pose pfT f := insubd (1 : pT) (fT f).
+pose fA (p : pT) : ffA := [ffun u => p (val u)].
+rewrite -!sum1dep_card -sum1_card (reindex_onto fA pfT) => [|f].
+  apply: eq_bigl => p; rewrite andbC; apply/idP/and3P=> [onA | []]; first split.
+  - apply/eqP; suffices fTAp: fT (fA p) = pval p.
+      by apply/permP=> x; rewrite -!pvalE insubdK fTAp //; exact: (valP p).
+    apply/ffunP=> x; rewrite ffunE pvalE.
+    by case: insubP => [u _ <- |]; [rewrite ffunE | move/out_perm->].
+  - by apply/forallP=> [[x Ax]]; rewrite ffunE /= [_ (p x)]perm_closed.
+  - by apply/injectiveP=> u v; rewrite !ffunE; move/perm_inj; exact: val_inj.
+  move/eqP=> <- _ _; apply/subsetP=> x; rewrite !inE -pvalE val_insubd fun_if.
+  by rewrite if_arg ffunE; case: insubP; rewrite // pvalE perm1 if_same eqxx.
+case/andP; move/forallP=> onA; move/injectiveP=> f_inj.
+apply/ffunP=> u; rewrite ffunE -pvalE insubdK; first by rewrite ffunE valK.
+apply/injectiveP=> {u} x y; rewrite !ffunE.
+case: insubP => [u _ <-|]; case: insubP => [v _ <-|] //; first by move/f_inj->.
+  by move=> Ay' def_y; rewrite -def_y [_ \in A]onA in Ay'.
+by move=> Ax' def_x; rewrite def_x [_ \in A]onA in Ax'.
 Qed.
 
 End Theory.
