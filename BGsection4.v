@@ -615,6 +615,65 @@ rewrite -cardO1R lognSg //; apply/subsetP=> g /=; case/setIP=> Rg.
 by rewrite !inE /= (OhmE _ pR) => gp1; rewrite mem_gen // inE Rg.
 Qed.
 
+(* move this to cyclic.v? *)
+Section Metacyclic.
+
+Variable gT : finGroupType.
+Implicit Type G : {group gT}.
+
+Definition metacyclic G := existsb H, 
+  [&& ((H : {group gT}) <| G), cyclic H & cyclic (G / H)].
+
+Lemma metacyclicP : forall G,
+  reflect (exists H, [/\ (H : {group gT}) <| G, cyclic H & cyclic (G / H)]) 
+    (metacyclic G).
+Proof. 
+move=> G; apply: (iffP existsP) => [] [H]; [case/and3P|]; exists H => //.
+by apply/and3P.
+Qed.
+
+End Metacyclic.
+
+(* This is B & G, Theorem 4.10 *)
+Lemma Ohm1_metacyclic_pgroup_odd_prime: forall gT (R : {group gT}) p,
+  metacyclic R -> p.-group R -> odd #|R| -> ~~ cyclic R -> 
+  logn p #|'Ohm_1(R)| = 2.
+Proof.
+move=> gT R p; case/metacyclicP=> S' [nsS'R cycS' cycRS'] pR oddR ncycR.
+have [S maxS] : {S | [max S | [&& (S <| R), cyclic S & cyclic (R / S)]]}. 
+  by apply: ex_maxgroup; exists S'; apply/and3P.
+case/maxgroupP: maxS; case/and3P => nsSR cycS cycRS maxS.
+have {S' nsS'R cycS' cycRS'} neR1 : R != 1%G.
+  by apply: (contra _ ncycR); move/eqP=> ->; apply cyclic1.
+have neRS1 : (R / S) != 1.
+  apply: (contra _ ncycR); move/eqP; rewrite -(trivg_quotient S).
+  by move/(quotient_inj nsSR (normal_refl S)) => ->.
+have [primep _ _] := (pgroup_pdiv pR neR1); have pRS := (quotient_pgroup S pR).
+pose ORS := 'Ohm_1(R/S); have nsORS_RS := char_normal (Ohm_char 1 (R/S)).
+case: (inv_quotientN nsSR nsORS_RS) => /= T ORSeq sST nsTR.
+have sTR := normal_sub nsTR; have pT := pgroupS sTR pR.
+have nST := (normal_norm (normalS sST sTR nsSR)).
+have cardORS: #|'Ohm_1(R/S)| = p by apply: Ohm1_cyclic_pgroup_prime.
+have ->: 'Ohm_1(R) = 'Ohm_1(T).
+  apply/eqP; rewrite eqEsubset (OhmS _ sTR) andbT (OhmE 1 pR) (OhmE 1 pT).
+  rewrite gen_subG sub_gen //; apply/subsetP=> g; rewrite !inE.
+  case/andP=> Rg egp1; have NSg := (subsetP (normal_norm nsSR) _ Rg).
+  rewrite egp1 andbT -sub1set -(quotientSGK _ sST) ?quotient_set1 ?sub1set //.
+  rewrite -ORSeq (OhmE 1 pRS) mem_gen // inE mem_quotient //= -morphX //=.
+  by rewrite (eqP egp1) coset_id.
+case/cyclicP: cycS=> x eSX.
+have Tx : x \in T by rewrite (subsetP sST) // eSX cycle_id.
+have indexTX : #|T : <[x]>| = p.
+  by rewrite -eSX -card_quotient // -ORSeq cardORS.
+have ncycT : ~~ cyclic T.
+  apply/negP=> cycT; move: (prime_gt1 primep); rewrite -cardORS ORSeq.
+  suff ->: T :=: S; first by rewrite trivg_quotient cards1.
+  apply: maxS; rewrite ?sST // nsTR cycT /=.
+  by rewrite -(isog_cyclic (third_isog sST nsSR nsTR)) quotient_cyclic.
+move: (Ohm1_extremal_odd pT (oddSg sTR oddR) ncycT Tx indexTX).
+by rewrite inE; case/andP=> _; case/eqP.  
+Qed.
+
 (* This is B & G, Theorem 4.18(b) *)
 Lemma rank2_pdiv_complement : forall gT (G : {group gT}) (p := pdiv #|G|),
   odd #|G| -> solvable G -> 'r_p(G) <= 2 -> p^'.-Hall(G) 'O_p^'(G).
