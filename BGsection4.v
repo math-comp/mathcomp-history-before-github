@@ -619,27 +619,37 @@ Qed.
 Section Metacyclic.
 
 Variable gT : finGroupType.
-Implicit Type G : {group gT}.
 
 Definition metacyclic G := existsb H, 
-  [&& ((H : {group gT}) <| G), cyclic H & cyclic (G / H)].
+  [&& cyclic (H : {group gT}), H <| G & cyclic (G / H)].
 
-Lemma metacyclicP : forall G,
-  reflect (exists H, [/\ (H : {group gT}) <| G, cyclic H & cyclic (G / H)]) 
+Lemma metacyclicP : forall (G : {set gT}),
+  reflect (exists H, [/\ cyclic (H : {group gT}), H <| G & cyclic (G / H)]) 
     (metacyclic G).
 Proof. 
 move=> G; apply: (iffP existsP) => [] [H]; [case/and3P|]; exists H => //.
 by apply/and3P.
 Qed.
 
+Lemma metacyclic1 : metacyclic 1.
+Proof. 
+by apply/existsP; exists 1%G; rewrite normal1 trivg_quotient !cyclic1.
+Qed.
+
+Lemma cyclic_metacyclic : forall G, cyclic G -> metacyclic G.
+Proof.
+move=> G; case/cyclicP=> x ->; apply/existsP; exists (<[x]>)%G.
+by rewrite normal_refl cycle_cyclic trivg_quotient cyclic1.
+Qed.
+
 End Metacyclic.
 
 (* This is B & G, Theorem 4.10 *)
-Lemma Ohm1_metacyclic_pgroup_odd_prime: forall gT (R : {group gT}) p,
+Lemma Ohm1_metacyclic_pgroup_odd_prime : forall gT (R : {group gT}) p,
   metacyclic R -> p.-group R -> odd #|R| -> ~~ cyclic R -> 
   logn p #|'Ohm_1(R)| = 2.
 Proof.
-move=> gT R p; case/metacyclicP=> S' [nsS'R cycS' cycRS'] pR oddR ncycR.
+move=> gT R p; case/metacyclicP=> S' [cycS' nsS'R cycRS'] pR oddR ncycR.
 have [S maxS] : {S | [max S | [&& (S <| R), cyclic S & cyclic (R / S)]]}. 
   by apply: ex_maxgroup; exists S'; apply/and3P.
 case/maxgroupP: maxS; case/and3P => nsSR cycS cycRS maxS.
@@ -673,6 +683,81 @@ have ncycT : ~~ cyclic T.
 move: (Ohm1_extremal_odd pT (oddSg sTR oddR) ncycT Tx indexTX).
 by rewrite inE; case/andP=> _; case/eqP.  
 Qed.
+
+(* This is B & G, Proposition 4.11 *)
+Lemma pgroup_Ohm1_p2_metacyclic : forall gT (R : {group gT}) p,
+  p.-group R -> p > 3 -> logn p #|'Ohm_1(R)| <= 2 -> metacyclic R.
+Proof.
+move=> gT R p pR pgt3; move: {2}_.+1 (ltnSn #|R|) => n.
+elim: n gT => // n IHn gT in R pR *; move=> cardRlt cardOR.
+case eR1 : (R == 1%G); first by rewrite (eqP eR1) metacyclic1.
+case: (pgroup_pdiv pR (negbT eR1)) => primep _ _.
+case abelR : (abelian R).
+  have : 'm(R) <= 2 by rewrite grank_abelian // (rank_pgroup pR) p_rank_abelian.
+  case: (grank_witness R) => S R_def <-; rewrite -R_def ?abelianE in abelR *.
+  rewrite 2!leq_eqVlt !ltnS eqSS leqn0; case/orP; [| case/orP]; first last.
+    + by rewrite cards_eq0; move/eqP=> ->; rewrite gen0 metacyclic1.
+    by case/cards1P=> x ->; apply: cyclic_metacyclic; apply: cycle_cyclic.
+  move=> cardS; case: (card_gt0P (mem S) _) => [|a Sa].
+    by rewrite (eqP cardS).
+  move: cardS; rewrite (cardsD1 a) Sa addnC addn1 eqSS; case/cards1P=> b SDa.
+  have {SDa} Seq: S = [set a; b] by rewrite -(setD1K Sa) SDa.
+  rewrite Seq in abelR *; pose B := <[b]>; pose AB := <<[set a; b]>>.
+  have sB_AB: B \subset AB.
+    by rewrite gen_subG sub_gen // sub1set !inE eqxx orbT.
+  have nsB_AB: B <| AB.
+    by rewrite /normal sB_AB //= cents_norm // (subset_trans abelR) // centS.
+  apply/existsP; exists <[b]>%G; rewrite nsB_AB cycle_cyclic /= -/AB.
+  have -> : AB = <[a]> <*> <[b]> by rewrite mulgen_idr mulgen_idl. 
+  rewrite quotient_mulgen ?quotient_cyclic ?cycle_cyclic // cents_norm //.
+  rewrite (subset_trans _ (subset_trans abelR _)) // ?centS ?sB_AB //.
+  by rewrite gen_subG sub_gen // sub1set !inE eqxx.
+pose R' := R^`(1); pose MR' := 'Mho^1(R').
+have nsR'R := der_normal 1 R; have sR'R := normal_sub nsR'R.
+have [z [ordz R'ZRz MR'ZRz]] : exists z, 
+  [/\ #[z] = p, z \in R' :&: 'Z(R) & MR' != 1 -> z \in MR' :&: 'Z(R)].
+  case eMR'1 : (MR' == 1).
+    have pR'ZR : p.-group (R' :&: 'Z(R)).
+      by rewrite (pgroupS _ pR) // (subset_trans (subsetIr _ _)) // subsetIl.
+    have neR'ZR_1: R' :&: 'Z(R) != 1.
+      rewrite nil_meet_Z ?(pgroup_nil pR) //; apply/negP; move/eqP.
+      by move/commG1P; rewrite -abelianE abelR.
+    case: (pgroup_pdiv pR'ZR neR'ZR_1) => _ pdvd _.
+    by case: (Cauchy primep pdvd) => z; exists z; split.
+  have pMR'ZR : p.-group (MR' :&: 'Z(R)). 
+    by rewrite (pgroupS _ pR) // (subset_trans (subsetIr _ _)) // subsetIl.
+  have neMR'ZR_1 : MR' :&: 'Z(R) != 1.
+    rewrite nil_meet_Z ?(pgroup_nil pR) ?(char_normal_trans (Mho_char 1 _)) //.
+    by rewrite eMR'1.
+  case: (pgroup_pdiv pMR'ZR neMR'ZR_1) => _ pdvd _.
+  case: (Cauchy primep pdvd) => z; exists z; split; rewrite ?(subsetP _ _ i) //.
+  by rewrite subsetI (subset_trans (subsetIl _ _)) ?(Mho_sub 1) //= subsetIr.
+have [R'z ZRz] := (setIP R'ZRz); pose T := <[z]>.
+have sTR : T \subset R by rewrite cycle_subG (subsetP _ _ ZRz) // subsetIl.
+have nsTR : T <| R.
+  rewrite /normal sTR /= cents_norm // centsC cycle_subG (subsetP _ _ ZRz) //.
+  by rewrite subsetIr.
+have cardORT : logn p #|'Ohm_1(R / T)| <= 2 by apply: pgroup_Ohm1_p2_normal_p2.
+have : metacyclic (R / T).
+  rewrite IHn ?quotient_pgroup //= (leq_trans (ltn_quotient _ _)) -1?ltnS //.
+  by rewrite cycle_eq1 -order_eq1 ordz neq_ltn prime_gt1 // orbT.
+case/metacyclicP=> S; case; case/cyclicP=> aT ->{S}.
+case: (cosetP aT) => a NTa ->; case/(inv_quotientN nsTR) => K /= K_def sTK nsKR.
+pose AT := <[a]> <*> T; have nsT_AT: T <| AT.
+  by rewrite /normal mulgen_subr /= mulgen_subG normG cycle_subG NTa.
+have nsTK : T <| K by apply: (normalS sTK (normal_sub nsKR) nsTR).
+have Keq : K :=: AT.
+  rewrite (quotient_inj nsTK nsT_AT) // quotient_mulgen ?cycle_subG //.
+  by rewrite -K_def quotient_cycle //.
+have nsAT_R : AT <| R by rewrite -Keq.
+rewrite K_def Keq (isog_cyclic (third_isog (normal_sub _) _ _)) //=. 
+case/cyclicP => bT {Keq K_def nsTK nsKR sTK K}; case: (cosetP bT) => b NATb ->.
+have nsAT_BAT : AT <| <[b]> <*> AT.
+  by rewrite /normal mulgen_subr /= mulgen_subG normG cycle_subG NATb.  
+rewrite -quotient_cycle // -(@quotient_mulgen _ _ (<[b]>)%G); last first.
+  by rewrite cycle_subG.
+move/(quotient_inj nsAT_R nsAT_BAT)=> Req.
+Admitted.
 
 (* This is B & G, Theorem 4.18(b) *)
 Lemma rank2_pdiv_complement : forall gT (G : {group gT}) (p := pdiv #|G|),
