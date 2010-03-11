@@ -629,8 +629,18 @@ have abeSZ : p.-abelem SZ.
   by rewrite (cprod_abelem p (cprodEgen cZS)) /= abeZ abeS.
 have peSZ : SZ \in 'E_p(R) by rewrite inE abeSZ mulgen_subG sSR sZR.
 have rS : 'r(S) = 1%N by rewrite (rank_abelem abeS) cS logn_prime ?eqxx.
+have nsSZ : ~~ (S \subset Z).
+  apply/negP=> sSZ; move: cS (prime_gt1 p_pr) (ltnn p).
+  by rewrite -(setIidPl sSZ) TI_SZ cards1 => -> ->.
+have sSZCRS : SZ \subset 'C_R(S).
+  rewrite mulgen_subG /= subsetI sSR [_ \subset _](abelem_abelian abeS).
+  by rewrite subsetI sZR /= centsC (subset_trans sSR) // -defCRZ subsetIr.
 have cZ : #|Z| = p.
-  admit.
+  have [_ _ [[] //= r cZ]] := pgroup_pdiv pOZ  ntZ.
+  move: (leq_trans (rankS sSZCRS) rCRS).
+  rewrite (rank_abelem abeSZ) /SZ /= norm_mulgenEl // TI_cardMg //= -/Z.
+  rewrite cS cZ logn_mul ?expn_gt0 ?(prime_gt0 p_pr) //.
+  by rewrite logn_prime ?eqxx //= pfactorK.
 have cSZ : #|SZ| = (p^2)%N.
   rewrite /SZ /= norm_mulgenEl // TI_cardMg //= -/Z.
   by rewrite cS cZ expnS.
@@ -653,12 +663,31 @@ have maxSZ : SZ \in 'E*_p(R).
 by exists (S <*> 'Ohm_1('Z(R)))%G.
 Qed.
 
-(* B&G 5.5
+(* B&G 5.5 
 Theorem narrow_solvable_Aut :
-  forall A, solvable A -> odd #|A| -> A \subset Aut R ->
+  p.-narrow R -> forall A, solvable A -> odd #|A| -> A \subset Aut R ->
    [/\ p^'.-group (A / 'O_p(A)), abelian (A / 'O_p(A)),
-       2 < 'r(R) -> forall x, p^'.-elt x -> #[x] %| p.-1,
-       prime #|A| -> ~~ (#|A| %| .... ].
+       2 < 'r(R) -> forall x:gT, p^'.-elt x -> #[x] %| p.-1 &
+         prime #|A| -> ~~ (#|A| %| p * (p.-1)) -> 
+       2 * #|A| %| p.+1 /\ (* type of A is not the type of R...
+       [~: R, A] :=: R -> ~~ (abelian R) -> #|R| = (p^3)%N *) False].
+Proof.
+have oddp : odd p. (*FIX because of ntR, I'm assuming 1<r(R) *)
+  case: (even_prime p_pr) oddR => // p2.
+  by have [_ _ [r ->]] := pgroup_pdiv pR ntR; rewrite p2 odd_exp eqn0Ngt.
+case: (critical_odd _ pR)=> // H [cHR sHRZ] nc2 pCAu exH nR A solA oddA sAAu.
+Search _ Aut.
+have pCAH : p.-group ('C_A(H)).
+
+
+  case: (even_prime p_pr) => //. Search _ 2.
+  Search _ odd prime.
+  rewrite /pgroup. apply/pnatP.
+ 
+ Search _ pgroup card in pgroups. pnat in prime.
+
+ rewrite  have := critical_odd.
+Qed.
 *)
 
-End Five.
+End Five. 
