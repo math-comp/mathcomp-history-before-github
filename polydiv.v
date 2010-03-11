@@ -11,7 +11,6 @@ Open Scope ring_scope.
 
 
 
-(* begin to be put in poly *)
 Section ExtraArith.
 
 Lemma leqn1 : (forall n, n <= 1 = ((n==0) || (n==1)))%N.
@@ -22,13 +21,13 @@ Proof. by elim; first done; elim; first done; elim. Qed.
 
 Lemma addn_pred1 : (forall n m, n != 0 -> (n == (m + n).-1) = (m == 1))%N.
 Proof.
-case; first do [elim; done].
+case; first by elim.
 move=> n m _; by rewrite addnS /= -add1n eqn_addr eq_sym.
 Qed.
 End ExtraArith.
 
+(* begin to be put in poly *)
 Section ExtraPolynomialIdomain.
-
 
 Variable R : idomainType.
 Implicit Types x y c : R.
