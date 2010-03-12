@@ -663,31 +663,88 @@ have maxSZ : SZ \in 'E*_p(R).
 by exists (S <*> 'Ohm_1('Z(R)))%G.
 Qed.
 
-(* B&G 5.5 
+End Five.
+
+Section Five5.
+
+Variable gT : finGroupType. 
+Variables (R : {group gT}) (p : nat).
+Hypotheses (pR : p.-group R) (oddR : odd #|R|).
+
+(* B&G 5.5
 Theorem narrow_solvable_Aut :
-  p.-narrow R -> forall A, solvable A -> odd #|A| -> A \subset Aut R ->
+  narrow p R -> forall A, solvable A -> odd #|A| -> A \subset Aut R ->
    [/\ p^'.-group (A / 'O_p(A)), abelian (A / 'O_p(A)),
        2 < 'r(R) -> forall x:gT, p^'.-elt x -> #[x] %| p.-1 &
          prime #|A| -> ~~ (#|A| %| p * (p.-1)) -> 
        2 * #|A| %| p.+1 /\ (* type of A is not the type of R...
        [~: R, A] :=: R -> ~~ (abelian R) -> #|R| = (p^3)%N *) False].
 Proof.
-have oddp : odd p. (*FIX because of ntR, I'm assuming 1<r(R) *)
-  case: (even_prime p_pr) oddR => // p2.
-  by have [_ _ [r ->]] := pgroup_pdiv pR ntR; rewrite p2 odd_exp eqn0Ngt.
-case: (critical_odd _ pR)=> // H [cHR sHRZ] nc2 pCAu exH nR A solA oddA sAAu.
-Search _ Aut.
-have pCAH : p.-group ('C_A(H)).
+have ntR : R :!=: 1.
+  admit.
+have [p_pr _ [r cR]] := pgroup_pdiv pR ntR.
+have oddp : odd p.
+  by case: (even_prime p_pr) oddR => // p2; rewrite cR p2 odd_exp eqn0Ngt.
+case: (critical_odd _ pR)=> // H [cHR sHRZ] nc2 exH pCAu nR A solA oddA sAAu.
+have ntH : H :!=: 1.
+  admit.
+split.
+- admit.
+- admit. 
+  move=> rR.
+  case/orP: (narrow_CR0R1 pR oddR rR nR). 
+    by move/set0Pn; move: rR; rewrite (rank_pgroup pR); move/p_rank_geP.
+  case/existsP=> R0; case/existsP=> R1; case/and5P.
+  move => dpR0R1 sR0R sR1R; move/eqP=> cR0 cyR1 x p'x.
+  have pR0 := pgroupS sR0R pR.
+  have aR0 : abelian R0 by rewrite (p2group_abelian pR0)// cR0 logn_prime ?eqxx.
+  pose U := R0 <*> 'Z(H).
+  have nsR0H : ~~ (R0 \subset H).
+    apply/negP=> sR0H.
+    have cHZH : H \subset 'C('Z(H)).
+      by rewrite centsC subsetIr.
+    have nZHR0 : R0 \subset 'N('Z(H)). 
+      by rewrite (subset_trans sR0H) // normsI ?norms_cent ?normsG.
+    have sUH : U \subset H.
+      by rewrite mulgen_subG sR0H subsetIl.
+    have abeU : p.-abelem U.
+      rewrite abelemE //= norm_mulgenEl //= abelianM center_abelian.
+      rewrite aR0 (subset_trans sR0H cHZH).
+      by rewrite -norm_mulgenEl // (dvdn_trans (exponentS sUH)) // exH.
+  have rCRR0le2 : 'r('C_R(R0)) <= 2.
+    admit. (* duplicate *)
+  have mU : 'm(U) <= 'r('C_R(R0)).
+    rewrite (grank_abelian (abelem_abelian abeU)).
+    rewrite rankS //= subsetI (subset_trans _ (char_sub cHR)) //.
+    by rewrite norm_mulgenEl // mul_subG // centsC (subset_trans sR0H).
+  have sUR : U \subset R.
+    rewrite /U norm_mulgenEl // mul_subG // (subset_trans _ (char_sub cHR)) //.
+    by rewrite center_sub.
+  move: (leq_trans mU rCRR0le2); rewrite leq_eqVlt; case/orP.
+    move/eqP=> mU2.
+    have ep2U : [group of U] \in 'E_p^2(R).
+      rewrite pnElemE // !inE /= sUR abeU; move: mU2.
+      rewrite (grank_abelian (abelem_abelian abeU)) (rank_abelem abeU)=> <-.
+      by rewrite -p_part (part_pnat_id (pgroupS sUR pR)) eqxx.
+    have nUH : H \subset 'N(U).
+      rewrite -commg_subr /= -/U.
+      rewrite (subset_trans (commgS _ (subset_trans sUH (char_sub cHR)))) //.
+      by rewrite (subset_trans _ (subset_trans sHRZ (mulgen_subr _ _))).
+    have nUR : U <| R.
+      apply: char_normal_trans _  (char_normal cHR); rewrite charMgen ?center_char //.
+      apply/charP; split => // f injf fH.
+      admit.
+    case: (p_rank_3_normal_abelem_SCN pR oddR rR ep2U nUR) => F SCN_F sUF.
+    suff: 2 < 'r('C_R(R0)) by move/(leq_ltn_trans rCRR0le2); rewrite ltnn.
+    have sCR0CU : 'C_R(U) \subset 'C_R(R0).
+      by rewrite setIS // centS // mulgen_subl.
+    rewrite (leq_trans _ (rankS sCR0CU)) //=. 
+    move: SCN_F; rewrite inE; case/andP; case/SCN_P=> sFR defF lt2.
+    rewrite (leq_trans lt2) //.
+    by rewrite rankS // -defF // setIS // centS.
+  admit.
+- admit.
+admit.
+Qed.*)
 
-
-  case: (even_prime p_pr) => //. Search _ 2.
-  Search _ odd prime.
-  rewrite /pgroup. apply/pnatP.
- 
- Search _ pgroup card in pgroups. pnat in prime.
-
- rewrite  have := critical_odd.
-Qed.
-*)
-
-End Five. 
+End Five5. 
