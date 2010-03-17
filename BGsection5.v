@@ -153,35 +153,27 @@ Lemma p_rank_3_maxElem_2_Ohm_ucn :
       T \char R & #| R : T | = p ].
 Proof.
 move=> [E e2E meE]; case/pmaxElemP: (meE); case/pElemP=> sER abeE maxE.
-case/pnElemP: (e2E) => _ _; rewrite -(rank_abelem abeE) => rE.
-have pZ := (pgroupS (center_sub _) pR).
-have cE : #|E| = (p^2)%N.
-  case: (pgroup_pdiv (pgroupS sER pR)) => [|[_ _ [r cE]]].
-    by case: eqP rE => // ->; rewrite rank1.
-  by move: rE; rewrite (rank_abelem abeE) cE => <-; rewrite pfactorK.
+case/pnElemP: (e2E) => _ _ clE; have pZ := (pgroupS (center_sub _) pR).
+have cE : #|E| = (p^2)%N.  
+  by rewrite -clE -p_part (part_pnat_id (abelem_pgroup abeE)).
 have nZR : R \subset 'N(Z).
   exact: char_norm_trans (Ohm_char 1 _) (char_norm (center_char R)).
 have pW : p.-groupW := pgroupS sWR pR.
 have sZE : Z \subset E by rewrite -(Ohm_cent meE pR) OhmS // setIS // centS.
-have rCRE : 'r('C_R(E)%G) = 2 by rewrite -rank_Ohm1 (Ohm_cent meE pR) rE.
+have rCRE : 'r('C_R(E)%G) = 2.
+  by rewrite -rank_Ohm1 (Ohm_cent meE pR) (rank_abelem abeE).
 have cZ : #| Z | = p. 
-  case: (pgroup_pdiv pOZ ntZ)=> _ _ [q]; case:q=> //= q; rewrite -/Z => cZ.
-  suff defR: 'C_R(E) = R by move: rR; rewrite -rCRE /= defR ltnn.
-  suff sEZ : E \subset 'Z(R).
-    apply/eqP; rewrite eqEsubset subsetIl /= subsetI subxx.
-    by rewrite centsC (subset_trans sEZ) // subsetIr.
-  rewrite (eqP (_: E :==: Z)) ?Ohm_sub // eq_sym eqEcard sZE cE cZ.
-  by rewrite leq_pexp2l ?prime_gt0.
+  have [_ _ [[] //= r cZ]] := pgroup_pdiv pOZ  ntZ.
+  suff defZ : Z = E by move: rR; rewrite -rCRE /= -defZ defCRZ ltnn.
+  by apply/eqP; rewrite eqEcard sZE cE cZ leq_pexp2l ?prime_gt0.
 have ncR : ~~ cyclic R.
-  rewrite (odd_pgroup_rank1_cyclic pR oddR) leqNgt -(rank_pgroup pR) //=.
-  by rewrite (leq_trans _ rR).
-case: (Ohm1_odd_ucn2 pR oddR ncR); rewrite -/W => ncW expW.
-have sWp1 : W \subset [set x | x ^+ (p ^ 1) == 1].
-  by apply/subsetP=> x Wx; rewrite inE (exponentP expW).
+  by rewrite (odd_pgroup_rank1_cyclic pR) // -(rank_pgroup pR) leqNgt ltnW.
+case: (Ohm1_odd_ucn2 pR); rewrite // -/W => ncW expW.
 have sWRZ : [~: W, R] \subset Z.
-  rewrite [Z](OhmE 1 pZ) sub_gen // setIdE subsetI.
-  rewrite /= -ucn1 (subset_trans (commSg _ (Ohm_sub _ _))) ?ucn_comm //=.
-  by rewrite (subset_trans (_ : _ \subset W)) ?commg_subl.
+  move/exponentP: expW => xp1W.
+  rewrite [Z](OhmE 1 pZ) sub_gen //= setIdE -ucn1 subsetI.
+  rewrite (subset_trans (commSg _ (Ohm_sub _ _))) ?ucn_comm //=.
+  by apply/subsetP=>x xWR; rewrite inE xp1W ?(subsetP _ _ xWR) ?commg_subl.
 have pZW : Z \proper W.
   rewrite properEneq OhmS /= -?ucn1 ?ucn_subS 1?andbC //=; move: ncW.
   rewrite (odd_pgroup_rank1_cyclic pW (oddSg sWR _)) //= -ltnNge -/W. 
@@ -192,9 +184,8 @@ have core_lemma : forall H, H \in 'E_p^2(R) :&: 'E*_p(R) -> 'C_W(H) = Z.
   have cH : #|H| = (p^2)%N by rewrite -clH -p_part (part_pnat_id pH).
   have pZH : Z \proper H.
     rewrite properEcard cZ cH -{1}(expn1 p) ltn_exp2l ?prime_gt1 //.
-    rewrite -(_:H <*> Z = H) ?mulgen_subr //.
-    rewrite maxH // ?inE ?mulgen_subG ?sHR ?sZR ?mulgen_subl //=.
-    rewrite (cprod_abelem p (cprodEgen _)) ?abeH ?abeZ //= -/Z.
+    rewrite -(_:H <*> Z = H) ?mulgen_subr // maxH ?mulgen_subl ?inE //=.
+    rewrite mulgen_subG sHR sZR (cprod_abelem p (cprodEgen _)) ?abeH ?abeZ //.
     by rewrite (centSS sHR (Ohm_sub _ _)) // centsC subsetIr.
   case: (eqsVneq H 'C_W(H)) => [defCHW | CHWnH].
     have sHRH : [~: H, R] \proper H.
@@ -204,17 +195,15 @@ have core_lemma : forall H, H \in 'E_p^2(R) :&: 'E*_p(R) -> 'C_W(H) = Z.
     have e2H : H \in 'E_p^2(R).
       by apply/pnElemP; rewrite abeH sHR cH pfactorK.
     case: (p_rank_3_normal_abelem_SCN e2H nHR) => B scn3B sEB.
-    case/setIdP: scn3B=> scnB rankB; case/SCN_P: (scnB) => nBR CB.
-    suff rb :'r(B) = 2 by rewrite rb in rankB. 
-    rewrite (rank_pgroup (pgroupS _ pR)); last by rewrite -CB subIset ?subxx.
+    case/setIdP: scn3B => scnB; case/SCN_P: (scnB) => nBR CB.
     have sHOB : H \subset 'Ohm_1(B) by rewrite -(Ohm1_id abeH) OhmS.
-    rewrite -p_rank_Ohm1 (maxH _ _ sHOB) ?(p_rank_abelem abeH) // inE.
-    rewrite Ohm1_abelem ?(pgroupS (normal_sub nBR) pR) ?(SCN_abelian scnB) //.
-    by rewrite (subset_trans (Ohm_sub _ _) (normal_sub nBR)).
-  have pCWHH : 'C_W(H) \proper H. (* this proof stinks *)
-    rewrite properEneq eq_sym CHWnH.
+    rewrite -rank_Ohm1 -clH -(rank_abelem abeH) (maxH _ _ sHOB) ?ltnn ?inE //.
+    rewrite (subset_trans (Ohm_sub _ _)) ?Ohm1_abelem ?(pgroupS _ pR) //;
+      by rewrite ?(normal_sub nBR) ?(SCN_abelian scnB).
+  have pCWHH : 'C_W(H) \proper H.
     have expCWE := exponentP (dvdn_trans (exponentS (subsetIl _ 'C(H))) expW).
-    apply/subsetP=> z zC; have abeHz : (H <*> <[z]>)%G \in 'E_p(R).
+    rewrite properEneq eq_sym CHWnH; apply/subsetP=> z zC.
+    have abeHz : (H <*> <[z]>)%G \in 'E_p(R).
       rewrite inE mulgen_subG sHR cycle_subG (subsetP _ _ zC) ?subIset ?sWR //.
       rewrite (cprod_abelem p (cprodEgen _)); last first.
         by rewrite centsC cycle_subG; case/setIP: zC.
@@ -236,38 +225,33 @@ have WCWEgt0 : 1 < #| W / 'C_W(E) |.
   apply: proper_card; rewrite quotient_proper // /normal proper_sub //= -/Z.
   by rewrite (subset_trans _ nZR).
 have cWZ : #| W / Z | = p.
-  have pEWE: [~: E, W] \proper E.
-    have pZE : Z \proper E.
-      by rewrite properEcard sZE cZ cE -(expn1 p) ltn_exp2l ?prime_gt1.
-    by rewrite (sub_proper_trans (subset_trans _ sWRZ) pZE) 1?commGC ?commgS.
-  have nEW : W \subset 'N(E). 
-    by move: pEWE; rewrite properEneq -commg_subl; case/andP.
-  rewrite -defCWE; move: rE; rewrite (rank_abelem abeE) => clE.
+  have nEW : W \subset 'N(E).
+    by rewrite -commg_subr (subset_trans (commgS _ sER)) ?(subset_trans sWRZ).
   have ntWCWE : (W / 'C_W(E)) != 1 by rewrite -cardG_gt1.
   have pQ : p.-group (W/'C_W(E)) := quotient_pgroup _ pW.
   have := logn_quotient_cent_abelem nEW abeE (eq_leq clE).
-  rewrite -card_quotient  ?normsI ?normG ?norms_cent //= -/W; move: WCWEgt0.
-  have [_ _ [n ->]] := pgroup_pdiv pQ ntWCWE.
-  by rewrite (pfactorK _ p_pr); case n.
+  rewrite -defCWE -card_quotient  ?normsI ?normG ?norms_cent //= -/W.
+  have [_ _ [n cQ]] := pgroup_pdiv pQ ntWCWE.
+  by move: WCWEgt0; rewrite cQ (pfactorK _ p_pr); case n.
 have cW : #| W | = (p^2)%N.
   rewrite -(LaGrange (proper_sub pZW)) cZ /= -/W -/Z.
   by rewrite -card_quotient ?divgS ?(subset_trans _ nZR) // cWZ. 
 have abeW : p.-abelem W.
-  rewrite (abelem_Ohm1 (pgroupS (ucn_sub 2 _) pR)) /=.
-  exact: card_p2group_abelian cW.
+  by rewrite (abelem_Ohm1 (pgroupS _ pR)) ?(card_p2group_abelian _ cW) ?ucn_sub.
 have nTR : R \subset 'N(T).
   by rewrite normsI ?(subset_trans _ (cent_norm _)) ?normG.
 have cardRT : #| R / T | = p.
   have clW : logn p #| W | <= 2 by rewrite cW (pfactorK _ p_pr).
-  have := logn_quotient_cent_abelem nWR abeW clW.
-  rewrite -card_quotient  ?normsI ?normG ?norms_cent //.
   have pQ : p.-group (R/'C_R(W)) := quotient_pgroup _ pR.
+  have: logn p #|R:T| <= 1 := logn_quotient_cent_abelem nWR abeW clW. 
+  rewrite -card_quotient ?normsI ?normG ?norms_cent //=.
   case: (eqsVneq T R) => [defR | ntRT].
     move: (proper_subn pZW); rewrite [Z](OhmE 1 pZ) sub_gen ?setIdE ?subsetI //.
-    by rewrite sWp1 sWR centsC; move/setIidPl: defR => ->.
+    rewrite sWR centsC; move/setIidPl: defR => ->. 
+    by apply/subsetP=> x *; rewrite inE (exponentP expW).
   have ntQ : R / T != 1.
-    case: eqP => //; move/eqP; rewrite eqEsubset quotient_sub1 // -ntRT.
-    by case/andP; rewrite eqEsubset subsetIl => ->.
+    apply: contra ntRT => /= Q1; rewrite eqEsubset subIset ?subxx //.
+    by rewrite -quotient_sub1 ?(eqP Q1) ?nTR ?subxx.
   have [_ _ [n ->]] := pgroup_pdiv pQ ntQ.
   by rewrite (pfactorK _ p_pr); case n.
 have charTR : T \char R.
