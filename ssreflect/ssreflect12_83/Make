@@ -1,0 +1,65 @@
+-R theories Ssreflect -I theories 
+-custom "$(COQBIN)coqmktop -opt -o bin/ssrcoq src/ssreflect.cmx" "src/ssreflect.cmx" bin/ssrcoq
+-custom "$(COQBIN)coqmktop -o bin/ssrcoq.byte src/ssreflect.cmo" "src/ssreflect.cmo" bin/ssrcoq.byte
+-custom "$(SSRCOQ) $(COQFLAGS) -compile $*" "%.v $(SSRCOQ)" "%.vo"
+CAMLP4OPTIONS = "-loc loc"
+SSRCOQ = bin/ssrcoq
+src/ssreflect.ml
+theories/ssreflect.v
+theories/ssrfun.v
+theories/ssrbool.v
+theories/eqtype.v
+theories/ssrnat.v
+theories/seq.v
+theories/choice.v
+theories/paths.v
+theories/div.v
+theories/fintype.v
+theories/connect.v
+theories/tuple.v
+theories/finfun.v
+theories/bigops.v
+theories/prime.v
+theories/finset.v
+theories/binomial.v
+theories/groups.v
+theories/morphisms.v
+theories/gprod.v
+theories/action.v
+theories/normal.v
+theories/jordanholder.v
+theories/commutators.v
+theories/perm.v
+theories/automorphism.v
+theories/ssralg.v
+theories/finalg.v
+theories/poly.v
+theories/zmodp.v
+theories/matrix.v
+theories/charpoly.v
+theories/cyclic.v
+theories/gfunc.v
+theories/pgroups.v
+theories/center.v
+theories/nilpotent.v
+theories/finmod.v
+theories/maximal.v
+theories/prim_act.v
+theories/sylow.v
+theories/abelian.v
+theories/dihedral.v
+theories/hall.v
+theories/mxrepresentation.v
+theories/BGsection1.v
+theories/BGsection2.v
+theories/BGsection4.v
+theories/BGappendixAB.v
+theories/BGsection5.v
+theories/BGsection6.v
+theories/BGsection7.v
+theories/BGsection8.v
+theories/BGsection9.v
+theories/frobenius.v
+theories/alt.v
+theories/burnside_app.v
+theories/theorem3_6.v
