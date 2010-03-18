@@ -2693,9 +2693,10 @@ let fill_and_select_upat gl env sigma0 occ upats c ise =
   let subst_occ =
     let occ_set = Array.make max_occ (not use_occ) in
     let _ = List.iter (fun i -> occ_set.(i - 1) <- use_occ) occ_list in
+    let _ = if max_occ = 0 then skip_occ := use_occ in
     fun () -> incr nocc;
-    if !nocc <= max_occ then occ_set.(!nocc - 1) else
-    begin skip_occ := use_occ; not use_occ end in
+    if !nocc = max_occ then skip_occ := use_occ;
+    if !nocc <= max_occ then occ_set.(!nocc - 1) else not use_occ in
   let rec subst_loop h c' =
     if !skip_occ then c' else
     let f, a = splay_app ise c' in
