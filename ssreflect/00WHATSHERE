@@ -1,0 +1,10 @@
+Versions of ssreflect version 1.1 :
+
+	ssreflect_81pl2/ : distrib compatible with Coq >= 8.1pl2
+	ssreflect_82beta/ : distrib compatible with Coq ~= 8.2beta
+
+Versions of ssreflect version 1.2 :
+	
+	ssreflect12/ : bugfixed version of the ssreflect 1.2 distribution for Coq v.8.2
+	ssreflect12_83/ : staging area for the coq-contrib, branch 8.3 (tested with Coq 8.3)
+	ssreflect12_trunk/ : staging area for the coq-contrib, branch trunk (tested daily with Coq-trunk)
