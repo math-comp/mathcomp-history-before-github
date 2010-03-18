@@ -2407,9 +2407,11 @@ let unif_end env sigma0 ise0 pt ok =
   let rec loop sigma ise m =
     if snd (extract_all_conv_pbs ise) != [] then
       if m = 0 then raise NoMatch
-      else match Evarconv.consider_remaining_unif_problems env ise with
-      | ise', true -> loop sigma ise' (m - 1)
-      | _ -> raise NoMatch
+      else 
+	let ise' = 
+	  try Evarconv.consider_remaining_unif_problems env ise 
+	  with _ -> raise NoMatch
+	in loop sigma ise' (m - 1)
     else
     let sigma' = ise in
     if sigma' != sigma then
