@@ -1,5 +1,5 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
-Require Import tuple finfun bigops ssralg poly.
+Require Import bigops ssralg poly.
 
 Import GRing.
 
@@ -26,7 +26,6 @@ move=> n m _; by rewrite addnS /= -add1n eqn_addr eq_sym.
 Qed.
 End ExtraArith.
 
-(* begin to be put in poly *)
 Section ExtraPolynomialIdomain.
 
 Variable R : idomainType.

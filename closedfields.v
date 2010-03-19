@@ -1,5 +1,5 @@
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
-Require Import tuple finfun bigops ssralg poly polydiv.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
+Require Import bigops ssralg poly polydiv.
 
 Import GRing.
 
@@ -514,7 +514,6 @@ move: rps; case/andP=> rc rp.
 by apply: ihp=> // r rr; apply: gcdpT_qf.
 Qed.
 
-(* end to be put in poly *)
 Fixpoint gdcop_recT (q: polyF) k  (p : polyF) n :=
   if n is m.+1 then
     gcdpT p (sizeT (fun sd =>
