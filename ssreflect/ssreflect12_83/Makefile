@@ -1,5 +1,5 @@
 
-MAKEFLAGS := -r -j
+MAKEFLAGS := -r
 
 .SUFFIXES:
 
