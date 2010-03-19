@@ -1,6 +1,6 @@
--R theories Ssreflect -I theories 
+-R theories Ssreflect
 -custom "$(COQBIN)coqmktop -opt -o bin/ssrcoq src/ssreflect.cmx" "src/ssreflect.cmx" bin/ssrcoq
--custom "$(COQBIN)coqmktop -o bin/ssrcoq.byte src/ssreflect.cmo" "src/ssreflect.cmo" bin/ssrcoq.byte
+-custom "$(COQBIN)coqmktop -o bin/ssrcoq.byte src/ssreflect.cmo" "src/ssreflect.cmo bin/ssrcoq" bin/ssrcoq.byte
 -custom "$(SSRCOQ) $(COQFLAGS) -compile $*" "%.v $(SSRCOQ)" "%.vo"
 CAMLP4OPTIONS = "-loc loc"
 SSRCOQ = bin/ssrcoq
