@@ -10,6 +10,8 @@ Require Import groups.
 Require Import normal.
 Require Import morphisms.
 Require Import automorphism.
+Require Import bigops.
+Require Import gprod.
 
 Import GroupScope.
 
@@ -27,7 +29,7 @@ Definition obmap : Type := forall gT, {set gT} -> {set gT}.
 
 Identity Coercion fun_of_obmap : obmap >-> Funclass.
 
-(* General functoriality *)
+(* General functoriality, a.k.a continuity of the object mapping *)
 
 Definition cont (F : obmap) : Prop :=
   forall gT hT (G : {group gT}) (phi : {morphism G >-> hT}),
@@ -328,6 +330,7 @@ apply: (subset_trans (morphim_sFunctor sF _ _ )); last by rewrite morphimIdom.
 exact: subsetIl.
 Qed.
 
+(* TOFIX: this should ultimately use the Idempotent Property defined below *)
 Lemma hereditary_idem : forall (gT:finGroupType) (G:{group gT}),
   (app sF sF) _ G  = sF _ G.
 Proof.
@@ -492,5 +495,321 @@ Canonical Structure hgFunc_triv :=
   @HGFunc gFunc_triv (fun gT G _ _ => subsetIl 1 G).
 
 End IdentitySubFunctorsExamples.
+
+Section Torsion.
+
+Implicit Types gT hT: finGroupType.
+
+Require Import finfun.
+
+Definition trivlsed gT (B : {group gT}) hT (C : {group hT}) :=
+  forall f : {morphism B >-> hT},
+  f @* B \subset C -> f @* B :=: 1%G.
+
+Definition GClass := forall gT (B: {group gT}), Prop.
+
+Identity Coercion fun_of_obsel : GClass >-> Funclass.
+
+Implicit Types P Pa Pb : GClass.
+
+(* Closure properties*)
+
+Definition cisom P := forall gT (G : {group gT}) hT (H : {group hT}),
+  isog G H -> P _ G -> P _ H.
+
+Definition csub P := forall gT (G H : {group gT}),
+  H \subset G -> P _ G -> P _ H.
+
+Definition cquo P := forall gT (G H : {group gT}),
+  H <| G -> P _ G -> P _ (G / H)%G.
+
+Definition cex P := forall gT (G H : {group gT}),
+  H <| G -> P _ H -> P _ (G / H)%G -> P _ G.
+
+Definition cjoin P := forall gT (Pb : pred {group gT}),
+  (forall G, reflect (P gT G) (Pb G)) ->
+  P _ << (\bigcup_(G: {group gT} | Pb G) G) >>%G.
+
+Definition csetX P := forall gT (G : {group gT}) hT (H : {group hT}),
+  P _ G -> P _ H -> P _ [group of setX G H].
+
+(* Order on group classes *)
+
+(* NB : lP has to relate polymorphically quantified classes,
+   otherwise a finGroupType and a quotient type of it can't be related.
+   This is necessary as soon as ClB below. *)
+
+Definition lP Pa Pb := forall gT B, Pa gT B -> Pb _ B.
+
+Definition eP Pa Pb := forall gT B, Pa gT B <-> Pb _ B.
+
+(* a torsion theory is a couple of classes related by the two operators below.
+
+   A formal definition would correspond to the hypotheses of section
+   EquivalenceTheorem2.*)
+
+(* Note Rfun, Lfun have to be in Prop : technically, Rfun Bs (resp Lfun
+   Cs) captures the groups related to all B in Bs (resp C in Cs), for all
+   possible types of elements of B (resp C) !
+
+Hence, GClass cannot be gT -> pred {group gT}
+*)
+
+Definition Rfun P hT (C : {group hT}) :=
+  lP P (fun gT B => trivlsed B C) (* : forall gT, Prop ~= bool*).
+
+Definition Lfun P gT (B : {group gT}) :=
+  lP P (trivlsed B).
+
+Lemma RightLeft : forall (Bs Cs : GClass),
+   lP Cs (Rfun Bs) <-> lP Bs (Lfun Cs).
+Proof.
+by move=> Bs Cs; split; move=> H gT B HB hT C HC; apply H.
+Qed.
+
+(* TOFIX : those should be moved to section IdentitySubFunctorDefs *)
+Definition Idemp (F : obmap) := forall gT (G : {group gT}), F _ (F _ G) = F _ G.
+Definition radical (F : obmap) := forall gT (G : {group gT}),
+  F _ (G / (F _ G)) = 1.
+
+Section EquivalenceTheorem1.
+
+Variable T : mgFunc.
+Hypothesis Hid : Idemp T.
+Hypothesis Hrad : radical T.
+
+Local Notation Bs := 
+  (fun (fT:finGroupType) (B : {group fT}) => T _ B = B).
+Local Notation Cs := 
+  (fun (fT:finGroupType) (C : {group fT}) => T _ C = 1).
+
+(* NB : we need monotonicity (alone) here *)
+Lemma BCl : lP Bs (Lfun Cs).
+Proof.
+move=> gT B /= HB hT C /= HC; move=> f; rewrite /= -{6}HB.
+move/(mgFunc_monotonous T)=>HTB; apply/trivgP; rewrite -HC.
+by apply:subset_trans HTB; apply: mgFunc_cont.
+Qed.
+
+Lemma CBr : lP Cs (Rfun Bs).
+Proof. by apply/RightLeft; apply:BCl. Qed.
+
+(* NB : radicality alone needed*)
+Lemma ClB : lP (Lfun Cs) Bs.
+Proof.
+move=> gT B2; rewrite /Lfun /lP; move/(_ _ (B2 / T _ B2)%G); move/(_ (Hrad B2)).
+pose f:= [morphism of restrm (bgFunc_norm T B2) (coset (T _ B2))].
+move/(_ f); rewrite /= /restrm quotientE=> H.
+have e : B2 \subset 'ker (coset (T _ B2)).
+  rewrite ker_trivg_morphim bgFunc_norm; apply/trivgP.
+  by apply: val_inj; rewrite /= -H !morphim_restrm !morphimE setIid.
+by apply/eqP; rewrite eqEsubset bgFunc_clos; rewrite ker_coset in e.
+Qed.
+
+(* NB : idempotence alone needed *)
+Lemma BrC : lP (Rfun Bs) Cs.
+Proof.
+move=> hT C2; rewrite /Rfun /lP; move/(_ _ [group of T _ C2])=>/=.
+move/(_ (Hid C2)); pose f := [morphism of restrm (bgFunc_clos T C2) (idm C2)].
+move/(_ f); rewrite /= /restrm morphim_restrm morphim_idm setIid bgFunc_clos //.
+by apply.
+Qed.
+
+Lemma eBC : eP Bs (Lfun Cs) /\ eP Cs (Rfun Bs).
+Proof.
+by split; move=> gT B; split; [apply BCl|apply ClB|apply CBr|apply BrC].
+Qed.
+
+End EquivalenceTheorem1.
+
+Section EquivalenceTheorem2.
+
+(* Here we get closure properties from Lfun properties.
+   Those will ultimately allow us to build a corresponding 
+   (not necessarily idempotent) radical
+*)
+
+Variables Bs Cs : forall gT (_:{group gT}), Prop.
+Hypothesis eBC : eP Bs (Lfun Cs).
+
+Lemma hBCl : lP Bs (Lfun Cs).
+Proof. by move=> gT B; rewrite (eBC B). Qed.
+
+Lemma hClB : lP (Lfun Cs) Bs.
+Proof. by move=> gT B; rewrite (eBC B). Qed.
+
+Lemma cisomB : cisom Bs.
+Proof.
+move=> gT B hT C; move/isogP => [f Hfinj Hfim]; move/hBCl=>HB.
+apply:hClB=> fT Y HY g Hgim; move : (injmK Hfinj (subxx _)).
+rewrite Hfim=> Hfpre; have:= (comp_morphM g (f:=f)); rewrite Hfpre => H.
+pose gof := Morphism H; move: (HB _ _ HY gof).
+by rewrite morphimE imset_comp -morphimE Hfim -{2 4}(setIid C) -morphimE;
+move/(_ Hgim).
+Qed.
+
+Lemma cquoB : cquo Bs.
+Proof.
+move=> gT X H Hs; move/hBCl=>HX; apply:hClB=> hT C2 HC2 g2 Hg2.
+pose f:= [morphism of restrm (normal_sub Hs) (coset H)].
+have:= (comp_morphM g2 (f:=f)); rewrite /restrm (quotientGK Hs)=>Hm.
+pose g:= Morphism Hm; move:(HX _ _ HC2 g); rewrite morphimE imset_comp.
+rewrite setIid -(setIidPr (normal_norm Hs)) -morphimE /= /restrm -quotientE.
+by rewrite -{2 4}(setIid (X / H)) -morphimE; move/(_ Hg2).
+Qed.
+
+Lemma cexB : cex Bs.
+Proof.
+move=> gT M B Hs; move/hBCl=>HB; move/hBCl=> Hqu; apply:hClB=> hT C3 HC3 f3 Hf3.
+move: (comp_morphM f3 (f:= [morphism of idm B])).
+rewrite morphpre_idm (setIidPl (normal_sub Hs))=>Hf3i; pose f:= Morphism Hf3i.
+move: (HB _ _ HC3 f); rewrite morphimE imset_comp -morphimE.
+rewrite morphim_idm ?subxx // -{1 2}(setIidPr (normal_sub Hs)) -morphimE.
+move/(_ (subset_trans (morphimS f3 (normal_sub Hs)) Hf3))=>Hf3B.
+move/trivgP:(Hf3B); move/(conj (normal_sub Hs)); move/andP.
+rewrite -ker_trivg_morphim=> HBker.
+have Hinj : 'injm (coset (f3 @* B)) by rewrite Hf3B; apply:coset1_injm.
+move: (morphM [morphism of (invm Hinj) \o (quotm f3 Hs)])=>/=.
+rewrite -quotientE morphpre_quotm {1}Hf3B norm1 morphpreT=>Hq.
+pose qfq := Morphism Hq; move:(Hqu _ _ HC3 qfq).
+rewrite morphimE imset_comp -morphimE morphim_quotm quotientE.
+have:= (subsetT (f3 @* M)); rewrite -norm1 -[1]/(gval _) -{1}Hf3B =>Hm.
+rewrite -(setIidPr (morphimS _  Hm)) -morphimE morphim_invm ?Hm //.
+by move/(_ Hf3).
+Qed.
+
+Lemma cjoinB : cjoin Bs.
+Proof.
+move=> gT Pb Hreflect; apply: hClB=> hT C5 HC5 f5.
+rewrite morphim_gen ?subset_gen // gen_subG=> Hf5; apply/trivgP.
+rewrite gen_subG sub_morphim_pre ?subset_gen //; apply/bigcupsP=> /= G HG.
+move/Hreflect:(HG); move/hBCl; move/(_ _ _ HC5)=>HtC5.
+have Ho: G \subset <<\bigcup_(G0| Pb G0) G0>> by rewrite sub_gen ?bigcup_sup.
+rewrite -sub_morphim_pre ?Ho //; move: (morphM [morphism of f5 \o (idm G)]).
+rewrite {1}morphpre_idm (setIidPl Ho)=>Hf; pose f:= Morphism Hf.
+move: (HtC5 f); rewrite morphimE imset_comp -morphimE morphim_idm ?subxx //.
+rewrite -{1 2}(setIidPr Ho) -morphimE.
+have: G \subset \bigcup_(G0| Pb G0) G0 by rewrite bigcup_sup ?HG.
+by move/(morphimS f5)=> Hf5'; move/(_ (subset_trans Hf5' Hf5)); move/trivgP.
+Qed.
+
+(*
+TOFIX : add closure wrt direct sum
+*)
+
+End EquivalenceTheorem2.
+
+Section EquivalenceTheorem3.
+
+(* Closure properties from Rfun properties.
+   Those will ultimately allow us to build a corresponding 
+   (not necessarily idempotent) radical
+*)
+
+Variables Bs Cs : forall gT (_:{group gT}), Prop.
+Hypothesis eCB : eP Cs (Rfun Bs).
+
+Lemma hCBr : lP Cs (Rfun Bs).
+Proof. by move=> gT C; rewrite (eCB C). Qed.
+
+Lemma hBrC : lP (Rfun Bs) Cs.
+Proof. by move=> gT C; rewrite (eCB C). Qed.
+
+Lemma cisomC : cisom Cs.
+Proof.
+move=> gT G hT H; case/isogP=> f Hfinj Hfim; move/hCBr=>HC.
+apply:hBrC=> fT Y HY g Hgim; pose h := (invm Hfinj)\o g.
+have mH: morphic Y h.
+  move:Hgim; rewrite (sub_morphim_pre _ _ (subxx _)); move/subsetP=>Hgim.
+  have:= (comp_morphM [morphism of invm Hfinj] (f:=g)); rewrite /= Hfim=> Hm.
+  by apply/morphicP; move=> x y; move/Hgim=> Hx; move/Hgim=>Hy; apply:Hm.
+rewrite -Hfim in Hgim.
+apply: (injm_morphim_inj (injm_invm Hfinj) Hgim (sub1G _)).
+pose invfog := Morphism (morphicP mH); move: (HC _ _ HY invfog).
+rewrite morphimE imset_comp -morphimE -{1 2}(setIidPr Hgim) -morphimE.
+move/(morphimS [morphism of invm Hfinj]) : Hgim =>/=.
+by rewrite morphim1 (morphim_invm _ (subxx _))=>Hi; move/(_ Hi).
+Qed.
+
+Lemma csubC : csub Cs.
+Proof.
+move=> hT X H Hs; move/hCBr=> HtBrG; apply:hBrC=> gT B2 HB2 f2 Hf2.
+pose h:= (idm H) \o f2; have mH : morphic B2 h.
+  rewrite (sub_morphim_pre _ _ (subxx _)) in Hf2; move/subsetP:Hf2=>Hf2.
+  apply/morphicP; have := (morphM [morphism of h])=> Hm x y; move/Hf2=>Hx.
+  by move/Hf2=>Hy; apply:Hm.
+pose iof := Morphism (morphicP mH); move: (HtBrG _ _ HB2 iof); rewrite morphimE.
+rewrite imset_comp -morphimE -{1 2}(setIidPr Hf2) -morphimE morphim_idm ?Hf2 //.
+by move/(_ (subset_trans Hf2 Hs)).
+Qed.
+
+Lemma cexC : cex Cs.
+Proof.
+move=> hT M C Hs; move/hCBr=>HB; move/hCBr=> Hqu; apply:hBrC=> gT B3 HB3 f3 Hf3.
+pose h:= (restrm (normal_norm Hs) (coset C)) \o f3.
+have mH: morphic B3 h.
+  apply/morphicP; move: (morphM [morphism of h])=> Hm x y.
+  rewrite (sub_morphim_pre _ _ (subxx _)) in Hf3; move/subsetP:Hf3=>Hf3.
+  by move/Hf3=> Hx; move/Hf3=> Hy; apply:Hm.
+(* TOFIX : don't know why the simpl is mandatory here*)
+move/morphicP: mH=> /= mH; pose hm := Morphism mH.
+move: (Hqu _ _ HB3 hm); rewrite morphimE imset_comp -morphimE /restrm.
+rewrite -{1 2}(setIidPr (subset_trans Hf3 (normal_norm Hs))) -morphimE.
+rewrite -quotientE; move/(_ (quotientS _ Hf3)).
+move/trivgP; move/(conj (subset_trans Hf3 (normal_norm Hs))); move/andP.
+by rewrite -ker_trivg_morphim ker_coset; move/(HB _ _ HB3 f3).
+Qed.
+
+(* TOFIX : according to what is inferred in this lemma, the structures on 
+   [eta fst], [eta snd] declared in gprod.v don't work so well*)
+Lemma csetXP : csetX Cs.
+Proof.
+move=> gT G hT H; move/hCBr=> HG; move/hCBr=> HH; apply hBrC=> fT B4 HB4 g4 Hg4.
+pose p1g4 := restrm (subsetT (setX G H)) [morphism of fun x => x.1] \o g4.
+pose p2g4 := restrm (subsetT (setX G H)) [morphism of fun x => x.2] \o g4.
+have Hp1g4 : morphic B4 p1g4.
+  apply/morphicP=> x y;  move: Hg4; rewrite (sub_morphim_pre _ _ (subxx _)).
+  move/subsetP=> Hs; move/Hs=> Hx; move/Hs=>Hy.
+  by apply:(morphM [morphism of p1g4]).
+have Hp2g4: morphic B4 p2g4.
+  apply/morphicP=> x y;  move: Hg4; rewrite (sub_morphim_pre _ _ (subxx _)).
+  move/subsetP=> Hs; move/Hs=> Hx; move/Hs=>Hy.
+  by apply: (morphM [morphism of p2g4]).
+pose mp1g4:= Morphism (morphicP Hp1g4); pose mp2g4 := Morphism (morphicP Hp2g4).
+move: (HG _ _ HB4 mp1g4) (HH _ _ HB4 mp2g4).
+rewrite morphimE imset_comp -morphimE /restrm -{1}(setTI (g4 @* B4)) -morphimE.
+move: (morphimS [morphism of restrm (subsetT (setX G H)) (fun x => x.1)] Hg4).
+move: (morphimS [morphism of restrm (subsetT (setX G H)) (fun x => x.2)] Hg4).
+rewrite morphim_fstX morphim_sndX /restrm=> Hm2 Hm1.
+move/(_ Hm1)=>H1; rewrite morphimE imset_comp -morphimE /restrm.
+rewrite  -{1}(setTI (g4 @* B4)) -morphimE; move/(_ Hm2)=> H2.
+apply/trivgP; apply/subsetP; case=>[x1 x2 Hx12].
+move: (mem_imset [morphism of fun x =>x.1] Hx12); rewrite H1 /=; move/set1P=>->.
+move: (mem_imset [morphism of fun x =>x.2] Hx12); rewrite H2 /=; move/set1P=>->.
+by apply/set1P.
+Qed.
+
+End EquivalenceTheorem3.
+
+
+Section EquivalenceTheorem4.
+
+(* Here, as well as in the next section we define a (pre-)radical from
+ closure properties.
+
+ Since our assumptions in the last section are minimal, the ones in this
+ section might surprise. Notice that in fact, we simply require closure
+ properties on the class we study (here, Bs), and computational definition
+ on the other (C = B^r).
+
+*)
+
+Variables (Bs Cs : GClass). 
+
+End EquivalenceTheorem4.
+
+
+End Torsion.
+
 
 Unset Implicit Arguments.
