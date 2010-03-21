@@ -264,18 +264,18 @@ End LowerCentral.
 
 Notation "''L_' n ( G )" := (lower_central_at_group n G) : subgroup_scope.
 
-Lemma lcn_resp : forall n, resp (lower_central_at n).
+Lemma lcn_cont : forall n, cont (lower_central_at n).
 Proof.
 case=> //; elim=> // n IHn g0T h0T H phi.
 by rewrite !lcnSn morphimR ?lcn_sub // commSg ?IHn.
 Qed.
 
 Canonical Structure bgFunc_lcn n :=
-  [bgFunc by fun gT => @lcn_sub gT n & lcn_resp n].
+  [bgFunc by fun gT => @lcn_sub gT n & lcn_cont n].
 
-Canonical Structure gFunc_lcn n := GFunc (lcn_resp n).
+Canonical Structure gFunc_lcn n := GFunc (lcn_cont n).
 
-Canonical Structure cgFunc_lcn n := CGFunc (fun _ G H => @lcnS _ n G H).
+Canonical Structure mgFunc_lcn n := MGFunc (fun _ G H => @lcnS _ n G H).
 
 Section UpperCentralFunctor.
 
@@ -298,14 +298,14 @@ Canonical Structure upper_central_at_group gT G := Group (@ucn_group_set gT G).
 Lemma ucn_sub : forall gT (G : {group gT}), 'Z_n(G) \subset G.
 Proof. by case: ucn_hgFunc => hZ ->; exact: bgFunc_clos. Qed.
 
-Lemma ucn_resp : resp (upper_central_at n).
-Proof. by case: ucn_hgFunc => hZ ->; exact: gFunc_resp. Qed.
+Lemma ucn_cont : cont (upper_central_at n).
+Proof. by case: ucn_hgFunc => hZ ->; exact: gFunc_cont. Qed.
 
 Lemma ucn_hereditary : hereditary (upper_central_at n).
 Proof. by case: ucn_hgFunc => hZ ->; exact: hgFunc_hereditary. Qed.
 
-Canonical Structure bgFunc_ucn := [bgFunc by ucn_sub & ucn_resp].
-Canonical Structure gFunc_ucn := GFunc ucn_resp.
+Canonical Structure bgFunc_ucn := [bgFunc by ucn_sub & ucn_cont].
+Canonical Structure gFunc_ucn := GFunc ucn_cont.
 Canonical Structure hgFunc_ucn := HGFunc ucn_hereditary.
 
 Variable (gT : finGroupType) (G : {group gT}).
@@ -360,7 +360,7 @@ Qed.
 Lemma ucn1 : forall G, 'Z_1(G) = 'Z(G).
 Proof.
 move=> G; apply: (quotient_inj (normal1 _) (normal1 _)).
-by rewrite /= (ucn_central 0) -bgFunc_asresp ?norms1 ?coset1_injm.
+by rewrite /= (ucn_central 0) -bgFunc_ascont ?norms1 ?coset1_injm.
 Qed.
 
 Lemma ucnSnR : forall n G,

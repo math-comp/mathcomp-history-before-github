@@ -146,7 +146,7 @@ Qed.
 
 (* Functoriality *)
 
-Lemma center_resp : resp center.
+Lemma center_cont : cont center.
 Proof.
 move=> hT iT H phi /=; apply: (subset_trans (morphimI _ _ _ )).
 rewrite subsetI subsetIl /=; apply: subset_trans (subsetIr (phi @* H) _) _.
@@ -162,9 +162,9 @@ Qed.
 End Center.
 
 Canonical Structure bgFunc_center :=
-  [bgFunc by fun _ _ => center_sub _ & center_resp].
+  [bgFunc by fun _ _ => center_sub _ & center_cont].
 
-Canonical Structure gFunc_center := GFunc center_resp.
+Canonical Structure gFunc_center := GFunc center_cont.
 
 Canonical Structure hgFunc_center := HGFunc center_hereditary.
 

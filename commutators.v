@@ -357,13 +357,13 @@ Proof. by move=> n G H; exact: morphim_der. Qed.
 
 End Commutator_properties.
 
-Lemma der_resp : forall n, resp (derived_at n).
+Lemma der_cont : forall n, cont (derived_at n).
 
 Proof. by move=> n aT rT G f; rewrite morphim_der. Qed.
 
 Canonical Structure bgFunc_der n :=
-  [bgFunc by fun gT => @der_sub gT n & der_resp n].
-Canonical Structure gFunc_der n := GFunc (der_resp n).
-Canonical Structure cgFunc_der n := CGFunc (fun _ => dergS n).
+  [bgFunc by fun gT => @der_sub gT n & der_cont n].
+Canonical Structure gFunc_der n := GFunc (der_cont n).
+Canonical Structure mgFunc_der n := MGFunc (fun _ => dergS n).
 
 

@@ -887,7 +887,7 @@ move=> G; apply/eqP; rewrite eqEsubset Ohm_sub genS //.
 by apply/subsetP=> x; case/setIdP=> Gx oxn; rewrite inE mem_gen // inE Gx.
 Qed.
 
-Lemma Ohm_resp : forall rT G (f : {morphism G >-> rT}),
+Lemma Ohm_cont : forall rT G (f : {morphism G >-> rT}),
   f @* 'Ohm_n(G) \subset 'Ohm_n(f @* G).
 Proof.
 move=> rT G f; rewrite morphim_gen ?genS //; last by rewrite -gen_subG Ohm_sub.
@@ -982,7 +982,7 @@ set p := pdiv _ => p_fx ->{y}; rewrite -(constt_p_elt p_fx) -morph_constt //.
 by rewrite -morphX ?mem_morphim ?Mho_p_elt ?groupX ?p_elt_constt.
 Qed.
 
-Lemma Mho_resp : forall rT G (f : {morphism G >-> rT}),
+Lemma Mho_cont : forall rT G (f : {morphism G >-> rT}),
   f @* 'Mho^n(G) \subset 'Mho^n(f @* G).
 Proof. by move=> rT G f; rewrite morphim_Mho. Qed.
 
@@ -1056,13 +1056,13 @@ Qed.
 
 End Generic.
 
-Canonical Structure bgFunc_Ohm i := [bgFunc by Ohm_sub i & Ohm_resp i].
-Canonical Structure gFunc_Ohm i := GFunc (Ohm_resp i).
-Canonical Structure cgFunc_Ohm i := CGFunc (OhmS i : compatible (Ohm i)).
+Canonical Structure bgFunc_Ohm i := [bgFunc by Ohm_sub i & Ohm_cont i].
+Canonical Structure gFunc_Ohm i := GFunc (Ohm_cont i).
+Canonical Structure mgFunc_Ohm i := MGFunc (OhmS i : monotonous (Ohm i)).
 
-Canonical Structure bgFunc_Mho i := [bgFunc by Mho_sub i & Mho_resp i].
-Canonical Structure gFunc_Mho i := GFunc (Mho_resp i).
-Canonical Structure cgFunc_Mho i := CGFunc (MhoS i).
+Canonical Structure bgFunc_Mho i := [bgFunc by Mho_sub i & Mho_cont i].
+Canonical Structure gFunc_Mho i := GFunc (Mho_cont i).
+Canonical Structure mgFunc_Mho i := MGFunc (MhoS i).
 
 Section char.
 
