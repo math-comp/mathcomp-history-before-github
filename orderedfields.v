@@ -239,3 +239,63 @@ Proof. move=> y x z; move/ltrW; exact: leq_ltr_trans. Qed.
 
 End OrderedFieldTheory.
 
+Require Import poly.
+
+Module RealClosedField.
+
+Record mixin_of (F : oFieldType) := Mixin {
+  _ : forall x : F, 0 <= x -> exists y, x = y ^+ 2;
+  _ : forall (p : {poly F}), ~~ odd (size p) -> exists x : F, root p x
+(* Should we replace it by a poly independant version, as in ClosedField ? *)
+}.
+
+Record class_of (R : Type) : Type := Class {
+  base :> OrderedField.class_of R; 
+   (* In fact, this should be a new kind of Decidable Field 
+      including the Leq constructor ... *)
+  ext :> mixin_of (OrderedField.Pack base R)
+}.
+
+Record type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type }.
+Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
+Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
+
+Definition pack T b0 (m0 : mixin_of (@OrderedField.Pack T b0 T)) :=
+  fun bT b & phant_id (OrderedField.class bT) b =>
+  fun    m & phant_id m0 m => Pack (@Class T b m) T.
+
+
+Coercion eqType cT := Equality.Pack (class cT) cT.
+Coercion choiceType cT := Choice.Pack (class cT) cT.
+Coercion zmodType cT := GRing.Zmodule.Pack (class cT) cT.
+Coercion ringType cT := GRing.Ring.Pack (class cT) cT.
+Coercion comRingType cT := GRing.ComRing.Pack (class cT) cT.
+Coercion unitRingType cT := GRing.UnitRing.Pack (class cT) cT.
+Coercion comUnitRingType cT := GRing.ComUnitRing.Pack (class cT) cT.
+Coercion idomainType cT := GRing.IntegralDomain.Pack (class cT) cT.
+Coercion fieldType cT := GRing.Field.Pack (class cT) cT.
+Coercion oFieldType cT := OrderedField.Pack (class cT) cT.
+
+End RealClosedField.
+
+Bind Scope ring_scope with RealClosedField.sort.
+Canonical Structure RealClosedField.eqType.
+Canonical Structure RealClosedField.choiceType.
+Canonical Structure RealClosedField.zmodType.
+Canonical Structure RealClosedField.ringType.
+Canonical Structure RealClosedField.comRingType.
+Canonical Structure RealClosedField.unitRingType.
+Canonical Structure RealClosedField.comUnitRingType.
+Canonical Structure RealClosedField.idomainType.
+Canonical Structure RealClosedField.fieldType.
+Canonical Structure RealClosedField.oFieldType.
+
+
+Notation rFieldType := RealClosedField.type.
+Notation RFieldType T m := (RealClosedField.pack T _ m _ _ id _ id).
+Notation RFieldMixin := RealClosedField.Mixin.
+Notation "[ 'rFieldType' 'of' T 'for' cT ]" := (RealClosedField.clone T cT _ idfun)
+  (at level 0, format "[ 'rFieldType'  'of'  T  'for'  cT ]") : form_scope.
+Notation "[ 'rFieldType' 'of' T ]" := (RealClosedField.clone T _ _ id)
+  (at level 0, format "[ 'rFieldType'  'of'  T ]") : form_scope.
+
