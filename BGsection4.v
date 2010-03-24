@@ -839,8 +839,7 @@ case eMR'1 : (MR' == 1); last first.
 have abelR' : p.-abelem R'.
   have pR' := (pgroupS sR'R pR); have pOR' := (pgroupS (Ohm_sub 1 _) pR').
   rewrite -[R']derg1 -(eqP (trivg_Mho eMR'1)) /= (abelem_Ohm1 pR').
-  rewrite (p2group_abelian pOR') // (leq_trans _ cardOR) // dvdn_leq_log //.
-    by rewrite cardG_gt0.
+  rewrite (p2group_abelian pOR') ?(leq_trans _ cardOR) ?dvdn_leq_log // ?card_gt0.
   by rewrite cardSg // OhmS.
 (* Now done with AT and MhoAT *)
 move=> {nsT_AT nsATT_RT nsAT_R sAT_R nAT_R NATb nB_AT nsAT_BAT neATT1 ATeq}.
