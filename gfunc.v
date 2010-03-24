@@ -502,6 +502,7 @@ Implicit Types gT hT: finGroupType.
 
 Require Import finfun.
 
+(* Orthogonality property*)
 Definition trivlsed gT (B : {group gT}) hT (C : {group hT}) :=
   forall f : {morphism B >-> hT},
   f @* B \subset C -> f @* B :=: 1%G.
@@ -523,20 +524,33 @@ Definition csub P := forall gT (G H : {group gT}),
 Definition cquo P := forall gT (G H : {group gT}),
   H <| G -> P _ G -> P _ (G / H)%G.
 
+Lemma cquoisom1 P : cquo P -> cisom P ->
+  (forall gT (G:{group gT}), P _ G -> forall hT, P _ (one_group hT)).
+Proof. 
+move=> P qP iP gT G PG hT; have : P (coset_groupType G) 1%G.
+  move:(trivg_quotient G); move/group_inj=><-.
+  by apply:(qP _ _ _ (normal_refl _) PG).
+apply:iP; rewrite isog_symr //; have:= (quotient1 G); move/group_inj=><-.
+apply: (@isog_trans _ _ _ _ (one_group gT)); first by apply: trivial_isog.
+apply: (isom_isog _ _ (quotient_isom (sub1G 'N(G)) (setIidPl (sub1G G)))).
+by apply:subxx.
+Qed.
+
 Definition cex P := forall gT (G H : {group gT}),
   H <| G -> P _ H -> P _ (G / H)%G -> P _ G.
 
-Definition cjoin P := forall gT (Pb : pred {group gT}),
-  (forall G, reflect (P gT G) (Pb G)) ->
-  P _ << (\bigcup_(G: {group gT} | Pb G) G) >>%G.
+(* TOFIX : I'll want any join of subgroups not this bloated total join *)
+Definition cjoin P := forall gT (H G : {group gT}),
+  P _ H -> P _ G -> P _ (H <*> G)%G.
 
+(* TOFIX : this is a puny excuse for being 'closed by direct product' *)
 Definition csetX P := forall gT (G : {group gT}) hT (H : {group hT}),
   P _ G -> P _ H -> P _ [group of setX G H].
 
-(* Order on group classes *)
+(* Order relations on group classes *)
 
 (* NB : lP has to relate polymorphically quantified classes,
-   otherwise a finGroupType and a quotient type of it can't be related.
+   otherwise a finGroupType and a quotient type of it can't be in the same class
    This is necessary as soon as ClB below. *)
 
 Definition lP Pa Pb := forall gT B, Pa gT B -> Pb _ B.
@@ -545,15 +559,8 @@ Definition eP Pa Pb := forall gT B, Pa gT B <-> Pb _ B.
 
 (* a torsion theory is a couple of classes related by the two operators below.
 
-   A formal definition would correspond to the hypotheses of section
-   EquivalenceTheorem2.*)
-
-(* Note Rfun, Lfun have to be in Prop : technically, Rfun Bs (resp Lfun
-   Cs) captures the groups related to all B in Bs (resp C in Cs), for all
-   possible types of elements of B (resp C) !
-
-Hence, GClass cannot be gT -> pred {group gT}
-*)
+   A formal definition would correspond to the hypotheses of sections
+   EquivalenceTheorem2 & EquivalenceTheorem3.*)
 
 Definition Rfun P hT (C : {group hT}) :=
   lP P (fun gT B => trivlsed B C) (* : forall gT, Prop ~= bool*).
@@ -573,6 +580,7 @@ Definition radical (F : obmap) := forall gT (G : {group gT}),
   F _ (G / (F _ G)) = 1.
 
 Section EquivalenceTheorem1.
+(* An indempotent radical generated a torsion theory*)
 
 Variable T : mgFunc.
 Hypothesis Hid : Idemp T.
@@ -680,17 +688,22 @@ Qed.
 
 Lemma cjoinB : cjoin Bs.
 Proof.
-move=> gT Pb Hreflect; apply: hClB=> hT C5 HC5 f5.
-rewrite morphim_gen ?subset_gen // gen_subG=> Hf5; apply/trivgP.
-rewrite gen_subG sub_morphim_pre ?subset_gen //; apply/bigcupsP=> /= G HG.
-move/Hreflect:(HG); move/hBCl; move/(_ _ _ HC5)=>HtC5.
-have Ho: G \subset <<\bigcup_(G0| Pb G0) G0>> by rewrite sub_gen ?bigcup_sup.
-rewrite -sub_morphim_pre ?Ho //; move: (morphM [morphism of f5 \o (idm G)]).
-rewrite {1}morphpre_idm (setIidPl Ho)=>Hf; pose f:= Morphism Hf.
-move: (HtC5 f); rewrite morphimE imset_comp -morphimE morphim_idm ?subxx //.
-rewrite -{1 2}(setIidPr Ho) -morphimE.
-have: G \subset \bigcup_(G0| Pb G0) G0 by rewrite bigcup_sup ?HG.
-by move/(morphimS f5)=> Hf5'; move/(_ (subset_trans Hf5' Hf5)); move/trivgP.
+move=> Pb G H BH BG; apply: hClB=> hT C5 HC5 f5.
+rewrite morphim_gen ?subset_gen // gen_subG {1}morphimU subUset.
+rewrite 2!morphimE (setIidPr (mulgen_subl _ _)) (setIidPr (mulgen_subr _ _)).
+move/andP=> [Hf5G Hf5H]; apply/trivgP; rewrite gen_subG.
+rewrite sub_morphim_pre ?subset_gen -?sub_morphim_pre ?sub_gen //.
+move: (morphM [morphism of f5 \o (idm G)]).
+move: (morphM [morphism of f5 \o (idm H)]). 
+rewrite {1}[idm_morphism G @*^-1 _]morphpre_idm.
+rewrite {1}[idm_morphism H @*^-1 _]morphpre_idm.
+rewrite (setIidPl (mulgen_subl _ _)) (setIidPl (mulgen_subr _ _)) =>Hf Hg.
+pose f:= Morphism Hf; pose g:= Morphism Hg.
+move: (hBCl BH HC5) (hBCl BG HC5)=> HtG HtH; move: (HtG g) (HtH f).
+rewrite 2!morphimE 2!imset_comp -!morphimE !morphim_idm ?subxx // morphimU.
+rewrite subUset !morphimE (setIidPr (mulgen_subl _ _)). 
+rewrite (setIidPr (mulgen_subr _ _)); move/(_ Hf5G)=>->; move/(_ Hf5H)=>->.
+by rewrite subxx.
 Qed.
 
 (*
@@ -703,11 +716,15 @@ Section EquivalenceTheorem3.
 
 (* Closure properties from Rfun properties.
    Those will ultimately allow us to build a corresponding 
-   (not necessarily idempotent) radical
+   (not necessarily radical) idempotent pre-radical
 *)
 
 Variables Bs Cs : forall gT (_:{group gT}), Prop.
 Hypothesis eCB : eP Cs (Rfun Bs).
+
+(* This is done to syntactically isolate what I use, of course views apply
+   bidirectionnaly
+*)
 
 Lemma hCBr : lP Cs (Rfun Bs).
 Proof. by move=> gT C; rewrite (eCB C). Qed.
@@ -805,9 +822,131 @@ Section EquivalenceTheorem4.
 *)
 
 Variables (Bs Cs : GClass). 
+Hypothesis  eCB : eP Cs (Rfun Bs).
+
+(* This is done to syntactically isolate what I use, of course views apply
+   bidirectionnaly
+*)
+
+Lemma hCBr' : lP Cs (Rfun Bs).
+Proof. by move=> gT C; rewrite (eCB C). Qed.
+
+Lemma hBrC' : lP (Rfun Bs) Cs.
+Proof. by move=> gT C; rewrite (eCB C). Qed.
+
+Hypothesis cquoB : cquo Bs.
+Hypothesis cisomB : cisom Bs.
+Hypothesis cexB : cex Bs.
+Hypothesis cjoinB : cjoin Bs.
+
+Variables Bbool Cbool : forall gT, pred {group gT}.
+Hypothesis reflectB : forall gT (G:{group gT}), reflect (Bs G) (Bbool G).
+
+(***************************************************************************)
+(* This implies our interpretation of class Bs in terms of a functor will  *)
+(* only be valid when Bs is not empty. We will have to carry around a      *)
+(* non-emptyness hypothesis, but this is actually better than the          *)
+(* alternative, which is to have a T that does not always carry a group    *)
+(* structure (being sometimes empty - hence one that wouldn't even fit our *)
+(* bgFunc structure.                                                       *)
+(***************************************************************************)
+
+Definition T gT (G:{set gT}) := 
+  \big[mulGen/1%G]_(H: {group gT} | (@Bbool _ H) && (H \subset G)) H.
+
+(* The following is trivial, but important to notice *)
+Lemma sub1TG : forall gT (G:{group gT}), 1%G \subset T G.
+Proof. by move=> gT G; apply: sub1G. Qed.
+
+Lemma noBstrivT : (forall gT (H:{group gT}), Bs H -> False) ->
+  (forall hT (H:{group hT}), T H :=: 1).
+Proof.
+move=> noBs hT H; apply/trivgP; rewrite bigprodGE gen_subG.
+by apply/bigcupsP=> G; case/andP; move/reflectB; move/noBs.
+Qed.
+
+Lemma T_B : forall hT (H:{group hT}), Bs H -> 
+  forall gT (G:{group gT}), Bs (T G).
+Proof.
+move=> hT H BsH gT G.
+apply: big_prop; last by move=>H0; case/andP => BbH0 _; apply/reflectB.
+  apply: (cquoisom1 cquoB cisomB BsH).
+apply: cjoinB.
+Qed.
+
+Lemma T_sub : forall gT (G:{group gT}), T G \subset G.
+Proof.
+by move=>gT G; rewrite bigprodGE gen_subG; apply/bigcupsP=> H; case/andP.
+Qed.
+
+Lemma T_cont : cont T.
+Proof.
+move=> gT hT G f; have sUG:(\bigcup_(H | Bbool H && (H \subset G)) H \subset G).
+ by apply/bigcupsP=> H; case/andP.
+rewrite bigprodGE morphim_gen ?sUG ?gen_subG ?sub_morphim_pre ?sUG //.
+apply/bigcupsP=> H; case/andP=> BbH sHG; rewrite -sub_morphim_pre ?sub_gen //.
+rewrite -[f @* H]/(gval _); rewrite bigprodGE sub_gen //; apply:bigcup_sup.
+rewrite morphimS ?andbT //; apply/reflectB; suff : (Bs (H / 'ker_H f)%G).
+  by apply : cisomB; apply: (first_isog_loc f sHG).
+apply:cquoB; last by apply/reflectB.
+by rewrite /= -(ker_restrm sHG f) ker_normal.
+Qed.
+
+Canonical Structure bgFunc_T := [bgFunc by T_sub & T_cont].
+Canonical Structure gFunc_T := GFunc (T_cont: cont bgFunc_T).
+
+Lemma T_rad : radical T.
+Proof.
+move=> gT G; apply/trivgP; rewrite (@bigprodGE (coset_groupType _) _) gen_subG.
+apply/bigcupsP=> H; case/andP=> BbH.
+case/(inv_quotientS (bgFunc_normal bgFunc_T G)) => K KH sTGK sKG.
+have KsNTG : K \subset 'N(T G) by exact: (subset_trans sKG (bgFunc_norm bgFunc_T G)).
+rewrite KH quotient_sub1; last by exact: KsNTG.
+rewrite bigprodGE sub_gen //; apply:bigcup_sup; rewrite sKG andbT.
+move: (BbH); move/group_inj: KH =>->; move/reflectB => Bbquo.
+apply/reflectB; apply: (cexB _ _ Bbquo); first by rewrite /normal sTGK KsNTG.
+exact: (T_B (reflectB _ BbH)).
+Qed.
+
+Lemma T_Bs_devel : forall hT (H:{group hT}), Bs H ->
+  forall gT (G : {group gT}), Bs G <-> T G :=: G.
+Proof.
+move=> hT H BsH gT G; split; last first.
+  by move/group_inj=>eq; move:(T_B BsH G); rewrite eq.
+move=> BsG; apply/eqP; rewrite eqEsubset; apply/andP; split; rewrite bigprodGE.
+  by rewrite gen_subG; apply/bigcupsP=> H0; case/andP=> _.
+by rewrite sub_gen //; apply: bigcup_sup; rewrite subxx andbT; apply/reflectB.
+Qed.
+
+Lemma T_idem : Idemp T.
+Proof.
+move=> gT G /=.
+case e: (existsb H:{group gT}, Bbool H).
+  move/idP: e; move/existsP; case=> /= H; move/reflectB=> BsH.
+  by move: (T_B BsH G); move/(T_Bs_devel BsH).
+suff noBs : (forall gT (H:{group gT}), Bs H -> False).
+  by rewrite !(noBstrivT noBs).
+move=> hT H BsH; case: (elimF existsP e); exists 1%G.
+by apply/reflectB; apply: (cquoisom1 _ _ BsH).
+Qed.
+
+Lemma T_Cs_devel : forall hT (H:{group hT}), Bs H ->
+  forall gT (G : {group gT}), Cs G <-> T G :=: 1%G.
+Proof.
+move=> hT H BsH gT G; split.
+  move:(T_B BsH G)=>BsTG; move/hCBr'; move/(_ _ _ BsTG).
+  move/(_ (idm_morphism (T G))); rewrite morphim_idm ?subxx //.
+  (* TOFIX : Ugh ! Tsub !*)
+  by move: (bgFunc_clos bgFunc_T G)=>/= TsubG; move/(_ TsubG).
+move=> trivTG; apply: hBrC'=> hT0 H0 BsH0 f sfH0G.
+apply/trivgP; rewrite -trivTG bigprodGE sub_gen //.
+apply:bigcup_sup; rewrite sfH0G andbT; apply/reflectB.
+move: (gFunc_cont gFunc_T f); move:(BsH0); move/(T_Bs_devel BsH0 H0)=>-> /=.
+move/(conj (bgFunc_clos bgFunc_T (f @* H0))); move/andP; rewrite -eqEsubset /=.
+by move/eqP; move/(T_Bs_devel BsH0).
+Qed.
 
 End EquivalenceTheorem4.
-
 
 End Torsion.
 
