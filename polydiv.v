@@ -508,6 +508,13 @@ move=> x; elim; first by rewrite big_nil root1n.
 by move=> p ps ihp; rewrite big_cons /= root_mul negb_or ihp.
 Qed.
 
+Lemma size_XMa : forall a, size ('X - a%:P) = 2%N.
+Proof. 
+move=> a; rewrite size_addl size_polyX//.
+by rewrite size_opp size_polyC; case: (_ != _). 
+Qed.
+
+
 End ExtraPolynomialIdomain.
 
 Section ExtraPolynomialFields.
