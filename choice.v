@@ -332,19 +332,19 @@ Definition choose P x0 :=
   else x0.
 
 Lemma chooseP : forall P x0, P x0 -> P (choose P x0).
-Proof. by move=> P x0 Px0; rewrite /choose (insubT P Px0) xchooseP. Qed.
+Proof. by move=> P x0 Px0; rewrite /choose (insubT [eta P] Px0) xchooseP. Qed.
 
 Lemma choose_id : forall P x0 y0, P x0 -> P y0 -> choose P x0 = choose P y0.
 Proof.
 rewrite /choose => P x0 y0 Px0 Py0.
-rewrite (insubT P Px0) (insubT P Py0) /=; exact: eq_xchoose.
+rewrite (insubT [eta P] Px0) (insubT [eta P] Py0) /=; exact: eq_xchoose.
 Qed.
 
 Lemma eq_choose : forall P Q, P =1 Q -> choose P =1 choose Q.
 Proof.
 rewrite /choose => P Q eqPQ x0.
 do [case: insubP; rewrite eqPQ] => [[x Px] Qx0 _| ?]; last by rewrite insubN.
-rewrite (insubT Q Qx0); exact: eq_xchoose.
+rewrite (insubT [eta Q] Qx0); exact: eq_xchoose.
 Qed.
 
 Definition PcanChoiceMixin sT f f' (fK : @pcancel T sT f f') :=
