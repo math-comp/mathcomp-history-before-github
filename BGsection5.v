@@ -412,6 +412,12 @@ have maxSZ : SZ \in 'E*_p(R).
 by exists SZ.
 Qed.
 
+Let rp_cyc1: forall H, p.-group H -> cyclic H -> logn p #|'Ohm_1(H)| <= 1.
+Proof.
+move=> C pC; move/(cyclicS (Ohm_sub 1 _))=> cycC1.
+by rewrite -abelem_cyclic // abelem_Ohm1 ?cyclic_abelian.
+Qed.
+
 Lemma CR0R1_narrow : CR0R1 p R -> p.-narrow R.
 Proof.
 case=>[| [R0] [R1] [] dpCRR0 sR0R sR1R cR0 cyR1].
@@ -433,9 +439,6 @@ have defOCRR0 : R0 * 'Ohm_1(R1) = 'Ohm_1('C_R(R0)).
   by rewrite (subset_trans sR0CR1) // centS // Ohm_sub.
 have rCRR0le2 : 'r('C_R(R0)) <= 2.
   rewrite (rank_pgroup pCRR0). 
-  have rp_cyc1: forall H, p.-group H -> cyclic H -> logn p #|'Ohm_1(H)| <= 1.
-    move=> C pC; move/(cyclicS (Ohm_sub 1 _))=> cycC1.
-    by rewrite -abelem_cyclic // abelem_Ohm1 ?cyclic_abelian.
   rewrite -add1n p_rank_abelian // -(dprod_card (Ohm_dprod _ dpCRR0)).
   by rewrite logn_mul ?cardG_gt0 // leq_add ?rp_cyc1 // (pgroupS _ pR).
 exact: CRS2_narrow sR0R cR0 rCRR0le2.
@@ -455,9 +458,6 @@ have aCRR0 : abelian 'C_R(R0).
   by case/dprodP: dpCRR0 => _ <- cR01 _; rewrite abelianM cR01 !cyclic_abelian.
 suffices: 'r_p('C_R(R0)) <= 2.
   by exists R0; split; rewrite // (rank_pgroup (pgroupS (subsetIl _ _) pR)).
-have rp_cyc1: forall C, p.-group C -> cyclic C -> logn p #|'Ohm_1(C)| <= 1.
-  move=> C pC; move/(cyclicS (Ohm_sub 1 _))=> cycC1.
-  by rewrite -abelem_cyclic // abelem_Ohm1 ?cyclic_abelian.
 rewrite -add1n p_rank_abelian // -(dprod_card (Ohm_dprod _ dpCRR0)).
 by rewrite logn_mul ?cardG_gt0 // leq_add ?rp_cyc1 // (pgroupS _ pR).
 Qed.
@@ -470,56 +470,69 @@ Variable gT : finGroupType.
 Variables (R : {group gT}) (p : nat).
 Hypotheses (pR : p.-group R) (oddR : odd #|R|).
 
-(* B&G 5.5, for internal actions 
+(* duplicate *)
+Let rp_cyc1: forall H : {group gT}, 
+  p.-group H -> cyclic H -> logn p #|'Ohm_1(H)| <= 1.
+Proof.
+move=> C pC; move/(cyclicS (Ohm_sub 1 _))=> cycC1.
+by rewrite -abelem_cyclic // abelem_Ohm1 ?cyclic_abelian.
+Qed.
+
+(* B&G 5.5, *)
 Theorem narrow_solvable_Aut :
-  narrow p R -> forall A, solvable A -> 
-  (* 'C_A(R) :=: 1 -> A \subset 'N(R) -> *) A \in Aut R ->
+  narrow p R -> forall A:{group perm_of_finGroupType gT}, 
+  solvable A -> A \subset Aut R ->
   odd #|A| ->
-   [/\ p^'.-group (A / 'O_p(A)), abelian (A / 'O_p(A)),
-       2 < 'r(R) -> forall x:gT, p^'.-elt x -> #[x] %| p.-1 &
-         prime #|A| -> ~~ (#|A| %| p * (p.-1)) -> 
-       (* 2 * #|A| %| p.+1 /\ 
-       [~: R, A] :=: R -> ~~ (abelian R) -> #|R| = (p^3)%N *) ].
+   [/\ p^'.-group (A / 'O_p(A)), abelian (A / 'O_p(A)) &
+       2 < 'r(R) -> forall x, x \in A -> p^'.-elt x -> #[x] %| p.-1 ].
 Proof.
 have ntR : R :!=: 1.
   admit.
 have [p_pr _ [r cR]] := pgroup_pdiv pR ntR.
 have oddp : odd p.
   by case: (even_prime p_pr) oddR => // p2; rewrite cR p2 odd_exp eqn0Ngt.
-case: (critical_odd _ pR)=> // H [cHR sHRZ] nc2 exH pCAu nR A solA oddA cAR1.
+case: (critical_odd _ pR)=> // H [cHR sHRZ] nc2 exH pCAu nR A solA sAAu oddA.
 have ntH : H :!=: 1.
+  have pCA : p.-group 'C_A(H | 'P).
+    exact: pgroupS (setSI _ sAAu) pCAu.
+  have nCA : 'C_A(H | 'P) <| A.
+    rewrite /normal subsetIl normsI ?normG ?(subset_trans _ (astab_norm _ _))//.
+    admit.
+  have sCHO : 'C_(Aut R)(H | 'P) \subset 'O_p(A).
+    admit.
   admit.
 split.
-  have pcAR : p.-group 'C_A(H).
-    
-- admit.
+- admit. (* 2 < r(R) -> 1.9 stable_factor_cent, otherwise 4.17 *)
 - admit. 
-  move=> rR.
-  case/orP: (narrow_CR0R1 pR oddR rR nR). 
-    by move/set0Pn; move: rR; rewrite (rank_pgroup pR); move/p_rank_geP.
-  case/existsP=> R0; case/existsP=> R1; case/and5P.
-  move => dpR0R1 sR0R sR1R; move/eqP=> cR0 cyR1 x p'x.
-  have pR0 := pgroupS sR0R pR.
-  have aR0 : abelian R0 by rewrite (p2group_abelian pR0)// cR0 logn_prime ?eqxx.
-  pose U := R0 <*> 'Z(H).
-  have nsR0H : ~~ (R0 \subset H).
-    apply/negP=> sR0H.
-    have cHZH : H \subset 'C('Z(H)).
-      by rewrite centsC subsetIr.
-    have nZHR0 : R0 \subset 'N('Z(H)). 
-      by rewrite (subset_trans sR0H) // normsI ?norms_cent ?normsG.
-    have sUH : U \subset H.
-      by rewrite mulgen_subG sR0H subsetIl.
-    have abeU : p.-abelem U.
-      rewrite abelemE //= norm_mulgenEl //= abelianM center_abelian.
-      rewrite aR0 (subset_trans sR0H cHZH).
-      by rewrite -norm_mulgenEl // (dvdn_trans (exponentS sUH)) // exH.
+move=> rR.
+case: (narrow_CR0R1 pR oddR rR nR). 
+  by move/eqP;move/set0Pn;move: rR; rewrite (rank_pgroup pR); move/p_rank_geP.
+move=> [R0 [R1 [dpR0R1 sR0R sR1R cR0 cyR1 x xA p'x]]].
+have pR0 := pgroupS sR0R pR.
+have aR0 : abelian R0 by rewrite (p2group_abelian pR0)// cR0 logn_prime ?eqxx.
+have cyR0 : cyclic R0 by rewrite prime_cyclic // cR0.
+have aCRR0 : abelian 'C_R(R0).
+  by case/dprodP: dpR0R1 => _ <- *; rewrite abelianM aR0 ?cyclic_abelian.
+pose U := R0 <*> 'Z(H).
+have nsR0H : ~~ (R0 \subset H).
+  apply/negP=> sR0H.
+  have nZHR0 : R0 \subset 'N('Z(H)). 
+    by rewrite (subset_trans sR0H) // normsI ?norms_cent ?normsG.
+  have sUH : U \subset H.
+    by rewrite mulgen_subG sR0H subsetIl.
+  have abeU : p.-abelem U.
+    rewrite abelemE //= norm_mulgenEl //= abelianM center_abelian.
+    rewrite aR0 (subset_trans sR0H) 1?centsC ?subsetIr //.
+    by rewrite -norm_mulgenEl // (dvdn_trans (exponentS sUH)) // exH.
   have rCRR0le2 : 'r('C_R(R0)) <= 2.
-    admit. (* duplicate *)
+    rewrite (rank_pgroup (pgroupS (subsetIl _ _) pR)) /=.
+    rewrite -add1n p_rank_abelian // -(dprod_card (Ohm_dprod _ dpR0R1)).
+    by rewrite logn_mul ?cardG_gt0 // leq_add ?rp_cyc1 // (pgroupS _ pR).
   have mU : 'm(U) <= 'r('C_R(R0)).
     rewrite (grank_abelian (abelem_abelian abeU)).
-    rewrite rankS //= subsetI (subset_trans _ (char_sub cHR)) //.
-    by rewrite norm_mulgenEl // mul_subG // centsC (subset_trans sR0H).
+    rewrite rankS //= subsetI (subset_trans _ (char_sub cHR)) ?norm_mulgenEl //.
+      by rewrite mul_subG // centsC (subset_trans sR0H) 1?centsC ?subsetIr.
+    by rewrite mul_subG // subsetIl.
   have sUR : U \subset R.
     rewrite /U norm_mulgenEl // mul_subG // (subset_trans _ (char_sub cHR)) //.
     by rewrite center_sub.
@@ -534,11 +547,8 @@ split.
       rewrite (subset_trans (commgS _ (subset_trans sUH (char_sub cHR)))) //.
       by rewrite (subset_trans _ (subset_trans sHRZ (mulgen_subr _ _))).
     have nUR : U <| R.
-      apply: char_normal_trans _  (char_normal cHR); rewrite charMgen ?center_char //.
-      apply/charP; split => // f injf fH.
-      (* [u,r] < [h,r] < u *)
-
-      admit.
+      rewrite /normal sUR -commg_subl (subset_trans (commSg _ sUH)) //= -/U.
+      by rewrite (subset_trans sHRZ) // mulgen_subr.
     case: (p_rank_3_normal_abelem_SCN pR oddR rR ep2U nUR) => F SCN_F sUF.
     suff: 2 < 'r('C_R(R0)) by move/(leq_ltn_trans rCRR0le2); rewrite ltnn.
     have sCR0CU : 'C_R(U) \subset 'C_R(R0).
@@ -547,9 +557,35 @@ split.
     move: SCN_F; rewrite inE; case/andP; case/SCN_P=> sFR defF lt2.
     rewrite (leq_trans lt2) //.
     by rewrite rankS // -defF // setIS // centS.
+  rewrite (grank_abelian (abelem_abelian abeU)) /= -/U.
+  rewrite (rank_abelem abeU) /= -/U.
+  have ntU : U != 1.
+    case: eqP cR0 => //; move/trivgP; move/(subset_trans (mulgen_subl _ _)).
+    move/trivgP => ->; rewrite cards1 => abs; move: (prime_gt1 p_pr).
+    by rewrite abs ltnn.
+  have [_ _ [[cU _|k ->]]] := pgroup_pdiv (abelem_pgroup abeU) ntU; last first.
+    by rewrite pfactorK.
+  have defU : U = R0.
+    by apply/eqP; rewrite eq_sym eqEcard cR0 cU mulgen_subl leqnn.
+  have nUH : U <| H.
+    rewrite /normal sUH -commg_subr (subset_trans _ (mulgen_subr _ _)) //.
+    by rewrite (subset_trans (subset_trans (commgS _ sUR) sHRZ)).
+  have sR0Z : R0 \subset 'Z(R).
+    admit.
+  admit. (* why?! *)    
+have sCHR0x : 'C_H(R0) \subset R0 \x 'Ohm_1(R1).
+  have pabR0 : p.-abelem R0.
+    by rewrite (abelemE _ p_pr) cyclic_abelian // -cR0 exponent_dvdn.
+  rewrite -(Ohm1_id pabR0) (Ohm_dprod 1 dpR0R1) (Ohm1_id pabR0).
   admit.
-- admit.
+have ntHIZ : H :&: 'Z(R) != 1.
+  apply: contraL ntH; move/eqP=> abs.
+  by rewrite (nil_TI_Z (pgroup_nil pR) (char_normal cHR)) // eqxx.
+have cCHR0 : #|'C_H(R0)| = p.
+  admit.
+move/constt1P: p'x. have := stable_factor_cent. 
+(* Search _ constt. Locate constt. Set Printing All. idtac. *)
 admit.
-Qed.*)
+Qed.
 
 End Five5. 
