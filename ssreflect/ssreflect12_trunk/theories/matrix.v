@@ -3443,7 +3443,7 @@ rewrite mul0mx // => BA0; apply: (canLR (addrK _)).
 by rewrite -(pid_mx_id _ _ n (rank_leq_col A)) mulmxA BA0 !mul0mx addr0.
 Qed.
 
-Lemma subsetmx_kerP : forall p m n (A : 'M_(m, n)) (B : 'M_(p, m)),
+Lemma sub_kermxP : forall p m n (A : 'M_(m, n)) (B : 'M_(p, m)),
   reflect (B *m A = 0) (B <= kermx A)%MS.
 Proof.
 move=> p m n A B; apply: (iffP subsetmxP) => [[D ->]|].
@@ -3466,7 +3466,7 @@ Lemma mulmx0_rank_max : forall m n p (A : 'M_(m, n)) (B : 'M_(n, p)),
   A *m B = 0 -> \rank A + \rank B <= n.
 Proof.
 move=> m n p A B AB0; rewrite -{3}(subnK (rank_leq_row B)) leq_add2r.
-rewrite -mxrank_ker mxrankS //; exact/subsetmx_kerP.
+rewrite -mxrank_ker mxrankS //; exact/sub_kermxP.
 Qed.
 
 Lemma mxrank_Frobenius : forall m n p q (A : 'M_(m, n)) B (C : 'M_(p, q)),
@@ -3480,7 +3480,7 @@ set C1 := _ *m C; rewrite -{2}(subnKC (rank_leq_row C1)) leq_add2l -mxrank_ker.
 rewrite -(mxrankMfree _ (row_base_free (A *m B))).
 have: (row_base (A *m B) <= row_base B)%MS by rewrite !eq_row_base subsetmxMl.
 case/subsetmxP=> D defD; rewrite defD mulmxA mxrankMfree ?mxrankS //.
-by apply/subsetmx_kerP; rewrite -mulmxA (mulmxA D) -defD -/C2 mulmx_ker.
+by apply/sub_kermxP; rewrite -mulmxA (mulmxA D) -defD -/C2 mulmx_ker.
 Qed.
 
 Lemma mxrank_mul_min : forall m n p (A : 'M_(m, n)) (B : 'M_(n, p)),
@@ -3509,7 +3509,7 @@ move=> m1 m2 m3 n A B C; apply/idP/andP=> [sAI | []].
    by rewrite add0r -mulNmx subsetmxMl.
 case/subsetmxP=> B' ->{A}; case/subsetmxP=> C' eqBC'.
 have: subsetmx (row_mx B' (- C')) (kermx (col_mx B C)).
-  by apply/subsetmx_kerP; rewrite mul_row_col eqBC' mulNmx subrr.
+  by apply/sub_kermxP; rewrite mul_row_col eqBC' mulNmx subrr.
 case/subsetmxP=> D; rewrite -[kermx _]hsubmxK mul_mx_row.
 by case/eq_row_mx=> -> _; rewrite -mulmxA subsetmxMl.
 Qed.
@@ -3742,10 +3742,10 @@ rewrite -(eqmxMr B (eq_row_base A)); set K' := _ *m B.
 rewrite -{2}(subnKC (rank_leq_row K')) -mxrank_ker eqn_addl.
 rewrite -(mxrankMfree _ (row_base_free A)) mxrank_leqif_sup.
   rewrite sub_capmx -(eq_row_base A) subsetmxMl. 
-  by apply/subsetmx_kerP; rewrite -mulmxA mulmx_ker.
+  by apply/sub_kermxP; rewrite -mulmxA mulmx_ker.
 have: (C <= row_base A)%MS by rewrite eq_row_base capmxSl.
-case/subsetmxP=> C' defC; rewrite defC subsetmxMr //; apply/subsetmx_kerP.
-by rewrite mulmxA -defC; apply/subsetmx_kerP; rewrite capmxSr.
+case/subsetmxP=> C' defC; rewrite defC subsetmxMr //; apply/sub_kermxP.
+by rewrite mulmxA -defC; apply/sub_kermxP; rewrite capmxSr.
 Qed.
 
 Lemma mxrank_disjoint_sum : forall m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)),
@@ -4136,7 +4136,7 @@ Implicit Arguments sub_sumsmxP [F m1 m2 m3 n A B C].
 Implicit Arguments bigsumsmx_sup [F I P m n A B_].
 Implicit Arguments bigsumsmx_subP [F I P m n A_ B].
 Implicit Arguments sub_bigsumsmxP [F I P m n A B_].
-Implicit Arguments subsetmx_kerP [F p m n A B].
+Implicit Arguments sub_kermxP [F p m n A B].
 Implicit Arguments det0P [F n A].
 Implicit Arguments bigcapmx_inf [F I P m n A_ B].
 Implicit Arguments sub_bigcapmxP [F I P m n A B_].

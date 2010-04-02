@@ -86,7 +86,7 @@ Qed.
 Lemma injm_Zpm : 'injm Zpm.
 Proof.
 apply/injmP; apply/dinjectiveP; apply/card_uniqP.
-rewrite size_map -cardE card_Zp //= {5}/order -im_Zpm morphimEdom /=.
+rewrite size_map -cardE card_Zp //= {7}/order -im_Zpm morphimEdom /=.
 by apply: eq_card => x; apply/imageP/imsetP=> [] [i Zp_i ->]; exists i.
 Qed.
 

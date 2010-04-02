@@ -850,7 +850,7 @@ move=> pi gT G H sHG; rewrite -{2}(setIidPl sHG).
 do 2!rewrite -(morphim_idm (subsetIl H _)) morphimIdom; exact: morphim_pcore.
 Qed.
 
-Lemma pcore_resp : forall pi gT rT (D : {group gT}) (f : {morphism D >-> rT}),
+Lemma pcore_cont : forall pi gT rT (D : {group gT}) (f : {morphism D >-> rT}),
   f @* 'O_pi(D) \subset 'O_pi(f @* D).
 Proof. move=> pi gT rT D; exact: morphim_pcore. Qed.
 
@@ -858,9 +858,9 @@ Lemma pcore_hereditary : forall pi, hereditary (pcore pi).
 Proof. by move=> pi gT H G; move/pcoreS; rewrite setIC. Qed.
 
 Canonical Structure bgFunc_pcore pi :=
-  [bgFunc by pcore_sub pi & pcore_resp pi].
+  [bgFunc by pcore_sub pi & pcore_cont pi].
 
-Canonical Structure gFunc_pcore pi := GFunc (pcore_resp pi).
+Canonical Structure gFunc_pcore pi := GFunc (pcore_cont pi).
 
 Canonical Structure hgFunc_pcore pi := HGFunc (pcore_hereditary pi).
 
@@ -923,7 +923,7 @@ Proof. move=> pi gT rT D; exact: morphim_pcore_mod. Qed.
 Lemma pcore_mod1 : forall pi gT (G : {group gT}), pcore_mod G pi 1 = 'O_pi(G).
 Proof.
 rewrite /pcore_mod => pi gT G; have inj1 := coset1_injm gT.
-rewrite -bgFunc_asresp ?norms1 //.
+rewrite -bgFunc_ascont ?norms1 //.
 by rewrite -(morphim_invmE inj1) morphim_invm ?norms1.
 Qed.
 
@@ -940,7 +940,7 @@ Lemma pseries_subfun : forall pis,
 Proof.
 elim/last_ind=> [|pis pi [sFpi fFpi]].
   by split=> [gT G | gT rT D G f]; rewrite (sub1G, morphim1).
-have [rF hF] := (resp_of_dresp fFpi, hereditary_of_dresp fFpi).
+have [rF hF] := (cont_of_dcont fFpi, hereditary_of_dcont fFpi).
 pose F := @HGFunc [gFunc by sFpi & rF] hF.
 split=> [gT G | gT rT D G f]; rewrite !pseries_rcons ?(pcore_mod_sub F) //.
 exact: (morphim_pcore_mod F).
@@ -954,7 +954,7 @@ Lemma morphim_pseries : forall pis gT rT (D G : {group gT}),
   f @* (pseries pis G) \subset pseries pis (f @* G).
 Proof. by move=> pis; case: (pseries_subfun pis). Qed.
 
-Lemma pseries_resp : forall pis gT rT (G : {group gT}),
+Lemma pseries_cont : forall pis gT rT (G : {group gT}),
   forall f : {morphism G >-> rT},
   f @* (pseries pis G) \subset pseries pis (f @* G).
 Proof. by move=> pis gT rT G; exact: morphim_pseries. Qed.
@@ -966,9 +966,9 @@ do 2!rewrite -(morphim_idm (subsetIl H _)) morphimIdom; exact: morphim_pseries.
 Qed.
 
 Canonical Structure bgFunc_pseries pis :=
-  [bgFunc by pseries_sub pis & pseries_resp pis].
+  [bgFunc by pseries_sub pis & pseries_cont pis].
 
-Canonical Structure gFunc_pseries pis := GFunc (pseries_resp pis).
+Canonical Structure gFunc_pseries pis := GFunc (pseries_cont pis).
 
 Canonical Structure hgFunc_pseries pis := HGFunc (pseriesS pis).
 
@@ -1043,7 +1043,7 @@ apply: (quotient_inj nH2H).
   by apply/andP; rewrite /= -cats1 pseries_sub_catl pseries_norm2.
 rewrite /= quotient_pseries /= -IHpi -rcons_cat.
 rewrite -[G / _ / _](morphim_invm inj_f) //= {2}im_f //.
-have:= @bgFunc_asresp (bgFunc_pcore pi).
+have:= @bgFunc_ascont (bgFunc_pcore pi).
 move <-; rewrite /= ?injm_invm ?im_f // -quotient_pseries.
 by rewrite -im_f ?morphim_invm ?morphimS ?normal_sub.
 Qed.

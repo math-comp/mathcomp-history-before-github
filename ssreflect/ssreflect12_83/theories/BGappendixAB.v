@@ -471,7 +471,7 @@ have tiSD: S :&: D = 1 := coprime_TIg (pnat_coprime pS p'D).
 have def_Zq: Z / D = 'Z('L(S / D)).
   rewrite !quotientE -(setIid S) -(morphim_restrm sSN); set f := restrm _ _.
   have injf: 'injm f by rewrite ker_restrm ker_coset tiSD.
-  rewrite -!(bgFunc_asresp _ injf) ?Puig_sub //= morphim_restrm.
+  rewrite -!(bgFunc_ascont _ injf) ?Puig_sub //= morphim_restrm.
   by rewrite (setIidPr _) // subIset ?Puig_sub.
 have{def_Zq} nZq: Z / D <| G / D.
   have sylSq: p.-Sylow(G / D) (S / D) by exact: morphim_pHall.

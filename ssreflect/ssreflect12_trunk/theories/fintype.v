@@ -2,50 +2,118 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice.
 
 (**************************************************************************)
-(* The Finite Structure describes Types with finitely many elements, by   *)
+(*    The Finite interface describes Types with finitely many elements,   *)
 (* supplying a duplicate-free sequence of all the elements. It is a       *)
 (* subclass of Countable and thus of Choice and Equality. As with         *)
-(* Countable, the redundancy is needed for the consistency of the         *)
-(* Canonical structure inference. Also, while finiteness could be stated  *)
-(* more simply by giving a bound on the range of the pickle function      *)
-(* provided by the Countable structure, this would yield a useless        *)
-(* computational interpretation due to the wasteful encoding into Peano   *)
-(* integers. However, because the Countable structure is so closely tied  *)
-(* to the Finite structure, and is not much used on its own, we include   *)
-(* the Countable mixin inside the Finite mixin; this is invisible to      *)
-(* clients of the class, but makes it much easier to derive Finite        *)
-(* variants of interfaces, in this file for subFinType, and in finalg.v.  *)
-(* We define operations on Finite Type expecting an applicative predicate *)
-(* as argument:                                                           *)
-(*   - enum to enumerate the elements filtered by pred                    *)
-(*   - pick, returning the first filtered element; we also give Notations *)
-(*   to supply the pred coercion as in [pick x | P]                       *)
-(*   - boolean quantifiers for finType: forallb x, F  and existsb x, F    *)
-(*  [arg min_(i < i0 | P i) F i] == a value of i minimizing F i : nat     *)
-(*     subject to the condition P i, and provided P i0 holds (here i must *)
-(*     range over a finType).                                             *)
-(*  [arg max_(i > i0 | P i) F i] == a value of i maximizing F i subject   *)
-(*     to the condition P i, and provided P i0 holds.                     *)
-(*  [arg min_(i < i0 \in A) F i] == an i \in A minimizing F i if i0 \in A *)
-(*  [arg max_(i > i0 | P i) F i] == an i \in A maximizing F i if i0 \in A *)
-(*  [arg min_(i < i0) F i] == an i minimizing F i in the finType of i0.   *)
-(*  [arg max_(i > i0) F i] == an i maximizing F i in the finType of i0.   *)
-(* We also define operations card, disjoint, subset and proper expecting  *)
-(* a mem_pred and  used through notations that supply the mem coercion.   *)
-(* We provide a serie of lemmas for all these operations on finType       *)
-(* We define operations on functions on finTypes: the Boolean injectivity,*)
-(* image (image f of A), inverse function.                                *)
-(* Finally we define some standard finTypes the ordinals and the product  *)
-(* and the sum of two finTypes.                                           *)
-(*   The Ordinal finType I_n : {0, ... , n-1} is provided with a coercion *)
-(* nat_of_ord to natural numbers, and                                     *)
-(*   -  dependent type casts: cast_ord, widen_ord                         *)
-(*   -  reversal: rev_ord, sub_ord                                        *)
-(*   -  injection: inord, min and max : ord0 and ord_max (when n = m.+1)  *)
-(*   -  lift/unlift operations; to avoid a messy dependent type,          *)
-(*      unlift is a partial operation (returns an option).                *)
-(*   -  shifting and splitting indices, for cutting and pasting arrays    *)
-(*   -  bijection with finite types: enum_rank and enum_ord.              *)
+(* Countable, the interface explicitly includes these somewhat redundant  *)
+(* superclasses to ensure that Canonical structure inference remains      *)
+(* consistent. Finiteness could be stated more simply by bounding the     *)
+(* range of the pickle function supplied by the Countable interface, but  *)
+(* this would yield a useless computational interpretation due to the     *)
+(* wasteful Peano integer encodings. Because the Countable interface is   *)
+(* closely tied to the Finite interface and is not much used on its own,  *)
+(* the Countable mixin is included inside the Finite mixin; this makes it *)
+(* much easier to derive Finite variants of interfaces, in this file for  *)
+(* subFinType, and in finalg.v.                                           *)
+(*    We define the following interfaces and structures:                  *)
+(*         finType == the packed class type of the Finite interface       *)
+(*       FinType m == the packed class for the Finite mixin m             *)
+(*  Finite.axiom e == every x : T occurs exactly once in e : seq T        *)
+(*   FinMixin ax_e == the Finite mixin for T, encapsulating               *)
+(*                    ax_e : Finite.axiom e for som e : seq T             *)
+(*  UniqFinMixin uniq_e total_e == an alternative mixin constructor that  *)
+(*                    uses uniq_e : uniq e and total_e : e =i xpredT      *)
+(*      subFinType == the join interface type for subType and finType     *)
+(* [subFinType of T] == a subFinType structure for T, when T already has  *)
+(*                    both finType and subType structures.                *)
+(* [finMixin of T by <:] == a finType structure for T, when T has a       *)
+(*                   subType structure over an existing finType.          *)
+(*   We define or propagate the finType structure appropriately for all   *)
+(* basic data types : unit, bool, option, prod, sum, sig and sigT. We     *)
+(* also define a generic type constructor for finite subtypes based on an *)
+(* explicit enumeration:                                                  *)
+(*        seq_sub s == the subType of all x \in s, where s : seq T and T  *)
+(*                     has an eqType structure; the seq_sub s type has a  *)
+(*                     canonical finType structure.                       *)
+(* Bounded integers are supported by the following type and operations:   *)
+(*    'I_n, ordinal n == the finite subType of integers i < n, whose      *)
+(*                       enumeration is {0, ..., n.-1}. 'I_n coerces to   *)
+(*                       nat, so all the integer arithmetic functions can *)
+(*                       be used with 'I_n.                               *)
+(*     Ordinal lt_i_n == the element of 'I_n with (nat) value i, given    *)
+(*                       lt_i_n : i < n.                                  *)
+(*       nat_of_ord i == the nat value of i : 'I_n (this function is a    *)
+(*                       coercion so it is not usually displayed).        *)
+(*         ord_enum n == the explicit increasing sequence of the i : 'I_n *)
+(*  cast_ord eq_n_m i == the element j : 'I_m with the same value as      *)
+(*                       i : 'I_n, given eq_n_m : n = m (indeed, i : nat  *)
+(*                       and j : nat are convertible).                    *)
+(* widen_ord le_n_m i == a j : 'I_m with the same value as i : 'I_n,      *)
+(*                       given le_n_m : n <= m.                           *)
+(*          rev_ord i == the complement to n of i : 'I_n, such that       *)
+(*                       i + rev_ord i = n.                               *)
+(*            inord k == the i : 'I_n.+1 with value k (n is inferred from *)
+(*                       the context).                                    *)
+(*          sub_ord k == the i : 'I_n.+1 with value n - k (n is inferred  *)
+(*                       from the context).                               *)
+(*               ord0 == the i : 'I_n.+1 with value 0 (n is inferred from *)
+(*                       the context).                                    *)
+(*            ord_max == the i : 'I_n.+1 with value n (n is inferred from *)
+(*                       the context).                                    *)
+(*           bump h k == k.+1 if k >= h, else k (this is a nat function)  *)
+(*         unbump h k == k.-1 if k > h, else k (this is a nat function)   *)
+(*          lift i j' == the j : 'I_n with value bump i j, where i : 'I_n *)
+(*                       and j' : 'I_n.-1.                                *)
+(*         unlift i j == None if i = j, else Some j', where j' : 'I_n.-1  *)
+(*                       has value unbump i j, given i, j : 'I_n.         *)
+(*         lshift n j == the i : 'I_(m + n) with value j : 'I_m           *)
+(*         rshift m k == the i : 'I_(m + n) with value m + k, k : 'I_n    *)
+(*          unsplit u == either lshift n j or rshift m k, depending on    *)
+(*                       whether if u : 'I_m + 'I_n is inl j or inr k     *)
+(*            split i == the u : 'I_m + 'I_n such that i = unsplit u      *)
+(*                       (the type 'I_(m + n) of i determines the split). *)
+(* Finally, every type T with a finType structure supports the following  *)
+(* operations:                                                            *)
+(*           enum A == a duplicate-free list of all the x \in A, where A  *)
+(*                     is a collective predicate over T                   *)
+(*             #|A| == the cardinal of A, i.e., the number of x \in A     *)
+(*       enum_val i == the i'th item of enum A, where i : 'I_(#|A|)       *)
+(*      enum_rank x == the i : 'I_(#|T|) such that enum_val i = x         *)
+(* enum_rank_in Ax0 x == some i : 'I_(#|A|) such that enum_val i = x if   *)
+(*                     x \in A, given Ax0 : x0 \in A.                     *)
+(*      A \subset B == all x \in A satisfy x \in B                        *)
+(*      A \proper B == all x \in A satisfy x \in B but not the converse   *)
+(* [disjoint A & B] == no x \in A satisfies x \in B                       *)
+(*        image f P == the (collective) predicate that selects the y : T  *)
+(*                     equal to f x for some x such that P x; P here is   *)
+(*                     an applicative predicate on the domain D of f,     *)
+(*                     which can be an arbitrary predArgType.             *)
+(*          codom f == the codomain predicate for f (:= image f D)        *)
+(*   [image f of A] == the collective version of image.                   *)
+(*        iinv im_y == some x such that P x holds and f x = y, given      *)
+(*                     im_y : y \in image f P                             *)
+(*     invF inj_f y == the x such that f x = y, for inj_j : injective f   *)
+(*                     with f : T -> T.                                   *)
+(*  dinjectiveb A f == the restriction of f : T -> R to A is injective    *)
+(*                     (this is a bolean predicate, R must be an eqType). *)
+(*     injectiveb f == f : T -> R is injective (boolean predicate)        *)
+(*         pred0b A == no x : T satisfies x \in A                         *)
+(* forallb x : T, P == for all x : T, P (in which x can appear) holds;    *)
+(*                     the type annotation can be omitted.                *)
+(* existsb x : T, P == P holds for some x : T                             *)
+(*     [pick x | P] == Some x, for an x such that P holds, or None if     *)
+(*                     there is no such x.                                *)
+(*   [pick x \in A] == Some x, with x \in A, or None if A is empty        *)
+(* [pick x \in A | P] == Some x, with x \in A s.t. P holds, else None     *)
+(* [arg min_(i < i0 | P) M] == a value of i : T minimizing M : nat,       *)
+(*                   subject to the condition P (i may appear in P and M) *)
+(*                   and provided P holds for i0.                         *)
+(* [arg max_(i > i0 | P) M] == a value of i maximizing M subject to P and *)
+(*                   provided P holds for i0.                             *)
+(* [arg min_(i < i0 \in A) M] == an i \in A minimizing M if i0 \in A      *)
+(* [arg max_(i > i0 \in A) M] == an i \in A maximizing M if i0 \in A      *)
+(* [arg min_(i < i0) M] == an i : T minimizing M, given i0 : T            *)
+(* [arg max_(i > i0) M] == an i : T maximizing M, given i0 : T            *)
 (**************************************************************************)
 
 Set Implicit Arguments.
@@ -144,9 +212,10 @@ Canonical Structure Finite.countType.
 
 Canonical Structure finEnum_unlock := Unlockable Finite.EnumDef.enumDef.
 
-Definition enum T P := filter P (Finite.enum T).
-Definition pick T P := ohead (@enum T P).
-Prenex Implicits enum pick.
+Definition enum_mem T (mA : mem_pred _) := filter mA (Finite.enum T).
+Notation enum A := (enum_mem (mem A)).
+Definition pick (T : finType) (P : pred T) := ohead (enum P).
+
 Notation "[ 'pick' x | P ]" := (pick [pred x | P])
   (at level 0, x ident, format "[ 'pick'  x  |  P  ]") : form_scope.
 Notation "[ 'pick' x : T | P ]" := (pick [pred x : T | P])
@@ -156,12 +225,11 @@ Notation "[ 'pick' x \in A ]" := (pick [pred x | x \in A])
 Notation "[ 'pick' x \in A | P ]" := (pick [pred x | (x \in A) && P])
   (at level 0, x ident, format "[ 'pick'  x  \in  A  |  P  ]") : form_scope.
 
-
-(*We lock the definitions of card and subset to       *)
-(* mitigate divergence in the Coq term comparison algorithm.     *)
+(* We lock the definitions of card and subset to mitigate divergence of the   *)
+(* Coq term comparison algorithm.                                             *)
 
 Notation Local card_type := (forall T : finType, mem_pred T -> nat).
-Notation Local card_def := (fun T A => size (enum A)).
+Notation Local card_def := (fun T mA => size (enum_mem mA)).
 Module Type CardDefSig.
 Parameter card : card_type. Axiom cardEdef : card = card_def.
 End CardDefSig.
@@ -243,7 +311,7 @@ apply: filter_uniq; apply: count_mem_uniq => x.
 by rewrite enumP -enumT mem_enum.
 Qed.
 
-Lemma enum0 : @enum T pred0 = [::]. Proof. exact: filter_pred0. Qed.
+Lemma enum0 : enum pred0 = Nil T. Proof. exact: filter_pred0. Qed.
 
 Lemma enum1 : forall x, enum (pred1 x) = [:: x].
 Proof.
@@ -258,20 +326,20 @@ CoInductive pick_spec : option T -> Type :=
 
 Lemma pickP : pick_spec (pick P).
 Proof.
-rewrite /pick; case: enum (mem_enum P) => [|x s] Pxs /=.
+rewrite /pick; case: (enum _) (mem_enum P) => [|x s] Pxs /=.
   by right; exact: fsym.
 by left; rewrite -[P _]Pxs mem_head.
 Qed.
 
 End EnumPick.
 
-Lemma eq_enum : forall P Q, P =1 Q -> enum P = enum Q.
+Lemma eq_enum : forall P Q, P =i Q -> enum P = enum Q.
 Proof. move=> P Q eqPQ; exact: eq_filter. Qed.
 
 Lemma eq_pick : forall P Q, P =1 Q -> pick P = pick Q.
 Proof. by move=> P Q eqPQ; rewrite /pick (eq_enum eqPQ). Qed.
 
-Lemma cardE : forall A, #|A| = size (enum (mem A)).
+Lemma cardE : forall A, #|A| = size (enum A).
 Proof. by rewrite unlock. Qed.
 
 Lemma eq_card : forall A B, A =i B -> #|A| = #|B|.
@@ -623,15 +691,28 @@ Prenex Implicits pred0P pred0Pn subsetP subsetPn subset_eqP card_uniqP.
 Section Quantifiers.
 
 Variable T : finType.
-Implicit Type P : pred T.
+Implicit Type D P : pred T.
 
 Lemma forallP : forall P, reflect (forall x, P x) (forallb x, P x).
 Proof.
 by move=> P; apply: (iffP pred0P) => P_ x /=; rewrite ?P_ ?(negbFE (P_ x)).
 Qed.
 
+Lemma forall_inP : forall D P,
+  reflect (forall x, D x -> P x) (forallb x, D x ==> P x).
+Proof.
+move=> D P; apply: (iffP (forallP _)) => P_ x; apply/implyP; exact: P_.
+Qed.
+
 Lemma existsP : forall P, reflect (exists x, P x) (existsb x, P x).
 Proof. by move=> P; apply: (iffP pred0Pn); case=> x; exists x. Qed.
+
+Lemma exists_inP : forall D P,
+  reflect (exists2 x, D x & P x) (existsb x, D x && P x).
+Proof.
+move=> D P; apply: (iffP pred0Pn); case=> x; try case/andP; exists x => //.
+exact/andP.
+Qed.
 
 Lemma eq_forallb : forall P1 P2,
    P1 =1 P2 -> (forallb x, P1 x) = (forallb x, P2 x).
@@ -644,17 +725,32 @@ Proof. by move=> *; congr (_ != _); apply: eq_card. Qed.
 Lemma negb_forall : forall P, ~~ (forallb x, P x) = (existsb x, ~~ P x).
 Proof. by []. Qed.
 
+Lemma negb_forall_in : forall D P,
+  ~~ (forallb x, D x ==> P x) = (existsb x, D x && ~~ P x).
+Proof.
+by move=> D P; congr (_ != _); apply: eq_card => x; rewrite !inE negb_imply.
+Qed.
+
 Lemma negb_exists : forall P, ~~ (existsb x, P x) = (forallb x, ~~ P x).
 Proof.
 move=> P; rewrite negbK; congr (_ == 0); apply: eq_card => x.
 by rewrite !inE /= negbK.
 Qed.
 
+Lemma negb_exists_in : forall D P,
+  ~~ (existsb x, D x && P x) = (forallb x, D x ==> ~~ P x).
+Proof.
+move=> D P; apply: (canLR negbK); rewrite negb_forall_in.
+by apply: eq_existsb => x; rewrite negbK.
+Qed.
+
 End Quantifiers.
 
 Implicit Arguments forallP [T P].
+Implicit Arguments forall_inP [T D P].
 Implicit Arguments existsP [T P].
-Prenex Implicits forallP existsP.
+Implicit Arguments exists_inP [T D P].
+Prenex Implicits forallP forall_inP existsP exists_inP.
 
 Section Extrema.
 
@@ -1304,50 +1400,85 @@ Proof. move=> n; exact: inv_inj (@rev_ordK n). Qed.
 Section EnumRank.
 
 Variable T : finType.
+Implicit Type A : pred T.
 
-Lemma enum_rank_subproof : forall x : T, index x (enum T) < #|T|.
-Proof. by move=> x; rewrite cardE index_mem mem_enum. Qed.
+Lemma enum_rank_subproof : forall x0 A, x0 \in A -> 0 < #|A|.
+Proof. by move=> x0 A Ax0; rewrite (cardD1 x0) Ax0. Qed.
 
-Definition enum_rank (x : T) := Ordinal (enum_rank_subproof x).
+Definition enum_rank_in x0 A (Ax0 : x0 \in A) x :=
+  insubd (Ordinal (enum_rank_subproof Ax0)) (index x (enum A)).
 
-Lemma enum_default : 'I_(#|T|) -> T.
-Proof. by rewrite cardE; case: (enum T) => [|//] []. Qed.
+Definition enum_rank x := @enum_rank_in x T (erefl true) x.
 
-Definition enum_val i := nth (enum_default i) (enum T) i.
+Lemma enum_default : forall A, 'I_(#|A|) -> T.
+Proof. by move=> A; rewrite cardE; case: (enum A) => [|//] []. Qed.
 
-Lemma enum_val_nth : forall x i, enum_val i = nth x (enum T) i.
+Definition enum_val A i := nth (@enum_default A i) (enum A) i.
+Prenex Implicits enum_val.
+
+Lemma enum_valP : forall A i, @enum_val A i \in A.
+Proof. by move=> A i; rewrite -mem_enum mem_nth -?cardE. Qed.
+
+Lemma enum_val_nth : forall A x i, @enum_val A i = nth x (enum A) i.
 Proof.
-move=> x i; apply: set_nth_default; rewrite cardE in i *; exact: ltn_ord.
+move=> A x i; apply: set_nth_default; rewrite cardE in i *; exact: ltn_ord.
 Qed.
 
-Lemma nth_enum_rank : forall x, cancel enum_rank (nth x (enum T)).
-Proof. by move=> x y; rewrite nth_index ?mem_enum. Qed.
+Lemma nth_enum_rank_in : forall x00 x0 A Ax0,
+  {in A, cancel (@enum_rank_in x0 A Ax0) (nth x00 (enum A))}.
+Proof.
+move=>  x00 x0 A Ax0 x Ax; rewrite insubdK ?nth_index ?mem_enum //.
+by rewrite cardE [_ \in _]index_mem mem_enum.
+Qed.
+
+Lemma nth_enum_rank : forall x0, cancel enum_rank (nth x0 (enum T)).
+Proof. move=> x0 x; exact: nth_enum_rank_in. Qed.
+
+Lemma enum_rankK_in : forall x0 A Ax0,
+   {in A, cancel (@enum_rank_in x0 A Ax0) enum_val}.
+Proof. move=> x0 A Ax0 x; exact: nth_enum_rank_in. Qed.
 
 Lemma enum_rankK : cancel enum_rank enum_val.
-Proof. move=> x; exact: nth_enum_rank. Qed.
+Proof. move=> x; exact: enum_rankK_in. Qed.
+
+Lemma enum_valK_in : forall x0 A Ax0, cancel enum_val (@enum_rank_in x0 A Ax0).
+Proof.
+move=> x0 A Ax0 x; apply: ord_inj; rewrite insubdK; last first.
+  by rewrite cardE [_ \in _]index_mem mem_nth // -cardE.
+by rewrite index_uniq ?enum_uniq // -cardE.
+Qed.
 
 Lemma enum_valK : cancel enum_val enum_rank.
-Proof.
-move=> x; apply: ord_inj.
-by rewrite /= index_uniq // -?cardE (enum_uniq, valP x).
-Qed.
+Proof. move=> x; exact: enum_valK_in. Qed.
 
 Lemma enum_rank_inj : injective enum_rank.
 Proof. exact: can_inj enum_rankK. Qed.
 
-Lemma enum_val_inj : injective enum_val.
-Proof. exact: can_inj enum_valK. Qed.
+Lemma enum_val_inj : forall A, injective (@enum_val A).
+Proof. by move=> A i; exact: can_inj (enum_valK_in (enum_valP i)) (i). Qed.
+
+Lemma enum_val_bij_in : forall x0 A,
+  x0 \in A -> {on A, bijective (@enum_val A)}.
+Proof.
+move=> x0 A Ax0; exists (enum_rank_in Ax0) => [i _|]; last exact: enum_rankK_in.
+exact: enum_valK_in.
+Qed.
 
 Lemma enum_rank_bij : bijective enum_rank.
-Proof. by move: enum_rankK enum_valK; exists enum_val. Qed.
+Proof. by move: enum_rankK enum_valK; exists (@enum_val T). Qed.
 
-Lemma enum_val_bij : bijective enum_val.
+Lemma enum_val_bij : bijective (@enum_val T).
 Proof. by move: enum_rankK enum_valK; exists enum_rank. Qed.
 
 End EnumRank.
 
+Prenex Implicits enum_val enum_rank.
+
 Lemma enum_rank_ord : forall n i, enum_rank i = cast_ord (esym (card_ord n)) i.
-Proof. by move=> n i; apply: val_inj; rewrite /= index_enum_ord. Qed.
+Proof.
+move=> n i; apply: val_inj; rewrite insubdK ?index_enum_ord // card_ord.
+exact: ltn_ord.
+Qed.
 
 Lemma enum_val_ord : forall n i, enum_val i = cast_ord (card_ord n) i.
 Proof.

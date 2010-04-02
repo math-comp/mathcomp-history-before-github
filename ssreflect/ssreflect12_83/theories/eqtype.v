@@ -513,8 +513,8 @@ End SigProj.
 
 Prenex Implicits svalP s2val s2valP s2valP'.
 
-Canonical Structure sig_subType T (P : pred T) :=
-  Eval hnf in [subType for @sval T P by @sig_rect _ _].
+Canonical Structure sig_subType T (P : pred T) : subType [eta P] :=
+  Eval hnf in [subType for @sval T [eta [eta P]] by @sig_rect _ _].
 
 (* Shorthand for the return type of insub. *)
 Notation "{ ? x : T | P }" := (option {x : T | is_true P})

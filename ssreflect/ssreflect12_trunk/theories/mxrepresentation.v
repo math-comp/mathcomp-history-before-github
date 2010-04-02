@@ -507,7 +507,7 @@ Lemma subset_cent_rowP : forall B,
   reflect (forall i (A := vec_mx (row i E)), A *m B = B *m A)
           (mxvec B <= cent_mx)%MS.
 Proof.
-move=> B; apply: (iffP subsetmx_kerP); rewrite mul_vec_lin => cBE.
+move=> B; apply: (iffP sub_kermxP); rewrite mul_vec_lin => cBE.
   move/(canRL mxvecK): cBE => cBE i A /=; move/(congr1 (row i)): cBE.
   rewrite row_mul mul_rV_lin -/A; move/(canRL mxvecK).
   by move/(canRL (subrK _)); rewrite !linear0 add0r.
@@ -779,18 +779,17 @@ Proof.
 by move=> x Gx /=; rewrite -[rG x^-1](mulKmx (repr_mx_unit Gx)) mulmxA repr_mxK.
 Qed.
 
-Definition enveloping_algebra_mx :=
-   \matrix_(i, j) mxvec (rG (@sgval _ G (enum_val i))) 0 j.
+Definition enveloping_algebra_mx := \matrix_(i < #|G|) mxvec (rG (enum_val i)).
 Local Notation E_G := enveloping_algebra_mx.
 
 Lemma row_envelopI : forall x, x \in G -> {i | rG x = vec_mx (row i E_G)}.
 Proof.
-move=> x Gx; exists (enum_rank (subg G x)).
-by rewrite rowK enum_rankK mxvecK subgK.
+move=> x Gx; exists (enum_rank_in Gx x).
+by rewrite rowK mxvecK enum_rankK_in.
 Qed.
 
 Lemma row_envelopE : forall i, {x | x \in G & row i E_G = mxvec (rG x)}.
-Proof. by move=> i; exists (val (enum_val i)); rewrite ?subgP // rowK. Qed.
+Proof. by move=> i; exists (enum_val i); rewrite ?enum_valP ?rowK. Qed.
 
 Definition rfix_mx_fun (u : 'rV_n) := E_G *m lin1_mx (mulmx u \o vec_mx).
 Lemma rfix_mx_fun_linear_proof : linear rfix_mx_fun.
@@ -806,7 +805,7 @@ Definition rfix_mx :=
 Lemma subsetmx_rfixP : forall m (W : 'M_(m, n)),
   reflect (forall x, x \in G -> W *m rG x = W) (W <= rfix_mx)%MS.
 Proof.
-move=> m W; apply: (iffP subsetmx_kerP) => [cWG x Gx | cWG].
+move=> m W; apply: (iffP sub_kermxP) => [cWG x Gx | cWG].
   apply/row_matrixP=> i; move/row_matrixP: cWG; move/(_ i).
   rewrite !row_mul mul_rV_lin1 /=; move/(canRL mxvecK); rewrite !linear0.
   case/row_envelopI: Gx => j ->{x}; move/row_matrixP; move/(_ j).
@@ -910,7 +909,7 @@ Lemma subsetmx_cent_envelop : (mxvec U <= cent_mx E_G)%MS = centgmx.
 Proof.
 apply/subset_cent_rowP/centgmxP=> [cUG x Gx | cUG i].
   by have [i ->] := row_envelopI Gx; rewrite cUG.
-by rewrite rowK mxvecK /= cUG ?subgP.
+by rewrite rowK mxvecK /= cUG ?enum_valP.
 Qed.
 
 Definition submodmx := G \subset rstabs U.
@@ -1102,9 +1101,9 @@ have Uphi: U *m phi = U.
   by rewrite 3!mulmxA mulmxKpV ?repr_mxKV ?Umod ?groupV.
 have tiUker: (U :&: kermx phi = 0)%MS.
   apply/eqP; apply/rowV0P=> v; rewrite sub_capmx; case/andP.
-  by case/subsetmxP=> u ->; move/subsetmx_kerP; rewrite -mulmxA Uphi.
+  by case/subsetmxP=> u ->; move/sub_kermxP; rewrite -mulmxA Uphi.
 exists (kermx phi); split=> //.
-  apply/submodmxP=> x Gx; apply/subsetmx_kerP.
+  apply/submodmxP=> x Gx; apply/sub_kermxP.
   by rewrite -mulmxA -phiG // mulmxA mulmx_ker mul0mx.
 rewrite /row_full mxrank_disjoint_sum // mxrank_ker.
 suffices ->: (U :=: phi)%MS by rewrite subnKC ?rank_leq_row.
@@ -1127,7 +1126,7 @@ Qed.
 
 Lemma centgmx_ker_submod : forall A, centgmx A -> submodmx (kermx A).
 Proof.
-move=> A; move/centgmxP=> cAG; apply/submodmxP=> x Gx; apply/subsetmx_kerP.
+move=> A; move/centgmxP=> cAG; apply/submodmxP=> x Gx; apply/sub_kermxP.
 by rewrite -mulmxA -cAG // mulmxA mulmx_ker mul0mx.
 Qed.
 
@@ -1167,21 +1166,20 @@ Lemma mx_abs_irrP :
   reflect (n > 0 /\ exists a_, forall A, A = \sum_(x \in G) a_ x A *m: rG x)
           mx_absolutely_irreducible.
 Proof.
-pose toI x := enum_rank (subg G x); pose ofI i := @sgval _ G (enum_val i).
-have ofIK: cancel ofI toI by move=> i; rewrite /toI sgvalK enum_valK.
-have ofIbij: {on (mem G), bijective ofI}.
-  by exists toI => [i _ // | x Gx]; rewrite /ofI enum_rankK subgK.
+have bijI := enum_val_bij_in (group1 G); set ofI := enum_val in bijI.
+pose toI := enum_rank_in (group1 G).
 rewrite /mx_absolutely_irreducible; case: (n > 0); last by right; case.
 apply: (iffP row_fullP) => [[E' E'G] | [_ [a_ a_G]]].
   split=> //; exists (fun x B => (mxvec B *m E') 0 (toI x)) => B.
   apply: (can_inj mxvecK); rewrite -{1}[mxvec B]mulmx1 -{}E'G mulmxA.
   move: {B E'}(_ *m E') => u; apply/rowP=> j.
   rewrite linear_sum (reindex ofI) //= mxE summxE.
-  by apply: eq_big => [k| k _]; [rewrite subgP | rewrite ofIK mxE linearZ !mxE].
+  apply: eq_big => [k| k _]; first by rewrite enum_valP.
+  by rewrite /toI enum_valK_in mxE linearZ !mxE.
 exists (\matrix_(j, i) a_ (ofI i) (vec_mx (row j 1%:M))).
 apply/row_matrixP=> i; rewrite -[row i 1%:M]vec_mxK {}[vec_mx _]a_G.
 apply/rowP=> j; rewrite linear_sum (reindex ofI) //= 2!mxE summxE.
-by apply: eq_big => [k| k _]; [rewrite subgP | rewrite linearZ !mxE].
+by apply: eq_big => [k | k _]; rewrite ?enum_valP // linearZ !mxE.
 Qed.
 
 Lemma mx_abs_irr_cent_scalar :
@@ -1218,7 +1216,7 @@ pose pB (I : {set 'I_n}) : 'M[F]_n := \sum_(i \in I) delta_mx i i.
 pose pK I := kermx (lin_mx (mulmx (pB I)) : 'M_(n * n)).
 have pKmod: forall I A, (pK I *m lin_mx (mulmxr A) <= pK I)%MS.
   move=> I A; apply/row_subP=> i; rewrite row_mul mul_rV_lin /=.
-  apply/subsetmx_kerP; move/subsetmx_kerP: (row_sub i (pK I)).
+  apply/sub_kermxP; move/sub_kermxP: (row_sub i (pK I)).
   rewrite mul_vec_lin /= mulmxA mul_rV_lin /=; move/(canRL mxvecK) => ->.
   by rewrite !(linear0, mul0mx).
 pose pE' I := \rank (E_G :&: pK I)%MS <= 0.
@@ -1269,7 +1267,7 @@ case/row_subPn: sub1EI; case/mxvec_indexP=> i0 j0; rewrite row1 -mxvec_delta.
 set u := mxvec _ => nEIu; pose W := (E_G :&: pK (I :\ i0))%MS.
 have Ii0: i0 \in I.
   apply: contraR nEIu => nIi0; apply: subsetmx_trans (sumsmxSr _ _).
-  apply/subsetmx_kerP; rewrite mul_vec_lin /= mulmx_suml big1 ?linear0 //.
+  apply/sub_kermxP; rewrite mul_vec_lin /= mulmx_suml big1 ?linear0 //.
   by move=> i Ii; rewrite mul_delta_mx_cond; case: eqP Ii nIi0 => // -> ->.
 pose fU : 'rV[F]_(n * n) -> 'rV_n := row i0 \o vec_mx.
 pose U := W *m lin1_mx fU; exists <<U>>%MS; rewrite genmxE; apply/andP; split.
@@ -1286,11 +1284,11 @@ apply/andP; split.
     by rewrite (Imin _ _ (subsetDl _ _)) /pE' -/W ?W0 ?mxrank0.
   rewrite -mxrank_eq0 -leqn0 lt0n mxrank_eq0; apply: contra; move/eqP=> U0.
   rewrite (leq_trans _ pE'_I) ?mxrankS ?sub_capmx ?capmxSl //=.
-  apply/row_subP=> k; apply/subsetmx_kerP.
+  apply/row_subP=> k; apply/sub_kermxP.
   rewrite mul_rV_lin /= [pB I](big_setD1 i0) //= -/(pB _).
   rewrite mulmx_addl -(mul_delta_mx (0 : 'I_1)) -mulmxA -rowE.
   rewrite -[row i0 _](mul_rV_lin1 [linear of fU]) -row_mul -/U U0 !linear0.
-  rewrite add0r -mul_rV_lin; apply/subsetmx_kerP; rewrite -/(pK _).
+  rewrite add0r -mul_rV_lin; apply/sub_kermxP; rewrite -/(pK _).
   by rewrite rowE subsetmxMtrans ?capmxSr.
 rewrite ltnNge col_leq_rank; apply: contra nEIu; case/row_fullP=> U' U'U1.
 set v : 'rV_(n * n) := delta_mx 0 j0 *m U' *m W.
@@ -1298,12 +1296,12 @@ have ->: u = row_mx 1 1 *m col_mx v (u - v).
   by rewrite mul_row_col !mul1mx addrC subrK.
 rewrite subsetmxMtrans // -sumsmxE sumsmxS //.
   by rewrite !(capmxSl, subsetmxMtrans).
-apply/subsetmx_kerP; rewrite mul_rV_lin //= [pB _](big_setD1 i0) //= -/(pB _).
+apply/sub_kermxP; rewrite mul_rV_lin //= [pB _](big_setD1 i0) //= -/(pB _).
 apply: (canLR vec_mxK); rewrite mulmx_addl linear0 !linearD !linearN /=.
 rewrite -{2}(mul_delta_mx (0 : 'I_1)) -mulmxA -rowE.
 rewrite -[row _ _](mul_rV_lin1 [linear of fU]) -2!mulmxA U'U1 mulmx1.
 rewrite mxvecK !mul_delta_mx subrr add0r mulmx_suml big1 ?add0r => [|i'].
-  rewrite -mx_rV_lin (subsetmx_kerP _) ?linear0 // -/(pK _).
+  rewrite -mx_rV_lin (sub_kermxP _) ?linear0 // -/(pK _).
   by rewrite subsetmxMtrans // capmxSr.
 by case/setD1P=> ne_i'i _; rewrite mul_delta_mx_0.
 Qed.
@@ -2353,7 +2351,7 @@ apply/and3P; split; last 1 first.
 - rewrite mxrank_ker -subn_gt0 subKn ?rank_leq_row // lt0n mxrank_eq0 subr_eq0.
   apply: contra Anscal => Af_scal; rewrite -(map_mx_is_scalar genRM) -/Af.
   by apply/is_scalar_mxP; exists groot; apply/eqP.
-- apply/submodmxP=> g Gg; apply/subsetmx_kerP; rewrite -mulmxA.
+- apply/submodmxP=> g Gg; apply/sub_kermxP; rewrite -mulmxA.
   rewrite -(centgmxP (map_repr genRM rG) (Af - _) _) //.
     by rewrite mulmxA [kermx _ *m _]mulmx_ker mul0mx.
   apply/centgmxP=> z Gz; rewrite mulmx_subl mulmx_subr scalar_mxC.
@@ -2417,7 +2415,7 @@ exists (row_mx (const_mx j) B); rewrite -row_leq_rank.
 pose Bj := Ad *m lin1_mx (mulmx (row j 1%:M) \o vec_mx).
 have rBj: \rank Bj = d.
   apply/eqP; rewrite eqn_leq rank_leq_row -subn_eq0 -mxrank_ker mxrank_eq0.
-  apply/rowV0P=> u; move/subsetmx_kerP; rewrite mulmxA mul_rV_lin1 /=.
+  apply/rowV0P=> u; move/sub_kermxP; rewrite mulmxA mul_rV_lin1 /=.
   rewrite -horner_rVpoly; pose x := inFA u; rewrite -/(mxval x).
   case: (eqVneq x 0) => [[] // | nzx].
   move/(congr1 (mulmx^~ (mxval x^-1))); rewrite mul0mx /= -mulmxA -mxvalM.
@@ -3010,30 +3008,28 @@ Proof. by apply/setP=> x; rewrite !inE subsetmx1. Qed.
 Lemma trivg_rowg : forall m (A : 'M_(m, n)), (rowg A == 1%g) = (A == 0).
 Proof. by move=> m A; rewrite -subsetmx0 -rowgS rowg0 (sameP trivgP eqP). Qed.
 
-Definition rowg_mx (L : {set rVn}) :=
-  <<\matrix_i val (enum_val i : subg_of <<L>>)>>%MS.
+Definition rowg_mx (L : {set rVn}) := <<\matrix_(i < #|L|) enum_val i>>%MS.
 
 Lemma rowgK : forall m (A : 'M_(m, n)), (rowg_mx (rowg A) :=: A)%MS.
 Proof.
 move=> m A; apply/eqmxP; rewrite !genmxE; apply/andP; split.
-  apply/row_subP=> i; rewrite rowK; case: (enum_val _) => u /=.
-  by rewrite genGid inE.
-apply/row_subP=> i; apply: (eq_row_sub (enum_rank (subg <<rowg A>> (row i A)))).
-by rewrite rowK enum_rankK subgK //= genGid inE row_sub.
+  by apply/row_subP=> i; have:= enum_valP i; rewrite rowK inE.
+apply/row_subP=> i; have rA_Ai: row i A \in rowg A by rewrite inE row_sub.
+by rewrite (eq_row_sub (enum_rank_in rA_Ai (row i A))) // rowK enum_rankK_in.
 Qed.
 
 Lemma rowg_mxS : forall L M : {set 'rV[F]_n},
   L \subset M -> (rowg_mx L <= rowg_mx M)%MS.
 Proof.
-move=> L M; move/genS; move/subsetP=> sLM; rewrite !genmxE.
-apply/row_subP=> i; rewrite rowK; case: (enum_val _) => v /=; move/sLM=> Mv.
-by apply: (eq_row_sub (enum_rank (subg _ v))); rewrite rowK enum_rankK subgK.
+move=> L M; move/subsetP=> sLM; rewrite !genmxE; apply/row_subP=> i.
+rewrite rowK; move: (enum_val i) (sLM _ (enum_valP i)) => v Mv.
+by apply: (eq_row_sub (enum_rank_in Mv v)); rewrite rowK enum_rankK_in.
 Qed.
 
 Lemma sub_rowg_mx : forall L : {set rVn}, L \subset rowg (rowg_mx L).
 Proof.
-move=> L; rewrite -gen_subG; apply/subsetP=> v Lv; rewrite inE genmxE.
-by apply: (eq_row_sub (enum_rank (subg _ v))); rewrite rowK enum_rankK subgK.
+move=> L; apply/subsetP=> v Lv; rewrite inE genmxE.
+by apply: (eq_row_sub (enum_rank_in Lv v)); rewrite rowK enum_rankK_in.
 Qed.
 
 Lemma stable_rowg_mxK : forall L : {group rVn},
@@ -3041,8 +3037,8 @@ Lemma stable_rowg_mxK : forall L : {group rVn},
 Proof.
 move=> L linL; apply/eqP; rewrite eqEsubset sub_rowg_mx andbT.
 apply/subsetP => v; rewrite inE genmxE; case/subsetmxP=> u ->{v}.
-rewrite mulmx_sum_row group_prod // => i _.
-rewrite rowK; case: (enum_val _) => v; rewrite /= genGid => Lv.
+rewrite mulmx_sum_row group_prod // => i _; rewrite rowK.
+move: (enum_val i) (enum_valP i) => v Lv.
 case: (eqVneq (u 0 i) 0) => [-> |]; first by rewrite scale0mx group1.
 by rewrite -unitfE => aP; rewrite ((actsP linL) (FinRing.Unit _ aP)) ?inE.
 Qed.
@@ -3479,8 +3475,8 @@ apply/eqmxP; apply/andP; split.
   apply/commgP; apply/conjg_fixP; rewrite /= -rVabelemJ ?sHG //.
   by rewrite (subsetmx_rfixP _ _ cHv).
 rewrite genmxE; apply/subsetmx_rfixP=> x Hx.
-apply/row_matrixP=> i; rewrite row_mul rowK; case: (enum_val i) => /= v.
-rewrite genGid; case/morphimP=> z Ez; case/setIP=> _ cHz -> {v}.
+apply/row_matrixP=> i; rewrite row_mul rowK.
+case/morphimP: (enum_valP i)=> z Ez; case/setIP=> _ cHz -> {i}.
 by rewrite -abelem_rV_J ?sHG // conjgE (centP cHz) ?mulKg.
 Qed.
 

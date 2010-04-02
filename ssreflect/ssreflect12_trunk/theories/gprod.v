@@ -573,6 +573,18 @@ Proof. by move=> x y /=; rewrite {2}/mulg /= /extprod_mulg /= mul1g. Qed.
 Canonical Structure pair1g_morphism :=
   @Morphism _ _ setT _ (in2W pair1g_morphM).
 
+Lemma fst_morphM : {morph (@fst gT1 gT2) : x y / x * y}.
+Proof. by move=> x y. Qed.
+
+Lemma snd_morphM : {morph (@snd gT1 gT2) : x y / x * y}.
+Proof. by move=> x y. Qed.
+
+Canonical Structure fst_morphism :=
+  @Morphism _ _ setT _ (in2W fst_morphM).
+
+Canonical Structure snd_morphism :=
+  @Morphism _ _ setT _ (in2W snd_morphM). 
+
 Lemma injm_pair1g : 'injm pair1g.
 Proof.
 apply/subsetP=> x; case/morphpreP=> _; case/set1P=> ->; exact: set11.
@@ -591,6 +603,26 @@ Qed.
 Lemma morphim_pair1g : forall (H2 : {set gT2}), pair1g @* H2 = setX 1 H2.
 Proof.
 by move=> H1; rewrite -imset2_pair imset2_set1l morphimEsub ?subsetT.
+Qed.
+
+Lemma morphim_fstX : forall (H1: {set gT1}) (H2 : {group gT2}), 
+  [morphism of fun x => x.1] @* setX H1 H2 = H1.
+Proof.
+move=> H1 H2; apply/eqP; rewrite eqEsubset morphimE setTI /=.
+apply/andP; split; apply/subsetP=> x. 
+  by case/imsetP=> x0; rewrite inE; move/andP=> [Hx1 _] ->.
+move=>Hx1; apply/imsetP; exists (x, 1); last by trivial.
+by rewrite in_setX Hx1 /=.
+Qed.
+
+Lemma morphim_sndX : forall (H1: {group gT1}) (H2 : {set gT2}), 
+  [morphism of fun x => x.2] @* setX H1 H2 = H2.
+Proof.
+move=> H1 H2; apply/eqP; rewrite eqEsubset morphimE setTI /=.
+apply/andP; split; apply/subsetP=> x. 
+  by case/imsetP=> x0; rewrite inE; move/andP=> [_ Hx2] ->.
+move=>Hx2; apply/imsetP; exists (1, x); last by trivial.
+by rewrite in_setX Hx2 andbT.
 Qed.
 
 Lemma setX_prod : forall (H1 : {set gT1}) (H2 : {set gT2}),

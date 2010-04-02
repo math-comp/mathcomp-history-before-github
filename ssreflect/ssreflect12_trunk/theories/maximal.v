@@ -310,7 +310,7 @@ case/andP: (maxgroupp maxM) => _; case/negP.
 by rewrite -defG gen_subG subUset Phi_sub_max.
 Qed.
 
-Lemma Frattini_resp : forall (rT : finGroupType) G (f : {morphism G >-> rT}),
+Lemma Frattini_cont : forall (rT : finGroupType) G (f : {morphism G >-> rT}),
   f @* 'Phi(G) \subset 'Phi(f @* G).
 Proof.
 move=> rT G f; apply/bigcapsP=> M maxM.
@@ -321,8 +321,8 @@ Qed.
 
 End Frattini.
 
-Canonical Structure bgFunc_Frattini := [bgFunc by Phi_sub & Frattini_resp].
-Canonical Structure gFunc_Frattini := GFunc Frattini_resp.
+Canonical Structure bgFunc_Frattini := [bgFunc by Phi_sub & Frattini_cont].
+Canonical Structure gFunc_Frattini := GFunc Frattini_cont.
 
 Section Frattini0.
 
@@ -629,7 +629,7 @@ move=> gT G H sHG; rewrite -{2}(setIidPl sHG).
 do 2!rewrite -(morphim_idm (subsetIl H _)) morphimIdom; exact: morphim_Fitting.
 Qed.
 
-Lemma Fitting_resp : forall gT rT (G : {group gT}) (f : {morphism G >-> rT}),
+Lemma Fitting_cont : forall gT rT (G : {group gT}) (f : {morphism G >-> rT}),
   f @* 'F(G) \subset 'F(f @* G).
 Proof. move=> gT rT G f; exact: morphim_Fitting. Qed.
 
@@ -638,8 +638,8 @@ Proof. by move=> gT H G; move/FittingS; rewrite setIC. Qed.
 
 End FittingFun.
 
-Canonical Structure bgFunc_Fitting := [bgFunc by Fitting_sub & Fitting_resp].
-Canonical Structure gFunc_Fitting := GFunc Fitting_resp.
+Canonical Structure bgFunc_Fitting := [bgFunc by Fitting_sub & Fitting_cont].
+Canonical Structure gFunc_Fitting := GFunc Fitting_cont.
 Canonical Structure hgFunc_Fitting := HGFunc Fitting_hereditary.
 
 Lemma Fitting_char : forall (gT : finGroupType) (G : {group gT}),
@@ -649,7 +649,7 @@ Proof. exact: bgFunc_char. Qed.
 Lemma injm_Fitting :
   forall (gT rT : finGroupType) (G D : {group gT}) (f : {morphism D >-> rT}),
   'injm f -> G \subset D -> f @* 'F(G) = 'F(f @* G).
-Proof. exact: bgFunc_asresp. Qed.
+Proof. exact: bgFunc_ascont. Qed.
 
 Section CharSimple.
 

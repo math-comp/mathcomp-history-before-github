@@ -57,6 +57,8 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat.
 (*       incr_nth s i == the nat sequence s with item i incremented (s is     *)
 (*                       first padded with 0's to size i+1, if needed).       *)
 (*  ** predicates:                                                            *)
+(*          nilp s == s is [::]                                               *)
+(*                 := (size s == 0)                                           *)
 (*         x \in s == x appears in s (this requires an eqType for T)          *)
 (*       index x s == the first index at which x appears in s, or size s if   *)
 (*                    x \notin s                                              *)
@@ -176,6 +178,11 @@ Implicit Type s : (seq T).
 Fixpoint size s := if s is _ :: s' then (size s').+1 else 0.
 
 Lemma size0nil : forall s, size s = 0 -> s = [::]. Proof. by case. Qed.
+
+Definition nilp s := size s == 0.
+
+Lemma nilP : forall s, reflect (s = [::]) (nilp s).
+Proof. by case=> [|x s]; constructor. Qed.
 
 Definition ohead s := if s is x :: _ then Some x else None.
 Definition head s := if s is x :: _ then x else x0.
@@ -408,13 +415,17 @@ elim=> [|x s IHs] //=; case: (a x) => [|] //=.
 by rewrite add0n eqn_leq andbC ltnNge count_size.
 Qed.
 
+Lemma filter_all : forall s, all (filter s).
+Proof. by elim=> //= x s IHs; case: ifP => //= ->. Qed.
+
 Lemma all_filterP : forall s, reflect (filter s = s) (all s).
 Proof.
-move=> s; apply introP.
-  by elim: s => [|x s IHs] //=; case/andP=> [Ha Hs]; rewrite Ha IHs.
-rewrite all_count count_filter => neq_sz eq_f_s.
-by rewrite eq_f_s eqxx in neq_sz.
+move=> s; apply: (iffP idP) => [| <-]; last exact: filter_all.
+by elim: s => //= x s IHs; case/andP=> -> Hs; rewrite IHs.
 Qed.
+
+Lemma filter_id : forall s, filter (filter s) = filter s.
+Proof. by move=> s; apply/all_filterP; exact: filter_all. Qed.
 
 Lemma has_find : forall s, has s = (find s < size s).
 Proof. by elim=> [|x s IHs] //=; case (a x); rewrite ?leqnn. Qed.
@@ -736,9 +747,12 @@ End Sequences.
 
 Definition rev T s := nosimpl catrev T (Nil T) s.
 
-Prenex Implicits size head ohead behead last rcons belast.
+Implicit Arguments nilP [T s].
+Implicit Arguments all_filterP [T a s].
+
+Prenex Implicits size nilP head ohead behead last rcons belast.
 Prenex Implicits cat take drop rev rot rotr.
-Prenex Implicits find count nth all has filter.
+Prenex Implicits find count nth all has filter all_filterP.
 
 Notation "s1 ++ s2" := (cat s1 s2) : seq_scope.
 
@@ -1151,15 +1165,14 @@ End EqSeq.
 
 Definition inE := (mem_seq1, in_cons, inE).
 
-Prenex Implicits uniq undup index.
+Prenex Implicits mem_seq1 uniq undup index.
 
 Implicit Arguments eqseqP [T x y].
-Implicit Arguments all_filterP [T a s].
 Implicit Arguments hasP [T a s].
 Implicit Arguments hasPn [T a s].
 Implicit Arguments allP [T a s].
 Implicit Arguments allPn [T a s].
-Prenex Implicits eqseqP all_filterP hasP hasPn allP allPn.
+Prenex Implicits eqseqP hasP hasPn allP allPn.
 
 Section NseqthTheory.
 
@@ -1642,6 +1655,9 @@ Proof. by move=> a; elim=> [|x s IHs] //=; rewrite IHs. Qed.
 Lemma has_map : forall a s, has a (map s) = has (preim f a) s.
 Proof. by move=> a; elim=> [|x s IHs] //=; rewrite IHs. Qed.
 
+Lemma all_map : forall a s, all a (map s) = all (preim f a) s.
+Proof. by move=> a; elim=> [|x s IHs] //=; rewrite IHs. Qed.
+
 Lemma count_map : forall a s, count a (map s) = count (preim f a) s.
 Proof. by move=> a; elim=> [|x s IHs] //=; rewrite IHs. Qed.
 
@@ -1989,6 +2005,10 @@ Fixpoint pairmap x (s : seq T1) {struct s} :=
 Lemma size_pairmap : forall x s, size (pairmap x s) = size s.
 Proof. by move=> x s; elim: s x => [|y s IHs] x //=; rewrite IHs. Qed.
 
+Lemma pairmap_cat : forall x s1 s2,
+  pairmap x (s1 ++ s2) = pairmap x s1 ++ pairmap (last x s1) s2.
+Proof. by move=> x s1 s2; elim: s1 x => //= y s1 IHs1 x; rewrite IHs1. Qed.
+
 Lemma nth_pairmap : forall s n, n < size s ->
   forall x, nth x2 (pairmap x s) n = f (nth x1 (x :: s) n) (nth x1 s n).
 Proof. by elim=> [|y s IHs] [|n] //= Hn x; apply: IHs. Qed.
@@ -1998,6 +2018,10 @@ Fixpoint scanl x (s : seq T2) {struct s} :=
 
 Lemma size_scanl : forall x s, size (scanl x s) = size s.
 Proof. by move=> x s; elim: s x => [|y s IHs] x //=; rewrite IHs. Qed.
+
+Lemma scanl_cat : forall x s1 s2,
+  scanl x (s1 ++ s2) = scanl x s1 ++ scanl (foldl g x s1) s2.
+Proof. by move=> x s1 s2; elim: s1 x => //= y s1 IHs1 x; rewrite IHs1. Qed.
 
 Lemma nth_scanl : forall s n, n < size s ->
   forall x, nth x1 (scanl x s) n = foldl g x (take n.+1 s).
@@ -2021,7 +2045,7 @@ Variables T1 T2 : Type.
 
 Fixpoint zip (s1 : seq T1) (s2 : seq T2) {struct s2} :=
   match s1, s2 with
-  | x1 :: s1', x2 :: s2' => (x1,x2) :: zip s1' s2'
+  | x1 :: s1', x2 :: s2' => (x1, x2) :: zip s1' s2'
   | _, _ => [::]
   end.
 
@@ -2047,6 +2071,21 @@ Lemma size2_zip : forall s1 s2,
   size s2 <= size s1 -> size (zip s1 s2) = size s2.
 Proof. by elim=> [|x1 s1 IHs] [|x2 s2] //= Hs1; rewrite IHs. Qed.
 
+Lemma zip_cat : forall s11 s12 s21 s22,
+    size s11 = size s21 ->
+  zip (s11 ++ s12) (s21 ++ s22) = zip s11 s21 ++ zip s12 s22.
+Proof.
+move=> s11 s12 s21 s22; move/eqP.
+by elim: s11 s21 => [|x1 s1 IHs] [|x2 s2] //=; move/IHs->.
+Qed.
+
+Lemma nth_zip : forall x1 x2 s1 s2 i,
+  size s1 = size s2 -> nth (x1, x2) (zip s1 s2) i = (nth x1 s1 i, nth x2 s2 i).
+Proof.
+move=> x1 x2 s1 s2 i; move/eqP.
+by elim: i s1 s2 => [|i IHi] [|y1 s1] [|y2 s2] //=; move/IHi->.
+Qed.
+
 End Zip.
 
 Prenex Implicits zip unzip1 unzip2.
@@ -2062,6 +2101,10 @@ Fixpoint reshape (sh : seq nat) (s : seq T) {struct sh} :=
 
 Lemma size_flatten : forall ss, size (flatten ss) = sumn (shape ss).
 Proof. by elim=> //= s ss <-; rewrite size_cat. Qed.
+
+Lemma flatten_cat : forall ss1 ss2,
+  flatten (ss1 ++ ss2) = flatten ss1 ++ flatten ss2.
+Proof. by move=> ss1 ss2; elim: ss1 => //= s ss1 ->; rewrite catA. Qed.
 
 Lemma flattenK : forall ss, reshape (shape ss) (flatten ss) = ss.
 Proof.
