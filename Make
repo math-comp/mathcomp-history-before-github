@@ -53,6 +53,9 @@ BGsection7.v
 BGsection8.v
 BGsection9.v
 frobenius.v
+polydiv.v
+orderedalg.v
+polyorder.v
 alt.v
 burnside_app.v
 theorem3_6.v
