@@ -4,7 +4,7 @@
 (***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
 Require Import div seq fintype tuple finfun finset.
-Require Import groups action maximal.
+Require Import groups action gseries maximal.
 
 (* n-transitive and primitive actions *)
 

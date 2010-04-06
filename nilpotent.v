@@ -1,6 +1,6 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype.
-Require Import bigops prime finset groups commutators automorphism.
-Require Import morphisms normal cyclic center gprod gfunc.
+Require Import bigops prime paths finset groups commutators automorphism.
+Require Import morphisms normal cyclic center gprod gfunc gseries.
 
 (******************************************************************************)
 (*   This file defines nilpotent and solvable groups, and give some of their  *)
@@ -68,6 +68,52 @@ End PropertiesDefs.
 
 Prenex Implicits nil_class nilpotent solvable.
 
+Section NilpotentProps.
+
+Variable gT: finGroupType.
+
+Implicit Type A B : {set gT}.
+Implicit Type G H : {group gT}.
+
+Lemma nilpotent1 : nilpotent [1 gT].
+Proof. apply/forallP=> H; rewrite commG1 setIid -subG1; exact/implyP. Qed.
+
+Lemma nilpotentS : forall A B, B \subset A -> nilpotent A -> nilpotent B.
+Proof.
+move=> A B sBA nilA; apply/forallP=> H; apply/implyP=> sHR.
+have:= forallP nilA H; rewrite (subset_trans sHR) //.
+by apply: subset_trans (setIS _ _) (setSI _ _); rewrite ?commgS.
+Qed.
+
+Lemma nil_comm_properl : forall G H A,
+    nilpotent G -> H \subset G -> H :!=: 1 -> A \subset 'N_G(H) ->
+  [~: H, A] \proper H.
+Proof.
+move=> G H A nilG sHG ntH; rewrite subsetI properE; case/andP=> sAG nHA.
+rewrite (subset_trans (commgS H (subset_gen A))) ?commg_subl ?gen_subG //.
+apply: contra ntH => sHR; have:= forallP nilG H; rewrite subsetI sHG.
+by rewrite (subset_trans sHR) ?commgS.
+Qed.
+
+Lemma nil_comm_properr : forall G A H,
+    nilpotent G -> H \subset G -> H :!=: 1 -> A \subset 'N_G(H) ->
+  [~: A, H] \proper H.
+Proof. by move=> G A H; rewrite commGC; exact: nil_comm_properl. Qed.
+ 
+Lemma centrals_nil : forall (s : seq {group gT})(G : {group gT}),
+  G.-central.-series 1%G s -> last 1%G s = G -> nilpotent G.
+Proof.
+move=> s G cs ls; apply/forall_inP=> H; rewrite subsetI; case/andP=> sHG sHR.
+suff: forall n,  n <= size s -> H \subset nth G (1%G :: s) ((size s) - n).
+  move/(_ (size s)) => /=; rewrite subnn -subG1 leqnn; exact.
+elim=> [|n ihn ltns]; first by rewrite subn0 nth_last last_cons ls.
+apply: subset_trans sHR _; apply: subset_trans (commSg _ (ihn (ltnW ltns))) _.
+have e: (size s - n.+1 < size s) by rewrite -ltn_subS // leq_subr.
+by rewrite ltn_subS //=; case/and3P: {e} (pathP G cs (size s - n.+1) e).
+Qed.
+
+End NilpotentProps.
+
 Section LowerCentral.
 
 Variable gT : finGroupType.
@@ -75,14 +121,18 @@ Notation sT := {set gT}.
 Implicit Type A B : {set gT}.
 Implicit Type G H : {group gT}.
 
+Lemma lcn0 : forall A, 'L_0(A) = A. Proof. by []. Qed.
 Lemma lcn1 : forall A, 'L_1(A) = A. Proof. by []. Qed.
 Lemma lcnSn : forall n A, 'L_n.+2(A) = [~: 'L_n.+1(A), A]. Proof. by []. Qed.
+Lemma lcnSnS : forall n G, [~: 'L_n(G), G] \subset 'L_n.+1(G).
+Proof. by case=> [|n] A; rewrite ?der1_subG // lcnSn. Qed.
 Lemma lcnE : forall n A, 'L_n.+1(A) = lower_central_at_rec n A.
 Proof. by []. Qed.
 Lemma lcn2 : forall A, 'L_2(A) = A^`(1). Proof. by []. Qed.
 
 Lemma lcn_group_set : forall n G, group_set 'L_n(G).
 Proof. move=> n G; case: n; last elim=> *; exact: groupP. Qed.
+
 
 Canonical Structure lower_central_at_group n G := Group (lcn_group_set n G).
 
@@ -145,28 +195,6 @@ Proof.
 by move=> n A B G defG; elim: n => {defG}// n; apply: (lcn_cprod 2).
 Qed.
 
-Lemma nilpotentS : forall A B, B \subset A -> nilpotent A -> nilpotent B.
-Proof.
-move=> A B sBA nilA; apply/forallP=> H; apply/implyP=> sHR.
-have:= forallP nilA H; rewrite (subset_trans sHR) //.
-by apply: subset_trans (setIS _ _) (setSI _ _); rewrite ?commgS.
-Qed.
-
-Lemma nil_comm_properl : forall G H A,
-    nilpotent G -> H \subset G -> H :!=: 1 -> A \subset 'N_G(H) ->
-  [~: H, A] \proper H.
-Proof.
-move=> G H A nilG sHG ntH; rewrite subsetI properE; case/andP=> sAG nHA.
-rewrite (subset_trans (commgS H (subset_gen A))) ?commg_subl ?gen_subG //.
-apply: contra ntH => sHR; have:= forallP nilG H; rewrite subsetI sHG.
-by rewrite (subset_trans sHR) ?commgS.
-Qed.
-
-Lemma nil_comm_properr : forall G A H,
-    nilpotent G -> H \subset G -> H :!=: 1 -> A \subset 'N_G(H) ->
-  [~: A, H] \proper H.
-Proof. by move=> G A H; rewrite commGC; exact: nil_comm_properl. Qed.
-
 Lemma nilpotent_class : forall G, nilpotent G = (nil_class G < #|G|).
 Proof.
 move=> G; rewrite /nil_class; set s := mkseq _ _.
@@ -206,9 +234,6 @@ Qed.
 
 Lemma abelian_nil : forall G, abelian G -> nilpotent G.
 Proof. move=> G abG; apply/lcnP; exists 1%N; exact/commG1P. Qed.
-
-Lemma nilpotent1 : nilpotent [1 gT].
-Proof. by apply: abelian_nil; exact: abelian1. Qed.
 
 Lemma nil_class0 : forall G, (nil_class G == 0) = (G :==: 1).
 Proof.

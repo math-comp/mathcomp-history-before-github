@@ -2,7 +2,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 Require Import fintype div prime finfun finset.
 Require Import bigops groups morphisms automorphism normal action.
-Require Import cyclic gprod pgroups commutators center nilpotent.
+Require Import cyclic gprod pgroups commutators center gseries nilpotent.
 
 (******************************************************************************)
 (*   The Sylow theorem and its consequences, including the Frattini argument, *)

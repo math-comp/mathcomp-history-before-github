@@ -656,6 +656,7 @@ Lemma implybT : forall b, b ==> true.           Proof. by case. Qed.
 Lemma implybF : forall b, (b ==> false) = ~~ b. Proof. by case. Qed.
 Lemma implyFb : forall b, false ==> b.          Proof. by []. Qed.
 Lemma implyTb : forall b, (true ==> b) = b.     Proof. by []. Qed.
+Lemma implybb : forall b, b ==> b.              Proof. by case. Qed.
 
 Lemma negb_imply : forall b1 b2, ~~ (b1 ==> b2) = b1 && ~~ b2.
 Proof. by do 2!case. Qed.

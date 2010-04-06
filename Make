@@ -34,6 +34,7 @@ cyclic.v
 gfunc.v
 pgroups.v
 center.v
+gseries.v
 nilpotent.v
 finmod.v
 maximal.v
