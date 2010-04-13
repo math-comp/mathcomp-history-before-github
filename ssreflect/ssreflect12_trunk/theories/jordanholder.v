@@ -1,7 +1,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
 Require Import paths finfun bigops finset groups morphisms automorphism normal.
-Require Import maximal action.
+Require Import gseries maximal action.
 Import GroupScope.
 
 Set Implicit Arguments.

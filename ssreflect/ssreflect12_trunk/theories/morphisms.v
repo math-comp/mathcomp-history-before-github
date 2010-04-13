@@ -572,15 +572,6 @@ move=> A B; case/andP=> sAB nAB.
 by rewrite /(_ <| _) morphimS // morphim_norms.
 Qed.
 
-Lemma morphim_subnormal : forall H K : {group aT},
-  H <|<| K -> f @* H <|<| f @* K.
-Proof.
-move=> H K; case/subnormalP=> s Hs <-{K}; apply/subnormalP.
-elim: s H Hs => [|K s IHs] H /=; first by exists [::].
-case/andP=> nsHK; case/IHs=> fs Hfs <-.
-by exists ([group of f @* K] :: fs); rewrite /= ?morphim_normal.
-Qed.
-
 Lemma morphim_cent1 : forall x, x \in G -> f @* 'C[x] \subset 'C[f x].
 Proof. by move=> x Gx; rewrite -(morphim_set1 Gx) morphim_norm. Qed.
 

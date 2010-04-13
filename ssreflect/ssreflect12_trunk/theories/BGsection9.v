@@ -2,8 +2,8 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import fintype paths finfun bigops finset prime binomial groups.
 Require Import morphisms perm action automorphism normal zmodp cyclic.
-Require Import gfunc pgroups nilpotent gprod center commutators sylow abelian.
-Require Import maximal hall.
+Require Import gfunc pgroups gprod center commutators.
+Require Import gseries nilpotent sylow abelian maximal hall.
 Require Import BGsection1 BGsection4 BGsection5 BGsection6.
 Require Import BGsection7 BGsection8.
 

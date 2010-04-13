@@ -2,7 +2,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import fintype paths finfun bigops finset prime groups.
 Require Import morphisms perm action automorphism normal cyclic.
-Require Import gfunc gprod center pgroups nilpotent sylow.
+Require Import gfunc gprod center pgroups gseries nilpotent sylow.
 
 (*****************************************************************************)
 (* Constructions based on abelian groups and their structure, with some      *)

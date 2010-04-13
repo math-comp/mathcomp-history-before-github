@@ -466,9 +466,6 @@ Proof. exact: morphim_norms. Qed.
 Lemma quotient_subnorm : forall A B, 'N_A(B) / H \subset 'N_(A / H)(B / H).
 Proof. exact: morphim_subnorm. Qed.
 
-Lemma quotient_subnormal : forall G1 G2, G1 <|<| G2 -> G1 / H <|<| G2 / H.
-Proof. by move=> G1 G2; exact: morphim_subnormal. Qed.
-
 Lemma quotient_normal : forall A B, A <| B -> A / H <| B / H.
 Proof. exact: morphim_normal. Qed.
 

@@ -3,7 +3,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import choice fintype finfun bigops ssralg finset prime.
 Require Import groups morphisms perm finalg automorphism normal action gprod.
 Require Import cyclic commutators center pgroups.
-Require Import finmod sylow nilpotent abelian maximal.
+Require Import finmod nilpotent gseries sylow abelian maximal.
 
 (*****************************************************************************)
 (*  In this files we prove the Schur-Zassenhaus splitting and transitivity   *)

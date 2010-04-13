@@ -3,7 +3,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import fintype bigops prime binomial finset ssralg.
 Require Import groups morphisms normal automorphism commutators zmodp.
 Require Import gprod gfunc cyclic center pgroups nilpotent sylow abelian.
-Require Import maximal matrix mxrepresentation BGsection1 BGsection2.
+Require Import gseries maximal matrix mxrepresentation BGsection1 BGsection2.
 
 (******************************************************************************)
 (* This file contains the useful material in B & G, appendices A and B, i.e., *)

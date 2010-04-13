@@ -2,7 +2,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype finfun.
 Require Import bigops finset prime binomial groups morphisms normal perm.
 Require Import commutators automorphism action cyclic gfunc pgroups center.
-Require Import gprod nilpotent sylow abelian finmod.
+Require Import gprod gseries nilpotent sylow abelian finmod.
 
 (******************************************************************************)
 (*   This file establishes basic properties of several important classes of   *)
@@ -10,12 +10,6 @@ Require Import gprod nilpotent sylow abelian finmod.
 (* simple subgroups, the Frattini and Fitting subgroups, the Thompson         *)
 (* critical subgroup, special and extra-special groups, and self-centralising *)
 (* normal (SCN) subgroups. In detail, we define:                              *)
-(*       maximal M G == M is a maximal proper subgroup of G                   *)
-(*    maximal_eq M G == (M == G) or (maximal M G)                             *)
-(*   maxnormal M G N == M is a maximal subgroup of G normalized by N          *)
-(*     minnormal M N == M is a minimal nontrivial subgroup normalized by N    *)
-(*          simple G == G is a (nontrivial) simple group                      *)
-(*                   := minnormal G G                                         *)
 (*      charsimple G == G is characteristically simple (it has no nontrivial  *)
 (*                      characteristic subgroups, and is nontrivial)          *)
 (*           'Phi(G) == the Frattini subgroup of G, i.e., the intersection of *)
@@ -54,17 +48,6 @@ Section Defs.
 Variable gT : finGroupType.
 Implicit Types A B D : {set gT}.
 Implicit Type G : {group gT}.
-
-Definition maximal A B := [max A of G | G \proper B].
-
-Definition maximal_eq A B := (A == B) || maximal A B.
-
-Definition maxnormal A B D :=
-  [max A of G | (G \proper B) && (D \subset 'N(G))].
-
-Definition minnormal A D := [min A of G | (G :!=: 1) && (D \subset 'N(G))].
-
-Definition simple A := minnormal A A.
 
 Definition charsimple A := [min A of G | (G :!=: 1) && (G \char A)].
 
@@ -130,122 +113,6 @@ Notation "''SCN' ( B )" := (SCN B)
   (at level 8, format "''SCN' ( B )") : group_scope.
 Notation "''SCN_' n ( B )" := (SCN_at n B)
   (at level 8, n at level 2, format "''SCN_' n ( B )") : group_scope.
-
-Section MaxProps.
-
-Variable gT : finGroupType.
-Implicit Types G H M : {group gT}.
-
-Lemma maximal_eqP : forall M G,
-  reflect (M \subset G  /\
-             forall H, M \subset H -> H \subset G -> H :=: M \/ H :=: G)
-       (maximal_eq M G).
-Proof.
-move=> M G; rewrite subEproper /maximal_eq; case: eqP => [->|_]; first left.
-  by split=> // H sGH sHG; right; apply/eqP; rewrite eqEsubset sHG.
-apply: (iffP maxgroupP) => [] [sMG maxM]; split=> // H.
-  by move/maxM=> maxMH; rewrite subEproper; case/predU1P; auto.
-by rewrite properEneq; case/andP; move/eqP=> neHG sHG; case/maxM.
-Qed.
-
-Lemma maximal_exists : forall H G,
-    H \subset G ->
-  H :=: G \/ (exists2 M : {group gT}, maximal M G & H \subset M).
-Proof.
-move=> H G; rewrite subEproper; case/predU1P=> sHG; first by left.
-suff [M *]: {M : {group gT} | maximal M G & H \subset M} by right; exists M.
-exact: maxgroup_exists.
-Qed.
-
-End MaxProps.
-
-Section MorphPreMax.
-
-Variables (gT rT : finGroupType) (D : {group gT}) (f : {morphism D >-> rT}).
-Implicit Types Q R : {group rT}.
-
-Lemma morphpre_maximal : forall Q R,
-  Q \subset f @* D -> R \subset f @* D ->
-  maximal (f @*^-1 Q) (f @*^-1 R) = maximal Q R.
-Proof.
-move=> Q R dQ dR.
-apply/maxgroupP/maxgroupP; rewrite morphpre_proper //= => [] [sQR maxQ].
-  split=> // M sMR sQM; have dM := subset_trans (proper_sub sMR) dR.
-  rewrite -(morphpreK dQ) -(maxQ (f @*^-1 M)%G) ?morphpreK ?morphpreSK //.
-  by rewrite morphpre_proper.
-split=> // M sMR sQM; have dM: M \subset D.
-  apply: subset_trans (proper_sub sMR) _; exact: subsetIl.
-have defM: f @*^-1 (f @* M) = M.
-  apply: morphimGK dM; apply: subset_trans sQM; exact: ker_sub_pre.
-rewrite -defM; congr (f @*^-1 _); apply: maxQ.
-  by rewrite -defM morphpre_proper ?morphimS in sMR.
-by rewrite -(morphpreK dQ) morphimS.
-Qed.
-
-Lemma morphpre_maximal_eq : forall Q R,
-  Q \subset f @* D -> R \subset f @* D ->
-  maximal_eq (f @*^-1 Q) (f @*^-1 R) = maximal_eq Q R.
-Proof.
-move=> Q R dQ dR.
-by rewrite /maximal_eq morphpre_maximal // !eqEsubset !morphpreSK.
-Qed.
-
-End MorphPreMax.
-
-Section InjmMax.
-
-Variables (gT rT : finGroupType) (D : {group gT}) (f : {morphism D >-> rT}).
-Variables G H K : {group gT}.
-
-Hypothesis injf : 'injm f.
-
-Lemma injm_maximal :
-  G \subset D -> H \subset D -> maximal (f @* G) (f @* H) = maximal G H.
-Proof.
-move=> dG dH; rewrite -(morphpre_invm injf) -(morphpre_invm injf H).
-by rewrite morphpre_maximal ?morphim_invm.
-Qed.
-
-Lemma injm_maximal_eq :
-  G \subset D -> H \subset D -> maximal (f @* G) (f @* H) = maximal G H.
-Proof.
-by move=> dG dH; rewrite /maximal_eq injm_maximal // !eqEsubset !injmSK.
-Qed.
-
-End InjmMax.
-
-Section QuoMax.
-
-Variables (gT : finGroupType) (K G H : {group gT}).
-
-Lemma cosetpre_maximal : forall Q R : {group coset_of K},
-  maximal (coset K @*^-1 Q) (coset K @*^-1 R) = maximal Q R.
-Proof. by move=> Q R; rewrite morphpre_maximal ?sub_im_coset. Qed.
-
-Lemma cosetpre_maximal_eq : forall Q R : {group coset_of K},
-  maximal_eq (coset K @*^-1 Q) (coset K @*^-1 R) = maximal_eq Q R.
-Proof.
-by move=> Q R; rewrite /maximal_eq !eqEsubset !cosetpreSK cosetpre_maximal.
-Qed.
-
-Lemma quotient_maximal :
-  K <| G -> K <| H -> maximal (G / K) (H / K) = maximal G H.
-Proof. by move=> nKG nKH; rewrite -cosetpre_maximal ?quotientGK. Qed.
-
-Lemma quotient_maximal_eq :
-  K <| G -> K <| H -> maximal_eq (G / K) (H / K) = maximal_eq G H.
-Proof. by move=> nKG nKH; rewrite -cosetpre_maximal_eq ?quotientGK. Qed.
-
-Lemma maximalJ : forall x, maximal (G :^ x) (H :^ x) = maximal G H.
-Proof.
-move=> x; rewrite -{1}(setTI G) -{1}(setTI H) -!morphim_conj.
-by rewrite injm_maximal ?subsetT ?injm_conj.
-Qed.
-
-Lemma maximal_eqJ : forall x, maximal_eq (G :^ x) (H :^ x) = maximal_eq G H.
-Proof. by move=> x; rewrite /maximal_eq !eqEsubset !conjSg maximalJ. Qed.
-
-End QuoMax.
 
 Section PMax.
 
@@ -465,17 +332,6 @@ Section Simple.
 
 Implicit Types gT rT : finGroupType.
 
-Lemma simpleP : forall gT (G : {group gT}),
-  reflect (G :!=: 1 /\ forall H : {group gT}, H <| G -> H :=: 1 \/ H :=: G)
-          (simple G).
-Proof.
-move=> gT G; apply: (iffP mingroupP); rewrite normG andbT.
-  case=> ntG simG; split=> // N; case/andP=> sNG nNG.
-  by case: (eqsVneq N 1) => [|ntN]; [left | right; apply: simG; rewrite ?ntN].
-case=> ntG simG; split=> // N; case/andP=> ntN nNG sNG.
-by case: (simG N) ntN => // [|->]; [exact/andP | case/eqP].
-Qed.
-
 Lemma charsimpleP : forall gT (G : {group gT}),
    reflect
      (G :!=: 1 /\ forall K : {group gT}, K :!=: 1 -> K \char G -> K :=: G)
@@ -485,45 +341,6 @@ move=> gT G.
 apply: (iffP mingroupP); rewrite char_refl andbT => [[ntG simG]].
   by split=> // K ntK chK; apply: simG; rewrite ?ntK // char_sub.
 split=> // K; case/andP=> ntK chK _; exact: simG.
-Qed.
-
-Lemma quotient_simple : forall gT (G H : {group gT}),
-  H <| G -> simple (G / H) = maxnormal H G G.
-Proof.
-move=> gT G H nHG; apply/simpleP/maxgroupP=> [[ntG simG] | []].
-  rewrite andbAC andbC -(quotient_sub1 (normal_norm nHG)) subG1 ntG.
-  split=> // N; do 2![case/andP] => sNG ntN nNG sHN.
-  case: (simG (N / H)%G) => [|| /= eqNG].
-  - apply: quotient_normal; exact/andP.
-  - move/trivgP=> trNH; apply/eqP; rewrite eqEsubset sHN andbT.
-    by rewrite -quotient_sub1 // (subset_trans sNG) ?normal_norm.
-  by case/negP: ntN; rewrite -(quotientSGK _ sHN) ?normal_norm // eqNG.
-rewrite andbAC -subG1 (quotient_sub1 (normal_norm nHG)).
-case/andP=> _ sGH simG; split=> // NH.
-case/(inv_quotientN _) => //= N ->{NH} sHN nNG.
-case sGN: (G \subset N); [right | left].
-  by congr (_ / H); apply/eqP; rewrite eqEsubset sGN normal_sub.
-by rewrite (simG N) ?trivg_quotient // andbAC sGN andbT.
-Qed.
-
-Lemma isog_simple : forall gT rT (G : {group gT}) (M : {group rT}),
-  G \isog M -> simple G = simple M.
-Proof.
-move=> gT rT G M eqGM; wlog simM: gT rT G M eqGM / simple M.
-  by move=> IH; apply/idP/idP=> sim; move/IH: (sim) ->; rewrite // isog_sym.
-rewrite simM; case/simpleP: simM; case/isogP: eqGM => f injf <- ntM simM.
-apply/simpleP; split=> [|N nNG].
-  by apply: contra ntM; move/eqP=> /= M1; rewrite {3}M1 /= morphim1.
-case: (andP nNG); move/(morphim_invm injf) => <- _.
-have: f @* N <| f @* G by rewrite morphim_normal.
-by case/simM=> /= ->; [left | right]; rewrite (morphim1, morphim_invm).
-Qed.
-
-Lemma simple_maxnormal : forall gT (G : {group gT}),
-   simple G = maxnormal 1 G G.
-Proof.
-move=> gT G; rewrite -quotient_simple ?normal1 //.
-by rewrite -(isog_simple (quotient1_isog G)).
 Qed.
 
 End Simple.
@@ -679,10 +496,6 @@ rewrite (maxH K) // sKG -(quotientGK nHK) -defHK.
 apply: subset_trans (morphpre_norm _ _).
 by rewrite -sub_quotient_pre // (char_norm_trans chHK) ?quotient_norms.
 Qed.
-
-Lemma minnormal_exists : forall G H, H :!=: 1 -> G \subset 'N(H) ->
-  {M : {group gT} | minnormal M G & M \subset H}.
-Proof. by move=> G H ntH nHG; apply: mingroup_exists (H) _; rewrite ntH. Qed.
 
 Lemma p_abelem_split1 : forall rT (p : nat) (A : {group rT}) x,
      p.-abelem A -> x \in A ->

@@ -2,7 +2,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import fintype paths finfun bigops finset prime groups.
 Require Import morphisms perm action automorphism normal cyclic.
-Require Import gfunc pgroups nilpotent gprod center commutators.
+Require Import gfunc pgroups gprod center commutators gseries nilpotent.
 Require Import sylow abelian maximal hall BGsection1 BGsection2.
 Require Import BGsection4.
 
@@ -486,20 +486,24 @@ Theorem narrow_solvable_Aut :
    [/\ p^'.-group (A / 'O_p(A)), abelian (A / 'O_p(A)) &
        2 < 'r(R) -> forall x, x \in A -> p^'.-elt x -> #[x] %| p.-1 ].
 Proof.
+move=> nR.
 have ntR : R :!=: 1.
-  admit.
+  case: eqP nR => // defR [E]; case/pnElemP; rewrite defR; move/trivgP=> -> _.
+  by rewrite cards1 logn1.
 have [p_pr _ [r cR]] := pgroup_pdiv pR ntR.
 have oddp : odd p.
   by case: (even_prime p_pr) oddR => // p2; rewrite cR p2 odd_exp eqn0Ngt.
-case: (critical_odd _ pR)=> // H [cHR sHRZ] nc2 exH pCAu nR A solA sAAu oddA.
+case: (critical_odd _ pR)=> // H [cHR sHRZ] nc2 exH pCAu A solA sAAu oddA.
 have ntH : H :!=: 1.
-  have pCA : p.-group 'C_A(H | 'P).
-    exact: pgroupS (setSI _ sAAu) pCAu.
-  have nCA : 'C_A(H | 'P) <| A.
+  have sCO : 'C_A(H | 'P) \subset 'O_p(A).
+    apply: pcore_max; first by apply: pgroupS (setSI _ sAAu) pCAu.
     rewrite /normal subsetIl normsI ?normG ?(subset_trans _ (astab_norm _ _))//.
-    admit.
-  have sCHO : 'C_(Aut R)(H | 'P) \subset 'O_p(A).
-    admit.
+    apply/subsetP=> a Aa; rewrite !inE /=; case/andP: cHR => sHR.
+    move/forallP; move/(_ a);move/implyP; move/(_ (subsetP sAAu _ Aa)) => ch.
+    have aAutR : a \in Aut R by rewrite (subsetP sAAu _ Aa).
+    have:= sub_morphim_pre [morphism of autm aAutR] H sHR.
+    by rewrite !morphimEsub // morphpreE subsetI sHR /= => <-.
+  case: eqP => //= trivH. 
   admit.
 split.
 - admit. (* 2 < r(R) -> 1.9 stable_factor_cent, otherwise 4.17 *)
@@ -577,7 +581,9 @@ have sCHR0x : 'C_H(R0) \subset R0 \x 'Ohm_1(R1).
   have pabR0 : p.-abelem R0.
     by rewrite (abelemE _ p_pr) cyclic_abelian // -cR0 exponent_dvdn.
   rewrite -(Ohm1_id pabR0) (Ohm_dprod 1 dpR0R1) (Ohm1_id pabR0).
-  admit.
+  apply/subsetP=> h; case/setIP=> Hh CR0h.
+  rewrite (OhmE 1 (pgroupS (subsetIl _ _) pR)) mem_gen // !inE /=.
+  by rewrite CR0h (subsetP _ _ Hh) ?char_sub // -exH expg_exponent ?eqxx.
 have ntHIZ : H :&: 'Z(R) != 1.
   apply: contraL ntH; move/eqP=> abs.
   by rewrite (nil_TI_Z (pgroup_nil pR) (char_normal cHR)) // eqxx.
