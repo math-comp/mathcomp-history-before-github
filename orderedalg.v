@@ -315,6 +315,53 @@ Proof. by move=> z x y; rewrite ler_addrA addrC opprK. Qed.
 Definition ler_subr z x y := (esym (ler_addrA z x y), ler_subrA z x y).
 Definition ler_subl z x y := (esym (ler_addlA z x y), ler_sublA z x y).
 
+Lemma le0r_add : forall x y, x <= 0 -> y <= 0 -> x + y <= 0.
+Proof. move=> x y hx hy; rewrite -(addr0 0); exact: ler_add. Qed.
+
+Lemma lt0r_add : forall x y, x < 0 -> y < 0 -> x + y < 0.
+Proof. move=> x y hx hy; rewrite -(addr0 0); exact: ltr_add. Qed.
+ 
+Lemma ge0r_add : forall x y, 0 <= x -> 0 <= y -> 0 <= x + y.
+Proof. move=> x y hx hy; rewrite  -(addr0 0); exact: ler_add. Qed.
+
+Lemma gt0r_add : forall x y, 0 < x -> 0 < y -> 0 < x + y.
+Proof. move=> x y hx hy; rewrite  -(addr0 0); exact: ltr_add. Qed.
+
+Lemma le0r_addl : forall x y z, 0 <= x -> y <= z -> y <= x + z.
+Proof. move=> x y z h1 h2; rewrite -(add0r y); exact: ler_add. Qed.
+
+Lemma le0r_addr : forall x y z, x <= y -> 0 <= z -> x <= y + z.
+Proof. move=> x y z h1 h2; rewrite -(addr0 x); exact: ler_add. Qed.
+
+Lemma lt0r_addl : forall x y z, 0 < x -> y < z -> y < x + z.
+Proof. move=> x y z h1 h2; rewrite -(add0r y); exact: ltr_add. Qed.
+
+Lemma lt0r_addr : forall x y z, x < y -> 0 < z -> x < y + z.
+Proof. move=> x y z h1 h2; rewrite -(addr0 x); exact: ltr_add. Qed.
+
+Lemma add_lt0rl : forall x y, x > 0 -> y < x + y.
+Proof. by move=> x y h; rewrite -{2}(add0r y); apply: ltr_le_add. Qed.
+
+Lemma add_le0rl : forall x y, 0 <= x -> y <= x + y.
+Proof. by move=> x y h; rewrite -{1}(add0r y); apply: ler_add. Qed.
+
+Lemma add_lt0rr :  forall x y, x > 0 -> y < y + x.
+Proof. move=> x y h; rewrite addrC; exact: add_lt0rl. Qed.
+
+Lemma add_le0rr : forall x y, 0 <= x -> y <= y + x.
+Proof.  move=> x y h; rewrite addrC; exact: add_le0rl. Qed.
+
+Lemma lt0r_ler_addl : forall x y z, 0 < x -> y <= z -> y < x + z.
+Proof. move=> x y z h1 h2; apply: (@ler_lt_trans z)=> //; exact: add_lt0rl. Qed.
+
+Lemma lt0r_ler_addr : forall x y z, 0 < x -> y <= z -> y < z + x.
+Proof. move=> x y z h1 h2; rewrite addrC; exact: lt0r_ler_addl. Qed.
+
+Lemma le0r_ltr_addl : forall x y z, 0 <= x -> y < z -> y < x + z.
+Proof. move=> x y z h1 h2; apply: (@ltr_le_trans z)=> //; exact: add_le0rl. Qed.
+
+Lemma le0r_ltr_addr : forall x y z, 0 <= x -> y < z -> y < z + x.
+Proof. move=> x y z h1 h2; rewrite addrC; exact: le0r_ltr_addl. Qed.
 
 Lemma ler_mulpr : forall z x y, 0 <= z -> (x <= y) -> (x * z <= y * z).
 Proof.
