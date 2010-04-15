@@ -1,7 +1,7 @@
 Versions of ssreflect version 1.1 :
 
-	ssreflect_81pl2/ : distrib compatible with Coq >= 8.1pl2
-	ssreflect_82beta/ : distrib compatible with Coq ~= 8.2beta
+	attic/ssreflect_81pl2/ : distrib compatible with Coq >= 8.1pl2
+	attic/ssreflect_82beta/ : distrib compatible with Coq ~= 8.2beta
 
 Versions of ssreflect version 1.2 :
 	
