@@ -166,6 +166,9 @@ Proof. move=> z x y; rewrite ![z+_]addrC; exact: ler_add2l. Qed.
 Lemma subr_ge0 : forall x y, (0 <= y - x) = (x <= y).
 Proof. by move=> x y; rewrite -(ler_add2l x) add0r subrK. Qed.
 
+Lemma subr_le0 : forall x y, (y - x <= 0) = (y <= x).
+Proof.  by move=> x y; rewrite -(ler_add2l x) add0r addrNK. Qed.
+
 Lemma ler_opp2 : forall x y, (y <= x) = (-x <= -y).
 Proof. by move=> x y; symmetry; rewrite -subr_ge0 opprK addrC subr_ge0. Qed.
 
@@ -623,6 +626,17 @@ case: (ltrgtP x 0)=> hx.
 - by rewrite hx absr0 oppr_cp0 orb_andr -ler_eqVlt oppr_cp0.
 Qed.
 
+Lemma ltr_abs : forall x y, |x| < y -> x < y.
+Proof.
+move=> x y h; move: (h); rewrite absr_lt; first by case/andP.
+by apply: ltrW; apply: ler_lt_trans h; apply: absr_ge0.
+Qed.
+
+Lemma ler_abs : forall x y, |x| <= y -> x <= y.
+move=> x y h; move: (h); rewrite absr_le; first by case/andP.
+by apply: ler_trans h; apply: absr_ge0.
+Qed.
+
 Lemma absr_abs_le : forall x y, | |x| - |y| | <= | x + y |.
 Proof.
 by move=> x y; rewrite absr_le// ler_oppl oppr_sub {1}[_+y]addrC !subr_abs_le.
@@ -890,13 +904,13 @@ Lemma ltf_mulnl : forall z x y, 0 > z ->  (z * x >= z * y) = (x <= y).
 Proof. by move=> z x y hz; rewrite ![z*_]mulrC ltf_mulnr. Qed.
 Definition ltf_muln z x y (hz : 0 > z) := (ltf_mulnr x y hz, ltf_mulnl x y hz).
 
-Lemma mulf_gt0pp : forall x y, x>0 -> y>0 -> (x*y)>0.
+Lemma mulf_gt0pp : forall x y, x > 0 -> y > 0 -> (x * y)>0.
 Proof. by move=> x y hx hy; rewrite -(mulr0 x) ltf_mulpl. Qed. 
-Lemma mulf_gt0nn : forall x y, x<0 -> y<0 -> (x*y)>0.
+Lemma mulf_gt0nn : forall x y, x < 0 -> y < 0 -> (x * y) > 0.
 Proof. by move=> x y hx hy; rewrite -mulrNN mulf_gt0pp ?oppr_cp0. Qed.
-Lemma mulf_lt0pn : forall x y, x>0 -> y<0 -> (x*y)<0.
+Lemma mulf_lt0pn : forall x y, x > 0 -> y < 0 -> (x * y) < 0.
 Proof. by move=> x y hx hy; rewrite -oppr_cp0 -mulrN mulf_gt0pp ?oppr_cp0. Qed.
-Lemma mulf_lt0np : forall x y, x<0 -> y>0 -> (x*y)<0.
+Lemma mulf_lt0np : forall x y, x < 0 -> y > 0 -> (x * y) < 0.
 Proof. by move=> x y hx hy; rewrite mulrC mulf_lt0pn. Qed.
 Definition mulf_cp0p := (mulf_gt0pp, mulf_lt0pn).
 Definition mulf_cp0n := (mulf_gt0nn, mulf_lt0np).
@@ -1117,6 +1131,30 @@ move=> x y; rewrite -mulrNN mulrN oppr_cp0 mulf_gt0 !oppr_cp0.
 by congr (_||_); rewrite andbC.
 Qed.
 
+Lemma ltf_invpp : forall x y, x > 0 -> y > 0 -> x < y -> y^-1 < x^-1.
+Proof.
+move=> x y hx hy hxy; rewrite -(ltf_mulpl _ _ hx) lef_divpr ?mulfV ?mul1r //.
+by rewrite eq_sym ?ltrWN.
+Qed.
+
+Lemma lef_invpp : forall x y, x > 0 -> y > 0 -> x <= y -> y^-1 <= x^-1.
+Proof.
+move=> x y hx hy hxy; rewrite -(ltf_mulpl _ _ hy) lef_divpr ?mulfV ?mul1r //.
+by rewrite eq_sym ?ltrWN.
+Qed.
+
+Lemma ltf_invnn : forall x y, x < 0 -> y < 0 -> x < y -> y^-1 < x^-1.
+Proof.
+move=> x y; rewrite -(opprK x) -(opprK y) !oppr_ge0 invrN [(- - _)^-1]invrN.
+by rewrite -ler_opp2 -[- _^-1 <= _]ler_opp2=> *; apply: ltf_invpp.
+Qed.
+
+Lemma lef_invnn : forall x y, x < 0 -> y < 0 -> x <= y -> y^-1 <= x^-1.
+Proof.
+move=> x y hx hy hxy; rewrite -(ltf_mulnl _ _ hy) lef_divnl ?mulfV ?mul1r //.
+by rewrite ltrWN.
+Qed.
+
 Lemma signr_mul : forall x y, \s (x * y) = \s x * \s y.
 Proof.
 move=> x y. rewrite /signr mulf_eq0.
@@ -1138,13 +1176,13 @@ move=> x; elim=> [|n ihn]; first by rewrite expr0 signr1.
 by rewrite !exprSr signr_mul ihn mulrC.
 Qed.
 
-Lemma midf_le : forall x y, x <= y -> x <= (x+y)/2%:R <= y.
+Lemma midf_le : forall x y, x <= y -> x <= (x + y)/2%:R <= y.
 Proof.
 move=> x y lxy; rewrite ?lef_divp ?gtf0Sn//.
 by rewrite  mulrSr !mulr_addr !mulr1 ler_add2r ler_add2l lxy.
 Qed.
 
-Lemma midf_lt : forall x y, x < y -> x < (x+y)/2%:R < y.
+Lemma midf_lt : forall x y, x < y -> x < (x + y)/2%:R < y.
 Proof.
 move=> x y lxy; rewrite ?lef_divp ?gtf0Sn//.
 by rewrite  mulrSr !mulr_addr !mulr1 ler_add2r ler_add2l lxy.
@@ -1225,9 +1263,11 @@ Definition ler_trans := ler_trans.
 Definition ler_total := ler_total. 
 Definition lerr := lerr. 
 Hint Resolve lerr.
+Definition ltrNge := ltrNge.
 Definition ler_add2r := ler_add2r.  
 Definition ler_add2l := ler_add2l.  
 Definition subr_ge0 := subr_ge0. 
+Definition subr_le0 := subr_le0. 
 Definition ler_opp2 := ler_opp2. 
 Definition ler_oppr := ler_oppr. 
 Definition ler_oppl := ler_oppl. 
@@ -1341,6 +1381,8 @@ Definition absr_add_le := absr_add_le.
 Definition subr_abs_le := subr_abs_le. 
 Definition absr_lt := absr_lt. 
 Definition absr_le := absr_le. 
+Definition ltr_abs := ltr_abs.
+Definition ler_abs := ler_abs.
 Definition absr_abs_le := absr_abs_le. 
 Definition absr_leAle := absr_leAle. 
 Definition absr_sub_lt := absr_sub_lt. 
@@ -1368,6 +1410,10 @@ Definition ltf_muln  := ltf_muln.
 Definition mulf_gt0pp := mulf_gt0pp. 
 Definition mulf_gt0nn := mulf_gt0nn. 
 Definition mulf_lt0pn := mulf_lt0pn. 
+Definition ltf_invpp := ltf_invpp.
+Definition ltf_invnn := ltf_invnn.
+Definition lef_invpp := lef_invpp.
+Definition lef_invnn := lef_invnn.
 Definition mulf_lt0np := mulf_lt0np. 
 Definition mulf_cp0p := mulf_cp0p.
 Definition mulf_cp0n := mulf_cp0n.
