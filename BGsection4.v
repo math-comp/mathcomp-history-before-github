@@ -1175,10 +1175,6 @@ have {p2m1_eq} main_lemma :
     by rewrite card_GL_1 /= card_Fp // p2m1_eq; apply: dvdn_mull.
   rewrite card_GL_2 /= card_Fp // !euclid // dvdn_prime2 // eq_sym.
   by rewrite (negbTE nepq) /= orbb p2m1_eq euclid // orbC.
-case cRR : (abelian R).
-  have abelR : p.-abelem R.
-    by apply/(abelem_Ohm1P cRR pR); rewrite {2}(eqP eR_OR).
-  by apply: (main_lemma _ a _ abelR); rewrite ?cycle_subG ?(negbT neR1).
 pose char_abelians := \bigcup_(H | ((H : {group gT}) \char R) && abelian H) H.
 case Afix: (char_abelians \subset 'C(A)); last first.
   case/subsetPn: (negbT Afix)=> h; case/bigcupP=> H; case/andP=> charHR cHH Hh.
@@ -1198,9 +1194,12 @@ case Afix: (char_abelians \subset 'C(A)); last first.
     by move/negP: ncEA; apply: contra; move/eqP=> ->; apply cents1.
   have rankE : rank E <= 2 by apply: (leq_trans (rankS sER) rankR).
   by apply: (main_lemma _ a _ abelE).
+have ncRR : ~ (abelian R).
+  move=> cRR; apply: nCRa; rewrite -cycle_subG centsC (subset_trans _ Afix) //.
+  by apply: bigcup_max (subxx R); rewrite char_refl cRR.
 pose ZR := 'Z(R); have nsZR : ZR <| R by apply: center_normal R. 
 have [sZR nZR] := andP nsZR; have pZR := pgroupS sZR pR.
-have [specR _]: special R /\ 'C_R(A) = ZR.
+have {Afix char_abelians} [specR _]: special R /\ 'C_R(A) = ZR.
   by apply: (abelian_charsimple_special pR) => //; rewrite ?{2}(eqP eR_RA).
 have abelZR := center_special_abelem pR specR; case: specR=> ePhiR eR'.
 have {eR'} nc2_R : nil_class R <= 2 by rewrite nil_class2 eR'.
@@ -1213,14 +1212,14 @@ have neZR1 : 'Z(R) != 1.
   rewrite /center -{1}(setIid R) -setIA nil_meet_Z ?(pgroup_nil pR)  //. 
   by rewrite ?(negbT neR1).
 move: (pgroup_rank_le2_exponentp pR rankR expR); rewrite leq_eqVlt ltnS.
-case/orP=> lcardR; last by move: (p2group_abelian pR lcardR); rewrite cRR.
+case/orP=> lcardR; last by case: ncRR; apply: (p2group_abelian pR lcardR).
 have lcardZR: logn p #|ZR| <= 2.
   rewrite -ltnS -(eqP lcardR) properG_ltn_log ?properEneq ?center_sub ?andbT //.
-  by apply: (contra _ (negbT cRR)); move/eqP=> <-; apply: center_abelian.
+  by apply/negP; move/eqP=> eZR; apply: ncRR; rewrite -eZR center_abelian.
 have {lcardR m cardR} cardR : #|R| = (p^3)%N.
   by rewrite cardR pfactorK // in lcardR; rewrite cardR (eqP lcardR).
 have cardZR: #|ZR| != (p^2)%N.
-  move: (negbT cRR); apply: contra; move/eqP=> cardZR.
+  apply/negP; move/eqP=> cardZR; apply: ncRR.
   rewrite (@center_cyclic_abelian _ R) ?center_abelian // prime_cyclic //=.
   by rewrite card_quotient -?divgS // cardR cardZR mulnK ?muln_gt0 ?prime_gt0.
 have {lcardZR cardZR} cardZR : #|ZR| = p.
@@ -1238,7 +1237,7 @@ have ord_b : #[b] = q.
 have nEB : B \subset 'N(E) by rewrite -[B]quotient_cycle // quotient_norms. 
 have ncEB : ~ B \subset 'C(E).
   rewrite -[B]quotient_cycle // quotient_cents2 ?cycle_subG //=.
-  by rewrite commGC -/A -/RA -(eqP eR_RA) subsetI subxx /= [_ \subset _]cRR.
+  by rewrite commGC -/A -/RA -(eqP eR_RA) subsetI subxx.
 have neE1 : E != 1.
   by rewrite trivg_card1 cardE eqn_mul1 andbb neq_ltn ?prime_gt1 ?orbT.
 have rankE : rank E <= 2 by rewrite (rank_abelem abelE) cardE pfactorK.
