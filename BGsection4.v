@@ -2,7 +2,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq paths div.
 Require Import choice fintype finfun bigops ssralg finset prime binomial.
 Require Import groups zmodp morphisms automorphism normal perm action gprod.
 Require Import commutators cyclic center pgroups gseries nilpotent sylow.
-Require Import abelian maximal hall gfunc BGsection1.
+Require Import abelian maximal hall gfunc BGsection1 matrix mxrepresentation.
 
 (******************************************************************************)
 (*   This file covers B & G, section 4, i.e., the proof the a structure       *)
@@ -1092,6 +1092,157 @@ have sS_ZR : S \subset 'Z(R) by rewrite subsetI sSR /= centsC.
 rewrite -(isog_cyclic (third_isog sS_ZR nsSR _)) ?center_normal //.
 rewrite quotient_cyclic // (odd_pgroup_rank1_cyclic pRS (quotient_odd S oddR)).
 by rewrite -p_rank_Ohm1 p_rank_abelem. 
+Qed.
+
+(* This corresponds to Lemmas 4.13 and 4.14 in B & G. *)
+Lemma automorphism_prime_order_pgroup_rank_le2 : 
+  forall gT (R : {group gT}) p q (a : gT),
+    p.-groupR -> odd #|R| -> 'r(R) <= 2 -> a \in 'N(R) -> prime q -> p != q ->
+      #[a] = q -> ~ a \in 'C(R) ->
+    q %| (p^2).-1 /\ (q %| p.+1./2 \/ q %| p.-1./2) /\ q < p.
+Proof.
+move=> gT R p q a pR oddR rankR NRa primeq nepq ord_a nCRa.
+move: {2}_.+1 (ltnSn #|R|) => n.
+elim: n => // n IHn in R pR oddR rankR NRa nCRa*; rewrite ltnS=> cardRle.
+case neR1 : (R == 1%G); first by case: nCRa; rewrite (eqP neR1) cent1T inE.
+have [primep _ [m cardR]] := pgroup_pdiv pR (negbT neR1).
+have oddp : odd p by move: oddR; rewrite cardR odd_exp.
+have p2m1_eq : (p^2).-1 = ((p.+1) * (p.-1))%N.
+  by rewrite -(subn1 p) muln_subr muln1 mulSn addnC -[_-p.+1]predn_sub addnK.
+pose A := <[a]>; pose RA := [~: R, A]; pose OR := 'Ohm_1(R).
+have nRA : A \subset 'N(R) by rewrite cycle_subG.
+have coprimeRA : coprime #|R| #|A|.
+  by rewrite (pnat_coprime pR) // -orderE ord_a p'natE // dvdn_prime2.
+case eR_RA : (R :==: RA); last first.
+  have sRA_R : RA \subset R by rewrite commg_subl.
+  have pRA_R : RA \proper R by rewrite properEneq eq_sym eR_RA.
+  have pRA := pgroupS sRA_R pR; have oddRA := oddSg sRA_R oddR.
+  have NRAa : a \in 'N(RA) by rewrite (subsetP (commg_normr _ _)) // cycle_id.
+  have cardRA : #|RA| < n by apply: (leq_trans (proper_card pRA_R)).
+  apply: (IHn _ pRA); rewrite // ?(leq_trans (rankS sRA_R)) //.
+  rewrite -cycle_subG /= centsC; move/commG1P.
+  rewrite coprime_commGid ?(pgroup_sol pR) ?cycle_subG //=.
+  by move/commG1P; rewrite centsC cycle_subG.
+case eR_OR : (R :==: 'Ohm_1(R)); last first.
+  have sOR_R := Ohm_sub 1 R; have pOR := pgroupS sOR_R pR.
+  have pOR_R : OR \proper R by rewrite properEneq eq_sym eR_OR.
+  have oddOR := oddSg sOR_R oddR.
+  have NORa : a \in 'N(OR) by apply: (subsetP (char_norms (Ohm_char 1 _))).
+  have cardOR : #|OR| < n by apply: (leq_trans (proper_card pOR_R)).
+  apply: (IHn _ pOR oddOR _ NORa); rewrite ?(leq_trans (rankS sOR_R)) //.
+  rewrite -cycle_subG -/A /= => cORA; apply: nCRa; rewrite -cycle_subG -/A /=.
+  by rewrite (coprime_odd_faithful_Ohm1 pR). 
+suffices {IHn cardRle n} qdiv: q %| (p ^ 2).-1; first split => //.
+  have even_pm1 : odd (p.-1) = false. 
+    by rewrite -subn1 odd_sub ?prime_gt0 //= oddp.
+  case oddq : (odd q); last first.
+    have pgt2 : p > 2.
+      by rewrite ltn_neqAle prime_gt1 // andbT eqn_dvd dvdn2 oddp.
+    case: (even_prime primeq)=> [->|]; last by rewrite oddq.
+    split=> //; rewrite -{1}[p]prednK ?prime_gt0 // -(addn2 (p.-1)) half_add /=.
+    by rewrite even_pm1 add0n !dvdn2 addn1 /=; apply/orP; case: (odd (p.-1)./2).
+  have p1eq: p.+1 = ((p.+1)./2 * 2)%N.
+    by rewrite -{1}(odd_double_half p.+1) /= oddp muln2.
+  have pm1eq: p.-1 = ((p.-1)./2 * 2)%N.
+    rewrite -{1}(odd_double_half p.-1) -subn1 odd_sub ?prime_gt0 //.
+    by rewrite oddp muln2.
+  rewrite p2m1_eq !euclid // in qdiv; split.
+    have qdiv2 : ~~ (q %| 2).
+      by apply: (contraL _ oddq); rewrite dvdn_prime2 //; move/eqP=> ->.
+    by rewrite p1eq pm1eq !euclid // (negbTE qdiv2) !orbF in qdiv; apply/orP.
+  rewrite ltn_neqAle eq_sym nepq /= -ltnS ltn_neqAle; apply/andP; split.
+  apply: (contraL _ oddq); move/eqP=> ->; by rewrite /= oddp.
+  case/orP: qdiv=> [|qdiv']; first by apply: dvdn_leq; rewrite ltnS.
+  have pm1_gt0: p.-1 > 0 by rewrite -ltnS prednK ?prime_gt0 ?prime_gt1.
+  by apply: (leq_trans (leq_trans (dvdn_leq pm1_gt0 qdiv') (leq_pred _))).
+have {p2m1_eq} main_lemma : 
+  forall (hT : finGroupType) (b : hT) (E : {group hT}), let B := <[b]> in
+    p.-abelem E -> #[b] = q -> B \subset 'N(E) -> 
+      ~ (<[b]> \subset 'C(E)) -> E != 1%G -> rank E <= 2 -> q %| (p^2).-1.
+  move=> hT b E B abelE ord_b nEB ncEB neE1 rankE.
+  have eCBE_1 : 'C_B(E) = 1%G.
+    have: #|'C_B(E)| %| q by rewrite -ord_b orderE cardSg // subsetIl.
+    move/(proj2 (primeP primeq)); rewrite -trivg_card1; case/orP; case/eqP=> //.
+    move=> card_CBE; case: ncEB; apply/setIidPl; apply/eqP.
+    by rewrite eqEcard subsetIl /= -orderE ord_b card_CBE.
+  pose rP := reprGLm (abelem_repr abelE neE1 nEB).
+  have qdiv: q %| #|rP @* B|.
+    by rewrite card_injm -?orderE ?ord_b // ker_reprGLm rker_abelem eCBE_1.
+  move: (dvdn_trans qdiv (cardSg (@subsetT _ (rP @* B))))=> //=.
+  have: 0 < 'dim E <= 2.
+    by rewrite (dim_abelemE abelE neE1) -(rank_abelem abelE) rank_gt0 neE1.
+  move: ('dim E); case=> [|[|[|u]]]=> //= _.
+    by rewrite card_GL_1 /= card_Fp // p2m1_eq; apply: dvdn_mull.
+  rewrite card_GL_2 /= card_Fp // !euclid // dvdn_prime2 // eq_sym.
+  by rewrite (negbTE nepq) /= orbb p2m1_eq euclid // orbC.
+case cRR : (abelian R).
+  have abelR : p.-abelem R.
+    by apply/(abelem_Ohm1P cRR pR); rewrite {2}(eqP eR_OR).
+  by apply: (main_lemma _ a _ abelR); rewrite ?cycle_subG ?(negbT neR1).
+pose char_abelians := \bigcup_(H | ((H : {group gT}) \char R) && abelian H) H.
+case Afix: (char_abelians \subset 'C(A)); last first.
+  case/subsetPn: (negbT Afix)=> h; case/bigcupP=> H; case/andP=> charHR cHH Hh.
+  move/negP=> nCAh; have ncHA : ~ A \subset 'C(H). 
+    by rewrite centsC=> cAH; apply: nCAh; apply: (subsetP cAH).
+  have [sHR nHR] := andP (char_normal charHR); have oddH := oddSg sHR oddR.
+  have pH := pgroupS sHR pR.
+  pose E := 'Ohm_1(H); have abelE : p.-abelem E by apply: (Ohm1_abelem pH).
+  have sER := subset_trans (Ohm_sub 1 _) sHR.
+  have nEA : A \subset 'N(E).
+    by apply: char_norm_trans (Ohm_char 1 _) (char_norm_trans charHR nRA).
+  have ncEA : ~ (A \subset 'C(E)).
+    move=> cEA; apply: ncHA; apply: (coprime_odd_faithful_Ohm1 pH)=> //=.
+      by apply: (char_norm_trans charHR).
+    by rewrite (coprime_dvdl _ coprimeRA) // cardSg.
+  have neE1 : E != 1.
+    by move/negP: ncEA; apply: contra; move/eqP=> ->; apply cents1.
+  have rankE : rank E <= 2 by apply: (leq_trans (rankS sER) rankR).
+  by apply: (main_lemma _ a _ abelE).
+pose ZR := 'Z(R); have nsZR : ZR <| R by apply: center_normal R. 
+have [sZR nZR] := andP nsZR; have pZR := pgroupS sZR pR.
+have [specR _]: special R /\ 'C_R(A) = ZR.
+  by apply: (abelian_charsimple_special pR) => //; rewrite ?{2}(eqP eR_RA).
+have abelZR := center_special_abelem pR specR; case: specR=> ePhiR eR'.
+have {eR'} nc2_R : nil_class R <= 2 by rewrite nil_class2 eR'.
+have {nc2_R} expR : exponent R %| p. 
+  rewrite (eqP eR_OR) (proj1 (exponent_odd_nil23 pR oddR _)) //. 
+  by rewrite (leq_trans nc2_R).
+have NZRa : a \in 'N(ZR). 
+ by rewrite (subsetP (char_norm_trans (center_char R) nRA)) // cycle_id.
+have neZR1 : 'Z(R) != 1.
+  rewrite /center -{1}(setIid R) -setIA nil_meet_Z ?(pgroup_nil pR)  //. 
+  by rewrite ?(negbT neR1).
+move: (pgroup_rank_le2_exponentp pR rankR expR); rewrite leq_eqVlt ltnS.
+case/orP=> lcardR; last by move: (p2group_abelian pR lcardR); rewrite cRR.
+have lcardZR: logn p #|ZR| <= 2.
+  rewrite -ltnS -(eqP lcardR) properG_ltn_log ?properEneq ?center_sub ?andbT //.
+  by apply: (contra _ (negbT cRR)); move/eqP=> <-; apply: center_abelian.
+have {lcardR m cardR} cardR : #|R| = (p^3)%N.
+  by rewrite cardR pfactorK // in lcardR; rewrite cardR (eqP lcardR).
+have cardZR: #|ZR| != (p^2)%N.
+  move: (negbT cRR); apply: contra; move/eqP=> cardZR.
+  rewrite (@center_cyclic_abelian _ R) ?center_abelian // prime_cyclic //=.
+  by rewrite card_quotient -?divgS // cardR cardZR mulnK ?muln_gt0 ?prime_gt0.
+have {lcardZR cardZR} cardZR : #|ZR| = p.
+  move: lcardZR cardZR; case (pgroup_pdiv pZR neZR1)=> _ _ [m ->].
+  by rewrite pfactorK //; case: m=> [|[|k]]; rewrite ?eqxx ?orbT.
+pose E := R / ZR; have cardE : #|E| = (p^2)%N.
+  by rewrite card_quotient // -divgS // cardR cardZR mulKn ?prime_gt0.
+have abelE : p.-abelem E by rewrite /E /ZR -ePhiR Phi_quotient_abelem.
+pose b := coset ZR a; pose B := <[b]>.
+have ord_b : #[b] = q.
+  have: #[b] %| q by rewrite order_dvdn -morphX // -ord_a expg_order morph1.
+  move/(proj2 (primeP primeq)); case/orP; last by move/eqP.
+  rewrite order_eq1; move/eqP; move/(coset_idr NZRa); rewrite inE.
+  by case/andP=> _; move/nCRa.
+have nEB : B \subset 'N(E) by rewrite -[B]quotient_cycle // quotient_norms. 
+have ncEB : ~ B \subset 'C(E).
+  rewrite -[B]quotient_cycle // quotient_cents2 ?cycle_subG //=.
+  by rewrite commGC -/A -/RA -(eqP eR_RA) subsetI subxx /= [_ \subset _]cRR.
+have neE1 : E != 1.
+  by rewrite trivg_card1 cardE eqn_mul1 andbb neq_ltn ?prime_gt1 ?orbT.
+have rankE : rank E <= 2 by rewrite (rank_abelem abelE) cardE pfactorK.
+by apply: (main_lemma _ b _ abelE).
 Qed.
 
 (* This is B & G, Theorem 4.18(b) *)
