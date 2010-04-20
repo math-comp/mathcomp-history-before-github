@@ -626,7 +626,7 @@ case abelK: (abelian K); last first.
     apply: pnat_coprime (morphim_pgroup _ pP) _.
     apply: (@sub_in_pnat q) => [q' _|]; first by move/eqnP->.
     apply: pgroupS qCKQ; apply/subsetP=> a; case/morphimP=> x _ Px ->{a}.
-    rewrite inE /= Aut_aut; apply/astabP=> y Qy.
+    rewrite /= astab_ract inE /= Aut_aut; apply/astabP=> y Qy.
     rewrite /= /aperm norm_conj_autE ?(subsetP sQK) ?(subsetP nKP) //.
     by rewrite /conjg (centsP cQP y) ?mulKg.
   have nZK := normal_norm (center_normal K).
