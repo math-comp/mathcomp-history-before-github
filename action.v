@@ -336,6 +336,12 @@ move=> S; apply/setP=> a; apply/idP/idP=> nSa.
 by rewrite !inE (astabs_dom nSa) sub1set inE /= astabs_setact.
 Qed.
 
+Lemma astabs_set1 : forall x, 'N([set x] | to) = 'C[x | to].
+Proof.
+move=> x; apply/eqP; rewrite eqEsubset astab_sub andbC setIS //.
+by apply/subsetP=> a; rewrite ?(inE,sub1set).
+Qed.
+
 Lemma acts_dom : forall A S, [acts A, on S | to] -> A \subset D.
 Proof. by move=> A S nSA; rewrite (subset_trans nSA) ?subsetIl. Qed.
 
