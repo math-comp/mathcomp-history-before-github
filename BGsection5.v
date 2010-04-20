@@ -495,7 +495,7 @@ have oddp : odd p.
   by case: (even_prime p_pr) oddR => // p2; rewrite cR p2 odd_exp eqn0Ngt.
 case: (critical_odd _ pR)=> // H [cHR sHRZ] nc2 exH pCAu A solA sAAu oddA.
 have sCO : 'C_A(H | 'P) \subset 'O_p(A).
-  apply: pcore_max; first by apply: pgroupS (setSI _ sAAu) pCAu.
+  apply: pcore_max; first by apply: pgroupS _ pCAu; rewrite /= !astab_ract setSI.
   rewrite /normal subsetIl normsI ?normG ?(subset_trans _ (astab_norm _ _))//.
   apply/subsetP=> a Aa; rewrite !inE /=; case/andP: cHR => sHR.
   move/forallP; move/(_ a);move/implyP; move/(_ (subsetP sAAu _ Aa)) => ch.
@@ -505,20 +505,6 @@ have sCO : 'C_A(H | 'P) \subset 'O_p(A).
 have ntH : H :!=: 1.
   by case: eqP exH (prime_gt1 p_pr) => // ->; rewrite exponent1 => ->; rewrite ltnn.
 split.
-  (* useless, but I'd like to understand what went wrong here *)
-  wlog useless_ntH : / H :!=: 1.
-    case: (eqsVneq H 1) => [trivH _|?]; last by apply.
-    rewrite (_:A / _ = 1) ?pgroup1 //; apply/trivgP.
-    rewrite quotient_sub1 ?char_norm ?pcore_char //.
-    rewrite (subset_trans _ sCO) // trivH subsetI subxx.
-    (* here I'm using actions in a bad way... *)
-    rewrite /astab subsetI subsetT; apply/subsetP=>x Ax; rewrite inE.
-    apply/subsetP=> e; move/set1P=> ->; rewrite inE; apply/eqP.
-    have sA : A \subset [set: perm_of_finGroupType gT] by apply: subsetT.
-    have gA : is_groupAction R (perm_action gT \ sA).
-      move=> a Aa /=. rewrite ractpermE (subsetP sAAu) //.
-      by rewrite (_: actperm 'P a = a) //; apply/permP => y; rewrite actpermE.
-    by apply: @gact1 _ _ A R (GroupAction gA) _ Ax.
 - admit. (* 2 < r(R) -> 1.9 stable_factor_cent, otherwise 4.17 *)
 - admit. 
 move=> rR.
