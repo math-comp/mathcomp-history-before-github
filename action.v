@@ -342,6 +342,15 @@ Proof. by move=> A S nSA; rewrite (subset_trans nSA) ?subsetIl. Qed.
 Lemma acts_act : forall A S, [acts A, on S | to] -> {acts A, on S | to}.
 Proof. by move=> A S nAS a Aa x; rewrite astabs_act ?(subsetP nAS). Qed.
 
+Lemma astabCin : forall A S, 
+  A \subset D -> (A \subset 'C(S | to)) = (S \subset 'Fix_to(A)).
+Proof.
+move=> A S sAD; apply/subsetP/subsetP.
+  by move=> sAC x xS; apply/afixP=> a aA; exact: astab_act (sAC _ aA) xS.
+move=> sSF a aA; rewrite !inE (subsetP sAD _ aA); apply/subsetP=> x xS.
+by move/afixP: (sSF _ xS); move/(_ _ aA); rewrite inE => ->. 
+Qed.
+
 Lemma acts_in_orbit : forall A S x y,
   [acts A, on S | to] -> y \in orbit to A x -> x \in S -> y \in S.
 Proof.
@@ -630,6 +639,15 @@ Lemma sub_astab1 : forall A x, (A \subset 'C[x | to]) = (x \in 'Fix_to(A)).
 Proof.
 move=> A x; apply/subsetP/afixP=> cAx a; move/cAx;
   by rewrite ?(sub1set, inE) /=; move/eqP.
+Qed.
+
+Lemma astabC : forall A S, (A \subset 'C(S | to)) = (S \subset 'Fix_to(A)).
+Proof.
+move=> A S; apply/subsetP/subsetP.
+  move=> sAC x xS; rewrite -sub_astab1; apply/subsetP=> a aA; apply/astab1P.
+  by move/astabP: (sAC _ aA) => ->.
+move=> sSF a aA; apply/astabP=> x xS; move: (sSF _ xS); rewrite -sub_astab1.
+by move/subsetP; move/(_ _ aA); move/astab1P.
 Qed.
 
 Lemma astabsP : forall S a,
@@ -1363,6 +1381,11 @@ Proof. by move=> a Da /= x Rx y Ry; rewrite -!actmE // morphJ. Qed.
 
 Lemma gactR : {in D, forall a, {in R &, {morph to^~ a : x y / [~ x, y]}}}.
 Proof. by move=> a Da /= x Rx y Ry; rewrite -!actmE // morphR. Qed.
+
+Lemma astabs1g : 'C(1 | to) = D.
+Proof. 
+by apply/setP=> x; rewrite ?(inE, sub1set) andb_idr //; move/gact1=> ->. 
+Qed.
 
 Lemma gact_stable : {acts D, on R | to}.
 Proof.
