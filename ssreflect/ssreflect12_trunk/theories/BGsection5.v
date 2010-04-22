@@ -494,17 +494,16 @@ have [p_pr _ [r cR]] := pgroup_pdiv pR ntR.
 have oddp : odd p.
   by case: (even_prime p_pr) oddR => // p2; rewrite cR p2 odd_exp eqn0Ngt.
 case: (critical_odd _ pR)=> // H [cHR sHRZ] nc2 exH pCAu A solA sAAu oddA.
+have sCO : 'C_A(H | 'P) \subset 'O_p(A).
+  apply: pcore_max; first by apply: pgroupS _ pCAu; rewrite /= !astab_ract setSI.
+  rewrite /normal subsetIl normsI ?normG ?(subset_trans _ (astab_norm _ _))//.
+  apply/subsetP=> a Aa; rewrite !inE /=; case/andP: cHR => sHR.
+  move/forallP; move/(_ a);move/implyP; move/(_ (subsetP sAAu _ Aa)) => ch.
+  have aAutR : a \in Aut R by rewrite (subsetP sAAu _ Aa).
+  have:= sub_morphim_pre [morphism of autm aAutR] H sHR; simpl.
+  by rewrite !morphimEsub // morphpreE subsetI sHR /= => <-.
 have ntH : H :!=: 1.
-  have sCO : 'C_A(H | 'P) \subset 'O_p(A).
-    apply: pcore_max; first by apply: pgroupS (setSI _ sAAu) pCAu.
-    rewrite /normal subsetIl normsI ?normG ?(subset_trans _ (astab_norm _ _))//.
-    apply/subsetP=> a Aa; rewrite !inE /=; case/andP: cHR => sHR.
-    move/forallP; move/(_ a);move/implyP; move/(_ (subsetP sAAu _ Aa)) => ch.
-    have aAutR : a \in Aut R by rewrite (subsetP sAAu _ Aa).
-    have:= sub_morphim_pre [morphism of autm aAutR] H sHR.
-    by rewrite !morphimEsub // morphpreE subsetI sHR /= => <-.
-  case: eqP => //= trivH. 
-  admit.
+  by case: eqP exH (prime_gt1 p_pr) => // ->; rewrite exponent1 => ->; rewrite ltnn.
 split.
 - admit. (* 2 < r(R) -> 1.9 stable_factor_cent, otherwise 4.17 *)
 - admit. 
@@ -571,12 +570,17 @@ have nsR0H : ~~ (R0 \subset H).
     by rewrite pfactorK.
   have defU : U = R0.
     by apply/eqP; rewrite eq_sym eqEcard cR0 cU mulgen_subl leqnn.
-  have nUH : U <| H.
-    rewrite /normal sUH -commg_subr (subset_trans _ (mulgen_subr _ _)) //.
-    by rewrite (subset_trans (subset_trans (commgS _ sUR) sHRZ)).
+  have nUR : U <| R.
+    rewrite /normal sUR -commg_subr (subset_trans _ (mulgen_subr _ _)) //.
+    by rewrite /= [_ <*> _]defU (subset_trans _ sHRZ) // commGC commSg. 
   have sR0Z : R0 \subset 'Z(R).
-    admit.
-  admit. (* why?! *)    
+    have := nil_meet_Z (pgroup_nil pR) nUR ntU. 
+    move: cU; rewrite /= [_ <*> _]defU expn1 => cR0p.
+    by apply: contraR => nsR0Z; rewrite (prime_TIg _ nsR0Z) ?eqxx // cR0p.
+  have defR : 'C_R(R0) = R.
+    apply/eqP; rewrite eqEsubset subsetIl subsetI subxx centsC.
+    by rewrite (subset_trans sR0Z) // subsetIr.
+  by rewrite defR in rCRR0le2; move: (leq_trans rR rCRR0le2); rewrite ltnn.
 have sCHR0x : 'C_H(R0) \subset R0 \x 'Ohm_1(R1).
   have pabR0 : p.-abelem R0.
     by rewrite (abelemE _ p_pr) cyclic_abelian // -cR0 exponent_dvdn.

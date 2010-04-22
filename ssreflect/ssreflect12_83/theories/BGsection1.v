@@ -514,7 +514,7 @@ Theorem critical_odd : forall  gT p (G : {group gT}),
     odd p -> p.-group G -> G :!=: 1 ->
   {H : {group gT} |
      [/\ H \char G, [~: H, G] \subset 'Z(H), nil_class H <= 2, exponent H = p
-       & p.-group 'C_(Aut G)(H | 'P)]}.
+       & p.-group 'C(H | 'A_G)]}.
 Proof.
 move=> gT p G odd_p pG ntG; have [H krH]:= Thompson_critical pG.
 have [chH sPhiZ sGH_Z scH] := krH; have clH := critical_class2 krH.
@@ -533,11 +533,12 @@ split=> //.
   rewrite -dvdn1 -trivg_exponent /=; move/eqP => D1; case/eqP: ntG.
   suffices H1: H :=: 1 by rewrite H1 center1 cent1T !setIT in scH.
   by rewrite -(setIid H) TI_Ohm1 ?D1 ?(setIidPr (sub1G _)).  
-apply/pgroupP=> q pr_q; case/Cauchy=> // f; case/setIdP=> Af cDf ofq.
-apply/idPn=> nqp {sDG_Z chD sDH}; suffices: f \in 'C_(Aut G)(H | 'P).
+apply/pgroupP=> q pr_q; case/Cauchy=> // f; rewrite /= astab_ract. 
+case/setIdP=> Af cDf ofq.
+apply/idPn=> nqp {sDG_Z chD sDH}; suffices: f \in 'C(H | 'A_G).
   move/(mem_p_elt (critical_p_stab_Aut krH pG)); move/pnatP=> pf.
   by rewrite pf // ofq in nqp.
-rewrite inE Af; apply/astabP=> x Hx; rewrite /= /aperm /=.
+rewrite astab_ract inE Af; apply/astabP=> x Hx; rewrite /= /aperm /=.
 rewrite nil_class2 in clH; have pH := pgroupS sHG pG.
 have: p.-elt x by apply: mem_p_elt Hx.
 case/p_natP=> // i ox; have:= expg_order x; rewrite {}ox.

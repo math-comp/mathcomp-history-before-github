@@ -1051,17 +1051,17 @@ by rewrite Ohm1_abelem ?center_abelian.
 Qed.
 
 Lemma critical_p_stab_Aut : forall H,
-  critical H G -> p.-group G -> p.-group 'C_(Aut G)(H | 'P).
+  critical H G -> p.-group G -> p.-group 'C(H | 'A_G).
 Proof.
 move=> H [chH sPhiZ sRZ eqCZ] pG; have sHG := char_sub chH.
 pose G' := (sdpair1 'A_G @* G)%G; pose H' := (sdpair1 'A_G @* H)%G.
-apply/pgroupP=> q pr_q; case/Cauchy=> // f; case/setIP=> Af; move: (Af).
-rewrite -2!cycle_subG => sFA cHF ofq; apply: (pgroupP pG) => //.
+apply/pgroupP=> q pr_q; case/Cauchy=>//= f cHF; move: (cHF);rewrite astab_ract.
+case/setIP=> Af cHFP ofq; rewrite -cycle_subG in cHF; apply: (pgroupP pG) => //.
 pose F' := (sdpair2 'A_G @* <[f]>)%G.
 have trHF: [~: H', F'] = 1.
   apply/trivgP; rewrite gen_subG; apply/subsetP=> u; case/imset2P=> x' a'.
   case/morphimP=> x Gx Hx ->; case/morphimP=> a Aa Fa -> -> {u x' a'}.
-  by rewrite inE commgEl -sdpair_act //= (astabP (subsetP cHF a Fa)) ?mulVg.
+  by rewrite inE commgEl -sdpair_act ?(astab_act (subsetP cHF _ Fa) Hx) ?mulVg.
 have sGH_H: [~: G', H'] \subset H'.
   by rewrite -morphimR ?(char_sub chH) // morphimS // commg_subr char_norm.
 have{trHF sGH_H} trFGH: [~: F', G', H'] = 1.
@@ -1082,7 +1082,7 @@ have Hy: y \in H.
     by rewrite commGC; apply: subsetP; exact/commG1P.
   rewrite morphM ?groupV ?morphV //= sdpair_act // -commgEl.
   by rewrite mem_commg ?mem_morphim ?cycle_id.
-have fy: f y = y by rewrite cycle_subG in cHF; exact: (astabP cHF).
+have fy: f y = y := astabP cHFP _ Hy.
 have: (f ^+ q) x = x * y ^+ q.
   elim: (q) => [|i IHi]; first by rewrite perm1 mulg1.
   rewrite expgSr permM {}IHi -(autmE Af) morphM ?morphX ?groupX //= autmE.
