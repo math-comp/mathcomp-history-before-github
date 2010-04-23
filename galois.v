@@ -100,11 +100,62 @@ Definition FieldAutomorphism (f : 'M[F0]_(n*n)) (E K:subspace) : bool :=
   & ((E^C)%MS *m f == (E^C)%MS)
 ].
 
+Lemma AutomorphMul : forall E K f, FieldAutomorphism f E K -> 
+forall u v, (u <= E)%MS -> (v <= E)%MS -> 
+ mxvec (vec_mx (u *m f) *m vec_mx (v *m f)) = 
+ mxvec (vec_mx u *m vec_mx v) *m f.
+Proof.
+move => E K f.
+case/and4P => _ _.
+move/forallP => fmult _ u v.
+do 2 (case/subsetmxP => ? ->).
+rewrite 2![_ *m E]mulmx_sum_row /=.
+rewrite !mulmx_suml !linear_sum !mulmx_suml /=.
+apply: eq_bigr => j _.
+rewrite !mulmx_suml !linear_sum !mulmx_suml /=.
+apply: eq_bigr => i _.
+rewrite !linearZ /= -!scalemxAl !linearZ /=.
+rewrite -scalemxAl linearZ /=.
+move/forallP : (fmult i).
+move/(_ j).
+move/eqP => ->.
+by rewrite scalemxAl.
+Qed.
+
 Lemma idAutomorphism : forall E K, FieldAutomorphism 1 E K.
 Proof.
 move => E K.
 by apply/and4P; split; do ? (apply/forallP => i;apply/forallP => j);
  rewrite ?mulmx1 //; apply/andP.
+Qed.
+
+Lemma compAutomorphism : forall E K f g, 
+ FieldAutomorphism f E K ->  FieldAutomorphism g E K ->
+ FieldAutomorphism (f *m g) E K.
+Proof.
+move => E K f g Ff Fg.
+case/and4P: (Ff); move/eqmxP => Hf1; move/eqP => Hf2 _; move/eqP => Hf4.
+case/and4P: (Fg); move/eqmxP => Hg1; move/eqP => Hg2 _; move/eqP => Hg4.
+apply/and4P; split; do 2? apply/forallP => ?; 
+ rewrite ?mulmxA ?Hf2 ?Hg2 ?Hf4 ?Hg4 //.
+ by apply/eqmxP; apply (fun x => eqmx_trans x Hg1); apply eqmxMr.
+by rewrite (AutomorphMul Fg) -?Hf1 ?(AutomorphMul Ff) //; 
+ do ? apply subsetmxMr; apply: row_sub.
+Qed.
+
+Lemma AutomorphismIsUnit : forall E K f, 
+ FieldAutomorphism f E K -> f \in unitmx.
+Proof.
+move => E K f.
+case/and4P.
+move/eqmxP => Hf1 _ _.
+move/eqP => Hf2.
+rewrite -row_full_unit -subset1mx.
+have H: (row_full (E + E^C)) by apply: sumsmx_compl_full.
+rewrite -(eqmxMfull f H) sumsmxMr.
+rewrite -subset1mx in H.
+apply: (subsetmx_trans H).
+by apply: sumsmxS; rewrite ?Hf1 ?Hf2.
 Qed.
 
 Lemma AutomorphsimEE_id : forall E f, FieldAutomorphism f E E -> f = 1%:M.
