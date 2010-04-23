@@ -42,77 +42,84 @@ Definition subfield (K : subspace) : bool :=
  (* && (<<f>> == f)%MS *).
 
 Lemma subfieldMult : forall K, subfield K -> 
- forall u v, (mxvec v <= K -> mxvec u <= K -> mxvec (u *m v) <= K)%MS.
+ forall u v, (mxvec u <= K -> mxvec v <= K -> mxvec (u *m v) <= K)%MS.
 move => K.
-move/and3P => [_ _ Kfield] u v.
-move/subsetmxP => [u' Hu].
-move/subsetmxP => [v' Hv].
-move: Hu Hv.
-rewrite !mulmx_sum_row.
-move=> Hu Hv.
-move: (canRL mxvecK Hu) (canRL mxvecK Hv).
-clear Hu Hv.
-rewrite !linear_sum.
-move=> -> ->.
-(* RESUME WORK HERE *)
-
-
+case/and3P => _ _.
+move/forallP => Kfield u v.
+do 2 (case/subsetmxP => ?; move/(canRL mxvecK)=> ->).
+rewrite !mulmx_sum_row !linear_sum /=.
+apply: subsetmx_sum => j _.
+rewrite linearZ mulmx_suml !linear_sum /=.
+apply: subsetmx_sum => i _.
+rewrite !linearZ /= -scalemxAl linearZ /=.
+do 2 apply: subsetmx_scale.
+by move/forallP : (Kfield i).
+Qed.
 
 Lemma Lsubfield : subfield L.
+Proof.
 apply/and3P;split=>//.
-apply/forallP => i.
-apply/forallP => j.
-apply (@LmulClosed (vec_mx (row i L)) (vec_mx (row j L))); 
-rewrite vec_mxK; apply row_sub.
+do 2!apply/forallP => ?;
+by apply: LmulClosed; rewrite vec_mxK; apply row_sub.
 Qed. 
 
 Lemma subFisFP : forall v, reflect (exists c, v = c%:M) (mxvec v <= F)%MS.
-Proof.
-move=> v.
-have: (F:=:mxvec 1)%MS by apply: genmxE.
-intros [_ HF1].
-move:(HF1 _ (mxvec v)).
-intros [_ ->].
-clear HF1.
-apply: (iffP sub_rVP);move=> [x Jx]; exists x; move: Jx; rewrite -linearZ.
- move=>Hv.
- rewrite (can_inj mxvecK Hv).
- by apply scalemx1.
-move=> ->.
-by rewrite scalemx1.
+by move=> v; rewrite genmxE; apply: (iffP sub_rVP); move=> [x Jx]; exists x;
+ move: Jx; rewrite -linearZ scalemx1 /=; [apply (can_inj mxvecK)|move ->].
 Qed.
 
 Lemma FisSubF : forall c, (mxvec (c%:M) <= F)%MS.
-Proof.
-intros c.
-apply/subFisFP.
-by exists c.
+by move=> c; apply/subFisFP; exists c.
 Qed.
 
 Hint Resolve FisSubF.
 
 Lemma Fsubfield : subfield F.
+Proof.
 apply/and3P;split=>//.
 apply/forallP => i.
 apply/forallP => j.
 move: (row_sub i F) (row_sub j F).
 rewrite -{1}(vec_mxK (row i F)).
 rewrite -{1}(vec_mxK (row j F)).
-move/subFisFP => [c ->].
-move/subFisFP => [d ->].
+do 2!move/subFisFP => [? ->].
 by rewrite -scalar_mxM.
 Qed.
 
-(* In applications we will require that (subfield K). *)
-Definition FieldAutomorphism (f : 'M[F0]_(n*n)) (K:subspace) : bool :=
-  (* the image of L is L *)
-  (L *m f == L)%MS
+(* In applications we will require that (subfield E) and (subfield K). *)
+Definition FieldAutomorphism (f : 'M[F0]_(n*n)) (E K:subspace) : bool :=
+  (* the image of E is E *)
+[&& (E *m f == E)%MS
   (* K is fixed *)
-&& (K *m f == K)
+  , (K *m f == K)
   (* Products are preserved *)
-&& (forallb i, forallb j, 
-     mxvec (vec_mx (row i L *m f) *m vec_mx (row j L *m f)) == 
-     mxvec (vec_mx (row i L) *m vec_mx (row j L)) *m f)
-  (* the image on L^C is fixed (for canonicity purposes)*)
-&& ((L^C)%MS *m f == (L^C)%MS).
+  , (forallb i, forallb j, 
+      mxvec (vec_mx (row i E *m f) *m vec_mx (row j E *m f)) == 
+      mxvec (vec_mx (row i E) *m vec_mx (row j E)) *m f)
+  (* the image on E^C is fixed (for canonicity purposes)*)
+  & ((E^C)%MS *m f == (E^C)%MS)
+].
 
+Lemma idAutomorphism : forall E K, FieldAutomorphism 1 E K.
+Proof.
+move => E K.
+by apply/and4P; split; do ? (apply/forallP => i;apply/forallP => j);
+ rewrite ?mulmx1 //; apply/andP.
+Qed.
+
+Lemma AutomorphsimEE_id : forall E f, FieldAutomorphism f E E -> f = 1%:M.
+Proof.
+move => E f.
+case/and4P => _.
+move/eqP => Hf1 _.
+move/eqP => Hf2.
+apply/row_matrixP => i.
+rewrite row1 rowE.
+have: (delta_mx (0:'I_1) i <= E + E^C)%MS.
+ apply subsetmx_full; apply sumsmx_compl_full.
+case/sub_sumsmxP => x.
+rewrite {-1}(_:delta_mx 0 i = (delta_mx 0 i - x) + x); 
+ last by rewrite GRing.Theory.subrK.
+do 2!move/subsetmxP => [? ->].
+by rewrite mulmx_addl -2!mulmxA Hf1 Hf2.
+Qed.
