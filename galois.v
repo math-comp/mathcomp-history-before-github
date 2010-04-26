@@ -158,6 +158,33 @@ apply: (subsetmx_trans H).
 by apply: sumsmxS; rewrite ?Hf1 ?Hf2.
 Qed.
 
+Lemma invAutomorphism : forall E K f,
+ FieldAutomorphism f E K -> FieldAutomorphism (invmx f) E K.
+Proof.
+move => E K f Hf.
+case/and4P: (Hf).
+move/eqmxP => Hf1.
+move/eqP => Hf2.
+move/forallP => Hf3.
+move/eqP => Hf4.
+apply/and4P.
+move: (AutomorphismIsUnit Hf) => Uf.
+have HE : (E *m invmx f :=: E)%MS.
+ rewrite -{2}(mulmxK Uf E).
+ apply: eqmxMr.
+ by apply eqmx_sym.
+split.
+   by apply/eqmxP.
+  apply/eqP; by rewrite -{2}(mulmxK Uf K) Hf2.
+ apply/forallP => i.
+ apply/forallP => j.
+ rewrite -{2}(mulmxKV Uf (row i E)).
+ rewrite -{2}(mulmxKV Uf (row j E)).
+ rewrite (AutomorphMul Hf) ?mulmxK // -HE;
+  apply subsetmxMr; apply row_sub.
+apply/eqP; by rewrite -{2}(mulmxK Uf (E^C)%MS) Hf4.
+Qed.
+
 Lemma AutomorphsimEE_id : forall E f, FieldAutomorphism f E E -> f = 1%:M.
 Proof.
 move => E f.
