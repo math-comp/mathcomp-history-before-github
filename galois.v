@@ -17,7 +17,7 @@ Variable n' : nat.
 Local Notation n := n'.+1.
 
 (* L is a subspace of 'M[F]_n, represented as a row Matrix *)
-Local Notation subspace := 'M[F0]_(n*n,n*n).
+Local Notation subspace := 'M[F0]_(n * n, n * n).
 (* F' is F as a subspace, which is represented by the identity matrix *)
 Let F : subspace := <<mxvec 1>>%MS.
 Variable L : subspace.
@@ -31,7 +31,7 @@ Hypothesis Lcommute :
  (forall u v, mxvec u <= L -> mxvec v <= L -> u * v == v * u)%MS.
 (* Every non-zero matrix in L is invertable *)
 Hypothesis Linvertable :
- (forall u, mxvec u <= L -> \det u != 0)%MS.
+ forall u, (mxvec u <= L)%MS -> unitmx u.
 (* Hypothesis Lcanonical : (<<L>> == L)%MS. *)
 
 (* A subfield is a linear subspace of L that is closed under multiplication and contains 1 *)
@@ -43,6 +43,7 @@ Definition subfield (K : subspace) : bool :=
 
 Lemma subfieldMult : forall K, subfield K -> 
  forall u v, (mxvec u <= K -> mxvec v <= K -> mxvec (u *m v) <= K)%MS.
+Proof.
 move => K.
 case/and3P => _ _.
 move/forallP => Kfield u v.
@@ -87,7 +88,7 @@ by rewrite -scalar_mxM.
 Qed.
 
 (* In applications we will require that (subfield E) and (subfield K). *)
-Definition FieldAutomorphism (f : 'M[F0]_(n*n)) (E K:subspace) : bool :=
+Definition FieldAutomorphism (f : 'M[F0]_(n * n)) (E K:subspace) : bool :=
   (* the image of E is E *)
 [&& (E *m f == E)%MS
   (* K is fixed *)
@@ -174,15 +175,15 @@ have HE : (E *m invmx f :=: E)%MS.
  apply: eqmxMr.
  by apply eqmx_sym.
 split.
-   by apply/eqmxP.
-  apply/eqP; by rewrite -{2}(mulmxK Uf K) Hf2.
- apply/forallP => i.
- apply/forallP => j.
- rewrite -{2}(mulmxKV Uf (row i E)).
- rewrite -{2}(mulmxKV Uf (row j E)).
- rewrite (AutomorphMul Hf) ?mulmxK // -HE;
-  apply subsetmxMr; apply row_sub.
-apply/eqP; by rewrite -{2}(mulmxK Uf (E^C)%MS) Hf4.
+- by apply/eqmxP.
+- by apply/eqP; by rewrite -{2}(mulmxK Uf K) Hf2.
+- apply/forallP => i.
+  apply/forallP => j.
+  rewrite -{2}(mulmxKV Uf (row i E)).
+  rewrite -{2}(mulmxKV Uf (row j E)).
+  rewrite (AutomorphMul Hf) ?mulmxK // -HE;
+  by apply subsetmxMr; apply row_sub.
+- by apply/eqP; by rewrite -{2}(mulmxK Uf (E^C)%MS) Hf4. 
 Qed.
 
 Lemma AutomorphsimEE_id : forall E f, FieldAutomorphism f E E -> f = 1%:M.
