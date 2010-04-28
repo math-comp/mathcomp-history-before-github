@@ -1250,6 +1250,101 @@ Lemma rank2_pdiv_complement : forall gT (G : {group gT}) (p := pdiv #|G|),
 Proof.
 Admitted.
 
+(* This is B & G, Theorem 4.18(a) *)
+Lemma bg4_18a : forall gT (G : {group gT}) (p := pdiv #|G|), 
+    solvable G -> odd #|G| -> 'r_p(G) <= 2 -> 
+  forall q, prime q -> q %| #|G / 'O_p^'(G)| -> q <= p.
+Proof.
+move=> gT G p solG oddG rG q pr_q qd.
+wlog trivK : gT G p solG oddG rG q pr_q qd / 'O_p^'(G) = 1.
+  move/(_ _ (G / 'O_p^'(G))%G p).
+  rewrite quotient_sol // quotient_odd // trivg_pcore_quotient.
+  rewrite -(isog_card (quotient1_isog _)); apply=> //=.
+  rewrite (leq_trans _ rG) //.
+  case: (Sylow_exists p G) => X SylX.
+  have nKX : X \subset 'N('O_p^'(G)).
+    by rewrite (subset_trans (pHall_sub SylX)) // normal_norm ?pcore_normal //.
+  move/(quotient_pHall nKX) : (SylX) => SylXK.
+  rewrite (p_rank_Sylow SylXK) /=.
+  rewrite (leq_trans _ (p_rankS _ (pHall_sub SylX))) //.
+  rewrite -(isog_p_rank (quotient_isog _ _)) //.
+  exact: coprime_TIg (pnat_coprime (pHall_pgroup SylX) (pcore_pgroup _ _)).  
+set R := 'O_p(G); set C := 'C_G(R).
+have rR : 'r(R) <= 2.
+  rewrite (rank_pgroup (pcore_pgroup _ _)) (leq_trans _ rG) //.
+  exact: p_rankS _ (pcore_sub _ _).
+have oddR : odd #|R| := oddSg (pcore_sub _ _) oddG.
+have pR : p.-group R by exact: pcore_pgroup.
+move: (dvdn_trans qd (dvdn_quotient _ _)).
+case/Cauchy=> //= a aG oa; case: (eqVneq p q) => [-> //|neq_pq].
+have aN : a \in 'N(R) by rewrite (subsetP _ _ aG) ?char_norm ?pcore_char.
+have naC : ~ a \in 'C(R).
+  have sCR : C \subset R.
+    by rewrite /C /R -(Fitting_eq_pcore trivK) cent_sub_Fitting.
+  have pC : p.-group C := pgroupS sCR pR.
+  move => aCR; have aR : a \in R by apply: (subsetP sCR); rewrite inE aG aCR.
+  move: (mem_p_elt pR aR); move/pnatP; move/(_ _ _ pr_q).
+  rewrite order_gt0 -oa dvdnn oa inE /= eq_sym; do 2 move/(_ (eqxx true)). 
+  by apply/negP.
+case: (automorphism_prime_order_pgroup_rank_le2 pR _ rR _ _ neq_pq oa _)=>//.
+by move=> _ [] _; move/leqW.
+Qed.
+
+(* This is B & G, Theorem 4.18 
+Lemma bg4_18_proof_method : forall gT (G : {group gT}) (p := pdiv #|G|),
+    solvable G -> odd #|G| -> p.-group (G / 'C_G('O_p(G)))^`(1) -> 
+  p^'.-Hall(G) 'O_p^'(G).
+Proof.
+move=> gT G p; set R := 'O_p(G); set C := 'C_G(R); move =>solG oddG from_4_17.
+rewrite /pHall pcore_pgroup char_sub ?pcore_char //= pnatNK.
+
+rewrite /C /R in from_4_17 |- * => {C R}.
+wlog trivK : gT G p solG oddG from_4_17 / 'O_p^'(G) = 1.
+  move/(_ _ (G / 'O_p^'(G))%G p).
+  rewrite quotient_sol // quotient_odd // trivg_pcore_quotient. 
+  rewrite indexg1 card_quotient ?char_norm ?pcore_char //.
+  apply=> //=. 
+Search _ pcore quotient. 
+  rewrite -quotient_pseries2 -coprime_quotient_cent //=.
+Search   
+rewrite /pgroup. -(isog_card (third_isog _ _ _)).
+Search _ pgroup isog.
+
+  admit.
+
+wlog ntG: / (1 < #|G|). 
+  case: (eqsVneq G 1) => [trivG _|ntG]; last by rewrite cardG_gt1; apply.
+  rewrite -card_quotient ?char_norm ?pcore_char // trivG quotient1 cards1.
+  apply/pnatP=> // q; move/prime_gt1 => q_gt1; case/dvdnP; case => // k def1.
+  by move: q_gt1; rewrite def1 -{2}(mul1n q) ltn_mul2r ltnS andbC ltn0.
+
+have nRG : G \subset 'N(R) by rewrite char_norm ?pcore_char.
+have pG'C : p.-group (G^`(1) <*> C).
+  have pC : p.-group C.
+    have sCR : C \subset R.
+      by rewrite /C /R -(Fitting_eq_pcore trivK) cent_sub_Fitting.
+    exact: pgroupS sCR (pcore_pgroup _ _).
+  have nCG : G \subset 'N(C).
+    by rewrite normsI ?normG // norms_cent.
+  have ? : G^`(1) \subset 'N(C) by rewrite (subset_trans _ nCG) // der_sub.
+  have ? : G^`(1) <*> C \subset 'N(C) by rewrite mulgen_subG andbC normG.
+  move: from_4_17.
+  by rewrite -quotient_der // -quotient_mulgen // pquotient_pgroup ?pC. 
+have abGR : abelian (G / R).
+  have sG'CR : G^`(1) <*> C \subset R.
+    apply: pcore_max; rewrite /normal //= mulgen_subG subsetIl der_sub.
+    by rewrite norms_mulgen // ?der_norm ?normsI ?normG ?norms_cent.
+  by rewrite sub_der1_abelian // (subset_trans _ sG'CR) // mulgen_subl.
+have p'GR : p^'.-group (G / R). (* goal (e)? *)
+  have trivOGR : 'O_p(G/R) = 1 := trivg_pcore_quotient p G.
+  have := (pseries_pop2 p^' trivOGR). rewrite /= -/R.
+  admit.
+apply/pnatP; rewrite ?indexg_gt0 => // q pr_q.
+rewrite -divgS ?pcore_sub //.
+admit.
+Qed.
+*)
+
 (* This is B & G, Corollary 4.19 *)
 Lemma rank2_cent_chief : forall gT p (G Gs U V : {group gT}),
     odd #|G| -> solvable G -> Gs <| G -> 'r_p(Gs) <= 2 -> 
