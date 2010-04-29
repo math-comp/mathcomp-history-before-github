@@ -1098,10 +1098,10 @@ Qed.
 Lemma automorphism_prime_order_pgroup_rank_le2 : 
   forall gT (R : {group gT}) p q (a : gT),
     p.-groupR -> odd #|R| -> 'r(R) <= 2 -> a \in 'N(R) -> prime q -> p != q ->
-      #[a] = q -> ~ a \in 'C(R) ->
+      #[a] = q -> a \notin 'C(R) ->
     q %| (p^2).-1 /\ (q %| p.+1./2 \/ q %| p.-1./2) /\ q < p.
 Proof.
-move=> gT R p q a pR oddR rankR NRa primeq nepq ord_a nCRa.
+move=> gT R p q a pR oddR rankR NRa primeq nepq ord_a; move/negP=> nCRa.
 move: {2}_.+1 (ltnSn #|R|) => n.
 elim: n => // n IHn in R pR oddR rankR NRa nCRa*; rewrite ltnS=> cardRle.
 case neR1 : (R == 1%G); first by case: nCRa; rewrite (eqP neR1) cent1T inE.
@@ -1257,37 +1257,28 @@ Lemma bg4_18a : forall gT (G : {group gT}) (p := pdiv #|G|),
 Proof.
 move=> gT G p solG oddG rG q pr_q qd.
 wlog trivK : gT G p solG oddG rG q pr_q qd / 'O_p^'(G) = 1.
-  move/(_ _ (G / 'O_p^'(G))%G p).
-  rewrite quotient_sol // quotient_odd // trivg_pcore_quotient.
-  rewrite -(isog_card (quotient1_isog _)); apply=> //=.
-  rewrite (leq_trans _ rG) //.
+  move/(_ _ (G / 'O_p^'(G))%G p); rewrite quotient_sol // quotient_odd //.
+  rewrite trivg_pcore_quotient -(isog_card (quotient1_isog _)); apply=> //=.
   case: (Sylow_exists p G) => X SylX.
   have nKX : X \subset 'N('O_p^'(G)).
-    by rewrite (subset_trans (pHall_sub SylX)) // normal_norm ?pcore_normal //.
-  move/(quotient_pHall nKX) : (SylX) => SylXK.
-  rewrite (p_rank_Sylow SylXK) /=.
-  rewrite (leq_trans _ (p_rankS _ (pHall_sub SylX))) //.
-  rewrite -(isog_p_rank (quotient_isog _ _)) //.
+    by rewrite (subset_trans (pHall_sub SylX)) // normal_norm ?pcore_normal.
+  move/(quotient_pHall nKX) : (SylX) => /= SylXK.
+  rewrite (p_rank_Sylow SylXK) /= -(isog_p_rank (quotient_isog nKX _)) //.
+    exact: leq_trans (p_rankS _ (pHall_sub SylX)) rG.
   exact: coprime_TIg (pnat_coprime (pHall_pgroup SylX) (pcore_pgroup _ _)).  
-set R := 'O_p(G); set C := 'C_G(R).
+set R := 'O_p(G); set C := 'C_G(R); have pR : p.-group R by exact: pcore_pgroup.
+have sCR : C \subset R by rewrite /C /R -(Fitting_eq_pcore _) ?cent_sub_Fitting.
+have pC : p.-group C := pgroupS sCR pR; have oddR := oddSg (pcore_sub p _) oddG.
 have rR : 'r(R) <= 2.
-  rewrite (rank_pgroup (pcore_pgroup _ _)) (leq_trans _ rG) //.
-  exact: p_rankS _ (pcore_sub _ _).
-have oddR : odd #|R| := oddSg (pcore_sub _ _) oddG.
-have pR : p.-group R by exact: pcore_pgroup.
-move: (dvdn_trans qd (dvdn_quotient _ _)).
-case/Cauchy=> //= a aG oa; case: (eqVneq p q) => [-> //|neq_pq].
+  by rewrite (rank_pgroup pR) (leq_trans (p_rankS _ (pcore_sub _ _)) rG).
+move: (dvdn_trans qd (dvdn_quotient _ _)); case/Cauchy=> //= a aG oa.
+case: (eqVneq p q) => [-> //| npq]; move:(npq); rewrite eq_sym=>nqp.
 have aN : a \in 'N(R) by rewrite (subsetP _ _ aG) ?char_norm ?pcore_char.
-have naC : ~ a \in 'C(R).
-  have sCR : C \subset R.
-    by rewrite /C /R -(Fitting_eq_pcore trivK) cent_sub_Fitting.
-  have pC : p.-group C := pgroupS sCR pR.
-  move => aCR; have aR : a \in R by apply: (subsetP sCR); rewrite inE aG aCR.
-  move: (mem_p_elt pR aR); move/pnatP; move/(_ _ _ pr_q).
-  rewrite order_gt0 -oa dvdnn oa inE /= eq_sym; do 2 move/(_ (eqxx true)). 
-  by apply/negP.
-case: (automorphism_prime_order_pgroup_rank_le2 pR _ rR _ _ neq_pq oa _)=>//.
-by move=> _ [] _; move/leqW.
+have naC : a \notin 'C(R).
+  apply: contra nqp => aCR; have aR : a \in R by rewrite (subsetP sCR) ?inE ?aG.
+  by move/pnatP: (mem_p_elt pR aR); apply; rewrite ?order_gt0 // -oa dvdnn.
+case: (automorphism_prime_order_pgroup_rank_le2 _ _ rR _ _ npq oa _)=>// _ [] _.
+exact: leqW.
 Qed.
 
 (* This is B & G, Theorem 4.18 
