@@ -1244,12 +1244,6 @@ have rankE : rank E <= 2 by rewrite (rank_abelem abelE) cardE pfactorK.
 by apply: (main_lemma _ b _ abelE).
 Qed.
 
-(* This is B & G, Theorem 4.18(b) *)
-Lemma rank2_pdiv_complement : forall gT (G : {group gT}) (p := pdiv #|G|),
-  odd #|G| -> solvable G -> 'r_p(G) <= 2 -> p^'.-Hall(G) 'O_p^'(G).
-Proof.
-Admitted.
-
 (* This is B & G, Theorem 4.18(a) *)
 Lemma bg4_18a : forall gT (G : {group gT}) (p := pdiv #|G|), 
     solvable G -> odd #|G| -> 'r_p(G) <= 2 -> 
@@ -1281,34 +1275,18 @@ case: (automorphism_prime_order_pgroup_rank_le2 _ _ rR _ _ npq oa _)=>// _ [] _.
 exact: leqW.
 Qed.
 
-(* This is B & G, Theorem 4.18 
-Lemma bg4_18_proof_method : forall gT (G : {group gT}) (p := pdiv #|G|),
-    solvable G -> odd #|G| -> p.-group (G / 'C_G('O_p(G)))^`(1) -> 
+(* This is B & G, Theorem 4.18(b) *)
+Lemma rank2_pdiv_complement : forall gT (G : {group gT}) (p := pdiv #|G|),
+    solvable G -> odd #|G| -> 'r_p(G) <= 2 ->
   p^'.-Hall(G) 'O_p^'(G).
 Proof.
-move=> gT G p; set R := 'O_p(G); set C := 'C_G(R); move =>solG oddG from_4_17.
-rewrite /pHall pcore_pgroup char_sub ?pcore_char //= pnatNK.
+move=> gT G p solG oddG rG; rewrite /pHall pcore_pgroup char_sub ?pcore_char //.
+rewrite pnatNK -card_quotient ?char_norm ?pcore_char //;apply/pgroupP=> q pq qd.
+rewrite [_ \in _]eqn_leq pdiv_min_dvd ?prime_gt1 ?bg4_18a //.
+exact: dvdn_trans qd (dvdn_quotient _ _).
+Qed.
 
-rewrite /C /R in from_4_17 |- * => {C R}.
-wlog trivK : gT G p solG oddG from_4_17 / 'O_p^'(G) = 1.
-  move/(_ _ (G / 'O_p^'(G))%G p).
-  rewrite quotient_sol // quotient_odd // trivg_pcore_quotient. 
-  rewrite indexg1 card_quotient ?char_norm ?pcore_char //.
-  apply=> //=. 
-Search _ pcore quotient. 
-  rewrite -quotient_pseries2 -coprime_quotient_cent //=.
-Search   
-rewrite /pgroup. -(isog_card (third_isog _ _ _)).
-Search _ pgroup isog.
-
-  admit.
-
-wlog ntG: / (1 < #|G|). 
-  case: (eqsVneq G 1) => [trivG _|ntG]; last by rewrite cardG_gt1; apply.
-  rewrite -card_quotient ?char_norm ?pcore_char // trivG quotient1 cards1.
-  apply/pnatP=> // q; move/prime_gt1 => q_gt1; case/dvdnP; case => // k def1.
-  by move: q_gt1; rewrite def1 -{2}(mul1n q) ltn_mul2r ltnS andbC ltn0.
-
+(*
 have nRG : G \subset 'N(R) by rewrite char_norm ?pcore_char.
 have pG'C : p.-group (G^`(1) <*> C).
   have pC : p.-group C.
