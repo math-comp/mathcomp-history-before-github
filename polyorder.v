@@ -173,16 +173,16 @@ by rewrite exprS mul0r=> x0; move: l0x; rewrite -x0 lerr.
 Qed.
 
 Lemma poly_cont : forall x p e, e > 0 -> exists2 d, 
-  d > 0 & forall y, |y - x| < d -> |p.[y] - p.[x]| < e.
+  d > 0 & forall y, `|y - x| < d -> `|p.[y] - p.[x]| < e.
 Proof.
 move=> x; elim/(@poly_divXMa x).
   move=> e ep; exists 1; rewrite ?ltr01// => y hy. 
   by rewrite !hornerC subrr absr0.
 move=> p n k pxn0 Pp e ep.
-case: (Pp (|p.[x]|/2%:R)). 
+case: (Pp (`|p.[x]|/2%:R)). 
   by rewrite mulf_cp0p// -?invf_le0 ?gtf0Sn// absrE.
 move=> d' d'p He'.
-case: (@nth_root (e / ((3%:R/2%:R)*|p.[x]|)) n).
+case: (@nth_root (e / ((3%:R/2%:R) * `|p.[x]|)) n).
   by rewrite mulf_cp0p// -invf_le0 ?mulf_cp0p// -?invf_le0 ?gtf0Sn// absrE.
 move=> d dp rootd.
 exists (minr d d'); first by rewrite ltr_minr dp.
@@ -204,10 +204,10 @@ rewrite (_:forall x, x - x / 2%:R = x / 2%:R); last first.
   rewrite mulr_natl mul1r -subr_eq0 -addrA -oppr_add -{2}[a]mulr1n.
   by rewrite -mulrSr subrr.
 move=> hpxpy.
-rewrite !(horner_lin,horner_exp). rewrite subrr [0^+_]exprS mul0r mulr0 add0r.
+rewrite !(horner_lin,horner_exp) subrr [0^+_]exprS mul0r mulr0 add0r.
 rewrite -addrA subrr addr0 !absf_mul mulrC.
 move: hxye; rewrite absf_exp (lef_expS2 n)// ?absrE//; last by rewrite ltrE. 
-rewrite -(@ltf_mulpr _ (|p.[y]|)); last first.
+rewrite -(@ltf_mulpr _ (`|p.[y]|)); last first.
   apply: ler_lt_trans hpxpy; rewrite mulr_cp0p// ?absrE//.
   by rewrite -invf_ge0 ltrE// gtf0Sn.
 move/ltr_trans=> -> //; rewrite rootd mulrC mulrA mulrAC -{1}[e]mul1r.
@@ -412,6 +412,8 @@ move=> c; case/andP=> lxc lcy ->; rewrite mulr_cp0p//.
   by rewrite Pab// (ltr_trans lax)// (ltr_trans lcy).
 by rewrite subr_ge0 ltrE.
 Qed.
+
+
  
 
 

@@ -7,7 +7,7 @@ Import Prenex Implicits.
 
 Import GRing.Theory.
 
-Reserved Notation  "| x |" (at level 35, x at next level, format "| x |").
+Reserved Notation  "`| x |" (at level 0, x at level 99, format "`| x |").
 Reserved Notation "x <= y :> T" (at level 70, y at next level).
 Reserved Notation "x >= y :> T" (at level 70, y at next level).
 Reserved Notation "x < y :> T" (at level 70, y at next level).
@@ -75,52 +75,42 @@ End Generic.
 Implicit Arguments
    gen_pack [BFtype base_type BFclass_of base_of to_ring base_sort].
 
-Module Ring.
+Module IntegralDomain.
 
 Record class_of (R : Type) : Type := Class {
-  base :> GRing.Ring.class_of R;
+  base :> GRing.IntegralDomain.class_of R;
   ext :> mixin_of (GRing.Ring.Pack base R)
 }.
 
 Record type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type }.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
 Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
-Definition pack := gen_pack Pack Class GRing.Ring.class.
+Definition pack := gen_pack Pack Class GRing.IntegralDomain.class.
 
 Coercion eqType cT := Equality.Pack (class cT) cT.
 Coercion choiceType cT := Choice.Pack (class cT) cT.
 Coercion zmodType cT := GRing.Zmodule.Pack (class cT) cT.
 Coercion ringType cT := GRing.Ring.Pack (class cT) cT.
-(* Coercion comRingType cT := GRing.ComRing.Pack (class cT) cT. *)
-(* Coercion unitRingType cT := GRing.UnitRing.Pack (class cT) cT. *)
-(* Coercion comUnitRingType cT := GRing.ComUnitRing.Pack (class cT) cT. *)
-(* Coercion idomainType cT := GRing.IntegralDomain.Pack (class cT) cT. *)
-(* Coercion fieldType cT := GRing.Ring.Pack (class cT) cT. *)
+Coercion comRingType cT := GRing.ComRing.Pack (class cT) cT.
+Coercion unitRingType cT := GRing.UnitRing.Pack (class cT) cT.
+Coercion comUnitRingType cT := GRing.ComUnitRing.Pack (class cT) cT.
+Coercion idomainType cT := GRing.IntegralDomain.Pack (class cT) cT.
 
-End Ring.
+End IntegralDomain.
 
-Bind Scope ring_scope with Ring.sort.
-Canonical Structure Ring.eqType.
-Canonical Structure Ring.choiceType.
-Canonical Structure Ring.zmodType.
-Canonical Structure Ring.ringType.
-(* Canonical Structure OrderedRing.comRingType. *)
-(* Canonical Structure OrderedRing.unitRingType. *)
-(* Canonical Structure OrderedRing.comUnitRingType. *)
-(* Canonical Structure OrderedRing.idomainType. *)
-(* Canonical Structure OrderedRing.fieldType. *)
-
-
-(* Notation oRingType := Ring.type. *)
-(* Notation ORingType T m := (Ring.pack T _ m _ _ id _ id). *)
-(* Notation "[ 'oRingType' 'of' T 'for' cT ]" := (Ring.clone T cT _ idfun) *)
-(*   (at level 0, format "[ 'oRingType'  'of'  T  'for'  cT ]") : form_scope. *)
-(* Notation "[ 'oRingType' 'of' T ]" := (Ring.clone T _ _ id) *)
-(*   (at level 0, format "[ 'oRingType'  'of'  T ]") : form_scope. *)
+Bind Scope ring_scope with IntegralDomain.sort.
+Canonical Structure IntegralDomain.eqType.
+Canonical Structure IntegralDomain.choiceType.
+Canonical Structure IntegralDomain.zmodType.
+Canonical Structure IntegralDomain.ringType.
+Canonical Structure IntegralDomain.comRingType.
+Canonical Structure IntegralDomain.unitRingType.
+Canonical Structure IntegralDomain.comUnitRingType.
+Canonical Structure IntegralDomain.idomainType.
 
 Open Scope ring_scope.
 
-Definition ler (R : Ring.type) : rel R := le (Ring.class R).
+Definition ler (R : IntegralDomain.type) : rel R := le (IntegralDomain.class R).
 Notation "<=%R" := (@ler _) : ring_scope.
 Notation "x <= y" := (ler x y) : ring_scope.
 Notation "x <= y :> T" := ((x : T) <= (y : T)) : ring_scope.
@@ -137,9 +127,21 @@ Notation "x < y <= z" := ((x < y) && (y <= z)) : ring_scope.
 Notation "x <= y < z" := ((x <= y) && (y < z)) : ring_scope.
 Notation "x < y < z" := ((x < y) && (y < z)) : ring_scope.
 
-Section RingTheory.
 
-Variable R : Ring.type.
+Definition signr (R : IntegralDomain.type) (x : R) : 'F_3 := 
+  if x == 0 then 0 else if 0 <= x then 1 else -1.
+Notation "'\s' x" := (@signr _ x).
+Definition smul (R : IntegralDomain.type) (s : 'F_3) (x : R) := 
+  if s == 0 then 0 else if s == 1 then x else -x.
+Notation "s ?* x" := (@smul _ s x).
+Definition absr (R : IntegralDomain.type) (x : R) := (\s x) ?* x.
+Notation "`| x |" := (@absr _ x) : ring_scope.
+
+Module IntegralDomainTheory.
+
+Section Lift.
+
+Variable R : IntegralDomain.type.
 Implicit Types x y z t : R.
 
 Lemma ler_anti : antisymmetric (@ler R). Proof. by case R => T [? []]. Qed.
@@ -394,8 +396,6 @@ Lemma charor : null_char.
 Proof. by move=> n; rewrite eq_sym ltrE// gtf0Sn. Qed.
 
 (* signr section *)
-Definition signr x : 'F_3 :=  if x == 0 then 0 else if 0 <= x then 1 else -1.
-Notation "'\s' x" := (signr x).
 
 Lemma signr_cp0 : forall x, 
   ((\s x == 1) = (0 < x)) *
@@ -410,8 +410,8 @@ Lemma gtr0_sign : forall x, 0 < x -> \s x = 1.
 Proof. by move=> x hx; apply/eqP; rewrite signr_cp0. Qed.
 Lemma ltr0_sign : forall x, x < 0 -> \s x = -1.
 Proof. by move=> x hx; apply/eqP; rewrite signr_cp0. Qed.
-Lemma signr0 : \s 0 = 0. Proof. by rewrite /signr eqxx. Qed.
-Lemma signr1 : \s 1 = 1. Proof. by rewrite /signr oner_eq0 ler01. Qed.
+Lemma signr0 : \s (0 : R) = 0. Proof. by rewrite /signr eqxx. Qed.
+Lemma signr1 : \s (1 : R) = 1. Proof. by rewrite /signr oner_eq0 ler01. Qed.
 
 Lemma signr_opp : forall x, \s (-x) = -\s x.
 Proof.
@@ -438,10 +438,6 @@ by case: (inF3P s)=> ->; case: (inF3P sa)=> ->; case: (inF3P sb)=> ->.
 Qed.
 
 (* smul section *)
-
-Definition smul (s : 'F_3) (x : R) := 
-  if s == 0 then 0 else if s == 1 then x else -x.
-Notation "s ?* x" := (smul s x).
 
 Lemma smulNr : forall s x, - s ?* x = (-s) ?* x.
 Proof. by move=> s x; case: (inF3P s)=> ->; rewrite ?(opprK,oppr0). Qed.
@@ -496,75 +492,73 @@ Qed.
 
 
 (* absr section *)
-Definition absr x := (\s x) ?* x.
-Notation "| x |" := (absr x) : ring_scope.
 
-Lemma absrP : forall x, |x| = \s x ?* x.
+Lemma absrP : forall x, `|x| = \s x ?* x.
 Proof. done. Qed.
 
-Lemma absr0 : |0| = 0.
+Lemma absr0 : `|0| = 0 :> R.
 Proof. by rewrite /absr /signr eqxx. Qed.
 
-Lemma absr_opp : forall x, | -x | = |x|.
+Lemma absr_opp : forall x, `| -x | = `|x|.
 Proof. by move=> x; rewrite /absr signr_opp -smulrNN. Qed.
 
-Lemma ger0_abs : forall x, (x >= 0) -> |x| = x.
+Lemma ger0_abs : forall x, (x >= 0) -> `|x| = x.
 Proof.
 move=> x; rewrite /absr ler_eqVlt; case/orP=> hx; last by rewrite gtr0_sign.
 by rewrite -(eqP hx) signr0.
 Qed.
 Definition gtr0_abs x (hx : x > 0) := ger0_abs (ltrW hx). 
 
-Lemma ler0_abs : forall x, (x <= 0) -> |x| = -x.
+Lemma ler0_abs : forall x, (x <= 0) -> `|x| = -x.
 Proof.
 move=> x hx; rewrite -{1}[x]opprK absr_opp //.
 by apply:ger0_abs; rewrite oppr_cp0.
 Qed.
 Definition ltr0_abs x (hx : x < 0) := ler0_abs (ltrW hx). 
 
-Lemma absr_idVN : forall x, (|x| = x) \/ (|x| = -x).
+Lemma absr_idVN : forall x, (`|x| = x) \/ (`|x| = -x).
 Proof.
 move=> x; case/orP:(lergeP x 0); last by move/ger0_abs->; constructor.
 by move/ler0_abs->; constructor 2.
 Qed.
 
-Lemma absr_ge0 : forall x, 0 <= |x|.
+Lemma absr_ge0 : forall x, 0 <= `|x|.
 Proof.
 move=> x; case: (lerP x 0)=> hx; last by rewrite ger0_abs ltrW.
 by rewrite ler0_abs // oppr_cp0.
 Qed.
 Hint Resolve absr_ge0.
 
-Lemma smul_abs_id : forall x, x = (\s x) ?* |x|.
+Lemma smul_abs_id : forall x, x = (\s x) ?* `|x|.
 Proof.
 move=> x; case: (ltrgtP x 0)=> hx; last by rewrite hx absr0 signr0.
   by rewrite ltr0_sign// ltr0_abs// [(-1)?*_]opprK.
 by rewrite gtr0_sign// gtr0_abs.
 Qed.
 
-Lemma absr_eq0 : forall x, (|x| == 0) = (x == 0).
+Lemma absr_eq0 : forall x, (`|x| == 0) = (x == 0).
 Proof.
 move=> x; case: (ltrgtP x)=> hx; last by rewrite hx absr0 eqxx.
   by rewrite ltr0_abs// oppr_eq0 ltrE.
 by rewrite gtr0_abs// eq_sym ltrE.
 Qed.
 
-Lemma absr_lt0 : forall x, |x| < 0 = false.
+Lemma absr_lt0 : forall x, `|x| < 0 = false.
 Proof. by move=> x; apply/negP; apply/negP. Qed.
 
-Lemma absr_le0 : forall x, (|x| <= 0) = (x == 0).
+Lemma absr_le0 : forall x, (`|x| <= 0) = (x == 0).
 Proof.
 move=> x; rewrite -absr_eq0; case hx:(_==_).
   by move/eqP:hx->; rewrite lerr.
 by rewrite ler_lt ?absr_lt0 ?hx.
 Qed.
 
-Lemma absr1 : |1| = 1 :> R.
+Lemma absr1 : `|1| = 1 :> R.
 Proof. by rewrite ger0_abs// ler01. Qed.
 
 Definition absrE x := (absr0, absr1, absr_ge0, absr_eq0, absr_lt0, absr_le0).
 
-Lemma absr_subC : forall x y, |x - y| = |y - x|.
+Lemma absr_subC : forall x y, `|x - y| = `|y - x|.
 Proof. by move=> x y; rewrite -oppr_sub absr_opp. Qed.
 
 Lemma ler_addr_transl : forall x y z t, x <= y -> z + y <= t -> z + x <= t.
@@ -581,7 +575,7 @@ Qed.
 Lemma ler_addl_transr : forall x y z t, x <= y -> z <= x + t -> z <= y + t.
 Proof. move=> x y z t; rewrite ![_+t]addrC; exact: ler_addr_transr. Qed.
 
-Lemma absr_add_le : forall x y, | x + y | <= |x| + |y|.
+Lemma absr_add_le : forall x y, `| x + y | <= `|x| + `|y|.
 Proof.
 move=> x y; case/orP: (lergeP y 0)=> hy; case/orP: (lergeP x 0)=> hx.
 - move:(ler_add hx hy); rewrite addr0; move/ler0_abs->.
@@ -600,14 +594,14 @@ move=> x y; case/orP: (lergeP y 0)=> hy; case/orP: (lergeP x 0)=> hx.
   by rewrite (ger0_abs hx) (ger0_abs hy).
 Qed.
 
-Lemma subr_abs_le : forall x y, |x| - |y| <= | x + y |.
+Lemma subr_abs_le : forall x y, `|x| - `|y| <= `| x + y |.
 Proof.
 move=> x y; rewrite -{1}[x](subr0) -[0](subrr y) oppr_sub addrA.
 apply: (ler_addl_transl (absr_add_le _ _)). 
 by rewrite absr_opp -addrA subrr addr0.
 Qed.
 
-Lemma absr_lt : forall x y, y >= 0 -> (|x| < y) = (-y < x < y).
+Lemma absr_lt : forall x y, y >= 0 -> (`|x| < y) = (-y < x < y).
 move=> x y hy; rewrite -negb_or; apply/idP/idP; apply: contra.
   case/orP; last by move=> hxy; move: (ler_trans hy hxy)=> hx; rewrite ger0_abs.
   rewrite ler_opp2 opprK=> hxy; move: (ler_trans hy hxy)=> hx.
@@ -616,7 +610,7 @@ case:(absr_idVN x)=> ->; first by move->; rewrite orbT.
 by rewrite ler_opp2 opprK; move->.
 Qed.
 
-Lemma absr_le : forall x y, y >= 0 -> (|x| <= y) = (-y <= x <= y).
+Lemma absr_le : forall x y, y >= 0 -> (`|x| <= y) = (-y <= x <= y).
 Proof.
 move=> x y hy; move:(hy); rewrite -oppr_cp0=> hNy; rewrite ler_eqVlt !absr_lt //.
 case: (ltrgtP x 0)=> hx.
@@ -626,42 +620,42 @@ case: (ltrgtP x 0)=> hx.
 - by rewrite hx absr0 oppr_cp0 orb_andr -ler_eqVlt oppr_cp0.
 Qed.
 
-Lemma ltr_abs : forall x y, |x| < y -> x < y.
+Lemma ltr_abs : forall x y, `|x| < y -> x < y.
 Proof.
 move=> x y h; move: (h); rewrite absr_lt; first by case/andP.
 by apply: ltrW; apply: ler_lt_trans h; apply: absr_ge0.
 Qed.
 
-Lemma ler_abs : forall x y, |x| <= y -> x <= y.
+Lemma ler_abs : forall x y, `|x| <= y -> x <= y.
 move=> x y h; move: (h); rewrite absr_le; first by case/andP.
 by apply: ler_trans h; apply: absr_ge0.
 Qed.
 
-Lemma absr_abs_le : forall x y, | |x| - |y| | <= | x + y |.
+Lemma absr_abs_le : forall x y, `| `|x| - `|y| | <= `| x + y |.
 Proof.
 by move=> x y; rewrite absr_le// ler_oppl oppr_sub {1}[_+y]addrC !subr_abs_le.
 Qed.
 
-Lemma absr_leAle : forall z x y, z >= 0 -> (|x - y| <= z) = (y - z <= x <= y + z).
+Lemma absr_leAle : forall z x y, z >= 0 -> (`|x - y| <= z) = (y - z <= x <= y + z).
 Proof. by move=> z x y hz; rewrite absr_le //; rewrite !ler_subl. Qed.
 
-Lemma absr_sub_lt : forall z x y, z >= 0 -> (|x - y| < z) = (y - z < x < y + z).
+Lemma absr_sub_lt : forall z x y, z >= 0 -> (`|x - y| < z) = (y - z < x < y + z).
 Proof. by move=> z x y hz; rewrite absr_lt // !ler_subl. Qed.
 
 
-Lemma absr_le_lt0: forall x y, y < 0 -> (|x| <= y = false).
+Lemma absr_le_lt0: forall x y, y < 0 -> (`|x| <= y = false).
 Proof.
 move=> x y hy; apply/negP; apply/negP; move:(absr_ge0 x).
 by move/(ltr_le_trans _)->.
 Qed.
 
-Lemma absr_lt_le0 : forall x y, y <= 0 -> (|x| < y = false).
+Lemma absr_lt_le0 : forall x y, y <= 0 -> (`|x| < y = false).
 Proof.
 move=> x y hy; apply/negP; apply/negP; move: (absr_ge0 x).
 by move/(ler_trans _)->.
 Qed.
 
-Lemma absr_smul : forall s x, s != 0 -> |s ?* x| = |x|.
+Lemma absr_smul : forall s x, s != 0 -> `|s ?* x| = `|x|.
 Proof.
 move=> s x; case: (ltrgtP x 0)=> hx; case: (inF3P s)=> -> //= _;
 by rewrite absr_opp.
@@ -678,191 +672,18 @@ rewrite /minr=> x y z; case: (lerP x y)=> lxy; apply/idP/idP.
 - by case/andP=> _ ->.
 Qed.
 
-End RingTheory.
-
-Notation "| x |" := (absr x) : ring_scope.
-Notation "s ?* x" := (smul s x).
-Notation "'\s' x" := (signr x).
-
-Module ComRing.
-
-Record class_of R :=
-  Class { base1 :> GRing.ComRing.class_of R; ext :> ring_mixin_of R base1}.
-Coercion base2 R (c : class_of R) := Ring.Class c.
-Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
-Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
-Definition pack := gen_pack Pack Class GRing.ComRing.class.
-
-Coercion eqType cT := Equality.Pack (class cT) cT.
-Coercion choiceType cT := Choice.Pack (class cT) cT.
-Coercion zmodType cT := GRing.Zmodule.Pack (class cT) cT.
-Coercion ringType cT := GRing.Ring.Pack (class cT) cT.
-Coercion oRingType cT := Ring.Pack (class cT) cT.
-Coercion comRingType cT := GRing.ComRing.Pack (class cT) cT.
-Definition join_oRingType cT := @Ring.Pack (comRingType cT) (class cT) cT.
-
-End ComRing.
-
-
-Canonical Structure ComRing.eqType.
-Canonical Structure ComRing.choiceType.
-Canonical Structure ComRing.zmodType.
-Canonical Structure ComRing.ringType.
-Canonical Structure ComRing.oRingType.
-Canonical Structure ComRing.comRingType.
-Canonical Structure ComRing.join_oRingType.
-
-Module UnitRing.
-
-Record class_of R :=
-  Class { base1 :> GRing.UnitRing.class_of R; ext :> ring_mixin_of R base1 }.
-Coercion base2 R (c : class_of R) := Ring.Class c.
-Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
-Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
-Definition pack := gen_pack Pack Class GRing.UnitRing.class.
-
-Coercion eqType cT := Equality.Pack (class cT) cT.
-Coercion choiceType cT := Choice.Pack (class cT) cT.
-Coercion zmodType cT := GRing.Zmodule.Pack (class cT) cT.
-Coercion ringType cT := GRing.Ring.Pack (class cT) cT.
-Coercion oRingType cT := Ring.Pack (class cT) cT.
-Coercion unitRingType cT := GRing.UnitRing.Pack (class cT) cT.
-Definition join_oRingType cT := @Ring.Pack (unitRingType cT) (class cT) cT.
-
-End UnitRing.
-
-Canonical Structure UnitRing.eqType.
-Canonical Structure UnitRing.choiceType.
-Canonical Structure UnitRing.zmodType.
-Canonical Structure UnitRing.ringType.
-Canonical Structure UnitRing.oRingType.
-Canonical Structure UnitRing.unitRingType.
-Canonical Structure UnitRing.join_oRingType.
-
-Module ComUnitRing.
-
-Record class_of R :=
-  Class { base1 :> GRing.ComUnitRing.class_of R; ext :> ring_mixin_of R base1 }.
-Coercion base2 R (c : class_of R) := ComRing.Class c.
-Coercion base3 R (c : class_of R) := @UnitRing.Class R c c.
-Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
-Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
-Definition pack := gen_pack Pack Class GRing.ComUnitRing.class.
-
-Coercion eqType cT := Equality.Pack (class cT) cT.
-Coercion choiceType cT := Choice.Pack (class cT) cT.
-Coercion zmodType cT := GRing.Zmodule.Pack (class cT) cT.
-Coercion ringType cT := GRing.Ring.Pack (class cT) cT.
-Coercion oRingType cT := Ring.Pack (class cT) cT.
-Coercion comRingType cT := GRing.ComRing.Pack (class cT) cT.
-Coercion oComRingType cT := ComRing.Pack (class cT) cT.
-Coercion unitRingType cT := GRing.UnitRing.Pack (class cT) cT.
-Coercion oUnitRingType cT := UnitRing.Pack (class cT) cT.
-Coercion comUnitRingType cT := GRing.ComUnitRing.Pack (class cT) cT.
-
-Section Joins.
-Variable cT : type.
-Let clT := class cT.
-Let cT' := comUnitRingType cT.
-Definition join_oRingType := @Ring.Pack cT' clT cT.
-Definition join_oComRingType := @ComRing.Pack cT' clT cT.
-Definition join_oUnitRingType := @UnitRing.Pack cT' clT cT.
-Definition ujoin_oComRingType := @ComRing.Pack (unitRingType cT) clT cT.
-Definition cjoin_oUnitRingType := @UnitRing.Pack (comRingType cT) clT cT.
-Definition fcjoin_oUnitRingType := @UnitRing.Pack (oComRingType cT) clT cT.
-End Joins.
-
-End ComUnitRing.
-
-Canonical Structure ComUnitRing.eqType.
-Canonical Structure ComUnitRing.choiceType.
-Canonical Structure ComUnitRing.zmodType.
-Canonical Structure ComUnitRing.ringType.
-Canonical Structure ComUnitRing.oRingType.
-Canonical Structure ComUnitRing.comRingType.
-Canonical Structure ComUnitRing.oComRingType.
-Canonical Structure ComUnitRing.unitRingType.
-Canonical Structure ComUnitRing.oUnitRingType.
-Canonical Structure ComUnitRing.comUnitRingType.
-Canonical Structure ComUnitRing.join_oRingType.
-Canonical Structure ComUnitRing.join_oComRingType.
-Canonical Structure ComUnitRing.join_oUnitRingType.
-Canonical Structure ComUnitRing.ujoin_oComRingType.
-Canonical Structure ComUnitRing.cjoin_oUnitRingType.
-Canonical Structure ComUnitRing.fcjoin_oUnitRingType.
-
-Module IntegralDomain.
-
-Record class_of R :=
-  Class { base1 :> GRing.IntegralDomain.class_of R; ext :> ring_mixin_of R base1 }.
-Coercion base2 R (c : class_of R) := ComUnitRing.Class c.
-Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
-Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
-Definition pack := gen_pack Pack Class GRing.IntegralDomain.class.
-
-Coercion eqType cT := Equality.Pack (class cT) cT.
-Coercion choiceType cT := Choice.Pack (class cT) cT.
-Coercion zmodType cT := GRing.Zmodule.Pack (class cT) cT.
-Coercion ringType cT := GRing.Ring.Pack (class cT) cT.
-Coercion oRingType cT := Ring.Pack (class cT) cT.
-Coercion comRingType cT := GRing.ComRing.Pack (class cT) cT.
-Coercion oComRingType cT := ComRing.Pack (class cT) cT.
-Coercion unitRingType cT := GRing.UnitRing.Pack (class cT) cT.
-Coercion oUnitRingType cT := UnitRing.Pack (class cT) cT.
-Coercion comUnitRingType cT := GRing.ComUnitRing.Pack (class cT) cT.
-Coercion oComUnitRingType cT := ComUnitRing.Pack (class cT) cT.
-Coercion idomainType cT := GRing.IntegralDomain.Pack (class cT) cT.
-
-Section Joins.
-Variable cT : type.
-Let clT := class cT.
-Let cT' := idomainType cT.
-Definition join_oRingType := @Ring.Pack cT' clT cT.
-Definition join_oUnitRingType := @UnitRing.Pack cT' clT cT.
-Definition join_oComRingType := @ComRing.Pack cT' clT cT.
-Definition join_oComUnitRingType := @ComUnitRing.Pack cT' clT cT.
-End Joins.
-
-End IntegralDomain.
-
-Canonical Structure IntegralDomain.eqType.
-Canonical Structure IntegralDomain.choiceType.
-Canonical Structure IntegralDomain.zmodType.
-Canonical Structure IntegralDomain.ringType.
-Canonical Structure IntegralDomain.oRingType.
-Canonical Structure IntegralDomain.comRingType.
-Canonical Structure IntegralDomain.oComRingType.
-Canonical Structure IntegralDomain.unitRingType.
-Canonical Structure IntegralDomain.oUnitRingType.
-Canonical Structure IntegralDomain.comUnitRingType.
-Canonical Structure IntegralDomain.oComUnitRingType.
-Canonical Structure IntegralDomain.idomainType.
-Canonical Structure IntegralDomain.join_oRingType.
-Canonical Structure IntegralDomain.join_oComRingType.
-Canonical Structure IntegralDomain.join_oUnitRingType.
-Canonical Structure IntegralDomain.join_oComUnitRingType.
-
-Section IdomainTheory.
-
-Variable F : IntegralDomain.type.
-Implicit Types x y z t : F.
-
-Lemma absfP : forall x, (x >= 0) = (|x| == x).
+Lemma absfP : forall x, (x >= 0) = (`|x| == x).
 Proof.
 move=> x; case: lerP=> lx; first by move/ger0_abs:(lx)->; rewrite eqxx.
 move/ltr0_abs:(lx)->; rewrite -eqr_oppC -subr_eq0 opprK add2r; symmetry.
 by rewrite mulf_eq0 (ltrE lx) charor.
 Qed.
 
-Lemma absfn : forall x, (x <= 0) = (|x| == -x).
+Lemma absfn : forall x, (x <= 0) = (`|x| == -x).
 Proof. move=> x; rewrite -oppr_cp0 -absr_opp; exact: absfP. Qed.
 
 
-Lemma absf_lt : forall x y, (|x| < y) = (-y < x < y).
+Lemma absf_lt : forall x y, (`|x| < y) = (-y < x < y).
 Proof.
 move=> x y; case: (lerP 0 y); first exact: absr_lt.
 move=> hy; rewrite absr_lt_le0 ?(ltrE hy) //; symmetry.
@@ -871,7 +692,7 @@ move: (ltr_trans (ltr_trans hNyx hxy) hy).
 by rewrite oppr_cp0; move/(ltr_trans hy); rewrite lerr.
 Qed.
 
-Lemma absf_le : forall x y, (|x| <= y) = (-y <= x <= y).
+Lemma absf_le : forall x y, (`|x| <= y) = (-y <= x <= y).
 Proof.
 move=> x y; case: (lerP 0 y); first exact: absr_le.
 move=> hy; move:(hy); move/absr_le_lt0->; symmetry.
@@ -881,10 +702,10 @@ by rewrite oppr_cp0; move/(ltr_trans hy); rewrite lerr.
 Qed.
 
 
-Lemma absf_leAle : forall z x y, (|x - y| <= z) = (y - z <= x <= y + z).
+Lemma absf_leAle : forall z x y, (`|x - y| <= z) = (y - z <= x <= y + z).
 Proof. by move=> z x y; rewrite absf_le // !ler_subl. Qed.
 
-Lemma absf_sub_lt : forall z x y, (|x - y| < z) = (y - z < x < y + z).
+Lemma absf_sub_lt : forall z x y, (`|x - y| < z) = (y - z < x < y + z).
 Proof. by move=> z x y; rewrite absf_lt // !ler_subl. Qed.
 
 Lemma ltf_mulpr : forall z x y, 0 < z ->  (x * z <= y * z) = (x <= y).
@@ -916,7 +737,7 @@ Definition mulf_cp0p := (mulf_gt0pp, mulf_lt0pn).
 Definition mulf_cp0n := (mulf_gt0nn, mulf_lt0np).
 
 
-Lemma absf_mul : forall x y, |x * y| = |x| * |y|.
+Lemma absf_mul : forall x y, `|x * y| = `|x| * `|y|.
 Proof.
 move=> x y; case: (lerP x 0)=> hx; case: (lerP y 0)=> hy.
 - by rewrite ger0_abs ?mulr_cp0n// ler0_abs// ler0_abs// mulrNN.
@@ -935,7 +756,7 @@ Qed.
 Lemma ltf_exprSS : forall x n, 1 < x -> x < x^+n.+2.
 Proof.
 move=> x n l1x; elim: n=> [|n ihn].
-  rewrite exprS expr1 -{3}[x]mul1r ltf_mulp// (ler_lt_trans (ler01 _))//.
+  rewrite exprS expr1 -{3}[x]mul1r ltf_mulp// (ler_lt_trans ler01)//.
 rewrite exprSr -{3}[x]mul1r ltf_mulp// ?(ltr_trans _ l1x)// ?ltr01//.
 by rewrite (ltr_trans l1x)//.
 Qed.
@@ -952,7 +773,7 @@ move=> n x; rewrite ler_eqVlt; case/orP=> hx; last by rewrite ltrE// expf_gt0.
 by rewrite -(eqP hx) exprS mul0r lerr.
 Qed.
 
-Lemma absf_exp : forall x n, |x^+n| = |x|^+n.
+Lemma absf_exp : forall x n, `|x^+n| = `|x|^+n.
 Proof.
 move=> x n; case: (ltrgtP x 0)=> hx; last first.
 - rewrite hx; case: n=> [|n]; first by rewrite ?expr0 absr1.
@@ -995,8 +816,9 @@ move=> lt0y ltOx; rewrite ![_^+n.+2]exprSr; apply/idP/idP=> hxy.
 apply/negP; move/negP=> hyx; move:(hyx); apply/negP; apply/negPn.
 by rewrite ihn// -(@ltf_mulpr x)// (ler_trans hxy)// ltf_mulp ?expf_gt0// ltrE.
 Qed.
-
-End IdomainTheory.
+End Lift.
+End IntegralDomainTheory.
+Include IntegralDomainTheory.
 
 Module Field.
 
@@ -1012,27 +834,13 @@ Coercion eqType cT := Equality.Pack (class cT) cT.
 Coercion choiceType cT := Choice.Pack (class cT) cT.
 Coercion zmodType cT := GRing.Zmodule.Pack (class cT) cT.
 Coercion ringType cT := GRing.Ring.Pack (class cT) cT.
-Coercion oRingType cT := Ring.Pack (class cT) cT.
 Coercion comRingType cT := GRing.ComRing.Pack (class cT) cT.
-Coercion oComRingType cT := ComRing.Pack (class cT) cT.
 Coercion unitRingType cT := GRing.UnitRing.Pack (class cT) cT.
-Coercion oUnitRingType cT := UnitRing.Pack (class cT) cT.
 Coercion comUnitRingType cT := GRing.ComUnitRing.Pack (class cT) cT.
-Coercion oComUnitRingType cT := ComUnitRing.Pack (class cT) cT.
 Coercion idomainType cT := GRing.IntegralDomain.Pack (class cT) cT.
 Coercion oIdomainType cT := IntegralDomain.Pack (class cT) cT.
 Coercion fieldType cT := GRing.Field.Pack (class cT) cT.
-
-Section Joins.
-Variable cT : type.
-Let clT := class cT.
-Let cT' := fieldType cT.
-Definition join_oRingType := @Ring.Pack cT' clT cT.
-Definition join_oUnitRingType := @UnitRing.Pack cT' clT cT.
-Definition join_oComRingType := @ComRing.Pack cT' clT cT.
-Definition join_oComUnitRingType := @ComUnitRing.Pack cT' clT cT.
-Definition join_oIdomainType := @IntegralDomain.Pack cT' clT cT.
-End Joins.
+Coercion join_oIdomainType cT := @IntegralDomain.Pack (fieldType cT) (class cT) cT.
 
 End Field.
 
@@ -1040,23 +848,16 @@ Canonical Structure Field.eqType.
 Canonical Structure Field.choiceType.
 Canonical Structure Field.zmodType.
 Canonical Structure Field.ringType.
-Canonical Structure Field.oRingType.
 Canonical Structure Field.comRingType.
-Canonical Structure Field.oComRingType.
 Canonical Structure Field.unitRingType.
-Canonical Structure Field.oUnitRingType.
 Canonical Structure Field.comUnitRingType.
-Canonical Structure Field.oComUnitRingType.
 Canonical Structure Field.idomainType.
 Canonical Structure Field.oIdomainType.
 Canonical Structure Field.fieldType.
-Canonical Structure Field.join_oRingType.
-Canonical Structure Field.join_oComRingType.
-Canonical Structure Field.join_oUnitRingType.
-Canonical Structure Field.join_oComUnitRingType.
 Canonical Structure Field.join_oIdomainType.
 
-Section FieldTheory.
+Module FieldTheory.
+Section Lift.
 
 Variable F : Field.type.
 Implicit Types x y z t : F.
@@ -1064,7 +865,7 @@ Implicit Types x y z t : F.
 Lemma invf_ge0 : forall x, (0 <= x) = (0 <= x^-1).
 Proof.
 move=> x; case x0: (x == 0); first by rewrite (eqP x0) invr0.
-case lerP=> l0x; case lerP=> l0i //; apply/eqP.
+case: (lerP 0 x)=> l0x; case lerP=> l0i //; apply/eqP.
   move: (ler_mulnr (ltrW l0i) l0x); rewrite divff ?x0 //.
   by rewrite mul0r ler_nlt ltr01.
 move: (ler_mulpr l0i (ltrW l0x)); rewrite divff ?x0 //.
@@ -1188,8 +989,9 @@ move=> x y lxy; rewrite ?lef_divp ?gtf0Sn//.
 by rewrite  mulrSr !mulr_addr !mulr1 ler_add2r ler_add2l lxy.
 Qed.
 
-
+End Lift.
 End FieldTheory.
+Include FieldTheory.
 
 Require Import poly.
 
@@ -1223,13 +1025,9 @@ Coercion eqType cT := Equality.Pack (class cT) cT.
 Coercion choiceType cT := Choice.Pack (class cT) cT.
 Coercion zmodType cT := GRing.Zmodule.Pack (class cT) cT.
 Coercion ringType cT := GRing.Ring.Pack (class cT) cT.
-Coercion oRingType cT := Ring.Pack (class cT) cT.
 Coercion comRingType cT := GRing.ComRing.Pack (class cT) cT.
-Coercion oComRingType cT := ComRing.Pack (class cT) cT.
 Coercion unitRingType cT := GRing.UnitRing.Pack (class cT) cT.
-Coercion oUnitRingType cT := UnitRing.Pack (class cT) cT.
 Coercion comUnitRingType cT := GRing.ComUnitRing.Pack (class cT) cT.
-Coercion oComUnitRingType cT := ComUnitRing.Pack (class cT) cT.
 Coercion idomainType cT := GRing.IntegralDomain.Pack (class cT) cT.
 Coercion oIdomainType cT := IntegralDomain.Pack (class cT) cT.
 Coercion fieldType cT := GRing.Field.Pack (class cT) cT.
@@ -1249,337 +1047,64 @@ Canonical Structure RealClosedField.idomainType.
 Canonical Structure RealClosedField.fieldType.
 Canonical Structure RealClosedField.oFieldType.
 
-Section RealClosedFieldTheory.
-
+Module RealClosedFieldTheory.
 Definition poly_ivt := RealClosedField.axiom.
-
 End RealClosedFieldTheory.
+Include RealClosedFieldTheory.
 
 Module Theory.
-
-(* Ring Theory *)
-Definition ler_anti := ler_anti. 
-Definition ler_trans := ler_trans. 
-Definition ler_total := ler_total. 
-Definition lerr := lerr. 
-Hint Resolve lerr.
-Definition ltrNge := ltrNge.
-Definition ler_add2r := ler_add2r.  
-Definition ler_add2l := ler_add2l.  
-Definition subr_ge0 := subr_ge0. 
-Definition subr_le0 := subr_le0. 
-Definition ler_opp2 := ler_opp2. 
-Definition ler_oppr := ler_oppr. 
-Definition ler_oppl := ler_oppl. 
-Definition oppr_ge0 := oppr_ge0. 
-Definition oppr_le0 := oppr_le0. 
-Definition oppr_cp0 := oppr_cp0.
-Definition mulr_ge0pp := mulr_ge0pp. 
-Definition mulr_ge0nn := mulr_ge0nn. 
-Definition mulr_le0pn := mulr_le0pn. 
-Definition mulr_le0np := mulr_le0np. 
-Definition mulr_cp0p := mulr_cp0p.
-Definition mulr_cp0n := mulr_cp0n.
-Definition ltrW := ltrW. 
-Hint Resolve ltrW.
-Definition eqr_le := eqr_le. 
-Definition neqr_lt := neqr_lt.
-Definition ler_lt := ler_lt. 
-Definition ler_nlt := ler_nlt. 
-Definition ltr_neqAle := ltr_neqAle. 
-Definition ltrWN := ltrWN. 
-Hint Resolve ltrWN.
-Definition ltrE := ltrE.
-Definition ler_lt_trans := ler_lt_trans. 
-Definition ltr_trans := ltr_trans. 
-Definition ltr_le_trans := ltr_le_trans. 
-Definition lerP := lerP. 
-Definition ltrP := ltrP. 
-Definition ltrgtP := ltrgtP. 
-Definition lergeP := lergeP. 
-Definition ler01 := ler01. 
-Definition ltr01 := ltr01. 
-Definition ler_add := ler_add. 
-Definition ler_lt_add := ler_lt_add. 
-Definition ltr_le_add := ltr_le_add. 
-Definition ltr_add := ltr_add. 
-Definition ler_addrA := ler_addrA. 
-Definition ler_addlA := ler_addlA. 
-Definition ler_subrA := ler_subrA. 
-Definition ler_sublA := ler_sublA. 
-Definition ler_subr := ler_subr.
-Definition ler_subl := ler_subl.
-Definition ler_addpl := ler_addpl.
-Definition ler_addpr := ler_addpr.
-Definition ltr_addspl := ltr_addspl.
-Definition ltr_addspr := ltr_addspr.
-Definition ler_addrr := ler_addrr.
-Definition ler_addrl := ler_addrl.
-Definition ler_addll := ler_addll.
-Definition ler_addlr := ler_addlr.
-Definition ltr_le_addpl := ltr_le_addpl.
-Definition ltr_le_addpr := ltr_le_addpr.
-Definition ltr_addpr := ltr_addpr.
-Definition ltr_addpl := ltr_addpl.
-Definition ler_mulpr := ler_mulpr. 
-Definition ler_mulpl := ler_mulpl. 
-Definition ler_mulnr := ler_mulnr. 
-Definition ler_mulnl := ler_mulnl. 
-Definition ler_mulp := ler_mulp.
-Definition ler_muln := ler_muln.
-Definition neq_ltr := neq_ltr. 
-Definition ler_eqVlt := ler_eqVlt. 
-Definition gtf0Sn := gtf0Sn. 
-Definition null_char := null_char.
-Definition charor := charor. 
-
-Definition mulss := mulss.
-Definition muls_eqA := muls_eqA.
-Definition signr_cp0 := signr_cp0. 
-Definition gtr0_sign := gtr0_sign. 
-Definition ltr0_sign := ltr0_sign. 
-Definition signr0 := signr0. 
-Definition signr_opp := signr_opp. 
-Definition signr1 :=  signr1.
-Definition inF3P := inF3P. 
-Definition signr_smul := signr_smul.
-
-Definition smulNr := smulNr.
-Definition smulrN := smulrN.
-Definition smulrNN := smulrNN.
-Definition smulA := smulA.
-Definition addr_smul := addr_smul.
-Definition smul_add := smul_add.
-Definition smulr_mul := smulr_mul.
-Definition smul1_eq0 := smul1_eq0.
-
-Definition absr :=  absr.
-Definition absr0 := absr0. 
-Definition absr1 := absr1. 
-Definition absr_opp := absr_opp. 
-Definition ger0_abs := ger0_abs. 
-Definition gtr0_abs := gtr0_abs.
-Definition ler0_abs := ler0_abs. 
-Definition ltr0_abs := ltr0_abs.
-Definition absr_idVN := absr_idVN. 
-Definition absr_ge0 := absr_ge0. 
-Definition smul_abs_id := smul_abs_id. 
-Definition absr_eq0 := absr_eq0. 
-Definition absr_lt0 := absr_lt0. 
-Definition absr_le0 := absr_le0. 
-Definition absrE := absrE.
-Hint Resolve absrE.
-
-Definition absr_subC := absr_subC. 
-Definition absr_smul := absr_smul.
-
-Definition ler_addr_transl := ler_addr_transl. 
-Definition ler_addl_transl := ler_addl_transl. 
-Definition ler_addr_transr := ler_addr_transr. 
-Definition ler_addl_transr := ler_addl_transr. 
-Definition absr_add_le := absr_add_le. 
-Definition subr_abs_le := subr_abs_le. 
-Definition absr_lt := absr_lt. 
-Definition absr_le := absr_le. 
-Definition ltr_abs := ltr_abs.
-Definition ler_abs := ler_abs.
-Definition absr_abs_le := absr_abs_le. 
-Definition absr_leAle := absr_leAle. 
-Definition absr_sub_lt := absr_sub_lt. 
-Definition absr_le_lt0:= absr_le_lt0. 
-Definition absr_lt_le0 := absr_lt_le0. 
-
-Definition minr := minr.
-Definition ltr_minr := ltr_minr. 
-
-Definition absrP := absrP.
-
-(* Idomain Theory *)
-Definition absfP := absfP. 
-Definition absfn := absfn. 
-Definition absf_lt := absf_lt. 
-Definition absf_le := absf_le. 
-Definition absf_leAle := absf_leAle. 
-Definition absf_sub_lt := absf_sub_lt. 
-Definition ltf_mulpr := ltf_mulpr. 
-Definition ltf_mulpl := ltf_mulpl. 
-Definition ltf_mulp := ltf_mulp.
-Definition ltf_mulnr := ltf_mulnr. 
-Definition ltf_mulnl := ltf_mulnl. 
-Definition ltf_muln  := ltf_muln.
-Definition mulf_gt0pp := mulf_gt0pp. 
-Definition mulf_gt0nn := mulf_gt0nn. 
-Definition mulf_lt0pn := mulf_lt0pn. 
-Definition ltf_invpp := ltf_invpp.
-Definition ltf_invnn := ltf_invnn.
-Definition lef_invpp := lef_invpp.
-Definition lef_invnn := lef_invnn.
-Definition mulf_lt0np := mulf_lt0np. 
-Definition mulf_cp0p := mulf_cp0p.
-Definition mulf_cp0n := mulf_cp0n.
-Definition absf_mul := absf_mul. 
-Definition ltf_expSSr := ltf_expSSr. 
-Definition ltf_exprSS := ltf_exprSS. 
-Definition expf_gt0 := expf_gt0. 
-Definition expf_ge0 := expf_ge0. 
-Definition lef_expSr := lef_expSr. 
-Definition lef_exprS := lef_exprS. 
-Definition lef_expS2 := lef_expS2. 
-Definition smul_exp := smul_exp. 
-Definition absf_exp := absf_exp. 
-
-(* Field Theory *)
-Definition signr_mul := signr_mul.
-Definition signr_mulrn := signr_mulrn.
-Definition signr_exp := signr_exp.
-Definition mulf_ge0 := mulf_ge0.
-Definition mulf_le0 := mulf_le0.
-Definition mulf_gt0 := mulf_gt0.
-Definition mulf_lt0 := mulf_lt0.
-Definition invf_ge0 := invf_ge0. 
-Definition invf_le0 := invf_le0. 
-Definition invf_cp0 := invf_cp0.
-Definition lef_divpr := lef_divpr. 
-Definition lef_divnr := lef_divnr.
-Definition lef_divpl := lef_divpl. 
-Definition lef_divnl := lef_divnl.
-Definition lef_divp := lef_divp. 
-Definition lef_divn := lef_divn.
-Definition midf_le := midf_le.
-Definition midf_lt := midf_lt.
-
-(* RCF Theory *)
-Definition poly_ivt := poly_ivt.
-
+Export IntegralDomainTheory.
+Export FieldTheory.
+Export RealClosedFieldTheory.
 End Theory.
 
 End OrderedRing.
-
-Canonical Structure OrderedRing.Ring.eqType.
-Canonical Structure OrderedRing.Ring.choiceType.
-Canonical Structure OrderedRing.Ring.zmodType.
-Canonical Structure OrderedRing.Ring.ringType.
-
-Canonical Structure OrderedRing.ComRing.eqType.
-Canonical Structure OrderedRing.ComRing.choiceType.
-Canonical Structure OrderedRing.ComRing.zmodType.
-Canonical Structure OrderedRing.ComRing.ringType.
-Canonical Structure OrderedRing.ComRing.oRingType.
-Canonical Structure OrderedRing.ComRing.comRingType.
-Canonical Structure OrderedRing.ComRing.join_oRingType.
-
-Canonical Structure OrderedRing.UnitRing.eqType.
-Canonical Structure OrderedRing.UnitRing.choiceType.
-Canonical Structure OrderedRing.UnitRing.zmodType.
-Canonical Structure OrderedRing.UnitRing.ringType.
-Canonical Structure OrderedRing.UnitRing.oRingType.
-Canonical Structure OrderedRing.UnitRing.unitRingType.
-Canonical Structure OrderedRing.UnitRing.join_oRingType.
-
-Canonical Structure OrderedRing.ComUnitRing.eqType.
-Canonical Structure OrderedRing.ComUnitRing.choiceType.
-Canonical Structure OrderedRing.ComUnitRing.zmodType.
-Canonical Structure OrderedRing.ComUnitRing.ringType.
-Canonical Structure OrderedRing.ComUnitRing.oRingType.
-Canonical Structure OrderedRing.ComUnitRing.comRingType.
-Canonical Structure OrderedRing.ComUnitRing.oComRingType.
-Canonical Structure OrderedRing.ComUnitRing.unitRingType.
-Canonical Structure OrderedRing.ComUnitRing.oUnitRingType.
-Canonical Structure OrderedRing.ComUnitRing.comUnitRingType.
-Canonical Structure OrderedRing.ComUnitRing.join_oRingType.
-Canonical Structure OrderedRing.ComUnitRing.join_oComRingType.
-Canonical Structure OrderedRing.ComUnitRing.join_oUnitRingType.
-Canonical Structure OrderedRing.ComUnitRing.ujoin_oComRingType.
-Canonical Structure OrderedRing.ComUnitRing.cjoin_oUnitRingType.
-Canonical Structure OrderedRing.ComUnitRing.fcjoin_oUnitRingType.
 
 Canonical Structure OrderedRing.IntegralDomain.eqType.
 Canonical Structure OrderedRing.IntegralDomain.choiceType.
 Canonical Structure OrderedRing.IntegralDomain.zmodType.
 Canonical Structure OrderedRing.IntegralDomain.ringType.
-Canonical Structure OrderedRing.IntegralDomain.oRingType.
 Canonical Structure OrderedRing.IntegralDomain.comRingType.
-Canonical Structure OrderedRing.IntegralDomain.oComRingType.
 Canonical Structure OrderedRing.IntegralDomain.unitRingType.
-Canonical Structure OrderedRing.IntegralDomain.oUnitRingType.
 Canonical Structure OrderedRing.IntegralDomain.comUnitRingType.
-Canonical Structure OrderedRing.IntegralDomain.oComUnitRingType.
 Canonical Structure OrderedRing.IntegralDomain.idomainType.
-Canonical Structure OrderedRing.IntegralDomain.join_oRingType.
-Canonical Structure OrderedRing.IntegralDomain.join_oComRingType.
-Canonical Structure OrderedRing.IntegralDomain.join_oUnitRingType.
-Canonical Structure OrderedRing.IntegralDomain.join_oComUnitRingType.
 
 Canonical Structure OrderedRing.Field.eqType.
 Canonical Structure OrderedRing.Field.choiceType.
 Canonical Structure OrderedRing.Field.zmodType.
 Canonical Structure OrderedRing.Field.ringType.
-Canonical Structure OrderedRing.Field.oRingType.
 Canonical Structure OrderedRing.Field.comRingType.
-Canonical Structure OrderedRing.Field.oComRingType.
 Canonical Structure OrderedRing.Field.unitRingType.
-Canonical Structure OrderedRing.Field.oUnitRingType.
 Canonical Structure OrderedRing.Field.comUnitRingType.
-Canonical Structure OrderedRing.Field.oComUnitRingType.
 Canonical Structure OrderedRing.Field.idomainType.
 Canonical Structure OrderedRing.Field.oIdomainType.
 Canonical Structure OrderedRing.Field.fieldType.
-Canonical Structure OrderedRing.Field.join_oRingType.
-Canonical Structure OrderedRing.Field.join_oComRingType.
-Canonical Structure OrderedRing.Field.join_oUnitRingType.
-Canonical Structure OrderedRing.Field.join_oComUnitRingType.
 Canonical Structure OrderedRing.Field.join_oIdomainType.
 
 Canonical Structure OrderedRing.RealClosedField.eqType.
 Canonical Structure OrderedRing.RealClosedField.choiceType.
 Canonical Structure OrderedRing.RealClosedField.zmodType.
 Canonical Structure OrderedRing.RealClosedField.ringType.
-Canonical Structure OrderedRing.RealClosedField.oRingType.
 Canonical Structure OrderedRing.RealClosedField.comRingType.
-Canonical Structure OrderedRing.RealClosedField.oComRingType.
 Canonical Structure OrderedRing.RealClosedField.unitRingType.
-Canonical Structure OrderedRing.RealClosedField.oUnitRingType.
 Canonical Structure OrderedRing.RealClosedField.comUnitRingType.
-Canonical Structure OrderedRing.RealClosedField.oComUnitRingType.
 Canonical Structure OrderedRing.RealClosedField.idomainType.
 Canonical Structure OrderedRing.RealClosedField.oIdomainType.
 Canonical Structure OrderedRing.RealClosedField.fieldType.
-Canonical Structure OrderedRing.RealClosedField.fieldType.
 Canonical Structure OrderedRing.RealClosedField.oFieldType.
 
-Bind Scope ring_scope with OrderedRing.Ring.sort.
-Bind Scope ring_scope with OrderedRing.ComRing.sort.
-Bind Scope ring_scope with OrderedRing.UnitRing.sort.
-Bind Scope ring_scope with OrderedRing.ComUnitRing.sort.
 Bind Scope ring_scope with OrderedRing.IntegralDomain.sort.
 Bind Scope ring_scope with OrderedRing.Field.sort.
 Bind Scope ring_scope with OrderedRing.RealClosedField.sort.
 
-Notation oRingType := OrderedRing.Ring.type.
-Notation oComRingType := OrderedRing.ComRing.type.
-Notation oUnitRingType := OrderedRing.UnitRing.type.
-Notation oComUnitRingType := OrderedRing.ComUnitRing.type.
 Notation oIdomainType := OrderedRing.IntegralDomain.type.
 Notation oFieldType := OrderedRing.Field.type.
 Notation rFieldType := OrderedRing.RealClosedField.type.
 
-Notation ORingType T m := (@OrderedRing.Ring.pack T _ m _ _ id _ id).
-Notation OComRingType T m := (@OrderedRing.ComRing.pack T _ m _ _ id _ id).
-Notation OUnitRingType T m := (@OrderedRing.UnitRing.pack T _ m _ _ id _ id).
-Notation OComUnitRingType T m := (@OrderedRing.ComUnitRing.pack T _ m _ _ id _ id).
 Notation OIdomainType T m := (@OrderedRing.IntegralDomain.pack T _ m _ _ id _ id).
 Notation OFieldType T m := (@OrderedRing.Field.pack T _ m _ _ id _ id).
 Notation RFieldType T m := (@OrderedRing.RealClosedField.pack T _ m _ _ id _ id).
 
-Notation "[ 'oRingType' 'of' T ]" := (@OrderedRing.Ring.clone T _ _ id)
-  (at level 0, format "[ 'oRingType'  'of'  T ]") : form_scope.
-Notation "[ 'oComRingType' 'of' T ]" := (@OrderedRing.ComRing.clone T _ _ id)
-  (at level 0, format "[ 'oComRingType'  'of'  T ]") : form_scope.
-Notation "[ 'oUnitRingType' 'of' T ]" := (@OrderedRing.UnitRing.clone T _ _ id)
-  (at level 0, format "[ 'oUnitRingType'  'of'  T ]") : form_scope.
-Notation "[ 'oComUnitRingType' 'of' T ]" :=
-    (@OrderedRing.ComUnitRing.clone T _ _ id)
-  (at level 0, format "[ 'oComUnitRingType'  'of'  T ]") : form_scope.
 Notation "[ 'oIdomainType' 'of' T ]" :=
     (@OrderedRing.IntegralDomain.clone T _ _ id)
   (at level 0, format "[ 'oIdomainType'  'of'  T ]") : form_scope.
@@ -1606,7 +1131,7 @@ Notation "x <= y <= z" := ((x <= y) && (y <= z)) : ring_scope.
 Notation "x < y <= z" := ((x < y) && (y <= z)) : ring_scope.
 Notation "x <= y < z" := ((x <= y) && (y < z)) : ring_scope.
 Notation "x < y < z" := ((x < y) && (y < z)) : ring_scope.
-Notation "| x |" := (OrderedRing.absr x) : ring_scope.
+Notation "`| x |" := (OrderedRing.absr x) : ring_scope.
 Notation "'\s' x" := (OrderedRing.signr x) : ring_scope.
 Notation "s ?* x" := (OrderedRing.smul s x) : ring_scope.
 
