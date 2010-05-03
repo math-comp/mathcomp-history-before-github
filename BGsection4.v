@@ -1312,6 +1312,17 @@ rewrite defp rank2_pdiv_complement ?(solvableS sG'G) ?(oddSg sG'G) //=.
 by rewrite -defp (leq_trans (p_rankS _ (der_sub _ _))).
 Qed.
 
+(* This is B & G, Theorem 4.18(d) *)
+Lemma rank2_pdiv_psubg_pcore : forall gT (G A: {group gT}) (p := pdiv #|G|),
+    solvable G -> odd #|G| -> 'r_p(G) <= 2 ->
+  p^'.-subgroup(G^`(1)) A -> A \subset 'O_p^'(G^`(1)). 
+Proof.
+move=> gT G A p solG oddG rG; case/andP=> sAG' p'A.
+have sG'G := der_sub 1 G; have solG' := solvableS sG'G solG.
+case: (HallSubset solG' sAG' p'A) => H HH sAH; rewrite (subset_trans sAH _) //. 
+case: (HallConj solG' HH (rank2_pdiv_complement_der1 _ _ rG)) => //= x xG' ->.
+by rewrite /= (normP _) // -/p (subsetP _ _ xG') ?char_norm ?pcore_char.
+Qed.
 
 (*
 have nRG : G \subset 'N(R) by rewrite char_norm ?pcore_char.
