@@ -1286,6 +1286,33 @@ rewrite [_ \in _]eqn_leq pdiv_min_dvd ?prime_gt1 ?bg4_18a //.
 exact: dvdn_trans qd (dvdn_quotient _ _).
 Qed.
 
+(* This is B & G, Theorem 4.18(c) *)
+Lemma rank2_pdiv_complement_der1 : forall gT (G : {group gT}) (p := pdiv #|G|),
+    solvable G -> odd #|G| -> 'r_p(G) <= 2 ->
+  p^'.-Hall(G^`(1)) 'O_p^'(G^`(1)). 
+Proof.
+move=> gT G p solG oddG rG; have sG'G := der_sub 1 G.
+have dG'G : pdiv #|G^`(1)| %| #|G| := dvdn_trans (pdiv_dvd _) (cardSg sG'G).
+case: (eqsVneq G^`(1) 1) => [-> //|ntG'].
+  rewrite /pHall (subset_trans (pcore_sub _ _)) ?subxx ?pcore_pgroup ?pnatNK //.
+  rewrite (eqP _:'O_p^'(1) = 1) ?indexg1 ?cards1 ?[_.-nat _]pgroup1 //.
+  by rewrite eqEsubset sub1G (subset_trans (pcore_sub _ _)) ?subxx.
+have ntG : G :!=: 1. 
+  case: eqP =>// trivG; apply: contraL ntG'; rewrite trivG negbK eqEsubset => _.
+  by rewrite sub1G (subset_trans (der_sub _ _)) ?subxx.
+case pdG': (p %| #|G^`(1)|); last first.
+  have p'G' : p^'.-group G^`(1).
+    apply/pgroupP=> q _ dq; apply: contraFT pdG'; move/negPn.
+    by rewrite !inE; move/eqP=> <-.
+  by rewrite pcore_pgroup_id // pHallE subxx part_pnat_id // eqxx.
+have defp : p = pdiv #|G^`(1)|.
+  apply/eqP; rewrite eqn_leq pdiv_min_dvd ?prime_gt1 ?pdiv_prime ?cardG_gt1 //.
+  by rewrite andbC (pdiv_min_dvd _ dG'G) ?prime_gt1 ?pdiv_prime ?cardG_gt1.
+rewrite defp rank2_pdiv_complement ?(solvableS sG'G) ?(oddSg sG'G) //=.
+by rewrite -defp (leq_trans (p_rankS _ (der_sub _ _))).
+Qed.
+
+
 (*
 have nRG : G \subset 'N(R) by rewrite char_norm ?pcore_char.
 have pG'C : p.-group (G^`(1) <*> C).
