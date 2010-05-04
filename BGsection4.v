@@ -1245,7 +1245,7 @@ by apply: (main_lemma _ b _ abelE).
 Qed.
 
 (* This is B & G, Theorem 4.18(a) *)
-Lemma bg4_18a : forall gT (G : {group gT}) (p := pdiv #|G|), 
+Lemma rank2_max_pdiv : forall gT (G : {group gT}) (p := pdiv #|G|), 
     solvable G -> odd #|G| -> 'r_p(G) <= 2 -> 
   forall q, prime q -> q %| #|G / 'O_p^'(G)| -> q <= p.
 Proof.
@@ -1282,7 +1282,7 @@ Lemma rank2_pdiv_complement : forall gT (G : {group gT}) (p := pdiv #|G|),
 Proof.
 move=> gT G p solG oddG rG; rewrite /pHall pcore_pgroup char_sub ?pcore_char //.
 rewrite pnatNK -card_quotient ?char_norm ?pcore_char //;apply/pgroupP=> q pq qd.
-rewrite [_ \in _]eqn_leq pdiv_min_dvd ?prime_gt1 ?bg4_18a //.
+rewrite [_ \in _]eqn_leq pdiv_min_dvd ?prime_gt1 ?rank2_max_pdiv //.
 exact: dvdn_trans qd (dvdn_quotient _ _).
 Qed.
 
@@ -1324,33 +1324,54 @@ case: (HallConj solG' HH (rank2_pdiv_complement_der1 _ _ rG)) => //= x xG' ->.
 by rewrite /= (normP _) // -/p (subsetP _ _ xG') ?char_norm ?pcore_char.
 Qed.
 
-(*
+(* This is B & G, Theorem 4.18(e) *)
+Lemma rank2_pdiv_pseries_p'abelian : forall gT (G: {group gT}) (p := pdiv #|G|),
+    solvable G -> odd #|G| -> 'r_p(G) <= 2 ->
+  abelian (G / 'O_{p^',p}(G)) /\ p^'.-group (G / 'O_{p^',p}(G)).
+Proof.
+move=> gT G p solG oddG rG.
+wlog trivK : gT G p solG oddG rG / 'O_p^'(G) = 1.
+  have trivQ : 'O_p^'(G / 'O_p^'(G)) = 1 by exact: trivg_pcore_quotient.
+  move/(_ _ (G / 'O_p^'(G))%G p); rewrite quotient_sol // quotient_odd // trivQ.
+  have -> : 'r_p(G / 'O_p^'(G)) <= 2.
+    have [X SylX] := Sylow_exists p G.
+    have nKX : X \subset 'N('O_p^'(G)).
+      by rewrite (subset_trans (pHall_sub SylX)) // normal_norm ?pcore_normal.
+    move/(quotient_pHall nKX) : (SylX) => /= SylXK.
+    rewrite (p_rank_Sylow SylXK) /= -(isog_p_rank (quotient_isog nKX _)) //.
+      exact: leq_trans (p_rankS _ (pHall_sub SylX)) rG.
+    exact: coprime_TIg (pnat_coprime (pHall_pgroup SylX) (pcore_pgroup _ _)).
+  case=> //; rewrite pseries_pop2 // -quotient_pseries2.
+  have iso := third_isog _ (pcore_normal p^' G) (pseries_normal _ G).
+  rewrite (isog_abelian (iso _ _)) /pgroup ?(isog_card (iso _ _)); first split;
+    by rewrite //= -pseries1 pseries_sub_catl.
+set R := 'O_p(G); set C := 'C_G(R); have pR : p.-group R by exact: pcore_pgroup.
 have nRG : G \subset 'N(R) by rewrite char_norm ?pcore_char.
 have pG'C : p.-group (G^`(1) <*> C).
-  have pC : p.-group C.
-    have sCR : C \subset R.
-      by rewrite /C /R -(Fitting_eq_pcore trivK) cent_sub_Fitting.
-    exact: pgroupS sCR (pcore_pgroup _ _).
-  have nCG : G \subset 'N(C).
-    by rewrite normsI ?normG // norms_cent.
+  have sCR : C \subset R.
+    by rewrite /C /R -(Fitting_eq_pcore _) // cent_sub_Fitting.
+  have pC : p.-group C := pgroupS sCR (pcore_pgroup _ _).
+  have nCG : G \subset 'N(C) by rewrite normsI ?normG // norms_cent.
   have ? : G^`(1) \subset 'N(C) by rewrite (subset_trans _ nCG) // der_sub.
   have ? : G^`(1) <*> C \subset 'N(C) by rewrite mulgen_subG andbC normG.
-  move: from_4_17.
+  have: p.-group((G / C)^`(1)).
+    admit. (* 4.17 *)
   by rewrite -quotient_der // -quotient_mulgen // pquotient_pgroup ?pC. 
 have abGR : abelian (G / R).
   have sG'CR : G^`(1) <*> C \subset R.
     apply: pcore_max; rewrite /normal //= mulgen_subG subsetIl der_sub.
     by rewrite norms_mulgen // ?der_norm ?normsI ?normG ?norms_cent.
   by rewrite sub_der1_abelian // (subset_trans _ sG'CR) // mulgen_subl.
-have p'GR : p^'.-group (G / R). (* goal (e)? *)
-  have trivOGR : 'O_p(G/R) = 1 := trivg_pcore_quotient p G.
-  have := (pseries_pop2 p^' trivOGR). rewrite /= -/R.
-  admit.
-apply/pnatP; rewrite ?indexg_gt0 => // q pr_q.
-rewrite -divgS ?pcore_sub //.
-admit.
+rewrite pseries_pop2 //; split => //.
+(* there must be a lemma for that, I think *)
+apply/pgroupP=> q pr_q; case/Cauchy=> // x; rewrite -cycle_subG !inE /= -/R.
+move => xGO xq; apply: contraL (prime_gt1 pr_q); move/eqP=> defq.
+have px : p.-group <[x]> by rewrite /pgroup -orderE xq defq pnat_id // -defq.
+have nx : <[x]> <| G / R by rewrite /normal xGO cents_norm ?(centsS xGO).
+have := pcore_max px nx; rewrite trivg_pcore_quotient //. 
+by move/subset_leq_card; rewrite cards1 -orderE xq -ltnNge.
 Qed.
-*)
+
 
 (* This is B & G, Corollary 4.19 *)
 Lemma rank2_cent_chief : forall gT p (G Gs U V : {group gT}),
