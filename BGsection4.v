@@ -1237,13 +1237,13 @@ Qed.
 (* Lemma 4.15 in B & G can be found in maximal.v *)
  
 (* This is B & G, Theorem 4.18(a) *)
-Lemma rank2_max_pdiv : forall gT (G : {group gT}) (p := pdiv #|G|), 
+Lemma rank2_max_pdiv : forall gT (G : {group gT}) p, 
     solvable G -> odd #|G| -> 'r_p(G) <= 2 -> 
   forall q, prime q -> q %| #|G / 'O_p^'(G)| -> q <= p.
 Proof.
 move=> gT G p solG oddG rG q pr_q qd.
 wlog trivK : gT G p solG oddG rG q pr_q qd / 'O_p^'(G) = 1.
-  move/(_ _ (G / 'O_p^'(G))%G p); rewrite quotient_sol // quotient_odd //.
+  move/(_ _ (G / 'O_p^'(G))%G p ); rewrite quotient_sol // quotient_odd //.
   rewrite trivg_pcore_quotient -(isog_card (quotient1_isog _)); apply=> //=.
   case: (Sylow_exists p G) => X SylX.
   have nKX : X \subset 'N('O_p^'(G)).
@@ -1273,39 +1273,58 @@ Lemma rank2_pdiv_complement : forall gT (G : {group gT}) (p := pdiv #|G|),
   p^'.-Hall(G) 'O_p^'(G).
 Proof.
 move=> gT G p solG oddG rG; rewrite /pHall pcore_pgroup char_sub ?pcore_char //.
-rewrite pnatNK -card_quotient ?char_norm ?pcore_char //;apply/pgroupP=> q pq qd.
-rewrite [_ \in _]eqn_leq pdiv_min_dvd ?prime_gt1 ?rank2_max_pdiv //.
+rewrite pnatNK -card_quotient ?char_norm ?pcore_char//; apply/pgroupP=> q pq qd.
+rewrite [_ \in _]eqn_leq pdiv_min_dvd ?prime_gt1 // 1?(rank2_max_pdiv solG) //. 
 exact: dvdn_trans qd (dvdn_quotient _ _).
 Qed.
 
-(* This is B & G, Theorem 4.18(c) *)
-Lemma rank2_pdiv_complement_der1 : forall gT (G : {group gT}) (p := pdiv #|G|),
+(* This is B & G, Theorem 4.18(c) *) (* TODO: factor with 4.18(e) *)
+Lemma rank2_pdiv_complement_der1 : forall gT (G : {group gT}) p, 
     solvable G -> odd #|G| -> 'r_p(G) <= 2 ->
   p^'.-Hall(G^`(1)) 'O_p^'(G^`(1)). 
 Proof.
-move=> gT G p solG oddG rG; have sG'G := der_sub 1 G.
-have dG'G : pdiv #|G^`(1)| %| #|G| := dvdn_trans (pdiv_dvd _) (cardSg sG'G).
-case: (eqsVneq G^`(1) 1) => [-> //|ntG'].
-  rewrite /pHall (subset_trans (pcore_sub _ _)) ?subxx ?pcore_pgroup ?pnatNK //.
-  rewrite (eqP _:'O_p^'(1) = 1) ?indexg1 ?cards1 ?[_.-nat _]pgroup1 //.
-  by rewrite eqEsubset sub1G (subset_trans (pcore_sub _ _)) ?subxx.
-have ntG : G :!=: 1. 
-  case: eqP =>// trivG; apply: contraL ntG'; rewrite trivG negbK eqEsubset => _.
-  by rewrite sub1G (subset_trans (der_sub _ _)) ?subxx.
-case pdG': (p %| #|G^`(1)|); last first.
-  have p'G' : p^'.-group G^`(1).
-    apply/pgroupP=> q _ dq; apply: contraFT pdG'; move/negPn.
-    by rewrite !inE; move/eqP=> <-.
-  by rewrite pcore_pgroup_id // pHallE subxx part_pnat_id // eqxx.
-have defp : p = pdiv #|G^`(1)|.
-  apply/eqP; rewrite eqn_leq pdiv_min_dvd ?prime_gt1 ?pdiv_prime ?cardG_gt1 //.
-  by rewrite andbC (pdiv_min_dvd _ dG'G) ?prime_gt1 ?pdiv_prime ?cardG_gt1.
-rewrite defp rank2_pdiv_complement ?(solvableS sG'G) ?(oddSg sG'G) //=.
-by rewrite -defp (leq_trans (p_rankS _ (der_sub _ _))).
+move=> gT G p solG oddG rG.
+wlog trivK : gT G p solG oddG rG / 'O_p^'(G) = 1.
+  have nKG : G \subset 'N('O_p^'(G)) by rewrite normal_norm ?pcore_normal.
+  move/(_ _ (G / 'O_p^'(G))%G p); rewrite quotient_sol // quotient_odd //=.
+  have -> : 'r_p(G / 'O_p^'(G)) <= 2.
+    have [X SX] := Sylow_exists p G.
+    have nKX : X \subset 'N('O_p^'(G)) by rewrite (subset_trans (pHall_sub SX)).
+    move/(quotient_pHall nKX) : (SX) => /= SXK.
+    rewrite (leq_trans _ rG) // (p_rank_Sylow SXK) /=.
+    rewrite -(isog_p_rank (quotient_isog nKX _)) ?p_rankS ?(pHall_sub SX) //.
+    exact: coprime_TIg (pnat_coprime (pHall_pgroup SX) (pcore_pgroup _ _)).
+  rewrite -quotient_der //= trivg_pcore_quotient; do 4 move/(_ (refl_equal _)). 
+  have nKG' : G^`(1) \subset 'N('O_p^'(G)) := subset_trans (der_sub _ _) nKG.
+  move: (second_isog nKG') => /= iso. 
+  have pKI := pgroupS (subsetIl _ G^`(1)) (pcore_pgroup p^' G).
+  have nKIG : ('O_p^'(G) :&: G^`(1)) <| G^`(1).
+    by rewrite /normal subsetIr normsI // ?normG ?norml_norm ?pcore_normal.
+  rewrite -(pquotient_pHall pKI nKIG) /normal /=; last first.
+    by rewrite normsI ?(subset_trans (pcore_sub _ _)) ?normG 1?andbC ?pcore_max.
+  rewrite !pHallE /=; case/andP=> _ hall; rewrite -pquotient_pcore // pcore_sub.
+  by rewrite (isog_card iso) (isog_card (bgFunc_isog (bgFunc_pcore p^') iso)).
+set R := 'O_p(G); set C := 'C_G(R); have pR : p.-group R by exact: pcore_pgroup.
+have nRG : G \subset 'N(R) by rewrite char_norm ?pcore_char.
+have pG'C : p.-group (G^`(1) <*> C).
+  have sCR : C \subset R.
+    by rewrite /C /R -(Fitting_eq_pcore _) // cent_sub_Fitting.
+  have pC : p.-group C := pgroupS sCR (pcore_pgroup _ _).
+  have nCG : G \subset 'N(C) by rewrite normsI ?normG // norms_cent.
+  have ? : G^`(1) \subset 'N(C) by rewrite (subset_trans _ nCG) // der_sub.
+  have ? : G^`(1) <*> C \subset 'N(C) by rewrite mulgen_subG andbC normG.
+  have: p.-group((G / C)^`(1)).
+    admit. (* 4.17, uses rG and oddG *)
+  by rewrite -quotient_der // -quotient_mulgen // pquotient_pgroup ?pC. 
+have sG'CR : G^`(1) <*> C \subset R.
+  apply: pcore_max; rewrite /normal ?pG'C // mulgen_subG subsetIl der_sub.
+  by rewrite norms_mulgen // ?der_norm ?normsI ?normG ?norms_cent.
+have pG' := pgroupS (subset_trans (mulgen_subl _ _) sG'CR) pR.
+exact: nilpotent_pcore_Hall (pgroup_nil pG').
 Qed.
 
 (* This is B & G, Theorem 4.18(d) *)
-Lemma rank2_pdiv_psubg_pcore : forall gT (G A: {group gT}) (p := pdiv #|G|),
+Lemma rank2_pdiv_psubg_pcore : forall gT (G A: {group gT}) p,
     solvable G -> odd #|G| -> 'r_p(G) <= 2 ->
   p^'.-subgroup(G^`(1)) A -> A \subset 'O_p^'(G^`(1)). 
 Proof.
@@ -1317,7 +1336,7 @@ by rewrite /= (normP _) // -/p (subsetP _ _ xG') ?char_norm ?pcore_char.
 Qed.
 
 (* This is B & G, Theorem 4.18(e) *)
-Lemma rank2_pdiv_pseries_p'abelian : forall gT (G: {group gT}) (p := pdiv #|G|),
+Lemma rank2_pdiv_pseries_p'abelian : forall gT (G: {group gT})  p, 
     solvable G -> odd #|G| -> 'r_p(G) <= 2 ->
   abelian (G / 'O_{p^',p}(G)) /\ p^'.-group (G / 'O_{p^',p}(G)).
 Proof.
@@ -1347,7 +1366,7 @@ have pG'C : p.-group (G^`(1) <*> C).
   have ? : G^`(1) \subset 'N(C) by rewrite (subset_trans _ nCG) // der_sub.
   have ? : G^`(1) <*> C \subset 'N(C) by rewrite mulgen_subG andbC normG.
   have: p.-group((G / C)^`(1)).
-    admit. (* 4.17 *)
+    admit. (* 4.17, uses rG and oddG *)
   by rewrite -quotient_der // -quotient_mulgen // pquotient_pgroup ?pC. 
 have abGR : abelian (G / R).
   have sG'CR : G^`(1) <*> C \subset R.
