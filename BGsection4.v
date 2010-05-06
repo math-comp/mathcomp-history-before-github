@@ -1097,13 +1097,13 @@ Qed.
 (* This corresponds to Lemmas 4.13 and 4.14 in B & G. *)
 Lemma automorphism_prime_order_pgroup_rank_le2 : 
   forall gT (R : {group gT}) p q (a : gT),
-    p.-groupR -> odd #|R| -> 'r(R) <= 2 -> a \in 'N(R) -> prime q -> p != q ->
-      #[a] = q -> a \notin 'C(R) ->
+    p.-group R -> odd #|R| -> 'r(R) <= 2 -> a \in 'N(R) :\: 'C(R) -> 
+      prime q -> p != q -> #[a] = q ->
     q %| (p^2).-1 /\ (q %| p.+1./2 \/ q %| p.-1./2) /\ q < p.
 Proof.
-move=> gT R p q a pR oddR rankR NRa primeq nepq ord_a; move/negP=> nCRa.
+move=> gT R p q a pR oddR rankR; case/setDP=> NRa nCRa primeq nepq ord_a.
 move: {2}_.+1 (ltnSn #|R|) => n.
-elim: n => // n IHn in R pR oddR rankR NRa nCRa*; rewrite ltnS=> cardRle.
+elim: n => // n IHn in R pR oddR rankR NRa nCRa *; rewrite ltnS=> cardRle.
 case neR1 : (R == 1%G); first by case: nCRa; rewrite (eqP neR1) cent1T inE.
 have [primep _ [m cardR]] := pgroup_pdiv pR (negbT neR1).
 have oddp : odd p by move: oddR; rewrite cardR odd_exp.
@@ -1120,9 +1120,9 @@ case eR_RA : (R :==: RA); last first.
   have NRAa : a \in 'N(RA) by rewrite (subsetP (commg_normr _ _)) // cycle_id.
   have cardRA : #|RA| < n by apply: (leq_trans (proper_card pRA_R)).
   apply: (IHn _ pRA); rewrite // ?(leq_trans (rankS sRA_R)) //.
-  rewrite -cycle_subG /= centsC; move/commG1P.
+  rewrite -cycle_subG /= centsC (sameP commG1P eqP).
   rewrite coprime_commGid ?(pgroup_sol pR) ?cycle_subG //=.
-  by move/commG1P; rewrite centsC cycle_subG.
+  by rewrite (sameP eqP commG1P) centsC cycle_subG.
 case eR_OR : (R :==: 'Ohm_1(R)); last first.
   have sOR_R := Ohm_sub 1 R; have pOR := pgroupS sOR_R pR.
   have pOR_R : OR \proper R by rewrite properEneq eq_sym eR_OR.
@@ -1130,8 +1130,8 @@ case eR_OR : (R :==: 'Ohm_1(R)); last first.
   have NORa : a \in 'N(OR) by apply: (subsetP (char_norms (Ohm_char 1 _))).
   have cardOR : #|OR| < n by apply: (leq_trans (proper_card pOR_R)).
   apply: (IHn _ pOR oddOR _ NORa); rewrite ?(leq_trans (rankS sOR_R)) //.
-  rewrite -cycle_subG -/A /= => cORA; apply: nCRa; rewrite -cycle_subG -/A /=.
-  by rewrite (coprime_odd_faithful_Ohm1 pR). 
+  apply: (contra _ nCRa); rewrite -!cycle_subG -/A. 
+  exact: (coprime_odd_faithful_Ohm1 pR).
 suffices {IHn cardRle n} qdiv: q %| (p ^ 2).-1; first split => //.
   have even_pm1 : odd (p.-1) = false. 
     by rewrite -subn1 odd_sub ?prime_gt0 //= oddp.
@@ -1156,16 +1156,16 @@ suffices {IHn cardRle n} qdiv: q %| (p ^ 2).-1; first split => //.
   have pm1_gt0: p.-1 > 0 by rewrite -ltnS prednK ?prime_gt0 ?prime_gt1.
   by apply: (leq_trans (leq_trans (dvdn_leq pm1_gt0 qdiv') (leq_pred _))).
 have {p2m1_eq} main_lemma : 
-  forall (hT : finGroupType) (b : hT) (E : {group hT}), let B := <[b]> in
-    p.-abelem E -> #[b] = q -> B \subset 'N(E) -> 
-      ~ (<[b]> \subset 'C(E)) -> E != 1%G -> rank E <= 2 -> q %| (p^2).-1.
-  move=> hT b E B abelE ord_b nEB ncEB neE1 rankE.
+  forall (hT : finGroupType) (b : hT) (E : {group hT}), 
+    p.-abelem E -> E != 1%G -> rank E <= 2 -> b \in 'N(E) :\: 'C(E) -> 
+      #[b] = q -> q %| (p^2).-1.
+  move=> hT b E abelE neE1 rankE; case/setDP=> NEb nCEb ord_b; pose B := <[b]>.
   have eCBE_1 : 'C_B(E) = 1%G.
     have: #|'C_B(E)| %| q by rewrite -ord_b orderE cardSg // subsetIl.
     move/(proj2 (primeP primeq)); rewrite -trivg_card1; case/orP; case/eqP=> //.
-    move=> card_CBE; case: ncEB; apply/setIidPl; apply/eqP.
-    by rewrite eqEcard subsetIl /= -orderE ord_b card_CBE.
-  pose rP := reprGLm (abelem_repr abelE neE1 nEB).
+    move=> card_CBE; case (negP nCEb); rewrite -cycle_subG; apply/setIidPl=> /=.
+    by apply/eqP; rewrite eqEcard subsetIl /= -orderE ord_b card_CBE.
+  rewrite -cycle_subG in NEb; pose rP := reprGLm (abelem_repr abelE neE1 NEb).
   have qdiv: q %| #|rP @* B|.
     by rewrite card_injm -?orderE ?ord_b // ker_reprGLm rker_abelem eCBE_1.
   move: (dvdn_trans qdiv (cardSg (@subsetT _ (rP @* B))))=> //=.
@@ -1177,73 +1177,65 @@ have {p2m1_eq} main_lemma :
   by rewrite (negbTE nepq) /= orbb p2m1_eq euclid // orbC.
 pose char_abelians := \bigcup_(H | ((H : {group gT}) \char R) && abelian H) H.
 case Afix: (char_abelians \subset 'C(A)); last first.
-  case/subsetPn: (negbT Afix)=> h; case/bigcupP=> H; case/andP=> charHR cHH Hh.
-  move/negP=> nCAh; have ncHA : ~ A \subset 'C(H). 
-    by rewrite centsC=> cAH; apply: nCAh; apply: (subsetP cAH).
+  case/subsetPn: (negbT Afix)=> h; case/bigcupP=> H.
+  case/andP=> charHR cHH Hh nCAh.
+  have ncHA : ~~ (A \subset 'C(H)) by rewrite centsC; apply/subsetPn; exists h. 
   have [sHR nHR] := andP (char_normal charHR); have oddH := oddSg sHR oddR.
   have pH := pgroupS sHR pR.
   pose E := 'Ohm_1(H); have abelE : p.-abelem E by apply: (Ohm1_abelem pH).
   have sER := subset_trans (Ohm_sub 1 _) sHR.
   have nEA : A \subset 'N(E).
     by apply: char_norm_trans (Ohm_char 1 _) (char_norm_trans charHR nRA).
-  have ncEA : ~ (A \subset 'C(E)).
-    move=> cEA; apply: ncHA; apply: (coprime_odd_faithful_Ohm1 pH)=> //=.
+  have ncEA : ~~ (A \subset 'C(E)).
+    apply: (contra _ ncHA); apply: (coprime_odd_faithful_Ohm1 pH)=> //=.
       by apply: (char_norm_trans charHR).
     by rewrite (coprime_dvdl _ coprimeRA) // cardSg.
-  have neE1 : E != 1.
-    by move/negP: ncEA; apply: contra; move/eqP=> ->; apply cents1.
+  have neE1 : E != 1 by apply: (contra _ ncEA); move/eqP=> ->; apply cents1.
   have rankE : rank E <= 2 by apply: (leq_trans (rankS sER) rankR).
-  by apply: (main_lemma _ a _ abelE).
-have ncRR : ~ (abelian R).
-  move=> cRR; apply: nCRa; rewrite -cycle_subG centsC (subset_trans _ Afix) //.
-  by apply: bigcup_max (subxx R); rewrite char_refl cRR.
-pose ZR := 'Z(R); have nsZR : ZR <| R by apply: center_normal R. 
+  by apply: (main_lemma _ a _ abelE); rewrite // inE -!cycle_subG ncEA.
+have ncRR : ~~ (abelian R).
+  apply: (contra _ nCRa)=> cRR; rewrite -cycle_subG centsC.
+  rewrite (subset_trans _ Afix) //; apply: bigcup_max (subxx R). 
+  by rewrite char_refl.
+have nsZR : 'Z(R) <| R by apply: center_normal R. 
 have [sZR nZR] := andP nsZR; have pZR := pgroupS sZR pR.
-have {Afix char_abelians} [specR _]: special R /\ 'C_R(A) = ZR.
+have {Afix char_abelians} [specR _]: special R /\ 'C_R(A) = 'Z(R).
   by apply: (abelian_charsimple_special pR) => //; rewrite ?{2}(eqP eR_RA).
 have abelZR := center_special_abelem pR specR; case: specR=> ePhiR eR'.
 have {eR'} nc2_R : nil_class R <= 2 by rewrite nil_class2 eR'.
 have {nc2_R} expR : exponent R %| p. 
   rewrite (eqP eR_OR) (proj1 (exponent_odd_nil23 pR oddR _)) //. 
   by rewrite (leq_trans nc2_R).
-have NZRa : a \in 'N(ZR). 
+have NZRa : a \in 'N('Z(R)). 
  by rewrite (subsetP (char_norm_trans (center_char R) nRA)) // cycle_id.
 have neZR1 : 'Z(R) != 1.
   rewrite /center -{1}(setIid R) -setIA nil_meet_Z ?(pgroup_nil pR)  //. 
   by rewrite ?(negbT neR1).
 move: (pgroup_rank_le2_exponentp pR rankR expR); rewrite leq_eqVlt ltnS.
-case/orP=> lcardR; last by case: ncRR; apply: (p2group_abelian pR lcardR).
-have lcardZR: logn p #|ZR| <= 2.
-  rewrite -ltnS -(eqP lcardR) properG_ltn_log ?properEneq ?center_sub ?andbT //.
-  by apply/negP; move/eqP=> eZR; apply: ncRR; rewrite -eZR center_abelian.
+case/orP=> lcardR; last by rewrite (p2group_abelian pR lcardR) in ncRR.
 have {lcardR m cardR} cardR : #|R| = (p^3)%N.
   by rewrite cardR pfactorK // in lcardR; rewrite cardR (eqP lcardR).
-have cardZR: #|ZR| != (p^2)%N.
-  apply/negP; move/eqP=> cardZR; apply: ncRR.
-  rewrite (@center_cyclic_abelian _ R) ?center_abelian // prime_cyclic //=.
-  by rewrite card_quotient -?divgS // cardR cardZR mulnK ?muln_gt0 ?prime_gt0.
-have {lcardZR cardZR} cardZR : #|ZR| = p.
-  move: lcardZR cardZR; case (pgroup_pdiv pZR neZR1)=> _ _ [m ->].
-  by rewrite pfactorK //; case: m=> [|[|k]]; rewrite ?eqxx ?orbT.
-pose E := R / ZR; have cardE : #|E| = (p^2)%N.
-  by rewrite card_quotient // -divgS // cardR cardZR mulKn ?prime_gt0.
-have abelE : p.-abelem E by rewrite /E /ZR -ePhiR Phi_quotient_abelem.
-pose b := coset ZR a; pose B := <[b]>.
+pose E := R / 'Z(R); pose b := coset 'Z(R) a; pose B := <[b]>.
+have abelE : p.-abelem E by rewrite /E -ePhiR Phi_quotient_abelem.
 have ord_b : #[b] = q.
   have: #[b] %| q by rewrite order_dvdn -morphX // -ord_a expg_order morph1.
   move/(proj2 (primeP primeq)); case/orP; last by move/eqP.
   rewrite order_eq1; move/eqP; move/(coset_idr NZRa); rewrite inE.
-  by case/andP=> _; move/nCRa.
-have nEB : B \subset 'N(E) by rewrite -[B]quotient_cycle // quotient_norms. 
-have ncEB : ~ B \subset 'C(E).
+  by rewrite (negbTE nCRa) andbF.
+have nEB : B \subset 'N(E) by rewrite -[B]quotient_cycle // quotient_norms.
+have nsR_ZR : ~~ (R \subset 'Z(R)) by rewrite subsetI subxx /= ncRR. 
+have ncEB : ~~ (B \subset 'C(E)).
   rewrite -[B]quotient_cycle // quotient_cents2 ?cycle_subG //=.
-  by rewrite commGC -/A -/RA -(eqP eR_RA) subsetI subxx.
-have neE1 : E != 1.
-  by rewrite trivg_card1 cardE eqn_mul1 andbb neq_ltn ?prime_gt1 ?orbT.
-have rankE : rank E <= 2 by rewrite (rank_abelem abelE) cardE pfactorK.
-by apply: (main_lemma _ b _ abelE).
+  by rewrite commGC -/RA -(eqP eR_RA). 
+have neE1 : E != 1 by rewrite eqEsubset quotient_sub1 // negb_and nsR_ZR. 
+have rankE : rank E <= 2.
+  rewrite (rank_abelem abelE) -ltnS (leq_trans (ltn_log_quotient pR _ sZR)) //.
+  by rewrite cardR pfactorK.
+by apply: (main_lemma _ b _ abelE)=> //; rewrite inE -!cycle_subG ncEB.
 Qed.
 
+(* Lemma 4.15 in B & G can be found in maximal.v *)
+ 
 (* This is B & G, Theorem 4.18(a) *)
 Lemma rank2_max_pdiv : forall gT (G : {group gT}) (p := pdiv #|G|), 
     solvable G -> odd #|G| -> 'r_p(G) <= 2 -> 
@@ -1267,11 +1259,11 @@ have rR : 'r(R) <= 2.
   by rewrite (rank_pgroup pR) (leq_trans (p_rankS _ (pcore_sub _ _)) rG).
 move: (dvdn_trans qd (dvdn_quotient _ _)); case/Cauchy=> //= a aG oa.
 case: (eqVneq p q) => [-> //| npq]; move:(npq); rewrite eq_sym=>nqp.
-have aN : a \in 'N(R) by rewrite (subsetP _ _ aG) ?char_norm ?pcore_char.
-have naC : a \notin 'C(R).
+have ?: a \in 'N(R) :\: 'C(R).
+  rewrite inE [a \in 'N(_)](subsetP _ _ aG) ?char_norm ?pcore_char ?andbT //.
   apply: contra nqp => aCR; have aR : a \in R by rewrite (subsetP sCR) ?inE ?aG.
   by move/pnatP: (mem_p_elt pR aR); apply; rewrite ?order_gt0 // -oa dvdnn.
-case: (automorphism_prime_order_pgroup_rank_le2 _ _ rR _ _ npq oa _)=>// _ [] _.
+case: (automorphism_prime_order_pgroup_rank_le2 _ _ rR _ _ npq oa)=>// _ [] _.
 exact: leqW.
 Qed.
 

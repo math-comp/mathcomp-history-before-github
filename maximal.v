@@ -2,7 +2,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype finfun.
 Require Import bigops finset prime binomial groups morphisms normal perm.
 Require Import commutators automorphism action cyclic gfunc pgroups center.
-Require Import gprod gseries nilpotent sylow abelian finmod.
+Require Import gprod gseries nilpotent sylow abelian finmod ssralg matrix.
 
 (******************************************************************************)
 (*   This file establishes basic properties of several important classes of   *)
@@ -777,6 +777,69 @@ Qed.
 
 End Special.
 
+Section Extra_Special.
+
+Variables (gT : finGroupType) (p : nat) (R S : {group gT}).
+
+(* This is B & G, Theorem 4.15, as done in Aschbacher 23.8 *)
+Lemma critical_extraspecial :
+  p.-group R -> S \subset R -> extra_special S -> [~: S, R] \subset S^`(1) ->
+    R :=: S <*> 'C_R(S).
+Proof.
+move=> pR sSR [[PhiS_eq ->] primeZ sSR_Z]; have pS := pgroupS sSR pR.
+have nSR : R \subset 'N(S).
+  by rewrite -commg_subl (subset_trans sSR_Z) ?subsetIl.
+have nsCRS_R : 'C_R(S) <| R.
+  by rewrite (normalS (subsetIl _ _) _ (subcent_normal _ _)) ?subsetI ?subxx.
+have [sCRS_R nCRS_R] := andP nsCRS_R.
+have {primeZ} cardZ_eq : #|'Z(S)| = p.
+  by apply/eqP; exact: (pgroupP (pgroupS (center_sub _) pS)).
+apply: (quotient_inj nsCRS_R)=> /=. 
+  by rewrite (normalS _ _ nsCRS_R) ?mulgen_subr // mulgen_subG sSR.
+apply/eqP; rewrite quotient_mulgen ?(subset_trans sSR) //= eq_sym eqEcard.
+rewrite quotientS //= -(isog_card (second_isog (subset_trans sSR nCRS_R))).
+rewrite (setIC _ S) setIA (setIidPl sSR) /= -['C_S(S)]PhiS_eq.
+have abel_S_PhiS := Phi_quotient_abelem (pgroupS sSR pR).
+case: (abelian_structure (abelem_abelian abel_S_PhiS))=> X /=.
+move/bigdprodEgen => /= S_PhiS_eq.
+rewrite (abelian_type_abelem abel_S_PhiS) (rank_abelem abel_S_PhiS).
+move/(congr1 size); rewrite size_map size_nseq => n_eq {abel_S_PhiS}.
+set n := size _ in n_eq; pose tXZ := 'rV[subg_of 'Z(S)]_n.
+pose x i := repr (nth 1 X i); rewrite (big_nth 1) -/n big_mkord in S_PhiS_eq.
+have Sxi : forall (i : 'I_n), x i \in S. 
+  move=> i; apply: subsetP (mem_repr_coset (nth 1 X i)).
+  rewrite -(quotientSGK (coset_norm _) (Phi_sub S)) -S_PhiS_eq.
+  by rewrite sub_gen ?(bigcup_max i) // -cosetpre_set1_coset cosetpreK sub_gen.
+have RrepCg: forall Cg, Cg \in (R / 'C_R(S)) -> repr Cg \in R. 
+  move=> Cg; case/morphimP=> g Ng Rg -> /=; apply: subsetP (mem_repr_coset _).
+  by rewrite val_coset // mul_subG ?sub1set ?subsetIl.
+have fP: forall (i : 'I_n) (Cg : subg_of (R / 'C_R(S))), 
+    [~ x i, repr (val Cg)] \in 'Z(S).
+  by move=> i Cg; rewrite (subsetP sSR_Z) // ?mem_commg // (RrepCg _ (valP Cg)).
+pose f Cg : tXZ := (\row_i Subg (fP i (subg _ Cg)))%R.
+suffices injf: {in R / 'C_R(S) &, injective f}.
+  rewrite -(card_in_imset injf) (leq_trans (max_card _)) //.
+  rewrite card_matrix mul1n card_sub n_eq cardZ_eq.
+  by rewrite -p_part part_pnat_id //; apply: quotient_pgroup; exact: pgroupS pR.
+move=> Cg Ch Rg Rh /=; move/rowP=> eq_fgh.
+have cXgh: forall i : 'I_n, repr Cg * (repr Ch)^-1 \in 'C[x i].
+  move=> i; move/(congr1 val): (eq_fgh i); rewrite !mxE /= !subgK // !commgEl.
+  move/(mulgI _); move/(canLR (conjgK _)); rewrite -conjgM.
+  by move/conjg_fixP; rewrite (sameP commgP cent1P) cent1C.
+suffices CRS_CgChi: repr Cg * (repr Ch)^-1 \in 'C(S).
+  apply: val_inj; rewrite -[Cg]coset_reprK -[Ch]coset_reprK.
+  rewrite /= !val_coset ?repr_coset_norm //; apply: rcoset_transl.
+  by rewrite mem_rcoset inE groupM //= ?groupV RrepCg.
+rewrite -sub_cent1; apply/setIidPl; rewrite -[_ :&: _]genGid.
+apply: Phi_nongen; apply/eqP; rewrite eqEsubset mulgen_subG Phi_sub subsetIl /=.
+rewrite norm_mulgenEr ?subIset -?quotientSK ?bgFunc_norm //=.
+rewrite -S_PhiS_eq gen_subG; apply/bigcupsP=> i _; rewrite cycle_subG /=.
+rewrite -[nth 1 X i]coset_reprK mem_morphim ?repr_coset_norm //.
+by rewrite inE cent1C cXgh Sxi.
+Qed.
+
+End Extra_Special.
+
 Section SCN.
 
 Variables (gT : finGroupType) (p : nat) (G : {group gT}).
@@ -1093,4 +1156,3 @@ by case: eqP => //= _; move/eqP=> oyq; case: qG; rewrite -oyq order_dvdG.
 Qed.
 
 End SCN.
-
