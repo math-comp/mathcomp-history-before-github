@@ -9,6 +9,12 @@ Require Import gseries maximal matrix mxrepresentation BGsection1 BGsection2.
 (* the proof of the p-stability properties and the ZL-Theorem (the Puig       *)
 (* replacement for the Glaubermann ZJ-theorem). The relevant definitions are  *)
 (* given in BGsection1.                                                       *)
+(* Theorem A.4(a) has not been formalised: it is a result on external         *)
+(* p-stability, which concerns faithful representations of group with a       *)
+(* trivial p-core on a field of characteristic p. It's the historical concept *)
+(* that was studied by Hall and Higman, but it's not used for FT. Note that   *)
+(* the finite field case can be recovered from A.4(c) with a semi-direct      *)
+(* product.                                                                   *)
 (******************************************************************************)
 
 Set Implicit Arguments.
@@ -31,6 +37,8 @@ Import MatrixGenField.
 (* which we prove p-stability are inherited by sections (morphic image in our *)
 (* framework), and restrict to the case where P is normal in G. (Clearly the  *)
 (* 'O_p^'(G) * P <| G premise plays no part in the proof.)                    *)
+(* Theorems A.1-A.3 are essentially inlined in this proof                     *)
+
 Lemma odd_p_stable : forall gT p (G : {group gT}), odd #|G| -> p.-stable G.
 Proof.
 move=> gT p; move: gT.
@@ -264,6 +272,9 @@ move=> G D E sDE; apply: Puig_max (Puig_succ_sub _ _).
 exact: norm_abgenS sDE (Puig_gen _ _).
 Qed.
 
+
+(* With Puig_sub_odd, Puig_sub_even_odd, as well as BGsection1/Puig1 gives    *)
+(* B & G B.1(b)                                                               *)
 Lemma Puig_sub_even : forall m n G,
   m <= n -> 'L_{m.*2}(G) \subset 'L_{n.*2}(G).
 Proof.
@@ -298,6 +309,7 @@ have{eqLm} eqLm: forall k, m <= k -> 'L_{k.*2}(G) = L2G m.
 by exists m => k le_mk; rewrite Puig_def PuigS /Puig_inf /= !eqLm //.
 Qed.
 
+(* With  the very definition of 'L(G) gives B & G B.1(g)                      *)
 Lemma Puig_inf_def : forall G, 'L_*(G) = 'L_[G]('L(G)).
 Proof.
 move=> G; have [k defL] := Puig_limit G.
@@ -312,9 +324,12 @@ rewrite PuigS sub_gen // bigcup_sup // inE sAG /norm_abelian cAA andbT.
 exact: subset_trans (Puig_at_sub n G) nAG.
 Qed.
 
+(* With  BGsection1/Puig_sub gives B & G B.1(d)                                *)
 Lemma Puig_inf_sub_Puig : forall G, 'L_*(G) \subset 'L(G).
 Proof. move=> G; exact: Puig_sub_even_odd. Qed.
 
+(* With sub_cent_Puig_inf, sub_cent_Puig, sub_center_Puig_at, and             *)
+(* trivg_center_Puig_pgroup gives B & G B.1(f)                                *)
 Lemma sub_cent_Puig_at : forall n p G,
   n > 0 -> p.-group G -> 'C_G('L_{n}(G)) \subset 'L_{n}(G).
 Proof.

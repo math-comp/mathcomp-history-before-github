@@ -173,6 +173,7 @@ Let H := \bigcap_(UV | Gchief UV) 'C(UV.1 / UV.2 | 'Q).
 Let H' :=
   G' :&: \bigcap_(UV | Gchief UV && (UV.1 \subset 'F(G'))) 'C(UV.1 / UV.2 | 'Q).
 
+(* This corrresponds to B&G 1.2 non trivial inclusion *)
 Lemma Fitting_stab_chief : 'F(G') \subset H.
 Proof.
 apply/bigcapsP=> [[U V] /=  UVchief]; have [/= Vmax sUG nUG] := and3P UVchief. 
@@ -186,6 +187,7 @@ apply: minnormal_solvable_Fitting_center (quotientS V sUG).
 exact: chief_factor_minnormal.
 Qed.
 
+(* This corrresponds to B&G 1.2 equality *)
 Lemma chief_stab_sub_Fitting : H' \subset 'F(G').
 Proof.
 have nsH'G : H' <| G.

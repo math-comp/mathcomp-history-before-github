@@ -22,7 +22,7 @@ Implicit Type gT : finGroupType.
 Implicit Type p : nat.
 
 (* B & G, Lemma 4.1 (also, Gorenstein, 1.3.4, and Aschbacher, ex. 2.4) is     *)
-(* covered by Lemma center_cyclic_abelian, in cyclic.v.                       *)
+(* covered by Lemma center_cyclic_abelian, in center.v.                       *)
 
 (* B & G, Lemma 4.2 is covered by Lemmas commXg, commgX, commXXg (for 4.2(a)) *)
 (* and expMg_Rmul (for 4.2(b)) in commutators.v.                              *)
