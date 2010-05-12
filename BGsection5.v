@@ -495,7 +495,7 @@ have oddp : odd p.
   by case: (even_prime p_pr) oddR => // p2; rewrite cR p2 odd_exp eqn0Ngt.
 case: (critical_odd _ pR)=> // H [cHR sHRZ] nc2 exH pCAu A solA sAAu oddA.
 have sCO : 'C_A(H | 'P) \subset 'O_p(A).
-  apply: pcore_max; first by apply: pgroupS _ pCAu; rewrite /= !astab_ract setSI.
+  apply: pcore_max;first by apply: pgroupS _ pCAu; rewrite /= !astab_ract setSI.
   rewrite /normal subsetIl normsI ?normG ?(subset_trans _ (astab_norm _ _))//.
   apply/subsetP=> a Aa; rewrite !inE /=; case/andP: cHR => sHR.
   move/forallP; move/(_ a);move/implyP; move/(_ (subsetP sAAu _ Aa)) => ch.
@@ -503,8 +503,14 @@ have sCO : 'C_A(H | 'P) \subset 'O_p(A).
   have:= sub_morphim_pre [morphism of autm aAutR] H sHR; simpl.
   by rewrite !morphimEsub // morphpreE subsetI sHR /= => <-.
 have ntH : H :!=: 1.
-  by case: eqP exH (prime_gt1 p_pr) => // ->; rewrite exponent1 => ->; rewrite ltnn.
-split.
+  by case: eqP (exponent1 gT) exH (prime_gt1 p_pr) (ltnn p) => // -> -> <-.
+split. (* all H_i centralised by A 
+suppose C_A(H) < H then 
+BG sub_fitting 1.2
+maybe reuse the proof of stable_factor_cent with external actions boilerplate
+ in hall.v
+ 
+*)
 - admit. (* 2 < r(R) -> 1.9 stable_factor_cent, otherwise 4.17 *)
 - admit. 
 move=> rR.
@@ -599,3 +605,85 @@ admit.
 Qed.
 
 End Five5. 
+
+Let isog_narrow : forall (gT rT : finGroupType),
+    forall (G : {group gT}) (S : {group rT}) p,
+  S \isog G -> narrow p S -> narrow p G.
+Proof.
+move=> gT rT G S p; case/isogP=> f injf defG [E Ep2 Emax].
+rewrite -(group_inj defG); have sES : E \subset S by case/pnElemP: Ep2.
+by exists (f @* E)%G; rewrite ?(injm_pnElem, injm_pmaxElem).
+Qed.
+
+Theorem odd_narrow_plength1_complement_max_pdiv : 
+    forall (gT : finGroupType) (G S : {group gT}) p, 
+    odd #|G| -> narrow p S -> solvable G -> p.-Sylow(G) S -> p.-length_1 G -> 
+  (forall q, prime q -> q %| #|G / 'O_p^'(G)| -> q <= p) /\
+  p^'.-Hall(G^`(1)) 'O_p^'(G^`(1)). 
+Proof.
+move=> gT G S p oddG narS solG psylS pl1G.
+wlog trivK : gT G S p oddG narS solG psylS pl1G / 'O_p^'(G) = 1.
+  set K := 'O_p^'(G); have nKG : G \subset 'N(K) := char_norm (pcore_char _ _).
+  move/(_ _ (G / K)%G 'O_p(G / K)%G p).
+  rewrite quotient_sol // quotient_odd // plenght1_pSylow //.
+  rewrite trivg_pcore_quotient // plength1_quo // -quotient_der //.
+  have iso: S \isog 'O_p(G / K)%G.  
+    have nOGS : S \subset 'N(K) := subset_trans (pHall_sub psylS) nKG.
+    case: (Sylow_trans (quotient_pHall nOGS psylS) (plenght1_pSylow pl1G)) => ?.
+    case/imsetP=> x; case/setIP=> xNK xG /= -> ->; rewrite -quotientJ //.
+    apply: (isog_trans _ (quotient_isog (conj_subG  _ _) _)) => //=.
+      by rewrite -{2}(setIidPr (subxx S)) ?(sub_isog (subxx _) (injm_conj S x)).
+    apply: coprime_TIg (pnat_coprime _ (pcore_pgroup _ _)).
+    by rewrite cardJg [_.-nat _](pHall_pgroup psylS).
+  move/(_ _ (isog_narrow iso narS)); do 5 move/(_ (refl_equal _)); case.
+  rewrite -(isog_card (quotient1_isog _)) => leqp hall; split => //; move: hall.
+  have nKG' : G^`(1) \subset 'N(K) := subset_trans (der_sub _ _) nKG.
+  move: (second_isog nKG') => /= iso2. 
+  have pKI := pgroupS (subsetIl _ G^`(1)) (pcore_pgroup p^' G).
+  have nKIG : K :&: G^`(1) <| G^`(1) by rewrite /normal subsetIr normsI ?normG.
+  rewrite -(pquotient_pHall pKI nKIG) /normal /=; last first.
+    by rewrite normsI ?(subset_trans (pcore_sub _ _)) ?normG 1?andbC ?pcore_max.
+  rewrite !pHallE /=; case/andP=> _ hall; rewrite -pquotient_pcore // pcore_sub.
+  by rewrite (isog_card iso2) (isog_card (bgFunc_isog (bgFunc_pcore p^') iso2)).
+have [sSG pS _] := and3P psylS; have oddS := oddSg sSG oddG.
+case: (leqP 'r(S) 2) => rS.
+  have ? : 'r_p(G) <= 2 by rewrite (p_rank_Sylow psylS) -rank_pgroup ?pS.
+  by split; [ exact: rank2_max_pdiv | exact: rank2_pdiv_complement_der1 ].
+have pr_p : prime p.
+  by case: (pgroup_pdiv pS) => //; case: eqP (rank1 gT) rS => // -> ->.
+have psylO: p.-Sylow(G) 'O_p(G).
+  case/pHallP: (plenght1_pSylow pl1G); rewrite pHallE /= ?pcore_sub => _ cG1.
+  rewrite (isog_card (quotient1_isog G)) -trivK /= -cG1 trivK.
+  by rewrite (isog_card (bgFunc_isog (bgFunc_pcore p) (quotient1_isog G))) eqxx.
+have nOG : G \subset 'N('O_p(G)) by rewrite normal_norm ?pcore_normal.
+case: (Sylow_trans psylO psylS) => x xG defS; have xNG:= subsetP (normG _) _ xG.
+have nSG : G \subset 'N(S) by rewrite defS norm_conj_norm.
+pose JS := [morphism of restrm nSG (conj_aut S)].
+have pkJS : p.-group ('ker JS).
+  rewrite ker_restrm ker_conj_aut defS /= -(Fitting_eq_pcore trivK) centJ.
+  rewrite -{1}(conjGid xG) -conjIg pgroupJ (pgroupS (cent_sub_Fitting solG)) //.
+  by rewrite /= (Fitting_eq_pcore trivK) pcore_pgroup.
+have solJG := morphim_sol JS solG; have ? := morphim_odd JS oddG.
+case: (narrow_solvable_Aut pS _ _ solJG) => //= [|_ aJG Dpm1].
+   by rewrite morphim_restrm Aut_conj_aut.
+split => [q pr_q qd|]; last first.
+  apply: nilpotent_pcore_Hall (@pgroup_nil _ p _ _).
+  rewrite -(pmorphim_pgroup pkJS) ?der_sub // morphim_der //.
+  exact: pgroupS (der1_min (char_norm (pcore_char _ _)) aJG) (pcore_pgroup _ _).
+move: (dvdn_trans qd (dvdn_quotient _ _)); case/Cauchy=> //= a aG oa. 
+have aNS : a \in 'N(S) by apply: (subsetP nSG _ aG).
+have dJaq : #[JS a] %| q by rewrite -oa; apply: morph_order.
+have JGJa : JS a \in JS @* G by apply/imsetP; exists a => //; rewrite inE aG.
+have p1 : 0 < p.-1 by move: (prime_gt1 pr_p); rewrite -subn_gt0 subn1.
+case: (eqVneq p q) => [-> //| npq].
+have p'Ja : p^'.-elt (JS a).
+  rewrite morph_p_elt // /p_elt oa; apply/(pnatP _ (prime_gt0 pr_q)) => r pr_r.
+  by rewrite dvdn_prime2 //; move/eqP=> ->; rewrite !inE /= eq_sym.
+have oJa : #[JS a] == q.
+  case/primeP: (pr_q)=> _; move/(_ _ dJaq); case/orP; rewrite // order_eq1=> aK.
+  apply: contraR npq => _; move/eqP: aK => /=; move/(kerP _ aG). 
+  move/order_dvdG; rewrite oa => abs.
+  by move/pgroupP: pkJS; move/(_ _ pr_q abs); rewrite inE eq_sym.
+move: (dvdn_leq p1 (Dpm1 rS _ JGJa p'Ja)); rewrite (eqP oJa).
+by move/leqW; rewrite prednK ?prime_gt0.
+Qed.
