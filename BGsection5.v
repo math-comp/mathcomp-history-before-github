@@ -647,8 +647,9 @@ wlog trivK : gT G S p oddG narS solG psylS pl1G / 'O_p^'(G) = 1.
   by rewrite (isog_card iso2) (isog_card (bgFunc_isog (bgFunc_pcore p^') iso2)).
 have [sSG pS _] := and3P psylS; have oddS := oddSg sSG oddG.
 case: (leqP 'r(S) 2) => rS.
-  have ? : 'r_p(G) <= 2 by rewrite (p_rank_Sylow psylS) -rank_pgroup ?pS.
-  by split; [ exact: rank2_max_pdiv | exact: rank2_pdiv_complement_der1 ].
+  have rG : 'r_p(G) <= 2 by rewrite (p_rank_Sylow psylS) -rank_pgroup ?pS.
+  split; first exact: rank2_max_pdiv.
+  by case: (rank2_pdiv_compl_der_abelian_p'group solG _ rG).
 have pr_p : prime p.
   by case: (pgroup_pdiv pS) => //; case: eqP (rank1 gT) rS => // -> ->.
 have psylO: p.-Sylow(G) 'O_p(G).
