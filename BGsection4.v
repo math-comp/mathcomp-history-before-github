@@ -1236,6 +1236,12 @@ Qed.
 
 (* Lemma 4.15 in B & G can be found in maximal.v *)
  
+Lemma BG4_17 : forall gT (R : {group gT}) (A : {group perm_of_finGroupType gT}) p, 
+    p.-group R -> odd #|R| -> A \subset Aut R -> solvable A -> 
+    'r(R) <= 2 -> odd #|A| ->
+  p.-group A^`(1).
+Admitted.
+
 (* This is B & G, Theorem 4.18(a) *)
 Lemma rank2_max_pdiv : forall gT (G : {group gT}) p, 
     solvable G -> odd #|G| -> 'r_p(G) <= 2 -> 
@@ -1308,10 +1314,18 @@ have pG'C : p.-group (G^`(1) <*> C).
     by rewrite /C /R -(Fitting_eq_pcore _) // cent_sub_Fitting.
   have pC : p.-group C := pgroupS sCR (pcore_pgroup _ _).
   have nCG : G \subset 'N(C) by rewrite normsI ?normG // norms_cent.
+  have: p.-group((G / C)^`(1)). 
+    pose J := [morphism of restrm nRG (conj_aut [group of R])].
+    have inA : J @* G \subset Aut R by rewrite morphim_restrm Aut_conj_aut.
+    have rR : 'r(R) <= 2.
+      by rewrite (rank_pgroup pR) (leq_trans (p_rankS _ (pcore_sub _ _))).
+    have solA : solvable (J @* G) by rewrite morphim_sol.
+    have oddA : odd #|J @* G| by rewrite morphim_odd.
+    have pA' := BG4_17 pR (oddSg (pcore_sub _ _) oddG) inA solA rR oddA.
+    rewrite /pgroup (_: C = 'ker J); last by rewrite ker_restrm ker_conj_aut.
+    by rewrite (isog_card (isog_sFunctor (gFunc_der 1) (first_isog J))). 
   have ? : G^`(1) \subset 'N(C) by rewrite (subset_trans _ nCG) // der_sub.
   have ? : G^`(1) <*> C \subset 'N(C) by rewrite mulgen_subG andbC normG.
-  have: p.-group((G / C)^`(1)).
-    admit. (* 4.17, uses rG and oddG *)
   by rewrite -quotient_der // -quotient_mulgen // pquotient_pgroup ?pC. 
 have sG'CR : G^`(1) <*> C \subset R.
   apply: pcore_max; rewrite /normal ?pG'C // mulgen_subG subsetIl der_sub.
