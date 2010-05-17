@@ -504,16 +504,14 @@ have sCO : 'C_A(H | 'P) \subset 'O_p(A).
   by rewrite !morphimEsub // morphpreE subsetI sHR /= => <-.
 have ntH : H :!=: 1.
   by case: eqP (exponent1 gT) exH (prime_gt1 p_pr) (ltnn p) => // -> -> <-.
-split. (* all H_i centralised by A 
-suppose C_A(H) < H then 
-BG sub_fitting 1.2
-maybe reuse the proof of stable_factor_cent with external actions boilerplate
- in hall.v
- 
-*)
-- admit. (* 2 < r(R) -> 1.9 stable_factor_cent, otherwise 4.17 *)
+case: (leqP 3 'r(R)) => rR; last first.
+  have pA' := BG4_17 pR oddR sAAu solA rR oddA.
+  have ds : A^`(1) \subset 'O_p(A) by apply: pcore_max; rewrite // der_normal.
+  rewrite sub_der1_abelian //; split => //.
+  admit. (* p'.-group (A / O_p(A) *)
+split => [||_].
+- admit. (* 2 < r(R) -> 1.9 stable_factor_cent *)
 - admit. 
-move=> rR.
 case: (narrow_CR0R1 pR oddR rR nR). 
   by move/eqP;move/set0Pn;move: rR; rewrite (rank_pgroup pR); move/p_rank_geP.
 move=> [R0 [R1 [dpR0R1 sR0R sR1R cR0 cyR1 x xA p'x]]].
@@ -599,9 +597,55 @@ have ntHIZ : H :&: 'Z(R) != 1.
   by rewrite (nil_TI_Z (pgroup_nil pR) (char_normal cHR)) // eqxx.
 have cCHR0 : #|'C_H(R0)| = p.
   admit.
-move/constt1P: p'x. have := stable_factor_cent. 
-(* Search _ constt. Locate constt. Set Printing All. idtac. *)
-admit.
+(*
+pose AA := << A^`(1) :|: [set a^+p.-1 | a <- A] >>.
+have sAAAut : AA \subset Aut R.
+  rewrite gen_subG subUset (subset_trans (der_sub 1 A)) //=.
+  rewrite (subset_trans _ sAAu) //; apply/subsetP=> ?.
+  by case/imsetP=> a aA ->; rewrite in_group.*)
+pose AA := <[x^+p.-1]>.
+have sAAAut : AA \subset Aut R.
+  by rewrite (subset_trans _ sAAu) // cycle_subG in_group.
+have p'AA : p^'.-group AA.
+  by rewrite /pgroup /AA -orderE (pnat_dvd (orderXdvd x p.-1)).
+pose CC := 'C_(H | 'A_R)(AA).
+have sHC : H \subset CC.
+  elim: (#|H|.+1) {1 2 4 6}H (cHR) (subxx H) (ltnSn #|H|).
+    by move => m; rewrite ltn0.
+  move => n IH HH cHH sHHH ltHH.
+  wlog ntHH : / HH :!=: 1 by case: eqP => [-> | _ ]; [ rewrite sub1G | apply ].
+  have sKH : [~: HH, R] \subset H.
+    by rewrite (subset_trans _ sHHH) // commg_subl char_norm.
+  have nKH : [~: HH, R ] <| H by rewrite /normal normsRr ?(char_sub cHR) ?sKH.
+  have prKH : [~: HH, R ] \proper HH.
+    have nKH' : R \subset 'N_R(HH) by rewrite subsetI subxx char_norm.
+    exact: nil_comm_properl (pgroup_nil pR) (char_sub cHH) ntHH nKH'.
+  have sKC : [~: HH, R] \subset CC.
+    have ltK : #|[~: HH, R]| < n. 
+      move: prKH; rewrite properEcard.
+      by case/andP=> _ ltKH; apply: (leq_trans ltKH).
+    by apply: IH; rewrite // charR ?char_refl.
+  have sACK: AA \subset 'C([~: HH, R] | 'A_R).
+    rewrite astabCin // (subset_trans sKC) // subIset // gacentE // orbC.
+    by rewrite subIset // orbC subxx.
+  have cp : #|HH : [~: HH, R]| = p.
+    admit. (*
+    have [_ _ [e carHH]]:= pgroup_pdiv (pgroupS (char_sub cHH) pR) ntHH.
+    apply: p_maximal_index; rewrite ?(pgroupS _ pR) ?char_sub // /maximal.
+    apply/maxgroupP; split => // K pKH sKK; apply/eqP; rewrite eqEsubset sKK.*)
+  rewrite -(quotientSGK _ sKC) ?commg_norml //= -/CC.
+  have -> : HH / [~: HH, R] = 'C_(HH | 'A_R)(AA) / [~: HH, R].
+    have cop : coprime #|[~: HH,R]| #|AA|.
+      apply: pnat_coprime _ p'AA; apply: pgroupS _ pR.
+      by rewrite (subset_trans sKH (char_sub cHR)).
+    admit.
+  by rewrite quotientS // setSI.
+have pAA : p.-group AA.
+  apply: pgroupS _ pCAu; rewrite /= astabCin ?(subset_trans sHC) // -/AA.
+  by rewrite subIset // gacentE // orbC subsetIr.
+rewrite order_dvdn; apply/eqP; apply/set1gP; rewrite -(_:AA = 1).
+  by rewrite mem_gen // inE eqxx.
+by apply: card1_trivg; exact: pnat_1 pAA p'AA.
 Qed.
 
 End Five5. 
