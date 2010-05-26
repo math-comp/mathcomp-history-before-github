@@ -719,11 +719,37 @@ have sHC : H \subset CC.
   rewrite gacentE // ['C_(|ACT)(_)]gacentE // /ACT !afix_ract => ->.
   rewrite gacentE ?qact_domE // subsetI /= -/K.
   rewrite quotientS ?(char_sub cHH) //= -astabCin ?qact_domE //.
+  suffices sAAC: AA \subset 'C(HH / K | 'A_R / [~: HH, R]).
+    rewrite (subset_trans sAAC) //. 
+    admit.
   rewrite (subset_trans sAAAb) // gen_subG subUset; apply/andP; split.
-    admit.
+    apply: der1_min. 
+      rewrite (subset_trans _  (astab_norm _ _)) // acts_quotient //.
+      rewrite qact_domE //= subsetI -/K. apply/andP; split. 
+        apply/subsetP => b bA; rewrite 2!inE (subsetP _ _ bA) //=.
+        rewrite -setactVin ?(subsetP _ _ bA) //. apply/subsetP=> h hK.
+        apply/imsetP; exists (b h); last by rewrite /= /autact /= apermE permK.
+        by rewrite (subsetP (charKaut _ (subsetP _ _ bA))) ?mem_imset.
+      apply/subsetP => b bA; rewrite 2!inE (subsetP _ _ bA) //=.
+      rewrite -setactVin ?(subsetP _ _ bA) //. apply/subsetP=> h hK.
+      apply/imsetP; exists (b h); last by rewrite /= /autact /= apermE permK.
+      case/andP: cHH => _; move/forall_inP=> charHHaut.
+      by rewrite (subsetP (charHHaut _ (subsetP _ _ bA))) ?mem_imset. 
+    suffices: abelian (Aut (HH / K)).
+      (* iso ...*)
+      admit.
+    suffices: cyclic (HH / K) by apply: Aut_cyclic_abelian.
+    suffices: prime #|HH / K| by apply: prime_cyclic.
+    by rewrite card_quotient /= ?(eqP cp) // commg_norml.
   apply/subsetP=> ?; case/imsetP=> x xA ->.
-  have {acts} acts : [acts <[x ^+ p.-1]>, on K | 'A_R \ sAAAut].
-    admit.
+  have {acts} acts : [acts <[x ^+ p.-1]>, on K | 'A_R ].
+    apply/subsetP => b bA.
+    have ? : <[x ^+ p.-1]> \subset Aut R.
+      by rewrite (subset_trans _ sAAu) // cycle_subG in_group.
+    rewrite 2!inE (subsetP _ _ bA) //=.
+    rewrite -setactVin ?(subsetP _ _ bA) //. apply/subsetP=> h hK.
+    apply/imsetP; exists (b h); last by rewrite /= /autact /= apermE permK.
+    by rewrite (subsetP (charKaut _ (subsetP _ _ bA))) ?mem_imset.
   rewrite inE /= qact_domE // -cycle_subG inE acts /=.
   apply/subsetP=> H3y; case/morphimP=> y Ny HHy ->{H3y}.
   rewrite inE qactE ?qact_domE // -?cycle_subG //=.
