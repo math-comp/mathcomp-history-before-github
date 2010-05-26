@@ -72,12 +72,15 @@ have{IHm} abelQ: abelian Q.
     apply: sub_in_pnat p'Q' => q _; apply: contraL; move/eqnP->.
     by rewrite !inE p_pr.
   by rewrite (setIidPr _) // comm_subG ?subsetIr.
-wlog: F p_nz rG ffG / mx_reducible (subg_repr rG sQG).
+wlog [U]: F p_nz rG ffG / mxnonsimple (subg_repr rG sQG) 1%:M.
   move=> IH_F; pose rQ := subg_repr rG sQG.
-  have irrQ: mx_irreducible rQ by exact: IH_F ffG.
+  have irrQ: mx_irreducible rQ.
+    apply/mxsimpleP; rewrite mxmodule1 nonzero1r; split=> //.
+    exact: IH_F ffG.
   case scalQ: (Q \subset [pred x | is_scalar_mx (rG x)]).
-    case: irrQ => _; exists (pid_mx 1); rewrite rank_pid_mx ?andbT //.
-    apply/submodmxP=> x; move/(subsetP scalQ); case/is_scalar_mxP=> a ->.
+    suffices: row_full (pid_mx 1 : 'M[F]_2) by rewrite /row_full rank_pid_mx. 
+    case/mx_irrP: irrQ => _; apply; last by rewrite -mxrank_eq0 rank_pid_mx.
+    apply/mxmoduleP=> x; move/(subsetP scalQ); case/is_scalar_mxP=> a ->.
     by rewrite scalar_mxC subsetmxMl.
   case/subsetPn: scalQ => x Qx.
   rewrite !inE -mxminpoly_linear_is_scalar -ltnNge => non_scal_rx.
@@ -87,23 +90,23 @@ wlog: F p_nz rG ffG / mx_reducible (subg_repr rG sQG).
   have fRM := MatrixGenField.genRM irrQ cQrx.
   apply: IH_F (map_repr fRM rG) _; last by rewrite map_mx_repr_faithful.
   by rewrite -(ringM_nat fRM) fieldM_eq0.
-case=> // U; rewrite ltnS -eqn_leq eq_sym; case/andP=> Umod Uscal.
-case/mx_Maeshke: (Umod) => [|V [Vmod sumUV tiUV]].
+rewrite -mxrank_eq0 -lt0n mxrank1 -eqn_leq eq_sym; case/and3P=> Umod _ Uscal.
+have [|V Vmod sumUV dxUV] := mx_Maeshke _ _ Umod (subsetmx1 U).
   have: p.-group Q by apply: pgroupS (pHall_pgroup sylP); rewrite subsetIr.
   by apply: sub_in_pnat=> q _; move/eqnP->; rewrite !inE p_pr.
 have [u defU]: exists u : 'rV_2, (u :=: U)%MS.
   by move: (row_base U) (eq_row_base U); rewrite (eqP Uscal) => u; exists u.
-have{tiUV Uscal} [v defV]: exists v : 'rV_2, (v :=: V)%MS.
-  move/mxrank_disjoint_sum: tiUV; rewrite (eqP Uscal) (eqnP sumUV) => [[Vscal]].
+have{dxUV Uscal} [v defV]: exists v : 'rV_2, (v :=: V)%MS.
+  move/mxdirectP: dxUV; rewrite /= (eqP Uscal) sumUV mxrank1 => [[Vscal]].
   by move: (row_base V) (eq_row_base V); rewrite -Vscal => v; exists v.
 pose B : 'M_(1 + 1) := col_mx u v; have{sumUV} uB: B \in unitmx.
   rewrite -row_full_unit /row_full eqn_leq rank_leq_row {1}addn1.
-  by rewrite -sumsmxE -{1}(eqnP sumUV) mxrankS // sumsmxS ?defU ?defV.
+  by rewrite -addsmxE -(mxrank1 F 2) -sumUV mxrankS // addsmxS ?defU ?defV.
 pose Qfix (w : 'rV_2) := {in Q, forall y, w *m rG y <= w}%MS.
 have{U defU Umod} u_fix: Qfix u.
-  by move=> y Qy; rewrite /= (eqmxMr _ defU) defU (submodmxP _ _ Umod).
+  by move=> y Qy; rewrite /= (eqmxMr _ defU) defU (mxmoduleP Umod).
 have{V defV Vmod} v_fix: Qfix v.
-  by move=> y Qy; rewrite /= (eqmxMr _ defV) defV (submodmxP _ _ Vmod).
+  by move=> y Qy; rewrite /= (eqmxMr _ defV) defV (mxmoduleP Vmod).
 case/Cauchy: pQ => // x Qx oxp; have Gx := subsetP sQG x Qx.
 case/subsetmxP: (u_fix x Qx) => a def_ux.
 case/subsetmxP: (v_fix x Qx) => b def_vx.
@@ -151,9 +154,9 @@ have{a b ne_ab def_ux def_vx} nx_uv: forall w : 'rV_2,
   rewrite !scalemxAl -!mul_row_col; move/(can_inj (mulmxK uB)).
   case/eq_row_mx => eqac eqbc; apply/orP.
   case: (eqVneq dv 0) => [-> | nz_dv].
-    by rewrite scale0mx addr0 subsetmx_scale.
+    by rewrite scale0mx addr0 scalemx_sub.
   case: (eqVneq du 0) => [-> | nz_du].
-    by rewrite orbC scale0mx add0r subsetmx_scale.
+    by rewrite orbC scale0mx add0r scalemx_sub.
   case/eqP: ne_ab; rewrite -[b]scale1mx -(mulVf nz_dv) -[a]scale1mx.
   by rewrite -(mulVf nz_du) -!scalemxA eqac eqbc !scalemxA !mulVf.
 have{x Gx Qx oxp nx_uv} redG: forall y (A := rG y),
@@ -162,7 +165,7 @@ have{x Gx Qx oxp nx_uv} redG: forall y (A := rG y),
   have Ainj: forall w t : 'rV_2, (w *m A <= w -> t *m A <= w -> t *m A <= t)%MS.
     move=> w t; case/sub_rVP=> c ryww; case/sub_rVP=> d rytw.
     rewrite -(subsetmxMfree _ _ uA) rytw -scalemxAl ryww scalemxA mulrC.
-    by rewrite -scalemxA subsetmx_scale.
+    by rewrite -scalemxA scalemx_sub.
   have{Qx nx_uv} nAx: forall w, Qfix w -> (w *m A <= u \/ w *m A <= v)%MS.
     move=> w nwQ; apply: nx_uv; rewrite -mulmxA -repr_mxM // conjgCV.
     rewrite repr_mxM ?groupJ ?groupV // mulmxA subsetmxMr // nwQ // -mem_conjg.
@@ -175,7 +178,7 @@ have{x Gx Qx oxp nx_uv} redG: forall y (A := rG y),
   elim: k => [|k [IHu IHv]]; first by rewrite !mulmx1.
   case/sub_rVP: uAv => c uAc; case/sub_rVP: vAu => d vAd.
   rewrite doubleS !exprS !mulmxA; do 2!rewrite uAc vAd -!scalemxAl.
-  by rewrite !subsetmx_scale.
+  by rewrite !scalemx_sub.
 suff trivG': G^`(1) = 1%g by rewrite /= trivG' cards1 gtnNdvd ?prime_gt1 in pG'.
 apply/trivgP; apply: subset_trans ffG; rewrite gen_subG.
 apply/subsetP=> yz; case/imset2P=> y z Gy Gz ->{yz}; rewrite inE groupR //=.
@@ -212,7 +215,7 @@ exists P; split=> {sG'P}//; case/and3P: SylP => sPG pP _.
 apply/commG1P; apply/trivgP; apply: subset_trans ffG; rewrite gen_subG.
 apply/subsetP=> yz; case/imset2P=> y z Py Pz ->{yz}.
 rewrite inE (subsetP sPG) ?groupR //=.
-pose rP := subg_repr rG sPG; pose U := rfix_mx rP.
+pose rP := subg_repr rG sPG; pose U := rfix_mx rP P.
 rewrite -(inj_eq (can_inj (mulKmx (repr_mx_unit rP (groupM Pz Py))))).
 rewrite mul1mx mulmx1 -repr_mxM ?(groupR, groupM) // -commgC !repr_mxM //.
 have{pP} pP: [char F].-group P by rewrite /pgroup (eq_pnat _ (charf_eq charFp)).
@@ -221,29 +224,29 @@ rewrite -mxrank_eq0 -lt0n 2!leq_eqVlt ltnNge rank_leq_row orbF orbC eq_sym.
 case/orP=> [Ufull | Uscal].
   suff{y z Py Pz} rP1: forall y, y \in P -> rP y = 1%:M by rewrite !rP1 ?mulmx1.
   move=> y Py; apply/row_matrixP=> i.
-  by rewrite rowE -row1 (subsetmx_rfixP _ _ _) ?subsetmx_full.
+  by rewrite rowE -row1 (rfix_mxP P _) ?subsetmx_full.
 have [u defU]: exists u : 'rV_2, (u :=: U)%MS.
   by move: (row_base U) (eq_row_base U); rewrite -(eqP Uscal) => u; exists u.
 have fix_u: {in P, forall x, u *m rP x = u}.
-  by move/eqmxP: defU; case/andP; move/subsetmx_rfixP.
+  by move/eqmxP: defU; case/andP; move/rfix_mxP.
 have [v defUc]: exists u : 'rV_2, (u :=: U^C)%MS.
   have UCscal: \rank U^C = 1%N by rewrite mxrank_compl -(eqP Uscal).
   by move: (row_base _)%MS (eq_row_base U^C)%MS; rewrite UCscal => v; exists v.
 pose B := col_mx u v; have uB: B \in unitmx.
-  rewrite -row_full_unit -subset1mx -(eqmxMfull _ (sumsmx_compl_full U)).
-  by rewrite mulmx1 -sumsmxE sumsmxS ?defU ?defUc.
-have Umod: submodmx rP U by exact: rfix_submodmx.
-pose W := rfix_mx (factmod_repr Umod).
+  rewrite -row_full_unit -subset1mx -(eqmxMfull _ (addsmx_compl_full U)).
+  by rewrite mulmx1 -addsmxE addsmxS ?defU ?defUc.
+have Umod: mxmodule rP U by exact: rfix_mx_module.
+pose W := rfix_mx (factmod_repr Umod) P.
 have ntW: W != 0. 
-  apply: rfix_pgroup_char pP;
+  apply: rfix_pgroup_char pP.
   rewrite eqmxMfull ?row_full_unit ?unitmx_inv ?row_ebase_unit //.
   by rewrite rank_copid_mx -(eqP Uscal).
 have{ntW} Wfull: row_full W.
   by rewrite -col_leq_rank {1}mxrank_coker -(eqP Uscal) lt0n mxrank_eq0.
 have svW: (in_factmod U v <= W)%MS by rewrite subsetmx_full.
 have fix_v: {in P, forall x, v *m rG x - v <= u}%MS.
-  move=> x Px /=; rewrite -[v *m _](sum_sub_fact_mod U) (in_factmodJ Umod) //.
-  move/subsetmx_rfixP: svW => -> //; rewrite in_factmodK ?defUc // addrK.
+  move=> x Px /=; rewrite -[v *m _](add_sub_fact_mod U) (in_factmodJ Umod) //.
+  move/rfix_mxP: svW => -> //; rewrite in_factmodK ?defUc // addrK.
   by rewrite defU val_submodP.
 have fixB: {in P, forall x, exists2 a, u *m rG x = u & v *m rG x = v + a *m: u}.
   move=> x Px; case/subsetmxP: (fix_v x Px) => a def_vx.

@@ -1338,6 +1338,9 @@ Proof. by []. Qed.
 Lemma geq_leqif : forall a b C, a <= b ?= iff C -> (b <= a) = C.
 Proof. by move=> a b C [le_ab]; rewrite eqn_leq le_ab. Qed.
 
+Lemma ltn_leqif : forall a b C, a <= b ?= iff C -> (a < b) = ~~ C.
+Proof. by move=> a b C le_ab; rewrite ltnNge (geq_leqif le_ab). Qed.
+
 Lemma leqif_add : forall m1 n1 c1 m2 n2 c2,
     m1 <= n1 ?= iff c1 -> m2 <= n2 ?= iff c2 ->
   m1 + m2 <= n1 + n2 ?= iff c1 && c2.

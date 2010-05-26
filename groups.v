@@ -59,7 +59,8 @@ Require Import div paths bigops finset prime.
 (*           #|G : H|   == the index of H in G                               *)
 (*            H :^ x    == the conjugate of H by x                           *)
 (*            x ^: H    == the conjugate class of x in H                     *)
-(*            G :^: H   == the set of all conjugate classes                  *)
+(*            classes G == the set of all conjugate classes of G             *)
+(*            G :^: H   == {G :^ x | x \in H}                                *)
 (*    class_support G H == {x ^ y | x \in G, y \in H}                        *)
 (*     [~: H1, ..., Hn] == commutator subgroup of H1, ..., Hn                *)
 (*{in G, centralised H} <=> G centralises H                                  *)
@@ -1000,6 +1001,9 @@ move=> x A Ax; apply/setP=> y.
 by apply/imsetP/set1P=> [[a Aa]|] ->; last exists x; rewrite ?conj1g.
 Qed.
 
+Lemma mem_classes : forall x A, x \in A -> x ^: A \in classes A.
+Proof. by move=> x A; exact: mem_imset. Qed.
+
 Lemma class_supportM : forall A B C,
   class_support A (B * C) = class_support (class_support A B) C.
 Proof.
@@ -1461,6 +1465,8 @@ Proof. by move=> x A Gx sAG; rewrite -(conjGid Gx) conjSg. Qed.
 (* Classes *)
 
 Lemma class1G : 1 ^: G = 1. Proof. exact: class1g group1. Qed.
+
+Lemma classes1 : [1] \in classes G. Proof. by rewrite -class1G mem_classes. Qed.
 
 Lemma classGidl : forall x y, y \in G -> (x ^ y) ^: G = x ^: G.
 Proof. by move=> x y Gy; rewrite -class_lcoset lcoset_id. Qed.
