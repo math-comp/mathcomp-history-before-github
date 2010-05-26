@@ -658,10 +658,7 @@ have sAAAut : AA \subset Aut R.
 have p'AA : p^'.-group AA.
   by rewrite /pgroup /AA -orderE.
 pose ACT : groupAction Ab R := ('A_R \ sAbAut)%gact. 
-have sAAAb : AA \subset Ab.
-  rewrite sub_gen // subsetU //; apply/orP; right.
-  apply/subsetP=> ?; case/cycleP=> m ->.
-  admit.
+have sAAAb : AA \subset Ab by rewrite cycle_subG.
 pose CC := 'C_(H | ACT)(AA).
 have sHC : H \subset CC.
   elim: (#|H|.+1) {1 2 4 6}H (cHR) (subxx H) (ltnSn #|H|).
@@ -727,7 +724,7 @@ have sHC : H \subset CC.
   apply/subsetP=> ?; case/imsetP=> x xA ->.
   have {acts} acts : [acts <[x ^+ p.-1]>, on K | 'A_R \ sAAAut].
     admit.
-  rewrite inE /= qact_domE // -cycle_subG inE acts /=.
+  rewrite inE /= qact_domE // -cycle_subG inE. acts /=.
   apply/subsetP=> H3y; case/morphimP=> y Ny HHy ->{H3y}.
   rewrite inE qactE ?qact_domE // -?cycle_subG //=.
   have actsAR_HH: {acts Aut R, on group HH | 'A_R}.
