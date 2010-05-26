@@ -724,7 +724,7 @@ have sHC : H \subset CC.
   apply/subsetP=> ?; case/imsetP=> x xA ->.
   have {acts} acts : [acts <[x ^+ p.-1]>, on K | 'A_R \ sAAAut].
     admit.
-  rewrite inE /= qact_domE // -cycle_subG inE. acts /=.
+  rewrite inE /= qact_domE // -cycle_subG inE acts /=.
   apply/subsetP=> H3y; case/morphimP=> y Ny HHy ->{H3y}.
   rewrite inE qactE ?qact_domE // -?cycle_subG //=.
   have actsAR_HH: {acts Aut R, on group HH | 'A_R}.
