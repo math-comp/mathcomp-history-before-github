@@ -1,7 +1,7 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
 Require Import bigops ssralg poly polydiv orderedalg zmodp polydiv.
 
-Reserved Notation "a ^`"(at level 3, format "a ^`").
+(* Reserved Notation "a ^`"(at level 3, format "a ^`"). *)
 (* Reserved Notation "a ^`( n )" (at level 3, format "a ^`( n )"). *)
 (* Reserved Notation "a ^`N( n )" (at level 3, format "a ^`N( n )"). *)
 
@@ -35,8 +35,8 @@ Implicit Types a b c : F.
 Implicit Types x y z t : F.
 Implicit Types p q r : {poly F}.
 
-Notation "a ^`( n )" := (derivn a n).
-Notation "a ^`" := (deriv a).
+(* Notation "a ^` ( n )" := (derivn a n). *)
+(* Notation "a ^`" := (deriv a). *)
 
 End PolyOrder.
 
@@ -216,24 +216,23 @@ rewrite ltef_mulp// ltef_divpl/=; first by rewrite mul1r.
 by rewrite !mulr_cp0p// ?invf_gte0/= ?gtf0Sn// ?absrE// gtf0Sn.
 Qed.
 
+(* Notation "a ^`( n )" := (derivn a n). *)
+(* Notation "a ^`" := (deriv a). *)
 
-Notation "a ^`( n )" := (derivn a n).
-Notation "a ^`" := (deriv a).
-
-Lemma derivPn : forall n p, (p ^+ n.+1)^` = (p^+n) * (p^`) *+ n.+1.
+Lemma derivPn : forall n p, (p ^+ n.+1)^`() = p ^+ n * p^`() *+ n.+1.
 Proof.
 elim=> [|n ihn] p; first by rewrite expr1 expr0 mul1r mulr1n.
 by rewrite exprS deriv_mul ihn !mulrnAr mulrA -exprS mulrC -mulrS.
 Qed.
 
-Lemma deriv_opp: forall p, (-p)^` = -(p^`).
+Lemma deriv_opp : forall p, (- p)^`() = - p^`().
 Proof.
 move=> p; rewrite -mulN1r deriv_mul mulN1r.
 by rewrite [-1]size1_polyC ?size_opp ?size_poly1// derivC mul0r add0r.
 Qed.
 
-Definition derivE :=  (derivC,derivX,deriv_amulX,deriv_mul,deriv_add,
-  deriv_mulr,deriv_opp,derivXn,derivPn).
+Definition derivE := (derivC, derivX, deriv_amulX, deriv_mul, deriv_add,
+  deriv_mulr, deriv_opp, derivXn, derivPn).
 
 (* Lemma size_poly_ind : forall K : {poly R} -> Prop, *)
 (*   K 0 ->  *)
@@ -323,7 +322,7 @@ Qed.
 
 Lemma rolle_weak : forall a b p, a < b ->
   (p.[a] == 0) && (p.[b] == 0) ->
-  exists2 c, a < c < b & (p^`.[c] == 0 \/ p.[c] == 0).
+  exists2 c, a < c < b & (p^`().[c] == 0 \/ p.[c] == 0).
 Proof.
 move=> a b p lab; case/andP=> pa0 pb0.
 case p0: (p == 0).
@@ -370,7 +369,7 @@ Qed.
 
 Lemma rolle : forall a b p, a < b ->
   (p.[a] == 0) && (p.[b] == 0) ->
-  exists2 c, a < c < b & (p^`.[c] == 0).
+  exists2 c, a < c < b & ((p^`()).[c] == 0).
 Proof.
 move=> a b p lab; case/andP=> pa0 pb0.
 have := @poly_ltsp_roots p a b.
@@ -379,7 +378,7 @@ elim: (size p) a b lab pa0 pb0=> [|n ihn] a b lab pa0 pb0 max_roots;
   by exists ((a+b)/2%:R); first exact: midf_lte; rewrite derivC horner0.
 case: (@rolle_weak a b p); rewrite // ?pa0 ?pb0 //=.
 move=> c; case/andP=>lac lcb [] pc0; first by exists c; rewrite // lac.
-suff: exists2 d : R, a < d < c & (p^`).[d] == 0.
+suff: exists2 d : R, a < d < c & (p^`()).[d] == 0.
   case=> [d]; case/andP=> lad ldc p'd0.
   by exists d; rewrite // lad andTb (lter_trans ldc).
 apply: ihn=> //.
@@ -391,19 +390,19 @@ by move/Pt; case/andP; case/andP=> -> lxc ->; rewrite (lter_trans  lxc).
 Qed.
 
 Lemma mvt : forall a b p, a < b ->
-  exists2 c, a < c < b & p.[b] - p.[a] = p^`.[c] * (b - a).
+  exists2 c, a < c < b & p.[b] - p.[a] = (p^`()).[c] * (b - a).
 Proof.
 move=> a b p lab.
-pose q := (p.[b] - p.[a])%:P*('X - a%:P) - (b - a)%:P*(p - p.[a]%:P).
+pose q := (p.[b] - p.[a])%:P * ('X - a%:P) - (b - a)%:P * (p - p.[a]%:P).
 case: (@rolle a b q)=> //.
-  by rewrite /q !horner_lin !(subrr,mulr0) mulrC subrr eqxx.
+  by rewrite /q !horner_lin !(subrr, mulr0) mulrC subrr eqxx.
 move=> c lacb q'x0; exists c=> //.
 move: q'x0; rewrite /q !derivE !(mul0r,add0r,subr0,mulr1).
 by rewrite !horner_lin mulrC subr_eq0; move/eqP.
 Qed.
 
 Lemma deriv_sign : forall a b p,
-  (forall x, a < x < b -> p^`.[x] >= 0)
+  (forall x, a < x < b -> (p^`()).[x] >= 0)
   -> (forall x y, (a < x < b) && (a < y < b)
     ->  x < y -> p.[x] <= p.[y] ).
 Proof.

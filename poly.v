@@ -96,9 +96,9 @@ Reserved Notation "''X^' n" (at level 3, n at level 2, format "''X^' n").
 Reserved Notation "\poly_ ( i < n ) E"
   (at level 36, E at level 36, i, n at level 50,
    format "\poly_ ( i  <  n )  E").
-Reserved Notation "a ^`()"(at level 3, format "a ^`()").
-Reserved Notation "a ^`( n )" (at level 3, format "a ^`( n )").
-Reserved Notation "a ^`N( n )" (at level 3, format "a ^`N( n )").
+Reserved Notation "a ^` ()" (at level 8, format "a ^` ()").
+Reserved Notation "a ^` ( n )" (at level 8, format "a ^` ( n )").
+Reserved Notation "a ^`N ( n )" (at level 8, format "a ^`N ( n )").
 
 Local Notation simp := Monoid.simpm.
 
@@ -1859,17 +1859,16 @@ Qed.
 
 End MapPolyRoots.
 
-
 Section Deriv.
 
-Variable R: ringType.
+Variable R : ringType.
 
 Implicit Types p q : {poly R}.
 
 Definition deriv p :=
   \poly_(i < (size p).-1) (p`_i.+1 *+ i.+1).
 
-Notation "a ^`()" := (deriv a).
+Notation "a ^` ()" := (deriv a).
 
 Lemma coef_deriv : forall p i, p^`()`_i = p`_i.+1 *+ i.+1.
 Proof.
@@ -1927,7 +1926,7 @@ Qed.
 
 Definition derivn p n := iter n deriv p.
 
-Notation "a ^`( n )" := (derivn a n).
+Notation "a ^` ( n )" := (derivn a n).
 
 Lemma derivn0 : forall p, p^`(0) = p.
 Proof. done. Qed.
@@ -1985,7 +1984,7 @@ Qed.
 
 Definition nderivn p n := \poly_(i < size p - n) (p`_(n + i) *+  'C(n + i, n)).
 
-Notation "a ^`N( n )" := (nderivn a n).
+Notation "a ^`N ( n )" := (nderivn a n).
 
 Lemma coef_nderivn : forall n p i, p^`N(n)`_i = p`_(n + i) *+  'C(n + i, n).
 Proof.
@@ -2078,3 +2077,7 @@ by rewrite big_ord_recr -Hrec // nderivn_poly0 // horner0 !simp.
 Qed.
 
 End Deriv.
+
+Notation "a ^` ()" := (deriv a) : ring_scope.
+Notation "a ^` ( n )" := (derivn a n) : ring_scope.
+Notation "a ^`N ( n )" := (nderivn a n) : ring_scope.
