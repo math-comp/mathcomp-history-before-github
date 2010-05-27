@@ -783,9 +783,8 @@ set GC := <<_>>; have sMGC: M \subset GC.
   rewrite sub_gen ?(bigcup_max 'C_A(M)%G) //=; last first.
     by rewrite subsetI sMG centsC subsetIr.
   case/is_abelemP: abelM => p _ abelM; rewrite -(rker_abelem abelM ntM nMA).
-  have ker_q_cyc := mx_repr_faithful_irr_abelian_cyclic (kquo_mx_faithful _).
-  rewrite rker_normal {}ker_q_cyc ?morphim_abelian; first 2 [idtac] || by [].
-  by apply/quo_mx_irr; exact/abelem_mx_irrP. 
+  rewrite rker_normal -(setIidPl (quotient_abelian _ _)) ?center_kquo_cyclic //.
+  exact/abelem_mx_irrP.
 rewrite -(quotientSGK nMG sMGC).
 have: A / M \subset 'N(G / M) by rewrite morphim_norms.
 move/IHn->; rewrite ?morphim_abelian ?coprime_morph {IHn}//; first 1 last.
