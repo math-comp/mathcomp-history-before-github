@@ -466,6 +466,7 @@ End Five.
 
 Section Five5.
 
+(* this is used also in 4.18... *)
 Let abelian_pcore_p'group: 
     forall (gT : finGroupType) (A : {group gT}) (p : nat),  
   abelian (A / 'O_p(A)) -> (p^').-group (A / 'O_p(A)).
@@ -482,8 +483,8 @@ Qed.
 Variable gT : finGroupType. 
 Variables (R : {group gT}) (p : nat).
 Hypotheses (pR : p.-group R) (oddR : odd #|R|).
+Implicit Types A S : {group perm_of_finGroupType gT}.
 
-(* duplicate *)
 Let rp_cyc1: forall H : {group gT}, 
   p.-group H -> cyclic H -> logn p #|'Ohm_1(H)| <= 1.
 Proof.
@@ -491,13 +492,21 @@ move=> C pC; move/(cyclicS (Ohm_sub 1 _))=> cycC1.
 by rewrite -abelem_cyclic // abelem_Ohm1 ?cyclic_abelian.
 Qed.
 
-(* B&G 5.5, *)
+Let aut_acts_char : forall S W, 
+  S \subset Aut R -> W \char R -> [acts S, on W | 'A_R].
+Proof.
+move=> S W sSA; case/andP=> _; move/forall_inP=> charWAut.
+apply/subsetP => b bA; rewrite 2!inE (subsetP _ _ bA) //=.
+rewrite -setactVin ?(subsetP _ _ bA) //; apply/subsetP=> h hK.
+apply/imsetP; exists (b h); last by rewrite /= /autact /= apermE permK.
+by rewrite (subsetP (charWAut _ (subsetP _ _ bA))) ?mem_imset. 
+Qed.
+
+(* B&G 5.5(a,b) *)
 Theorem narrow_solvable_Aut :
-  narrow p R -> forall A:{group perm_of_finGroupType gT}, 
-  solvable A -> A \subset Aut R ->
-  odd #|A| ->
-   [/\ p^'.-group (A / 'O_p(A)), abelian (A / 'O_p(A)) &
-       2 < 'r(R) -> forall x, x \in A -> p^'.-elt x -> #[x] %| p.-1 ].
+    narrow p R -> forall A, solvable A -> A \subset Aut R -> odd #|A| ->
+  [/\ p^'.-group (A / 'O_p(A)), abelian (A / 'O_p(A)) &
+      2 < 'r(R) -> forall x, x \in A -> p^'.-elt x -> #[x] %| p.-1 ].
 Proof.
 move=> nR.
 have ntR : R :!=: 1.
@@ -579,14 +588,13 @@ have nsR0H : ~~ (R0 \subset H).
     by rewrite abs ltnn.
   have [_ _ [[cU _|k ->]]] := pgroup_pdiv (abelem_pgroup abeU) ntU; last first.
     by rewrite pfactorK.
-  have defU : U = R0.
-    by apply/eqP; rewrite eq_sym eqEcard cR0 cU mulgen_subl leqnn.
+  have defU : R0 :=: U by apply/eqP; rewrite eqEcard cR0 cU mulgen_subl leqnn.
   have nUR : U <| R.
     rewrite /normal sUR -commg_subr (subset_trans _ (mulgen_subr _ _)) //.
-    by rewrite /= [_ <*> _]defU (subset_trans _ sHRZ) // commGC commSg. 
+    by rewrite /= -[_ <*> _]defU (subset_trans _ sHRZ) // commGC commSg. 
   have sR0Z : R0 \subset 'Z(R).
     have := nil_meet_Z (pgroup_nil pR) nUR ntU. 
-    move: cU; rewrite /= [_ <*> _]defU expn1 => cR0p.
+    move: cU; rewrite /= -[_ <*> _]defU expn1 => cR0p.
     by apply: contraR => nsR0Z; rewrite (prime_TIg _ nsR0Z) ?eqxx // cR0p.
   have defR : 'C_R(R0) = R.
     apply/eqP; rewrite eqEsubset subsetIl subsetI subxx centsC.
@@ -601,14 +609,12 @@ have ntHIZ : H :&: 'Z(R) != 1.
   apply: contraL ntH; move/eqP=> abs.
   by rewrite (nil_TI_Z (pgroup_nil pR) (char_normal cHR)) // eqxx.
 have tiHR0 : H :&: R0 :=: 1.
-  move: p_pr; rewrite -cR0; case/(prime_subgroupVti H) => [ abs|->//].
-  by rewrite abs in nsR0H.
+  by move: p_pr nsR0H; rewrite -cR0; case/(prime_subgroupVti H)=> ->.
 have {nsR0H tiHR0 ntHIZ} cCHR0 : #|'C_H(R0)| = p.
   have ntCHR0 : 'C_H(R0) :!=: 1.
-    have sZCR0 : 'Z(R) \subset 'C(R0).
-      by rewrite (subset_trans (subsetIr _ _)) // centS.
-    apply: contra ntHIZ; rewrite -!subG1 /= => abs.
-    by rewrite (subset_trans _ abs) // setIS.
+    have sZCR0 : 'Z(R) \subset 'C(R0) by rewrite (centsS sR0R) ?subsetIr.
+    apply: contra ntHIZ; rewrite -!subG1 => ?.
+    by rewrite (subset_trans (setIS _ sZCR0)).
   have sCHR : 'C_H(R0) \subset R.
     by rewrite (subset_trans (subsetIl _ _) (char_sub cHR)).
   have [_ _ [w cCH]] := pgroup_pdiv (pgroupS sCHR pR) ntCHR0.
@@ -703,14 +709,8 @@ have sHC : H \subset CC.
   rewrite -(_:'C_(HH | ACT)(AA) / K = HH / K) ?quotientS ?setSI //.
   have cop : coprime #|K| #|AA| by apply: pnat_coprime pK p'AA.
   have solK : solvable K by apply: nilpotent_sol (pgroup_nil pK).
-  have actsAAKA : [acts AA, on K | 'A_R ].
-     apply/subsetP => b bAA.
-    rewrite inE (subsetP sAAAut _ bAA) /= inE; apply/subsetP=> h hK.
-    rewrite -setactVin ?(subsetP sAAAut _ bAA) //.
-    apply/imsetP; exists (b h); last by rewrite /= /autact /= apermE permK.
-    by rewrite (subsetP (charKaut _ (subsetP sAAAut _ bAA))) ?mem_imset.
-  have actsAAKAr : [acts AA, on K | 'A_R \ sAAAut].
-    by rewrite acts_ract subxx actsAAKA. 
+  have actsAAKA : [acts AA, on K | 'A_R ] by exact: aut_acts_char.
+  have actsAAKAr : [acts AA, on K | 'A_R \ sAAAut] by rewrite acts_ract subxx. 
   rewrite quotientGI ?proper_sub //= -/K; apply/setIidPl.
   have := (ext_coprime_quotient_cent sKR actsAAKAr cop solK).
   rewrite gacentE // ['C_(|ACT)(_)]gacentE // /ACT !afix_ract /= -/AA -/K => ->.
@@ -725,14 +725,8 @@ have sHC : H \subset CC.
     rewrite val_subact qact_subdomE ?qact_domE //; case: ifP; rewrite // inE.
     by rewrite (subsetP _ _ aAA) // inE amN.
   rewrite (subset_trans sAAAb) // gen_subG subUset; apply/andP; split. 
-    have actsAAK : forall W, W \char R -> [acts A, on W | 'A_R].
-      move=> W; case/andP=> _; move/forall_inP=> charWAut.
-      apply/subsetP => b bA; rewrite 2!inE (subsetP _ _ bA) //=.
-      rewrite -setactVin ?(subsetP _ _ bA) //; apply/subsetP=> h hK.
-      apply/imsetP; exists (b h); last by rewrite /= /autact /= apermE permK.
-      by rewrite (subsetP (charWAut _ (subsetP _ _ bA))) ?mem_imset. 
-    have actsAK : [acts A, on K | 'A_R] := actsAAK _ charK.    
-    have actsAHH : [acts A, on HH | 'A_R] := actsAAK _ cHH.
+    have actsAK : [acts A, on K | 'A_R] by exact: aut_acts_char.
+    have actsAHH : [acts A, on HH | 'A_R] by exact: aut_acts_char.
     apply: der1_min. 
       rewrite (subset_trans _  (astab_norm _ _)) // acts_quotient //.
       by rewrite qact_domE //= subsetI -/K actsAHH actsAK.
@@ -749,25 +743,15 @@ have sHC : H \subset CC.
     by rewrite card_quotient /= ?(eqP cp) // commg_norml.
   apply/subsetP=> ?; case/imsetP=> x xA ->.
   have acts : [acts <[x ^+ p.-1]>, on K | 'A_R ].
-    have ? : <[x ^+ p.-1]> \subset Aut R.
-      by rewrite (subset_trans _ sAAu) // cycle_subG in_group.
-    apply/subsetP => b bA; rewrite 2!inE (subsetP _ _ bA) //=.
-    rewrite -setactVin ?(subsetP _ _ bA) //; apply/subsetP=> h hK.
-    apply/imsetP; exists (b h); last by rewrite /= /autact /= apermE permK.
-    by rewrite (subsetP (charKaut _ (subsetP _ _ bA))) ?mem_imset.
+    by rewrite aut_acts_char // (subset_trans _ sAAu) // cycle_subG in_group.
   rewrite inE /= qact_domE // -cycle_subG inE acts /=.
   apply/subsetP=> H3y; case/morphimP=> y Ny HHy ->{H3y}.
   rewrite inE qactE ?qact_domE // -?cycle_subG //= -/K.
   have actsAR_HH: {acts Aut R, on group HH | 'A_R}.
-    case/andP: cHH => sHHR; move/forall_inP=> charH.
-    split=> //; apply/subsetP=> f Aut_f.
-    rewrite inE Aut_f inE; apply/subsetP=> {y Ny HHy} y HHy.
-    by rewrite inE (subsetP (charH f Aut_f)) //; apply/imsetP; exists y.
+    by split; rewrite ?(char_sub cHH) //; exact: aut_acts_char.
   have sK_HH := proper_sub prKH. 
   have actsAR_K: [acts Aut R, on [~: HH, R] | <[actsAR_HH]>].
-    rewrite astabs_actby (setIidPr sK_HH); apply/subsetP=> f Aut_f.
-    rewrite inE Aut_f inE Aut_f inE; apply/subsetP=> {y Ny HHy} y Ky.
-    by rewrite inE (subsetP (charKaut f Aut_f)) //; apply/imsetP; exists y.
+    by rewrite astabs_actby (setIidPr sK_HH) subsetI aut_acts_char ?subxx.
   have Aut_x : x \in Aut R by exact: subsetP _ _ xA.
   have ? : x \in qact_dom <[actsAR_HH]> [~: HH, R].
     by rewrite qact_domE // (subsetP actsAR_K).
