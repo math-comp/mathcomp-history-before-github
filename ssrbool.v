@@ -17,6 +17,9 @@ Require Export Bool.
 (* iffP,...                == user-oriented reflection lemmas                *)
 (* elimT                   == coercion reflect >-> Funclass, to apply        *)
 (*                            reflection lemmas to boolean assertions        *)
+(* classically P           == hP : P can be assumed when proving is_true b   *)
+(*                         := forall b : bool, (P -> b) -> b.                *)
+(*                            This is equivalent to ~ (~ P) when P : Prop.   *)
 (* [ /\ P1 , P2 & P3 ]     == iterated logical conjonction, up to 5          *)
 (* [ \/ P1 , P2 | P3 ]     == iterated logical disjonction, up to 4          *)
 (* [&& a, b, c & d]        == iterated, right associated boolean conjunction *)
@@ -254,6 +257,10 @@ Lemma not_false_is_true : ~ false.       Proof. by []. Qed.
 Lemma is_true_locked_true : locked true. Proof. by unlock. Qed.
 Hint Resolve is_true_true not_false_is_true is_true_locked_true.
 
+(* Shorter names. *)
+Definition isT := is_true_true.
+Definition notF := not_false_is_true.
+
 (* Negation lemmas. *)
 
 (* Note: in the general we take NEGATION as the standard form of a *)
@@ -286,6 +293,10 @@ Proof. by do 2!case. Qed.
 
 Lemma contraLR : forall c b : bool, (~~ c -> ~~ b) -> b -> c.
 Proof. by do 2!case. Qed.
+
+Lemma contraT : forall b, (~~ b -> false) -> b. Proof. by case=> // ->. Qed.
+
+Lemma wlog_neg : forall b, (~~ b -> b) -> b. Proof. by case=> // ->. Qed.
 
 Lemma contraFT : forall c b : bool, (~~ c -> b) -> b = false -> c.
 Proof. by case=> [] [] // ->. Qed.
@@ -458,15 +469,46 @@ Hint View for apply/ introTF|3 introNTF|3 introTFn|3 elimT|2 elimTn|2 elimN|2.
 
 Hint View for apply// equivPif|3 xorPif|3 equivPifn|3 xorPifn|3.
 
-(* Allow the direct application of a reflection lemma to a boolean assertion.  *)
+(* Allow the direct application of a reflection lemma to a boolean assertion. *)
 Coercion elimT : reflect >-> Funclass.
 
-(* List notations for wider connectives; the Prop connectives have a fixed  *)
-(* width so as to avoid iterated destruction (we go up to width 5 for /\,   *)
-(* and width 4 for or. The bool connectives have arbitrary widths, but      *)
-(* denote expressions that associate to the RIGHT. This is consistent with  *)
-(* the right associativity of list expressions, and thus more convenient in *)
-(* many proofs.                                                             *)
+(* Classical reasoning becomes directly accessible for any bool subgoal.      *)
+
+Definition classically P := forall b : bool, (P -> b) -> b.
+
+Lemma classicP : forall P : Prop, classically P <-> ~ ~ P.
+Proof.
+move=> P; split=> [cP nP | nnP [] // nP]; last by case nnP; move/nP.
+by have: P -> false; [move/nP | move/cP].
+Qed.
+
+Lemma classic_bind : forall P Q,
+  (P -> classically Q) -> (classically P -> classically Q).
+Proof. by move=> P Q IH IH_P b IH_Q; apply: IH_P; move/IH; exact. Qed.
+
+Lemma classic_EM : forall P, classically ({P} + {~ P}).
+Proof.
+by move=> P [] // IH; apply IH; right => ?; apply: notF (IH _); left.
+Qed.
+
+Lemma classic_imply : forall P Q, (P -> classically Q) -> classically (P -> Q).
+Proof.
+move=> P Q IH [] // notPQ; apply notPQ; move/IH=> hQ; case: notF.
+by apply: hQ => hQ; case: notF; exact: notPQ.
+Qed.
+
+Lemma classic_pick : forall T P,
+  classically ({x : T | P x} + (forall x, ~ P x)).
+Proof.
+move=> T P [] // IH; apply IH; right=> x Px; case: notF.
+by apply: IH; left; exists x.
+Qed.
+
+(* List notations for wider connectives; the Prop connectives have a fixed    *)
+(* width so as to avoid iterated destruction (we go up to width 5 for /\, and *)
+(* width 4 for or. The bool connectives have arbitrary widths, but denote     *)
+(* expressions that associate to the RIGHT. This is consistent with the right *)
+(* associativity of list expressions and thus more convenient in most proofs. *)
 
 Inductive and3 (P1 P2 P3 : Prop) : Prop := And3 of P1 & P2 & P3.
 
@@ -929,10 +971,8 @@ Coercion sort_of_simpl_pred T (p : simpl_pred T) : pred_class := p : pred T.
 (* This lets us use some types as a synonym for their universal predicate. *)
 (* Unfortunately, this won't work for existing types like bool, unless     *)
 (* we redefine bool, true, false and all bool ops.                         *)
-(*   We don't define a coercion to Sortclass because then any coercion to  *)
-(* predArgType would always be in a conflict with a preexisting coercion   *)
-(* to Sortclass.                                                           *)
 Definition predArgType := Type.
+Identity Coercion sort_of_predArgType : predArgType >-> Sortclass.
 Coercion pred_of_argType (T : predArgType) : simpl_pred T := predT.
 
 Notation "{ : T }" := (T%type : predArgType)
@@ -1250,10 +1290,26 @@ Proof.
 by move=> fK x y; do 2![move/fK=> def; rewrite -{2}def {def}] => ->.
 Qed.
 
+Lemma canLR_in : forall x y,
+  {in D1, cancel f g} -> y \in D1 -> x = f y -> g x = y.
+Proof. by move=> x y fK D1y ->; rewrite fK. Qed.
+
+Lemma canRL_in : forall x y,
+  {in D1, cancel f g} -> x \in D1 -> f x = y -> x = g y.
+Proof. by move=> x y fK D1x <-; rewrite fK. Qed.
+
 Lemma on_can_inj : {on D2, cancel f & g} -> {on D2 &, injective f}.
 Proof.
 by move=> fK x y; do 2![move/fK=> def; rewrite -{2}def {def}] => ->.
 Qed.
+
+Lemma canLR_on : forall x y,
+  {on D2, cancel f & g} -> f y \in D2 -> x = f y -> g x = y.
+Proof. by move=> x y fK D2fy ->; rewrite fK. Qed.
+
+Lemma canRL_on : forall x y,
+  {on D2, cancel f & g} -> f x \in D2 -> f x = y -> x = g y.
+Proof. by move=> x y fK D2fx <-; rewrite fK. Qed.
 
 Lemma inW_bij : bijective f -> {in D1, bijective f}.
 Proof. by case=> g' fK g'K; exists g' => * ? *; auto. Qed.

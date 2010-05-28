@@ -157,13 +157,13 @@ have irrAG: mx_irreducible rAG by exact: gen_mx_irr.
 have: dA <= 2.
   case Ax0: (Ax == 0).
     by rewrite subr_eq0 in Ax0; case/eqP: ncxy; rewrite (eqP Ax0) mulmx1 mul1mx.
-  case/rowV0Pn: Ax0 => v; case/subsetmxP => u def_v nzv.
+  case/rowV0Pn: Ax0 => v; case/submxP => u def_v nzv.
   pose U := col_mx v (v *m Ay); pose UA := <<inFA _ U>>%MS.
   pose rvalFA := @rowval_gen _ _ _ _ _ _ irrG cAG.
   have Umod: mxmodule rAG UA.
     rewrite /mxmodule gen_subG subUset !sub1set !inE Gx Gy /= andbC.
     apply/andP; split; rewrite (eqmxMr _ (genmxE _)) -in_genJ // genmxE.
-      rewrite subsetmx_in_gen // -[rG y](subrK 1%R) -/Ay mulmx_addr mulmx1.
+      rewrite submx_in_gen // -[rG y](subrK 1%R) -/Ay mulmx_addr mulmx1.
       rewrite addmx_sub // mul_col_mx -mulmxA Ay2 mulmx0.
       by rewrite -!addsmxE addsmx0 addsmxSr.
     rewrite -[rG x](subrK 1%R) -/Ax mulmx_addr mulmx1 in_genD mul_col_mx.
@@ -171,12 +171,12 @@ have: dA <= 2.
     rewrite -mulmxN mulmxA {1 2}def_v -(mulmxA u) Ax2 mulmx0 mul0mx add0r.
     rewrite -(mul0mx _ A') -mul_col_mx -[A'](mxval_groot irrG cAG).
     rewrite -[_ 0 v](in_genK irrG cAG) -val_genZ val_genK.
-    rewrite addmx_sub ?scalemx_sub ?subsetmx_in_gen //.
+    rewrite addmx_sub ?scalemx_sub ?submx_in_gen //.
     by rewrite -!addsmxE adds0mx addsmxSl.
   have nzU: UA != 0.
     rewrite -mxrank_eq0 genmxE mxrank_eq0; apply/eqP.
     move/(canRL ((in_genK _ _) _)); rewrite val_gen0; apply/eqP.
-    by rewrite -subsetmx0 -addsmxE addsmx_sub subsetmx0 negb_and nzv.
+    by rewrite -submx0 -addsmxE addsmx_sub submx0 negb_and nzv.
   case/mx_irrP: irrAG => _; move/(_ UA Umod nzU); move/eqnP <-.
   by rewrite genmxE rank_leq_row.
 rewrite leq_eqVlt ltnS leq_eqVlt ltnNge dA_gt0 orbF orbC; case/pred2P=> def_dA.

@@ -1681,6 +1681,11 @@ apply: (inj_map val_inj); rewrite val_enum_ord /= -map_comp.
 by rewrite (map_comp (addn 1)) val_enum_ord -iota_addl.
 Qed.
 
+Lemma lift_max : forall i : 'I_n', lift ord_max i = i :> nat.
+Proof. by move=> i; rewrite /= /bump leqNgt ltn_ord. Qed.
+
+Lemma lift0 : forall i : 'I_n', lift ord0 i = i.+1 :> nat. Proof. by []. Qed.
+
 End OrdinalPos.
 
 Implicit Arguments ord0 [[n']].

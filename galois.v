@@ -47,13 +47,13 @@ Proof.
 move => K.
 case/and3P => _ _.
 move/forallP => Kfield u v.
-do 2 (case/subsetmxP => ?; move/(canRL mxvecK)=> ->).
+do 2 (case/submxP => ?; move/(canRL mxvecK)=> ->).
 rewrite !mulmx_sum_row !linear_sum /=.
-apply: subsetmx_sum => j _.
+apply: submx_sum => j _.
 rewrite linearZ mulmx_suml !linear_sum /=.
-apply: subsetmx_sum => i _.
+apply: submx_sum => i _.
 rewrite !linearZ /= -scalemxAl linearZ /=.
-do 2 apply: subsetmx_scale.
+do 2 apply: submx_scale.
 by move/forallP : (Kfield i).
 Qed.
 
@@ -109,7 +109,7 @@ Proof.
 move => E K f.
 case/and4P => _ _.
 move/forallP => fmult _ u v.
-do 2 (case/subsetmxP => ? ->).
+do 2 (case/submxP => ? ->).
 rewrite 2![_ *m E]mulmx_sum_row /=.
 rewrite !mulmx_suml !linear_sum !mulmx_suml /=.
 apply: eq_bigr => j _.
@@ -141,7 +141,7 @@ apply/and4P; split; do 2? apply/forallP => ?;
  rewrite ?mulmxA ?Hf2 ?Hg2 ?Hf4 ?Hg4 //.
  by apply/eqmxP; apply (fun x => eqmx_trans x Hg1); apply eqmxMr.
 by rewrite (AutomorphMul Fg) -?Hf1 ?(AutomorphMul Ff) //; 
- do ? apply subsetmxMr; apply: row_sub.
+ do ? apply submxMr; apply: row_sub.
 Qed.
 
 Lemma AutomorphismIsUnit : forall E K f, 
@@ -151,11 +151,11 @@ move => E K f.
 case/and4P.
 move/eqmxP => Hf1 _ _.
 move/eqP => Hf2.
-rewrite -row_full_unit -subset1mx.
+rewrite -row_full_unit -sub1mx.
 have H: (row_full (E + E^C)) by apply: sumsmx_compl_full.
 rewrite -(eqmxMfull f H) sumsmxMr.
-rewrite -subset1mx in H.
-apply: (subsetmx_trans H).
+rewrite -sub1mx in H.
+apply: (submx_trans H).
 by apply: sumsmxS; rewrite ?Hf1 ?Hf2.
 Qed.
 
@@ -182,7 +182,7 @@ split.
   rewrite -{2}(mulmxKV Uf (row i E)).
   rewrite -{2}(mulmxKV Uf (row j E)).
   rewrite (AutomorphMul Hf) ?mulmxK // -HE;
-  by apply subsetmxMr; apply row_sub.
+  by apply submxMr; apply row_sub.
 - by apply/eqP; by rewrite -{2}(mulmxK Uf (E^C)%MS) Hf4. 
 Qed.
 
@@ -195,10 +195,10 @@ move/eqP => Hf2.
 apply/row_matrixP => i.
 rewrite row1 rowE.
 have: (delta_mx (0:'I_1) i <= E + E^C)%MS.
- apply subsetmx_full; apply sumsmx_compl_full.
+ apply submx_full; apply sumsmx_compl_full.
 case/sub_sumsmxP => x.
 rewrite {-1}(_:delta_mx 0 i = (delta_mx 0 i - x) + x); 
  last by rewrite GRing.Theory.subrK.
-do 2!move/subsetmxP => [? ->].
+do 2!move/submxP => [? ->].
 by rewrite mulmx_addl -2!mulmxA Hf1 Hf2.
 Qed.
