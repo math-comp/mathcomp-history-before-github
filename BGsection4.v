@@ -1236,11 +1236,46 @@ Qed.
 
 (* Lemma 4.15 in B & G can be found in maximal.v *)
  
-Lemma BG4_17 : forall gT (R : {group gT}) (A : {group perm_of_finGroupType gT}) p, 
+Lemma BG4_17 : 
+    forall gT (R : {group gT}) (A : {group perm_of_finGroupType gT}) p, 
     p.-group R -> odd #|R| -> A \subset Aut R -> solvable A -> 
     'r(R) <= 2 -> odd #|A| ->
   p.-group A^`(1).
+Proof.
+move=> gT R A p pR oddR sAAut solA rR oddA.
+wlog ntR: / R :!=: 1.
+  case: eqP sAAut => [->|ntR _]; last by apply.
+  by rewrite Aut1; move/trivgP=> ->; rewrite derg1 commG1 pgroup1.
+have [p_pr _ [r cR]] := pgroup_pdiv pR ntR.
+case oddp: (odd p); last first.
+  by move: oddp oddR; rewrite cR odd_exp orbC; move=>->.
+case: (critical_odd _ pR)=> // H [cHR sHRZ] ncH exH pCAu.
+have pCAH : p.-group('C_A(H | 'A_R)) := pgroupS (subsetIr _ _) pCAu.
+have pH := pgroupS (char_sub cHR) pR.
+have rH : 'r(H) <= 2.
+  by rewrite (leq_trans _ rR) // !(@rank_pgroup _ p) // p_rankS ?char_sub.
+have ntH : H :!=: 1.
+  by case: eqP (exponent1 gT) exH (prime_gt1 p_pr) (ltnn p) => // -> -> <-.
+have cH : #|H| <= p^3.
+  have := pgroup_rank_le2_exponentp pH rH; rewrite exH dvdnn.
+  have [_ _ [s ->]] := pgroup_pdiv pH ntH.
+  by rewrite pfactorK // leq_exp2l ?prime_gt1 //; apply.
+pose V := H / 'Phi(H); pose C := 'C_A(V | 'A_R / _).
+have foo : [acts A, on 'Phi(H) | 'A_R].
+  admit. (* add the lemma used in 5.5 to actions.v *)
+have sCAHC: 'C_A(H|'A_R) \subset C.
+  have nPH : H \subset 'N('Phi(H)) by rewrite char_norm ?Phi_char.
+  have qdomA : A \subset qact_dom  'A_R 'Phi(H).
+    by rewrite qact_domE ?(subset_trans (Phi_sub _)) ?(char_sub cHR) //.
+  apply/subsetP=> x; rewrite /C 3!inE; case/and3P=> Ax AutRx sHFix.
+  rewrite 2!inE Ax {1}qact_domE /= ?(subset_trans (Phi_sub _)) ?char_sub//.
+  rewrite (subsetP foo) // inE; apply/subsetP=> vH; case/morphimP.
+  move=> v Nv Hv ->{vH} /=; rewrite inE qactE ?(subsetP _ _ Ax) //.
+  by move/subsetP: sHFix; move/(_ _ Hv); rewrite inE; move/eqP=> ->.
+have pCC : p.-group(C / 'C_A(H | 'A_R)).
+  have := coprime_cent_Phi.
 Admitted.
+
 
 (* This is B & G, Theorem 4.18(a) *)
 Lemma rank2_max_pdiv : forall gT (G : {group gT}) p, 
