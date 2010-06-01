@@ -1261,6 +1261,7 @@ have cH : #|H| <= p^3.
   have [_ _ [s ->]] := pgroup_pdiv pH ntH.
   by rewrite pfactorK // leq_exp2l ?prime_gt1 //; apply.
 pose V := H / 'Phi(H); pose C := 'C_A(V | 'A_R / _).
+have abeV : p.-abelem V by exact: Phi_quotient_abelem.
 have foo : [acts A, on 'Phi(H) | 'A_R].
   admit. (* add the lemma used in 5.5 to actions.v *)
 have sCAHC: 'C_A(H|'A_R) \subset C.
@@ -1274,8 +1275,33 @@ have sCAHC: 'C_A(H|'A_R) \subset C.
   by move/subsetP: sHFix; move/(_ _ Hv); rewrite inE; move/eqP=> ->.
 have pCC : p.-group(C / 'C_A(H | 'A_R)).
   have := coprime_cent_Phi.
+  admit.
+have pC : p.-group C.
+  admit. (* 4.16 *)
+have nRA : {acts A, on group V | 'A_R / 'Phi(H)}.
+  admit. 
+pose fA := actperm <[nRA]> @* A.
+have abfA : A/C \isog fA.
+  by rewrite /C -[V]setIT -(astab_actby nRA) -ker_actperm first_isog.
+have nPH : H \subset 'N('Phi(H)) := char_norm (Phi_char H).
+have: 'm(V) <= 3. 
+  rewrite grank_abelian ?(abelem_abelian abeV) //= -/V.
+  rewrite (rank_abelem abeV) /= (leq_trans (logn_quotient _ _ _)) //.
+  move: cH; have [_ _ [[->|[->|]]]] := pgroup_pdiv pH ntH; rewrite ?pfactorK //.
+  by case=> [->|m ->]; [ rewrite pfactorK | rewrite leq_exp2l // prime_gt1 ].
+rewrite 2!leq_eqVlt !eqSS !ltnS; case/or3P => mV.
+  have := quotient_grank nPH; rewrite (eqP mV) => mH.
+  have trivPhi : 'Phi(H) :==: 1.
+    admit.
+  have abH : abelian H.
+    by move: trivPhi; rewrite (trivg_Phi pH);move/abelem_abelian.
+  by move: (leq_ltn_trans rH mH); rewrite grank_abelian // ltnn.
+- admit.
+have abAC : abelian (A / C).
+  admit.
+apply: pgroupS (der1_min _ abAC) pC.
+by rewrite normsI ?normG ?(subset_trans _ (astab_norm _ _)) //; case: (nRA).
 Admitted.
-
 
 (* This is B & G, Theorem 4.18(a) *)
 Lemma rank2_max_pdiv : forall gT (G : {group gT}) p, 
