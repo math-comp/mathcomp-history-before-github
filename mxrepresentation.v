@@ -1,8 +1,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq paths div choice.
-Require Import fintype tuple finfun bigops prime binomial ssralg poly finset.
-Require Import groups morphisms automorphism normal perm finalg action gprod.
-Require Import zmodp matrix commutators cyclic center pgroups gseries.
-Require Import sylow abelian maximal.
+Require Import fintype tuple finfun bigops prime ssralg poly finset.
+Require Import groups morphisms normal perm finalg action zmodp matrix.
+Require Import commutators cyclic center pgroups gseries sylow abelian.
 
 (****************************************************************************)
 (*  This file provides linkage between classic Group Theory and commutative *)

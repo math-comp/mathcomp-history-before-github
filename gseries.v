@@ -1,7 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype bigops finset.
 Require Import paths groups commutators morphisms automorphism normal center.
-Require Import action.
 (*****************************************************************************)
 (*           H <|<| G   <=> H is subnormal in G, i.e., H <| ... <| G.        *)
 (* invariant_factor A H G <=> A normalises both H and G, and H <| G.         *)

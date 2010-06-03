@@ -1,5 +1,5 @@
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq paths div.
-Require Import choice fintype finfun bigops ssralg finset prime binomial.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
+Require Import fintype finfun bigops ssralg finset prime binomial.
 Require Import groups zmodp morphisms automorphism normal perm action gprod.
 Require Import commutators cyclic center pgroups gseries nilpotent sylow.
 Require Import abelian maximal hall gfunc BGsection1 matrix mxrepresentation.

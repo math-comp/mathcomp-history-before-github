@@ -1,7 +1,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype.
 Require Import div bigops prime tuple finset groups morphisms normal.
 Require Import perm automorphism action cyclic pgroups sylow.
-Require Import gseries maximal prim_act.
+Require Import gseries prim_act.
 
 Import Prenex Implicits.
 Set Implicit Arguments.

@@ -1,5 +1,5 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice.
-Require Import bigops ssralg poly polydiv zmodp fintype.
+Require Import ssralg poly polydiv zmodp fintype.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -985,8 +985,6 @@ Qed.
 End FieldTheory.
 End FieldTheory.
 Include FieldTheory.
-
-Require Import poly.
 
 Module RealClosedField.
 

@@ -1,5 +1,5 @@
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
-Require Import bigops ssralg poly polydiv orderedalg zmodp polydiv.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype.
+Require Import ssralg poly orderedalg zmodp.
 
 (* Reserved Notation "a ^`"(at level 3, format "a ^`"). *)
 (* Reserved Notation "a ^`( n )" (at level 3, format "a ^`( n )"). *)

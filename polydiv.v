@@ -1,4 +1,4 @@
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype.
 Require Import bigops ssralg poly.
 
 Import GRing.

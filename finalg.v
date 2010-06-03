@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat div seq choice fintype.
-Require Import ssralg finset groups morphisms perm automorphism action.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
+Require Import ssralg finset groups morphisms perm action.
 
 (*****************************************************************************)
 (* This file clones the entire ssralg hierachy for finite types; this allows *)

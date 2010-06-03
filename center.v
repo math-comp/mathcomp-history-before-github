@@ -8,8 +8,7 @@
 (*                                                                     *)
 (***********************************************************************)
 (***********************************************************************)
-
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype div.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype.
 Require Import finset bigops groups morphisms normal automorphism cyclic.
 Require Import gprod gfunc.
 

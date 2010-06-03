@@ -1,5 +1,5 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div choice fintype.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat div seq choice fintype.
 Require Import finfun bigops.
 
 (*****************************************************************************)

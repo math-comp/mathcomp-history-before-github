@@ -3,8 +3,8 @@
 (*                                                                     *)
 (***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
-Require Import div seq fintype tuple finfun finset.
-Require Import groups action gseries maximal.
+Require Import div seq fintype tuple finset.
+Require Import groups action gseries.
 
 (* n-transitive and primitive actions *)
 

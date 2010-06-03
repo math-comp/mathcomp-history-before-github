@@ -1,5 +1,5 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice div.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq div.
 Require Import fintype bigops finset prime groups ssralg finalg.
 
 (***********************************************************************)

@@ -1,5 +1,5 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype finfun.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype.
 Require Import bigops finset prime binomial groups morphisms normal perm.
 Require Import commutators automorphism action cyclic gfunc pgroups center.
 Require Import gprod gseries nilpotent sylow abelian finmod ssralg matrix.

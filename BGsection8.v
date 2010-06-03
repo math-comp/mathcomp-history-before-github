@@ -1,9 +1,8 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
-Require Import fintype paths finfun bigops finset prime binomial groups.
-Require Import morphisms perm action automorphism normal zmodp cyclic.
-Require Import gfunc pgroups gprod center commutators gseries nilpotent sylow.
-Require Import abelian maximal hall BGsection1 BGsection5 BGsection6 BGsection7.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype paths.
+Require Import finset prime groups action automorphism gfunc pgroups gprod.
+Require Import center commutators gseries nilpotent sylow abelian maximal.
+Require Import BGsection1 BGsection5 BGsection6 BGsection7.
 
 (******************************************************************************)
 (*   This file covers B & G, section 8, i.e., the proof of two special cases  *)

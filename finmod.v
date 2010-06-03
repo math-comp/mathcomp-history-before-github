@@ -1,7 +1,6 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq paths div.
-Require Import choice fintype finfun bigops ssralg finset prime.
-Require Import groups morphisms perm finalg automorphism normal action gprod.
-Require Import cyclic center pgroups commutators.
+Require Import choice fintype bigops ssralg finset groups morphisms perm.
+Require Import finalg action gprod cyclic commutators.
 
 (******************************************************************************)
 (*  This file regroups constructions and results that are based on the most   *)

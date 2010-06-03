@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat fintype bigops finset.
-Require Import binomial groups morphisms automorphism normal gfunc gprod.
+Require Import ssreflect ssrbool eqtype ssrnat fintype bigops finset.
+Require Import binomial groups morphisms automorphism normal gfunc.
 
 (******************************************************************************)
 (*   This files contains the proofs of several key properties of commutators, *)

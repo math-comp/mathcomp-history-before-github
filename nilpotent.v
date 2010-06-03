@@ -1,6 +1,6 @@
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype div.
 Require Import bigops prime paths finset groups commutators automorphism.
-Require Import morphisms normal cyclic center gprod gfunc gseries.
+Require Import morphisms normal center gprod gfunc gseries.
 
 (******************************************************************************)
 (*   This file defines nilpotent and solvable groups, and give some of their  *)

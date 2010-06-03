@@ -1,17 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect.
-Require Import ssrbool.
-Require Import ssrfun.
-Require Import eqtype.
-Require Import ssrnat.
-Require Import fintype.
-Require Import finset.
-Require Import groups.
-Require Import normal.
-Require Import morphisms.
-Require Import automorphism.
-Require Import bigops.
-Require Import gprod.
+Require Import ssreflect ssrbool ssrfun eqtype fintype finset groups normal.
+Require Import normal morphisms automorphism bigops gprod.
 
 Import GroupScope.
 
@@ -499,8 +488,6 @@ End IdentitySubFunctorsExamples.
 Section Torsion.
 
 Implicit Types gT hT: finGroupType.
-
-Require Import finfun.
 
 (* Orthogonality property*)
 Definition trivlsed gT (B : {group gT}) hT (C : {group hT}) :=

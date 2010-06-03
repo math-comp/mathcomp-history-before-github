@@ -1,8 +1,7 @@
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
-Require Import prime fintype finfun bigops ssralg finset.
-Require Import groups morphisms perm automorphism normal commutators.
-Require Import action zmodp cyclic center gprod pgroups nilpotent sylow.
-Require Import abelian gseries maximal hall mxrepresentation.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div prime fintype.
+Require Import bigops ssralg finset groups morphisms perm automorphism normal.
+Require Import commutators action zmodp cyclic center gprod pgroups nilpotent.
+Require Import sylow abelian gseries maximal hall mxrepresentation.
 Require Import BGsection1 BGsection2.
 
 Set Implicit Arguments.

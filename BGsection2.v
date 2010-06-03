@@ -1,8 +1,7 @@
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
-Require Import fintype bigops prime binomial finset ssralg.
-Require Import groups morphisms normal automorphism commutators zmodp.
-Require Import gprod cyclic center pgroups gseries nilpotent sylow abelian.
-Require Import maximal matrix mxrepresentation BGsection1.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype prime.
+Require Import finset ssralg groups normal automorphism commutators zmodp.
+Require Import gprod pgroups nilpotent sylow abelian matrix mxrepresentation.
+Require Import BGsection1.
 
 (******************************************************************************)
 (* This file should contain the useful material in B & G, section 2, that is  *)
