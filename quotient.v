@@ -5,11 +5,11 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-Reserved Notation "\pi_ T" (at level 0, format "\pi_ T").
-Reserved Notation "x == y 'mod' T" (at level 70, y at next level, 
-  no associativity, format "x  ==  y  'mod'  T").
-Reserved Notation "\compat1_ T" (at level 0, format "\compat1_ T").
-Reserved Notation "\compat2_ T" (at level 0, format "\compat2_ T").
+Reserved Notation "\pi_ Q" (at level 0, format "\pi_ Q").
+Reserved Notation "x == y 'mod' Q" (at level 70, y at next level, 
+  no associativity, format "x  ==  y  'mod'  Q").
+Reserved Notation "\compat1_ Q" (at level 0, format "\compat1_ Q").
+Reserved Notation "\compat2_ Q" (at level 0, format "\compat2_ Q").
 
 Section Quotient.
 
@@ -49,7 +49,7 @@ Canonical Structure quot_eqType := Eval hnf in EqType _ quot_eqMixin.
 
 Definition clone_quot (Q:Type) qT of phant_id (quot_sort qT) Q := qT.
 
-Notation "\pi_ T" := (@pi_of (Phant T)).
+Notation "\pi_ qT" := (@pi_of (Phant qT)).
 Notation "x == y 'mod' T" := (\pi_T x == \pi_T y).
 Lemma equivP : forall x y, x == y mod qT = (pi qT x == pi qT y).
 Proof. by []. Qed.
