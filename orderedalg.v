@@ -149,11 +149,16 @@ Canonical Structure ler_lterS R := @Lter R _ (or_introl _ (fun x y => refl_equal
 Canonical Structure ltr_lterS R := @Lter R _ (or_intror _ (fun x y => refl_equal (_ x y))).
 
 Definition lte_let R (c : lter R) (x y : R) := ~~ (c y x). 
+
 Lemma lte_letP : forall R (c : lter R) x y, ~~ (c x y) = (lte_let c) y x.
 Proof. done. Qed.
+
 Lemma lte_let_lterP : forall R (c: lter R),
   ((lte_let c) =2 (@ler R)) \/ ((lte_let c) =2 (@ltr R)).
-Admitted.
+Proof.
+by rewrite /lte_let => R [o [] oP] /=; [right|left] => x y; rewrite oP // negbK.
+Qed.
+
 Canonical Structure lte_let_lter R (c : lter R) := Lter (lte_let_lterP c).
 
 Module IntegralDomainTheory.
