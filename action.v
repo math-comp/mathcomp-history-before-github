@@ -1846,3 +1846,14 @@ Notation "''A_' G" := (aut_action G)
   (at level 8, format "''A_' G") : action_scope.
 Notation "''A_' G" := (aut_groupAction G) : groupAction_scope.
 
+Lemma gacts_char : 
+    forall (gT rT : finGroupType) (A : {group rT}) (R : {group gT}) 
+    (to : groupAction A R) (S : {group rT}) W, S \subset A -> W \char R -> 
+  [acts S, on W | to].
+Proof.
+move=> gT rT A R to S W sSA; case/andP=> sWR; move/forall_inP=> charW.
+apply/subsetP=> s sS; rewrite !inE (subsetP sSA _ sS); apply/subsetP=> w wW.
+rewrite inE; move/subsetP: (charW _ (actperm_Aut (to \ sSA) sS)); apply.
+by apply/imsetP; exists w; rewrite //= ractpermE actpermE.
+Qed.
+

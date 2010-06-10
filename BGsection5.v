@@ -491,16 +491,6 @@ move=> C pC; move/(cyclicS (Ohm_sub 1 _))=> cycC1.
 by rewrite -abelem_cyclic // abelem_Ohm1 ?cyclic_abelian.
 Qed.
 
-Let aut_acts_char : forall S W, 
-  S \subset Aut R -> W \char R -> [acts S, on W | 'A_R].
-Proof.
-move=> S W sSA; case/andP=> _; move/forall_inP=> charWAut.
-apply/subsetP => b bA; rewrite 2!inE (subsetP _ _ bA) //=.
-rewrite -setactVin ?(subsetP _ _ bA) //; apply/subsetP=> h hK.
-apply/imsetP; exists (b h); last by rewrite /= /autact /= apermE permK.
-by rewrite (subsetP (charWAut _ (subsetP _ _ bA))) ?mem_imset. 
-Qed.
-
 (* B&G 5.5(a,b) *)
 Theorem narrow_solvable_Aut :
     narrow p R -> forall A, solvable A -> A \subset Aut R -> odd #|A| ->
@@ -526,7 +516,7 @@ have sCO : 'C_A(H | 'P) \subset 'O_p(A).
 have ntH : H :!=: 1.
   by case: eqP (exponent1 gT) exH (prime_gt1 p_pr) (ltnn p) => // -> -> <-.
 case: (leqP 3 'r(R)) => rR; last first.
-  have pA' := BG4_17 pR oddR sAAu solA rR oddA.
+  have pA' := rank2_odd_sol_Aut_pgroup_der1 pR oddR sAAu solA rR oddA.
   have ds : A^`(1) \subset 'O_p(A) by apply: pcore_max; rewrite // der_normal.
   have aAK : abelian (A / 'O_p(A)) by rewrite sub_der1_abelian.
   by split=> //; apply: abelian_pcore_p'group.
@@ -711,7 +701,7 @@ rewrite -(quotientSGK _ sKC) ?commg_norml //= -/CC -/K.
 rewrite -(_:'C_(HH | ACT)(AA) / K = HH / K) ?quotientS ?setSI //.
 rewrite quotientGI ?proper_sub //= -/K; apply/setIidPl.
 have actsAAKAr : [acts AA, on K | 'A_R \ sAAAut].
-  by rewrite acts_ract subxx aut_acts_char. 
+  by rewrite acts_ract subxx gacts_char. 
 rewrite gacentE // /ACT !afix_ract -(gacentE ('A_R \ sAAAut)%gact) //.
 have -> : 'C_(|'A_R \ sAAAut)(AA) / K = 'C_(|('A_R \ sAAAut) / _)(AA).
   apply: ext_coprime_quotient_cent sKR actsAAKAr (pnat_coprime pK p'AA) _.
@@ -719,7 +709,7 @@ have -> : 'C_(|'A_R \ sAAAut)(AA) / K = 'C_(|('A_R \ sAAAut) / _)(AA).
 rewrite gacentE ?qact_domE // subsetI /= -/K.
 rewrite quotientS ?(char_sub cHH) //= -astabCin ?qact_domE //.
 have actsAHH : {acts A, on group HH | 'A_R}.
-  split; [exact: aut_acts_char | exact: char_sub].
+  split; [exact: gacts_char | exact: char_sub].
 suffices: a \in 'C(setT | <[actsAHH]> / [~: HH, R]).
   case/setIdP=> qdom_a; rewrite inE => cQa; have [Aa _] := setIdP qdom_a.
   rewrite cycle_subG /= -qact_domE // in actsAAKAr.
@@ -729,7 +719,7 @@ suffices: a \in 'C(setT | <[actsAHH]> / [~: HH, R]).
 have sKHH : K \subset HH by rewrite commg_subl char_norm.
 apply: subsetP aAb; rewrite gen_subG /=.
 have qdomA: A \subset qact_dom <[actsAHH]> [~: HH, R].
-  by rewrite qact_domE // acts_actby subxx (setIidPr _) // aut_acts_char.
+  by rewrite qact_domE // acts_actby subxx (setIidPr _) // gacts_char.
 rewrite -ker_actperm -sub_morphim_pre; last first.
   by rewrite -gen_subG (subset_trans sAbA).
 have cycHHq: cyclic (HH / K) by rewrite prime_cyclic ?cp.
