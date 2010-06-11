@@ -779,11 +779,13 @@ move=> n x l0x; elim: n=> [|n ihn]; first by rewrite expr0 ltr01.
 by rewrite exprS mulr_cp0p.
 Qed.
 
-Lemma expf_ge0 : forall n x, (0 <= x) -> (0 <= x^+n.+1).
+Lemma expf_ge0 : forall n x, (0 <= x) -> (0 <= x^+n).
 Proof.
 move=> n x; rewrite ler_eqVlt; case/orP=> hx; last by rewrite ltrE// expf_gt0.
-by rewrite -(eqP hx) exprS mul0r lerr.
+rewrite -(eqP hx); elim: n => [|n ihn]; first by rewrite expr0 lter01.
+by rewrite exprS mul0r lerr.
 Qed.
+
 
 Lemma absf_exp : forall x n, `|x^+n| = `|x|^+n.
 Proof.
