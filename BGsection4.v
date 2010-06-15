@@ -1783,25 +1783,23 @@ pose fA := actperm <[nRA]> @* A.
 have abfA : A/C \isog fA.
   by rewrite /C -[V]setIT -(astab_actby nRA) -ker_actperm first_isog.
 have nPH : H \subset 'N('Phi(H)) := char_norm (Phi_char H).
-have: 'm(V) <= 3. 
-  rewrite grank_abelian ?(abelem_abelian abeV) //= -/V.
+have: 'r(V) <= 3.
   rewrite (rank_abelem abeV) /= (leq_trans (logn_quotient _ _ _)) //.
   move: cH; have [_ _ [[->|[->|]]]] := pgroup_pdiv pH ntH; rewrite ?pfactorK //.
   by case=> [->|m ->]; [ rewrite pfactorK | rewrite leq_exp2l // prime_gt1 ].
-rewrite 2!leq_eqVlt !eqSS !ltnS (orbC (_ == 2)); case/or3P => mV.
+rewrite 2!leq_eqVlt !eqSS !ltnS (orbC (_ == 2)); case/or3P => rV.
   have trivPhi: 'Phi(H) == 1.
     rewrite trivg_card_le1 -(@leq_pmul2r #|V|) ?cardG_gt0 //.
     rewrite  {1}card_quotient // LaGrange ?Phi_sub // mul1n.
-    rewrite -(part_pnat_id (abelem_pgroup abeV)) p_part -(rank_abelem abeV).
-    by rewrite -(grank_abelian (abelem_abelian abeV)) (eqP mV).
+    rewrite -(part_pnat_id (abelem_pgroup abeV)) p_part.
+    by rewrite -(rank_abelem abeV) (eqP rV).
   have cHH: abelian H by rewrite (@abelem_abelian _ p) -?(trivg_Phi pH).
-  case/idPn: rH; rewrite -ltnNge -(grank_abelian cHH) -(eqP mV).
-  by rewrite /V (eqP trivPhi) (isog_grank (quotient1_isog _)).
+  case/idPn: rH; rewrite -ltnNge -(eqP rV).
+  by rewrite /V (eqP trivPhi) (isog_rank (quotient1_isog _)).
 - have abAC : abelian (A / C).
     have pV := abelem_pgroup abeV.
     have oddV : odd #|V| := quotient_odd _ (oddSg _ oddR).
-    rewrite (isog_abelian abfA) /= -/fA. 
-    move: mV; rewrite (grank_abelian (abelem_abelian abeV)).
+    rewrite (isog_abelian abfA) /= -/fA; move: rV.
     rewrite (rank_pgroup pV) -odd_pgroup_rank1_cyclic ?oddV ?(char_sub cHR) //=.
     move/Aut_cyclic_abelian; rewrite /= -/V => abAV.
     by apply: abelianS _ abAV; exact: im_actperm_Aut.
@@ -1816,13 +1814,11 @@ have nVVA : sdpair2 <[nRA]> @* A \subset 'N(sdpair1 <[nRA]> @* V).
   exact: im_sdpair_norm.
 have ntVV : sdpair1 <[nRA]> @* V != 1.
   rewrite -cardG_gt1 (card_injm (injm_sdpair1 _)) //= cardG_gt1 /= -/V.
-  move: mV; rewrite (grank_abelian (abelem_abelian abeV)) /= -/V.
-  by case: (@eqP _ V) => // ->; rewrite rank1.
+  by move: rV; case: (@eqP _ V) => // ->; rewrite rank1.
 pose repr := morphim_repr (abelem_repr abeVV ntVV nVVA) (subxx _).
 have dimVV : 'dim (sdpair1 <[nRA]> @* V) = 2.
-  rewrite -(eqP mV) (grank_abelian (abelem_abelian abeV)).
-  rewrite -(injm_rank (injm_sdpair1 <[nRA]>)) ?subxx // (rank_abelem abeVV).
-  by rewrite (dim_abelemE abeVV ntVV).
+  rewrite -(eqP rV) -(injm_rank (injm_sdpair1 <[nRA]>)) ?subxx //.
+  by rewrite (rank_abelem abeVV) (dim_abelemE abeVV ntVV).
 have oddAC: odd #|(A / rker repr)| := quotient_odd _ oddA.
 have fait := kquo_mx_faithful repr; have := der1_odd_GL2_charf oddAC.
 rewrite -dimVV => thm26; move/thm26: fait => {thm26} /=.
