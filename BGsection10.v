@@ -50,18 +50,21 @@ Notation "M `_ \alpha" := (sub_alpha M)
 
 Definition sub_beta M := 'O_\beta(M)(M).
 
-Notation "M `_ \beta" := (sub_alpha M)
+Notation "M `_ \beta" := (sub_beta M)
   (at level 2, format "M `_ \beta") : group_scope.
 
 Definition sub_sigma M := 'O_\sigma(M)(M).
 
-Notation "M `_ \sigma" := (sub_alpha M)
+Notation "M `_ \sigma" := (sub_sigma M)
   (at level 2, format "M `_ \sigma") : group_scope. 
 
 Variable M : {group gT}.
 Hypothesis M_max : M \in 'M.
 
 Let M_proper := mmax_proper M_max.
+
+Lemma beta_sub_alpha : {subset \beta(M) <= \alpha(M)}.
+Proof. by move=> p; rewrite !inE; case/andP=> ->. Qed.
 
 Lemma alpha_sub_sigma : {subset \alpha(M) <= \sigma(M)}.
 Proof.
@@ -72,6 +75,12 @@ have pPG := sub_proper_trans (pHall_sub Syl_P) M_proper.
 rewrite (p_rank_Sylow Syl_P) -(rank_pgroup (pHall_pgroup Syl_P)) in rM.
 exact: rank3_Uniqueness pPG rM.
 Qed.
+
+Lemma Mbeta_sub_Malpha : M`_\beta \subset M`_\alpha.
+Proof. exact: sub_pcore beta_sub_alpha. Qed.
+
+Lemma Malpha_sub_Msigma : M`_\alpha \subset M`_\sigma.
+Proof. exact: sub_pcore alpha_sub_sigma. Qed.
 
 
 End Ten.
