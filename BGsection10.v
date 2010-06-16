@@ -23,7 +23,7 @@ Local Notation G := (TheMinSimpleOddGroup gT).
 
 Definition ideal p := 
   (3 <= 'r_p(G)) && 
-   forallb P, p.-Sylow(G) P && ('E_p^2(P) :&: 'E*_p(P) == set0).
+   forallb P, p.-Sylow(G) P ==> ('E_p^2(P) :&: 'E*_p(P) == set0).
 
 Implicit Type M : {group gT}.
 
@@ -44,19 +44,19 @@ Definition sigma M :=
 Notation "\sigma ( M )" := (sigma M)
   (at level 2, format "\sigma ( M )") : group_scope.
 
-Definition sub_alpha M := 'O_\alpha(M)(M).
+Definition alpha_core M := 'O_\alpha(M)(M).
 
-Notation "M `_ \alpha" := (sub_alpha M)
+Notation "M `_ \alpha" := (alpha_core M)
   (at level 2, format "M `_ \alpha") : group_scope.
 
-Definition sub_beta M := 'O_\beta(M)(M).
+Definition beta_core M := 'O_\beta(M)(M).
 
-Notation "M `_ \beta" := (sub_beta M)
+Notation "M `_ \beta" := (beta_core M)
   (at level 2, format "M `_ \beta") : group_scope.
 
-Definition sub_sigma M := 'O_\sigma(M)(M).
+Definition sigma_core M := 'O_\sigma(M)(M).
 
-Notation "M `_ \sigma" := (sub_sigma M)
+Notation "M `_ \sigma" := (sigma_core M)
   (at level 2, format "M `_ \sigma") : group_scope. 
 
 Variable M : {group gT}.
@@ -103,14 +103,27 @@ Theorem BG10_1d :
     forall p X, p \in \sigma(M) -> X :!=: 1 -> p.-group X ->
   p.-Sylow(M) X -> forall g, X :^ g \subset M -> g \in M.
 Proof.
-Admitted. 
+move=> p X p_Sig ntX pX pSyl_X g sXgM.
+case: (Sylow_Jsub pSyl_X sXgM _); rewrite ?pgroupJ // => h hM /= sXghX.
+rewrite -(groupMr _ hM); apply: subsetP (norm_Sylow_sigma p_Sig pSyl_X) _ _.
+by rewrite inE conjsgM.
+Qed.
 
 Let BG10b_to_a :
     forall p X, p \in \sigma(M) -> X :!=: 1 -> p.-group X ->
     [transitive 'C(X), on [set N | N <- orbit 'Js G M, X \subset N] | 'Js] ->
     X \subset M -> forall g, X :^g \subset M -> 
   exists c, exists m, [/\ c \in 'C(X),  m \in M & g = c * m].
-Admitted.
+Proof.
+move=> p X p_Sig ntX pX actT sXM g sXgM.
+have sMg'XX : (M :^ g^-1) \in [set N | N <- orbit 'Js G M, X \subset N].
+  by apply: mem_imset; rewrite inE -sub_conjg sXgM mem_orbit ?in_group ?in_setT.
+have sMXX : M :^ 1 \in [set N | N <- orbit 'Js G M, X \subset N].
+  by apply: mem_imset; rewrite inE {2}conjsg1 sXM mem_orbit ?in_group ?in_setT.
+case: (atransP2 actT sMXX sMg'XX) => /= c cC; rewrite conjsg1 => defM.
+exists c^-1; exists (c * g); rewrite in_group cC; gsimpl; split => //.
+by rewrite -(norm_mmax M_max) inE conjsgM -defM -conjsgM mulVg conjsg1. 
+Qed.
 
 Let BG10a_to_c :
     forall p X, p \in \sigma(M) -> X :!=: 1 -> p.-group X ->
@@ -119,7 +132,19 @@ Let BG10a_to_c :
       exists c, exists m, [/\ c \in 'C(X),  m \in M & g = c * m]) ->
   'N(X) = 'N_M(X) * 'C(X). 
 Proof.
-Admitted.
+move=> p X p_Sig ntX pX sXM thmA; apply/eqP; rewrite eqEsubset.
+rewrite mul_subG ?cent_sub ?subsetIr // andbT; apply/subsetP=> x xNX.
+move: (xNX); rewrite inE; move/(fun x => subset_trans x sXM) => sXgM. 
+move: xNX; case/thmA: sXgM => c [m [cC mM ->]] {x}; rewrite inE => cmNX.
+have mNX : m \in 'N(X).
+  rewrite inE (subset_trans _ cmNX) // conjsgM conjSg -sub_conjgV.
+  by move: cC; rewrite -groupV; move/(subsetP (cent_sub _) _); rewrite inE.
+have cmCX : c ^ m \in 'C(X).
+  apply/centP=> x xX; apply: (mulgI m); apply: (mulIg m^-1); rewrite conjgE. 
+  gsimpl; rewrite -2!mulgA -{1 3}(invgK m) -(conjgE x) -(mulgA _ x) -(conjgE x).
+  by rewrite (centP cC) // memJ_norm // groupV.
+by apply/imset2P; exists m (c^m); rewrite // ?conjgE 1?inE ?mM /=; gsimpl.
+Qed.
 
 Theorem BG10b :
     forall p X, p \in \sigma(M) -> X :!=: 1 -> p.-group X ->
@@ -143,12 +168,6 @@ Proof.
 move=> p X p_Sig ntX pX sXM; apply: (BG10a_to_c p_Sig ntX pX) => //.
 exact: BG10a p_Sig ntX pX sXM.
 Qed.
-
-Theorem BG10e :
-    forall p X, p \in \sigma(M) -> X :!=: 1 -> p.-group X ->
-  'C(X) \subset M -> forall g, X :^ g \subset M -> g \in M.
-Proof.
-Admitted.
 
 Theorem BG10_2a : \alpha(M).-Hall(M) M`_\alpha /\ \alpha(M).-Hall(G) M`_\alpha.
 Admitted.
