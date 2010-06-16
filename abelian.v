@@ -99,27 +99,6 @@ End AbelianDefs.
 
 Prenex Implicits exponent.
 
-Notation "pi .-group" := (pgroup pi)
-  (at level 2, format "pi .-group") : group_scope.
-
-Notation "pi .-subgroup ( A )" := (psubgroup pi A)
-  (at level 8, format "pi .-subgroup ( A )") : group_scope.
-
-Notation "pi .-elt" := (p_elt pi)
-  (at level 2, format "pi .-elt") : group_scope.
-
-Notation "x .`_ pi" := (constt x pi)
-  (at level 3, format "x .`_ pi") : group_scope.
-
-Notation "pi .-Hall ( G )" := (pHall pi G)
-  (at level 8, format "pi .-Hall ( G )") : group_scope.
-
-Notation "p .-Sylow ( G )" := (nat_pred_of_nat p).-Hall(G)
-  (at level 8, format "p .-Sylow ( G )") : group_scope.
-
-Notation "''Syl_' p ( G )" := (Syl p G)
-  (at level 8, p at level 2, format "''Syl_' p ( G )") : group_scope.
-
 Notation "p .-abelem" := (abelem p)
   (at level 2, format "p .-abelem") : group_scope.
 
