@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype paths.
-Require Import finset prime groups action automorphism normal cyclic.
+Require Import finset prime groups morphisms action automorphism normal cyclic.
 Require Import gfunc pgroups gprod center commutators gseries nilpotent.
 Require Import sylow abelian maximal hall BGsection1 BGsection4 BGsection5.
 Require Import BGsection6 BGsection7 BGsection8 BGsection9.
@@ -15,27 +15,41 @@ Import Prenex Implicits.
 
 Import GroupScope.
 
-Section Ten.
+Section Def.
 
 Variable gT : minSimpleOddGroupType.
 Implicit Type p : nat.
-Local Notation G := (TheMinSimpleOddGroup gT).
 
-Definition ideal p := 
+Local Notation G := (TheMinSimpleOddGroup gT).
+Local Notation ideal := (fun p =>
   (3 <= 'r_p(G)) && 
-   forallb P, p.-Sylow(G) P ==> ('E_p^2(P) :&: 'E*_p(P) == set0).
+  forallb P, p.-Sylow(G) P ==> ('E_p^2(P) :&: 'E*_p(P) == set0)).
 
 Implicit Type M : {group gT}.
 
 Definition alpha M := [pred p \in \pi(#|M|) | (2 < 'r_p(M))].
 
-Notation "\alpha ( M )" := (alpha M)
+Local Notation "\alpha ( M )" := (alpha M)
   (at level 2, format "\alpha ( M )") : group_scope.
+
+Definition alpha_core M := 'O_\alpha(M)(M).
+
+Local Notation "M `_ \alpha" := (alpha_core M)
+  (at level 2, format "M `_ \alpha") : group_scope.
+
+Canonical Structure alpha_core_group M := Eval hnf in [group of M`_\alpha].
 
 Definition beta M := [pred p \in \alpha(M) | ideal p].
 
-Notation "\beta ( M )" := (beta M)
+Local Notation "\beta ( M )" := (beta M)
   (at level 2, format "\beta ( M )") : group_scope.
+
+Definition beta_core M := 'O_\beta(M)(M).
+
+Local Notation "M `_ \beta" := (beta_core M)
+  (at level 2, format "M `_ \beta") : group_scope.
+
+Canonical Structure beta_core_group M := Eval hnf in [group of M`_\beta].
 
 Definition sigma M := 
   [pred p \in \pi(#|M|) | 
@@ -44,20 +58,53 @@ Definition sigma M :=
 Notation "\sigma ( M )" := (sigma M)
   (at level 2, format "\sigma ( M )") : group_scope.
 
-Definition alpha_core M := 'O_\alpha(M)(M).
-
-Notation "M `_ \alpha" := (alpha_core M)
-  (at level 2, format "M `_ \alpha") : group_scope.
-
-Definition beta_core M := 'O_\beta(M)(M).
-
-Notation "M `_ \beta" := (beta_core M)
-  (at level 2, format "M `_ \beta") : group_scope.
-
 Definition sigma_core M := 'O_\sigma(M)(M).
 
 Notation "M `_ \sigma" := (sigma_core M)
   (at level 2, format "M `_ \sigma") : group_scope. 
+
+Canonical Structure sigma_core_group M := Eval hnf in [group of M`_\sigma].
+
+End Def.
+
+Notation "\alpha ( M )" := (alpha M)
+  (at level 2, format "\alpha ( M )") : group_scope.
+
+Notation "M `_ \alpha" := (alpha_core M)
+  (at level 2, format "M `_ \alpha") : group_scope.
+
+Notation "M `_ \alpha" := (alpha_core_group M)
+  (at level 2, format "M `_ \alpha") : subgroup_scope.
+
+Notation "\beta ( M )" := (beta M)
+  (at level 2, format "\beta ( M )") : group_scope.
+
+Notation "M `_ \beta" := (beta_core M)
+  (at level 2, format "M `_ \beta") : group_scope.
+
+Notation "M `_ \beta" := (beta_core_group M)
+  (at level 2, format "M `_ \beta") : subgroup_scope.
+
+Notation "\sigma ( M )" := (sigma M)
+  (at level 2, format "\sigma ( M )") : group_scope.
+
+Notation "M `_ \sigma" := (sigma_core M)
+  (at level 2, format "M `_ \sigma") : group_scope.
+
+Notation "M `_ \sigma" := (sigma_core_group M)
+  (at level 2, format "M `_ \sigma") : subgroup_scope.
+
+Section Ten.
+
+Variable gT : minSimpleOddGroupType.
+Implicit Type p : nat.
+
+Local Notation G := (TheMinSimpleOddGroup gT).
+Local Notation ideal := (fun p =>
+  (3 <= 'r_p(G)) && 
+  forallb P, p.-Sylow(G) P ==> ('E_p^2(P) :&: 'E*_p(P) == set0)).
+
+Implicit Type M : {group gT}.
 
 Variable M : {group gT}.
 Hypothesis M_max : M \in 'M.
