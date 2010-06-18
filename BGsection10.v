@@ -15,6 +15,14 @@ Import Prenex Implicits.
 
 Import GroupScope.
 
+Reserved Notation "\alpha ( M )" (at level 2, format "\alpha ( M )").
+Reserved Notation "\beta ( M )" (at level 2, format "\beta ( M )").
+Reserved Notation "\sigma ( M )" (at level 2, format "\sigma ( M )").
+
+Reserved Notation "M `_ \alpha" (at level 3, format "M `_ \alpha").
+Reserved Notation "M `_ \beta" (at level 3, format "M `_ \beta").
+Reserved Notation "M `_ \sigma" (at level 3, format "M `_ \sigma").
+
 Section Def.
 
 Variable gT : minSimpleOddGroupType.
@@ -22,77 +30,54 @@ Implicit Type p : nat.
 
 Local Notation G := (TheMinSimpleOddGroup gT).
 Local Notation ideal := (fun p =>
-  (3 <= 'r_p(G)) && 
-  forallb P, p.-Sylow(G) P ==> ('E_p^2(P) :&: 'E*_p(P) == set0)).
+  (existsb P, p.-Sylow(G) P && ('E_p^2(P) :&: 'E*_p(P) == set0))).
 
-Implicit Type M : {group gT}.
+Implicit Type M : {set gT}.
 
-Definition alpha M := [pred p \in \pi(#|M|) | (2 < 'r_p(M))].
+Definition alpha M := [pred p | (2 < 'r_p(M))].
 
-Local Notation "\alpha ( M )" := (alpha M)
-  (at level 2, format "\alpha ( M )") : group_scope.
+Notation "\alpha ( M )" := (alpha M) : group_scope.
 
 Definition alpha_core M := 'O_\alpha(M)(M).
 
-Local Notation "M `_ \alpha" := (alpha_core M)
-  (at level 2, format "M `_ \alpha") : group_scope.
+Notation "M `_ \alpha" := (alpha_core M) : group_scope.
 
 Canonical Structure alpha_core_group M := Eval hnf in [group of M`_\alpha].
 
 Definition beta M := [pred p \in \alpha(M) | ideal p].
 
-Local Notation "\beta ( M )" := (beta M)
-  (at level 2, format "\beta ( M )") : group_scope.
+Notation "\beta ( M )" := (beta M) : group_scope.
 
 Definition beta_core M := 'O_\beta(M)(M).
 
-Local Notation "M `_ \beta" := (beta_core M)
-  (at level 2, format "M `_ \beta") : group_scope.
+Notation "M `_ \beta" := (beta_core M) : group_scope.
 
 Canonical Structure beta_core_group M := Eval hnf in [group of M`_\beta].
 
 Definition sigma M := 
-  [pred p \in \pi(#|M|) | 
-     existsb P : {group gT}, p.-Sylow(M) P && ('N(P) \subset M) ].
+  [pred p | existsb P : {group gT}, p.-Sylow(M) P && ('N(P) \subset M) ].
 
-Notation "\sigma ( M )" := (sigma M)
-  (at level 2, format "\sigma ( M )") : group_scope.
+Notation "\sigma ( M )" := (sigma M) : group_scope.
 
 Definition sigma_core M := 'O_\sigma(M)(M).
 
-Notation "M `_ \sigma" := (sigma_core M)
-  (at level 2, format "M `_ \sigma") : group_scope. 
+Notation "M `_ \sigma" := (sigma_core M) : group_scope. 
 
 Canonical Structure sigma_core_group M := Eval hnf in [group of M`_\sigma].
 
 End Def.
 
-Notation "\alpha ( M )" := (alpha M)
-  (at level 2, format "\alpha ( M )") : group_scope.
+Notation "\alpha ( M )" := (alpha M) : group_scope.
+Notation "M `_ \alpha" := (alpha_core M) : group_scope.
+Notation "M `_ \alpha" := (alpha_core_group M) : subgroup_scope.
 
-Notation "M `_ \alpha" := (alpha_core M)
-  (at level 2, format "M `_ \alpha") : group_scope.
+Notation "\beta ( M )" := (beta M) : group_scope.
+Notation "M `_ \beta" := (beta_core M) : group_scope.
+Notation "M `_ \beta" := (beta_core_group M) : subgroup_scope.
 
-Notation "M `_ \alpha" := (alpha_core_group M)
-  (at level 2, format "M `_ \alpha") : subgroup_scope.
-
-Notation "\beta ( M )" := (beta M)
-  (at level 2, format "\beta ( M )") : group_scope.
-
-Notation "M `_ \beta" := (beta_core M)
-  (at level 2, format "M `_ \beta") : group_scope.
-
-Notation "M `_ \beta" := (beta_core_group M)
-  (at level 2, format "M `_ \beta") : subgroup_scope.
-
-Notation "\sigma ( M )" := (sigma M)
-  (at level 2, format "\sigma ( M )") : group_scope.
-
-Notation "M `_ \sigma" := (sigma_core M)
-  (at level 2, format "M `_ \sigma") : group_scope.
-
-Notation "M `_ \sigma" := (sigma_core_group M)
-  (at level 2, format "M `_ \sigma") : subgroup_scope.
+Notation "\sigma ( M )" := (sigma M) : group_scope.
+Notation "M `_ \sigma" := (sigma_core M) : group_scope.
+Notation "M `_ \sigma" := (sigma_core_group M) : subgroup_scope.
 
 Section Ten.
 
@@ -101,8 +86,7 @@ Implicit Type p : nat.
 
 Local Notation G := (TheMinSimpleOddGroup gT).
 Local Notation ideal := (fun p =>
-  (3 <= 'r_p(G)) && 
-  forallb P, p.-Sylow(G) P ==> ('E_p^2(P) :&: 'E*_p(P) == set0)).
+  (existsb P, p.-Sylow(G) P && ('E_p^2(P) :&: 'E*_p(P) == set0))).
 
 Implicit Type M : {group gT}.
 
@@ -116,7 +100,7 @@ Proof. by move=> p; rewrite !inE; case/andP=> ->. Qed.
 
 Lemma alpha_sub_sigma : {subset \alpha(M) <= \sigma(M)}.
 Proof.
-move=> p; rewrite !inE; case/andP=> -> rM; have [P Syl_P] := Sylow_exists p M.
+move=> p; rewrite !inE => rM; have [P Syl_P] := Sylow_exists p M.
 apply/existsP; exists P; rewrite Syl_P.
 rewrite uniq_mmax_norm_sub // (def_uniq_mmax _ M_max) ?(pHall_sub Syl_P) //.
 have pPG := sub_proper_trans (pHall_sub Syl_P) M_proper.
@@ -135,7 +119,7 @@ Implicit Type P X: {group gT}.
 Lemma norm_Sylow_sigma : 
   forall p P, p \in \sigma(M) -> p.-Sylow(M) P -> 'N(P) \subset M.
 Proof.
-move=> p P; case/andP=> pdM; case/existsP=> Q; case/andP=> pSyl_Q sNPM pSyl_P.
+move=> p P; case/existsP=> Q; case/andP=> pSyl_Q sNPM pSyl_P.
 by case: (Sylow_trans pSyl_Q pSyl_P) => m mM ->; rewrite normJ conj_subG.
 Qed.
 
@@ -197,6 +181,7 @@ Theorem BG10b :
     forall p X, p \in \sigma(M) -> X :!=: 1 -> p.-group X ->
     [transitive 'C(X), on [set N | N <- orbit 'Js G M, X \subset N] | 'Js].
 Proof.
+move=> p X p_Sig ntX pX; set OO := [set N | N <- _].
 Admitted.
 
 Theorem BG10a :
