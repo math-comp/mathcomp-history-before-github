@@ -1440,6 +1440,28 @@ Implicit Arguments bigA_distr_big_dep [R zero one times plus I J].
 Implicit Arguments bigA_distr_big [R zero one times plus I J].
 Implicit Arguments bigA_distr_bigA [R zero one times plus I J].
 
+Section BigBool.
+
+Variables (I : finType) (P : pred I).
+
+Lemma big_orE : forall B,
+  \big[orb/false]_(i | P i) B i = (existsb i, P i && B i).
+Proof.
+move=> B; case: existsP => [[i] | no_i].
+  by case/andP=> Pi Bi; rewrite (bigD1 i) // Bi.
+by rewrite big1 // => i Pi; apply/idP=> Bi; case: no_i; exists i; rewrite Pi.
+Qed.
+
+Lemma big_andE : forall B,
+  \big[andb/true]_(i | P i) B i = (forallb i, P i ==> B i).
+Proof.
+move=> B; apply: negb_inj.
+rewrite (big_morph negb negb_and (erefl (~~ true))) big_orE negb_forall.
+by apply: eq_existsb => i; case: (P i).
+Qed.
+
+End BigBool.
+
 Section NatConst.
 
 Variables (I : finType) (A : pred I).
@@ -1462,6 +1484,22 @@ Lemma prod_nat_const_nat : forall n1 n2 n,
 Proof. by move=> *; rewrite big_const_nat -Monoid.iteropE. Qed.
 
 End NatConst.
+
+Lemma leqif_sum : forall (I : finType) (P C : pred I) (E1 E2 : I -> nat),
+  (forall i, P i -> E1 i <= E2 i ?= iff C i) ->
+  \sum_(i | P i) E1 i <= \sum_(i | P i) E2 i ?= iff (forallb i, P i ==> C i).
+Proof.
+move=> I P C E1 E2 leE12; rewrite -big_andE.
+elim: (index_enum _) => [|i r IHr]; first by rewrite !big_nil.
+rewrite !big_cons; case Pi: (P i) => //=.
+by apply: leqif_add; first exact: leE12.
+Qed.
+
+Lemma sum_nat_eq0 : forall (I : finType) (P : pred I) (E : I -> nat),
+  (\sum_(i | P i) E i == 0)%N = (forallb i, P i ==> (E i == 0))%N.
+Proof.
+by move=> I P E; rewrite eq_sym -(@leqif_sum I P _ (fun _ => 0%N) E) ?big1_eq.
+Qed.
 
 Lemma prodn_cond_gt0 : forall I r (P : pred I) F,
   (forall i, P i -> 0 < F i) -> 0 < \prod_(i <- r | P i) F i.
@@ -1552,27 +1590,5 @@ Proof.
 by move=> I i0 P F m Pi0; apply: dvdn_trans; rewrite (bigD1 i0) ?dvdn_gcdl.
 Qed.
 Implicit Arguments biggcdn_inf [I P F m].
-
-Section BigBool.
-
-Variables (I : finType) (P : pred I).
-
-Lemma big_orE : forall B,
-  \big[orb/false]_(i | P i) B i = (existsb i, P i && B i).
-Proof.
-move=> B; case: existsP => [[i] | no_i].
-  by case/andP=> Pi Bi; rewrite (bigD1 i) // Bi.
-by rewrite big1 // => i Pi; apply/idP=> Bi; case: no_i; exists i; rewrite Pi.
-Qed.
-
-Lemma big_andE : forall B,
-  \big[andb/true]_(i | P i) B i = (forallb i, P i ==> B i).
-Proof.
-move=> B; apply: negb_inj.
-rewrite (big_morph negb negb_and (erefl (~~ true))) big_orE negb_forall.
-by apply: eq_existsb => i; case: (P i).
-Qed.
-
-End BigBool.
 
 Unset Implicit Arguments.

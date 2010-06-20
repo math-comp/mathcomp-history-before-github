@@ -718,8 +718,8 @@ Notation "[ 1 ]" := [1 FinGroup.sort _]
 
 Notation "A ^#" := (A :\ 1) (at level 2, format "A ^#") : group_scope.
 
-Notation "x *: A" := ([set x%g] * A) (at level 40) : group_scope.
-Notation "A :* x" := (A * [set x%g]) (at level 40) : group_scope.
+Notation "x *: A" := ([set x%g] * A) : group_scope.
+Notation "A :* x" := (A * [set x%g]) : group_scope.
 Notation "A :^ x" := (conjugate A x) (at level 35) : group_scope.
 Notation "x ^: B" := (class x B) (at level 35) : group_scope.
 Notation "A :^: B" := (conjugates A B) (at level 35) : group_scope.
@@ -1499,6 +1499,12 @@ move=> x; set z := repr _; have: #|[set y \in G | z == x ^ y]| > 0.
   by case/imsetP=> y Gy ->; rewrite (cardD1 y) inE Gy eqxx.
 move/card_mem_repr; move: (repr _) => y; rewrite inE; case/andP=> Gy.
 by move/eqP; exists y.
+Qed.
+
+Lemma classG_eq1 : forall x, (x ^: G == 1) = (x == 1).
+Proof.
+move=> x; apply/eqP/eqP=> [xG1 | ->]; last exact: class1G.
+by have:= class_refl x; rewrite xG1; move/set1P.
 Qed.
 
 Lemma class_subG : forall x A, x \in G -> A \subset G -> x ^: A \subset G.
@@ -2378,6 +2384,12 @@ move=> G H K; case/andP=> sHG nHG; case/andP=> sKG nKG.
 by rewrite /normal mul_subG ?normsM.
 Qed.
 
+Lemma normalI : forall G H K, H <| G -> K <| G -> H :&: K <| G.
+Proof.
+move=> G H K; case/andP=> sHG nHG; case/andP=> _ nKG.
+by rewrite /normal subIset ?sHG // normsI.
+Qed.
+
 Lemma normal_subnorm : forall G H, (H <| 'N_G(H)) = (H \subset G).
 Proof. by move=> G H; rewrite /normal subsetIr subsetI normG !andbT. Qed.
 
@@ -2386,6 +2398,8 @@ Proof.
 move=> x y; rewrite inE conjg_set1 sub1set inE (sameP eqP conjg_fixP).
 rewrite commg1_sym; exact: commgP.
 Qed.
+
+Lemma cent1id : forall x, x \in 'C[x]. Proof. move=> x; exact/cent1P. Qed.
 
 Lemma cent1E : forall x y, (x \in 'C[y]) = (x * y == y * x).
 Proof. by move=> x y; rewrite (sameP (cent1P x y) eqP). Qed.

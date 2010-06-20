@@ -1,5 +1,5 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div choice fintype.
 Require Import bigops ssralg binomial.
 
 (******************************************************************************)
@@ -49,6 +49,12 @@ Require Import bigops ssralg binomial.
 (*       com_coef p x == x commutes with all the coefficients of p (clearly,  *)
 (*                       this implies com_poly p x).                          *)
 (*           root p x == x is a root of p, i.e., p.[x] = 0                    *)
+(*    n.-unity_root x == x is an nth root of unity, i.e., a root of 'X^n - 1  *)
+(* n.-primitive_root x == x is a primitive nth root of unity, i.e., n is the  *)
+(*                       least positive integer m > 0 such that x ^+ m = 1.   *)
+(*                   *** The submodule poly.UnityRootTheory can be used to    *)
+(*                       import selectively the part of the theory of roots   *)
+(*                       of unity that doesn't mention polynomials explicitly *)
 (*       map_poly f p == the image of the polynomial by the function f (which *)
 (*                       should be a ring morphism).                          *)
 (*     comm_ringM f u == u commutes with the image of f (i.e., with all f x)  *)
@@ -96,9 +102,11 @@ Reserved Notation "''X^' n" (at level 3, n at level 2, format "''X^' n").
 Reserved Notation "\poly_ ( i < n ) E"
   (at level 36, E at level 36, i, n at level 50,
    format "\poly_ ( i  <  n )  E").
-Reserved Notation "a ^` ()" (at level 8, format "a ^` ()").
-Reserved Notation "a ^` ( n )" (at level 8, format "a ^` ( n )").
+Reserved Notation "p %= q" (at level 70, no associativity).
 Reserved Notation "a ^`N ( n )" (at level 8, format "a ^`N ( n )").
+Reserved Notation "n .-unity_root" (at level 2, format "n .-unity_root").
+Reserved Notation "n .-primitive_root"
+  (at level 2, format "n .-primitive_root").
 
 Local Notation simp := Monoid.simpm.
 
@@ -580,20 +588,20 @@ Proof. by elim=> // n IHn c; rewrite !exprS polyC_mul IHn. Qed.
 
 Definition scale_poly a p := \poly_(i < size p) (a * p`_i).
 
-Lemma scale_polyE: forall a p, scale_poly a p = a%:P * p.
+Lemma scale_polyE : forall a p, scale_poly a p = a%:P * p.
 Proof.
 move=> a p; apply/polyP=> n.
-move: (@leq_coef_size (scale_poly a p) n).
+have:= @leq_coef_size (scale_poly a p) n.
 rewrite !coef_poly size_polyC.
-case: (a =P 0)=> /= Heq.
+case: (a =P 0) => /= Heq.
   rewrite Heq mul0r if_same => _; case: ltP=> Hu //.
   rewrite (eq_bigr (fun x => 0)); last by move=>*; rewrite coef0 mul0r.
   by rewrite big_const; elim: #|_|=> //= m Hm; rewrite add0r.
 case: ltP=> // Hlt _.
 rewrite big_ord_recl (eq_bigr (fun x => 0)); last first.
-  by move=>*; rewrite coefC mul0r.
+  by move=> *; rewrite coefC mul0r.
 rewrite big_const coefC /= subn0.
-by elim: #|_|=>  [|n1]; rewrite /= (addr0,add0r).
+by elim: #|_| =>  [|n1]; rewrite /= (addr0,add0r).
 Qed.
 
 Lemma scale_polyA : forall a b p,  
@@ -603,14 +611,14 @@ Proof. by move=>*; rewrite !scale_polyE mulrA polyC_mul. Qed.
 Lemma scale_poly1 : left_id 1 scale_poly.
 Proof. by move=> p; rewrite scale_polyE mul1r. Qed.
 
-Lemma scale_poly_addr: forall a, {morph scale_poly a : p q / p + q}.
+Lemma scale_poly_addr : forall a, {morph scale_poly a : p q / p + q}.
 Proof. by move=> a p q; rewrite !scale_polyE mulr_addr. Qed.
 
 Lemma scale_poly_addl: forall p, {morph scale_poly^~ p : a b / a + b}.
 Proof. by move=> a p q; rewrite !scale_polyE polyC_add mulr_addl. Qed.
 
 Lemma scale_poly_mull: forall a p q, scale_poly a (p * q) = scale_poly a p * q.
-Proof. by move=>*; rewrite !scale_polyE mulrA. Qed.
+Proof. by move=> *; rewrite !scale_polyE mulrA. Qed.
 
 Definition poly_lmodMixin := 
   LmodMixin scale_polyA scale_poly1 scale_poly_addr scale_poly_addl.
@@ -661,8 +669,10 @@ Proof.
 move=> p a; apply/polyP=> i; rewrite coef_cons coef_add coef_mulX coefC.
 by case: i => [|i]; rewrite !simp.
 Qed.
-Lemma size_amulX p c: size (p * 'X + c%:P) = 
-         if (size p == 0%N) && (c == 0) then 0%N else (size p).+1.
+
+Lemma size_amulX : forall p c,
+   size (p * 'X + c%:P) =
+     (if (size p == 0%N) && (c == 0) then 0%N else (size p).+1).
 Proof.
 by move=> p c; rewrite -poly_cons_def size_poly_cons.
 Qed.
@@ -841,9 +851,9 @@ Definition modp p q := (edivp p q).2.
 Definition scalp p q := ((edivp p q).1).1.
 Definition dvdp p q := modp q p == 0.
 
-Local Notation "m %/ d" := (divp m d) (at level 40, no associativity).
-Local Notation "m %% d" := (modp m d) (at level 40, no associativity).
-Local Notation "p %| q" := (dvdp p q) (at level 70, no associativity).
+Local Notation "m %/ d" := (divp m d) : ring_scope.
+Local Notation "m %% d" := (modp m d) : ring_scope.
+Local Notation "p %| q" := (dvdp p q) : ring_scope.
 
 (* Equality up to a constant factor; this is only used when R is integral *)
 Definition eqp p q :=  (p %| q) && (q %| p).
@@ -900,6 +910,9 @@ move=> p; rewrite /modp /edivp; case: ifP => // Hp.
 by rewrite /edivp_rec !size_poly0 polySpred ?Hp.
 Qed.
 
+Lemma dvdp0 : forall p, p %| 0.
+Proof. move=> p; apply/eqP; exact: mod0p. Qed.
+
 Lemma dvdpPm : forall p q, monic q -> reflect (exists qq, p = qq * q) (q %| p).
 Proof.
 move=> p q Mq; apply: (iffP idP).
@@ -915,8 +928,21 @@ case: (eqVneq d 0) => [->|nz_p]; first by rewrite simp.
 by rewrite size_mul_monic // polySpred // ltnNge leq_addl.
 Qed.
 
-Lemma dvdp0 : forall p, p %| 0.
-Proof. move=> p; apply/eqP; exact: mod0p. Qed.
+Lemma size_dvdp_mon_leqif : forall p q : {poly R},
+    monic p -> p %| q -> q != 0 ->
+  size p <= size q ?= iff (q == lead_coef q *: p).
+Proof.
+move=> p q0 mon_p; case/(dvdpPm _ mon_p) => q ->{q0}.
+case: (eqVneq q 0) => [-> | nz_q _]; first by rewrite mul0r eqxx.
+have q_gt0: size q > 0 by rewrite lt0n size_poly_eq0.
+split; first by rewrite size_mul_monic // -(prednK q_gt0) leq_addl.
+rewrite lead_coef_mul_monic // [_ *: p]scale_polyE.
+apply/idP/eqP=> [|->]; last first.
+  by rewrite size_mul_monic // -?size_poly_eq0 size_polyC lead_coef_eq0 nz_q.
+rewrite size_mul_monic // eqn_leq; case/andP=> _.
+rewrite -subn1 leq_sub_add leq_add2r => le_q_1; congr (_ * _).
+by rewrite {1}(size1_polyC le_q_1) lead_coefE -subn1 ((_ - 1 =P 0)%N _).
+Qed.
 
 Lemma modpC : forall p c, c != 0 -> p %% c%:P = 0.
 Proof.
@@ -1031,10 +1057,10 @@ Notation "\poly_ ( i < n ) E" := (Poly (mkseq (fun i => E) n)) : ring_scope.
 Notation "c %:P" := (polyC c) : ring_scope.
 Notation "'X" := (polyX _) : ring_scope.
 Notation "''X^' n" := ('X ^+ n) : ring_scope.
-Notation "m %/ d" := (divp m d) (at level 40, no associativity) : ring_scope.
-Notation "m %% d" := (modp m d) (at level 40, no associativity) : ring_scope.
-Notation "p %| q" := (dvdp p q) (at level 70, no associativity) : ring_scope.
-Notation "p %= q" := (eqp p q) (at level 70, no associativity) : ring_scope.
+Notation "m %/ d" := (divp m d) : ring_scope.
+Notation "m %% d" := (modp m d) : ring_scope.
+Notation "p %| q" := (dvdp p q) : ring_scope.
+Notation "p %= q" := (eqp p q) : ring_scope.
 
 (* Horner evaluation of polynomials *)
 
@@ -1209,9 +1235,103 @@ move=> p x; apply/factor_theorem/dvdpPm; first exact: monic_factor.
 by case=> p1 ->; exists p1.
 Qed.
 
+Lemma prod_factors_monic : forall rs : seq R,
+  monic (\prod_(z <- rs) ('X - z%:P)).
+Proof.
+by move=> rs; apply big_prop=> *; rewrite (monic1, monic_factor, monic_mull).
+Qed.
+
+Lemma size_prod_factors : forall rs : seq R,
+  size (\prod_(z <- rs) ('X - z%:P)) = (size rs).+1.
+Proof.
+elim=> [|z rs' IHrs]; rewrite (big_nil, big_cons) ?size_poly1 //.
+by rewrite size_monic_mul ?monic_factor -?size_poly_eq0 ?IHrs ?seq_factor.
+Qed.
+
+Lemma size_Xn_sub_1 : forall n, n > 0 -> size ('X^n - 1 : {poly R}) = n.+1.
+Proof.
+by move=> n n_gt0; rewrite size_addl size_polyXn // size_opp size_poly1.
+Qed.
+
+Lemma Xn_sub_1_monic : forall n, n > 0 -> monic ('X^n - 1 : {poly R}).
+Proof.
+move=> n n_gt0; rewrite /monic lead_coefE size_Xn_sub_1 // coef_sub.
+by rewrite coef_Xn coef1 eqxx eqn0Ngt n_gt0 subr0.
+Qed.
+
+Definition root_of_unity n : pred R := root ('X^n - 1).
+Local Notation "n .-unity_root" := (root_of_unity n) : ring_scope.
+
+Lemma unity_rootE : forall n z, n.-unity_root z = (z ^+ n == 1).
+Proof.
+rewrite /root_of_unity /root => n z.
+by rewrite horner_add horner_opp hornerXn hornerC subr_eq0.
+Qed.
+
+Lemma unity_rootP : forall n z, reflect (z ^+ n = 1) (n.-unity_root z).
+Proof. move=> n z; rewrite unity_rootE; exact: eqP. Qed.
+
+Definition primitive_root_of_unity n z :=
+  (n > 0) && (forallb i : 'I_n, i.+1.-unity_root z == (i.+1 == n)).
+Local Notation "n .-primitive_root" := (primitive_root_of_unity n) : ring_scope.
+
+Lemma prim_order_exists : forall n z,
+  n > 0 -> z ^+ n = 1 -> {m | m.-primitive_root z & (m %| n)%N}.
+Proof.
+move=> n z n_gt0 zn1.
+have: exists m, (m > 0) && (z ^+ m == 1) by exists n; rewrite n_gt0 /= zn1.
+case/ex_minnP=> m; case/andP=> m_gt0; move/eqP=> zm1 m_min.
+exists m.
+  apply/andP; split=> //; apply/forallP=> i; apply/eqP; case: i => i /=.
+  rewrite leq_eqVlt unity_rootE.
+  case: eqP => [-> _ | _]; first by rewrite zm1 eqxx.
+  by apply: contraTF => zi1; rewrite -leqNgt m_min.
+have: n %% m < m by rewrite ltn_mod.
+apply: contraLR; rewrite -lt0n -leqNgt => nm_gt0; apply: m_min.
+by rewrite nm_gt0 /= exprn_mod ?zn1.
+Qed.
+
+Variables (n : nat) (z : R).
+Hypothesis prim_z : n.-primitive_root z.
+
+Lemma prim_order_gt0 : n > 0. Proof. by case/andP: prim_z. Qed.
+Let n_gt0 := prim_order_gt0.
+
+Lemma prim_expr_order : z ^+ n = 1.
+Proof.
+case/andP: prim_z => _; rewrite -(prednK n_gt0); move/forallP; move/(_ ord_max).
+by rewrite unity_rootE eqxx; do 2!move/eqP.
+Qed.
+
+Lemma prim_expr_mod : forall i, z ^+ (i %% n) = z ^+ i.
+Proof. move=> i; exact: exprn_mod prim_expr_order. Qed.
+
+Lemma prim_order_dvd : forall i, (n %| i)%N = (z ^+ i == 1).
+Proof.
+move=> i; move: n_gt0; rewrite -prim_expr_mod /dvdn -(ltn_mod i).
+case: {i}(i %% n)%N => [|i] lt_i; first by rewrite !eqxx.
+case/andP: prim_z => _; move/forallP; move/(_ (Ordinal (ltnW lt_i))).
+by move/eqP; rewrite unity_rootE eqn_leq andbC leqNgt lt_i.
+Qed.
+
+Lemma eq_prim_root_expr : forall i j, (z ^+ i == z ^+ j) = (i == j %[mod n]).
+Proof.
+move=> i j; wlog le_ji: i j / j <= i.
+  move=> IH; case: (leqP j i); last move/ltnW; move/IH=> //.
+  by rewrite eq_sym (eq_sym (j %% n)%N).
+rewrite -{1}(subnKC le_ji) exprn_addr -prim_expr_mod eqn_mod_dvd //.
+rewrite prim_order_dvd; apply/eqP/eqP=> [|->]; last by rewrite mulr1.
+move/(congr1 ( *%R (z ^+ (n - j %% n)))); rewrite mulrA -exprn_addr.
+by rewrite subnK ?prim_expr_order ?mul1r // ltnW ?ltn_mod.
+Qed.
+
 End EvalPolynomial.
 
 Notation "p .[ x ]" := (horner p x) : ring_scope.
+Notation "n .-unity_root" := (root_of_unity n) : ring_scope.
+Notation "n .-primitive_root" := (primitive_root_of_unity n) : ring_scope.
+
+Implicit Arguments unity_rootP [R n z].
 
 (* Container morphism. *)
 Section MapPoly.
@@ -1288,6 +1408,11 @@ Proof. by move=> p x cpx i; rewrite coef_map -!ringM_mul ?cpx. Qed.
 
 Lemma root_map_poly : forall p x, root p x -> root p^f (f x).
 Proof. by rewrite /root => p x px0; rewrite horner_map (eqP px0) ringM_0. Qed.
+
+Lemma ringM_unity_root : forall n z, n.-unity_root z -> n.-unity_root (f z).
+Proof.
+by move=> n z; move/root_map_poly; rewrite ringM_sub // map_polyXn ringM_1.
+Qed.
 
 Definition comm_ringM u := forall x, GRing.comm u (f x).
 
@@ -1715,6 +1840,14 @@ Qed.
 Lemma gcdpC : forall p q, gcdp p q %= gcdp q p.
 Proof. by move=> p q; rewrite /eqp !dvdp_gcd !dvdp_gcdl !dvdp_gcdr. Qed.
 
+Lemma root_prod_factors : forall rs x,
+  root (\prod_(z <- rs) ('X - z%:P)) x = (x \in rs).
+Proof.
+rewrite /root => rs x.
+elim: rs => [|z rs IHrs]; first by rewrite big_nil hornerC oner_eq0.
+by rewrite big_cons horner_mul mulf_eq0 IHrs !horner_lin subr_eq0.
+Qed.
+
 End PolynomialIdomain.
 
 Section MapFieldPoly.
@@ -1802,6 +1935,19 @@ case: (eqVneq p 0) => [-> | q_nz]; first by rewrite (ringM_0 pfRM) !gcdp0.
 by rewrite IHm ?(leq_trans lt_p_q) ?modp_spec.
 Qed.
 
+Lemma fieldM_unity_root : forall n z, n.-unity_root (f z) = n.-unity_root z.
+Proof.
+move=> n z; rewrite !unity_rootE -(inj_eq (fieldM_inj fRM)).
+by rewrite ringM_exp ?ringM_1.
+Qed.
+
+Lemma fieldM_primitive_root : forall n z,
+  n.-primitive_root (f z) = n.-primitive_root z.
+Proof.
+move=> n z; congr (_ && _); apply: eq_forallb => i.
+by rewrite fieldM_unity_root.
+Qed.
+
 End MapFieldPoly.
 
 Section MaxRoots.
@@ -1813,32 +1959,107 @@ Definition diff_roots (x y : R) := (x * y == y * x) && GRing.unit (y - x).
 Fixpoint uniq_roots (rs : seq R) {struct rs} :=
   if rs is x :: rs' then all (diff_roots x) rs' && uniq_roots rs' else true.
 
+Lemma uniq_roots_dvdp : forall p rs,
+  all (root p) rs -> uniq_roots rs -> \prod_(z <- rs) ('X - z%:P) %| p.
+Proof.
+move=> p; elim=> [|z rs IHrs] /=; first by rewrite big_nil dvd1p.
+case/andP=> pz0; move/IHrs=> {IHrs}IHrs; case/andP=> diff_z_rs uniq_rs.
+have{IHrs uniq_rs} [q def_p]:= dvdpPm _ (prod_factors_monic _) (IHrs uniq_rs).
+suffices: q.[z] == 0.
+  rewrite def_p; case/factor_theorem=> q' ->; rewrite -mulrA.
+  by rewrite -(big_cons 1 *%R z _ xpredT) dvdp_mon_mull ?prod_factors_monic.
+move: diff_z_rs pz0; rewrite {p}def_p /root.
+elim: rs q => [|t rs IHrs] q /=; first by rewrite big_nil mulr1.
+rewrite big_cons -andbA mulrA; case/and3P; move/eqP=> czt inv_zt diff_z_rs.
+move/(IHrs _ diff_z_rs) => {rs IHrs diff_z_rs} qtz0.
+rewrite -(inj_eq (mulIr inv_zt)) mul0r -oppr_sub mulrN (inv_eq (@opprK _)).
+rewrite -oppr0 horner_mul_com /com_poly ?horner_lin // in qtz0.
+by rewrite mulr_subl mulr_subr czt.
+Qed.
+
 Theorem max_ring_poly_roots : forall (p : {poly R}) rs,
   p != 0 -> all (root p) rs -> uniq_roots rs -> size rs < size p.
 Proof.
-move=> p rs; elim: rs p => [|x rs IHrs] p nzp /=; first by rewrite polySpred.
-case/andP=> p_x p_rs; case/andP=> x_rs Urs.
-case/factor_theorem: p_x => q def_p.
-have nzq: q != 0 by apply: contra nzp => q0; rewrite def_p (eqP q0) mul0r.
-have ->: size p = (size q).+1.
-  by rewrite def_p size_mul_monic ?monic_factor ?seq_factor //= addnC.
-apply: IHrs Urs => //; apply/allP=> y rs_y.
-case/andP: (allP x_rs _ rs_y) => cxy Uxy.
-have:= allP p_rs _ rs_y; rewrite /root def_p horner_mul_com.
-  by rewrite !horner_lin_com (can2_eq (mulrK Uxy) (divrK Uxy)) mul0r.
-by rewrite /com_poly !horner_lin_com mulr_addl mulr_addr mulrN mulNr (eqP cxy).
+move=> p rs nz_p p_rs_0 uniq_rs; rewrite -size_prod_factors.
+by rewrite size_dvdp_mon_leqif ?prod_factors_monic ?uniq_roots_dvdp.
 Qed.
 
 End MaxRoots.
 
-Theorem max_poly_roots : forall (F : fieldType) (p : polynomial F) rs,
-  p != 0 -> all (root p) rs -> uniq rs -> size rs < size p.
+Section FieldRoots.
+
+Variable F : fieldType.
+Implicit Type p : {poly F}.
+Implicit Type rs : seq F.
+
+Lemma uniq_rootsE : forall rs, uniq_roots rs = uniq rs.
 Proof.
-move=> F p rs nzp p_rs Urs; apply: max_ring_poly_roots nzp p_rs _ => {p}//.
-elim: rs Urs => //= x rs IHrs; case/andP=> rs_x; move/IHrs->; rewrite andbT.
-apply/allP=> y rs_y; rewrite /diff_roots mulrC eqxx unitfE.
-by rewrite (can2_eq (subrK _) (addrK _)) add0r; apply: contra rs_x; move/eqP<-.
+elim=> //= r rs ->; congr (_ && _); rewrite -has_pred1 -all_predC.
+by apply: eq_all => t; rewrite /diff_roots mulrC eqxx unitfE subr_eq0.
 Qed.
+
+Theorem max_poly_roots : forall p rs,
+  p != 0 -> all (root p) rs -> uniq rs -> size rs < size p.
+Proof. by move=> p rs; rewrite -uniq_rootsE; exact: max_ring_poly_roots. Qed.
+
+Variable n : nat.
+
+Lemma max_unity_roots : forall rs,
+  n > 0 -> all n.-unity_root rs -> uniq rs -> size rs <= n.
+Proof.
+move=> rs n_gt0 rs_n_1 Urs; have szPn := size_Xn_sub_1 F n_gt0.
+by rewrite -ltnS -szPn max_poly_roots -?size_poly_eq0 ?szPn.
+Qed.
+
+Lemma mem_unity_roots : forall rs,
+    n > 0 -> all n.-unity_root rs -> uniq rs -> size rs = n ->
+  n.-unity_root =i rs.
+Proof.
+move=> rs n_gt0 rs_n_1 Urs sz_rs_n x; rewrite -topredE /=.
+apply/idP/idP=> xn1; last exact: (allP rs_n_1).
+apply: contraFT (ltnn n) => not_rs_x.
+by rewrite -{1}sz_rs_n (@max_unity_roots (x :: rs)) //= ?xn1 ?not_rs_x.
+Qed.
+
+(* Showing the existence of a primitive root requires the theory in cyclic. *)
+
+Variable z : F.
+Hypothesis prim_z : n.-primitive_root z.
+
+Lemma prod_factors_of_unity : \prod_(0 <= i < n) ('X - (z ^+ i)%:P) = 'X^n - 1.
+Proof.
+rewrite -(big_map _ xpredT (fun a => 'X - a%:P)); set Pz := \prod_(r <- _) _.
+set Pn := 'X^n - 1.
+have dvd_Pz_Pn : Pz %| Pn.
+  apply: uniq_roots_dvdp.
+    rewrite all_map; apply/allP=> i _ /=.
+    rewrite /root !horner_lin hornerXn -exprn_mulr.
+    by rewrite -(prim_expr_mod prim_z) modn_mull subrr.
+  rewrite uniq_rootsE map_inj_in_uniq ?iota_uniq // => i j.
+  rewrite !mem_index_iota => ltin ltjn; move/eqP.
+  by rewrite (eq_prim_root_expr prim_z) !modn_small //; move/eqP.
+have n_gt0: n > 0 := prim_order_gt0 prim_z.
+have szPn: size Pn = n.+1 by exact: size_Xn_sub_1.
+have nzPn: Pn != 0 by rewrite -size_poly_eq0 szPn.
+have [_] := size_dvdp_mon_leqif (prod_factors_monic _) dvd_Pz_Pn nzPn.
+rewrite size_prod_factors szPn size_mkseq subn0 -/Pz eqxx eq_sym; move/esym.
+rewrite lead_coefE szPn /= coef_sub coef1 coef_Xn eqxx eqn0Ngt n_gt0 subr0.
+by rewrite scale1r; move/eqP.
+Qed.
+
+Lemma prim_rootP : forall x, x ^+ n = 1 -> {i : 'I_n | x = z ^+ i}.
+Proof.
+move=> x xn1; pose zn := map (GRing.exp z) (index_iota 0 n).
+case: (pickP (fun i : 'I_n => x == z ^+ i)) => [i | no_i].
+  by move/eqP; exists i.
+case: notF; suffices{no_i}: x \in zn.
+  case/mapP=> i; rewrite mem_index_iota => lt_i_n def_x.
+  by rewrite -(no_i (Ordinal lt_i_n)) -def_x.
+rewrite -root_prod_factors big_map prod_factors_of_unity.
+by rewrite [_ x]unity_rootE xn1.
+Qed.
+  
+End FieldRoots.
 
 Section MapPolyRoots.
 
@@ -2081,3 +2302,29 @@ End Deriv.
 Notation "a ^` ()" := (deriv a) : ring_scope.
 Notation "a ^` ( n )" := (derivn a n) : ring_scope.
 Notation "a ^`N ( n )" := (nderivn a n) : ring_scope.
+
+Module UnityRootTheory.
+
+Notation "n .-unity_root" := (root_of_unity n) : unity_root_scope.
+Notation "n .-primitive_root" := (primitive_root_of_unity n) : unity_root_scope.
+Open Scope unity_root_scope.
+
+Definition unity_rootE := unity_rootE.
+Definition unity_rootP := @unity_rootP.
+Implicit Arguments unity_rootP [R n z].
+
+Definition prim_order_exists := prim_order_exists.
+Notation prim_order_gt0 :=  prim_order_gt0.
+Notation prim_expr_order := prim_expr_order.
+Definition prim_expr_mod := prim_expr_mod.
+Definition prim_order_dvd := prim_order_dvd.
+Definition eq_prim_root_expr := eq_prim_root_expr.
+
+Definition ringM_unity_root := ringM_unity_root.
+Definition fieldM_unity_root := fieldM_unity_root.
+Definition fieldM_primitive_root := fieldM_primitive_root.
+Definition max_unity_roots := max_unity_roots.
+Definition mem_unity_roots := mem_unity_roots.
+Definition prim_rootP := prim_rootP.
+
+End UnityRootTheory.

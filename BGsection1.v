@@ -957,10 +957,10 @@ rewrite -card_quotient ?bgFunc_norm // -(card_Hall sylPq) -trivg_card1.
 by rewrite /= -quotient_mulg mulSGid ?trivg_quotient.
 Qed.
 
-(* This is B & G, Theorem 1.20 (Maeshke's Theorem) for internal action on     *)
+(* This is B & G, Theorem 1.20 (Maschke's Theorem) for internal action on     *)
 (* elementary abelian subgroups; a more general case, for linear              *)
 (* represenations on matrices, can be found in mxrepresentation.v.            *)
-Theorem Maeshke_abelem : forall gT p (G V U : {group gT}),
+Theorem Maschke_abelem : forall gT p (G V U : {group gT}),
   p.-abelem V -> p^'.-group G -> U \subset V ->
     G \subset 'N(V) -> G \subset 'N(U) ->
   exists2 W : {group gT}, U \x W = V & G \subset 'N(W).

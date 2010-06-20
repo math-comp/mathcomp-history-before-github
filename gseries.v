@@ -254,6 +254,14 @@ suff [M *]: {M : {group gT} | maximal M G & H \subset M} by right; exists M.
 exact: maxgroup_exists.
 Qed.
 
+Lemma mulg_normal_maximal : forall G M H,
+  M <| G -> maximal M G -> H \subset G -> ~~ (H \subset M) -> (M * H = G)%g.
+Proof.
+move=> G M H; case/andP=> sMG nMG; case/maxgroupP=> _ maxM sHG not_sHM.
+apply/eqP; rewrite eqEproper mul_subG // -norm_mulgenEr ?(subset_trans sHG) //.
+by apply: contra not_sHM; move/maxM <-; rewrite ?mulgen_subl ?mulgen_subr.
+Qed.
+
 End MaxProps.
 
 Section MinProps.

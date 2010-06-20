@@ -1115,6 +1115,11 @@ Definition seq_sub_finMixin :=
 Canonical Structure seq_sub_finType :=
   Eval hnf in FinType seq_sub seq_sub_finMixin.
 
+Lemma card_seq_sub : uniq s -> #|{:seq_sub}| = size s.
+Proof.
+by move=> Us; rewrite cardE enumT -(size_map val) unlock val_seq_sub_enum.
+Qed.
+
 End SeqFinType.
 
 Lemma unit_enumP : Finite.axiom [::tt]. Proof. by case. Qed.

@@ -1047,7 +1047,7 @@ have nORS_AS : A / S \subset 'N(ORS).
   by rewrite (char_norm_trans (Ohm_char _ _)) ?quotient_norms.
 have nOR_S_AS : A / S \subset 'N(OR / S).
   by rewrite quotient_norms // (char_norm_trans (Ohm_char _ _)). 
-case: (Maeshke_abelem abelORS p'AS sORS_ORS nORS_AS nOR_S_AS) => /= W.
+case: (Maschke_abelem abelORS p'AS sORS_ORS nORS_AS nOR_S_AS) => /= W.
 case/dprodP=> /= _ ORSeq _; pose X := coset S @*^-1 W.
 have sXR : X \subset R.
   rewrite sub_cosetpre_quo /normal ?sSR //=.  
@@ -1325,8 +1325,8 @@ have eS'PhiS : S' == 'Phi(S).
   rewrite -divgS ?(normal_sub (Phi_normal _)) // cardS.
   rewrite -(part_pnat_id (pgroupS _ pS)) // p_part lcardPhiS mulnK //.
   by rewrite muln_gt0 prime_gt0.
-have {eS'PhiS}espS : extra_special S.
-  by rewrite /extra_special -eS'ZS cardS' /special -eS'ZS -(eqP eS'PhiS).
+have {eS'PhiS}espS : extraspecial S.
+  by rewrite /extraspecial -eS'ZS cardS' /special -eS'ZS -(eqP eS'PhiS).
 have eqS'OCRS : S' == 'Ohm_1('C_R(S)).
   rewrite eqEsubset {2}eS'ZS subsetI OhmS ?subsetIl //=.
   rewrite (subset_trans (Ohm_sub 1 _)) ?subsetIr // andbT.
@@ -1417,7 +1417,7 @@ have nT_CRS_A_CRT: (A / 'C_R(S)) \subset 'N(T / 'C_R(S)).
   by rewrite quotient_norms.
 have nCRT_CRS_A_CRT: (A / 'C_R(S)) \subset 'N(CRT_CRS).
   by rewrite quotient_norms // normsI // norms_cent.
-case: (Maeshke_abelem abelCRT_CRS p'A_CRS sT_CRS_CRT_CRS _ _)=> //= XCRS.
+case: (Maschke_abelem abelCRT_CRS p'A_CRS sT_CRS_CRT_CRS _ _)=> //= XCRS.
 rewrite -/T; case/dprodP=> /= _ CRT_CRSeq cXCRS_T_CRS.
 have nsXCRS_CRT_CRS : XCRS <| CRT_CRS.
   rewrite /CRT_CRS -CRT_CRSeq /normal mulG_subr /= mulG_subG normG andbT /=.

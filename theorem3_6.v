@@ -597,7 +597,7 @@ have iK'K: 'C_(P <*> R / K')(K / K') = 1 -> #|K / K'| > q ^ 2.
   have ntK: K / K' != 1.
     by rewrite trivg_card1 oK k2 (eqn_sqr _ 1) neq_ltn orbC prime_gt1.
   pose rPR := abelem_repr abelK ntK nKqPR.
-  have: mx_repr_faithful rPR by rewrite /mx_repr_faithful rker_abelem trCK'.
+  have: mx_faithful rPR by rewrite abelem_mx_faithful.
   move: rPR; rewrite (dim_abelemE abelK ntK) oK pfactorK // k2 => rPR ffPR.
   apply: charf'_GL2_abelian ffPR _.
     by rewrite quotient_odd ?(oddSg _ oddG) // mulgen_subG (subset_trans sPH).

@@ -55,7 +55,7 @@ Qed.
 
 Definition divn m d := (edivn m d).1.
 
-Notation "m %/ d" := (divn m d) (at level 40, no associativity) : nat_scope.
+Notation "m %/ d" := (divn m d) : nat_scope.
 
 (* We redefine modn so that it is structurally decreasing. *)
 
@@ -64,19 +64,11 @@ Definition modn_rec d := fix loop (m : nat) :=
 
 Definition modn m d := if d > 0 then modn_rec d.-1 m else m.
 
-Notation "m %% d" := (modn m d) (at level 40, no associativity) : nat_scope.
-Notation "m = n %[mod d ]" := (m %% d = n %% d)
-  (at level 70, n at next level,
-   format "'[hv ' m '/'  =  n '/'  %[mod  d ] ']'") : nat_scope.
-Notation "m == n %[mod d ]" := (m %% d == n %% d)
-  (at level 70, n at next level,
-   format "'[hv ' m '/'  ==  n '/'  %[mod  d ] ']'") : nat_scope.
-Notation "m <> n %[mod d ]" := (m %% d <> n %% d)
-  (at level 70, n at next level,
-   format "'[hv ' m '/'  <>  n '/'  %[mod  d ] ']'") : nat_scope.
-Notation "m != n %[mod d ]" := (m %% d != n %% d)
-  (at level 70, n at next level,
-   format "'[hv ' m '/'  !=  n '/'  %[mod  d ] ']'") : nat_scope.
+Notation "m %% d" := (modn m d) : nat_scope.
+Notation "m = n %[mod d ]" := (m %% d = n %% d) : nat_scope.
+Notation "m == n %[mod d ]" := (m %% d == n %% d) : nat_scope.
+Notation "m <> n %[mod d ]" := (m %% d <> n %% d) : nat_scope.
+Notation "m != n %[mod d ]" := (m %% d != n %% d) : nat_scope.
 
 Lemma modn_def : forall m d, m %% d = (edivn m d).2.
 Proof.
@@ -272,7 +264,7 @@ Qed.
 
 Definition dvdn d m := m %% d == 0.
 
-Notation "m %| d" := (dvdn m d) (at level 70, no associativity) : nat_scope.
+Notation "m %| d" := (dvdn m d) : nat_scope.
 
 Definition multn := [rel m d | d %| m].
 

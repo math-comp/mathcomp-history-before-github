@@ -1822,6 +1822,14 @@ have: x \in x ^: G by rewrite -{1}(conjg1 x) mem_imset.
 by move/mem_repr; case/imsetP=> y Gy ->; rewrite index_cent1 classGidl.
 Qed.
 
+Lemma card_classes_abelian : abelian G -> #|classes G| = #|G|.
+Proof.
+move=> cGG; rewrite -sum_card_class -sum1_card; apply: eq_bigr => xG.
+case/imsetP=> x Gx ->; rewrite (@eq_card1 _ x) // => y.
+apply/idP/eqP=> [| ->]; last by rewrite class_refl.
+by case/imsetP=> z Gz ->; rewrite conjgE (centsP cGG x) ?mulKg.
+Qed.
+
 End CardClass.
 
 End InternalGroupAction.

@@ -1,7 +1,8 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq paths div choice.
 Require Import fintype tuple finfun bigops prime ssralg poly finset.
-Require Import groups morphisms normal perm finalg action zmodp matrix.
-Require Import commutators cyclic center pgroups gseries sylow abelian.
+Require Import groups morphisms normal perm automorphism finalg action zmodp.
+Require Import commutators cyclic center pgroups gseries nilpotent sylow.
+Require Import maximal abelian matrix.
 
 (****************************************************************************)
 (*  This file provides linkage between classic Group Theory and commutative *)
@@ -79,7 +80,7 @@ Require Import commutators cyclic center pgroups gseries sylow abelian.
 (* degree_mxminpoly A == the (positive) degree of the minimal polynomial of *)
 (*                 the matrix A (degree_mxminpoly A = 1 iff A is scalar).   *)
 (*  mxminpoly A == the minimal polynomial of A, i.e., the smallest monic    *)
-(*                 polynomial that anihilates A.                            *)
+(*                 polynomial that annihilates A.                           *)
 (* mx_inv_horner A == the inverse of horner_mx A for polynomials of degree  *)
 (*                 smaller than degree_mxminpoly A.                         *)
 (* mx_representation F G n == the Structure type for representations of G   *)
@@ -95,8 +96,8 @@ Require Import commutators cyclic center pgroups gseries sylow abelian.
 (*                 of the representation of G.                              *)
 (*      rker rG == the kernel of the representation of r on G, i.e., the    *)
 (*                 subgroup of elements of G mapped to the identity by rG.  *)
-(* mx_repr_faithful rG == the representation rG of G is faithful (its       *)
-(*                 kernel is trivial).                                      *)
+(* mx_faithful rG == the representation rG of G is faithful (its kernel is  *)
+(*                 trivial).                                                *)
 (* rfix_mx rG H == an n x n matrix whose row space is the set of vectors    *)
 (*                 fixed (centralised) by the representation of H by rG.    *)
 (*   rcent rG A == the subgroup of G whose representation via r commutes    *)
@@ -218,25 +219,37 @@ Require Import commutators cyclic center pgroups gseries sylow abelian.
 (* classg_base F G == a #|classes G| x #|G|^2 matrix whose rows encode the  *)
 (*                 group sums of the conjugacy classes of G -- this is a    *)
 (*                 basis of 'Z(group_ring F G)%MS.                          *)
+(*     irrType F G == a type indexing irreducible representations of G over *)
+(*                 a field F, provided its characteristic does not divide   *)
+(*                 the order of G; it also indexes Wedderburn subrings.     *)
+(*                 :=  socleType (regular_repr F G)                         *)
+(*      irr_repr i == the irreducible representation corresponding to the   *)
+(*                 index i : irrType sG                                     *)
+(*                 := socle_repr i as i coerces to a component matrix.      *)
+(*    irr_degree i == the degree of irr_repr i                              *)
+(*   linear_irr sG == the set of sG-indices of linear irreducible           *)
+(*                 representations of G.                                    *)
+(*  irr_comp sG rG == the sG-index of the unique irreducible representation *)
+(*                 similar to rG, at least when rG is irreducible and the   *)
+(*                 characteristic is coprime.                               *)
+(*    irr_mode i z == the unique eigenvalue of irr_repr i z, at least when  *)
+(*                 irr_repr i z is scalar (e.g., when z \in 'Z(G)).         *)
+(*      [1 sG]%irr == the index of the principal representation of G, in    *)
+(*                 sG : irrType F G. The i argument ot irr_repr, irr_degree *)
+(*                 and irr_mode is in the %irr scope. This notation may be  *)
+(*                 replaced locally by an interpretation of 1%irr as [1 sG] *)
+(*                 for some specific irrType sG.                            *)
 (* Wedderburn_subring i == the subring (indeed, the component) of the free  *)
 (*                 group ring of G that corresponds to the component i : sG *)
-(*                 of the regular FG-module, where sG is a socleType for    *)
-(*                 regular_repr F G. In coprime characteristic the          *)
-(*                 Wedderburn structure theorem asserts that the free group *)
-(*                 ring is the direct sum of these subrings.                *)
-(* principal_comp sG == the principal component of the regular FG-module,   *)
-(*                 in the socleType sG: the canonical principal FG-module   *)
-(*                 is thus socle_repr (principal_comp sG).                  *)
-(* regular_comp sG rG == the component of the regular FG-module whose       *)
-(*                 canonical representation is similar to rG, when rG is an *)
-(*                 irreducible representation of G.                         *)
+(*                 of the regular FG-module, where sG : irrType F g. In     *)
+(*                 coprime characteristic the Wedderburn structure theorem  *)
+(*                 asserts that the free group ring is the direct sum of    *)
+(*                 these subrings.                                          *)
 (* Wedderburn_id_mx i == the projection of the identity matrix 1%:M on the  *)
 (*                 Wedderburn subring of i : sG (with sG a socleType). In   *)
 (*                 coprime characteristic this is the identity element of   *)
 (*                 the subring, and the basis of its center if the field F  *)
 (*                 is a splitting field.                                    *)
-(* Wedderburn_degree i == the degree of the irreducible representation      *)
-(*                 socle_repr i, for i : sG : socleType (regular_repr F G). *)
 (* subg_repr rG sHG == the restriction to H of the representation rG of G;  *)
 (*                 here sHG : H \subset G.                                  *)
 (* eqg_repr rG eqHG == the representation rG of G viewed a a representation *)
@@ -698,12 +711,14 @@ Qed.
 Implicit Arguments memmx_eqP [m1 m2 n R1 R2].
 
 Lemma memmx_addsP : forall m1 m2 n A (R1 : 'A_(m1, n)) (R2 : 'A_(m2, n)),
-  reflect (exists2 A2, A - A2 \in R1 & A2 \in R2) (A \in R1 + R2)%MS.
+  reflect (exists D, [/\ D.1 \in R1, D.2 \in R2 & A = D.1 + D.2])
+          (A \in R1 + R2)%MS.
 Proof.
-move=> m1 m2 n A R1 R2.
-apply: (iffP sub_addsmxP) => [[v2 Rv1 Rv2] | [A2 R1_A1 R2_A2]].
-  by exists (vec_mx v2); rewrite ?linear_sub /= vec_mxK.
-by exists (mxvec A2); rewrite -?linear_sub.
+move=> m1 m2 n A R1 R2; apply: (iffP sub_addsmxP) => [[u] | [D []]].
+  move/(canRL mxvecK)->; exists (vec_mx (u.1 *m R1), vec_mx (u.2 *m R2)).
+  by rewrite /= linearD !vec_mxK !submxMl.
+case/submxP=> u1 defD1; case/submxP=> u2 defD2 ->.
+by exists (u1, u2); rewrite linearD /= defD1 defD2.
 Qed.
 Implicit Arguments memmx_addsP [m1 m2 n A R1 R2].
 
@@ -832,8 +847,8 @@ Proof.
 move=> m1 m2 m3 n R1 R2 R3.
 rewrite -(genmx_muls R2 R3) -(genmx_muls R1 R3) -genmx_muls -genmx_adds.
 apply/genmxP; rewrite andbC addsmx_sub !mulsmxS ?addsmxSl ?addsmxSr //=.
-apply/mulsmx_subP=> A12 A3; case/memmx_addsP=> A2 R_A1 R_A2 R_A3.
-by rewrite -(subrK A2 A12) mulmx_addl linearD addmx_sub_adds ?mem_mulsmx.
+apply/mulsmx_subP=> A12 A3; case/memmx_addsP=> A [R_A1 R_A2 ->] R_A3.
+by rewrite mulmx_addl linearD addmx_sub_adds ?mem_mulsmx.
 Qed.
 
 Lemma mulsmx_addr : forall m1 m2 m3 n (R1 : 'A_(m1, n)),
@@ -843,17 +858,19 @@ Proof.
 move=> m1 m2 m3 n R1 R2 R3.
 rewrite -(genmx_muls R1 R3) -(genmx_muls R1 R2) -genmx_muls -genmx_adds.
 apply/genmxP; rewrite andbC addsmx_sub !mulsmxS ?addsmxSl ?addsmxSr //=.
-apply/mulsmx_subP=> A1 A23 R_A1; case/memmx_addsP=> A3 R_A2 R_A3.
-by rewrite -(subrK A3 A23) mulmx_addr linearD addmx_sub_adds ?mem_mulsmx.
+apply/mulsmx_subP=> A1 A23 R_A1; case/memmx_addsP=> A [R_A2 R_A3 ->].
+by rewrite mulmx_addr linearD addmx_sub_adds ?mem_mulsmx.
 Qed.
 
-Lemma mulsmx0 : forall m1 m2 n (R1 : 'A_(m1, n)), (R1 * (0 : 'A_(m2, n)) = 0)%MS.
+Lemma mulsmx0 : forall m1 m2 n (R1 : 'A_(m1, n)),
+  (R1 * (0 : 'A_(m2, n)) = 0)%MS.
 Proof.
 move=> m1 m2 n R1; apply/eqP; rewrite -submx0; apply/mulsmx_subP=> A1 A0 _.
 by rewrite [A0 \in 0]eqmx0; move/memmx0->; rewrite mulmx0 mem0mx.
 Qed.
 
-Lemma muls0mx : forall m1 m2 n (R2 : 'A_(m2, n)), ((0 : 'A_(m1, n)) * R2 = 0)%MS.
+Lemma muls0mx : forall m1 m2 n (R2 : 'A_(m2, n)),
+  ((0 : 'A_(m1, n)) * R2 = 0)%MS.
 Proof.
 move=> m1 m2 n R1; apply/eqP; rewrite -submx0; apply/mulsmx_subP=> A0 A2.
 by rewrite [A0 \in 0]eqmx0; move/memmx0->; rewrite mul0mx mem0mx.
@@ -989,42 +1006,44 @@ by rewrite -mxrank_eq0 mxrank1 -lt0n.
 Qed.
 
 Lemma mxdirect_adds_center : forall m1 m2 n (R1 : 'A_(m1, n)) (R2 : 'A_(m2, n)),
-    mx_ideal (R1 + R2)%MS R1 -> mx_ideal (R1 + R2)%MS R2 -> mxdirect (R1 + R2) ->
+    mx_ideal (R1 + R2)%MS R1 -> mx_ideal (R1 + R2)%MS R2 ->
+    mxdirect (R1 + R2) ->
   ('Z((R1 + R2)%MS) :=: 'Z(R1) + 'Z(R2))%MS.
 Proof.
 move=> m1 m2 n R1 R2; case/andP=> idlR1 idrR1; case/andP=> idlR2 idrR2.
 move/mxdirect_addsP=> dxR12.
 apply/eqmxP; apply/andP; split.
-  apply/memmx_subP=> z; rewrite sub_capmx; case/andP.
-  case/memmx_addsP=> z2 R1z1 R2z2 Cz.
-  rewrite -(subrK z2 z) linearD addmx_sub_adds //= ?sub_capmx ?R1z1 ?R2z2 /=.
+  apply/memmx_subP=> z0; rewrite sub_capmx; case/andP.
+  case/memmx_addsP=> z [R1z1 R2z2 ->{z0}] Cz.
+  rewrite linearD addmx_sub_adds //= ?sub_capmx ?R1z1 ?R2z2 /=.
     apply/cent_mxP=> A R1_A; have R_A := submx_trans R1_A (addsmxSl R1 R2).
     have Rz2 := submx_trans R2z2 (addsmxSr R1 R2).
-    rewrite mulmx_subr (cent_mxP Cz) // mulmx_subl [A *m z2]memmx0.
-      rewrite [z2 *m A]memmx0 //.
+    rewrite -{1}[z.1](addrK z.2) mulmx_subr (cent_mxP Cz) // mulmx_addl.
+    rewrite [A *m z.2]memmx0 1?[z.2 *m A]memmx0 ?addrK //.
       by rewrite -dxR12 sub_capmx (mulsmx_subP idlR1) // (mulsmx_subP idrR2).
     by rewrite -dxR12 sub_capmx (mulsmx_subP idrR1) // (mulsmx_subP idlR2).
   apply/cent_mxP=> A R2_A; have R_A := submx_trans R2_A (addsmxSr R1 R2).
   have Rz1 := submx_trans R1z1 (addsmxSl R1 R2).
-  rewrite -(subrK z z2) -oppr_sub addrC mulmx_subr (cent_mxP Cz) //.
-  rewrite mulmx_subl [A *m _]memmx0 1?[(z - _) *m A]memmx0 //.
+  rewrite -{1}[z.2](addKr z.1) mulmx_addr (cent_mxP Cz) // mulmx_addl.
+  rewrite mulmxN [A *m z.1]memmx0 1?[z.1 *m A]memmx0 ?addKr //.
     by rewrite -dxR12 sub_capmx (mulsmx_subP idrR1) // (mulsmx_subP idlR2).
   by rewrite -dxR12 sub_capmx (mulsmx_subP idlR1) // (mulsmx_subP idrR2).
 rewrite addsmx_sub; apply/andP; split.
   apply/memmx_subP=> z; rewrite sub_capmx; case/andP=> R1z cR1z.
   have Rz := submx_trans R1z (addsmxSl R1 R2).
-  rewrite sub_capmx Rz; apply/cent_mxP=> A; case/memmx_addsP=> A2 R1_A1 R2_A2.
+  rewrite sub_capmx Rz; apply/cent_mxP=> A0.
+  case/memmx_addsP=> A [R1_A1 R2_A2] ->{A0}.
   have R_A2 := submx_trans R2_A2 (addsmxSr R1 R2).
-  rewrite -(subrK A2 A) mulmx_addl (cent_mxP cR1z) // (mulmx_addr z _ A2).
-  rewrite [A2 *m z]memmx0 1?[z *m A2]memmx0 //.
+  rewrite mulmx_addl mulmx_addr (cent_mxP cR1z) //; congr (_ + _).
+  rewrite [A.2 *m z]memmx0 1?[z *m A.2]memmx0 //.
     by rewrite -dxR12 sub_capmx (mulsmx_subP idrR1) // (mulsmx_subP idlR2).
   by rewrite -dxR12 sub_capmx (mulsmx_subP idlR1) // (mulsmx_subP idrR2).
 apply/memmx_subP=> z; rewrite !sub_capmx; case/andP=> R2z cR2z.
-have Rz := submx_trans R2z (addsmxSr R1 R2); rewrite Rz addsmxC.
-apply/cent_mxP=> A; case/memmx_addsP=> A1 R2_A2 R1_A1.
+have Rz := submx_trans R2z (addsmxSr R1 R2); rewrite Rz.
+apply/cent_mxP=> A0; case/memmx_addsP=> A [R1_A1 R2_A2 ->{A0}].
+rewrite mulmx_addl mulmx_addr (cent_mxP cR2z _ R2_A2) //; congr (_ + _).
 have R_A1 := submx_trans R1_A1 (addsmxSl R1 R2).
-rewrite -(subrK A1 A) mulmx_addl (cent_mxP cR2z) // (mulmx_addr z _ A1).
-rewrite [A1 *m z]memmx0 1?[z *m A1]memmx0 //.
+rewrite [A.1 *m z]memmx0 1?[z *m A.1]memmx0 //.
   by rewrite -dxR12 sub_capmx (mulsmx_subP idlR1) // (mulsmx_subP idrR2).
 by rewrite -dxR12 sub_capmx (mulsmx_subP idrR1) // (mulsmx_subP idlR2).
 Qed.
@@ -1324,6 +1343,8 @@ by rewrite -(ringM_mul zRM) horner_mx_C -scalar_mx_add scalar_mx_is_scalar.
 Qed.
 
 End MinPoly.
+
+Delimit Scope irrType_scope with irr.
 
 Section GenRepr.
 
@@ -1857,22 +1878,41 @@ by rewrite mulmx_subr mulmx1 cHW ?enum_valP // subrr !linear0.
 Qed.
 Implicit Arguments rfix_mxP [m W].
 
-Lemma normal_rfix_mx_module : forall H, H <| G -> mxmodule (rfix_mx H).
-Proof.
-move=> H; case/andP=> sHG nHG; apply/mxmoduleP=> x Gx.
-apply/rfix_mxP=> y Hy; have Gy := subsetP sHG y Hy.
-have Hyx: (y ^ x^-1)%g \in H by rewrite -mem_conjg (normsP nHG).
-rewrite -mulmxA -repr_mxM // conjgCV repr_mxM ?(subsetP sHG _ Hyx) // mulmxA.
-by rewrite (rfix_mxP H _ _ Hyx).
-Qed.
-
-Lemma rfix_mx_module : mxmodule (rfix_mx G).
-Proof. exact: normal_rfix_mx_module. Qed.
+Lemma rfix_mx_id : forall (H : {set gT}) x,
+  x \in H -> rfix_mx H *m rG x = rfix_mx H.
+Proof. by move=> H; exact/rfix_mxP. Qed.
 
 Lemma rfix_mxS : forall H K : {set gT},
   H \subset K -> (rfix_mx K <= rfix_mx H)%MS.
 Proof.
 by move=> H K sHK; apply/rfix_mxP=> x Hx; exact: rfix_mxP (subsetP sHK x Hx).
+Qed.
+
+Lemma norm_sub_rstabs_rfix_mx : forall H : {set gT},
+  H \subset G -> 'N_G(H) \subset rstabs (rfix_mx H).
+Proof.
+move=> H sHG; apply/subsetP=> x; case/setIP=> Gx nHx; rewrite inE Gx.
+apply/rfix_mxP=> y Hy; have Gy := subsetP sHG y Hy.
+have Hyx: (y ^ x^-1)%g \in H by rewrite memJ_norm ?groupV.
+rewrite -mulmxA -repr_mxM // conjgCV repr_mxM ?(subsetP sHG _ Hyx) // mulmxA.
+by rewrite rfix_mx_id.
+Qed.
+
+Lemma normal_rfix_mx_module : forall H, H <| G -> mxmodule (rfix_mx H).
+Proof.
+move=> H; case/andP=> sHG nHG.
+by rewrite /mxmodule -{1}(setIidPl nHG) norm_sub_rstabs_rfix_mx.
+Qed.
+
+Lemma rfix_mx_module : mxmodule (rfix_mx G).
+Proof. exact: normal_rfix_mx_module. Qed.
+
+Lemma rfix_mx_rstabC : forall (H : {set gT}) m (U : 'M[F]_(m, n)),
+  H \subset G -> (H \subset rstab U) = (U <= rfix_mx H)%MS.
+Proof.
+move=> H m U sHG; apply/subsetP/rfix_mxP=> cHU x Hx.
+  by rewrite (rstab_act (cHU x Hx)).
+by rewrite !inE (subsetP sHG) //= cHU.
 Qed.
 
 (* The cyclic module generated by a single vector. *)
@@ -2291,7 +2331,7 @@ exists (W :&: U)%MS; first exact: capmx_module.
 by apply/mxdirect_addsP; rewrite capmxA (mxdirect_addsP dxU1W) cap0mx.
 Qed.
 
-Lemma mx_Maeshke : [char F]^'.-group G -> mx_completely_reducible 1%:M.
+Lemma mx_Maschke : [char F]^'.-group G -> mx_completely_reducible 1%:M.
 Proof.
 rewrite /pgroup charf'_nat; set nG := _%:R => nzG U; move/mxmoduleP=> Umod _.
 pose phi := nG^-1 *m: (\sum_(x \in G) rG x^-1 *m pinvmx U *m U *m rG x).
@@ -2793,7 +2833,14 @@ Qed.
 Lemma rker_normal : rker <| G.
 Proof. by rewrite /normal rstab_sub rker_norm. Qed.
 
-Definition mx_repr_faithful := rker \subset [1].
+Definition mx_faithful := rker \subset [1].
+
+Lemma mx_faithful_inj : mx_faithful -> {in G &, injective rG}.
+Proof.
+move=> ffulG x y Gx Gy eq_rGxy; apply/eqP; rewrite eq_mulgV1 -in_set1.
+rewrite (subsetP ffulG) // inE groupM ?repr_mxM ?groupV //= eq_rGxy.
+by rewrite mulmxA repr_mxK.
+Qed.
 
 (* (Globally) irreducible, and absolutely irreducible representations. Note   *)
 (* that unlike "reducible", "absolutely irreducible" can easily be decided.   *)
@@ -2857,7 +2904,7 @@ Proof.
 case/mx_abs_irrP=> n_gt0 [a_ a_G]; apply/mx_irrP; split=> // U Umod.
 case/rowV0Pn=> u Uu; rewrite -mxrank_eq0 -lt0n row_leq_rank -sub1mx.
 case/submxP: Uu => v ->{u}; case/row_freeP=> u' vK; apply/row_subP=> i.
-rewrite rowE scalar_mxC -{}vK -2!mulmxA; move: {u' i}(u' *m _) => A.
+rewrite rowE scalar_mxC -{}vK -2![_ *m _]mulmxA; move: {u' i}(u' *m _) => A.
 rewrite mulmx_sub {v}// [A]a_G linear_sum summx_sub //= => x Gx.
 by rewrite linearZ /= scalemx_sub // (mxmoduleP Umod).
 Qed.
@@ -3081,7 +3128,7 @@ Qed.
 
 Lemma rker_subg : rker rH = H :&: rker rG. Proof. exact: rstab_subg. Qed.
 
-Lemma subg_repr_faithful : mx_repr_faithful rG -> mx_repr_faithful rH.
+Lemma subg_mx_faithful : mx_faithful rG -> mx_faithful rH.
 Proof. by apply: subset_trans; rewrite rker_subg subsetIr. Qed.
 
 End SubGroup.
@@ -3131,8 +3178,8 @@ Qed.
 
 Lemma rker_eqg : rker rH = rker rG. Proof. exact: rstab_eqg. Qed.
 
-Lemma eqg_repr_faithful : mx_repr_faithful rH = mx_repr_faithful rG.
-Proof. by rewrite /mx_repr_faithful rker_eqg. Qed.
+Lemma eqg_mx_faithful : mx_faithful rH = mx_faithful rG.
+Proof. by rewrite /mx_faithful rker_eqg. Qed.
 
 End SameGroup.
 
@@ -3168,6 +3215,14 @@ End Stabilisers.
 
 Lemma rker_morphpre : rker rGf = f @*^-1 (rker rG).
 Proof. exact: rstab_morphpre. Qed.
+
+Lemma rfix_morphpre : forall H : {set aT},
+  H \subset D -> (rfix_mx rGf H :=: rfix_mx rG (f @* H))%MS.
+Proof.
+move=> H sHD; apply/eqmxP; apply/andP; split.
+  by apply/rfix_mxP=> fx; case/morphimP=> x _ Hx ->; rewrite rfix_mx_id.
+by apply/rfix_mxP=> x Hx; rewrite rfix_mx_id ?mem_morphim ?(subsetP sHD).
+Qed.
 
 Lemma morphpre_mx_irr :
   G \subset f @* D -> (mx_irreducible rGf <-> mx_irreducible rG).
@@ -3226,6 +3281,10 @@ End Stabilisers.
 Lemma rker_morphim : rker rG = G :&: f @*^-1 (rker rGf).
 Proof. exact: rstab_morphim. Qed.
 
+Lemma rfix_morphim : forall H : {set aT},
+  H \subset D -> (rfix_mx rG H :=: rfix_mx rGf (f @* H))%MS.
+Proof. exact: rfix_morphpre. Qed.
+
 Lemma mxsimple_morphim : forall M, mxsimple rG M <-> mxsimple rGf M.
 Proof.
 move=> M; rewrite /mxsimple mxmodule_morphim.
@@ -3254,18 +3313,22 @@ Variables (rG : mx_representation G n) (U : 'M[F]_n) (Umod : mxmodule rG U).
 Local Notation rU := (submod_repr Umod).
 Local Notation rU' := (factmod_repr Umod).
 
-Lemma rfix_submod : (rfix_mx rU G :=: in_submod U (U :&: rfix_mx rG G))%MS.
+Lemma rfix_submod : forall H : {set gT},
+  H \subset G -> (rfix_mx rU H :=: in_submod U (U :&: rfix_mx rG H))%MS.
 Proof.
-apply/eqmxP; apply/andP; split; last first.
-  apply/rfix_mxP=> x Gx; rewrite -in_submodJ ?capmxSl //.
-  by rewrite (rfix_mxP G _) ?capmxSr.
-rewrite -[rfix_mx _ G]val_submodK submxMr // sub_capmx val_submodP.
-by apply/rfix_mxP=> x Gx; rewrite -(val_submodJ Umod) // (rfix_mxP G _).
+move=> H sHG; apply/eqmxP; apply/andP; split; last first.
+  apply/rfix_mxP=> x Hx; rewrite -in_submodJ ?capmxSl //.
+  by rewrite (rfix_mxP H _) ?capmxSr.
+rewrite -val_submodS in_submodK ?capmxSl // sub_capmx val_submodP //=.
+apply/rfix_mxP=> x Hx.
+by rewrite -(val_submodJ Umod) ?(subsetP sHG) ?rfix_mx_id.
 Qed.
 
-Lemma rfix_factmod : (in_factmod U (rfix_mx rG G) <= rfix_mx rU' G)%MS.
+Lemma rfix_factmod : forall H : {set gT},
+  H \subset G -> (in_factmod U (rfix_mx rG H) <= rfix_mx rU' H)%MS.
 Proof.
-by apply/rfix_mxP=> x Gx; rewrite -(in_factmodJ Umod) // (rfix_mxP G _).
+move=> H sHG; apply/rfix_mxP=> x Hx.
+by rewrite -(in_factmodJ Umod) ?(subsetP sHG) ?rfix_mx_id.
 Qed.
 
 Lemma rstab_submod : forall m (W : 'M_(m, \rank U)),
@@ -3320,14 +3383,17 @@ move=> m V; rewrite -(eqmx_module _ (in_factmodsK (addsmxSl U V))).
 by rewrite val_factmod_module (eqmx_module _ (in_factmod_addsK _ _)).
 Qed.
 
-Lemma rker_submod : rker rG \subset rker rU.
-Proof.
-apply/subsetP=> x; case/rkerP=> Gx cVx; rewrite !inE Gx; apply/eqP.
-by apply: val_submod_inj; rewrite val_submodJ //= cVx mulmx1.
-Qed.
+Lemma rker_submod : rker rU = rstab rG U.
+Proof. by rewrite /rker rstab_submod; exact: eqmx_rstab (val_submod1 U). Qed.
 
-Lemma submod_repr_faithful : mx_repr_faithful rU -> mx_repr_faithful rG.
-Proof. exact: subset_trans rker_submod. Qed.
+Lemma rstab_norm : G \subset 'N(rstab rG U).
+Proof. by rewrite -rker_submod rker_norm. Qed.
+
+Lemma rstab_normal : rstab rG U <| G.
+Proof. by rewrite -rker_submod rker_normal. Qed.
+
+Lemma submod_mx_faithful : mx_faithful rU -> mx_faithful rG.
+Proof. by apply: subset_trans; rewrite rker_submod rstabS ?submx1. Qed.
 
 Lemma rker_factmod : rker rG \subset rker rU'.
 Proof.
@@ -3335,7 +3401,7 @@ apply/subsetP=> x; case/rkerP=> Gx cVx.
 by rewrite inE Gx /= /factmod_mx cVx mul1mx mulmx1 val_factmodK.
 Qed.
 
-Lemma factmod_repr_faithful : mx_repr_faithful rU' -> mx_repr_faithful rG.
+Lemma factmod_mx_faithful : mx_faithful rU' -> mx_faithful rG.
 Proof. exact: subset_trans rker_factmod. Qed.
 
 Lemma submod_mx_irr : mx_irreducible rU <-> mxsimple rG U.
@@ -3379,15 +3445,15 @@ Proof. by []. Qed.
 Lemma rconj_mxJ : forall m (W : 'M_(m, n)) x, W *m rGB x *m B = W *m B *m rG x.
 Proof. by move=> m W x; rewrite !mulmxA mulmxKV. Qed.
 
-Lemma rfix_conj : (rfix_mx rGB G :=: B *m rfix_mx rG G *m invmx B)%MS.
+Lemma rfix_conj : forall H : {set gT},
+   (rfix_mx rGB H :=: B *m rfix_mx rG H *m invmx B)%MS.
 Proof.
-apply/eqmxP; apply/andP; split.
+move=> H; apply/eqmxP; apply/andP; split.
   rewrite -mulmxA (eqmxMfull (_ *m _)) ?row_full_unit //.
-  rewrite -[rfix_mx rGB G](mulmxK uB) submxMr //; apply/rfix_mxP=> x Gx.
-  apply: (canRL (mulmxKV uB)); rewrite -rconj_mxJ mulmxK //.
-  by move: x Gx; exact/rfix_mxP.
+  rewrite -[rfix_mx rGB H](mulmxK uB) submxMr //; apply/rfix_mxP=> x Hx.
+  by apply: (canRL (mulmxKV uB)); rewrite -rconj_mxJ mulmxK // rfix_mx_id.
 apply/rfix_mxP=> x Gx; rewrite -3!mulmxA; congr (_ *m _).
-by rewrite !mulmxA mulmxKV //; congr (_ *m _); move: x Gx; exact/rfix_mxP.
+by rewrite !mulmxA mulmxKV // rfix_mx_id.
 Qed.
 
 Lemma rcent_conj : forall A, rcent rGB A = rcent rG (invmx B *m A *m B).
@@ -3419,8 +3485,8 @@ apply/setP=> x; rewrite !inE /= mulmxA (can2_eq (mulmxKV uB) (mulmxK uB)).
 by rewrite mul1mx -scalar_mxC (inj_eq (can_inj (mulKmx uB))) mul1mx.
 Qed.
 
-Lemma conj_repr_faithful : mx_repr_faithful rGB = mx_repr_faithful rG.
-Proof. by rewrite /mx_repr_faithful rker_conj. Qed.
+Lemma conj_mx_faithful : mx_faithful rGB = mx_faithful rG.
+Proof. by rewrite /mx_faithful rker_conj. Qed.
 
 Lemma conj_mx_irr : mx_irreducible rGB <-> mx_irreducible rG.
 Proof.
@@ -3478,11 +3544,14 @@ have GHx: Hx \in (G / H)%g by rewrite mem_quotient ?enum_valP.
 by rewrite (eq_row_sub (enum_rank_in GHx Hx)) // rowK enum_rankK_in.
 Qed.
 
-Lemma rfix_quo : (rfix_mx rGH (G / H)%g :=: rfix_mx rG G)%MS.
+Lemma rfix_quo : forall K : {group gT},
+  K \subset G -> (rfix_mx rGH (K / H)%g :=: rfix_mx rG K)%MS.
 Proof.
-apply/eqmxP; apply/andP; (split; apply/rfix_mxP) => [x Gx | Hx].
-  by rewrite -quo_mx_coset // (rfix_mxP (G / H)%g _) ?mem_quotient.
-by case/morphimP=> x Nx Gx ->; rewrite quo_repr_coset ?(rfix_mxP G _).
+move=> K sKG; apply/eqmxP; apply/andP; (split; apply/rfix_mxP) => [x Kx | Hx].
+  have Gx := subsetP sKG x Kx.
+  by rewrite -quo_mx_coset // rfix_mx_id // mem_morphim ?(subsetP nHG).
+case/morphimP=> x _ Kx ->; have Gx := subsetP sKG x Kx.
+by rewrite quo_repr_coset ?rfix_mx_id.
 Qed.
 
 Lemma rcent_quo : forall A, rcent rGH A = (rcent rG A / H)%g.
@@ -3538,8 +3607,8 @@ Lemma kquo_repr_coset : forall x,
   x \in G -> kquo_repr (coset (rker rG) x) = rG x.
 Proof. exact: quo_repr_coset. Qed.
 
-Lemma kquo_mx_faithful : mx_repr_faithful kquo_repr.
-Proof. by rewrite /mx_repr_faithful rker_quo trivg_quotient. Qed.
+Lemma kquo_mx_faithful : mx_faithful kquo_repr.
+Proof. by rewrite /mx_faithful rker_quo trivg_quotient. Qed.
 
 End Quotient.
 
@@ -3575,8 +3644,8 @@ Section Abelian.
 
 Variables (gT : finGroupType) (G : {group gT}).
 
-Lemma mx_repr_faithful_irr_center_cyclic : forall n rG,
-  @mx_repr_faithful _ G n rG -> mx_irreducible rG -> cyclic 'Z(G).
+Lemma mx_faithful_irr_center_cyclic : forall n rG,
+  @mx_faithful _ G n rG -> mx_irreducible rG -> cyclic 'Z(G).
 Proof.
 case=> [|n] rG injG irrG; first by case/mx_irrP: irrG.
 move/trivgP: injG => KrG1; pose rZ := subg_repr rG (center_sub _).
@@ -3588,11 +3657,11 @@ apply/centgmxP=> y Gy; rewrite mulmx_subl mulmx_subr mulmx1 mul1mx.
 by rewrite -!repr_mxM // (centP cGx).
 Qed.
 
-Lemma mx_repr_faithful_irr_abelian_cyclic : forall n rG,
-  @mx_repr_faithful _ G n rG -> mx_irreducible rG -> abelian G -> cyclic G.
+Lemma mx_faithful_irr_abelian_cyclic : forall n rG,
+  @mx_faithful _ G n rG -> mx_irreducible rG -> abelian G -> cyclic G.
 Proof.
 move=> n rG injG irrG cGG; rewrite -(setIidPl cGG).
-exact: mx_repr_faithful_irr_center_cyclic injG irrG.
+exact: mx_faithful_irr_center_cyclic injG irrG.
 Qed.
 
 Hypothesis splitG : group_splitting_field G.
@@ -3626,7 +3695,7 @@ Variables (n : nat) (rG : mx_representation G n).
 
 Lemma center_kquo_cyclic : mx_irreducible rG -> cyclic 'Z(G / rker rG)%g.
 Proof.
-move=> irrG; apply: mx_repr_faithful_irr_center_cyclic (kquo_mx_faithful rG) _.
+move=> irrG; apply: mx_faithful_irr_center_cyclic (kquo_mx_faithful rG) _.
 exact/quo_mx_irr.
 Qed.
 
@@ -3752,9 +3821,9 @@ by rewrite -(can_eq (mulmxK injf)) homf // -scalar_mxC (can_eq (mulKmx injf)).
 Qed.
 
 Lemma mx_rsim_faithful : forall n1 n2 (rG1 : reprG n1) (rG2 : reprG n2),
-  mx_rsim rG1 rG2 -> mx_repr_faithful rG1 = mx_repr_faithful rG2.
+  mx_rsim rG1 rG2 -> mx_faithful rG1 = mx_faithful rG2.
 Proof.
-by move=> n1 n2 rG1 rG2 simG12; rewrite /mx_repr_faithful (rker_mx_rsim simG12).
+by move=> n1 n2 rG1 rG2 simG12; rewrite /mx_faithful (rker_mx_rsim simG12).
 Qed.
 
 End Similarity.
@@ -4387,6 +4456,8 @@ Qed.
 
 End JordanHolder.
 
+Bind Scope irrType_scope with socle_sort.
+
 Section Regular.
 
 Variables (gT : finGroupType) (G : {group gT}).
@@ -4435,6 +4506,14 @@ Proof.
 move=> x y Gx Gy; rewrite /gring_proj /= /gring_row rowK gring_indexK //=.
 rewrite mul1g trmx_delta rowE mul_delta_mx_cond [delta_mx 0 0]mx11_scalar !mxE.
 by rewrite /= -(inj_eq (can_inj gring_valK)) !gring_indexK.
+Qed.
+
+Lemma regular_mx_faithful : mx_faithful aG.
+Proof.
+apply/subsetP=> x; case/setIdP=> Gx; rewrite mul1mx inE.
+move/eqP; move/(congr1 (gring_proj 1%g)).
+rewrite -(repr_mx1 aG) !gring_projE ?group1 // eqxx eq_sym.
+by case: (x == _) => //; move/eqP; rewrite eq_sym oner_eq0.
 Qed.
 
 Section GringMx.
@@ -4526,7 +4605,7 @@ Lemma rsim_regular_submod :
   {U : 'M_nG & {modU : mxmodule aG U & mx_rsim rG (submod_repr modU)}}.
 Proof.
 have [V [modV eqG'V]] := rsim_regular_factmod.
-have [U modU defVU dxVU] := mx_Maeshke F'G modV (submx1 V).
+have [U modU defVU dxVU] := mx_Maschke F'G modV (submx1 V).
 have eqUV: \rank U = \rank (cokermx V).
   by rewrite mxrank_coker -{3}(mxrank1 F #|G|) -defVU (mxdirectP dxVU) addKn.
 have{dxVU} dxUV: (U :&: V = 0)%MS by rewrite capmxC; exact/mxdirect_addsP.
@@ -4582,7 +4661,7 @@ Qed.
 
 Definition gset_mx (A : {set gT}) := \sum_(x \in A) aG x.
 
-Local Notation tG := #|pred_of_set (classes G)|.
+Local Notation tG := #|pred_of_set (classes (gval G))|.
 
 Definition classg_base := \matrix_(k < tG) mxvec (gset_mx (enum_val k)).
 
@@ -4651,7 +4730,80 @@ rewrite gring_mxJ // (mulsmx_subP modM) ?envelop_mx_id //.
 by rewrite mem_gring_mx row_sub.
 Qed.
 
-Variable sG : socleType aG.
+Definition irrType := socleType aG.
+Identity Coercion type_of_irrType : irrType >-> socleType.
+
+Variable sG : irrType.
+
+Definition irr_degree (i : sG) := \rank (socle_base i).
+Lemma irr_degreeE : forall i, irr_degree i = \rank (socle_base i).
+Proof. by []. Qed.
+Local Notation n_ := irr_degree.
+
+Lemma irr_degree_gt0 : forall i, n_ i > 0.
+Proof. by move=> i; rewrite lt0n mxrank_eq0; case: (socle_simple i). Qed.
+
+Definition irr_repr i : mx_representation G (n_ i) := socle_repr i.
+Lemma irr_reprE : forall i x, irr_repr i x = submod_mx (socle_module i) x.
+Proof. by []. Qed.
+
+Lemma rfix_regular : (rfix_mx aG G :=: gring_row (gset_mx G))%MS.
+Proof.
+apply/eqmxP; apply/andP; split; last first.
+  apply/rfix_mxP => x Gx; rewrite -gring_row_mul; congr gring_row.
+  rewrite {2}/gset_mx (reindex_astabs 'R x) ?astabsR //= mulmx_suml.
+  by apply: eq_bigr => y Gy; rewrite repr_mxM.
+apply/rV_subP=> v; move/rfix_mxP=> cGv.
+have: (gring_mx aG v \in R_G)%MS by rewrite vec_mxK submxMl.
+case/envelop_mxP=> a def_v.
+suffices ->: v = a 1%g *m: gring_row (gset_mx G) by rewrite scalemx_sub.
+rewrite -linearZ linear_sum -[v]gring_mxK def_v; congr (gring_row _).
+apply: eq_bigr => x Gx; congr (_ *m: _).
+move/rowP: (congr1 (gring_proj x \o gring_mx aG) (cGv x Gx)); move/(_ 0).
+rewrite /= gring_mxJ // def_v mulmx_suml !linear_sum (bigD1 1%g) //=.
+rewrite repr_mx1 -scalemxAl mul1mx linearZ /= gring_projE // eqxx scalemx1.
+rewrite big1 ?addr0 ?mxE /= => [ | y]; last first.
+  case/andP=> Gy nt_y; rewrite -scalemxAl linearZ -repr_mxM //=.
+  by rewrite gring_projE ?groupM // eq_sym eq_mulgV1 mulgK (negPf nt_y) linear0.
+rewrite (bigD1 x) //= linearZ /= gring_projE // eqxx scalemx1.
+rewrite big1 ?addr0 ?mxE // => y; case/andP=> Gy ne_yx.
+by rewrite linearZ /= gring_projE // eq_sym (negPf ne_yx) linear0.
+Qed.
+
+Lemma principal_comp_subproof : mxsimple aG (rfix_mx aG G).
+Proof.
+apply: linear_mxsimple; first exact: rfix_mx_module.
+apply/eqP; rewrite rfix_regular eqn_leq rank_leq_row lt0n mxrank_eq0.
+apply/eqP; move/(congr1 (gring_proj 1 \o gring_mx aG)); apply/eqP.
+rewrite /= -[gring_mx _ _]/(gring_op _ _) !linear0 !linear_sum (bigD1 1%g) //=.
+rewrite gring_opG // gring_projE // eqxx big1 ?addr0 ?oner_eq0 // => x.
+by case/andP=> Gx nt_x; rewrite gring_opG // gring_projE // eq_sym (negPf nt_x).
+Qed.
+
+Definition principal_comp :=
+  locked (PackSocle (component_socle sG principal_comp_subproof)).
+Local Notation "1" := principal_comp : irrType_scope.
+
+Lemma irr1_rfix : (1%irr :=: rfix_mx aG G)%MS.
+Proof.
+unlock principal_comp; rewrite PackSocleK; apply/eqmxP.
+rewrite (component_mx_id principal_comp_subproof) andbT.
+have [I [W isoW ->]] := component_mx_def principal_comp_subproof.
+apply/sumsmx_subP=> i _; have [f _ hom_f <-]:= isoW i.
+by apply/rfix_mxP=> x Gx; rewrite -(hom_mxP hom_f) // (rfix_mxP G _).
+Qed.
+
+Lemma rank_irr1 : \rank 1%irr = 1%N.
+Proof.
+apply/eqP; rewrite eqn_leq lt0n mxrank_eq0 nz_socle andbT.
+by rewrite irr1_rfix rfix_regular rank_leq_row.
+Qed.
+
+Lemma degree_irr1 : n_ 1 = 1%N.
+Proof.
+apply/eqP; rewrite eqn_leq irr_degree_gt0 -rank_irr1.
+by rewrite mxrankS ?component_mx_id //; exact: socle_simple.
+Qed.
 
 Definition Wedderburn_subring (i : sG) := <<i *m R_G>>%MS.
 
@@ -4713,69 +4865,18 @@ move=> i j A B ne_ij RiA RjB; apply: memmx0.
 by rewrite -(Wedderburn_annihilate ne_ij) mem_mulsmx.
 Qed.
 
-Lemma rfix_regular : (rfix_mx aG G :=: gring_row (gset_mx G))%MS.
-Proof.
-apply/eqmxP; apply/andP; split; last first.
-  apply/rfix_mxP => x Gx; rewrite -gring_row_mul; congr gring_row.
-  rewrite {2}/gset_mx (reindex_astabs 'R x) ?astabsR //= mulmx_suml.
-  by apply: eq_bigr => y Gy; rewrite repr_mxM.
-apply/rV_subP=> v; move/rfix_mxP=> cGv.
-have: (gring_mx aG v \in R_G)%MS by rewrite vec_mxK submxMl.
-case/envelop_mxP=> a def_v.
-suffices ->: v = a 1%g *m: gring_row (gset_mx G) by rewrite scalemx_sub.
-rewrite -linearZ linear_sum -[v]gring_mxK def_v; congr (gring_row _).
-apply: eq_bigr => x Gx; congr (_ *m: _).
-move/rowP: (congr1 (gring_proj x \o gring_mx aG) (cGv x Gx)); move/(_ 0).
-rewrite /= gring_mxJ // def_v mulmx_suml !linear_sum (bigD1 1%g) //=.
-rewrite repr_mx1 -scalemxAl mul1mx linearZ /= gring_projE // eqxx scalemx1.
-rewrite big1 ?addr0 ?mxE /= => [ | y]; last first.
-  case/andP=> Gy nt_y; rewrite -scalemxAl linearZ -repr_mxM //=.
-  by rewrite gring_projE ?groupM // eq_sym eq_mulgV1 mulgK (negPf nt_y) linear0.
-rewrite (bigD1 x) //= linearZ /= gring_projE // eqxx scalemx1.
-rewrite big1 ?addr0 ?mxE // => y; case/andP=> Gy ne_yx.
-by rewrite linearZ /= gring_projE // eq_sym (negPf ne_yx) linear0.
-Qed.
-
-Lemma principal_comp_subproof : mxsimple aG (rfix_mx aG G).
-Proof.
-apply: linear_mxsimple; first exact: rfix_mx_module.
-apply/eqP; rewrite rfix_regular eqn_leq rank_leq_row lt0n mxrank_eq0.
-apply/eqP; move/(congr1 (gring_proj 1 \o gring_mx aG)); apply/eqP.
-rewrite /= -[gring_mx _ _]/(gring_op _ _) !linear0 !linear_sum (bigD1 1%g) //=.
-rewrite gring_opG // gring_projE // eqxx big1 ?addr0 ?oner_eq0 // => x.
-by case/andP=> Gx nt_x; rewrite gring_opG // gring_projE // eq_sym (negPf nt_x).
-Qed.
-
-Definition principal_comp :=
-  locked (PackSocle (component_socle sG principal_comp_subproof)).
-
-Lemma principal_comp_rfix : (principal_comp :=: rfix_mx aG G)%MS.
-Proof.
-unlock principal_comp; rewrite PackSocleK; apply/eqmxP.
-rewrite (component_mx_id principal_comp_subproof) andbT.
-have [I [W isoW ->]] := component_mx_def principal_comp_subproof.
-apply/sumsmx_subP=> i _; have [f _ hom_f <-]:= isoW i.
-by apply/rfix_mxP=> x Gx; rewrite -(hom_mxP hom_f) // (rfix_mxP G _).
-Qed.
-
-Lemma rank_principal_comp : \rank principal_comp = 1%N.
-Proof.
-apply/eqP; rewrite eqn_leq lt0n mxrank_eq0 nz_socle andbT.
-by rewrite principal_comp_rfix rfix_regular rank_leq_row.
-Qed.
-
 Hypothesis F'G : [char F]^'.-group G.
 
+Lemma irr_mx_sum : (\sum_(i : sG) i = 1%:M)%MS.
+Proof. by apply: reducible_Socle1; exact: mx_Maschke. Qed.
+ 
 Lemma Wedderburn_sum : (\sum_i R_ i :=: R_G)%MS.
-Proof.
-apply: eqmx_trans sums_R _; rewrite reducible_Socle1 ?mul1mx //.
-exact: mx_Maeshke.
-Qed.
+Proof. by apply: eqmx_trans sums_R _; rewrite /Socle irr_mx_sum mul1mx. Qed.
 
-Definition Wedderburn_id_mx i :=
+Definition Wedderburn_id i :=
   vec_mx (mxvec 1%:M *m proj_mx (R_ i) (\sum_(j | j != i) R_ j)%MS).
 
-Local Notation e_ := Wedderburn_id_mx.
+Local Notation e_ := Wedderburn_id.
 
 Lemma Wedderburn_sum_id : \sum_i e_ i = 1%:M.
 Proof.
@@ -4851,7 +4952,7 @@ rewrite row_mul -mem_gring_mx -(gring_rowK R_A) gring_mxA gring_rowK //.
 by rewrite -defE (memmx_subP idlE) // mem_mulsmx ?gring_mxP.
 Qed.
 
-Section RegularComponent.
+Section IrrComponent.
 
 (* The component of the socle of the regular module that is associated to an *)
 (* irreducible representation.                                               *)
@@ -4874,13 +4975,12 @@ rewrite (Wedderburn_mulmx0 ne_iG_j) ?linear0 // genmxE mem_gring_mx.
 by rewrite (row_subP _) // val_submod1 component_mx_id //; exact: socle_simple.
 Qed.
 
-Definition regular_comp :=
-  odflt principal_comp [pick i : sG | gring_op rG (e_ i) != 0].
-Local Notation iG := regular_comp.
+Definition irr_comp := odflt 1%irr [pick i | gring_op rG (e_ i) != 0].
+Local Notation iG := irr_comp.
 
 Hypothesis irrG : mx_irreducible rG.
 
-Lemma rsim_regular_comp : mx_rsim rG (socle_repr iG).
+Lemma rsim_irr_comp : mx_rsim rG (irr_repr iG).
 Proof.
 have [M [modM rsimM]] := rsim_regular_submod irrG F'G.
 have simM: mxsimple aG M.
@@ -4907,11 +5007,11 @@ rewrite -gring_opG // repr_mx1 -Wedderburn_sum_id linear_sum big1 // => j _.
 by move/eqP: (G0 j).
 Qed.
 
-Lemma regular_comp'_op0 : forall j A,
+Lemma irr_comp'_op0 : forall j A,
   j != iG -> (A \in R_ j)%MS -> gring_op rG A = 0.
-Proof. move=> j A; rewrite eq_sym; exact: not_rsim_op0 rsim_regular_comp. Qed.
+Proof. move=> j A; rewrite eq_sym; exact: not_rsim_op0 rsim_irr_comp. Qed.
 
-Lemma regular_comp_envelop : (R_ iG *m lin_mx (gring_op rG) :=: E_G)%MS.
+Lemma irr_comp_envelop : (R_ iG *m lin_mx (gring_op rG) :=: E_G)%MS.
 Proof.
 apply/eqmxP; apply/andP; split; apply/row_subP=> i.
   by rewrite row_mul mul_rV_lin gring_mxP.
@@ -4919,10 +5019,10 @@ rewrite rowK /= -gring_opG ?enum_valP // -mul_vec_lin -gring_opG ?enum_valP //.
 rewrite vec_mxK /= -mulmxA mulmx_sub {i}//= -(eqmxMr _ Wedderburn_sum).
 rewrite (bigD1 iG) //= addsmxMr addsmxC [_ *m _](sub_kermxP _) ?adds0mx //=.
 apply/sumsmx_subP => j ne_j_iG; apply/memmx_subP=> A RjA; apply/sub_kermxP.
-by rewrite mul_vec_lin /= (regular_comp'_op0 ne_j_iG RjA) linear0.
+by rewrite mul_vec_lin /= (irr_comp'_op0 ne_j_iG RjA) linear0.
 Qed.
 
-Lemma ker_regular_comp_op : (R_ iG :&: kermx (lin_mx (gring_op rG)))%MS = 0.
+Lemma ker_irr_comp_op : (R_ iG :&: kermx (lin_mx (gring_op rG)))%MS = 0.
 Proof.
 apply/eqP; rewrite -submx0; apply/memmx_subP=> A.
 rewrite sub_capmx /= submx0 mxvec_eq0; case/andP=> R_A.
@@ -4935,7 +5035,7 @@ case/sub_sumsmxP=> e ->; rewrite linear_sum mulmx_suml summx_sub // => j _.
 rewrite -(in_submodK (submxMl _ (M j))); move: (in_submod _ _) => v.
 have modMj: mxmodule aG (M j) by apply: mx_iso_module (isoM j) _; case: simMi.
 have rsimMj: mx_rsim rG (submod_repr modMj).
-  by apply: mx_rsim_trans rsim_regular_comp _; exact/mx_rsim_iso.
+  by apply: mx_rsim_trans rsim_irr_comp _; exact/mx_rsim_iso.
 have [f [f' _ hom_f]] := mx_rsim_def (mx_rsim_sym rsimMj); rewrite submx0.
 have <-: (gring_mx aG (val_submod (v *m (f *m gring_op rG A *m f')))) = 0.
   by rewrite (eqP opA0) !(mul0mx, linear0).
@@ -4949,20 +5049,20 @@ Lemma regular_op_inj :
   {in [pred A | A \in R_ iG]%MS &, injective (gring_op rG)}.
 Proof.
 move=> A B RnA RnB /= eqAB; apply/eqP; rewrite -subr_eq0 -mxvec_eq0 -submx0.
-rewrite -ker_regular_comp_op sub_capmx (sameP sub_kermxP eqP) mul_vec_lin.
+rewrite -ker_irr_comp_op sub_capmx (sameP sub_kermxP eqP) mul_vec_lin.
 by rewrite 2!linear_sub /= eqAB subrr linear0 addmx_sub ?eqmx_opp /=.
 Qed.
 
-Lemma rank_regular_comp : \rank (R_ iG) = \rank E_G. 
+Lemma rank_irr_comp : \rank (R_ iG) = \rank E_G. 
 Proof.
-symmetry; rewrite -{1}regular_comp_envelop; apply/mxrank_injP.
-by rewrite ker_regular_comp_op.
+symmetry; rewrite -{1}irr_comp_envelop; apply/mxrank_injP.
+by rewrite ker_irr_comp_op.
 Qed.
 
-End RegularComponent.
+End IrrComponent.
 
-Lemma regular_comp_rsim : forall n1 n2 rG1 rG2,
-  @mx_rsim _ G n1 rG1 n2 rG2 -> regular_comp rG1 = regular_comp rG2.
+Lemma irr_comp_rsim : forall n1 n2 rG1 rG2,
+  @mx_rsim _ G n1 rG1 n2 rG2 -> irr_comp rG1 = irr_comp rG2.
 Proof.
 move=> n1 n2 rG1 rG2 [f eq_n12]; rewrite -eq_n12 in rG2 f * => inj_f hom_f.
 congr (odflt _ _); apply: eq_pick => i; rewrite -!mxrank_eq0.
@@ -4974,53 +5074,49 @@ rewrite !(mulmx_suml, linear_sum); apply: eq_bigr => x Gx.
 by rewrite !linearZ -scalemxAl /= !gring_opG ?hom_f.
 Qed.
 
-Lemma regular_comp_refl : forall i, regular_comp (socle_repr i) = i.
+Lemma irr_reprK : forall i, irr_comp (irr_repr i) = i.
 Proof.
 move=> i; apply/eqP; apply/component_mx_isoP; try exact: socle_simple.
-by move/mx_rsim_iso: (rsim_regular_comp (socle_irr i)); exact: mx_iso_sym.
+by move/mx_rsim_iso: (rsim_irr_comp (socle_irr i)); exact: mx_iso_sym.
 Qed.
 
-Lemma regular_comp_id : forall (M : 'M_nG) (modM : mxmodule aG M) (iM : sG),
-  mxsimple aG M -> (M <= iM)%MS -> regular_comp (submod_repr modM) = iM.
+Lemma irr_comp_id : forall (M : 'M_nG) (modM : mxmodule aG M) (iM : sG),
+  mxsimple aG M -> (M <= iM)%MS -> irr_comp (submod_repr modM) = iM.
 Proof.
-move=> M modM iM simM sMiM; rewrite -[iM]regular_comp_refl.
-symmetry; apply: regular_comp_rsim; apply/mx_rsim_iso.
+move=> M modM iM simM sMiM; rewrite -[iM]irr_reprK.
+symmetry; apply: irr_comp_rsim; apply/mx_rsim_iso.
 by apply: component_mx_iso => //; exact: socle_simple.
+Qed.
+
+Lemma irr1_repr : forall x, x \in G -> irr_repr 1 x = 1%:M.
+Proof.
+move=> x Gx; suffices: x \in rker (irr_repr 1) by case/rkerP.
+apply: subsetP x Gx; rewrite rker_submod rfix_mx_rstabC // -irr1_rfix.
+by apply: component_mx_id; exact: socle_simple.
 Qed.
 
 Hypothesis splitG : group_splitting_field G.
 
-Definition Wedderburn_degree (i : sG) := \rank (socle_base i).
-
-Local Notation n_ := Wedderburn_degree.
-
-Lemma Wedderburn_degree_gt0 : forall i, n_ i > 0.
-Proof. by move=> i; rewrite lt0n mxrank_eq0; case: (socle_simple i). Qed.
-
-Lemma degree_principal_comp : n_ principal_comp = 1%N.
-Proof.
-apply/eqP; rewrite eqn_leq Wedderburn_degree_gt0 -rank_principal_comp.
-by rewrite mxrankS ?component_mx_id //; exact: socle_simple.
-Qed.
-
 Lemma rank_Wedderburn_subring : forall i, \rank (R_ i) = (n_ i ^ 2)%N.
 Proof.
-move=> i; apply/eqP; rewrite -{1}[i]regular_comp_refl.
+move=> i; apply/eqP; rewrite -{1}[i]irr_reprK.
 have irrSi := socle_irr i.
-by case/andP: (splitG irrSi) => _; rewrite rank_regular_comp.
+by case/andP: (splitG irrSi) => _; rewrite rank_irr_comp.
 Qed.
 
-Lemma sum_Wedderburn_degree : (\sum_i n_ i ^ 2 = nG)%N.
+Lemma sum_irr_degree : (\sum_i n_ i ^ 2 = nG)%N.
 Proof.
 apply: etrans (eqnP gring_free).
 rewrite -Wedderburn_sum (mxdirectP Wedderburn_direct) /=.
 by apply: eq_bigr => i _; rewrite rank_Wedderburn_subring.
 Qed.
 
-Lemma Wedderburn_degree_abelian : abelian G -> forall i, n_ i = 1%N.
+Definition linear_irr := [set i | n_ i == 1%N].
+
+Lemma irr_degree_abelian : abelian G -> forall i, n_ i = 1%N.
 Proof. by move=> cGG i; exact: mxsimple_abelian_linear (socle_simple i). Qed.
 
-Lemma linear_Wedderburn_comp : forall i, n_ i = 1%N -> (i :=: socle_base i)%MS.
+Lemma linear_irr_comp : forall i, n_ i = 1%N -> (i :=: socle_base i)%MS.
 Proof.
 move=> i ni1; apply/eqmxP; rewrite andbC -mxrank_leqif_eq -/(n_ i).
   by rewrite -(mxrankMfree _ gring_free) -genmxE rank_Wedderburn_subring ni1.
@@ -5039,13 +5135,13 @@ apply/eqmxP; rewrite andbC -(geq_leqif (mxrank_leqif_eq Ze)).
 have ->: \rank (mxvec (e_ i)) = (0 + 1)%N.
   by apply/eqP; rewrite eqn_leq rank_leq_row lt0n mxrank_eq0 mxvec_eq0.
 rewrite -(mxrank_mul_ker _ (lin_mx (gring_op rG))) addnC leq_add //.
-  rewrite leqn0 mxrank_eq0 -submx0 -(ker_regular_comp_op irrG) capmxS //.
-  by rewrite regular_comp_refl capmxSl.
+  rewrite leqn0 mxrank_eq0 -submx0 -(ker_irr_comp_op irrG) capmxS //.
+  by rewrite irr_reprK capmxSl.
 apply: leq_trans (mxrankS _) (rank_leq_row (mxvec 1%:M)).
 apply/memmx_subP=> Ar; case/submxP=> a ->{Ar}.
 rewrite mulmxA mul_rV_lin /=; set A := vec_mx _.
 rewrite memmx1 (mx_abs_irr_cent_scalar absG) // -memmx_cent_envelop.
-apply/cent_mxP=> Br; rewrite -(regular_comp_envelop irrG) regular_comp_refl.
+apply/cent_mxP=> Br; rewrite -(irr_comp_envelop irrG) irr_reprK.
 case/submxP=> b; move/(canRL mxvecK)=> ->{Br}; rewrite mulmxA mx_rV_lin /=.
 set B := vec_mx _; have RiB: (B \in R_ i)%MS by rewrite vec_mxK submxMl.
 have sRiR: (R_ i <= R_G)%MS by rewrite -Wedderburn_sum (sumsmx_sup i).
@@ -5065,7 +5161,7 @@ apply/row_subP=> i; rewrite rowK -Wedderburn_subring_center.
 by rewrite (sumsmx_sup (enum_val i)).
 Qed.
 
-Lemma Wedderburn_card : #|sG| = tG.
+Lemma card_irr : #|sG| = tG.
 Proof.
 rewrite -(eqnP classg_base_free) classg_base_center.
 have:= mxdirect_sums_center Wedderburn_sum Wedderburn_direct Wedderburn_ideal.
@@ -5078,56 +5174,429 @@ rewrite Wedderburn_subring_center eqn_leq rank_leq_row lt0n mxrank_eq0.
 by rewrite andbT mxvec_eq0; case: (Wedderburn_is_id i).
 Qed.
 
+Section CenterMode.
+
+Variable i : sG.
+
+Let i0 := Ordinal (irr_degree_gt0 i).
+
+Definition irr_mode x := irr_repr i x i0 i0.
+
+Lemma irr_mode1 : irr_mode 1 = 1.
+Proof. by rewrite /irr_mode repr_mx1 mxE eqxx. Qed.
+
+Lemma irr_center_scalar : {in 'Z(G), forall x, irr_repr i x = (irr_mode x)%:M}.
+Proof.
+rewrite /irr_mode => x; case/setIP=> Gx cGx.
+suffices [a ->]: exists a, irr_repr i x = a%:M by rewrite mxE eqxx.
+apply/is_scalar_mxP; apply: (mx_abs_irr_cent_scalar (splitG (socle_irr i))).
+by apply/centgmxP=> y Gy; rewrite -!{1}repr_mxM 1?(centP cGx).
+Qed.
+
+Lemma irr_modeM : {in 'Z(G) &, {morph irr_mode : x y / (x * y)%g >-> x * y}}.
+Proof.
+move=> x y Zx Zy; rewrite {1}/irr_mode repr_mxM ?(subsetP (center_sub G)) //.
+by rewrite !irr_center_scalar // -scalar_mxM mxE eqxx.
+Qed.
+
+Lemma irr_modeX : forall n,
+  {in 'Z(G), {morph irr_mode : x / (x ^+ n)%g >-> x ^+ n}}.
+Proof.
+elim=> [|n IHn] x Zx; first exact: irr_mode1.
+by rewrite expgS irr_modeM ?groupX // exprS IHn.
+Qed.
+
+Lemma irr_mode_unit : {in 'Z(G), forall x, GRing.unit (irr_mode x)}.
+Proof.
+move=> x Zx /=; have:= unitr1 F.
+by rewrite -irr_mode1 -(mulVg x) irr_modeM ?groupV // unitr_mul; case/andP=> _.
+Qed.
+
+Lemma irr_mode_neq0 : {in 'Z(G), forall x, irr_mode x != 0}.
+Proof. by move=> x; move/irr_mode_unit; rewrite unitfE. Qed.
+
+Lemma irr_modeV : {in 'Z(G), {morph irr_mode : x / (x^-1)%g >-> x^-1}}.
+Proof.
+move=> x Zx /=; rewrite -[_^-1]mul1r; apply: canRL (mulrK (irr_mode_unit Zx)) _.
+by rewrite -irr_modeM ?groupV // mulVg irr_mode1.
+Qed.
+
+End CenterMode.
+
+Lemma irr1_mode : forall x, x \in G -> irr_mode 1 x = 1.
+Proof. by move=> x Gx; rewrite /irr_mode irr1_repr ?mxE. Qed.
+
 End Regular.
 
-Lemma card_linear_comp : forall (gT : finGroupType) (G : {group gT}),
-    forall (sG : socleType (regular_repr G)),
+Local Notation "[ 1 sG ]" := (principal_comp sG) : irrType_scope.
+
+Section LinearIrr.
+
+Variables (gT : finGroupType) (G : {group gT}).
+
+Lemma card_linear_irr : forall sG : irrType G,
     [char F]^'.-group G -> group_splitting_field G ->
-  #|[set i : sG | Wedderburn_degree i == 1%N]| = #|G : G^`(1)|%g.
+  #|linear_irr sG| = #|G : G^`(1)|%g.
 Proof.
-move=> gT G sG F'G splitG; apply/eqP; set lin := fun i => _ == _.
-apply: socle_exists (regular_repr (G / G^`(1))%G) _ _ => sGq; apply/eqP.
-have [_ nG'G] := andP (der_normal 1 G); rewrite -card_quotient //.
+move=> sG F'G splitG; apply/eqP.
+wlog sGq: / irrType (G / G^`(1))%G by exact: socle_exists.
+have [_ nG'G] := andP (der_normal 1 G); apply/eqP; rewrite -card_quotient //.
 have cGqGq: abelian (G / G^`(1))%g by exact: sub_der1_abelian.
 have F'Gq: [char F]^'.-group (G / G^`(1))%g by exact: morphim_pgroup.
 have splitGq: group_splitting_field (G / G^`(1))%G.
   exact: quotient_splitting_field. 
-rewrite -(sum_Wedderburn_degree sGq) // -sum1dep_card.
+rewrite -(sum_irr_degree sGq) // -sum1_card.
 pose rG (j : sGq) := morphim_repr (socle_repr j) nG'G.
 have irrG: mx_irreducible (rG _).
   by move=> j; apply/morphim_mx_irr; exact: socle_irr.
-rewrite (reindex (fun j => regular_comp sG (rG j))) /= -/lin.
-  apply: eq_big => [j | j _]; last by rewrite Wedderburn_degree_abelian.
-  have [_ lin_j _ _] := rsim_regular_comp sG F'G (irrG j).
-  by rewrite /Wedderburn_degree -lin_j [\rank _]Wedderburn_degree_abelian.
-have sG'k: G^`(1)%g \subset rker (socle_repr (val (_ : {i | lin i}))).
-  by case=> i lin_i; rewrite rker_linear //=; exact/eqP.
-pose h' u := regular_comp sGq (quo_repr (sG'k u) nG'G).
-have irrGq: mx_irreducible (quo_repr (sG'k _) nG'G).
+rewrite (reindex (fun j => irr_comp sG (rG j))) /=.
+  apply: eq_big => [j | j _]; last by rewrite irr_degree_abelian.
+  have [_ lin_j _ _] := rsim_irr_comp sG F'G (irrG j).
+  by rewrite inE -lin_j -irr_degreeE irr_degree_abelian.
+pose sGlin := {i | i \in linear_irr sG}.
+have sG'k: forall i : sGlin, G^`(1)%g \subset rker (irr_repr (val i)).
+  by case=> i /=; rewrite !inE => lin; rewrite rker_linear //=; exact/eqP.
+pose h' u := irr_comp sGq (quo_repr (sG'k u) nG'G).
+have irrGq: forall u, mx_irreducible (quo_repr (sG'k u) nG'G).
   by move=> u; apply/quo_mx_irr; exact: socle_irr.
-exists (fun i => oapp h' (principal_comp sGq) (insub i)) => [j | i] lin_i.
-  rewrite (insubT lin lin_i) /=; symmetry; apply/eqP; apply/socle_rsimP.
-  apply: mx_rsim_trans (rsim_regular_comp sGq F'Gq (irrGq _)).
-  have [g lin_g inj_g hom_g] := rsim_regular_comp sG F'G (irrG j).
-  by exists g => // ?; case/morphimP=> x _ Gx ->; rewrite quo_repr_coset ?hom_g.
-rewrite (insubT lin lin_i) /=; symmetry; apply/eqP; apply/socle_rsimP.
-set u := exist _ _ _; apply: mx_rsim_trans (rsim_regular_comp sG F'G (irrG _)).
-have [g lin_g inj_g hom_g] := rsim_regular_comp sGq F'Gq (irrGq u).
-exists g => // x Gx; have:= hom_g (coset _ x).
-by rewrite mem_morphim ?(subsetP nG'G) // quo_repr_coset // => ->.
+exists (fun i => oapp h' [1 sGq]%irr (insub i)) => [j | i] lin_i.
+  rewrite (insubT (mem _) lin_i) /=; symmetry; apply/eqP; apply/socle_rsimP.
+  apply: mx_rsim_trans (rsim_irr_comp sGq F'Gq (irrGq _)).
+  have [g lin_g inj_g hom_g] := rsim_irr_comp sG F'G (irrG j).
+  exists g => [||G'x]; last 1 [case/morphimP=> x _ Gx ->] || by [].
+  by rewrite quo_repr_coset ?hom_g.
+rewrite (insubT (mem _) lin_i) /=; symmetry; apply/eqP; apply/socle_rsimP.
+set u := exist _ _ _; apply: mx_rsim_trans (rsim_irr_comp sG F'G (irrG _)).
+have [g lin_g inj_g hom_g] := rsim_irr_comp sGq F'Gq (irrGq u).
+exists g => [||x Gx]; last 1 [have:= hom_g (coset _ x)] || by [].
+by rewrite quo_repr_coset; first by apply; rewrite mem_quotient.
 Qed.
+
+Lemma primitive_root_splitting_abelian : forall z : F,
+  #|G|.-primitive_root z -> abelian G -> group_splitting_field G.
+Proof.
+move=> z ozG cGG [|n] rG irrG; first by case/mx_irrP: irrG.
+case: (pickP [pred x \in G | ~~ is_scalar_mx (rG x)]) => [x | scalG].
+  case/andP=> Gx nscal_rGx; have: horner_mx (rG x) ('X^#|G| - 1) == 0.
+    rewrite (ringM_sub (horner_mxRM _)) horner_mx_C horner_mx_Xn.
+    rewrite -repr_mxX ?inE // ((_ ^+ _ =P 1)%g _) ?repr_mx1 ?subrr //.
+    by rewrite -order_dvdn order_dvdG.
+  case/idPn; rewrite -mxrank_eq0 -(prod_factors_of_unity ozG).
+  elim: #|G| => [|i IHi]; first by rewrite big_nil horner_mx_C mxrank1.
+  rewrite big_nat_recr /= (ringM_mul (horner_mxRM _)) mxrankMfree {IHi}//.
+  rewrite row_free_unit (ringM_sub (horner_mxRM _)) horner_mx_X horner_mx_C.
+  rewrite (mx_Schur irrG) ?subr_eq0 //; last first.
+    by apply: contra nscal_rGx; move/eqP->; exact: scalar_mx_is_scalar.
+  rewrite -memmx_cent_envelop linear_sub.
+  rewrite addmx_sub ?eqmx_opp ?scalar_mx_cent //= memmx_cent_envelop.
+  by apply/centgmxP=> j Zh_j; rewrite -!repr_mxM // (centsP cGG).
+pose M := <<delta_mx 0 0 : 'rV[F]_n.+1>>%MS.
+have linM: \rank M = 1%N by rewrite genmxE mxrank_delta.
+have modM: mxmodule rG M.
+  apply/mxmoduleP=> x Gx; move/idPn: (scalG x); rewrite /= Gx negbK.
+  by case/is_scalar_mxP=> ? ->; rewrite scalar_mxC submxMl.
+apply: linear_mx_abs_irr; apply/eqP; rewrite eq_sym -linM.
+by case/mx_irrP: irrG => _; apply; rewrite // -mxrank_eq0 linM.
+Qed.
+
+Lemma cycle_repr_structure : forall x (sG : irrType G),
+    G :=: <[x]> -> [char F]^'.-group G -> group_splitting_field G ->
+  exists2 w : F, #|G|.-primitive_root w &
+  exists iphi : 'I_#|G| -> sG,
+  [/\ bijective iphi,
+      #|sG| = #|G|,
+      forall i, irr_mode (iphi i) x = w ^+ i
+    & forall i, irr_repr (iphi i) x = (w ^+ i)%:M].
+Proof.
+move=> x sX defG; rewrite {defG}(group_inj defG) -/#[x] in sX *.
+move=> F'X splitF; have Xx := cycle_id x; have cXX := cycle_abelian x.
+have card_sX: #|sX| = #[x] by rewrite card_irr // card_classes_abelian.
+have linX := irr_degree_abelian splitF cXX (_ : sX).
+pose r (W : sX) := irr_mode W x.
+have scalX: forall W, irr_repr W x = (r W)%:M.
+  by move=> W; apply: irr_center_scalar; rewrite ?center_abelian_id.
+have inj_r: injective r.
+  move=> V W eqVW; rewrite -(irr_reprK F'X V) -(irr_reprK F'X W).
+  move: (irr_repr V) (irr_repr W) (scalX V) (scalX W).
+  rewrite !linX {}eqVW => rV rW <- rWx; apply: irr_comp_rsim => //.
+  exists 1%:M; rewrite ?row_free_unit ?unitmx1 // => xk; case/cycleP=> k ->{xk}.
+  by rewrite mulmx1 mul1mx !repr_mxX // rWx.
+have rx1: r _ ^+ #[x] = 1.
+  by move=> W; rewrite -irr_modeX ?center_abelian_id // expg_order irr_mode1.
+have: has #[x].-primitive_root (map r (enum sX)).
+  rewrite has_prim_root 1?map_inj_uniq ?enum_uniq //; first 1 last.
+    by rewrite size_map -cardE card_sX.
+  by apply/allP=> rx; case/mapP=> W _ ->{rx}; rewrite unity_rootE rx1.
+case/hasP=> w _ prim_w; exists w => //.
+have iphi'P := prim_rootP prim_w (rx1 _); pose iphi' := sval (iphi'P _).
+have def_r: forall W, r W = w ^+ iphi' W by move=> W; exact: svalP (iphi'P W).
+have inj_iphi': injective iphi'.
+  by move=> i j eq_ij; apply: inj_r; rewrite !def_r eq_ij.
+have iphiP: codom iphi' =i 'I_#[x].
+  by apply/subset_cardP; rewrite ?subset_predT // card_ord card_image.
+pose iphi i := iinv (iphiP i); exists iphi.
+have iphiK: cancel iphi iphi' by move=> i; exact: f_iinv.
+have r_iphi: forall i, r (iphi i) = w ^+ i by move=> i; rewrite def_r iphiK.
+split=> // [|i]; last by rewrite scalX r_iphi.
+by exists iphi' => // W; rewrite /iphi iinv_f.
+Qed.
+
+Lemma splitting_cyclic_primitive_root :
+    cyclic G -> [char F]^'.-group G -> group_splitting_field G ->
+  classically {z : F | #|G|.-primitive_root z}.
+Proof.
+case/cyclicP=> x defG F'G splitF; case=> // IH.
+wlog sG: / irrType G by exact: socle_exists.
+have [w prim_w _] := cycle_repr_structure sG defG F'G splitF.
+by apply: IH; exists w.
+Qed.
+
+End LinearIrr.
+
+Section Extraspecial.
+
+Variables (gT : finGroupType) (S : {group gT}) (p n : nat).
+Hypotheses (pS : p.-group S) (esS : extraspecial S).
+Hypothesis oSpn : #|S| = (p ^ n.*2.+1)%N.
+Hypotheses (splitF : group_splitting_field S) (F'S : [char F]^'.-group S).
+
+Let p_pr := extraspecial_prime pS esS.
+Let p_gt0 := prime_gt0 p_pr.
+Let p_gt1 := prime_gt1 p_pr.
+Let oZp := card_center_extraspecial pS esS.
+
+Let modIp' : forall i : 'I_p.-1, (i.+1 %% p = i.+1)%N.
+Proof. by case=> i; rewrite /= -ltnS prednK //; exact: modn_small. Qed.
+
+(* This is Aschbacher (34.9), parts (1)-(4). *)
+Theorem extraspecial_repr_structure : forall sS : irrType S,
+  [/\ #|linear_irr sS| = (p ^ n.*2)%N,
+      exists iphi : 'I_p.-1 -> sS, let phi i := irr_repr (iphi i) in
+        [/\ injective iphi,
+            codom iphi =i ~: linear_irr sS,
+            forall i, mx_faithful (phi i),
+            forall z, z \in 'Z(S)^# ->
+              exists2 w, primitive_root_of_unity p w
+                       & forall i, phi i z = (w ^+ i.+1)%:M
+          & forall i, irr_degree (iphi i) = (p ^ n)%N]
+    & #|sS| = (p ^ n.*2 + p.-1)%N].            
+Proof.
+move=> sS; have [[defPhiS defS'] prZ] := esS; set linS := linear_irr sS.
+have nb_lin: #|linS| = (p ^ n.*2)%N.
+  rewrite card_linear_irr // -divgS ?der_sub //=.
+  by rewrite oSpn defS' oZp expnS mulKn.
+have nb_irr: #|sS| = (p ^ n.*2 + p.-1)%N.
+  pose Zcl := classes S ::&: 'Z(S).
+  have cardZcl: #|Zcl| = p.
+    transitivity #|[set [set z] | z <- 'Z(S)]|; last first.
+      by rewrite card_imset //; exact: set1_inj.
+    apply: eq_card => zS; apply/setIdP/imsetP=> [[] | [z]].
+      case/imsetP=> z Sz ->{zS} szSZ.
+      have Zz: z \in 'Z(S) by rewrite (subsetP szSZ) ?class_refl.
+      exists z => //; rewrite inE Sz in Zz.
+      apply/eqP; rewrite eq_sym eqEcard sub1set class_refl cards1.
+      by rewrite -index_cent1 (setIidPl _) ?indexgg // sub_cent1.
+    case/setIP=> Sz cSz ->{zS}; rewrite sub1set inE Sz; split=> //.
+    apply/imsetP; exists z; rewrite //.
+    apply/eqP; rewrite eqEcard sub1set class_refl cards1.
+    by rewrite -index_cent1 (setIidPl _) ?indexgg // sub_cent1.
+  move/eqP: (class_formula S); rewrite (bigID (mem Zcl)) /=.
+  rewrite (eq_bigr (fun _ => 1%N)) => [|zS]; last first.
+    case/andP=> _; case/setIdP; case/imsetP=> z Sz ->{zS}.
+    rewrite subsetI; case/andP=> _ cSzS.
+    rewrite (setIidPl _) ?indexgg // sub_cent1 (subsetP cSzS) //.
+    exact: mem_repr (class_refl S z).
+  rewrite sum1dep_card setIdE (setIidPr _) 1?cardsE ?cardZcl; last first.
+    by apply/subsetP=> zS; rewrite 2!inE; case/andP.
+  have pn_gt0: p ^ n.*2 > 0 by rewrite expn_gt0 p_gt0.
+  rewrite card_irr // oSpn expnS -(prednK pn_gt0) mulnS eqn_addl.
+  rewrite (eq_bigr (fun _ => p)) => [|xS]; last first.
+    case/andP=> SxS; rewrite inE SxS; case/imsetP: SxS => x Sx ->{xS} notZxS.
+    have [y Sy ->] := repr_class S x; apply: p_maximal_index => //.
+    apply: cent1_extraspecial_maximal => //; first exact: groupJ.
+    apply: contra notZxS => Zxy; rewrite -{1}(lcoset_id Sy) class_lcoset.
+    rewrite ((_ ^: _ =P [set x ^ y])%g _) ?sub1set // eq_sym eqEcard.
+    rewrite sub1set class_refl cards1 -index_cent1 (setIidPl _) ?indexgg //.
+    by rewrite sub_cent1; apply: subsetP Zxy; exact: subsetIr.
+  rewrite sum_nat_dep_const mulnC eqn_pmul2l //; move/eqP <-.
+  rewrite addSnnS prednK // -cardZcl -[card _](cardsID Zcl) /= addnC.
+  by congr (_ + _)%N; apply: eq_card => t; rewrite !inE andbC // andbAC andbb.
+have fful_nlin: forall i, i \in ~: linS -> mx_faithful (irr_repr i).
+  move=> i; rewrite !inE => nlin_phi.
+  apply/trivgP; apply: (nil_TI_Z (pgroup_nil pS) (rker_normal _)).
+  rewrite setIC; apply: (prime_TIg prZ); rewrite /= -defS' der1_sub_rker //.
+  exact: socle_irr.
+have [i0 nlin_i0]: exists i0, i0 \in ~: linS.
+  by apply/card_gt0P; rewrite cardsCs setCK nb_irr nb_lin addKn -subn1 subn_gt0.
+have [z defZ]: exists z, 'Z(S) = <[z]> by apply/cyclicP; rewrite prime_cyclic.
+have Zz: z \in 'Z(S) by [rewrite defZ cycle_id]; have [Sz cSz] := setIP Zz.
+have ozp: #[z] = p by rewrite -oZp defZ.
+have ntz: z != 1%g by rewrite -order_gt1 ozp.
+pose phi := irr_repr i0; have irr_phi: mx_irreducible phi := socle_irr i0.
+pose w := irr_mode i0 z.
+have phi_z: phi z = w%:M by rewrite /phi irr_center_scalar.
+have phi_ze: forall e, phi (z ^+ e)%g = (w ^+ e)%:M.
+  by move=> e; rewrite /phi irr_center_scalar ?groupX ?irr_modeX.
+have wp1: w ^+ p = 1 by rewrite -irr_modeX // -ozp expg_order irr_mode1.
+have injw: {in 'Z(S) &, injective (irr_mode i0)}.
+  move=> x y Zx Zy /= eq_xy; have [[Sx _] [Sy _]] := (setIP Zx, setIP Zy). 
+  apply: mx_faithful_inj (fful_nlin _ nlin_i0) _ _ Sx Sy _.
+  by rewrite !{1}irr_center_scalar ?eq_xy; first by split.
+have prim_w: forall e, 0 < e < p -> p.-primitive_root (w ^+ e).
+  move=> e; case/andP=> e_gt0 lt_e_p; apply/andP; split=> //.
+  apply/forallP=> [[d ltdp] /=]; apply/eqP; rewrite unity_rootE -exprn_mulr.
+  rewrite -(irr_mode1 i0) -irr_modeX // (inj_in_eq injw) ?groupX ?group1 //.
+  rewrite -order_dvdn ozp euclid // gtnNdvd //=; move: ltdp; rewrite leq_eqVlt.
+  by case: eqP => [-> _ | _ ltd1p]; rewrite (dvdnn, gtnNdvd).
+have [a defAutZ]: exists a, Aut 'Z(S) = <[a]>.
+  by apply/cyclicP; rewrite Aut_prime_cyclic ?ozp.
+have phi_unitP : forall i : 'I_p.-1, GRing.unit (i.+1%:R : 'Z_#[z]).
+  move=> i; rewrite /GRing.unit /= ozp val_Zp_nat ?Zp_cast //.
+  by rewrite prime_coprime // -lt0n !modIp'.
+pose ephi i := invm (injm_Zpm a) (Zp_unitm (Sub _ (phi_unitP i))).
+pose j : 'Z_#[z] := val (invm (injm_Zp_unitm z) a).
+have co_j_p: coprime j p.
+  rewrite coprime_sym /j; case: (invm _ a) => /=.
+  by rewrite ozp /GRing.unit /= Zp_cast.
+have [alpha Aut_alpha alphaZ] := center_aut_extraspecial pS esS co_j_p.
+have alpha_i_z: forall i, ((alpha ^+ ephi i) z = z ^+ i.+1)%g.
+  move=> i; transitivity ((a ^+ ephi i) z)%g.
+    elim: (ephi i : nat) => // e IHe; rewrite !expgS !permM alphaZ //.
+    have Aut_a: a \in Aut 'Z(S) by rewrite defAutZ cycle_id.
+    rewrite -{2}[a](invmK (injm_Zp_unitm z)); last by rewrite im_Zp_unitm -defZ.
+    rewrite /= autE ?cycle_id // -/j /= /cyclem.
+    rewrite -(autmE (groupX _ Aut_a)) -(autmE (groupX _ Aut_alpha)).
+    by rewrite !morphX //= !autmE IHe.
+  rewrite [(a ^+ _)%g](invmK (injm_Zpm a)) /=; last first.
+    by rewrite im_Zpm -defAutZ defZ Aut_aut.
+  by rewrite autE ?cycle_id //= val_Zp_nat ozp ?modIp'.
+have rphiP: forall i, S :==: autm (groupX (ephi i) Aut_alpha) @* S.
+  by move=> i; rewrite im_autm.
+pose rphi i := morphim_repr (eqg_repr phi (rphiP i)) (subxx S).
+have rphi_irr: forall i, mx_irreducible (rphi i).
+  by move=> i; apply/morphim_mx_irr; exact/eqg_mx_irr.
+have rphi_fful: forall i, mx_faithful (rphi i).
+  move=> i; rewrite /mx_faithful rker_morphim rker_eqg.
+  by rewrite (trivgP (fful_nlin _ nlin_i0)) morphpreIdom; exact: injm_autm.
+have rphi_z: forall i, rphi i z = (w ^+ i.+1)%:M.
+  move=> i; rewrite /rphi [phi]lock /= /morphim_mx autmE alpha_i_z -lock.
+  by rewrite phi_ze.
+pose iphi i := irr_comp sS (rphi i); pose phi_ i := irr_repr (iphi i).
+have{phi_ze} phi_ze: forall i e, phi_ i (z ^+ e)%g = (w ^+ (e * i.+1)%N)%:M.
+  move=> i e; rewrite /phi_ !{1}irr_center_scalar ?groupX ?irr_modeX //.
+  suffices ->: irr_mode (iphi i) z = w ^+ i.+1 by rewrite mulnC exprn_mulr.
+  have:= mx_rsim_sym (rsim_irr_comp sS F'S (rphi_irr i)).
+  case/mx_rsim_def=> B [B' _ homB]; rewrite /irr_mode homB // rphi_z.
+  rewrite -{1}scalemx1 -scalemxAr -scalemxAl -{1}(repr_mx1 (rphi i)).
+  by rewrite -homB // repr_mx1 scalemx1 mxE.
+have inj_iphi: injective iphi.
+  move=> i1 i2 eqi12; apply/eqP.
+  move/eqP: (congr1 (fun i => irr_mode i (z ^+ 1)) eqi12).
+  rewrite /irr_mode !{1}[irr_repr _ _]phi_ze !{1}mxE !mul1n.
+  by rewrite (eq_prim_root_expr (prim_w 1%N p_gt1)) !modIp'.
+have deg_phi: forall i, irr_degree (iphi i) = irr_degree i0.
+  by move=> i; case: (rsim_irr_comp sS F'S (rphi_irr i)).
+have im_iphi: codom iphi =i ~: linS.
+  apply/subset_cardP.
+    by rewrite card_image // card_ord cardsCs setCK nb_irr nb_lin addKn.
+  apply/subsetP=> fi; case/imageP=> i _ ->.
+  by rewrite !inE /= (deg_phi i) in nlin_i0 *.
+split=> //; exists iphi; rewrite -/phi_.
+split=> // [i | ze | i].
+- have sim_i := rsim_irr_comp sS F'S (rphi_irr i).
+  by rewrite -(mx_rsim_faithful sim_i) rphi_fful.
+- rewrite {1}defZ 2!inE andbC; case/andP.
+  case/cyclePmin=> e; rewrite ozp => lt_e_p ->{ze}.
+  case: (posnP e) => [-> | e_gt0 _]; first by rewrite eqxx.
+  exists (w ^+ e) => [|i]; first by rewrite prim_w ?e_gt0.
+  by rewrite phi_ze exprn_mulr.
+rewrite deg_phi {i}; set d := irr_degree i0.
+apply/eqP; move/eqP: (sum_irr_degree sS F'S splitF).
+rewrite (bigID (mem linS)) /= -/irr_degree.
+rewrite (eq_bigr (fun _ => 1%N)) => [|i]; last by rewrite !inE; move/eqP->.
+rewrite sum1_card nb_lin.
+rewrite (eq_bigl (codom iphi)) // => [|i]; last by rewrite -in_setC -im_iphi.
+rewrite (eq_bigr (fun _ => d ^ 2))%N => [|fi]; last first.
+  by case/imageP=> i _ ->; rewrite deg_phi.
+rewrite sum_nat_const card_image // card_ord oSpn (expnS p) -{3}[p]prednK //.
+rewrite mulSn eqn_addl eqn_pmul2l; last by rewrite -ltnS prednK.
+by rewrite -muln2 expn_mulr eqn_sqr.
+Qed.
+
+(* This is the corolloray of the above that is actually used in the proof of  *)
+(* B & G, Theorem 2.5. It encapsulates the dependency on a socle of the       *)
+(* regular representation.                                                    *)
+
+Variables (m : nat) (rS : mx_representation S m) (U : 'M[F]_m).
+Hypotheses (simU :  mxsimple rS U) (ffulU : rstab rS U == 1%g).
+Let sZS := center_sub S.
+Let rZ := subg_repr rS sZS.
+
+Lemma faithful_repr_extraspecial :
+ \rank U = (p ^ n)%N /\
+   (forall V, mxsimple rS V -> mx_iso rZ U V -> mx_iso rS U V).
+Proof.
+suffices IH: forall V, mxsimple rS V -> mx_iso rZ U V ->
+  [&& \rank U == (p ^ n)%N & mxsimple_iso rS U V].
+- split=> [|/= V simV isoUV].
+    by case/andP: (IH U simU (mx_iso_refl _ _)); move/eqP.
+  by case/andP: (IH V simV isoUV) => _; move/(mxsimple_isoP simU).
+move=> V simV isoUV; wlog sS: / irrType S by exact: socle_exists.
+have [[_ defS'] prZ] := esS.
+have{prZ} ntZ: 'Z(S) :!=: 1%g by case: eqP prZ => // ->; rewrite cards1.
+have [_ [iphi]] := extraspecial_repr_structure sS.
+set phi := fun i => _ => [] [inj_phi im_phi _ phiZ dim_phi] _.
+have [modU nzU _]:= simU; pose rU := submod_repr modU.
+have nlinU: \rank U != 1%N.
+  apply/eqP; move/(rker_linear rU); apply/negP; rewrite /rker rstab_submod.
+  by rewrite (eqmx_rstab _ (val_submod1 _)) (eqP ffulU) defS' subG1.
+have irrU: mx_irreducible rU by exact/submod_mx_irr.
+have rsimU := rsim_irr_comp sS F'S irrU.
+set iU := irr_comp sS rU in rsimU; have [_ degU _ _]:= rsimU.
+have phiUP: iU \in codom iphi by rewrite im_phi !inE -degU.
+rewrite degU -(f_iinv phiUP) dim_phi eqxx /=; apply/(mxsimple_isoP simU).
+have [modV _ _]:= simV; pose rV := submod_repr modV.
+have irrV: mx_irreducible rV by exact/submod_mx_irr.
+have rsimV := rsim_irr_comp sS F'S irrV.
+set iV := irr_comp sS rV in rsimV; have [_ degV _ _]:= rsimV.
+have phiVP: iV \in codom iphi by rewrite im_phi !inE -degV -(mxrank_iso isoUV).
+pose jU := iinv phiUP; pose jV := iinv phiVP.
+have [z Zz ntz]:= trivgPn _ ntZ.
+have [|w prim_w phi_z] := phiZ z; first by rewrite 2!inE ntz.
+suffices eqjUV: jU == jV.
+  apply/(mx_rsim_iso modU modV); apply: mx_rsim_trans rsimU _.
+  by rewrite -(f_iinv phiUP) -/jU (eqP eqjUV) f_iinv; exact: mx_rsim_sym.
+have rsimUV: mx_rsim (subg_repr (phi jU) sZS) (subg_repr (phi jV) sZS).
+  have [bU _ bUfree bUhom] := mx_rsim_sym rsimU.
+  have [bV _ bVfree bVhom] := rsimV.
+  have modUZ := mxmodule_subg sZS modU; have modVZ := mxmodule_subg sZS modV.
+  case/(mx_rsim_iso modUZ modVZ): isoUV => [bZ degZ bZfree bZhom].
+  rewrite /phi !f_iinv; exists (bU *m bZ *m bV)=> [||x Zx].
+  - by rewrite -degU degZ degV.
+  - by rewrite /row_free !mxrankMfree.
+  have Sx := subsetP sZS x Zx.
+  by rewrite 2!mulmxA bUhom // -(mulmxA bU) bZhom // -4!mulmxA bVhom.
+have{rsimUV} [B [B' _ homB]] := mx_rsim_def rsimUV.
+have:= eqxx (irr_mode (iphi jU) z); rewrite /irr_mode; set i0 := Ordinal _.
+rewrite {2}[_ z]homB // ![_ z]phi_z mxE mulr1n -scalemx1 -scalemxAr -scalemxAl.
+rewrite -(repr_mx1 (subg_repr (phi jV) sZS)) -{B B'}homB // repr_mx1 scalemx1.
+by rewrite mxE (eq_prim_root_expr prim_w) !modIp'.
+Qed.
+
+End Extraspecial.
 
 End GenRepr.
 
 Implicit Arguments mxmoduleP [F gT G n rG m U].
 Implicit Arguments envelop_mxP [F gT G n rG A].
 Implicit Arguments hom_mxP [F gT G n rG m f W].
-Implicit Arguments mx_Maeshke [F gT G n U].
+Implicit Arguments mx_Maschke [F gT G n U].
 Implicit Arguments rfix_mxP [F gT G n rG m W].
 Implicit Arguments cyclic_mxP [F gT G n rG u v].
 Implicit Arguments annihilator_mxP [F gT G n rG u A].
 Implicit Arguments row_hom_mxP [F gT G n rG u v].
 Implicit Arguments mxsimple_isoP [F gT G n rG U V].
+Implicit Arguments socle_exists [F gT G n].
 Implicit Arguments socleP [F gT G n rG sG0 W W'].
 Implicit Arguments centgmxP [F gT G n rG f].
 Implicit Arguments rkerP [F gT G n rG x].
@@ -5139,6 +5608,12 @@ Implicit Arguments val_factmod_inj [F n U m].
 Prenex Implicits val_submod_inj val_factmod_inj.
 
 Notation "'Cl" := (Clifford_action _) : action_scope.
+
+Bind Scope irrType_scope with socle_sort.
+Notation "[ 1 sG ]" := (principal_comp sG) : irrType_scope.
+Arguments Scope irr_degree [_ _ subgroup_scope _ irrType_scope].
+Arguments Scope irr_repr [_ _ subgroup_scope _ irrType_scope group_scope].
+Arguments Scope irr_mode [_ _ subgroup_scope _ irrType_scope group_scope].
 
 (* This is Gorenstein, Lemma 2.6.3. *)
 Lemma rfix_pgroup_char : forall (F : fieldType) (gT : finGroupType),
@@ -5153,10 +5628,10 @@ apply/eqP=> Gregular; have irrG: mx_irreducible rG.
   have: rfix_mx (submod_repr modU) G != 0.
     by apply: IHm => //; apply: leq_trans le_nG_m; rewrite ltn_add2r.
   by rewrite -mxrank_eq0 (rfix_submod modU) // Gregular capmx0 linear0 mxrank0.
-have{m le_nG_m IHm} faithfulG: mx_repr_faithful rG.
+have{m le_nG_m IHm} faithfulG: mx_faithful rG.
   apply/trivgP; apply/eqP; apply/idPn; set C := _ rG => ntC.
   suffices: rfix_mx (kquo_repr rG) (G / _)%g != 0.
-    by rewrite -mxrank_eq0 rfix_quo Gregular mxrank0.
+    by rewrite -mxrank_eq0 rfix_quo // Gregular mxrank0.
   apply: IHm (morphim_pgroup _ _) => //.
   by apply: leq_trans le_nG_m; rewrite ltn_add2l ltn_quotient // rstab_sub.
 have{Gregular} ntG: G :!=: 1%g.
@@ -5623,8 +6098,8 @@ Proof. by move=> irrGf; apply: mxsimple_map; rewrite map_mx1. Qed.
 Lemma rker_map : rker rGf = rker rG.
 Proof. by rewrite /rker -rstab_map map_mx1. Qed.
 
-Lemma map_mx_repr_faithful : mx_repr_faithful rGf = mx_repr_faithful rG.
-Proof. by rewrite /mx_repr_faithful rker_map. Qed.
+Lemma map_mx_faithful : mx_faithful rGf = mx_faithful rG.
+Proof. by rewrite /mx_faithful rker_map. Qed.
 
 Lemma map_mx_abs_irr :
   mx_absolutely_irreducible rGf = mx_absolutely_irreducible rG. 
@@ -6206,12 +6681,13 @@ Proof.
 by move=> m g Gg /= v; apply: (canLR val_genK); rewrite val_genJ ?in_genK.
 Qed.
 
-Lemma gen_rfix_mx : (rfix_mx rGA G :=: in_gen (rfix_mx rG G))%MS.
+Lemma rfix_gen : forall H : {set gT},
+  H \subset G -> (rfix_mx rGA H :=: in_gen (rfix_mx rG H))%MS.
 Proof.
-apply/eqmxP; apply/andP; split; last first.
-  by apply/rfix_mxP=> g Gg; rewrite -in_genJ // (rfix_mxP G _).
-rewrite -[rfix_mx rGA G]val_genK; apply: submx_in_gen.
-by apply/rfix_mxP=> g Gg; rewrite -val_genJ ?(rfix_mxP G _).
+move=> H; move/subsetP=> sHG; apply/eqmxP; apply/andP; split; last first.
+  by apply/rfix_mxP=> g Hg; rewrite -in_genJ ?sHG ?rfix_mx_id.
+rewrite -[rfix_mx rGA H]val_genK; apply: submx_in_gen.
+by apply/rfix_mxP=> g Hg; rewrite -val_genJ ?rfix_mx_id ?sHG.
 Qed.
 
 Definition rowval_gen m1 U :=
@@ -6293,8 +6769,8 @@ apply/row_matrixP=> i; apply: (can_inj val_genK).
 by rewrite rowE val_genJ //= g1 mulmx1 row1.
 Qed.
 
-Lemma gen_mx_faithful : mx_repr_faithful rGA = mx_repr_faithful rG.
-Proof. by rewrite /mx_repr_faithful rker_gen. Qed.
+Lemma gen_mx_faithful : mx_faithful rGA = mx_faithful rG.
+Proof. by rewrite /mx_faithful rker_gen. Qed.
 
 End GenField.
 
@@ -6771,7 +7247,7 @@ Variable (rG : mx_representation F G n).
 Lemma GL_mx_repr : mx_repr 'GL_n[F] GLval. Proof. by []. Qed.
 Canonical Structure GLrepr := MxRepresentation GL_mx_repr.
 
-Lemma GLrepr_faithful : mx_repr_faithful GLrepr.
+Lemma GLmx_faithful : mx_faithful GLrepr.
 Proof. by apply/subsetP=> A; rewrite !inE mul1mx. Qed.
 
 Definition reprGLm x : {'GL_n[F]} := insubd (1%g : {'GL_n[F]}) (rG x).
@@ -6845,21 +7321,23 @@ Lemma astab_setT_repr : 'C(setT | 'MR rG) = rker rG.
 Proof. by rewrite -rowg1 astab_rowg_repr. Qed.
 
 Lemma mx_repr_action_faithful :
-  [faithful G, on setT | 'MR rG] = mx_repr_faithful rG.
+  [faithful G, on setT | 'MR rG] = mx_faithful rG.
 Proof.
 rewrite /faithful astab_setT_repr (setIidPr _) //.
 by apply/subsetP=> x; case/setIdP.
 Qed.
 
-Lemma afix_repr : 'Fix_('MR rG)(G) = rowg (rfix_mx rG G).
+Lemma afix_repr : forall H : {set gT},
+  H \subset G -> 'Fix_('MR rG)(H) = rowg (rfix_mx rG H).
 Proof.
-apply/setP=> /= u; rewrite !inE.
+move=> H; move/subsetP=> sHG; apply/setP=> /= u; rewrite !inE.
 apply/subsetP/rfix_mxP=> cHu x Hx;
-  by move/(_ x Hx): cHu; rewrite !inE /=; move/eqP; rewrite mx_repr_actE.
+  by move/(_ x Hx): cHu; rewrite !inE /=; move/eqP; rewrite mx_repr_actE ?sHG.
 Qed.
 
-Lemma gacent_repr : 'C_(| 'MR rG)(G) = rowg (rfix_mx rG G).
-Proof. by rewrite gacentE // setTI afix_repr. Qed.
+Lemma gacent_repr : forall H : {set gT},
+  H \subset G -> 'C_(| 'MR rG)(H) = rowg (rfix_mx rG H).
+Proof. by move=> H sHG; rewrite gacentE // setTI afix_repr. Qed.
 
 End FiniteRepr.
 
@@ -7143,22 +7621,23 @@ apply: contra ntL; rewrite rowg_mx_eq0 !(sameP eqP trivgP).
 by rewrite sub_abelem_rV_im // morphim1.
 Qed.
 
-Lemma rfix_abelem : (rfix_mx rG G :=: rowg_mx (ErV @* 'C_E(G)%g))%MS.
+Lemma rfix_abelem : forall H : {set gT},
+  H \subset G -> (rfix_mx rG H :=: rowg_mx (ErV @* 'C_E(H)%g))%MS.
 Proof.
-apply/eqmxP; apply/andP; split.
+move=> H; move/subsetP=> sHG; apply/eqmxP; apply/andP; split.
   rewrite -rowgS rowg_mxK -sub_rVabelem_im // subsetI sub_rVabelem /=.
   apply/centsP=> y; case/morphimP=> v _; rewrite inE => cGv ->{y} x Gx.
-  by apply/commgP; apply/conjg_fixP; rewrite /= -rVabelemJ // (rfix_mxP G _).
-rewrite genmxE; apply/rfix_mxP=> x Gx.
+  by apply/commgP; apply/conjg_fixP; rewrite /= -rVabelemJ ?sHG ?(rfix_mxP H _).
+rewrite genmxE; apply/rfix_mxP=> x Hx.
 apply/row_matrixP=> i; rewrite row_mul rowK.
-case/morphimP: (enum_valP i) => z Ez; case/setIP=> _ cGz ->.
-by rewrite -abelem_rV_J // conjgE (centP cGz) ?mulKg.
+case/morphimP: (enum_valP i) => z Ez; case/setIP=> _ cHz ->.
+by rewrite -abelem_rV_J ?sHG // conjgE (centP cHz) ?mulKg.
 Qed.
 
 Lemma rker_abelem : rker rG = 'C_G(E).
 Proof. by rewrite /rker rstab_abelem rowg1 im_rVabelem. Qed.
 
-Lemma abelem_repr_faithful : 'C_G(E) = 1%g -> mx_repr_faithful rG.
-Proof. by rewrite /mx_repr_faithful rker_abelem => ->. Qed.
+Lemma abelem_mx_faithful : 'C_G(E) = 1%g -> mx_faithful rG.
+Proof. by rewrite /mx_faithful rker_abelem => ->. Qed.
   
 End AbelemRepr.
