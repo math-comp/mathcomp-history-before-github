@@ -629,7 +629,7 @@ have: @cyclic gT setT.
 case/cyclicP=> x gen_x; apply/hasP; exists (r x); first exact: (valP x).
 have [m prim_x dvdmn] := prim_order_exists n_gt0 (rn1 x).
 rewrite -((m =P n) _) // eqn_dvd {}dvdmn -sz_rs -(card_seq_sub Urs) -cardsT.
-rewrite gen_x (@order_dvdn gT) -val_eqE /= -{prim_x}(prim_expr_order prim_x).
+rewrite gen_x (@order_dvdn gT) /(_ == _) /= -{prim_x}(prim_expr_order prim_x).
 by apply/eqP; elim: m => //= m IHm; rewrite exprS expgS /= -IHm.
 Qed.
 
