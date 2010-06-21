@@ -7,6 +7,11 @@ Require Import BGsection6 BGsection7 BGsection8 BGsection9.
 
 (******************************************************************************)
 (*   This file covers B & G, section 10                                       *)
+(*                                                                            *)
+(*   \alpha(G) ==                                                             *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
 (******************************************************************************)
 
 Set Implicit Arguments.
@@ -30,7 +35,7 @@ Implicit Type p : nat.
 
 Local Notation G := (TheMinSimpleOddGroup gT).
 Local Notation ideal := (fun p =>
-  (existsb P, p.-Sylow(G) P && ('E_p^2(P) :&: 'E*_p(P) == set0))).
+  (existsb P : {group _}, p.-Sylow(G) P && ~~ p.-narrow P)).
 
 Implicit Type M : {set gT}.
 
@@ -79,6 +84,43 @@ Notation "\sigma ( M )" := (sigma M) : group_scope.
 Notation "M `_ \sigma" := (sigma_core M) : group_scope.
 Notation "M `_ \sigma" := (sigma_core_group M) : subgroup_scope.
 
+Section CoreTheory.
+
+Variable gT : minSimpleOddGroupType.
+Variables G H : {group gT}.
+
+Lemma sigma_core_char : G`_\sigma \char G.
+Proof. exact: bgFunc_char. Qed.
+
+Lemma sigma_core_pgroup : \sigma(G).-group G`_\sigma.
+Proof. exact: pcore_pgroup. Qed.
+
+Lemma sigma_core_sub : G`_\sigma \subset G.
+Proof. exact: pcore_sub. Qed.
+
+Lemma sigma_core_max : \sigma(G).-group H -> H <| G -> H \subset G`_\sigma.
+Proof. exact: pcore_max. Qed.
+
+Lemma sigma_core_normal : G`_\sigma <| G.
+Proof. exact: pcore_normal. Qed. 
+
+Lemma alpha_core_char : G`_\alpha \char G.
+Proof. exact: bgFunc_char. Qed.
+
+Lemma alpha_core_pgroup : \alpha(G).-group G`_\alpha.
+Proof. exact: pcore_pgroup. Qed.
+
+Lemma alpha_core_sub : G`_\alpha \subset G.
+Proof. exact: pcore_sub. Qed.
+
+Lemma alpha_core_max : \alpha(G).-group H -> H <| G -> H \subset G`_\alpha.
+Proof. exact: pcore_max. Qed.
+
+Lemma alpha_core_normal : G`_\alpha <| G.
+Proof. exact: pcore_normal. Qed. 
+
+End CoreTheory.
+
 Section Ten.
 
 Variable gT : minSimpleOddGroupType.
@@ -86,7 +128,7 @@ Implicit Type p : nat.
 
 Local Notation G := (TheMinSimpleOddGroup gT).
 Local Notation ideal := (fun p =>
-  (existsb P, p.-Sylow(G) P && ('E_p^2(P) :&: 'E*_p(P) == set0))).
+  (existsb P : {group _}, p.-Sylow(G) P && ~~ p.-narrow P)).
 
 Implicit Type M : {group gT}.
 
@@ -142,15 +184,15 @@ Qed.
 
 Let BG10b_to_a :
     forall p X, p \in \sigma(M) -> X :!=: 1 -> p.-group X ->
-    [transitive 'C(X), on [set N | N <- orbit 'Js G M, X \subset N] | 'Js] ->
+    [transitive 'C(X), on [set Mg \in M :^: G | X \subset Mg]| 'Js] ->
     X \subset M -> forall g, X :^g \subset M -> 
   exists c, exists m, [/\ c \in 'C(X),  m \in M & g = c * m].
 Proof.
 move=> p X p_Sig ntX pX actT sXM g sXgM.
-have sMg'XX : (M :^ g^-1) \in [set N | N <- orbit 'Js G M, X \subset N].
-  by apply: mem_imset; rewrite inE -sub_conjg sXgM mem_orbit ?in_group ?in_setT.
-have sMXX : M :^ 1 \in [set N | N <- orbit 'Js G M, X \subset N].
-  by apply: mem_imset; rewrite inE {2}conjsg1 sXM mem_orbit ?in_group ?in_setT.
+have sMg'XX : (M :^ g^-1) \in [set Mg \in M :^: G | X \subset Mg].
+  by rewrite inE -sub_conjg sXgM mem_orbit ?in_group ?in_setT.
+have sMXX : M :^ 1 \in [set Mg \in M :^: G | X \subset Mg].
+  by rewrite inE {2}conjsg1 sXM mem_orbit ?in_group ?in_setT.
 case: (atransP2 actT sMXX sMg'XX) => /= c cC; rewrite conjsg1 => defM.
 exists c^-1; exists (c * g); rewrite in_group cC; gsimpl; split => //.
 by rewrite -(norm_mmax M_max) inE conjsgM -defM -conjsgM mulVg conjsg1. 
@@ -179,9 +221,9 @@ Qed.
 
 Theorem BG10b :
     forall p X, p \in \sigma(M) -> X :!=: 1 -> p.-group X ->
-    [transitive 'C(X), on [set N | N <- orbit 'Js G M, X \subset N] | 'Js].
+    [transitive 'C(X), on [set Mg \in M :^: G | X \subset Mg]| 'Js].
 Proof.
-move=> p X p_Sig ntX pX; set OO := [set N | N <- _].
+move=> p X p_Sig ntX pX; set OO := [set Mg \in M :^: G | _].
 Admitted.
 
 Theorem BG10a :
