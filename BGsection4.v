@@ -1921,17 +1921,11 @@ have sG'CR : G^`(1) <*> C \subset R.
   apply: pcore_max; rewrite /normal ?pG'C // mulgen_subG subsetIl der_sub.
   by rewrite norms_mulgen // ?der_norm ?normsI ?normG ?norms_cent.
 have pG' := pgroupS (subset_trans (mulgen_subl _ _) sG'CR) pR.
-rewrite pseries_pop2 //.
 have abGR : abelian (G / R).
   by rewrite sub_der1_abelian // (subset_trans _ sG'CR) // mulgen_subl.
-split => //; first exact: nilpotent_pcore_Hall (pgroup_nil pG').
-(* there must be a lemma for that, I think *)
-apply/pgroupP=> q pr_q; case/Cauchy=> // x; rewrite -cycle_subG !inE /= -/R.
-move => xGO xq; apply: contraL (prime_gt1 pr_q); move/eqP=> defq.
-have px : p.-group <[x]> by rewrite /pgroup -orderE xq defq pnat_id // -defq.
-have nx : <[x]> <| G / R by rewrite /normal xGO cents_norm ?(centsS xGO).
-have := pcore_max px nx; rewrite trivg_pcore_quotient //. 
-by move/subset_leq_card; rewrite cards1 -orderE xq -ltnNge.
+rewrite pseries_pop2 // abGR -(nilpotent_pcoreC p (abelian_nil abGR)).
+rewrite trivg_pcore_quotient dprod1g pcore_pgroup.
+by rewrite (nilpotent_pcore_Hall p^') ?(pgroup_nil pG'); split.
 Qed.
 
 (* This is B & G, Theorem 4.18(b) *)
