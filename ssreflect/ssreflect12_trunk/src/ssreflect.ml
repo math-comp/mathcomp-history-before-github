@@ -1963,7 +1963,7 @@ let interp_index ist gl idx =
   | ArgVar (loc, id) ->
     let i = try match List.assoc id ist.lfun with
     | VInteger i -> i
-    | VConstr c ->
+    | VConstr ([],c) ->
       let rc = Detyping.detype false [] [] c in
       begin match Notation.uninterp_prim_token rc with
       | _, Numeral bigi -> int_of_string (Bigint.to_string bigi)
@@ -3092,7 +3092,8 @@ let pf_with_view ist gl view cl c = match view with
     let rid, ist' = match kind_of_term c with
     | Var id -> mkRVar id, ist
     | _ ->
-      mkRltacVar top_id, {ist with lfun = (top_id, VConstr c) :: ist.lfun} in
+      mkRltacVar top_id,
+      {ist with lfun = (top_id, VConstr ([],c)) :: ist.lfun} in
     let c' = interp_view ist' gl f rid in
     pf_abs_prod gl c' (prod_applist cl [c]), c'
   | _ -> cl, c
@@ -3534,7 +3535,7 @@ let pattern_id = mk_internal_id "pattern value"
 let congrtac (ctx, (n, t)) gl =
   let ist = get_ltacctx ctx in
   let _, f = pf_abs_evars gl (interp_term ist gl t) in
-  let ist' = {ist with lfun = [pattern_id, VConstr f]} in
+  let ist' = {ist with lfun = [pattern_id, VConstr ([],f)]} in
   let rf = mkRltacVar pattern_id in
   let m = pf_nbargs gl f in
   let cf = if n > 0 then
