@@ -7,6 +7,13 @@ Require Import BGsection4.
 
 (******************************************************************************)
 (*   This file covers B & G section 5.                                        *)
+(* Theorem 5.5(c) is not proved since it is unused, and 5.3(a,b,c) are        *)
+(* covered by 5.2. Only points (a) and (c) of 5.5 are used and thus proved.   *)
+(*                                                                            *)
+(*   p.-narrow G == G has an elementary abelian subgroup of rank 2 that can't *)
+(*                  be extended (non standard definition, corresponds to      *)
+(*                  \pi* of FT p 845)                                         *)
+(*               := 'E_p^2(G) :&: 'E*_p(G) != set0                            *)
 (******************************************************************************)
 
 Set Implicit Arguments.
@@ -15,16 +22,17 @@ Import Prenex Implicits.
 
 Import GroupScope.
 
+Reserved Notation "p .-narrow" (at level 2, format "p .-narrow").
+
 Section Five.
 
 Variable gT : finGroupType. 
 
 Implicit Types G H K E: {group gT}.
 
-Definition narrow p G := exists2 E, E \in 'E_p^2(G) & E \in 'E*_p(G).
+Definition narrow p G :=  'E_p^2(G) :&: 'E*_p(G) != set0.
 
-Notation "p .-narrow" := (narrow p)
-  (at level 2, format "p .-narrow") : group_scope.
+Notation "p .-narrow" := (narrow p) : group_scope.
 
 Variables (R : {group gT}) (p : nat).
 Hypotheses (pR : p.-group R) (oddR : odd #|R|) (rR : 2 < 'r(R)).
@@ -151,7 +159,8 @@ Lemma p_rank_3_maxElem_2_Ohm_ucn :
       #| Z | = p, [group of W] \in 'E_p^2(R),
       T \char R & #| R : T | = p ].
 Proof.
-move=> [E e2E meE]; case/pmaxElemP: (meE); case/pElemP=> sER abeE maxE.
+case/set0Pn=> E; case/setIP=> e2E meE.
+case/pmaxElemP: (meE); case/pElemP=> sER abeE maxE.
 case/pnElemP: (e2E) => _ _ clE; have pZ := (pgroupS (center_sub _) pR).
 have cE : #|E| = (p^2)%N.  
   by rewrite -clE -p_part (part_pnat_id (abelem_pgroup abeE)).
@@ -269,7 +278,7 @@ Theorem odd_rank3_narrow :
     forall S : {group gT}, #|S| = p -> S \subset R -> 'r('C_R(S)) <= 2 -> 
   [/\ cyclic 'C_T(S), S :&: R^`(1) = 1, S :&: T = 1 & 'C_R(S) = S \x 'C_T(S)].
 Proof.
-move=> nR; case: (nR) => E e2E meE.
+move=> nR; case/set0Pn: (nR) => E; case/setIP=> e2E meE.
 case/p_rank_3_maxElem_2_Ohm_ucn: nR => nsTifE2 cZ e2W charTR idxT S cS sSR rS.
 have cZS : S \subset 'C(Z) by rewrite (subset_trans sSR) // -defCRZ // subsetIr.
 have nZS : S \subset 'N(Z) by rewrite (subset_trans _ (cent_sub _)).
@@ -348,7 +357,7 @@ Definition CR0R1 p G :=
 
 Lemma narrow_CR0R1 : p.-narrow R -> CR0R1 p R.
 Proof.
-move=> nR; move: (nR) => [E]; case/pnElemP=> sER abeE clE maxE.
+move=> nR; case/set0Pn: (nR) => E; case/setIP; case/pnElemP=> sER abeE clE maxE.
 have [_ cZ _ cTR _] := p_rank_3_maxElem_2_Ohm_ucn nR.
 have cE : #|E| = (p^2)%N.
   by rewrite -clE -p_part (part_pnat_id (abelem_pgroup abeE)).
@@ -408,7 +417,7 @@ have maxSZ : SZ \in 'E*_p(R).
   suff: 'r(H) <= 2 by rewrite (rank_abelem aH) cH pfactorK.
   rewrite (leq_trans _ rCRS) // rankS // subsetI sHR centsC.
   exact: subset_trans (mulgen_subl _ _) (subset_trans sSZH (abelem_abelian aH)).
-by exists SZ.
+by apply/set0Pn; exists SZ; rewrite inE e2SZ maxSZ.
 Qed.
 
 Let rp_cyc1: forall H, p.-group H -> cyclic H -> logn p #|'Ohm_1(H)| <= 1.
@@ -463,21 +472,9 @@ Qed.
 
 End Five.
 
-Section Five5.
+Notation "p .-narrow" := (narrow p) : group_scope.
 
-(* this is used also in 4.18... *)
-Let abelian_pcore_p'group: 
-    forall (gT : finGroupType) (A : {group gT}) (p : nat),  
-  abelian (A / 'O_p(A)) -> (p^').-group (A / 'O_p(A)).
-Proof.
-move=> gT A p aAO. 
-apply/pgroupP=> q pr_q; case/Cauchy=> //= x; rewrite -cycle_subG !inE /=.
-move => xGO xq; apply: contraL (prime_gt1 pr_q); move/eqP=> defq.
-have px : p.-group <[x]> by rewrite /pgroup -orderE xq defq pnat_id // -defq.
-have nx : <[x]> <| A / 'O_p(A) by rewrite /normal xGO cents_norm ?(centsS xGO).
-have := pcore_max px nx; rewrite trivg_pcore_quotient //. 
-by move/subset_leq_card; rewrite cards1 -orderE xq -ltnNge.
-Qed.
+Section Five5.
 
 Variable gT : finGroupType. 
 Variables (R : {group gT}) (p : nat).
@@ -499,8 +496,8 @@ Theorem narrow_solvable_Aut :
 Proof.
 move=> nR.
 have ntR : R :!=: 1.
-  case: eqP nR => // defR [E]; case/pnElemP; rewrite defR; move/trivgP=> -> _.
-  by rewrite cards1 logn1.
+  case: eqP nR => // defR; case/set0Pn=> E; case/setIP; case/pnElemP.
+  by rewrite defR; move/trivgP=> -> _; rewrite cards1 logn1.
 have [p_pr _ [r cR]] := pgroup_pdiv pR ntR.
 have oddp : odd p.
   by case: (even_prime p_pr) oddR => // p2; rewrite cR p2 odd_exp eqn0Ngt.
@@ -519,7 +516,8 @@ case: (leqP 3 'r(R)) => rR; last first.
   have pA' := rank2_odd_sol_Aut_pgroup_der1 pR oddR sAAu solA rR oddA.
   have ds : A^`(1) \subset 'O_p(A) by apply: pcore_max; rewrite // der_normal.
   have aAK : abelian (A / 'O_p(A)) by rewrite sub_der1_abelian.
-  by split=> //; apply: abelian_pcore_p'group.
+  rewrite aAK -(nilpotent_pcoreC p (abelian_nil aAK)) trivg_pcore_quotient. 
+  by rewrite dprod1g pcore_pgroup; split.
 case: (narrow_CR0R1 pR oddR rR nR). 
   by move/eqP;move/set0Pn;move: rR; rewrite (rank_pgroup pR); move/p_rank_geP.
 move=> [R0 [R1 [dpR0R1 sR0R sR1R cR0 cyR1]]]; have pR0 := pgroupS sR0R pR.
@@ -636,8 +634,9 @@ suffices pAb: p.-group Ab.
   have abAO : abelian (A / 'O_p(A)).
     rewrite sub_der1_abelian // pcore_max ?der_normal //.
     by apply: pgroupS _ pAb; rewrite sub_gen // subsetUl.
-  have p'AO : p^'.-group (A / 'O_p(A)) by apply: abelian_pcore_p'group.
-  split=> // _ x xA p'x; rewrite order_dvdn -order_eq1.
+  rewrite abAO -(nilpotent_pcoreC p (abelian_nil abAO)) trivg_pcore_quotient.
+  rewrite dprod1g pcore_pgroup; split=> //_ x xA p'x. 
+  rewrite order_dvdn -order_eq1.
   have xpAb : x^+p.-1 \in Ab. 
     by rewrite mem_gen //= inE orbC /=; apply/orP; left; apply: mem_imset.
   by rewrite -(part_pnat_id (mem_p_elt pAb xpAb)) (part_p'nat (p_eltX _ p'x)).
@@ -735,18 +734,20 @@ Qed.
 
 End Five5. 
 
-Let isog_narrow : forall (gT rT : finGroupType),
+Lemma isog_narrow : forall (gT rT : finGroupType),
     forall (G : {group gT}) (S : {group rT}) p,
-  S \isog G -> narrow p S -> narrow p G.
+  S \isog G -> p.-narrow S -> p.-narrow G.
 Proof.
-move=> gT rT G S p; case/isogP=> f injf defG [E Ep2 Emax].
+move=> gT rT G S p; case/isogP=> f injf defG; case/set0Pn=> E.
+case/setIP=> Ep2 Emax; apply/set0Pn.
 rewrite -(group_inj defG); have sES : E \subset S by case/pnElemP: Ep2.
-by exists (f @* E)%G; rewrite ?(injm_pnElem, injm_pmaxElem).
+by exists (f @* E)%G; rewrite inE ?(injm_pnElem, injm_pmaxElem) // Ep2 Emax.
 Qed.
 
+(* B&G 5.6(a,c) *)
 Theorem odd_narrow_plength1_complement_max_pdiv : 
     forall (gT : finGroupType) (G S : {group gT}) p, 
-    odd #|G| -> narrow p S -> solvable G -> p.-Sylow(G) S -> p.-length_1 G -> 
+    odd #|G| -> p.-narrow S -> solvable G -> p.-Sylow(G) S -> p.-length_1 G -> 
   (forall q, prime q -> q %| #|G / 'O_p^'(G)| -> q <= p) /\
   p^'.-Hall(G^`(1)) 'O_p^'(G^`(1)). 
 Proof.
