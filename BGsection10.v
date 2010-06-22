@@ -104,6 +104,25 @@ Proof. exact: pcore_max. Qed.
 Lemma sigma_core_normal : G`_\sigma <| G.
 Proof. exact: pcore_normal. Qed. 
 
+Lemma sigmaJ : forall x, \sigma(G :^ x) =i \sigma(G).
+Proof.
+move=> x p; apply/exists_inP/exists_inP=> [[P pSyl_P sNG]|[P pSyl_P sNG]].
+  exists (P :^ x^-1)%G; last by rewrite normJ sub_conjg invgK.
+  by rewrite -(conjsg1 G) -(mulgV x) conjsgM pHallJ2.
+by exists (P :^ x)%G; [ by rewrite pHallJ2 | by rewrite normJ conjSg ].
+Qed.
+
+Lemma pcoreJ : forall (gT : finGroupType) (G : {group gT}) x pi,
+  'O_pi(G :^ x) = 'O_pi(G) :^ x.
+Proof.
+move=> rT R x pi; rewrite -{1}(setIid R) -morphim_conj.
+rewrite -(bgFunc_ascont _ (injm_conj R x)) //=.
+by rewrite morphim_conj (setIidPr _) // pcore_sub.
+Qed.
+
+Lemma sigma_coreJ : forall x, (G :^ x)`_\sigma = G`_\sigma :^ x.
+Proof. by move=> x; rewrite /sigma_core -(eq_pcore G (sigmaJ x)) pcoreJ. Qed.
+
 Lemma alpha_core_char : G`_\alpha \char G.
 Proof. exact: bgFunc_char. Qed.
 
@@ -118,6 +137,12 @@ Proof. exact: pcore_max. Qed.
 
 Lemma alpha_core_normal : G`_\alpha <| G.
 Proof. exact: pcore_normal. Qed. 
+
+Lemma alphaJ : forall x, \alpha(G :^ x) =i \alpha(G).
+Proof. by move=> x p; rewrite !inE /= p_rankJ. Qed.
+
+Lemma alpha_coreJ : forall x, (G :^ x)`_\alpha = G`_\alpha :^ x.
+Proof. by move=> x; rewrite /alpha_core -(eq_pcore G (alphaJ x)) pcoreJ. Qed.
 
 End CoreTheory.
 
@@ -223,7 +248,7 @@ Theorem BG10b :
     forall p X, p \in \sigma(M) -> X :!=: 1 -> p.-group X ->
     [transitive 'C(X), on [set Mg \in M :^: G | X \subset Mg]| 'Js].
 Proof.
-move=> p X p_Sig ntX pX; set OO := [set Mg \in M :^: G | _].
+move=> p X p_Sig ntX pX. set OO := [set Mg \in _ :^: _ | _].
 Admitted.
 
 Theorem BG10a :
