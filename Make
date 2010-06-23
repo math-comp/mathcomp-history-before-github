@@ -46,6 +46,7 @@ hall.v
 mxrepresentation.v
 BGsection1.v
 BGsection2.v
+BGsection3.v
 BGsection4.v
 BGappendixAB.v
 BGsection5.v
