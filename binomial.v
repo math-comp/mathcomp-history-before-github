@@ -20,14 +20,14 @@ Import Prenex Implicits.
 
 (** More properties of the factorial **)
 
-Lemma fact_smonotone m n : 0 < m -> m < n -> m`! < n`!.
+Lemma fact_smonotone : forall m n, 0 < m -> m < n -> m`! < n`!.
 Proof.
 case=> // m n _; elim: n m => // n IHn [|m] lt_m_n.
   by rewrite -[_.+1]muln1 leq_mul ?fact_gt0.
 by rewrite ltn_mul ?IHn.
 Qed.
 
-Lemma fact_prod n : n`! = \prod_(1 <= i < n.+1) i.
+Lemma fact_prod : forall n, n`! = \prod_(1 <= i < n.+1) i.
 Proof.
 elim=> [|n Hrec] //; first by rewrite big_nil.
 by apply sym_equal; rewrite factS Hrec // !big_add1 big_nat_recr /= mulnC.

@@ -55,7 +55,7 @@ Definition dcont (F : obmap) : Prop :=
 Lemma cont_of_dcont : forall F, dcont F -> cont F.
 Proof. by move=> F contF gT hT G; exact: contF. Qed.
 
-Lemma hereditary_of_dcont sF : dcont sF -> hereditary sF.
+Lemma hereditary_of_dcont : forall sF, dcont sF -> hereditary sF.
 Proof.
 move=> sF Hcont gT H G sHG; move: (Hcont _ _ G _ (idm_morphism H)) => /=.
 rewrite -morphimIdom -[idm H @* G]morphimIdom !morphim_idm ?subsetIl //.
@@ -511,7 +511,7 @@ Definition csub P := forall gT (G H : {group gT}),
 Definition cquo P := forall gT (G H : {group gT}),
   H <| G -> P _ G -> P _ (G / H)%G.
 
-Lemma cquoisom1 P : cquo P -> cisom P ->
+Lemma cquoisom1 : forall P, cquo P -> cisom P ->
   (forall gT (G:{group gT}), P _ G -> forall hT, P _ (one_group hT)).
 Proof. 
 move=> P qP iP gT G PG hT; have : P (coset_groupType G) 1%G.

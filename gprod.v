@@ -661,7 +661,7 @@ move=> H2; apply/isogP; exists [morphism of restrm (subsetT H2) pair1g].
 by rewrite morphim_restrm morphim_pair1g setIid.
 Qed.
 
-Lemma setX_gen (H1 : {set gT1}) (H2 : {set gT2}):
+Lemma setX_gen : forall (H1 : {set gT1}) (H2 : {set gT2}),
   1 \in H1 -> 1 \in H2 -> <<setX H1 H2>> = setX <<H1>> <<H2>>.
 Proof.
 move=> H1 H2 H1_1 H2_1; apply/eqP.

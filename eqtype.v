@@ -146,7 +146,7 @@ Proof. by move=> T x y; apply/eqP/eqP. Qed.
 
 Hint Resolve eq_refl eq_sym.
 
-Theorem eq_irrelevance (T : eqType) (x y : T) (e1 e2 : x = y) : e1 = e2.
+Theorem eq_irrelevance : forall (T : eqType) (x y : T) (e1 e2 : x = y), e1 = e2.
 Proof.
 move=> T x y; pose proj z e := if x =P z is ReflectT e0 then e0 else e.
 suff: injective (proj y) by rewrite /proj => injp e e'; apply: injp; case: eqP.
