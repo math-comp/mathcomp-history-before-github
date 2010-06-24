@@ -272,17 +272,16 @@ Local Notation G := (TheMinSimpleOddGroup gT).
 Local Notation ideal := (fun p =>
   (existsb P : {group _}, p.-Sylow(G) P && ~~ p.-narrow P)).
 
-Implicit Type M X : {group gT}.
+Implicit Type M N X : {group gT}.
 
 Theorem BG10b :
     forall M p X, M \in 'M -> p \in \sigma(M) -> X :!=: 1 -> p.-group X ->
     let OO := [set Mg \in M :^: G | X \subset Mg] in
   [transitive 'C(X), on OO | 'Js ].
 Proof.
-move=> M p X M_max p_Sig.
-move: {2}_.+1 (ltnSn (#|M| - #|X|)) => m.
-elim: m X => // m IH X sizeX ntX pX; set OO := [set Mg \in _ | _] => /=.
-have [M1 M1_OO] : exists M1: {group _}, gval M1 \in OO.
+move=> M p X M_max p_Sig; move: {2}_.+1 (ltnSn (#|M| - #|X|)) => m.
+elim: m X => // m IH X; rewrite ltnS => sizeX ntX pX; set OO := [set Mg | _].
+have [M1 M1_OO /=] : exists M1: {group _}, gval M1 \in OO.
   have [XX pSyl_XX sXXX] := Sylow_superset (subsetT _) pX.
   move: (p_Sig); case/exists_inP=> P pSyl_P sNPM.
   have pSyl_PG := Sylow_Sylow_sigma M_max p_Sig pSyl_P.
@@ -303,48 +302,27 @@ have [M2 -> M2_OO {M2' M2'_OO}] : exists2 M2, M2' = gval M2 & gval M2 \in OO.
   move: M2'_OO (M2'_OO); rewrite {1}inE; case/andP; case/imsetP=> x ? -> *.
   by exists (M :^ x)%G.
 case: (eqsVneq M1 M2) => [->/=|]; first by exists 1; rewrite ?in_group ?conjsg1.
-move=> neqM1M2; pose L := 'N(X); clear acts_CX.
-
-have [[X1 pSyl_X1 pXX1] [X2 pSyl_X2 pXX2]]: 
-  (exists2 X1 : {group _}, p.-Sylow(M1 :&: L) X1 & X \proper X1) /\
-   exists2 X2 : {group _}, p.-Sylow(M2 :&: L) X2 & X \proper X2.
-- move: (M1_OO); rewrite inE; case/andP; case/imsetP=> x1 _ defM1 sXM1.
-  move: (M2_OO); rewrite inE; case/andP; case/imsetP=> x2 _ defM2 sXM2.
-  pose g := x2 ^-1 * x1.
-  have defM1bis : M1 :=: M2 :^ g.
-    by rewrite defM2 -!conjsgM mulKVg -defM1.
-  have defM2bis : M2 :=: M1 :^ g^-1.
-    by rewrite defM1 -!conjsgM invMg invgK mulKVg defM2. 
-  have sXgM1 : X :^ g \subset M1.
-    by rewrite sub_conjg defM1bis -!conjsgM mulgV conjsg1 sXM2.
-  have p_Sig1 : p \in \sigma(M1) by rewrite defM1 sigmaJ.
-  have [XX pSyl_XX] := Sylow_superset sXM1 pX.
-  rewrite subEproper; case/orP => [|pXXX].
-    move/eqP=> defX1; move: (pSyl_XX); rewrite -defX1.
-    move/(BG10_1d p_Sig1 ntX pX); move/(_ _ sXgM1) => gM1.
-    case/negP: neqM1M2; rewrite -(inj_eq (@conjsg_inj _ g)) -defM1bis.
+move=> neqM1M2; move: (neqM1M2); rewrite eq_sym => neqM2M1; pose L := 'N(X).
+have mk_proper_Syl : forall H K, gval H \in OO -> gval K \in OO -> H :!=: K ->
+  (exists2 X1 : {group _}, p.-Sylow(H :&: L) X1 & X \proper X1).
+- move=> H K; rewrite 2!inE; case/andP; case/imsetP=> x2 _ defH sXH.
+  case/andP; case/imsetP=> x1 _ defK sXK neqHK; pose g := x1 ^-1 * x2.
+  have defH2 : H :=: K :^ g by rewrite defK -!conjsgM mulKVg -defH.
+  have sXgH : X:^g \subset H by rewrite sub_conjg defH2 -!conjsgM mulgV conjsg1.
+  have p_Sig1 : p \in \sigma(H) by rewrite defH sigmaJ.
+  have [XX pSyl_XX] := Sylow_superset sXH pX.
+  rewrite subEproper; case/orP => [defX1|pXXX].
+    rewrite -(eqP defX1) in pSyl_XX. 
+    have gH := BG10_1d p_Sig1 ntX pX pSyl_XX sXgH.
+    case/negP: neqHK; rewrite -(inj_eq (@conjsg_inj _ g)) -defH2.
     by rewrite eqEsubset -sub_conjgV !conj_subG // groupV.
   case/and3P: pSyl_XX => sXXM1 pXX _; have pLXX := pgroupS (subsetIl _ L) pXX.
-  have pXXXL : X \proper XX :&: L. 
-    exact: nilpotent_proper_norm (pgroup_nil pXX) pXXX.
-  have [X1] := Sylow_superset (setSI L sXXM1) pLXX; rewrite /= -/L => pSyl_X1.
-  move/(proper_sub_trans pXXXL) => pXX1; split; first by exists X1.
-- have p_Sig2 : p \in \sigma(M2) by rewrite defM2 sigmaJ.
-  have sXgM2 : X :^ g^-1 \subset M2.
-    by rewrite sub_conjgV -defM1bis sXM1.
-  have [YY pSyl_YY] := Sylow_superset sXM2 pX.
-  rewrite subEproper; case/orP => [|pXYY].
-    move/eqP=> defX2; move: (pSyl_YY); rewrite -defX2.
-    move/(BG10_1d p_Sig2 ntX pX); move/(_ _ sXgM2) => gM2.
-    case/negP: neqM1M2; rewrite -(inj_eq (@conjsg_inj _ g^-1)) -defM2bis.
-    by rewrite eqEsubset -sub_conjgV invgK !conj_subG // -groupV.
-  case/and3P: pSyl_YY=> sYYM1 pYY _; have pLYY := pgroupS (subsetIl _ L) pYY.
-  have pXYYL : X \proper YY :&: L. 
-    exact: nilpotent_proper_norm (pgroup_nil pYY) pXYY.
-  have [X2] := Sylow_superset (setSI L sYYM1) pLYY; rewrite /= -/L => pSyl_X2.
-  by move/(proper_sub_trans pXYYL) => pXX2; exists X2.
-
-rewrite /OO in M2_OO M1_OO; clear OO.
+  have pXXXL := nilpotent_proper_norm (pgroup_nil pXX) pXXX.
+  have [X1 pSyl_X1] := Sylow_superset (setSI L sXXM1) pLXX.
+  by move/(proper_sub_trans pXXXL) => ?; exists X1.
+have [X1 pSyl_X1 pXX1] := mk_proper_Syl M1 M2 M1_OO M2_OO neqM1M2.
+have [X2 pSyl_X2 pXX2] := mk_proper_Syl M2 M1 M2_OO M1_OO neqM2M1.
+rewrite /OO in M2_OO M1_OO => {mk_proper_Syl neqM1M2 neqM2M1 OO acts_CX}.
 wlog [P pSyl_P [sX1P sPM]] : M M_max p_Sig IH sizeX M1_OO M2_OO / 
   exists2 P : {group _}, p.-Sylow(L) P & X1 \subset P /\ P \subset M.
 - have sX1L : X1 \subset L by case/and3P: pSyl_X1; rewrite subsetI; case/andP.
@@ -356,70 +334,53 @@ wlog [P pSyl_P [sX1P sPM]] : M M_max p_Sig IH sizeX M1_OO M2_OO /
   have sPMx : P \subset M :^ x. 
     by rewrite (subset_trans sPPG) // defPG conjSg (pHall_sub pSyl_Px).
   move/(_ (M :^ x)%G); rewrite sigmaJ p_Sig mmaxJ M_max cardJg.
-  have -> : (M :^ x)%G :^: G = M :^: G.
-    apply/setP=> Y; apply/imsetP/imsetP=> [[]|[]] z _ ->.
-      by exists (x * z); rewrite ?(groupM,inE) // conjsgM.
-    by exists (x^-1 * z); rewrite ?(groupM,inE) // -conjsgM mulKVg.
-  by apply => //; exists P.
-
+  have -> : (M :^ x)%G :^: G = M :^: G; last by apply => //; exists P.
+  apply/setP=> Y; apply/imsetP/imsetP=> [[]|[]] z _ ->.
+    by exists (x * z); rewrite ?(groupM, inE, conjsgM).
+  by exists (x^-1 * z); rewrite ?(groupM, inE) // -conjsgM mulKVg.
 have [t tL sX2Pt] : exists2 t, t \in L & X2 \subset P :^ t.
   have sX2L : X2 \subset L by case/and3P: pSyl_X2; rewrite subsetI; case/andP.
   have [Pt pSyl_Pt sX2Pt] := Sylow_superset sX2L (pHall_pgroup pSyl_X2).
   by case: (Sylow_trans pSyl_P pSyl_Pt) sX2Pt => t tL -> *; exists t.
-
-have [c cCX defM] : exists2 c, c \in 'C(X) & M :=: M1 :^ c.
-  have ntX1 : X1 :!=: 1. 
+have sX1M := subset_trans sX1P sPM.
+have ? : #|X| < #|M| by rewrite (proper_card (proper_sub_trans pXX1 sX1M)). 
+have foo : forall N M1 X1, X \proper X1 -> X1 \subset N -> p.-Sylow(M1 :&: L) X1
+  -> gval N \in M :^: G -> gval M1 \in M :^: G -> exists2 c, c \in 'C(X) & N :=: M1 :^ c.
+- move=> N N1 S1 pXS1 sS1M pSyl_S1 NinMG N1inMG.
+  have ntS1 : S1 :!=: 1. 
     apply/trivgPn; case/trivgPn: ntX => x *; exists x => //.
-    by apply: subsetP (proper_sub pXX1) _ _.
-  have cardX1 : #|M| - #|X1| < m.
-    rewrite ltnS in sizeX; rewrite (leq_trans _ sizeX) //.
-    rewrite ltn_sub2l ?(proper_card pXX1) //.
-    by rewrite (proper_card (proper_sub_trans pXX1 (subset_trans sX1P sPM))).
-  have M1_OO1 : gval M1 \in [set Mg \in M :^: G | X1 \subset Mg].
-    case/and3P: pSyl_X1; rewrite subsetI; case/andP => sX1M1 _ _ _.
-    by rewrite inE sX1M1 andbT; rewrite inE in M1_OO; case/andP: M1_OO.
-  have M_OO1 : gval M \in [set Mg \in M :^: G | X1 \subset Mg].
-    rewrite inE (subset_trans sX1P sPM) andbT; apply/imsetP.
-    by exists 1; rewrite ?inE // conjsg1.
-  move/atransP2: (IH X1 cardX1 ntX1 (pHall_pgroup pSyl_X1)).
-  case/(_ M1 M M1_OO1 M_OO1) => /= c cCX1 ->; exists c => //.
-  by apply: subsetP (centS (proper_sub _)) _ cCX1.
-have [d dCX defMbis] : exists2 c, c \in 'C(X) & M :^ t :=: M2 :^ c.
-  have ntX2 : X2 :!=: 1. 
-    apply/trivgPn; case/trivgPn: ntX => x *; exists x => //.
-    by apply: subsetP (proper_sub pXX2) _ _.
-  have cardX2 : #|M| - #|X2| < m.
-    rewrite ltnS in sizeX; rewrite (leq_trans _ sizeX) //.
-    rewrite ltn_sub2l ?(proper_card pXX2) // -(cardJg M t).
-    rewrite (proper_card (proper_sub_trans pXX2 (subset_trans sX2Pt _))) //.
-    by rewrite conjSg.
-  have M1_OO1 : gval M2 \in [set Mg \in M :^: G | X2 \subset Mg].
-    case/and3P: pSyl_X2; rewrite subsetI; case/andP => sX2M2 _ _ _.
-    by rewrite inE sX2M2 andbT; rewrite inE in M2_OO; case/andP: M2_OO.
-  have Mt_OO1 : M :^ t \in [set Mg \in M :^: G | X2 \subset Mg].
-    rewrite inE (subset_trans sX2Pt) // ?conjSg ?sPM ?andbT //; apply/imsetP.
-    by exists t; rewrite ?inE //.
-  move/atransP2: (IH X2 cardX2 ntX2 (pHall_pgroup pSyl_X2)).
-  case/(_ _ _ M1_OO1 Mt_OO1) => /= d dCX1 ->; exists d => //.
-  by apply: subsetP (centS (proper_sub _)) _ dCX1.
-
+    by apply: subsetP (proper_sub pXS1) _ _.
+  have cardS1 : #|M| - #|S1| < m.
+    by rewrite (leq_trans _ sizeX) // ltn_sub2l ?(proper_card pXS1).
+  have N1_OO1 : gval N1 \in [set Mg \in M :^: G | S1 \subset Mg].
+    case/and3P: pSyl_S1; rewrite subsetI; case/andP => sS1N1 _ _ _.
+    by rewrite inE sS1N1 N1inMG. 
+  have N_OO1 : gval N \in [set Mg \in M :^: G | S1 \subset Mg].
+    by rewrite inE sS1M NinMG. 
+  move/atransP2: (IH S1 cardS1 ntS1 (pHall_pgroup pSyl_S1)).
+  case/(_ N1 N N1_OO1 N_OO1) => /= c cCS1 ->; exists c => //.
+  by apply: subsetP (centS (proper_sub _)) _ cCS1.
+have M1in : gval M1 \in M :^: G by move: M1_OO; rewrite inE; case/andP.
+have Min : gval M \in M :^: G by apply/imsetP; exists 1; rewrite ?inE //conjsg1.
+have [c cCX defM   ] := foo M M1 X1 pXX1 sX1M pSyl_X1 Min M1in.
+have M2in : gval M2 \in M :^: G by move: M2_OO; rewrite inE; case/andP.
+have Mtin : gval M :^ t \in M :^: G by apply/imsetP; exists t; rewrite ?inE.
+have sX2Mt : X2 \subset M :^ t by rewrite (subset_trans sX2Pt) // conjSg.
+have [d dCX /= defMbis] := foo (M :^ t)%G M2 X2 pXX2 sX2Mt pSyl_X2 Mtin M2in.
 have pP := pHall_pgroup pSyl_P; have oddL: odd #|L| by exact: mFT_odd.
-have sPL := pHall_sub pSyl_P.
+have sPL := pHall_sub pSyl_P; have pMG := mmax_proper M_max.
 have pLG : L \proper G.
   apply: mFT_norm_proper ntX (sub_mmax_proper M_max _).
   by apply: subset_trans (proper_sub pXX1) (subset_trans sX1P sPM).
 have solL : solvable L := mFT_sol pLG. 
 case: (leqP 3 'r_p(P)) => [rP|].
   have PU : P \in 'U.
-    apply: rank3_Uniqueness; rewrite ?(rank_pgroup (pHall_pgroup pSyl_P)) //.
-    by apply: sub_proper_trans sPM (mmax_proper M_max).
-  have sLM : L \subset M.
-    exact: sub_uniq_mmax (def_uniq_mmax PU M_max sPM) sPL pLG.
+    by rewrite rank3_Uniqueness ?(rank_pgroup pP) // (sub_proper_trans sPM pMG).
+  have sLM : L \subset M := sub_uniq_mmax (def_uniq_mmax PU M_max sPM) sPL pLG.
   have tM : t \in 'N(M) by apply: subsetP (subset_trans sLM (normG _)) _ tL.
   move: defM defMbis; rewrite (normP tM) => ->; move/eqP.
   rewrite -(inj_eq (@conjsg_inj _ d^-1)) -!conjsgM mulgV conjsg1; move/eqP=> <-.
   by exists (c * d^-1) => //; rewrite !in_group.
-
 rewrite -(p_rank_Sylow pSyl_P) /=.
 case/(rank2_pdiv_compl_der_abelian_p'group solL); rewrite //= -/L => _ _ p'PO.
 have defL : L :=: 'N_L(P) * 'O_p^'(L).
@@ -433,7 +394,7 @@ have defL : L :=: 'N_L(P) * 'O_p^'(L).
   apply/eqP; rewrite eqEsubset mul_subG ?subsetIl ?pcore_sub ?andbT //.
   rewrite /L -{1}(Frattini_arg (pseries_normal _ _) pSyl_POpp) /= -/L.
   rewrite (subset_trans (_:_ \subset 'N_L(P) * (P * 'O_p^'(L)))) //.
-  rewrite -normC ?subIset 1?char_norm ?pseries_char // mulgS //.
+    rewrite -normC ?subIset 1?char_norm ?pseries_char // mulgS //.
     have sPNOL : P \subset 'N('O_p^'(L)).
       by rewrite  (subset_trans sPL) ?(char_norm (pcore_char _ _)).
     rewrite normC // -quotientK /pseries //= {1}/pcore_mod /= pcore_mod1 /= -/L.
@@ -446,17 +407,14 @@ have vCX : v \in 'C(X).
   rewrite -(coprime_TIg cop) setIC /= commg_subI // subsetI subxx ?pcore_sub//=.
   by rewrite (subset_trans (normG _)) // char_norm ?pcore_char.
 have ntP : P :!=: 1.
-  apply/trivgPn; case/trivgPn: ntX => x *; exists x => //.
-  by apply: subsetP (subset_trans (proper_sub pXX1) sX1P) _ _.
-have : [transitive 'C(P), on [set Mg \in M :^: G | P \subset Mg] | 'Js].
-  rewrite ltnS in sizeX; apply: IH; rewrite ?(pHall_pgroup pSyl_P) //.
-  rewrite (leq_trans _ sizeX) // ltn_sub2l //.
-    by rewrite proper_card ?(proper_sub_trans pXX1 _) ?(subset_trans sX1P sPM).
-  by rewrite proper_card // (proper_sub_trans pXX1 sX1P).
-move/(BG10b_to_a M_max p_Sig ntP (pHall_pgroup pSyl_P)); move/(_ sPM).
-move/(BG10a_to_c p_Sig ntP (pHall_pgroup pSyl_P) sPM) => defNP.
+  apply/trivgPn; case/trivgPn: ntX => x xX ?; exists x => //.
+  by apply: subsetP (subset_trans (proper_sub pXX1) sX1P) _ xX.
+have transP : [transitive 'C(P), on [set Mg \in M :^: G | P \subset Mg] | 'Js].
+  apply: IH; rewrite ?pP // (leq_trans _ sizeX) // ltn_sub2l //.
+  by rewrite proper_card ?(proper_sub_trans pXX1 _).
 have: u \in 'N(P) by apply: subsetP (subsetIr _ _) _ uNLP.
-rewrite defNP; case/imset2P => w x wNMP xCP defu.
+rewrite (BG10a_to_c p_Sig _ pP _ (BG10b_to_a M_max _ _ pP transP _)) //.
+case/imset2P => w x wNMP xCP defu.
 have xCX : x \in 'C(X). 
   by apply: subsetP (centS _) _ xCP; apply: subset_trans (proper_sub pXX1) sX1P.
 have xwCX : c * x * v * d^-1 \in 'C(X) by rewrite !in_group.
