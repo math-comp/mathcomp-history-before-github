@@ -163,7 +163,7 @@ Require Import finfun bigops prime binomial.
 (*      LmodType R T M  == packs the mixin M to build a Lmodule of type      *)
 (*                         lmodType R. (The underlying type T should have a  *)
 (*                         zmodType canonical structure)                     *)
-(*      a *: x          == the external operation of a Lmodule               *)
+(*      a *: x          == the external scaling operation of an Lmodule      *)
 (*                                                                           *)
 (* The Lemmas about theses structures are all contained in GRing.Theory.     *)
 (* Notations are defined in scope ring_scope (delimiter %R), except term and *)
@@ -604,6 +604,17 @@ Lemma exprn_mulr : forall x m n, x ^+ (m * n) = x ^+ m ^+ n.
 Proof.
 move=> x m n; elim: m => [|m IHm]; first by rewrite exp1rn.
 by rewrite mulSn exprn_addr IHm exprS commr_exp_mull //; exact: commr_exp.
+Qed.
+
+Lemma exprn_mod : forall n x i, x ^+ n = 1 -> x ^+ (i %% n) = x ^+ i.
+Proof.
+move=> n x i xn1; rewrite {2}(divn_eq i n) exprn_addr mulnC exprn_mulr xn1.
+by rewrite exp1rn mul1r.
+Qed.
+
+Lemma exprn_dvd : forall n x i, x ^+ n = 1 -> n %| i -> x ^+ i = 1.
+Proof.
+by move=> n x i xn1 dvd_n_i; rewrite -(exprn_mod i xn1) (eqnP dvd_n_i).
 Qed.
 
 Lemma natr_exp : forall n k, (n ^ k)%:R = n%:R ^+ k :> R.
@@ -2450,7 +2461,7 @@ Definition scale R (M : @Lmodule.type R (Phant R)) : R -> M -> M :=
   Lmodule.scale (Lmodule.class M).
 
 Local Notation "*:%R" := (@scale _ _) : ring_scope.
-Local Notation "a *: m" := (scale a m) (at level 40) : ring_scope.
+Local Notation "a *: m" := (scale a m) : ring_scope.
 
 Section LmoduleTheory.
 
@@ -2750,6 +2761,8 @@ Definition commr_exp_mull := commr_exp_mull.
 Definition commr_sign := commr_sign.
 Definition exprn_mulnl := exprn_mulnl.
 Definition exprn_mulr := exprn_mulr.
+Definition exprn_mod := exprn_mod.
+Definition exprn_dvd := exprn_dvd.
 Definition signr_odd := signr_odd.
 Definition signr_eq0 := signr_eq0.
 Definition signr_addb := signr_addb.
@@ -3033,7 +3046,7 @@ Notation "''exists' ''X_' i , f" := (GRing.Exists i f) : term_scope.
 Notation "''forall' ''X_' i , f" := (GRing.Forall i f) : term_scope.
 
 Notation "*:%R" := (@GRing.scale _ _) : ring_scope.
-Notation "a *: m" := (GRing.scale a m) (at level 40) : ring_scope.
+Notation "a *: m" := (GRing.scale a m) : ring_scope.
 
 Notation "\sum_ ( <- r | P ) F" :=
   (\big[+%R/0%R]_(<- r | P%B) F%R) : ring_scope.

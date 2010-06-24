@@ -14,10 +14,10 @@ Require Import ssreflect.
 (*             [fun x => E] == unary function                                *)
 (*         [fun x : T => E] == unary function with explicit domain type      *)
 (*           [fun x y => E] == binary function                               *)
-(*       [fun x y : T => E] == binary function with explicit domain type     *)
-(*     [fun (x : T) y => E] == binary function with explicit domain type     *)
-(*     [fun x (y : T) => E] == binary function with explicit domain type     *)
-(* [fun (x : xT) (y : yT) => E]                                              *)
+(*       [fun x y : T => E] == binary function with common domain type       *)
+(*         [fun (x : T) y => E] \                                            *)
+(* [fun (x : xT) (y : yT) => E] | == binary function with (some) explicit,   *)
+(*         [fun x (y : T) => E] / independent domain types for each argument *)
 (*                                                                           *)
 (* - partial functions using option type,                                    *)
 (*     oapp f d ox == if ox is Some x returns f x,        d otherwise        *)
@@ -72,12 +72,34 @@ Require Import ssreflect.
 (*    f1 =2 f2 :> A ==    ... and f2 is explicitly typed                     *)
 (*                                                                           *)
 (* - composition for total and partial functions,                            *)
-(*            f^~ y == function f with y as second argument y                *)
-(*                     caveat: conditional (non-maximal) implicit arguments  *)
+(*            f^~ y == function f with second argument specialised to y,     *)
+(*                     i.e., fun x => f x y                                  *)
+(*                     CAVEAT: conditional (non-maximal) implicit arguments  *)
+(*                     of f are NOT inserted in this context                 *)
+(*          [eta f] == the explicit eta-expansion of f, i.e., fun x => f x   *)
+(*                     CAVEAT: conditional (non-maximal) implicit arguments  *)
 (*                     of f are NOT inserted in this context                 *)
 (*        f1 \o f2  == composition of f1 and f2                              *)
 (*                     note: (f1 \o f2) x simplifies to f1 (f2 x)            *)
 (*      pcomp f1 f2 == composition of partial functions f1 and f2            *)
+(*                                                                           *)
+(* - reserved notation for various arithmetic and algebraic operations       *)
+(*     e.[a1, ..., a_n] evaluation (e.g., polynomials)                       *)
+(*                 e`_i indexing (number list, integer pi-part)              *)
+(*                 x^-1 inverse (group, field)                               *)
+(*       x *+ n, x *- n integer multiplier (modules and rings)               *)
+(*       x ^+ n, x ^- n integer exponent (groups and rings)                  *)
+(*       x *: A, A :* x external product (scaling/module product in rings,   *)
+(*                      left/right cosets in groups)                         *)
+(*       m %/ d, m %% d Eclidean division and remainder (nat and polynomial) *)
+(*               d %| m Euclidean divisibility (nat and polynomial)          *)
+(*       m = n %[mod d] equality mod d (also defined for <>, ==, and !-)     *)
+(*               e^`(n) nth formal derivative (groups, polynomials)          *)
+(*                e^`() simple formal derivative (polynomials only)          *)
+(*                 `|e| absolute value (ordered rings, nat difference)       *)
+(*    [rec a1, ..., an] standard shorthand for hidden recursor (see prime.v) *)
+(*   The interpretation of these notations is not defined here, but the      *)
+(*   declarations help maintain consistency across the library.              *)
 (*                                                                           *)
 (* - properties of functions                                                 *)
 (*      injective f == f is injective                                        *)
@@ -135,6 +157,7 @@ Import Prenex Implicits.
 Delimit Scope fun_scope with FUN.
 Open Scope fun_scope.
 
+(* Notations for argument transpose *)
 Notation "f ^~ y" := (fun x => f x y)
   (at level 10, y at level 8, no associativity, format "f ^~  y") : fun_scope.
 
@@ -147,25 +170,47 @@ Notation "p .1" := (fst p)
 Notation "p .2" := (snd p)
   (at level 2, left associativity, format "p .2") : pair_scope.
 
-(* Reserved notations for evaluation *)
+(* Reserved notation for evaluation *)
 Reserved Notation "e .[ x ]"
   (at level 2, left associativity, format "e .[ x ]").
 
-Reserved Notation "e .[ x1 , x2 , .. , xn ]"
-  (at level 2, left associativity,
-   format "e '[ ' .[ x1 , '/'  x2 , '/'  .. , '/'  xn ] ']'").
+Reserved Notation "e .[ x1 , x2 , .. , xn ]" (at level 2, left associativity,
+  format "e '[ ' .[ x1 , '/'  x2 , '/'  .. , '/'  xn ] ']'").
 
-(* Reserved notations for subscripting and superscripting *)
-Reserved Notation "x ^-1"
-  (at level 3, left associativity, format "x ^-1").
+(* Reserved notation for subscripting and superscripting *)
+Reserved Notation "s `_ i" (at level 3, i at level 2, left associativity,
+  format "s `_ i").
+Reserved Notation "x ^-1" (at level 3, left associativity, format "x ^-1").
 
+(* Reserved notation for integer multipliers and exponents *)
 Reserved Notation "x *+ n" (at level 40, left associativity).
 Reserved Notation "x *- n" (at level 40, left associativity).
 Reserved Notation "x ^+ n" (at level 29, left associativity).
 Reserved Notation "x ^- n" (at level 29, left associativity).
 
-Reserved Notation "s `_ i"
-  (at level 3, i at level 2, left associativity, format "s `_ i").
+(* Reserved notation for external multiplication. *)
+Reserved Notation "x *: A" (at level 40).
+Reserved Notation "A :* x" (at level 40).
+
+(* Reserved notation for Euclidean division *)
+Reserved Notation "m %/ d" (at level 40, no associativity). 
+Reserved Notation "m %% d" (at level 40, no associativity). 
+Reserved Notation "m %| d" (at level 70, no associativity). 
+Reserved Notation "m = n %[mod d ]" (at level 70, n at next level,
+  format "'[hv ' m '/'  =  n '/'  %[mod  d ] ']'").
+Reserved Notation "m == n %[mod d ]" (at level 70, n at next level,
+  format "'[hv ' m '/'  ==  n '/'  %[mod  d ] ']'").
+Reserved Notation "m <> n %[mod d ]" (at level 70, n at next level,
+  format "'[hv ' m '/'  <>  n '/'  %[mod  d ] ']'").
+Reserved Notation "m != n %[mod d ]" (at level 70, n at next level,
+  format "'[hv ' m '/'  !=  n '/'  %[mod  d ] ']'").
+
+(* Reserved notation for derivatives *)
+Reserved Notation "a ^` ()" (at level 8, format "a ^` ()").
+Reserved Notation "a ^` ( n )" (at level 8, format "a ^` ( n )").
+
+(* Reserved notation for absolute value *)
+Reserved Notation  "`| x |" (at level 0, x at level 99, format "`| x |").
 
 (* Complements on the option type constructor, used below to  *)
 (* encode partial functions.                                  *)

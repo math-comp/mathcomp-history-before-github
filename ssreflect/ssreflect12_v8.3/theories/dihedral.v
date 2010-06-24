@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat div fintype connect.
-Require Import finset groups cyclic ssralg.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat div fintype.
+Require Import finset groups cyclic.
 
 Import GroupScope.
 

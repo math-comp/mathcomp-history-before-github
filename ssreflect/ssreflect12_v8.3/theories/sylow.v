@@ -1,8 +1,8 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
-Require Import fintype div prime finfun finset.
-Require Import bigops groups morphisms automorphism normal action.
-Require Import cyclic gprod pgroups commutators center gseries nilpotent.
+Require Import fintype div prime finset bigops groups morphisms.
+Require Import automorphism normal action cyclic gprod pgroups commutators.
+Require Import center nilpotent.
 
 (******************************************************************************)
 (*   The Sylow theorem and its consequences, including the Frattini argument, *)

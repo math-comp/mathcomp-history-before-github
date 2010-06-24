@@ -1822,6 +1822,14 @@ have: x \in x ^: G by rewrite -{1}(conjg1 x) mem_imset.
 by move/mem_repr; case/imsetP=> y Gy ->; rewrite index_cent1 classGidl.
 Qed.
 
+Lemma card_classes_abelian : abelian G -> #|classes G| = #|G|.
+Proof.
+move=> cGG; rewrite -sum_card_class -sum1_card; apply: eq_bigr => xG.
+case/imsetP=> x Gx ->; rewrite (@eq_card1 _ x) // => y.
+apply/idP/eqP=> [| ->]; last by rewrite class_refl.
+by case/imsetP=> z Gz ->; rewrite conjgE (centsP cGG x) ?mulKg.
+Qed.
+
 End CardClass.
 
 End InternalGroupAction.
@@ -1845,4 +1853,15 @@ End AutAct.
 Notation "''A_' G" := (aut_action G)
   (at level 8, format "''A_' G") : action_scope.
 Notation "''A_' G" := (aut_groupAction G) : groupAction_scope.
+
+Lemma gacts_char : 
+    forall (gT rT : finGroupType) (A : {group rT}) (R : {group gT}) 
+    (to : groupAction A R) (S : {group rT}) W, S \subset A -> W \char R -> 
+  [acts S, on W | to].
+Proof.
+move=> gT rT A R to S W sSA; case/andP=> sWR; move/forall_inP=> charW.
+apply/subsetP=> s sS; rewrite !inE (subsetP sSA _ sS); apply/subsetP=> w wW.
+rewrite inE; move/subsetP: (charW _ (actperm_Aut (to \ sSA) sS)); apply.
+by apply/imsetP; exists w; rewrite //= ractpermE actpermE.
+Qed.
 

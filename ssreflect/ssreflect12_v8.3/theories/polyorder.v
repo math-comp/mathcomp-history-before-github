@@ -1,8 +1,8 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
-Require Import bigops ssralg poly polydiv orderedalg zmodp polydiv.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype.
+Require Import ssralg poly orderedalg zmodp polydiv.
 
-Reserved Notation "a ^`"(at level 3, format "a ^`").
+(* Reserved Notation "a ^`"(at level 3, format "a ^`"). *)
 (* Reserved Notation "a ^`( n )" (at level 3, format "a ^`( n )"). *)
 (* Reserved Notation "a ^`N( n )" (at level 3, format "a ^`N( n )"). *)
 
@@ -36,8 +36,8 @@ Implicit Types a b c : F.
 Implicit Types x y z t : F.
 Implicit Types p q r : {poly F}.
 
-Notation "a ^`( n )" := (derivn a n).
-Notation "a ^`" := (deriv a).
+(* Notation "a ^` ( n )" := (derivn a n). *)
+(* Notation "a ^`" := (deriv a). *)
 
 End PolyOrder.
 
@@ -59,7 +59,7 @@ rewrite /root=> p a b np0; exists (\s p.[a]); move=> x laxb; move:(np0 _ laxb).
 case: (ltrgtP p.[x] 0)=> [spx npx0|spx npx0|]; last by move->; rewrite eqxx.
   case: (ltrP p.[a] 0)=> spa; first by rewrite !ltr0_sign.
   case/andP:laxb=>lax lxb; case:(@ivt (-p) a x)=> //.
-    by rewrite !horner_opp !oppr_cp0 spa ltrE.
+    by rewrite !horner_opp !oppr_cp0/= spa ltrE.
   move=> y; case/andP=> lay lyx; rewrite /root horner_opp oppr_eq0.
   by rewrite (negPf (np0 _ _))// lay/= (ler_trans lyx).
 case: (lerP p.[a] 0)=> spa; last by rewrite !gtr0_sign.
@@ -156,48 +156,48 @@ Qed.
 Lemma nth_root : forall x n, x > 0 -> exists2 y, y>0 & y^+(n.+1) = x.
 Proof.
 move=> x n l0x.
-case: (ltrgtP x 1)=> hx; last by exists 1; rewrite ?hx ?ltr01// exp1rn.
+case: (ltrgtP x 1)=> hx; last by exists 1; rewrite ?hx ?lter01// exp1rn.
   case: (@ivt ('X ^+ n.+1 - x%:P) 0 1); first by rewrite ler01.
     rewrite ?(horner_lin,horner_exp).
-    by rewrite exprS mul0r sub0r exp1rn oppr_cp0 subr_ge0 ltrE// ltrE.
+    by rewrite exprS mul0r sub0r exp1rn oppr_cp0 subr_gte0/= ltrE// ltrE.
   move=> y; case/andP=> [l0y ly1]; rewrite /root ?(horner_lin,horner_exp).
   rewrite subr_eq0; move/eqP=> hyx; exists y=> //; rewrite ltr_neqAle l0y.
   rewrite eq_sym andbT; apply/eqP=> y0; move: hyx; rewrite y0.
-  by rewrite exprS mul0r=> x0; move: l0x; rewrite -x0 lerr.
+  by rewrite exprS mul0r=> x0; move: l0x; rewrite -x0 ltrr.
 case: (@ivt ('X ^+ n.+1 - x%:P) 0 x); first by rewrite ltrE.
   rewrite ?(horner_lin,horner_exp) exprS mul0r sub0r.
-  by rewrite oppr_cp0 subr_ge0 ltrE//= lef_exprS// ltrE.
+  by rewrite oppr_cp0 subr_gte0/= ltrE//= lef_exprS// ltrE.
 move=> y; case/andP=> l0y lyx; rewrite /root ?(horner_lin,horner_exp).
 rewrite subr_eq0; move/eqP=> hyx; exists y=> //; rewrite ltr_neqAle l0y.
 rewrite eq_sym andbT; apply/eqP=> y0; move: hyx; rewrite y0.
-by rewrite exprS mul0r=> x0; move: l0x; rewrite -x0 lerr.
+by rewrite exprS mul0r=> x0; move: l0x; rewrite -x0 ltrr.
 Qed.
 
 Lemma poly_cont : forall x p e, e > 0 -> exists2 d, 
-  d > 0 & forall y, |y - x| < d -> |p.[y] - p.[x]| < e.
+  d > 0 & forall y, `|y - x| < d -> `|p.[y] - p.[x]| < e.
 Proof.
 move=> x; elim/(@poly_divXMa x).
   move=> e ep; exists 1; rewrite ?ltr01// => y hy. 
   by rewrite !hornerC subrr absr0.
 move=> p n k pxn0 Pp e ep.
-case: (Pp (|p.[x]|/2%:R)). 
-  by rewrite mulf_cp0p// -?invf_le0 ?gtf0Sn// absrE.
+case: (Pp (`|p.[x]|/2%:R)). 
+  by rewrite mulr_cp0p// ?invf_gte0//= ?gtf0Sn// absrE.
 move=> d' d'p He'.
-case: (@nth_root (e / ((3%:R/2%:R)*|p.[x]|)) n).
-  by rewrite mulf_cp0p// -invf_le0 ?mulf_cp0p// -?invf_le0 ?gtf0Sn// absrE.
+case: (@nth_root (e / ((3%:R/2%:R) * `|p.[x]|)) n).
+  by rewrite mulr_cp0p// invf_gte0 ?mulr_cp0p//= ?invf_gte0/= ?gtf0Sn// absrE.
 move=> d dp rootd.
 exists (minr d d'); first by rewrite ltr_minr dp.
-move=> y. rewrite ltr_minr. case/andP=> hxye hxye'.
-move: (ler_lt_trans (subr_abs_le _ _) (He' _ hxye')).
-rewrite ler_subr absr_opp.
+move=> y; rewrite ltr_minr. case/andP=> hxye hxye'.
+move: (ler_lte_trans (subr_abs_le _ _) (He' _ hxye')).
+rewrite lter_subr absr_opp.
 rewrite (_:forall x, x / 2%:R + x = (3%:R / 2%:R)*x); last first.
   move=> a; apply/eqP; rewrite -(inj_eq (@mulfI _ 2%:R _))// ?charor//.
   rewrite mulr_addr mulrA mulrAC divff ?charor// -mulr_addl -{1}[1]mulr1n.
   by rewrite -natr_add add1n !mulrA [2%:R*_*_]mulrAC divff ?charor// mul1r.
 move=> hpypx.
 have:= (He' _ hxye'); rewrite addrC.
-move/(ler_lt_trans (subr_abs_le _ _)).
-rewrite absr_opp -subr_ge0 addrAC subr_ge0.
+move/(ler_lte_trans (subr_abs_le _ _)).
+rewrite absr_opp -subr_lte0/= addrAC subr_lte0.
 rewrite (_:forall x, x - x / 2%:R = x / 2%:R); last first.
   move=> a; apply/eqP.
   rewrite -(inj_eq (@mulfI _ 2%:R _))// ?charor//.
@@ -205,35 +205,35 @@ rewrite (_:forall x, x - x / 2%:R = x / 2%:R); last first.
   rewrite mulr_natl mul1r -subr_eq0 -addrA -oppr_add -{2}[a]mulr1n.
   by rewrite -mulrSr subrr.
 move=> hpxpy.
-rewrite !(horner_lin,horner_exp). rewrite subrr [0^+_]exprS mul0r mulr0 add0r.
+rewrite !(horner_lin,horner_exp) subrr [0^+_]exprS mul0r mulr0 add0r.
 rewrite -addrA subrr addr0 !absf_mul mulrC.
-move: hxye; rewrite absf_exp (lef_expS2 n)// ?absrE//; last by rewrite ltrE. 
-rewrite -(@ltf_mulpr _ (|p.[y]|)); last first.
-  apply: ler_lt_trans hpxpy; rewrite mulr_cp0p// ?absrE//.
-  by rewrite -invf_ge0 ltrE// gtf0Sn.
-move/ltr_trans=> -> //; rewrite rootd mulrC mulrA mulrAC -{1}[e]mul1r.
-rewrite ltf_mulp// lef_divpr; first by rewrite mul1r.
-by rewrite !mulf_cp0p// -?invf_le0 ?lt0fSn// ?absrE// gtf0Sn.
+move: hxye; rewrite absf_exp -(lef_expS2 n)// ?absrE//; last first.
+  by rewrite ltrE. 
+rewrite -(@ltef_mulpr _ (`|p.[y]|))/=; last first.
+  apply: ler_lte_trans hpxpy; rewrite mulr_cp0p//= ?absrE//.
+  by rewrite invf_gte0/= ltrE// gtf0Sn.
+move/lter_trans=> -> //; rewrite rootd mulrC mulrA mulrAC -{2}[e]mul1r.
+rewrite ltef_mulp// ltef_divpl/=; first by rewrite mul1r.
+by rewrite !mulr_cp0p// ?invf_gte0/= ?gtf0Sn// ?absrE// gtf0Sn.
 Qed.
 
+(* Notation "a ^`( n )" := (derivn a n). *)
+(* Notation "a ^`" := (deriv a). *)
 
-Notation "a ^`( n )" := (derivn a n).
-Notation "a ^`" := (deriv a).
-
-Lemma derivPn : forall n p, (p ^+ n.+1)^` = (p^+n) * (p^`) *+ n.+1.
+Lemma derivPn : forall n p, (p ^+ n.+1)^`() = p ^+ n * p^`() *+ n.+1.
 Proof.
 elim=> [|n ihn] p; first by rewrite expr1 expr0 mul1r mulr1n.
 by rewrite exprS deriv_mul ihn !mulrnAr mulrA -exprS mulrC -mulrS.
 Qed.
 
-Lemma deriv_opp: forall p, (-p)^` = -(p^`).
+Lemma deriv_opp : forall p, (- p)^`() = - p^`().
 Proof.
 move=> p; rewrite -mulN1r deriv_mul mulN1r.
 by rewrite [-1]size1_polyC ?size_opp ?size_poly1// derivC mul0r add0r.
 Qed.
 
-Definition derivE :=  (derivC,derivX,deriv_amulX,deriv_mul,deriv_add,
-  deriv_mulr,deriv_opp,derivXn,derivPn).
+Definition derivE := (derivC, derivX, deriv_amulX, deriv_mul, deriv_add,
+  deriv_mulr, deriv_opp, derivXn, derivPn).
 
 (* Lemma size_poly_ind : forall K : {poly R} -> Prop, *)
 (*   K 0 ->  *)
@@ -311,7 +311,7 @@ move=> p a b hab.
 rewrite muls_eqA// mulrN1; case/andP; move/eqP=> hpapb pb0.
 case: (@ivt (((\s p.[b]) ?* 1)%:P *p) a b)=> //.
    rewrite -{1}hpapb !horner_lin -!smulr_mul !mul1r -smulNr.
-   by rewrite -!absrP oppr_cp0 !absrE.
+   by rewrite -!absrP oppr_cp0/= !absrE.
 move=> c; case/andP=> lac lcb; rewrite /root.
 rewrite !horner_lin mulf_eq0 smul1_eq0 (negPf pb0) /= => pc0.
 exists c=> //. rewrite !ltr_neqAle lac lcb !andbT.
@@ -323,11 +323,11 @@ Qed.
 
 Lemma rolle_weak : forall a b p, a < b ->
   (p.[a] == 0) && (p.[b] == 0) ->
-  exists2 c, a < c < b & (p^`.[c] == 0 \/ p.[c] == 0).
+  exists2 c, a < c < b & (p^`().[c] == 0 \/ p.[c] == 0).
 Proof.
 move=> a b p lab; case/andP=> pa0 pb0.
 case p0: (p == 0).
-  rewrite (eqP p0); exists ((a+b)/2%:R); first exact: midf_lt.
+  rewrite (eqP p0); exists ((a+b)/2%:R); first exact: midf_lte.
   by left; rewrite derivC horner0 eqxx.
 case: (@maxdivpf p a)=> [|p' []]; first by rewrite p0.
 case; first by rewrite expr0 mulr1=> p'a0 pp'; rewrite -pp' pa0 in p'a0.
@@ -370,50 +370,49 @@ Qed.
 
 Lemma rolle : forall a b p, a < b ->
   (p.[a] == 0) && (p.[b] == 0) ->
-  exists2 c, a < c < b & (p^`.[c] == 0).
+  exists2 c, a < c < b & ((p^`()).[c] == 0).
 Proof.
 move=> a b p lab; case/andP=> pa0 pb0.
 have := @poly_ltsp_roots p a b.
 elim: (size p) a b lab pa0 pb0=> [|n ihn] a b lab pa0 pb0 max_roots; 
   first rewrite (eqP (@max_roots [::] _ _ _)) //=. 
-  by exists ((a+b)/2%:R); first exact: midf_lt; rewrite derivC horner0.
+  by exists ((a+b)/2%:R); first exact: midf_lte; rewrite derivC horner0.
 case: (@rolle_weak a b p); rewrite // ?pa0 ?pb0 //=.
 move=> c; case/andP=>lac lcb [] pc0; first by exists c; rewrite // lac.
-suff: exists2 d : R, a < d < c & (p^`).[d] == 0.
+suff: exists2 d : R, a < d < c & (p^`()).[d] == 0.
   case=> [d]; case/andP=> lad ldc p'd0.
-  by exists d; rewrite // lad andTb (ltr_trans ldc).
+  by exists d; rewrite // lad andTb (lter_trans ldc).
 apply: ihn=> //.
 move=> t stn ut Pt; apply: (max_roots (c::t))=> //=.
   rewrite ut andbT; apply/negP=> cint.
-  by move: (Pt c cint); rewrite lerr andbF.
+  by move: (Pt c cint); rewrite lterr andbF.
 move=> x; rewrite inE; case/orP; first by move/eqP->; rewrite lac lcb.
-by move/Pt; case/andP; case/andP=> -> lxc ->; rewrite (ltr_trans  lxc).
+by move/Pt; case/andP; case/andP=> -> lxc ->; rewrite (lter_trans  lxc).
 Qed.
 
 Lemma mvt : forall a b p, a < b ->
-  exists2 c, a < c < b & p.[b] - p.[a] = p^`.[c] * (b - a).
+  exists2 c, a < c < b & p.[b] - p.[a] = (p^`()).[c] * (b - a).
 Proof.
 move=> a b p lab.
-pose q := (p.[b] - p.[a])%:P*('X - a%:P) - (b - a)%:P*(p - p.[a]%:P).
+pose q := (p.[b] - p.[a])%:P * ('X - a%:P) - (b - a)%:P * (p - p.[a]%:P).
 case: (@rolle a b q)=> //.
-  by rewrite /q !horner_lin !(subrr,mulr0) mulrC subrr eqxx.
+  by rewrite /q !horner_lin !(subrr, mulr0) mulrC subrr eqxx.
 move=> c lacb q'x0; exists c=> //.
 move: q'x0; rewrite /q !derivE !(mul0r,add0r,subr0,mulr1).
 by rewrite !horner_lin mulrC subr_eq0; move/eqP.
 Qed.
 
 Lemma deriv_sign : forall a b p,
-  (forall x, a < x < b -> p^`.[x] >= 0)
+  (forall x, a < x < b -> (p^`()).[x] >= 0)
   -> (forall x y, (a < x < b) && (a < y < b)
     ->  x < y -> p.[x] <= p.[y] ).
 Proof.
 move=> a b p Pab x y; case/and3P; case/andP=> lax lxb lay lyb lxy.
-rewrite -subr_ge0; case: (@mvt x y p)=> //.
-move=> c; case/andP=> lxc lcy ->; rewrite mulr_cp0p//.
-  by rewrite Pab// (ltr_trans lax)// (ltr_trans lcy).
-by rewrite subr_ge0 ltrE.
+rewrite -subr_gte0; case: (@mvt x y p)=> //.
+move=> c; case/andP=> lxc lcy ->; rewrite mulr_cp0p//=.
+  by rewrite Pab// (lter_trans lax)// (lter_trans lcy).
+by rewrite subr_gte0/= ltrE.
 Qed.
- 
 
 
 

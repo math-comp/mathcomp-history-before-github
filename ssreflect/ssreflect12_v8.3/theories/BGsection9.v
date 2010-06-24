@@ -1,11 +1,9 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
-Require Import fintype paths finfun bigops finset prime binomial groups.
-Require Import morphisms perm action automorphism normal zmodp cyclic.
-Require Import gfunc pgroups gprod center commutators.
-Require Import gseries nilpotent sylow abelian maximal hall.
-Require Import BGsection1 BGsection4 BGsection5 BGsection6.
-Require Import BGsection7 BGsection8.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype paths.
+Require Import finset prime groups action automorphism normal cyclic.
+Require Import gfunc pgroups gprod center commutators gseries nilpotent.
+Require Import sylow abelian maximal hall BGsection1 BGsection4 BGsection5.
+Require Import BGsection6 BGsection7 BGsection8.
 
 (******************************************************************************)
 (*   This file covers B & G, section 9, i.e., the proof the Uniqueness        *)

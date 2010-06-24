@@ -9,8 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 (***********************************************************************)
-
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype div.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype.
 Require Import finset bigops groups morphisms normal automorphism cyclic.
 Require Import gprod gfunc.
 
@@ -102,6 +101,30 @@ Lemma center_char : forall G, 'Z(G) \char G.
 Proof.
 move=> G; apply/charP; split=> [|f injf Gf]; first exact: center_sub.
 by apply/morphim_fixP; rewrite ?subsetIl //= -{4}Gf morphim_center.
+Qed.
+
+Lemma center_abelian_id : forall A, abelian A -> 'Z(A) = A.
+Proof. by move=> A; move/setIidPl. Qed.
+
+Lemma mulg_center_coprime_cent : forall G H,
+  coprime #|G| #|H| -> 'Z(G) * 'C_H(G) = 'C_(G * H)(G).
+Proof.
+move=> G H coGH; apply/setP=> xy; apply/imset2P/setIP=> [[x y] | []].
+  by case/setIP=> Gx cGx; case/setIP=> Hy cGy ->; rewrite mem_mulg ?groupM.
+case/imset2P=> x y Gx Hy ->{xy} cGxy.
+suffices cGx: x \in 'C(G).
+  by exists x y => //; apply/setIP; rewrite // -(groupMl _ cGx).
+rewrite -[x](expgnK (coprime_dvdr (order_dvdG Hy) coGH)) // groupX //.
+rewrite -[(x ^+ _)%g]mulg1 -(expg_order y).
+elim: #[y] => [|k IHk]; first by rewrite mulg1 group1.
+by rewrite expgS expgSr mulgA -(mulgA x) -(centP IHk) // -mulgA groupM.
+Qed.
+
+Lemma mulg_coprime_cent_center : forall G H,
+  coprime #|G| #|H| -> 'C_G(H) * 'Z(H) = 'C_(G * H)(H).
+Proof.
+move=> G H; rewrite coprime_sym => coHG; apply: invg_inj.
+by rewrite invIg !invMg !invGid mulg_center_coprime_cent.
 Qed.
 
 Lemma subcent1P : forall A x y,
@@ -206,6 +229,9 @@ apply (big_rel R) => [_ <-|A B C D IHA IHB G dG|_ _ G ->]; rewrite ?center1 //.
 case/cprodP: dG IHA IHB (dG) => [[H K -> ->] _ _] IHH IHK dG.
 by rewrite (IHH H) // (IHK K) // (center_cprod dG).
 Qed.
+
+Lemma cprod_center_id : forall G, G \* 'Z(G) = G.
+Proof. by move=> G; rewrite cprodC cprodE ?mulSGid ?subsetIl ?subsetIr. Qed.
 
 Lemma center_dprod : forall A B G, A \x B = G -> 'Z(A) \x 'Z(B) = 'Z(G).
 Proof.

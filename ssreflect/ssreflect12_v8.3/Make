@@ -53,6 +53,7 @@ theories/hall.v
 theories/mxrepresentation.v
 theories/BGsection1.v
 theories/BGsection2.v
+theories/BGsection3.v
 theories/BGsection4.v
 theories/BGappendixAB.v
 theories/BGsection5.v

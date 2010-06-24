@@ -1,9 +1,8 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
-Require Import fintype paths finfun bigops finset prime binomial groups.
-Require Import morphisms perm action automorphism normal zmodp cyclic.
-Require Import gfunc pgroups gprod center commutators gseries.
-Require Import nilpotent sylow abelian maximal hall BGsection1 BGsection6.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype bigops.
+Require Import finset prime groups morphisms action automorphism normal cyclic.
+Require Import gfunc pgroups center commutators gseries nilpotent sylow abelian.
+Require Import maximal hall BGsection1 BGsection6.
 
 (******************************************************************************)
 (*   This file covers B & G, section 7, i.e., the proof of the Thompson       *)

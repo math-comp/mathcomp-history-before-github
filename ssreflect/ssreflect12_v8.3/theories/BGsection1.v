@@ -1,7 +1,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
-Require Import fintype paths finfun bigops prime binomial finset ssralg.
-Require Import groups finalg morphisms normal perm automorphism action gfunc.
+Require Import fintype paths bigops prime binomial finset ssralg.
+Require Import groups morphisms normal perm automorphism action gfunc.
 Require Import commutators center cyclic gprod pgroups finmod gseries.
 Require Import nilpotent sylow abelian maximal hall matrix mxrepresentation.
 
@@ -174,6 +174,7 @@ Let H := \bigcap_(UV | Gchief UV) 'C(UV.1 / UV.2 | 'Q).
 Let H' :=
   G' :&: \bigcap_(UV | Gchief UV && (UV.1 \subset 'F(G'))) 'C(UV.1 / UV.2 | 'Q).
 
+(* This corrresponds to B&G 1.2 non trivial inclusion *)
 Lemma Fitting_stab_chief : 'F(G') \subset H.
 Proof.
 apply/bigcapsP=> [[U V] /=  UVchief]; have [/= Vmax sUG nUG] := and3P UVchief. 
@@ -187,6 +188,7 @@ apply: minnormal_solvable_Fitting_center (quotientS V sUG).
 exact: chief_factor_minnormal.
 Qed.
 
+(* This corrresponds to B&G 1.2 equality *)
 Lemma chief_stab_sub_Fitting : H' \subset 'F(G').
 Proof.
 have nsH'G : H' <| G.
@@ -782,9 +784,8 @@ set GC := <<_>>; have sMGC: M \subset GC.
   rewrite sub_gen ?(bigcup_max 'C_A(M)%G) //=; last first.
     by rewrite subsetI sMG centsC subsetIr.
   case/is_abelemP: abelM => p _ abelM; rewrite -(rker_abelem abelM ntM nMA).
-  have ker_q_cyc := mx_repr_faithful_irr_abelian_cyclic _ (kquo_mx_faithful _).
-  rewrite rker_normal {}ker_q_cyc ?morphim_abelian //.
-  by apply/quo_mx_irr=> //; exact/abelem_mx_irrP.
+  rewrite rker_normal -(setIidPl (quotient_abelian _ _)) ?center_kquo_cyclic //.
+  exact/abelem_mx_irrP.
 rewrite -(quotientSGK nMG sMGC).
 have: A / M \subset 'N(G / M) by rewrite morphim_norms.
 move/IHn->; rewrite ?morphim_abelian ?coprime_morph {IHn}//; first 1 last.
@@ -957,10 +958,10 @@ rewrite -card_quotient ?bgFunc_norm // -(card_Hall sylPq) -trivg_card1.
 by rewrite /= -quotient_mulg mulSGid ?trivg_quotient.
 Qed.
 
-(* This is B & G, Theorem 1.20 (Maeshke's Theorem) for internal action on     *)
+(* This is B & G, Theorem 1.20 (Maschke's Theorem) for internal action on     *)
 (* elementary abelian subgroups; a more general case, for linear              *)
 (* represenations on matrices, can be found in mxrepresentation.v.            *)
-Theorem Maeshke_abelem : forall gT p (G V U : {group gT}),
+Theorem Maschke_abelem : forall gT p (G V U : {group gT}),
   p.-abelem V -> p^'.-group G -> U \subset V ->
     G \subset 'N(V) -> G \subset 'N(U) ->
   exists2 W : {group gT}, U \x W = V & G \subset 'N(W).

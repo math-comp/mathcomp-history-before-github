@@ -1,15 +1,21 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
-Require Import fintype bigops prime binomial finset ssralg.
-Require Import groups morphisms normal automorphism commutators zmodp.
-Require Import gprod gfunc cyclic center pgroups nilpotent sylow abelian.
-Require Import gseries maximal matrix mxrepresentation BGsection1 BGsection2.
+Require Import fintype bigops prime finset ssralg groups morphisms normal.
+Require Import automorphism commutators zmodp gfunc center pgroups nilpotent.
+Require Import sylow abelian gseries maximal matrix mxrepresentation.
+Require Import BGsection1 BGsection2.
 
 (******************************************************************************)
 (* This file contains the useful material in B & G, appendices A and B, i.e., *)
 (* the proof of the p-stability properties and the ZL-Theorem (the Puig       *)
 (* replacement for the Glaubermann ZJ-theorem). The relevant definitions are  *)
 (* given in BGsection1.                                                       *)
+(* Theorem A.4(a) has not been formalised: it is a result on external         *)
+(* p-stability, which concerns faithful representations of group with a       *)
+(* trivial p-core on a field of characteristic p. It's the historical concept *)
+(* that was studied by Hall and Higman, but it's not used for FT. Note that   *)
+(* the finite field case can be recovered from A.4(c) with a semi-direct      *)
+(* product.                                                                   *)
 (******************************************************************************)
 
 Set Implicit Arguments.
@@ -32,6 +38,8 @@ Import MatrixGenField.
 (* which we prove p-stability are inherited by sections (morphic image in our *)
 (* framework), and restrict to the case where P is normal in G. (Clearly the  *)
 (* 'O_p^'(G) * P <| G premise plays no part in the proof.)                    *)
+(* Theorems A.1-A.3 are essentially inlined in this proof                     *)
+
 Lemma odd_p_stable : forall gT p (G : {group gT}), odd #|G| -> p.-stable G.
 Proof.
 move=> gT p; move: gT.
@@ -150,26 +158,26 @@ have irrAG: mx_irreducible rAG by exact: gen_mx_irr.
 have: dA <= 2.
   case Ax0: (Ax == 0).
     by rewrite subr_eq0 in Ax0; case/eqP: ncxy; rewrite (eqP Ax0) mulmx1 mul1mx.
-  case/rowV0Pn: Ax0 => v; case/subsetmxP => u def_v nzv.
+  case/rowV0Pn: Ax0 => v; case/submxP => u def_v nzv.
   pose U := col_mx v (v *m Ay); pose UA := <<inFA _ U>>%MS.
   pose rvalFA := @rowval_gen _ _ _ _ _ _ irrG cAG.
-  have Umod: submodmx rAG UA.
-    rewrite /submodmx gen_subG subUset !sub1set !inE Gx Gy /= andbC.
+  have Umod: mxmodule rAG UA.
+    rewrite /mxmodule gen_subG subUset !sub1set !inE Gx Gy /= andbC.
     apply/andP; split; rewrite (eqmxMr _ (genmxE _)) -in_genJ // genmxE.
-      rewrite subsetmx_in_gen // -[rG y](subrK 1%R) -/Ay mulmx_addr mulmx1.
-      rewrite subsetmx_add // mul_col_mx -mulmxA Ay2 mulmx0.
-      by rewrite -!sumsmxE sumsmx0 sumsmxSr.
+      rewrite submx_in_gen // -[rG y](subrK 1%R) -/Ay mulmx_addr mulmx1.
+      rewrite addmx_sub // mul_col_mx -mulmxA Ay2 mulmx0.
+      by rewrite -!addsmxE addsmx0 addsmxSr.
     rewrite -[rG x](subrK 1%R) -/Ax mulmx_addr mulmx1 in_genD mul_col_mx.
     pose A' := A; rewrite -mulmxA -[Ay *m Ax](addKr (Ax *m Ay)) -/A mulmx_addr.
     rewrite -mulmxN mulmxA {1 2}def_v -(mulmxA u) Ax2 mulmx0 mul0mx add0r.
     rewrite -(mul0mx _ A') -mul_col_mx -[A'](mxval_groot irrG cAG).
     rewrite -[_ 0 v](in_genK irrG cAG) -val_genZ val_genK.
-    rewrite subsetmx_add ?subsetmx_scale ?subsetmx_in_gen //.
-    by rewrite -!sumsmxE sums0mx sumsmxSl.
+    rewrite addmx_sub ?scalemx_sub ?submx_in_gen //.
+    by rewrite -!addsmxE adds0mx addsmxSl.
   have nzU: UA != 0.
     rewrite -mxrank_eq0 genmxE mxrank_eq0; apply/eqP.
     move/(canRL ((in_genK _ _) _)); rewrite val_gen0; apply/eqP.
-    by rewrite -subsetmx0 -sumsmxE sumsmx_sub subsetmx0 negb_and nzv.
+    by rewrite -submx0 -addsmxE addsmx_sub submx0 negb_and nzv.
   case/mx_irrP: irrAG => _; move/(_ UA Umod nzU); move/eqnP <-.
   by rewrite genmxE rank_leq_row.
 rewrite leq_eqVlt ltnS leq_eqVlt ltnNge dA_gt0 orbF orbC; case/pred2P=> def_dA.
@@ -265,6 +273,9 @@ move=> G D E sDE; apply: Puig_max (Puig_succ_sub _ _).
 exact: norm_abgenS sDE (Puig_gen _ _).
 Qed.
 
+
+(* With Puig_sub_odd, Puig_sub_even_odd, as well as BGsection1/Puig1 gives    *)
+(* B & G B.1(b)                                                               *)
 Lemma Puig_sub_even : forall m n G,
   m <= n -> 'L_{m.*2}(G) \subset 'L_{n.*2}(G).
 Proof.
@@ -299,6 +310,7 @@ have{eqLm} eqLm: forall k, m <= k -> 'L_{k.*2}(G) = L2G m.
 by exists m => k le_mk; rewrite Puig_def PuigS /Puig_inf /= !eqLm //.
 Qed.
 
+(* With  the very definition of 'L(G) gives B & G B.1(g)                      *)
 Lemma Puig_inf_def : forall G, 'L_*(G) = 'L_[G]('L(G)).
 Proof.
 move=> G; have [k defL] := Puig_limit G.
@@ -313,9 +325,12 @@ rewrite PuigS sub_gen // bigcup_sup // inE sAG /norm_abelian cAA andbT.
 exact: subset_trans (Puig_at_sub n G) nAG.
 Qed.
 
+(* With  BGsection1/Puig_sub gives B & G B.1(d)                                *)
 Lemma Puig_inf_sub_Puig : forall G, 'L_*(G) \subset 'L(G).
 Proof. move=> G; exact: Puig_sub_even_odd. Qed.
 
+(* With sub_cent_Puig_inf, sub_cent_Puig, sub_center_Puig_at, and             *)
+(* trivg_center_Puig_pgroup gives B & G B.1(f)                                *)
 Lemma sub_cent_Puig_at : forall n p G,
   n > 0 -> p.-group G -> 'C_G('L_{n}(G)) \subset 'L_{n}(G).
 Proof.

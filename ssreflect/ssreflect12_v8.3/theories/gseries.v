@@ -1,7 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype bigops finset.
 Require Import paths groups commutators morphisms automorphism normal center.
-Require Import action.
 (*****************************************************************************)
 (*           H <|<| G   <=> H is subnormal in G, i.e., H <| ... <| G.        *)
 (* invariant_factor A H G <=> A normalises both H and G, and H <| G.         *)
@@ -253,6 +252,14 @@ Proof.
 move=> H G; rewrite subEproper; case/predU1P=> sHG; first by left.
 suff [M *]: {M : {group gT} | maximal M G & H \subset M} by right; exists M.
 exact: maxgroup_exists.
+Qed.
+
+Lemma mulg_normal_maximal : forall G M H,
+  M <| G -> maximal M G -> H \subset G -> ~~ (H \subset M) -> (M * H = G)%g.
+Proof.
+move=> G M H; case/andP=> sMG nMG; case/maxgroupP=> _ maxM sHG not_sHM.
+apply/eqP; rewrite eqEproper mul_subG // -norm_mulgenEr ?(subset_trans sHG) //.
+by apply: contra not_sHM; move/maxM <-; rewrite ?mulgen_subl ?mulgen_subr.
 Qed.
 
 End MaxProps.

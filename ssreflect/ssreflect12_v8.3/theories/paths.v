@@ -419,22 +419,28 @@ Section Transitive.
 
 Hypothesis leT_tr : transitive leT.
 
+Lemma subseq_order_path : forall x s1 s2,
+  subseq s1 s2 -> path leT x s2 -> path leT x s1.
+Proof.
+move=> x s1 s2; elim: s2 x s1 => [|y s2 IHs] x [|z s1] //=.
+move/(IHs y); case: eqP => [-> | _] /= IHs1; first by case/andP=> ->.
+by case/andP=> leTxy; move/IHs1; case/andP; move/(leT_tr leTxy)->.
+Qed.
+
 Lemma order_path_min : forall x s, path leT x s -> all (leT x) s.
 Proof.
-move=> x [|y s] //=; case/andP=> le_xy; rewrite le_xy /=.
-elim: s => //= z s IHs in y le_xy *; case/andP.
-move/(leT_tr le_xy)=> le_xz; rewrite le_xz; exact: IHs.
+move=> x s le_x_s; apply/allP=> y; rewrite -subseq_seq1 => s_y.
+by have:= subseq_order_path s_y le_x_s; rewrite /= andbT.
+Qed.
+
+Lemma subseq_sorted : forall s1 s2, subseq s1 s2 -> sorted s2 -> sorted s1.
+Proof.
+case=> [|x1 s1] [|x2 s2] //= sub_s12; move/(subseq_order_path sub_s12).
+by case: eqP => [-> | _] //=; case/andP.
 Qed.
 
 Lemma sorted_filter : forall a s, sorted s -> sorted (filter a s).
-Proof.
-move=> a s; elim: s => //= x s IHs ord_s.
-move/(_ (path_sorted ord_s)): IHs; case: (a x) => //=.
-case def_s': (filter a s) => //= [y s'] ->.
-rewrite (allP (order_path_min ord_s)) //.
-have: y \in filter a s by rewrite def_s' mem_head.
-by rewrite mem_filter; case/andP.
-Qed.
+Proof. move=> a s; exact: subseq_sorted (filter_subseq a s). Qed.
 
 Lemma sorted_uniq : irreflexive leT -> forall s, sorted s -> uniq s.
 Proof.

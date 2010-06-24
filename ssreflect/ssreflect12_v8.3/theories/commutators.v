@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat fintype bigops finset.
-Require Import binomial groups morphisms automorphism normal gfunc gprod.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat fintype bigops finset.
+Require Import binomial groups morphisms automorphism normal gfunc.
 
 (******************************************************************************)
 (*   This files contains the proofs of several key properties of commutators, *)
@@ -29,8 +29,7 @@ Definition derived_at_rec n (gT : finGroupType) (A : {set gT}) :=
 (* "cooking" destroys it.                                                    *)
 Definition derived_at := nosimpl derived_at_rec.
 
-Notation "G ^` ( n )" := (derived_at n G)
-  (at level 8, format "G ^` ( n )") : group_scope.
+Notation "G ^` ( n )" := (derived_at n G) : group_scope.
 
 Section DerivedBasics.
 

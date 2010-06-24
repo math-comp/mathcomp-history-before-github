@@ -1,9 +1,8 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
-Require Import choice fintype finfun bigops ssralg finset prime.
-Require Import groups morphisms perm finalg automorphism normal action gprod.
-Require Import cyclic commutators center pgroups.
-Require Import finmod nilpotent gseries sylow abelian maximal.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype finset.
+Require Import prime groups morphisms automorphism normal action gprod.
+Require Import commutators center pgroups finmod nilpotent sylow abelian.
+Require Import maximal.
 
 (*****************************************************************************)
 (*  In this files we prove the Schur-Zassenhaus splitting and transitivity   *)

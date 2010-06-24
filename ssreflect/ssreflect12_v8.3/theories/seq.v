@@ -68,6 +68,8 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat.
 (*        find p s == the number of items of s for which p holds              *)
 (*      constant s == all items in s are identical (trivial if s = [::])      *)
 (*          uniq s == all the items in s are pairwise different               *)
+(*    subseq s1 s2 == s1 is a subsequence of s2, i.e., s1 = mask m s2 for     *)
+(*                    some m : bitseq (see below).                            *)
 (*   perm_eq s1 s2 == s2 is a permutation of s1, i.e., s1 and s2 have the     *)
 (*                    items (with the same repetitions), but possibly in a    *)
 (*                    different order.                                        *)
@@ -1607,6 +1609,111 @@ Proof. by move=> m s Hm x; rewrite mask_rot // mem_rot. Qed.
 
 End EqMask.
 
+Section Subseq.
+
+Variable T : eqType.
+Implicit Type s : seq T.
+
+Fixpoint subseq s1 s2 :=
+  if s2 is y :: s2' then
+    if s1 is x :: s1' then subseq (if x == y then s1' else s1) s2' else true
+  else s1 == [::].
+
+Lemma sub0seq : forall s, subseq [::] s. Proof. by case. Qed.
+
+Lemma subseq0 : forall s, subseq s [::] = (s == [::]). Proof. by []. Qed.
+
+Lemma subseqP : forall s1 s2,
+  reflect (exists2 m, size m = size s2 & s1 = mask m s2) (subseq s1 s2).
+Proof.
+move=> s1 s2; elim: s2 s1 => [|y s2 IHs2] [|x s1].
+- by left; exists [::].
+- by right; do 2!case.
+- by left; exists (nseq (size s2).+1 false); rewrite ?size_nseq //= mask_false.
+apply: {IHs2}(iffP (IHs2 _)) => [] [m sz_m def_s1].
+  by exists ((x == y) :: m); rewrite /= ?sz_m // -def_s1; case: eqP => // ->.
+case: eqP => [_ | ne_xy]; last first.
+  by case: m def_s1 sz_m => [|[] m] // [] // -> [<-]; exists m. 
+pose i := index true m; have def_m_i: take i m = nseq (size (take i m)) false.
+  apply/all_pred1P; apply/(all_nthP true) => j.
+  rewrite size_take ltnNge leq_minl negb_or -ltnNge; case/andP=> lt_j_i _.
+  rewrite nth_take //= -negb_add addbF -addbT -negb_eqb.
+  by rewrite [_ == _](before_find _ lt_j_i).
+have lt_i_m: i < size m.
+  rewrite ltnNge; apply/negP=> le_m_i; rewrite take_oversize // in def_m_i.
+  by rewrite def_m_i mask_false in def_s1.
+rewrite size_take lt_i_m in def_m_i.
+exists (take i m ++ drop i.+1 m).
+  rewrite size_cat size_take size_drop lt_i_m.
+  by rewrite sz_m in lt_i_m *; rewrite subnKC.
+rewrite {s1 def_s1}[s1](congr1 behead def_s1).
+rewrite -[s2](cat_take_drop i) -{1}[m](cat_take_drop i) {}def_m_i -cat_cons.
+have sz_i_s2: size (take i s2) = i by apply: size_takel; rewrite sz_m in lt_i_m.
+rewrite lastI cat_rcons !mask_cat ?size_nseq ?size_belast ?mask_false //=.
+by rewrite (drop_nth true) // nth_index -?index_mem.
+Qed.
+
+Lemma subseq_trans : transitive subseq.
+Proof.
+move=> s1 s2 s3; case/subseqP=> m2 _ ->; case/subseqP=> m1 _ ->{s1 s2}.
+elim: s3 m2 m1 => [|x s IHs] m2 m1; first by rewrite !mask0.
+case: m1 => [|[] m1]; first by rewrite mask0.
+  case: m2 => [|[] m2] //; first by rewrite /= eqxx IHs.
+  case/subseqP: (IHs m2 m1) => m sz_m def_s; apply/subseqP.
+  by exists (false :: m); rewrite //= sz_m.
+case/subseqP: (IHs m2 m1) => m sz_m def_s; apply/subseqP.
+by exists (false :: m); rewrite //= sz_m.
+Qed.
+
+Lemma subseq_refl : forall s, subseq s s.
+Proof. by elim=> //= x s IHs; rewrite eqxx. Qed.
+Hint Resolve subseq_refl.
+
+Lemma subseq_cat : forall s1 s2 s3 s4,
+  subseq s1 s3 -> subseq s2 s4 -> subseq (s1 ++ s2) (s3 ++ s4).
+Proof.
+move=> s1 s2 s3 s4; case/subseqP=> m1 sz_m1 ->; case/subseqP=> m2 sz_m2 ->.
+by apply/subseqP; exists (m1 ++ m2); rewrite ?size_cat ?mask_cat ?sz_m1 ?sz_m2.
+Qed.
+
+Lemma mem_subseq : forall s1 s2, subseq s1 s2 -> {subset s1 <= s2}.
+Proof. by move=> s1 s2; case/subseqP=> m _ -> x; exact: mem_mask. Qed.
+
+Lemma subseq_seq1 : forall x s, subseq [:: x] s = (x \in s).
+Proof.
+by move=> x; elim=> //= y s; rewrite inE; case: (x == y); rewrite ?sub0seq.
+Qed.
+
+Lemma size_subseq : forall s1 s2, subseq s1 s2 -> size s1 <= size s2.
+Proof.
+by move=> s1 s2; case/subseqP=> m sz_m ->; rewrite size_mask -sz_m ?count_size.
+Qed.
+
+Lemma size_subseq_leqif : forall s1 s2,
+  subseq s1 s2 -> size s1 <= size s2 ?= iff (s1 == s2).
+Proof.
+move=> s1 s2 sub12; split; first exact: size_subseq.
+apply/idP/eqP=> [|-> //]; case/subseqP: sub12 => m sz_m ->{s1}.
+rewrite size_mask -sz_m // -all_count -(eq_all andbT).
+by move/(@all_pred1P _ true)->; rewrite sz_m mask_true.
+Qed.
+
+Lemma subseq_cons : forall s x, subseq s (x :: s).
+Proof. by move=> s x; exact: (@subseq_cat [::] s [:: x]). Qed.
+
+Lemma subseq_rcons : forall s x, subseq s (rcons s x).
+Proof. by move=> s x; rewrite -{1}[s]cats0 -cats1 subseq_cat. Qed.
+
+Lemma subseq_uniq : forall s1 s2, subseq s1 s2 -> uniq s2 -> uniq s1.
+Proof. by move=> s1 s2; case/subseqP=> m _ -> Us2; exact: mask_uniq. Qed.
+
+End Subseq.
+
+Prenex Implicits subseq.
+Implicit Arguments subseqP [T s1 s2].
+
+Hint Resolve subseq_refl.
+
 Section Map.
 
 Variables (n0 : nat) (T1 : Type) (x1 : T1).
@@ -1672,7 +1779,7 @@ Proof. by move=> *; rewrite /rot map_cat map_take map_drop. Qed.
 
 Lemma map_rotr : forall s, map (rotr n0 s) = rotr n0 (map s).
 Proof.
-by move=> *; apply: canRL (@rotK n0 T2) _; rewrite -map_rot rotrK.
+by move=> s; apply: canRL (@rotK n0 T2) _; rewrite -map_rot rotrK.
 Qed.
 
 Lemma map_rev : forall s, map (rev s) = rev (map s).
@@ -1690,6 +1797,15 @@ by rewrite (Hf Hy) (IHs _ Hs).
 Qed.
 
 End Map.
+
+Lemma filter_mask : forall T a (s : seq T), filter a s = mask (map a s) s.
+Proof. by move=> T a; elim=> //= [x s <-]; case: (a x). Qed.
+
+Lemma filter_subseq : forall T a s, @subseq T (filter a s) s.
+Proof.
+move=> T a s; apply/subseqP.
+by exists (map a s); rewrite ?size_map ?filter_mask.
+Qed.
 
 Section EqMap.
 
@@ -1728,6 +1844,12 @@ elim=> //= x s IHs //= injf; congr (~~ _ && _).
 apply: IHs => y z sy sz; apply: injf => //; exact: predU1r.
 Qed.
 
+Lemma map_subseq : forall s1 s2, subseq s1 s2 -> subseq (map f s1) (map f s2).
+Proof.
+move=> s1 s2; case/subseqP=> m sz_m ->; apply/subseqP.
+by exists m; rewrite ?size_map ?map_mask.
+Qed.
+
 Hypothesis Hf : injective f.
 
 Lemma mem_map : forall s x, (f x \in map f s) = (x \in s).
@@ -1747,8 +1869,6 @@ End EqMap.
 Implicit Arguments mapP [T1 T2 f s y].
 Prenex Implicits mapP.
 
-Lemma filter_mask : forall T a (s : seq T), filter a s = mask (map a s) s.
-Proof. by move=> T a; elim=> //= [x s <-]; case: (a x). Qed.
 
 Section MapComp.
 

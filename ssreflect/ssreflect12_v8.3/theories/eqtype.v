@@ -146,7 +146,7 @@ Proof. by move=> T x y; apply/eqP/eqP. Qed.
 
 Hint Resolve eq_refl eq_sym.
 
-Theorem eq_irrelevance (T : eqType) (x y : T) (e1 e2 : x = y) : e1 = e2.
+Theorem eq_irrelevance : forall (T : eqType) (x y : T) (e1 e2 : x = y), e1 = e2.
 Proof.
 move=> T x y; pose proj z e := if x =P z is ReflectT e0 then e0 else e.
 suff: injective (proj y) by rewrite /proj => injp e e'; apply: injp; case: eqP.
@@ -192,6 +192,9 @@ Proof. by do 2!case. Qed.
 
 Lemma negb_eqb : forall b1 b2, (b1 != b2) = b1 (+) b2.
 Proof. by do 2!case. Qed.
+
+Lemma eqb_id : forall b, (b == true) = b.
+Proof. by case. Qed.
 
 (* Equality-based predicates.       *)
 
@@ -252,15 +255,12 @@ Notation "[ 'predD1' A & x ]" := (predD1 [mem A] x)
 
 Section EqFun.
 
-Lemma inj_eq : forall (aT rT : eqType) (h : aT -> rT),
-  injective h -> forall x y, (h x == h y) = (x == y).
-Proof. by move=> T T' h *; apply/eqP/eqP => *; [ auto | congr h ]. Qed.
+Section Exo.
 
-Section Endo.
+Variables (aT rT : eqType) (D : pred aT) (f : aT -> rT) (g : rT -> aT).
 
-Variables (T : eqType) (f g : T -> T).
-
-Definition frel := [rel x y : T | f x == y].
+Lemma inj_eq : injective f -> forall x y, (f x == f y) = (x == y).
+Proof. by move=> inj_f x y; apply/eqP/eqP=> [|-> //]; exact: inj_f. Qed.
 
 Lemma can_eq : cancel f g -> forall x y, (f x == f y) = (x == y).
 Proof. move/can_inj; exact: inj_eq. Qed.
@@ -268,12 +268,27 @@ Proof. move/can_inj; exact: inj_eq. Qed.
 Lemma bij_eq : bijective f -> forall x y, (f x == f y) = (x == y).
 Proof. move/bij_inj; apply: inj_eq. Qed.
 
-Lemma can2_eq :
-  cancel f g -> cancel g f -> forall x y, (f x == y) = (x == g y).
-Proof. by move=> Ef Eg x y; rewrite -{1}[y]Eg; exact: can_eq. Qed.
+Lemma can2_eq : cancel f g -> cancel g f -> forall x y, (f x == y) = (x == g y).
+Proof. by move=> fK gK x y; rewrite -{1}[y]gK; exact: can_eq. Qed.
+
+Lemma inj_in_eq :
+  {in D &, injective f} -> {in D &, forall x y, (f x == f y) = (x == y)}.
+Proof. by move=> inj_f x y Dx Dy; apply/eqP/eqP=> [|-> //]; exact: inj_f. Qed.
+
+Lemma can_in_eq :
+  {in D, cancel f g} -> {in D &, forall x y, (f x == f y) = (x == y)}.
+Proof. by move/can_in_inj; exact: inj_in_eq. Qed.
+
+End Exo.
+
+Section Endo.
+
+Variables (T : eqType) (f : T -> T).
+
+Definition frel := [rel x y : T | f x == y].
 
 Lemma inv_eq : involutive f -> forall x y, (f x == y) = (x == f y).
-Proof. by move=> Ef x y; rewrite -(inj_eq (inv_inj Ef)) Ef. Qed.
+Proof. by move=> fK; exact: can2_eq. Qed.
 
 End Endo.
 

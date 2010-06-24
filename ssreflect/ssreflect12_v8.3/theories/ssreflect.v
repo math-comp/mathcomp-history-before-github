@@ -13,7 +13,6 @@ Require Import Bool. (* For bool_scope delimiter 'bool'. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Global Unset Automatic Introduction.
 
 Module SsrSyntax.
 
@@ -340,4 +339,3 @@ Hint View for move/ iffLRn|2 iffRLn|2 iffLR|2 iffRL|2.
 Hint View for apply/ iffRLn|2 iffLRn|2 iffRL|2 iffLR|2.
 
 Unset Implicit Arguments.
-

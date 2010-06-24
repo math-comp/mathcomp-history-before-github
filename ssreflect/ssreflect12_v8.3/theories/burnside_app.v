@@ -1,7 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype div.
-Require Import tuple finfun ssralg bigops finset groups action perm.
-Require Import prim_act.
+Require Import tuple finfun bigops finset groups action perm prim_act.
 
 (* Require Import connect. *)
 

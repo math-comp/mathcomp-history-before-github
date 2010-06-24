@@ -1,9 +1,8 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
-Require Import fintype paths finfun bigops finset prime groups.
-Require Import morphisms perm action automorphism normal cyclic.
+Require Import ssreflect ssrbool eqtype ssrnat seq div fintype finset.
+Require Import prime groups morphisms automorphism normal cyclic.
 Require Import gfunc gprod center commutators pgroups nilpotent.
-Require Import sylow abelian maximal hall BGsection1 BGappendixAB.
+Require Import sylow abelian hall BGsection1 BGappendixAB.
 
 (******************************************************************************)
 (*   This file covers most of B & G section 6.                                *)

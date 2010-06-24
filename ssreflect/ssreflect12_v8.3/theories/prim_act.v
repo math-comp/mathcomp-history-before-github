@@ -4,8 +4,8 @@
 (*                                                                     *)
 (***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
-Require Import div seq fintype tuple finfun finset.
-Require Import groups action gseries maximal.
+Require Import div seq fintype tuple finset.
+Require Import groups action gseries.
 
 (* n-transitive and primitive actions *)
 
@@ -190,10 +190,10 @@ Variable to : {action gT &-> sT}.
 Variable G : {group gT}.
 Variable S : {set sT}.
 
-Lemma card_uniq_tuple n (t : n.-tuple sT) : uniq t -> #|t| = n.
+Lemma card_uniq_tuple : forall n (t : n.-tuple sT), uniq t -> #|t| = n.
 Proof. move=> n t; move/card_uniqP->; exact: size_tuple. Qed.
 
-Lemma n_act0 (t : 0.-tuple sT) a : n_act to t a = [tuple].
+Lemma n_act0 : forall (t : 0.-tuple sT) a, n_act to t a = [tuple].
 Proof. move=> *; exact: tuple0. Qed.
 
 Lemma dtuple_on_add : forall n x (t : n.-tuple sT),
@@ -216,7 +216,7 @@ Proof.
 move=> n S1 S2 t sS12; rewrite !inE; case/andP=> ->; move/subset_trans; exact.
 Qed.
 
-Lemma n_act_add n x (t : n.-tuple sT) a :
+Lemma n_act_add : forall n x (t : n.-tuple sT) a,
   n_act to [tuple of x :: t] a = [tuple of to x a :: n_act to t a].
 Proof. by move=> *; exact: val_inj. Qed.
 

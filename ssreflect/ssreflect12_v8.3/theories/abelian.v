@@ -2,7 +2,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import fintype paths finfun bigops finset prime groups.
 Require Import morphisms perm action automorphism normal cyclic.
-Require Import gfunc gprod center pgroups gseries nilpotent sylow.
+Require Import gfunc gprod pgroups gseries nilpotent sylow.
 
 (*****************************************************************************)
 (* Constructions based on abelian groups and their structure, with some      *)
@@ -99,27 +99,6 @@ Definition gen_rank A := #|[arg min_(B < A | <<B>> == A) #|B|]|.
 End AbelianDefs.
 
 Prenex Implicits exponent.
-
-Notation "pi .-group" := (pgroup pi)
-  (at level 2, format "pi .-group") : group_scope.
-
-Notation "pi .-subgroup ( A )" := (psubgroup pi A)
-  (at level 8, format "pi .-subgroup ( A )") : group_scope.
-
-Notation "pi .-elt" := (p_elt pi)
-  (at level 2, format "pi .-elt") : group_scope.
-
-Notation "x .`_ pi" := (constt x pi)
-  (at level 3, format "x .`_ pi") : group_scope.
-
-Notation "pi .-Hall ( G )" := (pHall pi G)
-  (at level 8, format "pi .-Hall ( G )") : group_scope.
-
-Notation "p .-Sylow ( G )" := (nat_pred_of_nat p).-Hall(G)
-  (at level 8, format "p .-Sylow ( G )") : group_scope.
-
-Notation "''Syl_' p ( G )" := (Syl p G)
-  (at level 8, p at level 2, format "''Syl_' p ( G )") : group_scope.
 
 Notation "p .-abelem" := (abelem p)
   (at level 2, format "p .-abelem") : group_scope.

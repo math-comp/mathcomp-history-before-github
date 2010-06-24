@@ -17,7 +17,8 @@ Require Export Ring.
 (*                                                                          *)
 (*   basic arithmetic                                                       *)
 (*     m + n, m - n, m * n                                                  *)
-(*   the definitions use the nosimpl tag to prevent undesirable computation *)
+(*   Important: m - n denotes TRUNCATED substraction: m - n = if m <= n.    *)
+(*   The definitions use the nosimpl tag to prevent undesirable computation *)
 (*   computation during simplification, but remain compatible with the ones *)
 (*   provided in the Coq.Init.Peano prelude.                                *)
 (*     For computation, a module NatTrec rebinds all arithmetic notations   *)
@@ -31,8 +32,8 @@ Require Export Ring.
 (*   notations (Peano notations are flagged with %coq_nat).                 *)
 (*                                                                          *)
 (*   doubling, halving, and parity                                          *)
-(*      n.*2, n./2, odd n                                                   *)
-(*    bool coerces to nat so we can write, e.g., n = odd n + n./2.*2.       *)
+(*      n.*2, n./2, odd n, uphalf n,  with uphalf n = n.+1./2               *)
+(*   bool coerces to nat so we can write, e.g., n = odd n + n./2.*2.        *)
 (*                                                                          *)
 (*   iteration                                                              *)
 (*             iter n f x0  == f ( .. (f x0))                               *)
@@ -59,15 +60,19 @@ Require Export Ring.
 (*   the form "m <= n <= p <= m, so equality holds throughout".             *)
 (*                                                                          *)
 (*   maximum and minimum                                                    *)
-(*     maxn m n, minn m n                                                   *)
+(*      maxn m n, minn m n                                                  *)
 (*   Note that maxn m n = m + (m - n) (truncating subtraction).             *)
+(*                                                                          *)
+(*   absolute difference (linear distance)                                  *)
+(*     `|m - n|                                                             *)
+(*   This either m - n or n - m, depending on whether m >= n or m <= n.     *)
 (*                                                                          *)
 (*   countable choice                                                       *)
 (*     ex_minn : forall P : pred nat, (exists n, P n) -> nat                *)
-(*       This returns the smallest n such that P n holds.                   *)
+(*   This returns the smallest n such that P n holds.                       *)
 (*     ex_maxn : forall (P : pred nat) m,                                   *)
 (*        (exists n, P n) -> (forall n, P n -> n <= m) -> nat               *)
-(*       This returns the largest n such that P n holds (given an explicit  *)
+(*   This returns the largest n such that P n holds (given an explicit      *)
 (*       upper bound).                                                      *)
 (*                                                                          *)
 (****************************************************************************)
@@ -1338,6 +1343,9 @@ Proof. by []. Qed.
 Lemma geq_leqif : forall a b C, a <= b ?= iff C -> (b <= a) = C.
 Proof. by move=> a b C [le_ab]; rewrite eqn_leq le_ab. Qed.
 
+Lemma ltn_leqif : forall a b C, a <= b ?= iff C -> (a < b) = ~~ C.
+Proof. by move=> a b C le_ab; rewrite ltnNge (geq_leqif le_ab). Qed.
+
 Lemma leqif_add : forall m1 n1 c1 m2 n2 c2,
     m1 <= n1 ?= iff c1 -> m2 <= n2 ?= iff c2 ->
   m1 + m2 <= n1 + n2 ?= iff c1 && c2.
@@ -1377,6 +1385,85 @@ Proof.
 move=> m n; rewrite -[4]/(2 * 2) -mulnA mul2n -addnn sqrn_add.
 apply/leqifP; rewrite ltn_add2r eqn_addr ltn_neqAle !nat_Cauchy.
 by case: ifP => ->.
+Qed.
+
+(* Absolute difference / linear distance. *)
+
+(* An auxiliary argument type allows lets us use the same grammar rules as   *)
+(* generic ordered rings.                                                    *)
+
+CoInductive distn_arg := DistnArg of nat & nat.
+Notation "m - n" := (DistnArg m n) : distn_arg_scope.
+
+Definition distn a := nosimpl (let: DistnArg m n := a in (m - n) + (n - m)).
+Arguments Scope distn [distn_arg_scope].
+Notation "`| a |" := (distn a) : nat_scope.
+
+Lemma distnC : forall m n, `|m - n| = `|n - m|.
+Proof. move=> m n; exact: addnC. Qed.
+
+Lemma distn_add2l : forall d m n, `|d + m - (d + n)| = `|m - n|.
+Proof. by move=> d m n; rewrite /distn !subn_add2l. Qed.
+
+Lemma distn_add2r : forall d m n, `|m + d - (n + d)| = `|m - n|.
+Proof. by move=> d m n; rewrite /distn !subn_add2r. Qed.
+
+Lemma distnEr : forall m n, m <= n -> `|m - n| = n - m.
+Proof. by move=> m n le_m_n; rewrite /distn (eqnP le_m_n). Qed.
+
+Lemma distnEl : forall m n, n <= m -> `|m - n| = m - n.
+Proof. by move=> m n le_n_m; rewrite distnC distnEr. Qed.
+
+Lemma dist0n : forall n, `|0 - n| = n.
+Proof. by case. Qed.
+
+Lemma distn0 : forall n, `|n - 0| = n.
+Proof. by move=> m; rewrite distnC dist0n. Qed.
+
+Lemma distnn : forall m, `|m - m| = 0.
+Proof. by move=> m; rewrite /distn subnn. Qed.
+
+Lemma distn_eq0 : forall m n, (`|m - n| == 0) = (m == n).
+Proof. by move=> m n; rewrite addn_eq0 !subn_eq0 -eqn_leq. Qed.
+
+Lemma distnS : forall m, `|m - m.+1| = 1.
+Proof. by move=> m; exact: distn_add2r m 0 1. Qed.
+
+Lemma distSn : forall m, `|m.+1 - m| = 1.
+Proof. by move=> m; exact: distn_add2r m 1 0. Qed.
+
+Lemma distn_eq1 : forall m n,
+  (`|m - n| == 1) = (if m < n then m.+1 == n else m == n.+1).
+Proof.
+move=> m n; case: ltnP => [lt_mn | le_nm].
+  by rewrite eq_sym -(eqn_addr m) distnEr ?subnK // ltnW.
+by rewrite -(eqn_addr n) distnEl ?subnK.
+Qed.
+
+Lemma leqif_add_distn : forall m n p,
+   `|m - p| <= `|m - n| + `|n - p| ?= iff (m <= n <= p) || (p <= n <= m).
+Proof.
+move=> m n p; apply/leqifP; wlog le_mp : m p / m <= p.
+  move=> IH; case/orP: (leq_total m p); move/IH=> //.
+  by rewrite addnC orbC (distnC n) !(distnC p).
+rewrite distnEr //; case: andP => [[le_mn le_np] | ].
+  by rewrite /= !distnEr // addnC -(eqn_addr m) -addnA !subnK.
+move/andP; rewrite negb_and -!ltnNge; case/orP=> [lt_nm | lt_pn].
+  have lt_np := leq_trans lt_nm le_mp.
+  by rewrite leqNgt lt_np ltn_addl //= distnEr ?ltn_sub2l // ltnW.
+have lt_mn := leq_ltn_trans le_mp lt_pn.
+by rewrite andbC leqNgt lt_mn ltn_addr //= distnEr ?ltn_sub2r // ltnW.
+Qed.
+
+Lemma leq_add_distn : forall m n p, `|m - p| <= `|m - n| + `|n - p|.
+Proof. by move=> m n p; rewrite leqif_add_distn. Qed.
+
+Lemma sqrn_distn : forall m n, `|m - n| ^ 2 + 2 * (m * n) = m ^ 2 + n ^ 2.
+Proof.
+move=> m n; wlog le_nm: m n / n <= m.
+  move=> IH; case/orP: (leq_total n m); move/IH=> //.
+  by rewrite (addnC (n ^ 2)) (mulnC n) distnC.
+by rewrite distnEl ?sqrn_sub ?subnK ?nat_Cauchy.
 Qed.
 
 (* Support for larger integers. The normal definitions of +, - and even  *)

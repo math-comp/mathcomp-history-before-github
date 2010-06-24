@@ -4,7 +4,7 @@
 (*                                                                     *)
 (***********************************************************************)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq div choice.
-Require Import fintype finfun prime finset groups morphisms automorphism.
+Require Import fintype prime finset groups morphisms automorphism.
 
 (***********************************************************************)
 (* This file contains the definitions of:                              *)

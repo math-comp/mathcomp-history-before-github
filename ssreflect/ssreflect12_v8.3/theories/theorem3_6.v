@@ -1,9 +1,8 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
-Require Import prime fintype finfun bigops ssralg finset.
-Require Import groups morphisms perm automorphism normal commutators.
-Require Import action zmodp cyclic center gprod pgroups nilpotent sylow.
-Require Import abelian gseries maximal hall mxrepresentation.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div prime fintype.
+Require Import bigops ssralg finset groups morphisms perm automorphism normal.
+Require Import commutators action zmodp cyclic center gprod pgroups nilpotent.
+Require Import sylow abelian gseries maximal hall mxrepresentation.
 Require Import BGsection1 BGsection2.
 
 Set Implicit Arguments.
@@ -599,7 +598,7 @@ have iK'K: 'C_(P <*> R / K')(K / K') = 1 -> #|K / K'| > q ^ 2.
   have ntK: K / K' != 1.
     by rewrite trivg_card1 oK k2 (eqn_sqr _ 1) neq_ltn orbC prime_gt1.
   pose rPR := abelem_repr abelK ntK nKqPR.
-  have: mx_repr_faithful rPR by rewrite /mx_repr_faithful rker_abelem trCK'.
+  have: mx_faithful rPR by rewrite abelem_mx_faithful.
   move: rPR; rewrite (dim_abelemE abelK ntK) oK pfactorK // k2 => rPR ffPR.
   apply: charf'_GL2_abelian ffPR _.
     by rewrite quotient_odd ?(oddSg _ oddG) // mulgen_subG (subset_trans sPH).

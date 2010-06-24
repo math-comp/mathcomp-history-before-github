@@ -216,13 +216,13 @@ Definition enum_mem T (mA : mem_pred _) := filter mA (Finite.enum T).
 Notation enum A := (enum_mem (mem A)).
 Definition pick (T : finType) (P : pred T) := ohead (enum P).
 
-Notation "[ 'pick' x | P ]" := (pick [pred x | P])
+Notation "[ 'pick' x | P ]" := (pick (fun x => P))
   (at level 0, x ident, format "[ 'pick'  x  |  P  ]") : form_scope.
-Notation "[ 'pick' x : T | P ]" := (pick [pred x : T | P])
+Notation "[ 'pick' x : T | P ]" := (pick (fun x : T => P))
   (at level 0, x ident, only parsing) : form_scope.
-Notation "[ 'pick' x \in A ]" := (pick [pred x | x \in A])
+Notation "[ 'pick' x \in A ]" := (pick (fun x => x \in A))
   (at level 0, x ident, format "[ 'pick'  x  \in  A  ]") : form_scope.
-Notation "[ 'pick' x \in A | P ]" := (pick [pred x | (x \in A) && P])
+Notation "[ 'pick' x \in A | P ]" := (pick (fun x => (x \in A) && P))
   (at level 0, x ident, format "[ 'pick'  x  \in  A  |  P  ]") : form_scope.
 
 (* We lock the definitions of card and subset to mitigate divergence of the   *)
@@ -1115,6 +1115,11 @@ Definition seq_sub_finMixin :=
 Canonical Structure seq_sub_finType :=
   Eval hnf in FinType seq_sub seq_sub_finMixin.
 
+Lemma card_seq_sub : uniq s -> #|{:seq_sub}| = size s.
+Proof.
+by move=> Us; rewrite cardE enumT -(size_map val) unlock val_seq_sub_enum.
+Qed.
+
 End SeqFinType.
 
 Lemma unit_enumP : Finite.axiom [::tt]. Proof. by case. Qed.
@@ -1406,14 +1411,14 @@ Lemma enum_rank_subproof : forall x0 A, x0 \in A -> 0 < #|A|.
 Proof. by move=> x0 A Ax0; rewrite (cardD1 x0) Ax0. Qed.
 
 Definition enum_rank_in x0 A (Ax0 : x0 \in A) x :=
-  insubd (Ordinal (enum_rank_subproof Ax0)) (index x (enum A)).
+  insubd (Ordinal (@enum_rank_subproof x0 [eta A] Ax0)) (index x (enum A)).
 
 Definition enum_rank x := @enum_rank_in x T (erefl true) x.
 
 Lemma enum_default : forall A, 'I_(#|A|) -> T.
 Proof. by move=> A; rewrite cardE; case: (enum A) => [|//] []. Qed.
 
-Definition enum_val A i := nth (@enum_default A i) (enum A) i.
+Definition enum_val A i := nth (@enum_default [eta A] i) (enum A) i.
 Prenex Implicits enum_val.
 
 Lemma enum_valP : forall A i, @enum_val A i \in A.
@@ -1680,6 +1685,11 @@ Proof.
 apply: (inj_map val_inj); rewrite val_enum_ord /= -map_comp.
 by rewrite (map_comp (addn 1)) val_enum_ord -iota_addl.
 Qed.
+
+Lemma lift_max : forall i : 'I_n', lift ord_max i = i :> nat.
+Proof. by move=> i; rewrite /= /bump leqNgt ltn_ord. Qed.
+
+Lemma lift0 : forall i : 'I_n', lift ord0 i = i.+1 :> nat. Proof. by []. Qed.
 
 End OrdinalPos.
 
