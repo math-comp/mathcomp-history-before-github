@@ -403,38 +403,48 @@ have [d dCX defMbis] : exists2 c, c \in 'C(X) & M :^ t :=: M2 :^ c.
   case/(_ _ _ M1_OO1 Mt_OO1) => /= d dCX1 ->; exists d => //.
   by apply: subsetP (centS (proper_sub _)) _ dCX1.
 
-have pP := pHall_pgroup pSyl_P; have oddP : odd #|P| by exact: mFT_odd.
+have pP := pHall_pgroup pSyl_P; have oddL: odd #|L| by exact: mFT_odd.
+have sPL := pHall_sub pSyl_P.
+have pLG : L \proper G.
+  apply: mFT_norm_proper ntX (sub_mmax_proper M_max _).
+  by apply: subset_trans (proper_sub pXX1) (subset_trans sX1P sPM).
+have solL : solvable L := mFT_sol pLG. 
 case: (leqP 3 'r_p(P)) => [rP|].
   have PU : P \in 'U.
     apply: rank3_Uniqueness; rewrite ?(rank_pgroup (pHall_pgroup pSyl_P)) //.
     by apply: sub_proper_trans sPM (mmax_proper M_max).
   have sLM : L \subset M.
-    have sPLM : P \subset L :&: M by rewrite subsetI sPM (pHall_sub pSyl_P).
-    admit.
+    exact: sub_uniq_mmax (def_uniq_mmax PU M_max sPM) sPL pLG.
   have tM : t \in 'N(M) by apply: subsetP (subset_trans sLM (normG _)) _ tL.
   move: defM defMbis; rewrite (normP tM) => ->; move/eqP.
   rewrite -(inj_eq (@conjsg_inj _ d^-1)) -!conjsgM mulgV conjsg1; move/eqP=> <-.
   by exists (c * d^-1) => //; rewrite !in_group.
-case/(rank2_pdiv_compl_der_abelian_p'group (pgroup_sol pP) oddP) => _ _ p'PO.
+
+rewrite -(p_rank_Sylow pSyl_P) /=.
+case/(rank2_pdiv_compl_der_abelian_p'group solL); rewrite //= -/L => _ _ p'PO.
 have defL : L :=: 'N_L(P) * 'O_p^'(L).
   have pSyl_POpp : p.-Sylow('O_{p^',p}(L)) P.
-    apply: pHall_subl _ (pseries_sub _ _) pSyl_P.
-    admit.
+    rewrite (pHall_subl _ (pseries_sub _ _) pSyl_P) //= -/L.
+    rewrite -quotient_sub1 /= ?subG1 /=; last first.
+      by rewrite (subset_trans sPL) // char_norm // pseries_char.
+    have pPQ: p.-group (P / 'O_{p^',p}(L)) by rewrite quotient_pgroup ?pP.
+    rewrite -[_ / _]setIid coprime_TIg //= (pnat_coprime pPQ) //.
+    by rewrite [_.-nat _](pgroupS _ p'PO) // quotientS.
+  apply/eqP; rewrite eqEsubset mul_subG ?subsetIl ?pcore_sub ?andbT //.
   rewrite /L -{1}(Frattini_arg (pseries_normal _ _) pSyl_POpp) /= -/L.
-  rewrite -normC ?subIset 1?char_norm ?pseries_char //.
-  have pl1L : p.-length_1(L).
-    rewrite /plength_1 eqEsubset pseries_sub /=. 
-    admit.
-  have solL : solvable L.
-    apply: mFT_sol (mFT_norm_proper ntX (sub_mmax_proper M_max _)).
-    by apply: subset_trans (proper_sub pXX1) (subset_trans sX1P sPM).
-  have [<- _] := sol_Sylow_plength1_pseries_pcore solL pSyl_P pl1L.
-  by rewrite mulgA /= -/L mulGSid // subsetI (pHall_sub pSyl_P) normG.
+  rewrite (subset_trans (_:_ \subset 'N_L(P) * (P * 'O_p^'(L)))) //.
+  rewrite -normC ?subIset 1?char_norm ?pseries_char // mulgS //.
+    have sPNOL : P \subset 'N('O_p^'(L)).
+      by rewrite  (subset_trans sPL) ?(char_norm (pcore_char _ _)).
+    rewrite normC // -quotientK /pseries //= {1}/pcore_mod /= pcore_mod1 /= -/L.
+    by rewrite morphpreS // pcore_sub_Hall ?quotient_pHall.
+  by rewrite mulgA mulGSid // subsetI sPL normG.
 move: tL; rewrite defL; case/imset2P => u v uNLP vOL deft.
 have cop : coprime #|X| #|'O_p^'(L)| := pnat_coprime pX (pcore_pgroup _ _).
 have vCX : v \in 'C(X).
-  apply: subsetP _ _ vOL.
-  admit.
+  apply: subsetP _ _ vOL; apply/commG1P; apply/trivgP. 
+  rewrite -(coprime_TIg cop) setIC /= commg_subI // subsetI subxx ?pcore_sub//=.
+  by rewrite (subset_trans (normG _)) // char_norm ?pcore_char.
 have ntP : P :!=: 1.
   apply/trivgPn; case/trivgPn: ntX => x *; exists x => //.
   by apply: subsetP (subset_trans (proper_sub pXX1) sX1P) _ _.
