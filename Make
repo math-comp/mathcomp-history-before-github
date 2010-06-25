@@ -54,6 +54,7 @@ BGsection6.v
 BGsection7.v
 BGsection8.v
 BGsection9.v
+BGtheorem3_6.v
 BGsection10.v
 frobenius.v
 polydiv.v
@@ -61,7 +62,6 @@ orderedalg.v
 polyorder.v
 alt.v
 burnside_app.v
-theorem3_6.v
 
 
 COQC = $(COQBIN)ssrcoq

@@ -2,7 +2,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div prime fintype.
 Require Import bigops ssralg finset groups morphisms perm automorphism normal.
 Require Import commutators action zmodp cyclic center gprod pgroups nilpotent.
 Require Import sylow abelian gseries maximal hall mxrepresentation.
-Require Import BGsection1 BGsection2.
+Require Import BGsection1 BGsection2 BGsection3.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -10,21 +10,8 @@ Import Prenex Implicits.
 
 Import GroupScope.
 
-Theorem three_dot_four : forall k (gT : finGroupType) (G K R V : {group gT}),
-  solvable G -> odd #|G| ->
-  K <| G -> Hall G K -> R \in [complements to K in G] -> prime #|R| ->
-  k.-abelem V -> G \subset 'N(V) -> ~~ (k %| #|G|) ->
-  'C_V(R) = 1-> [~: R, K] \subset 'C_K(V).
-Admitted.
-
-Theorem three_dot_five : forall k (gT : finGroupType) (G K R V : {group gT}),
-  solvable G ->
-  K <| G -> R \in [complements to K in G] -> prime #|R| -> 'C_K(R) = 1->
-  k.-abelem V -> G \subset 'N(V) -> ~~ (k %| #|G|) ->
-  #|'C_V(R)| = k -> K^`(1) \subset 'C_K(V).
-Admitted.
-
-Theorem three_dot_six : forall (gT : finGroupType) (G H R R0 : {group gT}),
+Theorem odd_sdprod_Zgroup_cent_prime_plegth1 :
+    forall (gT : finGroupType) (G H R R0 : {group gT}),
     solvable G -> odd #|G| ->
     H <| G -> Hall G H -> R \in [complements to H in G] ->
     R0 \subset R -> prime #|R0| -> Zgroup 'C_H(R0) ->
@@ -344,7 +331,7 @@ have oCVR0: #|'C_V(R0)| = p.
   case: (eqVneq 'C_V(R0) 1) => [trCVR0 | ntCVR0].
     case/negP: ntKR0; rewrite -subG1/= commGC.
     have <-: 'C_K(V) = 1 by apply/trivgP; rewrite -trCKR0_V setSI.
-    apply: three_dot_four abV nV_KR0 _ trCVR0 => //=.
+    apply: odd_prime_sdprod_abelem_cent1 abV nV_KR0 _ trCVR0 => //=.
     - move: oddG; do 2!rewrite -[odd _]negbK -dvdn2; apply: contra.
       move/dvdn_trans; apply; exact: cardSg.
     - by rewrite /(K <| _) sK_KR0 gen_subG subUset normG.
@@ -660,7 +647,7 @@ case abelK: (abelian K); last first.
       by rewrite /= norm_mulgenEr // pgroupM q'P /pgroup oR pnatE.
     have sPRG: P <*> R \subset G by rewrite mulgen_subG sRG (subset_trans sPH).
     have coPR: coprime #|P| #|R| by rewrite (pnat_coprime pP) // oR pnatE.
-    apply: three_dot_four abK' _.
+    apply: odd_prime_sdprod_abelem_cent1 abK' _.
     - exact: quotient_sol (solvableS _ solG).
     - rewrite !odd_2'nat in oddG *; apply: morphim_pgroup; exact: pgroupS oddG.
     - by rewrite morphim_normal // /normal mulgen_subl mulgen_subG normG.
@@ -720,7 +707,7 @@ case abelK: (abelian K); last first.
     move: oCVR; have: ~~ (p %| #|[~: K, R] <*> R|).
       rewrite -p'natE // norm_mulgenEr // [_ #|_|]pgroupM.
       by rewrite (pgroupS (proper_sub sKR_K) p'K) /pgroup oR pnatE.
-    apply: three_dot_five; rewrite ?oR //.
+    apply: Frobenius_prime_cent_prime; rewrite ?oR //.
     - exact: solvableS solG.
     - by rewrite /normal mulgen_subl mulgen_subG normG nKR_R.
     - by apply/complP; rewrite setIC coprime_TIg //= norm_mulgenEr.
