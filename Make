@@ -54,6 +54,7 @@ BGsection6.v
 BGsection7.v
 BGsection8.v
 BGsection9.v
+BGsection10.v
 frobenius.v
 polydiv.v
 orderedalg.v

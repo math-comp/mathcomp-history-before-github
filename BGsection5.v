@@ -755,11 +755,11 @@ move=> gT G S p oddG narS solG psylS pl1G.
 wlog trivK : gT G S p oddG narS solG psylS pl1G / 'O_p^'(G) = 1.
   set K := 'O_p^'(G); have nKG : G \subset 'N(K) := char_norm (pcore_char _ _).
   move/(_ _ (G / K)%G 'O_p(G / K)%G p).
-  rewrite quotient_sol // quotient_odd // plenght1_pSylow //.
+  rewrite quotient_sol // quotient_odd // plength1_pSylow //.
   rewrite trivg_pcore_quotient // plength1_quo // -quotient_der //.
   have iso: S \isog 'O_p(G / K)%G.  
     have nOGS : S \subset 'N(K) := subset_trans (pHall_sub psylS) nKG.
-    case: (Sylow_trans (quotient_pHall nOGS psylS) (plenght1_pSylow pl1G)) => ?.
+    case: (Sylow_trans (quotient_pHall nOGS psylS) (plength1_pSylow pl1G)) => ?.
     case/imsetP=> x; case/setIP=> xNK xG /= -> ->; rewrite -quotientJ //.
     apply: (isog_trans _ (quotient_isog (conj_subG  _ _) _)) => //=.
       by rewrite -{2}(setIidPr (subxx S)) ?(sub_isog (subxx _) (injm_conj S x)).
@@ -783,7 +783,7 @@ case: (leqP 'r(S) 2) => rS.
 have pr_p : prime p.
   by case: (pgroup_pdiv pS) => //; case: eqP (rank1 gT) rS => // -> ->.
 have psylO: p.-Sylow(G) 'O_p(G).
-  case/pHallP: (plenght1_pSylow pl1G); rewrite pHallE /= ?pcore_sub => _ cG1.
+  case/pHallP: (plength1_pSylow pl1G); rewrite pHallE /= ?pcore_sub => _ cG1.
   rewrite (isog_card (quotient1_isog G)) -trivK /= -cG1 trivK.
   by rewrite (isog_card (bgFunc_isog (bgFunc_pcore p) (quotient1_isog G))) eqxx.
 have nOG : G \subset 'N('O_p(G)) by rewrite normal_norm ?pcore_normal.

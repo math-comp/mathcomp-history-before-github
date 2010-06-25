@@ -766,7 +766,7 @@ End NormedConstrained.
 (* This is B & G, Proposition 7.5(a). As this is only used in Proposition    *)
 (* 10.10, under the assumption A \in E*_p(G), we avoid the in_pmaxElemE      *)
 (* detour A = [set x \in 'C_G(A) | x ^+ p == 1], and just use A \in E*_p(G). *)
-Lemma plenght_1_normed_constrained : forall p A,
+Lemma plength_1_normed_constrained : forall p A,
     A :!=: 1 -> A \in 'E*_p(G) -> (forall M, M \proper G -> p.-length_1 M) ->
   normed_constrained A.
 Proof. 
