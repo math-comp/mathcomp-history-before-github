@@ -265,7 +265,7 @@ move=> G S p solG psylS pl1G; set M := 'O_p^'(G); set U := 'N_G(S).
 have sSG : S \subset G by case/andP: psylS.
 have nOp'G : G \subset 'N('O_p^'(G)) := char_norm (pcore_char _ _).
 have nSOp'G : S \subset 'N('O_p^'(G)) := subset_trans sSG nOp'G.
-have {pl1G} pl1G := plenght1_pSylow pl1G.
+have {pl1G} pl1G := plength1_pSylow pl1G.
 have nOp'pGG : 'O_{p^',p}(G) <| G by apply: pseries_normal.
 have defOp'pG : M * S = 'O_{p^',p}(G).
   rewrite -norm_mulgenEr //; apply: (@quotient_inj _ 'O_p^'(G));rewrite /normal.
@@ -326,7 +326,7 @@ Lemma sol_Sylow_plength1_cent_conj: forall G S (Q : {group gT}) p,
 Proof.
 move=> G S Q p solG psS pl1G.
 case: (sol_Sylow_plength1_pseries_pcore solG psS pl1G) => defOp'pG defG psgQ.
-have {pl1G} pl1G := plenght1_pSylow pl1G; have {psgQ} [sQG pgQ] := andP psgQ.
+have {pl1G} pl1G := plength1_pSylow pl1G; have {psgQ} [sQG pgQ] := andP psgQ.
 pose M := 'O_p^'(G); have: M <| G := pcore_normal _ _; case/andP=> sMG nMG.
 have sMOp'p : M \subset 'O_{p^',p}(G) by rewrite /M -pseries1 pseries_sub_catl.
 have [sSG pgS _] := and3P psS; have nMS := subset_trans sSG nMG.

@@ -61,10 +61,11 @@ theories/BGsection6.v
 theories/BGsection7.v
 theories/BGsection8.v
 theories/BGsection9.v
+theories/BGtheorem3_6.v
+theories/BGsection10.v
 theories/frobenius.v
 theories/polydiv.v
 theories/orderedalg.v
 theories/polyorder.v
 theories/alt.v
 theories/burnside_app.v
-theories/theorem3_6.v

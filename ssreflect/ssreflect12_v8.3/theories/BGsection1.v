@@ -993,7 +993,7 @@ Variables (gT : finGroupType) (p : nat).
 Implicit Types G H : {group gT}.
 
 (* This is B & G Lemma 1.21a. *)
-Lemma plenght1S : forall G H, H \subset G -> p.-length_1 G -> p.-length_1 H.
+Lemma plength1S : forall G H, H \subset G -> p.-length_1 G -> p.-length_1 H.
 Proof.
 rewrite /plength_1 => G H sHG pG1; rewrite eqEsubset pseries_sub.
 by apply: subset_trans (pseriesS _ sHG); rewrite (eqP pG1) (setIidPr _).
@@ -1045,7 +1045,7 @@ by rewrite -quotient_pseries /= (eqP pGH1).
 Qed.
 
 (* An elementary converse to B & G, Lemma 1.21d   *)
-Lemma plenght1_pSylow : forall G,
+Lemma plength1_pSylow : forall G,
   p.-length_1 G -> p.-Sylow(G / 'O_p^'(G)) 'O_p(G / 'O_p^'(G)).
 Proof.
 move=> G; move/(_ :=P: G) => defG; set K := 'O_p^'(G); set P := 'O_p(G / K).
