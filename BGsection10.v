@@ -441,7 +441,8 @@ have sXg_M : X :^ g \subset M by rewrite -cycleJ cycle_subG (subsetP sPM).
 have neX1 : (X :!=: 1) by apply/trivgPn; exists x; rewrite ?cycle_id.
 have pX : p.-group X.
   by rewrite (pgroupS _ (pHall_pgroup Syl_P_M)) // cycle_subG.
-case: (BG10a M_max sigma_p neX1 pX sXM sXg_M)=> c; rewrite cent_cycle.
+case: (mmax_sigma_core_nt_pgroup M_max sigma_p neX1 pX) => BG10_1a _ _ _. 
+case: (BG10_1a sXM _ sXg_M)=> c; rewrite cent_cycle.
 case=> m [CXc Mm g_eq]; rewrite mem_gen //.
 have xc_eq : x ^ c = x.
   by apply/conjg_fixP; rewrite (sameP commgP cent1P) cent1C.
