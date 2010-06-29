@@ -254,6 +254,19 @@ Lemma card_conjugates : forall (A : {set gT}) (G : {group gT}),
   #|A :^: G| = #|G : 'N_G(A)|.
 Proof. by move=> A G; rewrite card_orbit astab1Js. Qed.
 
+Lemma gacentQ : forall (A : {set gT}) (G : {group gT}), 'C_(|'Q)(A) = 'C(A / G).
+Proof.
+move=> A G; apply/setP=> Gx; case: (cosetP Gx) => x Nx ->{Gx}.
+rewrite -sub_cent1 -astab1J astabC sub1set -(quotientInorm G A).
+have defD: qact_dom 'J G = 'N(G) by rewrite qact_domE ?subsetT ?astabsJ.
+rewrite !(inE, mem_quotient) //= defD setIC.
+apply/subsetP/subsetP=> [cAx Ga | cAx a Aa].
+  case/morphimP=> a Na Aa ->{Ga}.
+  by move/cAx: Aa; rewrite !inE qactE ?defD ?morphJ.
+have [_ Na] := setIP Aa; move/implyP: (cAx (coset G a)); rewrite mem_morphim //.
+by rewrite !inE qactE ?defD ?morphJ.
+Qed.
+
 End InternalGroupActions.
 
 Section SubAction.
@@ -1112,5 +1125,110 @@ Qed.
 (* out of 16), and it is not used in the rest of Section 3, we have moved the *)
 (* proof of B & G, Theorem 3.6 (odd_sdprod_Zgroup_cent_prime_plength1) to its *)
 (* own separate file, BGtheorem3_6.v.                                         *)
+
+Theorem prime_FrobeniusP : forall gT (G K R : {group gT}),
+    K :!=: 1 -> prime #|R| ->
+  ({Frobenius G = K ><| R} <-> K ><| R = G /\ 'C_K(R) = 1).
+Proof.
+move=> gT G K R ntK R_pr; have ntT: R :!=: 1 by rewrite -cardG_gt1 prime_gt1.
+split=> [frobG | [defG regR]].
+  have [_ defG] := frobG; split=> //.
+  have [x defR] := cyclicP _ (prime_cyclic R_pr).
+  rewrite defR cent_cycle (Frobenius_reg_ker frobG) //.
+  by rewrite !inE defR cycle_id andbT -cycle_eq1 -defR.
+apply/Frobenius_semiregularP=> // x; case/setD1P=> nt_x Rx.
+apply/eqP; rewrite -cent_cycle -subG1 -regR setIS ?centS //.
+apply: contraR nt_x; rewrite -cycle_eq1; move/(prime_TIg R_pr) <-.
+by rewrite (setIidPr _) ?cycle_subG.
+Qed.
+
+(* This is B & G, Theorem 3.7. *)
+Theorem odd_prime_Frobenius_kernel_nil : forall gT (G K R : {group gT}),
+   K ><| R = G -> solvable G -> prime #|R| -> 'C_K(R) = 1 -> nilpotent K.
+Proof.
+move=> gT G K R defG solG R_pr regR.
+elim: {K}_.+1 {-2}K (ltnSn #|K|) => // m IHm K leKm in G defG solG regR *.
+have [nsKG sRG defKR nKR tiKR] := sdprod_context defG.
+have [sKG nKG] := andP nsKG.
+wlog ntK: / K :!=: 1 by case: eqP => [-> _ | _ ->] //; exact: nilpotent1.
+have [L maxL _]: {L : {group gT} | maxnormal L K G & [1] \subset L}.
+  by apply: maxgroup_exists; rewrite proper1G ntK norms1.
+have [ltLK nLG]:= andP (maxgroupp maxL); have [sLK not_sKL]:= andP ltLK.
+have{m leKm IHm}nilL: nilpotent L.
+  pose G1 := L <*> R; have nLR := subset_trans sRG nLG.
+  have sG1G: G1 \subset G by rewrite mulgen_subG (subset_trans sLK).
+  have defG1: L ><| R = G1.
+    by rewrite sdprodEgen //; apply/eqP; rewrite -subG1 -tiKR setSI.
+  apply: (IHm _ _ _ defG1); rewrite ?(solvableS sG1G) ?(oddSg sG1G) //.
+    exact: leq_trans (proper_card ltLK) _.
+  by apply/eqP; rewrite -subG1 -regR setSI.
+have sLG := subset_trans sLK sKG; have nsLG: L <| G by exact/andP.
+have sLF: L \subset 'F(G) by exact: Fitting_max.
+have frobG: {Frobenius G = K ><| R} by exact/prime_FrobeniusP.
+have solK := solvableS sKG solG.
+have frobGq := Frobenius_quotient frobG solK nsLG not_sKL.
+suffices sKF: K \subset 'F(K) by exact: nilpotentS sKF (Fitting_nil K).
+apply: subset_trans (chief_stab_sub_Fitting solG nsKG).
+rewrite subsetI subxx; apply/bigcapsP=> [[X Y]] /=; set V := X / Y.
+case/andP=> chiefXY sXF; have [maxY nsXG] := andP chiefXY.
+have [ltYX nYG] := andP (maxgroupp maxY); have [sYX _]:= andP ltYX.
+have [sXG nXG] := andP nsXG; have sXK := subset_trans sXF (Fitting_sub K).
+have minV := chief_factor_minnormal chiefXY.
+have cVL: L \subset 'C(V | 'Q).
+  apply: subset_trans (subset_trans sLF (Fitting_stab_chief solG _)) _ => //.
+  exact: (bigcap_inf (X, Y)).
+have nVG: {acts G, on group V | 'Q}.
+  by split; rewrite ?quotientS ?subsetT // actsQ // normal_norm.
+pose V1 := sdpair1 <[nVG]> @* V.
+have [p p_pr abelV]: exists2 p, prime p & p.-abelem V.
+  apply/is_abelemP; apply: charsimple_solvable (quotient_sol _ _).
+    exact: minnormal_charsimple minV.
+  exact: nilpotent_sol (nilpotentS sXF (Fitting_nil _)).
+have abelV1: p.-abelem V1 by rewrite morphim_abelem.
+have injV1 := injm_sdpair1 <[nVG]>.
+have ntV1: V1 :!=: 1.
+  by rewrite -cardG_gt1 card_injm // cardG_gt1; case/andP: (mingroupp minV).
+have nV1_G1 := im_sdpair_norm <[nVG]>.
+pose rV := morphim_repr (abelem_repr abelV1 ntV1 nV1_G1) (subxx G).
+have def_kerV: rker rV = 'C_G(V | 'Q).
+  rewrite rker_morphim rker_abelem morphpreIdom morphpreIim -astabEsd //.
+  by rewrite astab_actby setIid.
+have kerL: L \subset rker rV by rewrite def_kerV subsetI sLG.
+pose rVq := quo_repr kerL nLG.
+suffices: K / L \subset rker rVq.
+  rewrite rker_quo def_kerV quotientSGK //= 1?subsetI 1?(subset_trans sKG) //.
+  by rewrite sLG.
+have irrVq: mx_irreducible rVq.
+  apply/quo_mx_irr; apply/morphim_mx_irr; apply/abelem_mx_irrP.
+  apply/mingroupP; rewrite ntV1; split=> // U1; case/andP=> ntU1 nU1G sU1V.
+  rewrite -(morphpreK sU1V); congr (_ @* _).
+  case/mingroupP: minV => _; apply; last by rewrite sub_morphpre_injm.
+  rewrite -subG1 sub_morphpre_injm ?sub1G // morphim1 subG1 ntU1 /=.
+  set U := _ @*^-1 U1; rewrite -(cosetpreK U) quotient_norms //.
+  have: [acts G, on U | <[nVG]>] by rewrite actsEsd ?subsetIl // morphpreK.
+  rewrite astabs_actby subsetI subxx (setIidPr _) ?subsetIl //=.
+  by rewrite -{1}(cosetpreK U) astabsQ ?normal_cosetpre //= -/U subsetI nYG.
+have [q q_pr abelKq]: exists2 q, prime q & q.-abelem (K / L).
+  apply/is_abelemP; apply: charsimple_solvable (quotient_sol _ solK).
+  exact: maxnormal_charsimple maxL.
+case (eqVneq q p) => [def_q | neq_qp].
+  have sKGq: K / L \subset G / L by exact: quotientS.
+  rewrite rfix_mx_rstabC //; have [_ _]:= irrVq; apply; rewrite ?submx1 //.
+    by rewrite normal_rfix_mx_module ?quotient_normal.
+  rewrite -(rfix_subg _ sKGq) rfix_pgroup_char //.
+  apply: pi_pnat (abelem_pgroup abelKq) _.
+  by rewrite inE /= q_pr def_q char_Fp_0.
+suffices: rfix_mx rVq (R / L) == 0.
+  apply: contraLR; apply: (Frobenius_rfix_compl frobGq).
+  apply: pi_pnat (abelem_pgroup abelKq) _.
+  by rewrite inE /= (charf_eq (char_Fp p_pr)).
+rewrite -mxrank_eq0 (rfix_quo _ _ sRG) (rfix_morphim _ _ sRG).
+rewrite (rfix_abelem _ _ _ (morphimS _ sRG)) mxrank_eq0 rowg_mx_eq0 -subG1.
+rewrite (sub_abelem_rV_im _ _ _ (subsetIl _ _)) -(morphpreSK _ (subsetIl _ _)).
+rewrite morphpreIim -gacentEsd gacent_actby gacentQ (setIidPr sRG) /=.
+rewrite -coprime_quotient_cent ?(solvableS sXG) ?(subset_trans sRG) //.
+  by rewrite {1}['C_X(R)](trivgP _) ?quotient1 ?sub1G // -regR setSI.
+by apply: coprimeSg sXK _; exact: Frobenius_coprime frobG.
+Qed.
 
 End BGsection3.
