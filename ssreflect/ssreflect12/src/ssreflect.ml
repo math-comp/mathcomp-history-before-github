@@ -2511,7 +2511,7 @@ let mk_upat env sigma0 ise t ok p =
       if Evd.mem sigma0 k then KpatEvar k, f, a else
       if a = [] then raise UndefPat else KpatFlex, f, a
     | LetIn (_, v, _, b) ->
-      if b != mkRel 1 then KpatLet, f, a else KpatFlex, v, a
+      if b <> mkRel 1 then KpatLet, f, a else KpatFlex, v, a
     | _ -> KpatRigid, f, a in
   let aa = Array.of_list a in
   let ise', p' = evars_for_FO env sigma0 !ise (mkApp (f, aa)) in
@@ -2548,7 +2548,7 @@ let filter_upat i0 f n u fpats =
   | KpatEvar k when isEvar_k k f -> na
   | KpatLet when isLetIn f -> na
   | KpatRigid when isRigid f -> na
-  | KpatFlex -> na
+  | KpatFlex -> i0 := n; na
   | KpatProj pc ->
     let np = na + nb_cs_proj_args pc f u in if n < np then -1 else np
   | _ -> -1 in
