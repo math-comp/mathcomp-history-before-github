@@ -11,7 +11,7 @@ Import Prenex Implicits.
 
 Import GroupScope.
 
-Theorem odd_sdprod_Zgroup_cent_prime_plegth1 :
+Theorem odd_sdprod_Zgroup_cent_prime_plength1 :
     forall (gT : finGroupType) (G H R R0 : {group gT}),
     solvable G -> odd #|G| ->
     H <| G -> Hall G H -> R \in [complements to H in G] ->
