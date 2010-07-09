@@ -871,7 +871,7 @@ let interp_search_notation loc tag okey =
   let pr_ntn ntn = str "(" ++ str ntn ++ str ")" in
   let pr_and_list pr = function
     | [x] -> pr x
-    | x :: lx -> pr_list pr_coma pr lx ++ pr_coma () ++ str "and " ++ pr x
+    | x :: lx -> pr_list pr_comma pr lx ++ pr_comma () ++ str "and " ++ pr x
     | [] -> mt () in
   let pr_sc sc = str (if sc = "" then "independently" else sc) in
   let pr_scs = function
@@ -881,7 +881,7 @@ let interp_search_notation loc tag okey =
     let ign _ = mt () in match okey with
   | Some key ->
     let sc = Notation.find_delimiters_scope loc key in
-    let pr_sc s_in = str s_in ++ spc() ++ str sc ++ pr_coma() in
+    let pr_sc s_in = str s_in ++ spc() ++ str sc ++ pr_comma() in
     Notation.pr_scope ign sc, pr_sc
   | None -> Notation.pr_scopes ign, ign in
   let qtag s_in = pr_tag_sc s_in ++ qstring tag ++ spc()in
@@ -933,7 +933,7 @@ let interp_search_notation loc tag okey =
   let sc = Option.default "" osc in
   let _ =
     let m_sc =
-      if osc <> None then str "In " ++ str sc ++ pr_coma() else mt() in
+      if osc <> None then str "In " ++ str sc ++ pr_comma() else mt() in
     let ntn_pat = trim_ntn (mk_pntn pat false) in
     let rbody = rawconstr_of_aconstr loc body in
     let m_body = hov 0 (Constrextern.without_symbols prl_rawconstr rbody) in
@@ -3781,7 +3781,7 @@ with NoMatch -> tclIDTAC gl
 
 let converse_dir = function L2R -> R2L | R2L -> L2R
 
-let rw_progress rhs lhs ise = not (eq_constr lhs (Evarutil.nf_isevar ise rhs))
+let rw_progress rhs lhs ise = not (eq_constr lhs (Evarutil.nf_evar ise rhs))
 
 (* Coq has a more general form of "equation" (any type with a single *)
 (* constructor with no arguments with_rect_r elimination lemmas).    *)
