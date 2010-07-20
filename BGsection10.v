@@ -573,6 +573,7 @@ rewrite -(card_Hall SylGP) (card_Hall Syl_P) sub_in_partn // => q _.
 by rewrite 2!inE; move/eqP=> ->.
 Qed.
 
+(* B&G 10.2(c) *)
 Theorem Msigma_sub_M' : M`_\sigma \subset M^`(1).
 Proof. exact: sub_sigma_Hall_M' Hall_M_Msigma. Qed.
 
@@ -980,4 +981,81 @@ case/primeP: (primeq)=> _; move/(_ _ xq1); rewrite order_eq1 (negbTE nex1) /=.
 by rewrite -orderE; move/eqP=> ->.
 Qed.
 
+Section Ten7.
+
+Variable gT : minSimpleOddGroupType.
+Variable p : nat.
+
+Local Notation G := (TheMinSimpleOddGroup gT).
+
+Variable P : {group gT}.
+Variable pSyl_P : p.-Sylow(G) P.
+
+Implicit Types P Q R V: {group gT}.
+
+(* better way to have ntP *)
+Corollary foo_10_7 : P :!=: 1 -> [/\
+  forall V, P ><| 'N(P) :=: V -> [~: P, V] :=: P /\ P \subset 'N(P),
+  'r(P) < 3 -> abelian P \/ exists P1, exists P2 : {group gT}, 
+     [/\ ~~ (abelian P1), logn p #|P1| = 3, exponent P1 %| p, cyclic P2 &
+         'Ohm_1(P2) :=: 'Z(P1)],
+  forall Q, Q \subset P -> forall x : gT, 
+    Q :^ x \subset P -> exists2 y,y \in 'N(P) & Q :^ x :=: Q :^ y,
+  forall Q, Q \subset P -> p.-Sylow('N(P)) 'N_P(Q) &
+  forall Q R, p.-group R -> Q \subset P :&: Q -> Q <| 'N(P) -> Q <| 'N(R) ].
+Proof.
+move=> ntP; have pP := pHall_pgroup pSyl_P.
+have prNP : 'N(P) \proper G := mFT_norm_proper ntP (mFT_pgroup_proper pP).
+have [M /= M_MNP] := mmax_exists prNP; have [M_max sNPM] := setIdP M_MNP.
+have sPM := subset_trans (normG _) sNPM.
+have pSyl_PM := pHall_subl sPM (subsetT _) pSyl_P.
+have p_sigM : p \in \sigma(M). 
+  by rewrite inE /=; apply/existsP; exists P; rewrite pSyl_PM.
+have [p_pr _ _] := pgroup_pdiv pP ntP; have pMG := mmax_proper M_max.
+have pl1M := mFT_proper_plength1 p_pr pMG; have solM := mmax_sol M_max.
+have solP := solvableS sPM solM.
+(*
+have sPO : P \subset 'O_{p^',p}(M).
+  admit.
+*)
+have thA : forall V, P ><| 'N(P) = V -> [~: P, V] = P /\ P \subset 'N(P).
+  move=> V defV.
+  have sPM' : P \subset M^`(1).
+    apply: subset_trans _ (Msigma_sub_M' M_max).
+    admit.
+  have: [~: P, V] :=: P.
+    have HallP := pHall_Hall pSyl_PM.
+    have defM : P ><| V :=: M.
+      admit.
+    by case: (solvable_hall_dprod_der_subSset_comm_centr_compl solP _ defM).
+  split=> //; apply: subset_trans _ (der_sub 1 _) => /=.
+  apply: subset_trans _ (dergS 1 (subsetIr M _)) => /=.
+  by apply: sol_Sylow_plength1_sub_norm_der _ pSyl_PM pl1M sPM'.
+split=> //.
+  move=> rP.
+  have [ V P_V ] : { V : {group gT} | [~: P, V ] == P }.
+    admit.
+  have cVP : 'C_V(P) == 1.
+    admit.
+  have pV : p^'.-group V.
+    admit.
+  have oddV : odd #|V|.
+    admit.
+  have [?]:= Blackburn_theorem pP (mFT_odd _) ntP rP P_V cVP pV oddV.
+  case; [ by left | move=>[? [? []]]; case/cprodP=> [[P1 P2 -> -> ?]]].
+  move=> [? [? [? [? [? defO1]]]]]; right; exists P1; exists P2; split=> //.
+  rewrite defO1.
+  by admit.
+  move=> Q sQP x sQxP.
+  have th66 := sol_Sylow_plength1_norm_conj solM pSyl_PM pl1M sQP _ sQxP.
+  have [_ _ _ th101] := mmax_sigma_core_nt_pgroup M_max p_sigM ntP pP.
+  case: (th66 (th101 pSyl_PM _ _)) => [|w F [y E <-]]; last exists (w * y)=>//.
+    by admit.
+  rewrite in_group // ?(subsetP (subsetIr _ _) _ E) //.
+  by admit. 
+  by admit.
+by admit.
+Admitted.  
+
+End Ten7.
 
