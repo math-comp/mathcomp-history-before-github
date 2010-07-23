@@ -8,8 +8,15 @@ Require Import BGsection6 BGsection7 BGsection8 BGsection9 BGtheorem3_6.
 (******************************************************************************)
 (*   This file covers B & G, section 10                                       *)
 (*                                                                            *)
-(*   \alpha(G) ==                                                             *)
-(*                                                                            *)
+(*   \alpha(M) == the primes p that make the p-rank of M greater than 2       *)
+(*   \beta(M)  == ideals primes in \alpha(M). A prime is ideal iff there      *)
+(*                exists a p-Sylow subgroup of the group type that us not     *)
+(*                narrow.                                                     *)
+(*   \sigma(M) == the primes p such that there exists a p-Sylow subgroup P    *)
+(*                of M whose normaliser is contained in M                     *)
+(*   M`_\alpha == the alpha_core of M, defined as 'O_\alpha(M)(M)             *)
+(*   M`_\beta  == the beta_core of M, defined as 'O_\beta(M)(M)               *)
+(*   M`_\sigma == the sigma_core of M, defined as 'O_\sigma(M)(M)             *)
 (*                                                                            *)
 (*                                                                            *)
 (******************************************************************************)
@@ -993,16 +1000,16 @@ Variable pSyl_P : p.-Sylow(G) P.
 
 Implicit Types P Q R V: {group gT}.
 
-(* better way to have ntP *)
+(* better way to have ntP *)  
 Corollary foo_10_7 : P :!=: 1 -> [/\
-  forall V, P ><| 'N(P) :=: V -> [~: P, V] :=: P /\ P \subset 'N(P),
+  forall V, P ><| V :=: 'N(P) -> [~: P, V] :=: P /\ P \subset 'N(P)^`(1),
   'r(P) < 3 -> abelian P \/ exists P1, exists P2 : {group gT}, 
-     [/\ ~~ (abelian P1), logn p #|P1| = 3, exponent P1 %| p, cyclic P2 &
-         'Ohm_1(P2) :=: 'Z(P1)],
+     [/\ ~~ (abelian P1) /\ P1 \* P2 :=: P, logn p #|P1| = 3, exponent P1 %| p,
+          cyclic P2 & 'Ohm_1(P2) :=: 'Z(P1)],
   forall Q, Q \subset P -> forall x : gT, 
     Q :^ x \subset P -> exists2 y,y \in 'N(P) & Q :^ x :=: Q :^ y,
-  forall Q, Q \subset P -> p.-Sylow('N(P)) 'N_P(Q) &
-  forall Q R, p.-group R -> Q \subset P :&: Q -> Q <| 'N(P) -> Q <| 'N(R) ].
+  forall Q, Q \subset P -> p.-Sylow('N(Q)) 'N_P(Q) &
+  forall Q R, p.-group R -> Q \subset P :&: R -> Q <| 'N(P) -> Q <| 'N(R) ].
 Proof.
 move=> ntP; have pP := pHall_pgroup pSyl_P.
 have prNP : 'N(P) \proper G := mFT_norm_proper ntP (mFT_pgroup_proper pP).
@@ -1014,48 +1021,77 @@ have p_sigM : p \in \sigma(M).
 have [p_pr _ _] := pgroup_pdiv pP ntP; have pMG := mmax_proper M_max.
 have pl1M := mFT_proper_plength1 p_pr pMG; have solM := mmax_sol M_max.
 have solP := solvableS sPM solM.
-(*
-have sPO : P \subset 'O_{p^',p}(M).
-  admit.
-*)
-have thA : forall V, P ><| 'N(P) = V -> [~: P, V] = P /\ P \subset 'N(P).
+have [defOppM defM] := sol_Sylow_plength1_pseries_pcore solM pSyl_PM pl1M.
+have sPO : P \subset 'O_{p^',p}(M) by rewrite -defOppM mulG_subl.
+have thA : forall V, P ><| V = 'N(P) -> [~: P, V] = P /\ P \subset 'N(P)^`(1).
   move=> V defV.
   have sPM' : P \subset M^`(1).
     apply: subset_trans _ (Msigma_sub_M' M_max).
-    admit.
+    (* seems to really require P <| M *)
+    apply: sigma_core_max.
+      by apply: sub_in_pnat pP => q q_piP; rewrite inE /=; move/eqP->.
+    by admit.
   have: [~: P, V] :=: P.
     have HallP := pHall_Hall pSyl_PM.
-    have defM : P ><| V :=: M.
-      admit.
-    by case: (solvable_hall_dprod_der_subSset_comm_centr_compl solP _ defM).
-  split=> //; apply: subset_trans _ (der_sub 1 _) => /=.
-  apply: subset_trans _ (dergS 1 (subsetIr M _)) => /=.
+    have defM1 : P ><| V :=: M.
+      by admit. (* as before, P <| M -> M = 'N(P) *)
+    by case: (solvable_hall_dprod_der_subSset_comm_centr_compl solP _ defM1).
+  split=> //; apply: subset_trans _ (dergS 1 (subsetIr M _)) => /=.
   by apply: sol_Sylow_plength1_sub_norm_der _ pSyl_PM pl1M sPM'.
+have thC : forall Q, Q \subset P -> forall x : gT, 
+    Q :^ x \subset P -> exists2 y,y \in 'N(P) & Q :^ x :=: Q :^ y.
+  move=> Q sQP x sQxP; have pQ : p.-group Q := pgroupS sQP pP.
+  wlog ntQ: / Q :!=: 1.
+    case: eqP => [->|_]; [ exists 1; rewrite ?in_group // | by apply ].
+    by rewrite conjsg1 conjs1g.
+  have [th101a _ _ _] := mmax_sigma_core_nt_pgroup M_max p_sigM ntQ pQ.
+  have sQM := subset_trans sQP sPM; have sQxM := subset_trans sQxP sPM.
+  have [q [u [qCQ uM defx]]] := th101a sQM _ sQxM.
+  have sQuP: Q :^ u \subset P.
+    by rewrite -(normP (subsetP (cent_sub _) _ qCQ)) -conjsgM -defx.
+  case: (sol_Sylow_plength1_norm_conj _ _ pl1M sQP uM)=>// q' q'CQ [y yNP defu].
+  exists y; first by rewrite (subsetP (subsetIr _ _) _ yNP).
+  rewrite defx -defu !conjsgM (normP (subsetP (cent_sub _) _ qCQ)).
+  by case/setIP: q'CQ => _ q'CQ; rewrite (normP (subsetP (cent_sub _) _ q'CQ)).
 split=> //.
-  move=> rP.
-  have [ V P_V ] : { V : {group gT} | [~: P, V ] == P }.
+  move=> rP. 
+  have [V [defNP trivCP]]: { V : {group gT} | P ><| V = 'N(P) /\ 'C_V(P) == 1 }.
     admit.
-  have cVP : 'C_V(P) == 1.
-    admit.
+  have defP : [~: P, V] == P by case: (thA _ defNP); move/eqP.
   have pV : p^'.-group V.
-    admit.
-  have oddV : odd #|V|.
-    admit.
-  have [?]:= Blackburn_theorem pP (mFT_odd _) ntP rP P_V cVP pV oddV.
-  case; [ by left | move=>[? [? []]]; case/cprodP=> [[P1 P2 -> -> ?]]].
-  move=> [? [? [? [? [? defO1]]]]]; right; exists P1; exists P2; split=> //.
-  rewrite defO1.
-  by admit.
-  move=> Q sQP x sQxP.
-  have th66 := sol_Sylow_plength1_norm_conj solM pSyl_PM pl1M sQP _ sQxP.
-  have [_ _ _ th101] := mmax_sigma_core_nt_pgroup M_max p_sigM ntP pP.
-  case: (th66 (th101 pSyl_PM _ _)) => [|w F [y E <-]]; last exists (w * y)=>//.
+    (* if P <| M ... SchurZassenhaus_split *)
     by admit.
-  rewrite in_group // ?(subsetP (subsetIr _ _) _ E) //.
-  by admit. 
+  have [?]:= Blackburn_theorem pP (mFT_odd _) ntP rP defP trivCP pV (mFT_odd _).
+  case; [ by left | move=>[? [? []]]; case/cprodP=> [[P1 P2 -> -> def_P]]].
+  move=> [? [? [lcP [? [? defO1]]]]]; right; exists P1; exists P2; split=> //.
+    by split => //; rewrite -def_P cprodE.
+  have pP1 : p.-group P1 by rewrite (pgroupS _ pP) // -def_P mulg_subl.
+  apply/eqP; rewrite defO1 eqEsubset -nil_class2.
+  by admit. (* hum, something to do with critical? *)
+  move=> Q sQP; have [S /= pSyl_S] := Sylow_exists p 'N(Q).
+  have [x _] := Sylow_subJ pSyl_P (subsetT _) (pHall_pgroup pSyl_S).
+  rewrite -sub_conjgV => sSxP.
+  have sQxP : Q :^ x^-1 \subset P.
+    by admit.
+  have [y yNP defQy] := thC _ sQP _ sQxP.
+  have xyNQ : (x^-1 * y^-1) \in 'N(Q).
+    by apply/normP; rewrite conjsgM defQy -conjsgM mulgV conjsg1.
+  have sSxyP : S :^ (x^-1 * y^-1) \subset P.
+    by rewrite conjsgM sub_conjgV (normP yNP).
+  move: (pSyl_S); rewrite -(pHallJ _ _ xyNQ) /= => pSyl_Sxy.
+  (* maybe apply: (HallSubnormal solM) => //. *)
   by admit.
-by admit.
-Admitted.  
+move=> Q R pR; rewrite subsetI; case/andP=> sQP sQR; case/andP=> nQP sNPNQ.
+rewrite /normal (subset_trans sQR (normG _)); apply/subsetP=> y yNR.
+have [x _] := Sylow_subJ pSyl_P (subsetT _) pR; rewrite -sub_conjgV => sRxP.
+move/normP: (yNR) => defRy; move: (sRxP); rewrite -defRy -conjsgM => sRyxP.
+have sQxP : Q :^ x^-1 \subset P by apply: subset_trans _ sRxP; rewrite conjSg.
+have sQyxP: Q :^ (y * x^-1) \subset P by rewrite (subset_trans _ sRyxP) ?conjSg.
+have [[z zNP defQz][t tNP defQx]] := (thC _ sQP _ sQyxP, thC _ sQP _ sQxP).
+move/normP: (subsetP sNPNQ _ zNP); move/normP: (subsetP sNPNQ _ tNP).
+rewrite -defQx -defQz; move/normP=> xNQ; move/normP=> yxNQ.
+by rewrite -(groupMr _ xNQ).
+Qed.
 
 End Ten7.
 
