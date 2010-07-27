@@ -1,4 +1,4 @@
-(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
+ (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import fintype finset prime groups morphisms perm action automorphism.
 Require Import normal cyclic gfunc pgroups gprod center commutators nilpotent.
@@ -14,6 +14,7 @@ Require Import BGsection4.
 (*                  be extended (non standard definition, corresponds to      *)
 (*                  \pi* of FT p 845)                                         *)
 (*               := 'E_p^2(G) :&: 'E*_p(G) != set0                            *)
+(*                  note that for B&G G is narrow even if 'r_p(G) <= 2        *)
 (******************************************************************************)
 
 Set Implicit Arguments.
@@ -745,13 +746,29 @@ by exists (f @* E)%G; rewrite inE ?(injm_pnElem, injm_pmaxElem) // Ep2 Emax.
 Qed.
 
 (* B&G 5.6(a,c) *)
+Let odd_r2_complement_max_pdiv : 
+    forall (gT : finGroupType) (G S : {group gT}) p, 
+    odd #|G| -> 'r_p(S) <= 2 -> 
+    solvable G -> p.-Sylow(G) S -> 
+  p^'.-Hall(G^`(1)) 'O_p^'(G^`(1)) /\
+  forall q, prime q -> q %| #|G / 'O_p^'(G)| -> q <= p.
+Proof.
+move=> gT G S p oddG rS solG psylS.
+have rG : 'r_p(G) <= 2 by rewrite (p_rank_Sylow psylS).
+split; last exact: rank2_max_pdiv.
+by case: (rank2_pdiv_compl_der_abelian_p'group solG _ rG).
+Qed.
+
 Theorem odd_narrow_plength1_complement_max_pdiv : 
     forall (gT : finGroupType) (G S : {group gT}) p, 
-    odd #|G| -> p.-narrow S -> solvable G -> p.-Sylow(G) S -> p.-length_1 G -> 
-  (forall q, prime q -> q %| #|G / 'O_p^'(G)| -> q <= p) /\
-  p^'.-Hall(G^`(1)) 'O_p^'(G^`(1)). 
+    odd #|G| -> solvable G -> p.-Sylow(G) S -> 
+    (2 < 'r_p(S)) ==> (p.-narrow S && p.-length_1 G) -> 
+  p^'.-Hall(G^`(1)) 'O_p^'(G^`(1)) /\
+  forall q, prime q -> q %| #|G / 'O_p^'(G)| -> q <= p.
 Proof.
-move=> gT G S p oddG narS solG psylS pl1G.
+move=> gT G S p oddG solG psylS nar_pl1G.
+case: (leqP 'r_p(S) 2) => rS; first exact: odd_r2_complement_max_pdiv _ rS _ _.
+rewrite rS /= in nar_pl1G; case/andP: nar_pl1G=> narS pl1G {rS}.
 wlog trivK : gT G S p oddG narS solG psylS pl1G / 'O_p^'(G) = 1.
   set K := 'O_p^'(G); have nKG : G \subset 'N(K) := char_norm (pcore_char _ _).
   move/(_ _ (G / K)%G 'O_p(G / K)%G p).
@@ -765,8 +782,8 @@ wlog trivK : gT G S p oddG narS solG psylS pl1G / 'O_p^'(G) = 1.
       by rewrite -{2}(setIidPr (subxx S)) ?(sub_isog (subxx _) (injm_conj S x)).
     apply: coprime_TIg (pnat_coprime _ (pcore_pgroup _ _)).
     by rewrite cardJg [_.-nat _](pHall_pgroup psylS).
-  move/(_ _ (isog_narrow iso narS)); do 5 move/(_ (refl_equal _)); case.
-  rewrite -(isog_card (quotient1_isog _)) => leqp hall; split => //; move: hall.
+  rewrite (isog_narrow iso narS); do 6 move/(_ (refl_equal _)); case.
+  rewrite -(isog_card (quotient1_isog _)) => hall leqp; split => //; move: hall.
   have nKG' : G^`(1) \subset 'N(K) := subset_trans (der_sub _ _) nKG.
   move: (second_isog nKG') => /= iso2. 
   have pKI := pgroupS (subsetIl _ G^`(1)) (pcore_pgroup p^' G).
@@ -777,9 +794,7 @@ wlog trivK : gT G S p oddG narS solG psylS pl1G / 'O_p^'(G) = 1.
   by rewrite (isog_card iso2) (isog_card (bgFunc_isog (bgFunc_pcore p^') iso2)).
 have [sSG pS _] := and3P psylS; have oddS := oddSg sSG oddG.
 case: (leqP 'r(S) 2) => rS.
-  have rG : 'r_p(G) <= 2 by rewrite (p_rank_Sylow psylS) -rank_pgroup ?pS.
-  split; first exact: rank2_max_pdiv.
-  by case: (rank2_pdiv_compl_der_abelian_p'group solG _ rG).
+  by apply: (@odd_r2_complement_max_pdiv _ _ S) => //; rewrite -rank_pgroup.
 have pr_p : prime p.
   by case: (pgroup_pdiv pS) => //; case: eqP (rank1 gT) rS => // -> ->.
 have psylO: p.-Sylow(G) 'O_p(G).
@@ -797,7 +812,7 @@ have pkJS : p.-group ('ker JS).
 have solJG := morphim_sol JS solG; have ? := morphim_odd JS oddG.
 case: (narrow_solvable_Aut pS _ _ solJG) => //= [|_ aJG Dpm1].
    by rewrite morphim_restrm Aut_conj_aut.
-split => [q pr_q qd|]; last first.
+split => [|q pr_q qd].
   apply: nilpotent_pcore_Hall (@pgroup_nil _ p _ _).
   rewrite -(pmorphim_pgroup pkJS) ?der_sub // morphim_der //.
   exact: pgroupS (der1_min (char_norm (pcore_char _ _)) aJG) (pcore_pgroup _ _).
