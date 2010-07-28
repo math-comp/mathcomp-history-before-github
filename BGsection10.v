@@ -1186,7 +1186,6 @@ by rewrite /= (normP _) // -/p (subsetP _ _ xG') ?char_norm ?pcore_char.
     by apply: contra n_pB; move/(@eqP _ x p)=> <-. *)
     by admit.
   split=> //; rewrite defMB in bHall_MB => //; first by apply: Hall_G_Mbeta.
-Search _ pHall nilpotent pcore. 
   (*rewrite pHallE pcore_sub /= -pcoreI eqn_dvd; apply/andP; split.
     apply/dvdn_partP; rewrite ?cardG_gt0 // => x.
     rewrite inE /= -(part_pnat_id (pcore_pgroup _ _)) primes_part mem_filter /=.
@@ -1202,7 +1201,7 @@ move=> thAC; split; last by move=> p pr_p n_pB; case: (thAC _ pr_p n_pB).
     by admit. (* Markov? fintype of \pi(M) + existsb? *)
   by case: (thAC _ pr_p np_B).
 have nilQ : nilpotent (M^`(1) / M`_\beta).
-  admit.
+  by admit. (* maybe bigdprod_nil *)
 move=> H pHall_H.
 have ti_HMb : H :&: M`_\beta :=: 1.
   apply: coprime_TIg; rewrite coprime_sym (pnat_coprime (pcore_pgroup _ _)) //.
@@ -1225,35 +1224,90 @@ Corollary foo_10_9a :
           exists2 P : {group gT}, p.-Sylow(M^`(1)) P  & P \subset 'N_M(X)^`(1)].
 Proof.
 move=> p q pr_p pr_q neq_pq pB' qB' X; case/andP=> sXM qX XM'.
-pose pq := [pred x | (x == p) || (x == q) ].
-have [W pHall_W sXW]: exists2 W:{group gT},pq.-Hall(X * M^`(1)) W & X \subset W.
-  by admit.
-have [Ws pHall_Ws sWWs]: exists2 Ws:{group gT}, \beta(M)^'.-Hall(X <*> M^`(1)) Ws & W \subset Ws.
-  by admit.
+pose pq := [pred x | (x == p) || (x == q) ]; have solM := mmax_sol M_max.
+have sXM'M : (X <*> M^`(1)) \subset M by rewrite mulgen_subG sXM der_sub.
+have solXM' : solvable (X <*> M^`(1)) := solvableS sXM'M solM.
+have pqX : pq.-group X.
+  apply: sub_in_pnat _ qX => x _; move/(@eqP _ x q); rewrite inE /= => ->.
+  by rewrite orbC eqxx.
+have [W /= pqHall_W sXW {pqX}] := HallSubset solXM' (mulgen_subl _ _) pqX.
+have b'W :  \beta(M)^'.-group W.
+  apply/pgroupP=> x pr_x xd; move: (pgroupP (pHall_pgroup pqHall_W) x pr_x xd).
+  rewrite 3!inE /=; apply: contraL; rewrite negb_or => xB.
+  by case: eqP xB pB'=> [-> -> //|_ xB]; case: eqP xB qB' => // -> ->.
+have [Ws /= b'Hall_Ws sWWs {b'W}]:=  HallSubset solXM' (pHall_sub pqHall_W) b'W.
 have nilWM' : nilpotent (W :&: M^`(1)).
   apply: nilpotentS (setSI _ sWWs) _; have [_ th108 _] := foo_10_8.
-  apply: th108 => /=; rewrite (HallSubnormal _ _ pHall_Ws) //=; last first.
-    rewrite /normal mulgen_subr (subset_trans _ (char_norm (der_char _ _))) //.
-    by rewrite mulgen_subG der_sub sXM.
-  by apply: solvableS _ (mmax_sol M_max); rewrite mulgen_subG der_sub sXM.
+  apply: th108 => /=; rewrite (HallSubnormal _ _ b'Hall_Ws) //=.
+  by rewrite /normal mulgen_subr (subset_trans _ (char_norm (der_char _ _))).
+have sWM := subset_trans sWWs (subset_trans (pHall_sub b'Hall_Ws) sXM'M).
 have nilW : nilpotent W.
   case/orP: XM' => [sXM'|lt_pq].
     rewrite ((W :=P: W :&: M^`(1)) _) // eqEsubset subsetIl subsetI subxx.
-    by rewrite -(mulSGid sXM') /= (pHall_sub pHall_W).
-  by admit.
-have part1 : exists2 P : {group gT}, p.-Sylow(M`_\sigma) P & X \subset 'C(P).
-  exists (W :&: M`_\sigma)%G.
-    rewrite pHallE subsetIr.
+    rewrite -(mulSGid sXM') -norm_mulgenEl ?(pHall_sub pqHall_W) //=.
+    by rewrite (subset_trans sXM) // der_norm.
+  have [_ _] := foo_10_8; move/(_ _ pr_p pB')=> [_ _]; move/(_ _ pr_q).
+  case E: (_ %| _); first by rewrite leqNgt lt_pq; move/(_ (erefl _)).
+  (* bug in equation generation + =>. try to add =>[|_] *)
+  have nWOW : W \subset 'N('O_p^'(M) :&: W).
+    rewrite normsI ?normG // (subset_trans (pHall_sub pqHall_W)) //. 
+    by rewrite (subset_trans sXM'M) // bgFunc_norm.
+  have qSyl_WO : q.-Sylow(W) ('O_p^'(M) :&: W).
+    rewrite pHallE subsetIr /=.
+    by admit. (* follows from E *)
+  have qWWM' : q.-group (W / (M^`(1) :&: W)).
+    have nM'W : W \subset 'N(M^`(1)) by rewrite (subset_trans sWM) ?der_norm.
+    rewrite /pgroup (isog_card (second_isog _)) //. 
+    rewrite [_.-nat _](pgroupS (quotientS _ (pHall_sub pqHall_W))) //=.
+    by rewrite (quotient_mulgen (subset_trans sXW nM'W)) quotient_pgroup // qX.
+  have pSyl_OWM' : p.-Sylow(W) 'O_p(M^`(1) :&: W).
+    by admit.    
+  have nOWM'W : W \subset 'N('O_p(M^`(1) :&: W)).
     by admit.
-  by admit.  
-split => //.
-  move=> p_q; apply: centraliser_alpha'_subgroup_unique => //.
+  by admit. (* dprod_nil? *)
+have pqHall_WMs : pq.-Hall(M`_\sigma) (W :&: M`_\sigma).
+  apply: HallSubnormal solXM' _ pqHall_W.
+  rewrite /normal (subset_trans (Msigma_sub_M' M_max)) ?mulgen_subr //=.
+  by rewrite (subset_trans sXM'M) // (char_norm (pcore_char _ _)).
+have sXCWMs : X \subset 'C(W :&: M`_\sigma).
   by admit.
+split; first exists (W :&: M`_\sigma)%G => //.
+  by admit.
+  move=> p_q; apply: centraliser_alpha'_subgroup_unique => //.
+    by admit.
   by admit.
 move=> qSyl_X.
 have defX : 'O_q(Ws) :=: X.
   by admit.
-by admit.
+have defM' : M`_\beta <*> Ws :=: M^`(1).
+  by admit.
+have nMbXM : M`_\beta <*> X <| M.
+  pose bq := [pred x | (x \in \beta(M)) || (x == q)].
+  rewrite ((M`_\beta <*> X :=P: 'O_bq(M^`(1))) _).
+    exact: char_normal_trans (pcore_char _ _) (der_normal 1 _).
+  by admit.
+pose U := 'N_M(X).
+have defM : M :=: M`_\beta * U.
+  have sXNMX : X \subset U by rewrite subsetI sXM normG.
+  rewrite /U -(mulSGid sXNMX) /= -/U mulgA -norm_mulgenEr; last first.
+    by rewrite (subset_trans sXM) // char_norm ?pcore_char.
+  have qSyl_XMbX : q.-Sylow(M`_\beta <*> X) X.
+    apply: pHall_subl _ qSyl_X; rewrite /= ?mulgen_subr // -defM'.
+    rewrite mulgen_subG mulgen_subl (subset_trans (subset_trans sXW sWWs)) //.
+    exact: mulgen_subr.
+  by rewrite (Frattini_arg nMbXM qSyl_XMbX). 
+have sOWU : 'O_p(W) \subset U.
+  rewrite subsetI (subset_trans (pcore_sub _ _)) ?sWM //=.
+  by admit.
+have pSyl_OW : p.-Sylow(M^`(1)) 'O_p(W).
+  by admit.
+have cop : coprime #|'O_p(W)| #|M`_\beta|.
+  apply: pnat_coprime (pcore_pgroup _ _) _; apply/pgroupP=> x pr_x xd; rewrite inE /=.
+  apply/negP; move/(@eqP _ x p) => defx; rewrite defx in xd pr_x.
+  by move: (pgroupP (pcore_pgroup \beta(M) M) _ pr_x xd) => abs; rewrite abs in pB'.
+have:= prod_norm_coprime_subs_derI (sym_eq defM) (pcore_normal _ _) sOWU cop.
+rewrite (setIidPl (pHall_sub pSyl_OW)) /= -/U => defOW.
+by move/setIidPl: (sym_eq defOW) => sOWU'; exists 'O_p(W)%G.
 Admitted.
 
 Corollary foo_10_9b : 
