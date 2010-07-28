@@ -1281,6 +1281,9 @@ have defX : 'O_q(Ws) :=: X.
   by admit.
 have defM' : M`_\beta <*> Ws :=: M^`(1).
   by admit.
+have sMbXMbWs : M`_\beta <*> X \subset M`_\beta <*> Ws.
+  rewrite mulgen_subG mulgen_subl // (subset_trans _ (mulgen_subr _ _)) //.
+  exact: subset_trans sXW sWWs.
 have nMbXM : M`_\beta <*> X <| M.
   pose bq := [pred x | (x \in \beta(M)) || (x == q)].
   rewrite ((M`_\beta <*> X :=P: 'O_bq(M^`(1))) _).
@@ -1291,20 +1294,17 @@ have defM : M :=: M`_\beta * U.
   have sXNMX : X \subset U by rewrite subsetI sXM normG.
   rewrite /U -(mulSGid sXNMX) /= -/U mulgA -norm_mulgenEr; last first.
     by rewrite (subset_trans sXM) // char_norm ?pcore_char.
-  have qSyl_XMbX : q.-Sylow(M`_\beta <*> X) X.
-    apply: pHall_subl _ qSyl_X; rewrite /= ?mulgen_subr // -defM'.
-    rewrite mulgen_subG mulgen_subl (subset_trans (subset_trans sXW sWWs)) //.
-    exact: mulgen_subr.
-  by rewrite (Frattini_arg nMbXM qSyl_XMbX). 
+  by rewrite (Frattini_arg _ (pHall_subl _ _ qSyl_X)) ?mulgen_subr /= -?defM'.
 have sOWU : 'O_p(W) \subset U.
   rewrite subsetI (subset_trans (pcore_sub _ _)) ?sWM //=.
   by admit.
 have pSyl_OW : p.-Sylow(M^`(1)) 'O_p(W).
   by admit.
 have cop : coprime #|'O_p(W)| #|M`_\beta|.
-  apply: pnat_coprime (pcore_pgroup _ _) _; apply/pgroupP=> x pr_x xd; rewrite inE /=.
-  apply/negP; move/(@eqP _ x p) => defx; rewrite defx in xd pr_x.
-  by move: (pgroupP (pcore_pgroup \beta(M) M) _ pr_x xd) => abs; rewrite abs in pB'.
+  apply: pnat_coprime (pcore_pgroup _ _) _; apply/pgroupP=> x pr_x xd.
+  rewrite inE /=; apply/negP; move/(@eqP _ x p) => defx.
+  rewrite defx in xd pr_x; move: (pgroupP (pcore_pgroup \beta(M) M) _ pr_x xd).
+  by move => abs; rewrite abs in pB'.
 have:= prod_norm_coprime_subs_derI (sym_eq defM) (pcore_normal _ _) sOWU cop.
 rewrite (setIidPl (pHall_sub pSyl_OW)) /= -/U => defOW.
 by move/setIidPl: (sym_eq defOW) => sOWU'; exists 'O_p(W)%G.
