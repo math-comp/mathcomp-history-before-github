@@ -64,6 +64,5 @@ alt.v
 burnside_app.v
 
 
-#COQC = $(COQBIN)ssrcoq
-COQC = /home/tassi/bin/ssrcoq.sh
+COQC = $(COQBIN)ssrcoq
 COQFLAGS = "-q $(OPT) -dont-load-proofs $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -compile"
