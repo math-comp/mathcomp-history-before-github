@@ -152,17 +152,6 @@ Proof. by move=> x p; rewrite !inE /= p_rankJ. Qed.
 Lemma alpha_coreJ : forall x, (G :^ x)`_\alpha = G`_\alpha :^ x.
 Proof. by move=> x; rewrite /alpha_core -(eq_pcore G (alphaJ x)) pcoreJ. Qed.
 
-End CoreTheory.
-
-Section Ten.
-
-Variable gT : minSimpleOddGroupType.
-Implicit Type p : nat.
-
-Local Notation G := (TheMinSimpleOddGroup gT).
-
-Implicit Type M : {group gT}.
-
 Variable M : {group gT}.
 Hypothesis M_max : M \in 'M.
 
@@ -187,7 +176,7 @@ Proof. exact: sub_pcore beta_sub_alpha. Qed.
 Lemma Malpha_sub_Msigma : M`_\alpha \subset M`_\sigma.
 Proof. exact: sub_pcore alpha_sub_sigma. Qed.
 
-Implicit Type P X: {group gT}.
+Implicit Type P: {group gT}.
 
 Lemma norm_Sylow_sigma : 
   forall p P, p \in \sigma(M) -> p.-Sylow(M) P -> 'N(P) \subset M.
@@ -197,22 +186,21 @@ by case: (Sylow_trans pSyl_Q pSyl_P) => m mM ->; rewrite normJ conj_subG.
 Qed.
 
 Lemma Sylow_Sylow_sigma : 
-  forall p P, p \in \sigma(M) -> p.-Sylow(M) P -> p.-Sylow(G) P.
+  forall p P, p \in \sigma(M) -> p.-Sylow(M) P -> p.-Sylow([set: gT]) P.
 Proof.
 move=> p P p_Sig pSyl_P; apply: (mmax_sigma_Sylow M_max) => //.
 exact: norm_Sylow_sigma p_Sig pSyl_P.
 Qed.
 
-End Ten.
+End CoreTheory.
 
-Section Ten1.
+Section Ten.
 
 Variable gT : minSimpleOddGroupType.
-Implicit Type p : nat.
-
 Local Notation G := (TheMinSimpleOddGroup gT).
 
-Implicit Type M N X : {group gT}.
+Implicit Type p : nat.
+Implicit Type H P Q W M N X : {group gT}.
 
 Let hide T (x : T) := x.
 Local Notation "'hide T" := (hide T) (at level 99, only parsing).
@@ -398,15 +386,6 @@ move/eqP;  rewrite -(inj_eq (@conjsg_inj _ d^-1)).
 by rewrite -!conjsgM mulgV conjsg1 !mulgA; move/eqP=> <-.
 Qed.
 
-End Ten1.
-
-Section Ten2.
-
-Variable gT : minSimpleOddGroupType.
-Implicit Type p : nat.
-
-Local Notation G := (TheMinSimpleOddGroup gT).
-
 Variable M : {group gT}.
 Hypothesis M_max : M \in 'M.
 
@@ -502,6 +481,7 @@ rewrite quotient_der ?(normal_norm nsMalpha_M) //=.
 by rewrite rank2_der1_sub_Fitting // ?mFT_quo_odd // quotient_sol.
 Qed.
 
+(* This is B & G 10.2(a1) *) 
 Theorem Hall_M_Malpha : \alpha(M).-Hall(M) M`_\alpha.
 Proof.
 have [Ma alpha_Hall_Ma] := HallExist \alpha(M) M_sol.
@@ -523,6 +503,7 @@ have eMa_Malpha : Ma :=: M`_\alpha.
 by rewrite -eMa_Malpha.
 Qed.
 
+(* This is B & G 10.2(a2) *) 
 Theorem Hall_G_Malpha : \alpha(M).-Hall(G) M`_\alpha.
 Proof.
 rewrite pHallE subsetT /= (card_Hall Hall_M_Malpha) eqn_dvd.
@@ -537,6 +518,7 @@ rewrite -(card_Hall SylGP) (card_Hall Syl_P) sub_in_partn // => q _.
 by rewrite 2!inE; move/eqP=> ->.
 Qed.
 
+(* This is B & G 10.2(b1) *) 
 Theorem Hall_M_Msigma : \sigma(M).-Hall(M) M`_\sigma.
 Proof. 
 have [sMa_M alpha_Ma _] := and3P Hall_M_Malpha.
@@ -562,6 +544,7 @@ have {sMsigma_Ms} eMs_Msigma : Ms :=: M`_\sigma.
 by rewrite -eMs_Msigma.
 Qed.
 
+(* This is B & G 10.2(b2) *) 
 Theorem Hall_G_Msigma : \sigma(M).-Hall(G) M`_\sigma.
 Proof. 
 rewrite pHallE subsetT /= (card_Hall Hall_M_Msigma) eqn_dvd.
@@ -576,7 +559,7 @@ rewrite -(card_Hall SylGP) (card_Hall Syl_P) sub_in_partn // => q _.
 by rewrite 2!inE; move/eqP=> ->.
 Qed.
 
-(* B&G 10.2(c) *)
+(* This is B & G 10.2(c) *)
 Theorem Msigma_sub_M' : M`_\sigma \subset M^`(1).
 Proof. exact: sub_sigma_Hall_M' Hall_M_Msigma. Qed.
 
@@ -587,6 +570,7 @@ rewrite (card_Hall Hall_M_Malpha) -{1}(@partnC \alpha(M) #|M|) ?cardG_gt0 //.
 by rewrite mulKn ?cardG_gt0 // part_pnat.
 Qed.
 
+(* This is B & G 10.2(d1) *)
 Theorem rank_MMalpha_le2 : 'r(M / M`_\alpha) <= 2.
 Proof.
 have [p primep ->] := rank_witness (M / M`_\alpha).
@@ -609,9 +593,11 @@ rewrite (p_rank_Sylow pSyl_PMalpha) /= -(isog_p_rank isogP).
 by rewrite -(p_rank_Sylow pSylP).
 Qed.
 
+(* This is B & G 10.2(d2) *)
 Theorem nil_M'Malpha : nilpotent (M^`(1) / M`_\alpha).
 Proof. by rewrite (nilpotentS M'Malpha_sub_F) // Fitting_nil. Qed.
 
+(* This is B & G 10.2(e) *)
 Theorem Msigma_neq1 : M`_\sigma :!=: 1.
 Proof. 
 case: (eqsVneq M`_\alpha 1)=> [eMalpha1|]; last first.
@@ -635,21 +621,6 @@ apply: contra _ neOqM_1; rewrite -!subG1; apply: subset_trans.
 rewrite sub_pcore // => p; rewrite 2!inE; move/eqP=> ->.
 by rewrite !inE; apply/existsP; exists ('O_q(M))%G; rewrite qSyl eNOqM_M subxx.
 Qed.
-
-End Ten2.
-
-Section Ten3. 
-
-Variable gT : minSimpleOddGroupType.
-Implicit Type p : nat.
-
-Local Notation G := (TheMinSimpleOddGroup gT).
-
-Variable M : {group gT}.
-Hypothesis M_max : M \in 'M.
-
-Let M_proper := mmax_proper M_max.
-Let M_sol := mmax_sol M_max.
 
 Let nsMaM : M`_\alpha <| M.
 Proof. by apply: pcore_normal. Qed.
@@ -718,7 +689,7 @@ have cPX : P \subset 'C(X).
   by rewrite expg_order /=.
 have pSylMP : p.-Sylow(M) P.
   rewrite pHallE (subset_trans (pHall_sub pSylP) (normal_sub nsMaM)) /=.
-  rewrite (card_Hall pSylP) (card_Hall (Hall_M_Malpha M_max)) partn_part // =>q.
+  rewrite (card_Hall pSylP) (card_Hall Hall_M_Malpha) partn_part // =>q.
   by rewrite 2!inE; move/eqP=> ->.
 have rP : 'r(P) >= 3.
   rewrite (rank_pgroup (pHall_pgroup pSylP)) -(p_rank_Sylow pSylMP).
@@ -728,9 +699,8 @@ apply: rank3_Uniqueness.
 by rewrite (leq_trans rP) // rankS // subsetI cPX andbT (pHall_sub pSylMP).
 Qed.
 
-Variable (p : nat). 
-
-Hypothesis (piMp : p \in \pi(#|M|)).
+Variable p : nat.
+Variable piMp : p \in \pi(#|M|).
 
 (* This is B & G, Lemma 10.4a *)
 Lemma pdiv_M_M' : p %| #|M / M^`(1)| -> p \in \sigma(M)^'.
@@ -744,20 +714,20 @@ suff : \sigma(M)^'.-group (M / M`_\sigma).
     by rewrite ?(normal_norm (pcore_normal _ _)). 
   by rewrite indexgS // Msigma_sub_M'.
 rewrite /pgroup card_quotient ?normal_norm ?pcore_normal //. 
-rewrite -divgS ?pcore_sub // (card_Hall (Hall_M_Msigma _)) //.
+rewrite -divgS ?pcore_sub // (card_Hall Hall_M_Msigma) //.
 rewrite -{1}(@partnC \sigma(M) #|M|) ?cardG_gt0 // mulKn ?cardG_gt0 //. 
 by rewrite part_pnat.
 Qed.
 
-Hypothesis (sigma'p : p \in \sigma(M)^'). 
+Variable sigma'p : p \in \sigma(M)^'.
 
 (* This is B & G, Lemma 10.4b *)
 (* Curiously, the hypothesis M'_\alpha != 1 in the text is not needed. *)
-Lemma sigma'_exists_Zgroup : forall (P : {group gT}), p.-Sylow(M) P ->
+Lemma sigma'_exists_Zgroup : forall P, p.-Sylow(M) P -> 
   exists x, [/\ x \in 'Ohm_1('Z(P))^#, 'M('C_G[x]) != [set M] & 
     Zgroup ('C_(M`_\alpha)[x])].
 Proof.
-move=> P SylP; move: sigma'p; rewrite !inE negb_exists_in; move/forallP.
+move=> P SylP; move: (sigma'p); rewrite !inE negb_exists_in; move/forallP.
 move/(_ P); move/implyP; move/(_ SylP); case/subsetPn=> u NPu nMu.
 have : 'Ohm_1('Z(P)) != 1.
   apply/negP; move/eqP; rewrite -(setIidPr (Ohm_sub 1 'Z(P))) /=.
@@ -806,7 +776,8 @@ by move/(congr1 val)=> /=; move/normP; rewrite norm_mmax // groupV.
 Qed.
 
 (* This is B & G, Lemma 10.4c, part 1 *)
-Lemma sigma'_prank2_Ep2_sub : 'r_p(M) = 2 -> 'E_p^2(M) \subset 'E*_p(G).
+Lemma sigma'_prank2_Ep2_sub : 
+  'r_p(M) = 2 -> 'E_p^2(M) \subset 'E*_p(G).
 Proof.
 move=> rpM; apply: contraR sigma'p; case/subsetPn=> A Ep2MA EpGA.
 have uniqA : A \in 'U.
@@ -820,7 +791,8 @@ by apply: (sub_proper_trans (pHall_sub pSylMP)).
 Qed.
 
 (* This is B & G, Lemma 10.4c, part 2; is this the right statement? *)
-Lemma sigma'_prank2_Ep2_EpG : 'r_p(M) = 2 -> ('E_p^2(M) :&: 'E*_p(G)) != set0.
+Lemma sigma'_prank2_Ep2_EpG : 
+  'r_p(M) = 2 -> ('E_p^2(M) :&: 'E*_p(G)) != set0.
 Proof. 
 move=> rpM; apply/set0Pn.
 case: (p_rank_geP (_ : 2 <= 'r_p(M)))=> [|A Ep2A]; rewrite ?rpM //=.
@@ -855,8 +827,7 @@ Qed.
 
 (* The second claim in B & G 10.5 follows immediately from 10.4c. This is
    the remaining part of the lemma. *)
-Lemma sigma'_Ep1G_exists_Ep2G : forall X, 
-  X \in 'E_p^1(G) -> 'N(X) \subset M -> 
+Lemma sigma'_Ep1G_exists_Ep2G : forall X, X \in 'E_p^1(G) -> 'N(X) \subset M -> 
     exists A, A \in 'E_p^2(G) /\ (X \subset A).
 Proof.
 move=> X Ep1GX sNXM; have sXM := subset_trans (normG _) sNXM.
@@ -898,14 +869,21 @@ rewrite trivg_card1 -(part_pnat_id pOZP) p_part.
 by move: (properG_ltn_log pX propOZPX); rewrite lcardX ltnS leqn0; move/eqP=>->.
 Qed.
 
-End Ten3.
+End Ten.
+
+Section TenBis.
+
+Variable gT : minSimpleOddGroupType.
+Local Notation G := (TheMinSimpleOddGroup gT).
+
+Implicit Type p : nat.
+Implicit Type H P Q R V W M N X : {group gT}.
 
 (* This is B & G, Theorem 10.6 *)
-Theorem mFT_proper_plength1 : 
-  forall (gT : minSimpleOddGroupType) (H : {group gT}) p, 
-    prime p -> H \proper [set: gT] -> p.-length_1 H. 
+Theorem mFT_proper_plength1 : forall p H,
+  prime p -> H \proper G -> p.-length_1 H. 
 Proof.
-move=> gT H p primep pHG; have [M] := mmax_exists pHG; rewrite inE.
+move=> p H primep pHG; have [M] := mmax_exists pHG; rewrite inE.
 case/andP=> maxM sHM {pHG}; suff {H sHM}: p.-length_1 M by apply: plength1S.
 case rpM: ('r_p(M) <= 2).
   case: (rank2_pdiv_compl_der_abelian_p'group (mmax_sol maxM) (mFT_odd _) rpM).
@@ -984,30 +962,19 @@ case/primeP: (primeq)=> _; move/(_ _ xq1); rewrite order_eq1 (negbTE nex1) /=.
 by rewrite -orderE; move/eqP=> ->.
 Qed.
 
-Section Ten7.
-
-Variable gT : minSimpleOddGroupType.
-Variable p : nat.
-
-Local Notation G := (TheMinSimpleOddGroup gT).
-
-Variable P : {group gT}.
-Variable pSyl_P : p.-Sylow(G) P.
-
-Implicit Types P Q R V: {group gT}.
-
-(* better way to have ntP *)  
-Corollary foo_10_7 : P :!=: 1 -> [/\
-  forall V, P ><| V :=: 'N(P) -> [~: P, V] :=: P /\ P \subset 'N(P)^`(1),
-  'r(P) < 3 -> abelian P \/ exists P1, exists P2 : {group gT}, 
-     [/\ ~~ (abelian P1) /\ P1 \* P2 :=: P, logn p #|P1| = 3, exponent P1 %| p,
-          cyclic P2 & 'Ohm_1(P2) :=: 'Z(P1)],
+Let pSylow_norm_split_sub_norm_der1_commg_norm_sub :
+    forall p P, p.-Sylow(G) P -> [/\
+  P \subset 'N(P)^`(1),
+  forall V, P ><| V :=: 'N(P) -> [~: P, V] :=: P &
   forall Q, Q \subset P -> forall x : gT, 
-    Q :^ x \subset P -> exists2 y,y \in 'N(P) & Q :^ x :=: Q :^ y,
-  forall Q, Q \subset P -> p.-Sylow('N(Q)) 'N_P(Q) &
-  forall Q R, p.-group R -> Q \subset P :&: R -> Q <| 'N(P) -> Q <| 'N(R) ].
+    Q :^ x \subset P -> exists2 y,y \in 'N(P) & Q :^ x :=: Q :^ y].
 Proof.
-move=> ntP; have pP := pHall_pgroup pSyl_P.
+move=> p P pSyl_P.
+wlog ntP: / P :!=: 1.
+  case: eqP => [-> _|_]; last apply; split; rewrite ?norm1 ?sub1G //.
+    by move=>*; apply: comm1G.
+  by move=> Q; move/trivGP=> -> x _; exists 1 => //; rewrite conjs1g conjsg1.
+have pP := pHall_pgroup pSyl_P.
 have prNP : 'N(P) \proper G := mFT_norm_proper ntP (mFT_pgroup_proper pP).
 have [M /= M_MNP] := mmax_exists prNP; have [M_max sNPM] := setIdP M_MNP.
 have sPM := subset_trans (normG _) sNPM.
@@ -1016,126 +983,149 @@ have p_sigM : p \in \sigma(M).
   by rewrite inE /=; apply/existsP; exists P; rewrite pSyl_PM.
 have [p_pr _ _] := pgroup_pdiv pP ntP; have pMG := mmax_proper M_max.
 have pl1M := mFT_proper_plength1 p_pr pMG; have solM := mmax_sol M_max.
-have solP := solvableS sPM solM.
-have [defOppM defM] := sol_Sylow_plength1_pseries_pcore solM pSyl_PM pl1M.
-have sPO : P \subset 'O_{p^',p}(M) by rewrite -defOppM mulG_subl.
 have pHall_P : p.-Sylow('N(P)) P.
   by rewrite -(setIidPr (subsetT 'N(P))) // Sylow_subnorm.
-have thA : forall V, P ><| V = 'N(P) -> [~: P, V] = P /\ P \subset 'N(P)^`(1).
-  move=> V defV; have Hall_P := pHall_Hall pHall_P.
-  have sPM' : P \subset M^`(1).
-    apply: subset_trans _ (Msigma_sub_M' M_max).
-    rewrite (subset_normal_Hall _ (Hall_M_Msigma M_max) (pcore_normal _ _)).
-    rewrite /psubgroup sPM.
-    by apply: sub_in_pnat pP => q q_piP; rewrite inE /=; move/eqP->.
-  have sPNP' : P \subset ('N(P))^`(1).
-    apply: subset_trans _ (dergS 1 (subsetIr M _)) => /=.
-    by apply: sol_Sylow_plength1_sub_norm_der _ pSyl_PM pl1M sPM'.
-  by case: (solvable_hall_dprod_der_subSset_comm_centr_compl _ _ defV sPNP').
-have thC : forall Q, Q \subset P -> forall x : gT, 
-    Q :^ x \subset P -> exists2 y,y \in 'N(P) & Q :^ x :=: Q :^ y.
-  move=> Q sQP x sQxP; have pQ : p.-group Q := pgroupS sQP pP.
-  wlog ntQ: / Q :!=: 1.
-    case: eqP => [->|_]; [ exists 1; rewrite ?in_group // | by apply ].
-    by rewrite conjsg1 conjs1g.
-  have [th101a _ _ _] := mmax_sigma_core_nt_pgroup M_max p_sigM ntQ pQ.
-  have sQM := subset_trans sQP sPM; have sQxM := subset_trans sQxP sPM.
-  have [q [u [qCQ uM defx]]] := th101a sQM _ sQxM.
-  have sQuP: Q :^ u \subset P.
-    by rewrite -(normP (subsetP (cent_sub _) _ qCQ)) -conjsgM -defx.
-  case: (sol_Sylow_plength1_norm_conj _ _ pl1M sQP uM)=>// q' q'CQ [y yNP defu].
-  exists y; first by rewrite (subsetP (subsetIr _ _) _ yNP).
-  rewrite defx -defu !conjsgM (normP (subsetP (cent_sub _) _ qCQ)).
-  by case/setIP: q'CQ => _ q'CQ; rewrite (normP (subsetP (cent_sub _) _ q'CQ)).
+have Hall_P := pHall_Hall pHall_P.
+have sPM' : P \subset M^`(1).
+  apply: subset_trans _ (Msigma_sub_M' M_max).
+  rewrite (subset_normal_Hall _ (Hall_M_Msigma M_max) (pcore_normal _ _)).
+  rewrite /psubgroup sPM.
+  by apply: sub_in_pnat pP => q q_piP; rewrite inE /=; move/eqP->.
+have sPNP' : P \subset ('N(P))^`(1).
+  apply: subset_trans _ (dergS 1 (subsetIr M _)) => /=.
+  by apply: sol_Sylow_plength1_sub_norm_der _ pSyl_PM pl1M sPM'.
 split=> //.
-  have [V] := splitsP (SchurZassenhaus_split (pHall_Hall pHall_P) (normalG _)).
-  rewrite inE; case/andP; move/eqP=> TI_PV; move/eqP=> /= defPV rP.
-  have defNP : P ><| V = 'N(P) by rewrite sdprodE // -defPV mulG_subr. 
-  have cVP1 : 'C_V(P) == 1.
-    by admit.
-  have p'V : p^'.-group V.
-    apply/pgroupP=> q pr_q qdV; rewrite /= inE /=. 
-    apply: contraL (prime_gt1 p_pr); rewrite inE /=; move/eqP=> defq.
-    move: qdV; rewrite defq; case/Cauchy=> // x xV ox; rewrite -ox.
-    rewrite (_:x = 1) ?order1 //; apply/set1gP; rewrite -TI_PV inE xV.
-    have pcx : p.-group <[x]> by rewrite /pgroup -orderE ox pnat_id.
-    have scxNP:  <[x]> \subset 'N(P). 
-      by rewrite cycle_subG /= -defPV (subsetP (mulG_subr _ _) _ xV).
-    have [y yNP /=] := Sylow_Jsub pHall_P scxNP pcx.
-    by rewrite sub_conjg (normP (groupVr yNP)) cycle_subG => ->.
-  have defP : [~: P, V] == P by case: (thA _ defNP); move/eqP.
-  have [?]:= Blackburn_theorem pP (mFT_odd _) ntP rP defP cVP1 p'V (mFT_odd _).
-  case; [ by left | move=>[? [? []]]; case/cprodP=> [[P1 P2 -> -> def_P]]].
-  move=> [? [nAP [lcP [? [? defO1]]]]]; right; exists P1; exists P2; split=> //.
-    by split => //; rewrite -def_P cprodE.
-  have pP1 : p.-group P1 by rewrite (pgroupS _ pP) // -def_P mulg_subl.
-  apply/eqP; rewrite defO1.
-  rewrite eqEcard -nil_class2 (leq_trans (nil_class_pgroup pP1)) ?lcP //.
-(*
-  have ntP1 : P1 :!=: 1 by case: eqP lcP => // ->; rewrite cards1 logn1.
-  have ntZP : 'Z(P1) != 1. 
-    by apply: contra ntP1; move/eqP=> ?; rewrite (trivg_center_pgroup pP1).
-  have ntP' : P1^`(1) != 1.
-    apply: contra nAP; rewrite (isog_abelian (quotient1_isog _)); move/eqP=><-.
-    by rewrite /= -{2}(derg0 P1) der_abelian.
-  have := sol_der1_proper solP _  ntP1; rewrite -def_P mulG_subl.
-  move/(_ (erefl _)); move/proper_card => pP'P1.
-  have: 'Z(P1) \proper P1.
-    rewrite properEneq subsetIl andbT; apply: contra nAP; move/eqP=> <-.
-    exact: center_abelian.
-  move/proper_card => pZP1.
-  have pabZ : p.-abelem 'Z(P1).
-    by rewrite abelemE ?center_abelian ?(dvdn_trans (exponentS (subsetIl _ _))).
-  have pabP' : p.-abelem P1^`(1).
-    rewrite abelemE ?(dvdn_trans (exponentS (der_sub _ _))) //.
-    rewrite (p2group_abelian (pgroupS (der_sub _ _) pP1)) // -ltnS -lcP. 
-    rewrite properG_ltn_log // (sol_der1_proper solP _  ntP1) //.
-    by rewrite -def_P mulG_subl.
-*)
-  by admit. 
-  move=> Q sQP; have [S /= pSyl_S] := Sylow_exists p 'N(Q).
-  have [x _ sSxP] := Sylow_Jsub pSyl_P (subsetT _) (pHall_pgroup pSyl_S).
-  have [t tNQ] := Sylow_Jsub pSyl_S (normG _) (pgroupS sQP pP).
-  rewrite (normP tNQ) => sQS {t tNQ}.
-  have sQxP : Q :^ x \subset P by rewrite (subset_trans _ sSxP) // conjSg.
-  have [y yNP defQy] := thC _ sQP _ sQxP.
-  have xyNQ : (x * y^-1) \in 'N(Q).
-    by apply/normP; rewrite conjsgM defQy -conjsgM mulgV conjsg1.
-  have sSxyP : S :^ (x * y^-1) \subset P.
-    by rewrite conjsgM sub_conjgV (normP yNP).
-  move: (pSyl_S); rewrite -(pHallJ _ _ xyNQ) /= => pSyl_Sxy.
-  have:= pHall_subl _ (subsetIr P _) pSyl_Sxy.
-  rewrite subsetI /= sSxyP (pHall_sub pSyl_Sxy); move/(_ (erefl _)) => pHall_S.
-  have [t]:= Sylow_Jsub pHall_S (subxx _) (pgroupS (subsetIl _ _) pP).
-  case/setIP=> xP xNQ XX.
-  rewrite (('N_P(Q) :=P: (S :^ (x * y^-1)) :^ t^-1) _); last first.
-    rewrite eqEsubset -sub_conjg XX sub_conjg invgK.
-    by rewrite conjIg /= (conjGid xP) /= (conjGid xNQ) /= (pHall_sub pHall_S).
+  move=> V defV; have solP := solvableS sPM solM.
+  by case: (solvable_hall_dprod_der_subSset_comm_centr_compl solP _ defV sPNP').
+move=> Q sQP x sQxP; have pQ : p.-group Q := pgroupS sQP pP.
+wlog ntQ: / Q :!=: 1.
+  case: eqP => [->|_]; [ exists 1; rewrite ?in_group // | by apply ].
+  by rewrite conjsg1 conjs1g.
+have [th101a _ _ _] := mmax_sigma_core_nt_pgroup M_max p_sigM ntQ pQ.
+have sQM := subset_trans sQP sPM; have sQxM := subset_trans sQxP sPM.
+have [q [u [qCQ uM defx]]] := th101a sQM _ sQxM.
+have sQuP: Q :^ u \subset P.
+  by rewrite -(normP (subsetP (cent_sub _) _ qCQ)) -conjsgM -defx.
+case: (sol_Sylow_plength1_norm_conj _ _ pl1M sQP uM)=>// q' q'CQ [y yNP defu].
+exists y; first by rewrite (subsetP (subsetIr _ _) _ yNP).
+rewrite defx -defu !conjsgM (normP (subsetP (cent_sub _) _ qCQ)).
+by case/setIP: q'CQ => _ q'CQ; rewrite (normP (subsetP (cent_sub _) _ q'CQ)).
+Qed.
+
+(* This is B & G 10.7(a2) *)
+Corollary pSylow_norm_split_sub_norm_der1 : 
+  forall p P, p.-Sylow(G) P -> P \subset 'N(P)^`(1).
+Proof. 
+move=> p P pSyl_P.
+by case: (pSylow_norm_split_sub_norm_der1_commg_norm_sub pSyl_P).
+Qed.
+
+(* This is B & G 10.7(a1) *)
+Corollary pSylow_norm_split_commg : forall P p, p.-Sylow(G) P -> 
+  forall V, P ><| V :=: 'N(P) -> [~: P, V] :=: P.
+Proof.
+move=> p P pSyl_P.
+by case: (pSylow_norm_split_sub_norm_der1_commg_norm_sub pSyl_P).
+Qed.
+
+(* This is B & G 10.7(c) *)
+Corollary pSylow_conj_sub_in_norm : forall P p, p.-Sylow(G) P -> 
+  forall Q, Q \subset P -> forall x : gT, 
+    Q :^ x \subset P -> exists2 y,y \in 'N(P) & Q :^ x :=: Q :^ y.
+Proof.
+move=> P p pSyl_P.
+by case: (pSylow_norm_split_sub_norm_der1_commg_norm_sub pSyl_P).
+Qed.
+
+(* This is B & G 10.7(b) *)
+Corollary pSylow_rank3_abelian_or_Ohm_Z_decomp : forall P p, p.-Sylow(G) P ->
+  'r(P) < 3 -> abelian P \/ exists P1, exists P2 : {group gT}, 
+     [/\ ~~ (abelian P1) /\ P1 \* P2 :=: P, logn p #|P1| = 3, exponent P1 %| p,
+          cyclic P2 & 'Ohm_1(P2) :=: 'Z(P1)].
+Proof.
+move=> P p pSyl_P rP.
+wlog ntP: / P :!=: 1.
+  case: eqP => [-> _|_]; rewrite ?abelian1; [ by left | by apply ].
+have pP := pHall_pgroup pSyl_P.
+have [p_pr _ _] := pgroup_pdiv pP ntP.
+have pHall_P : p.-Sylow('N(P)) P.
+  by rewrite -(setIidPr (subsetT 'N(P))) // Sylow_subnorm.
+have [V] := splitsP (SchurZassenhaus_split (pHall_Hall pHall_P) (normalG _)).
+rewrite inE; case/andP; move/eqP=> TI_PV /=; move/eqP=> /= defPV.
+have defNP : P ><| V = 'N(P) by rewrite sdprodE // -defPV mulG_subr. 
+have cVP1 : 'C_V(P) == 1.
+  by admit.
+have p'V : p^'.-group V.
+  apply/pgroupP=> q pr_q qdV; rewrite /= inE /=. 
+  apply: contraL (prime_gt1 p_pr); rewrite inE /=; move/eqP=> defq.
+  move: qdV; rewrite defq; case/Cauchy=> // x xV ox; rewrite -ox.
+  rewrite (_:x = 1) ?order1 //; apply/set1gP; rewrite -TI_PV inE xV.
+  have pcx : p.-group <[x]> by rewrite /pgroup -orderE ox pnat_id.
+  have scxNP:  <[x]> \subset 'N(P). 
+    by rewrite cycle_subG /= -defPV (subsetP (mulG_subr _ _) _ xV).
+  have [y yNP /=] := Sylow_Jsub pHall_P scxNP pcx.
+  by rewrite sub_conjg (normP (groupVr yNP)) cycle_subG => ->.
+  have defP : [~: P, V] == P by case: (pSylow_norm_split_commg pSyl_P defNP);move/eqP.
+have [?]:= Blackburn_theorem pP (mFT_odd _) ntP rP defP cVP1 p'V (mFT_odd _).
+case; [ by left | move=>[? [? []]]; case/cprodP=> [[P1 P2 -> -> def_P]]].
+move=> [? [nAP [lcP [? [? defO1]]]]]; right; exists P1; exists P2; split=> //.
+  by split => //; rewrite -def_P cprodE.
+have pP1 : p.-group P1 by rewrite (pgroupS _ pP) // -def_P mulg_subl.
+have pr_p : prime p by case: (pgroup_pdiv pP ntP).
+have [[_ <- //] _] : extraspecial P1.  
+apply: card_p3group_extraspecial pr_p _ _.
+  by rewrite -lcP -p_part (part_pnat_id pP1).
+by admit.
+Qed.
+
+(* This is B & G 10.7(d) *)
+Corollary pSylow_sub_norm_pSylow : forall P p, p.-Sylow(G) P -> 
+  forall Q, Q \subset P -> p.-Sylow('N(Q)) 'N_P(Q).
+Proof.
+move=> P p pSyl_P Q sQP; have pP := pHall_pgroup pSyl_P.
+have [S /= pSyl_S] := Sylow_exists p 'N(Q).
+have [x _ sSxP] := Sylow_Jsub pSyl_P (subsetT _) (pHall_pgroup pSyl_S).
+have [t tNQ] := Sylow_Jsub pSyl_S (normG _) (pgroupS sQP pP).
+rewrite (normP tNQ) => sQS {t tNQ}.
+have sQxP : Q :^ x \subset P by rewrite (subset_trans _ sSxP) // conjSg.
+have [y yNP defQy] := pSylow_conj_sub_in_norm pSyl_P sQP sQxP.
+have xyNQ : (x * y^-1) \in 'N(Q).
+  by apply/normP; rewrite conjsgM defQy -conjsgM mulgV conjsg1.
+have sSxyP : S :^ (x * y^-1) \subset P.
+  by rewrite conjsgM sub_conjgV (normP yNP).
+move: (pSyl_S); rewrite -(pHallJ _ _ xyNQ) /= => pSyl_Sxy.
+have:= pHall_subl _ (subsetIr P _) pSyl_Sxy.
+rewrite subsetI /= sSxyP (pHall_sub pSyl_Sxy); move/(_ (erefl _)) => pHall_S.
+have [t]:= Sylow_Jsub pHall_S (subxx _) (pgroupS (subsetIl _ _) pP).
+case/setIP=> xP xNQ XX.
+rewrite (('N_P(Q) :=P: (S :^ (x * y^-1)) :^ t^-1) _).
   by rewrite hall_conj ?in_group.
-move=> Q R pR; rewrite subsetI; case/andP=> sQP sQR; case/andP=> nQP sNPNQ.
+rewrite eqEsubset -sub_conjg XX sub_conjg invgK.
+by rewrite conjIg /= (conjGid xP) /= (conjGid xNQ) /= (pHall_sub pHall_S).
+Qed.
+
+(* This is B & G 10.7(e) *)
+Corollary pSylow_psubgroup_normal : forall P p, p.-Sylow(G) P ->
+  forall Q R, p.-group R -> Q \subset P :&: R -> Q <| 'N(P) -> Q <| 'N(R).
+Proof.
+move=> P p pSyl_P Q R pR; rewrite subsetI; case/andP=> sQP sQR; case/andP=> nQP sNPNQ.
 rewrite /normal (subset_trans sQR (normG _)); apply/subsetP=> y yNR.
 have [x _ sRxP] := Sylow_Jsub pSyl_P (subsetT _) pR.
 move/normP: (yNR) => defRy; move: (sRxP); rewrite -defRy -conjsgM => sRyxP.
 have sQxP : Q :^ x \subset P by apply: subset_trans _ sRxP; rewrite conjSg.
 have sQyxP: Q :^ (y * x) \subset P by rewrite (subset_trans _ sRyxP) ?conjSg.
-have [[z zNP defQz][t tNP defQx]] := (thC _ sQP _ sQyxP, thC _ sQP _ sQxP).
+have [z zNP defQz] := pSylow_conj_sub_in_norm pSyl_P sQP sQyxP.
+have [t tNP defQx] := pSylow_conj_sub_in_norm pSyl_P sQP sQxP.
 move/normP: (subsetP sNPNQ _ zNP); move/normP: (subsetP sNPNQ _ tNP).
 rewrite -defQx -defQz; move/normP=> xNQ; move/normP=> yxNQ.
 by rewrite -(groupMr _ xNQ).
 Qed.
 
-End Ten7.
-
-Section Ten8.
-
-Variable gT : minSimpleOddGroupType.
-Local Notation G := (TheMinSimpleOddGroup gT).
-
 Variable M : {group gT}.
 Variable M_max : M \in 'M.
-Implicit Types H: {group gT}.
 
-Let Hall_G_Mbeta : \beta(M).-Hall(M) M`_\beta -> \beta(M).-Hall(G) M`_\beta.
+Let Hall_G_Mbeta : 
+  \beta(M).-Hall(M) M`_\beta -> \beta(M).-Hall(G) M`_\beta.
 Proof.
 move=> bHall_MB; rewrite pHallE subsetT /= (card_Hall bHall_MB) eqn_dvd.
 rewrite partn_dvd ?cardG_gt0 ?cardSg ?subsetT //=.
@@ -1227,7 +1217,7 @@ case/orP: pHall_H; move/pHall_sub; move/subset_trans; apply; apply: char_sub;
 Admitted.
   
 Corollary foo_10_9a : 
-  forall p q : nat , prime p -> prime q
+  forall p q, prime p -> prime q
    -> p != q -> p \notin \beta(M)-> q \notin \beta(M)->
   forall X : {group gT}, q.-subgroup(M) X -> (X \subset M^`(1)) || (p < q) ->
     [/\ exists2 P : {group gT}, p.-Sylow(M`_\sigma) P & X \subset 'C(P),
@@ -1348,7 +1338,7 @@ rewrite (setIidPl (pHall_sub pSyl_OW)) /= -/U => defOW.
 by move/setIidPl: (sym_eq defOW) => sOWU'; exists 'O_p(W)%G.
 Admitted.
 
-Corollary foo_10_9b : 
+Corollary foo_10_9b :
   forall H : {group gT}, H != M -> H \in 'M -> 
   forall S : {group gT}, Sylow(G) S -> 'N(S) \subset H :&: M -> 
     M :=: (H :&: M) * M`_\beta /\ \alpha(M) =i \beta(M).
@@ -1403,5 +1393,5 @@ case/negP: nNMSU; apply: uniq_mmaxS (setIS _ (cent_sub _)) _ (th109a pA).
 exact: sub_proper_trans (subsetIl _ _) (mmax_proper M_max). 
 Admitted.
 
-End Ten8.
+End TenBis.
 
