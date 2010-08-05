@@ -924,7 +924,7 @@ let interp_search_notation loc tag okey =
   | ntns' ->
     let e = str "occurs in" ++ spc() ++ pr_and_list pr_ntn ntns' in
     err (hov 4 (str "ambiguous: " ++ qtag "in" ++ e)) in
-  let ((nvars, _), body), ((_, pat), osc) = match !scs with
+  let (nvars, body), ((_, pat), osc) = match !scs with
   | [sc] -> Notation.interp_notation loc ntn (None, [sc])
   | scs' ->
     try Notation.interp_notation loc ntn (None, []) with _ ->
@@ -945,6 +945,7 @@ let interp_search_notation loc tag okey =
     msg_warning (hov 4 w)
   else if string_string_contains ntn " .. " then
     err (pr_ntn ntn ++ str " is an n-ary notation");
+  let nvars = List.filter (fun (_,(_,typ)) -> typ = NtnTypeConstr) nvars in
   let rec sub () = function
   | AVar x when List.mem_assoc x nvars -> RPatVar (loc, (false, x))
   | c ->
@@ -1104,7 +1105,7 @@ END
 
 let no_ct = None, None and no_rt = None in 
 let aliasvar = function
-  | [_, [CPatAlias (_, _, id)]] -> Some (Name id)
+  | [_, [CPatAlias (loc, _, id)]] -> Some (loc,Name id)
   | _ -> None in
 let mk_cnotype mp = aliasvar mp, None in
 let mk_ctype mp t = aliasvar mp, Some t in
@@ -1142,8 +1143,8 @@ END
 (** Alternative syntax for anonymous arguments (for ML-style constructors) *)
 
 GEXTEND Gram
-  GLOBAL: binder_let;
-  binder_let: [
+  GLOBAL: closed_binder;
+  closed_binder: [
     [ ["of" | "&"]; c = operconstr LEVEL "99" ->
       [LocalRawAssum ([loc, Anonymous], Default Explicit, c)]
   ] ];
@@ -2407,9 +2408,8 @@ let unif_end env sigma0 ise0 pt ok =
   let rec loop sigma ise m =
     if snd (extract_all_conv_pbs ise) != [] then
       if m = 0 then raise NoMatch
-      else match Evarconv.consider_remaining_unif_problems env ise with
-      | ise', true -> loop sigma ise' (m - 1)
-      | _ -> raise NoMatch
+      else let ise' = Evarconv.consider_remaining_unif_problems env ise in
+	loop sigma ise' (m - 1)
     else
     let sigma' = ise in
     if sigma' != sigma then

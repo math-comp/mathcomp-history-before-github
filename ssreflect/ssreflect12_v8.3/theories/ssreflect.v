@@ -11,6 +11,7 @@ Require Import Bool. (* For bool_scope delimiter 'bool'. *)
 (* [the struct of T] construct, are covered by specific comments below.    *)
 (***************************************************************************)
 
+Global Set Automatic Coercions Import.
 Set Implicit Arguments.
 Unset Strict Implicit.
 
