@@ -763,7 +763,7 @@ let declare_one_prenex_implicit locality f =
     with _ -> errorstrm (pr_reference f ++ str " is not declared") in
   let rec loop = function
   | a :: args' when Impargs.is_status_implicit a ->
-    (ExplByName (Impargs.name_of_implicit a), (true, false, false)) :: loop args'
+    (ExplByName (Impargs.name_of_implicit a), (true, true, true)) :: loop args'
   | args' when List.exists Impargs.is_status_implicit args' ->
       errorstrm (str "Expected prenex implicits for " ++ pr_reference f)
   | _ -> [] in
