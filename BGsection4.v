@@ -1985,6 +1985,72 @@ Lemma rank2_cent_chief : forall gT p (G Gs U V : {group gT}),
     chief_factor G V U -> p.-group (U / V) -> U \subset Gs ->
   G^`(1) \subset 'C(U / V | 'Q).
 Proof.
+move=> gT p G Gs; wlog: gT p G Gs/ 'O_p^'(Gs) = 1.
+  move/(_ _ p (G / _)%G (Gs / 'O_p^'(Gs))%G); rewrite trivg_pcore_quotient.
+  move=> RCF U V oddG solG nGsG rGs chief pUV sUGs.
+  move: (RCF (erefl _) (U / _)%G (V / _)%G (quotient_odd _ oddG)) => {RCF}.
+  rewrite (quotient_sol _ solG) /= quotient_normal // quotientS //.
+  have -> : 'r_p(Gs / 'O_p^'(Gs)) <= 2.
+    have [X SX] := Sylow_exists p Gs.
+    have nKX: X \subset 'N('O_p^'(Gs)).
+      by rewrite (subset_trans (pHall_sub SX)) // char_norm ?pcore_char.
+    move/(quotient_pHall nKX) : (SX) => /= SXK.
+    rewrite (leq_trans _ rGs) // (p_rank_Sylow SXK) /=.
+    rewrite -(isog_p_rank (quotient_isog nKX _)) ?p_rankS ?(pHall_sub SX) //.
+    exact: coprime_TIg (pnat_coprime (pHall_pgroup SX) (pcore_pgroup _ _)).
+  case/andP: (chief); case/maxgroupP; case/andP=> prVU nVG maxV nUG.
+  have nVU : V <| U.
+    rewrite /normal (subset_trans (proper_sub prVU)) // (subset_trans sUGs) //.
+    by rewrite (subset_trans (normal_sub nGsG)).
+  have sOV : 'O_p^'(Gs) \subset V.
+    by admit.
+  have nOU : 'O_p^'(Gs) <| U.
+    rewrite /normal (subset_trans sUGs) ?char_norm ?pcore_char // andbT.
+    by rewrite (subset_trans sOV (normal_sub _)).
+  rewrite /pgroup (isog_card (third_isog _ _ _)) ?[p.-nat _]pUV //.
+  have -> : chief_factor (G / 'O_p^'(Gs)) (V / 'O_p^'(Gs)) (U / 'O_p^'(Gs)).
+    rewrite /chief_factor quotient_normal // andbT; apply/maxgroupP => /=.
+    have nOV : 'O_p^'(Gs) <| V.
+      rewrite /normal sOV.
+      by admit.
+    rewrite quotient_proper ?prVU // quotient_norms //; split => // H.
+    case/andP=> prHU nHG sVH; apply/eqP; rewrite eqEsubset sVH andbT.
+    rewrite -sub_cosetpre_quo //= (maxV (coset _ @*^-1 H)%G) //=; last first.
+      rewrite -sub_quotient_pre ?(subset_trans (proper_sub prVU)) //. 
+      exact: normal_norm.
+    rewrite (subset_trans _ (morphpre_norm _ _)) ?andbT //=; last first.
+      rewrite -sub_quotient_pre // normal_norm //.
+      exact: char_normal_trans (pcore_char _ _) _.
+    by rewrite -(quotient_proper _ nOU) ?cosetpreK //= normal_cosetpre.
+  do 6 move/(_ (erefl _)); move=> RCF.
+  have sGNO : G \subset 'N('O_p^'(Gs)).
+    by rewrite normal_norm // (char_normal_trans (pcore_char _ _)).
+  have ? : 'O_p^'(Gs) \subset 'C(U / V | 'Q).
+    by admit.
+  have sG'NO : G^`(1) \subset 'N('O_p^'(Gs)) := subset_trans (der_sub _ _) sGNO.
+  rewrite -(quotientSGK sG'NO) ?quotient_der /= ?(subset_trans RCF) //.
+  by admit.
+move=> trivK U V oddG solG; case/andP=> sGsG nGGs rGs chief pUV sUGs.
+pose R := 'O_p(Gs).
+have pSyl_R : p.-Sylow(Gs) R.
+  rewrite pHallE pcore_sub /=.
+  by admit. (* 4.18... *)
+have sURV : U \subset R * V.
+  by admit.
+set C := 'C(U / V | 'Q). (* ??? *)
+have solCGR : solvable (G / 'C_G(R)%G) by rewrite quotient_sol.
+have ? : p.-group((G / 'C_G(R))^`(1)).
+  have := rank2_odd_sol_Aut_pgroup_der1.
+  by admit.
+have ? : p.-group(G / C).
+  by admit.
+have sNGO : G \subset 'N(C).
+  by admit. (* like in the wlog *)
+have ? : G^`(1) \subset 'N(C) := subset_trans (der_sub _ _) sNGO.
+rewrite -quotient_sub1 /= ?quotient_der //= -/C.
+have <- : 'O_p(G / C) :=: 1.
+  by admit.
+by rewrite pcore_max // ?(pgroupS (der_sub _ _)) // der_normal.
 Admitted.
 
 (* This is B & G, Lemma 4.20(a) *)
