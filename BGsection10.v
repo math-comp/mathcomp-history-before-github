@@ -1037,50 +1037,6 @@ move=> P p pSyl_P.
 by case: (pSylow_norm_split_sub_norm_der1_commg_norm_sub pSyl_P).
 Qed.
 
-(* TODO: move the fix to section 4 *)
-Let Blackburn_theorem : forall (gT:finGroupType) (R A : {group gT}) p,
-    p.-group R -> odd #|R| -> R :!=: 1 -> 'r(R) <= 2 -> [~: R, A] = R ->
-    p^'.-group A -> odd #|A|  -> 
-  p > 3 /\ 
-  (abelian R \/ exists R1, exists2 R2, R1 \* R2 = R & [/\ ~~ (abelian R1),
-    logn p #|R1| = 3, exponent R1 %| p, cyclic R2 & 'Ohm_1(R2) = R1^`(1)]).
-Proof.
-move=> rT R A; wlog: rT R A / 'C_A(R) :==: 1; last first.
-  move=> C1 p pR oddR ntR rR; move/eqP=> comR p'A oddA.
-  have [? H]:= Blackburn_theorem pR oddR ntR rR comR C1 p'A oddA.
-  split=> //; case: H; [ by left |]; move=> [R1 [R2 [?[?[?[?[??]]]]]]]; right.
-  by exists R1 => //; exists R2.
-move=> BB p pR oddR ntR rR comR p'A oddA.
-have nRA : A \subset 'N(R) by rewrite -commg_subl comR.
-have cop : coprime #|'C_A(R)| #|R|.
-  by rewrite coprime_sym (pnat_coprime pR (pgroupS (subsetIl _ _) p'A)).
-have nRCA : R \subset 'N('C_A(R)).
-  by rewrite cents_norm // centsC subsetIr. 
-have ti : R :&: 'C_A(R) :=: 1.
-  by apply: coprime_TIg; rewrite coprime_sym.
-have iso := quotient_isog nRCA ti.
-move: (BB _ (R / 'C_A(R))%G (A / 'C_A(R))%G) => //=.
-rewrite (coprime_subcent_quotient_pgroup pR) ?trivg_quotient ?eqxx ?subsetIl //.
-move/(_ (erefl _) p (quotient_pgroup _ pR) (quotient_odd _ oddR)) => /=.
-rewrite (quotient_pgroup _ p'A) (quotient_odd _ oddA).
-rewrite -quotientR ?comR ?eqxx //; last first.
-  by rewrite normsI ?normG // norms_cent.
-rewrite -(isog_rank iso) rR /= -(isog_triv iso) ntR; do 5 move/(_ (erefl _)).
-case=> ? H; split=> //; case: H; first by rewrite -(isog_abelian iso); left.
-move=> [R1 [R2]]; case/cprodP=> [[X1 X2 -> -> /= defX1X2]] sX1CX2. 
-case=> naX1 clX1 expX1 cyX2 defX1' {R1 R2}; right.
-case/isogP: iso=> f inj_f /= fR; have inj_f' := injm_invm inj_f.
-have ? : X1 \subset f @* R by rewrite fR -defX1X2 mulG_subl.
-have ? : X2 \subset f @* R by rewrite fR -defX1X2 mulG_subr.
-exists (invm inj_f @* X1); rewrite ?(injm_abelian inj_f') //.
-exists (invm inj_f @* X2).
-  rewrite -{23}(morphim_invm inj_f (subxx R)) {4}fR -defX1X2 morphimMl //=.
-  by rewrite cprodE // morphpre_cents ?injmK // injmSK.
-rewrite (card_injm inj_f') ?clR1 // (injm_cyclic inj_f') ?cyX2 //.
-rewrite -(injm_sFunctor _ inj_f') //= defX1' (injm_sFunctor _ inj_f') //=.
-by rewrite (exponent_injm inj_f') //; split.
-Qed.
-
 (* This is B & G 10.7(b) *)
 Corollary pSylow_rank3_abelian_or_Ohm_Z_decomp : forall P p, p.-Sylow(G) P ->
   'r(P) < 3 -> abelian P \/ exists P1, exists P2 : {group gT}, 

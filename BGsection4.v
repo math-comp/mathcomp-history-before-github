@@ -1239,33 +1239,60 @@ Qed.
 (* Lemma 4.15 in B & G can be found in maximal.v *)
 
 (* This is B & G, Theorem 4.16 *)
-Theorem Blackburn_theorem : forall gT (R A : {group gT}) p,
-  p.-group R -> odd #|R| -> R != 1%G -> 'r(R) <= 2 -> [~: R, A] == R ->
-  'C_A(R) == 1%G -> p^'.-group A -> odd #|A|  -> 
-    p > 3 /\ (abelian R \/ exists R1, exists R2, 
-      R1 \* R2 = R /\ ~~ (abelian R1) /\ logn p #|R1| = 3 /\ exponent R1 %| p 
-      /\ cyclic R2 /\ 'Ohm_1(R2) = R1^`(1)).
+Theorem Blackburn_theorem : forall (gT:finGroupType) (R A : {group gT}) p,
+    p.-group R -> odd #|R| -> R :!=: 1 -> 'r(R) <= 2 -> [~: R, A] = R ->
+    p^'.-group A -> odd #|A|  -> 
+  p > 3 /\ 
+  (abelian R \/ exists R1, exists2 R2, R1 \* R2 = R & [/\ ~~ (abelian R1),
+    logn p #|R1| = 3, exponent R1 %| p, cyclic R2 & 'Ohm_1(R2) = R1^`(1)]).
 Proof.
-move=> gT R A p pR oddR neR1 rankR eRA_R TI_CAR p'A oddA.
+move=> gT R A; wlog: gT R A / 'C_A(R) :==: 1.
+  move=> BB p pR oddR ntR rR comR p'A oddA.
+  have nRA : A \subset 'N(R) by rewrite -commg_subl comR.
+  have cop : coprime #|'C_A(R)| #|R|.
+    by rewrite coprime_sym (pnat_coprime pR (pgroupS (subsetIl _ _) p'A)).
+  have nRCA : R \subset 'N('C_A(R)).
+    by rewrite cents_norm // centsC subsetIr. 
+  have ti : R :&: 'C_A(R) :=: 1 by apply: coprime_TIg; rewrite coprime_sym.
+  have iso := quotient_isog nRCA ti.
+  move: (BB _ (R / 'C_A(R))%G (A / 'C_A(R))%G) => //=.
+  rewrite (coprime_subcent_quotient_pgroup pR) ?trivg_quotient ?subsetIl //.
+  move/(_ _ p (quotient_pgroup _ pR) (quotient_odd _ oddR)) => /=.
+  rewrite (quotient_pgroup _ p'A) (quotient_odd _ oddA).
+  rewrite -quotientR ?comR // ?normsI ?normG ?norms_cent // eqxx.
+  rewrite -(isog_rank iso) rR /= -(isog_triv iso) ntR; do 6 move/(_ (erefl _)).
+  case=> ? H; split=> //; case: H; first by rewrite -(isog_abelian iso); left.
+  move=> [R1 [R2]]; case/cprodP=> [[X1 X2 -> -> /= defX1X2]] sX1CX2. 
+  case=> naX1 clX1 expX1 cyX2 defX1' {R1 R2}; right.
+  case/isogP: iso=> f inj_f /= fR; have inj_f' := injm_invm inj_f.
+  have ? : X1 \subset f @* R by rewrite fR -defX1X2 mulG_subl.
+  have ? : X2 \subset f @* R by rewrite fR -defX1X2 mulG_subr.
+  exists (invm inj_f @* X1); rewrite ?(injm_abelian inj_f') //.
+  exists (invm inj_f @* X2).
+    rewrite -{23}(morphim_invm inj_f (subxx R)) {4}fR -defX1X2 morphimMl //=.
+    by rewrite cprodE // morphpre_cents ?injmK // injmSK.
+  rewrite (card_injm inj_f') ?clR1 // (injm_cyclic inj_f') ?cyX2 //.
+  rewrite -(injm_sFunctor _ inj_f') //= defX1' (injm_sFunctor _ inj_f') //=.
+  by rewrite (exponent_injm inj_f') //; split.
+move=> TI_CAR p pR oddR neR1 rankR eRA_R p'A oddA.
 have [primep pdivR _] := pgroup_pdiv pR neR1.
-have nRA : A \subset 'N(R) by rewrite -commg_subl (eqP eRA_R).
+have nRA : A \subset 'N(R) by rewrite -commg_subl eRA_R.
 have gtp3 : p > 3; last split => //.
   have neA1 : A != 1%G.
-    by apply: (contraL _ eRA_R); move/eqP=> ->; rewrite commG1 eq_sym.
+    by move/eqP: eRA_R; apply: contraL; move/eqP=> ->; rewrite commG1 eq_sym.
   have cardA_gt1 : #|A| > 1. 
     by rewrite ltn_neqAle eq_sym -trivg_card1 neA1 cardG_gt0. 
   have [q primeq qdivA] := pdivP cardA_gt1.
   have [a Aa orda_eq] := Cauchy primeq qdivA.
-  have coprimeRA := (pnat_coprime pR p'A).
+  have coprimeRA := pnat_coprime pR p'A.
   have coprimepq := coprime_dvdr qdivA (coprime_dvdl pdivR coprimeRA).
   have nepq : p != q.
     apply: (contraL _ coprimepq); move/eqP=> ->.
     by rewrite /coprime gcdnn neq_ltn prime_gt1 // orbT.
   have NRDCRa : a \in 'N(R) :\: 'C(R).
-    rewrite inE (subsetP nRA _ Aa) andbT.
-    apply: contraL (prime_gt1 primeq) => CRa.
-    have: a \in 1%G by rewrite -(eqP TI_CAR) inE Aa.
-    by rewrite -orda_eq inE; move/eqP=> ->; rewrite order1.
+    rewrite inE (subsetP nRA _ Aa) andbT; move: (prime_gt1 primeq).
+    apply: contraL => CRa; rewrite -orda_eq (_:a = 1) ?order1 //.
+    by apply/set1gP; rewrite -(eqP TI_CAR) inE Aa CRa.
   case: (automorphism_prime_order_pgroup_rank_le2 pR _ _ NRDCRa primeq)=> //.
   move=> _ [_]; apply: leq_trans; rewrite ltnS ltn_neqAle prime_gt1 // andbT.
   by apply: contraL oddA; rewrite -dvdn2; move/eqP=> ->.
@@ -1276,7 +1303,7 @@ have rankS : rank S <= 2 by rewrite rank_Ohm1.
 case lcardS : (logn p #|S| <= 2).
   have mcR : metacyclic R by apply: (pgroup_Ohm1_p2_metacyclic pR).
   case: (commutator_metacyclic_pgroup_p'group pR oddR mcR p'A nRA)=> cRR _.
-  by rewrite (eqP eRA_R) in cRR; apply: or_introl.
+  by rewrite eRA_R in cRR; apply: or_introl.
 have expS : exponent S %| p by apply: pgroup_rank_le2_Ohm1.
 have {lcardS}lcardS : logn p #|S| = 3.
   apply/eqP; move: (negbT lcardS); rewrite -ltnNge eqn_leq => ->; rewrite andbT.
@@ -1341,8 +1368,8 @@ have cycCRS : cyclic 'C_R(S).
     by rewrite cardS' (pfactorK 1).
   by rewrite cyclic_abelian // prime_cyclic // cardS'.
 pose T := [~: S, R]; suffices sTS' : T \subset S'.
-  apply: or_intror; exists S; exists 'C_R(S); split; last first.
-    by do 4!split=> //; apply/eqP; rewrite eq_sym.
+  right; exists S; exists 'C_R(S); last first.
+    by split=> //; apply/eqP; rewrite eq_sym.
   rewrite cprodEgen 1?centsC ?subsetIr //.
   by rewrite {2}(critical_extraspecial pR sSR espS sTS').
 apply: negbNE; apply/negP=> nsTS'. 
@@ -1492,7 +1519,7 @@ have : cyclic (T / S') by rewrite prime_cyclic // cardTS'.
 case/cyclicP=> /= S'z TS'eq; have: S'z \in T / S' by rewrite TS'eq cycle_id.
 case/imsetP=> z /=; case/setIP=> NS'z Tz S'zeq. rewrite {}S'zeq {S'z}in TS'eq.
 have {nsSCT nCRT_R} : ~~ ([~: S, A] \subset T).
-  apply: contra nsSCT=> sSA_T; apply: (subset_trans sSR); rewrite -(eqP eRA_R).
+  apply: contra nsSCT=> sSA_T; apply: (subset_trans sSR); rewrite -eRA_R.
   rewrite Req norm_mulgenEl ?(subset_trans sSR nCRT_R) //.
   rewrite commMG /=; last by rewrite cents_norm // subIset // centS ?orbT.
   rewrite mul_subG // ?(subset_trans sSA_T) //=.
