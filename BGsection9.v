@@ -201,7 +201,7 @@ case/orP: (orbN (p.-group 'F(M))) => [pFM | pFM'].
   have [P sylP sFP] := Sylow_superset (Fitting_sub _) pFM.
   have pP := pHall_pgroup sylP.
   have [|A SCN_A]:= p_rank_3_SCN pP (mFT_odd _).
-    by rewrite (rank_pgroup pP) (leq_trans FMge3) ?p_rankS.
+    by rewrite (leq_trans FMge3) ?p_rankS.
   have [_ _ uA] := SCN_Fitting_Uniqueness maxM pFM sylP FMge3 SCN_A.
   case/setIdP: SCN_A => SCN_A dimA3; case: (setIdP SCN_A); case/andP=> sAP _ _.
   have cAA := SCN_abelian SCN_A; have pA := pgroupS sAP pP.
@@ -441,7 +441,7 @@ suffices: B \in 'U by exact: uniq_mmaxS.
 have [P sylP sBP] := Sylow_superset (subsetT _) pB.
 have pP := pHall_pgroup sylP.
 have [|A SCN3_A] :=  p_rank_3_SCN pP (mFT_odd _).
-  by rewrite -dimB3 -(rank_abelem abelB) rankS.
+  by rewrite -dimB3 -(rank_abelem abelB) (rank_pgroup pB) p_rankS.
 have [SCN_A Age3] := setIdP SCN3_A.
 have: A \in 'SCN_3[p] by apply/bigcupP; exists P; rewrite // inE.
 move/SCN_3_Uniqueness=> uA; have cAA := SCN_abelian SCN_A.

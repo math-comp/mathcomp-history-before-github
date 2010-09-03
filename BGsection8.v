@@ -389,8 +389,8 @@ move=> M maxM; have [p _ -> dimF3] := rank_witness 'F(M).
 have prF: 'F(M) \proper G := sub_mmax_proper maxM (Fitting_sub M).
 case/orP: (orbN (p.-group 'F(M))) => [pF | npF].
   have [P sylP] := Sylow_exists p M; have [sPM pP _] := and3P sylP.
-  have dimP3: 'r(P) >= 3.
-    rewrite (rank_pgroup pP) -(p_rank_Sylow sylP) (leq_trans dimF3) //.
+  have dimP3: 'r_p(P) >= 3.
+    rewrite -(p_rank_Sylow sylP) (leq_trans dimF3) //.
     by rewrite p_rankS ?Fitting_sub.
   have [A] := p_rank_3_SCN pP (mFT_odd _) dimP3.
   by case/(SCN_Fitting_Uniqueness maxM pF)=> // _ sAF; exact: uniq_mmaxS.
