@@ -2038,14 +2038,14 @@ move=> gT p G Gs; wlog: gT p G Gs/ 'O_p^'(Gs) = 1.
     move=> H; case/andP=> prHU nHG sVH; apply/eqP; rewrite eqEsubset sVH andbT.
     have nOG := char_normal_trans (pcore_char p^' Gs) nGsG.
     set W := coset _ @*^-1 H.
-    have {sVH} sVW: V <*> 'O_p^'(Gs) \subset W.
-      by rewrite -sub_quotient_pre ?mulgen_subG ?normG ?andbT // norm_mulgenEl. 
-    have {prHU} prWUO : W \proper  U <*> 'O_p^'(Gs).
-      move: prHU; rewrite !properEcard sub_cosetpre_quo //=;last first.
-        by rewrite /normal mulgen_subr mulgen_subG // nOU normG.
-      rewrite norm_mulgenEl //; case/andP => -> /=; rewrite -norm_mulgenEl //. 
-      rewrite card_cosetpre card_quotient ?mulgen_subG ?normG ?andbT //.
-      rewrite mulnC -ltn_divr /= ?(cardSg (mulgen_subr _ _)) //.
+    have {sVH} sVW: V * 'O_p^'(Gs) \subset W.
+      by rewrite -sub_quotient_pre ?mul_subG // normG.
+    have ? : 'O_p^'(Gs) <| U <*> 'O_p^'(Gs).
+      by rewrite /normal mulgen_subr mulgen_subG // nOU normG.
+    have {prHU} prWUO : W \proper  U * 'O_p^'(Gs).
+      move: prHU; rewrite -!norm_mulgenEl // !properEcard sub_cosetpre_quo //=. 
+      case/andP => ->; rewrite card_quotient ?mulgen_subG ?nOU ?normG //.
+      rewrite card_cosetpre mulnC -ltn_divr /= ?(cardSg (mulgen_subr _ _)) //.
       by rewrite -divgS ?mulgen_subr.
     have {nHG} nWG : G \subset 'N(W).
       rewrite (subset_trans _ (morphpre_norm _ _)) //. 
@@ -2053,24 +2053,23 @@ move=> gT p G Gs; wlog: gT p G Gs/ 'O_p^'(Gs) = 1.
     rewrite -norm_mulgenEl // -sub_cosetpre_quo /= -/W; last first.
       by rewrite /normal mulgen_subr mulgen_subG nOV normG.
     rewrite -(setIidPl (proper_sub prWUO)) !norm_mulgenEl //= -/W. 
-    rewrite -group_modr /= -/W ?(subset_trans _ sVW) ?mulgen_subr //.
+    rewrite -group_modr /= -/W ?(subset_trans _ sVW) ?mulG_subr //.
     have ? : V \subset W :&: U.
-      by rewrite subsetI (subset_trans _ sVW) ?mulgen_subl ?sVU.
+      by rewrite subsetI (subset_trans _ sVW) ?mulG_subl.
     rewrite [_ :&: _]maxV //= -/W normsI ?andbT // ?normal_norm //.
-    rewrite properEcard subsetIr /=; have := sub_cosetpre H.
-    rewrite -/W => /= sOW.
+    have := sub_cosetpre H; rewrite -/W => /= sOW.
     have nUO : 'O_p^'(Gs) \subset 'N(U).
       rewrite (subset_trans (pcore_sub _ _)) //.
       by rewrite (subset_trans (normal_sub nGsG)) // normal_norm.
-    rewrite -{1}[W](mulSGid sOW) /= -/W.
+    rewrite properEcard subsetIr /= -{1}[W](mulSGid sOW) /= -/W.
     move: (proper_card prWUO); rewrite /W -{1}(mulSGid (sub_cosetpre H)) /= -/W.
-    rewrite -norm_mulgenEl ?(subset_trans sOW) ?normG //= -/W. 
-    rewrite -divg_index /= ltn_divl ?indexg_gt0 // => XX.
-    apply: leq_trans XX _. rewrite mulnC -leq_divl ?cardSg ?mulgen_subl //.
+    rewrite -norm_mulgenEl ?(subset_trans sOW) ?normG //= -/W -divg_index /=. 
+    rewrite ltn_divl ?indexg_gt0 //; apply: (fun y x => leq_trans x y).
+    rewrite mulnC -leq_divl -norm_mulgenEl // ?cardSg ?mulgen_subl //=.
     rewrite divgS ?mulgen_subl // -card_quotient ?mulgen_subG ?normG //=.
     rewrite mulgenC quotient_mulgen /= -?card_quotient ?mulgen_subG ?nUO //.
       by rewrite dvdn_leq ?cardG_gt0 // cardSg // quotientS // mulgen_subl.
-    by rewrite (subset_trans (proper_sub prWUO)) // mulgen_subG ?normG.
+    by rewrite (subset_trans (proper_sub prWUO)) // mul_subG ?normG.
   do 6 move/(_ (erefl _)); move=> RCF.
   have sGNO : G \subset 'N('O_p^'(Gs)).
     by rewrite normal_norm // (char_normal_trans (pcore_char _ _)).
@@ -2099,7 +2098,14 @@ move=> gT p G Gs; wlog: gT p G Gs/ 'O_p^'(Gs) = 1.
 move=> trivK U V oddG solG; case/andP=> sGsG nGGs rGs chief pUV sUGs.
 pose R := 'O_p(Gs).
 have pSyl_R : p.-Sylow(Gs) R.
-  by admit. (* 4.18... *)
+  have := rank2_pdiv_compl_der_abelian_p'group (solvableS sGsG solG) _ rGs.
+  rewrite (oddSg sGsG oddG) (pseries_pop2 _ trivK) -/R; case => // _ _ p'GsR.
+  rewrite normal_max_pgroup_Hall ?pcore_normal //; apply/maxgroupP; split.
+    by rewrite /psubgroup pcore_sub pcore_pgroup.
+  move=> H; case/andP=> sHGs pH /= sRH; apply/eqP; rewrite eqEsubset sRH andbT.
+  have ?: H \subset 'N(R) by rewrite (subset_trans sHGs) ?char_norm ?pcore_char.
+  rewrite -quotient_sub1 // -(setIidPl (quotientS _ sHGs)) /= -/R.
+  by rewrite (coprime_TIg (pnat_coprime (quotient_pgroup _ pH) _)).
 case/andP: (chief); case/maxgroupP; case/andP=> prVU nVG maxV nUG.
 have ? : Gs \subset 'N(V) by rewrite (subset_trans sGsG).
 have ? : U \subset 'N(V) by rewrite (subset_trans sUGs).
@@ -2109,11 +2115,11 @@ have sURV : U \subset V * R.
   rewrite -quotientSK //.
   rewrite (subset_normal_Hall _ pSyl_RV) /psubgroup ?pUV ?quotientS //=.
   by rewrite quotient_normal // pcore_normal.
-set C := 'C(U / V | 'Q). (* ??? *)
+set C := 'C(U / V | 'Q).
 have pGCGR : p.-group((G / 'C_G(R))^`(1)).
   have nRG : G \subset 'N(R).
     by rewrite (subset_trans nGGs) // char_norms ?pcore_char.
-  have pR := pHall_pgroup pSyl_R.
+  have pR := pcore_pgroup p Gs.
   pose J := [morphism of restrm nRG (conj_aut [group of R])].
   have inA : J @* G \subset Aut R by rewrite morphim_restrm Aut_conj_aut.
   have rR : 'r(R) <= 2.
@@ -2129,7 +2135,7 @@ have := sol_chief_abelem solG chief; rewrite (is_abelem_pgroup pUV)=> pabUV.
 have ? : p.-group((G / C)^`(1)).
   by admit.
 have sNGO : G \subset 'N(C).
-  by admit. (* like in the wlog *)
+  by admit. 
 have ? : G^`(1) \subset 'N(C) := subset_trans (der_sub _ _) sNGO.
 rewrite -quotient_sub1 /= ?quotient_der //= -/C.
 have <- : 'O_p(G / C) :=: 1.
