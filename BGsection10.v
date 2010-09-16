@@ -1152,6 +1152,39 @@ rewrite -(card_Hall SylGP) (card_Hall Syl_P) sub_in_partn // => q _.
 by rewrite 2!inE; move/eqP=> ->.
 Qed.
 
+Let pippo : forall (gT : finGroupType) (G : {group gT}), 
+  (forall p, p^'.-Hall(G) 'O_p^'(G)) -> G \subset 'F(G).
+Proof.
+move=> rT G pHall_O; rewrite -{1}Sylow_gen gen_subG; apply/bigcupsP=> /= Q.
+move/SylowP=> [q pr_q qHall_Q].
+rewrite FittingEgen.
+pose F := (fun x : 'I_#|G|.+1 => 'O_x(G)).
+pose P := [pred q | nat_of_ord (q :'I_#|G|.+1)  \in \pi(#|G|)].
+wlog lt_q : / q < #|G|.+1.
+  case : (eqsVneq Q 1) => tQ; last first.
+    have [_ qdQ _]:= pgroup_pdiv (pHall_pgroup qHall_Q) tQ.
+    rewrite ltnS (leq_trans (dvdn_leq (cardG_gt0 _) qdQ)); try apply=> //.
+    by rewrite (dvdn_leq _ (cardSg _)) ?cardG_gt0 ?(pHall_sub qHall_Q).
+  by rewrite tQ => _; apply: sub1G.
+wlog xx : / P (Ordinal lt_q).
+  rewrite /P /= inE /=; case E: (q \in _); first by apply.
+  move: E; rewrite mem_primes pr_q cardG_gt0.
+  case : (eqsVneq Q 1) => tQ; last first.
+    have [_ qdQ _]:= pgroup_pdiv (pHall_pgroup qHall_Q) tQ.
+    by rewrite (dvdn_trans _ (cardSg (pHall_sub qHall_Q))).
+  by rewrite tQ => _ _; apply: sub1G.
+rewrite sub_gen //.
+have Pq : Q \subset F (Ordinal lt_q).
+  rewrite /F /= -(eq_pcore _ (negnK _)) -bigcap_p'core.
+  rewrite  subsetI (pHall_sub qHall_Q) /=.
+  apply/bigcapsP=> [[r r_lt /=]]; rewrite inE /= inE /= => neq_rq.
+  rewrite (subset_normal_Hall _ (pHall_O _)) /= /psubgroup ?(pHall_sub qHall_Q).
+    apply: sub_in_pnat _ (pHall_pgroup qHall_Q) => x _; rewrite inE /=.
+    by move/eqP=> ->; rewrite inE /= inE /= eq_sym.
+  exact: pcore_normal.
+apply: (@bigcup_max  _ _ (Ordinal lt_q) _ P F xx Pq).
+Qed.
+
 Lemma foo_10_8 : 
   [/\ \beta(M).-Hall(M) M`_\beta /\ \beta(M).-Hall(G) M`_\beta,
       forall H, \beta(M)^'.-Hall(M^`(1)) H || \beta(M)^'.-Hall(M`_\sigma) H -> 
@@ -1179,8 +1212,8 @@ have thAc: forall p, prime p -> p \notin \beta(M) -> [/\
     apply/pgroupP=> q pr_q qd; have:= pgroupP (pHall_pgroup bHall_MB) _ pr_q qd.
     by apply: contraL; rewrite /= inE /=; move/eqP=> ->; exact: n_pB.
   have ? : (2 < 'r_p(P)) ==> p.-length_1 M by rewrite pl1M implybT.
-  case: (odd_narrow_plength1_complement_max_pdiv oddM solM pSyl_P)=> // [|ncM' sp].
-    case: (leqP 3 'r_p(P)) => rP; rewrite /narrow -1?ltnS ?rP //; apply/orP; right.
+  case: (odd_narrow_plength1_complement_max_pdiv oddM _ pSyl_P)=> // [|ncM' sp].
+    case: (leqP 3 'r_p(P))=> rP; rewrite /narrow -1?ltnS ?rP //;apply/orP;right.
     move: (n_pB); rewrite !inE; apply: contraR => nnarP.
     rewrite (p_rank_Sylow pSyl_P) rP.
     have pa : p \in \alpha(M) by rewrite inE /= (p_rank_Sylow pSyl_P).
@@ -1227,7 +1260,7 @@ have: existsb q, prime (q :'I_#|M|.+1) && ((q : nat) \notin \beta(M)).
   move/forall_inP=> pr_x_B; apply/pgroupP=> p pr_p pd.
   have := dvdn_leq (cardG_gt0 _) pd; rewrite -ltnS => p_ltM.
   by have := pr_x_B (Ordinal p_ltM); rewrite pr_p negbK; move/(_ (erefl _)).
-case/existsP=> q Pq.
+case/existsP=> q Pq; case/andP: (Pq) => pr_q nb_q.
 have bSUM : \beta(M).-group SUM.
   apply/pgroupP=> r pr_r /= rd.
   have r_ltM : r < #|M|.+1.
@@ -1242,7 +1275,7 @@ have sSUMMB : SUM \subset MB.
   by rewrite (subset_trans _ (pcore_sub q^' _)) //= bigcap_inf.
 have defMB : MB :=: SUM by apply/eqP; rewrite eqEsubset sSUMMB sMBbig.
 have sMB_M := pHall_sub bHall_MB; have bMB := pHall_pgroup bHall_MB.
-have ? : MB <| M.
+have nMMB : MB <| M.
   rewrite defMB /normal (subset_trans sSUMMB sMB_M) //= norms_bigcap //.
   apply/bigcapsP=> i _; rewrite char_norm ?(char_trans (pcore_char _ _)) //.
   exact: der_char.
@@ -1251,11 +1284,11 @@ have thAa : \beta(M).-Hall(M) M`_\beta.
   rewrite -(hall_maximal bHall_MB (pcore_sub _ _) (pcore_pgroup _ _)) ?subxx //.
   by rewrite pcore_max // ?defMB.
 have ? := Hall_G_Mbeta thAa; split; [split | | move=> p *; case: (thAc p)] =>//.
-move=> P pHall_P.
+move=> P pHall_P. (*
 have defO: forall p, 'O_p(M^`(1) / MB) \subset
     \bigcap_(q < #|M|.+1 | (q : nat) != p) 'O_q^'(M^`(1) / MB).
   move=>p; apply/bigcapsP=> [[i /= lt_iM] neqip]; apply: sub_pcore => r.
-  by rewrite inE /=; move/eqP=> ->; rewrite /= !inE /= eq_sym.
+  by rewrite inE /=; move/eqP=> ->; rewrite /= !inE /= eq_sym.*)
 case/orP: pHall_P => pHall_P.
   have nPM' : P \subset 'N(MB).
     rewrite (subset_trans (pHall_sub pHall_P)) //.
@@ -1266,20 +1299,28 @@ case/orP: pHall_P => pHall_P.
   have b'Hall_PMB := quotient_pHall nPM' pHall_P.
   rewrite (isog_nil (quotient_isog nPM' TI)) /=.
   apply: nilpotentS _ (Fitting_nil (M^`(1) / _)) => /=.
-  pose T := [set 'O_(nat_of_ord q)(M^`(1) / MB)%G | q <- 'I_(#|M|.+1)].
-  rewrite -(@Sylow_transversal_gen _ T (P / MB)%G).
-    rewrite gen_subG; apply/bigcupsP=> ?; case/imsetP=> r r_ltM -> /=.
-    by rewrite -p_core_Fitting pcore_sub.
-    move=> ?; case/imsetP=> [[r r_ltM _]] -> /=.
+  apply: subset_trans (pHall_sub b'Hall_PMB) _ => /=.
+  rewrite ?(subset_trans (der_sub _ _)) ?normal_norm //=.
+  apply: pippo => p.
+  have pr_p : prime p.
     by admit.
-  move=> p pd; exists ('O_p(M^`(1) / MB))%G.
-  have p_lt : p < #|M|.+1.
-    move: pd; rewrite inE /= mem_primes card_quotient // ltnS -divgI.
-    case/and3P => _ gt0; move/(dvdn_leq gt0) => p_led; apply: leq_trans p_led _.
-    rewrite (leq_trans (leq_div _ _)) // dvdn_leq ?cardG_gt0 // cardSg //.
-    by rewrite (subset_trans (pHall_sub pHall_P)) // der_sub.
-  apply/imsetP; exists (Ordinal p_lt)=> //.
-  by admit.
+  have nb_p : p \notin \beta(M).
+    by admit.
+  have ? : p^'.-group MB.
+    apply/pgroupP=> r pr_r rd; rewrite inE /=.
+    have := pgroupP bMB _ pr_r rd => rB.
+    by apply: contra nb_p; rewrite [_ \in _]inE /=; move/eqP => <-.
+  have ? : M^`(1) \subset 'N(MB).
+    by rewrite (subset_trans _ (normal_norm nMMB)) // der_sub.
+  have [pHallO /= _ _ _] := thAc _ pr_p nb_p.
+  rewrite pquotient_pcore ?quotient_pHall /normal ?mul_subG //=.
+    by rewrite (subset_trans (pcore_sub _ _)) // mul_subG normG andbT.
+  rewrite (subset_trans (der_sub _ _)) // ?normal_norm // andbT.
+  rewrite defMB (subset_trans _ (pcore_sub p^' _)) //= /SUM.
+  have lt_p : p < #|M|.+1.
+    by admit.
+  have Pp : PRED (Ordinal lt_p) by rewrite /PRED pr_p nb_p.
+  exact: bigcap_inf _ Pp.
 by admit.
 Admitted.
   
