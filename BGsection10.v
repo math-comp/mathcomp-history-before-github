@@ -1159,31 +1159,21 @@ Let pippo : forall (gT : finGroupType) (G : {group gT}),
   (forall p, p < #|G|.+1 -> p^'.-Hall(G) 'O_p^'(G)) -> G \subset 'F(G).
 clear.
 move=> rT G pHall_O; rewrite -{1}Sylow_gen gen_subG; apply/bigcupsP=> /= Q.
-move/SylowP=> [q pr_q qHall_Q].
-rewrite FittingEgen.
+move/SylowP=> [q pr_q qHall_Q]; have sQG := pHall_sub qHall_Q; rewrite FittingEgen.
+case : (eqsVneq Q 1) => ntQ; first by rewrite ntQ; apply: sub1G.
 pose F := (fun x : 'I_#|G|.+1 => 'O_x(G)).
 pose P := [pred q | nat_of_ord (q :'I_#|G|.+1)  \in \pi(#|G|)].
-wlog lt_q : / q < #|G|.+1.
-  case : (eqsVneq Q 1) => tQ; last first.
-    have [_ qdQ _]:= pgroup_pdiv (pHall_pgroup qHall_Q) tQ.
-    rewrite ltnS (leq_trans (dvdn_leq (cardG_gt0 _) qdQ)); try apply=> //.
-    by rewrite (dvdn_leq _ (cardSg _)) ?cardG_gt0 ?(pHall_sub qHall_Q).
-  by rewrite tQ => _; apply: sub1G.
-wlog xx : / P (Ordinal lt_q).
-  rewrite /P /= inE /=; case E: (q \in _); first by apply.
-  move: E; rewrite mem_primes pr_q cardG_gt0.
-  case : (eqsVneq Q 1) => tQ; last first.
-    have [_ qdQ _]:= pgroup_pdiv (pHall_pgroup qHall_Q) tQ.
-    by rewrite (dvdn_trans _ (cardSg (pHall_sub qHall_Q))).
-  by rewrite tQ => _ _; apply: sub1G.
+have [_ qdQ _]:= pgroup_pdiv (pHall_pgroup qHall_Q) ntQ.
+have qd : q %| #|G| := dvdn_trans qdQ (cardSg sQG).
+have lt_q : q < #|G|.+1 by rewrite ltnS (dvdn_leq (cardG_gt0 _) qd).
+have xx : P (Ordinal lt_q) by rewrite /P /= inE /= mem_primes pr_q cardG_gt0 qd.
 rewrite sub_gen //.
 have Pq : Q \subset F (Ordinal lt_q).
-  rewrite /F /= -(eq_pcore _ (negnK _)) -bigcap_p'core.
-  rewrite  subsetI (pHall_sub qHall_Q) /=.
+  rewrite /F /= -(eq_pcore _ (negnK _)) -bigcap_p'core subsetI sQG.
   apply/bigcapsP=> [[r r_lt /=]]; rewrite inE /= inE /= => neq_rq.
   rewrite (subset_normal_Hall _ (pHall_O _ _)) ?pcore_normal //.
-  rewrite /psubgroup ?(pHall_sub qHall_Q).
-  apply: sub_in_pnat _ (pHall_pgroup qHall_Q) => x _; rewrite inE /=.
+  rewrite /psubgroup ?sQG //; apply/pgroupP=> s pr_s.
+  move/(pgroupP (pHall_pgroup qHall_Q) _ pr_s); rewrite inE /=.
   by move/eqP=> ->; rewrite inE /= inE /= eq_sym.
 by apply: (@bigcup_max  _ _ (Ordinal lt_q) _ P F xx Pq).
 Qed.
@@ -1206,7 +1196,8 @@ have sMBMs : MB \subset M`_\sigma.
 have thAc: forall p, p \notin \beta(M) -> [/\
     p^'.-Hall(M^`(1)) 'O_p^'(M^`(1)),
     p^'.-Hall(M`_\sigma) 'O_p^'(M`_\sigma),
-    MB \subset 'O_p^'(M^`(1)) &
+    MB \subset 'O_p^'(M^`(1))(*,
+    MB \subset 'O_p^'(M) *)&
     forall q, prime q -> q %| #| M / 'O_p^'(M) | -> q <= p].
   move=> p n_pB; have [P pSyl_P] := Sylow_exists p M.
   have pl1M := mFT_proper_plength1 p (mmax_proper M_max).
@@ -1288,6 +1279,28 @@ have thAa : \beta(M).-Hall(M) M`_\beta.
   by rewrite pcore_max // ?defMB.
 have ? := Hall_G_Mbeta thAa; split; [split | | move=> p *; case: (thAc p)] =>//.
 move=> P pHall_P. 
+have defMB1 : MB :=: M`_\beta.
+  pose SUM1 :=  \bigcap_(p < _ | PRED p) 'O_p^'(M).
+  have bSUM1 : \beta(M).-group SUM1.
+    apply/pgroupP=> r pr_r /= rd.
+    have r_ltM : r < #|M|.+1.
+      rewrite ltnS (dvdn_leq (cardG_gt0 _) (dvdn_trans rd (cardSg _))) //=.
+      by rewrite (@bigcap_min _ _ q) ?(subset_trans (pcore_sub _ _)).
+    apply: contraLR (pcore_pgroup (Ordinal r_ltM)^'(M)) => /= r_nB.
+    have {rd} rd: r %| #|'O_(Ordinal r_ltM)^'(M)|.
+      by apply: dvdn_trans rd (cardSg _); apply: bigcap_inf.
+    by apply/pgroupP; move/(_ _ pr_r rd); rewrite !inE /=; case: eqP.
+  have sSUMMB1 : SUM1 \subset MB.
+    rewrite (subset_normal_Hall _ bHall_MB nMMB) /psubgroup.
+    rewrite bSUM1 andbT /= (subset_trans _ (pcore_sub q^' _)) //.
+    exact: bigcap_inf.
+  apply/eqP; rewrite eqEsubset pcore_max // (subset_trans _ sSUMMB1) //.
+  apply/bigcapsP => j /=. rewrite /PRED => nBj.
+  apply: sub_pcore=> e eB; rewrite inE /= inE /=; apply/negP=> defj.
+  by move/negP: nBj; apply; rewrite -(eqP defj).
+have b'MsMB : (\beta(M))^'.-group (M / MB).
+  case/and3P: thAa => _ _; rewrite defMB1 -card_quotient //.
+  by rewrite normal_norm ?pcore_normal.
 case/orP: pHall_P => pHall_P.
   have nPM' : P \subset 'N(MB).
     rewrite (subset_trans (pHall_sub pHall_P)) //.
@@ -1300,8 +1313,12 @@ case/orP: pHall_P => pHall_P.
   apply: nilpotentS _ (Fitting_nil (M^`(1) / _)) => /=.
   apply: subset_trans (pHall_sub b'Hall_PMB) _ => /=.
   apply: pippo => p /= lt_p.
-  wlog nb_p : / p \notin \beta(M).
+  have pd : p %| #|M^`(1) / MB|.
     by admit.
+  have pr_p : prime p.
+    by admit.
+  have nb_p := pgroupP b'MsMB _ pr_p (dvdn_trans pd (cardSg (quotientS _ (der_sub _ _)))).
+  have {nb_p} nb_p : p \notin \beta(M) by move: nb_p; rewrite !inE.
   have [pHallO /= _ sMBO _] := thAc _ nb_p.
   have ? : p^'.-group MB := pgroupS sMBO (pcore_pgroup _ _).
   have ? : M^`(1) \subset 'N(MB).
@@ -1327,8 +1344,12 @@ rewrite (isog_nil (quotient_isog nPM' TI)) /=.
 apply: nilpotentS _ (Fitting_nil (M`_\sigma / _)) => /=.
 apply: subset_trans (pHall_sub b'Hall_PMB) _ => /=.
 apply: pippo => p /= lt_p.
-wlog nb_p : / p \notin \beta(M).
+have pd : p %| #|M`_\sigma / MB|.
   by admit.
+have pr_p : prime p.
+  by admit.
+have nb_p := pgroupP b'MsMB _ pr_p (dvdn_trans pd (cardSg (quotientS _ (pcore_sub _ _)))).
+have {nb_p} nb_p : p \notin \beta(M) by move: nb_p; rewrite !inE.
 have [_ /= pHallO sMBO _] := thAc _ nb_p.
 have ? : p^'.-group MB := pgroupS sMBO (pcore_pgroup _ _).
 rewrite pquotient_pcore ?quotient_pHall //; last first.
