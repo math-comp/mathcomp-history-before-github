@@ -1335,7 +1335,8 @@ have b'W :  \beta(M)^'.-group W.
   by case: eqP xB pB'=> [-> -> //|_ xB]; case: eqP xB qB' => // -> ->.
 have [Ws /= b'Hall_Ws sWWs {b'W}]:=  HallSubset solXM' (pHall_sub pqHall_W) b'W.
 have nilWM' : nilpotent (W :&: M^`(1)).
-  apply: nilpotentS (setSI _ sWWs) _; have [_ th108 _] := foo_10_8.
+  apply: nilpotentS (setSI _ sWWs) _.
+  have [_ th108 _] := mmax_beta_Hall_nil_normal_compl_max_pdiv.
   apply: th108 => /=; rewrite (HallSubnormal _ _ b'Hall_Ws) //=.
   by rewrite /normal mulgen_subr (subset_trans _ (char_norm (der_char _ _))).
 have sWM := subset_trans sWWs (subset_trans (pHall_sub b'Hall_Ws) sXM'M).
@@ -1344,7 +1345,8 @@ have nilW : nilpotent W.
     rewrite ((W :=P: W :&: M^`(1)) _) // eqEsubset subsetIl subsetI subxx.
     rewrite -(mulSGid sXM') -norm_mulgenEl ?(pHall_sub pqHall_W) //=.
     by rewrite (subset_trans sXM) // der_norm.
-  have [_ _] := foo_10_8; move/(_ _ pr_p pB')=> [_ _]; move/(_ _ pr_q).
+  have [_ _] := mmax_beta_Hall_nil_normal_compl_max_pdiv.
+  move/(_ _ pr_p pB')=> [_ _]; move/(_ _ pr_q).
   case E: (_ %| _); first by rewrite leqNgt lt_pq; move/(_ (erefl _)).
   (* bug in equation generation + =>. try to add =>[|_] *)
   have nWOW : W \subset 'N('O_p^'(M) :&: W).
@@ -1418,7 +1420,7 @@ have sWsM' : Ws \subset M^`(1).
 have defX : 'O_q(Ws) :=: X.
   have b'Hall_WsM' := pHall_subl sWsM' (mulgen_subr _ _) b'Hall_Ws.
   have qSyl_XWs := pHall_subl (subset_trans sXW sWWs) sWsM' qSyl_X.
-  have [_ th108b _]:= foo_10_8.
+  have [_ th108b _] := mmax_beta_Hall_nil_normal_compl_max_pdiv.
   have := th108b Ws; rewrite b'Hall_WsM' /=; move/(_ (erefl _)) => nilWs.
   have [x xWs ->] := Sylow_trans (nilpotent_pcore_Hall q nilWs) qSyl_XWs.
   by rewrite (normP _) // (subsetP _ _ xWs) // char_norm ?pcore_char.
@@ -1494,7 +1496,7 @@ have sSM' : S \subset M^`(1).
   rewrite /psubgroup sSM.    
   by apply: sub_in_pnat qS => r r_piP; rewrite inE /=; move/eqP->.
 have nMbSM: M`_\beta <*> S <| M.
-  have [_ th108 _] := foo_10_8.
+  have [_ th108 _] := mmax_beta_Hall_nil_normal_compl_max_pdiv.
   rewrite /normal mulgen_subG sSM pcore_sub //=.
   by admit.
 have defM : M :=: M`_\beta * 'N_M(S).
@@ -1527,4 +1529,5 @@ exact: sub_proper_trans (subsetIl _ _) (mmax_proper M_max).
 Admitted.
 
 End TenBis.
+
 
