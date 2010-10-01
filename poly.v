@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div choice fintype.
-Require Import bigops ssralg binomial.
+Require Import bigop ssralg binomial.
 
 (******************************************************************************)
 (* This file provides a library for univariate polynomials over ring          *)

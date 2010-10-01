@@ -254,6 +254,7 @@ Lemma subnn : self_inverse 0 subn. Proof. by elim. Qed.
 
 Lemma subSS : forall n m, m.+1 - n.+1 = m - n. Proof. by []. Qed.
 Lemma subn1 : forall n, n - 1 = n.-1.          Proof. by do 2?case. Qed.
+Lemma subn2 : forall n, (n - 2)%N = n.-2.      Proof. by do 3?case. Qed.
 
 Lemma subn_add2l : forall p m n, (p + m) - (p + n) = m - n.
 Proof. by move=> p *; elim p. Qed.

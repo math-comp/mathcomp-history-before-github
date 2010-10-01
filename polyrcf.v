@@ -1,5 +1,6 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
-Require Import bigops ssralg poly polydiv orderedalg zmodp polydiv.
+Require Import bigop ssralg poly polydiv orderedalg zmodp polydiv.
 
 Import GRing.Theory.
 Import OrderedRing.Theory.

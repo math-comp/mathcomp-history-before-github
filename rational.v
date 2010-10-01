@@ -1,7 +1,8 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat div seq choice tuple.
-Require Import bigops ssralg.
+Require Import bigop ssralg.
 
-Require Import quotient.
+Require Import generic_quotient.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

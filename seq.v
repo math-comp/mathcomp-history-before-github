@@ -1345,6 +1345,13 @@ Proof. by move=> /= n s1 s2; rewrite perm_catC cat_take_drop. Qed.
 Lemma perm_rotr : forall n s, perm_eql (rotr n s) s.
 Proof. by move=> n s; exact: perm_rot. Qed.
 
+Lemma perm_filterC : forall (a : pred T) s,
+  perm_eql (filter a s ++ filter (predC a) s) s.
+Proof.
+move=> a s; apply/perm_eqlP; elim: s => //= x s IHs.
+by case: (a x); last rewrite /= -cat1s perm_catCA; rewrite perm_cons.
+Qed.
+
 Lemma perm_eq_mem : forall s1 s2, perm_eq s1 s2 -> s1 =i s2.
 Proof.
 by move=> s1 s2; move/perm_eqP=> eq12 x; rewrite -!has_pred1 !has_count eq12.

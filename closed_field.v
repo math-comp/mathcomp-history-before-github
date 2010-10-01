@@ -1,5 +1,6 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
-Require Import bigops ssralg poly polydiv.
+Require Import bigop ssralg poly polydiv.
 
 Import GRing.
 

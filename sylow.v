@@ -1,8 +1,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
-Require Import fintype div prime finset bigops groups morphisms.
-Require Import automorphism normal action cyclic gprod pgroups commutators.
-Require Import center nilpotent.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype prime.
+Require Import bigop finset fingroup morphism automorphism quotient action.
+Require Import cyclic gproduct commutator pgroup center nilpotent.
 
 (******************************************************************************)
 (*   The Sylow theorem and its consequences, including the Frattini argument, *)
@@ -14,38 +13,72 @@ Require Import center nilpotent.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
+
 Import GroupScope.
 
+(* The mod p lemma for the action of p-groups. *)
 Section ModP.
 
-Variable (gT : finGroupType) (sT : finType).
+Variable (aT : finGroupType) (sT : finType) (D : {group aT}).
+Variable to : action D sT.
 
-Variable to : {action gT &-> sT}.
-
-(***********************************************************************)
-(*                                                                     *)
-(*           The mod p lemma for the action of p-groups                *)
-(*                                                                     *)
-(***********************************************************************)
-
-Lemma pgroup_fix_mod : forall (p : nat) (G : {group gT}) (S : {set sT}),
+Lemma pgroup_fix_mod : forall (p : nat) (G : {group aT}) (S : {set sT}),
   p.-group G -> [acts G, on S | to] -> #|S| = #|'Fix_(S | to)(G)| %[mod p].
 Proof.
-move=> p G S pG; case: (eqsVneq G 1) => [-> _ | ntG].
-  by rewrite (setIidPl _) //; apply/subsetP=> x _; rewrite inE sub1set inE act1.
-case/pgroup_pdiv: pG => // p_pr _ [n cardG] nSG.
+move=> p G S pG nSG; have sGD: G \subset D := acts_dom nSG.
 apply/eqP; rewrite -(cardsID 'Fix_to(G)) eqn_mod_dvd (leq_addr, addKn) //.
 have: [acts G, on S :\: 'Fix_to(G) | to]; last move/acts_sum_card_orbit <-.
-  apply/actsP=> a Ga x; rewrite !in_setD (actsP nSG) //; congr (~~ _ && _).
-  by apply: actsP Ga x; rewrite acts_fix_norm ?normG.
+  rewrite actsD // -(setIidPr sGD); apply: subset_trans (acts_subnorm_fix _ _).
+  by rewrite setIS ?normG.
 apply: dvdn_sum => X; case/imsetP=> x; case/setDP=> _ nfx ->{X}.
-have:= dvdn_orbit to G x; rewrite cardG.
-case/dvdn_pfactor=> [//|[_|m _ ->]]; last by rewrite expnS dvdn_mulr.
-move/card_orbit1=> fix_x; case/afixP: nfx => a Ga; apply/set1P.
-by rewrite -fix_x mem_imset.
+have [k oGx]: {k | #|orbit to G x| = (p ^ k)%N}.
+  by apply: p_natP; apply: pnat_dvd pG; rewrite card_orbit_in ?dvdn_indexg.
+case: k oGx => [|k ->]; last by rewrite expnS dvdn_mulr.
+move/card_orbit1=> fix_x; case/afixP: nfx => a Ga.
+by apply/set1P; rewrite -fix_x mem_orbit.
 Qed.
 
 End ModP.
+
+Section ModularGroupAction.
+
+Variables (aT rT : finGroupType) (D : {group aT}) (R : {group rT}).
+Variables (to : groupAction D R) (p : nat).
+Implicit Types G H : {group aT}.
+Implicit Types M : {group rT}.
+
+Lemma nontrivial_gacent_pgroup : forall G M,
+    p.-group G -> p.-group M -> {acts G, on group M | to} ->
+  M :!=: 1 -> 'C_(M | to)(G) :!=: 1.
+Proof.
+move=> G M pG pM [nMG sMR] ntM; have [p_pr p_dv_M _] := pgroup_pdiv pM ntM.
+rewrite -cardG_gt1 (leq_trans (prime_gt1 p_pr)) 1?dvdn_leq ?cardG_gt0 //= /dvdn.
+by rewrite gacentE ?(acts_dom nMG) // setIA (setIidPl sMR) -pgroup_fix_mod.
+Qed.
+
+Lemma pcore_sub_astab_irr : forall G M,
+    p.-group M -> M \subset R -> acts_irreducibly G M to ->
+  'O_p(G) \subset 'C_G(M | to).
+Proof.
+move=> G M pM sMR; case/mingroupP; case/andP=> ntM nMG minM.
+have [sGpG nGpG]:= andP (pcore_normal p G).
+have sGD := acts_dom nMG; have sGpD := subset_trans sGpG sGD.
+rewrite subsetI sGpG -gacentC //=; apply/setIidPl; apply: minM (subsetIl _ _).
+rewrite nontrivial_gacent_pgroup ?pcore_pgroup //=; last first.
+  by split; rewrite ?(subset_trans sGpG).
+by apply: subset_trans (acts_subnorm_subgacent sGpD nMG); rewrite subsetI subxx.
+Qed.
+
+Lemma pcore_faithful_irr_act : forall G M,
+    p.-group M -> M \subset R -> acts_irreducibly G M to ->
+    [faithful G, on M | to] ->
+  'O_p(G) = 1.
+Proof.
+move=> G M pM sMR irrG ffulG; apply/trivgP; apply: subset_trans ffulG.
+exact: pcore_sub_astab_irr.
+Qed.
+
+End ModularGroupAction.
 
 Section Sylow.
 
@@ -84,7 +117,7 @@ have{defCS} oG_mod: {in S &, forall P Q, #|oG P| = (Q \in oG P) %[mod p]}.
   have soP_S: oG P \subset S by rewrite acts_sub_orbit.
   have: [acts Q, on oG P | 'JG].
     apply/actsP=> x; move/(subsetP sQG)=> Gx R; apply: orbit_transr.
-    exact: mem_imset.
+    exact: mem_orbit.
   move/pgroup_fix_mod=> -> //; rewrite -{1}(setIidPl soP_S) -setIA defCS //.
   rewrite (cardsD1 Q) setDE -setIA setICr setI0 cards0 addn0.
   by rewrite inE set11 andbT.
@@ -191,7 +224,7 @@ Section MoreSylow.
 Variables (gT : finGroupType) (p : nat).
 Implicit Types G H P : {group gT}.
 
-Lemma pSylow_normalI : forall G H P,
+Lemma Sylow_setI_normal : forall G H P,
   G <| H -> p.-Sylow(H) P -> p.-Sylow(G) (G :&: P).
 Proof.
 move=> G H P; case/normalP=> sGH nGH sylP.
@@ -230,12 +263,12 @@ Proof.
 move=> P pP lePp2; pose Z := 'Z(P); have sZP: Z \subset P := center_sub P.
 case: (eqVneq Z 1); first by move/(trivg_center_pgroup pP)->; exact: abelian1.
 case/(pgroup_pdiv (pgroupS sZP pP)) => p_pr _ [k oZ].
-rewrite (@center_cyclic_abelian _ P) ?center_abelian //.
+apply: cyclic_center_factor_abelian.
 case: (eqVneq (P / Z) 1) => [-> |]; first exact: cyclic1.
 have pPq := quotient_pgroup 'Z(P) pP; case/(pgroup_pdiv pPq) => _ _ [j oPq].
 rewrite prime_cyclic // oPq; case: j oPq lePp2 => //= j.
-rewrite card_quotient ?gfunc.bgFunc_norm // -(LaGrange sZP) logn_mul // => ->.
-by rewrite oZ !pfactorK ?addnS.
+rewrite card_quotient ?gfunctor.bgFunc_norm //.
+by rewrite  -(LaGrange sZP) logn_mul // => ->; rewrite oZ !pfactorK ?addnS.
 Qed.
 
 Lemma card_p2group_abelian : forall P, prime p -> #|P| = (p ^ 2)%N -> abelian P.
@@ -269,6 +302,42 @@ by rewrite inE (p_Sylow sylP).
 Qed.
 
 End MoreSylow.
+
+Section SomeHall.
+
+Variable gT : finGroupType.
+
+Lemma Hall_setI_normal : forall pi (G K H : {group gT}),
+  K <| G -> pi.-Hall(G) H -> pi.-Hall(K) (H :&: K).
+Proof.
+move=> pi G K H nsKG hallH; have [sHG piH _] := and3P hallH.
+have [sHK_H sHK_K] := (subsetIl H K, subsetIr H K).
+rewrite pHallE sHK_K /= -(part_pnat_id (pgroupS sHK_H piH)); apply/eqP.
+rewrite (widen_partn _ (subset_leq_card sHK_K)); apply: eq_bigr => p pi_p.
+have [P sylP] := Sylow_exists p H.
+have sylPK := Sylow_setI_normal nsKG (pSylow_Hall_Sylow hallH pi_p sylP).
+rewrite -!p_part -(card_Hall sylPK); symmetry; apply: card_Hall.
+by rewrite (pHall_subl _ sHK_K) //= setIC setSI ?(pHall_sub sylP).
+Qed.
+
+Lemma coprime_mulG_setI_norm : forall H G K R : {group gT},
+    K * R = G -> G \subset 'N(H) -> coprime #|K| #|R| ->
+  (K :&: H) * (R :&: H) = G :&: H.
+Proof.
+move=> H G K R defG nHG coKR; apply/eqP; rewrite eqEcard mulG_subG /= -defG.
+rewrite !setSI ?mulG_subl ?mulG_subr //=.
+rewrite coprime_cardMg ?(coKR, coprimeSg (subsetIl _ _), coprime_sym) //=.
+pose pi := \pi(#|K|); have piK: pi.-group K by exact: pnat_pi.
+have pi'R: pi^'.-group R by rewrite /pgroup -coprime_pi'.
+have [hallK hallR] := coprime_mulpG_Hall defG piK pi'R.
+have nsHG: H :&: G <| G by rewrite /normal subsetIr normsI ?normG.
+rewrite -!(setIC H) defG -(partnC pi (cardG_gt0 _)).
+rewrite -(card_Hall (Hall_setI_normal nsHG hallR)) /= setICA.
+rewrite -(card_Hall (Hall_setI_normal nsHG hallK)) /= setICA.
+by rewrite -defG (setIidPl (mulG_subl _ _)) (setIidPl (mulG_subr _ _)).  
+Qed.
+
+End SomeHall.
 
 Section Nilpotent.
 
@@ -444,7 +513,7 @@ have: cyclic 'O_p(G).
   by rewrite (p_Sylow (nilpotent_pcore_Hall p nilG)).
 case/cyclicP=> x def_p; case/cyclicP=> x' def_p'.
 apply/cyclicP; exists (x * x'); rewrite -{}defG def_p def_p' cycleM //.
-  by apply: (centsP Cpp'); rewrite (def_p, def_p') cycle_id.
+  by red; rewrite -(centsP Cpp') // (def_p, def_p') cycle_id.
 rewrite /order -def_p -def_p' (@pnat_coprime p) //; exact: pcore_pgroup.
 Qed.
 
@@ -455,19 +524,16 @@ Section NilPGroups.
 Variables (p : nat) (gT : finGroupType).
 Implicit Type G P N : {group gT}.
 
-Lemma cyclic_pgroup_quo_der1_cyclic : 
-  forall P, p.-group P -> cyclic (P / P^`(1)) -> cyclic P.
+Lemma cyclic_pgroup_quo_der1_cyclic : forall P,
+  p.-group P -> cyclic (P / P^`(1)) -> cyclic P.
 Proof.
 move=> P pP; rewrite (isog_cyclic (quotient1_isog P)).
 case: (eqVneq P^`(1) 1) => [-> // | ntP' cPP'].
 suffices: 'L_2(P) == 1 by move/eqP <-.
-apply: (implyP (forallP (pgroup_nil pP) _)); rewrite subsetI lcn_sub -lcnSn /=.
-rewrite -quotient_cents2 ?lcn_norm // -abelianE.
-rewrite [_ / _]center_cyclic_abelian ?center_abelian //.
-rewrite -(isog_cyclic (third_isog (lcn_central 2 P) _ _)) ?center_normal //=.
-  rewrite quotient_cyclic // (isog_cyclic (third_isog _ _ _)) ?lcn_normal //.
-  exact: lcn_subS.
-by rewrite quotient_normal ?lcn_normal.
+apply: (implyP (forallP (pgroup_nil pP) _)).
+rewrite subsetI lcn_sub -lcnSn /= -quotient_cents2 ?lcn_norm //.
+apply: cyclic_factor_abelian (lcn_central 2 P) _.
+by rewrite (isog_cyclic (third_isog _ _ _)) ?lcn_normal // lcn_subS.
 Qed.
 
 (* B & G 1.22 p.9 *)

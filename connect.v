@@ -1,5 +1,5 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq paths fintype.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path fintype.
 
 (*****************************************************************************)
 (* This file develops the theory of transitive closure in a finType T.       *)

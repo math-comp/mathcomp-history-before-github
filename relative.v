@@ -1,7 +1,8 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat div seq.
 Require Import choice fintype finfun tuple.
-Require Import bigops ssralg.
-Require Import quotient zmodp.
+Require Import bigop ssralg.
+Require Import generic_quotient zmodp.
 
 Require Import orderedalg.
 Import OrderedRing.Theory.

@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat div seq choice fintype.
-Require Import finfun bigops prime binomial.
+Require Import finfun bigop prime binomial.
 
 (*****************************************************************************)
 (*   The algebraic part of the Algebraic Hierarchy, as described in          *)
@@ -23,7 +23,7 @@ Require Import finfun bigops prime binomial.
 (*      x - y           == the substraction operation of a Zmodule           *)
 (*                      := x + - y                                           *)
 (*      x +* n , x -* n == the generic multiplication by a nat               *)
-(*      \sum_<range> e  == iterated sum for a Zmodule (cf bigops.v)          *)
+(*      \sum_<range> e  == iterated sum for a Zmodule (cf bigop.v)           *)
 (*      e`_i            == nth 0 e i, when e : seq M and M is a zmodType     *)
 (*      ... and a many classical Lemmas on these Zmodule laws                *)
 (*                                                                           *)
@@ -38,7 +38,7 @@ Require Import finfun bigops prime binomial.
 (*      1             == the multiplicative identity element of a Ring       *)
 (*      n%:R          == the ring image of a nat n (e.g., 1%:R := 1%R)       *)
 (*      x * y         == the multiplication operation of a ring              *)
-(*    \prod_<range> e == iterated product for a ring (cf bigops.v)           *)
+(*    \prod_<range> e == iterated product for a ring (cf bigop.v)            *)
 (*      x ^+ y        == the exponentiation operation of a ring              *)
 (*     GRing.comm x y <=> x and y commute, i.e., x * y = y * x               *)
 (*      [char R]      == the characteristic of R, i.e., the set of prime     *)
@@ -1048,6 +1048,9 @@ Proof. by apply/unitrP; exists (1 : R); rewrite mulr1. Qed.
 
 Lemma invr1 : 1^-1 = 1 :> R.
 Proof. by rewrite -{2}(mulVr unitr1) mulr1. Qed.
+
+Lemma div1r : forall x, 1 / x = x^-1. Proof. by move=> x; rewrite mul1r. Qed.
+Lemma divr1 : forall x, x / 1 = x. Proof. by move=> x; rewrite invr1 mulr1. Qed.
 
 Lemma unitr0 : unit (0 : R) = false.
 Proof.
@@ -2816,6 +2819,8 @@ Definition invr_inj := invr_inj.
 Definition unitr_inv := unitr_inv.
 Definition unitr1 := unitr1.
 Definition invr1 := invr1.
+Definition divr1 := divr1.
+Definition div1r := div1r.
 Definition unitr0 := unitr0.
 Definition invr0 := invr0.
 Definition unitr_opp := unitr_opp.

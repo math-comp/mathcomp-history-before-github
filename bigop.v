@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype.
-Require Import finfun paths.
+Require Import finfun path.
 
 (****************************************************************************)
 (* This file provides a generic definition for iterating an operator over a *)
@@ -49,7 +49,7 @@ Require Import finfun paths.
 (*   corresponding neutral elements), respectively;                         *)
 (* - the "\sum" and "\prod" reserved notations are re-bounded in ssralg.v   *)
 (*   in ring_scope to the addition and multiplication big operators of a    *)
-(*   ring, and, in groups.v/group_scope, to iterated group product.         *)
+(*   ring, and, in fingroup.v/group_scope, to iterated group product.       *)
 (* - finset.v defines "\bigcup" and "\bigcap" notations for iterated        *)
 (*   union and intersection.                                                *)
 (****************************************************************************)

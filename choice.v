@@ -326,6 +326,15 @@ Proof. exact: Choice.xchooseP. Qed.
 Lemma eq_xchoose : Choice.extensional xchoose.
 Proof. exact: Choice.eq_xchoose. Qed.
 
+Lemma sigW : forall P, (exists x, P x) -> {x | P x}.
+Proof. by move=> P exP; exists (xchoose exP); exact: xchooseP. Qed.
+
+Lemma sig2W : forall P Q, (exists2 x, P x & Q x) -> {x | P x & Q x}.
+Proof.
+move=> P Q exPQ; have [|x] := @sigW (predI P Q); last by case/andP; exists x.
+by have [x Px Qx] := exPQ; exists x; exact/andP.
+Qed.
+
 Definition choose P x0 :=
   if insub x0 : {? x | P x} is Some (exist x Px) then
     xchoose (ex_intro [eta P] x Px)

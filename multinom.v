@@ -1,5 +1,6 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
-Require Import tuple finfun bigops ssralg poly.
+Require Import tuple finfun bigop ssralg poly.
 
 Require Import multi.
 

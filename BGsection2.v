@@ -1,9 +1,10 @@
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq paths div.
-Require Import fintype bigops prime binomial finset ssralg.
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div.
+Require Import fintype bigop prime binomial finset ssralg.
 Require poly.
-Require Import groups morphisms normal perm automorphism action commutators.
-Require Import finalg zmodp gprod cyclic center pgroups gseries nilpotent sylow.
-Require Import abelian maximal hall matrix mxrepresentation BGsection1.
+Require Import fingroup morphism perm automorphism quotient action commutator.
+Require Import finalg zmodp gproduct cyclic center pgroup gseries nilpotent.
+Require Import sylow abelian maximal hall matrix mxrepresentation BGsection1.
 
 (******************************************************************************)
 (* This file covers the useful material in B & G, Section 2. This excludes    *)
@@ -142,7 +143,7 @@ have dvLH: \rank L %| #|H|.
     by apply: closF; exact/submod_mx_irr.
   apply: IHm absL (solvableS (normal_sub nsHG) solG).
   by rewrite (leq_trans (proper_card ltHG)).
-have [_ [x Gx H'x]] := properP _ _ ltHG.
+have [_ [x Gx H'x]] := properP ltHG.
 have prGH: prime #|G / H|%g by rewrite card_quotient ?normal_norm.
 wlog sH: / socleType rH by exact: socle_exists.
 pose W := PackSocle (component_socle sH simL).
@@ -150,8 +151,8 @@ have card_sH: #|sH| = #|G : 'C_G[W | 'Cl]|.
   rewrite -cardsT; have ->: setT = orbit 'Cl G W.
     apply/eqP; rewrite eqEsubset subsetT.
     have [W' _ defW'] := imsetP (Clifford_atrans irrG sH).
-    have WW': W' \in orbit 'Cl G W by rewrite sub_orbit_sym // -defW' inE.
-    by rewrite defW' andbT; apply/subsetP=> W''; exact: sub_orbit_trans.
+    have WW': W' \in orbit 'Cl G W by rewrite orbit_in_sym // -defW' inE.
+    by rewrite defW' andbT; apply/subsetP=> W''; exact: orbit_in_trans.
   rewrite orbit_stabilizer // card_in_imset //. 
   exact: can_in_inj (act_reprK _).
 have sHcW: H \subset 'C_G[W | 'Cl].
@@ -620,7 +621,8 @@ have coPH: coprime #|P| #|H| by rewrite oPpn coprime_pexpl.
 have nsZG: 'Z(P) <| G := char_normal_trans (center_char _) nsPG.
 have defCP: 'C_G(P) = 'Z(P).
   apply/eqP; rewrite eqEsubset andbC setSI //=.
-  rewrite -defG -mulg_center_coprime_cent // mul_subG // -(setD1K (group1 H)).
+  rewrite -(coprime_mulG_setI_norm defG) ?norms_cent ?normal_norm //=.
+  rewrite mul_subG // -(setD1K (group1 H)).
   apply/subsetP=> x; case/setIP; case/setU1P=> [-> // | H'x].
   rewrite -sub_cent1; move/setIidPl; rewrite primeHP // => defP.
   by have:= min_card_extraspecial pP esP; rewrite -defP oZp (leq_exp2l 3 1).
@@ -868,7 +870,7 @@ have nPG: G \subset 'N(P).
 pose Q := G^`(1)%g :&: P; have sQG: Q \subset G by rewrite subIset ?der_subS.
 have nQG: G \subset 'N(Q) by rewrite normsI // normal_norm ?der_normalS.
 have pQ: (p %| #|Q|)%N.
-  have sylQ: p.-Sylow(G^`(1)%g) Q by apply: pSylow_normalI (der_normalS _ _) _.
+  have sylQ: p.-Sylow(G^`(1)%g) Q by apply: Sylow_setI_normal (der_normalS _ _) _.
   apply: contraLR pG'; rewrite -!p'natE // (card_Hall sylQ) -!partn_eq1 //.
   by rewrite part_pnat_id ?part_pnat.
 have{IHm} abelQ: abelian Q.
@@ -1020,8 +1022,7 @@ rewrite inE (subsetP sPG) ?groupR //=.
 pose rP := subg_repr rG sPG; pose U := rfix_mx rP P.
 rewrite -(inj_eq (can_inj (mulKmx (repr_mx_unit rP (groupM Pz Py))))).
 rewrite mul1mx mulmx1 -repr_mxM ?(groupR, groupM) // -commgC !repr_mxM //.
-have{pP} pP: [char F].-group P by rewrite /pgroup (eq_pnat _ (charf_eq charFp)).
-have: U != 0 by exact: rfix_pgroup_char.
+have: U != 0 by apply: (rfix_pgroup_char charFp).
 rewrite -mxrank_eq0 -lt0n 2!leq_eqVlt ltnNge rank_leq_row orbF orbC eq_sym.
 case/orP=> [Ufull | Uscal].
   suff{y z Py Pz} rP1: forall y, y \in P -> rP y = 1%:M by rewrite !rP1 ?mulmx1.
@@ -1040,7 +1041,7 @@ pose B := col_mx u v; have uB: B \in unitmx.
 have Umod: mxmodule rP U by exact: rfix_mx_module.
 pose W := rfix_mx (factmod_repr Umod) P.
 have ntW: W != 0. 
-  apply: rfix_pgroup_char pP.
+  apply: (rfix_pgroup_char charFp) => //.
   rewrite eqmxMfull ?row_full_unit ?unitmx_inv ?row_ebase_unit //.
   by rewrite rank_copid_mx -(eqP Uscal).
 have{ntW} Wfull: row_full W.

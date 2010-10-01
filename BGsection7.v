@@ -1,8 +1,9 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype bigops.
-Require Import finset prime groups morphisms action automorphism normal cyclic.
-Require Import gfunc pgroups center commutators gseries nilpotent sylow abelian.
-Require Import maximal hall BGsection1 BGsection6.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype bigop.
+Require Import finset prime fingroup morphism automorphism action quotient.
+Require Import gfunctor cyclic pgroup center commutator gseries nilpotent.
+Require Import sylow abelian maximal hall.
+Require Import BGsection1 BGsection6.
 
 (******************************************************************************)
 (*   This file covers B & G, section 7, i.e., the proof of the Thompson       *)
@@ -81,7 +82,7 @@ do [split; rewrite ?oG //=] => [||M].
   have [sHG _]:= andP nsHG; apply/pred2P; apply: contraR nsolG; case/norP=> ntH.
   rewrite eqEcard sHG -ltnNge (series_sol nsHG) => ltHG.
   by rewrite !IHn ?(oddSg sHG) ?quotient_odd ?(leq_trans _ leGn) ?ltn_quotient.
-- by apply: contra nsolG => solG; rewrite -(sgvalEdom G) morphim_sol.
+- by apply: contra nsolG => solG; rewrite -(im_sgval G) morphim_sol.
 rewrite properEcard oG; case/andP=> sMG ltMG.
 by apply: IHn (leq_trans ltMG leGn) (oddSg sMG _); rewrite oG.
 Qed.
@@ -747,8 +748,8 @@ have hallP: pi.-Hall('N_KBP(Q2)) P.
 have hallPk: pi.-Hall('N_KBP(Q2)) (P :^ k).
   rewrite pHallE -(card_Hall hallP) cardJg eqxx andbT subsetI /=.
   by rewrite defQ2 normJ conjSg conj_subG ?mulgen_subr // mem_gen // inE KBk.
-have [gz]: exists2 gz, gz \in 'N_KBP(Q2) & (P = P :^ k :^ gz)%G.
-  apply: HallConj (solvableS (subsetIr _ _) _) hallP hallPk.
+have [gz]: exists2 gz, gz \in 'N_KBP(Q2) & P :=: P :^ k :^ gz.
+  apply: Hall_trans (solvableS (subsetIr _ _) _) hallP hallPk.
   have ntQ2: Q2 != 1%G by case: eqP nt_mnP maxQ2 => // -> ->.
   exact: mFT_sol (mFT_norm_proper ntQ2 (mFT_pgroup_proper qQ2)).
 rewrite [KBP]norm_mulgenEr //= setIC -group_modr //= setIC -/KB.

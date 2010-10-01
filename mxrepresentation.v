@@ -1,7 +1,8 @@
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq paths div choice.
-Require Import fintype tuple finfun bigops prime ssralg poly finset.
-Require Import groups morphisms normal perm automorphism finalg action zmodp.
-Require Import commutators cyclic center pgroups gseries nilpotent sylow.
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
+Require Import fintype tuple finfun bigop prime ssralg poly finset.
+Require Import fingroup morphism perm automorphism quotient finalg action zmodp.
+Require Import commutator cyclic center pgroup gseries nilpotent sylow.
 Require Import maximal abelian matrix.
 
 (****************************************************************************)
@@ -1886,6 +1887,20 @@ Lemma rfix_mxS : forall H K : {set gT},
   H \subset K -> (rfix_mx K <= rfix_mx H)%MS.
 Proof.
 by move=> H K sHK; apply/rfix_mxP=> x Hx; exact: rfix_mxP (subsetP sHK x Hx).
+Qed.
+
+Lemma rfix_mx_conjsg : forall (H : {set gT}) x,
+  x \in G -> H \subset G -> (rfix_mx (H :^ x) :=: rfix_mx H *m rG x)%MS.
+Proof.
+move=> H x Gx sHG; pose rf y := rfix_mx (H :^ y).
+suffices{x Gx} IH: {in G &, forall y z, rf y *m rG z <= rf (y * z)%g}%MS.
+  apply/eqmxP; rewrite -/(rf x) -[H]conjsg1 -/(rf 1%g).
+  rewrite -{4}[x] mul1g -{1}[rf x](repr_mxKV Gx) -{1}(mulgV x).
+  by rewrite submxMr IH ?groupV.
+move=> x y Gx Gy; apply/rfix_mxP=> zxy; rewrite actM; case/imsetP=> zx Hzx ->.
+have Gzx: zx \in G by apply: subsetP Hzx; rewrite conj_subG.
+rewrite -mulmxA -repr_mxM ?groupM ?groupV // -conjgC repr_mxM // mulmxA.
+by rewrite rfix_mx_id.
 Qed.
 
 Lemma norm_sub_rstabs_rfix_mx : forall H : {set gT},
@@ -5314,7 +5329,7 @@ have card_sX: #|sX| = #[x] by rewrite card_irr // card_classes_abelian.
 have linX := irr_degree_abelian splitF cXX (_ : sX).
 pose r (W : sX) := irr_mode W x.
 have scalX: forall W, irr_repr W x = (r W)%:M.
-  by move=> W; apply: irr_center_scalar; rewrite ?center_abelian_id.
+  by move=> W; apply: irr_center_scalar; rewrite ?(center_idP _).
 have inj_r: injective r.
   move=> V W eqVW; rewrite -(irr_reprK F'X V) -(irr_reprK F'X W).
   move: (irr_repr V) (irr_repr W) (scalX V) (scalX W).
@@ -5322,7 +5337,7 @@ have inj_r: injective r.
   exists 1%:M; rewrite ?row_free_unit ?unitmx1 // => xk; case/cycleP=> k ->{xk}.
   by rewrite mulmx1 mul1mx !repr_mxX // rWx.
 have rx1: r _ ^+ #[x] = 1.
-  by move=> W; rewrite -irr_modeX ?center_abelian_id // expg_order irr_mode1.
+  by move=> W; rewrite -irr_modeX ?(center_idP _) // expg_order irr_mode1.
 have: has #[x].-primitive_root (map r (enum sX)).
   rewrite has_prim_root 1?map_inj_uniq ?enum_uniq //; first 1 last.
     by rewrite size_map -cardE card_sX.
@@ -5615,13 +5630,18 @@ Arguments Scope irr_degree [_ _ subgroup_scope _ irrType_scope].
 Arguments Scope irr_repr [_ _ subgroup_scope _ irrType_scope group_scope].
 Arguments Scope irr_mode [_ _ subgroup_scope _ irrType_scope group_scope].
 
+Section ModularRepresentation.
+Variables (F : fieldType) (p : nat) (gT : finGroupType).
+Hypothesis charFp : p \in [char F].
+Implicit Types G H : {group gT}.
+
 (* This is Gorenstein, Lemma 2.6.3. *)
-Lemma rfix_pgroup_char : forall (F : fieldType) (gT : finGroupType),
-    forall (G : {group gT}) n (rG : mx_representation F G n),
-  n > 0 -> [char F].-group G -> rfix_mx rG G != 0.
+Lemma rfix_pgroup_char : forall G H n (rG : mx_representation F G n),
+  n > 0 -> p.-group H -> H \subset G -> rfix_mx rG H != 0.
 Proof.
-move=> F gT G n; move: {2}_.+1 (ltnSn (n + #|G|)) => m.
-elim: m => // m IHm in gT n G *; rewrite ltnS => le_nG_m rG n_gt0 charF_G.
+move=> G H n rG n_gt0 pH sHG; rewrite -(rfix_subg rG sHG).
+move: {2}_.+1 (ltnSn (n + #|H|)) {rG G sHG}(subg_repr _ _) => m.
+elim: m gT H pH => // m IHm gT' G pG in n n_gt0 *; rewrite ltnS => le_nG_m rG.
 apply/eqP=> Gregular; have irrG: mx_irreducible rG.
   apply/mx_irrP; split=> // U modU; rewrite -mxrank_eq0 -lt0n => Unz.
   rewrite /row_full eqn_leq rank_leq_col leqNgt; apply/negP=> ltUn. 
@@ -5632,16 +5652,13 @@ have{m le_nG_m IHm} faithfulG: mx_faithful rG.
   apply/trivgP; apply/eqP; apply/idPn; set C := _ rG => ntC.
   suffices: rfix_mx (kquo_repr rG) (G / _)%g != 0.
     by rewrite -mxrank_eq0 rfix_quo // Gregular mxrank0.
-  apply: IHm (morphim_pgroup _ _) => //.
+  apply: (IHm _ _ (morphim_pgroup _ _)) => //.
   by apply: leq_trans le_nG_m; rewrite ltn_add2l ltn_quotient // rstab_sub.
 have{Gregular} ntG: G :!=: 1%g.
   apply: contraL n_gt0; move/eqP=> G1; rewrite -leqNgt -(mxrank1 F n).
   rewrite -(mxrank0 F n n) -Gregular mxrankS //; apply/rfix_mxP=> x.
   by rewrite {1}G1 mul1mx; move/set1P->; rewrite repr_mx1.
-have [p p_pr charFp]: exists2 p, prime p & p \in [char F].
-  move: ntG; rewrite trivg_card_le1 -ltnNge; case/pdivP=> p p_pr pG.
-  by exists p => //; exact: pgroupP pG.
-have{charF_G} pG: p.-group G by rewrite /pgroup -(eq_pnat _ (charf_eq charFp)).
+have p_pr: prime p by case/andP: charFp.
 have{ntG pG} [z]: {z | z \in 'Z(G) & #[z] = p}; last case/setIP=> Gz cGz ozp.
   apply: Cauchy => //; apply: contraR ntG; rewrite -p'natE // => p'Z.
   have pZ: p.-group 'Z(G) by rewrite (pgroupS (center_sub G)).
@@ -5654,11 +5671,39 @@ have{irrG faithfulG cGz1} Urz1: rG z - 1%:M \in unitmx.
   move/implyP: (subsetP faithfulG z).
   by rewrite !inE Gz mul1mx -order_eq1 ozp -implybN neq_ltn orbC prime_gt1.
 do [case: n n_gt0 => // n' _; set n := n'.+1] in rG Urz1 *.
-have{charFp} charMp: p \in [char 'M[F]_n] by rewrite (fieldM_char scalar_mxRM).
+have charMp: p \in [char 'M[F]_n] by rewrite (fieldM_char scalar_mxRM).
 have{Urz1}: GRing.unit (Frobenius_aut charMp (rG z - 1)) by rewrite unitr_exp.
 rewrite (Frobenius_aut_sub_comm _ (commr1 _)) Frobenius_aut_1.
 by rewrite -[_ (rG z)](repr_mxX rG) // -ozp expg_order repr_mx1 subrr unitr0.
 Qed.
+
+Variables (G : {group gT}) (n : nat) (rG : mx_representation F G n).
+
+Lemma pcore_sub_rstab_mxsimple : forall M,
+  mxsimple rG M -> 'O_p(G) \subset rstab rG M.
+Proof.
+move=> M [modM nzM simM]; have sGpG := pcore_sub p G.
+rewrite rfix_mx_rstabC //; set U := rfix_mx _ _.
+have:= simM (M :&: U)%MS; rewrite sub_capmx submx_refl.
+apply; rewrite ?capmxSl //.
+  rewrite capmx_module // normal_rfix_mx_module ?pcore_normal //.
+rewrite -(in_submodK (capmxSl _ _)) val_submod_eq0 -submx0.
+rewrite -(rfix_submod modM) // submx0 rfix_pgroup_char ?pcore_pgroup //.
+by rewrite lt0n mxrank_eq0.
+Qed.
+
+Lemma pcore_sub_rker_mx_irr : mx_irreducible rG -> 'O_p(G) \subset rker rG.
+Proof. exact: pcore_sub_rstab_mxsimple. Qed.
+
+(* This is Gorenstein, Lemma 3.1.3. *)
+Lemma pcore_faithful_mx_irr :
+  mx_irreducible rG -> mx_faithful rG -> 'O_p(G) = 1%g.
+Proof.
+move=> irrG ffulG; apply/trivgP; apply: subset_trans ffulG.
+exact: pcore_sub_rstab_mxsimple.
+Qed.
+
+End ModularRepresentation.
 
 (* Lifting term, formula, envs and eval to matrices. Wlog, and for the sake  *)
 (* of simplicity, we only lift (tensor) envs to row vectors; we can always   *)

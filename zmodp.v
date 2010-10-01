@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq div.
-Require Import fintype bigops finset prime groups ssralg finalg.
+Require Import fintype bigop finset prime fingroup ssralg finalg.
 
 (***********************************************************************)
 (*  Definition of the additive group and ring Zp, represented as 'I_p  *)
@@ -174,6 +174,9 @@ Proof. move=> x; rewrite Zp_expgn; exact: Zp_mul1z. Qed.
 Lemma Zp_cycle : setT = <[Zp1]>.
 Proof. by apply/setP=> x; rewrite -[x]Zp1_expgz inE groupX ?mem_gen ?set11. Qed.
 
+Lemma order_Zp1 : #[Zp1] = p.
+Proof. by rewrite orderE -Zp_cycle cardsT card_ord. Qed.
+
 End ZpDef.
 
 Implicit Arguments Zp0 [[p']].
@@ -237,6 +240,9 @@ Qed.
 Lemma natr_Zp : forall x : 'I_p, x%:R = x.
 Proof. by move=> x; rewrite Zp_nat valZpK. Qed.
 
+Lemma natr_negZp : forall x : 'I_p, (- x)%:R = - x.
+Proof. by move=> x; apply: val_inj; rewrite /= Zp_nat /= modn_mod. Qed.
+
 Import GroupScope.
 
 Lemma unit_Zp_mulgC : @commutative {unit 'I_p} _ mulg.
@@ -276,6 +282,11 @@ Proof. by move=> p_gt1 m; apply: ord_inj; rewrite !val_Zp_nat // modn_mod. Qed.
 
 Lemma char_Zp : p > 1 -> p%:R = 0 :> 'Z_p.
 Proof. by move=> p_gt1; rewrite -Zp_nat_mod ?modnn. Qed.
+
+Lemma unitZpE : forall x, p > 1 -> GRing.unit (x%:R : 'Z_p) = coprime p x.
+Proof.
+by move=> x p_gt1; rewrite /GRing.unit /= val_Zp_nat ?Zp_cast ?coprime_modr.
+Qed.
 
 Lemma Zp_group_set : group_set Zp.
 Proof. rewrite /Zp; case: (p > 1); exact: groupP. Qed.
@@ -332,6 +343,9 @@ Proof. by rewrite !inE -Fp_nat_mod p_pr ?modnn. Qed.
 
 Lemma char_Fp_0 : p%:R = 0 :> 'F_p.
 Proof. exact: GRing.charf0 char_Fp. Qed.
+
+Lemma unitFpE : forall x, GRing.unit (x%:R : 'F_p) = coprime p x.
+Proof. by move=> x; rewrite pdiv_id // unitZpE // prime_gt1. Qed.
 
 End F_prime.
 

@@ -1,7 +1,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype paths.
-Require Import finset prime groups action automorphism gfunc pgroups gprod.
-Require Import center commutators gseries nilpotent sylow abelian maximal.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype path.
+Require Import finset prime fingroup automorphism action gproduct gfunctor.
+Require Import center commutator pgroup gseries nilpotent sylow abelian maximal.
 Require Import BGsection1 BGsection5 BGsection6 BGsection7.
 
 (******************************************************************************)
@@ -239,7 +239,8 @@ have sMp'H: 'O_p^'(M) \subset H.
   rewrite /normal subsetI -pcoreI pcore_sub subIset ?bgFunc_norm //=.
   rewrite pcoreI (subset_trans (pcore_sub _ _)) //= -/F centsC.
   case/dprodP: (nilpotent_pcoreC p nilF) => _ _ /= cFpp' _.
-  apply: subset_trans cFpp'; have hallFp := nilpotent_pcore_Hall p nilF.
+  rewrite centsC (subset_trans cFpp' (centS _)) //.
+  have hallFp := nilpotent_pcore_Hall p nilF.
   by rewrite (subset_normal_Hall _ hallFp) ?pcore_normal // /psubgroup sA0F.
 have{sHp'Mp' sMp'H} eqHp'Mp': 'O_p^'(H) = 'O_p^'(M).
   apply/eqP; rewrite eqEsubset sHp'Mp'.

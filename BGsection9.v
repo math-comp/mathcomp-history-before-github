@@ -1,9 +1,10 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype paths.
-Require Import finset prime groups action automorphism normal cyclic.
-Require Import gfunc pgroups gprod center commutators gseries nilpotent.
-Require Import sylow abelian maximal hall BGsection1 BGsection4 BGsection5.
-Require Import BGsection6 BGsection7 BGsection8.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype path.
+Require Import finset prime fingroup action automorphism quotient cyclic.
+Require Import gproduct gfunctor pgroup center commutator gseries nilpotent.
+Require Import sylow abelian maximal hall.
+Require Import BGsection1 BGsection4 BGsection5 BGsection6.
+Require Import BGsection7 BGsection8.
 
 (******************************************************************************)
 (*   This file covers B & G, section 9, i.e., the proof the Uniqueness        *)
@@ -260,7 +261,7 @@ have sNP_mCA: forall M, M \in 'M('C(A)) -> 'N(P) \subset M.
         by rewrite p_rank_gt0 pi_max_pdiv cardG_gt1 mmax_neq1.
       have sylMqG: q.-Sylow(G) 'O_q(M).
         by rewrite (mmax_sigma_Sylow maxM) ?defNMq.
-      rewrite (hall_maximal sylMqG (subsetT _) qQ) // defNMq; split=> //.
+      rewrite (Hall_maximal sylMqG (subsetT _) qQ) // defNMq; split=> //.
       have: 'r_p(G) > 2.
         by rewrite (leq_trans Age3) // (rank_pgroup pA) p_rankS ?subsetT.
       apply: contraL; move/eqP <-; rewrite (p_rank_Sylow sylMqG).
@@ -402,7 +403,7 @@ have uNP0_mCA: forall M, M \in 'M('C(A)) -> 'M('N(P0)) = [set M].
     rewrite -quotientK // cosetpre_normal -sub_abelian_normal ?quotientS //.
     by rewrite sub_der1_abelian ?rank2_der1_sub_Fitting ?mFT_odd ?mmax_sol.
   case/dprodP: (nilpotent_pcoreC p (Fitting_nil M)) => _ /= defF cDFp _.
-  rewrite norm_mulgenEr //= -{}defF (centC cDFp) -/D p_core_Fitting /= -/F.
+  rewrite norm_mulgenEr //= -{}defF -(centC cDFp) -/D p_core_Fitting /= -/F.
   rewrite -!mulgA mul_subG //; first by rewrite cents_norm // centsC.
   rewrite mulgA [_ * P]mulSGid ?pcore_sub_Hall 1?(pHall_subl _ (subsetT _)) //.
   by rewrite mulSGid ?subsetI ?sPM ?normG // subIset // orbC normsRr.

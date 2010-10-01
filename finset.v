@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat div seq choice fintype.
-Require Import finfun bigops.
+Require Import finfun bigop.
 
 (*****************************************************************************)
 (* This file defines a type for sets over a finite Type, similarly to (and,  *)
@@ -26,7 +26,7 @@ Require Import finfun bigops.
 (*           A :\: B == the difference A minus B                             *)
 (*            A :\ x == remove x from A                                      *)
 (* \bigcup_<range> A == the union of all A, for i in <range> (i is bound in  *)
-(*                      A, see bigops.v)                                     *)
+(*                      A, see bigop.v)                                      *)
 (* \bigcap_<range> A == the intersection of all A, for i in <range>          *)
 (*           cover P == the union of the set of sets P                       *)
 (*        trivIset P == the elements of P are pairwise disjoint              *)
@@ -268,6 +268,9 @@ Proof. by move=> A B; apply/eqP/subset_eqP; move/setP. Qed.
 
 Lemma subEproper : forall A B, A \subset B = (A == B) || (A \proper B).
 Proof. by move=> A B; rewrite eqEsubset -andb_orr orbN andbT. Qed.
+
+Lemma eqVproper : forall A B, A \subset B -> A = B \/ A \proper B.
+Proof. by move=> A B; rewrite subEproper; move/predU1P. Qed.
 
 Lemma properEneq : forall A B, A \proper B = (A != B) && (A \subset B).
 Proof. by move=> A B; rewrite andbC eqEsubset negb_and andb_orr andbN. Qed.
@@ -611,6 +614,9 @@ Proof. by move=> A; apply/setP=> x; rewrite !inE andNb. Qed.
 Lemma setCD : forall A B, ~: (A :\: B) = ~: A :|: B.
 Proof. by move=> A B; rewrite !setDE setCI setCK. Qed.
 
+Lemma setID : forall A B, A :&: B :|: A :\: B = A.
+Proof. by move=> A B; rewrite setDE -setIUr setUCr setIT. Qed.
+
 Lemma setDUl : forall A B C, (A :|: B) :\: C = (A :\: C) :|: (B :\: C).
 Proof. by move=> A B C; rewrite !setDE setIUl. Qed.
 
@@ -703,8 +709,14 @@ Proof. by move=> A B; apply/subsetP=> x; rewrite inE => ->. Qed.
 Lemma subsetUr : forall A B, B \subset A :|: B.
 Proof. by move=> A B; apply/subsetP=> x; rewrite inE orbC => ->. Qed.
 
+Lemma subsetU1 : forall x A, A \subset x |: A.
+Proof. move=> x A; exact: subsetUr. Qed.
+
 Lemma subsetDl : forall A B, A :\: B \subset A.
 Proof. by move=> A B; rewrite setDE subsetIl. Qed.
+
+Lemma subsetD1 : forall A x, A :\ x \subset A.
+Proof. by move=> A x; exact: subsetDl. Qed.
 
 Lemma subsetDr : forall A B, A :\: B \subset ~: B.
 Proof. by move=> A B; rewrite setDE subsetIr. Qed.
@@ -726,9 +738,6 @@ Proof.
 move=> A x; rewrite eqEcard cards1 -cards_eq0 orbC andbC.
 by case: posnP => // A0; rewrite (cards0_eq A0) sub0set.
 Qed.
-
-Lemma subsetD1 : forall A x, A :\ x \subset A.
-Proof. by move=> A x; apply/subsetP=> y; case/setD1P. Qed.
 
 Lemma setIidPl : forall A B, reflect (A :&: B = A) (A \subset B).
 Proof.
@@ -1008,6 +1017,14 @@ Lemma mem_imset2 : forall (D : pred aT) (D2 : aT -> pred aT2) x x2,
    f2 x x2 \in imset2 f2 (mem D) (fun x1 => mem (D2 x1)).
 Proof. by move=> D D2 x x2 Dx Dx2; apply/imset2P; exists x x2. Qed.
 
+Lemma sub_imset_pre : forall (A : pred aT) (B : pred rT),
+  (f @: A \subset B) = (A \subset f @^-1: B).
+Proof.
+move=> A B; apply/subsetP/subsetP=> [sfAB x Ax | sAf'B fx].
+  by rewrite inE sfAB ?mem_imset.
+by case/imsetP=> x Ax ->; move/sAf'B: Ax; rewrite inE.
+Qed.
+
 Lemma preimsetS : forall A B : pred rT,
   A \subset B -> (f @^-1: A) \subset (f @^-1: B).
 Proof.
@@ -1160,13 +1177,22 @@ Proof. by move=> F; apply: big_pred0 => i; rewrite inE. Qed.
 Lemma big_set1 : forall a F, \big[op/idx]_(i \in [set a]) F i = F a.
 Proof. by move=> a F; apply: big_pred1 => i; rewrite !inE. Qed.
 
-Lemma big_setID : forall A B P F,
+Lemma big_setIDdep : forall A B P F,
   \big[aop/idx]_(i \in A | P i) F i =
      aop (\big[aop/idx]_(i \in A :&: B | P i) F i)
          (\big[aop/idx]_(i \in A :\: B | P i) F i).
 Proof.
 move=> A B P F; rewrite (bigID (mem B)) setDE.
 by congr (aop _); apply: eq_bigl => i; rewrite !inE andbAC.
+Qed.
+
+Lemma big_setID : forall A B F,
+  \big[aop/idx]_(i \in A) F i =
+     aop (\big[aop/idx]_(i \in A :&: B) F i)
+         (\big[aop/idx]_(i \in A :\: B) F i).
+Proof.
+move=> A B F; rewrite (bigID (mem B)) !(eq_bigl _ _ (in_set _)) //=.
+by congr (aop _); apply: eq_bigl => i; rewrite andbC.
 Qed.
 
 Lemma big_setD1 : forall a A F, a \in A ->
@@ -1254,6 +1280,9 @@ Proof. by move=> injf; rewrite imset_card card_in_image. Qed.
 Lemma card_imset : injective f -> #|f @: D| = #|D|.
 Proof. by move=> injf; rewrite imset_card card_image. Qed.
 
+Lemma imset_injP : reflect {in D &, injective f} (#|f @: D| == #|D|).
+Proof. by rewrite [@imset _]unlock cardsE; exact: image_injP. Qed.
+
 Lemma can2_in_imset_pre :
   {in D, cancel f g} -> {on D, cancel g & f} -> f @: D = g @^-1: D.
 Proof.
@@ -1265,6 +1294,8 @@ Lemma can2_imset_pre : cancel f g -> cancel g f -> f @: D = g @^-1: D.
 Proof. move=> *; apply: can2_in_imset_pre; exact: in1W. Qed.
 
 End CardFunImage.
+
+Implicit Arguments imset_injP [aT rT f D].
 
 Lemma on_card_preimset : forall (aT rT : finType) (f : aT -> rT) (R : pred rT),
   {on R, bijective f} -> #|f @^-1: R| = #|R|.

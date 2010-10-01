@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype.
-Require Import div finfun bigops prime binomial ssralg finset groups finalg.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div choice fintype.
+Require Import finfun bigop prime binomial ssralg finset fingroup finalg.
 Require Import perm zmodp.
 
 (*****************************************************************************)
@@ -160,7 +160,7 @@ Require Import perm zmodp.
 (*                   row-spaces of A and B; thus (A + B == col_mx A B)%MS.   *)
 (*  (\sum_i <expr i>)%MS == the "big" version of (_ + _)%MS; as the latter   *)
 (*                   has a canonical abelian monoid structure, most generic  *)
-(*                   bigops lemmas apply (the other bigop indexing notations *)
+(*                   bigop lemmas apply (the other bigop indexing notations  *)
 (*                   are also defined).                                      *)
 (*   (A :&: B)%MS == a square matrix whose row-space is the intersection of  *)
 (*                   the row-spaces of A and B.                              *)
@@ -1422,7 +1422,7 @@ Qed.
 Lemma row1 : forall n (i : 'I_n), row i 1%:M = delta_mx 0 i.
 Proof. by move=> n i; apply/rowP=> j; rewrite !mxE eq_sym. Qed.
 
-(* Matrix multiplication with the bigops *)
+(* Matrix multiplication using bigops. *)
 Definition mulmx {m n p} (A : 'M_(m, n)) (B : 'M_(n, p)) : 'M[R]_(m, p) :=
   \matrix_(i, k) \sum_j (A i j * B j k).
 
@@ -2734,8 +2734,8 @@ Definition genmx := let: tt := genmx_key in genmx_def.
 Local Notation "<< A >>" := (genmx A) : matrix_set_scope.
 
 (* The setwise sum is tweaked so that 0 is a strict identity element for      *)
-(* square matrices, because this lets us use the bigops component. As a       *)
-(* result, setwise sum is not quite strictly extensional.                     *)
+(* square matrices, because this lets us use the bigop component. As a result *)
+(* setwise sum is not quite strictly extensional.                             *)
 Let addsmx_nop m n (A : 'M_(m, n)) := conform_mx <<A>>%MS A.
 Definition addsmx_def m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) : 'M_n :=
   if A == 0 then addsmx_nop B else if B == 0 then addsmx_nop A else

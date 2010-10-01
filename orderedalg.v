@@ -1,3 +1,4 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice.
 Require Import ssralg poly polydiv zmodp fintype.
 

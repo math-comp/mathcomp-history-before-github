@@ -1,5 +1,6 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype.
-Require Import bigops ssralg poly.
+Require Import bigop ssralg poly.
 
 Import GRing.
 

@@ -1,7 +1,10 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
-Require Import paths bigops finset groups morphisms automorphism normal.
-Require Import gseries action.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq path choice fintype.
+Require Import bigop finset fingroup morphism automorphism quotient action.
+Require Import gseries.
+
+(* DOCUMENTATION TO DO !!! *)
+
 Import GroupScope.
 
 Set Implicit Arguments.

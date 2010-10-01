@@ -1,6 +1,8 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype fintype finset groups normal.
-Require Import normal morphisms automorphism bigops gprod.
+Require Import ssreflect ssrbool ssrfun eqtype fintype bigop finset.
+Require Import fingroup morphism automorphism quotient gproduct.
+
+(* DOCUMENTATION TO DO !!! *)
 
 Import GroupScope.
 

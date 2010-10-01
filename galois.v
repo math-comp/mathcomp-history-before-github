@@ -1,7 +1,7 @@
 (* Import some random set of files *)
 
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
-Require Import choice fintype finfun bigops ssralg poly.
+Require Import choice fintype finfun bigop ssralg poly.
 Require Import zmodp matrix mxrepresentation.
 
 Set Implicit Arguments.

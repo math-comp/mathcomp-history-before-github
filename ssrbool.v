@@ -7,16 +7,41 @@ Require Export Bool.
 (* A theory of boolean predicates and operators. A large part of this file   *)
 (* is concerned with boolean reflection. Definitions and notations:          *)
 (*                                                                           *)
-(* a && b                  == boolean conjection                             *)
+(* a && b                  == boolean conjunction                            *)
 (* a || b                  == boolean disjunction                            *)
 (* a ==> b                 == boolean implication                            *)
 (* ~~ a                    == boolean negation                               *)
-(* a (+) b                 == boolean xor                                    *)
-(* is_true                 == coercion bool >-> Prop                         *)
-(* reflect                 == the reflection inductive predicate             *)
-(* iffP,...                == user-oriented reflection lemmas                *)
-(* elimT                   == coercion reflect >-> Funclass, to apply        *)
+(* a (+) b                 == boolean exclusive or (or addition)             *)
+(* is_true b               == coercion of b : bool to Prop; normally input   *)
+(*                            and displayed simply as ``b''.                 *)
+(* reflect P b             == the reflection inductive predicate, asserting  *)
+(*                            that the logical proposition P : prop with the *)
+(*                            formula b : bool. Lemmas asserting reflect P b *)
+(*                            are often referred to as "views".              *)
+(* iffP, appP, sameP, rwP  :: lemmas for direct manipulation of reflection   *)
+(*                            views: iffP is used to prove reflection from   *)
+(*                            logical equivalence, appP to compose views,    *)
+(*                            sameP and rwP to perform boolean and setoid    *)
+(*                            rewriting.                                     *)
+(* elimT                   :: coercion reflect >-> Funclass, to apply        *)
 (*                            reflection lemmas to boolean assertions        *)
+(* contra, contraL, ..     :: contraposition lemmas                          *)
+(* altP my_viewP           :: natural alternative for reflection; given      *)
+(*                            lemma myvieP: reflect my_Prop my_formula,      *)
+(*                              have [myP | not_myP] := altP my_viewP.       *)
+(*                            generates two subgoals, in which my_formula    *)
+(*                            has been replaced by true and false, resp.,    *)
+(*                            and with assumptions myP : my_Prop and         *)
+(*                            not_myP: ~~ my_formula.                        *)
+(*                            Caveat: my_formula must be an APPLICATION, not *)
+(*                            a variable, constant, let-in, etc. (due to the *)
+(*                            poor behaviour of dependent index matching).   *)
+(* boolP my_formula        :: boolean disjunction, equivalent to             *)
+(*                            altP (idP my_formula) but circumventing the    *)
+(*                            dependent index capture issue; destructing     *)
+(*                            boolP my_formula generates two subgoals with   *)
+(*                            assumtions my_formula and ~~ myformula. As     *)
+(*                            with altP, my_formula must be an application.  *)
 (* classically P           == hP : P can be assumed when proving is_true b   *)
 (*                         := forall b : bool, (P -> b) -> b.                *)
 (*                            This is equivalent to ~ (~ P) when P : Prop.   *)
@@ -284,15 +309,19 @@ Proof. by move=> [] ? <-. Qed.
 
 Lemma contra : forall c b : bool, (c -> b) -> ~~ b -> ~~ c.
 Proof. by do 2!case. Qed.
+Definition contraNN := contra.
 
 Lemma contraL : forall c b : bool, (c -> ~~ b) -> b -> ~~ c.
 Proof. by do 2!case. Qed.
+Definition contraTN := contraL.
 
 Lemma contraR : forall c b : bool, (~~ c -> b) -> ~~ b -> c.
 Proof. by do 2!case. Qed.
+Definition contraNT := contraR.
 
 Lemma contraLR : forall c b : bool, (~~ c -> ~~ b) -> b -> c.
 Proof. by do 2!case. Qed.
+Definition contraTT := contraLR.
 
 Lemma contraT : forall b, (~~ b -> false) -> b. Proof. by case=> // ->. Qed.
 
@@ -301,8 +330,14 @@ Lemma wlog_neg : forall b, (~~ b -> b) -> b. Proof. by case=> // ->. Qed.
 Lemma contraFT : forall c b : bool, (~~ c -> b) -> b = false -> c.
 Proof. by case=> [] [] // ->. Qed.
 
+Lemma contraFN : forall c b : bool, (c -> b) -> b = false -> ~~ c.
+Proof. by case=> [] [] //= ->. Qed.
+
 Lemma contraTF : forall c b : bool, (c -> ~~ b) -> b -> c = false.
 Proof. by case=> [] [] //= ->. Qed.
+
+Lemma contraNF : forall c b : bool, (c -> b) -> ~~ b -> c = false.
+Proof. by case=> [] [] // ->. Qed.
 
 Lemma contraFF : forall c b : bool, (c -> b) -> b = false -> c = false.
 Proof. by case=> [] [] // ->. Qed.
@@ -335,12 +370,15 @@ Section BoolIf.
 
 Variables (A B : Type) (x : A) (f : A -> B) (b : bool) (vT vF : A).
 
-CoInductive if_spec : A -> bool -> Set :=
-  | IfSpecTrue  of  b         : if_spec vT true
-  | IfSpecFalse of  b = false : if_spec vF false.
+CoInductive if_spec (not_b : Prop) : A -> bool -> Set :=
+  | IfSpecTrue  of      b : if_spec not_b vT true
+  | IfSpecFalse of  not_b : if_spec not_b vF false.
 
-Lemma ifP : if_spec (if b then vT else vF) b.
+Lemma ifP : if_spec (b = false) (if b then vT else vF) b.
 Proof. by case def_b: b; constructor. Qed.
+
+Lemma ifPn : if_spec (~~ b) (if b then vT else vF) b.
+Proof. by case def_b: b; constructor; rewrite ?def_b. Qed.
 
 Lemma if_same : (if b then vT else vT) = vT.
 Proof. by case b. Qed.
@@ -454,12 +492,24 @@ Lemma decPcases : if b then P else ~ P. Proof. by case Pb. Qed.
 
 Definition decP : {P} + {~ P}. by case: b decPcases; [left | right]. Defined.
 
-CoInductive exm_spec : bool -> Type :=
-  | ExmTrue of     P : exm_spec true
-  | ExmFalse of ~~ b : exm_spec false.
+Lemma rwP : P <-> b. Proof. by split; [exact: introT | exact: elimT]. Qed.
 
-Lemma exmP : exm_spec b.
+Lemma rwP2 : reflect Q b -> (P <-> Q).
+Proof. by move=> Qb; split=> ?; [exact: appP | apply: elimT; case: Qb]. Qed.
+
+(*  Predicate family to reflect excluded middle in bool.
+    This is the natural definition, but unfortunately it is unusable because
+    matching for dependent type families in Coq is broken -- it tries to match
+    indices in the prefix of the elimination predicate for the type as it is
+    constructing it, which results in the wrong prefix on instances where one
+    of the indices appear multible times, as in the boolP lemma below.
+CoInductive alt_spec : bool -> Type :=
+  | AltTrue of     P : alt_spec true
+  | AltFalse of ~~ b : alt_spec false.
+
+Lemma altP : alt_spec b.
 Proof. by case def_b: b / Pb; constructor; rewrite ?def_b. Qed.
+*)
 
 End Reflect.
 
@@ -472,8 +522,42 @@ Hint View for apply// equivPif|3 xorPif|3 equivPifn|3 xorPifn|3.
 (* Allow the direct application of a reflection lemma to a boolean assertion. *)
 Coercion elimT : reflect >-> Funclass.
 
-(* Classical reasoning becomes directly accessible for any bool subgoal.      *)
+Section BooleanAlternative.
 
+(* Workaround for the op-cited problem: split the Proposition and the boolean *)
+(* formula into a predicate and argument, so that the index matching does not *)
+(* capture (part of) the parameters. However, we can't do this in a generic   *)
+(* proposition, as usually the proposition and predicate have different       *)
+(* syntactic structure (e.g., while in eqP both = and == have the same final  *)
+(* argument, in andP if the last argument of && is b, the last argument of /\ *)
+(* is (is_true b)), so the generic exmP theorem is restricted to propositions *)
+(* in which the formula does not appear. We handle the identity case below    *)
+(* specially, using a Phantom to split the formula in Lemma orbNP.            *)
+(*   Caveat: this kludge cannot possibly be made to work with atomic formulae *)
+(* such as bool variables.                                                    *)
+Variables (T : Type) (bP : T -> bool) (a : T).
+
+CoInductive alt_spec (P : T -> Prop) : bool -> Type :=
+  | AltTrue of      P a : alt_spec P true
+  | AltFalse of ~~ bP a : alt_spec P false.
+
+Lemma altP : forall P, reflect P (bP a) -> alt_spec (fun _ : T => P) (bP a).
+Proof. by move=> P; case bPa: (bP a) /; constructor; rewrite ?bPa. Qed.
+
+(*  This will become the official version when the dependent prefix capture
+    problem gets fixed (see above)
+Lemma boolP : exm_spec b1 b1 b1.
+Proof. by case: b1; constructor. Qed.
+*)
+
+Lemma boolP_proof : phantom bool (bP a) -> alt_spec [eta bP] (bP a).
+Proof. by move=> _; case bPa: (bP a); constructor; rewrite ?bPa. Qed.
+
+End BooleanAlternative.
+
+Notation boolP b := (boolP_proof (@Phantom bool b%B)).
+
+(* Classical reasoning becomes directly accessible for any bool subgoal.      *)
 Definition classically P := forall b : bool, (P -> b) -> b.
 
 Lemma classicP : forall P : Prop, classically P <-> ~ ~ P.
@@ -605,9 +689,6 @@ Proof. by case b1; case b2; constructor; auto; case; auto. Qed.
 
 Lemma implyP : reflect (b1 -> b2) (b1 ==> b2).
 Proof. by case b1; case b2; constructor; auto. Qed.
-
-Lemma orbNP : exm_spec b1 b1 b1.
-Proof. by case: b1; constructor. Qed.
 
 End ReflectConnectives.
 
@@ -822,11 +903,11 @@ Ltac bool_congr :=
 (* instead, as they do not run the risk of exposing internal coercions. As  *)
 (* a consequence, it is better to explicitly cast a generic applicative     *)
 (* pred T to simpl_pred, using the SimplPred constructor, when it is used   *)
-(* as a collective predicate (see, e.g., Lemma eq_big in bigops.v).         *)
+(* as a collective predicate (see, e.g., Lemma eq_big in bigop.v).          *)
 (*                                                                          *)
-(* We also sometimes "instantiate" the predType structure by defining a     *)
+(*   We also sometimes "instantiate" the predType structure by defining a   *)
 (* coercion to the sort of the predPredType structure.  This works better   *)
-(* for types such as set T that have subtypes that coerce to them, since    *)
+(* for types such as {set T} that have subtypes that coerce to them, since  *)
 (* the same coercion will be inserted by the application of mem. It also    *)
 (* allows us to turn some specific Types (namely, any aT : predArgType)     *)
 (* into predicates, specifically, the total predicate over that type, i.e., *)

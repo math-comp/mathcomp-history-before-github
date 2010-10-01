@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq paths fintype.
-Require Import div bigops.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq path fintype.
+Require Import div bigop.
 
 (*****************************************************************************)
 (* This file contains the definitions of:                                    *)
@@ -24,7 +24,7 @@ Require Import div bigops.
 (*                  := \prod_(0 <= p < n.+1 | p \in pi) p ^ logn p n         *)
 (*     - The nat >-> nat_pred coercion lets us write p.-nat n and n`_p       *)
 (* In addition to the lemmas relevant to these definitions, this file also   *)
-(* contains the dvdn_sum lemma, so that bigops doesn't depend on div.        *)
+(* contains the dvdn_sum lemma, so that bigop.v doesn't depend on div.v.     *)
 (*****************************************************************************)
 
 Set Implicit Arguments.
@@ -317,6 +317,12 @@ exists d; rewrite // andbC 2!ltn_neqAle ndp eq_sym nd1.
 by have lt0p := ltnW lt1p; rewrite dvdn_leq // (dvdn_gt0 lt0p).
 Qed.
 
+Lemma prime_nt_dvdP : forall d p, prime p -> d != 1 -> reflect (d = p) (d %| p).
+Proof.
+move=> d p; case/primeP=> _ min_p d_neq1; apply: (iffP idP) => [|-> //].
+by move/min_p; rewrite (negPf d_neq1) /=; move/eqP.
+Qed.
+
 Implicit Arguments primeP [p].
 Implicit Arguments primePn [n].
 Prenex Implicits primePn primeP.
@@ -338,6 +344,11 @@ Proof.
 move=> p pr_p; case odd_p: (odd p); [by right | left].
 have: 2 %| p by rewrite dvdn2 odd_p.
 by case/primeP: pr_p => _ dv_p; move/dv_p; move/(2 =P p).
+Qed.
+
+Lemma prime_oddPn : forall p, prime p -> reflect (p = 2) (~~ odd p).
+Proof.
+by move=> p p_pr; apply: (iffP idP) => [|-> //]; case/even_prime: p_pr => ->.
 Qed.
 
 Lemma mem_prime_decomp : forall n p e,
@@ -476,7 +487,7 @@ Qed.
 Lemma max_pdiv_max : forall n p, p \in \pi(n) -> p <= max_pdiv n.
 Proof.
 move=> n p; rewrite /max_pdiv !inE => n_p.
-case/paths.splitP: n_p (sorted_primes n) => p1 p2; rewrite last_cat last_rcons.
+case/splitPr: n_p (sorted_primes n) => p1 p2; rewrite last_cat -cat_rcons /=.
 rewrite headI /= path_cat -(last_cons 0) -headI last_rcons; case/andP=> _.
 move/(order_path_min ltn_trans); case/lastP: p2 => //= p2 q.
 by rewrite all_rcons last_rcons ltn_neqAle -andbA; case/and3P.
@@ -636,6 +647,10 @@ move=> p n p_pr; have pn_gt0: p ^ n > 0 by rewrite expn_gt0 prime_gt0.
 apply/eqP; rewrite eqn_leq -pfactor_dvdn // dvdnn andbT.
 by rewrite -(leq_exp2l _ _ (prime_gt1 p_pr)) dvdn_leq // pfactor_dvdn.
 Qed.
+
+Lemma pfactorKpdiv : forall p n,
+  prime p -> logn (pdiv (p ^ n)) (p ^ n) = n.
+Proof. by move=> p [//|n] p_pr; rewrite pdiv_pfactor ?pfactorK. Qed.
 
 Lemma dvdn_leq_log : forall p m n, 0 < n -> m %| n -> logn p m <= logn p n.
 Proof.
@@ -1014,11 +1029,13 @@ Proof. by move=> p n n_gt0; rewrite /pi_of primes_exp. Qed.
 Lemma pi_of_prime : forall p, prime p -> \pi(p) =i (p : nat_pred).
 Proof. by move=> p pr_p q; rewrite /pi_of primes_prime // mem_seq1. Qed.
 
+Lemma p'natEpi : forall p n, n > 0 -> p^'.-nat n = (p \notin \pi(n)).
+Proof. by move=> p [|n] // _; rewrite /pnat all_predC has_pred1. Qed.
+
 Lemma p'natE : forall p n, prime p -> p^'.-nat n = ~~ (p %| n).
 Proof.
-move=> p [|n] pr_p //; rewrite ?dvdn0 // -prime_coprime //.
-rewrite ?coprime_pi' // ?prime_gt0 //.
-by apply: eq_pnat => q; rewrite !inE /= pi_of_prime.
+move=> p [|n] p_pr; first by case: p p_pr.
+by rewrite p'natEpi // mem_primes p_pr.
 Qed.
 
 Lemma pnat_dvd : forall m n pi, m %| n -> pi.-nat n -> pi.-nat m.

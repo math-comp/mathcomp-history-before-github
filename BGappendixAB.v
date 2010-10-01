@@ -1,7 +1,8 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
-Require Import fintype bigops prime finset ssralg groups morphisms normal.
-Require Import automorphism commutators zmodp gfunc center pgroups nilpotent.
-Require Import sylow abelian gseries maximal matrix mxrepresentation.
+Require Import fintype bigop prime finset ssralg fingroup morphism.
+Require Import automorphism quotient gfunctor commutator zmodp center pgroup.
+Require Import sylow gseries nilpotent abelian maximal matrix mxrepresentation.
 Require Import BGsection1 BGsection2.
 
 (******************************************************************************)
@@ -450,7 +451,7 @@ have nsL_nCS: L <| 'N_G(C :&: S).
     by rewrite (pgroupS _ pS) ?Puig_sub.
   rewrite -[L](sub_Puig_eq _ sLCS) ?subsetIr //.
   by rewrite (char_normal_trans (Puig_char _)) ?normalSG // subIset // sSG orbT.
-have sylCS: p.-Sylow(C) (C :&: S) := pSylow_normalI nsCG sylS.
+have sylCS: p.-Sylow(C) (C :&: S) := Sylow_setI_normal nsCG sylS.
 have{defC} defC: 'C_G(Y) * (C :&: S) = C.
   apply/eqP; rewrite eqEsubset mulG_subG sCY_C subsetIl /=.
   have nCY_C: C \subset 'N('C_G(Y)).

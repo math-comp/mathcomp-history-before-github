@@ -146,6 +146,24 @@ Proof. by move=> T x y; apply/eqP/eqP. Qed.
 
 Hint Resolve eq_refl eq_sym.
 
+Section Contrapositives.
+
+Variables (T : eqType) (b : bool) (x y : T).
+
+Lemma contraTeq : (x != y -> ~~ b) -> b -> x = y.
+Proof. by move=> imp hyp; apply/eqP; exact: contraTT hyp. Qed.
+
+Lemma contraNeq : (x != y -> b) -> ~~ b -> x = y.
+Proof. by move=> imp hyp; apply/eqP; exact: contraNT hyp. Qed.
+
+Lemma contraTneq : (x = y -> ~~ b) -> b -> x != y.
+Proof. by move=> imp; apply: contraTN; move/eqP. Qed.
+
+Lemma contraNneq : (x = y -> b) -> ~~ b -> x != y.
+Proof. by move=> imp; apply: contraNN; move/eqP. Qed.
+
+End Contrapositives.
+
 Theorem eq_irrelevance : forall (T : eqType) (x y : T) (e1 e2 : x = y), e1 = e2.
 Proof.
 move=> T x y; pose proj z e := if x =P z is ReflectT e0 then e0 else e.
@@ -221,12 +239,12 @@ Definition predD1 p (a1 : T) := SimplPred (xpredD1 p a1).
 
 Lemma pred1E : pred1 =2 eq_op. Proof. move=> x y; exact: eq_sym. Qed.
 
-Variables (x y z u: T) (b : bool).
+Variables (T2 : eqType) (x y : T) (z u : T2) (b : bool).
 
 Lemma predU1P : reflect (x = y \/ b) ((x == y) || b).
 Proof. apply: (iffP orP) => [] []; by [right | move/eqP; left]. Qed.
 
-Lemma pred2P : reflect (x = z \/ y = u) ((x == z) || (y == u)).
+Lemma pred2P : reflect (x = y \/ z = u) ((x == y) || (z == u)).
 Proof. by apply: (iffP orP) => [] []; move/eqP; by [left | right]. Qed.
 
 Lemma predD1P : reflect (x <> y /\ b) ((x != y) && b).
@@ -244,6 +262,8 @@ Proof. by case: eqP; [left | right]. Qed.
 End EqPred.
 
 Implicit Arguments predU1P [T x y b].
+Implicit Arguments pred2P [T T2 x y z u].
+Implicit Arguments predD1P [T x y b].
 Prenex Implicits pred1 pred2 pred3 pred4 predU1 predC1 predD1 predU1P.
 
 Notation "[ 'predU1' x & A ]" := (predU1 x [mem A])

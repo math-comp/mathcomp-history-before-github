@@ -580,6 +580,9 @@ Qed.
 Lemma proper_irrefl : forall A, ~~ (A \proper A).
 Proof. by move=> A; rewrite properE subxx. Qed.
 
+Lemma properxx : forall A, (A \proper A) = false.
+Proof. by move=> A; rewrite properE subxx. Qed.
+
 Lemma eq_proper : forall A B,
   A =i B -> proper (mem A) =1 proper (mem B).
 Proof.
@@ -680,6 +683,7 @@ Implicit Arguments subsetP [T A B].
 Implicit Arguments subsetPn [T A B].
 Implicit Arguments subset_eqP [T A B].
 Implicit Arguments card_uniqP [T s].
+Implicit Arguments properP [T A B].
 Prenex Implicits pred0P pred0Pn subsetP subsetPn subset_eqP card_uniqP.
 
 (**********************************************************************)
@@ -992,6 +996,13 @@ move=> A injf; rewrite (cardE A) -(size_map f); apply/card_uniqP.
 rewrite map_inj_in_uniq ?enum_uniq // => x y; rewrite !mem_enum; exact: injf.
 Qed.
 
+Lemma image_injP : forall A,
+  reflect {in A &, injective f} (#|[image f of A]| == #|A|).
+Proof.
+move=> A; apply: (iffP eqP) => [eqfA |]; last exact: card_in_image.
+by apply/dinjectiveP; apply/card_uniqP; rewrite size_map -cardE.
+Qed.
+
 Hypothesis injf : injective f.
 
 Lemma card_image : forall A, #|[image f of A]| = #|A|.
@@ -1007,6 +1018,8 @@ by rewrite [y \in _]image_pre //= andbC.
 Qed.
 
 End CardFunImage.
+
+Implicit Arguments image_injP [T T' f A].
 
 Section FinCancel.
 

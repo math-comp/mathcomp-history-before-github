@@ -1,7 +1,15 @@
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype.
-Require Import div bigops prime tuple finset groups morphisms normal.
-Require Import perm automorphism action cyclic pgroups sylow.
-Require Import gseries prim_act.
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype tuple.
+Require Import tuple bigop prime finset fingroup morphism perm automorphism.
+Require Import quotient action cyclic pgroup gseries sylow primitive_action.
+
+(******************************************************************************)
+(*  Definitions of the symmetric and alternate groups, and some properties.   *)
+(*     'Sym_T == The symmetric group over type T (which must have a finType   *)
+(*               structure).                                                  *)
+(*            := [set: {perm T}]                                              *)
+(*     'Alt_T == The alternating group over type T.                           *)
+(******************************************************************************)
 
 Import Prenex Implicits.
 Set Implicit Arguments.
@@ -13,12 +21,6 @@ Definition bool_groupMixin := FinGroup.Mixin addbA addFb addbb.
 Canonical Structure bool_baseGroup :=
   Eval hnf in BaseFinGroupType bool bool_groupMixin.
 Canonical Structure boolGroup := Eval hnf in FinGroupType addbb.
-
-(****************************************************************************)
-(*                                                                          *)
-(** Definitions of the symmetric and alternate groups, and some properties. *)
-(*                                                                          *)
-(****************************************************************************)
 
 Section SymAltDef.
 

@@ -1,8 +1,8 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool eqtype ssrnat seq div fintype finset.
-Require Import prime groups morphisms automorphism normal cyclic.
-Require Import gfunc gprod center commutators pgroups nilpotent.
-Require Import sylow abelian hall BGsection1 BGappendixAB.
+Require Import prime fingroup morphism automorphism quotient gproduct gfunctor.
+Require Import cyclic center commutator pgroup nilpotent sylow abelian hall.
+Require Import BGsection1 BGappendixAB.
 
 (******************************************************************************)
 (*   This file covers most of B & G section 6.                                *)
@@ -67,7 +67,7 @@ set R := [~: H, K]; have sRH: R \subset H by rewrite commg_subl.
 have tiHbKb : H / R :&: K / R = 1 by rewrite -quotientGI ?tiHK ?quotient1.
 have sHbH'K' : H / R \subset (H / R)^`(1) * (K / R)^`(1).
   have defGq: (H / R) \* (K / R) = G / R.
-    by rewrite cprodE ?quotient_cents2r //= -quotientMl ?normsRl ?defG.
+    by rewrite cprodE 1?centsC ?quotient_cents2r //= -quotientMl ?normsRl ?defG.
   case/cprodP: (der_cprod 1 defGq) => _ -> _ /=.
   by rewrite -quotient_der ?quotientS // -defG -norm_mulgenEr ?commg_norm.
 have {tiHbKb} tiHbKb' : H / R :&: (K / R)^`(1) = 1.
@@ -158,7 +158,7 @@ have isoquot : (U :&: K) <*> U' / U' \isog (U :&: K) / (U' :&: K).
   have <- : (U' :&: (U :&: K)) = (U' :&: K).
     rewrite setIA (_:U^`(1) :&: U = U^`(1)) //; apply/eqP; rewrite eqEsubset.
     by rewrite subsetIl subsetI der_sub subxx.
-  rewrite quotient_mulgen // isog_sym; apply: second_isog. 
+  rewrite quotient_mulgenr // isog_sym; apply: second_isog. 
   exact: (subset_trans (subsetIl _ _) (lcn_norm 2 U)). 
 have pi'UKU'K : pi^'.-group ((U :&: K) / (U' :&: K)).
   rewrite morphim_pgroup // -[_.-group _]coprime_pi' //.
@@ -222,7 +222,7 @@ case/mulsgP: wHKU => h1 w1 h1H; case/setIP => w1K w1U defw.
 pose c := k * w1^-1; pose v := w1 * u.
 have cK : c \in K by rewrite groupM ?groupV.
 have HcH : H :^ c = H.
-  rewrite /c conjsgM (congr_group HkHw) defw -conjsgM -mulgA mulgV mulg1.
+  rewrite /c conjsgM HkHw defw -conjsgM -mulgA mulgV mulg1.
   by apply/normP; rewrite (subsetP (normsG _) _ h1H).
 exists c; last by exists v; rewrite ?defg /c /v ?groupM //; gsimpl.
 rewrite in_setI cK //=; apply/centP=> h hH; apply/eqP.
@@ -265,13 +265,13 @@ move=> G S p solG psylS pl1G; set M := 'O_p^'(G); set U := 'N_G(S).
 have sSG : S \subset G by case/andP: psylS.
 have nOp'G : G \subset 'N('O_p^'(G)) := char_norm (pcore_char _ _).
 have nSOp'G : S \subset 'N('O_p^'(G)) := subset_trans sSG nOp'G.
-have {pl1G} pl1G := plength1_pSylow pl1G.
+rewrite plength1_pcore_quo_Sylow in pl1G.
 have nOp'pGG : 'O_{p^',p}(G) <| G by apply: pseries_normal.
 have defOp'pG : M * S = 'O_{p^',p}(G).
   rewrite -norm_mulgenEr //; apply: (@quotient_inj _ 'O_p^'(G));rewrite /normal.
   by rewrite mulgen_subl (subset_trans _ nOp'G) // mulgen_subG pcore_sub sSG.
     by rewrite /= -pseries1 pseries_norm2 pseries_sub_catl.
-  rewrite /= mulgenC quotient_mulgen ?(subset_trans _ nOp'G) //=. 
+  rewrite /= mulgenC quotient_mulgenr ?(subset_trans _ nOp'G) //=. 
   have {pl1G} pl1G : p.-Sylow(G / 'O_p^'(G)) ('O_{p^',p}(G) / 'O_p^'(G)).
     by rewrite lastI -pseries1 quotient_pseries pseries1 /=.
   rewrite (uniq_normal_Hall pl1G _ _) ?normal_norm ?quotient_normal //=. 
@@ -326,7 +326,7 @@ Lemma sol_Sylow_plength1_cent_conj: forall G S (Q : {group gT}) p,
 Proof.
 move=> G S Q p solG psS pl1G.
 case: (sol_Sylow_plength1_pseries_pcore solG psS pl1G) => defOp'pG defG psgQ.
-have {pl1G} pl1G := plength1_pSylow pl1G; have {psgQ} [sQG pgQ] := andP psgQ.
+rewrite plength1_pcore_quo_Sylow in pl1G; have {psgQ} [sQG pgQ] := andP psgQ.
 pose M := 'O_p^'(G); have: M <| G := pcore_normal _ _; case/andP=> sMG nMG.
 have sMOp'p : M \subset 'O_{p^',p}(G) by rewrite /M -pseries1 pseries_sub_catl.
 have [sSG pgS _] := and3P psS; have nMS := subset_trans sSG nMG.

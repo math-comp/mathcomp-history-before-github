@@ -1,6 +1,7 @@
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype div.
-Require Import bigops prime paths finset groups commutators automorphism.
-Require Import morphisms normal center gprod gfunc gseries.
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path fintype div.
+Require Import bigop prime finset fingroup morphism automorphism quotient.
+Require Import commutator gproduct gfunctor center gseries.
 
 (******************************************************************************)
 (*   This file defines nilpotent and solvable groups, and give some of their  *)
@@ -181,11 +182,11 @@ Qed.
 
 Lemma lcn_cprod : forall n A B G, A \* B = G -> 'L_n(A) \* 'L_n(B) = 'L_n(G).
 Proof.
-move=> [|n] // A B G; case/cprodP=> [[H K -> ->{A B}] defG cKH].
-have sL := subset_trans (lcn_sub _ _); rewrite cprodE ?(centSS _ _ cKH) ?sL //.
+move=> [|n] // A B G; case/cprodP=> [[H K -> ->{A B}] defG cHK].
+have sL := subset_trans (lcn_sub _ _); rewrite cprodE ?(centSS _ _ cHK) ?sL //.
 symmetry; elim: n => // n; rewrite lcnSn => ->; rewrite commMG /=; last first.
   by apply: subset_trans (commg_normr _ _); rewrite sL // -defG mulG_subr.
-rewrite -!(commGC G) -defG {1}(centC cKH).
+rewrite -!(commGC G) -defG -{1}(centC cHK).
 rewrite !commMG ?normsR ?lcn_norm ?cents_norm // 1?centsC //.
 by rewrite -!(commGC 'L__(_)) -!lcnSn !(commG1P _) ?mul1g ?sL // centsC.
 Qed.
@@ -264,15 +265,15 @@ by rewrite mulG_subG /= -{1}LmH1 -LnK1 !lcn_sub_leq ?leq_addl ?leq_addr.
 Qed.
 
 Lemma mulg_nil : forall G H,
-  G \subset 'C(H) -> nilpotent (G * H) = nilpotent G && nilpotent H.
+  H \subset 'C(G) -> nilpotent (G * H) = nilpotent G && nilpotent H.
 Proof.
-by move=> G H cHG; rewrite -(cprod_nil (cprodEgen cHG)) /= cent_mulgenEl.
+by move=> G H cGH; rewrite -(cprod_nil (cprodEgen cGH)) /= cent_mulgenEr.
 Qed.
 
 Lemma dprod_nil : forall A B G,
    A \x B = G -> nilpotent G = nilpotent A && nilpotent B.
 Proof.
-by move=> A B G; case/dprodP=> [[H K -> ->] <- cKH _]; rewrite mulg_nil.
+by move=> A B G; case/dprodP=> [[H K -> ->] <- cHK _]; rewrite mulg_nil.
 Qed.
 
 Lemma bigdprod_nil : forall I r (P : pred I) (A_ : I -> {set gT}) G,
