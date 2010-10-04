@@ -98,7 +98,7 @@ apply/setP=> x; rewrite morphimEdom (can_imset_pre _ (permK a)) inE.
 by have:= AutGa; rewrite inE; case/andP; move/perm_closed=> <-; rewrite permKV.
 Qed.
 
-Lemma Aut_closed : forall `(x \in G), a x \in G.
+Lemma Aut_closed : forall x, x \in G -> a x \in G.
 Proof. by move=> x Gx; rewrite -im_autm; exact: mem_morphim. Qed.
 
 End AutGroup.
@@ -226,7 +226,8 @@ Definition Aut_isom a := s2val (Aut_isom_subproof a).
 Lemma Aut_Aut_isom : forall a, Aut_isom a \in Aut (f @* G).
 Proof. by rewrite /Aut_isom => a; case: (Aut_isom_subproof a). Qed.
 
-Lemma Aut_isomE : forall `(a \in Aut G) `(x \in G), Aut_isom a (f x) = f (a x).
+Lemma Aut_isomE : forall a,
+   a \in Aut G -> {in G, forall x, Aut_isom a (f x) = f (a x)}.
 Proof. by rewrite /Aut_isom => a; case: (Aut_isom_subproof a). Qed.
 
 Lemma Aut_isomM : {in Aut G &, {morph Aut_isom: x y / x * y}}.
