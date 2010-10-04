@@ -5669,7 +5669,7 @@ have{cGz} cGz1: centgmx rG (rG z - 1%:M).
 have{irrG faithfulG cGz1} Urz1: rG z - 1%:M \in unitmx.
   apply: (mx_Schur irrG) cGz1 _; rewrite subr_eq0.
   move/implyP: (subsetP faithfulG z).
-  by rewrite !inE Gz mul1mx -order_eq1 ozp -implybN neq_ltn orbC prime_gt1.
+  by rewrite !inE Gz mul1mx -order_eq1 ozp -implybNN neq_ltn orbC prime_gt1.
 do [case: n n_gt0 => // n' _; set n := n'.+1] in rG Urz1 *.
 have charMp: p \in [char 'M[F]_n] by rewrite (fieldM_char scalar_mxRM).
 have{Urz1}: GRing.unit (Frobenius_aut charMp (rG z - 1)) by rewrite unitr_exp.

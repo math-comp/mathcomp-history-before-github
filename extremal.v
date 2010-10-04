@@ -1306,10 +1306,9 @@ have oMt: {in G :\: X, forall t, #|<<t ^: G>>| = q}.
     by rewrite defMt // (subset_trans _ (nXiG 2)) ?sMtG.
   rewrite mulgenC quotient_mulgenr ?(subset_trans _ (nXiG 2)) ?cycle_subG //.
   rewrite quotient_cycle ?(subsetP (nXiG 2)) //= -defPhi.
-  have: coset 'Phi(G) t != 1.
-    apply/eqP; move/coset_idr; apply/implyP; apply: contra notXt.
-    by rewrite /= defPhi ?(subsetP (nXiG 2)) //; apply: subsetP; exact: cycleX.
-  by case/(abelem_order_p (Phi_quotient_abelem pG)); rewrite ?mem_quotient.
+  rewrite -orderE (abelem_order_p (Phi_quotient_abelem pG)) ?mem_quotient //.
+  apply: contraNneq notXt; move/coset_idr; move/implyP=> /=.
+  by rewrite defPhi ?(subsetP (nXiG 2)) //; apply: subsetP; exact: cycleX.
 have maxMt: {in G :\: X, forall t, maximal <<t ^: G>> G}.
   move=> t X't; rewrite /= p_index_maximal -?divgS ?sMtG ?oMt //.
   by rewrite oG -def2q mulnK.
@@ -1492,11 +1491,10 @@ have oMt: {in G :\: X, forall t, #|<<t ^: G>>| = q}.
   congr (_ * r)%N; rewrite -card_quotient /=; last first.
     by rewrite defMt // (subset_trans _ (nXiG 2)) ?sMtG.
   rewrite mulgenC quotient_mulgenr ?(subset_trans _ (nXiG 2)) ?cycle_subG //.
-  rewrite quotient_cycle ?(subsetP (nXiG 2)) //= -defPhi.
-  have: coset 'Phi(G) t != 1.
-    apply/eqP; move/coset_idr; apply/implyP; apply: contra notXt.
-    by rewrite /= defPhi ?(subsetP (nXiG 2)) //; apply: subsetP; exact: cycleX.
-  by case/(abelem_order_p (Phi_quotient_abelem pG)); rewrite ?mem_quotient.
+  rewrite quotient_cycle ?(subsetP (nXiG 2)) //= -defPhi -orderE.
+  rewrite (abelem_order_p (Phi_quotient_abelem pG)) ?mem_quotient //.
+  apply: contraNneq notXt; move/coset_idr; move/implyP=> /=.
+  by rewrite /= defPhi (subsetP (nXiG 2)) //; apply: subsetP; exact: cycleX.
 have maxMt: {in G :\: X, forall t, maximal <<t ^: G>> G}.
   move=> t X't /=; rewrite p_index_maximal -?divgS ?sMtG ?oMt //.
   by rewrite oG -def2q mulnK.

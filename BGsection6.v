@@ -387,7 +387,7 @@ wlog K1: gT G E L solG pl1G Emax sLG p'L nEL / 'O_p^'(G) = 1.
     apply/pmaxElemP; split; first by apply/pElemP; split.
     move=> H; case/pElemP=> sHS abH sEH; rewrite maxEG //.
     by apply/pElemP; split; rewrite ?abH ?(subset_trans sHS _).
-  have l66a : 'Ohm_1('C_S(E)) = E by exact: Ohm_cent pgS.
+  have l66a : 'Ohm_1('C_S(E)) = E by exact: Ohm1_cent_max pgS.
   have nKS: S \subset 'N(K) := (subset_trans sSG (char_norm (pcore_char _ _))).
   have TISK: S :&: K = 1.
     by rewrite coprime_TIg ?(pnat_coprime _ (pcore_pgroup _ _)).
@@ -432,7 +432,7 @@ have cLS : L \subset 'C_G(S).
     apply/pmaxElemP; split; first by apply/pElemP; split.
     move=> H; case/pElemP=> PH1 PH2 sEH; rewrite maxEG //. 
     by apply/pElemP; split; rewrite // (subset_trans _ sSG).
-  rewrite (subset_trans cLE) // -{1}(Ohm_cent maxES) // Ohm1Eprime cent_gen.
+  rewrite (subset_trans cLE) // -{1}(Ohm1_cent_max maxES) // Ohm1Eprime cent_gen.
   rewrite centS // !setIdE setIS //.
   by apply/subsetP=> e; rewrite !inE; move/eqP->.
 have sLS : L \subset S.   

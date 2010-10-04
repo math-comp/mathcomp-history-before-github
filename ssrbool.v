@@ -787,7 +787,13 @@ Proof. by do 2!case. Qed.
 Lemma implybE : forall b1 b2, (b1 ==> b2) = ~~ b1 || b2.
 Proof. by do 2!case. Qed.
 
-Lemma implybN : forall b1 b2, (~~ b1 ==> ~~ b2) = b2 ==> b1.
+Lemma implyNb : forall b1 b2, (~~ b1 ==> b2) = b1 || b2.
+Proof. by do 2!case. Qed.
+
+Lemma implybN : forall b1 b2, (b1 ==> ~~ b2) = (b2 ==> ~~ b1).
+Proof. by do 2!case. Qed.
+
+Lemma implybNN : forall b1 b2, (~~ b1 ==> ~~ b2) = b2 ==> b1.
 Proof. by do 2!case. Qed.
 
 Lemma implyb_idl : forall a b : bool, (~~ a -> b) -> (a ==> b) = b.

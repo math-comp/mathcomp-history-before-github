@@ -959,7 +959,7 @@ have iK'K: 'C_(P <*> R / K')(K / K') = 1 -> #|K / K'| > q ^ 2.
     have sKb1: 'Ohm_1(K / K') \subset K / K' by exact: Ohm_sub.
     have cKbKb: abelian (K / K') by rewrite sub_der1_abelian.
     have: #|'Ohm_1(K / K')| >= q ^ 2.
-      rewrite -(part_pnat_id (pgroupS sKb1 qKb)) p_part leq_exp2l // ltnNge.
+      rewrite (card_pgroup (pgroupS sKb1 qKb)) leq_exp2l // ltnNge.
       by rewrite -p_rank_abelian -?rank_pgroup // -abelian_rank1_cyclic ?cycK.
     rewrite (geq_leqif (leqif_trans (subset_leqif_card sKb1) (leqif_eq _))) //.
     by case/andP=> sKbKb1; move/eqP->; rewrite (abelemS sKbKb1) ?Ohm1_abelem.
@@ -1119,7 +1119,7 @@ have defV: <<\bigcup_(Vi \in S) Vi>> = V.
     by rewrite quotient_sub1 // => sKKj; rewrite setIS ?centS.
   have maxKj: maximal Kj K.
     rewrite p_index_maximal // -card_quotient // defKbj -orderE.
-    by case: (abelem_order_p (quotient_abelem Kj abelK) Kxb nt_xb) => _ ->.
+    by rewrite (abelem_order_p (quotient_abelem Kj abelK) Kxb nt_xb).
   suffices defKj: 'C_K(Vj) = Kj.
     by rewrite sub_gen // (bigcup_max 'C_V(Kj))%G // inE defKj eqxx.
   have{maxKj} [_ maxKj] := maxgroupP maxKj.
@@ -1266,7 +1266,7 @@ have nVjR: forall Vj, Vj \in S :\: D -> 'C_K(Vj) = [~: K, R].
     have [qCKR _] := andP abelCKR.
     apply/eqP; rewrite eq_sym eqEcard sKRVj -(leq_pmul2r (ltnW q_gt1)).
     rewrite -{1}iKj LaGrange ?subsetIl // -{1}defKR (TI_cardMg tiKRcR).
-    rewrite leq_pmul2l ?cardG_gt0 //= -(part_pnat_id qCKR) p_part.
+    rewrite leq_pmul2l ?cardG_gt0 //= (card_pgroup qCKR).
     rewrite (leq_exp2l _ 1) // -abelem_cyclic // (forall_inP Z_CK) //.
     by rewrite (@p_Sylow _ q) // /pHall subxx indexgg qCKR.
   case/ntSRcR=> // _ sCVj; case/ntSRcR: not_nV1R => // _ sCV1.
@@ -1752,8 +1752,8 @@ have cVK': K^`(1) \subset 'C_K(V).
   have ocVR: #|'C_V(R)| = q.
     have [u def_u]: exists u, 'C_V(R) = <[u]>.
       by apply/cyclicP; apply: cyclicS (setSI _ sVM) cyc_cMR.
-    move: ntcRV; rewrite def_u -orderE cycle_eq1.
-    by case/(abelem_order_p abelV) => //; rewrite -cycle_subG -def_u subsetIl.
+    rewrite def_u -orderE (abelem_order_p abelV) -?cycle_eq1 -?def_u //.
+    by rewrite -cycle_subG -def_u subsetIl.
   apply: (Frobenius_prime_cent_prime _ defG _ _ abelV)  => //.
     by case/prime_FrobeniusP: frobG.
   by rewrite (coprime_p'group _ (abelem_pgroup abelV) ntV) // coprime_sym.

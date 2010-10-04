@@ -618,8 +618,8 @@ have ntQ: Q != 1%G.
 have ntRC: 'C_R(A) != 1.
   have sR0CR: R0 \subset 'C_R(A) by rewrite subsetI sR0R.
   suffices: R0 :!=: 1 by rewrite -!proper1G; move/proper_sub_trans->.
-  move: ntR; rewrite -!cardG_gt1 -(part_pnat_id qR) (card_Hall sylR0) !p_part_gt1.
-  by rewrite !mem_primes !cardG_gt0 qC; case/and3P=> ->.
+  move: ntR; rewrite -!cardG_gt1 -(part_pnat_id qR) (card_Hall sylR0).
+  by rewrite !p_part_gt1 !mem_primes !cardG_gt0 qC; case/and3P=> ->.
 have: existsb z, ('C_Q[z] != 1) && (z \in B^#).
   apply: contraR ntQ => trQ; have:= subset_trans sBA nQA.
   move/coprime_abelian_gen_cent1-> ; rewrite -1?val_eqE //; last first.
@@ -848,9 +848,9 @@ wlog{sAX prX} [b B'b defX]: X Y p'Y nYA sYX / exists2 b, b \in B^# & 'C[b] = X.
   rewrite (coprime_abelian_gen_cent1 cBB _ nYB); last first.
   - by rewrite coprime_sym (pnat_coprime pB).
   - apply: contraL dimB2; case/cyclicP=> x defB.
-    have: x \in B by rewrite defB cycle_id.
-    case/(abelem_order_p abelB)=> [|_]; first by rewrite -cycle_eq1 -defB.
-    by rewrite /order -defB => ->; rewrite logn_prime ?eqxx.
+    have Bx: x \in B by rewrite defB cycle_id.
+    rewrite defB -orderE (abelem_order_p abelB Bx) ?(pfactorK 1) //.
+    by rewrite -cycle_eq1 -defB.
   rewrite bigprodGE gen_subG; apply/bigcupsP=> b B'b.
   have [ntb Bb]:= setD1P B'b; have sYbY: 'C_Y[b] \subset Y := subsetIl _ _.
   have{IH} sYbKb: 'C_Y[b] \subset 'O_p^'('C[b]).
@@ -868,8 +868,8 @@ wlog Zb: b X Y defX B'b p'Y nYA sYX / b \in Z.
   case: sBZ => [sBZ | [oZ sZB]]; first by rewrite (subsetP sBZ) in Zb.
   have defB: Z * <[b]> = B.
     apply/eqP; rewrite eqEcard mulG_subG sZB cycle_subG Bb.
-    have [_ obp] := abelem_order_p abelB Bb ntb.
-    rewrite -(part_pnat_id pB) p_part //= (eqP dimB2) TI_cardMg -/#[_] ?oZ ?obp //.
+    have obp := abelem_order_p abelB Bb ntb.
+    rewrite (card_pgroup pB) /= (eqP dimB2) TI_cardMg -/#[_] ?oZ ?obp //.
     rewrite -obp in p_pr; case: (prime_subgroupVti [group of Z] p_pr) => //.
     by rewrite cycle_subG Zb.
   pose P1 := P :&: X; have sP1P: P1 \subset P := subsetIl _ _.
@@ -885,7 +885,8 @@ wlog Zb: b X Y defX B'b p'Y nYA sYX / b \in Z.
     have: logn p #|P2 : P1| <= 1.
       apply: leq_trans dimPP1; rewrite dvdn_leq_log //.
       rewrite -(dvdn_pmul2l (cardG_gt0 [group of P1])) !LaGrange ?subsetIl //.
-      by rewrite -(part_pnat_id pP2) (card_Hall sylP) partn_dvd ?cardSg ?subsetT.
+      rewrite -(part_pnat_id pP2) (card_Hall sylP).
+      by rewrite partn_dvd ?cardSg ?subsetT.
     rewrite -(pfactorK 1 p_pr) -pfactor_dvdn ?prime_gt0 // -p_part.
     rewrite part_pnat_id ?(pnat_dvd (dvdn_indexg _ _)) //=.
     case: (primeP p_pr) => _ dv_p; move/dv_p=> {dv_p}.

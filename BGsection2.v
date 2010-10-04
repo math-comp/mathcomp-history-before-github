@@ -870,7 +870,8 @@ have nPG: G \subset 'N(P).
 pose Q := G^`(1)%g :&: P; have sQG: Q \subset G by rewrite subIset ?der_subS.
 have nQG: G \subset 'N(Q) by rewrite normsI // normal_norm ?der_normalS.
 have pQ: (p %| #|Q|)%N.
-  have sylQ: p.-Sylow(G^`(1)%g) Q by apply: Sylow_setI_normal (der_normalS _ _) _.
+  have sylQ: p.-Sylow(G^`(1)%g) Q.
+    by apply: Sylow_setI_normal (der_normalS _ _) _.
   apply: contraLR pG'; rewrite -!p'natE // (card_Hall sylQ) -!partn_eq1 //.
   by rewrite part_pnat_id ?part_pnat.
 have{IHm} abelQ: abelian Q.
@@ -1131,7 +1132,7 @@ have le_rs_q: #|rs| <= q ?= iff (#|rs| == q).
   split; rewrite // cardE max_unity_roots ?enum_uniq ?prime_gt0 //.
   by apply/allP=> x; rewrite mem_enum inE unity_rootE.
 have:= subset_leqif_card s_fQ_rs.
-rewrite card_in_imset // -(part_pnat_id (abelem_pgroup abelQ)) p_part logQ.
+rewrite card_in_imset // (card_pgroup (abelem_pgroup abelQ)) logQ.
 case/(leqif_trans (leqif_mul le_rs_q le_rs_q))=> _; move/esym.
 rewrite cardsX eqxx andbb muln_eq0 orbb eqn0Ngt prime_gt0 //=.
 case/andP=> rs_q; rewrite subEproper /proper {}s_fQ_rs andbF orbF.

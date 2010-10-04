@@ -211,7 +211,7 @@ have SRR1: SRR = 1.
   have pSR := pgroupS sSR_R pR; have pSRR := pgroupS sSRR_SR pSR.
   have [_ _ [e oSR]] := pgroup_pdiv pSR ntSR; have [f oSRR] := p_natP pSRR.
   have e0: e = 0.
-    have:= proper_card prSR; rewrite oSR -(part_pnat_id pS) p_part dimS2.
+    have:= proper_card prSR; rewrite oSR (card_pgroup pS) dimS2.
     by rewrite ltn_exp2l ?prime_gt1 // !ltnS leqn0; move/eqP.
   apply/eqP; have:= proper_card prSRR; rewrite trivg_card1 oSR oSRR e0.
   by rewrite ltn_exp2l ?prime_gt1 // ltnS; case f.
@@ -287,7 +287,7 @@ have{ncycR} [Z nsZR] := ex_odd_normal_abelem2 pR oddR ncycR.
 case/pnElemP=> sZR abelZ dimZ2; have [pZ cZZ _] := and3P abelZ.
 have{SCN_3_empty} defZ: 'Ohm_1('C_R(Z)) = Z.
   apply: (Ohm1_cent_max_normal_abelem _ pR).
-    by have:= oddSg sZR oddR; rewrite -(part_pnat_id pZ) p_part dimZ2 odd_exp.
+    by have:= oddSg sZR oddR; rewrite (card_pgroup pZ) dimZ2 odd_exp.
   apply/maxgroupP; split=> [|H]; first exact/andP.
   case/andP=> nsHR abelH sZH; have [pH cHH _] := and3P abelH.
   apply/eqP; rewrite eq_sym eqEproper sZH /=.
@@ -933,7 +933,7 @@ have {cardOXle} eXS : X = S.
   have cOX_OX := abelianS (OhmS 1 sXR) cOR_OR.
   apply: maxS => //=; rewrite sXR nXA /= andbT (odd_pgroup_rank1_cyclic pX) //.
   rewrite -p_rank_Ohm1 p_rank_abelian // Ohm_id.
-  by rewrite -(leq_exp2l _ _ (prime_gt1 primep)) -p_part part_pnat_id.
+  by rewrite -(leq_exp2l _ _ (prime_gt1 primep)) -card_pgroup.
 rewrite {}eXS trivg_quotient mulg1 in ORSeq => {X sXR sSX nsSX nXA W}.
 have cardORS_le : logn p #|'Ohm_1(R/S)| <= 1.
   rewrite -ORSeq -(isog_card (second_isog _)) ?(subset_trans _ nSR) ?Ohm_sub //.
@@ -1158,7 +1158,7 @@ have expS : exponent S %| p by apply: pgroup_rank_le2_Ohm1.
 have {lcardS}lcardS : logn p #|S| = 3.
   apply/eqP; move: (negbT lcardS); rewrite -ltnNge eqn_leq => ->; rewrite andbT.
   by apply: pgroup_rank_le2_exponentp.
-have cardS : #|S| = (p ^ 3)%N by rewrite -(part_pnat_id pS) p_part lcardS.
+have cardS : #|S| = (p ^ 3)%N by rewrite (card_pgroup pS) lcardS.
 have neS1 : S != 1.
   by move/eqP: lcardS; apply: contraL; move/eqP=> ->; rewrite cards1 logn1.
 have ncSS : ~~ abelian S.
@@ -1176,31 +1176,31 @@ have {lcardZS}lcardZS : logn p #|'Z(S)| = 1%N.
   rewrite lcardZS andbT; apply: contra ncSS; move/eqP=> {lcardZS}lcardZS.
   rewrite cyclic_center_factor_abelian // prime_cyclic // card_quotient //.
   rewrite -divgS //= -/S cardS.
-  rewrite -(part_pnat_id (pgroupS sZSS pS)) p_part lcardZS mulnK //. 
+  rewrite (card_pgroup (pgroupS sZSS pS)) lcardZS mulnK //. 
   by rewrite muln_gt0 prime_gt0.
 have pS' : p.-group S' by apply: (pgroupS (der_sub _ _)).
 have eS'ZS : S' = 'Z(S).
   apply/eqP; rewrite eqEcard der1_min //=; last first.
     apply: (p2group_abelian (quotient_pgroup _ pS)).
     by rewrite -ltnS -lcardS ltn_log_quotient.
-  rewrite -(part_pnat_id (pgroupS _ pS)) ?subsetIl // p_part lcardZS.
+  rewrite (card_pgroup (pgroupS _ pS)) ?subsetIl // lcardZS.
   have neS'1 : S' != 1%G by apply: (contra _ ncSS); move/eqP; move/commG1P.
   case: (pgroup_pdiv pS' neS'1)=> _ _ [m ->].
   by rewrite dvdn_leq // ?expn_gt0 ?prime_gt0 // dvdn_exp2l.
-have cardS' : #|S'| = p by rewrite -(part_pnat_id pS') p_part eS'ZS lcardZS.
+have cardS' : #|S'| = p by rewrite (card_pgroup pS') /= -/S' eS'ZS lcardZS.
 have eS'PhiS : S' == 'Phi(S).
   rewrite eqEcard der1_min // ?(char_norm (Phi_char _)) //=; last first. 
     by apply: abelem_abelian (Phi_quotient_abelem pS).
   have nsPhiSS : 'Phi(S) <| S by apply: Phi_normal.
   have [sPhiSS nPhiSS] := andP nsPhiSS.
-  rewrite cardS' -(part_pnat_id (pgroupS sPhiSS pS)) p_part.
+  rewrite cardS' (card_pgroup (pgroupS sPhiSS pS)).
   rewrite -{3}(expn1 p) leq_exp2l ?prime_gt1 //.
   rewrite -ltnS ltn_neqAle; apply/andP; split; last first.
     by rewrite -ltnS -lcardS (properG_ltn_log pS) // Phi_proper //.
   apply: (contra _ ncSS); move/eqP=> lcardPhiS; apply: cyclic_abelian.
   rewrite Phi_quotient_cyclic // prime_cyclic // card_quotient //. 
   rewrite -divgS ?(normal_sub (Phi_normal _)) // cardS.
-  rewrite -(part_pnat_id (pgroupS _ pS)) // p_part lcardPhiS mulnK //.
+  rewrite (card_pgroup (pgroupS _ pS)) // lcardPhiS mulnK //.
   by rewrite muln_gt0 prime_gt0.
 have {eS'PhiS}espS : extraspecial S.
   by rewrite /extraspecial -eS'ZS cardS' /special -eS'ZS -(eqP eS'PhiS).
@@ -1230,7 +1230,7 @@ have nTR : R \subset 'N(T) by apply: commg_normr.
 have lcardT: logn p #|T| = 2.
   apply/eqP; rewrite eqn_leq -ltnS -lcardS properG_ltn_log //=.
   by rewrite -lcardZS -eS'ZS properG_ltn_log // properE nsTS' commgS.
-have cardT : #|T| = (p^2)%N by rewrite -(part_pnat_id pT) p_part lcardT.
+have cardT : #|T| = (p ^ 2)%N by rewrite (card_pgroup pT) lcardT.
 have neT1 : T != 1%G.
   by rewrite trivg_card1 cardT eqn_mul1 andbb neq_ltn prime_gt1 // orbT.
 have expT : exponent T %| p by rewrite (dvdn_trans (exponentS sTS) expS).
@@ -1258,7 +1258,7 @@ have cardR_CRT : #| R / 'C_R(T)| = p.
   by rewrite -lcardT -(dim_abelemE abelT neT1) /= (cardSg (@subsetT _ _)).
 have Req : R :=: S <*> 'C_R(T).
   apply/eqP; rewrite eq_sym eqEcard mulgen_subG sSR subsetIl /=.
-  rewrite dvdn_leq -1?(part_pnat_id pR) ?p_part ?pfactor_dvdn ?cardG_gt0 //.
+  rewrite dvdn_leq 1?(card_pgroup pR) ?pfactor_dvdn ?cardG_gt0 //.
   have sCRTR : 'C_R(T) \subset R by rewrite subsetIl.
   rewrite -(LaGrange sCRTR) -card_quotient // cardR_CRT.
   rewrite logn_mul ?cardG_gt0 ?prime_gt0 // (pfactorK 1) // addn1.
@@ -1313,7 +1313,7 @@ have eqT_OCRT: T == 'Ohm_1('C_R(T)).
   rewrite eqEcard -{1}[T](Ohm1_id abelT) OhmS /= ?subsetI ?sTR //=.
   have pOCRT : p.-group 'Ohm_1('C_R(T)).
     by apply: (pgroupS _ pR); apply: (subset_trans (Ohm_sub 1 _)(subsetIl _ _)).
-  rewrite -(part_pnat_id pT) -(part_pnat_id pOCRT) !p_part.
+  rewrite (card_pgroup pT) (card_pgroup pOCRT).
   rewrite leq_exp2l ?prime_gt1 // lcardT -ltnS -lcardS properG_ltn_log //.
   rewrite properEneq (OhmS 1) ?subsetIl // andbT /= -/S.
   apply: contra nsSCT; move/eqP=> <-; apply: (subset_trans (Ohm_sub 1 _)).
@@ -1667,7 +1667,7 @@ rewrite 2!leq_eqVlt !eqSS !ltnS (orbC (_ == 2)); case/or3P => rV.
   have trivPhi: 'Phi(H) == 1.
     rewrite trivg_card_le1 -(@leq_pmul2r #|V|) ?cardG_gt0 //.
     rewrite  {1}card_quotient // LaGrange ?Phi_sub // mul1n.
-    rewrite -(part_pnat_id (abelem_pgroup abeV)) p_part.
+    rewrite (card_pgroup (abelem_pgroup abeV)).
     by rewrite -(rank_abelem abeV) (eqP rV).
   have cHH: abelian H by rewrite (@abelem_abelian _ p) -?(trivg_Phi pH).
   case/idPn: rH; rewrite -ltnNge -(eqP rV).

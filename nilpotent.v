@@ -613,7 +613,7 @@ Lemma sol_der1_proper : forall G H,
   solvable G -> H \subset G -> H :!=: 1 -> H^`(1) \proper H.
 Proof.
 move=> G H solG sHG ntH; rewrite properE comm_subG //; apply: implyP ntH.
-by have:= forallP solG H; rewrite subsetI sHG implybN. 
+by have:= forallP solG H; rewrite subsetI sHG implybNN. 
 Qed.
 
 Lemma derivedP : forall G, reflect (exists n, G^`(n) = 1) (solvable G).

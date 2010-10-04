@@ -254,7 +254,7 @@ have Px: x \in P by exact: (subsetP (Phi_sub P)).
 have sxP: <[x]> \subset P by rewrite cycle_subG.
 case/splitsP: (abelem_splits abP sxP) => K; case/complP=> trKx defP.
 case: (eqVneq x 1) => [-> | nt_x]; first by rewrite cycle1.
-have [_ oxp] := abelem_order_p abP Px nt_x.
+have oxp := abelem_order_p abP Px nt_x.
 rewrite /= -trKx subsetI subxx cycle_subG.
 apply: (bigcapP Phi_x); apply/orP; right.
 apply: p_index_maximal; rewrite -?divgS -defP ?mulG_subr //.
@@ -545,16 +545,15 @@ Qed.
 Lemma abelem_charsimple : forall (p : nat) G,
   p.-abelem G -> G :!=: 1 -> charsimple G.
 Proof.
-move=> p G pG ntG; apply/charsimpleP; split=> {ntG}// K ntK; case/charP.
-rewrite subEproper; case/predU1P=> //; case/andP=> sKG.
-case/subsetPn=> x Gx Kx chK; case: (abelem_order_p pG Gx) => [|pr_p ox].
-  by apply/eqP=> x1; rewrite x1 group1 in Kx.
-have [A [sAG oA defA]] := p_abelem_split1 pG Gx.
-case/trivgPn: ntK => y Ky; have Gy := subsetP sKG y Ky.
-case/(abelem_order_p pG) => // _ oy.
-have [B [sBG oB defB]] := p_abelem_split1 pG Gy.
+move=> p G abelG ntG; apply/charsimpleP; split=> // K ntK; case/charP.
+case/eqVproper=> //; case/properP=> sKG [x Gx notKx] chK.
+have ox := abelem_order_p abelG Gx (group1_contra notKx).
+have [A [sAG oA defA]] := p_abelem_split1 abelG Gx.
+case/trivgPn: ntK => y Ky nty; have Gy := subsetP sKG y Ky.
+have{nty} oy := abelem_order_p abelG Gy nty.
+have [B [sBG oB defB]] := p_abelem_split1 abelG Gy.
 have: isog A B; last case/isogP=> fAB injAB defAB.
-  rewrite (isog_abelem_card _ (abelemS sAG pG)) (abelemS sBG) //=.
+  rewrite (isog_abelem_card _ (abelemS sAG abelG)) (abelemS sBG) //=.
   by rewrite oA oB ox oy.
 have: isog <[x]> <[y]>; last case/isogP=> fxy injxy /= defxy.
   by rewrite isog_cyclic_card ?cycle_cyclic // [#|_|]oy -ox eqxx.
@@ -562,7 +561,7 @@ have cfxA: fAB @* A \subset 'C(fxy @* <[x]>).
   by rewrite defAB defxy; case/dprodP: defB.
 have injf: 'injm (dprodm defA cfxA).
   by rewrite injm_dprodm injAB injxy defAB defxy; apply/eqP; case/dprodP: defB.
-case/negP: Kx; rewrite -cycle_subG -(injmSK injf) ?cycle_subG //=.
+case/negP: notKx; rewrite -cycle_subG -(injmSK injf) ?cycle_subG //=.
 rewrite morphim_dprodml // defxy cycle_subG /= chK //.
 case/dprodP: defB => _ defBG _ _; rewrite -{4}defBG.
 case/dprodP: (defA) => _ defAG _ _; rewrite -{3}defAG.
@@ -847,7 +846,7 @@ Proof. by apply/eqP; apply: (pgroupP pZ); case: esS. Qed.
 Lemma min_card_extraspecial : #|S| >= p ^ 3.
 Proof.
 have p_gt1 := prime_gt1 extraspecial_prime.
-rewrite leqNgt -(part_pnat_id pS) p_part ltn_exp2l // ltnS.
+rewrite leqNgt (card_pgroup pS) ltn_exp2l // ltnS.
 case: esS => [[_ defS']]; apply: contraL; move/(p2group_abelian pS).
 by move/commG1P=> S'1; rewrite -defS' [S^`(1)]S'1 cards1.
 Qed.
@@ -875,8 +874,8 @@ split; [split=> // | by rewrite oZp]; apply/eqP.
 rewrite eqEsubset andbC -{1}defE' {1}(Phi_mulgen pE) mulgen_subl.
 rewrite -quotient_sub1 ?(subset_trans (Phi_sub _)) //.
 rewrite subG1 /= (quotient_Phi pE) //= (trivg_Phi pEq); apply/abelemP=> //.
-split=> // Zx EqZx; apply/eqP; rewrite -order_dvdn.
-rewrite -(part_pnat_id (mem_p_elt pEq EqZx)) p_part (@dvdn_exp2l _ _ 1) //.
+split=> // Zx EqZx; apply/eqP; rewrite -order_dvdn /order.
+rewrite (card_pgroup (mem_p_elt pEq EqZx)) (@dvdn_exp2l _ _ 1) //.
 rewrite leqNgt -pfactor_dvdn // -oEq; apply: contra not_cEE => sEqZx.
 rewrite cyclic_center_factor_abelian //; apply/cyclicP.
 exists Zx; apply/eqP; rewrite eq_sym eqEcard cycle_subG EqZx -orderE.
@@ -897,7 +896,7 @@ have lt_m1_n: m.+1 < n.
     by rewrite oG oZ !pfactorK // -ltn_add_sub addn1. 
   rewrite ltnNge; apply: contra not_cGG => cycGs.
   apply: cyclic_center_factor_abelian; rewrite (dvdn_prime_cyclic p_pr) //.
-  by rewrite -(part_pnat_id (quotient_pgroup _ pG)) p_part (dvdn_exp2l _ cycGs).
+  by rewrite (card_pgroup (quotient_pgroup _ pG)) (dvdn_exp2l _ cycGs).
 rewrite -{lt_m1_n}(subnKC lt_m1_n) !addSn !ltnS leqn0 in oG *.
 case: m => // in oZ oG *; move/eqP=> n2; rewrite {n}n2 in oG.
 exact: card_p3group_extraspecial oZ.
@@ -1187,7 +1186,7 @@ pose f Cg : tXZ := (\row_i Subg (fP i (subg _ Cg)))%R.
 suffices injf: {in R / 'C_R(S) &, injective f}.
   rewrite -(card_in_imset injf) (leq_trans (max_card _)) //.
   rewrite card_matrix mul1n card_sub n_eq cardZ_eq.
-  by rewrite -p_part part_pnat_id //; apply: quotient_pgroup; exact: pgroupS pR.
+  by rewrite -card_pgroup // quotient_pgroup // (pgroupS _ pR).
 move=> Cg Ch Rg Rh /=; move/rowP=> eq_fgh.
 have cXgh: forall i : 'I_n, repr Cg * (repr Ch)^-1 \in 'C[x i].
   move=> i; move/(congr1 val): (eq_fgh i); rewrite !mxE /= !subgK // !commgEl.
@@ -1238,8 +1237,8 @@ Let oZ := card_center_extraspecial pS esS.
 Lemma card_extraspecial : {n | n > 0 & #|S| = (p ^ n.*2.+1)%N}.
 Proof.
 exists (logn p #|S|)./2.
-  rewrite half_gt0 ltnW // -(leq_exp2l _ _ (prime_gt1 p_pr)) -p_part.
-  by rewrite (part_pnat_id pS) min_card_extraspecial.
+  rewrite half_gt0 ltnW // -(leq_exp2l _ _ (prime_gt1 p_pr)) -card_pgroup //.
+  exact: min_card_extraspecial.
 have [Es] := extraspecial_structure pS esS.
 elim: Es {3 4 5}S => [_ _ <-| E s IHs T] /=.
   by rewrite big_nil cprod1g oZ (pfactorK 1).

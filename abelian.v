@@ -1,8 +1,8 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div fintype.
-Require Import finfun bigop finset prime fingroup morphism perm automorphism.
-Require Import action quotient gfunctor gproduct cyclic pgroup gseries.
-Require Import nilpotent sylow.
+Require Import finfun bigop finset prime binomial fingroup morphism perm.
+Require Import automorphism action quotient gfunctor gproduct zmodp cyclic.
+Require Import pgroup gseries nilpotent sylow.
 
 (******************************************************************************)
 (* Constructions based on abelian groups and their structure, with some       *)
@@ -196,7 +196,7 @@ Variable gT : finGroupType.
 Implicit Type p : nat.
 Implicit Type x : gT.
 Implicit Types A B : {set gT}.
-Implicit Types G H E : {group gT}.
+Implicit Types G H E X Y : {group gT}.
 
 Lemma LdivP : forall A n x, reflect (x \in A /\ x ^+ n = 1) (x \in 'Ldiv_n(A)).
 Proof.
@@ -318,13 +318,11 @@ by apply: (iffP andP) => [] [->]; move/exponentP.
 Qed.
 
 Lemma abelem_order_p : forall p G x,
-  p.-abelem G -> x \in G -> x != 1 -> prime p /\ #[x] = p.
+  p.-abelem G -> x \in G -> x != 1 -> #[x] = p.
 Proof.
-move=> p G x pG Gx; rewrite -cycle_eq1 => nt_x.
-have p_x: p.-elt x := mem_p_elt (abelem_pgroup pG) Gx.
-have{p_x nt_x} [p_pr p_x _] := pgroup_pdiv p_x nt_x.
-split=> //; apply/eqP; rewrite eqn_dvd p_x andbT order_dvdn.
-by case/abelemP: pG => // _ ->.
+move=> p G x; case/and3P=> pG _ eG Gx; rewrite -cycle_eq1 => ntX.
+have{ntX} [p_pr p_x _] := pgroup_pdiv (mem_p_elt pG Gx) ntX.
+by apply/eqP; rewrite eqn_dvd p_x andbT order_dvdn (exponentP eG).
 Qed.
 
 Lemma cycle_abelem : forall p x,
@@ -431,6 +429,16 @@ by apply: (iffP and3P) => [] [-> ->]; move/eqP.
 Qed.
 Implicit Arguments pnElemP [p n A E].
 
+Lemma pnElemPcard : forall p n B E,
+  E \in 'E_p^n(B) -> [/\ E \subset B, p.-abelem E & #|E| = p ^ n]%N.
+Proof.
+move=> p n B E; case/pnElemP=> -> abelE <-.
+by rewrite -card_pgroup // abelem_pgroup.
+Qed.
+
+Lemma card_pnElem : forall p n B E, E \in 'E_p^n(B) -> #|E| = (p ^ n)%N.
+Proof. by move=> p n B E; case/pnElemPcard. Qed.
+
 Lemma pnElem0 : forall p G, 'E_p^0(G) = [set 1%G].
 Proof.
 move=> p G; apply/setP=> E; rewrite !inE -andbA; apply/and3P/idP=> [[_ pE] | ].
@@ -442,24 +450,23 @@ Qed.
 Lemma pnElem_prime : forall p n A E, E \in 'E_p^n.+1(A) -> prime p.
 Proof. by move=> p n A E; case/pnElemP=> _ _; rewrite lognE; case: prime. Qed.
 
-Lemma pnElemE : forall p n G,
-  prime p -> 'E_p^n(G) = [set E \in 'E_p(G) | #|E| == (p ^ n)%N].
+Lemma pnElemE : forall p n A,
+  prime p -> 'E_p^n(A) = [set E \in 'E_p(A) | #|E| == (p ^ n)%N].
 Proof.
 move=> p n A; move/pfactorK=> pnK; apply/setP=> E; rewrite 3!inE.
 case: (@andP (E \subset A)) => //= [[_]]; case/andP; case/p_natP=> // k -> _.
 by rewrite pnK (can_eq pnK).
 Qed.
 
-Lemma pnElemS : forall p n G H,
-  G \subset H -> 'E_p^n(G) \subset 'E_p^n(H).
+Lemma pnElemS : forall p n A B, A \subset B -> 'E_p^n(A) \subset 'E_p^n(B).
 Proof.
-move=> p n G H sGH; apply/subsetP=> E; rewrite !inE -!andbA.
+move=> p n A B sAB; apply/subsetP=> E; rewrite !inE -!andbA.
 by case/andP; move/subset_trans->.
 Qed.
 
-Lemma pnElemI : forall p n G H, 'E_p^n(G :&: H) = 'E_p^n(G) :&: subgroups H.
+Lemma pnElemI : forall p n A B, 'E_p^n(A :&: B) = 'E_p^n(A) :&: subgroups B.
 Proof.
-move=> p n G H; apply/setP=> E; rewrite !inE subsetI -!andbA; do !bool_congr.
+move=> p n A B; apply/setP=> E; rewrite !inE subsetI -!andbA; do !bool_congr.
 Qed.
 
 Lemma pnElemJ : forall x p n A E,
@@ -473,6 +480,74 @@ move=> p [|n] G abelG lt_nG; first by exists 1%G; rewrite pnElem0 set11.
 have p_pr: prime p by move: lt_nG; rewrite lognE; case: prime.
 case/(normal_pgroup (abelem_pgroup abelG)): lt_nG => // E [sEG _ oE].
 by exists E; rewrite pnElemE // !inE oE sEG (abelemS sEG) /=.
+Qed.
+
+Lemma card_p1Elem : forall p A X, X \in 'E_p^1(A) -> #|X| = p.
+Proof. by move=> p; exact: card_pnElem. Qed.
+
+Lemma p1ElemE : forall p A,
+  prime p -> 'E_p^1(A) = [set X \in subgroups A | #|X| == p].
+Proof.
+move=> p p_pr A; apply/setP=> X; rewrite pnElemE // !inE -andbA; congr (_ && _).
+by apply: andb_idl; move/eqP=> oX; rewrite prime_abelem ?oX.
+Qed.
+
+Lemma TIp1ElemP : forall p A X Y,
+  X \in 'E_p^1(A) -> Y \in 'E_p^1(A) -> reflect (X :&: Y = 1) (X :!=: Y).
+Proof.
+move=> p A X Y EpX EpY; have p_pr := pnElem_prime EpX.
+have [oX oY] := (card_p1Elem EpX, card_p1Elem EpY).
+have [<- |] := altP eqP.
+  by right=> X1; rewrite -oX -(setIid X) X1 cards1 in p_pr.
+by rewrite eqEcard oX oY leqnn andbT; left; rewrite prime_TIg ?oX.
+Qed.
+
+Lemma card_p1Elem_pnElem : forall p n A E,
+  E \in 'E_p^n(A) -> #|'E_p^1(E)| = (\sum_(i < n) p ^ i)%N.
+Proof.
+move=> p n A E; case/pnElemP=> _ {A} abelE dimE; have [pE cEE _] := and3P abelE.
+have [E1 | ntE] := eqsVneq E 1.
+  rewrite -dimE E1 cards1 logn1 big_ord0 eq_card0 // => X.
+  by rewrite !inE subG1 trivg_card1; case: eqP => // ->; rewrite logn1 andbF.
+have [p_pr _ _] := pgroup_pdiv pE ntE; have p_gt1 := prime_gt1 p_pr.
+apply/eqP; rewrite -(@eqn_pmul2l (p - 1)) ?subn_gt0 // subn1 -predn_exp.
+have groupD1_inj: injective (fun X => (gval X)^#).
+  apply: can_inj (@generated_group _) _ => X.
+  by apply: val_inj; rewrite /= genD1 ?group1 ?genGid.
+rewrite -dimE -card_pgroup // (cardsD1 1 E) group1 /= mulnC.
+rewrite -(card_imset _ groupD1_inj) eq_sym.
+apply/eqP; apply: card_uniform_partition => [X'|].
+  case/imsetP=> X; rewrite pnElemE // expn1; case/setIdP=> _; move/eqP=> <- ->.
+  by rewrite (cardsD1 1 X) group1.
+apply/and3P; split; last 1 first.
+- apply/imsetP=> [[X]]; move/card_p1Elem=> oX X'0.
+  by rewrite -oX (cardsD1 1) -X'0 group1 cards0 in p_pr.
+- rewrite eqEsubset; apply/andP; split.
+    apply/bigcupsP=> X'; case/imsetP=> X; case/pnElemP=> sXE _ _ ->.
+    exact: setSD.
+  apply/subsetP=> x; case/setD1P=> ntx Ex.
+  apply/bigcupP; exists <[x]>^#; last by rewrite !inE ntx cycle_id.
+  apply/imsetP; exists <[x]>%G; rewrite ?p1ElemE // !inE cycle_subG Ex /=.
+  by rewrite -orderE (abelem_order_p abelE).
+apply/trivIsetP=> X' Y'; case/imsetP=> X EpX ->; case/imsetP=> Y EpY ->.
+apply/predU1P; rewrite (inj_eq groupD1_inj) disjointEsetI -setDIl setDeq0 subG1.
+by rewrite (sameP eqP (TIp1ElemP EpX EpY)) orbN.
+Qed.
+
+Lemma card_p1Elem_p2Elem : forall p A E, E \in 'E_p^2(A) -> #|'E_p^1(E)| = p.+1.
+Proof.
+by move=> p A E; move/card_p1Elem_pnElem->; rewrite big_ord_recl big_ord1.
+Qed.
+
+Lemma p2Elem_dprodP : forall p A E X Y,
+    E \in 'E_p^2(A) -> X \in 'E_p^1(E) -> Y \in 'E_p^1(E) ->
+  reflect (X \x Y = E) (X :!=: Y).
+Proof.
+move=> p A E X Y Ep2E EpX EpY; have [_ abelE oE] := pnElemPcard Ep2E.
+apply: (iffP (TIp1ElemP EpX EpY)) => [tiXY|]; last by case/dprodP.
+have [[sXE _ oX] [sYE _ oY]] := (pnElemPcard EpX, pnElemPcard EpY).
+rewrite dprodE ?(sub_abelian_cent2 (abelem_abelian abelE)) //.
+by apply/eqP; rewrite eqEcard mul_subG //= TI_cardMg // oX oY oE.
 Qed.
 
 Lemma nElemP : forall n G E,
@@ -633,9 +708,8 @@ move=> p G; apply/subsetP=> E; case/setIdP=> EpE dimE.
 apply/pmaxElemP; split=> // F EpF sEF; apply/eqP.
 have pF: p.-group F by case/pElemP: EpF => _; case/and3P.
 have pE: p.-group E by case/pElemP: EpE => _; case/and3P.
-rewrite eq_sym eqEcard sEF dvdn_leq //.
-rewrite -(part_pnat_id pE) -(part_pnat_id pF) !p_part dvdn_exp2l //.
-by rewrite (eqP dimE) logn_le_p_rank.
+rewrite eq_sym eqEcard sEF dvdn_leq // (card_pgroup pE) (card_pgroup pF).
+by rewrite (eqP dimE) dvdn_exp2l // logn_le_p_rank.
 Qed.
 
 Lemma p_rankJ : forall p G x, 'r_p(G :^ x) = 'r_p(G).
@@ -1202,19 +1276,14 @@ suffices x1: x \in [1] by rewrite -ox (set1P x1) order1 in pr_p.
 by rewrite -{}tiHG1 inE Hx Ohm1Eprime mem_gen // inE Gx ox.
 Qed.
 
-Lemma Ohm_cent : forall G E p,
+Lemma Ohm1_cent_max : forall G E p,
   E \in 'E*_p(G) -> p.-group G -> 'Ohm_1('C_G(E)) = E.
 Proof.
-move=> G E p; case/pmaxElemP; case/pElemP=> sEG abelE maxEG pG.
-have pCE : p.-group 'C_G(E) := pgroupS (subsetIl _ _) pG.
-apply/eqP; rewrite eqEsubset andbC -{1}(Ohm1_id abelE).
-rewrite OhmS /=; last by rewrite subsetI sEG; exact: abelem_abelian abelE.
-rewrite (OhmE _ pCE) gen_subG; apply/subsetP=> x; rewrite !inE -andbA.
-rewrite -!cycle_subG -order_dvdn; case/and3P=> Gx cEx xp1.
-have sExG: E <*> <[x]> \subset G by rewrite mulgen_subG sEG.
-rewrite -(maxEG _ _ (mulgen_subl E <[x]>)) ?mulgen_subr // inE sExG /=.
-rewrite (cprod_abelem p (cprodEgen cEx)) abelE cycle_abelem //. 
-by rewrite (mem_p_elt pCE) // -cycle_subG subsetI Gx cEx.
+move=> G E p EpmE pG; have [G1 | ntG]:= eqsVneq G 1.
+  case/pmaxElemP: EpmE; case/pElemP; rewrite G1; move/trivgP=> -> _ _.
+  by apply/trivgP; rewrite cent1T setIT Ohm_sub.
+have [p_pr _ _] := pgroup_pdiv pG ntG.
+by rewrite (OhmE 1 (pgroupS (subsetIl G _) pG)) (pmaxElem_LdivP _ _) ?genGid.
 Qed.
 
 Lemma Ohm1_cyclic_pgroup_prime : forall p G,
@@ -1224,9 +1293,9 @@ move=> p G cycG pG ntG; set K := 'Ohm_1(G).
 have abelK: p.-abelem K by rewrite Ohm1_abelem ?cyclic_abelian.
 have sKG: K \subset G := Ohm_sub 1 G.
 case/cyclicP: (cyclicS sKG cycG) => x /=; rewrite -/K => defK.
-suffices: x != 1 by case/(abelem_order_p abelK); rewrite /= -/K defK ?cycle_id.
-apply: contra ntG; rewrite -cycle_eq1 -defK -(setIid G) -(setIidPr sKG).
-by move/eqP; move/TI_Ohm1->.
+rewrite defK -orderE (abelem_order_p abelK) //= -/K ?defK ?cycle_id //.
+rewrite -cycle_eq1 -defK -(setIidPr sKG).
+by apply: contraNneq ntG; move/TI_Ohm1; rewrite setIid => ->.
 Qed.
 
 Lemma cyclic_pgroup_dprod_trivg : forall p A B C,
@@ -1361,8 +1430,9 @@ move=> p G; elim: {G}_.+1 {-2}G (ltnSn #|G|) => // m IHm G.
 rewrite ltnS => leGm H abelG sHG; case: (eqsVneq H 1) => [-> | ].
   by apply/splitsP; exists G; rewrite inE mul1g -subG1 subsetIl /=.
 case/trivgPn=> x Hx ntx; have Gx := subsetP sHG x Hx.
-have [p_pr ox] := abelem_order_p abelG Gx ntx; have [_ cGG eGp] := and3P abelG.
-have{ox} ox: #[x] = exponent G by apply/eqP; rewrite eqn_dvd dvdn_exponent ?ox.
+have [_ cGG eGp] := and3P abelG.
+have ox: #[x] = exponent G.
+  by apply/eqP; rewrite eqn_dvd dvdn_exponent // (abelem_order_p abelG).
 case/splitsP: (abelian_splits Gx ox cGG) => K; case/complP=> tixK defG.
 have sKG: K \subset G by rewrite -defG mulG_subr.
 have ltKm: #|K| < m.
@@ -1566,7 +1636,7 @@ case p_x: (p_group <[x]>); last first.
   by apply: contra (negbT p'x); move/eqP <-; exact: p_elt_constt.
 case/p_groupP: p_x => p p_pr p_x.
 rewrite (Ohm_p_cycle n p_x) (Mho_p_cycle n p_x) -!orderE.
-set k := logn p #[x]; have ox: #[x] = (p ^ k)%N by rewrite -p_part part_pnat_id.
+set k := logn p #[x]; have ox: #[x] = (p ^ k)%N by rewrite -card_pgroup.
 case: (leqP k n) => [le_k_n | lt_n_k].
   rewrite -(subnKC le_k_n) -subn_sub subnn expg1 expn_add expgn_mul -ox.
   by rewrite expg_order exp1gn order1 muln1.
@@ -1684,12 +1754,10 @@ Proof.
 move=> p G abelG; have [_ cGG _] := and3P abelG.
 rewrite /homocyclic cGG (@all_pred1_constant _ p) //.
 case/abelian_structure: cGG (abelian_type_gt1 G) => b defG <- => b_gt1.
-apply/allP=> m; case/mapP=> x b_x ->{m} /=.
-have Gx: x \in G.
+apply/allP=> m; case/mapP=> x b_x ->{m} /=; rewrite (abelem_order_p abelG) //.
   rewrite -cycle_subG -(bigdprodEgen defG) ?sub_gen //.
   by rewrite bigcup_seq (bigcup_sup x).
-have ntx: x != 1 by rewrite -order_gt1 [_ > 1](allP b_gt1) ?map_f.
-by have [_ ->] := abelem_order_p abelG Gx ntx.
+by rewrite -order_gt1 [_ > 1](allP b_gt1) ?map_f.
 Qed.
 
 Lemma Ohm1_homocyclicP : forall p G, p.-group G -> abelian G ->

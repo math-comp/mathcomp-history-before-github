@@ -157,12 +157,15 @@ move=> p G p_odd pG; rewrite odd_2'nat (pi_pnat pG) // !inE.
 by case: eqP p_odd => // ->.
 Qed.
 
+Lemma card_pgroup : forall p G, p.-group G -> #|G| = (p ^ logn p #|G|)%N.
+Proof. by move=> p G pG; rewrite -p_part part_pnat_id. Qed.
+
 Lemma properG_ltn_log : forall p G H,
   p.-group G -> H \proper G -> logn p #|H| < logn p #|G|.
 Proof. 
 move=> p G H pG; rewrite properEneq eqEcard andbC ltnNge; case/andP=> sHG.
-rewrite sHG /= -{1}(part_pnat_id pG) -{1}(part_pnat_id (pgroupS sHG pG)) !p_part {pG}.
-by apply: contra; case: p => [|p] leGH; rewrite ?logn0 // leq_pexp2l.
+rewrite sHG /= {1}(card_pgroup pG) {1}(card_pgroup (pgroupS sHG pG)).
+by apply: contra; case: p {pG} => [|p] leHG; rewrite ?logn0 // leq_pexp2l.
 Qed.
 
 Lemma pgroupM : forall pi G H, pi.-group (G * H) = pi.-group G && pi.-group H.
@@ -778,7 +781,7 @@ Lemma ltn_log_quotient :
   p.-group G -> H :!=: 1 -> H \subset G -> logn p #|G / H| < logn p #|G|.
 Proof.
 move=> pG ntH sHG; apply: contraLR (ltn_quotient ntH sHG); rewrite -!leqNgt.
-rewrite -{2}(part_pnat_id pG) -{2}(part_pnat_id (morphim_pgroup _ pG)) !p_part.
+rewrite {2}(card_pgroup pG) {2}(card_pgroup (morphim_pgroup _ pG)).
 by case: (posnP p) => [-> //|]; exact: leq_pexp2l.
 Qed.
 

@@ -88,7 +88,7 @@ have{sNPM} [sNRM sylRH]: 'N(R) \subset M /\ p.-Sylow(H) R.
   have [|D]:= @mmax_exists _ 'N(R).
     by rewrite mFT_norm_proper // (mFT_pgroup_proper pR).
   case/setIdP=> maxD sND; move/implyP: (maxHM D); rewrite inE {}maxD /= leqNgt.
-  rewrite (subset_trans (subset_trans sBR (normG R))) //= implybN.
+  rewrite (subset_trans (subset_trans sBR (normG R))) //= implybNN.
   have ltRN := nilpotent_proper_norm (pgroup_nil pP) ltRP.
   rewrite -(card_Hall sylR) (leq_trans (proper_card ltRN)) /=; last first.
     rewrite setIC -(part_pnat_id (pgroupS (subsetIr _ _) pP)) dvdn_leq //.
