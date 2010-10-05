@@ -195,7 +195,7 @@ Section ExponentAbelem.
 Variable gT : finGroupType.
 Implicit Type p : nat.
 Implicit Type x : gT.
-Implicit Types A B : {set gT}.
+Implicit Types A B C : {set gT}.
 Implicit Types G H E X Y : {group gT}.
 
 Lemma LdivP : forall A n x, reflect (x \in A /\ x ^+ n = 1) (x \in 'Ldiv_n(A)).
@@ -274,6 +274,15 @@ Lemma sub_LdivT : forall A n, (A \subset 'Ldiv_n()) = (exponent A %| n).
 Proof.
 by move=> A n; apply/subsetP/exponentP=> eAn x; move/eAn; rewrite inE; move/eqP.
 Qed.
+
+Lemma LdivT_J : forall n x, 'Ldiv_n() :^ x = 'Ldiv_n().
+Proof.
+move=> n x; apply/setP=> y; rewrite !inE mem_conjg inE -conjXg.
+by rewrite (canF_eq (conjgKV x)) conj1g.
+Qed.
+
+Lemma LdivJ : forall n A x, 'Ldiv_n(A :^ x) = 'Ldiv_n(A) :^ x.
+Proof. by move=> n A x; rewrite conjIg LdivT_J. Qed.
 
 Lemma sub_Ldiv : forall A n, (A \subset 'Ldiv_n(A)) = (exponent A %| n).
 Proof. by move=> A n; rewrite subsetI subxx sub_LdivT. Qed.
@@ -409,14 +418,14 @@ Lemma pElemP : forall p A E,
 Proof. by move=> p A E; rewrite inE; exact: andP. Qed.
 Implicit Arguments pElemP [p A E].
 
-Lemma pElemS : forall p G H, G \subset H -> 'E_p(G) \subset 'E_p(H).
+Lemma pElemS : forall p A B, A \subset B -> 'E_p(A) \subset 'E_p(B).
 Proof.
-move=> p G H sGH; apply/subsetP=> E; rewrite !inE.
+move=> p A B sAB; apply/subsetP=> E; rewrite !inE.
 by case/andP; move/subset_trans->.
 Qed.
 
-Lemma pElemI : forall p G H, 'E_p(G :&: H) = 'E_p(G) :&: subgroups H.
-Proof. by move=> p G H; apply/setP=> E; rewrite !inE subsetI andbAC. Qed.
+Lemma pElemI : forall p A B, 'E_p(A :&: B) = 'E_p(A) :&: subgroups B.
+Proof. by move=> p A B; apply/setP=> E; rewrite !inE subsetI andbAC. Qed.
 
 Lemma pElemJ : forall x p A E, ((E :^ x)%G \in 'E_p(A :^ x)) = (E \in 'E_p(A)).
 Proof. by move=> x p A E; rewrite !inE conjSg abelemJ. Qed.
@@ -429,15 +438,15 @@ by apply: (iffP and3P) => [] [-> ->]; move/eqP.
 Qed.
 Implicit Arguments pnElemP [p n A E].
 
-Lemma pnElemPcard : forall p n B E,
-  E \in 'E_p^n(B) -> [/\ E \subset B, p.-abelem E & #|E| = p ^ n]%N.
+Lemma pnElemPcard : forall p n A E,
+  E \in 'E_p^n(A) -> [/\ E \subset A, p.-abelem E & #|E| = p ^ n]%N.
 Proof.
-move=> p n B E; case/pnElemP=> -> abelE <-.
+move=> p n A E; case/pnElemP=> -> abelE <-.
 by rewrite -card_pgroup // abelem_pgroup.
 Qed.
 
-Lemma card_pnElem : forall p n B E, E \in 'E_p^n(B) -> #|E| = (p ^ n)%N.
-Proof. by move=> p n B E; case/pnElemPcard. Qed.
+Lemma card_pnElem : forall p n A E, E \in 'E_p^n(A) -> #|E| = (p ^ n)%N.
+Proof. by move=> p n A E; case/pnElemPcard. Qed.
 
 Lemma pnElem0 : forall p G, 'E_p^0(G) = [set 1%G].
 Proof.
@@ -603,15 +612,15 @@ case/(pgroup_pdiv (abelem_pgroup abelE)) => p_pr pE _.
 by rewrite (eqnP (qE p p_pr pE)).
 Qed.
 
-Lemma pmaxElemP : forall p G E,
-  reflect (E \in 'E_p(G) /\ forall H, H \in 'E_p(G) -> E \subset H -> H :=: E)
-          (E \in 'E*_p(G)).
-Proof. move=> p G E; rewrite [E \in 'E*_p(G)]inE; exact: (iffP maxgroupP). Qed.
+Lemma pmaxElemP : forall p A E,
+  reflect (E \in 'E_p(A) /\ forall H, H \in 'E_p(A) -> E \subset H -> H :=: E)
+          (E \in 'E*_p(A)).
+Proof. move=> p A E; rewrite [E \in 'E*_p(A)]inE; exact: (iffP maxgroupP). Qed.
 
-Lemma pmaxElem_exists : forall p G D,
-  D \in 'E_p(G) -> {E | E \in 'E*_p(G) & D \subset E}.
+Lemma pmaxElem_exists : forall p A D,
+  D \in 'E_p(A) -> {E | E \in 'E*_p(A) & D \subset E}.
 Proof.
-move=> p G D EpD; have [E maxE sDE] := maxgroup_exists (EpD : mem 'E_p(G) D).
+move=> p A D EpD; have [E maxE sDE] := maxgroup_exists (EpD : mem 'E_p(A) D).
 by exists E; rewrite // inE.
 Qed.
 
@@ -636,13 +645,23 @@ apply/abelemP=> //; rewrite /abelian -{1 3}defE setIAC subsetIr.
 by split=> //; apply/exponentP; rewrite -sub_LdivT setIAC subsetIr.
 Qed.
 
-Lemma pmaxElemS : forall p G H,
-  G \subset H -> 'E*_p(H) :&: subgroups G \subset 'E*_p(G).
+Lemma pmaxElemS : forall p A B,
+  A \subset B -> 'E*_p(B) :&: subgroups A \subset 'E*_p(A).
 Proof.
-move=> p G H sGH; apply/subsetP=> E; rewrite !inE.
-case/andP; case/maxgroupP; case/pElemP=> _ abelE maxE sEG.
-apply/maxgroupP; rewrite inE sEG; split=> // D EpD.
+move=> p A B sAB; apply/subsetP=> E; rewrite !inE.
+case/andP; case/maxgroupP; case/pElemP=> _ abelE maxE sEA.
+apply/maxgroupP; rewrite inE sEA; split=> // D EpD.
 by apply: maxE; apply: subsetP EpD; exact: pElemS.
+Qed.
+
+Lemma pmaxElemJ : forall p A E x,
+  ((E :^ x)%G \in 'E*_p(A :^ x)) = (E \in 'E*_p(A)).
+Proof.
+move=> p A E x; apply/pmaxElemP/pmaxElemP=> [] [EpE maxE].
+  rewrite pElemJ in EpE; split=> //= H EpH sEH; apply: (act_inj 'Js x).
+  by apply: maxE; rewrite ?conjSg ?pElemJ.
+rewrite pElemJ; split=> // H; rewrite -(actKV 'JG x H) pElemJ conjSg => EpHx'.
+by move/maxE=> /= ->.
 Qed.
 
 Lemma grank_min : forall B, 'm(<<B>>) <= #|B|.
@@ -685,8 +704,8 @@ Qed.
 Lemma p_rank1 : forall p, 'r_p([1 gT]) = 0.
 Proof. by move=> p; apply/eqP; rewrite eqn0Ngt p_rank_gt0 cards1. Qed.
 
-Lemma logn_le_p_rank : forall p G E, E \in 'E_p(G) -> logn p #|E| <= 'r_p(G).
-Proof. by move=> p G E EpG_E; rewrite (bigmax_sup E). Qed.
+Lemma logn_le_p_rank : forall p A E, E \in 'E_p(A) -> logn p #|E| <= 'r_p(A).
+Proof. by move=> p A E EpA_E; rewrite (bigmax_sup E). Qed.
 
 Lemma p_rank_abelem : forall p G, p.-abelem G -> 'r_p(G) = logn p #|G|.
 Proof.
@@ -695,16 +714,15 @@ move=> p G abelG; apply/eqP; rewrite eqn_leq andbC (bigmax_sup G) //.
 by rewrite inE subxx.
 Qed.
 
-Lemma p_rankS : forall p G H, G \subset H -> 'r_p(G) <= 'r_p(H).
+Lemma p_rankS : forall p A B, A \subset B -> 'r_p(A) <= 'r_p(B).
 Proof.
-move=> p G H sGH; apply/bigmax_leqP=> E; move/(subsetP (pElemS p sGH)) => EpH_E.
+move=> p A B sAB; apply/bigmax_leqP=> E; move/(subsetP (pElemS p sAB)) => EpB_E.
 by rewrite (bigmax_sup E).
 Qed.
 
-Lemma p_rankElem_max : forall p (G : {group gT}),
-  'E_p^('r_p(G))(G) \subset 'E*_p(G).
+Lemma p_rankElem_max : forall p A, 'E_p^('r_p(A))(A) \subset 'E*_p(A).
 Proof.
-move=> p G; apply/subsetP=> E; case/setIdP=> EpE dimE.
+move=> p A; apply/subsetP=> E; case/setIdP=> EpE dimE.
 apply/pmaxElemP; split=> // F EpF sEF; apply/eqP.
 have pF: p.-group F by case/pElemP: EpF => _; case/and3P.
 have pE: p.-group E by case/pElemP: EpE => _; case/and3P.
@@ -712,9 +730,9 @@ rewrite eq_sym eqEcard sEF dvdn_leq // (card_pgroup pE) (card_pgroup pF).
 by rewrite (eqP dimE) dvdn_exp2l // logn_le_p_rank.
 Qed.
 
-Lemma p_rankJ : forall p G x, 'r_p(G :^ x) = 'r_p(G).
+Lemma p_rankJ : forall p A x, 'r_p(A :^ x) = 'r_p(A).
 Proof.
-move=> p G x; rewrite /p_rank (reindex_inj (@act_inj _ _ _ 'JG x)).
+move=> p A x; rewrite /p_rank (reindex_inj (act_inj 'JG x)).
 by apply: eq_big => [E | E _]; rewrite ?cardJg ?pElemJ.
 Qed.
 
@@ -777,16 +795,16 @@ Proof.
 by move=> p G abelG; rewrite (rank_pgroup (abelem_pgroup abelG)) p_rank_abelem.
 Qed.
 
-Lemma rankJ : forall G x, 'r(G :^ x) = 'r(G).
+Lemma rankJ : forall A x, 'r(A :^ x) = 'r(A).
 Proof.
-by move=> G x; rewrite /rank cardJg; apply: eq_bigr => p _; rewrite p_rankJ.
+by move=> A x; rewrite /rank cardJg; apply: eq_bigr => p _; rewrite p_rankJ.
 Qed.
 
-Lemma rankS : forall G H, G \subset H -> 'r(G) <= 'r(H).
+Lemma rankS : forall A B, A \subset B -> 'r(A) <= 'r(B).
 Proof.
-move=> G H sGH; rewrite /rank !big_mkord; apply/bigmax_leqP=> p _.
-have leGH: #|G| < #|H|.+1 by rewrite ltnS subset_leq_card.
-by rewrite (bigmax_sup (widen_ord leGH p)) // p_rankS.
+move=> A B sAB; rewrite /rank !big_mkord; apply/bigmax_leqP=> p _.
+have leAB: #|A| < #|B|.+1 by rewrite ltnS subset_leq_card.
+by rewrite (bigmax_sup (widen_ord leAB p)) // p_rankS.
 Qed.
 
 Lemma rank_geP : forall n G, reflect (exists E, E \in 'E^n(G)) (n <= 'r(G)).
@@ -808,7 +826,7 @@ Implicit Arguments pElemP [gT p A E].
 Implicit Arguments pnElemP [gT p n A E].
 Implicit Arguments nElemP [gT n G E].
 Implicit Arguments nElem1P [gT G E].
-Implicit Arguments pmaxElemP [gT p G E].
+Implicit Arguments pmaxElemP [gT p A E].
 Implicit Arguments pmaxElem_LdivP [gT p G E].
 Implicit Arguments p_rank_geP [gT p n G].
 Implicit Arguments rank_geP [gT n G].
@@ -817,11 +835,24 @@ Section MorphAbelem.
 
 Variables (aT rT : finGroupType) (D : {group aT}) (f : {morphism D >-> rT}).
 Implicit Types G H E : {group aT}.
+Implicit Types A B : {set aT}.
 
 Lemma exponent_morphim : forall G, exponent (f @* G) %| exponent G.
 Proof.
 move=> G; apply/exponentP=> fx; case/morphimP=> x Dx Gx ->{fx}.
 by rewrite -morphX // expg_exponent // morph1.
+Qed.
+
+Lemma morphim_LdivT : forall n, f @* 'Ldiv_n() \subset 'Ldiv_n().
+Proof.
+move=> n; apply/subsetP=> fx; case/morphimP=> x Dx; rewrite inE => xn ->.
+by rewrite inE -morphX // (eqP xn) morph1.
+Qed.
+
+Lemma morphim_Ldiv : forall n A, f @* 'Ldiv_n(A) \subset 'Ldiv_n(f @* A).
+Proof.
+move=> n A; apply: subset_trans (morphimI f A _) (setIS _ _).
+exact: morphim_LdivT.
 Qed.
 
 Lemma morphim_abelem : forall p G, p.-abelem G -> p.-abelem (f @* G).
@@ -865,6 +896,12 @@ Variables (gT : finGroupType) (p n : nat) (G H : {group gT}).
 Lemma exponent_quotient : exponent (G / H) %| exponent G.
 Proof. exact: exponent_morphim. Qed.
 
+Lemma quotient_LdivT : forall n, 'Ldiv_n() / H \subset 'Ldiv_n().
+Proof. exact: morphim_LdivT. Qed.
+
+Lemma quotient_Ldiv : forall n A, 'Ldiv_n(A) / H \subset 'Ldiv_n(A / H).
+Proof. exact: morphim_Ldiv. Qed.
+
 Lemma quotient_abelem : p.-abelem G -> p.-abelem (G / H).
 Proof. exact: morphim_abelem. Qed.
 
@@ -891,6 +928,15 @@ Let defG : invm injf @* (f @* G) = G := morphim_invm injf sGD.
 
 Lemma exponent_injm : exponent (f @* G) = exponent G.
 Proof. by apply/eqP; rewrite eqn_dvd -{3}defG !exponent_morphim. Qed.
+
+Lemma injm_Ldiv : forall n A, f @* 'Ldiv_n(A) = 'Ldiv_n(f @* A).
+Proof.
+move=> n A; apply/eqP; rewrite eqEsubset morphim_Ldiv.
+rewrite -[f @* 'Ldiv_n(A)](morphpre_invm injf).
+rewrite -sub_morphim_pre; last by rewrite subIset ?morphim_sub.
+rewrite injmI ?injm_invm // setISS ?morphim_LdivT //.
+by rewrite sub_morphim_pre ?morphim_sub // morphpre_invm.
+Qed.
 
 Lemma injm_abelem : forall p, p.-abelem (f @* G) = p.-abelem G.
 Proof.

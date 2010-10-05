@@ -1038,6 +1038,9 @@ move=> p [|n] p_pr; first by case: p p_pr.
 by rewrite p'natEpi // mem_primes p_pr.
 Qed.
 
+Lemma pnatPpi : forall pi n p, pi.-nat n -> p \in \pi(n) -> p \in pi.
+Proof. by move=> pi n p; case/andP=> _; move/allP; exact. Qed.
+
 Lemma pnat_dvd : forall m n pi, m %| n -> pi.-nat n -> pi.-nat m.
 Proof. by move=> m n pi; case/dvdnP=> q ->; rewrite pnat_mul; case/andP. Qed.
 

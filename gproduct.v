@@ -227,11 +227,11 @@ Section DisjointRem.
 
 Variables H K : {group gT}.
 
-Hypothesis trHK : H :&: K = 1.
+Hypothesis tiHK : H :&: K = 1.
 
 Lemma remgr_id : forall x, x \in K -> remgr H K x = x.
 Proof.
-move=> x Kx; apply/eqP; rewrite eq_mulgV1 -in_set1 -[[set 1]]trHK inE.
+move=> x Kx; apply/eqP; rewrite eq_mulgV1 (sameP eqP set1gP) -tiHK inE.
 rewrite -mem_rcoset groupMr ?groupV // -in_setI remgrP.
 by apply: subsetP Kx; exact: mulG_subr.
 Qed.
@@ -243,6 +243,20 @@ Lemma divgrMid : forall x y, x \in H -> y \in K -> divgr H K (x * y) = x.
 Proof. by move=> x y Hx Ky; rewrite /divgr remgrMid ?mulgK. Qed.
 
 End DisjointRem.
+
+(* Intersection of a centraliser with a disjoint product. *)
+
+Lemma subcent_TImulg : forall H K A,
+  H :&: K = 1 -> A \subset 'N(H) :&: 'N(K) -> 'C_H(A) * 'C_K(A) = 'C_(H * K)(A).
+Proof.
+move=> H K A tiHK; rewrite subsetI; case/andP=> nHA nKA; apply/eqP.
+rewrite group_modl ?subsetIr // eqEsubset setSI ?mulSg ?subsetIl //=.
+apply/subsetP=> xy; case/setIP; case/mulsgP=> x y Hx Ky ->{xy} cAxy.
+rewrite inE cAxy mem_mulg // inE Hx /=; apply/centP=> z Az.
+apply/commgP; apply/conjg_fixP.
+move/commgP: (centP cAxy z Az); move/conjg_fixP; move/(congr1 (divgr H K)).
+by rewrite conjMg !divgrMid ?memJ_norm // (subsetP nHA, subsetP nKA).
+Qed.
 
 (* Complements, and splitting. *)
 
@@ -277,6 +291,7 @@ by rewrite remgr_id // groupMl ?mem_remgr.
 Qed.
 
 End NormalComplement.
+
 
 (* Semi-direct product *)
 
@@ -334,6 +349,14 @@ Proof.
 move=> A0 B0 G H; case/sdprodP=> [[A B -> ->{A0 B0}]] <- nAB tiAB sAH.
 rewrite -group_modr ?sdprodE ?normsI // ?normsG //.
 by rewrite -setIA tiAB (setIidPr _) ?sub1G.
+Qed.
+
+Lemma subcent_sdprod : forall B C G A,
+   B ><| C = G -> A \subset 'N(B) :&: 'N(C) -> 'C_B(A) ><| 'C_C(A) = 'C_G(A).
+Proof.
+move=> B C G A; case/sdprodP=> [[H K -> ->] <- nHK tiHK] nHKA {B C G}.
+rewrite sdprodE ?subcent_TImulg ?normsIG //.
+by rewrite -setIIl tiHK (setIidPl (sub1G _)).
 Qed.
 
 Lemma sdprod_recl : forall n G K H K1,
@@ -561,6 +584,13 @@ Qed.
 Lemma dprod_modr : forall A B G H,
   A \x B = G -> B \subset H -> (H :&: A) \x B = H :&: G.
 Proof. move=> A B G H; rewrite -!(dprodC B) !(setIC H); exact: dprod_modl. Qed.
+
+Lemma subcent_dprod : forall B C G A,
+   B \x C = G -> A \subset 'N(B) :&: 'N(C) -> 'C_B(A) \x 'C_C(A) = 'C_G(A).
+Proof.
+move=> B C G A defG; have [_ _ cBC _] := dprodP defG; move: defG.
+by rewrite !dprodEsdprod 1?(centSS _ _ cBC) ?subsetIl //; exact: subcent_sdprod.
+Qed.
 
 Lemma dprod_card : forall A B G, A \x B = G -> (#|A| * #|B|)%N = #|G|.
 Proof. by move=> A B G; case/dprodP=> [[H K -> ->] <- _]; move/TI_cardMg. Qed.

@@ -906,6 +906,13 @@ rewrite eqEsubset (subset_normal_Hall _ hallH) //= pcore_psubgroup.
 by rewrite pcore_max //= (pHall_pgroup hallH).
 Qed.
 
+Lemma pcoreJ : forall G x, 'O_pi(G :^ x) = 'O_pi(G) :^ x.
+Proof.
+move=> G x; apply/eqP; rewrite eqEsubset -sub_conjgV.
+rewrite !pcore_max ?pgroupJ ?pcore_pgroup ?normalJ ?pcore_normal //.
+by rewrite -(normalJ _ _ x) conjsgKV pcore_normal.
+Qed.
+
 End PCoreProps.
 
 Section MorphPcore.
@@ -1056,6 +1063,14 @@ Proof. move=> pis; exact: bgFunc_char. Qed.
 
 Lemma pseries_normal : forall pis gT (G : {group gT}), pseries pis G <| G.
 Proof. move=> pis; exact: bgFunc_normal. Qed.
+
+Lemma pseriesJ :  forall pis gT (G : {group gT}) x,
+  pseries pis (G :^ x) = pseries pis G :^ x.
+Proof.
+move=> pis gT G x; rewrite -{1}(setIid G) -morphim_conj.
+rewrite -(bgFunc_ascont _ (injm_conj G x)) //=.
+by rewrite morphim_conj (setIidPr (pseries_sub _ _)).
+Qed.
 
 Lemma pseries1 : forall pi gT (G : {group gT}), 'O_{pi}(G) = 'O_pi(G).
 Proof. exact: pcore_mod1. Qed.

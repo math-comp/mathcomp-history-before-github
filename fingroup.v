@@ -2619,6 +2619,9 @@ move=> G H sHG; rewrite /(H <| _) subsetI sHG normG subIset //.
 by rewrite subxx orbT.
 Qed.
 
+Lemma normalJ : forall A B x, (A :^ x <| B :^ x) = (A <| B).
+Proof. by move=> A B x; rewrite /normal normJ !conjSg. Qed.
+
 Lemma normalM : forall G H K, H <| G -> K <| G -> H * K <| G.
 Proof.
 move=> G H K; case/andP=> sHG nHG; case/andP=> sKG nKG.
