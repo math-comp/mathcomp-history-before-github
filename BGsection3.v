@@ -7,8 +7,7 @@ Require Import abelian frobenius maximal extremal hall matrix mxrepresentation.
 Require Import BGsection1 BGsection2.
 
 (******************************************************************************)
-(*   This file covers the material in B & G, Section 3, with the exception of *)
-(* Theorem 3.6, whose long proof is in a sepearate file.                      *)
+(*   This file covers the material in B & G, Section 3.                       *)
 (*   Basic definitions relative to Frobenius groups are, temporarily, given   *)
 (* here. All of this should move to the frobenius file once the relevant      *)
 (* background material is available.                                          *)
@@ -16,7 +15,7 @@ Require Import BGsection1 BGsection2.
 (* of Section 3, and in all likelyhood the whole of B & G, does NOT depend on *)
 (* the general proof of existence of Frobenius kernels, because results on    *)
 (* Frobenius groups are only used when the semidirect product decomposition   *)
-(* is already known, and (as we show below) in this case the kernel is always *)
+(* is already known, and (see file forbenius.v) in this case the kernel is    *)
 (* equal to the normal complement of the Frobenius complement.                *)
 (******************************************************************************)
 
