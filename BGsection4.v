@@ -1828,6 +1828,8 @@ case: (Hall_trans solG' HH compl) => x xG' ->.
 by rewrite /= (normP _) // -/p (subsetP _ _ xG') ?char_norm ?pcore_char.
 Qed.
 
+Require Import BGsection3.
+
 (* This is B & G, Corollary 4.19 *)
 Lemma rank2_cent_chief : forall gT p (G Gs U V : {group gT}),
     odd #|G| -> solvable G -> Gs <| G -> 'r_p(Gs) <= 2 -> 
@@ -1955,14 +1957,14 @@ have pSyl_R : p.-Sylow(Gs) R.
   by rewrite (coprime_TIg (pnat_coprime (quotient_pgroup _ pH) _)).
 case/andP: (chief); case/maxgroupP; case/andP=> prVU nVG maxV nUG.
 have ? : Gs \subset 'N(V) by rewrite (subset_trans sGsG).
-have ? : U \subset 'N(V) by rewrite (subset_trans sUGs).
+have nVU : U \subset 'N(V) by rewrite (subset_trans sUGs).
 have sURV : U \subset V * R.
   have pSyl_RV : p.-Sylow(Gs / V) (R / V).
     by rewrite quotient_pHall // ?(subset_trans (pcore_sub _ _)).
   rewrite -quotientSK //.
   rewrite (subset_normal_Hall _ pSyl_RV) /psubgroup ?pUV ?quotientS //=.
   by rewrite quotient_normal // pcore_normal.
-set C := 'C(U / V | 'Q).
+set C := 'C_G(U / V | 'Q).
 have pGCGR : p.-group((G / 'C_G(R))^`(1)).
   have nRG : G \subset 'N(R).
     by rewrite (subset_trans nGGs) // char_norms ?pcore_char.
@@ -1979,22 +1981,53 @@ have pGCGR : p.-group((G / 'C_G(R))^`(1)).
   rewrite /pgroup (_:'C_G(_) = 'ker J); last by rewrite ker_restrm ker_conj_aut.
   by rewrite (isog_card (isog_sFunctor (gFunc_der 1) (first_isog J))).
 have := sol_chief_abelem solG chief; rewrite (is_abelem_pgroup pUV)=> pabUV.
+have nCG : G \subset 'N(C).
+  by rewrite normsI ?normG // (subset_trans _ (astab_norm _ _)) // actsQ // normal_norm.
 have ? : p.-group((G / C)^`(1)).
-  by admit.
-have sNGO : G \subset 'N(C).
-  by admit. 
-have ? : G^`(1) \subset 'N(C) := subset_trans (der_sub _ _) sNGO.
+  have sUVRV : U / V \subset R / V.
+    have ? : 'O_p(Gs) \subset 'N(V) by apply: subset_trans (pcore_sub _ _) _.
+    by rewrite -[R / _]quotient_mulgenr ?quotientS // 1?mulgenC ?norm_mulgenEr.
+  have nCRG : G \subset 'N('C_G(R)).
+    rewrite normsI ?normG // (subset_trans nGGs) // norms_cent // char_norms //.
+    exact: pcore_char.
+  have sQC : 'C_G(R) \subset C.
+    rewrite subsetI subsetIl /= astabQ (subset_trans _ (morphpreS _ (centS sUVRV))) //=.
+    rewrite (subset_trans _ (morphpreS _ (quotient_cent _ _))) //=.
+    rewrite (subset_trans _ (morphpreS _ (quotientS _ (subsetIr G _)))) //=.
+    by rewrite quotientK ?(subset_trans _ nVG) ?subsetIl // mulg_subr.
+  have [f /= <-]:= homgP (homg_quotientS nCRG nCG sQC).
+  by rewrite -[_^`(_)]morphimR //= (morphim_pgroup _ pGCGR).
+have ? : G^`(1) \subset 'N(C) := subset_trans (der_sub _ _) nCG.
+rewrite (subset_trans _ (subsetIr G _)) //.
 rewrite -quotient_sub1 /= ?quotient_der //= -/C.
 have <- : 'O_p(G / C) :=: 1.
-  have ntUV : U / V != 1.
-    apply: contraL (prVU); rewrite -subG1 quotient_sub1 // properE.
-    by rewrite (proper_sub prVU) => ->.
-  have nUVGV : G / V \subset 'N(U / V).
-    by rewrite quotient_norms // normal_norm.
-  pose rUV := abelem_repr pabUV ntUV nUVGV.
-  by admit.
+  set P := 'O_p(G / C)%G. 
+  have nRB : {acts G / C, on group (U / V) | 'Q %% _}.
+    apply/andP; rewrite /= gacentQ centsC. 
+    rewrite (subset_trans (quotientS _ (subsetIr _ _))) ?andbT //; last first.
+      by rewrite quotient_astabQ subxx.
+    rewrite astabs_mod /= ?subsetIr //= -/C.
+    by rewrite quotientS // actsQ // normal_norm.
+  pose J := [groupAction of <[nRB]>].
+  have irrGC : acts_irreducibly (G / C) (U / V) J.
+    have := chief_factor_minnormal chief.
+    rewrite -acts_irrQ // /normal ?(proper_sub prVU) //.
+    case/mingroupP; case/andP=> nt acts min.
+    apply/mingroupP; rewrite nt; split.
+      by case: (nRB) => /= ? _; rewrite acts_actby subxx (setIidPr (subxx _)).
+    move=> H; case/andP=> ntH actsH sHUV; apply: min; rewrite ?ntH //.
+    move: actsH; rewrite /J /= astabs_actby /= (setIidPr sHUV) subsetI subxx. 
+    rewrite astabs_mod /= -/C; last first.
+      by rewrite (subset_trans _ (astabS _ sHUV)) // subsetIr.
+    rewrite quotientSGK // (subset_trans (subsetIr _ _)) //=.
+    by rewrite (subset_trans (astabS _ sHUV)) // astab_sub.
+  have faithGC : [faithful (G / C), on (U / V) | J].
+    rewrite /faithful astab_actby /= (subset_trans (subsetIr _ _)) //.
+    rewrite (setIidPr (subxx _)) /=.
+    exact: modact_faithful 'Q%act G (U / V).
+  exact: pcore_faithful_irr_act pUV (subxx _) irrGC faithGC.
 by rewrite pcore_max // ?(pgroupS (der_sub _ _)) // der_normal.
-Admitted.
+Qed.
 
 (* This is B & G, Lemma 4.20(a) *)
 Lemma rank2_der1_sub_Fitting : forall gT (G : {group gT}),
