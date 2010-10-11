@@ -48,7 +48,7 @@ Local Notation ideal := (fun p =>
 
 Implicit Type M : {set gT}.
 
-Definition alpha M := [pred p | (2 < 'r_p(M))].
+Definition alpha M := [pred p | 2 < 'r_p(M)].
 
 Notation "\alpha ( M )" := (alpha M) : group_scope.
 
@@ -103,24 +103,6 @@ Section GenericCores.
 Variables H K : {group gT}.
 Implicit Type x : gT.
 
-(* GG -- Retiring all lemmas that replicate the pcore functionality as they
-   were not used. We do need to keep  the conjugation lemmas, though.
-Lemma sigma_core_char : H`_\sigma \char H.
-Proof. exact: bgFunc_char. Qed.
-
-Lemma sigma_core_pgroup : \sigma(H).-group H`_\sigma.
-Proof. exact: pcore_pgroup. Qed.
-
-Lemma sigma_core_sub : H`_\sigma \subset H.
-Proof. exact: pcore_sub. Qed.
-
-Lemma sigma_core_max : \sigma(H).-group K -> K <| H -> K \subset H`_\sigma.
-Proof. exact: pcore_max. Qed.
-
-Lemma sigma_core_normal : H`_\sigma <| H.
-Proof. exact: pcore_normal. Qed. 
-*)
-
 Lemma sigmaJ : forall x, \sigma(H :^ x) =i \sigma(H).
 Proof.
 move=> x p; apply/exists_inP/exists_inP=> [[P pSyl_P sNH]|[P pSyl_P sNH]].
@@ -129,47 +111,19 @@ move=> x p; apply/exists_inP/exists_inP=> [[P pSyl_P sNH]|[P pSyl_P sNH]].
 by exists (P :^ x)%G; [ by rewrite pHallJ2 | by rewrite normJ conjSg ].
 Qed.
 
-(* TODO: move to pgroups.v -- GG: DONE
-Lemma pcoreJ : forall (gT : finGroupType) (G : {group gT}) x pi,
-  'O_pi(G :^ x) = 'O_pi(G) :^ x.
-Proof.
-move=> rT R x pi; rewrite -{1}(setIid R) -morphim_conj.
-rewrite -(bgFunc_ascont _ (injm_conj R x)) //=.
-by rewrite morphim_conj (setIidPr _) // pcore_sub.
-Qed.
-*)
-
-Lemma sigma_coreJ : forall x, (H :^ x)`_\sigma = H`_\sigma :^ x.
+Lemma MsigmaJ : forall x, (H :^ x)`_\sigma = H`_\sigma :^ x.
 Proof. by move=> x; rewrite /sigma_core -(eq_pcore H (sigmaJ x)) pcoreJ. Qed.
-
-(* Same deletion. Also added conjugation lemmas for beta-cores, which were
-   -- oddly -- missing
-Lemma alpha_core_char : H`_\alpha \char H.
-Proof. exact: bgFunc_char. Qed.
-
-Lemma alpha_core_pgroup : \alpha(H).-group H`_\alpha.
-Proof. exact: pcore_pgroup. Qed.
-
-Lemma alpha_core_sub : H`_\alpha \subset H.
-Proof. exact: pcore_sub. Qed.
-
-Lemma alpha_core_max : \alpha(H).-group K -> K <| H -> K \subset H`_\alpha.
-Proof. exact: pcore_max. Qed.
-
-Lemma alpha_core_normal : H`_\alpha <| H.
-Proof. exact: pcore_normal. Qed. 
-*)
 
 Lemma alphaJ : forall x, \alpha(H :^ x) =i \alpha(H).
 Proof. by move=> x p; rewrite !inE /= p_rankJ. Qed.
 
-Lemma alpha_coreJ : forall x, (H :^ x)`_\alpha = H`_\alpha :^ x.
+Lemma MalphaJ : forall x, (H :^ x)`_\alpha = H`_\alpha :^ x.
 Proof. by move=> x; rewrite /alpha_core -(eq_pcore H (alphaJ x)) pcoreJ. Qed.
 
 Lemma betaJ : forall x, \beta(H :^ x) =i \beta(H).
 Proof. by move=> x p; rewrite !inE /= p_rankJ. Qed.
 
-Lemma beta_coreJ : forall x, (H :^ x)`_\beta = H`_\beta :^ x.
+Lemma MbetaJ : forall x, (H :^ x)`_\beta = H`_\beta :^ x.
 Proof. by move=> x; rewrite /beta_core -(eq_pcore H (betaJ x)) pcoreJ. Qed.
 
 End GenericCores.
@@ -699,9 +653,9 @@ Let alphaMa : \alpha(M).-group (M`_\alpha).
 Proof. by exact: pcore_pgroup. Qed.
 
 (* This is B & G, Lemma 10.3. *)
-Theorem centraliser_alpha'_subgroup_unique : forall (X : {group gT}), 
-  X \subset M -> \alpha(M)^'.-group X -> 'r('C_(M`_\alpha)(X)) >= 2 ->
-    ('C_M(X))%G \in 'U.
+Theorem cent_alpha'_uniq : forall X, 
+     X \subset M -> \alpha(M)^'.-group X -> 'r('C_(M`_\alpha)(X)) >= 2 ->
+  ('C_M(X))%G \in 'U.
 Proof.
 move=> X sXM alpha'X; case: (rank_witness 'C_(M`_\alpha)(X)) => p primep -> rP.
 have alpha_p : p \in \alpha(M).
@@ -814,7 +768,7 @@ have key_lemma : forall w, w \in 'Z(P) -> w != 1 -> 'M('C_G[w]) != [set M] ->
   have sWP : W \subset P by rewrite cycle_subG (subsetP _ _ ZPw) // subsetIl. 
   have sWM : W \subset M by apply: (subset_trans sWP (pHall_sub SylP)).
   have alpha'W := pgroupS sWP alpha'P.
-  have UCMY := centraliser_alpha'_subgroup_unique sWM alpha'W rCMaW.
+  have UCMY := cent_alpha'_uniq sWM alpha'W rCMaW.
   have properCGW : 'C_G(W) \proper G.
     rewrite (sub_proper_trans (subset_trans (subsetIr _ _) (cent_sub _))) //.
     by rewrite mFT_norm_proper // ?cycle_eq1 // (sub_proper_trans sWM).
@@ -845,8 +799,7 @@ by move/(congr1 val)=> /=; move/normP; rewrite norm_mmax // groupV.
 Qed.
 
 (* This is B & G, Lemma 10.4(c), part 1 *)
-Lemma sigma'_prank2_Ep2_sub : 
-  'r_p(M) = 2 -> 'E_p^2(M) \subset 'E*_p(G).
+Lemma sigma'_rank2_max : 'r_p(M) = 2 -> 'E_p^2(M) \subset 'E*_p(G).
 Proof.
 move=> rpM; apply: contraR sigma'p; case/subsetPn=> A Ep2MA EpGA.
 have uniqA : A \in 'U.
@@ -859,25 +812,28 @@ apply: (def_uniq_mmaxS sAP); last by apply: def_uniq_mmax.
 by apply: (sub_proper_trans (pHall_sub pSylMP)).
 Qed.
 
-(* This is B & G, Lemma 10.4(c), part 2; is this the right statement? *)
-(* GG -- NO! ideal means in \beta(G), not ideal should its negation. *)
-Lemma sigma'_prank2_Ep2_EpG : 
-  'r_p(M) = 2 -> ('E_p^2(M) :&: 'E*_p(G)) != set0.
-Proof. 
-move=> rpM; apply/set0Pn.
-case: (p_rank_geP (_ : 2 <= 'r_p(M)))=> [|A Ep2A]; rewrite ?rpM //=.
-by exists A; rewrite inE Ep2A (subsetP (sigma'_prank2_Ep2_sub rpM)).
+(* This is B & G, Lemma 10.4(c), part 2 *)
+Lemma sigma'_rank2_beta' : 'r_p(M) = 2 -> p \notin beta(G).
+Proof.
+move=> rpM; apply/nandP; right; apply/exists_inP=> [[P sylP]].
+case/norP=> _; case/set0Pn.
+have [A Ep2A]: exists A, A \in 'E_p^2(M) by apply/p_rank_geP; rewrite rpM.
+have [_ abelA dimA] := pnElemP Ep2A; have [pA _] := andP abelA.
+have [x Gx sAxP] := Sylow_Jsub sylP (subsetT A) pA.
+exists (A :^ x)%G; rewrite 3!inE sAxP abelemJ cardJg abelA dimA /=.
+rewrite (subsetP (pmaxElemS p (subsetT P))) // inE /=.
+by rewrite -(conjGid Gx) pmaxElemJ (subsetP (sigma'_rank2_max rpM)) // inE.
 Qed.
 
-(* This is B & G, Lemma 10.5, part 1 *)
-(* GG: the condition on X could be weakened to p.-group X. *)
-Lemma sigma'_Ep1G_rpM2 : forall X,
-  X \in 'E_p^1(G) -> 'N(X) \subset M -> 'r_p(M) = 2.
+(* This is B & G, Lemma 10.5, part 1; the condition on X has been weakened,   *)
+(* because the proof of Lemma 12.2(a) requires the stronger result.           *)
+Lemma sigma'_norm_mmax_rank2 : forall X,
+  p.-group X -> 'N(X) \subset M -> 'r_p(M) = 2.
 Proof.
-move=> X; case/pnElemP=> _; case/andP=> pX _ _ sNX_M.
-have [P sylP sXP] := Sylow_superset (subset_trans (normG X) sNX_M) pX.
+move=> X pX sNX_M; have sXM: X \subset M := subset_trans (normG X) sNX_M.
+have [P sylP sXP] := Sylow_superset sXM pX.
 apply: contraNeq sigma'p; rewrite /= neq_ltn orbC ltnS.
-case/orP=> [rMgt2|rMle1]; first exact: alpha_sub_sigma.
+case/orP=> [rMgt2 | rMle1]; first exact: alpha_sub_sigma.
 apply/existsP; exists P; rewrite sylP (subset_trans _ sNX_M) // char_norms //.
 rewrite sub_cyclic_char //; have [sPM pP ] := and3P sylP.
 by rewrite (odd_pgroup_rank1_cyclic pP)  ?mFT_odd ?(leq_trans (p_rankS p sPM)).
@@ -886,14 +842,14 @@ Qed.
 (* This is B & G, Lemma 10.5, part 2 *)
 (* The second claim in B & G 10.5 follows immediately from 10.4c. This is *)
 (* the remaining part of the lemma. *)
-Lemma sigma'_Ep1G_exists_Ep2G : forall X,
+Lemma sigma'1Elem_sub_p2Elem : forall X,
     X \in 'E_p^1(G) -> 'N(X) \subset M -> 
-  exists A, A \in 'E_p^2(G) /\ X \subset A.
+  exists2 A, A \in 'E_p^2(G) & X \subset A.
 Proof.
 move=> X EpX sNXM; have p_pr := pnElem_prime EpX.
-have sXM := subset_trans (normG X) sNXM.
-have rpM2 := sigma'_Ep1G_rpM2 EpX sNXM.
 have [_ abelX dimX] := pnElemP EpX; have pX := abelem_pgroup abelX.
+have sXM := subset_trans (normG X) sNXM.
+have rpM2 := sigma'_norm_mmax_rank2 pX sNXM.
 have [P sylP sXP] := Sylow_superset sXM pX; have [sPM pP _] := and3P sylP.
 have chZP1: 'Ohm_1('Z(P)) \char P := char_trans (Ohm_char 1 _) (center_char _).
 have neqZP1_X: 'Ohm_1('Z(P)) != X.
@@ -909,7 +865,7 @@ have defA: X \* 'Ohm_1('Z(P)) = A.
 have{defA} abelA : p.-abelem A.
   have pZ: p.-group 'Z(P) := pgroupS (center_sub P) pP.
   by rewrite (cprod_abelem _ defA) abelX /= Ohm1_abelem ?center_abelian.
-exists [group of A]; split; last exact: mulgen_subl.
+exists [group of A]; last exact: mulgen_subl.
 rewrite !inE subsetT abelA /= eqn_leq; apply/andP; split.
   rewrite -{1}rpM2 -{1}(p_rank_abelem abelA) p_rankS //=.
   by rewrite mulgen_subG sXM (subset_trans (char_sub chZP1)).

@@ -85,7 +85,7 @@ Let not_sNP_M: ~~ ('N(P) \subset M) := sigma'_Sylow_contra sM'p.
 (* Second preliminary remark of Section 11; only depends on sM'p, Ep1A0_M,    *)
 (* and sNA0_M.                                                                *)
 Lemma p_rank_exceptional : 'r_p(M) = 2.
-Proof. exact: sigma'_Ep1G_rpM2 (sNA0_M). Qed.
+Proof. exact: sigma'_norm_mmax_rank2 (pgroupS sA0A pA) _. Qed.
 Let rM := p_rank_exceptional.
 
 (* Third preliminary remark of Section 11. *)
@@ -400,7 +400,7 @@ have [regQ | nregQ] := eqVneq 'C_Q(A) 1; last first.
   have [B Eq2B]: exists B, B \in 'E_q^2(Q) by apply/p_rank_geP; rewrite rQ.
   have maxB: B \in 'E*_q(G).
     apply: subsetP (subsetP (pnElemS q 2 (pHall_sub sylQ_M)) B Eq2B).
-    by rewrite sigma'_prank2_Ep2_sub // (p_rank_Sylow sylQ_M).
+    by rewrite sigma'_rank2_max // (p_rank_Sylow sylQ_M).
   have CAq: q %| #|'C(A)|.
     apply: dvdn_trans (cardSg (subsetIr Q _)).
     by have [_ ? _] := pgroup_pdiv (pgroupS (subsetIl Q _) qQ) nregQ.

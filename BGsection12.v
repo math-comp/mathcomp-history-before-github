@@ -83,7 +83,7 @@ Local Notation G := (TheMinSimpleOddGroup gT).
 Let grT := {group gT}.
 
 Implicit Types p q r : nat.
-Implicit Types A E H K M N P Q R S T U V W X Y : {group gT}.
+Implicit Types A E H K M Mstar N P Q R S T U V W X Y : {group gT}.
 
 Section Introduction.
 
@@ -230,11 +230,9 @@ Qed.
 Lemma tau2_not_beta : forall p,
   p \in \tau2(M) -> p \notin \beta(G) /\ {subset 'E_p^2(M) <= 'E*_p(G)}. 
 Proof.
-move=> p; case/andP=> sM'p; move/eqP=> rpM; split.
-  apply: contra (sigma'_prank2_Ep2_EpG maxM sM'p rpM); rewrite -subset0.
-  case/beta_not_narrow; move/disjoint_setI0=> <- _.
-  by rewrite setSI ?pnElemS ?subsetT.
-by apply/subsetP; exact: sigma'_prank2_Ep2_sub.
+move=> p; case/andP=> sM'p; move/eqP=> rpM.
+split; first exact: sigma'_rank2_beta' rpM.
+by apply/subsetP; exact: sigma'_rank2_max.
 Qed.
 
 End Introduction.
@@ -376,6 +374,36 @@ have [nE32 nE31] := (subset_trans sE2E nE3E, subset_trans sE1E nE3E).
 rewrite [E3 ><| _]sdprodEgen ? sdprodE ?coprime_TIg ?norms_mulgen //=.
   by rewrite norm_mulgenEr // -mulgA defE21.
 by rewrite norm_mulgenEr // coprime_cardMg // coprime_mull coE31.
+Qed.
+
+(* This is B & G, Lemma 12.2. *)
+Lemma prime_class_mmax_norm : forall M p X Mstar,
+    M \in 'M -> p.-group X -> Mstar \in 'M('N(X)) ->
+    (*a*) p \in [predU \sigma(Mstar) & \tau2(Mstar)]
+ /\ (*b*) (X \subset M ->
+      (p \in \sigma(M)) && (M :!=: Mstar) || (p \in [predU \tau1(M) & \tau3(M)])
+           -> gval Mstar \notin M :^: G).
+Proof.
+move=> M p X Mstar maxM pX; case/setIdP=> maxMstar sNMstar.
+have st2Mstar_p: p \in [predU \sigma(Mstar) & \tau2(Mstar)].
+  rewrite inE /= -implyNb; apply/implyP=> sMstar'p.
+  by rewrite 3!inE /= sMstar'p (sigma'_norm_mmax_rank2 _ _ pX).
+split=> // sXM; apply: contraL => MG_Mstar.
+have [x Gx defMstar] := imsetP MG_Mstar.
+rewrite defMstar inE /= sigmaJ tau2J orbC in st2Mstar_p.
+have [t2Mp | sMp] := orP st2Mstar_p.
+  rewrite !negb_or negb_and (contraL (@tau2'1 _ p)) // andbC [~~ _]tau3'2 //=.
+  by case/andP: t2Mp => sM'p _; rewrite [~~ _]sM'p.
+rewrite sMp 6!inE /= sMp /= 4!inE /= sMp /= orbF negbK.
+have ntX: X :!=: 1.
+  by apply: contraTneq sNMstar => ->; rewrite norm1 proper_subn ?mmax_proper.
+have [_ transCX _ _] := mmax_sigma_core_nt_pgroup maxM sMp ntX pX.
+set maxMX := finset _ in transCX.
+have maxMX_Mstar: gval Mstar \in maxMX.
+  by rewrite inE MG_Mstar (subset_trans (normG X)).
+have maxMX_M: gval M \in maxMX by rewrite inE orbit_refl.
+have [y cXy ->] := atransP2 transCX maxMX_Mstar maxMX_M.
+by rewrite /= conjGid // (subsetP sNMstar) // (subsetP (cent_sub X)).
 Qed.
 
 End Section12.
