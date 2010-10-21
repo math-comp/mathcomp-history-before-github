@@ -767,11 +767,16 @@ let declare_one_prenex_implicit locality f =
   | args' when List.exists Impargs.is_status_implicit args' ->
       errorstrm (str "Expected prenex implicits for " ++ pr_reference f)
   | _ -> [] in
-  match loop (Impargs.implicits_of_global fref)  with
+  let impls =
+    match Impargs.implicits_of_global fref  with
+    | [cond,impls] -> impls
+    | [] -> errorstrm (str "Expected some implicits for " ++ pr_reference f)
+    | _ -> errorstrm (str "Multiple implicits not supported") in
+  match loop impls  with
   | [] ->
     errorstrm (str "Expected some implicits for " ++ pr_reference f)
   | impls ->
-    Impargs.declare_manual_implicits locality fref ~enriching:false impls
+    Impargs.declare_manual_implicits locality fref ~enriching:false [impls]
 
 VERNAC COMMAND EXTEND Ssrpreneximplicits
   | [ "Prenex" "Implicits" ne_global_list(fl) ]
