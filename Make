@@ -8,7 +8,7 @@ choice.v
 path.v
 div.v
 fintype.v
-connect.v
+fingraph.v
 tuple.v
 finfun.v
 bigop.v

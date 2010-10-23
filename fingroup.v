@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype.
-Require Import div path bigop finset prime.
+Require Import div path bigop prime finset.
 
 (*****************************************************************************)
 (* This file defines the main interface for finite groups :                  *)
@@ -1119,6 +1119,14 @@ Proof. by move=> A B C; exact: imsetS. Qed.
 Lemma conjugates_set1 : forall A x, A :^: [set x] = [set A :^ x].
 Proof. by move=> A x; exact: imset_set1. Qed.
 
+Lemma conjugates_conj : forall A x B, (A :^ x) :^: B = A :^: (x *: B).
+Proof.
+move=> A x B; rewrite /conjugates [x *: B]imset2_set1l -imset_comp.
+by apply: eq_imset => y /=; rewrite conjsgM.
+Qed.
+
+(* Class support. *)
+
 Lemma class_supportEl : forall A B,
   class_support A B = \bigcup_(x \in A) x ^: B.
 Proof. move=> A B; exact: curry_imset2l. Qed.
@@ -1301,6 +1309,9 @@ Lemma sub1G : [1 gT] \subset G. Proof. by rewrite sub1set. Qed.
 Lemma subG1 : (G \subset [1]) = (G :==: 1).
 Proof. by rewrite eqEsubset sub1G andbT. Qed.
 
+Lemma setI1g : 1 :&: G = 1. Proof. exact: (setIidPl sub1G). Qed.
+Lemma setIg1 : G :&: 1 = 1. Proof. exact: (setIidPr sub1G). Qed.
+
 Lemma subG1_contra : forall H, G \subset H -> G :!=: 1 -> H :!=: 1.
 Proof. by move=> H sGH; rewrite -subG1; apply: contra; move/eqP <-. Qed.
 
@@ -1308,6 +1319,14 @@ Lemma repr_group : repr G = 1. Proof. by rewrite /repr group1. Qed.
 
 Lemma cardG_gt0 : 0 < #|G|.
 Proof. by rewrite lt0n; apply/existsP; exists (1 : gT). Qed.
+(* Workaround for the fact that the simple matching used by Trivial does not  *)
+(* always allow conversion. In particular cardG_gt0 always fails to apply to  *)
+(* subgoals that have been simplified (by /=) because type inference in the   *)
+(* notation #|G| introduces redexes of the form                               *)
+(*    Finite.sort (arg_finGroupType (FinGroup.base gT))                       *)
+(* which gets collaped fo Fingroup.arg_sort (FinGroup.base gT).               *)
+Definition cardG_gt0_reduced : 0 < card (@mem gT (predPredType gT) G)
+  := cardG_gt0.
 
 Lemma indexg_gt0 : forall A, 0 < #|G : A|.
 Proof.
@@ -1759,7 +1778,7 @@ End GroupProp.
 
 Hint Resolve group1 group1_class1 group1_class12 group1_class12.
 Hint Resolve group1_eqType group1_finType.
-Hint Resolve cardG_gt0 indexg_gt0.
+Hint Resolve cardG_gt0 cardG_gt0_reduced indexg_gt0.
 
 Notation "G :^ x" := (conjG_group G x) : subgroup_scope.
 
@@ -1898,7 +1917,7 @@ Proof. by move=> G H; move/LaGrange <-; rewrite dvdn_mulr. Qed.
 Lemma lognSg : forall p G H, G \subset H -> logn p #|G| <= logn p #|H|.
 Proof. by move=> p G H sGH; rewrite dvdn_leq_log ?cardSg. Qed.
 
-Lemma piSg : forall G H, G \subset H -> {subset \pi(#|G|) <= \pi(#|H|)}.
+Lemma piSg : forall G H, G \subset H -> {subset \pi(gval G) <= \pi(gval H)}.
 Proof.
 move=> G H sGH p; rewrite !mem_primes !cardG_gt0; case/and3P=> -> _ pG.
 exact: dvdn_trans (cardSg sGH).
@@ -1959,6 +1978,13 @@ Qed.
 Lemma indexg1 : forall G, #|G : 1| = #|G|.
 Proof. by move=> G; rewrite -divgS ?sub1G // cards1 divn1. Qed.
 
+Lemma indexMg : forall G A, #|G * A : G| = #|A : G|.
+Proof.
+move=> G A; congr #|(_ : {set _})|; apply/eqP; rewrite eqEsubset.
+rewrite andbC imsetS ?mulG_subr //.
+by apply/subsetP=> Gx; case/imsetP=> x GAx ->; rewrite rcosetE mem_rcosets.
+Qed.
+
 Lemma LaGrangeMl : forall G H, (#|G| * #|H : G|)%N = #|G * H|.
 Proof.
 move=> G H; symmetry; rewrite mulnC -sum_nat_const /= -sum1_card.
@@ -2007,6 +2033,9 @@ move=> G H; case/primeP=> _; move/(_ _ (cardSg (subsetIl G H))).
 rewrite (sameP setIidPl eqP) eqEcard subsetIl -ltnNge ltn_neqAle -trivg_card1.
 by case/predU1P=> ->.
 Qed.
+
+Lemma prime_meetG : forall G H, prime #|G| -> G :&: H != 1 -> G \subset H.
+Proof. by move=> G H prG; apply: contraR; move/prime_TIg->. Qed.
 
 Lemma coprime_cardMg : forall G H,
   coprime #|G| #|H| -> #|G * H| = (#|G| * #|H|)%N.
@@ -2173,6 +2202,13 @@ Qed.
 Lemma mulgen_idPr : forall A G, reflect (A <*> G = G) (A \subset G).
 Proof. by move=> A G; rewrite mulgenC; exact: mulgen_idPl. Qed.
 
+Lemma mulgen_subP : forall A B G,
+  reflect (A \subset G /\ B \subset G) (A <*> B \subset G).
+Proof. by move=> A B G; rewrite mulgen_subG; exact: andP. Qed.
+
+Lemma mulgen_sub : forall A B C, A <*> B = C -> A \subset C /\ B \subset C.
+Proof. by move=> A B _ <-; exact/mulgen_subP. Qed.
+
 Lemma genDU : forall A B C,
   A \subset C -> <<C :\: A>> = <<B>> -> <<A :|: B>> = <<C>>.
 Proof.
@@ -2197,9 +2233,16 @@ rewrite genS; last by rewrite subUset mulG_subl mulG_subr.
 by rewrite mulgSS ?(sub_gen, subsetUl, subsetUr).
 Qed.
 
-Lemma mulG_subG : forall G H K : {group gT},
+Lemma mulG_subG : forall G H K,
   (G * H \subset K) = (G \subset K) && (H \subset K).
 Proof. by move=> G H K; rewrite -gen_subG genM_mulgen mulgen_subG. Qed.
+
+Lemma mulGsubP : forall K H G,
+  reflect (K \subset G /\ H \subset G) (K * H \subset G).
+Proof. by move=> K H G; rewrite mulG_subG; exact: andP. Qed.
+
+Lemma mulG_sub : forall K H A, K * H = A -> K \subset A /\ H \subset A.
+Proof. by move=> K H _ <-; rewrite mulG_subl mulG_subr. Qed.
 
 Lemma trivMg : forall G H, (G * H == 1) = (G :==: 1) && (H :==: 1).
 Proof.
@@ -2290,6 +2333,8 @@ End GeneratedGroup.
 Implicit Arguments gen_prodgP [gT A x].
 Implicit Arguments mulgen_idPl [gT G A].
 Implicit Arguments mulgen_idPr [gT A G].
+Implicit Arguments mulGsubP [gT K H G].
+Implicit Arguments mulgen_subP [gT A B G].
 
 Section Cycles.
 

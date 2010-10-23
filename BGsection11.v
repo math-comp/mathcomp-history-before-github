@@ -116,23 +116,22 @@ have{qQ1} [q_pr q_dv_Q1 _] := pgroup_pdiv qQ1 ntQ1.
 have{sQ1Ms q_dv_Q1} sMq: q \in \sigma(M).
   exact: pgroupP (pgroupS sQ1Ms (pcore_pgroup _ _)) q q_pr q_dv_Q1.
 have{sylQ1} sylQ1: q.-Sylow(M) Q1.
-  by rewrite (pSylow_Hall_Sylow (Hall_M_Msigma maxM)).
+  by rewrite (subHall_Sylow (Hall_M_Msigma maxM)).
 have sQ1M := pHall_sub sylQ1.
 have{sylQ2} sylQ2g': q.-Sylow(M) (Q2 :^ g^-1).
-  by rewrite (pSylow_Hall_Sylow (Hall_M_Msigma _)) // -(pHallJ2 _ _ _ g) actKV.
+  by rewrite (subHall_Sylow (Hall_M_Msigma _)) // -(pHallJ2 _ _ _ g) actKV.
 have sylQ2: q.-Sylow(G) Q2.
   by rewrite -(pHallJ _ _ (in_setT g^-1)) (Sylow_Sylow_sigma maxM).
-suffices not_Q1_CA_Q2: gval Q2 \notin Q1 :^: 'O_(\pi(#|A|))^'('C(A)).
+suffices not_Q1_CA_Q2: gval Q2 \notin Q1 :^: 'O_\pi(A)^'('C(A)).
   have ncA: normed_constrained A.
     have ntA: A :!=: 1 by rewrite -cardG_gt1 oA (ltn_exp2l 0).
     exact: plength_1_normed_constrained ntA EpmA (mFT_proper_plength1 _).
-  have q'A: q \notin \pi(#|A|).
-    rewrite oA !(inE, primes_exp, primes_prime) //.
-    by apply: contraNneq (sM'p) => <-.
+  have q'A: q \notin \pi(A).
+    by apply: contraL sMq; move/(pnatPpi pA); move/eqnP->.
   have maxnAq: forall Q, q.-Sylow(G) Q -> A \subset 'N(Q) -> Q \in |/|*(A; q).
     move=> Q sylQ; case/(max_normed_exists (pHall_pgroup sylQ)) => R maxR sQR.
     have [qR _] := mem_max_normed maxR.
-    by rewrite -(group_inj (Hall_maximal sylQ (subsetT R) qR sQR)).
+    by rewrite -(group_inj (sub_pHall sylQ qR sQR (subsetT R))).
   have maxQ1 := maxnAq Q1 (Sylow_Sylow_sigma maxM sMq sylQ1) nQ1A.
   have maxQ2 := maxnAq Q2 sylQ2 nQ2A.
   have transCAQ := normed_constrained_meet_trans ncA q'A _ _ maxQ1 maxQ2.
@@ -168,8 +167,9 @@ suffices: #|H|`_q == 1%N by rewrite p_part_eq1 pi_pdiv cardG_gt1 ntH.
 have nsMsM: Ms <| M := pcore_normal _ _; have [_ nMsM] := andP nsMsM.
 have sHMs: H \subset Ms := subsetIl _ _.
 have sHMsg: H \subset Ms :^ g.
-  rewrite -sub_conjgV (subset_normal_Hall _ (Hall_M_Msigma _)) // /psubgroup.
-  by rewrite sub_conjgV subsetIr pgroupJ (pgroupS sHMs) ?pcore_pgroup.
+  rewrite -sub_conjgV (sub_Hall_pcore (Hall_M_Msigma _)) //.
+    by rewrite pgroupJ (pgroupS sHMs) ?pcore_pgroup.
+  by rewrite sub_conjgV subsetIr.
 have nMsA := subset_trans sAM nMsM.
 have nHA: A \subset 'N(H) by rewrite normsI // normsG.
 have nMsgA: A \subset 'N(Ms :^ g) by rewrite normJ (subset_trans sAMg) ?conjSg.
@@ -184,7 +184,7 @@ have supQ0 := sol_coprime_Sylow_subset _ _ solA (subset_trans sQ0H _) qQ0 nQ0A.
 have [Q1 [sylQ1 nQ1A sQ01]] := supQ0 _ nMsA coMsA sHMs.
 have [Q2 [sylQ2 nQ2A sQ02]] := supQ0 _ nMsgA coMsgA sHMsg.
 have tiQ12: Q1 :&: Q2 = 1.
-  by have [? _] := exceptional_TIsigmaJ notMg sAMg sylQ1 nQ1A sylQ2 nQ2A.
+  by have [-> _] := exceptional_TIsigmaJ notMg sAMg sylQ1 nQ1A sylQ2 nQ2A.
 by rewrite -(card_Hall sylQ0) -trivg_card1 -subG1 -tiQ12 subsetI sQ01.
 Qed.
 
@@ -227,8 +227,8 @@ have nregA: forall Q, gval Q != 1 -> A \subset 'N(Q) -> coprime #|Q| #|A| ->
 - move=> Q ntQ nQA coQA; apply/exists_inP; apply: contraR ntQ.
   rewrite negb_exists_in -subG1; move/forall_inP=> regA.
   have ncycA: ~~ cyclic A by rewrite (abelem_cyclic abelA) oA pfactorK.
-  rewrite (coprime_abelian_gen_cent1 _ _ nQA) //.
-  rewrite bigprodGE gen_subG; apply/bigcupsP=> x; case/setD1P=> ntx Ax.
+  rewrite -(coprime_abelian_gen_cent1 _ _ nQA) // gen_subG.
+  apply/bigcupsP=> x; case/setD1P=> ntx Ax.
   apply/negPn; rewrite /= -cent_cycle subG1 regA // p1ElemE // !inE.
   by rewrite cycle_subG Ax /= -orderE (abelem_order_p abelA).
 suffices cPP: abelian P.
@@ -330,7 +330,7 @@ have [_ _ dimA] := pnElemP Ep2A.
 have rE: 'r(E) = 2.
   apply/eqP; rewrite eqn_leq -{2}dimA -rank_abelem ?rankS // andbT leqNgt.
   have [q q_pr ->]:= rank_witness E; apply/negP=> rqEgt2.
-  have piEq: q \in \pi(#|E|) by rewrite -p_rank_gt0 -(subnKC rqEgt2).
+  have piEq: q \in \pi(E) by rewrite -p_rank_gt0 -(subnKC rqEgt2).
   case/negP: (pnatPpi s'E piEq); rewrite /= alpha_sub_sigma // !inE.
   by rewrite (leq_trans rqEgt2) ?p_rankS.
 have rFEle2: 'r('F(E)) <= 2 by rewrite -rE rankS ?Fitting_sub.
@@ -384,8 +384,8 @@ have ntQ: Q :!=: 1 by apply: contraNneq not_cQA => ->; exact: cents1.
 have q_dv_K: q %| #|K| := dvdn_trans (pdiv_dvd _) (dvdn_indexg _ _).
 have sM'q: q \in (\sigma(M))^' := pgroupP (pgroupS sKE s'E) q q_pr q_dv_K.
 have{q_dv_K} tau_q: q \in tau := pgroupP tauK q q_pr q_dv_K.
-have sylQ_E: q.-Sylow(E) Q := pSylow_Hall_Sylow hallK tau_q sylQ.
-have sylQ_M: q.-Sylow(M) Q := pSylow_Hall_Sylow hallE sM'q sylQ_E.
+have sylQ_E: q.-Sylow(E) Q := subHall_Sylow hallK tau_q sylQ.
+have sylQ_M: q.-Sylow(M) Q := subHall_Sylow hallE sM'q sylQ_E.
 have q'p: p != q by rewrite neq_ltn [p < q]tau_q.
 have [regQ | nregQ] := eqVneq 'C_Q(A) 1; last first.
   have ncycQ: ~~ cyclic Q.

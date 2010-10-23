@@ -212,6 +212,12 @@ Canonical Structure Finite.countType.
 
 Canonical Structure finEnum_unlock := Unlockable Finite.EnumDef.enumDef.
 
+(* Workaround for the silly syntactic uniformity restriction on coercions;    *)
+(* this avoids a cross-dependency between finset.v and prime.v for the        *)
+(* definition of the \pi(A) notation.                                         *)
+Definition fin_pred_sort (T : finType) (pT : predType T) := pred_sort pT.
+Identity Coercion pred_sort_of_fin : fin_pred_sort >-> pred_sort.
+
 Definition enum_mem T (mA : mem_pred _) := filter mA (Finite.enum T).
 Notation enum A := (enum_mem (mem A)).
 Definition pick (T : finType) (P : pred T) := ohead (enum P).

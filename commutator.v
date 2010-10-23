@@ -354,10 +354,17 @@ Proof. by move=> n G H sGH; elim: n => // n IHn; exact: commgSS. Qed.
 Lemma quotient_der : forall n G H, G \subset 'N(H) -> G^`(n) / H = (G / H)^`(n).
 Proof. by move=> n G H; exact: morphim_der. Qed.
 
+Lemma derJ : forall G n x, (G :^ x)^`(n) = G^`(n) :^ x.
+Proof. by move=> G n x; elim: n => //= n IHn; rewrite !dergSn IHn -conjsRg. Qed.
+
+Lemma derG1P : forall G, reflect (G^`(1) = 1) (abelian G).
+Proof. by move=> G; exact: commG1P. Qed.
+
 End Commutator_properties.
 
-Lemma der_cont : forall n, cont (derived_at n).
+Implicit Arguments derG1P [gT G].
 
+Lemma der_cont : forall n, cont (derived_at n).
 Proof. by move=> n aT rT G f; rewrite morphim_der. Qed.
 
 Canonical Structure bgFunc_der n :=

@@ -585,6 +585,12 @@ Lemma nil_meet_Z : forall G H,
   nilpotent G -> H <| G -> H :!=: 1 -> H :&: 'Z(G) != 1.
 Proof. by move=> G H nilG nsHG; apply: contra; move/eqP; move/nil_TI_Z->. Qed.
 
+Lemma center_nil_eq1 : forall G, nilpotent G -> ('Z(G) == 1) = (G :==: 1).
+Proof.
+move=> G nilG; apply/eqP/eqP=> [Z1 | ->]; last exact: center1.
+by rewrite (nil_TI_Z nilG) // (setIidPr (center_sub G)).
+Qed.
+
 End QuotientNil.
 
 Section Solvable.
@@ -601,6 +607,8 @@ Qed.
 
 Lemma abelian_sol : forall G, abelian G -> solvable G.
 Proof. move=> G; move/abelian_nil; exact: nilpotent_sol. Qed.
+
+Lemma solvable1 : solvable [1 gT]. Proof. exact: abelian_sol (abelian1 gT). Qed.
 
 Lemma solvableS : forall G H, H \subset G -> solvable G -> solvable H.
 Proof.

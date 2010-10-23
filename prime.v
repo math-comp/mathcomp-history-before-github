@@ -2,30 +2,41 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq path fintype.
 Require Import div bigop.
 
-(*****************************************************************************)
-(* This file contains the definitions of:                                    *)
-(*   prime p        <=> p is a prime                                         *)
-(*   primes m       == the sorted list of prime divisors of m > 1, else [::] *)
-(*   pfactor        == the type of prime factors, syntax (p ^ e)%pfactor     *)
-(*   prime_decomp m == the list of prime factors of m > 1, sorted by primes  *)
-(*   logn p m       == the e such that (p ^ e) \in prime_decomp n, else 0    *)
-(*   pdiv n         == the smallest prime divisor of n > 1, else 1           *)
-(*   max_pdiv n     == the largest prime divisor of n > 1, else 1            *)
-(*   divisors m     == the sorted list of divisors of m > 0, else [::]       *)
-(*   phi n          == the Euler totient (#|{i < n | i and n coprime}|)      *)
-(*   nat_pred       == simpl_pred nat (i.e., explicit nat predicates)        *)
-(*     - We allow the coercion nat >-> nat_pred, interpreting p as pred1 p   *)
-(*     - We define a predType for nat_pred to allow p \in pi                 *)
-(*     - We don't have nat_pred >-> pred, which would imply nat >-> Funclass *)
-(*   pi^'           == the complement of pi (p \in pi^' <=> p \notin pi)     *)
-(*   \pi(n)         == primes of n, i.e., p \in \pi(n) <=> p \in primes n    *)
-(*   pi.-nat n      <=> n > 0 and all prime divisors of n > 0 are \in pi     *)
-(*   n`_pi          == the pi-part of n                                      *)
-(*                  := \prod_(0 <= p < n.+1 | p \in pi) p ^ logn p n         *)
-(*     - The nat >-> nat_pred coercion lets us write p.-nat n and n`_p       *)
-(* In addition to the lemmas relevant to these definitions, this file also   *)
-(* contains the dvdn_sum lemma, so that bigop.v doesn't depend on div.v.     *)
-(*****************************************************************************)
+(******************************************************************************)
+(* This file contains the definitions of:                                     *)
+(*        prime p <=> p is a prime.                                           *)
+(*       primes m == the sorted list of prime divisors of m > 1, else [::].   *)
+(*        pfactor == the type of prime factors, syntax (p ^ e)%pfactor.       *)
+(* prime_decomp m == the list of prime factors of m > 1, sorted by primes.    *)
+(*       logn p m == the e such that (p ^ e) \in prime_decomp n, else 0.      *)
+(*         pdiv n == the smallest prime divisor of n > 1, else 1.             *)
+(*     max_pdiv n == the largest prime divisor of n > 1, else 1.              *)
+(*     divisors m == the sorted list of divisors of m > 0, else [::].         *)
+(*          phi n == the Euler totient (#|{i < n | i and n coprime}|).        *)
+(*       nat_pred == the type of explicit collective nat predicates.          *)
+(*                := simpl_pred nat.                                          *)
+(*    -> We allow the coercion nat >-> nat_pred, interpreting p as pred1 p.   *)
+(*    -> We define a predType for nat_pred, enabling the notation p \in pi.   *)
+(*    -> We don't have nat_pred >-> pred, which would imply nat >-> Funclass. *)
+(*           pi^' == the complement of pi : nat_pred, i.e., the nat_pred such *)
+(*                   that (p \in pi^') = (p \notin pi).                       *)
+(*         \pi(n) == the set of prime divisors of n, i.e., the nat_pred such  *)
+(*                   that (p \in \pi(n)) = (p \in primes n).                  *)
+(*         \pi(A) == the set of primes of #|A|, with A a collective predicate *)
+(*                   over a finite Type.                                      *)
+(*     -> The notation \pi(A) is implemented with a collapsible Coercion, so  *)
+(*        the type of A must coerce to finpred_class (e.g., by coercing to    *)
+(*        {set T}), not merely implement the predType interface (as seq T     *)
+(*        does).                                                              *)
+(*     -> The expression #|A| will only appear in \pi(A) after simplification *)
+(*        collapses the coercion stack, so it is advisable to do so early on. *)
+(*     pi.-nat n <=> n > 0 and all prime divisors of n are in pi.             *)
+(*          n`_pi == the pi-part of n -- the largest pi.-nat divisor of n.    *)
+(*               := \prod_(0 <= p < n.+1 | p \in pi) p ^ logn p n.            *)
+(*     -> The nat >-> nat_pred coercion lets us write p.-nat n and n`_p.      *)
+(* In addition to the lemmas relevant to these definitions, this file also    *)
+(* contains the dvdn_sum lemma, so that bigop.v doesn't depend on div.v.      *)
+(******************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -133,9 +144,20 @@ Definition primes n := unzip1 (prime_decomp n).
 Definition prime p := if prime_decomp p is [:: (_ , 1)] then true else false.
 
 Definition nat_pred := simpl_pred nat.
-Definition pi_of n : nat_pred := [pred p \in primes n].
 
-Notation "\pi ( n )" := (pi_of n) (at level 2, format "\pi ( n )") : nat_scope.
+Definition pi_unwrapped_arg := nat.
+Definition pi_wrapped_arg := wrapped nat.
+Coercion unwrap_pi_arg (wa : pi_wrapped_arg) : pi_unwrapped_arg := unwrap wa.
+Coercion pi_arg_of_nat (n : nat) := Wrap n : pi_wrapped_arg.
+Coercion pi_arg_of_fin_pred T pT (A : @fin_pred_sort T pT) : pi_wrapped_arg :=
+  Wrap #|A|.
+
+Definition pi_of (n : pi_unwrapped_arg) : nat_pred := [pred p \in primes n].
+
+Notation "\pi ( n )" := (pi_of n)
+  (at level 2, format "\pi ( n )") : nat_scope.
+Notation "\p 'i' ( A )" := \pi(#|A|)
+  (at level 2, format "\p 'i' ( A )") : nat_scope.
 
 Definition pdiv n := head 1 (primes n).
 
@@ -960,24 +982,24 @@ Qed.
 
 Section PiNat.
 
-Implicit Types p n : nat.
-Implicit Type pi : nat_pred.
+Implicit Types p n m : nat.
+Implicit Type pi rho : nat_pred.
 
-Lemma sub_in_pnat : forall pi1 pi2 n,
-  {in \pi(n), {subset pi1 <= pi2}} -> pi1.-nat n -> pi2.-nat n.
+Lemma sub_in_pnat : forall pi rho n,
+  {in \pi(n), {subset pi <= rho}} -> pi.-nat n -> rho.-nat n.
 Proof.
-rewrite /pnat => pi1 pi2 n subpi; case/andP=> -> pi_n.
+rewrite /pnat => pi rho n subpi; case/andP=> -> pi_n.
 apply/allP=> p pr_p; apply: subpi => //; exact: (allP pi_n).
 Qed.
 
-Lemma eq_in_pnat : forall pi1 pi2 n,
-  {in \pi(n), pi1 =i pi2} -> pi1.-nat n = pi2.-nat n.
+Lemma eq_in_pnat : forall pi rho n,
+  {in \pi(n), pi =i rho} -> pi.-nat n = rho.-nat n.
 Proof.
-by move=> pi1 pi2 n eqpi; apply/idP/idP; apply: sub_in_pnat => p; move/eqpi->.
+by move=> pi rho n eqpi; apply/idP/idP; apply: sub_in_pnat => p; move/eqpi->.
 Qed.
 
-Lemma eq_pnat : forall pi1 pi2 n, pi1 =i pi2 -> pi1.-nat n = pi2.-nat n.
-Proof. by move=> pi1 pi2 n eqpi; apply: eq_in_pnat => p _. Qed.
+Lemma eq_pnat : forall pi rho n, pi =i rho -> pi.-nat n = rho.-nat n.
+Proof. by move=> pi rho n eqpi; apply: eq_in_pnat => p _. Qed.
 
 Lemma pnatNK : forall pi n, pi^'^'.-nat n = pi.-nat n.
 Proof. move=> pi n; exact: eq_pnat (negnK pi). Qed.
@@ -1023,6 +1045,19 @@ Qed.
 Lemma pnat_pi : forall n, n > 0 -> \pi(n).-nat n.
 Proof. rewrite /pnat => n ->; exact/allP. Qed.
 
+Lemma pi_of_dvd : forall m n, m %| n -> n > 0 -> {subset \pi(m) <= \pi(n)}.
+Proof.
+move=> m n m_dv_n n_gt0 p; rewrite !mem_primes n_gt0; case/and3P=> -> _ p_dv_m.
+exact: dvdn_trans p_dv_m m_dv_n.
+Qed.
+
+Lemma pi_of_muln : forall m n,
+  m > 0 -> n > 0 -> \pi(m * n) =i [predU \pi(m) & \pi(n)].
+Proof. move=> m n m_gt0 n_gt0 p; exact: primes_mul. Qed.
+
+Lemma pi_of_partn : forall pi n, n > 0 -> \pi(n`_pi) =i [predI \pi(n) & pi].
+Proof. by move=> pi n n_gt0 p; rewrite /pi_of primes_part mem_filter andbC. Qed.
+
 Lemma pi_of_exp : forall p n, n > 0 -> \pi(p ^ n) = \pi(p).
 Proof. by move=> p n n_gt0; rewrite /pi_of primes_exp. Qed.
 
@@ -1055,6 +1090,16 @@ Proof.
 move=> pi m n; case/andP=> m_gt0 pi_m; case/andP=> n_gt0 pi'_n.
 rewrite coprime_has_primes //; apply/hasPn=> p; move/(allP pi'_n).
 apply: contra; exact: allP.
+Qed.
+
+Lemma p'nat_coprime : forall pi m n, pi^'.-nat m -> pi.-nat n -> coprime m n.
+Proof. by move=> pi m n pi'm pi_n; rewrite (pnat_coprime pi'm) ?pnatNK. Qed.
+
+Lemma sub_pnat_coprime : forall pi rho m n,
+  {subset rho <= pi^'} -> pi.-nat m -> rho.-nat n -> coprime m n.
+Proof.
+move=> pi rho m n pi'rho pi_m; move/(sub_in_pnat (in1W pi'rho)).
+exact: pnat_coprime.
 Qed.
 
 Lemma coprime_partC : forall pi m n, coprime m`_pi n`_pi^'.
@@ -1101,22 +1146,31 @@ move=> pi p n p_n pi_p; have [n_gt0 _] := andP p_n.
 by apply/pnatP=> // q q_pr; move/(pnatP _ n_gt0 p_n _ q_pr); move/eqnP->.
 Qed.
 
-Lemma p_natP : forall p n : nat, p.-nat n -> {k | n = p ^ k}.
+Lemma p_natP : forall p n, p.-nat n -> {k | n = p ^ k}.
 Proof. by move=> p n p_n; exists (logn p n); rewrite -p_part part_pnat_id. Qed.
 
-Lemma partn_part : forall pi1 pi2 n,
-  {subset pi2 <= pi1} -> n`_pi1`_pi2 = n`_pi2.
+Lemma pi'_p'nat : forall pi p n, pi^'.-nat n -> p \in pi -> p^'.-nat n.
 Proof.
-move=> pi1 pi2 n pi21.
-case: (posnP n) => [->|n_gt0]; first by rewrite !partn0 partn1.
-rewrite -{2}(partnC pi1 n_gt0) partn_mul //.
-suff: pi2^'.-nat n`_pi1^' by move/part_p'nat->; rewrite muln1.
-apply: sub_in_pnat (part_pnat _ _) => q _; apply: contra; exact: pi21.
+move=> pi p n pi'n pi_p; apply: sub_in_pnat pi'n => q _.
+by apply: contraNneq => ->.
+Qed.
+ 
+Lemma pi_p'nat : forall pi p n, pi.-nat n -> p \in pi^' -> p^'.-nat n.
+Proof. by move=> pi p n pi_n; apply: pi'_p'nat; rewrite pnatNK. Qed.
+ 
+Lemma partn_part : forall pi rho n,
+  {subset pi <= rho} -> n`_rho`_pi = n`_pi.
+Proof.
+move=> pi rho n pi_sub_rho.
+case: (posnP n) => [-> | n_gt0]; first by rewrite !partn0 partn1.
+rewrite -{2}(partnC rho n_gt0) partn_mul //.
+suff: pi^'.-nat n`_rho^' by move/part_p'nat->; rewrite muln1.
+apply: sub_in_pnat (part_pnat _ _) => q _; apply: contra; exact: pi_sub_rho.
 Qed.
 
-Lemma partnI : forall pi1 pi2 n, n`_[predI pi1 & pi2] = n`_pi1`_pi2.
+Lemma partnI : forall pi rho n, n`_[predI pi & rho] = n`_pi`_rho.
 Proof.
-move=> pi1 pi2 n; rewrite -(@partnC [predI pi1 & pi2] _`_pi2) //.
+move=> pi rho n; rewrite -(@partnC [predI pi & rho] _`_rho) //.
 symmetry; rewrite 2?partn_part; try by move=> p; case/andP.
 rewrite mulnC part_p'nat ?mul1n // pnatNK pnatI part_pnat andbT.
 exact: pnat_dvd (dvdn_part _ _) (part_pnat _ _).

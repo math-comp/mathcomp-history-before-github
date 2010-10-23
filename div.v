@@ -508,10 +508,22 @@ Lemma gcdn_addr : forall m n, gcdn m (n + m) = gcdn m n.
 Proof. by move=> m n; rewrite addnC gcdn_addl. Qed.
 
 Lemma gcdn_mull : forall n m, gcdn n (m * n) = n.
-Proof. by move=> n m; rewrite gcdnE modn_mull gcd0n; case defn:n=> /=. Qed.
+Proof. by case=> [|n] m; rewrite gcdnE modn_mull gcd0n. Qed.
 
 Lemma gcdn_mulr : forall n m, gcdn n (n * m) = n.
 Proof. by move=> n m; rewrite mulnC gcdn_mull. Qed.
+
+Lemma dvdn_gcd_idl : forall m n, m %| n -> gcdn m n = m.
+Proof. by move=> m n; case/dvdnP=> q ->; rewrite gcdn_mull. Qed.
+
+Lemma dvdn_gcd_idr : forall m n, n %| m -> gcdn m n = n.
+Proof. move=> m n; rewrite gcdnC; exact: dvdn_gcd_idl. Qed.
+
+Lemma gcdn_exp : forall e m n, gcdn (e ^ m) (e ^ n) = e ^ minn m n.
+Proof.
+rewrite /minn => e m n; case: leqP; [rewrite gcdnC | move/ltnW];
+ by move/(dvdn_exp2l e); exact: dvdn_gcd_idl.
+Qed.
 
 (* Extended gcd, which computes Bezout coefficients. *)
 
@@ -691,6 +703,24 @@ Proof.
 case=> [|d1] [|d2] m; try by case: m => [|m]; rewrite ?lcmn0 ?andbF.
 rewrite -(@dvdn_pmul2r (gcdn d1.+1 d2.+1)) ?gcdn_gt0 // muln_lcm_gcd.
 by rewrite muln_gcdr dvdn_gcd {1}mulnC andbC !dvdn_pmul2r.
+Qed.
+
+Lemma lcmn_mull : forall m n, lcmn m (m * n) = m * n.
+Proof. by case=> // m n; rewrite /lcmn gcdn_mulr mulKn. Qed.
+
+Lemma lcmn_mulr : forall m n, lcmn n (m * n) = m * n.
+Proof. by move=> m n; rewrite mulnC lcmn_mull. Qed.
+
+Lemma dvdn_lcm_idr : forall m n, m %| n -> lcmn m n = n.
+Proof. by move=> m n; case/dvdnP=> q ->; rewrite lcmn_mulr. Qed.
+
+Lemma dvdn_lcm_idl : forall m n, n %| m -> lcmn m n = m.
+Proof. move=> m n; rewrite lcmnC; exact: dvdn_lcm_idr. Qed.
+
+Lemma lcmn_exp : forall e m n, lcmn (e ^ m) (e ^ n) = e ^ maxn m n.
+Proof.
+rewrite /maxn => e m n; case: leqP; [rewrite lcmnC | move/ltnW];
+ by move/(dvdn_exp2l e); exact: dvdn_lcm_idr.
 Qed.
 
 (* Coprime factors *)

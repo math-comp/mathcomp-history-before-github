@@ -314,7 +314,7 @@ rewrite -defH [H](setIidPl _) ?dimA3 // in dimZ2.
 by rewrite centsC -defH subIset // -abelianE cAA.
 Qed.
 
-(* B & G, Proposition 4.8 (a). *)
+(* B & G, Proposition 4.8(a). *)
 Lemma pgroup_rank_le2_exponentp : forall gT (R : {group gT}) p,
   p.-group R -> rank R <= 2 -> exponent R %| p -> logn p #|R| <= 3.
 Proof.
@@ -334,9 +334,9 @@ rewrite -(LaGrange sAR) logn_mul ?cardG_gt0 //.
 by apply: (leq_trans (leq_add cardA cardRA)).
 Qed.
 
-(* B & G, Proposition 4.8 (b). *)
+(* B & G, Proposition 4.8(b). *)
 Lemma pgroup_rank_le2_Ohm1 : forall gT (R : {group gT}) p,
-  p.-groupR -> rank R <= 2 -> p > 3 -> exponent 'Ohm_1(R) %| p.
+  p.-group R -> rank R <= 2 -> p > 3 -> exponent 'Ohm_1(R) %| p.
 Proof.
 move=> gT R p pR rankR pgt3.
 case Req1 : (R == 1%G); first by rewrite (eqP Req1) Ohm1 exponent1 dvd1n.
@@ -1568,17 +1568,15 @@ move=> gT R A p pR oddR sAAut solA rR oddA.
 wlog ntR: / R :!=: 1.
   case: eqP sAAut => [->|ntR _]; last by apply.
   by rewrite Aut1; move/trivgP=> ->; rewrite derg1 commG1 pgroup1.
-have [p_pr _ [r cR]] := pgroup_pdiv pR ntR.
-case oddp: (odd p); last first.
-  by move: oddp oddR; rewrite cR odd_exp orbC; move=>->.
-case: (critical_odd _ pR)=> // H [cHR sHRZ] ncH exH pCAu.
+have [p_pr _ _] := pgroup_pdiv pR ntR.
+case: (critical_odd pR oddR)=> // H [cHR sHRZ] ncH exH pCAu.
 have pCAH : p.-group('C_A(H | [Aut R])) := pgroupS (subsetIr _ _) pCAu.
 have pH := pgroupS (char_sub cHR) pR.
 have rH : 'r(H) <= 2.
   by rewrite (leq_trans _ rR) // !(@rank_pgroup _ p) // p_rankS ?char_sub.
 have ntH : H :!=: 1.
   by case: eqP (exponent1 gT) exH (prime_gt1 p_pr) (ltnn p) => // -> -> <-.
-have cH : #|H| <= p^3.
+have cH : #|H| <= p ^ 3.
   have := pgroup_rank_le2_exponentp pH rH; rewrite exH dvdnn.
   have [_ _ [s ->]] := pgroup_pdiv pH ntH.
   by rewrite pfactorK // leq_exp2l ?prime_gt1 //; apply.
@@ -1715,20 +1713,20 @@ move=> gT G p solG oddG rG q pr_q qd.
 wlog trivK : gT G p solG oddG rG q pr_q qd / 'O_p^'(G) = 1.
   move/(_ _ (G / 'O_p^'(G))%G p ); rewrite quotient_sol // quotient_odd //.
   rewrite trivg_pcore_quotient -(isog_card (quotient1_isog _)); apply=> //=.
-  case: (Sylow_exists p G) => X SylX.
+  have [X sylX] := Sylow_exists p G; have [sXG pX _] := and3P sylX.
   have nKX : X \subset 'N('O_p^'(G)).
-    by rewrite (subset_trans (pHall_sub SylX)) // normal_norm ?pcore_normal.
-  move/(quotient_pHall nKX) : (SylX) => /= SylXK.
-  rewrite (p_rank_Sylow SylXK) /= -(isog_p_rank (quotient_isog nKX _)) //.
-    exact: leq_trans (p_rankS _ (pHall_sub SylX)) rG.
-  exact: coprime_TIg (pnat_coprime (pHall_pgroup SylX) (pcore_pgroup _ _)).  
+    by rewrite (subset_trans sXG) // normal_norm ?pcore_normal.
+  have sylXK := quotient_pHall nKX sylX.
+  rewrite (p_rank_Sylow sylXK) /= -(isog_p_rank (quotient_isog nKX _)) //.
+    exact: leq_trans (p_rankS p sXG) rG.
+  exact: coprime_TIg (pnat_coprime pX (pcore_pgroup _ _)).  
 set R := 'O_p(G); set C := 'C_G(R); have pR : p.-group R by exact: pcore_pgroup.
 have sCR : C \subset R by rewrite /C /R -(Fitting_eq_pcore _) ?cent_sub_Fitting.
 have pC : p.-group C := pgroupS sCR pR; have oddR := oddSg (pcore_sub p _) oddG.
 have rR : 'r(R) <= 2.
   by rewrite (rank_pgroup pR) (leq_trans (p_rankS _ (pcore_sub _ _)) rG).
 move: (dvdn_trans qd (dvdn_quotient _ _)); case/Cauchy=> //= a aG oa.
-case: (eqVneq p q) => [-> //| npq]; move:(npq); rewrite eq_sym=>nqp.
+case: (eqVneq p q) => [-> //| npq]; move: (npq); rewrite eq_sym => nqp.
 have ?: a \in 'N(R) :\: 'C(R).
   rewrite inE [a \in 'N(_)](subsetP _ _ aG) ?char_norm ?pcore_char ?andbT //.
   apply: contra nqp => aCR; have aR : a \in R by rewrite (subsetP sCR) ?inE ?aG.
@@ -1822,13 +1820,11 @@ Lemma rank2_pdiv_psubg_pcore : forall gT (G A: {group gT}) p,
 Proof.
 move=> gT G A p solG oddG rG; case/andP=> sAG' p'A.
 have sG'G := der_sub 1 G; have solG' := solvableS sG'G solG.
-case: (Hall_superset solG' sAG' p'A) => H HH sAH; rewrite (subset_trans sAH _) //. 
+case: (Hall_superset solG' sAG' p'A) => H HH sAH; rewrite (subset_trans sAH) //.
 case: (rank2_pdiv_compl_der_abelian_p'group _ _ rG) => // compl _ _.
 case: (Hall_trans solG' HH compl) => x xG' ->.
 by rewrite /= (normP _) // -/p (subsetP _ _ xG') ?char_norm ?pcore_char.
 Qed.
-
-Require Import BGsection3.
 
 (* This is B & G, Corollary 4.19 *)
 Lemma rank2_cent_chief : forall gT p (G Gs U V : {group gT}),
@@ -1961,8 +1957,7 @@ have nVU : U \subset 'N(V) by rewrite (subset_trans sUGs).
 have sURV : U \subset V * R.
   have pSyl_RV : p.-Sylow(Gs / V) (R / V).
     by rewrite quotient_pHall // ?(subset_trans (pcore_sub _ _)).
-  rewrite -quotientSK //.
-  rewrite (subset_normal_Hall _ pSyl_RV) /psubgroup ?pUV ?quotientS //=.
+  rewrite -quotientSK // (sub_normal_Hall pSyl_RV) ?quotientS //=.
   by rewrite quotient_normal // pcore_normal.
 set C := 'C_G(U / V | 'Q).
 have pGCGR : p.-group((G / 'C_G(R))^`(1)).

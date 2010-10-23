@@ -412,6 +412,9 @@ Proof. by move=> C; rewrite /quotient morphpreK ?sub_im_coset. Qed.
 Lemma trivg_quotient : H / H = 1.
 Proof. by rewrite -{3}ker_coset /quotient morphim_ker. Qed.
 
+Lemma quotientS1 :  forall G, G \subset H -> G / H = 1.
+Proof. by move=> G sGH; apply/trivgP; rewrite -trivg_quotient quotientS. Qed.
+
 Lemma sub_cosetpre : forall M, H \subset coset H @*^-1 M.
 Proof. rewrite -{3}ker_coset; exact: ker_sub_pre. Qed.
 

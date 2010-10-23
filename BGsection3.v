@@ -268,7 +268,7 @@ without loss{m IHm leGm} [ffulG cycZ]: / rker rG = 1 /\ cyclic 'Z(G).
   have sNK: N \subset K.
     have [pi hallK]: exists pi, pi.-Hall(G) K.
       by apply: HallP; rewrite -(coprime_sdprod_Hall defG).
-    rewrite (subset_normal_Hall _ hallK) // /psubgroup sNG /=.
+    rewrite (sub_normal_Hall hallK) //=.
     apply: pnat_dvd (pHall_pgroup hallK).
     rewrite -(dvdn_pmul2r (prime_gt0 p_pr)) -!TI_cardMg // 1?setIC // defKR.
     by rewrite -norm_mulgenEr // cardSg // mulgen_subG sNG.
@@ -750,7 +750,7 @@ have [trKP | {sylV sVU nVU}ntKP] := eqVneq [~: K, P] 1.
     rewrite !inE; apply: andb_id2l => Hx.
     by rewrite (mem_normal_Hall sylVH) /normal ?sVH.
   suffices sPV: P \subset V by rewrite -(mulgen_idPl sPV).
-  suffices sPU: P \subset U by rewrite (subset_normal_Hall _ sylV); exact/andP.
+  suffices sPU: P \subset U by rewrite (sub_normal_Hall sylV) //; exact/andP.
   have cUPb: P / V \subset 'C_(H / V)(U / V).
     rewrite subsetI morphimS // -mulVK quotient_mulgr quotient_cents2r //.
     by rewrite commGC trKP sub1G.
@@ -871,8 +871,7 @@ have{IHsub nVH} IHsub: forall X : {group gT},
   have{ltG0G IHsub} p1_HR0: p.-length_1 [~: H0, R0].
     by apply: IHsub ltG0G => //=; rewrite mul_subG ?normG.
   have{p1_HR0} sPOpHR0: P \subset 'O_p([~: H0, R0]).
-    rewrite (@subset_normal_Hall _ p _ [~: H0, R0]) ?pcore_normal //.
-      by rewrite /psubgroup pP -defP commSg ?mulgen_subr.
+    rewrite sub_Hall_pcore //; last by rewrite -defP commSg ?mulgen_subr.
     rewrite /pHall pcore_sub pcore_pgroup /= -(pseries_pop2 _ Op'HR0).
     rewrite -card_quotient ?normal_norm ?pseries_normal // -/(pgroup _ _).
     by rewrite -{1}((_ :=P: _) p1_HR0) (quotient_pseries [::_;_]) pcore_pgroup.
@@ -892,8 +891,8 @@ have oVK: #|V <*> K| = (#|V| * #|K|)%N by rewrite -mulVK coprime_cardMg.
 have tiVK_P: V <*> K :&: P = 1.
   have sylV: p.-Sylow(V <*> K) V.
     by rewrite /pHall pV -divgS mulgen_subl //= oVK mulKn.
-  apply/trivgP; rewrite -tiVP subsetI subsetIr (subset_normal_Hall _ sylV) /=.
-    by rewrite -andbA (pgroupS (subsetIr _ P) pP) subsetIl.
+  apply/trivgP; rewrite -tiVP subsetI subsetIr.
+  rewrite (sub_normal_Hall sylV) ?subsetIl ?(pgroupS (subsetIr _ P)) //=.
   by rewrite /normal mulgen_subl mulgen_subG normG.
 have{mulVK oVK} oH: (#|H| = #|V| * #|K| * #|P|)%N.
   by rewrite -defH mulVK -oVK (TI_cardMg tiVK_P).
@@ -977,8 +976,7 @@ case cKK: (abelian K); last first.
     by case/IHsub: sLK cKK => // [|-> -> //]; exact: (char_norm_trans charL).
   have eK: exponent K %| q.
     have oddK: odd #|K| := oddSg sKG oddG.
-    have [|Q [charQ _ _ eQ qCKQ]] := critical_odd _ qK ntK; last rewrite -eQ.
-      by apply: contraLR oddK; rewrite -!dvdn2; move/dvdn_trans; exact.
+    have [Q [charQ _ _ eQ qCKQ]] := critical_odd qK oddK ntK; rewrite -eQ.
     have sQK: Q \subset K := char_sub charQ.
     have [<- // | cQP] := IHsub Q (char_norm_trans charQ nKPR) sQK.
     case/negP: ntKP; rewrite (sameP eqP commG1P) centsC.
@@ -1108,8 +1106,8 @@ have nSK: forall Vi, Vi \in S -> K \subset 'N(Vi).
 have defV: <<\bigcup_(Vi \in S) Vi>> = V.
   apply/eqP; rewrite eqEsubset gen_subG.
   apply/andP; split; first by apply/bigcupsP; exact: sSV.
-  rewrite (coprime_abelian_gen_cent cKK nVK) ?(pnat_coprime pV) // bigprodGE.
-  rewrite gen_subG; apply/bigcupsP=> Kj /=; case/and3P=> cycKbj sKjK nKjK.
+  rewrite -(coprime_abelian_gen_cent cKK nVK) ?(pnat_coprime pV) // gen_subG.
+  apply/bigcupsP=> Kj /=; case/and3P=> cycKbj sKjK nKjK.
   have [xb defKbj] := cyclicP _ cycKbj.
   have Kxb: xb \in K / Kj by rewrite defKbj cycle_id.
   set Vj := 'C_V(Kj); case: (eqsVneq Vj 1) => [-> | ntVj]; first exact: sub1G.
@@ -1394,7 +1392,7 @@ Qed.
 Theorem odd_sdprod_primact_commg_sub_Fitting : forall gT (G K R : {group gT}),
     K ><| R = G -> odd #|G| -> solvable G ->
   (*1*) coprime #|K| #|R| ->
-  (*2*) {in R^#, forall x, 'C_K[x] = 'C_K(R)} ->
+  (*2*) semiprime R K ->
   (*3*) 'C_('F(K))(R) = 1 ->
   [~: K, R] \subset 'F(K).
 Proof.
@@ -1575,15 +1573,14 @@ rewrite (odd_pgroup_rank1_cyclic pR oddR) leqNgt; apply: contra ntH.
 case/p_rank_geP=> E; rewrite 2!inE -andbA; case/and3P=> sER abelE dimE2.
 have ncycE: ~~ cyclic E by rewrite (abelem_cyclic abelE) (eqP dimE2).
 have nHE := subset_trans sER nHR; have coHE := coprimegS sER coHR.
-rewrite -subG1 (coprime_abelian_gen_cent1 _ _ nHE) ?(abelem_abelian abelE) //.
-rewrite big1 // => x; case/setD1P=> nt_x Ex; apply: val_inj => /=.
+rewrite -subG1 -(coprime_abelian_gen_cent1 _ _ nHE) ?(abelem_abelian abelE) //.
+rewrite -bigprodGE big1 // => x; case/setD1P=> nt_x Ex; apply: val_inj => /=.
 by apply: (Frobenius_reg_ker frobG); rewrite !inE nt_x (subsetP sER).
 Qed.
 
 (* Internal action version or 3.9 (possibly, the only one we should keep). *)
 Theorem odd_regular_pgroup_cyclic : forall gT p (H R : {group gT}),
-    p.-group R -> odd #|R| -> H :!=: 1 -> R \subset 'N(H) ->
-    {in R^#, forall x, 'C_(H)[x] = 1} ->
+    p.-group R -> odd #|R| -> H :!=: 1 -> R \subset 'N(H) -> semiregular R H ->
   cyclic R.
 Proof.
 move=> gT p H R pR oddR ntH nHR regR.
@@ -1595,8 +1592,7 @@ Qed.
 (* Another variant of the internal action, which avoids Frobenius groups     *)
 (* altogether.                                                               *)
 Theorem simple_odd_regular_pgroup_cyclic : forall gT p (H R : {group gT}),
-    p.-group R -> odd #|R| -> H :!=: 1 -> R \subset 'N(H) ->
-    {in R^#, forall x, 'C_(H)[x] = 1} ->
+    p.-group R -> odd #|R| -> H :!=: 1 -> R \subset 'N(H) -> semiregular R H ->
   cyclic R.
 Proof.
 move=> gT p H R pR oddR ntH nHR regR.
@@ -1605,8 +1601,8 @@ case/p_rank_geP=> E; rewrite 2!inE -andbA; case/and3P=> sER abelE dimE2.
 have ncycE: ~~ cyclic E by rewrite (abelem_cyclic abelE) (eqP dimE2).
 have nHE := subset_trans sER nHR.
 have coHE := coprimegS sER (regular_norm_coprime nHR regR).
-rewrite -subG1 (coprime_abelian_gen_cent1 _ _ nHE) ?(abelem_abelian abelE) //.
-rewrite big1 // => x; case/setD1P=> nt_x Ex; apply: val_inj => /=.
+rewrite -subG1 -(coprime_abelian_gen_cent1 _ _ nHE) ?(abelem_abelian abelE) //.
+rewrite -bigprodGE big1 // => x; case/setD1P=> nt_x Ex; apply: val_inj => /=.
 by rewrite regR // !inE nt_x (subsetP sER).
 Qed.
 
@@ -1644,7 +1640,7 @@ have Gmn: forall A, m A + n A > 0 -> A \subset G.
   case R_A: (A \in _) => // _; case/imsetP: R_A => x Kx ->{A}.
   by rewrite conj_subG ?(subsetP sKG).
 have partG: {in G, forall a,
-              \sum_(A | a \in gval A) m A = \sum_(A | a \in gval A) n A}%N.
+  \sum_(A | a \in gval A) m A = \sum_(A | a \in gval A) n A}%N.
 - move=> a Ga; case: (eqVneq a 1) => [-> | nt_a].
     rewrite (bigD1 1%G) ?inE ?eqxx //= (bigD1 G) ?inE ?group1 //=.
     rewrite (negbTE ntG) !eqxx big1 ?addn1 => [|A]; last first.
@@ -1708,7 +1704,7 @@ Theorem Frobenius_primact : forall gT (G K R M : {group gT}),
     [Frobenius G = K ><| R] -> solvable G ->
     G \subset 'N(M) -> solvable M -> M :!=: 1 ->
   (*1*) coprime #|M| #|G| ->
-  (*2*) {in R^#, forall x, 'C_M[x] = 'C_M(R)} ->
+  (*2*) semiprime R M ->
   (*3*) 'C_M(K) = 1 ->
   [/\ prime #|R|,
       #|M| = (#|'C_M(R)| ^ #|R|)%N

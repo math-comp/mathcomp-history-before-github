@@ -1991,8 +1991,7 @@ have [f [injf sfGsA fG]]: exists f : {morphism Gs >-> {perm gT}},
   by apply: set1_inj; rewrite -!morphim_set1 ?mem_quotient // im_f ?sub1set.
 have cGsGs: abelian Gs by rewrite -(injm_abelian injf) // (abelianS sfGsA).
 have p_fGs: p.-group (f @* Gs) by rewrite morphim_pgroup.
-have sfGsAp: f @* Gs \subset 'O_p(A).
-  by rewrite (subset_normal_Hall _ sylAp) ?pcore_normal //; exact/andP.
+have sfGsAp: f @* Gs \subset 'O_p(A) by rewrite (sub_Hall_pcore sylAp).
 have [a [fGa oa au n_gt01 cycGs]]: exists a,
   [/\ a \in f @* Gs, #[a] = p, a u = u ^+ (p ^ n).+1, (p == 2) + 1 <= n
     & cyclic Gs \/ p = 2 /\ (exists2 c, c \in f @* Gs & c u = u^-1)].

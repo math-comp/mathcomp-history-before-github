@@ -38,13 +38,13 @@ Require Import pgroup gseries nilpotent sylow.
 (*           'E*_p(G) == the set of maximal elementary abelian p-subgroups    *)
 (*                       of G.                                                *)
 (*                    := [set E | [max E | E \in 'E_p(G)]]                    *)
-(*   'E^n(G)          == the set of elementary abelian subgroups of G that    *)
+(*            'E^n(G) == the set of elementary abelian subgroups of G that    *)
 (*                       have gerank n (i.e., p-rank n for some prime p).     *)
 (*                    := \bigcup_(0 <= p < #|G|.+1) 'E_p^n(G)                 *)
-(*   'r_p(G)          == the p-rank of G: the maximal rank of an elementary   *)
+(*            'r_p(G) == the p-rank of G: the maximal rank of an elementary   *)
 (*                       subgroup of G.                                       *)
 (*                    := \max_(E \in 'E_p(G)) logn p #|E|.                    *)
-(*   'r(G)            == the rank of G.                                       *)
+(*              'r(G) == the rank of G.                                       *)
 (*                    := \max_(0 <= p < #|G|.+1) 'm_p(G).                     *)
 (* Note that 'r(G) coincides with 'r_p(G) if G is a p-group, and with 'm(G)   *)
 (* if G is abelian, but is much more useful than 'm(G) in the proof of the    *)
@@ -193,10 +193,11 @@ Notation "''Mho^' n ( G )" := (Mho_group n G) : subgroup_scope.
 Section ExponentAbelem.
 
 Variable gT : finGroupType.
-Implicit Type p : nat.
+Implicit Types p n : nat.
+Implicit Type pi : nat_pred.
 Implicit Type x : gT.
 Implicit Types A B C : {set gT}.
-Implicit Types G H E X Y : {group gT}.
+Implicit Types E G H K P X Y : {group gT}.
 
 Lemma LdivP : forall A n x, reflect (x \in A /\ x ^+ n = 1) (x \in 'Ldiv_n(A)).
 Proof.
@@ -270,6 +271,71 @@ have inGp := mem_normal_Hall (nilpotent_pcore_Hall _ nilG) (pcore_normal _ _).
 by red; rewrite -(centsP cGpGp') // inGp ?p_elt_constt ?groupX.
 Qed.
 
+Lemma exponent_cycle : forall x, exponent <[x]> = #[x].
+Proof.
+by move=> x; apply/eqP; rewrite eqn_dvd exponent_dvdn dvdn_exponent ?cycle_id.
+Qed.
+
+Lemma exponent_cyclic : forall X, cyclic X -> exponent X = #|X|.
+Proof. by move=> X; case/cyclicP=> x ->; exact: exponent_cycle. Qed.
+
+Lemma primes_exponent : forall G, primes (exponent G) = primes (#|G|).
+Proof.
+move=> G; apply/eq_primes => p; rewrite !mem_primes exponent_gt0 cardG_gt0 /=.
+by apply: andb_id2l => p_pr; apply: negb_inj; rewrite -!p'natE // pnat_exponent.
+Qed.
+
+Lemma pi_of_exponent : forall G, \pi(exponent G) = \pi(G).
+Proof. by move=> G; rewrite /pi_of primes_exponent. Qed.
+
+Lemma partn_exponentS : forall pi H G,
+  H \subset G -> #|G|`_pi %| #|H| -> (exponent H)`_pi = (exponent G)`_pi.
+Proof.
+move=> pi H G sHG Gpi_dvd_H; apply/eqP; rewrite eqn_dvd.
+rewrite partn_dvd ?exponentS ?exponent_gt0 //=; apply/dvdn_partP=> // p.
+rewrite pi_of_partn ?exponent_gt0 //; case/andP=> _ /= pi_p.
+have sppi: {subset (p : nat_pred) <= pi} by move=> q; move/eqnP->.
+have [P sylP] := Sylow_exists p H; have sPH := pHall_sub sylP.
+have{sylP} sylP: p.-Sylow(G) P.
+  rewrite pHallE (subset_trans sPH) //= (card_Hall sylP) eqn_dvd andbC.
+  by rewrite -{1}(partn_part _ sppi) !partn_dvd ?cardSg ?cardG_gt0.
+rewrite partn_part ?partn_biglcm //.
+apply: (@big_prop _ (dvdn^~ _)) => [|m n|x Gx]; first exact: dvd1n.
+  by rewrite dvdn_lcm => ->.
+rewrite -order_constt; have p_y := p_elt_constt p x; set y := x.`_p in p_y *.
+have sYG: <[y]> \subset G by rewrite cycle_subG groupX.
+have [z _ Pyz] := Sylow_Jsub sylP sYG p_y.
+rewrite (bigD1 (y ^ z))  ?(subsetP sPH) -?cycle_subG ?cycleJ //=.
+by rewrite orderJ part_pnat_id ?dvdn_lcml // (pi_pnat p_y).
+Qed.
+
+Lemma exponent_Hall : forall pi G H,
+  pi.-Hall(G) H -> exponent H = (exponent G)`_pi.
+Proof.
+move=> pi G H hallH; have [sHG piH _] := and3P hallH.
+rewrite -(partn_exponentS sHG) -?(card_Hall hallH) ?part_pnat_id //.
+by apply: pnat_dvd piH; exact: exponent_dvdn.
+Qed.
+
+Lemma cprod_exponent : forall A B G,
+  A \* B = G -> lcmn (exponent A) (exponent B) = (exponent G).
+Proof.
+move=> A B G; case/cprodP=> [[K H -> ->{A B}] <- cKH].
+apply/eqP; rewrite eqn_dvd dvdn_lcm !exponentS ?mulG_subl ?mulG_subr //=.
+apply/exponentP=> xy; case/imset2P=> x y Kx Hy ->.
+rewrite -[1]mulg1 expMgn; last by red; rewrite -(centsP cKH).
+congr (_ * _); apply/eqP; rewrite -order_dvdn.
+  by rewrite (dvdn_trans (dvdn_exponent Kx)) ?dvdn_lcml.
+by rewrite (dvdn_trans (dvdn_exponent Hy)) ?dvdn_lcmr.
+Qed.
+
+Lemma dprod_exponent : forall A B G,
+  A \x B = G -> lcmn (exponent A) (exponent B) = (exponent G).
+Proof.
+move=> A B G; case/dprodP=> [[K H -> ->{A B}] defG cKH _].
+by apply: cprod_exponent; rewrite cprodE.
+Qed.
+
 Lemma sub_LdivT : forall A n, (A \subset 'Ldiv_n()) = (exponent A %| n).
 Proof.
 by move=> A n; apply/subsetP/exponentP=> eAn x; move/eAn; rewrite inE; move/eqP.
@@ -332,6 +398,13 @@ Proof.
 move=> p G x; case/and3P=> pG _ eG Gx; rewrite -cycle_eq1 => ntX.
 have{ntX} [p_pr p_x _] := pgroup_pdiv (mem_p_elt pG Gx) ntX.
 by apply/eqP; rewrite eqn_dvd p_x andbT order_dvdn (exponentP eG).
+Qed.
+
+Lemma cyclic_abelem_prime : forall p X,
+  p.-abelem X -> cyclic X -> X :!=: 1 -> #|X| = p.
+Proof.
+move=> p X abelX cycX; case/cyclicP: cycX => x -> in abelX *.
+by rewrite cycle_eq1; exact: abelem_order_p abelX (cycle_id x).
 Qed.
 
 Lemma cycle_abelem : forall p x,
@@ -539,7 +612,7 @@ apply/and3P; split; last 1 first.
   apply/imsetP; exists <[x]>%G; rewrite ?p1ElemE // !inE cycle_subG Ex /=.
   by rewrite -orderE (abelem_order_p abelE).
 apply/trivIsetP=> X' Y'; case/imsetP=> X EpX ->; case/imsetP=> Y EpY ->.
-apply/predU1P; rewrite (inj_eq groupD1_inj) disjointEsetI -setDIl setDeq0 subG1.
+apply/predU1P; rewrite (inj_eq groupD1_inj) -setI_eq0 -setDIl setD_eq0 subG1.
 by rewrite (sameP eqP (TIp1ElemP EpX EpY)) orbN.
 Qed.
 
@@ -691,7 +764,7 @@ have [D] := p_rank_witness p G; case/pnElemP=> sDG abelD <-.
 by case/abelem_pnElem=> // E; exists E; exact: (subsetP (pnElemS _ _ sDG)).
 Qed.
 
-Lemma p_rank_gt0 : forall p H, ('r_p(H) > 0) = (p \in \pi(#|H|)).
+Lemma p_rank_gt0 : forall p H, ('r_p(H) > 0) = (p \in \pi(H)).
 Proof.
 move=> p H; rewrite mem_primes cardG_gt0 /=.
 apply/p_rank_geP/andP=> [[E] | [p_pr]].
@@ -702,7 +775,7 @@ by rewrite Hx (pfactorK 1) ?abelemE // cycle_abelian -ox exponent_dvdn.
 Qed.
 
 Lemma p_rank1 : forall p, 'r_p([1 gT]) = 0.
-Proof. by move=> p; apply/eqP; rewrite eqn0Ngt p_rank_gt0 cards1. Qed.
+Proof. by move=> p; apply/eqP; rewrite eqn0Ngt p_rank_gt0 /= cards1. Qed.
 
 Lemma logn_le_p_rank : forall p A E, E \in 'E_p(A) -> logn p #|E| <= 'r_p(A).
 Proof. by move=> p A E EpA_E; rewrite (bigmax_sup E). Qed.
@@ -790,9 +863,20 @@ case: (posnP 'r_q(G)) => [-> // |]; rewrite p_rank_gt0 mem_primes.
 by case/and3P=> q_pr _ qG; rewrite (eqnP (pgroupP pG q q_pr qG)).
 Qed.
 
+Lemma rank_Sylow : forall p G P, p.-Sylow(G) P -> 'r(P) = 'r_p(G).
+Proof.
+move=> p G P sylP; have pP := pHall_pgroup sylP.
+by rewrite (p_rank_Sylow sylP) -(rank_pgroup pP).
+Qed.
+
 Lemma rank_abelem : forall p G, p.-abelem G -> 'r(G) = logn p #|G|.
 Proof.
 by move=> p G abelG; rewrite (rank_pgroup (abelem_pgroup abelG)) p_rank_abelem.
+Qed.
+
+Lemma nt_pnElem : forall p n E A, E \in 'E_p^n(A) -> n > 0 -> E :!=: 1.
+Proof.
+by move=> p n E A; case/pnElemP=> _; move/rank_abelem=> <- <-; rewrite rank_gt0.
 Qed.
 
 Lemma rankJ : forall A x, 'r(A :^ x) = 'r(A).
@@ -1322,6 +1406,15 @@ suffices x1: x \in [1] by rewrite -ox (set1P x1) order1 in pr_p.
 by rewrite -{}tiHG1 inE Hx Ohm1Eprime mem_gen // inE Gx ox.
 Qed.
 
+Lemma Ohm1_eq1 : forall G, ('Ohm_1(G) == 1) = (G :==: 1).
+Proof.
+move=> G; apply/idP/idP; last by move/eqP=> ->; rewrite -subG1 Ohm_sub.
+by move/eqP=> G1_1; rewrite -(setIid G) TI_Ohm1 // G1_1 setIg1.
+Qed.
+
+Lemma meet_Ohm1 : forall G H, G :&: H != 1 -> G :&: 'Ohm_1(H) != 1.
+Proof. by move=> G H; apply: contraNneq; move/TI_Ohm1->. Qed.
+
 Lemma Ohm1_cent_max : forall G E p,
   E \in 'E*_p(G) -> p.-group G -> 'Ohm_1('C_G(E)) = E.
 Proof.
@@ -1365,7 +1458,7 @@ have K1: K :=: 1 by apply/trivgP; rewrite -tiGH subsetI sKG.
 by rewrite K1 cards1 in prK.
 Qed.
 
-Lemma piOhm1 : forall G, \pi(#|'Ohm_1(G)|) = \pi(#|G|).
+Lemma piOhm1 : forall G, \pi('Ohm_1(G)) = \pi(G).
 Proof.
 move=> G; apply/eq_piP => p; apply/idP/idP; first exact: (piSg (Ohm_sub 1 G)).
 rewrite !mem_primes !cardG_gt0; case/andP=> p_pr; case/Cauchy=> // x Gx oxp.
@@ -1409,6 +1502,10 @@ rewrite (p_rank_Sylow (nilpotent_pcore_Hall p nilG)) -p_rank_Ohm1.
 rewrite p_rank_abelem // Ohm1_abelem ?pcore_pgroup //.
 exact: abelianS (pcore_sub _ _) cGG.
 Qed.
+
+Lemma rank_abelian_pgroup : forall p G,
+  p.-group G -> abelian G -> 'r(G) = logn p #|'Ohm_1(G)|.
+Proof. by move=> p G pG cGG; rewrite (rank_pgroup pG) p_rank_abelian. Qed.
 
 End OhmProps.
 

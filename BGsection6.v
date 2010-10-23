@@ -127,7 +127,7 @@ Lemma prod_norm_coprime_subs_derI : forall G K U H,
     K * U = G -> K <| G -> H \subset U -> coprime #|H| #|K| ->
   H :&: G^`(1) = H :&: U^`(1).
 Proof.
-move=> G K U H defG nKG sHU copHK; set pi := \pi(#|H|).
+move=> G K U H defG nKG sHU copHK; set pi := \pi(H); simpl in pi.
 have comKU : commute K U by apply/comm_group_setP; rewrite defG groupP.
 set G' :=  G^`(1); set U' := U^`(1); case/andP: nKG=> sKG sGnK.
 have sUG : U \subset G by rewrite -defG mulg_subr.
@@ -185,7 +185,7 @@ Lemma sol_prod_norm_coprime_subs_centralise_conjg : forall G K U H g,
   exists2 c, c \in 'C_K(H) & exists2 u, u \in U & g = c * u.
 Proof.
 move=> G K U H g solG defG; case/andP=> sKG sGnK sHU copHK; rewrite -defG.
-case/mulsgP=> k u kK uU defg sHgU; pose pi := \pi(#|H|).
+case/mulsgP=> k u kK uU defg sHgU; pose pi := \pi(H); simpl in pi.
 have comKU : commute K U by apply/comm_group_setP; rewrite defG groupP.
 have sUG : U \subset G by rewrite -defG mulg_subr.
 have comKH : commute H K. 

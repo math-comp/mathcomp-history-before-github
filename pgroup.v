@@ -113,7 +113,7 @@ Notation "''Syl_' p ( G )" := (Syl p G)
 Section PgroupProps.
 
 Variable gT : finGroupType.
-Implicit Type pi : nat_pred.
+Implicit Types pi rho : nat_pred.
 Implicit Type p : nat.
 Implicit Types x y z : gT.
 Implicit Types A B C D : {set gT}.
@@ -121,9 +121,8 @@ Implicit Types G H K P Q R : {group gT}.
 
 Lemma trivgVpdiv : forall G, G :=: 1 \/ (exists2 p, prime p & p %| #|G|).
 Proof.
-move=> G; case: (leqP #|G| 1) => [leG1|lt1G]; [left | right].
-  exact: card_le1_trivg.
-by exists (pdiv #|G|); rewrite ?pdiv_dvd ?pdiv_prime.
+move=> G; have [leG1|lt1G] := leqP #|G| 1; first by left; exact: card_le1_trivg.
+by right; exists (pdiv #|G|); rewrite ?pdiv_dvd ?pdiv_prime.
 Qed.
 
 Lemma prime_subgroupVti : forall G H, prime #|G| -> G \subset H \/ H :&: G = 1.
@@ -134,15 +133,45 @@ suffices <-: p = #|G| by rewrite dvdn_leq ?cardG_gt0.
 by apply/eqP; rewrite -dvdn_prime2 // -(LaGrangeI G H) setIC dvdn_mulr.
 Qed.
 
+Lemma pgroupE : forall pi A, pi.-group A = pi.-nat #|A|. Proof. by []. Qed.
+
+Lemma sub_pgroup : forall pi rho A,
+  {subset pi <= rho} -> pi.-group A -> rho.-group A.
+Proof. by move=> pi rho A pi_sub_rho; exact: sub_in_pnat (in1W pi_sub_rho). Qed.
+
+Lemma eq_pgroup : forall pi rho A, pi =i rho -> pi.-group A = rho.-group A.
+Proof. move=> pi rho A; exact: eq_pnat. Qed.
+
+Lemma eq_p'group : forall pi rho A, pi =i rho -> pi^'.-group A = rho^'.-group A.
+Proof. by move=> pi rho A; move/eq_negn; exact: eq_pnat. Qed.
+
+Lemma pgroupNK : forall pi A, pi^'^'.-group A = pi.-group A.
+Proof. by move=> pi A; exact: pnatNK. Qed.
+
+Lemma pi_pgroup : forall p pi A, p.-group A -> p \in pi -> pi.-group A.
+Proof. by move=> p pi A; exact: pi_pnat. Qed.
+
+Lemma pi_p'group : forall p pi A, pi.-group A -> p \in pi^' -> p^'.-group A.
+Proof. by move=> p pi A; exact: pi_p'nat. Qed.
+
+Lemma pi'_p'group : forall p pi A, pi^'.-group A -> p \in pi -> p^'.-group A.
+Proof. by move=> p pi A; exact: pi'_p'nat. Qed.
+
+Lemma p'groupEpi : forall p G, p^'.-group G = (p \notin \pi(G)).
+Proof. by move=> p G; exact: p'natEpi (cardG_gt0 G). Qed.
+
+Lemma pgroup_pi : forall G, \pi(G).-group G.
+Proof. move=> G /=; exact: pnat_pi. Qed.
+
+Lemma partG_eq1 : forall pi G, (#|G|`_pi == 1%N) = pi^'.-group G.
+Proof. by move=> pi G; exact: partn_eq1 (cardG_gt0 G). Qed.
+
 Lemma pgroupP : forall pi G,
   reflect (forall p, prime p -> p %| #|G| -> p \in pi) (pi.-group G).
 Proof. move=> pi G; exact: pnatP. Qed.
 Implicit Arguments pgroupP [pi G].
 
-Lemma eq_pgroup : forall pi1 pi2 A, pi1 =i pi2 -> pi1.-group A = pi2.-group A.
-Proof. move=> pi1 pi2 A; exact: eq_pnat. Qed.
-
-Lemma pgroup1 : forall pi, pi.-group (1 : {set gT}).
+Lemma pgroup1 : forall pi, pi.-group [1 gT].
 Proof. by move=> pi; rewrite /pgroup cards1. Qed.
 
 Lemma pgroupS : forall pi G H, H \subset G -> pi.-group G -> pi.-group H.
@@ -250,7 +279,27 @@ move=> pi G K R defG pi'K piR; apply/andP; rewrite andbC; apply/andP.
 by apply: coprime_mulpG_Hall => //; rewrite -(comm_group_setP _) defG ?groupP.
 Qed.
 
-Lemma pSylow_Hall_Sylow : forall pi p G H P,
+Lemma eq_in_pHall : forall pi rho G H,
+  {in \pi(G), pi =i rho} -> pi.-Hall(G) H = rho.-Hall(G) H.
+Proof.
+move=> pi pho G H eq_pi_rho; apply: andb_id2l => sHG.
+congr (_ && _); apply: eq_in_pnat => p piHp. 
+  apply: eq_pi_rho; exact: (piSg sHG).
+by congr (~~ _); apply: eq_pi_rho; apply: (pi_of_dvd (dvdn_indexg G H)).
+Qed.
+
+Lemma eq_pHall : forall pi rho G H, pi =i rho -> pi.-Hall(G) H = rho.-Hall(G) H.
+Proof. by move=> pi pho G H eq_pi_rho; exact: eq_in_pHall (in1W eq_pi_rho). Qed.
+
+Lemma subHall_Hall : forall pi rho G H K,
+  rho.-Hall(G) H -> {subset pi <= rho} -> pi.-Hall(H) K -> pi.-Hall(G) K.
+Proof.
+move=> pi rho G H K hallH pi_sub_rho hallK.
+rewrite pHallE (subset_trans (pHall_sub hallK) (pHall_sub hallH)) /=.
+by rewrite (card_Hall hallK) (card_Hall hallH) partn_part.
+Qed.
+
+Lemma subHall_Sylow : forall pi p G H P,
   pi.-Hall(G) H -> p \in pi -> p.-Sylow(H) P -> p.-Sylow(G) P.
 Proof.
 move=> pi p G H P hallH pi_p sylP; have [sHG piH _] := and3P hallH.
@@ -264,14 +313,14 @@ move=> pi A B; case/and3P=> sBA piB pi'B.
 by rewrite /Hall sBA (pnat_coprime piB).
 Qed.
 
-Lemma Hall_pi : forall G H, Hall G H -> \pi(#|H|).-Hall(G) H.
+Lemma Hall_pi : forall G H, Hall G H -> \pi(H).-Hall(G) H.
 Proof.
-move=> G H; case/andP=> sHG coHG.
+move=> G H; case/andP=> sHG coHG /=.
 by rewrite /pHall sHG /pgroup pnat_pi -?coprime_pi'.
 Qed.
 
 Lemma HallP : forall G H, Hall G H -> exists pi, pi.-Hall(G) H.
-Proof. move=> G H HallH; exists \pi(#|H|); exact: Hall_pi. Qed.
+Proof. move=> G H HallH; exists \pi(H); exact: Hall_pi. Qed.
 
 Lemma sdprod_Hall : forall G K H, K ><| H = G -> Hall G K = Hall G H.
 Proof.
@@ -284,6 +333,37 @@ Lemma coprime_sdprod_Hall : forall G K H,
 Proof.
 move=> G K H; case/sdprod_context; case/andP=> sKG _ _ defG _ tiKH.
 by rewrite /Hall sKG -divgS // -defG TI_cardMg ?mulKn.
+Qed.
+
+Lemma compl_pHall : forall pi K H G,
+  pi.-Hall(G) K -> (H \in [complements to K in G]) = pi^'.-Hall(G) H.
+Proof.
+move=> pi K H G hallK; apply/complP/idP=> [[tiKH mulKH] | hallH].
+  have [_] := andP hallK; rewrite /pHall pnatNK -{3}(invGid G) -mulKH mulG_subr.
+  by rewrite invMG !indexMg -indexgI andbC -indexgI setIC tiKH !indexg1.
+have [[sKG piK _] [sHG pi'H _]] := (and3P hallK, and3P hallH).
+have tiKH: K :&: H = 1 := coprime_TIg (pnat_coprime piK pi'H).
+split=> //; apply/eqP; rewrite eqEcard mul_subG //= TI_cardMg //.
+by rewrite (card_Hall hallK) (card_Hall hallH) partnC.
+Qed.
+
+Lemma compl_p'Hall : forall pi K H G,
+  pi^'.-Hall(G) K -> (H \in [complements to K in G]) = pi.-Hall(G) H.
+Proof. by move=> pi K H G; move/compl_pHall->; exact: eq_pHall (negnK pi). Qed.
+
+Lemma normal_pHall_sdprodP : forall pi K H G,
+  pi.-Hall(G) K -> K <| G -> reflect (K ><| H = G) (pi^'.-Hall(G) H).
+Proof.
+move=> pi K H G hallGpi; case/andP=> _ nKG; rewrite -(compl_pHall _ hallGpi).
+apply: (iffP complP) => [[tiKH mulKH] | ]; last by case/sdprodP.
+by rewrite sdprodE // (subset_trans _ nKG) // -mulKH mulG_subr.
+Qed.
+
+Lemma normal_p'Hall_sdprodP : forall pi K H G,
+  pi^'.-Hall(G) K -> K <| G -> reflect (K ><| H = G) (pi.-Hall(G) H).
+Proof.
+move=> pi K H G; rewrite -(eq_pHall G H (negnK pi)).
+exact: normal_pHall_sdprodP.
 Qed.
 
 Lemma pHallJ2 : forall pi G H x,
@@ -338,13 +418,6 @@ Proof. by rewrite (@pgroup_p 2) ?pgroup1. Qed.
 Lemma Sylow1 : forall G, Sylow G 1.
 Proof. by move=> G; rewrite /Sylow p_group1 Hall1. Qed.
 
-Lemma eq_pHall : forall pi1 pi2 A B,
-  pi1 =i pi2 -> pi1.-Hall(A) B = pi2.-Hall(A) B.
-Proof.
-move=> pi1 pi2 A B eq_pi; congr [&& _, _ & _]; apply: eq_pnat => // q.
-congr (~~ _); exact: eq_pi.
-Qed.
-
 Lemma SylowP : forall G P,
   reflect (exists2 p, prime p & p.-Sylow(G) P) (Sylow G P).
 Proof.
@@ -356,7 +429,7 @@ case/andP; case/p_groupP=> p p_pr; case/p_natP=> // [[P1 _ | n oP]].
   apply/pgroupP=> q pr_q qG; apply/eqnP=> def_q.
   have: p %| #|G| + 1 by rewrite addn1 pdiv_dvd.
   by rewrite dvdn_addr -def_q // euclid1.
-move/Hall_pi; rewrite oP pi_of_exp // (eq_pHall _ _ (pi_of_prime _)) //.
+move/Hall_pi; rewrite /= oP pi_of_exp // (eq_pHall _ _ (pi_of_prime _)) //.
 by exists p.
 Qed.
 
@@ -563,17 +636,6 @@ move=> pi H G hallH; apply/maxgroupP; split=> [|K].
 case/andP=> sKG piK sHK; exact: (sub_pHall hallH).
 Qed.
 
-Lemma Hall_maximal : forall pi G H K,
-  pi.-Hall(G) H -> K \subset G -> pi.-group K -> H \subset K -> K :=: H.
-Proof.
-move=> pi G H K hallH sKG piK sHK; apply/eqP.
-suffices: pi.-Hall(G) K.
-  by rewrite eq_sym eqEcard sHK /= (card_Hall hallH); move/card_Hall->.
-rewrite /pHall sKG piK; case/and3P: hallH => _ _; apply: pnat_dvd.
-rewrite -(dvdn_pmul2l (cardG_gt0 K)) LaGrange // -(LaGrange sHK) mulnAC.
-by rewrite LaGrange (subset_trans sHK, dvdn_mulr).
-Qed.
-
 Lemma pHall_id : forall pi H G, pi.-Hall(G) H -> pi.-group G -> H :=: G.
 Proof.
 by move=> pi H G hallH piG; rewrite (sub_pHall hallH piG) ?(pHall_sub hallH).
@@ -614,28 +676,25 @@ Qed.
 (* These lemmas actually hold for maximal pi-groups, but below we'll *)
 (* derive from the Cauchy lemma that a normal max pi-group is Hall.  *)
 
-Lemma subset_normal_Hall : forall pi H G K,
-  pi.-Hall(G) H -> H <| G -> (K \subset H) = pi.-subgroup(G) K.
+Lemma sub_normal_Hall : forall pi G H K,
+  pi.-Hall(G) H -> H <| G -> K \subset G -> (K \subset H) = pi.-group K.
 Proof.
-move=> pi H G K hallH nHG; apply/idP/andP=> [sKH | [sKG piK]].
-  by case/and3P: hallH => sHG piH _; rewrite (pgroupS sKH) ?(subset_trans sKH).
+move=> pi H G K hallH nsHG sKG; apply/idP/idP=> [sKH | piK].
+  by rewrite (pgroupS sKH) ?(pHall_pgroup hallH).
 apply: norm_sub_max_pgroup (Hall_max hallH) piK _ _ => //.
-case/andP: nHG => _; exact: subset_trans.
+exact: subset_trans sKG (normal_norm nsHG).
 Qed.
 
 Lemma mem_normal_Hall : forall pi H G x,
   pi.-Hall(G) H -> H <| G -> x \in G -> (x \in H) = pi.-elt x.
-Proof.
-move=> pi H G x hallH nHG Gx; have:= subset_normal_Hall <[x]> hallH nHG.
-by rewrite /psubgroup !gen_subG !sub1set Gx.
-Qed.
+Proof. by move=> pi H G x; rewrite -!cycle_subG; exact: sub_normal_Hall. Qed.
 
 Lemma uniq_normal_Hall : forall pi H G K,
   pi.-Hall(G) H -> H <| G -> [max K | pi.-subgroup(G) K] -> K :=: H.
 Proof.
-move=> pi H G K hallH nHG; case/maxgroupP.
-rewrite -(subset_normal_Hall _ hallH) /psubgroup // => sKH maxK.
-rewrite (maxK H) //; exact: maxgroupp (Hall_max hallH).
+move=> pi H G K hallH nHG; case/maxgroupP; case/andP=> sKG.
+rewrite -(sub_normal_Hall hallH) // => sKH maxK.
+rewrite (maxK H) //; exact: (maxgroupp (Hall_max hallH)).
 Qed.
 
 End PgroupProps.
@@ -670,7 +729,7 @@ move=> G H K nsHG hallH sKG; apply: normal_max_pgroup_Hall; last first.
 apply/maxgroupP; split=> [|M].
   by rewrite /psubgroup subsetIr (pgroupS (subsetIl _ _) (pHall_pgroup hallH)).
 case/andP=> sMK piM sHK_M; apply/eqP; rewrite eqEsubset sHK_M subsetI sMK.
-by rewrite (subset_normal_Hall _ hallH nsHG) /psubgroup piM (subset_trans sMK).
+by rewrite !andbT (sub_normal_Hall hallH) // (subset_trans sMK).
 Qed.
 
 End NormalHall.
@@ -902,9 +961,21 @@ Qed.
 Lemma normal_Hall_pcore : forall H G, pi.-Hall(G) H -> H <| G -> 'O_pi(G) = H.
 Proof.
 move=> H G hallH nHG; apply/eqP.
-rewrite eqEsubset (subset_normal_Hall _ hallH) //= pcore_psubgroup.
+rewrite eqEsubset (sub_normal_Hall hallH) ?pcore_sub ?pcore_pgroup //=.
 by rewrite pcore_max //= (pHall_pgroup hallH).
 Qed.
+
+Lemma sub_Hall_pcore : forall G K,
+  pi.-Hall(G) 'O_pi(G) -> K \subset G -> (K \subset 'O_pi(G)) = pi.-group K.
+Proof. by move=> G K hallGpi; exact: sub_normal_Hall (pcore_normal G). Qed.
+
+Lemma mem_Hall_pcore : forall G x,
+  pi.-Hall(G) 'O_pi(G) -> x \in G -> (x \in 'O_pi(G)) = pi.-elt x.
+Proof. move=> G x hallGpi; exact: mem_normal_Hall (pcore_normal G). Qed.
+
+Lemma Hall_pcore_sdprodP : forall  H G,
+  pi.-Hall(G) 'O_pi(G) -> reflect ('O_pi(G) ><| H = G) (pi^'.-Hall(G) H).
+Proof. by move=> H G hallGpi; exact: normal_pHall_sdprodP (pcore_normal G). Qed.
 
 Lemma pcoreJ : forall G x, 'O_pi(G :^ x) = 'O_pi(G) :^ x.
 Proof.
@@ -1220,23 +1291,47 @@ Qed.
 
 End MorphPcore.
 
-Section SubPcore.
+Section EqPcore.
 
 Variable gT : finGroupType.
-Implicit Types pi : nat_pred.
-Implicit Type G : {group gT}.
+Implicit Types pi rho : nat_pred.
+Implicit Types G H : {group gT}.
 
-Lemma sub_pcore : forall pi1 pi2 G,
-  {subset pi1 <= pi2} -> 'O_pi1(G) \subset 'O_pi2(G).
+Lemma sub_in_pcore : forall pi rho G,
+  {in \pi(G), {subset pi <= rho}} -> 'O_pi(G) \subset 'O_rho(G).
 Proof.
-move=> pi1 pi2 G sub_pi; rewrite pcore_max ?pcore_normal //.
-apply: sub_in_pnat (pcore_pgroup _ _) => p _; exact: sub_pi.
+move=> pi rho G pi_sub_rho; rewrite pcore_max ?pcore_normal //.
+apply: sub_in_pnat (pcore_pgroup _ _) => p.
+move/(piSg (pcore_sub _ _)); exact: pi_sub_rho.
 Qed.
 
-Lemma eq_pcore : forall pi1 pi2 G, pi1 =i pi2 -> 'O_pi1(G) = 'O_pi2(G).
+Lemma sub_pcore : forall pi rho G,
+  {subset pi <= rho} -> 'O_pi(G) \subset 'O_rho(G).
 Proof.
-move=> pi1 pi2 G eq_pi; apply/eqP; rewrite eqEsubset.
-by rewrite !sub_pcore // => p; rewrite eq_pi.
+by move=> pi rho G pi_sub_rho; exact: sub_in_pcore (in1W pi_sub_rho).
+Qed.
+
+Lemma eq_in_pcore : forall pi rho G,
+  {in \pi(G), pi =i rho} -> 'O_pi(G) = 'O_rho(G).
+Proof.
+move=> pi rho G eq_pi_rho; apply/eqP; rewrite eqEsubset.
+by rewrite !sub_in_pcore // => p; move/eq_pi_rho->.
+Qed.
+
+Lemma eq_pcore : forall pi rho G, pi =i rho -> 'O_pi(G) = 'O_rho(G).
+Proof. by move=> pi rho G eq_pi_rho; exact: eq_in_pcore (in1W eq_pi_rho). Qed.
+
+Lemma pcoreNK : forall pi G, 'O_pi^'^'(G) = 'O_pi(G).
+Proof. by move=> pi G; apply: eq_pcore; exact: negnK. Qed.
+
+Lemma eq_p'core : forall pi rho G, pi =i rho -> 'O_pi^'(G) = 'O_rho^'(G).
+Proof. by move=> pi rho G; move/eq_negn; exact: eq_pcore. Qed.
+
+Lemma Hall_p'core_sdprodP : forall pi H G,
+  pi^'.-Hall(G) 'O_pi^'(G) -> reflect ('O_pi^'(G) ><| H = G) (pi.-Hall(G) H).
+Proof.
+move=> pi H G; rewrite -(eq_pHall G H (negnK pi)).
+exact: Hall_pcore_sdprodP.
 Qed.
 
 Lemma pcoreI : forall pi1 pi2 G, 'O_[predI pi1 & pi2](G) = 'O_pi1('O_pi2(G)).
@@ -1273,5 +1368,4 @@ Proof. move=> *; exact: pnat_coprime (pcore_pgroup _ _) (pcore_pgroup _ _). Qed.
 Lemma TI_pcoreC : forall pi (G H : {group gT}), 'O_pi(G) :&: 'O_pi^'(H) = 1.
 Proof. by move=> pi G H; rewrite coprime_TIg ?coprime_pcoreC. Qed.
 
-End SubPcore.
-
+End EqPcore.

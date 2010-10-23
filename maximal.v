@@ -398,7 +398,7 @@ Lemma Fitting_max : forall G H, H <| G -> nilpotent H -> H \subset 'F(G).
 Proof.
 move=> G H nHG nilH; rewrite -(Sylow_gen H) gen_subG.
 apply/bigcupsP=> P; case/SylowP=> p _ SylP.
-case Gp: (p \in \pi(#|G|)); last first.
+case Gp: (p \in \pi(G)); last first.
   rewrite card1_trivg ?sub1G // (card_Hall SylP).
   rewrite part_p'nat // (pnat_dvd (cardSg (normal_sub nHG))) //.
   by rewrite /pnat cardG_gt0 all_predC has_pred1 Gp.
@@ -439,13 +439,13 @@ by rewrite p_core_Fitting ['O_p^'(_)](trivgP _) ?mulg1 // -p'G1 pcore_Fitting.
 Qed.
 
 Lemma FittingEgen : forall G,
-  'F(G) = <<\bigcup_(p < #|G|.+1 | (p : nat) \in \pi(#|G|)) 'O_p(G)>>.
+  'F(G) = <<\bigcup_(p < #|G|.+1 | (p : nat) \in \pi(G)) 'O_p(G)>>.
 Proof.
 move=> G; apply/eqP; rewrite eqEsubset gen_subG /=.
 rewrite -{1}(bigdprodEgen (erefl 'F(G))) (big_nth 0) big_mkord genS.
   by apply/bigcupsP=> p _; rewrite -p_core_Fitting pcore_sub.
 apply/bigcupsP=> [[i /= lti]] _; set p := nth _ _ i.
-have pi_p: p \in \pi(#|G|) by rewrite mem_nth.
+have pi_p: p \in \pi(G) by rewrite mem_nth.
 have p_dv_G: p %| #|G| by rewrite mem_primes in pi_p; case/and3P: pi_p.
 have lepG: p < #|G|.+1 by rewrite ltnS dvdn_leq.
 by rewrite (bigcup_max (Ordinal lepG)).

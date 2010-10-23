@@ -166,6 +166,9 @@ rewrite -properT => prH ntH; apply: sub_proper_trans (cent_sub H) _.
 exact: mFT_norm_proper.
 Qed.
 
+Lemma mFT_cent1_proper : forall x, x != 1 -> 'C[x] \proper G.
+Proof. by move=> x; rewrite -cycle_eq1 -cent_cycle; exact: mFT_cent_proper. Qed.
+
 Lemma mFT_quo_sol : forall M H, H :!=: 1 -> solvable (M / H).
 Proof.
 move=> M H ntH; case: (eqsVneq H G) => [-> |].
@@ -372,7 +375,7 @@ Local Notation "|/|* ( A ; pi )" := (max_normed_pgroups A pi) : group_scope.
 
 (* This is the statement for B & G, Hypothesis 7.1. *)
 Inductive normed_constrained (A : {set gT}) :=
-  NormedConstrained (pi := \pi(#|A|)) of A != 1 & A \proper G
+  NormedConstrained (pi := \pi(A)) of A != 1 & A \proper G
   & forall X Y : {group gT},
     A \subset X -> X \proper G -> Y \in |/|_X(A; pi^') -> Y \subset 'O_pi^'(X).
 
@@ -435,7 +438,7 @@ Implicit Type p q : nat.
 Section NormedConstrained.
 
 Variables (q : nat) (A : grT).
-Let pi := \pi(#|A|).
+Let pi := Eval simpl in \pi(A).
 Let K := 'O_pi^'('C(A)).
 Let nsKC : K <| 'C(A) := pcore_normal _ _.
 
@@ -574,8 +577,8 @@ case: (eqVneq Q2 1%G) => [trQ2 | ntQ2].
   by case/negP: ntQ1; rewrite trivg_max_norm -trQ2 // inE in maxQ1 *.
 have: existsb C : grT, [&& 'C_Q1(C) != 1, cyclic (B / C) & C <| B].
   apply: contraR ntQ1 => trQ1; have: B \subset 'N(Q1) := subset_trans sBA nQ1A.
-  move/coprime_abelian_gen_cent->; rewrite ?q'B // -val_eqE /=.
-  rewrite -subG1 bigprodGE gen_subG; apply/bigcupsP=> C cocyC; rewrite subG1.
+  rewrite -val_eqE -subG1 /=; move/coprime_abelian_gen_cent <-; rewrite ?q'B //.
+  rewrite gen_subG; apply/bigcupsP=> C cocyC; rewrite subG1.
   by apply: contraR trQ1 => ntCC; apply/existsP; exists C; rewrite ntCC.
 case/existsP=> C; case/and3P=> ntCQ1 cycBC nsCB; have [sCB nCB]:= andP nsCB.
 have{mB3} ncycC: ~~ cyclic C.
@@ -584,9 +587,10 @@ have{mB3} ncycC: ~~ cyclic C.
   by rewrite (abelem_cyclic (abelemS sCB abelB)) -ltnNge.
 have: existsb z, ('C_Q2[z] != 1) && (z \in C^#).
   apply: contraR ntQ2 => trQ2; have:= subset_trans sCB (subset_trans sBA nQ2A).
-  move/coprime_abelian_gen_cent1->; rewrite ?(abelianS sCB) //; last first.
+  rewrite -[_ == _]subG1 /=.
+  move/coprime_abelian_gen_cent1 <-; rewrite ?(abelianS sCB) //; last first.
     by rewrite (coprimegS sCB) ?q'B.
-  rewrite -[_ == _]subG1 bigprodGE gen_subG; apply/bigcupsP=> z Cz.
+  rewrite gen_subG; apply/bigcupsP=> z Cz.
   by apply: contraR trQ2 => ntCz; apply/existsP; exists z; rewrite -subG1 ntCz.
 case/existsP=> z; rewrite !inE; case/and3P=> ntzQ2 ntz Cz.
 have prCz: 'C[z] \proper G by rewrite -cent_cycle mFT_cent_proper ?cycle_eq1.
@@ -622,9 +626,9 @@ have ntRC: 'C_R(A) != 1.
   by rewrite !p_part_gt1 !mem_primes !cardG_gt0 qC; case/and3P=> ->.
 have: existsb z, ('C_Q[z] != 1) && (z \in B^#).
   apply: contraR ntQ => trQ; have:= subset_trans sBA nQA.
-  move/coprime_abelian_gen_cent1-> ; rewrite -1?val_eqE //; last first.
+  rewrite -[_ == _]subG1; move/coprime_abelian_gen_cent1 <- => //; last first.
     by rewrite coprime_sym (coprimeSg sBA) ?coprime_pi' /pgroup ?(pi_pnat qQ).
-  rewrite /= -subG1 bigprodGE gen_subG; apply/bigcupsP=> z Cz; rewrite subG1.
+  rewrite gen_subG; apply/bigcupsP=> z Cz; rewrite subG1.
   by apply: contraR trQ => ntCz; apply/existsP; exists z; rewrite ntCz.
 case/existsP=> z; rewrite 2!inE; case/and3P=> ntzQ ntz Bz.
 have prCz: 'C[z] \proper G by rewrite -cent_cycle mFT_cent_proper ?cycle_eq1.
@@ -647,8 +651,8 @@ Proof.
 move=> P snAP piP trnK; set KP := 'O_pi^'('C(P)).
 have defK: forall B, A \subset B -> 'C_K(B) = 'O_pi^'('C(B)).
   move=> B sAB; apply/eqP; rewrite eqEsubset {1}setIC pcoreS ?centS //.
-  rewrite subsetI pcore_sub (subset_normal_Hall _ hallK) ?pcore_normal //.
-  by rewrite /psubgroup pcore_pgroup (subset_trans (pcore_sub _ _)) ?centS.
+  rewrite subsetI pcore_sub (sub_Hall_pcore hallK) ?pcore_pgroup //.
+  by rewrite (subset_trans (pcore_sub _ _)) ?centS.
 suffices: [transitive KP, on |/|*(P; q) | 'JG] /\ |/|*(P; q) \subset |/|*(A; q).
   have nsKPN: KP <| 'N(P) := char_normal_trans (pcore_char _ _) (cent_normal _).
   case=> trKP smnPA; rewrite (defK _ (subnormal_sub snAP)); split=> // Q maxQ.
@@ -777,9 +781,9 @@ have prA: A \proper G := sub_proper_trans cAA (mFT_cent_proper ntA).
 split=> // X Y sAX prX; case/setIdP=> p'Y nYA.
 have pl1X := pl1subG _ prX; have solX := mFT_sol prX.
 have [p_pr _ [r oApr]] := pgroup_pdiv pA ntA.
-have oddp : odd p by move: (mFT_odd A); rewrite oApr odd_exp.
-have def_pi: \pi(#|A|)^' =i p^'.
-  by move=> q; rewrite !inE oApr primes_exp // primes_prime ?inE.
+have oddp: odd p by move: (mFT_odd A); rewrite oApr odd_exp.
+have def_pi: \pi(A)^' =i p^'.
+  by move=> q; rewrite inE /= oApr pi_of_exp // pi_of_prime.
 have{p'Y} p'Y : p^'.-subgroup(X) Y by rewrite /psubgroup -(eq_pgroup _ def_pi).
 rewrite (eq_pcore _ def_pi) (@sol_plength1_odd_pamxElem_pcore _ _ A) //.
 by rewrite (subsetP (pmaxElemS p (subsetT _))) // setIC 2!inE sAX.
@@ -795,7 +799,7 @@ have pP := pHall_pgroup sylP; have pA := pgroupS sAP pP.
 have abA: abelian A by rewrite /abelian -{1}defCA subsetIr.
 have prP: P \proper G := mFT_pgroup_proper pP.
 have ntA: A :!=: 1 by rewrite -rank_gt0 ltnW.
-pose pi : nat_pred := \pi(#|A|).
+pose pi := \pi(A); simpl in pi.
 have [p_pr pdvA [r oApr]] := pgroup_pdiv pA ntA.
 have{r oApr} def_pi: pi =i (p : nat_pred).
   by move=> p'; rewrite !inE oApr primes_exp // primes_prime ?inE.
@@ -845,13 +849,13 @@ have solCB: forall b : gT, b != 1 -> solvable 'C[b].
   by move=> b ntb; rewrite mFT_sol //= -cent_cycle mFT_cent_proper ?cycle_eq1.
 wlog{sAX prX} [b B'b defX]: X Y p'Y nYA sYX / exists2 b, b \in B^# & 'C[b] = X.
   move=> IH; have nYB := subset_trans sBA nYA.
-  rewrite (coprime_abelian_gen_cent1 cBB _ nYB); last first.
+  rewrite -(coprime_abelian_gen_cent1 cBB _ nYB); last first.
   - by rewrite coprime_sym (pnat_coprime pB).
   - apply: contraL dimB2; case/cyclicP=> x defB.
     have Bx: x \in B by rewrite defB cycle_id.
     rewrite defB -orderE (abelem_order_p abelB Bx) ?(pfactorK 1) //.
     by rewrite -cycle_eq1 -defB.
-  rewrite bigprodGE gen_subG; apply/bigcupsP=> b B'b.
+  rewrite gen_subG; apply/bigcupsP=> b B'b.
   have [ntb Bb]:= setD1P B'b; have sYbY: 'C_Y[b] \subset Y := subsetIl _ _.
   have{IH} sYbKb: 'C_Y[b] \subset 'O_p^'('C[b]).
     rewrite IH ?(pgroupS sYbY) ?subsetIr //; last by exists b.
@@ -964,9 +968,9 @@ Theorem Thompson_transitivity : forall p q A,
   [transitive 'O_p^'('C(A)), on |/|*(A; q) | 'JG].
 Proof.
 move=> p q A; case/bigcupP=> P; rewrite 2!inE => sylP; case/andP=> SCN_A mA3.
-have [defZ def_pi']: 'Z(A) = A /\ \pi(#|A|)^' =i p^'.
+have [defZ def_pi']: 'Z(A) = A /\ \pi(A)^' =i p^'.
   rewrite inE -andbA in SCN_A; case/and3P: SCN_A => sAP _; move/eqP=> defCA.
-  case: (eqsVneq A 1) mA3 => [-> | ntA _].
+  case: (eqsVneq A 1) mA3 => /= [-> | ntA _].
     rewrite /rank big1_seq // => p1 _; rewrite /p_rank big1 // => E.
     by rewrite inE; case/andP; move/trivgP->; rewrite cards1 logn1.
   have [p_pr _ [k ->]] := pgroup_pdiv (pgroupS sAP (pHall_pgroup sylP)) ntA.

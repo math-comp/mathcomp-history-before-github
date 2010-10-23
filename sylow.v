@@ -280,7 +280,7 @@ Qed.
 
 Lemma Sylow_transversal_gen : forall (T : {set {group gT}}) G,
   (forall P, P \in T -> P \subset G) ->
-  (forall p, p \in \pi(#|G|) -> exists2 P, P \in T & p.-Sylow(G) P) ->
+  (forall p, p \in \pi(G) -> exists2 P, P \in T & p.-Sylow(G) P) ->
   << \bigcup_(P \in T) P >> = G.
 Proof.
 move=> T G G_T T_G; apply/eqP; rewrite eqEcard gen_subG.
@@ -306,8 +306,30 @@ End MoreSylow.
 Section SomeHall.
 
 Variable gT : finGroupType.
+Implicit Types p : nat.
+Implicit Type pi : nat_pred.
+Implicit Types G H K P R : {group gT}.
 
-Lemma Hall_setI_normal : forall pi (G K H : {group gT}),
+Lemma Hall_pJsub : forall p pi G H P,
+    pi.-Hall(G) H -> p \in pi -> P \subset G -> p.-group P -> 
+  exists2 x, x \in G & P :^ x \subset H.
+Proof.
+move=> p pi G H P hallH pi_p sPG pP.
+have [S sylS] := Sylow_exists p H; have sylS_G := subHall_Sylow hallH pi_p sylS.
+have [x Gx sPxS] := Sylow_Jsub sylS_G sPG pP; exists x => //.
+exact: subset_trans sPxS (pHall_sub sylS).
+Qed.
+
+Lemma Hall_psubJ : forall p pi G H P,
+    pi.-Hall(G) H -> p \in pi -> P \subset G -> p.-group P -> 
+  exists2 x, x \in G & P \subset H :^ x.
+Proof.
+move=> p pi G H P hallH pi_p sPG pP.
+have [x Gx sPxH] := Hall_pJsub hallH pi_p sPG pP.
+by exists x^-1; rewrite ?groupV -?sub_conjg.
+Qed.
+
+Lemma Hall_setI_normal : forall pi G K H,
   K <| G -> pi.-Hall(G) H -> pi.-Hall(K) (H :&: K).
 Proof.
 move=> pi G K H nsKG hallH; have [sHG piH _] := and3P hallH.
@@ -315,20 +337,20 @@ have [sHK_H sHK_K] := (subsetIl H K, subsetIr H K).
 rewrite pHallE sHK_K /= -(part_pnat_id (pgroupS sHK_H piH)); apply/eqP.
 rewrite (widen_partn _ (subset_leq_card sHK_K)); apply: eq_bigr => p pi_p.
 have [P sylP] := Sylow_exists p H.
-have sylPK := Sylow_setI_normal nsKG (pSylow_Hall_Sylow hallH pi_p sylP).
+have sylPK := Sylow_setI_normal nsKG (subHall_Sylow hallH pi_p sylP).
 rewrite -!p_part -(card_Hall sylPK); symmetry; apply: card_Hall.
 by rewrite (pHall_subl _ sHK_K) //= setIC setSI ?(pHall_sub sylP).
 Qed.
 
-Lemma coprime_mulG_setI_norm : forall H G K R : {group gT},
+Lemma coprime_mulG_setI_norm : forall H G K R,
     K * R = G -> G \subset 'N(H) -> coprime #|K| #|R| ->
   (K :&: H) * (R :&: H) = G :&: H.
 Proof.
 move=> H G K R defG nHG coKR; apply/eqP; rewrite eqEcard mulG_subG /= -defG.
 rewrite !setSI ?mulG_subl ?mulG_subr //=.
 rewrite coprime_cardMg ?(coKR, coprimeSg (subsetIl _ _), coprime_sym) //=.
-pose pi := \pi(#|K|); have piK: pi.-group K by exact: pnat_pi.
-have pi'R: pi^'.-group R by rewrite /pgroup -coprime_pi'.
+pose pi := \pi(K); have piK: pi.-group K by exact: pgroup_pi.
+have pi'R: pi^'.-group R by rewrite /pgroup -coprime_pi' /=.
 have [hallK hallR] := coprime_mulpG_Hall defG piK pi'R.
 have nsHG: H :&: G <| G by rewrite /normal subsetIr normsI ?normG.
 rewrite -!(setIC H) defG -(partnC pi (cardG_gt0 _)).
@@ -424,9 +446,19 @@ rewrite (sameP commG1P trivgP) -trO subsetI commg_subl commg_subr.
 by rewrite !(subset_trans (pcore_sub _ _)) ?normal_norm ?pcore_normal.
 Qed.
 
-Lemma pi_center_nilpotent : forall G, nilpotent G -> \pi(#|'Z(G)|) = \pi(#|G|).
+Lemma sub_nilpotent_cent2 : forall H K G,
+    nilpotent G -> K \subset G -> H \subset G -> coprime #|K| #|H| ->
+  H \subset 'C(K).
 Proof.
-move=> G nilG; apply/eq_piP => p.
+move=> H K G nilG sKG sHG; rewrite coprime_pi' // => p'H.
+have sub_Gp := sub_Hall_pcore (nilpotent_pcore_Hall _ nilG).
+have [_ _ cGpp' _] := dprodP (nilpotent_pcoreC \pi(K) nilG).
+by apply: centSS cGpp'; rewrite sub_Gp ?pgroup_pi.
+Qed.
+
+Lemma pi_center_nilpotent : forall G, nilpotent G -> \pi('Z(G)) = \pi(G).
+Proof.
+move=> G nilG; apply/eq_piP => /= p.
 apply/idP/idP=> [|pG]; first exact: (piSg (center_sub _)).
 move: (pG); rewrite !mem_primes !cardG_gt0; case/andP=> p_pr _.
 pose Z := 'O_p(G) :&: 'Z(G); have ntZ: Z != 1.

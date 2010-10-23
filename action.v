@@ -527,6 +527,9 @@ Proof. by move=> G x; rewrite -{1}[x]act1 mem_orbit. Qed.
 
 Local Notation orbit_rel A := (fun x y => y \in orbit to A x).
 
+Lemma contra_orbit : forall G x y, x \notin orbit to G y -> x != y.
+Proof. move=> G x y; apply: contraNneq => ->; exact: orbit_refl. Qed.
+
 Lemma orbit_in_sym : forall G, G \subset D -> symmetric (orbit_rel G).
 Proof.
 move=> G sGD; apply: symmetric_from_pre => x y; case/imsetP=> a Ga.
@@ -799,7 +802,9 @@ Qed.
 End PartialAction.
 
 Implicit Arguments orbit1P [aT D rT to G x].
+Implicit Arguments contra_orbit [aT D rT x y].
 Prenex Implicits orbit1P.
+
 
 Notation "''C' ( S | to )" := (astab_group to S) : subgroup_scope.
 Notation "''C_' A ( S | to )" := (A :&: 'C(S | to))%G : subgroup_scope.

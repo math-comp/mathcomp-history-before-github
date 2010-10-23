@@ -124,9 +124,9 @@ move=> p M B maxM EpB ncycB sCB_M.
 apply: (noncyclic_normed_sub_Uniqueness maxM EpB) => //.
 apply/bigcupsP=> K; rewrite inE -andbA; case/and3P=> _ p'K nKB.
 case/pElemP: EpB => _; case/and3P=> pB cBB _.
-rewrite (coprime_abelian_gen_cent1 cBB ncycB nKB); last first.
+rewrite -(coprime_abelian_gen_cent1 cBB ncycB nKB); last first.
   by rewrite coprime_sym (pnat_coprime pB).
-rewrite bigprodGE gen_subG (subset_trans _ sCB_M) //.
+rewrite gen_subG (subset_trans _ sCB_M) //.
 by apply/bigcupsP=> b Bb; rewrite (bigcup_max b) // subsetIr.
 Qed.
 
@@ -225,8 +225,8 @@ have cAA := SCN_abelian SCN_A.
 have pP := pHall_pgroup sylP; have pA := pgroupS sAP pP.
 have ntA: A :!=: 1 by rewrite -rank_gt0 -(subnKC Age3).
 have [p_pr _ [e oA]] := pgroup_pdiv pA ntA.
-have{e oA} def_piA: \pi(#|A|) =i (p : nat_pred).
-  by rewrite oA pi_of_exp //; exact: pi_of_prime.
+have{e oA} def_piA: \pi(A) =i (p : nat_pred).
+  by rewrite /= oA pi_of_exp //; exact: pi_of_prime.
 have FmCAp_le2: forall M, M \in 'M('C(A)) -> 'r_p('F(M)) <= 2.
   move=> M; case/setIdP=> maxM cCAM; rewrite leqNgt; apply: contra uA' => Fge3.
   exact: (any_rank3_Fitting_Uniqueness maxM Fge3).
@@ -261,7 +261,7 @@ have sNP_mCA: forall M, M \in 'M('C(A)) -> 'N(P) \subset M.
         by rewrite p_rank_gt0 pi_max_pdiv cardG_gt1 mmax_neq1.
       have sylMqG: q.-Sylow(G) 'O_q(M).
         by rewrite (mmax_sigma_Sylow maxM) ?defNMq.
-      rewrite (Hall_maximal sylMqG (subsetT _) qQ) // defNMq; split=> //.
+      rewrite (sub_pHall sylMqG qQ) ?subsetT // defNMq; split=> //.
       have: 'r_p(G) > 2.
         by rewrite (leq_trans Age3) // (rank_pgroup pA) p_rankS ?subsetT.
       apply: contraL; move/eqP <-; rewrite (p_rank_Sylow sylMqG).
@@ -272,7 +272,7 @@ have sNP_mCA: forall M, M \in 'M('C(A)) -> 'N(P) \subset M.
         by apply: SCN_normed_constrained sylP _; rewrite inE SCN_A ltnW.
       have pR: p.-group R := pgroupS sRP pP.
       have snAR: A <|<| R by rewrite (nilpotent_subnormal (pgroup_nil pR)).
-      have A'q: q \notin \pi(#|A|) by rewrite def_piA.
+      have A'q: q \notin \pi(A) by rewrite def_piA.
       rewrite -(eq_pgroup _ def_piA) in pR.
       have [|? []] := normed_trans_superset cstrA A'q snAR pR.
         by rewrite (eq_pcore _ (eq_negn def_piA)) Thompson_transitivity.
@@ -316,9 +316,8 @@ have uNP0_mCA: forall M, M \in 'M('C(A)) -> 'M('N(P0)) = [set M].
     have coDA1: coprime #|D| #|'Ohm_1(A)|.
       rewrite coprime_sym (coprimeSg sA1A) //.
       exact: pnat_coprime pA (pcore_pgroup _ _).
-    rewrite centsC -[D]/(gval _).
-    rewrite (coprime_abelian_gen_cent (abelianS sA1A cAA) nDA1) //=.
-    rewrite bigprodGE gen_subG /= -/D; apply/bigcupsP=> B.
+    rewrite centsC -[D](coprime_abelian_gen_cent (abelianS sA1A cAA) nDA1) //=.
+    rewrite gen_subG /= -/D; apply/bigcupsP=> B.
     case/and3P=> cycqB sBA1 nBA1; have abelB := abelemS sBA1 abelA1.
     have sBA := subset_trans sBA1 sA1A.
     have{cycqB} ncycB: ~~ cyclic B.

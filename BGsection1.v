@@ -247,9 +247,9 @@ move=> gT A G nGA coGA solG regAG; wlog cycA: A nGA coGA regAG / cyclic A.
   case/andP=> saA; move/setIidPl <-.
   rewrite {}IH ?cycle_cyclic ?(coprimegS saA) ?(subset_trans saA) //.
   by apply/trivgP; rewrite -regAG setSI.
-pose X := G <*> A; pose F := 'F(X); pose pi := \pi(#|A|); pose Q := 'O_pi(F).
-have pi'G: pi^'.-group G by rewrite /pgroup -coprime_pi' // coprime_sym.
-have piA: pi.-group A by exact: pnat_pi.
+pose X := G <*> A; pose F := 'F(X); pose pi := \pi(A); pose Q := 'O_pi(F).
+have pi'G: pi^'.-group G by rewrite /pgroup -coprime_pi' //= coprime_sym.
+have piA: pi.-group A by exact: pgroup_pi.
 have oX: #|X| = (#|G| * #|A|)%N by rewrite [X]norm_mulgenEr ?coprime_cardMg.
 have hallG: pi^'.-Hall(X) G.
   by rewrite /pHall -divgS mulgen_subl //= pi'G pnatNK oX mulKn.
@@ -268,7 +268,7 @@ have pi'F: 'O_pi(F) = 1.
   rewrite (subset_trans sQA) // (subset_trans _ sQA) // commg_subr.
   by rewrite (subset_trans _ (normal_norm nsQX)) ?mulgen_subl.
 have sFG: F \subset G.
-  rewrite (subset_normal_Hall _ hallG) //= -/X /psubgroup Fitting_sub /=.
+  rewrite (sub_normal_Hall hallG) ?Fitting_sub //= -/X.
   have: nilpotent F := Fitting_nil _; move/(nilpotent_pcoreC pi) => /=.
   by case/dprodP=> _ <- _ _; rewrite pi'F mul1g pcore_pgroup.
 have <-: F = 'F(G).
@@ -510,12 +510,12 @@ Qed.
 
 (* This is B & G, Theorem 1.13.                                               *)
 Theorem critical_odd : forall  gT p (G : {group gT}), 
-    odd p -> p.-group G -> G :!=: 1 ->
+    p.-group G -> odd #|G| -> G :!=: 1 ->
   {H : {group gT} |
      [/\ H \char G, [~: H, G] \subset 'Z(H), nil_class H <= 2, exponent H = p
        & p.-group 'C(H | [Aut G])]}.
 Proof.
-move=> gT p G odd_p pG ntG; have [H krH]:= Thompson_critical pG.
+move=> gT p G pG oddG ntG; have [H krH]:= Thompson_critical pG.
 have [chH sPhiZ sGH_Z scH] := krH; have clH := critical_class2 krH.
 have sHG := char_sub chH; set D := 'Ohm_1(H)%G; exists D.
 have chD: D \char G := char_trans (Ohm_char _ _) chH.
@@ -525,13 +525,11 @@ have sDG_Z: [~: D, G] \subset 'Z(D).
   apply: subset_trans (subset_trans sGH_Z _); first by rewrite commgS.
   by rewrite subIset // orbC centS.
 rewrite nil_class2 sDG_Z (subset_trans (commgS _ _) sDG_Z) // ?char_sub //.
-have [p_pr _ _] := pgroup_pdiv pG ntG.
+have [p_pr p_dv_G _] := pgroup_pdiv pG ntG; have odd_p := dvdn_odd p_dv_G oddG.
 split=> //.
-  have: exponent D %| p by rewrite exponent_Ohm1_class2 ?(pgroupS _ pG).
-  case/primeP: p_pr => _ p_pr; move/p_pr; rewrite orbC; case/predU1P=> {p_pr}//.
-  rewrite -dvdn1 -trivg_exponent /=; move/eqP => D1; case/eqP: ntG.
-  suffices H1: H :=: 1 by rewrite H1 center1 cent1T !setIT in scH.
-  by rewrite -(setIid H) TI_Ohm1 ?D1 ?(setIidPr (sub1G _)).  
+  apply/prime_nt_dvdP=> //; last by rewrite exponent_Ohm1_class2 ?(pgroupS sHG).
+  rewrite -dvdn1 -trivg_exponent /= Ohm1_eq1; apply: contraNneq ntG => H1.
+  by rewrite -(setIidPl (cents1 G)) -{1}H1 scH H1 center1.
 apply/pgroupP=> q pr_q; case/Cauchy=> // f; rewrite /= astab_ract. 
 case/setIdP=> Af cDf ofq.
 apply/idPn=> nqp {sDG_Z chD sDH}; suffices: f \in 'C(H | [Aut G]).
@@ -750,9 +748,9 @@ Qed.
 (* cyclic assumption for A is not needed here.                               *)
 Lemma coprime_abelian_gen_cent : forall gT (A G : {group gT}),
    abelian A -> A \subset 'N(G) -> coprime #|G| #|A| ->
-  G = (\prod_(B : {group gT} | cyclic (A / B) && (B <| A)) 'C_G(B))%G.
+  <<\bigcup_(B : {group gT} | cyclic (A / B) && (B <| A)) 'C_G(B)>> = G.
 Proof.
-move=> gT A G abelA nGA coGA; apply: val_inj; rewrite /= bigprodGE.
+move=> gT A G abelA nGA coGA; symmetry.
 move: {2}_.+1 (ltnSn #|G|) => n.
 elim: n gT => // n IHn gT in A G abelA nGA coGA *; rewrite ltnS => leGn.
 without loss nilG: G nGA coGA leGn / nilpotent G.
@@ -802,12 +800,12 @@ Qed.
 (* B & G, Proposition 1.16, first assertion. *)
 Lemma coprime_abelian_gen_cent1 : forall gT (A G : {group gT}),
    abelian A -> ~~ cyclic A -> A \subset 'N(G) -> coprime #|G| #|A| ->
-  G = (\prod_(a \in A^#) 'C_G[a])%G.
+  <<\bigcup_(a \in A^#) 'C_G[a]>> = G.
 Proof.
 move=> gT A G abelA ncycA nGA coGA.
-apply/eqP; rewrite -val_eqE eqEsubset /= bigprodGE gen_subG.
+apply/eqP; rewrite eq_sym eqEsubset /= gen_subG.
 apply/andP; split; last by apply/bigcupsP=> B _; exact: subsetIl.
-rewrite {1}(coprime_abelian_gen_cent abelA nGA) // bigprodGE genS //.
+rewrite -{1}(coprime_abelian_gen_cent abelA nGA) ?genS //.
 apply/bigcupsP=> B; case: (eqsVneq B 1) => [-> |].
   by rewrite injm_cyclic ?coset1_injm ?norms1 ?(negbTE ncycA).
 case/trivgPn=> a Ba n1a; case/and3P=> _ sBA _.
@@ -1175,8 +1173,7 @@ have exB: forall N : {group gT},
     have: coset N x \in B / N by apply/morphimP; exists x.
     by apply: mem_p_elt; rewrite /= -defB pcore_pgroup.
   case/andP=> sQU p'Q; rewrite -(quotientSGK (subset_trans sQU nNU) sNB).
-  rewrite -defB (subset_normal_Hall _ hallB) ?pcore_normal //=.
-  by rewrite /psubgroup morphimS ?morphim_pgroup.
+  by rewrite -defB (sub_Hall_pcore hallB) ?quotientS ?quotient_pgroup.
 have{pH1} [A [nAU pA p'A]] := exB H nHG pH1.
 have{pK1 exB} [B [nBU pB p'B]] := exB K nKG pK1.
 rewrite p_elt_gen_length1 //; apply: normal_max_pgroup_Hall (pcore_normal _ _).

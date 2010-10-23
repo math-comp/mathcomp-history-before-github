@@ -506,10 +506,8 @@ Theorem narrow_solvable_Aut  :
       2 < 'r(R) -> forall x, x \in A -> p^'.-elt x -> #[x] %| p.-1 ].
 Proof.
 move=> ntR nR.
-have [p_pr _ [r cR]] := pgroup_pdiv pR ntR.
-have oddp : odd p.
-  by case: (even_prime p_pr) oddR => // p2; rewrite cR p2 odd_exp eqn0Ngt.
-case: (critical_odd _ pR)=> // H [cHR sHRZ] _ exH pCAu A solA sAAu oddA {ntR}.
+have [p_pr _ _] := pgroup_pdiv pR ntR.
+case: (critical_odd pR) => // H [cHR sHRZ] _ exH pCAu A solA sAAu oddA {ntR}.
 have sCO : 'C_A(H | 'P) \subset 'O_p(A).
   apply: pcore_max;first by apply: pgroupS _ pCAu; rewrite /= !astab_ract setSI.
   rewrite /normal subsetIl normsI ?normG ?(subset_trans _ (astab_norm _ _))//.

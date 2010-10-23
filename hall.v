@@ -501,7 +501,6 @@ Qed.
 (* assumptions could be further weakened to H :&: G (and hence become      *)
 (* trivial if H and G are TI). However, the assumption that A act on G is  *)
 (* needed in this case.                                                    *)
-
 Lemma coprime_norm_quotient_cent : forall A G H,
     A \subset 'N(G) -> A \subset 'N(H) -> coprime #|H| #|A| -> solvable H ->
   'C_G(A) / H = 'C_(G / H)(A / H).
@@ -525,6 +524,20 @@ rewrite group_modr ?setSI ?mulgen_subr //=; symmetry; apply/setIidPl.
 rewrite -quotientSK ?subIset 1?normal_norm //.
 rewrite !coprime_norm_quotient_cent ?norms_mulgen //=.
 by rewrite norm_mulgenEr ?quotient_mulgr.
+Qed.
+
+(* Another special case of the strong coprime quotient lemma; not found in    *)
+(* textbooks, but nevertheless used implicitly throughout B & G, sometimes    *)
+(* justified by switching to external action.                                 *)
+Lemma quotient_TI_subcent : forall K G H,
+    G \subset 'N(K) -> G \subset 'N(H) -> K :&: H = 1 ->
+  'C_K(G) / H = 'C_(K / H)(G / H).
+Proof.
+move=> K G H nGK nGH tiKH.
+have tiHR: H :&: [~: K, G] = 1.
+  by apply/trivgP; rewrite /= setIC -tiKH setSI ?commg_subl.
+apply: strongest_coprime_quotient_cent; rewrite ?tiHR ?sub1G ?solvable1 //.
+by rewrite cards1 coprime1n.
 Qed.
 
 (* B & G, Proposition 1.5(d): the more traditional form of the above theorem *)
