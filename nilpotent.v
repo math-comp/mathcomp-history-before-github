@@ -267,7 +267,7 @@ Qed.
 Lemma mulg_nil : forall G H,
   H \subset 'C(G) -> nilpotent (G * H) = nilpotent G && nilpotent H.
 Proof.
-by move=> G H cGH; rewrite -(cprod_nil (cprodEgen cGH)) /= cent_mulgenEr.
+by move=> G H cGH; rewrite -(cprod_nil (cprodEY cGH)) /= cent_joinEr.
 Qed.
 
 Lemma dprod_nil : forall A B G,
@@ -569,7 +569,7 @@ apply: subnormal_trans snHK (IHm _ (leq_trans _ leGHm) sKG).
 by rewrite ltn_sub2l ?proper_card ?(proper_sub_trans prHK).
 Qed.
 
-Lemma nil_TI_Z : forall G H,
+Lemma TI_center_nil : forall G H,
   nilpotent G -> H <| G -> H :&: 'Z(G) = 1 -> H :=: 1.
 Proof.
 move=> G H nilG; case/andP=> sHG nHG trHZ.
@@ -581,14 +581,14 @@ rewrite -IHn subsetI (subset_trans _ nHG) ?commSg ?subsetIl //=.
 by rewrite (subset_trans _ (ucn_comm n G)) ?commSg ?subsetIr.
 Qed.
 
-Lemma nil_meet_Z : forall G H,
+Lemma meet_center_nil : forall G H,
   nilpotent G -> H <| G -> H :!=: 1 -> H :&: 'Z(G) != 1.
-Proof. by move=> G H nilG nsHG; apply: contra; move/eqP; move/nil_TI_Z->. Qed.
+Proof. by move=> G H nilG nsHG; apply: contraNneq; move/TI_center_nil->. Qed.
 
 Lemma center_nil_eq1 : forall G, nilpotent G -> ('Z(G) == 1) = (G :==: 1).
 Proof.
 move=> G nilG; apply/eqP/eqP=> [Z1 | ->]; last exact: center1.
-by rewrite (nil_TI_Z nilG) // (setIidPr (center_sub G)).
+by rewrite (TI_center_nil nilG) // (setIidPr (center_sub G)).
 Qed.
 
 End QuotientNil.

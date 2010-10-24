@@ -285,7 +285,7 @@ have sZA: 'Z(F) \subset A.
 have sCAM: 'C(A) \subset M.
   have nsZM: 'Z(F) <| M := char_normal_trans (center_char _) (Fitting_normal _).
   rewrite -(mmax_normal maxM nsZM); last first.
-    rewrite /= -(setIidPr (center_sub _)) nil_meet_Z ?Fitting_nil //.
+    rewrite /= -(setIidPr (center_sub _)) meet_center_nil ?Fitting_nil //.
     by rewrite -proper1G (proper_sub_trans _ sAF) ?proper1G.
   by rewrite (subset_trans _ (cent_sub _)) ?centS.
 have nsZL_M: 'Z('L(P)) <| M.

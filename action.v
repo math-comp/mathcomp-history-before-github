@@ -591,11 +591,14 @@ Qed.
 Lemma afix_cycle_in : forall a, a \in D -> 'Fix_to(<[a]>) = 'Fix_to[a].
 Proof. by move=> a Da; rewrite afix_gen_in ?sub1set. Qed.
 
+Lemma afixYin : forall A B,
+  A \subset D -> B \subset D -> 'Fix_to(A <*> B) = 'Fix_to(A) :&: 'Fix_to(B).
+Proof. by move=> A B sAD sBD; rewrite afix_gen_in ?afixU // subUset sAD. Qed. 
+
 Lemma afixMin : forall G H,
   G \subset D -> H \subset D -> 'Fix_to(G * H) = 'Fix_to(G) :&: 'Fix_to(H).
 Proof.
-move=> G H sGD sHD; rewrite -afix_gen_in ?mul_subG // genM_mulgen -afixU.
-by rewrite afix_gen_in // subUset sGD.
+by move=> G H sGD sHD; rewrite -afix_gen_in ?mul_subG // genM_join afixYin.
 Qed. 
 
 Lemma sub_astab1_in : forall A x,
@@ -1650,7 +1653,7 @@ rewrite (isog_transl _ Aut_in_isog) /=; set rG := _ @* _.
 apply: (iffP idP) => [iso_rG h injh hH| AutHinG].
   have: aut injh hH \in rG; last case/morphimP=> g nHg AutGg def_g.
     suffices ->: rG = Aut H by exact: Aut_aut.
-    by apply/eqP; rewrite eqEcard restr_perm_Aut /= (isog_card iso_rG).
+    by apply/eqP; rewrite eqEcard restr_perm_Aut /= (card_isog iso_rG).
   exists (autm_morphism AutGg); rewrite injm_autm im_autm; split=> // x Hx.
   by rewrite -(autE injh hH Hx) def_g actpermE actbyE.
 suffices ->: rG = Aut H by exact: isog_refl.
@@ -1916,11 +1919,14 @@ Qed.
 Lemma gacent_cycle : forall a, a \in D -> 'C_(|to)(<[a]>) = 'C_(|to)[a].
 Proof. by move=> a Da; rewrite gacent_gen ?sub1set. Qed.
 
+Lemma gacentY : forall A B,
+  A \subset D -> B \subset D -> 'C_(|to)(A <*> B) = 'C_(|to)(A) :&: 'C_(|to)(B).
+Proof. by move=> A B sAD sBD; rewrite gacent_gen ?gacentU // subUset sAD. Qed.
+
 Lemma gacentM : forall G H,
   G \subset D -> H \subset D -> 'C_(|to)(G * H) = 'C_(|to)(G) :&: 'C_(|to)(H).
 Proof.
-move=> G H sGD sHB; rewrite -gacentU -gacent_gen ?mul_subG // genM_mulgen.
-by rewrite gacent_gen // subUset sGD.
+by move=> G H sGD sHB; rewrite -gacent_gen ?mul_subG // genM_join gacentY.
 Qed.
 
 Lemma astab1 : 'C(1 | to) = D.
@@ -1944,7 +1950,7 @@ Qed.
 Lemma astabM : forall M N,
   M \subset R -> N \subset R -> 'C(M * N | to) = 'C(M | to) :&: 'C(N | to).
 Proof.
-move=> M N sMR sNR; rewrite -astabU -astab_gen ?mul_subG // genM_mulgen.
+move=> M N sMR sNR; rewrite -astabU -astab_gen ?mul_subG // genM_join.
 by rewrite astab_gen // subUset sMR.
 Qed.
 
@@ -1993,7 +1999,7 @@ apply: subset_trans (_ : <<S>> \subset actm to a @*^-1 <<S>>) _.
 by apply/subsetP=> x; rewrite !inE; case/andP=> Rx; rewrite /= actmE.
 Qed.
 
-Lemma acts_mulgen : forall A M N,
+Lemma acts_joing : forall A M N,
     M \subset R -> N \subset R -> [acts A, on M | to] -> [acts A, on N | to] ->
   [acts A, on M <*> N | to].
 Proof.

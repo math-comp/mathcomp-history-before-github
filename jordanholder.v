@@ -70,13 +70,13 @@ have nP : N1 * N2 <| G by rewrite normalM ?maxnormal_normal.
 have sN2P : N2 \subset N1 * N2 by rewrite mulg_subr ?group1.
 case/maxgroupP: (pmN2); case/andP=> nN2G pN2G mN2.
 have contr : (N1 <*> N2) \proper G -> (N1 <*> N2) == N2.
-  move => ne; apply/eqP=> /=; apply: mN2 => //=; rewrite ?ne comm_mulgenE //.
+  move => ne; apply/eqP=> /=; apply: mN2 => //=; rewrite ?ne comm_joingE //.
   by rewrite normal_norm.
 suff h: ~~ (N1 * N2 \proper G).
   apply/eqP; rewrite eqEproper h.
   by rewrite mul_subG // ?(maxnormal_sub pmN1) ?(maxnormal_sub pmN2).
-rewrite -comm_mulgenE //; apply: (contra contr).
-rewrite comm_mulgenE // eqEsubset negb_and sN2P orbF; apply/negP=> h.
+rewrite -comm_joingE //; apply: (contra contr).
+rewrite comm_joingE // eqEsubset negb_and sN2P orbF; apply/negP=> h.
 apply: (negP nsN21); apply: subset_trans h; apply: mulG_subl.
 Qed.
 
@@ -472,8 +472,8 @@ case/maxgroupP: (pmN2); case/andP=> nN2G pN2G mN2.
 case/andP: pN1G=> nsGN1 ha1; case/andP: pN2G=> nsGN2 ha2.
 case e : (G \subset N1 * N2).
   by apply/eqP; rewrite eqEsubset e mulG_subG !normal_sub.
-have: N1 <*> N2 = N2 by apply: mN2; rewrite /= ?comm_mulgenE // nP e gactsM.
-by rewrite comm_mulgenE // => h; move: nsN21; rewrite -h mulg_subl.
+have: N1 <*> N2 = N2 by apply: mN2; rewrite /= ?comm_joingE // nP e gactsM.
+by rewrite comm_joingE // => h; move: nsN21; rewrite -h mulg_subl.
 Qed.
 
 
@@ -637,7 +637,7 @@ have hf2'' : 'ker (coset (N2 :&: N1)) \subset 'ker f1.
   by rewrite f1ker !ker_coset.
 pose f2 := factm_morphism  hf2'' hf2'.
 apply/asimpleP; split.
-   rewrite /= setIC; apply/negP; move: (second_isog nN21); move/isog_triv->.
+   rewrite /= setIC; apply/negP; move: (second_isog nN21); move/isog_eq1->.
    by apply/negP.
 move=> H nHQ2 aH; pose K := f2 @* H.
 have nKQ1 : K <| N2 / N1.
@@ -663,10 +663,10 @@ have iHK : H \isog K.
   apply/isogP; pose f3 := restrm_morphism (normal_sub nHQ2) f2.
   by exists f3; rewrite ?injm_restrm // morphim_restrm setIid.
 case: (max1 _ nKQ1 aKQ1).
-  by move/eqP; rewrite -(isog_triv iHK); move/eqP->; left.
+  by move/eqP; rewrite -(isog_eq1 iHK); move/eqP->; left.
 move=> he /=; right; apply/eqP; rewrite eqEcard normal_sub //=.
-move: (second_isog nN21); rewrite setIC; move/isog_card->; rewrite -he.
-by move/isog_card: iHK=> <-; rewrite leqnn.
+move: (second_isog nN21); rewrite setIC; move/card_isog->; rewrite -he.
+by move/card_isog: iHK=> <-; rewrite leqnn.
 Qed.
 
 End Aux.
@@ -743,7 +743,7 @@ have i1 : perm_eq (mksrepr G N1 :: mkfactors N1 st1)
   apply: asimple_quo_maxainv=> //; first by apply: subIset; rewrite sN1D.
   apply: asimpleI => //.
     apply: subset_trans (normal_norm nN2G); exact: normal_sub.
-  rewrite -quotient_mulgr (maxainvM _ _ maxN_2) //.
+  rewrite -quotientMidl (maxainvM _ _ maxN_2) //.
     by apply: maxainv_asimple_quo.
   by move=> e; apply: neN12.
 have i2 : perm_eq (mksrepr G N2 :: mkfactors N2 st2)
@@ -754,7 +754,7 @@ have i2 : perm_eq (mksrepr G N2 :: mkfactors N2 st2)
   have e : N1 :&: N2 :=: N2 :&: N1 by rewrite setIC.
   rewrite (group_inj (setIC N1 N2)); apply: asimpleI => //.
     apply: subset_trans (normal_norm nN1G); exact: normal_sub.
-  rewrite -quotient_mulgr (maxainvM _ _ maxN_1) //.
+  rewrite -quotientMidl (maxainvM _ _ maxN_1) //.
   exact: maxainv_asimple_quo.
 pose fG1 := [:: mksrepr G N1, mksrepr N1 N & mkfactors N sN].
 pose fG2 := [:: mksrepr G N2, mksrepr N2 N & mkfactors N sN].

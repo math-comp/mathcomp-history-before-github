@@ -349,9 +349,9 @@ Proof. exact: morphimU. Qed.
 Lemma quotientI : forall A B, (A :&: B) / H \subset A / H :&: B / H.
 Proof. exact: morphimI. Qed.
 
-Lemma quotient_mulgen : forall A B,
+Lemma quotientY : forall A B,
   A \subset 'N(H) -> B \subset 'N(H) -> (A <*> B) / H = (A / H) <*> (B / H).
-Proof. exact: morphim_mulgen. Qed.
+Proof. exact: morphimY. Qed.
 
 Lemma quotient_homg : forall A, A \subset 'N(H) -> homg (A / H) A.
 Proof. move=> A; exact: morphim_homg. Qed.
@@ -387,13 +387,16 @@ Lemma quotientD : forall A B, A / H :\: B / H \subset (A :\: B) / H.
 Proof. exact: morphimD. Qed.
 
 Lemma quotientDG : forall A G, H \subset G -> (A :\: G) / H = A / H :\: G / H.
-Proof. rewrite -{1}ker_coset; exact: morphimDG. Qed.
+Proof. by rewrite -{1}ker_coset; exact: morphimDG. Qed.
 
 Lemma quotientK : forall A, A \subset 'N(H) -> coset H @*^-1 (A / H) = H * A.
-Proof. rewrite -{8}ker_coset; exact: morphimK. Qed.
+Proof. by rewrite -{8}ker_coset; exact: morphimK. Qed.
+
+Lemma quotientYK : forall G, G \subset 'N(H) -> coset H @*^-1 (G / H) = H <*> G.
+Proof. by move=> G nHG; rewrite quotientK ?norm_joinEr. Qed.
 
 Lemma quotientGK : forall G, H <| G -> coset H @*^-1 (G / H) = G.
-Proof. move=> G; case/andP; rewrite -{1}ker_coset; exact: morphimGK. Qed.
+Proof. by move=> G; case/andP; rewrite -{1}ker_coset; exact: morphimGK. Qed.
 
 Lemma cosetpre_set1 : forall x,
   x \in 'N(H) -> coset H @*^-1 [set coset H x] = H :* x.
@@ -588,34 +591,34 @@ Qed.
 
 End InverseImage.
 
-Lemma quotient_mulg : forall A, A * H / H = A / H.
+Lemma quotientMidr : forall A, A * H / H = A / H.
 Proof.
 move=> A; rewrite [_ /_]morphimMr ?normG //= -!quotientE.
 by rewrite trivg_quotient mulg1.
 Qed.
 
-Lemma quotient_mulgr : forall A, H * A / H = A / H.
+Lemma quotientMidl : forall A, H * A / H = A / H.
 Proof.
 move=> A; rewrite [_ /_]morphimMl ?normG //= -!quotientE.
 by rewrite trivg_quotient mul1g.
 Qed.
 
-Lemma quotient_mulgenr : forall G, G \subset 'N(H) -> G <*> H / H = G / H.
+Lemma quotientYidr : forall G, G \subset 'N(H) -> G <*> H / H = G / H.
 Proof.
-move=> G nHG; rewrite -genM_mulgen quotientE morphim_gen -?quotientE.
-  by rewrite quotient_mulg genGid.
-by rewrite -(mulSGid nHG) mulgS ?normG.
+move=> G nHG; rewrite -genM_join quotient_gen ?mul_subG ?normG //.
+by rewrite quotientMidr genGid.
 Qed.
+
+Lemma quotientYidl : forall G, G \subset 'N(H) -> H <*> G / H = G / H.
+Proof. by move=> G nHG; rewrite joingC quotientYidr. Qed.
 
 Section Injective.
 
 Variables (G : {group gT}).
-Hypotheses (nHG : G \subset 'N(H)) (trGH : G :&: H = 1).
+Hypotheses (nHG : G \subset 'N(H)) (tiHG : H :&: G = 1).
 
 Lemma quotient_isom : isom G (G / H) (restrm nHG (coset H)).
-Proof.
-by apply/isomP; rewrite ker_restrm ker_coset morphim_restrm setIid trGH.
-Qed.
+Proof. by apply/isomP; rewrite ker_restrm setIC ker_coset tiHG im_restrm. Qed.
 
 Lemma quotient_isog : isog G (G / H).
 Proof. exact: isom_isog quotient_isom. Qed.
@@ -683,7 +686,7 @@ Proof.
 move=> Abar; rewrite morphpre_factm morphpre_restrm morphpre_comp /=.
 rewrite morphpreIdom -[Abar / _]quotientInorm quotientK ?subsetIr //=.
 rewrite morphpreMl ?morphimS // morphimK // [_ * H]normC ?subIset ?nHG //.
-rewrite -quotientE -mulgA quotient_mulgr /= setIC -morphpreIim setIA.
+rewrite -quotientE -mulgA quotientMidl /= setIC -morphpreIim setIA.
 by rewrite (setIidPl nfHfG) morphpreIim -morphpreMl ?sub1G ?mul1g.
 Qed.
 
@@ -812,7 +815,7 @@ Lemma second_isog : H / (K :&: H) \isog H / K.
 Proof. rewrite setIC -{1 3}(ker_coset K); exact: first_isog_loc. Qed.
 
 Lemma weak_second_isog : H / (K :&: H) \isog H * K / K.
-Proof. rewrite quotient_mulg; exact: second_isog. Qed.
+Proof. rewrite quotientMidr; exact: second_isog. Qed.
 
 End SecondIsomorphism.
 
@@ -888,7 +891,7 @@ Lemma card_morphim : forall G, #|f @* G| = #|D :&: G : 'ker f|.
 Proof.
 move=> G; rewrite -morphimIdom -indexgI -card_quotient; last first.
   by rewrite normsI ?normG ?subIset ?ker_norm.
-by apply: esym (isog_card _); rewrite first_isog_loc ?subsetIl.
+by apply: esym (card_isog _); rewrite first_isog_loc ?subsetIl.
 Qed.
 
 Lemma dvdn_morphim :  forall G, #|f @* G| %| #|G|.

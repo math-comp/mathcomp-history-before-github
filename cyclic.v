@@ -130,9 +130,9 @@ Lemma cycleM : forall a b,
   commute a b -> coprime #[a] #[b] -> <[a * b]> = <[a]> * <[b]>.
 Proof.
 move=> a b cab co_ab; apply/eqP.
-rewrite eqEsubset -(cent_mulgenEl (cents_cycle cab)).
-rewrite mulgen_subG {3}cab !cycleMsub // 1?coprime_sym //.
-by rewrite -genM_mulgen cycle_subG mem_gen // mem_imset2 ?cycle_id.
+rewrite eqEsubset -(cent_joinEl (cents_cycle cab)).
+rewrite join_subG {3}cab !cycleMsub // 1?coprime_sym //.
+by rewrite -genM_join cycle_subG mem_gen // mem_imset2 ?cycle_id.
 Qed.
 
 (***********************************************************************)
@@ -346,7 +346,7 @@ move=> a H sHa; apply: lone_subgroup_char => // J sJa isoJH.
 have dvHa: #|H| %| #[a] by exact: cardSg.
 have{dvHa} Huniq := esym (cycle_sub_group dvHa).
 move/setP: Huniq => Huniq; move: (Huniq H) (Huniq J); rewrite !inE /=.
-by rewrite sHa sJa (isog_card isoJH) eqxx; do 2!move/eqP <-.
+by rewrite sHa sJa (card_isog isoJH) eqxx; do 2!move/eqP <-.
 Qed.
 
 End CycleSubGroup.
@@ -477,7 +477,7 @@ Lemma isog_cyclic_card : forall G M,
   cyclic G -> isog G M = cyclic M && (#|M| == #|G|).
 Proof.
 move=> G H cycG; apply/idP/idP=> [isoGM | ].
-  by rewrite (isog_card isoGM) -(isog_cyclic isoGM) cycG /=.
+  by rewrite (card_isog isoGM) -(isog_cyclic isoGM) cycG /=.
 case/cyclicP: cycG => x ->{G}; case/andP; case/cyclicP=> y ->{M} oy.
 by apply: isog_trans (isog_symr _) (Zp_isog y); rewrite /order (eqP oy) Zp_isog.
 Qed.
@@ -631,7 +631,7 @@ Lemma Zp_unit_isog : isog (units_Zp #[a]) (Aut <[a]>).
 Proof. exact: isom_isog Zp_unit_isom. Qed.
 
 Lemma card_Aut_cycle : #|Aut <[a]>| = phi #[a].
-Proof. by rewrite -(isog_card Zp_unit_isog) card_units_Zp. Qed.
+Proof. by rewrite -(card_isog Zp_unit_isog) card_units_Zp. Qed.
 
 Lemma phi_gen : phi #[a] = #|[set x | generator <[a]> x]|.
 Proof.

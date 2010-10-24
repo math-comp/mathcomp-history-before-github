@@ -282,7 +282,7 @@ apply FF => [|S1]; last by rewrite S1 cards1 in oS.
 apply: char_normal_trans Hnorm; apply: lone_subgroup_char => // Q sQH isoQS.
 rewrite subEproper; apply/norP=> [[nQS _]]; move: nSyl5.
 rewrite (cardsD1 S) (cardsD1 Q) 4!{1}inE nQS !pHallE sQH sSH Hcard20 p_part.
-by rewrite (isog_card isoQS) oS.
+by rewrite (card_isog isoQS) oS.
 Qed.
 
 Module Alt_CP_2. End Alt_CP_2.

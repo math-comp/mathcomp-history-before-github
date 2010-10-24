@@ -72,7 +72,7 @@ have: Hx \in (G / H)%g by rewrite defGH cycle_id.
 case/morphimP=> x nHx Gx defHx.
 have{Hx defGH defHx} defG : G :=: <[x]> <*> H.
   rewrite -(quotientGK nsHG) defGH defHx -quotient_cycle //.
-  by rewrite mulgenC quotientK ?norm_mulgenEr // cycle_subG.
+  by rewrite joingC quotientK ?norm_joinEr // cycle_subG.
 have [e def1]: exists e, 1%:M = \sum_(z \in G) e z *m (M *m rG z).
   apply/sub_sumsmxP; have [X sXG [<- _]] := Clifford_basis irrG simM.
   by apply/sumsmx_subP=> z Xz; rewrite (sumsmx_sup z) ?(subsetP sXG).
@@ -104,7 +104,7 @@ have cHtau_x: centgmx rH (tau *m rG x).
     by rewrite /= -!repr_mxM ?groupM ?groupV // -conjgC.
   by rewrite -mem_conjg (normsP nHG).
 have{cHtau_x} cGtau_x: centgmx rG (tau *m rG x).
-  rewrite /centgmx {1}defG mulgen_subG cycle_subG !inE Gx /= andbC.
+  rewrite /centgmx {1}defG join_subG cycle_subG !inE Gx /= andbC.
   rewrite (subset_trans cHtau_x); last by rewrite rcent_subg subsetIr.
   apply/eqP; rewrite -{2 3}[rG x]mul1mx -tau'K !mulmxA; congr (_ *m _ *m _).
   case/envelop_mxP: Htau' => u ->.
@@ -113,7 +113,7 @@ have{cHtau_x} cGtau_x: centgmx rG (tau *m rG x).
 have{cGtau_x} [a def_tau_x]: exists a, tau *m rG x = a%:M.
   by apply/is_scalar_mxP; apply: mx_abs_irr_cent_scalar cGtau_x; exact: closedF.
 apply: mx_iso_simple (eqmx_iso _ _) simM; apply/eqmxP; rewrite submx1 sub1mx.
-case/mx_irrP: (irrG) => _ -> //; rewrite /mxmodule {1}defG mulgen_subG /=.
+case/mx_irrP: (irrG) => _ -> //; rewrite /mxmodule {1}defG join_subG /=.
 rewrite cycle_subG inE Gx andbC (subset_trans modM) ?rstabs_subg ?subsetIr //=.
 rewrite -{1}[M]mulmx1 -tau'K mulmxA -mulmxA def_tau_x mul_mx_scalar.
 by rewrite scalemx_sub ?(mxmodule_envelop modM Htau').
@@ -156,7 +156,7 @@ have card_sH: #|sH| = #|G : 'C_G[W | 'Cl]|.
   rewrite orbit_stabilizer // card_in_imset //. 
   exact: can_in_inj (act_reprK _).
 have sHcW: H \subset 'C_G[W | 'Cl].
-  apply: subset_trans (subset_trans (mulgen_subl _ _) (Clifford_astab sH)) _.
+  apply: subset_trans (subset_trans (joing_subl _ _) (Clifford_astab sH)) _.
   apply/subsetP=> z; rewrite !inE; case/andP=> ->; apply: subset_trans.
   exact: subsetT.
 have [|] := prime_subgroupVti ('C_G[W | 'Cl] / H)%G prGH.
@@ -647,7 +647,7 @@ wlog{ffulG F'G} [irrG regZ]: q rG / mx_irreducible rG /\ rfix_mx rG 'Z(P) = 0.
     rewrite normal_rfix_mx_module //= -sub1mx inE Gz /=.
     by move/implyP; move/rfix_mxP->.
   have ffulP: P :&: rker rW = 1%g.
-    apply: (nil_TI_Z (pgroup_nil pP)).
+    apply: (TI_center_nil (pgroup_nil pP)).
       by rewrite /normal subsetIl normsI ?normG ?(subset_trans _ (rker_norm _)).
     rewrite /= setIC setIA (setIidPl (center_sub _)); apply: prime_TIg=> //.
     by apply: contra ffZ; move/subsetP->.
@@ -664,7 +664,7 @@ wlog [M simM _]: / exists2 M, mxsimple rP M & (M <= 1%:M)%MS.
 have{M simM irrG regZ F'P} [irrP def_q]: mx_irreducible rP /\ q = (p ^ n)%N.
   have [modM nzM _]:= simM.
   have [] := faithful_repr_extraspecial _ _ oPpn _ _ simM => // [|<- isoM].
-    apply/eqP; apply: (nil_TI_Z (pgroup_nil pP)).
+    apply/eqP; apply: (TI_center_nil (pgroup_nil pP)).
       rewrite /= -(eqmx_rstab _ (val_submod1 M)) -(rstab_submod modM).
       exact: rker_normal.
     rewrite setIC prime_TIg //=; apply: contra nzM => cMZ.
@@ -673,7 +673,7 @@ have{M simM irrG regZ F'P} [irrP def_q]: mx_irreducible rP /\ q = (p ^ n)%N.
   suffices irrP: mx_irreducible rP.
     by split=> //; apply/eqP; rewrite eq_sym; case/mx_irrP: irrP => _; exact.
   apply: (@mx_irr_prime_index F _ G P _ M nsPG) => // [|x Gx].
-    by rewrite -defG quotient_mulgr quotient_cyclic.
+    by rewrite -defG quotientMidl quotient_cyclic.
   rewrite (bool_irrelevance (normal_sub nsPG) sPG).
   apply: isoM; first exact: (@Clifford_simple _ _ _ _ nsPG).
   have cZx: x \in 'C_G('Z(P)).
@@ -866,7 +866,7 @@ have nPG: G \subset 'N(P).
   have nKG: G \subset 'N(K) by rewrite normal_norm ?pcore_normal.
   suffices p'G': p^'.-group G^`(1)%g by case/eqnP: (pgroupP p'G' p p_pr pG').
   apply: pgroupS (pcore_pgroup p^' G); rewrite -quotient_cents2 //= -/K.
-  by rewrite -defG quotient_mulgr /= -/K quotient_cents ?(subset_trans sPN).
+  by rewrite -defG quotientMidl /= -/K quotient_cents ?(subset_trans sPN).
 pose Q := G^`(1)%g :&: P; have sQG: Q \subset G by rewrite subIset ?der_subS.
 have nQG: G \subset 'N(Q) by rewrite normsI // normal_norm ?der_normalS.
 have pQ: (p %| #|Q|)%N.

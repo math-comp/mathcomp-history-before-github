@@ -3,52 +3,46 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import fintype bigop finset prime fingroup morphism.
 Require Import gfunctor automorphism quotient action gproduct cyclic.
 
-(*****************************************************************************)
-(* Standard group notions and constructions based on the prime decomposition *)
-(* of the order of the group or its elements.                                *)
-(*   pi.-group G      <=> G is a pi-group                                    *)
-(*                    <-> pi.-nat #|G|                                       *)
-(*     + Recall that here and in the sequel pi can be a prime p              *)
-(*   pi.-subgroup(H) G   <=> H is a pi-subgroup of G                         *)
-(*                    <-> (H \subset G) && pi.-group H                       *)
-(*     + This is provided mostly as a shorhand, with few associated lemmas.  *)
-(*     + However, we do establish some results on maximal pi-subgroups.      *)
-(*   pi.-elt x        <=> x is a pi-element                                  *)
-(*                    <-> pi.-nat #[x] (<-> pi.-group <[x]>)                 *)
-(*   x.`_pi           == the pi-constituent of x: the only pi-element        *)
-(*                       y \in <[x]> s.t. x * y^-1 is a pi'-element          *)
-(*   pi.-Hall(G) H    <=> H is a Hall pi-subgroup of G                       *)
-(*                    <-> [&& H \subset G, pi.-group H & pi^'.-nat #|G : H|] *)
-(*                     -> #|H| = #|G|`_pi                                    *)
-(*   p.-Sylow(G) P    <=> P is a Sylow p-subgroup of G                       *)
-(*                    <-> p.-Hall(G) P                                       *)
-(*     + This is only a display notation; note that due to an ugly display   *)
-(*       engine bug, Coq will fail to use the notation under a coercion such *)
-(*       as is_true, and will display p.-Hall(G) P instead.                  *)
-(*   'Syl_p(G)        == the set of the p-Sylow subgroups of G               *)
-(*                    := [set P : {group _} | p.-Sylow(G) P]                 *)
-(*   p_group P        <=> P is a p-group for some prime p                    *)
-(*                    <-> (pdiv #|P|).-group P                               *)
-(*   Hall G H         <=> H is a Hall pi-subgroup of G for some pi           *)
-(*                    <-> coprime #|H| #|G : H| && (H \subset G)             *)
-(*   Sylow G P        <=> P is a Sylow p-subgroup of G for some p            *)
-(*                    <-> p_group P && Hall G P                              *)
-(*   'O_pi(G)         == the pi-core of G                                    *)
-(*                    := the largest normal pi-subgroup of G                 *)
-(*   pcore_mod pi G H == the pi-core of G mod H                              *)
-(*                    := G :&: (coset H @*^-1 'O_pi(G / H))                  *)
-(*   'O_{pi2, pi1}(G) == the pi1,pi2-core of G                               *)
-(*                    := the pi1-core of G mod 'O_pi2(G)                     *)
-(*     + We have 'O_{pi2, pi1}(G) / 'O_pi2(G) = 'O_pi1(G / 'O_pi2(G))        *)
-(*          with 'O_pi2(G) <| 'O_{pi2, pi1}(G) <| G                          *)
-(*   'O_{pn, ..., p1}(G) == the p1, ..., pn-core of G, more generally        *)
-(*                    := the p1-core of G mod 'O_{pn, ..., p2}(G)            *)
-(* Note that notions are always defined on sets even though their name       *)
-(* indicates "group" properties; the actual definition of the notion never   *)
-(* tests for the group property, since this property will always be          *)
-(* provided by a (canonical) group structure. Similarly, p-group properties  *)
-(* assume without test that p is a prime.                                    *)
-(*****************************************************************************)
+(******************************************************************************)
+(* Standard group notions and constructions based on the prime decomposition  *)
+(* of the order of the group or its elements:                                 *)
+(*        pi.-group G <=> G is a pi-group, i.e., pi.-nat #|G|.                *)
+(*    -> Recall that here and in the sequel pi can be a single prime p.       *)
+(*  pi.-subgroup(H) G <=> H is a pi-subgroup of G.                            *)
+(*                     := (H \subset G) && pi.-group H.                       *)
+(*    -> This is provided mostly as a shorhand, with few associated lemmas.   *)
+(*       However, we do establish some results on maximal pi-subgroups.       *)
+(*          pi.-elt x <=> x is a pi-element.                                  *)
+(*                     := pi.-nat #[x] or pi.-group <[x]>.                    *)
+(*             x.`_pi == the pi-constituent of x: the (unique) pi-element     *)
+(*                       y \in <[x]> such that x * y^-1 is a pi'-element.     *)
+(*      pi.-Hall(G) H <=> H is a Hall pi-subgroup of G.                       *)
+(*                    := [&& H \subset G, pi.-group H & pi^'.-nat #|G : H|].  *)
+(*    -> This is also eqivalent to H \subset G /\ #|H| = #|G|`_pi.            *)
+(*      p.-Sylow(G) P <=> P is a Sylow p-subgroup of G.                       *)
+(*    -> This is the display and preferred input notation for p.-Hall(G) P.   *)
+(*          'Syl_p(G) == the set of the p-Sylow subgroups of G.               *)
+(*                    := [set P : {group _} | p.-Sylow(G) P].                 *)
+(*          p_group P <=> P is a p-group for some prime p.                    *)
+(*           Hall G H <=> H is a Hall pi-subgroup of G for some pi.           *)
+(*                    := coprime #|H| #|G : H| && (H \subset G).              *)
+(*          Sylow G P <=> P is a Sylow p-subgroup of G for some p.            *)
+(*                    := p_group P && Hall G P.                               *)
+(*           'O_pi(G) == the pi-core (largest normal pi-subgroup) of G.       *)
+(*   pcore_mod pi G H == the pi-core of G mod H.                              *)
+(*                    := G :&: (coset H @*^-1 'O_pi(G / H)).                  *)
+(*   'O_{pi2, pi1}(G) == the pi1,pi2-core of G.                               *)
+(*                    := the pi1-core of G mod 'O_pi2(G).                     *)
+(*     -> We have 'O_{pi2, pi1}(G) / 'O_pi2(G) = 'O_pi1(G / 'O_pi2(G))        *)
+(*        with 'O_pi2(G) <| 'O_{pi2, pi1}(G) <| G.                            *)
+(* 'O_{pn, ..., p1}(G) == the p1, ..., pn-core of G.                          *)
+(*                    := the p1-core of G mod 'O_{pn, ..., p2}(G).            *)
+(* Note that notions are always defined on sets even though their name        *)
+(* indicates "group" properties; the actual definition of the notion never    *)
+(* tests for the group property, since this property will always be provided  *)
+(* by a (canonical) group structure. Similarly, p-group properties assume     *)
+(* without test that p is a prime.                                            *)
+(******************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -289,7 +283,14 @@ by congr (~~ _); apply: eq_pi_rho; apply: (pi_of_dvd (dvdn_indexg G H)).
 Qed.
 
 Lemma eq_pHall : forall pi rho G H, pi =i rho -> pi.-Hall(G) H = rho.-Hall(G) H.
-Proof. by move=> pi pho G H eq_pi_rho; exact: eq_in_pHall (in1W eq_pi_rho). Qed.
+Proof. by move=> pi rho G H eq_pi_rho; exact: eq_in_pHall (in1W eq_pi_rho). Qed.
+
+Lemma eq_p'Hall : forall pi rho G H,
+  pi =i rho -> pi^'.-Hall(G) H = rho^'.-Hall(G) H.
+Proof. by move=> pi rho G H eq_pi_rho; exact: eq_pHall (eq_negn _). Qed.
+
+Lemma pHallNK : forall pi G H, pi^'^'.-Hall(G) H = pi.-Hall(G) H.
+Proof. by move=> pi G H; exact: eq_pHall (negnK _). Qed.
 
 Lemma subHall_Hall : forall pi rho G H K,
   rho.-Hall(G) H -> {subset pi <= rho} -> pi.-Hall(H) K -> pi.-Hall(G) K.
@@ -351,19 +352,17 @@ Lemma compl_p'Hall : forall pi K H G,
   pi^'.-Hall(G) K -> (H \in [complements to K in G]) = pi.-Hall(G) H.
 Proof. by move=> pi K H G; move/compl_pHall->; exact: eq_pHall (negnK pi). Qed.
 
-Lemma normal_pHall_sdprodP : forall pi K H G,
-  pi.-Hall(G) K -> K <| G -> reflect (K ><| H = G) (pi^'.-Hall(G) H).
+Lemma sdprod_normal_p'HallP : forall pi K H G,
+  K <| G -> pi^'.-Hall(G) H -> reflect (K ><| H = G) (pi.-Hall(G) K).
 Proof.
-move=> pi K H G hallGpi; case/andP=> _ nKG; rewrite -(compl_pHall _ hallGpi).
-apply: (iffP complP) => [[tiKH mulKH] | ]; last by case/sdprodP.
-by rewrite sdprodE // (subset_trans _ nKG) // -mulKH mulG_subr.
+move=> pi K H G nsKG hallH; rewrite -(compl_p'Hall K hallH).
+exact: sdprod_normal_complP.
 Qed.
 
-Lemma normal_p'Hall_sdprodP : forall pi K H G,
-  pi^'.-Hall(G) K -> K <| G -> reflect (K ><| H = G) (pi.-Hall(G) H).
+Lemma sdprod_normal_pHallP : forall pi K H G,
+  K <| G -> pi.-Hall(G) H -> reflect (K ><| H = G) (pi^'.-Hall(G) K).
 Proof.
-move=> pi K H G; rewrite -(eq_pHall G H (negnK pi)).
-exact: normal_pHall_sdprodP.
+by move=> pi K H G nsKG hallH; apply: sdprod_normal_p'HallP; rewrite ?pHallNK.
 Qed.
 
 Lemma pHallJ2 : forall pi G H x,
@@ -451,7 +450,7 @@ Lemma p_eltM_norm : forall pi x y, x \in 'N(<[y]>) ->
   pi.-elt x -> pi.-elt y -> pi.-elt (x * y).
 Proof.
 move=> pi x y nyx pi_x pi_y; apply: (@mem_p_elt pi _ (<[x]> <*> <[y]>)%G).
-  rewrite /= norm_mulgenEl ?cycle_subG // pgroupM; exact/andP.
+  rewrite /= norm_joinEl ?cycle_subG // pgroupM; exact/andP.
 by rewrite groupM // mem_gen // inE cycle_id ?orbT.
 Qed.
 
@@ -603,7 +602,7 @@ Lemma comm_sub_max_pgroup : forall pi H M G,
   commute H M -> H \subset M.
 Proof.
 move=> pi H M G; case/maxgroupP; case/andP=> sMG piM maxM piH sHG cHM.
-rewrite -(maxM (H <*> M)%G) /= comm_mulgenE ?(mulG_subl, mulG_subr) //.
+rewrite -(maxM (H <*> M)%G) /= comm_joingE ?(mulG_subl, mulG_subr) //.
 by rewrite /psubgroup pgroupM piM piH mul_subG.
 Qed.
 
@@ -859,7 +858,7 @@ Proof.
 move=> pC cycC; case: (eqsVneq C 1) => [-> | ntC].
   by rewrite cent1T setIT trivg_quotient cards1 logn1.
 have [p_pr _ [e oC]] := pgroup_pdiv pC ntC.
-rewrite -ker_conj_aut (isog_card (first_isog_loc _ _)) //.
+rewrite -ker_conj_aut (card_isog (first_isog_loc _ _)) //.
 apply: leq_trans (dvdn_leq_log _ _ (cardSg (Aut_conj_aut _ _))) _ => //.
 rewrite card_Aut_cyclic // oC phi_pfactor //= logn_gauss ?pfactorK //.
 by rewrite prime_coprime // gtnNdvd // -(subnKC (prime_gt1 p_pr)).
@@ -973,9 +972,16 @@ Lemma mem_Hall_pcore : forall G x,
   pi.-Hall(G) 'O_pi(G) -> x \in G -> (x \in 'O_pi(G)) = pi.-elt x.
 Proof. move=> G x hallGpi; exact: mem_normal_Hall (pcore_normal G). Qed.
 
-Lemma Hall_pcore_sdprodP : forall  H G,
+Lemma sdprod_Hall_pcoreP : forall H G,
   pi.-Hall(G) 'O_pi(G) -> reflect ('O_pi(G) ><| H = G) (pi^'.-Hall(G) H).
-Proof. by move=> H G hallGpi; exact: normal_pHall_sdprodP (pcore_normal G). Qed.
+Proof.
+move=> H G hallGpi; rewrite -(compl_pHall H hallGpi) complgC.
+exact: sdprod_normal_complP (pcore_normal G).
+Qed.
+
+Lemma sdprod_pcore_HallP : forall H G,
+  pi^'.-Hall(G) H -> reflect ('O_pi(G) ><| H = G) (pi.-Hall(G) 'O_pi(G)).
+Proof. by move=> H G; exact: sdprod_normal_p'HallP (pcore_normal G). Qed.
 
 Lemma pcoreJ : forall G x, 'O_pi(G :^ x) = 'O_pi(G) :^ x.
 Proof.
@@ -1293,7 +1299,7 @@ End MorphPcore.
 
 Section EqPcore.
 
-Variable gT : finGroupType.
+Variables gT : finGroupType.
 Implicit Types pi rho : nat_pred.
 Implicit Types G H : {group gT}.
 
@@ -1327,16 +1333,21 @@ Proof. by move=> pi G; apply: eq_pcore; exact: negnK. Qed.
 Lemma eq_p'core : forall pi rho G, pi =i rho -> 'O_pi^'(G) = 'O_rho^'(G).
 Proof. by move=> pi rho G; move/eq_negn; exact: eq_pcore. Qed.
 
-Lemma Hall_p'core_sdprodP : forall pi H G,
+Lemma sdprod_Hall_p'coreP : forall pi H G,
   pi^'.-Hall(G) 'O_pi^'(G) -> reflect ('O_pi^'(G) ><| H = G) (pi.-Hall(G) H).
 Proof.
-move=> pi H G; rewrite -(eq_pHall G H (negnK pi)).
-exact: Hall_pcore_sdprodP.
+by move=> pi H G; rewrite -(pHallNK pi G H); exact: sdprod_Hall_pcoreP.
 Qed.
 
-Lemma pcoreI : forall pi1 pi2 G, 'O_[predI pi1 & pi2](G) = 'O_pi1('O_pi2(G)).
+Lemma sdprod_p'core_HallP : forall pi H G,
+  pi.-Hall(G) H -> reflect ('O_pi^'(G) ><| H = G) (pi^'.-Hall(G) 'O_pi^'(G)).
 Proof.
-move=> pi1 pi2 G; apply/eqP; rewrite eqEsubset !pcore_max //.
+by move=> pi H G; rewrite -(pHallNK pi G H); exact: sdprod_pcore_HallP.
+Qed.
+
+Lemma pcoreI : forall pi rho G, 'O_[predI pi & rho](G) = 'O_pi('O_rho(G)).
+Proof.
+move=> pi rho G; apply/eqP; rewrite eqEsubset !pcore_max //.
 - rewrite /pgroup pnatI [pnat _ _]pcore_pgroup.
   exact: pgroupS (pcore_sub _ _) (pcore_pgroup _ _).
 - exact: char_normal_trans (pcore_char _ _) (pcore_normal _ _).
@@ -1361,11 +1372,16 @@ apply big_prop => [|H K nHG nKG|p _]; rewrite ?normsI ?bgFunc_norm //.
 by rewrite normsG // subsetT.
 Qed.
 
-Lemma coprime_pcoreC : forall (xT : finGroupType) pi G (H : {group xT}),
-  coprime #|'O_pi(G)| #|'O_pi^'(H)|.
-Proof. move=> *; exact: pnat_coprime (pcore_pgroup _ _) (pcore_pgroup _ _). Qed.
+Lemma coprime_pcoreC : forall (rT : finGroupType) pi G (R : {group rT}),
+  coprime #|'O_pi(G)| #|'O_pi^'(R)|.
+Proof.
+move=> rT pi G R; exact: pnat_coprime (pcore_pgroup _ _) (pcore_pgroup _ _).
+Qed.
 
-Lemma TI_pcoreC : forall pi (G H : {group gT}), 'O_pi(G) :&: 'O_pi^'(H) = 1.
+Lemma TI_pcoreC : forall pi G H, 'O_pi(G) :&: 'O_pi^'(H) = 1.
 Proof. by move=> pi G H; rewrite coprime_TIg ?coprime_pcoreC. Qed.
 
 End EqPcore.
+
+Implicit Arguments sdprod_Hall_pcoreP [gT pi G H].
+Implicit Arguments sdprod_Hall_p'coreP [gT pi G H].

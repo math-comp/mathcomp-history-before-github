@@ -559,7 +559,7 @@ Qed.
 Lemma morphim_cycle : forall x, x \in D -> f @* <[x]> = <[f x]>.
 Proof. by move=> x Dx; rewrite morphim_gen (sub1set, morphim_set1). Qed.
 
-Lemma morphim_mulgen : forall A B,
+Lemma morphimY : forall A B,
   A \subset D -> B \subset D -> f @* (A <*> B) = f @* A <*> f @* B.
 Proof. by move=> A B sAD sBD; rewrite morphim_gen ?morphimU // subUset sAD. Qed.
 
@@ -1302,7 +1302,7 @@ Proof.
 by apply/isogP; exists [morphism of idm G]; rewrite /= ?injm_idm ?morphim_idm.
 Qed.
 
-Lemma isog_card : G \isog H -> #|G| = #|H|.
+Lemma card_isog : G \isog H -> #|G| = #|H|.
 Proof. case/isogP=> f injf <-; apply: isom_card (f) _; exact/isomP. Qed.
 
 Lemma isog_abelian :  G \isog H -> abelian G = abelian H.
@@ -1315,8 +1315,8 @@ exists [morphism of @trivm gT hT 1]; rewrite /= ?morphim1 //.
 rewrite ker_trivm; exact: subxx.
 Qed.
 
-Lemma isog_triv : G \isog H -> (G :==: 1) = (H :==: 1).
-Proof. by move=> isoGH; rewrite !trivg_card1 isog_card. Qed.
+Lemma isog_eq1 : G \isog H -> (G :==: 1) = (H :==: 1).
+Proof. by move=> isoGH; rewrite !trivg_card1 card_isog. Qed.
 
 Lemma isog_symr : G \isog H -> H \isog G.
 Proof.

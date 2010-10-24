@@ -185,7 +185,7 @@ Lemma isoGrpP : forall gT (G : {group gT}) p rT (H : {group rT}),
   G \isog Grp p -> reflect (#|H| = #|G| /\ H \homg Grp p) (H \isog G).
 Proof.
 move=> gT G p rT H isoGp; apply: (iffP idP) => [isoGH | [oH homHp]].
-  by rewrite (isog_card isoGH) -isoGp isog_hom.
+  by rewrite (card_isog isoGH) -isoGp isog_hom.
 by rewrite isogEcard isoGp homHp /= oH.
 Qed.
 
@@ -218,9 +218,9 @@ have: forall v, let: Env A e := s v in
   by split; last exists (h x).
 elim: p 1%N vT vT' s s' => /= [p IHp | f] n vT vT' s s' Gs.
   apply: IHp => [[v x]] /=; case: (s v) {Gs}(Gs v) => A e /= Gs.
-  rewrite mulgen_subG cycle_subG; case/andP=> sAG Gx; rewrite Gx.
+  rewrite join_subG cycle_subG; case/andP=> sAG Gx; rewrite Gx.
   have [//|-> [v' def_v']] := Gs; split=> //; exists (v', h x); rewrite def_v'.
-  by congr (Env _ _); rewrite morphim_mulgen ?cycle_subG // morphim_cycle.
+  by congr (Env _ _); rewrite morphimY ?cycle_subG // morphim_cycle.
 case/existsP=> v; case: (s v) {Gs}(Gs v) => /= A e Gs.
 rewrite and_relE; case/andP; move/eqP=> defA rel_f.
 have{Gs} [|Ge [v' def_v']] := Gs; first by rewrite defA.

@@ -196,14 +196,14 @@ set Ms := M`_\sigma; set F := Ms <*> A0 :^ g.
 have sA0gM: A0 :^ g \subset M.
   by rewrite (subset_trans _ sPM) // -(normP nPg) conjSg (subset_trans sA0A).
 have defF: Ms ><| A0 :^ g = F.
-  rewrite sdprodEgen ?coprime_TIg //.
+  rewrite sdprodEY ?coprime_TIg //.
     by rewrite (subset_trans sA0gM) ?bgFunc_norm.
   by rewrite cardJg oA0 (pnat_coprime (pcore_pgroup _ _)) ?pnatE.
 have regA0g: 'C_Ms(A0 :^ g) = 1.
   case/exceptional_TI_MsigmaJ: notMg => //.
   by rewrite -sub_conjgV (subset_trans _ sPM) // sub_conjgV (normP _).
-rewrite (odd_prime_Frobenius_kernel_nil defF) ?cardJg ?oA0 //.
-by rewrite (solvableS _ (mmax_sol maxM)) // mulgen_subG pcore_sub.
+rewrite (prime_Frobenius_sol_kernel_nil defF) ?cardJg ?oA0 //.
+by rewrite (solvableS _ (mmax_sol maxM)) // join_subG pcore_sub.
 Qed.
 
 (* This is B & G, Corollary 11.4. *)
@@ -342,7 +342,7 @@ have nKP: P \subset 'N(K) by rewrite (subset_trans sPE) ?bgFunc_norm.
 have coKP: coprime #|K| #|P|.
   by rewrite (pnat_coprime (pcore_pgroup _ _)) ?(pi_pnat pP) //= !inE ltnn.
 have hallKP: ptau.-Hall(E) KP.
-  rewrite pHallE mulgen_subG pcore_sub sPE /= norm_mulgenEr ?coprime_cardMg //.
+  rewrite pHallE join_subG pcore_sub sPE /= norm_joinEr ?coprime_cardMg //.
   apply/eqP; rewrite -(partnC tau (part_gt0 _ _)) (card_Hall sylP).
   rewrite (card_Hall hallK) partn_part => [|q]; last exact: leqW.
   rewrite (card_Hall hallE) -!partnI; congr (_ * _)%N; apply: eq_partn => q.
@@ -352,14 +352,14 @@ have nsKP_E: KP <| E.
   by rewrite [KP](uniq_normal_Hall hallOptau) ?pcore_normal ?Hall_max.
 have [cKA | not_cKA]:= boolP (A \subset 'C(K)).
   pose KA := K <*> A; have defKA: K \x A = KA.
-    by rewrite dprodEgen // coprime_TIg // (coprimegS sAP).
+    by rewrite dprodEY // coprime_TIg // (coprimegS sAP).
   have defA: 'Ohm_1(P) = A by case exceptional_structure.
   have{defA} defA: 'Ohm_1('O_p(KP)) = A.
     apply/eqP; rewrite -defA eqEsubset OhmS /=; last first.
-      rewrite pcore_sub_Hall ?(pHall_subl _ _ sylP) ?mulgen_subr //.
+      rewrite pcore_sub_Hall ?(pHall_subl _ _ sylP) ?joing_subr //.
       exact: subset_trans (pHall_sub hallKP) sEM.
-    rewrite -Ohm_id defA OhmS // pcore_max // /normal mulgen_subG.
-    rewrite (subset_trans sAP) ?mulgen_subr // cents_norm 1?centsC //=.
+    rewrite -Ohm_id defA OhmS // pcore_max // /normal join_subG.
+    rewrite (subset_trans sAP) ?joing_subr // cents_norm 1?centsC //=.
     by rewrite -defA bgFunc_norm.
   have nMsE: E \subset 'N(Ms) by rewrite (subset_trans sEM) ?bgFunc_norm.
   have tiMsE: Ms :&: E = 1.
@@ -367,7 +367,7 @@ have [cKA | not_cKA]:= boolP (A \subset 'C(K)).
   have <-: Ms * E = M.
     apply/eqP; rewrite eqEcard mulG_subG pcore_sub sEM /= TI_cardMg //.
     by rewrite (card_Hall hallE) (card_Hall (Hall_M_Msigma maxM)) ?partnC.
-  rewrite norm_mulgenEr -?quotientK ?(subset_trans sAE) //= cosetpre_normal.
+  rewrite norm_joinEr -?quotientK ?(subset_trans sAE) //= cosetpre_normal.
   rewrite quotient_normal // -defA (char_normal_trans (Ohm_char _ _)) //.
   by rewrite (char_normal_trans (pcore_char p _)).
 pose q := pdiv #|K : 'C_K(A)|.

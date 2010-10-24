@@ -519,10 +519,7 @@ Proof.
 move=> P qP iP gT G PG hT; have : P (coset_groupType G) 1%G.
   move:(trivg_quotient G); move/group_inj=><-.
   by apply:(qP _ _ _ (normal_refl _) PG).
-apply:iP; rewrite isog_symr //; have:= (quotient1 G); move/group_inj=><-.
-apply: (@isog_trans _ _ _ _ (one_group gT)); first by apply: trivial_isog.
-apply: (isom_isog _ _ (quotient_isom (sub1G 'N(G)) (setIidPl (sub1G G)))).
-by apply:subxx.
+by apply: iP; exact: trivial_isog.
 Qed.
 
 Definition cex P := forall gT (G H : {group gT}),
@@ -678,19 +675,19 @@ Lemma cjoinB : cjoin Bs.
 Proof.
 move=> Pb G H BH BG; apply: hClB=> hT C5 HC5 f5.
 rewrite morphim_gen ?subset_gen // gen_subG {1}morphimU subUset.
-rewrite 2!morphimE (setIidPr (mulgen_subl _ _)) (setIidPr (mulgen_subr _ _)).
+rewrite 2!morphimE (setIidPr (joing_subl _ _)) (setIidPr (joing_subr _ _)).
 move/andP=> [Hf5G Hf5H]; apply/trivgP; rewrite gen_subG.
 rewrite sub_morphim_pre ?subset_gen -?sub_morphim_pre ?sub_gen //.
 move: (morphM [morphism of f5 \o (idm G)]).
 move: (morphM [morphism of f5 \o (idm H)]). 
 rewrite {1}[idm_morphism G @*^-1 _]morphpre_idm.
 rewrite {1}[idm_morphism H @*^-1 _]morphpre_idm.
-rewrite (setIidPl (mulgen_subl _ _)) (setIidPl (mulgen_subr _ _)) =>Hf Hg.
+rewrite (setIidPl (joing_subl _ _)) (setIidPl (joing_subr _ _)) =>Hf Hg.
 pose f:= Morphism Hf; pose g:= Morphism Hg.
 move: (hBCl BH HC5) (hBCl BG HC5)=> HtG HtH; move: (HtG g) (HtH f).
 rewrite 2!morphimE 2!imset_comp -!morphimE !morphim_idm ?subxx // morphimU.
-rewrite subUset !morphimE (setIidPr (mulgen_subl _ _)). 
-rewrite (setIidPr (mulgen_subr _ _)); move/(_ Hf5G)=>->; move/(_ Hf5H)=>->.
+rewrite subUset !morphimE (setIidPr (joing_subl _ _)). 
+rewrite (setIidPr (joing_subr _ _)); move/(_ Hf5G)=>->; move/(_ Hf5H)=>->.
 by rewrite subxx.
 Qed.
 
@@ -840,7 +837,7 @@ Hypothesis reflectB : forall gT (G:{group gT}), reflect (Bs G) (Bbool G).
 (***************************************************************************)
 
 Definition T gT (G:{set gT}) := 
-  \big[mulGen/1%G]_(H: {group gT} | (@Bbool _ H) && (H \subset G)) H.
+  \big[joinG/1%G]_(H: {group gT} | (@Bbool _ H) && (H \subset G)) H.
 
 (* The following is trivial, but important to notice *)
 Lemma sub1TG : forall gT (G:{group gT}), 1%G \subset T G.

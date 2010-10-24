@@ -104,14 +104,14 @@ case/(H :=P: M): neHM; case: (ltnP 2 'r('F(H))) => [le3r | ge2r].
   by rewrite (eq_uniq_mmax uF_D maxM) // (eq_uniq_mmax uF_D maxH) ?Fitting_sub.
 have nHp'R: R \subset 'N('O_p^'(H)) by rewrite (subset_trans sRH) ?bgFunc_norm.
 have nsRHp'H: R <*> 'O_p^'(H) <| H.
-  rewrite sub_der1_normal //= ?mulgen_subG ?sRH ?pcore_sub //.
-  rewrite norm_mulgenEl // (subset_trans _ sFH_RHp') //.
+  rewrite sub_der1_normal //= ?join_subG ?sRH ?pcore_sub //.
+  rewrite norm_joinEl // (subset_trans _ sFH_RHp') //.
   rewrite rank2_der1_sub_Fitting ?mFT_odd //.
   by rewrite mFT_sol ?mmax_proper.
 have sylR_RHp': p.-Sylow(R <*> 'O_p^'(H)) R.
-  by apply: (pHall_subl _ _ sylRH); rewrite ?mulgen_subl // normal_sub.
+  by apply: (pHall_subl _ _ sylRH); rewrite ?joing_subl // normal_sub.
 rewrite (mmax_max maxH) // -(Frattini_arg nsRHp'H sylR_RHp') /=.
-by rewrite mulG_subG mulgen_subG sRM sHp'M /= setIC subIset ?sNRM.
+by rewrite mulG_subG join_subG sRM sHp'M /= setIC subIset ?sNRM.
 Qed.
 
 (* This is B & G, Theorem 9.1(a) *)
@@ -397,12 +397,12 @@ have uNP0_mCA: forall M, M \in 'M('C(A)) -> 'M('N(P0)) = [set M].
   rewrite /normal comm_subG //= -/P0.
   have nFP: P \subset 'N(F) by rewrite (subset_trans _ (bgFunc_norm _ _)).
   have <-: F <*> P * 'N_M(P) = M.
-    apply: Frattini_arg (pHall_subl (mulgen_subr _ _) (subsetT _) sylP).
-    rewrite -(quotientGK (Fitting_normal M)) /= norm_mulgenEr //= -/F.
+    apply: Frattini_arg (pHall_subl (joing_subr _ _) (subsetT _) sylP).
+    rewrite -(quotientGK (Fitting_normal M)) /= norm_joinEr //= -/F.
     rewrite -quotientK // cosetpre_normal -sub_abelian_normal ?quotientS //.
     by rewrite sub_der1_abelian ?rank2_der1_sub_Fitting ?mFT_odd ?mmax_sol.
   case/dprodP: (nilpotent_pcoreC p (Fitting_nil M)) => _ /= defF cDFp _.
-  rewrite norm_mulgenEr //= -{}defF -(centC cDFp) -/D p_core_Fitting /= -/F.
+  rewrite norm_joinEr //= -{}defF -(centC cDFp) -/D p_core_Fitting /= -/F.
   rewrite -!mulgA mul_subG //; first by rewrite cents_norm // centsC.
   rewrite mulgA [_ * P]mulSGid ?pcore_sub_Hall 1?(pHall_subl _ (subsetT _)) //.
   by rewrite mulSGid ?subsetI ?sPM ?normG // subIset // orbC normsRr.

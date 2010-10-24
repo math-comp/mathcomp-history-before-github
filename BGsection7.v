@@ -74,7 +74,7 @@ Lemma minSimpleOdd_ind : forall gT (G : {group gT}), odd #|G| -> solvable G.
 Proof.
 move=> gT G; move: {2}_.+1 (ltnSn #|G|) => n.
 elim: n => // n IHn in gT G *; rewrite ltnS => leGn oddG.
-have oG: #|[subg G]| = #|G| by rewrite (isog_card (isog_subg G)).
+have oG: #|[subg G]| = #|G| by rewrite (card_isog (isog_subg G)).
 apply/idPn=> nsolG; case: IH_FT; exists [finGroupType of subg_of G].
 do [split; rewrite ?oG //=] => [||M].
 - rewrite -(isog_simple (isog_subg _)); apply/simpleP; split=> [|H nsHG].
@@ -470,19 +470,19 @@ suffices: P \subset K.
   by case: eqnP p_pr => // ->.
 suffices sP_pAC: P \subset 'O_pi^'(A <*> 'C(A)).
   rewrite (subset_trans sP_pAC) ?pcore_max ?pcore_pgroup //.
-  rewrite /normal (char_norm_trans (pcore_char _ _)) ?normsG ?mulgen_subr //.
+  rewrite /normal (char_norm_trans (pcore_char _ _)) ?normsG ?joing_subr //.
   rewrite andbT -quotient_sub1; last first.
-    rewrite (subset_trans (pcore_sub _ _)) // mulgen_subG normG cents_norm //.
+    rewrite (subset_trans (pcore_sub _ _)) // join_subG normG cents_norm //.
     by rewrite centsC.
-  rewrite /= -(setIidPr (pcore_sub _ _)) quotientGI ?mulgen_subr //=.
-  rewrite {1}cent_mulgenEr // quotient_mulg coprime_TIg // coprime_morph //.
+  rewrite /= -(setIidPr (pcore_sub _ _)) quotientGI ?joing_subr //=.
+  rewrite {1}cent_joinEr // quotientMidr coprime_TIg // coprime_morph //.
   by rewrite coprime_pi' ?cardG_gt0 //= -/pi [pnat _ _]pcore_pgroup.
-apply: hyp71; first exact: mulgen_subl.
+apply: hyp71; first exact: joing_subl.
   apply: sub_proper_trans (mFT_norm_proper ntA prA).
-  by rewrite mulgen_subG normG cent_sub.
+  by rewrite join_subG normG cent_sub.
 have sPC: P \subset 'C(A) by rewrite (subset_trans sPx) ?cycle_subG.
 rewrite inE /psubgroup cents_norm 1?centsC // andbT.
-rewrite (subset_trans sPC) ?mulgen_subr //=.
+rewrite (subset_trans sPC) ?joing_subr //=.
 by apply: sub_in_pnat pP => p' _; move/eqnP->.
 Qed.
 Let hallK := normed_constrained_Hall.
@@ -743,20 +743,20 @@ have nKB_P: P \subset 'N(KB).
 have [k KBk defQ2]:= atransP2 trnB S_Q0 S_Q2.
 have [qQ2 nQ2P] := mem_max_normed maxQ2.
 have hallP: pi.-Hall('N_KBP(Q2)) P.
-  have sPN: P \subset 'N_KBP(Q2) by rewrite subsetI mulgen_subr.
+  have sPN: P \subset 'N_KBP(Q2) by rewrite subsetI joing_subr.
   rewrite pHallE eqn_leq -{1}(part_pnat_id piP) dvdn_leq ?partn_dvd ?cardSg //.
   have ->: #|P| = #|KBP|`_pi.
-    rewrite /KBP mulgenC norm_mulgenEl // coprime_cardMg ?(pnat_coprime piP) //.
+    rewrite /KBP joingC norm_joinEl // coprime_cardMg ?(pnat_coprime piP) //.
     by rewrite partn_mul // part_pnat_id // part_p'nat // muln1.
   by rewrite sPN dvdn_leq ?partn_dvd ?cardSg ?cardG_gt0 ?subsetIl.
 have hallPk: pi.-Hall('N_KBP(Q2)) (P :^ k).
   rewrite pHallE -(card_Hall hallP) cardJg eqxx andbT subsetI /=.
-  by rewrite defQ2 normJ conjSg conj_subG ?mulgen_subr // mem_gen // inE KBk.
+  by rewrite defQ2 normJ conjSg conj_subG ?joing_subr // mem_gen // inE KBk.
 have [gz]: exists2 gz, gz \in 'N_KBP(Q2) & P :=: P :^ k :^ gz.
   apply: Hall_trans (solvableS (subsetIr _ _) _) hallP hallPk.
   have ntQ2: Q2 != 1%G by case: eqP nt_mnP maxQ2 => // -> ->.
   exact: mFT_sol (mFT_norm_proper ntQ2 (mFT_pgroup_proper qQ2)).
-rewrite [KBP]norm_mulgenEr //= setIC -group_modr //= setIC -/KB.
+rewrite [KBP]norm_joinEr //= setIC -group_modr //= setIC -/KB.
 case/imset2P=> g z; case/setIP=> KBg nQ2g Pz ->{gz} defP.
 exists (k * g); last first.
   by apply: val_inj; rewrite /= conjsgM -(normP nQ2g) defQ2.
@@ -825,7 +825,7 @@ have [B [E2_B nsBP sBZ]]: exists B, [/\ B \in 'E_p^2(A), B <| P & inZor1 B].
     by rewrite sub_center_normal ?(subset_trans sBZ).
   pose BZ := ('Ohm_1(A) / Z) :&: 'Z(P / Z).
   have ntBz: BZ != 1.
-    rewrite nil_meet_Z // ?quotient_nil ?(pgroup_nil pP) ?quotient_normal //.
+    rewrite meet_center_nil ?quotient_nil ?(pgroup_nil pP) ?quotient_normal //.
     rewrite -subG1 quotient_sub1 ?(subset_trans (normal_sub nsA1) nZP) //= -/Z.
     apply: contraL lt1mA => sA1Z; rewrite -(pfactorK 1 p_pr) -oZ -rank_Ohm1.
     by rewrite -(rank_abelem abelZ) -leqNgt rankS.
@@ -835,7 +835,7 @@ have [B [E2_B nsBP sBZ]]: exists B, [/\ B \in 'E_p^2(A), B <| P & inZor1 B].
     rewrite 2!inE (subset_trans sBA1) ?Ohm_sub // oB pfactorK //.
     by rewrite (abelemS sBA1) ?Ohm1_abelem.
   apply/idPn=> s'BZ; have: B :&: Z = 1 by rewrite setIC prime_TIg ?oZ.
-  move/TI_Ohm1; apply/eqP; rewrite nil_meet_Z ?(pgroup_nil pP) //.
+  move/TI_Ohm1; apply/eqP; rewrite meet_center_nil ?(pgroup_nil pP) //.
   by rewrite -cardG_gt1 oB (ltn_exp2l 0 _ (prime_gt1 p_pr)).
 split; rewrite ?(sub_proper_trans sAP) // => X Y sAX prX.
 rewrite inE defK -andbA (eq_pgroup _ def_pi'); case/and3P=> sYX p'Y nYA.

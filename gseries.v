@@ -258,8 +258,8 @@ Lemma mulg_normal_maximal : forall G M H,
   M <| G -> maximal M G -> H \subset G -> ~~ (H \subset M) -> (M * H = G)%g.
 Proof.
 move=> G M H; case/andP=> sMG nMG; case/maxgroupP=> _ maxM sHG not_sHM.
-apply/eqP; rewrite eqEproper mul_subG // -norm_mulgenEr ?(subset_trans sHG) //.
-by apply: contra not_sHM; move/maxM <-; rewrite ?mulgen_subl ?mulgen_subr.
+apply/eqP; rewrite eqEproper mul_subG // -norm_joinEr ?(subset_trans sHG) //.
+by apply: contra not_sHM; move/maxM <-; rewrite ?joing_subl ?joing_subr.
 Qed.
 
 End MaxProps.

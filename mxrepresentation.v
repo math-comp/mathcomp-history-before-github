@@ -4062,7 +4062,7 @@ Qed.
 
 Lemma Clifford_astab : H <*> 'C_G(H) \subset 'C([set: sH] | 'Cl).
 Proof.
-rewrite mulgen_subG !subsetI sHG subsetIl /=; apply/andP; split.
+rewrite join_subG !subsetI sHG subsetIl /=; apply/andP; split.
   apply/subsetP=> h Hh; have Gh := subsetP sHG h Hh; rewrite inE.
   apply/subsetP=> W _; have simW := socle_simple W; have [modW _ _] := simW.
   have simWh: mxsimple rH (socle_base W *m rG h) by exact: Clifford_simple.
@@ -5438,7 +5438,7 @@ have nb_irr: #|sS| = (p ^ n.*2 + p.-1)%N.
   by congr (_ + _)%N; apply: eq_card => t; rewrite !inE andbC // andbAC andbb.
 have fful_nlin: forall i, i \in ~: linS -> mx_faithful (irr_repr i).
   move=> i; rewrite !inE => nlin_phi.
-  apply/trivgP; apply: (nil_TI_Z (pgroup_nil pS) (rker_normal _)).
+  apply/trivgP; apply: (TI_center_nil (pgroup_nil pS) (rker_normal _)).
   rewrite setIC; apply: (prime_TIg prZ); rewrite /= -defS' der1_sub_rker //.
   exact: socle_irr.
 have [i0 nlin_i0]: exists i0, i0 \in ~: linS.

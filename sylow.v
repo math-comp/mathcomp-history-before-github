@@ -462,7 +462,7 @@ move=> G nilG; apply/eq_piP => /= p.
 apply/idP/idP=> [|pG]; first exact: (piSg (center_sub _)).
 move: (pG); rewrite !mem_primes !cardG_gt0; case/andP=> p_pr _.
 pose Z := 'O_p(G) :&: 'Z(G); have ntZ: Z != 1.
-  rewrite nil_meet_Z ?pcore_normal // trivg_card_le1 -ltnNge.
+  rewrite meet_center_nil ?pcore_normal // trivg_card_le1 -ltnNge.
   rewrite (card_Hall (nilpotent_pcore_Hall p nilG)) p_part.
   by rewrite (ltn_exp2l 0 _ (prime_gt1 p_pr)) logn_gt0.
 have pZ: p.-group Z := pgroupS (subsetIl _ _) (pcore_pgroup _ _).
@@ -498,7 +498,8 @@ have pPq: p.-group (P / 'Z(P)) by exact: quotient_pgroup.
 rewrite -(subnKC e_gt2) maxnr // 2!addSn ltnS.
 rewrite (leq_trans (IHc _ _ _ pPq)) ?nil_class_quotient_center ?def_c //.
 rewrite leq_maxl /= -subn1 -subSS -leq_sub_add subn_sub leq_sub2r //.
-by rewrite ltn_log_quotient //= -(setIidPr sZP) nil_meet_Z // -nil_class0 def_c.
+rewrite ltn_log_quotient //= -(setIidPr sZP) meet_center_nil //.
+by rewrite -nil_class0 def_c.
 Qed.
 
 Definition Zgroup (gT : finGroupType) (A : {set gT}) :=
@@ -576,7 +577,7 @@ Proof.
 move=> r; elim: r gT => [|r IHr] gTr P N pP nNP le_r.
   by exists (1%G : {group gTr}); rewrite sub1G normal1 cards1.
 case: (eqVneq (N :&: 'Z(P)) 1) => [NZ_1 | ntNZ].
-  by rewrite (nil_TI_Z (pgroup_nil pP)) // cards1 logn1 in le_r.
+  by rewrite (TI_center_nil (pgroup_nil pP)) // cards1 logn1 in le_r.
 have: p.-group (N :&: 'Z(P)) by apply: pgroupS pP; rewrite /= setICA subsetIl.
 case/pgroup_pdiv=> // p_pr; case/Cauchy=> // z.
 rewrite -cycle_subG !subsetI; case/and3P=> szN szP cPz ozp _.
@@ -632,7 +633,7 @@ have defD: D :=: P :&: <<B>> :&: E.
   apply/setUidPl; apply: maxD; last exact: subsetUl.
   rewrite subUset subsetI sDP sDE setIAC subsetIl.
   apply/existsP; exists y0; rewrite inE Py0 Ey0 /= setUA -/B.
-  by rewrite -[<<_>>]mulgen_idl mulgenE setKI genGid.
+  by rewrite -[<<_>>]joing_idl joingE setKI genGid.
 have nDD: D \subset 'N(D).
   apply/subsetP=> z Dz; rewrite inE; apply/subsetP=> yz.
   case/imsetP=> y; rewrite defD; case/setIP=> PBy Ey ->{yz}.

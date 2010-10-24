@@ -360,7 +360,7 @@ Qed.
 
 (* Characteristic subgroup properties : composition, relational properties *)
 
-Lemma trivg_char : forall G, 1 \char G.
+Lemma char1 : forall G, 1 \char G.
 Proof.
 by move=> G; apply/charP; split=> [|f _ _]; rewrite (sub1G, morphim1).
 Qed.
@@ -421,7 +421,7 @@ Qed.
 
 Lemma charM : forall G H K, H \char G -> K \char G -> H * K \char G.
 Proof.
-move=> G H K chHG chKG; rewrite -norm_mulgenEl ?charMgen //.
+move=> G H K chHG chKG; rewrite -norm_joinEl ?charMgen //.
 by case/andP: (char_normal chKG) => _; apply: subset_trans; case/andP: chHG.
 Qed.
 

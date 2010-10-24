@@ -125,31 +125,6 @@ Qed.
 Lemma center_idP : forall A, reflect ('Z(A) = A) (abelian A).
 Proof. by move=> A; exact: setIidPl. Qed.
 
-(*
-Lemma mulg_center_coprime_cent : forall G H,
-  coprime #|G| #|H| -> 'Z(G) * 'C_H(G) = 'C_(G * H)(G).
-Proof.
-have:= coprime_mulG_setI_norm.
-Search _ coprime card mulg.
-move=> G H coGH; apply/setP=> xy; apply/imset2P/setIP=> [[x y] | []].
-  by case/setIP=> Gx cGx; case/setIP=> Hy cGy ->; rewrite mem_mulg ?groupM.
-case/imset2P=> x y Gx Hy ->{xy} cGxy.
-suffices cGx: x \in 'C(G).
-  by exists x y => //; apply/setIP; rewrite // -(groupMl _ cGx).
-rewrite -[x](expgnK (coprime_dvdr (order_dvdG Hy) coGH)) // groupX //.
-rewrite -[(x ^+ _)%g]mulg1 -(expg_order y).
-elim: #[y] => [|k IHk]; first by rewrite mulg1 group1.
-by rewrite expgS expgSr mulgA -(mulgA x) -(centP IHk) // -mulgA groupM.
-Qed.
-
-Lemma mulg_coprime_cent_center : forall G H,
-  coprime #|G| #|H| -> 'C_G(H) * 'Z(H) = 'C_(G * H)(H).
-Proof.
-move=> G H; rewrite coprime_sym => coHG; apply: invg_inj.
-by rewrite invIg !invMg !invGid mulg_center_coprime_cent.
-Qed.
-*)
-
 Lemma subcent1P : forall A x y,
   reflect (y \in A /\ commute x y) (y \in 'C_A[x]).
 Proof.
@@ -545,7 +520,7 @@ Let gzZ_lone : forall Y : {group gTK},
   Y \subset 'Z(K) -> gz @* 'Z(H) \isog Y -> gz @* 'Z(H) = Y.
 Proof.
 move=> Y sYZ isoY; apply/eqP.
-by rewrite eq_sym eqEcard (isog_card isoY) gzZ sYZ /=.
+by rewrite eq_sym eqEcard (card_isog isoY) gzZ sYZ /=.
 Qed.
 
 Variables (rT : finGroupType) (GH GK G : {group rT}).

@@ -703,10 +703,10 @@ Proof.
 move=> p G E p_pr; apply: (iffP (pmaxElemP p G E)) => [[] | defE].
   case/pElemP=> sEG abelE maxE; have [_ cEE eE] := and3P abelE.
   apply/setP=> x; rewrite !inE -andbA; apply/and3P/idP=> [[Gx cEx xp] | [Ex]].
-    rewrite -(maxE (<[x]> <*> E)%G) ?mulgen_subr //.
-      by rewrite -cycle_subG mulgen_subl.
-    rewrite inE mulgen_subG cycle_subG Gx sEG /=.
-    rewrite (cprod_abelem _ (cprodEgen _)); last by rewrite centsC cycle_subG.
+    rewrite -(maxE (<[x]> <*> E)%G) ?joing_subr //.
+      by rewrite -cycle_subG joing_subl.
+    rewrite inE join_subG cycle_subG Gx sEG /=.
+    rewrite (cprod_abelem _ (cprodEY _)); last by rewrite centsC cycle_subG.
     by rewrite cycle_abelem ?p_pr ?orbT // order_dvdn xp.
   by rewrite (subsetP sEG) // (subsetP cEE) // (exponentP eE).
 split=> [|H]; last first.
@@ -1182,12 +1182,12 @@ Lemma Ohm_dprod : forall A B G,
   A \x B = G -> 'Ohm_n(A) \x 'Ohm_n(B) = 'Ohm_n(G).
 Proof.
 move=> A B G; case/dprodP => [[H K -> ->{A B}]] <- cHK tiHK.
-rewrite dprodEgen //; last first.
+rewrite dprodEY //; last first.
 - by apply/trivgP; rewrite -tiHK setISS ?Ohm_sub.
 - by rewrite (subset_trans (subset_trans _ cHK)) ?centS ?Ohm_sub.
-apply/eqP; rewrite -(cent_mulgenEr cHK) eqEsubset mulgen_subG /=.
-rewrite !OhmS ?mulgen_subl ?mulgen_subr //= cent_mulgenEr //=.
-rewrite -genM_mulgen genS //; apply/subsetP=> xy; case/setIdP. 
+apply/eqP; rewrite -(cent_joinEr cHK) eqEsubset join_subG /=.
+rewrite !OhmS ?joing_subl ?joing_subr //= cent_joinEr //=.
+rewrite -genM_join genS //; apply/subsetP=> xy; case/setIdP. 
 case/imset2P=> x y Hx Ky ->{xy}; case/OhmPredP=> p p_pr.
 have cxy: commute x y by red; rewrite -(centsP cHK).
 move/eqP; rewrite ?expMgn // -eq_invg_mul; move/eqP=> def_x.
@@ -1272,10 +1272,10 @@ Lemma Mho_cprod : forall A B G,
   A \* B = G -> 'Mho^n(A) \* 'Mho^n(B) = 'Mho^n(G).
 Proof.
 move=> A B G; case/cprodP => [[H K -> ->{A B}]] <- cHK.
-rewrite cprodEgen //; last first.
+rewrite cprodEY //; last first.
   by rewrite (subset_trans (subset_trans _ cHK)) ?centS ?Mho_sub.
-apply/eqP; rewrite -(cent_mulgenEr cHK) eqEsubset mulgen_subG /=.
-rewrite !MhoS ?mulgen_subl ?mulgen_subr //= cent_mulgenEr // -genM_mulgen.
+apply/eqP; rewrite -(cent_joinEr cHK) eqEsubset join_subG /=.
+rewrite !MhoS ?joing_subl ?joing_subr //= cent_joinEr // -genM_join.
 apply: genS; apply/subsetP=> xypn; case/imsetP=> xy; case/setIdP.
 case/imset2P=> x y Hx Ky -> {xy}; move/constt_p_elt; move: (pdiv _) => p <- ->.
 have cxy: commute x y by red; rewrite -(centsP cHK).
@@ -1794,9 +1794,9 @@ move=> G cGG; apply/eqP; rewrite eqn_leq; apply/andP; split.
   rewrite -size_abelian_type //; case/abelian_structure: cGG => b defG <-.
   suffices <-: <<[set x \in b]>> = G.
     by rewrite (leq_trans (grank_min _)) // size_map cardsE card_size.
-  rewrite -{G defG}(bigdprodEgen defG).
+  rewrite -{G defG}(bigdprodEY defG).
   elim: b => [|x b IHb]; first by rewrite big_nil gen0.
-  by rewrite big_cons -mulgenE -mulgen_idr -IHb mulgen_idl mulgen_idr set_cons.
+  by rewrite big_cons -joingE -joing_idr -IHb joing_idl joing_idr set_cons.
 have [p p_pr ->] := rank_witness G; pose K := 'Mho^1(G).
 have ->: 'r_p(G) = logn p #|G / K|.
   rewrite p_rank_abelian // card_quotient /= ?bgFunc_norm // -divgS ?Mho_sub //.
@@ -1807,8 +1807,8 @@ elim: {B genB}_.+1 {-2}B (ltnSn #|B|) => // m IHm B; rewrite ltnS.
 case: (set_0Vmem B) => [-> | [x Bx]].
   by rewrite gen0 quotient1 cards1 logn1.
 rewrite (cardsD1 x) Bx -{2 3}(setD1K Bx); set B' := B :\ x => ltB'm.
-rewrite -mulgenE -mulgen_idl -mulgen_idr -/<[x]> mulgen_subG.
-case/andP=> Gx sB'G; rewrite cent_mulgenEl ?(sub_abelian_cent2 cGG) //.
+rewrite -joingE -joing_idl -joing_idr -/<[x]> join_subG.
+case/andP=> Gx sB'G; rewrite cent_joinEl ?(sub_abelian_cent2 cGG) //.
 have nKx: x \in 'N(K) by rewrite -cycle_subG (subset_trans Gx) ?bgFunc_norm.
 rewrite quotientMl ?cycle_subG // quotient_cycle //= -/K.
 have le_Kxp_1: logn p #[coset K x] <= 1.
@@ -1898,7 +1898,7 @@ move=> p G abelG; have [_ cGG _] := and3P abelG.
 rewrite /homocyclic cGG (@all_pred1_constant _ p) //.
 case/abelian_structure: cGG (abelian_type_gt1 G) => b defG <- => b_gt1.
 apply/allP=> m; case/mapP=> x b_x ->{m} /=; rewrite (abelem_order_p abelG) //.
-  rewrite -cycle_subG -(bigdprodEgen defG) ?sub_gen //.
+  rewrite -cycle_subG -(bigdprodEY defG) ?sub_gen //.
   by rewrite bigcup_seq (bigcup_sup x).
 by rewrite -order_gt1 [_ > 1](allP b_gt1) ?map_f.
 Qed.
@@ -1955,9 +1955,9 @@ suffices nth_abty: forall gT (G : {group gT}) i,
   have eq_sz: size (abelian_type G) = size (abelian_type H).
     by rewrite !size_abelian_type ?(isog_rank isoGH).
   apply: (@eq_from_nth _ 1%N) => // i lt_i_G; rewrite !nth_abty // -?eq_sz //.
-  rewrite /lni (isog_card isoGH); apply: eq_bigr => p _; congr (p ^ _)%N.
+  rewrite /lni (card_isog isoGH); apply: eq_bigr => p _; congr (p ^ _)%N.
   apply: eq_bigl => e; rewrite /lnO -!divgS ?(Ohm_leq _ (leqnSn _)) //=.
-  by have:= isog_card (bgFunc_isog _ isoGH) => /= eqF; rewrite !eqF.
+  by have:= card_isog (bgFunc_isog _ isoGH) => /= eqF; rewrite !eqF.
 move=> gT G i cGG.
 have: forall p, path leq 0 (map (logn p) (rev (abelian_type G))).
   move=> p; case: (abelian_type_gt1 G) (abelian_type_dvdn_sorted G).
@@ -1969,7 +1969,7 @@ have{cGG} [b defG <- b_sorted] := abelian_structure cGG.
 rewrite size_map => ltib; rewrite (nth_map 1 _ _ ltib); set x := nth 1 b i.
 have Gx: x \in G.
   have: x \in b by rewrite mem_nth.
-  rewrite -(bigdprodEgen defG); case/splitPr=> bl br.
+  rewrite -(bigdprodEY defG); case/splitPr=> bl br.
   by rewrite mem_gen // big_cat big_cons !inE cycle_id orbT.
 have lexG: #[x] <= #|G| by rewrite dvdn_leq ?order_dvdG.
 rewrite -[#[x]]partn_pi // (widen_partn _ lexG) big_mkord big_mkcond.
@@ -2024,7 +2024,7 @@ Lemma isog_abelem_card : forall p G H,
   p.-abelem G -> isog G H = p.-abelem H && (#|H| == #|G|).
 Proof.
 move=> p G H abelG; apply/idP/andP=> [isoGH | [abelH eqGH]].
-  by rewrite -(isog_abelem isoGH) (isog_card isoGH).
+  by rewrite -(isog_abelem isoGH) (card_isog isoGH).
 rewrite eq_abelian_type_isog ?(@abelem_abelian _ p) //.
 by rewrite !(@abelian_type_abelem _ p) ?(@rank_abelem _ p) // (eqP eqGH).
 Qed.
