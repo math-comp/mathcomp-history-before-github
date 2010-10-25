@@ -77,7 +77,7 @@ Let Ep1A0_G : A0 \in 'E_p^1(G) := subsetP (pnElemS p 1 (subsetT M)) A0 Ep1A0_M.
 
 (* This does not depend on exceptionalM, and could move to Section 10. *)
 Lemma sigma'_Sylow_contra : p \in \sigma(M)^' -> ~~ ('N(P) \subset M).
-Proof. by apply: contra => sNM; apply/existsP; exists P; rewrite sylP. Qed.
+Proof. by apply: contra => sNM; apply/existsP; exists P; rewrite inE sylP. Qed.
 
 (* First preliminary remark of Section 11; only depends on sM'p and sylP. *)
 Let not_sNP_M: ~~ ('N(P) \subset M) := sigma'_Sylow_contra sM'p.
@@ -148,9 +148,7 @@ apply: contra notMg; case/imsetP=> k cAk defQ2.
 have{cAk} Mk := subsetP sCA_M k (subsetP (pcore_sub _ _) k cAk).
 have{k Mk defQ2} sQ2M: Q2 \subset M by rewrite defQ2 conj_subG.
 have [sQ2g'M qQ2g' _] := and3P sylQ2g'.
-case/(mmax_sigma_core_nt_pgroup maxM): qQ2g' => // [|_ _ _ -> //].
-  by rewrite -!cardG_gt1 ?(card_Hall sylQ2g') ?(card_Hall sylQ1) in ntQ1 *.
-by rewrite actKV.
+by rewrite (sigma_sylow_conjg _ sylQ2g') // actKV.
 Qed.
 
 (* This is B & G, Corollary 11.2. *)
@@ -435,7 +433,7 @@ have nsQ0M: Q0 <| M.
   have nsRQ0 := commG_sigma'_1Elem_cyclic maxM sM'Q0 sM'p (sEpA_EpN _ _).
   rewrite -defQ0 -!(commGC Q0).
   by apply: normalM; [case/nsRQ0: EpA1 | case/nsRQ0: EpA2].
-case/existsP: sM'q; exists Q; rewrite sylQ_M.
+case/existsP: sM'q; exists Q; rewrite inE sylQ_M.
 rewrite (subset_trans (char_norms charQ0)) ?(mmax_normal maxM nsQ0M) //= -/Q0.
 by apply: contraNneq ntQ; move/(trivg_center_pgroup qQ)->.
 Qed.

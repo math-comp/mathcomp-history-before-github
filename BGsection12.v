@@ -94,7 +94,7 @@ have [-> | [p p_pr pE]] := trivgVpdiv E; first exact: solvable1.
 rewrite (solvableS sEM) // mFT_sol // properT.
 apply: contraNneq (pgroupP s'E p p_pr pE) => ->.
 have [P sylP] := Sylow_exists p [set: gT].
-by apply/existsP; exists P; rewrite sylP subsetT.
+by apply/existsP; exists P; rewrite inE sylP subsetT.
 Qed. 
 Let solE := sigma_compl_sol.
 
@@ -390,9 +390,7 @@ have [sMp | sM'p] := boolP (p \in \sigma(M)); last first.
   rewrite defH /= sigmaJ tau2J !negb_orb (negPf sM'p) /= => t2Mp.
   by rewrite (contraL (@tau2'1 _ p)) // [~~ _]tau3'2.
 rewrite 4!inE /= sMp inE /= sMp /= orbF negbK.
-have ntX: X :!=: 1.
-  by apply: contraTneq sNH => ->; rewrite norm1 proper_subn ?mmax_proper.
-have [_ transCX _ _] := mmax_sigma_core_nt_pgroup maxM sMp ntX pX.
+have [_ transCX _] := mmax_sigma_core_pgroup maxM sMp pX.
 set maxMX := finset _ in transCX.
 have maxMX_H: gval H \in maxMX by rewrite inE MG_H (subset_trans (normG X)).
 have maxMX_M: gval M \in maxMX by rewrite inE orbit_refl.
@@ -626,7 +624,7 @@ have [_ regA [A1 EpA1 [_ _ [_ regA1 _]]]] := strM P sylP sAP.
 split=> // [P1 sylP1 | {P sylP sAP A0 excM}H| ]; last by exists A1.
   split=> [|sAP1]; first exact: (exceptional_Sylow_abelian _ excM sylP).
   split; first by case/strM: sylP1.
-  by apply: contra sM'p => sNP1M; apply/exists_inP; exists P1.
+  by apply: contra sM'p => sNP1M; apply/exists_inP; exists P1; rewrite // ?inE.
 case/setD1P; rewrite -val_eqE /= => neqHM; case/setIdP=> maxH sAH.
 apply/trivgP; rewrite -regA subsetI subsetIl /=.
 have Ep2A_H: A \in 'E_p^2(H) by exact/pnElemP.
@@ -766,8 +764,7 @@ Qed.
 (* This is B & G, Theorem 12.7. *)
 Theorem nonabelian_tau2 : forall M E p A P0,
     M \in 'M -> \sigma(M)^'.-Hall(M) E -> p \in \tau2(M) -> A \in 'E_p^2(E) ->
-    p.-group P0 -> ~~ abelian P0 ->
- let Ms := M`_\sigma in let A0 := 'C_A(Ms)%G in
+    p.-group P0 -> ~~ abelian P0 -> let Ms := M`_\sigma in let A0 := 'C_A(Ms)%G in
  [/\ (*a*) \tau2(M) =i (p : nat_pred),
      (*b*) #|A0| = p /\ Ms \x A0 = 'F(M),
      (*c*) forall X,
@@ -1206,7 +1203,7 @@ have nKX_NS: 'N(S) \subset 'N([~: K, X]).
 have not_sNKX_M: ~~ ('N([~: K, X]) \subset M).
   have [[sM'p _] sSM] := (andP t2Mp, subset_trans sSE sEM).
   apply: contra sM'p => sNKX_M; apply/existsP; exists S.
-  by rewrite (pHall_subl sSM (subsetT _) sylS) // (subset_trans _ sNKX_M).
+  by rewrite inE (pHall_subl sSM (subsetT _) sylS) // (subset_trans _ sNKX_M).
 have cKX: K \subset 'C(X).
   apply: contraR not_sNKX_M; rewrite (sameP commG1P eqP) => ntKX.
   rewrite (mmax_normal maxM) //.
@@ -1442,12 +1439,11 @@ Corollary norm_noncyclic_sigma :  forall M p P,
   'N(P) \subset M.
 Proof.
 move=> M p P maxM sMp pP sPM ncycP.
-have ntP: P :!=: 1 by apply: contraNneq ncycP => ->; exact: cyclic1.
 have [A Ep2A]: exists A, A \in 'E_p^2(P).
   by apply/p_rank_geP; rewrite ltnNge -odd_pgroup_rank1_cyclic ?mFT_odd.
 have [[sAP _ _] Ep2A_M] := (pnElemP Ep2A, subsetP (pnElemS p 2 sPM) A Ep2A).
 have sCAM: 'C(A) \subset M by case/p2Elem_mmax: Ep2A_M.
-have [_ _ -> // _] := mmax_sigma_core_nt_pgroup maxM sMp ntP pP.
+have [_ _ -> //] := mmax_sigma_core_pgroup maxM sMp pP.
 by rewrite mulG_subG subsetIl (subset_trans (centS sAP)).
 Qed.
 
@@ -1630,7 +1626,7 @@ have [B Eq2B _] := ex_tau2Elem hallF t2Lq.
 have [_ sLp]: _ /\ p \in \sigma(L) := andP (part_a L maxNA_L p t2Mp).
 have{sHp maxH sCA_H} <-: L :=: H; last clear H.
   have sLHp: p \in [predI \sigma(L) & \sigma(H)] by exact/andP.
-  have [_ transCA _ _] := mmax_sigma_core_nt_pgroup maxH sHp ntA pA.
+  have [_ transCA _] := mmax_sigma_core_pgroup maxH sHp pA.
   set S := finset _ in transCA; have sAH := subset_trans cAA sCA_H.
   suffices [SH SL]: gval H \in S /\ gval L \in S.
     have [c cAc -> /=]:= atransP2 transCA SH SL.
@@ -1874,7 +1870,7 @@ have [_ _ [defNS _ _ _] regE1subZ]
 have nSE: E \subset 'N(S) by rewrite -defNS normal_norm.
 have n_subNS := abelian_tau2_norm_Sylow maxM hallE t2p Ep2A sylS_G sAS cSS.
 have not_sNS_M: ~~ ('N(S) \subset M).
-  by apply: contra s'p => sNS_M; apply/exists_inP; exists S.
+  by apply: contra s'p => sNS_M; apply/exists_inP; exists S; rewrite // inE.
 have regNNS: forall Z (Z1 := 'Ohm_1(Z)),
   Z \subset S -> cyclic Z -> Z :!=: 1 -> 'N(S) \subset 'N(Z1) -> 'C_Ms(Z1) = 1.
 - move=> Z Z1 sZS cycZ ntZ nZ1_NS; apply: contraNeq not_sNS_M => nregZ1.
@@ -2219,9 +2215,8 @@ have nnP: p.-narrow P.
   by rewrite /narrow; case: leqP => // rPgt2; exact: CRS2_narrow rCPXle2.
 have{bMp_sXMs'} [bM'p sXMs']: p \notin \beta(M) /\ X \subset Ms^`(1).
   move: bMp_sXMs'; rewrite -(predI_sigma_beta maxM) inE /=.
-  case: andP => // [[_ bGp]]; have [aGp _] := andP bGp.
-  have [|] := negP (narrow_noncyclic _ nnP); rewrite -?(p_rank_Sylow sylP_G) //.
-  by rewrite setI_eq0; have [_ ->] := beta_not_narrow bGp.
+  case: andP => // [[_]]; move/forall_inP; move/(_ P); rewrite inE nnP sylP_G.
+  by move/(_ (erefl _)).
 have defMs: 'O_p^'(Ms) ><| P = Ms.
   have [_ _ hallMp'] := mmax_beta_Hall_nil_normal_compl_max_pdiv maxM.
   by apply/sdprod_Hall_p'coreP=> //; have [_ -> _] := hallMp' p p_pr bM'p.
@@ -2538,7 +2533,7 @@ split=> // g MsMg notMg.
 have sMsMg: \sigma(M).-group MsMg := pgroupS (subsetIl _ _) (pcore_pgroup _ _).
 have EpMsMg: forall p n X, X \in 'E_p^n(MsMg) -> n > 0 ->
   n = 1%N /\ ~~ ((p \in \beta(M)) || (X \subset Ms^`(1))).
-- move=> p n X EpX n_gt0; have ntX := nt_pnElem EpX n_gt0.
+- move=> p n X EpX n_gt0.
   have [sXMsMg abelX dimX] := pnElemP EpX; have [pX _] := andP abelX.
   have [sXMs sXMg] := subsetIP sXMsMg.
   have sXM := subset_trans sXMs (pcore_sub _ _).
@@ -2546,7 +2541,7 @@ have EpMsMg: forall p n X, X \in 'E_p^n(MsMg) -> n > 0 ->
   have sMp: p \in \sigma(M) := pnatPpi (pgroupS sXMs (pcore_pgroup _ _)) piXp.
   have not_sCX_M: ~~ ('C(X) \subset M).
     apply: contra notMg => sCX_M; rewrite -groupV.
-    have [transCX _ _ _] := mmax_sigma_core_nt_pgroup maxM sMp ntX pX.
+    have [transCX _ _] := mmax_sigma_core_pgroup maxM sMp pX.
     have [|c [m [CXc Mm ->]]] := transCX sXM g^-1; rewrite ?sub_conjgV //.
     by rewrite groupM // (subsetP sCX_M).
   have cycX: cyclic X.
