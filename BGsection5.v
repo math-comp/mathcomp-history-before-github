@@ -36,11 +36,11 @@ Section Five.
 
 Variable gT : finGroupType. 
 
-Implicit Types G H K E: {group gT}.
-
-Definition noncyclic_narrow p G := 'E_p^2(G) :&: 'E*_p(G) != set0.
+Definition noncyclic_narrow p (G : {set gT}) := 'E_p^2(G) :&: 'E*_p(G) != set0.
 
 Definition narrow p G := ('r_p(G) <= 2) || noncyclic_narrow p G.
+
+Implicit Types G H K E: {group gT}.
 
 Notation "p .-narrow" := (narrow p) : group_scope.
 
@@ -779,6 +779,12 @@ Lemma isog_narrow : forall (gT rT : finGroupType),
 Proof.
 move=> gT rT G S p; case/isogP=> f inj_f defG; rewrite -(group_inj defG). 
 by rewrite (injm_narrow _ inj_f).
+Qed.
+
+Lemma narrowJ : forall (gT : finGroupType) (Q : {group gT}) p x, 
+  p.-narrow(Q :^ x) = p.-narrow Q.
+Proof.
+by move=> gT Q p x; rewrite -{1}(setIid Q) -morphim_conj injm_narrow ?injm_conj.
 Qed.
 
 (* B&G 5.6(a,c) *)
