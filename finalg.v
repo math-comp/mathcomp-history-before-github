@@ -7,7 +7,8 @@ Require Import ssralg finset fingroup morphism perm action.
 (* type inference to function properly on expressions that mix combinatorial *)
 (* and algebraic operators (e.g., [set x + y | x, y <- A]).                  *)
 (*   finZmodType, finRingType, finComRingType, finUnitRingType,              *)
-(*   finComUnitRingType, finIdomType, finFieldType                           *)
+(*   finComUnitRingType, finIdomType, finFieldType finLmodType,              *)
+(*   finLalgType finAlgType finUnitAlgType                                  *)
 (*      == the finite counterparts of zmodType, etc.                         *)
 (* Note that a finFieldType is canonically decidable. All these structures   *)
 (* can be derived using [xxxType of T] forms, e.g., if R has both canonical  *)
@@ -479,6 +480,168 @@ Definition join_finZmodType phR cT :=
 End Lmodule.
 End Lmodule.
 
+Module Lalgebra.
+Section Lalgebra.
+Variable R : ringType.
+Implicit Type phR : phant R.
+
+Record class_of M :=
+  Class { base1 :> GRing.Lalgebra.class_of R M ; ext :> mixin_of M base1 }.
+Coercion base2 M (c : class_of M) := @Lmodule.Class _ _  c c.
+Coercion base3 M (c : class_of M) := @Ring.Class _ c c.
+
+Structure type phR : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
+Definition class phR (cT : type phR) :=
+  let: Pack _ c _ := cT return class_of cT in c.
+Definition pack phR := gen_pack (Pack phR) Class (@GRing.Lalgebra.class R phR).
+
+Coercion eqType phR cT := Equality.Pack (@class phR cT) cT.
+Coercion choiceType phR cT := Choice.Pack (@class phR cT) cT.
+Coercion countType phR cT := Countable.Pack (fin_ (@class phR) cT) cT.
+Coercion finType phR cT := Finite.Pack (fin_ (@class phR) cT) cT.
+Coercion zmodType phR (cT : type phR) := GRing.Zmodule.Pack (@class phR cT) cT.
+Coercion finZmodType phR cT := Zmodule.Pack (@class phR cT) cT.
+Coercion ringType phR (cT : type phR) := GRing.Ring.Pack (@class phR cT) cT.
+Coercion finRingType phR cT := Ring.Pack (@class phR cT) cT.
+Coercion lmodType phR (cT : type phR) := 
+  GRing.Lmodule.Pack phR (@class phR cT) cT.
+Coercion finLmodType phR cT := Lmodule.Pack phR (@class phR cT) cT.
+Coercion lalgType phR (cT : type phR) :=
+  GRing.Lalgebra.Pack phR (@class phR cT) cT.
+
+Section Joins.
+Variable phR: phant R.
+Variable cT : type phR.
+Let clT := class cT.
+Let cT' := lalgType cT.
+Definition join_finType := @Finite.Pack cT' (fin_ (@class phR) cT) cT.
+Definition join_finZmodType := @Zmodule.Pack cT' clT cT.
+Definition join_finLmodType := @Lmodule.Pack _ phR cT' clT cT.
+Definition join_finRingType := @Ring.Pack cT' clT cT.
+Definition rjoin_finLmodType := @Lmodule.Pack _ phR (ringType cT) clT cT.
+Definition ljoin_finRingType := @Ring.Pack (lmodType cT) clT cT.
+Definition fljoin_finRingType := @Ring.Pack (finLmodType cT) clT cT.
+End Joins.
+
+End Lalgebra.
+End Lalgebra.
+
+Module Algebra.
+Section Algebra.
+Variable R : ringType.
+Implicit Type phR : phant R.
+
+Record class_of M :=
+  Class { base1 :> GRing.Algebra.class_of R M ; ext :> mixin_of M base1 }.
+Coercion base2 M (c : class_of M) := @Lalgebra.Class _ _  c c.
+
+Structure type phR : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
+Definition class phR (cT : type phR) :=
+  let: Pack _ c _ := cT return class_of cT in c.
+Definition pack phR := gen_pack (Pack phR) Class (@GRing.Algebra.class R phR).
+
+Coercion eqType phR cT := Equality.Pack (@class phR cT) cT.
+Coercion choiceType phR cT := Choice.Pack (@class phR cT) cT.
+Coercion countType phR cT := Countable.Pack (fin_ (@class phR) cT) cT.
+Coercion finType phR cT := Finite.Pack (fin_ (@class phR) cT) cT.
+Coercion zmodType phR (cT : type phR) := GRing.Zmodule.Pack (@class phR cT) cT.
+Coercion finZmodType phR cT := Zmodule.Pack (@class phR cT) cT.
+Coercion ringType phR (cT : type phR) := GRing.Ring.Pack (@class phR cT) cT.
+Coercion finRingType phR cT := Ring.Pack (@class phR cT) cT.
+Coercion lmodType phR (cT : type phR) :=
+   GRing.Lmodule.Pack phR (@class phR cT) cT.
+Coercion finLmodType phR cT := Lmodule.Pack phR (@class phR cT) cT.
+Coercion lalgType phR (cT : type phR) := 
+  GRing.Lalgebra.Pack phR (@class phR cT) cT.
+Coercion finLalgType phR cT := Lalgebra.Pack phR (@class phR cT) cT.
+Coercion algType phR (cT : type phR) :=
+ GRing.Algebra.Pack phR (@class phR cT) cT.
+
+Section Joins.
+
+Variable phR: phant R.
+Variable cT : type phR.
+Let clT := class cT.
+Let cT' := algType cT.
+
+Definition join_finType :=  @Finite.Pack cT' (fin_ (@class phR) cT) cT.
+Definition join_finZmodType := @Zmodule.Pack cT' (@class phR cT) cT.
+Definition join_finRingType := @Ring.Pack cT' (@class phR cT) cT.
+Definition join_finLmodType :=  @Lmodule.Pack _ phR cT' (@class phR cT) cT.
+Definition join_finLalgType := @Lalgebra.Pack _ phR cT' (@class phR cT) cT.
+
+End Joins.
+
+End Algebra.
+End Algebra.
+
+Module UnitAlgebra. 
+Section UnitAlgebra. 
+Variable R : unitRingType.
+Implicit Type phR : phant R.
+ 
+Record class_of M := 
+  Class { base1 :> GRing.UnitAlgebra.class_of R M ; ext :> mixin_of M base1 }. 
+Coercion base2 M (c : class_of M) := @Algebra.Class _ _  c c. 
+Coercion base3 M (c : class_of M) := @UnitRing.Class _ c c.
+ 
+Structure type phR : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}. 
+Definition class phR (cT : type phR) := 
+  let: Pack _ c _ := cT return class_of cT in c. 
+Definition pack phR := gen_pack (Pack phR) Class (@GRing.UnitAlgebra.class R phR). 
+ 
+Coercion eqType phR cT := Equality.Pack (@class phR cT) cT. 
+Coercion choiceType phR cT := Choice.Pack (@class phR cT) cT. 
+Coercion countType phR cT := Countable.Pack (fin_ (@class phR) cT) cT. 
+Coercion finType phR cT := Finite.Pack (fin_ (@class phR) cT) cT. 
+Coercion zmodType phR (cT : type phR) := GRing.Zmodule.Pack (@class phR cT) cT. 
+Coercion finZmodType phR cT := Zmodule.Pack (@class phR cT) cT. 
+Coercion ringType phR (cT : type phR) := GRing.Ring.Pack (@class phR cT) cT. 
+Coercion finRingType phR cT := Ring.Pack (@class phR cT) cT. 
+Coercion unitRingType phR (cT : type phR) := 
+  GRing.UnitRing.Pack (@class phR cT) cT. 
+Coercion finUnitRingType phR cT := UnitRing.Pack (@class phR cT) cT. 
+Coercion lmodType phR (cT : type phR) := 
+  GRing.Lmodule.Pack phR (@class phR cT) cT. 
+Coercion finLmodType phR cT := Lmodule.Pack phR (@class phR cT) cT. 
+Coercion lalgType phR (cT : type phR) := 
+  GRing.Lalgebra.Pack phR (@class phR cT) cT. 
+Coercion finLalgType phR cT := Lalgebra.Pack phR (@class phR cT) cT. 
+Coercion algType phR (cT : type phR) := 
+  GRing.Algebra.Pack phR (@class phR cT) cT. 
+Coercion finAlgType phR cT := Algebra.Pack phR (@class phR cT) cT. 
+Coercion unitAlgType phR (cT : type phR) := 
+  GRing.UnitAlgebra.Pack phR (@class phR cT) cT.
+
+Section Joins.
+
+Variable phR: phant R.
+Variable cT : type phR.
+Let clT := class cT.
+Let cT' := unitAlgType cT.
+
+Definition join_finType := @Finite.Pack cT' (fin_ (@class phR) cT) cT.
+Definition join_finZmodType := @Zmodule.Pack cT' (@class phR cT) cT.
+Definition join_finRingType := @Ring.Pack cT' (@class phR cT) cT.
+Definition join_finUnitRingType := @UnitRing.Pack cT' (@class phR cT) cT.
+Definition join_finLmodType := @Lmodule.Pack _ phR cT' (@class phR cT) cT.
+Definition join_finLalgType := @Lalgebra.Pack _ phR cT' (@class phR cT) cT.
+Definition join_finAlgType := @Algebra.Pack _ phR cT' (@class phR cT) cT.
+Definition  ljoin_finUnitRingType := @UnitRing.Pack (lmodType cT) clT cT.
+Definition fljoin_finUnitRingType := @UnitRing.Pack (finLmodType cT) clT cT.
+Definition  njoin_finUnitRingType := @UnitRing.Pack (lalgType cT) clT cT.
+Definition fnjoin_finUnitRingType := @UnitRing.Pack (finLalgType cT) clT cT.
+Definition  ajoin_finUnitRingType := @UnitRing.Pack (algType cT) clT cT.
+Definition fajoin_finUnitRingType := @UnitRing.Pack (finAlgType cT) clT cT.
+Definition ujoin_finLmodType := @Lmodule.Pack _ phR (unitRingType cT) clT cT.
+Definition ujoin_finLalgType := @Lalgebra.Pack _ phR (unitRingType cT) clT cT.
+Definition ujoin_finAlgType := @Algebra.Pack _ phR (unitRingType cT) clT cT.
+
+End Joins.
+ 
+End UnitAlgebra. 
+End UnitAlgebra.
+
 Module Theory.
 
 Definition zmod1gE := zmod1gE.
@@ -636,6 +799,78 @@ Canonical Structure FinRing.Lmodule.zmodType.
 Canonical Structure FinRing.Lmodule.finZmodType.
 Canonical Structure FinRing.Lmodule.lmodType.
 
+Canonical Structure FinRing.Lalgebra.eqType.
+Canonical Structure FinRing.Lalgebra.choiceType.
+Canonical Structure FinRing.Lalgebra.countType.
+Canonical Structure FinRing.Lalgebra.finType.
+Canonical Structure FinRing.Lalgebra.zmodType.
+Canonical Structure FinRing.Lalgebra.finZmodType.
+Canonical Structure FinRing.Lalgebra.ringType.
+Canonical Structure FinRing.Lalgebra.finRingType.
+Canonical Structure FinRing.Lalgebra.lmodType.
+Canonical Structure FinRing.Lalgebra.finLmodType.
+Canonical Structure FinRing.Lalgebra.lalgType.
+Canonical Structure FinRing.Lalgebra.join_finType.
+Canonical Structure FinRing.Lalgebra.join_finZmodType.
+Canonical Structure FinRing.Lalgebra.join_finLmodType.
+Canonical Structure FinRing.Lalgebra.join_finRingType.
+Canonical Structure FinRing.Lalgebra.rjoin_finLmodType.
+Canonical Structure FinRing.Lalgebra.ljoin_finRingType.
+Canonical Structure FinRing.Lalgebra.fljoin_finRingType.
+
+Canonical Structure FinRing.Algebra.eqType.
+Canonical Structure FinRing.Algebra.choiceType.
+Canonical Structure FinRing.Algebra.countType.
+Canonical Structure FinRing.Algebra.finType.
+Canonical Structure FinRing.Algebra.zmodType.
+Canonical Structure FinRing.Algebra.finZmodType.
+Canonical Structure FinRing.Algebra.ringType.
+Canonical Structure FinRing.Algebra.finRingType.
+Canonical Structure FinRing.Algebra.lmodType.
+Canonical Structure FinRing.Algebra.finLmodType.
+Canonical Structure FinRing.Algebra.lalgType.
+Canonical Structure FinRing.Algebra.finLalgType.
+Canonical Structure FinRing.Algebra.algType.
+Canonical Structure FinRing.Algebra.join_finType.
+Canonical Structure FinRing.Algebra.join_finZmodType. 
+Canonical Structure FinRing.Algebra.join_finRingType. 
+Canonical Structure FinRing.Algebra.join_finLmodType.
+Canonical Structure FinRing.Algebra.join_finLalgType.
+
+Canonical Structure FinRing.UnitAlgebra.eqType.
+Canonical Structure FinRing.UnitAlgebra.choiceType.
+Canonical Structure FinRing.UnitAlgebra.countType.
+Canonical Structure FinRing.UnitAlgebra.finType.
+Canonical Structure FinRing.UnitAlgebra.zmodType.
+Canonical Structure FinRing.UnitAlgebra.finZmodType.
+Canonical Structure FinRing.UnitAlgebra.ringType.
+Canonical Structure FinRing.UnitAlgebra.finRingType.
+Canonical Structure FinRing.UnitAlgebra.unitRingType.
+Canonical Structure FinRing.UnitAlgebra.finUnitRingType.
+Canonical Structure FinRing.UnitAlgebra.lmodType.
+Canonical Structure FinRing.UnitAlgebra.finLmodType.
+Canonical Structure FinRing.UnitAlgebra.lalgType.
+Canonical Structure FinRing.UnitAlgebra.finLalgType.
+Canonical Structure FinRing.UnitAlgebra.algType.
+Canonical Structure FinRing.UnitAlgebra.finAlgType.
+Canonical Structure FinRing.UnitAlgebra.unitAlgType.
+Canonical Structure FinRing.UnitAlgebra.join_finType.
+Canonical Structure FinRing.UnitAlgebra.join_finZmodType.
+Canonical Structure FinRing.UnitAlgebra.join_finRingType.
+Canonical Structure FinRing.UnitAlgebra.join_finUnitRingType.
+Canonical Structure FinRing.UnitAlgebra.join_finLmodType.
+Canonical Structure FinRing.UnitAlgebra.join_finLalgType.
+Canonical Structure FinRing.UnitAlgebra.join_finAlgType.
+Canonical Structure FinRing.UnitAlgebra.ljoin_finUnitRingType.
+Canonical Structure FinRing.UnitAlgebra.fljoin_finUnitRingType.
+Canonical Structure FinRing.UnitAlgebra.njoin_finUnitRingType.
+Canonical Structure FinRing.UnitAlgebra.fnjoin_finUnitRingType.
+Canonical Structure FinRing.UnitAlgebra.ajoin_finUnitRingType.
+Canonical Structure FinRing.UnitAlgebra.fajoin_finUnitRingType.
+Canonical Structure FinRing.UnitAlgebra.ujoin_finLmodType.
+Canonical Structure FinRing.UnitAlgebra.ujoin_finLalgType.
+Canonical Structure FinRing.UnitAlgebra.ujoin_finAlgType.
+
 Bind Scope ring_scope with FinRing.Zmodule.sort.
 Bind Scope ring_scope with FinRing.Ring.sort.
 Bind Scope ring_scope with FinRing.ComRing.sort.
@@ -644,6 +879,9 @@ Bind Scope ring_scope with FinRing.ComUnitRing.sort.
 Bind Scope ring_scope with FinRing.IntegralDomain.sort.
 Bind Scope ring_scope with FinRing.Field.sort.
 Bind Scope ring_scope with FinRing.Lmodule.sort.
+Bind Scope ring_scope with FinRing.Lalgebra.sort.
+Bind Scope ring_scope with FinRing.Algebra.sort.
+Bind Scope ring_scope with FinRing.UnitAlgebra.sort.
 Bind Scope group_scope with FinRing.unit_of.
 
 Notation finZmodType := FinRing.Zmodule.type.
@@ -653,7 +891,10 @@ Notation finUnitRingType := FinRing.UnitRing.type.
 Notation finComUnitRingType := FinRing.ComUnitRing.type.
 Notation finIdomainType := FinRing.IntegralDomain.type.
 Notation finFieldType := FinRing.Field.type.
-Notation finLmoduleType R := (FinRing.Lmodule.type (Phant R)).
+Notation finLmodType R := (FinRing.Lmodule.type (Phant R)).
+Notation finLalgType R := (FinRing.Lalgebra.type (Phant R)).
+Notation finAlgType R := (FinRing.Algebra.type (Phant R)).
+Notation finUnitAlgType R := (FinRing.UnitAlgebra.type (Phant R)).
 
 Local Notation do_pack pack T := (pack T _ _ id _ _ id).
 Notation "[ 'finZmodType' 'of' T ]" := (do_pack FinRing.Zmodule.pack T)
@@ -672,9 +913,18 @@ Notation "[ 'finIdomainType' 'of' T ]" :=
   (at level 0, format "[ 'finIdomainType'  'of'  T ]") : form_scope.
 Notation "[ 'finFieldType' 'of' T ]" := (do_pack FinRing.Field.pack T)
   (at level 0, format "[ 'finFieldType'  'of'  T ]") : form_scope.
-Notation "[ 'finLmoduleType' [ R ] 'of' T ]" :=
+Notation "[ 'finLmodType' [ R ] 'of' T ]" :=
     (do_pack (@FinRing.Lmodule.pack _ (Phant R)) T)
-  (at level 0, format "[ 'finLmoduleType' [ R ] 'of'  T ]") : form_scope.
+  (at level 0, format "[ 'finLmodType' [ R ] 'of'  T ]") : form_scope.
+Notation "[ 'finLalgType' [ R ] 'of' T ]" :=
+    (do_pack (@FinRing.Lalgebra.pack _ (Phant R)) T)
+  (at level 0, format "[ 'finLalgType' [ R ] 'of'  T ]") : form_scope.
+Notation "[ 'finAlgType' [ R ] 'of' T ]" :=
+    (do_pack (@FinRing.Algebra.pack _ (Phant R)) T)
+  (at level 0, format "[ 'finAlgType' [ R ] 'of'  T ]") : form_scope.
+Notation "[ 'finUnitAlgType' [ R ] 'of' T ]" :=
+    (do_pack (@FinRing.UnitAlgebra.pack _ (Phant R)) T) 
+  (at level 0, format "[ 'finUnitAlgType' [ R ] 'of'  T ]") : form_scope.
 
 Notation "{ 'unit' R }" := (FinRing.unit_of (Phant R))
   (at level 0, format "{ 'unit'  R }") : type_scope.
@@ -715,8 +965,17 @@ Canonical Structure finField_baseFinGroupType (F : finFieldType) :=
   Eval hnf in [baseFinGroupType of F for +%R].
 Canonical Structure finField_finGroupType (F : finFieldType) :=
   Eval hnf in [finGroupType of F for +%R].
-Canonical Structure finLmodule_baseFinGroupType
-                      (R : ringType) (M : finLmoduleType R) :=
+Canonical Structure finLmod_baseFinGroupType
+                      (R : ringType) (M : finLmodType R) :=
+  Eval hnf in [baseFinGroupType of M for +%R].
+Canonical Structure finLalg_baseFinGroupType
+                      (R : ringType) (M : finLalgType R) :=
+  Eval hnf in [baseFinGroupType of M for +%R].
+Canonical Structure finAlg_baseFinGroupType
+                      (R : ringType) (M : finAlgType R) :=
+  Eval hnf in [baseFinGroupType of M for +%R].
+Canonical Structure finUnitAlg_baseFinGroupType
+                      (R : unitRingType) (M : finUnitAlgType R) :=
   Eval hnf in [baseFinGroupType of M for +%R].
 
 Canonical Structure zmod_baseFinGroupType (M : finZmodType) :=
@@ -752,9 +1011,20 @@ Canonical Structure decField_baseFinGroupType (F : finFieldType) :=
 Canonical Structure decField_finGroupType (F : finFieldType) :=
   Eval hnf in [finGroupType of F : decFieldType for +%R].
 Canonical Structure lmod_baseFinGroupType
-                      (R : ringType) (M : finLmoduleType R) :=
+                      (R : ringType) (M : finLmodType R) :=
   Eval hnf in [baseFinGroupType of M : lmodType R  for +%R].
 Canonical Structure lmod_finGroupType
-                      (R : ringType) (M : finLmoduleType R) :=
+                      (R : ringType) (M : finLmodType R) :=
   Eval hnf in [finGroupType of M : lmodType R for +%R].
-
+Canonical Structure lalg_baseFinGroupType
+                      (R : ringType) (M : finLalgType R) :=
+  Eval hnf in [baseFinGroupType of M : lalgType R  for +%R].
+Canonical Structure lalg_finGroupType
+                      (R : ringType) (M : finLalgType R) :=
+  Eval hnf in [finGroupType of M : lalgType R for +%R].
+Canonical Structure alg_finGroupType
+                      (R : ringType) (M : finAlgType R) :=
+  Eval hnf in [finGroupType of M : algType R for +%R].
+Canonical Structure unitAlg_finGroupType
+                      (R : unitRingType) (M : finUnitAlgType R) :=
+  Eval hnf in [finGroupType of M : unitAlgType R for +%R].

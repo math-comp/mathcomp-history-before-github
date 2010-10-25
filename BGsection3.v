@@ -198,7 +198,7 @@ have: gsum G + rG 1 *+ #|K| = gsum K + \sum_(x \in K) gsum (R :^ x).
 have ->: gsum G = 0.
   apply/eqP; rewrite -submx0 -fixR0; apply: submx_trans (rfix_mxS rG sRG).
   exact: fixsum.
-rewrite repr_mx1 -scalemx_nat add0r => ->.
+rewrite repr_mx1 -scaler_nat add0r => ->.
 rewrite big1 ?addr0 ?fixsum // => x Kx; have Gx := subsetP sKG x Kx.
 apply/eqP; rewrite -submx0 (submx_trans (fixsum _ _)) ?conj_subG //.
 by rewrite -(mul0mx _ (rG x)) -fixR0 rfix_mx_conjsg.

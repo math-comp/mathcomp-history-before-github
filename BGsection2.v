@@ -238,7 +238,7 @@ Proof. by move=> i; rewrite /V_ eps_mod_h. Qed.
 
 Let g_mod i := exprn_mod i gh1.
 
-Let EiP : forall i e, reflect (e^g = eps ^+ i *m: e) (e \in 'E_i)%MS.
+Let EiP : forall i e, reflect (e^g = eps ^+ i *: e) (e \in 'E_i)%MS.
 Proof.
 move=> i e; rewrite (sameP eigenspaceP eqP) mul_vec_lin -linearZ /=.
 by rewrite (can_eq mxvecK); exact: eqP.
@@ -275,7 +275,7 @@ have F'Zh: [char F]^'.-group (Zp h).
 case: (ltngtP h 1) => [|h_gt1|h1]; last first; last by rewrite ltnNge h_gt0.
   rewrite /sumV mxdirectE /= h1 !big_ord1; split=> //.
   apply/eqmxP; rewrite submx1; apply/eigenspaceP.
-  by rewrite mul1mx scale1mx idmxE -gh1 h1.
+  by rewrite mul1mx scale1r idmxE -gh1 h1.
 pose mxZ (i : 'Z_h) := g ^+ i.
 have mxZ_repr: mx_repr (Zp h) mxZ.
   by split=> // i j _ _; rewrite /mxZ /= {3}Zp_cast // exprn_mod // exprn_addr.
@@ -284,10 +284,10 @@ have ZhT: Zp h = setT by rewrite /Zp h_gt1.
 have memZh: _ \in Zp h by move=> i; rewrite ZhT inE.
 have def_g: g = rZ Zp1 by [].
 have lin_rZ: forall m (U : 'M_(m, q)) a,
-  U *m g = a *m: U -> forall i, U *m rZ i%:R = (a ^+ i) *m: U.
+  U *m g = a *: U -> forall i, U *m rZ i%:R = (a ^+ i) *: U.
 - move=> m U a defUg i; rewrite repr_mxX //.
-  elim: i => [|i IHi]; first by rewrite mulmx1 scale1mx.
-  by rewrite !exprS -scalemxA mulmxA defUg -IHi scalemxAl.
+  elim: i => [|i IHi]; first by rewrite mulmx1 scale1r.
+  by rewrite !exprS -scalerA mulmxA defUg -IHi scalemxAl.
 rewrite mxdirect_sum_eigenspace => [|j k _ _]; last exact: inj_eps.
 split=> //; apply/eqmxP; rewrite submx1.
 wlog [I M /= simM <- _]: / mxsemisimple rZ 1.
@@ -299,11 +299,11 @@ have rankMi: \rank (M i) = 1%N.
 have defMi: (M i :=: v)%MS.
   apply/eqmxP; rewrite andbC -(geq_leqif (mxrank_leqif_eq _)) ?nz_row_sub //.
   by rewrite rankMi lt0n mxrank_eq0.
-have [a defvg]: exists a, v *m rZ 1%R = a *m: v.
+have [a defvg]: exists a, v *m rZ 1%R = a *: v.
   by apply/sub_rVP; rewrite -defMi mxmodule_trans ?socle_module ?defMi.
 have: a ^+ h - 1 == 0.
   apply: contraR nz_v => nz_pZa; rewrite -(eqmx_eq0 (eqmx_scale _ nz_pZa)).
-  by rewrite scalemx_subl scale1mx -lin_rZ // subr_eq0 char_Zp ?mulmx1.
+  by rewrite scaler_subl scale1r -lin_rZ // subr_eq0 char_Zp ?mulmx1.
 rewrite subr_eq0; move/eqP; case/(prim_rootP prim_eps) => k def_a.
 by rewrite defMi (sumsmx_sup k) // /V_ -def_a; exact/eigenspaceP.
 Qed.
@@ -403,9 +403,9 @@ case/sub_sumsmxP=> p ->; rewrite -!mulmxA !mulmx_suml.
 apply: eq_bigr=> k _; case: (eqVneq (k : nat) (i %% h)%N) => [-> | ne_ki].
   rewrite Vi_mod -mulmxA (mulmxA _ A) (eigenspaceP ViA).
   rewrite (mulmxA _ g) (eigenspaceP (submxMl _ _)).
-  by rewrite -!(scalemxAl, scalemxAr) scalemxA mulmxA exprn_addr.
+  by rewrite -!(scalemxAl, scalemxAr) scalerA mulmxA exprn_addr.
 rewrite 2!mulmxA (eigenspaceP (submxMl _ _)) -!(scalemxAr, scalemxAl).
-by rewrite -(mulmxA _ 'V_k A) Vi'A ?linear0 ?mul0mx // modn_small.
+by rewrite -(mulmxA _ 'V_k A) Vi'A ?linear0 ?mul0mx ?scaler0 // modn_small.
 Qed.
 
 Let diagE m :=
@@ -759,7 +759,7 @@ have baseH := linear_irr_comp F'H (closF H) (linH _).
 have{linH} linH: \rank (_ : sH) = 1%N by move=> W; rewrite baseH; exact: linH.
 have [w] := cycle_repr_structure sH defH F'H (closF H).
 rewrite -/h => prim_w [Wi [bijWi _ _ Wi_yg]].
-have{Wi_yg baseH} Wi_yr: forall i, Wi i *m yr = w ^+ i *m: Wi i.
+have{Wi_yg baseH} Wi_yr: forall i, Wi i *m yr = w ^+ i *: (Wi i : 'M_h).
   move=> i; have: (Wi i <= val_submod (irr_repr (Wi i) 1%g))%MS.
     by rewrite repr_mx1 val_submod1 -baseH.
   case/submxP=> u ->; rewrite repr_mx1 -mulmxA -2!linearZ; congr (u *m _).
@@ -794,14 +794,14 @@ have rankEi: forall i : 'I_h, i != 0%N :> nat -> \rank (E_ i) = #|clPqH^#|.
   rewrite -(addsmx0 (q ^ 2) (B1 i)) addsmxS //.
   rewrite capmxC -{2}(mxdirect_sumsP dxE i) // capmxS // addsmx_sub // .
   rewrite (sumsmx_sup (Ordinal (cardG_gt0 H))) ?sumsmxS 1?eq_sym //.
-  rewrite defB1; apply/eigenspaceP; rewrite mul_vec_lin scale1mx /=.
+  rewrite defB1; apply/eigenspaceP; rewrite mul_vec_lin scale1r /=.
   by rewrite mul1mx mulVmx ?repr_mx_unit.
 have{b B defB1 rP rH sH Wi rankB1 dxB1 defSB sB1E B1 B2 dxE SB} rankE0:
   forall i : 'I_h, i == 0%N :> nat -> \rank (E_ i) = #|clPqH^#|.+1.
 - move=> i i_eq0; rewrite -[E_ i]cap1mx -(cap_eqmx defSB (eqmx_refl _)) /SB.
   rewrite (bigD1 i) // addsmxA -matrix_modl; last first.
     rewrite addsmx_sub // sB1E andbT defB1; apply/eigenspaceP.
-    by rewrite mul_vec_lin (eqP i_eq0) scale1mx /= mul1mx mulVmx ?repr_mx_unit.
+    by rewrite mul_vec_lin (eqP i_eq0) scale1r /= mul1mx mulVmx ?repr_mx_unit.
   rewrite (((_ :&: _)%MS =P 0) _).
     rewrite addsmx0 mxrank_disjoint_sum /=.
       by rewrite defB1 rank_rV rankB1 mxvec_eq0 -mxrank_eq0 mxrank1 -lt0n q_gt0.
@@ -828,7 +828,7 @@ apply/andP; split.
 apply/implyP; apply: contra => regH.
 have [|-> //]:= rank_eigenspaces_free_quasi_homocyclic gh1 prim_w rankE q_gt1.
 apply/eqP; rewrite mxrank_eq0 -submx0 -(eqP regH).
-apply/rV_subP=> v; move/eigenspaceP; rewrite scale1mx => cvg.
+apply/rV_subP=> v; move/eigenspaceP; rewrite scale1r => cvg.
 apply/rfix_mxP=> y Hy; apply: rstab_act (submx_refl v); apply: subsetP y Hy.
 by rewrite defH cycle_subG !inE Gyg /= cvg.
 Qed.
@@ -958,18 +958,18 @@ have{a b ne_ab def_ux def_vx} nx_uv: forall w : 'rV_2,
   rewrite !scalemxAl -!mul_row_col; move/(can_inj (mulmxK uB)).
   case/eq_row_mx => eqac eqbc; apply/orP.
   case: (eqVneq dv 0) => [-> | nz_dv].
-    by rewrite scale0mx addr0 scalemx_sub.
+    by rewrite scale0r addr0 scalemx_sub.
   case: (eqVneq du 0) => [-> | nz_du].
-    by rewrite orbC scale0mx add0r scalemx_sub.
-  case/eqP: ne_ab; rewrite -[b]scale1mx -(mulVf nz_dv) -[a]scale1mx.
-  by rewrite -(mulVf nz_du) -!scalemxA eqac eqbc !scalemxA !mulVf.
+    by rewrite orbC scale0r add0r scalemx_sub.
+  case/eqP: ne_ab; rewrite -[b]scale1r -(mulVf nz_dv) -[a]scale1r.
+  by rewrite -(mulVf nz_du) -!scalerA eqac eqbc !scalerA !mulVf.
 have{x Gx Qx oxp nx_uv} redG: forall y (A := rG y),
   y \in G -> (u *m A <= u /\ v *m A <= v)%MS.
 - move=> y A Gy; have uA: row_free A by rewrite row_free_unit repr_mx_unit.
   have Ainj: forall w t : 'rV_2, (w *m A <= w -> t *m A <= w -> t *m A <= t)%MS.
     move=> w t; case/sub_rVP=> c ryww; case/sub_rVP=> d rytw.
-    rewrite -(submxMfree _ _ uA) rytw -scalemxAl ryww scalemxA mulrC.
-    by rewrite -scalemxA scalemx_sub.
+    rewrite -(submxMfree _ _ uA) rytw -scalemxAl ryww scalerA mulrC.
+    by rewrite -scalerA scalemx_sub.
   have{Qx nx_uv} nAx: forall w, Qfix w -> (w *m A <= u \/ w *m A <= v)%MS.
     move=> w nwQ; apply: nx_uv; rewrite -mulmxA -repr_mxM // conjgCV.
     rewrite repr_mxM ?groupJ ?groupV // mulmxA submxMr // nwQ // -mem_conjg.
@@ -992,7 +992,7 @@ rewrite mul1mx mulmx1 -repr_mxM ?(groupR, groupM) // -commgC !repr_mxM //.
 rewrite -(inj_eq (can_inj (mulKmx uB))) !mulmxA !mul_col_mx.
 case/redG: Gy; case/sub_rVP=> a uya; case/sub_rVP=> b vyb.
 case/redG: Gz; case/sub_rVP=> c uzc; case/sub_rVP=> d vzd.
-by do 2!rewrite uya vyb uzc vzd -?scalemxAl; rewrite !scalemxA mulrC (mulrC d).
+by do 2!rewrite uya vyb uzc vzd -?scalemxAl; rewrite !scalerA mulrC (mulrC d).
 Qed.
 
 (* This is B & G, Theorem 2.6(a) *)
@@ -1052,7 +1052,7 @@ have fix_v: {in P, forall x, v *m rG x - v <= u}%MS.
   move=> x Px /=; rewrite -[v *m _](add_sub_fact_mod U) (in_factmodJ Umod) //.
   move/rfix_mxP: svW => -> //; rewrite in_factmodK ?defUc // addrK.
   by rewrite defU val_submodP.
-have fixB: {in P, forall x, exists2 a, u *m rG x = u & v *m rG x = v + a *m: u}.
+have fixB: {in P, forall x, exists2 a, u *m rG x = u & v *m rG x = v + a *: u}.
   move=> x Px; case/submxP: (fix_v x Px) => a def_vx.
   exists (a 0 0); first exact: fix_u.
   by rewrite addrC -mul_scalar_mx -mx11_scalar -def_vx subrK.
@@ -1101,7 +1101,7 @@ have{sumP12} [u def1]: exists u, 1%:M = u.1 *m P1 + u.2 *m P2.
   by apply/sub_addsmxP; rewrite sumP12.
 pose lam (Pi : 'M(P)) b := (nz_row Pi *m rQ b *m pinvmx (nz_row Pi)) 0 0.
 have rQ_lam: forall Pi b,
-  mxmodule rQ Pi -> \rank Pi = 1%N -> b \in Q -> Pi *m rQ b = lam Pi b *m: Pi.
+  mxmodule rQ Pi -> \rank Pi = 1%N -> b \in Q -> Pi *m rQ b = lam Pi b *: Pi.
 - rewrite /lam => Pi b modPi linPi Qb; set v := nz_row Pi; set a := _ 0.
   have nz_v: v != 0 by rewrite nz_row_eq0 -mxrank_eq0 linPi.
   have sPi_v: (Pi <= v)%MS.
@@ -1114,11 +1114,11 @@ have lam_q: forall Pi b,
 - move=> Pi b modPi linPi Qb; apply/eqP; rewrite eq_sym -subr_eq0.
   have: \rank Pi != 0%N by rewrite linPi.
   apply: contraR; move/eqmx_scale=> <-.
-  rewrite mxrank_eq0 scalemx_subl subr_eq0 -mul_mx_scalar -(repr_mx1 rQ).
+  rewrite mxrank_eq0 scaler_subl subr_eq0 -mul_mx_scalar -(repr_mx1 rQ).
   have <-: (b ^+ q = 1)%g by case/and3P: abelQ => _ _; move/exponentP->.
   apply/eqP; rewrite repr_mxX //.
-  elim: (q) => [|k IHk]; first by rewrite scale1mx mulmx1.
-  by rewrite !exprS mulmxA rQ_lam // -scalemxAl IHk scalemxA.
+  elim: (q) => [|k IHk]; first by rewrite scale1r mulmx1.
+  by rewrite !exprS mulmxA rQ_lam // -scalemxAl IHk scalerA.
 pose f b := (lam P1 b, lam P2 b).
 have inj_f: {in Q &, injective f}.
   move=> b c Qb Qc /= [eq_bc1 eq_bc2]; apply: (mx_faithful_inj ffulQ) => //.
@@ -1155,7 +1155,7 @@ have: (r, r) \in f @: Q by rewrite -rs2_Q inE andbb.
 case/imsetP=> a Qa [def_a1 def_a2].
 have rQa: rQ a = r%:M.
   rewrite -[rQ a]mul1mx def1 mulmx_addl -!mulmxA !rQ_lam //.
-  by rewrite -def_a1 -def_a2 !linearZ -linearD -def1 /= scalemx1.
+  by rewrite -def_a1 -def_a2 !linearZ -scaler_addr -def1 /= scalemx1.
 exists a.
   rewrite !inE Qa andbT; apply: contra ne_r_1 => a1.
   rewrite (eqP a1) repr_mx1 in rQa.

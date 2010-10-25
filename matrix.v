@@ -75,7 +75,7 @@ Require Import perm zmodp.
 (*                   we need to define matrices first.                       *)
 (*           a%:M == the scalar matrix with a's on the main diagonal; in     *)
 (*                   particular 1%:M denotes the identity matrix, and is is  *)
-(*                   equal to 1%R when n is of the form n'.+1 (e.g., n = 1). *)
+(*                   equal to 1%R when n is of the form n'.+1 (e.g., n >= 1).*)
 (*      diag_mx d == the diagonal matrix whose main diagonal is d : 'rV_n.   *)
 (*   delta_mx i j == the matrix with a 1 in row i, column j and 0 elsewhere. *)
 (*       pid_mx r == the partial identity matrix with 1s only on the r first *)
@@ -186,6 +186,21 @@ Require Import perm zmodp.
 (*                   mxsum_expr. The structure also recognizes sums of       *)
 (*                   matrix ranks, so that lemmas concerning the rank of     *)
 (*                   direct sums can be used bidirectionally.                *)
+(*       mxvec A == a row vector of width m * n holding all the entries of   *)
+(*                  the m x n matrix A.                                      *)
+(*      vec_mx v == the inverse of mxvec, reshaping a vector of width m * n  *)
+(*                  back into into an m x n rectangular matrix.              *)
+(*  mxvec_index i j == the index of A i j in mxvec A                         *)
+(*     lin1_mx f == the m x n matrix that emulates via right product         *)
+(*                  a (linear) function f : 'rV_m -> 'rV_n on ROW VECTORS    *)
+(*      lin_mx f == the (m1 * n1) x (m2 * n2) matrix that emulates, via the  *)
+(*                  right multiplication on the mxvec encodings, a linear    *)
+(*                  function f : 'M_(m1, n1) -> 'M_(m2, n2)                  *)
+(*  lin_mul_row u := lin1_mx (mulmx u \o vec_mx) (applies a row-encoded      *)
+(*                  function to the row-vector u).                           *)
+(*   lin_mulmx A := lin_mx (mulmx A).                                        *)
+(*  lin_mulmxr A := lin_mx (mulmxr A).                                       *)
+(*  is_scalar_mx A <=> A is a scalar matrix (A = a%:M for some A)            *)
 (* Note that in this row-space theory, matrices represent vectors, subspaces *)
 (* and also linear transformations.                                          *)
 (*   We also extend any finType structure of R to 'M[R]_(m, n), and define   *)
@@ -288,7 +303,7 @@ Definition matrix_of_fun F := locked Matrix [ffun ij => F ij.1 ij.2].
 
 Definition fun_of_matrix A (i : 'I_m) (j : 'I_n) := mx_val A (i, j).
 
-Coercion fun_of_matrix  : matrix >-> Funclass.
+Coercion fun_of_matrix : matrix >-> Funclass.
 
 Lemma mxE : forall F, matrix_of_fun F =2 F.
 Proof. by unlock matrix_of_fun fun_of_matrix => F i j; rewrite /= ffunE. Qed.
@@ -304,14 +319,14 @@ End MatrixDef.
 Bind Scope ring_scope with matrix.
 
 Notation "''M[' R ]_ ( m , n )" := (matrix R m n) (only parsing): type_scope.
-Notation "''rV[' R ]_ n"  := 'M[R]_(1, n) (only parsing) : type_scope.
-Notation "''cV[' R ]_ n"  := 'M[R]_(n, 1) (only parsing) : type_scope.
-Notation "''M[' R ]_ n"  := 'M[R]_(n, n) (only parsing) : type_scope.
+Notation "''rV[' R ]_ n" := 'M[R]_(1, n) (only parsing) : type_scope.
+Notation "''cV[' R ]_ n" := 'M[R]_(n, 1) (only parsing) : type_scope.
+Notation "''M[' R ]_ n" := 'M[R]_(n, n) (only parsing) : type_scope.
 Notation "''M[' R ]_ ( n )" := 'M[R]_n (only parsing) : type_scope.
 Notation "''M_' ( m , n )" := 'M[_]_(m, n) : type_scope.
-Notation "''rV_' n"  := 'M_(1, n) : type_scope.
-Notation "''cV_' n"  := 'M_(n, 1) : type_scope.
-Notation "''M_' n"  := 'M_(n, n) : type_scope.
+Notation "''rV_' n" := 'M_(1, n) : type_scope.
+Notation "''cV_' n" := 'M_(n, 1) : type_scope.
+Notation "''M_' n" := 'M_(n, n) : type_scope.
 Notation "''M_' ( n )" := 'M_n (only parsing) : type_scope.
 
 Notation "\matrix_ i E" :=
@@ -576,7 +591,7 @@ Lemma row'_eq : forall m n i0 (A B : 'M_(m, n)),
   row' i0 A = row' i0 B -> {in predC1 i0, A =2 B}.
 Proof.
 move=> m n i0 A B; move/matrixP=> eqAB' i.
-rewrite !inE eq_sym; case/unlift_some=> i' -> _  j.
+rewrite !inE eq_sym; case/unlift_some=> i' -> _ j.
 by have:= eqAB' i' j; rewrite !mxE.
 Qed.
 
@@ -584,7 +599,7 @@ Lemma col'_eq : forall m n j0 (A B : 'M_(m, n)),
   col' j0 A = col' j0 B -> forall i, {in predC1 j0, A i =1 B i}.
 Proof.
 move=> m n j0 A B; move/matrixP=> eqAB' i j.
-rewrite !inE eq_sym; case/unlift_some=> j' ->  _.
+rewrite !inE eq_sym; case/unlift_some=> j' -> _.
 by have:= eqAB' i j'; rewrite !mxE.
 Qed.
 
@@ -908,13 +923,13 @@ Section TrCutBlock.
 Variables m1 m2 n1 n2 : nat.
 Variable A : 'M[R]_(m1 + m2, n1 + n2).
 
-Lemma trmx_ulsub : (ulsubmx A)^T =  ulsubmx A^T.
+Lemma trmx_ulsub : (ulsubmx A)^T = ulsubmx A^T.
 Proof. by apply/matrixP=> i j; rewrite !mxE. Qed.
 
-Lemma trmx_ursub : (ursubmx A)^T =  dlsubmx A^T.
+Lemma trmx_ursub : (ursubmx A)^T = dlsubmx A^T.
 Proof. by apply/matrixP=> i j; rewrite !mxE. Qed.
 
-Lemma trmx_dlsub : (dlsubmx A)^T =  ursubmx A^T.
+Lemma trmx_dlsub : (dlsubmx A)^T = ursubmx A^T.
 Proof. by apply/matrixP=> i j; rewrite !mxE. Qed.
 
 Lemma trmx_drsub : (drsubmx A)^T = drsubmx A^T.
@@ -1103,6 +1118,7 @@ Lemma addNmx : left_inverse (const_mx 0) oppmx addmx.
 Proof. by move=> A; apply/matrixP=> i j; rewrite !mxE addNr. Qed.
 
 Definition matrix_zmodMixin := ZmodMixin addmxA addmxC add0mx addNmx.
+
 Canonical Structure matrix_zmodType :=
   Eval hnf in ZmodType 'M[M]_(m, n) matrix_zmodMixin.
 
@@ -1186,7 +1202,7 @@ Proof. by move=> *; split_mxE. Qed.
 
 Lemma add_block_mx : forall m1 m2 n1 n2,
   forall (Aul : 'M_(m1, n1)) Aur Adl (Adr : 'M_(m2, n2)) Bul Bur Bdl Bdr,
-  let A := block_mx Aul Aur Adl Adr  in let B := block_mx Bul Bur Bdl Bdr in
+  let A := block_mx Aul Aur Adl Adr in let B := block_mx Bul Bur Bdl Bdr in
   A + B = block_mx (Aul + Bul) (Aur + Bur) (Adl + Bdl) (Adr + Bdr).
 Proof. by move=> *; rewrite add_col_mx !add_row_mx. Qed.
 
@@ -1206,6 +1222,7 @@ End MatrixZmodule.
 Section FinZmodMatrix.
 Variables (M : finZmodType) (m n : nat).
 Local Notation MM := 'M[M]_(m, n).
+
 Canonical Structure matrix_finZmodType := Eval hnf in [finZmodType of MM].
 Canonical Structure matrix_baseFinGroupType :=
   Eval hnf in [baseFinGroupType of MM for +%R].
@@ -1236,26 +1253,8 @@ Definition delta_mx i0 j0 : 'M[R]_(m, n) :=
 
 Local Notation "x *m: A" := (scalemx x A) : ring_scope.
 
-Lemma scalemx_const : forall a b, a *m: const_mx b = const_mx (a * b).
-Proof. by move=> a b; apply/matrixP=> i j; rewrite !mxE. Qed.
-
-Lemma scale0mx : forall A, 0 *m: A = 0.
-Proof. by move=> A; apply/matrixP=> i j; rewrite !mxE mul0r. Qed.
-
-Lemma scalemx0 : forall x, x *m: 0 = 0.
-Proof. by move=> x; apply/matrixP=> i j; rewrite !mxE mulr0. Qed.
-
 Lemma scale1mx : forall A, 1 *m: A = A.
 Proof. by move=> A; apply/matrixP=> i j; rewrite !mxE mul1r. Qed.
-
-Lemma scaleNmx : forall x A, (- x) *m: A = - (x *m: A).
-Proof. by move=> x A; apply/matrixP=> i j; rewrite !mxE mulNr. Qed.
-
-Lemma scaleN1mx : forall A, (- 1) *m: A = - A.
-Proof. by move=> A; rewrite scaleNmx scale1mx. Qed.
-
-Lemma scalemxN : forall x A, x *m: (- A) = - (x *m: A).
-Proof. by move=> x A; apply/matrixP=> i j; rewrite !mxE mulrN. Qed.
 
 Lemma scalemx_addl : forall x y A, (x + y) *m: A = x *m: A + y *m: A.
 Proof. by move=> x y A; apply/matrixP=> i j; rewrite !mxE mulr_addl. Qed.
@@ -1263,37 +1262,28 @@ Proof. by move=> x y A; apply/matrixP=> i j; rewrite !mxE mulr_addl. Qed.
 Lemma scalemx_addr : forall x A B, x *m: (A + B) = x *m: A + x *m: B.
 Proof. by move=> x A B; apply/matrixP=> i j; rewrite !mxE mulr_addr. Qed.
 
-Lemma scalemx_subl : forall x y A, (x - y) *m: A = x *m: A - y *m: A.
-Proof. by move=> x y A; rewrite scalemx_addl scaleNmx. Qed.
-
-Lemma scalemx_subr : forall x A B, x *m: (A - B) = x *m: A - x *m: B.
-Proof. by move=> x A B; rewrite scalemx_addr scalemxN. Qed.
-
 Lemma scalemxA : forall x y A, x *m: (y *m: A) = (x * y) *m: A.
 Proof. by move=> x y A; apply/matrixP=> i j; rewrite !mxE mulrA. Qed.
 
-Lemma scalemx_nat : forall d A, d%:R *m: A = A *+ d.
+Lemma scale_mx_addl: forall A,{morph scalemx^~ A : a b / a + b >-> a + b}.
 Proof.
-move=> d A; elim: d => [|d IHd]; rewrite ?scale0mx //.
-by rewrite !mulrS scalemx_addl scale1mx IHd.
+by move=> A a b;rewrite scalemx_addl.
 Qed.
 
-Lemma scalemx_suml : forall A I r (P : pred I) a_,
-   (\sum_(i <- r | P i) a_ i) *m: A = \sum_(i <- r | P i) a_ i *m: A.
-Proof.
-move=> A; apply: (big_morph (scalemx^~ A)) => [a b|]; last exact: scale0mx.
-by rewrite scalemx_addl.
-Qed.
+Lemma scale_mx_addr: forall a , {morph scalemx a : p q / p + q}.
+Proof. by move=> a p q; rewrite scalemx_addr. Qed.
 
-Lemma scalemx_sumr : forall a I r (P : pred I) eA_,
-   a *m: (\sum_(i <- r | P i) eA_ i) = \sum_(i <- r | P i) a *m: eA_ i.
-Proof.
-move=> a; apply: (big_morph (scalemx a)) => [A B|]; last exact: scalemx0.
-by rewrite scalemx_addr.
-Qed.
+Definition matrix_lmodMixin := 
+  LmodMixin scalemxA scale1mx scalemx_addr scale_mx_addl.
+
+Canonical Structure matrix_lmodType :=
+  Eval hnf in LmodType R 'M[R]_(m, n) matrix_lmodMixin.
+
+Lemma scalemx_const : forall a b, a *: const_mx b = const_mx (a * b).
+Proof. by move=> a b; apply/matrixP=> i j; rewrite !mxE. Qed.
 
 Lemma matrix_sum_delta : forall A,
-  A = \sum_(i < m) \sum_(j < n) A i j *m: delta_mx i j.
+  A = \sum_(i < m) \sum_(j < n) A i j *: delta_mx i j.
 Proof.
 move=> A; apply/matrixP=> i j.
 rewrite summxE (bigD1 i) // summxE (bigD1 j) //= !mxE !eqxx mulr1.
@@ -1304,34 +1294,32 @@ Qed.
 
 End RingModule.
 
-Notation "x *m: A" := (scalemx x A) : ring_scope.
-
 Lemma trmx_delta : forall m n i j,
   (delta_mx i j)^T = delta_mx j i :> 'M[R]_(n, m).
 Proof. by move=> m n i j; apply/matrixP=> i' j'; rewrite !mxE andbC. Qed.
 
-Lemma trmx_scale : forall m n a (A  : 'M_(m, n)), (a *m: A)^T = a *m: A^T.
+Lemma trmx_scale : forall m n a (A : 'M_(m, n)), (a *: A)^T = a *: A^T.
 Proof. by move=> m n a A; apply/matrixP=> i j; rewrite !mxE. Qed.
 
 Lemma row_sum_delta : forall n (u : 'rV_n),
-  u = \sum_(j < n) u 0 j *m: delta_mx 0 j.
+  u = \sum_(j < n) u 0 j *: delta_mx 0 j.
 Proof. by move=> n u; rewrite {1}[u]matrix_sum_delta big_ord1. Qed.
 
 Ltac split_mxE := apply/matrixP=> i j; do ![rewrite mxE | case: split => ?].
 
 Lemma scale_row_mx : forall m n1 n2 a (A1 : 'M_(m, n1)) (A2 : 'M_(m, n2)),
-  a *m: row_mx A1 A2 = row_mx (a *m: A1) (a *m: A2).
+  a *: row_mx A1 A2 = row_mx (a *: A1) (a *: A2).
 Proof. by move=> *; split_mxE. Qed.
 
 Lemma scale_col_mx : forall m1 m2 n a (A1 : 'M_(m1, n)) (A2 : 'M_(m2, n)),
-  a *m: col_mx A1 A2 = col_mx (a *m: A1) (a *m: A2).
+  a *: col_mx A1 A2 = col_mx (a *: A1) (a *: A2).
 Proof. by move=> *; split_mxE. Qed.
 
 Lemma scale_block_mx : forall m1 m2 n1 n2 a,
                        forall (Aul : 'M_(m1, n1)) (Aur : 'M_(m1, n2)),
                        forall (Adl : 'M_(m2, n1)) (Adr : 'M_(m2, n2)),
-  a *m: block_mx Aul Aur Adl Adr
-     = block_mx (a *m: Aul) (a *m: Aur) (a *m: Adl) (a *m: Adr).
+  a *: block_mx Aul Aur Adl Adr
+     = block_mx (a *: Aul) (a *: Aur) (a *: Adl) (a *: Adr).
 Proof. by move=> *; rewrite scale_col_mx !scale_row_mx. Qed.
 
 (* Diagonal matrices *)
@@ -1357,11 +1345,11 @@ Lemma diag_mx_add : forall n (d e : 'rV_n),
 Proof. by move=> n d e; apply/matrixP=> i j; rewrite !mxE mulrn_addl. Qed.
 
 Lemma scale_diag_mx : forall n a (d : 'rV_n),
-  a *m: diag_mx d = diag_mx (a *m: d).
+  a *: diag_mx d = diag_mx (a *: d).
 Proof. by move=> n a d; apply/matrixP=> i j; rewrite !mxE mulrnAr. Qed.
 
 Lemma diag_mx_sum_delta : forall n (d : 'rV_n),
-  diag_mx d = \sum_i d 0 i *m: delta_mx i i.
+  diag_mx d = \sum_i d 0 i *: delta_mx i i.
 Proof.
 move=> n d; apply/matrixP=> i j; rewrite summxE (bigD1 i) //= !mxE eqxx /=.
 rewrite eq_sym mulr_natr big1 ?addr0 // => i' ne_i'i.
@@ -1393,10 +1381,10 @@ Proof. by move=> n a; apply/matrixP=> i j; rewrite !mxE oppr_muln. Qed.
 Lemma scalar_mx_add : forall n a b, (a + b)%:M = a%:M + b%:M :> 'M_n.
 Proof. by move=> n a b; apply/matrixP=> i j; rewrite !mxE mulrn_addl. Qed.
 
-Lemma scale_scalar_mx : forall n a1 a2, a1 *m: a2%:M = (a1 * a2)%:M :> 'M_n.
+Lemma scale_scalar_mx : forall n a1 a2, a1 *: a2%:M = (a1 * a2)%:M :> 'M_n.
 Proof. by move=> n a1 a2; apply/matrixP=> i j; rewrite !mxE mulrnAr. Qed.
 
-Lemma scalemx1 : forall n a, a *m: 1%:M = a%:M :> 'M_n.
+Lemma scalemx1 : forall n a, a *: 1%:M = a%:M :> 'M_n.
 Proof. by move=> n a; rewrite scale_scalar_mx mulr1. Qed.
 
 Lemma scalar_mx_block : forall n1 n2 a,
@@ -1404,11 +1392,11 @@ Lemma scalar_mx_block : forall n1 n2 a,
 Proof.
 move=> n1 n2 a; apply/matrixP=> i j; rewrite !mxE -val_eqE /=.
 by do 2![case: splitP => ? ->; rewrite !mxE];
-   rewrite ?eqn_addl // -?(eq_sym (n1 + _)%N) eqn_leq leqNgt lshift_subproof.
+  rewrite ?eqn_addl // -?(eq_sym (n1 + _)%N) eqn_leq leqNgt lshift_subproof.
 Qed.
 
 Lemma scalar_mx_sum_delta : forall n a,
-  a%:M = \sum_i a *m: delta_mx i i :> 'M_n.
+  a%:M = \sum_i a *: delta_mx i i :> 'M_n.
 Proof.
 move=> n a; rewrite -diag_const_mx diag_mx_sum_delta.
 by apply: eq_bigr => i _; rewrite mxE.
@@ -1416,7 +1404,7 @@ Qed.
 
 Lemma mx1_sum_delta : forall n, 1%:M = \sum_i delta_mx i i :> 'M_n.
 Proof.
-by move=> n; rewrite [1%:M]scalar_mx_sum_delta -scalemx_sumr scale1mx.
+by move=> n; rewrite [1%:M]scalar_mx_sum_delta -scaler_sumr scale1r.
 Qed.
 
 Lemma row1 : forall n (i : 'I_n), row i 1%:M = delta_mx 0 i.
@@ -1501,12 +1489,14 @@ by rewrite mulmx_addr.
 Qed.
 
 Lemma scalemxAl : forall m n p a (A : 'M_(m, n)) (B : 'M_(n, p)),
-  a *m: (A *m B) = (a *m: A) *m B.
+  a *: (A *m B) = (a *: A) *m B.
 Proof.
 move=> m n p a A B; apply/matrixP=> i k; rewrite !mxE big_distrr /=.
 by apply: eq_bigr => j _; rewrite mulrA mxE.
 Qed.
 (* Right scaling associativity requires a commutative ring *)
+
+
 
 Lemma rowE : forall m n i (A : 'M_(m, n)), row i A = delta_mx 0 i *m A.
 Proof.
@@ -1519,7 +1509,7 @@ Lemma row_mul : forall m n p (i : 'I_m) A (B : 'M_(n, p)),
 Proof. by move=> m n p i A B; rewrite !rowE mulmxA. Qed.
 
 Lemma mulmx_sum_row : forall m n (u : 'rV_m) (A : 'M_(m, n)),
-  u *m A = \sum_i u 0 i *m: row i A.
+  u *m A = \sum_i u 0 i *: row i A.
 Proof.
 move=> m n u A; apply/rowP=> j; rewrite mxE summxE; apply: eq_bigr => i _.
 by rewrite !mxE.
@@ -1565,7 +1555,7 @@ Proof.
 by move=> n d e; apply/matrixP=> i j; rewrite mul_diag_mx !mxE mulrnAr.
 Qed.
 
-Lemma mul_scalar_mx : forall m n a (A : 'M_(m, n)), a%:M *m A = a *m: A.
+Lemma mul_scalar_mx : forall m n a (A : 'M_(m, n)), a%:M *m A = a *: A.
 Proof.
 move=> m n a A; rewrite -diag_const_mx mul_diag_mx.
 by apply/matrixP=> i j; rewrite !mxE.
@@ -1575,7 +1565,7 @@ Lemma scalar_mxM : forall n a b, (a * b)%:M = a%:M *m b%:M :> 'M_n.
 Proof. by move=> n a b; rewrite mul_scalar_mx scale_scalar_mx. Qed.
 
 Lemma mul1mx : forall m n (A : 'M_(m, n)), 1%:M *m A = A.
-Proof. by move=> m n A; rewrite mul_scalar_mx scale1mx. Qed.
+Proof. by move=> m n A; rewrite mul_scalar_mx scale1r. Qed.
 
 Lemma mulmx1 : forall m n (A : 'M_(m, n)), A *m 1%:M = A.
 Proof.
@@ -1827,7 +1817,7 @@ Proof.
 by move=> n A B; rewrite -big_split; apply: eq_bigr => i _; rewrite mxE.
 Qed.
 
-Lemma mxtrace_scale : forall n a (A : 'M_n), \tr (a *m: A) = a * \tr A.
+Lemma mxtrace_scale : forall n a (A : 'M_n), \tr (a *: A) = a * \tr A.
 Proof.
 by move=> n a A; rewrite big_distrr; apply: eq_bigr => i _; rewrite mxE.
 Qed.
@@ -1868,8 +1858,15 @@ Qed.
 Definition matrix_ringMixin :=
   RingMixin (@mulmxA n n n n) (@mul1mx n n) (@mulmx1 n n)
             (@mulmx_addl n n n) (@mulmx_addr n n n) matrix_nonzero1.
+
 Canonical Structure matrix_ringType :=
-  Eval hnf in RingType 'M[R]_n  matrix_ringMixin.
+  Eval hnf in RingType 'M[R]_n matrix_ringMixin.
+
+Lemma scale_mxAl: forall (k : R) (x y : 'M[R]_n), k *: (x * y) = k *: x * y.
+Proof. exact :scalemxAl. Qed.
+
+Canonical Structure matrix_lAlgType :=
+  Eval hnf in LalgType R 'M[R]_n  scale_mxAl.
 
 Lemma mulmxE : mulmx = *%R. Proof. by []. Qed.
 Lemma idmxE : 1%:M = 1 :> 'M_n. Proof. by []. Qed.
@@ -1948,7 +1945,6 @@ Implicit Arguments pid_mx [R m n].
 Implicit Arguments copid_mx [R n].
 Prenex Implicits delta_mx diag_mx scalar_mx perm_mx tperm_mx pid_mx copid_mx.
 Prenex Implicits scalemx mulmx mxtrace determinant cofactor adjugate.
-Notation "a *m: A" := (scalemx a A) : ring_scope.
 Notation "a %:M" := (scalar_mx a) : ring_scope.
 Notation "A *m B" := (mulmx A B) : ring_scope.
 Notation "\tr A" := (mxtrace A) : ring_scope.
@@ -1986,7 +1982,7 @@ Implicit Type A : 'M[aR]_(m, n).
 Lemma map_mx0 : 0^f = 0 :> 'M_(m, n).
 Proof. by rewrite map_const_mx ringM_0. Qed.
 
-Lemma map_mxN : forall A,  (- A)^f = - A^f.
+Lemma map_mxN : forall A, (- A)^f = - A^f.
 Proof. by move=> A; apply/matrixP=> i j; rewrite !mxE ringM_opp. Qed.
 
 Lemma map_mxD : forall A B, (A + B)^f = A^f + B^f.
@@ -1995,12 +1991,12 @@ Proof. by move=> A B; apply/matrixP=> i j; rewrite !mxE ringM_add. Qed.
 Lemma map_mx_mulnat : forall A d, (A *+ d)^f = A^f *+ d.
 Proof. by move=> A; elim=> [|d IHd]; rewrite ?map_mx0 ?mulrS ?map_mxD ?IHd. Qed.
 
-Lemma map_mx_sub : forall A B, (A - B)^f =  A^f - B^f.
+Lemma map_mx_sub : forall A B, (A - B)^f = A^f - B^f.
 Proof. by move=> A B; rewrite map_mxD map_mxN. Qed.
 
 Definition map_mx_sum := big_morph _ map_mxD map_mx0.
 
-Lemma map_mxZ : forall a A, (a *m: A)^f = f a *m: A^f.
+Lemma map_mxZ : forall a A, (a *: A)^f = f a *: A^f.
 Proof. by move=> a A; apply/matrixP=> i j; rewrite !mxE ringM_mul. Qed.
 
 Lemma map_mxM : forall A B, (A *m B)^f = A^f *m B^f :> 'M_(m, p).
@@ -2072,12 +2068,27 @@ move=> m n p A B; rewrite trmx_mul_rev; apply/matrixP=> k i; rewrite !mxE.
 by apply: eq_bigr => j _; rewrite mulrC.
 Qed.
 
+
 Lemma scalemxAr : forall m n p a (A : 'M[R]_(m, n)) (B : 'M_(n, p)),
-  a *m: (A *m B) = A *m (a *m: B).
+  a *: (A *m B) = A *m (a *: B).
 Proof.
 move=> m n p a A B.
 by apply: trmx_inj; rewrite !(trmx_scale, trmx_mul) scalemxAl.
 Qed.
+
+
+Section MatrixAlgType.
+
+Variable n' : nat.
+Local Notation n := n'.+1.
+
+Lemma scale_mxAr: forall (k: R) (x y: 'M[R]_n), k *: (x * y) = x * (k *: y). 
+Proof. exact :scalemxAr. Qed.
+
+Canonical Structure matrix_algType :=
+  Eval hnf in AlgType R 'M[R]_n scale_mxAr.
+
+End MatrixAlgType.
 
 Lemma diag_mxC : forall n (d e : 'rV[R]_n),
   diag_mx d *m diag_mx e = diag_mx e *m diag_mx d.
@@ -2099,7 +2110,7 @@ Qed.
 Lemma scalar_mx_comm : forall n' a (A : 'M[R]_n'.+1), GRing.comm A a%:M.
 Proof. move=> n; exact: scalar_mxC. Qed.
 
-Lemma mul_mx_scalar : forall m n a (A : 'M[R]_(m, n)), A *m a%:M = a *m: A.
+Lemma mul_mx_scalar : forall m n a (A : 'M[R]_(m, n)), A *m a%:M = a *: A.
 Proof. by move=> m n a A; rewrite scalar_mxC mul_scalar_mx. Qed.
 
 Lemma mxtrace_mulC : forall m n (A : 'M[R]_(m, n)) (B : 'M_(n, m)),
@@ -2114,7 +2125,7 @@ Qed.
 (* The theory of determinants *)
 
 Lemma determinant_multilinear : forall n (A B C : 'M[R]_n) i0 b c,
-    row i0 A = b *m: row i0 B + c *m: row i0 C ->
+    row i0 A = b *: row i0 B + c *: row i0 C ->
     row' i0 B = row' i0 A ->
     row' i0 C = row' i0 A ->
   \det A = b * \det B + c * \det C.
@@ -2161,7 +2172,7 @@ Qed.
 Lemma det1 : forall n, \det (1%:M : 'M[R]_n) = 1.
 Proof. by move=> n; rewrite -perm_mx1 det_perm odd_perm1. Qed.
 
-Lemma det_scalemx : forall n x (A : 'M[R]_n), \det (x *m: A) = x ^+ n * \det A.
+Lemma det_scalemx : forall n x (A : 'M[R]_n), \det (x *: A) = x ^+ n * \det A.
 Proof.
 move=> n x A; rewrite big_distrr /=; apply: eq_bigr => s _.
 rewrite mulrCA; congr (_ * _).
@@ -2170,7 +2181,7 @@ by apply: eq_bigr=> i _; rewrite mxE.
 Qed.
 
 Lemma det0 : forall n', \det (0 : 'M[R]_n'.+1) = 0.
-Proof. by move=> n'; rewrite -(scale0mx 0) det_scalemx exprS !mul0r. Qed.
+Proof. by move=> n'; rewrite -(scale0r 0) det_scalemx exprS !mul0r. Qed.
 
 Lemma det_scalar : forall n a, \det (a%:M : 'M[R]_n) = a ^+ n.
 Proof.
@@ -2301,7 +2312,7 @@ Qed.
 (* Left inverses are right inverses. *)
 Lemma mulmx1C : forall n (A B : 'M[R]_n), A *m B = 1%:M -> B *m A = 1%:M.
 Proof.
-move=> n A B AB1; pose A' := \det B *m: \adj A.
+move=> n A B AB1; pose A' := \det B *: \adj A.
 suffices kA: A' *m A = 1%:M by rewrite -[B]mul1mx -kA -(mulmxA A') AB1 mulmx1.
 by rewrite -scalemxAl mul_adj_mx scale_scalar_mx mulrC -det_mulmx AB1 det1.
 Qed.
@@ -2337,7 +2348,7 @@ Proof. by move=> *; rewrite -det_tr tr_block_mx trmx0 det_ublock !det_tr. Qed.
 End ComMatrix.
 
 (*****************************************************************************)
-(********************** Matrix unit ring and inverse marices *****************)
+(********************** Matrix unit ring and inverse matrices ****************)
 (*****************************************************************************)
 
 Section MatrixInv.
@@ -2349,7 +2360,7 @@ Section Defs.
 Variable n : nat.
 
 Definition unitmx : pred 'M[R]_n := fun A => GRing.unit (\det A).
-Definition invmx A := if A \in unitmx then (\det A)^-1 *m: \adj A else A.
+Definition invmx A := if A \in unitmx then (\det A)^-1 *: \adj A else A.
 
 Lemma unitmxE : forall A, (A \in unitmx) = GRing.unit (\det A).
 Proof. by []. Qed.
@@ -2426,6 +2437,9 @@ Definition matrix_unitRingMixin :=
   UnitRingMixin (@mulVmx n) (@mulmxV n) (@intro_unitmx n) (@invmx_out n).
 Canonical Structure matrix_unitRing :=
   Eval hnf in UnitRingType 'M[R]_n matrix_unitRingMixin.
+
+Canonical Structure matrix_unitAlg :=
+  Eval hnf in UnitAlgType R 'M[R]_n.
 
 (* Lemmas requiring that the coefficients are in a unit ring *)
 
@@ -2546,10 +2560,10 @@ Fixpoint cormen_lup {n} :=
     let k := odflt 0 [pick k | A k 0 != 0] in
     let A1 : 'M_(1 + _) := xrow 0 k A in
     let P1 : 'M_(1 + _) := tperm_mx 0 k in
-    let Schur := ((A k 0)^-1 *m: dlsubmx A1) *m ursubmx A1 in
+    let Schur := ((A k 0)^-1 *: dlsubmx A1) *m ursubmx A1 in
     let: (P2, L2, U2) := cormen_lup (drsubmx A1 - Schur) in
     let P := block_mx 1 0 0 P2 *m P1 in
-    let L := block_mx 1 0 ((A k 0)^-1 *m: (P2 *m dlsubmx A1)) L2 in
+    let L := block_mx 1 0 ((A k 0)^-1 *: (P2 *m dlsubmx A1)) L2 in
     let U := block_mx (ulsubmx A1) (ursubmx A1) 0 U2 in
     (P, L, U)
   end.
@@ -2563,7 +2577,7 @@ case/is_perm_mxP => s ->; exact: lift0_mx_is_perm.
 Qed.
 
 Lemma cormen_lup_correct : forall n (A : 'M_n.+1),
-  let: (P, L, U) := cormen_lup A in P * A  = L * U.
+  let: (P, L, U) := cormen_lup A in P * A = L * U.
 Proof.
 elim=> [|n IHn] A /=; first by rewrite !mul1r.
 set k := odflt _ _; set A1 : 'M_(1 + _) := xrow _ _ _.
@@ -2572,7 +2586,7 @@ rewrite -mulrA -!mulmxE -xrowE -/A1 /= -[n.+2]/(1 + n.+1)%N -{1}(submxK A1).
 rewrite !mulmx_block !mul0mx !mulmx0 !add0r !addr0 !mul1mx -{L' U'}[L' *m _]IHn.
 rewrite -scalemxAl !scalemxAr -!mulmxA addrC -mulr_addr {A'}subrK.
 congr (block_mx _ _ (_ *m _) _).
-rewrite [_ *m: _]mx11_scalar !mxE lshift0 tpermL {}/A1 {}/k.
+rewrite [_ *: _]mx11_scalar !mxE lshift0 tpermL {}/A1 {}/k.
 case: pickP => /= [k nzAk0 | no_k]; first by rewrite mulVf ?mulmx1.
 rewrite (_ : dlsubmx _ = 0) ?mul0mx //; apply/colP=> i.
 by rewrite !mxE lshift0 (elimNf eqP (no_k _)).
@@ -2625,7 +2639,7 @@ Fixpoint gaussian_elimination {m n} : 'M_(m, n) -> 'M_m * 'M_n * nat :=
   | _.+1, _.+1 => fun A : 'M_(1 + _, 1 + _) =>
     if [pick ij | A ij.1 ij.2 != 0] is Some (i, j) then
       let a := A i j in let A1 := xrow i 0 (xcol j 0 A) in
-      let u := ursubmx A1 in let v :=  a^-1 *m: dlsubmx A1 in
+      let u := ursubmx A1 in let v := a^-1 *: dlsubmx A1 in
       let: (L, U, r) := gaussian_elimination (drsubmx A1 - v *m u) in
       (xrow i 0 (block_mx 1 0 v L), xcol j 0 (block_mx a%:M u 0 U), r.+1)
     else (1%:M, 1%:M, 0%N)
@@ -2825,7 +2839,7 @@ unlock row_ebase; elim=> [|m IHm] [|n] //= A.
 case: pickP => [[i j] /= nzAij | //=]; move: (_ - _) => B.
 case: gaussE (IHm _ B) => [[L U] r] /= uU.
 rewrite unitmxE xcolE det_mulmx (@det_ublock _ 1) det_scalar1 !unitr_mul.
-by rewrite unitfE nzAij -!unitmxE uU  unitmx_perm.
+by rewrite unitfE nzAij -!unitmxE uU unitmx_perm.
 Qed.
 
 Lemma col_ebase_unit : forall m n (A : 'M_(m, n)), col_ebase A \in unitmx.
@@ -2848,15 +2862,15 @@ case: pickP => [[i0 j0] | A0] /=; last first.
   apply/matrixP=> i j; rewrite pid_mx_0 mulmx0 mul0mx mxE.
   by move/eqP: (A0 (i, j)).
 set a := A i0 j0 => nz_a; set A1 := xrow _ _ _.
-set u := ursubmx _; set v := _ *m: _; set B : 'M_(m, n) := _ -  _.
+set u := ursubmx _; set v := _ *: _; set B : 'M_(m, n) := _ - _.
 move: (rank_leq_col B) (rank_leq_row B) {IHm}(IHm n B); rewrite mxrankE.
 case: (gaussE B) => [[L U] r] /= r_m r_n defB.
 have ->: pid_mx (1 + r) = block_mx 1 0 0 (pid_mx r) :> 'M[F]_(1 + m, 1 + n).
   rewrite -(subnKC r_m) -(subnKC r_n) pid_mx_block -col_mx0 -row_mx0.
   by rewrite block_mxA castmx_id col_mx0 row_mx0 -scalar_mx_block -pid_mx_block.
-rewrite xcolE xrowE  mulmxA -xcolE -!mulmxA.
+rewrite xcolE xrowE mulmxA -xcolE -!mulmxA.
 rewrite !(addr0, add0r, mulmx0, mul0mx, mulmx_block, mul1mx) mulmxA defB.
-rewrite addrC subrK mul_mx_scalar scalemxA divff // scale1mx.
+rewrite addrC subrK mul_mx_scalar scalerA divff // scale1r.
 have ->: a%:M = ulsubmx A1 by rewrite [_ A1]mx11_scalar !mxE !lshift0 !tpermR.
 rewrite submxK /A1 xrowE !xcolE -!mulmxA mulmxA -!perm_mxM !tperm2 !perm_mx1.
 by rewrite mulmx1 mul1mx.
@@ -2913,19 +2927,19 @@ by move=> m n p A B; rewrite -mxrank_tr -(mxrank_tr B) trmx_mul mxrankM_maxl.
 Qed.
 
 Lemma mxrank_scale : forall m n a (A : 'M_(m, n)),
-  \rank (a *m: A) <= \rank A.
+  \rank (a *: A) <= \rank A.
 Proof. by move=> m n a A; rewrite -mul_scalar_mx mxrankM_maxr. Qed.
 
 Lemma mxrank_scale_nz : forall m n a (A : 'M_(m, n)),
-  a != 0 -> \rank (a *m: A) = \rank A.
+  a != 0 -> \rank (a *: A) = \rank A.
 Proof.
-move=> m n a A nza; apply/eqP; rewrite eqn_leq -{3}[A]scale1mx -(mulVf nza).
-by rewrite -scalemxA !mxrank_scale.
+move=> m n a A nza; apply/eqP; rewrite eqn_leq -{3}[A]scale1r -(mulVf nza).
+by rewrite -scalerA !mxrank_scale.
 Qed.
 
 Lemma mxrank_opp : forall m n (A : 'M_(m, n)), \rank (- A) = \rank A.
 Proof.
-by move=> m n A; rewrite -scaleN1mx mxrank_scale_nz // oppr_eq0 oner_eq0.
+by move=> m n A; rewrite -scaleN1r mxrank_scale_nz // oppr_eq0 oner_eq0.
 Qed.
 
 Lemma mxrank0 : forall m n, \rank (0 : 'M_(m, n)) = 0%N.
@@ -3063,7 +3077,7 @@ apply: (@big_prop _ leB) => [| A1 A2]; [exact: sub0mx | exact: addmx_sub].
 Qed.
 
 Lemma scalemx_sub : forall m1 m2 n a (A : 'M_(m1, n)) (B : 'M_(m2, n)),
-  (A <= B)%MS -> (a *m: A <= B)%MS.
+  (A <= B)%MS -> (a *: A <= B)%MS.
 Proof.
 by move=> m1 m2 n a A B; case/submxP=> A' ->; rewrite scalemxAl submxMl.
 Qed.
@@ -3106,7 +3120,7 @@ exact: existsP.
 Qed.
 
 Lemma sub_rVP : forall n (u v : 'rV_n),
-  reflect (exists a, u = a *m: v) (u <= v)%MS.
+  reflect (exists a, u = a *: v) (u <= v)%MS.
 Proof.
 move=> n u v; apply: (iffP submxP) => [[w ->] | [a ->]].
   by exists (w 0 0); rewrite -mul_scalar_mx -mx11_scalar.
@@ -3133,7 +3147,7 @@ Proof.
 move=> m n A; rewrite -[A == 0]negbK; case: rowV0Pn => IH.
   by right; case: IH => v svA nzv IH; case/eqP: nzv; exact: IH.
 by left=> v svA; apply/eqP; apply/idPn=> nzv; case: IH; exists v.
-Qed.  
+Qed.
 
 Lemma submx_full : forall m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)),
   row_full B -> (A <= B)%MS.
@@ -3272,15 +3286,15 @@ Qed.
 Lemma eqmx0 : forall m n, ((0 : 'M[F]_(m, n)) :=: (0 : 'M_n))%MS.
 Proof. by move=> m n; apply/eqmxP; rewrite !sub0mx. Qed.
 
-Lemma eqmx_scale : forall m n a (A : 'M_(m, n)), a != 0 -> (a *m: A :=: A)%MS.
+Lemma eqmx_scale : forall m n a (A : 'M_(m, n)), a != 0 -> (a *: A :=: A)%MS.
 Proof.
 move=> m n a A nz_a; apply/eqmxP; rewrite scalemx_sub //.
-by rewrite -{1}[A]scale1mx -(mulVf nz_a) -scalemxA scalemx_sub.
+by rewrite -{1}[A]scale1r -(mulVf nz_a) -scalerA scalemx_sub.
 Qed.
 
 Lemma eqmx_opp : forall m n (A : 'M_(m, n)), (- A :=: A)%MS.
 Proof.
-move=> m n A; rewrite -scaleN1mx; apply: eqmx_scale => //.
+move=> m n A; rewrite -scaleN1r; apply: eqmx_scale => //.
 by rewrite oppr_eq0 oner_eq0.
 Qed.
 
@@ -3678,7 +3692,7 @@ rewrite -addsmxE adds0mx -mxrank_tr tr_row_mx trmx0 trmx1.
 by rewrite -addsmxE adds0mx mxrank1 addKn.
 Qed.
 
-Lemma mxrank_compl : forall m n (A : 'M_(m, n)), \rank A^C%MS = (n - \rank A)%N.
+Lemma mxrank_compl : forall m n (A : 'M_(m, n)), \rank A^C = (n - \rank A)%N.
 Proof. by move=> m n A; rewrite mxrankMfree ?row_free_unit ?rank_copid_mx. Qed.
 
 Lemma mxrank_ker : forall m n (A : 'M_(m, n)),
@@ -3870,6 +3884,11 @@ case s1B: (1%:M <= B)%MS; rewrite !capmx_normP ?sub_capmx_gen sIA ?sIB //=.
 by rewrite submx_refl (submx_trans (submx1 _)).
 Qed.
 
+(*
+Lemma capmx_genE : forall m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)),
+  (<<(<<A>> :&: <<B>>)%MS>> =  <<A>> :&: <<B>>)%MS.
+*)
+
 Lemma capmxSl : forall m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)),
   (A :&: B <= A)%MS.
 Proof. by move=> m1 m2 n A B; rewrite capmxE submxMl. Qed.
@@ -4060,7 +4079,7 @@ by rewrite mxrank_mul_ker addn0 eq_sym; exact: eqP.
 Qed.
 
 Lemma mxrank_disjoint_sum : forall m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)),
-  (A :&: B)%MS = 0  -> \rank (A + B)%MS = (\rank A + \rank B)%N.
+  (A :&: B)%MS = 0 -> \rank (A + B)%MS = (\rank A + \rank B)%N.
 Proof.
 move=> m1 m2 n A B AB0; pose Ar := row_base A; pose Br := row_base B.
 have [Afree Bfree]: row_free Ar /\ row_free Br by rewrite !row_base_free.
@@ -4175,7 +4194,11 @@ Lemma add_proj_mx : forall m n U V (W : 'M_(m, n)),
 Proof.
 move=> m n U V W dxUV sWUV; apply/eqP; rewrite -subr_eq0 -submx0 -dxUV.
 rewrite -addrA sub_capmx {2}addrCA -!(oppr_sub W).
-rewrite !{1}addmx_sub ?proj_mx_sub ?eqmx_opp ?proj_mx_compl_sub //.
+(* 2min: *) 
+(* rewrite !{1}addmx_sub ?proj_mx_sub ?eqmx_opp ?proj_mx_compl_sub //. *)
+(* 1s:   *)
+apply/andP; split; (apply: addmx_sub; 
+  [exact: proj_mx_sub | rewrite eqmx_opp; apply proj_mx_compl_sub=> //]).
 by rewrite addsmxC.
 Qed.
 
@@ -4527,14 +4550,14 @@ Definition eigenspace a := kermx (g - a%:M).
 Definition eigenvalue : pred F := fun a => eigenspace a != 0.
 
 Lemma eigenspaceP : forall a m (W : 'M_(m, n)),
-  reflect (W *m g = a *m: W) (W <= eigenspace a)%MS.
+  reflect (W *m g = a *: W) (W <= eigenspace a)%MS.
 Proof.
 move=> a m W; rewrite (sameP (sub_kermxP _ _) eqP).
 by rewrite mulmx_subr subr_eq0 mul_mx_scalar; exact: eqP.
 Qed.
 
 Lemma eigenvalueP : forall a,
-  reflect (exists2 v : 'rV_n, v *m g = a *m: v & v != 0) (eigenvalue a).
+  reflect (exists2 v : 'rV_n, v *m g = a *: v & v != 0) (eigenvalue a).
 Proof.
 by move=> a; apply: (iffP (rowV0Pn _)) => [] [v]; move/eigenspaceP; exists v.
 Qed.
@@ -4555,11 +4578,11 @@ have nz_aij: a_ i - a_ j != 0.
   by case/andP: Pi'j => Pj ne_ji; rewrite subr_eq0 eq_sym (inj_in_eq inj_a).
 case: (sub_dsumsmx dxVi' (sub0mx 1 _)) => C _ _ uniqC.
 rewrite -(eqmx_eq0 (eqmx_scale _ nz_aij)).
-rewrite (uniqC (fun k => (a_ i - a_ k) *m: u k)) => // [|k Pi'k|].
+rewrite (uniqC (fun k => (a_ i - a_ k) *: u k)) => // [|k Pi'k|].
 - by rewrite -(uniqC (fun _ => 0)) ?big1 // => k Pi'k; exact: sub0mx.
 - by rewrite scalemx_sub ?Vi'u.
-rewrite -{1}(subrr (v *m g)) {1}def_vg def_v scalemx_sumr mulmx_suml -sumr_sub.
-by apply: eq_bigr => k; move/Vi'u; move/eigenspaceP->; rewrite scalemx_subl.
+rewrite -{1}(subrr (v *m g)) {1}def_vg def_v scaler_sumr mulmx_suml -sumr_sub.
+by apply: eq_bigr => k; move/Vi'u; move/eigenspaceP->; rewrite scaler_subl.
 Qed.
 
 End Eigenspace.
@@ -4687,6 +4710,233 @@ Notation "\bigcap_ ( i \in A | P ) B" :=
 Notation "\bigcap_ ( i \in A ) B" :=
   (\big[capmx/1%:M]_(i \in A) B%MS) : matrix_set_scope.
 
+(* Bijections mxvec : 'M_(m, n) <----> 'rV_(m * n) : vec_mx *)
+Section VecMatrix.
+
+Variables (R : Type) (m n : nat).
+
+Lemma mxvec_cast : #|{:'I_m * 'I_n}| = (m * n)%N. 
+Proof. by rewrite card_prod !card_ord. Qed.
+
+Definition mxvec_index (i : 'I_m) (j : 'I_n) :=
+  cast_ord mxvec_cast (enum_rank (i, j)).
+
+CoInductive is_mxvec_index : 'I_(m * n) -> Type :=
+  IsMxvecIndex i j : is_mxvec_index (mxvec_index i j).
+
+Lemma mxvec_indexP : forall k, is_mxvec_index k.
+Proof.
+move=> k; rewrite -[k](cast_ordK (esym mxvec_cast)) esymK.
+by rewrite -[_ k]enum_valK; case: (enum_val _).
+Qed.
+
+Coercion pair_of_mxvec_index k (i_k : is_mxvec_index k) :=
+  let: IsMxvecIndex i j := i_k in (i, j).
+
+Definition mxvec (A : 'M[R]_(m, n)) :=
+  castmx (erefl _, mxvec_cast) (\row_k A (enum_val k).1 (enum_val k).2).
+
+Definition vec_mx (u : 'rV[R]_(m * n)) := \matrix_(i, j) u 0 (mxvec_index i j).
+
+Lemma mxvecE : forall A i j, mxvec A 0 (mxvec_index i j) = A i j.
+Proof. by move=> A i j; rewrite castmxE mxE cast_ordK enum_rankK. Qed.
+
+Lemma mxvecK : cancel mxvec vec_mx.
+Proof. by move=> A; apply/matrixP=> i j; rewrite mxE mxvecE. Qed.
+
+Lemma vec_mxK : cancel vec_mx mxvec.
+Proof.
+by move=> u; apply/rowP=> k; case/mxvec_indexP: k => i j; rewrite mxvecE mxE.
+Qed.
+
+End VecMatrix.
+
+Prenex Implicits mxvec vec_mx mxvec_indexP mxvecK vec_mxK scalemx.
+
+(* Canonical instances of linear_fun; we introduce a specific head *)
+(* for binary operators (like *m) curried to the left.             *)
+Section Linear.
+Variables R : ringType.
+
+Variables m1 n1 m2 n2 m3 n3 : nat.
+Local Notation f12 := ('M[R]_(m1, n1) -> 'M[R]_(m2, n2)).
+Local Notation lf12 := (linear_fun m1 n1 m2 n2).
+Local Notation lf23 := (linear_fun m2 n2 m3 n3).
+
+Lemma lsubmx_linear_proof : @linear R _ _  (@lsubmx R m1 n1 n2).
+Proof. by move=> a u v; apply/matrixP=> i j; rewrite !mxE. Qed.
+Canonical Structure lsubmx_linear := LinearFun lsubmx_linear_proof.
+
+Lemma rsubmx_linear_proof : @linear R _ _  (@rsubmx R m1 n1 n2).
+Proof. by move=> a u v; apply/matrixP=> i j; rewrite !mxE. Qed.
+Canonical Structure rsubmx_linear :=  LinearFun rsubmx_linear_proof.
+
+Lemma trmx_linear_proof :  linear (@trmx R m1 n1).
+Proof. by move=> a u v; rewrite /= trmx_add trmx_scale. Qed.
+Canonical Structure trmx_linear := LinearFun trmx_linear_proof.
+
+Definition mulmxr_head t (B : 'M[R]_(n1, n2)) (A : 'M_(m1, n1)) :=
+  let: tt := t in A *m B.
+Lemma mulmxr_linear_proof : forall B, linear (mulmxr_head tt B).
+Proof. by move=> B a A1 A2; rewrite /= mulmx_addl scalemxAl. Qed.
+Canonical Structure mulmxr_linear B := LinearFun (mulmxr_linear_proof B).
+
+Lemma row_linear_proof : forall i, linear (row i : 'M[R]_(m1, n1) -> 'rV[R]_n1).
+Proof. by move=> i a A B; apply/rowP=> j; rewrite !mxE. Qed.
+Canonical Structure row_linear i := LinearFun (row_linear_proof i).
+
+Lemma vec_mx_linear_proof : linear (@vec_mx R m1 n1).
+Proof. by move=> a u v; apply/matrixP=> i j; rewrite !mxE. Qed.
+Canonical Structure vec_mx_linear := LinearFun vec_mx_linear_proof.
+
+Lemma mxvec_linear_proof : linear (@mxvec R m1 n1).
+Proof. by move=> a A B; apply/rowP=> k; rewrite !(castmxE, mxE). Qed.
+Canonical Structure mxvec_linear := LinearFun mxvec_linear_proof.
+
+Lemma vec_mx_delta : forall i j,
+  vec_mx (delta_mx 0 (mxvec_index i j)) = delta_mx i j :> 'M[R]_(m1, n1).
+Proof.
+move=> i j; apply/matrixP=> i' j'.
+by rewrite !mxE /= [_ == _](inj_eq (@enum_rank_inj _)).
+Qed.
+
+Lemma mxvec_delta : forall i j,
+  mxvec (delta_mx i j) = delta_mx 0 (mxvec_index i j) :> 'rV[R]_(m1 * n1).
+Proof. by move=> i j; rewrite -vec_mx_delta vec_mxK. Qed.
+
+Lemma mxvec_eq0 : forall A : 'M[R]_(m1, n1), (mxvec A == 0) = (A == 0).
+Proof. by move=> A; rewrite -[A == 0](inj_eq (can_inj mxvecK)) linear0. Qed.
+
+Lemma vec_mx_eq0 : forall v : 'rV[R]_(m1 * n1), (vec_mx v == 0) = (v == 0).
+Proof. by move=> v; rewrite -(inj_eq (can_inj vec_mxK)) linear0. Qed.
+
+End Linear.
+
+Notation null_lin := (GRing.null_lin_head tt).
+Notation add_lin := (GRing.add_lin_head tt).
+Notation mulmxr := (mulmxr_head tt).
+Implicit Arguments vec_mx_linear [R m1 n1].
+Implicit Arguments mxvec_linear [R m1 n1].
+Prenex Implicits vec_mx_linear mxvec_linear.
+
+Section ComLinear.
+
+Variables (R : comRingType) (m n p : nat).
+
+Lemma mulmx_linear_proof : forall A : 'M[R]_(m, n),  linear (@mulmx _ m n p A).
+Proof. by move=> A a B C; rewrite mulmx_addr scalemxAr. Qed.
+Canonical Structure mulmx_linear A := LinearFun (mulmx_linear_proof A).
+
+End ComLinear.
+
+(* Matrices of linear functions; in combination with mxvec/vec_mx this lets *)
+(* us work with Hom-spaces.                                                 *)
+Section LinMatrix.
+
+Variable R : ringType.
+
+Section RowLin.
+
+Variables m n : nat.
+
+Definition lin1_mx (f : 'rV[R]_m -> 'rV[R]_n) :=
+  \matrix_(i, j) f (delta_mx 0 i) 0 j.
+
+Variable f : {flinear 'rV[R]_m --> 'rV[R]_n}.
+
+Lemma mul_rV_lin1 : forall u, u *m lin1_mx f = f u.
+Proof.
+move=> u; rewrite {2}[u]matrix_sum_delta big_ord1 linear_sum; apply/rowP=> i.
+by rewrite mxE summxE; apply: eq_bigr => j _; rewrite linearZ !mxE.
+Qed.
+
+End RowLin.
+
+Variables m1 n1 m2 n2 : nat.
+
+Definition lin_mx (f : 'M[R]_(m1, n1) -> 'M[R]_(m2, n2)) :=
+  lin1_mx (mxvec \o f \o vec_mx).
+
+Variable f : {flinear 'M[R]_(m1, n1) --> 'M[R]_(m2, n2)}.
+
+Lemma mul_rV_lin : forall u, u *m lin_mx f = mxvec (f (vec_mx u)).
+Proof. exact: mul_rV_lin1. Qed.
+
+Lemma mul_vec_lin : forall A, mxvec A *m lin_mx f = mxvec (f A).
+Proof. by move=> A; rewrite mul_rV_lin mxvecK. Qed.
+
+Lemma mx_rV_lin : forall u, vec_mx (u *m lin_mx f) = f (vec_mx u).
+Proof. by move=> A; rewrite mul_rV_lin mxvecK. Qed.
+
+Lemma mx_vec_lin : forall A, vec_mx (mxvec A *m lin_mx f) = f A.
+Proof. by move=> A; rewrite mul_rV_lin !mxvecK. Qed.
+
+End LinMatrix.
+
+Section LinMul.
+
+Variables (R : comRingType) (m n p : nat).
+
+Definition lin_mul_row u : 'M[R]_(m * n, n) := lin1_mx (mulmx u \o vec_mx).
+Definition lin_mulmx A : 'M[R]_(n * p, m * p) := lin_mx (mulmx A).
+Definition lin_mulmxr A : 'M[R]_(m * n, m * p) := lin_mx (mulmxr A).
+
+Fact lin_mul_row_linear_proof : linear lin_mul_row.
+Proof.
+move=> a u v; apply/row_matrixP=> i; rewrite linearP /= !rowE !mul_rV_lin1 /=.
+by rewrite [_ *m _](linearP (mulmxr_linear _ _)).
+Qed.
+Canonical Structure lin_mul_row_linear := LinearFun lin_mul_row_linear_proof.
+
+Lemma mul_vec_lin_row : forall A u, mxvec A *m lin_mul_row u = u *m A.
+Proof. by move=> A u; rewrite mul_rV_lin1 /= mxvecK. Qed.
+
+Fact lin_mulmx_linear_proof : linear lin_mulmx.
+Proof.
+move=> a A B; apply/row_matrixP=> i; rewrite linearP /= !rowE !mul_rV_lin /=.
+by rewrite [_ *m _](linearP (mulmxr_linear _ _)) linearP.
+Qed.
+Canonical Structure lin_mulmx_linear := LinearFun lin_mulmx_linear_proof.
+
+Fact lin_mulmxr_linear_proof : linear lin_mulmxr.
+Proof.
+move=> a A B; apply/row_matrixP=> i; rewrite linearP /= !rowE !mul_rV_lin /=.
+by rewrite !linearP.
+Qed.
+Canonical Structure lin_mulmxr_linear := LinearFun lin_mulmxr_linear_proof.
+
+End LinMul.
+
+Implicit Arguments lin_mul_row [R m n].
+Implicit Arguments lin_mulmx [R m n p].
+Implicit Arguments lin_mulmxr [R m n p].
+Prenex Implicits lin_mul_row lin_mulmx lin_mulmxr.
+
+(* Characterizing scalar matrices.                                            *)
+Section ScalarMatrix.
+
+Variables (R : ringType) (n : nat).
+
+Definition is_scalar_mx (A : 'M[R]_n) :=
+  if insub 0%N is Some i then A == (A i i)%:M else true.
+
+Lemma is_scalar_mxP : forall A, reflect (exists a, A = a%:M) (is_scalar_mx A).
+Proof.
+rewrite /is_scalar_mx; case: insubP => [i _ _ A | ].
+  by apply: (iffP eqP) => [|[a ->]]; [exists (A i i) | rewrite mxE eqxx].
+by case: n => // _ A; left; exists 0; rewrite scalar_mx0 [A]flatmx0.
+Qed.
+
+Lemma scalar_mx_is_scalar : forall a, is_scalar_mx a%:M.
+Proof. by move=> a; apply/is_scalar_mxP; exists a. Qed.
+
+Lemma mx0_is_scalar : is_scalar_mx 0.
+Proof. by rewrite -scalar_mx0 scalar_mx_is_scalar. Qed.
+
+End ScalarMatrix.
+
+Implicit Arguments is_scalar_mxP [R n A].
+
 Section CardGL.
 
 Variable F : finFieldType.
@@ -4752,14 +5002,14 @@ apply: eq_bigr => u _; set a : F := v _ _ in nza.
 set v1 : 'cV_(1 + n) := xrow 0 k v.
 have def_a: usubmx v1 = a%:M.
   by rewrite [_ v1]mx11_scalar mxE lshift0 mxE tpermL.
-pose Schur := dsubmx v1 *m (a^-1 *m: u).
+pose Schur := dsubmx v1 *m (a^-1 *: u).
 pose L : 'M_(1 + n) := block_mx a%:M 0 (dsubmx v1) 1%:M.
-pose U B : 'M_(1 + n) := block_mx 1 (a^-1 *m: u) 0 B.
+pose U B : 'M_(1 + n) := block_mx 1 (a^-1 *: u) 0 B.
 rewrite (reindex (fun B => L *m U B)); last first.
   exists (fun A1 => drsubmx A1 - Schur) => [B _ | A1].
     by rewrite mulmx_block block_mxKdr mul1mx addrC addKr.
   rewrite !inE mulmx_block !mulmx0 mul0mx !mulmx1 !addr0 mul1mx addrC subrK.
-  rewrite mul_scalar_mx scalemxA divff // scale1mx andbC; case/and3P.
+  rewrite mul_scalar_mx scalerA divff // scale1r andbC; case/and3P.
   move/eqP=> <- _; rewrite -{1}(hsubmxK A1) xrowE mul_mx_row row_mxKl -xrowE.
   move/eqP=> def_v; rewrite -def_a block_mxEh vsubmxK /v1 -def_v xrkK.
   apply: trmx_inj; rewrite tr_row_mx tr_col_mx trmx_ursub trmx_drsub trmx_lsub.
@@ -4768,7 +5018,7 @@ rewrite -sum1_card; apply: eq_bigl => B; rewrite xrowE unitmxE.
 rewrite !det_mulmx unitr_mul -unitmxE unitmx_perm det_lblock det_ublock.
 rewrite !det_scalar1 det1 mulr1 mul1r unitr_mul unitfE nza -unitmxE.
 rewrite mulmx_block !mulmx0 mul0mx !addr0 !mulmx1 mul1mx block_mxKur.
-rewrite mul_scalar_mx scalemxA divff // scale1mx eqxx andbT.
+rewrite mul_scalar_mx scalerA divff // scale1r eqxx andbT.
 by rewrite block_mxEh mul_mx_row row_mxKl -def_a vsubmxK -xrowE xrkK eqxx andbT.
 Qed.
 
@@ -4960,3 +5210,41 @@ Lemma eigenvalue_map : forall n (g : 'M_n) a,
 Proof. by move=> n g a; rewrite /eigenvalue -map_eigenspace map_mx_eq0. Qed.
 
 End MapFieldMatrix.
+
+(* Matrix parametricity for mxvec vec_mx lin_mx lin1_mx *)
+Section MapVecMatrix.
+
+Variables (aT rT : Type) (f : aT -> rT).
+Notation "A ^f" := (map_mx f A) : ring_scope.
+
+Variables (m n : nat) (A : 'M[aT]_(m, n)).
+
+Lemma map_mxvec : (mxvec A)^f = mxvec A^f.
+Proof. by apply/rowP=> i; rewrite !(castmxE, mxE). Qed.
+
+Lemma map_vec_mx : forall v : 'rV_(m * n), (vec_mx v)^f = vec_mx v^f.
+Proof. by move=> v; apply/matrixP=> i j; rewrite !mxE. Qed.
+
+End MapVecMatrix.
+
+Section MapLinMatrix.
+
+Variables (aR rR : ringType) (f : aR -> rR).
+Hypothesis fRM : GRing.morphism f.
+Local Notation "A ^f" := (map_mx f A) : ring_scope.
+
+Lemma map_lin1_mx : forall m n (g : 'rV_m -> 'rV_n) gf, 
+  (forall v, (g v)^f = gf v^f) -> (lin1_mx g)^f = lin1_mx gf.
+Proof.
+move=> m n g gf def_gf; apply/matrixP=> i j.
+by rewrite !mxE -(map_delta_mx fRM) -def_gf mxE.
+Qed.
+
+Lemma map_lin_mx : forall m1 n1 m2 n2 (g : 'M_(m1, n1) -> 'M_(m2, n2)) gf, 
+  (forall A, (g A)^f = gf A^f) -> (lin_mx g)^f = lin_mx gf.
+Proof.
+move=> m1 n1 m2 n2 g gf def_gf; apply: map_lin1_mx => A /=.
+by rewrite map_mxvec def_gf map_vec_mx.
+Qed.
+
+End MapLinMatrix.
