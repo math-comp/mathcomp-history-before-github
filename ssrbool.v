@@ -1322,11 +1322,11 @@ Proof. by move=> ? ?. Qed.
 Lemma in3W : {all3 P3} -> {in D1 & D2 & D3, {all3 P3}}.
 Proof. by move=> ? ?. Qed.
 
-Lemma in1A : {in T1, {all1 P1}} -> {all1 P1}.
+Lemma in1T : {in T1, {all1 P1}} -> {all1 P1}.
 Proof. by move=> ? ?; auto. Qed.
-Lemma in2A : {in T1 & T2, {all2 P2}} -> {all2 P2}.
+Lemma in2T : {in T1 & T2, {all2 P2}} -> {all2 P2}.
 Proof. by move=> ? ?; auto. Qed.
-Lemma in3A : {in T1 & T2 & T3, {all3 P3}} -> {all3 P3}.
+Lemma in3T : {in T1 & T2 & T3, {all3 P3}} -> {all3 P3}.
 Proof. by move=> ? ?; auto. Qed.
 
 Lemma sub_in1 : forall Ph : ph {all1 P1},
@@ -1354,12 +1354,12 @@ Lemma on1lW : allQ1l f h -> {on D2, allQ1l f & h}. Proof. by move=> ? ?. Qed.
 
 Lemma on2W : allQ2 f -> {on D2 &, allQ2 f}. Proof. by move=> ? ?. Qed.
 
-Lemma on1A : {on T2, allQ1 f} -> allQ1 f. Proof. by move=> ? ?; auto. Qed.
+Lemma on1T : {on T2, allQ1 f} -> allQ1 f. Proof. by move=> ? ?; auto. Qed.
 
-Lemma on1lA : {on T2, allQ1l f & h} -> allQ1l f h.
+Lemma on1lT : {on T2, allQ1l f & h} -> allQ1l f h.
 Proof. by move=> ? ?; auto. Qed.
 
-Lemma on2A : {on T2 &, allQ2 f} -> allQ2 f.
+Lemma on2T : {on T2 &, allQ2 f} -> allQ2 f.
 Proof. by move=> ? ?; auto. Qed.
 
 Lemma subon1 : forall (Phf : ph (allQ1 f)) (Ph : ph (allQ1 f)),
@@ -1406,10 +1406,10 @@ Proof. by case=> g' fK g'K; exists g' => * ? *; auto. Qed.
 Lemma onW_bij : bijective f -> {on D2, bijective f}.
 Proof. by case=> g' fK g'K; exists g' => * ? *; auto. Qed.
 
-Lemma inA_bij : {in T1, bijective f} -> bijective f.
+Lemma inT_bij : {in T1, bijective f} -> bijective f.
 Proof. by case=> g' fK g'K; exists g' => * ? *; auto. Qed.
 
-Lemma onA_bij : {on T2, bijective f} -> bijective f.
+Lemma onT_bij : {on T2, bijective f} -> bijective f.
 Proof. by case=> g' fK g'K; exists g' => * ? *; auto. Qed.
 
 Lemma sub_in_bij : forall D1' : pred T1,
