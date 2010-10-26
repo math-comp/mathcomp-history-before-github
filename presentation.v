@@ -81,12 +81,13 @@ Fixpoint eval {gT} e t : gT :=
   end.
 
 Inductive formula := Eq2 of term & term | And of formula & formula.
-Coercion Eq1 s := Eq2 s Idx.
+Definition Eq1 s := Eq2 s Idx.
 Definition Eq3 s1 s2 t := And (Eq2 s1 t) (Eq2 s2 t).
 
 Inductive rel_type := NoRel | Rel vT of vT & vT.
 
-Coercion bool_of_rel r := if r is Rel vT v1 v2 then v1 == v2 else true.
+Definition bool_of_rel r := if r is Rel vT v1 v2 then v1 == v2 else true.
+Local Coercion bool_of_rel : rel_type >-> bool.
 
 Definition and_rel vT (v1 v2 : vT) r :=
   if r is Rel wT w1 w2 then Rel (v1, w1) (v2, w2) else Rel v1 v2.
@@ -99,7 +100,7 @@ Fixpoint rel {gT} (e : seq gT) f r :=
 
 Inductive type := Generator of term -> type | Formula of formula.
 Definition Cast p : type := p. (* syntactic scope cast *)
-Coercion Formula : formula >-> type.
+Local Coercion Formula : formula >-> type.
 
 Inductive env gT := Env of {set gT} & seq gT.
 Definition env1 {gT} (x : gT : finType) := Env <[x]> [:: x].
@@ -121,54 +122,57 @@ End Presentation.
 
 End Presentation.
 
-(* In a separate file, we could Import Presentation at this point. *)
+Import Presentation.
+
+Coercion bool_of_rel : rel_type >-> bool.
+Coercion Eq1 : term >-> formula.
+Coercion Formula : formula >-> type.
 
 (* Declare (implicitly) the argument scope tags. *)
-Notation "1" := Presentation.Idx : group_presentation.
-Arguments Scope Presentation.Inv [group_presentation].
-Arguments Scope Presentation.Exp [group_presentation nat_scope].
-Arguments Scope Presentation.Mul [group_presentation group_presentation].
-Arguments Scope Presentation.Conj [group_presentation group_presentation].
-Arguments Scope Presentation.Comm [group_presentation group_presentation].
-Arguments Scope Presentation.Eq1 [group_presentation].
-Arguments Scope Presentation.Eq2 [group_presentation group_presentation].
-Arguments Scope Presentation.Eq3
-  [group_presentation group_presentation group_presentation].
-Arguments Scope Presentation.And [group_presentation group_presentation].
-Arguments Scope Presentation.Formula [group_presentation].
-Arguments Scope Presentation.Cast [group_presentation].
+Notation "1" := Idx : group_presentation.
+Arguments Scope Inv [group_presentation].
+Arguments Scope Exp [group_presentation nat_scope].
+Arguments Scope Mul [group_presentation group_presentation].
+Arguments Scope Conj [group_presentation group_presentation].
+Arguments Scope Comm [group_presentation group_presentation].
+Arguments Scope Eq1 [group_presentation].
+Arguments Scope Eq2 [group_presentation group_presentation].
+Arguments Scope Eq3 [group_presentation group_presentation group_presentation].
+Arguments Scope And [group_presentation group_presentation].
+Arguments Scope Formula [group_presentation].
+Arguments Scope Cast [group_presentation].
 
-Infix "*" := Presentation.Mul : group_presentation.
-Infix "^+" := Presentation.Exp : group_presentation.
-Infix "^" := Presentation.Conj : group_presentation.
-Notation "x ^-1" := (Presentation.Inv x) : group_presentation.
-Notation "x ^- n" := (Presentation.Inv (x ^+ n)) : group_presentation.
+Infix "*" := Mul : group_presentation.
+Infix "^+" := Exp : group_presentation.
+Infix "^" := Conj : group_presentation.
+Notation "x ^-1" := (Inv x) : group_presentation.
+Notation "x ^- n" := (Inv (x ^+ n)) : group_presentation.
 Notation "[ ~ x1 , x2 , .. , xn ]" :=
-  (Presentation.Comm .. (Presentation.Comm x1 x2) .. xn) : group_presentation.
-Notation "x = y" := (Presentation.Eq2 x y) : group_presentation.
-Notation "x = y = z" := (Presentation.Eq3 x y z) : group_presentation.
+  (Comm .. (Comm x1 x2) .. xn) : group_presentation.
+Notation "x = y" := (Eq2 x y) : group_presentation.
+Notation "x = y = z" := (Eq3 x y z) : group_presentation.
 Notation "( r1 , r2 , .. , rn )" := 
-  (Presentation.And .. (Presentation.And r1 r2) .. rn) : group_presentation.
+  (And .. (And r1 r2) .. rn) : group_presentation.
 
 (* Declare (implicitly) the argument scope tags. *)
-Notation "x : p" := (fun x => Presentation.Cast p) : nt_group_presentation.
-Arguments Scope Presentation.Generator [nt_group_presentation].
-Arguments Scope Presentation.hom [_ group_scope nt_group_presentation].
-Arguments Scope Presentation.iso [_ group_scope nt_group_presentation].
+Notation "x : p" := (fun x => Cast p) : nt_group_presentation.
+Arguments Scope Generator [nt_group_presentation].
+Arguments Scope hom [_ group_scope nt_group_presentation].
+Arguments Scope iso [_ group_scope nt_group_presentation].
 
-Notation "x : p" := (Presentation.Generator (x : p)) : group_presentation.
+Notation "x : p" := (Generator (x : p)) : group_presentation.
 
-Notation "H \homg 'Grp' p" := (Presentation.hom H p)
+Notation "H \homg 'Grp' p" := (hom H p)
   (at level 70, p at level 0, format "H  \homg  'Grp'  p") : group_scope.
 
-Notation "H \isog 'Grp' p" := (Presentation.iso H p)
+Notation "H \isog 'Grp' p" := (iso H p)
   (at level 70, p at level 0, format "H  \isog  'Grp'  p") : group_scope.
 
-Notation "H \homg 'Grp' ( x : p )" := (Presentation.hom H (x : p))
+Notation "H \homg 'Grp' ( x : p )" := (hom H (x : p))
   (at level 70, x at level 0,
    format "'[hv' H  '/ '  \homg  'Grp'  ( x  :  p ) ']'") : group_scope.
 
-Notation "H \isog 'Grp' ( x : p )" := (Presentation.iso H (x : p))
+Notation "H \isog 'Grp' ( x : p )" := (iso H (x : p))
   (at level 70, x at level 0,
    format "'[hv' H '/ '  \isog  'Grp'  ( x  :  p ) ']'") : group_scope.
 

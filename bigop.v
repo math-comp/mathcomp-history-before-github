@@ -240,28 +240,32 @@ Section Definitions.
 Variables (T : Type) (idm : T).
 
 Structure law : Type := Law {
-  operator :> T -> T -> T;
+  operator : T -> T -> T;
   _ : associative operator;
   _ : left_id idm operator;
   _ : right_id idm operator
 }.
+Local Coercion operator : law >-> Funclass.
 
 Structure com_law : Type := ComLaw {
-   com_operator :> law;
+   com_operator : law;
    _ : commutative com_operator
 }.
+Local Coercion com_operator : com_law >-> law.
 
 Structure mul_law : Type := MulLaw {
-  mul_operator :> T -> T -> T;
+  mul_operator : T -> T -> T;
   _ : left_zero idm mul_operator;
   _ : right_zero idm mul_operator
 }.
+Local Coercion mul_operator : mul_law >-> Funclass.
 
 Structure add_law (mul : T -> T -> T) : Type := AddLaw {
-  add_operator :> com_law;
+  add_operator : com_law;
   _ : left_distributive mul add_operator;
   _ : right_distributive mul add_operator
 }.
+Local Coercion add_operator : add_law >-> com_law.
 
 Let op_id (op1 op2 : T -> T -> T) := phant_id op1 op2.
 
@@ -284,6 +288,13 @@ Definition clone_add_law mop aop :=
     & phant_id opA' opA => opA'.
 
 End Definitions.
+
+Module Import Exports.
+Coercion operator : law >-> Funclass.
+Coercion com_operator : com_law >-> law.
+Coercion mul_operator : mul_law >-> Funclass.
+Coercion add_operator : add_law >-> com_law.
+End Exports.
 
 Section CommutativeAxioms.
 
@@ -351,6 +362,8 @@ End Theory.
 Include Theory.
 
 End Monoid.
+
+Export Monoid.Exports.
 
 Notation "[ 'law' 'of' f ]" := (@Monoid.clone_law _ _ f _ id _ _ _ id)
   (at level 0, format"[ 'law'  'of'  f ]") : form_scope.
@@ -421,19 +434,19 @@ Open Scope big_scope.
 Definition reducebig R I idx op r (P : pred I) (F : I -> R) : R :=
   foldr (fun i x => if P i then op (F i) x else x) idx r.
 
-Module Type ReduceBigSig.
+Module Type BigOpSig.
 Parameter bigop : forall R I,
    R -> (R -> R -> R) -> seq I -> pred I -> (I -> R) -> R.
 Axiom bigopE : bigop = reducebig.
-End ReduceBigSig.
+End BigOpSig.
 
-Module ReduceBig : ReduceBigSig.
+Module BigOp : BigOpSig.
 Definition bigop := reducebig.
 Lemma bigopE : bigop = reducebig. Proof. by []. Qed.
-End ReduceBig.
+End BigOp.
 
-Notation bigop := ReduceBig.bigop (only parsing).
-Canonical Structure reduce_big_unlock := Unlockable ReduceBig.bigopE.
+Notation bigop := BigOp.bigop (only parsing).
+Canonical Structure bigop_unlock := Unlockable BigOp.bigopE.
 
 Definition index_iota m n := iota m (n - m).
 

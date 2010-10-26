@@ -162,23 +162,29 @@ Structure base_type : Type := PackBase {
 (* Note that since we do this here and in normal.v for all the    *)
 (* basic functions, the inferred return type should generally be  *)
 (* correct.                                                       *)
-Coercion arg_sort := sort.
-(* Declaring sort as a Coercion is clearly redundant; it only     *)
-(* serves the purpose of eliding FinGroup.sort in the display of  *)
-(* return types. The warning could be eliminated by using the     *)
-(* functor trick to replace Sortclass by a dummy target.          *)
-Coercion sort : base_type >-> Sortclass.
+Definition arg_sort := sort.
 
-Coercion mixin T :=
+Definition mixin T :=
   let: PackBase _ m _ := T return mixin_of (sort T) in m.
 
 Definition finClass T :=
   let: PackBase _ _ m := T return Finite.class_of (sort T) in m.
 
 Structure type : Type := Pack {
-  base :> base_type;
-  _ : left_inverse (one base) (inv base) (mul base)
+  base : base_type;
+  _ : left_inverse (one (mixin base)) (inv (mixin base)) (mul (mixin base))
 }.
+
+Module Import Exports.
+(* Declaring sort as a Coercion is clearly redundant; it only     *)
+(* serves the purpose of eliding FinGroup.sort in the display of  *)
+(* return types. The warning could be eliminated by using the     *)
+(* functor trick to replace Sortclass by a dummy target.          *)
+Coercion arg_sort : base_type >-> Sortclass.
+Coercion sort : base_type >-> Sortclass.
+Coercion mixin : base_type >-> mixin_of.
+Coercion base : type >-> base_type.
+End Exports.
 
 (* We only need three axioms to make a true group. *)
 
@@ -223,6 +229,7 @@ Definition clone T :=
   fun m (gT' := @Pack bT m) & phant_id gT' gT => gT'.
 
 End FinGroup.
+Export FinGroup.Exports.
 
 Bind Scope group_scope with FinGroup.sort.
 Bind Scope group_scope with FinGroup.arg_sort.
@@ -656,8 +663,8 @@ End BaseSetMulDef.
 
 Module GroupSet.
 Definition sort (gT : baseFinGroupType) := {set gT}.
-Identity Coercion of_sort : sort >-> set_of.
 End GroupSet.
+Identity Coercion GroupSet_of_sort : GroupSet.sort >-> set_of.
 
 Module Type GroupSetBaseGroupSig.
 Definition sort gT := group_set_of_baseGroupType gT : Type.
@@ -667,7 +674,7 @@ Module MakeGroupSetBaseGroup (Gset_base : GroupSetBaseGroupSig).
 Identity Coercion of_sort : Gset_base.sort >-> FinGroup.arg_sort.
 End MakeGroupSetBaseGroup.
 
-Module GroupSetBaseGroup := MakeGroupSetBaseGroup GroupSet.
+Module Export GroupSetBaseGroup := MakeGroupSetBaseGroup GroupSet.
 
 Canonical Structure group_set_eqType gT :=
   Eval hnf in [eqType of GroupSet.sort gT].

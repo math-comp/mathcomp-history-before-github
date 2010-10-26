@@ -89,8 +89,8 @@ Definition axiom T e := forall x y : T, reflect (x = y) (e x y).
 Structure mixin_of (T : Type) : Type := Mixin {op : rel T; _ : axiom op}.
 Notation class_of := mixin_of (only parsing).
 
-Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
-Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
+Structure type : Type := Pack {sort : Type; _ : class_of sort; _ : Type}.
+Definition class cT := let: Pack _ c _ := cT return class_of (sort cT) in c.
 
 Definition pack T c := @Pack T c T.
 Definition clone T :=
@@ -98,6 +98,8 @@ Definition clone T :=
   fun c (cT' := @Pack T c T) & phant_id cT' cT => cT'.
 
 End Equality.
+
+Coercion Equality.sort : Equality.type >-> Sortclass.
 
 Delimit Scope eq_scope with EQ.
 Open Scope eq_scope.

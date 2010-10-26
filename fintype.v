@@ -132,7 +132,7 @@ Lemma uniq_enumP : forall e, uniq e -> e =i T -> axiom e.
 Proof. by move=> e Ue sT x; rewrite count_uniq_mem ?sT. Qed.
 
 Record mixin_of := Mixin {
-  mixin_base :> Countable.mixin_of T;
+  mixin_base : Countable.mixin_of T;
   mixin_enum : seq T;
   _ : axiom mixin_enum
 }.
@@ -166,19 +166,43 @@ Definition CountMixin := EnumMixin count_enumP.
 
 End Mixins.
 
-Record class_of T := Class {
-  base :> Choice.class_of T;
-  mixin :> mixin_of (Equality.Pack base T)
-}.
-Coercion base2 T (c : class_of T) := Countable.Class c c.
+Section ClassDef.
 
-Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
+Record class_of T := Class {
+  base : Choice.class_of T;
+  mixin : mixin_of (Equality.Pack base T)
+}.
+Definition base2 T c := Countable.Class (@base T c) (mixin_base (mixin c)).
+Local Coercion base : class_of >-> Choice.class_of.
+
+Structure type : Type := Pack {sort; _ : class_of sort; _ : Type}.
+Local Coercion sort : type >-> Sortclass.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
 Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
 
 Definition pack T b0 (m0 : mixin_of (EqType T b0)) :=
   fun bT b & phant_id (Choice.class bT) b =>
   fun m & phant_id m0 m => Pack (@Class T b m) T.
+
+Definition eqType cT := Equality.Pack (class cT) cT.
+Definition choiceType cT := Choice.Pack (class cT) cT.
+Definition countType cT := Countable.Pack (base2 (class cT)) cT.
+
+End ClassDef.
+
+Module Import Exports.
+Coercion mixin_base : mixin_of >-> Countable.mixin_of.
+Coercion base : class_of >-> Choice.class_of.
+Coercion mixin : class_of >-> mixin_of.
+Coercion base2 : class_of >-> Countable.class_of.
+Coercion sort : type >-> Sortclass.
+Coercion eqType : type >-> Equality.type.
+Canonical Structure eqType.
+Coercion choiceType : type >-> Choice.type.
+Canonical Structure choiceType.
+Coercion countType : type >-> Countable.type.
+Canonical Structure countType.
+End Exports.
 
 Module Type EnumSig.
 Parameter enum : forall cT : type, seq cT.
@@ -192,10 +216,6 @@ End EnumDef.
 
 Notation enum := EnumDef.enum.
 
-Coercion eqType cT := Equality.Pack (class cT) cT.
-Coercion choiceType cT := Choice.Pack (class cT) cT.
-Coercion countType cT := Countable.Pack (class cT) cT.
-
 End Finite.
 
 Notation finType := Finite.type.
@@ -206,9 +226,7 @@ Notation "[ 'finType' 'of' T 'for' cT ]" := (@Finite.clone T cT _ idfun)
   (at level 0, format "[ 'finType'  'of'  T  'for'  cT ]") : form_scope.
 Notation "[ 'finType' 'of' T ]" := (@Finite.clone T _ _ id)
   (at level 0, format "[ 'finType'  'of'  T ]") : form_scope.
-Canonical Structure Finite.eqType.
-Canonical Structure Finite.choiceType.
-Canonical Structure Finite.countType.
+Export Finite.Exports.
 
 Canonical Structure finEnum_unlock := Unlockable Finite.EnumDef.enumDef.
 

@@ -73,28 +73,34 @@ End IdentitySubFunctorDefs.
 
 Module FunctorDefs.
 
+Section ClassDefs.
+
 Implicit Type gT : finGroupType.
 
 Structure bgFunc : Type := BGFunc {
-  Fobj :> obmap;
+  Fobj : obmap;
   (* group preservation *)
   _ : forall gT (G : {group gT}), group_set (@Fobj gT G);
   (* submapping *)
   _ : forall gT (G : {group gT}), @Fobj gT G \subset G;
   (* functoriality condition *)
   _ : acont Fobj}.
+Local Coercion Fobj : bgFunc >-> obmap.
 
 Structure gFunc : Type := GFunc {
-  F_bgFunc :> bgFunc ;
+  F_bgFunc : bgFunc ;
    _ : cont F_bgFunc}.
+Local Coercion F_bgFunc : gFunc >-> bgFunc.
 
 Structure hgFunc : Type := HGFunc {
-  F_hgFunc :> gFunc;
+  F_hgFunc : gFunc;
    _ : hereditary F_hgFunc}.
+Local Coercion F_hgFunc : hgFunc >-> gFunc.
 
 Structure mgFunc : Type := MGFunc {
-  F_mgFunc :> gFunc;
+  F_mgFunc : gFunc;
    _ : monotonous F_mgFunc}.
+Local Coercion F_mgFunc : mgFunc >-> gFunc.
 
 Definition mkBGFunc F rF gF sF := @BGFunc F gF sF rF.
 
@@ -135,8 +141,17 @@ Definition repack_mgFunc F (gF : gFunc) (mgF : mgFunc) :=
     (let: erefl in _ = mgF := obmapEq
       return {type of MGFunc for mgF}
       in @MGFunc gF).
+End ClassDefs.
+
+Module Exports.
+Coercion Fobj : bgFunc >-> obmap.
+Coercion F_bgFunc : gFunc >-> bgFunc.
+Coercion F_hgFunc : hgFunc >-> gFunc.
+Coercion F_mgFunc : mgFunc >-> gFunc.
+End Exports.
 
 End FunctorDefs.
+Export FunctorDefs.Exports.
 
 Notation "[ 'bgFunc' 'of' F ]" :=
   (FunctorDefs.repack_bgFunc (fun bgP => @FunctorDefs.BGFunc F bgP))
