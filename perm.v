@@ -92,11 +92,11 @@ Notation Local perm_def := (fun T f injf => Perm (@perm_proof T f injf)).
 
 Module Type PermDefSig.
 Parameter fun_of_perm : forall T, perm_type T -> T -> T.
-Coercion fun_of_perm : perm_type >-> Funclass.
 Parameter perm : forall (T : finType) (f : T -> T), injective f -> {perm T}.
 Axiom fun_of_permE : fun_of_perm = fun_of_perm_def.
 Axiom permE : perm = perm_def.
 End PermDefSig.
+
 Module PermDef : PermDefSig.
 Definition fun_of_perm := fun_of_perm_def.
 Definition perm := perm_def.
@@ -109,6 +109,7 @@ Notation "@ 'perm'" := (@PermDef.perm) (at level 10, format "@ 'perm'").
 Notation perm := (@PermDef.perm _ _).
 Canonical Structure fun_of_perm_unlock := Unlockable PermDef.fun_of_permE.
 Canonical Structure perm_unlock := Unlockable PermDef.permE.
+Coercion fun_of_perm : perm_type >-> Funclass.
 
 Section Theory.
 

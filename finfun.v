@@ -70,9 +70,9 @@ Lemma fun_of_finE : fun_of_fin = fun_of_fin_def. Proof. by []. Qed.
 Lemma finfunE : finfun = finfun_def. Proof. by []. Qed.
 End FunFinfun.
 
-Coercion FunFinfun.fun_of_fin : finfun_type >-> Funclass.
 Notation fun_of_fin := FunFinfun.fun_of_fin.
 Notation finfun := FunFinfun.finfun.
+Coercion fun_of_fin : finfun_type >-> Funclass.
 Canonical Structure fun_of_fin_unlock := Unlockable FunFinfun.fun_of_finE.
 Canonical Structure finfun_unlock := Unlockable FunFinfun.finfunE.
 

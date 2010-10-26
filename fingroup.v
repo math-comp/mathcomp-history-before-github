@@ -175,17 +175,6 @@ Structure type : Type := Pack {
   _ : left_inverse (one (mixin base)) (inv (mixin base)) (mul (mixin base))
 }.
 
-Module Import Exports.
-(* Declaring sort as a Coercion is clearly redundant; it only     *)
-(* serves the purpose of eliding FinGroup.sort in the display of  *)
-(* return types. The warning could be eliminated by using the     *)
-(* functor trick to replace Sortclass by a dummy target.          *)
-Coercion arg_sort : base_type >-> Sortclass.
-Coercion sort : base_type >-> Sortclass.
-Coercion mixin : base_type >-> mixin_of.
-Coercion base : type >-> base_type.
-End Exports.
-
 (* We only need three axioms to make a true group. *)
 
 Section Mixin.
@@ -228,45 +217,59 @@ Definition clone T :=
   fun bT gT & sort bT * sort (base gT) -> T * T =>
   fun m (gT' := @Pack bT m) & phant_id gT' gT => gT'.
 
-End FinGroup.
-Export FinGroup.Exports.
-
-Bind Scope group_scope with FinGroup.sort.
-Bind Scope group_scope with FinGroup.arg_sort.
-
-Notation baseFinGroupType := FinGroup.base_type.
-Notation BaseFinGroupType T m := (@FinGroup.pack_base T m _ _ id).
-
 Section InheritedClasses.
 
-Variable T : baseFinGroupType.
-Notation c := (FinGroup.finClass T).
-Notation rT := (FinGroup.sort T).
+Variable bT : base_type.
+Local Notation T := (arg_sort bT).
+Local Notation rT := (sort bT).
+Local Notation c := (finClass bT).
 
-Canonical Structure finGroup_eqType := Equality.Pack c rT.
-Canonical Structure finGroup_choiceType := Choice.Pack c rT.
-Canonical Structure finGroup_countType := Countable.Pack c rT.
-Canonical Structure finGroup_finType := Finite.Pack c rT.
-Canonical Structure finGroup_arg_eqType := Eval hnf in [eqType of T].
-Canonical Structure finGroup_arg_choiceType := Eval hnf in [choiceType of T].
-Canonical Structure finGroup_arg_countType := Eval hnf in [countType of T].
-Canonical Structure finGroup_arg_finType := Eval hnf in [finType of T].
+Canonical Structure eqType := Equality.Pack c rT.
+Canonical Structure choiceType := Choice.Pack c rT.
+Canonical Structure countType := Countable.Pack c rT.
+Canonical Structure finType := Finite.Pack c rT.
+Definition arg_eqType := Eval hnf in [eqType of T].
+Definition arg_choiceType := Eval hnf in [choiceType of T].
+Definition arg_countType := Eval hnf in [countType of T].
+Definition arg_finType := Eval hnf in [finType of T].
 
 End InheritedClasses.
 
-Coercion finGroup_arg_eqType : baseFinGroupType >-> eqType.
-Coercion finGroup_arg_choiceType : baseFinGroupType >-> choiceType.
-Coercion finGroup_arg_countType : baseFinGroupType >-> countType.
-Coercion finGroup_arg_finType : baseFinGroupType >-> finType.
-
-Notation "[ 'baseFinGroupType' 'of' T ]" := (@FinGroup.clone_base T _ id _ _ id)
+Module Import Exports.
+(* Declaring sort as a Coercion is clearly redundant; it only     *)
+(* serves the purpose of eliding FinGroup.sort in the display of  *)
+(* return types. The warning could be eliminated by using the     *)
+(* functor trick to replace Sortclass by a dummy target.          *)
+Coercion arg_sort : base_type >-> Sortclass.
+Coercion sort : base_type >-> Sortclass.
+Coercion mixin : base_type >-> mixin_of.
+Coercion base : type >-> base_type.
+Canonical Structure eqType.
+Canonical Structure choiceType.
+Canonical Structure countType.
+Canonical Structure finType.
+Coercion arg_eqType : base_type >-> Equality.type.
+Canonical Structure arg_eqType.
+Coercion arg_choiceType : base_type >-> Choice.type.
+Canonical Structure arg_choiceType.
+Coercion arg_countType : base_type >-> Countable.type.
+Canonical Structure arg_countType.
+Coercion arg_finType : base_type >-> Finite.type.
+Canonical Structure arg_finType.
+Bind Scope group_scope with sort.
+Bind Scope group_scope with arg_sort.
+Notation baseFinGroupType := base_type.
+Notation finGroupType := type.
+Notation BaseFinGroupType T m := (@pack_base T m _ _ id).
+Notation FinGroupType := Pack.
+Notation "[ 'baseFinGroupType' 'of' T ]" := (@clone_base T _ id _ _ id)
   (at level 0, format "[ 'baseFinGroupType'  'of'  T ]") : form_scope.
-
-Notation finGroupType := FinGroup.type.
-Notation FinGroupType := FinGroup.Pack.
-
-Notation "[ 'finGroupType' 'of' T ]" := (@FinGroup.clone T _ _ id _ id)
+Notation "[ 'finGroupType' 'of' T ]" := (@clone T _ _ id _ id)
   (at level 0, format "[ 'finGroupType'  'of'  T ]") : form_scope.
+End Exports.
+
+End FinGroup.
+Export FinGroup.Exports.
 
 Section ElementOps.
 
