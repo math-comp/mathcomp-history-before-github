@@ -202,6 +202,14 @@ Coercion choiceType : type >-> Choice.type.
 Canonical Structure choiceType.
 Coercion countType : type >-> Countable.type.
 Canonical Structure countType.
+Notation finType := type.
+Notation FinType T m := (@pack T _ m _ _ id _ id).
+Notation FinMixin := EnumMixin.
+Notation UniqFinMixin := UniqMixin.
+Notation "[ 'finType' 'of' T 'for' cT ]" := (@clone T cT _ idfun)
+  (at level 0, format "[ 'finType'  'of'  T  'for'  cT ]") : form_scope.
+Notation "[ 'finType' 'of' T ]" := (@clone T _ _ id)
+  (at level 0, format "[ 'finType'  'of'  T ]") : form_scope.
 End Exports.
 
 Module Type EnumSig.
@@ -217,15 +225,6 @@ End EnumDef.
 Notation enum := EnumDef.enum.
 
 End Finite.
-
-Notation finType := Finite.type.
-Notation FinType T m := (@Finite.pack T _ m _ _ id _ id).
-Notation FinMixin := Finite.EnumMixin.
-Notation UniqFinMixin := Finite.UniqMixin.
-Notation "[ 'finType' 'of' T 'for' cT ]" := (@Finite.clone T cT _ idfun)
-  (at level 0, format "[ 'finType'  'of'  T  'for'  cT ]") : form_scope.
-Notation "[ 'finType' 'of' T ]" := (@Finite.clone T _ _ id)
-  (at level 0, format "[ 'finType'  'of'  T ]") : form_scope.
 Export Finite.Exports.
 
 Canonical Structure finEnum_unlock := Unlockable Finite.EnumDef.enumDef.

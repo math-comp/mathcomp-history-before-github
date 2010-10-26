@@ -59,6 +59,25 @@ Require Import finfun path.
 (* certain properties for the operator, make sure the appropriate           *)
 (* Canonical Structures are declared.                                       *)
 (****************************************************************************)
+(* Interfaces for operator properties are paclaged in the Monoid submodule: *)
+(*     Monoid.law idx == interface (keyed on the operator) for associative  *)
+(*                       operators with identity element idx.               *)
+(* Monoid.com_law idx == extension (telescope) of Monoid.law for operators  *)
+(*                       that are also associative.                         *)
+(* Monoid.mul_law abz == interface for operators with absorbing (zero)      *)
+(*                       element abz.                                       *)
+(* Monoid.add_law idx mop == extension of Monoid.com_law for operators over *)
+(*                       which operation mop distributes (mop will often    *)
+(*                       also have a Monoid.mul_law idx structure).         *)
+(* [law of op], [com_law of op], [mul_law of op], [add_law mop of op] ==    *)
+(*                       syntax for cloning Monoid structures.              *)
+(*     Monoid.Theory == submodule containing basic generic algebra lemmas   *)
+(*                      for operators satisfying the Monoid interfaces.     *)
+(*      Monoid.simpm == generic monoid simplification rewrite multirule.    *)
+(* Monoid structures are predeclared for many basic operators: (_ && _)%B,  *)
+(* (_ || _)%B, (_ (+) _)%B (exclucive or) , (_ + _)%N, (_ * _)%N, maxn,     *)
+(* gcdn, lcmn and (_ ++ _)%SEQ (list concatenation).                        *)
+(****************************************************************************)
 (* Additional documentation for this file:                                  *)
 (* Y. Bertot, G. Gonthier, S. Ould Biha and I. Pasca.                       *)
 (* Canonical Big Operators. In TPHOLs 2008, LNCS vol. 5170, Springer.       *)
@@ -294,6 +313,14 @@ Coercion operator : law >-> Funclass.
 Coercion com_operator : com_law >-> law.
 Coercion mul_operator : mul_law >-> Funclass.
 Coercion add_operator : add_law >-> com_law.
+Notation "[ 'law' 'of' f ]" := (@clone_law _ _ f _ id _ _ _ id)
+  (at level 0, format"[ 'law'  'of'  f ]") : form_scope.
+Notation "[ 'com_law' 'of' f ]" := (@clone_com_law _ _ f _ _ id id _ id)
+  (at level 0, format "[ 'com_law'  'of'  f ]") : form_scope.
+Notation "[ 'mul_law' 'of' f ]" := (@clone_mul_law _ _ f _ id _ _ id)
+  (at level 0, format"[ 'mul_law'  'of'  f ]") : form_scope.
+Notation "[ 'add_law' m 'of' a ]" := (@clone_add_law _ _ m a _ _ id id _ _ id)
+  (at level 0, format "[ 'add_law'  m  'of'  a ]") : form_scope.
 End Exports.
 
 Section CommutativeAxioms.
@@ -358,25 +385,10 @@ Definition simpm := (mulm1, mulm0, mul1m, mul0m, mulmA).
 End Theory.
 
 End Theory.
-
 Include Theory.
 
 End Monoid.
-
 Export Monoid.Exports.
-
-Notation "[ 'law' 'of' f ]" := (@Monoid.clone_law _ _ f _ id _ _ _ id)
-  (at level 0, format"[ 'law'  'of'  f ]") : form_scope.
-
-Notation "[ 'com_law' 'of' f ]" := (@Monoid.clone_com_law _ _ f _ _ id id _ id)
-  (at level 0, format "[ 'com_law'  'of'  f ]") : form_scope.
-
-Notation "[ 'mul_law' 'of' f ]" := (@Monoid.clone_mul_law _ _ f _ id _ _ id)
-  (at level 0, format"[ 'mul_law'  'of'  f ]") : form_scope.
-
-Notation "[ 'add_law' m 'of' a ]" :=
-    (@Monoid.clone_add_law _ _ m a _ _ id id _ _ id)
-  (at level 0, format "[ 'add_law'  m  'of'  a ]") : form_scope.
 
 Section PervasiveMonoids.
 
