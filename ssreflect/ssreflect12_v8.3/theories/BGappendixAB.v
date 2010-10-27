@@ -1,8 +1,8 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
-Require Import fintype bigops prime finset ssralg groups morphisms normal.
-Require Import automorphism commutators zmodp gfunc center pgroups nilpotent.
-Require Import sylow abelian gseries maximal matrix mxrepresentation.
+Require Import fintype bigop prime finset ssralg fingroup morphism.
+Require Import automorphism quotient gfunctor commutator zmodp center pgroup.
+Require Import sylow gseries nilpotent abelian maximal matrix mxrepresentation.
 Require Import BGsection1 BGsection2.
 
 (******************************************************************************)
@@ -53,13 +53,13 @@ suffices: forall gT (E : {group gT}) x y, let G := <<[set x; y]>> in
   apply: Baer_Suzuki => [|Cy]; first exact: mem_quotient.
   case/morphimP=> y Ny NGy ->{Cy}; rewrite -morphJ // -!morphim_set1 ?groupJ //.
   rewrite -morphimU -morphim_gen ?subUset ?sub1set ?Nx ?groupJ //= -quotientE.
-  set G1 := <<_>>; rewrite /pgroup -(isog_card (second_isog _)); last first.
-    by rewrite mulgen_subG !sub1set Nx groupJ.
+  set G1 := <<_>>; rewrite /pgroup -(card_isog (second_isog _)); last first.
+    by rewrite join_subG !sub1set Nx groupJ.
   case/setIP: NGx => Gx {Nx}Nx; case/setIP: NGy => Gy {Ny}Ny.
-  have sG1G: G1 \subset G by rewrite mulgen_subG !sub1set groupJ ?andbT.
-  have nPG1: G1 \subset 'N(P) by rewrite mulgen_subG !sub1set groupJ ?andbT.
+  have sG1G: G1 \subset G by rewrite join_subG !sub1set groupJ ?andbT.
+  have nPG1: G1 \subset 'N(P) by rewrite join_subG !sub1set groupJ ?andbT.
   rewrite -setIA setICA (setIidPr sG1G).
-  rewrite (isog_card (second_isog _)) ?norms_cent //.
+  rewrite (card_isog (second_isog _)) ?norms_cent //.
   apply: IH => //; first by rewrite pP nPG1 (oddSg sG1G).
   rewrite /p_xp -{2}(normP Ny) -conjg_set1 -conjsRg centJ memJ_conjg.
   rewrite p_eltJ andbb (mem_p_elt pA) // -sub1set centsC (sameP commG1P trivgP).
@@ -81,7 +81,7 @@ have{q q_pr sylQ qGc} ncEQ: ~~ (Q \subset 'C(E)).
 have solE: solvable E := pgroup_sol pE.
 have ntE: E :!=: 1 by apply: contra ncEQ; move/eqP->; rewrite cents1.
 have{Q ncEQ p'Q sQG} minE_EG: minnormal E (E <*> G).
-  apply/mingroupP; split=> [|D]; rewrite mulgen_subG ?ntE ?normG //.
+  apply/mingroupP; split=> [|D]; rewrite join_subG ?ntE ?normG //.
   case/and3P=> ntD nDE nDG sDE; have nDGi := subsetP nDG.
   apply/eqP; rewrite eqEcard sDE leqNgt; apply: contra ncEQ => ltDE.
   have nDQ: Q \subset 'N(D) by rewrite (subset_trans sQG).
@@ -108,15 +108,15 @@ have abelE: p.-abelem E.
 have cEE: abelian E by case/and3P: abelE.
 have{minE_EG} minE: minnormal E G.
   case/mingroupP: minE_EG => _ minE; apply/mingroupP; rewrite ntE.
-  split=> // D ntD sDE; apply: minE => //; rewrite mulgen_subG cents_norm //.
+  split=> // D ntD sDE; apply: minE => //; rewrite join_subG cents_norm //.
   by rewrite centsC (subset_trans sDE).
 have nCG: G \subset 'N('C_G(E)) by rewrite normsI ?normG ?norms_cent.
 suffices{p'Gc} pG'c: p.-group (G / 'C_G(E))^`(1).
   have [Pc sylPc sGc'Pc]:= Sylow_superset (der_subS _ _) pG'c.
   have nsPc: Pc <| G / 'C_G(E) by rewrite sub_der1_normal ?(pHall_sub sylPc).
-  case/negP: p'Gc; rewrite /pgroup -(isog_card (second_isog _)) ?norms_cent //.
+  case/negP: p'Gc; rewrite /pgroup -(card_isog (second_isog _)) ?norms_cent //.
   rewrite setIC; apply: pgroupS (pHall_pgroup sylPc) => /=.
-  rewrite sub_quotient_pre // mulgen_subG !sub1set !(subsetP nCG, inE) //=.
+  rewrite sub_quotient_pre // join_subG !sub1set !(subsetP nCG, inE) //=.
   by rewrite !(mem_normal_Hall sylPc) ?mem_quotient ?morph_p_elt ?(subsetP nCG).
 have defC := rker_abelem abelE ntE nEG; rewrite /= -/G in defC.
 set rG := abelem_repr _ _ _ in defC.
@@ -451,7 +451,7 @@ have nsL_nCS: L <| 'N_G(C :&: S).
     by rewrite (pgroupS _ pS) ?Puig_sub.
   rewrite -[L](sub_Puig_eq _ sLCS) ?subsetIr //.
   by rewrite (char_normal_trans (Puig_char _)) ?normalSG // subIset // sSG orbT.
-have sylCS: p.-Sylow(C) (C :&: S) := pSylow_normalI nsCG sylS.
+have sylCS: p.-Sylow(C) (C :&: S) := Sylow_setI_normal nsCG sylS.
 have{defC} defC: 'C_G(Y) * (C :&: S) = C.
   apply/eqP; rewrite eqEsubset mulG_subG sCY_C subsetIl /=.
   have nCY_C: C \subset 'N('C_G(Y)).
@@ -495,10 +495,10 @@ have{def_Zq} nZq: Z / D <| G / D.
 have sZS: Z \subset S by rewrite subIset ?Puig_sub.
 have sZN: Z \subset 'N_G(Z) by rewrite subsetI normG (subset_trans sZS).
 have nDZ: Z \subset 'N(D) by rewrite (subset_trans sZS).
-rewrite -(mulSGid sZN) mulgA -(norm_mulgenEr nDZ) (@Frattini_arg p) //= -/D -/Z.
+rewrite -(mulSGid sZN) mulgA -(norm_joinEr nDZ) (@Frattini_arg p) //= -/D -/Z.
   rewrite -cosetpre_normal quotientK ?quotientGK ?pcore_normal // in nZq.
-  by rewrite norm_mulgenEr.
-rewrite /pHall -divgS mulgen_subr ?(pgroupS sZS) /= ?norm_mulgenEr //= -/Z.
+  by rewrite norm_joinEr.
+rewrite /pHall -divgS joing_subr ?(pgroupS sZS) /= ?norm_joinEr //= -/Z.
 by rewrite TI_cardMg ?mulnK //; apply/trivgP; rewrite /= setIC -tiSD setSI.
 Qed.
 

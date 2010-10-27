@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool eqtype ssrnat seq fintype.
-Require Import bigops ssralg matrix poly.
+Require Import bigop ssralg matrix poly.
 
 (*****************************************************************************)
 (* This file contains the definitions of:                                    *)

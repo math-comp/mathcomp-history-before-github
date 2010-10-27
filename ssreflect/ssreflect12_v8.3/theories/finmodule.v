@@ -1,7 +1,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq paths div.
-Require Import choice fintype bigops ssralg finset groups morphisms perm.
-Require Import finalg action gprod cyclic commutators.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
+Require Import fintype bigop ssralg finset fingroup morphism perm.
+Require Import finalg action gproduct commutator cyclic.
 
 (******************************************************************************)
 (*  This file regroups constructions and results that are based on the most   *)
@@ -137,6 +137,8 @@ Lemma fmvalA : {morph valA : x y / x + y >-> (x * y)%g}. Proof. by []. Qed.
 Lemma fmvalN : {morph valA : x / - x >-> x^-1%g}. Proof. by []. Qed.
 Lemma fmval0 : valA 0 = 1%g. Proof. by []. Qed.
 Canonical Structure fmval_morphism := @Morphism _ _ setT fmval (in2W fmvalA).
+
+Definition fmval_sum := big_morph fmval fmvalA fmval0.
 
 Lemma fmvalZ : forall n, {morph valA : x / x *+ n >-> (x ^+ n)%g}.
 Proof. by move=> n u; rewrite /= morphX ?inE. Qed.

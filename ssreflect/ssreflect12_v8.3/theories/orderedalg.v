@@ -78,36 +78,56 @@ Implicit Arguments
 
 Module IntegralDomain.
 
-Record class_of (R : Type) : Type := Class {
-  base :> GRing.IntegralDomain.class_of R;
-  ext :> mixin_of (GRing.Ring.Pack base R)
-}.
+Section ClassDef.
 
-Record type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type }.
+Record class_of (R : Type) : Type := Class {
+  base : GRing.IntegralDomain.class_of R;
+  mixin : mixin_of (GRing.Ring.Pack base R)
+}.
+Local Coercion base : class_of >-> GRing.IntegralDomain.class_of.
+Local Coercion mixin : class_of >-> mixin_of.
+Structure type := Pack {sort; _ : class_of sort; _ : Type}.
+Local Coercion sort : type >-> Sortclass.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
 Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
 Definition pack := gen_pack Pack Class GRing.IntegralDomain.class.
 
-Coercion eqType cT := Equality.Pack (class cT) cT.
-Coercion choiceType cT := Choice.Pack (class cT) cT.
-Coercion zmodType cT := GRing.Zmodule.Pack (class cT) cT.
-Coercion ringType cT := GRing.Ring.Pack (class cT) cT.
-Coercion comRingType cT := GRing.ComRing.Pack (class cT) cT.
-Coercion unitRingType cT := GRing.UnitRing.Pack (class cT) cT.
-Coercion comUnitRingType cT := GRing.ComUnitRing.Pack (class cT) cT.
-Coercion idomainType cT := GRing.IntegralDomain.Pack (class cT) cT.
+Definition eqType cT := Equality.Pack (class cT) cT.
+Definition choiceType cT := Choice.Pack (class cT) cT.
+Definition zmodType cT := GRing.Zmodule.Pack (class cT) cT.
+Definition ringType cT := GRing.Ring.Pack (class cT) cT.
+Definition comRingType cT := GRing.ComRing.Pack (class cT) cT.
+Definition unitRingType cT := GRing.UnitRing.Pack (class cT) cT.
+Definition comUnitRingType cT := GRing.ComUnitRing.Pack (class cT) cT.
+Definition idomainType cT := GRing.IntegralDomain.Pack (class cT) cT.
+
+End ClassDef.
+
+Module Exports.
+Coercion base : class_of >-> GRing.IntegralDomain.class_of.
+Coercion mixin : class_of >-> mixin_of.
+Coercion sort : type >-> Sortclass.
+Bind Scope ring_scope with sort.
+Coercion eqType : type >-> Equality.type.
+Canonical Structure eqType.
+Coercion choiceType : type >-> Choice.type.
+Canonical Structure choiceType.
+Coercion zmodType : type >-> GRing.Zmodule.type.
+Canonical Structure zmodType.
+Coercion ringType : type >-> GRing.Ring.type.
+Canonical Structure ringType.
+Coercion comRingType : type >-> GRing.ComRing.type.
+Canonical Structure comRingType.
+Coercion unitRingType : type >-> GRing.UnitRing.type.
+Canonical Structure unitRingType.
+Coercion comUnitRingType : type >-> GRing.ComUnitRing.type.
+Canonical Structure comUnitRingType.
+Coercion idomainType : type >-> GRing.IntegralDomain.type.
+Canonical Structure idomainType.
+End Exports.
 
 End IntegralDomain.
-
-Bind Scope ring_scope with IntegralDomain.sort.
-Canonical Structure IntegralDomain.eqType.
-Canonical Structure IntegralDomain.choiceType.
-Canonical Structure IntegralDomain.zmodType.
-Canonical Structure IntegralDomain.ringType.
-Canonical Structure IntegralDomain.comRingType.
-Canonical Structure IntegralDomain.unitRingType.
-Canonical Structure IntegralDomain.comUnitRingType.
-Canonical Structure IntegralDomain.idomainType.
+Import IntegralDomain.Exports.
 
 Open Scope ring_scope.
 
@@ -718,7 +738,6 @@ Qed.
 Lemma absfn : forall x, (x <= 0) = (`|x| == -x).
 Proof. move=> x; rewrite -oppr_cp0 -absr_opp; exact: absfP. Qed.
 
-
 Lemma absf_lte : forall  x y (c: lter R), (c `|x| y) = (c (-y) x && c x y).
 Proof.
 move=> x y c; case: (lerP 0 y); first exact: absr_lte.
@@ -840,39 +859,65 @@ Include IntegralDomainTheory.
 
 Module Field.
 
+Section ClassDef.
+
 Record class_of R :=
-  Class { base1 :> GRing.Field.class_of R; ext :> ring_mixin_of R base1 }.
-Coercion base2 R (c : class_of R) := IntegralDomain.Class c.
-Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
+  Class { base : GRing.Field.class_of R; mixin : ring_mixin_of R base }.
+Definition base2 R (c : class_of R) := IntegralDomain.Class (mixin c).
+Local Coercion base : class_of >-> GRing.Field.class_of.
+Local Coercion base2 : class_of >-> IntegralDomain.class_of.
+
+Structure type := Pack {sort; _ : class_of sort; _ : Type}.
+Local Coercion sort : type >-> Sortclass.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
 Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
 Definition pack := gen_pack Pack Class GRing.Field.class.
 
-Coercion eqType cT := Equality.Pack (class cT) cT.
-Coercion choiceType cT := Choice.Pack (class cT) cT.
-Coercion zmodType cT := GRing.Zmodule.Pack (class cT) cT.
-Coercion ringType cT := GRing.Ring.Pack (class cT) cT.
-Coercion comRingType cT := GRing.ComRing.Pack (class cT) cT.
-Coercion unitRingType cT := GRing.UnitRing.Pack (class cT) cT.
-Coercion comUnitRingType cT := GRing.ComUnitRing.Pack (class cT) cT.
-Coercion idomainType cT := GRing.IntegralDomain.Pack (class cT) cT.
-Coercion oIdomainType cT := IntegralDomain.Pack (class cT) cT.
-Coercion fieldType cT := GRing.Field.Pack (class cT) cT.
-Coercion join_oIdomainType cT := @IntegralDomain.Pack (fieldType cT) (class cT) cT.
+Definition eqType cT := Equality.Pack (class cT) cT.
+Definition choiceType cT := Choice.Pack (class cT) cT.
+Definition zmodType cT := GRing.Zmodule.Pack (class cT) cT.
+Definition ringType cT := GRing.Ring.Pack (class cT) cT.
+Definition comRingType cT := GRing.ComRing.Pack (class cT) cT.
+Definition unitRingType cT := GRing.UnitRing.Pack (class cT) cT.
+Definition comUnitRingType cT := GRing.ComUnitRing.Pack (class cT) cT.
+Definition idomainType cT := GRing.IntegralDomain.Pack (class cT) cT.
+Definition oIdomainType cT := IntegralDomain.Pack (class cT) cT.
+Definition fieldType cT := GRing.Field.Pack (class cT) cT.
+Definition join_oIdomainType cT :=
+  @IntegralDomain.Pack (fieldType cT) (class cT) cT.
+
+End ClassDef.
+
+Module Exports.
+Coercion base : class_of >-> GRing.Field.class_of.
+Coercion base2 : class_of >-> IntegralDomain.class_of.
+Coercion sort : type >-> Sortclass.
+Bind Scope ring_scope with sort.
+Coercion eqType : type >-> Equality.type.
+Canonical Structure eqType.
+Coercion choiceType : type >-> Choice.type.
+Canonical Structure choiceType.
+Coercion zmodType : type >-> GRing.Zmodule.type.
+Canonical Structure zmodType.
+Coercion ringType : type >-> GRing.Ring.type.
+Canonical Structure ringType.
+Coercion comRingType : type >-> GRing.ComRing.type.
+Canonical Structure comRingType.
+Coercion unitRingType : type >-> GRing.UnitRing.type.
+Canonical Structure unitRingType.
+Coercion comUnitRingType : type >-> GRing.ComUnitRing.type.
+Canonical Structure comUnitRingType.
+Coercion idomainType : type >-> GRing.IntegralDomain.type.
+Canonical Structure idomainType.
+Coercion oIdomainType : type >-> IntegralDomain.type.
+Canonical Structure oIdomainType.
+Coercion fieldType : type >-> GRing.Field.type.
+Canonical Structure fieldType.
+Canonical Structure join_oIdomainType.
+End Exports.
 
 End Field.
-
-Canonical Structure Field.eqType.
-Canonical Structure Field.choiceType.
-Canonical Structure Field.zmodType.
-Canonical Structure Field.ringType.
-Canonical Structure Field.comRingType.
-Canonical Structure Field.unitRingType.
-Canonical Structure Field.comUnitRingType.
-Canonical Structure Field.idomainType.
-Canonical Structure Field.oIdomainType.
-Canonical Structure Field.fieldType.
-Canonical Structure Field.join_oIdomainType.
+Import Field.Exports.
 
 Module FieldTheory.
 Section FieldTheory.
@@ -996,6 +1041,8 @@ Include FieldTheory.
 
 Module RealClosedField.
 
+Section ClassDef.
+
 Definition axiom (F : Field.type) := forall (p : {poly F}) (a b : F), a <= b 
     -> p.[a] <= 0 <= p.[b] -> exists2 x, a <= x <= b & root p x.
 
@@ -1007,44 +1054,65 @@ Record mixin_of (F : Field.type) := Mixin {
 }.
 
 Record class_of (R : Type) : Type := Class {
-  base :> Field.class_of R; 
+  base : Field.class_of R; 
    (* In fact, this should be a new kind of Decidable Field 
       including the Le constructor ... *)
-  ext :> mixin_of (Field.Pack base R)
+  mixin : mixin_of (Field.Pack base R)
 }.
+Local Coercion base : class_of >-> Field.class_of.
 
-Record type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type }.
+Structure type := Pack {sort; _ : class_of sort; _ : Type}.
+Local Coercion sort : type >-> Sortclass.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
 Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
 Definition pack T b0 (m0 : mixin_of (@Field.Pack T b0 T)) :=
   fun bT b & phant_id (Field.class bT) b =>
   fun    m & phant_id m0 m => Pack (@Class T b m) T.
 
-Coercion eqType cT := Equality.Pack (class cT) cT.
-Coercion choiceType cT := Choice.Pack (class cT) cT.
-Coercion zmodType cT := GRing.Zmodule.Pack (class cT) cT.
-Coercion ringType cT := GRing.Ring.Pack (class cT) cT.
-Coercion comRingType cT := GRing.ComRing.Pack (class cT) cT.
-Coercion unitRingType cT := GRing.UnitRing.Pack (class cT) cT.
-Coercion comUnitRingType cT := GRing.ComUnitRing.Pack (class cT) cT.
-Coercion idomainType cT := GRing.IntegralDomain.Pack (class cT) cT.
-Coercion oIdomainType cT := IntegralDomain.Pack (class cT) cT.
-Coercion fieldType cT := GRing.Field.Pack (class cT) cT.
-Coercion oFieldType cT := Field.Pack (class cT) cT.
+Definition eqType cT := Equality.Pack (class cT) cT.
+Definition choiceType cT := Choice.Pack (class cT) cT.
+Definition zmodType cT := GRing.Zmodule.Pack (class cT) cT.
+Definition ringType cT := GRing.Ring.Pack (class cT) cT.
+Definition comRingType cT := GRing.ComRing.Pack (class cT) cT.
+Definition unitRingType cT := GRing.UnitRing.Pack (class cT) cT.
+Definition comUnitRingType cT := GRing.ComUnitRing.Pack (class cT) cT.
+Definition idomainType cT := GRing.IntegralDomain.Pack (class cT) cT.
+Definition oIdomainType cT := IntegralDomain.Pack (class cT) cT.
+Definition fieldType cT := GRing.Field.Pack (class cT) cT.
+Definition oFieldType cT := Field.Pack (class cT) cT.
+
+End ClassDef.
+
+Module Exports.
+Coercion base : class_of >-> Field.class_of.
+Coercion sort : type >-> Sortclass.
+Bind Scope ring_scope with sort.
+Coercion eqType : type >-> Equality.type.
+Canonical Structure eqType.
+Coercion choiceType : type >-> Choice.type.
+Canonical Structure choiceType.
+Coercion zmodType : type >-> GRing.Zmodule.type.
+Canonical Structure zmodType.
+Coercion ringType : type >-> GRing.Ring.type.
+Canonical Structure ringType.
+Coercion comRingType : type >-> GRing.ComRing.type.
+Canonical Structure comRingType.
+Coercion unitRingType : type >-> GRing.UnitRing.type.
+Canonical Structure unitRingType.
+Coercion comUnitRingType : type >-> GRing.ComUnitRing.type.
+Canonical Structure comUnitRingType.
+Coercion idomainType : type >-> GRing.IntegralDomain.type.
+Canonical Structure idomainType.
+Coercion oIdomainType : type >-> IntegralDomain.type.
+Canonical Structure oIdomainType.
+Coercion fieldType : type >-> GRing.Field.type.
+Canonical Structure fieldType.
+Coercion oFieldType : type >-> Field.type.
+Canonical Structure oFieldType.
+End Exports.
 
 End RealClosedField.
-
-Bind Scope ring_scope with RealClosedField.sort.
-Canonical Structure RealClosedField.eqType.
-Canonical Structure RealClosedField.choiceType.
-Canonical Structure RealClosedField.zmodType.
-Canonical Structure RealClosedField.ringType.
-Canonical Structure RealClosedField.comRingType.
-Canonical Structure RealClosedField.unitRingType.
-Canonical Structure RealClosedField.comUnitRingType.
-Canonical Structure RealClosedField.idomainType.
-Canonical Structure RealClosedField.fieldType.
-Canonical Structure RealClosedField.oFieldType.
+Import RealClosedField.Exports.
 
 Module RealClosedFieldTheory.
 Definition poly_ivt := RealClosedField.axiom.
@@ -1063,42 +1131,9 @@ Canonical Structure OrderedRing.ler_lterS.
 Canonical Structure OrderedRing.ltr_lterS.
 Canonical Structure OrderedRing.lte_let_lter.
 
-Canonical Structure OrderedRing.IntegralDomain.eqType.
-Canonical Structure OrderedRing.IntegralDomain.choiceType.
-Canonical Structure OrderedRing.IntegralDomain.zmodType.
-Canonical Structure OrderedRing.IntegralDomain.ringType.
-Canonical Structure OrderedRing.IntegralDomain.comRingType.
-Canonical Structure OrderedRing.IntegralDomain.unitRingType.
-Canonical Structure OrderedRing.IntegralDomain.comUnitRingType.
-Canonical Structure OrderedRing.IntegralDomain.idomainType.
-
-Canonical Structure OrderedRing.Field.eqType.
-Canonical Structure OrderedRing.Field.choiceType.
-Canonical Structure OrderedRing.Field.zmodType.
-Canonical Structure OrderedRing.Field.ringType.
-Canonical Structure OrderedRing.Field.comRingType.
-Canonical Structure OrderedRing.Field.unitRingType.
-Canonical Structure OrderedRing.Field.comUnitRingType.
-Canonical Structure OrderedRing.Field.idomainType.
-Canonical Structure OrderedRing.Field.oIdomainType.
-Canonical Structure OrderedRing.Field.fieldType.
-Canonical Structure OrderedRing.Field.join_oIdomainType.
-
-Canonical Structure OrderedRing.RealClosedField.eqType.
-Canonical Structure OrderedRing.RealClosedField.choiceType.
-Canonical Structure OrderedRing.RealClosedField.zmodType.
-Canonical Structure OrderedRing.RealClosedField.ringType.
-Canonical Structure OrderedRing.RealClosedField.comRingType.
-Canonical Structure OrderedRing.RealClosedField.unitRingType.
-Canonical Structure OrderedRing.RealClosedField.comUnitRingType.
-Canonical Structure OrderedRing.RealClosedField.idomainType.
-Canonical Structure OrderedRing.RealClosedField.oIdomainType.
-Canonical Structure OrderedRing.RealClosedField.fieldType.
-Canonical Structure OrderedRing.RealClosedField.oFieldType.
-
-Bind Scope ring_scope with OrderedRing.IntegralDomain.sort.
-Bind Scope ring_scope with OrderedRing.Field.sort.
-Bind Scope ring_scope with OrderedRing.RealClosedField.sort.
+Export OrderedRing.IntegralDomain.Exports.
+Export OrderedRing.Field.Exports.
+Export OrderedRing.RealClosedField.Exports.
 
 Notation oIdomainType := OrderedRing.IntegralDomain.type.
 Notation oFieldType := OrderedRing.Field.type.

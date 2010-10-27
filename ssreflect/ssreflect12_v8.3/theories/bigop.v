@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype.
-Require Import finfun paths.
+Require Import finfun path.
 
 (****************************************************************************)
 (* This file provides a generic definition for iterating an operator over a *)
@@ -49,7 +49,7 @@ Require Import finfun paths.
 (*   corresponding neutral elements), respectively;                         *)
 (* - the "\sum" and "\prod" reserved notations are re-bounded in ssralg.v   *)
 (*   in ring_scope to the addition and multiplication big operators of a    *)
-(*   ring, and, in groups.v/group_scope, to iterated group product.         *)
+(*   ring, and, in fingroup.v/group_scope, to iterated group product.       *)
 (* - finset.v defines "\bigcup" and "\bigcap" notations for iterated        *)
 (*   union and intersection.                                                *)
 (****************************************************************************)
@@ -58,6 +58,25 @@ Require Import finfun paths.
 (* required for the operator, simply apply the lemma; if the lemma needs    *)
 (* certain properties for the operator, make sure the appropriate           *)
 (* Canonical Structures are declared.                                       *)
+(****************************************************************************)
+(* Interfaces for operator properties are paclaged in the Monoid submodule: *)
+(*     Monoid.law idx == interface (keyed on the operator) for associative  *)
+(*                       operators with identity element idx.               *)
+(* Monoid.com_law idx == extension (telescope) of Monoid.law for operators  *)
+(*                       that are also associative.                         *)
+(* Monoid.mul_law abz == interface for operators with absorbing (zero)      *)
+(*                       element abz.                                       *)
+(* Monoid.add_law idx mop == extension of Monoid.com_law for operators over *)
+(*                       which operation mop distributes (mop will often    *)
+(*                       also have a Monoid.mul_law idx structure).         *)
+(* [law of op], [com_law of op], [mul_law of op], [add_law mop of op] ==    *)
+(*                       syntax for cloning Monoid structures.              *)
+(*     Monoid.Theory == submodule containing basic generic algebra lemmas   *)
+(*                      for operators satisfying the Monoid interfaces.     *)
+(*      Monoid.simpm == generic monoid simplification rewrite multirule.    *)
+(* Monoid structures are predeclared for many basic operators: (_ && _)%B,  *)
+(* (_ || _)%B, (_ (+) _)%B (exclucive or) , (_ + _)%N, (_ * _)%N, maxn,     *)
+(* gcdn, lcmn and (_ ++ _)%SEQ (list concatenation).                        *)
 (****************************************************************************)
 (* Additional documentation for this file:                                  *)
 (* Y. Bertot, G. Gonthier, S. Ould Biha and I. Pasca.                       *)
@@ -240,28 +259,32 @@ Section Definitions.
 Variables (T : Type) (idm : T).
 
 Structure law : Type := Law {
-  operator :> T -> T -> T;
+  operator : T -> T -> T;
   _ : associative operator;
   _ : left_id idm operator;
   _ : right_id idm operator
 }.
+Local Coercion operator : law >-> Funclass.
 
 Structure com_law : Type := ComLaw {
-   com_operator :> law;
+   com_operator : law;
    _ : commutative com_operator
 }.
+Local Coercion com_operator : com_law >-> law.
 
 Structure mul_law : Type := MulLaw {
-  mul_operator :> T -> T -> T;
+  mul_operator : T -> T -> T;
   _ : left_zero idm mul_operator;
   _ : right_zero idm mul_operator
 }.
+Local Coercion mul_operator : mul_law >-> Funclass.
 
 Structure add_law (mul : T -> T -> T) : Type := AddLaw {
-  add_operator :> com_law;
+  add_operator : com_law;
   _ : left_distributive mul add_operator;
   _ : right_distributive mul add_operator
 }.
+Local Coercion add_operator : add_law >-> com_law.
 
 Let op_id (op1 op2 : T -> T -> T) := phant_id op1 op2.
 
@@ -284,6 +307,21 @@ Definition clone_add_law mop aop :=
     & phant_id opA' opA => opA'.
 
 End Definitions.
+
+Module Import Exports.
+Coercion operator : law >-> Funclass.
+Coercion com_operator : com_law >-> law.
+Coercion mul_operator : mul_law >-> Funclass.
+Coercion add_operator : add_law >-> com_law.
+Notation "[ 'law' 'of' f ]" := (@clone_law _ _ f _ id _ _ _ id)
+  (at level 0, format"[ 'law'  'of'  f ]") : form_scope.
+Notation "[ 'com_law' 'of' f ]" := (@clone_com_law _ _ f _ _ id id _ id)
+  (at level 0, format "[ 'com_law'  'of'  f ]") : form_scope.
+Notation "[ 'mul_law' 'of' f ]" := (@clone_mul_law _ _ f _ id _ _ id)
+  (at level 0, format"[ 'mul_law'  'of'  f ]") : form_scope.
+Notation "[ 'add_law' m 'of' a ]" := (@clone_add_law _ _ m a _ _ id id _ _ id)
+  (at level 0, format "[ 'add_law'  m  'of'  a ]") : form_scope.
+End Exports.
 
 Section CommutativeAxioms.
 
@@ -347,23 +385,10 @@ Definition simpm := (mulm1, mulm0, mul1m, mul0m, mulmA).
 End Theory.
 
 End Theory.
-
 Include Theory.
 
 End Monoid.
-
-Notation "[ 'law' 'of' f ]" := (@Monoid.clone_law _ _ f _ id _ _ _ id)
-  (at level 0, format"[ 'law'  'of'  f ]") : form_scope.
-
-Notation "[ 'com_law' 'of' f ]" := (@Monoid.clone_com_law _ _ f _ _ id id _ id)
-  (at level 0, format "[ 'com_law'  'of'  f ]") : form_scope.
-
-Notation "[ 'mul_law' 'of' f ]" := (@Monoid.clone_mul_law _ _ f _ id _ _ id)
-  (at level 0, format"[ 'mul_law'  'of'  f ]") : form_scope.
-
-Notation "[ 'add_law' m 'of' a ]" :=
-    (@Monoid.clone_add_law _ _ m a _ _ id id _ _ id)
-  (at level 0, format "[ 'add_law'  m  'of'  a ]") : form_scope.
+Export Monoid.Exports.
 
 Section PervasiveMonoids.
 
@@ -421,19 +446,19 @@ Open Scope big_scope.
 Definition reducebig R I idx op r (P : pred I) (F : I -> R) : R :=
   foldr (fun i x => if P i then op (F i) x else x) idx r.
 
-Module Type ReduceBigSig.
+Module Type BigOpSig.
 Parameter bigop : forall R I,
    R -> (R -> R -> R) -> seq I -> pred I -> (I -> R) -> R.
 Axiom bigopE : bigop = reducebig.
-End ReduceBigSig.
+End BigOpSig.
 
-Module ReduceBig : ReduceBigSig.
+Module BigOp : BigOpSig.
 Definition bigop := reducebig.
 Lemma bigopE : bigop = reducebig. Proof. by []. Qed.
-End ReduceBig.
+End BigOp.
 
-Notation bigop := ReduceBig.bigop (only parsing).
-Canonical Structure reduce_big_unlock := Unlockable ReduceBig.bigopE.
+Notation bigop := BigOp.bigop (only parsing).
+Canonical Structure bigop_unlock := Unlockable BigOp.bigopE.
 
 Definition index_iota m n := iota m (n - m).
 

@@ -1,9 +1,10 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype paths.
-Require Import finset prime groups action automorphism normal cyclic.
-Require Import gfunc pgroups gprod center commutators gseries nilpotent.
-Require Import sylow abelian maximal hall BGsection1 BGsection4 BGsection5.
-Require Import BGsection6 BGsection7 BGsection8.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype path.
+Require Import finset prime fingroup action automorphism quotient cyclic.
+Require Import gproduct gfunctor pgroup center commutator gseries nilpotent.
+Require Import sylow abelian maximal hall.
+Require Import BGsection1 BGsection4 BGsection5 BGsection6.
+Require Import BGsection7 BGsection8.
 
 (******************************************************************************)
 (*   This file covers B & G, section 9, i.e., the proof the Uniqueness        *)
@@ -87,7 +88,7 @@ have{sNPM} [sNRM sylRH]: 'N(R) \subset M /\ p.-Sylow(H) R.
   have [|D]:= @mmax_exists _ 'N(R).
     by rewrite mFT_norm_proper // (mFT_pgroup_proper pR).
   case/setIdP=> maxD sND; move/implyP: (maxHM D); rewrite inE {}maxD /= leqNgt.
-  rewrite (subset_trans (subset_trans sBR (normG R))) //= implybN.
+  rewrite (subset_trans (subset_trans sBR (normG R))) //= implybNN.
   have ltRN := nilpotent_proper_norm (pgroup_nil pP) ltRP.
   rewrite -(card_Hall sylR) (leq_trans (proper_card ltRN)) /=; last first.
     rewrite setIC -(part_pnat_id (pgroupS (subsetIr _ _) pP)) dvdn_leq //.
@@ -103,14 +104,14 @@ case/(H :=P: M): neHM; case: (ltnP 2 'r('F(H))) => [le3r | ge2r].
   by rewrite (eq_uniq_mmax uF_D maxM) // (eq_uniq_mmax uF_D maxH) ?Fitting_sub.
 have nHp'R: R \subset 'N('O_p^'(H)) by rewrite (subset_trans sRH) ?bgFunc_norm.
 have nsRHp'H: R <*> 'O_p^'(H) <| H.
-  rewrite sub_der1_normal //= ?mulgen_subG ?sRH ?pcore_sub //.
-  rewrite norm_mulgenEl // (subset_trans _ sFH_RHp') //.
+  rewrite sub_der1_normal //= ?join_subG ?sRH ?pcore_sub //.
+  rewrite norm_joinEl // (subset_trans _ sFH_RHp') //.
   rewrite rank2_der1_sub_Fitting ?mFT_odd //.
   by rewrite mFT_sol ?mmax_proper.
 have sylR_RHp': p.-Sylow(R <*> 'O_p^'(H)) R.
-  by apply: (pHall_subl _ _ sylRH); rewrite ?mulgen_subl // normal_sub.
+  by apply: (pHall_subl _ _ sylRH); rewrite ?joing_subl // normal_sub.
 rewrite (mmax_max maxH) // -(Frattini_arg nsRHp'H sylR_RHp') /=.
-by rewrite mulG_subG mulgen_subG sRM sHp'M /= setIC subIset ?sNRM.
+by rewrite mulG_subG join_subG sRM sHp'M /= setIC subIset ?sNRM.
 Qed.
 
 (* This is B & G, Theorem 9.1(a) *)
@@ -123,9 +124,9 @@ move=> p M B maxM EpB ncycB sCB_M.
 apply: (noncyclic_normed_sub_Uniqueness maxM EpB) => //.
 apply/bigcupsP=> K; rewrite inE -andbA; case/and3P=> _ p'K nKB.
 case/pElemP: EpB => _; case/and3P=> pB cBB _.
-rewrite (coprime_abelian_gen_cent1 cBB ncycB nKB); last first.
+rewrite -(coprime_abelian_gen_cent1 cBB ncycB nKB); last first.
   by rewrite coprime_sym (pnat_coprime pB).
-rewrite bigprodGE gen_subG (subset_trans _ sCB_M) //.
+rewrite gen_subG (subset_trans _ sCB_M) //.
 by apply/bigcupsP=> b Bb; rewrite (bigcup_max b) // subsetIr.
 Qed.
 
@@ -201,7 +202,7 @@ case/orP: (orbN (p.-group 'F(M))) => [pFM | pFM'].
   have [P sylP sFP] := Sylow_superset (Fitting_sub _) pFM.
   have pP := pHall_pgroup sylP.
   have [|A SCN_A]:= p_rank_3_SCN pP (mFT_odd _).
-    by rewrite (rank_pgroup pP) (leq_trans FMge3) ?p_rankS.
+    by rewrite (leq_trans FMge3) ?p_rankS.
   have [_ _ uA] := SCN_Fitting_Uniqueness maxM pFM sylP FMge3 SCN_A.
   case/setIdP: SCN_A => SCN_A dimA3; case: (setIdP SCN_A); case/andP=> sAP _ _.
   have cAA := SCN_abelian SCN_A; have pA := pgroupS sAP pP.
@@ -224,8 +225,8 @@ have cAA := SCN_abelian SCN_A.
 have pP := pHall_pgroup sylP; have pA := pgroupS sAP pP.
 have ntA: A :!=: 1 by rewrite -rank_gt0 -(subnKC Age3).
 have [p_pr _ [e oA]] := pgroup_pdiv pA ntA.
-have{e oA} def_piA: \pi(#|A|) =i (p : nat_pred).
-  by rewrite oA pi_of_exp //; exact: pi_of_prime.
+have{e oA} def_piA: \pi(A) =i (p : nat_pred).
+  by rewrite /= oA pi_of_exp //; exact: pi_of_prime.
 have FmCAp_le2: forall M, M \in 'M('C(A)) -> 'r_p('F(M)) <= 2.
   move=> M; case/setIdP=> maxM cCAM; rewrite leqNgt; apply: contra uA' => Fge3.
   exact: (any_rank3_Fitting_Uniqueness maxM Fge3).
@@ -260,7 +261,7 @@ have sNP_mCA: forall M, M \in 'M('C(A)) -> 'N(P) \subset M.
         by rewrite p_rank_gt0 pi_max_pdiv cardG_gt1 mmax_neq1.
       have sylMqG: q.-Sylow(G) 'O_q(M).
         by rewrite (mmax_sigma_Sylow maxM) ?defNMq.
-      rewrite (hall_maximal sylMqG (subsetT _) qQ) // defNMq; split=> //.
+      rewrite (sub_pHall sylMqG qQ) ?subsetT // defNMq; split=> //.
       have: 'r_p(G) > 2.
         by rewrite (leq_trans Age3) // (rank_pgroup pA) p_rankS ?subsetT.
       apply: contraL; move/eqP <-; rewrite (p_rank_Sylow sylMqG).
@@ -271,7 +272,7 @@ have sNP_mCA: forall M, M \in 'M('C(A)) -> 'N(P) \subset M.
         by apply: SCN_normed_constrained sylP _; rewrite inE SCN_A ltnW.
       have pR: p.-group R := pgroupS sRP pP.
       have snAR: A <|<| R by rewrite (nilpotent_subnormal (pgroup_nil pR)).
-      have A'q: q \notin \pi(#|A|) by rewrite def_piA.
+      have A'q: q \notin \pi(A) by rewrite def_piA.
       rewrite -(eq_pgroup _ def_piA) in pR.
       have [|? []] := normed_trans_superset cstrA A'q snAR pR.
         by rewrite (eq_pcore _ (eq_negn def_piA)) Thompson_transitivity.
@@ -315,9 +316,8 @@ have uNP0_mCA: forall M, M \in 'M('C(A)) -> 'M('N(P0)) = [set M].
     have coDA1: coprime #|D| #|'Ohm_1(A)|.
       rewrite coprime_sym (coprimeSg sA1A) //.
       exact: pnat_coprime pA (pcore_pgroup _ _).
-    rewrite centsC -[D]/(gval _).
-    rewrite (coprime_abelian_gen_cent (abelianS sA1A cAA) nDA1) //=.
-    rewrite bigprodGE gen_subG /= -/D; apply/bigcupsP=> B.
+    rewrite centsC -[D](coprime_abelian_gen_cent (abelianS sA1A cAA) nDA1) //=.
+    rewrite gen_subG /= -/D; apply/bigcupsP=> B.
     case/and3P=> cycqB sBA1 nBA1; have abelB := abelemS sBA1 abelA1.
     have sBA := subset_trans sBA1 sA1A.
     have{cycqB} ncycB: ~~ cyclic B.
@@ -397,12 +397,12 @@ have uNP0_mCA: forall M, M \in 'M('C(A)) -> 'M('N(P0)) = [set M].
   rewrite /normal comm_subG //= -/P0.
   have nFP: P \subset 'N(F) by rewrite (subset_trans _ (bgFunc_norm _ _)).
   have <-: F <*> P * 'N_M(P) = M.
-    apply: Frattini_arg (pHall_subl (mulgen_subr _ _) (subsetT _) sylP).
-    rewrite -(quotientGK (Fitting_normal M)) /= norm_mulgenEr //= -/F.
+    apply: Frattini_arg (pHall_subl (joing_subr _ _) (subsetT _) sylP).
+    rewrite -(quotientGK (Fitting_normal M)) /= norm_joinEr //= -/F.
     rewrite -quotientK // cosetpre_normal -sub_abelian_normal ?quotientS //.
     by rewrite sub_der1_abelian ?rank2_der1_sub_Fitting ?mFT_odd ?mmax_sol.
   case/dprodP: (nilpotent_pcoreC p (Fitting_nil M)) => _ /= defF cDFp _.
-  rewrite norm_mulgenEr //= -{}defF (centC cDFp) -/D p_core_Fitting /= -/F.
+  rewrite norm_joinEr //= -{}defF -(centC cDFp) -/D p_core_Fitting /= -/F.
   rewrite -!mulgA mul_subG //; first by rewrite cents_norm // centsC.
   rewrite mulgA [_ * P]mulSGid ?pcore_sub_Hall 1?(pHall_subl _ (subsetT _)) //.
   by rewrite mulSGid ?subsetI ?sPM ?normG // subIset // orbC normsRr.
@@ -441,7 +441,7 @@ suffices: B \in 'U by exact: uniq_mmaxS.
 have [P sylP sBP] := Sylow_superset (subsetT _) pB.
 have pP := pHall_pgroup sylP.
 have [|A SCN3_A] :=  p_rank_3_SCN pP (mFT_odd _).
-  by rewrite -dimB3 -(rank_abelem abelB) rankS.
+  by rewrite -dimB3 -(rank_abelem abelB) (rank_pgroup pB) p_rankS.
 have [SCN_A Age3] := setIdP SCN3_A.
 have: A \in 'SCN_3[p] by apply/bigcupP; exists P; rewrite // inE.
 move/SCN_3_Uniqueness=> uA; have cAA := SCN_abelian SCN_A.

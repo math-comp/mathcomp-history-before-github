@@ -1,6 +1,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype bigops finset.
-Require Import paths groups commutators morphisms automorphism normal center.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path fintype bigop.
+Require Import finset fingroup morphism automorphism quotient action.
+Require Import commutator center.
 (*****************************************************************************)
 (*           H <|<| G   <=> H is subnormal in G, i.e., H <| ... <| G.        *)
 (* invariant_factor A H G <=> A normalises both H and G, and H <| G.         *)
@@ -206,7 +207,6 @@ Qed.
 End Subnormal.
 
 Implicit Arguments subnormalP [gT G H].
-
 Prenex Implicits subnormalP.
 
 Section MorphSubNormal.
@@ -258,8 +258,8 @@ Lemma mulg_normal_maximal : forall G M H,
   M <| G -> maximal M G -> H \subset G -> ~~ (H \subset M) -> (M * H = G)%g.
 Proof.
 move=> G M H; case/andP=> sMG nMG; case/maxgroupP=> _ maxM sHG not_sHM.
-apply/eqP; rewrite eqEproper mul_subG // -norm_mulgenEr ?(subset_trans sHG) //.
-by apply: contra not_sHM; move/maxM <-; rewrite ?mulgen_subl ?mulgen_subr.
+apply/eqP; rewrite eqEproper mul_subG // -norm_joinEr ?(subset_trans sHG) //.
+by apply: contra not_sHM; move/maxM <-; rewrite ?joing_subl ?joing_subr.
 Qed.
 
 End MaxProps.
@@ -424,7 +424,7 @@ Section Chiefs.
 
 Variable gT: finGroupType.
 
-Lemma chief_factor_minnormal : forall (G V U : {group gT}),
+Lemma chief_factor_minnormal : forall G V U : {group gT},
   chief_factor G V U -> minnormal (U / V) (G / V).
 Proof.
 move=> G V U; case/and3P=> maxV sUG nUG.
@@ -439,7 +439,25 @@ rewrite -quotient_normG ?quotientSGK // => [nWG|]; last exact/andP.
 by rewrite (maxV W) ?trivg_quotient ?eqxx ?WltU in ntWV.
 Qed.
 
-Lemma chief_series_exists : forall (H G : {group gT}),
+Lemma acts_irrQ : forall G U V : {group gT},
+    G \subset 'N(V) -> V <| U ->
+  acts_irreducibly G (U / V) 'Q = minnormal (U / V) (G / V).
+Proof.
+move=> G U V nVG nsVU; apply/mingroupP/mingroupP; case; case/andP=> ->.
+  rewrite astabsQ // subsetI nVG /= => nUG minUV.
+  rewrite quotient_norms //; split=> // H; case/andP=> ntH nHG sHU.
+  apply: minUV (sHU); rewrite ntH -(cosetpreK H) actsQ //.
+  by apply: subset_trans (morphpre_norms _ nHG); rewrite -sub_quotient_pre.
+rewrite sub_quotient_pre // => nUG minU; rewrite astabsQ //.
+rewrite (subset_trans nUG); last first.
+  by rewrite subsetI subsetIl /= -{2}(quotientGK nsVU) morphpre_norm.
+split=> // H; case/andP=> ntH nHG sHU.
+rewrite -{1}(cosetpreK H) astabsQ ?normal_cosetpre ?subsetI ?nVG //= in nHG.
+apply: minU sHU; rewrite ntH; apply: subset_trans (quotientS _ nHG) _.
+by rewrite -{2}(cosetpreK H) quotient_norm.
+Qed.
+
+Lemma chief_series_exists : forall H G : {group gT},
   H <| G -> {s | (G.-chief).-series 1%G s & last 1%G s = H}.
 Proof.
 move=> H G; elim: {H}_.+1 {-2}H (ltnSn #|H|) => // m IHm U leUm nsUG.

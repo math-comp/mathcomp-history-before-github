@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat fintype bigops finset.
-Require Import binomial groups morphisms automorphism normal gfunc.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat fintype bigop finset.
+Require Import binomial fingroup morphism automorphism quotient gfunctor.
 
 (******************************************************************************)
 (*   This files contains the proofs of several key properties of commutators, *)
@@ -157,7 +157,7 @@ Lemma comm1G : forall A, [~: 1, A] = 1.
 Proof. by move=> A; rewrite commGC commG1. Qed.
 
 Lemma commg_sub : forall A B, [~: A, B] \subset A <*> B.
-Proof. by move=> A B; rewrite comm_subG // (mulgen_subl, mulgen_subr). Qed.
+Proof. by move=> A B; rewrite comm_subG // (joing_subl, joing_subr). Qed.
 
 Lemma commg_norml : forall G A, G \subset 'N([~: G, A]).
 Proof.
@@ -170,7 +170,7 @@ Lemma commg_normr : forall G A, G \subset 'N([~: A, G]).
 Proof. by move=> G A; rewrite commGC commg_norml. Qed.
 
 Lemma commg_norm : forall G H, G <*> H \subset 'N([~: G, H]).
-Proof. by move=> G H; rewrite mulgen_subG ?commg_norml ?commg_normr. Qed.
+Proof. by move=> G H; rewrite join_subG ?commg_norml ?commg_normr. Qed.
 
 Lemma commg_normal : forall G H, [~: G, H] <| G <*> H.
 Proof. by move=> G H; rewrite /(_ <| _) commg_sub commg_norm. Qed.
@@ -252,7 +252,7 @@ Lemma commMG : forall G H K,
 Proof.
 move=> G H K nRH; apply/eqP; rewrite eqEsubset commMGr andbT.
 have nRHK: [~: H, K] \subset 'N([~: G, K]) by rewrite comm_subG ?commg_normr.
-have defM := norm_mulgenEr nRHK; rewrite -defM gen_subG /=.
+have defM := norm_joinEr nRHK; rewrite -defM gen_subG /=.
 apply/subsetP=> r; case/imset2P=> m z; case/imset2P=> x y Gx Hy -> Kz ->{r m}.
 by rewrite commMgJ {}defM mem_mulg ?memJ_norm ?mem_commg // (subsetP nRH).
 Qed.
@@ -276,11 +276,11 @@ rewrite -(conj1g y) -(Hall_Witt_identity y^-1 z x) invgK.
 by rewrite cGHK ?groupV // cHKG ?groupV // !conj1g !mul1g conjgKV.
 Qed.
 
-Lemma der1_mulgen_cycles : forall x y : gT, 
+Lemma der1_joing_cycles : forall x y : gT, 
   let XY := <[x]> <*> <[y]> in let xy := [~ x, y] in
   xy \in 'C(XY) -> XY^`(1) = <[xy]>.
 Proof. 
-move=> x y; rewrite mulgen_idl mulgen_idr /= -sub_cent1; move/norms_gen=> nRxy.
+move=> x y; rewrite joing_idl joing_idr /= -sub_cent1; move/norms_gen=> nRxy.
 apply/eqP; rewrite eqEsubset cycle_subG mem_commg ?mem_gen ?set21 ?set22 //.
 rewrite der1_min // quotient_gen -1?gen_subG // quotientU abelian_gen.
 rewrite /abelian subUset centU !subsetI andbC centsC -andbA -!abelianE.
@@ -354,10 +354,17 @@ Proof. by move=> n G H sGH; elim: n => // n IHn; exact: commgSS. Qed.
 Lemma quotient_der : forall n G H, G \subset 'N(H) -> G^`(n) / H = (G / H)^`(n).
 Proof. by move=> n G H; exact: morphim_der. Qed.
 
+Lemma derJ : forall G n x, (G :^ x)^`(n) = G^`(n) :^ x.
+Proof. by move=> G n x; elim: n => //= n IHn; rewrite !dergSn IHn -conjsRg. Qed.
+
+Lemma derG1P : forall G, reflect (G^`(1) = 1) (abelian G).
+Proof. by move=> G; exact: commG1P. Qed.
+
 End Commutator_properties.
 
-Lemma der_cont : forall n, cont (derived_at n).
+Implicit Arguments derG1P [gT G].
 
+Lemma der_cont : forall n, cont (derived_at n).
 Proof. by move=> n aT rT G f; rewrite morphim_der. Qed.
 
 Canonical Structure bgFunc_der n :=

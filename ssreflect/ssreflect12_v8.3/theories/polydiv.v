@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype.
-Require Import bigops ssralg poly.
+Require Import bigop ssralg poly.
 
 Import GRing.
 
@@ -45,14 +45,14 @@ Qed.
 Lemma size1_dvdp1 : forall p, (size p == 1%N) = (p %= 1).
 Proof.
 move=> p; apply/size1_is_polyC/idP=> [[c [cn0 ep]] |].
-  by apply/eqpP; exists 1; exists c; rewrite oner_eq0 mulr1 polyC1 mul1r.
+  by apply/eqpP; exists 1; exists c; rewrite oner_eq0 scaler1 scale1r.
 by move/size_eqp; rewrite size_poly1; move/eqP; move/size1_is_polyC.
 Qed.
 
 Lemma neqp01 : 0 %= (1 : {poly R}) = false.
 Proof.
 case abs : (0 %= 1) => //; case/eqpP: abs=> c1 [c2 [c1n0 c2n0]].
-by rewrite mulr0 mulr1; move/eqP; rewrite eq_sym polyC_eq0 (negbTE c2n0).
+by rewrite scaler0 scaler1; move/eqP; rewrite eq_sym polyC_eq0 (negbTE c2n0).
 Qed.
 
 Lemma dvd0p : forall p, 0 %| p = (p == 0).
@@ -82,11 +82,25 @@ Proof. by move=> p q; apply: dvdp_mulr; exact: dvdpp. Qed.
 Lemma dvdp_mulIr : forall p q, q %| p * q.
 Proof. by move=> p q; apply: dvdp_mull; exact: dvdpp. Qed.
 
+Lemma dvdp_mul2r : forall r p q, r != 0 -> (p * r %| q * r) = (p %| q).
+Proof.
+move => r p q nzr.
+apply/idP/idP; last by move => ?; rewrite dvdp_mul ?dvdpp.
+move/dvdpPc => [c [x [Hc Hx]]].
+apply/dvdpPc.
+exists c; exists x; split => //.
+apply: (GRing.mulIf nzr).
+by rewrite -GRing.mulrA -GRing.scaler_mull.
+Qed.
+
+Lemma dvdp_mul2l: forall r p q, r != 0 -> (r * p %| r * q) = (p %| q).
+Proof. move => r p q; rewrite ![r * _]GRing.mulrC; apply dvdp_mul2r. Qed.
+
 Lemma eqp_polyC: forall c, (c != 0) = (c%:P %= 1).
 Proof.
 move=> c; apply/idP/eqpP=> [nc0 | [x] [y]].
-  by exists 1; exists c; rewrite nc0 /= nonzero1r mulrC.
-case c0 : (c == 0); rewrite // mulr1 (eqP c0) mulr0; case=> _ /=; move/negbTE<-.
+  by exists 1; exists c; rewrite nc0 /= nonzero1r scaler1 scale1r.
+case c0 : (c == 0); rewrite // scaler1 (eqP c0) scaler0; case=> _ /=; move/negbTE<-.
 by move/eqP; rewrite eq_sym polyC_eq0.
 Qed.
 
@@ -132,10 +146,10 @@ rewrite leqn1 size_poly_eq0; case d0 : (_ == _)=> /=.
 by rewrite size1_dvdp1=> d'1; apply: d'1.
 Qed.
   
-Lemma eqp_mulC : forall p q c, c != 0 -> c%:P * p %= p. 
+Lemma eqp_mulC : forall p q c, c != 0 -> c *: p %= p. 
 Proof.
 move=> p q c c0; apply/eqpP; exists 1; exists c; rewrite c0 oner_eq0.
-by split=> //; rewrite polyC1 mul1r.
+by split=> //; rewrite // scale1r.
 Qed. 
 
 Lemma dvdp_size_eqp : forall p q, p %| q -> size p == size q = (p %= q).
@@ -150,11 +164,13 @@ move:(eqpq); move/(congr1 (size \o (@polyseq R)))=> /=.
 rewrite (@size_eqp _ _ q); last exact: eqp_mulC.
 rewrite size_mul_id ?p0 //.
   move ->; rewrite addn_pred1 ?size_poly_eq0 ?p0 // => sqq.
-  apply/eqpP; exists qq`_0; exists x.
-  split; rewrite // -1?polyC_eq0 -?size1_polyC ?(eqP sqq) //.
-  by rewrite -size_poly_eq0 (eqP sqq).
-move/eqP:eqpq; apply: contraL; move/eqP->; rewrite mul0r.
-by rewrite mulf_neq0 ?q0 ?polyC_eq0.
+  rewrite size1_dvdp1 in sqq.
+  case/eqpP: sqq=> k1 [k2 [H1k H2k H3]].
+  apply/eqpP; exists k2; exists (k1 * x).
+  rewrite -scalerA eqpq scaler_mull H3 -scaler_mull mul1r.
+  by rewrite mulf_eq0 negb_or // H1k; split=> //.
+apply/eqP=> Hs; rewrite Hs mul0r in eqpq.
+by case/orP: (poly.scaler_eq0 eqpq)=> Hp; [case/negP: x0 | case/idP: q0].
 Qed.
 
 
@@ -204,6 +220,49 @@ move: p q; suff: forall p q,  gcdp p q == 0 -> (p == 0)=> [Hpq|] p q.
 move=> gpq0; rewrite -dvd0p.
 apply: dvdp_trans (dvdp_gcdl p q).
 by rewrite dvd0p.
+Qed.
+
+Lemma eqp_mul2r : forall r p q, r != 0 -> (p * r %= q * r) = (p %= q).
+Proof. by move => r p q nz_r; rewrite /eqp !dvdp_mul2r. Qed.
+
+Lemma eqp_mul2l: forall r p q, r != 0 -> (r * p %= r * q) = (p %= q).
+Proof. by move => r p q nz_r; rewrite /eqp !dvdp_mul2l. Qed.
+
+Lemma mulp_gcdl : forall p q r, (gcdp p q) * r %= gcdp (p * r) (q * r).
+Proof.
+move => p q r.
+apply/andP;split.
+ by rewrite dvdp_gcd !dvdp_mul // ?dvdpp // ?dvdp_gcdr // dvdp_gcdl.
+case: (eqVneq r 0) => [->|nzr].
+ by rewrite !GRing.mulr0 dvdp0.
+have : r %| gcdp (p * r) (q * r).
+ by rewrite dvdp_gcd !dvdp_mull // dvdpp.
+move/dvdpPc => [c [x [Hc Hx]]].
+have: gcdp (p * r) (q * r) %| x * r.
+ apply/dvdpPc.
+ exists 1; exists (c%:P); split; first by rewrite GRing.nonzero1r.
+ by rewrite GRing.scale1r -scalerE Hx.
+move/(dvdp_trans); apply.
+apply dvdp_mul; rewrite ?dvdpp //.
+rewrite dvdp_gcd -![x %| _](dvdp_mul2r _ _ nzr) -dvdp_gcd
+        -[(gcdp _ _)]GRing.mul1r -Hx scalerE.
+apply: dvdp_mul; rewrite ?dvdpp //.
+by rewrite -eqp1_dvd1 -eqp_polyC.
+Qed.
+
+Lemma mulp_gcdr : forall p q r, r * (gcdp p q) %= gcdp (r * p) (r * q).
+Proof. by move => p q r; rewrite ![r * _]GRing.mulrC; apply mulp_gcdl. Qed.
+
+Lemma gcdp_addl_mul: forall p q r, gcdp r (p * r + q) %= gcdp r q.
+Proof.
+suff: forall p q r, gcdp r q %| gcdp r (p * r + q).
+ move => H p q r.
+ apply/andP; split => //.
+ rewrite {2}(_: q = (-p) * r + (p * r + q)) ?H //.
+ by rewrite GRing.mulNr GRing.addKr.
+move => r0 p0 q0.
+by rewrite dvdp_gcd dvdp_gcdl /= dvdp_addr ?dvdp_gcdr // dvdp_mull //
+           dvdp_gcdl.
 Qed.
 
 Definition coprimep p q := size (gcdp p q) == 1%N.
@@ -269,11 +328,11 @@ move=> p q; case q0: (q == 0); first by rewrite (eqP q0) modp0.
 by rewrite modp_size // modp_spec // q0.
 Qed.
 
-Fixpoint egcdp_rec p q n {struct n} :=
+Fixpoint egcdp_rec p q n {struct n} : {poly R} * {poly R} :=
   if n is n'.+1 then
     if q == 0 then (1, 0) else
     let: (u, v) := egcdp_rec q (p%%q) n' in
-      ((v * (scalp p q)%:P), (u - v * (p %/ q)))
+      (scalp p q *: v, (u - v * (p %/ q)))
   else (1, 0).
 Definition egcdp p q := egcdp_rec p q (size q).
 
@@ -292,7 +351,7 @@ rewrite gcdpE ltnNge qsp //= (eqp_transl (gcdpC _ _)).
 apply: (eqp_trans (ihn' _ _)).
 - by rewrite -(leq_add2l 1) !add1n (leq_trans (modp_spec _ _)) ?q0.
 - by rewrite -(leq_add2l 1) !add1n (leq_trans (modp_spec _ _)) ?q0 ?leqnSn.
-case: (divp_spec p q). rewrite -mulrA=> ->.
+case: (divp_spec p q); rewrite -scaler_mull scaler_mulr=> ->.
 rewrite eqp_sym mulr_addr mulr_subl mulrA /=.
 by rewrite addrC addrA -[_-_+_]addrA addNr addr0 eqpxx. 
 Qed.
@@ -330,7 +389,7 @@ Proof.
 move=> p q r.
   case/eqpP=>[c[d [c0 d0 e]]].
   apply/eqpP; exists c; exists d.
-  by split=> //; rewrite !mulrA mulrAC e mulrAC.
+  by split=> //; rewrite scaler_mulr e -scaler_mulr.
 Qed.
 
 Lemma gauss : forall p q d, coprimep d q -> d %| p = (d %| p * q).
@@ -370,9 +429,8 @@ Lemma divpp : forall p, p != 0 -> p %/ p = (scalp p p)%:P.
 Proof.
 move=> p np0; case: (divp_spec p p).
 rewrite modpp addr0. move/eqP.
-by rewrite (inj_eq (mulIf np0)); move/eqP.
+by rewrite scalerE (inj_eq (mulIf np0)); move/eqP.
 Qed. 
-
 
 Lemma gdcop_recP : forall q p n, 
   size p <= n -> gdcop_spec q p (gdcop_rec q p n).
@@ -398,10 +456,10 @@ have sgp : size (gcdp p q) <= size p.
   by apply: size_dvdp; rewrite ?gcdp_eq0 ?p0 ?q0 // dvdp_gcdl.
 have : p %/ gcdp p q != 0; last move/negPf=>p'n0.
   move: (dvdp_mulIl (p %/ gcdp p q) (gcdp p q)); move/dvdpn0; apply; rewrite -e.
-  by rewrite -size_poly_eq0 size_polyC_mul ?scalp_id //size_poly_eq0 p0.
+  by rewrite -size_poly_eq0 size_scaler ?scalp_id //size_poly_eq0 p0.
 have gn0 : gcdp p q != 0.
   move: (dvdp_mulIr (p %/ gcdp p q) (gcdp p q)); move/dvdpn0; apply; rewrite -e.
-  by rewrite -size_poly_eq0 size_polyC_mul ?scalp_id //size_poly_eq0 p0.
+  by rewrite -size_poly_eq0 size_scaler ?scalp_id //size_poly_eq0 p0.
 have sp' : size (p %/ (gcdp p q)) <= n.
   rewrite size_divp ?sgp // leq_sub_add (leq_trans hs)//.
   rewrite -add1n leq_add2r lt0n eqPn0 negb_orb size_poly_eq0 gn0 /=.
@@ -421,7 +479,7 @@ case dpq: (d %| gcdp p q).
     by move:dp; rewrite (eqP d0) dvd0p.
   by exists d; rewrite dvdp_gcd dvdpp dq nd1.
 move: (dp); apply: contraLR=> ndp'.
-rewrite (@eqp_dvdr ((scalp p (gcdp p q))%:P*p)).
+rewrite (@eqp_dvdr ((scalp p (gcdp p q))*:p)).
   by rewrite e; rewrite -gauss //; apply: (coprimep_dvdl (dvdp_gcdr _ _)).
 by rewrite eqp_sym eqp_mulC // scalp_id.
 Qed.
@@ -476,8 +534,8 @@ Lemma eqp_root : forall p q, p %= q -> forall x, root p x = root q x.
 Proof.
 move=> p q; move/eqpP=> [c [d [c0 d0 e]]] x.
 rewrite /root; move/negPf:c0=>c0; move/negPf:d0=>d0.
-rewrite -[_==_]orFb -c0 -mulf_eq0 -horner_Cmul e.
-by rewrite horner_Cmul mulf_eq0 d0.
+rewrite -[_==_]orFb -c0 -mulf_eq0 -horner_scaler e.
+by rewrite horner_scaler mulf_eq0 d0.
 Qed.
 
 Lemma root_gcd : forall p q x, root (gcdp p q) x = root p x && root q x.

@@ -1,11 +1,10 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
-Require Import fintype finfun bigops ssralg finset prime binomial.
-Require Import groups zmodp morphisms automorphism normal perm action gprod.
-Require Import commutators cyclic center pgroups gseries nilpotent sylow.
-Require Import abelian maximal hall gfunc BGsection1 BGsection2 matrix.
-Require Import mxrepresentation.
-
+Require Import fintype finfun bigop ssralg finset prime binomial.
+Require Import fingroup morphism automorphism perm quotient action gproduct.
+Require Import gfunctor commutator zmodp cyclic center pgroup gseries nilpotent.
+Require Import sylow abelian maximal extremal hall matrix mxrepresentation.
+Require Import BGsection1 BGsection2.
 
 (******************************************************************************)
 (*   This file covers B & G, section 4, i.e., the proof the a structure       *)
@@ -87,11 +86,10 @@ have{fS gS} eq44 : {in R &, forall u v n (r := [~ v, u]),
   by rewrite -!mulgA -!expgn_add addnCA binS addnAC addnn addnC -gS.
 have expR1p: exponent 'Ohm_1(R) %| p.
   elim: _.+1 {-2 4}R (ltnSn #|R|) (subxx R) => // n IHn Q leQn sQR.
-  rewrite (OhmE 1 (pgroupS sQR pR)) expn1; apply/exponentP=> x.
-  rewrite gen_set_id; first by case/setIdP; case: eqP. 
+  rewrite (OhmE 1 (pgroupS sQR pR)) expn1 -sub_LdivT.
+  rewrite gen_set_id ?subsetIr //.
   apply/group_setP; rewrite !inE group1 exp1gn /=; split=> {x}// x y.
-  case/setIdP=> Qx; move/eqP=> xp1; case/setIdP=> Qy; case/eqP=> yp1.
-  rewrite inE groupM //=; apply/eqP.
+  case/LdivP=> Qx xp1; case/LdivP=> Qy yp1; rewrite !inE groupM //=; apply/eqP.
   have sxQ: <[x]> \subset Q by rewrite cycle_subG.
   have [[{sxQ}defQ]|[S maxS /= sxS]] := maximal_exists sxQ.
     rewrite expMgn; first by rewrite xp1 yp1 mulg1.
@@ -104,7 +102,7 @@ have expR1p: exponent 'Ohm_1(R) %| p.
   have nS1Q: [~: Q, 'Ohm_1(S)] \subset 'Ohm_1(S).
     rewrite commg_subr (char_norm_trans (Ohm_char 1 S)) ?normal_norm //.
     exact: p_maximal_normal pQ maxS.
-  have S1x : x \in 'Ohm_1(S) by rewrite defS1 inE -cycle_subG sxS xp1 /=.
+  have S1x : x \in 'Ohm_1(S) by rewrite defS1 !inE -cycle_subG sxS xp1 /=.
   have S1yx : [~ y, x] \in 'Ohm_1(S) by rewrite (subsetP nS1Q) ?mem_commg.
   have S1yxx : [~ y, x, x] \in 'Ohm_1(S) by rewrite groupR.
   have S1yxy : [~ y, x, y] \in 'Ohm_1(S).
@@ -130,132 +128,41 @@ case/SCN_P: scnA => nAR CRA_A.
 set C := 'C_G(A).
 have CiP_eq : C :&: R = A by rewrite -CRA_A setIC setIA (setIidPl sRG).
 have sylA: p.-Sylow(C) A.
-  rewrite -CiP_eq; apply: (pSylow_normalI (subcent_normal _ _)).
+  rewrite -CiP_eq; apply: (Sylow_setI_normal (subcent_normal _ _)).
   by apply: pHall_subl sylR; rewrite ?subsetIl // subsetI sRG normal_norm.
-rewrite dprodEsdprod; last by rewrite (subset_trans (pcore_sub _ _)) ?subsetIr.
+rewrite dprodEsdprod; last first.
+  by rewrite centsC (subset_trans (pcore_sub _ _)) ?subsetIr.
 by apply: Burnside_normal_complement; rewrite // subIset ?subsetIr.
 Qed.
-
-Section ExtremalOhm1.
-
-Import GRing.Theory.
 
 (* This is B & G, Lemma 4.5(b), or Gorenstein, 5.4.4 and 5.5.5 *)
 Lemma Ohm1_extremal_odd : forall gT (R : {group gT}) p x,
     p.-group R -> odd #|R| -> ~~ cyclic R -> x \in R -> #|R : <[x]>| = p ->
   ('Ohm_1(R))%G \in 'E_p^2(R).
 Proof.
-move=> gT R p x pR oddR ncycR Rx; set X := <[x]> => indexRX.
-have sXR : <[x]> \subset R by [rewrite cycle_subG]; have pX := pgroupS sXR pR.
-have [p_gt2 p_pr]: p > 2 /\ prime p.
-  case: (eqsVneq R 1) ncycR oddR => [->|]; first by rewrite cyclic1.
-  case/(pgroup_pdiv pR) => p_pr _ [k ->] _; rewrite odd_exp /= ltn_neqAle.
-  by rewrite prime_gt1 //; case: eqP => // <-.
-have maxX : maximal X R by rewrite p_index_maximal // indexRX.
-have nXR : R \subset 'N(<[x]>) by rewrite normal_norm ?(p_maximal_normal pR).
-case: (eqVneq X 1) => [X1 | ntX].
-  by move: ncycR; rewrite prime_cyclic // -indexg1 -X1 indexRX.
-have [_ _ [n oX]] := pgroup_pdiv pX ntX; rewrite -orderE in oX.
-have: X != R by apply: contra ncycR; move/eqP <-; exact: cycle_cyclic.
-rewrite eqEsubset sXR //=; case/subsetPn=> y Ry X'y.
-have nXy := subsetP nXR y Ry; have Xyp: y ^+ p \in X.
-  rewrite coset_idr ?groupX ?morphX // -indexRX; apply/eqP.
-  by rewrite -order_dvdn -card_quotient ?order_dvdG ?mem_morphim.
-have: x ^ y \in X by rewrite memJ_norm ?cycle_id.
-case/cycleP=> k; case: (posnP k) => [-> | k_gt0] def_xy.
-  by rewrite cycle_eq1 -(conjgK y x) def_xy conj1g eqxx in ntX.
-have kp_modX: k ^ p == 1 %[mod p ^ n.+1].
-  rewrite -oX -eq_expg_mod_order expg1; apply/eqP.
-  transitivity (x ^ (y ^+ p)); last first.
-    by rewrite /conjg -(centsP (cycle_abelian x) _ Xyp) ?cycle_id ?mulKg.
-  elim: (p) => [|j IHj]; rewrite ?conjg1 // expnSr expgn_mul {}IHj.
-  by rewrite expgS conjgM def_xy conjXg.
-have{kp_modX} k_modZ: k == 1 %[mod p ^ n].
-  have ki_gt0 : k ^ _ > 0 by move=> i; rewrite expn_gt0 k_gt0.
-  have chFp := char_Fp p_pr; rewrite !eqn_mod_dvd // !subn1 in kp_modX *.
-  have k1: (k%:R == 1 :> 'F_p)%R.
-    rewrite -(Frobenius_aut_nat chFp) Frobenius_autE -natr_exp.
-    rewrite -val_eqE /= val_Fp_nat ?Fp_cast // eqn_mod_dvd // subn1.
-    by apply: dvdn_trans kp_modX; rewrite expnS dvdn_mulr.
-  pose u := \sum_(i < p) \sum_(j < i) k ^ j.
-  have u0: (u%:R == 0 :> 'F_p)%R.
-    apply/eqP; rewrite -(@bin_lt_charf_0 _ _ chFp 2) //.
-    have psum := (big_morph (fun m => m%:R : 'F_p)%R (@natr_add _) (mulr0n _)).
-    rewrite -triangular_sum big_mkord !psum; apply: eq_bigr => i _.
-    rewrite psum (eq_bigr (fun _ => 1%R)) ?sumr_const ?card_ord // => j _.
-    by rewrite natr_exp (eqP k1) exp1rn.
-  rewrite -!val_eqE /= !val_Fp_nat ?Fp_cast // !eqn_mod_dvd ?subn0 // in k1 u0.
-  have def_kp: (k ^ p).-1 = (k.-1 * (k.-1 * u + 1 * p))%N.
-    rewrite mul1n -{2}[p]card_ord -sum1_card predn_exp; congr (_ * _)%N.
-    rewrite big_distrr -big_split; apply: eq_bigr => i _ /=.
-    by rewrite -predn_exp addn1 prednK.
-  case/dvdnP: u0 def_kp kp_modX => q -> ->; rewrite mulnA -muln_addl mulnCA.
-  rewrite mulnA expnSr dvdn_pmul2r ?prime_gt0 ?gauss ?coprime_expl // -subn1.
-  by case/dvdnP: k1 => q' ->; rewrite mulnAC /coprime gcdn_addl_mul gcdn1.
-have: X :&: 'Z(R) != 1 by rewrite nil_meet_Z ?(pgroup_nil pR) /normal ?sXR.
-case/(pgroup_pdiv (pgroupS (subsetIl _ _) pX)) => _; case/Cauchy=> // z.
-case/setIP=> Xz; case/setIP=> Rz cRz oz _; set r := [~ x, y].
-have def_z: <[z]> = 'Ohm_1(X).
-  apply/eqP; rewrite eqEcard {1}(OhmE _ pX) cycle_subG.
-  rewrite mem_gen /=; last by rewrite inE -oz Xz expg_order /=.
-  rewrite (Ohm_p_cycle _ pX) subn1 -orderE orderXdiv ?pfactor_dvdn ?leq_pred //.
-  by rewrite -orderE oz oX pfactorK // expnS mulnK // expn_gt0 prime_gt0.
-have{k k_gt0 k_modZ def_xy} z_r: r \in <[z]>.
-  rewrite def_z (OhmE _ pX) mem_gen //= /r commgEl def_xy -(subnKC k_gt0).
-  rewrite expgS mulKg inE mem_cycle -expgn_mul -order_dvdn oX expnSr.
-  by rewrite dvdn_pmul2r ?prime_gt0 // -eqn_mod_dvd.
-have cRr: r \in 'C(R) by apply: subsetP z_r; rewrite cycle_subG.
-have nrR: R \subset 'N(<[r]>) by rewrite cents_norm // centsC cycle_subG.
-have defR: R :=: X <*> <[y]>.
-  apply/eqP; rewrite eq_sym eqEproper mulgen_subG !cycle_subG Rx Ry /=.
-  apply/negP; case/maxgroupP: maxX => _ maxX; move/maxX => /= defX.
-  by rewrite -cycle_subG /= -defX ?mulgen_subl ?mulgen_subr in X'y.
-have defR': R^`(1) = <[r]>.
-  rewrite defR der1_mulgen_cycles // (subsetP _ _ cRr) // centS //.
-  by rewrite mulgen_subG !cycle_subG Rx.
-have sR1R': R^`(1) \subset 'Ohm_1(R).
-  rewrite defR' (OhmE _ pR) genS // sub1set inE groupR //=.
-  by rewrite -order_dvdn -oz order_dvdG.
-case/exponent_odd_nil23: (pR) => // [|expR1p]; last move/(_ sR1R') => morphRp.
-  apply: leq_trans _ (leq_addr _ _).
-  by rewrite nil_class2 defR' cycle_subG inE cRr groupR.
-case/cycleP: Xyp => qp def_yp; have: p %| qp.
-  apply: contraR ncycR.
-  rewrite -prime_coprime // -(@coprime_pexpl n.+1) // -oX => co_x_qp.
-  apply/cyclicP; exists y; rewrite defR /mulgen (setUidPr _) ?genGid //.
-  by rewrite cycle_subG -[x](expgnK co_x_qp) -?def_yp ?groupX ?cycle_id.
-case/dvdnP => q def_qp; rewrite {qp}def_qp in def_yp.
-pose t := y * x ^- q; have Rt: t \in R by rewrite groupM ?groupV ?groupX.
-have{X'y} X't: t \notin X by rewrite groupMr ?groupV ?mem_cycle.
-have{def_yp} ot: #[t] = p.
-  apply/eqP; case: (eqVneq t 1) X't => [->|]; first by rewrite group1.
-  rewrite -cycle_eq1 eqn_dvd; case/(pgroup_pdiv (mem_p_elt pR Rt)) => _ -> _ _.
-  rewrite order_dvdn morphRp ?groupV ?groupX // expVgn -expgn_mul -def_yp.
-  by rewrite mulgV eqxx.
-have{defR} defR: X <*> <[t]> = R.
-  apply/eqP; rewrite eqEproper mulgen_subG !cycle_subG Rx Rt /=.
-  apply/negP; case/maxgroupP: maxX => _ maxX; move/maxX => /= defX.
-  by rewrite -cycle_subG /= -defX ?mulgen_subl ?mulgen_subr in X't.
-have nZt: <[t]> \subset 'N(<[z]>).
-  rewrite cycle_subG; apply: subsetP Rt.
-  by rewrite cents_norm // centsC cycle_subG.
-pose R1 := <[z]> <*> <[t]>; rewrite !inE /= Ohm_sub /= -2!andbA expR1p.
-have ->: 'Ohm_1(R) = R1.
-  rewrite -(setIidPl (Ohm_sub _ _)) /R1 norm_mulgenEr //= -{2}defR.
-  rewrite norm_mulgenEr ?cycle_subG ?(subsetP nXR) -?group_modr //=; last first.
-    by rewrite (OhmE _ pR) genS //= sub1set inE Rt -ot expg_order /=.
-  congr (_ * _); apply/eqP; rewrite eqEsubset andbC.
-  rewrite def_z subsetI Ohm_sub OhmS //=.
-  apply/subsetP=> u; case/setIP; move/(exponentP expR1p)=> up1 Xu.
-  by rewrite (OhmE _ pX) mem_gen //= inE Xu up1 /=.
-have oR1: #|R1| = (p ^ 2)%N.
-  rewrite /R1 mulgenC norm_mulgenEl ?TI_cardMg ?prime_TIg -?orderE ?oz ?ot //.
-  by apply: contra X't; rewrite cycle_subG; apply: subsetP; rewrite cycle_subG.
-have pR1: p.-group R1 by rewrite /pgroup oR1 pnat_exp pnat_id.
-by rewrite pR1 (p2group_abelian pR1) oR1 pfactorK.
-Qed.
-
-End ExtremalOhm1.
+move=> gT R p x pR oddR ncycR Rx ixR; rewrite -cycle_subG in Rx.
+have ntR: R :!=: 1 by apply: contra ncycR; move/eqP->; exact: cyclic1.
+have [p_pr _ [e oR]]:= pgroup_pdiv pR ntR.
+case p2: (p == 2); first by rewrite oR odd_exp (eqP p2) in oddR.
+have [cRR | not_cRR] := orP (orbN (abelian R)).
+  rewrite 2!inE Ohm_sub Ohm1_abelem // -p_rank_abelian //= eqn_leq.
+  rewrite -rank_pgroup // ltnNge -abelian_rank1_cyclic // ncycR andbT.
+  have maxX: maximal <[x]> R by rewrite (p_index_maximal Rx) ?ixR.
+  have nsXR: <[x]> <| R := p_maximal_normal pR maxX.
+  have [_ [y Ry notXy]] := properP (maxgroupp maxX).
+  have defR: <[x]> * <[y]> = R.
+    by apply: mulg_normal_maximal; rewrite ?cycle_subG.
+  rewrite -grank_abelian // -(genGid R) -defR genM_join joing_idl joing_idr.
+  by rewrite (leq_trans (grank_min _)) // cards2 ltnS leq_b1.
+have{x Rx ixR} [e_gt1 isoR]: 2 < e.+1 /\ R \isog 'Mod_(p ^ e.+1).
+  have:= maximal_cycle_extremal pR not_cRR (cycle_cyclic x) Rx ixR.
+  rewrite p2 orbF /extremal_class oR pfactorKpdiv // pdiv_pfactor //.
+  by do 4!case: andP => //.
+have [[x y] genR modR] := generators_modular_group p_pr e_gt1 isoR.
+have [_ _ _ _] := modular_group_structure p_pr e_gt1 genR isoR modR.
+rewrite xpair_eqE p2; case/(_ 1%N) => // _ oR1.
+by rewrite 2!inE Ohm_sub oR1 pfactorK ?abelem_Ohm1 ?(card_p2group_abelian p_pr).
+Qed.  
 
 Section OddNonCyclic.
 
@@ -263,7 +170,7 @@ Variables (gT : finGroupType) (p : nat) (R : {group gT}).
 Hypotheses (pR : p.-group R) (oddR : odd #|R|) (ncycR : ~~ cyclic R).
 
 (* This is B & G, Lemma 4.5(a), or Gorenstein 5.4.10. *)
-Lemma ex_odd_normal_abelem2 : exists2 S : {group gT}, S <| R & S \in 'E_p^2(R).
+Lemma ex_odd_normal_abelem2 : {S : {group gT} | S <| R & S \in 'E_p^2(R)}.
 Proof.
 have: exists G : {group gT}, (G <| R) && ~~ cyclic G.
   by exists R; rewrite normal_refl.
@@ -304,7 +211,7 @@ have SRR1: SRR = 1.
   have pSR := pgroupS sSR_R pR; have pSRR := pgroupS sSRR_SR pSR.
   have [_ _ [e oSR]] := pgroup_pdiv pSR ntSR; have [f oSRR] := p_natP pSRR.
   have e0: e = 0.
-    have:= proper_card prSR; rewrite oSR -(part_pnat_id pS) p_part dimS2.
+    have:= proper_card prSR; rewrite oSR (card_pgroup pS) dimS2.
     by rewrite ltn_exp2l ?prime_gt1 // !ltnS leqn0; move/eqP.
   apply/eqP; have:= proper_card prSRR; rewrite trivg_card1 oSR oSRR e0.
   by rewrite ltn_exp2l ?prime_gt1 // ltnS; case f.
@@ -317,8 +224,7 @@ have sZ2R_R := ucn_sub 2 R; have pZ2R := pgroupS sZ2R_R pR.
 have pZ: p.-group Z. 
   apply: pgroupS pR; exact: subset_trans (Ohm_sub _ _) (ucn_sub 2 R).
 have sSZ: S \subset Z.
-  apply/subsetP=> s Ss; rewrite /Z (OhmE 1 pZ2R) mem_gen // inE.
-  by rewrite (subsetP sS_Z2R) //= (exponentP expSp).
+  by rewrite /Z (OhmE 1 pZ2R) sub_gen // subsetI sS_Z2R sub_LdivT.
 have ncycX: ~~ cyclic S by rewrite (abelem_cyclic abelS) dimS2.
 split; first by apply: contra ncycX; exact: cyclicS.
 have nclZ2R : nil_class 'Z_2(R) <= 2 + _ := leq_trans (nil_class_ucn _ _) _.
@@ -329,15 +235,7 @@ End OddNonCyclic.
 
 (* Some "obvious" consequences of the above, which are used casually and      *)
 (* pervasively throughout B & G.                                              *)
-Lemma odd_pgroup_rank1_cyclic : forall gT p (G : {group gT}),
-  p.-group G -> odd #|G| -> cyclic G = ('r_p(G) <= 1).
-Proof.
-move=> gT p G pG oddG; apply/idP/idP=> [cycG | dimG1].
-  have cGG := cyclic_abelian cycG; rewrite p_rank_abelian //.
-  by rewrite -abelem_cyclic ?(cyclicS (Ohm_sub _ _)) ?Ohm1_abelem.
-apply: contraLR dimG1 => ncycG; rewrite -ltnNge; apply/p_rank_geP.
-by have [E _ EP2_E] := ex_odd_normal_abelem2 pG oddG ncycG; exists E.
-Qed.
+Definition odd_pgroup_rank1_cyclic := odd_pgroup_rank1_cyclic. (* in extremal *)
 
 Lemma odd_rank1_Zgroup : forall gT (G : {group gT}),
   odd #|G| -> Zgroup G = ('r(G) <= 1).
@@ -389,7 +287,7 @@ have{ncycR} [Z nsZR] := ex_odd_normal_abelem2 pR oddR ncycR.
 case/pnElemP=> sZR abelZ dimZ2; have [pZ cZZ _] := and3P abelZ.
 have{SCN_3_empty} defZ: 'Ohm_1('C_R(Z)) = Z.
   apply: (Ohm1_cent_max_normal_abelem _ pR).
-    by have:= oddSg sZR oddR; rewrite -(part_pnat_id pZ) p_part dimZ2 odd_exp.
+    by have:= oddSg sZR oddR; rewrite (card_pgroup pZ) dimZ2 odd_exp.
   apply/maxgroupP; split=> [|H]; first exact/andP.
   case/andP=> nsHR abelH sZH; have [pH cHH _] := and3P abelH.
   apply/eqP; rewrite eq_sym eqEproper sZH /=.
@@ -406,17 +304,17 @@ have geH2: logn p #|H| >= 2.
   rewrite -ltnS -dimA3 -(LaGrange sHA) logn_mul // -addn1 leq_add2l /= -/H.
   by rewrite logn_quotient_cent_abelem ?dimZ2.
 have{abelH} abelK : p.-abelem K.
-  by rewrite (cprod_abelem _ (cprodEgen _)) ?subsetIr ?abelH.
+  by rewrite (cprod_abelem _ (cprodEY _)) 1?centsC ?subsetIr ?abelH.
 suffices{sZR cZZ defZ}: 'r(Z) < 'r(K).
-  by rewrite ltnNge -defZ rank_Ohm1 rankS // mulgen_subG setSI // subsetI sZR.
+  by rewrite ltnNge -defZ rank_Ohm1 rankS // join_subG setSI // subsetI sZR.
 rewrite !(@rank_abelem _ p) // properG_ltn_log ?abelem_pgroup //= -/K properE.
-rewrite mulgen_subr mulgen_subG subxx andbT subEproper; apply: contraL geH2.
+rewrite joing_subr join_subG subxx andbT subEproper; apply: contraL geH2.
 case/predU1P=> [defH | ltHZ]; last by rewrite -ltnNge -dimZ2 properG_ltn_log.
 rewrite -defH [H](setIidPl _) ?dimA3 // in dimZ2.
 by rewrite centsC -defH subIset // -abelianE cAA.
 Qed.
 
-(* B & G, Proposition 4.8 (a). *)
+(* B & G, Proposition 4.8(a). *)
 Lemma pgroup_rank_le2_exponentp : forall gT (R : {group gT}) p,
   p.-group R -> rank R <= 2 -> exponent R %| p -> logn p #|R| <= 3.
 Proof.
@@ -436,9 +334,9 @@ rewrite -(LaGrange sAR) logn_mul ?cardG_gt0 //.
 by apply: (leq_trans (leq_add cardA cardRA)).
 Qed.
 
-(* B & G, Proposition 4.8 (b). *)
+(* B & G, Proposition 4.8(b). *)
 Lemma pgroup_rank_le2_Ohm1 : forall gT (R : {group gT}) p,
-  p.-groupR -> rank R <= 2 -> p > 3 -> exponent 'Ohm_1(R) %| p.
+  p.-group R -> rank R <= 2 -> p > 3 -> exponent 'Ohm_1(R) %| p.
 Proof.
 move=> gT R p pR rankR pgt3.
 case Req1 : (R == 1%G); first by rewrite (eqP Req1) Ohm1 exponent1 dvd1n.
@@ -451,24 +349,24 @@ case/mingroupP => /= expUR_ndivp minU sUR {expOR_ndivp}.
 apply: (negP expUR_ndivp); have pU := pgroupS sUR pR.
 apply: (proj1 (exponent_odd_nil23 pU (odd_pgroup_odd oddp pU) _)). 
 rewrite pgt3 addn1.
-case gsetU1: (group_set [set x \in U | x ^+ p == 1]).
-  case/negP: expUR_ndivp; apply/exponentP => x.
-  by rewrite (OhmE 1 pU) gen_set_id // inE expn1; case/andP => _; case/eqP.
-move: gsetU1; rewrite /group_set inE group1 exp1gn eqxx; case/subsetPn=> xy.
-case/imset2P=> x y; case/setIdP=> Ux xp1; case/setIdP=> Uy yp1 ->{xy}.
-rewrite inE groupM //= => nt_xyp; pose XY := <[x]> <*> <[y]>.
+have: ~~ group_set 'Ldiv_p(U).
+  apply: contra expUR_ndivp => groupU1.
+  by rewrite -sub_LdivT (OhmE 1 pU) gen_set_id ?subsetIr.
+rewrite /group_set !inE group1 exp1gn eqxx; case/subsetPn=> xy.
+case/imset2P=> x y; case/LdivP=> Ux xp1; case/LdivP=> Uy yp1 ->{xy}.
+rewrite !inE groupM //= => nt_xyp; pose XY := <[x]> <*> <[y]>.
 have {nt_xyp} XYeqU : XY = U.
-  have sXY_U : XY \subset U by rewrite mulgen_subG !cycle_subG Ux Uy.
+  have sXY_U : XY \subset U by rewrite join_subG !cycle_subG Ux Uy.
   have pXY := pgroupS sXY_U pU.
-  apply: minU => //=; apply/negP; move/exponentP => expXY; apply: (negP nt_xyp).
-  rewrite expXY // groupM //= (OhmE 1 pXY) mem_gen // inE expn1 /=.
-    by rewrite (subsetP (mulgen_subl _ _)) //= cycle_id.
-  by rewrite (subsetP (mulgen_subr _ _)) //= cycle_id.
+  apply: minU => //=; apply: contra nt_xyp; move/exponentP => -> //.
+  rewrite (OhmE 1 pXY) groupM ?mem_gen // !inE -cycle_subG.
+    by rewrite joing_subl xp1 /=.
+  by rewrite joing_subr yp1 /=.
 have sXU : <[x]> \subset U by rewrite cycle_subG.
 have XneqU : ~ (<[x]> = U).
   move=> Xeq; apply: (negP expUR_ndivp); rewrite -Xeq.
   apply: (dvdn_trans (exponentS (Ohm_sub _ _))).
-  by apply: (dvdn_trans (exponent_dvdn _)); rewrite order_dvdn.
+  by apply: (dvdn_trans (exponent_dvdn _)); rewrite order_dvdn xp1.
 case: (maximal_exists sXU); first by move/XneqU.
 case=> S maxS sXS; have nsSU := p_maximal_normal pU maxS.
 move: (maxgroupp maxS) => /= pSU; have neSU := proper_neq pSU.
@@ -476,23 +374,21 @@ have sSU := normal_sub nsSU; have pgrpS := pgroupS sSU pU.
 have nsOS_U := char_normal_trans (Ohm_char 1 S) nsSU.
 have sOS_U := normal_sub nsOS_U; have nOS_U := normal_norm nsOS_U.
 have OSx : x \in 'Ohm_1(S).
-  by rewrite (OhmE 1 pgrpS) mem_gen // inE (subsetP sXS) ?cycle_id //=.
+  by rewrite (OhmE 1 pgrpS) mem_gen // !inE (subsetP sXS) ?cycle_id ?xp1 /=.
 pose OS_Y := 'Ohm_1(S) <*> <[y]>; have Ueq : OS_Y = U.
-  apply/eqP; rewrite eqEsubset mulgen_subG (normal_sub nsOS_U) cycle_subG Uy /=.
-  rewrite -XYeqU mulgen_subG mulgen_subr andbT cycle_subG. 
-  by rewrite (subsetP (mulgen_subl _ _)).
-have expOS : exponent 'Ohm_1(S) %| p.
-  apply/negPn; apply/negP => expOS_ndivp; apply: (negP neSU); apply/eqP.
-  by apply: minU => //.
+  apply/eqP; rewrite eqEsubset join_subG (normal_sub nsOS_U) cycle_subG Uy /=.
+  rewrite -XYeqU join_subG joing_subr andbT cycle_subG. 
+  by rewrite (subsetP (joing_subl _ _)).
+have expOS : exponent 'Ohm_1(S) %| p by apply: contraR neSU; move/minU->.
 have pOS := pgroupS (Ohm_sub 1 _) pgrpS.
 have sOS_R := subset_trans sOS_U sUR.
 have cardOS : logn p #|'Ohm_1(S)| <= 3.
   by apply: pgroup_rank_le2_exponentp => //; apply: (leq_trans (rankS sOS_R)).
 have cardUOS : logn p #|U / 'Ohm_1(S)| <= 1.
-  rewrite -Ueq /OS_Y mulgenE setUC -mulgenE quotient_mulgen; last first.
+  rewrite -Ueq /OS_Y joingE setUC -joingE quotientYidr; last first.
     by rewrite (subset_trans _ (normal_norm nsOS_U)) // cycle_subG.
   rewrite -{6}(pfactorK 1 primep) expn1 dvdn_leq_log ?prime_gt0 //.
-  by rewrite (dvdn_trans (dvdn_quotient _ _)) // -orderE order_dvdn.
+  by rewrite (dvdn_trans (dvdn_quotient _ _)) // -orderE order_dvdn yp1.
 rewrite (leq_trans (nil_class_pgroup pU)) // leq_maxl /= -[3]succnK. 
 rewrite -!subn1 leq_sub2r // -(LaGrange sOS_U) logn_mul // -card_quotient //.
 by apply: (leq_trans (leq_add cardOS cardUOS)).
@@ -516,12 +412,12 @@ have [sUR nUR] := (andP nsUR); have pU := pgroupS sUR pR.
 have neU1 : U != 1%G.
   apply: contraL cardO1RUgt; move/eqP => ->.
   have : 'Ohm_1(R) \isog 'Ohm_1(R / 1) by rewrite bgFunc_isog ?quotient1_isog.
-  move/isog_card <-; by rewrite -leqNgt.
+  move/card_isog <-; by rewrite -leqNgt.
 case (eqVneq (logn p #|U|) 1%N) => [cardU|] {T nsTR cardO1RTgt}; last first.
   case: (pgroup_pdiv pU neU1) => _ _ [m cardU].
   rewrite neq_ltn ltnS leqn0 {1}cardU pfactorK //= => cardUlt.
   case/idPn: cardO1RUgt; rewrite -leqNgt.
-  case/trivgPn: (nil_meet_Z (pgroup_nil pR) nsUR neU1) => x.
+  case/trivgPn: (meet_center_nil (pgroup_nil pR) nsUR neU1) => x.
   case/setIP => /= Ux ZRx nx1; pose X := <[x]>%G.
   have sXU : X \subset U by rewrite cycle_subG.
   have pX := pgroupS sXU pU.
@@ -541,7 +437,7 @@ case (eqVneq (logn p #|U|) 1%N) => [cardU|] {T nsTR cardO1RTgt}; last first.
   have RUZUisog := third_isog sZU nsZR nsUR.
   have : 'Ohm_1(R / Z / (U / Z)) \isog 'Ohm_1(R / U) by apply: bgFunc_isog.
   have cardRZlt := ltn_quotient nZ1 sZR.
-  move/isog_card <-; apply: IHn; rewrite ?quotient_pgroup ?quotient_normal //. 
+  move/card_isog <-; apply: IHn; rewrite ?quotient_pgroup ?quotient_normal //. 
   by rewrite (leq_trans cardRZlt).
 case eO1RU: (R / U == 'Ohm_1(R / U)); last first.
   have nsO1RU_RU := (char_normal (Ohm_char 1 (R / U))).
@@ -608,54 +504,15 @@ have sR'O1R : R^`(1) \subset 'Ohm_1(R).
 case: (exponent_odd_nil23 pR oddR _) => [|_ morph_exp]; first by rewrite pgt3.
 pose expp := Morphism (morph_exp sR'O1R).
 have : logn p #|R / 'ker expp| <= 1.
-  rewrite (isog_card (first_isog expp)) -cardU lognSg //= morphimEsub //.
+  rewrite (card_isog (first_isog expp)) -cardU lognSg //= morphimEsub //.
   apply/subsetP=> x; case/imsetP=> g Rg ->{x} /=; apply: coset_idr.
     by rewrite groupX ?(subsetP nUR).
   by rewrite morphX ?(subsetP nUR) // (exponentP expRU) // mem_quotient.
 apply/negP; rewrite -ltnNge card_quotient ?ker_norm // -divgS ?subsetIl //.
 rewrite logn_div ?cardSg ?subsetIl // cardR -ltn_add_sub addn1 !ltnS. 
 rewrite -cardO1R lognSg //; apply/subsetP=> g /=; case/setIP=> Rg.
-by rewrite !inE /= (OhmE _ pR) => gp1; rewrite mem_gen // inE Rg.
+by rewrite !inE /= (OhmE _ pR) => gp1; rewrite mem_gen // !inE Rg.
 Qed.
-
-(* move this to cyclic.v? *)
-Section Metacyclic.
-
-Variable gT : finGroupType.
-
-Definition metacyclic G := existsb H, 
-  [&& cyclic (H : {group gT}), H <| G & cyclic (G / H)].
-
-Lemma metacyclicP : forall G, 
-  reflect (exists H, [/\ cyclic (H : {group gT}), H <| G & cyclic (G / H)]) 
-    (metacyclic G).
-Proof. 
-move=> G; apply: (iffP existsP) => [] [H]; [case/and3P|]; exists H => //.
-by apply/and3P.
-Qed.
-
-Lemma metacyclic1 : metacyclic 1.
-Proof. 
-by apply/existsP; exists 1%G; rewrite normal1 trivg_quotient !cyclic1.
-Qed.
-
-Lemma cyclic_metacyclic : forall G, cyclic G -> metacyclic G.
-Proof.
-move=> G; case/cyclicP => x ->; apply/existsP; exists (<[x]>)%G.
-by rewrite normal_refl cycle_cyclic trivg_quotient cyclic1.
-Qed.
-
-Lemma metacyclicN : forall (G H : {group gT}), 
-  metacyclic G -> H <| G -> metacyclic H.
-Proof. 
-move=> G H; case/metacyclicP=> K [cycK]; case/andP=> sKG nKG cycGK.  
-case/andP=> sHG nHG; apply/existsP; exists (H :&: K)%G.
-have nKH := (subset_trans sHG nKG).
-rewrite (cyclicS (subsetIr _ _)) // /normal subsetIl normsI ?normG //=.
-by rewrite setIC (isog_cyclic (second_isog nKH)) /= (cyclicS (quotientS K sHG)).
-Qed.
-
-End Metacyclic.
 
 (* This is B & G, Theorem 4.10 *)
 Lemma Ohm1_metacyclic_pgroup_odd_prime : forall gT (R : {group gT}) p,
@@ -680,11 +537,11 @@ have cardORS: #|'Ohm_1(R/S)| = p by apply: Ohm1_cyclic_pgroup_prime.
 rewrite !inE Ohm_sub /=.
 have ->: 'Ohm_1(R) = 'Ohm_1(T).
   apply/eqP; rewrite eqEsubset (OhmS _ sTR) andbT (OhmE 1 pR) (OhmE 1 pT).
-  rewrite gen_subG sub_gen //; apply/subsetP=> g; rewrite !inE.
-  case/andP=> Rg egp1; have NSg := (subsetP (normal_norm nsSR) _ Rg).
-  rewrite egp1 andbT -sub1set -(quotientSGK _ sST) ?quotient_set1 ?sub1set //.
-  rewrite -ORSeq (OhmE 1 pRS) mem_gen // inE mem_quotient //= -morphX //=.
-  by rewrite (eqP egp1) coset_id.
+  rewrite gen_subG sub_gen //; apply/subsetP=> g; case/LdivP=> Rg gp.
+  rewrite !inE gp eqxx andbT; have nSg := subsetP (normal_norm nsSR) _ Rg.
+  rewrite -sub1set -(quotientSGK _ sST) ?quotient_set1 ?sub1set //.
+  rewrite -ORSeq (OhmE 1 pRS) mem_gen // !inE mem_quotient //= -morphX //=.
+  by rewrite gp coset_id.
 case/cyclicP: cycS=> x eSX.
 have Tx : x \in T by rewrite (subsetP sST) // eSX cycle_id.
 have indexTX : #|T : <[x]>| = p.
@@ -714,8 +571,8 @@ case cRR : (abelian R).
   case: b => [<-|a [|b []]] //=; rewrite ?eqxx // dprodg1 => Req _ _.
     by rewrite -Req cyclic_metacyclic ?cycle_cyclic.
   apply/existsP; exists <[a]>%G; rewrite cycle_cyclic /=.
-  case/dprodP: Req => _ <-; rewrite centsC => cAB _.
-  rewrite /normal mulG_subl mul_subG ?normG ?cents_norm //= quotient_mulgr. 
+  case/dprodP: Req => _ <- cAB _.
+  rewrite /normal mulG_subl mul_subG ?normG ?cents_norm //= quotientMidl. 
   by rewrite quotient_cycle ?cycle_cyclic // -cycle_subG cents_norm. 
 pose R' := R^`(1); pose MR' := 'Mho^1(R').
 have nsR'R := der_normal 1 R; have sR'R := normal_sub nsR'R.
@@ -725,15 +582,15 @@ have [z [ordz R'ZRz MR'ZRz]] : exists z,
     have pR'ZR : p.-group (R' :&: 'Z(R)).
       by rewrite (pgroupS _ pR) // (subset_trans (subsetIl _ _)). 
     have neR'ZR_1: R' :&: 'Z(R) != 1.
-      rewrite nil_meet_Z ?(pgroup_nil pR) //; apply/negP; move/eqP.
+      rewrite meet_center_nil ?(pgroup_nil pR) //; apply/negP; move/eqP.
       by move/commG1P; rewrite -abelianE cRR.
     case: (pgroup_pdiv pR'ZR neR'ZR_1) => _ pdvd _.
     by case: (Cauchy primep pdvd) => z; exists z; split.
   have pMR'ZR : p.-group (MR' :&: 'Z(R)). 
     by rewrite (pgroupS _ pR) // (subset_trans (subsetIr _ _)) // subsetIl.
   have neMR'ZR_1 : MR' :&: 'Z(R) != 1.
-    rewrite nil_meet_Z ?(pgroup_nil pR) ?(char_normal_trans (Mho_char 1 _)) //.
-    by rewrite eMR'1.
+    rewrite (meet_center_nil (pgroup_nil pR)) ?eMR'1 //.
+    exact: char_normal_trans (Mho_char 1 _) nsR'R.
   case: (pgroup_pdiv pMR'ZR neMR'ZR_1) => _ pdvd _.
   case: (Cauchy primep pdvd) => z MR'z ordz; exists z; split => //.
   by apply/setIP; split; case/setIP: MR'z => //; move/(subsetP (Mho_sub 1 _)).
@@ -751,36 +608,34 @@ case: (cosetP aT) => a NTa ->{aT}; case/(inv_quotientN nsTR)=> /= AT.
 pose A := <[a]>; rewrite -quotient_cycle //= -/A -/T => ATTeq sT_AT nsAT_R.
 have sAT_R := normal_sub nsAT_R; have nsT_AT := normalS sT_AT sAT_R nsTR.
 have ATeq: AT :=: A <*> T.
-  apply: (quotient_inj nsT_AT); rewrite ?quotient_mulgen ?cycle_subG -?ATTeq //.
-  by rewrite /normal mulgen_subr /= mulgen_subG normG cycle_subG NTa.
+  apply: (quotient_inj nsT_AT); rewrite ?quotientYidr ?cycle_subG -?ATTeq //.
+  by rewrite /normal joing_subr /= join_subG normG cycle_subG NTa.
 rewrite ATTeq (isog_cyclic (third_isog _ _ _)) //=.
 case/cyclicP=> bAT; case: (cosetP bAT)=> b NATb ->{bAT}; pose B := <[b]>.
-rewrite -quotient_cycle // -[B / AT]quotient_mulgen ?cycle_subG //= -/B=> RATeq.
+rewrite -quotient_cycle // -[B / AT]quotientYidr ?cycle_subG //= -/B=> RATeq.
 have {RATeq} Req: R :=: B <*> AT.
   rewrite (quotient_inj nsAT_R _ RATeq) //.
-  by rewrite /normal mulgen_subr /= mulgen_subG normG cycle_subG NATb.
-have ATa : a \in AT by rewrite ATeq (subsetP (mulgen_subl _ _)) ?cycle_id.
-have Ra : a \in R by rewrite Req (subsetP (mulgen_subr _ _)).
-have Rb : b \in R by rewrite Req (subsetP (mulgen_subl _ _)) ?cycle_id.
+  by rewrite /normal joing_subr /= join_subG normG cycle_subG NATb.
+have ATa : a \in AT by rewrite ATeq (subsetP (joing_subl _ _)) ?cycle_id.
+have Ra : a \in R by rewrite Req (subsetP (joing_subr _ _)).
+have Rb : b \in R by rewrite Req (subsetP (joing_subl _ _)) ?cycle_id.
 have neATT_1 : (AT / T) != 1.
   apply: (contra _ (negbT cRR))=> ATT1.
-  rewrite center_cyclic_abelian ?center_abelian //.
-  rewrite -(isog_cyclic (third_isog sT_ZR nsTR (center_normal R))).
-  rewrite quotient_cyclic //= Req norm_mulgenEl ?cycle_subG // quotientMl.
-    by rewrite (eqP ATT1) mulg1 quotient_cyclic // cycle_cyclic.
-  by rewrite cycle_subG // (subsetP nTR).
+  rewrite (cyclic_factor_abelian sT_ZR) // Req norm_joinEl ?cycle_subG //.
+  rewrite quotientMl; last by rewrite cycle_subG // (subsetP nTR).
+  by rewrite (eqP ATT1) mulg1 quotient_cyclic // cycle_cyclic.
 have nTa : ~~ (a \in T).
   apply: (contra _ neATT_1)=> Ta.
   by rewrite -ATTeq -subG1 quotient_sub1 ?cycle_subG.
 pose Ap := <[a^+p]>; pose ApT := Ap <*> T.
-have sApT_AT : ApT \subset AT by rewrite mulgen_subG cycle_subG groupX ?Ra. 
+have sApT_AT : ApT \subset AT by rewrite join_subG cycle_subG groupX ?Ra. 
 have sApT_R : ApT \subset R by apply: (subset_trans sApT_AT sAT_R).
-have sT_ApT := mulgen_subr Ap T.
+have sT_ApT := joing_subr Ap T.
 have nsT_ApT : T <| ApT by rewrite (normalS sT_ApT sApT_R).
 have ATTeq' : AT / T = <[coset T a]>.
-  by rewrite ATeq quotient_mulgen ?cycle_subG // quotient_cycle.
+  by rewrite ATeq quotientYidr ?cycle_subG // quotient_cycle.
 have ApTTeq : ApT / T = <[coset T (a^+p)]>.
-  by rewrite quotient_mulgen ?cycle_subG ?groupX // quotient_cycle ?groupX.
+  by rewrite quotientYidr ?cycle_subG ?groupX // quotient_cycle ?groupX.
 have charApTT_ATT : ApT / T \char AT / T.
   by rewrite ATTeq' cycle_subgroup_char // -ATTeq' quotientS.
 have nsApT_R : [group of ApT] <| R.
@@ -789,7 +644,7 @@ have nsApT_R : [group of ApT] <| R.
 have nsApTT_RT : ApT / T <| R / T by apply: quotient_normal.
 have nsApT_AT := (normalS sApT_AT sAT_R nsApT_R).
 have {neATT_1} card_ApTAT : #|AT / ApT| = p.
-  rewrite -(isog_card (third_isog sT_ApT nsT_AT nsApT_AT)).
+  rewrite -(card_isog (third_isog sT_ApT nsT_AT nsApT_AT)).
   rewrite card_quotient /= ?(normal_norm (char_normal charApTT_ATT)) //. 
   rewrite ATTeq' ApTTeq -divgS /= ?cycle_subG morphX ?groupX ?cycle_id //=. 
   rewrite -!orderE orderXgcd divn_divr ?dvdn_gcdl // mulKn //.
@@ -802,26 +657,24 @@ have sATApT_ZRApT : (AT / ApT) \subset 'Z(R / ApT).
   have pW: p.-group W.
     by rewrite (pgroupS (subsetIl _ _)) // quotient_pgroup ?(pgroupS sAT_R).
   have neW1 : W != 1.
-    rewrite nil_meet_Z ?(pgroup_nil (quotient_pgroup _ pR)) ?quotient_normal //.
+    have nilRb: nilpotent (R / ApT) by rewrite quotient_nil ?(pgroup_nil pR).
+    rewrite (meet_center_nil nilRb) ?quotient_normal //.
     by rewrite trivg_card1 card_ApTAT; apply: (contraL _ pgt3); move/eqP => ->.
   by rewrite card_ApTAT; case: (pgroup_pdiv pW neW1) => _ pdvdW _.
 have cRApT_RApT: abelian (R / ApT).
   have nsATApT_RApT := quotient_normal [group of ApT] nsAT_R.
-  rewrite [_ / _]center_cyclic_abelian ?center_abelian //=.
-  have temp_isog := third_isog sATApT_ZRApT nsATApT_RApT (center_normal _).
-  rewrite -(isog_cyclic temp_isog) quotient_cyclic //=.
+  rewrite (cyclic_factor_abelian sATApT_ZRApT) //.
   rewrite (isog_cyclic (third_isog sApT_AT nsApT_R nsAT_R)) /=.
-  by rewrite Req quotient_mulgen ?cycle_subG // quotient_cycle // cycle_cyclic.
+  by rewrite Req quotientYidr ?cycle_subG // quotient_cycle // cycle_cyclic.
 move: (der1_min (normal_norm nsApT_R) cRApT_RApT) => sR'_ApT {cRApT_RApT}.
 have : [~ a, b] \in R' by rewrite [R']derg1 mem_gen // mem_imset2. 
-move/(subsetP sR'_ApT); rewrite /= [ApT]norm_mulgenEl ?cycle_subG ?groupX //=.
+move/(subsetP sR'_ApT); rewrite /= [ApT]norm_joinEl ?cycle_subG ?groupX //=.
 case/mulsgP => g h; case/cycleP=> i ->{g}; case/cycleP=> j ->{h}. 
 rewrite -expgn_mul => ab_eq.
 clear sApT_AT sApT_R sT_ApT nsT_ApT ATTeq' ApTTeq charApTT_ATT nsApT_R.
 clear  nsApTT_RT nsApT_AT card_ApTAT sATApT_ZRApT sR'_ApT Ap ApT.
 have {ordz} MhoAT : 'Mho^1(AT) = 'Mho^1(A).
-  have: A \* T = AT. 
-    by rewrite cprodE ?ATeq ?norm_mulgenEl // ?(subset_trans _ cTR) ?cycle_subG.
+  have: A \* T = AT by rewrite cprodEY // centsC cycle_subG (subsetP cTR) //.
   have peltz : p.-elt z by rewrite (mem_p_elt pR) // -cycle_subG.
   move/(Mho_cprod 1) <-. 
   by rewrite (Mho_p_cycle 1 peltz) -ordz expg_order cycle1 cprodg1.
@@ -831,10 +684,10 @@ case eMR'1 : (MR' == 1); last first.
   have sTA : T \subset <[a]>.
     rewrite (subset_trans _ (Mho_sub 1 _)) ?(subset_trans sT_MR') // -MhoAT.
     rewrite (MhoS 1) //= der1_min ?(normal_norm nsAT_R) // cyclic_abelian //. 
-    by rewrite Req quotient_mulgen ?cycle_subG //= quotient_cycle ?cycle_cyclic.
-  have ATeq': AT :=: <[a]> by rewrite ATeq mulgenE (setUidPl sTA) genGid.
+    by rewrite Req quotientYidr ?cycle_subG //= quotient_cycle ?cycle_cyclic.
+  have ATeq': AT :=: <[a]> by rewrite ATeq joingE (setUidPl sTA) genGid.
   apply/metacyclicP; exists AT.
-  rewrite /= nsAT_R Req quotient_mulgen ?cycle_subG //.
+  rewrite /= nsAT_R Req quotientYidr ?cycle_subG //.
   by rewrite quotient_cycle // ATeq' !cycle_cyclic.
 have abelR' : p.-abelem R'.
   have pR' := (pgroupS sR'R pR); have pOR' := (pgroupS (Ohm_sub 1 _) pR').
@@ -863,10 +716,10 @@ have {abelR'} R1_eq : R^`(1) = <[ [~ a, b] ]>.
   have [Nab_a Nab_b Nab_z] : [/\ a \in Nab, b \in Nab & z \in Nab].
     by rewrite !(subsetP nRab) // -cycle_subG.
   apply/eqP; rewrite eq_sym eqEsubset cycle_subG mem_gen ?mem_imset2 //=.
-  rewrite der1_min // Req norm_mulgenEl // ?cycle_subG //. 
+  rewrite der1_min // Req norm_joinEl // ?cycle_subG //. 
   rewrite quotientMl ?cycle_subG // abelianM /=.
   rewrite {1}quotient_cycle // cycle_abelian /=.
-  rewrite ATeq norm_mulgenEl ?cycle_subG // quotientMl ?cycle_subG //.
+  rewrite ATeq norm_joinEl ?cycle_subG // quotientMl ?cycle_subG //.
   rewrite abelianM /= 2?{1}quotient_cycle // ?cycle_abelian /= centM subsetI.
   rewrite quotient_cents ?(subset_trans _ cTR) ?cycle_subG //=. 
   rewrite -andbC quotient_cents ?(subset_trans _ cTR) ?cycle_subG //=.
@@ -920,9 +773,9 @@ have eOS1OR : OS1 = 'Ohm_1(R)%G.
   by rewrite (eqP cardOS1) ltnNge cardOR.
 have : maximal S S1 by rewrite p_index_maximal // Seq cardS1X.
 case/maxgroupP => _ maximalSS1; apply/eqP; rewrite -eOS1OR -Seq eq_sym.
-rewrite eqEproper mulgen_subG Ohm_sub sS_S1 /=; apply/negP=> pO1S_S1.
-have OS1Seq : OS1 <*> S :=: S by rewrite maximalSS1 // mulgen_subr.
-have : cyclic OS1 by apply: (cyclicS _ cycS); rewrite -OS1Seq mulgen_subl.
+rewrite eqEproper join_subG Ohm_sub sS_S1 /=; apply/negP=> pO1S_S1.
+have OS1Seq : OS1 <*> S :=: S by rewrite maximalSS1 // joing_subr.
+have : cyclic OS1 by apply: (cyclicS _ cycS); rewrite -OS1Seq joing_subl.
 by rewrite (abelem_cyclic abelOS1) (eqP cardOS1).
 Qed.
 
@@ -964,10 +817,10 @@ suffices cRA_RA: abelian RA; first split => //.
     rewrite -(eqP cardOR) -logn_mul ?cardG_gt0 // -TI_cardMg //=; last first.
       apply/trivgP; rewrite -eCRAA_1 setISS ?Ohm_sub //.
       by rewrite (subset_trans (Ohm_sub _ _)) // subsetIr.
-    rewrite -norm_mulgenEl; last first.
+    rewrite -norm_joinEl; last first.
       rewrite (subset_trans sORA_OR) // cents_norm // centsC.
       by rewrite (subset_trans sOCRA_OR) //; apply: (abelem_abelian abelOR).
-    by rewrite lognSg // mulgen_subG sORA_OR //=.
+    by rewrite lognSg // join_subG sORA_OR //=.
   have cardORA_ge: logn p #|ORA| >= 1.
     have <-: logn p #|[1 gT]| = 0 by rewrite cards1 logn1.
     rewrite properG_ltn_log // ?(pgroupS sORA_R pR) //.
@@ -995,10 +848,10 @@ suffices cRA_RA: abelian RA; first split => //.
     rewrite (odd_pgroup_rank1_cyclic (pgroupS sCRA_R pR) (oddSg sCRA_R oddR)).
     by rewrite -p_rank_Ohm1 p_rank_abelian // Ohm_id cardOCRA_le.
   have eRACRA : RA * CRA = (RA <*> CRA). 
-    by rewrite /= norm_mulgenEr // subIset // (normal_norm nsRA_R).
+    by rewrite /= norm_joinEr // subIset // (normal_norm nsRA_R).
   rewrite /R' {1}eR_RACRA eRACRA der1_min //=.
     by rewrite -eRACRA -eR_RACRA (normal_norm nsRA_R).
-  rewrite /= mulgenC quotient_mulgen ?subIset // ?(normal_norm nsRA_R) //.
+  rewrite /= joingC quotientYidr ?subIset // ?(normal_norm nsRA_R) //.
   by rewrite quotient_abelian // cyclic_abelian.
 move: {2}_.+1 (ltnSn #|R|) => n.
 elim: n => // n IHn in R RA CRA R' pR oddR mcycR nRA *.
@@ -1030,10 +883,10 @@ have nsSR : S <| R by rewrite /normal sSR.
 have cSR : R \subset 'C(S).
   pose prodRA := R <*> A; pose prodRA' := prodRA^`(1).
   have sRA_prodRA' : RA \subset prodRA'.
-    by rewrite commgSS ?mulgen_subl ?mulgen_subr.
+    by rewrite commgSS ?joing_subl ?joing_subr.
   rewrite -eR_RA (subset_trans sRA_prodRA') //.
-  have nS_prodRA : prodRA \subset 'N(S) by rewrite mulgen_subG nSR.
-  rewrite der1_min //= ?norms_cent ?mulgen_subG ?nSR //.
+  have nS_prodRA : prodRA \subset 'N(S) by rewrite join_subG nSR.
+  rewrite der1_min //= ?norms_cent ?join_subG ?nSR //.
   rewrite -ker_conj_aut (abelianS (quotientS _ nS_prodRA)) //.
   rewrite (isog_abelian (first_isog _)) (abelianS (Aut_conj_aut _ _)) //.
   by rewrite Aut_cyclic_abelian.
@@ -1060,14 +913,12 @@ have nXS : S \subset 'N(X) by rewrite cents_norm // centsC (subset_trans sXR).
 rewrite -quotient_normG // quotientSGK //= -/X => nXA {nXS}.
 case: (Ohm1_metacyclic_pgroup_odd_prime mcycR pR oddR ncycR)=> {mcycR}.
 rewrite !inE Ohm_sub /=; case/andP=> abelOR; case/eqP=> cardOR.
-have cOR_OR := abelem_abelian abelOR.
+have [_ cOR_OR eOR]:= and3P abelOR.
 have OSeq: 'Ohm_1(S) = S :&: OR.
   apply/eqP; rewrite eqEsubset subsetI (Ohm_sub 1 _) OhmS //=. 
-  rewrite (OhmE 1 (pgroupS sSR pR)) sub_gen //; apply/subsetP=> g; rewrite !inE.
-  rewrite [OR](OhmEabelian pR) ?(abelem_abelian abelOR) // inE.
-  by case/and3P => ->.
+  by rewrite (OhmE 1 (pgroupS sSR pR)) sub_gen // setIS // sub_LdivT.
 have neS1 : S != 1%G.
-  apply: (contra _ (negbT ncRR))=> eS1; apply/commG1P; apply/trivgP.
+  apply: contraFT ncRR; rewrite negbK => eS1; apply/commG1P; apply/trivgP.
   by rewrite (subset_trans sR'S) // (eqP eS1).
 have {disjORS_SX} cardOXle : #|'Ohm_1(X)| <= p.
   rewrite -(Ohm1_cyclic_pgroup_prime cycS (pgroupS sSR pR) neS1).
@@ -1083,17 +934,16 @@ have {cardOXle} eXS : X = S.
   have cOX_OX := abelianS (OhmS 1 sXR) cOR_OR.
   apply: maxS => //=; rewrite sXR nXA /= andbT (odd_pgroup_rank1_cyclic pX) //.
   rewrite -p_rank_Ohm1 p_rank_abelian // Ohm_id.
-  by rewrite -(leq_exp2l _ _ (prime_gt1 primep)) -p_part part_pnat_id.
+  by rewrite -(leq_exp2l _ _ (prime_gt1 primep)) -card_pgroup.
 rewrite {}eXS trivg_quotient mulg1 in ORSeq => {X sXR sSX nsSX nXA W}.
 have cardORS_le : logn p #|'Ohm_1(R/S)| <= 1.
-  rewrite -ORSeq -(isog_card (second_isog _)) ?(subset_trans _ nSR) ?Ohm_sub //.
+  rewrite -ORSeq -(card_isog (second_isog _)) ?(subset_trans _ nSR) ?Ohm_sub //.
   have pOR := pgroupS (Ohm_sub 1 _) pR.
   rewrite -ltnS -cardOR (ltn_log_quotient pOR) ?subsetIr //= -OSeq -cardG_gt1.
   by rewrite (Ohm1_cyclic_pgroup_prime cycS (pgroupS sSR pR) neS1) prime_gt1. 
-rewrite eR_RA center_cyclic_abelian ?center_abelian //.
 have sS_ZR : S \subset 'Z(R) by rewrite subsetI sSR /= centsC.
-rewrite -(isog_cyclic (third_isog sS_ZR nsSR _)) ?center_normal //.
-rewrite quotient_cyclic // (odd_pgroup_rank1_cyclic pRS (quotient_odd S oddR)).
+rewrite eR_RA (cyclic_factor_abelian sS_ZR) //.
+rewrite (odd_pgroup_rank1_cyclic pRS (quotient_odd S oddR)).
 by rewrite -p_rank_Ohm1 p_rank_abelem. 
 Qed.
 
@@ -1212,7 +1062,7 @@ have {nc2_R} expR : exponent R %| p.
 have NZRa : a \in 'N('Z(R)). 
  by rewrite (subsetP (char_norm_trans (center_char R) nRA)) // cycle_id.
 have neZR1 : 'Z(R) != 1.
-  rewrite /center -{1}(setIid R) -setIA nil_meet_Z ?(pgroup_nil pR)  //. 
+  rewrite /center -{1}(setIid R) -setIA meet_center_nil ?(pgroup_nil pR)  //. 
   by rewrite ?(negbT neR1).
 move: (pgroup_rank_le2_exponentp pR rankR expR); rewrite leq_eqVlt ltnS.
 case/orP=> lcardR; last by rewrite (p2group_abelian pR lcardR) in ncRR.
@@ -1240,33 +1090,60 @@ Qed.
 (* Lemma 4.15 in B & G can be found in maximal.v *)
 
 (* This is B & G, Theorem 4.16 *)
-Theorem Blackburn_theorem : forall gT (R A : {group gT}) p,
-  p.-group R -> odd #|R| -> R != 1%G -> 'r(R) <= 2 -> [~: R, A] == R ->
-  'C_A(R) == 1%G -> p^'.-group A -> odd #|A|  -> 
-    p > 3 /\ (abelian R \/ exists R1, exists R2, 
-      R1 \* R2 = R /\ ~~ (abelian R1) /\ logn p #|R1| = 3 /\ exponent R1 %| p 
-      /\ cyclic R2 /\ 'Ohm_1(R2) = R1^`(1)).
+Theorem Blackburn_theorem : forall (gT:finGroupType) (R A : {group gT}) p,
+    p.-group R -> odd #|R| -> R :!=: 1 -> 'r(R) <= 2 -> [~: R, A] = R ->
+    p^'.-group A -> odd #|A|  -> 
+  p > 3 /\ 
+  (abelian R \/ exists R1, exists2 R2, R1 \* R2 = R & [/\ ~~ (abelian R1),
+    logn p #|R1| = 3, exponent R1 %| p, cyclic R2 & 'Ohm_1(R2) = R1^`(1)]).
 Proof.
-move=> gT R A p pR oddR neR1 rankR eRA_R TI_CAR p'A oddA.
+move=> gT R A; wlog: gT R A / 'C_A(R) :==: 1.
+  move=> BB p pR oddR ntR rR comR p'A oddA.
+  have nRA : A \subset 'N(R) by rewrite -commg_subl comR.
+  have cop : coprime #|'C_A(R)| #|R|.
+    by rewrite coprime_sym (pnat_coprime pR (pgroupS (subsetIl _ _) p'A)).
+  have nRCA : R \subset 'N('C_A(R)).
+    by rewrite cents_norm // centsC subsetIr. 
+  have ti: 'C_A(R) :&: R = 1 by exact: coprime_TIg.
+  have iso := quotient_isog nRCA ti.
+  move: (BB _ (R / 'C_A(R))%G (A / 'C_A(R))%G) => //=.
+  rewrite (coprime_subcent_quotient_pgroup pR) ?trivg_quotient ?subsetIl //.
+  move/(_ _ p (quotient_pgroup _ pR) (quotient_odd _ oddR)) => /=.
+  rewrite (quotient_pgroup _ p'A) (quotient_odd _ oddA).
+  rewrite -quotientR ?comR // ?normsI ?normG ?norms_cent // eqxx.
+  rewrite -(isog_rank iso) rR /= -(isog_eq1 iso) ntR; do 6 move/(_ (erefl _)).
+  case=> ? H; split=> //; case: H; first by rewrite -(isog_abelian iso); left.
+  move=> [R1 [R2]]; case/cprodP=> [[X1 X2 -> -> /= defX1X2]] sX1CX2. 
+  case=> naX1 clX1 expX1 cyX2 defX1' {R1 R2}; right.
+  case/isogP: iso=> f inj_f /= fR; have inj_f' := injm_invm inj_f.
+  have ? : X1 \subset f @* R by rewrite fR -defX1X2 mulG_subl.
+  have ? : X2 \subset f @* R by rewrite fR -defX1X2 mulG_subr.
+  exists (invm inj_f @* X1); rewrite ?(injm_abelian inj_f') //.
+  exists (invm inj_f @* X2).
+    rewrite -{23}(morphim_invm inj_f (subxx R)) {4}fR -defX1X2 morphimMl //=.
+    by rewrite cprodE // morphpre_cents ?injmK // injmSK.
+  rewrite (card_injm inj_f') ?clR1 // (injm_cyclic inj_f') ?cyX2 //.
+  rewrite -(injm_sFunctor _ inj_f') //= defX1' (injm_sFunctor _ inj_f') //=.
+  by rewrite (exponent_injm inj_f') //; split.
+move=> TI_CAR p pR oddR neR1 rankR eRA_R p'A oddA.
 have [primep pdivR _] := pgroup_pdiv pR neR1.
-have nRA : A \subset 'N(R) by rewrite -commg_subl (eqP eRA_R).
+have nRA : A \subset 'N(R) by rewrite -commg_subl eRA_R.
 have gtp3 : p > 3; last split => //.
   have neA1 : A != 1%G.
-    by apply: (contraL _ eRA_R); move/eqP=> ->; rewrite commG1 eq_sym.
+    by move/eqP: eRA_R; apply: contraL; move/eqP=> ->; rewrite commG1 eq_sym.
   have cardA_gt1 : #|A| > 1. 
     by rewrite ltn_neqAle eq_sym -trivg_card1 neA1 cardG_gt0. 
   have [q primeq qdivA] := pdivP cardA_gt1.
   have [a Aa orda_eq] := Cauchy primeq qdivA.
-  have coprimeRA := (pnat_coprime pR p'A).
+  have coprimeRA := pnat_coprime pR p'A.
   have coprimepq := coprime_dvdr qdivA (coprime_dvdl pdivR coprimeRA).
   have nepq : p != q.
     apply: (contraL _ coprimepq); move/eqP=> ->.
     by rewrite /coprime gcdnn neq_ltn prime_gt1 // orbT.
   have NRDCRa : a \in 'N(R) :\: 'C(R).
-    rewrite inE (subsetP nRA _ Aa) andbT.
-    apply: contraL (prime_gt1 primeq) => CRa.
-    have: a \in 1%G by rewrite -(eqP TI_CAR) inE Aa.
-    by rewrite -orda_eq inE; move/eqP=> ->; rewrite order1.
+    rewrite inE (subsetP nRA _ Aa) andbT; move: (prime_gt1 primeq).
+    apply: contraL => CRa; rewrite -orda_eq (_:a = 1) ?order1 //.
+    by apply/set1gP; rewrite -(eqP TI_CAR) inE Aa CRa.
   case: (automorphism_prime_order_pgroup_rank_le2 pR _ _ NRDCRa primeq)=> //.
   move=> _ [_]; apply: leq_trans; rewrite ltnS ltn_neqAle prime_gt1 // andbT.
   by apply: contraL oddA; rewrite -dvdn2; move/eqP=> ->.
@@ -1277,12 +1154,12 @@ have rankS : rank S <= 2 by rewrite rank_Ohm1.
 case lcardS : (logn p #|S| <= 2).
   have mcR : metacyclic R by apply: (pgroup_Ohm1_p2_metacyclic pR).
   case: (commutator_metacyclic_pgroup_p'group pR oddR mcR p'A nRA)=> cRR _.
-  by rewrite (eqP eRA_R) in cRR; apply: or_introl.
+  by rewrite eRA_R in cRR; apply: or_introl.
 have expS : exponent S %| p by apply: pgroup_rank_le2_Ohm1.
 have {lcardS}lcardS : logn p #|S| = 3.
   apply/eqP; move: (negbT lcardS); rewrite -ltnNge eqn_leq => ->; rewrite andbT.
   by apply: pgroup_rank_le2_exponentp.
-have cardS : #|S| = (p ^ 3)%N by rewrite -(part_pnat_id pS) p_part lcardS.
+have cardS : #|S| = (p ^ 3)%N by rewrite (card_pgroup pS) lcardS.
 have neS1 : S != 1.
   by move/eqP: lcardS; apply: contraL; move/eqP=> ->; rewrite cards1 logn1.
 have ncSS : ~~ abelian S.
@@ -1298,41 +1175,41 @@ have {lcardZS}lcardZS : logn p #|'Z(S)| = 1%N.
   case: (pgroup_pdiv (pgroupS (subsetIl _ _) pS) neZS1)=> /= _ pdivZS [m m_def].
   apply/eqP; rewrite eqn_leq {2}m_def pfactorK // ltn0Sn andbT -ltnS ltn_neqAle.
   rewrite lcardZS andbT; apply: contra ncSS; move/eqP=> {lcardZS}lcardZS.
-  rewrite [S](@center_cyclic_abelian _ [group of S]) ?center_abelian //=.
-  rewrite prime_cyclic // card_quotient // -divgS //= -/S cardS.
-  rewrite -(part_pnat_id (pgroupS sZSS pS)) p_part lcardZS mulnK //. 
+  rewrite cyclic_center_factor_abelian // prime_cyclic // card_quotient //.
+  rewrite -divgS //= -/S cardS.
+  rewrite (card_pgroup (pgroupS sZSS pS)) lcardZS mulnK //. 
   by rewrite muln_gt0 prime_gt0.
 have pS' : p.-group S' by apply: (pgroupS (der_sub _ _)).
 have eS'ZS : S' = 'Z(S).
   apply/eqP; rewrite eqEcard der1_min //=; last first.
     apply: (p2group_abelian (quotient_pgroup _ pS)).
     by rewrite -ltnS -lcardS ltn_log_quotient.
-  rewrite -(part_pnat_id (pgroupS _ pS)) ?subsetIl // p_part lcardZS.
+  rewrite (card_pgroup (pgroupS _ pS)) ?subsetIl // lcardZS.
   have neS'1 : S' != 1%G by apply: (contra _ ncSS); move/eqP; move/commG1P.
   case: (pgroup_pdiv pS' neS'1)=> _ _ [m ->].
   by rewrite dvdn_leq // ?expn_gt0 ?prime_gt0 // dvdn_exp2l.
-have cardS' : #|S'| = p by rewrite -(part_pnat_id pS') p_part eS'ZS lcardZS.
+have cardS' : #|S'| = p by rewrite (card_pgroup pS') /= -/S' eS'ZS lcardZS.
 have eS'PhiS : S' == 'Phi(S).
   rewrite eqEcard der1_min // ?(char_norm (Phi_char _)) //=; last first. 
     by apply: abelem_abelian (Phi_quotient_abelem pS).
   have nsPhiSS : 'Phi(S) <| S by apply: Phi_normal.
   have [sPhiSS nPhiSS] := andP nsPhiSS.
-  rewrite cardS' -(part_pnat_id (pgroupS sPhiSS pS)) p_part.
+  rewrite cardS' (card_pgroup (pgroupS sPhiSS pS)).
   rewrite -{3}(expn1 p) leq_exp2l ?prime_gt1 //.
   rewrite -ltnS ltn_neqAle; apply/andP; split; last first.
     by rewrite -ltnS -lcardS (properG_ltn_log pS) // Phi_proper //.
   apply: (contra _ ncSS); move/eqP=> lcardPhiS; apply: cyclic_abelian.
   rewrite Phi_quotient_cyclic // prime_cyclic // card_quotient //. 
   rewrite -divgS ?(normal_sub (Phi_normal _)) // cardS.
-  rewrite -(part_pnat_id (pgroupS _ pS)) // p_part lcardPhiS mulnK //.
+  rewrite (card_pgroup (pgroupS _ pS)) // lcardPhiS mulnK //.
   by rewrite muln_gt0 prime_gt0.
 have {eS'PhiS}espS : extraspecial S.
   by rewrite /extraspecial -eS'ZS cardS' /special -eS'ZS -(eqP eS'PhiS).
 have eqS'OCRS : S' == 'Ohm_1('C_R(S)).
   rewrite eqEsubset {2}eS'ZS subsetI OhmS ?subsetIl //=.
   rewrite (subset_trans (Ohm_sub 1 _)) ?subsetIr // andbT.
-  rewrite (OhmE 1 (pgroupS (subsetIl _ _) pR)) sub_gen //=.
-  apply/subsetP=> x S'x; rewrite inE -order_dvdn -cardS' order_dvdG // andbT. 
+  rewrite (OhmE 1 (pgroupS (subsetIl _ _) pR)) sub_gen //= -setIdE.
+  apply/subsetP=> x S'x; rewrite inE andbC -order_dvdn -cardS' order_dvdG //=.
   by rewrite eS'ZS in S'x; rewrite (subsetP _ _ S'x) // setSI.
 have cycCRS : cyclic 'C_R(S).
   have sCRS_R : 'C_R(S) \subset R by exact: subsetIl.
@@ -1342,10 +1219,9 @@ have cycCRS : cyclic 'C_R(S).
     by rewrite cardS' (pfactorK 1).
   by rewrite cyclic_abelian // prime_cyclic // cardS'.
 pose T := [~: S, R]; suffices sTS' : T \subset S'.
-  apply: or_intror; exists S; exists 'C_R(S); split; last first.
-    by do 4!split=> //; apply/eqP; rewrite eq_sym.
-  rewrite cprodEgen 1?centsC ?subsetIr //.
-  by rewrite {2}(critical_extraspecial pR sSR espS sTS').
+right; exists S; exists 'C_R(S); last first.
+    by split=> //; apply/eqP; rewrite eq_sym.
+  by rewrite cprodEY ?subsetIr // {2}(critical_extraspecial pR sSR espS sTS').
 apply: negbNE; apply/negP=> nsTS'. 
 have pTS : T \proper S.
  by rewrite (nil_comm_properl (pgroup_nil pR)) // ?subsetI ?subxx.
@@ -1355,7 +1231,7 @@ have nTR : R \subset 'N(T) by apply: commg_normr.
 have lcardT: logn p #|T| = 2.
   apply/eqP; rewrite eqn_leq -ltnS -lcardS properG_ltn_log //=.
   by rewrite -lcardZS -eS'ZS properG_ltn_log // properE nsTS' commgS.
-have cardT : #|T| = (p^2)%N by rewrite -(part_pnat_id pT) p_part lcardT.
+have cardT : #|T| = (p ^ 2)%N by rewrite (card_pgroup pT) lcardT.
 have neT1 : T != 1%G.
   by rewrite trivg_card1 cardT eqn_mul1 andbb neq_ltn prime_gt1 // orbT.
 have expT : exponent T %| p by rewrite (dvdn_trans (exponentS sTS) expS).
@@ -1379,17 +1255,17 @@ have cardR_CRT : #| R / 'C_R(T)| = p.
     by rewrite dvdn1 neq_ltn prime_gt1 // orbT.
   pose rP := abelem_repr abelT neT1 nTR.
   have <-: rker rP = 'C_R(T) by apply: rker_abelem.
-  rewrite -ker_reprGLm (isog_card (first_isog _)) /=.
+  rewrite -ker_reprGLm (card_isog (first_isog _)) /=.
   by rewrite -lcardT -(dim_abelemE abelT neT1) /= (cardSg (@subsetT _ _)).
 have Req : R :=: S <*> 'C_R(T).
-  apply/eqP; rewrite eq_sym eqEcard mulgen_subG sSR subsetIl /=.
-  rewrite dvdn_leq -1?(part_pnat_id pR) ?p_part ?pfactor_dvdn ?cardG_gt0 //.
+  apply/eqP; rewrite eq_sym eqEcard join_subG sSR subsetIl /=.
+  rewrite dvdn_leq 1?(card_pgroup pR) ?pfactor_dvdn ?cardG_gt0 //.
   have sCRTR : 'C_R(T) \subset R by rewrite subsetIl.
   rewrite -(LaGrange sCRTR) -card_quotient // cardR_CRT.
   rewrite logn_mul ?cardG_gt0 ?prime_gt0 // (pfactorK 1) // addn1.
   rewrite properG_ltn_log //.
-    by rewrite(pgroupS _ pR) // mulgen_subG sSR subsetIl.
-  by rewrite properE (mulgen_subr _ _) mulgen_subG subsetI (negbTE nsSCT) andbF.
+    by rewrite(pgroupS _ pR) // join_subG sSR subsetIl.
+  by rewrite properE (joing_subr _ _) join_subG subsetI (negbTE nsSCT) andbF.
 pose CRT_CRS := 'C_R(T) / 'C_R(S).
 have cCRT_CRS : abelian CRT_CRS.
   rewrite sub_der1_abelian // subsetI comm_subG ?subsetIl //=; apply/commG1P.
@@ -1422,7 +1298,7 @@ case: (Maschke_abelem abelCRT_CRS p'A_CRS sT_CRS_CRT_CRS _ _)=> //= XCRS.
 rewrite -/T; case/dprodP=> /= _ CRT_CRSeq cXCRS_T_CRS.
 have nsXCRS_CRT_CRS : XCRS <| CRT_CRS.
   rewrite /CRT_CRS -CRT_CRSeq /normal mulG_subr /= mulG_subG normG andbT /=.
-  by rewrite cents_norm.
+  by rewrite cents_norm // centsC.
 move: cXCRS_T_CRS CRT_CRSeq; case: (inv_quotientN nsCRS_CRT nsXCRS_CRT_CRS).
 move=> /= X ->{nsXCRS_CRT_CRS XCRS cRT_CRSeq} sCRS_X nsX_CRT cX_CRS_T_CRS.
 have sXR : X \subset R. 
@@ -1438,7 +1314,7 @@ have eqT_OCRT: T == 'Ohm_1('C_R(T)).
   rewrite eqEcard -{1}[T](Ohm1_id abelT) OhmS /= ?subsetI ?sTR //=.
   have pOCRT : p.-group 'Ohm_1('C_R(T)).
     by apply: (pgroupS _ pR); apply: (subset_trans (Ohm_sub 1 _)(subsetIl _ _)).
-  rewrite -(part_pnat_id pT) -(part_pnat_id pOCRT) !p_part.
+  rewrite (card_pgroup pT) (card_pgroup pOCRT).
   rewrite leq_exp2l ?prime_gt1 // lcardT -ltnS -lcardS properG_ltn_log //.
   rewrite properEneq (OhmS 1) ?subsetIl // andbT /= -/S.
   apply: contra nsSCT; move/eqP=> <-; apply: (subset_trans (Ohm_sub 1 _)).
@@ -1460,17 +1336,17 @@ have {sTIX_CRS cardOX} cycX : cyclic X.
   rewrite p_rank_abelian ?Ohm_id ?cyclic_abelian ?prime_cyclic ?(eqP cardOX) //.
   by rewrite (pfactorK 1).
 have eR_SX : R :==: S <*> X.
-  rewrite eqEsubset mulgen_subG sSR sXR !andbT Req mulgen_subG.
-  rewrite mulgen_subl /=.
+  rewrite eqEsubset join_subG sSR sXR !andbT Req join_subG.
+  rewrite joing_subl /=.
   suff ->: 'C_R(T) = T <*> X.
-    by rewrite mulgen_subG mulgen_subr andbT (subset_trans sTS) // mulgen_subl.
+    by rewrite join_subG joing_subr andbT (subset_trans sTS) // joing_subl.
   apply: (quotient_inj nsCRS_CRT)=> //=. 
-    rewrite (normalS _ _ nsCRS_R) // ?(subset_trans sCRS_X) ?mulgen_subl //.
-      by rewrite mulgen_subr.
-    by rewrite mulgen_subG sTR.
+    rewrite (normalS _ _ nsCRS_R) // ?(subset_trans sCRS_X) ?joing_subl //.
+      by rewrite joing_subr.
+    by rewrite join_subG sTR.
   rewrite -CRT_CRSeq -quotientMr ?(normal_norm nsX_CRT) //; last first. 
     by apply: (subset_trans sXR (normal_norm nsCRS_R)).
-  by rewrite norm_mulgenEr // (subset_trans sXR).
+  by rewrite norm_joinEr // (subset_trans sXR).
 clear oddR neR1 TI_CAR p'A pdivR gtp3 rankS expS lcardS neS1 sZSS nZSS neZS1.
 clear espS eqS'OCRS cycCRS pTS expT cardR_CRT abelCRT_CRS nsCRS_R nsCRS_CRT.
 clear p'A_CRS sT_CRS_CRT_CRS nT_CRS_A_CRT nCRT_CRS_A_CRT CRT_CRS.
@@ -1478,7 +1354,7 @@ clear pOX CRT_CRSeq eqT_OCRT lcardZS cX_CRS_T_CRS lcardT.
 have nsS'R : S' <| R by apply: (char_normal_trans (der_char _ _) nsSR). 
 have nsXS_S': ~~ ([~: X, S] \subset S'). 
   apply: contra nsTS'=> sXS_S'; rewrite /T (eqP eR_SX).
-  rewrite norm_mulgenEr ?(subset_trans sXR (char_norm (Ohm_char 1 _))) //.
+  rewrite norm_joinEr ?(subset_trans sXR (char_norm (Ohm_char 1 _))) //.
   by rewrite commGC commMG ?mul_subG //= (subset_trans sXR (normal_norm nsS'R)).
 have {cardS}cardST : #|S / T| = p.
   rewrite card_quotient ?(subset_trans sSR nTR) // -divgS // cardS cardT.
@@ -1493,8 +1369,8 @@ have : cyclic (T / S') by rewrite prime_cyclic // cardTS'.
 case/cyclicP=> /= S'z TS'eq; have: S'z \in T / S' by rewrite TS'eq cycle_id.
 case/imsetP=> z /=; case/setIP=> NS'z Tz S'zeq. rewrite {}S'zeq {S'z}in TS'eq.
 have {nsSCT nCRT_R} : ~~ ([~: S, A] \subset T).
-  apply: contra nsSCT=> sSA_T; apply: (subset_trans sSR); rewrite -(eqP eRA_R).
-  rewrite Req norm_mulgenEl ?(subset_trans sSR nCRT_R) //.
+  apply: contra nsSCT=> sSA_T; apply: (subset_trans sSR); rewrite -eRA_R.
+  rewrite Req norm_joinEl ?(subset_trans sSR nCRT_R) //.
   rewrite commMG /=; last by rewrite cents_norm // subIset // centS ?orbT.
   rewrite mul_subG // ?(subset_trans sSA_T) //=.
   rewrite (subset_trans _ (subsetIr R _)) // commg_subl.
@@ -1540,24 +1416,24 @@ have {cardST oddA} nej21_modp : j^2 != 1 %[mod p].
 have nsTS : T <| S by rewrite /normal sTS /= commg_norml. 
 have eS_Ty: S = T <*> <[y]>.
   apply: (quotient_inj nsTS)=> /=; last first.
-    by rewrite STeq mulgenC quotient_mulgen ?cycle_subG // quotient_cycle.
-  rewrite /normal mulgen_subl //= (subset_trans _ (commg_norm _ _)) //.
-  rewrite mulgen_subG (subset_trans sTS (mulgen_subl _ _)) /=.
-  by rewrite (subset_trans _ (mulgen_subr _ _)) // cycle_subG (subsetP sSR).
+    by rewrite STeq joingC quotientYidr ?cycle_subG // quotient_cycle.
+  rewrite /normal joing_subl //= (subset_trans _ (commg_norm _ _)) //.
+  rewrite join_subG (subset_trans sTS (joing_subl _ _)) /=.
+  by rewrite (subset_trans _ (joing_subr _ _)) // cycle_subG (subsetP sSR).
 have eT_S'z: T = S' <*> <[z]>.
   apply: (quotient_inj nsS'T)=> /=.
-    by rewrite /normal mulgen_subl //= mulgen_subG normG /= cycle_subG.
-  by rewrite TS'eq mulgenC quotient_mulgen ?cycle_subG // quotient_cycle.
+    by rewrite /normal joing_subl //= join_subG normG /= cycle_subG.
+  by rewrite TS'eq joingC quotientYidr ?cycle_subG // quotient_cycle.
 have {ncSS eT_S'z} ne_yz1: [~ y, z] != 1.
-  apply: contra ncSS=> yz_eq; rewrite eS_Ty norm_mulgenEr ?cycle_subG //.
-  rewrite /= -/T eT_S'z norm_mulgenEr ?cycle_subG //= -/S' -mulgA.
+  apply: contra ncSS=> yz_eq; rewrite eS_Ty norm_joinEr ?cycle_subG //.
+  rewrite /= -/T eT_S'z norm_joinEr ?cycle_subG //= -/S' -mulgA.
   have cYZ : <[z]> \subset 'C(<[y]>).
     by rewrite cycle_subG /= cent_cycle cent1E (commgP yz_eq).
   have zyeq : <[z]> <*> <[y]> = <[z]> * <[y]>.
-    by rewrite norm_mulgenEr // cents_norm // centsC. 
+    by rewrite norm_joinEr // cents_norm // centsC. 
   rewrite -zyeq abelianM -/S /= -/S' eS'ZS center_abelian /=.
   rewrite (subset_trans (subsetIr _ _)) ?andbT; last first.
-    by rewrite centS // mulgen_subG ?cycle_subG (subsetP sTS) //=.
+    by rewrite centS // join_subG ?cycle_subG (subsetP sTS) //=.
   by rewrite zyeq abelianM ?cycle_abelian.
 have {nXA} nei0_modp : i != 0 %[mod p].
   apply: contra nsXS_S'; rewrite eqn_mod_dvd // subn0 => p_div_i.
@@ -1572,7 +1448,7 @@ have Xx : x \in X by rewrite Xeq cycle_id.
 have {nsX_CRT} CTx : T \subset 'C[x].
   by rewrite sub_cent1 (subsetP (subset_trans (normal_sub nsX_CRT) _))?subsetIr.
 have {eS_Ty nsXS_S'} nS'xy : [~ x, y] \notin S'.
-  apply: contra nsXS_S'=> S'xy; rewrite eS_Ty norm_mulgenEr ?cycle_subG //= -/T.
+  apply: contra nsXS_S'=> S'xy; rewrite eS_Ty norm_joinEr ?cycle_subG //= -/T.
   have eTX1 : [~: T, X] = 1.
     by apply/commG1P; rewrite centsC Xeq cycle_subG -sub_cent1. 
   rewrite commGC commMG eTX1 ?norms1 //= mul1g commGC Xeq gen_subG /= -/S'.
@@ -1693,35 +1569,33 @@ move=> gT R A p pR oddR sAAut solA rR oddA.
 wlog ntR: / R :!=: 1.
   case: eqP sAAut => [->|ntR _]; last by apply.
   by rewrite Aut1; move/trivgP=> ->; rewrite derg1 commG1 pgroup1.
-have [p_pr _ [r cR]] := pgroup_pdiv pR ntR.
-case oddp: (odd p); last first.
-  by move: oddp oddR; rewrite cR odd_exp orbC; move=>->.
-case: (critical_odd _ pR)=> // H [cHR sHRZ] ncH exH pCAu.
-have pCAH : p.-group('C_A(H | 'A_R)) := pgroupS (subsetIr _ _) pCAu.
+have [p_pr _ _] := pgroup_pdiv pR ntR.
+case: (critical_odd pR oddR)=> // H [cHR sHRZ] ncH exH pCAu.
+have pCAH : p.-group('C_A(H | [Aut R])) := pgroupS (subsetIr _ _) pCAu.
 have pH := pgroupS (char_sub cHR) pR.
 have rH : 'r(H) <= 2.
   by rewrite (leq_trans _ rR) // !(@rank_pgroup _ p) // p_rankS ?char_sub.
 have ntH : H :!=: 1.
   by case: eqP (exponent1 gT) exH (prime_gt1 p_pr) (ltnn p) => // -> -> <-.
-have cH : #|H| <= p^3.
+have cH : #|H| <= p ^ 3.
   have := pgroup_rank_le2_exponentp pH rH; rewrite exH dvdnn.
   have [_ _ [s ->]] := pgroup_pdiv pH ntH.
   by rewrite pfactorK // leq_exp2l ?prime_gt1 //; apply.
-pose V := H / 'Phi(H); pose C := 'C_A(V | 'A_R / _).
+pose V := H / 'Phi(H); pose C := 'C_A(V | [Aut R] / _).
 have abeV : p.-abelem V by exact: Phi_quotient_abelem.
-have acts_APH : [acts A, on 'Phi(H) | 'A_R].
-  by apply: gacts_char => //; exact: (char_trans (Phi_char _)).
+have acts_APH : [acts A, on 'Phi(H) | [Aut R]].
+  by apply: acts_char => //; exact: (char_trans (Phi_char _)).
 have sPR : 'Phi(H) \subset R by rewrite (subset_trans (Phi_sub _)) ?char_sub.
-have sCAHC: 'C_A(H|'A_R) \subset C.
+have sCAHC: 'C_A(H | [Aut R]) \subset C.
   have nPH : H \subset 'N('Phi(H)) by rewrite char_norm ?Phi_char.
-  have qdomA : A \subset qact_dom  'A_R 'Phi(H) by rewrite qact_domE.
+  have qdomA : A \subset qact_dom [Aut R] 'Phi(H) by rewrite qact_domE.
   apply/subsetP=> x; rewrite /C 3!inE; case/and3P=> Ax AutRx sHFix.
   rewrite 2!inE Ax {1}qact_domE //=.
   rewrite (subsetP acts_APH) // inE; apply/subsetP=> vH; case/morphimP.
   move=> v Nv Hv ->{vH} /=; rewrite inE qactE ?(subsetP _ _ Ax) //.
   by move/subsetP: sHFix; move/(_ _ Hv); rewrite inE; move/eqP=> ->.
-have pCC : p.-group(C / 'C_A(H | 'A_R)).
-  suffices p'1: forall x, x \in  C  / 'C_A(H | 'A_R) -> p^'.-elt x -> x = 1.
+have pCC : p.-group(C / 'C_A(H | [Aut R])).
+  suffices p'1: forall x, x \in  C  / 'C_A(H | [Aut R]) -> p^'.-elt x -> x = 1.
     apply/pgroupP=> q q_pr; case/Cauchy=> // y yC q_y. 
     apply: contraLR (q_pr) => p'q; rewrite -q_y.
     by rewrite (p'1 y) ?order1 // /p_elt ?q_y pnatE.
@@ -1731,9 +1605,9 @@ have pCC : p.-group(C / 'C_A(H | 'A_R)).
   have zAR : z \in Aut R / _.
     case: (cosetP z) zC => w wN -> SS; apply: subsetP _ _ SS.
     by rewrite quotientS // (subset_trans _ sAAut)//subsetIl.
-  have ? : forall H A, 'C_A(H | 'A_R) \subset 'C(H | 'P).
+  have ? : forall H A, 'C_A(H | [Aut R]) \subset 'C(H | 'P).
     by move=>? ?; apply/subsetP=> a; rewrite !inE; case/and3P=> ? ?.
-  have act : [acts <[z]>, on H | 'A_R %% _ ].
+  have act : [acts <[z]>, on H | [Aut R] %% _ ].
     apply/subsetP=> xp xpC; rewrite 3?inE (subsetP _ _ xpC) ?cycle_subG //.
     apply/subsetP=> h hH; rewrite inE; case/cyclePmin: xpC=> i _ ->.
     case/morphimP: zC => w wN; case/setIP=> wA wC -> /=.
@@ -1741,24 +1615,24 @@ have pCC : p.-group(C / 'C_A(H | 'A_R)).
     rewrite -morphX //= modactE ?in_group //.
       by apply: subsetP (charH _ (groupX i wAR)) _ _; apply/imsetP; exists h.
     by apply: subsetP _ _ hH; rewrite -astabC /= setIA (setIidPr sAAut).
-  have AA : {acts <[z]>, on group H | 'A_R %% _}.
+  have AA : {acts <[z]>, on group H | [Aut R] %% _}.
     by split; rewrite ?gacentE ?subIset ?sAAut ?subxx // subsetI sHR -astabC /=.
   have {act} act : {acts <[z]>%G, on group H | <[AA]> }.
     by split; rewrite // acts_actby subxx setIid.
   have thm1_8: z \in 'C(V | <[AA]> / _) -> z \in 'C(H | <[AA]>).
-    rewrite -!cycle_subG /= !astabCin ?qact_domE ?gacts_char // => V_fix.
+    rewrite -!cycle_subG /= !astabCin ?qact_domE ?acts_char // => V_fix.
     apply/setIidPl; rewrite -subgacentE // -['C_(H | _)(_)]genGid.
-    apply: Phi_nongen; apply/eqP; rewrite eqEsubset mulgen_subG sPHH subsetIl.
-    rewrite -genM_mulgen sub_gen // -quotientSK // quotientGI //= subsetI subxx.
-    rewrite ext_coprime_quotient_cent ?gacts_char ?(pgroup_sol pPH) //.
-    by rewrite gacentE ?qact_domE  ?gacts_char // subsetI subxx V_fix. 
+    apply: Phi_nongen; apply/eqP; rewrite eqEsubset join_subG sPHH subsetIl.
+    rewrite -genM_join sub_gen // -quotientSK // quotientGI //= subsetI subxx.
+    rewrite ext_coprime_quotient_cent ?acts_char ?(pgroup_sol pPH) //.
+    by rewrite gacentE ?qact_domE  ?acts_char // subsetI subxx V_fix. 
   case/morphimP: zC => x xN; case/setIP=> xA xC defz; rewrite defz /=.
   have xAu : x \in Aut R by apply: subsetP sAAut _ _.
   suff zCm: z \in 'C(V | <[AA]> / 'Phi(H)) => [|{thm1_8}].
     apply: coset_id; rewrite inE xA /=.
     move/thm1_8: zCm; rewrite astab_actby // setIid inE cycle_id defz => /= xCC.
     by apply: coset_modact_astab _ (subsetIr _ _) xCC; rewrite inE xAu xN.
-  have xNPH := subsetP (gacts_char 'A_R sAAut (char_trans cPHH cHR)) _ xA.
+  have xNPH := subsetP (acts_char [Aut R] sAAut (char_trans cPHH cHR)) _ xA.
   rewrite defz /= in AA act *.  
   rewrite inE {1}qact_domE // astabs_actby /= inE cycle_id /=.
   rewrite (_: (_ \in _) = true); last first.
@@ -1767,7 +1641,7 @@ have pCC : p.-group(C / 'C_A(H | 'A_R)).
     by rewrite (subset_trans sPHH) // -astabC /= setIA (setIidPr sAAut) /=.
   rewrite inE /=; apply/subsetP=> v'; case/morphimP=> v vN vH ->.
   rewrite inE /= qactE // ?qact_domE //; last first.
-    by apply: subsetP (gacts_char _ (subxx _) cPHH) _ (cycle_id _).
+    by apply: subsetP (acts_char _ (subxx _) cPHH) _ (cycle_id _).
   rewrite actbyE ?cycle_id //= modactE ?(subsetP _ _ vH) 1?setIA //; last first.
     by rewrite (setIidPr sAAut) -astabC /=.
   by rewrite -(astab_act xC (mem_quotient _ vH)) /= qactE ?qact_domE // xNPH.
@@ -1775,11 +1649,11 @@ have pC : p.-group C.
   move: pCC; rewrite pquotient_pgroup // normsI //.
     by rewrite normsG // subsetIl.
   rewrite (subset_trans _ (astab_norm _ _)) //=.
-  by apply: gacts_char => //; rewrite (subset_trans (subsetIl _ _)).
-have nRA : {acts A, on group V | 'A_R / 'Phi(H)}.  
+  by apply: acts_char => //; rewrite (subset_trans (subsetIl _ _)).
+have nRA : {acts A, on group V | [Aut R] / 'Phi(H)}.  
   split; rewrite ?quotientS ?(char_sub cHR) //= acts_quotient //.
   rewrite qact_domE /= ?(subset_trans (Phi_sub _)) ?(char_sub cHR) //.
-  by rewrite subsetI // !gacts_char ?(char_trans (Phi_char _)).
+  by rewrite subsetI // !acts_char ?(char_trans (Phi_char _)).
 pose fA := actperm <[nRA]> @* A.
 have abfA : A/C \isog fA.
   by rewrite /C -[V]setIT -(astab_actby nRA) -ker_actperm first_isog.
@@ -1792,7 +1666,7 @@ rewrite 2!leq_eqVlt !eqSS !ltnS (orbC (_ == 2)); case/or3P => rV.
   have trivPhi: 'Phi(H) == 1.
     rewrite trivg_card_le1 -(@leq_pmul2r #|V|) ?cardG_gt0 //.
     rewrite  {1}card_quotient // LaGrange ?Phi_sub // mul1n.
-    rewrite -(part_pnat_id (abelem_pgroup abeV)) p_part.
+    rewrite (card_pgroup (abelem_pgroup abeV)).
     by rewrite -(rank_abelem abeV) (eqP rV).
   have cHH: abelian H by rewrite (@abelem_abelian _ p) -?(trivg_Phi pH).
   case/idPn: rH; rewrite -ltnNge -(eqP rV).
@@ -1808,7 +1682,7 @@ rewrite 2!leq_eqVlt !eqSS !ltnS (orbC (_ == 2)); case/or3P => rV.
   by rewrite normsI ?normG ?(subset_trans _ (astab_norm _ _)) //; case: (nRA).
 have ? : A \subset 'N(C).
   rewrite normsI ?(normG _) // (subset_trans _ (astab_norm _ _)) //.
-  by rewrite acts_quotient // qact_domE // subsetI acts_APH gacts_char.
+  by rewrite acts_quotient // qact_domE // subsetI acts_APH acts_char.
 rewrite -(pquotient_pgroup pC) ?(subset_trans (der_sub 1 A)) //= -/C.
 have abeVV : p.-abelem(sdpair1 <[nRA]> @* V) := morphim_abelem _ abeV. 
 have nVVA : sdpair2 <[nRA]> @* A \subset 'N(sdpair1 <[nRA]> @* V). 
@@ -1839,21 +1713,21 @@ Proof.
 move=> gT G p solG oddG rG q pr_q qd.
 wlog trivK : gT G p solG oddG rG q pr_q qd / 'O_p^'(G) = 1.
   move/(_ _ (G / 'O_p^'(G))%G p ); rewrite quotient_sol // quotient_odd //.
-  rewrite trivg_pcore_quotient -(isog_card (quotient1_isog _)); apply=> //=.
-  case: (Sylow_exists p G) => X SylX.
+  rewrite trivg_pcore_quotient -(card_isog (quotient1_isog _)); apply=> //=.
+  have [X sylX] := Sylow_exists p G; have [sXG pX _] := and3P sylX.
   have nKX : X \subset 'N('O_p^'(G)).
-    by rewrite (subset_trans (pHall_sub SylX)) // normal_norm ?pcore_normal.
-  move/(quotient_pHall nKX) : (SylX) => /= SylXK.
-  rewrite (p_rank_Sylow SylXK) /= -(isog_p_rank (quotient_isog nKX _)) //.
-    exact: leq_trans (p_rankS _ (pHall_sub SylX)) rG.
-  exact: coprime_TIg (pnat_coprime (pHall_pgroup SylX) (pcore_pgroup _ _)).  
+    by rewrite (subset_trans sXG) // normal_norm ?pcore_normal.
+  have sylXK := quotient_pHall nKX sylX.
+  rewrite (p_rank_Sylow sylXK) /= -(isog_p_rank (quotient_isog nKX _)) //.
+    exact: leq_trans (p_rankS p sXG) rG.
+  exact: coprime_TIg (p'nat_coprime (pcore_pgroup _ _) pX).  
 set R := 'O_p(G); set C := 'C_G(R); have pR : p.-group R by exact: pcore_pgroup.
 have sCR : C \subset R by rewrite /C /R -(Fitting_eq_pcore _) ?cent_sub_Fitting.
 have pC : p.-group C := pgroupS sCR pR; have oddR := oddSg (pcore_sub p _) oddG.
 have rR : 'r(R) <= 2.
   by rewrite (rank_pgroup pR) (leq_trans (p_rankS _ (pcore_sub _ _)) rG).
 move: (dvdn_trans qd (dvdn_quotient _ _)); case/Cauchy=> //= a aG oa.
-case: (eqVneq p q) => [-> //| npq]; move:(npq); rewrite eq_sym=>nqp.
+case: (eqVneq p q) => [-> //| npq]; move: (npq); rewrite eq_sym => nqp.
 have ?: a \in 'N(R) :\: 'C(R).
   rewrite inE [a \in 'N(_)](subsetP _ _ aG) ?char_norm ?pcore_char ?andbT //.
   apply: contra nqp => aCR; have aR : a \in R by rewrite (subsetP sCR) ?inE ?aG.
@@ -1879,7 +1753,7 @@ wlog trivK : gT G p solG oddG rG / 'O_p^'(G) = 1.
     move/(quotient_pHall nKX) : (SX) => /= SXK.
     rewrite (leq_trans _ rG) // (p_rank_Sylow SXK) /=.
     rewrite -(isog_p_rank (quotient_isog nKX _)) ?p_rankS ?(pHall_sub SX) //.
-    exact: coprime_TIg (pnat_coprime (pHall_pgroup SX) (pcore_pgroup _ _)).
+    exact: coprime_TIg (p'nat_coprime (pcore_pgroup _ _) (pHall_pgroup SX)).
   rewrite -quotient_der //= trivg_pcore_quotient; do 4 move/(_ (refl_equal _)). 
   have nKG' : G^`(1) \subset 'N('O_p^'(G)) := subset_trans (der_sub _ _) nKG.
   move: (second_isog nKG') => /= iso. 
@@ -1893,9 +1767,9 @@ wlog trivK : gT G p solG oddG rG / 'O_p^'(G) = 1.
       by rewrite normsI ?(subset_trans (pcore_sub _ _)) ?normG ?pcore_max //.
     move: hall; rewrite !pHallE /=; case/andP=> _ hall.
     rewrite -pquotient_pcore // pcore_sub.
-    by rewrite (isog_card iso) (isog_card (bgFunc_isog (bgFunc_pcore p^') iso)).
+    by rewrite (card_isog iso) (card_isog (bgFunc_isog (bgFunc_pcore p^') iso)).
   - by rewrite -(isog_abelian (iso3 _ _)) //= -pseries1 pseries_sub_catl.
-  by rewrite /pgroup -(isog_card (iso3 _ _)) //= -pseries1 pseries_sub_catl.
+  by rewrite /pgroup -(card_isog (iso3 _ _)) //= -pseries1 pseries_sub_catl.
 set R := 'O_p(G); set C := 'C_G(R); have pR : p.-group R by exact: pcore_pgroup.
 have nRG : G \subset 'N(R) by rewrite char_norm ?pcore_char.
 have pG'C : p.-group (G^`(1) <*> C).
@@ -1914,16 +1788,16 @@ have pG'C : p.-group (G^`(1) <*> C).
     have pA' : p.-group (J @* G)^`(1). 
       exact: rank2_odd_sol_Aut_pgroup_der1 _ oddR _ solA rR oddA.
     rewrite /pgroup (_: C = 'ker J); last by rewrite ker_restrm ker_conj_aut.
-    by rewrite (isog_card (isog_sFunctor (gFunc_der 1) (first_isog J))). 
+    by rewrite (card_isog (isog_sFunctor (gFunc_der 1) (first_isog J))). 
   have ? : G^`(1) \subset 'N(C) by rewrite (subset_trans _ nCG) // der_sub.
-  have ? : G^`(1) <*> C \subset 'N(C) by rewrite mulgen_subG andbC normG.
-  by rewrite -quotient_der // -quotient_mulgen // pquotient_pgroup ?pC. 
+  have ? : G^`(1) <*> C \subset 'N(C) by rewrite join_subG andbC normG.
+  by rewrite -quotient_der // -quotientYidr // pquotient_pgroup ?pC. 
 have sG'CR : G^`(1) <*> C \subset R.
-  apply: pcore_max; rewrite /normal ?pG'C // mulgen_subG subsetIl der_sub.
-  by rewrite norms_mulgen // ?der_norm ?normsI ?normG ?norms_cent.
-have pG' := pgroupS (subset_trans (mulgen_subl _ _) sG'CR) pR.
+  apply: pcore_max; rewrite /normal ?pG'C // join_subG subsetIl der_sub.
+  by rewrite normsY // ?der_norm ?normsI ?normG ?norms_cent.
+have pG' := pgroupS (subset_trans (joing_subl _ _) sG'CR) pR.
 have abGR : abelian (G / R).
-  by rewrite sub_der1_abelian // (subset_trans _ sG'CR) // mulgen_subl.
+  by rewrite sub_der1_abelian // (subset_trans _ sG'CR) // joing_subl.
 rewrite pseries_pop2 // abGR -(nilpotent_pcoreC p (abelian_nil abGR)).
 rewrite trivg_pcore_quotient dprod1g pcore_pgroup.
 by rewrite (nilpotent_pcore_Hall p^') ?(pgroup_nil pG'); split.
@@ -1947,9 +1821,9 @@ Lemma rank2_pdiv_psubg_pcore : forall gT (G A: {group gT}) p,
 Proof.
 move=> gT G A p solG oddG rG; case/andP=> sAG' p'A.
 have sG'G := der_sub 1 G; have solG' := solvableS sG'G solG.
-case: (HallSubset solG' sAG' p'A) => H HH sAH; rewrite (subset_trans sAH _) //. 
+case: (Hall_superset solG' sAG' p'A) => H HH sAH; rewrite (subset_trans sAH) //.
 case: (rank2_pdiv_compl_der_abelian_p'group _ _ rG) => // compl _ _.
-case: (HallConj solG' HH compl) => x xG' ->.
+case: (Hall_trans solG' HH compl) => x xG' ->.
 by rewrite /= (normP _) // -/p (subsetP _ _ xG') ?char_norm ?pcore_char.
 Qed.
 
@@ -1959,7 +1833,197 @@ Lemma rank2_cent_chief : forall gT p (G Gs U V : {group gT}),
     chief_factor G V U -> p.-group (U / V) -> U \subset Gs ->
   G^`(1) \subset 'C(U / V | 'Q).
 Proof.
-Admitted.
+move=> gT p G Gs; wlog: gT p G Gs/ 'O_p^'(Gs) = 1.
+  move/(_ _ p (G / _)%G (Gs / 'O_p^'(Gs))%G); rewrite trivg_pcore_quotient.
+  move=> RCF U V oddG solG nGsG rGs chief pUV sUGs.
+  move: (RCF (erefl _) (U / _)%G (V / _)%G (quotient_odd _ oddG)) => {RCF}.
+  rewrite (quotient_sol _ solG) /= quotient_normal // quotientS //.
+  have -> : 'r_p(Gs / 'O_p^'(Gs)) <= 2.
+    have [X SX] := Sylow_exists p Gs.
+    have nKX: X \subset 'N('O_p^'(Gs)).
+      by rewrite (subset_trans (pHall_sub SX)) // char_norm ?pcore_char.
+    move/(quotient_pHall nKX) : (SX) => /= SXK.
+    rewrite (leq_trans _ rGs) // (p_rank_Sylow SXK) /=.
+    rewrite -(isog_p_rank (quotient_isog nKX _)) ?p_rankS ?(pHall_sub SX) //.
+    exact: coprime_TIg (p'nat_coprime (pcore_pgroup _ _) (pHall_pgroup SX)).
+  case/andP: (chief); case/maxgroupP; case/andP=> prVU nVG maxV nUG.
+  have nVU : V <| U.
+    rewrite /normal (subset_trans (proper_sub prVU)) // (subset_trans sUGs) //.
+    by rewrite (subset_trans (normal_sub nGsG)).
+  have nOV : V \subset 'N('O_p^'(Gs)).
+    apply: subset_trans (proper_sub prVU) (subset_trans sUGs _).
+    by rewrite char_norm ?pcore_char.
+  have nOU : U \subset 'N('O_p^'(Gs)).
+    by rewrite (subset_trans sUGs _) // char_norm ?pcore_char.
+  have sVU := proper_sub prVU; have sVnU := normal_norm nVU.
+  have nVUO := subset_trans (subsetIl _ 'O_p^'(Gs)) sVnU.
+  have ? : V * (U :&: 'O_p^'(Gs)) \subset 'N(V).
+    by rewrite -(normC nVUO) ?group_modr // (subset_trans (subsetIl _ _)).
+  have sUOV : (U :&: 'O_p^'(Gs)) \subset V.
+    rewrite -quotient_sub1 // (subset_trans (quotientI _ _ _)) //.
+    rewrite coprime_TIg ?(pnat_coprime pUV) ?[_.-nat _](quotient_pgroup _ _) //.
+    exact: pcore_pgroup.
+  have defI : U :&: 'O_p^'(Gs) :=: V :&: 'O_p^'(Gs).
+    by apply/eqP; rewrite eqEsubset subsetI sUOV subsetIr setSI.
+  have -> : p.-group (U / 'O_p^'(Gs) / (V / 'O_p^'(Gs))).
+    move: pUV; rewrite /pgroup 2?card_quotient ?quotient_norms //=.
+    rewrite -!divgS ?quotientS //= !card_quotient //=  => pUV.
+    rewrite -(@divn_pmul2r #|U :&: 'O_p^'(Gs)|) ?cardG_gt0 // mulnC.
+    by rewrite LaGrangeI mulnC defI LaGrangeI.
+  have ? : V * 'O_p^'(Gs) \subset U * 'O_p^'(Gs) by rewrite mulSg.
+  have -> : chief_factor (G / 'O_p^'(Gs)) (V / 'O_p^'(Gs)) (U / 'O_p^'(Gs)).
+    rewrite /chief_factor -[U / _]quotientYidr // -[V / _]quotientYidr //.
+    rewrite quotient_normal ?andbT //; last first.
+      by rewrite norm_joinEl ?normalM ?(char_normal_trans (pcore_char _ _)).
+    apply/maxgroupP; rewrite quotient_norms ?normsY ?andbT //; last first.
+      by rewrite (char_norm_trans (pcore_char _ _)) ?normal_norm.
+    rewrite properEcard quotientS /= ?norm_joinEl //=; split.
+      rewrite !quotientMidr // !card_quotient //.
+      rewrite -(@ltn_pmul2r #|V :&: 'O_p^'(Gs)|) ?cardG_gt0 //.
+      by rewrite mulnC LaGrangeI mulnC -defI LaGrangeI proper_card.
+    move=> H; case/andP=> prHU nHG sVH; apply/eqP; rewrite eqEsubset sVH andbT.
+    have nOG := char_normal_trans (pcore_char p^' Gs) nGsG.
+    set W := coset _ @*^-1 H.
+    have {sVH} sVW: V * 'O_p^'(Gs) \subset W.
+      by rewrite -sub_quotient_pre ?mul_subG // normG.
+    have ? : 'O_p^'(Gs) <| U <*> 'O_p^'(Gs).
+      by rewrite /normal joing_subr join_subG // nOU normG.
+    have {prHU} prWUO : W \proper  U * 'O_p^'(Gs).
+      move: prHU; rewrite -!norm_joinEl // !properEcard sub_cosetpre_quo //=. 
+      case/andP => ->; rewrite card_quotient ?join_subG ?nOU ?normG //.
+      rewrite card_cosetpre mulnC -ltn_divr /= ?(cardSg (joing_subr _ _)) //.
+      by rewrite -divgS ?joing_subr.
+    have {nHG} nWG : G \subset 'N(W).
+      rewrite (subset_trans _ (morphpre_norm _ _)) //. 
+      by rewrite -sub_quotient_pre // normal_norm.
+    rewrite -norm_joinEl // -sub_cosetpre_quo /= -/W; last first.
+      by rewrite /normal joing_subr join_subG nOV normG.
+    rewrite -(setIidPl (proper_sub prWUO)) !norm_joinEl //= -/W. 
+    rewrite -group_modr /= -/W ?(subset_trans _ sVW) ?mulG_subr //.
+    have ? : V \subset W :&: U.
+      by rewrite subsetI (subset_trans _ sVW) ?mulG_subl.
+    rewrite [_ :&: _]maxV //= -/W normsI ?andbT // ?normal_norm //.
+    have := sub_cosetpre H; rewrite -/W => /= sOW.
+    have nUO : 'O_p^'(Gs) \subset 'N(U).
+      rewrite (subset_trans (pcore_sub _ _)) //.
+      by rewrite (subset_trans (normal_sub nGsG)) // normal_norm.
+    rewrite properEcard subsetIr /= -{1}[W](mulSGid sOW) /= -/W.
+    move: (proper_card prWUO); rewrite /W -{1}(mulSGid (sub_cosetpre H)) /= -/W.
+    rewrite -norm_joinEl ?(subset_trans sOW) ?normG //= -/W -divg_index /=. 
+    rewrite ltn_divl ?indexg_gt0 //; apply: (fun y x => leq_trans x y).
+    rewrite mulnC -leq_divl -norm_joinEl // ?cardSg ?joing_subl //=.
+    rewrite divgS ?joing_subl // -card_quotient ?join_subG ?normG //=.
+    rewrite joingC quotientYidr /= -?card_quotient ?join_subG ?nUO //.
+      by rewrite dvdn_leq ?cardG_gt0 // cardSg // quotientS // joing_subl.
+    by rewrite (subset_trans (proper_sub prWUO)) // mul_subG ?normG.
+  do 6 move/(_ (erefl _)); move=> RCF.
+  have sGNO : G \subset 'N('O_p^'(Gs)).
+    by rewrite normal_norm // (char_normal_trans (pcore_char _ _)).
+  have ? : G^`(1) \subset 'N(V) by rewrite (subset_trans (der_sub _ _)).
+  have ? : G^`(1) \subset 'N(U).
+    by rewrite (subset_trans (der_sub _ _)) // normal_norm. 
+  have ? : Gs \subset 'N('O_p^'(Gs)) by rewrite char_norm ?pcore_char.
+  rewrite sub_astabQR //= -quotient_sub1 ?(subset_trans _ sVnU) ?commg_subr //.
+  have sRI : [~: G^`(1), U] / V \subset 'O_p^'(Gs) / V :&: U / V.
+    rewrite subsetI {2}quotientR // commg_subr quotient_norms // andbT.
+    rewrite quotientSK ?(subset_trans _ sVnU) ?commg_subr //.
+    rewrite (subset_trans (commgS _ (mulG_subl 'O_p^'(Gs) U))) //=.
+    move: RCF; rewrite sub_astabQR -?quotient_der ?quotient_norms //=.
+    rewrite -[U / _]quotientYidr //= -[V / _]quotientYidr //=.
+    rewrite -quotientR ?join_subG ?normG ?(subset_trans sUGs) //=; last first.
+      by rewrite (subset_trans (der_sub _ _)).
+    rewrite quotientSGK ?joing_subr ?(subset_trans _ sGNO)/= ?norm_joinEl //.
+    have sUOG : U * 'O_p^'(Gs) \subset G.
+      rewrite mul_subG // ?(subset_trans sUGs) ?(normal_sub nGsG) //.
+      by rewrite (subset_trans (pcore_sub _ _)) // ?normal_sub.
+    rewrite (subset_trans (commgS _ sUOG)) //= commg_subr.
+    by rewrite (subset_trans (der_sub _ _)) ?normG.
+  rewrite (subset_trans sRI) // setIC.
+  rewrite coprime_TIg ?(pnat_coprime pUV) ?[_.-nat _](quotient_pgroup _ _) //.
+  exact: pcore_pgroup.
+move=> trivK U V oddG solG; case/andP=> sGsG nGGs rGs chief pUV sUGs.
+pose R := 'O_p(Gs).
+have pSyl_R : p.-Sylow(Gs) R.
+  have := rank2_pdiv_compl_der_abelian_p'group (solvableS sGsG solG) _ rGs.
+  rewrite (oddSg sGsG oddG) (pseries_pop2 _ trivK) -/R; case => // _ _ p'GsR.
+  rewrite normal_max_pgroup_Hall ?pcore_normal //; apply/maxgroupP; split.
+    by rewrite /psubgroup pcore_sub pcore_pgroup.
+  move=> H; case/andP=> sHGs pH /= sRH; apply/eqP; rewrite eqEsubset sRH andbT.
+  have ?: H \subset 'N(R) by rewrite (subset_trans sHGs) ?char_norm ?pcore_char.
+  rewrite -quotient_sub1 // -(setIidPl (quotientS _ sHGs)) /= -/R.
+  by rewrite (coprime_TIg (pnat_coprime (quotient_pgroup _ pH) _)).
+case/andP: (chief); case/maxgroupP; case/andP=> prVU nVG maxV nUG.
+have ? : Gs \subset 'N(V) by rewrite (subset_trans sGsG).
+have nVU : U \subset 'N(V) by rewrite (subset_trans sUGs).
+have sURV : U \subset V * R.
+  have pSyl_RV : p.-Sylow(Gs / V) (R / V).
+    by rewrite quotient_pHall // ?(subset_trans (pcore_sub _ _)).
+  rewrite -quotientSK // (sub_normal_Hall pSyl_RV) ?quotientS //=.
+  by rewrite quotient_normal // pcore_normal.
+set C := 'C_G(U / V | 'Q).
+have pGCGR : p.-group((G / 'C_G(R))^`(1)).
+  have nRG : G \subset 'N(R).
+    by rewrite (subset_trans nGGs) // char_norms ?pcore_char.
+  have pR := pcore_pgroup p Gs.
+  pose J := [morphism of restrm nRG (conj_aut [group of R])].
+  have inA : J @* G \subset Aut R by rewrite morphim_restrm Aut_conj_aut.
+  have rR : 'r(R) <= 2.
+    by rewrite (rank_pgroup pR) (leq_trans (p_rankS _ (pcore_sub _ _))).
+  have solA : solvable (J @* G) by rewrite morphim_sol.
+  have oddA : odd #|J @* G| by rewrite morphim_odd.
+  have oddR : odd #|R| := oddSg (subset_trans (pcore_sub _ _) sGsG) oddG.
+  have pA' : p.-group (J @* G)^`(1). 
+    exact: rank2_odd_sol_Aut_pgroup_der1 _ oddR _ solA rR oddA.
+  rewrite /pgroup (_:'C_G(_) = 'ker J); last by rewrite ker_restrm ker_conj_aut.
+  by rewrite (card_isog (isog_sFunctor (gFunc_der 1) (first_isog J))).
+have := sol_chief_abelem solG chief; rewrite (is_abelem_pgroup pUV)=> pabUV.
+have nCG : G \subset 'N(C).
+  by rewrite normsI ?normG // (subset_trans _ (astab_norm _ _)) // actsQ // normal_norm.
+have ? : p.-group((G / C)^`(1)).
+  have sUVRV : U / V \subset R / V.
+    have ? : 'O_p(Gs) \subset 'N(V) by apply: subset_trans (pcore_sub _ _) _.
+    by rewrite -[R / _]quotientYidr ?quotientS // 1?joingC ?norm_joinEr.
+  have nCRG : G \subset 'N('C_G(R)).
+    rewrite normsI ?normG // (subset_trans nGGs) // norms_cent // char_norms //.
+    exact: pcore_char.
+  have sQC : 'C_G(R) \subset C.
+    rewrite subsetI subsetIl /= astabQ (subset_trans _ (morphpreS _ (centS sUVRV))) //=.
+    rewrite (subset_trans _ (morphpreS _ (quotient_cent _ _))) //=.
+    rewrite (subset_trans _ (morphpreS _ (quotientS _ (subsetIr G _)))) //=.
+    by rewrite quotientK ?(subset_trans _ nVG) ?subsetIl // mulg_subr.
+  have [f /= <-]:= homgP (homg_quotientS nCRG nCG sQC).
+  by rewrite -[_^`(_)]morphimR //= (morphim_pgroup _ pGCGR).
+have ? : G^`(1) \subset 'N(C) := subset_trans (der_sub _ _) nCG.
+rewrite (subset_trans _ (subsetIr G _)) //.
+rewrite -quotient_sub1 /= ?quotient_der //= -/C.
+have <- : 'O_p(G / C) :=: 1.
+  set P := 'O_p(G / C)%G. 
+  have nRB : {acts G / C, on group (U / V) | 'Q %% _}.
+    apply/andP; rewrite /= gacentQ centsC. 
+    rewrite (subset_trans (quotientS _ (subsetIr _ _))) ?andbT //; last first.
+      by rewrite quotient_astabQ subxx.
+    rewrite astabs_mod /= ?subsetIr //= -/C.
+    by rewrite quotientS // actsQ // normal_norm.
+  pose J := [groupAction of <[nRB]>].
+  have irrGC : acts_irreducibly (G / C) (U / V) J.
+    have := chief_factor_minnormal chief.
+    rewrite -acts_irrQ // /normal ?(proper_sub prVU) //.
+    case/mingroupP; case/andP=> nt acts min.
+    apply/mingroupP; rewrite nt; split.
+      by case: (nRB) => /= ? _; rewrite acts_actby subxx (setIidPr (subxx _)).
+    move=> H; case/andP=> ntH actsH sHUV; apply: min; rewrite ?ntH //.
+    move: actsH; rewrite /J /= astabs_actby /= (setIidPr sHUV) subsetI subxx. 
+    rewrite astabs_mod /= -/C; last first.
+      by rewrite (subset_trans _ (astabS _ sHUV)) // subsetIr.
+    rewrite quotientSGK // (subset_trans (subsetIr _ _)) //=.
+    by rewrite (subset_trans (astabS _ sHUV)) // astab_sub.
+  have faithGC : [faithful (G / C), on (U / V) | J].
+    rewrite /faithful astab_actby /= (subset_trans (subsetIr _ _)) //.
+    rewrite (setIidPr (subxx _)) /=.
+    exact: modact_faithful 'Q%act G (U / V).
+  exact: pcore_faithful_irr_act pUV (subxx _) irrGC faithGC.
+by rewrite pcore_max // ?(pgroupS (der_sub _ _)) // der_normal.
+Qed.
 
 (* This is B & G, Lemma 4.20(a) *)
 Lemma rank2_der1_sub_Fitting : forall gT (G : {group gT}),
@@ -1985,12 +2049,12 @@ have nFS := subset_trans sSG nFG; have nilF: nilpotent F := Fitting_nil _.
 have cGGq: abelian (G / F).
   by rewrite sub_der1_abelian ?rank2_der1_sub_Fitting.
 have nsFS_G: F <*> S <| G.
-  rewrite -(quotientGK nsFG) norm_mulgenEr // -(quotientK nFS) cosetpre_normal.
+  rewrite -(quotientGK nsFG) norm_joinEr // -(quotientK nFS) cosetpre_normal.
   by rewrite -sub_abelian_normal ?quotientS.
 have sylSF: p.-Sylow(F <*> S) S.
-  by rewrite (pHall_subl _ _ sylS) ?mulgen_subr // mulgen_subG sFG.
+  by rewrite (pHall_subl _ _ sylS) ?joing_subr // join_subG sFG.
 have defG: G :=: F * 'N_G(S).
-  rewrite -{1}(Frattini_arg nsFS_G sylSF) /= norm_mulgenEr // -mulgA.
+  rewrite -{1}(Frattini_arg nsFS_G sylSF) /= norm_joinEr // -mulgA.
   by congr (_ * _); rewrite mulSGid // subsetI sSG normG.
 rewrite /normal (subset_trans (char_sub charT)) //= defG mulG_subG /= -/F.
 rewrite setIC andbC subIset /=; last by rewrite (char_norm_trans charT).
@@ -2000,7 +2064,7 @@ have defFp: 'O_p(F) = F :&: S.
     by rewrite coprime_sym (pnat_coprime pS (pcore_pgroup _ _)).
   by rewrite p_core_Fitting pcore_sub_Hall.
 rewrite -defF mulG_subG /= -/F defFp setIC subIset ?(char_norm charT) //=.
-rewrite cents_norm // centsC (subset_trans _ cFpFp') // defFp subsetI.
+rewrite cents_norm // (subset_trans cFpFp') // defFp centS // subsetI.
 rewrite (char_sub charT) (subset_trans (subset_trans sTS' (dergS 1 sSG))) //.
 exact: rank2_der1_sub_Fitting.
 Qed.
@@ -2022,9 +2086,9 @@ have sPF: P \subset F.
 have nilGq: nilpotent (G / F).
   by rewrite abelian_nil ?sub_der1_abelian ?rank2_der1_sub_Fitting.
 have pGq: p.-group (G / H).
-  rewrite /pgroup -(isog_card (third_isog sFH nsFG nsHG)) /= -/F -/(pgroup _ _).
+  rewrite /pgroup -(card_isog (third_isog sFH nsFG nsHG)) /= -/F -/(pgroup _ _).
   case/dprodP: (nilpotent_pcoreC p nilGq) => /= _ <- _ _.
-  by rewrite defH quotient_mulg quotient_pgroup ?pcore_pgroup.
+  by rewrite defH quotientMidr quotient_pgroup ?pcore_pgroup.
 rewrite pHallE pcore_sub -(LaGrange sHG) partn_mul // -card_quotient //=.
 have hallHp': p^'.-Hall(H) 'O_p^'(H).
   case p'H: (p^'.-group H).

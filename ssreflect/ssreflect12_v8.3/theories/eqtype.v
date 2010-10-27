@@ -1,82 +1,85 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool.
 
-(***************************************************************************)
-(* This file defines two "base" combinatorial interfaces:                  *)
-(*    eqType == the structure for types with a decidable equality          *)
-(* subType p == the structure for types isomorphic to {x : T | p x} with   *)
-(*              p : pred T for some type T                                 *)
-(* The eqType interface supports the following operations:                 *)
-(*          x == y <=> x compares equal to y (this is a boolean test)      *)
-(*     x == y :> T <=> x == y at type T                                    *)
-(*          x != y <=> x and y compare unequal                             *)
-(*     x != y :> T <=>  "    "      "    "     at type T                   *)
-(*         x =P y  <=> a proof of reflect (x = y) (x == y); this coerces   *)
-(*                     to x == y -> x = y.                                 *)
-(*             pred1 a == the singleton predicate [pred x | x == a]        *)
-(* pred2, pred3, pred4 == pair, triple, quad predicates                    *)
-(*            predC1 a == [pred x | x != a]                                *)
-(*      [predU1 a & A] == [pred x | (x == a) || (x \in A)]                 *)
-(*      [predD1 A & a] == [pred x | (x != a) && (x \in A)]                 *)
-(*  predU1 a P, predD1 P a == applicative versions of the above            *)
-(*              frel f == the relation associated with f : T -> T          *)
-(*                     := [rel x y | f x == y]                             *)
-(*       invariant k f == elements of T whose k-class is f-invariant       *)
-(*                     := [pred x | k (f x) == k x] with f : T -> T        *)
-(*  [fun x : T => e0 with a1 |-> e1, .., a_n |-> e_n]                      *)
-(*  [eta f with a1 |-> e1, .., a_n |-> e_n] ==                             *)
-(*    the auto-expanding function that maps x = a_i to e_i, and other      *)
-(*    values of x to e0 (resp. f x). In the first form the : T is optional *)
-(*    and x can occur in a_i or e_i.                                       *)
-(* Equality on an eqType is proof-irrelevant (lemma eq_irrelevance).       *)
-(*   The eqType interface is implemented for most standard datatypes:      *)
-(*  bool, unit, void, option, prod (denoted A * B), sum (denoted A + B),   *)
-(*  sig (denoted {x | P}), sigT (denoted {i : I & T}).                     *)
-(*   The fields of sig, sig2, and sigT are renamed sval, svalP, s2val,     *)
-(* s2valP, s2valP', tag, and tagged, respectively. We also define          *)
-(*   Tagged T_ x == eta-friendly constructor for {i : I | T_ i}, x : T_ i  *)
-(*   tagged_as u v == v cast as T_(tag u) if tag v == tag u, else u        *)
-(*     thus, u == v <=> (tag u == tag v) && (tagged u == tagged_as u v)    *)
-(* The subType interface supports the following operations:                *)
-(*      val == the generic injection from a subType S of T into T          *)
-(*             e.g., if u : {x : T | P}, then val u : T                    *)
-(*             val is injective because P is proof-irrelevant (P is in     *)
-(*             bool, and the is_true coercion expands to P = true).        *)
-(*     valP == the generic proof of P (val u) for u : subType P            *)
-(* Sub x Px == the generic constructor for a subType P; Px is a proof of   *)
-(*             P x and P should be infered from the expected return type.  *)
-(*  insub x == the generic partial projection of T into a subType S of T   *)
-(*             This returns an option S; if S : subType P then             *)
-(*                insub x = Some u with val u = x if P x,                  *)
-(*                          None if ~~ P x                                 *)
-(*             The insubP lemma encapsulates this dichotomy.               *)
-(*             P should be infered from the expected return type.          *)
-(*  innew x == total (non-option) variant of insub when P = predT          *)
-(* {? x | P} == option {x | P} (syntax for casting insub x)                *)
-(* insubd u0 x == the generic projection with default value u0             *)
-(*             == odflt u0 (insub x)                                       *)
-(* insigd A0 x == special case of insubd for S == {x | x \in A}, where     *)
-(*                A0 is a proof of x0 \in A.                               *)
-(* insub_eq x == transparent version of insub x that expands to Some/None  *)
-(*               when P x can evaluate.                                    *)
-(*  The subType interface is most often implemented using one of:          *)
-(*   [subType for S_val by Srect]                                          *)
-(*     where S_val : S -> T is a field accessor of a Record type S that is *)
-(*     isomorphic to {x : T | P} and Srect is the induction principle      *)
-(*     automatically generated by the Coq Inductive or Record commands.    *)
-(*   [newType for S_val by Srect]                                          *)
-(*     variant of the above when S is a wrapper type for T (so P = predT)  *)
-(*   [subType for S_val], [subType for S_val, S], [subType of S]           *)
-(*     clone the canonical subType structure for S; if S_val is specified  *)
-(*     then it replaces the inferred injection function.                   *)
-(* Subtypes inherit the eqType structure of their base types; the generic  *)
-(* structure should be explicitly instantiated using the                   *)
-(*   [eqMixin of S by <:]                                                  *)
-(* construct to declare the Equality mixin; this pattern is repeated for   *)
-(* all the combinatorial interfaces (Choice, Countable, Finite).           *)
-(*   More generally, the eqType structure can be transfered by (partial)   *)
-(* injections, using InjEqMixin, PcanEqMixin, or CanEqMixin.               *)
-(***************************************************************************)
+(******************************************************************************)
+(* This file defines two "base" combinatorial interfaces:                     *)
+(*    eqType == the structure for types with a decidable equality.            *)
+(* subType p == the structure for types isomorphic to {x : T | p x} with      *)
+(*              p : pred T for some type T.                                   *)
+(* The eqType interface supports the following operations:                    *)
+(*          x == y <=> x compares equal to y (this is a boolean test).        *)
+(*     x == y :> T <=> x == y at type T.                                      *)
+(*          x != y <=> x and y compare unequal.                               *)
+(*     x != y :> T <=>  "    "      "    "     at type T.                     *)
+(*         x =P y  <=> a proof of reflect (x = y) (x == y); this coerces      *)
+(*                     to x == y -> x = y.                                    *)
+(*             pred1 a == the singleton predicate [pred x | x == a].          *)
+(* pred2, pred3, pred4 == pair, triple, quad predicates.                      *)
+(*            predC1 a == [pred x | x != a].                                  *)
+(*      [predU1 a & A] == [pred x | (x == a) || (x \in A)].                   *)
+(*      [predD1 A & a] == [pred x | (x != a) && (x \in A)].                   *)
+(*  predU1 a P, predD1 P a == applicative versions of the above.              *)
+(*              frel f == the relation associated with f : T -> T.            *)
+(*                     := [rel x y | f x == y].                               *)
+(*       invariant k f == elements of T whose k-class is f-invariant.         *)
+(*                     := [pred x | k (f x) == k x] with f : T -> T.          *)
+(*  [fun x : T => e0 with a1 |-> e1, .., a_n |-> e_n]                         *)
+(*  [eta f with a1 |-> e1, .., a_n |-> e_n] ==                                *)
+(*    the auto-expanding function that maps x = a_i to e_i, and other values  *)
+(*    of x to e0 (resp. f x). In the first form the `: T' is optional and x   *)
+(*    can occur in a_i or e_i.                                                *)
+(* Equality on an eqType is proof-irrelevant (lemma eq_irrelevance).          *)
+(*   The eqType interface is implemented for most standard datatypes:         *)
+(*  bool, unit, void, option, prod (denoted A * B), sum (denoted A + B),      *)
+(*  sig (denoted {x | P}), sigT (denoted {i : I & T}).                        *)
+(*   The fields of sig, sig2, and sigT are renamed sval, svalP, s2val,        *)
+(* s2valP, s2valP', tag, and tagged, respectively. We also define             *)
+(*   Tagged T_ x == eta-friendly constructor for {i : I | T_ i}, x : T_ i.    *)
+(*   tagged_as u v == v cast as T_(tag u) if tag v == tag u, else u.          *)
+(*  -> We have u == v <=> (tag u == tag v) && (tagged u == tagged_as u v).    *)
+(* The subType interface supports the following operations:                   *)
+(*      val == the generic injection from a subType S of T into T.            *)
+(*             For example, if u : {x : T | P}, then val u : T.               *)
+(*             val is injective because P is proof-irrelevant (P is in bool,  *)
+(*             and the is_true coercion expands to P = true).                 *)
+(*     valP == the generic proof of P (val u) for u : subType P.              *)
+(* Sub x Px == the generic constructor for a subType P; Px is a proof of P x  *)
+(*             and P should be inferred from the expected return type.        *)
+(*  insub x == the generic partial projection of T into a subType S of T.     *)
+(*             This returns an option S; if S : subType P then                *)
+(*                insub x = Some u with val u = x if P x,                     *)
+(*                          None if ~~ P x                                    *)
+(*             The insubP lemma encapsulates this dichotomy.                  *)
+(*             P should be infered from the expected return type.             *)
+(*  innew x == total (non-option) variant of insub when P = predT.            *)
+(* {? x | P} == option {x | P} (syntax for casting insub x).                  *)
+(* insubd u0 x == the generic projection with default value u0.               *)
+(*             := odflt u0 (insub x).                                         *)
+(* insigd A0 x == special case of insubd for S == {x | x \in A}, where A0 is  *)
+(*                a proof of x0 \in A.                                        *)
+(* insub_eq x == transparent version of insub x that expands to Some/None     *)
+(*               when P x can evaluate.                                       *)
+(*  The subType interface is most often implemented using one of:             *)
+(*   [subType for S_val by Srect]                                             *)
+(*     where S_val : S -> T is a field accessor of a Record type S that is    *)
+(*     isomorphic to {x : T | P} and Srect is the induction principle         *)
+(*     automatically generated by the Coq Inductive or Record commands.       *)
+(*   [newType for S_val by Srect]                                             *)
+(*     variant of the above when S is a wrapper type for T (so P = predT).    *)
+(*   [subType for S_val], [subType for S_val, S], [subType of S]              *)
+(*     clones the canonical subType structure for S; if S_val is specified,   *)
+(*     then it replaces the inferred injection function.                      *)
+(* Subtypes inherit the eqType structure of their base types; the generic     *)
+(* structure should be explicitly instantiated using the                      *)
+(*   [eqMixin of S by <:]                                                     *)
+(* construct to declare the Equality mixin; this pattern is repeated for all  *)
+(* the combinatorial interfaces (Choice, Countable, Finite).                  *)
+(*   More generally, the eqType structure can be transfered by (partial)      *)
+(* injections, using InjEqMixin, PcanEqMixin, or CanEqMixin.                  *)
+(*   We add the following to the standard suffixes documented in ssrbool.v:   *)
+(*  1, 2, 3, 4 -- explicit enumeration predicate for 1 (singleton), 2, 3, or  *)
+(*                4 values.                                                   *)
+(******************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -84,34 +87,34 @@ Import Prenex Implicits.
 
 Module Equality.
 
-Definition axiom T e := forall x y : T, reflect (x = y) (e x y).
+Definition axiom T (e : rel T) := forall x y, reflect (x = y) (e x y).
 
-Structure mixin_of (T : Type) : Type := Mixin {op : rel T; _ : axiom op}.
+Structure mixin_of T := Mixin {op : rel T; _ : axiom op}.
 Notation class_of := mixin_of (only parsing).
 
-Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
-Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
+Structure type := Pack {sort; _ : class_of sort; _ : Type}.
+Definition class cT := let: Pack _ c _ := cT return class_of (sort cT) in c.
 
 Definition pack T c := @Pack T c T.
 Definition clone T :=
   fun cT & sort cT -> T =>
   fun c (cT' := @Pack T c T) & phant_id cT' cT => cT'.
 
-End Equality.
-
-Delimit Scope eq_scope with EQ.
-Open Scope eq_scope.
-
-Notation eqType := Equality.type.
-Notation EqMixin := Equality.Mixin.
-Notation EqType T m := (@Equality.pack T m).
-
-Notation "[ 'eqMixin' 'of' T ]" := (Equality.class _ : Equality.mixin_of T)
+Module Exports.
+Coercion sort : type >-> Sortclass.
+Notation eqType := type.
+Notation EqMixin := Mixin.
+Notation EqType T m := (@pack T m).
+Notation "[ 'eqMixin' 'of' T ]" := (class _ : mixin_of T)
   (at level 0, format "[ 'eqMixin'  'of'  T ]") : form_scope.
-Notation "[ 'eqType' 'of' T 'for' C ]" := (@Equality.clone T C idfun _ id)
+Notation "[ 'eqType' 'of' T 'for' C ]" := (@clone T C idfun _ id)
   (at level 0, format "[ 'eqType'  'of'  T  'for'  C ]") : form_scope.
-Notation "[ 'eqType' 'of' T ]" := (@Equality.clone T _ id _ id)
+Notation "[ 'eqType' 'of' T ]" := (@clone T _ id _ id)
   (at level 0, format "[ 'eqType'  'of'  T ]") : form_scope.
+End Exports.
+
+End Equality.
+Export Equality.Exports.
 
 Definition eq_op T := Equality.op (Equality.class T).
 
@@ -121,6 +124,9 @@ Proof. by []. Qed.
 Lemma eqP : forall T, Equality.axiom (@eq_op T).
 Proof. by rewrite /eq_op; case=> ? []. Qed.
 Implicit Arguments eqP [T x y].
+
+Delimit Scope eq_scope with EQ.
+Open Scope eq_scope.
 
 Notation "x == y" := (eq_op x y)
   (at level 70, no associativity) : bool_scope.
@@ -145,6 +151,24 @@ Lemma eq_sym : forall (T : eqType) (x y : T), (x == y) = (y == x).
 Proof. by move=> T x y; apply/eqP/eqP. Qed.
 
 Hint Resolve eq_refl eq_sym.
+
+Section Contrapositives.
+
+Variables (T : eqType) (b : bool) (x y : T).
+
+Lemma contraTeq : (x != y -> ~~ b) -> b -> x = y.
+Proof. by move=> imp hyp; apply/eqP; exact: contraTT hyp. Qed.
+
+Lemma contraNeq : (x != y -> b) -> ~~ b -> x = y.
+Proof. by move=> imp hyp; apply/eqP; exact: contraNT hyp. Qed.
+
+Lemma contraTneq : (x = y -> ~~ b) -> b -> x != y.
+Proof. by move=> imp; apply: contraTN; move/eqP. Qed.
+
+Lemma contraNneq : (x = y -> b) -> ~~ b -> x != y.
+Proof. by move=> imp; apply: contraNN; move/eqP. Qed.
+
+End Contrapositives.
 
 Theorem eq_irrelevance : forall (T : eqType) (x y : T) (e1 e2 : x = y), e1 = e2.
 Proof.
@@ -221,12 +245,12 @@ Definition predD1 p (a1 : T) := SimplPred (xpredD1 p a1).
 
 Lemma pred1E : pred1 =2 eq_op. Proof. move=> x y; exact: eq_sym. Qed.
 
-Variables (x y z u: T) (b : bool).
+Variables (T2 : eqType) (x y : T) (z u : T2) (b : bool).
 
 Lemma predU1P : reflect (x = y \/ b) ((x == y) || b).
 Proof. apply: (iffP orP) => [] []; by [right | move/eqP; left]. Qed.
 
-Lemma pred2P : reflect (x = z \/ y = u) ((x == z) || (y == u)).
+Lemma pred2P : reflect (x = y \/ z = u) ((x == y) || (z == u)).
 Proof. by apply: (iffP orP) => [] []; move/eqP; by [left | right]. Qed.
 
 Lemma predD1P : reflect (x <> y /\ b) ((x != y) && b).
@@ -244,6 +268,8 @@ Proof. by case: eqP; [left | right]. Qed.
 End EqPred.
 
 Implicit Arguments predU1P [T x y b].
+Implicit Arguments pred2P [T T2 x y z u].
+Implicit Arguments predD1P [T x y b].
 Prenex Implicits pred1 pred2 pred3 pred4 predU1 predC1 predD1 predU1P.
 
 Notation "[ 'predU1' x & A ]" := (predU1 x [mem A])

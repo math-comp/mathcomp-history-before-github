@@ -1,55 +1,74 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat div seq choice fintype.
-Require Import finfun bigops.
+Require Import finfun bigop.
 
-(*****************************************************************************)
-(* This file defines a type for sets over a finite Type, similarly to (and,  *)
-(* indeed, using) finfun.v:                                                  *)
-(*  {set T} where T must have a finType structure                            *)
-(* We equip {set T} itself with a finType structure, hence Leinitz and       *)
-(* extensional equalities coincide on {set T}, and we can form {set {set T}} *)
-(*   If A, B : {set T} and P : {set {set T}}, we define:                     *)
-(*           x \in A == x belongs to A (i.e., {set T} implements predType,   *)
-(*                      by coercion to pred_sort)                            *)
-(*             mem A == the predicate corresponding to A                     *)
-(*          finset p == the A corresponding to a predicate p                 *)
-(*       [set x | C] == the A containing the x such that C holds (x is bound *)
-(*                      in C)                                                *)
-(*     [set x \in D] == the A containing the x in the collective predicate D *)
-(* [set x \in D | C] == the A containing the x in D such that C holds        *)
-(*              set0 == the empty set                                        *)
-(*  [set: T] or setT == the full set (the A containing all x : T)            *)
-(*           A :|: B == the union of A and B                                 *)
-(*            x |: A == add x to A                                           *)
-(*           A :&: B == the intersection of A and B                          *)
-(*              ~: A == the complement of A                                  *)
-(*           A :\: B == the difference A minus B                             *)
-(*            A :\ x == remove x from A                                      *)
-(* \bigcup_<range> A == the union of all A, for i in <range> (i is bound in  *)
-(*                      A, see bigops.v)                                     *)
-(* \bigcap_<range> A == the intersection of all A, for i in <range>          *)
-(*           cover P == the union of the set of sets P                       *)
-(*        trivIset P == the elements of P are pairwise disjoint              *)
-(*     partition P A == P is a partition of A                                *)
-(*          P ::&: A == those sets in P that are subsets of A                *)
-(*         f @^-1: R == the preimage of the collective predicate R under f   *)
-(*            f @: D == the image set of the collective predicate D by f     *)
-(*     f @2:(D1, D2) == the image of D1 and D2 by the binary function f      *)
-(*  [set E | x <- D] == the set of all the values of the expression E, for x *)
-(*                      drawn from the collective predicate D.               *)
-(*  [set E | x <- D, P] == the set of values of E for x drawn from D and     *)
-(*                      such that P holds.                                   *)
-(*  [set E | x <- D1, y <- D2] == the set of values of E for x drawn from D1 *)
-(*                      and y drawn from D2.                                 *)
-(*  [set E | x <- D1, y <- D2, P] == the set of values of E for x drawn from *)
-(*                      D1, y drawn from D2, such that P holds.              *)
-(*        minset p A == A is a minimal set satisfying p                      *)
-(*        maxset p A == A is a maximal set satisfying p                      *)
-(* We also provide notations A :=: B, A :<>: B, A :==: B, A :!=: B, A :=P: B *)
-(* that specialize A = B, A <> B, A == B, etc., to {set _}. This is useful   *)
-(* for subtypes of {set T}, such as {group T}, that coerce to {set T}.       *)
-(*   We give many lemmas on these operations, on card, and on set inclusion. *)
-(*****************************************************************************)
+(******************************************************************************)
+(* This file defines a type for sets over a finite Type, similar to the type  *)
+(* of functions over a finite Type defined in finfun.v (indeed, based in it): *)
+(*  {set T} where T must have a finType structure                             *)
+(* We equip {set T} itself with a finType structure, hence Leibnitz and       *)
+(* extensional equalities coincide on {set T}, and we can form {set {set T}}  *)
+(*   If A, B : {set T} and P : {set {set T}}, we define:                      *)
+(*           x \in A == x belongs to A (i.e., {set T} implements predType,    *)
+(*                      by coercion to pred_sort).                            *)
+(*             mem A == the predicate corresponding to A.                     *)
+(*          finset p == the A corresponding to a predicate p.                 *)
+(*       [set x | C] == the A containing the x such that C holds (x is bound  *)
+(*                      in C).                                                *)
+(*     [set x \in D] == the A containing the x in the collective predicate D. *)
+(* [set x \in D | C] == the A containing the x in D such that C holds.        *)
+(*              set0 == the empty set.                                        *)
+(*  [set: T] or setT == the full set (the A containing all x : T).            *)
+(*           A :|: B == the union of A and B.                                 *)
+(*            x |: A == A with the element x added (:= [set x] :| A).         *)
+(*           A :&: B == the intersection of A and B.                          *)
+(*              ~: A == the complement of A.                                  *)
+(*           A :\: B == the difference A minus B.                             *)
+(*            A :\ x == A with the element x removed (:= A :\: [set x]).      *)
+(* \bigcup_<range> A == the union of all A, for i in <range> (i is bound in   *)
+(*                      A, see bigop.v).                                      *)
+(* \bigcap_<range> A == the intersection of all A, for i in <range>.          *)
+(*           cover P == the union of the set of sets P.                       *)
+(*        trivIset P == the elements of P are pairwise disjoint.              *)
+(*     partition P A == P is a partition of A.                                *)
+(*          P ::&: A == those sets in P that are subsets of A.                *)
+(*         f @^-1: R == the preimage of the collective predicate R under f.   *)
+(*            f @: D == the image set of the collective predicate D by f.     *)
+(*     f @2:(D1, D2) == the image of D1 and D2 by the binary function f.      *)
+(*  [set E | x <- D] == the set of all the values of the expression E, for x  *)
+(*                      drawn from the collective predicate D.                *)
+(*  [set E | x <- D, P] == the set of values of E for x drawn from D and such *)
+(*                      that P holds.                                         *)
+(*  [set E | x <- D1, y <- D2] == the set of values of E for x drawn from D1  *)
+(*                      and y drawn from D2.                                  *)
+(*  [set E | x <- D1, y <- D2, P] == the set of values of E for x drawn from  *)
+(*                      D1, y drawn from D2, such that P holds.               *)
+(*        minset p A == A is a minimal set satisfying p.                      *)
+(*        maxset p A == A is a maximal set satisfying p.                      *)
+(* We also provide notations A :=: B, A :<>: B, A :==: B, A :!=: B, A :=P: B  *)
+(* that specialize A = B, A <> B, A == B, etc., to {set _}. This is useful    *)
+(* for subtypes of {set T}, such as {group T}, that coerce to {set T}.        *)
+(*   We give many lemmas on these operations, on card, and on set inclusion.  *)
+(* In addition to the standard suffixes described in ssrbool.v, we associate  *)
+(* the following suffixes to set operations:                                  *)
+(*  0 -- the empty set, as in in_set0 : (x \in set0) = false.                 *)
+(*  T -- the full set, as in in_setT : x \in [set: T].                        *)
+(*  1 -- a singleton set, as in in_set1 : (x \in [set a]) = (x == a).         *)
+(*  2 -- an unordered pair, as in                                             *)
+(*          in_set2 : (x \in [set a; b]) = (x == a) || (x == b).              *)
+(*  C -- complement, as in setCK : ~: ~: A = A.                               *)
+(*  I -- intersection, as in setIid : A :&: A = A.                            *)
+(*  U -- union, as in setUid : A :|: A = A.                                   *)
+(*  D -- difference, as in setDv : A :\: A = set0.                            *)
+(*  S -- a subset argument, as in                                             *)
+(*         setIS: B \subset C -> A :&: B \subset A :&: C                      *)
+(* These suffixes are sometimes preceded with an `s' to distinguish them from *)
+(* their basic ssrbool interpretation, e.g.,                                  *)
+(*  card1 : #|pred1 x| = 1 and cards1 : #|[set x]| = 1                        *)
+(* We also use a trailling `r' to distinguish a right-hand complement from    *)
+(* commutativity, e.g.,                                                       *)
+(*  setIC : A :&: B = B :&: A and setICr : A :&: ~: A = set0.                 *)
+(******************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -115,9 +134,11 @@ Notation Local pred_of_set_def := (fun T (A : set_type T) => val A : _ -> _).
 
 Module Type SetDefSig.
 Parameter finset : forall T : finType, pred T -> {set T}.
-Parameter pred_of_set : forall T, set_type T -> pred_sort (predPredType T).
-(* This lets us use subtypes of set, like group or coset_of, as predicates. *)
-Coercion pred_of_set : set_type >-> pred_class.
+Parameter pred_of_set : forall T, set_type T -> fin_pred_sort (predPredType T).
+(* The weird type of pred_of_set is imposed by the syntactic restrictions on *)
+(* coercion declarations; it is unfortunately not possible to use a functor  *)
+(* to retype the declaration, because this triggers an ugly bug in the Coq   *)
+(* coercion chaining code.                                                   *)
 Axiom finsetE : finset = finset_def.
 Axiom pred_of_setE : pred_of_set = pred_of_set_def.
 End SetDefSig.
@@ -159,6 +180,10 @@ Notation "A :<=: B :<: C" := ((A :<=: B) && (B :<: C))
 Notation "A :<: B :<: C" := ((A :<: B) && (B :<: C))
   (at level 70, B at next level, no associativity) : subset_scope.
 ** End outcomment *)
+
+(* This lets us use set and subtypes of set, like group or coset_of, both as *)
+(* collective predicates and as arguments of the \pi(_) notation.            *)
+Coercion pred_of_set: set_type >-> fin_pred_sort.
 
 (* Declare pred_of_set as a canonical instance of to_pred, but use the *)
 (* coercion to resolve mem A to @mem (predPredType T) (pred_of_set A). *)
@@ -269,8 +294,14 @@ Proof. by move=> A B; apply/eqP/subset_eqP; move/setP. Qed.
 Lemma subEproper : forall A B, A \subset B = (A == B) || (A \proper B).
 Proof. by move=> A B; rewrite eqEsubset -andb_orr orbN andbT. Qed.
 
+Lemma eqVproper : forall A B, A \subset B -> A = B \/ A \proper B.
+Proof. by move=> A B; rewrite subEproper; move/predU1P. Qed.
+
 Lemma properEneq : forall A B, A \proper B = (A != B) && (A \subset B).
 Proof. by move=> A B; rewrite andbC eqEsubset negb_and andb_orr andbN. Qed.
+
+Lemma proper_neq :  forall A B, A \proper B -> A != B.
+Proof. by move=> A B; rewrite properEneq; case/andP. Qed.
 
 Lemma eqEproper : forall A B, (A == B) = (A \subset B) && ~~ (A \proper B).
 Proof. by move=> A B; rewrite negb_and negbK andb_orr andbN eqEsubset. Qed.
@@ -286,8 +317,9 @@ Proof.
 by move=> A B; rewrite properEneq ltnNge eqEcard andbC; case: (A \subset B).
 Qed.
 
-Lemma proper_neq :  forall A B, A \proper B -> A != B.
-Proof. by move=> A B; rewrite properEneq; case/andP. Qed.
+Lemma subset_leqif_cards : forall A B,
+  A \subset B -> (#|A| <= #|B| ?= iff (A == B)).
+Proof. by move=> A B sAB; rewrite eqEsubset sAB; exact: subset_leqif_card. Qed.
 
 Lemma in_set0 : forall x, x \in set0 = false.
 Proof. by move=> x; rewrite inE. Qed.
@@ -611,6 +643,9 @@ Proof. by move=> A; apply/setP=> x; rewrite !inE andNb. Qed.
 Lemma setCD : forall A B, ~: (A :\: B) = ~: A :|: B.
 Proof. by move=> A B; rewrite !setDE setCI setCK. Qed.
 
+Lemma setID : forall A B, A :&: B :|: A :\: B = A.
+Proof. by move=> A B; rewrite setDE -setIUr setUCr setIT. Qed.
+
 Lemma setDUl : forall A B C, (A :|: B) :\: C = (A :\: C) :|: (B :\: C).
 Proof. by move=> A B C; rewrite !setDE setIUl. Qed.
 
@@ -703,8 +738,14 @@ Proof. by move=> A B; apply/subsetP=> x; rewrite inE => ->. Qed.
 Lemma subsetUr : forall A B, B \subset A :|: B.
 Proof. by move=> A B; apply/subsetP=> x; rewrite inE orbC => ->. Qed.
 
+Lemma subsetU1 : forall x A, A \subset x |: A.
+Proof. move=> x A; exact: subsetUr. Qed.
+
 Lemma subsetDl : forall A B, A :\: B \subset A.
 Proof. by move=> A B; rewrite setDE subsetIl. Qed.
+
+Lemma subD1set : forall A x, A :\ x \subset A.
+Proof. by move=> A x; rewrite subsetDl. Qed.
 
 Lemma subsetDr : forall A B, A :\: B \subset ~: B.
 Proof. by move=> A B; rewrite setDE subsetIr. Qed.
@@ -726,9 +767,6 @@ Proof.
 move=> A x; rewrite eqEcard cards1 -cards_eq0 orbC andbC.
 by case: posnP => // A0; rewrite (cards0_eq A0) sub0set.
 Qed.
-
-Lemma subsetD1 : forall A x, A :\ x \subset A.
-Proof. by move=> A x; apply/subsetP=> y; case/setD1P. Qed.
 
 Lemma setIidPl : forall A B, reflect (A :&: B = A) (A \subset B).
 Proof.
@@ -766,6 +804,16 @@ case: (A :&: B =P A) => [-> //| nsAa].
 by apply/eqP=> sAab; case: nsAa; rewrite -sAab -setIA -setIIl setIAC.
 Qed.
 
+Lemma subsetIP : forall A B C,
+  reflect (A \subset B /\ A \subset C) (A \subset B :&: C).
+Proof. by move=> A B C; rewrite subsetI; exact: andP. Qed.
+
+Lemma subsetIidl : forall A B, (A \subset A :&: B) = (A \subset B).
+Proof. by move=> A B; rewrite subsetI subxx. Qed.
+
+Lemma subsetIidr : forall A B, (B \subset A :&: B) = (B \subset A).
+Proof. by move=> A B; rewrite setIC subsetIidl. Qed.
+
 Lemma subUset : forall A B C,
   (B :|: C \subset A) = (B \subset A) && (C \subset A).
 Proof. by move=> A B C; rewrite -setCS setCU subsetI !setCS. Qed.
@@ -773,6 +821,16 @@ Proof. by move=> A B C; rewrite -setCS setCU subsetI !setCS. Qed.
 Lemma subsetU : forall A B C,
   (A \subset B) || (A \subset C) -> A \subset B :|: C.
 Proof. move=> A B C; rewrite -!(setCS _ A) setCU; exact: subIset. Qed.
+
+Lemma subUsetP : forall A B C,
+  reflect (A \subset C /\ B \subset C) (A :|: B \subset C).
+Proof. by move=> A B C; rewrite subUset; exact: andP. Qed.
+
+Lemma subsetC : forall A B, (A \subset ~: B) = (B \subset ~: A).
+Proof. by move=> A B; rewrite -setCS setCK. Qed.
+
+Lemma subCset : forall A B, (~: A \subset B) = (~: B \subset A).
+Proof. by move=> A B; rewrite -setCS setCK. Qed.
 
 Lemma subsetD : forall A B C,
   (A \subset B :\: C) = (A \subset B) && [disjoint A & C].
@@ -785,12 +843,33 @@ move=> A B C; apply/subsetP/subsetP=> sABC x; rewrite !inE.
 by case Bx: (x \in B) => //; move/sABC; rewrite inE Bx.
 Qed.
 
-Lemma setDeq0 : forall A B, (A :\: B == set0) = (A \subset B).
+Lemma subsetDP : forall A B C,
+  reflect (A \subset B /\ [disjoint A & C]) (A \subset B :\: C).
+Proof. by move=> A B C; rewrite subsetD; exact: andP. Qed.
+
+Lemma setU_eq0 : forall A B, (A :|: B == set0) = (A == set0) && (B == set0).
+Proof. by move=> A B; rewrite -!subset0 subUset. Qed.
+
+Lemma setD_eq0 : forall A B, (A :\: B == set0) = (A \subset B).
 Proof. by move=> A B; rewrite -subset0 subDset setU0. Qed.
+
+Lemma setI_eq0 : forall A B, (A :&: B == set0) = [disjoint A & B].
+Proof. by move=> A B; rewrite disjoints_subset -setD_eq0 setDE setCK. Qed.
+
+Lemma disjoint_setI0 : forall A B, [disjoint A & B] -> A :&: B = set0.
+Proof. by move=> A B; rewrite -setI_eq0; move/eqP. Qed.
+
+Lemma subsetD1 : forall A B x,
+ (A \subset B :\ x) = (A \subset B) && (x \notin A).
+Proof. by move=> A B x; rewrite setDE subsetI subsetC sub1set inE. Qed.
+
+Lemma subsetD1P : forall A B x,
+ reflect (A \subset B /\ x \notin A) (A \subset B :\ x).
+Proof. by move=> A B x; rewrite subsetD1; exact: andP. Qed.
 
 Lemma properD1 : forall A x, x \in A -> A :\ x \proper A.
 Proof.
-move=> A x Ax; rewrite properE subsetD1; apply/subsetPn; exists x=> //.
+move=> A x Ax; rewrite properE subsetDl; apply/subsetPn; exists x=> //.
 by rewrite in_setD1 Ax eqxx.
 Qed.
 
@@ -861,6 +940,10 @@ Implicit Arguments setIidPr [T A B].
 Implicit Arguments setUidPl [T A B].
 Implicit Arguments setUidPr [T A B].
 Implicit Arguments setDidPl [T A B].
+Implicit Arguments subsetIP [T A B C].
+Implicit Arguments subUsetP [T A B C].
+Implicit Arguments subsetDP [T A B C].
+Implicit Arguments subsetD1P [T A B x].
 Prenex Implicits set1P set1_inj set2P setU1P setD1P setIdP setIP setUP setDP.
 Prenex Implicits cards1P setCP setIidPl setIidPr setUidPl setUidPr setDidPl.
 
@@ -1007,6 +1090,14 @@ Lemma mem_imset2 : forall (D : pred aT) (D2 : aT -> pred aT2) x x2,
   x \in D -> x2 \in D2 x ->
    f2 x x2 \in imset2 f2 (mem D) (fun x1 => mem (D2 x1)).
 Proof. by move=> D D2 x x2 Dx Dx2; apply/imset2P; exists x x2. Qed.
+
+Lemma sub_imset_pre : forall (A : pred aT) (B : pred rT),
+  (f @: A \subset B) = (A \subset f @^-1: B).
+Proof.
+move=> A B; apply/subsetP/subsetP=> [sfAB x Ax | sAf'B fx].
+  by rewrite inE sfAB ?mem_imset.
+by case/imsetP=> x Ax ->; move/sAf'B: Ax; rewrite inE.
+Qed.
 
 Lemma preimsetS : forall A B : pred rT,
   A \subset B -> (f @^-1: A) \subset (f @^-1: B).
@@ -1160,13 +1251,22 @@ Proof. by move=> F; apply: big_pred0 => i; rewrite inE. Qed.
 Lemma big_set1 : forall a F, \big[op/idx]_(i \in [set a]) F i = F a.
 Proof. by move=> a F; apply: big_pred1 => i; rewrite !inE. Qed.
 
-Lemma big_setID : forall A B P F,
+Lemma big_setIDdep : forall A B P F,
   \big[aop/idx]_(i \in A | P i) F i =
      aop (\big[aop/idx]_(i \in A :&: B | P i) F i)
          (\big[aop/idx]_(i \in A :\: B | P i) F i).
 Proof.
 move=> A B P F; rewrite (bigID (mem B)) setDE.
 by congr (aop _); apply: eq_bigl => i; rewrite !inE andbAC.
+Qed.
+
+Lemma big_setID : forall A B F,
+  \big[aop/idx]_(i \in A) F i =
+     aop (\big[aop/idx]_(i \in A :&: B) F i)
+         (\big[aop/idx]_(i \in A :\: B) F i).
+Proof.
+move=> A B F; rewrite (bigID (mem B)) !(eq_bigl _ _ (in_set _)) //=.
+by congr (aop _); apply: eq_bigl => i; rewrite andbC.
 Qed.
 
 Lemma big_setD1 : forall a A F, a \in A ->
@@ -1254,6 +1354,9 @@ Proof. by move=> injf; rewrite imset_card card_in_image. Qed.
 Lemma card_imset : injective f -> #|f @: D| = #|D|.
 Proof. by move=> injf; rewrite imset_card card_image. Qed.
 
+Lemma imset_injP : reflect {in D &, injective f} (#|f @: D| == #|D|).
+Proof. by rewrite [@imset _]unlock cardsE; exact: image_injP. Qed.
+
 Lemma can2_in_imset_pre :
   {in D, cancel f g} -> {on D, cancel g & f} -> f @: D = g @^-1: D.
 Proof.
@@ -1265,6 +1368,8 @@ Lemma can2_imset_pre : cancel f g -> cancel g f -> f @: D = g @^-1: D.
 Proof. move=> *; apply: can2_in_imset_pre; exact: in1W. Qed.
 
 End CardFunImage.
+
+Implicit Arguments imset_injP [aT rT f D].
 
 Lemma on_card_preimset : forall (aT rT : finType) (f : aT -> rT) (R : pred rT),
   {on R, bijective f} -> #|f @^-1: R| = #|R|.
@@ -1604,17 +1709,11 @@ Definition cover P := \bigcup_(A \in P) A.
 Definition trivIset P := \sum_(A \in P) #|A| == #|cover P|.
 Definition partition P D := [&& cover P == D, trivIset P & set0 \notin P].
 
-Lemma disjointEsetI : forall A B, [disjoint A & B] = (A :&: B == set0).
-Proof. by move=> A B; rewrite disjoints_subset -setDeq0 setDE setCK. Qed.
-
-Lemma disjoint_setI0 : forall A B, [disjoint A & B] -> A :&: B = set0.
-Proof. by move=> A B; rewrite disjointEsetI; move/eqP. Qed.
-
 Lemma leq_card_setU : forall A B,
   #|A :|: B| <= #|A| + #|B| ?= iff [disjoint A & B].
 Proof.
-move=> A B; rewrite disjointEsetI eq_sym eqEcard sub0set /= cards0 leqn0.
-by rewrite -cardsUI /leqif leq_addr -{1}(addn0 #|_|) eqn_addl eq_sym.
+move=> A B; rewrite -(addn0 #|_|) -setI_eq0 -cards_eq0 -cardsUI eq_sym.
+exact/(monotone_leqif (leq_add2l _)).
 Qed.
 
 Lemma leq_card_cover : forall P,

@@ -1,7 +1,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype div.
-Require Import bigops prime paths finset groups commutators automorphism.
-Require Import morphisms normal center gprod gfunc gseries.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path fintype div.
+Require Import bigop prime finset fingroup morphism automorphism quotient.
+Require Import commutator gproduct gfunctor center gseries.
 
 (******************************************************************************)
 (*   This file defines nilpotent and solvable groups, and give some of their  *)
@@ -182,11 +182,11 @@ Qed.
 
 Lemma lcn_cprod : forall n A B G, A \* B = G -> 'L_n(A) \* 'L_n(B) = 'L_n(G).
 Proof.
-move=> [|n] // A B G; case/cprodP=> [[H K -> ->{A B}] defG cKH].
-have sL := subset_trans (lcn_sub _ _); rewrite cprodE ?(centSS _ _ cKH) ?sL //.
+move=> [|n] // A B G; case/cprodP=> [[H K -> ->{A B}] defG cHK].
+have sL := subset_trans (lcn_sub _ _); rewrite cprodE ?(centSS _ _ cHK) ?sL //.
 symmetry; elim: n => // n; rewrite lcnSn => ->; rewrite commMG /=; last first.
   by apply: subset_trans (commg_normr _ _); rewrite sL // -defG mulG_subr.
-rewrite -!(commGC G) -defG {1}(centC cKH).
+rewrite -!(commGC G) -defG -{1}(centC cHK).
 rewrite !commMG ?normsR ?lcn_norm ?cents_norm // 1?centsC //.
 by rewrite -!(commGC 'L__(_)) -!lcnSn !(commG1P _) ?mul1g ?sL // centsC.
 Qed.
@@ -265,15 +265,15 @@ by rewrite mulG_subG /= -{1}LmH1 -LnK1 !lcn_sub_leq ?leq_addl ?leq_addr.
 Qed.
 
 Lemma mulg_nil : forall G H,
-  G \subset 'C(H) -> nilpotent (G * H) = nilpotent G && nilpotent H.
+  H \subset 'C(G) -> nilpotent (G * H) = nilpotent G && nilpotent H.
 Proof.
-by move=> G H cHG; rewrite -(cprod_nil (cprodEgen cHG)) /= cent_mulgenEl.
+by move=> G H cGH; rewrite -(cprod_nil (cprodEY cGH)) /= cent_joinEr.
 Qed.
 
 Lemma dprod_nil : forall A B G,
    A \x B = G -> nilpotent G = nilpotent A && nilpotent B.
 Proof.
-by move=> A B G; case/dprodP=> [[H K -> ->] <- cKH _]; rewrite mulg_nil.
+by move=> A B G; case/dprodP=> [[H K -> ->] <- cHK _]; rewrite mulg_nil.
 Qed.
 
 Lemma bigdprod_nil : forall I r (P : pred I) (A_ : I -> {set gT}) G,
@@ -569,7 +569,7 @@ apply: subnormal_trans snHK (IHm _ (leq_trans _ leGHm) sKG).
 by rewrite ltn_sub2l ?proper_card ?(proper_sub_trans prHK).
 Qed.
 
-Lemma nil_TI_Z : forall G H,
+Lemma TI_center_nil : forall G H,
   nilpotent G -> H <| G -> H :&: 'Z(G) = 1 -> H :=: 1.
 Proof.
 move=> G H nilG; case/andP=> sHG nHG trHZ.
@@ -581,9 +581,15 @@ rewrite -IHn subsetI (subset_trans _ nHG) ?commSg ?subsetIl //=.
 by rewrite (subset_trans _ (ucn_comm n G)) ?commSg ?subsetIr.
 Qed.
 
-Lemma nil_meet_Z : forall G H,
+Lemma meet_center_nil : forall G H,
   nilpotent G -> H <| G -> H :!=: 1 -> H :&: 'Z(G) != 1.
-Proof. by move=> G H nilG nsHG; apply: contra; move/eqP; move/nil_TI_Z->. Qed.
+Proof. by move=> G H nilG nsHG; apply: contraNneq; move/TI_center_nil->. Qed.
+
+Lemma center_nil_eq1 : forall G, nilpotent G -> ('Z(G) == 1) = (G :==: 1).
+Proof.
+move=> G nilG; apply/eqP/eqP=> [Z1 | ->]; last exact: center1.
+by rewrite (TI_center_nil nilG) // (setIidPr (center_sub G)).
+Qed.
 
 End QuotientNil.
 
@@ -602,6 +608,8 @@ Qed.
 Lemma abelian_sol : forall G, abelian G -> solvable G.
 Proof. move=> G; move/abelian_nil; exact: nilpotent_sol. Qed.
 
+Lemma solvable1 : solvable [1 gT]. Proof. exact: abelian_sol (abelian1 gT). Qed.
+
 Lemma solvableS : forall G H, H \subset G -> solvable G -> solvable H.
 Proof.
 move=> G H sHG solG; apply/forallP=> K; rewrite subsetI.
@@ -613,7 +621,7 @@ Lemma sol_der1_proper : forall G H,
   solvable G -> H \subset G -> H :!=: 1 -> H^`(1) \proper H.
 Proof.
 move=> G H solG sHG ntH; rewrite properE comm_subG //; apply: implyP ntH.
-by have:= forallP solG H; rewrite subsetI sHG implybN. 
+by have:= forallP solG H; rewrite subsetI sHG implybNN. 
 Qed.
 
 Lemma derivedP : forall G, reflect (exists n, G^`(n) = 1) (solvable G).

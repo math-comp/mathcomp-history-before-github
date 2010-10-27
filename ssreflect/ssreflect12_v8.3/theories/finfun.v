@@ -58,7 +58,6 @@ Notation Local finfun_def :=
 
 Module Type FunFinfunSig.
 Parameter fun_of_fin : forall aT rT, finfun_type aT rT -> aT -> rT.
-Coercion fun_of_fin : finfun_type >-> Funclass.
 Parameter finfun : forall (aT : finType) rT, (aT -> rT) -> {ffun aT -> rT}.
 Axiom fun_of_finE : fun_of_fin = fun_of_fin_def.
 Axiom finfunE : finfun = finfun_def.
@@ -73,6 +72,7 @@ End FunFinfun.
 
 Notation fun_of_fin := FunFinfun.fun_of_fin.
 Notation finfun := FunFinfun.finfun.
+Coercion fun_of_fin : finfun_type >-> Funclass.
 Canonical Structure fun_of_fin_unlock := Unlockable FunFinfun.fun_of_finE.
 Canonical Structure finfun_unlock := Unlockable FunFinfun.finfunE.
 

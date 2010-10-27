@@ -1,22 +1,31 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat fintype finset.
-Require Import groups perm morphisms.
+Require Import fingroup perm morphism.
 
-(**************************************************************************)
-(* Group automorphisms and characteristic subgroups.                      *)
-(* Definitions:                                                           *)
-(* In this file:                                                          *)
-(*  Aut A                == the automorphism group of A.                  *)
-(*  autm (Af:f\in Aut A) == the morphism induced by an element of (Aut A) *)
-(*  perm_in (H1: {in B, injective f}) (H2: f @:B \subset B)               *)
-(*                       == the permutation induced by a                  *)
-(*                             bijective endofunction                     *)
-(*  aut (H1: 'injm f) {H2: f @:G \subset G)                               *)
-(*                       == the element of Aut A induced by a             *)
-(*                             bijective endomorphism of domain G         *)
-(*  conjgm A             == the conjugation automorphism on A             *)
-(*  H \char G            == H is a characteristic subgroup of G           *)
-(**************************************************************************)
+(******************************************************************************)
+(* Group automorphisms and characteristic subgroups.                          *)
+(* Unlike morphisms on a group G, which are functions of type gT -> rT, with  *)
+(* a canonical structure of dependent type {morphim G >-> rT}, automorphisms  *)
+(* are permutations of type {perm gT} contained in Aut G : {set {perm gT}}.   *)
+(* This lets us use the finGroupType of {perm gT}. Note also that while       *)
+(* morphisms on G are undefined outside G, automorphisms have their support   *)
+(* in G, i.e., they are the identity ouside G.                                *)
+(* Definitions:                                                               *)
+(*    Aut G (or [Aut G]) == the automorphism group of G.                      *)
+(*             [Aut G]%G == the group structure for Aut G.                    *)
+(*            autm AutGa == the morphism on G induced by a, given             *)
+(*                          AutGa : a \in Aut G.                              *)
+(*       perm_in injf fA == the permutation with support B in induced by f,   *)
+(*                          given injf : {in A &, injective f} and            *)
+(*                          fA : f @: A \subset A.                            *)
+(*           aut injf fG == the automorphism of G induced by the morphism f,  *)
+(*                          given injf : 'injm f and fG : f @* G \subset G.   *)
+(*    Aut_isom injf sDom == the injective homomorphism that maps Aut G to     *)
+(*                          Aut (f @* G), with f : {morphism D >-> rT} and    *)
+(*                          given injf: 'injm f and sDom : G \subset D.       *)
+(*              conjgm G == the conjugation automorphism on G.                *)
+(*             H \char G == H is a characteristic subgroup of G.              *)
+(******************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -34,30 +43,30 @@ Section Automorphism.
 
 Variable gT : finGroupType.
 Implicit Type A : {set gT}.
-Implicit Types f g : {perm gT}.
+Implicit Types a b : {perm gT}.
 
-Definition Aut A := [set f | perm_on A f && morphic A f].
+Definition Aut A := [set a | perm_on A a && morphic A a].
 
-Lemma Aut_morphic : forall A f, f \in Aut A -> morphic A f.
-Proof. by move=> A f; rewrite inE; case/andP. Qed.
+Lemma Aut_morphic : forall A a, a \in Aut A -> morphic A a.
+Proof. by move=> A a; rewrite inE; case/andP. Qed.
 
-Lemma out_Aut : forall A f x, f \in Aut A -> x \notin A -> f x = x.
-Proof. by move=> A f x; case/setIdP=> Af _; exact: out_perm. Qed.
+Lemma out_Aut : forall A a x, a \in Aut A -> x \notin A -> a x = x.
+Proof. by move=> A a x; case/setIdP=> Aa _; exact: out_perm. Qed.
 
-Lemma eq_Aut : forall A, {in Aut A &, forall f g, {in A, f =1 g} -> f = g}.
+Lemma eq_Aut : forall A, {in Aut A &, forall a b, {in A, a =1 b} -> a = b}.
 Proof.
-move=> A f g Af Ag eqfg; apply/permP=> x.
-by case/orP: (orbN (x \in A)); [apply eqfg | move/out_Aut=> out; rewrite !out].
+move=> A a g Aa Ag eqag; apply/permP=> x.
+by case/orP: (orbN (x \in A)); [apply eqag | move/out_Aut=> out; rewrite !out].
 Qed.
 
 (* The morphism that is represented by a given element of Aut A. *)
 
-Definition autm A f Af := morphm (@Aut_morphic A f Af).
-Lemma autmE : forall A f Af, @autm A f Af = f.
+Definition autm A a (AutAa : a \in Aut A) := morphm (Aut_morphic AutAa).
+Lemma autmE : forall A a (AutAa : a \in Aut A), autm AutAa = a.
 Proof. by []. Qed.
 
-Canonical Structure autm_morphism A f fM :=
-  Eval hnf in [morphism of @autm A f fM].
+Canonical Structure autm_morphism A a aM :=
+  Eval hnf in [morphism of @autm A a aM].
 
 Section AutGroup.
 
@@ -65,43 +74,48 @@ Variable G : {group gT}.
 
 Lemma Aut_group_set : group_set (Aut G).
 Proof.
-apply/group_setP; split=> [|f g].
+apply/group_setP; split=> [|a b].
   by rewrite inE perm_on1; apply/morphicP=> ? *; rewrite !permE.
-rewrite !inE; case/andP=> Gf fM; case/andP=> Gg gM; rewrite perm_onM //=.
-apply/morphicP=> x y Gx Gy; rewrite !permM (morphicP fM) //.
-by rewrite (morphicP gM) ?perm_closed.
+rewrite !inE; case/andP=> Ga aM; case/andP=> Gb bM; rewrite perm_onM //=.
+apply/morphicP=> x y Gx Gy; rewrite !permM (morphicP aM) //.
+by rewrite (morphicP bM) ?perm_closed.
 Qed.
 
 Canonical Structure Aut_group := group Aut_group_set.
 
-Variable (f : {perm gT}) (Af : f \in Aut G).
-Notation fm := (autm Af).
-Notation fmE := (autmE Af).
+Variable (a : {perm gT}) (AutGa : a \in Aut G).
+Notation f := (autm AutGa).
+Notation fE := (autmE AutGa).
 
-Lemma injm_autm : 'injm fm.
+Lemma injm_autm : 'injm f.
 Proof. apply/injmP; apply: in2W; exact: perm_inj. Qed.
 
-Lemma ker_autm : 'ker fm = 1.
-Proof. by case/trivgP: injm_autm. Qed.
+Lemma ker_autm : 'ker f = 1. Proof. by case/trivgP: injm_autm. Qed.
 
-Lemma im_autm : fm @* G = G.
+Lemma im_autm : f @* G = G.
 Proof.
-apply/setP=> x; rewrite morphimEdom (can_imset_pre _ (permK f)) inE.
-by have:= Af; rewrite inE; case/andP; move/perm_closed=> <-; rewrite permKV.
+apply/setP=> x; rewrite morphimEdom (can_imset_pre _ (permK a)) inE.
+by have:= AutGa; rewrite inE; case/andP; move/perm_closed=> <-; rewrite permKV.
 Qed.
+
+Lemma Aut_closed : forall x, x \in G -> a x \in G.
+Proof. by move=> x Gx; rewrite -im_autm; exact: mem_morphim. Qed.
+
 End AutGroup.
 
 Lemma Aut1 : Aut 1 = 1.
 Proof.
-apply/trivgP; apply/subsetP=> s /= As; apply/set1P.
-apply: eq_Aut (As) (group1 _) _ => x; move/set1P=> ->{x}.
-by rewrite -(autmE As) morph1 perm1.
+apply/trivgP; apply/subsetP=> a /= AutGa; apply/set1P.
+apply: eq_Aut (AutGa) (group1 _) _ => x; move/set1P=> ->{x}.
+by rewrite -(autmE AutGa) morph1 perm1.
 Qed.
 
 End Automorphism.
 
 Notation "[ 'Aut' G ]" := (Aut_group G)
   (at level 0, format "[ 'Aut'  G ]") : subgroup_scope.
+Notation "[ 'Aut' G ]" := (Aut G)
+  (at level 0, only parsing) : group_scope.
 
 Prenex Implicits Aut autm.
 
@@ -110,27 +124,27 @@ Prenex Implicits Aut autm.
 
 Section PermIn.
 
-Variables (T : finType) (B : {set T}) (f : T -> T).
+Variables (T : finType) (A : {set T}) (f : T -> T).
 
-Hypotheses (injf : {in B &, injective f}) (sBf : f @: B \subset B).
+Hypotheses (injf : {in A &, injective f}) (sBf : f @: A \subset A).
 
-Lemma perm_in_inj : injective (fun x => if x \in B then f x else x).
+Lemma perm_in_inj : injective (fun x => if x \in A then f x else x).
 Proof.
-move=> x y /=; wlog By: x y / y \in B.
+move=> x y /=; wlog Ay: x y / y \in A.
   by move=> IH eqfxy; case: ifP (eqfxy); [symmetry | case ifP => //]; auto.
-rewrite By; case: ifP => [Bx | nBx def_x]; first exact: injf.
-by case/negP: nBx; rewrite def_x (subsetP sBf) ?mem_imset.
+rewrite Ay; case: ifP => [Ax | nAx def_x]; first exact: injf.
+by case/negP: nAx; rewrite def_x (subsetP sBf) ?mem_imset.
 Qed.
 
 Definition perm_in := perm perm_in_inj.
 
-Lemma perm_in_on : perm_on B perm_in.
+Lemma perm_in_on : perm_on A perm_in.
 Proof.
 by apply/subsetP=> x; rewrite inE /= permE; case ifP => // _; case/eqP.
 Qed.
 
-Lemma perm_inE : {in B, perm_in =1 f}.
-Proof. by move=> x Bx; rewrite /= permE Bx. Qed.
+Lemma perm_inE : {in A, perm_in =1 f}.
+Proof. by move=> x Ax; rewrite /= permE Ax. Qed.
 
 End PermIn.
 
@@ -184,11 +198,84 @@ End MakeAut.
 Implicit Arguments morphim_fixP [gT G f].
 Prenex Implicits aut morphim_fixP.
 
+Section AutIsom.
+
+Variables (gT rT : finGroupType) (G D : {group gT}) (f : {morphism D >-> rT}).
+
+Hypotheses (injf : 'injm f) (sGD : G \subset D).
+Let domG := subsetP sGD.
+
+Lemma Aut_isom_subproof : forall a,
+  {a' | a' \in Aut (f @* G) & a \in Aut G -> {in G, a' \o f =1 f \o a}}.
+Proof.
+move=> a; set Aut_a := autm (subgP (subg [Aut G] a)).
+have aDom: 'dom (f \o Aut_a \o invm injf) = f @* G.
+  rewrite /dom /= morphpre_invm -morphpreIim; congr (f @* _).
+  by rewrite [_ :&: D](setIidPl _) ?injmK ?injm_autm ?im_autm.
+have [af [def_af ker_af _ im_af]] := domP _ aDom.
+have inj_a': 'injm af by rewrite ker_af !injm_comp ?injm_autm ?injm_invm.
+have im_a': af @* (f @* G) = f @* G.
+  by rewrite im_af !morphim_comp morphim_invm // im_autm.
+pose a' := aut inj_a' im_a'; exists a' => [|AutGa x Gx]; first exact: Aut_aut.
+have Dx := domG Gx; rewrite /= [a' _]autE ?mem_morphim //.
+by rewrite def_af /= invmE // autmE subgK.
+Qed.
+
+Definition Aut_isom a := s2val (Aut_isom_subproof a).
+
+Lemma Aut_Aut_isom : forall a, Aut_isom a \in Aut (f @* G).
+Proof. by rewrite /Aut_isom => a; case: (Aut_isom_subproof a). Qed.
+
+Lemma Aut_isomE : forall a,
+   a \in Aut G -> {in G, forall x, Aut_isom a (f x) = f (a x)}.
+Proof. by rewrite /Aut_isom => a; case: (Aut_isom_subproof a). Qed.
+
+Lemma Aut_isomM : {in Aut G &, {morph Aut_isom: x y / x * y}}.
+Proof.
+move=> a b AutGa AutGb; apply: eq_Aut; rewrite ?groupM ?Aut_Aut_isom //.
+move=> fx; case/morphimP=> x Dx Gx ->{fx}.
+by rewrite permM !Aut_isomE ?groupM /= ?permM ?Aut_closed.
+Qed.
+Canonical Structure Aut_isom_morphism := Morphism Aut_isomM.
+
+Lemma injm_Aut_isom : 'injm Aut_isom.
+Proof.
+apply/injmP=> a b AutGa AutGb eq_ab'; apply: (eq_Aut AutGa AutGb) => x Gx.
+by apply: (injmP _ injf); rewrite ?domG ?Aut_closed // -!Aut_isomE //= eq_ab'.
+Qed.
+
+End AutIsom.
+
+Section InjmAut.
+
+Variables (gT rT : finGroupType) (G D : {group gT}) (f : {morphism D >-> rT}).
+
+Hypotheses (injf : 'injm f) (sGD : G \subset D).
+Let domG := subsetP sGD.
+
+Lemma im_Aut_isom : Aut_isom injf sGD @* Aut G = Aut (f @* G).
+apply/eqP; rewrite eqEcard; apply/andP; split.
+  by apply/subsetP=> a'; case/morphimP=> a _ AutGa ->; exact: Aut_Aut_isom.
+have inj_isom' := injm_Aut_isom (injm_invm injf) (morphimS _ sGD).
+rewrite card_injm ?injm_Aut_isom // -(card_injm inj_isom') ?subset_leq_card //.
+apply/subsetP=> a; case/morphimP=> a' _ AutfGa' def_a.
+by rewrite -(morphim_invm injf sGD) def_a Aut_Aut_isom.
+Qed.
+
+Lemma Aut_isomP : isom (Aut G) (Aut (f @* G)) (Aut_isom injf sGD).
+Proof. by apply/isomP; split; [exact: injm_Aut_isom | exact: im_Aut_isom]. Qed.
+
+Lemma injm_Aut : Aut (f @* G) \isog Aut G.
+Proof. by rewrite isog_sym (isom_isog _ _ Aut_isomP). Qed.
+
+End InjmAut.
+
 (* conjugation automorphism *)
 
 Section ConjugationMorphism.
 
 Variable gT : finGroupType.
+Implicit Type A : {set gT}.
 
 Definition conjgm of {set gT} := fun x y : gT => y ^ x.
 
@@ -236,7 +323,7 @@ apply/permP=> y; case Gy: (y \in G); last by rewrite !permE Gy.
 by rewrite perm1 norm_conj_autE // conjgE -cGx ?mulKg.
 Qed.
 
-Lemma Aut_conj_aut : forall A : {set gT}, conj_aut @* A \subset Aut G.
+Lemma Aut_conj_aut : forall A, conj_aut @* A \subset Aut G.
 Proof. move=> A; apply/subsetP=> p; case/imsetP=> x _ ->; exact: Aut_aut. Qed.
 
 End ConjugationMorphism.
@@ -273,7 +360,7 @@ Qed.
 
 (* Characteristic subgroup properties : composition, relational properties *)
 
-Lemma trivg_char : forall G, 1 \char G.
+Lemma char1 : forall G, 1 \char G.
 Proof.
 by move=> G; apply/charP; split=> [|f _ _]; rewrite (sub1G, morphim1).
 Qed.
@@ -334,7 +421,7 @@ Qed.
 
 Lemma charM : forall G H K, H \char G -> K \char G -> H * K \char G.
 Proof.
-move=> G H K chHG chKG; rewrite -norm_mulgenEl ?charMgen //.
+move=> G H K chHG chKG; rewrite -norm_joinEl ?charMgen //.
 by case/andP: (char_normal chKG) => _; apply: subset_trans; case/andP: chHG.
 Qed.
 
@@ -356,5 +443,42 @@ Qed.
 End Characteristicity.
 
 Notation "H \char G" := (characteristic H G) : group_scope.
+
+Section InjmChar.
+
+Variables (aT rT : finGroupType) (D : {group aT}) (f : {morphism D >-> rT}).
+
+Hypothesis injf : 'injm f.
+
+Lemma injm_char : forall G H : {group aT},
+  G \subset D -> H \char G -> f @* H \char f @* G.
+Proof.
+move=> G H sGD; case/charP=> sHG charH.
+apply/charP; split=> [|g injg gfG]; first exact: morphimS.
+have: 'dom (invm injf \o g \o f) = G.
+  by rewrite /dom /= -(morphpreIim g) (setIidPl _) ?injmK // gfG morphimS.
+case/domP=> h [_ ker_h _ im_h].
+have hH: h @* H = H.
+  apply: charH; first by rewrite ker_h !injm_comp ?injm_invm.
+  by rewrite im_h !morphim_comp gfG morphim_invm.
+rewrite /= -{2}hH im_h !morphim_comp morphim_invmE morphpreK //.
+by rewrite (subset_trans _ (morphimS f sGD)) //= -{3}gfG !morphimS.
+Qed.
+
+End InjmChar.
+
+Section CharInjm.
+
+Variables (aT rT : finGroupType) (D : {group aT}) (f : {morphism D >-> rT}).
+Hypothesis injf : 'injm f.
+
+Lemma char_injm : forall G H : {group aT},
+  G \subset D -> H \subset D -> (f @* H \char f @* G) = (H \char G).
+Proof.
+move=> G H sGD sHD; apply/idP/idP; last exact: injm_char.
+by move/(injm_char (injm_invm injf)); rewrite !morphim_invm ?morphimS // => ->.
+Qed.
+
+End CharInjm.
 
 Unset Implicit Arguments.

@@ -1,7 +1,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype paths.
-Require Import finset prime groups action automorphism gfunc pgroups gprod.
-Require Import center commutators gseries nilpotent sylow abelian maximal.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype path.
+Require Import finset prime fingroup automorphism action gproduct gfunctor.
+Require Import center commutator pgroup gseries nilpotent sylow abelian maximal.
 Require Import BGsection1 BGsection5 BGsection6 BGsection7.
 
 (******************************************************************************)
@@ -36,12 +36,12 @@ move=> p M A0 maxM; set F := 'F(M) => p'F; case/pmaxElemP; rewrite /= -/F.
 case/setIdP=> sA0F abelA0 maxA0; have [pA0 cA0A0 _] := and3P abelA0.
 rewrite (p_rank_abelem abelA0) => dimA0_3.
 rewrite (uniq_mmax_subset1 maxM) //= -/F; last by rewrite subIset ?Fitting_sub.
-set A := 'C_F(A0); pose pi := \pi(#|A|).
+set A := 'C_F(A0); pose pi := \pi(A).
 have [sZA sAF]: 'Z(F) \subset A /\ A \subset F by rewrite subsetIl setIS ?centS.
 have nilF: nilpotent F := Fitting_nil _.
 have nilZ := nilpotentS (center_sub _) nilF.
-have piZ: \pi(#|'Z(F)|) = \pi(#|F|) by rewrite pi_center_nilpotent.
-have def_pi: pi = \pi(#|F|).
+have piZ: \pi('Z(F)) = \pi(F) by rewrite pi_center_nilpotent.
+have def_pi: pi = \pi(F).
   by apply/eq_piP=> q; apply/idP/idP; last rewrite -piZ; exact: piSg.
 have def_nZq: forall q, q \in pi -> 'N('Z(F)`q) = M.
   move=> q; rewrite def_pi -piZ -p_part_gt1.
@@ -50,9 +50,9 @@ have def_nZq: forall q, q \in pi -> 'N('Z(F)`q) = M.
   exact: char_trans (pcore_char _ _) (center_char _).
 have sCqM: forall q, q \in pi -> 'C(A`q) \subset M.
   move=> q; move/def_nZq <-; rewrite cents_norm // centS //.
-  rewrite (subset_normal_Hall _ (nilpotent_pcore_Hall _ _)) ?pcore_normal //.
-    by rewrite /psubgroup pcore_pgroup (subset_trans (pcore_sub _ _)).
-  by apply: nilpotentS (Fitting_nil M); exact: subsetIl.
+  rewrite (sub_Hall_pcore (nilpotent_pcore_Hall _ _)) ?pcore_pgroup //.
+    by apply: nilpotentS (Fitting_nil M); exact: subsetIl.
+  exact: subset_trans (pcore_sub _ _) _.
 have sA0A: A0 \subset A by rewrite subsetI sA0F.
 have pi_p: p \in pi.
   by apply: (piSg sA0A); rewrite -[p \in _]logn_gt0 (leq_trans _ dimA0_3).
@@ -97,12 +97,12 @@ have sArXq': forall q r X,
   rewrite -setIA (setIidPr (pcore_sub _ _)) subsetI.
   rewrite (subset_trans (pcore_sub _ _)) //= def_nZq //.
   apply: subset_trans (pcore_Fitting _ _); rewrite -/F.
-  rewrite (subset_normal_Hall _ (nilpotent_pcore_Hall _ nilF)) ?pcore_normal //.
-  rewrite /psubgroup (subset_trans (pcore_sub _ _)) //=.
+  rewrite (sub_Hall_pcore (nilpotent_pcore_Hall _ nilF)) //; last first.
+    exact: subset_trans (pcore_sub _ _) sAF.
   by apply: (pi_pnat (pcore_pgroup _ _)); rewrite !inE eq_sym.
 have cstrA: normed_constrained A.
   split=> [||X Y sAX prX].
-  - by apply/eqP=> A1; rewrite /pi A1 cards1 in pi_p.
+  - by apply/eqP=> A1; rewrite /pi /= A1 cards1 in pi_p.
   - exact: sub_proper_trans (subset_trans sAF (Fitting_sub _)) prM.
   rewrite !inE -/pi -andbA; case/and3P=> sYX pi'Y nYA.
   rewrite -bigcap_p'core subsetI sYX; apply/bigcapsP=> [[q /= _] pi_q].
@@ -159,7 +159,7 @@ apply/subsetP=> H; case/setIdP=> maxH sAH; rewrite inE -val_eqE /=.
 have prH: H \proper G := mmax_proper maxH; have solH := mFT_sol prH.
 pose D := 'F(H); have nilD: nilpotent D := Fitting_nil H.
 have card_pcore_nil := card_Hall (nilpotent_pcore_Hall _ _).
-have piD: \pi(#|D|) = pi.
+have piD: \pi(D) = pi.
   set sigma := \pi(_); have pi_sig: {subset sigma <= pi}.
     move=> q; rewrite -p_part_gt1 -card_pcore_nil // cardG_gt1 /= -/D.
     apply: contraR; move/nbyApi'1=> defAmax.
@@ -239,8 +239,9 @@ have sMp'H: 'O_p^'(M) \subset H.
   rewrite /normal subsetI -pcoreI pcore_sub subIset ?bgFunc_norm //=.
   rewrite pcoreI (subset_trans (pcore_sub _ _)) //= -/F centsC.
   case/dprodP: (nilpotent_pcoreC p nilF) => _ _ /= cFpp' _.
-  apply: subset_trans cFpp'; have hallFp := nilpotent_pcore_Hall p nilF.
-  by rewrite (subset_normal_Hall _ hallFp) ?pcore_normal // /psubgroup sA0F.
+  rewrite centsC (subset_trans cFpp' (centS _)) //.
+  have hallFp := nilpotent_pcore_Hall p nilF.
+  by rewrite (sub_Hall_pcore hallFp).
 have{sHp'Mp' sMp'H} eqHp'Mp': 'O_p^'(H) = 'O_p^'(M).
   apply/eqP; rewrite eqEsubset sHp'Mp'.
   apply: subset_trans (sNZqXq' p H sAH prH).
@@ -284,7 +285,7 @@ have sZA: 'Z(F) \subset A.
 have sCAM: 'C(A) \subset M.
   have nsZM: 'Z(F) <| M := char_normal_trans (center_char _) (Fitting_normal _).
   rewrite -(mmax_normal maxM nsZM); last first.
-    rewrite /= -(setIidPr (center_sub _)) nil_meet_Z ?Fitting_nil //.
+    rewrite /= -(setIidPr (center_sub _)) meet_center_nil ?Fitting_nil //.
     by rewrite -proper1G (proper_sub_trans _ sAF) ?proper1G.
   by rewrite (subset_trans _ (cent_sub _)) ?centS.
 have nsZL_M: 'Z('L(P)) <| M.
@@ -389,8 +390,8 @@ move=> M maxM; have [p _ -> dimF3] := rank_witness 'F(M).
 have prF: 'F(M) \proper G := sub_mmax_proper maxM (Fitting_sub M).
 case/orP: (orbN (p.-group 'F(M))) => [pF | npF].
   have [P sylP] := Sylow_exists p M; have [sPM pP _] := and3P sylP.
-  have dimP3: 'r(P) >= 3.
-    rewrite (rank_pgroup pP) -(p_rank_Sylow sylP) (leq_trans dimF3) //.
+  have dimP3: 'r_p(P) >= 3.
+    rewrite -(p_rank_Sylow sylP) (leq_trans dimF3) //.
     by rewrite p_rankS ?Fitting_sub.
   have [A] := p_rank_3_SCN pP (mFT_odd _) dimP3.
   by case/(SCN_Fitting_Uniqueness maxM pF)=> // _ sAF; exact: uniq_mmaxS.

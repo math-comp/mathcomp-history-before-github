@@ -1,8 +1,15 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype.
-Require Import div bigops prime tuple finset groups morphisms normal.
-Require Import perm automorphism action cyclic pgroups sylow.
-Require Import gseries prim_act.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype tuple.
+Require Import tuple bigop prime finset fingroup morphism perm automorphism.
+Require Import quotient action cyclic pgroup gseries sylow primitive_action.
+
+(******************************************************************************)
+(*  Definitions of the symmetric and alternate groups, and some properties.   *)
+(*     'Sym_T == The symmetric group over type T (which must have a finType   *)
+(*               structure).                                                  *)
+(*            := [set: {perm T}]                                              *)
+(*     'Alt_T == The alternating group over type T.                           *)
+(******************************************************************************)
 
 Import Prenex Implicits.
 Set Implicit Arguments.
@@ -14,12 +21,6 @@ Definition bool_groupMixin := FinGroup.Mixin addbA addFb addbb.
 Canonical Structure bool_baseGroup :=
   Eval hnf in BaseFinGroupType bool bool_groupMixin.
 Canonical Structure boolGroup := Eval hnf in FinGroupType addbb.
-
-(****************************************************************************)
-(*                                                                          *)
-(** Definitions of the symmetric and alternate groups, and some properties. *)
-(*                                                                          *)
-(****************************************************************************)
 
 Section SymAltDef.
 
@@ -281,7 +282,7 @@ apply FF => [|S1]; last by rewrite S1 cards1 in oS.
 apply: char_normal_trans Hnorm; apply: lone_subgroup_char => // Q sQH isoQS.
 rewrite subEproper; apply/norP=> [[nQS _]]; move: nSyl5.
 rewrite (cardsD1 S) (cardsD1 Q) 4!{1}inE nQS !pHallE sQH sSH Hcard20 p_part.
-by rewrite (isog_card isoQS) oS.
+by rewrite (card_isog isoQS) oS.
 Qed.
 
 Module Alt_CP_2. End Alt_CP_2.

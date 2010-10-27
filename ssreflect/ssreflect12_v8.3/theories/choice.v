@@ -234,10 +234,14 @@ Record mixin_of : Type := Mixin {
 
 End Mixin.
 
-Record class_of (T : Type) : Type :=
-  Class { base :> Equality.class_of T; ext2 : mixin_of (seq (seq T)) }.
+Section ClassDef.
 
-Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
+Record class_of T :=
+  Class { base : Equality.class_of T; mixin : mixin_of (seq (seq T)) }.
+Local Coercion base : class_of >->  Equality.class_of.
+
+Structure type := Pack {sort; _ : class_of sort; _ : Type}.
+Local Coercion sort : type >-> Sortclass.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
 Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
 
@@ -280,10 +284,12 @@ Definition PcanMixin := Mixin pcan_xchooseP eq_pcan_xchoose.
 
 End PcanMixin.
 
-Coercion ext0 T m := PcanMixin (ext2 m) (@seq2_ofK T).
+Definition mixin0 T m := PcanMixin (mixin m) (@seq2_ofK T).
+
+Local Coercion mixin0 : class_of >-> mixin_of.
 
 Definition CanMixin2 T sT f f' (fK : @cancel _ (seq (seq sT)) f f') :=
-  PcanMixin (ext2 (class T)) (can_pcan fK).
+  PcanMixin (mixin (class T)) (can_pcan fK).
 
 (* Construct class_of T directly from an encoding seq (seq T) c-> nat.  *)
 (* This is used to build a Choice base class for Countable types.       *)
@@ -299,19 +305,28 @@ Qed.
 
 Definition natMixin T := @PcanMixin nat T (Mixin nat_xchooseP eq_nat_xchoose).
 
-Coercion eqType cT := Equality.Pack (class cT) cT.
+Definition eqType cT := Equality.Pack (class cT) cT.
+
+End ClassDef.
+
+Module Exports.
+Coercion base : class_of >->  Equality.class_of.
+Coercion mixin0 : class_of >-> mixin_of.
+Coercion sort : type >-> Sortclass.
+Coercion eqType : type >-> Equality.type.
+Canonical Structure eqType.
+Notation choiceType := type.
+Notation ChoiceMixin := Mixin.
+Notation ChoiceType T m := (@pack T m _ _ id).
+Notation "[ 'choiceType' 'of' T 'for' cT ]" :=  (@clone T cT _ idfun)
+  (at level 0, format "[ 'choiceType'  'of'  T  'for'  cT ]") : form_scope.
+Notation "[ 'choiceType' 'of' T ]" := (@clone T _ _ id)
+  (at level 0, format "[ 'choiceType'  'of'  T ]") : form_scope.
+
+End Exports.
 
 End Choice.
-
-Notation choiceType := Choice.type.
-Notation ChoiceMixin := Choice.Mixin.
-Notation ChoiceType T m := (@Choice.pack T m _ _ id).
-Canonical Structure Choice.eqType.
-
-Notation "[ 'choiceType' 'of' T 'for' cT ]" :=  (@Choice.clone T cT _ idfun)
-  (at level 0, format "[ 'choiceType'  'of'  T  'for'  cT ]") : form_scope.
-Notation "[ 'choiceType' 'of' T ]" := (@Choice.clone T _ _ id)
-  (at level 0, format "[ 'choiceType'  'of'  T ]") : form_scope.
+Export Choice.Exports.
 
 Section ChoiceTheory.
 
@@ -325,6 +340,15 @@ Proof. exact: Choice.xchooseP. Qed.
 
 Lemma eq_xchoose : Choice.extensional xchoose.
 Proof. exact: Choice.eq_xchoose. Qed.
+
+Lemma sigW : forall P, (exists x, P x) -> {x | P x}.
+Proof. by move=> P exP; exists (xchoose exP); exact: xchooseP. Qed.
+
+Lemma sig2W : forall P Q, (exists2 x, P x & Q x) -> {x | P x & Q x}.
+Proof.
+move=> P Q exPQ; have [|x] := @sigW (predI P Q); last by case/andP; exists x.
+by have [x Px Qx] := exPQ; exists x; exact/andP.
+Qed.
 
 Definition choose P x0 :=
   if insub x0 : {? x | P x} is Some (exist x Px) then
@@ -417,37 +441,50 @@ Definition ChoiceMixin T m :=
 
 Definition EqMixin T m := PcanEqMixin (@pickleK T m).
 
-Record class_of (T : Type) : Type :=
-  Class { base :> Choice.class_of T; ext :> mixin_of T }.
+Section ClassDef.
 
-Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
+Record class_of T := Class { base : Choice.class_of T; mixin : mixin_of T }.
+Local Coercion base : class_of >-> Choice.class_of.
+
+Structure type : Type := Pack {sort : Type; _ : class_of sort; _ : Type}.
+Local Coercion sort : type >-> Sortclass.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
 Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
 
 Definition pack T m :=
   fun bT b & phant_id (Choice.class bT) b => Pack (@Class T b m) T.
 
-Coercion eqType cT := Equality.Pack (class cT) cT.
-Coercion choiceType cT := Choice.Pack (class cT) cT.
+Definition eqType cT := Equality.Pack (class cT) cT.
+Definition choiceType cT := Choice.Pack (class cT) cT.
+
+End ClassDef.
+
+Module Exports.
+Coercion base : class_of >-> Choice.class_of.
+Coercion mixin : class_of >-> mixin_of.
+Coercion sort : type >-> Sortclass.
+Coercion eqType : type >-> Equality.type.
+Canonical Structure eqType.
+Coercion choiceType : type >-> Choice.type.
+Canonical Structure choiceType.
+Notation countType := type.
+Notation CountType T m := (@pack T m _ _ id).
+Notation CountMixin := Mixin.
+Notation CountChoiceMixin := ChoiceMixin.
+Notation "[ 'countType' 'of' T 'for' cT ]" := (@clone T cT _ idfun)
+ (at level 0, format "[ 'countType'  'of'  T  'for'  cT ]") : form_scope.
+Notation "[ 'countType' 'of' T ]" := (@clone T _ _ id)
+  (at level 0, format "[ 'countType'  'of'  T ]") : form_scope.
+
+End Exports.
 
 End Countable.
-
-Notation countType := Countable.type.
-Notation CountType T m := (@Countable.pack T m _ _ id).
-Notation CountMixin := Countable.Mixin.
-Notation CountChoiceMixin := Countable.ChoiceMixin.
-Canonical Structure Countable.eqType.
-Canonical Structure Countable.choiceType.
+Export Countable.Exports.
 
 Definition unpickle T := Countable.unpickle (Countable.class T).
 Definition pickle T := Countable.pickle (Countable.class T).
 Implicit Arguments unpickle [T].
 Prenex Implicits pickle unpickle.
-
-Notation "[ 'countType' 'of' T 'for' cT ]" := (@Countable.clone T cT _ idfun)
- (at level 0, format "[ 'countType'  'of'  T  'for'  cT ]") : form_scope.
-Notation "[ 'countType' 'of' T ]" := (@Countable.clone T _ _ id)
-  (at level 0, format "[ 'countType'  'of'  T ]") : form_scope.
 
 Section CountableTheory.
 

@@ -1,6 +1,8 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype fintype finset groups normal.
-Require Import normal morphisms automorphism bigops gprod.
+Require Import ssreflect ssrbool ssrfun eqtype fintype bigop finset.
+Require Import fingroup morphism automorphism quotient gproduct.
+
+(* DOCUMENTATION TO DO !!! *)
 
 Import GroupScope.
 
@@ -71,28 +73,34 @@ End IdentitySubFunctorDefs.
 
 Module FunctorDefs.
 
+Section ClassDefs.
+
 Implicit Type gT : finGroupType.
 
 Structure bgFunc : Type := BGFunc {
-  Fobj :> obmap;
+  Fobj : obmap;
   (* group preservation *)
   _ : forall gT (G : {group gT}), group_set (@Fobj gT G);
   (* submapping *)
   _ : forall gT (G : {group gT}), @Fobj gT G \subset G;
   (* functoriality condition *)
   _ : acont Fobj}.
+Local Coercion Fobj : bgFunc >-> obmap.
 
 Structure gFunc : Type := GFunc {
-  F_bgFunc :> bgFunc ;
+  F_bgFunc : bgFunc ;
    _ : cont F_bgFunc}.
+Local Coercion F_bgFunc : gFunc >-> bgFunc.
 
 Structure hgFunc : Type := HGFunc {
-  F_hgFunc :> gFunc;
+  F_hgFunc : gFunc;
    _ : hereditary F_hgFunc}.
+Local Coercion F_hgFunc : hgFunc >-> gFunc.
 
 Structure mgFunc : Type := MGFunc {
-  F_mgFunc :> gFunc;
+  F_mgFunc : gFunc;
    _ : monotonous F_mgFunc}.
+Local Coercion F_mgFunc : mgFunc >-> gFunc.
 
 Definition mkBGFunc F rF gF sF := @BGFunc F gF sF rF.
 
@@ -133,8 +141,17 @@ Definition repack_mgFunc F (gF : gFunc) (mgF : mgFunc) :=
     (let: erefl in _ = mgF := obmapEq
       return {type of MGFunc for mgF}
       in @MGFunc gF).
+End ClassDefs.
+
+Module Exports.
+Coercion Fobj : bgFunc >-> obmap.
+Coercion F_bgFunc : gFunc >-> bgFunc.
+Coercion F_hgFunc : hgFunc >-> gFunc.
+Coercion F_mgFunc : mgFunc >-> gFunc.
+End Exports.
 
 End FunctorDefs.
+Export FunctorDefs.Exports.
 
 Notation "[ 'bgFunc' 'of' F ]" :=
   (FunctorDefs.repack_bgFunc (fun bgP => @FunctorDefs.BGFunc F bgP))
@@ -517,10 +534,7 @@ Proof.
 move=> P qP iP gT G PG hT; have : P (coset_groupType G) 1%G.
   move:(trivg_quotient G); move/group_inj=><-.
   by apply:(qP _ _ _ (normal_refl _) PG).
-apply:iP; rewrite isog_symr //; have:= (quotient1 G); move/group_inj=><-.
-apply: (@isog_trans _ _ _ _ (one_group gT)); first by apply: trivial_isog.
-apply: (isom_isog _ _ (quotient_isom (sub1G 'N(G)) (setIidPl (sub1G G)))).
-by apply:subxx.
+by apply: iP; exact: trivial_isog.
 Qed.
 
 Definition cex P := forall gT (G H : {group gT}),
@@ -676,19 +690,19 @@ Lemma cjoinB : cjoin Bs.
 Proof.
 move=> Pb G H BH BG; apply: hClB=> hT C5 HC5 f5.
 rewrite morphim_gen ?subset_gen // gen_subG {1}morphimU subUset.
-rewrite 2!morphimE (setIidPr (mulgen_subl _ _)) (setIidPr (mulgen_subr _ _)).
+rewrite 2!morphimE (setIidPr (joing_subl _ _)) (setIidPr (joing_subr _ _)).
 move/andP=> [Hf5G Hf5H]; apply/trivgP; rewrite gen_subG.
 rewrite sub_morphim_pre ?subset_gen -?sub_morphim_pre ?sub_gen //.
 move: (morphM [morphism of f5 \o (idm G)]).
 move: (morphM [morphism of f5 \o (idm H)]). 
 rewrite {1}[idm_morphism G @*^-1 _]morphpre_idm.
 rewrite {1}[idm_morphism H @*^-1 _]morphpre_idm.
-rewrite (setIidPl (mulgen_subl _ _)) (setIidPl (mulgen_subr _ _)) =>Hf Hg.
+rewrite (setIidPl (joing_subl _ _)) (setIidPl (joing_subr _ _)) =>Hf Hg.
 pose f:= Morphism Hf; pose g:= Morphism Hg.
 move: (hBCl BH HC5) (hBCl BG HC5)=> HtG HtH; move: (HtG g) (HtH f).
 rewrite 2!morphimE 2!imset_comp -!morphimE !morphim_idm ?subxx // morphimU.
-rewrite subUset !morphimE (setIidPr (mulgen_subl _ _)). 
-rewrite (setIidPr (mulgen_subr _ _)); move/(_ Hf5G)=>->; move/(_ Hf5H)=>->.
+rewrite subUset !morphimE (setIidPr (joing_subl _ _)). 
+rewrite (setIidPr (joing_subr _ _)); move/(_ Hf5G)=>->; move/(_ Hf5H)=>->.
 by rewrite subxx.
 Qed.
 
@@ -838,7 +852,7 @@ Hypothesis reflectB : forall gT (G:{group gT}), reflect (Bs G) (Bbool G).
 (***************************************************************************)
 
 Definition T gT (G:{set gT}) := 
-  \big[mulGen/1%G]_(H: {group gT} | (@Bbool _ H) && (H \subset G)) H.
+  \big[joinG/1%G]_(H: {group gT} | (@Bbool _ H) && (H \subset G)) H.
 
 (* The following is trivial, but important to notice *)
 Lemma sub1TG : forall gT (G:{group gT}), 1%G \subset T G.

@@ -1,8 +1,9 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype div.
-Require Import tuple finfun bigops finset groups action perm prim_act.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div choice fintype.
+Require Import tuple finfun bigop finset fingroup action perm primitive_action.
 
-(* Require Import connect. *)
+(*   Application of the Burside formula to count the number of distinct       *)
+(* colorings of the vertices of a square and a cube.                          *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.

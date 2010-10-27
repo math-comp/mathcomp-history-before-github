@@ -1,13 +1,25 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-(***********************************************************************)
-(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-(*                                                                     *)
-(***********************************************************************)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
 Require Import div seq fintype tuple finset.
-Require Import groups action gseries.
+Require Import fingroup action gseries.
 
-(* n-transitive and primitive actions *)
+(******************************************************************************)
+(* n-transitive and primitive actions:                                        *)
+(*  [primitive A, on S | to] <=>                                              *)
+(*       A acts on S in a primitive manner, i.e., A is transitive on S and    *)
+(*       A does not act on any nontrivial partition of S.                     *)
+(*  imprimitivity_system A to S Q <=>                                         *)
+(*       Q is a non-trivial primitivity system for the action of A on S via   *)
+(*       to, i.e., Q is a non-trivial partiiton of S on which A acts.         *)
+(*       to * n == in the %act scope, the total action induced by the total   *)
+(*                 action to on n.-tuples. via n_act to n.                    *)
+(*  n.-dtuple S == the set of n-tuples with distinct values in S.             *)
+(*  [transitive^n A, on S | to] <=>                                           *)
+(*       A is n-transitive on S, i.e., A is transitive on n.-dtuple S         80
+ == the set of n-tuples with distinct values in S.             *)
+
+
+(******************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -18,7 +30,7 @@ Import GroupScope.
 Section PrimitiveDef.
 
 Variables (aT : finGroupType) (sT : finType).
-Variables (A : {set aT}) (to : {action aT &-> sT}) (S : {set sT}).
+Variables (A : {set aT}) (S : {set sT}) (to : {action aT &-> sT}).
 
 Definition imprimitivity_system Q :=
   [&& partition Q S, [acts A, on Q | to^*] & 1 < #|Q| < #|S|].
@@ -28,7 +40,7 @@ Definition primitive :=
 
 End PrimitiveDef.
 
-Notation "[ 'primitive' A , 'on' S | to ]" := (primitive A to S)
+Notation "[ 'primitive' A , 'on' S | to ]" := (primitive A S to)
   (at level 0, format "[ 'primitive'  A ,  'on'  S  |  to ]") : form_scope.
 
 Prenex Implicits imprimitivity_system.
@@ -110,14 +122,14 @@ Proof.
 move=> H primG; case/andP=> sHG nHG; rewrite subsetI sHG.
 have [trG _] := andP primG; have [x Sx defS] := imsetP trG.
 move: primG; rewrite (trans_prim_astab Sx) //; case/maximal_eqP=> _.
-case/(_ ('C_G[x | to] <*> H)%G) => /= [||cxH|]; first exact: mulgen_subl.
-- by rewrite mulgen_subG subsetIl.
-- have{cxH} cxH: H \subset 'C_G[x | to] by rewrite -cxH mulgen_subr.
+case/(_ ('C_G[x | to] <*> H)%G) => /= [||cxH|]; first exact: joing_subl.
+- by rewrite join_subG subsetIl.
+- have{cxH} cxH: H \subset 'C_G[x | to] by rewrite -cxH joing_subr.
   rewrite subsetI sHG /= in cxH; left; apply/subsetP=> a Ha.
   apply/astabP=> y Sy; have [b Gb ->] := atransP2 trG Sx Sy.
   rewrite actCJV [to x (a ^ _)](astab1P _) ?(subsetP cxH) //.
   by rewrite -mem_conjg (normsP nHG).
-rewrite norm_mulgenEl 1?subIset ?nHG //.
+rewrite norm_joinEl 1?subIset ?nHG //.
 by move/(subgroup_transitiveP Sx sHG trG); right.
 Qed.
 

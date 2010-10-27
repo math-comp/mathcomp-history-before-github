@@ -1,10 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-(***********************************************************************)
-(* version 2 License, as specified in the README file.                 *)
-(*                                                                     *)
-(***********************************************************************)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq div choice.
-Require Import fintype prime finset groups morphisms automorphism.
+Require Import fintype prime finset fingroup morphism automorphism.
 
 (***********************************************************************)
 (* This file contains the definitions of:                              *)
@@ -277,6 +273,9 @@ Qed.
 Lemma card_quotient_subnorm : forall A, #|A / H| = #|'N_A(H) : H|.
 Proof. by move=> A; rewrite -(card_imset _ val_inj) val_quotient. Qed.
 
+Lemma leq_quotient : forall A, #|A / H| <= #|A|.
+Proof. exact: leq_morphim. Qed.
+
 Lemma ltn_quotient : forall A,
   H :!=: 1 -> H \subset A -> #|A / H| < #|A|.
 Proof.
@@ -285,6 +284,9 @@ Qed.
 
 Lemma card_quotient : forall A, A \subset 'N(H) -> #|A / H| = #|A : H|.
 Proof. by move=> A nHA; rewrite card_quotient_subnorm (setIidPl nHA). Qed.
+
+Lemma divg_normal : forall G, H <| G -> #|G| %/ #|H| = #|G / H|.
+Proof. by move=> G; case/andP=> sHG nHG; rewrite divgS ?card_quotient. Qed.
 
 (* Specializing all the morphisms lemmas that have different assumptions    *)
 (* (e.g., because 'ker (coset H) = H), or conclusions (e.g., because we use *)
@@ -347,6 +349,13 @@ Proof. exact: morphimU. Qed.
 Lemma quotientI : forall A B, (A :&: B) / H \subset A / H :&: B / H.
 Proof. exact: morphimI. Qed.
 
+Lemma quotientY : forall A B,
+  A \subset 'N(H) -> B \subset 'N(H) -> (A <*> B) / H = (A / H) <*> (B / H).
+Proof. exact: morphimY. Qed.
+
+Lemma quotient_homg : forall A, A \subset 'N(H) -> homg (A / H) A.
+Proof. move=> A; exact: morphim_homg. Qed.
+
 Lemma coset_kerl : forall x y, x \in H -> coset H (x * y) = coset H y.
 Proof.
 move=> x y Hx; case Ny: (y \in 'N(H)); first by rewrite mkerl ?ker_coset.
@@ -378,13 +387,16 @@ Lemma quotientD : forall A B, A / H :\: B / H \subset (A :\: B) / H.
 Proof. exact: morphimD. Qed.
 
 Lemma quotientDG : forall A G, H \subset G -> (A :\: G) / H = A / H :\: G / H.
-Proof. rewrite -{1}ker_coset; exact: morphimDG. Qed.
+Proof. by rewrite -{1}ker_coset; exact: morphimDG. Qed.
 
 Lemma quotientK : forall A, A \subset 'N(H) -> coset H @*^-1 (A / H) = H * A.
-Proof. rewrite -{8}ker_coset; exact: morphimK. Qed.
+Proof. by rewrite -{8}ker_coset; exact: morphimK. Qed.
+
+Lemma quotientYK : forall G, G \subset 'N(H) -> coset H @*^-1 (G / H) = H <*> G.
+Proof. by move=> G nHG; rewrite quotientK ?norm_joinEr. Qed.
 
 Lemma quotientGK : forall G, H <| G -> coset H @*^-1 (G / H) = G.
-Proof. move=> G; case/andP; rewrite -{1}ker_coset; exact: morphimGK. Qed.
+Proof. by move=> G; case/andP; rewrite -{1}ker_coset; exact: morphimGK. Qed.
 
 Lemma cosetpre_set1 : forall x,
   x \in 'N(H) -> coset H @*^-1 [set coset H x] = H :* x.
@@ -402,6 +414,9 @@ Proof. by move=> C; rewrite /quotient morphpreK ?sub_im_coset. Qed.
 (* Variant of morhphim_ker *)
 Lemma trivg_quotient : H / H = 1.
 Proof. by rewrite -{3}ker_coset /quotient morphim_ker. Qed.
+
+Lemma quotientS1 :  forall G, G \subset H -> G / H = 1.
+Proof. by move=> G sGH; apply/trivgP; rewrite -trivg_quotient quotientS. Qed.
 
 Lemma sub_cosetpre : forall M, H \subset coset H @*^-1 M.
 Proof. rewrite -{3}ker_coset; exact: ker_sub_pre. Qed.
@@ -576,34 +591,34 @@ Qed.
 
 End InverseImage.
 
-Lemma quotient_mulg : forall A, A * H / H = A / H.
+Lemma quotientMidr : forall A, A * H / H = A / H.
 Proof.
 move=> A; rewrite [_ /_]morphimMr ?normG //= -!quotientE.
 by rewrite trivg_quotient mulg1.
 Qed.
 
-Lemma quotient_mulgr : forall A, H * A / H = A / H.
+Lemma quotientMidl : forall A, H * A / H = A / H.
 Proof.
 move=> A; rewrite [_ /_]morphimMl ?normG //= -!quotientE.
 by rewrite trivg_quotient mul1g.
 Qed.
 
-Lemma quotient_mulgen : forall G, G \subset 'N(H) -> G <*> H / H = G / H.
+Lemma quotientYidr : forall G, G \subset 'N(H) -> G <*> H / H = G / H.
 Proof.
-move=> G nHG; rewrite -genM_mulgen quotientE morphim_gen -?quotientE.
-  by rewrite quotient_mulg genGid.
-by rewrite -(mulSGid nHG) mulgS ?normG.
+move=> G nHG; rewrite -genM_join quotient_gen ?mul_subG ?normG //.
+by rewrite quotientMidr genGid.
 Qed.
+
+Lemma quotientYidl : forall G, G \subset 'N(H) -> H <*> G / H = G / H.
+Proof. by move=> G nHG; rewrite joingC quotientYidr. Qed.
 
 Section Injective.
 
 Variables (G : {group gT}).
-Hypotheses (nHG : G \subset 'N(H)) (trGH : G :&: H = 1).
+Hypotheses (nHG : G \subset 'N(H)) (tiHG : H :&: G = 1).
 
 Lemma quotient_isom : isom G (G / H) (restrm nHG (coset H)).
-Proof.
-by apply/isomP; rewrite ker_restrm ker_coset morphim_restrm setIid trGH.
-Qed.
+Proof. by apply/isomP; rewrite ker_restrm setIC ker_coset tiHG im_restrm. Qed.
 
 Lemma quotient_isog : isog G (G / H).
 Proof. exact: isom_isog quotient_isom. Qed.
@@ -671,7 +686,7 @@ Proof.
 move=> Abar; rewrite morphpre_factm morphpre_restrm morphpre_comp /=.
 rewrite morphpreIdom -[Abar / _]quotientInorm quotientK ?subsetIr //=.
 rewrite morphpreMl ?morphimS // morphimK // [_ * H]normC ?subIset ?nHG //.
-rewrite -quotientE -mulgA quotient_mulgr /= setIC -morphpreIim setIA.
+rewrite -quotientE -mulgA quotientMidl /= setIC -morphpreIim setIA.
 by rewrite (setIidPl nfHfG) morphpreIim -morphpreMl ?sub1G ?mul1g.
 Qed.
 
@@ -800,13 +815,24 @@ Lemma second_isog : H / (K :&: H) \isog H / K.
 Proof. rewrite setIC -{1 3}(ker_coset K); exact: first_isog_loc. Qed.
 
 Lemma weak_second_isog : H / (K :&: H) \isog H * K / K.
-Proof. rewrite quotient_mulg; exact: second_isog. Qed.
+Proof. rewrite quotientMidr; exact: second_isog. Qed.
 
 End SecondIsomorphism.
 
 Section ThirdIsomorphism.
 
 Variables (gT : finGroupType) (G H K : {group gT}).
+
+Lemma homg_quotientS : forall A : {set gT},
+  A \subset 'N(H) -> A \subset 'N(K) -> H \subset K -> A / K \homg A / H.
+Proof.
+move=> A; rewrite -!(gen_subG A) /=; set L := <<A>> => nHL nKL sKH.
+have sub_ker: 'ker (restrm nHL (coset H)) \subset 'ker (restrm nKL (coset K)).
+  by rewrite !ker_restrm !ker_coset setIS.
+have sAL: A \subset L := subset_gen A; rewrite -(setIidPr sAL).
+rewrite -[_ / H](morphim_restrm nHL) -[_ / K](morphim_restrm nKL) /=.
+by rewrite -(morphim_factm sub_ker (subxx L)) morphim_homg ?morphimS.
+Qed.
 
 Hypothesis sHK : H \subset K.
 Hypothesis snHG : H <| G.
@@ -865,7 +891,7 @@ Lemma card_morphim : forall G, #|f @* G| = #|D :&: G : 'ker f|.
 Proof.
 move=> G; rewrite -morphimIdom -indexgI -card_quotient; last first.
   by rewrite normsI ?normG ?subIset ?ker_norm.
-by apply: esym (isog_card _); rewrite first_isog_loc ?subsetIl.
+by apply: esym (card_isog _); rewrite first_isog_loc ?subsetIl.
 Qed.
 
 Lemma dvdn_morphim :  forall G, #|f @* G| %| #|G|.
@@ -932,6 +958,13 @@ by move/card_morphpre->; rewrite divn_pmul2l ?cardG_gt0.
 Qed.
 
 End CardMorphism.
+
+Lemma card_homg : forall (aT rT : finGroupType),
+                  forall (G : {group aT}) (R : {group rT}),
+  G \homg R -> #|G| %| #|R|.
+Proof.
+by move=> aT rT G R; case/homgP=> f <-; rewrite card_morphim setIid dvdn_indexg.
+Qed.
 
 Section CardCosetpre.
 

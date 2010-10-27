@@ -106,6 +106,13 @@ Qed.
 Lemma mulKn : forall m d, 0 < d -> d * m %/ d = m.
 Proof. by move=> *; rewrite mulnC mulnK. Qed.
 
+Lemma expn_sub : forall p m n,
+   p > 0 -> m >= n -> (p ^ (m - n))%N = p ^ m %/ p ^ n.
+Proof.
+move=> p m n p_gt0 n_le_m.
+by rewrite -{2}(subnK n_le_m) expn_add mulnK // expn_gt0 p_gt0.
+Qed.
+
 Lemma modn1 : forall m, m %% 1 = 0.
 Proof. by move=> m; rewrite modn_def; case: edivnP => ? []. Qed.
 
@@ -268,9 +275,6 @@ Notation "m %| d" := (dvdn m d) : nat_scope.
 
 Definition multn := [rel m d | d %| m].
 
-Lemma dvdn2 : forall n, (2 %| n) = ~~ odd n.
-Proof. by move=> n; rewrite /dvdn modn2; case (odd n). Qed.
-
 Lemma dvdnP : forall d m, reflect (exists k, m = k * d) (d %| m).
 Proof.
 move=> d m; apply: (iffP eqP) => [Hm | [k ->]]; last by rewrite modn_mull.
@@ -312,12 +316,20 @@ by rewrite mulnCA -mulnA 2?dvdn_mull.
 Qed.
 
 Lemma dvdn_trans : forall n d m, d %| n -> n %| m -> d %| m.
-Proof. move=> n d m Hn; move/dvdnP => [n1 ->]; exact: dvdn_mull. Qed.
+Proof. by move=> n d m Hn; move/dvdnP => [n1 ->]; exact: dvdn_mull. Qed.
 
 Lemma dvdn_eq : forall d m, (d %| m) = (m %/ d * d == m).
 Proof.
 move=> d m; apply/eqP/eqP=> [modm0 | <-]; last exact: modn_mull.
 by rewrite {2}(divn_eq m d) modm0 addn0.
+Qed.
+
+Lemma dvdn2 : forall n, (2 %| n) = ~~ odd n.
+Proof. by move=> n; rewrite /dvdn modn2; case (odd n). Qed.
+
+Lemma dvdn_odd : forall m n, m %| n -> odd n -> odd m.
+Proof.
+by move=> m n m_dv_n; apply: contraTT; rewrite -!dvdn2; move/dvdn_trans->.
 Qed.
 
 Lemma divnK : forall d m, d %| m -> m %/ d * d = m.
@@ -496,10 +508,22 @@ Lemma gcdn_addr : forall m n, gcdn m (n + m) = gcdn m n.
 Proof. by move=> m n; rewrite addnC gcdn_addl. Qed.
 
 Lemma gcdn_mull : forall n m, gcdn n (m * n) = n.
-Proof. by move=> n m; rewrite gcdnE modn_mull gcd0n; case defn:n=> /=. Qed.
+Proof. by case=> [|n] m; rewrite gcdnE modn_mull gcd0n. Qed.
 
 Lemma gcdn_mulr : forall n m, gcdn n (n * m) = n.
 Proof. by move=> n m; rewrite mulnC gcdn_mull. Qed.
+
+Lemma dvdn_gcd_idl : forall m n, m %| n -> gcdn m n = m.
+Proof. by move=> m n; case/dvdnP=> q ->; rewrite gcdn_mull. Qed.
+
+Lemma dvdn_gcd_idr : forall m n, n %| m -> gcdn m n = n.
+Proof. move=> m n; rewrite gcdnC; exact: dvdn_gcd_idl. Qed.
+
+Lemma gcdn_exp : forall e m n, gcdn (e ^ m) (e ^ n) = e ^ minn m n.
+Proof.
+rewrite /minn => e m n; case: leqP; [rewrite gcdnC | move/ltnW];
+ by move/(dvdn_exp2l e); exact: dvdn_gcd_idl.
+Qed.
 
 (* Extended gcd, which computes Bezout coefficients. *)
 
@@ -681,6 +705,24 @@ rewrite -(@dvdn_pmul2r (gcdn d1.+1 d2.+1)) ?gcdn_gt0 // muln_lcm_gcd.
 by rewrite muln_gcdr dvdn_gcd {1}mulnC andbC !dvdn_pmul2r.
 Qed.
 
+Lemma lcmn_mull : forall m n, lcmn m (m * n) = m * n.
+Proof. by case=> // m n; rewrite /lcmn gcdn_mulr mulKn. Qed.
+
+Lemma lcmn_mulr : forall m n, lcmn n (m * n) = m * n.
+Proof. by move=> m n; rewrite mulnC lcmn_mull. Qed.
+
+Lemma dvdn_lcm_idr : forall m n, m %| n -> lcmn m n = n.
+Proof. by move=> m n; case/dvdnP=> q ->; rewrite lcmn_mulr. Qed.
+
+Lemma dvdn_lcm_idl : forall m n, n %| m -> lcmn m n = m.
+Proof. move=> m n; rewrite lcmnC; exact: dvdn_lcm_idr. Qed.
+
+Lemma lcmn_exp : forall e m n, lcmn (e ^ m) (e ^ n) = e ^ maxn m n.
+Proof.
+rewrite /maxn => e m n; case: leqP; [rewrite lcmnC | move/ltnW];
+ by move/(dvdn_exp2l e); exact: dvdn_lcm_idr.
+Qed.
+
 (* Coprime factors *)
 
 Definition coprime m n := gcdn m n == 1.
@@ -699,6 +741,20 @@ Proof. by move=> m n; rewrite /coprime gcdn_modl. Qed.
 
 Lemma coprime_modr : forall m n, coprime m (n %% m) = coprime m n.
 Proof. by move=> m n; rewrite /coprime gcdn_modr. Qed.
+
+Lemma coprimeSn : forall n, coprime n.+1 n.
+Proof.
+by move=> n; rewrite -coprime_modl (modn_addr 1) coprime_modl coprime1n.
+Qed.
+
+Lemma coprimenS : forall n, coprime n n.+1.
+Proof. by move=> n; rewrite coprime_sym coprimeSn. Qed.
+
+Lemma coprimePn : forall n, n > 0 -> coprime n.-1 n.
+Proof. by case=> // n _; rewrite coprimenS. Qed.
+
+Lemma coprimenP : forall n, n > 0 -> coprime n n.-1.
+Proof. by case=> // n _; rewrite coprimeSn. Qed.
 
 Lemma coprimeP : forall n m, n > 0 ->
   reflect (exists u, u.1 * n - u.2 * m = 1) (coprime n m).

@@ -132,7 +132,7 @@ Lemma uniq_enumP : forall e, uniq e -> e =i T -> axiom e.
 Proof. by move=> e Ue sT x; rewrite count_uniq_mem ?sT. Qed.
 
 Record mixin_of := Mixin {
-  mixin_base :> Countable.mixin_of T;
+  mixin_base : Countable.mixin_of T;
   mixin_enum : seq T;
   _ : axiom mixin_enum
 }.
@@ -166,19 +166,51 @@ Definition CountMixin := EnumMixin count_enumP.
 
 End Mixins.
 
-Record class_of T := Class {
-  base :> Choice.class_of T;
-  mixin :> mixin_of (Equality.Pack base T)
-}.
-Coercion base2 T (c : class_of T) := Countable.Class c c.
+Section ClassDef.
 
-Structure type : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
+Record class_of T := Class {
+  base : Choice.class_of T;
+  mixin : mixin_of (Equality.Pack base T)
+}.
+Definition base2 T c := Countable.Class (@base T c) (mixin_base (mixin c)).
+Local Coercion base : class_of >-> Choice.class_of.
+
+Structure type : Type := Pack {sort; _ : class_of sort; _ : Type}.
+Local Coercion sort : type >-> Sortclass.
 Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
 Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
 
 Definition pack T b0 (m0 : mixin_of (EqType T b0)) :=
   fun bT b & phant_id (Choice.class bT) b =>
   fun m & phant_id m0 m => Pack (@Class T b m) T.
+
+Definition eqType cT := Equality.Pack (class cT) cT.
+Definition choiceType cT := Choice.Pack (class cT) cT.
+Definition countType cT := Countable.Pack (base2 (class cT)) cT.
+
+End ClassDef.
+
+Module Import Exports.
+Coercion mixin_base : mixin_of >-> Countable.mixin_of.
+Coercion base : class_of >-> Choice.class_of.
+Coercion mixin : class_of >-> mixin_of.
+Coercion base2 : class_of >-> Countable.class_of.
+Coercion sort : type >-> Sortclass.
+Coercion eqType : type >-> Equality.type.
+Canonical Structure eqType.
+Coercion choiceType : type >-> Choice.type.
+Canonical Structure choiceType.
+Coercion countType : type >-> Countable.type.
+Canonical Structure countType.
+Notation finType := type.
+Notation FinType T m := (@pack T _ m _ _ id _ id).
+Notation FinMixin := EnumMixin.
+Notation UniqFinMixin := UniqMixin.
+Notation "[ 'finType' 'of' T 'for' cT ]" := (@clone T cT _ idfun)
+  (at level 0, format "[ 'finType'  'of'  T  'for'  cT ]") : form_scope.
+Notation "[ 'finType' 'of' T ]" := (@clone T _ _ id)
+  (at level 0, format "[ 'finType'  'of'  T ]") : form_scope.
+End Exports.
 
 Module Type EnumSig.
 Parameter enum : forall cT : type, seq cT.
@@ -192,25 +224,16 @@ End EnumDef.
 
 Notation enum := EnumDef.enum.
 
-Coercion eqType cT := Equality.Pack (class cT) cT.
-Coercion choiceType cT := Choice.Pack (class cT) cT.
-Coercion countType cT := Countable.Pack (class cT) cT.
-
 End Finite.
-
-Notation finType := Finite.type.
-Notation FinType T m := (@Finite.pack T _ m _ _ id _ id).
-Notation FinMixin := Finite.EnumMixin.
-Notation UniqFinMixin := Finite.UniqMixin.
-Notation "[ 'finType' 'of' T 'for' cT ]" := (@Finite.clone T cT _ idfun)
-  (at level 0, format "[ 'finType'  'of'  T  'for'  cT ]") : form_scope.
-Notation "[ 'finType' 'of' T ]" := (@Finite.clone T _ _ id)
-  (at level 0, format "[ 'finType'  'of'  T ]") : form_scope.
-Canonical Structure Finite.eqType.
-Canonical Structure Finite.choiceType.
-Canonical Structure Finite.countType.
+Export Finite.Exports.
 
 Canonical Structure finEnum_unlock := Unlockable Finite.EnumDef.enumDef.
+
+(* Workaround for the silly syntactic uniformity restriction on coercions;    *)
+(* this avoids a cross-dependency between finset.v and prime.v for the        *)
+(* definition of the \pi(A) notation.                                         *)
+Definition fin_pred_sort (T : finType) (pT : predType T) := pred_sort pT.
+Identity Coercion pred_sort_of_fin : fin_pred_sort >-> pred_sort.
 
 Definition enum_mem T (mA : mem_pred _) := filter mA (Finite.enum T).
 Notation enum A := (enum_mem (mem A)).
@@ -580,6 +603,9 @@ Qed.
 Lemma proper_irrefl : forall A, ~~ (A \proper A).
 Proof. by move=> A; rewrite properE subxx. Qed.
 
+Lemma properxx : forall A, (A \proper A) = false.
+Proof. by move=> A; rewrite properE subxx. Qed.
+
 Lemma eq_proper : forall A B,
   A =i B -> proper (mem A) =1 proper (mem B).
 Proof.
@@ -680,6 +706,7 @@ Implicit Arguments subsetP [T A B].
 Implicit Arguments subsetPn [T A B].
 Implicit Arguments subset_eqP [T A B].
 Implicit Arguments card_uniqP [T s].
+Implicit Arguments properP [T A B].
 Prenex Implicits pred0P pred0Pn subsetP subsetPn subset_eqP card_uniqP.
 
 (**********************************************************************)
@@ -992,6 +1019,13 @@ move=> A injf; rewrite (cardE A) -(size_map f); apply/card_uniqP.
 rewrite map_inj_in_uniq ?enum_uniq // => x y; rewrite !mem_enum; exact: injf.
 Qed.
 
+Lemma image_injP : forall A,
+  reflect {in A &, injective f} (#|[image f of A]| == #|A|).
+Proof.
+move=> A; apply: (iffP eqP) => [eqfA |]; last exact: card_in_image.
+by apply/dinjectiveP; apply/card_uniqP; rewrite size_map -cardE.
+Qed.
+
 Hypothesis injf : injective f.
 
 Lemma card_image : forall A, #|[image f of A]| = #|A|.
@@ -1007,6 +1041,8 @@ by rewrite [y \in _]image_pre //= andbC.
 Qed.
 
 End CardFunImage.
+
+Implicit Arguments image_injP [T T' f A].
 
 Section FinCancel.
 

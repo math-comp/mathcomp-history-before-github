@@ -3,141 +3,168 @@ Require Import ssreflect.
 Require Import ssrfun.
 Require Export Bool.
 
-(*****************************************************************************)
-(* A theory of boolean predicates and operators. A large part of this file   *)
-(* is concerned with boolean reflection. Definitions and notations:          *)
-(*                                                                           *)
-(* a && b                  == boolean conjection                             *)
-(* a || b                  == boolean disjunction                            *)
-(* a ==> b                 == boolean implication                            *)
-(* ~~ a                    == boolean negation                               *)
-(* a (+) b                 == boolean xor                                    *)
-(* is_true                 == coercion bool >-> Prop                         *)
-(* reflect                 == the reflection inductive predicate             *)
-(* iffP,...                == user-oriented reflection lemmas                *)
-(* elimT                   == coercion reflect >-> Funclass, to apply        *)
-(*                            reflection lemmas to boolean assertions        *)
-(* classically P           == hP : P can be assumed when proving is_true b   *)
-(*                         := forall b : bool, (P -> b) -> b.                *)
-(*                            This is equivalent to ~ (~ P) when P : Prop.   *)
-(* [ /\ P1 , P2 & P3 ]     == iterated logical conjonction, up to 5          *)
-(* [ \/ P1 , P2 | P3 ]     == iterated logical disjonction, up to 4          *)
-(* [&& a, b, c & d]        == iterated, right associated boolean conjunction *)
-(*                            with arbitrary arity                           *)
-(* [|| a, b, c | d]        == iterated, right associated boolean disjunction *)
-(*                            with arbitrary arity                           *)
-(* [==> a, b, c => d]      == iterated, right associated boolean             *)
-(*                            implication with arbitrary arity               *)
-(* and3P,...               == specific reflection lemmas for iterated        *)
-(*                            connectives                                    *)
-(* andTb, orbAC,...        == systematic names for boolean connective        *)
-(*                            properties                                     *)
-(* prop_congr              == a tactic to move a boolean equality from       *)
-(*                            its coerced form in Prop to the equality       *)
-(*                            in bool                                        *)
-(* bool_congr              == resolution tactic for blindly weeding out      *)
-(*                            like terms from boolean equalities (can fail)  *)
-(*                                                                           *)
-(* This file provides a theory of boolean predicates and relations :         *)
-(*   pred T                == T -> bool                                      *)
-(*   simpl_pred T          == type of simplifying (see ssrfun) predicates    *)
-(*   rel T                 == T -> pred T == T -> T -> bool                  *)
-(*   simpl_rel T           == type of simplifying relations                  *)
-(*   predType              == generic predicate interface,                   *)
-(*                             implemented for lists, sets                   *)
-(* If P is a predicate the proposition "x satisfies P" can be written        *)
-(* applicatively as (P x), or using an explicit connective as (x \in P); in  *)
-(* the latter case we say that P is a "collective" predicate. We use A, B    *)
-(* rather than P, Q for collective predicates:                               *)
-(*   x \in A               == x satisfies the (collective) predicate A       *)
-(*   x \notin A            == x doesn't satisfy the (collective) predicate A *)
-(* The pred T type can be used as a generic predicate type for either kind,  *)
-(* but the two kinds of predicates should not be mixed. Explicit values of   *)
-(* pred T (i.e., lamdba terms) should always be used applicatively, while    *)
-(* values of collection types implementing the predType interface, such as   *)
-(* lists or sets should always be used as collective predicates; simpl_pred  *)
-(* predicates are the only type that can be used either way (however, the    *)
-(* x \in A notation will not simplify). We provide the following conversions *)
-(*   SimplPred P           == a (simplifying) applicative equivalent of P    *)
-(*   mem A                 == an applicative equivalent of A:                *)
-(*                            mem A x simplifies to x \in A                  *)
-(* Alternatively one can use the syntax for explicit simplifying predicates  *)
-(* and relations:                                                            *)
-(*                                                                           *)
-(* [pred x | E]            == simplifying (see ssrfun) predicate x => E      *)
-(* [pred x : T | E]        == predicate x => T, with a cast on the argument  *)
-(* [pred : T | E]          == constant predicate E on type T                 *)
-(* [pred x \in A]          == [pred x | x \in A]                             *)
-(* [pred x \in A | E]      == [pred x | (x \in A) && E]                      *)
-(*                                                                           *)
-(* [predU A & B]           == union of two collective predicates             *)
-(* [predI A & B]           == intersection of collective predicates          *)
-(* [predD A & B]           == difference of collective predicates            *)
-(* [predC A]               == complement of a collective predicate           *)
-(* [preim f of A]          == preimage by f of the collective predicate A    *)
-(* predU P Q, ...          == union, etc of applicative predicates           *)
-(* pred0                   == the empty predicate                            *)
-(* predT                   == the total (always true) predicate              *)
-(*                            if T : predArgType, then T coerces to predT    *)
-(* {: T}                   == T cast to predArgType (e.g., {: bool * nat})   *)
-(*                                                                           *)
-(* [rel x y | E]           == simplifying relation                           *)
-(* [rel x y : T | E]       == relation, with a cast on the arguments         *)
-(* [rel x y \in A & B | E] == [rel x y | [&& x \in A, y \in B & E]]          *)
-(* [rel x y \in A & B]     == [rel x y | (x \in A) && (y \in B)]             *)
-(* [rel x y \in A | E]     == [rel x y \in A & A | E]                        *)
-(* [rel x y \in A]         == [rel x y \in A & A]                            *)
-(* relU R S                == union of relations R and S                     *)
-(*                                                                           *)
-(* Some properties of predicates and relations:                              *)
-(* A =i B                  == A and B are extensionally equivalent           *)
-(* {subset A <= B}         == A is a (collective) subpredicate of B          *)
-(* subpred P Q             == P is an (applicative) subpredicate or Q        *)
-(* subrel R S              == R is a subrelation of S                        *)
-(*                                                                           *)
-(* reflexive R             == R (in rel T) is reflexive                      *)
-(* irreflexive R           == R (in rel T) is irreflexive                    *)
-(* symmetric R             == R (in rel T) is symmetric (equational)         *)
-(* pre_symmetric R         == R (in rel T) is symmetric (implication)        *)
-(* antisymmetric R         == R (in rel T) is antisymmetric                  *)
-(* total R                 == R (in rel T) is total                          *)
-(* transitive R            == R (in rel T) is transitive                     *)
-(* left_transitive R       == R is a congruence on the left hand side of R   *)
-(* right_transitive R      == R is a congruence on the right hand side of R  *)
-(*                                                                           *)
-(* Localization of (Prop) predicates; if P1 is convertible to forall x, Qx,  *)
-(* P2 to forall x y, Qxy and P3 to forall x y z, Qxyz :                      *)
-(*                                                                           *)
-(* {for y, P1}            == Qx{y / x}                                       *)
-(* {in d, P1}             == forall x, x \in d -> Qx                         *)
-(* {in d1 & d2, P2}       == forall x y, x \in d1 -> y \in d2 -> Qxy         *)
-(* {in d &, P2}           == forall x y, x \in d -> y \in d -> Qxy           *)
-(* {in d1 & d2 &, Q3}     == forall x y z,                                   *)
-(*                            x \in d1 -> y \in d2 -> z \in d2 -> Qxyz       *)
-(*                            + Variants                                     *)
-(* {in d, bijective f}    == f has a right inverse in d                      *)
-(* {on cd, P1}            == forall x, (f x) \in cd -> Qx                    *)
-(*                            when P1 is also convertible to Pf f            *)
-(* {on cd &, P2}          == forall x y, f x \in cd -> f y \in cd -> Qxy     *)
-(*                            when P2 is also convertible to Pf f            *)
-(* {on cd, P1' & g}       == forall x, (f x) \in cd -> Qx                    *)
-(*                            when P1' is convertible to Pf f and P1' g is   *)
-(*                            convertible to forall x, Qx                    *)
-(* {on cd, bijective f}    == f has a right inverse on cd                    *)
-(*                                                                           *)
-(* This file introduces the following suffix policy for lemma names:         *)
-(* A : associativity                                                         *)
-(* C : commutativity or set complement                                       *)
-(* D : set difference                                                        *)
-(* E : elimination                                                           *)
-(* F : boolean false                                                         *)
-(* I : set intersection                                                      *)
-(* K : cancellation                                                          *)
-(* N : boolean negation                                                      *)
-(* T : boolean truth                                                         *)
-(* U : set union                                                             *)
-(* W : weakening                                                             *)
-(*****************************************************************************)
+(******************************************************************************)
+(* A theory of boolean predicates and operators. A large part of this file is *)
+(* concerned with boolean reflection.                                         *)
+(* Definitions and notations:                                                 *)
+(*               is_true b == the coercion of b : bool to Prop (:= b = true). *)
+(*                            This is just input and displayed as `b''.       *)
+(*             reflect P b == the reflection inductive predicate, asserting   *)
+(*                            that the logical proposition P : prop with the  *)
+(*                            formula b : bool. Lemmas asserting reflect P b  *)
+(*                            are often referred to as "views".               *)
+(*  iffP, appP, sameP, rwP :: lemmas for direct manipulation of reflection    *)
+(*                            views: iffP is used to prove reflection from    *)
+(*                            logical equivalence, appP to compose views, and *)
+(*                            sameP and rwP to perform boolean and setoid     *)
+(*                            rewriting.                                      *)
+(*                   elimT :: coercion reflect >-> Funclass, which allows the *)
+(*                            direct application of `reflect' views to        *)
+(*                            boolean assertions.                             *)
+(*    contra, contraL, ... :: contraposition lemmas.                          *)
+(*           altP my_viewP :: natural alternative for reflection; given       *)
+(*                            lemma myvieP: reflect my_Prop my_formula,       *)
+(*                              have [myP | not_myP] := altP my_viewP.        *)
+(*                            generates two subgoals, in which my_formula has *)
+(*                            been replaced by true and false, resp., with    *)
+(*                            new assumptions myP : my_Prop and               *)
+(*                            not_myP: ~~ my_formula.                         *)
+(*                            Caveat: my_formula must be an APPLICATION, not  *)
+(*                            a variable, constant, let-in, etc. (due to the  *)
+(*                            poor behaviour of dependent index matching).    *)
+(*        boolP my_formula :: boolean disjunction, equivalent to              *)
+(*                            altP (idP my_formula) but circumventing the     *)
+(*                            dependent index capture issue; destructing      *)
+(*                            boolP my_formula generates two subgoals with    *)
+(*                            assumtions my_formula and ~~ myformula. As      *)
+(*                            with altP, my_formula must be an application.   *)
+(*           classically P == hP : P can be assumed when proving is_true b    *)
+(*                         := forall b : bool, (P -> b) -> b.                 *)
+(*                            This is equivalent to ~ (~ P) when P : Prop.    *)
+(*                  a && b == the boolean conjunction of a and b.             *)
+(*                  a || b == then boolean disjunction of a and b.            *)
+(*                 a ==> b == the boolean implication of b by a.              *)
+(*                    ~~ a == the boolean negation of a.                      *)
+(*                 a (+) b == the boolean exclusive or (or sum) of a and b.   *)
+(*     [ /\ P1 , P2 & P3 ] == multiway logical conjunction, up to 5 terms.    *)
+(*     [ \/ P1 , P2 | P3 ] == multiway logical disjunction, up to 4 terms.    *)
+(*        [&& a, b, c & d] == iterated, right associative boolean conjunction *)
+(*                            with arbitrary arity.                           *)
+(*        [|| a, b, c | d] == iterated, right associative boolean disjunction *)
+(*                            with arbitrary arity.                           *)
+(*      [==> a, b, c => d] == iterated, right associative boolean implication *)
+(*                            with arbitrary arity.                           *)
+(*              and3P, ... == specific reflection lemmas for iterated         *)
+(*                            connectives.                                    *)
+(*       andTb, orbAC, ... == systematic names for boolean connective         *)
+(*                            properties (see suffix conventions below).      *)
+(*              prop_congr == a tactic to move a boolean equality from        *)
+(*                            its coerced form in Prop to the equality        *)
+(*                            in bool.                                        *)
+(*              bool_congr == resolution tactic for blindly weeding out       *)
+(*                            like terms from boolean equalities (can fail).  *)
+(* This file provides a theory of boolean predicates and relations:           *)
+(*                  pred T == the type of bool predicates (:= T -> bool).     *)
+(*            simpl_pred T == the type of simplifying bool predicates, using  *)
+(*                            the simpl_fun from ssrfun.v.                    *)
+(*                   rel T == the type of bool relations.                     *)
+(*                         := T -> pred T or T -> T -> bool.                  *)
+(*             simpl_rel T == type of simplifying relations.                  *)
+(*                predType == the generic predicate interface, supported for  *)
+(*                            for lists and sets.                             *)
+(* If P is a predicate the proposition "x satisfies P" can be written         *)
+(* applicatively as (P x), or using an explicit connective as (x \in P); in   *)
+(* the latter case we say that P is a "collective" predicate. We use A, B     *)
+(* rather than P, Q for collective predicates:                                *)
+(*                 x \in A == x satisfies the (collective) predicate A.       *)
+(*              x \notin A == x doesn't satisfy the (collective) predicate A. *)
+(* The pred T type can be used as a generic predicate type for either kind,   *)
+(* but the two kinds of predicates should not be mixed. Explicit values of    *)
+(* pred T (i.e., lamdba terms) should always be used applicatively, while     *)
+(* values of collection types implementing the predType interface, such as    *)
+(* lists or sets should always be used as collective predicates; simpl_pred   *)
+(* predicates are the only type that can be used either way (however, the     *)
+(* x \in A notation will not simplify). We provide the following conversions  *)
+(*             SimplPred P == a (simplifying) applicative equivalent of P.    *)
+(*                   mem A == an applicative equivalent of A:                 *)
+(*                            mem A x simplifies to x \in A.                  *)
+(* Alternatively one can use the syntax for explicit simplifying predicates   *)
+(* and relations (in the following x is bound in E):                          *)
+(*            [pred x | E] == simplifying (see ssrfun) predicate x => E.      *)
+(*        [pred x : T | E] == predicate x => T, with a cast on the argument.  *)
+(*          [pred : T | P] == constant predicate P on type T.                 *)
+(*          [pred x \in A] == [pred x | x \in A].                             *)
+(*      [pred x \in A | E] == [pred x | (x \in A) && E].                      *)
+(*           [predU A & B] == union of two collective predicates A and B.     *)
+(*           [predI A & B] == intersection of collective predicates A and B.  *)
+(*           [predD A & B] == difference of collective predicates A and B.    *)
+(*               [predC A] == complement of the collective predicate A.       *)
+(*          [preim f of A] == preimage under f of the collective predicate A. *)
+(*          predU P Q, ... == union, etc of applicative predicates.           *)
+(*                   pred0 == the empty predicate.                            *)
+(*                   predT == the total (always true) predicate.              *)
+(*                            if T : predArgType, then T coerces to predT.    *)
+(*                   {: T} == T cast to predArgType (e.g., {: bool * nat})    *)
+(* In the following, x and y are bound in E:                                  *)
+(*           [rel x y | E] == simplifying relation x, y => E.                 *)
+(*       [rel x y : T | E] == simplifying relation with arguments cast.       *)
+(* [rel x y \in A & B | E] == [rel x y | [&& x \in A, y \in B & E]].          *)
+(*     [rel x y \in A & B] == [rel x y | (x \in A) && (y \in B)].             *)
+(*     [rel x y \in A | E] == [rel x y \in A & A | E].                        *)
+(*         [rel x y \in A] == [rel x y \in A & A].                            *)
+(*                relU R S == union of relations R and S.                     *)
+(* Some properties of predicates and relations:                               *)
+(*                  A =i B <-> A and B are extensionally equivalent.          *)
+(*         {subset A <= B} <-> A is a (collective) subpredicate of B.         *)
+(*             subpred P Q <-> P is an (applicative) subpredicate or Q.       *)
+(*              subrel R S <-> R is a subrelation of S.                       *)
+(* In the following R is in rel T:                                            *)
+(*             reflexive R <-> R is reflexive.                                *)
+(*           irreflexive R <-> R is irreflexive.                              *)
+(*             symmetric R <-> R (in rel T) is symmetric (equation).          *)
+(*         pre_symmetric R <-> R is symmetric (implication).                  *)
+(*         antisymmetric R <-> R is antisymmetric.                            *)
+(*                 total R <-> R is total.                                    *)
+(*            transitive R <-> R is transitive.                               *)
+(*       left_transitive R <-> R is a congruence on its left hand side.       *)
+(*      right_transitive R <-> R is a congruence on its right hand side.      *)
+(* Localization of (Prop) predicates; if P1 is convertible to forall x, Qx,   *)
+(* P2 to forall x y, Qxy and P3 to forall x y z, Qxyz :                       *)
+(*            {for y, P1} <-> Qx{y / x}.                                      *)
+(*             {in A, P1} <-> forall x, x \in A -> Qx.                        *)
+(*       {in A1 & A2, P2} <-> forall x y, x \in A1 -> y \in A2 -> Qxy.        *)
+(*           {in A &, P2} <-> forall x y, x \in A -> y \in A -> Qxy.          *)
+(*  {in A1 & A2 & A3, Q3} <-> forall x y z,                                   *)
+(*                            x \in A1 -> y \in A2 -> z \in A3 -> Qxyz.       *)
+(*     {in A1 & A2 &, Q3} == {in A1 & A2 & A2, Q3}.                           *)
+(*      {in A1 && A3, Q3} == {in A1 & A1 & A3, Q3}.                           *)
+(*          {in A &&, Q3} == {in A & A & A, Q3}.                              *)
+(*    {in A, bijective f} == f has a right inverse in A.                      *)
+(*             {on C, P1} == forall x, (f x) \in C -> Qx                      *)
+(*                           when P1 is also convertible to Pf f.             *)
+(*           {on C &, P2} == forall x y, f x \in C -> f y \in C -> Qxy        *)
+(*                           when P2 is also convertible to Pf f.             *)
+(*        {on C, P1' & g} == forall x, (f x) \in cd -> Qx                     *)
+(*                           when P1' is convertible to Pf f                  *)
+(*                           and P1' g is convertible to forall x, Qx.        *)
+(*    {on C, bijective f} == f has a right inverse on C.                      *)
+(* This file introduces the following suffix policy for lemma names:          *)
+(*   A -- associativity, as in andbA : associative andb.                      *)
+(*   C -- commutativity, as in andbC : commutative andb,                      *)
+(*        or predicate complement, as in predC.                               *)
+(*   D -- predicate difference, as in predD.                                  *)
+(*   E -- elimination, as in negbEf : ~~ b = false -> b.                      *)
+(*   F -- boolean false, as in andbF : b && false = false.                    *)
+(*   I -- left/right injectivity, as in addbI : right_injective addb,         *)
+(*        or predicate intersection, as in predI.                             *)
+(*   K -- cancellation, as in negbK : involutive negb.                        *)
+(*   N -- boolean negation, as in andbN : a && (~~ a) = false.                *)
+(*   P -- a characteristic property, often a reflection lemma, as in          *)
+(*        andP : reflect (a /\ b) (a && b).                                   *)
+(*   T -- boolean truth, as in andbT: right_id true andb.                     *)
+(*   U -- predicate union, as in predU.                                       *)
+(*   W -- weakening, as in in1W : {in D, forall x, P} -> forall x, P.         *)
+(******************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -284,15 +311,19 @@ Proof. by move=> [] ? <-. Qed.
 
 Lemma contra : forall c b : bool, (c -> b) -> ~~ b -> ~~ c.
 Proof. by do 2!case. Qed.
+Definition contraNN := contra.
 
 Lemma contraL : forall c b : bool, (c -> ~~ b) -> b -> ~~ c.
 Proof. by do 2!case. Qed.
+Definition contraTN := contraL.
 
 Lemma contraR : forall c b : bool, (~~ c -> b) -> ~~ b -> c.
 Proof. by do 2!case. Qed.
+Definition contraNT := contraR.
 
 Lemma contraLR : forall c b : bool, (~~ c -> ~~ b) -> b -> c.
 Proof. by do 2!case. Qed.
+Definition contraTT := contraLR.
 
 Lemma contraT : forall b, (~~ b -> false) -> b. Proof. by case=> // ->. Qed.
 
@@ -301,8 +332,14 @@ Lemma wlog_neg : forall b, (~~ b -> b) -> b. Proof. by case=> // ->. Qed.
 Lemma contraFT : forall c b : bool, (~~ c -> b) -> b = false -> c.
 Proof. by case=> [] [] // ->. Qed.
 
+Lemma contraFN : forall c b : bool, (c -> b) -> b = false -> ~~ c.
+Proof. by case=> [] [] //= ->. Qed.
+
 Lemma contraTF : forall c b : bool, (c -> ~~ b) -> b -> c = false.
 Proof. by case=> [] [] //= ->. Qed.
+
+Lemma contraNF : forall c b : bool, (c -> b) -> ~~ b -> c = false.
+Proof. by case=> [] [] // ->. Qed.
 
 Lemma contraFF : forall c b : bool, (c -> b) -> b = false -> c = false.
 Proof. by case=> [] [] // ->. Qed.
@@ -335,12 +372,15 @@ Section BoolIf.
 
 Variables (A B : Type) (x : A) (f : A -> B) (b : bool) (vT vF : A).
 
-CoInductive if_spec : A -> bool -> Set :=
-  | IfSpecTrue  of  b         : if_spec vT true
-  | IfSpecFalse of  b = false : if_spec vF false.
+CoInductive if_spec (not_b : Prop) : A -> bool -> Set :=
+  | IfSpecTrue  of      b : if_spec not_b vT true
+  | IfSpecFalse of  not_b : if_spec not_b vF false.
 
-Lemma ifP : if_spec (if b then vT else vF) b.
+Lemma ifP : if_spec (b = false) (if b then vT else vF) b.
 Proof. by case def_b: b; constructor. Qed.
+
+Lemma ifPn : if_spec (~~ b) (if b then vT else vF) b.
+Proof. by case def_b: b; constructor; rewrite ?def_b. Qed.
 
 Lemma if_same : (if b then vT else vT) = vT.
 Proof. by case b. Qed.
@@ -454,12 +494,24 @@ Lemma decPcases : if b then P else ~ P. Proof. by case Pb. Qed.
 
 Definition decP : {P} + {~ P}. by case: b decPcases; [left | right]. Defined.
 
-CoInductive exm_spec : bool -> Type :=
-  | ExmTrue of     P : exm_spec true
-  | ExmFalse of ~~ b : exm_spec false.
+Lemma rwP : P <-> b. Proof. by split; [exact: introT | exact: elimT]. Qed.
 
-Lemma exmP : exm_spec b.
+Lemma rwP2 : reflect Q b -> (P <-> Q).
+Proof. by move=> Qb; split=> ?; [exact: appP | apply: elimT; case: Qb]. Qed.
+
+(*  Predicate family to reflect excluded middle in bool.
+    This is the natural definition, but unfortunately it is unusable because
+    matching for dependent type families in Coq is broken -- it tries to match
+    indices in the prefix of the elimination predicate for the type as it is
+    constructing it, which results in the wrong prefix on instances where one
+    of the indices appear multible times, as in the boolP lemma below.
+CoInductive alt_spec : bool -> Type :=
+  | AltTrue of     P : alt_spec true
+  | AltFalse of ~~ b : alt_spec false.
+
+Lemma altP : alt_spec b.
 Proof. by case def_b: b / Pb; constructor; rewrite ?def_b. Qed.
+*)
 
 End Reflect.
 
@@ -472,8 +524,42 @@ Hint View for apply// equivPif|3 xorPif|3 equivPifn|3 xorPifn|3.
 (* Allow the direct application of a reflection lemma to a boolean assertion. *)
 Coercion elimT : reflect >-> Funclass.
 
-(* Classical reasoning becomes directly accessible for any bool subgoal.      *)
+Section BooleanAlternative.
 
+(* Workaround for the op-cited problem: split the Proposition and the boolean *)
+(* formula into a predicate and argument, so that the index matching does not *)
+(* capture (part of) the parameters. However, we can't do this in a generic   *)
+(* proposition, as usually the proposition and predicate have different       *)
+(* syntactic structure (e.g., while in eqP both = and == have the same final  *)
+(* argument, in andP if the last argument of && is b, the last argument of /\ *)
+(* is (is_true b)), so the generic exmP theorem is restricted to propositions *)
+(* in which the formula does not appear. We handle the identity case below    *)
+(* specially, using a Phantom to split the formula in Lemma orbNP.            *)
+(*   Caveat: this kludge cannot possibly be made to work with atomic formulae *)
+(* such as bool variables.                                                    *)
+Variables (T : Type) (bP : T -> bool) (a : T).
+
+CoInductive alt_spec (P : T -> Prop) : bool -> Type :=
+  | AltTrue of      P a : alt_spec P true
+  | AltFalse of ~~ bP a : alt_spec P false.
+
+Lemma altP : forall P, reflect P (bP a) -> alt_spec (fun _ : T => P) (bP a).
+Proof. by move=> P; case bPa: (bP a) /; constructor; rewrite ?bPa. Qed.
+
+(*  This will become the official version when the dependent prefix capture
+    problem gets fixed (see above)
+Lemma boolP : exm_spec b1 b1 b1.
+Proof. by case: b1; constructor. Qed.
+*)
+
+Lemma boolP_proof : phantom bool (bP a) -> alt_spec [eta bP] (bP a).
+Proof. by move=> _; case bPa: (bP a); constructor; rewrite ?bPa. Qed.
+
+End BooleanAlternative.
+
+Notation boolP b := (boolP_proof (@Phantom bool b%B)).
+
+(* Classical reasoning becomes directly accessible for any bool subgoal.      *)
 Definition classically P := forall b : bool, (P -> b) -> b.
 
 Lemma classicP : forall P : Prop, classically P <-> ~ ~ P.
@@ -606,9 +692,6 @@ Proof. by case b1; case b2; constructor; auto; case; auto. Qed.
 Lemma implyP : reflect (b1 -> b2) (b1 ==> b2).
 Proof. by case b1; case b2; constructor; auto. Qed.
 
-Lemma orbNP : exm_spec b1 b1 b1.
-Proof. by case: b1; constructor. Qed.
-
 End ReflectConnectives.
 
 Implicit Arguments idP [b1].
@@ -706,7 +789,13 @@ Proof. by do 2!case. Qed.
 Lemma implybE : forall b1 b2, (b1 ==> b2) = ~~ b1 || b2.
 Proof. by do 2!case. Qed.
 
-Lemma implybN : forall b1 b2, (~~ b1 ==> ~~ b2) = b2 ==> b1.
+Lemma implyNb : forall b1 b2, (~~ b1 ==> b2) = b1 || b2.
+Proof. by do 2!case. Qed.
+
+Lemma implybN : forall b1 b2, (b1 ==> ~~ b2) = (b2 ==> ~~ b1).
+Proof. by do 2!case. Qed.
+
+Lemma implybNN : forall b1 b2, (~~ b1 ==> ~~ b2) = b2 ==> b1.
 Proof. by do 2!case. Qed.
 
 Lemma implyb_idl : forall a b : bool, (~~ a -> b) -> (a ==> b) = b.
@@ -822,11 +911,11 @@ Ltac bool_congr :=
 (* instead, as they do not run the risk of exposing internal coercions. As  *)
 (* a consequence, it is better to explicitly cast a generic applicative     *)
 (* pred T to simpl_pred, using the SimplPred constructor, when it is used   *)
-(* as a collective predicate (see, e.g., Lemma eq_big in bigops.v).         *)
+(* as a collective predicate (see, e.g., Lemma eq_big in bigop.v).          *)
 (*                                                                          *)
-(* We also sometimes "instantiate" the predType structure by defining a     *)
+(*   We also sometimes "instantiate" the predType structure by defining a   *)
 (* coercion to the sort of the predPredType structure.  This works better   *)
-(* for types such as set T that have subtypes that coerce to them, since    *)
+(* for types such as {set T} that have subtypes that coerce to them, since  *)
 (* the same coercion will be inserted by the application of mem. It also    *)
 (* allows us to turn some specific Types (namely, any aT : predArgType)     *)
 (* into predicates, specifically, the total predicate over that type, i.e., *)
@@ -1233,11 +1322,11 @@ Proof. by move=> ? ?. Qed.
 Lemma in3W : {all3 P3} -> {in D1 & D2 & D3, {all3 P3}}.
 Proof. by move=> ? ?. Qed.
 
-Lemma in1A : {in T1, {all1 P1}} -> {all1 P1}.
+Lemma in1T : {in T1, {all1 P1}} -> {all1 P1}.
 Proof. by move=> ? ?; auto. Qed.
-Lemma in2A : {in T1 & T2, {all2 P2}} -> {all2 P2}.
+Lemma in2T : {in T1 & T2, {all2 P2}} -> {all2 P2}.
 Proof. by move=> ? ?; auto. Qed.
-Lemma in3A : {in T1 & T2 & T3, {all3 P3}} -> {all3 P3}.
+Lemma in3T : {in T1 & T2 & T3, {all3 P3}} -> {all3 P3}.
 Proof. by move=> ? ?; auto. Qed.
 
 Lemma sub_in1 : forall Ph : ph {all1 P1},
@@ -1265,12 +1354,12 @@ Lemma on1lW : allQ1l f h -> {on D2, allQ1l f & h}. Proof. by move=> ? ?. Qed.
 
 Lemma on2W : allQ2 f -> {on D2 &, allQ2 f}. Proof. by move=> ? ?. Qed.
 
-Lemma on1A : {on T2, allQ1 f} -> allQ1 f. Proof. by move=> ? ?; auto. Qed.
+Lemma on1T : {on T2, allQ1 f} -> allQ1 f. Proof. by move=> ? ?; auto. Qed.
 
-Lemma on1lA : {on T2, allQ1l f & h} -> allQ1l f h.
+Lemma on1lT : {on T2, allQ1l f & h} -> allQ1l f h.
 Proof. by move=> ? ?; auto. Qed.
 
-Lemma on2A : {on T2 &, allQ2 f} -> allQ2 f.
+Lemma on2T : {on T2 &, allQ2 f} -> allQ2 f.
 Proof. by move=> ? ?; auto. Qed.
 
 Lemma subon1 : forall (Phf : ph (allQ1 f)) (Ph : ph (allQ1 f)),
@@ -1317,10 +1406,10 @@ Proof. by case=> g' fK g'K; exists g' => * ? *; auto. Qed.
 Lemma onW_bij : bijective f -> {on D2, bijective f}.
 Proof. by case=> g' fK g'K; exists g' => * ? *; auto. Qed.
 
-Lemma inA_bij : {in T1, bijective f} -> bijective f.
+Lemma inT_bij : {in T1, bijective f} -> bijective f.
 Proof. by case=> g' fK g'K; exists g' => * ? *; auto. Qed.
 
-Lemma onA_bij : {on T2, bijective f} -> bijective f.
+Lemma onT_bij : {on T2, bijective f} -> bijective f.
 Proof. by case=> g' fK g'K; exists g' => * ? *; auto. Qed.
 
 Lemma sub_in_bij : forall D1' : pred T1,
