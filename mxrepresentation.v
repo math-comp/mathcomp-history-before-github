@@ -242,10 +242,10 @@ Require Import maximal abelian matrix.
 (* quo_repr sHK nHG == the representation of G / H induced by rG, given     *)
 (*                 sHK : H \subset rker rG, and nHG : G \subset 'N(H).      *)
 (* kquo_repr rG == the representation induced on G / rker rG by rG.         *)
-(* map_repr fRM rG == the representation f \o rG, whose module is the       *)
+(* map_repr f rG == the representation f \o rG, whose module is the tensor  *)
 (*                 tensor product of the module of rG with the extension    *)
 (*                 field into which f embeds the base field of rG; here     *)
-(*                 fRM : GRing.morphism f.                                  *)
+(*                 f : {rmorphism F -> Fstar}.                              *)
 (*      'Cl%act == the transitive action of G on the Wedderburn components  *)
 (*                 of H, with nsGH : H <| G, whose existence follows from   *)
 (*                 Clifford's theorem. More precisely this is a total       *)
@@ -612,23 +612,29 @@ by rewrite !row_mul !mul_rV_lin1 /= mxvecK idRe vec_mxK ?row_sub.
 Qed.
 Implicit Arguments mxring_idP [m n R].
 
-Definition cent_mx_fun m n (R : 'A_(m, n)) (B : 'M[F]_n) :=
-  R *m lin_mx (add_lin (mulmxr B) (-%R \o mulmx B)).
+Section CentMxDef.
 
-Lemma cent_mx_linear_proof : forall m n (R : 'A_(m, n)), linear (cent_mx_fun R).
+Variables (m n : nat) (R : 'A[F]_(m, n)).
+
+Definition cent_mx_fun (B : 'M[F]_n) := R *m lin_mx (mulmxr B \- mulmx B).
+
+Lemma cent_mx_fun_is_linear : linear cent_mx_fun.
 Proof.
-move=> m n R a A B; apply/row_matrixP=> i; rewrite linearP row_mul mul_rV_lin.
-rewrite /= {-3}[row]lock row_mul mul_rV_lin -lock row_mul mul_rV_lin -linearP.
-by rewrite -(linearP [linear of add_lin (mulmx _) (-%R \o mulmxr _)]).
+move=> a A B; apply/row_matrixP=> i; rewrite linearP row_mul mul_rV_lin.
+rewrite /= {-3}[row]lock row_mul mul_rV_lin -lock row_mul mul_rV_lin.
+by rewrite -linearP -(linearP [linear of mulmx _ \- mulmxr _]).
 Qed.
-Canonical Structure cent_mx_linear m n (R : 'A_(m, n)) :=
-  LinearFun (cent_mx_linear_proof R).
+Canonical Structure cent_mx_fun_additive := Additive cent_mx_fun_is_linear.
+Canonical Structure cent_mx_fun_linear := Linear cent_mx_fun_is_linear.
 
-Definition cent_mx m n (R : 'A_(m, n)) := kermx (lin_mx (cent_mx_fun R)).
+
+Definition cent_mx := kermx (lin_mx cent_mx_fun).
+
+Definition center_mx := (R :&: cent_mx)%MS.
+
+End CentMxDef.
+
 Local Notation "''C' ( R )" := (cent_mx R) : matrix_set_scope.
-
-Definition center_mx m n (R : 'A_(m, n)) := (R :&: 'C(R))%MS.
-
 Local Notation "''Z' ( R )" := (center_mx R) : matrix_set_scope.
 
 Lemma cent_rowP : forall m n B (R : 'A_(m, n)),
@@ -871,37 +877,32 @@ Local Notation n := n'.+1.
 Variable A : 'M[F]_n.
 Implicit Types p q : {poly F}.
 
-Definition horner_mx := horner_morph scalar_mx A.
-
-Let zRM := @scalar_mxRM F n'.
-Let mx_pRM := map_polyRM zRM.
-
-Lemma horner_mxRM : GRing.morphism horner_mx.
-Proof. apply: horner_morphRM => // a; exact: scalar_mx_comm. Qed.
-Hint Resolve horner_mxRM.
+Definition horner_mx := horner_morph (fun a => scalar_mx_comm a A).
+Canonical Structure horner_mx_additive := [additive of horner_mx].
+Canonical Structure horner_mx_rmorphism := [rmorphism of horner_mx].
 
 Lemma horner_mx_C : forall a, horner_mx a%:P = a%:M.
 Proof. exact: horner_morphC. Qed.
 
 Lemma horner_mx_X : horner_mx 'X = A. Proof. exact: horner_morphX. Qed.
 
-Lemma horner_mx_Xn : forall k, horner_mx 'X^k = A ^+ k.
-Proof. by move=> k; rewrite ringM_exp ?horner_mx_X. Qed.
-
-Lemma horner_mx_scaler : forall a k, horner_mx (a *: 'X^k) = a *: A ^+ k.
+Lemma horner_mxZ : scalable horner_mx.
 Proof.
-move=> a k; rewrite scalerE ringM_mul //.
-by rewrite horner_mx_C horner_mx_Xn [_ * _]mul_scalar_mx.
+move=> a p /=; rewrite -mul_polyC rmorphM /=.
+by rewrite horner_mx_C [_ * _]mul_scalar_mx.
 Qed.
+
+Canonical Structure horner_mx_linear := AddLinear horner_mxZ.
+Canonical Structure horner_mx_lrmorphism := [lrmorphism of horner_mx].
 
 Definition powers_mx d := \matrix_(i < d) mxvec (A ^+ i).
 
 Lemma horner_rVpoly : forall m (u : 'rV_m),
   horner_mx (rVpoly u) = vec_mx (u *m powers_mx m).
 Proof.
-move=> m u; rewrite mulmx_sum_row linear_sum [rVpoly u]poly_def ringM_sum //.
+move=> m u; rewrite mulmx_sum_row linear_sum [rVpoly u]poly_def rmorph_sum.
 apply: eq_bigr => i _.
-by rewrite valK horner_mx_scaler linearZ rowK /= mxvecK.
+by rewrite valK !linearZ rmorphX /= horner_mx_X rowK /= mxvecK.
 Qed.
 
 Fact degree_mxminpoly_proof : exists d, \rank (powers_mx d.+1) <= d.
@@ -931,8 +932,8 @@ Qed.
 
 Lemma horner_mx_mem : forall p, (horner_mx p \in Ad)%MS.
 Proof.
-apply:poly_ind=> [|p a IHp]; first by rewrite ringM_0 // linear0 sub0mx.
-rewrite ringM_add // ringM_mul // horner_mx_C horner_mx_X.
+apply:poly_ind=> [|p a IHp]; first by rewrite rmorph0 // linear0 sub0mx.
+rewrite rmorphD rmorphM /= horner_mx_C horner_mx_X.
 rewrite addrC -scalemx1 linearP /= -(mul_vec_lin (mulmxr_linear _ A)).
 case/submxP: IHp => u ->{i}.
 have: (powers_mx (1 + d) <= Ad)%MS.
@@ -959,7 +960,7 @@ Proof. by move=> B sBAd; rewrite horner_rVpoly mulmxKpV ?mxvecK. Qed.
 Lemma minpoly_mxM : forall B C, (B \in Ad -> C \in Ad -> B * C \in Ad)%MS.
 Proof.
 move=> B C AdB AdC; rewrite -(mx_inv_hornerK AdB) -(mx_inv_hornerK AdC).
-by rewrite -ringM_mul ?horner_mx_mem.
+by rewrite -rmorphM ?horner_mx_mem.
 Qed.
 
 Lemma minpoly_mx_ring : mxring Ad.
@@ -990,7 +991,8 @@ Qed.
 
 Lemma mx_root_minpoly : horner_mx p_A = 0.
 Proof.
-by rewrite ringM_sub // -horner_mx_Xn mx_inv_hornerK ?subrr ?horner_mx_mem.
+rewrite rmorph_sub -horner_mx_X -rmorphX /=.
+by rewrite mx_inv_hornerK ?subrr ?horner_mx_mem.
 Qed.
 
 Lemma horner_rVpolyK : forall u : 'rV_d,
@@ -1002,7 +1004,7 @@ Qed.
 
 Lemma horner_mxK : forall p, mx_inv_horner (horner_mx p) = p %% p_A.
 Proof.
-move=> p; rewrite {1}(divp_mon_spec p mxminpoly_monic) ringM_add ?ringM_mul //.
+move=> p; rewrite {1}(divp_mon_spec p mxminpoly_monic) rmorphD rmorphM /=.
 rewrite mx_root_minpoly mulr0 add0r.
 by rewrite -(poly_rV_K (size_mod_mxminpoly _)) horner_rVpolyK.
 Qed.
@@ -1023,9 +1025,9 @@ rewrite leqNgt -(eqnP minpoly_mx_free); apply/scalP/idP=> [|[[B]]].
   case scalA: (is_scalar_mx A); [by right | left].
   by exists A; rewrite ?scalA // -horner_mx_X horner_mx_mem.
 move/mx_inv_hornerK=> <- nsB; case/is_scalar_mxP=> a defA; case/negP: nsB.
-move:{B}(_ B); apply:poly_ind=> [|p c]; first by rewrite ringM_0 ?mx0_is_scalar.
-rewrite ringM_add ?ringM_mul // horner_mx_X defA; case/is_scalar_mxP=> b ->.
-by rewrite -(ringM_mul zRM) horner_mx_C -scalar_mx_add scalar_mx_is_scalar.
+move:{B}(_ B); apply:poly_ind=> [|p c]; first by rewrite rmorph0 ?mx0_is_scalar.
+rewrite rmorphD ?rmorphM /= horner_mx_X defA; case/is_scalar_mxP=> b ->.
+by rewrite -rmorphM horner_mx_C -scalar_mx_add scalar_mx_is_scalar.
 Qed.
 
 End MinPoly.
@@ -4402,7 +4404,7 @@ rewrite (partition_big_imset (class^~ G)) -/(classes G) /=.
 rewrite linear_sum summx_sub //= => xG GxG; have [x Gx def_xG] := imsetP GxG.
 apply: submx_trans (scalemx_sub (a x) (submx_refl _)).
 rewrite (eq_row_sub (enum_rank_in GxG xG)) // linearZ /= rowK enum_rankK_in //.
-rewrite !linear_sum scaler_sumr {xG GxG}def_xG; apply: eq_big  => [y | xy] /=.
+rewrite !linear_sum {xG GxG}def_xG; apply: eq_big  => [y | xy] /=.
   apply/idP/andP=> [| [_ xGy]]; last by rewrite -(eqP xGy) class_refl.
   by case/imsetP=> z Gz ->; rewrite groupJ // classGidl.
 case/imsetP=> y Gy ->{xy}; rewrite linearZ; congr (_ *: _).
@@ -4979,13 +4981,13 @@ Proof.
 move=> z ozG cGG [|n] rG irrG; first by case/mx_irrP: irrG.
 case: (pickP [pred x \in G | ~~ is_scalar_mx (rG x)]) => [x | scalG].
   case/andP=> Gx nscal_rGx; have: horner_mx (rG x) ('X^#|G| - 1) == 0.
-    rewrite (ringM_sub (horner_mxRM _)) horner_mx_C horner_mx_Xn.
+    rewrite rmorph_sub rmorphX /= horner_mx_C horner_mx_X.
     rewrite -repr_mxX ?inE // ((_ ^+ _ =P 1)%g _) ?repr_mx1 ?subrr //.
     by rewrite -order_dvdn order_dvdG.
   case/idPn; rewrite -mxrank_eq0 -(prod_factors_of_unity ozG).
   elim: #|G| => [|i IHi]; first by rewrite big_nil horner_mx_C mxrank1.
-  rewrite big_nat_recr /= (ringM_mul (horner_mxRM _)) mxrankMfree {IHi}//.
-  rewrite row_free_unit (ringM_sub (horner_mxRM _)) horner_mx_X horner_mx_C.
+  rewrite big_nat_recr /= rmorphM mxrankMfree {IHi}//.
+  rewrite row_free_unit rmorph_sub /= horner_mx_X horner_mx_C.
   rewrite (mx_Schur irrG) ?subr_eq0 //; last first.
     by apply: contra nscal_rGx; move/eqP->; exact: scalar_mx_is_scalar.
   rewrite -memmx_cent_envelop linear_sub.
@@ -5357,7 +5359,8 @@ have{irrG faithfulG cGz1} Urz1: rG z - 1%:M \in unitmx.
   move/implyP: (subsetP faithfulG z).
   by rewrite !inE Gz mul1mx -order_eq1 ozp -implybNN neq_ltn orbC prime_gt1.
 do [case: n n_gt0 => // n' _; set n := n'.+1] in rG Urz1 *.
-have charMp: p \in [char 'M[F]_n] by rewrite (fieldM_char scalar_mxRM).
+have charMp: p \in [char 'M[F]_n].
+  exact: (rmorph_char (scalar_mx_rmorphism _ _)).
 have{Urz1}: GRing.unit (Frobenius_aut charMp (rG z - 1)) by rewrite unitr_exp.
 rewrite (Frobenius_aut_sub_comm _ (commr1 _)) Frobenius_aut_1.
 by rewrite -[_ (rG z)](repr_mxX rG) // -ozp expg_order repr_mx1 subrr unitr0.
@@ -5664,15 +5667,14 @@ End MapVecMatrix.
 
 Section MapLinMatrix.
 
-Variables (aR rR : ringType) (f : aR -> rR).
-Hypothesis fRM : GRing.morphism f.
+Variables (aR rR : ringType) (f : {rmorphism aR -> rR}).
 Local Notation "A ^f" := (map_mx f A) : ring_scope.
 
 Lemma map_lin1_mx : forall m n (g : 'rV_m -> 'rV_n) gf, 
   (forall v, (g v)^f = gf v^f) -> (lin1_mx g)^f = lin1_mx gf.
 Proof.
 move=> m n g gf def_gf; apply/matrixP=> i j.
-by rewrite !mxE -(map_delta_mx fRM) -def_gf mxE.
+by rewrite !mxE -(map_delta_mx f) -def_gf mxE.
 Qed.
 
 Lemma map_lin_mx : forall m1 n1 m2 n2 (g : 'M_(m1, n1) -> 'M_(m2, n2)) gf, 
@@ -5687,8 +5689,7 @@ End MapLinMatrix.
 (* Change of representation field (by tensoring) *)
 Section ChangeOfField.
 
-Variables (aF rF : fieldType) (f : aF -> rF).
-Hypothesis fRM : GRing.morphism f.
+Variables (aF rF : fieldType) (f : {rmorphism aF -> rF}).
 Local Notation "A ^f" := (map_mx f A) : ring_scope.
 
 Section MapMatrixAlgebra.
@@ -5696,7 +5697,7 @@ Section MapMatrixAlgebra.
 Lemma map_mx_is_scalar : forall n (A : 'M_n), is_scalar_mx A^f = is_scalar_mx A.
 Proof.
 move=> n A; rewrite /is_scalar_mx; case: (insub _) => // i.
-by rewrite mxE -(map_scalar_mx fRM) inj_eq //; exact: map_mx_inj.
+by rewrite mxE -(map_scalar_mx f) inj_eq //; exact: map_mx_inj.
 Qed.
 
 Lemma memmx_map : forall m n A (E : 'A_(m, n)), (A^f \in E^f)%MS = (A \in E)%MS.
@@ -5707,7 +5708,7 @@ Lemma map_mulsmx : forall m1 m2 n (E1 : 'A_(m1, n)) (E2 : 'A_(m2, n)),
 Proof.
 rewrite /mulsmx => m1 m2 n E1 E2; pose Rf (P Pf : 'A_n) := (P^f :=: Pf)%MS.
 apply: (big_rel Rf) => [|P1 P1f P2 P2f ? ?|i _]; first by rewrite /Rf map_mx0.
-  by apply: eqmx_trans (map_addsmx fRM _ _) _; exact: adds_eqmx.
+  by apply: eqmx_trans (map_addsmx _ _ _) _; exact: adds_eqmx. 
 apply/eqmxP; rewrite !map_genmx // !genmxE map_mxM //.
 apply/rV_eqP=> u; congr (u <= _ *m _)%MS.
 by apply: map_lin_mx => //= A; rewrite map_mxM // map_vec_mx map_row.
@@ -5729,7 +5730,6 @@ Section MapMinpoly.
 
 Variable n' : nat.
 Local Notation n := n'.+1.
-Let mfRM := map_mxRM fRM n'.
 
 Variable A : 'M[aF]_n.
 Local Notation fp := (map_poly f).
@@ -5737,7 +5737,7 @@ Local Notation fp := (map_poly f).
 Lemma map_powers_mx : forall e, (powers_mx A e)^f = powers_mx A^f e.
 Proof.
 move=> e; apply/row_matrixP=> i; rewrite -map_row !rowK map_mxvec.
-by rewrite (ringM_exp (map_mxRM fRM _)).
+by rewrite rmorphX.
 Qed.
 
 Lemma degree_mxminpoly_map : degree_mxminpoly A^f = degree_mxminpoly A.
@@ -5745,11 +5745,11 @@ Proof. by apply: eq_ex_minn => e; rewrite -map_powers_mx mxrank_map. Qed.
 
 Lemma mxminpoly_map : mxminpoly A^f = fp (mxminpoly A).
 Proof.
-rewrite (ringM_sub (map_polyRM fRM)); congr (_ - _).
-  by rewrite map_polyXn // degree_mxminpoly_map.
-rewrite degree_mxminpoly_map -(ringM_exp (map_mxRM fRM _)).
+rewrite rmorph_sub; congr (_ - _).
+  by rewrite /= map_polyXn degree_mxminpoly_map.
+rewrite degree_mxminpoly_map -rmorphX /=.
 apply/polyP=> i; rewrite coef_map // !coef_rVpoly degree_mxminpoly_map.
-case/insub: i => [i|]; last by rewrite ringM_0.
+case/insub: i => [i|]; last by rewrite rmorph0.
 by rewrite -map_powers_mx -map_pinvmx // -map_mxvec -map_mxM // mxE.
 Qed.
 
@@ -5757,7 +5757,7 @@ Lemma map_horner_mx : forall p, (horner_mx A p)^f = horner_mx A^f (fp p).
 Proof.
 move=> p; rewrite ![horner_mx _ _]horner_poly size_map_poly // map_mx_sum //.
 apply: eq_bigr => i _; rewrite coef_map // map_mxM // map_scalar_mx //.
-by rewrite (ringM_exp mfRM).
+by rewrite rmorphX.
 Qed.
 
 End MapMinpoly.
@@ -5768,12 +5768,12 @@ Section OneRepresentation.
 
 Variables (n : nat) (rG : mx_representation aF G n).
 
-Definition map_repr_mx of GRing.morphism f := fun g => (rG g)^f.
+Definition map_repr_mx g := (rG g)^f.
 
-Lemma map_mx_repr : mx_repr G (map_repr_mx fRM).
+Lemma map_mx_repr : mx_repr G map_repr_mx.
 Proof.
 split=> [|x y Gx Gy]; first by rewrite /map_repr_mx repr_mx1 map_mx1.
-by rewrite -map_mxM // -repr_mxM.
+by rewrite -map_mxM -repr_mxM.
 Qed.
 Canonical Structure map_repr := MxRepresentation map_mx_repr.
 Local Notation rGf := map_repr.
@@ -5790,21 +5790,20 @@ Proof. by apply/row_matrixP=> i; rewrite -map_row !rowK map_mxvec. Qed.
 Lemma map_rfix_mx : forall H, (rfix_mx rG H)^f = rfix_mx rGf H.
 Proof.
 move=> H; rewrite map_kermx //; congr (kermx _); apply: map_lin1_mx => //= v.
-rewrite map_mxvec (map_mxM fRM); congr (mxvec (_ *m _)); last first.
-  by apply: map_lin1_mx => //= u; rewrite (map_mxM fRM) map_vec_mx.
+rewrite map_mxvec map_mxM; congr (mxvec (_ *m _)); last first.
+  by apply: map_lin1_mx => //= u; rewrite map_mxM map_vec_mx.
 apply/row_matrixP=> i.
-by rewrite -map_row !rowK map_mxvec (map_mx_sub fRM) map_mx1.
+by rewrite -map_row !rowK map_mxvec map_mx_sub map_mx1.
 Qed.
 
 Lemma rcent_map : forall A, rcent rGf A^f = rcent rG A.
 Proof.
-move=> A; apply/setP=> x; rewrite !inE -!map_mxM ?inj_eq //; exact: map_mx_inj.
+move=> A; apply/setP=> x; rewrite !inE -!map_mxM inj_eq //; exact: map_mx_inj.
 Qed.
 
 Lemma rstab_map : forall m (U : 'M_(m, n)), rstab rGf U^f = rstab rG U.
 Proof.
-move=> m U; apply/setP=> x; rewrite !inE -!map_mxM ?inj_eq //.
-exact: map_mx_inj.
+move=> m U; apply/setP=> x; rewrite !inE -!map_mxM inj_eq //; exact: map_mx_inj.
 Qed.
 
 Lemma rstabs_map : forall m (U : 'M_(m, n)), rstabs rGf U^f = rstabs rG U.
@@ -5819,8 +5818,8 @@ Proof. by move=> m U; rewrite /mxmodule rstabs_map. Qed.
 Lemma mxsimple_map : forall U : 'M_n, mxsimple rGf U^f -> mxsimple rG U.
 Proof.
 move=> U []; rewrite map_mx_eq0 // mxmodule_map // => modU nzU minU.
-split=> // V modV sVU nzV; rewrite -(map_submx fRM).
-by rewrite (minU V^f) //= ?mxmodule_map // ?map_mx_eq0 // map_submx.
+split=> // V modV sVU nzV; rewrite -(map_submx f).
+by rewrite (minU V^f) //= ?mxmodule_map ?map_mx_eq0 // map_submx.
 Qed.
 
 Lemma mx_irr_map : mx_irreducible rGf -> mx_irreducible rG.
@@ -5848,7 +5847,7 @@ by exists g^f => // [|x Gx]; rewrite ?row_free_map // -!map_mxM ?hom_g.
 Qed.
 
 Lemma map_regular_repr : map_repr (regular_repr aF G) =1 regular_repr rF G.
-Proof. by move=> x; apply/matrixP=> i j; rewrite !mxE ringM_nat. Qed.
+Proof. by move=> x; apply/matrixP=> i j; rewrite !mxE rmorph_nat. Qed.
 
 Lemma map_section_repr : forall n (rG : mx_representation aF G n) rGf U V,
     forall (modU : mxmodule rG U) (modV : mxmodule rG V),
@@ -5859,11 +5858,10 @@ Proof.
 move=> n rG rGf U V modU modV modUf modVf def_rGf; set VU := <<_>>%MS.
 pose valUV := val_factmod (val_submod (1%:M : 'M[aF]_(\rank VU))).
 have sUV_Uf: (valUV^f <= U^f + V^f)%MS.
-  rewrite -map_addsmx // map_submx //.
-  apply: submx_trans (proj_factmodS _ _).
+  rewrite -map_addsmx map_submx; apply: submx_trans (proj_factmodS _ _).
   by rewrite val_factmodS val_submod1 genmxE.
 exists (in_submod _ (in_factmod U^f valUV^f)) => [||x Gx].
-- rewrite !genmxE -(mxrank_map fRM) map_mxM // (map_col_base fRM).
+- rewrite !genmxE -(mxrank_map f) map_mxM map_col_base.
   by case: (\rank (cokermx U)) / (mxrank_map _ _); rewrite map_cokermx.
 - rewrite -kermx_eq0 -submx0; apply/rV_subP=> u.
   rewrite (sameP sub_kermxP eqP) submx0 -val_submod_eq0.
@@ -5872,14 +5870,14 @@ exists (in_submod _ (in_factmod U^f valUV^f)) => [||x Gx].
   rewrite in_factmodE mulmxA -in_factmodE in_factmod_eq0.
   move/(submxMr (in_factmod U 1%:M *m in_submod VU 1%:M)^f).
   rewrite -mulmxA -!map_mxM //; do 2!rewrite mulmxA -in_factmodE -in_submodE.
-  rewrite val_factmodK val_submodK map_mx1 // mulmx1.
+  rewrite val_factmodK val_submodK map_mx1 mulmx1.
   have ->: in_factmod U U = 0 by apply/eqP; rewrite in_factmod_eq0.
-  by rewrite linear0 map_mx0 // eqmx0 submx0.
+  by rewrite linear0 map_mx0 eqmx0 submx0.
 rewrite {1}in_submodE mulmxA -in_submodE -in_submodJ; last first.
   by rewrite genmxE -(in_factmod_addsK _ V^f) submxMr.
 congr (in_submod _ _); rewrite -in_factmodJ // in_factmodE mulmxA -in_factmodE.
-apply/eqP; rewrite -subr_eq0 -def_rGf -!map_mxM // -linear_sub in_factmod_eq0.
-rewrite -map_mx_sub // map_submx // -in_factmod_eq0 linear_sub.
+apply/eqP; rewrite -subr_eq0 -def_rGf -!map_mxM -linear_sub in_factmod_eq0.
+rewrite -map_mx_sub map_submx -in_factmod_eq0 linear_sub.
 rewrite /= (in_factmodJ modU) // val_factmodK.
 rewrite [valUV]val_factmodE mulmxA -val_factmodE val_factmodK.
 rewrite -val_submodE in_submodK ?subrr //.
@@ -5896,7 +5894,7 @@ do 2!move: (mx_subseries_module' _ _) (mx_subseries_module _ _).
 have mf_i: forall V, nth 0^f (mf V) i = (V`_i)^f.
   move=> V; case: (ltnP i (size V)) => [ltiV | leVi]; first exact: nth_map.
   by rewrite !nth_default ?size_map.
-rewrite -(map_mx0 fRM) mf_i (mf_i (0 :: U)) => modUi'f modUif modUi' modUi.
+rewrite -(map_mx0 f) mf_i (mf_i (0 :: U)) => modUi'f modUif modUi' modUi.
 exact: map_section_repr map_regular_repr.
 Qed.
 
@@ -5908,7 +5906,7 @@ have modU0: all ((mxmodule (regular_repr aF G)) #|G|) [::] by [].
 apply: (mx_Schreier modU0 _) => // [[U [compU lastU _]]]; have [modU _]:= compU.
 pose Uf := map ((map_mx f) _ _) U.
 have{lastU} lastUf: (last 0 Uf :=: 1%:M)%MS.
-  by rewrite -(map_mx0 fRM) -(map_mx1 fRM) last_map; exact/map_eqmx.
+  by rewrite -(map_mx0 f) -(map_mx1 f) last_map; exact/map_eqmx.
 have modUf: mx_subseries (regular_repr rF G) Uf.
   rewrite /mx_subseries all_map; apply: etrans modU; apply: eq_all => Ui /=.
   rewrite -mxmodule_map; apply: eq_subset_r => x.
@@ -5921,7 +5919,7 @@ have absUf: forall i, i < size U ->
 have compUf: mx_composition_series (regular_repr rF G) Uf.
   split=> // i; rewrite size_map => ltiU.
   move/max_submodP: (mx_abs_irrW (absUf i ltiU)); apply.
-  rewrite -{2}(map_mx0 fRM) -map_cons !(nth_map 0) ?leqW //.
+  rewrite -{2}(map_mx0 f) -map_cons !(nth_map 0) ?leqW //.
   by rewrite map_submx // ltmxW // (pathP _ (mx_series_lt compU)).
 have [[i ltiU] simUi] := rsim_regular_series irrG compUf lastUf.
 have{simUi} simUi: mx_rsim rG (subseries_repr i modUf).
@@ -5984,7 +5982,7 @@ Lemma gen_addNr : left_inverse gen0 genN genD.
 Proof. by move=> x; apply: val_inj; rewrite /= addNr. Qed.
 
 Definition gen_zmodMixin := ZmodMixin gen_addA gen_addC gen_add0r gen_addNr.
-Canonical Structure  gen_zmodType := Eval hnf in ZmodType FA gen_zmodMixin.
+Canonical Structure gen_zmodType := Eval hnf in ZmodType FA gen_zmodMixin.
 
 Definition pval (x : FA) := rVpoly (val x).
 
@@ -5997,21 +5995,21 @@ Proof.
 move=> x; rewrite /mxval [pval _]poly_rV_K ?horner_mx_C // size_polyC.
 by case: (x != 0).
 Qed.
-Let zRM := @scalar_mxRM F n'.
+Let zRM := scalar_mx_rmorphism F n'.
 
 Lemma mxval_inj : injective mxval.
 Proof. exact: inj_comp (@horner_rVpoly_inj _ _ A) val_inj. Qed.
 
-Let mxRM := horner_mxRM A.
+Let mxRM := horner_mx_rmorphism A.
 
 Lemma mxval0 : mxval 0 = 0.
-Proof. by rewrite /mxval [pval _]rVpoly0 (ringM_0 mxRM). Qed.
+Proof. by rewrite /mxval [pval _]rVpoly0 rmorph0. Qed.
 
 Lemma mxvalN : {morph mxval : x / - x}.
-Proof. by move=> x; rewrite /mxval [pval _]rVpolyN (ringM_opp mxRM). Qed.
+Proof. by move=> x; rewrite /mxval [pval _]rVpolyN rmorphN. Qed.
 
 Lemma mxvalD : {morph mxval : x y / x + y}.
-Proof. by move=> x y; rewrite /mxval [pval _]rVpolyD (ringM_add mxRM). Qed.
+Proof. by move=> x y; rewrite /mxval [pval _]rVpolyD rmorphD. Qed.
 
 Definition mxval_sum := big_morph mxval mxvalD mxval0.
 
@@ -6025,7 +6023,7 @@ Proof. by rewrite /mxval [pval _]poly_rV_K ?size_poly1 // horner_mx_C. Qed.
 Lemma mxval_genM : {morph mxval : x y / genM x y >-> x *m y}.
 Proof.
 move=> x y; rewrite /mxval [pval _]poly_rV_K ?size_mod_mxminpoly //.
-by rewrite -horner_mxK mx_inv_hornerK ?horner_mx_mem // (ringM_mul mxRM).
+by rewrite -horner_mxK mx_inv_hornerK ?horner_mx_mem // (rmorphM mxRM).
 Qed.
 
 Lemma mxval_genV : {morph mxval : x / genV x >-> invmx x}.
@@ -6039,8 +6037,8 @@ have defAd: Ad = Ad *m m B *m m B^-1.
 rewrite -[B^-1]mul1mx -(mul_vec_lin (mulmxr_linear _ _)) defAd submxMr //.
 rewrite -mxval_gen1 (submx_trans (horner_mx_mem _ _)) // {1}defAd.
 rewrite -(geq_leqif (mxrank_leqif_sup _)) ?mxrankM_maxl // -{}defAd.
-apply/row_subP=> i; rewrite row_mul rowK mul_vec_lin /= -horner_mx_Xn.
-by rewrite -[_ *m _](ringM_mul mxRM) horner_mx_mem.
+apply/row_subP=> i; rewrite row_mul rowK mul_vec_lin /= -{2}[A]horner_mx_X.
+by rewrite -rmorphX mulmxE -rmorphM horner_mx_mem.
 Qed.
 
 Lemma gen_mulA : associative genM.
@@ -6071,9 +6069,13 @@ Lemma mxval1 : mxval 1 = 1%:M. Proof. exact: mxval_gen1. Qed.
 Lemma mxvalM : {morph mxval : x y / x * y >-> x *m y}.
 Proof. exact: mxval_genM. Qed.
 
-Lemma mxvalRM : GRing.morphism mxval.
-Proof. by split=> [x y|x y|]; rewrite ?mxvalM ?mxval1 // mxvalD mxvalN. Qed.
-Hint Resolve mxvalRM.
+Lemma mxval_sub : additive mxval.
+Proof. by move=> x y; rewrite mxvalD mxvalN. Qed.
+Canonical Structure mxval_additive := Additive mxval_sub.
+
+Lemma mxval_is_multiplicative : multiplicative mxval.
+Proof. by split; [exact: mxvalM | exact: mxval1]. Qed.
+Canonical Structure mxval_rmorphism := AddRMorphism mxval_is_multiplicative.
 
 Lemma mxval_centg : forall x, centgmx rG (mxval x).
 Proof.
@@ -6109,13 +6111,13 @@ Canonical Structure gen_fieldType :=
 Lemma mxvalV : {morph mxval : x / x^-1 >-> invmx x}.
 Proof. exact: mxval_genV. Qed.
 
-Lemma genRM : GRing.morphism gen.
+Lemma gen_is_rmorphism : rmorphism gen.
 Proof.
-split=> // [x y | x y]; apply: mxval_inj.
-  by rewrite mxvalD mxvalN !genK (ringM_sub zRM).
-by rewrite mxvalM !genK (ringM_mul zRM).
+split=> [x y|]; first by apply: mxval_inj; rewrite genK !rmorph_sub /= !genK.
+by split=> // x y; apply: mxval_inj; rewrite genK !rmorphM /= !genK.
 Qed.
-Hint Resolve genRM.
+Canonical Structure gen_additive := Additive gen_is_rmorphism.
+Canonical Structure gen_rmorphism := RMorphism gen_is_rmorphism.
 
 (* The generated field contains a root of the minimal polynomial (in some  *)
 (* cases we want to use the construction solely for that purpose).         *)
@@ -6129,19 +6131,20 @@ by rewrite mx_inv_hornerK ?horner_mx_mem // horner_mx_X.
 Qed.
 
 Lemma mxval_grootX : forall k, mxval (groot ^+ k) = A ^+ k.
-Proof. by move=> k; rewrite ringM_exp // mxval_groot. Qed.
+Proof. by move=> k; rewrite rmorphX /= mxval_groot. Qed.
 
 Lemma map_mxminpoly_groot : (map_poly gen pA).[groot] = 0.
-Proof.
-apply: mxval_inj; rewrite -(horner_map mxvalRM) mxval_groot.
-rewrite mxval0 -(mx_root_minpoly A); congr ((_ : {poly _}).[A]).
-by apply/polyP=> i; rewrite 3?coef_map ?genK.
+Proof. (* The [_ groot] prevents divergence of simpl. *)
+apply: mxval_inj; rewrite -horner_map [_ groot]/= mxval_groot mxval0.
+rewrite -(mx_root_minpoly A); congr ((_ : {poly _}).[A]).
+by apply/polyP=> i; rewrite 3!coef_map; exact: genK.
 Qed.
 
 (* Plugging the extension morphism gen into the ext_repr construction   *)
 (* yields a (reducible) tensored representation.                           *)
 
-Lemma non_linear_gen_reducible : d > 1 -> mxnonsimple (map_repr genRM rG) 1%:M.
+Lemma non_linear_gen_reducible :
+  d > 1 -> mxnonsimple (map_repr gen_rmorphism rG) 1%:M.
 Proof.
 rewrite ltnNge mxminpoly_linear_is_scalar => Anscal.
 pose Af := map_mx gen A; exists (kermx (Af - groot%:M)).
@@ -6150,7 +6153,7 @@ rewrite submx1 kermx_centg_module /=; last first.
   by rewrite -!map_mxM 1?(centgmxP cGA).
 rewrite andbC mxrank_ker -subn_gt0 mxrank1 subKn ?rank_leq_row // lt0n.
 rewrite mxrank_eq0 subr_eq0; case: eqP => [defAf | _].
-  rewrite -(map_mx_is_scalar genRM) -/Af in Anscal.
+  rewrite -(map_mx_is_scalar gen_rmorphism) -/Af in Anscal.
   by case/is_scalar_mxP: Anscal; exists groot.
 rewrite -mxrank_eq0 mxrank_ker subn_eq0 row_leq_rank.
 apply/row_freeP=> [[XA' XAK]].
@@ -6162,8 +6165,7 @@ have q_nz: q != 0.
   by rewrite size_mxminpoly mul0r size_poly0.
 have qAf0: horner_mx Af q = 0.
   rewrite -[_ q]mulr1 -[1]XAK mulrA -{2}(horner_mx_X Af) -(horner_mx_C Af).
-  rewrite -(ringM_sub (horner_mxRM Af)) -(ringM_mul (horner_mxRM Af)) -def_pAf.
-  by rewrite mx_root_minpoly mul0r.
+  by rewrite -rmorph_sub -rmorphM -def_pAf /= mx_root_minpoly mul0r.
 have{qAf0} := size_dvdp q_nz (mxminpoly_min qAf0); rewrite def_pAf.
 by rewrite size_mul_monic ?monic_factor // seq_factor addn2 ltnn.
 Qed.
@@ -6237,7 +6239,7 @@ rewrite mxval1 mulmx1 => Bx'j.
 rewrite (submx_trans Bx'j) in nBj => {nBj Bx'j} //; apply/row_subP.
 case/mxvec_indexP=> i k; rewrite row_mul rowK mxvecE mxE rowE -mulmxA.
 have ->: A ^+ k *m mxval x^-1 = mxval (groot ^+ k / x).
-  by rewrite mxvalM (ringM_exp mxvalRM) mxval_groot.
+  by rewrite mxvalM rmorphX /= mxval_groot.
 rewrite [mxval _]horner_rVpoly; move: {k u x}(val _) => u.
 rewrite (mulmx_sum_row u) !linear_sum summx_sub //= => k _.
 rewrite !linearZ scalemx_sub //= rowK mxvecK -rowE.
@@ -6725,74 +6727,71 @@ Implicit Type F : fieldType.
 Import MatrixGenField.
 
 Lemma group_splitting_field_exists : forall gT (G : {group gT}) F,
-  classically {Fs : fieldType | group_splitting_field Fs G
-                              & exists f : F -> Fs, GRing.morphism f}.
+  classically {Fs : fieldType & {rmorphism F -> Fs}
+                              & group_splitting_field Fs G}.
 Proof.
 move=> gT G F0 [] // nosplit; pose nG := #|G|; pose aG F := regular_repr F G.
 pose m := nG.+1; pose F := F0; pose U : seq 'M[F]_nG := [::].
 suffices: size U + m <= nG by rewrite ltnn.
 have: mx_subseries (aG F) U /\ path ltmx 0 U by [].
-pose f : F0 -> F := id; have: GRing.morphism f by [].
-elim: m F U f => [|m IHm] F U f fM [modU ltU].
+pose f : {rmorphism F0 -> F} := [rmorphism of idfun].
+elim: m F U f => [|m IHm] F U f [modU ltU].
   by rewrite addn0 (leq_trans (max_size_mx_series ltU)) ?rank_leq_row.
 rewrite addnS ltnNge -implybF; apply/implyP=> le_nG_Um; apply nosplit.
-exists F; last by [exists f]; case=> [|n] rG irrG; first by case/mx_irrP: irrG.
+exists F => //; case=> [|n] rG irrG; first by case/mx_irrP: irrG.
 apply/idPn=> nabsG; pose cG := ('C(enveloping_algebra_mx rG))%MS.
 have{nabsG} [A]: exists2 A, (A \in cG)%MS & ~~ is_scalar_mx A.
   apply/has_non_scalar_mxP; rewrite ?scalar_mx_cent // ltnNge.
   by apply: contra nabsG; exact: cent_mx_scalar_abs_irr.
 rewrite {cG}memmx_cent_envelop -mxminpoly_linear_is_scalar -ltnNge => cGA.
 move/(non_linear_gen_reducible irrG cGA); set F' := gen_fieldType _ _.
-move: (gen _ _ : F -> F') (genRM _ _) => f' f'M.
-move: {A cGA}F' f' {f'M}(f'M : GRing.morphism f') => F' f' f'M.
+move: F' (gen_rmorphism _ _ : {rmorphism F -> F'}) => F' f'.
 set rG' := map_repr _ rG => irrG'; case: notF.
 pose U' := map (fun Ui => map_mx f' Ui) U.
 have modU': mx_subseries (aG F') U'.
   apply: etrans modU; rewrite /mx_subseries all_map; apply: eq_all => Ui.
-  rewrite -(mxmodule_map f'M); apply: eq_subset_r => x.
+  rewrite -(mxmodule_map f'); apply: eq_subset_r => x.
   by rewrite !inE map_regular_repr.
 apply: (mx_Schreier modU ltU) => [[V [compV lastV sUV]]].
 have{lastV} [] := rsim_regular_series irrG compV lastV.
 have{sUV} defV: V = U.
   apply/eqP; rewrite eq_sym -(geq_leqif (size_subseq_leqif sUV)).
   rewrite -(leq_add2r m); apply: leq_trans le_nG_Um.
-  by apply: IHm fM _; rewrite (mx_series_lt compV); case compV.
+  by apply: IHm f _; rewrite (mx_series_lt compV); case compV.
 rewrite {V}defV in compV * => i rsimVi.
 apply: (mx_Schreier modU') => [|[V' [compV' _ sUV']]].
-  rewrite {modU' compV modU i le_nG_Um rsimVi}/U' -(map_mx0 f'M).
+  rewrite {modU' compV modU i le_nG_Um rsimVi}/U' -(map_mx0 f').
   by apply: etrans ltU; elim: U 0 => //= Ui U IHU Ui'; rewrite IHU map_ltmx.
 have{sUV'} defV': V' = U'; last rewrite {V'}defV' in compV'.
   apply/eqP; rewrite eq_sym -(geq_leqif (size_subseq_leqif sUV')) size_map.
   rewrite -(leq_add2r m); apply: leq_trans le_nG_Um.
-  apply: IHm (comp_ringM f'M fM) _.
+  apply: IHm [rmorphism of f' \o f] _.
   by rewrite (mx_series_lt compV'); case compV'.
 suffices{irrG'}: mx_irreducible rG' by case/mxsimpleP=> _ _ [].
 have ltiU': i < size U' by rewrite size_map.
 apply: mx_rsim_irr (mx_rsim_sym _ ) (mx_series_repr_irr compV' ltiU').
-apply: mx_rsim_trans (mx_rsim_map f'M rsimVi) _; exact: map_regular_subseries.
+apply: mx_rsim_trans (mx_rsim_map f' rsimVi) _; exact: map_regular_subseries.
 Qed.
 
 Lemma group_closure_field_exists : forall gT F,
-  classically {Fs : fieldType | group_closure_field Fs gT
-                              & exists f : F -> Fs, GRing.morphism f}.
+  classically {Fs : fieldType & {rmorphism F -> Fs}
+                              & group_closure_field Fs gT}.
 Proof.
 move=> gT F; set n := #|{group gT}|.
-suffices: classically {Fs : fieldType
-   | forall G : {group gT}, enum_rank G < n -> group_splitting_field Fs G
-   & exists f : F -> Fs, GRing.morphism f}.
-- apply: classic_bind => [[Fs splitFs morphFs]] _ -> //; exists Fs => // G.
-  exact: splitFs.
+suffices: classically {Fs : fieldType & {rmorphism F -> Fs}
+   & forall G : {group gT}, enum_rank G < n -> group_splitting_field Fs G}.
+- apply: classic_bind => [[Fs f splitFs]] _ -> //.
+  by exists Fs => // G; exact: splitFs.
 elim: (n) => [|i IHi]; first by move=> _ -> //; exists F => //; exists id.
-apply: classic_bind IHi => [[F' splitF' [f fM]]].
+apply: classic_bind IHi => [[F' f splitF']].
 case: (ltnP i n) => [lt_i_n | le_n_i]; last first.
-  move=> _ -> //; exists F' => [G _ | ]; last by exists f.
-  apply: splitF'; exact: leq_trans le_n_i.
-  have:= @group_splitting_field_exists _ (enum_val (Ordinal lt_i_n)) F'.
-apply: classic_bind => [[Fs splitFs [f' f'M]]] _ -> //.
-exists Fs => [G | ]; last by exists (f' \o f); exact: comp_ringM.
+  move=> _ -> //; exists F' => // G _; apply: splitF'; exact: leq_trans le_n_i.
+have:= @group_splitting_field_exists _ (enum_val (Ordinal lt_i_n)) F'.
+apply: classic_bind => [[Fs f' splitFs]] _ -> //.
+exists Fs => [|G]; first exact: [rmorphism of (f' \o f)].
 rewrite ltnS leq_eqVlt -{1}[i]/(val (Ordinal lt_i_n)) val_eqE.
 case/predU1P=> [defG | ltGi]; first by rewrite -[G]enum_rankK defG.
-by apply: (extend_group_splitting_field f'M); exact: splitF'.
+by apply: (extend_group_splitting_field f'); exact: splitF'.
 Qed.
 
 End BuildSplittingField.
@@ -7272,7 +7271,7 @@ rewrite /abelem_mx_fun; case=> x /=; move/(subsetP nEG)=> Nx /= m u v.
 rewrite rVabelemD rVabelemZ conjMg conjXg.
 by rewrite abelem_rV_M ?abelem_rV_X ?groupX ?memJ_norm // natr_Zp.
 Qed.
-Canonical Structure abelem_mx_linear g := LinearFun (abelem_mx_linear_proof g).
+Canonical Structure abelem_mx_linear g := Linear (abelem_mx_linear_proof g).
 
 Let rVabelemJmx : forall v x, x \in G -> rV_E (v *m r x) = (rV_E v) ^ x.
 Proof.

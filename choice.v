@@ -234,20 +234,6 @@ Record mixin_of : Type := Mixin {
 
 End Mixin.
 
-Section ClassDef.
-
-Record class_of T :=
-  Class { base : Equality.class_of T; mixin : mixin_of (seq (seq T)) }.
-Local Coercion base : class_of >->  Equality.class_of.
-
-Structure type := Pack {sort; _ : class_of sort; _ : Type}.
-Local Coercion sort : type >-> Sortclass.
-Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
-
-Definition pack T m :=
-  fun b bT & phant_id (Equality.class bT) b => Pack (@Class T b m) T.
-
 Section PcanMixin.
 
 Variables (T sT : Type) (m : mixin_of T) (f : sT -> T) (f' : T -> option sT).
@@ -284,16 +270,6 @@ Definition PcanMixin := Mixin pcan_xchooseP eq_pcan_xchoose.
 
 End PcanMixin.
 
-Definition mixin0 T m := PcanMixin (mixin m) (@seq2_ofK T).
-
-Local Coercion mixin0 : class_of >-> mixin_of.
-
-Definition CanMixin2 T sT f f' (fK : @cancel _ (seq (seq sT)) f f') :=
-  PcanMixin (mixin (class T)) (can_pcan fK).
-
-(* Construct class_of T directly from an encoding seq (seq T) c-> nat.  *)
-(* This is used to build a Choice base class for Countable types.       *)
-
 Lemma nat_xchooseP : correct ex_minn.
 Proof. by move=> P xP; case: ex_minnP. Qed.
 
@@ -305,7 +281,30 @@ Qed.
 
 Definition natMixin T := @PcanMixin nat T (Mixin nat_xchooseP eq_nat_xchoose).
 
-Definition eqType cT := Equality.Pack (class cT) cT.
+Section ClassDef.
+
+Record class_of T :=
+  Class { base : Equality.class_of T; mixin : mixin_of (seq (seq T)) }.
+Local Coercion base : class_of >->  Equality.class_of.
+Definition mixin0 T c := PcanMixin (mixin c) (@seq2_ofK T).
+Local Coercion mixin0 : class_of >-> mixin_of.
+
+Structure type := Pack {sort; _ : class_of sort; _ : Type}.
+Local Coercion sort : type >-> Sortclass.
+Variables (T : Type) (cT : type).
+Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
+Definition clone c of phant_id class c := @Pack T c T.
+
+Definition pack m :=
+  fun b bT & phant_id (Equality.class bT) b => Pack (@Class T b m) T.
+
+(* Inheritance *)
+Definition eqType := Equality.Pack class cT.
+
+(* Construct class_of T directly from an encoding seq (seq T) c-> nat.  *)
+(* This is used to build a Choice base class for Countable types.       *)
+Definition CanMixin2 sT f f' (fK : @cancel _ (seq (seq sT)) f f') :=
+  PcanMixin (mixin class) (can_pcan fK).
 
 End ClassDef.
 
@@ -448,14 +447,15 @@ Local Coercion base : class_of >-> Choice.class_of.
 
 Structure type : Type := Pack {sort : Type; _ : class_of sort; _ : Type}.
 Local Coercion sort : type >-> Sortclass.
-Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
+Variables (T : Type) (cT : type).
+Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
+Definition clone c of phant_id class c := @Pack T c T.
 
-Definition pack T m :=
+Definition pack m :=
   fun bT b & phant_id (Choice.class bT) b => Pack (@Class T b m) T.
 
-Definition eqType cT := Equality.Pack (class cT) cT.
-Definition choiceType cT := Choice.Pack (class cT) cT.
+Definition eqType := Equality.Pack class cT.
+Definition choiceType := Choice.Pack class cT.
 
 End ClassDef.
 

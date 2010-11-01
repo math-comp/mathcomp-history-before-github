@@ -125,8 +125,8 @@ Lemma rank_abs_irr_dvd_solvable : forall F gT (G : {group gT}) n rG,
 Proof.
 move=> F gT G n rG absG solG.
 wlog closF: F rG absG / group_closure_field F gT.
-  move=> IH; apply: (@group_closure_field_exists gT F) => [[F' closF' [f fRM]]].
-  by apply: IH (map_repr fRM rG) _ closF'; rewrite map_mx_abs_irr.
+  move=> IH; apply: (@group_closure_field_exists gT F) => [[F' f closF']].
+  by apply: IH (map_repr f rG) _ closF'; rewrite map_mx_abs_irr.
 elim: {G}_.+1 {-2}G (ltnSn #|G|) => // m IHm G leGm in n rG absG solG *.
 case: (eqsVneq G 1%g) => [G1 | ntG].
   by rewrite abelian_abs_irr ?G1 ?abelian1 // in absG; rewrite (eqP absG) dvd1n.
@@ -269,8 +269,8 @@ have F'Zh: [char F]^'.-group (Zp h).
   case/dvdnP=> d def_h; apply/negP=> /= charFp.
   have d_gt0: d > 0 by move: h_gt0; rewrite def_h; case d.
   have: eps ^+ d == 1.
-    rewrite -(inj_eq (fieldM_inj (Frobenius_aut_RM charFp))).
-    by rewrite Frobenius_aut_1 Frobenius_autE -exprn_mulr -def_h eps_h.
+    rewrite -(inj_eq (fmorph_inj [rmorphism of Frobenius_aut charFp])).
+    by rewrite rmorph1 /= Frobenius_autE -exprn_mulr -def_h eps_h.
   by rewrite -(prim_order_dvd prim_eps) gtnNdvd // def_h ltn_Pmulr // prime_gt1.
 case: (ltngtP h 1) => [|h_gt1|h1]; last first; last by rewrite ltnNge h_gt0.
   rewrite /sumV mxdirectE /= h1 !big_ord1; split=> //.
@@ -607,10 +607,9 @@ suffices IH: forall F q (rG : mx_representation F G q),
   by case/andP: (IH _ _ _ F'G (regular_mx_faithful _ _)).
 move=> F q rG F'G ffulG.
 without loss closF: F rG F'G ffulG / group_closure_field F gT.
-  move=> IH; apply: (@group_closure_field_exists gT F) => [[Fs clFs [f fM]]].
-  rewrite -(map_mx_eq0 fM) (map_rfix_mx fM) {}IH //.
-    by rewrite /pgroup (eq_pnat _ (eq_negn (fieldM_char fM))).
-  by rewrite (map_mx_faithful fM).
+  move=> IH; apply: (@group_closure_field_exists gT F) => [[Fs f clFs]].
+  rewrite -(map_mx_eq0 f) map_rfix_mx {}IH ?map_mx_faithful //.
+  by rewrite (eq_p'group _ (fmorph_char f)).
 have p_pr := extraspecial_prime pP esP; have p_gt1 := prime_gt1 p_pr.
 have oZp := card_center_extraspecial pP esP; have[_ prZ] := esP.
 case/sdprodP: sdPH_G => _ defG nPH tiPH.
@@ -841,9 +840,9 @@ Lemma der1_odd_GL2_charf : forall F gT (G : {group gT}),
 Proof.
 move=> F gT G rG oddG ffulG.
 wlog closF: F rG ffulG / group_closure_field F gT.
-  move=> IH; apply: (@group_closure_field_exists gT F) => [[Fc closFc [f fM]]].
-  rewrite /pgroup -(eq_pnat _ (fieldM_char fM)).
-  by rewrite -(map_mx_faithful fM) in ffulG; exact: IH ffulG closFc.
+  move=> IH; apply: (@group_closure_field_exists gT F) => [[Fc f closFc]].
+  rewrite -(eq_pgroup _ (fmorph_char f)).
+  by rewrite -(map_mx_faithful f) in ffulG; exact: IH ffulG closFc.
 elim: {G}_.+1 {-2}G (ltnSn #|G|) => // m IHm G le_g_m in rG oddG ffulG *.
 apply/pgroupP=> p p_pr pG'; rewrite !inE p_pr /=; apply: wlog_neg => p_nz.
 have [P sylP] := Sylow_exists p G.
@@ -1158,8 +1157,7 @@ have rQa: rQ a = r%:M.
   by rewrite -def_a1 -def_a2 !linearZ -scaler_addr -def1 /= scalemx1.
 exists a.
   rewrite !inE Qa andbT; apply: contra ne_r_1 => a1.
-  rewrite (eqP a1) repr_mx1 in rQa.
-  by rewrite (fieldM_inj scalar_mxRM rQa).
+  by rewrite (eqP a1) repr_mx1 in rQa; rewrite (fmorph_inj _ rQa).
 exists r; rewrite -!val_Fp_nat // natr_exp natr_Zp rq1.
 split=> // x Px; apply: (@abelem_rV_inj _ _ _ abelP ntP); rewrite ?groupX //.
   by rewrite memJ_norm ?(subsetP nPQ).

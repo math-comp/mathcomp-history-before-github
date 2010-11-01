@@ -10,8 +10,6 @@ Import Prenex Implicits.
 
 Open Scope ring_scope.
 
-
-
 Section ExtraArith.
 
 Lemma leqn1 : (forall n, n <= 1 = ((n==0) || (n==1)))%N.
@@ -45,14 +43,14 @@ Qed.
 Lemma size1_dvdp1 : forall p, (size p == 1%N) = (p %= 1).
 Proof.
 move=> p; apply/size1_is_polyC/idP=> [[c [cn0 ep]] |].
-  by apply/eqpP; exists 1; exists c; rewrite oner_eq0 scaler1 scale1r.
+  by apply/eqpP; exists 1; exists c; rewrite oner_eq0 scale_poly1 scale1r.
 by move/size_eqp; rewrite size_poly1; move/eqP; move/size1_is_polyC.
 Qed.
 
 Lemma neqp01 : 0 %= (1 : {poly R}) = false.
 Proof.
 case abs : (0 %= 1) => //; case/eqpP: abs=> c1 [c2 [c1n0 c2n0]].
-by rewrite scaler0 scaler1; move/eqP; rewrite eq_sym polyC_eq0 (negbTE c2n0).
+by rewrite scaler0 scale_poly1; move/eqP; rewrite eq_sym polyC_eq0 (negbTE c2n0).
 Qed.
 
 Lemma dvd0p : forall p, 0 %| p = (p == 0).
@@ -99,8 +97,9 @@ Proof. move => r p q; rewrite ![r * _]GRing.mulrC; apply dvdp_mul2r. Qed.
 Lemma eqp_polyC: forall c, (c != 0) = (c%:P %= 1).
 Proof.
 move=> c; apply/idP/eqpP=> [nc0 | [x] [y]].
-  by exists 1; exists c; rewrite nc0 /= nonzero1r scaler1 scale1r.
-case c0 : (c == 0); rewrite // scaler1 (eqP c0) scaler0; case=> _ /=; move/negbTE<-.
+  by exists 1; exists c; rewrite nc0 /= nonzero1r scale_poly1 scale1r.
+case c0: (c == 0); rewrite // scale_poly1 (eqP c0) scaler0.
+case=> _ /=; move/negbTE<-.
 by move/eqP; rewrite eq_sym polyC_eq0.
 Qed.
 
@@ -241,11 +240,11 @@ move/dvdpPc => [c [x [Hc Hx]]].
 have: gcdp (p * r) (q * r) %| x * r.
  apply/dvdpPc.
  exists 1; exists (c%:P); split; first by rewrite GRing.nonzero1r.
- by rewrite GRing.scale1r -scalerE Hx.
+ by rewrite GRing.scale1r mul_polyC Hx.
 move/(dvdp_trans); apply.
 apply dvdp_mul; rewrite ?dvdpp //.
 rewrite dvdp_gcd -![x %| _](dvdp_mul2r _ _ nzr) -dvdp_gcd
-        -[(gcdp _ _)]GRing.mul1r -Hx scalerE.
+        -[(gcdp _ _)]GRing.mul1r -Hx -mul_polyC.
 apply: dvdp_mul; rewrite ?dvdpp //.
 by rewrite -eqp1_dvd1 -eqp_polyC.
 Qed.
@@ -429,7 +428,7 @@ Lemma divpp : forall p, p != 0 -> p %/ p = (scalp p p)%:P.
 Proof.
 move=> p np0; case: (divp_spec p p).
 rewrite modpp addr0. move/eqP.
-by rewrite scalerE (inj_eq (mulIf np0)); move/eqP.
+by rewrite -mul_polyC (inj_eq (mulIf np0)); move/eqP.
 Qed. 
 
 Lemma gdcop_recP : forall q p n, 

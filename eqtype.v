@@ -92,13 +92,17 @@ Definition axiom T (e : rel T) := forall x y, reflect (x = y) (e x y).
 Structure mixin_of T := Mixin {op : rel T; _ : axiom op}.
 Notation class_of := mixin_of (only parsing).
 
-Structure type := Pack {sort; _ : class_of sort; _ : Type}.
-Definition class cT := let: Pack _ c _ := cT return class_of (sort cT) in c.
+Section ClassDef.
 
-Definition pack T c := @Pack T c T.
-Definition clone T :=
-  fun cT & sort cT -> T =>
-  fun c (cT' := @Pack T c T) & phant_id cT' cT => cT'.
+Structure type := Pack {sort; _ : class_of sort; _ : Type}.
+Local Coercion sort : type >-> Sortclass.
+Variables (T : Type) (cT : type).
+Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
+
+Definition pack c := @Pack T c T.
+Definition clone := fun c & cT -> T & phant_id (pack c) cT => pack c.
+
+End ClassDef.
 
 Module Exports.
 Coercion sort : type >-> Sortclass.
@@ -107,9 +111,9 @@ Notation EqMixin := Mixin.
 Notation EqType T m := (@pack T m).
 Notation "[ 'eqMixin' 'of' T ]" := (class _ : mixin_of T)
   (at level 0, format "[ 'eqMixin'  'of'  T ]") : form_scope.
-Notation "[ 'eqType' 'of' T 'for' C ]" := (@clone T C idfun _ id)
+Notation "[ 'eqType' 'of' T 'for' C ]" := (@clone T C _ idfun id)
   (at level 0, format "[ 'eqType'  'of'  T  'for'  C ]") : form_scope.
-Notation "[ 'eqType' 'of' T ]" := (@clone T _ id _ id)
+Notation "[ 'eqType' 'of' T ]" := (@clone T _ _ id id)
   (at level 0, format "[ 'eqType'  'of'  T ]") : form_scope.
 End Exports.
 

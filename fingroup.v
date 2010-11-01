@@ -222,12 +222,12 @@ Section InheritedClasses.
 Variable bT : base_type.
 Local Notation T := (arg_sort bT).
 Local Notation rT := (sort bT).
-Local Notation c := (finClass bT).
+Local Notation class := (finClass bT).
 
-Canonical Structure eqType := Equality.Pack c rT.
-Canonical Structure choiceType := Choice.Pack c rT.
-Canonical Structure countType := Countable.Pack c rT.
-Canonical Structure finType := Finite.Pack c rT.
+Canonical Structure eqType := Equality.Pack class rT.
+Canonical Structure choiceType := Choice.Pack class rT.
+Canonical Structure countType := Countable.Pack class rT.
+Canonical Structure finType := Finite.Pack class rT.
 Definition arg_eqType := Eval hnf in [eqType of T].
 Definition arg_choiceType := Eval hnf in [choiceType of T].
 Definition arg_countType := Eval hnf in [countType of T].

@@ -399,7 +399,7 @@ rewrite conjgE mulgA (conjgC _ x).
 have Gx: x \in G by rewrite sKG.
 rewrite conjVg -mulgA -fmvalJ ?nHG // -fmvalN -fmvalA (_ : _ + _ = nu x)%R.
   by rewrite val_nu // mulKVg groupV mem_remgr // eqHL groupV.
-rewrite actZr !oppr_muln -mulrn_addl actr_sum.
+rewrite actZr -!mulNrn -mulrn_addl actr_sum.
 rewrite addrC (reindex_acts _ (actsRs_rcosets _ K) Kx) -sumr_sub /= -/Q.
 rewrite (eq_bigr (fun _ => nu x)) => [|Qy]; last first.
   case/imsetP=> y Ky ->{Qy}; rewrite !rcosetE -rcosetM QeqLP.
