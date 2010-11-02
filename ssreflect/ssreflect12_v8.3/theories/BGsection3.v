@@ -350,9 +350,9 @@ Theorem Frobenius_prime_rfix1 : forall F gT (G K R : {group gT}) n,
 Proof.
 move=> F gT G K R n rG defG solG p_pr regR F'G fixRlin.
 wlog closF: F rG F'G fixRlin / group_closure_field F gT.
-  move=> IH; apply: (@group_closure_field_exists gT F) => [[Fc closFc [f fM]]].
-  rewrite -(rker_map fM) IH //; last by rewrite -map_rfix_mx mxrank_map.
-  by rewrite /pgroup charf'_nat -(ringM_nat fM) fieldM_eq0 // -charf'_nat.
+  move=> IH; apply: (@group_closure_field_exists gT F) => [[Fc f closFc]].
+  rewrite -(rker_map f) IH //; last by rewrite -map_rfix_mx mxrank_map.
+  by rewrite (eq_p'group _ (fmorph_char f)).
 move: {2}_.+1 (ltnSn #|K|) => m.
 elim: m => // m IHm in gT G K R rG solG p_pr regR F'G closF fixRlin defG *.
 rewrite ltnS => leKm.

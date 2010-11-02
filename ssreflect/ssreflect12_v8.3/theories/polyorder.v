@@ -77,7 +77,7 @@ move=> p q; apply/eqP.
 rewrite -(inj_eq (@mulfI _ (scalp p q)%:P  _)); last first.
   by rewrite polyC_eq0 scalp_id.
 rewrite mulr_addr !mulrA -!polyC_mul divff ?scalp_id// polyC1 !mul1r.
-by rewrite  -scalerE divp_spec.
+by rewrite mul_polyC divp_spec.
 Qed. 
 
 
@@ -93,8 +93,8 @@ case pa0: (root p a); first last.
 move: pa0; rewrite root_factor_theorem.
 move/dvdpPc=> [c] [q] [c0]; move/eqP.
 rewrite -(inj_eq (@mulfI _ c^-1%:P  _)); last by rewrite polyC_eq0 invr_eq0.
-rewrite !scalerE.
-rewrite mulrA -polyC_mul [_^-1*_]mulrC divff// polyC1 mul1r mulrA=> hp.
+rewrite -!mul_polyC.
+rewrite mulrA -polyC_mul [_^-1*_]mulrC divff // polyC1 mul1r mulrA=> hp.
 case q0 : (q == 0); first by move: hp p0; rewrite (eqP q0) mulr0 mul0r=> ->.
 move:sp; rewrite (eqP hp) size_mul_id; last 2 first.
 - by rewrite mulf_neq0// ?polyC_eq0 ?invr_eq0 ?c0// q0.
@@ -114,7 +114,7 @@ Proof.
 move=> p q q0; apply/idP/idP=> hpq; last by rewrite divp_size.
 case p0: (p == 0); first by rewrite (eqP p0) size_poly0 lt0n size_poly_eq0.
 case: (divp_spec p q); rewrite (eqP hpq) mul0r add0r=> hpmpq.
-apply: leq_ltn_trans (modp_spec p _); rewrite // -hpmpq scalerE size_mul_id ?p0//.
+apply: leq_ltn_trans (modp_spec p _); rewrite // -hpmpq -mul_polyC size_mul_id ?p0//.
    by rewrite size_polyC scalp_id //=.
 by rewrite polyC_eq0 scalp_id.
 Qed.

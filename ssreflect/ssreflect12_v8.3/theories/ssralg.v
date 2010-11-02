@@ -2,230 +2,392 @@
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat div seq choice fintype.
 Require Import finfun bigop prime binomial.
 
-(*****************************************************************************)
-(*   The algebraic part of the Algebraic Hierarchy, as described in          *)
-(*          ``Packaging mathematical structures'', TPHOLs09, by              *)
-(*   Francois Garillot, Georges Gonthier, Assia Mahboubi, Laurence Rideau    *)
-(*                                                                           *)
-(* This file defines for each Structure (Zmodule, Ring, etc ...) its type,   *)
-(* its packers and its canonical properties :                                *)
-(*                                                                           *)
-(*  * Zmodule                                                                *)
-(*      zmodType        == type for Zmodule structure                        *)
-(*      ZmodMixin       == builds the mixin containing the definition        *)
-(*                         of a Zmodule                                      *)
-(*      ZmodType R M    == packs the mixin M to build a Zmodule of type      *)
-(*                         zmodType. (The underlying type R should have a    *)
-(*                         choiceType canonical structure)                   *)
-(*      0               == the additive identity element of a Zmodule        *)
-(*      x + y           == the addition operation of a Zmodule               *)
-(*      - x             == the opposite operation of a Zmodule               *)
-(*      x - y           == the substraction operation of a Zmodule           *)
-(*                      := x + - y                                           *)
-(*      x +* n , x -* n == the generic multiplication by a nat               *)
-(*      \sum_<range> e  == iterated sum for a Zmodule (cf bigop.v)           *)
-(*      e`_i            == nth 0 e i, when e : seq M and M is a zmodType     *)
-(*      ... and a many classical Lemmas on these Zmodule laws                *)
-(*                                                                           *)
-(*  * Ring                                                                   *)
-(*      ringType      == type for ring structure                             *)
-(*      RingMixin     == builds the mixin containing the definitions of a    *)
-(*                       ring (the underlying type should have a zmodType    *)
-(*                       structure)                                          *)
-(*      RingType R M  == packs the ring mixin M to build a ring on type R    *)
-(*      RevRingType T == repacks T to build the ring where the               *)
-(*                       multiplicative law is reversed ( x *' y = y * x )   *)
-(*      1             == the multiplicative identity element of a Ring       *)
-(*      n%:R          == the ring image of a nat n (e.g., 1%:R := 1%R)       *)
-(*      x * y         == the multiplication operation of a ring              *)
-(*    \prod_<range> e == iterated product for a ring (cf bigop.v)            *)
-(*      x ^+ y        == the exponentiation operation of a ring              *)
-(*     GRing.comm x y <=> x and y commute, i.e., x * y = y * x               *)
-(*      [char R]      == the characteristic of R, i.e., the set of prime     *)
-(*                       numbers p such that p%:R = 0 in R. The set [char p] *)
-(*                       has a most one element, and is represented as a     *)
-(*                       pred_nat collective predicate (see prime.v); thus   *)
-(*                       the statement p \in [char R] can be read as ``R has *)
-(*                       characteristic p'', while [char R] =i pred0 means   *)
-(*                       ``R has characteristic 0'' when R is a field.       *)
-(* Frobenius_aut chRp == the Frobenius automorphism mapping x : R to x ^+ p, *)
-(*                       where chRp : p \in [char R] is a proof that R has   *)
-(*                       indeed (non-zero) characteristic p.                 *)
-(*                                                                           *)
-(*  * Commutative Ring                                                       *)
-(*      comRingType      == type for commutative ring structure              *)
-(*    ComRingType R mulC == packs mulC to build a commutative ring.          *)
-(*                          (The underlying type R should have a ring        *)
-(*                          canonical structure)                             *)
-(*      ComRingMixin     == builds the mixin containing the definitions of a *)
-(*                          *non commutative* ring, using the commutativity  *)
-(*                          to decrease the number of axioms.                *)
-(*                                                                           *)
-(*  * Unit Ring                                                              *)
-(*      unitRingType   == type for unit ring structure                       *)
-(*      UnitRingMixin  == builds the mixin containing the definitions        *)
-(*                        of a unit ring. (The underlying type should        *)
-(*                        have a ring canonical structure)                   *)
-(*    UnitRingType R M == packs the unit ring mixin M to build a unit ring.  *)
-(*                        WARNING: while it is possible to omit R for most   *)
-(*                        of the xxxType functions, R MUST be explicitly     *)
-(*                        given when UnitRingType is used with a mixin       *)
-(*                        produced by ComUnitRingMixin, otherwise the        *)
-(*                        resulting structure will have the WRONG sort and   *)
-(*                        will not be used by type inference.                *)
-(*      GRing.unit x   == x is a unit (i.e., has an inverse)                 *)
-(*      x^-1           == the inversion operation element of a unit ring     *)
-(*                        (returns x if is x is not an unit)                 *)
-(*      x / y          := x * y^-1                                           *)
-(*      x ^- n         := (x ^+ n)^-1                                        *)
-(*                                                                           *)
-(*  * Commutative Unit Ring                                                  *)
-(*      comUnitRingType   == type for unit ring structure                    *)
-(*      ComUnitRingMixin  == builds the mixin containing the definitions     *)
-(*                           of a *non commutative unit ring*, but using     *)
-(*                           the commutative property. The underlying type   *)
-(*                           should have a commutative ring canonical        *)
-(*                           structure. WARNING: ALWAYS give an explicit     *)
-(*                           type argument to UnitRingType along with a      *)
-(*                           mixin produced by ComUnitRingMixin (see above). *)
-(*                                                                           *)
-(*  * Integral Domain (integral, commutative, unit ring)                     *)
-(*      idomainType       == type for integral domain structure              *)
-(*      IdomainType R M   == packs the idomain mixin M to build a integral   *)
-(*                           domain. (The underlying type R should have a    *)
-(*                           commutative unit ring canonical structure)      *)
-(*                                                                           *)
-(*  * Field                                                                  *)
-(*      fieldType         == type for field structure                        *)
-(*      FieldUnitMixin    == builds a *non commutative unit ring* mixin,     *)
-(*                           using some field properties. (The underlying    *)
-(*                           type should have a *commutative ring* canonical *)
-(*                           structure)                                      *)
-(*      FieldMixin        == builds the field mixin. (The underlying type    *)
-(*                           should have a *commutative ring* canonical      *)
-(*                           structure)                                      *)
-(*      FieldIdomainMixin == builds an *idomain* mixin, using a field mixin  *)
-(*      FieldType R M     == packs the field mixin M to build a field        *)
-(*                           (The underlying type R should have a            *)
-(*                           integral domain canonical structure)            *)
-(*                                                                           *)
-(*  * Decidable Field                                                        *)
-(*      decFieldType      == type for decidable field structure              *)
-(*      DecFieldMixin     == builds the mixin containing the definitions of  *)
-(*                           a decidable Field. (The underlying type should  *)
-(*                           have a unit ring canonical structure)           *)
-(*      DecFieldType R M  == packs the decidable field mixin M to build a    *)
-(*                           decidable field. (The underlying type R should  *)
-(*                           have a field canonical structure)               *)
-(*      GRing.term R      == the type of formal expressions in a unit ring R *)
-(*                           with formal variables 'X_k, k : nat, and        *)
-(*                           manifest constants x%:T, x : R. The notation of *)
-(*                           all the ring operations is redefined for terms, *)
-(*                           in scope %T.                                    *)
-(*      GRing.formula R   == the type of first order formulas over R; the %T *)
-(*                           scope binds the logical connectives /\, \/, ~,  *)
-(*                           ==>, ==, and != to formulae; GRing.True/False   *)
-(*                           and GRing.Bool b denote constant formulae, and  *)
-(*                           quantifiers are written 'forall/'exists 'X_k, f *)
-(*                           GRing.Unit x tests for ring units, and the      *)
-(*                           the construct Pick p_f t_f e_f can be used to   *)
-(*                           emulate the pick function defined in fintype.v. *)
-(*      GRing.eval e t    == the value of term t with valuation e : seq R    *)
-(*                           (e maps 'X_i to e`_i)                           *)
-(*  GRing.same_env e1 e2 <=> environments e1 and e2 are extensionally equal  *)
-(*    GRing.qf_eval e f   == the value (in bool) of a quantifier-free f.     *)
-(*      GRing.qf_form f   == f is quantifier-free.                           *)
-(*      GRing.holds e f   == the intuitionistic CiC interpretation of the    *)
-(*                           formula f holds with valuation e                *)
-(*      GRing.sat e f     == valuation e satisfies f (only in a decField)    *)
-(*      GRing.sol n f     == a sequence e of size n such that e satisfies f, *)
-(*                           if one exists, or [::] if there is no such e    *)
-(*                                                                           *)
-(*  * Closed Field                                                           *)
-(*      closedFieldType   == type for closed field structure                 *)
-(*    ClosedFieldType R M == packs the closed field mixin M to build a       *)
-(*                           closed field. (The underlying type R should     *)
-(*                           have a decidable field canonical structure.)    *)
-(*                                                                           *)
-(*  * Left module                                                            *)
-(*      lmodType R      == type for Lmodule structure over the ring R        *)
-(*      LmodMixin R     == builds the mixin containing the definition        *)
-(*                         of a Lmodule over the ring R                      *)
-(*      LmodType R T M  == packs the mixin M to build a Lmodule of type      *)
-(*                         lmodType R. (The underlying type T should have a  *)
-(*                         zmodType canonical structure)                     *)
-(*      a *: x          == the external operation of a Lmodule               *)
-(*    linear f <=> f : 'M_(m1, n1) -> 'M_(m2, n2) is a linear mapping        *)
-(*   linear_fun == a Structure that encapsulates the linear properties; we   *)
-(*                 define such a structure for all the matrix operations     *)
-(*                  that are relevant here: row, ^T, mxvec, vec_mx, *:, -,   *)
-(*                 and *m on the left (mulmx) and right (mulmxr). The        *)
-(*                 strucures also recognize unary (\o) and binary (add_lin,  *)
-(*                 via addition) composition of linear functions, as well    *)
-(*                 as the identity (idfun) and zero (null_lin) functions.    *)
-(*  {flinear T1 --> T2} == the type of linear function                       *)
-(*                          T1 and T2 must be canonicaly lmodule             *)
-(*  [linear of f]       == infers the linear function from f                 *)
-(*                          T1 and T2 must be canonicaly lmodule             *)
-(*                                                                           *)
-(*  * Left Algebra                                                           *)
-(*      lalgType R      == type for Lalgebra structure over the ring R       *)
-(*      LalgType R T a                                                       *)
-(*                      == packs the axiom a (k (xy) = (k x)y) to build a    *)
-(*                         Lalgebra of type lalgType R. (The underlying      *)
-(*                         type T should have a lmodType canonical structure *)
-(*                         and a ringType canonical structure                *)
-(*                                                                           *)
-(*  * Algebra                                                                *)
-(*      algType R       == type for Algebra structure over the ring R        *)
-(*      AlgType R T a                                                        *)
-(*                      == packs the axiom a (k (xy) = x(ky) to build a      *)
-(*                         Algebra of type algType R. (The underlying type   *)
-(*                         T should have a LalgType canonical structure      *)
-(*                         and a ringType canonical structure                *)
-(*                                                                           *)
-(*  * UnitAlgebra                                                            *)
-(*      unitAlgType R   == type for Unit Algegra structure over the ring R   *)
-(*      UnitAlgType R T a b                                                  *)
-(*                      == packs the axiom a (k (xy) = (kx)y and the axiom   *)
-(*                         b (k (xy) = x(ky) to build an Unit Algebra of     *)
-(*                         type unitAlgType  (The underlying type T should   *)
-(*                         have a lmodType canonical structure and           *)
-(*                         a unitRingType canonical structure                *)
-(*                                                                           *)
-(* * Morphism                                                                *)
-(*     GRing.morphism f <=> f is a ring morphism: f commutes with 0, +, -,   *)
-(*                          *, 1, and with ^-1 and / in integral domains.    *)
-(*                   x^f == the image of x under some morphism. This         *)
-(*                          notation is only reserved (not defined) here;    *)
-(*                          it is bound locally in sections where some       *)
-(*                          morphism is used heavily (e.g., the container    *)
-(*                          morphism in the parametricity sections of poly   *)
-(*                          and matrix, or the Frobenius section here).      *)
-(*                                                                           *)
-(*    GRing.lmorphism f <=> f is a module morphism: f commutes with 0, +, *: *)
-(*                                                                           *)
-(* The Lemmas about theses structures are all contained in GRing.Theory.     *)
-(* Notations are defined in scope ring_scope (delimiter %R), except term and *)
-(* formula notations, which are in term_scope (delimiter %T).                *)
-(*                                                                           *)
-(* NB: The module GRing should not be imported, only the main module and     *)
-(*     GRing.Theory should be.                                               *)
-(*****************************************************************************)
+(******************************************************************************)
+(*   The algebraic part of the Algebraic Hierarchy, as described in           *)
+(*          ``Packaging mathematical structures'', TPHOLs09, by               *)
+(*   Francois Garillot, Georges Gonthier, Assia Mahboubi, Laurence Rideau     *)
+(*                                                                            *)
+(* This file defines for each Structure (Zmodule, Ring, etc ...) its type,    *)
+(* its packers and its canonical properties :                                 *)
+(*                                                                            *)
+(*  * Zmodule (additive abelian groups):                                      *)
+(*              zmodType == interface type for Zmodule structure.             *)
+(* ZmodMixin addA addC add0x addNx == builds the mixin for a Zmodule from the *)
+(*                          algebraic properties of its operations.           *)
+(*          ZmodType V m == packs the mixin m to build a Zmodule of type      *)
+(*                          zmodType. The carrier type V must have a          *)
+(*                          choiceType canonical structure.                   *)
+(* [zmodType of V for S] == V-clone of the zmodType structure S: a copy of S  *)
+(*                          where the sort carrier has been replaced by V,    *)
+(*                          and which is therefore a zmodType structure on V. *)
+(*                          The sort carrier for S must be convertible to V.  *)
+(*       [zmodType of V] == clone of a canonical zmodType structure on V.     *)
+(*                          Similar to the above, except S is inferred, but   *)
+(*                          possibly with a syntactically different carrier.  *)
+(*                     0 == the zero (additive identity) of a Zmodule.        *)
+(*                 x + y == the sum of x and y (in a Zmodule).                *)
+(*                   - x == the opposite (additive inverse) of x.             *)
+(*                 x - y == the difference of x and y; this is only notation  *)
+(*                          for x + (- y).                                    *)
+(*                x *+ n == n times x, with n in nat (non-negative), i.e.,    *)
+(*                          x + (x + .. (x + x)..) (n terms); x *+ 1 is thus  *)
+(*                          convertible to x, and x *+ 2 to x + x.            *)
+(*                x *- n == notation for - (x *+ n), the opposite of x *+ n.  *)
+(*        \sum_<range> e == iterated sum for a Zmodule (cf bigop.v).          *)
+(*                  e`_i == nth 0 e i, when e : seq M and M has a zmodType    *)
+(*                          structure.                                        *)
+(*                                                                            *)
+(*  * Ring (non-commutative rings):                                           *)
+(*              ringType == interface type for a Ring structure.              *)
+(* RingMixin mulA mul1x mulx1 mulDx mulxD == builds the mixin for a Ring from *)
+(*                           the algebraic properties of its multiplicative   *)
+(*                           operators; the carrier type must have a zmodType *)
+(*                           structure.                                       *)
+(*           RingType R m == packs the ring mixin m into a ringType.          *)
+(*                    R^c == the converse Ring for R: R^c is convertible to R *)
+(*                           but when R has a canonical ringType structure    *)
+(*                           R^c has the converse one: if x y : R^o, then     *)
+(*                           x * y = (y : R) * (x : R).                       *)
+(*  [ringType of R for S] == R-clone of the ringType structure S.             *)
+(*        [ringType of R] == clone of a canonical ringType structure on R.    *)
+(*                      1 == the multiplicative identity element of a Ring.   *)
+(*                   n%:R == the ring image of an n in nat; this is just      *)
+(*                           notation for 1 *+ n, so 1%:R is convertible to 1 *)
+(*                           and 2%:R to 1 + 1.                               *)
+(*                  x * y == the ring ptoduct of x and y.                     *)
+(*        \prod_<range> e == iterated product for a ring (cf bigop.v).        *)
+(*                 x ^+ n == x to the nth power with n in nat (non-negative), *)
+(*                           i.e., x * (x * .. (x * x)..) (n factors); x ^+ 1 *)
+(*                           is thus convertible to x, and x ^+ 2 to x * x.   *)
+(*         GRing.comm x y <-> x and y commute, i.e., x * y = y * x.           *)
+(*               [char R] == the characteristic of R, defined as the set of   *)
+(*                           prime numbers p such that p%:R = 0 in R. The set *)
+(*                           [char p] has a most one element, and is          *)
+(*                           implemented as a pred_nat collective predicate   *)
+(*                           (see prime.v); thus the statement p \in [char R] *)
+(*                           can be read as `R has characteristic p', while   *)
+(*                           [char R] =i pred0 means `R has characteristic 0' *)
+(*                           when R is a field.                               *)
+(*     Frobenius_aut chRp == the Frobenius automorphism mapping x in R to     *)
+(*                           x ^+ p, where chRp : p \in [char R] is a proof   *)
+(*                           that R has (non-zero) characteristic p.          *)
+(*                                                                            *)
+(*  * ComRing (commutative Rings):                                            *)
+(*            comRingType == interface type for commutative ring structure.   *)
+(*     ComRingType R mulC == packs mulC into a comRingType; the carrier type  *)
+(*                           R must have a ringType canonical structure.      *)
+(* ComRingMixin mulA mulC mul1x mulDx == builds the mixin for a Ring (i.e., a *)
+(*                           *non commutative* ring), using the commutativity *)
+(*                           to reduce the number of proof obligagtions.      *)
+(* [comRingType of R for S] == R-clone of the comRingType structure S.        *)
+(*     [comRingType of R] == clone of a canonical comRingType structure on R. *)
+(*                                                                            *)
+(*  * UnitRing (Rings whose units have computable inverses):                  *)
+(*           unitRingType == interface type for the UnitRing structure.       *)
+(* UnitRingMixin mulVr mulrV unitP inv0id == builds the mixin for a UnitRing  *)
+(*                           from the properties of the inverse operation and *)
+(*                           the boolean test for being a unit (invertible).  *)
+(*                           The inverse of a non-unit x is constrained to be *)
+(*                           x itself (property inv0id). The carrier type     *)
+(*                           must have a ringType canonical structure.        *)
+(*       UnitRingType R m == packs the unit ring mixin m into a unitRingType. *)
+(*                  WARNING: while it is possible to omit R for most of the   *)
+(*                           XxxType functions, R MUST be explicitly given    *)
+(*                           when UnitRingType is used with a mixin produced  *)
+(*                           by ComUnitRingMixin, otherwise the resulting     *)
+(*                           structure will have the WRONG sort key and will  *)
+(*                           NOT BE USED during type inference.               *)
+(* [unitRingType of R for S] == R-clone of the unitRingType structure S.      *)
+(*    [unitRingType of R] == clones a canonical unitRingType structure on R.  *)
+(*           GRing.unit x <=> x is a unit (i.e., has an inverse).             *)
+(*                   x^-1 == the ring inverse of x, if x is a unit, else x.   *)
+(*                  x / y == x divided by y (notation for x * y^-1).          *)
+(*                 x ^- n := notation for (x ^+ n)^-1, the inverse of x ^+ n. *)
+(*                                                                            *)
+(*  * ComUnitRing (commutative rings with computable inverses):               *)
+(*        comUnitRingType == interface type for ComUnitRing structure.        *)
+(* ComUnitRingMixin mulVr unitP inv0id == builds the mixin for a UnitRing (a  *)
+(*                           *non commutative* unit ring, using commutativity *)
+(*                           to simplify the proof obligations; the carrier   *)
+(*                           type must have a comRingType structure.          *)
+(*                           WARNING: ALWAYS give an explicit type argument   *)
+(*                           to UnitRingType along with a mixin produced by   *)
+(*                           ComUnitRingMixin (see above).                    *)
+(* [comUnitRingType of R] == a comUnitRingType structure for R created by     *)
+(*                           merging canonical comRingType and unitRingType   *)
+(*                           structures on R.                                 *)
+(*                                                                            *)
+(*  * IntegralDomain (integral, commutative, ring with partial inverses):     *)
+(*            idomainType == interface type for the IntegralDomain structure. *)
+(* IdomainType R mulf_eq0 == packs the integrality property into an           *)
+(*                           idomainType integral domain structure; R must    *)
+(*                           have a comUnitRingType canonical structure.      *)
+(* [idomainType of R for S] == R-clone of the idomainType structure S.        *)
+(*     [idomainType of R] == clone of a canonical idomainType structure on R. *)
+(*                                                                            *)
+(*  * Field (commutative fields):                                             *)
+(*              fieldType == interface type for fields.                       *)
+(*  GRing.Field.axiom inv == the field axiom (x != 0 -> inv x * x = 1).       *)
+(* FieldUnitMixin mulVx unitP inv0id == builds a *non commutative unit ring*  *)
+(*                           mixin, using the field axiom to simplify proof   *)
+(*                           obligations. The carrier type must have a        *)
+(*                           comRingType canonical structure.                 *)
+(*       FieldMixin mulVx == builds the field mixin from the field axiom. The *)
+(*                           carrier type must have a comRingType structure.  *)
+(*    FieldIdomainMixin m == builds an *idomain* mixin from a field mixin m.  *)
+(*          FieldType R m == packs the field mixin M into a fieldType. The    *)
+(*                           carrier type R must be an idomainType.           *)
+(* [fieldType of F for S] == F-clone of the fieldType structure S.            *)
+(*       [fieldType of F] == clone of a canonical fieldType structure on F.   *)
+(*                                                                            *)
+(*  * DecidableField (fields with a decidable first order theory):            *)
+(*           decFieldType == interface type for DecidableField structure.     *)
+(*     DecFieldMixin satP == builds the mixin for a DecidableField from the   *)
+(*                           correctness of its satisfiability predicate. The *)
+(*                           carrier type must have a unitRingType structure. *)
+(*       DecFieldType F m == packs the decidable field mixin m into a         *)
+(*                           decFieldType; the carrier type F must have a     *)
+(*                           fieldType structure.                             *)
+(* [decFieldType of F for S] == F-clone of the decFieldType structure S.      *)
+(*    [decFieldType of F] == clone of a canonical decFieldType structure on F *)
+(*           GRing.term R == the type of formal expressions in a unit ring R  *)
+(*                           with formal variables 'X_k, k : nat, and         *)
+(*                           manifest constants x%:T, x : R. The notation of  *)
+(*                           all the ring operations is redefined for terms,  *)
+(*                           in scope %T.                                     *)
+(*        GRing.formula R == the type of first order formulas over R; the %T  *)
+(*                           scope binds the logical connectives /\, \/, ~,   *)
+(*                           ==>, ==, and != to formulae; GRing.True/False    *)
+(*                           and GRing.Bool b denote constant formulae, and   *)
+(*                           quantifiers are written 'forall/'exists 'X_k, f. *)
+(*                           GRing.Unit x tests for ring units, and the       *)
+(*                           construct Pick p_f t_f e_f can be used to        *)
+(*                           emulate the pick function defined in fintype.v.  *)
+(*         GRing.eval e t == the value of term t with valuation e : seq R     *)
+(*                           (e maps 'X_i to e`_i).                           *)
+(*  GRing.same_env e1 e2 <-> environments e1 and e2 are extensionally equal.  *)
+(*        GRing.qf_form f == f is quantifier-free.                            *)
+(*        GRing.holds e f == the intuitionistic CiC interpretation of the     *)
+(*                           formula f holds with valuation e.                *)
+(*      GRing.qf_eval e f == the value (in bool) of a quantifier-free f.      *)
+(*          GRing.sat e f == valuation e satisfies f (only in a decField).    *)
+(*          GRing.sol n f == a sequence e of size n such that e satisfies f,  *)
+(*                           if one exists, or [::] if there is no such e.    *)
+(*                                                                            *)
+(*  * ClosedField (algebraically closed fields):                              *)
+(*        closedFieldType == interface type for the ClosedField structure.    *)
+(*    ClosedFieldType F m == packs the closed field mixin m into a            *)
+(*                           closedFieldType. The carrier F must have a       *)
+(*                           decFieldType structure.                          *)
+(* [closedFieldType of F on S] == F-clone of a closedFieldType structure S.   *)
+(* [closedFieldType of F] == clone of a canonicalclosedFieldType structure    *)
+(*                           on F.                                            *)
+(*                                                                            *)
+(*  * Lmodule (module with left multiplication by external scalars).          *)
+(*             lmodType R == interface type for an Lmodule structure with     *)
+(*                           scalars of type R; R must have a ringType        *)
+(*                           structure.                                       *)
+(* LmodMixin scalA scal1v scalxD scalDv == builds an Lmodule mixin from the   *)
+(*                           algebraic properties of the scaling operation;   *)
+(*                           the module carrier type must have a zmodType     *)
+(*                           structure, and the scalar carrier must have a    *)
+(*                           ringType structure.                              *)
+(*         LmodType R V m == packs the mixin v to build an Lmodule of type    *)
+(*                           lmodType R. The carrier type V must have a       *)
+(*                           zmodType structure.                              *)
+(* [lmodType R of V for S] == V-clone of an lmodType R structure S.           *)
+(*      [lmodType R of V] == clone of a canonical lmodType R structure on V.  *)
+(*                 a *: v == v scaled by a, when v is in an Lmodule V and a   *)
+(*                           is in the scalar Ring of V.                      *)
+(*                                                                            *)
+(*  * Lalgebra (left algebra, ring with scaling that associates on the left): *)
+(*             lalgType R == interface type for Lalgebra structures with      *)
+(*                           scalars in R; R must have ringType structure.    *)
+(*    LalgType R V scalAl == packs scalAl : k (x y) = (k x) y into an         *)
+(*                           Lalgebra of type lalgType R. The carrier type V  *)
+(*                           must have both lmodType R and ringType canonical *)
+(*                           structures.                                      *)
+(*                    R^o == the regular algebra of R: R^o is convertible to  *)
+(*                           R, but when R has a ringType structure then R^o  *)
+(*                           extends it to an lalgType structure by letting R *)
+(*                           act on itself: if x : R and y : R^o then         *)
+(*                           x *: y = x * (y : R).                            *)
+(*                   k%:A == the image of the scalar k in an L-algebra; this  *)
+(*                           is simply notation for a *: 1.                   *)
+(* [lalgType R of V for S] == V-clone the lalgType R structure S.             *)
+(*      [lalgType R of V] == clone of a canonical lalgType R structure on V.  *)
+(*                                                                            *)
+(*  * Algebra (ring with scaling that associates both left and right):        *)
+(*              algType R == type for Algebra structure with scalars in R.    *)
+(*                           R should be a commutative ring.                  *)
+(*     AlgType R A scalAr == packs scalAr : k (x y) = x (k y) into an Algebra *)
+(*                           Structure of type algType R. The carrier type A  *)
+(*                           must have an lalgType R structure.               *)
+(*        CommAlgType R A == creates an Algebra structure for an A that has   *)
+(*                           both lalgType R and comRingType structures.      *)
+(* [algType R of V for S] == V-clone of an algType R structure on S.          *)
+(*       [algType R of V] == clone of a canonical algType R structure on V.   *)
+(*                                                                            *)
+(*  * UnitAlgebra (algebra with computable inverses):                         *)
+(*          unitAlgType R == interface type for UnitAlgebra structure with    *)
+(*                           scalars in R; R should have a unitRingType       *)
+(*                           structure.                                       *)
+(*   [unitAlgType R of V] == a unitAlgType R structure for V created by       *)
+(*                           merging canonical algType and unitRingType on V. *)
+(*                                                                            *)
+(*   In addition to this strcture hierarchy, we also develop a separate,      *)
+(* parallel hierarchy for morphisms linking these structures:                 *)
+(*                                                                            *)
+(* * Additive (additive functions):                                           *)
+(*             additive f <-> f of type U -> V is additive, i.e., f maps the  *)
+(*                           Zmodule structure of U to that of V, 0 to 0,     *)
+(*                           - to - and + to + (equivalently, binary - to -). *)
+(*                        := {morph f : u v / u + v}.                         *)
+(*      {additive U -> V} == the interface type for a Structure (keyed on     *)
+(*                           a function f : U -> V) that encapsulates the     *)
+(*                           additive property; both U and V must have        *)
+(*                           zmodType canonical structures.                   *)
+(*         Additive add_f == packs add_f : additive f into an additive        *)
+(*                           function structure of type {additive U -> V}.    *)
+(*   [additive of f as g] == an f-clone of the additive structure on the      *)
+(*                           function g -- f and g must be convertible.       *)
+(*        [additive of f] == a clone of an existing additive structure on f.  *)
+(*                                                                            *)
+(* * RMorphism (ring morphisms):                                              *)
+(*       multiplicative f <-> f of type R -> S is multiplicative, i.e., f     *)
+(*                           maps 1 and * in R to 1 and * in S, respectively, *)
+(*                           R ans S must have canonical ringType structures. *)
+(*            rmorphism f <-> f is a ring morphism, i.e., f is both additive  *)
+(*                           and multiplicative.                              *)
+(*     {rmorphism R -> S} == the interface type for ring morphisms, i.e.,     *)
+(*                           a Structure that encapsulates the rmorphism      *)
+(*                           property for functions f : R -> S; both R and S  *)
+(*                           must have ringType structures.                   *)
+(*      RMorphism morph_f == packs morph_f : rmorphism f into a Ring morphism *)
+(*                           structure of type {rmorphism R -> S}.            *)
+(*     AddRMorphism mul_f == packs mul_f : multiplicative f into an rmorphism *)
+(*                           structure of type {rmorphism R -> S}; f must     *)
+(*                           already have an {additive R -> S} structure.     *)
+(*  [rmorphism of f as g] == an f-clone of the rmorphism structure of g.      *)
+(*       [rmorphism of f] == a clone of an existing additive structure on f.  *)
+(*  -> If R and S are UnitRings the f also maps units to units and inverses   *)
+(*     of units to inverses; if R is a field then f if a field isomorphism    *)
+(*     between R and its image.                                               *)
+(*  -> As rmorphism coerces to both additive and multiplicative, all          *)
+(*     structures for f can be built from a single proof of rmorphism f.      *)
+(*  -> Additive properties (raddf_suffix, see below) are duplicated and       *)
+(*     specialised for RMorphism (as rmorph_suffix). This allows more         *)
+(*     precise rewriting and cleaner chaining: although raddf lemmas will     *)
+(*     recognize RMorphism functions, the converse will not hold (we cannot   *)
+(*     add reverse inheritance rules because of incomplete backtracking in    *)
+(*     the Canonical Projection unification), so one would hav to insert a /= *)
+(*     every time one switched from additive to multiplicative rules.         *)
+(*  -> The property duplication also means that it is not strictly necessary  *)
+(*     to declare all Additive instances.                                     *)
+(*                                                                            *)
+(* * Linear (linear functions):                                               *)
+(*             scalable f <-> f of type U -> V is scalable, i.e., f maps      *)
+(*                           scaling on U to scaling on V, a *: _ to a*: _.   *)
+(*                           U and V must both have lmodType R structures,    *)
+(*                           for the same ringType R.                         *)
+(*               linear f <-> f of type U -> V is linear, i.e., f maps linear *)
+(*                           combinations in U to linear combinations in V;   *)
+(*                           U and V must both have lmodType R structures,    *)
+(*                           for the same ringType R.                         *)
+(*                        := forall a, {morph f / u v / a *: u + v}.          *)
+(*            lmorphism f <-> f is both additive and scalable. This is in     *)
+(*                           fact equivalent to linear f, although somewhat   *)
+(*                           less convenient to prove.                        *)
+(*        {linear U -> V} == the interface type for linear functions, i.e., a *)
+(*                           Structure that encapsulates the linear property  *)
+(*                           for functions f : U -> V; both U and V must have *)
+(*                           lmodType R structures, for the same R.           *)
+(*           Linear lin_f == packs lin_f : lmorphism f into a linear function *)
+(*                           structure of type {linear U -> V}. As linear f   *)
+(*                           coerces to lmorphism f, Linear can also be used  *)
+(*                           with lin_f : linear f (indeed, that is the       *)
+(*                           recommended usage).                              *)
+(*       AddLinear scal_f == packs scal_f : scalable f into a {linear U -> V} *)
+(*                           structure; f must already have an additive       *)
+(*                           structure; lin_f : linear f may be used instead  *)
+(*                           of scal_f.                                       *)
+(*     [linear of f as g] == an f-clone of the linear structure of g.         *)
+(*          [linear of f] == a clone of an existing linear structure on f.    *)
+(* -> Similarly to Ring morphisms, additive properties a specialized for      *)
+(*    linear functions.                                                       *)
+(*                                                                            *)
+(* * LRMorphism (linear ring morphisms, i.e., algebra morphisms):             *)
+(*           lrmorphism f <-> f of type A -> B is a linear Ring (Algebra)     *)
+(*                           morphism: f is both additive, multiplicative and *)
+(*                           scalable. A and B must both have lalgType R      *)
+(*                           canonical structures, for the same ringType R.   *)
+(*    {lrmorphism A -> B} == the interface type for linear morphisms, i.e., a *)
+(*                           Structure that encapsulates the lrmorphism       *)
+(*                           property for functions f : A -> B; both A and B  *)
+(*                           must have lalgType R structures, for the same R. *)
+(*      LRmorphism scal_f == packs scal_f : scalable f into a linear morphism *)
+(*                           structure of type {lrmorphism U -> V}; f must    *)
+(*                           already have a Ring morphism structure, and      *)
+(*                           lin_f : linear f may be used instead of scal_f.  *)
+(*      [lrmorphism of f] == creates an lrmorphism structure from existing    *)
+(*                           rmorphism and linear structures on f; this is    *)
+(*                           the preferred way of creating lrmorphism         *)
+(*                           structures.                                      *)
+(*  -> Linear and rmorphism properties do not need to be specialized for      *)
+(*     as we supply inheritance join instances in both directions.            *)
+(* Finally we supply some helper notation for morphisms:                      *)
+(*                    x^f == the image of x under some morphism. This         *)
+(*                           notation is only reserved (not defined) here;    *)
+(*                           it is bound locally in sections where some       *)
+(*                           morphism is used heavily (e.g., the container    *)
+(*                           morphism in the parametricity sections of poly   *)
+(*                           and matrix, or the Frobenius section here).      *)
+(*                     \0 == the constant null function, which has a          *)
+(*                           canonical linear structure, and simplifies on    *)
+(*                           application (see ssrfun.v).                      *)
+(*                 f \+ g == the additive composition of f and g, i.e., the   *)
+(*                           function x |-> f x + g x; f \+ g is canonically  *)
+(*                           linear when f and g are, and simplifies on       *)
+(*                           application (see ssrfun.v).                      *)
+(*                 f \- g == the function x |-> f x - g x, canonically        *)
+(*                           linear when f and g are, and simplifies on       *)
+(*                           application.                                     *)
+(*                k \*: f == the function x |-> k *: f x, which is            *)
+(*                           canonically linear when f is and simplifies on   *)
+(*                           application (this is a shorter alternative to    *)
+(*                           *:%R k \o f).                                    *)
+(*         GRing.in_alg A == the ring morphism that injects R into A, where A *)
+(*                           has an lalgType R structure; GRing.in_alg A k    *)
+(*                           simplifies to k%:A.                              *)
+(* The Lemmas about these structures are contained in both the GRing module   *)
+(* and in the submodule GRing.Theory, which can be imported when unqualified  *)
+(* access to the theory is needed (GRing.Theory also allows the unqualified   *)
+(* use of additive, linear, Linear, etc). The main GRing module should NOT be *)
+(* imported.                                                                  *)
+(*   Notations are defined in scope ring_scope (delimiter %R), except term    *)
+(* and formula notations, which are in term_scope (delimiter %T).             *)
+(*   This library also extends the conventional suffixes described in library *)
+(* ssrbool.v with the following:                                              *)
+(*   0 -- ring 0, as in addr0 : x + 0 = x.                                    *)
+(*   1 -- ring 1, as in mulr1 : x * 1 = x.                                    *)
+(*   D -- ring addition, as in linearD : f (u + v) = f u + f v.               *)
+(*   M -- ring multiplication, as in invMf : (x * y)^-1 = x^-1 * y^-1,        *)
+(*  Mn -- ring by nat multiplication, as in addfMn : f (x *+ n) = f x *+ n.   *)
+(*   N -- ring opposite, as in mulNr : (- x) * y = - (x * y).                 *)
+(*   V -- ring inverse, as in mulVr : x^-1 * x = 1.                           *)
+(*   X -- ring exponentiation, as in rmorphX : f (x ^+ n) = f x ^+ n.         *)
+(*   Z -- (left) module scaling, as in linearZ : f (a *: v)  = s *: f v.      *)
+(******************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-(* Abstract algebra framework for ssreflect.                          *)
-(* We define a number of structures that ``package'' common algebraic *)
-(* properties of operations. These extend the combinatorial classes   *)
-(* with notation and theory for classical algebraic structures.       *)
-
 Reserved Notation "+%R" (at level 0).
 Reserved Notation "-%R" (at level 0).
 Reserved Notation "*%R" (at level 0).
 Reserved Notation "n %:R" (at level 2, left associativity, format "n %:R").
+Reserved Notation "k %:A" (at level 2, left associativity, format "k %:A").
 Reserved Notation "[ 'char' F ]" (at level 0, format "[ 'char'  F ]").
 
 Reserved Notation "x %:T" (at level 2, left associativity, format "x %:T").
@@ -241,23 +403,25 @@ Reserved Notation "''forall' ''X_' i , f"
 
 Reserved Notation "x ^f" (at level 2, left associativity, format "x ^f").
 
-Reserved Notation "f1 \+ f2"(at level 50).
-Reserved Notation "a \*: f"(at level 50).
+Reserved Notation "\0" (at level 0).
+Reserved Notation "f \+ g" (at level 50, left associativity).
+Reserved Notation "f \- g" (at level 50, left associativity).
+Reserved Notation "a \*: f" (at level 40).
 
 Delimit Scope ring_scope with R.
 Delimit Scope term_scope with T.
 Local Open Scope ring_scope.
 
-Module GRing.
+Module Import GRing.
 
 Import Monoid.Theory.
 
 Module Zmodule.
 
-Record mixin_of (M : Type) : Type := Mixin {
-  zero : M;
-  opp : M -> M;
-  add : M -> M -> M;
+Record mixin_of (V : Type) : Type := Mixin {
+  zero : V;
+  opp : V -> V;
+  add : V -> V -> V;
   _ : associative add;
   _ : commutative add;
   _ : left_id zero add;
@@ -266,19 +430,20 @@ Record mixin_of (M : Type) : Type := Mixin {
 
 Section ClassDef.
 
-Record class_of M := Class { base : Choice.class_of M; mixin : mixin_of M }.
+Record class_of T := Class { base : Choice.class_of T; mixin : mixin_of T }.
 Local Coercion base : class_of >-> Choice.class_of.
 
 Structure type := Pack {sort; _ : class_of sort; _ : Type}.
 Local Coercion sort : type >-> Sortclass.
-Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
+Variables (T : Type) (cT : type).
+Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
+Definition clone c of phant_id class c := @Pack T c T.
 
-Definition pack T m :=
+Definition pack m :=
   fun bT b & phant_id (Choice.class bT) b => Pack (@Class T b m) T.
 
-Definition eqType cT := Equality.Pack (class cT) cT.
-Definition choiceType cT := Choice.Pack (class cT) cT.
+Definition eqType := Equality.Pack class cT.
+Definition choiceType := Choice.Pack class cT.
 
 End ClassDef.
 
@@ -291,14 +456,21 @@ Coercion eqType : type >-> Equality.type.
 Canonical Structure eqType.
 Coercion choiceType : type >-> Choice.type.
 Canonical Structure choiceType.
+Notation zmodType := type.
+Notation ZmodType T m := (@pack T m _ _ id).
+Notation ZmodMixin := Mixin.
+Notation "[ 'zmodType' 'of' T 'for' cT ]" := (@clone T cT _ idfun)
+  (at level 0, format "[ 'zmodType'  'of'  T  'for'  cT ]") : form_scope.
+Notation "[ 'zmodType' 'of' T ]" := (@clone T _ _ id)
+  (at level 0, format "[ 'zmodType'  'of'  T ]") : form_scope.
 End Exports.
 
 End Zmodule.
 Import Zmodule.Exports.
 
-Definition zero M := Zmodule.zero (Zmodule.class M).
-Definition opp M := Zmodule.opp (Zmodule.class M).
-Definition add M := Zmodule.add (Zmodule.class M).
+Definition zero V := Zmodule.zero (Zmodule.class V).
+Definition opp V := Zmodule.opp (Zmodule.class V).
+Definition add V := Zmodule.add (Zmodule.class V).
 
 Local Notation "0" := (zero _) : ring_scope.
 Local Notation "-%R" := (@opp _) : ring_scope.
@@ -307,10 +479,10 @@ Local Notation "+%R" := (@add _) : ring_scope.
 Local Notation "x + y" := (add x y) : ring_scope.
 Local Notation "x - y" := (x + - y) : ring_scope.
 
-Definition natmul M x n := nosimpl iterop _ n +%R x (zero M).
+Definition natmul V x n := nosimpl iterop _ n +%R x (zero V).
 
 Local Notation "x *+ n" := (natmul x n) : ring_scope.
-Local Notation "x *- n" := ((- x) *+ n) : ring_scope.
+Local Notation "x *- n" := (- (x *+ n)) : ring_scope.
 
 Local Notation "\sum_ ( i <- r | P ) F" := (\big[+%R/0]_(i <- r | P) F).
 Local Notation "\sum_ ( m <= i < n ) F" := (\big[+%R/0]_(m <= i < n) F).
@@ -321,42 +493,42 @@ Local Notation "s `_ i" := (nth 0 s i) : ring_scope.
 
 Section ZmoduleTheory.
 
-Variable M : Zmodule.type.
-Implicit Types x y : M.
+Variable V : zmodType.
+Implicit Types x y : V.
 
-Lemma addrA : @associative M +%R. Proof. by case M => T [? []]. Qed.
-Lemma addrC : @commutative M M +%R. Proof. by case M => T [? []]. Qed.
-Lemma add0r : @left_id M M 0 +%R. Proof. by case M => T [? []]. Qed.
-Lemma addNr : @left_inverse M M M 0 -%R +%R. Proof. by case M => T [? []]. Qed.
+Lemma addrA : @associative V +%R. Proof. by case V => T [? []]. Qed.
+Lemma addrC : @commutative V V +%R. Proof. by case V => T [? []]. Qed.
+Lemma add0r : @left_id V V 0 +%R. Proof. by case V => T [? []]. Qed.
+Lemma addNr : @left_inverse V V V 0 -%R +%R. Proof. by case V => T [? []]. Qed.
 
-Lemma addr0 : @right_id M M 0 +%R.
+Lemma addr0 : @right_id V V 0 +%R.
 Proof. by move=> x; rewrite addrC add0r. Qed.
-Lemma addrN : @right_inverse M M M 0 -%R +%R.
+Lemma addrN : @right_inverse V V V 0 -%R +%R.
 Proof. by move=> x; rewrite addrC addNr. Qed.
 Definition subrr := addrN.
 
 Canonical Structure add_monoid := Monoid.Law addrA add0r addr0.
 Canonical Structure add_comoid := Monoid.ComLaw addrC.
 
-Lemma addrCA : @left_commutative M M +%R. Proof. exact: mulmCA. Qed.
-Lemma addrAC : @right_commutative M M +%R. Proof. exact: mulmAC. Qed.
+Lemma addrCA : @left_commutative V V +%R. Proof. exact: mulmCA. Qed.
+Lemma addrAC : @right_commutative V V +%R. Proof. exact: mulmAC. Qed.
 
-Lemma addKr : @left_loop M M -%R +%R.
+Lemma addKr : @left_loop V V -%R +%R.
 Proof. by move=> x y; rewrite addrA addNr add0r. Qed.
-Lemma addNKr : @rev_left_loop M M -%R +%R.
+Lemma addNKr : @rev_left_loop V V -%R +%R.
 Proof. by move=> x y; rewrite addrA addrN add0r. Qed.
-Lemma addrK : @right_loop M M -%R +%R.
+Lemma addrK : @right_loop V V -%R +%R.
 Proof. by move=> x y; rewrite -addrA addrN addr0. Qed.
-Lemma addrNK : @rev_right_loop M M -%R +%R.
+Lemma addrNK : @rev_right_loop V V -%R +%R.
 Proof. by move=> x y; rewrite -addrA addNr addr0. Qed.
 Definition subrK := addrNK.
-Lemma addrI : @right_injective M M M +%R.
+Lemma addrI : @right_injective V V V +%R.
 Proof. move=> x; exact: can_inj (addKr x). Qed.
-Lemma addIr : @left_injective M M M +%R.
+Lemma addIr : @left_injective V V V +%R.
 Proof. move=> y; exact: can_inj (addrK y). Qed.
-Lemma opprK : @involutive M -%R.
+Lemma opprK : @involutive V -%R.
 Proof. by move=> x; apply: (@addIr (- x)); rewrite addNr addrN. Qed.
-Lemma oppr0 : -0 = 0 :> M.
+Lemma oppr0 : -0 = 0 :> V.
 Proof. by rewrite -[-0]add0r subrr. Qed.
 Lemma oppr_eq0 : forall x, (- x == 0) = (x == 0).
 Proof. by move=> x; rewrite (inv_eq opprK) oppr0. Qed.
@@ -364,7 +536,7 @@ Proof. by move=> x; rewrite (inv_eq opprK) oppr0. Qed.
 Lemma subr0 : forall x, x - 0 = x. Proof. by move=> x; rewrite oppr0 addr0. Qed.
 Lemma sub0r : forall x, 0 - x = - x. Proof. by move=> x; rewrite add0r. Qed.
 
-Lemma oppr_add : {morph -%R: x y / x + y : M}.
+Lemma oppr_add : {morph -%R: x y / x + y : V}.
 Proof.
 by move=> x y; apply: (@addrI (x + y)); rewrite addrA subrr addrAC addrK subrr.
 Qed.
@@ -390,10 +562,10 @@ Proof. by move=> x n; rewrite addrC mulrS. Qed.
 Lemma mulrb : forall x (b : bool), x *+ b = (if b then x else 0).
 Proof. by move=> x []. Qed.
 
-Lemma mul0rn : forall n, 0 *+ n = 0 :> M.
+Lemma mul0rn : forall n, 0 *+ n = 0 :> V.
 Proof. by elim=> // n IHn; rewrite mulrS add0r. Qed.
 
-Lemma oppr_muln : forall x n, - (x *+ n) = x *- n :> M.
+Lemma mulNrn : forall x n, (- x) *+ n = x *- n.
 Proof.
 by move=> x; elim=> [|n IHn]; rewrite ?oppr0 // !mulrS oppr_add IHn.
 Qed.
@@ -419,16 +591,16 @@ Qed.
 Lemma mulrnAC : forall x m n, x *+ m *+ n = x *+ n *+ m.
 Proof. by move=> x m n; rewrite -!mulrnA mulnC. Qed.
 
-Lemma sumr_opp : forall I r P (F : I -> M),
+Lemma sumr_opp : forall I r P (F : I -> V),
   (\sum_(i <- r | P i) - F i = - (\sum_(i <- r | P i) F i)).
 Proof. by move=> I r P F; rewrite (big_morph _ oppr_add oppr0). Qed.
 
-Lemma sumr_sub : forall I r (P : pred I) (F1 F2 : I -> M),
+Lemma sumr_sub : forall I r (P : pred I) (F1 F2 : I -> V),
   \sum_(i <- r | P i) (F1 i - F2 i)
      = \sum_(i <- r | P i) F1 i - \sum_(i <- r | P i) F2 i.
 Proof. by move=> *; rewrite -sumr_opp -big_split /=. Qed.
 
-Lemma sumr_muln :  forall I r P (F : I -> M) n,
+Lemma sumr_muln :  forall I r P (F : I -> V) n,
   \sum_(i <- r | P i) F i *+ n = (\sum_(i <- r | P i) F i) *+ n.
 Proof.
 by move=> I r P F n; rewrite (big_morph _ (mulrn_addl n) (mul0rn _)).
@@ -438,7 +610,7 @@ Lemma sumr_muln_r :  forall x I r P (F : I -> nat),
   \sum_(i <- r | P i) x *+ F i = x *+ (\sum_(i <- r | P i) F i).
 Proof. by move=> x I r P F; rewrite (big_morph _ (mulrn_addr x) (erefl _)). Qed.
 
-Lemma sumr_const : forall (I : finType) (A : pred I) (x : M),
+Lemma sumr_const : forall (I : finType) (A : pred I) (x : V),
   \sum_(i \in A) x = x *+ #|A|.
 Proof. by move=> I A x; rewrite big_const -iteropE. Qed.
 
@@ -446,7 +618,7 @@ End ZmoduleTheory.
 
 Module Ring.
 
-Record mixin_of (R : Zmodule.type) : Type := Mixin {
+Record mixin_of (R : zmodType) : Type := Mixin {
   one : R;
   mul : R -> R -> R;
   _ : associative mul;
@@ -463,23 +635,27 @@ Definition EtaMixin R one mul mulA mul1x mulx1 mul_addl mul_addr nz1 :=
      mulA mul1x mulx1 mul_addl mul_addr nz1.
 
 Section ClassDef.
+
 Record class_of (R : Type) : Type := Class {
   base : Zmodule.class_of R;
   mixin : mixin_of (Zmodule.Pack base R)
 }.
 Local Coercion base : class_of >-> Zmodule.class_of.
+
 Structure type := Pack {sort; _ : class_of sort; _ : Type}.
 Local Coercion sort : type >-> Sortclass.
-Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
+Variables (T : Type) (cT : type).
+Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
+Definition clone c of phant_id class c := @Pack T c T.
 
-Definition pack T b0 (m0 : mixin_of (@Zmodule.Pack T b0 T)) :=
+Definition pack b0 (m0 : mixin_of (@Zmodule.Pack T b0 T)) :=
   fun bT b & phant_id (Zmodule.class bT) b =>
   fun    m & phant_id m0 m => Pack (@Class T b m) T.
 
-Definition eqType cT := Equality.Pack (class cT) cT.
-Definition choiceType cT := Choice.Pack (class cT) cT.
-Definition zmodType cT := Zmodule.Pack (class cT) cT.
+Definition eqType := Equality.Pack class cT.
+Definition choiceType := Choice.Pack class cT.
+Definition zmodType := Zmodule.Pack class cT.
+
 End ClassDef.
 
 Module Exports.
@@ -493,24 +669,34 @@ Coercion choiceType : type >-> Choice.type.
 Canonical Structure choiceType.
 Coercion zmodType : type >-> Zmodule.type.
 Canonical Structure zmodType.
+Notation ringType := type.
+Notation RingType T m := (@pack T _ m _ _ id _ id).
+Notation RingMixin := Mixin.
+Notation "[ 'ringType' 'of' T 'for' cT ]" := (@clone T cT _ idfun)
+  (at level 0, format "[ 'ringType'  'of'  T  'for'  cT ]") : form_scope.
+Notation "[ 'ringType' 'of' T ]" := (@clone T _ _ id)
+  (at level 0, format "[ 'ringType'  'of'  T ]") : form_scope.
 End Exports.
 
 End Ring.
 Import Ring.Exports.
 
-Definition one (R : Ring.type) : R := Ring.one (Ring.class R).
-Definition mul (R : Ring.type) : R -> R -> R := Ring.mul (Ring.class R).
+Definition one (R : ringType) : R := Ring.one (Ring.class R).
+Definition mul (R : ringType) : R -> R -> R := Ring.mul (Ring.class R).
 Definition exp R x n := nosimpl iterop _ n (@mul R) x (one R).
+Definition comm R x y := @mul R x y = mul y x.
 
-Local Notation "1" := (one _).
-Local Notation "- 1" := (- (1)).
-Local Notation "n %:R" := (1 *+ n).
+Local Notation "1" := (one _) : ring_scope.
+Local Notation "- 1" := (- (1)) : ring_scope.
+Local Notation "n %:R" := (1 *+ n) : ring_scope.
 Local Notation "*%R" := (@mul _).
-Local Notation "x * y" := (mul x y).
-Local Notation "x ^+ n" := (exp x n).
+Local Notation "x * y" := (mul x y) : ring_scope.
+Local Notation "x ^+ n" := (exp x n) : ring_scope.
 
 Local Notation "\prod_ ( i <- r | P ) F" := (\big[*%R/1]_(i <- r | P) F).
 Local Notation "\prod_ ( i \in A ) F" := (\big[*%R/1]_(i \in A) F).
+
+Prenex Implicits comm.
 
 (* The ``field'' characteristic; the definition, and many of the theorems,   *)
 (* has to apply to rings as well; indeed, we need the Frobenius automorphism *)
@@ -520,9 +706,13 @@ Definition char (R : Ring.type) of phant R : nat_pred :=
 
 Local Notation "[ 'char' R ]" := (char (Phant R)) : ring_scope.
 
+(* Converse ring tag. *)
+Definition converse R : Type := R.
+Local Notation "R ^c" := (converse R) (at level 2, format "R ^c") : type_scope.
+
 Section RingTheory.
 
-Variable R : Ring.type.
+Variable R : ringType.
 Implicit Types x y : R.
 
 Lemma mulrA : @associative R *%R. Proof. by case R => T [? []]. Qed.
@@ -620,9 +810,6 @@ Qed.
 
 Lemma exprSr : forall x n, x ^+ n.+1 = x ^+ n * x.
 Proof. by move=> x n; rewrite -addn1 exprn_addr expr1. Qed.
-
-Definition commDef x y := x * y = y * x.
-Notation comm := commDef.
 
 Lemma commr_sym : forall x y, comm x y -> comm y x. Proof. done. Qed.
 Lemma commr_refl : forall x, comm x x. Proof. done. Qed.
@@ -776,7 +963,7 @@ Qed.
 
 Definition Frobenius_aut p of p \in [char R] := fun x => x ^+ p.
 
-Section Frobenius.
+Section FrobeniusAutomorphism.
 
 Variable p : nat.
 Hypothesis charFp : p \in [char R].
@@ -850,112 +1037,762 @@ move=> x y; move/commr_opp; move/Frobenius_aut_add_comm->.
 by rewrite Frobenius_aut_opp.
 Qed.
 
-End Frobenius.
+End FrobeniusAutomorphism.
 
-Definition RevRingMixin :=
+Canonical Structure converse_eqType := [eqType of R^c].
+Canonical Structure converse_choiceType := [choiceType of R^c].
+Canonical Structure converse_zmodType := [zmodType of R^c].
+
+Definition converse_ringMixin :=
   let mul' x y := y * x in
   let mulrA' x y z := esym (mulrA z y x) in
   let mulr_addl' x y z := mulr_addr z x y in
   let mulr_addr' x y z := mulr_addl y z x in
-  @Ring.Mixin R 1 mul' mulrA' mulr1 mul1r mulr_addl' mulr_addr' nonzero1r.
-
-Definition RevRingType := Ring.Pack (Ring.Class RevRingMixin) R.
+  @Ring.Mixin converse_zmodType
+    1 mul' mulrA' mulr1 mul1r mulr_addl' mulr_addr' nonzero1r.
+Canonical Structure converse_ringType := RingType R^c converse_ringMixin.
 
 End RingTheory.
 
-Notation comm := (@commDef _).
+Module Lmodule.
 
-Notation rev :=
-  (let R := _ in fun (x : Ring.sort R) => x : Ring.sort (RevRingType R)).
+Structure mixin_of (R : ringType) (V : zmodType) : Type := Mixin {
+  scale : R -> V -> V;
+  _ : forall a b v, scale a (scale b v) = scale (a * b) v;
+  _ : left_id 1 scale;
+  _ : right_distributive scale +%R;
+  _ : forall v, {morph scale^~ v: a b / a + b}
+}.
 
-Definition morphism (aR rR : Ring.type) (f : aR -> rR) :=
-  [/\ {morph f : x y / x - y}, {morph f : x y / x * y} & f 1 = 1].
+Section ClassDef.
 
-Section RingMorphTheory.
+Variable R : ringType.
 
-Variables aR' aR rR : Ring.type.
-Variables (f : aR -> rR) (g : aR' -> aR).
-Hypotheses (fM : morphism f) (gM : morphism g).
+Structure class_of V := Class {
+  base : Zmodule.class_of V;
+  mixin : mixin_of R (Zmodule.Pack base V)
+}.
+Local Coercion base : class_of >-> Zmodule.class_of.
 
-Lemma ringM_sub : {morph f : x y / x - y}.
-Proof. by case fM. Qed.
+Structure type (phR : phant R) := Pack {sort; _ : class_of sort; _ : Type}.
+Local Coercion sort : type >-> Sortclass.
+Variable (phR : phant R) (T : Type) (cT : type phR).
+Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
+Definition clone c of phant_id class c := @Pack phR T c T.
 
-Lemma ringM_0 : f 0 = 0.
-Proof. by rewrite -(subrr 0) ringM_sub subrr. Qed.
+Definition pack b0 (m0 : mixin_of R (@Zmodule.Pack T b0 T)) :=
+  fun bT b & phant_id (Zmodule.class bT) b =>
+  fun    m & phant_id m0 m => Pack phR (@Class T b m) T.
 
-Lemma ringM_1 : f 1 = 1.
-Proof. by case fM. Qed.
+Definition eqType := Equality.Pack class cT.
+Definition choiceType := Choice.Pack class cT.
+Definition zmodType := Zmodule.Pack class cT.
 
-Lemma ringM_opp : {morph f : x / - x}.
-Proof. by move=> x /=; rewrite -[-x]add0r ringM_sub ringM_0 add0r. Qed.
+End ClassDef.
 
-Lemma ringM_add : {morph f : x y / x + y}.
-Proof. by move=> x y /=; rewrite -(opprK y) ringM_opp ringM_sub. Qed.
+Module Import Exports.
+Coercion base : class_of >-> Zmodule.class_of.
+Coercion mixin : class_of >-> mixin_of.
+Coercion sort : type >-> Sortclass.
+Bind Scope ring_scope with sort.
+Coercion eqType : type >-> Equality.type.
+Canonical Structure eqType.
+Coercion choiceType : type >-> Choice.type.
+Canonical Structure choiceType.
+Coercion zmodType : type >-> Zmodule.type.
+Canonical Structure zmodType.
+Notation lmodType R := (type (Phant R)).
+Notation LmodType R T m := (@pack _ (Phant R) T _ m _ _ id _ id).
+Notation LmodMixin := Mixin.
+Notation "[ 'lmodType' R 'of' T 'for' cT ]" := (@clone _ (Phant R) T cT _ idfun)
+  (at level 0, format "[ 'lmodType'  R  'of'  T  'for'  cT ]") : form_scope.
+Notation "[ 'lmodType' R 'of' T ]" := (@clone _ (Phant R) T _ _ id)
+  (at level 0, format "[ 'lmodType'  R 'of'  T ]") : form_scope.
+End Exports.
 
-Definition ringM_sum := big_morph f ringM_add ringM_0.
+End Lmodule.
+Import Lmodule.Exports.
 
-Lemma ringM_mul : {morph f : x y / x * y}.
-Proof. by case fM. Qed.
+Definition scale (R : ringType) (V : lmodType R) :=
+  Lmodule.scale (Lmodule.class V).
 
-Definition ringM_prod := big_morph f ringM_mul ringM_1.
+Local Notation "*:%R" := (@scale _ _).
+Local Notation "a *: v" := (scale a v) : ring_scope.
 
-Lemma ringM_natmul : forall n, {morph f : x / x *+ n}.
-Proof. by elim=> [|n IHn] x; rewrite ?ringM_0 // !mulrS ringM_add IHn. Qed.
+Section LmoduleTheory.
 
-Lemma ringM_nat : forall n, f n%:R = n %:R.
-Proof. by move=> n; rewrite ringM_natmul ringM_1. Qed.
+Variables (R : ringType) (V : lmodType R).
+Implicit Type a b c : R.
+Implicit Type u v : V.
 
-Lemma ringM_exp : forall n, {morph f : x / x ^+ n}.
-Proof. by elim=> [|n IHn] x; rewrite ?ringM_1 //  !exprS ringM_mul IHn. Qed.
+Local Notation "*:%R" := (@scale R V).
 
-Lemma ringM_sign : forall k, f ((- 1) ^+ k) = (- 1) ^+ k.
-Proof. by move=> k; rewrite ringM_exp ringM_opp ringM_1. Qed.
+Lemma scalerA : forall a b v, a *: (b *: v) = a * b *: v.
+Proof. by case: V => ? [] ? []. Qed.
 
-Lemma ringM_char : forall p, p \in [char aR] -> p \in [char rR].
+Lemma scale1r : @left_id R V 1 *:%R.
+Proof. by case: V => ? [] ? []. Qed.
+
+Lemma scaler_addr : forall a, {morph *:%R a : u v / u + v}.
+Proof. by case: V => ? [] ? []. Qed.
+
+Lemma scaler_addl : forall v, {morph *:%R^~ v : a b / a + b}.
+Proof. by case: V => ? [] ? []. Qed.
+
+Lemma scale0r : forall v, 0 *: v = 0.
 Proof.
-move=> p; rewrite !inE -ringM_nat.
-by case/andP=> -> /=; move/eqP->; rewrite ringM_0.
+by move=> v; apply: (@addIr _ (1 *: v)); rewrite -scaler_addl !add0r.
 Qed.
 
-Lemma comp_ringM : morphism (f \o g).
+Lemma scaler0 : forall a, a *: 0 = 0 :> V.
+Proof. by move=> a; rewrite -{1}(scale0r 0) scalerA mulr0 scale0r. Qed.
+
+Lemma scaleNr : forall a v, - a *: v = - (a *: v).
 Proof.
-case: fM gM => [fsub fmul f1] [gsub gmul g1].
-by split=> [x y | x y |] /=; rewrite ?g1 ?gsub ?gmul.
+by move=> a v; apply: (@addIr _ (a *: v)); rewrite -scaler_addl !addNr scale0r.
 Qed.
 
-Lemma ringM_isom :
-  bijective f -> exists f', [/\ cancel f f', cancel f' f & morphism f'].
+Lemma scaleN1r : forall v, (- 1) *: v = - v.
+Proof. by move=> v; rewrite scaleNr scale1r. Qed.
+
+Lemma scalerN : forall a v, a *: (- v) = - (a *: v).
 Proof.
-case=> f' fK f'K; exists f'; split=> //.
-split=> [x y|x y|]; apply: (canLR fK);
- by rewrite (ringM_sub, ringM_mul, ringM_1) ?f'K.
+by move=> a v; apply: (@addIr _ (a *: v)); rewrite -scaler_addr !addNr scaler0.
 Qed.
 
-End RingMorphTheory.
+Lemma scaler_subl : forall a b v, (a - b) *: v = a *: v - b *: v.
+Proof. by move=> a b v; rewrite scaler_addl scaleNr. Qed.
+
+Lemma scaler_subr : forall a u v, a *: (u - v) = a *: u - a *: v.
+Proof. by move=> a u v; rewrite scaler_addr scalerN. Qed.
+
+Lemma scaler_nat : forall n v, n%:R *: v = v *+ n.
+Proof.
+move=> n v; elim: n => /= [|n ]; first by rewrite scale0r.
+by rewrite !mulrS scaler_addl ?scale1r => ->.
+Qed.
+
+Lemma scaler_mulrnl : forall a v n, a *: v *+ n = (a *+ n) *: v.
+Proof.
+move=> a v; elim=> [|n IHn]; first by rewrite !mulr0n scale0r.
+by rewrite !mulrSr IHn scaler_addl.
+Qed.
+
+Lemma scaler_mulrnr : forall a v n, a *: v *+ n = a *: (v *+ n).
+Proof.
+move=> a v; elim=> [|n IHn]; first by rewrite !mulr0n scaler0.
+by rewrite !mulrSr IHn scaler_addr.
+Qed.
+
+Lemma scaler_suml : forall v I r (P : pred I) F,
+  (\sum_(i <- r | P i) F i) *: v = \sum_(i <- r | P i) F i *: v.
+Proof.
+move=> v; exact: (big_morph _ (scaler_addl v) (scale0r v)).
+Qed.
+
+Lemma scaler_sumr : forall a I r (P : pred I) (F : I -> V),
+  a *: (\sum_(i <- r | P i) F i) = \sum_(i <- r | P i) a *: F i.
+Proof.
+move=> v; exact: (big_morph _ (scaler_addr v) (scaler0 v)).
+Qed.
+
+End LmoduleTheory.
+
+Module Lalgebra.
+
+Definition axiom (R : ringType) (V : lmodType R) (mul : V -> V -> V) :=
+  forall a u v, a *: mul u v = mul (a *: u) v.
+
+Section ClassDef.
+
+Variable R : ringType.
+
+Record class_of (T : Type) : Type := Class {
+  base : Ring.class_of T;
+  mixin : Lmodule.mixin_of R (Zmodule.Pack base T);
+  ext : @axiom R (Lmodule.Pack _ (Lmodule.Class mixin) T) (Ring.mul base)
+}.
+Definition base2 R m := Lmodule.Class (@mixin R m).
+Local Coercion base : class_of >-> Ring.class_of.
+Local Coercion base2 : class_of >-> Lmodule.class_of.
+
+Structure type (phR : phant R) := Pack {sort; _ : class_of sort; _ : Type}.
+Local Coercion sort : type >-> Sortclass.
+Variable (phR : phant R) (T : Type) (cT : type phR).
+Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
+Definition clone c of phant_id class c := @Pack phR T c T.
+
+Definition pack T b0 mul0 (axT : @axiom R (@Lmodule.Pack R _ T b0 T) mul0) :=
+  fun bT b & phant_id (Ring.class bT) (b : Ring.class_of T) =>
+  fun mT m & phant_id (@Lmodule.class R phR mT) (@Lmodule.Class R T b m) =>
+  fun ax & phant_id axT ax =>
+  Pack (Phant R) (@Class T b m ax) T.
+
+Definition eqType := Equality.Pack class cT.
+Definition choiceType := Choice.Pack class cT.
+Definition zmodType := Zmodule.Pack class cT.
+Definition ringType := Ring.Pack class cT.
+Definition lmodType := Lmodule.Pack phR class cT.
+Definition lmod_ringType := @Lmodule.Pack R phR ringType class cT.
+
+End ClassDef.
+
+Module Exports.
+Coercion base : class_of >-> Ring.class_of.
+Coercion base2 : class_of >-> Lmodule.class_of.
+Coercion sort : type >-> Sortclass.
+Bind Scope ring_scope with sort.
+Coercion eqType : type >-> Equality.type.
+Canonical Structure eqType.
+Coercion choiceType : type >-> Choice.type.
+Canonical Structure choiceType.
+Coercion zmodType : type >-> Zmodule.type.
+Canonical Structure zmodType.
+Coercion ringType : type >-> Ring.type.
+Canonical Structure ringType.
+Coercion lmodType : type >-> Lmodule.type.
+Canonical Structure lmodType.
+Canonical Structure lmod_ringType.
+Notation lalgType R := (type (Phant R)).
+Notation LalgType R T a := (@pack _ (Phant R) T _ _ a _ _ id _ _ id _ id).
+Notation "[ 'lalgType' R 'of' T 'for' cT ]" := (@clone _ (Phant R) T cT _ idfun)
+  (at level 0, format "[ 'lalgType'  R  'of'  T  'for'  cT ]")
+  : form_scope.
+Notation "[ 'lalgType' R 'of' T ]" := (@clone _ (Phant R) T _ _ id)
+  (at level 0, format "[ 'lalgType'  R 'of'  T ]") : form_scope.
+End Exports.
+
+End Lalgebra.
+Import Lalgebra.Exports.
+
+(* Scalar injection (see the definition of in_alg A below). *)
+Local Notation "k %:A" := (k *: 1) : ring_scope.
+
+(* Regular ring algebra tag. *)
+Definition regular R : Type := R.
+Local Notation "R ^o" := (regular R) (at level 2, format "R ^o") : type_scope.
+
+Section LalgebraTheory.
+
+Variables (R : ringType) (A : lalgType R).
+Implicit Types x y : A.
+
+Lemma scaler_mull : forall k (x y : A), k *: (x * y) = k *: x * y.
+Proof. by case: A  => ? []. Qed.
+
+Canonical Structure regular_eqType := [eqType of R^o].
+Canonical Structure regular_choiceType := [choiceType of R^o].
+Canonical Structure regular_zmodType := [zmodType of R^o].
+Canonical Structure regular_ringType := [ringType of R^o].
+
+Definition regular_lmodMixin :=
+  let mkMixin := @Lmodule.Mixin R regular_zmodType (@mul R) in
+  mkMixin (@mulrA R) (@mul1r R) (@mulr_addr R) (fun v a b => mulr_addl a b v).
+
+Canonical Structure regular_lmodType := LmodType R R^o regular_lmodMixin.
+Canonical Structure regular_lalgType :=
+  LalgType R R^o (@mulrA regular_ringType).
+
+End LalgebraTheory.
+
+(* Morphism hierarchy. *)
+
+Module Additive.
+
+Section ClassDef.
+
+Variables U V : zmodType.
+
+Definition axiom (f : U -> V) := {morph f : x y / x - y}.
+
+Structure map (phUV : phant (U -> V)) := Pack {apply; _ : axiom apply}.
+Local Coercion apply : map >-> Funclass.
+
+Variables (phUV : phant (U -> V)) (f g : U -> V) (cF : map phUV).
+Definition class := let: Pack _ c as cF' := cF return axiom cF' in c.
+Definition clone fA of phant_id g (apply cF) & phant_id fA class :=
+  @Pack phUV f fA.
+
+End ClassDef.
+
+Module Exports.
+Notation additive f := (axiom f).
+Coercion apply : map >-> Funclass.
+Notation Additive fA := (Pack (Phant _) fA).
+Notation "{ 'additive' fUV }" := (map (Phant fUV))
+  (at level 0, format "{ 'additive'  fUV }") : ring_scope.
+Notation "[ 'additive' 'of' f 'as' g ]" := (@clone _ _ _ f g _ _ idfun id)
+  (at level 0, format "[ 'additive'  'of'  f  'as'  g ]") : form_scope.
+Notation "[ 'additive' 'of' f ]" := (@clone _ _ _ f f _ _ id id)
+  (at level 0, format "[ 'additive'  'of'  f ]") : form_scope.
+End Exports.
+
+End Additive.
+Include Additive.Exports. (* Allows GRing.additive to resolve conflicts. *)
+
+(* Lifted additive operations. *)
+Section LiftedZmod.
+Variables (U : Type) (V : zmodType) (phV : phant V).
+Definition null_fun_head of U : V := let: Phant := phV in 0.
+Definition add_fun_head (f g : U -> V) x := let: Phant := phV in f x + g x.
+Definition sub_fun_head (f g : U -> V) x := let: Phant := phV in f x - g x.
+End LiftedZmod.
+
+(* Lifted linear operations. *)
+Section LiftedScale.
+Variables (R : ringType) (U : Type) (V : lmodType R) (A : lalgType R).
+Definition scale_fun_head (phV : phant V) a (f : U -> V) x :=
+  let: Phant := phV in a *: f x.
+Definition in_alg_head (phA : phant A) k : A := let: Phant := phA in k%:A.
+End LiftedScale.
+
+(* These notations are flagged as only parsing becase they would be masked by *)
+(* the corresponding notations in GRing.Theory in v8.2, and ignored in v8.3.  *)
+Notation null_fun V := (null_fun_head (Phant V)) (only parsing).
+Notation add_fun V := (add_fun_head (Phant V)) (only parsing).
+Notation sub_fun V := (sub_fun_head (Phant V)) (only parsing).
+Notation scale_fun V := (scale_fun_head (Phant V)) (only parsing).
+Notation in_alg A := (in_alg_head (Phant A)) (only parsing).
+
+Local Notation "\0" := (null_fun _) : ring_scope.
+Local Notation "f \+ g" := (add_fun _ f g) : ring_scope.
+Local Notation "f \- g" := (sub_fun _ f g) : ring_scope.
+Local Notation "a \*: f" := (scale_fun _ a f) : ring_scope.
+
+Section AdditiveTheory.
+
+Section Properties.
+
+Variables (U V : zmodType) (f : {additive U -> V}).
+
+Lemma raddf_sub : {morph f : x y / x - y}. Proof. exact: Additive.class. Qed.
+
+Lemma raddf0 : f 0 = 0.
+Proof. by rewrite -[0]subr0 raddf_sub subrr. Qed.
+
+Lemma raddfN : {morph f : x / - x}.
+Proof. by move=> x /=; rewrite -sub0r raddf_sub raddf0 sub0r. Qed.
+
+Lemma raddfD : {morph f : x y / x + y}.
+Proof. by move=> x y; rewrite -[y]opprK raddf_sub -raddfN. Qed.
+
+Lemma raddfMn : forall n, {morph f : x / x *+ n}.
+Proof. by elim=> [|n IHn] x /=; rewrite ?raddf0 // !mulrS raddfD IHn. Qed.
+
+Lemma raddfMNn : forall n, {morph f : x / x *- n}.
+Proof. by move=> n x /=; rewrite raddfN raddfMn. Qed.
+
+Lemma raddf_sum : forall I r (P : pred I) E,
+  f (\sum_(i <- r | P i) E i) = \sum_(i <- r | P i) f (E i).
+Proof. exact: big_morph f raddfD raddf0. Qed.
+
+Lemma can2_additive : forall f', cancel f f' -> cancel f' f -> additive f'.
+Proof.
+by move=> f' fK f'K x y /=; apply: (canLR fK); rewrite raddf_sub !f'K.
+Qed.
+
+Lemma bij_additive :
+  bijective f -> exists2 f' : {additive V -> U}, cancel f f' & cancel f' f.
+Proof. by case=> f' fK f'K; exists (Additive (can2_additive fK f'K)). Qed.
+
+End Properties.
+
+Variables (U V W : zmodType) (f g : {additive V -> W}) (h : {additive U -> V}).
+
+Lemma idfun_is_additive : additive (idfun : U -> U).
+Proof. by []. Qed.
+Canonical Structure idfun_additive := Additive idfun_is_additive.
+
+Lemma comp_is_additive : additive (f \o h).
+Proof. by move=> x y /=; rewrite !raddf_sub. Qed.
+Canonical Structure comp_additive := Additive comp_is_additive.
+
+Lemma opp_is_additive : additive (-%R : U -> U).
+Proof. by move=> x y; rewrite /= oppr_add. Qed.
+Canonical Structure opp_additive := Additive opp_is_additive.
+
+Lemma null_fun_is_additive : additive (\0 : U -> V).
+Proof. by move=> /=; rewrite subr0. Qed.
+Canonical Structure null_fun_additive := Additive null_fun_is_additive.
+
+Lemma add_fun_is_additive : additive (f \+ g).
+Proof.
+by move=> x y /=; rewrite !raddf_sub addrCA -!addrA addrCA -oppr_add.
+Qed.
+Canonical Structure add_fun_additive := Additive add_fun_is_additive.
+
+Lemma sub_fun_is_additive : additive (f \- g).
+Proof.
+by move=> x y /=; rewrite !raddf_sub addrAC -!addrA -!oppr_add addrAC addrA.
+Qed.
+Canonical Structure sub_fun_additive := Additive sub_fun_is_additive.
+
+End AdditiveTheory.
+
+Module RMorphism.
+
+Section ClassDef.
+
+Variables R S : ringType.
+
+Definition mixin_of (f : R -> S) :=
+  {morph f : x y / x * y}%R * (f 1 = 1) : Prop.
+
+Record class_of f : Prop := Class {base : additive f; mixin : mixin_of f}.
+Local Coercion base : class_of >-> additive.
+
+Structure map (phRS : phant (R -> S)) := Pack {apply; _ : class_of apply}.
+Local Coercion apply : map >-> Funclass.
+Variables (phRS : phant (R -> S)) (f g : R -> S) (cF : map phRS).
+
+Definition class := let: Pack _ c as cF' := cF return class_of cF' in c.
+
+Definition clone fM of phant_id g (apply cF) & phant_id fM class :=
+  @Pack phRS f fM.
+
+Definition pack (fM : mixin_of f) :=
+  fun (bF : Additive.map phRS) fA & phant_id (Additive.class bF) fA =>
+  Pack phRS (Class fA fM).
+
+Canonical Structure additive := Additive.Pack phRS class.
+
+End ClassDef.
+
+Module Exports.
+Notation multiplicative f := (mixin_of f).
+Notation rmorphism f := (class_of f).
+Coercion base : rmorphism >-> Additive.axiom.
+Coercion mixin : rmorphism >-> multiplicative.
+Coercion apply : map >-> Funclass.
+Notation RMorphism fM := (Pack (Phant _) fM).
+Notation AddRMorphism fM := (pack fM id).
+Notation "{ 'rmorphism' fRS }" := (map (Phant fRS))
+  (at level 0, format "{ 'rmorphism'  fRS }") : ring_scope.
+Notation "[ 'rmorphism' 'of' f 'as' g ]" := (@clone _ _ _ f g _ _ idfun id)
+  (at level 0, format "[ 'rmorphism'  'of'  f  'as'  g ]") : form_scope.
+Notation "[ 'rmorphism' 'of' f ]" := (@clone _ _ _ f f _ _ id id)
+  (at level 0, format "[ 'rmorphism'  'of'  f ]") : form_scope.
+Canonical Structure additive.
+End Exports.
+
+End RMorphism.
+Include RMorphism.Exports.
+
+Section RmorphismTheory.
+
+Section Properties.
+
+Variables (R S : ringType) (f : {rmorphism R -> S}).
+
+Lemma rmorph0 : f 0 = 0. Proof. exact: raddf0. Qed.
+Lemma rmorphN : {morph f : x / - x}. Proof. exact: raddfN. Qed.
+Lemma rmorphD : {morph f : x y / x + y}. Proof. exact: raddfD. Qed.
+Lemma rmorph_sub : {morph f: x y / x - y}. Proof. exact: raddf_sub. Qed.
+Lemma rmorphMn : forall n, {morph f : x / x *+ n}. Proof. exact: raddfMn. Qed.
+Lemma rmorphMNn : forall n, {morph f : x / x *- n}. Proof. exact: raddfMNn. Qed.
+Lemma rmorph_sum : forall I r (P : pred I) E,
+  f (\sum_(i <- r | P i) E i) = \sum_(i <- r | P i) f (E i).
+Proof. exact: raddf_sum. Qed.
+
+Lemma rmorphismP : rmorphism f. Proof. exact: RMorphism.class. Qed.
+Lemma rmorphismMP : multiplicative f. Proof. exact: rmorphismP. Qed.
+Lemma rmorph1 : f 1 = 1. Proof. by case: rmorphismMP. Qed.
+Lemma rmorphM : {morph f: x y  / x * y}. Proof. by case: rmorphismMP. Qed.
+
+Lemma rmorph_prod: forall I r (P : pred I) E,
+  f (\prod_(i <- r | P i) E i) = \prod_(i <- r | P i) f (E i).
+Proof. exact: big_morph f rmorphM rmorph1. Qed.
+
+Lemma rmorphX : forall n, {morph f: x / x ^+ n}.
+Proof. by elim=> [|n IHn] x; rewrite ?rmorph1 // !exprS rmorphM IHn. Qed.
+
+Lemma rmorph_nat : forall n, f n%:R = n%:R.
+Proof. by move=> n; rewrite rmorphMn rmorph1. Qed.
+
+Lemma rmorph_sign : forall n, f ((- 1) ^+ n) = (- 1) ^+ n.
+Proof. by move=> n; rewrite rmorphX rmorphN rmorph1. Qed.
+
+Lemma rmorph_char : forall p, p \in [char R] -> p \in [char S].
+Proof.
+move=> p; rewrite !inE -rmorph_nat.
+by case/andP=> -> /=; move/eqP->; rewrite rmorph0.
+Qed.
+
+Lemma can2_rmorphism : forall f', cancel f f' -> cancel f' f -> rmorphism f'.
+Proof.
+move=> f' fK f'K; split; first exact: can2_additive fK f'K.
+by split=> [x y|]; apply: (canLR fK); rewrite /= (rmorphM, rmorph1) ?f'K.
+Qed.
+
+Lemma bij_rmorphism :
+  bijective f -> exists2 f' : {rmorphism S -> R}, cancel f f' & cancel f' f.
+Proof. by case=> f' fK f'K; exists (RMorphism (can2_rmorphism fK f'K)). Qed.
+
+End Properties.
+
+Section Projections.
+
+Variables (R S T : ringType) (f : {rmorphism S -> T}) (g : {rmorphism R -> S}).
+
+Lemma idfun_is_multiplicative : multiplicative (idfun : R -> R).
+Proof. by []. Qed.
+Canonical Structure idfun_rmorphism := AddRMorphism idfun_is_multiplicative.
+
+Definition comp_is_multiplicative : multiplicative (f \o g).
+Proof. by split=> [x y|] /=; rewrite ?rmorph1 ?rmorphM. Qed.
+Canonical Structure comp_rmorphism := AddRMorphism comp_is_multiplicative.
+
+End Projections.
+
+Section InAlgebra.
+
+Variables (R : ringType) (A : lalgType R).
+
+Lemma in_alg_is_rmorphism : rmorphism (in_alg A).
+Proof.
+split=> [x y|]; first exact: scaler_subl.
+by split=> [x y|] /=; rewrite ?scale1r // -scaler_mull mul1r scalerA.
+Qed.
+Canonical Structure in_alg_additive := Additive in_alg_is_rmorphism.
+Canonical Structure in_alg_rmorphism := RMorphism in_alg_is_rmorphism.
+
+End InAlgebra.
+
+End RmorphismTheory.
+
+Module Linear.
+
+Section ClassDef.
+
+Variables (R : ringType) (U V : lmodType R).
+Implicit Type phUV : phant (U -> V).
+
+Definition axiom (f : U -> V) := forall a, {morph f : u v / a *: u + v}.
+
+Definition mixin_of (f : U -> V) := forall a, {morph f : v / a *: v}.
+
+Record class_of f : Prop := Class {base : additive f; mixin : mixin_of f}.
+Local Coercion base : class_of >-> additive.
+
+Lemma class_of_axiom : forall f, axiom f -> class_of f.
+Proof.
+move=> f fL.
+have fA: additive f by move=> x y /=; rewrite -!scaleN1r addrC fL addrC.
+split=> // a v /=.
+by rewrite -[a *: v]addr0 fL [f 0](raddf0 (Additive fA)) addr0.
+Qed.
+
+Structure map (phUV : phant (U -> V)) := Pack {apply; _ : class_of apply}.
+Local Coercion apply : map >-> Funclass.
+
+Variables (phUV : phant (U -> V)) (f g : U -> V) (cF : map phUV).
+Definition class := let: Pack _ c as cF' := cF return class_of cF' in c.
+Definition clone fL of phant_id g (apply cF) & phant_id fL class :=
+  @Pack phUV f fL.
+
+Definition pack (fZ : mixin_of f) :=
+  fun (bF : Additive.map phUV) fA & phant_id (Additive.class bF) fA =>
+  Pack phUV (Class fA fZ).
+
+Canonical Structure additive := Additive.Pack phUV class.
+
+End ClassDef.
+
+Module Exports.
+Notation scalable f := (mixin_of f).
+Notation linear f := (axiom f).
+Notation lmorphism f := (class_of f).
+Coercion class_of_axiom : linear >-> lmorphism.
+Coercion base : lmorphism >-> Additive.axiom.
+Coercion mixin : lmorphism >-> scalable.
+Coercion apply : map >-> Funclass.
+Notation Linear fL := (Pack (Phant _) fL).
+Notation AddLinear fZ := (pack fZ id).
+Notation "{ 'linear' fUV }" := (map (Phant fUV))
+  (at level 0, format "{ 'linear'  fUV }") : ring_scope.
+Notation "[ 'linear' 'of' f 'as' g ]" := (@clone _ _ _ _ f g _ _ idfun id)
+  (at level 0, format "[ 'linear'  'of'  f  'as'  g ]") : form_scope.
+Notation "[ 'linear' 'of' f ]" := (@clone _ _ _ _ f f _ _ id id)
+  (at level 0, format "[ 'linear'  'of'  f ]") : form_scope.
+Canonical Structure additive.
+End Exports.
+
+End Linear.
+Include Linear.Exports.
+
+Section LinearTheory.
+
+Variable R : ringType.
+
+Section Properties.
+
+Variables (U V : lmodType R) (f : {linear U -> V}).
+
+Lemma linear0 : f 0 = 0. Proof. exact: raddf0. Qed.
+Lemma linearN : {morph f : x / - x}. Proof. exact: raddfN. Qed.
+Lemma linearD : {morph f : x y / x + y}. Proof. exact: raddfD. Qed.
+Lemma linear_sub : {morph f: x y / x - y}. Proof. exact: raddf_sub. Qed.
+Lemma linearMn : forall n, {morph f : x / x *+ n}. Proof. exact: raddfMn. Qed.
+Lemma linearMNn : forall n, {morph f : x / x *- n}. Proof. exact: raddfMNn. Qed.
+Lemma linear_sum : forall I r (P : pred I) E,
+  f (\sum_(i <- r | P i) E i) = \sum_(i <- r | P i) f (E i).
+Proof. exact: raddf_sum. Qed.
+
+Lemma linearZ : scalable f. Proof. exact: (Linear.class f). Qed.
+Lemma linearP : linear f.
+Proof. by move=> a x y /=; rewrite linearD linearZ. Qed.
+
+Lemma can2_linear : forall f', cancel f f' -> cancel f' f -> linear f'.
+Proof.
+by move=> f' fK f'K a x y /=; apply: (canLR fK); rewrite linearP !f'K.
+Qed.
+
+Lemma bij_linear :
+  bijective f -> exists2 f' : {linear V -> U}, cancel f f' & cancel f' f.
+Proof. by case=> f' fK f'K; exists (Linear (can2_linear fK f'K)). Qed.
+
+End Properties.
+
+Variables U V W : lmodType R.
+Variables (b : R) (f g : {linear U -> V}) (h : {linear W -> U}).
+
+Lemma idfun_is_scalable : scalable (idfun : U -> U). Proof. by []. Qed.
+Canonical Structure idfun_linear := AddLinear idfun_is_scalable.
+
+Lemma comp_is_scalable : scalable (f \o h).
+Proof. by move=> a v /=; rewrite !linearZ. Qed.
+Canonical Structure comp_linear := AddLinear comp_is_scalable.
+
+Lemma opp_is_scalable : scalable (-%R : U -> U).
+Proof. by move=> a v /=; rewrite scalerN. Qed.
+Canonical Structure opp_linear := AddLinear opp_is_scalable.
+
+Lemma scale_is_additive : forall a, additive ( *:%R a : V -> V).
+Proof. by move=> a u v /=; rewrite scaler_addr scalerN. Qed.
+Canonical Structure scale_additive a := Additive (scale_is_additive a).
+
+Lemma null_fun_is_scalable : scalable (\0 : U -> U).
+Proof. by move=> a v /=; rewrite scaler0. Qed.
+Canonical Structure null_fun_linear := AddLinear null_fun_is_scalable.
+
+Lemma add_fun_is_scalable : scalable (f \+ g).
+Proof. by move=> a v /=; rewrite raddfD /= !linearZ. Qed.
+Canonical Structure add_fun_linear := AddLinear add_fun_is_scalable.
+
+Lemma sub_fun_is_scalable : scalable (f \- g).
+Proof. by move=> a v /=; rewrite raddf_sub /= !linearZ. Qed.
+Canonical Structure sub_fun_linear := AddLinear sub_fun_is_scalable.
+
+Lemma scale_fun_is_additive : additive (b \*: f).
+Proof. by move=> u v /=; rewrite !raddf_sub. Qed.
+Canonical Structure scale_fun_additive := Additive scale_fun_is_additive.
+
+End LinearTheory.
+
+Module LRMorphism.
+
+Section ClassDef.
+
+Variables (R : ringType) (A B : lalgType R).
+
+Record class_of (f : A -> B) : Prop :=
+  Class {base : rmorphism f; mixin : scalable f}.
+Local Coercion base : class_of >-> rmorphism.
+Definition base2 f (fLM : class_of f) := Linear.Class fLM (mixin fLM).
+Local Coercion base2 : class_of >-> lmorphism.
+
+Structure map (phAB : phant (A -> B)) := Pack {apply; _ : class_of apply}.
+Local Coercion apply : map >-> Funclass.
+
+Variables (phAB : phant (A -> B)) (f : A -> B) (cF : map phAB).
+Definition class := let: Pack _ c as cF' := cF return class_of cF' in c.
+
+Definition clone :=
+  fun (g : RMorphism.map phAB) fM & phant_id (RMorphism.class g) fM =>
+  fun (h : Linear.map phAB) fZ & phant_id (Linear.mixin (Linear.class h)) fZ =>
+  Pack phAB (@Class f fM fZ).
+
+Definition pack (fZ : scalable f) :=
+  fun (g : RMorphism.map phAB) fM & phant_id (RMorphism.class g) fM =>
+  Pack phAB (Class fM fZ).
+
+Canonical Structure additive := Additive.Pack phAB class.
+Canonical Structure rmorphism := RMorphism.Pack phAB class.
+Canonical Structure linear := Linear.Pack phAB class.
+Canonical Structure join_rmorphism := @RMorphism.Pack _ _ phAB linear class.
+Canonical Structure join_linear := @Linear.Pack R _ _ phAB rmorphism class.
+
+End ClassDef.
+
+Module Exports.
+Notation lrmorphism f := (class_of f).
+Coercion base : lrmorphism >-> RMorphism.class_of.
+Coercion base2 : lrmorphism >-> Linear.class_of.
+Coercion apply : map >-> Funclass.
+Notation LRMorphism fZ := (pack fZ id).
+Notation "{ 'lrmorphism' fAB }" := (map (Phant fAB))
+  (at level 0, format "{ 'lrmorphism'  fAB }") : ring_scope.
+Notation "[ 'lrmorphism' 'of' f ]" := (@clone _ _ _ _ f _ _ id _ _ id)
+  (at level 0, format "[ 'lrmorphism'  'of'  f ]") : form_scope.
+Canonical Structure additive.
+Canonical Structure rmorphism.
+Canonical Structure linear.
+Canonical Structure join_rmorphism.
+Canonical Structure join_linear.
+End Exports.
+
+End LRMorphism.
+Include LRMorphism.Exports.
+
+Section LRMorphismTheory.
+
+Variables (R : ringType) (A B C : lalgType R) (f : {lrmorphism B -> C}).
+
+Definition idfun_lrmorphism := [lrmorphism of (idfun : A -> A)].
+
+Definition comp_lrmorphism (g : {lrmorphism A -> B}) := [lrmorphism of f \o g].
+
+Lemma can2_lrmorphism : forall f', cancel f f' -> cancel f' f -> lrmorphism f'.
+Proof.
+move=> f' fK f'K; split; [exact: (can2_rmorphism fK) | exact: (can2_linear fK)].
+Qed.
+
+Lemma bij_lrmorphism :
+  bijective f -> exists2 f' : {lrmorphism C -> B}, cancel f f' & cancel f' f.
+Proof.
+by case/bij_rmorphism=> f' fK f'K; exists (LRMorphism (can2_linear fK f'K)).
+Qed.
+
+End LRMorphismTheory.
 
 Module ComRing.
-Section ClassDef.
-Record class_of R :=
-  Class {base : Ring.class_of R; _ : commutative (Ring.mul base)}.
-Local Coercion base : class_of >-> Ring.class_of.
-Structure type := Pack {sort; _ : class_of sort; _ : Type}.
-Local Coercion sort : type >-> Sortclass.
-Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
-
-Definition pack T mul0 (m0 : @commutative T T mul0) :=
-  fun bT b & phant_id (Ring.class bT) b =>
-  fun    m & phant_id m0 m => Pack (@Class T b m) T.
 
 Definition RingMixin R one mul mulA mulC mul1x mul_addl :=
   let mulx1 := Monoid.mulC_id mulC mul1x in
   let mul_addr := Monoid.mulC_dist mulC mul_addl in
   @Ring.EtaMixin R one mul mulA mul1x mulx1 mul_addl mul_addr.
 
-Definition eqType cT := Equality.Pack (class cT) cT.
-Definition choiceType cT := Choice.Pack (class cT) cT.
-Definition zmodType cT := Zmodule.Pack (class cT) cT.
-Definition ringType cT := Ring.Pack (class cT) cT.
+Section ClassDef.
+
+Record class_of R :=
+  Class {base : Ring.class_of R; _ : commutative (Ring.mul base)}.
+Local Coercion base : class_of >-> Ring.class_of.
+
+Structure type := Pack {sort; _ : class_of sort; _ : Type}.
+Local Coercion sort : type >-> Sortclass.
+Variable (T : Type) (cT : type).
+Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
+Definition clone c of phant_id class c := @Pack T c T.
+
+Definition pack mul0 (m0 : @commutative T T mul0) :=
+  fun bT b & phant_id (Ring.class bT) b =>
+  fun    m & phant_id m0 m => Pack (@Class T b m) T.
+
+Definition eqType := Equality.Pack class cT.
+Definition choiceType := Choice.Pack class cT.
+Definition zmodType := Zmodule.Pack class cT.
+Definition ringType := Ring.Pack class cT.
+
 End ClassDef.
 
 Module Exports.
@@ -970,6 +1807,13 @@ Coercion zmodType : type >-> Zmodule.type.
 Canonical Structure zmodType.
 Coercion ringType : type >-> Ring.type.
 Canonical Structure ringType.
+Notation comRingType := type.
+Notation ComRingType T m := (@pack T _ m _ _ id _ id).
+Notation ComRingMixin := RingMixin.
+Notation "[ 'comRingType' 'of' T 'for' cT ]" := (@clone T cT _ idfun)
+  (at level 0, format "[ 'comRingType'  'of'  T  'for'  cT ]") : form_scope.
+Notation "[ 'comRingType' 'of' T ]" := (@clone T _ _ id)
+  (at level 0, format "[ 'comRingType'  'of'  T ]") : form_scope.
 End Exports.
 
 End ComRing.
@@ -977,7 +1821,7 @@ Import ComRing.Exports.
 
 Section ComRingTheory.
 
-Variable R : ComRing.type.
+Variable R : comRingType.
 Implicit Types x y : R.
 
 Lemma mulrC : @commutative R R *%R. Proof. by case: R => T []. Qed.
@@ -1007,23 +1851,166 @@ Lemma subr_expn : forall x y n,
   x ^+ n - y ^+ n = (x - y) * (\sum_(i < n) x ^+ (n.-1 - i) * y ^+ i).
 Proof. by move=> x y n; rewrite -subr_expn_comm //; exact: mulrC. Qed.
 
-Lemma ringM_comm : forall (rR : Ring.type) (f : R -> rR), 
-  morphism f -> forall x y, comm (f x) (f y).
-Proof. by move=> rR f fRM x y; red; rewrite -!ringM_mul // mulrC. Qed.
+Section FrobeniusAutomorphism.
 
-Lemma Frobenius_aut_RM : forall p (charRp : p \in [char R]),
-  morphism (Frobenius_aut charRp).
+Variables (p : nat) (charRp : p \in [char R]).
+
+Lemma Frobenius_aut_is_rmorphism : rmorphism (Frobenius_aut charRp).
 Proof.
-move=> p charRp; split=> [x y|x y|]; last exact: Frobenius_aut_1.
-  exact: Frobenius_aut_sub_comm (mulrC _ _).
-exact: Frobenius_aut_mul_comm (mulrC _ _).
+split=> [x y|]; first exact: Frobenius_aut_sub_comm (mulrC _ _).
+split=> [x y|]; first exact: Frobenius_aut_mul_comm (mulrC _ _).
+exact: Frobenius_aut_1.
 Qed.
+
+Canonical Structure Frobenius_aut_additive :=
+  Additive Frobenius_aut_is_rmorphism.
+Canonical Structure Frobenius_aut_rmorphism :=
+  RMorphism Frobenius_aut_is_rmorphism.
+
+End FrobeniusAutomorphism.
+
+Lemma rmorph_comm : forall (S : ringType) (f : {rmorphism R -> S}) x y, 
+  comm (f x) (f y).
+Proof. by move=> S f x y; red; rewrite -!rmorphM mulrC. Qed.
+
+Section ScaleLinear.
+
+Variables (U V : lmodType R) (b : R) (f : {linear U -> V}).
+
+Lemma scale_is_scalable : scalable ( *:%R b : V -> V).
+Proof. by move=> a v /=; rewrite !scalerA mulrC. Qed.
+Canonical Structure scale_linear := AddLinear scale_is_scalable.
+
+Lemma scale_fun_is_scalable : scalable (b \*: f).
+Proof. by move=> a v /=; rewrite !linearZ. Qed.
+Canonical Structure scale_fun_linear := AddLinear scale_fun_is_scalable.
+
+End ScaleLinear.
 
 End ComRingTheory.
 
+Module Algebra.
+
+Section Mixin.
+
+Variables (R : ringType) (A : lalgType R).
+
+Definition axiom := forall k (x y : A), k *: (x * y) = x * (k *: y).
+
+Lemma comm_axiom : phant A -> commutative (@mul A) -> axiom.
+Proof. by move=> _ commA k x y; rewrite commA scaler_mull commA. Qed.
+
+End Mixin.
+
+Section ClassDef.
+
+Variable R : ringType.
+
+Record class_of (T : Type) : Type := Class {
+  base : Lalgebra.class_of R T; 
+  mixin : axiom (Lalgebra.Pack _ base T)
+}.
+Local Coercion base : class_of >-> Lalgebra.class_of.
+
+Structure type (phR : phant R) := Pack {sort; _ : class_of sort; _ : Type}.
+Local Coercion sort : type >-> Sortclass.
+Variable (phR : phant R) (T : Type) (cT : type phR).
+Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
+Definition clone c of phant_id class c := @Pack phR T c T.
+
+Definition pack b0 (ax0 : @axiom R b0) :=
+  fun bT b & phant_id (@Lalgebra.class R phR bT) b =>
+  fun   ax & phant_id ax0 ax => Pack phR (@Class T b ax) T.
+
+Definition eqType := Equality.Pack class cT.
+Definition choiceType := Choice.Pack class cT.
+Definition zmodType := Zmodule.Pack class cT.
+Definition ringType := Ring.Pack class cT.
+Definition lmodType := Lmodule.Pack phR class cT.
+Definition lalgType := Lalgebra.Pack phR class cT.
+
+End ClassDef.
+
+Module Exports.
+Coercion base : class_of >-> Lalgebra.class_of.
+Coercion sort : type >-> Sortclass.
+Bind Scope ring_scope with sort.
+Coercion eqType : type >-> Equality.type.
+Canonical Structure eqType.
+Coercion choiceType : type >-> Choice.type.
+Canonical Structure choiceType.
+Coercion zmodType : type >-> Zmodule.type.
+Canonical Structure zmodType.
+Coercion ringType : type >-> Ring.type.
+Canonical Structure ringType.
+Coercion lmodType : type >-> Lmodule.type.
+Canonical Structure lmodType.
+Coercion lalgType : type >-> Lalgebra.type.
+Canonical Structure lalgType.
+Notation algType R := (type (Phant R)).
+Notation AlgType R A ax := (@pack _ (Phant R) A _ ax _ _ id _ id).
+Notation CommAlgType R A := (AlgType R A (comm_axiom (Phant A) (@mulrC _))).
+Notation "[ 'algType' R 'of' T 'for' cT ]" := (@clone _ (Phant R) T cT _ idfun)
+  (at level 0, format "[ 'algType'  R  'of'  T  'for'  cT ]")
+  : form_scope.
+Notation "[ 'algType' R 'of' T ]" := (@clone _ (Phant R) T _ _ id)
+  (at level 0, format "[ 'algType'  R 'of'  T ]") : form_scope.
+End Exports.
+
+End Algebra.
+Import Algebra.Exports.
+
+Section AlgebraTheory.
+
+Variables (R : comRingType) (A : algType R).
+Implicit Types k : R.
+Implicit Types x y : A.
+
+Lemma scaler_mulr : forall k x y, k *: (x * y) = x * (k *: y).
+Proof. by case : A => T []. Qed.
+
+Lemma scaler_swap : forall k x y, k *: x * y = x * (k *: y).
+Proof. by move=> *; rewrite -scaler_mull scaler_mulr. Qed.
+
+Lemma scaler_exp : forall k x n, (k *: x) ^+ n = k ^+ n *: x ^+ n.
+Proof. 
+move=> k x; elim=> [|n IHn]; first by rewrite !expr0 scale1r.
+by rewrite !exprS IHn -scalerA scaler_mulr scaler_mull.
+Qed.
+
+Lemma scaler_prodl : forall (I : finType) (S : pred I) (F : I -> A) k,
+  \prod_(i \in S) (k *:  F i)  = k ^+ #|S| *: \prod_(i \in S) F i.
+Proof.
+move=> I S F k; rewrite -sum1_card /= -!(big_filter _ S) !unlock.
+elim: {S}(filter _ _) => /= [|i r ->]; first by rewrite expr0 scale1r.
+by rewrite -scaler_mull -scaler_mulr scalerA exprS.
+Qed.
+
+Lemma scaler_prodr : forall (I : finType) (S : pred I) (F : I -> R) x,
+  \prod_(i \in S) (F i *: x)  = \prod_(i \in S) F i *: x ^+ #|S|.
+Proof.
+move=> I S F k; rewrite -sum1_card /= -!(big_filter _ S) !unlock.
+elim: {S}(filter _ _) => /= [|i r ->]; first by rewrite expr0 scale1r.
+by rewrite -scaler_mull -scaler_mulr scalerA exprS.
+Qed.
+
+Lemma scaler_prod : forall I r (P : pred I) (F : I -> R) (G : I -> A),
+  \prod_(i <- r | P i) (F i *: G i) =
+    \prod_(i <- r | P i) (F i)  *: \prod_(i <- r | P i) (G i).
+Proof.
+move=> I r P F G;  rewrite -!(big_filter _ P) !unlock.
+elim: {P r}(filter _ _) => /= [|i r ->]; first by rewrite scale1r.
+by rewrite -scaler_mull -scaler_mulr scalerA.
+Qed.
+
+Canonical Structure regular_comRingType := [comRingType of R^o].
+Canonical Structure regular_algType := CommAlgType R R^o.
+
+End AlgebraTheory.
+
 Module UnitRing.
 
-Record mixin_of (R : Ring.type) : Type := Mixin {
+Record mixin_of (R : ringType) : Type := Mixin {
   unit : pred R;
   inv : R -> R;
   _ : {in unit, left_inverse 1 inv *%R};
@@ -1037,24 +2024,28 @@ Definition EtaMixin R unit inv mulVr mulrV unitP inv_out :=
   @Mixin (Ring.Pack (Ring.class R) R) unit inv mulVr mulrV unitP inv_out.
 
 Section ClassDef.
+
 Record class_of (R : Type) : Type := Class {
   base : Ring.class_of R;
   mixin : mixin_of (Ring.Pack base R)
 }.
 Local Coercion base : class_of >-> Ring.class_of.
+
 Structure type := Pack {sort; _ : class_of sort; _ : Type}.
 Local Coercion sort : type >-> Sortclass.
-Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
+Variables (T : Type) (cT : type).
+Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
+Definition clone c of phant_id class c := @Pack T c T.
 
-Definition pack T b0 (m0 : mixin_of (@Ring.Pack T b0 T)) :=
+Definition pack b0 (m0 : mixin_of (@Ring.Pack T b0 T)) :=
   fun bT b & phant_id (Ring.class bT) b =>
   fun    m & phant_id m0 m => Pack (@Class T b m) T.
 
-Definition eqType cT := Equality.Pack (class cT) cT.
-Definition choiceType cT := Choice.Pack (class cT) cT.
-Definition zmodType cT := Zmodule.Pack (class cT) cT.
-Definition ringType cT := Ring.Pack (class cT) cT.
+Definition eqType := Equality.Pack class cT.
+Definition choiceType := Choice.Pack class cT.
+Definition zmodType := Zmodule.Pack class cT.
+Definition ringType := Ring.Pack class cT.
+
 End ClassDef.
 
 Module Exports.
@@ -1070,23 +2061,29 @@ Coercion zmodType : type >-> Zmodule.type.
 Canonical Structure zmodType.
 Coercion ringType : type >-> Ring.type.
 Canonical Structure ringType.
+Notation unitRingType := type.
+Notation UnitRingType T m := (@pack T _ m _ _ id _ id).
+Notation UnitRingMixin := EtaMixin.
+Notation "[ 'unitRingType' 'of' T 'for' cT ]" := (@clone T cT _ idfun)
+  (at level 0, format "[ 'unitRingType'  'of'  T  'for'  cT ]") : form_scope.
+Notation "[ 'unitRingType' 'of' T ]" := (@clone T _ _ id)
+  (at level 0, format "[ 'unitRingType'  'of'  T ]") : form_scope.
 End Exports.
 
 End UnitRing.
 Import UnitRing.Exports.
 
-Definition unitDef (R : UnitRing.type) : pred R :=
-  UnitRing.unit (UnitRing.class R).
-Notation unit := (@unitDef _).
-Definition inv (R : UnitRing.type) : R -> R := UnitRing.inv (UnitRing.class R).
+Definition unit (R : unitRingType) : pred R := UnitRing.unit (UnitRing.class R).
+Definition inv (R : unitRingType) : R -> R := UnitRing.inv (UnitRing.class R).
 
-Notation Local "x ^-1" := (inv x).
-Notation Local "x / y" := (x * y^-1).
-Notation Local "x ^- n" := ((x ^+ n)^-1).
+Prenex Implicits unit.
+Local Notation "x ^-1" := (inv x).
+Local Notation "x / y" := (x * y^-1).
+Local Notation "x ^- n" := ((x ^+ n)^-1).
 
 Section UnitRingTheory.
 
-Variable R : UnitRing.type.
+Variable R : unitRingType.
 Implicit Types x y : R.
 
 Lemma divrr : forall x, unit x -> x / x = 1.
@@ -1238,29 +2235,230 @@ Proof.
 by move=> x; apply: negb_inj; apply/idP/idP; move/invr_neq0; rewrite ?invrK.
 Qed.
 
+Lemma rev_unitrP : forall x y : R^c, y * x = 1 /\ x * y = 1 -> unit x.
+Proof. by move=> x y [yx1 xy1]; apply/unitrP; exists y. Qed.
+
+Definition converse_unitRingMixin :=
+  @UnitRing.Mixin _ (unit : pred R^c) _ mulrV mulVr rev_unitrP invr_out.
+Canonical Structure converse_unitRingType :=
+  UnitRingType R^c converse_unitRingMixin.
+Canonical Structure regular_unitRingType := [unitRingType of R^o].
+
 End UnitRingTheory.
 
 Section UnitRingMorphism.
 
-Variables (aR rR : UnitRing.type) (f : aR -> rR).
-Hypothesis fM : morphism f.
+Variables (R S : unitRingType) (f : {rmorphism R -> S}).
 
-Lemma ringM_unit : forall x, unit x -> unit (f x).
+Lemma rmorph_unit : forall x, unit x -> unit (f x).
 Proof.
 move=> x; case/unitrP=> y [yx1 xy1]; apply/unitrP.
-by exists (f y); rewrite -!ringM_mul // yx1 xy1 ringM_1.
+by exists (f y); rewrite -!rmorphM // yx1 xy1 rmorph1.
 Qed.
 
-Lemma ringM_inv : forall x, unit x -> f x^-1 = (f x)^-1.
+Lemma rmorphV : forall x, unit x -> f x^-1 = (f x)^-1.
 Proof.
-move=> x Ux; rewrite -[(f x)^-1]mul1r; apply: (canRL (mulrK (ringM_unit Ux))).
-by rewrite -ringM_mul // mulVr ?ringM_1.
+move=> x Ux; rewrite -[(f x)^-1]mul1r; apply: (canRL (mulrK (rmorph_unit Ux))).
+by rewrite -rmorphM mulVr ?rmorph1.
 Qed.
 
-Lemma ringM_div : forall x y, unit y -> f (x / y) = f x / f y.
-Proof. by move=> x y Uy; rewrite ringM_mul ?ringM_inv. Qed.
+Lemma rmorph_div : forall x y, unit y -> f (x / y) = f x / f y.
+Proof. by move=> x y Uy; rewrite rmorphM rmorphV. Qed.
 
 End UnitRingMorphism.
+
+Module ComUnitRing.
+
+Section Mixin.
+
+Variables (R : comRingType) (unit : pred R) (inv : R -> R).
+Hypothesis mulVx : {in unit, left_inverse 1 inv *%R}.
+Hypothesis unitPl : forall x y, y * x = 1 -> unit x.
+
+Lemma mulC_mulrV : {in unit, right_inverse 1 inv *%R}.
+Proof. by move=> x Ux /=; rewrite mulrC mulVx. Qed.
+
+Lemma mulC_unitP : forall x y, y * x = 1 /\ x * y = 1 -> unit x.
+Proof. move=> x y [yx _]; exact: unitPl yx. Qed.
+
+Definition Mixin := UnitRingMixin mulVx mulC_mulrV mulC_unitP.
+
+End Mixin.
+
+Section ClassDef.
+
+Record class_of (R : Type) : Type := Class {
+  base : ComRing.class_of R;
+  mixin : UnitRing.mixin_of (Ring.Pack base R)
+}.
+Local Coercion base : class_of >-> ComRing.class_of.
+Definition base2 R m := UnitRing.Class (@mixin R m).
+Local Coercion base2 : class_of >-> UnitRing.class_of.
+
+Structure type := Pack {sort; _ : class_of sort; _ : Type}.
+Local Coercion sort : type >-> Sortclass.
+Variables (T : Type) (cT : type).
+Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
+
+Definition pack :=
+  fun bT b & phant_id (ComRing.class bT) (b : ComRing.class_of T) =>
+  fun mT m & phant_id (UnitRing.class mT) (@UnitRing.Class T b m) =>
+  Pack (@Class T b m) T.
+
+Definition eqType := Equality.Pack class cT.
+Definition choiceType := Choice.Pack class cT.
+Definition zmodType := Zmodule.Pack class cT.
+Definition ringType := Ring.Pack class cT.
+Definition comRingType := ComRing.Pack class cT.
+Definition unitRingType := UnitRing.Pack class cT.
+Definition com_unitRingType := @UnitRing.Pack comRingType class cT.
+
+End ClassDef.
+
+Module Import Exports.
+Coercion base : class_of >-> ComRing.class_of.
+Coercion mixin : class_of >-> UnitRing.mixin_of.
+Coercion base2 : class_of >-> UnitRing.class_of.
+Coercion sort : type >-> Sortclass.
+Bind Scope ring_scope with sort.
+Coercion eqType : type >-> Equality.type.
+Canonical Structure eqType.
+Coercion choiceType : type >-> Choice.type.
+Canonical Structure choiceType.
+Coercion zmodType : type >-> Zmodule.type.
+Canonical Structure zmodType.
+Coercion ringType : type >-> Ring.type.
+Canonical Structure ringType.
+Coercion comRingType : type >-> ComRing.type.
+Canonical Structure comRingType.
+Coercion unitRingType : type >-> UnitRing.type.
+Canonical Structure unitRingType.
+Canonical Structure com_unitRingType.
+Notation comUnitRingType := type.
+Notation ComUnitRingMixin := Mixin.
+Notation "[ 'comUnitRingType' 'of' T ]" := (@pack T _ _ id _ _ id)
+  (at level 0, format "[ 'comUnitRingType'  'of'  T ]") : form_scope.
+End Exports.
+
+End ComUnitRing.
+Import ComUnitRing.Exports.
+
+Module UnitAlgebra.
+
+Section ClassDef.
+
+Variable R : ringType.
+
+Record class_of (T : Type) : Type := Class {
+  base : Algebra.class_of R T; 
+  mixin : GRing.UnitRing.mixin_of (Ring.Pack base T)
+}.
+Definition base2 R m := UnitRing.Class (@mixin R m).
+Local Coercion base : class_of >-> Algebra.class_of.
+Local Coercion base2 : class_of >-> UnitRing.class_of.
+
+Structure type (phR : phant R) := Pack {sort; _ : class_of sort; _ : Type}.
+Local Coercion sort : type >-> Sortclass.
+Variable (phR : phant R) (T : Type) (cT : type phR).
+Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
+
+Definition pack :=
+  fun bT b & phant_id (@Algebra.class R phR bT) (b : Algebra.class_of R T) =>
+  fun mT m & phant_id (UnitRing.class mT) (@UnitRing.Class T b m) =>
+  Pack (Phant R) (@Class T b m) T.
+
+Definition eqType := Equality.Pack class cT.
+Definition choiceType := Choice.Pack class cT.
+Definition zmodType := Zmodule.Pack class cT.
+Definition ringType := Ring.Pack class cT.
+Definition unitRingType := UnitRing.Pack class cT.
+Definition lmodType := Lmodule.Pack phR class cT.
+Definition lalgType := Lalgebra.Pack phR class cT.
+Definition algType := Algebra.Pack phR class cT.
+Definition lmod_unitRingType := @Lmodule.Pack R phR unitRingType class cT.
+Definition lalg_unitRingType := @Lalgebra.Pack R phR unitRingType class cT.
+Definition alg_unitRingType := @Algebra.Pack R phR unitRingType class cT.
+
+End ClassDef.
+
+Module Exports.
+Coercion base : class_of >-> Algebra.class_of.
+Coercion base2 : class_of >-> UnitRing.class_of.
+Coercion sort : type >-> Sortclass.
+Bind Scope ring_scope with sort.
+Coercion eqType : type >-> Equality.type.
+Canonical Structure eqType.
+Coercion choiceType : type >-> Choice.type.
+Canonical Structure choiceType.
+Coercion zmodType : type >-> Zmodule.type.
+Canonical Structure zmodType.
+Coercion ringType : type >-> Ring.type.
+Canonical Structure ringType.
+Coercion unitRingType : type >-> UnitRing.type.
+Canonical Structure unitRingType.
+Coercion lmodType : type >-> Lmodule.type.
+Canonical Structure lmodType.
+Coercion lalgType : type >-> Lalgebra.type.
+Canonical Structure lalgType.
+Coercion algType : type >-> Algebra.type.
+Canonical Structure algType.
+Canonical Structure lmod_unitRingType.
+Canonical Structure lalg_unitRingType.
+Canonical Structure alg_unitRingType.
+Notation unitAlgType R := (type (Phant R)).
+Notation "[ 'unitAlgType' R 'of' T ]" := (@pack _ (Phant R) T _ _ id _ _ id)
+  (at level 0, format "[ 'unitAlgType' R 'of'  T ]") : form_scope.
+End Exports.
+
+End UnitAlgebra.
+Import UnitAlgebra.Exports.
+
+Section ComUnitRingTheory.
+
+Variable R : comUnitRingType.
+Implicit Types x y : R.
+
+Lemma unitr_mul : forall x y, unit (x * y) = unit x && unit y.
+Proof. move=> x y; apply: commr_unit_mul; exact: mulrC. Qed.
+
+Canonical Structure regular_comUnitRingType := [comUnitRingType of R^o].
+Canonical Structure regular_unitAlgType := [unitAlgType R of R^o].
+
+End ComUnitRingTheory.
+
+Section UnitAlgebraTheory.
+
+Variable (R : comUnitRingType) (A : unitAlgType R).
+Implicit Types k : R.
+Implicit Types x y : A.
+
+Lemma scaler_injl : forall k, unit k -> @injective _ A ( *:%R k).
+Proof.
+move=> k Uk x1 x2 Hx1x2.
+by rewrite -[x1]scale1r -(mulVr Uk) -scalerA Hx1x2 scalerA mulVr // scale1r.
+Qed.
+
+Lemma scaler_unit : forall k x, unit k -> unit x = unit (k *: x).
+Proof.
+move=> k x Uk; apply/idP/idP=> [Ux | Ukx]; apply/unitrP.
+  exists (k^-1 *: x^-1).
+  by rewrite -!scaler_mull -!scaler_mulr !scalerA !mulVr // !mulrV // scale1r.
+exists (k *: (k *: x)^-1); split.
+  apply (mulrI Ukx).
+  by rewrite mulr1 mulrA -scaler_mulr mulrV // -scaler_mull mul1r.
+apply (mulIr Ukx).
+by rewrite mul1r -mulrA -scaler_mull mulVr // -scaler_mulr mulr1.
+Qed.
+ 
+Lemma scaler_inv: forall k x, unit k -> unit x -> (k *: x)^-1 = k^-1 *: x^-1.
+Proof.
+move=> k x Uk Ux.
+have Ukx : unit (k *: x) by rewrite -scaler_unit //.
+apply (mulIr Ukx).
+by rewrite mulVr // -scaler_mull -scaler_mulr scalerA !mulVr // scale1r.
+Qed.  
+
+End UnitAlgebraTheory.
 
 (* Reification of the theory of rings with units, in named style  *)
 Section TermDef.
@@ -1371,7 +2569,7 @@ End Substitution.
 
 Section EvalTerm.
 
-Variable R : UnitRing.type.
+Variable R : unitRingType.
 
 (* Evaluation of a reified term into R a ring with units *)
 Fixpoint eval (e : seq R) (t : term R) {struct t} : R :=
@@ -1882,94 +3080,12 @@ End EvalTerm.
 
 Prenex Implicits dnf_rterm.
 
-Module ComUnitRing.
-
-Section ClassDef.
-
-Record class_of (R : Type) : Type := Class {
-  base : ComRing.class_of R;
-  mixin : UnitRing.mixin_of (Ring.Pack base R)
-}.
-Local Coercion base : class_of >-> ComRing.class_of.
-Definition base2 R m := UnitRing.Class (@mixin R m).
-Local Coercion base2 : class_of >-> UnitRing.class_of.
-
-Structure type := Pack {sort; _ : class_of sort; _ : Type}.
-Local Coercion sort : type >-> Sortclass.
-Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-
-Section Mixin.
-
-Variables (R : ComRing.type) (unit : pred R) (inv : R -> R).
-Hypothesis mulVx : {in unit, left_inverse 1 inv *%R}.
-Hypothesis unitPl : forall x y, y * x = 1 -> unit x.
-
-Lemma mulC_mulrV : {in unit, right_inverse 1 inv *%R}.
-Proof. by move=> x Ux /=; rewrite mulrC mulVx. Qed.
-
-Lemma mulC_unitP : forall x y, y * x = 1 /\ x * y = 1 -> unit x.
-Proof. move=> x y [yx _]; exact: unitPl yx. Qed.
-
-Definition Mixin := UnitRing.EtaMixin mulVx mulC_mulrV mulC_unitP.
-
-End Mixin.
-
-Definition pack T :=
-  fun bT b & phant_id (ComRing.class bT) (b : ComRing.class_of T) =>
-  fun mT m & phant_id (UnitRing.class mT) (@UnitRing.Class T b m) =>
-  Pack (@Class T b m) T.
-
-Definition eqType cT := Equality.Pack (class cT) cT.
-Definition choiceType cT := Choice.Pack (class cT) cT.
-Definition zmodType cT := Zmodule.Pack (class cT) cT.
-Definition ringType cT := Ring.Pack (class cT) cT.
-Definition comRingType cT := ComRing.Pack (class cT) cT.
-Definition unitRingType cT := UnitRing.Pack (class cT) cT.
-Definition com_unitRingType cT :=
-  @UnitRing.Pack (comRingType cT) (class cT) cT.
-
-End ClassDef.
-
-Module Exports.
-Coercion base : class_of >-> ComRing.class_of.
-Coercion mixin : class_of >-> UnitRing.mixin_of.
-Coercion base2 : class_of >-> UnitRing.class_of.
-Coercion sort : type >-> Sortclass.
-Bind Scope ring_scope with sort.
-Coercion eqType : type >-> Equality.type.
-Canonical Structure eqType.
-Coercion choiceType : type >-> Choice.type.
-Canonical Structure choiceType.
-Coercion zmodType : type >-> Zmodule.type.
-Canonical Structure zmodType.
-Coercion ringType : type >-> Ring.type.
-Canonical Structure ringType.
-Coercion comRingType : type >-> ComRing.type.
-Canonical Structure comRingType.
-Coercion unitRingType : type >-> UnitRing.type.
-Canonical Structure unitRingType.
-Canonical Structure com_unitRingType.
-End Exports.
-
-End ComUnitRing.
-Import ComUnitRing.Exports.
-
-Section ComUnitRingTheory.
-
-Variable R : ComUnitRing.type.
-Implicit Types x y : R.
-
-Lemma unitr_mul : forall x y, unit (x * y) = unit x && unit y.
-Proof. move=> x y; apply: commr_unit_mul; exact: mulrC. Qed.
-
-End ComUnitRingTheory.
-
 Module IntegralDomain.
 
-Section ClassDef.
-
-Definition axiom (R : Ring.type) :=
+Definition axiom (R : ringType) :=
   forall x y : R, x * y = 0 -> (x == 0) || (y == 0).
+
+Section ClassDef.
 
 Record class_of (R : Type) : Type :=
   Class {base : ComUnitRing.class_of R; _: axiom (Ring.Pack base R)}.
@@ -1977,20 +3093,21 @@ Local Coercion base : class_of >-> ComUnitRing.class_of.
 
 Structure type := Pack {sort; _ : class_of sort; _ : Type}.
 Local Coercion sort : type >-> Sortclass.
-Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
+Variable (T : Type) (cT : type).
+Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
+Definition clone c of phant_id class c := @Pack T c T.
 
-Definition pack T b0 (m0 : axiom (@Ring.Pack T b0 T)) :=
+Definition pack b0 (m0 : axiom (@Ring.Pack T b0 T)) :=
   fun bT b & phant_id (ComUnitRing.class bT) b =>
   fun    m & phant_id m0 m => Pack (@Class T b m) T.
 
-Definition eqType cT := Equality.Pack (class cT) cT.
-Definition choiceType cT := Choice.Pack (class cT) cT.
-Definition zmodType cT := Zmodule.Pack (class cT) cT.
-Definition ringType cT := Ring.Pack (class cT) cT.
-Definition comRingType cT := ComRing.Pack (class cT) cT.
-Definition unitRingType cT := UnitRing.Pack (class cT) cT.
-Definition comUnitRingType cT := ComUnitRing.Pack (class cT) cT.
+Definition eqType := Equality.Pack class cT.
+Definition choiceType := Choice.Pack class cT.
+Definition zmodType := Zmodule.Pack class cT.
+Definition ringType := Ring.Pack class cT.
+Definition comRingType := ComRing.Pack class cT.
+Definition unitRingType := UnitRing.Pack class cT.
+Definition comUnitRingType := ComUnitRing.Pack class cT.
 
 End ClassDef.
 
@@ -2012,6 +3129,12 @@ Coercion unitRingType : type >-> UnitRing.type.
 Canonical Structure unitRingType.
 Coercion comUnitRingType : type >-> ComUnitRing.type.
 Canonical Structure comUnitRingType.
+Notation idomainType := type.
+Notation IdomainType T m := (@pack T _ m _ _ id _ id).
+Notation "[ 'idomainType' 'of' T 'for' cT ]" := (@clone T cT _ idfun)
+  (at level 0, format "[ 'idomainType'  'of'  T  'for'  cT ]") : form_scope.
+Notation "[ 'idomainType' 'of' T ]" := (@clone T _ _ id)
+  (at level 0, format "[ 'idomainType'  'of'  T ]") : form_scope.
 End Exports.
 
 End IntegralDomain.
@@ -2019,7 +3142,7 @@ Import IntegralDomain.Exports.
 
 Section IntegralDomainTheory.
 
-Variable R : IntegralDomain.type.
+Variable R : idomainType.
 Implicit Types x y : R.
 
 Lemma mulf_eq0 : forall x y, (x * y == 0) = (x == 0) || (y == 0).
@@ -2050,28 +3173,13 @@ Qed.
 Lemma mulIf : forall x, x != 0 -> injective ( *%R^~ x).
 Proof. move=> x nz_x y z; rewrite -!(mulrC x); exact: mulfI. Qed.
 
+Canonical Structure regular_idomainType := [idomainType of R^o].
+
 End IntegralDomainTheory.
 
 Module Field.
 
-Section ClassDef.
-
-Definition mixin_of (F : UnitRing.type) := forall x : F, x != 0 -> unit x.
-
-Record class_of (F : Type) : Type := Class {
-  base : IntegralDomain.class_of F;
-  _ : mixin_of (UnitRing.Pack base F)
-}.
-Local Coercion base : class_of >-> IntegralDomain.class_of.
-
-Structure type := Pack {sort; _ : class_of sort; _ : Type}.
-Local Coercion sort : type >-> Sortclass.
-Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
-
-Definition pack T b0 (m0 : mixin_of (@UnitRing.Pack T b0 T)) :=
-  fun bT b & phant_id (IntegralDomain.class bT) b =>
-  fun    m & phant_id m0 m => Pack (@Class T b m) T.
+Definition mixin_of (F : unitRingType) := forall x : F, x != 0 -> unit x.
 
 Lemma IdomainMixin : forall R, mixin_of R -> IntegralDomain.axiom R.
 Proof.
@@ -2081,7 +3189,7 @@ Qed.
 
 Section Mixins.
 
-Variables (R : ComRing.type) (inv : R -> R).
+Variables (R : comRingType) (inv : R -> R).
 
 Definition axiom := forall x, x != 0 -> inv x * x = 1.
 Hypothesis mulVx : axiom.
@@ -2103,14 +3211,32 @@ Proof. by []. Qed.
 
 End Mixins.
 
-Definition eqType cT := Equality.Pack (class cT) cT.
-Definition choiceType cT := Choice.Pack (class cT) cT.
-Definition zmodType cT := Zmodule.Pack (class cT) cT.
-Definition ringType cT := Ring.Pack (class cT) cT.
-Definition comRingType cT := ComRing.Pack (class cT) cT.
-Definition unitRingType cT := UnitRing.Pack (class cT) cT.
-Definition comUnitRingType cT := ComUnitRing.Pack (class cT) cT.
-Definition idomainType cT := IntegralDomain.Pack (class cT) cT.
+Section ClassDef.
+
+Record class_of (F : Type) : Type := Class {
+  base : IntegralDomain.class_of F;
+  _ : mixin_of (UnitRing.Pack base F)
+}.
+Local Coercion base : class_of >-> IntegralDomain.class_of.
+
+Structure type := Pack {sort; _ : class_of sort; _ : Type}.
+Local Coercion sort : type >-> Sortclass.
+Variable (T : Type) (cT : type).
+Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
+Definition clone c of phant_id class c := @Pack T c T.
+
+Definition pack b0 (m0 : mixin_of (@UnitRing.Pack T b0 T)) :=
+  fun bT b & phant_id (IntegralDomain.class bT) b =>
+  fun    m & phant_id m0 m => Pack (@Class T b m) T.
+
+Definition eqType := Equality.Pack class cT.
+Definition choiceType := Choice.Pack class cT.
+Definition zmodType := Zmodule.Pack class cT.
+Definition ringType := Ring.Pack class cT.
+Definition comRingType := ComRing.Pack class cT.
+Definition unitRingType := UnitRing.Pack class cT.
+Definition comUnitRingType := ComUnitRing.Pack class cT.
+Definition idomainType := IntegralDomain.Pack class cT.
 
 End ClassDef.
 
@@ -2134,6 +3260,15 @@ Coercion comUnitRingType : type >-> ComUnitRing.type.
 Canonical Structure comUnitRingType.
 Coercion idomainType : type >-> IntegralDomain.type.
 Canonical Structure idomainType.
+Notation fieldType := type.
+Notation FieldType T m := (@pack T _ m _ _ id _ id).
+Notation FieldUnitMixin := UnitMixin.
+Notation FieldIdomainMixin := IdomainMixin.
+Notation FieldMixin := Mixin.
+Notation "[ 'fieldType' 'of' T 'for' cT ]" := (@clone T cT _ idfun)
+  (at level 0, format "[ 'fieldType'  'of'  T  'for'  cT ]") : form_scope.
+Notation "[ 'fieldType' 'of' T ]" := (@clone T _ _ id)
+  (at level 0, format "[ 'fieldType'  'of'  T ]") : form_scope.
 End Exports.
 
 End Field.
@@ -2141,7 +3276,7 @@ Import Field.Exports.
 
 Section FieldTheory.
 
-Variable F : Field.type.
+Variable F : fieldType.
 Implicit Types x y : F.
 
 Lemma unitfE : forall x, unit x = (x != 0).
@@ -2206,60 +3341,85 @@ Qed.
 
 Section FieldMorphismInj.
 
-Variables (R : Ring.type) (f : F -> R).
-Hypothesis fRM : morphism f.
+Variables (R : ringType) (f : {rmorphism F -> R}).
 
-Lemma fieldM_eq0 : forall x, (f x == 0) = (x == 0).
+Lemma fmorph_eq0 : forall x, (f x == 0) = (x == 0).
 Proof.
-move=> x; case: (eqVneq x 0) => [-> | nz_x]; first by rewrite ringM_0 ?eqxx.
-rewrite (negbTE nz_x); apply/eqP; move/(congr1 ( *%R (f x^-1))); move/eqP.
-by rewrite -ringM_mul // mulVf // mulr0 ringM_1 ?oner_eq0.
+move=> x; have [-> | nz_x] := altP (x =P _); first by rewrite rmorph0 eqxx.
+apply/eqP; move/(congr1 ( *%R (f x^-1))); move/eqP.
+by rewrite -rmorphM mulVf // mulr0 rmorph1 ?oner_eq0.
 Qed.
 
-Lemma fieldM_inj : injective f.
+Lemma fmorph_inj : injective f.
 Proof.
-move=> x y eqfxy; apply/eqP; rewrite -subr_eq0 -fieldM_eq0 ringM_sub //.
+move=> x y eqfxy; apply/eqP; rewrite -subr_eq0 -fmorph_eq0 rmorph_sub //.
 by rewrite eqfxy subrr.
 Qed.
 
-Lemma fieldM_char : [char R] =i [char F].
-Proof. by move=> p; rewrite !inE -fieldM_eq0 ringM_nat. Qed.
+Lemma fmorph_char : [char R] =i [char F].
+Proof. by move=> p; rewrite !inE -fmorph_eq0 rmorph_nat. Qed.
 
 End FieldMorphismInj.
 
 Section FieldMorphismInv.
 
-Variables (R : UnitRing.type) (f : F -> R).
-Hypothesis fRM : morphism f.
+Variables (R : unitRingType) (f : {rmorphism F -> R}).
 
-Lemma fieldM_unit : forall x, unit (f x) = (x != 0).
+Lemma fmorph_unit : forall x, unit (f x) = (x != 0).
 Proof.
-move=> x; case: eqP => [-> |]; first by rewrite ringM_0 ?unitr0.
-by move/eqP; rewrite -unitfE; exact: ringM_unit.
+move=> x; have [-> |] := altP (x =P _); first by rewrite rmorph0 unitr0.
+by rewrite -unitfE; exact: rmorph_unit.
 Qed.
 
-Lemma fieldM_inv : {morph f: x / x^-1}.
+Lemma fmorphV : {morph f: x / x^-1}.
 Proof.
-move=> x; case (eqVneq x 0) => [-> | nzx]; last by rewrite ringM_inv ?unitfE.
-by rewrite !(invr0, ringM_0 fRM).
+move=> x; have [-> | nz_x] := eqVneq x 0; first by rewrite !(invr0, rmorph0).
+by rewrite rmorphV ?unitfE.
 Qed.
 
-Lemma fieldM_div : {morph f : x y / x / y}.
-Proof. by move=> x y; rewrite ringM_mul ?fieldM_inv. Qed.
+Lemma fmorph_div : {morph f : x y / x / y}.
+Proof. by move=> x y; rewrite rmorphM fmorphV. Qed.
 
 End FieldMorphismInv.
 
+Canonical Structure regular_fieldType := [fieldType of F^o].
+
+Section ModuleTheory.
+
+Variable V : lmodType F.
+Implicit Type a : F.
+Implicit Type v : V.
+
+Lemma scalerK : forall a, a != 0 -> cancel ( *:%R a : V -> V) ( *:%R a^-1).
+Proof. by move=> a nz_a v; rewrite scalerA mulVf // scale1r. Qed.
+
+Lemma scalerKV : forall a, a != 0 -> cancel ( *:%R a^-1 : V -> V) ( *:%R a).
+Proof. by move=> a; rewrite -invr_eq0 -{3}[a]invrK; exact: scalerK. Qed.
+
+Lemma scalerI : forall a, a != 0 -> injective ( *:%R a : V -> V).
+Proof. move=> a Ha; exact: can_inj (scalerK Ha). Qed.
+
+Lemma scaler_eq0 : forall a v, (a *: v == 0) = (a == 0) || (v == 0).
+Proof.
+move=> a v; have [-> | nz_a] := altP (a =P _); first by rewrite scale0r eqxx.
+by rewrite (can2_eq (scalerK nz_a) (scalerKV nz_a)) scaler0.
+Qed.
+
+End ModuleTheory.
+
 End FieldTheory.
+
+Implicit Arguments fmorph_inj [F R x1 x2].
 
 Module DecidableField.
 
-Section ClassDef.
-
-Definition axiom (R : UnitRing.type) (s : seq R -> pred (formula R)) :=
+Definition axiom (R : unitRingType) (s : seq R -> pred (formula R)) :=
   forall e f, reflect (holds e f) (s e f).
 
-Record mixin_of (R : UnitRing.type) : Type :=
+Record mixin_of (R : unitRingType) : Type :=
   Mixin { sat : seq R -> pred (formula R); satP : axiom sat}.
+
+Section ClassDef.
 
 Record class_of (F : Type) : Type :=
   Class {base : Field.class_of F; mixin : mixin_of (UnitRing.Pack base F)}.
@@ -2267,24 +3427,23 @@ Local Coercion base : class_of >-> Field.class_of.
 
 Structure type := Pack {sort; _ : class_of sort; _ : Type}.
 Local Coercion sort : type >-> Sortclass.
-Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
+Variable (T : Type) (cT : type).
+Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
+Definition clone c of phant_id class c := @Pack T c T.
 
-Definition pack T b0 (m0 : mixin_of (@UnitRing.Pack T b0 T)) :=
+Definition pack b0 (m0 : mixin_of (@UnitRing.Pack T b0 T)) :=
   fun bT b & phant_id (Field.class bT) b =>
   fun    m & phant_id m0 m => Pack (@Class T b m) T.
 
-(* Ultimately, there should be a QE Mixin constructor *)
-
-Definition eqType cT := Equality.Pack (class cT) cT.
-Definition choiceType cT := Choice.Pack (class cT) cT.
-Definition zmodType cT := Zmodule.Pack (class cT) cT.
-Definition ringType cT := Ring.Pack (class cT) cT.
-Definition comRingType cT := ComRing.Pack (class cT) cT.
-Definition unitRingType cT := UnitRing.Pack (class cT) cT.
-Definition comUnitRingType cT := ComUnitRing.Pack (class cT) cT.
-Definition idomainType cT := IntegralDomain.Pack (class cT) cT.
-Definition fieldType cT := Field.Pack (class cT) cT.
+Definition eqType := Equality.Pack class cT.
+Definition choiceType := Choice.Pack class cT.
+Definition zmodType := Zmodule.Pack class cT.
+Definition ringType := Ring.Pack class cT.
+Definition comRingType := ComRing.Pack class cT.
+Definition unitRingType := UnitRing.Pack class cT.
+Definition comUnitRingType := ComUnitRing.Pack class cT.
+Definition idomainType := IntegralDomain.Pack class cT.
+Definition fieldType := Field.Pack class cT.
 
 End ClassDef.
 
@@ -2311,6 +3470,13 @@ Coercion idomainType : type >-> IntegralDomain.type.
 Canonical Structure idomainType.
 Coercion fieldType : type >-> Field.type.
 Canonical Structure fieldType.
+Notation decFieldType := type.
+Notation DecFieldType T m := (@pack T _ m _ _ id _ id).
+Notation DecFieldMixin := Mixin.
+Notation "[ 'decFieldType' 'of' T 'for' cT ]" := (@clone T cT _ idfun)
+  (at level 0, format "[ 'decFieldType'  'of'  T  'for'  cT ]") : form_scope.
+Notation "[ 'decFieldType' 'of' T ]" := (@clone T _ _ id)
+  (at level 0, format "[ 'decFieldType'  'of'  T ]") : form_scope.
 End Exports.
 
 End DecidableField.
@@ -2318,7 +3484,7 @@ Import DecidableField.Exports.
 
 Section DecidableFieldTheory.
 
-Variable F : DecidableField.type.
+Variable F : decFieldType.
 
 Definition sat := DecidableField.sat (DecidableField.class F).
 
@@ -2382,11 +3548,9 @@ Implicit Arguments solP [F n f].
 (* Structure of field with quantifier elimination *)
 Module QE.
 
-Section ClassDef.
-
 Section Axioms.
 
-Variable R : UnitRing.type.
+Variable R : unitRingType.
 Variable proj : nat -> seq (term R) * seq (term R) -> formula R.
 (* proj is the elimination of a single existential quantifier *)
 
@@ -2401,11 +3565,13 @@ Definition holds_proj_axiom :=
 
 End Axioms.
 
-Record mixin_of (R : UnitRing.type) : Type := Mixin {
+Record mixin_of (R : unitRingType) : Type := Mixin {
   proj : nat -> (seq (term R) * seq (term R)) -> formula R;
   wf_proj : wf_proj_axiom proj;
   holds_proj : holds_proj_axiom proj
 }.
+
+Section ClassDef.
 
 Record class_of (F : Type) : Type :=
   Class {base : Field.class_of F; mixin : mixin_of (UnitRing.Pack base F)}.
@@ -2413,22 +3579,23 @@ Local Coercion base : class_of >-> Field.class_of.
 
 Structure type := Pack {sort; _ : class_of sort; _ : Type}.
 Local Coercion sort : type >-> Sortclass.
-Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
+Variable (T : Type) (cT : type).
+Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
+Definition clone c of phant_id class c := @Pack T c T.
 
-Definition pack T b0 (m0 : mixin_of (@UnitRing.Pack T b0 T)) :=
+Definition pack b0 (m0 : mixin_of (@UnitRing.Pack T b0 T)) :=
   fun bT b & phant_id (Field.class bT) b =>
   fun    m & phant_id m0 m => Pack (@Class T b m) T.
 
-Definition eqType cT := Equality.Pack (class cT) cT.
-Definition choiceType cT := Choice.Pack (class cT) cT.
-Definition zmodType cT := Zmodule.Pack (class cT) cT.
-Definition ringType cT := Ring.Pack (class cT) cT.
-Definition comRingType cT := ComRing.Pack (class cT) cT.
-Definition unitRingType cT := UnitRing.Pack (class cT) cT.
-Definition comUnitRingType cT := ComUnitRing.Pack (class cT) cT.
-Definition idomainType cT := IntegralDomain.Pack (class cT) cT.
-Definition fieldType cT := Field.Pack (class cT) cT.
+Definition eqType := Equality.Pack class cT.
+Definition choiceType := Choice.Pack class cT.
+Definition zmodType := Zmodule.Pack class cT.
+Definition ringType := Ring.Pack class cT.
+Definition comRingType := ComRing.Pack class cT.
+Definition unitRingType := UnitRing.Pack class cT.
+Definition comUnitRingType := ComUnitRing.Pack class cT.
+Definition idomainType := IntegralDomain.Pack class cT.
+Definition fieldType := Field.Pack class cT.
 
 End ClassDef.
 
@@ -2500,11 +3667,10 @@ suffices aux_wf: forall f n (qf := elim_aux f n),
                      case/andP: (IH rf1)=> qff rf;
                      rewrite aux_wf ].
 rewrite /elim_aux => f n rf.
-suff or_wf: forall fs (ofs := foldr Or False fs), 
-  all (@qf_form F) fs && all (@rformula F) fs 
-  -> qf_form ofs && rformula ofs.
-  apply: or_wf.
-  suff map_proj_wf: forall bcs (mbcs := map (proj n) bcs),
+suffices or_wf: forall fs (ofs := foldr Or False fs), 
+  all (@qf_form F) fs && all (@rformula F) fs -> qf_form ofs && rformula ofs.
+- apply: or_wf.
+  suffices map_proj_wf: forall bcs (mbcs := map (proj n) bcs),
     all dnf_rterm bcs 
     -> all (@qf_form _) mbcs && all (@rformula _) mbcs.
     apply: map_proj_wf.
@@ -2563,19 +3729,20 @@ Qed.
 
 Definition QEDecidableFieldMixin := DecidableField.Mixin proj_satP.
 
-Canonical Structure QEDecidableField :=
+(* To be exported *)
+Definition QEDecidableField :=
   DecidableField.Pack (DecidableField.Class QEDecidableFieldMixin) F.
 
 End QE_theory.
 
 Module ClosedField.
 
-Section ClassDef.
-
 (* Axiom == all non-constant monic polynomials have a root *)
-Definition axiom (R : Ring.type) :=
+Definition axiom (R : ringType) :=
   forall n (P : nat -> R), n > 0 ->
    exists x : R, x ^+ n = \sum_(i < n) P i * (x ^+ i).
+
+Section ClassDef.
 
 Record class_of (F : Type) : Type :=
   Class {base : DecidableField.class_of F; _ : axiom (Ring.Pack base F)}.
@@ -2583,26 +3750,27 @@ Local Coercion base : class_of >-> DecidableField.class_of.
 
 Structure type := Pack {sort; _ : class_of sort; _ : Type}.
 Local Coercion sort : type >-> Sortclass.
-Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
+Variable (T : Type) (cT : type).
+Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
+Definition clone c of phant_id class c := @Pack T c T.
 
-Definition pack T b0 (m0 : axiom (@Ring.Pack T b0 T)) :=
+Definition pack b0 (m0 : axiom (@Ring.Pack T b0 T)) :=
   fun bT b & phant_id (DecidableField.class bT) b =>
   fun    m & phant_id m0 m => Pack (@Class T b m) T.
 
 (* There should eventually be a constructor from polynomial resolution *)
 (* that builds the DecidableField mixin using QE.                      *)
 
-Definition eqType cT := Equality.Pack (class cT) cT.
-Definition choiceType cT := Choice.Pack (class cT) cT.
-Definition zmodType cT := Zmodule.Pack (class cT) cT.
-Definition ringType cT := Ring.Pack (class cT) cT.
-Definition comRingType cT := ComRing.Pack (class cT) cT.
-Definition unitRingType cT := UnitRing.Pack (class cT) cT.
-Definition comUnitRingType cT := ComUnitRing.Pack (class cT) cT.
-Definition idomainType cT := IntegralDomain.Pack (class cT) cT.
-Definition fieldType cT := Field.Pack (class cT) cT.
-Definition decFieldType cT := DecidableField.Pack (class cT) cT.
+Definition eqType := Equality.Pack class cT.
+Definition choiceType := Choice.Pack class cT.
+Definition zmodType := Zmodule.Pack class cT.
+Definition ringType := Ring.Pack class cT.
+Definition comRingType := ComRing.Pack class cT.
+Definition unitRingType := UnitRing.Pack class cT.
+Definition comUnitRingType := ComUnitRing.Pack class cT.
+Definition idomainType := IntegralDomain.Pack class cT.
+Definition fieldType := Field.Pack class cT.
+Definition decFieldType := DecidableField.Pack class cT.
 
 End ClassDef.
 
@@ -2630,6 +3798,12 @@ Coercion fieldType : type >-> Field.type.
 Canonical Structure fieldType.
 Coercion decFieldType : type >-> DecidableField.type.
 Canonical Structure decFieldType.
+Notation closedFieldType := type.
+Notation ClosedFieldType T m := (pack T _ m _ _ id _ id).
+Notation "[ 'closedFieldType' 'of' T 'for' cT ]" := (@clone T cT _ idfun)
+  (at level 0, format "[ 'closedFieldType'  'of'  T  'for'  cT ]") : form_scope.
+Notation "[ 'closedFieldType' 'of' T ]" := (@clone T _ _ id)
+  (at level 0, format "[ 'closedFieldType'  'of'  T ]") : form_scope.
 End Exports.
 
 End ClosedField.
@@ -2637,596 +3811,12 @@ Import ClosedField.Exports.
 
 Section ClosedFieldTheory.
 
-Variable F : ClosedField.type.
+Variable F : closedFieldType.
 
 Lemma solve_monicpoly : ClosedField.axiom F.
 Proof. by case: F => ? []. Qed.
 
 End ClosedFieldTheory.
-
-Module Lmodule.
-
-Section ClassDef.
-
-Variable R : Ring.type.
-Implicit Type phR : phant R.
-
-Structure mixin_of (M : Zmodule.type) : Type := Mixin {
-  scale : R -> M -> M;
-  _ : forall a b m,  scale a (scale b m) = scale (a * b) m;
-  _ : left_id 1 scale;
-  _ : forall a, {morph scale a : m n / m + n};
-  _ : forall m, {morph scale^~ m : a b / a + b}
-}.
-
-Structure class_of M := Class {
-  base : Zmodule.class_of M;
-  mixin : mixin_of (Zmodule.Pack base M)
-}.
-Local Coercion base : class_of >-> Zmodule.class_of.
-
-Structure type phR := Pack {sort; _ : class_of sort; _ : Type}.
-Local Coercion sort : type >-> Sortclass.
-Definition class phR (cT : type phR) :=
-  let: Pack _ c _ :=  cT return class_of cT in c.
-Definition clone phR T cT c of phant_id (@class phR cT) c := @Pack phR T c T.
-Definition pack phR T b0 (m0 : mixin_of (@Zmodule.Pack T b0 T)) :=
-  fun bT b & phant_id (Zmodule.class bT) b =>
-  fun    m & phant_id m0 m => Pack phR (@Class T b m) T.
-
-Definition eqType phR cT := Equality.Pack (@class phR cT) cT.
-Definition choiceType phR cT := Choice.Pack (@class phR cT) cT.
-Definition zmodType phR cT := Zmodule.Pack (@class phR cT) cT.
-
-End ClassDef.
-
-Module Import Exports.
-Coercion base : class_of >-> Zmodule.class_of.
-Coercion mixin : class_of >-> mixin_of.
-Coercion sort : type >-> Sortclass.
-Bind Scope ring_scope with sort.
-Coercion eqType : type >-> Equality.type.
-Canonical Structure eqType.
-Coercion choiceType : type >-> Choice.type.
-Canonical Structure choiceType.
-Coercion zmodType : type >-> Zmodule.type.
-Canonical Structure zmodType.
-End Exports.
-
-Section Regular.
-
-Variables (R : Ring.type).
-
-Implicit Type x: R.
-Let scale k x := k * x.
-Local Notation "a *: m" := (scale a m) (at level 40) : ring_scope.
-
-Let scalerA : forall a b m, a *: (b *: m) = a * b *: m.
-Proof. move=> *; exact: mulrA. Qed.
-
-Let scale1r : @left_id R R 1 scale.
-Proof. exact: mul1r. Qed.
-
-Let scaler_addr : forall a, {morph (scale a : R -> R) : x y / x + y}.
-Proof. exact: mulr_addr. Qed.
-
-Let scaler_addl : forall m, {morph scale^~ m : a b / a + b}.
-Proof.  move=> m a b; exact: mulr_addl. Qed.
-
-Definition RegularMixin := Mixin scalerA scale1r scaler_addr scaler_addl.
-
-Definition Regular := Lmodule.Pack (Phant R) (Lmodule.Class RegularMixin) R.
-
-End Regular.
-
-End Lmodule.
-Import Lmodule.Exports.
-
-Definition scale R (M : @Lmodule.type R (Phant R)) : R -> M -> M := 
-  Lmodule.scale (Lmodule.class M).
-
-Local Notation "*:%R" := (@scale _ _) : ring_scope.
-Local Notation "a *: m" := (scale a m) : ring_scope.
-
-Section LmoduleTheory.
-
-Variable (R : Ring.type) (M : Lmodule.type (Phant R)).
-Implicit Type a b c : R.
-Implicit Type m : M.
-
-Lemma scalerA : forall a b m, a *: (b *: m) = a * b *: m.
-Proof. by case: M => ? [] ? []. Qed.
-
-Lemma scale1r : @left_id R M 1 *:%R.
-Proof. by case: M => ? [] ? []. Qed.
-
-Lemma scaler_addr : forall a, {morph (scale a : M -> M) : x y / x + y}.
-Proof. by case: M => ? [] ? []. Qed.
-
-Lemma scaler_addl : forall m, {morph (@scale _ _)^~ m : a b / a + b}.
-Proof. by case: M => ? [] ? []. Qed.
-
-Lemma scale0r : forall m, 0 *: m = 0.
-Proof. by move=> m; apply: (@addIr _ (1 *:m)); rewrite -scaler_addl !add0r. Qed.
-
-Lemma scaler0 : forall a, a *: 0 = 0 :> M.
-Proof. by move=> a; rewrite -{1}(scale0r 0) scalerA mulr0 scale0r. Qed.
-
-Lemma scaleNr : forall a m, - a *: m = - (a *: m).
-Proof.
-by move=> a m; apply: (@addIr _ (a *: m)); rewrite -scaler_addl !addNr scale0r.
-Qed.
-
-Lemma scaleN1r : forall m, (- 1) *: m = - m.
-Proof. by move=> m; rewrite scaleNr scale1r. Qed.
-
-Lemma scalerN : forall a m, a *: (- m) = - (a *: m).
-Proof.
-by move=> a v; apply: (@addIr _ (a *: v)); rewrite -scaler_addr !addNr scaler0.
-Qed.
-
-Lemma scaler_subl : forall a b m, (a - b) *: m = a *: m - b *: m.
-Proof. by move=> a b m; rewrite scaler_addl scaleNr. Qed.
-
-Lemma scaler_subr : forall a m1 m2, a *: (m1 - m2) = a *: m1 - a *: m2.
-Proof. by move=> a m1 m2; rewrite scaler_addr scalerN. Qed.
-
-Lemma scaler_nat : forall n m, n%:R *: m = m *+ n.
-Proof.
-move=> n v; elim: n => /= [|n ]; first by rewrite scale0r.
-by rewrite !mulrS scaler_addl ?scale1r => ->.
-Qed.
-
-Lemma scaler_mulrnl : forall k m n, k *: m *+ n = (k *+ n) *: m.
-Proof.
-move=> k m; elim=> [|n IHn]; first by rewrite !mulr0n scale0r.
-by rewrite !mulrSr IHn scaler_addl.
-Qed.
-
-Lemma scaler_mulrnr : forall k m n, k *: m *+ n = k *: (m *+ n).
-Proof.
-move=> k m; elim=> [|n IHn]; first by rewrite !mulr0n scaler0.
-by rewrite !mulrSr IHn scaler_addr.
-Qed.
-
-Lemma scaler_suml : forall m I r (P : pred I) F,
- (\sum_(i <- r | P i) F i) *: m = \sum_(i <- r | P i) F i *: m.
-Proof.
-move=> m; exact: (big_morph _ (scaler_addl m) (scale0r m)).
-Qed.
-
-Lemma scaler_sumr : forall a I r (P : pred I) (F : I -> M),
-   a *: (\sum_(i <- r | P i) F i) = \sum_(i <- r | P i) a *: F i.
-Proof.
-move=> m; exact: (big_morph _ (scaler_addr m) (scaler0 m)).
-Qed.
-
-End LmoduleTheory.
-
-Section LMorphism.
-
-Variable (R : Ring.type) (M N : Lmodule.type (Phant R)).
-Local Notation fmn:= (M -> N).
-
-Definition linear (f: fmn):=  forall a, {morph f : u v / a *: u + v}.
-Structure linear_fun := LinearFun {linear_fval :> fmn; _ : linear linear_fval}.
-
-Definition clone_linear (f g : fmn) lT & phant_id (linear_fval lT) g :=
-  fun fL & phant_id (LinearFun fL) lT => @LinearFun f fL.
-
-Variable f : linear_fun.
-
-Lemma linearP : linear f. Proof. by case f. Qed.
-
-Lemma linear0 : f 0 = 0.
-Proof. by rewrite -(addNr 0) -scaleN1r linearP scaleN1r addNr. Qed.
-
-Lemma linearD : {morph f : u v / u + v}.
-Proof. by move=> u v; rewrite -{1}[u]scale1r linearP scale1r. Qed.
-
-Lemma linearZ : forall a, {morph f : u / a *: u}.
-Proof. by move=> a u; rewrite -[a *: _]addr0 linearP linear0 addr0. Qed.
-
-Lemma linearN : {morph f : u / - u}.
-Proof. by move=> u /=; rewrite -!scaleN1r linearZ. Qed.
-
-Lemma linear_sub : {morph f : u v / u - v}.
-Proof. by move=> u v /=; rewrite linearD linearN. Qed.
-
-Lemma linear_sum : forall I r (P : pred I) F,
-  f (\sum_(i <- r | P i) F i) = \sum_(i <- r | P i) f (F i).
-Proof. exact: (big_morph f linearD linear0). Qed.
-
-End LMorphism.
-
-Section LOMorphism.
-
-Variable (R : Ring.type).
-
-Implicit Type Lm: Lmodule.type (Phant R).
-
-Definition linear_fun_of Lm1 Lm2 (_: phant Lm1) (_:phant Lm2) := 
-  linear_fun Lm1 Lm2.
-
-End LOMorphism.
-
-Section MoreLMorphism.
-Variable (R : Ring.type) (M N N' : Lmodule.type (Phant R)).
-
-Local Notation fmn := (M -> N).
-Local Notation lfmn := (linear_fun M N).
-Local Notation lfnn' := (linear_fun N N').
-
-Lemma idfun_linear_proof : @linear _ M M  idfun. Proof. by []. Qed.
-Canonical Structure idfun_linear := LinearFun idfun_linear_proof.
-
-Lemma comp_linear_proof : forall (f : lfnn') (g : lfmn), linear (f \o g).
-Proof. by move=> f g a u v; rewrite /= !linearP. Qed.
-Canonical Structure comp_linear f g := LinearFun (comp_linear_proof f g).
-
-Definition null_lin_head t : fmn := fun _ => let: tt := t in 0.
-Lemma null_linear_proof : linear (null_lin_head tt).
-Proof. by move=> a u v; rewrite scaler0 addr0. Qed.
-Canonical Structure null_linear := LinearFun null_linear_proof.
-
-Lemma opp_linear_proof : @linear R M M -%R.
-Proof. by move=> a u v; rewrite scalerN oppr_add. Qed.
-Canonical Structure opp_linear := LinearFun opp_linear_proof.
-
-Definition add_lin_head t (f g : fmn) u := let: tt := t in f u + g u.
-Lemma add_linear_proof : forall f g : lfmn, linear (add_lin_head tt f g).
-Proof.
-by move=> f g a u v; rewrite /= !linearP scaler_addr addrCA -!addrA addrCA.
-Qed.
-Canonical Structure add_linear f g := LinearFun (add_linear_proof f g).
-
-End MoreLMorphism.
-
-Section ScaleMorphism.
-
-Variable (R : ComRing.type) (M N: Lmodule.type (Phant R)).
-Local Notation fmn := (M -> N).
-Local Notation lfmn := (linear_fun M N).
-
-Definition scaler_lin_head t (f  : fmn) a u := let: tt := t in a *: (f u).
-Lemma scaler_linear_proof : forall (f  : lfmn) a, linear (scaler_lin_head tt f a).
-Proof.
-by move=> f a b u v; rewrite /= !linearP scaler_addr !scalerA mulrC.
-Qed.
-
-Canonical Structure scaler_linear f a := LinearFun (scaler_linear_proof f a).
-
-End ScaleMorphism.
-
-Section KModuleTheory.
-
-Variable (K : Field.type) (V : Lmodule.type (Phant K)).
-Implicit Type a b c : K.
-Implicit Type u v : V.
-
-Lemma scaler_eq0 : forall a v, (a *: v == 0) = (a == 0) || (v == 0).
-Proof.
-move=> a v; apply/idP/idP; last first.
- by case/orP; move/eqP->;rewrite ?scaler0 ?scale0r.
-move/eqP; move/(congr1 ( *:%R a^-1)); rewrite scaler0 scalerA.
-by case: (_ =P _) => //; move/eqP=> a0; rewrite mulVf // scale1r orFb => ->.
-Qed.
-
-Lemma scalerK : forall a, a != 0 -> cancel ( *:%R a: V->V) ( *:%R a^-1).
-Proof. by move=> a Ha v; rewrite scalerA mulVf // scale1r. Qed.
-
-Lemma scalerI : forall a, a != 0 -> injective ( *:%R a : V -> V).
-Proof. move=> a Ha; exact: can_inj (scalerK Ha). Qed.
-
-End KModuleTheory.
-
-Module Lalgebra.
-
-Section ClassDef.
-
-Variable R : Ring.type.
-Implicit Type phR : phant R.
-
-Definition axiom (L : Lmodule.type (Phant R)) (mul : L -> L -> L) :=
- forall (k : R) (x y : L),  k *: mul x y = mul (k *: x) y.
-
-Record class_of (T : Type) : Type := Class {
-  base : Ring.class_of T;
-  mixin : Lmodule.mixin_of R (Zmodule.Pack base T);
-  ext : @axiom (Lmodule.Pack (Phant R) (Lmodule.Class mixin) T) (Ring.mul base)
-}.
-Definition base2 R m := Lmodule.Class (@mixin R m).
-Local Coercion base : class_of >-> Ring.class_of.
-Local Coercion base2 : class_of >-> Lmodule.class_of.
-
-Structure type phR := Pack {sort; _ : class_of sort; _ : Type}.
-Local Coercion sort : type >-> Sortclass.
-Definition class phR (cT : type phR) :=
-  let: Pack _ c _ :=  cT return class_of cT in c.
-Definition clone phR T cT c of phant_id (@class phR cT) c := @Pack phR T c T.
-Definition pack phR T b0 mul0 (axT: @axiom (@Lmodule.Pack R (Phant R ) T b0 T) mul0) :=
-   fun bT b & phant_id (Ring.class bT) (b : Ring.class_of T) =>
-  fun mT m & phant_id (@Lmodule.class R phR mT) (@Lmodule.Class R T b m) =>
-  fun ax &  phant_id axT ax =>
-  Pack  (Phant R) (@Class T b m ax) T.
-
-Definition eqType phR cT := Equality.Pack (@class phR cT) cT.
-Definition choiceType phR cT := Choice.Pack (@class phR cT) cT.
-Definition zmodType phR cT := Zmodule.Pack (@class phR cT) cT.
-Definition ringType phR cT := Ring.Pack (@class phR cT) cT.
-Definition lmodType phR cT := Lmodule.Pack phR (@class phR cT) cT.
-Definition lmod_ringType phR cT :=
-  @Lmodule.Pack R phR  (Ring.sort (@ringType phR cT)) (base2 (class cT))
-     (Ring.sort (ringType cT)).
-
-End ClassDef.
-
-Module Exports.
-Coercion base : class_of >-> Ring.class_of.
-Coercion base2 : class_of >-> Lmodule.class_of.
-Coercion sort : type >-> Sortclass.
-Bind Scope ring_scope with sort.
-Coercion eqType : type >-> Equality.type.
-Canonical Structure eqType.
-Coercion choiceType : type >-> Choice.type.
-Canonical Structure choiceType.
-Coercion zmodType : type >-> Zmodule.type.
-Canonical Structure zmodType.
-Coercion ringType : type >-> Ring.type.
-Canonical Structure ringType.
-Coercion lmodType : type >-> Lmodule.type.
-Canonical Structure lmodType.
-Canonical Structure lmod_ringType.
-End Exports.
-
-End Lalgebra.
-Import Lalgebra.Exports.
-
-Section LalgebraTheory.
-
-Variable R : Ring.type.
-Variable A : Lalgebra.type (Phant R).
-Implicit Types k : R.
-Implicit Types x y : A.
-
-Lemma scaler_mull: forall k x y, k *: (x * y) = k *: x * y.
-Proof. exact: Lalgebra.ext. Qed.
-
-Lemma morph_sunit: morphism (fun k => k *: (1: A)).
-Proof.
-split=> [x y | x y |]; last by apply: scale1r.
-  by apply: scaler_subl.
-by rewrite -scaler_mull mul1r scalerA.
-Qed.
-
-End LalgebraTheory.
-
-Module Algebra.
-
-Section ClassDef.
-
-Variable R : Ring.type.
-Implicit Type phR : phant R.
-
-Definition axiom (b : Lalgebra.type (Phant R)) := 
-  forall k (x y : b) , k *: (x * y) = x * (k *: y).
-
-Record class_of (T : Type) : Type := Class {
-  base : Lalgebra.class_of R T; 
-  mixin : axiom (Lalgebra.Pack (Phant R)  base T)
-}.
-Local Coercion base : class_of >-> Lalgebra.class_of.
-
-Structure type phR := Pack {sort; _ : class_of sort; _ : Type}.
-Local Coercion sort : type >-> Sortclass.
-Definition class phR (cT : type phR) :=
-  let: Pack _ c _ :=  cT return class_of cT in c.
-Definition clone phR T cT c of phant_id (@class phR cT) c := @Pack phR T c T.
-
-Definition pack phR T b0 (axT : @axiom b0) :=
-  fun bT b & phant_id (@Lalgebra.class R phR bT) b =>
-  fun    ax  & phant_id axT ax => Pack phR (@Class T b ax) T.
-
-Definition eqType phR cT := Equality.Pack (@class phR cT) cT.
-Definition choiceType phR cT := Choice.Pack (@class phR cT) cT.
-Definition zmodType phR cT := Zmodule.Pack (@class phR cT) cT.
-Definition ringType phR cT := Ring.Pack (@class phR cT) cT.
-Definition lmodType phR cT := Lmodule.Pack phR (@class phR cT) cT.
-Definition lalgType phR cT := Lalgebra.Pack phR (@class phR cT) cT.
-
-End ClassDef.
-
-Module Exports.
-Coercion base : class_of >-> Lalgebra.class_of.
-Coercion sort : type >-> Sortclass.
-Bind Scope ring_scope with sort.
-Coercion eqType : type >-> Equality.type.
-Canonical Structure eqType.
-Coercion choiceType : type >-> Choice.type.
-Canonical Structure choiceType.
-Coercion zmodType : type >-> Zmodule.type.
-Canonical Structure zmodType.
-Coercion ringType : type >-> Ring.type.
-Canonical Structure ringType.
-Coercion lmodType : type >-> Lmodule.type.
-Canonical Structure lmodType.
-Coercion lalgType : type >-> Lalgebra.type.
-Canonical Structure lalgType.
-End Exports.
-
-End Algebra.
-Import Algebra.Exports.
-
-Section Mixin.
-
-Variable R : Ring.type.
-Variable A : Lalgebra.type (Phant R).
-Hypothesis mulrC: commutative (@mul A).
-
-Implicit Types k: R.
-Implicit Types x y: A.
-
-Lemma cscaler_mulr: forall k x y, k *: (x * y) = x * (k *: y).
-Proof. by move=> k x y; rewrite mulrC scaler_mull mulrC. Qed.
-
-End Mixin.
-
-Section AlgebraTheory.
-
-Variable R : Ring.type.
-Variable A : Algebra.type (Phant R).
-Implicit Types k: R.
-Implicit Types x y: A.
-
-Lemma scaler_mulr: forall k x y, k *: (x * y) = x * (k *: y).
-Proof. by case : A => T []. Qed.
-
-Lemma scaler_swap: forall k x y, k *: x * y = x * (k *: y).
-Proof. by move=> *; rewrite -scaler_mull scaler_mulr. Qed.
-
-Lemma scaler_exp : forall k x n, (k *: x) ^+ n = k ^+n *: x ^+ n.
-Proof. 
-move=> k x; elim=> [|n IHn]; first by rewrite !expr0 scale1r.
-by rewrite !exprS IHn -scalerA scaler_mulr scaler_mull.
-Qed.
-
-Lemma scaler_prodl : forall (I : finType) (S : pred I) (F : I -> A) k,
-  \prod_(i \in S) (k *:  F i)  = k ^+ #|S| *: \prod_(i \in S) F i.
-Proof.
-move=> I S F k; rewrite -sum1_card /= -!(big_filter _ S) !unlock.
-elim: {S}(filter _ _) => /= [|i r ->]; first by rewrite expr0 scale1r.
-by rewrite -scaler_mull -scaler_mulr scalerA exprS.
-Qed.
-
-Lemma scaler_prodr : forall (I : finType) (S : pred I) (F : I -> R) x,
-  \prod_(i \in S) (F i *: x)  = \prod_(i \in S) F i *: x ^+ #|S|.
-Proof.
-move=> I S F k; rewrite -sum1_card /= -!(big_filter _ S) !unlock.
-elim: {S}(filter _ _) => /= [|i r ->]; first by rewrite expr0 scale1r.
-by rewrite -scaler_mull -scaler_mulr scalerA exprS.
-Qed.
-
-Lemma scaler_prod : 
-  forall I r (P : pred I) (F : I -> R) (G: I -> A),
-  \prod_(i <- r | P i) (F i *: G i) =
-  \prod_(i <- r | P i) (F i)  *: \prod_(i <- r | P i) (G i).
-Proof.
-move=> I r P F G;  rewrite -!(big_filter _ P) !unlock.
-elim: {P r}(filter _ _) => /= [|i r ->]; first by rewrite scale1r.
-by rewrite -scaler_mull -scaler_mulr scalerA.
-Qed.
-
-End AlgebraTheory.
-
-Module UnitAlgebra.
-
-Section ClassDef.
-
-Variable R : Ring.type.
-Implicit Type phR : phant R.
-
-Record class_of (T : Type) : Type := Class {
-  base : Algebra.class_of R T; 
-  mixin : GRing.UnitRing.mixin_of (Ring.Pack base T)
-}.
-Definition base2 R m := UnitRing.Class (@mixin R m).
-Local Coercion base : class_of >-> Algebra.class_of.
-Local Coercion base2 : class_of >-> UnitRing.class_of.
-
-Structure type phR := Pack {sort; _ : class_of sort; _ : Type}.
-Local Coercion sort : type >-> Sortclass.
-Definition class phR (cT : type phR) :=
-  let: Pack _ c _ :=  cT return class_of cT in c.
-Definition clone phR T cT c of phant_id (@class phR cT) c := @Pack phR T c T.
-Definition pack phR T :=
-  fun bT b & phant_id (@Algebra.class _ phR bT) (b : Algebra.class_of R T) =>
-  fun mT m & phant_id (UnitRing.class mT) (@UnitRing.Class T b m) =>
-  Pack (Phant R) (@Class T b m) T.
-
-Definition eqType phR cT := Equality.Pack (@class phR cT) cT.
-Definition choiceType phR cT := Choice.Pack (@class phR cT) cT.
-Definition zmodType phR cT := Zmodule.Pack (@class phR cT) cT.
-Definition ringType phR cT := Ring.Pack (@class phR cT) cT.
-Definition unitRingType phR cT := UnitRing.Pack (@class phR cT) cT.
-Definition lmodType phR cT := Lmodule.Pack phR (@class phR cT) cT.
-Definition lalgType phR cT := Lalgebra.Pack phR (@class phR cT) cT.
-Definition algType phR cT := Algebra.Pack phR (@class phR cT) cT.
-
-Definition lmod_unitRingType phR cT :=
-  @Lmodule.Pack R phR (UnitRing.sort (@unitRingType phR cT)) 
-    (class cT) (UnitRing.sort (unitRingType cT)).
-Definition lalg_unitRingType phR cT :=
-  @Lalgebra.Pack R phR (UnitRing.sort (@unitRingType phR cT)) 
-    (class cT) (UnitRing.sort (unitRingType cT)).
-Definition alg_unitRingType phR cT :=
-  @Algebra.Pack R phR (UnitRing.sort (@unitRingType phR cT)) 
-    (class cT) (UnitRing.sort (unitRingType cT)).
-
-End ClassDef.
-
-Module Exports.
-Coercion base : class_of >-> Algebra.class_of.
-Coercion base2 : class_of >-> UnitRing.class_of.
-Coercion sort : type >-> Sortclass.
-Bind Scope ring_scope with sort.
-Coercion eqType : type >-> Equality.type.
-Canonical Structure eqType.
-Coercion choiceType : type >-> Choice.type.
-Canonical Structure choiceType.
-Coercion zmodType : type >-> Zmodule.type.
-Canonical Structure zmodType.
-Coercion ringType : type >-> Ring.type.
-Canonical Structure ringType.
-Coercion unitRingType : type >-> UnitRing.type.
-Canonical Structure unitRingType.
-Coercion lmodType : type >-> Lmodule.type.
-Canonical Structure lmodType.
-Coercion lalgType : type >-> Lalgebra.type.
-Canonical Structure lalgType.
-Coercion algType : type >-> Algebra.type.
-Canonical Structure algType.
-Canonical Structure lmod_unitRingType.
-Canonical Structure lalg_unitRingType.
-Canonical Structure alg_unitRingType.
-End Exports.
-
-End UnitAlgebra.
-Import UnitAlgebra.Exports.
-
-Section UnitAlgebraTheory.
-
-Variable R : UnitRing.type.
-Variable A : UnitAlgebra.type (Phant R).
-Implicit Types k : R.
-Implicit Types x y : A.
-
-Lemma scaler_injl: forall k, unit k -> @injective _ A ( *:%R k).
-Proof.
-move=> k Uk x1 x2 Hx1x2.
-by rewrite -[x1]scale1r -(mulVr Uk) -scalerA Hx1x2 scalerA mulVr // scale1r.
-Qed.
-
-Lemma scaler_unit: forall k x, unit k -> unit x = unit (k *: x).
-Proof.
-move=> k x Uk; apply/idP/idP=> [Ux|Ukx]; apply/unitrP.
-  exists (k^-1 *: x^-1).
-  by rewrite -!scaler_mull -!scaler_mulr !scalerA !mulVr // !mulrV // scale1r.
-exists (k *:(k *: x)^-1); split.
-  apply (mulrI Ukx).
-  by rewrite mulr1 mulrA -scaler_mulr mulrV // -scaler_mull mul1r.
-apply (mulIr Ukx).
-by rewrite mul1r -mulrA -scaler_mull mulVr // -scaler_mulr mulr1.
-Qed.
- 
-Lemma scaler_inv: forall k x, unit k -> unit x -> (k *: x)^-1 = k^-1 *: x^-1.
-Proof.
-move=> k x Uk Ux.
-assert (Ukx: unit (k *: x)) by rewrite -scaler_unit //.
-apply (mulIr Ukx).
-by rewrite mulVr // -scaler_mull -scaler_mulr scalerA !mulVr // scale1r.
-Qed.  
-
-End UnitAlgebraTheory.
 
 Module Theory.
 
@@ -3266,7 +3856,7 @@ Definition mulr1n := mulr1n.
 Definition mulrSr := mulrSr.
 Definition mulrb := mulrb.
 Definition mul0rn := mul0rn.
-Definition oppr_muln := oppr_muln.
+Definition mulNrn := mulNrn.
 Definition mulrn_addl := mulrn_addl.
 Definition mulrn_addr := mulrn_addr.
 Definition mulrnA := mulrnA.
@@ -3418,32 +4008,44 @@ Definition solP := @solP.
 Definition eq_sol := eq_sol.
 Definition size_sol := size_sol.
 Definition solve_monicpoly := solve_monicpoly.
-Definition ringM_sub := ringM_sub.
-Definition ringM_0 := ringM_0.
-Definition ringM_1 := ringM_1.
-Definition ringM_opp := ringM_opp.
-Definition ringM_add := ringM_add.
-Definition ringM_sum := ringM_sum.
-Definition ringM_mul := ringM_mul.
-Definition ringM_prod := ringM_prod.
-Definition ringM_natmul := ringM_natmul.
-Definition ringM_nat := ringM_nat.
-Definition ringM_exp := ringM_exp.
-Definition ringM_sign := ringM_sign.
-Definition ringM_char := ringM_char.
-Definition comp_ringM := comp_ringM.
-Definition ringM_isom := ringM_isom.
-Definition ringM_comm := ringM_comm.
-Definition ringM_unit := ringM_unit.
-Definition Frobenius_aut_RM := Frobenius_aut_RM.
-Definition fieldM_eq0 := fieldM_eq0.
-Definition fieldM_inj := fieldM_inj.
-Definition ringM_inv := ringM_inv.
-Definition fieldM_char := fieldM_char.
-Definition ringM_div := ringM_div.
-Definition fieldM_unit := fieldM_unit.
-Definition fieldM_inv := fieldM_inv.
-Definition fieldM_div := fieldM_div.
+Definition raddf0 := raddf0.
+Definition raddfN := raddfN.
+Definition raddfD := raddfD.
+Definition raddf_sub := raddf_sub.
+Definition raddf_sum := raddf_sum.
+Definition raddfMn := raddfMn.
+Definition raddfMNn := raddfMNn.
+Definition can2_additive := can2_additive.
+Definition bij_additive := bij_additive.
+Definition rmorph0 := rmorph0.
+Definition rmorphN := rmorphN.
+Definition rmorphD := rmorphD.
+Definition rmorph_sub := rmorph_sub.
+Definition rmorph_sum := rmorph_sum.
+Definition rmorphMn := rmorphMn.
+Definition rmorphMNn := rmorphMNn.
+Definition rmorphismP := rmorphismP.
+Definition rmorphismMP := rmorphismMP.
+Definition rmorph1 := rmorph1.
+Definition rmorphM := rmorphM.
+Definition rmorph_nat := rmorph_nat.
+Definition rmorph_prod := rmorph_prod.
+Definition rmorphX := rmorphX.
+Definition rmorph_sign := rmorph_sign.
+Definition rmorph_char := rmorph_char.
+Definition can2_rmorphism := can2_rmorphism.
+Definition bij_rmorphism := bij_rmorphism.
+Definition rmorph_comm := rmorph_comm.
+Definition rmorph_unit := rmorph_unit.
+Definition rmorphV := rmorphV.
+Definition rmorph_div := rmorph_div.
+Definition fmorph_eq0 := fmorph_eq0.
+Definition fmorph_inj := fmorph_inj.
+Implicit Arguments fmorph_inj [F R x1 x2].
+Definition fmorph_char := fmorph_char.
+Definition fmorph_unit := fmorph_unit.
+Definition fmorphV := fmorphV.
+Definition fmorph_div := fmorph_div.
 Definition scalerA := scalerA.
 Definition scale1r := scale1r.
 Definition scaler_addr := scaler_addr.
@@ -3462,121 +4064,82 @@ Definition scaler_suml := scaler_suml.
 Definition scaler_sumr := scaler_sumr.
 Definition scaler_eq0 := scaler_eq0.
 Definition scalerK := scalerK.
+Definition scalerKV := scalerKV.
 Definition scalerI := scalerI.
 Definition scaler_mull := scaler_mull.
-Definition cscaler_mulr := cscaler_mulr.
 Definition scaler_mulr := scaler_mulr.
 Definition scaler_swap := scaler_swap.
 Definition scaler_exp := scaler_exp.
 Definition scaler_prodl := scaler_prodl.
 Definition scaler_prodr := scaler_prodr.
 Definition scaler_prod := scaler_prod.
-Definition morph_sunit := morph_sunit.
 Definition scaler_injl := scaler_injl.
 Definition scaler_unit := scaler_unit.
 Definition scaler_inv := scaler_inv.
-Definition linear := linear.
-Definition LinearFun := LinearFun.
-Definition linear_fun := linear_fun.
 Definition linearP := linearP.
+Definition linear0 := linear0.
+Definition linearN := linearN.
 Definition linearD := linearD.
 Definition linear_sub := linear_sub.
-Definition linearZ := linearZ.
-Definition linearN := linearN.
-Definition linear0 := linear0.
 Definition linear_sum := linear_sum.
+Definition linearMn := linearMn.
+Definition linearMNn := linearMNn.
+Definition linearZ := linearZ.
+Definition can2_linear := can2_linear.
+Definition bij_linear := bij_linear.
+Definition can2_lrmorphism := can2_lrmorphism.
+Definition bij_lrmorphism := bij_lrmorphism.
 
 Implicit Arguments satP [F e f].
 Implicit Arguments solP [F n f]. 	 
-Prenex Implicits satP solP.
+
+Notation null_fun V := (null_fun_head (Phant V)).
+Notation add_fun V := (add_fun_head (Phant V)).
+Notation sub_fun V := (sub_fun_head (Phant V)).
+Notation scale_fun V := (scale_fun_head (Phant V)).
+Notation in_alg A := (in_alg_head (Phant A)).
 
 End Theory.
 
 End GRing.
 
-Export GRing.Zmodule.Exports.
-Export GRing.Ring.Exports.
-Export GRing.UnitRing.Exports.
-Export GRing.ComRing.Exports.
-Export GRing.ComUnitRing.Exports.
-Export GRing.IntegralDomain.Exports.
-Export GRing.Field.Exports.
-Export GRing.DecidableField.Exports.
-Export GRing.QE.Exports.
-Export GRing.ClosedField.Exports.
-Export GRing.Lmodule.Exports.
-Export GRing.Lalgebra.Exports.
-Export GRing.Algebra.Exports.
-Export GRing.UnitAlgebra.Exports.
+Export Zmodule.Exports Ring.Exports Lmodule.Exports Lalgebra.Exports.
+Export Additive.Exports RMorphism.Exports Linear.Exports LRMorphism.Exports.
+Export ComRing.Exports Algebra.Exports UnitRing.Exports UnitAlgebra.Exports.
+Export ComUnitRing.Exports IntegralDomain.Exports Field.Exports.
+Export DecidableField.Exports QE.Exports ClosedField.Exports.
+Canonical Structure QEDecidableField.
 
-Canonical Structure GRing.add_monoid.
-Canonical Structure GRing.add_comoid.
-Canonical Structure GRing.mul_monoid.
-Canonical Structure GRing.mul_comoid.
-Canonical Structure GRing.muloid.
-Canonical Structure GRing.addoid.
-
-Canonical Structure GRing.idfun_linear.
-Canonical Structure GRing.comp_linear.
-Canonical Structure GRing.null_linear .
-Canonical Structure GRing.opp_linear.
-Canonical Structure GRing.add_linear.
-Canonical Structure GRing.scaler_linear.
-
-Notation "0" := (GRing.zero _) : ring_scope.
-Notation "-%R" := (@GRing.opp _) : ring_scope.
-Notation "- x" := (GRing.opp x) : ring_scope.
-Notation "+%R" := (@GRing.add _).
-Notation "x + y" := (GRing.add x y) : ring_scope.
-Notation "x - y" := (GRing.add x (- y)) : ring_scope.
-Notation "x *+ n" := (GRing.natmul x n) : ring_scope.
-Notation "x *- n" := (GRing.natmul (- x) n) : ring_scope.
+Notation "0" := (zero _) : ring_scope.
+Notation "-%R" := (@opp _) : ring_scope.
+Notation "- x" := (opp x) : ring_scope.
+Notation "+%R" := (@add _).
+Notation "x + y" := (add x y) : ring_scope.
+Notation "x - y" := (add x (- y)) : ring_scope.
+Notation "x *+ n" := (natmul x n) : ring_scope.
+Notation "x *- n" := (natmul (- x) n) : ring_scope.
 Notation "s `_ i" := (seq.nth 0%R s%R i) : ring_scope.
 
-Notation "1" := (GRing.one _) : ring_scope.
+Notation "1" := (one _) : ring_scope.
 Notation "- 1" := (- (1))%R : ring_scope.
 
-Notation "n %:R" := (GRing.natmul 1 n) : ring_scope.
-Notation "[ 'char' R ]" := (GRing.char (Phant R)) : ring_scope.
-Notation Frobenius_aut chRp := (GRing.Frobenius_aut chRp).
-Notation "*%R" := (@GRing.mul _).
-Notation "x * y" := (GRing.mul x y) : ring_scope.
-Notation "x ^+ n" := (GRing.exp x n) : ring_scope.
-Notation "x ^-1" := (GRing.inv x) : ring_scope.
+Notation "n %:R" := (natmul 1 n) : ring_scope.
+Notation "[ 'char' R ]" := (char (Phant R)) : ring_scope.
+Notation Frobenius_aut chRp := (Frobenius_aut chRp).
+Notation "*%R" := (@mul _).
+Notation "x * y" := (mul x y) : ring_scope.
+Notation "x ^+ n" := (exp x n) : ring_scope.
+Notation "x ^-1" := (inv x) : ring_scope.
 Notation "x ^- n" := (x ^+ n)^-1%R : ring_scope.
-Notation "x / y" := (GRing.mul x y^-1) : ring_scope.
+Notation "x / y" := (mul x y^-1) : ring_scope.
 
-Implicit Arguments GRing.unitDef [].
-
-Bind Scope term_scope with GRing.term.
-Bind Scope term_scope with GRing.formula.
-
-Notation "''X_' i" := (GRing.Var _ i) : term_scope.
-Notation "n %:R" := (GRing.NatConst _ n) : term_scope.
-Notation "0" := 0%:R%T : term_scope.
-Notation "1" := 1%:R%T : term_scope.
-Notation "x %:T" := (GRing.Const x) : term_scope.
-Infix "+" := GRing.Add : term_scope.
-Notation "- t" := (GRing.Opp t) : term_scope.
-Notation "t - u" := (GRing.Add t (- u)) : term_scope.
-Infix "*" := GRing.Mul : term_scope.
-Infix "*+" := GRing.NatMul : term_scope.
-Notation "t ^-1" := (GRing.Inv t) : term_scope.
-Notation "t / u" := (GRing.Mul t u^-1) : term_scope.
-Infix "^+" := GRing.Exp : term_scope.
-Infix "==" := GRing.Equal : term_scope.
-Notation "x != y" := (GRing.Not (x == y)) : term_scope.
-Infix "/\" := GRing.And : term_scope.
-Infix "\/" := GRing.Or : term_scope.
-Infix "==>" := GRing.Implies : term_scope.
-Notation "~ f" := (GRing.Not f) : term_scope.
-Notation "''exists' ''X_' i , f" := (GRing.Exists i f) : term_scope.
-Notation "''forall' ''X_' i , f" := (GRing.Forall i f) : term_scope.
-
-Notation "*:%R" := (@GRing.scale _ _) : ring_scope.
-Notation "a *: m" := (GRing.scale a m) : ring_scope.
-Notation "f1 \+ f2" := (fun x => f1 x +  f2 x): ring_scope.
-Notation "a \*: f" := (fun x => a *: f x): ring_scope.
+Notation "*:%R" := (@scale _ _).
+Notation "a *: m" := (scale a m) : ring_scope.
+Notation "k %:A" := (k *: 1) : ring_scope.
+Notation "\0" := (null_fun _) : ring_scope.
+Notation "f \+ g" := (add_fun _ f g) : ring_scope.
+Notation "f \- g" := (sub_fun _ f g) : ring_scope.
+Notation "a \*: f" := (scale_fun _ a f) : ring_scope.
 
 Notation "\sum_ ( <- r | P ) F" :=
   (\big[+%R/0%R]_(<- r | P%B) F%R) : ring_scope.
@@ -3632,143 +4195,93 @@ Notation "\prod_ ( i \in A | P ) F" :=
 Notation "\prod_ ( i \in A ) F" :=
   (\big[*%R/1%R]_(i \in A) F%R) : ring_scope.
 
-Notation zmodType := GRing.Zmodule.type.
-Notation ZmodType T m := (@GRing.Zmodule.pack T m _ _ id).
-Notation ZmodMixin := GRing.Zmodule.Mixin.
-Notation "[ 'zmodType' 'of' T 'for' cT ]" := (@GRing.Zmodule.clone T cT _ idfun)
-  (at level 0, format "[ 'zmodType'  'of'  T  'for'  cT ]") : form_scope.
-Notation "[ 'zmodType' 'of' T ]" := (@GRing.Zmodule.clone T _ _ id)
-  (at level 0, format "[ 'zmodType'  'of'  T ]") : form_scope.
+Canonical Structure add_monoid.
+Canonical Structure add_comoid.
+Canonical Structure mul_monoid.
+Canonical Structure mul_comoid.
+Canonical Structure muloid.
+Canonical Structure addoid.
 
-Notation ringType := GRing.Ring.type.
-Notation RingType T m := (@GRing.Ring.pack T _ m _ _ id _ id).
-Notation RingMixin := GRing.Ring.Mixin.
-Notation RevRingType := GRing.RevRingType.
-Notation "[ 'ringType' 'of' T 'for' cT ]" := (@GRing.Ring.clone T cT _ idfun)
-  (at level 0, format "[ 'ringType'  'of'  T  'for'  cT ]") : form_scope.
-Notation "[ 'ringType' 'of' T ]" := (@GRing.Ring.clone T _ _ id)
-  (at level 0, format "[ 'ringType'  'of'  T ]") : form_scope.
+Canonical Structure idfun_additive.
+Canonical Structure idfun_rmorphism.
+Canonical Structure idfun_linear.
+Canonical Structure idfun_lrmorphism.
+Canonical Structure comp_additive.
+Canonical Structure comp_rmorphism.
+Canonical Structure comp_linear.
+Canonical Structure comp_lrmorphism.
+Canonical Structure opp_additive.
+Canonical Structure opp_linear.
+Canonical Structure scale_additive.
+Canonical Structure scale_linear.
+Canonical Structure null_fun_additive.
+Canonical Structure null_fun_linear.
+Canonical Structure scale_fun_additive.
+Canonical Structure scale_fun_linear.
+Canonical Structure add_fun_additive.
+Canonical Structure add_fun_linear.
+Canonical Structure sub_fun_additive.
+Canonical Structure sub_fun_linear.
+Canonical Structure Frobenius_aut_additive.
+Canonical Structure Frobenius_aut_rmorphism.
+Canonical Structure in_alg_additive.
+Canonical Structure in_alg_rmorphism.
 
-Notation comRingType := GRing.ComRing.type.
-Notation ComRingType T m := (@GRing.ComRing.pack T _ m _ _ id _ id).
-Notation ComRingMixin := GRing.ComRing.RingMixin.
-Notation "[ 'comRingType' 'of' T 'for' cT ]" :=
-    (@GRing.ComRing.clone T cT _ idfun)
-  (at level 0, format "[ 'comRingType'  'of'  T  'for'  cT ]") : form_scope.
-Notation "[ 'comRingType' 'of' T ]" := (@GRing.ComRing.clone T _ _ id)
-  (at level 0, format "[ 'comRingType'  'of'  T ]") : form_scope.
+Notation "R ^c" := (converse R) (at level 2, format "R ^c") : type_scope.
+Canonical Structure converse_eqType.
+Canonical Structure converse_choiceType.
+Canonical Structure converse_zmodType.
+Canonical Structure converse_ringType.
+Canonical Structure converse_unitRingType.
 
-Notation unitRingType := GRing.UnitRing.type.
-Notation UnitRingType T m := (@GRing.UnitRing.pack T _ m _ _ id _ id).
-Notation UnitRingMixin := GRing.UnitRing.EtaMixin.
-Notation "[ 'unitRingType' 'of' T 'for' cT ]" :=
-    (@GRing.UnitRing.clone T cT _ idfun)
-  (at level 0, format "[ 'unitRingType'  'of'  T  'for'  cT ]") : form_scope.
-Notation "[ 'unitRingType' 'of' T ]" := (@GRing.UnitRing.clone T _ _ id)
-  (at level 0, format "[ 'unitRingType'  'of'  T ]") : form_scope.
+Notation "R ^o" := (regular R) (at level 2, format "R ^o") : type_scope.
+Canonical Structure regular_eqType.
+Canonical Structure regular_choiceType.
+Canonical Structure regular_zmodType.
+Canonical Structure regular_ringType.
+Canonical Structure regular_lmodType.
+Canonical Structure regular_lalgType.
+Canonical Structure regular_comRingType.
+Canonical Structure regular_algType.
+Canonical Structure regular_unitRingType.
+Canonical Structure regular_comUnitRingType.
+Canonical Structure regular_unitAlgType.
+Canonical Structure regular_idomainType.
+Canonical Structure regular_fieldType.
 
-Notation comUnitRingType := GRing.ComUnitRing.type.
-Notation ComUnitRingMixin := GRing.ComUnitRing.Mixin.
-Notation "[ 'comUnitRingType' 'of' T ]" :=
-    (@GRing.ComUnitRing.pack T _ _ id _ _ id)
-  (at level 0, format "[ 'comUnitRingType'  'of'  T ]") : form_scope.
+Bind Scope term_scope with term.
+Bind Scope term_scope with formula.
 
-Notation idomainType := GRing.IntegralDomain.type.
-Notation IdomainType T m := (@GRing.IntegralDomain.pack T _ m _ _ id _ id).
-Notation "[ 'idomainType' 'of' T 'for' cT ]" :=
-    (@GRing.IntegralDomain.clone T cT _ idfun)
-  (at level 0, format "[ 'idomainType'  'of'  T  'for'  cT ]") : form_scope.
-Notation "[ 'idomainType' 'of' T ]" := (@GRing.IntegralDomain.clone T _ _ id)
-  (at level 0, format "[ 'idomainType'  'of'  T ]") : form_scope.
+Notation "''X_' i" := (Var _ i) : term_scope.
+Notation "n %:R" := (NatConst _ n) : term_scope.
+Notation "0" := 0%:R%T : term_scope.
+Notation "1" := 1%:R%T : term_scope.
+Notation "x %:T" := (Const x) : term_scope.
+Infix "+" := Add : term_scope.
+Notation "- t" := (Opp t) : term_scope.
+Notation "t - u" := (Add t (- u)) : term_scope.
+Infix "*" := Mul : term_scope.
+Infix "*+" := NatMul : term_scope.
+Notation "t ^-1" := (Inv t) : term_scope.
+Notation "t / u" := (Mul t u^-1) : term_scope.
+Infix "^+" := Exp : term_scope.
+Infix "==" := Equal : term_scope.
+Notation "x != y" := (GRing.Not (x == y)) : term_scope.
+Infix "/\" := And : term_scope.
+Infix "\/" := Or : term_scope.
+Infix "==>" := Implies : term_scope.
+Notation "~ f" := (Not f) : term_scope.
+Notation "''exists' ''X_' i , f" := (Exists i f) : term_scope.
+Notation "''forall' ''X_' i , f" := (Forall i f) : term_scope.
 
-Notation fieldType := GRing.Field.type.
-Notation FieldType T m := (@GRing.Field.pack T _ m _ _ id _ id).
-Notation FieldUnitMixin := GRing.Field.UnitMixin.
-Notation FieldIdomainMixin := GRing.Field.IdomainMixin.
-Notation FieldMixin := GRing.Field.Mixin.
-Notation "[ 'fieldType' 'of' T 'for' cT ]" := (@GRing.Field.clone T cT _ idfun)
-  (at level 0, format "[ 'fieldType'  'of'  T  'for'  cT ]") : form_scope.
-Notation "[ 'fieldType' 'of' T ]" := (@GRing.Field.clone T _ _ id)
-  (at level 0, format "[ 'fieldType'  'of'  T ]") : form_scope.
-
-Notation decFieldType := GRing.DecidableField.type.
-Notation DecFieldType T m := (@GRing.DecidableField.pack T _ m _ _ id _ id).
-Notation DecFieldMixin := GRing.DecidableField.Mixin.
-Notation "[ 'decFieldType' 'of' T 'for' cT ]" :=
-    (@GRing.DecidableField.clone T cT _ idfun)
-  (at level 0, format "[ 'decFieldType'  'of'  T  'for'  cT ]") : form_scope.
-Notation "[ 'decFieldType' 'of' T ]" := (@GRing.DecidableField.clone T _ _ id)
-  (at level 0, format "[ 'decFieldType'  'of'  T ]") : form_scope.
-
-Notation closedFieldType := GRing.ClosedField.type.
-Notation ClosedFieldType T m := (GRing.ClosedField.pack T _ m _ _ id _ id).
-Notation "[ 'closedFieldType' 'of' T 'for' cT ]" :=
-    (@GRing.ClosedField.clone T cT _ idfun)
-  (at level 0,
-   format "[ 'closedFieldType'  'of'  T  'for'  cT ]") : form_scope.
-Notation "[ 'closedFieldType' 'of' T ]" := (@GRing.ClosedField.clone T _ _ id)
-  (at level 0, format "[ 'closedFieldType'  'of'  T ]") : form_scope.
-
-Notation lmodType R := (GRing.Lmodule.type (Phant R)).
-Notation LmodType R T m :=
-   (@GRing.Lmodule.pack _ (Phant R) T _ m _ _ id _ id).
-Notation LmodMixin := GRing.Lmodule.Mixin.
-Notation "[ 'lmodType' [ R ] 'of' T 'for' cT ]" :=
-  (@GRing.Lmodule.clone _ (Phant R) T cT _ idfun)
-  (at level 0, format "[ 'lmodType' [ R ]  'of'  T  'for'  cT ]")
-  : form_scope.
-Notation "[ 'lmodType' [ R ] 'of' T ]" :=
-  (@GRing.Lmodule.clone _ (Phant R) T _ _ id)
-  (at level 0, format "[ 'lmodType' [ R ] 'of'  T ]") : form_scope.
-
-Notation "{ 'flinear' M '-->' N }" := (GRing.linear_fun_of (Phant M) (Phant N)).
-Notation "[ 'linear' 'of' f 'as' g ]" := (@GRing.clone_linear _ _ _ f g _ id _ id)
-  (at level 0, format "[ 'linear'  'of'  f  'as'  g ]") : form_scope.
-Notation "[ 'linear' 'of' f ]" := (@GRing.clone_linear _ _ _ f f _ id _ idfun)
-  (at level 0, format "[ 'linear'  'of'  f ]") : form_scope.
-
-Notation lalgType R := (GRing.Lalgebra.type (Phant R)).
-Notation LalgType R T a :=
-   (@GRing.Lalgebra.pack _ (Phant R) T _ _ a _ _ id _ _ id _ id).
-Notation "[ 'lalgType' [ R ] 'of' T 'for' cT ]" :=
-  (@GRing.Lalgebra.clone _ (Phant R) T cT _ idfun)
-  (at level 0, format "[ 'lalgType' [ R ]  'of'  T  'for'  cT ]")
-  : form_scope.
-Notation "[ 'lalgType' [ R ] 'of' T ]" :=
-  (@GRing.Lalgebra.clone _ (Phant R) T _ _ id)
-  (at level 0, format "[ 'lalgType' [ R ] 'of'  T ]") : form_scope.
-
-Notation algType R := (GRing.Algebra.type (Phant R)).
-Notation AlgType R T a :=
-   (@GRing.Algebra.pack _ (Phant R) T _ a _ _ id _ id).
-Notation "[ 'algType' [ R ] 'of' T 'for' cT ]" :=
-  (@GRing.Algebra.clone _ (Phant R) T cT _ idfun)
-  (at level 0, format "[ 'algType' [ R ]  'of'  T  'for'  cT ]")
-  : form_scope.
-Notation "[ 'algType' [ R ] 'of' T ]" :=
-  (@GRing.Lalgebra.clone _ (Phant R) T _ _ id)
-  (at level 0, format "[ 'algType' [ R ] 'of'  T ]") : form_scope.
-
-Notation unitAlgType R := (GRing.UnitAlgebra.type (Phant R)).
-Notation UnitAlgType R T  :=
-   (@GRing.UnitAlgebra.pack _ (Phant R) T _ _ id _ _ id).
-Notation "[ 'unitAlgType' [ R ] 'of' T 'for' cT ]" :=
-  (@GRing.UnitAlgebra.clone _ (Phant R) T cT _ idfun)
-  (at level 0, format "[ 'unitAlgType' [ R ]  'of'  T  'for'  cT ]")
-  : form_scope.
-Notation "[ 'unitAlgType' [ R ] 'of' T ]" :=
-  (@GRing.UnitAlgebra.clone _ (Phant R) T _ _ id)
-  (at level 0, format "[ 'unitAlgType' [ R ] 'of'  T ]") : form_scope.
-
-
-(* Structure from the codomain lifted to finfun *)
-Import GRing.
+(* Lifting Structure from the codomain of finfuns. *)
 Section FinFunZmod.
 
-Variable (aT : finType) (rT: zmodType).
+Variable (aT : finType) (rT : zmodType).
 Implicit Types f g : {ffun aT -> rT}.
-Definition ffun_zero := [ffun a: aT => (0: rT)].
-Definition ffun_opp f := [ffun a => -f a].
+
+Definition ffun_zero := [ffun a : aT => (0 : rT)].
+Definition ffun_opp f := [ffun a => - f a].
 Definition ffun_add f g := [ffun a => f a + g a].
 
 Lemma ffun_addA : associative ffun_add.
@@ -3780,8 +4293,8 @@ Proof. by move=> f; apply/ffunP=> a; rewrite !ffunE add0r. Qed.
 Lemma ffun_addN : left_inverse ffun_zero ffun_opp ffun_add.
 Proof. by move=> f; apply/ffunP=> a; rewrite !ffunE addNr. Qed.
 
-Definition ffun_zmodMixin := 
-  GRing.Zmodule.Mixin ffun_addA ffun_addC ffun_add0 ffun_addN.
+Definition ffun_zmodMixin :=
+  Zmodule.Mixin ffun_addA ffun_addC ffun_add0 ffun_addN.
 Canonical Structure ffun_zmodType :=
   Eval hnf in ZmodType _ ffun_zmodMixin.
 
@@ -3799,29 +4312,31 @@ Qed.
 
 End FinFunZmod.
 
-(* Unfortunately as ring require 1 != 0 we cannot lift ring structure :-( *)
+(* As rings require 1 != 0 we cannot lift a ring structure over finfuns.      *)
+(* We would need evidence that the domain is non-empty.                       *)
 Section FinFunLmod.
 
-Variable (R: ringType) (aT : finType) (rT: ringType).
+Variable (R : ringType) (aT : finType) (rT : lmodType R).
 
 Implicit Types f g : {ffun aT -> rT}.
 
-Definition ffun_scale k f := [ffun a => k * f a].
+Definition ffun_scale k f := [ffun a => k *: f a].
 
 Lemma ffun_scaleA : forall k1 k2 f, 
   ffun_scale k1 (ffun_scale k2 f) = ffun_scale (k1 * k2) f.
-Proof. by move=> *; apply/ffunP=> a; rewrite !ffunE mulrA. Qed.
+Proof. by move=> *; apply/ffunP=> a; rewrite !ffunE scalerA. Qed.
 Lemma ffun_scale1 : left_id 1 ffun_scale.
-Proof. by move=> *; apply/ffunP=> a; rewrite !ffunE mul1r. Qed.
+Proof. by move=> *; apply/ffunP=> a; rewrite !ffunE scale1r. Qed.
 Lemma ffun_scale_addr : forall k, {morph (ffun_scale k) : x y / x + y}.
-Proof. by move=> k f g; apply/ffunP=> a; rewrite !ffunE mulr_addr. Qed.
+Proof. by move=> k f g; apply/ffunP=> a; rewrite !ffunE scaler_addr. Qed.
 Lemma ffun_scale_addl : forall u, {morph (ffun_scale)^~ u : k1 k2 / k1 + k2}.
-Proof. by move=> f k1 k2; apply/ffunP=> a; rewrite !ffunE mulr_addl. Qed.
+Proof. by move=> f k1 k2; apply/ffunP=> a; rewrite !ffunE scaler_addl. Qed.
 
 Definition ffun_lmodMixin := 
-  GRing.Lmodule.Mixin ffun_scaleA ffun_scale1 ffun_scale_addr ffun_scale_addl.
+  LmodMixin ffun_scaleA ffun_scale1 ffun_scale_addr ffun_scale_addl.
 Canonical Structure ffun_lmodType :=
-  Eval hnf in LmodType rT _ ffun_lmodMixin.
+  Eval hnf in LmodType R {ffun aT -> rT} ffun_lmodMixin.
 
 End FinFunLmod.
+
 

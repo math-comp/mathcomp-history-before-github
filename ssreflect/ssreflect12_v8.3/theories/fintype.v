@@ -177,16 +177,17 @@ Local Coercion base : class_of >-> Choice.class_of.
 
 Structure type : Type := Pack {sort; _ : class_of sort; _ : Type}.
 Local Coercion sort : type >-> Sortclass.
-Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
-Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
+Variables (T : Type) (cT : type).
+Definition class := let: Pack _ c _ as cT' := cT return class_of cT' in c.
+Definition clone c of phant_id class c := @Pack T c T.
 
-Definition pack T b0 (m0 : mixin_of (EqType T b0)) :=
+Definition pack b0 (m0 : mixin_of (EqType T b0)) :=
   fun bT b & phant_id (Choice.class bT) b =>
   fun m & phant_id m0 m => Pack (@Class T b m) T.
 
-Definition eqType cT := Equality.Pack (class cT) cT.
-Definition choiceType cT := Choice.Pack (class cT) cT.
-Definition countType cT := Countable.Pack (base2 (class cT)) cT.
+Definition eqType := Equality.Pack class cT.
+Definition choiceType := Choice.Pack class cT.
+Definition countType := Countable.Pack (base2 class) cT.
 
 End ClassDef.
 
