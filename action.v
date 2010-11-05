@@ -228,12 +228,16 @@ Notation "''C' ( S | to )" := (astab S to)
 
 Notation "''C_' A ( S | to )" := (A :&: 'C(S | to))
  (at level 8, A at level 2, format "''C_' A ( S  |  to )") : group_scope.
+Notation "''C_' ( A ) ( S | to )" := 'C_A(S | to)
+  (at level 8, only parsing) : group_scope.
 
 Notation "''C' [ x | to ]" := ('C([set x] | to))
  (at level 8, format "''C' [ x  |  to ]") : group_scope.
 
 Notation "''C_' A [ x | to ]" := (A :&: 'C[x | to])
- (at level 8, A at level 2, format "''C_' A [ x  |  to ]") : group_scope.
+  (at level 8, A at level 2, format "''C_' A [ x  |  to ]") : group_scope.
+Notation "''C_' ( A ) [ x | to ]" := 'C_A[x | to]
+  (at level 8, only parsing) : group_scope.
 
 Notation "''N' ( S | to )" := (astabs S to)
   (at level 8, format "''N' ( S  |  to )") : group_scope.
@@ -808,13 +812,16 @@ Implicit Arguments orbit1P [aT D rT to G x].
 Implicit Arguments contra_orbit [aT D rT x y].
 Prenex Implicits orbit1P.
 
-
 Notation "''C' ( S | to )" := (astab_group to S) : subgroup_scope.
-Notation "''C_' A ( S | to )" := (A :&: 'C(S | to))%G : subgroup_scope.
-Notation "''C' [ x | to ]" := ('C([set x] | to))%G : subgroup_scope.
-Notation "''C_' A [ x | to ]" := (A :&: 'C[x | to])%G : subgroup_scope.
+Notation "''C_' A ( S | to )" := (setI_group A 'C(S | to)) : subgroup_scope.
+Notation "''C_' ( A ) ( S | to )" := (setI_group A 'C(S | to))
+  (only parsing) : subgroup_scope.
+Notation "''C' [ x | to ]" := (astab_group to [set x%g]) : subgroup_scope.
+Notation "''C_' A [ x | to ]" := (setI_group A 'C[x | to]) : subgroup_scope.
+Notation "''C_' ( A ) [ x | to ]" := (setI_group A 'C[x | to])
+  (only parsing) : subgroup_scope.
 Notation "''N' ( S | to )" := (astabs_group to S) : subgroup_scope.
-Notation "''N_' A ( S | to )" := (A :&: 'N(S | to))%G : subgroup_scope.
+Notation "''N_' A ( S | to )" := (setI_group A 'N(S | to)) : subgroup_scope.
 
 Section TotalActions.
 (* These lemmas are only established for total actions (domain = [set: rT]) *)
@@ -1772,23 +1779,6 @@ Definition acts_irreducibly A S to :=
 
 End GroupActionDefs.
 
-(* Camlp4 factoring for group action centraliser. *)
-Notation "''C_' ( G ) ( A )" := 'C_G(A)
-  (at level 8, only parsing) : group_scope.
-Notation "''C_' ( G ) ( A )" := 'C_G(A)%G
-  (only parsing) : subgroup_scope.
-Notation "''C_' ( G ) ( A | to )" := 'C_G(A | to)
-  (at level 8, only parsing) : group_scope.
-Notation "''C_' ( G ) ( A | to )" := 'C_G(A | to)%G
-  (only parsing) : subgroup_scope.
-Notation "''C_' ( G ) [ a ]" := 'C_G[a]
-  (at level 8, only parsing) : group_scope.
-Notation "''C_' ( G ) [ a ]" := 'C_G[a]%G (only parsing) : subgroup_scope.
-Notation "''C_' ( G ) [ a | to ]" := 'C_G[a | to]
-  (at level 8, only parsing) : group_scope.
-Notation "''C_' ( G ) [ a | to ]" := 'C_G[a | to]%G
-  (only parsing) : subgroup_scope.
-
 Notation "''C_' ( | to ) ( A )" := (gacent to A)
   (at level 8, format "''C_' ( | to ) ( A )") : group_scope.
 Notation "''C_' ( G | to ) ( A )" := (G :&: 'C_(|to)(A))
@@ -2201,9 +2191,11 @@ End CompAct.
 End GroupActionTheory.
 
 Notation "''C_' ( | to ) ( A )" := (gacent_group to A) : subgroup_scope.
-Notation "''C_' ( G | to ) ( A )" := (G :&: 'C_(|to)(A))%G : subgroup_scope.
-Notation "''C_' ( | to ) [ a ]" := 'C_(|to)([set a%g])%G : subgroup_scope.
-Notation "''C_' ( G | to ) [ a ]" := 'C_(G | to)([set a%g])%G : subgroup_scope.
+Notation "''C_' ( G | to ) ( A )" :=
+  (setI_group G 'C_(|to)(A)) : subgroup_scope.
+Notation "''C_' ( | to ) [ a ]" := (gacent_group to [set a%g]) : subgroup_scope.
+Notation "''C_' ( G | to ) [ a ]" :=
+  (setI_group G 'C_(|to)[a]) : subgroup_scope.
 
 Notation "to \ sAD" := (ract_groupAction to sAD) : groupAction_scope.
 Notation "<[ nGA ] >" := (actby_groupAction nGA) : groupAction_scope.

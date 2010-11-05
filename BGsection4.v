@@ -3,7 +3,8 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import fintype finfun bigop ssralg finset prime binomial.
 Require Import fingroup morphism automorphism perm quotient action gproduct.
 Require Import gfunctor commutator zmodp cyclic center pgroup gseries nilpotent.
-Require Import sylow abelian maximal extremal hall matrix mxrepresentation.
+Require Import sylow abelian maximal extremal hall.
+Require Import matrix mxalgebra mxrepresentation mxabelem.
 Require Import BGsection1 BGsection2.
 
 (******************************************************************************)

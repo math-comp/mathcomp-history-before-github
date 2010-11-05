@@ -752,7 +752,7 @@ have hallP: pi.-Hall('N_KBP(Q2)) P.
 have hallPk: pi.-Hall('N_KBP(Q2)) (P :^ k).
   rewrite pHallE -(card_Hall hallP) cardJg eqxx andbT subsetI /=.
   by rewrite defQ2 normJ conjSg conj_subG ?joing_subr // mem_gen // inE KBk.
-have [gz]: exists2 gz, gz \in 'N_KBP(Q2) & P :=: P :^ k :^ gz.
+have [gz]: exists2 gz, gz \in 'N_KBP(Q2) & P :=: (P :^ k) :^ gz.
   apply: Hall_trans (solvableS (subsetIr _ _) _) hallP hallPk.
   have ntQ2: Q2 != 1%G by case: eqP nt_mnP maxQ2 => // -> ->.
   exact: mFT_sol (mFT_norm_proper ntQ2 (mFT_pgroup_proper qQ2)).

@@ -1,10 +1,12 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div.
-Require Import fintype bigop prime binomial finset ssralg.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div fintype.
+Require Import bigop prime binomial finset fingroup morphism perm automorphism.
+Require Import quotient action commutator gproduct.
+Require Import ssralg finalg zmodp cyclic center pgroup gseries nilpotent.
+Require Import sylow abelian maximal hall.
 Require poly.
-Require Import fingroup morphism perm automorphism quotient action commutator.
-Require Import finalg zmodp gproduct cyclic center pgroup gseries nilpotent.
-Require Import sylow abelian maximal hall matrix mxrepresentation BGsection1.
+Require Import matrix mxalgebra mxrepresentation mxabelem.
+Require Import BGsection1.
 
 (******************************************************************************)
 (* This file covers the useful material in B & G, Section 2. This excludes    *)
@@ -1075,7 +1077,7 @@ have [p_pr _ _]:= pgroup_pdiv (abelem_pgroup abelP) ntP.
 have ntQ: Q :!=: 1%g by case: eqP logQ => // ->; rewrite cards1 logn1.
 have [q_pr _ _]:= pgroup_pdiv (abelem_pgroup abelQ) ntQ.
 pose rQ := abelem_repr abelP ntP nPQ.
-have [|P1 simP1 _] := MatrixFormula.dec_mxsimple_exists (mxmodule1 rQ).
+have [|P1 simP1 _] := dec_mxsimple_exists (mxmodule1 rQ).
   by rewrite oner_eq0.
 have [modP1 nzP1 _] := simP1.
 have ffulQ: mx_faithful rQ by exact: abelem_mx_faithful.

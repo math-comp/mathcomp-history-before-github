@@ -2,7 +2,8 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
 Require Import fintype bigop prime finset ssralg fingroup morphism.
 Require Import automorphism quotient gfunctor commutator zmodp center pgroup.
-Require Import sylow gseries nilpotent abelian maximal matrix mxrepresentation.
+Require Import sylow gseries nilpotent abelian maximal.
+Require Import matrix mxalgebra mxrepresentation mxabelem.
 Require Import BGsection1 BGsection2.
 
 (******************************************************************************)
@@ -168,10 +169,10 @@ have: dA <= 2.
       rewrite addmx_sub // mul_col_mx -mulmxA Ay2 mulmx0.
       by rewrite -!addsmxE addsmx0 addsmxSr.
     rewrite -[rG x](subrK 1%R) -/Ax mulmx_addr mulmx1 in_genD mul_col_mx.
-    pose A' := A; rewrite -mulmxA -[Ay *m Ax](addKr (Ax *m Ay)) -/A mulmx_addr.
-    rewrite -mulmxN mulmxA {1 2}def_v -(mulmxA u) Ax2 mulmx0 mul0mx add0r.
-    rewrite -(mul0mx _ A') -mul_col_mx -[A'](mxval_groot irrG cAG).
-    rewrite -[_ 0 v](in_genK irrG cAG) -val_genZ val_genK.
+    rewrite -mulmxA -[Ay *m Ax](addKr (Ax *m Ay)) (mulmx_addr v _ A) -mulmxN.
+    rewrite mulmxA {1 2}def_v -(mulmxA u) Ax2 mulmx0 mul0mx add0r.
+    pose B := A; rewrite -(mul0mx _ B) -mul_col_mx -[B](mxval_groot irrG cAG).
+    rewrite {B} -[_ 0 v](in_genK irrG cAG) -val_genZ val_genK.
     rewrite addmx_sub ?scalemx_sub ?submx_in_gen //.
     by rewrite -!addsmxE adds0mx addsmxSl.
   have nzU: UA != 0.

@@ -231,18 +231,19 @@ Proof.
 pose OO M X := [set Mg \in M :^: G | X \subset Mg].
 have BG10_1b_to_a : 'hide forall M p X g, 
     M \in 'M -> p \in \sigma(M) -> p.-group X ->
-    [transitive 'C(X), on OO M X| 'Js] -> X \subset M ->  X :^g \subset M -> 
+    [transitive 'C(X), on OO M X| 'Js] -> X \subset M ->  X :^ g \subset M -> 
   exists c, exists m, [/\ c \in 'C(X),  m \in M & g = c * m].
 - move=> M p X g M_max p_Sig pX actT sXM sXgM.
   have sMg'XX : (M :^ g^-1) \in OO M X. 
     by rewrite inE -sub_conjg sXgM mem_orbit ?in_group ?inE.
-  have sMXX: M:^1 \in OO M X by rewrite inE {2}conjsg1 sXM mem_orbit ?in_group.
+  have sMXX: M :^ 1 \in OO M X.
+    by rewrite inE {2}conjsg1 sXM mem_orbit ?in_group.
   case: (atransP2 actT sMXX sMg'XX) => /= c cC; rewrite conjsg1 => defM.
   exists c^-1; exists (c * g); rewrite in_group cC mulKg; split=> //.
   by rewrite -(norm_mmax M_max) inE conjsgM -defM -conjsgM mulVg conjsg1.
 have BG10_1a_to_c : 'hide forall M p X, 
     M \in 'M -> p \in \sigma(M) -> p.-group X -> X \subset M -> 
-    (forall g, X :^g \subset M -> 
+    (forall g, X :^ g \subset M -> 
       exists c, exists m, [/\ c \in 'C(X),  m \in M & g = c * m]) ->
   'N(X) = 'N_M(X) * 'C(X). 
 - move=> M p X M_max p_Sig pX sXM thmA; apply/eqP; rewrite eqEsubset.
@@ -297,7 +298,8 @@ have mk_proper_Syl : forall H K, gval H \in OO M X -> gval K \in OO M X ->
 - move=> H K; rewrite 2!inE; case/andP; case/imsetP=> x2 _ defH sXH.
   case/andP; case/imsetP=> x1 _ defK sXK neqHK; pose g := x1 ^-1 * x2.
   have defH2 : H :=: K :^ g by rewrite defK -!conjsgM mulKVg -defH.
-  have sXgH : X:^g \subset H by rewrite sub_conjg defH2 -!conjsgM mulgV conjsg1.
+  have sXgH : X :^ g \subset H.
+    by rewrite sub_conjg defH2 -!conjsgM mulgV conjsg1.
   have p_Sig1 : p \in \sigma(H) by rewrite defH sigmaJ.
   have [XX pSyl_XX] := Sylow_superset sXH pX.
   rewrite subEproper; case/orP => [defX1|pXXX].
@@ -790,7 +792,7 @@ case: (eqsVneq 'M('C_G[y^(u^-1)]) [set M])=> [eMCHyuM | neMCGyuM]; last first.
   rewrite key_lemma // memJ_norm ?(subsetP _ _ OZPy) ?Ohm_sub // groupV.
   by rewrite (subsetP _ _ NPu).
 case/negP: nMu; move: eMCHyuM; rewrite -cent_set1 -conjg_set1 centJ.
-have <- : G :^ (u^-1) :=: G.
+have <- : G :^ u^-1 = G.
   by apply/normP; rewrite (subsetP (normG _)) // inE.
 rewrite -conjIg cent_set1 (def_uniq_mmaxJ _ eMCGyM) /=; move/set1_inj.
 by move/(congr1 val)=> /=; move/normP; rewrite norm_mmax // groupV.

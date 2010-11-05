@@ -1472,6 +1472,7 @@ Notation "[ 'rmorphism' 'of' f 'as' g ]" := (@clone _ _ _ f g _ _ idfun id)
   (at level 0, format "[ 'rmorphism'  'of'  f  'as'  g ]") : form_scope.
 Notation "[ 'rmorphism' 'of' f ]" := (@clone _ _ _ f f _ _ id id)
   (at level 0, format "[ 'rmorphism'  'of'  f ]") : form_scope.
+Coercion additive : map >-> Additive.map.
 Canonical Structure additive.
 End Exports.
 
@@ -1614,6 +1615,7 @@ Notation "[ 'linear' 'of' f 'as' g ]" := (@clone _ _ _ _ f g _ _ idfun id)
   (at level 0, format "[ 'linear'  'of'  f  'as'  g ]") : form_scope.
 Notation "[ 'linear' 'of' f ]" := (@clone _ _ _ _ f f _ _ id id)
   (at level 0, format "[ 'linear'  'of'  f ]") : form_scope.
+Coercion additive : map >-> Additive.map.
 Canonical Structure additive.
 End Exports.
 
@@ -1734,8 +1736,11 @@ Notation "{ 'lrmorphism' fAB }" := (map (Phant fAB))
   (at level 0, format "{ 'lrmorphism'  fAB }") : ring_scope.
 Notation "[ 'lrmorphism' 'of' f ]" := (@clone _ _ _ _ f _ _ id _ _ id)
   (at level 0, format "[ 'lrmorphism'  'of'  f ]") : form_scope.
+Coercion additive : map >-> Additive.map.
 Canonical Structure additive.
+Coercion rmorphism : map >-> RMorphism.map.
 Canonical Structure rmorphism.
+Coercion linear : map >-> Linear.map.
 Canonical Structure linear.
 Canonical Structure join_rmorphism.
 Canonical Structure join_linear.

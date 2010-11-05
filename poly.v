@@ -158,7 +158,7 @@ Definition polyC c : {poly R} :=
 
 Local Notation "c %:P" := (polyC c).
 
-(* Remember the boolean (c !=0) is coerced to 1 if true and 0 if false *)
+(* Remember the boolean (c != 0) is coerced to 1 if true and 0 if false *)
 Lemma polyseqC : forall c, c%:P = nseq (c != 0) c :> seq R.
 Proof. by move=> c; rewrite val_insubd /=; case: (c == 0). Qed.
 
@@ -564,6 +564,12 @@ move=> p n; case: (poly0Vpos p) => [-> | nzp].
 elim: n => [|n IHn]; first by rewrite size_poly1.
 rewrite exprS (leq_trans (size_mul _ _)) //.
 by rewrite -{1}(prednK nzp) mulnS -addnS leq_add2l.
+Qed.
+
+Lemma size_sign_mul : forall p n, size ((-1) ^+ n * p) = size p.
+Proof.
+move=> p n; rewrite -signr_odd.
+by case: (odd ); rewrite ?mul1r // mulN1r size_opp.
 Qed.
 
 Lemma coef_Cmul : forall c p i, (c%:P * p)`_i = c * p`_i.
@@ -1501,6 +1507,13 @@ Proof. move=> p q x; rewrite horner_mul_com //; exact: mulrC. Qed.
 
 Lemma horner_exp : forall p x n, (p ^+ n).[x] = p.[x] ^+ n.
 Proof. move=> p x n; rewrite horner_exp_com //; exact: mulrC. Qed.
+
+Lemma horner_prod : forall I r (P : pred I) (F : I -> {poly R}) x,
+  (\prod_(i <- r | P i) F i).[x] = \prod_(i <- r | P i) (F i).[x].
+Proof.
+move=> I r P F x; pose appx p := p.[x].
+apply: (big_morph appx) => [p q|]; [exact: horner_mul | exact: hornerC].
+Qed.
 
 Definition horner_lin :=
   (horner_add, horner_opp, hornerX, hornerC, horner_cons,
