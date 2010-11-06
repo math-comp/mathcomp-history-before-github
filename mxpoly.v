@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq div fintype finfun.
-Require Import bigop fingroup perm ssralg zmodp matrix mxalgebra poly.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq div fintype tuple.
+Require Import finfun bigop fingroup perm ssralg zmodp matrix mxalgebra poly.
 
 (******************************************************************************)
 (*   This file provides basic support for formal computation with matrices,   *)
