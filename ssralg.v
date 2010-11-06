@@ -359,6 +359,12 @@ Require Import finfun bigop prime binomial.
 (*         GRing.in_alg A == the ring morphism that injects R into A, where A *)
 (*                           has an lalgType R structure; GRing.in_alg A k    *)
 (*                           simplifies to k%:A.                              *)
+(*                a \*o f == the function x |-> a * f x, canonically linear   *)
+(*                           linear when f is and its codomain is an algType  *)
+(*                           and which simplifies on application.             *)
+(*                a \o* f == the function x |-> f x * a, canonically linear   *)
+(*                           linear when f is and its codomain is an lalgType *)
+(*                           and which simplifies on application.             *)
 (* The Lemmas about these structures are contained in both the GRing module   *)
 (* and in the submodule GRing.Theory, which can be imported when unqualified  *)
 (* access to the theory is needed (GRing.Theory also allows the unqualified   *)
@@ -406,6 +412,8 @@ Reserved Notation "x ^f" (at level 2, left associativity, format "x ^f").
 Reserved Notation "\0" (at level 0).
 Reserved Notation "f \+ g" (at level 50, left associativity).
 Reserved Notation "f \- g" (at level 50, left associativity).
+Reserved Notation "a \*o f" (at level 40).
+Reserved Notation "a \o* f" (at level 40).
 Reserved Notation "a \*: f" (at level 40).
 
 Delimit Scope ring_scope with R.
@@ -1332,32 +1340,38 @@ Include Additive.Exports. (* Allows GRing.additive to resolve conflicts. *)
 
 (* Lifted additive operations. *)
 Section LiftedZmod.
-Variables (U : Type) (V : zmodType) (phV : phant V).
-Definition null_fun_head of U : V := let: Phant := phV in 0.
-Definition add_fun_head (f g : U -> V) x := let: Phant := phV in f x + g x.
-Definition sub_fun_head (f g : U -> V) x := let: Phant := phV in f x - g x.
+Variables (U : Type) (V : zmodType).
+Definition null_fun_head (phV : phant V) of U : V := let: Phant := phV in 0.
+Definition add_fun_head t (f g : U -> V) x := let: tt := t in f x + g x.
+Definition sub_fun_head t (f g : U -> V) x := let: tt := t in f x - g x.
 End LiftedZmod.
+
+(* Lifted multiplication. *)
+Section LiftedRing.
+Variables (R : ringType) (T : Type).
+Implicit Type f : T -> R.
+Definition mull_fun_head t a f x := let: tt := t in a * f x.
+Definition mulr_fun_head t a f x := let: tt := t in f x * a.
+End LiftedRing.
 
 (* Lifted linear operations. *)
 Section LiftedScale.
 Variables (R : ringType) (U : Type) (V : lmodType R) (A : lalgType R).
-Definition scale_fun_head (phV : phant V) a (f : U -> V) x :=
-  let: Phant := phV in a *: f x.
+Definition scale_fun_head t a (f : U -> V) x := let: tt := t in a *: f x.
 Definition in_alg_head (phA : phant A) k : A := let: Phant := phA in k%:A.
 End LiftedScale.
 
-(* These notations are flagged as only parsing becase they would be masked by *)
-(* the corresponding notations in GRing.Theory in v8.2, and ignored in v8.3.  *)
 Notation null_fun V := (null_fun_head (Phant V)) (only parsing).
-Notation add_fun V := (add_fun_head (Phant V)) (only parsing).
-Notation sub_fun V := (sub_fun_head (Phant V)) (only parsing).
-Notation scale_fun V := (scale_fun_head (Phant V)) (only parsing).
-Notation in_alg A := (in_alg_head (Phant A)) (only parsing).
+(* The real in_alg notation is declared after GRing.Theory so that at least *)
+(* in Coq 8.2 it gets precendence when GRing.Theory is not imported.        *)
+Local Notation in_alg_loc A := (in_alg_head (Phant A)) (only parsing).
 
 Local Notation "\0" := (null_fun _) : ring_scope.
-Local Notation "f \+ g" := (add_fun _ f g) : ring_scope.
-Local Notation "f \- g" := (sub_fun _ f g) : ring_scope.
-Local Notation "a \*: f" := (scale_fun _ a f) : ring_scope.
+Local Notation "f \+ g" := (add_fun_head tt f g) : ring_scope.
+Local Notation "f \- g" := (sub_fun_head tt f g) : ring_scope.
+Local Notation "a \*: f" := (scale_fun_head tt a f) : ring_scope.
+Local Notation "x \*o f" := (mull_fun_head tt x f) : ring_scope.
+Local Notation "x \o* f" := (mulr_fun_head tt x f) : ring_scope.
 
 Section AdditiveTheory.
 
@@ -1397,6 +1411,8 @@ Proof. by case=> f' fK f'K; exists (Additive (can2_additive fK f'K)). Qed.
 
 End Properties.
 
+Section AddFun.
+
 Variables (U V W : zmodType) (f g : {additive V -> W}) (h : {additive U -> V}).
 
 Lemma idfun_is_additive : additive (idfun : U -> U).
@@ -1426,6 +1442,34 @@ Proof.
 by move=> x y /=; rewrite !raddf_sub addrAC -!addrA -!oppr_add addrAC addrA.
 Qed.
 Canonical Structure sub_fun_additive := Additive sub_fun_is_additive.
+
+End AddFun.
+
+Section MulFun.
+
+Variables (R : ringType) (U : zmodType).
+Variables (a : R) (f : {additive U -> R}).
+
+Lemma mull_fun_is_additive : additive (a \*o f).
+Proof. by move=> x y /=; rewrite raddf_sub mulr_subr. Qed.
+Canonical Structure mull_fun_additive := Additive mull_fun_is_additive.
+
+Lemma mulr_fun_is_additive : additive (a \o* f).
+Proof. by move=> x y /=; rewrite raddf_sub mulr_subl. Qed.
+Canonical Structure mulr_fun_additive := Additive mulr_fun_is_additive.
+
+End MulFun.
+
+Section ScaleFun.
+
+Variables (R : ringType) (U : zmodType) (V : lmodType R).
+Variables (a : R) (f : {additive U -> V}).
+
+Lemma scale_fun_is_additive : additive (a \*: f).
+Proof. by move=> u v /=; rewrite raddf_sub scaler_subr. Qed.
+Canonical Structure scale_fun_additive := Additive scale_fun_is_additive.
+
+End ScaleFun.
 
 End AdditiveTheory.
 
@@ -1549,7 +1593,7 @@ Section InAlgebra.
 
 Variables (R : ringType) (A : lalgType R).
 
-Lemma in_alg_is_rmorphism : rmorphism (in_alg A).
+Lemma in_alg_is_rmorphism : rmorphism (in_alg_loc A).
 Proof.
 split=> [x y|]; first exact: scaler_subl.
 by split=> [x y|] /=; rewrite ?scale1r // -scaler_mull mul1r scalerA.
@@ -1655,8 +1699,10 @@ Proof. by case=> f' fK f'K; exists (Linear (can2_linear fK f'K)). Qed.
 
 End Properties.
 
+Section LinearLmod.
+
 Variables U V W : lmodType R.
-Variables (b : R) (f g : {linear U -> V}) (h : {linear W -> U}).
+Variables (f g : {linear U -> V}) (h : {linear W -> U}).
 
 Lemma idfun_is_scalable : scalable (idfun : U -> U). Proof. by []. Qed.
 Canonical Structure idfun_linear := AddLinear idfun_is_scalable.
@@ -1685,9 +1731,19 @@ Lemma sub_fun_is_scalable : scalable (f \- g).
 Proof. by move=> a v /=; rewrite raddf_sub /= !linearZ. Qed.
 Canonical Structure sub_fun_linear := AddLinear sub_fun_is_scalable.
 
-Lemma scale_fun_is_additive : additive (b \*: f).
-Proof. by move=> u v /=; rewrite !raddf_sub. Qed.
-Canonical Structure scale_fun_additive := Additive scale_fun_is_additive.
+End LinearLmod.
+
+Section LinearLalg.
+
+Variables (A : lalgType R) (U : lmodType R).
+
+Variables (a : A) (f : {linear U -> A}).
+
+Lemma mulr_fun_is_scalable : scalable (a \o* f).
+Proof. by move=> k x /=; rewrite linearZ scaler_mull. Qed.
+Canonical Structure mulr_fun_linear := AddLinear mulr_fun_is_scalable.
+
+End LinearLalg.
 
 End LinearTheory.
 
@@ -2010,6 +2066,12 @@ Qed.
 
 Canonical Structure regular_comRingType := [comRingType of R^o].
 Canonical Structure regular_algType := CommAlgType R R^o.
+
+Variables (U : lmodType R) (a : A) (f : {linear U -> A}).
+
+Lemma mull_fun_is_scalable : scalable (a \*o f).
+Proof. by move=> k x /=; rewrite linearZ scaler_mulr. Qed.
+Canonical Structure mull_fun_linear := AddLinear mull_fun_is_scalable.
 
 End AlgebraTheory.
 
@@ -4098,13 +4160,12 @@ Definition bij_lrmorphism := bij_lrmorphism.
 Implicit Arguments satP [F e f].
 Implicit Arguments solP [F n f]. 	 
 
-Notation null_fun V := (null_fun_head (Phant V)).
-Notation add_fun V := (add_fun_head (Phant V)).
-Notation sub_fun V := (sub_fun_head (Phant V)).
-Notation scale_fun V := (scale_fun_head (Phant V)).
-Notation in_alg A := (in_alg_head (Phant A)).
+Notation null_fun V := (null_fun V) (only parsing).
+Notation in_alg A := (in_alg_loc A).
 
 End Theory.
+
+Notation in_alg A := (in_alg_loc A).
 
 End GRing.
 
@@ -4142,9 +4203,11 @@ Notation "*:%R" := (@scale _ _).
 Notation "a *: m" := (scale a m) : ring_scope.
 Notation "k %:A" := (k *: 1) : ring_scope.
 Notation "\0" := (null_fun _) : ring_scope.
-Notation "f \+ g" := (add_fun _ f g) : ring_scope.
-Notation "f \- g" := (sub_fun _ f g) : ring_scope.
-Notation "a \*: f" := (scale_fun _ a f) : ring_scope.
+Notation "f \+ g" := (add_fun_head tt f g) : ring_scope.
+Notation "f \- g" := (sub_fun_head tt f g) : ring_scope.
+Notation "a \*: f" := (scale_fun_head tt a f) : ring_scope.
+Notation "x \*o f" := (mull_fun_head tt x f) : ring_scope.
+Notation "x \o* f" := (mulr_fun_head tt x f) : ring_scope.
 
 Notation "\sum_ ( <- r | P ) F" :=
   (\big[+%R/0%R]_(<- r | P%B) F%R) : ring_scope.
@@ -4227,6 +4290,10 @@ Canonical Structure add_fun_additive.
 Canonical Structure add_fun_linear.
 Canonical Structure sub_fun_additive.
 Canonical Structure sub_fun_linear.
+Canonical Structure mull_fun_additive.
+Canonical Structure mull_fun_linear.
+Canonical Structure mulr_fun_additive.
+Canonical Structure mulr_fun_linear.
 Canonical Structure Frobenius_aut_additive.
 Canonical Structure Frobenius_aut_rmorphism.
 Canonical Structure in_alg_additive.

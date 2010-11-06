@@ -1329,14 +1329,37 @@ Lemma trmx_delta : forall m n i j,
   (delta_mx i j)^T = delta_mx j i :> 'M[R]_(n, m).
 Proof. by move=> m n i j; apply/matrixP=> i' j'; rewrite !mxE andbC. Qed.
 
-(*
-Lemma trmx_scale : forall m n a (A : 'M_(m, n)), (a *: A)^T = a *: A^T.
-Proof. by move=> m n a A; apply/matrixP=> i j; rewrite !mxE. Qed.
-*)
-
 Lemma row_sum_delta : forall n (u : 'rV_n),
   u = \sum_(j < n) u 0 j *: delta_mx 0 j.
 Proof. by move=> n u; rewrite {1}[u]matrix_sum_delta big_ord1. Qed.
+
+Lemma delta_mx_lshift : forall m n1 n2 i j,
+  delta_mx i (lshift n2 j) = row_mx (delta_mx i j) 0 :> 'M_(m, n1 + n2).
+Proof.
+move=> m n1 n2 i j; apply/matrixP=> i' j'; rewrite !mxE -(can_eq (@splitK _ _)).
+by rewrite (unsplitK (inl _ _)); case: split => ?; rewrite mxE ?andbF.
+Qed.
+
+Lemma delta_mx_rshift : forall m n1 n2 i j,
+  delta_mx i (rshift n1 j) = row_mx 0 (delta_mx i j) :> 'M_(m, n1 + n2).
+Proof.
+move=> m n1 n2 i j; apply/matrixP=> i' j'; rewrite !mxE -(can_eq (@splitK _ _)).
+by rewrite (unsplitK (inr _ _)); case: split => ?; rewrite mxE ?andbF.
+Qed.
+
+Lemma delta_mx_ushift : forall m1 m2 n i j,
+  delta_mx (lshift m2 i) j = col_mx (delta_mx i j) 0 :> 'M_(m1 + m2, n).
+Proof.
+move=> m1 m2 n i j; apply/matrixP=> i' j'; rewrite !mxE -(can_eq (@splitK _ _)).
+by rewrite (unsplitK (inl _ _)); case: split => ?; rewrite mxE.
+Qed.
+
+Lemma delta_mx_dshift : forall m1 m2 n i j,
+  delta_mx (rshift m1 i) j = col_mx 0 (delta_mx i j) :> 'M_(m1 + m2, n).
+Proof.
+move=> m1 m2 n i j; apply/matrixP=> i' j'; rewrite !mxE -(can_eq (@splitK _ _)).
+by rewrite (unsplitK (inr _ _)); case: split => ?; rewrite mxE.
+Qed.
 
 Lemma vec_mx_delta : forall m n i j,
   vec_mx (delta_mx 0 (mxvec_index i j)) = delta_mx i j :> 'M_(m, n).
