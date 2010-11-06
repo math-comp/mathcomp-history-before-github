@@ -91,6 +91,8 @@ Require Import ssreflect.
 (*       x ^+ n, x ^- n integer exponent (groups and rings)                  *)
 (*       x *: A, A :* x external product (scaling/module product in rings,   *)
 (*                      left/right cosets in groups)                         *)
+(*       'C(A), 'C_B(A) centralisers (in groups, rings, and matrix algebras) *)
+(*                'Z(A) centers (in groups, rings, and matrix algebras)      *)
 (*       m %/ d, m %% d Eclidean division and remainder (nat and polynomial) *)
 (*               d %| m Euclidean divisibility (nat and polynomial)          *)
 (*       m = n %[mod d] equality mod d (also defined for <>, ==, and !-)     *)
@@ -191,6 +193,14 @@ Reserved Notation "x ^- n" (at level 29, left associativity).
 (* Reserved notation for external multiplication. *)
 Reserved Notation "x *: A" (at level 40).
 Reserved Notation "A :* x" (at level 40).
+
+(* Reserved notation for centralisers and centers. *)
+Reserved Notation "''C' ( A )" (at level 8, format "''C' ( A )").
+Reserved Notation "''C_' B ( A )"
+  (at level 8, B at level 2, format "''C_' B ( A )").
+Reserved Notation "''Z' ( A )" (at level 8, format "''Z' ( A )").
+(* Compatibility with group action centraliser notation. *)
+Reserved Notation "''C_' ( B ) ( A )" (at level 8, only parsing).
 
 (* Reserved notation for Euclidean division *)
 Reserved Notation "m %/ d" (at level 40, no associativity). 

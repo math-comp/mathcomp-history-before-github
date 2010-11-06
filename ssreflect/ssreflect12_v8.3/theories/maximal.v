@@ -1170,7 +1170,7 @@ case: (abelian_structure (abelem_abelian abel_S_PhiS))=> X /=.
 move/bigdprodEY => /= S_PhiS_eq.
 rewrite (abelian_type_abelem abel_S_PhiS) (rank_abelem abel_S_PhiS).
 move/(congr1 size); rewrite size_map size_nseq => n_eq {abel_S_PhiS}.
-set n := size _ in n_eq; pose tXZ := 'rV[subg_of 'Z(S)]_n.
+set n := size _ in n_eq; pose tXZ := 'rV[[subg 'Z(S)]]_n.
 pose x i := repr (nth 1 X i); rewrite (big_nth 1) -/n big_mkord in S_PhiS_eq.
 have Sxi : forall (i : 'I_n), x i \in S. 
   move=> i; apply: subsetP (mem_repr_coset (nth 1 X i)).
@@ -1179,9 +1179,9 @@ have Sxi : forall (i : 'I_n), x i \in S.
 have RrepCg: forall Cg, Cg \in (R / 'C_R(S)) -> repr Cg \in R. 
   move=> Cg; case/morphimP=> g Ng Rg -> /=; apply: subsetP (mem_repr_coset _).
   by rewrite val_coset // mul_subG ?sub1set ?subsetIl.
-have fP: forall (i : 'I_n) (Cg : subg_of (R / 'C_R(S))), 
-    [~ x i, repr (val Cg)] \in 'Z(S).
-  by move=> i Cg; rewrite (subsetP sSR_Z) // ?mem_commg // (RrepCg _ (valP Cg)).
+have fP: forall (i : 'I_n) (Cg : [subg R / 'C_R(S)]), 
+  [~ x i, repr (val Cg)] \in 'Z(S).
+- by move=> i Cg; rewrite (subsetP sSR_Z) // ?mem_commg // (RrepCg _ (valP Cg)).
 pose f Cg : tXZ := (\row_i Subg (fP i (subg _ Cg)))%R.
 suffices injf: {in R / 'C_R(S) &, injective f}.
   rewrite -(card_in_imset injf) (leq_trans (max_card _)) //.

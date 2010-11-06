@@ -1,9 +1,10 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div.
-Require Import fintype path bigop prime binomial finset ssralg.
-Require Import fingroup morphism perm automorphism quotient action gproduct.
-Require Import gfunctor commutator zmodp cyclic center pgroup finmodule gseries.
-Require Import nilpotent sylow abelian maximal hall matrix mxrepresentation.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div fintype.
+Require Import bigop prime binomial finset fingroup morphism perm automorphism.
+Require Import quotient action gproduct gfunctor commutator.
+Require Import ssralg finalg zmodp cyclic center pgroup finmodule gseries.
+Require Import nilpotent sylow abelian maximal hall.
+Require Import matrix mxalgebra mxrepresentation mxabelem.
 
 (******************************************************************************)
 (* This file contains most of the material in B & G, section 1, including the *)
@@ -895,7 +896,7 @@ apply/subsetP=> z; case/imset2P=> x u Sx; case/setIdP=> Gu Sxu ->{z}.
 have cSS: forall y, y \in S -> S \subset 'C_G[y].
   move=> y; rewrite subsetI sSG -cent_set1 centsC sub1set; apply: subsetP.
   by apply: subset_trans cSN; rewrite subsetI sSG normG.
-have{cSS} [v]: exists2 v, v \in 'C_G[x ^ u | 'J] & S :=: S :^ u :^ v.
+have{cSS} [v]: exists2 v, v \in 'C_G[x ^ u | 'J] & S :=: (S :^ u) :^ v.
   have sylSu : p.-Sylow(G) (S :^ u) by rewrite pHallJ.
   have [sSC sCG] := (cSS _ Sxu, subsetIl G 'C[x ^ u]).
   rewrite astab1J; apply: (@Sylow_trans p); apply: pHall_subl sCG _ => //=.

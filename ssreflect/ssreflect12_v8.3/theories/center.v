@@ -51,8 +51,7 @@ Canonical Structure center_group (G : {group gT}) : {group gT} :=
 
 End Defs.
 
-Notation "''Z' ( A )" := (center A)
-  (at level 9, format "''Z' ( A )") : group_scope.
+Notation "''Z' ( A )" := (center A) : group_scope.
 Notation "''Z' ( H )" := (center_group H) : subgroup_scope.
 
 Section Center.

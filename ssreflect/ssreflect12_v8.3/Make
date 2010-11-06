@@ -37,7 +37,8 @@ theories/finalg.v
 theories/poly.v
 theories/zmodp.v
 theories/matrix.v
-theories/charpoly.v
+theories/mxalgebra.v
+theories/mxpoly.v
 theories/cyclic.v
 theories/pgroup.v
 theories/center.v
@@ -49,10 +50,12 @@ theories/sylow.v
 theories/abelian.v
 theories/maximal.v
 theories/extremal.v
+theories/extraspecial.v
 theories/primitive_action.v
 theories/frobenius.v
 theories/hall.v
 theories/mxrepresentation.v
+theories/mxabelem.v
 theories/BGsection1.v
 theories/BGsection2.v
 theories/BGsection3.v

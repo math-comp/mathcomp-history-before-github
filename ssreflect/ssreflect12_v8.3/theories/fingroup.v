@@ -9,6 +9,29 @@ Require Import div path bigop prime finset.
 (*      baseFinGroupType == the structure for finite types with a monoid law  *)
 (*                          and an involutive antimorphism; finGroupType is   *)
 (*                          derived from baseFinGroupType (via a telescope).  *)
+(*    FinGroupType mulVg == the finGroupType structure for an existing        *)
+(*                          baseFinGroupType structure, built from a proof of *)
+(*                          the left inverse group axiom for that structure's *)
+(*                          operations.                                       *)
+(*  BaseFinGroupType bgm == the baseFingroupType structure built by packaging *)
+(*                          bgm : FinGroup.mixin_of T for a type T with an    *)
+(*                          existing finType structure.                       *)
+(* FinGroup.BaseMixin mulA mul1x invK invM ==                                 *)
+(*                          the mixin for a baseFinGroupType structure, built *)
+(*                          from proofs of the baseFinGroupType axioms.       *)
+(* FinGroup.Mixin mulA mul1x mulVg ==                                         *)
+(*                          the mixin for a baseFinGroupType structure, built *)
+(*                          from proofs of the group axioms.                  *)
+(* [baseFinGroupType of T] == a clone of an existing baseFinGroupType         *)
+(*                          structure on T, for T (the existing structure     *)
+(*                          might be for som delta-expansion of T).           *)
+(*   [finGroupType of T] == a clone of an existing finGroupType structure on  *)
+(*                          T, for the canonical baseFinGroupType structure   *)
+(*                          of T (the existing structure might be for the     *)
+(*                          baseFinGroupType of some delta-expansion of T).   *)
+(*          [group of G] == a clone for an existing {group gT} structure on   *)
+(*                          G : {set gT} (the existing structure might be for *)
+(*                          some delta-expansion of G).                       *)
 (* If gT implements finGroupType, then we can form {set gT}, the type of      *)
 (* finite sets with elements of type gT (as finGroupType extends finType).    *)
 (* The group law extends pointwise to {set gT}, which thus implements a sub-  *)
@@ -47,10 +70,11 @@ Require Import div path bigop prime finset.
 (*                H * G == {xy | x \in H, y \in G}.                           *)
 (*   1 or [1] or [1 gT] == the unit group.                                    *)
 (*          [set: gT]%G == the group of all x : gT (in subgroup_scope).       *)
-(*            subg_of G == the subtype of all x \in G.                        *)
-(*                         If G is a group, subg_of G is a finGroupType.      *)
-(*          subg, sgval == the projection into and injection from subg_of G.  *)
-(*             [subg G] == the set (or group) of all u : subg_of G.           *)
+(*             [subg G] == the subtype, set, or group of all x \in G: this    *)
+(*                         notation is defined simultaneously in %type, %g    *)
+(*                         and %G scopes, and G must denote a {group gT}      *)
+(*                         structure (G is in the %G scope).                  *)
+(*          subg, sgval == the projection into and injection from [subg G].   *)
 (*                  H^# == the set H minus the unit element                   *)
 (*               repr H == some element of H if 1 \notin H != set0, else 1.   *)
 (*                         (repr is defined over sets of a baseFinGroupType,  *)
@@ -114,6 +138,41 @@ Module GroupScope.
 Open Scope group_scope.
 End GroupScope.
 Import GroupScope.
+
+(* These are the operation notations introduced by this file. *)
+Reserved Notation "[ ~ x1 , x2 , .. , xn ]" (at level 0,
+  format  "'[ ' [ ~  x1 , '/'  x2 , '/'  .. , '/'  xn ] ']'").
+Reserved Notation "[ 1 gT ]" (at level 0, format "[ 1  gT ]").
+Reserved Notation "[ 1 ]" (at level 0, format "[ 1 ]").
+Reserved Notation "[ 'subg' G ]" (at level 0, format "[ 'subg'  G ]").
+Reserved Notation "A ^#" (at level 2, format "A ^#").
+Reserved Notation "A :^ x" (at level 35, right associativity).
+Reserved Notation "x ^: B" (at level 35, right associativity).
+Reserved Notation "A :^: B" (at level 35, right associativity).
+Reserved Notation "#| B : A |" (at level 0, B, A at level 99,
+  format "#| B  :  A |").
+Reserved Notation "''N' ( A )" (at level 8, format "''N' ( A )").
+Reserved Notation "''N_' G ( A )" (at level 8, G at level 2,
+  format "''N_' G ( A )").
+Reserved Notation "A <| B" (at level 70, no associativity).
+Reserved Notation "''C' [ x ]"  (at level 8, format "''C' [ x ]").
+Reserved Notation "''C_' G [ x ]" (at level 8, G at level 2,
+  format "''C_' G [ x ]").
+Reserved Notation "''C_' ( G ) [ x ]" (at level 8, only parsing).
+Reserved Notation "<< A >>"  (at level 0, format "<< A >>").
+Reserved Notation "<[ x ] >"  (at level 0, format "<[ x ] >").
+Reserved Notation "#[ x ]" (at level 0, format "#[ x ]").
+Reserved Notation "A <*> B" (at level 40, left associativity).
+Reserved Notation "[ ~: A1 , A2 , .. , An ]" (at level 0,
+  format "[ ~: '['  A1 , '/'  A2 , '/'  .. , '/'  An ']' ]").
+Reserved Notation "[ 'max' A 'of' G | gP ]" (at level 0,
+  format "[ '[hv' 'max'  A  'of'  G '/ '  |  gP ']' ]").
+Reserved Notation "[ 'max' G | gP ]" (at level 0,
+  format "[ '[hv' 'max'  G '/ '  |  gP ']' ]").
+Reserved Notation "[ 'min' A 'of' G | gP ]" (at level 0,
+  format "[ '[hv' 'min'  A  'of'  G '/ '  |  gP ']' ]").
+Reserved Notation "[ 'min' G | gP ]" (at level 0,
+  format "[ '[hv' 'min'  G '/ '  |  gP ']' ]").
 
 Module FinGroup.
 
@@ -299,8 +358,7 @@ Notation "x1 ^ x2" := (conjg x1 x2) : group_scope.
 
 Definition commg (T : finGroupType) (x y : T) := x^-1 * x ^ y.
 Notation "[ ~ x1 , x2 , .. , xn ]" := (commg .. (commg x1 x2) .. xn)
-  (at level 0,
-   format  "'[ ' [ ~  x1 , '/'  x2 , '/'  .. , '/'  xn ] ']'") : group_scope.
+  : group_scope.
 
 Prenex Implicits mulg invg expgn conjg commg.
 
@@ -741,41 +799,33 @@ Arguments Scope centraliser [_ group_scope].
 Arguments Scope centralises [_ group_scope group_scope].
 Arguments Scope abelian [_ group_scope].
 
-Notation "[ 1 gT ]" := (1 : {set gT})
-  (at level 0, format "[ 1  gT ]") : group_scope.
-Notation "[ 1 ]" := [1 FinGroup.sort _]
-  (at level 0, format "[ 1 ]") : group_scope.
+Notation "[ 1 gT ]" := (1 : {set gT}) : group_scope.
+Notation "[ 1 ]" := [1 FinGroup.sort _] : group_scope.
 
-Notation "A ^#" := (A :\ 1) (at level 2, format "A ^#") : group_scope.
+Notation "A ^#" := (A :\ 1) : group_scope.
 
 Notation "x *: A" := ([set x%g] * A) : group_scope.
 Notation "A :* x" := (A * [set x%g]) : group_scope.
-Notation "A :^ x" := (conjugate A x) (at level 35) : group_scope.
-Notation "x ^: B" := (class x B) (at level 35) : group_scope.
-Notation "A :^: B" := (conjugates A B) (at level 35) : group_scope.
+Notation "A :^ x" := (conjugate A x) : group_scope.
+Notation "x ^: B" := (class x B) : group_scope.
+Notation "A :^: B" := (conjugates A B) : group_scope.
 
-Notation "#| B : A |" := (indexg B A)
-  (at level 0, B, A at level 99, format "#| B  :  A |") : group_scope.
+Notation "#| B : A |" := (indexg B A) : group_scope.
 
 (* No notation for lcoset and rcoset, which are to be used mostly  *)
 (* in curried form; x *: B and A :* 1 denote singleton products,   *)
 (* so thus we can use mulgA, mulg1, etc, on, say, A :* 1 * B :* x. *)
 (* No notation for the set commutator generator set set_commg.     *)
 
-Notation "''N' ( A )" := (normaliser A)
-  (at level 8, format "''N' ( A )") : group_scope.
-Notation "''N_' G ( A )" := (G%g :&: 'N(A))
-  (at level 8, G at level 2, format "''N_' G ( A )") : group_scope.
-Notation "A <| B" := (normal A B)
-  (at level 70) : group_scope.
-Notation "''C' ( A )" := (centraliser A)
-  (at level 8, format "''C' ( A )") : group_scope.
-Notation "''C_' G ( A )" := (G%g :&: 'C(A))
-  (at level 8, G at level 2, format "''C_' G ( A )") : group_scope.
-Notation "''C' [ x ]" := 'N([set x%g])
-  (at level 8, format "''C' [ x ]") : group_scope.
-Notation "''C_' G [ x ]" := 'N_G([set x%g])
-  (at level 8, G at level 2, format "''C_' G [ x ]") : group_scope.
+Notation "''N' ( A )" := (normaliser A) : group_scope.
+Notation "''N_' G ( A )" := (G%g :&: 'N(A)) : group_scope.
+Notation "A <| B" := (normal A B) : group_scope.
+Notation "''C' ( A )" := (centraliser A) : group_scope.
+Notation "''C_' G ( A )" := (G%g :&: 'C(A)) : group_scope.
+Notation "''C_' ( G ) ( A )" := 'C_G(A) (only parsing) : group_scope.
+Notation "''C' [ x ]" := 'N([set x%g]) : group_scope.
+Notation "''C_' G [ x ]" := 'N_G([set x%g]) : group_scope.
+Notation "''C_' ( G ) [ x ]" := 'C_G[x] (only parsing) : group_scope.
 
 Prenex Implicits repr lcoset rcoset lcosets rcosets normal.
 Prenex Implicits conjugate conjugates class classes class_support.
@@ -1266,10 +1316,8 @@ Notation "[ 'group' 'of' G ]" := (clone_group (@group _ G))
 Bind Scope subgroup_scope with group_type.
 Bind Scope subgroup_scope with group_of.
 Notation "1" := (one_group _) : subgroup_scope.
-Notation "[ 1 gT ]" := (1%G : {group gT})
-  (at level 0, format "[ 1  gT ]") : subgroup_scope.
-Notation "[ 'set' : gT ]" := (setT_group (Phant gT))
-  (at level 0, format "[ 'set' :  gT ]") : subgroup_scope.
+Notation "[ 1 gT ]" := (1%G : {group gT}) : subgroup_scope.
+Notation "[ 'set' : gT ]" := (setT_group (Phant gT)) : subgroup_scope.
 
 (* Helper notation for defining new groups that need a bespoke finGroupType. *)
 (* The actual group for such a type (say, my_gT) will be the full group,     *)
@@ -1278,20 +1326,12 @@ Notation "[ 'set' : gT ]" := (setT_group (Phant gT))
 (* inference, unless they are defined as [set: gsort my_gT] using the        *)
 (* Notation below.                                                           *)
 Notation gsort gT := (FinGroup.arg_sort (FinGroup.base gT%type)) (only parsing).
-
-Notation "<< A >>"  := (generated A)
-  (at level 0, format "<< A >>") : group_scope.
-
-Notation "<[ x ] >"  := (cycle x)
-  (at level 0, format "<[ x ] >") : group_scope.
-
-Notation "#[ x ]"  := (order x) (at level 0, format "#[ x ]") : group_scope.
-
-Notation "A <*> B" := (joing A B) (at level 40) : group_scope.
-
-Notation "[ ~: A1 , A2 , .. , An ]" := (commutator .. (commutator A1 A2) .. An)
-  (at level 0,
-  format "[ ~: '['  A1 , '/'  A2 , '/'  .. , '/'  An ']' ]") : group_scope.
+Notation "<< A >>"  := (generated A) : group_scope.
+Notation "<[ x ] >"  := (cycle x) : group_scope.
+Notation "#[ x ]"  := (order x) : group_scope.
+Notation "A <*> B" := (joing A B) : group_scope.
+Notation "[ ~: A1 , A2 , .. , An ]" :=
+  (commutator .. (commutator A1 A2) .. An) : group_scope.
 
 Prenex Implicits order cycle gcore.
 
@@ -1805,8 +1845,8 @@ Hint Resolve cardG_gt0 cardG_gt0_reduced indexg_gt0.
 
 Notation "G :^ x" := (conjG_group G x) : subgroup_scope.
 
-Notation "[ 'subg' G ]" := [set: subg_of G]
-  (at level 0, format "[ 'subg'  G ]") : group_scope.
+Notation "[ 'subg' G ]" := (subg_of G) : type_scope.
+Notation "[ 'subg' G ]" := [set: subg_of G] : group_scope.
 Notation "[ 'subg' G ]" := [set: subg_of G]%G : subgroup_scope.
 
 Prenex Implicits subg sgval subg_of.
@@ -2956,12 +2996,16 @@ Arguments Scope centraliser_group [_ group_scope].
 
 Notation "''N' ( A )" := (normaliser_group A) : subgroup_scope.
 Notation "''C' ( A )" := (centraliser_group A) : subgroup_scope.
-Notation "''C' [ x ]" := ('N([set x%g]))%G : subgroup_scope.
-Notation "''N_' G ( A )" := (G :&: 'N(A))%G : subgroup_scope.
-Notation "''C_' G ( A )" := (G :&: 'C(A))%G : subgroup_scope.
-Notation "''C_' G [ x ]" := ('N_G([set x%g]))%G : subgroup_scope.
+Notation "''C' [ x ]" := (normaliser_group [set x%g]) : subgroup_scope.
+Notation "''N_' G ( A )" := (setI_group G 'N(A)) : subgroup_scope.
+Notation "''C_' G ( A )" := (setI_group G 'C(A)) : subgroup_scope.
+Notation "''C_' ( G ) ( A )" := (setI_group G 'C(A))
+  (only parsing) : subgroup_scope.
+Notation "''C_' G [ x ]" := (setI_group G 'C[x]) : subgroup_scope.
+Notation "''C_' ( G ) [ x ]" := (setI_group G 'C[x])
+  (only parsing) : subgroup_scope.
 
-Hint Resolve normal_refl.
+Hint Resolve normG normal_refl.
 
 Section MinMaxGroup.
 
@@ -3028,17 +3072,12 @@ Qed.
 
 End MinMaxGroup.
 
-Notation "[ 'max' A 'of' G | gP ]" := (maxgroup (fun G : {group _} => gP) A)
-  (at level 0, format "[ 'max'  A  'of'  G  |  gP ]") : group_scope.
-
-Notation "[ 'max' G | gP ]" := [max gval G of G | gP]
-  (at level 0, format "[ 'max'  G  |  gP ]") : group_scope.
-
-Notation "[ 'min' A 'of' G | gP ]" := (mingroup (fun G : {group _} => gP) A)
-  (at level 0, format "[ 'min'  A  'of'  G  |  gP ]") : group_scope.
-
-Notation "[ 'min' G | gP ]" := [min gval G of G | gP]
-  (at level 0, format "[ 'min'  G  |  gP ]") : group_scope.
+Notation "[ 'max' A 'of' G | gP ]" :=
+  (maxgroup (fun G : {group _} => gP) A) : group_scope.
+Notation "[ 'max' G | gP ]" := [max gval G of G | gP] : group_scope.
+Notation "[ 'min' A 'of' G | gP ]" :=
+  (mingroup (fun G : {group _} => gP) A) : group_scope.
+Notation "[ 'min' G | gP ]" := [min gval G of G | gP] : group_scope.
 
 Implicit Arguments mingroupP [gT gP G].
 Implicit Arguments maxgroupP [gT gP G].

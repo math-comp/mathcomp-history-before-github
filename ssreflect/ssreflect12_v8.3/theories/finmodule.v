@@ -21,7 +21,7 @@ Require Import finalg action gproduct commutator cyclic.
 (*   FiniteModule defines the Z[N(A)]-module associated with a finite abelian *)
 (* abelian group A, given a proof abelA : abelian A) :                        *)
 (*  fmod_of abelA == the type of elements of the module (similar to but       *)
-(*                   distinct from subg_of A).                                *)
+(*                   distinct from [subg A]).                                 *)
 (*   fmod abelA x == the injection of x into fmod_of abelA if x \in A, else 0 *)
 (*        fmval u == the projection of u : fmod_of abelA onto A               *)
 (*         u ^@ x == the action of x \in 'N(A) on u : fmod_of abelA           *)
@@ -83,7 +83,7 @@ Local Notation fmodA := (fmod_of abelA).
 Implicit Types x y z : gT.
 Implicit Types u v w : fmodA.
 
-Let sub2f (s : subg_of A) := Fmod abelA (valP s).
+Let sub2f (s : [subg A]) := Fmod abelA (valP s).
 
 Definition fmval u := val (f2sub u).
 Canonical Structure fmod_subType := [subType for fmval by @fmod_of_rect _ _ _].
