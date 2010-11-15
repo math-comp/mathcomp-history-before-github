@@ -67,6 +67,7 @@ orderedalg.v
 polyorder.v
 alt.v
 burnside_app.v
+vector.v
 
 
 COQC = $(COQBIN)ssrcoq

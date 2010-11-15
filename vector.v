@@ -71,7 +71,8 @@ Import GRing.Theory.
 
 (* Finite dimension vector space *)
 Module VectorType.
-Section VectorTypeDef.
+
+Section ClassDef.
 Variable R : ringType.
 Implicit Type phR : phant R.
 
@@ -83,12 +84,16 @@ Structure mixin_of (V : lmodType R) : Type := Mixin {
                  _ : bijective v2rv_isomorphism
 }.
 
-Structure class_of (V : Type) : Type := Class {
-  base :> GRing.Lmodule.class_of R V;
-   ext :> mixin_of (GRing.Lmodule.Pack _ base V)
-}.
 
-Structure type phR : Type := Pack {sort :> Type; _ : class_of sort; _ : Type}.
+Structure class_of (V : Type) : Type := Class {
+  base : GRing.Lmodule.class_of R V;
+  mixin : mixin_of (GRing.Lmodule.Pack _ base V)
+}.
+Local Coercion base : class_of >-> GRing.Lmodule.class_of.
+
+
+Structure type phR : Type := Pack {sort : Type; _ : class_of sort; _ : Type}.
+Local Coercion sort : type >-> Sortclass.
 Definition class phR (cT : type phR):=
   let: Pack _ c _ := cT return class_of cT in c.
 Definition clone phR T cT c of phant_id (@class phR cT) c := @Pack phR T c T.
@@ -97,24 +102,36 @@ Definition pack phR V V0 (m0 : mixin_of (@GRing.Lmodule.Pack R _ V V0 V)) :=
   fun bT b & phant_id (@GRing.Lmodule.class _ phR bT) b =>
   fun    m & phant_id m0 m => Pack phR (@Class V b m) V.
 
-Coercion eqType phR cT := Equality.Pack (@class phR cT) cT.
-Coercion choiceType phR cT := Choice.Pack (@class phR cT) cT.
-Coercion zmodType phR cT := GRing.Zmodule.Pack (@class phR cT) cT.
-Coercion lmodType phR cT := GRing.Lmodule.Pack phR (@class phR cT) cT.
+Definition eqType phR cT := Equality.Pack (@class phR cT) cT.
+Definition choiceType phR cT := Choice.Pack (@class phR cT) cT.
+Definition zmodType phR cT := GRing.Zmodule.Pack (@class phR cT) cT.
+Definition lmodType phR cT := GRing.Lmodule.Pack phR (@class phR cT) cT.
 
-End VectorTypeDef.
-End VectorType.
+End ClassDef.
+	
+Module Exports.
 
-Canonical Structure VectorType.eqType.
-Canonical Structure VectorType.choiceType.
-Canonical Structure VectorType.zmodType.
-Canonical Structure VectorType.lmodType.
-
-Bind Scope ring_scope with VectorType.sort.
-Notation vectType R := (@VectorType.type _ (Phant R)).
+Coercion base : class_of >-> GRing.Lmodule.class_of.
+Coercion mixin : class_of >-> mixin_of.
+Coercion sort : type >-> Sortclass.
+Coercion eqType: type >->  Equality.type.
+Bind Scope ring_scope with sort.
+Canonical Structure eqType.
+Coercion choiceType: type >-> Choice.type.
+Canonical Structure choiceType.
+Coercion zmodType: type >-> GRing.Zmodule.type.
+Canonical Structure zmodType.
+Coercion lmodType: type>->  GRing.Lmodule.type.
+Canonical Structure lmodType.
+Notation vectType R := (@type _ (Phant R)).
 Notation VectType R m :=
-   (@VectorType.pack _ (Phant R) _ _ m _ _ id _ id).
-Notation VectMixin := VectorType.Mixin.
+   (@pack _ (Phant R) _ _ m _ _ id _ id).
+Notation VectMixin := Mixin.
+End Exports.
+
+End VectorType.
+Import VectorType.Exports.
+
 
 Section VectorTypeTheory.
 
@@ -126,7 +143,7 @@ Definition vdim := (VectorType.dim (VectorType.class V)).
 (* From row matrix to vector:    rv2v *)
 Definition v2rv_isomorphism :=
  (@VectorType.v2rv_isomorphism _ _ 
-    (@VectorType.ext _ _ (VectorType.class V))).
+    (@VectorType.mixin _ _ (VectorType.class V))).
 Local Notation v2rv := v2rv_isomorphism.
 
 Lemma v2rv_linear_proof : linear v2rv.
@@ -223,7 +240,7 @@ Canonical Structure vspace_for_choiceType :=
 
 Implicit Type vs : {vspace V}.
 
-Lemma vspace_ax vs : <<vs2mx vs>>%MS == vs2mx vs.
+Lemma vspace_ax: forall  vs, <<vs2mx vs>>%MS == vs2mx vs.
 Proof. by case. Qed.
 
 (* From vector space to matrix:    vs2mx *)
@@ -234,17 +251,17 @@ Definition mx2vs m (v : 'M_(m,n)) : {vspace V} :=
 Lemma vs2mxK : cancel vs2mx (@mx2vs n).
 Proof. by move=> [mx Hmx]; apply/eqP. Qed.
 
-Lemma mx2vsK m (M : 'M_(m,n)) : (vs2mx (mx2vs M) :=: M)%MS.
+Lemma mx2vsK : forall m (M : 'M_(m,n)),  (vs2mx (mx2vs M) :=: M)%MS.
 Proof. by move=> m M; apply/eqmxP; rewrite !genmxE !submx_refl. Qed.
 
-Lemma vseq2mxeq vs1 vs2 : (vs1 == vs2) = (vs2mx vs1 == vs2mx vs2)%MS.
+Lemma vseq2mxeq : forall vs1 vs2, (vs1 == vs2) = (vs2mx vs1 == vs2mx vs2)%MS.
 Proof.
 move=> [m1 Hm1] [m2 Hm2]; rewrite /eq_op /= -{1}(eqP Hm1) -{1}(eqP Hm2).
 apply/eqP/idP; first by move/genmxP.
 by move=> H; apply/genmxP.
 Qed.
 
-Lemma mxeq2vseq m1 m2 M1 M2 : (M1 == M2)%MS = (@mx2vs m1 M1 == @mx2vs m2 M2).
+Lemma mxeq2vseq: forall m1 m2 M1 M2, (M1 == M2)%MS = (@mx2vs m1 M1 == @mx2vs m2 M2).
 Proof.
 move=> m1 m2 M1 M2; rewrite /eq_op /=.
 apply/idP/eqP; first by move/eqmxP; move/eq_genmx.
@@ -276,69 +293,69 @@ Canonical Structure vpredType := mkPredType (fun vs v => (v%:VS <= vs)%VS).
 Lemma vs2mx0 : vs2mx 0%:VS = 0.
 Proof. by rewrite /injv linear0 /= genmx0. Qed.
 
-Lemma mx2vs0 m : mx2vs (0 : 'M_(m,n)) = 0%:VS.
+Lemma mx2vs0: forall m, mx2vs (0 : 'M_(m,n)) = 0%:VS.
 Proof. by move=> m; apply/eqP; rewrite /eq_op /= linear0 !genmx0. Qed.
 
-Lemma injvP v1 v2 : reflect (exists k, v1 = k *: v2) (v1 \in v2%:VS).
+Lemma injvP : forall v1 v2, reflect (exists k, v1 = k *: v2) (v1 \in v2%:VS).
 Proof.
 move=> v1 v2; apply: (iffP idP); rewrite /in_mem /= /subsetv /injv !genmxE.
   by move/sub_rVP=> [k Hk]; exists k;apply: v2rv_inj; rewrite linearZ.
 move=> [k ->]; rewrite linearZ;apply: scalemx_sub; apply submx_refl.
 Qed.
 
-Lemma mem0v vs : 0 \in vs.
+Lemma mem0v : forall  vs, 0 \in vs.
 Proof. by move=> vs; rewrite /in_mem /= /subsetv vs2mx0 sub0mx. Qed.
 
-Lemma memv_inj v : v \in v%:VS.
+Lemma memv_inj : forall v, v \in v%:VS.
 Proof. by move=> x; apply/injvP; exists 1; rewrite scale1r. Qed.
 
-Lemma memvD vs v1 v2 : v1 \in vs -> v2 \in vs -> v1 + v2 \in vs.
+Lemma memvD : forall vs v1 v2, v1 \in vs -> v2 \in vs -> v1 + v2 \in vs.
 Proof.
 move=> v1 v2 vs; rewrite /in_mem /= /subsetv /injv !mx2vsK => H1 H2.
 by rewrite linearD addmx_sub.
 Qed.
 
-Lemma memvZl vs k v : v \in vs -> k *: v \in vs.
+Lemma memvZl : forall  vs k v, v \in vs -> k *: v \in vs.
 Proof.
 move=> vs k v; rewrite /in_mem /= /subsetv /injv /= !mx2vsK => Hvvs.
 by rewrite linearZ scalemx_sub.
 Qed.
 
-Lemma memvZ vs k v : (k *: v \in vs) = (k == 0) || (v \in vs).
+Lemma memvZ : forall vs k v,  (k *: v \in vs) = (k == 0) || (v \in vs).
 Proof.
 move=> vs k v; case: eqP=> Hk; first by rewrite Hk scale0r mem0v.
 move/eqP: Hk=> Hk; apply/idP/idP=> Hi; last exact: memvZl.
 by rewrite -[v](scalerK Hk) memvZl.
 Qed.
 
-Lemma memvNr vs v : v \in vs -> -v \in vs.
+Lemma memvNr : forall vs v, v \in vs -> -v \in vs.
 Proof. move=> vs v Hv; rewrite -scaleN1r; exact: memvZl. Qed.
 
-Lemma memvNl vs v : -v \in vs -> v \in vs.
+Lemma memvNl : forall vs v, -v \in vs -> v \in vs.
 Proof. move=> vs v Hv; rewrite -[v]opprK; exact: memvNr. Qed.
 
-Lemma memv_sub vs v1 v2 : v1 \in vs -> v2 \in vs -> v1 - v2 \in vs.
+Lemma memv_sub : forall  vs v1 v2, v1 \in vs -> v2 \in vs -> v1 - v2 \in vs.
 Proof. by move=> vs v1 v2 Hv1 Hv2; rewrite memvD // memvNr. Qed.
 
-Lemma memvDl vs v1 v2 : v1 \in vs -> (v1 + v2 \in vs) = (v2 \in vs).
+Lemma memvDl : forall  vs v1 v2, v1 \in vs -> (v1 + v2 \in vs) = (v2 \in vs).
 Proof.
 move=> vs v1 v2 Hv1; apply/idP/idP=> Hv2; last exact: memvD.
 rewrite -[v2](addKr v1); apply: memvD=> //; exact: memvNr.
 Qed.
 
-Lemma memvDr vs v1 v2 : v1 \in vs -> (v2 + v1 \in vs) = (v2 \in vs).
+Lemma memvDr : forall  vs v1 v2, v1 \in vs -> (v2 + v1 \in vs) = (v2 \in vs).
 Proof. move=> vs v1 v2; rewrite addrC; exact: memvDl. Qed.
 
-Lemma memvN vs v : (-v \in vs) = (v \in vs).
+Lemma memvN : forall vs v, (-v \in vs) = (v \in vs).
 Proof. move=> *; apply/idP/idP; [exact: memvNl | exact: memvNr]. Qed. 
 
-Lemma memv_subl vs v1 v2 : v1 \in vs -> (v1 - v2 \in vs) = (v2 \in vs).
+Lemma memv_subl : forall vs v1 v2, v1 \in vs -> (v1 - v2 \in vs) = (v2 \in vs).
 Proof. move=> *; rewrite memvDl //; exact: memvN. Qed.
 
-Lemma memv_subr vs v1 v2 : v1 \in vs -> (v2 - v1 \in vs) = (v2 \in vs).
+Lemma memv_subr : forall vs v1 v2, v1 \in vs -> (v2 - v1 \in vs) = (v2 \in vs).
 Proof. move=> *; rewrite memvDr //; exact: memvNr. Qed.
 
-Lemma memv_sum (I : finType) (P : pred I) (vs_ : I -> V) vs :
+Lemma memv_sum : forall (I : finType) (P : pred I) (vs_ : I -> V) vs,
   (forall i, P i -> vs_ i \in vs) -> \sum_(i | P i) vs_ i \in vs.
 Proof.
 move=> I P v_ vs Hp; apply big_prop => //; first by apply mem0v.
@@ -346,13 +363,13 @@ by exact: memvD.
 Qed.
 
 (* The ith row of the canonical matrice as a vector *)
-Lemma rv2v_iE i vs :
+Lemma rv2v_iE : forall  i vs,
       <<row i (vs2mx vs)>>%MS = vs2mx (rv2v (row i (vs2mx vs)))%:VS.
 Proof.
 by move=> i vs;rewrite /injv /=; congr genmx; rewrite rv2vK.
 Qed.
 
-Lemma subsetvP vs1 vs2 : 
+Lemma subsetvP : forall vs1 vs2,
   reflect (forall v, v \in vs1 -> v \in vs2) (vs1 <= vs2)%VS.
 Proof.
 move=> vs1 vs2; apply: (iffP idP).
@@ -364,7 +381,7 @@ rewrite /in_mem /= /subsetv -(rv2v_iE i vs1) genmxE.
 move: i; apply/row_subP; apply submx_refl.
 Qed.
 
-Lemma vspaceP vs1 vs2 : reflect (vs1 =i vs2) (vs1 == vs2)%VS.
+Lemma vspaceP : forall  vs1 vs2, reflect (vs1 =i vs2) (vs1 == vs2)%VS.
 Proof.
 move=> vs1 vs2; apply: (iffP eqP); first by move->.
 by move=> Hs; apply: subsetv_anti; apply/andP; split; apply/subsetvP=> v;
@@ -373,15 +390,15 @@ Qed.
 
 (* Empty space *)
 
-Lemma subset0v vs : (0%:VS <= vs)%VS.
+Lemma subset0v : forall  vs, (0%:VS <= vs)%VS.
 Proof. by move=> vs; rewrite /subsetv vs2mx0 sub0mx. Qed.
 
-Lemma subsetv0 vs : (vs <= 0%:VS)%VS = (vs == 0%:VS).
+Lemma subsetv0 : forall vs, (vs <= 0%:VS)%VS = (vs == 0%:VS).
 Proof.
 by move=> vs; rewrite /subsetv /eq_op /= linear0 genmx0 submx0.
 Qed.
 
-Lemma memv0 v : v \in 0%:VS = (v == 0).
+Lemma memv0 : forall v, v \in 0%:VS = (v == 0).
 Proof.
 move=> v; apply/idP/eqP; last by move->; exact: mem0v.
 by move/injvP=> [k ->]; rewrite scaler0.
@@ -396,10 +413,10 @@ Proof. by apply/eqmxP; rewrite mxeq2vseq vs2mxK. Qed.
 Lemma mx2vsf : mx2vs (1%:M) = fullv.
 Proof. done. Qed. 
 
-Lemma subsetvf vs : (vs <= fullv)%VS.
+Lemma subsetvf : forall vs, (vs <= fullv)%VS.
 Proof. by move=> vs; rewrite /subsetv mx2vsK submx1. Qed.
 
-Lemma memvf v : v \in fullv.
+Lemma memvf : forall v, v \in fullv.
 Proof. move=> v; exact: subsetvf. Qed.
 
 (* return a vector of vs (null iff vs is null) *)
@@ -407,13 +424,13 @@ Definition vpick vs : V :=
  if [pick i | row i (vs2mx vs) != 0] is Some i then 
  (rv2v (row i (vs2mx vs))) else 0.
 
-Lemma memv_pick vs : vpick vs \in vs.
+Lemma memv_pick : forall vs, vpick vs \in vs.
 Proof.
 move=> vs; rewrite /vpick; case: pickP=> [i|] Hi; last by exact: mem0v.
 by rewrite /in_mem /= /subsetv -rv2v_iE genmxE row_sub.
 Qed.
 
-Lemma vpick0 vs : (vpick vs == 0) = (vs == 0%:VS).
+Lemma vpick0 : forall vs, (vpick vs == 0) = (vs == 0%:VS).
 Proof.
 move=>vs; apply/eqP/eqP; last first.
   move->; rewrite /vpick; case: pickP=> [i|] Hi //.
@@ -438,7 +455,7 @@ Local Notation "\sum_ ( i | P ) B" := (\big[addv/0%:VS]_(i | P) B%VS)
 Local Notation "\sum_ ( i < n ) B" :=
   (\big[addv/0%:VS]_(i < n) B%VS) : vspace_scope.
 
-Lemma mx2vsD m1 m2 (M1 : 'M_(m1,n)) (M2 : 'M_(m2,n)):
+Lemma mx2vsD : forall  m1 m2 (M1 : 'M_(m1,n)) (M2 : 'M_(m2,n)),
  mx2vs (M1 + M2)%MS = (mx2vs M1 + mx2vs M2)%VS.
 Proof.
 move=> m1 m2 M1 M2; apply/eqP; rewrite /mx2vs /eq_op /=.
@@ -460,11 +477,11 @@ Proof.
 by move=> I P vs_; apply: big_morph; [exact: vs2mx_morph | exact: vs2mx0].
 Qed.
 
-Lemma mx2vsDr m1 m2 (M1 : 'M_(m1,n)) (M2 : 'M_(m2,n)) :
+Lemma mx2vsDr : forall m1 m2 (M1 : 'M_(m1,n)) (M2 : 'M_(m2,n)),
  mx2vs (M1 + vs2mx (mx2vs M2))%MS = mx2vs (M1 + M2)%MS.
 Proof. by move=> m1 m2 M1 M2; rewrite !mx2vsD vs2mxK. Qed.
 
-Lemma mx2vsDl m1 m2 (M1 : 'M_(m1,n)) (M2 : 'M_(m2,n)) :
+Lemma mx2vsDl : forall m1 m2 (M1 : 'M_(m1,n)) (M2 : 'M_(m2,n)),
  mx2vs (vs2mx (mx2vs M1) + M2)%MS = mx2vs (M1 + M2)%MS.
 Proof. by move=> m1 m2 M1 M2; rewrite !mx2vsD vs2mxK. Qed.
 
@@ -474,20 +491,20 @@ Proof.
 by move=> vs1 vs2 vs3; rewrite /subsetv vs2mx_morph; exact: addsmx_sub.
 Qed.
 
-Lemma addvSl vs1 vs2 : (vs1 <= vs1 + vs2)%VS.
+Lemma addvSl : forall vs1 vs2, (vs1 <= vs1 + vs2)%VS.
 Proof. by move=> vs1 vs2; rewrite /subsetv vs2mx_morph; exact: addsmxSl. Qed.
 
-Lemma addvSr vs1 vs2 : (vs2 <= vs1 + vs2)%VS.
+Lemma addvSr : forall vs1 vs2, (vs2 <= vs1 + vs2)%VS.
 Proof. by move=> vs1 vs2; rewrite /subsetv vs2mx_morph; exact: addsmxSr. Qed.
 
-Lemma addvKl vs1 vs2 : (vs1 <= vs2)%VS = (vs1 + vs2 == vs2)%VS.
+Lemma addvKl : forall vs1 vs2, (vs1 <= vs2)%VS = (vs1 + vs2 == vs2)%VS.
 Proof.
 move=> vs1 vs2; apply/idP/eqP=> Hs; last first.
   by rewrite -Hs addvSl.
 by apply subsetv_anti; rewrite addv_sub Hs subsetv_refl addvSr.
 Qed.
 
-Lemma addvKr vs1 vs2 : (vs2 <= vs1)%VS = (vs1 + vs2 == vs1)%VS.
+Lemma addvKr: forall  vs1 vs2, (vs2 <= vs1)%VS = (vs1 + vs2 == vs1)%VS.
 Proof.
 move=> vs1 vs2; apply/idP/eqP=> Hs; last first.
   by rewrite -Hs addvSr.
@@ -506,7 +523,7 @@ rewrite /addv mx2vsDr mx2vsDl.
 by apply/eqP; rewrite -mxeq2vseq addsmxA !submx_refl.
 Qed.
 
-Lemma addvS vs1 vs2 vs3 vs4 : 
+Lemma addvS : forall vs1 vs2 vs3 vs4, 
   (vs1 <= vs2 -> vs3 <= vs4 -> vs1 + vs3 <= vs2 + vs4)%VS.
 Proof.
 by move=> vs1 vs2 vs3 v4; rewrite /subsetv !vs2mx_morph; exact: addsmxS.
@@ -538,7 +555,7 @@ by move=> vs;apply: subsetv_anti;apply/andP;split;
      [apply: subsetvf|apply: addvSr].
 Qed.
 
-Lemma addv_mem v1 v2 vs1 vs2 : 
+Lemma addv_mem : forall v1 v2 vs1 vs2,
   v1 \in vs1 -> v2 \in vs2 -> v1 + v2 \in (vs1 + vs2)%VS.
 Proof.
 move=> v1 v2 vs1 vs2 Hv1 Hv2.
@@ -546,7 +563,7 @@ by apply memvD; [move: v1 Hv1| move: v2 Hv2];
    apply/subsetvP; rewrite (addvSr, addvSl).
 Qed.
 
-Lemma addv_memP v vs1 vs2 : 
+Lemma addv_memP : forall v vs1 vs2,
   reflect (exists v1, exists v2, [/\ v1 \in vs1, v2 \in vs2 & v = v1 + v2])
            (v \in (vs1 + vs2)%VS).
 Proof.
@@ -589,7 +606,7 @@ move=> P vs_ vs; apply: (iffP idP) => [Hvs i Pi | Hvs].
 by apply big_prop => // [|vs1 vs2 Hvs1]; rewrite ?subset0v // addv_sub Hvs1.
 Qed.
 
-Lemma memv_sumP P (vs_ : I -> {vspace V}) v : 
+Lemma memv_sumP : forall P (vs_ : I -> {vspace V}) v, 
   reflect (exists v_ : I -> V, 
             (forall i, P i ->  v_ i \in vs_ i) /\
              v = \sum_(i | P i) v_ i)
@@ -631,47 +648,47 @@ Local Notation "\bigcap_ ( i <- r | P ) B" := (\big[capv/fullv]_(i <- r | P) B)
 Local Notation "\bigcap_ ( i | P ) B" := (\big[capv/fullv]_(i | P) B)
   : vspace_scope.
 
-Lemma capv_mx2vs m1 m2 (M1 : 'M_(m1,n)) (M2 : 'M_(m2,n)) :
+Lemma capv_mx2vs : forall m1 m2 (M1 : 'M_(m1,n)) (M2 : 'M_(m2,n)),
  mx2vs (M1 :&: M2)%MS = (mx2vs M1 :&: mx2vs M2)%VS.
 Proof.
 move=> m1 m2 M1 M2; apply/eqP; rewrite /mx2vs /eq_op /=.
 by apply/eqP; apply: eq_genmx; apply: eqmx_sym; apply cap_eqmx; apply: genmxE.
 Qed.
 
-Lemma capv_vs2mx vs1 vs2 :
+Lemma capv_vs2mx : forall  vs1 vs2,
  (vs2mx (vs1 :&: vs2)%VS :=: vs2mx vs1 :&: vs2mx vs2)%MS.
 Proof.
 by move=> vs1 vs2; apply/eqmxP; rewrite mxeq2vseq capv_mx2vs !vs2mxK.
 Qed.
 
-Lemma capv_mx2vsr m1 m2 (M1 : 'M_(m1,n)) (M2 : 'M_(m2,n)) :
+Lemma capv_mx2vsr : forall m1 m2 (M1 : 'M_(m1,n)) (M2 : 'M_(m2,n)),
  mx2vs (M1 :&: vs2mx (mx2vs M2))%MS = mx2vs (M1 :&: M2)%MS.
 Proof. by move=> m1 m2 M1 M2; rewrite !capv_mx2vs vs2mxK. Qed.
 
-Lemma capv_mx2vsl m1 m2 (M1 : 'M_(m1,n)) (M2 : 'M_(m2,n)) :
+Lemma capv_mx2vsl : forall m1 m2 (M1 : 'M_(m1,n)) (M2 : 'M_(m2,n)),
  mx2vs (vs2mx (mx2vs M1) :&: M2)%MS = mx2vs (M1 :&: M2)%MS.
 Proof. by move=> m1 m2 M1 M2; rewrite !capv_mx2vs vs2mxK. Qed.
 
-Lemma sub_capv vs1 vs2 vs3 :
+Lemma sub_capv : forall vs1 vs2 vs3,
   (vs1 <= vs2 :&: vs3)%VS = (vs1 <= vs2)%VS && (vs1 <= vs3)%VS.
 Proof.
 by move=> vs1 vs2 vs3; rewrite /subsetv capv_vs2mx; exact: sub_capmx.
 Qed.
 
-Lemma capvSl vs1 vs2 : (vs1 :&: vs2 <= vs1)%VS.
+Lemma capvSl : forall  vs1 vs2, (vs1 :&: vs2 <= vs1)%VS.
 Proof. by move=> vs1 vs2; rewrite /subsetv capv_vs2mx; exact: capmxSl. Qed.
 
-Lemma capvSr vs1 vs2 : (vs1 :&: vs2 <= vs2)%VS.
+Lemma capvSr : forall vs1 vs2, (vs1 :&: vs2 <= vs2)%VS.
 Proof. by move=> vs1 vs2; rewrite /subsetv capv_vs2mx; exact: capmxSr. Qed.
 
-Lemma capvKl vs1 vs2 : (vs1 <= vs2)%VS = (vs1 :&: vs2 == vs1)%VS.
+Lemma capvKl : forall vs1 vs2, (vs1 <= vs2)%VS = (vs1 :&: vs2 == vs1)%VS.
 Proof.
 move=> vs1 vs2; apply/idP/eqP=> Hs; last first.
   by rewrite -Hs capvSr.
 by apply subsetv_anti; rewrite sub_capv Hs subsetv_refl capvSl.
 Qed.
 
-Lemma capvKr vs1 vs2 : ((vs2 <= vs1) = (vs1 :&: vs2 == vs2))%VS.
+Lemma capvKr : forall vs1 vs2, ((vs2 <= vs1) = (vs1 :&: vs2 == vs2))%VS.
 Proof.
 move=> vs1 vs2; apply/idP/eqP=> Hs; last first.
   by rewrite -Hs capvSl.
@@ -692,7 +709,7 @@ move=> vs1 vs2 vs3; rewrite /capv capv_mx2vsr capv_mx2vsl.
 by apply/eqP; rewrite -mxeq2vseq capmxA !submx_refl.
 Qed.
 
-Lemma capvS vs1 vs2 vs3 vs4 : 
+Lemma capvS : forall vs1 vs2 vs3 vs4,
   (vs1 <= vs2 -> vs3 <= vs4 -> vs1 :&: vs3 <= vs2 :&: vs4)%VS.
 Proof.
 by move=> vs1 vs2 vs3 v4; rewrite /subsetv !capv_vs2mx; exact: capmxS.
@@ -715,11 +732,11 @@ Proof. by move=> vs; rewrite /capv /fullv capv_mx2vsl cap1mx vs2mxK. Qed.
 Lemma capvf : right_id fullv capv.
 Proof. by move=> vs; rewrite /capv /fullv capv_mx2vsr capmx1 vs2mxK. Qed.
 
-Lemma memv_cap v vs1 vs2 : 
+Lemma memv_cap : forall v vs1 vs2, 
   (v \in (vs1 :&: vs2)%VS) = (v \in vs1) && (v \in vs2).
 Proof. by move=> v vs1 vs2; rewrite /in_mem /= sub_capv. Qed.
 
-Lemma vspace_modl vs1 vs2 vs3 :
+Lemma vspace_modl : forall vs1 vs2 vs3, 
   (vs1 <= vs3 -> vs1 + (vs2 :&: vs3) = (vs1 + vs2) :&: vs3)%VS.
 Proof.
 move=> vs1 vs2 vs3; rewrite /subsetv /= => Hv.
@@ -727,10 +744,10 @@ rewrite /capv /addv !capv_mx2vsl mx2vsDr.
 by apply/eqP; rewrite -mxeq2vseq; apply/eqmxP; apply: matrix_modl.
 Qed.
 
-Lemma vspace_modr vs1 vs2 vs3 :
+Lemma vspace_modr : forall vs1 vs2 vs3, 
   (vs3 <= vs1 -> (vs1 :&: vs2) + vs3 = vs1 :&: (vs2 + vs3))%VS.
 Proof.
-move=> vs1 vs2 vs3; rewrite /subsetv /= => Hv.
+move=>  vs1 vs2 vs3; rewrite /subsetv /= => Hv.
 rewrite /capv /addv !capv_mx2vsr mx2vsDl.
 by apply/eqP; rewrite -mxeq2vseq; apply/eqmxP; apply: matrix_modr.
 Qed.
@@ -742,14 +759,14 @@ Section BigCap.
 Variable I : finType.
 Implicit Type P : pred I.
 
-Lemma bigcapv_inf i0 P (vs_ : I -> {vspace V}) vs :
+Lemma bigcapv_inf : forall i0 P (vs_ : I -> {vspace V}) vs,
   P i0 -> (vs_ i0 <= vs -> \bigcap_(i | P i) vs_ i <= vs)%VS.
 Proof.
 move=> i0 P vs_ vs Pi0 Hvs; apply: subsetv_trans Hvs.
 by rewrite (bigD1 i0) // capvSl.
 Qed.
 
-Lemma sub_bigcapmxP P vs (vs_ : I -> {vspace V}) :
+Lemma sub_bigcapmxP : forall P vs (vs_ : I -> {vspace V}),
   reflect (forall i, P i -> vs <= vs_ i)%VS 
           (vs <= \bigcap_(i | P i) vs_ i)%VS.
 Proof.
@@ -765,7 +782,7 @@ Definition complv vs := mx2vs ((vs2mx vs) ^C)%MS.
 Arguments Scope complv [vspace_scope].
 Local Notation "A ^C" := (complv A) : vspace_scope.
 
-Lemma addv_complf vs : (vs + vs^C = fullv)%VS.
+Lemma addv_complf : forall vs, (vs + vs^C = fullv)%VS.
 Proof.
 move=> vs; rewrite /addv /complv mx2vsDr.
 apply/eqP; rewrite -mxeq2vseq submx1 sub1mx.
@@ -782,16 +799,16 @@ Qed.
 Definition diffv vs1 vs2 := mx2vs (vs2mx vs1 :\: vs2mx vs2)%MS.
 Local Notation "A :\: B" := (diffv A B) : vspace_scope.
 
-Lemma diffvSl vs1 vs2 : (vs1 :\: vs2 <= vs1)%VS.
+Lemma diffvSl : forall vs1 vs2,  (vs1 :\: vs2 <= vs1)%VS.
 Proof. move=> vs1 vs2; rewrite /subsetv mx2vsK; exact: diffmxSl. Qed.
 
-Lemma capv_diff vs1 vs2 : ((vs1 :\: vs2) :&: vs2 = 0%:VS )%VS.
+Lemma capv_diff : forall vs1 vs2, ((vs1 :\: vs2) :&: vs2 = 0%:VS )%VS.
 Proof. 
 move=> vs1 vs2; rewrite /capv /diffv -(mx2vs0 n) capv_mx2vsl.
 by apply/eqP; rewrite -mxeq2vseq capmx_diff submx_refl .
 Qed.
 
-Lemma addv_diff_cap_eq vs1 vs2 : (vs1 :\: vs2 + vs1 :&: vs2 = vs1)%VS.
+Lemma addv_diff_cap_eq : forall vs1 vs2, (vs1 :\: vs2 + vs1 :&: vs2 = vs1)%VS.
 Proof.
 move=> vs1 vs2.
 rewrite /capv /diffv /addv mx2vsDr mx2vsDl -{3}[vs1]vs2mxK.
@@ -806,7 +823,7 @@ Local Notation "\dim A" := (dimv A) : nat_scope.
 Lemma dimv0 : \dim (0 %:VS) = 0%N.
 Proof. by rewrite /dimv /= linear0 genmx0 mxrank0. Qed.
 
-Lemma dimv_eq0 vs : (\dim vs == 0%N) = (vs == 0%:VS).
+Lemma dimv_eq0 : forall vs,  (\dim vs == 0%N) = (vs == 0%:VS).
 Proof.
 by move=> vs; rewrite /dimv /= mxrank_eq0 {2}/eq_op /= linear0 genmx0. 
 Qed.
@@ -814,7 +831,7 @@ Qed.
 Lemma dimvf : \dim fullv = vdim V.
 Proof.  by rewrite /dimv mxrank_gen mxrank1. Qed.
 
-Lemma dim_injv v : \dim (v %:VS) = (v != 0).
+Lemma dim_injv  : forall v,  \dim (v %:VS) = (v != 0).
 Proof.
 move=> v; case: (_ =P _)=> Hv; first by rewrite Hv dimv0.
 rewrite /dimv /= mxrank_gen /=.
@@ -823,21 +840,21 @@ move=> _ Hu; have H1u: v2rv v = 0 by apply/eqP; rewrite -Hu eqxx.
 case: Hv; by apply: v2rv_inj;rewrite linear0.
 Qed.
 
-Lemma dimvS vs1 vs2 : (vs1 <= vs2)%VS -> \dim vs1 <= \dim vs2.
+Lemma dimvS : forall vs1 vs2, (vs1 <= vs2)%VS -> \dim vs1 <= \dim vs2.
 Proof. move=> vs1 vs2; exact: mxrankS. Qed.
 
-Lemma dimv_leqif_sup vs1 vs2 :
+Lemma dimv_leqif_sup : forall vs1 vs2, 
  (vs1 <= vs2)%VS -> \dim vs1 <= \dim vs2 ?= iff (vs2 <= vs1)%VS.
 Proof. move=> vs1 vs2 H; exact: mxrank_leqif_sup. Qed. 
 
-Lemma dimv_leqif_eq vs1 vs2 :
+Lemma dimv_leqif_eq : forall vs1 vs2,
  (vs1 <= vs2)%VS -> \dim vs1 <= \dim vs2 ?= iff (vs1 == vs2)%VS.
 Proof. move=> vs1 vs2 H; rewrite vseq2mxeq; exact: mxrank_leqif_eq. Qed.
 
-Lemma dimv_compl vs : \dim vs^C = (n - \dim vs)%N.
+Lemma dimv_compl : forall vs, \dim vs^C = (n - \dim vs)%N.
 Proof. move=> vs; rewrite /dimv mxrank_gen; exact: mxrank_compl. Qed.
 
-Lemma dimv_disjoint_sum vs1 vs2 :
+Lemma dimv_disjoint_sum : forall vs1 vs2, 
   (vs1 :&: vs2)%VS = 0%:VS -> \dim (vs1 + vs2)%VS = (\dim vs1 + \dim vs2)%N.
 Proof. 
 move=> vs1 vs2; move/eqP.
@@ -846,15 +863,15 @@ move/eqmxP=> H; apply: mxrank_disjoint_sum.
 by apply/eqP; rewrite -mxrank_eq0 H mxrank0.
 Qed.
 
-Lemma dimv_cap_compl vs1 vs2 :
+Lemma dimv_cap_compl : forall vs1 vs2, 
   (\dim (vs1 :&: vs2) + \dim (vs1 :\: vs2))%N = \dim vs1.
 Proof. move=> vs1 vs2; rewrite /dimv !mxrank_gen; exact: mxrank_cap_compl. Qed.
 
-Lemma dimv_sum_cap vs1 vs2 : 
+Lemma dimv_sum_cap : forall vs1 vs2, 
   (\dim (vs1 + vs2) + \dim (vs1 :&: vs2) = \dim vs1 + \dim vs2)%N.
 Proof. move=> vs1 vs2; rewrite /dimv !mxrank_gen; exact: mxrank_sum_cap. Qed.
 
-Lemma dimv_sum_leqif vs1 vs2 : 
+Lemma dimv_sum_leqif : forall vs1 vs2,  
   \dim (vs1 + vs2) <= \dim vs1 + \dim vs2 ?= iff (vs1 :&: vs2 <= 0 %:VS)%VS.
 Proof.
 move=> vs1 vs2. 
@@ -862,7 +879,7 @@ rewrite /dimv /subsetv !mxrank_gen vs2mx0 genmxE.
 exact: mxrank_adds_leqif.
 Qed.
 
-Lemma subsetv_diffv0 vs1 vs2 : ((vs1 <= vs2) = (vs1 :\: vs2 == 0%:VS))%VS.
+Lemma subsetv_diffv0 : forall vs1 vs2, ((vs1 <= vs2) = (vs1 :\: vs2 == 0%:VS))%VS.
 Proof.
 move => vs1 vs2.
 by rewrite -dimv_eq0 -(eqn_addl (\dim (vs1 :&: vs2)%VS)) addn0 dimv_cap_compl
@@ -873,7 +890,7 @@ Section BigDim.
 Variable I : finType.
 Implicit Type P : pred I.
 
-Lemma dimv_leq_sum P (vs_ : I -> {vspace V}) :
+Lemma dimv_leq_sum : forall P (vs_ : I -> {vspace V}), 
   \dim (\sum_(i | P i) vs_ i)%VS <= (\sum_(i | P i) \dim (vs_ i))%N.
 Proof.
 move=> P vs_; elim: {P}_.+1 {-2}P (ltnSn #|P|) => // n1 Hrec P.
@@ -944,7 +961,7 @@ End Binary.
 Section Nary.
 
 Variables (I : finType) (P : pred I) (S_ : I -> addv_expr).
-Fact nary_addv_proof r :
+Fact nary_addv_proof : forall r,
   addv_spec (\sum_(i <- r | P i) unwrap (S_ i))
              (\sum_(i <- r | P i) unwrap (addv_dim (S_ i))).
 Proof.
@@ -964,12 +981,12 @@ End SumExpr.
 
 Notation directv A := (directv_def (Phantom {vspace _} A%VS)).
 
-Lemma directvP (S : proper_addv_expr) :
+Lemma directvP : forall (S : proper_addv_expr),
   reflect (\dim S = proper_addv_dim S) (directv S).
 Proof. move=> S; exact: eqnP. Qed.
 Implicit Arguments directvP [S].
 
-Lemma directv_trivial vs : directv (unwrap (@trivial_addv vs)).
+Lemma directv_trivial : forall vs,  directv (unwrap (@trivial_addv vs)).
 Proof. move=> vs; exact: eqxx. Qed.
 
 Lemma dimv_sumw_leqif : forall (S : addv_expr),
@@ -1140,23 +1157,23 @@ Definition span (l : seq V) := (\sum_(i <- l) i%:VS)%VS.
 Lemma span_nil : span [::] = 0%:VS.
 Proof. by rewrite /span big_nil. Qed.
 
-Lemma span_seq1 v : span [::v] = v%:VS.
+Lemma span_seq1: forall  v,  span [::v] = v%:VS.
 Proof. by move=> v; rewrite /span big_cons big_nil addv0. Qed.
 
-Lemma span_cons v l : span (v::l) = (v%:VS + span l)%VS.
+Lemma span_cons : forall v l,  span (v::l) = (v%:VS + span l)%VS.
 Proof. by move=> v l; rewrite /span big_cons. Qed.
 
-Lemma span_cat l1 l2 : span (l1 ++ l2) = (span l1 + span l2)%VS.
+Lemma span_cat : forall  l1 l2, span (l1 ++ l2) = (span l1 + span l2)%VS.
 Proof. by move=> l1 l2; rewrite /span big_cat. Qed.
 
-Lemma memv_span l v : v \in l -> v \in span l.
+Lemma memv_span : forall  l v,  v \in l -> v \in span l.
 Proof.
 move=> l v; case/(nthP 0)=> i Hi <-.
 rewrite /span (big_nth 0) big_mkord.
 by apply: (@sumv_sup _ (Ordinal Hi)).
 Qed.
 
-Lemma span_subset (l1 l2 : seq V) : {subset l1 <= l2} -> (span l1 <= span l2)%VS.
+Lemma span_subset : forall (l1 l2 : seq V),  {subset l1 <= l2} -> (span l1 <= span l2)%VS.
 Proof.
 move=> l1 l2 H.
 rewrite /span !(big_nth 0) !big_mkord.
@@ -1166,13 +1183,13 @@ case/(nthP 0)=> j Hj <-.
 by apply: (@sumv_sup _ (Ordinal Hj)).
 Qed.
 
-Lemma span_eq (l1 l2 : seq V) : l1 =i l2 -> span l1 = span l2.
+Lemma span_eq : forall (l1 l2 : seq V),  l1 =i l2 -> span l1 = span l2.
 Proof.
 by move=> l1 l2 H; apply: subsetv_anti; rewrite !span_subset // => i;
    rewrite ?H // -H.
 Qed.
 
-Lemma dim_span l : \dim (span l) <= size l.
+Lemma dim_span : forall l,  \dim (span l) <= size l.
 Proof.
 elim=> [|v l Hrec]; first by rewrite span_nil dimv0.
 rewrite /span big_cons /=.
@@ -1190,7 +1207,7 @@ move=> l i; apply/matrixP=> i1 j1; rewrite !mxE.
 by suff->: i1 = 0; [done | case: i1=> [[|i1] H] //; apply/eqP].
 Qed.
 
-Lemma span_vs2mx l : (vs2mx (span l) == span_mx l)%MS.
+Lemma span_vs2mx : forall l,  (vs2mx (span l) == span_mx l)%MS.
 Proof.
 move=> l; rewrite /span !(big_nth 0) !big_mkord vs2mx_sum.
 apply/andP; split.
@@ -1199,7 +1216,7 @@ apply/row_subP=> i; rewrite span_mx_row -genmxE.
 by apply: (sumsmx_sup i).
 Qed.
 
-Lemma span_mulmx (l : seq V) (s : 'I_(size l) -> K) : 
+Lemma span_mulmx : forall (l : seq V) (s : 'I_(size l) -> K),  
   \sum_(i < size l) s i *: l`_i = 
      rv2v ((\row_(i < size l) (s i)) *m (span_mx l)).
 Proof.
@@ -1210,14 +1227,14 @@ Qed.
 Definition coord (l : seq V) :=
   fun (v : V) => [ffun i : 'I_(size l) => ((((v2rv v) *m pinvmx (span_mx l)) 0 i) : K^o)]. 
 
-Lemma coord_linear_proof l : linear (coord l).
+Lemma coord_linear_proof : forall l,  linear (coord l).
 Proof.
 move=> l k u v; apply/ffunP=> i.
 by rewrite /coord !ffunE linearP mulmx_addl -scalemxAl !mxE.
 Qed.
 Canonical Structure coord_linear l := Linear (coord_linear_proof l).
 
-Lemma coord_sumE l I r (P : pred I) (F : I -> V) i :
+Lemma coord_sumE : forall  l I r (P : pred I) (F : I -> V) i,
  coord l (\sum_(j <- r | P j) F j) i = \sum_(j <- r | P j) coord l (F j) i.
 Proof. 
 move=> l I r P F i; rewrite linear_sum.
@@ -1248,7 +1265,7 @@ Qed.
 (* Notion of freeness *)
 Definition free l := \dim (span l) == size l.
 
-Lemma free_span_mx l : free l = row_free (span_mx l).
+Lemma free_span_mx : forall  l, free l = row_free (span_mx l).
 Proof.
 by move=> l; move: (span_vs2mx l); rewrite /free /dimv; move/eqmxP->.
 Qed.
@@ -1256,17 +1273,17 @@ Qed.
 Lemma free_nil : free [::].
 Proof. by rewrite /free span_nil dimv0. Qed.
 
-Lemma free_seq1 v : v != 0 -> free [::v].
+Lemma free_seq1 : forall v,  v != 0 -> free [::v].
 Proof. 
 by move=> v Hv; rewrite /free /span big_seq1 dim_injv (negPf Hv).
 Qed.
  
-Lemma free_perm_eq (l1 l2 : seq V) : perm_eq l1 l2 -> free l1 = free l2.
+Lemma free_perm_eq : forall (l1 l2 : seq V),  perm_eq l1 l2 -> free l1 = free l2.
 Proof. 
 by move=> l1 l2 H; rewrite /free (perm_eq_size H) (span_eq (perm_eq_mem H)).
 Qed.
 
-Lemma free_notin0 v l : free l -> v \in l -> v != 0.
+Lemma free_notin0 : forall v l,  free l -> v \in l -> v != 0.
 Proof.
 move=> v l Hf Hv; apply/eqP=> Hv0; move: Hv; rewrite Hv0.
 case/(nthP 0)=> i Hi Hi0.
@@ -1279,7 +1296,7 @@ rewrite (free_perm_eq Hp) /free Hi0 /span big_cons sum0v.
 by move/eqP->; rewrite ltnn.
 Qed.
 
-Lemma freeP l : 
+Lemma freeP : forall l,  
   reflect
     (forall s, \sum_(i < size l) s i *: l`_i =  0 -> s =1 fun _ => 0)
      (free l).
@@ -1298,7 +1315,7 @@ apply: v2rv_inj; rewrite rv2vK linear0.
 apply/sub_kermxP; apply: submx_trans Hv; apply: row_sub.
 Qed.
 
-Lemma free_coord l i : 
+Lemma free_coord : forall l i, 
   free l -> coord l (l`_i) = [ffun j : 'I_(size l) =>  (i == j)%:R].
 Proof.
 move=> l i Hf; apply/ffunP=> j.
@@ -1316,10 +1333,10 @@ rewrite (eq_bigr (fun i0 => (coord l l`_i i0 - (i == i0)%:R) *: l`_i0)).
 by move=>*; rewrite !scaler_subl.
 Qed.
 
-Lemma free_coordE l i j : free l -> coord l (l`_i)  j = (i == j)%:R.
+Lemma free_coordE : forall l i j,  free l -> coord l (l`_i)  j = (i == j)%:R.
 Proof. by move=> *; rewrite free_coord // ffunE. Qed.
 
-Lemma free_catl l2 l1 : free (l1 ++ l2) -> free l1.
+Lemma free_catl : forall l2 l1,  free (l1 ++ l2) -> free l1.
 Proof.
 move=> l2 l1; move/freeP; rewrite size_cat=> H; apply/freeP=> s Hs i.
 pose s1 (i :'I_(size l1 + size l2)) := 
@@ -1342,14 +1359,14 @@ have: s1 =1 (fun _ => 0).
 by move/(_ (lshift (size l2) i)); rewrite Fls.
 Qed.
 
-Lemma free_catr l1 l2 : free (l1 ++ l2) -> free l2.
+Lemma free_catr : forall l1 l2,  free (l1 ++ l2) -> free l2.
 Proof.
 move=> l1 l2 H; apply: (@free_catl l1).
 rewrite -(@free_perm_eq (l1 ++ l2)) //.
 apply/perm_eqlP; apply: perm_catC.
 Qed.
 
-Lemma addv_free l1 l2 : 
+Lemma addv_free : forall l1 l2,  
   directv (span l1 + span l2) -> free (l1 ++ l2) = free l1 && free l2.
 Proof.
 move=> l1 l2; move/directv_addP=> Hd; apply/idP/andP.
@@ -1364,21 +1381,21 @@ Definition is_span vs l := span l == vs.
 Lemma is_span_nil : is_span 0%:VS [::].
 Proof. by rewrite /is_span span_nil. Qed.
 
-Lemma is_span_seq1 v : v != 0 -> is_span v%:VS [::v].
+Lemma is_span_seq1 : forall v,  v != 0 -> is_span v%:VS [::v].
 Proof. by move=> v Hv; rewrite /is_span span_seq1. Qed.
 
-Lemma memv_is_span v vs l : is_span vs l -> v \in l -> v \in vs.
+Lemma memv_is_span : forall v vs l,  is_span vs l -> v \in l -> v \in vs.
 Proof.
 by move=> v vs l; rewrite /is_span; move/eqP=> <- H1; apply: memv_span.
 Qed.
 
-Lemma is_span_span vs l v : 
+Lemma is_span_span : forall vs l v,  
   is_span vs l -> v \in vs -> v = \sum_i coord l v i *: l`_i.
 Proof.
 by move=> vs l v; rewrite /is_span; move/eqP=> <- H1; apply coord_span.
 Qed.
 
-Lemma addv_is_span vs1 vs2 l1 l2 : 
+Lemma addv_is_span : forall vs1 vs2 l1 l2, 
   is_span vs1 l1 -> is_span vs2 l2 -> is_span (vs1 + vs2)%VS (l1 ++ l2).
 Proof.
 rewrite /is_span=> vs1 vs2 l1 l2 Hb1 Hb2.
@@ -1388,29 +1405,29 @@ Qed.
 (* Notion of basis *)
 Definition is_basis vs l := is_span vs l && free l.
 
-Lemma is_basis_span vs l : is_basis vs l -> is_span vs l.
+Lemma is_basis_span : forall vs l,  is_basis vs l -> is_span vs l.
 Proof. by move=> vs l; case/andP. Qed.
 
-Lemma is_basis_free vs l : is_basis vs l -> free l.
+Lemma is_basis_free : forall vs l, is_basis vs l -> free l.
 Proof. by move=> vs l; case/andP. Qed.
 
 Lemma is_basis_nil : is_basis 0%:VS [::].
 Proof. by rewrite /is_basis is_span_nil free_nil. Qed.
 
-Lemma is_basis_seq1 v : v != 0 -> is_basis v%:VS [::v].
+Lemma is_basis_seq1 : forall v, v != 0 -> is_basis v%:VS [::v].
 Proof. by move=> v Hv; rewrite /is_basis is_span_seq1 // free_seq1. Qed.
 
-Lemma is_basis_notin0 v vs l : is_basis vs l -> v \in l -> v != 0.
+Lemma is_basis_notin0 : forall v vs l, is_basis vs l -> v \in l -> v != 0.
 Proof.
 by move=> v vs l Hf Hi; apply: free_notin0 Hi; apply: is_basis_free Hf.
 Qed.
 
-Lemma memv_is_basis v vs l : is_basis vs l -> v \in l -> v \in vs.
+Lemma memv_is_basis : forall v vs l, is_basis vs l -> v \in l -> v \in vs.
 Proof.
 by move=> v vs l Hf Hi; apply: memv_is_span Hi; apply: is_basis_span.
 Qed.
 
-Lemma addv_is_basis vs1 vs2 l1 l2 : 
+Lemma addv_is_basis : forall vs1 vs2 l1 l2, 
   directv (vs1 + vs2) -> is_basis vs1 l1 -> is_basis vs2 l2 -> 
   is_basis (vs1 + vs2)%VS (l1 ++ l2).
 Proof.
@@ -1432,7 +1449,7 @@ Definition vbasis vs := (fix loop (m : nat) vs {struct m} :=
 Lemma vbasis0 : vbasis 0%:VS = [::].
 Proof. by rewrite /vbasis dimv0. Qed.
 
-Lemma is_basis_vbasis vs : is_basis vs (vbasis vs).
+Lemma is_basis_vbasis : forall  vs, is_basis vs (vbasis vs).
 Proof.
 rewrite /vbasis.
 move=> vs;elim: {vs}(\dim vs) {-2 4}vs (erefl (\dim vs)) => /= [|m Hrec] vs.
@@ -1455,10 +1472,10 @@ rewrite dim_injv vpick0.
 by case: eqP=> // HH; move: Hs; rewrite HH dimv0.
 Qed.
 
-Lemma memv_basis v vs : v \in (vbasis vs) -> v \in vs.
+Lemma memv_basis : forall  v vs, v \in (vbasis vs) -> v \in vs.
 Proof. move=> v vs; exact (memv_is_basis (is_basis_vbasis _)). Qed.
 
-Lemma coord_basis v vs :  v \in vs -> 
+Lemma coord_basis : forall  v vs,  v \in vs -> 
   v = \sum_(i < size (vbasis vs)) coord (vbasis vs) v i *: (vbasis vs)`_i.
 Proof.
 move=> v vs Hvs; apply: coord_span.
@@ -1473,7 +1490,7 @@ Section BigSumBasis.
 Variable I : finType.
 Implicit Type P : pred I.
 
-Lemma span_bigcat P (l_ : I -> seq V) :
+Lemma span_bigcat : forall  P (l_ : I -> seq V),
   span (\big[cat/[::]]_(i | P i) l_ i) = (\sum_(i | P i) span (l_ i))%VS.
 Proof.
 move=> P l_.
@@ -1482,7 +1499,7 @@ rewrite !big_cons; case Pt: (P t); last by apply: Hrec.
 by rewrite span_cat Hrec.
 Qed.
 
-Lemma bigaddv_free P (l_ : I -> seq V) : 
+Lemma bigaddv_free : forall  P (l_ : I -> seq V),
   (directv (\sum_(i | P i) span (l_ i)))%VS -> 
   (forall i, P i -> free (l_ i)) -> free (\big[cat/[::]]_(i | P i) l_ i).
 Proof.
@@ -1493,7 +1510,7 @@ have ->: (\sum_(i | P i) \dim (span (l_ i))  = \sum_(i | P i) size (l_ i))%N.
 apply/eqP; apply: big_morph => //; exact: size_cat.
 Qed.
 
-Lemma bigaddv_is_span P l_ (vs_ : I -> {vspace V}) : 
+Lemma bigaddv_is_span : forall P l_ (vs_ : I -> {vspace V}),  
   (forall i, P i -> is_span (vs_ i) (l_ i)) -> 
     is_span (\sum_(i | P i) vs_ i)%VS (\big[cat/[::]]_(i | P i) l_ i).
 Proof.
@@ -1503,7 +1520,7 @@ rewrite !big_cons; case Pt: (P t) => Hi; last by apply: Hrec.
 by apply: addv_is_span; [apply: Hi | apply: Hrec].
 Qed.
 
-Lemma bigaddv_is_basis P l_ (vs_ : I -> {vspace V}) : 
+Lemma bigaddv_is_basis : forall P l_ (vs_ : I -> {vspace V}),
   let vs := (\sum_(i | P i) vs_ i)%VS in 
   directv vs -> 
   (forall i, P i -> is_basis (vs_ i) (l_ i)) -> 
@@ -1637,7 +1654,7 @@ Definition lapp_choiceMixin := [choiceMixin of linearApp by <:].
 Canonical Structure lapp_choiceType :=
   Eval hnf in ChoiceType linearApp lapp_choiceMixin.
 
-Lemma eq_lapp (f g : linearApp) : reflect (f =1 g) (f == g).
+Lemma eq_lapp : forall  (f g : linearApp),  reflect (f =1 g) (f == g).
 Proof.
 move => [f] [g] /=; apply: (iffP eqP); first by move => ->.
 rewrite /fun_of_lapp /eqfun /= => H.
@@ -1669,13 +1686,13 @@ Proof. move=> f; congr LinearApp; exact: addNmx. Qed.
 
 Definition lapp_zmodMixin := ZmodMixin lapp_addA lapp_addC lapp_add0 lapp_addN.
 
-Lemma zero_lappE x : (\0 x = 0)%VS.
+Lemma zero_lappE : forall  x, (\0 x = 0)%VS.
 Proof. by move => x; rewrite /fun_of_lapp /= mulmx0 linear0. Qed.
 
-Lemma add_lappE f g x : (f \+ g)%VS x = f x + g x.
+Lemma add_lappE : forall  f g x, (f \+ g)%VS x = f x + g x.
 Proof. by move => f g x; rewrite /fun_of_lapp mulmx_addr linearD. Qed.
 
-Lemma opp_lappE f x : (opp_lapp f) x = - f x.
+Lemma opp_lappE : forall  f x, (opp_lapp f) x = - f x.
 Proof. by move=> f x; rewrite /fun_of_lapp mulmxN linearN. Qed.
 
 Canonical Structure lapp_zmodType :=
@@ -1688,15 +1705,15 @@ move=> I r P F x; elim: r=> [|i r Hrec]; first by rewrite !big_nil zero_lappE.
 by rewrite !big_cons; case: (P i); rewrite // add_lappE Hrec.
 Qed.
 
-Lemma lapp_scaleA k1 k2 f : (k1 \*: (k2 \*: f) = (k1 * k2) \*: f)%VS.
+Lemma lapp_scaleA : forall  k1 k2 f, (k1 \*: (k2 \*: f) = (k1 * k2) \*: f)%VS.
 Proof. move=> k1 k2 f; congr LinearApp; exact: scalerA. Qed.
-Lemma lapp_scale1 f : (1 \*: f = f)%VS.
+Lemma lapp_scale1 : forall  f, (1 \*: f = f)%VS.
 Proof. move=> [m]; congr LinearApp; exact: scale1r. Qed.
 
-Lemma lapp_addr k f1 f2 : (k \*: (f1 \+ f2) = (k \*: f1) \+ (k \*: f2))%VS.
+Lemma lapp_addr : forall  k f1 f2, (k \*: (f1 \+ f2) = (k \*: f1) \+ (k \*: f2))%VS.
 Proof. move=> k f1 f2; congr LinearApp; exact: scaler_addr. Qed.
 
-Lemma lapp_addl f k1 k2 : ((k1 + k2) \*: f = (k1 \*: f) \+ (k2 \*: f))%VS.
+Lemma lapp_addl : forall  f k1 k2, ((k1 + k2) \*: f = (k1 \*: f) \+ (k2 \*: f))%VS.
 Proof. move=> k1 k2 f; congr LinearApp; exact: scaler_addl. Qed.
 
 Definition lapp_lmodMixin := 
@@ -1739,7 +1756,7 @@ move=> [m]; congr LinearApp; apply/matrixP=> i j /=.
 by rewrite /lin1_mx /= mxE !rv2vK /= -rowE mxE.
 Qed.
 
-Lemma lapp_of_funK (g : V -> W) : linear g -> lapp_of_fun g =1 g.
+Lemma lapp_of_funK : forall (g : V -> W),  linear g -> lapp_of_fun g =1 g.
 Proof.
 move=> g Hg x; rewrite /fun_of_lapp /=.
 set h := (v2rv W \o g) \o rv2v V.
@@ -1758,7 +1775,7 @@ Section ScaleLapp.
 Variable (R : comRingType) (V W : vectType R).
 Variable f : linearApp V W.
 
-Lemma scale_lappE a x : ((a \*: f) x)%VS = a *: f x.
+Lemma scale_lappE : forall  a x, ((a \*: f) x)%VS = a *: f x.
 Proof. by move => a x; rewrite /fun_of_lapp -scalemxAr linearZ. Qed.
 
 End ScaleLapp.
@@ -1770,7 +1787,7 @@ Hypothesis vdim_nz : (vdim V != 0)%N.
 Definition unit_lapp := LinearApp (1%:M: 'M_(vdim V, vdim V)).
 Notation "\1" := unit_lapp : vspace_scope.
 
-Lemma unit_lappE x : (\1 x = x)%VS.
+Lemma unit_lappE : forall  x, (\1 x = x)%VS.
 Proof. by move=> x; rewrite /fun_of_lapp mulmx1 v2rvK. Qed.
 
 Lemma unit_nonzero_lapp : (\1 != \0)%VS.
@@ -1791,7 +1808,7 @@ Implicit Type g : linearApp V W.
 Definition comp_lapp f g := LinearApp (mx_of_lapp g *m mx_of_lapp f).
 Notation "f \o g" := (comp_lapp f g) : vspace_scope.
 
-Lemma comp_lappE f g : (f \o g)%VS =1 f \o g.
+Lemma comp_lappE : forall  f g, (f \o g)%VS =1 f \o g.
 Proof.
 by move=> [Mf] [Mg] x; rewrite /comp_lapp /fun_of_lapp !mulmxA /= rv2vK.
 Qed.
@@ -1808,7 +1825,7 @@ Implicit Type f : linearApp V W.
 Definition inv_lapp f :=  LinearApp (pinvmx (mx_of_lapp f)).
 Notation "f \^-1" := (inv_lapp f) : vspace_scope.
 
-Lemma inv_lapp_def f : (f \o (f \^-1 \o f) = f)%VS.
+Lemma inv_lapp_def : forall  f, (f \o (f \^-1 \o f) = f)%VS.
 Proof.
 move=> [Mf]; congr LinearApp; exact: (mulmxKpV (submx_refl Mf)).
 Qed.
@@ -1824,22 +1841,22 @@ Implicit Type h : linearApp V W.
 Implicit Type g : linearApp W Z.
 Implicit Type f : linearApp Z T.
 
-Lemma comp_lappA f g h : (f \o (g \o h) = (f \o g) \o h)%VS.
+Lemma comp_lappA : forall  f g h, (f \o (g \o h) = (f \o g) \o h)%VS.
 Proof. by move=> [mf] [mg] [mh]; congr LinearApp; rewrite !mulmxA. Qed.
 
-Lemma comp_lapp_addl f1 f2 g : ((f1 \+ f2) \o g = (f1 \o g) \+ (f2 \o g))%VS.
+Lemma comp_lapp_addl : forall  f1 f2 g, ((f1 \+ f2) \o g = (f1 \o g) \+ (f2 \o g))%VS.
 Proof. by move=> [mf1] [mf2] [mg]; congr LinearApp; exact: mulmx_addr. Qed.
 
-Lemma comp_lapp_addr f g1 g2 : (f \o (g1 \+ g2) = (f \o g1) \+ (f \o g2))%VS.
+Lemma comp_lapp_addr : forall  f g1 g2, (f \o (g1 \+ g2) = (f \o g1) \+ (f \o g2))%VS.
 Proof. move=> [mf] [mg1] [mg2]; congr LinearApp; exact: mulmx_addl. Qed.
 
-Lemma comp_1lapp f : (\1 \o f = f)%VS.
+Lemma comp_1lapp : forall  f, (\1 \o f = f)%VS.
 Proof. move=> [mf]; congr LinearApp; exact: mulmx1. Qed.
 
-Lemma comp_lapp1 f : (f \o \1)%VS = f.
+Lemma comp_lapp1 : forall  f, (f \o \1)%VS = f.
 Proof. move=> [mf]; congr LinearApp; exact: mul1mx. Qed.
 
-Lemma scale_lapp_Ar k f g : (k \*: (f \o g) = f \o (k \*: g))%VS.
+Lemma scale_lapp_Ar : forall  k f g, (k \*: (f \o g) = f \o (k \*: g))%VS.
 Proof. move=> k [mf mg]; congr LinearApp; exact :scalemxAl. Qed.
 
 End LAlgLinearApp.
@@ -1850,7 +1867,7 @@ Variable (R : comRingType) (V W Z : vectType R).
 Implicit Type g : linearApp V W.
 Implicit Type f : linearApp W Z.
 
-Lemma scale_lapp_Al k f g : (k \*: (f \o g) = (k \*: f) \o g)%VS.
+Lemma scale_lapp_Al : forall  k f g, (k \*: (f \o g) = (k \*: f) \o g)%VS.
 Proof. move=> k [mf mg]; congr LinearApp; exact: scalemxAr. Qed.
 
 End AlgLinearApp.
@@ -1910,7 +1927,7 @@ Definition lpre_img f (vs : {vspace W}) :=
 Local Notation " f @v: V " := (fun_of_limg f V).
 Local Notation " f @v^-1: V " := (lpre_img f V).
 
-Lemma lkerE f vs : (f @v: vs == 0%:VS) = (vs <= lker f)%VS.
+Lemma lkerE : forall  f vs, (f @v: vs == 0%:VS) = (vs <= lker f)%VS.
 Proof.
 move=> f vs; rewrite /subsetv genmxE.
 apply/idP/sub_kermxP; last by rewrite /fun_of_limg; move->; rewrite mx2vs0.
@@ -1918,30 +1935,30 @@ rewrite vseq2mxeq !mx2vsK linear0 !sub0mx andbT.
 by move/submx0null.
 Qed.
 
-Lemma limgE f : limg f = f @v: (fullv V).
+Lemma limgE : forall  f, limg f = f @v: (fullv V).
 move=> [Mf]; apply/eqP.
 by rewrite -mxeq2vseq /= !(eqmxMr _ (genmxE _)) mul1mx submx_refl.
 Qed.
 
-Lemma limg_monotone f vs1 vs2 : (vs1 <= vs2)%VS -> (f @v: vs1 <= f @v: vs2)%VS.
+Lemma limg_monotone : forall  f vs1 vs2, (vs1 <= vs2)%VS -> (f @v: vs1 <= f @v: vs2)%VS.
 Proof. 
 by move=> [Mf] vs1 vs2; rewrite /subsetv /= !genmxE ;apply: submxMr.
 Qed.
 
-Lemma limg_inj f v : f @v: (v %:VS) = (f v)%:VS.
+Lemma limg_inj : forall  f v, f @v: (v %:VS) = (f v)%:VS.
 Proof.
 move=> [Mf] v; apply/eqP.
 by rewrite vseq2mxeq /= rv2vK !genmxE !(eqmxMr _ (genmxE _)) submx_refl.
 Qed.
 
-Lemma lpre_img0 f : f @v^-1: 0%:VS = lker f.
+Lemma lpre_img0 : forall  f, f @v^-1: 0%:VS = lker f.
 Proof.
 move=> [Mf]; apply/eqP.
 by rewrite vseq2mxeq /= linear0 genmx0 cap0mx mul0mx !genmxE 
            !adds0mx !submx_refl.
 Qed.
 
-Lemma lpre_img_full f (vs : {vspace W}) : 
+Lemma lpre_img_full : forall  f (vs : {vspace W}), 
   f @v^-1: (vs :&: limg f)%VS = f @v^-1: vs.
 Proof.
 move=> [Mf] vs; apply/eqP; rewrite vseq2mxeq /= mx2vsK !genmxE.
@@ -1955,7 +1972,7 @@ apply: cap_eqmx=> //.
 by apply/eqmxP; rewrite !genmxE !submx_refl.
 Qed.
 
-Lemma lpre_imgK f (vs : {vspace W}) : 
+Lemma lpre_imgK : forall  f (vs : {vspace W}),
   (vs <= limg f)%VS -> f @v: (f @v^-1: vs) = vs.
 Proof.
 move=> [Mf] vs Hvs; apply/eqP.
@@ -1967,41 +1984,41 @@ move: Hvs; rewrite /limg /subsetv /= !genmxE.
 by move=> Hvs; rewrite capmxSl sub_capmx submx_refl.
 Qed.
 
-Lemma limg0 f : f @v: (0 %:VS) = 0%:VS.
+Lemma limg0 : forall  f, f @v: (0 %:VS) = 0%:VS.
 Proof. by move=> f; rewrite limg_inj; rewrite linear0. Qed.
 
-Lemma lim0g vs : 0 @v: vs = 0%:VS.
+Lemma lim0g : forall  vs, 0 @v: vs = 0%:VS.
 Proof. by move => vs; rewrite /fun_of_limg /= mulmx0 mx2vs0. Qed.
 
-Lemma memv_img f v vs : v \in vs -> f v \in (f @v: vs).
+Lemma memv_img : forall  f v vs, v \in vs -> f v \in (f @v: vs).
 Proof. by move=> f v vs Hv; rewrite /in_mem /= -limg_inj limg_monotone. Qed.
 
-Lemma memv_ker f v : (v \in lker f)%VS = (f v == 0).
+Lemma memv_ker : forall  f v, (v \in lker f)%VS = (f v == 0).
 Proof.
 move=> f v; rewrite /in_mem /= -lkerE limg_inj.
 apply/idP/idP; last by move/eqP->.
 rewrite -memv0; move/eqP<-; exact: memv_inj.
 Qed.
 
-Lemma limg_add f : {morph (fun_of_limg f) : u v / (u + v)%VS}.
+Lemma limg_add : forall  f, {morph (fun_of_limg f) : u v / (u + v)%VS}.
 Proof.
 move=> [Mf] vs1 vs2; rewrite -mx2vsD; apply/eqP.
 by rewrite -mxeq2vseq -!addsmxMr !(eqmxMr _ (genmxE _)) submx_refl.
 Qed.
 
-Lemma limg_sum f : forall (I : finType) (P : pred I) (vs_ : I -> {vspace V}),
+Lemma limg_sum : forall  f, forall (I : finType) (P : pred I) (vs_ : I -> {vspace V}),
   (f @v: (\sum_(i | P i) vs_ i) = \sum_(i | P i) (f @v: (vs_ i)))%VS.
 Proof.
 move=> I P v_; apply: big_morph; [exact: limg_add | exact: limg0].
 Qed.
 
-Lemma limg_cap f vs1 vs2 : (f @v: (vs1 :&: vs2) <= f @v: vs1 :&: f @v: vs2)%VS.
+Lemma limg_cap : forall  f vs1 vs2, (f @v: (vs1 :&: vs2) <= f @v: vs1 :&: f @v: vs2)%VS.
 Proof.
 by move=> f vs1 vs2;  (rewrite sub_capv; apply/andP; split; apply: limg_monotone); 
     [apply: capvSl | apply: capvSr].
 Qed.
 
-Lemma limg_bigcap f : forall (I : finType) (P : pred I) (vs_ : I -> {vspace V}),
+Lemma limg_bigcap : forall  f, forall (I : finType) (P : pred I) (vs_ : I -> {vspace V}),
   (f @v: (\bigcap_(i | P i) vs_ i) <= \bigcap_(i | P i) (f @v: (vs_ i)))%VS.
 Proof.
 move=> f I P vs_; elim: {P}_.+1 {-2}P (ltnSn #|P|) => // n1 Hrec P.
@@ -2013,14 +2030,14 @@ apply: (subsetv_trans (limg_cap _ _ _)).
 apply: capvS => //; apply: subsetv_refl.
 Qed.
 
-Lemma limg_span f l : f @v: span l = span (map f l).
+Lemma limg_span : forall  f l, f @v: span l = span (map f l).
 Proof.
 move=> f l; rewrite /span (big_nth 0) big_mkord limg_sum //.
 rewrite big_map (big_nth 0) big_mkord; apply: eq_big => // i _.
 by rewrite limg_inj.
 Qed.
 
-Lemma memv_imgP f v vs : 
+Lemma memv_imgP : forall  f v vs, 
   reflect (exists v1, v1 \in vs /\ v = f v1) (v \in f @v: vs).
 Proof.
 move=> f v vs; apply: (iffP idP); last first.
@@ -2035,7 +2052,7 @@ rewrite linear_sum; apply: eq_big=> // [] [i Hi] _.
 by rewrite linearZ (nth_map 0) // -(size_map f).
 Qed.
 
-Lemma limg_ker_compl f vs : f @v: (vs :\: lker f)%VS  = f @v: vs.
+Lemma limg_ker_compl : forall  f vs, f @v: (vs :\: lker f)%VS  = f @v: vs.
 Proof.
 move=> f vs; apply/eqP; apply/vspaceP=> i.
 apply/memv_imgP/memv_imgP=> [] [v [Hv ->]].
@@ -2046,7 +2063,7 @@ rewrite linearD; move: Hv2; rewrite memv_cap; case/andP=> _.
 by rewrite memv_ker /=; move/eqP->; rewrite addr0.
 Qed.
 
-Lemma limg_dim_eq f vs : (vs :&: lker f)%VS = 0%:VS -> \dim (f @v: vs) = \dim vs.
+Lemma limg_dim_eq : forall  f vs, (vs :&: lker f)%VS = 0%:VS -> \dim (f @v: vs) = \dim vs.
 Proof.
 move=> [Mf] vs; rewrite /dimv /lker /capv.
 move/eqP;rewrite vseq2mxeq capv_mx2vsr /= !genmxE linear0.
@@ -2054,7 +2071,7 @@ rewrite -(mxrank_mul_ker (vs2mx vs) Mf).
 by move/eqmx_rank; rewrite mxrank0 => ->; rewrite addn0.
 Qed.
 
-Lemma limg_is_basis f vs l : 
+Lemma limg_is_basis : forall  f vs l, 
   (vs :&: lker f)%VS = 0%:VS -> (is_basis vs l -> is_basis (f @v: vs) (map f l)).
 Proof.
 move=> f vs l Hvs; case/andP=> Hs Hf.
@@ -2067,13 +2084,13 @@ rewrite limg_dim_eq //.
 by move: Hs; rewrite /is_span; move/eqP->; rewrite eqxx.
 Qed.
 
-Lemma limg_ker_dim f vs : (\dim (vs :&: lker f) + \dim (f @v: vs) = \dim vs)%N.
+Lemma limg_ker_dim : forall  f vs, (\dim (vs :&: lker f) + \dim (f @v: vs) = \dim vs)%N.
 Proof.
 move=> f vs; rewrite -limg_ker_compl.
 by rewrite  limg_dim_eq; [exact: dimv_cap_compl | exact: capv_diff].
 Qed.
 
-Lemma lker0P f : reflect (injective f) (lker f == 0%:VS).
+Lemma lker0P : forall  f, reflect (injective f) (lker f == 0%:VS).
 Proof.
 move => f; apply: (iffP idP).
   move => Hf x y; move/eqP.
@@ -2083,7 +2100,7 @@ by move=> Hf; apply/vspaceP=> x; rewrite memv0 memv_ker; apply/eqP/eqP=> Hi;
    try apply: Hf; rewrite Hi linear0.
 Qed.
 
-Lemma limg_ker0 f vs ws :
+Lemma limg_ker0 : forall  f vs ws,
  lker f == 0%:VS -> (f @v: vs <= f @v: ws)%VS = (vs <= ws)%VS.
 Proof.
 move=> f vs ws; move/lker0P=> Hf.
@@ -2093,7 +2110,7 @@ case/memv_imgP: (Hvw _ (memv_img f Hz)) => y [Hy Hyz].
 by rewrite (Hf _ _ Hyz).
 Qed.
 
-Lemma eq_limg_ker0 f vs ws :
+Lemma eq_limg_ker0 : forall  f vs ws,
  lker f == 0%:VS -> (f @v: vs == f @v: ws)%VS = (vs == ws)%VS.
 Proof.
 move=> f vs ws Hf; apply/eqP/eqP => H; last by rewrite H.
@@ -2109,7 +2126,7 @@ Section UnitImage.
 
 Variable (K : fieldType) (V : vectType K).
 
-Lemma lim1g vs : ((\1 : 'End(V)) @v: vs = vs)%VS.
+Lemma lim1g : forall  vs, ((\1 : 'End(V)) @v: vs = vs)%VS.
 Proof. by move => vs; rewrite /unit_lapp /fun_of_limg mulmx1 vs2mxK. Qed.
 
 End UnitImage.
@@ -2118,7 +2135,7 @@ Section CompImage.
 
 Variable (K : fieldType) (V W Z : vectType K).
 
-Lemma limg_comp (f : 'Hom(V,W)) (g : 'Hom(W,Z)) vs :
+Lemma limg_comp : forall  (f : 'Hom(V,W)) (g : 'Hom(W,Z)) vs, 
  ((g \o f) @v: vs = g @v: (f @v: vs))%VS.
 Proof.
 move => f g vs; apply/eqP; apply/vspaceP => v.
@@ -2138,7 +2155,7 @@ Variable (K : fieldType) (V W : vectType K).
 Implicit Type f : 'Hom(V,W).
 Implicit Type vs : {vspace V}.
 
-Lemma lpre_imgE f (vs : {vspace W}) : 
+Lemma lpre_imgE : forall f (vs : {vspace W}), 
   f @v^-1: vs = (((f \^-1) @v: (vs :&: limg f)%VS) + lker f)%VS.
 Proof.
 move=> [Mf] vs; apply/eqP; rewrite vseq2mxeq /= mx2vsK !genmxE.
@@ -2148,7 +2165,7 @@ apply/eqmxP; rewrite !genmxE; apply/eqmxP.
 by apply: cap_eqmx=> //; apply/eqmxP; rewrite !genmxE !submx_refl.
 Qed.
 
-Lemma lpre_img_monotone f (vs1 vs2 : {vspace W} ) : 
+Lemma lpre_img_monotone : forall  f (vs1 vs2 : {vspace W}),
   (vs1 <= vs2)%VS-> (f @v^-1: vs1 <= f @v^-1: vs2)%VS.
 Proof.
 move=> f vs1 vs2 Hvs; rewrite !lpre_imgE.
@@ -2157,7 +2174,7 @@ apply: limg_monotone.
 by apply: capvS; last by apply: subsetv_refl.
 Qed.
 
-Lemma memv_pre_img f v (vs : {vspace W}) : (f v \in vs) = (v \in f @v^-1: vs).
+Lemma memv_pre_img : forall f v (vs : {vspace W}), (f v \in vs) = (v \in f @v^-1: vs).
 Proof.
 move=> f v vs; apply/idP/idP; last first.
   rewrite -lpre_img_full; move/(memv_img f).
@@ -2175,7 +2192,7 @@ rewrite lpre_imgE; apply/addv_memP; exists v1; exists (v - v1); split=> //.
 by rewrite addrC -addrA addNr addr0.
 Qed.
 
-Lemma inv_lker0 f : lker f == 0%:VS -> (f \^-1 \o f = \1)%VS.
+Lemma inv_lker0 : forall  f, lker f == 0%:VS -> (f \^-1 \o f = \1)%VS.
 Proof.
 move=> [Mf] Hf.
 congr LinearApp; rewrite /= /pinvmx /=.
@@ -2200,13 +2217,13 @@ Implicit Types vs : {vspace V}.
 
 Definition projv vs : 'End(V) := LinearApp (pinvmx (vs2mx vs) *m (vs2mx vs)).
 
-Lemma projv_id vs v : v \in vs -> projv vs v = v.
+Lemma projv_id : forall  vs v, v \in vs -> projv vs v = v.
 Proof.
 move=> vs s Hv; rewrite /fun_of_lapp mulmxA mulmxKpV ?v2rvK //.
 by move: Hv; rewrite /in_mem /= /subsetv /injv mx2vsK.
 Qed.
 
-Lemma lker_proj vs : lker (projv vs) = (vs^C)%VS.
+Lemma lker_proj : forall  vs, lker (projv vs) = (vs^C)%VS.
 Proof.
 move=> vs; apply: sym_equal; apply/eqP.
 have: (vs^C <= lker (projv vs))%VS.
@@ -2221,7 +2238,7 @@ rewrite -(limg_ker_dim (projv vs) (fullv _)) capfv -limgE leq_add2l dimvS //.
 by apply/subsetvP=> v; move/projv_id<-; rewrite limgE memv_img // memvf.
 Qed.
 
-Lemma limg_proj vs : limg (projv vs) = vs.
+Lemma limg_proj : forall  vs, limg (projv vs) = vs.
 Proof.
 move=> vs; apply: sym_equal; apply/eqP.
 have: (vs <= limg (projv vs))%VS.
@@ -2232,12 +2249,12 @@ rewrite -(leq_add2l (\dim (vs^C))) -{1}lker_proj dimv_compl subnK -dimvf.
 by rewrite dimvS // subsetvf.
 Qed.
 
-Lemma memv_proj vs v : projv vs v \in vs.
+Lemma memv_proj : forall  vs v, projv vs v \in vs.
 Proof.
 by move=> vs v; rewrite -{2}[vs]limg_proj limgE memv_img // memvf.
 Qed.
 
-Lemma memv_projC vs v : v - projv vs v \in (vs^C)%VS.
+Lemma memv_projC : forall  vs v, v - projv vs v \in (vs^C)%VS.
 Proof.
 move=> vs v.
 by rewrite -lker_proj memv_ker linear_sub /= (projv_id (memv_proj _ _)) subrr.
@@ -2436,12 +2453,12 @@ Definition prodVector := locked (matrixVectType K 1 (vdim V + vdim W)).
 Local Notation v2rv V := (@v2rv_isomorphism _ V).
 Local Notation rv2v V := (@rv2v_isomorphism _ V).
 
-Definition p2pv (vw: V * W) : prodVector.
+Definition p2pv : forall (vw: V * W),  prodVector.
 move=> vw; unlock prodVector.
 exact (row_mx (v2rv V vw.1) (v2rv W vw.2)).
 Defined.
 
-Definition pv2p (p : prodVector) : V * W.
+Definition pv2p : forall (p : prodVector), V * W.
 unlock prodVector=> p.
 exact (rv2v V (lsubmx p), rv2v W (rsubmx p)).
 Defined.
@@ -2479,7 +2496,7 @@ Qed.
 Definition pvf f g : 'End(prodVector) :=
    lapp_of_fun (fun p => let (u,v) := pv2p p in p2pv (f u, g v)).
 
-Lemma pvfK (f : 'End(V)) (g : 'End(W)) :
+Lemma pvfK : forall (f : 'End(V)) (g : 'End(W)), 
    pvf f g =1 (fun x : prodVector => p2pv (f (pv2p x).1 , g (pv2p x).2)).
 Proof.
 move=> f g p; rewrite /pvf lapp_of_funK; first by case pv2p.
@@ -2505,7 +2522,7 @@ Fixpoint l2ev (l : seq V) : expVector (size l) :=
  if l is (x :: l1) return expVector (size l) then p2pv (x, (l2ev l1))
  else 0.
 
-Lemma l2ev_cons x l : l2ev (x :: l) = p2pv (x, (l2ev l)).
+Lemma l2ev_cons : forall  x l, l2ev (x :: l) = p2pv (x, (l2ev l)).
 Proof. by []. Qed.
 
 Fixpoint ev2l (n : nat) : expVector n -> seq V :=
@@ -2525,19 +2542,19 @@ Fixpoint ev_of_tuple (n : nat) : n.-tuple V -> expVector n :=
         p2pv (tnth t 0, ev_of_tuple (behead_tuple t))
   else fun _ => 0.
 
-Let behead_tupleE n u (v : n.-tuple V) : behead_tuple [tuple of u :: v] = v.
+Let behead_tupleE : forall n u (v : n.-tuple V),  behead_tuple [tuple of u :: v] = v.
 Proof.
 move=> n u v; apply: eq_from_tnth=> i.
 by rewrite tnth_behead !(tnth_nth 0) inordK //; case: i.
 Qed.
 
-Lemma tuple_of_evK n : cancel (@tuple_of_ev n) (@ev_of_tuple n).
+Lemma tuple_of_evK : forall  n, cancel (@tuple_of_ev n) (@ev_of_tuple n).
 Proof.
 elim=> [|n Hrec] x; first by rewrite (thinmx0 x).
 by rewrite /= behead_tupleE Hrec (tnth_nth 0) -surjective_pairing pv2pK.
 Qed.
 
-Lemma ev_of_tupleK n : cancel (@ev_of_tuple n) (@tuple_of_ev n).
+Lemma ev_of_tupleK : forall  n, cancel (@ev_of_tuple n) (@tuple_of_ev n).
 Proof.
 elim=> [|n Hrec] x; first by rewrite (tuple0 x).
 by rewrite (tuple_eta x) /= behead_tupleE (tnth_nth 0) p2pvK Hrec.
@@ -2547,14 +2564,14 @@ Definition evf n (ft : n.-tuple (V -> V)) : 'Hom(V, expVector n) :=
   lapp_of_fun
     (fun p =>  ev_of_tuple (map_tuple (fun x => x p) ft)).
 
-Let map_tupleE (T1 T2 : Type) (f : T1 -> T2) (x : T1) n (t : n.-tuple T1) :
+Let map_tupleE : forall (T1 T2 : Type) (f : T1 -> T2) (x : T1) n (t : n.-tuple T1), 
    map_tuple f [tuple of x :: t] = [tuple of f x :: map f t].
 Proof.
 move=> T1 T2 f x n t.
 by apply: eq_from_tnth=> i; rewrite !(tnth_nth (f x)).
 Qed.
 
-Lemma evfK n (ft : n.-tuple (V -> V)) :
+Lemma evfK : forall n (ft : n.-tuple (V -> V)),
   (forall i, linear (tnth ft i)) ->
   evf ft  =1 (fun p => ev_of_tuple (map_tuple (fun x => x p) ft)).
 Proof.
