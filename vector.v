@@ -283,7 +283,7 @@ Lemma subsetv_anti : antisymmetric subsetv.
 Proof. by move=> vs1 vs2 H; apply/eqP; rewrite vseq2mxeq. Qed.
 
 (* Standard injection of a vector as a vector space (a line) *)
-Definition injv v : {vspace V} := mx2vs (v2rv v).
+Definition injv (v: V) : {vspace V} := mx2vs (v2rv v).
 
 Local Notation "v %:VS" := (injv v) : ring_scope.
 
@@ -2619,3 +2619,5 @@ by apply: eq_from_tnth=> j; rewrite -H2v tnth_map.
 Qed.
 
 End Solver.
+
+Export VectorType.Exports.
