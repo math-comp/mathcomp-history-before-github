@@ -780,6 +780,12 @@ Proof. by move=> p; apply/eqP; rewrite eqn0Ngt p_rank_gt0 /= cards1. Qed.
 Lemma logn_le_p_rank : forall p A E, E \in 'E_p(A) -> logn p #|E| <= 'r_p(A).
 Proof. by move=> p A E EpA_E; rewrite (bigmax_sup E). Qed.
 
+Lemma p_rank_le_logn : forall p G, 'r_p(G) <= logn p #|G|.
+Proof.
+move=> p G; have [E EpE] := p_rank_witness p G.
+by have [sEG _ <-] := pnElemP EpE; exact: lognSg.
+Qed.
+
 Lemma p_rank_abelem : forall p G, p.-abelem G -> 'r_p(G) = logn p #|G|.
 Proof.
 move=> p G abelG; apply/eqP; rewrite eqn_leq andbC (bigmax_sup G) //.
@@ -809,10 +815,10 @@ move=> p A x; rewrite /p_rank (reindex_inj (act_inj 'JG x)).
 by apply: eq_big => [E | E _]; rewrite ?cardJg ?pElemJ.
 Qed.
 
-Lemma p_rank_Sylow : forall p G H, p.-Sylow(G) H -> 'r_p(G) = 'r_p(H).
+Lemma p_rank_Sylow : forall p G H, p.-Sylow(G) H -> 'r_p(H) = 'r_p(G).
 Proof.
-move=> p G H sylH; apply/eqP; rewrite eqn_leq (p_rankS _ (pHall_sub sylH)).
-rewrite andbT; apply/bigmax_leqP=> E; rewrite inE; case/andP=> sEG abelE.
+move=> p G H sylH; apply/eqP; rewrite eqn_leq (p_rankS _ (pHall_sub sylH)) /=.
+apply/bigmax_leqP=> E; rewrite inE; case/andP=> sEG abelE.
 have [P sylP sEP] := Sylow_superset sEG (abelem_pgroup abelE).
 have [x _ ->] := Sylow_trans sylP sylH.
 by rewrite p_rankJ -(p_rank_abelem abelE) (p_rankS _ sEP).
@@ -866,7 +872,7 @@ Qed.
 Lemma rank_Sylow : forall p G P, p.-Sylow(G) P -> 'r(P) = 'r_p(G).
 Proof.
 move=> p G P sylP; have pP := pHall_pgroup sylP.
-by rewrite (p_rank_Sylow sylP) -(rank_pgroup pP).
+by rewrite -(p_rank_Sylow sylP) -(rank_pgroup pP).
 Qed.
 
 Lemma rank_abelem : forall p G, p.-abelem G -> 'r(G) = logn p #|G|.
@@ -1106,6 +1112,16 @@ Proof. by case/isogP: isoGH => f injf <-; rewrite injm_rank. Qed.
 
 End IsogAbelem.
 
+Lemma p_rank_p'quotient : forall (gT : finGroupType) p (G H : {group gT}),
+  (p : nat)^'.-group H -> G \subset 'N(H) -> 'r_p(G / H) = 'r_p(G).
+Proof.
+move=> gT p G H p'H nHG; have [P sylP] := Sylow_exists p G.
+have [sPG pP _] := and3P sylP; have nHP := subset_trans sPG nHG.
+have tiHP: H :&: P = 1 := coprime_TIg (p'nat_coprime p'H pP).
+rewrite -(p_rank_Sylow sylP) -(p_rank_Sylow (quotient_pHall nHP sylP)).
+by rewrite (isog_p_rank (quotient_isog nHP tiHP)).
+Qed.
+
 Section OhmProps.
 
 Section Generic.
@@ -1313,7 +1329,17 @@ Lemma Mho_normal : 'Mho^n(G) <| G. Proof. exact: char_normal Mho_char. Qed.
 
 Lemma morphim_Ohm : forall f : {morphism D >-> rT},
   G \subset D -> f @* 'Ohm_n(G) \subset 'Ohm_n(f @* G).
-Proof.  exact: morphim_sFunctor. Qed.
+Proof. exact: morphim_sFunctor. Qed.
+
+Lemma injm_Ohm : forall f : {morphism D >-> rT},
+  'injm f -> G \subset D -> f @* 'Ohm_n(G) = 'Ohm_n(f @* G).
+Proof. move=> f injf; exact: bgFunc_ascont. Qed.
+
+Lemma isog_Ohm : forall H : {group rT}, G \isog H -> 'Ohm_n(G) \isog 'Ohm_n(H).
+Proof. move=> H; exact: bgFunc_isog. Qed.
+
+Lemma isog_Mho : forall H : {group rT}, G \isog H -> 'Mho^n(G) \isog 'Mho^n(H).
+Proof. move=> H; exact: bgFunc_isog. Qed.
 
 End char.
 
@@ -1337,6 +1363,12 @@ rewrite !inE expn_add expgn_mul; case/andP=> ->; move/eqP->.
 by rewrite exp1gn /=.
 Qed.
 
+Lemma OhmJ : forall n G x, 'Ohm_n(G :^ x) = 'Ohm_n(G) :^ x.
+Proof.
+move=> n G x; rewrite -{1}(setIid G) -(setIidPr (Ohm_sub n G)).
+by rewrite -!morphim_conj injm_Ohm ?injm_conj.
+Qed.
+
 Lemma Mho0 : forall G, 'Mho^0(G) = G.
 Proof.
 move=> G; apply/eqP; rewrite eqEsubset Mho_sub /=.
@@ -1349,6 +1381,12 @@ Proof.
 move=> m n G; move/subnKC <-; rewrite gen_subG //; apply/subsetP=> y.
 case/imsetP=> x; case/setIdP=> Gx p_x ->.
 by rewrite expn_add expgn_mul groupX ?(Mho_p_elt _ _ p_x).
+Qed.
+
+Lemma MhoJ : forall n G x, 'Mho^n(G :^ x) = 'Mho^n(G) :^ x.
+Proof.
+move=> n G x; rewrite -{1}(setIid G) -(setIidPr (Mho_sub n G)).
+by rewrite -!morphim_conj morphim_Mho.
 Qed.
 
 Lemma extend_cyclic_Mho : forall G p x,
@@ -1498,7 +1536,7 @@ case/dprodP: (Ohm_dprod 1 (nilpotent_pcoreC p nilG)) => _ <- _.
 move/TI_cardMg->; rewrite mulnC logn_gauss; last first.
   rewrite prime_coprime // -p'natE // -/(pgroup _ _).
   exact: pgroupS (Ohm_sub _ _) (pcore_pgroup _ _).
-rewrite (p_rank_Sylow (nilpotent_pcore_Hall p nilG)) -p_rank_Ohm1.
+rewrite -(p_rank_Sylow (nilpotent_pcore_Hall p nilG)) -p_rank_Ohm1.
 rewrite p_rank_abelem // Ohm1_abelem ?pcore_pgroup //.
 exact: abelianS (pcore_sub _ _) cGG.
 Qed.
@@ -2047,7 +2085,7 @@ have cHH := abelianS sHG cGG; rewrite -morphimIdom /=; set H := D :&: G.
 have sylP := nilpotent_pcore_Hall p (abelian_nil cHH).
 have sPH := pHall_sub sylP.
 have sPD: 'O_p(H) \subset D by rewrite (subset_trans sPH) ?subsetIl.
-rewrite (p_rank_Sylow (morphim_pHall f sPD sylP)) (p_rank_Sylow sylP) //.
+rewrite -(p_rank_Sylow (morphim_pHall f sPD sylP)) -(p_rank_Sylow sylP) //.
 rewrite -!rank_pgroup ?morphim_pgroup ?pcore_pgroup //.
 by rewrite morphim_rank_abelian ?(abelianS sPH).
 Qed.

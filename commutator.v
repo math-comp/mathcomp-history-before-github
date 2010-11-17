@@ -372,4 +372,9 @@ Canonical Structure bgFunc_der n :=
 Canonical Structure gFunc_der n := GFunc (der_cont n).
 Canonical Structure mgFunc_der n := MGFunc (fun _ => dergS n).
 
-
+Lemma isog_der : forall (aT rT : finGroupType) n,
+  forall (G : {group aT}) (H : {group rT}), G \isog H -> G^`(n) \isog H^`(n).
+Proof.
+move=> aT rT G H n; case/isogP=> f injf <-; rewrite -morphim_der //.
+by rewrite sub_isog ?der_sub.
+Qed.

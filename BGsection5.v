@@ -519,7 +519,7 @@ have sCO : 'C_A(H | 'P) \subset 'O_p(A).
 have ntH : H :!=: 1.
   by case: eqP (exponent1 gT) exH (prime_gt1 p_pr) (ltnn p) => // -> -> <-.
 case: (leqP 3 'r(R)) => [|rR]; last first.
-  have pA' := rank2_odd_sol_Aut_pgroup_der1 pR oddR sAAu solA rR oddA.
+  have pA' := der1_Aut_rank2_pgroup pR oddR rR sAAu solA oddA.
   have ds : A^`(1) \subset 'O_p(A) by apply: pcore_max; rewrite // der_normal.
   have aAK : abelian (A / 'O_p(A)) by rewrite sub_der1_abelian.
   rewrite aAK -(nilpotent_pcoreC p (abelian_nil aAK)) trivg_pcore_quotient. 
@@ -796,9 +796,9 @@ Let odd_r2_complement_max_pdiv :
   forall q, prime q -> q %| #|G / 'O_p^'(G)| -> q <= p.
 Proof.
 move=> gT G S p oddG rS solG psylS.
-have rG : 'r_p(G) <= 2 by rewrite (p_rank_Sylow psylS).
-split; last exact: rank2_max_pdiv.
-by case: (rank2_pdiv_compl_der_abelian_p'group solG _ rG).
+have rG : 'r_p(G) <= 2 by rewrite -(p_rank_Sylow psylS).
+split=> [|q q_pr q_dv_Gb]; first by case: (rank2_der1_complement solG _ rG).
+by rewrite (rank2_max_pdiv solG) // mem_primes cardG_gt0 q_pr.
 Qed.
 
 Theorem odd_narrow_plength1_complement_max_pdiv : 

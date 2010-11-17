@@ -1924,6 +1924,14 @@ Proof.
 by apply/setP=> x; rewrite ?(inE, sub1set) andb_idr //; move/gact1=> ->. 
 Qed.
 
+Lemma astab_range : 'C(R | to) = 'C(setT | to).
+Proof.
+apply/eqP; rewrite eqEsubset andbC astabS ?subsetT //=.
+apply/subsetP=> a cRa; have Da := astab_dom cRa; rewrite !inE Da.
+apply/subsetP=> x; rewrite -(setUCr R) !inE.
+by case/orP=> ?; [rewrite (astab_act cRa) | rewrite gact_out].
+Qed.
+
 Lemma gacentC : forall A S,
     A \subset D -> S \subset R ->
   (S \subset 'C_(|to)(A)) = (A \subset 'C(S | to)).
@@ -2157,6 +2165,17 @@ rewrite -gacentE ?subsetIl // gacentIdom setICA (setIidPr _) //.
 by rewrite gacentC // ?(subset_trans cMH) ?astabS ?subsetIl // setICA subsetIl.
 Qed.
 
+Lemma acts_irr_mod : forall G M,
+    H \subset 'C(M | to) -> G \subset 'N(H) -> acts_irreducibly G M to ->
+  acts_irreducibly (G / H) M mod_groupAction.
+Proof.
+move=> G M cMH nHG; case/mingroupP; case/andP=> ntM nMG minM.
+apply/mingroupP; rewrite ntM astabs_mod ?quotientS //; split=> // L modL ntL.
+have cLH: H \subset 'C(L | to) by rewrite (subset_trans cMH) ?astabS //.
+apply: minM => //; case/andP: modL => ->; rewrite astabs_mod ?quotientSGK //.
+by rewrite (subset_trans cLH) ?astab_sub.
+Qed.
+  
 End Mod.
 
 Lemma modact_coset_astab : forall x a,
@@ -2169,6 +2188,15 @@ apply/subsetP=> x Rx; rewrite inE conjgE !actMin ?groupM ?groupV //.
 by rewrite (astab_act Cc) ?actKVin // gact_stable ?groupV.
 Qed.
 
+Lemma acts_irr_mod_astab : forall G M,
+    acts_irreducibly G M to ->
+  acts_irreducibly (G / 'C_G(M | to)) M (mod_groupAction _).
+Proof.
+move=> G M irrG; have [_ nMG] := andP (mingroupp irrG).
+apply: acts_irr_mod irrG; first exact: subsetIr.
+by rewrite normsI ?normG // (subset_trans nMG) // astab_norm.
+Qed.
+  
 Section CompAct.
 
 Variables (gT : finGroupType) (G : {group gT}) (f : {morphism G >-> aT}).

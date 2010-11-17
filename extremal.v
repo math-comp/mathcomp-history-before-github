@@ -2217,8 +2217,8 @@ have{defE'} sEG_E': [~: E, G] \subset E^`(1).
     by rewrite inE orbC (Mho_p_elt 1) ?(mem_p_elt pE).
   by case/setIP=> _; move/centP=> cGep; apply/commgP; red; rewrite cGep.
 have sEG: E \subset G := subset_trans sEK (char_sub charK).
-set R := 'C_G(E); have{sEG_E'} defG: E \* R = G.
-  by rewrite cprodEY ?subsetIr // -(critical_extraspecial pG).
+set R := 'C_G(E).
+have{sEG_E'} defG: E \* R = G by exact: (critical_extraspecial pG).
 have [_ defER cRE] := cprodP defG.
 have defH: E \* 'C_H(E) = H by rewrite -(setIidPr sHG) setIAC (cprod_modl defG).
 have{defH} [_ defH cRH_E] := cprodP defH.
