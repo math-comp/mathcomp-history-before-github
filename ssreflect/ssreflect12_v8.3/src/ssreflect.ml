@@ -3358,13 +3358,20 @@ let unprotecttac gl =
  * related to goals that are products and with beta redexes. In that case it
  * guesses the wrong number of implicit arguments for your lemma. What follows
  * is just like apply, but with a user-provided number n of implicits *)
-(* TODO: use_evars:true + abstract the ones in prop *)
-(* TODO: nice error message for non instantiated evars *)
 let applyn n t gl =
-  let ty = pf_type_of gl t in
-  let clause = Clenv.make_clenv_binding_apply gl (Some n) (t,ty) NoBindings in
-  Clenvtac.res_pf clause ~with_evars:false 
-    ~flags:Unification.default_unify_flags gl
+  let t, gl = if n = 0 then t, gl else
+    let sigma, si = project gl, sig_it gl in
+    let rec loop sigma bo args = function 
+      | 0 -> mkApp (t, Array.of_list (List.rev args)), re_sig si sigma 
+      | n -> match kind_of_term bo with
+        | Lambda (_, ty, bo) -> 
+            assert(closed0 ty); (* note: no dependent metas *)
+            let m = Evarutil.new_meta () in
+            loop (meta_declare m ty sigma) bo ((mkMeta m)::args) (n-1)
+        | _ -> assert false
+    in loop sigma t [] n in
+  let rule = Proof_type.Prim (Proof_type.Refine t) in
+  Refiner.refiner rule gl
 
 (** The "case" and "elim" tactic *)
 
