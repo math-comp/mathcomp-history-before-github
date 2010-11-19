@@ -598,7 +598,7 @@ move/negPf => sp.
 case: (ltnP (size p).-1 1)=> [|s2].
   by rewrite prednK ?lt0n ?leqn1 ?size_poly_eq0 p0 // sp.
 have := axiom (fun n => -p`_n*(lead_coef p)^-1) s2.
-case=> x; exists x.
+case=> x H; exists x.
 have : 0 < size p by apply: leq_trans s2 _; apply: leq_pred.
 rewrite /root horner_coef; move/prednK<-; rewrite big_ord_recr /= H.
 apply/eqP; rewrite big_distrr -big_split big1 //= => i _.

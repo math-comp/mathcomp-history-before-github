@@ -1039,7 +1039,7 @@ have Irec: forall m n p q, size q <= m -> size q <= n
   - rewrite leqn0 size_poly_eq0 => _; move/eqP=> ->.
     rewrite size_poly0 lt0n size_poly_eq0 modp0 => nzp.
     by rewrite (negPf nzp); case: m {Hrec} => [|m] /=; rewrite mod0p eqxx.
-  case: ifP => Epq Sm Sn Sq; rewrite Epq //.
+  case: ifP => Epq Sm Sn Sq //; rewrite ?Epq //.
   case: (eqVneq q 0) => [->|nzq].
     by case: n m {Sm Sn Hrec} => [|m] [|n] //=; rewrite mod0p eqxx.
   apply: Hrec; last exact: modp_spec.

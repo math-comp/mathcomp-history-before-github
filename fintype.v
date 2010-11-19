@@ -1787,9 +1787,9 @@ Proof.
 case=> i x; rewrite -(enumP i) /tag_enum -enumT.
 elim: (enum I) => //= j e IHe.
 rewrite count_cat count_map {}IHe; congr (_ + _).
-rewrite count_filter -cardE; case: eqP => [-> | ne_j_i].
-  by apply: (@eq_card1 _ x) => y; rewrite -topredE /= tagged_asE eqxx.
-by apply: eq_card0 => y; apply/andP; case; move/eqP.
+rewrite count_filter -cardE /=; case: eqP => [-> | ne_j_i].
+  by apply: (@eq_card1 _ x) => y; rewrite -topredE /= tagged_asE ?eqxx.
+by apply: eq_card0 => y.
 Qed.
 
 Definition tag_finMixin := Eval hnf in FinMixin tag_enumP.

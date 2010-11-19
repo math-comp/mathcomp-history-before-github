@@ -451,7 +451,7 @@ Lemma cprod_ntriv : forall A B, A != 1 -> B != 1 ->
   A \* B =
     if [&& group_set A, group_set B & B \subset 'C(A)] then A * B else set0.
 Proof.
-move=> A B A1 B1; rewrite /cprod; case: ifP => cAB; rewrite cAB ?andbF //=.
+move=> A B A1 B1; rewrite /cprod; case: ifP => cAB; rewrite ?cAB ?andbF //=.
 by rewrite /pprod -if_neg A1 -if_neg B1 cents_norm.
 Qed.
 

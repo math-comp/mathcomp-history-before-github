@@ -1138,15 +1138,10 @@ have: \sum_(j | P j) u_ j == \sum_(j | P j) v_ j.
   move => j;
   case/andP => _;
   by move/negbTE ->.
-rewrite Hall /u_ /v_; 
- first (by move/forall_inP; move/(_ _ Pi); rewrite (eq_refl i));
- move => j Pj;
- rewrite !(if_arg, fun_if) mem0v;
- case ifP => //.
- by move/eqP ->.
-move/negbT => nji.
-apply Hv2_.
-by rewrite Pj nji.
+rewrite Hall /u_ /v_ => [|j Pj|j Pj]. 
+  by move/forall_inP; move/(_ _ Pi); rewrite eqxx.
+  by case: ifP; rewrite ?mem0v //; move/eqP=> ->.
+by case: ifP; rewrite ?mem0v //; move/negbT => nji; apply Hv2_; rewrite Pj nji.
 Qed.
 
 End NaryDirect.

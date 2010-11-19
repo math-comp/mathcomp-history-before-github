@@ -2130,7 +2130,7 @@ have NDa: a \in 'N_D(H) by exact/setIP.
 rewrite inE; apply/andP; split.
   apply/subsetP=> x; apply: contraR.
   rewrite inE andbC actpermE /= modactEcond //.
-  by case: ifP => // -> Rx; rewrite gact_out.
+  by case: ifP => // E Rx; rewrite ?E in Rx; rewrite gact_out.
 apply/morphicP=> x y; case/setIP=> Rx cHx; case/setIP=> Ry cHy.
 rewrite /= !actpermE /= !modactE ?gactM //.
 suff: x * y \in 'C_(|to)(H) by case/setIP.

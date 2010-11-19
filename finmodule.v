@@ -179,7 +179,7 @@ Proof. by move=> u x Nx; rewrite fmvalJcond Nx. Qed.
 Lemma fmodJ : forall x y, y \in 'N(A) -> fmod (x ^ y) = fmod x ^@ y.
 Proof.
 move=> x y Ny; apply: val_inj; rewrite fmvalJ ?fmodKcond ?memJ_norm //.
-by case: ifP => -> //; rewrite conj1g.
+by case: ifP => E; rewrite ?E // conj1g.
 Qed.
 
 Lemma actr_is_action : is_action 'N(A) actr.
