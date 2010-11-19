@@ -2482,6 +2482,7 @@ let iter_constr_LR f c = match kind_of_term c with
 
 type pattern_class =
   | KpatFixed
+  | KpatConst
   | KpatEvar of existential_key
   | KpatLet
   | KpatRigid
@@ -2519,7 +2520,7 @@ let mk_upat env sigma0 ise t ok p =
     match kind_of_term f with
     | Const p ->
       let np = proj_nparams p in
-      if np = 0 || np > List.length a then KpatFixed, f, a else
+      if np = 0 || np > List.length a then KpatConst, f, a else
       let a1, a2 = list_chop np a in KpatProj p, applist(f, a1), a2
     | Var _ | Ind _ | Construct _ -> KpatFixed, f, a
     | Evar (k, _) ->
@@ -2538,7 +2539,8 @@ let mk_upat env sigma0 ise t ok p =
 let ungen_upat lhs (sigma, t) u =
   let f, a = safeDestApp lhs in
   let k = match kind_of_term f with
-  | Var _ | Ind _ | Construct _ | Const _ -> KpatFixed
+  | Var _ | Ind _ | Construct _ -> KpatFixed
+  | Const _ -> KpatConst
   | Evar (k, _) -> if is_defined sigma k then raise NoMatch else KpatEvar k
   | LetIn _ -> KpatLet
   | _ -> KpatRigid in
@@ -2559,7 +2561,8 @@ let filter_upat i0 f n u fpats =
   let na = Array.length u.up_a in
   if n < na then fpats else
   let np = match u.up_k with
-  | KpatFixed when u.up_f = f -> na
+  | KpatConst when eq_constr u.up_f f -> na
+  | KpatFixed when u.up_f = f -> na 
   | KpatEvar k when isEvar_k k f -> na
   | KpatLet when isLetIn f -> na
   | KpatRigid when isRigid f -> na
@@ -2574,7 +2577,8 @@ let filter_upat_FO i0 f n u fpats =
   let np = nb_args u.up_FO in
   if n < np then fpats else
   let ok = match u.up_k with
-  | KpatFixed -> u.up_f = f
+  | KpatConst -> eq_constr u.up_f f 
+  | KpatFixed -> u.up_f = f 
   | KpatEvar k -> isEvar_k k f
   | KpatLet -> isLetIn f
   | KpatRigid -> isRigid f
@@ -2643,7 +2647,7 @@ let rec match_upats_HO upats env sigma0 ise c =
         begin if !i0 < np then i0 := np; true end in
       if skip then () else try
         let ise' = match u.up_k with
-        | KpatFixed -> ise
+        | KpatFixed | KpatConst -> ise
         | KpatEvar _ ->
           let _, pka = destEvar u.up_f and _, ka = destEvar f in
           unif_HO_args env ise pka 0 ka
@@ -2688,6 +2692,7 @@ let fill_and_select_upat gl env sigma0 occ upats c ise =
       | LetIn (_, v, _, b) -> unif_EQ env sigma pv v && unif_EQ env' sigma pb b
       | _ -> false in match_let
     | KpatFixed -> (=) pf
+    | KpatConst -> eq_constr pf
     | _ -> unif_EQ env sigma pf in
   let pn = Array.length pa in
   let nocc = ref 0 and skip_occ = ref false in
