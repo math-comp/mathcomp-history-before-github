@@ -1804,7 +1804,7 @@ let ssrscasetac c gl =
   let cl1 = mkLambda (Anonymous, mkArrow eqt cl, mkApp (mkRel 1, [|c_eq|])) in
   let id = injecteq_id in
   let id_with_ebind = (mkVar id, NoBindings) in
-  let injtac =tclTHEN (introid id) (injectidl2rtac id_with_ebind) in 
+  let injtac = tclTHEN (introid id) (injectidl2rtac id_with_ebind) in 
   tclTHENLAST (apply (compose_lam dc cl1)) injtac gl  
 
 let intro_all gl =
