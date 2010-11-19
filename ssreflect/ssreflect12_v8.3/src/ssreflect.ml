@@ -2676,7 +2676,7 @@ let fixed_upats = function
 | [{up_t = t}] -> not (occur_existential t)
 | _ -> false
 
-let fill_and_select_upat gl env sigma0 occ upats c ise =
+let fill_and_select_upat gl env sigma0 occ upats c ise h =
   let sigma, ({up_f = pf; up_a = pa} as u) =
     if fixed_upats upats then sigma0, List.hd upats else try
       match_upats_FO upats env sigma0 ise c;
@@ -2718,16 +2718,16 @@ let fill_and_select_upat gl env sigma0 occ upats c ise =
       let inc_h _ h' = h' + 1 in
       let f' = map_constr_with_binders_left_to_right inc_h subst_loop h f in
       mkApp (f', array_map_left (subst_loop h) a) in
-  let cl' = subst_loop 1 c in let p' = mkApp (pf, pa) in
+  let cl' = subst_loop h c in let p' = mkApp (pf, pa) in
   if max_occ <= !nocc then sigma, u.up_t, cl', p' else
   raise (MissingOccs (!nocc, max_occ, p'))
 
-let pf_fill_occ gl occ p sigma t ok =
+let pf_fill_occ gl concl occ p sigma t ok h =
   try
     let sigma0 = project gl in let env = pf_env gl in
     let ise = ref (create_evar_defs sigma) in
     let u = [mk_upat env sigma0 ise t ok p] in
-    fill_and_select_upat gl env sigma0 occ u (pf_concl gl) !ise
+    fill_and_select_upat gl env sigma0 occ u concl !ise h
   with
   | UndefPat -> error "indeterminate pattern"
   | MissingOccs (n, m, p') ->
@@ -2738,7 +2738,7 @@ let pf_fill_occ gl occ p sigma t ok =
 let pf_fill_occ_term gl occ (sigma, t) =
   let sigma0 = project gl in
   try
-    let sigma', t', cl, _ = pf_fill_occ gl occ t sigma t all_ok in
+    let sigma',t',cl,_ = pf_fill_occ gl (pf_concl gl) occ t sigma t all_ok 1 in
     if sigma' != sigma0 then error "matching impacts evars" else cl, t'
   with NoMatch -> try
     let sigma', t' =
@@ -3783,7 +3783,7 @@ try
   | None ->
     let sigma, t = ft in
     let ut = try Tacred.red_product (pf_env gl) sigma t with _ -> t in
-    let sigma', t', cl, _ = pf_fill_occ gl occ ut sigma t all_ok in
+    let sigma',t',cl,_ = pf_fill_occ gl (pf_concl gl) occ ut sigma t all_ok 1 in
     if sigma' == project gl then cl, t' else raise NoMatch in
   convert_concl (subst1 c cl) gl
 with NoMatch -> tclIDTAC gl
@@ -3944,7 +3944,7 @@ let rec rwrxtac occ rdx_pat dir rule gl =
     let sigma', r, cl, rdx =
       try
         let rpats = List.map rpat rules in
-        fill_and_select_upat gl env sigma0 occ rpats (pf_concl gl) !ise
+        fill_and_select_upat gl env sigma0 occ rpats (pf_concl gl) !ise 1
       with
       | UndefPat ->
         errorstrm (str "indeterminate " ++ pr_dir_side dir
