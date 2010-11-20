@@ -3475,7 +3475,7 @@ split=> [ [] | [[modU maxU] modV maxV]].
     by have:= maxU _ (leqnn _); rewrite !nth_rcons leqnn ltnn eqxx -last_nth.
   by split=> // i ltiU; have:= maxU i (ltnW ltiU); rewrite !nth_rcons leqW ltiU.
 rewrite modV; split=> // i; rewrite !nth_rcons ltnS leq_eqVlt.
-case: eqP => [-> _ | /= _ ltiU]; first by rewrite ltnn eqxx -last_nth.
+case: eqP => [-> _ | /= _ ltiU]; first by rewrite ltnn ?eqxx -last_nth.
 by rewrite ltiU; exact: maxU.
 Qed.
 

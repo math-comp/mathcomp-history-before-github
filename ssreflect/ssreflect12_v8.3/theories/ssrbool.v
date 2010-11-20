@@ -372,14 +372,14 @@ Section BoolIf.
 
 Variables (A B : Type) (x : A) (f : A -> B) (b : bool) (vT vF : A).
 
-CoInductive if_spec (not_b : Prop) : A -> bool -> Set :=
-  | IfSpecTrue  of      b : if_spec not_b vT true
-  | IfSpecFalse of  not_b : if_spec not_b vF false.
+CoInductive if_spec (not_b : Prop) : bool -> A -> Set :=
+  | IfSpecTrue  of      b : if_spec not_b true vT
+  | IfSpecFalse of  not_b : if_spec not_b false vF.
 
-Lemma ifP : if_spec (b = false) (if b then vT else vF) b.
+Lemma ifP : if_spec (b = false) b (if b then vT else vF).
 Proof. by case def_b: b; constructor. Qed.
 
-Lemma ifPn : if_spec (~~ b) (if b then vT else vF) b.
+Lemma ifPn : if_spec (~~ b) b (if b then vT else vF).
 Proof. by case def_b: b; constructor; rewrite ?def_b. Qed.
 
 Lemma if_same : (if b then vT else vT) = vT.

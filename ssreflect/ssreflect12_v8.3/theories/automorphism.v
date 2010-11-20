@@ -131,7 +131,7 @@ Hypotheses (injf : {in A &, injective f}) (sBf : f @: A \subset A).
 Lemma perm_in_inj : injective (fun x => if x \in A then f x else x).
 Proof.
 move=> x y /=; wlog Ay: x y / y \in A.
-  by move=> IH eqfxy; case: ifP (eqfxy); [symmetry | case ifP => //]; auto.
+  by move=> IH eqfxy; case: ifP (eqfxy); [symmetry | case: ifP => //]; auto.
 rewrite Ay; case: ifP => [Ax | nAx def_x]; first exact: injf.
 by case/negP: nAx; rewrite def_x (subsetP sBf) ?mem_imset.
 Qed.
@@ -140,7 +140,7 @@ Definition perm_in := perm perm_in_inj.
 
 Lemma perm_in_on : perm_on A perm_in.
 Proof.
-by apply/subsetP=> x; rewrite inE /= permE; case ifP => // _; case/eqP.
+by apply/subsetP=> x; rewrite inE /= permE; case: ifP => // _; case/eqP.
 Qed.
 
 Lemma perm_inE : {in A, perm_in =1 f}.

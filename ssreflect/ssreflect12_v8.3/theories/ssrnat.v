@@ -1090,7 +1090,7 @@ Proof.
 move=> m n e e_gt0; apply/idP/idP=> [|ltmn].
   rewrite !ltnNge; apply: contra => lemn.
   by elim: e {e_gt0} => // e IHe; rewrite !expnS leq_mul.
-elim: e e_gt0 => // [[|e] IHe] _; first by rewrite !expn1.
+elim: e e_gt0 => // [[|e] IHe] _; rewrite ?expn1 //.
 by rewrite ltn_mul // IHe.
 Qed.
 

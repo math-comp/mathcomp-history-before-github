@@ -283,7 +283,7 @@ Proof.
 move=> Ms; pose iMNA := #|'N(A) : M|.
 have defA: A :=: 'Ohm_1(P).
   apply/eqP; rewrite eqEcard -{1}(Ohm1_id abelA) OhmS //= oA -rM.
-  rewrite (p_rank_Sylow sylP) p_rank_abelian ?exceptional_Sylow_abelian //.
+  rewrite -(p_rank_Sylow sylP) p_rank_abelian ?exceptional_Sylow_abelian //.
   by rewrite -card_pgroup // (pgroupS _ (pHall_pgroup sylP)) ?Ohm_sub.
 have iMNAgt1: iMNA > 1.
   rewrite indexg_gt1 defA; apply: contra (subset_trans _) not_sNP_M.
@@ -334,7 +334,7 @@ have rE: 'r(E) = 2.
 have rFEle2: 'r('F(E)) <= 2 by rewrite -rE rankS ?Fitting_sub.
 have solE := solvableS sEM solM; have oddE := mFT_odd E.
 pose tau : nat_pred := [pred q | q > p]; pose K := 'O_tau(E).
-have hallK: tau.-Hall(E) K by rewrite rank2_pcore_geq_Hall.
+have hallK: tau.-Hall(E) K by rewrite rank2_ge_pcore_Hall.
 pose ptau : nat_pred := [pred q | q >= p]; pose KP := K <*> P.
 have nKP: P \subset 'N(K) by rewrite (subset_trans sPE) ?bgFunc_norm.
 have coKP: coprime #|K| #|P|.
@@ -346,7 +346,7 @@ have hallKP: ptau.-Hall(E) KP.
   rewrite (card_Hall hallE) -!partnI; congr (_ * _)%N; apply: eq_partn => q.
   by rewrite 4!inE andbC /= 8!inE -leqNgt -eqn_leq eq_sym; case: eqP => // <-.
 have nsKP_E: KP <| E.
-  have hallOptau: ptau.-Hall(E) 'O_ptau(E) by rewrite rank2_pcore_geq_Hall.
+  have hallOptau: ptau.-Hall(E) 'O_ptau(E) by rewrite rank2_ge_pcore_Hall.
   by rewrite [KP](uniq_normal_Hall hallOptau) ?pcore_normal ?Hall_max.
 have [cKA | not_cKA]:= boolP (A \subset 'C(K)).
   pose KA := K <*> A; have defKA: K \x A = KA.
@@ -398,7 +398,7 @@ have [regQ | nregQ] := eqVneq 'C_Q(A) 1; last first.
   have [B Eq2B]: exists B, B \in 'E_q^2(Q) by apply/p_rank_geP; rewrite rQ.
   have maxB: B \in 'E*_q(G).
     apply: subsetP (subsetP (pnElemS q 2 (pHall_sub sylQ_M)) B Eq2B).
-    by rewrite sigma'_rank2_max // (p_rank_Sylow sylQ_M).
+    by rewrite sigma'_rank2_max // -(p_rank_Sylow sylQ_M).
   have CAq: q %| #|'C(A)|.
     apply: dvdn_trans (cardSg (subsetIr Q _)).
     by have [_ ? _] := pgroup_pdiv (pgroupS (subsetIl Q _) qQ) nregQ.

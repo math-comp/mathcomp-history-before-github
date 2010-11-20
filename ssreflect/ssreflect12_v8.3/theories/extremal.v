@@ -1769,14 +1769,14 @@ have [y X'y]: exists2 y, y \in G :\: X &
   case Tay: (ay \in <[t]>).
     rewrite cycle2g // !inE -order_eq1 oay p2 /= in Tay.
     by right; rewrite (eqP Tay) m_t expgn_zneg // mulgV group1.
-  case: leqP defA => [_ defA | -> [a [Aa _ _ defA [s [As os m_s m_st defA1]]]]].
+  case: leqP defA => [_ defA | le3n [a [Aa _ _ defA [s [As os m_s m_st defA1]]]]].
     by rewrite -defA Aut_aut in Tay.
   have: ay \in [set s; s * t].
     have: ay \in 'Ohm_1(Aut X) := subsetP (OhmS 1 (pcore_sub _ _)) ay Ap1ay.
     case/dprodP: (Ohm_dprod 1 defA) => _ <- _ _.
     rewrite defA1 (@Ohm_p_cycle _ _ 2) /p_elt ot //= expg1 cycle2g //.
     by rewrite mulUg mul1g inE Tay cycle2g // mulgU mulg1 mulg_set1.
-  case/set2P=> ->; first by left; rewrite m_s expgn_znat // oX pfactorK // -p2.
+  case/set2P=> ->; first by left; rewrite ?le3n m_s expgn_znat // oX pfactorK // -p2.
   right; rewrite m_st expgn_znat // oX pfactorK // -p2 -/r.
   by rewrite -expgS prednK ?cycle_id.
 have [Gy notXy] := setDP X'y; have nXy := subsetP nXG y Gy.
@@ -2217,8 +2217,8 @@ have{defE'} sEG_E': [~: E, G] \subset E^`(1).
     by rewrite inE orbC (Mho_p_elt 1) ?(mem_p_elt pE).
   by case/setIP=> _; move/centP=> cGep; apply/commgP; red; rewrite cGep.
 have sEG: E \subset G := subset_trans sEK (char_sub charK).
-set R := 'C_G(E); have{sEG_E'} defG: E \* R = G.
-  by rewrite cprodEY ?subsetIr // -(critical_extraspecial pG).
+set R := 'C_G(E).
+have{sEG_E'} defG: E \* R = G by exact: (critical_extraspecial pG).
 have [_ defER cRE] := cprodP defG.
 have defH: E \* 'C_H(E) = H by rewrite -(setIidPr sHG) setIAC (cprod_modl defG).
 have{defH} [_ defH cRH_E] := cprodP defH.

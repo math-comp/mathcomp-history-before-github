@@ -56,7 +56,7 @@ Lemma polyrealN0_sign : forall p a b,
   exists s, (forall x, a <= x <= b -> \s (p.[x]) = s).
 Proof.
 rewrite /root=> p a b np0; exists (\s p.[a]); move=> x laxb; move:(np0 _ laxb).
-case: (ltrgtP p.[x] 0)=> [spx npx0|spx npx0|]; last by move->; rewrite eqxx.
+case: (ltrgtP p.[x] 0)=> [spx npx0|spx npx0|]; last by move->; rewrite ?eqxx.
   case: (ltrP p.[a] 0)=> spa; first by rewrite !ltr0_sign.
   case/andP:laxb=>lax lxb; case:(@ivt (-p) a x)=> //.
     by rewrite !horner_opp !oppr_cp0/= spa ltrE.

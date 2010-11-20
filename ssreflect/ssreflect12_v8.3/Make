@@ -74,3 +74,4 @@ theories/orderedalg.v
 theories/polyorder.v
 theories/alt.v
 theories/burnside_app.v
+theories/vector.v

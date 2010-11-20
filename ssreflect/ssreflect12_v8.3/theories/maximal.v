@@ -1,9 +1,9 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype finfun.
 Require Import bigop finset prime binomial fingroup morphism perm automorphism.
 Require Import quotient action commutator gproduct gfunctor ssralg finalg.
 Require Import zmodp cyclic pgroup center gseries jordanholder.
-Require Import nilpotent sylow abelian finmodule matrix.
+Require Import nilpotent sylow abelian finmodule.
 
 (******************************************************************************)
 (*   This file establishes basic properties of several important classes of   *)
@@ -194,13 +194,29 @@ Canonical Structure gFunc_Frattini := GFunc Frattini_cont.
 
 Section Frattini0.
 
-Variables (gT : finGroupType) (G : {group gT}).
+Variable gT : finGroupType.
+Implicit Type rT : finGroupType.
+Implicit Types D G : {group gT}.
 
-Lemma Phi_char : 'Phi(G) \char G.
+Lemma Phi_char : forall G, 'Phi(G) \char G.
 Proof. exact: bgFunc_char. Qed.
 
-Lemma Phi_normal : 'Phi(G) <| G.
+Lemma Phi_normal : forall G, 'Phi(G) <| G.
 Proof. exact: bgFunc_normal. Qed.
+
+Lemma injm_Phi : forall rT D G (f : {morphism D >-> rT}),
+  'injm f -> G \subset D -> f @* 'Phi(G) = 'Phi(f @* G).
+Proof. move=> rT D G f injf; exact: bgFunc_ascont. Qed.
+
+Lemma isog_Phi : forall rT G (H : {group rT}),
+  G \isog H -> 'Phi(G) \isog 'Phi(H).
+Proof. by move=> rT G H; exact: bgFunc_isog. Qed.
+
+Lemma PhiJ : forall G x, 'Phi(G :^ x) = 'Phi(G) :^ x.
+Proof.
+move=> G x; rewrite -{1}(setIid G) -(setIidPr (Phi_sub G)) -!morphim_conj.
+by rewrite injm_Phi ?injm_conj.
+Qed.
 
 End Frattini0.
 
@@ -472,6 +488,13 @@ move=> gT G H sHG; rewrite -{2}(setIidPl sHG).
 do 2!rewrite -(morphim_idm (subsetIl H _)) morphimIdom; exact: morphim_Fitting.
 Qed.
 
+Lemma FittingJ : forall gT (G : {group gT}) x, 'F(G :^ x) = 'F(G) :^ x.
+Proof.
+move=> gT G x; rewrite !FittingEgen -genJ /= cardJg; symmetry; congr <<_>>.
+rewrite (big_morph (conjugate^~ x) (fun A B => conjUg A B x) (imset0 _)).
+by apply: eq_bigr => p _; rewrite pcoreJ.
+Qed.
+
 Lemma Fitting_cont : forall gT rT (G : {group gT}) (f : {morphism G >-> rT}),
   f @* 'F(G) \subset 'F(f @* G).
 Proof. move=> gT rT G f; exact: morphim_Fitting. Qed.
@@ -485,14 +508,19 @@ Canonical Structure bgFunc_Fitting := [bgFunc by Fitting_sub & Fitting_cont].
 Canonical Structure gFunc_Fitting := GFunc Fitting_cont.
 Canonical Structure hgFunc_Fitting := HGFunc Fitting_hereditary.
 
-Lemma Fitting_char : forall (gT : finGroupType) (G : {group gT}),
-  'F(G) \char G.
-Proof. exact: bgFunc_char. Qed.
+Section IsoFitting.
 
-Lemma injm_Fitting :
-  forall (gT rT : finGroupType) (G D : {group gT}) (f : {morphism D >-> rT}),
-  'injm f -> G \subset D -> f @* 'F(G) = 'F(f @* G).
+Variables (gT rT : finGroupType) (G D : {group gT}) (f : {morphism D >-> rT}).
+
+Lemma Fitting_char : 'F(G) \char G. Proof. exact: bgFunc_char. Qed.
+
+Lemma injm_Fitting : 'injm f -> G \subset D -> f @* 'F(G) = 'F(f @* G).
 Proof. exact: bgFunc_ascont. Qed.
+
+Lemma isog_Fitting : forall H : {group rT}, G \isog H -> 'F(G) \isog 'F(H).
+Proof. by move=> H; exact: bgFunc_isog. Qed.
+
+End IsoFitting.
 
 Section CharSimple.
 
@@ -918,13 +946,23 @@ case/negP: (extraspecial_nonabelian esG).
 by rewrite (@abelem_abelian _ 2) ?exponent2_abelem // expG pfactor_dvdn.
 Qed.
 
+Lemma injm_special : forall D G (f : {morphism D >-> rT}),
+  'injm f -> G \subset D -> special G -> special (f @* G).
+Proof.
+move=> D G f injf sGD [defPhiG defG'].
+by rewrite /special -morphim_der // -injm_Phi // defPhiG defG' injm_center.
+Qed.
+
 Lemma injm_extraspecial : forall D G (f : {morphism D >-> rT}),
   'injm f -> G \subset D -> extraspecial G -> extraspecial (f @* G).
 Proof.
-move=> D G f injf sGD [[PhiGid G'id] ZG_pr].
-split; last by rewrite -injm_center // card_injm // subIset ?sGD.
-by split; rewrite -!gfunctor.bgFunc_ascont //= ?PhiGid ?G'id.
+move=> D G f injf sGD [spG ZG_pr]; split; first exact: injm_special spG.
+by rewrite -injm_center // card_injm // subIset ?sGD.
 Qed.
+
+Lemma isog_special : forall G (R : {group rT}),
+  G \isog R -> special G -> special R.
+Proof. by move=> G R; case/isogP=> f injf <-; exact: injm_special. Qed.
 
 Lemma isog_extraspecial : forall G (R : {group rT}),
   G \isog R -> extraspecial G -> extraspecial R.
@@ -1150,58 +1188,48 @@ End ExtraspecialFormspace.
 (* This is B & G, Theorem 4.15, as done in Aschbacher (23.8) *)
 Lemma critical_extraspecial : forall R S,
     p.-group R -> S \subset R -> extraspecial S -> [~: S, R] \subset S^`(1) ->
-  R :=: S <*> 'C_R(S).
+  S \* 'C_R(S) = R.
 Proof.
-move=> R S pR sSR [[PhiS_eq ->] primeZ sSR_Z]; have pS := pgroupS sSR pR.
-have nSR : R \subset 'N(S).
-  by rewrite -commg_subl (subset_trans sSR_Z) ?subsetIl.
-have nsCRS_R : 'C_R(S) <| R.
-  by rewrite (normalS (subsetIl _ _) _ (subcent_normal _ _)) ?subsetI ?subxx.
-have [sCRS_R nCRS_R] := andP nsCRS_R.
-have {primeZ} cardZ_eq : #|'Z(S)| = p.
-  by apply/eqP; exact: (pgroupP (pgroupS (center_sub _) pS)).
-apply: (quotient_inj nsCRS_R)=> /=. 
-  by rewrite (normalS _ _ nsCRS_R) ?joing_subr // join_subG sSR.
-apply/eqP; rewrite quotientYidr ?(subset_trans sSR) //= eq_sym eqEcard.
-rewrite quotientS //= -(card_isog (second_isog (subset_trans sSR nCRS_R))).
-rewrite (setIC _ S) setIA (setIidPl sSR) /= -['C_S(S)]PhiS_eq.
-have abel_S_PhiS := Phi_quotient_abelem (pgroupS sSR pR).
-case: (abelian_structure (abelem_abelian abel_S_PhiS))=> X /=.
-move/bigdprodEY => /= S_PhiS_eq.
-rewrite (abelian_type_abelem abel_S_PhiS) (rank_abelem abel_S_PhiS).
-move/(congr1 size); rewrite size_map size_nseq => n_eq {abel_S_PhiS}.
-set n := size _ in n_eq; pose tXZ := 'rV[[subg 'Z(S)]]_n.
-pose x i := repr (nth 1 X i); rewrite (big_nth 1) -/n big_mkord in S_PhiS_eq.
-have Sxi : forall (i : 'I_n), x i \in S. 
-  move=> i; apply: subsetP (mem_repr_coset (nth 1 X i)).
-  rewrite -(quotientSGK (coset_norm _) (Phi_sub S)) -S_PhiS_eq.
-  by rewrite sub_gen ?(bigcup_max i) // -cosetpre_set1_coset cosetpreK sub_gen.
-have RrepCg: forall Cg, Cg \in (R / 'C_R(S)) -> repr Cg \in R. 
-  move=> Cg; case/morphimP=> g Ng Rg -> /=; apply: subsetP (mem_repr_coset _).
-  by rewrite val_coset // mul_subG ?sub1set ?subsetIl.
-have fP: forall (i : 'I_n) (Cg : [subg R / 'C_R(S)]), 
-  [~ x i, repr (val Cg)] \in 'Z(S).
-- by move=> i Cg; rewrite (subsetP sSR_Z) // ?mem_commg // (RrepCg _ (valP Cg)).
-pose f Cg : tXZ := (\row_i Subg (fP i (subg _ Cg)))%R.
-suffices injf: {in R / 'C_R(S) &, injective f}.
-  rewrite -(card_in_imset injf) (leq_trans (max_card _)) //.
-  rewrite card_matrix mul1n card_sub n_eq cardZ_eq.
-  by rewrite -card_pgroup // quotient_pgroup // (pgroupS _ pR).
-move=> Cg Ch Rg Rh /=; move/rowP=> eq_fgh.
-have cXgh: forall i : 'I_n, repr Cg * (repr Ch)^-1 \in 'C[x i].
-  move=> i; move/(congr1 val): (eq_fgh i); rewrite !mxE /= !subgK // !commgEl.
-  move/(mulgI _); move/(canLR (conjgK _)); rewrite -conjgM.
-  by move/conjg_fixP; rewrite (sameP commgP cent1P) cent1C.
-suffices CRS_CgChi: repr Cg * (repr Ch)^-1 \in 'C(S).
-  apply: val_inj; rewrite -[Cg]coset_reprK -[Ch]coset_reprK.
-  rewrite /= !val_coset ?repr_coset_norm //; apply: rcoset_transl.
-  by rewrite mem_rcoset inE groupM //= ?groupV RrepCg.
-rewrite -sub_cent1; apply/setIidPl; rewrite -[_ :&: _]genGid.
-apply: Phi_nongen; apply/eqP; rewrite eqEsubset join_subG Phi_sub subsetIl /=.
-rewrite norm_joinEr ?subIset -?quotientSK ?bgFunc_norm //=.
-rewrite -S_PhiS_eq gen_subG; apply/bigcupsP=> i _; rewrite cycle_subG /=.
-rewrite -[nth 1 X i]coset_reprK mem_morphim ?repr_coset_norm //.
-by rewrite inE cent1C cXgh Sxi.
+move=> R S pR sSR esS sSR_S'; have [[defPhi defS'] _] := esS.
+have [pS [sPS nPS]] := (pgroupS sSR pR, andP (Phi_normal S : 'Phi(S) <| S)).
+have{esS} oZS: #|'Z(S)| = p := card_center_extraspecial pS esS.
+have nSR: R \subset 'N(S) by rewrite -commg_subl (subset_trans sSR_S') ?der_sub.
+have nsCR: 'C_R(S) <| R by rewrite (normalGI nSR) ?cent_normal.
+have nCS: S \subset 'N('C_R(S)) by rewrite cents_norm // centsC subsetIr.
+rewrite cprodE ?subsetIr //= -{2}(quotientGK nsCR) normC -?quotientK //.
+congr (_ @*^-1 _); apply/eqP; rewrite eqEcard quotientS //=.
+rewrite -(card_isog (second_isog nCS)) setIAC (setIidPr sSR) /= -/'Z(S) -defPhi.
+rewrite -ker_conj_aut (card_isog (first_isog_loc _ nSR)) //=; set A := _ @* R.
+have{pS} abelSb := Phi_quotient_abelem pS; have [pSb cSSb _] := and3P abelSb.
+have [/= Xb defSb oXb] := grank_witness (S / 'Phi(S)).
+pose X := (repr \o val : coset_of _ -> gT) @: Xb.
+have sXS: X \subset S; last have nPX := subset_trans sXS nPS.
+  apply/subsetP=> x; case/imsetP=> xb Xxb ->; have nPx := repr_coset_norm xb.
+  rewrite -sub1set -(quotientSGK _ sPS) ?sub1set ?quotient_set1 //= sub1set.
+  by rewrite coset_reprK -defSb mem_gen.
+have defS: <<X>> = S.
+  apply: Phi_nongen; apply/eqP; rewrite eqEsubset join_subG sPS sXS -joing_idr.
+  rewrite -genM_join sub_gen // -quotientSK ?quotient_gen // -defSb genS //.
+  apply/subsetP=> xb Xxb; apply/imsetP; rewrite (setIidPr nPX).
+  by exists (repr xb); rewrite /= ?coset_reprK //; exact: mem_imset.
+pose f (a : {perm gT}) := [ffun x => if x \in X then x^-1 * a x else 1].
+have injf: {in A &, injective f}.
+  move=> a b; case/morphimP=> y nSy Ry ->; case/morphimP=> z nSz Rz -> {a b}.
+  move/ffunP=> eq_fyz; apply: (@eq_Aut _ S); rewrite ?Aut_aut //= => x Sx.
+  rewrite !norm_conj_autE //; apply: canRL (conjgKV z) _; rewrite -conjgM.
+  rewrite /conjg -(centP _ x Sx) ?mulKg {x Sx}// -defS cent_gen -sub_cent1.
+  apply/subsetP=> x Xx; have Sx := subsetP sXS x Xx.
+  move/(_ x): eq_fyz; rewrite !ffunE Xx !norm_conj_autE //; move/mulgI=> xy_xz.
+  by rewrite cent1C inE conjg_set1 conjgM xy_xz conjgK.
+have sfA_XS': f @: A \subset pffun_on 1 (mem X) (mem S^`(1)).
+  apply/subsetP=> fa; case/imsetP=> a; case/morphimP=> y nSy Ry -> -> {fa a}.
+  apply/pffun_onP; split=> [x | z].
+    by apply: contraR; rewrite ffunE /=; move/negPf->.
+  case/imageP=> x /= Xx ->; have Sx := subsetP sXS x Xx.
+  by rewrite ffunE Xx norm_conj_autE // (subsetP sSR_S') ?mem_commg.
+rewrite -(card_in_imset injf) (leq_trans (subset_leq_card sfA_XS')) // defS'.
+rewrite card_pffun_on (card_pgroup pSb) -rank_abelem -?grank_abelian // -oXb.
+by rewrite -oZS ?leq_pexp2l ?cardG_gt0 ?leq_imset_card.
 Qed.
 
 (* This is part of Aschbacher (23.13) and (23.14). *)

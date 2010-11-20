@@ -340,7 +340,7 @@ Definition col' j0 A := \matrix_(i, j) A i (lift j0 j).
 
 Lemma castmx_const : forall m' n' (eq_mn : (m = m') * (n = n')) a,
   castmx eq_mn (const_mx a) = const_mx a.
-Proof. by rewrite /castmx => m' n' []; case: m /; case: n /. Qed.
+Proof. by rewrite /castmx => m' n' []; case: m' /; case: n' /. Qed.
 
 Lemma trmx_const : forall a, trmx (const_mx a) = const_mx a.
 Proof. by move=> a; apply/matrixP=> i j; rewrite !mxE. Qed.

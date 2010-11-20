@@ -164,7 +164,7 @@ wlog sAP: A pA cAA rA3 uA / A \subset P.
   by apply: IHA; rewrite ?pgroupJ ?abelianJ ?rankJ ?uniq_mmaxJ.
 have ncycC: ~~ cyclic C by rewrite (abelem_cyclic abelC) dimC3.
 have ncycP: ~~ cyclic P := contra (cyclicS sCP) ncycC.
-have [D] := ex_odd_normal_abelem2 (pHall_pgroup sylP) (mFT_odd _) ncycP.
+have [D] := ex_odd_normal_p2Elem (pHall_pgroup sylP) (mFT_odd _) ncycP.
 case/andP=> sDP nDP; case/pnElemP=> _ abelD dimD2.
 have CADge2: 'r('C_A(D)) >= 2.
   move: rA3; rewrite (rank_pgroup pA); case/p_rank_geP=> E.
@@ -245,7 +245,7 @@ have sNP_mCA: forall M, M \in 'M('C(A)) -> 'N(P) \subset M.
           by case: eqP Fge3 => // ->; rewrite ltnNge Fple2.
         have Mqge3: 'r('O_q(M)) >= 3.
           rewrite (rank_pgroup (pcore_pgroup _ _)) /= -p_core_Fitting.
-          by rewrite -(p_rank_Sylow (nilpotent_pcore_Hall _ (Fitting_nil _))).
+          by rewrite (p_rank_Sylow (nilpotent_pcore_Hall _ (Fitting_nil _))).
         have uMq: 'O_q(M)%G \in 'U.
           exact: (any_rank3_Fitting_Uniqueness _ Fge3 (pcore_pgroup _ _)).
         have uMqM := def_uniq_mmax uMq maxM (pcore_sub _ _).
@@ -254,17 +254,17 @@ have sNP_mCA: forall M, M \in 'M('C(A)) -> 'N(P) \subset M.
         by rewrite -rank_gt0 2?ltnW ?(leq_trans Mqge3) ?rankS.
       set q := max_pdiv _ => qQ _ sMqQ.
       have sylMq: q.-Sylow(M) 'O_q(M).
-        by rewrite [pHall _ _ _]rank2_pcore_max_Sylow ?mFT_odd ?mmax_sol.
+        by rewrite [pHall _ _ _]rank2_max_pcore_Sylow ?mFT_odd ?mmax_sol.
       have defNMq: 'N('O_q(M)) = M.
         rewrite (mmax_normal maxM (pcore_normal _ _)) // -rank_gt0.
-        rewrite (rank_pgroup (pcore_pgroup _ _)) -(p_rank_Sylow sylMq).
+        rewrite (rank_pgroup (pcore_pgroup _ _)) (p_rank_Sylow sylMq).
         by rewrite p_rank_gt0 pi_max_pdiv cardG_gt1 mmax_neq1.
       have sylMqG: q.-Sylow(G) 'O_q(M).
         by rewrite (mmax_sigma_Sylow maxM) ?defNMq.
       rewrite (sub_pHall sylMqG qQ) ?subsetT // defNMq; split=> //.
       have: 'r_p(G) > 2.
         by rewrite (leq_trans Age3) // (rank_pgroup pA) p_rankS ?subsetT.
-      apply: contraL; move/eqP <-; rewrite (p_rank_Sylow sylMqG).
+      apply: contraL; move/eqP <-; rewrite -(p_rank_Sylow sylMqG).
       rewrite -leqNgt -(rank_pgroup (pcore_pgroup _ _)) /=.
       by rewrite -p_core_Fitting (leq_trans _ Fle2) // rankS ?pcore_sub.
     have trCRq': [transitive 'O_p^'('C(R)), on |/|*(R; q) | 'JG].
@@ -376,7 +376,7 @@ have uNP0_mCA: forall M, M \in 'M('C(A)) -> 'M('N(P0)) = [set M].
       rewrite commGC -sub_astabQR // (subset_trans sP0_LM') //. 
       have: is_abelem (U / V) := sol_chief_abelem solLM chUV.
       case/is_abelemP=> q _; case/andP=> qUV _.
-      apply: rank2_cent_chief qUV sUDL; rewrite ?mFT_odd //.
+      apply: rank2_der1_cent_chief qUV sUDL; rewrite ?mFT_odd //.
       exact: leq_trans (p_rank_le_rank _ _) DLle2.
     rewrite centsC (subset_trans cDL_P0) ?centS ?setIS //.
     by rewrite (subset_trans _ sCxL) // -cent_set1 centS ?sub1set.
@@ -384,7 +384,7 @@ have uNP0_mCA: forall M, M \in 'M('C(A)) -> 'M('N(P0)) = [set M].
     have [q q_pr -> /= Fq3] := rank_witness [group of F].
     have Mq3: 'r('O_q(M)) >= 3.
       rewrite (rank_pgroup (pcore_pgroup _ _)) /= -p_core_Fitting.
-      by rewrite -(p_rank_Sylow (nilpotent_pcore_Hall _ (Fitting_nil _))).
+      by rewrite (p_rank_Sylow (nilpotent_pcore_Hall _ (Fitting_nil _))).
     have uMq: 'O_q(M)%G \in 'U.
       exact: any_rank3_Fitting_Uniqueness Fq3 (pcore_pgroup _ _) Mq3.
     apply: def_uniq_mmaxS (def_uniq_mmax uMq maxM (pcore_sub q _)); last first.

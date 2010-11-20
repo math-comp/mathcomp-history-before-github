@@ -386,13 +386,13 @@ move=> x p Hp; have: x \in x :: p by exact: mem_head.
 elim: p x {1 3 5}x Hp => [|y2 p Hrec] x y1.
   by rewrite mem_seq1 => _; move/eqP->; split.
 rewrite in_cons orbC /=; case/andP=> Hy12 Hp.
-case: ifP => y2p_x.
+case: ifP => y2p_x; rewrite ?y2p_x.
   case: (Hrec _ _ Hp y2p_x) => p' Hp' Up' Hp'p _.
   by split=> // y; move/Hp'p; exact: predU1r.
 case: (Hrec y2 _ Hp) => /= [|p' Hp' Up' Hp'p]; first by rewrite mem_head.
 have{Hp'p} Hp'p: subpred (mem (y2 :: p')) (mem (y2 :: p)).
   by move=> z; rewrite /= !in_cons; case: (z == y2); last exact: Hp'p.
-rewrite y2p_x -(last_cons x); move/eqP=> xy1.
+rewrite -(last_cons x); move/eqP=> xy1.
 split=> //=; first by rewrite xy1 Hy12.
 by rewrite {}Up' andbT; apply/negP; move/Hp'p; case/negPf.
 Qed.
@@ -566,7 +566,7 @@ case: s => // x1 [//|x2 s _]; move/ltnW; move/IHn=> {n IHn}IHs.
 rewrite -{IHs}(perm_eqrP (IHs _)) ifE; set s1 := if_expr _ _ _.
 rewrite (catA _ [::_;_] s) {s}perm_cat2r.
 apply: (@perm_eq_trans _ (catss ss ++ s1)).
-  by rewrite perm_cat2l /s1 -ifE; case ifP; rewrite // (perm_catC [::_]).
+  by rewrite perm_cat2l /s1 -ifE; case: ifP; rewrite // (perm_catC [::_]).
 elim: ss {x1 x2}s1 => /= [|s2 ss IHss] s1; first by rewrite cats0.
 rewrite perm_catC; case def_s2: {2}s2=> /= [|y s2']; first by rewrite def_s2.
 by rewrite catA -{IHss}(perm_eqrP (IHss _)) perm_catC perm_cat2l -perm_merge.

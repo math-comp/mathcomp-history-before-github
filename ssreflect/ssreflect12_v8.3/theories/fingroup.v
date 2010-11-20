@@ -1387,7 +1387,7 @@ Proof. by rewrite lt0n; apply/existsP; exists (1 : gT). Qed.
 (* subgoals that have been simplified (by /=) because type inference in the   *)
 (* notation #|G| introduces redexes of the form                               *)
 (*    Finite.sort (arg_finGroupType (FinGroup.base gT))                       *)
-(* which gets collaped fo Fingroup.arg_sort (FinGroup.base gT).               *)
+(* which get collapsed to Fingroup.arg_sort (FinGroup.base gT).               *)
 Definition cardG_gt0_reduced : 0 < card (@mem gT (predPredType gT) G)
   := cardG_gt0.
 

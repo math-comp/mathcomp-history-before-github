@@ -467,7 +467,7 @@ suffices: P \subset K.
   have nKP: P \subset 'N(K) by rewrite (subset_trans sPx) ?cycle_subG.
   rewrite -quotient_sub1 //= -/K (sameP trivgP eqP) trivg_card1.
   rewrite (card_Hall (morphim_pHall _ nKP sylP)) def_p part_pnat_id ?pnat_id //.
-  by case: eqnP p_pr => // ->.
+  by case: eqP p_pr => // ->.
 suffices sP_pAC: P \subset 'O_pi^'(A <*> 'C(A)).
   rewrite (subset_trans sP_pAC) ?pcore_max ?pcore_pgroup //.
   rewrite /normal (char_norm_trans (pcore_char _ _)) ?normsG ?joing_subr //.

@@ -1381,7 +1381,57 @@ Qed.
 Lemma TI_pcoreC : forall pi G H, 'O_pi(G) :&: 'O_pi^'(H) = 1.
 Proof. by move=> pi G H; rewrite coprime_TIg ?coprime_pcoreC. Qed.
 
+Lemma pcore_setI_normal : forall pi G H, H <| G -> 'O_pi(G) :&: H = 'O_pi(H).
+Proof.
+move=> pi G H nsHG; apply/eqP; rewrite eqEsubset subsetI pcore_sub.
+rewrite !pcore_max ?(pgroupS (subsetIl _ H)) ?pcore_pgroup //=.
+  exact: char_normal_trans (pcore_char pi H) nsHG.
+by rewrite setIC (normalGI (normal_sub nsHG)) ?pcore_normal.
+Qed.
+
 End EqPcore.
 
 Implicit Arguments sdprod_Hall_pcoreP [gT pi G H].
 Implicit Arguments sdprod_Hall_p'coreP [gT pi G H].
+
+Section Injm.
+
+Variables (aT rT : finGroupType) (D : {group aT}) (f : {morphism D >-> rT}).
+Hypothesis injf : 'injm f.
+Implicit Types A : {set aT}.
+Implicit Types G H : {group aT}.
+
+Lemma injm_pgroup : forall pi A,
+  A \subset D -> pi.-group (f @* A) = pi.-group A.
+Proof. by move=> pi A sAD; rewrite /pgroup card_injm. Qed.
+
+Lemma injm_pelt : forall pi x, x \in D -> pi.-elt (f x) = pi.-elt x.
+Proof. by move=> pi x Dx; rewrite /p_elt order_injm. Qed.
+
+Lemma injm_pHall : forall pi G H,
+  G \subset D -> H \subset D -> pi.-Hall(f @* G) (f @* H) = pi.-Hall(G) H.
+Proof. by move=> pi G H sGD sGH; rewrite !pHallE injmSK ?card_injm. Qed.
+
+Lemma injm_pcore : forall pi G, G \subset D -> f @* 'O_pi(G) = 'O_pi(f @* G).
+Proof. by move=> pi G; exact: bgFunc_ascont. Qed.
+
+Lemma injm_pseries : forall pis G,
+  G \subset D -> f @* pseries pis G = pseries pis (f @* G).
+Proof. by move=> pis G; exact: bgFunc_ascont. Qed.
+
+End Injm.
+
+Section Isog.
+
+Variables (aT rT : finGroupType) (G : {group aT}) (H : {group rT}).
+
+Lemma isog_pgroup : forall pi, G \isog H -> pi.-group G = pi.-group H.
+Proof. by move=> pi isoGH; rewrite /pgroup (card_isog isoGH). Qed.
+
+Lemma isog_pcore : forall pi, G \isog H -> 'O_pi(G) \isog 'O_pi(H).
+Proof. by move=> pi; exact: bgFunc_isog. Qed.
+
+Lemma isog_pseries : forall pis, G \isog H -> pseries pis G \isog pseries pis H.
+Proof. by move=> pis; exact: bgFunc_isog. Qed.
+
+End Isog.

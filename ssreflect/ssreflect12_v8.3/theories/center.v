@@ -208,6 +208,10 @@ Canonical Structure gFunc_center := GFunc center_cont.
 
 Canonical Structure hgFunc_center := HGFunc center_hereditary.
 
+Lemma isog_center : forall (aT rT : finGroupType),
+  forall (G : {group aT}) (H : {group rT}), G \isog H -> 'Z(G) \isog 'Z(H).
+Proof. move=> aT rT G H; exact: bgFunc_isog. Qed.
+
 Section Product.
 
 Variable gT : finGroupType.
