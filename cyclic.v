@@ -263,6 +263,8 @@ Proof. by rewrite /order => a b; move/(<[a]> =P _)->. Qed.
 
 End Cyclic.
 
+Implicit Arguments cyclicP [gT A].
+
 (* Euler's theorem *)
 Theorem Euler : forall a n, coprime a n -> a ^ phi n  = 1 %[mod n].
 Proof.
@@ -515,7 +517,7 @@ Qed.
 
 Lemma cyclic_metacyclic : forall A, cyclic A -> metacyclic A.
 Proof.
-move=> A; case/cyclicP => x ->; apply/existsP; exists (<[x]>)%G.
+move=> A; case/cyclicP=> x ->; apply/existsP; exists (<[x]>)%G.
 by rewrite normal_refl cycle_cyclic trivg_quotient cyclic1.
 Qed.
 
@@ -529,6 +531,8 @@ by rewrite setIC (isog_cyclic (second_isog nKH)) /= (cyclicS (quotientS K sHG)).
 Qed.
 
 End Metacyclic.
+
+Implicit Arguments metacyclicP [gT A].
 
 (* Automorphisms of cyclic groups. *)
 Section CyclicAutomorphism.

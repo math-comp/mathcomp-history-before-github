@@ -764,7 +764,8 @@ Qed.
 (* This is B & G, Theorem 12.7. *)
 Theorem nonabelian_tau2 : forall M E p A P0,
     M \in 'M -> \sigma(M)^'.-Hall(M) E -> p \in \tau2(M) -> A \in 'E_p^2(E) ->
-    p.-group P0 -> ~~ abelian P0 -> let Ms := M`_\sigma in let A0 := 'C_A(Ms)%G in
+    p.-group P0 -> ~~ abelian P0 ->
+    let Ms := M`_\sigma in let A0 := 'C_A(Ms)%G in
  [/\ (*a*) \tau2(M) =i (p : nat_pred),
      (*b*) #|A0| = p /\ Ms \x A0 = 'F(M),
      (*c*) forall X,
@@ -816,7 +817,7 @@ have def_t2: \tau2(M) =i (p : nat_pred).
     by apply: dvdn_trans (cardSg cAB); rewrite (card_pnElem Eq2B) dvdn_mull.
   have [Q maxQ sBQ] := max_normed_exists qB nBA.
   have nnQ: q.-narrow Q.
-    apply/orP; right; apply/set0Pn; exists B.
+    apply/implyP=> _; apply/set0Pn; exists B.
     rewrite 3!inE sBQ abelB dimB (subsetP (pmaxElemS q (subsetT Q))) //=.
     rewrite setIC 2!inE sBQ; case: (tau2_not_beta maxM t2Mq) => _ -> //.
     by rewrite (subsetP (pnElemS _ _ sEM)).
@@ -2212,7 +2213,8 @@ have [rCPXgt2 | rCPXle2] := ltnP 2 'r_p('C_P(X)).
   apply: (def_uniq_mmax (rank3_Uniqueness _ _)) => //.
   exact: leq_trans (p_rank_le_rank p _).
 have nnP: p.-narrow P.
-  by rewrite /narrow; case: leqP => // rPgt2; exact: CRS2_narrow rCPXle2.
+  apply: wlog_neg; rewrite negb_imply; case/andP=> rP _.
+  by apply/narrow_centP; rewrite ?mFT_odd //; exists X.
 have{bMp_sXMs'} [bM'p sXMs']: p \notin \beta(M) /\ X \subset Ms^`(1).
   move: bMp_sXMs'; rewrite -(predI_sigma_beta maxM) inE /=.
   case: andP => // [[_]]; move/forall_inP; move/(_ P); rewrite inE nnP sylP_G.
@@ -2228,8 +2230,7 @@ have{defMs} sXP': X \subset P^`(1).
   by rewrite -defMs mul_subG ?normG.
 have [rPgt2 | rPle2] := ltnP 2 'r_p(P).
   case/eqP: ntX; rewrite -(setIidPl sXP').
-  have{nnP} nnP := narrow_noncyclic rPgt2 nnP.
-  by case/(odd_rank3_narrow pP (mFT_odd P)): rCPXle2.
+  by case/(narrow_cent_dprod pP (mFT_odd P)): rCPXle2.
 have not_cPP: ~~ abelian P.
   by rewrite (sameP derG1P eqP) (subG1_contra sXP') ?ntX.
 have sXZ: X \subset 'Z(P).

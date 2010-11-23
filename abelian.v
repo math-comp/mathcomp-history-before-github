@@ -975,40 +975,10 @@ move=> G; have [B defG <-] := grank_witness G; rewrite -defG gen_subG => sBD.
 by rewrite morphim_gen ?morphimEsub ?(leq_trans (grank_min _)) ?leq_imset_card.
 Qed.
 
-(* There are no general morphism relations for the p-rank. *)
+(* There are no general morphism relations for the p-rank. We later prove     *)
+(* some relations for the p-rank of a quotient in the QuotientAbelem section. *)
 
 End MorphAbelem.
-
-Section QuotientAbelem.
-
-Variables (gT : finGroupType) (p n : nat) (G H : {group gT}).
-
-Lemma exponent_quotient : exponent (G / H) %| exponent G.
-Proof. exact: exponent_morphim. Qed.
-
-Lemma quotient_LdivT : forall n, 'Ldiv_n() / H \subset 'Ldiv_n().
-Proof. exact: morphim_LdivT. Qed.
-
-Lemma quotient_Ldiv : forall n A, 'Ldiv_n(A) / H \subset 'Ldiv_n(A / H).
-Proof. exact: morphim_Ldiv. Qed.
-
-Lemma quotient_abelem : p.-abelem G -> p.-abelem (G / H).
-Proof. exact: morphim_abelem. Qed.
-
-Lemma quotient_pElem : forall E, E \in 'E_p(G) -> (E / H)%G \in 'E_p(G / H).
-Proof. exact: morphim_pElem. Qed.
-
-Lemma logn_quotient : logn p #|G / H| <= logn p #|G|.
-Proof. exact: logn_morphim. Qed.
-
-Lemma logn_quotient_pnElem : forall E,
-  E \in 'E_p^n(G) -> {m | m <= n & (E / H)%G \in 'E_p^m(G / H)}.
-Proof. exact: morphim_pnElem. Qed.
-
-Lemma quotient_grank : G \subset 'N(H) -> 'm(G / H) <= 'm(G).
-Proof. exact: morphim_grank. Qed.
-
-End QuotientAbelem.
 
 Section InjmAbelem.
 
@@ -1112,15 +1082,73 @@ Proof. by case/isogP: isoGH => f injf <-; rewrite injm_rank. Qed.
 
 End IsogAbelem.
 
-Lemma p_rank_p'quotient : forall (gT : finGroupType) p (G H : {group gT}),
+Section QuotientAbelem.
+
+Variables (gT : finGroupType) (p : nat).
+Implicit Types E G K H : {group gT}.
+
+Lemma exponent_quotient : forall G H, exponent (G / H) %| exponent G.
+Proof. by move=> G H; exact: exponent_morphim. Qed.
+
+Lemma quotient_LdivT : forall n H, 'Ldiv_n() / H \subset 'Ldiv_n().
+Proof. by move=> n H; exact: morphim_LdivT. Qed.
+
+Lemma quotient_Ldiv : forall n A H, 'Ldiv_n(A) / H \subset 'Ldiv_n(A / H).
+Proof. by move=> n A H; exact: morphim_Ldiv. Qed.
+
+Lemma quotient_abelem : forall G H, p.-abelem G -> p.-abelem (G / H).
+Proof. by move=> G H; exact: morphim_abelem. Qed.
+
+Lemma quotient_pElem : forall G H E, E \in 'E_p(G) -> (E / H)%G \in 'E_p(G / H).
+Proof. by move=> G H E; exact: morphim_pElem. Qed.
+
+Lemma logn_quotient : forall G H, logn p #|G / H| <= logn p #|G|.
+Proof. by move=> G H; exact: logn_morphim. Qed.
+
+Lemma logn_quotient_pnElem : forall G H n E,
+  E \in 'E_p^n(G) -> {m | m <= n & (E / H)%G \in 'E_p^m(G / H)}.
+Proof. by move=> G H n E; exact: morphim_pnElem. Qed.
+
+Lemma quotient_grank : forall G H, G \subset 'N(H) -> 'm(G / H) <= 'm(G).
+Proof. by move=> G H; exact: morphim_grank. Qed.
+
+Lemma p_rank_quotient : forall G H,
+  G \subset 'N(H) -> 'r_p(G) - 'r_p(H) <= 'r_p(G / H).
+Proof.
+move=> G H nHG; rewrite leq_sub_add.
+have [E EpE] := p_rank_witness p G; have{EpE} [sEG abelE <-] := pnElemP EpE.
+rewrite -(LaGrangeI E H) logn_mul ?cardG_gt0 //.
+rewrite -card_quotient ?(subset_trans sEG) // leq_add ?logn_le_p_rank // !inE.
+  by rewrite subsetIr (abelemS (subsetIl E H)).
+by rewrite quotientS ?quotient_abelem.
+Qed.
+
+Lemma p_rank_dprod : forall K H G, K \x H = G -> 'r_p(K) + 'r_p(H) = 'r_p(G).
+Proof.
+move=> K H G defG; apply/eqP; rewrite eqn_leq -leq_sub_add andbC.
+have [_ defKH cKH tiKH] := dprodP defG; have nKH := cents_norm cKH.
+rewrite {1}(isog_p_rank (quotient_isog nKH tiKH)) /= -quotientMidl defKH.
+rewrite p_rank_quotient; last by rewrite -defKH mul_subG ?normG.
+have [[E EpE] [F EpF]] := (p_rank_witness p K, p_rank_witness p H).
+have [[sEK abelE <-] [sFH abelF <-]] := (pnElemP EpE, pnElemP EpF).
+have defEF: E \x F = E <*> F.
+  by rewrite dprodEY ?(centSS sFH sEK) //; apply/trivgP; rewrite -tiKH setISS.
+apply/p_rank_geP; exists (E <*> F)%G; rewrite !inE (dprod_abelem p defEF).
+rewrite -logn_mul ?cargG_gt0 // (dprod_card defEF) abelE abelF eqxx.
+by rewrite -(genGid G) -defKH genM_join genS ?setUSS.
+Qed.
+
+Lemma p_rank_p'quotient : forall G H,
   (p : nat)^'.-group H -> G \subset 'N(H) -> 'r_p(G / H) = 'r_p(G).
 Proof.
-move=> gT p G H p'H nHG; have [P sylP] := Sylow_exists p G.
+move=> G H p'H nHG; have [P sylP] := Sylow_exists p G.
 have [sPG pP _] := and3P sylP; have nHP := subset_trans sPG nHG.
 have tiHP: H :&: P = 1 := coprime_TIg (p'nat_coprime p'H pP).
 rewrite -(p_rank_Sylow sylP) -(p_rank_Sylow (quotient_pHall nHP sylP)).
 by rewrite (isog_p_rank (quotient_isog nHP tiHP)).
 Qed.
+
+End QuotientAbelem.
 
 Section OhmProps.
 

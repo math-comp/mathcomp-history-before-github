@@ -265,9 +265,9 @@ Lemma SCN_Fitting_Uniqueness : forall p M P A,
     'r_p('F(M)) >= 3 -> A \in 'SCN_3(P) ->
   [/\ p.-Sylow(G) P, A \subset 'F(M) & A \in 'U].
 Proof.
-move=> p M P A maxM; set F := 'F(M) => pF sylP dimFp3 SCN3_A.
-have [SCN_A dimA3] := setIdP SCN3_A; have [nsAP defCA] := SCN_P _ _ SCN_A.
-have cAA := SCN_abelian SCN_A; have sAP := normal_sub nsAP.
+move=> p M P A maxM; set F := 'F(M) => pF sylP dimFp3 scn3_A.
+have [scnA dimA3] := setIdP scn3_A; have [nsAP defCA] := SCN_P scnA.
+have cAA := SCN_abelian scnA; have sAP := normal_sub nsAP.
 have [sPM pP _] := and3P sylP; have sAM := subset_trans sAP sPM.
 have{dimA3} ntA: A :!=: 1 by case: eqP dimA3 => // ->; rewrite rank1.
 have prM := mmax_proper maxM; have solM := mFT_sol prM.
@@ -297,7 +297,7 @@ have sNPM: 'N(P) \subset M.
   by rewrite -subG1 -P1 sAP in ntA.
 have sylPG: p.-Sylow(G) P := mmax_sigma_Sylow maxM sylP sNPM.
 split; rewrite // (uniq_mmax_subset1 maxM sAM).
-have{SCN3_A} SCN3_A: A \in 'SCN_3[p] by apply/bigcupP; exists P; rewrite // inE.
+have{scn3_A} scn3_A: A \in 'SCN_3[p] by apply/bigcupP; exists P; rewrite // inE.
 pose K := 'O_p^'('C(A)); have sKF: K \subset F.
   have sKM: K \subset M := subset_trans (pcore_sub _ _) sCAM.
   apply: subset_trans (cent_sub_Fitting solM).
@@ -393,7 +393,7 @@ case/orP: (orbN (p.-group 'F(M))) => [pF | npF].
   have dimP3: 'r_p(P) >= 3.
     rewrite (p_rank_Sylow sylP) (leq_trans dimF3) //.
     by rewrite p_rankS ?Fitting_sub.
-  have [A] := p_rank_3_SCN pP (mFT_odd _) dimP3.
+  have [A] := rank3_SCN3 pP (mFT_odd _) dimP3.
   by case/(SCN_Fitting_Uniqueness maxM pF)=> // _ sAF; exact: uniq_mmaxS.
 case/p_rank_geP: dimF3 => A; case/setIdP=> EpA dimA3.
 have [A0 maxA0 sAA0] := @maxgroup_exists _ [pred X \in 'E_p('F(M))] _ EpA.

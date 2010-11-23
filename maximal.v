@@ -1706,3 +1706,5 @@ by case: eqP => //= _; move/eqP=> oyq; case: qG; rewrite -oyq order_dvdG.
 Qed.
 
 End SCN.
+
+Implicit Arguments SCN_P [gT G A].

@@ -35,6 +35,7 @@ mxpoly.v
 cyclic.v
 pgroup.v
 center.v
+mxrepresentation.v
 gseries.v
 jordanholder.v
 nilpotent.v
@@ -47,14 +48,13 @@ extraspecial.v
 primitive_action.v
 frobenius.v
 hall.v
-mxrepresentation.v
 mxabelem.v
 BGsection1.v
 BGsection2.v
 BGsection3.v
 BGsection4.v
-BGappendixAB.v
 BGsection5.v
+BGappendixAB.v
 BGsection6.v
 BGsection7.v
 BGsection8.v

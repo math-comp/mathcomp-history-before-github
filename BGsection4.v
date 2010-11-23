@@ -467,7 +467,7 @@ Lemma Ohm1_metacyclic_p2Elem : forall gT p (R : {group gT}),
   'Ohm_1(R)%G \in 'E_p^2(R).
 Proof.
 move=> gT p R; case/metacyclicP=> S [cycS nsSR cycRb] pR oddR ncycR.
-have [[sSR nSR] [s defS]] := (andP nsSR, cyclicP S cycS).
+have [[sSR nSR] [s defS]] := (andP nsSR, cyclicP cycS).
 have [T defTb sST sTR] := inv_quotientS nsSR (Ohm_sub 1 (R / S)).
 have [pT oddT] := (pgroupS sTR pR, oddSg sTR oddR).
 have Ts: s \in T by rewrite -cycle_subG -defS.
@@ -520,16 +520,16 @@ have{n IHn leRn EpT} metaRb: metacyclic (R / T).
   have pRb: p.-group (R / T) := quotient_pgroup T pR.
   have dimRb: logn p #|'Ohm_1(R / T)| <= 2 by exact: quotient_p2_Ohm1.
   by rewrite IHn ?(leq_trans (ltn_quotient _ _)) ?(nt_pnElem EpT).
-have{metaRb} [Xb [cycXb nsXbR cycRs]] := metacyclicP (R / T) metaRb.
+have{metaRb} [Xb [cycXb nsXbR cycRs]] := metacyclicP metaRb.
 have{cycRs} [yb defRb]: exists yb, R / T = Xb <*> <[yb]>.
-  have [ys defRs] := cyclicP _ cycRs; have [yb nXyb def_ys] := cosetP ys.
+  have [ys defRs] := cyclicP cycRs; have [yb nXyb def_ys] := cosetP ys.
   exists yb; rewrite -quotientYK ?cycle_subG ?quotient_cycle // -def_ys -defRs.
   by rewrite quotientGK.
 have{sTZ} ntXb: Xb :!=: 1.
   apply: contraNneq not_cRR => Xb1.
   by rewrite (cyclic_factor_abelian sTZ) // defRb Xb1 joing1G cycle_cyclic.
 have [TX defTXb sTTX nsTXR] := inv_quotientN nsTR nsXbR.
-have{cycXb} [[sTXR nTXR] [xb defXb]] := (andP nsTXR, cyclicP _ cycXb).
+have{cycXb} [[sTXR nTXR] [xb defXb]] := (andP nsTXR, cyclicP cycXb).
 have [[x nTx def_xb] [y nTy def_yb]] := (cosetP xb, cosetP yb).
 have{defTXb} defTX: T <*> <[x]> = TX.
   rewrite -quotientYK ?cycle_subG ?quotient_cycle // -def_xb -defXb defTXb.
@@ -616,7 +616,7 @@ have [U defUs sSU sUR] := inv_quotientS nsSR sUsR.
 have [cycU | {maxS} ncycU] := boolP (cyclic U).
   by rewrite -[p]oUs defUs (maxS U) ?sUR // trivg_quotient cards1 in p_gt1.
 have EpU1: 'Ohm_1(U)%G \in 'E_p^2(U).
-  have [u defS] := cyclicP S cycS; rewrite defS cycle_subG in sSU.
+  have [u defS] := cyclicP cycS; rewrite defS cycle_subG in sSU.
   rewrite (Ohm1_extremal_odd (pgroupS sUR pR) (oddSg sUR oddR) _ sSU) //.
   by rewrite -defS -card_quotient -?defUs // (subset_trans sUR).
 have defU1: 'Ohm_1(U) = 'Ohm_1(R).
@@ -682,7 +682,7 @@ pose cycR_nA S := [&& cyclic S, S \subset R & A \subset 'N(S)].
 have [S maxS sR'S] : {S | [max S | cycR_nA S] & R^`(1) \subset S}.
   apply: maxgroup_exists; rewrite {}/cycR_nA der_sub /=.
   rewrite (char_norm_trans (der_char 1 _)) // andbT.
-  have [K [cycK nsKR cycKR]] := metacyclicP R metaR.
+  have [K [cycK nsKR cycKR]] := metacyclicP metaR.
   by rewrite (cyclicS _ cycK) // der1_min ?normal_norm // cyclic_abelian.
 case/maxgroupP: maxS; case/and3P=> cycS sSR nSA maxS.
 have ntS: S :!=: 1 by rewrite (subG1_contra sR'S) // (sameP eqP derG1P).
@@ -927,7 +927,7 @@ have{abelT} defB1: 'Ohm_1(B) = T.
   rewrite (card_pgroup pT) (card_pgroup pB1) leq_exp2l //= -/T -/B.
   rewrite dimT -ltnS -dimS properG_ltn_log // properEneq OhmS ?subsetIl //= -/S.
   by case: eqP not_sSB => // <-; rewrite Ohm_sub.
-have{ziTX defB1} cycX: cyclic X; last have [x defX]:= cyclicP _ cycX.
+have{ziTX defB1} cycX: cyclic X; last have [x defX]:= cyclicP cycX.
   rewrite (odd_pgroup_rank1_cyclic pX (oddSg sXR oddR)) -p_rank_Ohm1.
   have:= cycC; rewrite abelian_rank1_cyclic ?cyclic_abelian //= -/C.
   apply: leq_trans (leq_trans (p_rank_le_rank p _) (rankS _)).
