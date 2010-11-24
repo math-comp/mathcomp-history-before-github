@@ -3538,16 +3538,23 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
   let gl = unify_HO gl pred elim_pred in
   (* check that the patterns do not contain non instantiated dependent metas *)
   let () = 
-    let indices = List.map (fun (_,_,t,_,_) -> fire_subst gl t) patterns in
-    let ids = List.fold_left (fun ev t ->
-      Intset.union ev (Evarutil.evars_of_term t)) Intset.empty indices in
-    let ty_ids = List.fold_left (fun e i -> 
+    let evars_of_term = Evarutil.evars_of_term in
+    let patterns = List.map (fun (_,_,t,_,_) -> fire_subst gl t) patterns in
+    let patterns_ev = List.map evars_of_term patterns in 
+    let ev = List.fold_left Intset.union Intset.empty patterns_ev in
+    let ty_ev = Intset.fold (fun i e ->
          let ex = Evd.existential_of_int i in  
          let i_ty = Evd.evar_concl (Evd.find (project gl) ex) in
-         Intset.union e (Evarutil.evars_of_term i_ty))
-      Intset.empty (Intset.elements ids) in
-    if not (Intset.is_empty (Intset.inter ids ty_ids)) then 
-        errorstrm(str "Pattern XXXXX was not instantiated")
+         Intset.union e (evars_of_term i_ty))
+      ev Intset.empty in
+    let inter = Intset.inter ev ty_ev in
+    if not (Intset.is_empty inter) then begin
+      let i = Intset.choose inter in
+      let pat = List.find (fun t -> Intset.mem i (evars_of_term t)) patterns in
+      errorstrm(str"Pattern"++spc()++pr_constr_pat pat++spc()++
+        str"was not completely instantiated and its variable "++int i++spc()++
+        str"occurs in the type of another non instantieted pattern variable");
+    end
   in
   (* the elim tactic, with the eliminator and the predicated we computed *)
   let elim = fire_subst gl elim in
