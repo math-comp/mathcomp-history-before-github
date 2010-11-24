@@ -406,7 +406,7 @@ have [regQ | nregQ] := eqVneq 'C_Q(A) 1; last first.
   have [|Qm] := max_normed_2Elem_signaliser q'p _ maxQstar CAq.
     by rewrite inE (subsetP (pnElemS p 2 (subsetT M))).
   case=> _ sAQm [_ _ cQstarQm]; rewrite (centSS sAQm sQ_Qstar) // in not_cQA.
-  apply: cQstarQm; apply/orP; right; apply/set0Pn; exists B.
+  apply: cQstarQm; apply/implyP=> _; apply/set0Pn; exists B.
   have{Eq2B} Eq2B := subsetP (pnElemS q 2 sQ_Qstar) B Eq2B.
   rewrite inE Eq2B (subsetP (pmaxElemS q (subsetT _))) // inE maxB inE.
   by have [? _ _] := pnElemP Eq2B.

@@ -744,7 +744,7 @@ have{B1_if Bfree_if}:= leqif_add B1_if (leqif_sum Bfree_if).
 case/(leqif_trans (mxrank_sum_leqif _)) => _ /=.
 rewrite -{1}(big_setD1 _ cl1) sumB {}rankEP (big_setD1 1%g) // cards1 eqxx.
 move/esym; case/and3P=> dxB; move/eqmxP=> defB1; move/forall_inP=> /= Bfree.
-have [yg defH] := cyclicP H cycH; pose g := rG yg.
+have [yg defH] := cyclicP cycH; pose g := rG yg.
 have Hxg: yg \in H by [rewrite defH cycle_id]; have Gyg := subsetP sHG _ Hxg.
 pose gE : 'A_q := lin_mx (mulmx (invmx g) \o mulmxr g).
 pose yr := regular_repr F H yg.

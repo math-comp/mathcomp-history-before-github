@@ -42,6 +42,7 @@ theories/mxpoly.v
 theories/cyclic.v
 theories/pgroup.v
 theories/center.v
+theories/mxrepresentation.v
 theories/gseries.v
 theories/jordanholder.v
 theories/nilpotent.v
@@ -54,14 +55,13 @@ theories/extraspecial.v
 theories/primitive_action.v
 theories/frobenius.v
 theories/hall.v
-theories/mxrepresentation.v
 theories/mxabelem.v
 theories/BGsection1.v
 theories/BGsection2.v
 theories/BGsection3.v
 theories/BGsection4.v
-theories/BGappendixAB.v
 theories/BGsection5.v
+theories/BGappendixAB.v
 theories/BGsection6.v
 theories/BGsection7.v
 theories/BGsection8.v

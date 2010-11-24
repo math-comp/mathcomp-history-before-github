@@ -292,6 +292,11 @@ Variable G : {group gT}.
 Lemma injm_conj : forall x, 'injm (conjgm G x).
 Proof. move=> x; apply/injmP; apply: in2W; exact: conjg_inj. Qed.
 
+Lemma conj_isog : forall x, G :^ x \isog G.
+Proof.
+by move=> x; rewrite -{1}(setIid G) -morphim_conj isog_sym sub_isog ?injm_conj.
+Qed.
+
 Lemma im_conjgm_norm : forall x, x \in 'N(G) -> conjgm G x @* G = G.
 Proof. move=> x; rewrite morphimEdom; exact: normP. Qed.
 

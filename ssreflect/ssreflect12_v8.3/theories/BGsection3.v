@@ -74,7 +74,7 @@ move=> gT G K R ntK R_pr; have ntR: R :!=: 1 by rewrite -cardG_gt1 prime_gt1.
 have [defG | not_sdG] := eqVneq (K ><| R) G; last first.
   by apply: (iffP andP) => [] [defG]; rewrite defG ?eqxx in not_sdG.
 apply: (iffP (Frobenius_semiregularP defG ntK ntR)) => [|[_]] regR.
-  split=> //; have [x defR] := cyclicP _ (prime_cyclic R_pr).
+  split=> //; have [x defR] := cyclicP (prime_cyclic R_pr).
   by rewrite defR cent_cycle regR // !inE defR cycle_id andbT -cycle_eq1 -defR.
 move=> x; case/setD1P=> nt_x Rx; apply/trivgP.
 rewrite /= -cent_cycle -regR setIS ?centS //.
@@ -1109,7 +1109,7 @@ have defV: <<\bigcup_(Vi \in S) Vi>> = V.
   apply/andP; split; first by apply/bigcupsP; exact: sSV.
   rewrite -(coprime_abelian_gen_cent cKK nVK) ?(pnat_coprime pV) // gen_subG.
   apply/bigcupsP=> Kj /=; case/and3P=> cycKbj sKjK nKjK.
-  have [xb defKbj] := cyclicP _ cycKbj.
+  have [xb defKbj] := cyclicP cycKbj.
   have Kxb: xb \in K / Kj by rewrite defKbj cycle_id.
   set Vj := 'C_V(Kj); case: (eqsVneq Vj 1) => [-> | ntVj]; first exact: sub1G.
   have nt_xb: xb != 1.

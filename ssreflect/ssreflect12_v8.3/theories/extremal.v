@@ -204,7 +204,7 @@ Lemma cyclic_pgroup_Aut_structure : forall gT p (G : {group gT}),
                        m (s0 * t) = (2 ^ n).-1%:R & 'Ohm_1(<[s]>) = <[s0]>]]]].
 Proof.
 move=> gT p G pG cycG ntG q n0 A P F.
-have [x0 defG] := cyclicP _ cycG; have Gx0: x0 \in G by rewrite defG cycle_id.
+have [x0 defG] := cyclicP cycG; have Gx0: x0 \in G by rewrite defG cycle_id.
 have [p_pr p_dvd_G [n oG]] := pgroup_pdiv pG ntG.
 rewrite {1}/q oG pfactorK //= in n0 *; rewrite {}/n0.
 have [p_gt1 min_p] := primeP p_pr; have p_gt0 := ltnW p_gt1.
@@ -357,7 +357,7 @@ have defS1: 'Ohm_1(<[s]>) = <[s0]>.
   by apply/eqP=> s1; rewrite -os0 /s0 s1 exp1gn order1 in p_gt1.  
 case: (even_prime p_pr) => [p2 | oddp]; last first.
   rewrite {+}/e0 oddp subn0 in s0 os0 ms0 os ms defS1 *.
-  have [f defF] := cyclicP _ cycF; have defP: P = <[s]>.
+  have [f defF] := cyclicP cycF; have defP: P = <[s]>.
     apply/eqP; rewrite eq_sym eqEcard -orderE oP os leqnn andbT.
     by rewrite cycle_subG (mem_normal_Hall sylP) ?pcore_normal.
   rewrite defP; split; last 1 [by exists s | by exists s0; rewrite ?groupX].
@@ -1716,7 +1716,7 @@ have scXG: 'C_G(X) = X.
   apply: contraR not_cGG; case/subsetPn=> y; case/setIP=> Gy cXy notXy.
   rewrite -!cycle_subG in Gy notXy; rewrite -(mulg_normal_maximal nsXG _ Gy) //.
   by rewrite abelianM cycle_abelian cyclic_abelian // centsC cycle_subG.
-have [x defX] := cyclicP X cycX; have pX := pgroupS sXG pG.
+have [x defX] := cyclicP cycX; have pX := pgroupS sXG pG.
 have Xx: x \in X by [rewrite defX cycle_id]; have Gx := subsetP sXG x Xx.
 have [ox p_x]: #[x] = q /\ p.-elt x by rewrite defX in pX oX.
 pose Z := <[x ^+ r]>.
@@ -1872,7 +1872,7 @@ have ntU: U :!=: 1.
   by apply: contra ltUG; move/eqP=> U1; rewrite -(setIidPl (cents1 G)) -U1 scUG.
 have [p_pr _ [n oU]] := pgroup_pdiv pU ntU.
 have p_gt1 := prime_gt1 p_pr; have p_gt0 := ltnW p_gt1.
-have [u defU] := cyclicP _ cycU; have Uu: u \in U by rewrite defU cycle_id.
+have [u defU] := cyclicP cycU; have Uu: u \in U by rewrite defU cycle_id.
 have Gu := subsetP sUG u Uu; have p_u := mem_p_elt pG Gu.
 have defU1: 'Mho^1(U) = <[u ^+ p]> by rewrite defU (Mho_p_cycle _ p_u).
 have modM1: forall M : {group gT},
