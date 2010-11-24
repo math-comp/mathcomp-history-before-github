@@ -3478,8 +3478,8 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
       loop gl [] clr (List.length head_p+1) (deps, inf_deps) in
     head_p @ patterns, clr, gl
   in
-  pp(lazy(pp_concat (str"patterns=") 
-    (List.map (fun _,t,_,_,_ -> pr_constr_pat t) patterns)));
+  let pr_pat (_,t,_,_,_) = pr_constr_pat t in
+  pp(lazy(pp_concat (str"patterns=") (List.map pr_pat patterns)));
   pp(lazy(pp_concat (str"clr=") (List.map pr_hyp clr)));
   (* Predicate generation, and (if necessary) tactic to generalize the
    * equation asked by the user *)
@@ -3507,7 +3507,8 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
         List.fold_left match_or_postpone (concl, gl, []) patterns in
       if postponed = [] then concl, gl
       else if List.length postponed = List.length patterns then
-        errorstrm (str "XXX good error message")
+        errorstrm (str "Some patterns are undefined even after"++spc()++
+          str"the defined ones matched")
       else match_all concl gl postponed in
     let concl, gl = match_all concl gl patterns in
     let pred_rctx, _ = decompose_prod_assum (fire_subst gl predty) in
