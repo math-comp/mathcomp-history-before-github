@@ -3421,24 +3421,45 @@ let unprotecttac gl =
            Closure.RedFlags.fIOTA]), DEFAULTcast) hyploc)
     allHypsAndConcl gl
 
+let dependent_apply_error =
+  try Util.error "Could not fill dependent hole in \"apply\"" with err -> err
+
 (* TASSI: Sometimes Coq's apply fails. According to my experience it may be
  * related to goals that are products and with beta redexes. In that case it
  * guesses the wrong number of implicit arguments for your lemma. What follows
- * is just like apply, but with a user-provided number n of implicits *)
-let applyn n t gl =
-  let t, gl = if n = 0 then t, gl else
-    let sigma, si = project gl, sig_it gl in
-    let rec loop sigma bo args = function 
-      | 0 -> mkApp (t, Array.of_list (List.rev args)), re_sig si sigma 
-      | n -> match kind_of_term bo with
-        | Lambda (_, ty, bo) -> 
-            assert(closed0 ty); (* note: no dependent metas *)
-            let m = Evarutil.new_meta () in
-            loop (meta_declare m ty sigma) bo ((mkMeta m)::args) (n-1)
-        | _ -> assert false
-    in loop sigma t [] n in
-  let rule = Proof_type.Prim (Proof_type.Refine t) in
-  Refiner.refiner rule gl
+ * is just like apply, but with a user-provided number n of implicits.
+ *
+ * Refine.refine function that handles type classes and evars but fails to
+ * handle "dependently typed higher order evars". 
+ *
+ * Refiner.refiner that does not handle metas with a non ground type but works
+ * with dependently typed higher order metas. *)
+let applyn ~with_evars n t gl =
+  if with_evars then
+    let t, sigma = if n = 0 then t, project gl else
+      let ty = pf_type_of gl t in
+      let t, _, _, gl = saturate gl t ty n in (* saturate with evars *)
+      t, project gl in
+    pp(lazy(str"Refine.refine " ++ pr_constr t));
+    Refine.refine (sigma, t) gl
+  else
+    let t, gl = if n = 0 then t, gl else
+      let sigma, si = project gl, sig_it gl in
+      let rec loop sigma bo args = function (* saturate with metas *)
+        | 0 -> mkApp (t, Array.of_list (List.rev args)), re_sig si sigma 
+        | n -> match kind_of_term bo with
+          | Lambda (_, ty, bo) -> 
+              if not (closed0 ty) then raise dependent_apply_error;
+              let m = Evarutil.new_meta () in
+              loop (meta_declare m ty sigma) bo ((mkMeta m)::args) (n-1)
+          | _ -> assert false
+      in loop sigma t [] n in
+    pp(lazy(str"Refiner.refiner " ++ pr_constr t));
+    Refiner.refiner (Proof_type.Prim (Proof_type.Refine t)) gl
+
+let refine_with ?(with_evars=true) oc gl =
+  let n, oc = pf_abs_evars_pirrel gl oc in
+  try applyn ~with_evars n oc gl with _ -> raise dependent_apply_error
 
 (** The "case" and "elim" tactic *)
 
@@ -3628,10 +3649,9 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
     end
   in
   (* the elim tactic, with the eliminator and the predicated we computed *)
-  let elim = fire_subst gl elim in
-  let n, elim = pf_abs_evars orig_gl (project gl, elim) in  
+  let elim = project gl, fire_subst gl elim in 
   let elim_tac gl = 
-    tclTHENLIST [iD "E"; iD "EP" ~t:elim; applyn n elim; cleartac clr] gl in
+    tclTHENLIST [refine_with ~with_evars:false elim; cleartac clr] gl in
   (* handling of following intro patterns and equation introduction if any *)
   let elim_intro_tac gl = 
     let intro_eq = 
@@ -3814,12 +3834,6 @@ let interp_apply_view i ist gl gv =
   | [] -> view_error "apply" gl gv
   | hint :: hints -> try interp_with hint with _ -> loop hints in
   loop viewtab.(i)
-
-let dependent_apply_error =
-  try Util.error "Could not fill dependent hole in \"apply\"" with err -> err
-
-let rec refine_with oc gl =
-  try Refine.refine oc gl with _ -> raise dependent_apply_error
 
 let apply_id id gl =
   let n = pf_nbargs gl (mkVar id) in
