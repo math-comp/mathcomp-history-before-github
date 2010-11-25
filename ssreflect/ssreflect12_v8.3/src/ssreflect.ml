@@ -327,11 +327,13 @@ let mk_anon_id t gl =
   
 (* We must not anonymize context names discharged by the "in" tactical. *)
 
+let ssr_anon_hyp = "Hyp"
+
 let anontac (x, _, _) gl =
   let id =  match x with
   | Name id ->
     if is_discharged_id id then id else mk_anon_id (string_of_id id) gl
-  | _ -> mk_anon_id "Hyp" gl in
+  | _ -> mk_anon_id ssr_anon_hyp gl in
   introid id gl
 
 let rec constr_name c = match kind_of_term c with
@@ -496,6 +498,71 @@ let pf_abs_evars gl (sigma, c0) =
     loop (mkLambda (mk_evar_name n, get (i - 1) t, c)) (i - 1) evl
   | [] -> c in
   List.length evlist, loop (get 1 c0) 1 evlist
+
+(* as before but if (?i : T(?j)) and (?j : P : Prop), then the lambda for i
+ * looks like (fun evar_i : (forall pi : P. T(pi))) thanks to "loopP" and all 
+ * occurrences of evar_i are replaced by (evar_i evar_j) thanks to "app" *)
+let pf_abs_evars_pirrel gl (sigma, c0) =
+  pp(lazy(str"==PF_ABS_EVARS_PIRREL=="));
+  pp(lazy(str"c0= " ++ pr_constr c0));
+  let sigma0 = project gl in
+  let nenv = env_size (pf_env gl) in
+  let abs_evar n k =
+    let evi = Evd.find sigma k in
+    let dc = list_firstn n (evar_filtered_context evi) in
+    let abs_dc c = function
+    | x, Some b, t -> mkNamedLetIn x b t (mkArrow t c)
+    | x, None, t -> mkNamedProd x t c in
+    let t = Sign.fold_named_context_reverse abs_dc ~init:evi.evar_concl dc in
+    Evarutil.nf_evar sigma t in
+  let rec put evlist c = match kind_of_term c with
+  | Evar (k, a) ->  
+    if List.mem_assoc k evlist || Evd.mem sigma0 k then evlist else
+    let n = Array.length a - nenv in
+    let k_ty = 
+      Retyping.get_sort_family_of 
+        (pf_env gl) sigma (Evd.evar_concl (Evd.find sigma k)) in
+    let is_prop = k_ty = InProp in
+    let t = abs_evar n k in (k, (n, t, is_prop)) :: put evlist t
+  | _ -> fold_constr put evlist c in
+  let evlist = put [] c0 in
+  if evlist = [] then 0, c0 else
+  let pr_constr t = pr_constr (Reductionops.nf_beta (project gl) t) in
+  let evplist = List.filter (fun _,(_,_,b) -> b = true) evlist in
+  let rec lookup k i = function
+    | [] -> 0, 0, false
+    | (k', (n,_,b)) :: evl -> if k = k' then i,n,b else lookup k (i + 1) evl in
+  let rec get evlist i c = match kind_of_term c with
+  | Evar (ev, a) ->
+    let j, n, is_prop = lookup ev i evlist in
+    if j = 0 then map_constr (get evlist i) c else if n = 0 then mkRel j else
+    mkApp (mkRel j, Array.init n (fun k -> get evlist i a.(n - 1 - k)))
+  | _ -> map_constr_with_binders ((+) 1) (get evlist) i c in
+  let rec app extra_args i c = match decompose_app c with
+  | hd, args when isRel hd && destRel hd = i ->
+      let j = destRel hd in
+      mkApp (mkRel j, Array.of_list (List.map (lift (i-1)) extra_args @ args))
+  | _ -> map_constr_with_binders ((+) 1) (app extra_args) i c in
+  let rec loopP evlist c i = function
+  | (_, (n, t, _)) :: evl ->
+    let t = get evlist (i - 1) t in
+    let n = Name (id_of_string (ssr_anon_hyp ^ string_of_int n)) in 
+    loopP evlist (mkProd (n, t, c)) (i - 1) evl
+  | [] -> c in
+  let rec loop c i = function
+  | (_, (n, t, _)) :: evl ->
+    let evs = Evarutil.evars_of_term t in
+    let t_evplist = List.filter (fun (k,_) -> Intset.mem k evs) evplist in
+    let t = loopP t_evplist (get t_evplist 1 t) 1 t_evplist in
+    let t = get evlist (i - 1) t in
+    let extra_args = 
+      List.map (fun (k,_) -> mkRel (pi1 (lookup k i evlist))) t_evplist in
+    let c = if extra_args = [] then c else app extra_args 1 c in
+    loop (mkLambda (mk_evar_name n, t, c)) (i - 1) evl
+  | [] -> c in
+  let res = loop (get evlist 1 c0) 1 evlist in
+  pp(lazy(str"res= " ++ pr_constr res)); 
+  List.length evlist, res
 
 (* A simplified version of the code above, to turn (new) evars into metas *)
 let evars_for_FO env sigma0 (ise0:evar_map) c0 =
