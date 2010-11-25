@@ -510,10 +510,9 @@ rewrite Gp'1 indexg1 -(card_isog (quotient1_isog _)) -pgroupE.
 have [sSG pS _] := and3P sylS; have oddS: odd #|S| := oddSg sSG oddG.
 have ntS: S :!=: 1 by rewrite -rank_gt0 (leq_trans _ rS).
 have [p_pr _ _] := pgroup_pdiv pS ntS; have p_gt1 := prime_gt1 p_pr.
-have nsGpG: 'O_p(G) <| G := pcore_normal p G.
 have{pl1G} defS: 'O_p(G) = S.
-  by rewrite (uniq_normal_Hall _ nsGpG (Hall_max sylS)) -?plength1_pcore_Sylow.
-have{nsGpG} nSG: G \subset 'N(S) by rewrite -defS normal_norm.
+  by rewrite (eq_Hall_pcore _ sylS) -?plength1_pcore_Sylow.
+have nSG: G \subset 'N(S) by rewrite -defS bgFunc_norm.
 pose fA := restrm nSG (conj_aut S); pose A := fA @* G.
 have AutA: A \subset Aut S by rewrite [A]im_restrm Aut_conj_aut.
 have [solA oddA]: solvable A /\ odd #|A| by rewrite morphim_sol ?morphim_odd.

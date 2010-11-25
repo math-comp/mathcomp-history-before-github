@@ -660,10 +660,10 @@ suffices: [transitive KP, on |/|*(P; q) | 'JG] /\ |/|*(P; q) \subset |/|*(A; q).
     rewrite -(astab1JG Q) -normC; last by rewrite subIset 1?normal_norm.
     apply/(subgroup_transitiveP maxQ); rewrite ?normal_sub //=.
     by rewrite (atrans_supgroup _ trKP) ?norm_acts_max_norm ?normal_sub.
-  split=> //; move/prod_norm_coprime_subs_derI: defNP => -> //.
+  split=> //; move/pprod_focal_coprime: defNP => -> //.
   - by rewrite subIset // orbC commgSS ?subsetIr.
   - by rewrite subsetI normG; case/mem_max_normed: maxQ.
-  by rewrite /= (pnat_coprime piP (pcore_pgroup _ _)).
+  by rewrite (p'nat_coprime (pcore_pgroup _ _)).
 elim: {P}_.+1 {-2}P (ltnSn #|P|) => // m IHm P lePm in KP piP snAP *.
 wlog{snAP} [B maxnB snAB]: / {B : grT | maxnormal B P P & A <|<| B}.
   case/subnormalEr: snAP => [|[D [snAD nDP prDP]]]; first by rewrite /KP => <-.
@@ -778,14 +778,14 @@ Proof.
 move=> p A ntA EpA pl1subG.
 case/pmaxElemP: (EpA); case/pElemP=> sAG; case/and3P=> pA cAA _ _. 
 have prA: A \proper G := sub_proper_trans cAA (mFT_cent_proper ntA).
-split=> // X Y sAX prX; case/setIdP=> p'Y nYA.
+split=> // X Y sAX prX; case/setIdP; case/andP=> sYX p'Y nYA.
 have pl1X := pl1subG _ prX; have solX := mFT_sol prX.
 have [p_pr _ [r oApr]] := pgroup_pdiv pA ntA.
 have oddp: odd p by move: (mFT_odd A); rewrite oApr odd_exp.
 have def_pi: \pi(A)^' =i p^'.
   by move=> q; rewrite inE /= oApr pi_of_exp // pi_of_prime.
-have{p'Y} p'Y : p^'.-subgroup(X) Y by rewrite /psubgroup -(eq_pgroup _ def_pi).
-rewrite (eq_pcore _ def_pi) (@sol_plength1_odd_pamxElem_pcore _ _ A) //.
+have{p'Y} p'Y : p^'.-group Y by rewrite -(eq_pgroup _ def_pi).
+rewrite (eq_pcore _ def_pi) (@plength1_norm_pmaxElem _ p X A) //.
 by rewrite (subsetP (pmaxElemS p (subsetT _))) // setIC 2!inE sAX.
 Qed.
 

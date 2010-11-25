@@ -489,15 +489,13 @@ Qed.
 Corollary coprime_odd_faithful_cent_abelem : forall gT p (A G E : {group gT}),
     E \in 'E_p(G) -> p.-group G ->
     A \subset 'N(G) -> coprime #|G| #|A| -> odd #|G| ->
-  A \subset 'C([set x \in 'C_G(E) | #[x] == p]) -> A \subset 'C(G).
+  A \subset 'C('Ldiv_p('C_G(E))) -> A \subset 'C(G).
 Proof.
 move=> gT p A G E; rewrite inE; case/andP=> sEG elemE pG nGA coGA oddG cCEA.
 case: (eqsVneq G 1) => [-> | ntG]; first by rewrite cents1.
 have [p_pr _ _] := pgroup_pdiv pG ntG.
 have{cCEA} cCEA: A \subset 'C('Ohm_1('C_G(E))).
-  rewrite Ohm1Eprime cent_gen (centSS _ _ cCEA) //.
-  apply/subsetP=> x; case/setIdP=> CEx pr_x; rewrite inE CEx.
-  by apply: (pgroupP pG); rewrite ?order_dvdG //; case/setIP: CEx.
+  by rewrite (OhmE 1 (pgroupS _ pG)) ?subsetIl ?cent_gen.
 apply: coprime_nil_faithful_cent_stab (pgroup_nil pG) _ => //.
 rewrite subsetI subsetIl centsC /=; set CC := 'C_G(_).
 have sCCG: CC \subset G := subsetIl _ _; have pCC := pgroupS sCCG pG.

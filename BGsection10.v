@@ -703,11 +703,8 @@ have cPX : P \subset 'C(X).
   have EpPB : B \in 'E_p(P) by apply/pElemP. 
   have coPX : coprime #|P| #|X|.
     exact: (coprime_dvdl (cardSg (pHall_sub pSylP)) coMaX).
-  rewrite centsC; apply: (coprime_odd_faithful_cent_abelem EpPB pP nPX coPX).
-    by rewrite mFT_odd.
-  rewrite centsC (subset_trans _ cXB) // -{2}Beq. 
-  rewrite (OhmE 1 (pgroupS _ pP)) ?subsetIl // sub_gen //= setIdE setIS //.
-  by apply/subsetP=> x; rewrite !inE eqn_dvd order_dvdn; case/andP.
+  rewrite centsC (coprime_odd_faithful_cent_abelem EpPB) ?mFT_odd //.
+  by rewrite -cent_gen -(OhmE 1) ?(pgroupS _ pP) ?subsetIl // Beq centsC.
 have pSylMP : p.-Sylow(M) P.
   rewrite pHallE (subset_trans (pHall_sub pSylP) (normal_sub nsMaM)) /=.
   rewrite (card_Hall pSylP) (card_Hall Hall_M_Malpha) partn_part // =>q.
@@ -900,8 +897,8 @@ have [_ Meq nMaK IKMa1] := sdprodP sdKMa_M.
 have sKM: K \subset M := pHall_sub hallK.
 have solMa: solvable Ma := solvableS (normal_sub nsMaM) (mmax_sol maxM).
 have {hallMa solMa} MaKeq: [~: Ma, K] = Ma.
-  case/solvable_hall_dprod_der_subSset_comm_centr_compl: sdKMa_M => //.
-  exact: pHall_Hall hallMa.
+  case/coprime_der1_sdprod: sdKMa_M => //.
+  exact: pnat_coprime (pHall_pgroup hallMa) (pHall_pgroup hallK).
 have alphaHallMa : \alpha(M).-Hall(M) Ma by apply: Hall_M_Malpha.
 have alpha'HallK : \alpha(M)^'.-Hall(M) K.
   rewrite pHallE sKM /= -(@eqn_pmul2l #|Ma|) ?cardG_gt0 //.
@@ -990,19 +987,19 @@ have sPM' : P \subset M^`(1).
   by rewrite (sub_Hall_pcore (Hall_M_Msigma M_max)) ?(pi_pgroup pP).
 have sPNP' : P \subset ('N(P))^`(1).
   apply: subset_trans _ (dergS 1 (subsetIr M _)) => /=.
-  by apply: sol_Sylow_plength1_sub_norm_der _ pSyl_PM pl1M sPM'.
+  by apply: plength1_Sylow_sub_der1 pSyl_PM pl1M sPM'.
 split=> //.
   move=> V defV; have solP := solvableS sPM solM.
-  by case: (solvable_hall_dprod_der_subSset_comm_centr_compl solP _ defV sPNP').
+  by case: (coprime_der1_sdprod defV); rewrite ?(coprime_sdprod_Hall defV).
 move=> Q sQP x sQxP; have pQ : p.-group Q := pgroupS sQP pP.
 have [th101a _ _] := mmax_sigma_core_pgroup M_max p_sigM pQ.
 have sQM := subset_trans sQP sPM; have sQxM := subset_trans sQxP sPM.
 have [q [u [qCQ uM defx]]] := th101a sQM _ sQxM.
 have sQuP: Q :^ u \subset P.
   by rewrite -(normP (subsetP (cent_sub _) _ qCQ)) -conjsgM -defx.
-case: (sol_Sylow_plength1_norm_conj _ _ pl1M sQP uM)=>// q' q'CQ [y yNP defu].
+case: (plength1_Sylow_trans pSyl_PM _ _ sQP uM) => // q' q'CQ [y yNP defu].
 exists y; first by rewrite (subsetP (subsetIr _ _) _ yNP).
-rewrite defx -defu !conjsgM (normP (subsetP (cent_sub _) _ qCQ)).
+rewrite defx defu !conjsgM (normP (subsetP (cent_sub _) _ qCQ)).
 by case/setIP: q'CQ => _ q'CQ; rewrite (normP (subsetP (cent_sub _) _ q'CQ)).
 Qed.
 
@@ -1516,12 +1513,12 @@ have pSyl_OW : p.-Sylow(M^`(1)) 'O_p(W).
   rewrite (subset_trans (pcore_sub _ _) sWM') //= (eqP cOPW) (eqP cW) -partnI.
   apply/eqP; apply: eq_partn=> x; rewrite !inE; case: eqP => //.
   by rewrite andbC.
-have cop : coprime #|'O_p(W)| #|M`_\beta|.
-  apply: pnat_coprime (pcore_pgroup _ _) _; apply/pgroupP=> x pr_x xd.
+have cop : coprime #|M`_\beta| #|'O_p(W)|.
+  apply: p'nat_coprime (pcore_pgroup _ _); apply/pgroupP=> x pr_x xd.
   rewrite inE /=; apply/negP; move/(@eqP _ x p) => defx.
   rewrite defx in xd pr_x; move: (pgroupP (pcore_pgroup \beta(M) M) _ pr_x xd).
   by move => abs; rewrite abs in pB'.
-have:= prod_norm_coprime_subs_derI (sym_eq defM) (pcore_normal _ _) sOWU cop.
+have:= pprod_focal_coprime (sym_eq defM) (pcore_normal _ _) sOWU cop.
 rewrite (setIidPl (pHall_sub pSyl_OW)) /= -/U => defOW.
 by move/setIidPl: (sym_eq defOW) => sOWU'; exists 'O_p(W)%G.
 Qed.

@@ -346,8 +346,7 @@ have hallKP: ptau.-Hall(E) KP.
   rewrite (card_Hall hallE) -!partnI; congr (_ * _)%N; apply: eq_partn => q.
   by rewrite 4!inE andbC /= 8!inE -leqNgt -eqn_leq eq_sym; case: eqP => // <-.
 have nsKP_E: KP <| E.
-  have hallOptau: ptau.-Hall(E) 'O_ptau(E) by rewrite rank2_ge_pcore_Hall.
-  by rewrite [KP](uniq_normal_Hall hallOptau) ?pcore_normal ?Hall_max.
+  by rewrite [KP](eq_Hall_pcore _ hallKP) ?pcore_normal ?rank2_ge_pcore_Hall.
 have [cKA | not_cKA]:= boolP (A \subset 'C(K)).
   pose KA := K <*> A; have defKA: K \x A = KA.
     by rewrite dprodEY // coprime_TIg // (coprimegS sAP).

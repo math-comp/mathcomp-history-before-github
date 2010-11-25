@@ -144,8 +144,7 @@ Qed.
 Lemma der1_sigma_compl : M^`(1) :&: E = E^`(1).
 Proof.
 have [nsMsM _ defM _ _] := sdprod_context sdprod_sigma.
-rewrite setIC (prod_norm_coprime_subs_derI defM _ (subxx E)) 1?coprime_sym //.
-by rewrite (setIidPr (der_sub 1 E)).
+by rewrite setIC (pprod_focal_coprime defM _ (subxx E)) ?(setIidPr _) ?der_sub.
 Qed.
 
 Lemma partition_pi_mmax : forall p,
@@ -2171,10 +2170,9 @@ do [split; apply: contraNneq neqHM] => [Ma1 | uniqNZ].
   by rewrite -val_eqE /= (eq_mmax maxM maxH) // -defM Ma1 mul1g subsetIr.
 have [_ sNZM]: _ /\ 'N(Z) \subset M := mem_uniq_mmax uniqNZ.
 rewrite -val_eqE /= (eq_uniq_mmax uniqNZ maxH) //= -(setIidPr sNZM).
-have defN := sol_prod_norm_coprime_subs_norm_cent_prod (mmax_sol maxM) defM.
 have sZ_MH: Z \subset M :&: H := subset_trans sZQ (subset_trans sQP sP_MH).
-rewrite defN 1?coprime_sym ?pcore_normal // mulG_subG /= defKC sKH.
-by rewrite setIAC subsetIr.
+rewrite -(pprod_norm_coprime_prod defM) ?pcore_normal ?mmax_sol //.
+by rewrite mulG_subG /= defKC sKH setIAC subsetIr.
 Qed.
 
 (* This is B & G, Corollary 12.14. We have removed the redundant assumption   *)
@@ -2382,11 +2380,11 @@ suffices not_piM'r: r \notin \pi(M^`(1)).
       by rewrite (sub_Hall_pcore (Hall_M_Msigma maxM)) ?(pi_pgroup rR).
     by rewrite (piSg (Msigma_sub_M' maxM)) // (piSg sRMs).
   by move: piRr; rewrite !mem_primes !cardG_gt0; case/andP=> ->.
-have coRMb: coprime #|R| #|M`_\beta|.
-  exact: p'nat_coprime (pi_pnat rR _) (pcore_pgroup _ _).
+have coMbR: coprime #|M`_\beta| #|R|.
+  exact: pnat_coprime (pcore_pgroup _ _) (pi_pnat rR _).
 have sylRM': r.-Sylow(M^`(1)) _ := Hall_setI_normal (der_normal 1 M) sylR_M.
 rewrite -p'groupEpi -partG_eq1 -(card_Hall sylRM') -trivg_card1 /=.
-rewrite (prod_norm_coprime_subs_derI (esym defM) (pcore_normal _ _)) //.
+rewrite (pprod_focal_coprime (esym defM) (pcore_normal _ _)) //.
 rewrite coprime_TIg ?(pnat_coprime rR (pgroupS (dergS 1 (subsetIr _ _)) _)) //.
 by rewrite p'groupEpi mem_primes (negPf not_rH') !andbF.
 Qed.
@@ -2525,11 +2523,11 @@ Lemma sigma_compl_embedding : forall M E (Ms := M`_\sigma),
    & forall g (MsMg := Ms :&: M :^ g), g \notin M ->
      [/\ cyclic MsMg, \beta(M)^'.-group MsMg & MsMg :&: Ms^`(1) = 1]].
 Proof.
-move=> M E Ms maxM hallE; have sEM := pHall_sub hallE.
+move=> M E Ms maxM hallE; have [sEM s'E _] := and3P hallE.
 have solMs: solvable Ms := solvableS (pcore_sub _ _) (mmax_sol maxM).
-have defM := solvable_hall_dprod_der_subSset_comm_centr_compl solMs.
-have hallMs := pHall_Hall (Hall_M_Msigma maxM).
-have [-> ->] := defM _ _ hallMs (sdprod_sigma maxM hallE) (Msigma_sub_M' maxM).
+have defM := coprime_der1_sdprod (sdprod_sigma maxM hallE).
+have{s'E} coMsE: coprime #|Ms| #|E| := pnat_coprime (pcore_pgroup _ _) s'E.
+have{defM coMsE} [-> ->] := defM coMsE solMs (Msigma_sub_M' maxM).
 split=> // g MsMg notMg.
 have sMsMg: \sigma(M).-group MsMg := pgroupS (subsetIl _ _) (pcore_pgroup _ _).
 have EpMsMg: forall p n X, X \in 'E_p^n(MsMg) -> n > 0 ->
