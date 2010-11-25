@@ -3289,12 +3289,12 @@ TACTIC EXTEND ssrmove
     END
 
 (* TASSI: given (c : ty), generates (c ??? : ty[???/...]) with n evars *)
-let saturate gl c ty n =
+let saturate ?(beta=false) gl c ty n =
   let env, sigma, si = pf_env gl, project gl, sig_it gl in
   let rec loop ty args sigma n = 
   if n = 0 then 
     let args = List.rev args in
-    Reductionops.whd_beta sigma
+     (if beta then Reductionops.whd_beta sigma else fun x -> x)
       (mkApp (c, Array.of_list (List.map snd args))), ty, args, re_sig si sigma 
   else match kind_of_type ty with
   | ProdType (_, src, tgt) ->
@@ -3437,7 +3437,11 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
     elim, elimty, idxs_no, (rel_context_length rctx) in
   let pred_id, n_pred_args, n_elim_args, is_rec = analyze_eliminator elimty in 
   let elim_is_dep = n_pred_args > idxs_no in
-  let elim, elimty, elim_args, gl = saturate gl elim elimty n_elim_args in
+  let elim, elimty, elim_args, gl = 
+    (* beta:true because the eliminator for match is artificially abstracted
+     * and the eliminated term is not the first abstraction (i.e. subgoals
+     * would be generated in the wrong order) *) 
+    saturate ~beta:true gl elim elimty n_elim_args in
   let pred, arg = List.assoc pred_id elim_args, List.assoc 1 elim_args in
   let c, c_ty, t_args, gl = saturate gl c c_ty c_args_no in
   let gl = unify_HO gl arg c in
