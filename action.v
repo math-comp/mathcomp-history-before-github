@@ -560,6 +560,37 @@ Proof.
 by move=> G x y z sGD Gxy; rewrite !(orbit_in_sym _ z) ?(orbit_in_transl _ Gxy).
 Qed.
 
+Lemma orbit_inv_in : forall A x y, A \subset D ->
+  (y \in orbit to A^-1 x) = (x \in orbit to A y).
+Proof.
+move=> A x y; move/subsetP=> sAD; apply/imsetP/imsetP=> [] [a Aa ->].
+  by exists a^-1; rewrite -?mem_invg ?actKin // -groupV sAD -?mem_invg.
+by exists a^-1; rewrite ?memV_invg ?actKin // sAD.
+Qed.
+
+Lemma orbit_lcoset_in : forall A a x, A \subset D -> a \in D ->
+  orbit to (a *: A) x = orbit to A (to x a).
+Proof.
+move=> A a x; move/subsetP=> sAD Da; apply/setP=> y.
+apply/imsetP/imsetP=> [] [b Ab ->{y}].
+  by exists (a^-1 * b); rewrite -?actMin ?mulKVg // ?sAD -?mem_lcoset.
+by exists (a * b); rewrite ?mem_mulg ?set11 ?actMin // sAD.
+Qed.
+
+Lemma orbit_rcoset_in : forall A a x y, A \subset D -> a \in D ->
+  (to y a \in orbit to (A :* a) x) = (y \in orbit to A x).
+Proof.
+move=> A a x y sAD Da; rewrite -orbit_inv_in ?mul_subG ?sub1set // invMg.
+by rewrite invg_set1 orbit_lcoset_in ?inv_subG ?groupV ?actKin ?orbit_inv_in.
+Qed.
+
+Lemma orbit_conjsg_in : forall A a x y, A \subset D -> a \in D ->
+  (to y a \in orbit to (A :^ a) (to x a)) = (y \in orbit to A x).
+Proof.
+move=> A a x y sAD Da; rewrite conjsgE.
+by rewrite orbit_lcoset_in ?groupV ?mul_subG ?sub1set ?actKin ?orbit_rcoset_in.
+Qed.
+
 Lemma orbit1P : forall G x,
   reflect (orbit to G x = [set x]) (x \in 'Fix_to(G)).
 Proof.
@@ -879,6 +910,20 @@ Lemma orbit_eq_mem : forall G x y,
 Proof.
 move=> G x y; apply/eqP/idP=> [<-|]; [exact: orbit_refl | exact: orbit_transl].
 Qed.
+
+Lemma orbit_inv : forall A x y, (y \in orbit to A^-1 x) = (x \in orbit to A y).
+Proof. by move=> A x y; rewrite orbit_inv_in ?subsetT. Qed.
+
+Lemma orbit_lcoset : forall A a x, orbit to (a *: A) x = orbit to A (to x a). 
+Proof. by move=> A a x; rewrite orbit_lcoset_in ?subsetT ?inE. Qed.
+
+Lemma orbit_rcoset : forall A a x y,
+  (to y a \in orbit to (A :* a) x) = (y \in orbit to A x).
+Proof. by move=> A a x y; rewrite orbit_rcoset_in ?subsetT ?inE. Qed.
+
+Lemma orbit_conjsg : forall A a x y,
+  (to y a \in orbit to (A :^ a) (to x a)) = (y \in orbit to A x).
+Proof. by move=> A a x y; rewrite orbit_conjsg_in ?subsetT ?inE. Qed.
 
 Lemma astabP : forall S a,
   reflect (forall x, x \in S -> to x a = x) (a \in 'C(S | to)).

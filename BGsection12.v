@@ -1443,7 +1443,7 @@ have [A Ep2A]: exists A, A \in 'E_p^2(P).
   by apply/p_rank_geP; rewrite ltnNge -odd_pgroup_rank1_cyclic ?mFT_odd.
 have [[sAP _ _] Ep2A_M] := (pnElemP Ep2A, subsetP (pnElemS p 2 sPM) A Ep2A).
 have sCAM: 'C(A) \subset M by case/p2Elem_mmax: Ep2A_M.
-have [_ _ -> //] := mmax_sigma_core_pgroup maxM sMp pP.
+have [_ _ <- //] := mmax_sigma_core_pgroup maxM sMp pP.
 by rewrite mulG_subG subsetIl (subset_trans (centS sAP)).
 Qed.
 
@@ -1565,8 +1565,7 @@ have part_b: forall H,
   have [[hallHb _] nilHb' _] := mmax_beta_Hall_nil_normal_compl_max_pdiv maxH.
   have{nilHb'} nilH'b: nilpotent (H^`(1) / H`_\beta). 
     have sHbH': H`_\beta \subset H^`(1).
-      apply: subset_trans (Msigma_sub_M' maxH).
-      exact: subset_trans (Mbeta_sub_Malpha H) (Malpha_sub_Msigma maxH).
+      exact: subset_trans (Mbeta_sub_Msigma maxH) (Msigma_sub_M' maxH).
     have{hallHb} hallHb := pHall_subl sHbH' (der_sub 1 H) hallHb.
     have: [splits H^`(1), over H`_\beta].
       apply: SchurZassenhaus_split (pHall_Hall hallHb) _.
@@ -2188,8 +2187,7 @@ move=> M p X Ms maxM EpX bMp_sXMs'; have p_pr := pnElem_prime EpX.
 have [sXM abelX oX] := pnElemPcard EpX; have [pX _] := andP abelX.
 have ntX: X :!=: 1 := nt_pnElem EpX isT; have ltCXG := mFT_cent_proper ntX.
 have sMp: p \in \sigma(M).
-  have [bMp | sXMs'] := orP bMp_sXMs'.
-    by rewrite alpha_sub_sigma ?beta_sub_alpha.
+  have [bMp | sXMs'] := orP bMp_sXMs'; first by rewrite beta_sub_sigma.
   rewrite -pnatE // -[p]oX; apply: pgroupS (subset_trans sXMs' (der_sub 1 _)) _.
   exact: pcore_pgroup.
 have hallMs: \sigma(M).-Hall(M) Ms by exact: Hall_M_Msigma.
@@ -2323,8 +2321,7 @@ have [sHq | t2Hq] := orP (prime_class_mmax_norm maxH qX sNX_H); last first.
   have p_pr: prime p by rewrite mem_primes in piMp; case/andP: piMp.
   have [lt_pq | lt_qp | eq_pq] := ltngtP p q; last 1 first.
   - by rewrite eq_pq sMq in sM'p.
-  - have bH'q: q \notin \beta(H).
-      by apply: contra sH'q; move/beta_sub_alpha; exact: alpha_sub_sigma.
+  - have bH'q: q \notin \beta(H) by apply: contra sH'q; exact: beta_sub_sigma.
     have qHA: q.-subgroup(H) A by exact/andP.
     have:= foo_10_9a maxH p_pr q_pr _ bH'p bH'q qHA.
     rewrite neq_ltn lt_pq orbT => [[] // [P sylP cPA] _ _].
@@ -2333,8 +2330,7 @@ have [sHq | t2Hq] := orP (prime_class_mmax_norm maxH qX sNX_H); last first.
       rewrite -p_rank_gt0 (p_rank_Sylow sylP_H) p_rank_gt0.
       by rewrite sigma_sub_pi.
     by rewrite centsC in cPA; case/eqnP: (pnatPpi (pgroupS cPA p'CA) piPp).
-  have bM'p: p \notin \beta(M).
-    by apply: contra sM'p; move/beta_sub_alpha; exact: alpha_sub_sigma.
+  have bM'p: p \notin \beta(M) by apply: contra sM'p; exact: beta_sub_sigma.
   have [P sylP] := Sylow_exists p M; have [sMP pP _] := and3P sylP.
   have pMP: p.-subgroup(M) P by exact/andP.
   have:= foo_10_9a maxM q_pr p_pr _ bM'q bM'p pMP.
@@ -2541,7 +2537,7 @@ have EpMsMg: forall p n X, X \in 'E_p^n(MsMg) -> n > 0 ->
   have not_sCX_M: ~~ ('C(X) \subset M).
     apply: contra notMg => sCX_M; rewrite -groupV.
     have [transCX _ _] := mmax_sigma_core_pgroup maxM sMp pX.
-    have [|c [m [CXc Mm ->]]] := transCX sXM g^-1; rewrite ?sub_conjgV //.
+    have [|c CXc [m Mm ->]] := transCX g^-1 sXM; rewrite ?sub_conjgV //.
     by rewrite groupM // (subsetP sCX_M).
   have cycX: cyclic X.
     apply: contraR not_sCX_M => ncycX; apply: subset_trans (cent_sub _) _.
@@ -2709,8 +2705,7 @@ apply: contraR nonuniqNQ => b'r; apply/eqP.
 apply: def_uniq_mmaxS (uniqCMX Q _) => //.
 have [q_pr _ _] := pgroup_pdiv qQ ntQ.
 have r_pr: prime r.
-  have:= sigma_sub_pi maxM (alpha_sub_sigma maxM a_r).
-  by rewrite mem_primes; case/andP.
+  by have:= ltnW (ltnW a_r); rewrite p_rank_gt0 mem_primes; case/andP.
 have q'r: r != q by apply: contraNneq a'q => <-.
 have qMQ: q.-subgroup(M) Q by exact/andP.
 by have [|_ -> //] := foo_10_9a maxM r_pr q_pr q'r b'r b'q qMQ; rewrite sQM'.
@@ -2726,8 +2721,7 @@ Proof.
 move=> M E maxM hallE; have [sEM s'E _] := and3P hallE.
 have s'E': \sigma(M)^'.-group E^`(1) := pgroupS (der_sub 1 E) s'E.
 have b'E': \beta(M)^'.-group E^`(1).
-  apply: sub_pgroup s'E' => p; apply: contra => /= b_p.
-  by rewrite alpha_sub_sigma ?beta_sub_alpha.
+  apply: sub_pgroup s'E' => p; apply: contra; exact: beta_sub_sigma.
 have solM': solvable M^`(1) := solvableS (der_sub 1 M) (mmax_sol maxM).
 have [K hallK sE'K] := Hall_superset solM' (dergS 1 sEM) b'E'.
 exists (K :&: M`_\sigma)%G.

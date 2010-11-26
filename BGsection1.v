@@ -1023,6 +1023,16 @@ move=> G p'G1; rewrite plength1_pcore_quo_Sylow -quotient_pseries2.
 by rewrite p'G1 pseries_pop2 // pquotient_pHall ?normal1 ?pgroup1.
 Qed.
 
+(* This is the characterization given in Section 10 of B & G, p. 75, just     *)
+(* before Theorem 10.6.                                                       *)
+Lemma plength1_pseries2_quo : forall G,
+  p.-length_1 G = p^'.-group (G / 'O_{p^', p}(G)).
+Proof.
+move=> G; rewrite /plength_1 eqEsubset pseries_sub lastI pseries_rcons /=.
+rewrite -sub_quotient_pre ?bgFunc_norm //.
+by apply/idP/idP=> pl1G; rewrite ?pcore_pgroup_id ?(pgroupS pl1G) ?pcore_pgroup.
+Qed.
+
 (* This is B & G Lemma 1.21a. *)
 Lemma plength1S : forall G H, H \subset G -> p.-length_1 G -> p.-length_1 H.
 Proof.
