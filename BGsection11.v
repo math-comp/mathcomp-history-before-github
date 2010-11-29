@@ -77,7 +77,7 @@ Let Ep1A0_G : A0 \in 'E_p^1(G) := subsetP (pnElemS p 1 (subsetT M)) A0 Ep1A0_M.
 
 (* This does not depend on exceptionalM, and could move to Section 10. *)
 Lemma sigma'_Sylow_contra : p \in \sigma(M)^' -> ~~ ('N(P) \subset M).
-Proof. by apply: contra => sNM; apply/existsP; exists P; rewrite inE sylP. Qed.
+Proof. by apply: contra => sNM; apply/exists_inP; exists P. Qed.
 
 (* First preliminary remark of Section 11; only depends on sM'p and sylP. *)
 Let not_sNP_M: ~~ ('N(P) \subset M) := sigma'_Sylow_contra sM'p.
@@ -116,12 +116,12 @@ have{qQ1} [q_pr q_dv_Q1 _] := pgroup_pdiv qQ1 ntQ1.
 have{sQ1Ms q_dv_Q1} sMq: q \in \sigma(M).
   exact: pgroupP (pgroupS sQ1Ms (pcore_pgroup _ _)) q q_pr q_dv_Q1.
 have{sylQ1} sylQ1: q.-Sylow(M) Q1.
-  by rewrite (subHall_Sylow (Hall_M_Msigma maxM)).
+  by rewrite (subHall_Sylow (Msigma_Hall maxM)).
 have sQ1M := pHall_sub sylQ1.
 have{sylQ2} sylQ2g': q.-Sylow(M) (Q2 :^ g^-1).
-  by rewrite (subHall_Sylow (Hall_M_Msigma _)) // -(pHallJ2 _ _ _ g) actKV.
+  by rewrite (subHall_Sylow (Msigma_Hall _)) // -(pHallJ2 _ _ _ g) actKV.
 have sylQ2: q.-Sylow(G) Q2.
-  by rewrite -(pHallJ _ _ (in_setT g^-1)) (Sylow_Sylow_sigma maxM).
+  by rewrite -(pHallJ _ _ (in_setT g^-1)) (sigma_Sylow_G maxM).
 suffices not_Q1_CA_Q2: gval Q2 \notin Q1 :^: 'O_\pi(A)^'('C(A)).
   have ncA: normed_constrained A.
     have ntA: A :!=: 1 by rewrite -cardG_gt1 oA (ltn_exp2l 0).
@@ -132,7 +132,7 @@ suffices not_Q1_CA_Q2: gval Q2 \notin Q1 :^: 'O_\pi(A)^'('C(A)).
     move=> Q sylQ; case/(max_normed_exists (pHall_pgroup sylQ)) => R maxR sQR.
     have [qR _] := mem_max_normed maxR.
     by rewrite -(group_inj (sub_pHall sylQ qR sQR (subsetT R))).
-  have maxQ1 := maxnAq Q1 (Sylow_Sylow_sigma maxM sMq sylQ1) nQ1A.
+  have maxQ1 := maxnAq Q1 (sigma_Sylow_G maxM sMq sylQ1) nQ1A.
   have maxQ2 := maxnAq Q2 sylQ2 nQ2A.
   have transCAQ := normed_constrained_meet_trans ncA q'A _ _ maxQ1 maxQ2.
   split=> [|X EpX].
@@ -148,7 +148,7 @@ apply: contra notMg; case/imsetP=> k cAk defQ2.
 have{cAk} Mk := subsetP sCA_M k (subsetP (pcore_sub _ _) k cAk).
 have{k Mk defQ2} sQ2M: Q2 \subset M by rewrite defQ2 conj_subG.
 have [sQ2g'M qQ2g' _] := and3P sylQ2g'.
-by rewrite (sigma_sylow_conjg _ sylQ2g') // actKV.
+by rewrite (sigma_Sylow_trans _ sylQ2g') // actKV.
 Qed.
 
 (* This is B & G, Corollary 11.2. *)
@@ -165,7 +165,7 @@ suffices: #|H|`_q == 1%N by rewrite p_part_eq1 pi_pdiv cardG_gt1 ntH.
 have nsMsM: Ms <| M := pcore_normal _ _; have [_ nMsM] := andP nsMsM.
 have sHMs: H \subset Ms := subsetIl _ _.
 have sHMsg: H \subset Ms :^ g.
-  rewrite -sub_conjgV (sub_Hall_pcore (Hall_M_Msigma _)) //.
+  rewrite -sub_conjgV (sub_Hall_pcore (Msigma_Hall _)) //.
     by rewrite pgroupJ (pgroupS sHMs) ?pcore_pgroup.
   by rewrite sub_conjgV subsetIr.
 have nMsA := subset_trans sAM nMsM.
@@ -363,7 +363,7 @@ have [cKA | not_cKA]:= boolP (A \subset 'C(K)).
     by rewrite coprime_TIg ?(pnat_coprime (pcore_pgroup _ _)).
   have <-: Ms * E = M.
     apply/eqP; rewrite eqEcard mulG_subG pcore_sub sEM /= TI_cardMg //.
-    by rewrite (card_Hall hallE) (card_Hall (Hall_M_Msigma maxM)) ?partnC.
+    by rewrite (card_Hall hallE) (card_Hall (Msigma_Hall maxM)) ?partnC.
   rewrite norm_joinEr -?quotientK ?(subset_trans sAE) //= cosetpre_normal.
   rewrite quotient_normal // -defA (char_normal_trans (Ohm_char _ _)) //.
   by rewrite (char_normal_trans (pcore_char p _)).
@@ -421,18 +421,17 @@ have{defQ0} defQ0: [~: A1, Q0] * [~: A2, Q0] = Q0.
   have{defA} [[_ defA cA12 _] [sA2A _ _]] := (dprodP defA, pnElemP EpA2).
   by rewrite -commMG ?defA // normsR ?(cents_norm cA12) // (subset_trans sA2A).
 have nsQ0M: Q0 <| M.
+  have sQ0M: Q0 \subset M := subset_trans (center_sub Q) (pHall_sub sylQ_M).
   have qQ0: q.-group Q0 := pgroupS (center_sub Q) qQ.
   have p'Q0: p^'.-group Q0 by apply: (pi_pnat qQ0); rewrite eq_sym in q'p.
-  have sM'Q0: (\sigma(M))^'.-subgroup(M) Q0.
-    rewrite /psubgroup (subset_trans (center_sub Q) (pHall_sub sylQ_M)).
-    exact: pi_pnat sM'q.
+  have sM'Q0: \sigma(M)^'.-group Q0 := pi_pnat qQ0 sM'q.
   have cQ0Q0: abelian Q0 := center_abelian Q.
   have sA_NQ0: A \subset 'N_M(Q0) by rewrite subsetI sAM.
   have sEpA_EpN := subsetP (pnElemS p 1 sA_NQ0).
-  have nsRQ0 := commG_sigma'_1Elem_cyclic maxM sM'Q0 sM'p (sEpA_EpN _ _).
+  have nsRQ0 := commG_sigma'_1Elem_cyclic maxM sQ0M sM'Q0 sM'p (sEpA_EpN _ _).
   rewrite -defQ0 -!(commGC Q0).
   by apply: normalM; [case/nsRQ0: EpA1 | case/nsRQ0: EpA2].
-case/existsP: sM'q; exists Q; rewrite inE sylQ_M.
+case/exists_inP: sM'q; exists Q => //.
 rewrite (subset_trans (char_norms charQ0)) ?(mmax_normal maxM nsQ0M) //= -/Q0.
 by apply: contraNneq ntQ; move/(trivg_center_pgroup qQ)->.
 Qed.

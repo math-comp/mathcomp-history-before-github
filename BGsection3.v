@@ -4,7 +4,7 @@ Require Import fintype bigop prime binomial finset ssralg fingroup finalg.
 Require Import morphism perm automorphism quotient action commutator gproduct.
 Require Import zmodp cyclic center pgroup gseries nilpotent sylow finmodule.
 Require Import abelian frobenius maximal extremal hall.
-Require Import matrix mxalgebra mxrepresentation mxabelem.
+Require Import matrix mxalgebra mxrepresentation mxabelem wielandt_fixpoint.
 Require Import BGsection1 BGsection2.
 
 (******************************************************************************)
@@ -27,18 +27,6 @@ Import Prenex Implicits.
 Local Open Scope ring_scope.
 Import GroupScope GRing.Theory.
 
-(* Interface to the Wielandt fixpoint formula; to become the main conclusion  *)
-(* of a new file.                                                             *)
-Theorem solvable_Wielandt_fixpoint : forall (I : finType) (gT : finGroupType),
-    forall (A : I -> {group gT}) (n m : I -> nat) (G V : {group gT}),
-    (forall i, m i + n i > 0 -> A i \subset G) ->
-    G \subset 'N(V) -> coprime #|V| #|G| -> solvable V ->
-    {in G, forall a, \sum_(i | a \in A i) m i = \sum_(i | a \in A i) n i}%N ->
-  (\prod_i #|'C_V(A i)| ^ (m i * #|A i|)
-    = \prod_i #|'C_V(A i)| ^ (n i * #|A i|))%N.
-Admitted.
-
-(* Start of Section 3 proper. *)
 Section BGsection3.
 
 Implicit Type F : fieldType.
@@ -1534,9 +1522,9 @@ apply: coprime_p'group (abelem_pgroup abelW) ntW.
 by rewrite coprime_sym coprime_morph // (coprimeSg sUK).
 Qed.
 
-(* This is B & G, Theorem 3.9 (for external action), with the incorrectly *)
-(* omitted nontriviality assumption reinstated.                           *)
-Theorem ext_odd_regular_pgroup_cyclic : forall (aT rT : finGroupType) p,
+(* This is B & G, Proposition 3.9 (for external action), with the incorrectly *)
+(* omitted nontriviality assumption reinstated.                               *)
+Proposition ext_odd_regular_pgroup_cyclic : forall (aT rT : finGroupType) p,
     forall (D R : {group aT}) (K H : {group rT}) (to : groupAction D K),
     p.-group R -> odd #|R| -> H :!=: 1 ->
     {acts R, on group H | to} -> {in R^#, forall x, 'C_(H | to)[x] = 1} ->
@@ -1580,8 +1568,9 @@ rewrite -bigprodGE big1 // => x; case/setD1P=> nt_x Ex; apply: val_inj => /=.
 by apply: (Frobenius_reg_ker frobG); rewrite !inE nt_x (subsetP sER).
 Qed.
 
-(* Internal action version or 3.9 (possibly, the only one we should keep). *)
-Theorem odd_regular_pgroup_cyclic : forall gT p (H R : {group gT}),
+(* Internal action version of B & G, Proposition 3.9 (possibly, the only one  *)
+(* we should keep). *)
+Proposition odd_regular_pgroup_cyclic : forall gT p (H R : {group gT}),
     p.-group R -> odd #|R| -> H :!=: 1 -> R \subset 'N(H) -> semiregular R H ->
   cyclic R.
 Proof.
@@ -1591,9 +1580,8 @@ apply: ext_odd_regular_pgroup_cyclic pR oddR ntH actsR _ => // x Rx.
 by rewrite gacentJ cent_set1 regR.
 Qed.
 
-(* Another variant of the internal action, which avoids Frobenius groups     *)
-(* altogether.                                                               *)
-Theorem simple_odd_regular_pgroup_cyclic : forall gT p (H R : {group gT}),
+(* Another proof of Proposition 3.9, which avoids Frobenius groups entirely.  *)
+Proposition simple_odd_regular_pgroup_cyclic : forall gT p (H R : {group gT}),
     p.-group R -> odd #|R| -> H :!=: 1 -> R \subset 'N(H) -> semiregular R H ->
   cyclic R.
 Proof.

@@ -454,8 +454,8 @@ Let hyp71 : forall H R,
   A \subset H -> H \proper G -> R \in |/|_H(A; pi^') -> R \subset 'O_pi^'(H).
 Proof. by case: cstrA. Qed.
 
-(* This is the observation between B & G, Hypothesis 7.1 and Lemma 7.1 *)
-Lemma normed_constrained_Hall : pi^'.-Hall('C(A)) K.
+(* This is the observation between B & G, Hypothesis 7.1 and Lemma 7.1. *)
+Remark normed_constrained_Hall : pi^'.-Hall('C(A)) K.
 Proof.
 have [_ ntA prA _] := cstrA; rewrite -[setT]/G in prA.
 rewrite /pHall pcore_pgroup pcore_sub pnatNK /=.
@@ -557,7 +557,7 @@ rewrite !nilpotent_proper_norm /proper ?subsetIl ?subsetIr ?subsetI ?subxx //=.
 by apply: contra neQ12 => sQ12; rewrite (maxQ1P Q2) ?qQ2.
 Qed.
 
-(* This is B & G, Theorem 7.2 *)
+(* This is B & G, Theorem 7.2. *)
 Theorem normed_constrained_rank3_trans :
   'r('Z(A)) >= 3 -> [transitive K, on |/|*(A; q) | 'JG].
 Proof.
@@ -771,7 +771,7 @@ End NormedConstrained.
 (* This is B & G, Proposition 7.5(a). As this is only used in Proposition    *)
 (* 10.10, under the assumption A \in E*_p(G), we avoid the in_pmaxElemE      *)
 (* detour A = [set x \in 'C_G(A) | x ^+ p == 1], and just use A \in E*_p(G). *)
-Lemma plength_1_normed_constrained : forall p A,
+Proposition plength_1_normed_constrained : forall p A,
     A :!=: 1 -> A \in 'E*_p(G) -> (forall M, M \proper G -> p.-length_1 M) ->
   normed_constrained A.
 Proof. 
@@ -790,7 +790,7 @@ by rewrite (subsetP (pmaxElemS p (subsetT _))) // setIC 2!inE sAX.
 Qed.
 
 (* This is B & G, Proposition 7.5(b). *)
-Lemma SCN_normed_constrained : forall p P A,
+Proposition SCN_normed_constrained : forall p P A,
   p.-Sylow(G) P -> A \in 'SCN_2(P) -> normed_constrained A.
 Proof.
 move=> p P A sylP; rewrite 2!inE -andbA; case/and3P=> nsAP.

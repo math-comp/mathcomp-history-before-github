@@ -49,6 +49,7 @@ primitive_action.v
 frobenius.v
 hall.v
 mxabelem.v
+wielandt_fixpoint.v
 BGsection1.v
 BGsection2.v
 BGsection3.v

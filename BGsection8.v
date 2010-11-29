@@ -27,8 +27,8 @@ Local Notation "K ` p" := 'O_(nat_pred_of_nat p)(K)
   (at level 8, q at level 2, format "K ` p") : group_scope.
 Local Notation "K ` p" := 'O_(nat_pred_of_nat p)(K)%G : subgroup_scope.
 
-(* This is B & G, Theorem 8.1(a) *)
-Lemma non_pcore_Fitting_Uniqueness : forall p M A0,
+(* This is B & G, Theorem 8.1(a). *)
+Theorem non_pcore_Fitting_Uniqueness : forall p M A0,
     M \in 'M -> ~~ p.-group ('F(M)) -> A0 \in 'E*_p('F(M)) -> 'r_p(A0) >= 3 ->
   'C_('F(M))(A0)%G \in 'U.
 Proof.
@@ -259,8 +259,8 @@ rewrite -(mmax_normal maxH (pcore_normal p^' H)) //= eqHp'Mp'.
 by rewrite (mmax_normal maxM (pcore_normal _ _)) //= -eqHp'Mp'.
 Qed.
 
-(* This is B & G, Theorem 8.1(b) *)
-Lemma SCN_Fitting_Uniqueness : forall p M P A,
+(* This is B & G, Theorem 8.1(b). *)
+Theorem SCN_Fitting_Uniqueness : forall p M P A,
     M \in 'M -> p.-group ('F(M)) -> p.-Sylow(M) P ->
     'r_p('F(M)) >= 3 -> A \in 'SCN_3(P) ->
   [/\ p.-Sylow(G) P, A \subset 'F(M) & A \in 'U].
@@ -382,8 +382,8 @@ case/eqP: neHM; apply: group_inj.
 by rewrite -defH (mmax_normal maxM nsZLR_M).
 Qed.
 
-(* This summarizes the two branches of B & G, Theorem 8.1 *)
-Lemma Fitting_Uniqueness : forall M,
+(* This summarizes the two branches of B & G, Theorem 8.1. *)
+Theorem Fitting_Uniqueness : forall M,
   M \in 'M -> 'r('F(M)) >= 3 -> 'F(M)%G \in 'U.
 Proof.
 move=> M maxM; have [p _ -> dimF3] := rank_witness 'F(M).

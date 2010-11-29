@@ -380,8 +380,8 @@ move: nGA; rewrite -commg_subl; apply: subset_trans.
 by rewrite commSg ?subsetIl.
 Qed.
 
-(* B & G, Proposition 1.5(a) *)
-Lemma coprime_Hall_exists : forall A G,
+(* This is B & G, Proposition 1.5(a) *)
+Proposition coprime_Hall_exists : forall A G,
   A \subset 'N(G) -> coprime #|G| #|A| -> solvable G ->
   exists2 H : {group gT}, pi.-Hall(G) H & A \subset 'N(H).
 Proof.
@@ -412,8 +412,8 @@ move/(subsetP sBN); case/setIP=> _; move/normP=> nHyx.
 by apply/normP; rewrite -conjsgM conjgCV invgK conjsgM nHyx.
 Qed.
 
-(* B & G, Proposition 1.5(c) *)
-Lemma coprime_Hall_trans : forall A G H1 H2,
+(* This is B & G, Proposition 1.5(c) *)
+Proposition coprime_Hall_trans : forall A G H1 H2,
   A \subset 'N(G) -> coprime #|G| #|A| -> solvable G ->
   pi.-Hall(G) H1 -> A \subset 'N(H1) ->
   pi.-Hall(G) H2 -> A \subset 'N(H2) ->
@@ -540,10 +540,10 @@ apply: strongest_coprime_quotient_cent; rewrite ?tiHR ?sub1G ?solvable1 //.
 by rewrite cards1 coprime1n.
 Qed.
 
-(* B & G, Proposition 1.5(d): the more traditional form of the above theorem *)
-(* but weakening the assumption H <| G to H \subset G. The stronger coprime  *)
-(* and solvability assumptions are easier to satisfy in practice.            *)
-Lemma coprime_quotient_cent : forall A G H,
+(* This is B & G, Proposition 1.5(d): the more traditional form of the lemma *)
+(* above, with the assumption H <| G weakened to H \subset G. The stronger   *)
+(* coprime and solvability assumptions are easier to satisfy in practice.    *)
+Proposition coprime_quotient_cent : forall A G H,
     H \subset G -> A \subset 'N(H) -> coprime #|G| #|A| -> solvable G ->
   'C_G(A) / H = 'C_(G / H)(A / H).
 Proof.
@@ -552,8 +552,8 @@ have sRG: H :&: [~: G, A] \subset G by rewrite subIset ?sHG.
 by rewrite strongest_coprime_quotient_cent ?(coprimeSg sRG) 1?(solvableS sRG).
 Qed.
 
-(* B & G, Proposition 1.5(e). *)
-Lemma coprime_comm_pcore : forall A G K,
+(* This is B & G, Proposition 1.5(e). *)
+Proposition coprime_comm_pcore : forall A G K,
     A \subset 'N(G) -> coprime #|G| #|A| -> solvable G ->
     pi^'.-Hall(G) K -> K \subset 'C_G(A) ->
   [~: G, A] \subset 'O_pi(G).
@@ -582,10 +582,11 @@ Qed.
 
 End InternalAction.
 
-(* B & G, Proposition 1.5(b) *)
-Lemma coprime_Hall_subset : forall pi (gT : finGroupType) (A G X : {group gT}),
-  A \subset 'N(G) -> coprime #|G| #|A| -> solvable G ->
-  X \subset G -> pi.-group X -> A \subset 'N(X) ->
+(* This is B & G, Proposition 1.5(b). *)
+Proposition coprime_Hall_subset :
+  forall pi (gT : finGroupType) (A G X : {group gT}),
+    A \subset 'N(G) -> coprime #|G| #|A| -> solvable G ->
+    X \subset G -> pi.-group X -> A \subset 'N(X) ->
   exists H : {group gT}, [/\ pi.-Hall(G) H, A \subset 'N(H) & X \subset H].
 Proof.
 move=> pi gT A G X; move: {2}_.+1 (ltnSn #|G|) => n.

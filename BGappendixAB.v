@@ -41,7 +41,7 @@ Import MatrixGenField.
 (* 'O_p^'(G) * P <| G premise plays no part in the proof.)                    *)
 (* Theorems A.1-A.3 are essentially inlined in this proof                     *)
 
-Lemma odd_p_stable : forall gT p (G : {group gT}), odd #|G| -> p.-stable G.
+Theorem odd_p_stable : forall gT p (G : {group gT}), odd #|G| -> p.-stable G.
 Proof.
 move=> gT p; move: gT.
 pose p_xp gT (E : {group gT}) x := p.-elt x && (x \in 'C([~: E, [set x]])).
@@ -211,7 +211,7 @@ Let nCG := normal_norm nsCG.
 Let nCX := subset_trans sXG nCG.
 
 (* This is B & G, Theorem A.5.1; it does not depend on the solG assumption. *)
-Lemma odd_abelian_gen_stable : X / C \subset 'O_p(G / C).
+Theorem odd_abelian_gen_stable : X / C \subset 'O_p(G / C).
 Proof.
 case/existsP: genX => gX; move/eqP=> defX.
 rewrite -defN sub_quotient_pre // -defX gen_subG; apply/bigcupsP=> A gX_A.
@@ -224,7 +224,7 @@ by apply/commG1P; rewrite (subset_trans _ cAA) // commg_subr.
 Qed.
 
 (* This is B & G, Theorem A.5.2. *)
-Lemma odd_abelian_gen_constrained :
+Theorem odd_abelian_gen_constrained :
   'O_p^'(G) = 1 -> 'C_('O_p(G))(P) \subset P -> X \subset 'O_p(G).
 Proof.
 set Q := 'O_p(G) => p'G1 sCQ_P. 
@@ -268,15 +268,14 @@ Proof. by move=> G; exact: bgFunc_char. Qed.
 Lemma center_Puig_char : forall G, 'Z('L(G)) \char G.
 Proof. by move=> G; apply: char_trans (center_char _) (Puig_char _). Qed.
 
+(* This is B & G, Lemma B.1(a). *)
 Lemma Puig_succS : forall G D E, D \subset E -> 'L_[G](E) \subset 'L_[G](D).
 Proof.
 move=> G D E sDE; apply: Puig_max (Puig_succ_sub _ _).
 exact: norm_abgenS sDE (Puig_gen _ _).
 Qed.
 
-
-(* With Puig_sub_odd, Puig_sub_even_odd, as well as BGsection1/Puig1 gives    *)
-(* B & G B.1(b)                                                               *)
+(* This is part of B & G, Lemma B.1(b) (see also BGsection1.Puig1). *)
 Lemma Puig_sub_even : forall m n G,
   m <= n -> 'L_{m.*2}(G) \subset 'L_{n.*2}(G).
 Proof.
@@ -284,16 +283,19 @@ move=> m n G; move/subnKC <-; move: {n}(n - m)%N => n.
 by elim: m => [|m IHm] /=; rewrite ?sub1G ?Puig_succS.
 Qed.
 
+(* This is part of B & G, Lemma B.1(b). *)
 Lemma Puig_sub_odd : forall m n G,
   m <= n -> 'L_{n.*2.+1}(G) \subset 'L_{m.*2.+1}(G).
 Proof. by move=> m n G le_mn; rewrite Puig_succS ?Puig_sub_even. Qed.
 
+(* This is part of B & G, Lemma B.1(b). *)
 Lemma Puig_sub_even_odd : forall m n G, 'L_{m.*2}(G) \subset 'L_{n.*2.+1}(G).
 Proof.
 move=> m n G; elim: n m => [|n IHn] m; first by rewrite Puig1 Puig_at_sub.
 by case: m => [|m]; rewrite ?sub1G ?Puig_succS ?IHn.
 Qed.
 
+(* This is B & G, Lemma B.1(c). *)
 Lemma Puig_limit : forall G,
   exists m, forall k, m <= k ->
     'L_{k.*2}(G) = 'L_*(G) /\ 'L_{k.*2.+1}(G) = 'L(G).
@@ -311,13 +313,12 @@ have{eqLm} eqLm: forall k, m <= k -> 'L_{k.*2}(G) = L2G m.
 by exists m => k le_mk; rewrite Puig_def PuigS /Puig_inf /= !eqLm //.
 Qed.
 
-(* With  the very definition of 'L(G) gives B & G B.1(g)                      *)
-Lemma Puig_inf_def : forall G, 'L_*(G) = 'L_[G]('L(G)).
-Proof.
-move=> G; have [k defL] := Puig_limit G.
-by case: (defL k) => // _ <-; case: (defL k.+1) => [|<- //]; exact: leqnSn.
-Qed.
+(* This is B & G, Lemma B.1(d), second part; the first part is covered by     *)
+(* BGsection1.Puig_inf_sub.                                                   *)
+Lemma Puig_inf_sub_Puig : forall G, 'L_*(G) \subset 'L(G).
+Proof. move=> G; exact: Puig_sub_even_odd. Qed.
 
+(* This is B & G, Lemma B.1(e). *)
 Lemma abelian_norm_Puig : forall n G A,
    n > 0 -> abelian A -> A <| G -> A \subset 'L_{n}(G).
 Proof.
@@ -326,12 +327,7 @@ rewrite PuigS sub_gen // bigcup_sup // inE sAG /norm_abelian cAA andbT.
 exact: subset_trans (Puig_at_sub n G) nAG.
 Qed.
 
-(* With  BGsection1/Puig_sub gives B & G B.1(d)                                *)
-Lemma Puig_inf_sub_Puig : forall G, 'L_*(G) \subset 'L(G).
-Proof. move=> G; exact: Puig_sub_even_odd. Qed.
-
-(* With sub_cent_Puig_inf, sub_cent_Puig, sub_center_Puig_at, and             *)
-(* trivg_center_Puig_pgroup gives B & G B.1(f)                                *)
+(* This is B & G, Lemma B.1(f), first inclusion. *)
 Lemma sub_cent_Puig_at : forall n p G,
   n > 0 -> p.-group G -> 'C_G('L_{n}(G)) \subset 'L_{n}(G).
 Proof.
@@ -344,16 +340,20 @@ have sML: M \subset 'L_{n}(G) by exact: abelian_norm_Puig.
 by apply: subset_trans (sML); rewrite -defCM setIS // centS.
 Qed.
 
+(* This is B & G, Lemma B.1(f), second inclusion. *)
+Lemma sub_center_cent_Puig_at : forall n G, 'Z(G) \subset 'C_G('L_{n}(G)).
+Proof. by move=> n G; rewrite setIS ?centS ?Puig_at_sub. Qed.
+
+(* This is B & G, Lemma B.1(f), third inclusion (the fourth is trivial). *)
 Lemma sub_cent_Puig_inf : forall p G,
   p.-group G -> 'C_G('L_*(G)) \subset 'L_*(G).
 Proof. by move=> p G; apply: sub_cent_Puig_at; rewrite double_gt0. Qed.
 
+(* This is B & G, Lemma B.1(f), fifth inclusion (the sixth is trivial). *)
 Lemma sub_cent_Puig : forall p G, p.-group G -> 'C_G('L(G)) \subset 'L(G).
 Proof. by move=> p G; exact: sub_cent_Puig_at. Qed.
 
-Lemma sub_center_cent_Puig_at : forall n G, 'Z(G) \subset 'C_G('L_{n}(G)).
-Proof. by move=> n G; rewrite setIS ?centS ?Puig_at_sub. Qed.
-
+(* This is B & G, Lemma B.1(f), final remark (we prove the contrapositive). *)
 Lemma trivg_center_Puig_pgroup : forall p G,
   p.-group G -> 'Z('L(G)) = 1 -> G :=: 1.
 Proof.
@@ -362,6 +362,15 @@ rewrite -(trivg_center_pgroup (pgroupS (Puig_sub _) pG) LG1).
 by apply: subset_trans (sub_cent_Puig pG); exact: sub_center_cent_Puig_at.
 Qed.
 
+(* This is B & G, Lemma B.1(g), second part; the first part is simply the     *)
+(* definition of 'L(G) in terms of 'L_*(G).                                   *)
+Lemma Puig_inf_def : forall G, 'L_*(G) = 'L_[G]('L(G)).
+Proof.
+move=> G; have [k defL] := Puig_limit G.
+by case: (defL k) => // _ <-; case: (defL k.+1) => [|<- //]; exact: leqnSn.
+Qed.
+
+(* This is B & G, Lemma B.2. *)
 Lemma sub_Puig_eq : forall G H, H \subset G -> 'L(G) \subset H -> 'L(H) = 'L(G).
 Proof.
 move=> G H sHG sLG_H.
@@ -399,6 +408,7 @@ Let pT : p.-group T := pcore_pgroup _ _.
 Let pS : p.-group S := pHall_pgroup sylS.
 Let sSG := pHall_sub sylS.
 
+(* This is B & G, Lemma B.3. *)
 Lemma pcore_Sylow_Puig_sub : 'L_*(S) \subset 'L_*(T) /\ 'L(T) \subset 'L(S).
 Proof.
 have [kS defLS] := Puig_limit S; have [kT defLT] := Puig_limit [group of T].
@@ -424,6 +434,7 @@ Qed.
 Let Y := 'Z('L(T)).
 Let L := 'L(S).
 
+(* This is B & G, Theorem B.4(b). *)
 Theorem Puig_center_normal : 'Z(L) <| G.
 Proof.
 have [sLiST sLTS] := pcore_Sylow_Puig_sub.
@@ -478,6 +489,7 @@ Section Puig_factorization.
 Variables (gT : finGroupType) (p : nat) (G S : {group gT}).
 Hypotheses (oddG : odd #|G|) (solG : solvable G) (sylS : p.-Sylow(G) S).
 
+(* This is B & G, Theorem B.4(a). *)
 Theorem Puig_factorization : 'O_p^'(G) * 'N_G('Z('L(S))) = G.
 Proof.
 set D := 'O_p^'(G); set Z := 'Z(_); have [sSG pS _] := and3P sylS.
