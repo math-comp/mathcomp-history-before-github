@@ -1740,8 +1740,7 @@ Section ProdFinType.
 
 Variable T1 T2 : finType.
 
-Definition prod_enum :=
-  foldr (fun x1 => cat (map (pair x1) (enum T2))) [::] (enum T1).
+Definition prod_enum := allpairs (@pair T1 T2) (enum T1) (enum T2).
 
 Lemma predX_prod_enum : forall (A1 : pred T1) (A2 : pred T2),
   count [predX A1 & A2] prod_enum = #|A1| * #|A2|.

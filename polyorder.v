@@ -68,20 +68,18 @@ move=> y; case/andP=> lay lyx; rewrite /root.
 by rewrite (negPf (np0 _ _))// lay/= (ler_trans lyx).
 Qed.
 
-
-
-Lemma divpf_spec : forall p q,  
-  p = (((scalp p q)^-1)%:P * (p %/ q)) * q + ((scalp p q)^-1)%:P * (p %% q).
+Lemma divFp_spec : forall p q, let k := lead_coef q ^- scalp p q in
+  p = (k *: (p %/ q)) * q + k *: (p %% q).
 Proof.
-move=> p q; apply/eqP.
-rewrite -(inj_eq (@mulfI _ (scalp p q)%:P  _)); last first.
-  by rewrite polyC_eq0 scalp_id.
-rewrite mulr_addr !mulrA -!polyC_mul divff ?scalp_id// polyC1 !mul1r.
-by rewrite mul_polyC divp_spec.
+move=> p q k; apply/eqP.
+rewrite -(inj_eq (@mulfI _ (k^-1)%:P  _)); last first.
+  by rewrite polyC_eq0 invrK scalp_Ineq0.
+rewrite !mul_polyC scaler_addr scaler_mull !scalerA mulVf.
+  by rewrite invrK !scale1r divCp_spec.
+by rewrite invr_neq0 // scalp_Ineq0.
 Qed. 
 
-
-Lemma maxdivpf : forall p a, p != 0 -> 
+Lemma maxdivFp : forall p a, p != 0 -> 
   exists q : {poly R}, 
     exists2 n,  (q.[a] != 0) & (p = q * ('X - a%:P)^+n).
 Proof.
@@ -109,14 +107,14 @@ by rewrite Pq -!mulrA -exprSr.
 Qed.
 
 
-Lemma divpf_eq0 : forall p q, q != 0 -> (p %/ q == 0) = (size p < size q)%N.
+Lemma divFp_eq0 : forall p q, q != 0 -> (p %/ q == 0) = (size p < size q)%N.
 Proof.
 move=> p q q0; apply/idP/idP=> hpq; last by rewrite divp_size.
 case p0: (p == 0); first by rewrite (eqP p0) size_poly0 lt0n size_poly_eq0.
-case: (divp_spec p q); rewrite (eqP hpq) mul0r add0r=> hpmpq.
+case: (divCp_spec p q); rewrite (eqP hpq) mul0r add0r=> hpmpq.
 apply: leq_ltn_trans (modp_spec p _); rewrite // -hpmpq -mul_polyC size_mul_id ?p0//.
-   by rewrite size_polyC scalp_id //=.
-by rewrite polyC_eq0 scalp_id.
+   by rewrite size_polyC scalp_Ineq0.
+by rewrite polyC_eq0 scalp_Ineq0.
 Qed.
 
 Lemma poly_divXMa : forall (a:R) (P : {poly R} -> Prop),
@@ -130,16 +128,15 @@ move: {-2}p (leqnn (size p)); elim: (size p)=> {p} [|n ihn] p spn.
   move: spn; rewrite leqn0 size_poly_eq0; move/eqP->; rewrite -polyC0.
   exact: Pk.
 case: (leqP (size p) 1)=> sp1; first by rewrite [p]size1_polyC ?sp1//.
-case: (@divpf_spec p ('X - a%:P))=> ->.
-set q := (_%:P * _); set c := (_%:P * _).
+case: (@divFp_spec p ('X - a%:P))=> ->.
+set q := (_ *: _); set c := (_ *: _).
+have qnz : q != 0.
+  rewrite scaler_eq0 negb_orb invr_neq0; last by rewrite scalp_Ineq0.
+  by rewrite divFp_eq0 -?size_poly_eq0 size_XMa// -leqNgt sp1.
 rewrite [c]size1_polyC; first last.
-  rewrite (leq_trans (size_mul _ _))// size_polyC invr_eq0 scalp_id.
-  rewrite addnC addn1 /= -ltnS (leq_trans (modp_spec _ _)) // ?size_XMa//.
-  by rewrite -size_poly_eq0 size_XMa.
-case: (@maxdivpf q a (mulf_neq0 _ _)).
-- by rewrite polyC_eq0 invr_eq0 scalp_id.
-- by rewrite divpf_eq0 -?size_poly_eq0 size_XMa// -leqNgt sp1.
-move=> r [m ra0 hqr]; rewrite hqr -mulrA -exprSr.
+  rewrite -ltnS size_scaler; last by rewrite invr_neq0 // scalp_Ineq0.
+  by rewrite -(size_XMa  a) modp_spec // -size_poly_eq0 size_XMa.
+case: (@maxdivFp _ a qnz) => r [m ra0 hqr]; rewrite hqr -mulrA -exprSr.
 apply: Pq=> //; apply: ihn.
 rewrite (leq_trans (_ : size r <= size q)%N)//.
   have xam : ('X - a%:P) ^+ m != 0.  
@@ -149,7 +146,7 @@ rewrite (leq_trans (_ : size r <= size q)%N)//.
     by move: ra0; apply: contra; move/eqP->; rewrite horner0.
   rewrite -[size (('X-_)^+_)]prednK; last by rewrite lt0n size_poly_eq0.
   by rewrite addnC leq_addl.
-rewrite (leq_trans (size_mul _ _))// size_polyC invr_eq0 scalp_id //=.
+rewrite size_scaler; last by rewrite invr_neq0 //scalp_Ineq0.
 by rewrite size_divp -?size_poly_eq0 size_XMa//= subn1 -ltnS (ltn_predK sp1).
 Qed.
 
@@ -220,21 +217,6 @@ Qed.
 (* Notation "a ^`( n )" := (derivn a n). *)
 (* Notation "a ^`" := (deriv a). *)
 
-Lemma derivPn : forall n p, (p ^+ n.+1)^`() = p ^+ n * p^`() *+ n.+1.
-Proof.
-elim=> [|n ihn] p; first by rewrite expr1 expr0 mul1r mulr1n.
-by rewrite exprS deriv_mul ihn !mulrnAr mulrA -exprS mulrC -mulrS.
-Qed.
-
-Lemma deriv_opp : forall p, (- p)^`() = - p^`().
-Proof.
-move=> p; rewrite -mulN1r deriv_mul mulN1r.
-by rewrite [-1]size1_polyC ?size_opp ?size_poly1// derivC mul0r add0r.
-Qed.
-
-Definition derivE := (derivC, derivX, deriv_amulX, deriv_mul, deriv_add,
-  deriv_mulr, deriv_opp, derivXn, derivPn).
-
 (* Lemma size_poly_ind : forall K : {poly R} -> Prop, *)
 (*   K 0 ->  *)
 (*   (forall p sp, size p = sp.+1 ->   *)
@@ -285,17 +267,14 @@ case/andP: (hx is_true_true)=> haxb hpx.
 case: (ltngtP (size p) 1)=> p1; first 2 last.
 - by rewrite [p]size1_polyC ?p1// hornerC -polyC_eq0 -size1_polyC// p1 in hpx.
 - by move: p1; rewrite ltnS leqn0 size_poly_eq0.
-case: (divpf_spec p ('X - x%:P)).
+case: (divFp_spec p ('X - x%:P)).
 move: (hpx); rewrite [_==_]root_factor_theorem=> dvdxp.
 move: (dvdxp); rewrite /dvdp; move/eqP ->.
-rewrite mulr0 addr0; set q : {poly R} := _*(_ %/ _)=> hpq.
+rewrite scaler0 addr0; set q : {poly R} := _*: (_ %/ _)=> hpq.
 rewrite hpq mulf_eq0 -[_-_==_]size_poly_eq0 size_XMa orbF.
 have sqn : size q = n.
-  rewrite size_mul_id.
-  - rewrite size_polyC invr_eq0 scalp_id /=.
-    by rewrite size_divp -?size_poly_eq0 size_XMa//= spSn subn1.
-  - by rewrite -size_poly_eq0 size_polyC invr_eq0 scalp_id.
-  - by rewrite divpf_eq0  -?size_poly_eq0 size_XMa//= -leqNgt.
+  rewrite size_scaler; last by rewrite invr_neq0 // scalp_Ineq0.
+  by rewrite size_divp -?size_poly_eq0 size_XMa//= spSn subn1.
 apply: (ihn _ _ a b s)=> //; first by rewrite sqn.
 move=> y yins.
 case exy: (y == x); first by move: xins; rewrite -(eqP exy) yins.
@@ -329,10 +308,10 @@ move=> a b p lab; case/andP=> pa0 pb0.
 case p0: (p == 0).
   rewrite (eqP p0); exists ((a+b)/2%:R); first exact: midf_lte.
   by left; rewrite derivC horner0 eqxx.
-case: (@maxdivpf p a)=> [|p' []]; first by rewrite p0.
+case: (@maxdivFp p a)=> [|p' []]; first by rewrite p0.
 case; first by rewrite expr0 mulr1=> p'a0 pp'; rewrite -pp' pa0 in p'a0.
 move=> n p'a0 hpp'.  
-case: (@maxdivpf p' b)=> [|q []]. 
+case: (@maxdivFp p' b)=> [|q []]. 
   by move:p'a0; apply: contra; move/eqP->; rewrite hornerC.
 case; first rewrite expr0 mulr1=> qb0 p'q.
   move: (pb0); rewrite hpp' p'q ?(horner_lin,horner_exp) mulf_eq0.
@@ -345,7 +324,7 @@ case: (inF3P (\s q.[a] * \s q.[b])); first 2 last.
 - move/eqP; rewrite mulf_eq0 !signr_cp0 (negPf qb0) orbF; move/eqP=> qa0.
   by move: p'a0; rewrite hp'q ?(horner_lin,horner_exp) qa0 mul0r eqxx.
 - move/eqP; rewrite muls_eqA// mulr1; case/andP; move/eqP=> sab sbn0.
-  rewrite !derivE subr0 !mulr1 mulr_addl !exprS. 
+  rewrite !derivCE subr0 !mulr1 mulr_addl !exprS. 
   set xan := (_^+n); set xbm := (_^+m).
   rewrite !mulrnAr !mulrA ![_*xbm]mulrC -!mulrA [q*_]mulrC -!mulrnAr.
   rewrite ![_*(_*xan)]mulrA ![_*xan]mulrC !mulrA [xbm*_]mulrC.

@@ -125,6 +125,8 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat.
 (*                      [:: x_r0; ...; x_(r0 + r1 - 1)];                      *)
 (*                      ...;                                                  *)
 (*                      [:: x_(r0 + ... + r(k-1)); ...; x_(r0 + ... rk - 1)]] *)
+(* allpairs f s1 s2 == the sequence of list of all results from applying f    *)
+(*                     to pairs from the two lists s1 s2                      *)
 (*   We are quite systematic in providing lemmas to rewrite any composition   *)
 (* of two operations. "rev", whose simplifications are not natural, is        *)
 (* protected with nosimpl.                                                    *)
@@ -2198,6 +2200,28 @@ Lemma size2_zip : forall s1 s2,
   size s2 <= size s1 -> size (zip s1 s2) = size s2.
 Proof. by elim=> [|x1 s1 IHs] [|x2 s2] //= Hs1; rewrite IHs. Qed.
 
+Lemma size_zip: forall s1 s2, 
+   size (zip s1 s2) = minn (size s1) (size s2).
+Proof.
+elim=> [|t1 s1 Hrec] /=.
+  by move=> s2 ; rewrite min0n //; case: s2.
+case=> [|t2 s2]; first by rewrite minn0.
+by rewrite /= Hrec /minn ltnS; case: leqP.
+Qed.
+
+Lemma nth_zip: forall d s1 s2 i,
+   nth d (zip s1 s2) i = 
+     if i < size(zip s1 s2) then (nth d.1 s1 i, nth d.2 s2 i) else d.
+Proof.
+move=> d s1 s2; rewrite size_zip.
+elim: s1 s2 => [|t1 s1 Hrec] /=.
+  by move=> s2 i; rewrite min0n //; case: s2; rewrite /= nth_nil.
+case=> [|t2 s2] i => /=; first by rewrite nth_nil.
+case:i => [|i] //=; first by rewrite /minn; case: (_.+1 < _).
+by rewrite Hrec /minn ltnS; case: (size _ < _).
+Qed.
+
+
 Lemma zip_cat : forall s11 s12 s21 s22,
     size s11 = size s21 ->
   zip (s11 ++ s12) (s21 ++ s22) = zip s11 s21 ++ zip s12 s22.
@@ -2206,7 +2230,7 @@ move=> s11 s12 s21 s22; move/eqP.
 by elim: s11 s21 => [|x1 s1 IHs] [|x2 s2] //=; move/IHs->.
 Qed.
 
-Lemma nth_zip : forall x1 x2 s1 s2 i,
+Lemma nth_zip1 : forall x1 x2 s1 s2 i,
   size s1 = size s2 -> nth (x1, x2) (zip s1 s2) i = (nth x1 s1 i, nth x2 s2 i).
 Proof.
 move=> x1 x2 s1 s2 i; move/eqP.
@@ -2253,9 +2277,64 @@ Qed.
 
 End Flatten.
 
-Prenex Implicits flatten shape reshape.
 
+Section AllPairs.
 
+Variables T1 T2 T3: Type.
+Variables f: T1 -> T2 -> T3.
 
+Definition allpairs (s1: seq T1) (s2: seq T2) :=
+  foldr (fun x1 => cat (map (f x1) s2)) ([::]) s1.
 
+Lemma size_allpairs: forall s1 s2, size (allpairs s1 s2) = size s1 * size s2.
+Proof. by elim=> [| a s1 Hrec] s2 //=; rewrite size_cat size_map Hrec. Qed.
 
+Lemma allpairs_catl: forall (s1 s2: seq T1) (s3: seq T2),
+  allpairs (s1 ++ s2) s3 = allpairs s1 s3 ++ allpairs s2 s3.
+Proof.  by elim=> [| a s1 Hrec] s2 //= s3; rewrite Hrec catA. Qed.
+
+End AllPairs.
+
+Section EqAllPairs.
+
+Variables T1 T2 T3: eqType.
+Variable f: T1 -> T2 -> T3.
+
+Lemma allpairsP : forall (s1: seq T1) (s2: seq T2) x,
+  reflect
+   (exists p, [&& p.1 \in s1, p.2 \in s2 & x == f p.1 p.2])
+   (x \in allpairs f s1 s2).
+Proof.
+elim=> [|x1 s1 Hrec] s2 x /=.
+  by rewrite in_nil; apply: (iffP idP)=> //; case.
+rewrite mem_cat; apply: (iffP idP) => [|[p]].
+  case/orP.
+    by case/mapP=> x2 Ix2 ->; exists (x1,x2); rewrite inE Ix2 !eqxx.
+  by case/Hrec=> p; case/and3P=> I1 I2 I3; exists p; rewrite !inE I1 I2 orbT.
+case/and3P; rewrite inE; case/orP=> I1 I2 I3; apply/orP.
+  by left; apply/mapP; exists p.2=> //; rewrite (eqP I3) (eqP I1).
+by right; apply/Hrec; exists p; rewrite I1 I2.
+Qed.
+
+Lemma mem_allpairs: forall (s1: seq T1) (s2: seq T2) s3 s4,
+  s1 =i s3 -> s2 =i s4 -> allpairs f s1 s2 =i allpairs f s3 s4.
+Proof.
+by move=> s1 s2 s3 s4 Hs1 Hs2 x; apply/allpairsP/allpairsP=> [] [p Hp]; 
+    exists p; [rewrite -Hs1 -Hs2 | rewrite Hs1 Hs2].
+Qed.
+
+Lemma allpairs_catr: forall (s1: seq T1) (s2 s3: seq T2),
+  allpairs f s1 (s2 ++ s3) =i allpairs f s1 s2 ++ allpairs f s1 s3.
+Proof.
+move=> s1 s2 s3 x.
+rewrite mem_cat; apply/allpairsP/idP=> [[p]|].
+  by case/and3P=> I1; rewrite mem_cat; 
+     (case/orP=> I2 I3; apply/orP); [left | right];
+     apply/allpairsP; exists p; rewrite I1 I2.
+by case/orP; case/allpairsP=> p; case/and3P=> I1 I2 I3;
+   exists p; rewrite mem_cat I1 I2 // orbT.
+Qed.
+
+End EqAllPairs.
+
+Prenex Implicits flatten shape reshape allpairs.

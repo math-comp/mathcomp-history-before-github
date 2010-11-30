@@ -183,6 +183,13 @@ Proof.
 by elim=> [|m IHm] [|n] //; rewrite binS addn_gt0 !IHm orbC ltn_neqAle andKb.
 Qed.
 
+Lemma leq_bin2l: forall m1 m2 n, m1 <= m2 -> 'C(m1,n) <= 'C(m2,n).
+Proof.
+elim=> [|m1 IH].
+  by move=> m2 n Hm2; rewrite bin0n; case: n=> //; rewrite bin0.
+by case=> [|m2] // [|n] Hm; [rewrite bin0 | rewrite !binS leq_add // IH].
+Qed.
+
 Lemma bin_small : forall n m, n < m -> 'C(n, m) = 0.
 Proof. by move=> n m; rewrite ltnNge -bin_gt0; case: posnP. Qed.
 

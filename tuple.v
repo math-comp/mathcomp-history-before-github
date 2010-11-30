@@ -159,9 +159,11 @@ Lemma pairmap_tupleP : forall f x (t : tT), @size rT (pairmap f x t) == n.
 Proof. by move=> f x t; rewrite size_pairmap size_tuple. Qed.
 Canonical Structure pairmap_tuple f x t := Tuple (pairmap_tupleP f x t).
 
-Lemma zip_tupleP : forall t1 t2 : tT, size (zip t1 t2) == n.
+Lemma zip_tupleP :forall (T1 T2: Type) (t1 : n.-tuple T1) (t2 : n.-tuple T2),
+ size (zip t1 t2) == n.
 Proof. by move=> *; rewrite size1_zip !size_tuple. Qed.
-Canonical Structure zip_tuple t1 t2 := Tuple (zip_tupleP t1 t2).
+Canonical Structure zip_tuple T1 T2 (t1 : n.-tuple T1) (t2 : n.-tuple T2) := 
+  Tuple (zip_tupleP t1 t2).
 
 Definition thead n (t : n.+1.-tuple T) := tnth t ord0.
 
