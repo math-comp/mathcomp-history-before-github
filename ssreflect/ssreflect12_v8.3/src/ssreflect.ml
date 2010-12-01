@@ -499,9 +499,18 @@ let pf_abs_evars gl (sigma, c0) =
   | [] -> c in
   List.length evlist, loop (get 1 c0) 1 evlist
 
-(* as before but if (?i : T(?j)) and (?j : P : Prop), then the lambda for i
+
+
+(* As before but if (?i : T(?j)) and (?j : P : Prop), then the lambda for i
  * looks like (fun evar_i : (forall pi : P. T(pi))) thanks to "loopP" and all 
- * occurrences of evar_i are replaced by (evar_i evar_j) thanks to "app" *)
+ * occurrences of evar_i are replaced by (evar_i evar_j) thanks to "app".
+ *
+ * If P can be solved by ssrautoprop (that defaults to trivial), then
+ * the corresponding lambda looks like (fun evar_i : T(c)) where c is 
+ * the solution found by ssrautoprop.
+ *)
+let ssrautoprop_tac = ref (fun gl -> assert false)
+
 let pf_abs_evars_pirrel gl (sigma, c0) =
   pp(lazy(str"==PF_ABS_EVARS_PIRREL=="));
   pp(lazy(str"c0= " ++ pr_constr c0));
@@ -528,13 +537,38 @@ let pf_abs_evars_pirrel gl (sigma, c0) =
   let evlist = put [] c0 in
   if evlist = [] then 0, c0 else
   let pr_constr t = pr_constr (Reductionops.nf_beta (project gl) t) in
-  let evplist = List.filter (fun _,(_,_,b) -> b = true) evlist in
+  let evplist = 
+    let depev = List.fold_left (fun evs (_,(_,t,_)) -> 
+        Intset.union evs (Evarutil.evars_of_term t)) Intset.empty evlist in
+    List.filter (fun i,(_,_,b) -> b && Intset.mem i depev) evlist in
+  let evlist, evplist, sigma = 
+    if evplist = [] then evlist, [], sigma else
+    List.fold_left (fun (ev, evp, sigma) (i, (_,t,_) as p) ->
+      try 
+        let proof = ref (fun _ -> assert false) in
+        let t = Evarutil.nf_evar sigma t in
+        pp(lazy(str"t=" ++ pr_constr t));
+        let tac gl = 
+          let gl, p = !ssrautoprop_tac gl in 
+          if sig_it gl = [] then (proof := p; gl, p) else errorstrm (str"XX") in
+        ignore(tclTHENS (Tactics.cut t) [tclIDTAC; tac] gl);
+        let c, hyps = Refiner.extract_open_proof sigma (!proof []) in
+        assert(hyps = []);
+        let sigma = Evd.define i c sigma in
+        List.filter (fun (j,_) -> j <> i) ev, evp, sigma
+      with _ -> ev, p::evp, sigma) (evlist, [], sigma) (List.rev evplist) in
+  let c0 = Evarutil.nf_evar sigma c0 in
+  let evlist = 
+    List.map (fun (x,(y,t,z)) -> x,(y,Evarutil.nf_evar sigma t,z)) evlist in
+  let evplist = 
+    List.map (fun (x,(y,t,z)) -> x,(y,Evarutil.nf_evar sigma t,z)) evplist in
+  pp(lazy(str"c0= " ++ pr_constr c0));
   let rec lookup k i = function
-    | [] -> 0, 0, false
-    | (k', (n,_,b)) :: evl -> if k = k' then i,n,b else lookup k (i + 1) evl in
+    | [] -> 0, 0
+    | (k', (n,_,_)) :: evl -> if k = k' then i,n else lookup k (i + 1) evl in
   let rec get evlist i c = match kind_of_term c with
   | Evar (ev, a) ->
-    let j, n, is_prop = lookup ev i evlist in
+    let j, n = lookup ev i evlist in
     if j = 0 then map_constr (get evlist i) c else if n = 0 then mkRel j else
     mkApp (mkRel j, Array.init n (fun k -> get evlist i a.(n - 1 - k)))
   | _ -> map_constr_with_binders ((+) 1) (get evlist) i c in
@@ -556,7 +590,8 @@ let pf_abs_evars_pirrel gl (sigma, c0) =
     let t = loopP t_evplist (get t_evplist 1 t) 1 t_evplist in
     let t = get evlist (i - 1) t in
     let extra_args = 
-      List.map (fun (k,_) -> mkRel (pi1 (lookup k i evlist))) t_evplist in
+      List.map (fun (k,_) -> mkRel (fst (lookup k i evlist))) 
+        (List.rev t_evplist) in
     let c = if extra_args = [] then c else app extra_args 1 c in
     loop (mkLambda (mk_evar_name n, t, c)) (i - 1) evl
   | [] -> c in
@@ -1243,12 +1278,14 @@ GEXTEND Gram
   tactic_expr: LEVEL "0" [[ arg = ssrparentacarg -> TacArg arg ]];
 END
 
-(** The internal "done" tactic. *)
+(** The internal "done" and "ssrautoprop" tactics. *)
 
-(* For additional flexibility, "done" is defined in Ltac.    *)
+(* For additional flexibility, "done" and "ssrautoprop" are  *)
+(* defined in Ltac.                                          *)
 (* Although we provide a default definition in ssreflect,    *)
 (* we look up the definition dynamically at each call point, *)
-(* to allow for user extensions.                             *)
+(* to allow for user extensions. "ssrautoprop" defaults to   *)
+(* trivial.                                                  *)
 
 let donetac gl =
   let tacname = 
@@ -1257,6 +1294,17 @@ let donetac gl =
     with Not_found -> Util.error "The ssreflect library was not loaded" in
   let tacexpr = Tacexpr.Reference (ArgArg (dummy_loc, tacname)) in
   eval_tactic (Tacexpr.TacArg tacexpr) gl
+
+let ssrautoprop gl =
+  try 
+    let tacname = 
+      try Nametab.locate_tactic (qualid_of_ident (id_of_string "ssrautoprop"))
+      with Not_found -> Nametab.locate_tactic (ssrqid "ssrautoprop") in
+    let tacexpr = Tacexpr.Reference (ArgArg (dummy_loc, tacname)) in
+    eval_tactic (Tacexpr.TacArg tacexpr) gl
+  with Not_found -> Auto.full_trivial [] gl
+
+let () = ssrautoprop_tac := ssrautoprop
 
 let tclBY tac = tclTHEN tac donetac
 
