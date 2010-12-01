@@ -569,8 +569,8 @@ Proof.
 rewrite rmorph_sub; congr (_ - _).
   by rewrite /= map_polyXn degree_mxminpoly_map.
 rewrite degree_mxminpoly_map -rmorphX /=.
-apply/polyP=> i; rewrite coef_map // !coef_rVpoly degree_mxminpoly_map.
-case/insub: i => [i|]; last by apply: sym_eq; apply: rmorph0.
+apply/polyP=> i; rewrite coef_map //= !coef_rVpoly degree_mxminpoly_map.
+case/insub: i => [i|]; last by rewrite rmorph0.
 by rewrite -map_powers_mx -map_pinvmx // -map_mxvec -map_mxM // mxE.
 Qed.
 

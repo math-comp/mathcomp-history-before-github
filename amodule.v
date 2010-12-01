@@ -139,8 +139,8 @@ rewrite (coord_basis Ha) (coord_basis Hb).
 rewrite linear_sum /=; apply: memv_sum => [] [j Hj] _.
 rewrite -rmul_sum; apply: memv_sum => [] [i Hi] _ /=.
 rewrite linearZ memvZl //= rmulZ memvZl //=.
-apply: memv_span; apply/allpairsP; exists ((vbasis vs)`_i,(vbasis ws)`_j)=> //.
-by rewrite  !mem_nth /=.
+apply: memv_span; apply/allpairsP; exists ((vbasis vs)`_i, (vbasis ws)`_j)=> //.
+by rewrite !mem_nth /=.
 Qed.
 
 Lemma eprodvP : forall vs1 ws vs2,   reflect (forall a b, a \in vs1 -> b \in ws -> a :* b \in vs2)
@@ -151,8 +151,7 @@ move=> vs1 ws vs2; apply: (iffP idP).
   by apply: subsetv_trans Hs; exact: memv_eprod.
 move=> Ha; apply/subsetvP=> v.
 move/coord_span->; apply: memv_sum => [] [i /= Hi] _.
-apply: memvZl; move: (mem_nth 0 Hi); case/allpairsP=> p.
-case/and3P=> I1 I2; move/eqP->.
+apply: memvZl; move: (mem_nth 0 Hi); case/allpairsP=> p [I1 I2 ->].
 by rewrite Ha // memv_basis.
 Qed.
 
@@ -306,8 +305,7 @@ Lemma modfP : forall f ms al,
           (modf f ms al).
 Proof.
 move=> f ms al; apply: (iffP idP)=> H; last first.
-  apply/allP=> [] [v x]; case/allpairsP=> [[x1 x2]].
-  case/and3P=> I1 I2; move/eqP->.
+  apply/allP=> [] [v x]; case/allpairsP=> [[x1 x2] [I1 I2 ->]].
   by apply/eqP; apply: H; apply: memv_basis.
 move=> x v Hv Hx; rewrite (coord_basis Hv) (coord_basis Hx).
 rewrite !linear_sum; apply: eq_big=> //= i _.
@@ -316,7 +314,7 @@ rewrite -!rmul_sum linear_sum; apply: eq_big=> //= j _.
 rewrite rmulZ !linearZ /= rmulZ; congr (_ *: _).
 set x1 := _`_ _; set y1 := _ `_ _.
 case: f H => f /=; move/allP; move/(_ (x1,y1))=> HH.
-apply/eqP; apply: HH; apply/allpairsP; exists (x1,y1).
+apply/eqP; apply: HH; apply/allpairsP; exists (x1, y1).
 by rewrite !mem_nth /=.
 Qed.
 
@@ -327,8 +325,7 @@ Lemma modf_add : forall f1 f2 ms al,
   modf f1 ms al -> modf f2 ms al -> modf (f1 + f2) ms al.
 Proof.
 move=> f1 f2 ms al Hm1 Hm2; apply/allP=> [] [v x].
-case/allpairsP=> [[x1 x2]]; case/and3P=> I1 I2; move/eqP->.
-rewrite !lappE rmulD.
+case/allpairsP=> [[x1 x2] [I1 I2 ->]]; rewrite !lappE rmulD.
 move/modfP: Hm1->; try apply: memv_basis=>//.
 by move/modfP: Hm2->; try apply: memv_basis.
 Qed.
@@ -336,8 +333,7 @@ Qed.
 Lemma modf_scale : forall k f ms al, modf f ms al -> modf (k *: f) ms al.
 Proof.
 move=> k f ms al Hm; apply/allP=>  [] [v x].
-case/allpairsP=> [[x1 x2]]; case/and3P=> I1 I2; move/eqP->.
-rewrite !lappE rmulZ.
+case/allpairsP=> [[x1 x2] [I1 I2 ->]]; rewrite !lappE rmulZ.
 by move/modfP: Hm->; try apply: memv_basis.
 Qed.
 

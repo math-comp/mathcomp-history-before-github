@@ -100,33 +100,34 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat.
 (*               rev s == the (linear time) reversal of s                     *)
 (*        catrev s2 s1 == the reversal of s1 followed by s2 (this is the      *)
 (*                        recursive form of rev)                              *)
-(*  ** iterators: for s == [:: x_0, ..., x_n],                                *)
-(*        map f s == the sequence [:: f x_0, ..., f x_n]                      *)
-(*      pmap pf s == the sequence [:: y_i0, ..., y_ik] where i0 < ... < ik,   *)
+(*  ** iterators: for s == [:: x_1, ..., x_n], t == [:: y_1, ..., y_m],       *)
+(*        map f s == the sequence [:: f x_1, ..., f x_n]                      *)
+(*      pmap pf s == the sequence [:: y_i1, ..., y_ik] where i1 < ... < ik,   *)
 (*                   pf x_i = Some y_i, and pf x_j = None iff j is not in     *)
-(*                   {i0, ..., ik}.                                           *)
+(*                   {i1, ..., ik}.                                           *)
 (*   foldr f a s == the right fold of s by f (i.e., the natural iterator)     *)
-(*               := f x_0 (f x_1 ... (f x_n a))                               *)
-(*        sumn s == x_0 + (x_1 + ... + (x_n + 0)) (when s : seq nat)          *)
+(*               := f x_1 (f x_2 ... (f x_n a))                               *)
+(*        sumn s == x_1 + (x_2 + ... + (x_n + 0)) (when s : seq nat)          *)
 (*   foldl f a s == the left fold of s by f                                   *)
-(*               := f (f ... (f a x_0) ... x_n-1) x_n                         *)
+(*               := f (f ... (f a x_1) ... x_n-1) x_n                         *)
 (*   scanl f a s == the sequence of partial accumulators of foldl f a s       *)
-(*               := [:: f a x_0; ...; foldl f a s]                            *)
+(*               := [:: f a x_1; ...; foldl f a s]                            *)
 (* pairmap f a s == the sequence of f applied to consecutie items in a :: s   *)
-(*               := [:: f a x_0; f x_0 x_1; ...; f x_n-1 x_n]                 *)
-(*     zip s1 s2 == itemwise pairing of s1 and s2 (dropping any extra items)  *)
-(*               := [:: (x1_0, x2_0); ...; (x1_n, x2_n)]                      *)
-(*      unzip1 s == [:: (x_0).1; ...; (x_n).1] when s : seq (T1 * T2)         *)
-(*      unzip2 s == [:: (x_0).2; ...; (x_n).2] when s : seq (T1 * T2)         *)
-(*     flatten s == x_0 ++ ... ++ x_n ++ [::] when s : seq (seq T)            *)
+(*               := [:: f a x_1; f x_1 x_2; ...; f x_n-1 x_n]                 *)
+(*       zip s t == itemwise pairing of s and t (dropping any extra items)    *)
+(*               := [:: (x_1, y_1); ...; (x_mn, y_mn)] with mn = minn n m.    *)
+(*      unzip1 s == [:: (x_1).1; ...; (x_n).1] when s : seq (S * T)           *)
+(*      unzip2 s == [:: (x_1).2; ...; (x_n).2] when s : seq (S * T)           *)
+(*     flatten s == x_1 ++ ... ++ x_n ++ [::] when s : seq (seq T)            *)
 (*   reshape r s == s reshaped into a sequence of sequences whose sizes are   *)
 (*                  given by r (trucating if s is too long or too short)      *)
-(*               := [:: [:: x_0; ...; x_(r0 - 1)];                            *)
-(*                      [:: x_r0; ...; x_(r0 + r1 - 1)];                      *)
+(*               := [:: [:: x_1; ...; x_r1];                                  *)
+(*                      [:: x_(r1 + 1); ...; x_(r0 + r1)];                    *)
 (*                      ...;                                                  *)
-(*                      [:: x_(r0 + ... + r(k-1)); ...; x_(r0 + ... rk - 1)]] *)
-(* allpairs f s1 s2 == the sequence of list of all results from applying f    *)
-(*                     to pairs from the two lists s1 s2                      *)
+(*                      [:: x_(r1 + ... + r(k-1) + 1); ...; x_(r0 + ... rk)]] *)
+(* allpairs f s t == the sequence of all the f x y, with x and y drawn from   *)
+(*                  s and t, respectievly, in row-major order:                *)
+(*               := [:: f x_1 y_1; ...; f x_1 y_m; f x_2 y_1; ...; f x_n y_m] *)
 (*   We are quite systematic in providing lemmas to rewrite any composition   *)
 (* of two operations. "rev", whose simplifications are not natural, is        *)
 (* protected with nosimpl.                                                    *)
@@ -2170,71 +2171,55 @@ Prenex Implicits mask map pmap foldr foldl scanl pairmap.
 
 Section Zip.
 
-Variables T1 T2 : Type.
+Variables S T : Type.
 
-Fixpoint zip (s1 : seq T1) (s2 : seq T2) {struct s2} :=
-  match s1, s2 with
-  | x1 :: s1', x2 :: s2' => (x1, x2) :: zip s1' s2'
+Fixpoint zip (s : seq S) (t : seq T) {struct t} :=
+  match s, t with
+  | x :: s', y :: t' => (x, y) :: zip s' t'
   | _, _ => [::]
   end.
 
-Definition unzip1 := map (@fst T1 T2).
-Definition unzip2 := map (@snd T1 T2).
+Definition unzip1 := map (@fst S T).
+Definition unzip2 := map (@snd S T).
 
 Lemma zip_unzip : forall s, zip (unzip1 s) (unzip2 s) = s.
-Proof. by elim=> [|[x1 x2] s /= ->]. Qed.
+Proof. by elim=> [|[x y] s /= ->]. Qed.
 
-Lemma unzip1_zip : forall s1 s2,
-  size s1 <= size s2 -> unzip1 (zip s1 s2) = s1.
-Proof. by elim=> [|x1 s1 IHs] [|x2 s2] //= Ds; rewrite IHs. Qed.
+Lemma unzip1_zip : forall s t, size s <= size t -> unzip1 (zip s t) = s.
+Proof. by elim=> [|x s IHs] [|y t] //= le_s_t; rewrite IHs. Qed.
 
-Lemma unzip2_zip : forall s1 s2,
-  size s2 <= size s1 -> unzip2 (zip s1 s2) = s2.
-Proof. by elim=> [|x1 s1 IHs] [|x2 s2] //= Ds; rewrite IHs. Qed.
+Lemma unzip2_zip : forall s t, size t <= size s -> unzip2 (zip s t) = t.
+Proof. by elim=> [|x s IHs] [|y t] //= le_t_s; rewrite IHs. Qed.
 
-Lemma size1_zip : forall s1 s2,
-  size s1 <= size s2 -> size (zip s1 s2) = size s1.
-Proof. by elim=> [|x1 s1 IHs] [|x2 s2] //= Hs1; rewrite IHs. Qed.
+Lemma size1_zip : forall s t, size s <= size t -> size (zip s t) = size s.
+Proof. by elim=> [|x s IHs] [|y t] //= Hs; rewrite IHs. Qed.
 
-Lemma size2_zip : forall s1 s2,
-  size s2 <= size s1 -> size (zip s1 s2) = size s2.
-Proof. by elim=> [|x1 s1 IHs] [|x2 s2] //= Hs1; rewrite IHs. Qed.
+Lemma size2_zip : forall s t, size t <= size s -> size (zip s t) = size t.
+Proof. by elim=> [|x s IHs] [|y t] //= Hs; rewrite IHs. Qed.
 
-Lemma size_zip: forall s1 s2, 
-   size (zip s1 s2) = minn (size s1) (size s2).
+Lemma size_zip : forall s t, size (zip s t) = minn (size s) (size t).
+Proof. by elim=> [|x s IHs] [|t2 t] //=; rewrite IHs -add1n addn_minr. Qed.
+
+Lemma zip_cat : forall s1 s2 t1 t2,
+  size s1 = size t1 -> zip (s1 ++ s2) (t1 ++ t2) = zip s1 t1 ++ zip s2 t2.
 Proof.
-elim=> [|t1 s1 Hrec] /=.
-  by move=> s2 ; rewrite min0n //; case: s2.
-case=> [|t2 s2]; first by rewrite minn0.
-by rewrite /= Hrec /minn ltnS; case: leqP.
+move=> s1 s2 t1 t2; move/eqP.
+by elim: s1 t1 => [|x s IHs] [|y t] //=; move/IHs->.
 Qed.
 
-Lemma nth_zip: forall d s1 s2 i,
-   nth d (zip s1 s2) i = 
-     if i < size(zip s1 s2) then (nth d.1 s1 i, nth d.2 s2 i) else d.
+Lemma nth_zip : forall x y s t i,
+  size s = size t -> nth (x, y) (zip s t) i = (nth x s i, nth y t i).
 Proof.
-move=> d s1 s2; rewrite size_zip.
-elim: s1 s2 => [|t1 s1 Hrec] /=.
-  by move=> s2 i; rewrite min0n //; case: s2; rewrite /= nth_nil.
-case=> [|t2 s2] i => /=; first by rewrite nth_nil.
-case:i => [|i] //=; first by rewrite /minn; case: (_.+1 < _).
-by rewrite Hrec /minn ltnS; case: (size _ < _).
+move=> x y s t i; move/eqP.
+by elim: i s t => [|i IHi] [|y1 s1] [|y2 t] //=; move/IHi->.
 Qed.
 
-
-Lemma zip_cat : forall s11 s12 s21 s22,
-    size s11 = size s21 ->
-  zip (s11 ++ s12) (s21 ++ s22) = zip s11 s21 ++ zip s12 s22.
+Lemma nth_zip_cond : forall p s t i,
+   nth p (zip s t) i
+     = (if i < size (zip s t) then (nth p.1 s i, nth p.2 t i) else p).
 Proof.
-move=> s11 s12 s21 s22; move/eqP.
-by elim: s11 s21 => [|x1 s1 IHs] [|x2 s2] //=; move/IHs->.
-Qed.
-
-Lemma nth_zip1 : forall x1 x2 s1 s2 i,
-  size s1 = size s2 -> nth (x1, x2) (zip s1 s2) i = (nth x1 s1 i, nth x2 s2 i).
-Proof.
-move=> x1 x2 s1 s2 i; move/eqP.
-by elim: i s1 s2 => [|i IHi] [|y1 s1] [|y2 s2] //=; move/IHi->.
+move=> p s t i; rewrite size_zip ltnNge leq_minl.
+by elim: s t i => [|x s IHs] [|y t] [|i] //=; rewrite ?orbT -?IHs.
 Qed.
 
 End Zip.
@@ -2277,62 +2262,55 @@ Qed.
 
 End Flatten.
 
-
 Section AllPairs.
 
-Variables T1 T2 T3: Type.
-Variables f: T1 -> T2 -> T3.
+Variables (S T R : Type) (f : S -> T -> R).
+Implicit Type s : seq S.
+Implicit Type t : seq T.
 
-Definition allpairs (s1: seq T1) (s2: seq T2) :=
-  foldr (fun x1 => cat (map (f x1) s2)) ([::]) s1.
+Definition allpairs s t := foldr (fun x => cat (map (f x) t)) [::] s.
 
-Lemma size_allpairs: forall s1 s2, size (allpairs s1 s2) = size s1 * size s2.
-Proof. by elim=> [| a s1 Hrec] s2 //=; rewrite size_cat size_map Hrec. Qed.
+Lemma size_allpairs: forall s t, size (allpairs s t) = size s * size t.
+Proof. by elim=> //= x s IHs t; rewrite size_cat size_map IHs. Qed.
 
-Lemma allpairs_catl: forall (s1 s2: seq T1) (s3: seq T2),
-  allpairs (s1 ++ s2) s3 = allpairs s1 s3 ++ allpairs s2 s3.
-Proof.  by elim=> [| a s1 Hrec] s2 //= s3; rewrite Hrec catA. Qed.
+Lemma allpairs_catl: forall s1 s2 t,
+  allpairs (s1 ++ s2) t = allpairs s1 t ++ allpairs s2 t.
+Proof. by elim=> //= x s IHs s2 t; rewrite IHs catA. Qed.
 
 End AllPairs.
 
 Section EqAllPairs.
 
-Variables T1 T2 T3: eqType.
-Variable f: T1 -> T2 -> T3.
+Variables (S T R : eqType) (f : S -> T -> R).
+Implicit Type s : seq S.
+Implicit Type t : seq T.
 
-Lemma allpairsP : forall (s1: seq T1) (s2: seq T2) x,
-  reflect
-   (exists p, [&& p.1 \in s1, p.2 \in s2 & x == f p.1 p.2])
-   (x \in allpairs f s1 s2).
+Lemma allpairsP : forall s t z,
+  reflect (exists p, [/\ p.1 \in s, p.2 \in t & z = f p.1 p.2])
+          (z \in allpairs f s t).
 Proof.
-elim=> [|x1 s1 Hrec] s2 x /=.
-  by rewrite in_nil; apply: (iffP idP)=> //; case.
-rewrite mem_cat; apply: (iffP idP) => [|[p]].
-  case/orP.
-    by case/mapP=> x2 Ix2 ->; exists (x1,x2); rewrite inE Ix2 !eqxx.
-  by case/Hrec=> p; case/and3P=> I1 I2 I3; exists p; rewrite !inE I1 I2 orbT.
-case/and3P; rewrite inE; case/orP=> I1 I2 I3; apply/orP.
-  by left; apply/mapP; exists p.2=> //; rewrite (eqP I3) (eqP I1).
-by right; apply/Hrec; exists p; rewrite I1 I2.
+move=> s t z; elim: s => [|x s IHs]; first by right=> [[p []]].
+rewrite /= mem_cat; have [fxt_z | not_fxt_z] := altP mapP.
+  by left; have [y t_y ->] := fxt_z; exists (x, y); rewrite mem_head.
+apply: (iffP IHs) => [] [[x' y] /= [s_x' t_y def_z]]; exists (x', y).
+  by rewrite !inE predU1r.
+by have [def_x' | //] := predU1P s_x'; rewrite def_z def_x' map_f in not_fxt_z.
 Qed.
 
-Lemma mem_allpairs: forall (s1: seq T1) (s2: seq T2) s3 s4,
-  s1 =i s3 -> s2 =i s4 -> allpairs f s1 s2 =i allpairs f s3 s4.
+Lemma mem_allpairs : forall s1 t1 s2 t2,
+  s1 =i s2 -> t1 =i t2 -> allpairs f s1 t1 =i allpairs f s2 t2.
 Proof.
-by move=> s1 s2 s3 s4 Hs1 Hs2 x; apply/allpairsP/allpairsP=> [] [p Hp]; 
-    exists p; [rewrite -Hs1 -Hs2 | rewrite Hs1 Hs2].
+move=> s1 t1 s2 t2 eq_s eq_t z.
+by apply/allpairsP/allpairsP=> [] [p fpz]; exists p; rewrite eq_s eq_t in fpz *.
 Qed.
 
-Lemma allpairs_catr: forall (s1: seq T1) (s2 s3: seq T2),
-  allpairs f s1 (s2 ++ s3) =i allpairs f s1 s2 ++ allpairs f s1 s3.
+Lemma allpairs_catr : forall s t1 t2,
+  allpairs f s (t1 ++ t2) =i allpairs f s t1 ++ allpairs f s t2.
 Proof.
-move=> s1 s2 s3 x.
-rewrite mem_cat; apply/allpairsP/idP=> [[p]|].
-  by case/and3P=> I1; rewrite mem_cat; 
-     (case/orP=> I2 I3; apply/orP); [left | right];
-     apply/allpairsP; exists p; rewrite I1 I2.
-by case/orP; case/allpairsP=> p; case/and3P=> I1 I2 I3;
-   exists p; rewrite mem_cat I1 I2 // orbT.
+move=> s t1 t2 z; rewrite mem_cat.
+apply/allpairsP/orP=> [[p [sP1]]|].
+  by rewrite mem_cat; case/orP; [left | right]; apply/allpairsP; exists p.
+by case; case/allpairsP=> p [sp1 sp2 ->]; exists p; rewrite mem_cat sp2 ?orbT.
 Qed.
 
 End EqAllPairs.

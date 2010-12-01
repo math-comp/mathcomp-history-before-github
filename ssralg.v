@@ -280,8 +280,8 @@ Require Import finfun bigop prime binomial.
 (*     precise rewriting and cleaner chaining: although raddf lemmas will     *)
 (*     recognize RMorphism functions, the converse will not hold (we cannot   *)
 (*     add reverse inheritance rules because of incomplete backtracking in    *)
-(*     the Canonical Projection unification), so one would hav to insert a /= *)
-(*     every time one switched from additive to multiplicative rules.         *)
+(*     the Canonical Projection unification), so one would have to insert a   *)
+(*     /= every time one switched from additive to multiplicative rules.      *)
 (*  -> The property duplication also means that it is not strictly necessary  *)
 (*     to declare all Additive instances.                                     *)
 (*                                                                            *)
@@ -313,7 +313,7 @@ Require Import finfun bigop prime binomial.
 (*                           of scal_f.                                       *)
 (*     [linear of f as g] == an f-clone of the linear structure of g.         *)
 (*          [linear of f] == a clone of an existing linear structure on f.    *)
-(* -> Similarly to Ring morphisms, additive properties a specialized for      *)
+(* -> Similarly to Ring morphisms, additive properties are specialized for    *)
 (*    linear functions.                                                       *)
 (*                                                                            *)
 (* * LRMorphism (linear ring morphisms, i.e., algebra morphisms):             *)
@@ -4202,11 +4202,11 @@ Notation "+%R" := (@add _).
 Notation "x + y" := (add x y) : ring_scope.
 Notation "x - y" := (add x (- y)) : ring_scope.
 Notation "x *+ n" := (natmul x n) : ring_scope.
-Notation "x *- n" := (- (natmul x n)) : ring_scope.
+Notation "x *- n" := (opp (x *+ n)) : ring_scope.
 Notation "s `_ i" := (seq.nth 0%R s%R i) : ring_scope.
 
 Notation "1" := (one _) : ring_scope.
-Notation "- 1" := (- (1))%R : ring_scope.
+Notation "- 1" := (opp 1) : ring_scope.
 
 Notation "n %:R" := (natmul 1 n) : ring_scope.
 Notation "[ 'char' R ]" := (char (Phant R)) : ring_scope.
@@ -4215,12 +4215,12 @@ Notation "*%R" := (@mul _).
 Notation "x * y" := (mul x y) : ring_scope.
 Notation "x ^+ n" := (exp x n) : ring_scope.
 Notation "x ^-1" := (inv x) : ring_scope.
-Notation "x ^- n" := (x ^+ n)^-1%R : ring_scope.
+Notation "x ^- n" := (inv (x ^+ n)) : ring_scope.
 Notation "x / y" := (mul x y^-1) : ring_scope.
 
 Notation "*:%R" := (@scale _ _).
 Notation "a *: m" := (scale a m) : ring_scope.
-Notation "k %:A" := (k *: 1) : ring_scope.
+Notation "k %:A" := (scale k 1) : ring_scope.
 Notation "\0" := (null_fun _) : ring_scope.
 Notation "f \+ g" := (add_fun_head tt f g) : ring_scope.
 Notation "f \- g" := (sub_fun_head tt f g) : ring_scope.
