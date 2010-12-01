@@ -153,8 +153,8 @@ move=> vs1 vs2 vs3; apply: (iffP idP).
   move=> Hs a b Ha Hb; apply: subsetv_trans Hs; exact: memv_prod.
 move=> Ha; apply/subsetvP=> v.
 move/coord_span->; apply: memv_sum => [] [i /= Hi] _.
-apply: memvZl; case/allpairsP: (mem_nth 0 Hi)=> [] [x1 x2].
-by case/and3P=> I1 I2; move/eqP->; apply Ha; apply: memv_basis.
+apply: memvZl; case/allpairsP: (mem_nth 0 Hi)=> [[x1 x2] [I1 I2 ->]].
+by apply Ha; apply: memv_basis.
 Qed.
 
 Lemma prodv_inj : forall (x y : A), (x * y)%:VS = (x%:VS * y%:VS)%VS.
@@ -238,15 +238,13 @@ split; apply/prodvP=> a b Ha Hb.
   move/coord_span: Hb->; rewrite -mulr_sumr.  
   apply: memv_sum => [] [j Hj] _ /=.
   rewrite -scaler_mull -scaler_mulr scalerA memvZl //.
-  move: (mem_nth 0 Hj); case/allpairsP=> [][x1 x2].
-  case/and3P=> I1 I2; move/eqP->.
+  case/allpairsP: (mem_nth 0 Hj) => [[x1 x2] [I1 I2 ->]].
   by rewrite mulrA !memv_prod // ?memv_basis // mem_nth.
 move/coord_span: Ha->; rewrite (coord_basis Hb).
 rewrite -mulr_suml; apply: memv_sum => [] [i Hi] _ /=.  
 rewrite -mulr_sumr; apply: memv_sum => [] [j Hj] _ /=.
 rewrite -scaler_mull -scaler_mulr scalerA memvZl //.
-move: (mem_nth 0 Hi); case/allpairsP=> [] [x1 x2].
-case/and3P=> I1 I2; move/eqP->.
+case/allpairsP: (mem_nth 0 Hi) => [[x1 x2] [I1 I2 ->]].
 by rewrite -mulrA !memv_prod // ?memv_basis // mem_nth.
 Qed.
 
