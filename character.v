@@ -16,10 +16,135 @@ Import Prenex Implicits.
 Import GroupScope GRing.Theory.
 Local Open Scope ring_scope.
 
+(* function of a fintype into a ring form a vectype *)
+Section Vectype.
+
+Variable (R : fieldType) (aT : finType).
+
+Implicit Types f g : {ffun aT -> R^o}.
+
+(* Why this does not work?
+Definition ffun2rv f :=  \row_(i < #|aT|) f (enum_val i).
+Lemma class_fun2rv_morph_p : linear ffun2rv.
+*)
+Definition ffun2rv f : 'rV[R]_#|aT| :=  \row_(i < #|aT|) f (enum_val i).
+
+Lemma ffun2rv_morph_p : linear ffun2rv.
+Proof.
+by move=> k /= x y; apply/matrixP=> [] [[|i] Hi] j; rewrite !mxE !ffunE.
+Qed.
+
+Canonical Structure ffun2rv_morph := Linear ffun2rv_morph_p.
+
+Lemma ffun2rv_bij : bijective ffun2rv.
+Proof.
+exists (fun r: 'rV[R]_#|aT| => [ffun x: aT => r 0 (enum_rank x)]).
+  by move=> g; apply/ffunP=> x; rewrite ffunE mxE enum_rankK.
+by move=> r; apply/rowP=> i; rewrite mxE ffunE enum_valK.
+Qed.
+
+Definition ffunVectMixin := VectMixin ffun2rv_morph_p ffun2rv_bij.
+Canonical Structure ffunVectType := VectType R ffunVectMixin.
+
+End Vectype.
+
+Local Notation "{ 'vffun' x '->' y }" := (ffunVectType y x)
+  (at level 0, format "{ 'vffun'  '[hv' x  '->'  y ']' }") : type_scope.
+
+Section ClassFun.
+
+Variable (R : fieldType) (gT: finGroupType) (G: {group gT}).
+
+Definition base_class_fun : seq {ffun gT -> R^o} :=
+  (map (fun i : 'I_#|classes G| => [ffun x => (x \in  (enum_val i))%:R])
+    (enum 'I_#|classes G|)).
+
+(* for the moment we build it like this, the proper base should
+   the set of irreducible character instead
+*)
+Definition class_fun := span base_class_fun.
+
+Lemma class_fun_memP: forall (f: {ffun gT -> R}),
+  reflect 
+    ((forall x, x \notin G -> f x = 0) /\
+     (forall x y, x \in G -> y \in G -> f (x ^ y) = f x))
+    (f \in class_fun).
+Proof.
+move=> f; apply: (iffP idP)=> [|[Hg Hc]].
+  move/coord_span->; split=> [x Inx|].
+    rewrite sum_ffunE ffunE; apply: big1=> i _.
+    have: base_class_fun`_i \in base_class_fun by apply: mem_nth.
+    case/mapP=> j Hj ->; rewrite !ffunE.
+    have [y Gy ->] := imsetP (enum_valP j).
+    move/subsetP: (class_subG Gy (subxx _)); move/(_ x); move/contra.
+    by move/(_ Inx); case: (_ \in _)=> //; rewrite scaler0.
+  move=> x y Hx Hy.
+  apply/eqP; rewrite -subr_eq0; apply/eqP.
+  rewrite !sum_ffunE !ffunE -sumr_sub; apply: big1=> i _.
+  set u := coord _ _ _; rewrite !ffunE.
+  have: base_class_fun`_i \in base_class_fun by apply: mem_nth.
+  case/mapP=> j Hj ->; rewrite !ffunE.
+  have [z Gz ->] := imsetP (enum_valP j).
+  by rewrite (class_transl _ (memJ_class _ _)) // subrr.
+suff<-: \sum_(C \in (classes G)) 
+           (f (repr C)) *: [ffun x => (x \in C)%:R] = f :> {ffun gT -> R^o}.
+  apply: memv_sum=> i Hi.
+  apply: memvZl; apply: memv_span;  apply/mapP.
+  by exists (enum_rank_in (classes1 G) i); [rewrite mem_enum | rewrite enum_rankK_in].
+apply/ffunP=> g; rewrite sum_ffunE !ffunE.
+case HgG: (g \in G); last first.
+  rewrite Hg ?HgG //; apply: big1=> i Hi; rewrite !ffunE.
+  have [x Gx ->{k}] := imsetP Hi.
+  case Hgx: (_ \in _); last by rewrite scaler0.
+  move/subsetP: (class_subG Gx (subxx G)).
+  by move/(_ g (idP Hgx)); rewrite HgG.
+rewrite (bigD1 (g ^: G : set_of_finType _)) /=; last by apply/imsetP; exists g.
+rewrite !ffunE big1.
+  rewrite class_refl.
+  case: (repr_class G g)=> x Hx ->; rewrite Hc // addr0; exact: mulr1.
+move=> i; case/andP; case/imsetP=> y Hy -> Hz.
+rewrite !ffunE; case E1: (_ \in _); last by rewrite scaler0.
+by case/negP: Hz; rewrite eq_sym; apply/eqP; apply: class_transr.
+Qed.
+
+Lemma class_fun_free: free base_class_fun.
+Proof.
+apply/freeP=> s S0 i.
+have Hi: i < #|classes G| by case: i=> /= m; rewrite size_map -cardE card_ord.
+move/ffunP: S0; move/(_ (repr (enum_val (Ordinal Hi)))).
+rewrite sum_ffunE !ffunE (bigD1 i) //= big1.
+ rewrite !ffunE (nth_map (Ordinal Hi)) // ?ffunE; last first.
+   by rewrite -cardE card_ord.
+ rewrite (nth_ord_enum  _ (Ordinal Hi)).
+ have [y Gy ->] := imsetP (enum_valP (Ordinal Hi)).
+ case: (repr_class G y)=> x Hx ->.
+ by rewrite memJ_class // addr0 => <-; apply: sym_equal; exact: mulr1.
+move=> j Dij.
+rewrite (nth_map (Ordinal Hi)) ?ffunE; last first.
+  by case: {Dij}j=> /= m; rewrite size_map.
+have Hj: j < #|classes G|.
+  by case: {Dij}j=> /= m; rewrite size_map -cardE card_ord.
+rewrite (nth_ord_enum  _ (Ordinal Hj))=> /=.
+move: (@enum_val_inj _  _ (Ordinal Hj) (Ordinal Hi)).
+have [y Gy ->] := imsetP (enum_valP (Ordinal Hi)).
+have [z Gz ->] := imsetP (enum_valP (Ordinal Hj)).
+case: (repr_class G y)=> t Ht -> Heq.
+case Et: (_ \in _); last by  exact: mulr0.
+suff: z ^: G = y ^: G by move/Heq; move/val_eqP=> HH; case/negP: Dij.
+apply: class_transr.
+by rewrite class_sym (class_trans _ Et) // -{1}[y]conjg1 
+           classGidl // conjg1 class_refl .
+Qed.
+
+End ClassFun.
+
+Local Notation "''CL[' R ] ( G ) " := (class_fun R G).
+ 
 Section Character.
 
 (* Some axioms to start with *)
 Variable C : closedFieldType.
+
 Hypothesis Cchar : [char C] =i pred0.
 Variable conjC : {rmorphism C -> C}.
 Notation "x ^* " := (conjC x).
@@ -45,6 +170,7 @@ Hypothesis repCD : forall x y, repC x -> repC y -> repC (x + y).
 Hypothesis repC_pconj : forall x, repC (x * x ^*).
 Hypothesis repC_conj : forall x, repC (x ^*) = repC (x).
 Hypothesis repCMl : forall x y, x != 0 -> repC x -> repC (x * y) = repC y.
+Hypothesis repC_anti : forall x, repC x -> repC (-x) -> x = 0.
 
 Lemma repC0 : repC 0.
 Proof. by rewrite -[0](mul0r (0 ^*)) repC_pconj. Qed.
@@ -77,194 +203,13 @@ by move=> z x y; rewrite /leC oppr_add addrA [z + _]addrC addrK.
 Qed.
 
 
+Section Character1.
+
 (* Our group *)
 Variable (gT : finGroupType).
-Implicit Type G H: {group gT}.
-
-Hypothesis groupC: group_closure_field C gT.
-
-Section ClassFunction.
-
 Variable G: {group gT}.
 
-Definition class_fun_pred (f: {ffun  gT -> C}) :=
- (forallb x, (x \notin G) ==> (f x == 0)) && 
- (forallb x, forallb y, ((x \in G) && (y \in G)) ==> (f (x ^ y) == f x)).
-
-Structure class_fun : Type := ClassFun {
-  fofc :> {ffun  gT -> C};
-     _ : class_fun_pred fofc
-}.
-
-Canonical Structure class_fun_subType :=
-  Eval hnf in [subType for fofc by class_fun_rect].
-Canonical Structure class_fun_eqMixin := [eqMixin of class_fun by <:].
-Canonical Structure class_eqType := 
-  Eval hnf in EqType class_fun class_fun_eqMixin.
-Definition class_fun_choiceMixin := [choiceMixin of class_fun by <:].
-Canonical Structure class_fun_choiceType :=
-  Eval hnf in ChoiceType class_fun class_fun_choiceMixin.
-
-Lemma class_fun_notin: forall (f: class_fun) x, x \notin G -> f x = 0.
-Proof.
-case=> f /=; case/andP; move/forallP=> Hf _ x Hx; apply/eqP.
-by move: Hx; apply/implyP.
-Qed.
-
-Lemma class_funJ: forall (f: class_fun) x y, 
-  x \in G -> y \in G -> f (x ^ y) = f x.
-Proof.
-case=> f /=; case/andP=> _ Hf x y Hx Hy.
-apply/eqP; move/forallP: Hf; move/(_ x); move/forallP; move/(_ y).
-by rewrite Hx Hy.
-Qed.
-
-Lemma class_fun_pred0: class_fun_pred [ffun g => 0].
-Proof.
-by apply/andP; split; apply/forallP=> x; last apply/forallP=> y;
-   rewrite !ffunE eqxx implybT.
-Qed.
-
-Definition class_fun0 := ClassFun class_fun_pred0.
-
-Lemma class_fun_pred1: class_fun_pred [ffun g => (g \in G)%:R].
-Proof.
-apply/andP; split; apply/forallP=> x; last apply/forallP=> y; rewrite !ffunE.
-  by case: (_ \in _)=> //; rewrite eqxx implybT.
-by apply/implyP; case/andP=> Hx Hy; rewrite groupJr.
-Qed.
-
-Definition class_fun1 := ClassFun class_fun_pred1.
-
-Lemma class_fun_add_pred : forall f g: class_fun, 
-  class_fun_pred [ffun x => f x + g x].
-Proof.
-move=> f g; apply/andP; split; apply/forallP=> x; last apply/forallP=> y; 
-    rewrite !ffunE.
-  by apply/implyP=> Hx; rewrite !class_fun_notin // add0r.
-by apply/implyP; case/andP=> Hx Hy; rewrite !class_funJ.
-Qed.
-
-Definition class_fun_add f g := ClassFun (class_fun_add_pred f g).
-
-Lemma class_fun_opp_pred : forall (f : class_fun), 
-  class_fun_pred [ffun x => - (f x)].
-Proof.
-move=> f; apply/andP; split; apply/forallP=> x; last apply/forallP=> y; 
-    rewrite !ffunE.
-  by apply/implyP=> Hx; rewrite !class_fun_notin // oppr0.
-by apply/implyP; case/andP=> Hx Hy; rewrite !class_funJ.
-Qed.
-
-Definition class_fun_opp f := ClassFun (class_fun_opp_pred f).
-
-Lemma class_fun_scal_pred : forall (k: C) (f : class_fun), 
-  class_fun_pred [ffun x => k * f x].
-Proof.
-move=> k f; apply/andP; split; apply/forallP=> x; last apply/forallP=> y; 
-    rewrite !ffunE.
-  by apply/implyP=> Hx; rewrite !class_fun_notin // mulr0.
-by apply/implyP; case/andP=> Hx Hy; rewrite !class_funJ.
-Qed.
-
-Definition class_fun_scal k f := ClassFun (class_fun_scal_pred k f).
-
-Lemma class_fun_addA : associative class_fun_add.
-Proof. 
-by move=> *; apply: val_inj; apply/ffunP=> ?; rewrite !ffunE addrA.
-Qed.
-
-Lemma class_fun_addC : commutative class_fun_add.
-Proof. 
-by move=> *; apply: val_inj; apply/ffunP=> ?; rewrite !ffunE addrC.
-Qed.
-
-Lemma class_fun_add0 : left_id class_fun0 class_fun_add.
-Proof.
-by move=> *; apply: val_inj; apply/ffunP=> ?; rewrite !ffunE add0r.
-Qed.
-
-Lemma class_fun_addN : left_inverse class_fun0 class_fun_opp class_fun_add.
-Proof.
-by move=> *; apply: val_inj; apply/ffunP=> ?; rewrite !ffunE addNr.
-Qed.
-
-(* abelian group structure *)
-Definition class_funZmodMixin := 
-  ZmodMixin class_fun_addA class_fun_addC class_fun_add0 class_fun_addN.
-Canonical Structure class_funZmodType :=
- Eval hnf in ZmodType class_fun class_funZmodMixin.
-
-Lemma class_fun_scalA : forall a b f, 
-  class_fun_scal a (class_fun_scal b f) = class_fun_scal (a * b) f.
-Proof.
-by move=> *; apply: val_inj; apply/ffunP=> g; rewrite !ffunE mulrA.
-Qed.
-
-Lemma class_fun_scal1 : forall f, class_fun_scal 1 f = f.
-Proof. by move=> f; apply: val_inj; apply/ffunP=> g; rewrite ffunE mul1r. Qed.
-
-Lemma class_fun_scal_addr :  forall a f g, 
-  class_fun_scal a (f + g) = (class_fun_scal a f) + (class_fun_scal a g).
-Proof.
-by move=> *; apply: val_inj; apply/ffunP=> g; rewrite !ffunE mulr_addr.
-Qed.
-
-Lemma class_fun_scal_addl : forall f a b, 
-  class_fun_scal (a + b) f = (class_fun_scal a f) + (class_fun_scal b f).
-Proof.
-by move=> *; apply: val_inj; apply/ffunP=> g; rewrite !ffunE mulr_addl.
-Qed.
-
-Definition class_funLmodMixin :=
-  LmodMixin class_fun_scalA class_fun_scal1 
-     class_fun_scal_addr class_fun_scal_addl.
-Canonical Structure class_funLmodType :=
-  Eval hnf in LmodType C class_fun class_funLmodMixin.
-
-Definition class_fun2rv (f: class_fun) := 
- \row_(i < #|classes G|) f (repr (enum_val i)).
-
-Lemma class_fun2rv_morph_p : linear class_fun2rv.
-Proof.
-by move=> k /= x y; apply/matrixP=> [] [[|i] Hi] j; rewrite !mxE !ffunE.
-Qed.
-
-Canonical Structure class_fun2rv_morph := Linear class_fun2rv_morph_p.
-
-Lemma class_fun2rv_bij : bijective class_fun2rv.
-Proof.
-pose f (r: 'rV[C]_#|classes G|) :=
-  [ffun x: gT =>
-    if (x \in G) then r 0 (enum_rank_in (classes1 G) (x ^: G))
-    else 0 
-  ].
-have Hf: forall r, class_fun_pred (f r).
-  move=> r; apply/andP; split.
-    by apply/forallP=> x; rewrite ffunE; case: (_ \in _); rewrite // eqxx.
-  apply/forallP=> x; apply/forallP=> y; apply/implyP; case/andP=> Hx Hy.
-  by rewrite !ffunE; rewrite groupJr // Hx classGidl.
-exists (fun r => ClassFun (Hf r)).
-  move=> g; apply/val_eqP=> /=; apply/eqP; apply/ffunP=> x.
-  rewrite /f ffunE; case Hi: (_ \in _); last by rewrite class_fun_notin // Hi.
-  rewrite /class_fun2rv /= mxE enum_rankK_in //; last by apply: mem_classes.
-  by case: (repr_class G x) => y Hy ->; rewrite class_funJ.
-move=> r; apply/rowP=> i.
-have reG: repr (enum_val i) \in G.
-  case/imsetP: (enum_valP i)=> x Hx ->.
-  apply: (subsetP (class_subG Hx (subxx _))).
-  by apply: mem_repr (class_refl _ _).
-rewrite !mxE !ffunE reG -{2}(enum_valK_in (classes1 G) i).
-suff H1: repr (enum_val i) ^: G = enum_val i by rewrite H1.
-case/imsetP: (enum_valP i)=> x Hx ->.
-case: (repr_class G x)=> y Hy ->.
-by apply: classGidl.
-Qed.
-
-Definition class_funVectMixin := 
-  VectMixin class_fun2rv_morph_p class_fun2rv_bij.
-Canonical Structure class_funVectType := 
-  VectType C class_funVectMixin.
+Hypothesis groupC: group_closure_field C gT.
 
 Definition character_of n (f: gT -> 'M[C]_n) := 
   [ffun g: gT => ((g \in G)%:R * \tr (f g))].
@@ -278,20 +223,19 @@ apply/ffunP=> x; rewrite !ffunE; case H: (_ \in _); last by rewrite !mul0r.
 by rewrite Hx // mxtrace_mulC mulmxA HM1M2 mul1mx.
 Qed.
 
-Lemma class_fun_pred_character_of: forall n (repr:  mx_representation C G n), 
-  class_fun_pred (character_of repr).
+Lemma character_of_in_class_fun: forall n (repr:  mx_representation C G n), 
+  (character_of repr) \in 'CL[C](G).
 Proof.
-move=> n repr; apply/andP; split; apply/forallP=> x; rewrite ffunE.
-  by case: (x \in G)=> //; rewrite mul0r eqxx.
-apply/forallP=> y; apply/implyP; rewrite ffunE; case/andP=> Hx Hy.
-by rewrite groupJ // Hx !mul1r !(repr_mxM,repr_mxV,groupM,groupV) // 
+move=> n repr; apply/class_fun_memP.
+split=> [x|x y Hx Hy]; rewrite !ffunE.
+  by case: (x \in G)=> //; rewrite mul0r.
+by rewrite groupJ // Hx !mul1r !(repr_mxM,repr_mxV,groupM,groupV) //
            mxtrace_mulC mulmxK // repr_mx_unit.
 Qed.  
 
 Variable sG : irrType C G.
 
-Definition irr_class_fun (i : sG) := 
-  ClassFun (class_fun_pred_character_of (irr_repr i)).
+Definition irr_class_fun (i : sG) :=  character_of (irr_repr i).
 
 Local Notation "\chi_ i" :=  (irr_class_fun i) (at level 3).
 
@@ -308,6 +252,14 @@ rewrite -{5}(sum_irr_degree sG) //.
 by apply: sub_pgroup (pgroup_pi G)=> i _; rewrite inE /= Cchar.
 Qed.
 
-End ClassFunction.
+Definition  xchar (u: 'rV[C]_#|G|) chi := \sum_(i < #|G|) u 0 i * chi (enum_val i).
+
+(*
+Lemma xchar_trace: forall i u,
+  xchar u \chi_i = \tr (gring_op (irr_repr i) (gring_mx (regular_repr C G) u)).
+Proof.
+*)
+
+End Character1.
 
 End Character.

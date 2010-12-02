@@ -69,6 +69,13 @@ polyorder.v
 alt.v
 burnside_app.v
 vector.v
+fib.v
+galois.v
+amodule.v
+algebra.v
+galgebra.v
+fieldext.v
+character.v
 
 
 COQC = $(COQBIN)ssrcoq
