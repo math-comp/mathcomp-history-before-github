@@ -59,9 +59,6 @@ Definition base_class_fun : seq {ffun gT -> R^o} :=
   (map (fun i : 'I_#|classes G| => [ffun x => (x \in  (enum_val i))%:R])
     (enum 'I_#|classes G|)).
 
-(* for the moment we build it like this, the proper base should
-   the set of irreducible character instead
-*)
 Definition class_fun := span base_class_fun.
 
 Lemma class_fun_memP: forall (f: {ffun gT -> R}),
@@ -136,11 +133,16 @@ by rewrite class_sym (class_trans _ Et) // -{1}[y]conjg1
            classGidl // conjg1 class_refl .
 Qed.
 
+Lemma dim_class_fun: \dim class_fun = #|classes G|.
+Proof.
+by move: class_fun_free; rewrite /free size_map -cardE card_ord; move/eqP.
+Qed.
+
 End ClassFun.
 
 Local Notation "''CL[' R ] ( G ) " := (class_fun R G).
  
-Section Character.
+Section Main.
 
 (* Some axioms to start with *)
 Variable C : closedFieldType.
@@ -203,13 +205,18 @@ by move=> z x y; rewrite /leC oppr_add addrA [z + _]addrC addrK.
 Qed.
 
 
-Section Character1.
+Section Character.
 
 (* Our group *)
 Variable (gT : finGroupType).
 Variable G: {group gT}.
 
 Hypothesis groupC: group_closure_field C gT.
+
+Let pGroupG: [char C]^'.-group G.
+Proof.
+by apply: sub_pgroup (pgroup_pi G)=> i _; rewrite inE /= Cchar.
+Qed.
 
 Definition character_of n (f: gT -> 'M[C]_n) := 
   [ffun g: gT => ((g \in G)%:R * \tr (f g))].
@@ -247,19 +254,70 @@ Qed.
 Lemma sum_chi2: \sum_i (\chi_ i 1%g) ^+ 2 = #|G|%:R.
 Proof.
 rewrite -{5}(sum_irr_degree sG) //.
-  rewrite (big_morph _ (@natr_add _) (erefl _)).
-  by apply: eq_bigr=> i _; rewrite chi1 natr_exp.
-by apply: sub_pgroup (pgroup_pi G)=> i _; rewrite inE /= Cchar.
+rewrite (big_morph _ (@natr_add _) (erefl _)).
+by apply: eq_bigr=> i _; rewrite chi1 natr_exp.
 Qed.
 
-Definition  xchar (u: 'rV[C]_#|G|) chi := \sum_(i < #|G|) u 0 i * chi (enum_val i).
+Definition  xchar chi (u: 'rV[C]_#|G|) : C^o := \sum_(i < #|G|) u 0 i * chi (enum_val i).
 
-(*
-Lemma xchar_trace: forall i u,
-  xchar u \chi_i = \tr (gring_op (irr_repr i) (gring_mx (regular_repr C G) u)).
+Local Notation "\chi^_ i" := (xchar (fun_of_fin (irr_class_fun i))) (at level 3).
+
+Lemma xchar_is_linear: forall i, linear (\chi^_ i).
 Proof.
-*)
+move=> i k m n.
+rewrite scaler_sumr -big_split /=; apply: eq_bigr=> l _.
+by rewrite scaler_mull -mulr_addl !mxE.
+Qed.
 
-End Character1.
+Canonical Structure xchar_linear i := Linear (xchar_is_linear i).
+
+Lemma xchar_trace: forall i u,
+  \chi^_i u  = \tr (gring_op (irr_repr i) (gring_mx (regular_repr C G) u)).
+Proof.
+move=> i u.
+rewrite /xchar /gring_op /= gring_mxK /irr_class_fun.
+apply: (@etrans _ _
+   (\sum_(i0 < #|G|) \tr(u 0 i0 *: irr_repr i (enum_val i0)))).
+  by apply: eq_bigr=> j _; rewrite ffunE enum_valP mul1r mxtraceZ.
+rewrite -raddf_sum; congr (\tr _).
+apply/matrixP=> i1 j1; rewrite !mxE summxE; apply eq_bigr=> k1 _.
+by rewrite !(mxvecE,mxE).
+Qed.
+
+Local Notation e_ := (@Wedderburn_id _ _ _ _).
+Local Notation R_ := (@Wedderburn_subring _ _ _ _).
+
+Lemma xchar_subring : forall i j A, i != j -> (A \in R_ j)%MS -> \chi^_i (gring_row A) = 0.
+Proof.
+move=> i j A.
+rewrite eq_sym -{1}(irr_reprK _ i) // -{1}(irr_reprK _ j) // => Hi HA.
+rewrite xchar_trace -(mxtrace0 _ (irr_degree i)); congr (\tr _).
+apply: (irr_comp'_op0 _ _ Hi)=> //; first by apply: socle_irr.
+rewrite irr_reprK // gring_rowK  ?Wedderburn_id_mem //.
+rewrite -(Wedderburn_sum sG pGroupG).
+apply/memmx_sumsP; exists (fun i => (i==j)%:R *: A).
+  rewrite (bigD1 j) //= eqxx scale1r big1 ?addr0 // => k.
+  by case: (k == j); rewrite // scale0r.
+by move=> k; case E1: (k == j); 
+  [move/eqP: E1->; rewrite scale1r | rewrite scale0r mem0mx].
+Qed.
+
+Lemma xchar_id : forall i j,
+  \chi^_i (gring_row (e_ j)) = if i == j then \chi_i 1%g else 0.
+Proof.
+move=> i j; case: eqP=> [->|Hi]; last first.
+  by apply: xchar_subring (Wedderburn_id_mem _); apply/eqP.
+rewrite ffunE group1 mul1r -gring_opG //.
+have R1 := (envelop_mx_id (regular_repr C G) (group1 G)).
+rewrite -[regular_repr C G 1%g]gring_rowK // -xchar_trace.
+rewrite -[regular_repr _ _ _]mul1mx -(Wedderburn_sum_id sG pGroupG).
+have->: regular_repr C G 1%g = 1%:M.
+  by apply/matrixP=> i1 j1; rewrite !mxE !eqxx mulg1 gring_valK eq_sym.
+rewrite mulmx1 !linear_sum /= (bigD1 j) //= big1; first by rewrite addr0.
+move=> k; rewrite eq_sym => Hij.
+by apply: (xchar_subring Hij); exact: (Wedderburn_id_mem).
+Qed.
 
 End Character.
+
+End Main.
