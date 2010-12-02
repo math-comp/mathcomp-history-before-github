@@ -454,8 +454,8 @@ Let hyp71 : forall H R,
   A \subset H -> H \proper G -> R \in |/|_H(A; pi^') -> R \subset 'O_pi^'(H).
 Proof. by case: cstrA. Qed.
 
-(* This is the observation between B & G, Hypothesis 7.1 and Lemma 7.1 *)
-Lemma normed_constrained_Hall : pi^'.-Hall('C(A)) K.
+(* This is the observation between B & G, Hypothesis 7.1 and Lemma 7.1. *)
+Remark normed_constrained_Hall : pi^'.-Hall('C(A)) K.
 Proof.
 have [_ ntA prA _] := cstrA; rewrite -[setT]/G in prA.
 rewrite /pHall pcore_pgroup pcore_sub pnatNK /=.
@@ -557,7 +557,7 @@ rewrite !nilpotent_proper_norm /proper ?subsetIl ?subsetIr ?subsetI ?subxx //=.
 by apply: contra neQ12 => sQ12; rewrite (maxQ1P Q2) ?qQ2.
 Qed.
 
-(* This is B & G, Theorem 7.2 *)
+(* This is B & G, Theorem 7.2. *)
 Theorem normed_constrained_rank3_trans :
   'r('Z(A)) >= 3 -> [transitive K, on |/|*(A; q) | 'JG].
 Proof.
@@ -660,10 +660,10 @@ suffices: [transitive KP, on |/|*(P; q) | 'JG] /\ |/|*(P; q) \subset |/|*(A; q).
     rewrite -(astab1JG Q) -normC; last by rewrite subIset 1?normal_norm.
     apply/(subgroup_transitiveP maxQ); rewrite ?normal_sub //=.
     by rewrite (atrans_supgroup _ trKP) ?norm_acts_max_norm ?normal_sub.
-  split=> //; move/prod_norm_coprime_subs_derI: defNP => -> //.
+  split=> //; move/pprod_focal_coprime: defNP => -> //.
   - by rewrite subIset // orbC commgSS ?subsetIr.
   - by rewrite subsetI normG; case/mem_max_normed: maxQ.
-  by rewrite /= (pnat_coprime piP (pcore_pgroup _ _)).
+  by rewrite (p'nat_coprime (pcore_pgroup _ _)).
 elim: {P}_.+1 {-2}P (ltnSn #|P|) => // m IHm P lePm in KP piP snAP *.
 wlog{snAP} [B maxnB snAB]: / {B : grT | maxnormal B P P & A <|<| B}.
   case/subnormalEr: snAP => [|[D [snAD nDP prDP]]]; first by rewrite /KP => <-.
@@ -771,26 +771,26 @@ End NormedConstrained.
 (* This is B & G, Proposition 7.5(a). As this is only used in Proposition    *)
 (* 10.10, under the assumption A \in E*_p(G), we avoid the in_pmaxElemE      *)
 (* detour A = [set x \in 'C_G(A) | x ^+ p == 1], and just use A \in E*_p(G). *)
-Lemma plength_1_normed_constrained : forall p A,
+Proposition plength_1_normed_constrained : forall p A,
     A :!=: 1 -> A \in 'E*_p(G) -> (forall M, M \proper G -> p.-length_1 M) ->
   normed_constrained A.
 Proof. 
 move=> p A ntA EpA pl1subG.
 case/pmaxElemP: (EpA); case/pElemP=> sAG; case/and3P=> pA cAA _ _. 
 have prA: A \proper G := sub_proper_trans cAA (mFT_cent_proper ntA).
-split=> // X Y sAX prX; case/setIdP=> p'Y nYA.
+split=> // X Y sAX prX; case/setIdP; case/andP=> sYX p'Y nYA.
 have pl1X := pl1subG _ prX; have solX := mFT_sol prX.
 have [p_pr _ [r oApr]] := pgroup_pdiv pA ntA.
 have oddp: odd p by move: (mFT_odd A); rewrite oApr odd_exp.
 have def_pi: \pi(A)^' =i p^'.
   by move=> q; rewrite inE /= oApr pi_of_exp // pi_of_prime.
-have{p'Y} p'Y : p^'.-subgroup(X) Y by rewrite /psubgroup -(eq_pgroup _ def_pi).
-rewrite (eq_pcore _ def_pi) (@sol_plength1_odd_pamxElem_pcore _ _ A) //.
+have{p'Y} p'Y : p^'.-group Y by rewrite -(eq_pgroup _ def_pi).
+rewrite (eq_pcore _ def_pi) (@plength1_norm_pmaxElem _ p X A) //.
 by rewrite (subsetP (pmaxElemS p (subsetT _))) // setIC 2!inE sAX.
 Qed.
 
 (* This is B & G, Proposition 7.5(b). *)
-Lemma SCN_normed_constrained : forall p P A,
+Proposition SCN_normed_constrained : forall p P A,
   p.-Sylow(G) P -> A \in 'SCN_2(P) -> normed_constrained A.
 Proof.
 move=> p P A sylP; rewrite 2!inE -andbA; case/and3P=> nsAP.

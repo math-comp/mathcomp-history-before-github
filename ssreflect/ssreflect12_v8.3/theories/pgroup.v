@@ -964,6 +964,13 @@ rewrite eqEsubset (sub_normal_Hall hallH) ?pcore_sub ?pcore_pgroup //=.
 by rewrite pcore_max //= (pHall_pgroup hallH).
 Qed.
 
+Lemma eq_Hall_pcore : forall G H,
+  pi.-Hall(G) 'O_pi(G) -> pi.-Hall(G) H -> H :=: 'O_pi(G).
+Proof.
+move=> G H hallGpi hallH.
+exact: uniq_normal_Hall (pcore_normal G) (Hall_max hallH).
+Qed.
+
 Lemma sub_Hall_pcore : forall G K,
   pi.-Hall(G) 'O_pi(G) -> K \subset G -> (K \subset 'O_pi(G)) = pi.-group K.
 Proof. by move=> G K hallGpi; exact: sub_normal_Hall (pcore_normal G). Qed.

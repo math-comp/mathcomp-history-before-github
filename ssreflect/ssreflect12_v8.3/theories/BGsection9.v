@@ -25,8 +25,8 @@ Local Notation G := (TheMinSimpleOddGroup gT).
 Implicit Types H K L M A B P Q R : {group gT}.
 Implicit Types p q r : nat.
 
-(* This is B & G, Theorem 9.1(b) *)
-Lemma noncyclic_normed_sub_Uniqueness : forall p M B,
+(* This is B & G, Theorem 9.1(b). *)
+Theorem noncyclic_normed_sub_Uniqueness : forall p M B,
     M \in 'M -> B \in 'E_p(M) -> ~~ cyclic B ->
     \bigcup_(K \in |/|_G(B; p^')) K \subset M ->
   B \in 'U.
@@ -114,8 +114,8 @@ rewrite (mmax_max maxH) // -(Frattini_arg nsRHp'H sylR_RHp') /=.
 by rewrite mulG_subG join_subG sRM sHp'M /= setIC subIset ?sNRM.
 Qed.
 
-(* This is B & G, Theorem 9.1(a) *)
-Lemma noncyclic_cent1_sub_Uniqueness : forall p M B,
+(* This is B & G, Theorem 9.1(a). *)
+Theorem noncyclic_cent1_sub_Uniqueness : forall p M B,
     M \in 'M -> B \in 'E_p(M) -> ~~ cyclic B ->
     \bigcup_(b \in B^#) 'C[b] \subset M ->
   B \in 'U.
@@ -130,8 +130,8 @@ rewrite gen_subG (subset_trans _ sCB_M) //.
 by apply/bigcupsP=> b Bb; rewrite (bigcup_max b) // subsetIr.
 Qed.
 
-(* This is B & G, Corollary 9.2 *)
-Lemma cent_uniq_Uniqueness : forall K L,
+(* This is B & G, Corollary 9.2. *)
+Corollary cent_uniq_Uniqueness : forall K L,
   L \in 'U -> K \subset 'C(L) -> 'r(K) >= 2 -> K \in 'U.
 Proof.
 move=> K L uL; have ntL := uniq_mmax_neq1 uL.
@@ -150,8 +150,8 @@ apply: uniq_mmaxS prK (noncyclic_cent1_sub_Uniqueness _ EpB _ _) => //.
 by rewrite (abelem_cyclic abelB) (eqP dimB2).
 Qed.
 
-(* This is B & G, Corollary 9.3 *)
-Lemma any_cent_rank3_Uniquness : forall p A B,
+(* This is B & G, Corollary 9.3. *)
+Corollary any_cent_rank3_Uniquness : forall p A B,
     abelian A -> p.-group A -> 'r(A) >= 3 -> A \in 'U ->
     p.-group B -> ~~ cyclic B -> 'r_p('C(B)) >= 3 ->
   B \in 'U.
@@ -188,7 +188,7 @@ apply: cent_uniq_Uniqueness cDCA _; last by rewrite (rank_abelem abelD) dimD2.
 by apply: cent_uniq_Uniqueness uA _ CADge2; rewrite subIset // -abelianE cAA.
 Qed.
 
-(* This is B & G, Lemma 9.4 *)
+(* This is B & G, Lemma 9.4. *)
 Lemma any_rank3_Fitting_Uniqueness : forall p M P,
   M \in 'M -> 'r_p('F(M)) >= 3 -> p.-group P -> 'r(P) >= 3 -> P \in 'U.
 Proof.
@@ -215,7 +215,7 @@ rewrite (any_cent_rank3_Uniquness _ pA0) // (cent_uniq_Uniqueness uA) 1?ltnW //.
 by rewrite centsC subsetIr.
 Qed.
 
-(* This is B & G, Lemma 9.5 *)
+(* This is B & G, Lemma 9.5. *)
 Lemma SCN_3_Uniqueness : forall p A, A \in 'SCN_3[p] -> A \in 'U.
 Proof.
 move=> p A SCN3_A; apply/idPn=> uA'.
@@ -432,7 +432,7 @@ by move/set1_inj->.
 Qed.
 
 (* This is B & G, Theorem 9.6, first assertion; note that B & G omit the      *)
-(* (required!) condition K \proper G.                                         *)
+(* (necessary!) condition K \proper G.                                        *)
 Theorem rank3_Uniqueness : forall K, K \proper G -> 'r(K) >= 3 -> K \in 'U.
 Proof.
 move=> K prK; case/rank_geP=> B; case/nElemP=> p.

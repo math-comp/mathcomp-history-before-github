@@ -46,7 +46,7 @@ Require Import finfun bigop prime binomial.
 (*           RingType R m == packs the ring mixin m into a ringType.          *)
 (*                    R^c == the converse Ring for R: R^c is convertible to R *)
 (*                           but when R has a canonical ringType structure    *)
-(*                           R^c has the converse one: if x y : R^o, then     *)
+(*                           R^c has the converse one: if x y : R^c, then     *)
 (*                           x * y = (y : R) * (x : R).                       *)
 (*  [ringType of R for S] == R-clone of the ringType structure S.             *)
 (*        [ringType of R] == clone of a canonical ringType structure on R.    *)
@@ -54,7 +54,7 @@ Require Import finfun bigop prime binomial.
 (*                   n%:R == the ring image of an n in nat; this is just      *)
 (*                           notation for 1 *+ n, so 1%:R is convertible to 1 *)
 (*                           and 2%:R to 1 + 1.                               *)
-(*                  x * y == the ring ptoduct of x and y.                     *)
+(*                  x * y == the ring product of x and y.                     *)
 (*        \prod_<range> e == iterated product for a ring (cf bigop.v).        *)
 (*                 x ^+ n == x to the nth power with n in nat (non-negative), *)
 (*                           i.e., x * (x * .. (x * x)..) (n factors); x ^+ 1 *)
@@ -280,8 +280,8 @@ Require Import finfun bigop prime binomial.
 (*     precise rewriting and cleaner chaining: although raddf lemmas will     *)
 (*     recognize RMorphism functions, the converse will not hold (we cannot   *)
 (*     add reverse inheritance rules because of incomplete backtracking in    *)
-(*     the Canonical Projection unification), so one would hav to insert a /= *)
-(*     every time one switched from additive to multiplicative rules.         *)
+(*     the Canonical Projection unification), so one would have to insert a   *)
+(*     /= every time one switched from additive to multiplicative rules.      *)
 (*  -> The property duplication also means that it is not strictly necessary  *)
 (*     to declare all Additive instances.                                     *)
 (*                                                                            *)
@@ -313,7 +313,7 @@ Require Import finfun bigop prime binomial.
 (*                           of scal_f.                                       *)
 (*     [linear of f as g] == an f-clone of the linear structure of g.         *)
 (*          [linear of f] == a clone of an existing linear structure on f.    *)
-(* -> Similarly to Ring morphisms, additive properties a specialized for      *)
+(* -> Similarly to Ring morphisms, additive properties are specialized for    *)
 (*    linear functions.                                                       *)
 (*                                                                            *)
 (* * LRMorphism (linear ring morphisms, i.e., algebra morphisms):             *)
@@ -590,6 +590,19 @@ move=> x n m; elim: n => [|n IHn]; first by rewrite add0r.
 by rewrite !mulrS IHn addrA.
 Qed.
 
+Lemma mulrn_subl : forall n, {morph (fun x => x *+ n) : x y / x - y}.
+Proof.
+move=> n x y; elim: n => [|n IHn]; rewrite ?subr0 // !mulrS.
+rewrite -!addrA; congr(_ + _).
+by rewrite  addrC IHn -!addrA oppr_add [_ - y]addrC.
+Qed.
+
+Lemma mulrn_subr : forall x m n, n <= m -> x *+ (m - n) = x *+ m - x *+ n.
+Proof.
+move=> x; elim => [|m IHm]; case=> [|n Hn]; rewrite ?subr0 // .
+by rewrite IHm // mulrSr mulrS oppr_add addrA addrK.
+Qed.
+
 Lemma mulrnA : forall x m n, x *+ (m * n) = x *+ m *+ n.
 Proof.
 move=> x m n; rewrite mulnC.
@@ -798,6 +811,9 @@ Proof. by move=> x n; rewrite mulrnAr mulr1. Qed.
 
 Lemma natr_add : forall m n, (m + n)%:R = m%:R + n%:R :> R.
 Proof. by move=> m n; exact: mulrn_addr. Qed.
+
+Lemma natr_sub : forall m n, n <= m -> (m - n)%:R = m%:R - n%:R :> R.
+Proof. by move=> m n; exact: mulrn_subr. Qed.
 
 Lemma natr_mul : forall m n, (m * n)%:R = m%:R * n%:R :> R.
 Proof. by move=> m n; rewrite mulrnA -mulr_natr. Qed.
@@ -3926,6 +3942,8 @@ Definition mul0rn := mul0rn.
 Definition mulNrn := mulNrn.
 Definition mulrn_addl := mulrn_addl.
 Definition mulrn_addr := mulrn_addr.
+Definition mulrn_subl := mulrn_subl.
+Definition mulrn_subr := mulrn_subr.
 Definition mulrnA := mulrnA.
 Definition mulrnAC := mulrnAC.
 Definition mulrA := mulrA.
@@ -3951,6 +3969,7 @@ Definition mulrnAr := mulrnAr.
 Definition mulr_natl := mulr_natl.
 Definition mulr_natr := mulr_natr.
 Definition natr_add := natr_add.
+Definition natr_sub := natr_sub.
 Definition natr_mul := natr_mul.
 Definition natr_exp := natr_exp.
 Definition expr0 := expr0.
@@ -4183,11 +4202,11 @@ Notation "+%R" := (@add _).
 Notation "x + y" := (add x y) : ring_scope.
 Notation "x - y" := (add x (- y)) : ring_scope.
 Notation "x *+ n" := (natmul x n) : ring_scope.
-Notation "x *- n" := (natmul (- x) n) : ring_scope.
+Notation "x *- n" := (opp (x *+ n)) : ring_scope.
 Notation "s `_ i" := (seq.nth 0%R s%R i) : ring_scope.
 
 Notation "1" := (one _) : ring_scope.
-Notation "- 1" := (- (1))%R : ring_scope.
+Notation "- 1" := (opp 1) : ring_scope.
 
 Notation "n %:R" := (natmul 1 n) : ring_scope.
 Notation "[ 'char' R ]" := (char (Phant R)) : ring_scope.
@@ -4196,12 +4215,12 @@ Notation "*%R" := (@mul _).
 Notation "x * y" := (mul x y) : ring_scope.
 Notation "x ^+ n" := (exp x n) : ring_scope.
 Notation "x ^-1" := (inv x) : ring_scope.
-Notation "x ^- n" := (x ^+ n)^-1%R : ring_scope.
+Notation "x ^- n" := (inv (x ^+ n)) : ring_scope.
 Notation "x / y" := (mul x y^-1) : ring_scope.
 
 Notation "*:%R" := (@scale _ _).
 Notation "a *: m" := (scale a m) : ring_scope.
-Notation "k %:A" := (k *: 1) : ring_scope.
+Notation "k %:A" := (scale k 1) : ring_scope.
 Notation "\0" := (null_fun _) : ring_scope.
 Notation "f \+ g" := (add_fun_head tt f g) : ring_scope.
 Notation "f \- g" := (sub_fun_head tt f g) : ring_scope.

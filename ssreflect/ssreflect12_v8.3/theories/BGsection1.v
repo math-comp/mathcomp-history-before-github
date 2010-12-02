@@ -175,8 +175,8 @@ Let H := \bigcap_(UV | Gchief UV) 'C(UV.1 / UV.2 | 'Q).
 Let H' :=
   G' :&: \bigcap_(UV | Gchief UV && (UV.1 \subset 'F(G'))) 'C(UV.1 / UV.2 | 'Q).
 
-(* This corrresponds to B&G 1.2 non trivial inclusion *)
-Lemma Fitting_stab_chief : 'F(G') \subset H.
+(* This is B & G Proposition 1.2, non trivial inclusion of the first equality.*)
+Proposition Fitting_stab_chief : 'F(G') \subset H.
 Proof.
 apply/bigcapsP=> [[U V] /=  UVchief]; have [/= Vmax sUG nUG] := and3P UVchief. 
 case/maxgroupP: Vmax; do 2![case/andP] => sVU prVU nVG maxV.
@@ -189,8 +189,9 @@ apply: minnormal_solvable_Fitting_center (quotientS V sUG).
 exact: chief_factor_minnormal.
 Qed.
 
-(* This corrresponds to B&G 1.2 equality *)
-Lemma chief_stab_sub_Fitting : H' \subset 'F(G').
+(* This is B & G Proposition 1.2, non trivial inclusion of the second         *)
+(* equality.                                                                  *)
+Proposition chief_stab_sub_Fitting : H' \subset 'F(G').
 Proof.
 have nsH'G : H' <| G.
   rewrite /normal subIset ?sG'G ?normsI ?norms_bigcap //; apply/bigcapsP.
@@ -228,8 +229,8 @@ Qed.
 
 End HallLemma.
 
-(* This is B & G, Proposition 1.3. *)
-Lemma cent_sub_Fitting : forall gT (G : {group gT}),
+(* This is B & G, Proposition 1.3 (due to P. Hall). *)
+Proposition cent_sub_Fitting : forall gT (G : {group gT}),
   solvable G -> 'C_G('F(G)) \subset 'F(G).
 Proof.
 move=> gT G solG; apply: subset_trans (chief_stab_sub_Fitting solG _) => //.
@@ -239,7 +240,7 @@ by rewrite astabQ (subset_trans _ (morphpre_cent _ _)) // setISS ?centS.
 Qed.
 
 (* This is B & G, Proposition 1.4, for internal actions.                      *)
-Lemma coprime_trivg_cent_Fitting : forall gT (A G : {group gT}),
+Proposition coprime_trivg_cent_Fitting : forall gT (A G : {group gT}),
     A \subset 'N(G) -> coprime #|G| #|A| -> solvable G -> 
   'C_A(G) = 1 -> 'C_A('F(G)) = 1.
 Proof.
@@ -281,7 +282,7 @@ by rewrite setSI ?joing_subr.
 Qed.
 
 (* A "contrapositive" of Proposition 1.4 above.                               *)
-Lemma coprime_cent_Fitting : forall gT (A G : {group gT}),
+Proposition coprime_cent_Fitting : forall gT (A G : {group gT}),
     A \subset 'N(G) -> coprime #|G| #|A| -> solvable G ->
   'C_A('F(G)) \subset 'C(G).
 Proof.
@@ -313,8 +314,8 @@ Qed.
 (*          several stronger variants are proved for internal action          *)
 (*  1.5e -> coprime_comm_pcore (internal action only)                         *)
 
-(* Stronger variant of B & G 1.6(a) *)
-Lemma coprimeR_cent_prod : forall gT (A G : {group gT}),
+(* A stronger variant of B & G, Proposition 1.6(a). *)
+Proposition coprimeR_cent_prod : forall gT (A G : {group gT}),
     A \subset 'N(G) -> coprime #|[~: G, A]| #|A| -> solvable [~: G, A] ->
   [~: G, A] * 'C_G(A) = G.
 Proof.
@@ -325,8 +326,8 @@ rewrite -quotientSK ?commg_norml ?coprime_norm_quotient_cent ?commg_normr //=.
 by rewrite subsetI subxx quotient_cents2r.
 Qed.
 
-(* B & G, Proposition 1.6(a) *)
-Lemma coprime_cent_prod : forall gT (A G : {group gT}),
+(* This is B & G, Proposition 1.6(a). *)
+Proposition coprime_cent_prod : forall gT (A G : {group gT}),
     A \subset 'N(G) -> coprime #|G| #|A| -> solvable G ->
   [~: G, A] * 'C_G(A) = G.
 Proof.
@@ -335,8 +336,8 @@ rewrite -(LaGrange sRG) coprime_mull; case/andP=> coRA _; move/(solvableS sRG).
 exact: coprimeR_cent_prod.
 Qed.
 
-(* B & G, Proposition 1.6(b) *)
-Lemma coprime_commGid : forall gT (A G : {group gT}),
+(* This is B & G, Proposition 1.6(b). *)
+Proposition coprime_commGid : forall gT (A G : {group gT}),
     A \subset 'N(G) -> coprime #|G| #|A| -> solvable G ->
   [~: G, A, A] = [~: G, A].
 Proof.
@@ -347,19 +348,19 @@ rewrite -{1}(coprime_cent_prod nGA) // commMG //=; first 1 last.
 by rewrite (commG1P (subsetIr _ _)) mulg1.
 Qed.
 
-(* B & G, Proposition 1.6(c) *)
-Lemma coprime_commGG1P : forall gT (A G : {group gT}),
+(* This is B & G, Proposition 1.6(c). *)
+Proposition coprime_commGG1P : forall gT (A G : {group gT}),
     A \subset 'N(G) -> coprime #|G| #|A| -> solvable G ->
   [~: G, A, A] = 1 -> A \subset 'C(G).
 Proof.
 by move=> gT A G nGA coGA solG; rewrite centsC coprime_commGid //; move/commG1P.
 Qed.
 
-(* B & G, Proposition 1.6(d), TI-part, from finmod.v *)
+(* This is B & G, Proposition 1.6(d), TI-part, from finmod.v *)
 Definition coprime_abel_cent_TI := coprime_abel_cent_TI.
 
-(* B & G, Proposition 1.6(d) (direct product) *)
-Theorem coprime_abelian_cent_dprod : forall gT (A G : {group gT}),
+(* This is B & G, Proposition 1.6(d) (direct product) *)
+Proposition coprime_abelian_cent_dprod : forall gT (A G : {group gT}),
     A \subset 'N(G) -> coprime #|G| #|A| -> abelian G ->
   [~: G, A] \x 'C_G(A) = G.
 Proof.
@@ -368,8 +369,8 @@ move=> gT A G nGA coGA abelG; rewrite dprodE ?coprime_cent_prod ?abelian_sol //.
 by apply/trivgP; rewrite /= setICA coprime_abel_cent_TI ?subsetIr.
 Qed.
 
-(* B & G, Proposition 1.6(e), which generalises Aschbacher 24.3 *)
-Lemma coprime_abelian_faithful_Ohm1 : forall gT (A G : {group gT}),
+(* This is B & G, Proposition 1.6(e), which generalises Aschbacher 24.3. *)
+Proposition coprime_abelian_faithful_Ohm1 : forall gT (A G : {group gT}),
     A \subset 'N(G) -> coprime #|G| #|A| -> abelian G ->
   A \subset 'C('Ohm_1(G)) -> A \subset 'C(G).
 Proof.
@@ -386,9 +387,9 @@ Qed.
 (*   1.7c -> trivg_Phin                                                       *)
 (*   1.7d -> Phi_joing                                                        *)
 
-(* This is B & G, Proposition 1.8, Aschbacher 24.1. Note that the coprime     *)
-(* assumption is slightly weaker than requiring that A be a p'-group.  *)
-Lemma coprime_cent_Phi : forall gT p (A G : {group gT}),
+(* This is B & G, Proposition 1.8, or Aschbacher 24.1. Note that the coprime  *)
+(* assumption is slightly weaker than requiring that A be a p'-group.         *)
+Proposition coprime_cent_Phi : forall gT p (A G : {group gT}),
     p.-group G -> coprime #|G| #|A| -> [~: G, A] \subset 'Phi(G) ->
   A \subset 'C(G).
 Proof.
@@ -402,8 +403,9 @@ rewrite -quotientSK // coprime_quotient_cent ?(pgroup_sol pG) // subsetI subxx.
 by rewrite (sameP commG1P trivgP) /= -morphimR ?quotient_sub1 // comm_subG.
 Qed.
 
-(* B & G, Proposition 1.9, base (and most common) case, internal action.      *)
-Theorem stable_factor_cent : forall gT (A G H : {group gT}),
+(* This is B & G, Proposition 1.9, base (and most common) case, for internal  *)
+(* coprime action.                                                            *)
+Proposition stable_factor_cent : forall gT (A G H : {group gT}),
     A \subset 'C(H) -> stable_factor A H G ->
     coprime #|G| #|A| -> solvable G ->
   A \subset 'C(G).
@@ -415,7 +417,7 @@ by rewrite coprime_quotient_cent ?cents_norm ?subsetI ?subxx ?quotient_cents2r.
 Qed.
 
 (* This is B & G, Proposition 1.9 (for internal coprime action) *)
-Theorem stable_series_cent : forall gT (A G : {group gT}) s,
+Proposition stable_series_cent : forall gT (A G : {group gT}) s,
    last 1%G s :=: G -> (A.-stable).-series 1%G s ->
    coprime #|G| #|A| -> solvable G ->
   A \subset 'C(G).
@@ -427,8 +429,8 @@ have [_ sHG _] := and3P nHGA.
 by rewrite (stable_factor_cent _ nHGA) ?IH_H ?(solvableS sHG) ?(coprimeSg sHG).
 Qed.
 
-(* This is B & G, Proposition 1.10 *)
-Theorem coprime_nil_faithful_cent_stab : forall gT (A G : {group gT}),
+(* This is B & G, Proposition 1.10. *)
+Proposition coprime_nil_faithful_cent_stab : forall gT (A G : {group gT}),
      A \subset 'N(G) -> coprime #|G| #|A| -> nilpotent G ->
   let C := 'C_G(A) in 'C_G(C) \subset C -> A \subset 'C(G).
 Proof.
@@ -445,7 +447,7 @@ rewrite comm_norm_cent_cent 1?centsC ?subsetIr // normsI // !norms_norm //.
 by rewrite cents_norm 1?centsC ?subsetIr.
 Qed.
 
-(* B & G, Theorem 1.11, via Aschbacher 24.7 rather than Gorenstein 5.3.10 *)
+(* B & G, Theorem 1.11, via Aschbacher 24.7 rather than Gorenstein 5.3.10. *)
 Theorem coprime_odd_faithful_Ohm1 : forall gT p (A G : {group gT}),
     p.-group G -> A \subset 'N(G) -> coprime #|G| #|A| -> odd #|G| ->
   A \subset 'C('Ohm_1(G)) -> A \subset 'C(G).
@@ -485,19 +487,17 @@ rewrite -defPhi (Phi_joing pG) (MhoE 1 pG) joing_idr mem_gen // !inE.
 by rewrite orbC expn1 (mem_imset (expgn^~ p)).
 Qed.
 
-(* This is B & G, Corollary 1.12 *)
+(* This is B & G, Corollary 1.12. *)
 Corollary coprime_odd_faithful_cent_abelem : forall gT p (A G E : {group gT}),
     E \in 'E_p(G) -> p.-group G ->
     A \subset 'N(G) -> coprime #|G| #|A| -> odd #|G| ->
-  A \subset 'C([set x \in 'C_G(E) | #[x] == p]) -> A \subset 'C(G).
+  A \subset 'C('Ldiv_p('C_G(E))) -> A \subset 'C(G).
 Proof.
 move=> gT p A G E; rewrite inE; case/andP=> sEG elemE pG nGA coGA oddG cCEA.
 case: (eqsVneq G 1) => [-> | ntG]; first by rewrite cents1.
 have [p_pr _ _] := pgroup_pdiv pG ntG.
 have{cCEA} cCEA: A \subset 'C('Ohm_1('C_G(E))).
-  rewrite Ohm1Eprime cent_gen (centSS _ _ cCEA) //.
-  apply/subsetP=> x; case/setIdP=> CEx pr_x; rewrite inE CEx.
-  by apply: (pgroupP pG); rewrite ?order_dvdG //; case/setIP: CEx.
+  by rewrite (OhmE 1 (pgroupS _ pG)) ?subsetIl ?cent_gen.
 apply: coprime_nil_faithful_cent_stab (pgroup_nil pG) _ => //.
 rewrite subsetI subsetIl centsC /=; set CC := 'C_G(_).
 have sCCG: CC \subset G := subsetIl _ _; have pCC := pgroupS sCCG pG.
@@ -592,6 +592,7 @@ Variables (gT : finGroupType) (p : nat) (T M G : {group gT}).
 Hypothesis pT : p.-group T.
 Hypotheses (nMT : T \subset 'N(M)) (coMT : coprime #|M| #|T|).
 
+(* This is B & G, Lemma 1.14, for a global normaliser.                        *)
 Lemma coprime_norm_quotient_pgroup : 'N(T / M) = 'N(T) / M.
 Proof.
 case: (eqsVneq T 1) => [-> | ntT].
@@ -615,6 +616,7 @@ rewrite mem_morphim //; first by rewrite groupM // (subsetP (normG M)).
 by rewrite inE !(conjsgM, defTx) conjsgK conjGid.
 Qed.
 
+(* This is B & G, Lemma 1.14, for a global centraliser.                       *)
 Lemma coprime_cent_quotient_pgroup : 'C(T / M) = 'C(T) / M.
 Proof.
 symmetry; rewrite -quotientInorm -quotientMidl -['C(T / M)]cosetpreK.
@@ -633,9 +635,11 @@ Qed.
 
 Hypothesis sMG : M \subset G.
 
+(* This is B & G, Lemma 1.14, for a local normaliser.                        *)
 Lemma coprime_subnorm_quotient_pgroup : 'N_(G / M)(T / M) = 'N_G(T) / M.
 Proof. by rewrite quotientGI -?coprime_norm_quotient_pgroup. Qed.
 
+(* This is B & G, Lemma 1.14, for a local centraliser.                       *)
 Lemma coprime_subcent_quotient_pgroup : 'C_(G / M)(T / M) = 'C_G(T) / M.
 Proof. by rewrite quotientGI -?coprime_cent_quotient_pgroup. Qed.
 
@@ -645,8 +649,8 @@ Section Constrained.
 
 Variables (gT : finGroupType) (p : nat) (G : {group gT}).
 
-(* This is B & G, Proposition 1.15a (Hall-Higman Lemma 1.2.3) *)
-Lemma solvable_p_constrained : solvable G -> p.-constrained G.
+(* This is B & G, Proposition 1.15a (Lemma 1.2.3 of P. Hall & G. Higman). *)
+Proposition solvable_p_constrained : solvable G -> p.-constrained G.
 Proof.
 move=> solG P sylP; have [sPO pP _] := and3P sylP; pose K := 'O_p^'(G).
 have nKG: G \subset 'N(K) by rewrite normal_norm ?pcore_normal.
@@ -664,8 +668,8 @@ have sylPK: p.-Sylow('O_p(G / K)) (P / K).
 by rewrite -(card_Hall sylPK) leqnn -quotient_pseries2 quotientS.
 Qed.
 
-(* This is Gorenstein, Proposition 8.1.3 *)
-Lemma p_stable_abelian_constrained :
+(* This is Gorenstein, Proposition 8.1.3. *)
+Proposition p_stable_abelian_constrained :
   p.-constrained G -> p.-stable G -> p.-abelian_constrained G.
 Proof.
 move=> constrG stabG P A sylP cAA; case/andP=> sAP nAP.
@@ -702,8 +706,8 @@ Qed.
 
 End Constrained.
 
-(* This is B & G, Proposition 1.15b (attributed to D. Goldschmith).          *)
-Lemma p'core_cent_pgroup : forall gT p (G R : {group gT}),
+(* This is B & G, Proposition 1.15b (due to D. Goldschmith). *)
+Proposition p'core_cent_pgroup : forall gT p (G R : {group gT}),
   p.-subgroup(G) R -> solvable G -> 'O_p^'('C_G(R)) \subset 'O_p^'(G).
 Proof.
 move=> gT p G R; case/andP=> sRG pR solG.
@@ -747,7 +751,7 @@ Qed.
 (* we derive this directly, rather than by induction on the first, because   *)
 (* this is actually how the proof is done in Gorenstein. Note that the non   *)
 (* cyclic assumption for A is not needed here.                               *)
-Lemma coprime_abelian_gen_cent : forall gT (A G : {group gT}),
+Proposition coprime_abelian_gen_cent : forall gT (A G : {group gT}),
    abelian A -> A \subset 'N(G) -> coprime #|G| #|A| ->
   <<\bigcup_(B : {group gT} | cyclic (A / B) && (B <| A)) 'C_G(B)>> = G.
 Proof.
@@ -799,7 +803,7 @@ by rewrite quotientS ?sub_gen // (bigcup_max [group of B]) ?cycBA.
 Qed.
 
 (* B & G, Proposition 1.16, first assertion. *)
-Lemma coprime_abelian_gen_cent1 : forall gT (A G : {group gT}),
+Proposition coprime_abelian_gen_cent1 : forall gT (A G : {group gT}),
    abelian A -> ~~ cyclic A -> A \subset 'N(G) -> coprime #|G| #|A| ->
   <<\bigcup_(a \in A^#) 'C_G[a]>> = G.
 Proof.
@@ -821,7 +825,8 @@ Hypothesis sylS : p.-Sylow(G) S.
 
 Import finalg FiniteModule.
 
-(* This is B & G, Theorem 1.17 (or Gorenstein 7.3.4, Aschbacher 37.4)        *)
+(* This is B & G, Theorem 1.17 ("Focal Subgroup Theorem", D. G. Higman), also *)
+(* Gorenstein Theorem 7.3.4 and Aschbacher (37.4).                            *)
 Theorem focal_subgroup_gen :
   S :&: G^`(1) = <<[set [~ x, u] | x <- S, u <- G, x ^ u \in S]>>.
 Proof.
@@ -871,7 +876,7 @@ rewrite exp1gn expgnK ?mem_quotient ?coprime_morphl // => Kg1.
 by rewrite coset_idr ?(subsetP nKS).
 Qed.
 
-(* This is B & G, Theorem 1.18. *)
+(* This is B & G, Theorem 1.18 (due to Burnside). *)
 Theorem Burnside_normal_complement :
   'N_G(S) \subset 'C(S) -> 'O_p^'(G) ><| S = G.
 Proof.
@@ -906,8 +911,8 @@ apply/conjg_fixP; rewrite -cx_uv /= -conjgM; apply: astabP Sx.
 by rewrite astabJ (subsetP cSN) // !inE -nSuv groupM /=.
 Qed.
 
-(* This is B & G, Corollary 1.19a *)
-Lemma cyclic_Sylow_tiVsub_der1 :
+(* This is B & G, Corollary 1.19(a). *)
+Corollary cyclic_Sylow_tiVsub_der1 :
   cyclic S -> S :&: G^`(1) = 1 \/ S \subset G^`(1).
 Proof.
 move=> cycS; have [sSG pS _] := and3P sylS.
@@ -936,8 +941,9 @@ Qed.
 
 End Focal_Subgroup.
 
-(* This is B & G, Corollary 1.19b. *)
-Lemma Zgroup_der1_Hall : forall gT (G : {group gT}), Zgroup G -> Hall G G^`(1).
+(* This is B & G, Corollary 1.19(b). *)
+Corollary Zgroup_der1_Hall : forall gT (G : {group gT}),
+  Zgroup G -> Hall G G^`(1).
 Proof.
 move=> gT G ZgG; set G' := G^`(1).
 rewrite /Hall der_sub coprime_sym coprime_pi' ?cardG_gt0 //=.
@@ -1025,7 +1031,17 @@ move=> G p'G1; rewrite plength1_pcore_quo_Sylow -quotient_pseries2.
 by rewrite p'G1 pseries_pop2 // pquotient_pHall ?normal1 ?pgroup1.
 Qed.
 
-(* This is B & G Lemma 1.21a. *)
+(* This is the characterization given in Section 10 of B & G, p. 75, just     *)
+(* before Theorem 10.6.                                                       *)
+Lemma plength1_pseries2_quo : forall G,
+  p.-length_1 G = p^'.-group (G / 'O_{p^', p}(G)).
+Proof.
+move=> G; rewrite /plength_1 eqEsubset pseries_sub lastI pseries_rcons /=.
+rewrite -sub_quotient_pre ?bgFunc_norm //.
+by apply/idP/idP=> pl1G; rewrite ?pcore_pgroup_id ?(pgroupS pl1G) ?pcore_pgroup.
+Qed.
+
+(* This is B & G, Lemma 1.21(a). *)
 Lemma plength1S : forall G H, H \subset G -> p.-length_1 G -> p.-length_1 H.
 Proof.
   rewrite /plength_1 => G H sHG pG1; rewrite eqEsubset pseries_sub.
@@ -1038,7 +1054,7 @@ rewrite /plength_1 => G H pG1; rewrite eqEsubset pseries_sub.
 by rewrite -{1}(eqP pG1) morphim_pseries.
 Qed.
 
-(* This is B & G Lemma 1.21b. *)
+(* This is B & G, Lemma 1.21(b). *)
 Lemma p'quo_plength1 : forall G H,
   H <| G -> p^'.-group H -> p.-length_1 (G / H) = p.-length_1 G.
 Proof.
@@ -1054,7 +1070,7 @@ rewrite {f f_inj}morphimS // pseries1 -pquotient_pcore // -pseries1 /=.
 by rewrite -quotient_pseries_cat /= (eqP pGH1).
 Qed.
 
-(* This is B & G Lemma 1.21c. *)
+(* This is B & G, Lemma 1.21(c). *)
 Lemma pquo_plength1 : forall G H,
     H <| G -> p.-group H -> 'O_p^'(G / H) = 1->
   p.-length_1 (G / H) = p.-length_1 G.
@@ -1089,7 +1105,7 @@ rewrite -genJ; congr <<_>>; apply/setP=> y; rewrite mem_conjg !inE.
 by rewrite p_eltJ -mem_conjg conjGid.
 Qed.
 
-(* This is B & G Lemma 1.21d. *)
+(* This is B & G, Lemma 1.21(d). *)
 Lemma p_elt_gen_length1 : forall G,
   p.-length_1 G = p^'.-Hall(p_elt_gen p G) 'O_p^'(p_elt_gen p G).
 Proof.
@@ -1133,7 +1149,7 @@ Qed.
 
 End Plength1.
 
-(* This is B & G, Lemma 1.21e. *)
+(* This is B & G, Lemma 1.21(e). *)
 Lemma quo2_plength1 : forall gT p (G H K : {group gT}),
   H <| G -> K <| G -> H :&: K = 1 ->
      p.-length_1 (G / H) && p.-length_1 (G / K) = p.-length_1 G.
@@ -1273,12 +1289,14 @@ Qed.
 Lemma Puig_at_sub : forall n G, 'L_{n}(G) \subset G.
 Proof. by case=> [|n] G; rewrite ?sub1G ?Puig_succ_sub. Qed.
 
+(* This is B & G, Lemma B.1(d), first part. *)
 Lemma Puig_inf_sub : forall G, 'L_*(G) \subset G.
 Proof. move=> G; exact: Puig_at_sub. Qed.
 
 Lemma Puig_sub : forall G, 'L(G) \subset G.
 Proof. move=> G; exact: Puig_at_sub. Qed.
 
+(* This is part of B & G, Lemma B.1(b). *)
 Lemma Puig1 : forall G, 'L_{1}(G) = G.
 Proof.
 move=> G; apply/eqP; rewrite eqEsubset Puig_at_sub.

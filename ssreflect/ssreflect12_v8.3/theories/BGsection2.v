@@ -45,8 +45,8 @@ Implicit Type p : nat.
 (*   2.1(c) is used to streamline the proof that groups of odd order are      *)
 (*   p-stable (B & G, Appendix A.5(c)).                                       *)
 
-(* This is B & G, Proposition 2.2 (a), using internal isomorphims (mx_iso).   *)
-Lemma mx_irr_prime_index : forall F gT (G H : {group gT}) n M,
+(* This is B & G, Proposition 2.2(a), using internal isomorphims (mx_iso).    *)
+Proposition mx_irr_prime_index : forall F gT (G H : {group gT}) n M,
     forall (nsHG : H <| G) (rG : mx_representation F G n),
     let rH := subg_repr rG (normal_sub nsHG) in
     group_closure_field F gT -> mx_irreducible rG -> cyclic (G / H)%g ->
@@ -189,8 +189,8 @@ rewrite /mxmodule rstabs_subg /= -Clifford_astab1 -astabIdom -defH.
 by rewrite -(rstabs_subg rG sHG).
 Qed.
 
-(* This section covers the many parts B & G, Lemma 2.4 -- only the last is    *)
-(* used in the rest of the proof, and then only in the proof of Theorem 2.5.  *)
+(* This section covers the many parts B & G, Proposition 2.4; only the last   *)
+(* part (k) in used in the rest of the proof, and then only for Theorem 2.5.  *)
 Section QuasiRegularCyclic.
 
 Variables (F : fieldType) (q' h : nat).
@@ -260,8 +260,8 @@ Qed.
 
 Let sumV := (\sum_(i < h) 'V_i)%MS.
 
-(* This is B & G, Proposition 2.4(a) *)
-Lemma mxdirect_sum_eigenspace_cycle : (sumV :=: 1%:M)%MS /\ mxdirect sumV.
+(* This is B & G, Proposition 2.4(a). *)
+Proposition mxdirect_sum_eigenspace_cycle : (sumV :=: 1%:M)%MS /\ mxdirect sumV.
 Proof.
 have splitF: group_splitting_field F (Zp_group h).
   move: prim_eps (abelianS (subsetT (Zp h)) (Zp_abelian _)).
@@ -310,14 +310,15 @@ rewrite subr_eq0; move/eqP; case/(prim_rootP prim_eps) => k def_a.
 by rewrite defMi (sumsmx_sup k) // /V_ -def_a; exact/eigenspaceP.
 Qed.
 
-(* This is B & G, Proposition 2.4(b) *)
-Lemma rank_step_eigenspace_cycle : forall i, 'n_ (i + h) = 'n_ i.
+(* This is B & G, Proposition 2.4(b). *)
+Proposition rank_step_eigenspace_cycle : forall i, 'n_ (i + h) = 'n_ i.
 Proof. by move=> i; rewrite /n_ -Vi_mod modn_addr Vi_mod. Qed.
 
 Let sumE := (\sum_(it : 'I_h * 'I_h) 'E_(it.1, it.2))%MS.
 
-(* This is B & G, Proposition 2.4(c) *)
-Lemma mxdirect_sum_proj_eigenspace_cycle : (sumE :=: 1%:M)%MS /\ mxdirect sumE.
+(* This is B & G, Proposition 2.4(c). *)
+Proposition mxdirect_sum_proj_eigenspace_cycle :
+  (sumE :=: 1%:M)%MS /\ mxdirect sumE.
 Proof.
 have [def1V] := mxdirect_sum_eigenspace_cycle; move/mxdirect_sumsP=> dxV.
 pose p (i : 'I_h) := proj_mx 'V_i (\sum_(j | j != i) 'V_j)%MS.
@@ -352,8 +353,8 @@ case/E2iP: (sBE (j, u)); rewrite eqE /=; case: eqP => [-> sBu _ ne_ut|].
 by move/eqP=> ne_ji _ ->; rewrite ?mul0mx // eq_sym !modn_small.
 Qed.
 
-(* This is B & G, Proposition 2.4(d) *)
-Lemma rank_proj_eigenspace_cycle :
+(* This is B & G, Proposition 2.4(d). *)
+Proposition rank_proj_eigenspace_cycle :
   forall i t, \rank 'E_(i, t) = ('n_i * 'n_t)%N.
 Proof.
 have [def1V] := mxdirect_sum_eigenspace_cycle; move/mxdirect_sumsP=> dxV.
@@ -394,8 +395,8 @@ rewrite -[p j]mul1mx -(mulmxKpV (proj_mx_sub _ _ _)) -mulmxA Vi'A ?mulmx0 //.
 by rewrite !modn_small.
 Qed.
 
-(* This is B & G, Proposition 2.4(e) *)
-Lemma proj_eigenspace_cycle_sub_quasi_cent : forall i j,
+(* This is B & G, Proposition 2.4(e). *)
+Proposition proj_eigenspace_cycle_sub_quasi_cent : forall i j,
   ('E_(i, i + j) <= 'E_j)%MS.
 Proof.
 move=> i j; apply/(@memmx_subP F _ _ q)=> A; case/E2iP=> ViA Vi'A.
@@ -413,8 +414,8 @@ Qed.
 Let diagE m :=
   (\sum_(it : 'I_h * 'I_h | it.1 + m == it.2 %[mod h]) 'E_(it.1, it.2))%MS.
 
-(* This is B & G, Proposition 2.4(f) *)
-Lemma diag_sum_proj_eigenspace_cycle : forall m,
+(* This is B & G, Proposition 2.4(f). *)
+Proposition diag_sum_proj_eigenspace_cycle : forall m,
   (diagE m :=: 'E_m)%MS /\ mxdirect (diagE m).
 Proof.
 have sub_diagE: forall m, (diagE m <= 'E_m)%MS.
@@ -454,8 +455,8 @@ rewrite -{2}(mxdirect_sumsP dx_sumE1 (inh m)) ?capmxS //.
 by apply/sumsmx_subP=> i ne_i_m; rewrite (sumsmx_sup i) ?sub_diagE.
 Qed.
 
-(* This is B & G, Proposition 2.4(g) *)
-Lemma rank_quasi_cent_cycle : forall m,
+(* This is B & G, Proposition 2.4(g). *)
+Proposition rank_quasi_cent_cycle : forall m,
   \rank 'E_m = (\sum_(i < h) 'n_i * 'n_(i + m))%N.
 Proof.
 move=> m; have [<- dx_diag] := diag_sum_proj_eigenspace_cycle m.
@@ -466,8 +467,8 @@ exists (@fst _ _) => // [] [i t] /=.
 by rewrite !inE /= (modn_small (valP t)) => def_t; apply/eqP; exact/andP.
 Qed.
 
-(* This is B & G, Proposition 2.4(h) *)
-Lemma diff_rank_quasi_cent_cycle : forall m,
+(* This is B & G, Proposition 2.4(h). *)
+Proposition diff_rank_quasi_cent_cycle : forall m,
   (2 * \rank 'E_0 = 2 * \rank 'E_m + \sum_(i < h) `|'n_i - 'n_(i + m)| ^ 2)%N.
 Proof.
 move=> m; rewrite !rank_quasi_cent_cycle !{1}mul2n -addnn.
@@ -483,8 +484,8 @@ Qed.
 
 Hypothesis rankEm : forall m, m != 0 %[mod h] -> \rank 'E_0 = (\rank 'E_m).+1.
 
-(* This is B & G, Proposition 2.4(j) *)
-Lemma rank_eigenspaces_quasi_homocyclic :
+(* This is B & G, Proposition 2.4(j). *)
+Proposition rank_eigenspaces_quasi_homocyclic :
   exists2 n, `|q - h * n| = 1%N &
   exists i : 'I_h, [/\ `|'n_i - n| = 1%N, (q < h * n) = ('n_i < n)
                      & forall j, j != i -> 'n_j = n].
@@ -568,8 +569,8 @@ rewrite -(leq_subS (ltnW lt_jk)) def_h leq_sub_add in lt_kj_h1.
 by rewrite -(leq_add2r k) lt_kj_h1 n_k1.
 Qed.
 
-(* This is B & G, Proposition 2.4(k) *)
-Lemma rank_eigenspaces_free_quasi_homocyclic :
+(* This is B & G, Proposition 2.4(k). *)
+Proposition rank_eigenspaces_free_quasi_homocyclic :
   q > 1 -> 'n_0 = 0%N -> h = q.+1 /\ (forall j, j != 0 %[mod h] -> 'n_j = 1%N).
 Proof.
 move=> q_gt1 n_0; rewrite mod0n.
@@ -583,7 +584,7 @@ Qed.
 
 End QuasiRegularCyclic.
 
-(* This is B & G, Theorem 2.5, used in 3.4 and 15.7.                          *)
+(* This is B & G, Theorem 2.5, used for Theorems 3.4 and 15.7. *)
 Theorem repr_extraspecial_prime_sdprod_cycle :
     forall p n gT (G P H : {group gT}),
     p.-group P -> extraspecial P -> P ><| H = G -> cyclic H ->
@@ -836,7 +837,7 @@ Qed.
 
 (* This is the main part of B & G, Theorem 2.6; it implies 2.6(a) and most of *)
 (* 2.6(b).                                                                    *)
-Lemma der1_odd_GL2_charf : forall F gT (G : {group gT}),
+Theorem der1_odd_GL2_charf : forall F gT (G : {group gT}),
    forall rG : mx_representation F G 2,
  odd #|G| -> mx_faithful rG -> [char F].-group G^`(1)%g.
 Proof.

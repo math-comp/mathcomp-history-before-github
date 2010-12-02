@@ -232,8 +232,9 @@ Proof. by rewrite /Aut_isom => a; case: (Aut_isom_subproof a). Qed.
 
 Lemma Aut_isomM : {in Aut G &, {morph Aut_isom: x y / x * y}}.
 Proof.
-move=> a b AutGa AutGb; apply: eq_Aut; rewrite ?groupM ?Aut_Aut_isom //.
-move=> fx; case/morphimP=> x Dx Gx ->{fx}.
+move=> a b AutGa AutGb.
+apply: (eq_Aut (Aut_Aut_isom _)); rewrite ?groupM ?Aut_Aut_isom // => fx.
+case/morphimP=> x Dx Gx ->{fx}.
 by rewrite permM !Aut_isomE ?groupM /= ?permM ?Aut_closed.
 Qed.
 Canonical Structure Aut_isom_morphism := Morphism Aut_isomM.

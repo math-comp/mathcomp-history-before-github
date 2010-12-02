@@ -8,9 +8,8 @@ Require Import matrix mxalgebra mxrepresentation mxabelem.
 Require Import BGsection1 BGsection2.
 
 (******************************************************************************)
-(*   This file covers B & G, section 4, i.e., the proof the a structure       *)
-(* theorem for solvable groups with a small (of rank at most 2) Fitting       *)
-(* subgroup.                                                                  *)
+(*   This file covers B & G, Section 4, i.e., the proof of structure theorems *)
+(* for solvable groups with a small (of rank at most 2) Fitting subgroup.     *)
 (******************************************************************************)
 
 Set Implicit Arguments.
@@ -255,7 +254,7 @@ rewrite (odd_pgroup_rank1_cyclic pP (oddSg sPG oddG)).
 by apply: leq_trans (leq_trans (p_rank_le_rank p G) rG_1); exact: p_rankS.
 Qed.
 
-(* This is B & G, Proposition 4.6 (a stronger version of 4.5(a)). *)
+(* This is B & G, Proposition 4.6 (a stronger version of Lemma 4.5(a)). *)
 Proposition odd_normal_p2Elem_exists : forall gT p (R S : {group gT}),
     p.-group R -> odd #|R| -> S <| R -> ~~ cyclic S ->
   exists E : {group gT}, [/\ E \subset S, E <| R & E \in 'E_p^2(R)].
@@ -630,8 +629,8 @@ rewrite -ltnNge (rank_pgroup (pgroupS sSR pR)); apply/p_rank_geP.
 by exists 'Ohm_1(U)%G; rewrite -(setIidPr sSU) pnElemI inE EpU1 inE /= defU1.
 Qed.
 
-(* This is B & G, Theorem 4.12 (also due to Huppert), for an internal action. *)
-Lemma coprime_metacyclic_cent_sdprod : forall gT p (R A : {group gT}), 
+(* This is B & G, Theorem 4.12 (also due to Huppert), for internal action. *)
+Theorem coprime_metacyclic_cent_sdprod : forall gT p (R A : {group gT}), 
     p.-group R -> odd #|R| -> metacyclic R -> p^'.-group A -> A \subset 'N(R) ->
     let T := [~: R, A] in let C := 'C_R(A) in
   [/\ (*a*) abelian T,
@@ -1127,7 +1126,7 @@ by apply: der1_odd_GL2_charf (kquo_mx_faithful rV); rewrite !morphim_odd.
 Qed.
 
 (* This is B & G, Theorem 4.18(a). *)
-Lemma rank2_max_pdiv : forall gT p q (G : {group gT}), 
+Theorem rank2_max_pdiv : forall gT p q (G : {group gT}), 
   solvable G -> odd #|G| -> 'r_p(G) <= 2 -> q \in \pi(G / 'O_p^'(G)) -> q <= p.
 Proof.
 move=> gT p q G solG oddG rG; rewrite mem_primes; case/and3P=> pr_q _ /= q_dv_G.
@@ -1150,7 +1149,7 @@ by rewrite /C /R -(Fitting_eq_pcore _) ?cent_sub_Fitting.
 Qed.
 
 (* This is B & G, Theorem 4.18(c,e) *)
-Lemma rank2_der1_complement: forall gT p (G : {group gT}), 
+Theorem rank2_der1_complement: forall gT p (G : {group gT}), 
     solvable G -> odd #|G| -> 'r_p(G) <= 2 ->
   [/\ (*c*) p^'.-Hall(G^`(1)) 'O_p^'(G^`(1)), 
      (*e1*) abelian (G / 'O_{p^',p}(G))
@@ -1189,7 +1188,7 @@ by rewrite defA -pgroupE (der1_Aut_rank2_pgroup pR) ?(oddSg sRG).
 Qed.
 
 (* This is B & G, Theorem 4.18(b) *)
-Lemma rank2_min_p_complement : forall gT (G : {group gT}) (p := pdiv #|G|),
+Theorem rank2_min_p_complement : forall gT (G : {group gT}) (p := pdiv #|G|),
   solvable G -> odd #|G| -> 'r_p(G) <= 2 -> p^'.-Hall(G) 'O_p^'(G).
 Proof.
 move=> gT G p solG oddG rG; rewrite /pHall pcore_pgroup pcore_sub pnatNK /=.
@@ -1199,7 +1198,7 @@ by rewrite pdiv_min_dvd ?prime_gt1 ?(dvdn_trans q_dv_Gb) ?dvdn_quotient.
 Qed.
 
 (* This is B & G, Theorem 4.18(d) *)
-Lemma rank2_sub_p'core_der1 : forall gT (G A : {group gT}) p,
+Theorem rank2_sub_p'core_der1 : forall gT (G A : {group gT}) p,
     solvable G -> odd #|G| -> 'r_p(G) <= 2 -> p^'.-subgroup(G^`(1)) A ->
   A \subset 'O_p^'(G^`(1)). 
 Proof.
@@ -1208,7 +1207,7 @@ by have [-> _ _] := rank2_der1_complement solG oddG rG.
 Qed.
 
 (* This is B & G, Corollary 4.19 *)
-Lemma rank2_der1_cent_chief : forall gT p (G Gs U V : {group gT}),
+Corollary rank2_der1_cent_chief : forall gT p (G Gs U V : {group gT}),
     odd #|G| -> solvable G -> Gs <| G -> 'r_p(Gs) <= 2 -> 
     chief_factor G V U -> p.-group (U / V) -> U \subset Gs ->
   G^`(1) \subset 'C(U / V | 'Q).
@@ -1290,8 +1289,8 @@ rewrite -subsetIidl -{2}(setIidPl sG'G) -setIA subsetIidl -/C.
 by rewrite -quotient_sub1 /= ?quotient_der //= -Ga_p_1 pcore_max ?der_normal.
 Qed.
 
-(* This is B & G, Lemma 4.20(a) *)
-Lemma rank2_der1_sub_Fitting : forall gT (G : {group gT}),
+(* This is B & G, Theorem 4.20(a) *)
+Theorem rank2_der1_sub_Fitting : forall gT (G : {group gT}),
   odd #|G| -> solvable G -> 'r('F(G)) <= 2 -> G^`(1) \subset 'F(G).
 Proof.
 move=> gT G oddG solG Fle2; have nsFG := Fitting_normal G.
@@ -1302,8 +1301,8 @@ case/andP=> pUV _; apply: rank2_der1_cent_chief nsFG _ _ pUV sUF => //.
 exact: leq_trans (p_rank_le_rank p _) Fle2.
 Qed.
 
-(* This is B & G, Lemma 4.20(b) *)
-Lemma rank2_char_Sylow_normal : forall gT (G S T : {group gT}),
+(* This is B & G, Theorem 4.20(b) *)
+Theorem rank2_char_Sylow_normal : forall gT (G S T : {group gT}),
     odd #|G| -> solvable G -> 'r('F(G)) <= 2 -> 
   Sylow G S -> T \char S -> T \subset S^`(1) -> T <| G.
 Proof.
@@ -1334,8 +1333,8 @@ rewrite (char_sub charT) (subset_trans (subset_trans sTS' (dergS 1 sSG))) //.
 exact: rank2_der1_sub_Fitting.
 Qed.
 
-(* This is the first statement of B & G, Lemma 4.20(c) *)
-Lemma rank2_min_p'core_Hall : forall gT (G : {group gT}) (p := pdiv #|G|),
+(* This is B & G, Theorem 4.20(c), for the last factor of the series. *)
+Theorem rank2_min_p'core_Hall : forall gT (G : {group gT}) (p := pdiv #|G|),
   odd #|G| -> solvable G -> 'r('F(G)) <= 2 -> p^'.-Hall(G) 'O_p^'(G).
 Proof.
 move=> gT G p oddG solG; set F := 'F(G) => Fle2.
@@ -1376,8 +1375,8 @@ rewrite -(setIidPr (quotientS _ (pcore_sub _ _))) coprime_TIg //.
 by rewrite coprime_morphr // (pnat_coprime pGq (pcore_pgroup _ _)).
 Qed.
 
-(* This is a consequence of B & G, Lemma 4.20(c) *)
-Lemma rank2_ge_pcore_Hall : forall gT m (G : {group gT}),
+(* This is B & G, Theorem 4.20(c), for intermediate factors. *)
+Theorem rank2_ge_pcore_Hall : forall gT m (G : {group gT}),
     let pi := [pred p | p >= m] in
   odd #|G| -> solvable G -> 'r('F(G)) <= 2 -> pi.-Hall(G) 'O_pi(G).
 Proof.
@@ -1407,8 +1406,8 @@ rewrite pHallE pcore_sub /= -defGp'pi (card_Hall hallGp'pi) (card_Hall hallGp').
 by rewrite partn_part // => q; apply: contraL => /=; move/eqnP->.
 Qed.
 
-(* This is another consequence of B & G, Lemma 4.20(c) *)
-Lemma rank2_max_pcore_Sylow : forall gT (G : {group gT}) (p := max_pdiv #|G|),
+(* This is B & G, Theorem 4.20(c), for the first factor of the series. *)
+Theorem rank2_max_pcore_Sylow : forall gT (G : {group gT}) (p := max_pdiv #|G|),
   odd #|G| -> solvable G -> 'r('F(G)) <= 2 -> p.-Sylow(G) 'O_p(G).
 Proof.
 move=> gT G p oddG solG Fle2; pose pi := [pred q | p <= q].

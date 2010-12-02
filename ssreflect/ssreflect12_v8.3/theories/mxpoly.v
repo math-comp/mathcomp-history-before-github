@@ -517,7 +517,7 @@ Variables (d n : nat) (A : 'M[aR]_n).
 Lemma map_rVpoly : forall u : 'rV_d, fp (rVpoly u) = rVpoly u^f.
 Proof.
 move=> u; apply/polyP=> k; rewrite coef_map !coef_rVpoly.
-by case: (insub k) => [i|]; rewrite ?rmorph0 // mxE.
+by case: (insub k) => [i|]; rewrite  /=  ?rmorph0 // mxE.
 Qed.
 
 Lemma map_poly_rV : forall p, (poly_rV p)^f = poly_rV (fp p) :> 'rV_d.
@@ -569,7 +569,7 @@ Proof.
 rewrite rmorph_sub; congr (_ - _).
   by rewrite /= map_polyXn degree_mxminpoly_map.
 rewrite degree_mxminpoly_map -rmorphX /=.
-apply/polyP=> i; rewrite coef_map // !coef_rVpoly degree_mxminpoly_map.
+apply/polyP=> i; rewrite coef_map //= !coef_rVpoly degree_mxminpoly_map.
 case/insub: i => [i|]; last by rewrite rmorph0.
 by rewrite -map_powers_mx -map_pinvmx // -map_mxvec -map_mxM // mxE.
 Qed.

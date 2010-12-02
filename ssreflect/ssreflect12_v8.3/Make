@@ -56,6 +56,7 @@ theories/primitive_action.v
 theories/frobenius.v
 theories/hall.v
 theories/mxabelem.v
+theories/wielandt_fixpoint.v
 theories/BGsection1.v
 theories/BGsection2.v
 theories/BGsection3.v
