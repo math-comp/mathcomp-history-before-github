@@ -142,7 +142,7 @@ End ClassFun.
 
 Local Notation "''CL[' R ] ( G ) " := (class_fun R G).
  
-Section Main.
+Section Character.
 
 (* Some axioms to start with *)
 Variable C : closedFieldType.
@@ -204,8 +204,7 @@ Proof.
 by move=> z x y; rewrite /leC oppr_add addrA [z + _]addrC addrK.
 Qed.
 
-
-Section Character.
+Section Main.
 
 (* Our group *)
 Variable (gT : finGroupType).
@@ -258,18 +257,32 @@ rewrite (big_morph _ (@natr_add _) (erefl _)).
 by apply: eq_bigr=> i _; rewrite chi1 natr_exp.
 Qed.
 
-Definition  xchar chi (u: 'rV[C]_#|G|) : C^o := \sum_(i < #|G|) u 0 i * chi (enum_val i).
+Definition  xchar (chi: {ffun gT -> C^o}) (u: 'rV[C]_#|G|) : C^o := 
+  \sum_(i < #|G|) u 0 i * chi (enum_val i).
 
-Local Notation "\chi^_ i" := (xchar (fun_of_fin (irr_class_fun i))) (at level 3).
+Local Notation "\chi^_ i" := (xchar (irr_class_fun i)) (at level 3).
 
-Lemma xchar_is_linear: forall i, linear (\chi^_ i).
+Lemma xchar_i_is_linear: forall i, linear (\chi^_ i).
 Proof.
 move=> i k m n.
 rewrite scaler_sumr -big_split /=; apply: eq_bigr=> l _.
 by rewrite scaler_mull -mulr_addl !mxE.
 Qed.
 
+Canonical Structure xchar_i_linear i := Linear (xchar_i_is_linear i).
+
+Lemma xchar_is_linear: forall x, linear (xchar^~ x).
+Proof.
+move=> i k m n.
+rewrite /xchar scaler_sumr -big_split /=; apply: eq_bigr=> l _.
+by rewrite !ffunE mulr_addr scaler_mulr.
+Qed.
+
 Canonical Structure xchar_linear i := Linear (xchar_is_linear i).
+
+(* To triger the previous structure *)
+Lemma xchar_lin: forall x u, xchar u x = xchar^~ x u.
+Proof. by []. Qed.
 
 Lemma xchar_trace: forall i u,
   \chi^_i u  = \tr (gring_op (irr_repr i) (gring_mx (regular_repr C G) u)).
@@ -316,6 +329,50 @@ have->: regular_repr C G 1%g = 1%:M.
 rewrite mulmx1 !linear_sum /= (bigD1 j) //= big1; first by rewrite addr0.
 move=> k; rewrite eq_sym => Hij.
 by apply: (xchar_subring Hij); exact: (Wedderburn_id_mem).
+Qed.
+
+Definition base_irr: seq {ffun _ -> C^o} := map (fun i => \chi_ i) (enum sG).
+
+Lemma free_base_irr : free (base_irr).
+Proof.
+apply/freeP=> s; set ss := \sum_(i<_) _ => Hs j.
+have Hj: (j <  #|sG|)%nat.
+  by case: j; rewrite size_map -cardE card_irr.
+pose j' := enum_val (Ordinal Hj).
+suff: xchar ss (gring_row (e_ j')) = s j * \chi_ j' 1%g.
+  rewrite /xchar big1 //.
+    move/eqP; rewrite eq_sym mulf_eq0; case/orP; first by move/eqP.
+    rewrite chi1; move/GRing.charf0P: Cchar=> -> He.
+    by move: (irr_degree_gt0 j'); rewrite (eqP He).
+  by move=> i _; rewrite Hs ffunE mulr0.
+(* ugly *)
+set u := gring_row _; move: (@linear_sum _ _ _ (xchar_linear u))=> /= ->.
+rewrite (bigD1 j) //= big1.
+  rewrite  addr0 (nth_map (principal_comp sG)) //; last by rewrite -cardE.
+  move: (@linearZ _ _ _ (xchar_linear u))=> /= ->.
+  suff->: (nth [1 sG]%irr (enum sG) j) = j' by rewrite  xchar_id eqxx.
+  by move: (nth_enum_rank [1 sG]%irr j'); rewrite enum_valK.
+move=> i Hij.
+have Hi: (i <  #|sG|)%nat.
+  by case: {Hij}i; rewrite size_map -cardE card_irr.
+pose i' := enum_val (Ordinal Hi).
+rewrite  (nth_map (principal_comp sG)) //; last by rewrite -cardE.
+move: (@linearZ _ _ _ (xchar_linear u))=> /= ->.
+have->: (nth [1 sG]%irr (enum sG) i) = i'.
+  by move: (nth_enum_rank [1 sG]%irr i'); rewrite enum_valK.
+rewrite  xchar_id; case: eqP; last by rewrite scaler0.
+move/eqP=> HH; case/negP: Hij.
+by move: HH; rewrite (bij_eq ((enum_val_bij (socle_finType sG)))).
+Qed.
+
+Lemma base_irr_basis: is_basis 'CL[C](G) base_irr.
+Proof.
+rewrite /is_basis free_base_irr andbT /is_span -dimv_leqif_eq.
+   rewrite dim_class_fun.
+   move: free_base_irr; rewrite /free; move/eqP->.
+   by rewrite size_map -cardE card_irr.
+rewrite -span_subsetl; apply/allP=> i; case/mapP=> j _ ->.
+apply: character_of_in_class_fun.
 Qed.
 
 End Character.
