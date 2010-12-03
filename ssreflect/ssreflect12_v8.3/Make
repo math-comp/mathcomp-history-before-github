@@ -76,3 +76,10 @@ theories/polyorder.v
 theories/alt.v
 theories/burnside_app.v
 theories/vector.v
+theories/fib.v
+theories/galois.v
+theories/amodule.v
+theories/algebra.v
+theories/galgebra.v
+theories/fieldext.v
+theories/character.v

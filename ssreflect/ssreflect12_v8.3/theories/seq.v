@@ -161,13 +161,13 @@ Notation "[ :: x1 ]" := (x1 :: [::])
 
 Notation "[ :: x & s ]" := (x :: s) (only parsing) : seq_scope.
 
-Notation "[ :: x1 ; x2 ; .. ; xn ]" := (x1 :: x2 :: .. [:: xn] ..)
-  (at level 0, format "[ :: '['  x1 ; '/'  x2 ; '/'  .. ; '/'  xn ']' ]"
-  ) : seq_scope.
-
 Notation "[ :: x1 , x2 , .. , xn & s ]" := (x1 :: x2 :: .. (xn :: s) ..)
   (at level 0, format
   "'[hv' [ :: '['  x1 , '/'  x2 , '/'  .. , '/'  xn ']' '/ '  &  s ] ']'"
+  ) : seq_scope.
+
+Notation "[ :: x1 ; x2 ; .. ; xn ]" := (x1 :: x2 :: .. [:: xn] ..)
+  (at level 0, format "[ :: '['  x1 ; '/'  x2 ; '/'  .. ; '/'  xn ']' ]"
   ) : seq_scope.
 
 Section Sequences.
