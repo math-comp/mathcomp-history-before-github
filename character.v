@@ -262,23 +262,29 @@ Definition  xchar (chi: {ffun gT -> C^o}) (u: 'rV[C]_#|G|) : C^o :=
 
 Local Notation "\chi^_ i" := (xchar (irr_class_fun i)) (at level 3).
 
-Lemma xchar_i_is_linear: forall i, linear (\chi^_ i).
+Lemma xchar_is_linear: forall i, linear (\chi^_ i).
 Proof.
 move=> i k m n.
 rewrite scaler_sumr -big_split /=; apply: eq_bigr=> l _.
 by rewrite scaler_mull -mulr_addl !mxE.
 Qed.
 
-Canonical Structure xchar_i_linear i := Linear (xchar_i_is_linear i).
+Canonical Structure xchar_linear i := Linear (xchar_is_linear i).
 
-Lemma xchar_is_linear: forall x, linear (xchar^~ x).
+(* In order to add a second canonical structure on xchar *)
+Definition xcharb x := xchar^~ x.
+
+Lemma xcharbE: forall u x, xchar u x = xcharb x u.
+Proof. by []. Qed.
+
+Lemma xcharb_is_linear: forall x, linear (xcharb x).
 Proof.
 move=> i k m n.
 rewrite /xchar scaler_sumr -big_split /=; apply: eq_bigr=> l _.
 by rewrite !ffunE mulr_addr scaler_mulr.
 Qed.
 
-Canonical Structure xchar_linear i := Linear (xchar_is_linear i).
+Canonical Structure xcharb_linear i := Linear (xcharb_is_linear i).
 
 (* To triger the previous structure *)
 Lemma xchar_lin: forall x u, xchar u x = xchar^~ x u.
@@ -345,11 +351,9 @@ suff: xchar ss (gring_row (e_ j')) = s j * \chi_ j' 1%g.
     rewrite chi1; move/GRing.charf0P: Cchar=> -> He.
     by move: (irr_degree_gt0 j'); rewrite (eqP He).
   by move=> i _; rewrite Hs ffunE mulr0.
-(* ugly *)
-set u := gring_row _; move: (@linear_sum _ _ _ (xchar_linear u))=> /= ->.
-rewrite (bigD1 j) //= big1.
+rewrite xcharbE linear_sum; rewrite (bigD1 j) //= big1.
   rewrite  addr0 (nth_map (principal_comp sG)) //; last by rewrite -cardE.
-  move: (@linearZ _ _ _ (xchar_linear u))=> /= ->.
+  rewrite linearZ /= -xcharbE.
   suff->: (nth [1 sG]%irr (enum sG) j) = j' by rewrite  xchar_id eqxx.
   by move: (nth_enum_rank [1 sG]%irr j'); rewrite enum_valK.
 move=> i Hij.
@@ -357,7 +361,7 @@ have Hi: (i <  #|sG|)%nat.
   by case: {Hij}i; rewrite size_map -cardE card_irr.
 pose i' := enum_val (Ordinal Hi).
 rewrite  (nth_map (principal_comp sG)) //; last by rewrite -cardE.
-move: (@linearZ _ _ _ (xchar_linear u))=> /= ->.
+rewrite linearZ /= -xcharbE.
 have->: (nth [1 sG]%irr (enum sG) i) = i'.
   by move: (nth_enum_rank [1 sG]%irr i'); rewrite enum_valK.
 rewrite  xchar_id; case: eqP; last by rewrite scaler0.
