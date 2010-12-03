@@ -375,6 +375,6 @@ rewrite -span_subsetl; apply/allP=> i; case/mapP=> j _ ->.
 apply: character_of_in_class_fun.
 Qed.
 
-End Character.
-
 End Main.
+
+End Character.
