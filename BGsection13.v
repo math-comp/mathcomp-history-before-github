@@ -217,7 +217,116 @@ apply: subset_trans (cMsY E3 _ _) (centS _).
 by rewrite setIS // (subset_trans _ sNH) // cents_norm ?centS ?cycle_subG.
 Qed.
 
+Theorem cent_tau1Elem_Msigma : forall p r P R (Ms := M`_\sigma),
+    p \in \tau1(M) -> P \in 'E_p^1(E) -> R \in 'E_r^1('C_E(P)) ->
+  'C_Ms(P) \subset 'C_Ms(R).
+Proof.
+set Ms := M`_\sigma; have [sMsM nMsM] := andP (pcore_normal _ M : Ms <| M).
+pose Ma := M`_\alpha; have [sMaM nMaM] := andP (pcore_normal _ M : Ma <| M).
+pose zeta P R := if 'C_Ma(P) \subset 'C(R) then \sigma(M) else \alpha(M).
+pose asym_hyp r P R := (r \in \tau1(M)) && ('C_Ma(P) \proper 'C_Ma(R)).
+move=> p r P R /= t1Mp EpP; rewrite pnElemI -setIdE; case/setIdP=> ErR cPR.
+suffices: 'C_('O_(zeta P R)(M))(P) \subset 'C(R).
+  by rewrite /zeta subsetI subsetIl; case: ifP => // ->.
+without loss symPR: p r P R EpP ErR cPR t1Mp / ~~ asym_hyp r P R.
+  rewrite /asym_hyp => IH; apply: (IH p r) => //; apply/and3P=> [[t1Mr _]].
+  case/negP; have:= IH r p R P ErR EpP _ t1Mr; rewrite t1Mp centsC.
+  by rewrite /proper subsetI subsetIl /= /zeta; case: ifP => // -> ->.
+set C := 'C__(P); have [sCMs cPC]: C \subset Ms /\ C \subset 'C(P).
+  apply/subsetIP; rewrite setSI // /zeta; case: ifP => // _.
+  exact: Malpha_sub_Msigma.
+have [[sPE abelP dimP] [sRE abelR dimR]] := (pnElemP EpP, pnElemP ErR).
+have [[pP cPP _] [rR _]] := (and3P abelP, andP abelR).
+have ntP := nt_pnElem EpP isT.
+have [sPM sRM] := (subset_trans sPE sEM, subset_trans sRE sEM).
+pose ST := [set S | Sylow C (gval S) && (R \subset 'N(S))].
+have sST_CP: forall S, S \in ST -> S \subset C.
+  by move=> S; case/setIdP; case/SylowP=> q _; case/andP.
+rewrite -{sST_CP}[C](Sylow_transversal_gen sST_CP)  => [|q _]; last first.
+  have solC := solvableS (subset_trans sCMs sMsM) (mmax_sol maxM).
+  have nCR: R \subset 'N(C).
+    rewrite normsI //; last by rewrite norms_cent // cents_norm.
+  by rewrite (subset_trans sRM) // bgFunc_norm.
+  have [|S sylS nSR] := coprime_Hall_exists q nCR _ solC.
+    by rewrite (coprimeSg sCMs) // (coprimegS sRE) // coprime_sigma_compl.
+  by exists S; rewrite // inE (p_Sylow sylS) nSR.
+rewrite gen_subG; apply/bigcupsP=> S; case/setIdP {ST}.
+case/SylowP=> q _ sylS nSR; have [sSC qS _] := and3P sylS.
+have [sSMs [sSMz cPS]] := (subset_trans sSC sCMs, subsetIP sSC).
+rewrite (sameP commG1P eqP) /=; set Q := [~: S, R]. apply: contraR symPR => ntQ.
+have sQS: Q \subset S by [rewrite commg_subl]; have qQ := pgroupS sQS qS.
+have piQq: q \in \pi(Q) by rewrite -p_rank_gt0 -rank_pgroup ?rank_gt0.
+have [H maxNH] := mmax_exists (mFT_norm_proper ntP (mFT_pgroup_proper pP)).
+have [maxH sNH] := setIdP maxNH; have sCPH := subset_trans (cent_sub _) sNH.
+have [sSM sSH] := (subset_trans sSMs sMsM, subset_trans cPS sCPH).
+have [sQM sQH] := (subset_trans sQS sSM, subset_trans sQS sSH).
+have ntMsH_R: [~: Ms :&: H, R] != 1.
+  by rewrite (subG1_contra _ ntQ) ?commSg // subsetI sSMs. 
+have [sPH sRH] := (subset_trans cPP sCPH, subset_trans cPR sCPH).
+have sR_EH: R \subset E :&: H by exact/subsetIP.
+have ntMsH_MH: [~: Ms :&: H, M :&: H] != 1.
+  by rewrite (subG1_contra _ ntMsH_R) ?commgS // (subset_trans sR_EH) ?setSI.
+have t13Mp: p \in [predU \tau1(M) & \tau3(M)] by apply/orP; left.
+have [_ cMsH_t1H' [//|sHp bHp]] := cent_norm_tau13_mmax t13Mp sPM pP maxNH.
+have{cMsH_t1H'} t1Hr: r \in \tau1(H).
+  apply: contraR ntMsH_R => t1H'r; rewrite (sameP eqP commG1P) centsC.
+  by rewrite cMsH_t1H' // (pi_pgroup rR).
+have ntCHaRQ: 'C_(H`_\alpha)(R <*> Q) != 1.
+  rewrite centY (subG1_contra _ ntP) ?subsetI //= centsC cPR centsC.
+  rewrite (subset_trans sQS cPS) (subset_trans _ (Mbeta_sub_Malpha H)) //.
+  by rewrite (sub_Hall_pcore (Mbeta_Hall maxH)) // (pi_pgroup pP) ?bHp.
+have not_MGH: gval H \notin M :^: G.
+  by apply: contraL sHp; case/imsetP=> x _ ->; rewrite sigmaJ; case/andP: t1Mp.
+have cSS: abelian S.
+  apply: contraR not_MGH; move/(nonabelian_Uniqueness qS) => uniqS.
+  by rewrite (eq_uniq_mmax (def_uniq_mmax uniqS maxM sSM) maxH sSH) orbit_refl.
+have tiQcR: 'C_Q(R) = 1.
+  rewrite coprime_abel_cent_TI // (coprimeSg sSMs) // (coprimegS sRE) //.
+  exact: coprime_sigma_compl.
+have sMq: q \in \sigma(M).
+  exact: pnatPpi (pcore_pgroup _ M) (piSg sSMs (piSg sQS piQq)).
+have aH'q: q \notin \alpha(H).
+  have [|_ tiHaMs _] := sigma_disjoint maxH maxM; first by rewrite orbit_sym.
+  by apply: contraFN (tiHaMs q) => aHq; exact/andP.
+have ErH_R: R \in 'E_r^1(H) by rewrite !inE sRH abelR dimR.
+have sM'r: r \in \sigma(M)^'.
+  by rewrite (pnatPpi (pgroupS sRE sM'E)) // -p_rank_gt0 p_rank_abelem ?dimR.
+have r'q: q \in r^' by apply: contraTneq sMq => ->.
+have nQR: R \subset 'N(Q) := commg_normr R S.
+have ntHa: H`_\alpha != 1 by rewrite (subG1_contra _ ntCHaRQ) ?subsetIl.
+have uniqNQ: 'M('N(Q)) = [set H].
+  apply: contraNeq ntCHaRQ; rewrite joingC.
+  by case/(cent_Malpha_reg_tau1 _ _ r'q ErH_R) => //; case=> //= _ -> _.
+have neqHM := contra_orbit _ _ not_MGH.
+have maxNQ_H: H \in 'M('N(Q)) :\ M by rewrite uniqNQ !inE neqHM /=. 
+have{maxNQ_H} [_ _] := sigma_subgroup_embedding maxM sMq sQM qQ ntQ maxNQ_H.
+have [sHq [_ st1HM [_ ntMa]] | _ [_ _ sM'MH]] := ifP; last first.
+  have piPp: p \in \pi(P) by rewrite -p_rank_gt0 p_rank_abelem ?dimP.
+  have sPMH: P \subset M :&: H by exact/subsetIP.
+  by case/negP: (pnatPpi (pgroupS sPMH (pHall_pgroup sM'MH)) piPp).
+have{st1HM} t1Mr: r \in \tau1(M).
+  case/orP: (st1HM r t1Hr) => //; case/idPn; apply: contra sM'r.
+  exact: alpha_sub_sigma.
+have aM'q: q \notin \alpha(M).
+  have [_ tiMaHs _] := sigma_disjoint maxM maxH not_MGH.
+  by apply: contraFN (tiMaHs q) => aMq; exact/andP.
+rewrite /asym_hyp t1Mr properEneq subsetI subsetIl /= andbC; apply/andP; split.
+  apply: contraR aM'q => not_cRCaP; apply: pnatPpi (piSg sSMz (piSg sQS piQq)).
+  by rewrite -pgroupE /zeta (negPf not_cRCaP) pcore_pgroup.
+have: 'M('N(Q)) != [set M] by rewrite uniqNQ (inj_eq (@set1_inj _)).
+have ErM_R: R \in 'E_r^1(M) by rewrite !inE sRM abelR dimR.
+case/(cent_Malpha_reg_tau1 _ _ r'q ErM_R) => //.
+case=> //= ntCMaP tiCMaPQ _; apply: contraNneq ntCMaP => defCaP.
+rewrite -subG1 -tiCMaPQ /= centY setICA subsetIidr /= -/Ma -/Q.
+apply/commG1P; rewrite commGC; apply: three_subgroup; apply/commG1P.
+  by rewrite commGC (commG1P _) ?sub1G ?subsetIr.
+apply: subset_trans (subsetIr Ma _); rewrite /= -defCaP commg_subl.
+rewrite normsI //; last by rewrite norms_cent // cents_norm.
+by rewrite (subset_trans sSM) ?bgFunc_norm.
+Qed.
+
 End OneComplement.
+
 
 End Section13.
 
