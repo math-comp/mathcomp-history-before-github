@@ -1,0 +1,5 @@
+SSRCOQ = ../bin/ssrcoq
+-custom "$(SSRCOQ) $(COQFLAGS) -compile $*" "%.v $(SSRCOQ)" "%.vo" 
+-R ../theories Ssreflect
+absevarprop.v
+elim.v

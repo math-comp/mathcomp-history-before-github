@@ -1,4 +1,3 @@
-
 MAKEFLAGS := -r -j
 
 .SUFFIXES:
@@ -11,7 +10,6 @@ COQMAKE := $(MAKE) -f $(COQMAKEFILE)
 all: $(COQMAKEFILE)
 	/bin/mkdir -p bin
 	$(COQMAKE) all
-	$(MAKE) -C test/ all
 
 $(COQMAKEFILE) config:
 	$(COQBIN)coq_makefile -f Make  -o $(COQMAKEFILE)
@@ -24,8 +22,7 @@ tags:
 	$(COQBIN)coqtags `find . -name \*.v`
 
 install:
-	$(COQMAKE) install
-	/usr/bin/install bin/ssrcoq $(COQBIN)
 
 %: Makefile.coq
 	$(COQMAKE) $@
+
