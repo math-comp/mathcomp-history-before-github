@@ -10,17 +10,16 @@ Import GRing.Theory.
 
 Section RingLmodule.
 
-Variable (R : ringType).
-Local Notation Regular  := (GRing.Lmodule.Regular R).
+Variable (R : fieldType).
 
-Definition r2rv (x:Regular): 'rV[R]_1 := \row_(i < 1) x .
+Definition r2rv x: 'rV[R^o]_1 := \row_(i < 1) x .
 
 Lemma r2rv_morph_p : linear r2rv.
 Proof. by move=> k x y; apply/matrixP=> [] [[|i] Hi] j;rewrite !mxE. Qed.
 
-Canonical Structure r2rv_morph := GRing.LinearFun r2rv_morph_p.
+Canonical Structure r2rv_morph := Linear r2rv_morph_p.
 
-Definition rv2r (A: 'rV[R]_1): Regular := A 0 0.
+Definition rv2r (A: 'rV[R]_1): R^o := A 0 0.
 
 Lemma r2rv_bij : bijective r2rv.
 Proof.
@@ -29,9 +28,7 @@ by move => x; apply/matrixP=> i j; rewrite [i]ord1 [j]ord1 /r2rv /rv2r !mxE /=.
 Qed.
 
 Canonical Structure  RVMixin := Eval hnf in VectMixin r2rv_morph_p r2rv_bij.
-Canonical Structure RVVectType := (@VectorType.pack R (Phant R) R   
-                        (GRing.Lmodule.Class (GRing.Lmodule.RegularMixin R))
-                         RVMixin Regular _ id _ id).
+Canonical Structure RVVectType :=  VectType R RVMixin.
 
 Lemma dimR : vdim RVVectType = 1%nat.
 Proof. by rewrite /vdim /=. Qed.
@@ -45,72 +42,66 @@ Variable (F : fieldType) (V : vectType  F).
 
 Section SesquiLinearFormDef.
 
-Structure fautomorphism:= FautoMorph { fval :> (F -> F); 
-                                      _ :GRing.morphism fval; 
-                                      _ :  bijective fval}.
+Structure fautomorphism:= FautoMorph {fval :> F -> F;
+                                      _ : rmorphism  fval; 
+                                      _ : bijective fval}.
+Variable theta: fautomorphism.
+
+Lemma fval_rmorph : rmorphism theta.
+Proof. by case: theta. Qed.
+
+Canonical Structure fautomorh_additive := Additive fval_rmorph.
+Canonical Structure fautomorph_rmorphism := RMorphism  fval_rmorph.
 
 Local Notation vvf:= (V -> V -> F).
 
-
 Structure sesquilinear_form  := 
               SesqlinearForm {formv :> vvf;
-               teta: fautomorphism;
  	         _ : forall x, {morph formv x : y z / y + z};
  	         _ : forall x, {morph formv ^~  x : y z / y + z};
  	         _ : forall a x y,  formv  (a *: x) y = a * formv x y;
- 		 _ : forall a x y , formv x (a *: y) = (teta a) * (formv x y)}.
+ 		 _ : forall a x y , formv x (a *: y) = (theta a) * (formv x y)}.
 
 Variable f : sesquilinear_form.
 
 Lemma bilin1 :  forall x, {morph f x : y z / y + z}. Proof. by case f. Qed.
 Lemma bilin2 :  forall x, {morph f ^~  x : y z / y + z}. Proof. by case f. Qed.
 Lemma bilina1 :  forall a x y, f (a *: x) y = a * f x y. Proof. by case f. Qed.
-Lemma bilina2 : forall a x y, f x (a *: y) = (teta f a) * (f x y). 
+Lemma bilina2 : forall a x y, f x (a *: y) = (theta  a) * (f x y). 
 Proof. by case f. Qed.
 
 End SesquiLinearFormDef.
 
 Section SesquiLinearFormTheory.
 
-Local Notation sqlf := sesquilinear_form.
+Variable theta: fautomorphism.
+Local Notation sqlf := (sesquilinear_form theta).
 
-Definition symmetric (f: sqlf):= (forall a, ( teta f a = a)) /\  
+Definition symmetric (f : sqlf):= (forall a,  (theta  a = a)) /\  
                                   forall x y, (f x y = f y x).
-Definition skewsymmetric (f: sqlf):= (forall a , ( teta f a = a)) /\ 
+Definition skewsymmetric (f : sqlf) := (forall a , theta a = a) /\ 
                                       forall x y, f x y = -(f y x).
 
-Definition hermitian_sym  (f: sqlf) := (forall x y, f x y = teta f (f y x)).
+Definition hermitian_sym  (f : sqlf) := (forall x y, f x y = (theta (f y x))).
 
-Lemma sym_form0: forall  (f: sqlf) x y, (symmetric f) ->  
+Inductive symmetricf (f : sqlf): Prop :=
+  Symmetric : symmetric f -> symmetricf f
+| Skewsymmetric: skewsymmetric f -> symmetricf f
+| Hermitian_sym : hermitian_sym f -> symmetricf f .
+
+Lemma fsym_f0: forall  (f: sqlf) x y, (symmetricf f) ->  
                                         (f x y = 0  <-> f y x = 0).
-Proof. by move => f x y [Hteta Hsym]; split => Hf; rewrite Hsym. Qed.
-
-Lemma antisym_form0: forall  (f: sqlf) x y, (skewsymmetric f) ->  
-                                            (f x y = 0  <-> f y x = 0).
-Proof. by move => f x y [Hteta Hsym]; split => Hf; rewrite Hsym Hf oppr0. Qed.
-
-(* Do not need the involutive hypothesis *)
-Lemma hermit_form0: forall   (f: sqlf) x y, ( hermitian_sym f) ->  
-                                            (f x y = 0  <-> f y x = 0).
 Proof.
-move => f x y  Hfxy; split.
-  by rewrite (Hfxy y x); move->; case: (teta f) => f0 m b;rewrite /= ringM_0.
-by rewrite (Hfxy x y);move ->; case: (teta f) => f0 m b;rewrite /= ringM_0.
-Qed.
-
-Definition symmetricf f:=  
-                  (symmetric f) \/ (skewsymmetric f) \/ (hermitian_sym  f).
-
-Lemma fsym_f0: forall f  , symmetricf f ->
-                    forall x y , (f x y = 0  <-> f y x = 0).
-Proof.
-by move => f[Hf|[Hf|Hf]] x y;
-   [apply:sym_form0|apply:antisym_form0|apply:hermit_form0].
+move => f x y ;case; first by  move=>  [Htheta Hf];split; rewrite Hf.
+  by move=>  [Htheta Hf];split; rewrite Hf; move/eqP;rewrite oppr_eq0; move/eqP->.
+move=> Htheta;split; first by rewrite (Htheta y x) => ->; rewrite rmorph0.
+by rewrite (Htheta x y) => ->; rewrite rmorph0.
 Qed.
 
 End SesquiLinearFormTheory.
 
-Variable f: sesquilinear_form .
+Variable theta: fautomorphism.
+Variable f: (sesquilinear_form theta).
 Hypothesis fsym: symmetricf f.
 
 Section orthogonal.
@@ -190,7 +181,7 @@ Variable Q : V -> F.
 Hypothesis quadQ :  quadraticf Q.
 Import GRing.Theory.
 
-(* improved by Georges *)
+
 Lemma f2Q:  forall x, Q x + Q x = f x x.
 Proof.
 move=> x; apply:(@addrI _ (Q x + Q x)).
