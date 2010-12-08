@@ -28,7 +28,7 @@ Import Prenex Implicits.
 Import GroupScope.
 Section Definitions.
 
-Variables (gT : minSimpleOddGroupType) (M : {set gT}).
+Variables (gT : finGroupType) (M : {set gT}).
 Local Notation sigma' := \sigma(M)^'.
 
 Definition tau1 :=
