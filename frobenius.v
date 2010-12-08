@@ -6,10 +6,11 @@ Require Import cyclic center pgroup abelian.
 (******************************************************************************)
 (*  Definition of Frobenius groups, some basic results, and the Frobenius     *)
 (* theorem on the number of solutions of x ^+ n = 1.                          *)
-(*    semiregular H K <=>                                                     *)
+(*    semiregular K H <->                                                     *)
 (*       the internal action of H on K is semiregular, i.e., no nontrivial    *)
-(*       elements of H and K commute.                                         *)
-(*    semiprime H K <=>                                                       *)
+(*       elements of H and K commute; note that this is actually a symmetric  *)
+(*       condition.                                                           *)
+(*    semiprime K H <->                                                       *)
 (*       the internal action of H on K is "prime", i.e., an element of K that *)
 (*       centralises a nontrivial element of H must actually centralise all   *)
 (*       of H.                                                                *)
@@ -49,10 +50,10 @@ Variable gT : finGroupType.
 Implicit Types G K H : {set gT}.
 
 (* Corresponds to "H acts on K in a regular manner" in B & G. *)
-Definition semiregular H K := {in H^#, forall x, 'C_K[x] = 1}.
+Definition semiregular K H := {in H^#, forall x, 'C_K[x] = 1}.
 
 (* Corresponds to "H acts on K in a prime manner" in B & G. *)
-Definition semiprime H K := {in H^#, forall x, 'C_K[x] = 'C_K(H)}.
+Definition semiprime K H := {in H^#, forall x, 'C_K[x] = 'C_K(H)}.
 
 Definition Frobenius_group_with_complement G H :=
   [&& H \proper G, trivIset (H^# :^: G) & 'N_G(H) == H].
@@ -92,19 +93,74 @@ Notation "[ 'Frobenius' G = K ><| H ]" :=
 Section FrobeniusBasics.
 
 Variable gT : finGroupType.
-Implicit Type G H K R : {group gT}.
+Implicit Type G H K R X : {group gT}.
 
-Lemma semiregular_sym : forall H K, semiregular H K -> semiregular K H.
+Lemma semiregular1l : forall H, semiregular 1 H.
+Proof. by move=> H x _; rewrite setI1g. Qed.
+
+Lemma semiregular1r : forall K, semiregular K 1.
+Proof. by move=> K x; rewrite setDv inE. Qed.
+
+Lemma semiregular_sym : forall H K, semiregular K H -> semiregular H K.
 Proof.
 move=> H K regH x; case/setD1P=> ntx Kx; apply: contraNeq ntx.
 rewrite -subG1 -setD_eq0 setDE setIAC -setDE (sameP eqP set1gP).
 by case/set0Pn=> y; case/setIP=> Hy cxy; rewrite -(regH y Hy) inE Kx cent1C.
 Qed.
 
-Lemma semiregular_prime : forall H K, semiregular H K -> semiprime H K.
+Lemma semiregular_prime : forall H K, semiregular K H -> semiprime K H.
 Proof.
 move=> H K regH x Hx; apply/eqP; rewrite eqEsubset {1}regH // sub1G.
 by rewrite -cent_set1 setIS ?centS // sub1set; case/setD1P: Hx.
+Qed.
+
+Lemma semiprime_regular : forall H K,
+  semiprime K H -> 'C_K(H) = 1 -> semiregular K H.
+Proof. by move=> H K prKH tiKcH x Hx; rewrite prKH. Qed.
+
+Lemma cent_semiprime : forall H K X,
+   semiprime K H -> X \subset H -> X :!=: 1 -> 'C_K(X) = 'C_K(H).
+Proof.
+move=> H K X prKH sXH; case/trivgPn=> x Xx ntx; apply/eqP.
+rewrite eqEsubset -{1}(prKH x) ?inE ?(subsetP sXH) ?ntx //=.
+by rewrite -cent_cycle !setIS ?centS ?cycle_subG.
+Qed.
+
+Lemma stab_semiprime : forall H K X,
+   semiprime K H -> X \subset K -> 'C_H(X) != 1 -> 'C_H(X) = H.
+Proof.
+move=> H K X prKH sXK ntCHX; apply/setIidPl; rewrite centsC -subsetIidl.
+rewrite -{2}(setIidPl sXK) -setIA -(cent_semiprime prKH _ ntCHX) ?subsetIl //.
+by rewrite !subsetI subxx sXK centsC subsetIr.
+Qed.
+
+Lemma cent_semiregular : forall H K X,
+   semiregular K H -> X \subset H -> X :!=: 1 -> 'C_K(X) = 1.
+Proof.
+move=> H K X regKH sXH; case/trivgPn=> x Xx ntx; apply/trivgP.
+rewrite -(regKH x) ?inE ?(subsetP sXH) ?ntx ?setIS //=.
+by rewrite -cent_cycle centS ?cycle_subG.
+Qed.
+
+Lemma regular_norm_dvd_pred : forall K H,
+  H \subset 'N(K) -> semiregular K H -> #|H| %| #|K|.-1.
+Proof.
+move=> K H nKH regH.
+have actsH: [acts H, on K^# | 'J] by rewrite astabsJ normD1.
+rewrite (cardsD1 1 K) group1 -(acts_sum_card_orbit actsH) /=.
+rewrite (eq_bigr (fun _ => #|H|)) ?sum_nat_const ?dvdn_mull // => xH.
+case/imsetP=> x; case/setIdP=> ntx Kx ->; rewrite card_orbit astab1J.
+rewrite ['C_H[x]](trivgP _) ?indexg1 //=.
+apply/subsetP=> y; case/setIP=> Hy cxy; apply: contraR ntx => nty.
+by rewrite -[[set 1]](regH y) inE ?nty // Kx cent1C.
+
+Qed.
+
+Lemma regular_norm_coprime : forall K H,
+  H \subset 'N(K) -> semiregular K H -> coprime #|K| #|H|.
+Proof.
+move=> K H nKH regH.
+by rewrite (coprime_dvdr (regular_norm_dvd_pred nKH regH)) ?coprimenP.
 Qed.
 
 Lemma TIconjP : forall G H,
@@ -286,7 +342,7 @@ by rewrite -in_set1 -(memJ_conjg _ y^-1) conjs1g -tiKH inE Kxy.
 Qed.
 
 Lemma Frobenius_reg_ker : forall G H K,
-  [Frobenius G = K ><| H] -> semiregular H K.
+  [Frobenius G = K ><| H] -> semiregular K H.
 Proof.
 move=> G H K frobG x; case/setD1P=> nt_x Hx; apply/trivgP.
 apply/subsetP=> y; case/setIP=> Ky cxy; apply: contraR nt_x => nty.
@@ -299,29 +355,9 @@ by rewrite inE cent1C (subsetP sHG).
 Qed.
 
 Lemma Frobenius_reg_compl : forall K H G,
-  [Frobenius G = K ><| H] -> semiregular K H.
+  [Frobenius G = K ><| H] -> semiregular H K.
 Proof.
 by move=> K H G frobG; apply: semiregular_sym; exact: Frobenius_reg_ker frobG.
-Qed.
-
-Lemma regular_norm_dvd_pred : forall K H,
-  H \subset 'N(K) -> {in H^#, forall x, 'C_(K)[x] = 1} -> #|H| %| #|K|.-1.
-Proof.
-move=> K H nKH regH.
-have actsH: [acts H, on K^# | 'J] by rewrite astabsJ normD1.
-rewrite (cardsD1 1 K) group1 -(acts_sum_card_orbit actsH) /=.
-rewrite (eq_bigr (fun _ => #|H|)) ?sum_nat_const ?dvdn_mull // => xH.
-case/imsetP=> x; case/setIdP=> ntx Kx ->; rewrite card_orbit astab1J.
-rewrite ['C_H[x]](trivgP _) ?indexg1 //=.
-apply/subsetP=> y; case/setIP=> Hy cxy; apply: contraR ntx => nty.
-by rewrite -[[set 1]](regH y) inE ?nty // Kx cent1C.
-Qed.
-
-Lemma regular_norm_coprime : forall K H,
-  H \subset 'N(K) -> {in H^#, forall x, 'C_(K)[x] = 1} -> coprime #|K| #|H|.
-Proof.
-move=> K H nKH regH.
-by rewrite (coprime_dvdr (regular_norm_dvd_pred nKH regH)) ?coprimenP.
 Qed.
 
 Lemma Frobenius_dvd_ker1 : forall G H K,

@@ -708,8 +708,8 @@ Corollary tau2_regular : forall M E E1 E2 E3 p A,
     M \in 'M -> sigma_complement M E E1 E2 E3 ->
     p \in \tau2(M) -> A \in 'E_p^2(E) ->
   let Ms := M`_\sigma in
-  [/\ (*d*) forall x, x \in E3^# -> 'C_Ms[x] = 1,
-      (*e*) forall x, x \in ('C_E1(A))^# -> 'C_Ms[x] = 1
+  [/\ (*d*) semiregular Ms E3,
+      (*e*) semiregular Ms 'C_E1(A)
           & A \subset E2].
 Proof.
 move=> M E E1 E2 E3 p A maxM complEi t2Mp Ep2A Ms.
@@ -1560,7 +1560,7 @@ have part_b: forall H,
     have [[sF3H' _] _ _ _ _] := sigma_compl_context maxH complFi.
     exact: subset_trans sQF3 (subset_trans sF3H' (dergS 1 (pHall_sub hallF))).
   have hallHb: \beta(H).-Hall(H) H`_\beta := Mbeta_Hall maxH.
-  have nilH'b: nilpotent (H^`(1) / H`_\beta) := beta_der1_quo_nil maxH.
+  have nilH'b: nilpotent (H^`(1) / H`_\beta) := Mbeta_quo_nil maxH.
   have{nilH'b} sAQ_Hb: [~: A, Q] \subset H`_\beta.
     rewrite -quotient_cents2 ?(subset_trans _ (bgFunc_norm _ _)) // centsC.
     rewrite (sub_nilpotent_cent2 nilH'b) ?quotientS ?coprime_morph //.
@@ -1961,7 +1961,7 @@ have [X]: exists2 X, X \in subgroups Q & ('C_S(X) != 1) && ([~: S, X] != 1).
   have qQb: q.-group (Q / Q0) by exact: quotient_pgroup.
   have ntQ1b: Q1 / Q0 != 1 by rewrite -subG1 quotient_sub1.
   have ntQb: Q / Q0 != 1 := subG1_contra (quotientS _ sQ1Q) ntQ1b.
-  have{irrS} regQ: semiregular (Q / Q0) (S / Q0).
+  have{irrS} regQ: semiregular (S / Q0) (Q / Q0).
     move=> Q0x; rewrite 2!inE -cycle_subG -cycle_eq1 -cent_cycle andbC.
     case/andP; case/(inv_quotientS nsQ0Q)=> X /= -> {Q0x} sQ0X sXQ ntXb.
     have [nSX nQ0X] := (subset_trans sXQ nSQ, subset_trans sXQ nQ0Q).

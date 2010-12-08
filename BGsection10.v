@@ -821,7 +821,7 @@ Qed.
 (* This is an equivalent form of B & G, Lemma 10.8(b), which is used directly *)
 (* later in the proof (e.g., Corollary 10.9a below, and Lemma 12.11), and is  *)
 (* proved as an intermediate step of the proof of of 12.8(b).                 *)
-Lemma beta_der1_quo_nil : nilpotent (M^`(1) / M`_\beta).
+Lemma Mbeta_quo_nil : nilpotent (M^`(1) / M`_\beta).
 Proof.
 have [_ bMb b'M'Mb] := and3P (pHall_subl Mbeta_der1 sM'M Mbeta_Hall).
 apply: nilpotentS (Fitting_nil (M^`(1) / M`_\beta)) => /=.
@@ -844,7 +844,7 @@ Proof.
 move=> H b'H sHM'; have [_ bMb _] := and3P Mbeta_Hall.
 have{b'H} tiMbH: M`_\beta :&: H = 1 := coprime_TIg (pnat_coprime bMb b'H).
 rewrite {tiMbH}(isog_nil (quotient_isog (subset_trans sHM' nMbM') tiMbH)).
-exact: nilpotentS (quotientS _ sHM') beta_der1_quo_nil.
+exact: nilpotentS (quotientS _ sHM') Mbeta_quo_nil.
 Qed.
 
 (* This is B & G, Corollary 10.9(a). *)
@@ -928,7 +928,7 @@ have nMbX: X \subset 'N(M`_\beta) := subset_trans sXM (normal_norm nsMbM).
 have nsMbXM : M`_\beta <*> X <| M.
   rewrite -{2}(quotientGK nsMbM) -quotientYK ?cosetpre_normal //=.
   rewrite (eq_Hall_pcore _ (quotient_pHall nMbX sylX)); last first.
-    exact: nilpotent_pcore_Hall beta_der1_quo_nil.
+    exact: nilpotent_pcore_Hall Mbeta_quo_nil.
   by rewrite (char_normal_trans (pcore_char _ _)) ?quotient_normal ?der_normal.
 pose U := 'N_M(X); have defM: M`_\beta * U = M.
   have sXU : X \subset U by rewrite subsetI sXM normG.
@@ -966,7 +966,7 @@ have nMbSM: M`_\beta <*> S <| M.
   rewrite -{2}(quotientGK nsMbM) -quotientYK ?cosetpre_normal //=.
   have sylS_M' := pHall_subl sSM' sM'M sylS.
   rewrite (eq_Hall_pcore _ (quotient_pHall nMbS sylS_M')); last first.
-    exact: nilpotent_pcore_Hall beta_der1_quo_nil.
+    exact: nilpotent_pcore_Hall Mbeta_quo_nil.
   by rewrite (char_normal_trans (pcore_char _ _)) ?quotient_normal ?der_normal.
 have defM: M`_\beta * 'N_M(S) = M.
   have sSNM: S \subset 'N_M(S) by rewrite subsetI sSM normG.
