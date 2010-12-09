@@ -135,3 +135,33 @@ Proof.
 case E: (1 + 1) (2 + _) / specP=> [a b c defa defb defc].
 match goal with |- b * a.+4 = c + c => subst; done | _ => fail end.
 Qed.
+
+Variables (T : Type) (tr : T -> T).
+
+Inductive exec (cf0 cf1 : T) : seq T -> Prop :=
+| exec_step : tr cf0 = cf1 -> exec cf0 cf1 [::]
+| exec_star : forall cf2 t, tr cf0 = cf2 ->
+  exec cf2 cf1 t -> exec cf0 cf1 (cf2 :: t).
+
+Inductive execr (cf0 cf1 : T) : seq T -> Prop :=
+| execr_step : tr cf0 = cf1 -> execr cf0 cf1 [::]
+| execr_star : forall cf2 t, execr cf0 cf2 t ->
+  tr cf2 = cf1 -> execr cf0 cf1 (t ++ [:: cf2]).
+
+Lemma execP : forall cf0 cf1 t, exec cf0 cf1 t <-> execr cf0 cf1 t.
+Proof.
+move=> cf0 cf1 t; split => [] Ecf.
+  elim: Ecf.
+    match goal with |- forall cf2 cf3 : T, tr cf2 = cf3 -> 
+      execr cf2 cf3 [::] => admit | _ => fail end.
+  match goal with |- forall (cf2 cf3 cf4 : T) (t0 : seq T),
+   tr cf2 = cf4 -> exec cf4 cf3 t0 -> execr cf4 cf3 t0 -> 
+   execr cf2 cf3 (cf4 :: t0) => admit | _ => fail end.
+elim: Ecf.
+  match goal with |- forall cf2 : T, 
+    tr cf0 = cf2 -> exec cf0 cf2 [::] => admit | _ => fail end.
+match goal with |- forall (cf2 cf3 : T) (t0 : seq T),
+ execr cf0 cf3 t0 -> exec cf0 cf3 t0 -> tr cf3 = cf2 -> 
+ exec cf0 cf2 (t0 ++ [:: cf3]) => admit | _ => fail end.
+Qed.
+
