@@ -3404,6 +3404,7 @@ TACTIC EXTEND ssrmove
     END
 
 (* TASSI: given (c : ty), generates (c ??? : ty[???/...]) with n evars *)
+exception NotEnoughProducts
 let saturate ?(beta=false) gl c ty n =
   let env, sigma, si = pf_env gl, project gl, sig_it gl in
   let rec loop ty args sigma n = 
@@ -3429,13 +3430,16 @@ let saturate ?(beta=false) gl c ty n =
 (* TASSI: given the type of an elimination principle, it finds the higher order
  * argument (index), it computes it's arity and the arity of the eliminator and
  * checks if the eliminator is recursive or not *)
-let analyze_eliminator ity elimty =
+let analyze_eliminator elimty =
   let ctx, concl = decompose_prod_assum elimty in
   let rec loop t = match kind_of_type t with
   | CastType (t, _) -> loop t
-  | AtomicType (hd, args) when isRel hd -> destRel hd, Array.length args
-  | SortType _ | LetInType _ | ProdType _  | AtomicType _ -> assert false in
-  let pred_id, n_pred_args = loop concl in
+  | AtomicType (hd, args) when isRel hd -> 
+      let len = Array.length args in
+      let is_dep = len > 0 && eq_constr (mkRel 1) (Array.get args (len - 1)) in
+      destRel hd, is_dep, len
+  | _ -> assert false in
+  let pred_id, elim_is_dep, n_pred_args = loop concl in
   let n_elim_args = rel_context_length ctx in
   let is_rec_elim = 
      let count_occurn n term =
@@ -3450,18 +3454,7 @@ let analyze_eliminator ity elimty =
        (fun i (_,rd) -> pred_id <= i || not (occurr2 (pred_id - i) rd))
        1 (assums_of_rel_context ctx))
   in
-  let elim_is_dep, idx_no = 
-    let _,_,pred = lookup_rel pred_id ctx in
-    let rec loop is_dep idx_no t = match kind_of_type t with
-    | CastType (t, _) -> loop is_dep idx_no t
-    | ProdType (_, src, tgt) -> 
-        (match kind_of_type src with
-        | AtomicType (hd, _) when eq_constr hd ity -> loop true idx_no tgt
-        | _ -> loop is_dep (idx_no + 1) tgt)
-    | SortType _ -> is_dep, idx_no
-    | AtomicType _ | LetInType _ -> assert false 
-    in loop false 0 pred in
-  pred_id, n_pred_args, n_elim_args, is_rec_elim, elim_is_dep, idx_no
+  pred_id, n_elim_args, is_rec_elim, elim_is_dep, n_pred_args
   
 (* TASSI: This version of unprotects inlines the unfold tactic definition, 
  * since we don't want to wipe out let-ins, and it seems there is no flag
@@ -3567,41 +3560,59 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
     let sigma = project newgl in
     let sigma, t, cl, _ = pf_fill_occ gl cl occ t sigma t all_ok h in
     cl, unify_HO (re_sig si sigma) orig_t t in
-  (* finds the eliminator applies it to evars and c saturated as needed
-   * obtaining "elim ??? (c ???)". (pred : pred_ty) is the higher order evar *)
-  let elim, elimty, c_args_no, ity = 
-    let (kn, i) as ind, unfolded_c_ty = pf_reduce_to_quantified_ind gl c_ty in
-    let sort = elimination_sort_of_goal gl in
-    let elim = match elim with Some x -> x
-    | None when not is_case -> Indrec.lookup_eliminator ind sort
-    | None -> pf_apply Indrec.build_case_analysis_scheme gl ind true sort in 
-    let elimty = pf_type_of gl elim in
-    let rctx, ity = decompose_prod_assum unfolded_c_ty in
-    let ity = 
-      match kind_of_type ity with AtomicType (hd,_) -> hd | _ -> assert false in
-    elim, elimty, (rel_context_length rctx), ity in
-  let pred_id, n_pred_args, n_elim_args, is_rec, elim_is_dep, idxs_no = 
-    analyze_eliminator ity elimty in 
-  let elim, elimty, elim_args, gl = 
-    (* beta:true because the eliminator for match is artificially abstracted
-     * and the eliminated term is not the first abstraction (i.e. subgoals
-     * would be generated in the wrong order) *) 
-    saturate ~beta:true gl elim elimty n_elim_args in
-  let pred, arg = List.assoc pred_id elim_args, List.assoc 1 elim_args in
-  let c, c_ty, t_args, gl = saturate gl c c_ty c_args_no in
-  let gl = unify_HO gl arg c in
+  (* finds the eliminator applies it to evars and c saturated as needed  *)
+  (* obtaining "elim ??? (c ???)". pred is the higher order evar         *)
+  let c, elim, elimty, elim_args, elim_is_dep, is_rec, pred, gl =
+    match elim with
+    | Some elim ->
+      let elimty = pf_type_of gl elim in
+      let pred_id, n_elim_args, is_rec, elim_is_dep, n_pred_args =
+        analyze_eliminator elimty in
+      let elim, elimty, elim_args, gl =
+        saturate ~beta:is_case gl elim elimty n_elim_args in
+      let pred, arg = List.assoc pred_id elim_args, List.assoc 1 elim_args in
+      let c, c_ty, gl = let rec loop n =
+        try
+          let c, c_ty, _, gl = saturate gl c c_ty n in
+          let gl = unify_HO gl arg c in
+          c, c_ty, gl
+        with
+        | NotEnoughProducts ->
+          errorstrm (str "Unable to apply the eliminator to the term")
+        | _ -> loop (n+1) in
+        loop 0 in
+      let elim_is_dep = List.length deps < n_pred_args in
+      let fs = fire_subst gl in
+      fs c, fs elim, fs elimty, elim_args, elim_is_dep, is_rec, pred, gl
+    | None ->
+      let (kn, i) as ind, unfolded_c_ty = pf_reduce_to_quantified_ind gl c_ty in
+      let sort = elimination_sort_of_goal gl in
+      let elim = if not is_case then Indrec.lookup_eliminator ind sort
+        else pf_apply Indrec.build_case_analysis_scheme gl ind true sort in
+      let elimty = pf_type_of gl elim in
+      let pred_id,n_elim_args,is_rec,elim_is_dep,n_pred_args =
+        analyze_eliminator elimty in
+      let rctx = fst (decompose_prod_assum unfolded_c_ty) in
+      let n_c_args = rel_context_length rctx in
+      let c, c_ty, t_args, gl = saturate gl c c_ty n_c_args in
+      let elim, elimty, elim_args, gl =
+        saturate ~beta:is_case gl elim elimty n_elim_args in
+      let pred, arg = List.assoc pred_id elim_args, List.assoc 1 elim_args in
+      let gl = unify_HO gl arg c in
+      let elim_is_dep = elim_is_dep && List.length deps < n_pred_args in
+      let fs = fire_subst gl in
+      fs c, fs elim, fs elimty, elim_args, elim_is_dep, is_rec, pred, gl
+  in
   let predty = pf_type_of gl pred in
   (* Patterns for the inductive types indexes to be bound in pred are computed
    * looking at the ones provided by the user and the inferred ones looking at
    * the type of the elimination principle *)
-  let patterns, clr, gl = 
-    let inf_deps = let rec loop t = match kind_of_type t with
-    | AtomicType (hd, args) -> 
-       fst (list_chop idxs_no (List.rev (Array.to_list args)))
-    | CastType (t, _) -> loop t 
-    | LetInType (_, v, _, t) -> loop (subst1 v t)
-    | _ -> assert false in 
-    loop c_ty in
+  let patterns, clr, gl =
+    let inf_deps = match kind_of_type elimty with
+    | AtomicType (_, args) ->
+      let pats = List.rev (Array.to_list args) in
+      if elim_is_dep then List.tl pats else pats
+    | _ -> assert false in
     let deps = List.rev deps in
     let rec loop gl patterns clr i = function
       | [],[] -> patterns, clr, gl
