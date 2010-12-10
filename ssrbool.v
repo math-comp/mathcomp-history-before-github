@@ -253,7 +253,9 @@ Arguments Scope ifb [bool_scope bool_scope bool_scope].
 
 (* An alternative to xorb that behaves somewhat better wrt simplification. *)
 
+(* begin hide *)
 Definition addb b := if b then negb else fun b' => b'.
+(* end hide *)
 
 (* Bool operator notation; we need to redeclare && and || so they get the *)
 (* correct argument scopes.                                               *)
