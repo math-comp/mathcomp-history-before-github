@@ -71,6 +71,7 @@ theories/BGsection10.v
 theories/BGsection11.v
 theories/BGsection12.v
 theories/BGsection13.v
+theories/BGsection14.v
 theories/polydiv.v
 theories/orderedalg.v
 theories/polyorder.v

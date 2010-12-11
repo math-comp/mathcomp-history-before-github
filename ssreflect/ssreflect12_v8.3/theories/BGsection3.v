@@ -9,9 +9,6 @@ Require Import BGsection1 BGsection2.
 
 (******************************************************************************)
 (*   This file covers the material in B & G, Section 3.                       *)
-(*   Basic definitions relative to Frobenius groups are, temporarily, given   *)
-(* here. All of this should move to the frobenius file once the relevant      *)
-(* background material is available.                                          *)
 (*   Note that in spite of the use of Gorenstein 2.7.6, the material in all   *)
 (* of Section 3, and in all likelyhood the whole of B & G, does NOT depend on *)
 (* the general proof of existence of Frobenius kernels, because results on    *)
@@ -36,7 +33,7 @@ Implicit Type p : nat.
 (* This is B & G, Lemma 3.1. *)
 Lemma Frobenius_semiregularP : forall gT (G K R : {group gT}),
     K ><| R = G -> K :!=: 1 -> R :!=: 1 ->
-  reflect {in R^#, forall x, 'C_K[x] = 1} [Frobenius G = K ><| R].
+  reflect (semiregular K R) [Frobenius G = K ><| R].
 Proof.
 move=> gT G K R defG ntK ntR.
 apply: (iffP idP)=> [|regG]; first exact: Frobenius_reg_ker.
@@ -1381,7 +1378,7 @@ Qed.
 Theorem odd_sdprod_primact_commg_sub_Fitting : forall gT (G K R : {group gT}),
     K ><| R = G -> odd #|G| -> solvable G ->
   (*1*) coprime #|K| #|R| ->
-  (*2*) semiprime R K ->
+  (*2*) semiprime K R ->
   (*3*) 'C_('F(K))(R) = 1 ->
   [~: K, R] \subset 'F(K).
 Proof.
@@ -1431,7 +1428,7 @@ without loss r_pr: / prime #|R|; last set r := #|R| in r_pr.
   have defCX: 'C_K(X) = 'C_K(R).
     rewrite cent_cycle primR // !inE -order_gt1 orderE rX prime_gt1 //=.
     by rewrite -cycle_subG.
-  have primX: {in X^#, forall y, 'C_K[y] = 'C_K(X)}.
+  have primX: semiprime K X.
     by move=> y; case/setD1P=> nty Xy; rewrite primR // !inE nty (subsetP sXR).
   have nKX := subset_trans sXR nKR; have coKX := coprimegS sXR coKR.
   pose H := K <*> X; have defH: K ><| X = H by rewrite sdprodEY ?coprime_TIg.
@@ -1571,7 +1568,7 @@ Qed.
 (* Internal action version of B & G, Proposition 3.9 (possibly, the only one  *)
 (* we should keep). *)
 Proposition odd_regular_pgroup_cyclic : forall gT p (H R : {group gT}),
-    p.-group R -> odd #|R| -> H :!=: 1 -> R \subset 'N(H) -> semiregular R H ->
+    p.-group R -> odd #|R| -> H :!=: 1 -> R \subset 'N(H) -> semiregular H R ->
   cyclic R.
 Proof.
 move=> gT p H R pR oddR ntH nHR regR.
@@ -1582,7 +1579,7 @@ Qed.
 
 (* Another proof of Proposition 3.9, which avoids Frobenius groups entirely.  *)
 Proposition simple_odd_regular_pgroup_cyclic : forall gT p (H R : {group gT}),
-    p.-group R -> odd #|R| -> H :!=: 1 -> R \subset 'N(H) -> semiregular R H ->
+    p.-group R -> odd #|R| -> H :!=: 1 -> R \subset 'N(H) -> semiregular H R ->
   cyclic R.
 Proof.
 move=> gT p H R pR oddR ntH nHR regR.
@@ -1694,7 +1691,7 @@ Theorem Frobenius_primact : forall gT (G K R M : {group gT}),
     [Frobenius G = K ><| R] -> solvable G ->
     G \subset 'N(M) -> solvable M -> M :!=: 1 ->
   (*1*) coprime #|M| #|G| ->
-  (*2*) semiprime R M ->
+  (*2*) semiprime M R ->
   (*3*) 'C_M(K) = 1 ->
   [/\ prime #|R|,
       #|M| = (#|'C_M(R)| ^ #|R|)%N
