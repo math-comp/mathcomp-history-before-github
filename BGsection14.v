@@ -612,7 +612,7 @@ have eq_sb: \sigma(M) =i \beta(M).
 split=> //; apply/TIconjP=> x y _ _ /=.
 rewrite setTI (mmax_normal maxM (pcore_normal _ M) ntMs).
 rewrite -{2}(mulgKV y x) conjsgM -conjIg; move: {x}(x * _) => g.
-have [-> | notMg] := boolP (g \in M); [by left | right].
+have [Mg | notMg] := boolP (g \in M); [by left | right].
 have [_ _ b'MsMg] := sigma_compl_embedding maxM hallE.
 have{b'MsMg notMg} [_ b'MsMg _] := b'MsMg g notMg.
 rewrite setIC -pcoreJ -(setIidPr (pcore_sub _ _)) setIA.
