@@ -5,9 +5,6 @@ Require Import fingroup morphism perm automorphism quotient finalg action zmodp.
 Require Import commutator cyclic center pgroup matrix mxalgebra mxpoly.
 Require Import mxrepresentation vector.
 
-(****************************************************************************)
-(*  trying to do something about characters                                 *)
-(****************************************************************************)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -15,6 +12,82 @@ Import Prenex Implicits.
 
 Import GroupScope GRing.Theory.
 Local Open Scope ring_scope.
+
+(**
+ This should be moved to matrix.v
+**)
+
+
+Lemma cofactor_mxZ : forall (R : comRingType) (n : nat) (A : 'M[R]_n) a i j, 
+ cofactor (a *: A) i j = a^+n.-1 * cofactor A i j.
+Proof.
+move=> R n A a i j; rewrite !expand_cofactor.
+rewrite -mulr_sumr; apply: eq_bigr=> k Hk.
+rewrite [a^+_ * _]mulrC -mulrA; congr (_ * _).
+suff->: a ^+ n.-1 = \prod_(k0 | i != k0) a.
+  by rewrite -big_split; apply: eq_bigr=> i1 _; rewrite !mxE mulrC.
+rewrite prodr_const; congr (_ ^+ _).
+rewrite -{1}[n]card_ord -(cardsC1 i); apply: eq_card=> m.
+by rewrite !inE /in_mem /= eq_sym; case: (i == m).
+Qed.
+
+Lemma adj1 : forall (R : comRingType) (n : nat), \adj (1%:M) = 1%:M :> 'M[R]_n.
+Proof.
+by move=> R n; rewrite -{2}(det1 R n) -mul_adj_mx mulmx1.
+Qed.
+
+Lemma adj_mxZ : forall (R : comRingType) (n : nat) (A : 'M[R]_n) a, 
+ \adj (a *: A) = a^+n.-1 *: \adj A.
+Proof.
+by move=> R n A a; apply/matrixP=> i j; rewrite !mxE cofactor_mxZ.
+Qed.
+
+Lemma unitmxZ: forall (R : comUnitRingType) n (A : 'M[R]_n) a,
+  GRing.unit a -> (a *: A) \in unitmx = (A \in unitmx).
+Proof.
+move=> R n A a Ha.
+rewrite !unitmxE det_scalemx GRing.commr_unit_mul ?GRing.unitr_exp //.
+exact: mulrC.
+Qed.
+
+Lemma invmxZ : forall (R : fieldType) (n : nat) (A : 'M[R]_n) a, 
+ A \in unitmx -> invmx (a *: A) = a^-1 *: invmx A.
+Proof.
+move=> R [|n] A a HA; first by rewrite !(flatmx0 (_ *: _)); exact: flatmx0.
+case: (a =P 0)=> [->|].
+  by rewrite invr0 !scale0r /invmx det0 invr0 scale0r if_same.
+move/eqP=> Ha.
+have Ua: GRing.unit a by by rewrite GRing.unitfE.
+have Uan: GRing.unit (a^+n) by rewrite GRing.unitr_exp.
+have Uan1: GRing.unit (a^+n.+1) by rewrite GRing.unitr_exp.
+rewrite /invmx det_scalemx adj_mxZ unitmxZ // HA !scalerA invr_mul //.
+congr (_ *: _); rewrite -mulrA mulrC; congr (_ / _).
+by rewrite mulrC exprS invr_mul // mulrA GRing.divrr // mul1r.
+Qed.
+
+Lemma invmx1:  forall (R : fieldType) (n : nat), invmx 1%:M = 1%:M :> 'M[R]_n.
+Proof.
+by move=> R n; rewrite /invmx det1 invr1 scale1r adj1 if_same.
+Qed.
+
+Lemma invmx_scalar :
+ forall (R : fieldType) (n : nat) (a: R), invmx (a%:M) = a^-1%:M :> 'M[R]_n.
+Proof.
+by move=> R n a; rewrite -scalemx1 invmxZ ?unitmx1 // invmx1 scalemx1.
+Qed.
+
+Lemma scalar_exp:
+ forall (R : ringType) (m n : nat) (a: R), 
+ (a^+m)%:M = a%:M^+ m :> 'M_n.+1.
+Proof.
+move=> R m n a; elim: m=> [|m IH]; first by rewrite !expr0.
+by rewrite !exprS scalar_mxM IH.
+Qed.
+
+
+(****************************************************************************)
+(*  trying to do something about characters                                 *)
+(****************************************************************************)
 
 (* function of a fintype into a ring form a vectype *)
 Section Vectype.
@@ -185,6 +258,7 @@ Hypothesis repC_pconj : forall x, repC (x * x ^*).
 Hypothesis repC_conj : forall x, repC (x ^*) = repC (x).
 Hypothesis repCMl : forall x y, x != 0 -> repC x -> repC (x * y) = repC y.
 Hypothesis repC_anti : forall x, repC x -> repC (-x) -> x = 0.
+Hypothesis repC_unit_exp: forall x n, repC x -> ((x^+n == 1) = (x == 1)).
 
 Lemma repC0 : repC 0.
 Proof. by rewrite -[0](mul0r (0 ^*)) repC_pconj. Qed.
@@ -216,7 +290,39 @@ Proof.
 by move=> z x y; rewrite /leC oppr_add addrA [z + _]addrC addrK.
 Qed.
 
-Section Main.
+Definition normC x := x * x^*.
+
+Lemma repC_normC : forall x, repC (normC x).
+Proof. exact: repC_pconj. Qed.
+
+Lemma normC0 : normC 0 = 0.
+Proof.  exact: mul0r. Qed.
+
+Lemma normC1 : normC 1 = 1.
+Proof.  by rewrite /normC mul1r conjC1. Qed.
+
+Lemma normC_mul :  {morph normC: x y / x * y}.
+Proof.
+move=> x y; rewrite /normC rmorphM -!mulrA; congr (_ * _).
+by rewrite mulrC -!mulrA [y * _]mulrC.
+Qed.
+
+Lemma normC_exp : forall x n, normC (x^+n) = normC x ^+ n.
+Proof.
+move=> x; elim=> [|n IH]; first by rewrite !expr0 normC1.
+by rewrite exprS normC_mul IH exprS.
+Qed.
+
+Lemma repC_norm_inv : forall x, x^-1 = (normC x)^-1 * x^*.
+Proof.
+move=> x; case: (x =P 0)=> [->|].
+  by rewrite conjC0 mulr0 invr0.
+move/eqP=> Hx.
+rewrite /normC invr_mul ?(GRing.unitfE,conjC_eq0) //.
+by rewrite mulrC mulrA GRing.mulrV ?(GRing.unitfE,conjC_eq0) // div1r.
+Qed.
+
+Section Main. 
 
 (* Our group *)
 Variable (gT : finGroupType).
@@ -591,6 +697,34 @@ suff->: @gring_row C _ G 0 = 0 by rewrite mxE.
 by apply/rowP=> k; rewrite !mxE.
 Qed.
 
+Lemma chi_inv_abelian : forall (i: sG) g, abelian G -> g \in G ->
+ \chi_i g^-1%g = (\chi_i g)^*.
+Proof.
+move=> i g AG Hg.
+pose u := let m := Ordinal (irr_degree_gt0 i) in irr_repr i g m m.
+have irr_scal: irr_repr i g = u %:M.
+  apply/matrixP=> [] [[|i1] Hi1]; last first.
+    by move: (Hi1); rewrite irr_degree_abelian in Hi1.
+  case=> [] [|j1] Hj1; last first.
+    by move: (Hj1); rewrite irr_degree_abelian in Hj1.
+  rewrite /u !mxE; apply: eq_bigr=> i2 _l; rewrite !mxE.
+  congr (_ * _); apply: eq_bigr=> i3 _; rewrite !mxE //.
+  by congr (_ * _); apply: eq_bigr=> i4 _; rewrite !mxE.
+have->: \chi_i g^-1%g = (\chi_i g)^-1.
+  rewrite !ffunE groupV Hg {1}mul1r {1}mul1r repr_mxV //.
+  by rewrite irr_scal -scalemx1 (invmxZ _ (unitmx1 _ _)) invmx1 
+             !mxtraceZ mxtrace1 irr_degree_abelian // !mulr1.
+rewrite repC_norm_inv.
+suff->: normC (\chi_ i g) = 1 by rewrite invr1 mul1r.
+apply/eqP; rewrite -(repC_unit_exp #[g])?repC_normC //.
+rewrite -normC_exp -normC1; apply/eqP; congr (normC).
+have<-: \chi_i 1%g = 1 by rewrite chi1 irr_degree_abelian.
+rewrite -(expg_order g) !ffunE irr_scal Hg mul1r -scalemx1 mxtraceZ.
+suff->: irr_repr i (g ^+ #[g]) = u^+#[g] *: 1%:M.
+  by rewrite mxtraceZ mxtrace1 irr_degree_abelian // groupX // !mulr1 mul1r.
+elim: #[_]=> [|n IH]; first by rewrite expg0 expr0 scale1r repr_mx1.
+by rewrite expgS repr_mxM ?groupX // IH irr_scal !scalemx1 -scalar_mxM -exprS.
+Qed.
 
 End Main.
 
