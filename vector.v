@@ -315,6 +315,12 @@ move=> v1 v2 vs; rewrite /in_mem /= /subsetv /injv !mx2vsK => H1 H2.
 by rewrite linearD addmx_sub.
 Qed.
 
+Lemma memvMn : forall vs v m, v \in vs -> v *+ m \in vs.
+Proof.
+move=> vs v m Hv; elim:m => [|m IH]; first by rewrite mulr0n mem0v.
+by rewrite mulrS memvD.
+Qed.
+
 Lemma memvZl : forall  vs k v, v \in vs -> k *: v \in vs.
 Proof.
 move=> vs k v; rewrite /in_mem /= /subsetv /injv /= !mx2vsK => Hvvs.
