@@ -648,9 +648,9 @@ move=> x; elim=> [|n IH Hx]; first by rewrite mulr0n (isNatC_nat 0).
 by rewrite mulrSr isNatC_add // IH.
 Qed.
 
-Lemma isNatC_rep : forall c, isNatC c -> repC c.
+Lemma posC_isNatC : forall c, isNatC c -> 0 <= c.
 Proof.
-by move=> c; case/isNatCP=> n ->; exact: repC_nat.
+by move=> c; case/isNatCP=> n ->; exact: leC_nat.
 Qed.
 
 Lemma isNatC_conj : forall c, isNatC c -> c^* = c.
@@ -1124,7 +1124,7 @@ have->: \chi_i g^-1%g = (\chi_i g)^-1.
              !mxtraceZ mxtrace1 irr_degree_abelian // !mulr1.
 rewrite normC_inv.
 suff->: normC (\chi_ i g) = 1 by rewrite invr1 mul1r.
-apply/eqP; rewrite -(repC_unit_exp #[g]) ?repC_norm //.
+apply/eqP; rewrite -(posC_unit_exp #[g]) ?posC_norm //.
 rewrite -normC_exp -normC1; apply/eqP; congr (normC).
 have<-: \chi_i 1%g = 1 by rewrite chi1 irr_degree_abelian.
 rewrite -(expg_order g) !ffunE irr_scal Hin mul1r -scalemx1 mxtraceZ.
@@ -1169,40 +1169,101 @@ Qed.
 Implicit Types f g : {ffun gT -> C^o}.
 
 Definition inner_prod f g := 
-  \sum_(i < #|G|) f (enum_val i) * (g (enum_val i))^*.
+  #|G|%:R^-1 * \sum_(i < #|G|) f (enum_val i) * (g (enum_val i))^*.
 
 Local Notation "'[ f , g ]" := (inner_prod f g).
 
+Let card_neq0 : #|G|%:R^-1 != 0 :> C.
+Proof.
+rewrite invr_eq0; move/GRing.charf0P: Cchar->.
+by move: (cardG_gt0 G); case: #|_|.
+Qed.
+
+Let card_conj : (#|G|%:R^-1)^* = #|G|%:R^-1.
+Proof.
+by rewrite posC_conjK // posC_inv leC_nat.
+Qed.
+
 Lemma inner_conj : forall f g, '[f,g] = '[g,f]^*.
 Proof.
-move=> f g.
-rewrite rmorph_sum; apply: eq_bigr=> i _.
+move=> f g; rewrite /inner_prod rmorphM card_conj.
+congr (_ * _); rewrite rmorph_sum; apply: eq_bigr=> i _.
 by rewrite rmorphM conjCK mulrC.
 Qed.
 
-Lemma inner_repC: forall f, 0 <= '[f, f].
-Proof. by move=> f; rewrite posC_sumE. Qed.
-
-Hypothesis repC_add_eq0: forall x y,
-  repC x -> repC y -> (x + y == 0) = ((x == 0) && (y == 0)).
-
-Lemma inner0: forall f, ('[f, f] == 0) = (f == 0).
+Lemma posC_mulE : forall x y : C, 0 <= x -> 0 <= y -> 0 <= x * y.
 Proof.
-move=> f; apply/eqP/eqP=> Hp; last first.
-  by rewrite Hp; apply: big1=> i _; rewrite !ffunE mul0r.
-apply/ffunP=> g; rewrite ffunE.
-apply/eqP; rewrite -normC_eq0; apply/eqP.
-rewrite -[g](@gring_indexK _ G).
-apply: (isNatC_sum_eq0 _ Hp).
-move=>*; exact: isNatC_norm.
-Check (enum_rank g : ordinal_finType #|G|).
- (enum_rank g)).
-
-
-
+move=> x y Hx Hy.
+case: (boolP (x == 0)); first by move/eqP->; rewrite mul0r leC_refl.
+by move=> Hdx; rewrite posC_mul //; apply/andP; rewrite eq_sym.
+Qed.
  
+Lemma posC_inner_prod : forall f, 0 <= '[f, f].
+Proof. 
+move=> f; apply: posC_mulE; first by rewrite posC_inv leC_nat.
+rewrite posC_sum // => i _; exact: posC_norm.
+Qed.
 
+Lemma inner_prod0: forall f, f \in 'CL[C](G) -> ('[f, f] == 0) = (f == 0).
+Proof.
+move=> f Hf; apply/eqP/eqP=> Hp; last first.
+  by rewrite Hp /inner_prod big1 ?mulr0 // => i _; rewrite !ffunE mul0r.
+apply/ffunP=> g; rewrite ffunE.
+case: (boolP (g \in G))=> Hin; last by rewrite (class_fun0 _ Hin).
+apply/eqP; rewrite -normC_eq0; apply/eqP.
+rewrite -[g](@gring_indexK _ G) //.
+move: Hp; move/eqP; rewrite /inner_prod mulf_eq0; case/orP=> [|Hp].
+  by rewrite (negPf card_neq0).
+apply: (posC_sum_eq0 _ (eqP Hp))=> //; first by move=>*; exact: posC_norm.
+rewrite /index_enum -enumT.
+apply/(nthP (gring_index G g)); exists (gring_index G g).
+  by rewrite -cardT card_ord.
+by apply/val_eqP=> //=; rewrite nth_enum_ord.
+Qed.
 
+Definition inner_prodb f := inner_prod^~ f.
+
+Lemma inner_prodbE: forall f g, inner_prodb f g = inner_prod g f.
+Proof. by []. Qed.
+
+Lemma inner_prodb_is_linear : forall f, linear (inner_prodb f).
+Proof.
+move=> f k g1 g2.
+rewrite /inner_prodb /inner_prod.
+rewrite {1}scaler_mulr -{1}scaler_addr; congr (_ * _).
+rewrite {1}scaler_sumr -{1}big_split /=; apply: eq_bigr=> i _.
+by rewrite scaler_mull -mulr_addl !ffunE.
+Qed.
+
+Canonical Structure inner_prodb_linear f := Linear (inner_prodb_is_linear f).
+
+Lemma inner_prod_is_additive : forall f, additive (inner_prod f).
+Proof.
+move=> f g1 g2.
+rewrite /inner_prod /inner_prod.
+rewrite -mulr_subr; congr (_ * _).
+rewrite -sumr_sub; apply: eq_bigr=> i _.
+by rewrite !ffunE rmorph_sub // mulr_subr.
+Qed.
+
+Canonical Structure inner_prod_additive f := 
+  Additive (inner_prod_is_additive f).
+
+Lemma inner_prodZ : forall k f g, '[f, k *: g] = k^* *: '[f,g].
+Proof.
+move=> k f g; rewrite /inner_prod scaler_mulr; congr (_ * _).
+rewrite scaler_sumr; apply: eq_bigr=> i _.
+by rewrite scaler_mulr {2}/GRing.scale /= !ffunE rmorphM.
+Qed.
+
+Lemma chi_orthonormal : forall i j: sG, '[\chi_i,\chi_j] = (i == j)%:R.
+Proof.
+move=> i j.
+rewrite -chi_orthogonal_relation; congr (_ * _).
+by apply: eq_bigr=> k _; rewrite character_of_inv.
+Qed.
+
+End More.
 
 End Main.
 
