@@ -3,3 +3,4 @@ SSRCOQ = ../bin/ssrcoq
 -R ../theories Ssreflect
 absevarprop.v
 elim.v
+congr.v
