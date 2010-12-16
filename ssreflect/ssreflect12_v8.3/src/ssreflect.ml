@@ -379,6 +379,8 @@ let mkRCast rc rt =  RCast (dummy_loc, rc, dC rt)
 
 let mkRType =  RSort (dummy_loc, RType None)
 
+let mkRProp =  RSort (dummy_loc, RProp Null)
+
 let mkRArrow rt1 rt2 = RProd (dummy_loc, Anonymous, Explicit, rt1, rt2)
 
 let mkRConstruct c = RRef (dummy_loc, ConstructRef c)
@@ -3403,6 +3405,13 @@ TACTIC EXTEND ssrmove
 | [ "move" ] -> [ movehnftac ]
     END
 
+(* TASSI: sound HO unification *)
+let unify_HO gl t1 t2 =
+  let env, orig_sigma, si = pf_env gl, project gl, sig_it gl in
+  let sigma = unif_HO env orig_sigma t1 t2 in
+  let sigma, _ = unif_end env orig_sigma sigma t2 (fun _ -> true) in
+  re_sig si sigma
+
 (* TASSI: given (c : ty), generates (c ??? : ty[???/...]) with n evars *)
 exception NotEnoughProducts
 let saturate ?(beta=false) gl c ty n =
@@ -3546,11 +3555,6 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
   let fire_subst gl t = snd (nf_open_term (project gl) (project gl) t) in
   let is_undef_pat gl t = 
     match kind_of_term (fire_subst gl t) with Evar _ -> true | _ -> false in
-  let unify_HO gl t1 t2 =
-    let env, orig_sigma, si = pf_env gl, project gl, sig_it gl in
-    let sigma = unif_HO env orig_sigma t1 t2 in
-    let sigma, _ = unif_end env orig_sigma sigma t2 (fun _ -> true) in
-    re_sig si sigma in
   let match_pat gl cl (occ, t) h =                
     (* t and cl live in gl, each occ of t in cl is replaced by Rel h *)
     let env, sigma, si = pf_env gl, project gl, sig_it gl in
@@ -3966,54 +3970,92 @@ END
 
 type ssrcongrarg = open_constr * (int * constr)
 
-let pr_ssrcongrarg _ _ _ (_, (n, f)) =
-  (if n <= 0 then mt () else str " " ++ pr_int n) ++  str " " ++ pr_term f
+let pr_ssrcongrarg _ _ _ (_, ((n, f), dgens)) =
+  (if n <= 0 then mt () else str " " ++ pr_int n) ++
+  str " " ++ pr_term f ++ pr_dgens dgens
 
-ARGUMENT EXTEND ssrcongrarg TYPED AS ssrltacctx * (int * ssrterm)
+ARGUMENT EXTEND ssrcongrarg TYPED AS ssrltacctx * ((int * ssrterm) * ssrdgens)
   PRINTED BY pr_ssrcongrarg
-| [ natural(n) constr(c) ] -> [ rawltacctx, (n, mk_term ' ' c) ]
-| [ constr(c) ] -> [ rawltacctx, (0, mk_term ' ' c) ]
+| [ natural(n) constr(c) ssrdgens(dgens) ] ->
+  [ rawltacctx, ((n, mk_term ' ' c), dgens) ]
+| [ natural(n) constr(c) ] ->
+  [ rawltacctx, ((n, mk_term ' ' c),([[]],[])) ]
+| [ constr(c) ssrdgens(dgens) ] -> [ rawltacctx, ((0, mk_term ' ' c), dgens) ]
+| [ constr(c) ] -> [ rawltacctx, ((0, mk_term ' ' c), ([[]],[])) ]
 END
 
 let rec mkRnat n =
   if n <= 0 then RRef (dummy_loc, glob_O) else
   mkRApp (RRef (dummy_loc, glob_S)) [mkRnat (n - 1)]
 
-let interp_congrarg_at ist gl n rf m =
+let interp_congrarg_at ist gl n rf ty m =
+  pp(lazy(str"===interp_congrarg_at==="));
   let congrn = mkSsrRRef "nary_congruence" in
-  let args1 = mkRnat n :: mkRHoles (n + 1) in
+  let args1 = mkRnat n :: mkRHoles n @ [ty] in
   let args2 = mkRHoles (3 * n) in
   let rec loop i =
     if i + n > m then None else
     try
       let rt = mkRApp congrn (args1 @  mkRApp rf (mkRHoles i) :: args2) in
+      pp(lazy(str"rt=" ++ pr_rawconstr rt));
       Some (interp_refine ist gl rt)
     with _ -> loop (i + 1) in
   loop 0
 
 let pattern_id = mk_internal_id "pattern value"
 
-let congrtac (ctx, (n, t)) gl =
-  let ist = get_ltacctx ctx in
+let congrtac ((n, t), ty) ist gl =
+  pp(lazy(str"===congr==="));
+  pp(lazy(str"concl=" ++ pr_constr (pf_concl gl)));
   let _, f = pf_abs_evars gl (interp_term ist gl t) in
   let ist' = {ist with lfun = [pattern_id, VConstr ([],f)]} in
   let rf = mkRltacVar pattern_id in
   let m = pf_nbargs gl f in
   let cf = if n > 0 then
-    match interp_congrarg_at ist' gl n rf m with
+    match interp_congrarg_at ist' gl n rf ty m with
     | Some cf -> cf
     | None -> errorstrm (str "No " ++ pr_int n ++ str "-congruence with "
                          ++ pr_term t)
     else let rec loop i =
       if i > m then errorstrm (str "No congruence with " ++ pr_term t)
-      else match interp_congrarg_at ist' gl i rf m with
+      else match interp_congrarg_at ist' gl i rf ty m with
       | Some cf -> cf
       | None -> loop (i + 1) in
       loop 1 in
   tclTHEN (refine_with cf) (tclTRY reflexivity) gl
 
+let newssrcongrtac arg ist gl =
+  pp(lazy(str"===newcongr==="));
+  pp(lazy(str"concl=" ++ pr_constr (pf_concl gl)));
+  let fs gl t = snd (nf_open_term (project gl) (project gl) t) in
+  let eq = build_coq_eq () in
+  let eq, _, eq_args, gl' = saturate gl eq (pf_type_of gl eq) 3 in
+  match (try Some (unify_HO gl' (pf_concl gl) eq) with _ -> None) with
+  | Some gl' ->
+    let ty = fs gl' (List.assoc 3 eq_args) in
+    assert(Intset.is_empty (Evarutil.evars_of_term ty));
+    congrtac (arg, Detyping.detype false [] [] ty) ist gl
+  | None ->
+    let env, sigma, si = pf_env gl, project gl, sig_it gl in
+    let sigma, lhs = Evarutil.new_evar (create_evar_defs sigma) env mkProp in
+    let sigma, rhs = Evarutil.new_evar (create_evar_defs sigma) env mkProp in
+    let gl = re_sig si sigma in
+    let arrow = mkArrow lhs (lift 1 rhs) in
+    match (try Some (unify_HO gl (pf_concl gl) arrow) with _ -> None) with
+    | Some gl ->
+      tclTHENS (cut (mkApp (eq, [|mkProp;fs gl lhs;fs gl rhs|]))) [
+        tclTHEN (ipattac (IpatRw L2R)) (tclBY apply_top_tac);
+        congrtac (arg, mkRProp) ist ] gl
+    | None -> errorstrm (str "Conclusion is not an equality nor an arrow")
+;;
+
 TACTIC EXTEND ssrcongr
-| [ "congr" ssrcongrarg(arg) ] -> [ congrtac arg ]
+| [ "congr" ssrcongrarg(arg) ] ->
+[ let ctx, (arg, dgens) = arg in
+  let ist = get_ltacctx ctx in
+  match dgens with
+  | [gens], clr -> tclTHEN (genstac (gens,clr) ist) (newssrcongrtac arg ist)
+  | _ -> errorstrm (str"Dependent family abstractions not allowed in congr")]
 END
 
 (** 7. Rewriting tactics (rewrite, unlock) *)
