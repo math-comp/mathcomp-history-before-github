@@ -274,7 +274,7 @@ Variable repC : C -> bool. (* C -> R^+ *)
 Hypothesis repCD : forall x y, repC x -> repC y -> repC (x + y).
 Hypothesis repCMl : forall x y, x != 0 -> repC x -> repC (x * y) = repC y.
 Hypothesis repC_anti : forall x, repC x -> repC (-x) -> x = 0.
-Hypothesis repC_unit_exp: forall x n, repC x -> ((x^+n == 1) = (x == 1)).
+Hypothesis repC_unit_exp: forall x n, repC x -> ((x^+n.+1 == 1) = (x == 1)).
 Hypothesis repC_pconj : forall x, repC (x * x ^*).
 Hypothesis repC_conjI : forall x, repC x -> x^* = x.
 Hypothesis repC1 : repC 1.
@@ -366,7 +366,7 @@ move=> x y Hx Hy; apply/eqP; rewrite -subr_eq0; apply/eqP.
 by apply: repC_anti; rewrite // oppr_sub.
 Qed.
 
-Lemma posC_unit_exp: forall x n, 0 <= x ->  (x ^+ n == 1) = (x == 1).
+Lemma posC_unit_exp: forall x n, 0 <= x ->  (x ^+ n.+1 == 1) = (x == 1).
 Proof. by move=> x n Hx; apply: repC_unit_exp; rewrite -[x]subr0. Qed.
 
 Lemma posC_conjK: forall x, 0 <= x -> x^* = x.
@@ -1174,7 +1174,7 @@ have->: \chi_i g^-1%g = (\chi_i g)^-1.
              !mxtraceZ mxtrace1 irr_degree_abelian // !mulr1.
 rewrite normC_inv.
 suff->: normC (\chi_ i g) = 1 by rewrite invr1 mul1r.
-apply/eqP; rewrite -(posC_unit_exp #[g]) ?posC_norm //.
+apply/eqP; rewrite -(posC_unit_exp #[g].-1) ?(posC_norm, prednK (order_gt0 _)) //.
 rewrite -normC_exp -normC1; apply/eqP; congr (normC).
 have<-: \chi_i 1%g = 1 by rewrite chi1 irr_degree_abelian.
 rewrite -(expg_order g) !ffunE irr_scal Hin mul1r -scalemx1 mxtraceZ.
