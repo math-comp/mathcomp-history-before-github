@@ -48,7 +48,7 @@ Lemma abszr : forall x, absz `|x| = absz x. Proof. by case. Qed.
 
 Lemma fracq_subproof : forall x : zint * zint,
   let n := if x.2 == 0 then 0 else
-    sgr x.2 * sgr x.1 *z ((absz x.1) %/ gcdn (absz x.1) (absz x.2))%:Z in
+    sgr x.2 * sgr x.1 *~ ((absz x.1) %/ gcdn (absz x.1) (absz x.2))%:Z in
     let d := if x.2 == 0 then 1 else 
       (absz x.2 %/ gcdn (absz (x.1)) (absz x.2))%:Z in
         (0 < d) && (coprime (absz n) (absz d)).
@@ -77,7 +77,7 @@ Lemma fracqK : forall x : qnum, fracq (valq x) = x.
 Proof. 
 move=> [[n d] /= Pnd]; apply: val_inj=> /=.
 move: Pnd; rewrite /coprime /fracq /=; case/andP=> hd; move/eqP=> hnd.
-rewrite ltrNW // hnd !divn1 -!absrz mulzrA -[sgr n *z _]absr_sgP.
+rewrite ltrNW // hnd !divn1 -!absrz mulzrA -[sgr n *~ _]absr_sgP.
 by rewrite ger0_abs ?ltrW //; case: sgrP hd.
 Qed.
 

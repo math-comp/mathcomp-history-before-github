@@ -17,10 +17,10 @@ Definition zintmul (R : zmodType) (x : R) (n : zint) := nosimpl
     | Negz n => (x *- (n.+1))%R
   end.
 
-Notation "*z%R" := (@zintmul _) (at level 0) : ring_scope.
-Notation "n *z x" := (zintmul x n) 
-  (at level 41, right associativity, format "n  *z  x") : ring_scope.
-Notation "n %:zR" := (n *z 1)%R
+Notation "*~%R" := (@zintmul _) (at level 0) : ring_scope.
+Notation "n *~ x" := (zintmul x n) 
+  (at level 41, right associativity, format "n  *~  x") : ring_scope.
+Notation "n %:zR" := (n *~ 1)%R
   (at level 2, left associativity, format "n %:zR")  : ring_scope.
 Notation "n %:Z" := (n : zint)
   (at level 2, left associativity, format "n %:Z")  : zint_scope.
@@ -238,10 +238,10 @@ Definition zint_ind := zint_rect.
 
 Definition oppz_add := (@oppr_add [zmodType of zint]).
 
-Lemma natmulP : forall (R : zmodType) (x : R) (n : nat), x *+ n = n *z x.
+Lemma natmulP : forall (R : zmodType) (x : R) (n : nat), x *+ n = n *~ x.
 Proof. by move=> R x []. Qed.
 
-Lemma natmulN : forall (R : zmodType) (x : R) (n : nat), x *- n = - n%:Z *z x.
+Lemma natmulN : forall (R : zmodType) (x : R) (n : nat), x *- n = - n%:Z *~ x.
 Proof. by move=> R x []; rewrite ?oppr0. Qed.
 
 Lemma predn_zint : forall n : nat, n > 0 -> n.-1%:Z = n%:Z - 1%N%:Z.
@@ -407,7 +407,7 @@ Variable M : zmodType.
 Implicit Types m n : zint.
 Implicit Types x y z : M.
 
-Lemma mulzrA_rev : forall m n x,  m *z (n *z x) = (m * n) *z x.
+Lemma mulzrA_rev : forall m n x,  m *~ (n *~ x) = (m * n) *~ x.
 Proof.
 elim=> [|m _|m _]; elim=> [|n _|n _] x; rewrite /zintmul //=;
 rewrite ?(muln0, mulr0n, mul0rn, oppr0, mulNrn, opprK) //; 
@@ -416,14 +416,14 @@ rewrite ?(muln0, mulr0n, mul0rn, oppr0, mulNrn, opprK) //;
 * by rewrite -mulrnA.
 Qed.
 
-Lemma mul1zr : forall x : M, 1 *z x = x. Proof. done. Qed.
+Lemma mul1zr : forall x : M, 1 *~ x = x. Proof. done. Qed.
 
-Lemma mulzr_addr : forall m, {morph ( *z%R^~ m : M -> M) : x y / x + y}.
+Lemma mulzr_addr : forall m, {morph ( *~%R^~ m : M -> M) : x y / x + y}.
 Proof.
 by elim=> [|m _|m _] x y; rewrite ?addr0 /zintmul //= ?mulrn_addl // oppr_add.
 Qed.
 
-Lemma mulzr_subl_nat : forall (m n : nat) x, (m%:Z - n%:Z) *z x = m *z x - n *z x.
+Lemma mulzr_subl_nat : forall (m n : nat) x, (m%:Z - n%:Z) *~ x = m *~ x - n *~ x.
 Proof.
 move=> m n x; case: (leqP m n)=> hmn; rewrite /zintmul //=.
   rewrite addrC -{1}[m:zint]opprK -oppr_add subzn //.
@@ -434,7 +434,7 @@ rewrite  -{2}[m](@subnKC n)// mulrn_addr addrAC subrr add0r.
 by rewrite subzn.
 Qed.
 
-Lemma mulzr_addl : forall x, {morph *z%R x : m n / m + n}.
+Lemma mulzr_addl : forall x, {morph *~%R x : m n / m + n}.
 Proof.
 move=> x; elim=> [|m _|m _]; elim=> [|n _|n _]; rewrite /zintmul //=;
 rewrite -?(oppr_add) ?(add0r, addr0, mulrn_addr, subn0) //.
@@ -444,42 +444,42 @@ rewrite -?(oppr_add) ?(add0r, addr0, mulrn_addr, subn0) //.
 Qed.
 
 Definition Mzint_LmodMixin := 
-  @LmodMixin _ [zmodType of M] (fun (n : zint) (x : M) => n *z x) mulzrA_rev mul1zr mulzr_addr mulzr_addl.
+  @LmodMixin _ [zmodType of M] (fun (n : zint) (x : M) => n *~ x) mulzrA_rev mul1zr mulzr_addr mulzr_addl.
 Canonical Structure Mzint_LmodType := LmodType zint M Mzint_LmodMixin.
 
 
-Lemma mulzrA : forall x m n, (m * n) *z x = m *z n *z x.
+Lemma mulzrA : forall x m n, (m * n) *~ x = m *~ n *~ x.
 Proof. by move=> *; rewrite -mulzrA_rev. Qed.
 
-Lemma mul0zr : forall x, 0 *z x = 0. Proof. done. Qed.
+Lemma mul0zr : forall x, 0 *~ x = 0. Proof. done. Qed.
 
-Lemma mulz0r : forall n, n *z 0 = 0 :> M.
+Lemma mulz0r : forall n, n *~ 0 = 0 :> M.
 Proof. exact: scaler0. Qed.
 
-Lemma mulNzr : forall n x, (- n) *z x = - (n *z x).
+Lemma mulNzr : forall n x, (- n) *~ x = - (n *~ x).
 Proof. exact: scaleNr. Qed.
 
-Lemma mulN1zr : forall x, (- 1) *z x = - x.
+Lemma mulN1zr : forall x, (- 1) *~ x = - x.
 Proof. exact: scaleN1r. Qed.
 
-Lemma mulzNr: forall n x, n *z (- x) = - (n *z x).
+Lemma mulzNr: forall n x, n *~ (- x) = - (n *~ x).
 Proof. exact: scalerN. Qed.
 
-Lemma mulzr_subl: forall m n x, (m - n) *z x = m *z x - n *z x.
+Lemma mulzr_subl: forall m n x, (m - n) *~ x = m *~ x - n *~ x.
 Proof. exact: scaler_subl. Qed.
 
-Lemma mulzr_subr : forall n x y, n *z (x - y) = n *z x - n *z y.
+Lemma mulzr_subr : forall n x y, n *~ (x - y) = n *~ x - n *~ y.
 Proof. exact: scaler_subr. Qed.
 
-Lemma mulzr_nat : forall (n : nat) x, n%:zR *z x = n *z x.
+Lemma mulzr_nat : forall (n : nat) x, n%:zR *~ x = n *~ x.
 Proof. exact: scaler_nat. Qed.
 
 Lemma mulzr_suml : forall x I r (P : pred I) F,
-  (\sum_(i <- r | P i) F i) *z x = \sum_(i <- r | P i) F i *z x.
+  (\sum_(i <- r | P i) F i) *~ x = \sum_(i <- r | P i) F i *~ x.
 Proof. exact: scaler_suml. Qed.
 
 Lemma mulzr_sumr : forall n I r (P : pred I) (F : I -> M),
-   n *z (\sum_(i <- r | P i) F i) = \sum_(i <- r | P i) n *z F i.
+   n *~ (\sum_(i <- r | P i) F i) = \sum_(i <- r | P i) n *~ F i.
 Proof. exact: scaler_sumr. Qed.
 
 End MzintLmod.
@@ -514,26 +514,26 @@ Variable R : ringType.
 Implicit Types m n : zint.
 Implicit Types x y z : R.
 
-Lemma mulzrAl : forall n x y, (n *z x) * y = n *z (x * y).
+Lemma mulzrAl : forall n x y, (n *~ x) * y = n *~ (x * y).
 Proof. 
 by elim=> //= *; rewrite ?mul0r ?mulr0z // /zintmul /= -mulrnAl -?mulNr.
 Qed.
 
-Lemma mulzrAr : forall n x y, x * (n *z y) = n *z (x * y).
+Lemma mulzrAr : forall n x y, x * (n *~ y) = n *~ (x * y).
 Proof. 
 by elim=> //= *; rewrite ?mul0r ?mulr0z // /zintmul /= -mulrnAr -?mulrN.
 Qed.
 
-Lemma mulzrl : forall x n, n%:zR * x = n *z x.
+Lemma mulzrl : forall x n, n%:zR * x = n *~ x.
 Proof. by move=> x n; rewrite mulzrAl mul1r. Qed.
 
-Lemma mulzrr : forall x n, x * n%:zR = n *z x.
+Lemma mulzrr : forall x n, x * n%:zR = n *~ x.
 Proof. by move=> x n; rewrite mulzrAr mulr1. Qed.
 
-Lemma mulNzNr : forall n x, (-n) *z (-x) = n *z x.
+Lemma mulNzNr : forall n x, (-n) *~ (-x) = n *~ x.
 Proof. by move=> n x; rewrite mulzNr mulNzr opprK. Qed.
 
-Lemma mulrbz : forall x (b : bool), b *z x = (if b then x else 0).
+Lemma mulrbz : forall x (b : bool), b *~ x = (if b then x else 0).
 Proof. by move=> x []. Qed.
 
 Lemma zintr_add : forall m n, (m + n)%:zR = m%:zR + n%:zR :> R.
@@ -544,7 +544,7 @@ Proof. by move=> m n; rewrite mulzrA -mulzrl. Qed.
 
 End RzintMod.   
 
-Lemma mulzzr : forall m n : zint, m *z n = m * n.
+Lemma mulzzr : forall m n : zint, m *~ n = m * n.
 Proof. by move=> m n; rewrite -mulzrl mulz1r. Qed.
 
 Section LMod.
@@ -556,17 +556,17 @@ Implicit Types m n : zint.
 Implicit Types x y z : R.
 Implicit Types u v w : V.
 
-Lemma scalezr : forall n v, n%:zR *: v = n *z v.
+Lemma scalezr : forall n v, n%:zR *: v = n *~ v.
 Proof.
 move=> n v; elim: n=> [|n ihn|n ihn]; first by rewrite scale0r.
   by rewrite zintS !mulzr_addl scaler_addl ihn scale1r.
 by rewrite zintS oppr_add !mulzr_addl scaler_addl ihn scaleN1r.
 Qed.
 
-Lemma scaler_mulzrl : forall a v n, n *z (a *: v) = (n *z a) *: v.
+Lemma scaler_mulzrl : forall a v n, n *~ (a *: v) = (n *~ a) *: v.
 Proof. by move=> a v n; rewrite -mulzrl -scalezr scalerA. Qed.
 
-Lemma scaler_mulzrr : forall a v n, n *z (a *: v) = a *: (n *z v).
+Lemma scaler_mulzrr : forall a v n, n *~ (a *: v) = a *: (n *~ v).
 Proof. by move=> a v n; rewrite -!scalezr !scalerA mulzrr mulzrl. Qed.
 
 End LMod.
@@ -575,7 +575,7 @@ Section MorphTheory.
 Section Additive.
 Variables (U V : zmodType) (f : {additive U -> V}).
 
-Lemma raddfMz : forall n, {morph f : x / n *z x}.
+Lemma raddfMz : forall n, {morph f : x / n *~ x}.
 Proof. 
 case=> n x /=; first exact: raddfMn.
 by rewrite NegzE !mulNzr; apply: raddfMNn.
@@ -587,7 +587,7 @@ Section Multiplicative.
 
 Variables (R S : ringType) (f : {rmorphism R -> S}).
 
-Lemma rmorphMz : forall n, {morph f : x / n *z x}. Proof. exact: raddfMz. Qed.
+Lemma rmorphMz : forall n, {morph f : x / n *~ x}. Proof. exact: raddfMz. Qed.
 
 Lemma rmorph_zint : forall n, f n%:zR = n%:zR.
 Proof. by move=> n; rewrite rmorphMz rmorph1. Qed.
@@ -599,7 +599,7 @@ Section Linear.
 Variable R : ringType.
 Variables (U V : lmodType R) (f : {linear U -> V}).
 
-Lemma linearMn : forall n, {morph f : x / n *z x}. Proof. exact: raddfMz. Qed.
+Lemma linearMn : forall n, {morph f : x / n *~ x}. Proof. exact: raddfMz. Qed.
 
 End Linear.
 
@@ -607,7 +607,7 @@ Section Zintmul1rMorph.
 
 Variable R : ringType.
 
-Lemma zintmul1r_is_rmorphism : rmorphism ( *z%R (1 : R)).
+Lemma zintmul1r_is_rmorphism : rmorphism ( *~%R (1 : R)).
 Proof.
 split; first by move=> m n /=; rewrite mulzr_subl.
 by split; first by move=> m n /=; rewrite mulzrA mulzrl.
@@ -617,7 +617,7 @@ Canonical Structure zintmul1r_rmorph := RMorphism zintmul1r_is_rmorphism.
 
 
 Lemma commr_mulz : forall (x y : R) (n : zint), 
-  GRing.comm x y -> GRing.comm x (n *z y).
+  GRing.comm x y -> GRing.comm x (n *~ y).
 Proof.
 by rewrite /GRing.comm => x y n com_xy; rewrite mulzrAr mulzrAl com_xy.
 Qed.
@@ -651,7 +651,7 @@ Hypothesis charFp : p \in [char R].
 
 Local Notation "x ^f" := (Frobenius_aut charFp x).
 
-Lemma Frobenius_aut_mulz : forall x n, (n *z x)^f = n *z x^f.
+Lemma Frobenius_aut_mulz : forall x n, (n *~ x)^f = n *~ x^f.
 Proof.
 move=> x [] n /=; first exact: Frobenius_aut_muln.
 by rewrite !NegzE !mulNzr Frobenius_aut_opp Frobenius_aut_muln.
@@ -802,7 +802,7 @@ Variable R : unitRingType.
 Implicit Types x y : R.
 Implicit Types m n : zint. 
 
-Lemma exprz_mulzl_nat : forall x m (n : nat), (m *z x) ^ n = (m ^ n) *z x ^ n.
+Lemma exprz_mulzl_nat : forall x m (n : nat), (m *~ x) ^ n = (m ^ n) *~ x ^ n.
 Proof.
 move=> x m n; elim: n=> [|n ihn] //.
 by rewrite !exprSz_nat ihn mulzrAl mulzrAr -mulzrA.
@@ -812,9 +812,9 @@ Lemma zint_exp_nat : forall m (n : nat), m%:zR ^ n = (m ^ n)%:zR :> R.
 Proof. by move=> m n; rewrite exprz_mulzl_nat exp1rz. Qed.
 
 Lemma exprz_mulzl : forall x m n, GRing.unit x -> (@GRing.unit R m%:zR)
-  -> (m *z x) ^ n = (m%:zR ^ n) * x ^ n :> R.
+  -> (m *~ x) ^ n = (m%:zR ^ n) * x ^ n :> R.
 Proof.
-move=> x m n hm hn; rewrite -[_ *z x]mulzrl commr_expz_mull //.
+move=> x m n hm hn; rewrite -[_ *~ x]mulzrl commr_expz_mull //.
 by apply: commr_sym; apply: commr_zint.
 Qed.
 

@@ -155,10 +155,10 @@ Qed.
 Lemma absr_mulz1r : forall m, `|m%:zR| = `|m|%:zR :> R.
 Proof. by move=> m; rewrite !absr_dec sgr_mulz1r mulzzr mulzrA. Qed.
 
-Lemma sgr_mulz : forall  (x : zint) (y : R), sgr (x *z y) = sgr x * sgr y.
+Lemma sgr_mulz : forall  (x : zint) (y : R), sgr (x *~ y) = sgr x * sgr y.
 Proof. by move=> x y; rewrite -mulzrl sgr_mul sgr_mulz1r. Qed.
 
-Lemma absr_mulz : forall (x : zint) (y : R), `|x *z y| = `|x| *z `|y|.
+Lemma absr_mulz : forall (x : zint) (y : R), `|x *~ y| = `|x| *~ `|y|.
 Proof. by move=> x y; rewrite -mulzrl absr_mul absr_mulz1r mulzrl. Qed.
 
 Lemma absr_sg : forall x : R,  `|sgr x| = (x != 0).
