@@ -1,12 +1,12 @@
 
-MAKEFLAGS := -r
+MAKEFLAGS := -r -j
 
 .SUFFIXES:
 
 .PHONY: clean all config tags install
 
 COQMAKEFILE := Makefile.coq
-COQMAKE := +$(MAKE) -f $(COQMAKEFILE)
+COQMAKE := $(MAKE) -f $(COQMAKEFILE)
 
 all: $(COQMAKEFILE)
 	/bin/mkdir -p bin
