@@ -344,10 +344,20 @@ Proof. by move=> z x y; rewrite ![_ +z]addrC leC_add2l. Qed.
 Lemma posC_add: forall x y, 0 <= x -> 0 <= y -> 0 <= x + y.
 Proof. by move=> x y; rewrite /leC !subr0; exact: repCD. Qed.
 
-Lemma posC_mul: forall x y, 0 < x -> 0 <= x * y = (0 <= y).
+Lemma posC_mulr: forall x y, 0 < x -> 0 <= x * y = (0 <= y).
 Proof. 
 move=> x y; case/andP; rewrite /leC !subr0; move=>*.
 by apply: repCMl; rewrite // eq_sym. 
+Qed.
+
+Lemma posC_mull: forall x y, 0 < x -> 0 <= y * x = (0 <= y).
+Proof. move=> x y; rewrite mulrC; exact: posC_mulr. Qed.
+
+Lemma posC_mul : forall x y : C, 0 <= x -> 0 <= y -> 0 <= x * y.
+Proof.
+move=> x y Hx Hy.
+case: (boolP (x == 0)); first by move/eqP->; rewrite mul0r leC_refl.
+by move=> Hdx; rewrite posC_mulr //; apply/andP; rewrite eq_sym.
 Qed.
 
 Lemma leC_anti: forall x y, x <= y -> y <= x -> x = y.
@@ -631,8 +641,7 @@ move=> c1 c2; case/isNatCP=> n1 ->; case/isNatCP=> n2 ->.
 by rewrite -natr_mul isNatC_nat.
 Qed.
 
-
-Lemma isNatC_sumE: 
+Lemma isNatC_sum: 
    forall (I : Type) (r : seq I) (P : pred I) (F : I -> C),
    (forall i, P i -> isNatC  (F i)) -> isNatC (\sum_(j <- r | P j) F j).
 Proof.
@@ -656,6 +665,47 @@ Qed.
 Lemma isNatC_conj : forall c, isNatC c -> c^* = c.
 Proof.
 by move=> c; case/isNatCP=> n ->; exact: conjC_nat.
+Qed.
+
+
+Lemma isNatC_sum_eq1 : 
+   forall (I : eqType) (r : seq I) (P : pred I) (F : I -> C),
+   (forall i, P i -> isNatC (F i)) -> uniq r ->
+   \sum_(j <- r | P j) F j = 1%:R ->
+   (exists i, [/\ i \in r, P i, F i = 1 &
+               forall j, j!=i -> j \in r -> P j -> F j = 0]).
+Proof.
+move=> I r P F HN; elim: r=> [_|y r Hrec].
+  by rewrite big_nil; move/eqP; rewrite eq_sym (negPf (nonzero1r _)).
+rewrite cons_uniq; case/andP=> [Hyr Hu].
+rewrite big_cons; case HP: (P _)=> Hs; last first.
+  case: Hrec=> // => i [Hin HPi HFi HF]; exists i; split=> //.
+    by rewrite in_cons Hin orbT.
+  move=> j Hji; rewrite in_cons; case/orP=> //; last by exact: HF.
+  by move/eqP->; rewrite HP.
+case/isNatCP: (HN _ (idP HP))=> n Hn.
+have: isNatC (\sum_(j <- r | P j) F j) by apply: isNatC_sum.
+case/isNatCP=> m Hm.
+move: Hs; rewrite Hn Hm -natr_add.
+case: n Hn=> [|n Hn]; case: m Hm=>[|m Hm].
+- by move=> _ _; move/eqP; rewrite eq_sym (negPf (nonzero1r _)).
+- case: m Hm.
+    move=> Hs HF _; case: Hrec=> // => j [HInj HPj HFj HF0].
+    exists j; split=> //; first by rewrite in_cons HInj orbT.
+    move=> k Hk; rewrite in_cons; case/orP; first by move/eqP->.
+    by exact: HF0.
+  move=> n _ _.
+  rewrite -[1%:R]add0r add0n -addn1 natr_add => HH.
+  by move: (addIr HH); move/eqP; move/charf0P: Cchar->.
+- case: n Hn=> [Hn Hs _|n Hn Hs].
+    exists y; split=> //; first by rewrite in_cons eqxx.
+    move=> j Hjy; rewrite in_cons; case/orP; first by rewrite (negPf Hjy).
+    move=> Hj HPj; apply: (posC_sum_eq0 _ Hs)=> //.
+    move=> i HPI; apply: posC_isNatC; exact: HN.
+  rewrite -[1%:R]add0r addn0 -addn1 natr_add => HH.
+  by move: (addIr HH); move/eqP; move/charf0P: Cchar->.
+rewrite -[1%:R]add0r addnS -addn1 natr_add => HH.
+by move: (addIr HH); move/eqP; move/charf0P: Cchar->.
 Qed.
 	
 Section Main.
@@ -880,7 +930,7 @@ Proof.
 by move=> i k c1 c2; rewrite /ncoord linearD linearZ !ffunE.
 Qed.
 
-Canonical Structure ncord_linear i := Linear (ncoord_is_linear i).
+Canonical Structure ncoord_linear i := Linear (ncoord_is_linear i).
 
 Lemma ncoordE : forall  (f : sG -> C)  x, x \in 'CL[C](G) -> 
    x = \sum_i (f i) *: \chi_ i -> forall i, f i = ncoord i x.
@@ -912,7 +962,7 @@ Proof.
 move=> n rG i.
 pose sG':= DecSocleType rG.
 suff->: character_of rG = \sum_i (character_of (irr_repr (irr_comp sG (socle_repr (i: sG'))))) *+ socle_mult i.
-  rewrite linear_sum; apply: isNatC_sumE=> j _ /=.
+  rewrite linear_sum; apply: isNatC_sum=> j _ /=.
   by rewrite linearMn; apply: isNatCMn; rewrite /= ncoord_chi; apply isNatC_nat.
 apply/ffunP=> g; rewrite !(sum_ffunE,ffunE).
 case: (boolP (_ \in _))=> Hin; last first.
@@ -1093,7 +1143,7 @@ apply: (@etrans _ _ (r1 (e_ i *m e_ j))).
   rewrite -mulr_sumr -mulr_suml; apply: eq_bigr=> i1 _.
   rewrite  {1}gring_row_e {1}gring_row_e !mxE.
   rewrite gring_indexK; last by rewrite groupV enum_valP.
-  (* mimicing ring *)
+  (* mimicking ring *)
   rewrite invgK.
   rewrite -!mulrA; congr (_ * _).
   apply: sym_equal; rewrite mulrC -!mulrA; congr (_ * _).
@@ -1190,17 +1240,10 @@ move=> f g; rewrite /inner_prod rmorphM card_conj.
 congr (_ * _); rewrite rmorph_sum; apply: eq_bigr=> i _.
 by rewrite rmorphM conjCK mulrC.
 Qed.
-
-Lemma posC_mulE : forall x y : C, 0 <= x -> 0 <= y -> 0 <= x * y.
-Proof.
-move=> x y Hx Hy.
-case: (boolP (x == 0)); first by move/eqP->; rewrite mul0r leC_refl.
-by move=> Hdx; rewrite posC_mul //; apply/andP; rewrite eq_sym.
-Qed.
  
 Lemma posC_inner_prod : forall f, 0 <= '[f, f].
 Proof. 
-move=> f; apply: posC_mulE; first by rewrite posC_inv leC_nat.
+move=> f; apply: posC_mul; first by rewrite posC_inv leC_nat.
 rewrite posC_sum // => i _; exact: posC_norm.
 Qed.
 
@@ -1231,7 +1274,7 @@ Proof.
 move=> f k g1 g2.
 rewrite /inner_prodb /inner_prod.
 rewrite {1}scaler_mulr -{1}scaler_addr; congr (_ * _).
-rewrite {1}scaler_sumr -{1}big_split /=; apply: eq_bigr=> i _.
+rewrite {1}scaler_sumr /= -{1}big_split /=; apply: eq_bigr=> i _.
 by rewrite scaler_mull -mulr_addl !ffunE.
 Qed.
 
@@ -1261,6 +1304,80 @@ Proof.
 move=> i j.
 rewrite -chi_orthogonal_relation; congr (_ * _).
 by apply: eq_bigr=> k _; rewrite character_of_inv.
+Qed.
+
+Lemma inner_prod_character :
+  forall m n (rG1 : mx_representation C G m) (rG2 : mx_representation C G n),
+    '[character_of G rG1,character_of G rG2] =
+    \sum_(i:sG) (ncoord i (character_of G rG1)) * (ncoord i (character_of G rG2)).
+Proof.
+move=> m n rG1 rG2.
+rewrite (ncoord_sum (character_of_in_class_fun _))
+        [character_of _ rG2](ncoord_sum (character_of_in_class_fun _)).
+rewrite -inner_prodbE linear_sum /=.
+apply: eq_bigr=> i _; rewrite inner_prodbE.
+rewrite raddf_sum /= {1}(bigD1 i) // big1 //= => [|j Hj];
+    rewrite inner_prodZ -{1}inner_prodbE {1}[inner_prodb _ _]linearZ /= 
+            inner_prodbE chi_orthonormal; last first.
+  by rewrite eq_sym (negPf Hj) !scaler0.
+rewrite eqxx.
+rewrite linear_sum {1}(bigD1 i) // big1 /=; last first.
+  by move=> j Hj; rewrite linearZ /= ncoord_chi (negPf Hj) scaler0.
+rewrite linear_sum {1}(bigD1 i) // big1 /=; last first.
+  by move=> j Hj; rewrite linearZ /= ncoord_chi (negPf Hj) scaler0.
+apply: sym_equal; rewrite {1}addr0 {1}addr0 {1}linearZ {1}linearZ /=.
+rewrite ncoord_chi eqxx -scaler_mulr -scaler_mull mulr1 addr0 isNatC_conj //.
+exact: ncoord_character_of.
+Qed.
+
+Lemma inner_prod_character_nat :
+  forall m n (rG1 : mx_representation C G m) (rG2 : mx_representation C G n),
+    isNatC '[character_of G rG1,character_of G rG2].
+Proof.
+move=> m n rG1 rG2.
+rewrite inner_prod_character; apply: isNatC_sum=> i _.
+apply: isNatC_mul; exact: ncoord_character_of.
+Qed.
+ 
+Lemma inner_prod_characterC :
+  forall m n (rG1 : mx_representation C G m) (rG2 : mx_representation C G n),
+    '[character_of G rG1,character_of G rG2] = 
+    '[character_of G rG2,character_of G rG1].
+Proof.
+move=> m n rG1 rG2.
+by rewrite !inner_prod_character; apply: eq_bigr=> i _; rewrite mulrC.
+Qed.
+
+Lemma character_of_irreducibleP : 
+  forall n (rG : mx_representation C G n),
+  reflect
+    (exists i : sG, character_of G rG = \chi_i)
+    ('[character_of G rG, character_of G rG] == 1).
+Proof.
+move=> n rG; apply: (iffP idP); last first.
+  by case=> i->; rewrite chi_orthonormal eqxx.
+rewrite inner_prod_character.
+move/eqP=> HH; case: (isNatC_sum_eq1 _ _ HH).
+- by move=> i _; apply: isNatC_mul; exact: ncoord_character_of.
+- by rewrite /index_enum -enumT; exact: enum_uniq.
+move=> i [Hin _ HF HG]; exists i.
+rewrite (ncoord_sum (character_of_in_class_fun _)); apply: sym_equal.
+rewrite [\chi_i](ncoord_sum (character_of_in_class_fun _)).
+apply: eq_bigr=> k _; congr (_ *: _).
+rewrite ncoord_chi; case: eqP=> [<-|]; last first.
+  move/eqP; rewrite eq_sym=> Hik.
+  have F1: k \in index_enum (socle_finType sG).
+    rewrite /index_enum -enumT.
+    apply/(nthP [1 sG]%irr); exists (enum_rank k)=> //.
+      case: enum_rank=> /= m; first by rewrite cardT /=.
+    by apply/val_eqP; rewrite nth_enum_rank.
+  move: (HG _ Hik F1 is_true_true).
+  case/isNatCP: (ncoord_character_of rG k)=> m ->.
+  by rewrite -natr_mul; move/eqP; move/charf0P: Cchar->; case: m.
+case/isNatCP: (ncoord_character_of rG i) HF=> m ->.
+rewrite -natr_mul; case: m=> [|[|m]] //.
+rewrite mulnS addSn -{2}[1]add0r -addn1 natr_add => HH1.
+by move: (addIr HH1); move/eqP; move/charf0P: Cchar->.
 Qed.
 
 End More.
