@@ -753,6 +753,14 @@ Proof. by move=> x y z *; rewrite -![_ * x]mulrNN lter_pmulW ?lter_oppE. Qed.
 Definition lter_nmul2lW := (ler_nmul2lW, ltr_nmul2lW).
 Definition lter_nmulW := (lter_nmul2rW, lter_nmul2lW).
 
+Lemma exprSn_ge0 : forall n x, 0 <= x -> 0 <= x ^+ n.+1.
+Proof. by elim=> [|n ihn] x hx //; rewrite [_ ^+ _.+2]exprS mulr_ge0 ?ihn. Qed.
+
+Lemma exprSn_gt0 : forall n x, 0 < x -> 0 < x ^+ n.+1.
+Proof. by elim=> [|n ihn] x hx //; rewrite [_ ^+ _.+2]exprS mulr_gt0 ?ihn. Qed.
+
+Definition exprSn_gte0 := (exprSn_ge0, exprSn_gt0).
+
 Section Interval.
 
 Lemma intccP : forall x a b, reflect ((a <= x) * (x <= b)) (x \in `[a, b]).
@@ -1523,12 +1531,6 @@ Proof. move=> x; rewrite -oppr_cp0 -absr_opp; exact: absr_eqr. Qed.
 
 Definition absr_eqrVNr := (absr_eqr, absr_eqNr).
 
-Lemma absr_ge0E : forall x, (0 <= x) -> (`|x| = x).
-Proof. by move=> x hx; apply/eqP; rewrite absr_eqr. Qed.
-
-Lemma absr_le0E : forall x, (x <= 0) -> (`|x| = -x).
-Proof. by move=> x hx; apply/eqP; rewrite absr_eqNr. Qed.
-
 Lemma ler_pmul2r : forall x y z : R, 0 < x -> (x * y <= x * z) = (y <= z).
 Proof.
 move=> x y z hx; apply/idP/idP; last by apply: ler_pmul2rW; rewrite ltrW.
@@ -1687,7 +1689,7 @@ Lemma sqr_abs_eq1 : forall x, (x ^+ 2 == 1) = (`|x| == 1).
 Proof. by move=> x; rewrite sqr_eq1 -absr_eq absr1. Qed.
 
 Lemma sqr_ge0_eq1 : forall x, 0 <= x -> (x ^+ 2 == 1) = (x == 1).
-Proof. by move=> x hx; rewrite sqr_abs_eq1 absr_ge0E. Qed.
+Proof. by move=> x hx; rewrite sqr_abs_eq1 ger0_abs. Qed.
 
 Lemma mulr_le1 : forall x y, 0 <= x -> 0 <= y 
   -> x <= 1 -> y <= 1 -> x * y <= 1.
@@ -1722,7 +1724,7 @@ Qed.
 Lemma exprn_ilt1 : forall n x, `|x| < 1 -> x ^+ n.+1 < 1.
 Proof.
 move=> n x; wlog hx0: x / x >= 0=> [hpos|] hx1; last first.
-  elim: n=> [|n ihn]; move: (hx1); rewrite absr_ge0E // => hx.
+  elim: n=> [|n ihn]; move: (hx1); rewrite ger0_abs // => hx.
   by rewrite exprS (ler_lt_trans _ ihn) ?lter_imull ?exprn_ge0 // ltrW.
 case: (lerP 0 x)=> hx; first exact: hpos.
 rewrite -[x]opprK -mulN1r exprn_mull -signr_odd /=.
@@ -1735,7 +1737,7 @@ Definition exprn_ilte1:= (exprn_ile1, exprn_ilt1).
 Lemma exprn_le1 : forall n x, 0 <= x -> (x ^+ n.+1 <= 1) = (x <= 1).
 Proof.
 move=> n x hx0; elim: n=> [|n ihn] //.
-apply/idP/idP; last by move=> hx; rewrite exprn_ile1 // absr_ge0E.
+apply/idP/idP; last by move=> hx; rewrite exprn_ile1 // ger0_abs.
 case: (lerP x 1)=> hx1 //; rewrite exprS; move/(ler_lt_trans); move/(_ _ hx1).
 rewrite ltrNge; move/negPf<-; rewrite ler_epmulr //.
 by rewrite ltrW // ltrNge ihn -ltrNge.
@@ -1744,14 +1746,14 @@ Qed.
 Lemma exprn_lt1 : forall n x, 0 <= x -> (x ^+ n.+1 < 1) = (x < 1).
 Proof.
 move=> n x hx0; elim: n=> [|n ihn] //.
-apply/idP/idP; last by move=> hx; rewrite exprn_ilt1 // absr_ge0E.
+apply/idP/idP; last by move=> hx; rewrite exprn_ilt1 // ger0_abs.
 case: (ltrP x 1)=> hx1 //; rewrite exprS; move/ltr_le_trans; move/(_ _ hx1).
 by rewrite ltrNge; move/negPf<-; rewrite ler_epmulr // lerNgt ihn -lerNgt.
 Qed.
 
 Definition exprn_lte1 := (exprn_le1, exprn_lt1).
 
-Lemma exprSn_eq1 : forall x n, 0 <= x -> (x ^+ n.+1 == 1) = (x == 1).
+Lemma exprSn_ge0_eq1 : forall x n, 0 <= x -> (x ^+ n.+1 == 1) = (x == 1).
 Proof. 
 move=> x n hx; rewrite exprSn_eq1; case: (x == 1)=> //=.
 rewrite eq_sym ltrWN // (@ltr_le_trans _ 1) ?ltr01 //.
@@ -1788,12 +1790,12 @@ Qed.
 
 Lemma ler_iexprS : forall x n, 0 <= x -> x <= 1 -> x ^+ n.+1 <= x.
 Proof.
-by move=> x n hx0 hx1; rewrite exprS lter_imulr // exprn_ile1 // absr_ge0E.
+by move=> x n hx0 hx1; rewrite exprS lter_imulr // exprn_ile1 // ger0_abs.
 Qed.
 
 Lemma ltr_iexprSS : forall x n, 0 < x -> x < 1 -> x ^+ n.+2 < x.
 Proof.
-by move=> x n hx0 hx1; rewrite exprS lter_imulr ?exprn_ilt1 ?absr_ge0E // ltrW.
+by move=> x n hx0 hx1; rewrite exprS lter_imulr ?exprn_ilt1 ?ger0_abs // ltrW.
 Qed.
 
 Lemma ler_eexprS : forall x n, 1 <= x -> x <= x ^+ n.+1.
@@ -1812,14 +1814,14 @@ Lemma ler_iexpr2 : forall x m n, (n <= m)%N
   -> 0 <= x -> x <= 1 -> x ^+ m <= x ^+ n.
 Proof.
 move=> x m n; move/subnK=> <- hx0 hx1; rewrite exprn_addr.
-by rewrite lter_imull ?exprn_ge0 // exprn_ile1 // absr_ge0E. 
+by rewrite lter_imull ?exprn_ge0 // exprn_ile1 // ger0_abs. 
 Qed.
 
 Lemma ltr_iexpr2 : forall x m n, (n < m)%N
  -> 0 < x -> x < 1 -> x ^+ m < x ^+ n.
 Proof.
 move=> x m n; move/subnKC=> <- hx0 hx1; rewrite addSn -addnS exprn_addr.
-by rewrite lter_imulr ?exprn_gt0 ?exprn_ilt1 ?absr_ge0E // ltrW.
+by rewrite lter_imulr ?exprn_gt0 ?exprn_ilt1 ?ger0_abs // ltrW.
 Qed.
 
 Lemma ler_eexpr2 : forall x m n, (m <= n)%N

@@ -78,7 +78,7 @@ Proof.
 move=> [[n d] /= Pnd]; apply: val_inj=> /=.
 move: Pnd; rewrite /coprime /fracq /=; case/andP=> hd; move/eqP=> hnd.
 rewrite ltrNW // hnd !divn1 -!absrz mulzrA -[sgr n *z _]absr_sgP.
-by rewrite absr_ge0E ?ltrW //; case: sgrP hd.
+by rewrite ger0_abs ?ltrW //; case: sgrP hd.
 Qed.
 
 Lemma valq_frac : forall x (k := sgr x.2 * gcdn (absz x.1) (absz x.2)), x.2 != 0 ->
