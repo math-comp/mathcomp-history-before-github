@@ -666,7 +666,7 @@ Lemma ler_sum : forall I r (P : pred I) (F G : I -> R),
   (\sum_(i <- r | P i) F i) <= \sum_(i <- r | P i) G i.
 Proof.
 move=> I; elim=> [|i r ihr] // P F G hFG; first by rewrite !big_nil.
-rewrite !big_cons; case: ifP=> Pi; last by rewrite ihr.
+rewrite !big_cons; case: ifP=> Pi; last exact: ihr.
 by rewrite ler_add ?hFG ?ihr.
 Qed.
 
