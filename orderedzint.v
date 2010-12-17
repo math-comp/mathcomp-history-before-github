@@ -95,13 +95,20 @@ Section ZintOrdered.
 Lemma ltz_leSz : forall x y : zint, (x < y) = (x + 1 <= y).
 Proof.
 move=> x y; rewrite -![_ _ y]subr_gte0 oppr_add addrA subr_ge0.
-case: sgrP; do ?by case: (_ - _)=> // n; rewrite ?ltez_natE.
-by move->.
+by case: (_ - _)=> n //; rewrite ?ltez_nat.
 Qed.
 
 Lemma sgrn : forall (n: nat), sgr n%:Z = (n != 0%N). Proof. by case. Qed.
 
 Lemma sgrSn : forall n, sgr n.+1%:Z = 1. Proof. by case. Qed.
+
+Lemma sgr_eq : forall (R R' : oIdomainType) (x : R) (y : R'), 
+  (sgr x == sgr y) = ((x == 0) == (y == 0)) && ((0 < x) == (0 < y)).
+Proof. 
+move=> R R' x y; rewrite -?[0 < _]sgr_cp0 -?[x == 0]sgr_cp0 -?[y == 0]sgr_cp0.
+by do 2!case: sgrP.
+(* with ssr > 1.2 : by move=> R R' x y; do 2!case: sgrP. *)
+ Qed.
 
 End ZintOrdered.
 
@@ -148,9 +155,7 @@ Proof. by move=> m n; rewrite -subr_gt0 -mulzr_subl mulz1r_gt0 subr_gt0. Qed.
 Definition lter_mulz1r := (ler_mulz1r, ltr_mulz1r).
 
 Lemma sgr_mulz1r : forall m, sgr (m%:zR : R) = sgr m.
-Proof. 
-by move=> m; case: (sgrP m)=> hm; apply/eqP; rewrite sgr_cp0 mulz1r_cp0 ?hm.
-Qed.
+Proof. by move=> m; apply/eqP; rewrite sgr_eq !mulz1r_cp0 !eqxx. Qed.
 
 Lemma absr_mulz1r : forall m, `|m%:zR| = `|m|%:zR :> R.
 Proof. by move=> m; rewrite !absr_dec sgr_mulz1r mulzzr mulzrA. Qed.

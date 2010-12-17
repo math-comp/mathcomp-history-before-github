@@ -53,7 +53,7 @@ Lemma fracq_subproof : forall x : zint * zint,
       (absz x.2 %/ gcdn (absz (x.1)) (absz x.2))%:Z in
         (0 < d) && (coprime (absz n) (absz d)).
 Proof. 
-move=> [m n] /=; case: ifP=> // n0; rewrite ltz_nat lt0n eq_sym.
+move=> [m n] /=; case: ifP=> n0; rewrite ?n0 // ltz_nat lt0n eq_sym.
 rewrite eqn_div ?dvdn_gcdr 1?eq_sym ?gcdn_gt0 ?mul0n
   1?orbC ?lt0n ?absz_eq0 ?n0 //=.
 rewrite -abszr absr_mulz absr_mul !absr_sg n0 mul1r.
@@ -78,7 +78,7 @@ Proof.
 move=> [[n d] /= Pnd]; apply: val_inj=> /=.
 move: Pnd; rewrite /coprime /fracq /=; case/andP=> hd; move/eqP=> hnd.
 rewrite ltrNW // hnd !divn1 -!absrz mulzrA -[sgr n *~ _]absr_sgP.
-by rewrite ger0_abs ?ltrW //; case: sgrP hd.
+by rewrite ger0_abs ?ltrW // gtr0_sg //.
 Qed.
 
 Lemma valq_frac : forall x (k := sgr x.2 * gcdn (absz x.1) (absz x.2)), x.2 != 0 ->
@@ -97,7 +97,7 @@ Qed.
 CoInductive valq_spec (x : zint * zint) : zint * zint -> qnum -> Type := 
 | ValqSpecN of x.2 = 0 : valq_spec x (x.1, 0) (@Qnum (0, 1) isT)
 | ValqSpecP k fx of x.2 != 0 & k != 0 & k = sgr x.2 * gcdn (absz x.1) (absz x.2) 
-  & fx = fracq x : 
+  & fx = fracq x & x = (k * numq fx, k * denq fx) : 
   valq_spec x (k * numq fx, k * denq fx) (fx).
 
 Lemma valqP : forall x : zint * zint, valq_spec x x (fracq x).
@@ -109,15 +109,24 @@ move=> x; case dx0: (x.2 == 0).
     by apply: val_inj=> /=; rewrite dx0.
   by constructor; rewrite (eqP dx0).
 rewrite {2}[x]valq_frac ?dx0 //; constructor; rewrite ?dx0 //.
-rewrite mulf_neq0 ?sgr_eq0 ?dx0 //.
-by rewrite eqz_nat -lt0n gcdn_gt0 orbC lt0n absz_eq0 dx0.
+  rewrite mulf_neq0 ?sgr_eq0 ?dx0 //.
+  by rewrite eqz_nat -lt0n gcdn_gt0 orbC lt0n absz_eq0 dx0.
+by rewrite -valq_frac // dx0.
 Qed.  
 
 Lemma fracq_eq : forall x y, x.2 != 0 -> y.2 != 0 ->
   (fracq x == fracq y) = (x.1 * y.2 == y.1 * x.2).
 Proof.
-move=> x y hdx hdy; case: valqP hdx=> // k fx hdx hk k0 hdfx hfx.
-case: (valqP y) hdy=> // k' fy hdy hk' k'0 hdfy hfy.
+move=> x y hdx hdy; case: valqP hdx=> //=; do ?by move->.
+move => // k fx hdx k0 hk hfx hx _; rewrite ?hx /=.
+(* Note this : *)
+rewrite {-1}[y]valq_frac //.
+rewrite [sgr _ * _]lock; set k' := locked _.
+rewrite [fracq y]lock; set fy := locked _=> /=.
+have k'0: k' != 0. 
+  rewrite /k'; unlock; rewrite mulf_neq0 ?sgr_cp0 //.
+  by rewrite eqz_nat -lt0n gcdn_gt0 orbC lt0n absz_eq0 hdy.
+(* could be replaced in ssr > 1.2 by a case: valqP hdy *)
 rewrite !mulrA ![_ * k]mulrC !mulrA ![_ * k']mulrC -!mulrA.
 rewrite !(inj_eq (mulfI _)) //; apply/idP/idP; first by move/eqP->.
 move=> hxy; rewrite -val_eqE /=.
@@ -137,7 +146,7 @@ Qed.
 Lemma frac0q : forall x, fracq (0, x) = fracq (0, 1).
 Proof.
 move=> x; rewrite /fracq; apply: val_inj=> //= (* Warning : without //= Qed fails) *).
-case: ifP=> x0 //=.
+case: ifP=> x0; rewrite ?x0 //=.
 by rewrite !mulr0 !mul0zr !gcd0n !divnn lt0n absz_eq0 x0.
 Qed.
 
@@ -167,9 +176,23 @@ Qed.
 
 Lemma addq_frac : forall x y, x.2 != 0 -> y.2 != 0 -> (addq (fracq x) (fracq y)) = fracq (add x y).
 Proof.
-move=> x y; rewrite /add.
-case: (valqP x)=> //= k fx hdx k0 hk _ hfx.
-case: (valqP y)=> //= k' fy hdy k'0 hk' _ hfy.
+move=> x y hdx hdy; rewrite /add.
+(* Note this : *)
+rewrite {-1}[x]valq_frac //.
+rewrite [sgr _ * _]lock; set k := locked _.
+rewrite [fracq x]lock; set fx := locked _=> /=.
+have k0: k != 0. 
+  rewrite /k; unlock; rewrite mulf_neq0 ?sgr_cp0 //.
+  by rewrite eqz_nat -lt0n gcdn_gt0 orbC lt0n absz_eq0 hdx.
+(* could be replaced in ssr > 1.2 by a case: valqP hdx *)
+(* Note this : *)
+rewrite {-1}[y]valq_frac //.
+rewrite [sgr _ * _]lock; set k' := locked _.
+rewrite [fracq y]lock; set fy := locked _=> /=.
+have k'0: k' != 0. 
+  rewrite /k'; unlock; rewrite mulf_neq0 ?sgr_cp0 //.
+  by rewrite eqz_nat -lt0n gcdn_gt0 orbC lt0n absz_eq0 hdy.
+(* could be replaced in ssr > 1.2 by a case: valqP hdy *)
 apply/eqP; rewrite fracq_eq /= ?mulf_neq0 ?denq_neq0 //; apply/eqP.
 by rewrite !mulr_addl !mulrA ![_ * k]mulrC !mulrA ![_ * k']mulrC !mulrA.
 Qed.
@@ -179,8 +202,16 @@ Proof. by move=> x y /=; rewrite !zint_qnumE addq_frac // /add /= !mulr1. Qed.
 
 Lemma oppq_frac : forall x, oppq (fracq x) = fracq (opp x).
 Proof.
-move=> x; rewrite /opp; case: (valqP x)=> //= [_|k fx hdx k0 hk hfx]; rewrite /oppq.
-  by rewrite frac0q fracq0.
+move=> x; rewrite /opp; case hdx: (x.2 == 0).
+  by case: x hdx=> m n /= hn; rewrite (eqP hn) ?fracq0.
+(* Note this : *)
+rewrite {-1}[x]valq_frac ?hdx //.
+rewrite [sgr _ * _]lock; set k := locked _.
+rewrite [fracq x]lock; set fx := locked _=> /=.
+have k0: k != 0. 
+  rewrite /k; unlock; rewrite mulf_neq0 ?sgr_cp0 ?hdx //.
+  by rewrite eqz_nat -lt0n gcdn_gt0 orbC lt0n absz_eq0 hdx.
+(* could be replaced in ssr > 1.2 by a case: valqP hdx *)
 apply/eqP; rewrite fracq_eq /= ?mulf_neq0 ?denq_neq0 //.
 by rewrite !(mulrA, mulNr) [_ * k]mulrC.
 Qed.
@@ -226,9 +257,27 @@ Definition invq (x : qnum) := nosimpl fracq (inv (valq x)).
 
 Lemma mulq_frac: forall x y, (mulq (fracq x) (fracq y)) = fracq (mul x y).
 Proof.
-move=> x y; rewrite /mulq.
-case: (valqP x)=> // [_|k fx hdx k0 hk hfx]; rewrite /mul ?mul0r ?fracq0 ?frac0q //.
-case: (valqP y)=> // [_|k' fy hdy k'0 hk' hfy]; rewrite ?mulr0 ?fracq0 ?frac0q //.
+move=> x y; rewrite /mul.
+(* Note this : *)
+case hdx: (x.2 == 0).
+  by case: x hdx=> m n /= hn; rewrite /mulq /mul (eqP hn) ?mul0r ?fracq0 ?frac0q.
+rewrite {-1}[x]valq_frac ?hdx //.
+rewrite [sgr _ * _]lock; set k := locked _.
+rewrite [fracq x]lock; set fx := locked _=> /=.
+have k0: k != 0. 
+  rewrite /k; unlock; rewrite mulf_neq0 ?sgr_cp0 ?hdx //.
+  by rewrite eqz_nat -lt0n gcdn_gt0 orbC lt0n absz_eq0 hdx.
+(* could be replaced in ssr > 1.2 by a case: valqP hdx *)
+(* Note this : *)
+case hdy: (y.2 == 0).
+  by case: y hdy=> m n /= hn; rewrite /mulq /mul (eqP hn) ?mulr0 ?fracq0 ?frac0q.
+rewrite {-1}[y]valq_frac ?hdy //.
+rewrite [sgr _ * _]lock; set k' := locked _.
+rewrite [fracq y]lock; set fy := locked _=> /=.
+have k'0: k' != 0. 
+  rewrite /k'; unlock; rewrite mulf_neq0 ?sgr_cp0 ?hdy //.
+  by rewrite eqz_nat -lt0n gcdn_gt0 orbC lt0n absz_eq0 hdy.
+(* could be replaced in ssr > 1.2 by a case: valqP hdy *)
 apply/eqP; rewrite fracq_eq ?mulf_neq0 ?denq_neq0 //=.
 by rewrite !mulrA ![_ * k]mulrC !mulrA ![_ * k']mulrC !mulrA.
 Qed.
@@ -238,8 +287,16 @@ Proof. by move=> x y /=; rewrite !zint_qnumE mulq_frac // /mul /= !mulr1. Qed.
 
 Lemma invq_frac : forall x, x.1 != 0 -> x.2 != 0 -> invq (fracq x) = fracq (inv x).
 Proof.
-move=> x; rewrite /invq; case: (valqP x)=>  // k fx hdx k0 hk hfx.
-rewrite !(mulf_eq0, negb_or, k0) /= => nfx0 dfx0.
+move=> x hnx hdx; rewrite /inv; move: hnx.
+(* Note this : *)
+rewrite {-2}[x]valq_frac //.
+rewrite [sgr _ * _]lock; set k := locked _.
+rewrite [fracq x]lock; set fx := locked _=> /=.
+have k0: k != 0. 
+  rewrite /k; unlock; rewrite mulf_neq0 ?sgr_cp0 //.
+  by rewrite eqz_nat -lt0n gcdn_gt0 orbC lt0n absz_eq0 hdx.
+(* could be replaced in ssr > 1.2 by a case: valqP hdx *)
+rewrite !(mulf_eq0, negb_or, k0) /= => nfx0.
 by apply/eqP; rewrite fracq_eq ?mulf_neq0 ?denq_neq0 //= mulrCA mulrA.
 Qed.
 
@@ -297,9 +354,9 @@ Canonical Structure qnum_fieldMixin := FieldType qnum field_axiom.
 
 Lemma numq_eq0 : forall x, (numq x == 0) = (x == 0).
 Proof.
-move=> x; rewrite -[x]fracqK fracq_eq0. 
-case: valqP=> //= [|k fx dx k0 hk hfx]; first by rewrite eqxx orbT.
-by rewrite !mulf_eq0 (negPf k0) ?denq_eq0 /= orbF.
+move=> x; rewrite -[x]fracqK fracq_eq0.
+case: valqP=> //= [hx|k fx dx k0 hk hfx hx]; first by rewrite ?hx eqxx orbT.
+by rewrite ?hx !mulf_eq0 (negPf k0) ?denq_eq0 /= orbF.
 Qed.
 
 (* Lemma fracqE : forall x, fracq x = mulq x.1%:zR (invq x.2%:zR). *)
@@ -318,8 +375,17 @@ Definition posq (x : qnum) := nosimpl (pos (valq x)).
 
 Lemma posq_frac : forall x, posq (fracq x) = pos x.
 Proof.
-move=> x; rewrite /posq.
-case: (valqP x)=> // [_|k fx hdx k0 hk hfx]; first by rewrite /pos mulr0.
+move=> x; rewrite /pos.
+(* Note this : *)
+case hdx: (x.2 == 0).
+  by case: x hdx=> m n /= hn; rewrite ?(eqP hn) /posq /pos mulr0.
+rewrite {-1}[x]valq_frac ?hdx //.
+rewrite [sgr _ * _]lock; set k := locked _.
+rewrite [fracq x]lock; set fx := locked _=> /=.
+have k0: k != 0. 
+  rewrite /k; unlock; rewrite mulf_neq0 ?sgr_cp0 ?hdx //.
+  by rewrite eqz_nat -lt0n gcdn_gt0 orbC lt0n absz_eq0 hdx.
+(* could be replaced in ssr > 1.2 by a case: valqP hdx *)
 rewrite /pos /= mulrCA !mulrA -mulrA; symmetry.
 rewrite posr_ge0 -(mulr0 (k * k)) ler_pmul2r -?posr_ge0 //.
 by rewrite -sgr_cp0 sgr_mul mulss k0.

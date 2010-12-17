@@ -666,7 +666,7 @@ Lemma ler_sum : forall I r (P : pred I) (F G : I -> R),
   (\sum_(i <- r | P i) F i) <= \sum_(i <- r | P i) G i.
 Proof.
 move=> I; elim=> [|i r ihr] // P F G hFG; first by rewrite !big_nil.
-rewrite !big_cons; case: ifP=> Pi; last exact: ihr.
+rewrite !big_cons; case Pi: (P i); last exact: ihr.
 by rewrite ler_add ?hFG ?ihr.
 Qed.
 
@@ -1236,7 +1236,11 @@ Lemma sgr_cp0 : forall x,
   ((sgr x == 1) = (0 < x)) *
   ((sgr x == -1) = (x < 0)) *
   ((sgr x == 0) = (x == 0)).
-Proof. by move=> x; rewrite /sgr; case: ltrgtP=> //. Qed.
+Proof.
+by move=> x; rewrite /sgr; case: ltrgtP=> // hx;
+(* only for ssr <= 1.2 *)
+rewrite ?hx ?(ltrWN hx) ?(ltrNW hx) ?eqxx.
+Qed.
 
 Lemma gtr0_sg : forall x, 0 < x -> sgr x = 1.
 Proof. by move=> x hx; apply/eqP; rewrite sgr_cp0. Qed.
@@ -1262,9 +1266,14 @@ Lemma sgrP : forall x,
   (0 == sgr x) (-1 == sgr x) (1 == sgr x)
   (sgr x == 0)  (sgr x == -1) (sgr x == 1) (sgr x).
 Proof.
-move=> x; case: (ltrgtP x 0)=> hx; move: (hx); rewrite -?sgr_cp0;
-  do ?[by move/eqP=> hsgr; rewrite hsgr; constructor].
-by move->; rewrite sgr0; constructor; rewrite // sgr0.
+move=> x; case: (ltrgtP x 0)=> hx; move: (hx); rewrite -?sgr_cp0.
+* by move/eqP=> hsx; rewrite ?ler_eqVlt -?sgr_cp0 ?hsx ?(ltrNW hx); constructor.
+* by move/eqP=> hsx; rewrite ?ler_eqVlt -?sgr_cp0 ?hsx ?(ltrWN hx); constructor.
+* by move=> _; rewrite ?hx ?sgr0 ?eqxx ?lerr; constructor.
+(* for ssreflect > 1.2, replace by this : *)
+(* move=> x; case: (ltrgtP x 0)=> hx; move: (hx); rewrite -?sgr_cp0; *)
+(*   do ?[by move/eqP=> hsgr; rewrite hsgr; constructor]. *)
+(* by move->; rewrite sgr0; constructor; rewrite // sgr0. *)
 Qed.
 
 Lemma sgr_opp : forall x, sgr (-x) = -sgr x.
@@ -1368,11 +1377,6 @@ move=> x; case: ltrgtP=> hx.
 * by rewrite -hx absr0; constructor; rewrite // absr0.
 Qed.
 
-Lemma absr_id : forall x, `| `|x| | = `|x|.
-Proof. 
-by move=> x; case: (absrP x); rewrite ?absr0 ?absr_opp //; case: (absrP).
-Qed.
-
 Lemma absr_idVN : forall x, (`|x| = x) \/ (`|x| = -x).
 Proof. by move=> x; rewrite /absr; case: ltrgtP=> _; [right|left|left]. Qed.
 
@@ -1399,6 +1403,9 @@ Proof. by move=> x; rewrite ltrNge absr_le0. Qed.
 
 Lemma absr1 : `|1| = 1 :> R.
 Proof. by rewrite ger0_abs// ler01. Qed.
+
+Lemma absr_id : forall x, `| `|x| | = `|x|.
+Proof. by move=> x; rewrite ger0_abs // absr_ge0. Qed.
 
 Definition absrE x := (absr_id, absr0, absr1, absr_ge0, absr_eq0, 
   absr_lt0, absr_le0, absr_gt0).
@@ -1447,7 +1454,7 @@ Proof. by move=> x y; rewrite -[`|y|]absr_opp subr_abs_le. Qed.
 
 Lemma absr_le_mem : forall x y, (`|x| <= y) = (x \in `[-y, y]).
 Proof.
-move=> x y; case: absrP=> hx; first by rewrite mem0_intcc_xNx.
+move=> x y; case: absrP=> hx; first by rewrite ?hx mem0_intcc_xNx.
   rewrite !inE; case: lerP=> hxy; rewrite andbC //=.
   by symmetry; rewrite ler_oppl (@ler_trans _ x) // ge0_cp // ltrW.
 rewrite !inE; case: (lerP x y)=> hxy; rewrite andbC; first by rewrite ler_oppl.
@@ -1463,17 +1470,21 @@ Implicit Arguments absr_le [x y].
 
 Lemma absr_ge0_eq : forall x y, 0 <= y -> (`|x| == y) = (x == y) || (x == -y).
 Proof.
-move=> x y hy; case: absrP=> hx; rewrite ?[0 == _]eq_sym ?oppr_eq0 ?orbb //.
-  case: ltrgtP=> //= hxy; symmetry; apply/negP; move/eqP=> exNy.
+move=> x y hy; case: absrP=> hx; rewrite ?hx ?[0 == _]eq_sym ?oppr_eq0 ?orbb //.
+  case: ltrgtP=> //= hxy;
+    (* specific to ssr <= 1.2 *)
+    rewrite ?(ltrNW hxy) ?(ltrWN hxy) ?hxy ?eqxx //;
+    (* resume here *)
+    symmetry; apply/negP; move/eqP=> exNy.
     by move: hxy; rewrite -[y]opprK -exNy ltrNge ge0_cp // ltrW.
   by move: hxy; rewrite exNy ltrNge ge0_cp.
-rewrite -eqr_oppC; case: ltrgtP=> //= exy; rewrite exy in hx.
+rewrite -eqr_oppC; case: (ltrgtP x y)=> //= hxy; rewrite hxy in hx.
 by suff: false by []; rewrite -(ler_lt_asym 0 y) hx hy.
 Qed.
 
 Lemma absr_eq : forall x y, (`|x| == `|y|) = (x == y) || (x == -y).
 Proof.
-by move=> x y; rewrite absr_ge0_eq //; case: absrP=> //; rewrite opprK orbC.
+by move=> x y; rewrite absr_ge0_eq //; case: absrP=> hy; rewrite ?hy // opprK orbC.
 Qed.
 
 Lemma absr_lt_mem : forall x y, (`|x| < y) = (x \in `](-y), y[).
@@ -1522,7 +1533,7 @@ Proof. by move=> x y; case: sgrP; rewrite // mulN1zr absr_opp. Qed.
 
 Lemma absr_eqr : forall x, (`|x| == x) = (0 <= x).
 Proof.
-move=> x; case: absrP; rewrite ?eqxx //; move/ltrWN=> hx.
+move=> x; case: absrP=> hx; rewrite ?hx ?eqxx //; move/ltrWN: hx=> hx.
 by rewrite eq_sym -subr_eq0 opprK addrr mulzr_eq0 hx.
 Qed.
 
@@ -1739,7 +1750,7 @@ Proof.
 move=> n x hx0; elim: n=> [|n ihn] //.
 apply/idP/idP; last by move=> hx; rewrite exprn_ile1 // ger0_abs.
 case: (lerP x 1)=> hx1 //; rewrite exprS; move/(ler_lt_trans); move/(_ _ hx1).
-rewrite ltrNge; move/negPf<-; rewrite ler_epmulr //.
+rewrite ?lerNgt ?hx1 ltrNge /=; move/negPf <-; rewrite ler_epmulr //.
 by rewrite ltrW // ltrNge ihn -ltrNge.
 Qed.
 
@@ -1748,7 +1759,7 @@ Proof.
 move=> n x hx0; elim: n=> [|n ihn] //.
 apply/idP/idP; last by move=> hx; rewrite exprn_ilt1 // ger0_abs.
 case: (ltrP x 1)=> hx1 //; rewrite exprS; move/ltr_le_trans; move/(_ _ hx1).
-by rewrite ltrNge; move/negPf<-; rewrite ler_epmulr // lerNgt ihn -lerNgt.
+by rewrite !ltrNge ?hx1 /=; move/negPf<-; rewrite ler_epmulr // lerNgt ihn -lerNgt.
 Qed.
 
 Definition exprn_lte1 := (exprn_le1, exprn_lt1).
@@ -1853,8 +1864,8 @@ Qed.
 
 Lemma ltr_lt_pexp2 : forall n x y,  0 <= x -> x < y -> (x ^+ n.+1 < y ^+ n.+1).
 Proof.
-move=> n x y; case: (ltrgtP 0 x)=> hx // _; last first.
-  by rewrite -hx => hy; rewrite exprS mul0r exprn_gt0.
+move=> n x y; rewrite ler_eqVlt; case/orP=> hx.
+  by rewrite -(eqP hx) => hy; rewrite exprS mul0r exprn_gt0.
 move=> hxy; elim: n => [|n ihn] //.
 rewrite ![_ ^+ _.+2]exprS (@ltr_trans _ (x * y ^+ n.+1)) //.
   by rewrite ltr_pmul2r ?exprn_gt0.
@@ -1882,16 +1893,6 @@ Definition lter_pexp2 := (ler_pexp2, ltr_pexp2).
 Lemma eqr_exp2 : forall n x y, 0 <= x -> 0 <= y -> 
   (x ^+ n.+1 == y ^+ n.+1) = (x == y).
 Proof. by move=> *; rewrite !eqr_le !ler_pexp2. Qed.
-
-Lemma exprn_eq0 : forall n x, (x ^+ n.+1 == 0) = (x == 0).
-Proof.
-move=> n x; case: ltrgtP=> hx; last by rewrite ?hx ?exprS ?mul0r ?eqxx.
-  have: (-x) ^+ n.+1 != 0 by rewrite eq_sym ltrWN // exprn_gt0 ?oppr_cp0.
-  rewrite -mulN1r exprn_mull -signr_odd.
-  case: (odd _); first by rewrite mulN1r oppr_eq0; move/negPf->.
-  by rewrite mul1r; move/negPf->.
-by rewrite eq_sym ltrWN // exprn_gt0.
-Qed.
 
 Section MinMax.
 
@@ -2135,7 +2136,7 @@ Proof. by move=> x *; rewrite mulrC maxr_nmulr // ![_ * x]mulrC. Qed.
 
 Lemma maxrN : forall x, maxr x (- x) = `|x|.
 Proof.
-move=> x; case: absrP=> hx; first by rewrite oppr0 maxrr.
+move=> x; case: absrP=> hx; first by rewrite ?hx oppr0 maxrr.
   by rewrite maxr_l // ge0_cp // ltrW.
 by rewrite maxr_r // le0_cp // ltrW.
 Qed.
@@ -2283,8 +2284,11 @@ Proof. by move=> x; rewrite (can2_eq (@invrK _) (@invrK _)) invr1. Qed.
 Lemma invr_gt1 : forall x, 0 < x -> (1 < x^-1) = (x < 1).
 Proof.
 move=> x hx; case: (ltrgtP x 1)=> hx1; last by rewrite hx1 invr1 ltrr.
-  rewrite -[1](@divff _ x); last by rewrite eq_sym ltrWN.
+  rewrite -{1}[1](@divff _ x); last by rewrite eq_sym ltrWN.
   by rewrite ltr_ipmull // invr_gt0.
+(* specific to ssr <= 1.2 *)
+rewrite ?[x < 1]ltrNge ?(ltrW hx1) /=.
+(* resume here *)
 apply/negP=> hVx1; move: (mulr_gt1 hx1 hVx1).
 by rewrite divff ?ltrr // eq_sym ltrWN.
 Qed.
@@ -2304,13 +2308,22 @@ Definition invr_lte1 := (invr_le1, invr_lt1).
 Definition invr_cp1 := (invr_gte1, invr_lte1).
 
 Lemma invr_sg : forall x, (sgr x)^-1 = sgr x.
-Proof. by move=> x; case: sgrP. Qed.
+Proof.
+(* (* if ssr > 1.2, this suffices : *) by move=> x; case: (sgrP x). *)
+move=> x; case: (ltrgtP x 0); do ?by rewrite -?sgr_cp0; move/eqP->.
+by move->; rewrite sgr0. 
+Qed.
 
 Lemma sgr_inv : forall x, sgr (x^-1) = sgr x.
 Proof.
-move=> x; case: (sgrP x)=> hx; first by rewrite hx invr0 sgr0.
-  by apply/eqP; rewrite sgr_cp0 invr_gt0.
-by apply/eqP; rewrite sgr_cp0 invr_lt0.
+move=> x; case: (ltrgtP x 0)=> hx; move: (hx); rewrite -?sgr_cp0=> hsx;
+  rewrite ?hsx ?(eqP hsx) ?(sgr0, invr0) //.
+  by apply/eqP; rewrite sgr_cp0 invr_lt0.
+by apply/eqP; rewrite sgr_cp0 invr_gt0.
+(* if ssr > 1.2, this suffices : *)
+(* move=> x; case: (sgrP x)=> hx; first by rewrite hx invr0 sgr0. *)
+(*   by apply/eqP; rewrite sgr_cp0 invr_gt0. *)
+(* by apply/eqP; rewrite sgr_cp0 invr_lt0. *)
 Qed.
 
 Lemma absr_inv : {morph (@absr F) : x / x ^-1}.
@@ -2508,6 +2521,7 @@ Export PartialOrder.IntegralDomainTheory.
 Export TotalOrder.IntegralDomainTheory.
 Export TotalOrder.FieldTheory.
 (* Export TotalOrder.RealClosedFieldTheory. *)
+
 End Theory.
 
 End OrderedRing.
