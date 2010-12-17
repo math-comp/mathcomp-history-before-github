@@ -2527,10 +2527,11 @@ let nf_open_term sigma0 ise c =
     end
   | _ -> map_constr nf c' in
   let copy_def k evi () =
+    if evar_body evi != Evd.Evar_empty then () else
     match Evd.evar_body (Evd.find s k) with
     | Evar_defined c' -> s' := Evd.define k (nf c') !s'
     | _ -> () in
-  let c' = nf c in let _ = Evd.fold_undefined copy_def sigma0 () in !s', c'
+  let c' = nf c in let _ = Evd.fold copy_def sigma0 () in !s', c'
 
 (* We try to work around the fact that evarconv drops secondary unification *)
 (* problems; we give up after 10 iterations because Evarutil.solve_refl can *)
@@ -2550,15 +2551,14 @@ let unif_end env sigma0 ise0 pt ok =
     else
     let sigma' = ise in
     if sigma' != sigma then
-      let unif_evtype ev _ ise' =
-        let evi = Evd.find sigma' ev in
-        match evi.evar_body with
-        | Evar_defined c when is_unfiltered evi ->
-          let ev_env = Evd.evar_env evi in
-          let t = Retyping.get_type_of ev_env ise' c in
-          unif_HOtype ev_env ise' t evi.evar_concl
-        | _ -> ise' in
-      loop sigma' (Evd.fold_undefined unif_evtype sigma ise) m
+      let undefined ev = try not (Evd.is_defined sigma ev) with _ -> true in
+      let unif_evtype ev evi ise' = match evi.evar_body with
+      | Evar_defined c when undefined ev && is_unfiltered evi ->
+        let ev_env = Evd.evar_env evi in
+        let t = Retyping.get_type_of ev_env ise' c in
+        unif_HOtype ev_env ise' t evi.evar_concl
+      | _ -> ise' in
+      loop sigma' (Evd.fold unif_evtype sigma' ise) m    
     else
       (* Assume the proof engine ensures that typeclass evar assignments *)
       (* are type-correct. *)
