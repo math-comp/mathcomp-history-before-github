@@ -667,7 +667,7 @@ Corollary pi_of_cent_sigma : forall M x x',
     M \in 'M -> x \in (M`_\sigma)^# ->
     x' \in ('C_M[x])^# -> \sigma(M)^'.-elt x' ->
      (*1*)  \kappa(M).-elt x' /\ 'C[x] \subset M
-  \/ (*2*) [/\ \tau2(M).-elt x', \ell_\sigma(x') = 1%N & 'M('C[x']) = [set M]].
+  \/ (*2*) [/\ \tau2(M).-elt x', \ell_\sigma(x') == 1%N & 'M('C[x']) = [set M]].
 Proof.
 move=> M x y maxM; case/setD1P=> ntx Ms_x; case/setD1P=> nty cMxy s'y.
 have [My cxy] := setIP cMxy.
@@ -687,7 +687,7 @@ have [t2y | not_t2y] := boolP (\tau2(M).-elt y); [right | left].
     by apply: sub_p_elt t2y => q; move/st2MsH; case/andP.
   rewrite /sigma_length (cardsD1 y.`_(\sigma(H))).
   rewrite mem_sigma_decomposition //; last by rewrite constt_p_elt.
-  apply/eqP; rewrite eqSS -sigma_decomposition_constt' //.
+  rewrite eqSS -sigma_decomposition_constt' //.
   by apply/ell_sigma0P; rewrite (constt1P _) ?p_eltNK.
 have{not_t2y} [p piYp t2'p]: exists2 p, p \in \pi(#[y]) & p \notin \tau2(M).
   by apply/allPn; rewrite negb_and cardG_gt0 in not_t2y.
@@ -1059,6 +1059,106 @@ have [MSxMz MSxMt]: Mz \in 'M_\sigma[x] /\  (M :^ t)%G \in 'M_\sigma[x].
   by rewrite {2}def_x cycleJ sigma_mmaxJ inE maxMz inE maxM !cycle_subG.
 have [z _ ->] := atransP2 transRx MSxMt MSxMz.
 by exists (t * z); rewrite ?inE ?actM.
+Qed.
+
+(* This is B & G, Lemma 14.6. *)
+Lemma sigma_decomposition_dichotomy : forall g : gT, g != 1 ->
+     (existsb x, (\ell_\sigma(x) == 1%N) && (x^-1 * g \in 'R[x]))
+ (+) (existsb y, (\ell_\sigma(y) == 1%N) &&
+      (let y' := y^-1 * g in existsb M,
+       [&& M \in 'M_\sigma[y], y' \in ('C_M[y])^# & \kappa(M).-elt y'])).
+Proof.
+move=> g ntg; have [[x ell1x Rx'] | ] := altP exists_inP.
+  rewrite /= negb_exists_in; apply/forall_inP=> y ell1y.
+  set y' := y^-1 * g; set x' := x^-1 * g in Rx'.
+  apply/existsP=> [[M]]; case/and3P=> MSyM CMy_y' kMy'.
+  have [maxM Ms_y] := setIdP MSyM; rewrite cycle_subG in Ms_y.
+  have [nty'] := setD1P CMy_y'; case/setIP=> My'; move/cent1P=> cyy'.
+  have [[nty _] sMy]:= (ell_sigma1P y ell1y, mem_p_elt (pcore_pgroup _ _) Ms_y).
+  have sM'y': \sigma(M)^'.-elt y' := sub_p_elt (@kappa_sigma' M) kMy'.
+  have t2M'y': \tau2(M)^'.-elt y'.
+    apply: sub_p_elt kMy' => p; move/kappa_tau13.
+    by case/orP; [exact: tau2'1 | apply: contraL; exact: tau3'2].
+  have xx'_y: y \in pred2 x x'.
+    suffices: y \in x |: [set x']^# by rewrite !inE nty.
+    rewrite -sigma_cover_decomposition // mulKVg 2!inE nty /=.
+    apply/imsetP; exists M => //; rewrite -(mulKVg y g) -/y' consttM //.
+    by rewrite (constt_p_elt sMy) (constt1P sM'y') mulg1.
+  have nt_x': x' != 1 by case/pred2P: xx'_y; rewrite /x' => <-.
+  have maxCY_M: M \in 'M('C[y]).
+    have Ms1_y: y \in (M`_\sigma)^# by exact/setD1P.
+    rewrite inE maxM; case/pi_of_cent_sigma: CMy_y' => // [[//] | [t2y']].
+    by rewrite -order_eq1 (pnat_1 t2y' t2M'y') in nty'.
+  have [[_ <- _ _] [|uniqNx _ t2Nx _ _]] := FT_signalizer_context ell1x.
+    by rewrite cardG_gt1; apply/trivgPn; exists x'.
+  rewrite -order_gt1 (pnat_1 sMy _) // -/(_.-elt _) in nty.
+  have{xx'_y} [eq_yx | eq_yx']: y = x \/ y = x' := pred2P xx'_y.
+    rewrite eq_yx uniqNx in maxCY_M *; rewrite (set1P maxCY_M).
+    by apply: sub_p_elt t2Nx => p; case/andP.
+  have eq_xy': x = y' by apply: (mulIg y); rewrite cyy' {1}eq_yx' !mulKVg.
+  have [[z _ defM] | notMGNx] := altP (@orbitP _ _ _ 'Js G 'N[x] M).
+    rewrite -order_eq1 (pnat_1 _ t2M'y') // in nty'.
+    by rewrite -defM (eq_pnat _ (tau2J _ _)) -eq_xy'.
+  have Ns_y: y \in 'N[x]`_\sigma by rewrite eq_yx'; case/setIP: Rx'.
+  apply: sub_p_elt (mem_p_elt (pcore_pgroup _ _) Ns_y) => p sNp.
+  have [maxN _] := mem_uniq_mmax uniqNx.
+  by apply: contraFN (sigma_partition _ _ notMGNx p) => // sMp; exact/andP.
+rewrite negb_exists_in; move/forall_inP=> not_sign_g.
+apply: wlog_neg; rewrite negb_exists_in; move/forall_inP=> not_kappa_g.
+have s'g: forall M, M \in 'M -> g \in M -> g.`_\sigma(M) = 1.
+  move=> M maxM; set x := g.`_\sigma(M); pose x' := g.`_(\sigma(M))^'.
+  have def_x': x^-1 * g = x' by rewrite -(consttC \sigma(M) g) mulKg.
+  apply: contraTeq => ntx.
+  have ell1x: \ell_\sigma(x) == 1%N.
+    rewrite /sigma_length (cardsD1 x.`_\sigma(M)).
+    rewrite -sigma_decomposition_constt' // mem_sigma_decomposition //.
+      by apply/ell_sigma0P; apply/constt1P; rewrite p_eltNK p_elt_constt.
+    by rewrite sub_in_constt // => ?.
+  apply: contra (not_sign_g _ ell1x) => Mg; rewrite def_x'.
+  have [-> | ntx'] := eqVneq x' 1; first exact: group1.
+  have cxx': x \in 'C[x'] by apply/cent1P; exact: commuteX2.
+  have cMx_x': x' \in ('C_M[x])^# by rewrite 3!inE ntx' cent1C cxx' groupX.
+  have Ms_x: x \in M`_\sigma.
+    by rewrite (mem_Hall_pcore (Msigma_Hall maxM)) ?p_elt_constt ?groupX.
+  have Ms1x: x \in (M`_\sigma)^# by exact/setD1P.
+  have sM'x': (\sigma(M))^'.-elt x' := p_elt_constt _ _.
+  have [[kMx' _] | [_ ell1x' uniqM]] := pi_of_cent_sigma maxM Ms1x cMx_x' sM'x'.
+    case/existsP: (not_kappa_g _ ell1x); exists M; rewrite def_x' cMx_x' /=.
+    by rewrite inE maxM cycle_subG Ms_x.
+  have MSx'_gt1: #|'M_\sigma[x']| > 1.
+    have [_ ntMSx'] := ell_sigma1P _ ell1x'.
+    rewrite ltn_neqAle lt0n cards_eq0 ntMSx' andbT eq_sym.
+    apply: contra ntx' => MSx'_eq1; rewrite -order_eq1 (pnat_1 _ sM'x') //.
+    have [N MSx'N] := set0Pn _ ntMSx'; have [maxN Ns_x'] := setIdP MSx'N.
+    rewrite -(eq_uniq_mmax uniqM maxN) ?cent1_sub_uniq_sigma_mmax //.
+    exact: pgroupS Ns_x' (pcore_pgroup _ _).
+  have defNx': 'N[x'] = M.
+    by apply: set1_inj; case/FT_signalizer_context: ell1x' => _ [|<-].
+  case/negP: (not_sign_g _ ell1x').
+  by rewrite -(consttC \sigma(M)^' g) mulKg consttNK inE defNx' Ms_x.
+have [x sg_x]: exists x, x \in sigma_decomposition g.
+  by apply/set0Pn; rewrite -cards_eq0 (sameP (ell_sigma0P g) eqP).
+have{sg_x} [ntx] := setD1P sg_x; case/imsetP=> M maxM def_x.
+wlog MSxM: M maxM def_x / M \in 'M_\sigma[x].
+  have sMx: \sigma(M).-elt x by rewrite def_x p_elt_constt.
+  have [|[z Ms_xz] _] := sigma_Jsub maxM sMx; first by rewrite cycle_eq1.
+  move/(_ (M :^ z^-1)%G)->; rewrite ?mmaxJ ?(eq_constt _ (sigmaJ M _)) //.
+  by rewrite inE mmaxJ maxM MsigmaJ -sub_conjg.
+have ell1x: \ell_\sigma(x) == 1%N.
+  by apply/ell_sigma1P; split=> //; apply/set0Pn; exists M.
+have notMg: g \notin M by apply: contra ntx; rewrite def_x; move/s'g->.
+have cxg: g \in 'C[x] by rewrite cent1C def_x groupX ?cent1id.
+have MSx_gt1: #|'M_\sigma[x]| > 1.
+  rewrite ltnNge; apply: contra notMg => MSx_le1; apply: subsetP cxg.
+  have [_ ntMSx] := ell_sigma1P _ ell1x.
+  by rewrite cent1_sub_uniq_sigma_mmax // eqn_leq MSx_le1 lt0n cards_eq0.
+have [_ [//|defNx _ _ _]] := FT_signalizer_context ell1x.
+case/(_ M)=> // _ _ _ hallMN; have [maxN sCxN] := mem_uniq_mmax defNx.
+have Ng: <[g]> \subset 'N[x] by rewrite cycle_subG (subsetP sCxN).
+have sN'g: \sigma('N[x])^'.-elt g by apply/constt1P; rewrite s'g // -cycle_subG.
+have [z _ MNgz] := Hall_subJ (mmax_sol maxN) hallMN Ng sN'g.
+case/eqP: ntx; rewrite def_x -(eq_constt _ (sigmaJ M z)) s'g ?mmaxJ //.
+by move: MNgz; rewrite conjIg cycle_subG; case/setIP.
 Qed.
 
 End Section14.
