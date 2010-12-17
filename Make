@@ -67,7 +67,7 @@ BGsection13.v
 BGsection14.v
 polydiv.v
 orderedalg.v
-polyorder.v
+#polyorder.v
 alt.v
 burnside_app.v
 vector.v
@@ -78,6 +78,10 @@ algebra.v
 galgebra.v
 fieldext.v
 character.v
+zint.v
+orderedalg.v
+orderedzint.v
+qnum.v
 
 
 COQC = $(COQBIN)ssrcoq
