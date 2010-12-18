@@ -773,7 +773,7 @@ Variable (gT : finGroupType).
 
 Hypothesis groupC : group_closure_field C gT.
 
-Let pGroupG (G: {group gT}) : [char C]^'.-group G.
+Let pGroupG : forall (G: {group gT}), [char C]^'.-group G.
 Proof.
 by move=> G; apply: sub_pgroup (pgroup_pi G)=> i _; rewrite inE /= Cchar.
 Qed.
