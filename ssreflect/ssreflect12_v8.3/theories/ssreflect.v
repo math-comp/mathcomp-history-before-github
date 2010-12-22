@@ -313,6 +313,7 @@ Implicit Arguments ssr_suff [Pgoal].
 Definition ssr_wlog := ssr_suff.
 Implicit Arguments ssr_wlog [Pgoal].
 
+
 (* Internal  N-ary congruence lemma for the congr tactic *)
 
 Fixpoint nary_congruence_statement (n : nat)

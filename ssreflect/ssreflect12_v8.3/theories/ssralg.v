@@ -3882,7 +3882,7 @@ Canonical Structure fieldType.
 Coercion decFieldType : type >-> DecidableField.type.
 Canonical Structure decFieldType.
 Notation closedFieldType := type.
-Notation ClosedFieldType T m := (pack T _ m _ _ id _ id).
+Notation ClosedFieldType T m := (@pack T _ m _ _ id _ id).
 Notation "[ 'closedFieldType' 'of' T 'for' cT ]" := (@clone T cT _ idfun)
   (at level 0, format "[ 'closedFieldType'  'of'  T  'for'  cT ]") : form_scope.
 Notation "[ 'closedFieldType' 'of' T ]" := (@clone T _ _ id)

@@ -74,7 +74,6 @@ theories/BGsection13.v
 theories/BGsection14.v
 theories/polydiv.v
 theories/orderedalg.v
-theories/polyorder.v
 theories/alt.v
 theories/burnside_app.v
 theories/vector.v
@@ -85,3 +84,7 @@ theories/algebra.v
 theories/galgebra.v
 theories/fieldext.v
 theories/character.v
+theories/zint.v
+theories/orderedalg.v
+theories/orderedzint.v
+theories/qnum.v
