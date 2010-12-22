@@ -4028,26 +4028,28 @@ let congrtac ((n, t), ty) ist gl =
 let newssrcongrtac arg ist gl =
   pp(lazy(str"===newcongr==="));
   pp(lazy(str"concl=" ++ pr_constr (pf_concl gl)));
+  (* utils *)
   let fs gl t = snd (nf_open_term (project gl) (project gl) t) in
-  let eq = build_coq_eq () in
-  let eq, _, eq_args, gl' = saturate gl eq (pf_type_of gl eq) 3 in
-  match (try Some (unify_HO gl' (pf_concl gl) eq) with _ -> None) with
-  | Some gl' ->
-    let ty = fs gl' (List.assoc 3 eq_args) in
-    assert(Intset.is_empty (Evarutil.evars_of_term ty));
-    congrtac (arg, Detyping.detype false [] [] ty) ist gl
-  | None ->
+  let tclMATCH_GOAL (c, gl_c) proj t_ok t_fail gl =
+    match try Some (unify_HO gl_c (pf_concl gl) c) with _ -> None with  
+    | Some gl_c -> tclTHEN (convert_concl (fs gl_c c)) (t_ok (proj gl_c)) gl
+    | None -> t_fail () gl in 
+  let mk_evar gl ty = 
     let env, sigma, si = pf_env gl, project gl, sig_it gl in
-    let sigma, lhs = Evarutil.new_evar (create_evar_defs sigma) env mkProp in
-    let sigma, rhs = Evarutil.new_evar (create_evar_defs sigma) env mkProp in
-    let gl = re_sig si sigma in
+    let sigma, x = Evarutil.new_evar (create_evar_defs sigma) env ty in
+    x, re_sig si sigma in
+  let ssr_congr lr = mkApp (mkSsrConst "ssr_congr_arrow",lr) in
+  (* here thw two cases: simple equality or arrow *)
+  let equality, _, eq_args, gl' = saturate gl (build_coq_eq ()) 3 in
+  tclMATCH_GOAL (equality, gl') (fun gl' -> fs gl' (List.assoc 0 eq_args))
+  (fun ty -> congrtac (arg, Detyping.detype false [] [] ty) ist)
+  (fun () ->
+    let lhs, gl' = mk_evar gl mkProp in let rhs, gl' = mk_evar gl' mkProp in
     let arrow = mkArrow lhs (lift 1 rhs) in
-    match (try Some (unify_HO gl (pf_concl gl) arrow) with _ -> None) with
-    | Some gl ->
-      tclTHENS (cut (mkApp (eq, [|mkProp;fs gl lhs;fs gl rhs|]))) [
-        tclTHEN (ipattac (IpatRw L2R)) (tclBY apply_top_tac);
-        congrtac (arg, mkRProp) ist ] gl
-    | None -> errorstrm (str "Conclusion is not an equality nor an arrow")
+    tclMATCH_GOAL (arrow, gl') (fun gl' -> [|fs gl' lhs;fs gl' rhs|])
+    (fun lr -> tclTHEN (apply (ssr_congr lr)) (congrtac (arg, mkRType) ist))
+    (fun _ _ -> errorstrm (str"Conclusion is not an equality nor an arrow")))
+    gl
 ;;
 
 TACTIC EXTEND ssrcongr
