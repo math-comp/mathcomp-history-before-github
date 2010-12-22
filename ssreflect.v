@@ -313,6 +313,7 @@ Implicit Arguments ssr_suff [Pgoal].
 Definition ssr_wlog := ssr_suff.
 Implicit Arguments ssr_wlog [Pgoal].
 
+
 (* Internal  N-ary congruence lemma for the congr tactic *)
 
 Fixpoint nary_congruence_statement (n : nat)
@@ -332,6 +333,11 @@ move=> n k; have: k _ _ := _; rewrite {1}/k.
 elim: n k  => [|n IHn] k Hk /= A; auto.
 by apply: IHn => B e He; apply: Hk => f x1 x2 <-.
 Qed.
+
+Lemma ssr_congr_arrow : forall Plemma Pgoal, Plemma = Pgoal -> Plemma -> Pgoal.
+Proof. by move=> H G ->; apply. Qed.
+Implicit Arguments ssr_congr_arrow [].
+
 
 (* View lemmas that don't use reflection.                       *)
 
