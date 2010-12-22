@@ -3414,7 +3414,7 @@ let unify_HO gl t1 t2 =
 
 (* TASSI: given (c : ty), generates (c ??? : ty[???/...]) with n evars *)
 exception NotEnoughProducts
-let saturate ?(beta=false) gl c ty n =
+let saturate ?(beta=false) gl c ?(ty=pf_type_of gl c) m =
   let env, sigma, si = pf_env gl, project gl, sig_it gl in
   let rec loop ty args sigma n = 
   if n = 0 then 
@@ -3424,7 +3424,7 @@ let saturate ?(beta=false) gl c ty n =
   else match kind_of_type ty with
   | ProdType (_, src, tgt) ->
       let sigma, x = Evarutil.new_evar (create_evar_defs sigma) env src in
-      loop (subst1 x tgt) ((n,x) :: args) sigma (n-1)
+      loop (subst1 x tgt) ((m - n,x) :: args) sigma (n-1)
   | CastType (t, _) -> loop t args sigma n 
   | LetInType (_, v, _, t) -> loop (subst1 v t) args sigma n
   | SortType _ -> assert false
@@ -3434,7 +3434,7 @@ let saturate ?(beta=false) gl c ty n =
       | ProdType _ -> loop ty args sigma n
       | _ -> assert false
   in
-   loop ty [] sigma n
+   loop ty [] sigma m
 
 (* TASSI: given the type of an elimination principle, it finds the higher order
  * argument (index), it computes it's arity and the arity of the eliminator and
@@ -3463,7 +3463,7 @@ let analyze_eliminator elimty =
        (fun i (_,rd) -> pred_id <= i || not (occurr2 (pred_id - i) rd))
        1 (assums_of_rel_context ctx))
   in
-  pred_id, n_elim_args, is_rec_elim, elim_is_dep, n_pred_args
+  n_elim_args - pred_id, n_elim_args, is_rec_elim, elim_is_dep, n_pred_args
   
 (* TASSI: This version of unprotects inlines the unfold tactic definition, 
  * since we don't want to wipe out let-ins, and it seems there is no flag
@@ -3496,8 +3496,7 @@ let dependent_apply_error =
 let applyn ~with_evars n t gl =
   if with_evars then
     let t, sigma = if n = 0 then t, project gl else
-      let ty = pf_type_of gl t in
-      let t, _, _, gl = saturate gl t ty n in (* saturate with evars *)
+      let t, _, _, gl = saturate gl t n in (* saturate with evars *)
       t, project gl in
     pp(lazy(str"Refine.refine " ++ pr_constr t));
     Refine.refine (sigma, t) gl
@@ -3560,24 +3559,25 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
     let env, sigma, si = pf_env gl, project gl, sig_it gl in
     let t, orig_t = fire_subst gl t, t in
     let n, t = pf_abs_evars orig_gl (sigma, t) in  
-    let t, _, _, newgl = saturate gl t (pf_type_of gl t) n in
+    let t, _, _, newgl = saturate gl t n in
     let sigma = project newgl in
     let sigma, t, cl, _ = pf_fill_occ gl cl occ t sigma t all_ok h in
     cl, unify_HO (re_sig si sigma) orig_t t in
   (* finds the eliminator applies it to evars and c saturated as needed  *)
   (* obtaining "elim ??? (c ???)". pred is the higher order evar         *)
-  let c, elim, elimty, elim_args, elim_is_dep, is_rec, pred, gl =
+  let c, elim, elimty, elim_args, n_elim_args, elim_is_dep, is_rec, pred, gl =
     match elim with
     | Some elim ->
       let elimty = pf_type_of gl elim in
       let pred_id, n_elim_args, is_rec, elim_is_dep, n_pred_args =
         analyze_eliminator elimty in
       let elim, elimty, elim_args, gl =
-        saturate ~beta:is_case gl elim elimty n_elim_args in
-      let pred, arg = List.assoc pred_id elim_args, List.assoc 1 elim_args in
+        saturate ~beta:is_case gl elim ~ty:elimty n_elim_args in
+      let pred = List.assoc pred_id elim_args in
+      let arg = List.assoc (n_elim_args - 1) elim_args in
       let c, c_ty, gl = let rec loop n =
         try
-          let c, c_ty, _, gl = saturate gl c c_ty n in
+          let c, c_ty, _, gl = saturate gl c ~ty:c_ty n in
           let gl = unify_HO gl arg c in
           c, c_ty, gl
         with
@@ -3587,7 +3587,7 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
         loop 0 in
       let elim_is_dep = List.length deps < n_pred_args in
       let fs = fire_subst gl in
-      fs c, fs elim, fs elimty, elim_args, elim_is_dep, is_rec, pred, gl
+      fs c, fs elim, fs elimty, elim_args, n_elim_args, elim_is_dep, is_rec, pred, gl
     | None ->
       let (kn, i) as ind, unfolded_c_ty = pf_reduce_to_quantified_ind gl c_ty in
       let sort = elimination_sort_of_goal gl in
@@ -3598,14 +3598,15 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
         analyze_eliminator elimty in
       let rctx = fst (decompose_prod_assum unfolded_c_ty) in
       let n_c_args = rel_context_length rctx in
-      let c, c_ty, t_args, gl = saturate gl c c_ty n_c_args in
+      let c, c_ty, t_args, gl = saturate gl c ~ty:c_ty n_c_args in
       let elim, elimty, elim_args, gl =
-        saturate ~beta:is_case gl elim elimty n_elim_args in
-      let pred, arg = List.assoc pred_id elim_args, List.assoc 1 elim_args in
+        saturate ~beta:is_case gl elim ~ty:elimty n_elim_args in
+      let pred = List.assoc pred_id elim_args in
+      let arg = List.assoc (n_elim_args - 1) elim_args in
       let gl = unify_HO gl arg c in
       let elim_is_dep = elim_is_dep && List.length deps < n_pred_args in
       let fs = fire_subst gl in
-      fs c, fs elim, fs elimty, elim_args, elim_is_dep, is_rec, pred, gl
+      fs c, fs elim, fs elimty, elim_args, n_elim_args, elim_is_dep, is_rec, pred, gl
   in
   let predty = pf_type_of gl pred in
   (* Patterns for the inductive types indexes to be bound in pred are computed
@@ -3678,8 +3679,8 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
     let pred_rctx, _ = decompose_prod_assum (fire_subst gl predty) in
     let concl, gen_eq_tac, clr = match eqid with 
     | Some (IpatId _) when not is_rec -> 
-        let k = List.length deps + 1 in
-        let c = fire_subst gl (List.assoc k elim_args) in
+        let k = List.length deps in
+        let c = fire_subst gl (List.assoc (n_elim_args - k - 1) elim_args) in
         let t = pf_type_of gl c in
         let gen_eq_tac =
           let refl = mkApp (eq, [|t; c; c|]) in
@@ -3687,7 +3688,7 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
           let new_concl = fire_subst gl new_concl in
           let erefl = fire_subst gl (mkRefl t c) in
           apply_type new_concl [erefl] in
-        let rel = k - if elim_is_dep then 0 else 1 in
+        let rel = k + if elim_is_dep then 1 else 0 in
         let src = mkProt mkProp (mkApp (eq,[|t; c; mkRel rel|])) in
         let concl = mkArrow src (lift 1 concl) in
         let clr = if deps <> [] then clr else [] in
