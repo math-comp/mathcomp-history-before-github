@@ -553,13 +553,23 @@ Lemma oppr_sub : forall x y, - (x - y) = y - x.
 Proof. by move=> x y; rewrite oppr_add addrC opprK. Qed.
 
 Lemma subr_eq : forall x y z, (x - z == y) = (x == y + z).
-Proof. by move=> x y z; rewrite (can2_eq (subrK _) (addrK _)). Qed.
+Proof. by move=> x y z; exact: can2_eq (subrK z) (addrK z) x y. Qed.
 
 Lemma subr_eq0 : forall x y, (x - y == 0) = (x == y).
 Proof. by move=> x y; rewrite subr_eq add0r. Qed.
 
+Lemma addr_eq0 : forall x y, (x + y == 0) = (x == - y).
+Proof. by move=> x y; rewrite -[x == _]subr_eq0 opprK. Qed.
+
+Lemma eqr_opp : forall x y, (- x == - y) = (x == y).
+Proof. exact: can_eq opprK. Qed.
+
+Lemma eqr_oppC : forall x y, (- x == y) = (x == - y).
+Proof. exact: inv_eq opprK. Qed. 
+
 Lemma mulr0n : forall x, x *+ 0 = 0. Proof. by []. Qed.
 Lemma mulr1n : forall x, x *+ 1 = x. Proof. by []. Qed.
+Lemma mulr2n : forall x, x *+ 2 = x + x. Proof. by []. Qed.
 
 Lemma mulrS : forall x n, x *+ n.+1 = x + x *+ n.
 Proof. by move=> x [|n] //=; rewrite addr0. Qed.
@@ -815,11 +825,14 @@ Proof. by move=> m n; exact: mulrn_addr. Qed.
 Lemma natr_sub : forall m n, n <= m -> (m - n)%:R = m%:R - n%:R :> R.
 Proof. by move=> m n; exact: mulrn_subr. Qed.
 
+Definition natr_sum := big_morph (natmul 1) natr_add (mulr0n 1).
+
 Lemma natr_mul : forall m n, (m * n)%:R = m%:R * n%:R :> R.
 Proof. by move=> m n; rewrite mulrnA -mulr_natr. Qed.
 
 Lemma expr0 : forall x, x ^+ 0 = 1. Proof. by []. Qed.
 Lemma expr1 : forall x, x ^+ 1 = x. Proof. by []. Qed.
+Lemma expr2 : forall x, x ^+ 2 = x * x. Proof. by []. Qed.
 
 Lemma exprS : forall x n, x ^+ n.+1 = x * x ^+ n.
 Proof. by move=> x [] //; rewrite mulr1. Qed.
@@ -932,6 +945,9 @@ Proof.
 by move=> x n; rewrite -mulN1r commr_exp_mull // /comm mulN1r mulrN mulr1.
 Qed.
 
+Lemma sqrrN : forall x, (- x) ^+ 2 = x ^+ 2.
+Proof. move=> x; exact: mulrNN. Qed.
+
 Lemma prodr_const : forall (I : finType) (A : pred I) (x : R),
   \prod_(i \in A) x = x ^+ #|A|.
 Proof. by move=> I A x; rewrite big_const -iteropE. Qed.
@@ -978,11 +994,32 @@ rewrite big1 ?add0r // => i _; rewrite !mulrA -exprS -leq_subS ?(valP i) //.
 by rewrite subSS (commr_exp _ (commr_sym cxy)) -mulrA -exprS subrr.
 Qed.
 
+Lemma exprn_add1 : forall x n,
+  (x + 1) ^+ n = \sum_(i < n.+1) x ^+ i *+ 'C(n, i).
+Proof.
+move=> x n; rewrite addrC (exprn_addl_comm n (commr_sym (commr1 x))).
+by apply: eq_bigr => i _; rewrite exp1rn mul1r.
+Qed.
+
 Lemma subr_expn_1 : forall x n, x ^+ n - 1 = (x - 1) * (\sum_(i < n) x ^+ i).
 Proof.
 move=> x n; rewrite -!(oppr_sub 1) mulNr -{1}(exp1rn n).
 rewrite (subr_expn_comm _ (commr_sym (commr1 x))); congr (- (_ * _)).
 by apply: eq_bigr => i _; rewrite exp1rn mul1r.
+Qed.
+
+Lemma sqrr_add1 : forall x, (x + 1) ^+ 2 = x ^+ 2 + x *+ 2 + 1.
+Proof.
+move=> x; rewrite exprn_add1 !big_ord_recr big_ord0 /= add0r.
+by rewrite addrC addrA addrAC.
+Qed.
+
+Lemma sqrr_sub1 : forall x, (x - 1) ^+ 2 = x ^+ 2 - x *+ 2 + 1.
+Proof. by move=> x; rewrite -sqrrN oppr_sub addrC sqrr_add1 sqrrN mulNrn. Qed.
+
+Lemma subr_sqr_1 : forall x, x ^+ 2 - 1 = (x - 1) * (x + 1).
+Proof.
+by move=> x; rewrite subr_expn_1 !big_ord_recr big_ord0 /= addrAC add0r.
 Qed.
 
 Definition Frobenius_aut p of p \in [char R] := fun x => x ^+ p.
@@ -1928,6 +1965,25 @@ Lemma subr_expn : forall x y n,
   x ^+ n - y ^+ n = (x - y) * (\sum_(i < n) x ^+ (n.-1 - i) * y ^+ i).
 Proof. by move=> x y n; rewrite -subr_expn_comm //; exact: mulrC. Qed.
 
+Lemma sqrr_add : forall x y, (x + y) ^+ 2 = x ^+ 2 + x * y *+ 2 + y ^+ 2.
+Proof.
+by move=> x y; rewrite exprn_addl !big_ord_recr big_ord0 /= add0r mulr1 mul1r.
+Qed.
+
+Lemma sqrr_sub : forall x y, (x - y) ^+ 2 = x ^+ 2 - x * y *+ 2 + y ^+ 2.
+Proof. by move=> x y; rewrite sqrr_add mulrN mulNrn sqrrN. Qed.
+
+Lemma subr_sqr : forall x y, x ^+ 2 - y ^+ 2 = (x - y) * (x + y).
+Proof.
+by move=> x y; rewrite subr_expn !big_ord_recr big_ord0 /= add0r mulr1 mul1r.
+Qed.
+
+Lemma subr_sqr_add_sub : forall x y, (x + y) ^+ 2 - (x - y) ^+ 2 = x * y *+ 4.
+Proof.
+move=> x y; rewrite sqrr_add sqrr_sub -!(addrAC _ (y ^+ 2)) oppr_sub.
+by rewrite addrC addrA subrK -mulrn_addr.
+Qed.
+
 Section FrobeniusAutomorphism.
 
 Variables (p : nat) (charRp : p \in [char R]).
@@ -2237,6 +2293,13 @@ Proof. by rewrite -{2}(mulVr unitr1) mulr1. Qed.
 
 Lemma div1r : forall x, 1 / x = x^-1. Proof. by move=> x; rewrite mul1r. Qed.
 Lemma divr1 : forall x, x / 1 = x. Proof. by move=> x; rewrite invr1 mulr1. Qed.
+
+Lemma natr_div : forall m d,
+  d %| m -> unit (d%:R : R) -> (m %/ d)%:R = m%:R / d%:R :> R.
+Proof.
+move=> m d; rewrite dvdn_eq; move/eqP=> def_m unit_d.
+by rewrite -{2}def_m natr_mul mulrK.
+Qed.
 
 Lemma unitr0 : unit (0 : R) = false.
 Proof.
@@ -3256,6 +3319,15 @@ Qed.
 Lemma mulIf : forall x, x != 0 -> injective ( *%R^~ x).
 Proof. move=> x nz_x y z; rewrite -!(mulrC x); exact: mulfI. Qed.
 
+Lemma sqrf_eq1 : forall x, (x ^+ 2 == 1) = (x == 1) || (x == -1).
+Proof.
+by move=> x; rewrite -subr_eq0 subr_sqr_1 mulf_eq0 subr_eq0 addr_eq0.
+Qed.
+
+Lemma expfS_eq1 : forall x n,
+  (x ^+ n.+1 == 1) = (x == 1) || (\sum_(i < n.+1) x ^+ i == 0).
+Proof. by move=> x n; rewrite -![_ == 1]subr_eq0 subr_expn_1 mulf_eq0. Qed.
+
 Canonical Structure regular_idomainType := [idomainType of R^o].
 
 End IntegralDomainTheory.
@@ -3420,6 +3492,13 @@ Proof.
 split=> charF0 n; last by rewrite !inE charF0 andbC; case: eqP => // ->.
 case: posnP => [-> | n_gt0]; first exact: eqxx.
 by apply/negP; case/natf0_char=> // p; rewrite charF0.
+Qed.
+
+Lemma char0_natf_div :
+  [char F] =i pred0 -> forall m d, d %| m -> (m %/ d)%:R = m%:R / d%:R :> F.
+Proof.
+move/charf0P=> char0F m [|d] d_dv_m; first by rewrite divn0 invr0 mulr0.
+by rewrite natr_div // unitfE char0F.
 Qed.
 
 Section FieldMorphismInj.
@@ -3928,14 +4007,18 @@ Definition subr0 := subr0.
 Definition sub0r := sub0r.
 Definition subr_eq := subr_eq.
 Definition subr_eq0 := subr_eq0.
+Definition addr_eq0 := addr_eq0.
+Definition eqr_opp := eqr_opp.
+Definition eqr_oppC := eqr_oppC.
 Definition sumr_opp := sumr_opp.
 Definition sumr_sub := sumr_sub.
 Definition sumr_muln := sumr_muln.
 Definition sumr_muln_r := sumr_muln_r.
 Definition sumr_const := sumr_const.
 Definition mulr0n := mulr0n.
-Definition mulrS := mulrS.
 Definition mulr1n := mulr1n.
+Definition mulr2n := mulr2n.
+Definition mulrS := mulrS.
 Definition mulrSr := mulrSr.
 Definition mulrb := mulrb.
 Definition mul0rn := mul0rn.
@@ -3970,11 +4053,13 @@ Definition mulr_natl := mulr_natl.
 Definition mulr_natr := mulr_natr.
 Definition natr_add := natr_add.
 Definition natr_sub := natr_sub.
+Definition natr_sum := natr_sum.
 Definition natr_mul := natr_mul.
 Definition natr_exp := natr_exp.
 Definition expr0 := expr0.
 Definition exprS := exprS.
 Definition expr1 := expr1.
+Definition expr2 := expr2.
 Definition exp1rn := exp1rn.
 Definition exprn_addr := exprn_addr.
 Definition exprSr := exprSr.
@@ -3999,10 +4084,15 @@ Definition signr_odd := signr_odd.
 Definition signr_eq0 := signr_eq0.
 Definition signr_addb := signr_addb.
 Definition exprN := exprN.
+Definition sqrrN := sqrrN.
 Definition exprn_addl_comm := exprn_addl_comm.
 Definition exprn_subl_comm := exprn_subl_comm.
 Definition subr_expn_comm := subr_expn_comm.
+Definition exprn_add1 := exprn_add1.
 Definition subr_expn_1 := subr_expn_1.
+Definition sqrr_add1 := sqrr_add1.
+Definition sqrr_sub1 := sqrr_sub1.
+Definition subr_sqr_1 := subr_sqr_1.
 Definition charf0 := charf0.
 Definition charf_prime := charf_prime.
 Definition dvdn_charf := dvdn_charf.
@@ -4029,6 +4119,10 @@ Definition prodr_opp := prodr_opp.
 Definition exprn_addl := exprn_addl.
 Definition exprn_subl := exprn_subl.
 Definition subr_expn := subr_expn.
+Definition sqrr_add := sqrr_add.
+Definition sqrr_sub := sqrr_sub.
+Definition subr_sqr := subr_sqr.
+Definition subr_sqr_add_sub := subr_sqr_add_sub.
 Definition mulrV := mulrV.
 Definition divrr := divrr.
 Definition mulVr := mulVr.
@@ -4050,6 +4144,7 @@ Definition unitr1 := unitr1.
 Definition invr1 := invr1.
 Definition divr1 := divr1.
 Definition div1r := div1r.
+Definition natr_div := natr_div.
 Definition unitr0 := unitr0.
 Definition invr0 := invr0.
 Definition unitr_opp := unitr_opp.
@@ -4074,6 +4169,8 @@ Definition expf_eq0 := expf_eq0.
 Definition expf_neq0 := expf_neq0.
 Definition mulfI := mulfI.
 Definition mulIf := mulIf.
+Definition sqrf_eq1 := sqrf_eq1.
+Definition expfS_eq1 := expfS_eq1.
 Definition unitfE := unitfE.
 Definition mulVf := mulVf.
 Definition mulfV := mulfV.
@@ -4088,6 +4185,7 @@ Definition prodf_inv := prodf_inv.
 Definition natf0_char := natf0_char.
 Definition charf'_nat := charf'_nat.
 Definition charf0P := charf0P.
+Definition char0_natf_div := char0_natf_div.
 Definition satP := @satP.
 Definition eq_sat := eq_sat.
 Definition solP := @solP.
@@ -4400,6 +4498,9 @@ rewrite big_cons ffunE big_cons; case: (P _)=> //.
   by rewrite !ffunE Hrec ffunE.
 by rewrite Hrec ffunE.
 Qed.
+
+Lemma ffunMn : forall f n x, (f *+ n) x = f x *+ n.
+Proof. by move=> f n x; elim: n => [|n IHn]; rewrite ?mulrS ffunE ?IHn. Qed.
 
 End FinFunZmod.
 

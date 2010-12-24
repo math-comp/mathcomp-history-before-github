@@ -1701,8 +1701,10 @@ End ImsetCurry.
 
 Section Partitions.
 
-Variable T : finType.
-Implicit Type A B D : {set T}.
+Variable T I : finType.
+Implicit Types A B D : {set T}.
+Implicit Type J : {set I}.
+Implicit Types F : I -> {set T}.
 Implicit Types P Q : {set {set T}}.
 
 Definition cover P := \bigcup_(A \in P) A.
@@ -1791,22 +1793,54 @@ case/andP=> PA _{y} /=; rewrite -(cover_at_eq _ tI) //.
 by case/andP=> _; move/eqP.
 Qed.
 
+Lemma trivIsetU1 : forall A P,
+    {in P, forall B, [disjoint A & B]} -> trivIset P -> set0 \notin P ->
+  trivIset (A |: P) /\ A \notin P.
+Proof.
+move=> A P tiAP tiP notPset0; split; last first.
+  apply: contra notPset0 => P_A; have:= tiAP A P_A. 
+  by rewrite -setI_eq0 setIid; move/eqP <-.
+apply/trivIsetP=> B1 B2; case/setU1P=> [-> | PB1].
+  by case/setU1P; [left | right; exact: tiAP].
+case/setU1P=> [-> | PB2]; last exact: (trivIsetP _ tiP).
+by right; rewrite disjoint_sym tiAP.
+Qed.
+
+Lemma cover_imset : forall J F,
+  cover [set F i | i <- J] = \bigcup_(i \in J) F i.
+Proof.
+move=> J F; apply/setP=> x; apply/bigcupP/bigcupP=> [[Fi] | [i Ji Fi_x]].
+  by case/imsetP=> i Ji ->; exists i.
+by exists (F i); first exact: mem_imset.
+Qed.
+
+Lemma trivIimset : forall J F (P := [set F i | i <- J]), 
+    {in J &, forall i j, j != i -> [disjoint F i & F j]} -> set0 \notin P ->
+  trivIset P /\ {in J &, injective F}.
+Proof.
+move=> J F P tiF notPset0; split=> [|i j Ji Jj /= eqFij].
+  apply/trivIsetP=> Fi Fj; case/imsetP=> i Ji ->; case/imsetP=> j Jj ->{Fi Fj}.
+  by have [-> | neq_ji] := eqVneq j i; [left | right; exact: tiF].
+apply: contraNeq notPset0 => neq_ij; apply/imsetP; exists i => //; apply/eqP.
+by rewrite eq_sym -[F i]setIid setI_eq0 {1}eqFij tiF.
+Qed.
+
 Section BigOps.
 
 Variables (R : Type) (idx : R) (op : Monoid.com_law idx).
-Let rhs P K F := \big[op/idx]_(A \in P) \big[op/idx]_(x \in A | K x) F x.
+Let rhs P K E := \big[op/idx]_(A \in P) \big[op/idx]_(x \in A | K x) E x.
 
-Lemma big_trivIset : forall P (K : pred T) (F : T -> R),
-  trivIset P -> \big[op/idx]_(x \in cover P | K x) F x = rhs P K F.
+Lemma big_trivIset : forall P (K : pred T) (E : T -> R),
+  trivIset P -> \big[op/idx]_(x \in cover P | K x) E x = rhs P K E.
 Proof.
-move=> P K F tI; rewrite (partition_big (cover_at^~ P) (mem P)) -/op => [|x].
+move=> P K E tiP; rewrite (partition_big (cover_at^~ P) (mem P)) -/op => [|x].
   by apply: eq_bigr => A PA; apply: eq_bigl => x; rewrite andbAC cover_at_eq.
 by case/andP=> Px _; exact: cover_at_mem.
 Qed.
 
-Lemma set_partition_big : forall P D (K : pred T) (F : T -> R),
-  partition P D -> \big[op/idx]_(x \in D | K x) F x = rhs P K F.
-Proof. move=> P D K F; case/and3P; move/eqP=> <- *; exact: big_trivIset. Qed.
+Lemma set_partition_big : forall P D (K : pred T) (E : T -> R),
+  partition P D -> \big[op/idx]_(x \in D | K x) E x = rhs P K E.
+Proof. move=> P D K E; case/and3P; move/eqP=> <- *; exact: big_trivIset. Qed.
 
 End BigOps.
 
@@ -1846,8 +1880,8 @@ Qed.
 End Partitions.
 
 Implicit Arguments trivIsetP [T P].
-Implicit Arguments big_trivIset [T R idx op K F].
-Implicit Arguments set_partition_big [T R idx op D K F].
+Implicit Arguments big_trivIset [T R idx op K E].
+Implicit Arguments set_partition_big [T R idx op D K E].
 
 Prenex Implicits cover trivIset partition cover_at trivIsetP.
 Prenex Implicits preim_at preim_partition.

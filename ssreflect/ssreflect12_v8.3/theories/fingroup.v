@@ -2756,6 +2756,12 @@ Qed.
 Lemma normal_subnorm : forall G H, (H <| 'N_G(H)) = (H \subset G).
 Proof. by move=> G H; rewrite /normal subsetIr subsetI normG !andbT. Qed.
 
+Lemma normalYG : forall G H, (H <| H <*> G) = (G \subset 'N(H)).
+Proof. by move=> G H; rewrite /normal joing_subl join_subG normG. Qed.
+
+Lemma normalGY : forall G H, (H <| G <*> H) = (G \subset 'N(H)).
+Proof. by move=> G H; rewrite joingC normalYG. Qed.
+
 Lemma gcore_sub : forall A G, gcore A G \subset A.
 Proof. by move=> A G; rewrite (bigcap_min 1) ?conjsg1. Qed.
 
