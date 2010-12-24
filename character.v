@@ -13,27 +13,6 @@ Import GroupScope GRing.Theory.
 Local Open Scope ring_scope.
 
 (**
-This should be moved to ssralg.v
-**)
-
-Lemma ffunMn: forall (aT : finType) (rT : zmodType)  (f : {ffun aT -> rT}) n x,
-  (f *+ n) x = f x *+ n.
-Proof.
-move=> aT rT f n x; elim: n => [|n IH].
-  by rewrite !mulr0n ffunE.
-by rewrite !mulrS ffunE IH.
-Qed.
-
-
-Lemma natr_sum : 
-   forall (I : Type) (r : seq I) (P : pred I) (F : I -> nat) (R: ringType),
-   (\sum_(j <- r | P j) F j)%:R = (\sum_(j <- r | P j) (F j)%:R)%R :> R.
-Proof.
-move=> I r P F R; elim: r=> [|a r IH]; first by rewrite !big_nil.
-by rewrite !big_cons; case: (P _); rewrite // natr_add IH.
-Qed.
-
-(**
  This should be moved to matrix.v
 **)
 

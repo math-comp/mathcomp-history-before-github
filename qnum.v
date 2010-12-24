@@ -8,7 +8,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-Open Scope ring_scope.
+Local Open Scope ring_scope.
 
 Record qnum : Set := Qnum {
   valq : (zint * zint) ;

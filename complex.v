@@ -99,7 +99,7 @@ Proof. by move=> x n; rewrite mulzC_eq0 negb_or. Qed.
 
 Lemma expCn_eq1 : forall x n, 0 <= x -> (x ^+ n.+1 == 1) = (x == 1).
 Proof.
-move=> x n hx; rewrite exprSn_eq1; case: (x == 1)=> //=.
+move=> x n hx; rewrite expfS_eq1; case: (x == 1)=> //=.
 rewrite eq_sym ltrWN // (@ltr_le_trans _ 1) ?ltC01 //.
 elim: n=> [|n ihn]; first by rewrite big_ord_recl big_ord0 addr0 lerr.
 by rewrite big_ord_recr /= addrC ger0_ler_add // exprSn_ge0.

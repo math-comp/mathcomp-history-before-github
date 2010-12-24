@@ -4,7 +4,6 @@ Require Import bigop finset prime fingroup morphism perm automorphism quotient.
 Require Import action gproduct gfunctor pgroup cyclic center commutator.
 Require Import gseries nilpotent sylow abelian maximal hall frobenius.
 Require Import ssralg zint orderedalg orderedzint qnum.
-Close Scope ring_scope. (* Patch for buggy files that expose operator scopes *)
 Require Import BGsection1 BGsection3 BGsection4 BGsection5 BGsection6.
 Require Import BGsection7 BGsection9 BGsection10 BGsection12 BGsection13.
 
@@ -26,19 +25,18 @@ Require Import BGsection7 BGsection9 BGsection10 BGsection12 BGsection13.
 (*                 'M_'F == the set of maximal groups M for which \kappa(M)   *)
 (*                          is empty, i.e., the maximal groups of Frobenius   *)
 (*                          type (in the final classification, this becomes   *)
-(*                          Type_I).                                          *)
+(*                          Type I).                                          *)
 (*                 'M_'P == the complement to 'M_'F in 'M, i.e., the set of M *)
 (*                          for which at least E1 has a proper prime action   *)
 (*                          on M`_\sigma.                                     *)
 (*                'M_'P1 == the set of maximal subgroups M such that \pi(M)   *)
 (*                          is the disjoint union of \sigma(M) and \kappa(M), *)
 (*                          i.e., for which the entire complement acts in a   *)
-(*                          prime manner (this is a subset of 'M_'P, which    *)
-(*                          becomes the troublesome Type_V in the final       *)
+(*                          prime manner (this troublesome subset of 'M_'P is *)
+(*                          ultimately refined into Types III-V in the final  *)
 (*                          classification).                                  *)
-(*                'M_'P2 == the complement to 'M_'P1 in 'M_'P; this subset is *)
-(*                          ultimately refined into Types II-IV in the final  *)
-(*                          classification.                                   *)
+(*                'M_'P2 == the complement to 'M_'P1 in 'M_'P; this becomes   *)
+(*                          Type II in the final classification.              *)
 (*                 'N[x] == if x != 1 and 'M_\sigma[x] > 1, the unique group  *)
 (*                          in 'M('C[x]) (see B & G, Theorem 14.4), and the   *)
 (*                          trivial group otherwise.                          *)
@@ -62,141 +60,6 @@ Import Prenex Implicits.
 Local Open Scope ring_scope.
 Local Open Scope nat_scope.
 Import GRing.Theory OrderedRing.Theory GroupScope.
-
-Section MoreFinset.
-
-Variable T : finType.
-
-Lemma cover_imset : forall (I : finType) (J : {set I}) (A : I -> {set T}),
-  cover [set A i | i <- J] = \bigcup_(i \in J) A i.
-Proof.
-move=> I J A; apply/setP=> x; apply/bigcupP/bigcupP=> [[Ai] | [i Ji Ai_x]].
-  by case/imsetP=> i Ji ->; exists i.
-by exists (A i); first exact: mem_imset.
-Qed.
-
-Lemma trivIsetU1 : forall (A : {set T}) (P : {set {set T}}),
-    {in P, forall B : {set T}, [disjoint A & B]} ->
-    trivIset P -> set0 \notin P ->
-  trivIset (A |: P) /\ A \notin P.
-Proof.
-move=> A P tiAP tiP notPset0; split; last first.
-  apply: contra notPset0 => P_A; have:= tiAP A P_A. 
-  by rewrite -setI_eq0 setIid; move/eqP <-.
-apply/trivIsetP=> B1 B2; case/setU1P=> [-> | PB1].
-  by case/setU1P; [left | right; exact: tiAP].
-case/setU1P=> [-> | PB2]; last exact: (trivIsetP tiP).
-by right; rewrite disjoint_sym tiAP.
-Qed.
-
-Lemma trivIimset : forall (I : finType) (J : {set I}) (A : I -> {set T}),
-    let P := [set A i | i <- J] in
-    {in J &, forall i j, j != i -> [disjoint A i & A j]} ->
-    set0 \notin P ->
-  trivIset P /\ {in J &, injective A}.
-Proof.
-move=> I J A P tiA notPset0; split=> [|i j Ji Jj /= eqAij].
-  apply/trivIsetP=> Ai Aj; case/imsetP=> i Ji ->; case/imsetP=> j Jj ->{Ai Aj}.
-  by have [-> | neq_ji] := eqVneq j i; [left | right; exact: tiA].
-apply: contraNeq notPset0 => neq_ij; apply/imsetP; exists i => //; apply/eqP.
-by rewrite eq_sym -[A i]setIid setI_eq0 {1}eqAij tiA.
-Qed.
-
-End MoreFinset.
-
-Section MoreOrderedAlg.
-
-Variables (F : oFieldType) (gT : finGroupType).
-
-Lemma natfG_neq0 : forall G : {group gT}, #|G|%:R != 0%R :> F.
-Proof. by move=> G; rewrite natmulP -(prednK (cardG_gt0 G)) mulSn1r_eq0. Qed.
-
-Lemma natf_indexg : forall G H : {group gT},
-  H \subset G -> #|G : H|%:R = (#|G|%:R / #|H|%:R)%R :> F.
-Proof.
-move=> G H sHG; apply: canRL (mulfK (natfG_neq0 H)) _.
-by rewrite mulrC -natr_mul LaGrange.
-Qed.
-
-Lemma ltr_nat : forall m n : nat, (m%:R < n%:R :> F) = (m < n).
-Proof. by move=> m n; rewrite !natmulP ltr_mulz1r ltz_nat. Qed. 
-
-Lemma ler_nat : forall m n : nat, (m%:R <= n%:R :> F) = (m <= n).
-Proof. by move=> m n; rewrite !natmulP ler_mulz1r lez_nat. Qed. 
-
-Lemma natr_gt0 : forall n : nat, (0 < n%:R :> F)%R = (0 < n).
-Proof. exact: (ltr_nat 0). Qed.
-
-End MoreOrderedAlg.
-
-Section MoreFinGroup.
-
-Variable gT : finGroupType.
-Implicit Type G H : {group gT}.
-
-Lemma normalYG : forall G H, (H <| H <*> G) = (G \subset 'N(H)).
-Proof. by move=> G H; rewrite /normal joing_subl join_subG normG. Qed.
-
-Lemma normalGY : forall G H, (H <| G <*> H) = (G \subset 'N(H)).
-Proof. by move=> G H; rewrite joingC normalYG. Qed.
-
-End MoreFinGroup.
-
-Section MoreDprod.
-
-Variable gT : finGroupType.
-Implicit Type A : {set gT}.
-Implicit Type G H K : {group gT}.
-
-Lemma bigdprod_card : forall I r (P : pred I) E G,
-    \big[dprod/1]_(i <- r | P i) E i = G ->
-  (\prod_(i <- r | P i) #|E i|)%N = #|G|.
-Proof.
-move=> rT I r P E; pose R A n := forall G, A = G -> n = #|G|.
-apply: (big_rel R) => [? <- | A1 n1 A2 n2 IH1 IH2 G defG | i Pi G -> //].
-  by rewrite cards1.
-have [[G1 G2 defG1 defG2] _ _ _] := dprodP defG.
-by rewrite -(dprod_card defG) defG1 defG2 -IH1 -?IH2.
-Qed.
-
-Lemma cprod_normal2 : forall K H G, K \* H = G -> K <| G /\ H <| G.
-Proof.
-move=> K H G; case/cprodP=> _ <- cKH; rewrite -cent_joinEr //.
-by rewrite normalYG normalGY !cents_norm // centsC.
-Qed.
-
-Lemma dprod_normal2 : forall K H G, K \x H = G -> K <| G /\ H <| G.
-Proof.
-by move=> K H G; case/dprodP=> _ KH cKH _; apply: cprod_normal2; rewrite cprodE.
-Qed.
-
-Lemma dprodYP : forall K H,
-  reflect (K \x H = K <*> H) (H \subset 'C(K) :\: K^#).
-Proof.
-move=> K H; rewrite subsetD -setI_eq0 setDE setIA -setDE setD_eq0 setIC.
-apply: (iffP andP) => [[cKH tiKH]|]; last by case/dprodP=> _ _ -> ->.
-by rewrite dprodEY // (trivgP tiKH).
-Qed.
-
-Lemma bigdprodYP : forall (I : finType) (P : pred I) (E : I -> {group gT}),
-  reflect (forall i, P i ->
-             (\prod_(j | P j && (j != i)) E j)%G \subset 'C(E i) :\: (E i)^#)
-          (\big[dprod/1]_(i | P i) E i == (\prod_(i | P i) E i)%G).
-Proof.
-move=> I P E; apply: (iffP eqP) => [defG i Pi | dxG].
-  rewrite !(bigD1 i Pi) /= in defG; have [[_ G' _ defG'] _ _ _] := dprodP defG.
-  by apply/dprodYP; rewrite -defG defG' bigprodGE (bigdprodEY defG').
-set Q := P; have: subpred Q P by [].
-elim: {Q}_.+1 {-2}Q (ltnSn #|Q|) => // n IHn Q leQn sQP.
-have [i Qi | Q0] := pickP Q; last by rewrite !big_pred0.
-rewrite (cardD1x Qi) add1n ltnS !(bigD1 i Qi) /= in leQn *.
-rewrite {}IHn {n leQn}// => [|j]; last by case/andP; move/sQP.
-apply/dprodYP; apply: subset_trans (dxG i (sQP i Qi)); rewrite !bigprodGE.
-apply: genS; apply/bigcupsP=> j; case/andP=> Qj ne_ji.
-by rewrite (bigcup_max j) ?sQP.
-Qed.
-
-End MoreDprod.
 
 Section Definitons.
 
@@ -1317,6 +1180,32 @@ case/eqP: ntx; rewrite def_x -(eq_constt _ (sigmaJ M z)) s'g ?mmaxJ //.
 by move: MNgz; rewrite conjIg cycle_subG; case/setIP.
 Qed.
 
+Section PTypeEmbedding.
+Implicit Types Mi Mj : {group gT}.
+Implicit Type Ks : {set gT}.
+
+(* This is B & G, Theorem 14.7. *)
+(* This theorem provides the basis for the maximal subgroup classification,   *)
+(* the main output of the local analysis. Note that we handle differently the *)
+(* two separate instances of non-structural proof (by analogy) that occur in  *)
+(* the textbook, p. 112, l. 7 and p. 113, l. 22. For the latter we simply use *)
+(* global induction on the size of the class support of the TI-set \hat{Z}    *)
+(* (for this reason we have kept the assertion that this is greater than half *)
+(* of the size of G, even though this is not used later in the proof; we did  *)
+(* drop the more precise lower bound). For the former we prove a preliminary  *)
+(* lemma that summarizes the four results of the beginning of the proof that  *)
+(* used after p. 112, l. 7 -- note that this also gets rid of a third non     *)
+(* structural argument (on p. 112, l. 5).                                     *)
+(*   Also, note that the direct product decomposition of Z and the K_i, and   *)
+(* its direct relation with the sigma-decomposition of elements of Z (p. 112, *)
+(* l. 13-19) is NOT materially used in the rest of the argument, though it    *)
+(* does obviously help a human reader forge a mental picture of the situation *)
+(* at hand. Only the first remark, l. 13, is used to prove the alternative    *)
+(* definition of T implicit in the remarks l. 22-23. Accordingly, we have     *)
+(* suppressed most of these intermediate results: we have only kept the proof *)
+(* that Z is the direct product of the K_i^*, though we discard this result   *)
+(* immediately (its 24-line proof just nudges the whole proof size slightyly  *)
+(* over the 600-line bar).                                                    *)
 Theorem Ptype_embedding : forall M K,
     M \in 'M_'P -> \kappa(M).-Hall(M) K ->
   exists2 Mstar, Mstar \in 'M_'P /\ gval Mstar \notin M :^: G
@@ -1338,134 +1227,121 @@ Theorem Ptype_embedding : forall M K,
       (*g*) {in 'M_'P, forall H, gval H \in M :^: G :|: Mstar :^: G}
     & (*h*) M^`(1) ><| K = M]].
 Proof.
+pose isKi Ks M K := [&& M \in 'M_'P, \kappa(M).-Hall(M) K & Ks \subset K].
+have Pmax_sym: forall M K X (Ks := 'C_(M`_\sigma)(K)) (Z := K <*> Ks) Mi,
+    M \in 'M_'P -> \kappa(M).-Hall(M) K -> X \in 'E^1(K) -> Mi \in 'M('N(X)) ->
+ [/\ Z \subset Mi, gval Mi \notin M :^: G, exists Ki, isKi Ks Mi Ki
+   & {in 'E^1(Ks), forall Xs, Z \subset 'N_Mi(gval Xs)}].
+- move=> M K X Ks Z Mi PmaxM hallK E1X maxNMi.
+  have [[_ maxM] [maxMi sNXMi]] := (setIdP PmaxM, setIdP maxNMi).
+  have [_ [defNK defNX] [ntKs uniqCKs] _ _] := Ptype_structure PmaxM hallK.
+  rewrite -/Ks in defNK ntKs uniqCKs; have [_ mulKKs cKKs _] := dprodP defNK.
+  have{mulKKs} defZ: 'N_M(K) = Z by rewrite -mulKKs -cent_joinEr.
+  have sZMi: Z \subset Mi.
+    by rewrite -defZ; have [<- _] := defNX X E1X; rewrite setIC subIset ?sNXMi.
+  have [sKMi sKsMi] := joing_subP sZMi.
+  have sXMis: X \subset Mi`_\sigma by have [_ ->] := defNX X E1X.
+  have sMiX: \sigma(Mi).-group X := pgroupS sXMis (pcore_pgroup _ _).
+  have [q EqX] := nElemP E1X; have [sXK abelX dimX] := pnElemP EqX.
+  have piXq: q \in \pi(X) by rewrite -p_rank_gt0 p_rank_abelem ?dimX.
+  have notMGMi: gval Mi \notin M :^: G.
+    apply: contraL (pnatPpi sMiX piXq); case/imsetP=> a _ ->; rewrite sigmaJ.
+    exact: kappa_sigma' (pnatPpi (pHall_pgroup hallK) (piSg sXK piXq)).
+  have kMiKs: \kappa(Mi).-group Ks.
+    apply/pgroupP=> p p_pr; case/Cauchy=> // xs Ks_xs oxs.
+    pose Xs := <[xs]>%G; have sXsKs: Xs \subset Ks by rewrite cycle_subG.
+    have EpXs: Xs \in 'E_p^1(Ks) by rewrite p1ElemE // !inE sXsKs -oxs /=.
+    have sMi'Xs: \sigma(Mi)^'.-group Xs.
+      rewrite /pgroup /= -orderE oxs pnatE //=.
+      apply: contraFN (sigma_partition maxM maxMi notMGMi p) => /= sMi_p.
+      rewrite inE /= sMi_p -pnatE // -oxs andbT.
+      exact: pgroupS sXsKs (pgroupS (subsetIl _ _) (pcore_pgroup _ _)).
+    have uniqM: 'M('C(Xs)) = [set M] by apply: uniqCKs; apply/nElemP; exists p.
+    have [x Xx ntx] := trivgPn _ (nt_pnElem EqX isT).
+    have Mis_x: x \in (Mi`_\sigma)^# by rewrite !inE ntx (subsetP sXMis).
+    have CMix_xs: xs \in ('C_Mi[x])^#.
+      rewrite 2!inE -order_gt1 oxs prime_gt1 // inE -!cycle_subG.
+      rewrite (subset_trans sXsKs) //= sub_cent1 (subsetP _ x Xx) //.
+      by rewrite centsC (centSS sXsKs sXK).
+    have{sMi'Xs} [|[_ _]] := pi_of_cent_sigma maxMi Mis_x CMix_xs sMi'Xs.
+      by case; rewrite /p_elt oxs pnatE.
+    case/mem_uniq_mmax=> _ sCxsMi; case/negP: notMGMi.
+    by rewrite -(eq_uniq_mmax uniqM maxMi) ?orbit_refl //= cent_cycle.
+  have{kMiKs} [Ki hallKi sKsKi] := Hall_superset (mmax_sol maxMi) sKsMi kMiKs.
+  have{ntKs} PmaxMi: Mi \in 'M_'P.
+    rewrite !(maxMi, inE) andbT /= -partG_eq1 -(card_Hall hallKi) -trivg_card1.
+    exact: subG1_contra sKsKi ntKs.
+  have [_ [defNKi defNXs] _ _ _] := Ptype_structure PmaxMi hallKi.
+  split=> //= [|Xs]; first by exists Ki; exact/and3P.
+  rewrite -{1}[Ks](setIidPr sKsKi) nElemI -setIdE; case/setIdP=> E1Xs sXsKs.
+  have{defNXs} [defNXs _] := defNXs _ E1Xs; rewrite join_subG /= {2}defNXs.
+  by rewrite !subsetI sKMi sKsMi cents_norm ?normsG ?(centsS sXsKs) // centsC.
 move=> M K PmaxM hallK /=; set Ks := 'C_(M`_\sigma)(K); set Z := K <*> Ks.
 move: {2}_.+1 (ltnSn #|class_support (Z :\: (K :|: Ks)) G|) => nTG.
 elim: nTG => // nTG IHn in M K PmaxM hallK Ks Z *; rewrite ltnS => leTGn.
-have [maxM ntK]: M \in 'M /\ K :!=: 1.
-  case/setDP: PmaxM => maxM.
-  by rewrite inE maxM trivg_card1 (card_Hall hallK) partG_eq1.
+have [maxM notFmaxM]: M \in 'M /\ M \notin 'M_'F := setDP PmaxM.
+have{notFmaxM} ntK: K :!=: 1.
+  by rewrite inE maxM trivg_card1 (card_Hall hallK) partG_eq1 in notFmaxM *.
 have [_ [defNK defNX] [ntKs uniqCKs] _ _] := Ptype_structure PmaxM hallK.
 rewrite -/Ks in defNK ntKs uniqCKs; have [_ mulKKs cKKs _] := dprodP defNK.
 have{mulKKs} defZ: 'N_M(K) = Z by rewrite -mulKKs -cent_joinEr.
 pose MNX := \bigcup_(X \in 'E^1(K)) 'M('N(X)); pose MX := M |: MNX.
-have sZMNX: forall Mi, Mi \in MNX -> Z \subset Mi.
-  rewrite -defZ => Mi; case/bigcupP=> X E1X; case/setIdP=> _  sNXMi.
-  by have [<- _] := defNX X E1X; rewrite setIC subIset ?sNXMi.
-have notMG_MNX: forall Mi, Mi \in MNX -> gval Mi \notin M :^: G.
-  move=> Mi MNXi; have [X E1X maxNMi] := bigcupP MNXi.
-  have [[sKMi sKsMi] [maxMi _]] := (joing_subP (sZMNX _ MNXi), setIdP maxNMi).
-  have [_] := defNX X E1X; move/(_ Mi maxNMi) => sXMis.
-  have{sXMis} sMiX: \sigma(Mi).-group X := pgroupS sXMis (pcore_pgroup _ _).
-  have [q EqX] := nElemP E1X; have [sXK _ _] := pnElemP EqX.
-  apply: contra (nt_pnElem EqX isT); case/imsetP=> z _ defMi.
-  rewrite -(setIid X) coprime_TIg // (pnat_coprime sMiX) //.
-  apply: sub_pgroup (pgroupS sXK (pHall_pgroup hallK)) => p kMp.
-  by rewrite defMi kappa_sigma' 1?kappaJ.
+have notMG_MNX: {in MNX, forall Mi, gval Mi \notin M :^: G}.
+  by move=> Mi; case/bigcupP=> X E1X; case/(Pmax_sym M K).
 have MX0: M \in MX := setU11 M MNX.
 have notMNX0: M \notin MNX by apply/negP; move/notMG_MNX; rewrite orbit_refl.
-have kMNX_Ks: forall Mi, Mi \in MNX -> \kappa(Mi).-group Ks.
-  move=> Mi MNXi; have [X E1X maxNMi] := bigcupP MNXi.
-  have [[sKMi sKsMi] [maxMi _]] := (joing_subP (sZMNX _ MNXi), setIdP maxNMi).
-  have [_] := defNX X E1X; move/(_ Mi maxNMi) => sXMis.
-  have [q EqX] := nElemP E1X; have [sXK _ _] := pnElemP EqX.
-  have sMi'Ks: \sigma(Mi)^'.-group Ks.
-    apply: sub_pgroup (pgroupS (subsetIl _ _) (pcore_pgroup _ _)) => p sMp.
-    have not_sMiMp := sigma_partition maxM maxMi (notMG_MNX _ MNXi) p.
-    by apply: contraFN not_sMiMp => sMi_p; exact/andP.
-  apply/pgroupP=> p p_pr; case/Cauchy=> // xs Ks_xs oxs.
-  pose Xs := <[xs]>%G; have sXsKs: Xs \subset Ks by rewrite cycle_subG.
-  have EpXs: Xs \in 'E_p^1(Ks)  by rewrite p1ElemE // !inE sXsKs -oxs /=.
-  have uniqM: 'M('C(Xs)) = [set M] by apply: uniqCKs; apply/nElemP; exists p.
-  have [x Xx ntx] := trivgPn _ (nt_pnElem EqX isT).
-  have Mis_x: x \in (Mi`_\sigma)^# by rewrite !inE ntx (subsetP sXMis).
-  have CMix_xs: xs \in ('C_Mi[x])^#.
-    rewrite 2!inE -order_gt1 oxs prime_gt1 // inE -!cycle_subG.
-    rewrite (subset_trans sXsKs) //= sub_cent1 (subsetP _ x Xx) //.
-    by rewrite centsC (centSS sXsKs sXK).    
-  have [[]|[]] := pi_of_cent_sigma maxMi Mis_x CMix_xs (pgroupS sXsKs sMi'Ks).
-    by rewrite /p_elt oxs pnatE.
-  clear 2; case/mem_uniq_mmax=> _ sCxsMi; case/negP: (notMG_MNX _ MNXi).
-  by rewrite -(eq_uniq_mmax uniqM maxMi) ?orbit_refl //= cent_cycle.
-pose isKXhall Mi Ki := (\kappa(Mi).-Hall(Mi) Ki) && (Ks \subset Ki).
-pose K_ Mi := odflt K [pick Ki : {group gT} | isKXhall Mi Ki].
+pose K_ Mi := odflt K [pick Ki | isKi Ks Mi Ki].
+pose Ks_ Mi := 'C_(Mi`_\sigma)(K_ Mi).
 have K0: K_ M = K.
-  rewrite /K_; case: pickP => // K1; case/andP; case/and3P=> _ kK1 _ sKsK1.
+  rewrite /K_; case: pickP => // K1; case/and3P=> _; case/and3P=> _ kK1 _ sKsK1.
   have sM_Ks: \sigma(M).-group Ks := pgroupS (subsetIl _ _) (pcore_pgroup _ _).
   rewrite -(setIid Ks) coprime_TIg ?eqxx ?(pnat_coprime sM_Ks) // in ntKs.
   exact: sub_pgroup (@kappa_sigma' M) (pgroupS sKsK1 kK1).
-pose Ks_ Mi := 'C_(Mi`_\sigma)(K_ Mi).
 have Ks0: Ks_ M = Ks by rewrite /Ks_ K0.
-have K_spec: forall Mi, Mi \in MNX -> isKXhall Mi (K_ Mi).
-  move=> Mi MNXi; have [X _] := bigcupP MNXi; case/setIdP=> maxMi _.
-  have [[_ sKsMi] solMi] := (joing_subP (sZMNX _ MNXi), mmax_sol maxMi).
-  have [Ki hallKi sKsKi] := Hall_superset solMi sKsMi (kMNX_Ks _ MNXi).
-  by rewrite /K_; case: pickP => // noKi; case/andP: (noKi Ki).
+have K_spec: {in MNX, forall Mi, isKi Ks Mi (K_ Mi)}.
+  move=> Mi; case/bigcupP=> X ?; case/(Pmax_sym M K)=> // _ _ [Ki ?] _.
+  by rewrite /K_; case: pickP => // noKi; case/idP: (noKi Ki).
 have PmaxMX: {in MX, forall Mi, Mi \in 'M_'P /\ \kappa(Mi).-Hall(Mi)(K_ Mi)}.
   move=> Mi; case/setU1P=> [-> | MNXi]; first by rewrite K0.
-  have [[hallKi sKsKi] [X _ maxNMi]] := (andP (K_spec _ MNXi), bigcupP MNXi).
-  have [maxMi _] := setIdP maxNMi; rewrite !(maxMi, inE) andbT hallKi.
-  by rewrite -partG_eq1 -(card_Hall hallKi) -trivg_card1 (subG1_contra sKsKi).
-have{K_spec} defZX: forall Mi, Mi \in MX -> K_ Mi \x Ks_ Mi = Z.
+  by case/and3P: (K_spec _ MNXi).
+have ntKsX: {in MX, forall Mi, Ks_ Mi != 1}.
+  by move=> Mi; case/PmaxMX=> ?; case/Ptype_structure=> // _ _ [].
+pose co_sHallK Mi Zi := 
+  let sMi := \sigma(Mi) in sMi^'.-Hall(Zi) (K_ Mi) /\ sMi.-Hall(Zi) (Ks_ Mi).
+have hallK_Zi: {in MX, forall Mi, co_sHallK Mi (K_ Mi \x Ks_ Mi)}.
   move=> Mi MXi; have [PmaxMi hallKi] := PmaxMX _ MXi.
-  have{MXi} [-> | MNXi] := setU1P MXi; first by rewrite K0 Ks0 defNK. 
-  have [[X E1X maxNMi] [_ sKsKi]] := (bigcupP MNXi, andP (K_spec _ MNXi)).
+  have [_ [defNKs _] _ _ _] := Ptype_structure PmaxMi hallKi.
+  have [_ mulKKs _ _] := dprodP defNKs; rewrite defNKs.
+  have sMi_Kis: _.-group (Ks_ Mi) := pgroupS (subsetIl _ _) (pcore_pgroup _ _).
+  have sMi'Ki := sub_pgroup (@kappa_sigma' _) (pHall_pgroup hallKi).
+  exact: coprime_mulGp_Hall mulKKs sMi'Ki sMi_Kis.
+have{K_spec} defZX: {in MX, forall Mi, K_ Mi \x Ks_ Mi = Z}.
+  move=> Mi MXi; have [-> | MNXi] := setU1P MXi; first by rewrite K0 Ks0 defNK.
+  have [PmaxMi hallKi sKsKi] := and3P (K_spec _ MNXi).
+  have [X E1X maxNMi] := bigcupP MNXi.
+  have{defNX} [defNX] := defNX X E1X; move/(_ Mi maxNMi) => sXMis.
   have [Xs E1Xs]: exists Xs, Xs \in 'E^1(Ks).
     by apply/rank_geP; rewrite rank_gt0.
-  have [p EpXs] := nElemP E1Xs; have [sXsKs abelXs _] := pnElemP EpXs.
-  have [[maxMi _] [sKMi sKsMi]] := (setIdP maxNMi, joing_subP (sZMNX _ MNXi)).
-  have [_ [defNi defNXi] [_ uniqCKis] _ _] := Ptype_structure PmaxMi hallKi.
+  have [_ [defNi defNXi] _ _ _] := Ptype_structure PmaxMi hallKi.
   have [defNXs _] := defNXi _ (subsetP (nElemS 1 sKsKi) _ E1Xs).
-  pose Zi := 'N_Mi(K_ Mi); have sZZi: Z \subset Zi.
-    rewrite join_subG /= -{1}defNXs !subsetI sKMi sKsMi cents_norm ?normsG //.
-    by rewrite (centsS sXsKs) // centsC.
-  apply/eqP; rewrite defNi eq_sym eqEsubset sZZi /= -/Zi.
-  have sZiM: Zi \subset M.
-    rewrite -[Zi]defNXs subIset //= orbC.
-    rewrite (sub_uniq_mmax (uniqCKs _ E1Xs)) ?cent_sub //=.
-    have pXs := abelem_pgroup abelXs.
+  have [_ hallKis] := hallK_Zi _ MXi; rewrite defNi in hallKis.
+  have sZNXs: Z \subset 'N_Mi(Xs) by case/(Pmax_sym M K): maxNMi => // _ _ _ ->.
+  apply/eqP; rewrite eqEsubset andbC {1}defNi -defNXs sZNXs.
+  have [_ _ cKiKis tiKiKis] := dprodP defNi; rewrite dprodEY // -defZ -defNX.
+  have E1KiXs: Xs \in 'E^1(K_ Mi) := subsetP (nElemS 1 sKsKi) Xs E1Xs.
+  have [|_ _ _ -> //] := Pmax_sym Mi _ Xs M PmaxMi hallKi E1KiXs.
+    have [p EpXs] := nElemP E1Xs; have [_] := pnElemP EpXs; case/andP=> pXs _ _.
+    rewrite inE maxM (sub_uniq_mmax (uniqCKs _ E1Xs)) ?cent_sub //=.
     exact: mFT_norm_proper (nt_pnElem EpXs isT) (mFT_pgroup_proper pXs).
-  have [_ defZi cKiKis _] := dprodP defNi; rewrite /= -/Zi -/(Ks_ _) in defZi.
-  have [sKiM sKisM]: K_ Mi \subset M /\ Ks_ Mi \subset M.
-    by apply/mulGsubP; rewrite defZi sZiM.
-  have kKis: \kappa(M).-group (Ks_ Mi).
-    have sM'Kis: \sigma(M)^'.-group (Ks_ Mi).
-      apply: sub_pgroup (pgroupS (subsetIl _ _) (pcore_pgroup _ _)) => q sMi_q.
-      have not_sMiMq:= sigma_partition maxM maxMi (notMG_MNX _ MNXi) q.
-      by apply: contraFN not_sMiMq => sMq; exact/andP.
-    apply/pgroupP=> q q_pr; case/Cauchy=> // y Ksi_y oy.
-    pose Y := <[y]>%G; have sYKis: Y \subset Ks_ Mi by rewrite cycle_subG.
-    have EqY: Y \in 'E_q^1(Ks_ Mi)  by rewrite p1ElemE // !inE sYKis -oy /=.
-    have uniqMi: 'M('C(Y)) = [set Mi].
-      by apply: uniqCKis; apply/nElemP; exists q.
-    have [xs Xxs ntxs] := trivgPn _ (nt_pnElem EpXs isT).
-    have Ms_xs: xs \in (M`_\sigma)^#.
-      by rewrite !inE ntxs (subsetP (subset_trans sXsKs (subsetIl _ _))).
-    have CMxs_y: y \in ('C_M[xs])^#.
-      rewrite 2!inE -order_gt1 oy prime_gt1 // inE (subsetP sKisM) //=.
-      rewrite -cycle_subG (subset_trans sYKis) //= (subset_trans cKiKis) //.
-      by rewrite sub_cent1 (subsetP _ xs Xxs) // centsC (centsS sXsKs) ?centS.
-    have [[]|[]] := pi_of_cent_sigma maxM Ms_xs CMxs_y (pgroupS sYKis sM'Kis).
-      by rewrite /p_elt oy pnatE.
-    clear 2; case/mem_uniq_mmax=> _ sCyM; case/negP: (notMG_MNX _ MNXi).
-    by rewrite -(eq_uniq_mmax uniqMi maxM) ?orbit_refl //= cent_cycle.
-  have [K1 hallK1 sKisK1] := Hall_superset (mmax_sol maxM) sKisM kKis.
-  have{defNX} [defNX sMisX] := defNX _ E1X.
   have [q] := nElemP E1X; case/pnElemP=> sXK abelX dimX.
-  have sXcMisK: X \subset 'C_(Mi`_\sigma)(K_ Mi).
-    have sX_MisZi: X \subset Mi`_\sigma :&: Zi.
-      rewrite subsetI sMisX // (subset_trans sXK) //.
-      exact: subset_trans (joing_subl _ _) sZZi.
-    apply: subset_trans sX_MisZi _.
-    rewrite -defZi -group_modr ?subsetIl // coprime_TIg ?mul1g //.
-    apply: pnat_coprime (pcore_pgroup _ _) (sub_pgroup (@kappa_sigma' _) _).
-    exact: pHall_pgroup hallKi.
-  have E1K1X: X \in 'E^1(K1).
-    rewrite (subsetP (nElemS 1 sKisK1)) //.
-    by apply/nElemP; exists q; exact/pnElemP.
-  have [_ [_ defNK1] _ _ _] := Ptype_structure PmaxM hallK1.
-  have{defNK1 E1K1X} [defNK1 _] := defNK1 _ E1K1X.
-  rewrite -defZi -defZ mulG_subG /= -defNX {2}defNK1 !subsetI sKiM sKisM /=.
-  by rewrite andbC normsG //= cents_norm // (centsS sXcMisK) // centsC.
+  apply/nElemP; exists q; apply/pnElemP; split=> //.
+  have nKisZi: Ks_ Mi <| 'N_Mi(K_ Mi) by case/dprod_normal2: defNi.
+  rewrite (sub_normal_Hall hallKis) ?(pgroupS sXMis (pcore_pgroup _ _)) //=.
+  by rewrite -defNXs (subset_trans sXK) // (subset_trans (joing_subl _ Ks)).
+have{hallK_Zi} hallK_Z: {in MX, forall Mi, co_sHallK Mi Z}.
+  move=> Mi MXi; rewrite -(defZX _ MXi); exact: hallK_Zi.
+have nsK_Z: {in MX, forall Mi, K_ Mi <| Z /\ Ks_ Mi <| Z}. 
+  by move=> Mi; move/defZX; exact: dprod_normal2.
 have tiKs: {in MX &, forall Mi Mj, gval Mi != gval Mj -> Ks_ Mi :&: Ks_ Mj = 1}.
   move=> Mi Mj MXi MXj; apply: contraNeq; rewrite -rank_gt0.
   case/rank_geP=> X E1X; move: E1X (E1X); rewrite /= {1}setIC {1}nElemI.
@@ -1474,15 +1350,7 @@ have tiKs: {in MX &, forall Mi Mj, gval Mi != gval Mj -> Ks_ Mi :&: Ks_ Mj = 1}.
   have [_ _ [_ uniqMi] _ _] := Ptype_structure maxKi hallKi.
   have [_ _ [_ uniqMj] _ _] := Ptype_structure maxKj hallKj.
   by rewrite val_eqE -in_set1 -(uniqMj _ E1jX) (uniqMi _ E1iX) set11.
-have hallK_Z: forall (Mi : {group gT}) (sMi := \sigma(Mi)),
-  Mi \in MX -> sMi^'.-Hall(Z) (K_ Mi) /\ sMi.-Hall(Z) (Ks_ Mi). 
-- move=> Mi sMi MXi; have [_] := PmaxMX _ MXi; case/and3P=> _ kKi _.
-  case/dprodP: (defZX _ MXi) => _ defZi _ _; apply: (coprime_mulGp_Hall defZi).
-    exact: sub_pgroup (@kappa_sigma' _) kKi.
-  exact: pgroupS (subsetIl _ _) (pcore_pgroup _ _).
-have nsK_Z: forall Mi, Mi \in MX -> K_ Mi <| Z /\ Ks_ Mi <| Z. 
-  by move=> Mi; move/defZX; exact: dprod_normal2.
-have sKsKX: {in MX &, forall Mi Mj, gval Mj != gval Mi -> Ks_ Mj \subset K_ Mi}.
+have sKsKX: {in MX &, forall Mi Mj, Mj != Mi -> Ks_ Mj \subset K_ Mi}.
   move=> Mi Mj MXi MXj /= neqMji; have [hallKi hallKsi] := hallK_Z _ MXi.
   have [[_ nsKsjZ] [nsKiZ _]] := (nsK_Z _ MXj, nsK_Z _ MXi).
   rewrite (sub_normal_Hall hallKi) ?(normal_sub nsKsjZ) // -partG_eq1.
@@ -1494,7 +1362,7 @@ have exMNX: forall X,
   have [Mi maxNMi] := mmax_exists (mFT_norm_proper (nt_pnElem EpX isT) ltXG).
   have MNXi: Mi \in MNX by [apply/bigcupP; exists X]; exists Mi => //.
   by have [_ ->] := defNX X E1X.
-have dprodKsX: \big[dprod/1]_(Mi \in MX) Ks_ Mi = Z.
+have dprodKs_eqZ: \big[dprod/1]_(Mi \in MX) Ks_ Mi = Z; last clear dprodKs_eqZ.
   have sYKs_KX: forall Mi,
     Mi \in MX -> <<\bigcup_(Mj \in MX | Mj != Mi) Ks_ Mj>> \subset K_ Mi.
   - move=> Mi MXi; rewrite gen_subG.
@@ -1518,15 +1386,14 @@ have dprodKsX: \big[dprod/1]_(Mi \in MX) Ks_ Mi = Z.
   rewrite sub_gen ?(bigcup_max Mi) // (sub_normal_Hall hallKsi) //.
   rewrite (pi_pgroup pP) // (pnatPpi (pcore_pgroup _ _) (piSg sXMis _)) //.
   by have [_ ? dimX] := pnElemP EpX; rewrite -p_rank_gt0 p_rank_abelem ?dimX.
-pose PZ := [set (Ks_ (gval Mi))^# | Mi <- MX]; pose T := Z^# :\: cover PZ.
+pose PZ := [set (Ks_ Mi)^# | Mi <- MX]; pose T := Z^# :\: cover PZ.
 have defT: \bigcup_(Mi \in MX) (Ks_ Mi)^# * (K_ Mi)^# = T.
   apply/setP=> x; apply/bigcupP/setDP=> [[Mi MXi] | [Zx notZXx]].
     case/mulsgP=> y y'; case/setD1P=> nty Ks_y; case/setD1P=> nty' Ky' defx.
     have [_ defZi cKsKi tiKsKi] := dprodP (defZX _ MXi).
     rewrite 2!inE -[Z]defZi -(centC cKsKi) andbC {1}defx mem_mulg //=.
     have notKx: x \notin K_ Mi.
-      apply: contra nty; rewrite -in_set1 -set1gE -tiKsKi inE defx groupMr //.
-      by move->.
+      by rewrite -in_set1 -set1gE -tiKsKi inE Ks_y andbT defx groupMr in nty *.
     split; first exact: group1_contra notKx.
     rewrite cover_imset; apply/bigcupP=> [[Mj MXj]]; case/setD1P=> _ Ksj_x.
     rewrite (subsetP (sKsKX Mi Mj _ _ _)) // in notKx.
@@ -1563,7 +1430,7 @@ have oT: #|T| = #|Z| + #|MNX| - (\sum_(Mi \in MX) #|Ks_ Mi|).
     by rewrite (bigcup_max Kis) ?subsetIr.
   have notPZset0: set0 \notin PZ.
     apply/imsetP=> [[Mi MXi]]; apply/eqP; rewrite /= eq_sym setD_eq0 subG1.
-    by have [PmaxMi] := PmaxMX _ MXi; case/Ptype_structure=> // _ _ [].
+    exact: ntKsX.
   have [| tiPZ injKs] := trivIimset _ notPZset0.
     move=> Mi Mj MXi MXj /= neqMji.
     by rewrite -setI_eq0 -setDIl setD_eq0 setIC tiKs.
@@ -1576,14 +1443,14 @@ have oT: #|T| = #|Z| + #|MNX| - (\sum_(Mi \in MX) #|Ks_ Mi|).
     apply/bigcupsP=> Ksi; case/imsetP=> Mi MXi ->; apply: setSD.
     by case/nsK_Z: MXi => _; case/andP.
   by rewrite addnAC subn_add2l -(eqnP tiPZ) big_setU1 // big_imset //= addnK.
-have tiTscov: forall H, H \in 'M -> [disjoint T & H^~~].
-  move=> H maxH; apply/pred0P=> z; apply/andP=> [[/= Tz signHz]].
-  have ntz: z != 1 by case/setDP: Tz; case/setD1P.
-  have [x Hs_x xR_y] := bigcupP signHz; have ell1x := Msigma_ell1 maxH Hs_x.
-  have:= sigma_decomposition_dichotomy ntz.
+have tiTscov: {in 'M, forall H, [disjoint T & H^~~]}.
+  move=> H maxH; apply/pred0P=> t; apply/andP=> [[/= Tt scovHt]].
+  have ntt: t != 1 by case/setDP: Tt; case/setD1P.
+  have [x Hs_x xR_y] := bigcupP scovHt; have ell1x := Msigma_ell1 maxH Hs_x.
+  have:= sigma_decomposition_dichotomy ntt.
   rewrite (introT existsP) /=; last by exists x; rewrite ell1x -mem_lcoset.
-  rewrite -defT in Tz; have [Mi MXi Zi_z] := bigcupP Tz.
-  case/mulsgP: Zi_z => y y'; case/setD1P=> nty Ks_y; case/setD1P=> nty' Ky' ->.
+  rewrite -defT in Tt; have [Mi MXi Zi_t] := bigcupP Tt.
+  case/mulsgP: Zi_t => y y'; case/setD1P=> nty Ks_y; case/setD1P=> nty' Ky' ->.
   case/existsP; exists y; rewrite mulKg.
   have [[Mis_y cKy] [PmaxMi hallKi]] := (setIP Ks_y, PmaxMX _ MXi).
   have [[maxMi _] [sKiMi kMiKi _]] := (setDP PmaxMi, and3P hallKi).
@@ -1595,22 +1462,22 @@ have nzT: T != set0.
   apply/set0Pn; exists (y * y'); rewrite -defT; apply/bigcupP.
   by exists M; rewrite ?MX0 // K0 Ks0 mem_mulg 2?inE ?nty ?nty'.
 have [tiT defNT]: trivIset (T :^: G) /\ 'N(T) = Z.
+  have sTZ: {subset T <= Z} by apply/subsetP; rewrite 2!subDset setUA subsetUr.
   have nTZ: Z \subset 'N(T).
     rewrite normsD ?norms_bigcup ?normD1 ?normG //.
     apply/bigcapsP=> Ksi; case/imsetP=> Mi MXi ->{Ksi}; rewrite normD1.
     by case/nsK_Z: MXi => _; case/andP.
-  suffices tiT: forall z, T :&: T :^ z != set0 -> z \in Z.
-    split.
-      apply/trivIsetP=> Tx Ty; case/imsetP=> x _ ->; case/imsetP=> y _ ->.
-      rewrite -setI_eq0 -(inj_eq (@conjsg_inj _ x^-1)) conjIg conjsgK.
-      rewrite [set0 :^ _]imset0 -conjsgM; set z := y * x^-1.
-      have [Zz |] := boolP (z \in Z); last by right; exact: contraR (tiT z) _.
-      by left; rewrite -{1}(normsP nTZ _ Zz) conjsgM conjsgKV.
-    apply/eqP; rewrite eqEsubset nTZ andbT.
-    by apply/subsetP=> z nTz; rewrite tiT // (normP nTz) setIid.
-  have sTZ: {subset T <= Z} by apply/subsetP; rewrite 2!subDset setUA subsetUr.
-  move=> z; case/set0Pn=> t; case/setIP=> Tt; rewrite mem_conjg => Ttz.
-  have{Ttz} [Zt Ztz] := (sTZ t Tt, sTZ _ Ttz).
+  suffices tiT: forall a, T :&: T :^ a != set0 -> a \in Z.
+    split; last first.
+      apply/eqP; rewrite eqEsubset nTZ andbT.
+      by apply/subsetP=> a nTa; rewrite tiT // (normP nTa) setIid.
+    apply/trivIsetP=> Tx Ty; case/imsetP=> x _ ->; case/imsetP=> y _ ->.
+    rewrite -setI_eq0 -(inj_eq (@conjsg_inj _ x^-1)) conjIg conjsgK.
+    rewrite [set0 :^ _]imset0 -conjsgM; set a := y * x^-1.
+    have [Za |] := boolP (a \in Z); last by right; exact: contraR (tiT a) _.
+    by left; rewrite -{1}(normsP nTZ _ Za) conjsgM conjsgKV.
+  move=> a; case/set0Pn=> t; case/setIP=> Tt; rewrite mem_conjg => Tta.
+  have{Tta} [Zt Zta] := (sTZ t Tt, sTZ _ Tta).
   move: Tt; rewrite -defT; case/bigcupP=> Mi MXi; case/mulsgP=> y y'.
   case/setD1P=> nty Kisy; case/setD1P=> nty' Kiy' def_yy'.
   have [[hallKi hallKis] [nsKiZ _]] := (hallK_Z _ MXi, nsK_Z _ MXi).
@@ -1623,17 +1490,17 @@ have [tiT defNT]: trivIset (T :^: G) /\ 'N(T) = Z.
     have sMi'y' := mem_p_elt (pHall_pgroup hallKi) Kiy'.
     rewrite def_yy' !consttM // constt_p_elt // 2?(constt1P _) ?p_eltNK //.
     by rewrite mulg1 mul1g constt_p_elt.
-  have: z \in Mi.
+  have: a \in Mi.
     apply: contraR nty; rewrite -in_setC -in_set1 -set1gE; move/tiKsi <-.
-    rewrite inE Kisy mem_conjg defy -consttJ groupX ?(subsetP _ _ Ztz) //.
+    rewrite inE Kisy mem_conjg defy -consttJ groupX ?(subsetP _ _ Zta) //.
     by rewrite -defZi defNKi subsetIl.
   apply/implyP; apply: contraR nty'; rewrite negb_imply andbC -in_setD.
   rewrite -in_set1 -set1gE; move/tiKi <-; rewrite inE Kiy' defy' mem_conjg.
   by rewrite -consttJ (mem_normal_Hall hallKi nsKiZ) ?p_elt_constt ?groupX.
 pose n : qnum := #|MNX|%:R; pose g : qnum := #|G|%:R.
-pose z : qnum := #|Z|%:R; have nz_z: z != 0%R := natfG_neq0 _ _.
+pose z : qnum := #|Z|%:R; have nz_z: z != 0%R := natrG_neq0 _ _.
 pose k_ Mi : qnum := #|K_ Mi|%:R.
-have nz_ks: #|Ks_ _|%:R != 0%R :> qnum := natfG_neq0 _ _.
+have nz_ks: #|Ks_ _|%:R != 0%R :> qnum := natrG_neq0 _ _.
 pose TG := class_support T G.
 have oTG: (#|TG|%:R = (1 + n / z - \sum_(Mi \in MX) (k_ Mi)^-1) * g)%R.
   rewrite /TG class_supportEr -cover_imset -(eqnP tiT).
@@ -1642,7 +1509,7 @@ have oTG: (#|TG|%:R = (1 + n / z - \sum_(Mi \in MX) (k_ Mi)^-1) * g)%R.
   rewrite sum_nat_const card_conjugates setTI defNT.
   rewrite natr_mul natf_indexg ?subsetT //= -/z -mulrA mulrC; congr (_ * _)%R.
   rewrite oT natr_sub; last by rewrite ltnW // -subn_gt0 lt0n -oT cards_eq0.
-  rewrite mulrC natr_add -/n -/z (big_morph _ (natr_add _) (mulr0n _)) /=.
+  rewrite mulrC natr_add -/n -/z natr_sum /=.
   rewrite mulr_subl mulr_addl big_distrl divff //=; congr (_ - _)%R. 
   apply: eq_bigr => Mi MXi; have defZi := defZX _ MXi.
   by rewrite /z -(dprod_card defZi) natr_mul invf_mul mulrC divfK.  
@@ -1655,24 +1522,24 @@ have [Mi MXi P2maxMi]: exists2 Mi, Mi \in MX & Mi \in 'M_'P2.
   have{allP1} min_ssupMX: forall Mi,
     Mi \in MX -> (#|ssup Mi|%:R >= ((k_ Mi)^-1 - (z *+ 2)^-1) * g)%R.
   - move=> Mi MXi; have [PmaxMi hallKi] := PmaxMX _ MXi.
-    have [[U [_ _ P1Mi] [_ _ defMi]] _ _ _ _] := Ptype_structure PmaxMi hallKi.
-    have [maxMi _] := setDP PmaxMi.
+    have [[U [_ _ P1Mi] [_ _ defMi]]] := Ptype_structure PmaxMi hallKi.
+    case=> defZi _ _ _ _; have [maxMi _] := setDP PmaxMi.
     have{P1Mi} U1: U :==: 1; last rewrite {U U1}(eqP U1) sdprod1g in defMi.
       by rewrite P1Mi; apply: contraR (allP1 _ MXi) => ?; exact/setDP.
     rewrite card_class_support_sigma // natr_mul natf_indexg ?subsetT // -/g.
     rewrite mulrCA mulrC ler_pmul2lW ?ler0n // -subn1 natr_sub ?cardG_gt0 //.
     rewrite mulr1n mulr_subl -{1}(sdprod_card defMi) natr_mul invf_mul.
-    rewrite mulVKf ?natfG_neq0 // ler_add2r ler_opp2 -(mulr_natr _ 2) invf_mul.
-    rewrite ler_pdivr_mulr ?ltr0n ?natfG_neq0 // mulrC mulrA.
+    rewrite mulVKf ?natrG_neq0 // ler_add2r ler_opp2 -(mulr_natr _ 2) invf_mul.
+    rewrite ler_pdivr_mulr ?natrG_gt0 // mulrC mulrA.
     have sZM: Z \subset M by rewrite -defZ subsetIl.
-    have sZMi: Z \subset Mi by case/setU1P: MXi => [-> //|]; exact: sZMNX.
+    have sZMi: Z \subset Mi by rewrite -(defZX _ MXi) defZi subsetIl.
     rewrite -natf_indexg //= -/Z ler_pdivl_mulr ?(ltr0Sn _ 1) // mul1r ler_nat.
     rewrite indexg_gt1 /= -/Z subEproper /proper sZMi andbF orbF.
     apply: contraNneq notMNX0 => defMiZ; have [Mj MNXj] := set0Pn _ neMNX.
-    have [X _] := bigcupP MNXj; case/setIdP=> maxMj _{X}.
     have maxZ: [group of Z] \in 'M by rewrite !inE defMiZ in maxMi *.
-    rewrite -(group_inj (eq_mmax maxZ maxM sZM)).
-    by rewrite (group_inj (eq_mmax maxZ maxMj (sZMNX _ MNXj))).
+    have eqZ := group_inj (eq_mmax maxZ _ _); rewrite -(eqZ M) //.
+    have [Xj E1Xj maxNMj] := bigcupP MNXj; have [maxMj _] := setIdP maxNMj.
+    by rewrite (eqZ Mj) //; case/(Pmax_sym M K): maxNMj.
   pose MXsup := [set ssup Mi | Mi <- MX].
   have notMXsup0: set0 \notin MXsup.
     apply/imsetP=> [[Mi]]; case/PmaxMX; case/setDP=> maxMi _ _.
@@ -1687,12 +1554,11 @@ have [Mi MXi P2maxMi]: exists2 Mi, Mi \in MX & Mi \in 'M_'P2.
     rewrite -mem_conjgV -conjsgM -sigma_supportJ; set H := Mj :^ _ => Hx.
     suffices: [disjoint Mi^~~ & H^~~].
       by case/pred0Pn; exists x; rewrite /= {1}signMi_x Hx.
-    have [[PmaxMi hallKi] [PmaxMj _]] := (PmaxMX _ MXi, PmaxMX _ MXj).
+    have [[PmaxMi _] [PmaxMj _]] := (PmaxMX _ MXi, PmaxMX _ MXj).
     have [[maxMi _] [maxMj _]] := (setDP PmaxMi, setDP PmaxMj).
     apply: sigma_support_disjoint; rewrite ?mmaxJ //.
     rewrite (orbit_transr _ (mem_orbit _ _ _)) ?inE //=.
-    have [_ _ [ntKsi _] _ _] := Ptype_structure PmaxMi hallKi.
-    apply: contra ntKsi; case/imsetP=> y _ /= defMj; rewrite -/(Ks_ _).
+    apply: contra (ntKsX _ MXi); case/imsetP=> y _ /= defMj; rewrite -/(Ks_ _).
     have sKisKj: Ks_ Mi \subset K_ Mj by rewrite sKsKX // eq_sym.
     rewrite -(setIidPl sKisKj) coprime_TIg //.
     have [[_ hallKis] [hallKj _]] := (hallK_Z _ MXi, hallK_Z _ MXj).
@@ -1705,8 +1571,8 @@ have [Mi MXi P2maxMi]: exists2 Mi, Mi \in MX & Mi \in 'M_'P2.
     rewrite -mem_conjgV -conjsgM -sigma_supportJ; set H := Mi :^ _ => Hx.
     have maxH: [group of H] \in 'M by rewrite mmaxJ.
     by case/andP: (pred0P (tiTscov _ maxH) x).
-  have: (#|cover (TG |: MXsup)|%:R < g)%R.
-    rewrite ltr_nat (cardsD1 1 G) group1 ltnS subset_leq_card //.
+  suffices: (g <= #|cover (TG |: MXsup)|%:R)%R.
+    rewrite ler_nat (cardsD1 1 G) group1 ltnNge subset_leq_card //.
     apply/bigcupsP=> MiG; case/setU1P=> [-> |].
       rewrite /TG class_supportEr; apply/bigcupsP=> x _.
       rewrite sub_conjg (normP _) ?normD1 ?(subsetP (normG _)) ?inE //.
@@ -1717,10 +1583,9 @@ have [Mi MXi P2maxMi]: exists2 Mi, Mi \in MX & Mi \in 'M_'P2.
     move/ell_sigma0P: (@erefl gT 1); rewrite cards_eq0; apply: contraL.
     case/bigcupP=> x Mis_x xR1; apply/set0Pn; exists x.
     exact: mem_sigma_cover_decomposition (Msigma_ell1 maxMi Mis_x) xR1.
-  rewrite -(eqnP tiPG) big_setU1 ?big_imset //=.
-  rewrite natr_add (big_morph _ (natr_add _) (mulr0n _)) ltrNge; case/negP.
+  rewrite -(eqnP tiPG) big_setU1 ?big_imset //= natr_add natr_sum.
   suffices: (g <= #|TG|%:R + \sum_(i \in MX) ((k_ i)^-1 - (z *+ 2)^-1) * g)%R.
-    by move/ler_trans; apply; rewrite ler_add2r ler_sum.
+    by move/ler_trans->; rewrite // ler_add2r ler_sum.
   rewrite -big_distrl /= oTG -/g -mulr_addl big_split /= sumr_const.
   rewrite addrA subrK -(mulr_natl _ 2) -[_ *+ _]mulr_natl invf_mul mulrN.
   rewrite mulrA -addrA -mulr_subl -{1}(mul1r g) ler_pmul2lW ?ler0n //.
@@ -1736,15 +1601,13 @@ have [Mj MXj neqMji]: exists2 Mj, Mj \in MX & Mj :!=: Mi.
 have defKjs: Ks_ Mj = K_ Mi.
   have sKjsKi: Ks_ Mj \subset K_ Mi by rewrite sKsKX.
   apply/eqP; rewrite eqEcard sKjsKi (prime_nt_dvdP _ _ (cardSg sKjsKi)) //=.
-  rewrite -trivg_card1.
-  by have [?] := PmaxMX _ MXj; case/Ptype_structure=> // _ _ [].
+  by rewrite -trivg_card1 ntKsX.
 have defMXij: MX = [set Mi; Mj].
   symmetry; rewrite -(setD1K MXi); congr (_ |: _); apply/eqP.
   rewrite eqEcard sub1set cards1 (cardsD1 Mj) 2!inE neqMji MXj /= ltnS leqn0.
   apply/pred0Pn=> [[Mk]]; case/setD1P=> neMkj; case/setD1P=> neMki MXk.
   have sKskKsj: Ks_ Mk \subset Ks_ Mj by rewrite defKjs sKsKX.
-  have [?] := PmaxMX _ MXk; case/Ptype_structure=> // _ _ []; case/negP.
-  by rewrite -/(Ks_ _) -(setIidPl sKskKsj) tiKs.
+  by case/negP: (ntKsX _ MXk); rewrite -(setIidPl sKskKsj) tiKs.
 have defKsi: Ks_ Mi = K_ Mj.
   apply/eqP; rewrite eqEcard sKsKX 1?eq_sym //=.
   rewrite -(@leq_pmul2r #|Ks_ Mj|) ?cardG_gt0 // (dprod_card (defZX _ MXj)).
@@ -1793,9 +1656,8 @@ have MXstar: Mstar \in MX by rewrite setU1r.
 have [[PmaxMstar hallKstar] defZstar] := (PmaxMX _ MXstar, defZX _ MXstar).
 have [maxMstar _] := setDP PmaxMstar.
 have notMGMstar := notMG_MNX _ MNX'star; exists Mstar => //.
-(* have neqMstarM := contra_orbit _ _ notMGMstar. *)
 have [defKs defKs_star]: Ks = K_ Mstar /\ Ks_ Mstar = K.
-  rewrite /Ks -K0; rewrite /MX defMNX 3!inE /eq_op /= in MXj MXi.
+  rewrite /Ks /Ks_ -K0; rewrite /MX defMNX 3!inE val_eqE in neqMji MXj MXi.
   by case/set2P: MXi (negPf neqMji) MXj => <- ->; rewrite ?orbF /=; move/eqP <-.
 have hallKs: \sigma(M).-Hall(Mstar) Ks.
   have sKsMstar: Ks \subset Mstar by rewrite defKs (pHall_sub hallKstar).
@@ -1815,9 +1677,6 @@ have hallKs: \sigma(M).-Hall(Mstar) Ks.
     by rewrite subsetI sYMs (subset_trans sYMstar) ?bgFunc_norm.
   rewrite subsetI -{1}defKs_star subsetIl.
   by rewrite (subset_trans (pHall_sub hallK)) ?bgFunc_norm.
-have defZhat: Z :\: (K :|: Ks) = T.
-  rewrite /T cover_imset big_setU1 //= defMNX big_set1 defKs_star Ks0.
-  by rewrite -setDUl setDDl setUC setD1K // inE group1.
 have oTGgt_g2: (g / 2%:R < #|TG|%:R)%R.
   rewrite oTG big_setU1 //= /n defMNX big_set1 cards1 mulrC mul1r.
   rewrite ltr_pmul2l ?(ltr_nat _ 0) ?cardG_gt0 //  /k_ K0 -defKs.
@@ -1854,9 +1713,11 @@ have oTGgt_g2: (g / 2%:R < #|TG|%:R)%R.
     by case: ltngtP => // <-.
   apply: ltr_le_trans (ler_pmul2lW (hm_ge0 _) (hm_inc 3 p p_gt2)).
   by apply: ltr_le_trans (ler_pmul2rW (hm_ge0 _) (hm_inc 5 q q_gt4)).
-rewrite defZhat; split.
+have defZhat: Z :\: (K :|: Ks) = T.
+  rewrite /T cover_imset big_setU1 //= defMNX big_set1 defKs_star Ks0.
+  by rewrite -setDUl setDDl setUC setD1K // inE group1.
+rewrite defZhat {1}defKs; split; first 2 [by split].
 - by rewrite -defKs_star; case/Ptype_structure: hallKstar => // _ _ [].
-- by rewrite hallKs defKs.
 - split=> [|p]; first by rewrite -defKs_star defKs.
   apply/idP/idP=> [kMp | t1p].
     case/orP: (kappa_tau13 kMp) => //; case/and3P=> _ _ p_dv_M'.
@@ -1974,4 +1835,8 @@ have [_ _ [_ -> //]] := Ptype_structure PmaxMk hallKk.
 by rewrite /= setIC nElemI in E1Y; case/setIP: E1Y.
 Qed.
 
+End PTypeEmbedding.
+
 End Section14.
+
+

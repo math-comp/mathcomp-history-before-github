@@ -295,7 +295,7 @@ move=> c; case/andP=> lac lcb; rewrite /root.
 rewrite !horner_lin mulf_eq0 smul1_eq0 (negPf pb0) /= => pc0.
 exists c=> //. rewrite !ltr_neqAle lac lcb !andbT.
 apply/andP; split.
-  move: pb0; rewrite -hpapb -eqr_oppC oppr0; apply: contra.
+  move: pb0; rewrite -hpapb eqr_oppC oppr0; apply: contra.
   by move/eqP->; rewrite (eqP pc0) signr0.
 by move: pb0; apply: contra; move/eqP<-; rewrite (eqP pc0) signr0.
 Qed.

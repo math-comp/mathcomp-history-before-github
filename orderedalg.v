@@ -1,11 +1,12 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice.
-Require Import bigop ssralg zmodp fintype zint.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq div choice fintype.
+Require Import bigop ssralg fingroup zmodp zint.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
+Local Open Scope ring_scope.
 Import GRing.Theory.
 
 Reserved Notation  "`| x |" (at level 0, x at level 99, format "`| x |").
@@ -13,85 +14,6 @@ Reserved Notation "x <= y :> T" (at level 70, y at next level).
 Reserved Notation "x >= y :> T" (at level 70, y at next level, only parsing).
 Reserved Notation "x < y :> T" (at level 70, y at next level).
 Reserved Notation "x > y :> T" (at level 70, y at next level, only parsing).
-
-Section ExtraSsrAlg.
-
-Section Ring.
-
-Variable R : ringType.
-Implicit Types x y z t : R.
-
-Lemma eqr_opp : forall x y, (-x == -y) = (x == y).
-Proof. by move=> x y; rewrite -subr_eq0 opprK addrC subr_eq0 eq_sym. Qed.
-
-Lemma eqr_oppC : forall x y, (x == -y) = (-x == y).
-Proof. by move=> x y; rewrite -eqr_opp opprK. Qed. 
-
-Lemma addrr : forall x, x + x = 2 *~ x.
-Proof. by move=> x; rewrite -[2]/(1+1)%N addzM mulzr_addl mul1zr. Qed.
-
-End Ring.
-
-Section ComRing.
-
-Variable R : comRingType.
-Implicit Types x y z t : R.
-
-Lemma sqr_sub : forall x y, x ^+ 2 - y ^+ 2 = (x + y) * (x - y).
-Proof.
-by move=> x y; rewrite mulr_addr !mulr_addl !mulrN addrA [_ * y]mulrC addrK.
-Qed.
-
-Lemma sqr_sub1 : forall x, x ^+ 2 - 1 = (x + 1) * (x - 1).
-Proof. by move=> x; rewrite -sqr_sub exp1rn. Qed.
-
-Lemma exprn_sub1 : forall x n, x ^+ n - 1 = (x - 1) * (\sum_(i < n) x ^+ i).
-Proof.
-move=> x; elim=> [|n ihn] /=; first by rewrite subrr big_ord0 mulr0.
-rewrite big_ord_recr /= mulr_addr -ihn mulr_addl mulN1r.
-by rewrite addrCA addrAC subrr sub0r exprS.
-Qed.
-
-Lemma addr_sq : forall x y, 
-  (x + y) ^+ 2 = x ^+ 2 + 2 *~ (x * y) + y ^+ 2.
-Proof.
-by move=> x y; rewrite exprS expr1 mulr_addr !mulr_addl [y * x]mulrC !addrA.
-Qed.
-
-Lemma addr1_sq : forall x, (x + 1) ^+ 2 = x ^+ 2 + 2 *~ x + 1.
-Proof. by move=> x; rewrite addr_sq mulr1 exp1rn. Qed.
-
-Lemma oppr_sq : forall x, (- x) ^+ 2 = x ^+ 2.
-Proof. by move=> x; rewrite exprS mulrNN. Qed.
-
-Lemma subr_sq : forall x y, 
-  (x - y) ^+ 2 = x ^+ 2 - 2 *~ (x * y) + y ^+ 2.
-Proof. by move=> x y; rewrite addr_sq oppr_sq mulrN mulzNr. Qed.
-
-Lemma addr_eq0 : forall x y, (x + y == 0) = (x == -y).
-Proof. by move=> x y; rewrite -[x == _]subr_eq0 opprK. Qed.
-
-End ComRing.
-
-Section Idomain.
-
-Variable R : idomainType.
-Implicit Types x y z t : R.
-
-Lemma sqr_eq1 : forall x, (x ^+ 2 == 1) = (x == 1) || (x == -1).
-Proof.
-by move=> x; rewrite -subr_eq0 sqr_sub1 mulf_eq0 addr_eq0 subr_eq0 orbC.
-Qed.
-
-Lemma exprSn_eq1 : forall x n, (x ^+ n.+1 == 1) 
-  = ((x == 1) || (\sum_(i < n.+1) x ^+ i == 0)).
-Proof.
-by move=> x n; rewrite -[_ == 1]subr_eq0 exprn_sub1 mulf_eq0 subr_eq0.
-Qed.
-
-End Idomain.
-
-End ExtraSsrAlg.
 
 Module OrderedRing.
 
@@ -1217,7 +1139,6 @@ Proof.
 by elim=> [|n _|n _]; rewrite ?mulr0z ?eqxx// ?mulNzr ?oppr_eq0 mulSn1r_eq0.
 Qed.
 
-
 Lemma mulz1rI : injective ( *~%R (1 : R)).
 Proof.
 move=> m n; move/eqP; rewrite -subr_eq0 -mulzr_subl.
@@ -1229,6 +1150,40 @@ Proof. by move=> x n; rewrite -mulzrr mulf_eq0 mulz1r_eq0. Qed.
 
 Lemma mulzr_neq0 : forall x n, n *~ x != 0 = ((x != 0) && (n != 0)).
 Proof. by move=> x n; rewrite mulzr_eq0 negb_or. Qed.
+
+Lemma ler_nat : forall m n : nat, (m%:R <= n%:R :> R) = (m <= n)%N.
+Proof.
+move=> m n; case: leqP => [lemn | gtnm].
+  by rewrite -subr_ge0 -natr_sub ?ler0n.
+by rewrite lerNgt -(subnKC gtnm) addSnnS natr_add ltr_addr ltr0Sn.
+Qed.
+
+Lemma ltr_nat : forall m n : nat, (m%:R < n%:R :> R) = (m < n)%N.
+Proof. by move=> m n; rewrite ltrNge ltnNge ler_nat. Qed.
+
+Lemma natr_gt0 : forall n : nat, (0 < n%:R :> R) = (0 < n)%N.
+Proof. exact: (ltr_nat 0). Qed.
+
+Section FinGroup.
+
+Import GroupScope.
+
+Variable gT : finGroupType.
+Implicit Types G H : {group gT}.
+
+Lemma natrG_gt0 : forall G, #|G|%:R > 0 :> R.
+Proof. by move=> G; rewrite natr_gt0 cardG_gt0. Qed.
+
+Lemma natrG_neq0 : forall G, #|G|%:R != 0 :> R.
+Proof. by move=> G; rewrite -ltr0n natrG_gt0. Qed.
+
+Lemma natr_indexg_gt0 : forall G H, #|G : H|%:R > 0 :> R.
+Proof. by move=> G H; rewrite natr_gt0 indexg_gt0. Qed.
+
+Lemma natr_indexg_neq0 : forall G H, #|G : H|%:R != 0 :> R.
+Proof. by move=> G H; rewrite -ltr0n natr_indexg_gt0. Qed.
+
+End FinGroup.
 
 (* sgr section *)
 
@@ -1478,7 +1433,7 @@ move=> x y hy; case: absrP=> hx; rewrite ?hx ?[0 == _]eq_sym ?oppr_eq0 ?orbb //.
     symmetry; apply/negP; move/eqP=> exNy.
     by move: hxy; rewrite -[y]opprK -exNy ltrNge ge0_cp // ltrW.
   by move: hxy; rewrite exNy ltrNge ge0_cp.
-rewrite -eqr_oppC; case: (ltrgtP x y)=> //= hxy; rewrite hxy in hx.
+rewrite eqr_oppC; case: (ltrgtP x y)=> //= hxy; rewrite hxy in hx.
 by suff: false by []; rewrite -(ler_lt_asym 0 y) hx hy.
 Qed.
 
@@ -1534,7 +1489,7 @@ Proof. by move=> x y; case: sgrP; rewrite // mulN1zr absr_opp. Qed.
 Lemma absr_eqr : forall x, (`|x| == x) = (0 <= x).
 Proof.
 move=> x; case: absrP=> hx; rewrite ?hx ?eqxx //; move/ltrWN: hx=> hx.
-by rewrite eq_sym -subr_eq0 opprK addrr mulzr_eq0 hx.
+by rewrite eq_sym -subr_eq0 opprK (mulzr_eq0 _ 2) hx.
 Qed.
 
 Lemma absr_eqNr : forall x, (`|x| == -x) = (x <= 0).
@@ -1697,7 +1652,7 @@ Qed.
 (*   sgr (-1 : R') *~ x = -x. *)
 
 Lemma sqr_abs_eq1 : forall x, (x ^+ 2 == 1) = (`|x| == 1).
-Proof. by move=> x; rewrite sqr_eq1 -absr_eq absr1. Qed.
+Proof. by move=> x; rewrite sqrf_eq1 -absr_eq absr1. Qed.
 
 Lemma sqr_ge0_eq1 : forall x, 0 <= x -> (x ^+ 2 == 1) = (x == 1).
 Proof. by move=> x hx; rewrite sqr_abs_eq1 ger0_abs. Qed.
@@ -1766,7 +1721,7 @@ Definition exprn_lte1 := (exprn_le1, exprn_lt1).
 
 Lemma exprSn_ge0_eq1 : forall x n, 0 <= x -> (x ^+ n.+1 == 1) = (x == 1).
 Proof. 
-move=> x n hx; rewrite exprSn_eq1; case: (x == 1)=> //=.
+move=> x n hx; rewrite expfS_eq1; case: (x == 1)=> //=.
 rewrite eq_sym ltrWN // (@ltr_le_trans _ 1) ?ltr01 //.
 elim: n=> [|n ihn]; first by rewrite big_ord_recl big_ord0 addr0 lerr.
 by rewrite big_ord_recr /= addrC ger0_ler_add // exprn_ge0.
@@ -2427,6 +2382,21 @@ by rewrite !mulzrr ltr_add2r ltr_add2l.
 Qed.
 
 Definition midf_lte := (midf_le, midf_lt).
+
+Lemma natf_div : forall m d : nat, d %| m -> (m %/ d)%:R = m%:R / d%:R :> F.
+Proof. exact: char0_natf_div (@charor F). Qed.
+
+Section FinGroup.
+
+Import GroupScope.
+
+Variable gT : finGroupType.
+
+Lemma natf_indexg : forall G H : {group gT},
+  H \subset G -> #|G : H|%:R = (#|G|%:R / #|H|%:R)%R :> F.
+Proof. by move=> G H sHG; rewrite -divgS // natf_div ?cardSg. Qed.
+
+End FinGroup.
 
 End FieldTheory.
 End FieldTheory.

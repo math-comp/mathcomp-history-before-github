@@ -216,7 +216,7 @@ Definition zint_ZmodMixin :=
   ZmodMixin zintZmod.addzA zintZmod.addzC zintZmod.add0z zintZmod.addNz.
 Canonical Structure zint_ZmodType := ZmodType zint zint_ZmodMixin.
 
-Open Scope ring_scope.
+Local Open Scope ring_scope.
 
 Lemma eqz_nat : forall m n : nat, (m == n :> zint) = (m == n :> nat).
 Proof. by move=> [|m] [|n]. Qed.
