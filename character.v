@@ -346,7 +346,6 @@ Proof. by move=> z x y; rewrite ![_ +z]addrC leC_add2l. Qed.
 Lemma posC_add: forall x y, 0 <= x -> 0 <= y -> 0 <= x + y.
 Proof. by move=> x y; rewrite /leC !subr0; exact: repCD. Qed.
 
-
 Lemma leC_trans: transitive leC.
 Proof.
 move=> x y z Hx Hy.
@@ -1205,67 +1204,6 @@ rewrite !mulrA mulVr ?mul1r // GRing.unitfE.
 by move/charf0P: Cchar->; case: #|_| (cardG_gt0 G).
 Qed.
 
-(* Painfully following Issac's proof 2.14 *)
-Lemma chi_first_orthogonal_relation: forall (i j: sG),
- (#|G|%:R^-1 * \sum_(g \in G) \chi_i g * \chi_j g^-1%g)%R = (i == j)%:R.
-Proof.
-move=> i j.
-have F0: {on [pred i \in G], bijective invg}.
-  apply: onW_bij; apply: inv_bij; exact invgK.
-rewrite (reindex _ F0) /=.
-have F1 : e_ i *m e_ j = (i == j)%:R *: e_ i.
-  case: eqP=> [<-|Hij]; [rewrite scale1r | rewrite scale0r].
-    by case: (Wedderburn_is_id (pGroupG _) i)=> _ Hi Hj _; exact: Hj.
-  move/eqP: Hij=> HH; apply: (Wedderburn_mulmx0 HH); exact: Wedderburn_id_mem.
-have F2: #|G|%:R^-1 * \chi_i 1%g * \chi_j 1%g != 0.
-  do 2 (apply: mulf_neq0; last by exact: chi1_neq0); apply: invr_neq0.
-  by move/charf0P: Cchar->; case: #|_| (cardG_gt0 G).
-apply: (mulIf F2).
-pose r1 (u: 'M[C]_#|G|) := gring_row u 0 (gring_index G 1%g).
-apply: (@etrans _ _ (r1 (e_ i *m e_ j))); last first.
-  rewrite F1 /=; case: eqP=> [->|_].
-    by rewrite scale1r mul1r /r1 gring_row_e !mxE gring_indexK // invg1.
-  rewrite scale0r mul0r /r1.
-  suff->: @gring_row C _ G 0 = 0 by rewrite mxE.
-  by apply/rowP=> k; rewrite !mxE.
-pose gr i g := gring_row (e_ (i: sG)) 0 (gring_index G g). 
-suff->:
-    r1 (e_ i *m e_ j) = \sum_(g \in G) gr i g * gr j (g^-1)%g.
-  rewrite -mulr_sumr -mulr_suml.
-  apply: eq_big=> [g|i1]; first by rewrite /= groupV.
-  rewrite groupV=> Hi1.
-  rewrite  /gr {1}gring_row_e {1}gring_row_e !mxE !gring_indexK ?groupV //.
-  (* mimicking ring *)
-  rewrite invgK; rewrite -!mulrA; congr (_ * _).
-  apply: sym_equal; rewrite mulrC -!mulrA; congr (_ * _).
-  apply: sym_equal; rewrite [\chi_ j _ * _]mulrC -!mulrA; congr (_ * _).
-  by rewrite mulrC -!mulrA; congr (_ * _).
-rewrite /r1 gring_row_mul.
-have F3: (e_ j \in group_ring C G)%MS.
-  apply (submx_trans (Wedderburn_id_mem _)).
-  by rewrite /Wedderburn_subring genmxE submxMl.
-rewrite -{1}(gring_rowK F3) mxE.
-have F4: {on [pred i \in G], bijective (@enum_val _ (fun x=> x \in G))}.
-  by exists (gring_index G)=> g Hg; [exact: gring_valK | apply: gring_indexK].
-rewrite {1}(reindex _ F4); apply: eq_big=> [g|i1 _]; first by rewrite enum_valP.
-rewrite  /gr !gring_valK; congr (_ * _).
-rewrite 2!mxE.
-rewrite {1}(bigD1 (gring_index G (enum_val i1)^-1)) //=.
-set u := gring_row _ _ _ .
-rewrite {1}big1 ?addr0.
-  rewrite !(mxE,mxvecE) gring_indexK; last by rewrite groupV enum_valP.
-  by rewrite mulgV !eqxx mulr1.
-move=> i2 Hi2.
-rewrite !(mxE,mxvecE).
-case: (gring_index G 1 =P _); last by rewrite andbF mulr0.
-move=> HH; case/negP: Hi2.
-have F5: (enum_val i1 * enum_val i2)%g \in G.
-  by apply: groupM; exact: enum_valP.
-rewrite -[_^-1%g]mulg1.
-rewrite (can_in_inj (@gring_indexK _ G) (group1 G) F5 HH).
-by rewrite mulgA mulVg mul1g gring_valK.
-Qed.
-
 Lemma chi_exp_abelian : forall (i: sG) g n, g \in G -> abelian G ->
   (\chi_i g)^+n = \chi_i (g^+n)%g.
 Proof.
@@ -1349,6 +1287,12 @@ rewrite -{1}(isNatC_conj F3) {1}/GRing.scale /= -rmorphM ?ffunE //.
 apply: cycle_abelian.
 Qed.
 
+Let card_neq0 : #|G|%:R^-1 != 0 :> C.
+Proof.
+rewrite invr_eq0; move/GRing.charf0P: Cchar->.
+by move: (cardG_gt0 G); case: #|_|.
+Qed.
+
 Lemma character_of_upper : forall n (rG: mx_representation C G n) g,
   normC (character_of G rG g) <= n%:R.
 Proof.
@@ -1371,17 +1315,134 @@ rewrite ffunE chi1 irr_degree_abelian // ffunE normC_mul chi_norm_abelian //.
 by rewrite cycle_id normC_pos // /nc ncoord_character_of leC_nat.
 Qed.
 
+Local Notation e_ := (@Wedderburn_id _ _ _ _).
+
+(* Painfully following Issac's proof 2.14 *)
+Lemma chi_first_orthogonal_relation : forall (i j: sG),
+ (#|G|%:R^-1 * \sum_(g \in G) \chi_i g * (\chi_j g)^*)%R = (i == j)%:R.
+Proof.
+move=> i j.
+rewrite (reindex invg) /=; last by apply: onW_bij; apply: inv_bij; exact invgK.
+have F1 : e_ i *m e_ j = (i == j)%:R *: e_ i.
+  case: eqP=> [<-|Hij]; [rewrite scale1r | rewrite scale0r].
+    by case: (Wedderburn_is_id (pGroupG _) i)=> _ Hi Hj _; exact: Hj.
+  move/eqP: Hij=> HH; apply: (Wedderburn_mulmx0 HH); exact: Wedderburn_id_mem.
+have F2: #|G|%:R^-1 * \chi_i 1%g * \chi_j 1%g != 0.
+  by do 2 (apply: mulf_neq0; last by exact: chi1_neq0).
+apply: (mulIf F2).
+pose r1 (u: 'M[C]_#|G|) := gring_row u 0 (gring_index G 1%g).
+apply: (@etrans _ _ (r1 (e_ i *m e_ j))); last first.
+  rewrite F1 /=; case: eqP=> [->|_].
+    by rewrite scale1r mul1r /r1 gring_row_e !mxE gring_indexK // invg1.
+  rewrite scale0r mul0r /r1.
+  suff->: @gring_row C _ G 0 = 0 by rewrite mxE.
+  by apply/rowP=> k; rewrite !mxE.
+pose gr i g := gring_row (e_ (i: sG)) 0 (gring_index G g). 
+suff->:
+    r1 (e_ i *m e_ j) = \sum_(g \in G) gr i g * gr j (g^-1)%g.
+  rewrite -mulr_sumr -mulr_suml.
+  apply: eq_big=> [g|i1]; first by rewrite /= groupV.
+  rewrite -character_of_inv groupV=> Hi1.
+  rewrite  /gr {1}gring_row_e {1}gring_row_e !mxE !gring_indexK ?groupV //.
+  (* mimicking ring *)
+  rewrite invgK; rewrite -!mulrA; congr (_ * _).
+  apply: sym_equal; rewrite mulrC -!mulrA; congr (_ * _).
+  apply: sym_equal; rewrite [\chi_ j _ * _]mulrC -!mulrA; congr (_ * _).
+  by rewrite mulrC -!mulrA; congr (_ * _).
+rewrite /r1 gring_row_mul.
+have F3: (e_ j \in group_ring C G)%MS.
+  apply (submx_trans (Wedderburn_id_mem _)).
+  by rewrite /Wedderburn_subring genmxE submxMl.
+rewrite -{1}(gring_rowK F3) mxE.
+rewrite {1}(reindex (@enum_val _ (fun x=> x \in G))) /=; last first.
+  by exists (gring_index G)=> g Hg; [exact: gring_valK | apply: gring_indexK].
+apply: eq_big=> [g|i1 _]; first by rewrite enum_valP.
+rewrite  /gr !gring_valK; congr (_ * _).
+rewrite 2!mxE.
+rewrite {1}(bigD1 (gring_index G (enum_val i1)^-1)) //=.
+set u := gring_row _ _ _ .
+rewrite {1}big1 ?addr0.
+  rewrite !(mxE,mxvecE) gring_indexK; last by rewrite groupV enum_valP.
+  by rewrite mulgV !eqxx mulr1.
+move=> i2 Hi2.
+rewrite !(mxE,mxvecE).
+case: (gring_index G 1 =P _); last by rewrite andbF mulr0.
+move=> HH; case/negP: Hi2.
+have F5: (enum_val i1 * enum_val i2)%g \in G.
+  by apply: groupM; exact: enum_valP.
+rewrite -[_^-1%g]mulg1.
+rewrite (can_in_inj (@gring_indexK _ G) (group1 G) F5 HH).
+by rewrite mulgA mulVg mul1g gring_valK.
+Qed.
+
+Lemma chi_second_orthogonal_relation : forall (y z: gT),
+  y \in G -> z \in G ->
+ \sum_i \chi_(i: sG) y * (\chi_i z)^* =  if y \in (z ^: G) then #|'C_G[z]|%:R else 0.
+Proof.
+move=> y z Hy Hz.
+have F0: forall j, (j < #|sG| -> j < #|classes G|)%N by move=> j; rewrite card_irr.
+pose f i := Ordinal (F0 _ (ltn_ord i)).
+have G0: forall j, (j < #|classes G| -> j < #|sG|)%N by move=> j1; rewrite card_irr.
+pose g i := Ordinal (G0 _ (ltn_ord i)).
+have FG: forall i, f (g i) = i by move=> i; apply/val_eqP.
+have GF: forall i, g (f i) = i by move=> i; apply/val_eqP.
+pose X := \matrix_(i < #|sG|, j < #|sG|) (\chi_(enum_val i) (repr (enum_val (f j)))).
+pose Y := \matrix_(i < #|sG|, j < #|sG|) 
+  (let C := enum_val (f i) in #|C|%:R * (#|G|%:R^-1 * \chi_(enum_val j) (repr C))^*).
+have F2: X *m Y = 1%:M.
+  apply/matrixP=> i j; rewrite !mxE.
+  have->: (i == j) = (enum_val i == enum_val j).
+    by apply/eqP/eqP; [move-> | exact: enum_val_inj].
+  rewrite -chi_first_orthogonal_relation -mulr_sumr fun_class_sum; last first.
+    by move=> g1 g2 Hg1 Hg2; rewrite -!character_of_inv  -conjVg 
+               !(class_funJ (character_of_in_class_fun _)) ?groupV.
+  rewrite (reindex g) /=; last by apply: onW_bij; exists f=> i1; apply/val_eqP.
+  rewrite (reindex (@enum_val _ (fun x => x \in classes G))) /=; last first.
+    by apply: (enum_val_bij_in (mem_classes (group1 G))).
+  apply: eq_big=> [i1|i1 _]; first by rewrite enum_valP.
+  rewrite !mxE /= FG.
+  (* mimicking ring *)
+  rewrite mulrC -!mulrA; congr (_ * _).
+  rewrite rmorphM rmorphV ?conjC_nat //; last first.
+    by rewrite unitfE; move/charf0P: Cchar->; case: #|_| (cardG_gt0 G).
+  by rewrite -mulrA [\chi_ _ _ * _]mulrC.
+have Hi1: #|z ^: G|%:R != 0 :> C.
+  by move/charf0P: Cchar->; rewrite (cardsD1 z) class_refl.
+apply: (mulfI (mulf_neq0 Hi1 card_neq0)); rewrite -mulr_sumr.
+apply: (@etrans _ _ (y \in z ^: G)%:R); last first.
+  case: (boolP (_ \in _))=> [Hin|]; last by rewrite mulr0.
+  rewrite -(LaGrange (subcent1_sub z G)) index_cent1.
+  rewrite mulrC mulrA natr_mul divff //.
+  apply: mulf_neq0=> //.
+  by move/charf0P: Cchar->; rewrite (cardsD1 z) (subcent1_id Hz).
+move/mulmx1C: F2.
+pose toC x := enum_rank_in (classes1 G) (x ^: G).
+move/matrixP; move/(_ (g (toC z)) (g (toC y))).
+rewrite !mxE.
+have<-:  (g (toC z) == g (toC y)) = (y \in z ^: G)=> [|<-].
+  apply/eqP/idP=> [|Hin]; last by rewrite /toC (class_transr Hin).
+  move/(can_inj FG).
+  move/(can_in_inj (enum_rankK_in (classes1 G)) 
+         (mem_classes Hz) (mem_classes Hy))->.
+  exact: class_refl.
+rewrite (reindex (fun i: sG => enum_rank i)); last first.
+  by apply: onW_bij; apply: enum_rank_bij.
+apply: eq_bigr=> i _.
+rewrite !mxE /= !FG  /toC !enum_rankK !enum_rankK_in ?mem_classes //.
+case: (repr_class G y)=> y1 Hy1->.
+case: (repr_class G z)=> z1 Hz1->.
+rewrite !(class_funJ (character_of_in_class_fun _)) //.
+rewrite -!mulrA; congr (_ * _).
+rewrite rmorphM rmorphV ?conjC_nat //; last first.
+  by rewrite unitfE; move/charf0P: Cchar->; case: #|_| (cardG_gt0 G).
+by rewrite -mulrA [\chi_ _ _ * _]mulrC.
+Qed.
+
 Implicit Types f g : {ffun gT -> C^o}.
 
 Definition inner_prod f g :=  #|G|%:R^-1 * \sum_(i \in G) f i * (g i)^*.
 
 Local Notation "'[ f , g ]" := (inner_prod f g).
-
-Let card_neq0 : #|G|%:R^-1 != 0 :> C.
-Proof.
-rewrite invr_eq0; move/GRing.charf0P: Cchar->.
-by move: (cardG_gt0 G); case: #|_|.
-Qed.
 
 Let card_conj : (#|G|%:R^-1)^* = #|G|%:R^-1.
 Proof.
@@ -1455,7 +1516,6 @@ Lemma chi_orthonormal : forall i j: sG, '[\chi_i,\chi_j] = (i == j)%:R.
 Proof.
 move=> i j.
 rewrite -chi_first_orthogonal_relation; congr (_ * _).
-by apply: eq_bigr=> k _; rewrite character_of_inv.
 Qed.
 
 Lemma inner_prod_character :
