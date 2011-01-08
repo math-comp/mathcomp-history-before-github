@@ -375,11 +375,22 @@ move=> M K maxM hallK.
 by rewrite inE maxM trivg_card1 (card_Hall hallK) partG_eq1.
 Qed.
 
-Lemma trivg_kappa_compl : forall M U K,
-  M \in 'M_'P -> kappa_complement M U K -> (U :==: 1) = (M \in 'M_'P1).
+(* Should go in Section 10. *)
+Lemma not_sigma_mmax : forall M, M \in 'M -> ~~ \sigma(M).-group M.
 Proof.
-move=> M U K PmaxM [hallU _ _].
-by rewrite inE PmaxM trivg_card1 (card_Hall hallU) -pgroupNK partG_eq1.
+move=> M maxM; apply: contraL (mmax_sol maxM); rewrite negb_forall_in => sM.
+apply/existsP; exists M; rewrite mmax_neq1 // subsetIidl andbT.
+apply: subset_trans (Msigma_der1 maxM).
+by rewrite (sub_Hall_pcore (Msigma_Hall maxM)).
+Qed.
+
+Lemma trivg_kappa_compl : forall M U K,
+  M \in 'M -> kappa_complement M U K -> (U :==: 1) = (M \in 'M_'P1).
+Proof.
+move=> M U K maxM [hallU _ _]; symmetry.
+rewrite 3!inE maxM /= trivg_card1 (card_Hall hallU) partG_eq1 pgroupNK andbT.
+apply: andb_idl => skM; apply: contra (not_sigma_mmax maxM).
+by apply: sub_in_pnat => p; move/(pnatPpi skM); case/orP=> // kMp; case/negP.
 Qed.
 
 Lemma FtypeJ : forall M x, ((M :^ x)%G \in 'M_'F) = (M \in 'M_'F).
@@ -432,15 +443,6 @@ have defMsA: Ms ><| A = Ms <*> A.
   by rewrite (pnat_coprime (pcore_pgroup _ _)) ?pnatE.
 rewrite (prime_Frobenius_sol_kernel_nil defMsA) ?oA ?(pfactorK 1) //.
 by rewrite (solvableS _ (mmax_sol maxM)) // join_subG pcore_sub.
-Qed.
-
-(* Should go in Section 10. *)
-Lemma not_sigma_mmax : forall M, M \in 'M -> ~~ \sigma(M).-group M.
-Proof.
-move=> M maxM; apply: contraL (mmax_sol maxM); rewrite negb_forall_in => sM.
-apply/existsP; exists M; rewrite mmax_neq1 // subsetIidl andbT.
-apply: subset_trans (Msigma_der1 maxM).
-by rewrite (sub_Hall_pcore (Msigma_Hall maxM)).
 Qed.
 
 Lemma notP1type_Msigma_nil : forall M,
@@ -706,7 +708,7 @@ split=> {part_a part_b part_c have_a have_b have_c}//; first split=> //.
   rewrite -(setCK M) inE; apply: contra ntYKs => M'x'.
   rewrite setIC -(setIidPr sYxMs) -/Ms -[Ms](setIidPr (pcore_sub _ _)).
   by rewrite conjIg !setIA; have [-> // _] := have_d; rewrite !setI1g.
-rewrite inE PmaxM andbT -(trivg_kappa_compl PmaxM complUK) => ntU.
+rewrite inE PmaxM andbT -(trivg_kappa_compl maxM complUK) => ntU.
 have [regMsU nilMs]: 'C_Ms(U) = 1 /\ nilpotent Ms.
   pose p := pdiv #|U|; have piUp: p \in \pi(U) by rewrite pi_pdiv cardG_gt1.
   have sk'p := pnatPpi sk'U piUp.
@@ -1948,7 +1950,7 @@ have [Mi MXi P2maxMi]: exists2 Mi, Mi \in MX & Mi \in 'M_'P2.
     have [[U [complU defMi] _]] := Ptype_structure PmaxMi hallKi.
     case=> defZi _ _ _ _; have [maxMi _] := setDP PmaxMi.
     have{complU} U1: U :==: 1; last rewrite {U U1}(eqP U1) sdprod1g in defMi.
-      rewrite (trivg_kappa_compl PmaxMi complU).
+      rewrite (trivg_kappa_compl maxMi complU).
       by apply: contraR (allP1 _ MXi) => ?; exact/setDP.
     rewrite card_class_support_sigma // natr_mul natf_indexg ?subsetT // -/g.
     rewrite mulrCA mulrC ler_pmul2lW ?ler0n // -subn1 natr_sub ?cardG_gt0 //.
