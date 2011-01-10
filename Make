@@ -78,6 +78,7 @@ amodule.v
 algebra.v
 galgebra.v
 fieldext.v
+algC.v
 character.v
 zint.v
 orderedalg.v
