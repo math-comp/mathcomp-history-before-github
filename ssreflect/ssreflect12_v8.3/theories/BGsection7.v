@@ -131,6 +131,11 @@ Proof. by case: gT => ? []. Qed.
 Lemma mFT_nonAbelian : ~~ abelian G.
 Proof. apply: contra mFT_nonSolvable; exact: abelian_sol. Qed.
 
+Lemma mFT_neq1 : G != 1.
+Proof. by apply: contraNneq mFT_nonAbelian => ->; exact: abelian1. Qed.
+
+Lemma mFT_gt1 : [1] \proper G. Proof. by rewrite proper1G mFT_neq1. Qed.
+
 Lemma mFT_quo_odd : forall M H, odd #|M / H|.
 Proof. by move=> M H; rewrite quotient_odd ?mFT_odd. Qed.
 
@@ -196,6 +201,9 @@ Proof.
 move=> H; case/(@maxgroup_exists _ (fun M => M \proper G)) => M maxM sHM.
 by exists M; rewrite !inE sHM andbT.
 Qed.
+
+Lemma any_mmax : {M : {group gT} | M \in 'M}.
+Proof. by have [M] := mmax_exists mFT_gt1; case/setIdP; exists M. Qed.
 
 Lemma mmax_proper : forall M, M \in 'M -> M \proper G.
 Proof. by move=> M; rewrite inE; exact: maxgroupp. Qed.

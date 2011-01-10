@@ -206,6 +206,16 @@ have <-: 'r_p(E) = 2 by apply/eqP; move: t2p; rewrite tau2E; case/andP.
 by exists A; rewrite // (subsetP (pnElemS p _ sEM)).
 Qed.
 
+(* A converse to the above Lemma: if E has an elementary abelian subgroup of  *)
+(* order p^2, then p must be in tau2.                                         *)
+Lemma sigma'2Elem_tau2 : forall p A, A \in 'E_p^2(E) -> p \in \tau2(M).
+Proof.
+move=> p A Ep2A; have rE: 'r_p(E) > 1 by apply/p_rank_geP; exists A.
+have: p \in \pi(E) by rewrite -p_rank_gt0 ltnW.
+rewrite partition_pi_sigma_compl orbCA; case/orP=> //.
+by rewrite -!andb_orr eqn_leq leqNgt (leq_trans rE) ?andbF ?p_rankS.
+Qed.
+
 (* This is B & G, Lemma 12.1(a). *)
 Lemma der1_sigma_compl_nil : nilpotent E^`(1).
 Proof.

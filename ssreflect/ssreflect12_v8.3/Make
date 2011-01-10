@@ -84,6 +84,7 @@ theories/amodule.v
 theories/algebra.v
 theories/galgebra.v
 theories/fieldext.v
+theories/algC.v
 theories/character.v
 theories/zint.v
 theories/orderedalg.v
