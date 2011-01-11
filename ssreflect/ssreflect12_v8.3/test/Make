@@ -4,3 +4,6 @@ SSRCOQ = ../bin/ssrcoq
 absevarprop.v
 elim.v
 congr.v
+havesuff.v
+wlogletin.v
+deferclear.v
