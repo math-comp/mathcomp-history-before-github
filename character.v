@@ -808,10 +808,12 @@ Qed.
   
 Definition cfun_reg G := char G (regular_repr C G).
 
-Lemma cfun_reg_val : forall (G : {group gT}) (g : gT), g \in G ->
-  cfun_reg G g = if g == 1%g then #|G|%:R else 0%:R.
+Lemma cfun_reg_val : forall (G : {group gT}) (g : gT),
+  cfun_reg G g = if (g \in G) && (g == 1%g) then #|G|%:R else 0%:R.
 Proof.
-move=> G g Hg; rewrite cfunE Hg mul1r; rewrite /mxtrace.
+move=> G g; rewrite cfunE.
+case: (boolP (g \in G)); last by rewrite !mul0r.
+move=> Hg; rewrite mul1r /mxtrace.
 case: eqP=> [->| Hd]; last first.
   apply: big1=> i _; rewrite !mxE andTb.
   case: eqP=> // He; case: Hd; apply: sym_equal.
@@ -873,11 +875,11 @@ pose rj := regular_repr C G j1.
 have: xchar (cfun_reg G) (gring_row ('e(G)_ i *m rj)) = 
         #|G|%:R * gring_row ('e(G)_ i) 0 j.
   rewrite /xchar (bigD1 (gring_index G 1%g)) //= big1; last first.
-    move=> k Hk; rewrite cfun_reg_val; last by apply: enum_valP.
+    move=> k Hk; rewrite cfun_reg_val enum_valP.
     case: eqP; last by rewrite mulr0.
     by move=> Hk'; case/negP: Hk; rewrite -Hk' gring_valK.
   rewrite addr0 enum_rankK_in // gring_row_mul.
-  rewrite cfun_reg_val // eqxx mulrC; congr (_ * _).
+  rewrite cfun_reg_val group1 // eqxx mulrC; congr (_ * _).
 (* This takes ages 
   rewrite {1}mxE {1}(bigD1 j) //= {1}big1.
 *)
@@ -1127,7 +1129,10 @@ move=> G y z Hy Hz; apply: (iffP idP)=> [HH chi|HH].
   case/imsetP: HH=> x Hx ->.
   by rewrite (cfunJ Hz) // char_in_cfun.
 move: (chi_second_orthogonal_relation Hy Hz); case: (_ \in _)=> // HH1.
-have F1:  forall chi : irr_class G, xpredT chi -> 0 <= chi y * (chi z)^*.
+move: (fun I=> posC_sum_eq0 I HH1).
+have F1:  forall chi : irr_class G, 
+  (chi \in index_enum (irr_class_finType G)) && xpredT chi -> 
+     0 <= chi y * (chi z)^*.
   by move=> chi _; rewrite HH /leC subr0 repC_pconj.
 case/eqP: (nonzero1r C).
 move: (posC_sum_eq0 F1 HH1); move/(_ (irr_class1 G)).
@@ -1260,6 +1265,12 @@ exists ((irr_degree i) + n)%N; exists (add_repr (irr_repr i) rG).
 by rewrite char_morph HrG F2.
 Qed.
 
+Lemma is_char_char : forall G n (rG : mx_representation C G n),
+  is_char G (char G rG).
+Proof.
+by move=> G n rG; apply/is_charP; exists n; exists rG.
+Qed.
+
 Definition crestrict (G : {set gT}) (f : cfun_type C gT) :=
     cfun_of_fun (fun g : gT => (g \in G)%:R * (f g)).
 
@@ -1292,6 +1303,13 @@ Lemma is_char_irr : forall G (i : irr_class G), is_char G i.
 Proof. 
 move=> G1 i; apply/is_charP; pose i' := socle_of_irr_class i.
 by exists (irr_degree i'); exists (irr_repr i').
+Qed.
+
+Lemma is_char_ncoord : forall G (i : irr_class G) f,
+  is_char G f -> isNatC (ncoord i f).
+Proof.
+move=> G i f; case/is_charP=> n [rG <-].
+by rewrite ncoord_char isNatC_nat.
 Qed.
 
 Lemma is_char0 : forall G, is_char G 0.
@@ -1412,6 +1430,49 @@ Qed.
 Definition cker (f : cfun_type C gT) := [set g | f g == f 1%g].
 
 Definition cfaithful f := cker f \subset 1%G.
+
+Lemma ckerE : forall G f, is_char G f ->
+  cker f = \bigcap_(i : irr_class G | ncoord i f != 0) cker i.
+Proof.
+move=> G f Hf; apply/setP=> g; apply/idP/bigcapP=> [|Hi]; last first.
+  case/andP: (Hf)=> _ H1f.
+  rewrite inE /= (ncoord_sum H1f) !sum_cfunE !cfunE; apply/eqP.
+  apply: eq_bigr=> chi _; rewrite cfunE [_ 1%g]cfunE.
+  case: (ncoord chi f =P 0) (Hi chi)=> [->|_]; first by rewrite !mul0r.
+  by rewrite !inE; move/(_ is_true_true); move/eqP->.
+case/andP: (Hf)=> _ H1f; rewrite !inE (ncoord_sum H1f) !sum_cfunE !cfunE.
+move/eqP=> Hs i; rewrite !inE.
+have<-: f =
+   cfun_of_fun (fun x : gT => 
+                  \sum_(i:irr_class G) (ncoord i f *: irr_cfun i) x).
+  by apply/cfunP=> x; rewrite cfunE {1}(@ncoord_sum G f) // sum_cfunE cfunE.
+move=> Hd.
+have F: (ncoord i f *: irr_cfun i) g = (ncoord i f *: irr_cfun i) 1%g.
+  have F1: 0 <= ncoord i f by apply: posC_isNatC; rewrite is_char_ncoord.
+  apply: (normC_sum_upper _ Hs)=> [j Hj|]; last first.
+    by rewrite /index_enum -enumT mem_enum.
+  have F2: 0 <= ncoord j f by apply: posC_isNatC; rewrite is_char_ncoord.
+  rewrite cfunE [(ncoord j f *: irr_cfun j) 1%g]cfunE !normC_mul //.
+  by rewrite normC_pos // leC_mul2l // (is_char_norm _ (is_char_irr j)).
+apply/eqP; apply: (mulfI Hd).
+by move: F; rewrite cfunE => ->; rewrite !cfunE.
+Qed. 
+
+Lemma cker_all_triv : forall G,
+  \bigcap_(i : irr_class G) cker i = 1%G.
+Proof.
+move=> G.
+apply/setP=> g; apply/idP/idP; rewrite inE; last first.
+  by move/eqP->; apply/bigcapP=> i _; rewrite inE eqxx.
+have F1: (\bigcap_(i : irr_class G) cker i) \subset cker (cfun_reg G).
+  rewrite (ckerE (is_char_char _)).
+  apply/subsetP=> h; move/bigcapP=> Hi; apply/bigcapP=> j _.
+  by exact: Hi.
+move/(subsetP F1); rewrite inE !cfun_reg_val //.
+rewrite group1 eqxx; case: (g == 1%g)=> //.
+rewrite andbF eq_sym; move/charf0P: Cchar->.
+by rewrite (cardD1 1%g) group1.
+Qed.
 
 End Main.
 
