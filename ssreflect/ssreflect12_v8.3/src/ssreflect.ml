@@ -1998,19 +1998,44 @@ let tclTHENS_nonstrict tac tacl taclname gl =
 (* Forward reference to extended rewrite *)
 let ipat_rewritetac = ref rewritetac
 
-let rec ipattac = function
-  | IpatWild -> introid (new_wild_id ())
-  | IpatCase iorpat -> tclIORPAT (with_top ssrscasetac) iorpat
-  | IpatRw dir -> with_top (!ipat_rewritetac dir)
-  | IpatId id -> introid id
+let rec is_name_in_ipats name = function
+  | IpatSimpl(clr,_) :: tl -> 
+      List.exists (function SsrHyp(_,id) -> id = name) clr 
+      || is_name_in_ipats name tl
+  | IpatId id :: tl -> id = name || is_name_in_ipats name tl
+  | IpatCase l :: tl -> is_name_in_ipats name (List.flatten l @ tl)
+  | _ :: tl -> is_name_in_ipats name tl
+  | [] -> false
+
+let rec map_acc_k f k = function
+  | [] -> [k]
+  | x :: xs -> let k, x = f k xs x in x :: map_acc_k f k xs
+
+let rec ipattac k rest = function
+  | IpatWild -> k, introid (new_wild_id ())
+  | IpatCase iorpat -> k, tclIORPAT (with_top ssrscasetac) iorpat
+  | IpatRw dir -> k, with_top (!ipat_rewritetac dir)
+  | IpatId id -> k, introid id
   | IpatSimpl (clr, sim) ->
-    tclTHEN (simpltac sim) (clear_with_wilds !wild_ids (hyps_ids clr))
-  | IpatAll -> intro_all
-  | IpatAnon -> intro_anon
+    let rename, clear = 
+      if List.exists (fun x -> is_name_in_ipats (hyp_id x) rest) clr then
+        let to_clr = ref [] in
+        let ren gl = 
+          let clr, ren = 
+            List.split (List.map (function SsrHyp(_, x) -> 
+            let x' = mk_anon_id (string_of_id x) gl in
+            SsrHyp (dummy_loc, x'), (x, x')) clr) in
+          to_clr := clr; ren in
+        (fun gl -> rename_hyp (ren gl) gl), 
+        (fun gl -> clear_with_wilds !wild_ids (hyps_ids !to_clr) gl)
+      else tclIDTAC, clear_with_wilds !wild_ids (hyps_ids clr) in
+    tclTHEN k clear, tclTHEN rename (simpltac sim)
+  | IpatAll -> k, intro_all
+  | IpatAnon -> k, intro_anon
 and tclIORPAT tac = function
   | [[]] -> tac
   | iorpat -> tclTHENS_nonstrict tac (mapLR ipatstac iorpat) "intro pattern"
-and ipatstac ipats = tclTHENLIST (mapLR ipattac ipats)
+and ipatstac ipats = tclTHENLIST (map_acc_k ipattac tclIDTAC ipats)
 
 (* For "move" and "clear" *)
 let introstac ipats ist =
@@ -2025,15 +2050,18 @@ let rec eqmoveipats eqpat = function
 
 (* For "case" and "elim" *)
 let tclEQINTROS tac eqtac ipats =
-  let rec split_itacs tac' = function
+  let rec split_itacs k tac' = function
   | (IpatSimpl _ as spat) :: ipats' -> 
-    split_itacs (tclTHEN tac' (ipattac spat)) ipats'
-  | IpatCase iorpat :: ipats' -> tclIORPAT tac' iorpat, ipats'
-  | ipats' -> tac', ipats' in
+    let k, tac = ipattac k ipats' spat in 
+    split_itacs k (tclTHEN tac' tac) ipats'
+  | IpatCase iorpat :: ipats' -> k, tclIORPAT tac' iorpat, ipats'
+  | ipats' -> k, tac', ipats' in
   wild_ids := [];
-  let tac1, ipats' = split_itacs tac ipats in
-  let tac2 = ipatstac ipats' in
+  let k, tac1, ipats' = split_itacs tclIDTAC tac ipats in
+  let tac2 = tclTHENLIST (map_acc_k ipattac k ipats') in
   tclTHENLIST [tac1; eqtac; tac2; clear_wilds !wild_ids]
+
+let ipattac ipat = snd (ipattac tclIDTAC [] ipat)
 
 (* General case *)
 let tclINTROS tac (ipats, ctx) = 
@@ -3751,18 +3779,10 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
       | Some (IpatId ipat) -> 
         let name gl = mk_anon_id "K" gl in
         let intro_lhs gl = 
-          let rec is_in_intros str = function
-            | IpatSimpl(clr,_) :: tl -> 
-                List.exists (function SsrHyp(_,id) -> id = str) clr 
-                || is_in_intros str tl
-            | IpatId id :: tl -> id = str || is_in_intros str tl
-            | IpatCase l :: tl -> is_in_intros str (List.flatten l @ tl)
-            | _ -> false
-          in
           let elim_name = match orig_clr with 
             | [SsrHyp(_, x)] -> x 
             | _ -> match kind_of_term c with | Var n -> n | _ -> name gl in
-          if is_in_intros elim_name ipats then introid (name gl) gl
+          if is_name_in_ipats elim_name ipats then introid (name gl) gl
           else introid elim_name gl
         in
         let rec gen_eq_tac gl =
