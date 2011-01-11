@@ -5096,7 +5096,7 @@ END
 
 let wlogtac clr0 pats (gens, ((_, ct), ctx)) hint gl =
   let ist = get_ltacctx ctx in
-  let mkabs (_, SsrHyp (_, x)) = mkNamedProd x (pf_get_hyp_typ gl x) in
+  let mkabs (_, SsrHyp (_, x)) = mkNamedProd_or_LetIn (pf_get_hyp gl x) in
   let mkclr (clr, x) clrs = cleartac clr :: cleartac [x] :: clrs in
   let mkpats (_, SsrHyp (_, x)) pats = IpatId x :: pats in
   let cl0 = mkArrow (pf_prod_ssrterm ist gl ct) (pf_concl gl) in
