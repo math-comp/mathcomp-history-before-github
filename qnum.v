@@ -60,7 +60,7 @@ rewrite -abszr absr_mulz absr_mul !absr_sg n0 mul1r.
 case m0: (_ == 0)=> /=.
   by rewrite !(eqP m0) gcd0n divnn /= lt0n absz_eq0 n0.
 move: m0 n0; rewrite -!absz_eq0.
-move: (absz _) (absz _) => {n m k hk} m n n0 m0; rewrite /coprime.
+move: (absz _) (absz _) => {n m} m n n0 m0; rewrite /coprime.
 rewrite -(@eqn_pmul2l (gcdn n m)) ?muln1 ?gcdn_gt0 ?lt0n ?n0 // -gcdn_mul2l.
 do 2!rewrite divn_mulCA ?(dvdn_gcdl, dvdn_gcdr) ?divnn //.
 by rewrite ?gcdn_gt0 ?lt0n ?n0 ?muln1.

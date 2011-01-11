@@ -395,7 +395,7 @@ case/submxP: IHp => u ->{i}.
 have: (powers_mx A (1 + d) <= Ad)%MS.
   rewrite -(geq_leqif (mxrank_leqif_sup _)).
     by rewrite (eqnP minpoly_mx_free) /d; case: ex_minnP.
-  rewrite addnC; apply/row_subP=> {i}i.
+  rewrite addnC; apply/row_subP=> i.
   by apply: eq_row_sub (lshift 1 i) _; rewrite !rowK.
 apply: submx_trans; rewrite addmx_sub ?scalemx_sub //.
   by apply: (eq_row_sub 0); rewrite rowK.
