@@ -343,6 +343,9 @@ let rec constr_name c = match kind_of_term c with
   | App (c', _) -> constr_name c'
   | _ -> Anonymous
 
+(** Constructors for cast type *)
+let dC t = CastConv(DEFAULTcast, t)
+
 (** Constructors for constr_expr *)
 
 let mkCProp loc = CSort (loc, RProp Null)
@@ -359,9 +362,14 @@ let rec isCHoles = function CHole _ :: cl -> isCHoles cl | cl -> cl = []
 let mkCExplVar loc id n =
    CAppExpl (loc, (None, Ident (loc, id)), mkCHoles loc n)
 
-(** Constructors for rawconstr *)
+let mkCLambda loc name ty t = 
+   CLambdaN (loc, [[loc, name], Default Explicit, ty], t)
 
-let dC t = CastConv(DEFAULTcast, t)
+let mkCArrow loc ty t = CArrow (loc, ty, t)
+
+let mkCCast loc t ty = CCast (loc,t, dC ty)
+
+(** Constructors for rawconstr *)
 
 let mkRHole = RHole (dummy_loc, InternalHole)
 
@@ -4977,16 +4985,70 @@ let havegentac ist t gl =
   let c = pf_abs_ssrterm ist gl t in
   apply_type (mkArrow (pf_type_of gl c) (pf_concl gl)) [c] gl
 
-let havetac clr pats ((((fk, _), t), ctx), hint) =
- let ist = get_ltacctx ctx in
- let itac = tclTHEN (cleartac clr) (introstac pats ist) in
- if fk = FwdHave then tclTHEN (havegentac ist t) itac else
- let ctac gl = basecuttac "ssr_have" (pf_prod_ssrterm ist gl t) gl in
- tclTHENS ctac [hinttac ist true hint; itac]
+let havetac clr pats ((((fk, _), t), ctx), hint) suff namefst gl =
+ let ist, concl = get_ltacctx ctx, pf_concl gl in
+ let clear, id, itac = cleartac clr, tclIDTAC, introstac pats ist in
+ let hint = hinttac ist true hint in
+ let cuttac t gl = basecuttac "ssr_have" t gl in
+ let interp_ty ty =
+   let ty = mk_term ' ' (mkCCast dummy_loc ty (mkCType dummy_loc)) in
+   let n, c = pf_abs_evars gl (interp_term ist gl ty) in
+   let ctx, c = decompose_lam_n n (pf_abs_cterm gl n c) in
+   compose_prod ctx c in
+ let interp t = pf_abs_ssrterm ist gl (mk_term ' ' t) in
+ let name = match pats with [IpatId x] -> Name x | _ -> Anonymous in
+ let mkFkC loc ct = mkCCast loc ct (CHole (loc, None)) in
+ let ct, cty, loc =
+   match t with
+   | (_, (_, Some (CCast (loc, ct, CastConv (_, cty))))) -> ct, cty, loc
+   | (_, (_, Some ct)) -> ct, (CHole (dummy_loc, None)), dummy_loc
+   | _ -> assert false in
+ let cut, sol, itac1, itac2 =
+   match fk, namefst, suff with
+   | FwdHave, true, true ->
+     let t = interp (mkCLambda loc name cty (mkFkC loc ct)) in
+     pf_type_of gl t, apply t, id, id
+   | FwdHave, false, true ->
+     let cty = mkCArrow loc cty (CHole(dummy_loc,None)) in
+     let t = interp (mkCCast loc ct cty) in
+     let ty = pf_type_of gl t in
+     let ctx, _ = decompose_prod_n 1 ty in
+     let assert_is_conv gl =
+       try convert_concl (compose_prod ctx concl) gl
+       with _ -> errorstrm (str "Given proof term is not of type " ++
+         pr_constr (mkArrow (mkVar (id_of_string "_")) concl)) in
+     ty, tclTHEN assert_is_conv (apply t), id, itac
+   | FwdHave, false, false ->
+     let t = interp (mkCCast loc ct cty) in pf_type_of gl t, apply t, id, itac
+   | _, true, true   -> mkArrow (interp_ty cty) concl, hint, itac, id
+   | _, false, true  -> mkArrow (interp_ty cty) concl, hint, id, itac
+   | _, false, false -> interp_ty cty, hint, id, itac
+   | _, true, false -> assert false in
+ tclTHENS (cuttac cut) [ tclTHEN sol itac1; tclTHEN clear itac2 ] gl
 
 TACTIC EXTEND ssrhave
 | [ "have" ssrclear(clr) ssrhpats(pats) ssrhavefwd(fwd) ] ->
-  [ havetac clr pats fwd ]
+  [ havetac clr pats fwd false false ]
+END
+
+TACTIC EXTEND ssrhavesuff
+| [ "have" "suff" ssrclear(clr) ssrhpats(pats) ssrhavefwd(fwd) ] ->
+  [ havetac clr pats fwd true false ]
+END
+
+TACTIC EXTEND ssrhavesuffices
+| [ "have" "suffices" ssrclear(clr) ssrhpats(pats) ssrhavefwd(fwd) ] ->
+  [ havetac clr pats fwd true false ]
+END
+
+TACTIC EXTEND ssrsuffhave
+| [ "suff" "have" ssrclear(clr) ssrhpats(pats) ssrhavefwd(fwd) ] ->
+  [ havetac clr pats fwd true true ]
+END
+
+TACTIC EXTEND ssrsufficeshave
+| [ "suffices" "have" ssrclear(clr) ssrhpats(pats) ssrhavefwd(fwd) ] ->
+  [ havetac clr pats fwd true true ]
 END
 
 (** The "suffice" tactic *)
