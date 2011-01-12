@@ -1632,7 +1632,7 @@ apply: (@char_rker_aux <[g]> (fun i => ncoord i (char <[g]>%G rG') != 0)
       by move/bigcapP; apply.
     by exact: is_char_char.
   rewrite inE; case/andP=> _;case/eqP.
-  rewrite char_abelian // => ->. 
+  rewrite irr_repr_abelian // => ->. 
   by rewrite char1 irr_degree_abelian.
 rewrite big_mkcond /= {3}(ncoord_sum (is_char_in_cfun (is_char_char rG'))).
 apply: eq_bigr=> i Hi; case: eqP=>[->|HH]; first by rewrite scale0r.
