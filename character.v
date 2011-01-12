@@ -692,6 +692,13 @@ by move=> j _; rewrite sg2biK scaler_subl // (nth_map (irr_class1 G)) -?cardE
                        // nth_enum_rank.
 Qed.
 
+Lemma ncoord0 : forall G (i : irr_class G), ncoord i 0 = 0.
+Proof.
+move=> G i; apply: sym_equal.
+apply: (@ncoordE G (fun i => 0:C) 0); first exact: mem0v.
+by rewrite big1 // => j _; exact: scale0r.
+Qed.
+
 Lemma ncoord_chi: forall G (i j : irr_class G), 
   ncoord j (irr_cfun i) = (i == j)%:R.
 Proof.
@@ -927,25 +934,27 @@ rewrite !mulrA mulVr ?mul1r // GRing.unitfE.
 by move/charf0P: Cchar->; case: #|_| (cardG_gt0 G).
 Qed.
 
+
+Lemma irr_repr_abelian: forall G (i : irr_class G) g,
+   g \in G -> abelian G -> irr_repr (socle_of_irr_class i) g = (i g)%:M.
+Proof.
+move=> G i g InG AbG.
+rewrite cfunE InG mul1r.
+move: (irr_repr (socle_of_irr_class i)); rewrite irr_degree_abelian //.
+move=> irr_repr; rewrite trace_mx11.
+apply/matrixP=> [] [[|] Hi1] // [[|] Hj1] //.
+by rewrite !mxE /= mulr1n; congr fun_of_matrix; apply/eqP.
+Qed. 
+
 Lemma chi_exp_abelian : forall G (chi: irr_class G) g n, 
   g \in G -> abelian G -> (chi g)^+n = chi (g^+n)%g.
 Proof.
 move=> G chi g n Hin AG.
-pose i := socle_of_irr_class chi.
-pose u := let m := Ordinal (irr_degree_gt0 i) in irr_repr i g m m.
-have irr_scal: irr_repr i g = u %:M.
-  apply/matrixP=> [] [[|i1] Hi1]; last first.
-    by move: (Hi1); rewrite irr_degree_abelian in Hi1.
-  case=> [] [|j1] Hj1; last first.
-    by move: (Hj1); rewrite irr_degree_abelian in Hj1.
-  rewrite /u !mxE; apply: eq_bigr=> i2 _l; rewrite !mxE.
-  congr (_ * _); apply: eq_bigr=> i3 _; rewrite !mxE //.
-  by congr (_ * _); apply: eq_bigr=> i4 _; rewrite !mxE.
+rewrite !cfunE Hin groupX // 2!{1}mul1r.
 elim: n=> [|n IH].
-  by rewrite expr0 expg0 chi1 irr_degree_abelian.
-rewrite exprS IH !cfunE {2}expgS repr_mxM // !groupX // Hin.
-rewrite irr_scal mul_scalar_mx mxtraceZ mxtrace_scalar.
-by rewrite {1}irr_degree_abelian // mulr1n !mul1r.
+  by rewrite expr0 expg0 repr_mx1 mxtrace1 irr_degree_abelian.
+rewrite exprS IH expgS repr_mxM ?groupX // {2}irr_repr_abelian //.
+by rewrite mul_scalar_mx mxtraceZ cfunE Hin {1}mul1r.
 Qed.
 
 Lemma chi_unit_abelian : forall G (chi: irr_class G) g, 
@@ -1492,21 +1501,32 @@ rewrite cfunE normC_mul chi_norm_abelian //.
 by rewrite cycle_id normC_pos // /nc ncoord_char leC_nat.
 Qed.
 
-Definition cker (f : cfun_type C gT) := [set g | f g == f 1%g].
+Definition cker G (f : cfun_type C gT) := [set g \in G | f g == f 1%g].
 
-Definition cfaithful f := cker f \subset 1%G.
+Definition cfaithful G f := cker G f \subset 1%G.
 
-Lemma ckerE : forall G f, is_char G f ->
-  cker f = \bigcap_(i : irr_class G | ncoord i f != 0) cker i.
+Lemma ckerE : forall G f, is_char G f -> 
+  cker G f = if f == 0 then (G : {set _}) else
+             \bigcap_(i : irr_class G | ncoord i f != 0) cker G i.
 Proof.
-move=> G f Hf; apply/setP=> g; apply/idP/bigcapP=> [|Hi]; last first.
+move=> G f Hf; case: eqP=> [->|Hdf].
+  by apply/setP=> g; rewrite !inE !cfunE eqxx andbT.
+apply/setP=> g; apply/idP/bigcapP=> [|Hi]; last first.
+  have InG: g \in G.
+   case: (boolP (all (fun i => ncoord i f == 0%:R) (enum (irr_class G)))).
+     move/allP=> HH; case Hdf.
+     rewrite (ncoord_sum (is_char_in_cfun Hf)); apply: big1=> i1 Hi1.
+     suff->: ncoord i1 f = 0 by exact: scale0r.
+     by apply/eqP; apply: HH=> //; rewrite mem_enum.
+    by case/allPn=> k kIn Hk; move: (Hi _ Hk); rewrite inE; case/andP.
   case/andP: (Hf)=> _ H1f.
-  rewrite inE /= (ncoord_sum H1f) !sum_cfunE !cfunE; apply/eqP.
+  rewrite inE /= (ncoord_sum H1f) !sum_cfunE !cfunE InG; apply/eqP.
   apply: eq_bigr=> chi _; rewrite cfunE [_ 1%g]cfunE.
   case: (ncoord chi f =P 0) (Hi chi)=> [->|_]; first by rewrite !mul0r.
-  by rewrite !inE; move/(_ is_true_true); move/eqP->.
-case/andP: (Hf)=> _ H1f; rewrite !inE (ncoord_sum H1f) !sum_cfunE !cfunE.
-move/eqP=> Hs i; rewrite !inE.
+  by rewrite !inE; move/(_ is_true_true); rewrite InG; move/eqP->.
+rewrite inE; case/andP=> InG.
+case/andP: (Hf)=> _ H1f; rewrite (ncoord_sum H1f) !sum_cfunE !cfunE.
+move/eqP=> Hs i; rewrite !inE InG.
 have<-: f =
    cfun_of_fun (fun x : gT => 
                   \sum_(i:irr_class G) (ncoord i f *: irr_cfun i) x).
@@ -1523,17 +1543,21 @@ apply/eqP; apply: (mulfI Hd).
 by move: F; rewrite cfunE => ->; rewrite !cfunE.
 Qed. 
 
-Lemma cker_all1 : forall G,
-  \bigcap_(i : irr_class G) cker i = 1%G.
+Lemma cker_all1 : forall G, \bigcap_(i : irr_class G) cker G i = 1%G.
 Proof.
 move=> G.
 apply/setP=> g; apply/idP/idP; rewrite inE; last first.
-  by move/eqP->; apply/bigcapP=> i _; rewrite inE eqxx.
-have F1: (\bigcap_(i : irr_class G) cker i) \subset cker (cfun_reg G).
+  by move/eqP->; apply/bigcapP=> i _; rewrite inE group1 eqxx.
+have F1: (\bigcap_(i : irr_class G) cker G i) \subset cker G (cfun_reg G).
   rewrite (ckerE (is_char_char _)).
+  case: eqP=> Heq.
+    have: char G (regular_repr C G) 1%g = 0 by rewrite Heq cfunE.
+    rewrite cfunE group1 repr_mx1 mxtrace1 mul1r.
+    by move/eqP; move/charf0P: Cchar->; rewrite (cardD1 1%g) group1.
   apply/subsetP=> h; move/bigcapP=> Hi; apply/bigcapP=> j _.
   by exact: Hi.
 move/(subsetP F1); rewrite inE !cfun_reg_val //.
+case/andP=> InG; rewrite InG.
 rewrite group1 eqxx; case: (g == 1%g)=> //.
 rewrite andbF eq_sym; move/charf0P: Cchar->.
 by rewrite (cardD1 1%g) group1.
@@ -1583,6 +1607,36 @@ have: g \in rker rG1.
   by apply: IH (sym_equal HrG1); rewrite -ltnS -F1.
 case/rkerP=> _ Hr1.
 by rewrite /rG' /= (eqP (Hg i H1i)) Hr1 block_mx1.
+Qed.
+
+Lemma char_rkerP : forall G n (rG : mx_representation C G n), 
+  cker G (char G rG) = rker rG.
+Proof.
+move=> G n rG; apply/setP=> g; apply/idP/rkerP=>[Hg |[H1 H2]]; last first.
+  by rewrite inE !cfunE H1 H2 repr_mx1 !group1 mul1r mxtrace1 eqxx.
+have InG: g \in G by move: Hg; rewrite inE; case/andP.
+split=> //.
+have F1: (<[g]> \subset G) by rewrite cycle_subG.
+pose rG' := subg_repr rG F1.
+have H'g: g \in cker <[g]> (char <[g]> rG').
+  by move: Hg; rewrite /rG' !inE !cfunE !group1 !InG cycle_id !mul1r.
+suff: g \in rker rG' by rewrite inE mul1mx; case/andP=> _; move/eqP.
+have Abg := cycle_abelian g.
+have Ing := cycle_id g.
+apply: (@char_rker_aux <[g]> (fun i => ncoord i (char <[g]>%G rG') != 0)
+             g (cycle_id _) _ (fun i => getNatC (ncoord i (char <[g]>%G rG')))).
+  move=> i Hi.
+  have: g \in cker <[g]> i.
+    move: H'g; rewrite ckerE.
+    case: eqP=> HH; first by case/negP: Hi; rewrite HH ncoord0.
+      by move/bigcapP; apply.
+    by exact: is_char_char.
+  rewrite inE; case/andP=> _;case/eqP.
+  rewrite char_abelian // => ->. 
+  by rewrite char1 irr_degree_abelian.
+rewrite big_mkcond /= {3}(ncoord_sum (is_char_in_cfun (is_char_char rG'))).
+apply: eq_bigr=> i Hi; case: eqP=>[->|HH]; first by rewrite scale0r.
+by move: (is_char_ncoord i (is_char_char rG')); rewrite getNatCP; move/eqP<-.
 Qed.
 
 End Main.
