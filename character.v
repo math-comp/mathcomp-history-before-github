@@ -113,6 +113,55 @@ case: splitP=> [] [i1 Hi1]; rewrite !mxE /eq_op /= => ->;
 by rewrite eqn_addl.
 Qed.
 
+(* This should be put in mxrepresentation *)
+
+
+Section MxR.
+
+Variable (gT : finGroupType).
+
+Variables (G  N: {group gT}) (n : nat).
+Variable R : fieldType.
+Variable rG : mx_representation R (G/N)%g n.
+Hypothesis NN: N <| G.
+
+Definition coset_mx of N <| G := rG \o (coset N).
+
+Lemma coset_mx_repr : mx_repr G  (coset_mx NN).
+Proof.
+split=> [|x y Hx Hy].
+  rewrite /coset_mx /= -(repr_mx1 rG); congr (rG _).
+  by apply/val_eqP; rewrite /= (coset1 N) genGid.
+by rewrite /coset_mx /= !coset_morphM ?(repr_mxM,mem_quotient)//;
+   apply: (subsetP (normal_norm NN)).
+Qed.
+
+Canonical Structure coset_repr := MxRepresentation coset_mx_repr.
+
+Local Notation rGH := coset_repr.
+
+Lemma coset_repr_coset : forall x, x \in G -> rG (coset N x) = rGH x.
+Proof.  by []. Qed.
+
+Lemma coset_repr_rker : N \subset (rker rGH).
+Proof.
+apply/subsetP=> g InG.
+rewrite inE (subsetP (normal_sub NN)) // mul1mx /=.
+by rewrite /coset_mx /= coset_id // repr_mx1.
+Qed.
+
+Lemma quo_coset_repr : 
+  mx_rsim (quo_repr (coset_repr_rker) (normal_norm NN)) rG.
+Proof.
+exists 1%:M=> //.
+  by apply/row_freeP; exists 1%:M; rewrite mul1mx.
+move=> M InM.
+rewrite mul1mx mulmx1 /= /coset_mx /=.
+admit.
+Qed.
+
+End MxR.
+
 (****************************************************************************)
 (*  trying to do something about characters                                 *)
 (****************************************************************************)
@@ -831,6 +880,15 @@ move=> G m n rG1 rG2; apply: (iffP eqP)=> HH; last first.
   by rewrite !mul1r; apply: mxtrace_rsim.
 admit.
 Qed.
+
+Lemma irr_cfun_inj : 
+  forall G (i j : irr_class G), i = j :> cfun_type _ _  -> i = j.
+Proof.
+move=> G i j; move/eqP; move/char_rsimP.
+move/(irr_comp_rsim (sG G) (pGroupG G)).
+rewrite !irr_reprK //.
+by case: i; case: j=>  u v /= ->.
+Qed. 
   
 Definition cfun_reg G := char G (regular_repr C G).
 
@@ -1501,7 +1559,15 @@ rewrite cfunE normC_mul chi_norm_abelian //.
 by rewrite cycle_id normC_pos // /nc ncoord_char leC_nat.
 Qed.
 
-Definition cker G (f : cfun_type C gT) := [set g \in G | f g == f 1%g].
+Definition cker G (f : cfun_type C gT) := 
+  if is_char G f then [set g \in G | f g == f 1%g] else 1%G.
+
+Lemma is_char_cker : forall G f,
+   is_char G f -> cker G f = [set g \in G | f g == f 1%g].
+Proof. by move=> G f Hf; rewrite /cker Hf. Qed.
+
+Lemma is_Nchar_cker : forall G f, ~is_char G f -> cker G f = 1%G.
+Proof. by move=> G f Hf; rewrite /cker; move/eqP: Hf; case: is_char. Qed.
 
 Definition cfaithful G f := cker G f \subset 1%G.
 
@@ -1509,7 +1575,8 @@ Lemma ckerE : forall G f, is_char G f ->
   cker G f = if f == 0 then (G : {set _}) else
              \bigcap_(i : irr_class G | ncoord i f != 0) cker G i.
 Proof.
-move=> G f Hf; case: eqP=> [->|Hdf].
+move=> G f Hf; rewrite is_char_cker //.
+case: eqP=> [->|Hdf].
   by apply/setP=> g; rewrite !inE !cfunE eqxx andbT.
 apply/setP=> g; apply/idP/bigcapP=> [|Hi]; last first.
   have InG: g \in G.
@@ -1518,15 +1585,17 @@ apply/setP=> g; apply/idP/bigcapP=> [|Hi]; last first.
      rewrite (ncoord_sum (is_char_in_cfun Hf)); apply: big1=> i1 Hi1.
      suff->: ncoord i1 f = 0 by exact: scale0r.
      by apply/eqP; apply: HH=> //; rewrite mem_enum.
-    by case/allPn=> k kIn Hk; move: (Hi _ Hk); rewrite inE; case/andP.
+    case/allPn=> k kIn Hk; move: (Hi _ Hk).
+    by rewrite is_char_cker ?is_char_irr // inE; case/andP.
   case/andP: (Hf)=> _ H1f.
   rewrite inE /= (ncoord_sum H1f) !sum_cfunE !cfunE InG; apply/eqP.
   apply: eq_bigr=> chi _; rewrite cfunE [_ 1%g]cfunE.
   case: (ncoord chi f =P 0) (Hi chi)=> [->|_]; first by rewrite !mul0r.
-  by rewrite !inE; move/(_ is_true_true); rewrite InG; move/eqP->.
+  rewrite is_char_cker ?is_char_irr // !inE.
+  by move/(_ is_true_true); rewrite InG; move/eqP->.
 rewrite inE; case/andP=> InG.
 case/andP: (Hf)=> _ H1f; rewrite (ncoord_sum H1f) !sum_cfunE !cfunE.
-move/eqP=> Hs i; rewrite !inE InG.
+move/eqP=> Hs i; rewrite is_char_cker ?is_char_irr // !inE InG.
 have<-: f =
    cfun_of_fun (fun x : gT => 
                   \sum_(i:irr_class G) (ncoord i f *: irr_cfun i) x).
@@ -1547,7 +1616,8 @@ Lemma cker_all1 : forall G, \bigcap_(i : irr_class G) cker G i = 1%G.
 Proof.
 move=> G.
 apply/setP=> g; apply/idP/idP; rewrite inE; last first.
-  by move/eqP->; apply/bigcapP=> i _; rewrite inE group1 eqxx.
+  move/eqP->; apply/bigcapP=> i _.
+  by rewrite is_char_cker ?is_char_irr // inE group1 eqxx.
 have F1: (\bigcap_(i : irr_class G) cker G i) \subset cker G (cfun_reg G).
   rewrite (ckerE (is_char_char _)).
   case: eqP=> Heq.
@@ -1556,7 +1626,7 @@ have F1: (\bigcap_(i : irr_class G) cker G i) \subset cker G (cfun_reg G).
     by move/eqP; move/charf0P: Cchar->; rewrite (cardD1 1%g) group1.
   apply/subsetP=> h; move/bigcapP=> Hi; apply/bigcapP=> j _.
   by exact: Hi.
-move/(subsetP F1); rewrite inE !cfun_reg_val //.
+move/(subsetP F1); rewrite is_char_cker ?is_char_char // inE !cfun_reg_val //.
 case/andP=> InG; rewrite InG.
 rewrite group1 eqxx; case: (g == 1%g)=> //.
 rewrite andbF eq_sym; move/charf0P: Cchar->.
@@ -1612,14 +1682,17 @@ Qed.
 Lemma char_rkerP : forall G n (rG : mx_representation C G n), 
   cker G (char G rG) = rker rG.
 Proof.
-move=> G n rG; apply/setP=> g; apply/idP/rkerP=>[Hg |[H1 H2]]; last first.
+move=> G n rG.
+rewrite is_char_cker ?is_char_char //.
+apply/setP=> g; apply/idP/rkerP=>[Hg |[H1 H2]]; last first.
   by rewrite inE !cfunE H1 H2 repr_mx1 !group1 mul1r mxtrace1 eqxx.
 have InG: g \in G by move: Hg; rewrite inE; case/andP.
 split=> //.
 have F1: (<[g]> \subset G) by rewrite cycle_subG.
 pose rG' := subg_repr rG F1.
 have H'g: g \in cker <[g]> (char <[g]> rG').
-  by move: Hg; rewrite /rG' !inE !cfunE !group1 !InG cycle_id !mul1r.
+  move: Hg; rewrite is_char_cker ?is_char_char //.
+  by rewrite /rG' !inE !cfunE !group1 !InG cycle_id !mul1r.
 suff: g \in rker rG' by rewrite inE mul1mx; case/andP=> _; move/eqP.
 have Abg := cycle_abelian g.
 have Ing := cycle_id g.
@@ -1627,11 +1700,10 @@ apply: (@char_rker_aux <[g]> (fun i => ncoord i (char <[g]>%G rG') != 0)
              g (cycle_id _) _ (fun i => getNatC (ncoord i (char <[g]>%G rG')))).
   move=> i Hi.
   have: g \in cker <[g]> i.
-    move: H'g; rewrite ckerE.
+    move: H'g; rewrite ckerE ?is_char_char //.
     case: eqP=> HH; first by case/negP: Hi; rewrite HH ncoord0.
-      by move/bigcapP; apply.
-    by exact: is_char_char.
-  rewrite inE; case/andP=> _;case/eqP.
+    by move/bigcapP; apply.
+  rewrite is_char_cker ?is_char_irr // inE; case/andP=> _;case/eqP.
   rewrite irr_repr_abelian // => ->. 
   by rewrite char1 irr_degree_abelian.
 rewrite big_mkcond /= {3}(ncoord_sum (is_char_in_cfun (is_char_char rG'))).
@@ -1639,6 +1711,217 @@ apply: eq_bigr=> i Hi; case: eqP=>[->|HH]; first by rewrite scale0r.
 by move: (is_char_ncoord i (is_char_char rG')); rewrite getNatCP; move/eqP<-.
 Qed.
 
+Lemma cker_group_set : forall G f, group_set (cker G f).
+Proof.
+move=> G f; case: (boolP (is_char G f))=> Hf.
+  case/is_charP: Hf=> n [rG <-]; rewrite char_rkerP //.
+  by exact: rstab_group_set.
+rewrite is_Nchar_cker; last by move/negP: Hf.
+by exact: group_set_one.
+Qed.
+
+Canonical Structure cker_group G f := Group (cker_group_set G f).
+
+Lemma cker_normal : forall G f, cker G f <| G.
+Proof.
+move=> G f; case: (boolP (is_char G f))=> Hf.
+  by case/is_charP: Hf=> n [rG <-]; rewrite char_rkerP // rker_normal.
+rewrite is_Nchar_cker; last by move/negP: Hf.
+by exact: normal1.
+Qed.
+
 End Main.
+
+Section Coset.
+
+Variable (gT : finGroupType).
+
+Hypothesis groupC : group_closure_field C gT.
+
+Implicit Type G : {group gT}.
+
+Let pGroupG : forall G, [char C]^'.-group G.
+Proof.
+by move=> G; apply: sub_pgroup (pgroup_pi G)=> i _; rewrite inE /= Cchar.
+Qed.
+
+Definition qfun_of_cfun (N: {set gT}) (f : cfun_type C gT) :=
+  cfun_of_fun (fun x : coset_of N => f (repr x)).
+
+Local Notation "'{ f '^/' N }" := (qfun_of_cfun N f).
+
+Definition cfun_of_qfun (N: {set gT}) (f : cfun_type C (coset_groupType N)) :=
+  cfun_of_fun (fun x : gT => (x \in 'N(N))%:R * f (coset N x)).
+
+
+Local Notation "'{ f '^()' }" := (cfun_of_qfun f).
+
+Lemma is_char_ckerM: forall (G N : {group gT}) f x y,
+ is_char G f -> x \in N -> y \in G -> N \subset cker G f -> 
+   f (x * y)%g = f y.
+Proof.
+move=> G N f x y Cf Inx Iny.
+case/is_charP: Cf=> // n [rG <-] Ncker.
+have InG: x \in G.
+  apply: (subsetP (normal_sub (cker_normal _ G (char G rG)))) => //.
+  by apply: (subsetP Ncker).
+rewrite !cfunE groupM ?Iny // repr_mxM //.
+move: ((subsetP Ncker) _ Inx).
+rewrite char_rkerP // inE InG mul1mx andTb; move/eqP->.
+by rewrite mul1mx.
+Qed.
+
+Let repr_quo_fact1 : forall (G N: {group gT}) (M : coset_of N),
+ N <| G -> (repr M \in G) = (M \in (G / N)%g).
+Proof.
+move=> G N M NN; rewrite -imset_coset; apply/idP/imsetP.
+  by move=> InG; exists (repr M)=> //; rewrite coset_reprK.
+case=> g Hg ->.
+rewrite  val_coset ?(subsetP (normal_norm NN)) //.
+suff: N :* g \subset G by move/subsetP=>-> //; apply: mem_repr_rcoset.
+apply/subsetP=> x; case/rcosetP=> y Hy ->; apply: groupM=> //.
+by apply: (subsetP (normal_sub NN)).
+Qed.
+
+Let repr_quo_fact2 : forall (G N: {group gT}) g,
+ N <| G -> (g \in 'N(N)) && (coset N g \in (G/N)%g) = (g \in G).
+Proof.
+move=> G N g NN.
+rewrite -imset_coset; apply/andP/idP=>[[HN]|HH]; last first.
+  split; first by apply: (subsetP (normal_norm NN)).
+  by apply/imsetP; exists g.
+case/imsetP=> h InH.
+have HH: h \in 'N(N) by apply: (subsetP (normal_norm NN)).
+move/(rcoset_kercosetP HN HH); rewrite mem_rcoset=> InNM.
+suff->: g = ((g * h^-1)*h)%g.
+  by rewrite groupM // (subsetP (normal_sub NN)).
+by rewrite -mulgA mulVg mulg1.
+Qed.
+
+Lemma is_char_qfunc: forall (G N : {group gT}) f,
+  is_char G f -> N <| G -> N \subset cker G f -> is_char (G/N) '{f ^/ N}.
+Proof.
+move=> G N f; case/is_charP=> // n [rG <-] HN HC.
+move: (HC); rewrite char_rkerP=> HC' //.
+pose rG' := quo_repr HC' (normal_norm HN).
+suff->: '{char G rG ^/ N} = char (G/N)%g rG'.
+  by apply: is_char_char; exact: coset_splitting_field.
+by apply/cfunP=> M; rewrite !cfunE repr_quo_fact1.
+Qed.
+
+Lemma qfuncE: forall (G N : {group gT}) f x,
+ is_char G f -> N <| G -> N \subset cker G f -> x \in G -> 
+  '{f ^/ N} (coset N x) = f x.
+Proof.
+move=> G N f x Cf NN  Ncker InG; rewrite !cfunE.
+rewrite val_coset //; last by apply: (subsetP (normal_norm NN)).
+by case: repr_rcosetP=> y Hy; apply: (is_char_ckerM Cf Hy).
+Qed.
+
+Lemma cfunqE: forall (N : {group gT}) f x,
+ x \in 'N(N) -> '{f ^()} x = f (coset N x).
+Proof. by move=> N f x InG; rewrite !cfunE InG // mul1r. Qed.
+
+Lemma is_char_cfunq: forall (G N : {group gT}) f,
+  N <| G -> is_char (G/N) f -> is_char G '{f^()}.
+Proof.
+move=> G N f NN; case/is_charP; first by exact: coset_splitting_field.
+move=> n [rG <-].
+pose rG' := coset_repr rG NN.
+suff->: '{char (G/N)%g rG ^()} = char G rG' by apply: is_char_char.
+apply/cfunP=> M; rewrite !cfunE mulrA -natr_mul mulnb.
+rewrite repr_quo_fact2 //.
+Qed.
+
+(* We could do better *)
+Lemma cker_cfunq: forall (G N : {group gT}) f,
+ is_char (G/N) f -> N <| G -> N \subset cker G '{f^()}.
+Proof.
+move=> G N f Cf HN.
+have F1: is_char G '{f^()} by apply: is_char_cfunq.
+apply/subsetP=> g Hg.
+have InG: g \in G by apply: (subsetP (normal_sub HN)).
+rewrite /cker F1 inE InG !cfunqE //.
+- by rewrite !coset_id // eqxx.
+- by rewrite group1.
+by apply: (subsetP (normal_norm HN)).
+Qed.
+
+Lemma cfunq_id: forall (G N : {group gT}) f,
+ is_char (G/N) f -> N <| G -> '{'{f^()} ^/ N} = f.
+Proof.
+move=> G N f Cf HN.
+have FC: group_closure_field C (coset_groupType N).
+  by apply: coset_splitting_field.
+have F1: is_char G '{f^()} by apply: is_char_cfunq.
+have F2:= cker_cfunq Cf HN.
+have F3: is_char (G/N) '{'{f^()} ^/ N} by apply: is_char_qfunc.
+apply/cfunP=> x.
+case: (boolP (x \in (G/N)%g))=> [|InG]; last first.
+  rewrite (cfun0 _ (is_char_in_cfun _ Cf)) //.
+  by apply: (cfun0 _ (is_char_in_cfun _ F3)).
+rewrite -imset_coset; case/imsetP=> y InG ->.
+rewrite (@qfuncE G) //  cfunqE //.
+by apply: (subsetP (normal_norm HN)).
+Qed.
+
+Lemma qfunc_id: forall (G N : {group gT}) f,
+ is_char G f -> N <| G -> N \subset cker G f -> '{'{f^/N} ^()} = f.
+Proof.
+move=> G N f Cf HN Hc.
+have F1: is_char (G/N) '{f^/N} by apply: is_char_qfunc.
+have F2: is_char G '{'{f^/N} ^()} by apply: is_char_cfunq.
+apply/cfunP=> x.
+case: (boolP (x \in G))=> InG; last first.
+  rewrite (cfun0 _ (is_char_in_cfun _ Cf)) //.
+  apply: (cfun0 _ (is_char_in_cfun _ F2))=> //.
+rewrite cfunqE ?(@qfuncE G) //.
+by apply: (subsetP (normal_norm HN)).
+Qed.
+
+Lemma qfunc_irr: forall (G N : {group gT}) (i : irr_class G),
+ N <| G -> N \subset cker G i -> 
+  exists j : irr_class (G/N), '{irr_cfun i^/N} = irr_cfun j.
+Proof.
+move=> G N i NN Cf.
+pose sG := DecSocleType (regular_repr C (G/N)%G).
+move: (Cf); rewrite char_rkerP=> Cf' //.
+pose rG := quo_repr Cf' (normal_norm NN).
+exists (IrrClass (irr_comp sG rG)).
+apply/cfunP=> x.
+have->: IrrClass (irr_comp sG rG) x =
+       char (G/N)%g (irr_repr (irr_comp sG rG)) x.
+  by [].
+have F1: mx_irreducible rG.
+  by apply/quo_mx_irr=> //; apply: socle_irr.
+have F2: ([char C]^').-group (G / N)%G.
+  by apply: sub_pgroup (pgroup_pi _)=> i' _; rewrite inE /= Cchar.
+move/(rsim_irr_comp sG F2): F1.
+move/char_rsimP; move/eqP<-.
+by rewrite /rG !cfunE repr_quo_fact1.
+Qed.
+
+Lemma cfunq_irr: forall (G N : {group gT}) (i : irr_class (G/N)),
+ N <| G ->  exists j : irr_class G, '{irr_cfun i^()} = irr_cfun j.
+Proof.
+move=> G N i NN.
+pose sG := DecSocleType (regular_repr C G).
+pose j := socle_of_irr_class i.
+pose rG := coset_repr (irr_repr j) NN.
+exists (IrrClass (irr_comp sG rG)).
+apply/cfunP=> x.
+have->: IrrClass (irr_comp sG rG) x = char G (irr_repr (irr_comp sG rG)) x.
+  by [].
+have F1: mx_irreducible rG.
+  apply/(quo_mx_irr (coset_repr_rker (irr_repr j) NN) (normal_norm NN)).
+  apply: (mx_rsim_irr (mx_rsim_sym (quo_coset_repr (irr_repr j) NN))).
+  by apply: socle_irr.
+move/(rsim_irr_comp sG (pGroupG G)): F1.
+move/char_rsimP; move/eqP<-.
+rewrite /rG !cfunE.
+by rewrite  mulrA -natr_mul mulnb repr_quo_fact2.
+Qed.
+
+End Coset.
 
 End Character.
