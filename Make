@@ -67,8 +67,6 @@ BGsection13.v
 BGsection14.v
 BGsection15.v
 polydiv.v
-orderedalg.v
-#polyorder.v
 alt.v
 burnside_app.v
 vector.v
@@ -84,7 +82,9 @@ zint.v
 orderedalg.v
 orderedzint.v
 qnum.v
-
+# polyorder.v
+# polyrcf.v
+# qe_rcf_th.v
 
 COQC = $(COQBIN)ssrcoq
 COQFLAGS = "-q $(OPT) -dont-load-proofs $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -compile"
