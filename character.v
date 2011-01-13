@@ -1841,9 +1841,8 @@ move=> G N f Cf HN.
 have F1: is_char G '{f^()} by apply: is_char_cfunq.
 apply/subsetP=> g Hg.
 have InG: g \in G by apply: (subsetP (normal_sub HN)).
-rewrite /cker F1 inE InG !cfunqE //.
+rewrite /cker F1 inE InG !cfunqE ?group1 //.
 - by rewrite !coset_id // eqxx.
-- by rewrite group1.
 by apply: (subsetP (normal_norm HN)).
 Qed.
 
