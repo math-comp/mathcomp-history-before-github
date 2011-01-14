@@ -40,7 +40,7 @@ Parameter repC : C -> bool. (* C -> R^+ *)
 Axiom repCD : forall x y, repC x -> repC y -> repC (x + y).
 Axiom repCMl : forall x y, x != 0 -> repC x -> repC (x * y) = repC y.
 Axiom repC_anti : forall x, repC x -> repC (-x) -> x = 0.
-Axiom repC_unit_exp: forall x n, repC x -> ((x^+n.+1 == 1) = (x == 1)).
+Axiom repC_unit_exp : forall x n, repC x -> ((x^+n.+1 == 1) = (x == 1)).
 Axiom repC_pconj : forall x, repC (x * x ^*).
 Axiom repC_conjI : forall x, repC x -> x^* = x.
 Axiom repC1 : repC 1.
@@ -93,7 +93,7 @@ Notation " x < y " := (ltC x y) : C_scope.
 Lemma leC_nat : forall n, 0 <= n%:R.
 Proof. by move=> n; rewrite /leC subr0 repC_nat. Qed.
 
-Lemma leC_refl: reflexive leC.
+Lemma leC_refl : reflexive leC.
 Proof. move=> x; rewrite /leC subrr; exact repC0. Qed.
 
 Lemma ltCW : forall x y, x < y -> x <= y.
@@ -107,28 +107,28 @@ Qed.
 Lemma leC_add2r : forall z x y, (x + z <= y + z) = (x <= y).
 Proof. by move=> z x y; rewrite ![_ +z]addrC leC_add2l. Qed.
 
-Lemma posC_add: forall x y, 0 <= x -> 0 <= y -> 0 <= x + y.
+Lemma posC_add : forall x y, 0 <= x -> 0 <= y -> 0 <= x + y.
 Proof. by move=> x y; rewrite /leC !subr0; exact: repCD. Qed.
 
-Lemma leC_trans: transitive leC.
+Lemma leC_trans : transitive leC.
 Proof.
 move=> x y z Hx Hy.
 by move: (repCD Hy Hx); rewrite addrA subrK.
 Qed.
 
-Lemma leC_add: forall x y z t : C, x <= z -> y <= t -> x + y <= z + t.
+Lemma leC_add : forall x y z t : C, x <= z -> y <= t -> x + y <= z + t.
 Proof.
 move=> x y z t Hx Hy.
 by apply: (@leC_trans (z + y)); [rewrite leC_add2r | rewrite leC_add2l].
 Qed.
 
-Lemma posC_mulr: forall x y, 0 < x -> 0 <= x * y = (0 <= y).
+Lemma posC_mulr : forall x y, 0 < x -> 0 <= x * y = (0 <= y).
 Proof. 
 move=> x y; case/andP; rewrite /leC !subr0; move=>*.
 by apply: repCMl; rewrite // eq_sym. 
 Qed.
 
-Lemma posC_mull: forall x y, 0 < x -> 0 <= y * x = (0 <= y).
+Lemma posC_mull : forall x y, 0 < x -> 0 <= y * x = (0 <= y).
 Proof. move=> x y; rewrite mulrC; exact: posC_mulr. Qed.
 
 Lemma posC_mul : forall x y : C, 0 <= x -> 0 <= y -> 0 <= x * y.
@@ -138,19 +138,19 @@ case: (boolP (x == 0)); first by move/eqP->; rewrite mul0r leC_refl.
 by move=> Hdx; rewrite posC_mulr //; apply/andP; rewrite eq_sym.
 Qed.
 
-Lemma leC_anti: forall x y, x <= y -> y <= x -> x = y.
+Lemma leC_anti : forall x y, x <= y -> y <= x -> x = y.
 Proof.
 move=> x y Hx Hy; apply/eqP; rewrite -subr_eq0; apply/eqP.
 by apply: repC_anti; rewrite // oppr_sub.
 Qed.
 
-Lemma posC_unit_exp: forall x n, 0 <= x ->  (x ^+ n.+1 == 1) = (x == 1).
+Lemma posC_unit_exp : forall x n, 0 <= x ->  (x ^+ n.+1 == 1) = (x == 1).
 Proof. by move=> x n Hx; apply: repC_unit_exp; rewrite -[x]subr0. Qed.
 
-Lemma posC_conjK: forall x, 0 <= x -> x^* = x.
+Lemma posC_conjK : forall x, 0 <= x -> x^* = x.
 Proof. by move=> x Hx; apply: repC_conjI; rewrite -[x]subr0. Qed.
 
-Lemma posC1: 0 <= 1.
+Lemma posC1 : 0 <= 1.
 Proof. by rewrite /leC subr0 repC1. Qed.
 
 Lemma posC_inv : forall x, (0 <= x^-1) = (0 <= x).
@@ -159,7 +159,7 @@ Proof. move=> x; rewrite /leC !subr0; exact: repC_inv. Qed.
 Lemma posC_conj : forall x, (0 <= x ^*) = (0 <= x).
 Proof. move=> x; rewrite /leC !subr0; exact: repC_conj. Qed.
 
-Lemma posC_sum: 
+Lemma posC_sum : 
    forall (I : eqType) (r : seq I) (P : pred I) (F : I -> C),
    (forall i, (i \in r) && P i -> 0 <= F i) -> 0 <= \sum_(j <- r | P j) F j.
 Proof.
@@ -172,7 +172,7 @@ apply: posC_add.
 by apply: Hrec=> j; case/andP=> H1j H2j; apply: H; rewrite in_cons H1j orbT.
 Qed.
 
-Lemma posC_add_eq0: forall x y,
+Lemma posC_add_eq0 : forall x y,
   0 <= x -> 0 <= y -> (x + y == 0) = ((x == 0) && (y == 0)).
 Proof.
 move=> x y Hx Hy; apply/eqP/andP=>[Hxy|]; last first.
@@ -182,7 +182,7 @@ split; apply/eqP; apply: leC_anti=> //.
 by rewrite -(leC_add2l x) Hxy addr0.
 Qed.
 
-Lemma posC_sum_eq0: 
+Lemma posC_sum_eq0 : 
    forall (I : eqType) (r : seq I) (P : pred I) (F : I -> C),
    (forall i, (i \in r) && P i -> 0 <= F i) ->
    \sum_(j <- r | P j) F j = 0 ->
@@ -203,7 +203,7 @@ move=> H1i H2i; apply: Hrec=> //; last by rewrite H1i.
 by move=> j; case/andP=> H1j H2j; apply: HN; rewrite in_cons H1j orbT.
 Qed.
 
-Variable sqrC: C -> C.
+Variable sqrC : C -> C.
 Axiom sqrCK : forall c, (sqrC c) ^+ 2 = c.
 Axiom repC_sqr : forall c, repC (sqrC c) = repC c.
 Axiom sqrC_mul : {morph sqrC: x y / x * y}.
@@ -241,13 +241,13 @@ apply: leC_anti=> //; rewrite /leC sub0r.
 rewrite -(eqP HH) repC_sqr -[_^+_]subr0; by apply: posC_mul.
 Qed.
 
-Lemma sqrC1: sqrC 1 = 1.
+Lemma sqrC1 : sqrC 1 = 1.
 Proof. by rewrite -{2}(sqrC_sqr_pos posC1) exprS mul1r. Qed. 
  
 Definition normC x := sqrC (x * x^*).
 
-Axiom normC_add: forall x y,  normC (x + y) <= normC x + normC y.
-Axiom normC_add_eq: forall x y : C, 
+Axiom normC_add : forall x y,  normC (x + y) <= normC x + normC y.
+Axiom normC_add_eq : forall x y : C, 
   x != 0 -> normC (x + y) = normC(x) + normC(y) -> 0 <= y/x.
 
 Lemma posC_norm : forall x, 0 <= normC x.
@@ -285,7 +285,7 @@ move=> x; elim=> [|n IH]; first by rewrite !expr0 normC1.
 by rewrite exprS normC_mul IH exprS.
 Qed.
 
-Lemma normC_conj: forall x, normC (x^*) = normC x.
+Lemma normC_conj : forall x, normC (x^*) = normC x.
 Proof. by move=> x; rewrite /normC conjCK mulrC. Qed.
 
 Lemma normC_inv : forall x, x^-1 = (normC x)^-2 * x^*.
@@ -298,7 +298,7 @@ apply: (mulfI F1); rewrite mulrA divff // mul1r sqrCK [x * _]mulrC.
 by rewrite -mulrA divff // mulr1.
 Qed.
 
-Lemma conjC_inv: forall x, (x^-1)^* = (x^*)^-1.
+Lemma conjC_inv : forall x, (x^-1)^* = (x^*)^-1.
 Proof.
 move=> x; rewrite normC_inv rmorphM conjCK.
 rewrite (normC_inv x^*) conjCK; congr (_ * _).
@@ -306,7 +306,7 @@ rewrite normC_conj; apply: posC_conjK.
 by rewrite posC_inv exprS expr1 posC_mul // posC_norm.
 Qed.
 
-Lemma normC_sum: 
+Lemma normC_sum : 
    forall (I : eqType) (r : seq I) (P : pred I) (F : I -> C),
    normC (\sum_(i <- r | P i) F i) <= \sum_(i <- r | P i) normC(F i).
 Proof.
@@ -425,16 +425,16 @@ move=> c; case/isRatCP=> b [[n d]] ->.
 by rewrite !rmorphM conjC_inv !conjC_nat rmorph_sign.
 Qed.
 
-Lemma isRatC_nat: forall n, isRatC n%:R.
+Lemma isRatC_nat : forall n, isRatC n%:R.
 Proof.
 move=> n; apply/isRatCP; exists false; exists (n,0)%N.
 by rewrite expr0 mul1r invr1 mulr1.
 Qed.
 
-Definition isNatC (c: C) : bool :=
+Definition isNatC (c : C) : bool :=
  match getRatC c with (b,n,d) => c == (n %/ d.+1)%:R end.
 
-Lemma isNatCP: forall c, reflect (exists n, c = n%:R) (isNatC c).
+Lemma isNatCP : forall c, reflect (exists n, c = n%:R) (isNatC c).
 Proof.
 move=> c; apply: (iffP idP)=>[|[n->]].
   by rewrite /isNatC; case getRatC=> [[b n] d]; move/eqP->; 
@@ -463,12 +463,12 @@ have F2: (n1 - m == 0)%N.
 by rewrite -(subnKC Hnn) (eqP F2) addn0.
 Qed.
 
-Lemma isNatC_isRatC: forall c, isNatC c -> isRatC c.
+Lemma isNatC_isRatC : forall c, isNatC c -> isRatC c.
 Proof.
 move=> c; case/isNatCP=> n ->; exact: isRatC_nat.
 Qed.
 
-Lemma isNatC_nat: forall n, isNatC (n%:R).
+Lemma isNatC_nat : forall n, isNatC (n%:R).
 Proof. by move=> n; apply/isNatCP; exists n. Qed.
 
 Lemma isNatC_add: forall c1 c2, isNatC c1 -> isNatC c2 -> isNatC (c1 + c2).
@@ -477,13 +477,13 @@ move=> c1 c2; case/isNatCP=> n1 ->; case/isNatCP=> n2 ->.
 by rewrite -natr_add isNatC_nat.
 Qed.
 
-Lemma isNatC_mul: forall c1 c2, isNatC c1 -> isNatC c2 -> isNatC (c1 * c2).
+Lemma isNatC_mul : forall c1 c2, isNatC c1 -> isNatC c2 -> isNatC (c1 * c2).
 Proof.
 move=> c1 c2; case/isNatCP=> n1 ->; case/isNatCP=> n2 ->.
 by rewrite -natr_mul isNatC_nat.
 Qed.
 
-Lemma isNatC_sum: 
+Lemma isNatC_sum : 
    forall (I : Type) (r : seq I) (P : pred I) (F : I -> C),
    (forall i, P i -> isNatC  (F i)) -> isNatC (\sum_(j <- r | P j) F j).
 Proof.
@@ -493,7 +493,7 @@ rewrite big_cons; case E1: (P _)=> //.
 by apply: isNatC_add=> //; exact: H.
 Qed.
 
-Lemma isNatCMn: forall x n, isNatC x -> isNatC (x*+n).
+Lemma isNatCMn : forall x n, isNatC x -> isNatC (x*+n).
 Proof.
 move=> x; elim=> [|n IH Hx]; first by rewrite mulr0n (isNatC_nat 0).
 by rewrite mulrSr isNatC_add // IH.
@@ -550,7 +550,7 @@ rewrite -[1%:R]add0r addnS -addn1 natr_add => HH.
 by move: (addIr HH); move/eqP; move/charf0P: Cchar->.
 Qed.
 
-Definition getNatC (c: C) : nat :=
+Definition getNatC (c : C) : nat :=
  match getRatC c with (b,n,d) => (n %/ d.+1)%N end.
 
 Lemma getNatCP: forall c, isNatC c = (c == (getNatC c)%:R).
@@ -559,11 +559,11 @@ move=> c;apply/idP/eqP=>[|->]; last by apply: isNatC_nat.
 by rewrite /isNatC /getNatC; case: getRatC=> [[b n]] d; move/eqP.
 Qed.
 
-Axiom normC_add_eq': forall x y : C, 
+Axiom normC_add_eq' : forall x y : C, 
   normC (x + y) = normC(x) + normC(y) -> 
   exists2 k, normC k = 1 & ((x == normC x * k) && (y == normC y * k)).
 
-Lemma normC_sum_eq: 
+Lemma normC_sum_eq : 
    forall (I : eqType) (r : seq I) (P : pred I) (F : I -> C),
    normC (\sum_(j <- r | P j) F j) = (\sum_(j <- r | P j) normC(F j)) ->
    exists2 k, normC k = 1 & 
@@ -599,7 +599,7 @@ suff->: k1 = k2 by apply: H2k2; rewrite Hj1.
 by move/eqP: HH2; move/mulfI; apply.
 Qed.
 
-Lemma normC_sum_upper: 
+Lemma normC_sum_upper : 
    forall (I : eqType) (r : seq I) (P : pred I) (F : I -> C) (G : I -> C),
    (forall i, (i \in r) && P i -> normC (F i) <= G i) ->
    \sum_(j <- r | P j) F j = \sum_(j <- r | P j) (G j) ->
@@ -655,3 +655,14 @@ Proof.
 by move=> m n1 n2 Hm Hn; rewrite ![_ * m]mulrC leC_mul2l.
 Qed.
 
+
+Lemma le_leC : forall a b, (a <= b)%N = (a%:R <= b%:R).
+Proof.
+elim=> [b |a IH [|b]]; first 2 last.
+- rewrite -{2}add1n natr_add -{2}[b.+1]add1n natr_add leC_add2l.
+  by exact: IH.
+- by apply: sym_equal; rewrite leq0n; apply: leC_nat.
+apply: sym_equal; rewrite ltn0; apply/idP=> HH.
+have: a.+1%:R = 0%:R :> C by apply: leC_anti=> //; apply: leC_nat.
+by move/eqP; move/GRing.charf0P: Cchar=> ->.
+Qed.

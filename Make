@@ -85,6 +85,7 @@ qnum.v
 # polyorder.v
 # polyrcf.v
 # qe_rcf_th.v
+PFsection1.v
 
 COQC = $(COQBIN)ssrcoq
 COQFLAGS = "-q $(OPT) -dont-load-proofs $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -compile"
