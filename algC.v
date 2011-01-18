@@ -1,5 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun ssrnat eqtype seq bigop div ssralg.
+Require Import prime fingroup pgroup mxrepresentation.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -90,7 +91,10 @@ Definition ltC x y := ((x != y) && (x <= y)).
 
 Notation " x < y " := (ltC x y) : C_scope.
 
-Lemma leC_nat : forall n, 0 <= n%:R.
+Lemma posC_pconj : forall x, 0 <= x * x ^*.
+Proof. by move=> x; rewrite /leC subr0 repC_pconj. Qed.
+
+Lemma posC_nat : forall n, 0 <= n%:R.
 Proof. by move=> n; rewrite /leC subr0 repC_nat. Qed.
 
 Lemma leC_refl : reflexive leC.
@@ -143,6 +147,50 @@ Proof.
 move=> x y Hx Hy; apply/eqP; rewrite -subr_eq0; apply/eqP.
 by apply: repC_anti; rewrite // oppr_sub.
 Qed.
+
+Lemma leC_mul2l : forall m n1 n2, 
+  0 <= m -> n1 <= n2 -> m * n1 <= m * n2.
+Proof.
+move=> m n1 n2 Hm Hn; rewrite {1}/leC -mulr_subr -[_ * _]subr0.
+by apply: posC_mul=> //; rewrite -(leC_add2r n1) add0r subrK.
+Qed.
+
+Lemma leC_mul2r : forall m n1 n2, 
+  0 <= m -> n1 <= n2 -> n1 * m <= n2 * m.
+Proof.
+by move=> m n1 n2 Hm Hn; rewrite ![_ * m]mulrC leC_mul2l.
+Qed.
+
+Lemma le_leC : forall a b, (a <= b)%N = (a%:R <= b%:R).
+Proof.
+elim=> [b |a IH [|b]]; first 2 last.
+- rewrite -{2}add1n natr_add -{2}[b.+1]add1n natr_add leC_add2l.
+  by exact: IH.
+- by apply: sym_equal; rewrite leq0n; apply: posC_nat.
+apply: sym_equal; rewrite ltn0; apply/idP=> HH.
+have: a.+1%:R = 0%:R :> C by apply: leC_anti=> //; apply: posC_nat.
+by move/eqP; move/GRing.charf0P: Cchar=> ->.
+Qed.
+
+Lemma eqN_eqC : forall (a b : nat), a = b <-> a%:R = b%:R :> C.
+Proof.
+move=> a b; split=> [->| Hr] //.
+wlog le: a b Hr / (a <= b)%N.
+  by move=> H; case/orP: (leq_total a b)=> HH; last apply: sym_equal;
+     apply: H.
+have: b%:R - a%:R = 0 :> C by rewrite Hr subrr.
+rewrite -natr_sub //; move/eqP; move/GRing.charf0P: Cchar=> -> HH.
+by apply anti_leq; rewrite le.
+Qed.
+
+Lemma neq0N_neqC : forall a : nat, a != 0%N <-> a%:R != 0 :> C.
+Proof.
+by move=> a; split; move/eqP=> HH; apply/eqP=> HH1; case: HH;
+   move: HH1; rewrite -(eqN_eqC _ 0).
+Qed.
+
+Lemma leC_sub : forall x y, (0 <= y - x) = (x <= y).
+Proof. by move=> x y; rewrite /leC subr0. Qed.
 
 Lemma posC_unit_exp : forall x n, 0 <= x ->  (x ^+ n.+1 == 1) = (x == 1).
 Proof. by move=> x n Hx; apply: repC_unit_exp; rewrite -[x]subr0. Qed.
@@ -339,13 +387,11 @@ move=> c1 c2; case/isRatCP=> b1 [[n1 d1] ->]; case/isRatCP=> b2 [[n2 d2] ->].
 case: (b1 =P b2)=> [<-|Hb].
   apply/isRatCP; exists b1; exists (n1 * d2.+1 + n2 * d1.+1,(d1.+1 * d2.+1).-1)%N.
   rewrite -!mulrA -mulr_addr; congr (_ * _)%R.
-  have F1: (d1.+1 * d2.+1)%:R != 0 :> C by move/GRing.charf0P: Cchar => ->.
+  have F1: (d1.+1 * d2.+1)%:R != 0 :> C by rewrite -neq0N_neqC.
   apply: (mulIf F1); apply: sym_equal.
-  rewrite -mulrA prednK // mulVr ?GRing.unitfE // mulr1 natr_add !natr_mul.
-  rewrite mulr_addl mulrA mulrVK; last first.
-    by rewrite ?GRing.unitfE; move/GRing.charf0P: Cchar => ->.
-  rewrite [d1.+1%:R * _]mulrC mulrA mulrVK // ?GRing.unitfE.
-  by move/GRing.charf0P: Cchar => ->.
+  rewrite -mulrA prednK // mulVf // mulr1 natr_add !natr_mul.
+  rewrite mulr_addl mulrA mulfVK -?neq0N_neqC //.
+  by rewrite [d1.+1%:R * _]mulrC mulrA mulfVK // -neq0N_neqC.
 have->: (-1) ^+ b2 = -(-1) ^+ b1 :> C.
   by case: b1 Hb; case: b2=> // _; rewrite expr1 opprK.
 rewrite !mulNr.
@@ -355,13 +401,11 @@ wlog HH : n1 d1 n2 d2 / (n2 * d1.+1 <= n1 * d2.+1)%N=> [HH|].
 apply/isRatCP; exists b1; 
   exists (n1 * d2.+1 - n2 * d1.+1,(d1.+1 * d2.+1).-1)%N.
 rewrite -!mulrA -mulr_subr; congr (_ * _).
-have F1: (d1.+1 * d2.+1)%:R != 0 :> C by move/GRing.charf0P: Cchar => ->.
+have F1: (d1.+1 * d2.+1)%:R != 0 :> C by rewrite -neq0N_neqC.
 apply: (mulIf F1); apply: sym_equal.
-rewrite -mulrA prednK // mulVr ?GRing.unitfE // mulr1 natr_sub // !natr_mul.
-rewrite mulr_subl mulrA mulrVK; last first.
-  by rewrite ?GRing.unitfE; move/GRing.charf0P: Cchar => ->.
-rewrite [d1.+1%:R * _]mulrC mulrA mulrVK // ?GRing.unitfE.
-by move/GRing.charf0P: Cchar => ->.
+rewrite -mulrA prednK // mulVf // mulr1 natr_sub // !natr_mul.
+rewrite mulr_subl mulrA mulfVK -?neq0N_neqC //.
+by rewrite [d1.+1%:R * _]mulrC mulrA mulfVK // -neq0N_neqC.
 Qed.
 
 Lemma isRatC_addr : forall c1 c2, isRatC c1 -> isRatC (c1 + c2) = isRatC c2.
@@ -376,23 +420,21 @@ Proof. by move=> c1 c2; rewrite addrC; exact: isRatC_addr. Qed.
 
 Lemma isRatC_inv : forall c, isRatC c^-1 = isRatC c.
 Proof.
-have F1: forall b, GRing.unit ((-1)^+b : C).
-  by move=> b; apply: GRing.unitr_exp; rewrite unitr_opp unitr1.
+have F1: forall b, (-1)^+b != 0 :> C.
+ move=> b; apply: expf_neq0.
+ by apply: (@GRing.Field.intro_unit _ _ (-1)); rewrite mulrNN mul1r.
 have F2: forall (b : bool), ((-1)^+b)^-1 = (-1)^+b :> C.
   by case; rewrite !(invrN,invr1).
-have F3: forall n, GRing.unit ((n.+1)%:R : C).
-  by move=> n; rewrite ?GRing.unitfE; move/GRing.charf0P: Cchar => ->.
+have F3: forall n, (n.+1)%:R != 0 :> C by move=> n; rewrite -neq0N_neqC.
 move=> c; apply/isRatCP/isRatCP=> [] [b [[[|n] d] H]].
 - exists true; exists (0,1)%N.
-  by move: H; rewrite !(mulr0,mul0r); move/eqP; rewrite GRing.invr_eq0; move/eqP.
+  by move: H; rewrite !(mulr0,mul0r); move/eqP; rewrite invr_eq0; move/eqP.
 - exists b; exists (d.+1,n).
-  rewrite -[c]invrK H !invr_mul ?(GRing.unitr_mulr,GRing.unitr_inv) //=.
-  by rewrite invrK F2 -!mulrA [(-1) ^+ b * _]mulrC !mulrA.
+  by rewrite -[c]invrK H !invf_mul F2 invrK -!mulrA [_^-1 * _]mulrC.
 - exists true; exists (0,1)%N.
-  by move: H; rewrite !(mulr0,mul0r); move/eqP; rewrite -GRing.invr_eq0; move/eqP.
+  by move: H; rewrite !(mulr0,mul0r); move/eqP; rewrite -invr_eq0; move/eqP.
 exists b; exists (d.+1,n); rewrite H.
-rewrite !invr_mul ?(GRing.unitr_mulr,GRing.unitr_inv)  //=.
-by rewrite invrK [_^+ _ * _]mulrC -!mulrA; congr (_ * _); rewrite F2 mulrC.
+by rewrite !invf_mul F2 invrK -!mulrA [_^-1 * _]mulrC.
 Qed.
 
 Lemma isRatC_mul : forall c1 c2, isRatC c1 -> isRatC c2 -> isRatC (c1 * c2).
@@ -403,10 +445,8 @@ have->: (-1) ^+ (b1 != b2) = (-1) ^+ b1 * (-1) ^+ b2 :> C.
   by case: b1; case: b2; rewrite ?(mulNr,mul1r,opprK).
 rewrite !natr_mul prednK // -!mulrA; congr (_ * _).
 rewrite [_^+b2 * (n1%:R *_)]mulrC -!mulrA; congr (_ * _).
-rewrite natr_mul invr_mul; last 2 first.
-- by rewrite ?GRing.unitfE; move/GRing.charf0P: Cchar => ->.
-- by rewrite ?GRing.unitfE; move/GRing.charf0P: Cchar => ->.
-by rewrite mulrC -!mulrA mulrC -!mulrA.
+rewrite natr_mul invf_mul.
+by rewrite [_%:R * ( _ * _)]mulrC -!mulrA [d2.+1%:R^-1 * _]mulrC -mulrA.
 Qed.
 
 Lemma isRatC_mulr : forall c1 c2, c1 !=0 -> isRatC c1 -> isRatC (c1 * c2) = isRatC c2.
@@ -440,33 +480,30 @@ move=> c; apply: (iffP idP)=>[|[n->]].
   by rewrite /isNatC; case getRatC=> [[b n] d]; move/eqP->; 
      exists (n %/ d.+1)%N.
 move: (isRatC_nat n); rewrite /isRatC /isNatC; case getRatC=> [[b1 n1] d1].
-have Hnd: GRing.unit (d1.+1%:R : C).
-  by rewrite GRing.unitfE; move/GRing.charf0P: Cchar=> ->.
+have Hnd: d1.+1%:R != 0 :> C by rewrite -neq0N_neqC.
 case: b1.
   rewrite expr1; move/eqP=> HC.
   have: (n1 + n * d1.+1)%:R = 0 :> C.
-    rewrite natr_add natr_mul HC -!mulrA mulVr //.
+    rewrite natr_add natr_mul HC -!mulrA mulVf //.
     by rewrite mulr1 mulN1r subrr.
-  move/eqP; move/GRing.charf0P: Cchar=> ->; rewrite addn_eq0.
+  rewrite -(eqN_eqC _ 0); move/eqP; rewrite addn_eq0.
   by case/andP; move/eqP=> ->; case: {HC}n.
 rewrite mul1r;move/eqP=> Hn.
 pose m := (n * d1.+1)%N.
 have F1: n1%:R = m%:R :> C.
-  by rewrite /m natr_mul Hn -mulrA mulVr // mulr1.
+  by rewrite /m natr_mul Hn -mulrA mulVf // mulr1.
 suff ->: n1 = m by rewrite mulnK.
 case: (leqP n1 m)=> HN.
   suff F2: (m - n1 == 0)%N by rewrite -(subnKC HN) (eqP F2) addn0.
-  by move/GRing.charf0P: Cchar=> <-; rewrite natr_sub // F1 subrr.
+  by apply/eqP; rewrite eqN_eqC natr_sub // F1 subrr.
 have Hnn := ltnW HN.
 have F2: (n1 - m == 0)%N.
-  by move/GRing.charf0P: Cchar=> <-; rewrite natr_sub // F1 subrr.
+  by apply/eqP; rewrite eqN_eqC natr_sub // F1 subrr.
 by rewrite -(subnKC Hnn) (eqP F2) addn0.
 Qed.
 
 Lemma isNatC_isRatC : forall c, isNatC c -> isRatC c.
-Proof.
-move=> c; case/isNatCP=> n ->; exact: isRatC_nat.
-Qed.
+Proof. move=> c; case/isNatCP=> n ->; exact: isRatC_nat. Qed.
 
 Lemma isNatC_nat : forall n, isNatC (n%:R).
 Proof. by move=> n; apply/isNatCP; exists n. Qed.
@@ -500,14 +537,10 @@ by rewrite mulrSr isNatC_add // IH.
 Qed.
 
 Lemma posC_isNatC : forall c, isNatC c -> 0 <= c.
-Proof.
-by move=> c; case/isNatCP=> n ->; exact: leC_nat.
-Qed.
+Proof. by move=> c; case/isNatCP=> n ->; exact: posC_nat. Qed.
 
 Lemma isNatC_conj : forall c, isNatC c -> c^* = c.
-Proof.
-by move=> c; case/isNatCP=> n ->; exact: conjC_nat.
-Qed.
+Proof. by move=> c; case/isNatCP=> n ->; exact: conjC_nat. Qed.
 
 Lemma isNatC_sum_eq1 : 
    forall (I : eqType) (r : seq I) (P : pred I) (F : I -> C),
@@ -537,7 +570,7 @@ case: n Hn=> [|n Hn]; case: m Hm=>[|m Hm].
     by exact: HF0.
   move=> n _ _.
   rewrite -[1%:R]add0r add0n -addn1 natr_add => HH.
-  by move: (addIr HH); move/eqP; move/charf0P: Cchar->.
+  by move: (addIr HH); rewrite -(eqN_eqC _ 0).
 - case: n Hn=> [Hn Hs _|n Hn Hs].
     exists y; split=> //; first by rewrite in_cons eqxx.
     move=> j Hjy; rewrite in_cons; case/orP; first by rewrite (negPf Hjy).
@@ -545,9 +578,9 @@ case: n Hn=> [|n Hn]; case: m Hm=>[|m Hm].
     move=> i; case/andP=> HNI HPI; apply: posC_isNatC; first by exact: HN.
     by rewrite Hj.
   rewrite -[1%:R]add0r addn0 -addn1 natr_add => HH.
-  by move: (addIr HH); move/eqP; move/charf0P: Cchar->.
+  by move: (addIr HH); rewrite -(eqN_eqC _ 0).
 rewrite -[1%:R]add0r addnS -addn1 natr_add => HH.
-by move: (addIr HH); move/eqP; move/charf0P: Cchar->.
+by move: (addIr HH); rewrite -(eqN_eqC _ 0).
 Qed.
 
 Definition getNatC (c : C) : nat :=
@@ -642,27 +675,18 @@ rewrite -(leC_add2r (F j)) add0r subrK H2 //.
 by rewrite F3 mulr1 Hn.
 Qed.
 
-Lemma leC_mul2l : forall m n1 n2, 
-  0 <= m -> n1 <= n2 -> m * n1 <= m * n2.
+Section Group.
+
+Variable (gT : finGroupType).
+
+Axiom groupC : group_closure_field C gT.
+
+Implicit Type G : {group gT}.
+Import GroupScope GRing.Theory.
+
+Lemma pGroupG : forall G, [char C]^'.-group G.
 Proof.
-move=> m n1 n2 Hm Hn; rewrite {1}/leC -mulr_subr -[_ * _]subr0.
-by apply: posC_mul=> //; rewrite -(leC_add2r n1) add0r subrK.
+by move=> G; apply: sub_pgroup (pgroup_pi G)=> i _; rewrite inE /= Cchar.
 Qed.
 
-Lemma leC_mul2r : forall m n1 n2, 
-  0 <= m -> n1 <= n2 -> n1 * m <= n2 * m.
-Proof.
-by move=> m n1 n2 Hm Hn; rewrite ![_ * m]mulrC leC_mul2l.
-Qed.
-
-
-Lemma le_leC : forall a b, (a <= b)%N = (a%:R <= b%:R).
-Proof.
-elim=> [b |a IH [|b]]; first 2 last.
-- rewrite -{2}add1n natr_add -{2}[b.+1]add1n natr_add leC_add2l.
-  by exact: IH.
-- by apply: sym_equal; rewrite leq0n; apply: leC_nat.
-apply: sym_equal; rewrite ltn0; apply/idP=> HH.
-have: a.+1%:R = 0%:R :> C by apply: leC_anti=> //; apply: leC_nat.
-by move/eqP; move/GRing.charf0P: Cchar=> ->.
-Qed.
+End Group.
