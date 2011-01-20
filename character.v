@@ -124,25 +124,13 @@ Proof. move=> *; exact: row_is_linear. Qed.
 Canonical Structure gring_row_linear R gT G := 
   Linear (@gring_row_is_linear R gT G).
 
-Lemma block_mx_scale : forall (R: ringType) m n c,
-       block_mx (c%:M : 'M[R]_m) 0 0 (c%:M : 'M[R]_n) = c%:M.
-Proof.
-move=> R m n c.
-apply/matrixP=> [] [i Hi] [j Hj]; rewrite !mxE.
-case: splitP=> [] [i1 Hi1]; rewrite !mxE /eq_op /= => ->;
-    case: splitP=> [] [j1 Hj1]; rewrite !mxE /= => -> //.
-- by case: eqP=> HH=> //; move: Hi1; rewrite HH ltnNge leq_addr.
-- by case: eqP=> HH=> //; move: Hj1; rewrite -HH ltnNge leq_addr.
-by rewrite eqn_addl.
-Qed.
-
 (* This should be put in mxrepresentation *)
 
 Section MxR.
 
 Variables (R : fieldType) (gT : finGroupType) (G : {group gT}).
 
-Lemma mx_rsim_scale : 
+Lemma mx_rsim_scalar : 
   forall m n 
    (rG1 : mx_representation R G m) (rG2 : mx_representation R G n) g c,
    g \in G -> mx_rsim rG1 rG2 -> rG1 g = c%:M -> rG2 g = c%:M.
@@ -1436,7 +1424,7 @@ move=> f; apply character_indi=> {f}[|i f IH].
 by rewrite cfunE isNatC_add // irr1 isNatC_nat.
 Qed.
 
-Lemma clinear_norm_scale : 
+Lemma clinear_norm_scalar : 
   forall (f : character) n (rG : mx_representation C G n) g,
    g \in G -> 
    (forall (i : irr_class G), clinear G i) ->
@@ -1468,7 +1456,7 @@ move: H1c; case: eqP=> Hm H1c.
     suff->: f = 0 :> cfun_type _ _ by rewrite addr0.
     rewrite -Hf; move: {Hf H2c}rG1; rewrite Hm=> rG1.
     by apply/cfunP=> h; rewrite !cfunE (flatmx0 (rG1 _)) mxtrace0 mulr0.
-  exists (i g); last by apply: (mx_rsim_scale InG (mx_rsim_sym F6)).
+  exists (i g); last by apply: (mx_rsim_scalar InG (mx_rsim_sym F6)).
   rewrite F3; case/andP: (Hi i)=> _; move/eqP->.
   case: eqP=> //; move/eqP; rewrite eqN_eqC.
   move/mxrank_rsim: F6->; rewrite -(irr1 i) F5.
@@ -1486,8 +1474,8 @@ have F7: mx_rsim rG rG' by apply/char_rsimP; rewrite CC char_morph Hf.
 have F8 : rG' g = c%:M.
   have->: rG' g= block_mx (irr_repr (socle_of_irr_class i) g) 0 0 (rG1 g).
    by [].
-  by rewrite H2c F4 F6 block_mx_scale.
-exists c; last by by apply: (mx_rsim_scale InG (mx_rsim_sym F7)).
+  by rewrite H2c F4 F6 -scalar_mx_block.
+exists c; last by by apply: (mx_rsim_scalar InG (mx_rsim_sym F7)).
 rewrite H1c; case/mxrank_rsim: F7.
 move/eqP; rewrite eqN_eqC natr_add -(irr1 i) F5 -(natr_add _ 1%N m) -eqN_eqC.
 by case: {rG CC}n.
@@ -1501,7 +1489,7 @@ Lemma clinear_cker_mx1 :
 Proof.
 move=> f n rG g InG Hi Heq HC.
 case/isNatCP: (isNatC_character1 f)=> k Hk.
-case: (clinear_norm_scale InG Hi _ HC)=> [|c Hc Hx].
+case: (clinear_norm_scalar InG Hi _ HC)=> [|c Hc Hx].
   by rewrite Heq Hk normC_pos // posC_nat.
 move: Hk; rewrite -Heq -HC cfunE InG Hx mxtrace_scalar.
 move: Hc; case: eqP=> [HH _ _|Hn HN]; first by rewrite HH !(flatmx0 _%:M).
@@ -2319,4 +2307,51 @@ Qed.
 
 End Derive.
 
+Section Center.
 
+Variable (gT : finGroupType) (G : {group gT}).
+
+Definition ccenter (f : cfun_type C gT) := 
+  if is_char G f then [set g \in G | normC(f g) == f 1%g] else 1%G.
+
+Definition rcenter (n : nat) (rG : mx_representation C G n) :=
+  [set g \in G | is_scalar_mx (rG g)].
+
+Lemma rcenter_norm: forall (n : nat) (rG : mx_representation C G n) g c,
+  n != 0%N -> g \in G -> rG g = c%:M -> normC(c) = 1.
+Proof.
+move=> [|n] // rG g c _ InG HrG.
+have F1: forall m, rG (g ^+ m)%g = (c ^+ m)%:M.
+  by move=> m; rewrite repr_mxX // HrG scalar_exp.
+have F2: c ^+ #[g] = 1.
+  move: (F1 #[g]); rewrite expg_order repr_mx1.
+  by move/matrixP; move/(_ 0 0); rewrite !mxE eqxx mulr1n.
+apply/eqP; rewrite -(@posC_unit_exp _ #[g].-1) ?posC_norm //.
+by rewrite -normC_exp prednK ?order_gt0 // F2 normC1.
+Qed.
+
+Lemma char_rcenterP : forall n (rG : mx_representation C G n), 
+  ccenter (char G rG) = rcenter rG.
+Proof.
+move=> n rG; rewrite /ccenter /rcenter ?is_char_char //.
+apply/setP=> g; apply/idP/idP; rewrite !inE; case/andP=> InG; last first.
+  rewrite InG; case/is_scalar_mxP=> c.
+  case: (boolP (n == 0%N))=> Hn.
+    move: rG; rewrite (eqP Hn)=> rG.
+    by rewrite !cfunE !(flatmx0 (rG _)) !mxtrace0 !mulr0 normC0 eqxx.
+  move=> Hc; rewrite cfunE InG mul1r Hc mxtrace_scalar char1.
+  by rewrite -mulr_natr normC_mul (rcenter_norm Hn InG Hc) 
+              mul1r normC_nat eqxx.
+rewrite InG; move/eqP=> HH.
+have F1: (<[g]> \subset G) by rewrite cycle_subG.
+pose rG' := subg_repr rG F1.
+have HH': normC (char <[g]> rG' g) = char <[g]> rG' 1%g.
+  by move: HH; rewrite /rG' !cfunE !group1 !InG cycle_id.
+suff: exists2 c, normC c = (n != 0%N)%:R & rG' g = c%:M.
+  by case=> c _ HH1; apply/is_scalar_mxP; exists c; rewrite -HH1.
+apply: (@clinear_norm_scalar  _ <[g]> (character_of_char rG'))=> //.
+  exact: cycle_id.
+by apply/char_abelianP; exact: cycle_abelian.
+Qed.
+
+End Center.
