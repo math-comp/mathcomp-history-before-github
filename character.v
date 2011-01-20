@@ -675,7 +675,7 @@ move=> g; case: (boolP (_ \in _))=> Hg; last first.
 by rewrite cfunE Hg mul1r irr1_repr // mxtrace1 degree_irr1.
 Qed.
 
-Lemma card_irr_class : forall, #|irr_class| = #|classes G|.
+Lemma card_irr_class : #|irr_class| = #|classes G|.
 Proof.
 rewrite -(card_irr sG) ?pGroupG //; last exact: groupC.
 by rewrite card_sub; apply: eq_card=> i; rewrite !inE.
