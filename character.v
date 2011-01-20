@@ -1341,6 +1341,13 @@ Definition character0 := Character (is_char0 G).
 
 Local Notation "0" := (character0 _) : character_scope.
 
+Definition character1 := character_of_irr (irr_class1 G).
+
+Lemma character1E : forall g, character1 g = (g \in G)%:R.
+Proof. by move=> g; move: (irr_class1E G g). Qed.
+
+Local Notation "1" := (character1 _) : character_scope.
+
 Canonical Structure character_add (ch1 ch2 : character) := 
    Character (is_char_add (is_char_character ch1) (is_char_character ch2)).
 
@@ -2330,6 +2337,18 @@ apply/eqP; rewrite -(@posC_unit_exp _ #[g].-1) ?posC_norm //.
 by rewrite -normC_exp prednK ?order_gt0 // F2 normC1.
 Qed.
 
+Lemma rcenter_group_set : forall  (n : nat) (rG : mx_representation C G n),
+ group_set (rcenter rG).
+Proof.
+move=> n rG.
+rewrite /group_set !inE group1 repr_mx1 scalar_mx_is_scalar.
+apply/subsetP=> i; rewrite !inE; case/imset2P=> g1 g2; rewrite !inE.
+case/andP=> InG1; case/is_scalar_mxP=> k1 Hk1.
+case/andP=> InG2; case/is_scalar_mxP=> k2 Hk2 HH.
+by rewrite HH groupM // repr_mxM // Hk1 Hk2 -scalar_mxM scalar_mx_is_scalar.
+Qed.
+
+(* Issac's 2.27a *)
 Lemma char_rcenterP : forall n (rG : mx_representation C G n), 
   ccenter (char G rG) = rcenter rG.
 Proof.
@@ -2352,6 +2371,125 @@ suff: exists2 c, normC c = (n != 0%N)%:R & rG' g = c%:M.
 apply: (@clinear_norm_scalar  _ <[g]> (character_of_char rG'))=> //.
   exact: cycle_id.
 by apply/char_abelianP; exact: cycle_abelian.
+Qed.
+
+Lemma ccenter_group_set : forall f, group_set (ccenter f).
+Proof.
+move=> f; case: (boolP (is_char G f))=> Hf; last first.
+  by rewrite /ccenter (negPf Hf) group_set_one.
+case/is_charP: Hf=> n [rG <-]; rewrite char_rcenterP //.
+by exact: rcenter_group_set.
+Qed.
+
+(* Issac's 2.27b *)
+Canonical Structure ccenter_group f := Group (ccenter_group_set f).
+
+(* Issac's 2.27b *)
+Lemma ccenter_sub : forall f, ccenter f \subset G.
+Proof.
+move=> f; case: (boolP (is_char G f))=> Hf; last first.
+  rewrite /ccenter (negPf Hf).
+  by apply/subsetP=> g; rewrite inE; move/eqP->; exact: group1.
+by rewrite /ccenter Hf; apply/subsetP=> g; rewrite inE; case/andP.
+Qed.
+
+Lemma cker_center_normal : forall f, cker G f <| ccenter f.
+Proof.
+move=> f; apply: normalS (cker_normal _ _); last by exact: ccenter_sub.
+apply/subsetP=> g; rewrite /= /cker /ccenter.
+case E1: (is_char _ _)=> //; rewrite !inE.
+case/andP=> HH; move/eqP->; rewrite HH normC_pos ?eqxx //.
+apply: posC_isNatC; exact: (isNatC_character1 (Character (idP E1))).
+Qed.
+
+Local Notation "'{ f | G }" := (crestrict G f).
+
+(* Issac's 2.27c *)
+Lemma ccenter_restrict : forall (f : character G),
+  exists2 lambda : character [group of ccenter f],
+     clinear  [group of ccenter f] lambda & 
+     '{f|ccenter f} =  (f 1%g) *: (lambda : cfun_type _ _).
+Proof.
+move=> f.
+case/is_charP: (is_char_character f)=> [] [|n] [rG Hf].
+  exists (character1 [group of ccenter f]).
+    by rewrite /clinear is_char_character character1E group1 eqxx.
+  by apply/cfunP=> g; rewrite -Hf !cfunE !(flatmx0 (rG _)) mxtrace0 !mulr0 mul0r.
+pose repr g := ((rG g 0 0)%:M : 'M_(1,1)).
+have Mx: mx_repr  [group of ccenter f] repr.
+  split=> [| g h]; first by rewrite /repr repr_mx1 mxE eqxx.
+  rewrite /= -Hf  char_rcenterP /rcenter !inE.
+  case/andP=> InG; case/is_scalar_mxP=> k1 Hk1.
+  case/andP=> InH; case/is_scalar_mxP=> k2 Hk2.
+  by rewrite /repr repr_mxM // Hk1 Hk2 -!scalar_mxM !mxE !mulr1n.
+exists (Character (is_char_char (MxRepresentation Mx))).
+  by rewrite /clinear is_char_character cfunE group1 mul1r repr_mx1 mxtrace1 eqxx.
+apply/cfunP=> g; rewrite !cfunE /=.
+case: (boolP (g \in _))=> InG; last by rewrite !mul0r mulr0.
+rewrite !mul1r.
+move: InG; rewrite -Hf char_rcenterP /rcenter !inE.
+case/andP=> InG; case/is_scalar_mxP=> k1 Hk1.
+rewrite /repr !cfunE InG group1 Hk1 repr_mx1 !mul1r !mxE.
+by rewrite  !mxtrace_scalar !mulr1n mulr_natl.
+Qed.
+
+Local Notation "0" := (character0 _) : character_scope.
+Delimit Scope character_scope with CH.
+
+Lemma character0_eq0 : forall f : character G,  (f == 0%CH) = (f 1%g == 0).
+Proof.
+move=> f; apply/eqP/eqP=> [->|HH]; first by rewrite cfunE.
+apply/val_eqP=> /=; move: HH; case/is_charP: (is_char_character f)=> n [rG <-].
+rewrite !cfunE group1 repr_mx1 mxtrace1 mul1r; move/eqP; rewrite -(eqN_eqC _ 0).
+move=>HH; move: rG; rewrite (eqP HH)=> rG; apply/eqP.
+by apply/cfunP=> g; rewrite !cfunE [rG _]flatmx0 mxtrace0 mulr0.
+Qed.
+
+Lemma cker_char1: forall (G : {group gT}) (f : character G) g, g \in cker G f -> f g = f 1%g.
+Proof.
+by move=> G1 f g; rewrite /cker is_char_character inE; case/andP=> _; move/eqP.
+Qed.
+
+(* Issac's 2.27d *)
+Lemma ccenter_cyclic: forall (f : character G), f != 0%CH -> cyclic (ccenter f/cker G f)%g.
+Proof.
+move=> f Hf; pose G' := [group of ccenter f].
+have F1 : f 1%g != 0 by rewrite -character0_eq0.
+case: (ccenter_restrict f)=> l H1l H2l.
+have F2: cker G f = cker G' '{f|ccenter f} .
+   rewrite /cker (is_char_subset (ccenter_sub _)) is_char_character //.
+   apply/setP=> g; rewrite !inE.
+   rewrite /G' /= /ccenter is_char_character !cfunE !inE.
+   rewrite group1 /=; case E1: (g \in G)=> //=.
+   rewrite [normC (f 1%g)]normC_pos ?(posC_isNatC,isNatC_character1) // eqxx.
+   case: (normC _ =P _); first by rewrite !mul1r.
+   case: (_ =P _)=> // HH HH1; case: HH1; rewrite HH.
+   by rewrite normC_pos ?(posC_isNatC,isNatC_character1).
+have F3 : cker G' '{f|ccenter f} = cker G' l.
+   rewrite /cker !(is_char_character, (is_char_subset (ccenter_sub _))) //.
+   apply/setP=> g; rewrite !inE H2l !cfunE.
+   by congr (_ && _); apply/eqP/eqP=>[|-> //]; move/(mulfI F1).
+rewrite F2 F3; pose m (u : coset_of (cker G' l)) := l (repr u).
+have Fm : forall C,  C  \in (ccenter f / cker G' l)%g ->
+         exists c, [/\ c \in 'N(cker G' l), c \in  ccenter f, (C =  coset (cker G' l) c)%g & m C = l c].
+  move=> C; case/imsetP=> /= c; rewrite inE; case/andP=> H1c H2c ->.
+  exists c; rewrite H1c H2c; split=> //.
+  rewrite /m /= !val_coset //.
+  case: repr_rcosetP=> g InG.
+  rewrite !(clinearM H1l) ?(cker_char1 InG, clinear1 H1l, mul1r) //.
+  by rewrite (subsetP (normal_sub (cker_center_normal _))) // F2 F3.
+apply: (@field_mul_group_cyclic _ _ _ m).
+  move=> /= C1 C2; case/Fm=> c1 [H1c1 H2c1 -> ->]; case/Fm=> c2 [H1c2 H2c2 -> ->].
+  rewrite /m /= !val_coset // rcoset_mul //.
+  case: repr_rcosetP=> k InK.
+  rewrite !(clinearM H1l) ?groupM // ?(cker_char1 InK, clinear1 H1l, mul1r) //.
+  by rewrite (subsetP (normal_sub (cker_center_normal _))) // F2 F3.
+move=> C; case/Fm=> c [H1c H2c -> ->].
+split.
+  by move=> HH; rewrite coset_id // char_ckerE inE HH (clinear1 H1l) eqxx andbT.
+move/(coset_idr H1c).
+rewrite /= char_ckerE inE (clinear1 H1l)  //.
+by case/andP=> _ HH1; apply/eqP.
 Qed.
 
 End Center.
