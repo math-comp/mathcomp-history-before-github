@@ -45,10 +45,10 @@ have: (#|'C_G[g]| <= #|'C_(G/H)[coset H g]|)%N.
     by apply: (subsetP (normal_sub NN)).
 have F1: coset H g \in (G/H)%g.
   by rewrite -imset_coset; apply/imsetP; exists g.
-rewrite le_leC.
-move: (chi_second_orthogonal_relation InG InG).
+rewrite leq_leC.
+move: (irr_second_orthogonal_relation InG InG).
 rewrite class_refl=> <-.
-move: (chi_second_orthogonal_relation F1 F1).
+move: (irr_second_orthogonal_relation F1 F1).
 rewrite class_refl=> <-; rewrite sum_norm_quo //.
 rewrite (bigID (fun i : irr_class G => H \subset cker G i)) //=.
 set S := \sum_(i | ~~ _) _; set S' := \sum_(i | _) _ => HH.

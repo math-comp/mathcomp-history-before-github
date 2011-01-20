@@ -161,7 +161,7 @@ Proof.
 by move=> m n1 n2 Hm Hn; rewrite ![_ * m]mulrC leC_mul2l.
 Qed.
 
-Lemma le_leC : forall a b, (a <= b)%N = (a%:R <= b%:R).
+Lemma leq_leC : forall a b, (a <= b)%N = (a%:R <= b%:R).
 Proof.
 elim=> [b |a IH [|b]]; first 2 last.
 - rewrite -{2}add1n natr_add -{2}[b.+1]add1n natr_add leC_add2l.
@@ -172,9 +172,9 @@ have: a.+1%:R = 0%:R :> C by apply: leC_anti=> //; apply: posC_nat.
 by move/eqP; move/GRing.charf0P: Cchar=> ->.
 Qed.
 
-Lemma eqN_eqC : forall (a b : nat), a = b <-> a%:R = b%:R :> C.
+Lemma eqN_eqC : forall a b : nat, (a == b) = (a%:R == b%:R :> C).
 Proof.
-move=> a b; split=> [->| Hr] //.
+move=> a b; apply/eqP/eqP=> [->| Hr] //.
 wlog le: a b Hr / (a <= b)%N.
   by move=> H; case/orP: (leq_total a b)=> HH; last apply: sym_equal;
      apply: H.
@@ -183,10 +183,10 @@ rewrite -natr_sub //; move/eqP; move/GRing.charf0P: Cchar=> -> HH.
 by apply anti_leq; rewrite le.
 Qed.
 
-Lemma neq0N_neqC : forall a : nat, a != 0%N <-> a%:R != 0 :> C.
+Lemma neq0N_neqC : forall a : nat, (a != 0%N) = (a%:R != 0 :> C).
 Proof.
-by move=> a; split; move/eqP=> HH; apply/eqP=> HH1; case: HH;
-   move: HH1; rewrite -(eqN_eqC _ 0).
+by move=> a; apply/idP/idP; move/negP=> HH; apply/negP=> HH1; case: HH;
+   move: HH1; rewrite (eqN_eqC _ 0).
 Qed.
 
 Lemma leC_sub : forall x y, (0 <= y - x) = (x <= y).
@@ -296,7 +296,8 @@ Definition normC x := sqrC (x * x^*).
 
 Axiom normC_add : forall x y,  normC (x + y) <= normC x + normC y.
 Axiom normC_add_eq : forall x y : C, 
-  x != 0 -> normC (x + y) = normC(x) + normC(y) -> 0 <= y/x.
+  normC (x + y) = normC(x) + normC(y) -> 
+  exists2 k, normC k = 1 & ((x == normC x * k) && (y == normC y * k)).
 
 Lemma posC_norm : forall x, 0 <= normC x.
 Proof. 
@@ -304,9 +305,10 @@ move=> x; rewrite /leC !subr0 repC_sqr; exact: repC_pconj.
 Qed.
 
 Lemma normC_pos : forall c, 0 <= c -> normC c = c.
-Proof.
-by move=> c Hc; rewrite /normC posC_conjK // (sqrC_sqr_pos Hc).
-Qed.
+Proof. by move=> c Hc; rewrite /normC posC_conjK // (sqrC_sqr_pos Hc). Qed.
+
+Lemma normC_nat : forall n, normC n%:R = n%:R.
+Proof. by move=> n; apply: normC_pos; exact: posC_nat. Qed.
 
 Lemma normC0 : normC 0 = 0.
 Proof. by rewrite normC_pos // leC_refl. Qed.
@@ -336,7 +338,16 @@ Qed.
 Lemma normC_conj : forall x, normC (x^*) = normC x.
 Proof. by move=> x; rewrite /normC conjCK mulrC. Qed.
 
-Lemma normC_inv : forall x, x^-1 = (normC x)^-2 * x^*.
+Lemma normC_inv : forall x : C, normC (x^-1) = normC x ^- 1.
+Proof.
+move=> x.
+case: (normC x =P 0); move/eqP.
+  by rewrite normC_eq0; move/eqP->; rewrite !(normC0,invr0).
+move=> HH; apply: (mulIf HH).
+by rewrite mulVf // -normC_mul mulVf ?normC1 // -normC_eq0.
+Qed.
+
+Lemma invC_norm : forall x, x^-1 = (normC x)^-2 * x^*.
 Proof.
 move=> x; case: (x =P 0)=> [->|]; first by rewrite conjC0 mulr0 invr0.
 move/eqP=> Hx.
@@ -348,8 +359,8 @@ Qed.
 
 Lemma conjC_inv : forall x, (x^-1)^* = (x^*)^-1.
 Proof.
-move=> x; rewrite normC_inv rmorphM conjCK.
-rewrite (normC_inv x^*) conjCK; congr (_ * _).
+move=> x; rewrite invC_norm rmorphM conjCK.
+rewrite (invC_norm x^*) conjCK; congr (_ * _).
 rewrite normC_conj; apply: posC_conjK.
 by rewrite posC_inv exprS expr1 posC_mul // posC_norm.
 Qed.
@@ -362,6 +373,98 @@ move=> I r P F; elim: r=> [|i r Hrec].
   by rewrite !big_nil normC0 leC_refl.
 rewrite !big_cons; case HP: (P _)=> //.
 by apply: (leC_trans (normC_add _ _)); rewrite leC_add2l.
+Qed.
+
+Lemma normC_sum_eq : 
+   forall (I : eqType) (r : seq I) (P : pred I) (F : I -> C),
+   normC (\sum_(j <- r | P j) F j) = (\sum_(j <- r | P j) normC(F j)) ->
+   exists2 k, normC k = 1 &
+              forall i, (i \in r) && P i -> F i = normC (F i) * k.
+Proof.
+move=> i r P F; elim: r=> [|j r IH].
+  by rewrite !big_nil; exists 1=> //; exact: normC1.
+rewrite !big_cons; case HP: (P _)=> HH; last first.
+  case: IH=> // k Hk Hr; exists k=> // j1.
+  rewrite in_cons; case/andP; case/orP; first by move/eqP->; rewrite HP.
+  by move=> *; apply Hr; apply/andP; split.
+have F1: normC(\sum_(j <- r | P j) F j) = \sum_(j <- r | P j) normC (F j).
+  apply: leC_anti; first by apply: normC_sum.
+  by rewrite -(leC_add2l (normC (F j))) -HH normC_add.
+move: HH; rewrite -F1; case/normC_add_eq=> k1 H1k1; case/andP=> H2k1 H3k1.
+exists k1=> // j1; rewrite in_cons; case/andP; case/orP.
+  by move/eqP->; rewrite -(eqP H2k1).
+move=> Hj1 Pj1; case: IH=> // k2 H1k2 H2k2.
+move: H3k1.
+have HH: \sum_(j <- r | P j) F j = (\sum_(j <- r | P j) normC (F j)) * k2.
+  elim: {F1 Hj1}r H2k2=> [|j2 r IH1 Hr]; first by rewrite !big_nil mul0r.
+  rewrite !big_cons IH1 //; last first.
+    by move=> j3; case/andP=> H1j3 H2j3; rewrite -Hr // in_cons H1j3 orbT.
+  by case E1: (P _)=> //; rewrite {1}Hr ?(in_cons,eqxx) // mulr_addl.
+rewrite {1}HH F1; move/eqP=> HH1.
+case: ((\sum_(j0 <- r | P j0) normC (F j0)) =P 0)=> HH2.
+  suff: normC (F j1) = 0.
+    by move/eqP; rewrite normC_eq0; move/eqP->; rewrite normC0 mul0r.
+  apply: (posC_sum_eq0 _ HH2); last by rewrite Hj1.
+  move=> j2; case/andP=> H1j2 H2j2 //.
+  by apply: posC_norm; rewrite Hj1.
+suff->: k1 = k2 by apply: H2k2; rewrite Hj1.
+by move/eqP: HH2; move/mulfI; apply.
+Qed.
+
+Lemma normC_sum_eq1: 
+   forall (I : eqType) (r : seq I) (P : pred I) (F : I -> C),
+   normC (\sum_(j <- r | P j) F j) = (\sum_(j <- r | P j) normC(F j)) ->
+   (forall i, (i \in r) && P i -> normC (F i) = 1) ->
+   exists2 k, normC k = 1 &
+              forall i, (i \in r) && P i -> F i = k.
+Proof.
+move=> I r P F NN N1.
+case: (normC_sum_eq NN)=> k Nk Hk.
+exists k=> // i Hi.
+by move: (Hk _ Hi); rewrite N1 // mul1r.
+Qed.
+
+Lemma normC_sum_upper : 
+   forall (I : eqType) (r : seq I) (P : pred I) (F : I -> C) (G : I -> C),
+   (forall i, (i \in r) && P i -> normC (F i) <= G i) ->
+   \sum_(j <- r | P j) F j = \sum_(j <- r | P j) (G j) ->
+   forall i, (i \in r) && P i -> F i = G i.
+Proof.
+move=> I r P F G Hn Hs.
+have F0: forall i, (i \in r) && P i -> 0 <= G i.
+  by move=> i Pi; apply: leC_trans (Hn _ Pi); exact: posC_norm.
+have F1: normC (\sum_(j <- r | P j) F j) = 
+          \sum_(j <- r | P j) normC (F j).
+  apply: leC_anti=> //; first by apply: normC_sum.
+  rewrite Hs normC_pos; last by apply: posC_sum.
+  rewrite /leC -sumr_sub -[\sum_(i <- _| _)_]subr0.
+  apply: posC_sum=> i Hi.
+  by rewrite -(leC_add2r (normC (F i))) add0r subrK // Hn.
+case: (normC_sum_eq F1)=> k H1k H2.
+have F2: \sum_(j <- r | P j) F j = (\sum_(j <- r | P j) normC (F j)) * k.
+  elim: {F0 Hn Hs F1}r H2=> [|j2 r IH1 Hr]; first by rewrite !big_nil mul0r.
+  rewrite !big_cons IH1 //; last first.
+    by move=> j3; case/andP=> H1j3 H2j3; rewrite -Hr // in_cons H1j3 orbT.
+  by case E1: (P _)=> //; rewrite {1}Hr ?(in_cons,eqxx) // mulr_addl.
+case: ((\sum_(j <- r | P j) normC (F j)) =P 0)=> H1.
+  have F3 := (posC_sum_eq0 (fun i Hi => (posC_norm (F i))) H1).
+  move: Hs; rewrite F2 H1 mul0r. move/(@sym_equal _ _ _)=> F4.
+  move=> i; case/andP=> H1i H2i.
+  rewrite (posC_sum_eq0 _ F4) ?H1i //.
+  by apply/eqP; rewrite -normC_eq0 F3 // H1i.
+have F3: k = 1.
+  rewrite -[k]normC_pos ?H1k //.
+  have F4: 0 <= (\sum_(j <- r | P j) normC (F j))^-1.
+    by rewrite posC_inv; apply: posC_sum=> i Hi; exact: posC_norm.
+  have F5: 0 <= (\sum_(j <- r | P j) normC (F j)) * k.
+    by rewrite -F2 Hs posC_sum.
+  by move: (posC_mul F4 F5); rewrite mulKr // GRing.unitfE; apply/eqP.
+move=> i; case/andP=> Hi Pi; apply/eqP; rewrite eq_sym -subr_eq0; apply/eqP.
+have F4: \sum_(j <- r | P j) (G j - F j) = 0.
+  by rewrite sumr_sub Hs subrr.
+apply: (posC_sum_eq0 _ F4)=> [j Hj|]; last by rewrite Hi.
+rewrite -(leC_add2r (F j)) add0r subrK H2 //.
+by rewrite F3 mulr1 Hn.
 Qed.
 
 Variable getRatC : C -> (bool * nat * nat).
@@ -483,10 +586,10 @@ move: (isRatC_nat n); rewrite /isRatC /isNatC; case getRatC=> [[b1 n1] d1].
 have Hnd: d1.+1%:R != 0 :> C by rewrite -neq0N_neqC.
 case: b1.
   rewrite expr1; move/eqP=> HC.
-  have: (n1 + n * d1.+1)%:R = 0 :> C.
+  have: (n1 + n * d1.+1)%:R == 0 :> C.
     rewrite natr_add natr_mul HC -!mulrA mulVf //.
     by rewrite mulr1 mulN1r subrr.
-  rewrite -(eqN_eqC _ 0); move/eqP; rewrite addn_eq0.
+  rewrite -(eqN_eqC _ 0) addn_eq0.
   by case/andP; move/eqP=> ->; case: {HC}n.
 rewrite mul1r;move/eqP=> Hn.
 pose m := (n * d1.+1)%N.
@@ -495,10 +598,10 @@ have F1: n1%:R = m%:R :> C.
 suff ->: n1 = m by rewrite mulnK.
 case: (leqP n1 m)=> HN.
   suff F2: (m - n1 == 0)%N by rewrite -(subnKC HN) (eqP F2) addn0.
-  by apply/eqP; rewrite eqN_eqC natr_sub // F1 subrr.
+  by rewrite eqN_eqC natr_sub // F1 subrr.
 have Hnn := ltnW HN.
 have F2: (n1 - m == 0)%N.
-  by apply/eqP; rewrite eqN_eqC natr_sub // F1 subrr.
+  by rewrite eqN_eqC natr_sub // F1 subrr.
 by rewrite -(subnKC Hnn) (eqP F2) addn0.
 Qed.
 
@@ -570,7 +673,7 @@ case: n Hn=> [|n Hn]; case: m Hm=>[|m Hm].
     by exact: HF0.
   move=> n _ _.
   rewrite -[1%:R]add0r add0n -addn1 natr_add => HH.
-  by move: (addIr HH); rewrite -(eqN_eqC _ 0).
+  by move/eqP: (addIr HH); rewrite -(eqN_eqC _ 0).
 - case: n Hn=> [Hn Hs _|n Hn Hs].
     exists y; split=> //; first by rewrite in_cons eqxx.
     move=> j Hjy; rewrite in_cons; case/orP; first by rewrite (negPf Hjy).
@@ -578,9 +681,9 @@ case: n Hn=> [|n Hn]; case: m Hm=>[|m Hm].
     move=> i; case/andP=> HNI HPI; apply: posC_isNatC; first by exact: HN.
     by rewrite Hj.
   rewrite -[1%:R]add0r addn0 -addn1 natr_add => HH.
-  by move: (addIr HH); rewrite -(eqN_eqC _ 0).
+  by move/eqP: (addIr HH); rewrite -(eqN_eqC _ 0).
 rewrite -[1%:R]add0r addnS -addn1 natr_add => HH.
-by move: (addIr HH); rewrite -(eqN_eqC _ 0).
+by move/eqP: (addIr HH); rewrite -(eqN_eqC _ 0).
 Qed.
 
 Definition getNatC (c : C) : nat :=
@@ -590,89 +693,6 @@ Lemma getNatCP: forall c, isNatC c = (c == (getNatC c)%:R).
 Proof.
 move=> c;apply/idP/eqP=>[|->]; last by apply: isNatC_nat.
 by rewrite /isNatC /getNatC; case: getRatC=> [[b n]] d; move/eqP.
-Qed.
-
-Axiom normC_add_eq' : forall x y : C, 
-  normC (x + y) = normC(x) + normC(y) -> 
-  exists2 k, normC k = 1 & ((x == normC x * k) && (y == normC y * k)).
-
-Lemma normC_sum_eq : 
-   forall (I : eqType) (r : seq I) (P : pred I) (F : I -> C),
-   normC (\sum_(j <- r | P j) F j) = (\sum_(j <- r | P j) normC(F j)) ->
-   exists2 k, normC k = 1 & 
-              forall i, (i \in r) && P i -> F i = normC (F i) * k.
-Proof.
-move=> i r P F; elim: r=> [|j r IH].
-  by rewrite !big_nil; exists 1=> //; exact: normC1.
-rewrite !big_cons; case HP: (P _)=> HH; last first.
-  case: IH=> // k Hk Hr; exists k=> // j1.
-  rewrite in_cons; case/andP; case/orP; first by move/eqP->; rewrite HP.
-  by move=> *; apply Hr; apply/andP; split.
-have F1: normC(\sum_(j <- r | P j) F j) = \sum_(j <- r | P j) normC (F j).
-  apply: leC_anti; first by apply: normC_sum.
-  by rewrite -(leC_add2l (normC (F j))) -HH normC_add.
-move: HH; rewrite -F1; case/normC_add_eq'=> k1 H1k1; case/andP=> H2k1 H3k1.
-exists k1=> // j1; rewrite in_cons; case/andP; case/orP.
-  by move/eqP->; rewrite -(eqP H2k1).
-move=> Hj1 Pj1; case: IH=> // k2 H1k2 H2k2.
-move: H3k1.
-have HH: \sum_(j <- r | P j) F j = (\sum_(j <- r | P j) normC (F j)) * k2.
-  elim: {F1 Hj1}r H2k2=> [|j2 r IH1 Hr]; first by rewrite !big_nil mul0r.
-  rewrite !big_cons IH1 //; last first.
-    by move=> j3; case/andP=> H1j3 H2j3; rewrite -Hr // in_cons H1j3 orbT.
-  by case E1: (P _)=> //; rewrite {1}Hr ?(in_cons,eqxx) // mulr_addl.
-rewrite {1}HH F1; move/eqP=> HH1.
-case: ((\sum_(j0 <- r | P j0) normC (F j0)) =P 0)=> HH2.
-  suff: normC (F j1) = 0.
-    by move/eqP; rewrite normC_eq0; move/eqP->; rewrite normC0 mul0r.
-  apply: (posC_sum_eq0 _ HH2); last by rewrite Hj1.
-  move=> j2; case/andP=> H1j2 H2j2 //.
-  by apply: posC_norm; rewrite Hj1.
-suff->: k1 = k2 by apply: H2k2; rewrite Hj1.
-by move/eqP: HH2; move/mulfI; apply.
-Qed.
-
-Lemma normC_sum_upper : 
-   forall (I : eqType) (r : seq I) (P : pred I) (F : I -> C) (G : I -> C),
-   (forall i, (i \in r) && P i -> normC (F i) <= G i) ->
-   \sum_(j <- r | P j) F j = \sum_(j <- r | P j) (G j) ->
-   forall i, (i \in r) && P i -> F i = G i.
-Proof.
-move=> I r P F G Hn Hs.
-have F0: forall i, (i \in r) && P i -> 0 <= G i.
-  by move=> i Pi; apply: leC_trans (Hn _ Pi); exact: posC_norm.
-have F1: normC (\sum_(j <- r | P j) F j) = 
-          \sum_(j <- r | P j) normC (F j).
-  apply: leC_anti=> //; first by apply: normC_sum.
-  rewrite Hs normC_pos; last by apply: posC_sum.
-  rewrite /leC -sumr_sub -[\sum_(i <- _| _)_]subr0.
-  apply: posC_sum=> i Hi.
-  by rewrite -(leC_add2r (normC (F i))) add0r subrK // Hn.
-case: (normC_sum_eq F1)=> k H1k H2.
-have F2: \sum_(j <- r | P j) F j = (\sum_(j <- r | P j) normC (F j)) * k.
-  elim: {F0 Hn Hs F1}r H2=> [|j2 r IH1 Hr]; first by rewrite !big_nil mul0r.
-  rewrite !big_cons IH1 //; last first.
-    by move=> j3; case/andP=> H1j3 H2j3; rewrite -Hr // in_cons H1j3 orbT.
-  by case E1: (P _)=> //; rewrite {1}Hr ?(in_cons,eqxx) // mulr_addl.
-case: ((\sum_(j <- r | P j) normC (F j)) =P 0)=> H1.
-  have F3 := (posC_sum_eq0 (fun i Hi => (posC_norm (F i))) H1).
-  move: Hs; rewrite F2 H1 mul0r. move/(@sym_equal _ _ _)=> F4.
-  move=> i; case/andP=> H1i H2i.
-  rewrite (posC_sum_eq0 _ F4) ?H1i //.
-  by apply/eqP; rewrite -normC_eq0 F3 // H1i.
-have F3: k = 1.
-  rewrite -[k]normC_pos ?H1k //.
-  have F4: 0 <= (\sum_(j <- r | P j) normC (F j))^-1.
-    by rewrite posC_inv; apply: posC_sum=> i Hi; exact: posC_norm.
-  have F5: 0 <= (\sum_(j <- r | P j) normC (F j)) * k.
-    by rewrite -F2 Hs posC_sum.
-  by move: (posC_mul F4 F5); rewrite mulKr // GRing.unitfE; apply/eqP.
-move=> i; case/andP=> Hi Pi; apply/eqP; rewrite eq_sym -subr_eq0; apply/eqP.
-have F4: \sum_(j <- r | P j) (G j - F j) = 0.
-  by rewrite sumr_sub Hs subrr.
-apply: (posC_sum_eq0 _ F4)=> [j Hj|]; last by rewrite Hi.
-rewrite -(leC_add2r (F j)) add0r subrK H2 //.
-by rewrite F3 mulr1 Hn.
 Qed.
 
 Section Group.
