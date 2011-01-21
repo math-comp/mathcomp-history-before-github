@@ -2125,15 +2125,19 @@ have oTGgt_g2: (g / 2%:R < #|TG|%:R)%R.
   set p := pdiv #|K|; set q := pdiv #|Ks|.
   have [odd_p odd_q]: odd p /\ odd q.
     by split; apply: dvdn_odd (pdiv_dvd _) (mFT_odd _).
-  without loss [lt1p ltpq]: p q odd_p odd_q / 1 < p /\ p < q.
-    have [p_pr q_pr]: prime p /\ prime q by rewrite !pdiv_prime ?cardG_gt1.
-    have [ltpq | ltqp | eqpq] := ltngtP p q.
-    - by apply; rewrite ?prime_gt1. 
-    - by rewrite mulrC; apply; rewrite ?prime_gt1.
+  have [p_pr q_pr]: prime p /\ prime q by rewrite !pdiv_prime ?cardG_gt1.
+  wlog neqpq: / p != q.
+    case: eqP=> [eqpq|_]; last by apply.
     have [] := hallK_Z _ MX0; rewrite K0 Ks0.
     case/and3P=> _ sM'K _; case/and3P=> _ sMKs _.
     case/negP: (pgroupP sM'K _ p_pr (pdiv_dvd _)); rewrite eqpq.
     exact: pgroupP sMKs _ q_pr (pdiv_dvd _).
+  move: p q odd_p odd_q p_pr q_pr neqpq => p q odd_p odd_q p_pr q_pr neqpq.
+  without loss [lt1p ltpq]: p q odd_p odd_q p_pr q_pr neqpq / 1 < p /\ p < q.
+    have [ltpq | ltqp | eqpq] := ltngtP p q.
+    - by apply; rewrite ?prime_gt1. 
+    - by rewrite mulrC; apply; rewrite ?prime_gt1 1?eq_sym.
+    by rewrite eqpq eqxx in neqpq.
   have p_gt2: 2 < p by move: lt1p odd_p; rewrite leqNgt; case: ltngtP => // <-.
   have q_gt4: 4 < q.
     move: (leq_ltn_trans p_gt2 ltpq) odd_q; rewrite leqNgt.

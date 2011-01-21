@@ -904,7 +904,7 @@ Lemma eq_big_idx_seq : forall idx' I r (P : pred I) F,
 Proof.
 move=> idx' I r P F op_idx'.
 rewrite -!(big_filter _ _ r) has_count count_filter.
-case/lastP: (filter P r) => {r p}// r i _.
+case/lastP: (filter P r) => {r}// r i _.
 by rewrite -cats1 !(big_cat_nested, big_cons, big_nil) op_idx' mulm1.
 Qed.
 

@@ -49,7 +49,7 @@ Lemma abszr : forall x, absz `|x| = absz x. Proof. by case. Qed.
 
 Lemma fracq_subproof : forall x : zint * zint,
   let n := if x.2 == 0 then 0 else
-    sgr x.2 * sgr x.1 *~ ((absz x.1) %/ gcdn (absz x.1) (absz x.2))%:Z in
+    ((absz x.1) %/ gcdn (absz x.1) (absz x.2))%:Z *~ (sgr x.1 * sgr x.2) in
     let d := if x.2 == 0 then 1 else 
       (absz x.2 %/ gcdn (absz (x.1)) (absz x.2))%:Z in
         (0 < d) && (coprime (absz n) (absz d)).
@@ -57,11 +57,11 @@ Proof.
 move=> [m n] /=; case: ifP=> n0; rewrite ?n0 // ltz_nat lt0n eq_sym.
 rewrite eqn_div ?dvdn_gcdr 1?eq_sym ?gcdn_gt0 ?mul0n
   1?orbC ?lt0n ?absz_eq0 ?n0 //=.
-rewrite -abszr absr_mulz absr_mul !absr_sg n0 mul1r.
+rewrite -abszr absr_mulz absr_mul !absr_sg n0 mulr1.
 case m0: (_ == 0)=> /=.
   by rewrite !(eqP m0) gcd0n divnn /= lt0n absz_eq0 n0.
 move: m0 n0; rewrite -!absz_eq0.
-move: (absz _) (absz _) => {n m k hk} m n n0 m0; rewrite /coprime.
+move: (absz _) (absz _) => {n m} m n n0 m0; rewrite /coprime.
 rewrite -(@eqn_pmul2l (gcdn n m)) ?muln1 ?gcdn_gt0 ?lt0n ?n0 // -gcdn_mul2l.
 do 2!rewrite divn_mulCA ?(dvdn_gcdl, dvdn_gcdr) ?divnn //.
 by rewrite ?gcdn_gt0 ?lt0n ?n0 ?muln1.
@@ -71,14 +71,14 @@ Definition fracq (x : zint * zint) := nosimpl @Qnum (_, _) (fracq_subproof x).
 
 Lemma zint_qnumE : forall n, zint_qnum n = fracq (n, 1).
 Proof.
-by move=> n; apply: val_inj; rewrite /= mul1r gcdn1 !divn1 -absrz -absr_sgP. 
+by move=> n; apply: val_inj; rewrite /= mulr1 gcdn1 !divn1 -absrz -absr_sgP. 
 Qed.
 
 Lemma fracqK : forall x : qnum, fracq (valq x) = x.
 Proof. 
 move=> [[n d] /= Pnd]; apply: val_inj=> /=.
 move: Pnd; rewrite /coprime /fracq /=; case/andP=> hd; move/eqP=> hnd.
-rewrite ltrNW // hnd !divn1 -!absrz mulzrA -[sgr n *~ _]absr_sgP.
+rewrite ltrNW // hnd !divn1 -!absrz mulrzA -[_ *~ sgr n]absr_sgP.
 by rewrite ger0_abs ?ltrW // gtr0_sg //.
 Qed.
 
@@ -86,13 +86,14 @@ Lemma valq_frac : forall x (k := sgr x.2 * gcdn (absz x.1) (absz x.2)), x.2 != 0
   x = (k * numq (fracq x), k *  denq (fracq x)).
 Proof.
 move=> [n d] /=; case d0: (d == 0)=> // _.
-rewrite !mulzzr mulrCA -!mulrA -!mulzM divn_mulCA ?dvdn_gcdl //.
+rewrite !mulzzr mulrCA -!mulrA -!mulzM divn_mulCA ?dvdn_gcdr //.
 congr (_, _).
-  rewrite divnn gcdn_gt0 orbC lt0n absz_eq0 d0 muln1.
-  rewrite mulrA mulrAC mulrA mulss d0 mul1r -absrz mulrC.
-  by rewrite {1}[n]absr_sgP mulzzr.
-rewrite divn_mulCA ?dvdn_gcdr // divnn gcdn_gt0 orbC lt0n absz_eq0 d0 muln1.
-by rewrite -absrz {1}[d]absr_sgP mulzzr.
+  rewrite [sgr d * _]mulrC -!mulrA mulss d0 mulr1 mulrA.
+  rewrite -mulzM mulnC divn_mulCA ?dvdnn ?dvdn_gcdl // divnn.
+  rewrite gcdn_gt0 orbC lt0n absz_eq0 d0 muln1 {1}[n]absr_sgP.
+  by rewrite mulzzr absrz.
+rewrite divnn gcdn_gt0 orbC lt0n absz_eq0 d0 muln1.
+by rewrite {1}[d]absr_sgP mulzzr absrz mulrC.
 Qed.
 
 CoInductive valq_spec (x : zint * zint) : zint * zint -> qnum -> Type := 
@@ -148,7 +149,7 @@ Lemma frac0q : forall x, fracq (0, x) = fracq (0, 1).
 Proof.
 move=> x; rewrite /fracq; apply: val_inj=> //= (* Warning : without //= Qed fails) *).
 case: ifP=> x0; rewrite ?x0 //=.
-by rewrite !mulr0 !mul0zr !gcd0n !divnn lt0n absz_eq0 x0.
+by rewrite !mul0r !mulr0z !gcd0n !divnn lt0n absz_eq0 x0.
 Qed.
 
 Lemma fracq0 : forall x, fracq (x, 0) = fracq (0, 1). 
@@ -301,8 +302,8 @@ rewrite !(mulf_eq0, negb_or, k0) /= => nfx0.
 by apply/eqP; rewrite fracq_eq ?mulf_neq0 ?denq_neq0 //= mulrCA mulrA.
 Qed.
 
-Lemma mulqC : commutative mulq. Proof. by move=> x y; rewrite /mulq mulC. Qed.
-
+Lemma mulqC : commutative mulq. Proof. by move=> x y; rewrite /mulq mulC. Qed
+.
 Lemma mulqA : associative mulq.
 Proof.
 by move=> x y z; rewrite -[x]fracqK -[y]fracqK -[z]fracqK !mulq_frac mulA.
@@ -473,11 +474,11 @@ Proof. exact: QnumField.oppqM. Qed.
 Lemma mulqM : {morph zint_qnum : x y / x * y}.
 Proof. exact: QnumField.mulqM. Qed.
 
-Lemma mulz1q : forall n, n%:zR = n%:Q.
+Lemma mulz1q : forall n, n%:~R = n%:Q.
 Proof. 
-elim=> //=; first by rewrite mul0zr qnum0.
-  by move=> n hn; rewrite zintS mulzr_addl addqM hn.
-by move=> n hn; rewrite zintS oppr_add mulzr_addl addqM hn !mulNzr oppqM.
+elim=> //=; first by rewrite mulr0z qnum0.
+  by move=> n hn; rewrite zintS mulrz_addl addqM hn.
+by move=> n hn; rewrite zintS oppr_add mulrz_addl addqM hn !mulrNz oppqM.
 Qed.
 
 Lemma eqq_zint : forall x y, (x%:Q == y%:Q) = (x == y).

@@ -89,7 +89,7 @@ have expR1p: exponent 'Ohm_1(R) %| p.
   elim: _.+1 {-2 4}R (ltnSn #|R|) (subxx R) => // n IHn Q leQn sQR.
   rewrite (OhmE 1 (pgroupS sQR pR)) expn1 -sub_LdivT.
   rewrite gen_set_id ?subsetIr //.
-  apply/group_setP; rewrite !inE group1 exp1gn /=; split=> {x}// x y.
+  apply/group_setP; rewrite !inE group1 exp1gn /=; split=> // x y.
   case/LdivP=> Qx xp1; case/LdivP=> Qy yp1; rewrite !inE groupM //=; apply/eqP.
   have sxQ: <[x]> \subset Q by rewrite cycle_subG.
   have [[{sxQ}defQ]|[S maxS /= sxS]] := maximal_exists sxQ.
