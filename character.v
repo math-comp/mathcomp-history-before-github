@@ -2554,4 +2554,64 @@ rewrite inE; case/andP=> _; rewrite {1}mul1mx; move/eqP->; rewrite {1}mul1mx.
 by rewrite eqxx.
 Qed.
 
+Lemma center_sub_quo : forall (M N : {group gT}),
+  N <| M -> ('Z(M)/N \subset 'Z(M/N))%g.
+Proof.
+move=> M N NM; apply/subsetP=> C.
+case/imsetP=> g; rewrite inE; case/andP=> H1g H2g -> /=.
+apply/centerP; split.
+  by apply: mem_quotient; apply: (subsetP (center_sub M)).
+move=> C1; case/imsetP=> h; rewrite inE; case/andP=> H1h H2h -> /=.
+apply/val_eqP=> /=; apply/eqP.
+rewrite !val_coset // !rcoset_mul //.
+by case/centerP: H2g=> InG; move/(_ _ H2h); rewrite /commute => ->.
+Qed.
+  
+(* This is 2.28 *)
+Lemma center_bigcap : 'Z(G) = \bigcap_(i : irr_class G) ccenter i.
+Proof.
+apply/setP=> g; apply/idP/idP=> [InG|].
+  have InG': g \in G by apply: (subsetP (center_sub G)).
+  apply/bigcapP=> i _.
+  have: coset (cker G i) g \in (ccenter i/(cker G i))%g.
+    rewrite ccenter_eq_center.
+    apply: (subsetP ( center_sub_quo (cker_normal _ _))).
+    by apply: mem_quotient.
+  case/imsetP=> h; rewrite inE; case/andP=> H1h H2h /=.
+  move/val_eqP; rewrite /= !val_coset //; last first.
+    by apply: (subsetP (normal_norm (cker_normal G i))).
+  move=> HH; move: InG'.
+  have: g \in  cker_group G i :* g.
+    by apply/rcosetP; exists (1%g); rewrite ?(group1,mul1g).
+  rewrite (eqP HH); case/rcosetP=> l /= InL -> InG'.
+  have InL': l \in G.
+    by apply: (subsetP (normal_sub (cker_normal G i))).
+  have InH: h \in G.
+    by apply: (subsetP (ccenter_sub i)).
+  rewrite char_rcenterP inE InG'.
+  move: InL; rewrite char_rkerP inE mul1mx {1}repr_mxM //.
+  case/andP=> InL; move/eqP->; rewrite mul1mx.
+  by move: H2h; rewrite char_rcenterP inE; case/andP.
+move/bigcapP=> HH.
+have InG: g \in G.
+  by apply: (subsetP (ccenter_sub (irr_class1 G))); apply: HH.
+apply/centerP; split=> //.
+move=> h InH; apply/commgP.
+suff: [~ g, h] \in 1%G by rewrite inE.
+rewrite -(cker_all1 G); apply/bigcapP=> i _.
+rewrite char_rkerP inE groupR // mul1mx.
+set rGi := irr_repr _.
+rewrite !repr_mxM ?(groupV,groupJ,groupM) //.
+have: is_scalar_mx (rGi g).
+  by move: (HH i is_true_true); rewrite char_rcenterP inE InG.
+case/is_scalar_mxP=> k Hk; rewrite Hk -scalar_mxC {1}mulmxA {1}mulmxA.
+rewrite -Hk andTb; apply/eqP.
+  (* Too slow
+rewrite  {1}(repr_mxKV rGi InH).
+*)
+have->: rGi (g^-1)%g *m rGi (h^-1)%g *m rGi h *m rGi g = rGi (g^-1)%g *m rGi g.
+   by congr (_ *m _); apply: (repr_mxKV rGi InH).
+by rewrite -repr_mxM ?groupV // mulVg repr_mx1.
+Qed.
+
 End Center.
