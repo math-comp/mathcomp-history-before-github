@@ -1412,18 +1412,6 @@ rewrite -(conjsgKV y (_ :^ x)) -conjIg -conjsgM setIC.
 by rewrite (eqP (TI_F _ notMxy)) conjs1g.
 Qed.
 
-(* This could go in Section 12, and be used to simplify the statement of many *)
-(* of the intermediate lemmas.                                                *)
-Lemma sigma'2Elem_tau2 : forall M E p A,
-  M \in 'M -> \sigma(M)^'.-Hall(M) E -> A \in 'E_p^2(E) -> p \in \tau2(M).
-Proof.
-move=> M E p A maxM hallE Ep2A; have [sEM _] := andP hallE.
-have rE: 'r_p(E) > 1 by apply/p_rank_geP; exists A.
-have: p \in \pi(E) by rewrite -p_rank_gt0 ltnW.
-rewrite (partition_pi_sigma_compl maxM hallE) orbCA; case/orP=> //.
-by rewrite -!andb_orr eqn_leq leqNgt (leq_trans rE) ?andbF ?p_rankS.
-Qed.
-
 (* This is B & G, Theorem 15.8, due to Feit and Thompson (1991). *)
 (* We handle the non-structural step on l. 5, p. 122 by choosing A not to be  *)
 (* a q-group, if possible, so that when it turns out to be we know q is the   *)

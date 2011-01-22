@@ -408,6 +408,12 @@ rewrite (nilpotent_Hall_pcore (Fitting_nil _) hallHa) /=.
 exact: char_normal_trans (pcore_char _ _) nsFMa.
 Qed.
 
+Lemma pi_Msigma : \pi(M`_\sigma) =i \sigma(M).
+Proof.
+move=> p; apply/idP/idP=> [|s_p /=]; first exact: pnatPpi (pcore_pgroup _ _).
+by rewrite (card_Hall Msigma_Hall) pi_of_partn // inE /= sigma_sub_pi.
+Qed.
+
 (* This is B & G, Theorem 10.2(b2). *) 
 Theorem Msigma_Hall_G : \sigma(M).-Hall(G) M`_\sigma.
 Proof. 

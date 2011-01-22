@@ -803,308 +803,6 @@ rewrite -cent_cycle cycleJ centJ -conjIg cent_cycle regK ?conjs1g //.
 by rewrite -mem_conjg conjD1g conjsgM -defKab.
 Qed.
 
-(*
-(* This is B & G, Proposition 14.2. *)
-Proposition Ptype_structure : forall M K (Ms := M`_\sigma) (Kstar := 'C_Ms(K)),
-  M \in 'M_'P -> \kappa(M).-Hall(M) K ->
-  [/\ (*a*) exists2 U : {group gT},
-              kappa_complement M U K /\ Ms ><| (U ><| K) = M
-            & [/\ abelian U, semiprime Ms K & semiregular U K]
-      (*b*) (*1.2*) K \x Kstar = 'N_M(K)
-           /\ {in 'E^1(K), forall X, 
-            (*1.1*) 'N_M(X) = 'N_M(K)
-           /\ (*2*) {in 'M('N(X)), forall Mstar, X \subset Mstar`_\sigma}},
-      (*c*) Kstar != 1 /\ {in 'E^1(Kstar), forall X, 'M('C(X)) = [set M]},
-  [/\ (*d*) {in ~: M, forall g, Kstar :&: M :^ g = 1}
-         /\ {in M :\: 'N_M(K), forall g, K :&: K :^ g = 1},
-      (*e*) {in \pi(Kstar), forall p S,
-             p.-Sylow(M) S -> 'M(S) = [set M] /\ ~~ (S \subset Kstar)}
-    & (*f*) forall Y, \sigma(M).-group Y -> Y :&: Kstar != 1 -> Y \subset Ms]
-    & (*g*) M \in 'M_'P2 ->
-            [/\ \sigma(M) =i \beta(M), prime #|K|, nilpotent Ms
-                & trivIset (Ms^# :^: G)]].
-Proof.
-move=> M K Ms Ks PmaxM hallK; have [maxM notFmaxM] := setDP PmaxM.
-have{notFmaxM} ntK: K :!=: 1.
-  apply: contra notFmaxM; rewrite inE maxM trivg_card1 (card_Hall hallK).
-  by rewrite partG_eq1.
-have [sKM kK _] := and3P hallK; have s'K := sub_pgroup (@kappa_sigma' M) kK.
-have solM := mmax_sol maxM; have [E hallE sKE] := Hall_superset solM sKM s'K.
-have [[sEM s'E _] [_ [E3 hallE3]]] := (and3P hallE, ex_tau13_compl hallE).
-have [F1 hallF1] := Hall_exists \tau1(M) (solvableS sKM solM).
-have [[sF1K t1F1 _] solE] := (and3P hallF1, sigma_compl_sol hallE).
-have [E1 hallE1 sFE1] := Hall_superset solE (subset_trans sF1K sKE) t1F1.
-have [E2 hallE2 complEi] := ex_tau2_compl hallE hallE1 hallE3.
-have [[_ nsE3E] _ [cycE1 _] [defEl defE] _] := sigma_compl_context maxM complEi.
-have [sE1E t1E1 _] := and3P hallE1; have sE1M := subset_trans sE1E sEM.
-have [sE3E t3E3 _] := and3P hallE3; have sE3M := subset_trans sE3E sEM.
-set part_a := exists2 U, _ & _; pose b1_hyp := {in 'E^1(K), forall X, X <| K}.
-have [have_a nK1K ntE1 sE1K]: [/\ part_a, b1_hyp, E1 :!=: 1 & E1 \subset K].
-  have [t1K | not_t1K] := boolP (\tau1(M).-group K).
-    have sKE1: K \subset E1 by rewrite (sub_pHall hallF1 t1K).
-    have prE1 := tau1_primact_Msigma maxM hallE hallE1.
-    have st1k: {subset \tau1(M) <= \kappa(M)}.
-      move=> p t1p; rewrite /kappa -lock 3!inE /= t1p /=.
-      have [X]: exists X, X \in 'E_p^1(E1).
-        apply/p_rank_geP; rewrite p_rank_gt0 /= (card_Hall hallE1).
-        by rewrite pi_of_partn // inE /= (partition_pi_sigma_compl maxM) ?t1p.
-      rewrite -(setIidPr sE1M) pnElemI -setIdE; case/setIdP=> EpX sXE1.
-      pose q := pdiv #|K|; have piKq: q \in \pi(K) by rewrite pi_pdiv cardG_gt1.
-      have [Y]: exists Y, Y \in 'E_q^1(K).
-        by apply/p_rank_geP; rewrite p_rank_gt0.
-      rewrite -(setIidPr sKM) pnElemI -setIdE; case/setIdP=> EqY sYK.
-      have ntCMsY := kappa_nonregular (pnatPpi kK piKq) EqY.
-      have [ntY sYE1] := (nt_pnElem EqY isT, subset_trans sYK sKE1).
-      apply/exists_inP; exists X; rewrite ?(subG1_contra _ ntCMsY) //=.
-      by rewrite (cent_semiprime prE1 sYE1 ntY) ?setIS ?centS.
-    have defK := sub_pHall hallK (sub_pgroup st1k t1E1) sKE1 sE1M.
-    split=> [|X||]; rewrite ?defK //; last first.
-       rewrite -defK; case/nElemP=> p; case/pnElemP=> sXE1 _ _.
-       by rewrite char_normal // sub_cyclic_char.
-    have [[U _ defU _] _ _ _] := sdprodP defE; rewrite defU in defE.
-    have [nsUE _ mulUE1 nUE1 _] := sdprod_context defE.
-    have [[_ V _ defV] _] := sdprodP defEl; rewrite defV.
-    have [_ <- nE21 _] := sdprodP defV; case/mulGsubP=> nE32 nE31 _.
-    have regUK: semiregular U K.
-      move=> y; case/setD1P; rewrite -cycle_subG -cent_cycle -order_gt1.
-      rewrite -pi_pdiv; move: (pdiv _) => p pi_y_p Ky.
-      have piKp := piSg Ky pi_y_p; have t1p := pnatPpi t1K piKp.
-      move: pi_y_p; rewrite -p_rank_gt0; case/p_rank_geP=> Y /=.
-      rewrite -{1}(setIidPr (subset_trans Ky sKE)) pnElemI -setIdE.
-      case/setIdP=> EpY sYy; have EpMY := subsetP (pnElemS _ _ sEM) Y EpY.
-      apply: contraNeq (kappa_nonregular (pnatPpi kK piKp) EpMY).
-      move/(subG1_contra (setIS U (centS sYy))).
-      have{y sYy Ky} sYE1 := subset_trans sYy (subset_trans Ky sKE1).
-      have ntY: Y :!=: 1 by exact: (nt_pnElem EpY). 
-      rewrite -subG1 /=; have [_ <- _ tiE32] := sdprodP defU.
-      rewrite -subcent_TImulg ?subsetI ?(subset_trans sYE1) // mulG_subG.
-      rewrite !subG1 /=; case/nandP=> [nregE3Y | nregE2Y].
-        have pr13 := (cent_semiprime (tau13_primact_Msigma maxM complEi _)).
-        rewrite pr13 ?(subset_trans sYE1) ?joing_subr //; last first.
-          by move/cent_semiregular=> regE31; rewrite regE31 ?eqxx in nregE3Y.
-        pose q := pdiv #|'C_E3(Y)|.
-        have piE3q: q \in \pi(E3).
-          by rewrite (piSg (subsetIl E3 'C(Y))) // pi_pdiv cardG_gt1.
-        have [X]: exists X, X \in 'E_q^1(M :&: E3).
-          by apply/p_rank_geP; rewrite /= (setIidPr sE3M) p_rank_gt0.
-        rewrite pnElemI -setIdE; case/setIdP=> EqX sXE3.
-        rewrite -subG1 -(_ : 'C_Ms(X) = 1) ?setIS ?centS //.
-          by rewrite (subset_trans sXE3) ?joing_subl.
-        apply: contraTeq (pnatPpi t3E3 piE3q) => nregMsX; apply: tau3'1.
-        suffices kq: q \in \kappa(M).
-          rewrite (pnatPpi t1K) //= (card_Hall hallK) pi_of_partn //.
-          by rewrite inE /= kappa_pi.
-        rewrite /kappa -lock 3!inE /= (pnatPpi t3E3 piE3q) orbT /=.
-        by apply/exists_inP; exists X.
-      pose q := pdiv #|'C_E2(Y)|; have [sE2E t2E2 _] := and3P hallE2.
-      have piCE2Yq: q \in \pi('C_E2(Y)) by rewrite pi_pdiv cardG_gt1.
-      have [X]: exists X, X \in 'E_q^1(E :&: 'C_E2(Y)).
-        by apply/p_rank_geP; rewrite /= setIA (setIidPr sE2E) p_rank_gt0.
-      rewrite pnElemI -setIdE; case/setIdP=> EqX sXcE2Y.
-      have t2q:= pnatPpi t2E2 (piSg (subsetIl _ _) piCE2Yq).
-      have [A Eq2A _] := ex_tau2Elem hallE t2q.
-      have [[_ defEq1] _ _ _] := tau2_compl_context maxM hallE t2q Eq2A.
-      rewrite (tau12_regular maxM hallE t1p EpY t2q Eq2A) //.
-      rewrite (subG1_contra _ (nt_pnElem EqX _)) // subsetI.
-      rewrite defEq1 in EqX; case/pnElemP: EqX => -> _ _.
-      by rewrite (subset_trans sXcE2Y) ?subsetIr.
-    have [defM [sUE _]] := (sdprod_sigma maxM hallE, andP nsUE).
-    exists U; last by rewrite -{1 3}defK defE.
-    have hallU: [predU \sigma(M) & \kappa(M)]^'.-Hall(M) U.
-      suffices: [predI \sigma(M)^' & \kappa(M)^'].-Hall(M) U.
-        by apply: etrans; apply: eq_pHall=> p; rewrite inE /= negb_or.
-      apply: subHall_Hall hallE _ _ => [p|]; first by case/andP.
-      rewrite pHallE partnI (part_pnat_id s'E) -pHallE.
-      apply/(sdprod_normal_pHallP nsUE (pHall_subl sKE sEM hallK)).
-      by rewrite -defK.
-    split=> //; last first.
-      by rewrite inE PmaxM trivg_card1 (card_Hall hallU) partG_eq1 pgroupNK.
-    apply: abelianS (der_mmax_compl_abelian maxM hallE).
-    rewrite -(coprime_cent_prod nUE1) ?(solvableS sUE) //.
-      by rewrite {2}defK (cent_semiregular regUK) // mulg1 commgSS.
-    rewrite (coprime_sdprod_Hall defE) (sdprod_Hall defE).
-    exact: pHall_Hall hallE1.
-  move: not_t1K; rewrite negb_and cardG_gt0 -has_predC; case/hasP=> p piKp t1'p.
-  have kp := pnatPpi kK piKp; have t3p := kappa_tau13 kp.
-  rewrite [p \in _](negPf t1'p) /= in t3p.
-  have [X]: exists X, X \in 'E_p^1(K) by apply/p_rank_geP; rewrite p_rank_gt0.
-  rewrite -{1}(setIidPr sKM) pnElemI -setIdE; case/setIdP=> EpX sXK.
-  have sXE3: X \subset E3.
-    rewrite (sub_normal_Hall hallE3) ?(subset_trans sXK) ?(pi_pgroup _ t3p) //.
-    by case/pnElemP: EpX => _; case/andP.
-  have [nregX ntX] := (kappa_nonregular kp EpX, nt_pnElem EpX isT).
-  have [regE3|ntE1 {defE}defE prE nE1_E] := tau13_nonregular maxM complEi.
-    by case/eqP: nregX; rewrite (cent_semiregular regE3).
-  have defK: E :=: K.
-    apply: (sub_pHall hallK _ sKE sEM); apply/pgroupP=> q q_pr q_dv_E.
-    have{q_dv_E} piEq: q \in \pi(E) by rewrite mem_primes q_pr cardG_gt0.
-    unlock kappa; apply/andP; split=> /=.
-      apply: pnatPpi piEq; rewrite -pgroupE; case/sdprodP: defE => _ <- _ _.
-      rewrite pgroupM (sub_pgroup _ t3E3) => [|r t3r]; last by apply/orP; right.
-      by rewrite (sub_pgroup _ t1E1) // => r t1r; apply/orP; left.
-    have:= piEq; rewrite -p_rank_gt0; case/p_rank_geP=> Y.
-    rewrite -{1}(setIidPr sEM) pnElemI -setIdE; case/setIdP=> EqY sYE.
-    rewrite (cent_semiprime prE) ?(subset_trans sXK) // in nregX.
-    apply/exists_inP; exists Y => //; apply: subG1_contra nregX.
-    by rewrite setIS ?centS.
-  have defM := sdprod_sigma maxM hallE.
-  rewrite /b1_hyp -defK; split=> //; exists 1%G; last first.
-    by rewrite -defK sdprod1g //; split=> //; exact: semiregular1l.
-  rewrite abelian1 eqxx inE PmaxM pHallE sub1G cards1 eq_sym.
-  rewrite partG_eq1 pgroupNK /=; have{defM} [_ defM _ _] := sdprodP defM.
-  rewrite -{3 6}defM defK pgroupM.
-  rewrite (sub_pgroup _ (pcore_pgroup _ _)) => [|r sr]; last by apply/orP; left.
-  by rewrite (sub_pgroup _ kK) // => r kr; apply/orP; right.
-set part_b := _ /\ _; set part_c := _ /\ _; set part_d := _ /\ _.
-have [U [cUU hallU defP1M] [prMsK regUK defM]] := have_a.
-have have_b: part_b.
-  set MsU := Ms <*> U; have [sUM sk'U _] := and3P hallU.
-  have coMsU: coprime #|Ms| #|U|.
-    rewrite (pnat_coprime (pcore_pgroup _ _) (sub_pgroup _ sk'U)) // => p.
-    by case/norP.
-  have{defM} [[_ F _ defF]] := sdprodP defM; rewrite defF.
-  have [_ <- nUK _] := sdprodP defF; rewrite mulgA mulG_subG => defM.
-  case/andP=> nMsU nMsK _.
-  have coMsU_K: coprime #|MsU| #|K|.
-    rewrite [MsU]norm_joinEr // (p'nat_coprime _ kK) // -pgroupE.
-    rewrite pgroupM // (sub_pgroup _ (pcore_pgroup _ _)) => [|r]; last first.
-      by apply: contraL; exact: kappa_sigma'.
-    by apply: sub_pgroup _ sk'U => r; case/norP.
-  have defNK: forall X, X <| K -> X :!=: 1 -> 'N_M(X) = Ks * K.
-    move=> X; case/andP=> sXK nXK ntX; rewrite -defM -(norm_joinEr nMsU) -/MsU.
-    rewrite setIC -group_modr // setIC.
-    rewrite coprime_norm_cent ?(subset_trans sXK) ?normsY //; last first.
-      by rewrite (coprimegS sXK).
-    rewrite /= norm_joinEr -?subcent_TImulg ?(coprime_TIg coMsU) //; last first.
-      by rewrite subsetI !(subset_trans sXK).
-    by rewrite (cent_semiregular regUK) // mulg1 (cent_semiprime prMsK).
-  rewrite /part_b dprodE ?subsetIr //; last first.
-    rewrite setICA setIA (coprime_TIg (coprimeSg _ coMsU_K)) ?setI1g //.
-    by rewrite joing_subl.
-  rewrite -centC ?subsetIr // defNK //; split=> // X Eq1X.
-  have [q EqX] := nElemP Eq1X; have ntX := nt_pnElem EqX isT.
-  have:= EqX; rewrite -{1}(setIidPr sKE) pnElemI -setIdE.
-  case/setIdP=> EqEX sXK; split; first by rewrite defNK ?nK1K.
-  have [_ abelX dimX] := pnElemP EqX; have [qX _] := andP abelX.
-  have kq: q \in \kappa(M).
-    by rewrite (pnatPpi kK (piSg sXK _)) // -p_rank_gt0 p_rank_abelem ?dimX.
-  have nregX := kappa_nonregular kq (subsetP (pnElemS _ _ sEM) _ EqEX).
-  have sq := tau13_nonregular_sigma maxM hallE EqEX (kappa_tau13 kq) nregX.
-  move=> H maxNH; have [maxH sNXH] := setIdP maxNH.
-  rewrite (sub_Hall_pcore (Msigma_Hall maxH)) ?(subset_trans (normG X)) //.
-  exact: pi_pgroup qX (sq H maxNH).
-have have_c: part_c.
-  pose p := pdiv #|E1|; have piE1p: p \in \pi(E1) by rewrite pi_pdiv cardG_gt1.
-  have:= piE1p; rewrite -p_rank_gt0; case/p_rank_geP=> Y.
-  rewrite -(setIidPr sE1M) pnElemI -setIdE; case/setIdP=> EpY sYE1.
-  have [sYK ntY] := (subset_trans sYE1 sE1K, nt_pnElem EpY isT).
-  split=> [|X].
-    rewrite /Ks -(cent_semiprime prMsK sYK) //.
-    exact: kappa_nonregular (pnatPpi kK (piSg sE1K piE1p)) EpY.
-  case/nElemP=> q; rewrite /= -(cent_semiprime prMsK sYK) // => EqX.
-  by have [] := cent_cent_Msigma_tau1_uniq maxM hallE hallE1 sYE1 ntY EqX.
-have [[defNK defK1] [_ uniqKs]] := (have_b, have_c).
-have have_d: part_d.
-  split=> g.
-    rewrite inE; apply: contraNeq; rewrite -rank_gt0.
-    case/rank_geP=> X; rewrite nElemI -setIdE; case/setIdP=> EpX sXMg.
-    have [_ sCXMs] := mem_uniq_mmax (uniqKs _ EpX).
-    case/nElemP: EpX => p; case/pnElemP; case/subsetIP=> sXMs _ abelX dimX.
-    have [[pX _] sXM] := (andP abelX, subset_trans sXMs (pcore_sub _ _)).
-    have piXp: p \in \pi(X) by rewrite -p_rank_gt0 p_rank_abelem ?dimX.
-    have sp := pnatPpi (pcore_pgroup _ _) (piSg sXMs piXp).
-    have [def_g _ _] := sigma_group_trans maxM sp pX.
-    rewrite -groupV; have [|c cXc [m Mm ->]] := def_g g^-1 sXM.
-      by rewrite sub_conjgV.
-    by rewrite groupM // (subsetP sCXMs).
-  case/setDP=> Mg; apply: contraNeq; rewrite -rank_gt0 /=.
-  case/rank_geP=> X; rewrite nElemI -setIdE; case/setIdP=> EpX sXKg.
-  have [<- _] := defK1 X EpX; rewrite 2!inE Mg /=.
-  have{EpX} [p EpX] := nElemP EpX; have [_ abelX dimX] := pnElemP EpX.
-  have defKp1: {in 'E_p^1(K), forall Y, 'Ohm_1('O_p(K)) = Y}.
-    move=> Y EpY; have E1K_Y: Y \in 'E^1(K) by apply/nElemP; exists p.
-    have piKp: p \in \pi(K) by rewrite -p_rank_gt0; apply/p_rank_geP; exists Y.
-    have [pKp sKpK] := (pcore_pgroup p K, pcore_sub p K).
-    have cycKp: cyclic 'O_p(K).
-      rewrite (odd_pgroup_rank1_cyclic pKp) ?mFT_odd //.
-      by rewrite -(rank_kappa (pnatPpi kK piKp)) p_rankS ?(subset_trans sKpK).
-    have [sYK abelY oY] := pnElemPcard EpY; have [pY _] := andP abelY.
-    have sYKp: Y \subset 'O_p(K) by rewrite pcore_max ?nK1K.
-    apply/eqP; rewrite eq_sym eqEcard -{1}(Ohm1_id abelY) OhmS //= oY.
-    rewrite (Ohm1_cyclic_pgroup_prime cycKp pKp) ?(subG1_contra sYKp) //=.
-    exact: nt_pnElem EpY _.
-  rewrite sub_conjg -[X :^ _]defKp1 ?defKp1 // !inE sub_conjgV sXKg cardJg dimX.
-  by rewrite abelemJ abelX.
-split=> {part_a part_b part_c have_a have_b have_c}//; first split=> //.
-- move=> q; rewrite /Ks -(cent_semiprime prMsK sE1K ntE1) => picMsE1q.
-  have sq := pnatPpi (pcore_pgroup _ M) (piSg (subsetIl _ _) picMsE1q).
-  move: picMsE1q; rewrite -p_rank_gt0; case/p_rank_geP=> y EqY S sylS.
-  have [sSM qS _] := and3P sylS.
-  have sSMs: S \subset M`_\sigma.
-    by rewrite (sub_Hall_pcore (Msigma_Hall maxM)) ?(pi_pgroup qS).
-  have sylS_Ms: q.-Sylow(M`_\sigma) S := pHall_subl sSMs (pcore_sub _ M) sylS.
-  have [_]:= cent_cent_Msigma_tau1_uniq maxM hallE hallE1 (subxx _) ntE1 EqY.
-  move/(_ S sylS_Ms) => uniqS; split=> //; rewrite subsetI sSMs /=.
-  pose p := pdiv #|E1|; have piE1p: p \in \pi(E1) by rewrite pi_pdiv cardG_gt1.
-  have [s'p _] := andP (pnatPpi t1E1 piE1p).
-  have [P sylP] := Sylow_exists p E1; have [sPE1 pP _] := and3P sylP.
-  apply: contra (s'p) => cE1S; apply/exists_inP; exists P.
-    exact: subHall_Sylow s'p (subHall_Sylow hallE1 (pnatPpi t1E1 piE1p) sylP).
-  apply: (sub_uniq_mmax uniqS); first by rewrite cents_norm // (centsS sPE1).
-  apply: mFT_norm_proper (mFT_pgroup_proper pP).
-  by rewrite -rank_gt0 (rank_Sylow sylP) p_rank_gt0.
-- move=> Y sY ntYKs; have ntY: Y :!=:1 := subG1_contra (subsetIl _ _) ntYKs.
-  have [[x sYxMs] _] := sigma_Jsub maxM sY ntY; rewrite sub_conjg in sYxMs.
-  suffices Mx': x^-1 \in M by rewrite (normsP _ _ Mx') ?bgFunc_norm in sYxMs.
-  rewrite -(setCK M) inE; apply: contra ntYKs => M'x'.
-  rewrite setIC -(setIidPr sYxMs) -/Ms -[Ms](setIidPr (pcore_sub _ _)).
-  by rewrite conjIg !setIA; have [-> // _] := have_d; rewrite !setI1g.
-rewrite inE PmaxM andbT -defP1M => ntU.
-have [regMsU nilMs]: 'C_Ms(U) = 1 /\ nilpotent Ms.
-  pose p := pdiv #|U|; have piUp: p \in \pi(U) by rewrite pi_pdiv cardG_gt1.
-  have [sUM sk'U _] := and3P hallU; have sk'p := pnatPpi sk'U piUp.
-  have [S sylS] := Sylow_exists p U; have [sSU _] := andP sylS.
-  have sylS_M := subHall_Sylow hallU sk'p sylS.
-  rewrite -(setIidPr (centS (subset_trans (Ohm_sub 1 S) sSU))) setIA.
-  have [|_ _ -> ->] := sigma'_kappa'_facts maxM sylS_M; last by rewrite setI1g.
-  by rewrite -negb_or (piSg sUM).
-have [[_ F _ defF] _ _ _] := sdprodP defM; rewrite defF in defM.
-have hallMs: \sigma(M).-Hall(M) Ms by exact: Msigma_Hall.
-have hallF: \sigma(M)^'.-Hall(M) F by exact/(sdprod_Hall_pcoreP hallMs).
-have frF: [Frobenius F = U ><| K] by exact/Frobenius_semiregularP.
-have ntMs: Ms != 1 by exact: Msigma_neq1.
-have prK: prime #|K|.
-  have [solF [_ _ nMsF _]] := (sigma_compl_sol hallF, sdprodP defM).
-  have solMs: solvable Ms := solvableS (pcore_sub _ _) (mmax_sol maxM).
-  have coMsF: coprime #|Ms| #|F|.
-    by rewrite (coprime_sdprod_Hall defM) (pHall_Hall hallMs).
-  by have [] := Frobenius_primact frF solF nMsF solMs ntMs coMsF prMsK.
-have eq_sb: \sigma(M) =i \beta(M).
-  suffices bMs: \beta(M).-group Ms.
-    move=> p; apply/idP/idP=> [sp|]; last exact: beta_sub_sigma.
-    rewrite (pnatPpi bMs) //= (card_Hall (Msigma_Hall maxM)) pi_of_partn //.
-    by rewrite inE /= sigma_sub_pi.
-  have [H hallH cHF'] := der_compl_cent_beta' maxM hallF.
-  rewrite -pgroupNK -partG_eq1 -(card_Hall hallH) -trivg_card1 -subG1.
-  rewrite -regMsU subsetI (pHall_sub hallH) centsC (subset_trans _ cHF') //.
-  have [solU [_ mulUK nUK _]] := (abelian_sol cUU, sdprodP defF).
-  have coUK: coprime #|U| #|K|.
-    rewrite (p'nat_coprime (sub_pgroup _ (pHall_pgroup hallU)) kK) // => p.
-    by case/norP.
-  rewrite -(coprime_cent_prod nUK) // (cent_semiregular regUK) // mulg1.
-  by rewrite -mulUK commgSS ?mulG_subl ?mulG_subr.
-split=> //; apply/TIconjP=> x y _ _ /=.
-rewrite setTI (mmax_normal maxM (pcore_normal _ M) ntMs).
-rewrite -{2}(mulgKV y x) conjsgM -conjIg; move: {x}(x * _) => g.
-have [Mg | notMg] := boolP (g \in M); [by left | right].
-have [_ _ b'MsMg] := sigma_compl_embedding maxM hallE.
-have{b'MsMg notMg} [_ b'MsMg _] := b'MsMg g notMg.
-rewrite setIC -pcoreJ -(setIidPr (pcore_sub _ _)) setIA.
-rewrite (eq_pcore _ eq_sb) coprime_TIg ?conjs1g //.
-exact: p'nat_coprime b'MsMg (pcore_pgroup _ _).
-Qed.
-*)
-
 (* This is B & G, Corollary 14.3. *)
 Corollary pi_of_cent_sigma : forall M x x',
     M \in 'M -> x \in (M`_\sigma)^# ->
@@ -1638,8 +1336,7 @@ Theorem Ptype_embedding : forall M K,
   & let Kstar := 'C_(M`_\sigma)(K) in
     let Z := K <*> Kstar in let Zhat := Z :\: (K :|: Kstar) in
   [/\ (*a*) {in 'E^1(K), forall X, 'M('C(X)) = [set Mstar]},
-      (*b*) \kappa(Mstar).-Hall(Mstar) Kstar
-         /\ \sigma(M).-Hall(Mstar) Kstar,
+      (*b*) \kappa(Mstar).-Hall(Mstar) Kstar /\ \sigma(M).-Hall(Mstar) Kstar,
       (*c*) 'C_(Mstar`_\sigma)(Kstar) = K /\ \kappa(M) =i \tau1(M),
       (*d*) [/\ cyclic Z, M :&: Mstar = Z,
                 {in K^#, forall x, 'C_M[x] = Z},
@@ -1648,8 +1345,7 @@ Theorem Ptype_embedding : forall M K,
 & [/\ (*e*) [/\ trivIset (Zhat :^: G), 'N(Zhat) = Z,
                 {in ~: M, forall g, [disjoint Zhat & M :^ g]}
               & (#|G|%:R / 2%:R < #|class_support Zhat G|%:R :> qnum)%R ],
-      (*f*) M \in 'M_'P2 /\ prime #|K|
-         \/ Mstar \in 'M_'P2 /\ prime #|Kstar|,
+      (*f*) M \in 'M_'P2 /\ prime #|K| \/ Mstar \in 'M_'P2 /\ prime #|Kstar|,
       (*g*) {in 'M_'P, forall H, gval H \in M :^: G :|: Mstar :^: G}
     & (*h*) M^`(1) ><| K = M]].
 Proof.
@@ -2763,13 +2459,13 @@ rewrite 3!inE -val_eqE /= eq_sym (contra_orbit _ _ notMstGH) maxMst.
 have [sAD _ _] := pnElemP EqA_D; exact: subset_trans sAD sDMst.
 Qed.
 
-(* This is B & G, Lemma 14.13(a), first assertion only. *)
-(* The rest of the lemma is not needed for the Peterfalvi revision of the     *)
-(* character theory part of the proof.                                        *)
-Lemma disjoint_signalizer_Ftype : forall x M,
+(* This is B & G, Lemma 14.13(a). *)
+(* Part (b) is not needed for the Peterfalvi revision of the character theory *)
+(* part of the proof.                                                         *)
+Lemma non_disjoint_signalizer_Frobenius : forall x M,
     \ell_\sigma(x) == 1%N -> #|'M_\sigma[x]| > 1 ->
     M \in 'M_\sigma[x] -> ~~ (\sigma('N[x])^'.-group M) ->
-  M \in 'M_'F.
+  M \in 'M_'F /\ \tau2(M)^'.-group M.
 Proof.
 move=> x M ell1x ntR SMxM; have [maxM Ms_x] := setIdP SMxM.
 rewrite negb_and cardG_gt0 all_predC negbK; case/hasP=> q /= piMq sNq.
@@ -2793,30 +2489,75 @@ have [g sQNg]: exists g, Q \subset 'N[x] :^ g.
   have [Q1 sylQ1] := Sylow_exists q 'N[x].
   have [g _ sQQ1g] := Sylow_subJ (sigma_Sylow_G maxN sNq sylQ1) (subsetT Q) qQ.
   by exists g; rewrite (subset_trans sQQ1g) // conjSg (pHall_sub sylQ1).
+have EqNQ: Q \in 'E_q^1('N[x] :^ g) by exact/pnElemP.
+have uniqNg: 'M('C(Q)) = [set 'N[x] :^ g]%G.
+  by case/cent_der_sigma_uniq: EqNQ; rewrite ?mmaxJ 1?betaJ ?bNq.
 have b'Mp: p \notin \beta(M).
   by rewrite -predI_sigma_beta // inE /= sMp /=; case/tau2_not_beta: t2Np.
-have [P1maxM | notP1maxM] := boolP (M \in 'M_'P1); last first.
-  have [K hallK] := Hall_exists \kappa(M) (mmax_sol maxM).
-  apply: contraR b'Mp => notFmaxM; have PmaxM: M \in 'M_'P by exact/setDP.
-  by have [_ _ _ _ [|<- //]] := Ptype_structure PmaxM hallK; exact/setDP.
-have [PmaxM skM] := setIdP P1maxM.
-have kMq: q \in \kappa(M).
-  by case/orP: (pnatPpi skM piMq) => //= sMq; case/negP: sM'q.
-have [K hallK sQK] := Hall_superset (mmax_sol maxM) sQM (pi_pnat qQ kMq).
-have EqKQ: Q \in 'E_q^1(K) by exact/pnElemP.  
-have [L _ [uniqL [kLhallKs sMhallKs] _ _ _]] := Ptype_embedding PmaxM hallK.
-set Ks := 'C_(_)(K) in kLhallKs sMhallKs.
-have{uniqL} defL: 'N[x] :^ g = L.
-  have EqNQ: Q \in 'E_q^1('N[x] :^ g) by exact/pnElemP.
-  symmetry; apply: congr_group; apply: set1_inj.
-  rewrite -(uniqL Q) //; last by apply/nElemP; exists q.
-  by have [||<- _] := cent_der_sigma_uniq _ EqNQ; rewrite ?mmaxJ 1?betaJ ?bNq.
-have rpL: 'r_p(L) = 2 by apply/eqP; case/andP: t2Np => _; rewrite -defL p_rankJ.
-suffices piKs_p: p \in \pi(Ks).
-  by rewrite rank_kappa // (pnatPpi (pHall_pgroup kLhallKs)) in rpL.
-have [P sylP] := Sylow_exists p [group of Ks].
-have sylP_L: p.-Sylow(L) P := subHall_Sylow sMhallKs sMp sylP.
-by rewrite -p_rank_gt0 -(rank_Sylow sylP) (rank_Sylow sylP_L) ?rpL.
+have{p pi_p sMp t2Np b'Mp} FmaxM: M \in 'M_'F.
+  have [P1maxM | notP1maxM] := boolP (M \in 'M_'P1); last first.
+    have [K hallK] := Hall_exists \kappa(M) (mmax_sol maxM).
+    apply: contraR b'Mp => notFmaxM; have PmaxM: M \in 'M_'P by exact/setDP.
+    by have [_ _ _ _ [|<- //]] := Ptype_structure PmaxM hallK; exact/setDP.
+  have [PmaxM skM] := setIdP P1maxM.
+  have kMq: q \in \kappa(M).
+    by case/orP: (pnatPpi skM piMq) => //= sMq; case/negP: sM'q.
+  have [K hallK sQK] := Hall_superset (mmax_sol maxM) sQM (pi_pnat qQ kMq).
+  have EqKQ: Q \in 'E_q^1(K) by exact/pnElemP.  
+  have [L _ [uniqL [kLhallKs sMhallKs] _ _ _]] := Ptype_embedding PmaxM hallK.
+  set Ks := 'C_(_)(K) in kLhallKs sMhallKs.
+  have{uniqL} defL: 'N[x] :^ g = L.
+    apply: congr_group; apply: set1_inj; rewrite -uniqNg uniqL //.
+    by apply/nElemP; exists q.
+  have rpL: 'r_p(L) = 2.
+    by apply/eqP; case/andP: t2Np => _; rewrite -defL p_rankJ.
+  suffices piKs_p: p \in \pi(Ks).
+    by rewrite rank_kappa // (pnatPpi (pHall_pgroup kLhallKs)) in rpL.
+  have [P sylP] := Sylow_exists p [group of Ks].
+  have sylP_L: p.-Sylow(L) P := subHall_Sylow sMhallKs sMp sylP.
+  by rewrite -p_rank_gt0 -(rank_Sylow sylP) (rank_Sylow sylP_L) ?rpL.
+split=> //; apply: sub_pgroup (pgroup_pi _) => p piMp; apply/negP=> /= t2Mp.
+have rpN: 'r_p('N[x]) <= 1.
+  have: p \notin \beta('N[x]).
+    rewrite -(predI_sigma_beta maxN) negb_and /= orbC.
+    by have [-> _] := tau2_not_beta maxM t2Mp.
+  apply: contraR; rewrite -ltnNge => rpN; rewrite spM_sbN // inE /= piMp.
+  have: p \in \pi('N[x]) by rewrite -p_rank_gt0 ltnW.
+  rewrite (partition_pi_mmax maxN) orbCA; case/orP=> [t2Np | ].
+    by case/andP: t2Mp; case/negP; exact: st2NsM.
+  by rewrite orbA -!andb_orr eqn_leq leqNgt rpN andbF.
+have [E hallE sQE] := Hall_superset (mmax_sol maxM) sQM (pi_pgroup qQ sM'q).
+have [A Ep2A _] := ex_tau2Elem hallE t2Mp; have [_ abelA dimA] := pnElemP Ep2A.
+pose A0 := [~: A, Q]%G; pose A1 := 'C_A(Q)%G.
+have sCQNg: 'C(Q) \subset 'N[x] :^ g by have [] := mem_uniq_mmax uniqNg.
+have ntA0: A0 :!=: 1.
+  rewrite (sameP eqP commG1P); apply: contraL rpN => cQA.
+  rewrite  -ltnNge -(p_rankJ p _ g); apply/p_rank_geP.
+  by exists A; apply/pnElemP; rewrite (subset_trans cQA).
+have t1Mq: q \in \tau1(M).
+  have [_ nsCEA_E t1Eb] := tau1_cent_tau2Elem_factor maxM hallE t2Mp Ep2A.
+  rewrite (pnatPpi t1Eb) // (piSg (quotientS _ sQE)) // -p_rank_gt0.
+  rewrite -rank_pgroup ?quotient_pgroup // rank_gt0 -subG1.
+  rewrite quotient_sub1 ?(subset_trans _ (normal_norm nsCEA_E)) //.
+  by rewrite subsetI sQE centsC (sameP commG1P eqP).
+have EqEQ: Q \in 'E_q^1(E) by exact/pnElemP.
+have regMsQ: 'C_(M`_\sigma)(Q) = 1.
+  apply: contraTeq FmaxM => nregMsQ; apply/FtypeP=> [[_]]; move/(_ q).
+  by unlock kappa; rewrite 3!inE /= t1Mq; case/exists_inP; exists Q.
+have [[]] := tau1_act_tau2 maxM hallE t2Mp Ep2A t1Mq EqEQ regMsQ ntA0.
+rewrite -/A0 -/A1 => EpA0 cMsA0 _ notA1GA0 [EpA1 _].
+have [sA0A abelA0 oA0] := pnElemPcard EpA0; have [pA0 _] := andP abelA0.
+have [sA1A abelA1 oA1] := pnElemPcard EpA1; have [pA1 _] := andP abelA1.
+have sA0N: A0 \subset 'N[x].
+  rewrite -cMsA0 (subset_trans _ sCxN) //= -cent_cycle (centsS Ms_x) //.
+  exact: subsetIr.
+have [P sylP sA0P] := Sylow_superset sA0N pA0; have [_ pP _] := and3P sylP.
+have cycP: cyclic P.
+  by rewrite (odd_pgroup_rank1_cyclic pP) ?mFT_odd ?(p_rank_Sylow sylP).
+have sA1gN: A1 :^ g^-1 \subset 'N[x] by rewrite sub_conjgV subIset ?sCQNg ?orbT.
+have [|z _ sA1gzP] := Sylow_Jsub sylP sA1gN; first by rewrite pgroupJ.
+case/imsetP: notA1GA0; exists (g^-1 * z); rewrite ?inE // conjsgM.
+by apply/eqP; rewrite (eq_subG_cyclic cycP) // !cardJg oA0 oA1.
 Qed.
 
 End Section14.

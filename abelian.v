@@ -824,6 +824,13 @@ have [x _ ->] := Sylow_trans sylP sylH.
 by rewrite p_rankJ -(p_rank_abelem abelE) (p_rankS _ sEP).
 Qed.
 
+Lemma p_rank_Hall : forall pi p G H,
+  pi.-Hall(G) H -> p \in pi -> 'r_p(H) = 'r_p(G).
+Proof.
+move=> pi p G H hallH pi_p; have [P sylP] := Sylow_exists p H.
+by rewrite -(p_rank_Sylow sylP) (p_rank_Sylow (subHall_Sylow hallH pi_p sylP)).
+Qed.
+
 Lemma p_rank_pmaxElem_exists : forall p r G,
    'r_p(G) >= r -> exists2 E, E \in 'E*_p(G) & 'r_p(E) >= r.
 Proof.
