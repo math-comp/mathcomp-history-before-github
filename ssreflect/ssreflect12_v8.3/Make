@@ -73,6 +73,7 @@ theories/BGsection12.v
 theories/BGsection13.v
 theories/BGsection14.v
 theories/BGsection15.v
+theories/BGsection16.v
 theories/polydiv.v
 theories/alt.v
 theories/burnside_app.v

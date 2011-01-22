@@ -456,7 +456,7 @@ End OneComplement.
 (* This is improper because the distributivity of centralisers over coprime   *)
 (* products only hold under normality conditions that do not hold in this     *)
 (* instance. The correct argument, which involves using the prime action      *)
-(* assumption asecon time, only relies on the fact that E1 and E3 are Hall    *)
+(* assumption a second time, only relies on the fact that E1 and E3 are Hall  *)
 (* subgroups of the group E1 * E3. The fact that E3 <| E (Lemma 12.1(a)),     *)
 (* implicitly needed to justify that E1 * E3 is a group, can also be used to  *)
 (* simplify the argument, and we do so.                                       *)
