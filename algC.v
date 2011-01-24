@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Require Import ssreflect ssrbool ssrfun ssrnat eqtype seq bigop div ssralg.
-Require Import prime fingroup pgroup mxrepresentation.
+Require Import ssreflect ssrbool ssrfun ssrnat eqtype seq bigop div fintype.
+Require Import prime fingroup ssralg pgroup mxrepresentation.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -19,11 +19,11 @@ Local Open Scope ring_scope.
 (*    x < y : (y - x) is a real positive real                             *)
 (*   sqrC x : square root such that sqrt x^2 = x for 0 <= x               *)
 (*  normC x : norm of x i.e. sqrC(x * x^* )                               *)
-(*  isRatC  : test for rationality                                        *) 
+(*  isRatC  : test for rationality                                        *)
 (*  getRatC : the rational components,                                    *)
 (*            if isRatC x and (n,d) = getRatC x then                      *)
 (*               x = (-1)^b * n%:R * (d.+1)%:R^-1                         *)
-(*  isNatC  : test for naturality                                         *) 
+(*  isNatC  : test for naturality                                         *)
 (*  getNatC : the natural component                                       *)
 (*            if isNatC x and x = getNatC x)%:R                           *)
 (**************************************************************************)
@@ -34,6 +34,7 @@ Axiom Cchar : [char C] =i pred0.
 Parameter conjC : {rmorphism C -> C}.
 Notation "x ^* " := (conjC x) (at level 2, format "x ^*") : C_scope.
 Open Scope C_scope.
+Delimit Scope C_scope with C.
 
 Axiom conjCK : involutive conjC.
 
@@ -87,9 +88,12 @@ Definition leC x y := repC (y - x).
 
 Notation "x <= y" := (leC x y) : C_scope.
 
-Definition ltC x y := ((x != y) && (x <= y)).
+Definition ltC x y := ((y != x) && (x <= y)).
 
 Notation " x < y " := (ltC x y) : C_scope.
+
+Lemma ltCE : forall x y, (x < y) = ((y != x) && (x <= y)).
+Proof. by []. Qed.
 
 Lemma posC_pconj : forall x, 0 <= x * x ^*.
 Proof. by move=> x; rewrite /leC subr0 repC_pconj. Qed.
@@ -139,7 +143,7 @@ Lemma posC_mul : forall x y : C, 0 <= x -> 0 <= y -> 0 <= x * y.
 Proof.
 move=> x y Hx Hy.
 case: (boolP (x == 0)); first by move/eqP->; rewrite mul0r leC_refl.
-by move=> Hdx; rewrite posC_mulr //; apply/andP; rewrite eq_sym.
+by move=> Hdx; rewrite posC_mulr //; apply/andP.
 Qed.
 
 Lemma leC_anti : forall x y, x <= y -> y <= x -> x = y.
@@ -189,8 +193,50 @@ by move=> a; apply/idP/idP; move/negP=> HH; apply/negP=> HH1; case: HH;
    move: HH1; rewrite (eqN_eqC _ 0).
 Qed.
 
+Lemma ltC_add2l :  forall p m n, (p + m < p + n) = (m < n).
+Proof.
+move=> p m n; rewrite ltCE leC_add2l; congr (_ && _).
+apply/negP/negP=> HH HH1; case: HH; first by rewrite (eqP HH1).
+by apply/eqP; apply: (addrI (eqP HH1)).
+Qed.
+
+Lemma ltC_add2r :  forall p m n, (m + p < n + p) = (m < n).
+Proof.
+by move=> p m n; rewrite ![_ + p]addrC ltC_add2l.
+Qed.
+
+Lemma leC_ltC_trans : forall n m p, m <= n -> n < p -> m < p.
+Proof.
+move=> n m p Hm; rewrite !ltCE; case/andP=> H1m H2m.
+rewrite (leC_trans Hm) // andbT.
+apply/eqP=> HH; case/eqP: H1m; apply: leC_anti=> //.
+by rewrite HH.
+Qed.
+
+Lemma ltC_leC_trans : forall n m p, m < n -> n <= p -> m < p.
+Proof.
+move=> n m p; rewrite !ltCE; case/andP=> H1m H2m Hn.
+rewrite (leC_trans H2m) // andbT.
+apply/eqP=> HH; case/eqP: H1m; apply: leC_anti=> //.
+by rewrite -HH.
+Qed.
+
+Lemma ltC_trans : forall n m p, m < n -> n < p -> m < p.
+Proof.
+move=> n m p; rewrite !ltCE; case/andP=> H1m H2m Hp.
+by apply: leC_ltC_trans Hp.
+Qed.
+
 Lemma leC_sub : forall x y, (0 <= y - x) = (x <= y).
 Proof. by move=> x y; rewrite /leC subr0. Qed.
+
+Lemma ltC_sub : forall x y, (x < y) = (0 < y - x).
+Proof. by move=> x y; rewrite -(ltC_add2r (-x)) subrr. Qed.
+
+Lemma ltn_ltC: forall m n, (m < n)%N = (m%:R < n%:R).
+Proof.
+by move=> m n; rewrite !ltCE -leq_leC -eqN_eqC ltn_neqAle eq_sym.
+Qed.
 
 Lemma posC_unit_exp : forall x n, 0 <= x ->  (x ^+ n.+1 == 1) = (x == 1).
 Proof. by move=> x n Hx; apply: repC_unit_exp; rewrite -[x]subr0. Qed.
@@ -203,6 +249,13 @@ Proof. by rewrite /leC subr0 repC1. Qed.
 
 Lemma posC_inv : forall x, (0 <= x^-1) = (0 <= x).
 Proof. move=> x; rewrite /leC !subr0; exact: repC_inv. Qed.
+
+Lemma sposC_inv: forall x : C, (0 < x^-1) = (0 < x).
+Proof.
+move=> x; rewrite !ltCE posC_inv; congr (_&&_).
+apply/idP/idP=>[HH|]; last by exact: invr_neq0.
+by apply/eqP=> HH1;case/eqP: HH; rewrite HH1 invr0.
+Qed.
 
 Lemma posC_conj : forall x, (0 <= x ^*) = (0 <= x).
 Proof. move=> x; rewrite /leC !subr0; exact: repC_conj. Qed.
@@ -249,6 +302,44 @@ case/andP; move/eqP=> HH1; move/eqP=> HH2.
 move=> i; rewrite in_cons; case/andP; case/orP; first by move/eqP->.
 move=> H1i H2i; apply: Hrec=> //; last by rewrite H1i.
 by move=> j; case/andP=> H1j H2j; apply: HN; rewrite in_cons H1j orbT.
+Qed.
+
+
+Lemma sposC_addl : forall m n, 0 <= m -> 0 < n -> 0 < m + n.
+Proof.
+move=> m n Hm Hn; apply: (leC_ltC_trans Hm).
+by rewrite -{1}[m]addr0 ltC_add2l.
+Qed.
+
+Lemma sposC_addr : forall m n, 0 < m -> 0 <= n -> 0 < m + n.
+Proof.
+by move=> m n Hm Hn; rewrite addrC; apply: sposC_addl.
+Qed.
+
+Lemma sposC_mul : forall m n, 0 < m -> 0 < n -> 0 < m * n.
+Proof.
+move=> m n; case/andP=> H1m H2m; case/andP=> H1n H2n; apply/andP; split.
+  by rewrite mulf_eq0 (negPf H1m).
+by apply: posC_mul.
+Qed.
+
+Definition leCif m n c := ((m <= n) * ((m == n) = c))%type.
+
+Notation "m <= n ?= 'iff' c" := (leCif m n c)
+    (at level 70, n at next level,
+  format "m '[hv'  <=  n '/'  ?=  'iff'  c ']'") : C_scope.
+
+Coercion leC_of_leqif m n c (H : m <= n ?= iff c) := H.1 : m <= n.
+
+Lemma leCifP : forall m n c,
+   reflect (m <= n ?= iff c) (if c then m == n else m < n).
+Proof.
+move=> m n c; apply: (iffP idP); last first.
+  case: c=> [] [H1 H2]; last by rewrite ltCE eq_sym H2.
+  by apply/eqP; apply: leC_anti=> //; rewrite (eqP H2) leC_refl.
+case c; [move/eqP-> |]; split; rewrite ?eqxx //; first exact: leC_refl.
+  by apply: ltCW.
+by move: H; rewrite ltCE eq_sym; case: eqP.
 Qed.
 
 Variable sqrC : C -> C.
@@ -700,6 +791,9 @@ Section Group.
 Variable (gT : finGroupType).
 
 Axiom groupC : group_closure_field C gT.
+
+Lemma neq0GC : forall  (G : {group gT}), (#|G|)%:R != 0 :> C.
+Proof. by move=> G; rewrite -neq0N_neqC (cardD1 1%g) group1. Qed.
 
 Implicit Type G : {group gT}.
 Import GroupScope GRing.Theory.
