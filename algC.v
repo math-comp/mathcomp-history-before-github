@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun ssrnat eqtype seq bigop div fintype.
-Require Import prime finset fingroup ssralg pgroup mxrepresentation.
+Require Import prime ssralg.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -785,22 +785,3 @@ Proof.
 move=> c;apply/idP/eqP=>[|->]; last by apply: isNatC_nat.
 by rewrite /isNatC /getNatC; case: getRatC=> [[b n]] d; move/eqP.
 Qed.
-
-Section Group.
-
-Variable (gT : finGroupType).
-
-Axiom groupC : group_closure_field C gT.
-
-Lemma neq0GC : forall  (G : {group gT}), (#|G|)%:R != 0 :> C.
-Proof. by move=> G; rewrite -neq0N_neqC (cardD1 1%g) group1. Qed.
-
-Implicit Type G : {group gT}.
-Import GroupScope GRing.Theory.
-
-Lemma pGroupG : forall G, [char C]^'.-group G.
-Proof.
-by move=> G; apply: sub_pgroup (pgroup_pi G)=> i _; rewrite inE /= Cchar.
-Qed.
-
-End Group.

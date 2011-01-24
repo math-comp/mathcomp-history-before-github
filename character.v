@@ -247,6 +247,25 @@ move/forallP; move/(_ (g ^: G)); move/implyP; move/(_ (mem_classes InG)).
 by case: #|_| (F1 _ InG)=> // [] [].
 Qed.
 
+Section AlgC.
+
+Variable (gT : finGroupType).
+
+Axiom groupC : group_closure_field C gT.
+
+Lemma neq0GC : forall  (G : {group gT}), (#|G|)%:R != 0 :> C.
+Proof. by move=> G; rewrite -neq0N_neqC (cardD1 1%g) group1. Qed.
+
+Implicit Type G : {group gT}.
+Import GroupScope GRing.Theory.
+
+Lemma pGroupG : forall G, [char C]^'.-group G.
+Proof.
+by move=> G; apply: sub_pgroup (pgroup_pi G)=> i _; rewrite inE /= Cchar.
+Qed.
+
+End AlgC.
+
 (****************************************************************************)
 (*  trying to do something about characters                                 *)
 (****************************************************************************)
@@ -1235,7 +1254,7 @@ Section MoreIsChar.
 
 Local Notation "'{ f | G }" := (crestrict G f).
 
-Lemma is_char_subset : forall (gT : finGroupType) f (G H : {group gT}), 
+Lemma is_char_restrict : forall (gT : finGroupType) f (G H : {group gT}), 
   H \subset G -> is_char G f -> is_char H '{f|H}.
 Proof.
 move=> gT f G H Hsub; case/is_charRP=> n [rG <-].
@@ -1620,6 +1639,21 @@ Qed.
 
 End Character.
 
+Section MoreCharacter.
+
+Variable (gT : finGroupType) (G H : {group gT}) (f: character G) 
+         (HsG : H \subset G).
+
+Definition character_rest :=
+  Character (is_char_restrict HsG (is_char_character f)).
+
+Local Notation "'{ f | G }" := (crestrict G f).
+
+Lemma character_restE : character_rest = '{f | H} :> cfun_type _ _.
+Proof. by []. Qed.
+  
+End MoreCharacter.
+
 Section OrthogonalRelations.
 
 Variable (gT : finGroupType) (G : {group gT}).
@@ -1883,6 +1917,16 @@ Qed.
 Lemma irr_orthonormal : forall (i j: irr_class G), '[i,j] = (i == j)%:R.
 Proof.
 by move=> i j; rewrite -irr_first_orthogonal_relation; congr (_ * _).
+Qed.
+
+Lemma ncoord_inner_prod : forall (f : cfun_type _ _) (i : irr_class G),
+   f \in 'CL[C](G) -> ncoord i f = '[f,i].
+Proof.
+move=> f i FiC.
+rewrite {2}(ncoord_sum FiC) -inner_prodbE linear_sum.
+by rewrite (bigD1 i) // big1=> [|j Hj]; 
+   rewrite /= ?addr0 linearZ /= inner_prodbE irr_orthonormal;
+    [rewrite eqxx /GRing.scale /= mulr1|rewrite (negPf Hj) scaler0].
 Qed.
 
 Lemma inner_prod_char : forall (ch1 ch2 : character G), 
@@ -2611,7 +2655,7 @@ move=> f Hf; pose G' := [group of ccenter f].
 have F1 : f 1%g != 0 by rewrite -character0_eq0.
 case: (ccenter_restrict f)=> l H1l H2l.
 have F2: cker G f = cker G' '{f|ccenter f} .
-   rewrite /cker (is_char_subset (ccenter_sub _)) is_char_character //.
+   rewrite /cker (is_char_restrict (ccenter_sub _)) is_char_character //.
    apply/setP=> g; rewrite !inE.
    rewrite /G' /= /ccenter is_char_character !cfunE !inE.
    rewrite group1 /=; case E1: (g \in G)=> //=.
@@ -2620,7 +2664,7 @@ have F2: cker G f = cker G' '{f|ccenter f} .
    case: (_ =P _)=> // HH HH1; case: HH1; rewrite HH.
    by rewrite normC_pos ?(posC_isNatC,isNatC_character1).
 have F3 : cker G' '{f|ccenter f} = cker G' l.
-   rewrite /cker !(is_char_character, (is_char_subset (ccenter_sub _))) //.
+   rewrite /cker !(is_char_character, (is_char_restrict (ccenter_sub _))) //.
    apply/setP=> g; rewrite !inE H2l !cfunE.
    by congr (_ && _); apply/eqP/eqP=>[|-> //]; move/(mulfI F1).
 rewrite F2 F3; pose m (u : coset_of (cker G' l)) := l (repr u).
@@ -2991,5 +3035,18 @@ apply: eq_big=> [g|g]; rewrite negbK.
   by case E1: (g \in H); rewrite ?andbF // (subsetP HsG _ (idP E1)).
 by case/andP=> _ GiH; rewrite crestrictE.
 Qed.
+
+Lemma is_char_induced : forall (f : character H),
+   H \subset G -> is_char G ('{f^[]}).
+Proof.
+move=> f HsG; have IiC := induced_in_cfun HsG (character_in_cfun f).
+apply/andP; split=> //; apply/allP=> i _.
+rewrite ncoord_inner_prod // -freciprocity ?(character_in_cfun,irr_in_cfun) //.
+rewrite (inner_prod_char f (character_rest (character_of_irr i) HsG)).
+by apply: isNatC_sum => j _; rewrite isNatC_mul // char_isNatC_ncoord.
+Qed.
+
+Definition character_induced (f : character H) (HsG : H \subset G) :=
+  Character (is_char_induced f HsG).
 
 End Induced.
