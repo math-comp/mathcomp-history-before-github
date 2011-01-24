@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun ssrnat eqtype seq bigop div fintype.
-Require Import prime fingroup ssralg pgroup mxrepresentation.
+Require Import prime finset fingroup ssralg pgroup mxrepresentation.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
