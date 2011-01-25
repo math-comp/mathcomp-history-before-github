@@ -3459,15 +3459,14 @@ let unify_HO gl t1 t2 =
   let sigma, _ = unif_end env orig_sigma sigma t2 (fun _ -> true) in
   re_sig si sigma
 
-(* TASSI: given (c : ty), generates (c ??? : ty[???/...]) with n evars *)
+(* TASSI: given (c : ty), generates (c ??? : ty[???/...]) with m evars *)
 exception NotEnoughProducts
-let saturate ?(beta=false) gl c ?(ty=pf_type_of gl c) m =
-  let env, sigma, si = pf_env gl, project gl, sig_it gl in
+let saturate ?(beta=false) env sigma c ?(ty=Typing.type_of env sigma c) m =
   let rec loop ty args sigma n = 
   if n = 0 then 
     let args = List.rev args in
      (if beta then Reductionops.whd_beta sigma else fun x -> x)
-      (mkApp (c, Array.of_list (List.map snd args))), ty, args, re_sig si sigma 
+      (mkApp (c, Array.of_list (List.map snd args))), ty, args, sigma 
   else match kind_of_type ty with
   | ProdType (_, src, tgt) ->
       let sigma, x = Evarutil.new_evar (create_evar_defs sigma) env src in
@@ -3482,6 +3481,11 @@ let saturate ?(beta=false) gl c ?(ty=pf_type_of gl c) m =
       | _ -> assert false
   in
    loop ty [] sigma m
+
+let pf_saturate ?beta gl c ?ty m = 
+  let env, sigma, si = pf_env gl, project gl, sig_it gl in
+  let t, ty, args, sigma = saturate ?beta env sigma c ?ty m in
+  t, ty, args, re_sig si sigma 
 
 (* TASSI: given the type of an elimination principle, it finds the higher order
  * argument (index), it computes it's arity and the arity of the eliminator and
@@ -3543,7 +3547,7 @@ let dependent_apply_error =
 let applyn ~with_evars n t gl =
   if with_evars then
     let t, sigma = if n = 0 then t, project gl else
-      let t, _, _, gl = saturate gl t n in (* saturate with evars *)
+      let t, _, _, gl = pf_saturate gl t n in (* saturate with evars *)
       t, project gl in
     pp(lazy(str"Refine.refine " ++ pr_constr t));
     Refine.refine (sigma, t) gl
@@ -3606,7 +3610,7 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
     let env, sigma, si = pf_env gl, project gl, sig_it gl in
     let t, orig_t = fire_subst gl t, t in
     let n, t = pf_abs_evars orig_gl (sigma, t) in  
-    let t, _, _, newgl = saturate gl t n in
+    let t, _, _, newgl = pf_saturate gl t n in (* FIXME new saturate *)
     let sigma = project newgl in
     let sigma, t, cl, _ = pf_fill_occ gl cl occ t sigma t all_ok h in
     cl, unify_HO (re_sig si sigma) orig_t t in
@@ -3619,12 +3623,12 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
       let pred_id, n_elim_args, is_rec, elim_is_dep, n_pred_args =
         analyze_eliminator elimty in
       let elim, elimty, elim_args, gl =
-        saturate ~beta:is_case gl elim ~ty:elimty n_elim_args in
+        pf_saturate ~beta:is_case gl elim ~ty:elimty n_elim_args in
       let pred = List.assoc pred_id elim_args in
       let arg = List.assoc (n_elim_args - 1) elim_args in
       let c, c_ty, gl = let rec loop n =
         try
-          let c, c_ty, _, gl = saturate gl c ~ty:c_ty n in
+          let c, c_ty, _, gl = pf_saturate gl c ~ty:c_ty n in
           let gl = unify_HO gl arg c in
           c, c_ty, gl
         with
@@ -3645,9 +3649,9 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
         analyze_eliminator elimty in
       let rctx = fst (decompose_prod_assum unfolded_c_ty) in
       let n_c_args = rel_context_length rctx in
-      let c, c_ty, t_args, gl = saturate gl c ~ty:c_ty n_c_args in
+      let c, c_ty, t_args, gl = pf_saturate gl c ~ty:c_ty n_c_args in
       let elim, elimty, elim_args, gl =
-        saturate ~beta:is_case gl elim ~ty:elimty n_elim_args in
+        pf_saturate ~beta:is_case gl elim ~ty:elimty n_elim_args in
       let pred = List.assoc pred_id elim_args in
       let arg = List.assoc (n_elim_args - 1) elim_args in
       let gl = unify_HO gl arg c in
@@ -4079,7 +4083,7 @@ let newssrcongrtac arg ist gl =
     x, re_sig si sigma in
   let ssr_congr lr = mkApp (mkSsrConst "ssr_congr_arrow",lr) in
   (* here thw two cases: simple equality or arrow *)
-  let equality, _, eq_args, gl' = saturate gl (build_coq_eq ()) 3 in
+  let equality, _, eq_args, gl' = pf_saturate gl (build_coq_eq ()) 3 in
   tclMATCH_GOAL (equality, gl') (fun gl' -> fs gl' (List.assoc 0 eq_args))
   (fun ty -> congrtac (arg, Detyping.detype false [] [] ty) ist)
   (fun () ->
