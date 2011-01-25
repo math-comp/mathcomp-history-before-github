@@ -2699,9 +2699,10 @@ let isRigid c = match kind_of_term c with
 exception UndefPat
 
 (* Compile a match pattern from a term; t is the term to fill. *)
-let mk_upat env sigma0 ise t ok p =
+(* p_origin can be passed to obtain a better error message     *)
+let mk_upat ?(hack=false) env sigma0 ise t ok ?p_origin p =
   let k, f, a =
-    let f, a = Reductionops.whd_betaiota_stack !ise p in
+    let f, a = Reductionops.whd_betaiota_stack ise p in
     match kind_of_term f with
     | Const p ->
       let np = proj_nparams p in
@@ -2710,14 +2711,16 @@ let mk_upat env sigma0 ise t ok p =
     | Var _ | Ind _ | Construct _ -> KpatFixed, f, a
     | Evar (k, _) ->
       if Evd.mem sigma0 k then KpatEvar k, f, a else
-      if a = [] then raise UndefPat else KpatFlex, f, a
+      if a <> [] then KpatFlex, f, a else 
+      (match p_origin with None -> error "indeterminate pattern"
+      | Some (dir, rule) -> errorstrm (str "indeterminate " ++ pr_dir_side dir
+          ++ str " in " ++ pr_constr_pat rule))
     | LetIn (_, v, _, b) ->
       if b <> mkRel 1 then KpatLet, f, a else KpatFlex, v, a
     | _ -> KpatRigid, f, a in
   let aa = Array.of_list a in
-  let ise', p' = evars_for_FO env sigma0 !ise (mkApp (f, aa)) in
-  ise := ise';
-  {up_k = k; up_FO = p'; up_f = f; up_a = aa; up_ok = ok; up_t = t}
+  let ise', p' = evars_for_FO ~hack env sigma0 ise (mkApp (f, aa)) in
+  {up_k = k; up_FO = p'; up_f = f; up_a = aa; up_ok = ok; up_t = t}, ise'
 
 (* Specialize a pattern after a successful match: assign a precise head *)
 (* kind and arity for Proj and Flex patterns.                           *)
@@ -2854,36 +2857,23 @@ let rec match_upats_HO upats env sigma0 ise c =
   iter_constr_LR (match_upats_HO upats env sigma0 ise) f;
   Array.iter (match_upats_HO upats env sigma0 ise) a
 
-exception MissingOccs of int * int * constr
 
 let fixed_upats = function
 | [{up_k = KpatFlex | KpatEvar _ | KpatProj _}] -> false 
 | [{up_t = t}] -> not (occur_existential t)
 | _ -> false
 
-let fill_and_select_upat gl env sigma0 occ upats c ise h =
-  let sigma, ({up_f = pf; up_a = pa} as u) =
-    if fixed_upats upats then sigma0, List.hd upats else try
-      match_upats_FO upats env sigma0 ise c;
-      match_upats_HO upats env sigma0 ise c;
-      raise NoMatch
-    with FoundUnif sigma_u -> sigma_u in
-  let match_EQ = 
-    match u.up_k with
-    | KpatLet ->
-      let x, pv, t, pb = destLetIn u.up_f in
-      let env' = Environ.push_rel (x, None, t) env in
-      let match_let f = match kind_of_term f with
-      | LetIn (_, v, _, b) -> unif_EQ env sigma pv v && unif_EQ env' sigma pb b
-      | _ -> false in match_let
-    | KpatFixed -> (=) pf
-    | KpatConst -> eq_constr pf
-    | _ -> unif_EQ env sigma pf in
-  let pn = Array.length pa in
+let do_once r f = match !r with Some _ -> () | None -> r := Some (f ())
+
+let assert_done r = 
+  match !r with Some x -> x | None -> anomaly "do_once never called"
+
+(* upats_origin makes a better error message only            *)
+let mk_pmatcher ?(raise_NoMatch=false) sigma0 occ ?upats_origin (upats, ise) =
   let nocc = ref 0 and skip_occ = ref false in
   let use_occ, occ_list = match List.map get_index occ with
   | -1 :: ol -> ol = [], ol
-  | 0 :: ol | ol -> ol != [], ol in
+  | 0 :: ol | ol -> ol <> [], ol in
   let max_occ = List.fold_right max occ_list 0 in
   let subst_occ =
     let occ_set = Array.make max_occ (not use_occ) in
@@ -2892,46 +2882,94 @@ let fill_and_select_upat gl env sigma0 occ upats c ise h =
     fun () -> incr nocc;
     if !nocc = max_occ then skip_occ := use_occ;
     if !nocc <= max_occ then occ_set.(!nocc - 1) else not use_occ in
-  let rec subst_loop h c' =
+  let upat_that_matched = ref None in
+  let match_EQ env sigma u = 
+    match u.up_k with
+    | KpatLet ->
+      let x, pv, t, pb = destLetIn u.up_f in
+      let env' = Environ.push_rel (x, None, t) env in
+      let match_let f = match kind_of_term f with
+      | LetIn (_, v, _, b) -> unif_EQ env sigma pv v && unif_EQ env' sigma pb b
+      | _ -> false in match_let
+    | KpatFixed -> (=) u.up_f
+    | KpatConst -> eq_constr u.up_f
+    | _ -> unif_EQ env sigma u.up_f in
+  let get_direction r =
+    match kind_of_term r with
+    | Lambda (Anonymous, ty, r') when eq_constr mkProp ty -> R2L, r'
+    | _ -> L2R, r in
+(fun env c h ~k -> 
+  do_once upat_that_matched (fun () -> 
+    (* XXX Ask Georges: Why sigma0 and not ise! seems just a way to tell
+     * that this path was taken...  *)
+    if fixed_upats upats then sigma0, List.hd upats else try
+      match_upats_FO upats env sigma0 ise c;
+      match_upats_HO upats env sigma0 ise c;
+      raise NoMatch
+    with FoundUnif sigma_u -> sigma_u | NoMatch when (not raise_NoMatch) ->
+      let p2t p = mkApp(p.up_f,p.up_a) in 
+      errorstrm ((match upats_origin, upats with
+      | None, [p] -> str"partial term " ++ pr_constr_pat (p2t p) ++ spc()
+      | Some (dir,rule), [p] -> str"The " ++ pr_dir_side dir ++ str" of " ++ 
+          pr_constr_pat rule ++ fnl() ++ ws 4 ++ pr_constr_pat (p2t p) ++ fnl()
+      | Some (dir,rule), _ -> str"The " ++ pr_dir_side dir ++ str" of " ++ 
+          pr_constr_pat rule ++ spc()
+      | _, [] | None, _::_::_ -> anomaly "mk_pmatcher with no upats_origin")
+      ++ str "does not match any subterm of the goal"));
+  let sigma, ({up_f = pf; up_a = pa} as u) = assert_done upat_that_matched in
+  let match_EQ = match_EQ env sigma u in
+  let pn = Array.length pa in
+  let rec subst_loop (env,h as acc) c' = 
     if !skip_occ then c' else
-    let f, a = splay_app ise c' in
+    let f, a = splay_app sigma c' in
     if Array.length a >= pn && match_EQ f && unif_EQ_args env sigma pa a then
       let a1, a2 = array_chop (Array.length pa) a in
-      let f' = if subst_occ () then mkRel h else mkApp (f, a1) in
-      mkApp (f', array_map_left (subst_loop h) a2)
+      let fa1 = mkApp (f, a1) in
+      let f' = if subst_occ () then k env fa1 sigma h else fa1 in
+      mkApp (f', array_map_left (subst_loop acc) a2)
     else
-      let inc_h _ h' = h' + 1 in
-      let f' = map_constr_with_binders_left_to_right inc_h subst_loop h f in
-      mkApp (f', array_map_left (subst_loop h) a) in
-  let cl' = subst_loop h c in let p' = mkApp (pf, pa) in
-  if max_occ <= !nocc then sigma, u.up_t, cl', p' else
-  raise (MissingOccs (!nocc, max_occ, p'))
+      (* TASSI: clear letin values to avoid unfolding *)
+      let inc_h (n,_,ty) (env,h') = Environ.push_rel (n,None,ty) env, h' + 1 in
+      let f' = map_constr_with_binders_left_to_right inc_h subst_loop acc f in
+      mkApp (f', array_map_left (subst_loop acc) a) in
+  subst_loop (env,h) c),
+(fun () ->
+  let sigma, ({up_f = pf; up_a = pa} as u) =
+    match !upat_that_matched with
+    | Some x -> x | None -> anomaly "companion function never called" in
+  let p' = mkApp (pf, pa) in
+  if max_occ <= !nocc then let d, r = get_direction u.up_t in p', d, (sigma, r)
+  else errorstrm (str"Only " ++ int !nocc ++ str" < " ++ int max_occ ++
+        str(plural !nocc " occurence") ++ match upats_origin with
+        | None -> str" of" ++ spc() ++ pr_constr_pat p'
+        | Some (dir,rule) -> str" of the " ++ pr_dir_side dir ++ fnl() ++
+            ws 4 ++ pr_constr_pat p' ++ fnl () ++ 
+            str"of " ++ pr_constr_pat rule))
 
-let pf_fill_occ gl concl occ p sigma t ok h =
-  try
-    let sigma0 = project gl in let env = pf_env gl in
-    let ise = ref (create_evar_defs sigma) in
-    let u = [mk_upat env sigma0 ise t ok p] in
-    fill_and_select_upat gl env sigma0 occ u concl !ise h
-  with
-  | UndefPat -> error "indeterminate pattern"
-  | MissingOccs (n, m, p') ->
-    errorstrm (str "only " ++ int n ++ str " < " ++ int m
-            ++ str (plural n " occurence")
-            ++ str " of" ++ spc () ++ pr_constr_pat p')
+let pf_fill_occ env concl occ sigma0 p (sigma, t) ok h =
+ let ise = create_evar_defs sigma in
+ let u, ise = mk_upat env sigma0 ise t ok p in
+ let find_U, end_U = mk_pmatcher ~raise_NoMatch:true sigma0 occ ([u], ise) in
+ let concl = find_U env concl h (fun _ _ _ -> mkRel) in
+ let rdx, _, (sigma, p) = end_U () in
+ sigma, p, concl, rdx
 
-let pf_fill_occ_term gl occ (sigma, t) =
-  let sigma0 = project gl in
+let fill_occ_term env cl occ sigma0 (sigma, t) =
   try
-    let sigma',t',cl,_ = pf_fill_occ gl (pf_concl gl) occ t sigma t all_ok 1 in
-    if sigma' != sigma0 then error "matching impacts evars" else cl, t'
+    let sigma',t',cl,_ = pf_fill_occ env cl occ sigma0 t (sigma, t) all_ok 1 in
+    if sigma' != sigma0 then error "matching impacts evars" else cl, (sigma',t')
   with NoMatch -> try
     let sigma', t' =
-      unif_end (pf_env gl) sigma0 (create_evar_defs sigma) t (fun _ -> true) in
-    if sigma' != sigma0 then raise NoMatch else pf_concl gl, t'
+      unif_end env sigma0 (create_evar_defs sigma) t (fun _ -> true) in
+    if sigma' != sigma0 then raise NoMatch else cl, (sigma', t')
   with _ ->
     errorstrm (str "partial term " ++ pr_constr_pat t
             ++ str " does not match any subterm of the goal")
+
+let pf_fill_occ_term gl occ t =
+  let sigma0 = project gl and env = pf_env gl and concl = pf_concl gl in
+  let cl,(_,t) = fill_occ_term env concl occ sigma0 t in
+  cl, t
 
 (** Occurrence switch *)
 
@@ -3576,7 +3614,6 @@ let refine_with ?(with_evars=true) oc gl =
 
 (** The "case" and "elim" tactic *)
 
-(* TODO: check what follows is true *) 
 (* A case without explicit dependent terms but with both a view and an    *)
 (* occurrence switch and/or an equation is treated as dependent, with the *)
 (* viewed term as the dependent term (the occurrence switch would be      *)
@@ -3584,7 +3621,6 @@ let refine_with ?(with_evars=true) oc gl =
 (* present, it is forbidden to put a (meaningless) occurrence switch on   *)
 (* the viewed term.                                                       *)
 
-(* TODO: avoid protect analyzing the predicate and handling // *)
 (* This is both elim and case (defaulting to the former). If ~elim is omitted
  * the standard eliminator is chosen. The code is made of 4 parts:
  * 1. find the eliminator if not given as ~elim and analyze it
@@ -3614,7 +3650,7 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
     let env, sigma, si = pf_env gl, project gl, sig_it gl in
     let t, orig_t = fire_subst gl t, t in
     let n, t = pf_abs_evars orig_gl (sigma, t) in  
-    let t, _, _, sigma' = saturate env sigma t n in (* FIXME new saturate *)
+    let t, _, _, sigma' = saturate env sigma t n in
     let sigma, t, cl, _ = pf_fill_occ env cl occ sigma t (sigma', t) all_ok h in
     cl, pf_unify_HO (re_sig si sigma) orig_t t in
   (* finds the eliminator applies it to evars and c saturated as needed  *)
@@ -3717,9 +3753,6 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
       | NoMatch when not must -> cl, gl, post 
       | NoMatch -> 
           errorstrm (str "pattern "++pr_constr_pat t++spc()++str"didn't match")
-      | MissingOccs (n, m, p') ->
-          errorstrm (str "only " ++ int n ++ str " < " ++ int m ++
-            str (plural n " occurence")++spc()++str"of "++ pr_constr_pat t)
     in        
     let rec match_all concl gl patterns =
       let concl, gl, postponed = 
@@ -3842,7 +3875,7 @@ let ssrcasetac (view, (eqid, (dgens, (ipats, ctx)))) =
   let ist = get_ltacctx ctx in
   let ndefectcasetac view eqid ipats deps ((_, occ), _ as gen) ist gl =
     let simple = (eqid = None && deps = [] && occ = []) in
-    let cl, c, clr = pf_interp_gen ist gl true gen in (* XXX understand true *)
+    let cl, c, clr = pf_interp_gen ist gl true gen in
     let _, vc = pf_with_view ist gl view cl c in
     if simple && is_injection_case vc gl then 
       tclTHENLIST [perform_injection vc; cleartac clr; ipatstac ipats] gl
@@ -4147,14 +4180,51 @@ END
 
 (* type ssrredex = ssrterm option *)
 
+type ('identifier, 'ssrtermrep) a_ssrredexmod = 
+  | T of 'ssrtermrep
+  | In_T of 'ssrtermrep
+  | X_In_T of 'identifier * 'ssrtermrep     
+  | In_X_In_T of 'identifier * 'ssrtermrep     
+  | E_In_X_In_T of 'ssrtermrep * 'identifier * 'ssrtermrep     
+  | E_As_X_In_T of 'ssrtermrep * 'identifier * 'ssrtermrep     
+        
 let pr_redex = function
   | None -> mt ()
-  | Some t -> str "[" ++ prl_term t ++ str "]"
+  | Some (T t) -> str "[" ++ prl_term t ++ str "]"
+  | Some (In_T t) -> str "[ in " ++ prl_term t ++ str "]"
+  | Some (X_In_T (x,t)) -> 
+      str "[" ++ pr_id x ++ str " in " ++ prl_term t ++ str "]"
+  | Some (In_X_In_T (x,t)) -> 
+      str "[ in " ++ pr_id x ++ str " in " ++ prl_term t ++ str "]"
+  | Some (E_In_X_In_T (e,x,t)) -> 
+      str "[" ++ prl_term e ++ str " in " ++ 
+        pr_id x ++ str " in " ++ prl_term t ++ str "]"
+  | Some (E_As_X_In_T (e,x,t)) -> 
+      str "[" ++ prl_term e ++ str " as " ++ 
+        pr_id x ++ str " in " ++ prl_term t ++ str "]"
 
 let pr_ssrredex _ _ _ = pr_redex
 
-ARGUMENT EXTEND ssrredex_ne TYPED AS ssrterm option PRINTED BY pr_ssrredex
-  | [ "[" lconstr(c) "]" ] -> [ Some (mk_lterm c) ]
+type ssrredexmod = (identifier, ssrtermrep) a_ssrredexmod
+
+let wit_ssrredexmod, globwit_ssrredexmod, rawwit_ssrredexmod =
+  add_genarg "ssrredexmod" (fun x -> pr_redex (Some x))
+
+let id_of_ref = function 
+  | CRef (Ident (_,x)) -> x 
+  | x -> loc_error (constr_loc x) "Only identifiers are allowed here"
+
+ARGUMENT EXTEND ssrredex_ne TYPED AS ssrredexmod option PRINTED BY pr_ssrredex
+  | [ "[" lconstr(c) "]" ] -> [ Some (T (mk_lterm c)) ]
+  | [ "[" "in" lconstr(c) "]" ] -> [ Some (In_T (mk_lterm c)) ]
+  | [ "[" lconstr(x) "in" lconstr(c) "]" ] -> 
+    [ Some (X_In_T (id_of_ref x,mk_lterm c)) ]
+  | [ "[" "in" lconstr(x) "in" lconstr(c) "]" ] -> 
+    [ Some (In_X_In_T (id_of_ref x,mk_lterm c)) ]
+  | [ "[" lconstr(e) "in" lconstr(x) "in" lconstr(c) "]" ] -> 
+    [ Some (E_In_X_In_T (mk_lterm e,id_of_ref x,mk_lterm c)) ]
+  | [ "[" lconstr(e) "as" lconstr(x) "in" lconstr(c) "]" ] -> 
+    [ Some (E_As_X_In_T (mk_lterm e,id_of_ref x,mk_lterm c)) ]
 END
 
 ARGUMENT EXTEND ssrredex TYPED AS ssrredex_ne PRINTED BY pr_ssrredex
@@ -4327,7 +4397,9 @@ try
   | None ->
     let sigma, t = ft in
     let ut = try Tacred.red_product (pf_env gl) sigma t with _ -> t in
-    let sigma',t',cl,_ = pf_fill_occ gl (pf_concl gl) occ ut sigma t all_ok 1 in
+    let env = pf_env gl and concl = pf_concl gl and sigma0 = project gl in
+    let sigma',t',cl,_ = 
+      pf_fill_occ env concl occ sigma0 ut (sigma, t) all_ok 1 in
     if sigma' == project gl then cl, t' else raise NoMatch in
   convert_concl (subst1 c cl) gl
 with NoMatch -> tclIDTAC gl
@@ -4373,9 +4445,10 @@ let rwcltac cl rdx dir sr gl =
       (apply_type cl'' [rdx; compose_lam dc r3], tclTHENLIST (itacs @ rwtacs))
   in
   let cvtac' _ =
-    try cvtac gl with _ ->
-    errorstrm (str "dependent type error in rewrite of "
-                      ++ pf_pr_constr gl (mkNamedLambda pattern_id rdxt cl)) in
+    try cvtac gl with _ -> if occur_existential (pf_concl gl) 
+    then errorstrm (str "Rewriting impacts evars")
+    else errorstrm (str "Dependent type error in rewrite of "
+      ++ pf_pr_constr gl (mkNamedLambda pattern_id rdxt cl)) in
   tclTHEN cvtac' rwtac gl
 
 let lz_coq_prod =
@@ -4400,11 +4473,11 @@ let ssr_is_setoid env =
     Rewrite.is_applied_rewrite_relation env 
       sigma [] (mkApp (r, args)) <> None
 
-let rec rwrxtac occ rdx_pat dir rule gl =
+let rwrxtac occ rdx_pat dir rule gl =
   let env = pf_env gl in
   let coq_prod = lz_coq_prod () in
   let is_setoid = ssr_is_setoid env in
-  let sigma, rules =
+  let r_sigma, rules =
     let rec loop d sigma r t0 rs red =
       let t =
         if red = 1 then Tacred.hnf_constr env sigma t0
@@ -4463,52 +4536,145 @@ let rec rwrxtac occ rdx_pat dir rule gl =
     let sigma, r = rule in
     let t = Retyping.get_type_of env sigma r in
     loop dir sigma r t [] 0 in
-  match rdx_pat with
-  | Some rp ->
-    let cl, rdx = pf_fill_occ_term gl occ rp in
-    if closed0 cl then
-      errorstrm (str "No occurrence of redex " ++ pf_pr_constr gl rdx)
-    else let rec rwtac = function
+  let find_rule rdx =
+    let rec rwtac = function
       | [] ->
         errorstrm (str "pattern " ++ pr_constr_pat rdx ++
                    str " does not match " ++ pr_dir_side dir ++
                    str " of " ++ pr_constr_pat (snd rule))
       | (d, r, lhs, rhs) :: rs ->
         try
-          let ise = unif_HO env (create_evar_defs sigma) lhs rdx in
+          let ise = unif_HO env (create_evar_defs r_sigma) lhs rdx in
           let sr' = unif_end env (project gl) ise r (rw_progress rhs rdx) in
-          rwcltac cl rdx d sr'
+          d, sr'
         with _ -> rwtac rs in
-     rwtac rules gl
+     rwtac rules in
+  let pop_evar sigma e =
+    let { Evd.evar_body = e_body } as e_def = Evd.find sigma e in
+    let e_body = match e_body with Evar_defined c -> c | _ -> assert false in
+    let sigma = 
+      Evd.add (Evd.remove sigma e) e {e_def with Evd.evar_body = Evar_empty} in
+    sigma, e_body in
+  let fs sigma x = snd (nf_open_term sigma sigma x) in
+  let sigma0, env0, concl0 = project gl, pf_env gl, pf_concl gl in
+  let upats_origin = dir, snd rule in
+  let mk_upat_for ?hack env sigma0 (sigma,t) ?(p=t) ok =
+    let pat, sigma = mk_upat ?hack env sigma0 sigma p ok t in
+    [pat], sigma in
+  let rpat env sigma0 (pats, sigma) (d, r, lhs, rhs) =
+    let r' = if d = L2R then r else mkLambda (Anonymous, mkProp, r) in
+    let pat, sigma = mk_upat env sigma0 sigma r' (rw_progress rhs) lhs in
+    pats @ [pat], sigma in
+  let k_mkRel _ _ _ h = mkRel h in
+  let closed0_check concl p = if closed0 concl then 
+    errorstrm (str "No occurrence of redex " ++ pf_pr_constr gl p) in
+  let ex_value hole =
+    match kind_of_term hole with Evar (e,_) -> e | _ -> assert false in
+  match rdx_pat with
   | None ->
-    let sigma0 = project gl and ise = ref (create_evar_defs sigma) in
-    let rpat (d, r, lhs, rhs) =
-      let r' = if d = L2R then r else mkLambda (Anonymous, mkProp, r) in
-      mk_upat env sigma0 ise r' (rw_progress rhs) lhs in
-    let sigma', r, cl, rdx =
-      try
-        let rpats = List.map rpat rules in
-        fill_and_select_upat gl env sigma0 occ rpats (pf_concl gl) !ise 1
-      with
-      | UndefPat ->
-        errorstrm (str "indeterminate " ++ pr_dir_side dir
-                   ++ str " in " ++ pr_constr_pat (snd rule))
-      | MissingOccs (n, m, p') ->
-        errorstrm (str "only " ++ int n ++ str " < " ++ int m ++
-          str (plural n " occurence") ++ spc () ++
-          str "of the " ++ pr_dir_side dir ++ str " " ++ pr_constr_pat p' ++
-          spc () ++ str "of " ++ pr_constr_pat (snd rule))
-      | NoMatch ->
-        errorstrm (str "no valid match of " ++ pr_dir_side dir ++
-                   str " of " ++ pr_constr_pat (snd rule)) in
-    if closed0 cl then
-      errorstrm (str "no occurrence of " ++ pr_constr rdx
-                 ++ str ", the " ++ pr_dir_side dir ++ str " of " ++
-                    pr_constr_pat (snd rule));
-    let d, r' = match kind_of_term r with
-    | Lambda (_, _, r') -> R2L, r'
-    | _ -> L2R, r in
-    rwcltac cl rdx d (sigma', r') gl
+    let rpats = List.fold_left (rpat env0 sigma0) ([], r_sigma) rules in
+    let find_R, end_R = mk_pmatcher sigma0 occ ~upats_origin rpats in
+    let concl = find_R env0 concl0 1 k_mkRel in
+    let rdx, d, r = end_R () in
+    closed0_check concl rdx;
+    rwcltac concl rdx d r gl
+  | Some (T (_, o_rdx as rp)) ->
+    let rp = mk_upat_for env0 sigma0 rp all_ok in
+    let find_T, end_T = mk_pmatcher sigma0 occ rp in
+    let r = ref None in
+    let concl = find_T env0 concl0 1 (fun _env c _ise h -> 
+      do_once r (fun () -> (find_rule c, c));
+      mkRel h) in
+    let _ = end_T () in
+    closed0_check concl o_rdx;
+    let (d, r), rdx = assert_done r in
+    rwcltac concl rdx d r gl
+  | Some (In_T rp) ->
+    let rp = mk_upat_for env0 sigma0 rp all_ok in
+    let find_T, end_T = mk_pmatcher sigma0 [ArgArg 0] rp in
+    let rpats = List.fold_left (rpat env0 sigma0) ([], r_sigma) rules in
+    let find_R, end_R = mk_pmatcher sigma0 occ ~upats_origin rpats in
+    let concl = find_T env0 concl0 1 (fun env c _ -> find_R env c ~k:k_mkRel) in
+    let rdx, d, r = end_R () in let _ = end_T () in
+    closed0_check concl rdx;
+    rwcltac concl rdx d r gl
+  | Some (X_In_T (hole, (p_sigma, p as srp))) ->
+    let ex = ex_value hole in
+    let rp = mk_upat_for ~hack:true env0 sigma0 srp all_ok in
+    let find_T, end_T = mk_pmatcher sigma0 [ArgArg 0] rp in
+    (* we start from sigma, so hole is considered a rigid head *)
+    let holep = mk_upat_for env0 p_sigma (p_sigma, hole) all_ok in
+    let find_X, end_X = mk_pmatcher p_sigma occ holep in
+    let r = ref None in
+    let concl = find_T env0 concl0 1 (fun env c c_sigma h ->
+      let p_sigma = unify_HO env (create_evar_defs p_sigma) c p in
+      let sigma, e_body = pop_evar p_sigma ex in
+      fs p_sigma (find_X env (fs sigma p) h (fun env _ c_sigma h ->
+        do_once r (fun () -> (find_rule e_body, e_body));
+        mkRel h))) in
+    let _ = end_X () in let _ = end_T () in 
+    closed0_check concl p;
+    let (d, r), rdx = assert_done r in
+    rwcltac concl rdx d r gl
+  | Some (In_X_In_T (hole, (p_sigma, p as srp))) ->
+    let ex = ex_value hole in
+    let rp = mk_upat_for ~hack:true env0 sigma0 srp all_ok in
+    let find_T, end_T = mk_pmatcher sigma0 [ArgArg 0] rp in
+    let holep = mk_upat_for env0 p_sigma (p_sigma, hole) all_ok in
+    let find_X, end_X = mk_pmatcher p_sigma [ArgArg 0] holep in
+    let rpats = List.fold_left (rpat env0 sigma0) ([], r_sigma) rules in
+    let find_R, end_R = mk_pmatcher sigma0 occ ~upats_origin rpats in
+    let concl = find_T env0 concl0 1 (fun env c c_sigma h ->
+      let p_sigma = unify_HO env (create_evar_defs p_sigma) c p in
+      let sigma, e_body = pop_evar p_sigma ex in
+      fs p_sigma (find_X env (fs sigma p) h (fun env c c_sigma h ->
+        find_R env e_body h k_mkRel))) in
+    let rdx, d, r = end_R () in let _ = end_X () in let _ = end_T () in
+    closed0_check concl rdx;
+    rwcltac concl rdx d r gl
+  | Some (E_In_X_In_T (ep, hole, (p_sigma, p as srp))) ->
+    let ex = ex_value hole in
+    let rp = mk_upat_for ~hack:true env0 sigma0 srp all_ok in
+    let find_T, end_T = mk_pmatcher sigma0 [ArgArg 0] rp in
+    let holep = mk_upat_for env0 p_sigma (p_sigma, hole) all_ok in
+    let find_X, end_X = mk_pmatcher p_sigma [ArgArg 0] holep in
+    let re = mk_upat_for env0 sigma0 ep all_ok in
+    let find_E, end_E = mk_pmatcher sigma0 occ ~upats_origin re in
+    let r = ref None in
+    let concl = find_T env0 concl0 1 (fun env c c_sigma h ->
+      let p_sigma = unify_HO env (create_evar_defs p_sigma) c p in
+      let sigma, e_body = pop_evar p_sigma ex in
+      fs p_sigma (find_X env (fs sigma p) h (fun env c c_sigma h ->
+        find_E env e_body h (fun _ c _ h ->
+          do_once r (fun () -> (find_rule c, c)); 
+          mkRel h)))) in
+    let _ = end_E () in let _ = end_X () in let _ = end_T () in
+    closed0_check concl (snd ep);
+    let (d, r), rdx = assert_done r in
+    rwcltac concl rdx d r gl
+  | Some (E_As_X_In_T ((e_sigma, e), hole, (p_sigma, p))) ->
+    let ex = ex_value hole in
+    let rp = 
+      let e_sigma = unify_HO env0 e_sigma hole e in
+      e_sigma, fs e_sigma p in
+    let rp = mk_upat_for ~hack:true env0 sigma0 rp all_ok in
+    let find_TE, end_TE = mk_pmatcher sigma0 [ArgArg 0] rp in
+    let holep = mk_upat_for env0 p_sigma (p_sigma, hole) all_ok in
+    let find_X, end_X = mk_pmatcher p_sigma occ holep in
+    let r = ref None in
+    let concl = find_TE env0 concl0 1 (fun env c c_sigma h ->
+      let p_sigma = unify_HO env (create_evar_defs p_sigma) c p in
+      let sigma, e_body = pop_evar p_sigma ex in
+      fs p_sigma (find_X env (fs sigma p) h (fun env c c_sigma h ->
+        let e_sigma = unify_HO env e_sigma e_body e in
+        let e_body = fs e_sigma e in
+        do_once r (fun () -> (find_rule e_body, e_body));
+        mkRel h))) in
+    let _ = end_X () in let _ = end_TE () in
+    closed0_check concl e;
+    let (d, r), rdx = assert_done r in
+    rwcltac concl rdx d r gl
+;;
 
 (* Resolve forward reference *)
 let _ =
@@ -4516,15 +4682,46 @@ let _ =
 
 let rwargtac ist ((dir, mult), (((oclr, occ), grx), (kind, gt))) gl =
   let fail = ref false in
+  let interp_p gl gc = 
+    try match gc with
+    | T x -> T(interp_term ist gl x)
+    | In_T x -> In_T(interp_term ist gl x)
+    | X_In_T (x,(_,(_,Some rp))) ->
+      let rp = mkCLambda dummy_loc (Name x) (CHole(dummy_loc,None)) rp in
+      let sigma, rp = interp_term ist gl (mk_lterm rp) in
+      let rp, _, args, sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
+      X_In_T (List.assoc 0 args, (sigma, rp))
+    | In_X_In_T (x,(_,(_,Some rp))) ->
+      let rp = mkCLambda dummy_loc (Name x) (CHole(dummy_loc,None)) rp in
+      let sigma, rp = interp_term ist gl (mk_lterm rp) in
+      let rp, _, args, sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
+      In_X_In_T (List.assoc 0 args, (sigma, rp))
+    | E_In_X_In_T (e,x,(_,(_,Some rp))) ->
+      let rp = mkCLambda dummy_loc (Name x) (CHole(dummy_loc,None)) rp in
+      let sigma, rp = interp_term ist gl (mk_lterm rp) in
+      let rp, _, args, sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
+      let e_sigma, e = interp_term ist gl e in
+      E_In_X_In_T ((e_sigma, e) ,List.assoc 0 args, (sigma, rp))
+    | E_As_X_In_T (e,x,(_,(_,Some rp))) ->
+      let rp = mkCLambda dummy_loc (Name x) (CHole(dummy_loc,None)) rp in
+      let sigma, rp = interp_term ist gl (mk_lterm rp) in
+      let rp, _, args, rp_sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
+      let hole = List.assoc 0 args in
+      let si = sig_it gl in
+      let e_sigma, e = interp_term ist (re_sig si rp_sigma) e in
+      E_As_X_In_T ((e_sigma, e) , hole, (rp_sigma, rp))
+    | _ -> assert false
+    with _ when snd mult = May -> fail := true; T (project gl, mkProp) in
+  let fix = function Some (T x) -> Some x | _ -> None in
   let interp gc =
     try interp_term ist gl gc
     with _ when snd mult = May -> fail := true; (project gl, mkProp) in
-  let rx = Option.map interp grx in
+  let rx = Option.map (interp_p gl) grx in
   let t = interp gt in
   let rwtac = match kind with
-  | RWred sim -> simplintac occ rx sim
+  | RWred sim -> simplintac occ (fix rx) sim
   | RWdef ->
-    if dir = R2L then foldtac occ rx t else unfoldintac occ rx t (fst gt)
+    if dir = R2L then foldtac occ (fix rx) t else unfoldintac occ (fix rx) t (fst gt)
   | RWeq -> rwrxtac occ rx dir t in
   let ctac = cleartac (interp_clr (oclr, (fst gt, snd t))) in
   if !fail then ctac gl else tclTHEN (tclMULT mult rwtac) ctac gl
@@ -5247,3 +5444,4 @@ VERNAC COMMAND EXTEND SsrAddParametricRelation
  -> [ ssr_add_relation n d b deq None None None al ]
 END
 *)
+

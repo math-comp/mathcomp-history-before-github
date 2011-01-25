@@ -7,3 +7,4 @@ congr.v
 havesuff.v
 wlogletin.v
 deferclear.v
+rewpatterns.v
