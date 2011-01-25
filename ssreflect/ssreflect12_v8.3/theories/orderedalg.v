@@ -2263,11 +2263,7 @@ Definition invr_lte1 := (invr_le1, invr_lt1).
 Definition invr_cp1 := (invr_gte1, invr_lte1).
 
 Lemma invr_sg : forall x, (sgr x)^-1 = sgr x.
-Proof.
-(* (* if ssr > 1.2, this suffices : *) by move=> x; case: (sgrP x). *)
-move=> x; case: (ltrgtP x 0); do ?by rewrite -?sgr_cp0; move/eqP->.
-by move->; rewrite sgr0. 
-Qed.
+Proof. by []. Qed.
 
 Lemma sgr_inv : forall x, sgr (x^-1) = sgr x.
 Proof.
