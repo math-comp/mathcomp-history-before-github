@@ -3453,10 +3453,14 @@ TACTIC EXTEND ssrmove
     END
 
 (* TASSI: sound HO unification *)
-let unify_HO gl t1 t2 =
-  let env, orig_sigma, si = pf_env gl, project gl, sig_it gl in
-  let sigma = unif_HO env orig_sigma t1 t2 in
-  let sigma, _ = unif_end env orig_sigma sigma t2 (fun _ -> true) in
+let unify_HO env sigma0 t1 t2 =
+  let sigma = unif_HO env sigma0 t1 t2 in
+  let sigma, _ = unif_end env sigma0 sigma t2 (fun _ -> true) in
+  sigma
+
+let pf_unify_HO gl t1 t2 =
+  let env, sigma0, si = pf_env gl, project gl, sig_it gl in
+  let sigma = unify_HO env sigma0 t1 t2 in
   re_sig si sigma
 
 (* TASSI: given (c : ty), generates (c ??? : ty[???/...]) with m evars *)
@@ -3610,10 +3614,9 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
     let env, sigma, si = pf_env gl, project gl, sig_it gl in
     let t, orig_t = fire_subst gl t, t in
     let n, t = pf_abs_evars orig_gl (sigma, t) in  
-    let t, _, _, newgl = pf_saturate gl t n in (* FIXME new saturate *)
-    let sigma = project newgl in
-    let sigma, t, cl, _ = pf_fill_occ gl cl occ t sigma t all_ok h in
-    cl, unify_HO (re_sig si sigma) orig_t t in
+    let t, _, _, sigma' = saturate env sigma t n in (* FIXME new saturate *)
+    let sigma, t, cl, _ = pf_fill_occ env cl occ sigma t (sigma', t) all_ok h in
+    cl, pf_unify_HO (re_sig si sigma) orig_t t in
   (* finds the eliminator applies it to evars and c saturated as needed  *)
   (* obtaining "elim ??? (c ???)". pred is the higher order evar         *)
   let c, elim, elimty, elim_args, n_elim_args, elim_is_dep, is_rec, pred, gl =
@@ -3629,7 +3632,7 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
       let c, c_ty, gl = let rec loop n =
         try
           let c, c_ty, _, gl = pf_saturate gl c ~ty:c_ty n in
-          let gl = unify_HO gl arg c in
+          let gl = pf_unify_HO gl arg c in
           c, c_ty, gl
         with
         | NotEnoughProducts ->
@@ -3654,7 +3657,7 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
         pf_saturate ~beta:is_case gl elim ~ty:elimty n_elim_args in
       let pred = List.assoc pred_id elim_args in
       let arg = List.assoc (n_elim_args - 1) elim_args in
-      let gl = unify_HO gl arg c in
+      let gl = pf_unify_HO gl arg c in
       let elim_is_dep = elim_is_dep && List.length deps < n_pred_args in
       let fs = fire_subst gl in
       fs c, fs elim, fs elimty, elim_args, n_elim_args, elim_is_dep, is_rec, pred, gl
@@ -3705,7 +3708,7 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
       else try
         let cl, gl =  match_pat gl cl (occ, t) h in
         let gl = 
-          try unify_HO gl inf_t t 
+          try pf_unify_HO gl inf_t t 
           with _ -> errorstrm (str"The given pattern matches the term"++
             spc()++pp_term gl t++spc()++str"while the inferred pattern"++
             spc()++pr_constr_pat inf_t++spc()++str"doesn't") in
@@ -3753,7 +3756,7 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
     concl, gen_eq_tac, clr, gl in
   pp(lazy(str"elim_is_dep=" ++ bool elim_is_dep));
   pp(lazy(str"elim_pred=" ++ pp_term gl elim_pred));
-  let gl = unify_HO gl pred elim_pred in
+  let gl = pf_unify_HO gl pred elim_pred in
   (* check that the patterns do not contain non instantiated dependent metas *)
   let () = 
     let evars_of_term = Evarutil.evars_of_term in
@@ -4074,7 +4077,7 @@ let newssrcongrtac arg ist gl =
   (* utils *)
   let fs gl t = snd (nf_open_term (project gl) (project gl) t) in
   let tclMATCH_GOAL (c, gl_c) proj t_ok t_fail gl =
-    match try Some (unify_HO gl_c (pf_concl gl) c) with _ -> None with  
+    match try Some (pf_unify_HO gl_c (pf_concl gl) c) with _ -> None with  
     | Some gl_c -> tclTHEN (convert_concl (fs gl_c c)) (t_ok (proj gl_c)) gl
     | None -> t_fail () gl in 
   let mk_evar gl ty = 
