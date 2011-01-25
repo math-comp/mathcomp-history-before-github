@@ -123,6 +123,15 @@ let msgtac gl = pf_msg gl; tclIDTAC gl
 
 (** Tactic utilities *)
 
+let check_assumption_exists hyps id =
+  try ignore(Sign.lookup_named id hyps)
+  with Not_found -> errorstrm (str"No assumption is named " ++ pr_id id)
+
+let clear ids gl =
+  let hyps = pf_hyps gl in
+  List.iter (check_assumption_exists hyps) ids;
+  clear ids gl
+
 let introid = intro_mustbe_force
 
 let pf_image gl tac = let gls, _ = tac gl in first_goal gls
@@ -2021,10 +2030,12 @@ let rec ipattac k rest = function
       if List.exists (fun x -> is_name_in_ipats (hyp_id x) rest) clr then
         let to_clr = ref [] in
         let ren gl = 
+          let hyps = pf_hyps gl in
           let clr, ren = 
             List.split (List.map (function SsrHyp(_, x) -> 
-            let x' = mk_anon_id (string_of_id x) gl in
-            SsrHyp (dummy_loc, x'), (x, x')) clr) in
+              check_assumption_exists hyps x;
+              let x' = mk_anon_id (string_of_id x) gl in
+              SsrHyp (dummy_loc, x'), (x, x')) clr) in
           to_clr := clr; ren in
         (fun gl -> rename_hyp (ren gl) gl), 
         (fun gl -> clear_with_wilds !wild_ids (hyps_ids !to_clr) gl)
