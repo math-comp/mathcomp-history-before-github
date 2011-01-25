@@ -5321,7 +5321,7 @@ set x := inFA w; rewrite {Bj}mulmxA mul_rV_lin1 /= -horner_rVpoly -/(mxval x).
 move: (eqVneq x 0) => [-> | nzx ->]; first by rewrite mxval0 mulmx0.
 move/(submxMr (mxval x^-1)); rewrite -mulmxA -mxvalM divff {nzx}//.
 rewrite mxval1 mulmx1 => Bx'j.
-rewrite (submx_trans Bx'j) in nBj => {nBj Bx'j} //; apply/row_subP.
+rewrite (submx_trans Bx'j) in nBj => {Bx'j} //; apply/row_subP.
 case/mxvec_indexP=> i k; rewrite row_mul rowK mxvecE mxE rowE -mulmxA.
 have ->: A ^+ k *m mxval x^-1 = mxval (groot ^+ k / x).
   by rewrite mxvalM rmorphX /= mxval_groot.

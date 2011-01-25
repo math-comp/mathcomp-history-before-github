@@ -501,7 +501,7 @@ Implicit Types G H : {group aT}.
 Implicit Types S : {set rT}.
 
 Lemma act1 : forall x, to x 1 = x.
-Proof. by move=> x; apply: (act_inj _ 1); rewrite -actMin ?mulg1. Qed.
+Proof. by move=> x; apply: (act_inj to 1); rewrite -actMin ?mulg1. Qed.
 
 Lemma actKin : {in D, right_loop invg to}.
 Proof. by move=> a Da /= x; rewrite -actMin ?groupV // mulgV act1. Qed.

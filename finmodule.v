@@ -365,7 +365,7 @@ exists (Morphism fM @* G)%G; apply/complP; split.
   rewrite -(mulg1 y) /f nu_Hmul // rH_Hmul //; exact: (morph1 (Morphism fM)).
 apply/setP=> x; apply/mulsgP/idP=> [[h y Hh fy ->{x}] | Gx].
   rewrite groupMl; last exact: (subsetP sHG).
-  case/morphimP: fy => z _ Gz ->{x Hx y}.
+  case/morphimP: fy => z _ Gz ->{h Hh y}.
   by rewrite /= /f groupMl ?GrH // (subsetP sHG) ?fmodP.
 exists (x * (f x)^-1) (f x); last first; first by rewrite mulgKV.
   by apply/morphimP; exists x.

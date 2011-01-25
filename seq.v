@@ -1017,7 +1017,7 @@ Proof. by move=> x [|y s] //=; case/andP; move/eqP->. Qed.
 Lemma all_pred1_nseq : forall x y n,
   all (pred1 x) (nseq n y) = (n == 0) || (x == y).
 Proof.
-move=> a x [|n] //=; rewrite eq_sym; case: eqP => // -> {y}.
+move=> a x [|n] //=; rewrite eq_sym; case: eqP => // ->.
 by elim: n => //= n ->; rewrite eqxx.
 Qed.
 

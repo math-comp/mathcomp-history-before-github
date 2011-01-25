@@ -391,7 +391,7 @@ Proof.
 apply: poly_ind => [|p a IHp]; first by rewrite rmorph0 // linear0 sub0mx.
 rewrite rmorphD rmorphM /= horner_mx_C horner_mx_X.
 rewrite addrC -scalemx1 linearP /= -(mul_vec_lin (mulmxr_linear _ A)).
-case/submxP: IHp => u ->{i}.
+case/submxP: IHp => u ->{p}.
 have: (powers_mx A (1 + d) <= Ad)%MS.
   rewrite -(geq_leqif (mxrank_leqif_sup _)).
     by rewrite (eqnP minpoly_mx_free) /d; case: ex_minnP.

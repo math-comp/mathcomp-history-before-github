@@ -1266,13 +1266,13 @@ move => p Kp sep.
 move: seperableNrootdmp.
 rewrite negb_eqb addbC /root sep addbT {sep} => sep.
 rewrite lapp_of_funK; last by apply: DerivationExtend_body_linear.
-by rewrite {-1}(divp_mon_spec p (monic_minPoly K x)) /DerivationExtend_body
-           poly_for_modp // /horner_morph (Derivation_addp HD) 
-           ?(Derivation_mulp HD)
-           ?(mulp_polyOver, divp_polyOver, modp_polyOver, minPolyOver) // 
-           derivD derivM !horner_add !horner_mul minPolyxx !mulr0 !add0r
-           mulr_addl addrA [_ + (_ * _ * _)]addrC {2}/Dx /horner_morph -mulrA
-           [_ * (- _ * _)]mulrC (mulfVK sep) mulrN addKr.
+rewrite {-1}(divp_mon_spec p (monic_minPoly K x)) /DerivationExtend_body.
+rewrite poly_for_modp // /horner_morph (Derivation_addp HD);
+  rewrite ?(Derivation_mulp HD);
+  rewrite ?(mulp_polyOver, divp_polyOver, modp_polyOver, minPolyOver) //. 
+rewrite derivD derivM !horner_add !horner_mul minPolyxx !mulr0 !add0r.
+rewrite mulr_addl addrA [_ + (_ * _ * _)]addrC {2}/Dx /horner_morph -mulrA -/Dx.
+by rewrite [((minPoly K x)^`()).[x] * Dx]mulrC (mulfVK sep) mulrN addKr.
 Qed.
 
 

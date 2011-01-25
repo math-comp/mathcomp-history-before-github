@@ -1494,7 +1494,7 @@ have [eq_qp | p'q] := eqVneq q p.
   rewrite -defKv centM setIA setIAC /=.
   rewrite ['C_W(_)](setIidPl _); last by rewrite centsC subsetIr.
   have nilPv: nilpotent (P / V) := pgroup_nil (pHall_pgroup sylPv).
-  rewrite -(setIidPl sWP) -setIA meet_center_nil //.
+  rewrite -/W -(setIidPl sWP) -setIA meet_center_nil //.
   exact: normalS (quotientS V sPK) nsWK.
 rewrite -defKv -quotientMidr -mulgA mulSGid ?subsetIr // quotientMidr.
 have sPG := subset_trans sPK sKG.

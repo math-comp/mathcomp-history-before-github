@@ -480,7 +480,7 @@ Lemma isog_cyclic_card : forall G M,
 Proof.
 move=> G H cycG; apply/idP/idP=> [isoGM | ].
   by rewrite (card_isog isoGM) -(isog_cyclic isoGM) cycG /=.
-case/cyclicP: cycG => x ->{G}; case/andP; case/cyclicP=> y ->{M} oy.
+case/cyclicP: cycG => x ->{G}; case/andP; case/cyclicP=> y -> oy.
 by apply: isog_trans (isog_symr _) (Zp_isog y); rewrite /order (eqP oy) Zp_isog.
 Qed.
 

@@ -233,7 +233,7 @@ have def_k2: k.*2 = ifnz e 1 k * kb.
   by rewrite /kb; case e => *; rewrite (mul1n, muln2).
 case def_b': (b - _) => [|b']; last first.
   have ->: ifnz e k.*2.-1 1 = kb.-1 by rewrite /kb; case e.
-  apply: IHn => {n le_a_n p'}//; rewrite -/p -/kb; split=> //.
+  apply: IHn => {n le_a_n}//; rewrite -/p -/kb; split=> //.
     rewrite lt0k ltpm leppm pr_p andbT /=.
     by case: ifnzP; [move/ltn_predK->; exact: ltnW | rewrite def_kb1].
   apply: (@addIn p.*2).

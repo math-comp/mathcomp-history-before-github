@@ -895,7 +895,7 @@ have cBbBb: abelian (B / C).
   suff cB_SB: [~: S, B, B] = 1 by rewrite three_subgroup // [[~: _, S]]commGC.
   by apply/commG1P; rewrite centsC subIset // centS ?orbT // commgS.
 have{cBbBb} abelBb: p.-abelem (B / C).
-  apply/abelemP=> //; split=> // Cg; case/morphimP=> x Nx Bx /= ->{Cx}.
+  apply/abelemP=> //; split=> // Cg; case/morphimP=> x Nx Bx /= ->.
   have [Rx cTx] := setIP Bx; rewrite -morphX //= coset_id // inE groupX //=.
   apply/centP=> y Sy; symmetry; have Tyx : [~ y, x] \in T by apply: mem_commg.
   by apply/commgP; rewrite commgX ?(exponentP eT) //; exact: (centP cTx).
