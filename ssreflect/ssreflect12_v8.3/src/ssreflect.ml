@@ -619,17 +619,17 @@ let pf_abs_evars_pirrel gl (sigma, c0) =
   List.length evlist, res
 
 (* A simplified version of the code above, to turn (new) evars into metas *)
-let evars_for_FO env sigma0 (ise0:evar_map) c0 =
+let evars_for_FO ~hack env sigma0 (ise0:evar_map) c0 =
   let ise = ref ise0 in
   let sigma = ref ise0 in
-  let nenv = env_size env in
+  let nenv = env_size env + if hack then 1 else 0 in
   let rec put c = match kind_of_term c with
   | Evar (k, a as ex) ->
     begin try put (existential_value !sigma ex)
     with NotInstantiatedEvar ->
     if Evd.mem sigma0 k then map_constr put c else
     let evi = Evd.find !sigma k in
-    let dc = list_firstn (Array.length a - nenv) (evar_filtered_context evi) in
+    let dc = list_firstn (max 0 (Array.length a - nenv)) (evar_filtered_context evi) in
     let abs_dc (d, c) = function
     | x, Some b, t -> d, mkNamedLetIn x (put b) (put t) c
     | x, None, t -> mkVar x :: d, mkNamedProd x (put t) c in
