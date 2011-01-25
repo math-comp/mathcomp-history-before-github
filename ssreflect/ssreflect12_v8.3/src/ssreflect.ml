@@ -2437,7 +2437,7 @@ let pr_constr_pat c0 =
 
 let pat_of_ssrterm n c =
   let rec mkvars i =
-    let v = mkVar (id_of_string (sprintf "_patern_var_%d_" i)) in
+    let v = mkVar (id_of_string (sprintf "_pattern_var_%d_" i)) in
     if i = 0 then [v] else v :: mkvars (i - 1) in
   if n <= 0 then c else substl (mkvars n) (snd (decompose_lam_n n c))
 let pr_pattern n c = pr_constr (pat_of_ssrterm n c)
