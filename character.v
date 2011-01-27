@@ -2,7 +2,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop prime ssralg poly finset.
 Require Import fingroup morphism perm automorphism quotient finalg action.
-Require Import zmodp commutator cyclic center pgroup matrix mxalgebra.
+Require Import zmodp commutator cyclic center pgroup sylow matrix mxalgebra.
 Require Import mxpoly mxrepresentation vector algC.
 
 Set Implicit Arguments.
@@ -466,7 +466,7 @@ suff<-: \sum_(C \in (classes G))
 apply/cfunP=> g; rewrite sum_cfunE cfunE.
 case HgG: (g \in G); last first.
   rewrite Hg ?HgG //; apply: big1=> i Hi; rewrite !cfunE.
-  have [x Gx ->] := imsetP Hi.
+  have [x Gx ->{k}] := imsetP Hi.
   case Hgx: (_ \in _); last by rewrite mulr0.
   move/subsetP: (class_subG Gx (subxx G)).
   by move/(_ g (idP Hgx)); rewrite HgG.
@@ -2958,13 +2958,75 @@ move/cfunP; move/(_ 1%g)=> HH1.
 by case/negP: (irr1_neq0 i); rewrite HH1 cfunE.
 Qed.
 
- (*
 (* 2.32b *)
-Lemma pgroup_cyclic_faithful: forall p, 
+Lemma pgroup_cyclic_faithful: forall p : nat, 
   p.-group G -> cyclic 'Z(G) -> exists i : irr_class G, cfaithful G i.
 Proof.
+ (* Lengthly Proof!! *)
+move=> p PG CZG.
+case: (boolP (G == 1%g :> {set _}))=> [HG1|DG].
+  exists (irr_class1 G); rewrite /cfaithful /=.
+  by move/eqP: HG1<-; exact: cker_sub.
+case/(pgroup_pdiv PG): (DG) => Pp Dp [m Hm].
+case: (boolP (forallb i : irr_class G, cker G i != 1%g)); last first.
+  rewrite negb_forall; case/existsP=> i; rewrite negbK=> Hi.
+  by exists i; apply/trivGP; apply/eqP.
+move/forallP=> Hi.
+case/cyclicP: CZG=> b Zb.
+have: 'Z(G) != 1%g.
+  by apply/eqP=> HH; case/eqP: DG; apply: (trivg_center_pgroup PG).
+case/(pgroup_pdiv (pgroupS (center_sub _) PG))=> _ Zp1 [m1 Hm1].
+pose Z := <[(b^+(p^m1)%N)%g]>.
+have CZ: #|Z| = p.
+  have ->: p = (p ^ (m1.+1 - m1))%N by rewrite subSnn expn1.
+  by rewrite -orderE; apply: orderXexp; rewrite -Hm1 /= Zb orderE.
+suff: Z \subset 1%G.
+  move/subset_leq_card; rewrite CZ cards1.
+  by move: Pp; case: (p)=> // [[|]].
+rewrite -(cker_all1 G); apply/bigcapsP=> i _.
+suff: forall N : {group gT}, N <| G -> N != 1%G -> Z \subset N.
+  by apply; [apply: cker_normal | apply: Hi].
+move=> {i Hi}N NnG DN.
+have NsG:  N :&: 'Z(G) \subset G by apply: subIset; rewrite (normal_sub NnG).
+have: N :&: 'Z(G) != 1%g.
+  apply/eqP=> DNZ.
+  case: (pgroup_pdiv (pgroupS (normal_sub NnG) PG) DN)=> _ Dp' [m' Hm'].
+  move: (Pp).
+  have Act : [acts G, on N | 'J] by rewrite astabsJ normal_norm.
+  have DOr : forall x,  x \in N ->
+       #|orbit 'J G x| != 1%N -> (p %| #|(orbit 'J G x)|)%N.  
+    move=> g GiN; rewrite orbitJ -index_cent1; move: (dvdn_indexg G 'C_G[g]).
+    rewrite Hm; case/dvdn_pfactor=> // [] [|m2] Hm2-> //.
+    by rewrite expnS dvdn_mulr.
+  move: Dp'; rewrite -(acts_sum_card_orbit Act).
+  rewrite (bigID (fun i : {set _} => #|i| != 1%N)) dvdn_addr; last first.
+    apply big_prop=> [|x y Hx Hy|]; rewrite ?(dvdn0,dvdn_addr) //=.
+    by move=> i; case/andP; case/imsetP=> g GiG -> HH; exact: DOr.
+  rewrite (bigD1 1%g) ?(cards1,andbT) //=; last first.
+    by apply/imsetP; exists 1%g; rewrite ?group1 // orbitJ (class1g (group1 _)).
+  rewrite big1 /=; first by rewrite dvdn1; move/eqP->.
+  move=> i; do 2 case/andP; case/imsetP=> g GiN ->.
+  rewrite negbK orbitJ -index_cent1 indexg_eq1 classG_eq1=> H1g H2g.
+  move/eqP: DNZ; rewrite -[_==_]negbK; case/negP.
+  apply/trivgPn; exists g=> //.
+  have GiG : g \in G by apply: (subsetP (normal_sub NnG)).
+  rewrite inE GiN; apply/centerP; split=> // y YiG.
+  by case/subcent1P: (subsetP H1g _ YiG).
+case/(pgroup_pdiv (pgroupS NsG PG))=> _ HH [m2 Hm2].
+case: (Cauchy Pp HH)=> u Hu Hv.
+have: u \in <[b]> by rewrite -Zb; move: Hu; rewrite inE; case/andP.
+case/cyclePmin=> m3 Hm3 H1u.
+move: (expg_order  u); rewrite Hv H1u -expgn_mul.
+move/eqP; rewrite -order_dvdn.
+move: Hm1; rewrite /= Zb /= -orderE => ->.
+rewrite expnSr dvdn_pmul2r ?prime_gt0 //.
+case/dvdnP=> k Hk.
+have <-: <[u]> = Z.
+  apply/eqP; rewrite eqEcard -orderE Hv CZ leqnn cycle_subG.
+  by rewrite H1u Hk mulnC expgn_mul mem_cycle.
+by rewrite cycle_subG (subsetP (subsetIl _ 'Z(G))).
 Qed.
-  *)
+
 End Center.
 
 Section Induced.
@@ -3049,4 +3111,29 @@ Qed.
 Definition character_induced (f : character H) (HsG : H \subset G) :=
   Character (is_char_induced f HsG).
 
+Definition irr_induced (i : irr_class H) (HsG : H \subset G) :=
+  character_induced (character_of_irr i) HsG.
+
+Lemma irr_induced_constituent : forall i : irr_class H,
+  H \subset G -> exists j : irr_class G, ncoord i '{j|H} != 0.
+Proof.
+move=> i HsG.
+case: (boolP (existsb j : irr_class G, ncoord j ('{i^[]}) != 0)); last first.
+  rewrite negb_exists; move/forallP=> Hf.
+  move: (induced1 i HsG).  
+  rewrite (ncoord_sum (induced_in_cfun HsG (irr_in_cfun _))).
+  rewrite big1 1?cfunE 1?irr_class1; last first.
+    by move=> j _; move: (Hf j); rewrite negbK; move/eqP->; exact: scale0r.
+  move/eqP; rewrite eq_sym mulf_eq0 (negPf (irr1_neq0 _)) orbF -(eqN_eqC _ 0).
+  by case: indexg (indexg_gt0 G H).
+case/existsP=> j Hj; exists j.
+pose cr := character_rest (character_of_irr j) HsG.
+rewrite ncoord_inner_prod ?(character_in_cfun cr) //.
+rewrite (inner_prod_charC cr (character_of_irr _)) /=.
+rewrite freciprocity ?irr_in_cfun //.
+by rewrite -ncoord_inner_prod // ?induced_in_cfun // irr_in_cfun.
+Qed.
+
 End Induced.
+
+ 
