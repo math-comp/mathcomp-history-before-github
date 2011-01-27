@@ -466,7 +466,7 @@ suff<-: \sum_(C \in (classes G))
 apply/cfunP=> g; rewrite sum_cfunE cfunE.
 case HgG: (g \in G); last first.
   rewrite Hg ?HgG //; apply: big1=> i Hi; rewrite !cfunE.
-  have [x Gx ->{k}] := imsetP Hi.
+  have [x Gx ->] := imsetP Hi.
   case Hgx: (_ \in _); last by rewrite mulr0.
   move/subsetP: (class_subG Gx (subxx G)).
   by move/(_ g (idP Hgx)); rewrite HgG.
