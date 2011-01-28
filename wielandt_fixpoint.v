@@ -198,7 +198,7 @@ have [eAU [K' [SK' eK']]]: (exponent (A / U) = (p ^ n.+1)%N) /\
   rewrite expnS mulnC; apply: orderXpfactor => //.
   apply: nt_prime_order => //; rewrite -expgn_mul mulnC -expnS -eAU. 
   apply: expg_exponent; apply: (subsetP (subBAU _ SK')); exact: a_dec.
-move=> {B minB sBAn sBA1 ntBdefA1 eA1p ntB nBX defA1 disjBU}.
+move=> {B minB sBAn sBA1 eA1p ntB nBX defA1 disjBU}.
 pose K := (coset U) @*^-1 K'.
 have KK':= (cosetpreK K').
 have {subBAU} sKA : K \subset A.
@@ -209,7 +209,11 @@ have cK'K' : abelian K' by rewrite -KK'(quotient_abelian _ cKK).
 have pK := (pgroupS sKA pA).
 have pK' : p.-group K' by rewrite -KK' (quotient_pgroup _ pK).
 case: (hS _ SK') => homoK' nXUK' minK'.
-have nKX : X \subset 'N(K). admit. (* probably useless *)
+have nXKM1 : X / 'Mho^1(K) \subset 'N(K / 'Mho^1(K)).
+  apply: quotient_norms; apply: subset_trans (mulG_subr U X) _.
+  by rewrite -quotientK //; apply: morphpre_norms; case: (hS _ SK').
+have nKX : X \subset 'N(K).
+  by apply: subset_trans (morphpre_norm _ _); rewrite -sub_morphim_pre.
 pose sP' := \big[dprod/1]_(B \in S :\ K') B. 
 pose sP := coset U @*^-1 sP'.
 have PP'  := (cosetpreK sP').
@@ -231,9 +235,6 @@ have abelKM1 : p.-abelem (K / 'Mho^1(K)).
 have p'XM1 : (p^').-group  (X / 'Mho^1(K)) by exact: quotient_pgroup.
 have sUM1KM1 :  U / 'Mho^1(K) \subset K / 'Mho^1(K).
    apply: morphimS; exact: sub_cosetpre.
-have nXKM1 : X / 'Mho^1(K) \subset 'N(K / 'Mho^1(K)).
-  apply: quotient_norms; apply: subset_trans (mulG_subr U X) _.
-  by rewrite -quotientK //; apply: morphpre_norms; case: (hS _ SK').
 have nUM1KM1 : X / 'Mho^1(K) \subset 'N(U / 'Mho^1(K)). exact: quotient_norms.
 have disjUK1 : U :&:'Mho^1(K) = 1.
   apply/eqP; rewrite set1gE -subG1; apply/subsetP=> x; case/setIP=> Ux M1x.
