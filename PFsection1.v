@@ -159,35 +159,6 @@ case=> I1iG; move/eqP<-; apply/rcosetP.
 by exists 1%g; rewrite ?mul1g // ?(group1 (inertia_group HnG i)).
 Qed.
 
-Lemma induced_sum_rcosets1 : 
-  forall (G H : {group gT}) (HnG : H <| G) (i : irr_class H),
-  {in H,
-    '{'{ i ^[ G , H ]}|H} =1 #|inertia HnG i : H|%:R *:
-       \sum_(j \in rcosets (inertia HnG i) G) (i : cfun_type _ _)}.
-Proof.
-move=> G H HnG i h HiG.
-rewrite induced_sum_rcosets //.
-rewrite 6!(cfunE,sum_cfunE).
-congr (_ * _).
-apply: eq_big=> //.
-move=> j Hj.
-rewrite cfun_conjE.
-rewrite (cfunJ (character_in_cfun _)) //. 
-
-
-
-(*  This 1.5b *)
-Lemma induced_prod_index : 
-  forall (G H : {group gT}) (HnG : H <| G) (i : irr_class H),
-    '['{i ^[ G , H ]},'{i ^[ G , H ]}]@G = #|inertia HnG i : H|%:R.
-Proof.
-move=> G H HnG i; have CFi := irr_in_cfun i; have HsG := normal_sub HnG.
-rewrite -freciprocity ?induced_in_cfun //.
-rewrite inner_prodE.
-have: forall (f : character G) g h,  cfun_conj f g h = f h.
-move=> f g h.
-rewrite cfun_conjE.
-rewrite (cfunJ (character_in_cfun _)). 
 
 
 End Main.
