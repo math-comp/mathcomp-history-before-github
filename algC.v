@@ -152,19 +152,6 @@ move=> x y Hx Hy; apply/eqP; rewrite -subr_eq0; apply/eqP.
 by apply: repC_anti; rewrite // oppr_sub.
 Qed.
 
-Lemma leC_mul2l : forall m n1 n2, 
-  0 <= m -> n1 <= n2 -> m * n1 <= m * n2.
-Proof.
-move=> m n1 n2 Hm Hn; rewrite {1}/leC -mulr_subr -[_ * _]subr0.
-by apply: posC_mul=> //; rewrite -(leC_add2r n1) add0r subrK.
-Qed.
-
-Lemma leC_mul2r : forall m n1 n2, 
-  0 <= m -> n1 <= n2 -> n1 * m <= n2 * m.
-Proof.
-by move=> m n1 n2 Hm Hn; rewrite ![_ * m]mulrC leC_mul2l.
-Qed.
-
 Lemma leq_leC : forall a b, (a <= b)%N = (a%:R <= b%:R).
 Proof.
 elim=> [b |a IH [|b]]; first 2 last.
@@ -236,6 +223,41 @@ Proof. by move=> x y; rewrite -(ltC_add2r (-x)) subrr. Qed.
 Lemma ltn_ltC: forall m n, (m < n)%N = (m%:R < n%:R).
 Proof.
 by move=> m n; rewrite !ltCE -leq_leC -eqN_eqC ltn_neqAle eq_sym.
+Qed.
+
+Lemma leC_mul2l : forall m n1 n2, 
+  0 <= m -> n1 <= n2 -> m * n1 <= m * n2.
+Proof.
+move=> m n1 n2 Hm Hn; rewrite {1}/leC -mulr_subr -[_ * _]subr0.
+by apply: posC_mul=> //; rewrite -(leC_add2r n1) add0r subrK.
+Qed.
+
+Lemma leC_mul2r : forall m n1 n2, 
+  0 <= m -> n1 <= n2 -> n1 * m <= n2 * m.
+Proof.
+by move=> m n1 n2 Hm Hn; rewrite ![_ * m]mulrC leC_mul2l.
+Qed.
+
+Lemma leC_pmul2l : forall m n1 n2, 0 < m -> (m * n1 <= m * n2) = (n1 <= n2).
+Proof.
+move=> m n1 n2 H; apply/idP/idP=> HH; last by apply: leC_mul2l; case/andP: H.
+by rewrite -leC_sub -(posC_mulr _ H) mulr_subr leC_sub.
+Qed.
+
+Lemma leC_pmul2r : forall m n1 n2, 0 < m -> (n1 * m  <= n2 * m) = (n1 <= n2).
+Proof.
+by move=> m n1 n2 H; rewrite ![_* m]mulrC leC_pmul2l.
+Qed.
+
+Lemma leC_square : forall a b : C,
+   0 <= a -> a <= b -> (a^+2 <= b^+2).
+Proof.
+move=> a b Ha Hb; rewrite -leC_sub.
+have->: b^+2 - a^+2 = (b - a) * (b + a).
+  rewrite mulr_addr !mulr_subl -!addrA; congr (_ + _).
+  by rewrite [a*b]mulrC addrA addNr add0r.
+apply: posC_mul; first by rewrite leC_sub.
+by apply: posC_add=> //; apply: leC_trans Hb.
 Qed.
 
 Lemma posC_unit_exp : forall x n, 0 <= x ->  (x ^+ n.+1 == 1) = (x == 1).
