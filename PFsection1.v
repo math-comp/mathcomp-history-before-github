@@ -159,6 +159,39 @@ case=> I1iG; move/eqP<-; apply/rcosetP.
 by exists 1%g; rewrite ?mul1g // ?(group1 (inertia_group HnG i)).
 Qed.
 
+Notation "f ^ g" := (cfun_conj f g) : character_scope.
+Delimit Scope character_scope with CH.
 
+(*  This 1.5b *)
+Lemma induced_prod_index : 
+  forall (G H : {group gT}) (HnG : H <| G) (i : irr_class H),
+    '['{i ^[ G , H ]},'{i ^[ G , H ]}]@G = #|inertia HnG i : H|%:R.
+Proof.
+move=> G H HnG i; have CFi := irr_in_cfun i; have HsG := normal_sub HnG.
+rewrite -freciprocity ?induced_in_cfun //.
+have->: '[i, '{'{i ^[ G, H]} | H} ]@H =
+  #|inertia HnG i : H|%:R *
+    '[i, \sum_(j \in rcosets (inertia HnG i) G) cfun_conj i (repr j)]@H.
+ rewrite !inner_prodE mulrA [_%:R * _]mulrC -mulrA -[_%:R * _]mulr_sumr.
+ congr (_ * _); apply: eq_bigr=> h HiH.
+ rewrite mulrA [_%:R * _]mulrC -mulrA; congr (_ * _).
+ by rewrite (induced_sum_rcosets HnG) // !cfunE rmorphM conjC_nat.
+rewrite raddf_sum (bigD1 (inertia HnG i :* 1%g)) /=; last first.
+  by apply/rcosetsP; exists 1%g; rewrite ?group1.
+have F1: repr (inertia HnG i :* 1) \in inertia HnG i.
+  by rewrite -{2}[inertia HnG i]rcoset1 mem_repr_rcoset.
+rewrite big1 ?addr0=> [|j].
+  by rewrite (is_irr_inner HnG) ?(F1,mulr1,subsetP (inertia_sub HnG i)).
+case/andP; case/rcosetsP=> g GiG -> Heq.
+rewrite (is_irr_inner HnG); last first.
+  have: inertia HnG i :* g \subset G.
+    apply/subsetP=> h; case/rcosetP=> k KiI ->.
+    by rewrite groupM // (subsetP (inertia_sub HnG i)).
+  by move/subsetP; apply; apply: mem_repr_rcoset.
+case E1: (_ \in _)=> //; case/eqP: Heq.
+rewrite rcoset1 rcoset_id //.
+have: repr (inertia_group HnG i :* g) \in inertia HnG i by [].
+by case: repr_rcosetP=> h HiI HGiH; rewrite -(groupMl _ HiI).
+Qed.
 
 End Main.

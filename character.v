@@ -858,7 +858,7 @@ move=> i; rewrite !mxE enum_rankK_in // mul1g /gring_index.
 by case: (i == _)=> //; rewrite mul0r.
 Qed.
 
-(* This corresponds to Issac Th. 2.12 *)
+(* This corresponds to Isaacs' Th. 2.12 *)
 Lemma gring_row_e : forall i: irr_class, 
   gring_row ('E_ i) = \row_j (#|G|%:R^-1 * i 1%g * i ((enum_val j)^-1)%g).
 Proof.
@@ -1729,7 +1729,7 @@ Qed.
 Let card_neq0 : #|G|%:R^-1 != 0 :> C.
 Proof. by rewrite invr_eq0 neq0GC. Qed.
 
-(* Painfully following Issac's proof 2.14 *)
+(* Painfully following Isaacs' proof 2.14 *)
 Lemma irr_first_orthogonal_relation : forall i j: irr_class G,
  (#|G|%:R^-1 * \sum_(g \in G) i g * (j g)^*)%R = (i == j)%:R.
 Proof.
@@ -2006,7 +2006,7 @@ move=> chi1 chi2.
 by rewrite !inner_prod_char //; apply: eq_bigr=> i _; rewrite mulrC.
 Qed.
 
-Lemma char_irreducibleP : forall (chi : character G),
+Lemma char_irreducibleE : forall (chi : character G),
   is_irr G chi = ('[chi, chi] == 1).
 Proof.
 move=> chi; apply/is_irrP/eqP=> [[i ->]|].
@@ -2475,7 +2475,7 @@ suff->: coset (G^`(1))%G 1%g = 1%g by case/andP: HH.
 by apply: coset_id; exact: group1.
 Qed.
 
-(* This corresponds to Issac's 2.23(a) *) 
+(* This corresponds to Isaacs' 2.23(a) *) 
 Lemma derive_at_cap : forall (G : {group gT}),
    (G^`(1) = \bigcap_(i : irr_class G | clinear G i) cker G i)%g.
 Proof.
@@ -2486,7 +2486,7 @@ Qed.
 Local Notation "'{ f '^/' N }" := (qfun_of_cfun N f).
 Local Notation "'{ f '^()' }" := (cfun_of_qfun f).
 
-(* Issac's 2.23(b) *)
+(* Isaacs' 2.23(b) *)
 Lemma card_linear : forall (G : {group gT}),
   #|[pred i: irr_class G | clinear G i]| = #|G : G^`(1)%g|.
 Proof.
@@ -2552,7 +2552,7 @@ case/andP=> InG2; case/is_scalar_mxP=> k2 Hk2 HH.
 by rewrite HH groupM // repr_mxM // Hk1 Hk2 -scalar_mxM scalar_mx_is_scalar.
 Qed.
 
-(* Issac's 2.27a *)
+(* Isaacs' 2.27a *)
 Lemma char_rcenterP : forall n (rG : mx_representation C G n), 
   ccenter (char G rG) = rcenter rG.
 Proof.
@@ -2603,10 +2603,10 @@ rewrite inE !cfunE; case/andP=> GiG; case/is_scalar_mxP=> k rGK HiG.
 by rewrite !(groupM,GiG,HiG,mul1r) // !repr_mxM // rGK scalar_mxC.
 Qed.
 
-(* Issac's 2.27b *)
+(* Isaacs' 2.27b *)
 Canonical Structure ccenter_group f := Group (ccenter_group_set f).
 
-(* Issac's 2.27b *)
+(* Isaacs' 2.27b *)
 Lemma ccenter_sub : forall f, ccenter f \subset G.
 Proof.
 move=> f; case: (boolP (is_char G f))=> Hf; last first.
@@ -2640,7 +2640,7 @@ Qed.
 
 Local Notation "'{ f | G }" := (crestrict G f).
 
-(* Issac's 2.27c *)
+(* Isaacs' 2.27c *)
 Lemma ccenter_restrict : forall (f : character G),
   exists2 lambda : character [group of ccenter f],
      clinear  [group of ccenter f] lambda & 
@@ -2686,7 +2686,7 @@ Proof.
 by move=> G1 f g; rewrite /cker is_char_character inE; case/andP=> _; move/eqP.
 Qed.
 
-(* Issac's 2.27d *)
+(* Isaacs' 2.27d *)
 Lemma ccenter_cyclic: forall (f : character G), f != 0%CH -> cyclic (ccenter f/cker G f)%g.
 Proof.
 move=> f Hf; pose G' := [group of ccenter f].
@@ -2728,7 +2728,7 @@ rewrite /= char_ckerE inE (clinear1 H1l)  //.
 by case/andP=> _ HH1; apply/eqP.
 Qed.
 
-(* Issac's 2.27e *)
+(* Isaacs' 2.27e *)
 Lemma ccenter_subset_center : forall f : character G, 
   (ccenter f/cker G f)%g \subset 'Z(G/cker G f)%g.
 Proof.
@@ -2751,7 +2751,7 @@ rewrite !mulmxA Hk -scalar_mxC -Hk repr_mxK // -repr_mxM ?groupV//.
 by rewrite mulgV repr_mx1 eqxx.
 Qed.
 
-(* Issac's 2.27f*)
+(* Isaacs' 2.27f*)
 Lemma ccenter_eq_center : forall i : irr_class G, 
   (ccenter i/cker G i)%g ='Z(G/cker G i)%g.
 Proof.
@@ -2910,13 +2910,13 @@ pose H := [group of (ccenter i)].
 have F1 : H \subset G by apply: (ccenter_sub _).
 rewrite -[_%:R]mulr1.
 have: is_irr G i by apply: is_irr_irr.
-rewrite char_irreducibleP; move/eqP=>HH; rewrite -{2}HH.
+rewrite char_irreducibleE; move/eqP=>HH; rewrite -{2}HH.
 suff{HH}->: (i 1%g)^+2 = '['{i|H},'{i|H}]@H.
   by apply: (@crestrict_sub_inner_bound H i F1).
 case (@ccenter_restrict (character_of_irr i))=> l Hl ->.
 rewrite inner_prodZ -inner_prodbE linearZ /= inner_prodbE.
 move: (clinear_is_irr Hl).
-rewrite char_irreducibleP; move/eqP->.
+rewrite char_irreducibleE; move/eqP->.
 rewrite ?expr2 isNatC_conj; last by apply: isNatC_character1.
 by rewrite /GRing.scale /= mulr1.
 Qed.
@@ -3100,7 +3100,7 @@ move=> f HsG; rewrite cfunE (eq_bigr (fun _ => f 1%g)).
 by move=> i; rewrite conj1g.
 Qed.
 
-(* Issac's 5.2 *)
+(* Isaacs' 5.2 *)
 Lemma freciprocity : forall f1 f2,
   H \subset G -> f1 \in 'CL[C](H) -> f2 \in 'CL[C](G)->
    '[f1,'{f2|H}]@H = '['{f1^[]},f2]@G.
@@ -3172,6 +3172,10 @@ End Induced.
 
 Section Inertia.
 
+Local Notation "''CL[' R ] ( G ) " := (class_fun R G).
+Local Notation "'[ u , v  ]@ G":=  (inner_prod (val G) u v) (at level 10).
+Local Notation "'{ f | G }" := (crestrict G f).
+
 Variable gT : finGroupType.
 Variable (G H : {group gT}).
 Hypothesis HnG : H <| G.
@@ -3179,13 +3183,15 @@ Hypothesis HnG : H <| G.
 Definition cfun_conj (f : cfun_type C gT) (g : gT) :=
   cfun_of_fun (fun h => f (h^(g^-1))).
 
-Lemma cfun_conjE : forall f g h, cfun_conj f g h = f (h^(g^-1)).
+Notation "f ^ g" := (cfun_conj f g) : character_scope.
+Delimit Scope character_scope with CH.
+
+Lemma cfun_conjE : forall f g h, (f ^ g)%CH h = f (h^(g^-1)).
 Proof. by move=> f g h; rewrite cfunE. Qed.
 
-Local Notation "''CL[' R ] ( G ) " := (class_fun R G).
-
+(* Isaacs' 6.1.a *)
 Lemma cfun_conj_in_cfun : forall f g, g \in G ->
-  f \in 'CL[C](G) -> cfun_conj f g \in 'CL[C](G).
+  f \in 'CL[C](G) -> (f^g)%CH \in 'CL[C](G).
 Proof.
 move=> f g GiG CLf.
 apply/cfun_memP; split=> [h HniG|h1 h2 H1iG H2iG].
@@ -3216,7 +3222,7 @@ Proof. by move=> i; apply/subsetP=> g; rewrite inE; case/andP. Qed.
 
 Lemma cfun_conj_eqE : forall (i : irr_class H) (x y : gT),
  x \in G -> y \in G ->
- (cfun_conj i x == cfun_conj i y) = (y \in (inertia HnG i :* x)).
+ (i^x == i^y)%CH = (y \in (inertia HnG i :* x)).
 Proof.
 move=> i x y XiG YiG; apply/eqP/rcosetP=> [Hx|]; last first.
   case=> g; rewrite inE; case/andP=> GiG; move/eqP=> CCi ->.
@@ -3249,6 +3255,79 @@ apply/eqP; apply/cfunP=> h2; case: (boolP (h2 \in H))=> [H2iH|H2niH].
 rewrite cfunE !(cfun0 (irr_in_cfun i)) //.
 apply/negP=> HH; case/negP: H2niH.
 by rewrite -(groupJr _ (groupVr H1iH)).
+Qed.
+
+(* Isaacs' 6.1.b *)
+Lemma cfun_conjM : forall (f : cfun_type C gT) (g h : gT), 
+ (f ^ (g * h) = (f ^ g) ^ h)%CH.
+Proof. by move=> f g h; apply/cfunP=> k; rewrite !cfun_conjE invMg conjgM. Qed.
+
+(* Isaacs' 6.1.c *)
+Lemma cfun_conj_inner : forall (f1 f2 : cfun_type C gT) (g : gT),
+ g \in G -> ('[f1^g,f2^g]@H = '[f1,f2]@H)%CH.
+Proof.
+move=> f1 f2 g GiG; rewrite !inner_prodE.
+congr (_ * _).
+rewrite (reindex (conjg^~ g)); last first.
+  by exists (conjg^~ g^-1%g)=> h; rewrite -conjgM (mulVg,mulgV) conjg1.
+apply: eq_big=> [|h HiG].
+  by move=> h; apply: memJ_norm; apply: (subsetP (normal_norm HnG)).
+by rewrite !cfun_conjE -!conjgM mulgV conjg1.
+Qed.
+
+(* Isaacs' 6.1.d *)
+Lemma cfun_conj_inner_rest : forall (f1 f2 : cfun_type C gT) (g : gT),
+ f1 \in 'CL[C](G) ->  g \in G -> 
+   ('['{f1|H},f2^g]@H = '['{f1|H},f2]@H)%CH.
+Proof.
+move=> f1 f2 g CLf GiG.
+rewrite -['[_,f2]@H](cfun_conj_inner _ _ GiG).
+rewrite !inner_prodE; congr (_ * _).
+apply: eq_bigr=> h HiH; congr (_ * _); rewrite !cfunE (cfunJ CLf) ?groupV //.
+  by rewrite memJ_norm // (subsetP (normal_norm HnG)) // groupV.
+by apply: (subsetP (normal_sub HnG)).
+Qed.
+
+Lemma is_char_conj : forall (f : character H) g, 
+  g \in G -> is_char H (f^g)%CH.
+Proof.
+move=> f g GiG; case: (charRE f)=> n [rG <-].
+have mx_reprj: mx_repr H (fun x => rG (x^(g^-1%g))).
+  split=> [|h1 h2 H1iH H2iH]; first by rewrite conj1g repr_mx1.
+  by rewrite conjMg repr_mxM ?(memJ_norm, groupV, (subsetP (normal_norm HnG))).
+apply/is_charRP; exists n; exists (MxRepresentation mx_reprj).
+by apply/cfunP=> h; rewrite !cfunE ?(memJ_norm, groupV, (subsetP (normal_norm HnG))).
+Qed.
+
+(* Isaac's 6.1.e *)
+Definition character_conj (f : character H) g (GiG : g \in G) :=
+  Character (is_char_conj f GiG).
+
+Definition character_conjE : forall (f : character H) g (GiG : g \in G),
+  character_conj f GiG = (f^g)%CH :> cfun_type _ _.
+Proof. by move=> f g GiG; apply/cfunP=> h; rewrite cfunE. Qed.
+
+Lemma is_irr_conj : forall (i : irr_class H) g (GiG : g \in G), 
+  is_irr H (character_conj (character_of_irr i) GiG)%CH.
+Proof.
+move=> i g GiG; rewrite char_irreducibleE character_conjE cfun_conj_inner //.
+by rewrite -char_irreducibleE is_irr_irr.
+Qed.
+ 
+Definition irr_conj (i : irr_class H) g (GiG : g \in G) :=
+  get_irr H (character_conj (character_of_irr i) GiG)%CH.
+
+Lemma irr_conjE : forall (i : irr_class H) g (GiG : g \in G),
+  irr_conj i GiG = (i^g)%CH :> cfun_type _ _.
+Proof. by move=> i g GiG; rewrite get_irrE // is_irr_conj. Qed.
+
+Lemma is_irr_inner : forall (i : irr_class H) g (GiG : g \in G),
+  '[i,(i^g)%CH]@H = (g \in inertia HnG i)%:R.
+Proof.
+move=> i g GiG; rewrite -(irr_conjE i GiG) irr_orthonormal.
+rewrite inE GiG eq_sym /=; congr (_%:R); congr nat_of_bool.
+apply/eqP/eqP=> HH; last by apply: irr_cfun_inj; rewrite irr_conjE.
+by rewrite -(irr_conjE i GiG) HH.
 Qed.
 
 End Inertia.
