@@ -260,6 +260,15 @@ move/forallP; move/(_ (g ^: G)); move/implyP; move/(_ (mem_classes InG)).
 by case: #|_| (F1 _ InG)=> // [] [].
 Qed.
 
+Lemma class_inv: forall (gT : finGroupType) (G : {group gT}) g,
+  (g ^: G)^-1%g = g^-1 ^: G.
+Proof.
+move=> gT G g; apply/setP=> h; rewrite inE.
+apply/imsetP/imsetP; case=> l LiG H.
+  by exists l=> //; rewrite conjVg -H invgK.
+by exists l=> //; rewrite H conjVg invgK.
+Qed.
+
 Section AlgC.
 
 Variable (gT : finGroupType).
@@ -631,6 +640,10 @@ Proof. by move=> gT f g; rewrite cfunE. Qed.
 
 Lemma cfun_conjCK: forall gT (f : cfun C gT), (f^*^*)%CH = f.
 Proof. by move=> gT f; apply/cfunP=> g; rewrite !cfunE conjCK. Qed.
+
+Lemma cfun_conj_conjC : forall gT (f : cfun C gT) (g : gT),
+  (f^g)^*%CH = (f^* ^ g)%CH.
+Proof. by move=> gT f g; apply/cfunP=> h; rewrite !cfunE. Qed.
 
 Section Char.
 
@@ -1755,6 +1768,20 @@ rewrite cfunE posC_mul //; last first.
 by rewrite posC_isNatC // (char_isNatC_ncoord j f).
 Qed.
 
+Lemma is_char_conjC : forall f : character, is_char G (f^*)%CH.
+Proof.
+move=> f; case: (charRE f)=> n [rG <-].
+apply/is_charRP; exists n; exists (map_repr conjC rG).
+by apply/cfunP=> h; rewrite !cfunE map_reprE trace_map_mx rmorphM conjC_nat.
+Qed.
+
+Canonical Structure character_conjC (f : character) :=
+  Character (is_char_conjC f).
+
+Definition character_conjCE : forall (f : character),
+  character_conjC f = (f^*)%CH :> cfun _ _.
+Proof. by move=> f; apply/cfunP=> h; rewrite cfunE. Qed.
+
 End Character.
 
 Notation "0" := (character0 _) : character_scope.
@@ -1801,6 +1828,11 @@ rewrite cfunE (clinearV_norm Cf) ?cycle_id //.
 have F3: isNatC (ncoord i (char <[g]> rG'))
   by rewrite ncoord_char; apply: isNatC_nat.
 by rewrite -{1}(isNatC_conj F3) {1}/GRing.scale /= -rmorphM ?cfunE.
+Qed.
+
+Lemma character_inv : forall (f : character G) g, f g^-1%g = (f g)^*.
+Proof.
+move=> f g; case: (charRE f)=> n [rG <-]; exact: char_inv.
 Qed.
 
 Let card_neq0 : #|G|%:R^-1 != 0 :> C.
@@ -1970,6 +2002,10 @@ Definition inner_prod (G : {set gT}) (f g : cfun _ _) :=
 
 Local Notation "'[ f , g ]" := (inner_prod (val G) f g) (at level 0).
 
+Lemma inner_prodE: forall (f g : cfun _ _),
+  '[f,g] = #|G|%:R^-1 * \sum_(i \in G) f i * (g i)^*.
+Proof. by []. Qed.
+
 Let card_conj : (#|G|%:R^-1)^* = #|G|%:R^-1.
 Proof. by rewrite posC_conjK // posC_inv posC_nat. Qed.
 
@@ -2111,6 +2147,34 @@ rewrite ncoord_irr; case: eqP=> [<-|]; last first.
   by move/eqP; rewrite mulf_eq0; case/orP; rewrite Hchi; move/eqP.
 case/isNatCP: (char_isNatC_ncoord i chi) HF=> m ->; move/eqP=> HH1; apply/eqP.
 by move: HH1; rewrite -natr_mul -eqN_eqC -(eqN_eqC _ 1); case: m=> //; case.
+Qed.
+
+Lemma cfun_conjC_inner : forall f1 f2 : cfun C gT,
+ ('[f1^*,f2^*])%CH = '[f1,f2]^*.
+Proof.
+move=> f1 f2; rewrite !inner_prodE rmorphM conjC_inv conjC_nat.
+congr (_ * _); rewrite (big_morph _ (rmorphD conjC) conjC0); apply: eq_bigr.
+by move=> g GiG; rewrite !cfunE rmorphM.
+Qed.
+
+Lemma is_irr_conjC : forall (i : irr G), 
+  is_irr G (character_conjC (character_of_irr i))%CH.
+Proof.
+move=> i; rewrite char_irreducibleE character_conjCE cfun_conjC_inner //.
+apply/eqP; rewrite -conjC1; congr (_^*); apply/eqP.
+by rewrite -char_irreducibleE is_irr_irr.
+Qed.
+ 
+Definition irr_conjC (G : {group gT}) (i : irr G) :=
+  get_irr G (character_conjC (character_of_irr i))%CH.
+
+Lemma irr_conjCE : forall i : irr G,
+  irr_conjC i = (i^*)%CH :> cfun _ _.
+Proof. by move=> i; rewrite get_irrE // is_irr_conjC. Qed.
+
+Lemma irr_conjCK : involutive (@irr_conjC G).
+Proof.
+by move=> i; apply: irr_cfun_inj; rewrite !irr_conjCE cfun_conjCK.
 Qed.
 
 End InnerProduct.
@@ -2920,10 +2984,6 @@ have->: rGi (g^-1)%g *m rGi (h^-1)%g *m rGi h *m rGi g = rGi (g^-1)%g *m rGi g.
    by congr (_ *m _); apply: (repr_mxKV rGi InH).
 by rewrite -repr_mxM ?groupV // mulVg repr_mx1.
 Qed.
-
-Lemma inner_prodE: forall (G : {group gT}) (f g : cfun _ _),
-  '[f,g]@G = #|G|%:R^-1 * \sum_(i \in G) f i * (g i)^*.
-Proof. by []. Qed.
  
 Lemma inner_subl: forall (H : {group gT}) (f1 f2 : cfun _ _), 
   H \subset G ->  (forall g, g \in G :\: H -> f1 g = 0) -> 
@@ -3198,6 +3258,14 @@ rewrite !mulrA [_/_]mulrC mulfVK ?neq0GC //; congr (_ * _).
 apply: eq_big=> [g|g]; rewrite negbK.
   by case E1: (g \in H); rewrite ?andbF // (subsetP HsG _ (idP E1)).
 by case/andP=> _ GiH; rewrite crestrictE.
+Qed.
+
+Lemma induced_conjC : forall f, ('Ind f)^*%CH = 'Ind (f^*)%CH.
+Proof.
+move=> f; apply/cfunP=> g.
+rewrite !cfunE rmorphM conjC_inv conjC_nat; congr (_ * _).
+rewrite rmorph_sum; apply: eq_bigr=> h HiG.
+by rewrite cfunE.
 Qed.
 
 Lemma is_char_induced : forall (f : character H),

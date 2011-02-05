@@ -19,7 +19,183 @@ Local Open Scope ring_scope.
 
 Section Main.
 
+(* This corresponds to Isaacs' 6.32 *)
+Lemma action_irr_class_card : 
+  forall (aT gT : finGroupType) (A : {group aT}) (G : {group gT})  
+         (ito : action A (irr G))  (cto : action A {set gT}) a,
+   a \in A -> {acts A, on (classes G) | cto} -> 
+   (forall c (i : irr G),  c \in classes G -> i (repr c) = ito i a (repr (cto c a))) ->
+     #|'Fix_ito[a]| = #|'Fix_(classes G| cto)[a]|.
+Proof.
+move=> aT gT A G ito cto a AiA Acto H.
+ (* borrowed to the second orthogonality proof *)
+have F0: forall j, (j < #|irr G| -> j < #|classes G|)%N 
+  by move=> j; rewrite card_irr.
+pose f i := Ordinal (F0 _ (ltn_ord i)).
+have G0: forall j, (j < #|classes G| -> j < #|irr G|)%N 
+  by move=> j1; rewrite card_irr.
+pose g i := Ordinal (G0 _ (ltn_ord i)).
+have FG: forall i, f (g i) = i by move=> i; apply/val_eqP.
+have GF: forall i, g (f i) = i by move=> i; apply/val_eqP.
+pose X := \matrix_(i < #|irr G|, j < #|irr G|) 
+  ((enum_val i) (repr (enum_val (f j)))).
+pose Y := \matrix_(i < #|irr G|, j < #|irr G|) 
+  (let C := enum_val (f i) in #|C|%:R * (#|G|%:R^-1 * (enum_val j) (repr C))^*).
+have F2: X *m Y = 1%:M.
+  apply/matrixP=> i j; rewrite !mxE.
+  have->: (i == j) = (enum_val i == enum_val j).
+    by apply/eqP/eqP; [move-> | exact: enum_val_inj].
+  rewrite -irr_first_orthogonal_relation -mulr_sumr cfun_sum; last first.
+    move=> g1 g2 Hg1 Hg2.
+    by rewrite -!char_inv  -conjVg !(cfunJ (char_in_cfun _)) ?groupV.
+  rewrite (reindex g) /=; last by apply: onW_bij; exists f=> i1; apply/val_eqP.
+  rewrite (reindex (@enum_val _ (fun x => x \in classes G))) /=; last first.
+    by apply: (enum_val_bij_in (mem_classes (group1 G))).
+  apply: eq_big=> [i1|i1 _]; first by rewrite enum_valP.
+  rewrite !mxE /= FG mulrC -!mulrA; congr (_ * _).
+  by rewrite rmorphM fmorphV ?conjC_nat // -mulrA [enum_val i _ * _]mulrC.
+ (****************************************)
+pose Pa : 'M[C]_ _ := 
+  \matrix_(i < #|irr G|, j < #|irr G|) (ito (enum_val i) a == (enum_val j))%:R.
+apply/eqP; rewrite eqN_eqC.
+have <-: \tr Pa = #|'Fix_ito[a]|%:R.
+  rewrite /mxtrace (bigID (fun u => (enum_val u) \in 'Fix_ito[a])) /=.
+  rewrite (eq_bigr (fun u => 1%:R)); last first.
+    move=> i; rewrite inE mxE; move/subsetP=> Hi.
+    case: eqP=> // Hv; case: Hv; apply/eqP.
+    by move: (Hi a); rewrite !inE; apply.
+  rewrite sumr_const big1 ?addr0; last first.
+    move=> i; rewrite inE mxE; move/subsetP=> Hi.
+    by case: eqP=> // Hv; case: Hi=> b; rewrite !inE; move/eqP->; rewrite Hv.
+  rewrite -mulr_natl mulr1 /= -(card_imset  (pred_of_set 'Fix_ito[a]) (@enum_rank_inj _)).
+  apply/eqP; rewrite -eqN_eqC; apply/eqP; apply: eq_card=> i.
+  apply/idP/imsetP; first by move=> j; exists (enum_val i)=> //; rewrite enum_valK.
+  by case=> j Hj ->; rewrite /in_mem /= enum_rankK.
+pose Qa : 'M[C]_ _ := 
+  \matrix_(i < #|irr G|, j < #|irr G|) (cto (enum_val (f i)) a == (enum_val (f j)))%:R.
+have <-: \tr Qa = #|'Fix_(classes G | cto)[a]|%:R.
+  rewrite /mxtrace (bigID (fun u => (enum_val (f u)) \in 'Fix_(classes G | cto)[a])) /=.
+  rewrite (eq_bigr (fun u => 1%:R)); last first.
+    move=> i; rewrite !inE !mxE; case/andP=> H1i; move/subsetP=> H2i.
+    case: eqP=> // Hv; case: Hv; apply/eqP.
+    by move: (H2i a); rewrite !inE; apply.
+  rewrite sumr_const big1 ?addr0; last first.
+    move=> i; rewrite !inE !mxE => Hi.
+    case: eqP=> //; move/eqP=> Hv; case/negP: Hi; rewrite enum_valP.
+    by apply/subsetP=> b; rewrite !inE; move/eqP->.
+  rewrite -mulr_natl mulr1 /=.
+  have F1: injective (enum_val \o f).
+    by move=> i j; move/enum_val_inj; move/val_eqP=> HH; apply/eqP.
+  rewrite -(card_imset _ F1).
+  apply/eqP; rewrite -eqN_eqC; apply/eqP; apply: eq_card=> i.
+  apply/imsetP/idP; first by case=> j Hj ->.
+  move=> Hi; move: (Hi); rewrite inE; case/andP=> H1i _.
+  by exists (g (enum_rank_in (classes1 _) i));  rewrite /in_mem /= FG enum_rankK_in.
+have F3: X \in unitmx by case/mulmx1_unit: F2.
+suff->: Qa = invmx X *m Pa *m X.
+  rewrite mxtrace_mulC mulmxA mulmxV ?mul1mx //.
+rewrite -[Qa]mul1mx -(mulVmx F3) -!mulmxA; congr (_ *m _).
+apply/matrixP=> u v; rewrite !mxE.
+have [oti H1o H2o]: bijective (ito ^~a).
+  apply: injF_bij; apply: act_inj.
+have [otc H1co H2co]: bijective (cto ^~a).
+  apply: injF_bij; apply: act_inj.
+have Hv : otc (enum_val (f v)) \in classes G.
+  by rewrite -(Acto a AiA) H2co enum_valP.
+pose i1 := enum_rank (ito (enum_val u) a). 
+have Hi1: ito (enum_val u) a = enum_val i1 by rewrite enum_rankK.
+pose j1 := g (enum_rank_in (classes1 G) (otc (enum_val (f v)))).
+have Hj1: cto (enum_val (f j1)) a = enum_val (f v).
+  by rewrite FG enum_rankK_in ?H2co.
+rewrite (bigD1 j1) // big1 /= ?addr0 => [|i Dii1]; last first.
+  rewrite !mxE; case: eqP; rewrite ?mulr0 // -Hj1.
+  by move/(can_inj H1co); move/enum_val_inj; move/val_eqP=> /==> HH; case/negP: Dii1.
+ (* too slow ! 
+rewrite (bigD1 i1) // big1 /= ?addr0=> [|i Dii1]; last first.
+ *)
+ have->: \sum_(j < #|irr G|) Pa u j * X j v = Pa u i1 * X i1 v.
+  rewrite {1}(bigD1 i1) // big1 /= ?addr0=> [|i Dii1] //.
+  rewrite !mxE; case: eqP; rewrite ?mul0r // Hi1.
+  by move/enum_val_inj=> HH; case/eqP: Dii1.
+rewrite !mxE Hi1 Hj1 !(eqxx, mulr1, mul1r).
+by rewrite H FG enum_rankK_in // H2co  enum_rankK.
+Qed.
+
 Variable (gT : finGroupType).
+
+(* This corresponds to 1.1 in PF *)
+Lemma odd_eq_conj_irr1 : forall (G : {group gT}) (i : irr G),
+  odd #|G| -> ((i^*)%CH == i) = (i == irr1 G).
+Proof.
+move=> G i OG; apply/eqP/eqP=> [Hi|->]; last first.
+  by apply/cfunP=> g; rewrite cfunE irr1E conjC_nat.
+pose a := (@Zp1 1).
+have Aito: is_action <[a]> (fun (i : irr G) v => if v == a then irr_conjC i else i).
+  split=> [[[|[]]] //= _  j1 j2 Hj |j [[|[]]] // HH1 [[|[]]] // HH2 ] //=.
+    by rewrite -[j1]irr_conjCK Hj irr_conjCK.
+  by rewrite irr_conjCK.
+pose ito := Action Aito.
+have Acto: is_action <[a]> (fun (c : {set gT}) v => if v == a then c^-1%g else c).
+  split=> [[[|[]]] //= _  j1 j2 Hj |j [[|[]]] // HH1 [[|[]]] // HH2 ] //=.
+    by rewrite -[j1]invgK Hj invgK.
+  by rewrite invgK.
+pose cto := Action Acto.
+have F1: {acts <[a]>, on (classes G) | cto}.
+  move=> j Hj /= c; case: (_ == _) => //.
+  apply/imsetP/imsetP=> [] [g GiG Hc]; exists (g^-1)%g; rewrite ?groupV //.
+    by rewrite -[c]invgK Hc class_inv.
+  by rewrite Hc class_inv.
+have F2:  forall c (i : irr G),  c \in classes G ->
+   i (repr c) = ito i a (repr (cto c a)).
+  move=> c j CiG /=.
+  rewrite irr_conjCE cfun_conjCE -character_inv /=.
+  case/imsetP: CiG=> g GiG ->; rewrite class_inv.
+  case: (repr_class G g)=> h1 H1iG ->.
+  case: (repr_class G g^-1)=> h2 H2iG ->.
+  by rewrite conjVg invgK !(cfunJ (irr_in_cfun _)).
+have F3: forall c, c \in classes G -> c^-1%g = c -> c = 1%g.
+  move=> c; case/imsetP => g GiG ->; rewrite class_inv => Hg.
+  move: (class_refl G g^-1); rewrite Hg; case/imsetP=> x XiG Hx.
+  have F4: (x ^+ 2)%g \in 'C_G[g].
+    apply/subcent1P; split; rewrite ?groupM //.
+    apply: (mulgI (x * x * g)^-1%g).
+    rewrite mulVg !invMg Hx conjgE !mulgA mulgK.
+    rewrite -[(_ * g * x)%g]mulgA -[(_ * (g * _))%g]mulgA -conjgE.
+    by rewrite -Hx mulgK mulVg.
+  have F5 : x \in 'C_G[g].
+    suff->: (x = (x ^+ 2)^+ (#|G| %/2).+1)%g by apply: groupX.
+    rewrite -expgn_mul -[(_%/_).+1]addn1 muln_addr muln1 -{3}addn1 addnA.
+    move: (modn2 #|G|); rewrite {1}OG /= => HH; rewrite -{3}HH.
+    rewrite [(2 * _)%N]mulnC -divn_eq expgn_add expg1.
+    by move: (order_dvdG XiG); rewrite order_dvdn; move/eqP->; rewrite mul1g.
+  move: Hx; rewrite conjgE; case/subcent1P: F5=> _ ->.
+  rewrite mulgA mulVg mul1g => HH.
+  have F6: (g^+2 == 1)%g by rewrite expgS -{1}HH expg1 mulVg.
+  suff: #[g] == 1%N by rewrite order_eq1; move/eqP->; apply: class1G.
+  move: F6 (order_gt0 g) (order_dvdG GiG); rewrite -order_dvdn.
+  move/(dvdn_leq (is_true_true: (0<2)%N)); case: #[_]=> // [[|[]]] //.
+  by rewrite dvdn2 OG.
+apply/eqP; case: (boolP (i == irr1 G))=> // Hd.
+move: (action_irr_class_card (cycle_id a) F1 F2).
+have->: #|'Fix_(classes G | cto)[a]| = 1%N.
+  apply: (@eq_card1 _ 1%g)=> c; apply/idP/idP; rewrite !inE.
+    case/andP=> GiG HH; apply/eqP; apply: F3=> //; apply/eqP.
+    by move/subsetP: HH; move/(_ a); rewrite !inE eqxx; apply.
+  move/eqP->; rewrite classes1.
+  apply/subsetP=> b; rewrite !inE; move/eqP=> -> /=.
+  by rewrite invg1.
+rewrite (cardD1 (irr1 G)).
+have->: irr1 G \in 'Fix_ito[a].
+  apply/afixP=> b; rewrite !inE; move/eqP->; rewrite /=.
+  apply: irr_cfun_inj; apply/cfunP=> g.
+  by rewrite irr_conjCE cfun_conjCE !irr1E conjC_nat.
+rewrite (cardD1 i) //.
+suff->: i \in [predD1 'Fix_ito[a] & irr1 G] by [].
+rewrite inE /= Hd.
+apply/afixP=> b; rewrite !inE; move/eqP->; rewrite /=.
+apply: irr_cfun_inj; apply/cfunP=> g.
+by rewrite irr_conjCE Hi.
+Qed.
 
 (* This corresponds to 1.2 in PF *)
 Lemma not_in_ker_char0: forall (H G: {group gT}) (i : irr G) g,
@@ -179,15 +355,32 @@ rewrite-scalerA scaler_sumr; congr (_ *: _); apply: eq_bigr=> C1 IC1.
 by rewrite cfun_conj_val1.
 Qed.
 
- (*
 (* This is PF 1.5(e) *)
-Lemma induced_orthogonal : 
-  forall (G H : {group gT}) (HnG : H <| G) (i : irr_class H),
-  let chi :=  '{i ^[ G , H ]} in
-  (chi 1%g / '[chi,chi]@G) *: '{chi|H}  = #|G : H|%:R *:
-       \sum_(j \in rcosets (inertia HnG i) G) (i ^ (repr j))%CH 1%g *: (i ^ (repr j))%CH.
- *)
-  
+Lemma odd_induced_orthogonal : 
+  forall (G H : {group gT}) (HnG : H <| G) (i : irr H),
+  odd #|G| -> i != irr1 H -> '['Ind[G,H]i,('Ind[G,H]i)^*%CH]@G = 0. 
+Proof.
+move=> G H HnG i OG Dii1.
+move: (is_conjugate_irr_induced HnG i (irr_conjC i)).
+case: (boolP (is_conjugate G i (irr_conjC i))); last first.
+  rewrite induced_conjC => _ <-.
+  rewrite !inner_prodE; congr (_ * _); apply: eq_bigr=> g GiG.
+  by rewrite irr_conjCE.
+case/is_conjugateP=> g GiG; rewrite irr_conjCE=> HH.
+have OH: odd #|H|.
+  by apply: (dvdn_odd _ OG); apply: cardSg; apply: normal_sub.
+case/negP: Dii1; rewrite -odd_eq_conj_irr1 // HH.
+have F1: (i ^ (g ^+ 2))%CH = i.
+  by rewrite cfun_conjM -HH -cfun_conj_conjC -HH cfun_conjCK.
+suff->: g = ((g ^+ 2)^+ (#|G| %/2).+1)%g.
+  elim: (_ %/2).+1=> [|n IH]; first by rewrite expg0 cfun_conj1.
+  by rewrite expgS cfun_conjM F1.
+rewrite -expgn_mul -[(_%/_).+1]addn1 muln_addr muln1 -{3}addn1 addnA.
+move: (modn2 #|G|); rewrite {1}OG /= => HH1; rewrite -{3}HH1.
+rewrite [(2 * _)%N]mulnC -divn_eq expgn_add expg1.
+by move: (order_dvdG GiG); rewrite order_dvdn; move/eqP->; rewrite mul1g.
+Qed.
+
 
 (* This is PF 1.8 *)
 Lemma irr1_bound_quo : forall (G H1 H2 H3 : {group gT}) (i : irr G),
