@@ -1523,6 +1523,97 @@ ARGUMENT EXTEND ssrhyps TYPED AS ssrhyp list PRINTED BY pr_ssrhyps
   | [ ssrhyp_list(hyps) ] -> [ check_hyps_uniq [] hyps; hyps ]
 END
 
+(** Term references *)
+
+(* Because we allow wildcards in term references, we need to stage the *)
+(* interpretation of terms so that it occurs at the right time during  *)
+(* the execution of the tactic (e.g., so that we don't report an error *)
+(* for a term that isn't actually used in the execution).              *)
+(*   The term representation tracks whether the concrete initial term  *)
+(* started with an opening paren, which might avoid a conflict between *)
+(* the ssrreflect term syntax and Gallina notation.                    *)
+
+(* kinds of terms *)
+
+type ssrtermkind = char (* print flag *)
+
+let input_ssrtermkind strm = match Stream.npeek 1 strm with
+  | ["", "("] -> '('
+  | ["", "@"] -> '@'
+  | _ -> ' '
+
+let ssrtermkind = Gram.Entry.of_parser "ssrtermkind" input_ssrtermkind
+
+let id_of_term = function
+  | CRef (Ident (_,x)) -> x 
+  | CAppExpl (_, (_, Ident (_, x)), []) -> x
+  | x -> loc_error (constr_loc x) "Only identifiers are allowed here"
+
+let ssrhyp_of_ssrterm = function
+  | k, (_, Some c) -> SsrHyp (constr_loc c, id_of_term c), String.make 1 k
+  | _, (_, None) -> assert false
+
+(* terms *)
+
+type ssrtermrep = char * rawconstr_and_expr
+
+(* We also guard characters that might interfere with the ssreflect   *)
+(* tactic syntax.                                                     *)
+(* XXX check if '@' broke something *)
+let guard_term ch1 s i = match s.[i] with
+  | '(' -> false
+  | '{' | '/' | '=' -> true
+  | _ -> ch1 = '('
+
+let mk_term k c = k, (mkRHole, Some c)
+let mk_lterm = mk_term ' '
+
+let hole_var = mkVar (id_of_string "_")
+let pr_constr_pat c0 =
+  let rec wipe_evar c =
+    if isEvar c then hole_var else map_constr wipe_evar c in
+  pr_constr (wipe_evar c0)
+
+let pat_of_ssrterm n c =
+  let rec mkvars i =
+    let v = mkVar (id_of_string (sprintf "_pattern_var_%d_" i)) in
+    if i = 0 then [v] else v :: mkvars (i - 1) in
+  if n <= 0 then c else substl (mkvars n) (snd (decompose_lam_n n c))
+let pr_pattern n c = pr_constr (pat_of_ssrterm n c)
+
+let pr_term (k, c) = pr_guarded (guard_term k) pr_rawconstr_and_expr c
+let prl_term (k, c) = pr_guarded (guard_term k) prl_rawconstr_and_expr c
+
+let pr_ssrterm _ _ _ = pr_term
+
+let intern_term ist gl (_, c) = glob_constr ist gl c
+
+let interp_term ist gl (_, c) = interp_open_constr ist gl c
+
+let force_term ist gl (_, c) = interp_constr ist gl c
+
+let glob_ssrterm gs = function
+  | k, (_, Some c) -> k, Tacinterp.intern_constr gs c
+  | ct -> ct
+
+let subst_ssrterm s (k, c) = k, Tacinterp.subst_rawconstr_and_expr s c
+
+let interp_ssrterm _ _ t = t
+
+ARGUMENT EXTEND ssrterm
+     TYPED AS ssrtermrep PRINTED BY pr_ssrterm
+     INTERPRETED BY interp_ssrterm
+     GLOBALIZED BY glob_ssrterm SUBSTITUTED BY subst_ssrterm
+     RAW_TYPED AS ssrtermrep RAW_PRINTED BY pr_ssrterm
+     GLOB_TYPED AS ssrtermrep GLOB_PRINTED BY pr_ssrterm
+| [ "(**)" constr(c) ] -> [ mk_lterm c ]
+END
+
+GEXTEND Gram
+  GLOBAL: ssrterm;
+  ssrterm: [[ k = ssrtermkind; c = constr -> mk_term k c ]];
+END
+
 (** The "in" pseudo-tactical *)
 
 (* We can't make "in" into a general tactical because this would create a  *)
@@ -1551,22 +1642,40 @@ let pr_clseq = function
 let wit_ssrclseq, globwit_ssrclseq, rawwit_ssrclseq =
   add_genarg "ssrclseq" pr_clseq
 
-ARGUMENT EXTEND ssrclausehyps TYPED AS ssrhyps PRINTED BY pr_ssrhyps
-  | [ ssrhyp(hyp) "," ssrclausehyps(hyps) ] -> [ hyp :: hyps ]
-  | [ ssrhyp(hyp) ssrclausehyps(hyps) ] -> [ hyp :: hyps ]
-  | [ ssrhyp(hyp) ] -> [ [hyp] ]
+(* type ssrahyps = (ssrhyp * string) list *)
+
+let ahyp_id (hyp, mode) = hyp_id hyp, mode
+let ahyps_ids = List.map ahyp_id
+let check_ahyps_uniq a b = check_hyps_uniq a (List.map fst b)
+
+let pr_ahyp (SsrHyp (_, id), mode) = match mode with 
+  | "(" -> str "(" ++ pr_id id ++ str ")"
+  | "@" -> str "@" ++ pr_id id
+  | " " -> pr_id id
+  | _ -> anomaly "pr_ahyp: wrong annotation for ssrhyp"
+let pr_ahyps = pr_list pr_spc pr_ahyp
+let pr_ssrahyps _ _ _ = pr_ahyps
+
+let wit_ssrahyps, globwit_ssrahyps, rawwit_ssrahyps =
+  add_genarg "ssrahyps" pr_ahyps
+
+ARGUMENT EXTEND ssrclausehyps 
+TYPED AS ssrahyps PRINTED BY pr_ssrahyps
+  | [ ssrterm(hyp) "," ssrclausehyps(hyps) ] -> [ ssrhyp_of_ssrterm hyp :: hyps ]
+  | [ ssrterm(hyp) ssrclausehyps(hyps) ] -> [ ssrhyp_of_ssrterm hyp :: hyps ]
+  | [ ssrterm(hyp) ] -> [ [ssrhyp_of_ssrterm hyp] ]
 END
 
-type ssrclauses = ssrhyps * ssrclseq
+(* type ssrclauses = ssrahyps * ssrclseq *)
 
 let pr_clauses (hyps, clseq) = 
-  if clseq = InGoal then mt () else str "in " ++ pr_hyps hyps ++ pr_clseq clseq
-
+  if clseq = InGoal then mt () else str "in " ++ pr_ahyps hyps ++ pr_clseq clseq
 let pr_ssrclauses _ _ _ = pr_clauses
 
-let mkclause hyps clseq = check_hyps_uniq [] hyps; (hyps, clseq)
+let mkclause hyps clseq = 
+  check_hyps_uniq [] (List.map fst hyps); (hyps, clseq)
 
-ARGUMENT EXTEND ssrclauses TYPED AS ssrclausehyps * ssrclseq
+ARGUMENT EXTEND ssrclauses TYPED AS ssrahyps * ssrclseq
     PRINTED BY pr_ssrclauses
   | [ "in" ssrclausehyps(hyps) "|-" "*" ] -> [ mkclause hyps InHypsSeqGoal ]
   | [ "in" ssrclausehyps(hyps) "|-" ]     -> [ mkclause hyps InHypsSeq ]
@@ -1600,10 +1709,11 @@ let red_safe r e s c0 =
   | _ -> r e s c in
   red_to e c0 (safe_depth c0)
 
-let pf_clauseids gl clhyps clseq =
-  if clhyps <> [] then (check_hyps_uniq [] clhyps; hyps_ids clhyps) else
+let pf_clauseids gl clahyps clseq =
+  if clahyps <> [] then (check_ahyps_uniq [] clahyps; ahyps_ids clahyps) else
   if clseq <> InAll && clseq <> InAllHyps then [] else
-  let _ = error "assumptions should be named explicitly" in
+  (*let _ =*) error "assumptions should be named explicitly" (*in*)
+(*
   let dep_term var = mkNamedProd_or_LetIn (pf_get_hyp gl var) mkProp in
   let rec rem_var var =  function
   | [] -> raise Not_found
@@ -1616,6 +1726,7 @@ let pf_clauseids gl clhyps clseq =
     with Not_found -> ids in
   let ids = pf_ids_of_proof_hyps gl in
   List.rev (if clseq = InAll then ids else rem_deps ids (pf_concl gl))
+*)
 
 let hidden_clseq = function InHyps | InHypsSeq | InAllHyps -> true | _ -> false
 
@@ -1623,15 +1734,16 @@ let hidetacs clseq idhide cl0 =
   if not (hidden_clseq clseq) then  [] else
   [posetac idhide cl0; convert_concl_no_check (mkVar idhide)]
 
-let discharge_hyp (id', id) gl =
+let discharge_hyp (id', (id, mode)) gl =
   let cl' = subst_var id (pf_concl gl) in
-  match pf_get_hyp gl id with
-  | _, None, t -> apply_type (mkProd (Name id', t, cl')) [mkVar id] gl
-  | _, Some v, t -> convert_concl (mkLetIn (Name id', v, t, cl')) gl
+  match pf_get_hyp gl id, mode with
+  | (_, None, t), _ | (_, Some _, t), "(" -> 
+     apply_type (mkProd (Name id', t, cl')) [mkVar id] gl
+  | (_, Some v, t), _ -> convert_concl (mkLetIn (Name id', v, t, cl')) gl
 
 let endclausestac id_map clseq gl_id cl0 gl =
   let not_hyp' id = not (List.mem_assoc id id_map) in
-  let orig_id id = try List.assoc id id_map with _ -> id in
+  let orig_id id = try fst (List.assoc id id_map) with _ -> id in
   let dc, c = Term.decompose_prod_assum (pf_concl gl) in
   let hide_goal = hidden_clseq clseq in
   let c_hidden = hide_goal && c = mkVar gl_id in
@@ -1652,19 +1764,21 @@ let endclausestac id_map clseq gl_id cl0 gl =
   let ugtac gl' = convert_concl_no_check (unmark (pf_concl gl')) gl' in
   let ctacs = if hide_goal then [clear [gl_id]] else [] in
   let mktac itacs = tclTHENLIST (itacs @ utacs @ ugtac :: ctacs) in
-  let itac (_, id) = introduction id in
+  let itac (_, (id, _)) = introduction id in
   if fits false (id_map, List.rev dc) then mktac (List.map itac id_map) gl else
   let all_ids = ids_of_rel_context dc @ pf_ids_of_hyps gl in
   if List.for_all not_hyp' all_ids && not c_hidden then mktac [] gl else
   Util.error "tampering with discharged assumptions of \"in\" tactical"
     
-let tclCLAUSES tac (clhyps, clseq) gl =
+let tclCLAUSES tac (clahyps, clseq) gl =
   if clseq = InGoal || clseq = InSeqGoal then tac gl else
-  let cl_ids = pf_clauseids gl clhyps clseq in
-  let id_map = List.map (fun id -> mk_discharged_id id, id) cl_ids in
+  let cl_ids = pf_clauseids gl clahyps clseq in
+  let id_map = 
+    List.map (fun id, mode -> mk_discharged_id id, (id, mode)) cl_ids in
   let gl_id = mk_anon_id hidden_goal_tag gl in
   let cl0 = pf_concl gl in
-  let dtacs = List.map discharge_hyp (List.rev id_map) @ [clear cl_ids] in
+  let dtacs = 
+    List.map discharge_hyp (List.rev id_map) @ [clear (List.map fst cl_ids)] in
   let endtac = endclausestac id_map clseq gl_id cl0 in
   tclTHENLIST (hidetacs clseq gl_id cl0 @ dtacs @ [tac; endtac]) gl
 
@@ -2406,86 +2520,6 @@ END
 
 (** 5. Bookkeeping tactics (clear, move, case, elim) *)
 
-(** Term references *)
-
-(* Because we allow wildcards in term references, we need to stage the *)
-(* interpretation of terms so that it occurs at the right time during  *)
-(* the execution of the tactic (e.g., so that we don't report an error *)
-(* for a term that isn't actually used in the execution).              *)
-(*   The term representation tracks whether the concrete initial term  *)
-(* started with an opening paren, which might avoid a conflict between *)
-(* the ssrreflect term syntax and Gallina notation.                    *)
-
-(* kinds of terms *)
-
-type ssrtermkind = char (* print flag *)
-
-let input_ssrtermkind strm = match Stream.npeek 1 strm with
-  | ["", "("] -> '('
-  | _ -> ' '
-
-let ssrtermkind = Gram.Entry.of_parser "ssrtermkind" input_ssrtermkind
-
-(* terms *)
-
-type ssrtermrep = char * rawconstr_and_expr
-
-(* We also guard characters that might interfere with the ssreflect   *)
-(* tactic syntax.                                                     *)
-let guard_term ch1 s i = match s.[i] with
-  | '(' -> false
-  | '{' | '/' | '=' -> true
-  | _ -> ch1 = '('
-
-let mk_term k c = k, (mkRHole, Some c)
-let mk_lterm = mk_term ' '
-
-let hole_var = mkVar (id_of_string "_")
-let pr_constr_pat c0 =
-  let rec wipe_evar c =
-    if isEvar c then hole_var else map_constr wipe_evar c in
-  pr_constr (wipe_evar c0)
-
-let pat_of_ssrterm n c =
-  let rec mkvars i =
-    let v = mkVar (id_of_string (sprintf "_pattern_var_%d_" i)) in
-    if i = 0 then [v] else v :: mkvars (i - 1) in
-  if n <= 0 then c else substl (mkvars n) (snd (decompose_lam_n n c))
-let pr_pattern n c = pr_constr (pat_of_ssrterm n c)
-
-let pr_term (k, c) = pr_guarded (guard_term k) pr_rawconstr_and_expr c
-let prl_term (k, c) = pr_guarded (guard_term k) prl_rawconstr_and_expr c
-
-let pr_ssrterm _ _ _ = pr_term
-
-let intern_term ist gl (_, c) = glob_constr ist gl c
-
-let interp_term ist gl (_, c) = interp_open_constr ist gl c
-
-let force_term ist gl (_, c) = interp_constr ist gl c
-
-let glob_ssrterm gs = function
-  | k, (_, Some c) -> k, Tacinterp.intern_constr gs c
-  | ct -> ct
-
-let subst_ssrterm s (k, c) = k, Tacinterp.subst_rawconstr_and_expr s c
-
-let interp_ssrterm _ _ t = t
-
-ARGUMENT EXTEND ssrterm
-     TYPED AS ssrtermrep PRINTED BY pr_ssrterm
-     INTERPRETED BY interp_ssrterm
-     GLOBALIZED BY glob_ssrterm SUBSTITUTED BY subst_ssrterm
-     RAW_TYPED AS ssrtermrep RAW_PRINTED BY pr_ssrterm
-     GLOB_TYPED AS ssrtermrep GLOB_PRINTED BY pr_ssrterm
-| [ "(**)" constr(c) ] -> [ mk_lterm c ]
-END
-
-GEXTEND Gram
-  GLOBAL: ssrterm;
-  ssrterm: [[ k = ssrtermkind; c = constr -> mk_term k c ]];
-END
-
 (* post-interpretation of terms *)
 
 let pf_abs_ssrterm ist gl t =
@@ -3051,7 +3085,8 @@ let has_occ ((_, occ), _) = occ <> []
 let hyp_of_var v =  SsrHyp (dummy_loc, destVar v)
 
 let interp_clr = function
-| Some clr, (k, c) when k = ' ' && is_pf_var c -> hyp_of_var c :: clr 
+| Some clr, (k, c) 
+  when (k = ' '  || k = '@') && is_pf_var c -> hyp_of_var c :: clr 
 | Some clr, _ -> clr
 | None, _ -> []
 
@@ -3060,17 +3095,26 @@ let pf_interp_gen ist gl to_ind ((oclr, occ), t) =
   let clr = interp_clr (oclr, (fst t, c)) in
   try
     let cl, c = pf_fill_occ_term gl occ (sigma, c) in
-    pf_mkprod gl c cl, c, clr
+    if fst t = '@' then 
+      if not (isVar c) then errorstrm (str "@ can be used with variables only")
+      else match pf_get_hyp gl (destVar c) with
+      | _, None, _ -> errorstrm (str "@ can be used with let-ins only")
+      | name, Some bo, ty -> true, mkLetIn (Name name, bo, ty, cl), c, clr
+    else false, pf_mkprod gl c cl, c, clr
   with err when to_ind && occ = [] ->
     let nv, p = pf_abs_evars gl (sigma, c) in
     if nv = 0 then raise err else
-    mkProd (constr_name c, pf_type_of gl p, pf_concl gl), p, clr
+    false, mkProd (constr_name c, pf_type_of gl p, pf_concl gl), p, clr
 
 let genclrtac cl cs clr = tclTHEN (apply_type cl cs) (cleartac clr)
-let exactgentac cl cs = tclTHEN (apply_type cl cs) (convert_concl cl)
 
 let gentac ist gen gl =
-  let cl, c, clr = pf_interp_gen ist gl false gen in genclrtac cl [c] clr gl
+  let conv, cl, c, clr = pf_interp_gen ist gl false gen in 
+  if conv then tclTHEN (convert_concl cl) (cleartac clr) gl
+  else genclrtac cl [c] clr gl
+
+let pf_interp_gen ist gl to_ind gen =
+  let _, a, b ,c = pf_interp_gen ist gl to_ind gen in a, b ,c
 
 (** Generalization (discharge) sequence *)
 
@@ -4210,21 +4254,17 @@ type ssrredexmod = (identifier, ssrtermrep) a_ssrredexmod
 let wit_ssrredexmod, globwit_ssrredexmod, rawwit_ssrredexmod =
   add_genarg "ssrredexmod" (fun x -> pr_redex (Some x))
 
-let id_of_ref = function 
-  | CRef (Ident (_,x)) -> x 
-  | x -> loc_error (constr_loc x) "Only identifiers are allowed here"
-
 ARGUMENT EXTEND ssrredex_ne TYPED AS ssrredexmod option PRINTED BY pr_ssrredex
   | [ "[" lconstr(c) "]" ] -> [ Some (T (mk_lterm c)) ]
   | [ "[" "in" lconstr(c) "]" ] -> [ Some (In_T (mk_lterm c)) ]
   | [ "[" lconstr(x) "in" lconstr(c) "]" ] -> 
-    [ Some (X_In_T (id_of_ref x,mk_lterm c)) ]
+    [ Some (X_In_T (id_of_term x,mk_lterm c)) ]
   | [ "[" "in" lconstr(x) "in" lconstr(c) "]" ] -> 
-    [ Some (In_X_In_T (id_of_ref x,mk_lterm c)) ]
+    [ Some (In_X_In_T (id_of_term x,mk_lterm c)) ]
   | [ "[" lconstr(e) "in" lconstr(x) "in" lconstr(c) "]" ] -> 
-    [ Some (E_In_X_In_T (mk_lterm e,id_of_ref x,mk_lterm c)) ]
+    [ Some (E_In_X_In_T (mk_lterm e,id_of_term x,mk_lterm c)) ]
   | [ "[" lconstr(e) "as" lconstr(x) "in" lconstr(c) "]" ] -> 
-    [ Some (E_As_X_In_T (mk_lterm e,id_of_ref x,mk_lterm c)) ]
+    [ Some (E_As_X_In_T (mk_lterm e,id_of_term x,mk_lterm c)) ]
 END
 
 ARGUMENT EXTEND ssrredex TYPED AS ssrredex_ne PRINTED BY pr_ssrredex
@@ -5310,13 +5350,17 @@ END
 
 (** The "wlog" (Without Loss Of Generality) tactic *)
 
-(* type ssrwgen = ssrclear * ssrhyp *)
+(* type ssrwgen = ssrclear * ssrhyp * string *)
 
-let pr_wgen (clr, hyp) = spc () ++ pr_clear mt clr ++ pr_hyp hyp
+let pr_wgen (clr, (SsrHyp (loc, c), guard)) =
+  spc () ++ pr_clear mt clr ++
+    pr_term (mk_term guard.[0] (CRef (Ident (loc, c))))
 let pr_ssrwgen _ _ _ = pr_wgen
 
-ARGUMENT EXTEND ssrwgen TYPED AS ssrclear * ssrhyp PRINTED BY pr_ssrwgen
-| [ ssrclear(clr) ssrhyp(id) ] -> [ clr, id ]
+(* no globwith for char *)
+ARGUMENT EXTEND ssrwgen
+  TYPED AS ssrclear * (ssrhyp * string) PRINTED BY pr_ssrwgen
+| [ ssrclear(clr) ssrterm(id) ] -> [ clr, ssrhyp_of_ssrterm id ]
 END
 
 (* type ssrwlogfwd = ssrwgen list * ssrfwd *)
@@ -5331,9 +5375,12 @@ END
 
 let wlogtac clr0 pats (gens, ((_, ct), ctx)) hint gl =
   let ist = get_ltacctx ctx in
-  let mkabs (_, SsrHyp (_, x)) = mkNamedProd_or_LetIn (pf_get_hyp gl x) in
-  let mkclr (clr, x) clrs = cleartac clr :: cleartac [x] :: clrs in
-  let mkpats (_, SsrHyp (_, x)) pats = IpatId x :: pats in
+  let mkabs (_, (SsrHyp (_, x), mode)) = match mode with
+    | "@" -> mkNamedProd_or_LetIn (pf_get_hyp gl x)
+    | _ -> mkNamedProd x (pf_get_hyp_typ gl x)
+  in
+  let mkclr (clr, (x, _)) clrs = cleartac clr :: cleartac [x] :: clrs in
+  let mkpats (_, (SsrHyp (_, x), _)) pats = IpatId x :: pats in
   let cl0 = mkArrow (pf_prod_ssrterm ist gl ct) (pf_concl gl) in
   let c = List.fold_right mkabs gens cl0 in
   let tac2clr = List.fold_right mkclr gens [cleartac clr0] in
