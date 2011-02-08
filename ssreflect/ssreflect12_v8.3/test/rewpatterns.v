@@ -72,6 +72,33 @@ Qed.
 Lemma test7 : forall x y (f : nat -> nat), f (x + y).+1 = f (y + x.+1).
 by move=> x y f; rewrite [(x.+1 + y) as X in (f X)]addnC.
 Qed.
+
+Lemma manual : forall x y z (f : nat -> nat -> nat),
+  (x + y).+1 + f (x + y).+1 (z + (x + y).+1) = 0.
+by move=> x y z f; rewrite [(x + y).+1 in X in f _ X](addnC x.+1); admit.
+Qed.
+
+Require Import fintype ssrnat finset fingroup pgroup gproduct.
+
+Goal (forall (gT : finGroupType) (G H: {set gT}) (Z : {group gT}), G = Z).
+move=> gT G H K. suff: G \x H = K. case/dprodP=> {G H} [[G H -> -> defK _ _]].
+admit.
+admit.
+
+Goal (exists x : 'I_3, x > 0).
+apply: (ex_intro _ (@Ordinal _ 2 _)).
+admit.
+
+Goal (forall y, 1 < y < 2 -> exists x : 'I_3, x > 0).
+move=> y; case/andP=> y_gt1 y_lt2; apply: (ex_intro _ (@Ordinal _ y _)).
+ by apply: leq_trans y_lt2 _.
+by move=> y_lt3; apply: leq_trans _ y_gt1.
+
+Goal (forall x y : nat, forall P : nat -> Prop, x = y -> True).
+move=> x y P E.
+have: P x -> P y by suff: x = y by move=> ?; congr (P _).
+admit.
+
 (*
 Lemma testM7: forall x y, 0 = x + y -> y = 0 -> x = 0 -> 0 = y + x.
 move=> x y E H1 H2; rewrite -[x + y as X in _ = X]E.
