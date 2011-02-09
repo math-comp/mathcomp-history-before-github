@@ -2054,38 +2054,29 @@ let rec interp_ipat ist gl =
   | ipat -> ipat in
   interp
 
+let pushIpatRw = function
+  | pats :: orpat -> (IpatRw L2R :: pats) :: orpat
+  | [] -> []
+
 ARGUMENT EXTEND ssripat TYPED AS ssripatrep PRINTED BY pr_ssripat
   INTERPRETED BY interp_ipat
   GLOBALIZED BY intern_ipat
   | [ "_" ] -> [ IpatWild ]
   | [ "*" ] -> [ IpatAll ]
-END
-
-ARGUMENT EXTEND ssrspat TYPED AS ssripat PRINTED BY pr_ssripat
-| [ ssrclear_ne(clr) ssrsimpl(sim) ] -> [ IpatSimpl (clr, sim) ]
-| [ ssrsimpl_ne(sim) ] -> [ IpatSimpl ([], sim) ]
-END
-
-ARGUMENT EXTEND ssrrpat TYPED AS ssripat PRINTED BY pr_ssripat
+  | [ ident(id) ] -> [ IpatId id ]
+  | [ "?" ] -> [ IpatAnon ]
+  | [ ssrclear_ne(clr) ] -> [ IpatSimpl (clr, Nop) ]
+  | [ ssrsimpl_ne(sim) ] -> [ IpatSimpl ([], sim) ]
   | [ "->" ] -> [ IpatRw L2R ]
   | [ "<-" ] -> [ IpatRw R2L ]
 END
 
 ARGUMENT EXTEND ssripats TYPED AS ssripat list PRINTED BY pr_ssripats
+  | [ ssripat(i) ssripats(tl) ] -> [ i :: tl ]
   | [ ] -> [ [] ]
 END
 
-ARGUMENT EXTEND ssripats_ne TYPED AS ssripats PRINTED BY pr_ssripats
-  | [ ssripat(pat) ssripats(pats) ] -> [ pat :: pats ]
-  | [ ssrspat(spat) ssripat(pat) ssripats(pats) ] -> [ spat :: pat :: pats ]
-  | [ ssrspat(spat) ] -> [ [spat] ]
-END
-
-let pushIpatRw = function
-  | pats :: orpat -> (IpatRw L2R :: pats) :: orpat
-  | [] -> []
-
-ARGUMENT EXTEND ssriorpat TYPED AS ssripats list PRINTED BY pr_ssriorpat
+ARGUMENT EXTEND ssriorpat TYPED AS ssripat list list PRINTED BY pr_ssriorpat
 | [ ssripats(pats) "|" ssriorpat(orpat) ] -> [ pats :: orpat ]
 | [ ssripats(pats) "|-" ">" ssriorpat(orpat) ] -> [ pats :: pushIpatRw orpat ]
 | [ ssripats(pats) "|->" ssriorpat(orpat) ] -> [ pats :: pushIpatRw orpat ]
@@ -2099,18 +2090,32 @@ ARGUMENT EXTEND ssrcpat TYPED AS ssripat PRINTED BY pr_ssripat
   | [ "[" ssriorpat(iorpat) "]" ] -> [ IpatCase iorpat ]
 END
 
-ARGUMENT EXTEND ssrvpat TYPED AS ssripat PRINTED BY pr_ssripat
-  | [ ident(id) ] -> [ IpatId id ]
-  | [ "?" ] -> [ IpatAnon ]
-  | [ ssrcpat(pat) ] -> [ pat ]
-  | [ ssrrpat(pat) ] -> [ pat ]
-END
-
 GEXTEND Gram
   GLOBAL: ssripat ssripats;
-  ssripat: [[ pat = ssrvpat -> pat ]];
-  ssripats: [[ pats = ssripats_ne -> pats ]];
+  ssripat: [[ pat = ssrcpat -> pat ]];
 END
+
+ARGUMENT EXTEND ssripats_ne TYPED AS ssripat list PRINTED BY pr_ssripats
+  | [ ssripat(i) ssripats(tl) ] -> [ i :: tl ]
+END
+
+(* subsets of patterns *)
+let check_ssrvpat = function 
+ | IpatId _ | IpatAnon | IpatCase _ | IpatRw _ -> ()
+ | ip -> errorstrm (str"Intro pattern " ++ pr_ipat ip ++ str" not allowed here")
+
+ARGUMENT EXTEND ssrvpat TYPED AS ssripat PRINTED BY pr_ssripat
+  | [ ssripat(i) ] -> [ check_ssrvpat i; i ]
+END
+
+let check_ssrrpat = function 
+ | IpatRw _ -> ()
+ | ip -> errorstrm (str"Intro pattern " ++ pr_ipat ip ++ str" not allowed here")
+
+ARGUMENT EXTEND ssrrpat TYPED AS ssripat PRINTED BY pr_ssripat
+  | [ ssripat(i) ] -> [ check_ssrrpat i; i ]
+END
+
 
 type ssrintros = ssripats * ssrltacctx
 
@@ -2118,7 +2123,7 @@ let pr_intros sep (intrs, _) =
   if intrs = [] then mt() else sep () ++ str "=> " ++ pr_ipats intrs
 let pr_ssrintros _ _ _ = pr_intros mt
 
-ARGUMENT EXTEND ssrintros_ne TYPED AS ssripats * ssrltacctx
+ARGUMENT EXTEND ssrintros_ne TYPED AS ssripat list * ssrltacctx
  PRINTED BY pr_ssrintros
   | [ "=>" ssripats_ne(pats) ] -> [ pats, rawltacctx ]
 END
