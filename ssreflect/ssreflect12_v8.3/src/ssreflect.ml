@@ -1865,6 +1865,110 @@ let wit_ssrdir, globwit_ssrdir, rawwit_ssrdir =
 
 let dir_org = function L2R -> 1 | R2L -> 2
 
+(** Indexes *)
+
+(* Since SSR indexes are always positive numbers, we use the 0 value *)
+(* to encode an omitted index. We reuse the in or_var type, but we   *)
+(* supply our own interpretation function, which checks for non      *)
+(* positive values, and allows the use of constr numerals, so that   *)
+(* e.g., "let n := eval compute in (1 + 3) in (do n!clear)" works.   *)
+
+type ssrindex = int or_var
+
+let pr_index = function
+  | ArgVar (_, id) -> pr_id id
+  | ArgArg n when n > 0 -> pr_int n
+  | _ -> mt ()
+let pr_ssrindex _ _ _ = pr_index
+
+let noindex = ArgArg 0
+let check_index loc i =
+  if i > 0 then i else loc_error loc "Index not positive"
+let mk_index loc = function ArgArg i -> ArgArg (check_index loc i) | iv -> iv
+let get_index = function ArgArg i -> i | _ -> anomaly "Uninterpreted index"
+
+let interp_index ist gl idx =
+  match idx with
+  | ArgArg _ -> idx
+  | ArgVar (loc, id) ->
+    let i = try match List.assoc id ist.lfun with
+    | VInteger i -> i
+    | VConstr ([],c) ->
+      let rc = Detyping.detype false [] [] c in
+      begin match Notation.uninterp_prim_token rc with
+      | _, Numeral bigi -> int_of_string (Bigint.to_string bigi)
+      | _ -> raise Not_found
+      end
+    | _ -> raise Not_found
+    with _ -> loc_error loc "Index not a number" in
+    ArgArg (check_index loc i)
+
+ARGUMENT EXTEND ssrindex TYPED AS int_or_var PRINTED BY pr_ssrindex
+  INTERPRETED BY interp_index
+| [ int_or_var(i) ] -> [ mk_index loc i ]
+END
+
+(** Occurrence switch *)
+
+(* The standard syntax of complemented occurrence lists involves a single *)
+(* initial "-", e.g., {-1 3 5} (the get_occ_indices function handles the  *)
+(* conversion to the bool + list form used by the Coq API). An initial    *)
+(* "+" may be used to indicate positive occurrences (the default). The    *)
+(* "+" is optional, except if the list of occurrences starts with a       *)
+(* variable or is empty (to avoid confusion with a clear switch). The     *)
+(* empty positive switch "{+}" selects no occurrences, while the empty    *)
+(* negative switch "{-}" selects all occurrences explicitly; this is the  *)
+(* default, but "{-}" prevents the implicit clear, and can be used to     *)
+(* force dependent elimination -- see ndefectelimtac below.               *)
+
+type ssrocc = ssrindex list
+
+let pr_occ = function
+  | ArgArg -1 :: occ -> str "{-" ++ pr_list pr_spc pr_index occ ++ str "}"
+  | ArgArg 0 :: occ -> str "{+" ++ pr_list pr_spc pr_index occ ++ str "}"
+  | occ -> str "{" ++ pr_list pr_spc pr_index occ ++ str "}"
+
+let pr_ssrocc _ _ _ = pr_occ
+
+ARGUMENT EXTEND ssrocc TYPED AS ssrindex list PRINTED BY pr_ssrocc
+| [ natural(n) ssrindex_list(occ) ] -> [ ArgArg (check_index loc n) :: occ  ]
+| [ "-" ssrindex_list(occ) ]     -> [ ArgArg (-1) :: occ ]
+| [ "+" ssrindex_list(occ) ]     -> [ ArgArg 0 :: occ ]
+END
+
+let get_occ_indices = function
+  | ArgArg -1 :: occ -> occ = [], List.map get_index occ
+  | ArgArg 0 :: occ  -> occ != [], List.map get_index occ
+  | occ              -> occ != [], List.map get_index occ
+
+let pf_mkprod gl c cl =
+  let x = constr_name c in
+  let t = pf_type_of gl c in
+  if x <> Anonymous || noccurn 1 cl then mkProd (x, t, cl) else
+  mkProd (Name (pf_type_id gl t), t, cl)
+
+let pf_abs_prod gl c cl = pf_mkprod gl c (subst_term c cl)
+
+(** Discharge occ switch (combined occurrence / clear switch *)
+
+type ssrdocc = ssrclear option * ssrocc
+
+let mkocc occ = None, occ
+let noclr = mkocc []
+let mkclr clr  = Some clr, []
+let nodocc = mkclr []
+
+let pr_docc = function
+  | None, occ -> pr_occ occ
+  | Some clr, _ -> pr_clear mt clr
+
+let pr_ssrdocc _ _ _ = pr_docc
+
+ARGUMENT EXTEND ssrdocc TYPED AS ssrclear option * ssrocc PRINTED BY pr_ssrdocc
+| [ "{" ne_ssrhyp_list(clr) "}" ] -> [ mkclr clr ]
+| [ "{" ssrocc(occ) "}" ] -> [ mkocc occ ]
+END
+
 (** Extended intro patterns *)
 
 type ssripat =
@@ -2233,49 +2337,6 @@ GEXTEND Gram
   tactic_expr: LEVEL "1" [ RIGHTA
     [ tac = tactic_expr; intros = ssrintros_ne -> tclintros_expr loc tac intros
     ] ];
-END
-
-(** Indexes *)
-
-(* Since SSR indexes are always positive numbers, we use the 0 value *)
-(* to encode an omitted index. We reuse the in or_var type, but we   *)
-(* supply our own interpretation function, which checks for non      *)
-(* positive values, and allows the use of constr numerals, so that   *)
-(* e.g., "let n := eval compute in (1 + 3) in (do n!clear)" works.   *)
-
-type ssrindex = int or_var
-
-let pr_index = function
-  | ArgVar (_, id) -> pr_id id
-  | ArgArg n when n > 0 -> pr_int n
-  | _ -> mt ()
-let pr_ssrindex _ _ _ = pr_index
-
-let noindex = ArgArg 0
-let check_index loc i =
-  if i > 0 then i else loc_error loc "Index not positive"
-let mk_index loc = function ArgArg i -> ArgArg (check_index loc i) | iv -> iv
-let get_index = function ArgArg i -> i | _ -> anomaly "Uninterpreted index"
-
-let interp_index ist gl idx =
-  match idx with
-  | ArgArg _ -> idx
-  | ArgVar (loc, id) ->
-    let i = try match List.assoc id ist.lfun with
-    | VInteger i -> i
-    | VConstr ([],c) ->
-      let rc = Detyping.detype false [] [] c in
-      begin match Notation.uninterp_prim_token rc with
-      | _, Numeral bigi -> int_of_string (Bigint.to_string bigi)
-      | _ -> raise Not_found
-      end
-    | _ -> raise Not_found
-    with _ -> loc_error loc "Index not a number" in
-    ArgArg (check_index loc i)
-
-ARGUMENT EXTEND ssrindex TYPED AS int_or_var PRINTED BY pr_ssrindex
-  INTERPRETED BY interp_index
-| [ int_or_var(i) ] -> [ mk_index loc i ]
 END
 
 (** Multipliers *)
@@ -3004,67 +3065,6 @@ let pf_fill_occ_term gl occ t =
   let sigma0 = project gl and env = pf_env gl and concl = pf_concl gl in
   let cl,(_,t) = fill_occ_term env concl occ sigma0 t in
   cl, t
-
-(** Occurrence switch *)
-
-(* The standard syntax of complemented occurrence lists involves a single *)
-(* initial "-", e.g., {-1 3 5} (the get_occ_indices function handles the  *)
-(* conversion to the bool + list form used by the Coq API). An initial    *)
-(* "+" may be used to indicate positive occurrences (the default). The    *)
-(* "+" is optional, except if the list of occurrences starts with a       *)
-(* variable or is empty (to avoid confusion with a clear switch). The     *)
-(* empty positive switch "{+}" selects no occurrences, while the empty    *)
-(* negative switch "{-}" selects all occurrences explicitly; this is the  *)
-(* default, but "{-}" prevents the implicit clear, and can be used to     *)
-(* force dependent elimination -- see ndefectelimtac below.               *)
-
-type ssrocc = ssrindex list
-
-let pr_occ = function
-  | ArgArg -1 :: occ -> str "{-" ++ pr_list pr_spc pr_index occ ++ str "}"
-  | ArgArg 0 :: occ -> str "{+" ++ pr_list pr_spc pr_index occ ++ str "}"
-  | occ -> str "{" ++ pr_list pr_spc pr_index occ ++ str "}"
-
-let pr_ssrocc _ _ _ = pr_occ
-
-ARGUMENT EXTEND ssrocc TYPED AS ssrindex list PRINTED BY pr_ssrocc
-| [ natural(n) ssrindex_list(occ) ] -> [ ArgArg (check_index loc n) :: occ  ]
-| [ "-" ssrindex_list(occ) ]     -> [ ArgArg (-1) :: occ ]
-| [ "+" ssrindex_list(occ) ]     -> [ ArgArg 0 :: occ ]
-END
-
-let get_occ_indices = function
-  | ArgArg -1 :: occ -> occ = [], List.map get_index occ
-  | ArgArg 0 :: occ  -> occ != [], List.map get_index occ
-  | occ              -> occ != [], List.map get_index occ
-
-let pf_mkprod gl c cl =
-  let x = constr_name c in
-  let t = pf_type_of gl c in
-  if x <> Anonymous || noccurn 1 cl then mkProd (x, t, cl) else
-  mkProd (Name (pf_type_id gl t), t, cl)
-
-let pf_abs_prod gl c cl = pf_mkprod gl c (subst_term c cl)
-
-(** Discharge occ switch (combined occurrence / clear switch *)
-
-type ssrdocc = ssrclear option * ssrocc
-
-let mkocc occ = None, occ
-let noclr = mkocc []
-let mkclr clr  = Some clr, []
-let nodocc = mkclr []
-
-let pr_docc = function
-  | None, occ -> pr_occ occ
-  | Some clr, _ -> pr_clear mt clr
-
-let pr_ssrdocc _ _ _ = pr_docc
-
-ARGUMENT EXTEND ssrdocc TYPED AS ssrclear option * ssrocc PRINTED BY pr_ssrdocc
-| [ "{" ne_ssrhyp_list(clr) "}" ] -> [ mkclr clr ]
-| [ "{" ssrocc(occ) "}" ] -> [ mkocc occ ]
-END
 
 (** Generalization (discharge) item *)
 
