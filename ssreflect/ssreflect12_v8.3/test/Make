@@ -2,9 +2,11 @@ SSRCOQ = ../bin/ssrcoq
 -custom "$(SSRCOQ) $(COQFLAGS) -compile $*" "%.v $(SSRCOQ)" "%.vo" 
 -R ../theories Ssreflect
 absevarprop.v
-elim.v
 congr.v
-havesuff.v
-wlogletin.v
 deferclear.v
+elim.v
+havesuff.v
+ipatalternation.v
 rewpatterns.v
+wlogletin.v
+occarrow.v

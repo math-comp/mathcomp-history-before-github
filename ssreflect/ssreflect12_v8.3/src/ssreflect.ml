@@ -1976,7 +1976,7 @@ type ssripat =
   | IpatId of identifier
   | IpatWild
   | IpatCase of ssripats list
-  | IpatRw of ssrdir
+  | IpatRw of ssrocc * ssrdir
   | IpatAll
   | IpatAnon
 and ssripats = ssripat list
@@ -1991,7 +1991,7 @@ let rec ipat_of_intro_pattern = function
       (List.map (List.map ipat_of_intro_pattern) 
 	 (List.map (List.map remove_loc) iorpat))
   | IntroAnonymous -> IpatAnon
-  | IntroRewrite b -> IpatRw (if b then L2R else R2L)
+  | IntroRewrite b -> IpatRw ([ArgArg 0], if b then L2R else R2L)
   | IntroFresh id -> IpatAnon
   | IntroForthcoming _ -> (* Unable to determine which kind of ipat interp_introid could return [HH] *)
       assert false
@@ -2000,7 +2000,7 @@ let rec pr_ipat = function
   | IpatId id -> pr_id id
   | IpatSimpl (clr, sim) -> pr_clear mt clr ++ pr_simpl sim
   | IpatCase iorpat -> hov 1 (str "[" ++ pr_iorpat iorpat ++ str "]")
-  | IpatRw dir -> pr_dir dir
+  | IpatRw (occ, dir) -> pr_occ occ ++ pr_dir dir
   | IpatAll -> str "*"
   | IpatWild -> str "_"
   | IpatAnon -> str "?"
@@ -2020,6 +2020,8 @@ let intern_ipat ist ipat =
   | IpatCase iorpat -> List.iter (List.iter check_pat) iorpat
   | _ -> () in
   check_pat ipat; ipat
+
+let intern_ipats ist = List.map (intern_ipat ist)
 
 let interp_introid ist gl id =
   try IntroIdentifier (hyp_id (interp_hyp ist gl (SsrHyp (dummy_loc, id))))
@@ -2054,29 +2056,39 @@ let rec interp_ipat ist gl =
   | ipat -> ipat in
   interp
 
+let interp_ipats ist gl = List.map (interp_ipat ist gl)
+
 let pushIpatRw = function
-  | pats :: orpat -> (IpatRw L2R :: pats) :: orpat
+  | pats :: orpat -> (IpatRw ([ArgArg 0], L2R) :: pats) :: orpat
   | [] -> []
 
-ARGUMENT EXTEND ssripat TYPED AS ssripatrep PRINTED BY pr_ssripat
-  INTERPRETED BY interp_ipat
-  GLOBALIZED BY intern_ipat
-  | [ "_" ] -> [ IpatWild ]
-  | [ "*" ] -> [ IpatAll ]
-  | [ ident(id) ] -> [ IpatId id ]
-  | [ "?" ] -> [ IpatAnon ]
-  | [ ssrclear_ne(clr) ] -> [ IpatSimpl (clr, Nop) ]
-  | [ ssrsimpl_ne(sim) ] -> [ IpatSimpl ([], sim) ]
-  | [ "->" ] -> [ IpatRw L2R ]
-  | [ "<-" ] -> [ IpatRw R2L ]
+ARGUMENT EXTEND ssripat TYPED AS ssripatrep list PRINTED BY pr_ssripats
+  INTERPRETED BY interp_ipats
+  GLOBALIZED BY intern_ipats
+  | [ "_" ] -> [ [IpatWild] ]
+  | [ "*" ] -> [ [IpatAll] ]
+  | [ ident(id) ] -> [ [IpatId id] ]
+  | [ "?" ] -> [ [IpatAnon] ]
+  | [ ssrsimpl_ne(sim) ] -> [ [IpatSimpl ([], sim)] ]
+  | [ ssrdocc(occ) "->" ] -> [ match occ with
+      | None, occ -> [IpatRw (occ, L2R)]
+      | Some clr, _ -> [IpatSimpl (clr, Nop); IpatRw ([ArgArg 0], L2R)]]
+  | [ ssrdocc(occ) "<-" ] -> [ match occ with
+      | None, occ ->  [IpatRw (occ, R2L)]
+      | Some clr, _ -> [IpatSimpl (clr, Nop); IpatRw ([ArgArg 0], R2L)]]
+  | [ ssrdocc(occ) ] -> [ match occ with
+      | Some cl, _ -> check_hyps_uniq [] cl; [IpatSimpl (cl, Nop)]
+      | _ -> loc_error loc "Only identifiers are allowed here"]
+  | [ "->" ] -> [ [IpatRw ([ArgArg 0], L2R)] ]
+  | [ "<-" ] -> [ [IpatRw ([ArgArg 0], R2L)] ]
 END
 
-ARGUMENT EXTEND ssripats TYPED AS ssripat list PRINTED BY pr_ssripats
-  | [ ssripat(i) ssripats(tl) ] -> [ i :: tl ]
+ARGUMENT EXTEND ssripats TYPED AS ssripat PRINTED BY pr_ssripats
+  | [ ssripat(i) ssripats(tl) ] -> [ i @ tl ]
   | [ ] -> [ [] ]
 END
 
-ARGUMENT EXTEND ssriorpat TYPED AS ssripat list list PRINTED BY pr_ssriorpat
+ARGUMENT EXTEND ssriorpat TYPED AS ssripat list PRINTED BY pr_ssriorpat
 | [ ssripats(pats) "|" ssriorpat(orpat) ] -> [ pats :: orpat ]
 | [ ssripats(pats) "|-" ">" ssriorpat(orpat) ] -> [ pats :: pushIpatRw orpat ]
 | [ ssripats(pats) "|->" ssriorpat(orpat) ] -> [ pats :: pushIpatRw orpat ]
@@ -2086,36 +2098,44 @@ ARGUMENT EXTEND ssriorpat TYPED AS ssripat list list PRINTED BY pr_ssriorpat
 | [ ssripats(pats) ] -> [ [pats] ]
 END
 
-ARGUMENT EXTEND ssrcpat TYPED AS ssripat PRINTED BY pr_ssripat
+ARGUMENT EXTEND ssrcpat TYPED AS ssripatrep PRINTED BY pr_ssripat
   | [ "[" ssriorpat(iorpat) "]" ] -> [ IpatCase iorpat ]
 END
 
 GEXTEND Gram
-  GLOBAL: ssripat ssripats;
-  ssripat: [[ pat = ssrcpat -> pat ]];
+  GLOBAL: ssripat;
+  ssripat: [[ pat = ssrcpat -> [pat] ]];
 END
 
-ARGUMENT EXTEND ssripats_ne TYPED AS ssripat list PRINTED BY pr_ssripats
-  | [ ssripat(i) ssripats(tl) ] -> [ i :: tl ]
+ARGUMENT EXTEND ssripats_ne TYPED AS ssripat PRINTED BY pr_ssripats
+  | [ ssripat(i) ssripats(tl) ] -> [ i @ tl ]
 END
 
 (* subsets of patterns *)
-let check_ssrvpat = function 
- | IpatId _ | IpatAnon | IpatCase _ | IpatRw _ -> ()
- | ip -> errorstrm (str"Intro pattern " ++ pr_ipat ip ++ str" not allowed here")
+let check_ssrhpats loc = function
+ | [ IpatSimpl (cls, Nop) ; 
+     (IpatId _ | IpatAnon | IpatCase _ | IpatRw _ as y)] -> cls, [y]
+ | [ (IpatId _ | IpatAnon | IpatCase _ | IpatRw _) ] as x -> [], x
+ | [ IpatSimpl (cls, Nop) ] -> cls, []
+ | [] -> [], []
+ | ip -> user_err_loc (loc, "",
+           str"Intro pattern " ++ pr_ipats ip ++ str" not allowed here")
 
-ARGUMENT EXTEND ssrvpat TYPED AS ssripat PRINTED BY pr_ssripat
-  | [ ssripat(i) ] -> [ check_ssrvpat i; i ]
+let single loc =
+  function [x] -> x | _ -> loc_error loc "Only one intro pattern is allowed"
+
+let pr_ssrhpats _ _ _ (clr, ipat) = pr_clear mt clr ++ pr_ipats ipat
+
+ARGUMENT EXTEND ssrhpats TYPED AS ssrclear * ssripat PRINTED BY pr_ssrhpats
+  | [ ssripats(i) ] -> [ check_ssrhpats loc i ]
 END
 
-let check_ssrrpat = function 
- | IpatRw _ -> ()
- | ip -> errorstrm (str"Intro pattern " ++ pr_ipat ip ++ str" not allowed here")
+let check_ssrrpat loc = function IpatRw _ -> () | ip ->
+  user_err_loc (loc,"",str"Intro pattern "++pr_ipat ip++str" not allowed here")
 
-ARGUMENT EXTEND ssrrpat TYPED AS ssripat PRINTED BY pr_ssripat
-  | [ ssripat(i) ] -> [ check_ssrrpat i; i ]
+ARGUMENT EXTEND ssrrpat TYPED AS ssripatrep PRINTED BY pr_ssripat
+  | [ ssripat(i) ] -> [ let i = single loc i in check_ssrrpat loc i; i ]
 END
-
 
 type ssrintros = ssripats * ssrltacctx
 
@@ -2123,7 +2143,7 @@ let pr_intros sep (intrs, _) =
   if intrs = [] then mt() else sep () ++ str "=> " ++ pr_ipats intrs
 let pr_ssrintros _ _ _ = pr_intros mt
 
-ARGUMENT EXTEND ssrintros_ne TYPED AS ssripat list * ssrltacctx
+ARGUMENT EXTEND ssrintros_ne TYPED AS ssripat * ssrltacctx
  PRINTED BY pr_ssrintros
   | [ "=>" ssripats_ne(pats) ] -> [ pats, rawltacctx ]
 END
@@ -2228,7 +2248,7 @@ let tclTHENS_nonstrict tac tacl taclname gl =
 
 
 (* Forward reference to extended rewrite *)
-let ipat_rewritetac = ref rewritetac
+let ipat_rewritetac = ref (fun _ -> rewritetac)
 
 let rec is_name_in_ipats name = function
   | IpatSimpl(clr,_) :: tl -> 
@@ -2246,7 +2266,7 @@ let rec map_acc_k f k = function
 let rec ipattac k rest = function
   | IpatWild -> k, introid (new_wild_id ())
   | IpatCase iorpat -> k, tclIORPAT (with_top ssrscasetac) iorpat
-  | IpatRw dir -> k, with_top (!ipat_rewritetac dir)
+  | IpatRw (occ, dir) -> k, with_top (!ipat_rewritetac occ dir)
   | IpatId id -> k, introid id
   | IpatSimpl (clr, sim) ->
     let rename, clear = 
@@ -3389,7 +3409,7 @@ let pr_ssreqid _ _ _ = pr_eqid
 
 (* We must use primitive parsing here to avoid conflicts with the  *)
 (* basic move, case, and elim tactics.                             *)
-ARGUMENT EXTEND ssreqid TYPED AS ssripat option PRINTED BY pr_ssreqid
+ARGUMENT EXTEND ssreqid TYPED AS ssripatrep option PRINTED BY pr_ssreqid
 | [ "(**)" ] -> [ Util.anomaly "Grammar placeholder match" ]
 END
 
@@ -3409,8 +3429,14 @@ GEXTEND Gram
     [ id = Prim.ident -> IpatId id
     | "_" -> IpatWild
     | "?" -> IpatAnon
-    | "->" -> IpatRw L2R
-    | "<-" -> IpatRw R2L
+    | occ = ssrdocc; "->" -> (match occ with
+      | None, occ -> IpatRw (occ, L2R)
+      | _ -> loc_error loc "Only occurrences are allowed here")
+    | occ = ssrdocc; "<-" -> (match occ with
+      | None, occ ->  IpatRw (occ, R2L)
+      | _ -> loc_error loc "Only occurrences are allowed here")
+    | "->" -> IpatRw ([ArgArg 0], L2R)
+    | "<-" -> IpatRw ([ArgArg 0], R2L) 
     ]];
   ssreqid: [
     [ test_ssreqid; pat = ssreqpat -> Some pat
@@ -4723,7 +4749,7 @@ let rwrxtac occ rdx_pat dir rule gl =
 
 (* Resolve forward reference *)
 let _ =
-  ipat_rewritetac := (fun dir c gl -> rwrxtac [] None dir (project gl, c) gl)
+ ipat_rewritetac := (fun occ dir c gl -> rwrxtac occ None dir (project gl,c) gl)
 
 let rwargtac ist ((dir, mult), (((oclr, occ), grx), (kind, gt))) gl =
   let fail = ref false in
@@ -5236,17 +5262,6 @@ END
 
 (** The "have" tactic *)
 
-(* Intro pattern. *)
-
-let pr_ssrhpats _ _ _ = function [pat] -> str " " ++ pr_ipat pat | _ -> mt ()
-
-ARGUMENT EXTEND ssrhpats TYPED AS ssripats PRINTED BY pr_ssrhpats
-| [ ssrvpat(pat) ] -> [ [pat] ]
-| [ ] -> [ [] ]
-END
-
-(* Argument. *)
-
 (* type ssrhavefwd = ssrfwd * ssrhint *)
 
 let pr_ssrhavefwd _ _ prt (fwd, hint) = pr_fwd fwd ++ pr_hint prt hint
@@ -5265,7 +5280,7 @@ let havegentac ist t gl =
   let c = pf_abs_ssrterm ist gl t in
   apply_type (mkArrow (pf_type_of gl c) (pf_concl gl)) [c] gl
 
-let havetac clr pats ((((fk, _), t), ctx), hint) suff namefst gl =
+let havetac (clr, pats) ((((fk, _), t), ctx), hint) suff namefst gl =
  let ist, concl = get_ltacctx ctx, pf_concl gl in
  let clear, id, itac = cleartac clr, tclIDTAC, introstac pats ist in
  let hint = hinttac ist true hint in
@@ -5307,28 +5322,28 @@ let havetac clr pats ((((fk, _), t), ctx), hint) suff namefst gl =
  tclTHENS (cuttac cut) [ tclTHEN sol itac1; tclTHEN clear itac2 ] gl
 
 TACTIC EXTEND ssrhave
-| [ "have" ssrclear(clr) ssrhpats(pats) ssrhavefwd(fwd) ] ->
-  [ havetac clr pats fwd false false ]
+| [ "have" ssrhpats(pats) ssrhavefwd(fwd) ] ->
+  [ havetac pats fwd false false ]
 END
 
 TACTIC EXTEND ssrhavesuff
-| [ "have" "suff" ssrclear(clr) ssrhpats(pats) ssrhavefwd(fwd) ] ->
-  [ havetac clr pats fwd true false ]
+| [ "have" "suff" ssrhpats(pats) ssrhavefwd(fwd) ] ->
+  [ havetac pats fwd true false ]
 END
 
 TACTIC EXTEND ssrhavesuffices
-| [ "have" "suffices" ssrclear(clr) ssrhpats(pats) ssrhavefwd(fwd) ] ->
-  [ havetac clr pats fwd true false ]
+| [ "have" "suffices" ssrhpats(pats) ssrhavefwd(fwd) ] ->
+  [ havetac pats fwd true false ]
 END
 
 TACTIC EXTEND ssrsuffhave
-| [ "suff" "have" ssrclear(clr) ssrhpats(pats) ssrhavefwd(fwd) ] ->
-  [ havetac clr pats fwd true true ]
+| [ "suff" "have" ssrhpats(pats) ssrhavefwd(fwd) ] ->
+  [ havetac pats fwd true true ]
 END
 
 TACTIC EXTEND ssrsufficeshave
-| [ "suffices" "have" ssrclear(clr) ssrhpats(pats) ssrhavefwd(fwd) ] ->
-  [ havetac clr pats fwd true true ]
+| [ "suffices" "have" ssrhpats(pats) ssrhavefwd(fwd) ] ->
+  [ havetac pats fwd true true ]
 END
 
 (** The "suffice" tactic *)
@@ -5337,20 +5352,20 @@ ARGUMENT EXTEND ssrsufffwd TYPED AS ssrhavefwd PRINTED BY pr_ssrhavefwd
 | [ ":" lconstr(t) ssrhint(hint) ] ->[ mkFwdHint ":" t, hint ]
 END
 
-let sufftac clr pats (((_, c), ctx), hint) =
+let sufftac (clr, pats) (((_, c), ctx), hint) =
   let ist = get_ltacctx ctx in
   let htac = tclTHEN (introstac pats ist) (hinttac ist true hint) in
   let ctac gl = basecuttac "ssr_suff" (pf_prod_ssrterm ist gl c) gl in
   tclTHENS ctac [htac; cleartac clr]
 
 TACTIC EXTEND ssrsuff
-| [ "suff" ssrclear(clr) ssrhpats(pats) ssrsufffwd(fwd) ] ->
-  [ sufftac clr pats fwd ]
+| [ "suff" ssrhpats(pats) ssrsufffwd(fwd) ] ->
+  [ sufftac pats fwd ]
 END
 
 TACTIC EXTEND ssrsuffices
-| [ "suffices" ssrclear(clr) ssrhpats(pats) ssrsufffwd(fwd) ] ->
-  [ sufftac clr pats fwd ]
+| [ "suffices" ssrhpats(pats) ssrsufffwd(fwd) ] ->
+  [ sufftac pats fwd ]
 END
 
 (** The "wlog" (Without Loss Of Generality) tactic *)
@@ -5378,7 +5393,7 @@ ARGUMENT EXTEND ssrwlogfwd TYPED AS ssrwgen list * ssrfwd
 | [ ":" ssrwgen_list(gens) "/" lconstr(t) ] -> [ gens, mkFwdHint "/" t]
 END
 
-let wlogtac clr0 pats (gens, ((_, ct), ctx)) hint gl =
+let wlogtac (clr0, pats) (gens, ((_, ct), ctx)) hint gl =
   let ist = get_ltacctx ctx in
   let mkabs (_, (SsrHyp (_, x), mode)) = match mode with
     | "@" -> mkNamedProd_or_LetIn (pf_get_hyp gl x)
@@ -5394,14 +5409,13 @@ let wlogtac clr0 pats (gens, ((_, ct), ctx)) hint gl =
   tclTHENS (basecuttac "ssr_wlog" c) [hinttac ist true hint; tac2] gl
 
 TACTIC EXTEND ssrwlog
-| [ "wlog" ssrclear(clr) ssrhpats(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
-  [ wlogtac clr pats fwd hint ]
+| [ "wlog" ssrhpats(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
+  [ wlogtac pats fwd hint ]
 END
 
 TACTIC EXTEND ssrwithoutloss
-| [ "without" "loss"
-      ssrclear(clr) ssrhpats(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
-  [ wlogtac clr pats fwd hint ]
+| [ "without" "loss" ssrhpats(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
+  [ wlogtac pats fwd hint ]
 END
 
 (** 9. Keyword compatibility fixes. *)
