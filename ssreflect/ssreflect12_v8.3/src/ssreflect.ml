@@ -3045,7 +3045,7 @@ let mk_pmatcher ?(raise_NoMatch=false) sigma0 occ ?upats_origin (upats, ise) =
     if Array.length a >= pn && match_EQ f && unif_EQ_args env sigma pa a then
       let a1, a2 = array_chop (Array.length pa) a in
       let fa1 = mkApp (f, a1) in
-      let f' = if subst_occ () then k env fa1 sigma h else fa1 in
+      let f' = if subst_occ () then k env fa1 u.up_t h else fa1 in
       mkApp (f', array_map_left (subst_loop acc) a2)
     else
       (* TASSI: clear letin values to avoid unfolding *)
@@ -4653,8 +4653,8 @@ let rwrxtac occ rdx_pat dir rule gl =
     let rp = mk_upat_for env0 sigma0 rp all_ok in
     let find_T, end_T = mk_pmatcher sigma0 occ rp in
     let r = ref None in
-    let concl = find_T env0 concl0 1 (fun _env c _ise h -> 
-      do_once r (fun () -> (find_rule c, c));
+    let concl = find_T env0 concl0 1 (fun _ _ rdx h -> 
+      do_once r (fun () -> (find_rule rdx, rdx));
       mkRel h) in
     let _ = end_T () in
     closed0_check concl o_rdx;
@@ -4665,7 +4665,7 @@ let rwrxtac occ rdx_pat dir rule gl =
     let find_T, end_T = mk_pmatcher sigma0 [ArgArg 0] rp in
     let rpats = List.fold_left (rpat env0 sigma0) ([], r_sigma) rules in
     let find_R, end_R = mk_pmatcher sigma0 occ ~upats_origin rpats in
-    let concl = find_T env0 concl0 1 (fun env c _ -> find_R env c ~k:k_mkRel) in
+    let concl = find_T env0 concl0 1 (fun env _ c -> find_R env c ~k:k_mkRel) in
     let rdx, d, r = end_R () in let _ = end_T () in
     closed0_check concl rdx;
     rwcltac concl rdx d r gl
@@ -4677,10 +4677,10 @@ let rwrxtac occ rdx_pat dir rule gl =
     let holep = mk_upat_for env0 p_sigma (p_sigma, hole) all_ok in
     let find_X, end_X = mk_pmatcher p_sigma occ holep in
     let r = ref None in
-    let concl = find_T env0 concl0 1 (fun env c c_sigma h ->
+    let concl = find_T env0 concl0 1 (fun env _ c h ->
       let p_sigma = unify_HO env (create_evar_defs p_sigma) c p in
       let sigma, e_body = pop_evar p_sigma ex in
-      fs p_sigma (find_X env (fs sigma p) h (fun env _ c_sigma h ->
+      fs p_sigma (find_X env (fs sigma p) h (fun env _ _ h ->
         do_once r (fun () -> (find_rule e_body, e_body));
         mkRel h))) in
     let _ = end_X () in let _ = end_T () in 
@@ -4695,10 +4695,10 @@ let rwrxtac occ rdx_pat dir rule gl =
     let find_X, end_X = mk_pmatcher p_sigma [ArgArg 0] holep in
     let rpats = List.fold_left (rpat env0 sigma0) ([], r_sigma) rules in
     let find_R, end_R = mk_pmatcher sigma0 occ ~upats_origin rpats in
-    let concl = find_T env0 concl0 1 (fun env c c_sigma h ->
+    let concl = find_T env0 concl0 1 (fun env _ c h ->
       let p_sigma = unify_HO env (create_evar_defs p_sigma) c p in
       let sigma, e_body = pop_evar p_sigma ex in
-      fs p_sigma (find_X env (fs sigma p) h (fun env c c_sigma h ->
+      fs p_sigma (find_X env (fs sigma p) h (fun env _ c h ->
         find_R env e_body h k_mkRel))) in
     let rdx, d, r = end_R () in let _ = end_X () in let _ = end_T () in
     closed0_check concl rdx;
@@ -4712,11 +4712,11 @@ let rwrxtac occ rdx_pat dir rule gl =
     let re = mk_upat_for env0 sigma0 ep all_ok in
     let find_E, end_E = mk_pmatcher sigma0 occ ~upats_origin re in
     let r = ref None in
-    let concl = find_T env0 concl0 1 (fun env c c_sigma h ->
+    let concl = find_T env0 concl0 1 (fun env _ c h ->
       let p_sigma = unify_HO env (create_evar_defs p_sigma) c p in
       let sigma, e_body = pop_evar p_sigma ex in
-      fs p_sigma (find_X env (fs sigma p) h (fun env c c_sigma h ->
-        find_E env e_body h (fun _ c _ h ->
+      fs p_sigma (find_X env (fs sigma p) h (fun env c _ h ->
+        find_E env e_body h (fun _ _ c h ->
           do_once r (fun () -> (find_rule c, c)); 
           mkRel h)))) in
     let _ = end_E () in let _ = end_X () in let _ = end_T () in
@@ -4733,10 +4733,10 @@ let rwrxtac occ rdx_pat dir rule gl =
     let holep = mk_upat_for env0 p_sigma (p_sigma, hole) all_ok in
     let find_X, end_X = mk_pmatcher p_sigma occ holep in
     let r = ref None in
-    let concl = find_TE env0 concl0 1 (fun env c c_sigma h ->
+    let concl = find_TE env0 concl0 1 (fun env _ c h ->
       let p_sigma = unify_HO env (create_evar_defs p_sigma) c p in
       let sigma, e_body = pop_evar p_sigma ex in
-      fs p_sigma (find_X env (fs sigma p) h (fun env c c_sigma h ->
+      fs p_sigma (find_X env (fs sigma p) h (fun env _ c h ->
         let e_sigma = unify_HO env e_sigma e_body e in
         let e_body = fs e_sigma e in
         do_once r (fun () -> (find_rule e_body, e_body));
