@@ -811,11 +811,9 @@ let ssrevaltac ist gtac =
 (** Generic argument-based globbing/typing utilities *)
 
 (* Toplevel constr must be globalized twice ! *)
-let glob_constr ist gl = function
+let glob_constr ist gsigma genv = function
   | _, Some ce ->
     let ltacvars = List.map fst ist.lfun, [] in
-    let gsigma = project gl in
-    let genv = pf_env gl in
     Constrintern.intern_gen false ~ltacvars:ltacvars gsigma genv ce
   | rc, None -> rc
 
@@ -865,7 +863,7 @@ let isAppInd gl c =
 let interp_view_nbimps ist gl rc =
   try
     let pl, c = splay_open_constr gl (interp_open_constr ist gl (rc, None)) in
-    if isAppInd gl c then List.length pl else -1
+    if isAppInd gl c then List.length pl else ~-(List.length pl)
   with _ -> 0
 
 
@@ -1586,7 +1584,8 @@ let prl_term (k, c) = pr_guarded (guard_term k) prl_rawconstr_and_expr c
 
 let pr_ssrterm _ _ _ = pr_term
 
-let intern_term ist gl (_, c) = glob_constr ist gl c
+let pf_intern_term ist gl (_, c) = glob_constr ist (project gl) (pf_env gl) c
+let intern_term ist sigma env (_, c) = glob_constr ist sigma env c
 
 let interp_term ist gl (_, c) = interp_open_constr ist gl c
 
@@ -1941,13 +1940,12 @@ let get_occ_indices = function
   | ArgArg 0 :: occ  -> occ != [], List.map get_index occ
   | occ              -> occ != [], List.map get_index occ
 
-let pf_mkprod gl c cl =
-  let x = constr_name c in
+let pf_mkprod gl c ?(name=constr_name c) cl =
   let t = pf_type_of gl c in
-  if x <> Anonymous || noccurn 1 cl then mkProd (x, t, cl) else
+  if name <> Anonymous || noccurn 1 cl then mkProd (name, t, cl) else
   mkProd (Name (pf_type_id gl t), t, cl)
 
-let pf_abs_prod gl c cl = pf_mkprod gl c (subst_term c cl)
+let pf_abs_prod name gl c cl = pf_mkprod gl c ~name (subst_term c cl)
 
 (** Discharge occ switch (combined occurrence / clear switch *)
 
@@ -1969,6 +1967,191 @@ ARGUMENT EXTEND ssrdocc TYPED AS ssrclear option * ssrocc PRINTED BY pr_ssrdocc
 | [ "{" ssrocc(occ) "}" ] -> [ mkocc occ ]
 END
 
+(** View hint database. *)
+
+(* There are three databases of lemmas used to mediate the application  *)
+(* of reflection lemmas: one for forward chaining, one for backward     *)
+(* chaining, and one for secondary backward chaining.                   *)
+
+(* View hints *)
+
+let rec isCxHoles = function (CHole _, None) :: ch -> isCxHoles ch | _ -> false
+
+let pr_raw_ssrhintref prc _ _ = function
+  | CAppExpl (_, (None, r), args) when isCHoles args ->
+    prc (CRef r) ++ str "|" ++ int (List.length args)
+  | CApp (_, (_, CRef _), _) as c -> prc c
+  | CApp (_, (_, c), args) when isCxHoles args ->
+    prc c ++ str "|" ++ int (List.length args)
+  | c -> prc c
+
+let pr_rawhintref = function
+  | RApp (_, f, args) when isRHoles args ->
+    pr_rawconstr f ++ str "|" ++ int (List.length args)
+  | c -> pr_rawconstr c
+
+let pr_glob_ssrhintref _ _ _ (c, _) = pr_rawhintref c
+
+let pr_ssrhintref prc _ _ = prc
+
+let mkhintref loc c n = match c with
+  | CRef r -> CAppExpl (loc, (None, r), mkCHoles loc n)
+  | _ -> mkAppC (c, mkCHoles loc n)
+
+ARGUMENT EXTEND ssrhintref
+        TYPED AS constr      PRINTED BY pr_ssrhintref
+    RAW_TYPED AS constr  RAW_PRINTED BY pr_raw_ssrhintref
+   GLOB_TYPED AS constr GLOB_PRINTED BY pr_glob_ssrhintref
+  | [ constr(c) ] -> [ c ]
+  | [ constr(c) "|" natural(n) ] -> [ mkhintref loc c n ]
+END
+
+(* View purpose *)
+
+let pr_viewpos = function
+  | 0 -> str " for move/"
+  | 1 -> str " for apply/"
+  | 2 -> str " for apply//"
+  | _ -> mt ()
+
+let pr_ssrviewpos _ _ _ = pr_viewpos
+
+ARGUMENT EXTEND ssrviewpos TYPED AS int PRINTED BY pr_ssrviewpos
+  | [ "for" "move" "/" ] -> [ 0 ]
+  | [ "for" "apply" "/" ] -> [ 1 ]
+  | [ "for" "apply" "/" "/" ] -> [ 2 ]
+  | [ "for" "apply" "//" ] -> [ 2 ]
+  | [ ] -> [ 3 ]
+END
+
+let pr_ssrviewposspc _ _ _ i = pr_viewpos i ++ spc ()
+
+ARGUMENT EXTEND ssrviewposspc TYPED AS ssrviewpos PRINTED BY pr_ssrviewposspc
+  | [ ssrviewpos(i) ] -> [ i ]
+END
+
+(* The table and its display command *)
+
+let viewtab : rawconstr list array = Array.make 3 []
+
+let _ =
+  let init () = Array.fill viewtab 0 3 [] in
+  let freeze () = Array.copy viewtab in
+  let unfreeze vt = Array.blit vt 0 viewtab 0 3 in
+  Summary.declare_summary "ssrview"
+    { Summary.freeze_function   = freeze;
+      Summary.unfreeze_function = unfreeze;
+      Summary.init_function     = init }
+
+let mapviewpos f n k = if n < 3 then f n else for i = 0 to k - 1 do f i done
+
+let print_view_hints i =
+  let pp_viewname = str "Hint View" ++ pr_viewpos i ++ str " " in
+  let pp_hints = pr_list spc pr_rawhintref viewtab.(i) in
+  ppnl (pp_viewname ++ hov 0 pp_hints ++ Pp.cut ())
+
+VERNAC COMMAND EXTEND PrintView
+| [ "Print" "Hint" "View" ssrviewpos(i) ] -> [ mapviewpos print_view_hints i 3 ]
+END
+
+(* Populating the table *)
+
+let cache_viewhint (_, (i, lvh)) =
+  let mem_raw h = List.exists (Topconstr.eq_rawconstr h) in
+  let add_hint h hdb = if mem_raw h hdb then hdb else h :: hdb in
+  viewtab.(i) <- List.fold_right add_hint lvh viewtab.(i)
+
+let subst_viewhint ( subst, (i, lvh as ilvh)) =
+  let lvh' = list_smartmap (Detyping.subst_rawconstr subst) lvh in
+  if lvh' == lvh then ilvh else i, lvh'
+
+let classify_viewhint x = Libobject.Substitute x
+
+let (in_viewhint, out_viewhint)=
+  Libobject.declare_object {(Libobject.default_object "VIEW_HINTS") with
+       Libobject.open_function = (fun i o -> if i = 1 then cache_viewhint o);
+       Libobject.cache_function = cache_viewhint;
+       Libobject.subst_function = subst_viewhint;
+       Libobject.classify_function = classify_viewhint }
+
+let glob_view_hints lvh =
+  List.map (Constrintern.intern_constr Evd.empty (Global.env ())) lvh
+
+let add_view_hints lvh i = Lib.add_anonymous_leaf (in_viewhint (i, lvh))
+
+VERNAC COMMAND EXTEND HintView
+  |  [ "Hint" "View" ssrviewposspc(n) ne_ssrhintref_list(lvh) ] ->
+     [ mapviewpos (add_view_hints (glob_view_hints lvh)) n 2 ]
+END
+
+(** Views *)
+
+(* Views for the "move" and "case" commands are actually open *)
+(* terms, but this is handled by interp_view, which is called *)
+(* by interp_casearg. We use lists, to support the            *)
+(* "double-view" feature of the apply command.                *)
+
+(* type ssrview = ssrterm list *)
+
+let pr_view = pr_list mt (fun c -> str "/" ++ pr_term c)
+
+let pr_ssrview _ _ _ = pr_view
+
+ARGUMENT EXTEND ssrview TYPED AS ssrterm list
+   PRINTED BY pr_ssrview
+| [ "/" constr(c) ] -> [ [mk_term ' ' c] ]
+| [ "/" constr(c) ssrview(w) ] -> [ (mk_term ' ' c) :: w ]
+END
+
+(* There are two ways of "applying" a view to term:            *)
+(*  1- using a view hint if the view is an instance of some    *)
+(*     (reflection) inductive predicate.                       *)
+(*  2- applying the view if it coerces to a function, adding   *)
+(*     implicit arguments.                                     *)
+(* They require guessing the view hints and the number of      *)
+(* implicits, respectively, which we do by brute force.        *)
+
+let view_error s gv =
+  errorstrm (str ("Cannot " ^ s ^ " view ") ++ pr_term gv)
+
+let interp_view ist si env sigma gv rid =
+  match intern_term ist sigma env gv with
+  | RApp (loc, RHole _, rargs) ->
+    let rv = RApp (loc, rid, rargs) in
+    interp_open_constr ist (re_sig si sigma) (rv, None)
+  | rv ->
+  let interp rc rargs =
+    interp_open_constr ist (re_sig si sigma) (mkRApp rc rargs, None) in
+  let rec simple_view rargs n =
+    if n < 0 then view_error "use" gv else
+    try interp rv rargs with _ -> simple_view (mkRHole :: rargs) (n - 1) in
+  let view_nbimps = interp_view_nbimps ist (re_sig si sigma) rv in
+  let view_args = [mkRApp rv (mkRHoles view_nbimps); rid] in
+  let rec view_with = function
+  | [] -> simple_view [rid] (interp_nbargs ist (re_sig si sigma) rv)
+  | hint :: hints -> try interp hint view_args with _ -> view_with hints in
+  view_with (if view_nbimps < 0 then [] else viewtab.(0))
+
+let top_id = mk_internal_id "top assumption"
+
+let with_view ist si env gl0 c name cl prune =
+  let c2r ist x = { ist with lfun = (top_id, VConstr ([], x)) :: ist.lfun } in
+  let rec loop (sigma, c') = function
+  | f :: view ->
+      let rid, ist = match kind_of_term c' with
+        | Var id -> mkRVar id, ist
+        | _ -> mkRltacVar top_id, c2r ist c' in
+      loop (interp_view ist si env sigma f rid) view
+  | [] ->
+      let n, c' = pf_abs_evars gl0 (sigma, c') in
+      let c' = if not prune then c' else pf_abs_cterm gl0 n c' in
+      pf_abs_prod name gl0 c' (prod_applist cl [c]), c'
+  in loop
+
+let pf_with_view ist gl (prune, view) cl c =
+  let env, sigma, si = pf_env gl, project gl, sig_it gl in
+  with_view ist si env gl c (constr_name c) cl prune (sigma, c) view
+
 (** Extended intro patterns *)
 
 type ssripat =
@@ -1979,6 +2162,7 @@ type ssripat =
   | IpatRw of ssrocc * ssrdir
   | IpatAll
   | IpatAnon
+  | IpatView of ssrtermrep list
 and ssripats = ssripat list
 
 let remove_loc = snd
@@ -2004,6 +2188,7 @@ let rec pr_ipat = function
   | IpatAll -> str "*"
   | IpatWild -> str "_"
   | IpatAnon -> str "?"
+  | IpatView v -> pr_view v
 and pr_iorpat iorpat = pr_list pr_bar pr_ipats iorpat
 and pr_ipats ipats = pr_list spc pr_ipat ipats
 
@@ -2081,6 +2266,7 @@ ARGUMENT EXTEND ssripat TYPED AS ssripatrep list PRINTED BY pr_ssripats
       | _ -> loc_error loc "Only identifiers are allowed here"]
   | [ "->" ] -> [ [IpatRw ([ArgArg 0], L2R)] ]
   | [ "<-" ] -> [ [IpatRw ([ArgArg 0], R2L)] ]
+  | [ ssrview(v) ] -> [ [IpatView v] ]
 END
 
 ARGUMENT EXTEND ssripats TYPED AS ssripat PRINTED BY pr_ssripats
@@ -2208,8 +2394,6 @@ let rec intro_anon gl =
   with err0 -> try tclTHEN red_in_concl intro_anon gl with _ -> raise err0
   (* with _ -> error "No product even after reduction" *)
 
-let top_id = mk_internal_id "top assumption"
-
 let with_top tac =
   tclTHENLIST [introid top_id; tac (mkVar top_id); clear [top_id]]
 
@@ -2263,9 +2447,11 @@ let rec map_acc_k f k = function
   | [] -> [k]
   | x :: xs -> let k, x = f k xs x in x :: map_acc_k f k xs
 
-let rec ipattac k rest = function
+let move_top_with_view = ref (fun _ _ _ -> assert false)
+
+let rec ipattac ?ist k rest = function
   | IpatWild -> k, introid (new_wild_id ())
-  | IpatCase iorpat -> k, tclIORPAT (with_top ssrscasetac) iorpat
+  | IpatCase iorpat -> k, tclIORPAT ?ist (with_top ssrscasetac) iorpat
   | IpatRw (occ, dir) -> k, with_top (!ipat_rewritetac occ dir)
   | IpatId id -> k, introid id
   | IpatSimpl (clr, sim) ->
@@ -2286,15 +2472,22 @@ let rec ipattac k rest = function
     tclTHEN k clear, tclTHEN rename (simpltac sim)
   | IpatAll -> k, intro_all
   | IpatAnon -> k, intro_anon
-and tclIORPAT tac = function
+  | IpatView v -> match ist with
+      | None -> anomaly "ipattac with no ist but view"
+      | Some ist -> match rest with
+          | (IpatCase _ | IpatRw _):: _ -> k, !move_top_with_view (false, v) ist
+          | _ -> k, !move_top_with_view (true, v) ist
+
+and tclIORPAT ?ist tac = function
   | [[]] -> tac
-  | iorpat -> tclTHENS_nonstrict tac (mapLR ipatstac iorpat) "intro pattern"
-and ipatstac ipats = tclTHENLIST (map_acc_k ipattac tclIDTAC ipats)
+  | iorpat ->
+      tclTHENS_nonstrict tac (mapLR (ipatstac ?ist) iorpat) "intro pattern"
+and ipatstac ?ist ipats = tclTHENLIST (map_acc_k (ipattac ?ist) tclIDTAC ipats)
 
 (* For "move" and "clear" *)
 let introstac ipats ist =
   wild_ids := [];
-  let tac = ipatstac ipats in
+  let tac = ipatstac ~ist ipats in
   tclTHEN tac (clear_wilds !wild_ids)
 
 let rec eqmoveipats eqpat = function
@@ -2303,24 +2496,24 @@ let rec eqmoveipats eqpat = function
    | ipat :: ipats -> ipat :: eqpat :: ipats
 
 (* For "case" and "elim" *)
-let tclEQINTROS tac eqtac ipats =
+let tclEQINTROS ?ist tac eqtac ipats =
   let rec split_itacs k tac' = function
   | (IpatSimpl _ as spat) :: ipats' -> 
-    let k, tac = ipattac k ipats' spat in 
+    let k, tac = ipattac ?ist k ipats' spat in
     split_itacs k (tclTHEN tac' tac) ipats'
-  | IpatCase iorpat :: ipats' -> k, tclIORPAT tac' iorpat, ipats'
+  | IpatCase iorpat :: ipats' -> k, tclIORPAT ?ist tac' iorpat, ipats'
   | ipats' -> k, tac', ipats' in
   wild_ids := [];
   let k, tac1, ipats' = split_itacs tclIDTAC tac ipats in
-  let tac2 = tclTHENLIST (map_acc_k ipattac k ipats') in
+  let tac2 = tclTHENLIST (map_acc_k (ipattac ?ist) k ipats') in
   tclTHENLIST [tac1; eqtac; tac2; clear_wilds !wild_ids]
 
-let ipattac ipat = snd (ipattac tclIDTAC [] ipat)
+let ipattac ?ist ipat = snd (ipattac ?ist tclIDTAC [] ipat)
 
 (* General case *)
 let tclINTROS tac (ipats, ctx) = 
   let ist = get_ltacctx ctx in
-  tclEQINTROS (tac ist) tclIDTAC ipats
+  tclEQINTROS ~ist (tac ist) tclIDTAC ipats
 
 (** The "=>" tactical *)
 
@@ -3199,9 +3392,14 @@ let genstac (gens, clr) ist =
 
 (* Common code to handle generalization lists along with the defective case *)
 
-let with_defective maintac deps clr ist =
+let with_defective maintac deps clr ist gl =
+  let top_id =
+    match kind_of_type (pf_concl gl) with
+    | ProdType (Name id, _, _)
+      when has_discharged_tag (string_of_id id) -> id
+    | _ -> top_id in
   let top_gen = mkclr clr, (' ', (mkRVar top_id, None)) in
-  tclTHEN (introid top_id) (maintac deps top_gen ist)
+  tclTHEN (introid top_id) (maintac deps top_gen ist) gl
 
 let with_dgens (gensl, clr) maintac ist = match gensl with
   | [deps; []] -> with_defective maintac deps clr ist
@@ -3220,183 +3418,6 @@ let with_deps deps0 maintac cl0 cs0 clr0 ist gl0 =
     let cl', c', clr' = pf_interp_gen ist gl' false dep in
     loop gl' cl' [c'] clr' (c' :: args) (clr' :: clrs) deps in
   loop gl0 cl0 cs0 clr0 cs0 [clr0] (List.rev deps0)
-
-(** View hint database. *)
-
-(* There are three databases of lemmas used to mediate the application  *)
-(* of reflection lemmas: one for forward chaining, one for backward     *)
-(* chaining, and one for secondary backward chaining.                   *)
-
-(* View hints *)
-
-let rec isCxHoles = function (CHole _, None) :: ch -> isCxHoles ch | _ -> false
-
-let pr_raw_ssrhintref prc _ _ = function
-  | CAppExpl (_, (None, r), args) when isCHoles args ->
-    prc (CRef r) ++ str "|" ++ int (List.length args)
-  | CApp (_, (_, CRef _), _) as c -> prc c
-  | CApp (_, (_, c), args) when isCxHoles args ->
-    prc c ++ str "|" ++ int (List.length args)
-  | c -> prc c
-
-let pr_rawhintref = function
-  | RApp (_, f, args) when isRHoles args ->
-    pr_rawconstr f ++ str "|" ++ int (List.length args)
-  | c -> pr_rawconstr c
-
-let pr_glob_ssrhintref _ _ _ (c, _) = pr_rawhintref c
-
-let pr_ssrhintref prc _ _ = prc
-
-let mkhintref loc c n = match c with
-  | CRef r -> CAppExpl (loc, (None, r), mkCHoles loc n)
-  | _ -> mkAppC (c, mkCHoles loc n)
-
-ARGUMENT EXTEND ssrhintref
-        TYPED AS constr      PRINTED BY pr_ssrhintref
-    RAW_TYPED AS constr  RAW_PRINTED BY pr_raw_ssrhintref
-   GLOB_TYPED AS constr GLOB_PRINTED BY pr_glob_ssrhintref
-  | [ constr(c) ] -> [ c ]
-  | [ constr(c) "|" natural(n) ] -> [ mkhintref loc c n ]
-END
-
-(* View purpose *)
-
-let pr_viewpos = function
-  | 0 -> str " for move/"
-  | 1 -> str " for apply/"
-  | 2 -> str " for apply//"
-  | _ -> mt ()
-
-let pr_ssrviewpos _ _ _ = pr_viewpos
-
-ARGUMENT EXTEND ssrviewpos TYPED AS int PRINTED BY pr_ssrviewpos
-  | [ "for" "move" "/" ] -> [ 0 ]
-  | [ "for" "apply" "/" ] -> [ 1 ]
-  | [ "for" "apply" "/" "/" ] -> [ 2 ]
-  | [ "for" "apply" "//" ] -> [ 2 ]
-  | [ ] -> [ 3 ]
-END
-
-let pr_ssrviewposspc _ _ _ i = pr_viewpos i ++ spc ()
-
-ARGUMENT EXTEND ssrviewposspc TYPED AS ssrviewpos PRINTED BY pr_ssrviewposspc
-  | [ ssrviewpos(i) ] -> [ i ]
-END
-
-(* The table and its display command *)
-
-let viewtab : rawconstr list array = Array.make 3 []
-
-let _ = 
-  let init () = Array.fill viewtab 0 3 [] in
-  let freeze () = Array.copy viewtab in
-  let unfreeze vt = Array.blit vt 0 viewtab 0 3 in
-  Summary.declare_summary "ssrview"
-    { Summary.freeze_function   = freeze;
-      Summary.unfreeze_function = unfreeze;
-      Summary.init_function     = init }
-
-let mapviewpos f n k = if n < 3 then f n else for i = 0 to k - 1 do f i done
-
-let print_view_hints i =
-  let pp_viewname = str "Hint View" ++ pr_viewpos i ++ str " " in
-  let pp_hints = pr_list spc pr_rawhintref viewtab.(i) in
-  ppnl (pp_viewname ++ hov 0 pp_hints ++ Pp.cut ())
-
-VERNAC COMMAND EXTEND PrintView
-| [ "Print" "Hint" "View" ssrviewpos(i) ] -> [ mapviewpos print_view_hints i 3 ]
-END
-
-(* Populating the table *)
-
-let cache_viewhint (_, (i, lvh)) =
-  let mem_raw h = List.exists (Topconstr.eq_rawconstr h) in 
-  let add_hint h hdb = if mem_raw h hdb then hdb else h :: hdb in
-  viewtab.(i) <- List.fold_right add_hint lvh viewtab.(i)
-
-let subst_viewhint ( subst, (i, lvh as ilvh)) =
-  let lvh' = list_smartmap (Detyping.subst_rawconstr subst) lvh in
-  if lvh' == lvh then ilvh else i, lvh'
-      
-let classify_viewhint x = Libobject.Substitute x
-
-let (in_viewhint, out_viewhint)=
-  Libobject.declare_object {(Libobject.default_object "VIEW_HINTS") with
-       Libobject.open_function = (fun i o -> if i = 1 then cache_viewhint o);
-       Libobject.cache_function = cache_viewhint;
-       Libobject.subst_function = subst_viewhint;
-       Libobject.classify_function = classify_viewhint }
-
-let glob_view_hints lvh =
-  List.map (Constrintern.intern_constr Evd.empty (Global.env ())) lvh
-
-let add_view_hints lvh i = Lib.add_anonymous_leaf (in_viewhint (i, lvh))
-
-VERNAC COMMAND EXTEND HintView
-  |  [ "Hint" "View" ssrviewposspc(n) ne_ssrhintref_list(lvh) ] ->
-     [ mapviewpos (add_view_hints (glob_view_hints lvh)) n 2 ]
-END
-
-(** Views *)
-
-(* Views for the "move" and "case" commands are actually open *)
-(* terms, but this is handled by interp_view, which is called *)
-(* by interp_casearg. We use lists, to support the            *)
-(* "double-view" feature of the apply command.                *)
-
-(* type ssrview = ssrterm list *)
-
-let pr_view = pr_list mt (fun c -> str "/" ++ pr_term c)
-
-let pr_ssrview _ _ _ = pr_view
-
-ARGUMENT EXTEND ssrview TYPED AS ssrterm list
-   PRINTED BY pr_ssrview
-| [ "/" constr(c) ] -> [ [mk_term ' ' c] ]
-END
-
-(* There are two ways of "applying" a view to term:            *)
-(*  1- using a view hint if the view is an instance of some    *)
-(*     (reflection) inductive predicate.                       *)
-(*  2- applying the view if it coerces to a function, adding   *)
-(*     implicit arguments.                                     *)
-(* They require guessing the view hints and the number of      *)
-(* implicits, respectively, which we do by brute force.        *)
-
-let view_error s gl gv =
-  errorstrm (str ("Cannot " ^ s ^ " view ") ++ pr_term gv)
-
-let interp_view ist gl gv rid =
-  match intern_term ist gl gv with
-  | RApp (loc, RHole _, rargs) ->
-    let rv = RApp (loc, rid, rargs) in
-    let oc = interp_open_constr ist gl (rv, None) in
-    snd (pf_abs_evars gl oc)
-  | rv ->  
-  let interp rc rargs =
-    let oc = interp_open_constr ist gl (mkRApp rc rargs, None) in
-    snd (pf_abs_evars gl oc) in
-  let rec simple_view rargs n =
-    if n < 0 then view_error "use" gl gv else
-    try interp rv rargs with _ -> simple_view (mkRHole :: rargs) (n - 1) in
-  let view_nbimps = interp_view_nbimps ist gl rv in
-  let view_args = [mkRApp rv (mkRHoles view_nbimps); rid] in
-  let rec view_with = function
-  | [] -> simple_view [rid] (interp_nbargs ist gl rv)
-  | hint :: hints -> try interp hint view_args with _ -> view_with hints in
-  view_with (if view_nbimps < 0 then [] else viewtab.(0))
-
-let pf_with_view ist gl view cl c = match view with
-  | [f] ->
-    let rid, ist' = match kind_of_term c with
-    | Var id -> mkRVar id, ist
-    | _ ->
-      mkRltacVar top_id,
-      {ist with lfun = (top_id, VConstr ([],c)) :: ist.lfun} in
-    let c' = interp_view ist' gl f rid in
-    pf_abs_prod gl c' (prod_applist cl [c]), c'
-  | _ -> cl, c
 
 (** Equations *)
 
@@ -3502,10 +3523,10 @@ END
 
 (* We just add a numeric version that clears the n top assumptions. *)
 
-let poptac n = introstac (list_tabulate (fun _ -> IpatWild) n) ()
+let poptac n = introstac (list_tabulate (fun _ -> IpatWild) n)
 
 TACTIC EXTEND ssrclear
-  | [ "clear" natural(n)] -> [ poptac n ]
+  | [ "clear" natural(n) ssrltacctx(ctx) ] -> [ poptac n (get_ltacctx ctx) ]
 END
 
 (** The "move" tactic *)
@@ -3530,10 +3551,12 @@ ARGUMENT EXTEND ssrmovearg TYPED AS ssrarg PRINTED BY pr_ssrarg
 | [ ssrarg(arg) ] -> [ check_movearg arg ]
 END
 
-let viewmovetac view _ gen ist gl =
+let viewmovetac (_, vl as v) _ gen ist gl =
   let cl, c, clr = pf_interp_gen ist gl false gen in
-  let cl', c' = pf_with_view ist gl view cl c in
-  genclrtac cl' [c'] clr gl
+  let cl, c = if vl = [] then cl, c else pf_with_view ist gl v cl c in
+  genclrtac cl [c] clr gl
+
+let () = move_top_with_view := (fun v -> with_defective (viewmovetac v) [] [])
 
 let eqmovetac _ gen ist gl =
   let cl, c, _ = pf_interp_gen ist gl false gen in pushmoveeqtac cl c gl
@@ -3542,26 +3565,29 @@ let movehnftac gl = match kind_of_term (pf_concl gl) with
   | Prod _ | LetIn _ -> tclIDTAC gl
   | _ -> hnf_in_concl gl
 
-let ssrmovetac = function
-  | ([_] as view), (_, (dgens, (ipats, ctx))) ->
-    let dgentac = with_dgens dgens (viewmovetac view) (get_ltacctx ctx) in
-    tclTHEN dgentac (introstac ipats ())
-  | _, (Some pat, (dgens, (ipats, ctx))) ->
-    let dgentac = with_dgens dgens eqmovetac (get_ltacctx ctx) in
-    tclTHEN dgentac (introstac (eqmoveipats pat ipats) ())
-  | _, (_, (([gens], clr), (ipats, ctx))) ->
-    let gentac = genstac (gens, clr) (get_ltacctx ctx) in
-    tclTHEN gentac (introstac ipats ())
-  | _, (_, ((_, clr), (ipats, ctx))) ->
-    let _ = get_ltacctx ctx in
-    tclTHENLIST [movehnftac; cleartac clr; introstac ipats ()]
+let ssrmovetac ist = function
+  | _::_ as view, (_, (dgens, (ipats, _))) ->
+    let dgentac = with_dgens dgens (viewmovetac (true, view)) ist in
+    tclTHEN dgentac (introstac ipats ist)
+  | _, (Some pat, (dgens, (ipats, _))) ->
+    let dgentac = with_dgens dgens eqmovetac ist in
+    tclTHEN dgentac (introstac (eqmoveipats pat ipats) ist)
+  | _, (_, (([gens], clr), (ipats, _))) ->
+    let gentac = genstac (gens, clr) ist in
+    tclTHEN gentac (introstac ipats ist)
+  | _, (_, ((_, clr), (ipats, _))) ->
+    tclTHENLIST [movehnftac; cleartac clr; introstac ipats ist]
+
+let ist_of_arg  (_, (_, (_, (_, ctx)))) = get_ltacctx ctx
 
 TACTIC EXTEND ssrmove
 | [ "move" ssrmovearg(arg) ssrrpat(pat) ] ->
-  [ tclTHEN (ssrmovetac arg) (ipattac pat) ]
+  [ let ist = ist_of_arg arg in
+    tclTHEN (ssrmovetac ist arg) (ipattac ~ist pat) ]
 | [ "move" ssrmovearg(arg) ssrclauses(clauses) ] ->
-  [ tclCLAUSES (ssrmovetac arg) clauses ]
-| [ "move" ssrrpat(pat) ] -> [ ipattac pat ]
+  [ let ist = ist_of_arg arg in tclCLAUSES (ssrmovetac ist arg) clauses ]
+| [ "move" ssrrpat(pat) ssrltacctx(ctx) ] ->
+  [ ipattac ~ist:(get_ltacctx ctx) pat ]
 | [ "move" ] -> [ movehnftac ]
     END
 
@@ -3933,8 +3959,9 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
   in
   tclTHENLIST [gen_eq_tac; elim_intro_tac] orig_gl
 ;;
-let simplest_newelim x = newssrelim ~is_case:false None ([],x) None [] []
-let simplest_newcase x = newssrelim ~is_case:true  None ([],x) None [] []
+
+let simplest_newelim x = newssrelim ~is_case:false None ([], x) None [] []
+let simplest_newcase x = newssrelim ~is_case:true  None ([], x) None [] []
 let _ = simplest_newcase_ref := simplest_newcase
 
 let check_casearg = function
@@ -3951,9 +3978,10 @@ let ssrcasetac (view, (eqid, (dgens, (ipats, ctx)))) =
   let ndefectcasetac view eqid ipats deps ((_, occ), _ as gen) ist gl =
     let simple = (eqid = None && deps = [] && occ = []) in
     let cl, c, clr = pf_interp_gen ist gl true gen in
-    let _, vc = pf_with_view ist gl view cl c in
-    if simple && is_injection_case vc gl then 
-      tclTHENLIST [perform_injection vc; cleartac clr; ipatstac ipats] gl
+    let vc =
+      if view = [] then c else snd(pf_with_view ist gl (false, view) cl c) in
+    if simple && is_injection_case vc gl then
+      tclTHENLIST [perform_injection vc; cleartac clr; ipatstac ~ist ipats] gl
     else 
       (* macro for "case/v E: x" ---> "case E: x / (v x)" *)
       let deps, clr, occ = 
@@ -4018,14 +4046,12 @@ ARGUMENT EXTEND ssrapplyarg TYPED AS ssrarg PRINTED BY pr_ssrarg
   [ mk_applyarg [] ([], clr) intros ]
 | [ ssrintros_ne(intros) ] ->
   [ mk_applyarg [] ([], []) intros ]
-| [ ssrview(view1) ssrview(view2) ssrclear(clr) ssrintros(intros) ] ->
-  [ mk_applyarg (view1 @ view2) ([], clr) intros ]
 | [ ssrview(view) ssrclear(clr) ssrintros(intros) ] ->
   [ mk_applyarg view ([], clr) intros ]
 END
 
 let interp_agen ist gl ((goclr, _), (k, gc)) (clr, rcs) =
-  let rc = glob_constr ist gl gc in
+  let rc = glob_constr ist (project gl) (pf_env gl) gc in
   let rcs' = rc :: rcs in
   match goclr with
   | None -> clr, rcs'
@@ -4050,45 +4076,49 @@ let interp_agens ist gl gagens =
     clr, loop 0
   | _ -> assert false
 
-let mkRAppViewArgs ist gl rv gv nb_goals =
-  let nb_view_imps = interp_view_nbimps ist gl rv in
-  if nb_view_imps < 0 then view_error "apply" gl gv else
-  mkRApp rv (mkRHoles nb_view_imps) :: mkRHoles nb_goals
-
-let interp_apply_view i ist gl gv =
-  let rv = intern_term ist gl gv in
-  let args = mkRAppViewArgs ist gl rv gv i in
-  let interp_with hint = interp_refine ist gl (mkRApp hint args) in
-  let rec loop = function
-  | [] -> view_error "apply" gl gv
-  | hint :: hints -> try interp_with hint with _ -> loop hints in
-  loop viewtab.(i)
-
-let apply_id id gl =
-  let n = pf_nbargs gl (mkVar id) in
-  let mkRlemma i = mkRApp (mkRVar id) (mkRHoles i) in
+let apply_rconstr ?ist t gl =
+  let n = match ist, t with
+    | None, (RVar (_, id) | RRef (_, VarRef id)) -> pf_nbargs gl (mkVar id)
+    | Some ist, _ -> interp_nbargs ist gl t
+    | _ -> anomaly "apply_rconstr without ist and not RVar" in
+  let mkRlemma i = mkRApp t (mkRHoles i) in
   let cl = pf_concl gl in
-    let rec loop i =
-    if i > n then errorstrm (str "Could not apply " ++ pr_id id) else
-    try pf_match gl (mkRlemma i) cl with _ -> loop (i + 1) in
+  let rec loop i =
+    if i > n then errorstrm (str"Cannot apply lemma "++pf_pr_rawconstr gl t)
+    else try pf_match gl (mkRlemma i) cl with _ -> loop (i + 1) in
   refine_with (loop 0) gl
 
+let mkRAppView ist gl rv gv =
+  let nb_view_imps = interp_view_nbimps ist gl rv in
+  mkRApp rv (mkRHoles (abs nb_view_imps))
+
+let refine_interp_apply_view i ist gl gv =
+  let pair i = List.map (fun x -> i, x) in
+  let rv = pf_intern_term ist gl gv in
+  let v = mkRAppView ist gl rv gv in
+  let interp_with (i, hint) =
+    interp_refine ist gl (mkRApp hint (v :: mkRHoles i)) in
+  let rec loop = function
+  | [] -> (try apply_rconstr ~ist v gl with _ -> view_error "apply" gv)
+  | h :: hs -> (try refine_with (interp_with h) gl with _ -> loop hs) in
+  loop (pair i viewtab.(i) @ if i = 2 then pair 1 viewtab.(1) else [])
+
 let apply_top_tac gl =
-  tclTHENLIST [introid top_id; apply_id top_id; clear [top_id]] gl
+  tclTHENLIST [introid top_id; apply_rconstr (mkRVar top_id); clear [top_id]] gl
 
 let inner_ssrapplytac gviews ggenl gclr ist gl =
   let clr = interp_hyps ist gl gclr in
-  let vtac ist gv i gl' = refine_with (interp_apply_view i ist gl' gv) gl' in 
+  let vtac gv i gl' = refine_interp_apply_view i ist gl' gv in
   match gviews, ggenl with
-  | [gv1], [] ->
-    tclTHEN (vtac ist gv1 1) (cleartac clr) gl
-  | [gv1; gv2], [] -> 
-    tclTHEN (tclTHENLAST (vtac ist gv1 1) (vtac ist gv2 2)) (cleartac clr) gl
+  | v :: tl, [] ->
+    let dbl = if List.length tl = 1 then 2 else 1 in
+    tclTHEN
+      (List.fold_left (fun acc v -> tclTHENLAST acc (vtac v dbl)) (vtac v 1) tl)
+      (cleartac clr) gl
   | [], [agens] ->
     let clr', lemma = interp_agens ist gl agens in
     tclTHENLIST [cleartac clr; refine_with lemma; cleartac clr'] gl
-  | _, _ ->
-    tclTHEN apply_top_tac (cleartac clr) gl
+  | _, _ -> tclTHEN apply_top_tac (cleartac clr) gl
 
 let ssrapplytac (views, (_, ((gens, clr), intros))) =
   tclINTROS (inner_ssrapplytac views gens clr) intros
@@ -4105,8 +4135,6 @@ let mk_exactarg views dgens = mk_applyarg views dgens ([], rawltacctx)
 ARGUMENT EXTEND ssrexactarg TYPED AS ssrarg PRINTED BY pr_ssrarg
 | [ ":" ssragen(gen) ssragens(dgens) ] ->
   [ mk_exactarg [] (cons_gen gen dgens) ]
-| [ ssrview(view1) ssrview(view2) ssrclear(clr) ] ->
-  [ mk_exactarg (view1 @ view2) ([], clr) ]
 | [ ssrview(view) ssrclear(clr) ] ->
   [ mk_exactarg view ([], clr) ]
 | [ ssrclear_ne(clr) ] ->
