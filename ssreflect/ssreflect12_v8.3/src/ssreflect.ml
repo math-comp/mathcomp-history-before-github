@@ -48,12 +48,17 @@ let accept_before_syms syms strm =
   | [_; "", sym] when List.mem sym syms -> ()
   | _ -> raise Stream.Failure
 
-let accept_before_syms_or_id syms strm =
+let accept_before_syms_or_any_id syms strm =
   match Stream.npeek 2 strm with
   | [_; "", sym] when List.mem sym syms -> ()
   | [_; "IDENT", _] -> ()
   | _ -> raise Stream.Failure
 
+let accept_before_syms_or_ids syms ids strm =
+  match Stream.npeek 2 strm with
+  | [_; "", sym] when List.mem sym syms -> ()
+  | [_; "IDENT", id] when List.mem id ids -> ()
+  | _ -> raise Stream.Failure
 
 (** Pretty-printing utilities *)
 
@@ -566,7 +571,6 @@ let pf_abs_evars_pirrel gl (sigma, c0) =
       try 
         let proof = ref (fun _ -> assert false) in
         let t = Evarutil.nf_evar sigma t in
-        pp(lazy(str"t=" ++ pr_constr t));
         let tac gl = 
           let gl, p = !ssrautoprop_tac gl in 
           if sig_it gl = [] then (proof := p; gl, p) else errorstrm (str"XX") in
@@ -1557,7 +1561,6 @@ type ssrtermrep = char * rawconstr_and_expr
 
 (* We also guard characters that might interfere with the ssreflect   *)
 (* tactic syntax.                                                     *)
-(* XXX check if '@' broke something *)
 let guard_term ch1 s i = match s.[i] with
   | '(' -> false
   | '{' | '/' | '=' -> true
@@ -2175,7 +2178,7 @@ let rec ipat_of_intro_pattern = function
       (List.map (List.map ipat_of_intro_pattern) 
 	 (List.map (List.map remove_loc) iorpat))
   | IntroAnonymous -> IpatAnon
-  | IntroRewrite b -> IpatRw ([ArgArg 0], if b then L2R else R2L)
+  | IntroRewrite b -> IpatRw ([noindex], if b then L2R else R2L)
   | IntroFresh id -> IpatAnon
   | IntroForthcoming _ -> (* Unable to determine which kind of ipat interp_introid could return [HH] *)
       assert false
@@ -2244,7 +2247,7 @@ let rec interp_ipat ist gl =
 let interp_ipats ist gl = List.map (interp_ipat ist gl)
 
 let pushIpatRw = function
-  | pats :: orpat -> (IpatRw ([ArgArg 0], L2R) :: pats) :: orpat
+  | pats :: orpat -> (IpatRw ([noindex], L2R) :: pats) :: orpat
   | [] -> []
 
 ARGUMENT EXTEND ssripat TYPED AS ssripatrep list PRINTED BY pr_ssripats
@@ -2257,15 +2260,15 @@ ARGUMENT EXTEND ssripat TYPED AS ssripatrep list PRINTED BY pr_ssripats
   | [ ssrsimpl_ne(sim) ] -> [ [IpatSimpl ([], sim)] ]
   | [ ssrdocc(occ) "->" ] -> [ match occ with
       | None, occ -> [IpatRw (occ, L2R)]
-      | Some clr, _ -> [IpatSimpl (clr, Nop); IpatRw ([ArgArg 0], L2R)]]
+      | Some clr, _ -> [IpatSimpl (clr, Nop); IpatRw ([noindex], L2R)]]
   | [ ssrdocc(occ) "<-" ] -> [ match occ with
       | None, occ ->  [IpatRw (occ, R2L)]
-      | Some clr, _ -> [IpatSimpl (clr, Nop); IpatRw ([ArgArg 0], R2L)]]
+      | Some clr, _ -> [IpatSimpl (clr, Nop); IpatRw ([noindex], R2L)]]
   | [ ssrdocc(occ) ] -> [ match occ with
       | Some cl, _ -> check_hyps_uniq [] cl; [IpatSimpl (cl, Nop)]
       | _ -> loc_error loc "Only identifiers are allowed here"]
-  | [ "->" ] -> [ [IpatRw ([ArgArg 0], L2R)] ]
-  | [ "<-" ] -> [ [IpatRw ([ArgArg 0], R2L)] ]
+  | [ "->" ] -> [ [IpatRw ([noindex], L2R)] ]
+  | [ "<-" ] -> [ [IpatRw ([noindex], R2L)] ]
   | [ ssrview(v) ] -> [ [IpatView v] ]
 END
 
@@ -2298,11 +2301,13 @@ ARGUMENT EXTEND ssripats_ne TYPED AS ssripat PRINTED BY pr_ssripats
 END
 
 (* subsets of patterns *)
+(* XXX check if it's ok for suff and wlog *)
+(* XXX check almost useless in this form *)
 let check_ssrhpats loc = function
- | [ IpatSimpl (cls, Nop) ; 
-     (IpatId _ | IpatAnon | IpatCase _ | IpatRw _ as y)] -> cls, [y]
- | [ (IpatId _ | IpatAnon | IpatCase _ | IpatRw _) ] as x -> [], x
- | [ IpatSimpl (cls, Nop) ] -> cls, []
+ | ( IpatSimpl (cls, Nop) ) ::
+     ( IpatId _ | IpatAnon | IpatCase _ | IpatRw _ as y ) :: tl -> cls, y :: tl
+ | ( IpatId _ | IpatAnon | IpatCase _ | IpatRw _ ) :: _ as x -> [], x
+ | ( IpatSimpl (cls, Nop) ) :: tl -> cls, tl
  | [] -> [], []
  | ip -> user_err_loc (loc, "",
            str"Intro pattern " ++ pr_ipats ip ++ str" not allowed here")
@@ -2310,7 +2315,8 @@ let check_ssrhpats loc = function
 let single loc =
   function [x] -> x | _ -> loc_error loc "Only one intro pattern is allowed"
 
-let pr_ssrhpats _ _ _ (clr, ipat) = pr_clear mt clr ++ pr_ipats ipat
+let pr_hpats (clr, ipat) = pr_clear mt clr ++ pr_ipats ipat
+let pr_ssrhpats _ _ _ = pr_hpats
 
 ARGUMENT EXTEND ssrhpats TYPED AS ssrclear * ssripat PRINTED BY pr_ssrhpats
   | [ ssripats(i) ] -> [ check_ssrhpats loc i ]
@@ -2663,7 +2669,7 @@ let sq_brace_tacnames =
 let accept_ssrseqvar strm =
   match Stream.npeek 1 strm with
   | ["IDENT", id] when not (List.mem id sq_brace_tacnames) ->
-     accept_before_syms ["["] strm
+     accept_before_syms_or_ids ["["] ["first";"last"] strm
   | _ -> raise Stream.Failure
 
 let test_ssrseqvar = Gram.Entry.of_parser "test_ssrseqvar" accept_ssrseqvar
@@ -3456,8 +3462,8 @@ GEXTEND Gram
     | occ = ssrdocc; "<-" -> (match occ with
       | None, occ ->  IpatRw (occ, R2L)
       | _ -> loc_error loc "Only occurrences are allowed here")
-    | "->" -> IpatRw ([ArgArg 0], L2R)
-    | "<-" -> IpatRw ([ArgArg 0], R2L) 
+    | "->" -> IpatRw ([noindex], L2R)
+    | "<-" -> IpatRw ([noindex], R2L)
     ]];
   ssreqid: [
     [ test_ssreqid; pat = ssreqpat -> Some pat
@@ -3617,7 +3623,7 @@ let saturate ?(beta=false) env sigma c ?(ty=Typing.type_of env sigma c) m =
   | CastType (t, _) -> loop t args sigma n 
   | LetInType (_, v, _, t) -> loop (subst1 v t) args sigma n
   | SortType _ -> assert false
-  | AtomicType _ ->  (* XXX we may directly begin with the whd I think *)
+  | AtomicType _ ->
       let ty = Reductionops.whd_betadeltaiota env sigma ty in
       match kind_of_type ty with
       | ProdType _ -> loop ty args sigma n
@@ -3826,9 +3832,9 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
           loop gl (patterns@[i,t,inf_t,must,occ]) 
             (clr_t @ clr) (i+1) (deps,inf_deps)
       | [], c :: inf_deps -> 
-          loop gl (patterns@[i,c,c,false,[ArgArg 0]]) clr (i+1) ([],inf_deps)
+          loop gl (patterns@[i,c,c,false,[noindex]]) clr (i+1) ([],inf_deps)
       | _::_, [] -> errorstrm (str "Too many dependent abstractions") in
-    let occ = if occ = [] then [ArgArg 0] else occ in
+    let occ = if occ = [] then [noindex] else occ in
     let head_p = if elim_is_dep then [1,c,c,false,occ] else [] in
     let patterns, clr, gl = 
       loop gl [] clr (List.length head_p+1) (deps, inf_deps) in
@@ -4690,7 +4696,7 @@ let rwrxtac occ rdx_pat dir rule gl =
     rwcltac concl rdx d r gl
   | Some (In_T rp) ->
     let rp = mk_upat_for env0 sigma0 rp all_ok in
-    let find_T, end_T = mk_pmatcher sigma0 [ArgArg 0] rp in
+    let find_T, end_T = mk_pmatcher sigma0 [noindex] rp in
     let rpats = List.fold_left (rpat env0 sigma0) ([], r_sigma) rules in
     let find_R, end_R = mk_pmatcher sigma0 occ ~upats_origin rpats in
     let concl = find_T env0 concl0 1 (fun env _ c -> find_R env c ~k:k_mkRel) in
@@ -4700,7 +4706,7 @@ let rwrxtac occ rdx_pat dir rule gl =
   | Some (X_In_T (hole, (p_sigma, p as srp))) ->
     let ex = ex_value hole in
     let rp = mk_upat_for ~hack:true env0 sigma0 srp all_ok in
-    let find_T, end_T = mk_pmatcher sigma0 [ArgArg 0] rp in
+    let find_T, end_T = mk_pmatcher sigma0 [noindex] rp in
     (* we start from sigma, so hole is considered a rigid head *)
     let holep = mk_upat_for env0 p_sigma (p_sigma, hole) all_ok in
     let find_X, end_X = mk_pmatcher p_sigma occ holep in
@@ -4718,9 +4724,9 @@ let rwrxtac occ rdx_pat dir rule gl =
   | Some (In_X_In_T (hole, (p_sigma, p as srp))) ->
     let ex = ex_value hole in
     let rp = mk_upat_for ~hack:true env0 sigma0 srp all_ok in
-    let find_T, end_T = mk_pmatcher sigma0 [ArgArg 0] rp in
+    let find_T, end_T = mk_pmatcher sigma0 [noindex] rp in
     let holep = mk_upat_for env0 p_sigma (p_sigma, hole) all_ok in
-    let find_X, end_X = mk_pmatcher p_sigma [ArgArg 0] holep in
+    let find_X, end_X = mk_pmatcher p_sigma [noindex] holep in
     let rpats = List.fold_left (rpat env0 sigma0) ([], r_sigma) rules in
     let find_R, end_R = mk_pmatcher sigma0 occ ~upats_origin rpats in
     let concl = find_T env0 concl0 1 (fun env _ c h ->
@@ -4734,9 +4740,9 @@ let rwrxtac occ rdx_pat dir rule gl =
   | Some (E_In_X_In_T (ep, hole, (p_sigma, p as srp))) ->
     let ex = ex_value hole in
     let rp = mk_upat_for ~hack:true env0 sigma0 srp all_ok in
-    let find_T, end_T = mk_pmatcher sigma0 [ArgArg 0] rp in
+    let find_T, end_T = mk_pmatcher sigma0 [noindex] rp in
     let holep = mk_upat_for env0 p_sigma (p_sigma, hole) all_ok in
-    let find_X, end_X = mk_pmatcher p_sigma [ArgArg 0] holep in
+    let find_X, end_X = mk_pmatcher p_sigma [noindex] holep in
     let re = mk_upat_for env0 sigma0 ep all_ok in
     let find_E, end_E = mk_pmatcher sigma0 occ ~upats_origin re in
     let r = ref None in
@@ -4757,7 +4763,7 @@ let rwrxtac occ rdx_pat dir rule gl =
       let e_sigma = unify_HO env0 e_sigma hole e in
       e_sigma, fs e_sigma p in
     let rp = mk_upat_for ~hack:true env0 sigma0 rp all_ok in
-    let find_TE, end_TE = mk_pmatcher sigma0 [ArgArg 0] rp in
+    let find_TE, end_TE = mk_pmatcher sigma0 [noindex] rp in
     let holep = mk_upat_for env0 p_sigma (p_sigma, hole) all_ok in
     let find_X, end_X = mk_pmatcher p_sigma occ holep in
     let r = ref None in
@@ -4918,7 +4924,7 @@ END
 
 let accept_ssrfwdid strm =
   match Stream.npeek 1 strm with
-  | ["IDENT", id] -> accept_before_syms_or_id [":"; ":="; "("] strm
+  | ["IDENT", id] -> accept_before_syms_or_any_id [":"; ":="; "("] strm
   | _ -> raise Stream.Failure
 
 
@@ -5138,38 +5144,49 @@ let pr_ssrbinder prc _ _ (_, c) = prc c
 
 ARGUMENT EXTEND ssrbinder TYPED AS ssrfwdfmt * constr PRINTED BY pr_ssrbinder
  | [ ssrbvar(bv) ] ->
-    [ let xloc, _ as x = bvar_lname bv in
-      (FwdPose, [BFvar]), 
-      CLambdaN (loc, [[x], Default Explicit, CHole (xloc, None)], 
-		CHole (loc, None)) ]
+   [ let xloc, _ as x = bvar_lname bv in
+     (FwdPose, [BFvar]),
+     CLambdaN (loc,[[x],Default Explicit,CHole (xloc,None)],CHole (loc,None)) ]
+ | [ "(" ssrbvar(bv) ")" ] ->
+   [ let xloc, _ as x = bvar_lname bv in
+     (FwdPose, [BFvar]),
+     CLambdaN (loc,[[x],Default Explicit,CHole (xloc,None)],CHole (loc,None)) ]
  | [ "(" ssrbvar(bv) ":" lconstr(t) ")" ] ->
-    [ let x = bvar_lname bv in
-      (FwdPose, [BFdecl 1]), 
-      CLambdaN (loc, [[x], Default Explicit, t], CHole (loc, None)) ]
+   [ let x = bvar_lname bv in
+     (FwdPose, [BFdecl 1]),
+     CLambdaN (loc, [[x], Default Explicit, t], CHole (loc, None)) ]
  | [ "(" ssrbvar(bv) ne_ssrbvar_list(bvs) ":" lconstr(t) ")" ] ->
-    [ let xs = List.map bvar_lname (bv :: bvs) in
-      let n = List.length xs in
-      (FwdPose, [BFdecl n]),
-      CLambdaN (loc, [xs, Default Explicit, t], CHole (loc, None)) ]
-  | [ "(" ssrbvar(id) ":" lconstr(t) ":=" lconstr(v) ")" ] ->
-    [ let loc' = Util.join_loc (constr_loc t) (constr_loc v) in
-      let v' = CCast (loc', v, dC t) in
-      (FwdPose, [BFdef true]), CLetIn (loc, bvar_lname id, v', CHole (loc, None)) ]
-  | [ "(" ssrbvar(id) ":=" lconstr(v) ")" ] ->
-    [ (FwdPose, [BFdef false]), CLetIn (loc, bvar_lname id, v, CHole (loc, None)) ]
+   [ let xs = List.map bvar_lname (bv :: bvs) in
+     let n = List.length xs in
+     (FwdPose, [BFdecl n]),
+     CLambdaN (loc, [xs, Default Explicit, t], CHole (loc, None)) ]
+ | [ "(" ssrbvar(id) ":" lconstr(t) ":=" lconstr(v) ")" ] ->
+   [ let loc' = Util.join_loc (constr_loc t) (constr_loc v) in
+     let v' = CCast (loc', v, dC t) in
+     (FwdPose,[BFdef true]), CLetIn (loc,bvar_lname id, v',CHole (loc,None)) ]
+ | [ "(" ssrbvar(id) ":=" lconstr(v) ")" ] ->
+   [ (FwdPose,[BFdef false]), CLetIn (loc,bvar_lname id, v,CHole (loc,None)) ]
 END
 
 let rec binders_fmts = function
   | ((_, h), _) :: bs -> h @ binders_fmts bs
   | _ -> []
 
-let push_binders c2 =
+let push_binders c2 bs =
   let loc2 = constr_loc c2 in let mkloc loc1 = Util.join_loc loc1 loc2 in
-  let rec loop = function
-  | (_, CLambdaN (loc1, b, _)) :: bs -> CLambdaN (mkloc loc1, b, loop bs)
-  | (_, CLetIn (loc1, x, v, _)) :: bs -> CLetIn (mkloc loc1, x, v, loop bs)
-  | _ -> c2 in
-  loop
+  let rec loop ty c = function
+  | (_, CLambdaN (loc1, b, _)) :: bs when ty ->
+      CProdN (mkloc loc1, b, loop ty c bs)
+  | (_, CLambdaN (loc1, b, _)) :: bs ->
+      CLambdaN (mkloc loc1, b, loop ty c bs)
+  | (_, CLetIn (loc1, x, v, _)) :: bs ->
+      CLetIn (mkloc loc1, x, v, loop ty c bs)
+  | [] -> c
+  | _ -> anomaly "binder not a lambda nor a let in" in
+  match c2 with
+  | CCast (x, ct, CastConv (y, cty)) ->
+      (CCast (x, loop false ct bs, CastConv (y, loop true cty bs)))
+  | ct -> loop false ct bs
 
 let rec fix_binders = function
   | (_, CLambdaN (_, [xs, _, t], _)) :: bs ->
@@ -5191,12 +5208,13 @@ END
 
 (* The plain pose form. *)
 
+let bind_fwd bs = function
+  | ((fk, h), (ck, (rc, Some c))), ctx ->
+    ((fk,binders_fmts bs @ h), (ck,(rc,Some (push_binders c bs)))), ctx
+  | fwd -> fwd
+
 ARGUMENT EXTEND ssrposefwd TYPED AS ssrfwd PRINTED BY pr_ssrfwd
-  | [ ssrbinder_list(bs) ssrfwd(fwd) ] ->
-    [ match fwd with
-    | ((fk, h), (ck, (rc, Some c))), ctx ->
-      ((fk, binders_fmts bs @ h), (ck, (rc, Some (push_binders c bs)))), ctx
-    | _ -> fwd ]
+  | [ ssrbinder_list(bs) ssrfwd(fwd) ] -> [ bind_fwd bs fwd ]
 END
 
 (* The pose fix form. *)
@@ -5300,6 +5318,37 @@ ARGUMENT EXTEND ssrhavefwd TYPED AS ssrfwd * ssrhint PRINTED BY pr_ssrhavefwd
 | [ ":=" lconstr(c) ] -> [ mkFwdVal FwdHave c, nohint ]
 END
 
+let trailing_id_to_binders pats bs =
+  let rec loop pats = function
+    | [] -> pats, bs
+    | (IpatId _ | IpatAnon _) as p :: tl ->
+        pats @ [p], List.map (function IpatId id ->
+          let xloc, _ as x = bvar_lname (mkCVar dummy_loc id) in
+          (FwdPose, [BFvar]),
+             CLambdaN (dummy_loc, [[x], Default Explicit, CHole (xloc, None)],
+		CHole (dummy_loc, None))
+        | _ -> errorstrm
+          (str"Only binders are allowed after the first identifier")
+        ) tl @ bs
+    | (IpatCase _ | IpatRw _) :: _ as rest ->
+        if bs = [] then pats @ rest, bs
+        else errorstrm (str"Binders must follow an identifier")
+    | p :: tl -> loop (pats @ [p]) tl
+  in loop [] pats
+
+let pr_ssrhavefwdwbinders _ _ prt (hpats, (fwd, hint)) =
+  pr_hpats hpats ++ pr_fwd fwd ++ pr_hint prt hint
+
+ARGUMENT EXTEND ssrhavefwdwbinders
+  TYPED AS ssrhpats * (ssrfwd * ssrhint) PRINTED BY pr_ssrhavefwdwbinders
+| [ ssrhpats(pats) ssrbinder_list(bs) ssrhavefwd(fwd) ] ->
+  [ let clr, pats = pats in
+    let pats, bs = trailing_id_to_binders pats bs in
+    let fwd, hint = fwd in
+    let fwd = bind_fwd bs fwd in
+    (clr, pats), (fwd, hint) ]
+END
+
 (* Tactic. *)
 
 let basecuttac name c = apply (mkApp (mkSsrConst name, [|c|]))
@@ -5350,8 +5399,8 @@ let havetac (clr, pats) ((((fk, _), t), ctx), hint) suff namefst gl =
  tclTHENS (cuttac cut) [ tclTHEN sol itac1; tclTHEN clear itac2 ] gl
 
 TACTIC EXTEND ssrhave
-| [ "have" ssrhpats(pats) ssrhavefwd(fwd) ] ->
-  [ havetac pats fwd false false ]
+| [ "have" ssrhavefwdwbinders(fwd) ] ->
+  [ let pats, fwd = fwd in havetac pats fwd false false ]
 END
 
 TACTIC EXTEND ssrhavesuff
@@ -5376,8 +5425,14 @@ END
 
 (** The "suffice" tactic *)
 
-ARGUMENT EXTEND ssrsufffwd TYPED AS ssrhavefwd PRINTED BY pr_ssrhavefwd
-| [ ":" lconstr(t) ssrhint(hint) ] ->[ mkFwdHint ":" t, hint ]
+ARGUMENT EXTEND ssrsufffwd
+  TYPED AS ssrhpats * (ssrfwd * ssrhint) PRINTED BY pr_ssrhavefwdwbinders
+| [ ssrhpats(pats) ssrbinder_list(bs)  ":" lconstr(t) ssrhint(hint) ] ->
+  [ let clr, pats = pats in
+    let pats, bs = trailing_id_to_binders pats bs in
+    let fwd = mkFwdHint ":" t in
+    let fwd = bind_fwd bs fwd in
+    (clr, pats), (fwd, hint) ]
 END
 
 let sufftac (clr, pats) (((_, c), ctx), hint) =
@@ -5387,13 +5442,13 @@ let sufftac (clr, pats) (((_, c), ctx), hint) =
   tclTHENS ctac [htac; cleartac clr]
 
 TACTIC EXTEND ssrsuff
-| [ "suff" ssrhpats(pats) ssrsufffwd(fwd) ] ->
-  [ sufftac pats fwd ]
+| [ "suff" ssrsufffwd(fwd) ] ->
+  [ let pats, fwd = fwd in sufftac pats fwd ]
 END
 
 TACTIC EXTEND ssrsuffices
-| [ "suffices" ssrhpats(pats) ssrsufffwd(fwd) ] ->
-  [ sufftac pats fwd ]
+| [ "suffices" ssrsufffwd(fwd) ] ->
+  [ let pats, fwd = fwd in sufftac pats fwd ]
 END
 
 (** The "wlog" (Without Loss Of Generality) tactic *)
