@@ -2301,16 +2301,23 @@ ARGUMENT EXTEND ssripats_ne TYPED AS ssripat PRINTED BY pr_ssripats
 END
 
 (* subsets of patterns *)
-(* XXX check if it's ok for suff and wlog *)
-(* XXX check almost useless in this form *)
-let check_ssrhpats loc = function
- | ( IpatSimpl (cls, Nop) ) ::
-     ( IpatId _ | IpatAnon | IpatCase _ | IpatRw _ as y ) :: tl -> cls, y :: tl
- | ( IpatId _ | IpatAnon | IpatCase _ | IpatRw _ ) :: _ as x -> [], x
- | ( IpatSimpl (cls, Nop) ) :: tl -> cls, tl
- | [] -> [], []
- | ip -> user_err_loc (loc, "",
-           str"Intro pattern " ++ pr_ipats ip ++ str" not allowed here")
+let check_ssrhpats loc ipats =
+  let clr, ipats =
+    let rec aux clr = function
+      | IpatSimpl (cl, Nop) :: tl -> aux (clr @ cl) tl
+      | IpatSimpl (cl, sim) :: tl -> clr @ cl, IpatSimpl ([], sim) :: tl
+      | tl -> clr, tl
+    in aux [] ipats in
+  let rec check = function
+    | [] -> ()
+    | ( IpatId _ | IpatAnon | IpatCase _ | IpatRw _ ) :: tl ->
+      if not (List.for_all
+        (function IpatId _ | IpatSimpl ([],_) -> true | _ -> false) tl)
+      then
+        user_err_loc(loc, "",str "Only binders allowed here: " ++ pr_ipats tl)
+    | _ :: tl -> check tl
+  in check ipats;
+  clr, ipats
 
 let single loc =
   function [x] -> x | _ -> loc_error loc "Only one intro pattern is allowed"
@@ -5476,7 +5483,7 @@ ARGUMENT EXTEND ssrwlogfwd TYPED AS ssrwgen list * ssrfwd
 | [ ":" ssrwgen_list(gens) "/" lconstr(t) ] -> [ gens, mkFwdHint "/" t]
 END
 
-let wlogtac (clr0, pats) (gens, ((_, ct), ctx)) hint gl =
+let wlogtac (clr0, pats) (gens, ((_, ct), ctx)) hint suff gl =
   let ist = get_ltacctx ctx in
   let mkabs (_, (SsrHyp (_, x), mode)) = match mode with
     | "@" -> mkNamedProd_or_LetIn (pf_get_hyp gl x)
@@ -5485,6 +5492,7 @@ let wlogtac (clr0, pats) (gens, ((_, ct), ctx)) hint gl =
   let mkclr (clr, (x, _)) clrs = cleartac clr :: cleartac [x] :: clrs in
   let mkpats (_, (SsrHyp (_, x), _)) pats = IpatId x :: pats in
   let cl0 = mkArrow (pf_prod_ssrterm ist gl ct) (pf_concl gl) in
+  let cl0 = if not suff then cl0 else let _,t,_ = destProd cl0 in t in
   let c = List.fold_right mkabs gens cl0 in
   let tac2clr = List.fold_right mkclr gens [cleartac clr0] in
   let tac2ipat = introstac (List.fold_right mkpats gens pats) ist in
@@ -5493,12 +5501,32 @@ let wlogtac (clr0, pats) (gens, ((_, ct), ctx)) hint gl =
 
 TACTIC EXTEND ssrwlog
 | [ "wlog" ssrhpats(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
-  [ wlogtac pats fwd hint ]
+  [ wlogtac pats fwd hint false ]
+END
+
+TACTIC EXTEND ssrwlogs
+| [ "wlog" "suff" ssrhpats(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
+  [ wlogtac pats fwd hint true ]
+END
+
+TACTIC EXTEND ssrwlogss
+| [ "wlog" "suffices" ssrhpats(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
+  [ wlogtac pats fwd hint true ]
 END
 
 TACTIC EXTEND ssrwithoutloss
 | [ "without" "loss" ssrhpats(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
-  [ wlogtac pats fwd hint ]
+  [ wlogtac pats fwd hint false ]
+END
+
+TACTIC EXTEND ssrwithoutlosss
+| [ "without" "loss" "suff" ssrhpats(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
+  [ wlogtac pats fwd hint true ]
+END
+
+TACTIC EXTEND ssrwithoutlossss
+| [ "without" "loss" "suffices" ssrhpats(pats) ssrwlogfwd(fwd) ssrhint(hint) ]->
+  [ wlogtac pats fwd hint true ]
 END
 
 (** 9. Keyword compatibility fixes. *)
