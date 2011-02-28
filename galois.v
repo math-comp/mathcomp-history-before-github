@@ -281,7 +281,7 @@ Qed.
    deriviation I will use are going to be linear, so we just define a
    derivation to be linear. *) 
 Definition Derivation (K:{algebra L}) (D : 'End(L)) : bool :=
- (D @v: K <= K)%VS &&
+ (D @: K <= K)%VS &&
  (all (fun v1 => all (fun v2 => D (v1 * v2) == D v1 * v2 + v1 * D v2) (vbasis K))
       (vbasis K)).
 
