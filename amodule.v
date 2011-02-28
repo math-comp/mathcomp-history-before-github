@@ -348,7 +348,7 @@ by move/modfP: Hmf=> ->; rewrite // (eqP Hf) rmul0 eqxx.
 Qed.
 
 Lemma modv_img : forall f ms al, 
-  modv ms al -> modf f ms al -> modv (f @v: ms) al.
+  modv ms al -> modf f ms al -> modv (f @: ms)%VS al.
 Proof.
 move=> f ms al Hmv Hmf; apply/eprodvP=> v x.
 case/memv_imgP=> u [Hu ->] Hx.

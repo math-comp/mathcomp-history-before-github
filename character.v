@@ -536,8 +536,8 @@ suff<-: \sum_(C \in (classes G))
     case/imsetP: Hi XiI => g GiG ->; case/imsetP=> h HiG Hx.
     case: (repr_class G g)=> h1 H1iG ->.
     by rewrite Hc // -(Hc _ _ _ HiG) // -Hx Hg // inE (negPf XniA).
-  apply/mapP.
-  by exists (enum_rank_in (classes1 G) i); [rewrite mem_enum | rewrite enum_rankK_in].
+  by apply/mapP; exists (enum_rank_in (classes1 G) i);  
+      [rewrite mem_enum | rewrite enum_rankK_in].
 apply/cfunP=> g; rewrite sum_cfunE cfunE.
 case GiG: (g \in G); last first.
   rewrite Hg ?(inE,GiG,andbF) //; apply: big1=> i Hi; rewrite !cfunE.
@@ -672,13 +672,14 @@ Proof. by move=> f g; rewrite cfunE conj1g. Qed.
 
 Lemma is_conjugate_refl : reflexive (is_conjugate G).
 Proof. 
-by move=> f; apply/is_conjugateP; exists 1%g; [exact: group1 | rewrite cfun_conj1].
+move=> f; apply/is_conjugateP.
+by exists 1%g; [exact: group1 | rewrite cfun_conj1].
 Qed.
 
 Lemma is_conjugate_sym : symmetric (is_conjugate G).
 Proof.
-by move=> f1 f2; apply/is_conjugateP/is_conjugateP; case=> g GiG ->; exists (g^-1%g);
-  rewrite ?groupV // -cfun_conjM mulgV cfun_conj1.
+by move=> f1 f2; apply/is_conjugateP/is_conjugateP; case=> g GiG ->; 
+   exists (g^-1%g); rewrite ?groupV // -cfun_conjM mulgV cfun_conj1.
 Qed.
 
 Lemma is_conjugate_trans : transitive (is_conjugate G).
@@ -1068,7 +1069,7 @@ rewrite !mxE xchar_singleton // /GRing.scale /= -mulrA => ->.
 by rewrite !mulrA mulVf ?mul1r // neq0GC.
 Qed.
 
-Definition to_socle n (rG : mx_representation algC G n) (j: DecSocleType rG) :=  
+Definition to_socle n (rG : mx_representation algC G n) (j: DecSocleType rG) := 
   irr_comp sG (socle_repr j).
 
 Lemma to_socle_inj : forall n (rG : mx_representation algC G n),
