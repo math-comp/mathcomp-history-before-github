@@ -62,3 +62,8 @@ move=> pg p.
 have suff {pg} H := pg.
 match goal with H : P -> G |- G => exact: H p | _ => fail end.
 Qed.
+
+Goal forall x y : bool, x = y -> x = y.
+move=> x y E.
+by have {x E} -> : x = y by [].
+Qed.

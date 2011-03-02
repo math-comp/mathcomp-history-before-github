@@ -78,26 +78,59 @@ Lemma manual : forall x y z (f : nat -> nat -> nat),
 by move=> x y z f; rewrite [(x + y).+1 in X in f _ X](addnC x.+1); admit.
 Qed.
 
-Require Import fintype ssrnat finset fingroup pgroup gproduct.
+Require Import fintype ssrnat finset fingroup gproduct.
 
 Goal (forall (gT : finGroupType) (G H: {set gT}) (Z : {group gT}), G = Z).
 move=> gT G H K. suff: G \x H = K. case/dprodP=> {G H} [[G H -> -> defK _ _]].
 admit.
 admit.
+Qed.
 
 Goal (exists x : 'I_3, x > 0).
 apply: (ex_intro _ (@Ordinal _ 2 _)).
 admit.
+Qed.
 
 Goal (forall y, 1 < y < 2 -> exists x : 'I_3, x > 0).
 move=> y; case/andP=> y_gt1 y_lt2; apply: (ex_intro _ (@Ordinal _ y _)).
  by apply: leq_trans y_lt2 _.
 by move=> y_lt3; apply: leq_trans _ y_gt1.
+Qed.
 
 Goal (forall x y : nat, forall P : nat -> Prop, x = y -> True).
 move=> x y P E.
 have: P x -> P y by suff: x = y by move=> ?; congr (P _).
-admit.
+by admit.
+Qed.
+
+Goal forall a : bool, a -> true && a || false && a.
+by move=> a ?; rewrite [true && _]/= [_ && a]/= orbC [_ || _]//=.
+Qed.
+
+Goal forall a : bool, a -> true && a || false && a.
+by move=> a ?; rewrite [X in X || _]/= [X in _ || X]/= orbC [false && a as X in X || _]//=.
+Qed.
+
+Variable a : bool.
+Definition f x := x || a.
+Definition g x := f x.
+
+Goal a -> g false.
+by move=> Ha; rewrite [g _]/f orbC Ha.
+Qed.
+
+Goal a -> g false || g false.
+move=> Ha; rewrite {2}[g _]/f orbC Ha.
+match goal with |- (is_true (false || true || g false)) => done end.
+Qed.
+
+Goal a -> (a && a || true && a) && true.
+by move=> Ha; rewrite -[_ || _]/(g _) andbC /= Ha [g _]/f.
+Qed.
+
+Goal a -> (a || a) && true.
+by move=> Ha; rewrite -[in _ || _]/(f _) Ha andbC /f.
+Qed.
 
 (*
 Lemma testM7: forall x y, 0 = x + y -> y = 0 -> x = 0 -> 0 = y + x.

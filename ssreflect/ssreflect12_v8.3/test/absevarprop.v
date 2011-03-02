@@ -1,4 +1,10 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
+Require Import fintype.
+
+Lemma test15: forall (y : nat) (x : 'I_2), y < 1 -> val x = y -> Some x = insub y.
+move=> y x le_1 defx; rewrite insubT ?(leq_trans le_1) // => ?.
+by congr (Some _); apply: val_inj=> /=; exact: defx.
+Qed.
 
 Axiom P : nat -> Prop.
 Axiom Q : forall n, P n -> Prop.
@@ -76,3 +82,4 @@ Proof.
 apply: ExI1 1 _ _ _ _.  
 match goal with |- is_true (R1 1 P1 1 P11 (Q1 P1)) => done | _ => fail end.
 Qed.
+

@@ -128,15 +128,6 @@ let msgtac gl = pf_msg gl; tclIDTAC gl
 
 (** Tactic utilities *)
 
-let check_assumption_exists hyps id =
-  try ignore(Sign.lookup_named id hyps)
-  with Not_found -> errorstrm (str"No assumption is named " ++ pr_id id)
-
-let clear ids gl =
-  let hyps = pf_hyps gl in
-  List.iter (check_assumption_exists hyps) ids;
-  clear ids gl
-
 let introid = intro_mustbe_force
 
 let pf_image gl tac = let gls, _ = tac gl in first_goal gls
@@ -1516,6 +1507,10 @@ let rec check_hyps_uniq ids = function
   | SsrHyp (_, id) :: hyps -> check_hyps_uniq (id :: ids) hyps
   | [] -> ()
 
+let check_hyp_exists hyps (SsrHyp(_, id)) =
+  try ignore(Sign.lookup_named id hyps)
+  with Not_found -> errorstrm (str"No assumption is named " ++ pr_id id)
+
 let interp_hyps ist gl ghyps =
   let hyps = List.map (interp_hyp ist gl) ghyps in
   check_hyps_uniq [] hyps; hyps
@@ -2456,72 +2451,80 @@ let rec is_name_in_ipats name = function
   | _ :: tl -> is_name_in_ipats name tl
   | [] -> false
 
-let rec map_acc_k f k = function
-  | [] -> [k]
-  | x :: xs -> let k, x = f k xs x in x :: map_acc_k f k xs
-
 let move_top_with_view = ref (fun _ _ _ -> assert false)
 
-let rec ipattac ?ist k rest = function
-  | IpatWild -> k, introid (new_wild_id ())
-  | IpatCase iorpat -> k, tclIORPAT ?ist (with_top ssrscasetac) iorpat
-  | IpatRw (occ, dir) -> k, with_top (!ipat_rewritetac occ dir)
-  | IpatId id -> k, introid id
-  | IpatSimpl (clr, sim) ->
-    let rename, clear = 
-      if List.exists (fun x -> is_name_in_ipats (hyp_id x) rest) clr then
-        let to_clr = ref [] in
-        let ren gl = 
-          let hyps = pf_hyps gl in
-          let clr, ren = 
-            List.split (List.map (function SsrHyp(_, x) -> 
-              check_assumption_exists hyps x;
+(* introstac: for "move" and "clear", tclEQINTROS: for "case" and "elim" *)
+(* This block hides the spaghetti-code needed to implement the only two  *)
+(* tactics that should be used to process intro patters.                 *)
+(* The difficulty is that we don't want to always rename, but we can     *)
+(* compute needeed renamings only at runtime, so we theread a tree like  *)
+(* imperativestructure so that outer renamigs are inherited by inner     *)
+(* ipts and that the cler performed at the end of ipatstac clears hyps   *)
+(* eventually renamed at runtime.                                        *)
+(* TODO: hide wild_ids in this block too *)
+let introstac, tclEQINTROS =
+  let rec map_acc_k f k = function
+    | [] -> (* tricky: we save wilds now, we get to_cler (aka k) later *)
+      let clear_ww = clear_with_wilds !wild_ids in           
+      [fun gl -> clear_ww (hyps_ids (List.flatten (List.map (!) k))) gl]
+    | x :: xs -> let k, x = f k xs x in x :: map_acc_k f k xs in
+  let rec ipattac ?ist k rest = function
+    | IpatWild -> k, introid (new_wild_id ())
+    | IpatCase iorpat -> k, tclIORPAT ?ist k (with_top ssrscasetac) iorpat
+    | IpatRw (occ, dir) -> k, with_top (!ipat_rewritetac occ dir)
+    | IpatId id -> k, introid id
+    | IpatSimpl (clr, sim) ->
+      let to_clr = ref [] in
+      let rename gl = 
+        let hyps, concl, env = pf_hyps gl, pf_concl gl, pf_env gl in
+        let () = List.iter (check_hyp_exists hyps) clr in
+        if List.exists (fun x -> is_name_in_ipats (hyp_id x) rest) clr then
+          let ren_clr, ren = 
+            List.split (List.map (fun x -> let x = hyp_id x in
               let x' = mk_anon_id (string_of_id x) gl in
               SsrHyp (dummy_loc, x'), (x, x')) clr) in
-          to_clr := clr; ren in
-        (fun gl -> rename_hyp (ren gl) gl), 
-        (fun gl -> clear_with_wilds !wild_ids (hyps_ids !to_clr) gl)
-      else tclIDTAC, clear_with_wilds !wild_ids (hyps_ids clr) in
-    tclTHEN k clear, tclTHEN rename (simpltac sim)
-  | IpatAll -> k, intro_all
-  | IpatAnon -> k, intro_anon
-  | IpatView v -> match ist with
-      | None -> anomaly "ipattac with no ist but view"
-      | Some ist -> match rest with
-          | (IpatCase _ | IpatRw _):: _ -> k, !move_top_with_view (false, v) ist
-          | _ -> k, !move_top_with_view (true, v) ist
-
-and tclIORPAT ?ist tac = function
-  | [[]] -> tac
-  | iorpat ->
-      tclTHENS_nonstrict tac (mapLR (ipatstac ?ist) iorpat) "intro pattern"
-and ipatstac ?ist ipats = tclTHENLIST (map_acc_k (ipattac ?ist) tclIDTAC ipats)
-
-(* For "move" and "clear" *)
-let introstac ipats ist =
-  wild_ids := [];
-  let tac = ipatstac ~ist ipats in
-  tclTHEN tac (clear_wilds !wild_ids)
+          let () = to_clr := ren_clr in
+          rename_hyp ren gl 
+        else
+          let () = to_clr := clr in
+          tclIDTAC gl in
+      to_clr :: k, tclTHEN rename (simpltac sim)
+    | IpatAll -> k, intro_all
+    | IpatAnon -> k, intro_anon
+    | IpatView v -> match ist with
+        | None -> anomaly "ipattac with no ist but view"
+        | Some ist -> match rest with
+            | (IpatCase _ | IpatRw _)::_ -> k, !move_top_with_view (false,v) ist
+            | _ -> k, !move_top_with_view (true,v) ist
+  and tclIORPAT ?ist k tac = function
+    | [[]] -> tac
+    | orp -> 
+       tclTHENS_nonstrict tac (mapLR (ipatstac ?ist k) orp) "intro pattern"
+  and ipatstac ?ist k ipats = 
+    tclTHENLIST (map_acc_k (ipattac ?ist) k ipats) in
+  let introstac ?ist ipats =
+    wild_ids := [];
+    let tac = ipatstac ?ist [] ipats in
+    tclTHENLIST [tac; clear_wilds !wild_ids] in
+  let tclEQINTROS ?ist tac eqtac ipats =
+    wild_ids := [];
+    let rec split_itacs to_clr tac' = function
+    | (IpatSimpl _ as spat) :: ipats' -> 
+      let to_clr, tac = ipattac ?ist to_clr ipats' spat in
+      split_itacs to_clr (tclTHEN tac' tac) ipats'
+    | IpatCase iorpat :: ipats' -> 
+        to_clr, tclIORPAT ?ist to_clr tac' iorpat, ipats'
+    | ipats' -> to_clr, tac', ipats' in
+    let to_clr, tac1, ipats' = split_itacs [] tac ipats in
+    let tac2 = ipatstac ?ist to_clr ipats' in
+    tclTHENLIST [tac1; eqtac; tac2; clear_wilds !wild_ids] in
+  introstac, tclEQINTROS
+;;
 
 let rec eqmoveipats eqpat = function
   | (IpatSimpl _ as ipat) :: ipats -> ipat :: eqmoveipats eqpat ipats
   | (IpatAll :: _ | []) as ipats -> IpatAnon :: eqpat :: ipats
    | ipat :: ipats -> ipat :: eqpat :: ipats
-
-(* For "case" and "elim" *)
-let tclEQINTROS ?ist tac eqtac ipats =
-  let rec split_itacs k tac' = function
-  | (IpatSimpl _ as spat) :: ipats' -> 
-    let k, tac = ipattac ?ist k ipats' spat in
-    split_itacs k (tclTHEN tac' tac) ipats'
-  | IpatCase iorpat :: ipats' -> k, tclIORPAT ?ist tac' iorpat, ipats'
-  | ipats' -> k, tac', ipats' in
-  wild_ids := [];
-  let k, tac1, ipats' = split_itacs tclIDTAC tac ipats in
-  let tac2 = tclTHENLIST (map_acc_k (ipattac ?ist) k ipats') in
-  tclTHENLIST [tac1; eqtac; tac2; clear_wilds !wild_ids]
-
-let ipattac ?ist ipat = snd (ipattac ?ist tclIDTAC [] ipat)
 
 (* General case *)
 let tclINTROS tac (ipats, ctx) = 
@@ -3262,7 +3265,8 @@ let mk_pmatcher ?(raise_NoMatch=false) sigma0 occ ?upats_origin (upats, ise) =
 (fun () ->
   let sigma, ({up_f = pf; up_a = pa} as u) =
     match !upat_that_matched with
-    | Some x -> x | None -> anomaly "companion function never called" in
+    | Some x -> x | None when raise_NoMatch -> raise NoMatch
+    | None -> anomaly "companion function never called" in
   let p' = mkApp (pf, pa) in
   if max_occ <= !nocc then let d, r = get_direction u.up_t in p', d, (sigma, r)
   else errorstrm (str"Only " ++ int !nocc ++ str" < " ++ int max_occ ++
@@ -3271,6 +3275,8 @@ let mk_pmatcher ?(raise_NoMatch=false) sigma0 occ ?upats_origin (upats, ise) =
         | Some (dir,rule) -> str" of the " ++ pr_dir_side dir ++ fnl() ++
             ws 4 ++ pr_constr_pat p' ++ fnl () ++ 
             str"of " ++ pr_constr_pat rule))
+
+let fake_pmatcher_end () = mkProp, L2R, (Evd.empty, mkProp)
 
 let pf_fill_occ env concl occ sigma0 p (sigma, t) ok h =
  let ise = create_evar_defs sigma in
@@ -3536,10 +3542,10 @@ END
 
 (* We just add a numeric version that clears the n top assumptions. *)
 
-let poptac n = introstac (list_tabulate (fun _ -> IpatWild) n)
+let poptac ?ist n = introstac ?ist (list_tabulate (fun _ -> IpatWild) n)
 
 TACTIC EXTEND ssrclear
-  | [ "clear" natural(n) ssrltacctx(ctx) ] -> [ poptac n (get_ltacctx ctx) ]
+  | [ "clear" natural(n) ssrltacctx(ctx) ] -> [poptac ~ist:(get_ltacctx ctx) n]
 END
 
 (** The "move" tactic *)
@@ -3581,26 +3587,26 @@ let movehnftac gl = match kind_of_term (pf_concl gl) with
 let ssrmovetac ist = function
   | _::_ as view, (_, (dgens, (ipats, _))) ->
     let dgentac = with_dgens dgens (viewmovetac (true, view)) ist in
-    tclTHEN dgentac (introstac ipats ist)
+    tclTHEN dgentac (introstac ~ist ipats)
   | _, (Some pat, (dgens, (ipats, _))) ->
     let dgentac = with_dgens dgens eqmovetac ist in
-    tclTHEN dgentac (introstac (eqmoveipats pat ipats) ist)
+    tclTHEN dgentac (introstac ~ist (eqmoveipats pat ipats))
   | _, (_, (([gens], clr), (ipats, _))) ->
     let gentac = genstac (gens, clr) ist in
-    tclTHEN gentac (introstac ipats ist)
+    tclTHEN gentac (introstac ~ist ipats)
   | _, (_, ((_, clr), (ipats, _))) ->
-    tclTHENLIST [movehnftac; cleartac clr; introstac ipats ist]
+    tclTHENLIST [movehnftac; cleartac clr; introstac ~ist ipats]
 
 let ist_of_arg  (_, (_, (_, (_, ctx)))) = get_ltacctx ctx
 
 TACTIC EXTEND ssrmove
 | [ "move" ssrmovearg(arg) ssrrpat(pat) ] ->
   [ let ist = ist_of_arg arg in
-    tclTHEN (ssrmovetac ist arg) (ipattac ~ist pat) ]
+    tclTHEN (ssrmovetac ist arg) (introstac ~ist [pat]) ]
 | [ "move" ssrmovearg(arg) ssrclauses(clauses) ] ->
   [ let ist = ist_of_arg arg in tclCLAUSES (ssrmovetac ist arg) clauses ]
 | [ "move" ssrrpat(pat) ssrltacctx(ctx) ] ->
-  [ ipattac ~ist:(get_ltacctx ctx) pat ]
+  [ introstac ~ist:(get_ltacctx ctx) [pat] ]
 | [ "move" ] -> [ movehnftac ]
     END
 
@@ -3938,7 +3944,7 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
              (match kind_of_type src with
              | AtomicType (hd, _) when eq_constr hd protectC -> 
                 tclTHENLIST [unprotecttac; introid ipat] gl
-             | _ -> tclTHENLIST [ iD "IA"; ipattac IpatAnon; intro_eq] gl)
+             | _ -> tclTHENLIST [ iD "IA"; introstac [IpatAnon]; intro_eq] gl)
           |_ -> assert false in
           intro_eq
       | Some (IpatId ipat) -> 
@@ -3957,7 +3963,7 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
           | AtomicType (hd, args) -> assert(eq_constr hd protectC); args
           | _ -> assert false in
           let case = args.(Array.length args-1) in
-          if not (closed0 case) then tclTHEN (ipattac IpatAnon) gen_eq_tac gl
+          if not(closed0 case) then tclTHEN (introstac [IpatAnon]) gen_eq_tac gl
           else
           let case_ty = pf_type_of gl case in 
           let refl = mkApp (eq, [|lift 1 case_ty; mkRel 1; lift 1 case|]) in
@@ -3994,7 +4000,7 @@ let ssrcasetac (view, (eqid, (dgens, (ipats, ctx)))) =
     let vc =
       if view = [] then c else snd(pf_with_view ist gl (false, view) cl c) in
     if simple && is_injection_case vc gl then
-      tclTHENLIST [perform_injection vc; cleartac clr; ipatstac ~ist ipats] gl
+      tclTHENLIST [perform_injection vc; cleartac clr; introstac ~ist ipats] gl
     else 
       (* macro for "case/v E: x" ---> "case E: x / (v x)" *)
       let deps, clr, occ = 
@@ -4344,6 +4350,110 @@ ARGUMENT EXTEND ssrredex TYPED AS ssrredex_ne PRINTED BY pr_ssrredex
   | [ ] -> [ None ]
 END
 
+let interp_redexmod ist gl = function
+  | T x -> T(interp_term ist gl x)
+  | In_T x -> In_T(interp_term ist gl x)
+  | X_In_T (x,(_,(_,Some rp))) ->
+    let rp = mkCLambda dummy_loc (Name x) (CHole(dummy_loc,None)) rp in
+    let sigma, rp = interp_term ist gl (mk_lterm rp) in
+    let rp, _, args, sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
+    X_In_T (List.assoc 0 args, (sigma, rp))
+  | In_X_In_T (x,(_,(_,Some rp))) ->
+    let rp = mkCLambda dummy_loc (Name x) (CHole(dummy_loc,None)) rp in
+    let sigma, rp = interp_term ist gl (mk_lterm rp) in
+    let rp, _, args, sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
+    In_X_In_T (List.assoc 0 args, (sigma, rp))
+  | E_In_X_In_T (e,x,(_,(_,Some rp))) ->
+    let rp = mkCLambda dummy_loc (Name x) (CHole(dummy_loc,None)) rp in
+    let sigma, rp = interp_term ist gl (mk_lterm rp) in
+    let rp, _, args, sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
+    let e_sigma, e = interp_term ist gl e in
+    E_In_X_In_T ((e_sigma, e) ,List.assoc 0 args, (sigma, rp))
+  | E_As_X_In_T (e,x,(_,(_,Some rp))) ->
+    let rp = mkCLambda dummy_loc (Name x) (CHole(dummy_loc,None)) rp in
+    let sigma, rp = interp_term ist gl (mk_lterm rp) in
+    let rp, _, args, rp_sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
+    let hole = List.assoc 0 args in
+    let si = sig_it gl in
+    let e_sigma, e = interp_term ist (re_sig si rp_sigma) e in
+    E_As_X_In_T ((e_sigma, e) , hole, (rp_sigma, rp))
+  | _ -> anomaly "malformed redexmod"
+;;
+
+(* calls do_subst on every sub-term identified by (redexmod,occ) *)
+let eval_redexmod env0 sigma0 concl0 redexmod occ do_subst =
+  let fs sigma x = snd (nf_open_term sigma sigma x) in
+  let pop_evar sigma e =
+    let { Evd.evar_body = e_body } as e_def = Evd.find sigma e in
+    let e_body = match e_body with Evar_defined c -> c | _ -> assert false in
+    let sigma = 
+      Evd.add (Evd.remove sigma e) e {e_def with Evd.evar_body = Evar_empty} in
+    sigma, e_body in
+  let ex_value hole =
+    match kind_of_term hole with Evar (e,_) -> e | _ -> assert false in
+  let mk_upat_for ?hack env sigma0 (sigma,t) ?(p=t) ok =
+    let pat, sigma = mk_upat ?hack env sigma0 sigma p ok t in
+    [pat], sigma in
+  match redexmod with
+  | None -> do_subst env0 concl0 1
+  | Some (T rp | In_T rp) ->
+    let occ = match redexmod with Some (T _) -> occ | _ -> [noindex] in
+    let rp = mk_upat_for env0 sigma0 rp all_ok in
+    let find_T, end_T = mk_pmatcher sigma0 occ rp in
+    let concl = find_T env0 concl0 1 (fun env _ -> do_subst env) in
+    let _ = end_T () in
+    concl
+  | Some (X_In_T (hole, (p_sigma, p as srp)) |
+       In_X_In_T (hole, (p_sigma, p as srp))) ->
+    let occ = match redexmod with Some (X_In_T _) -> occ | _ -> [noindex] in
+    let ex = ex_value hole in
+    let rp = mk_upat_for ~hack:true env0 sigma0 srp all_ok in
+    let find_T, end_T = mk_pmatcher sigma0 [noindex] rp in
+    (* we start from sigma, so hole is considered a rigid head *)
+    let holep = mk_upat_for env0 p_sigma (p_sigma, hole) all_ok in
+    let find_X, end_X = mk_pmatcher p_sigma occ holep in
+    let concl = find_T env0 concl0 1 (fun env _ c h ->
+      let p_sigma = unify_HO env (create_evar_defs p_sigma) c p in
+      let sigma, e_body = pop_evar p_sigma ex in
+      fs p_sigma (find_X env (fs sigma p) h 
+        (fun env _ _ -> do_subst env e_body))) in
+    let _ = end_X () in let _ = end_T () in 
+    concl
+  | Some (E_In_X_In_T (ep, hole, (p_sigma, p as srp))) ->
+    let ex = ex_value hole in
+    let rp = mk_upat_for ~hack:true env0 sigma0 srp all_ok in
+    let find_T, end_T = mk_pmatcher sigma0 [noindex] rp in
+    let holep = mk_upat_for env0 p_sigma (p_sigma, hole) all_ok in
+    let find_X, end_X = mk_pmatcher p_sigma [noindex] holep in
+    let re = mk_upat_for env0 sigma0 ep all_ok in
+    let find_E, end_E = mk_pmatcher sigma0 occ re in
+    let concl = find_T env0 concl0 1 (fun env _ c h ->
+      let p_sigma = unify_HO env (create_evar_defs p_sigma) c p in
+      let sigma, e_body = pop_evar p_sigma ex in
+      fs p_sigma (find_X env (fs sigma p) h (fun env _ c h ->
+        find_E env e_body h (fun env _ -> do_subst env)))) in
+    let _ = end_E () in let _ = end_X () in let _ = end_T () in
+    concl
+  | Some (E_As_X_In_T ((e_sigma, e), hole, (p_sigma, p))) ->
+    let ex = ex_value hole in
+    let rp = 
+      let e_sigma = unify_HO env0 e_sigma hole e in
+      e_sigma, fs e_sigma p in
+    let rp = mk_upat_for ~hack:true env0 sigma0 rp all_ok in
+    let find_TE, end_TE = mk_pmatcher sigma0 [noindex] rp in
+    let holep = mk_upat_for env0 p_sigma (p_sigma, hole) all_ok in
+    let find_X, end_X = mk_pmatcher p_sigma occ holep in
+    let concl = find_TE env0 concl0 1 (fun env _ c h ->
+      let p_sigma = unify_HO env (create_evar_defs p_sigma) c p in
+      let sigma, e_body = pop_evar p_sigma ex in
+      fs p_sigma (find_X env (fs sigma p) h (fun env _ c h ->
+        let e_sigma = unify_HO env e_sigma e_body e in
+        let e_body = fs e_sigma e in
+        do_subst env e_body h))) in
+    let _ = end_X () in let _ = end_TE () in
+    concl
+;;
+
 (** Rewrite clear/occ switches *)
 
 let pr_rwocc = function
@@ -4408,7 +4518,7 @@ let mk_rwarg (d, (n, _ as m)) ((clr, occ as docc), rx) (rt, _ as r) =
      anomaly "Improper rewrite clear switch";
    if d = R2L && rt <> RWdef then
      error "Right-to-left switch on simplification";
-   if n <> 1 && (rt = RWred Cut || rx = None) then
+   if n <> 1 && rt = RWred Cut then
      error "Bad or useless multiplier";
    if occ <> [] && rx = None && rt <> RWdef then
      error "Missing redex for simplification occurrence"
@@ -4450,72 +4560,97 @@ ARGUMENT EXTEND ssrrwarg
     [ mk_rwarg norwmult norwocc r ]
 END
 
-let simplintac occ rdx sim gl = match rdx with
-  | None -> simpltac sim gl
-  | Some p ->
-    let cl, c = pf_fill_occ_term gl occ p in
-    let simptac = convert_concl (subst1 (pf_nf gl c) cl) in
-    match sim with
-    | Simpl -> simptac gl
-    | SimplCut -> tclTHEN simptac (tclTRY donetac) gl
-    | _ -> Util.error "useless redex switch"
+let simplintac occ rdx sim gl = 
+  let simptac gl = 
+    let sigma0, concl0, env0 = project gl, pf_concl gl, pf_env gl in
+    let simp env c _ = red_safe Tacred.simpl env sigma0 c in
+    convert_concl_no_check (eval_redexmod env0 sigma0 concl0 rdx occ simp) gl in
+  match sim with
+  | Simpl -> simptac gl
+  | SimplCut -> tclTHEN simptac (tclTRY donetac) gl
+  | _ -> simpltac sim gl
 
 let rec get_evalref c =  match kind_of_term c with
   | Var id -> EvalVarRef id
   | Const k -> EvalConstRef k
   | App (c', _) -> get_evalref c'
   | Cast (c', _, _) -> get_evalref c'
-  | _ -> error "Bad unfold head term"
+  | _ -> errorstrm (str "The term " ++ pr_constr c ++ str " is not unfoldable")
 
 (* Strip a pattern generated by a prenex implicit to its constant. *)
 let strip_unfold_term ((sigma, t) as p) kt = match kind_of_term t with
   | App (f, a) when kt = ' ' && array_for_all isEvar a && isConst f -> 
-    (sigma, f)
-  | _ -> p
+    (sigma, f), true
+  | Const _ | Var _ -> p, true
+  | _ -> p, false
 
-let unfoldtac occ ko t kt gl =
-  let cl, c = pf_fill_occ_term gl occ (strip_unfold_term t kt) in
-  let cl' = subst1 (pf_unfoldn [(true, [1]), get_evalref c] gl c) cl in
-  let f = if ko = [] then Closure.betaiotazeta else Closure.betaiota in
-  convert_concl (pf_reduce (Reductionops.clos_norm_flags f) gl cl') gl
+let unfoldintac occ rdx t (kt,_) gl = 
+  let fs sigma x = snd (nf_open_term sigma sigma x) in
+  let sigma0, concl0, env0 = project gl, pf_concl gl, pf_env gl in
+  let (sigma, t), const = strip_unfold_term t kt in
+  let body env t c = Tacred.unfoldn [(true, [1]), get_evalref t] env sigma0 c in
+  let easy = occ = [] && rdx = None in
+  let red_flags = if easy then Closure.betaiotazeta else Closure.betaiota in
+  let beta env = Reductionops.clos_norm_flags red_flags env sigma0 in
+  let unfold, conclude = match rdx with
+  | Some (In_T _ | In_X_In_T _) | None -> 
+    let ise = create_evar_defs sigma in
+    let u, ise = mk_upat env0 sigma0 ise t all_ok t in
+    let find_T, end_T = mk_pmatcher ~raise_NoMatch:true sigma0 occ ([u],ise) in
+    (fun env c h -> 
+      try find_T env c h (fun env _ c _ -> body env t c)
+      with NoMatch when easy -> c | NoMatch -> errorstrm (str"No occurrence of "
+        ++ pr_constr_pat t ++ spc() ++ str "in " ++ pr_constr c)),
+    (fun () -> try end_T () with 
+      | NoMatch when easy -> fake_pmatcher_end () 
+      | NoMatch -> anomaly "unfoldintac")
+  | _ -> 
+    (fun env (c as orig_c) h ->
+      if const then
+          let rec aux c = 
+            match kind_of_term c with
+            | Const _ when eq_constr c t -> body env t t
+            | App (f,a) when eq_constr f t -> mkApp (body env f f,a)
+            | _ -> let c = Reductionops.whd_betaiotazeta sigma0 c in
+            match kind_of_term c with
+            | Const _ when eq_constr c t -> body env t t
+            | App (f,a) when eq_constr f t -> mkApp (body env f f,a)
+            | Const f -> aux (body env c c)
+            | App (f, a) -> aux (mkApp (body env f f, a))
+            | _ -> errorstrm (str "The term "++pr_constr orig_c++
+                str" contains no " ++ pr_constr t ++ str" even after unfolding")
+          in aux c
+      else
+        try body env t (fs (unify_HO env sigma c t) t)
+        with _ -> errorstrm (str "The term " ++
+          pr_constr c ++spc()++ str "does not unify with " ++ pr_constr_pat t)),
+    fake_pmatcher_end in
+  let concl = beta env0 (eval_redexmod env0 sigma0 concl0 rdx occ unfold) in
+  let _ = conclude () in
+  convert_concl concl gl
+;;
 
-(* Hack to localize unfold; not quite correct, in that the typing *)
-(* of the context is not allowed to depend on the unfolded term   *)
-let ucontext_id = mk_internal_id "unfold context"
-let unfoldintac occ rdx t kt gl = match rdx with
-| None ->
-  unfoldtac occ occ t kt gl
-| Some r ->
-  let cl, c = pf_fill_occ_term gl occ r in
-  let tcl = pf_type_of gl cl in
-  let cl' = mkLambda (Anonymous, tcl, mkApp (mkRel 1, [|c|])) in
-  let utacs =
-    [apply_type cl' [cl]; introid ucontext_id; unfoldtac [] occ t kt] in
-  let _, args = destApplication (pf_concl (pf_image gl (tclTHENLIST utacs))) in
-  convert_concl (subst1 args.(0) cl) gl
-
-let foldtac occ rdx ft gl =
-try
-  let cl, c = match rdx with
-  | Some p ->
-    let cl, ut = pf_fill_occ_term gl occ p in
-    let sigma, t = ft in let sigma0 = project gl in
-    let sigma', c =
-      try pf_unif_HO gl sigma t t ut
-      with _ ->
-        errorstrm (str "fold pattern " ++ pr_constr_pat t ++ spc ()
-            ++ str "does not match redex " ++ pr_constr_pat ut) in
-    if sigma' != sigma0 then error "evars in fold term" else (cl, c)
-  | None ->
-    let sigma, t = ft in
-    let ut = try Tacred.red_product (pf_env gl) sigma t with _ -> t in
-    let env = pf_env gl and concl = pf_concl gl and sigma0 = project gl in
-    let sigma',t',cl,_ = 
-      pf_fill_occ env concl occ sigma0 ut (sigma, t) all_ok 1 in
-    if sigma' == project gl then cl, t' else raise NoMatch in
-  convert_concl (subst1 c cl) gl
-with NoMatch -> tclIDTAC gl
-(* errorstrm (str "no fold occurrence for " ++ pr_constr_pat t) *)
+let foldtac occ rdx ft gl = 
+  let fs sigma x = snd (nf_open_term sigma sigma x) in
+  let sigma0, concl0, env0 = project gl, pf_concl gl, pf_env gl in
+  let sigma, t = ft in
+  let fold, conclude = match rdx with
+  | Some (In_T _ | In_X_In_T _) | None -> 
+    let ise = create_evar_defs sigma in
+    let ut = try Tacred.red_product env0 sigma t with _ -> t in
+    let ut, ise = mk_upat env0 sigma0 ise t all_ok ut in
+    let find_T, end_T = mk_pmatcher ~raise_NoMatch:true sigma0 occ ([ut],ise) in
+    (fun env c h -> try find_T env c h (fun env _ t _ -> t) with NoMatch -> c),
+    (fun () -> try end_T () with NoMatch -> fake_pmatcher_end ())
+  | _ -> 
+    (fun env c h -> try let sigma = unify_HO env sigma c t in fs sigma t
+    with _ -> errorstrm (str "fold pattern " ++ pr_constr_pat t ++ spc ()
+      ++ str "does not match redex " ++ pr_constr_pat c)), 
+    fake_pmatcher_end in
+  let concl = eval_redexmod env0 sigma0 concl0 rdx occ fold in
+  let _ = conclude () in
+  convert_concl concl gl
+;;
 
 let converse_dir = function L2R -> R2L | R2L -> L2R
 
@@ -4535,14 +4670,45 @@ let rec strip_prod_assum c = match kind_of_term c with
 
 let rule_id = mk_internal_id "rewrite rule"
 
+let pirrel_rewrite pred rdx rdx_ty new_rdx dir (sigma, c) c_ty gl =
+  let env = pf_env gl in
+  let beta = Reductionops.clos_norm_flags Closure.beta env sigma in
+  let sigma, p = 
+    let sigma = create_evar_defs sigma in
+    Evarutil.new_evar sigma env (beta (subst1 new_rdx pred)) in
+  let pred = mkNamedLambda pattern_id rdx_ty pred in
+  let elim = 
+    let (kn, i) as ind, unfolded_c_ty = pf_reduce_to_quantified_ind gl c_ty in
+    let sort = elimination_sort_of_goal gl in
+    let elim = Indrec.lookup_eliminator ind sort in
+    if dir = R2L then elim else (* taken from Coq's rewrite *)
+    let elim = destConst elim in          
+    let mp,dp,l = repr_con (constant_of_kn (canonical_con elim)) in
+    let l' = label_of_id (Nameops.add_suffix (id_of_label l) "_r")  in 
+    let c1' = Global.constant_of_delta (make_con mp dp l') in
+    mkConst c1' in
+  let proof = mkApp (elim, [| rdx_ty; new_rdx; pred; p; rdx; c |]) in
+  let proof_ty = Typing.type_of env sigma proof in
+  pp(lazy(str"pirrel_rewrite proof term of type: " ++ pr_constr proof_ty));
+  refine_with ~with_evars:false (sigma, proof) gl
+;;
+
 let rwcltac cl rdx dir sr gl =
   let n, r_n = pf_abs_evars gl sr in
-  let r' = subst_var pattern_id (pf_abs_cterm gl n r_n) in
+  let r_n' = pf_abs_cterm gl n r_n in
+  let r' = subst_var pattern_id r_n' in
   let rdxt = Retyping.get_type_of (pf_env gl) (fst sr) rdx in
   let cvtac, rwtac =
     if closed0 r' then 
-      let cl' = mkApp (mkNamedLambda pattern_id rdxt cl, [|rdx|]) in
-      (convert_concl cl', rewritetac dir r')
+      let env, sigma, c, c_eq = pf_env gl, fst sr, snd sr, build_coq_eq () in
+      let c_ty = Typing.type_of env sigma c in
+      match kind_of_type (Reductionops.whd_betadeltaiota env sigma c_ty) with
+      | AtomicType(e, a) when eq_constr e c_eq -> 
+          let new_rdx = if dir = L2R then a.(2) else a.(1) in
+          pirrel_rewrite cl rdx rdxt new_rdx dir sr c_ty, tclIDTAC
+      | _ -> 
+          let cl' = mkApp (mkNamedLambda pattern_id rdxt cl, [|rdx|]) in
+          convert_concl cl', rewritetac dir r'
     else
       let dc, r2 = decompose_lam_n n r' in
       let r3, _, r3t  = 
@@ -4557,10 +4723,12 @@ let rwcltac cl rdx dir sr gl =
       (apply_type cl'' [rdx; compose_lam dc r3], tclTHENLIST (itacs @ rwtacs))
   in
   let cvtac' _ =
-    try cvtac gl with _ -> if occur_existential (pf_concl gl) 
-    then errorstrm (str "Rewriting impacts evars")
-    else errorstrm (str "Dependent type error in rewrite of "
-      ++ pf_pr_constr gl (mkNamedLambda pattern_id rdxt cl)) in
+    try cvtac gl with e -> 
+      pp(lazy(str"cvtac's exception: " ++ str(Printexc.to_string e)));
+      if occur_existential (pf_concl gl) 
+      then errorstrm (str "Rewriting impacts evars")
+      else errorstrm (str "Dependent type error in rewrite of "
+        ++ pf_pr_constr gl (mkNamedLambda pattern_id rdxt cl)) in
   tclTHEN cvtac' rwtac gl
 
 let lz_coq_prod =
@@ -4661,179 +4829,47 @@ let rwrxtac occ rdx_pat dir rule gl =
           d, sr'
         with _ -> rwtac rs in
      rwtac rules in
-  let pop_evar sigma e =
-    let { Evd.evar_body = e_body } as e_def = Evd.find sigma e in
-    let e_body = match e_body with Evar_defined c -> c | _ -> assert false in
-    let sigma = 
-      Evd.add (Evd.remove sigma e) e {e_def with Evd.evar_body = Evar_empty} in
-    sigma, e_body in
-  let fs sigma x = snd (nf_open_term sigma sigma x) in
   let sigma0, env0, concl0 = project gl, pf_env gl, pf_concl gl in
-  let upats_origin = dir, snd rule in
-  let mk_upat_for ?hack env sigma0 (sigma,t) ?(p=t) ok =
-    let pat, sigma = mk_upat ?hack env sigma0 sigma p ok t in
-    [pat], sigma in
-  let rpat env sigma0 (pats, sigma) (d, r, lhs, rhs) =
-    let r' = if d = L2R then r else mkLambda (Anonymous, mkProp, r) in
-    let pat, sigma = mk_upat env sigma0 sigma r' (rw_progress rhs) lhs in
-    pats @ [pat], sigma in
-  let k_mkRel _ _ _ h = mkRel h in
   let closed0_check concl p = if closed0 concl then 
     errorstrm (str "No occurrence of redex " ++ pf_pr_constr gl p) in
-  let ex_value hole =
-    match kind_of_term hole with Evar (e,_) -> e | _ -> assert false in
-  match rdx_pat with
-  | None ->
-    let rpats = List.fold_left (rpat env0 sigma0) ([], r_sigma) rules in
-    let find_R, end_R = mk_pmatcher sigma0 occ ~upats_origin rpats in
-    let concl = find_R env0 concl0 1 k_mkRel in
-    let rdx, d, r = end_R () in
-    closed0_check concl rdx;
-    rwcltac concl rdx d r gl
-  | Some (T (_, o_rdx as rp)) ->
-    let rp = mk_upat_for env0 sigma0 rp all_ok in
-    let find_T, end_T = mk_pmatcher sigma0 occ rp in
-    let r = ref None in
-    let concl = find_T env0 concl0 1 (fun _ _ rdx h -> 
-      do_once r (fun () -> (find_rule rdx, rdx));
-      mkRel h) in
-    let _ = end_T () in
-    closed0_check concl o_rdx;
-    let (d, r), rdx = assert_done r in
-    rwcltac concl rdx d r gl
-  | Some (In_T rp) ->
-    let rp = mk_upat_for env0 sigma0 rp all_ok in
-    let find_T, end_T = mk_pmatcher sigma0 [noindex] rp in
-    let rpats = List.fold_left (rpat env0 sigma0) ([], r_sigma) rules in
-    let find_R, end_R = mk_pmatcher sigma0 occ ~upats_origin rpats in
-    let concl = find_T env0 concl0 1 (fun env _ c -> find_R env c ~k:k_mkRel) in
-    let rdx, d, r = end_R () in let _ = end_T () in
-    closed0_check concl rdx;
-    rwcltac concl rdx d r gl
-  | Some (X_In_T (hole, (p_sigma, p as srp))) ->
-    let ex = ex_value hole in
-    let rp = mk_upat_for ~hack:true env0 sigma0 srp all_ok in
-    let find_T, end_T = mk_pmatcher sigma0 [noindex] rp in
-    (* we start from sigma, so hole is considered a rigid head *)
-    let holep = mk_upat_for env0 p_sigma (p_sigma, hole) all_ok in
-    let find_X, end_X = mk_pmatcher p_sigma occ holep in
-    let r = ref None in
-    let concl = find_T env0 concl0 1 (fun env _ c h ->
-      let p_sigma = unify_HO env (create_evar_defs p_sigma) c p in
-      let sigma, e_body = pop_evar p_sigma ex in
-      fs p_sigma (find_X env (fs sigma p) h (fun env _ _ h ->
-        do_once r (fun () -> (find_rule e_body, e_body));
-        mkRel h))) in
-    let _ = end_X () in let _ = end_T () in 
-    closed0_check concl p;
-    let (d, r), rdx = assert_done r in
-    rwcltac concl rdx d r gl
-  | Some (In_X_In_T (hole, (p_sigma, p as srp))) ->
-    let ex = ex_value hole in
-    let rp = mk_upat_for ~hack:true env0 sigma0 srp all_ok in
-    let find_T, end_T = mk_pmatcher sigma0 [noindex] rp in
-    let holep = mk_upat_for env0 p_sigma (p_sigma, hole) all_ok in
-    let find_X, end_X = mk_pmatcher p_sigma [noindex] holep in
-    let rpats = List.fold_left (rpat env0 sigma0) ([], r_sigma) rules in
-    let find_R, end_R = mk_pmatcher sigma0 occ ~upats_origin rpats in
-    let concl = find_T env0 concl0 1 (fun env _ c h ->
-      let p_sigma = unify_HO env (create_evar_defs p_sigma) c p in
-      let sigma, e_body = pop_evar p_sigma ex in
-      fs p_sigma (find_X env (fs sigma p) h (fun env _ c h ->
-        find_R env e_body h k_mkRel))) in
-    let rdx, d, r = end_R () in let _ = end_X () in let _ = end_T () in
-    closed0_check concl rdx;
-    rwcltac concl rdx d r gl
-  | Some (E_In_X_In_T (ep, hole, (p_sigma, p as srp))) ->
-    let ex = ex_value hole in
-    let rp = mk_upat_for ~hack:true env0 sigma0 srp all_ok in
-    let find_T, end_T = mk_pmatcher sigma0 [noindex] rp in
-    let holep = mk_upat_for env0 p_sigma (p_sigma, hole) all_ok in
-    let find_X, end_X = mk_pmatcher p_sigma [noindex] holep in
-    let re = mk_upat_for env0 sigma0 ep all_ok in
-    let find_E, end_E = mk_pmatcher sigma0 occ ~upats_origin re in
-    let r = ref None in
-    let concl = find_T env0 concl0 1 (fun env _ c h ->
-      let p_sigma = unify_HO env (create_evar_defs p_sigma) c p in
-      let sigma, e_body = pop_evar p_sigma ex in
-      fs p_sigma (find_X env (fs sigma p) h (fun env c _ h ->
-        find_E env e_body h (fun _ _ c h ->
-          do_once r (fun () -> (find_rule c, c)); 
-          mkRel h)))) in
-    let _ = end_E () in let _ = end_X () in let _ = end_T () in
-    closed0_check concl (snd ep);
-    let (d, r), rdx = assert_done r in
-    rwcltac concl rdx d r gl
-  | Some (E_As_X_In_T ((e_sigma, e), hole, (p_sigma, p))) ->
-    let ex = ex_value hole in
-    let rp = 
-      let e_sigma = unify_HO env0 e_sigma hole e in
-      e_sigma, fs e_sigma p in
-    let rp = mk_upat_for ~hack:true env0 sigma0 rp all_ok in
-    let find_TE, end_TE = mk_pmatcher sigma0 [noindex] rp in
-    let holep = mk_upat_for env0 p_sigma (p_sigma, hole) all_ok in
-    let find_X, end_X = mk_pmatcher p_sigma occ holep in
-    let r = ref None in
-    let concl = find_TE env0 concl0 1 (fun env _ c h ->
-      let p_sigma = unify_HO env (create_evar_defs p_sigma) c p in
-      let sigma, e_body = pop_evar p_sigma ex in
-      fs p_sigma (find_X env (fs sigma p) h (fun env _ c h ->
-        let e_sigma = unify_HO env e_sigma e_body e in
-        let e_body = fs e_sigma e in
-        do_once r (fun () -> (find_rule e_body, e_body));
-        mkRel h))) in
-    let _ = end_X () in let _ = end_TE () in
-    closed0_check concl e;
-    let (d, r), rdx = assert_done r in
-    rwcltac concl rdx d r gl
+  let find_R, conclude = match rdx_pat with
+  | Some (In_T _ | In_X_In_T _) | None -> 
+      let upats_origin = dir, snd rule in
+      let rpat env sigma0 (pats, sigma) (d, r, lhs, rhs) =
+        let r' = if d = L2R then r else mkLambda (Anonymous, mkProp, r) in
+        let pat, sigma = mk_upat env sigma0 sigma r' (rw_progress rhs) lhs in
+        pats @ [pat], sigma in
+      let rpats = List.fold_left (rpat env0 sigma0) ([], r_sigma) rules in
+      let find_R, end_R = mk_pmatcher sigma0 occ ~upats_origin rpats in
+      find_R ~k:(fun _ _ _ h -> mkRel h), 
+      fun concl -> let rdx,d,r = end_R () in closed0_check concl rdx; (d,r),rdx
+  | Some (T (_, rdx) | X_In_T (_,(_, rdx)) | 
+          E_As_X_In_T ((_,rdx),_,_) | E_In_X_In_T ((_,rdx),_,_)) -> 
+      let r = ref None in
+      (fun env c h -> do_once r (fun () -> find_rule c, c); mkRel h),
+      (fun concl -> closed0_check concl rdx; assert_done r) in
+  let concl = eval_redexmod env0 sigma0 concl0 rdx_pat occ find_R in
+  let (d, r), rdx = conclude concl in
+  rwcltac concl rdx d r gl
 ;;
 
 (* Resolve forward reference *)
-let _ =
- ipat_rewritetac := (fun occ dir c gl -> rwrxtac occ None dir (project gl,c) gl)
+let _ = 
+  ipat_rewritetac := fun occ dir c gl -> rwrxtac occ None dir (project gl, c) gl
 
 let rwargtac ist ((dir, mult), (((oclr, occ), grx), (kind, gt))) gl =
   let fail = ref false in
-  let interp_p gl gc = 
-    try match gc with
-    | T x -> T(interp_term ist gl x)
-    | In_T x -> In_T(interp_term ist gl x)
-    | X_In_T (x,(_,(_,Some rp))) ->
-      let rp = mkCLambda dummy_loc (Name x) (CHole(dummy_loc,None)) rp in
-      let sigma, rp = interp_term ist gl (mk_lterm rp) in
-      let rp, _, args, sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
-      X_In_T (List.assoc 0 args, (sigma, rp))
-    | In_X_In_T (x,(_,(_,Some rp))) ->
-      let rp = mkCLambda dummy_loc (Name x) (CHole(dummy_loc,None)) rp in
-      let sigma, rp = interp_term ist gl (mk_lterm rp) in
-      let rp, _, args, sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
-      In_X_In_T (List.assoc 0 args, (sigma, rp))
-    | E_In_X_In_T (e,x,(_,(_,Some rp))) ->
-      let rp = mkCLambda dummy_loc (Name x) (CHole(dummy_loc,None)) rp in
-      let sigma, rp = interp_term ist gl (mk_lterm rp) in
-      let rp, _, args, sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
-      let e_sigma, e = interp_term ist gl e in
-      E_In_X_In_T ((e_sigma, e) ,List.assoc 0 args, (sigma, rp))
-    | E_As_X_In_T (e,x,(_,(_,Some rp))) ->
-      let rp = mkCLambda dummy_loc (Name x) (CHole(dummy_loc,None)) rp in
-      let sigma, rp = interp_term ist gl (mk_lterm rp) in
-      let rp, _, args, rp_sigma = saturate ~beta:true (pf_env gl) sigma rp 1 in
-      let hole = List.assoc 0 args in
-      let si = sig_it gl in
-      let e_sigma, e = interp_term ist (re_sig si rp_sigma) e in
-      E_As_X_In_T ((e_sigma, e) , hole, (rp_sigma, rp))
-    | _ -> assert false
+  let interp_redexmod ist gl gc =
+    try interp_redexmod ist gl gc
     with _ when snd mult = May -> fail := true; T (project gl, mkProp) in
-  let fix = function Some (T x) -> Some x | _ -> None in
   let interp gc =
     try interp_term ist gl gc
     with _ when snd mult = May -> fail := true; (project gl, mkProp) in
-  let rx = Option.map (interp_p gl) grx in
+  let rx = Option.map (interp_redexmod ist gl) grx in
   let t = interp gt in
   let rwtac = match kind with
-  | RWred sim -> simplintac occ (fix rx) sim
-  | RWdef ->
-    if dir = R2L then foldtac occ (fix rx) t else unfoldintac occ (fix rx) t (fst gt)
+  | RWred sim -> simplintac occ rx sim
+  | RWdef -> if dir = R2L then foldtac occ rx t else unfoldintac occ rx t gt
   | RWeq -> rwrxtac occ rx dir t in
   let ctac = cleartac (interp_clr (oclr, (fst gt, snd t))) in
   if !fail then ctac gl else tclTHEN (tclMULT mult rwtac) ctac gl
@@ -4900,6 +4936,12 @@ ARGUMENT EXTEND ssrunlockargs TYPED AS ssrunlockarg list * ssrltacctx
   PRINTED BY pr_ssrunlockargs
   | [  ssrunlockarg_list(args) ] -> [ args, rawltacctx ]
 END
+
+let unfoldtac occ ko t kt gl =
+  let cl, c = pf_fill_occ_term gl occ (fst (strip_unfold_term t kt)) in
+  let cl' = subst1 (pf_unfoldn [(true, [1]), get_evalref c] gl c) cl in
+  let f = if ko = [] then Closure.betaiotazeta else Closure.betaiota in
+  convert_concl (pf_reduce (Reductionops.clos_norm_flags f) gl cl') gl
 
 let unlocktac (args, ctx) gl =
   let ist = get_ltacctx ctx in
@@ -5366,7 +5408,8 @@ let havegentac ist t gl =
 
 let havetac (clr, pats) ((((fk, _), t), ctx), hint) suff namefst gl =
  let ist, concl = get_ltacctx ctx, pf_concl gl in
- let clear, id, itac = cleartac clr, tclIDTAC, introstac pats ist in
+ let itac_c = introstac ~ist (IpatSimpl(clr,Nop) :: pats) in
+ let itac, id, clr = introstac ~ist pats, tclIDTAC, cleartac clr in
  let hint = hinttac ist true hint in
  let cuttac t gl = basecuttac "ssr_have" t gl in
  let interp_ty ty =
@@ -5386,7 +5429,7 @@ let havetac (clr, pats) ((((fk, _), t), ctx), hint) suff namefst gl =
    match fk, namefst, suff with
    | FwdHave, true, true ->
      let t = interp (mkCLambda loc name cty (mkFkC loc ct)) in
-     pf_type_of gl t, apply t, id, id
+     pf_type_of gl t, apply t, id, clr
    | FwdHave, false, true ->
      let cty = mkCArrow loc cty (CHole(dummy_loc,None)) in
      let t = interp (mkCCast loc ct cty) in
@@ -5396,14 +5439,14 @@ let havetac (clr, pats) ((((fk, _), t), ctx), hint) suff namefst gl =
        try convert_concl (compose_prod ctx concl) gl
        with _ -> errorstrm (str "Given proof term is not of type " ++
          pr_constr (mkArrow (mkVar (id_of_string "_")) concl)) in
-     ty, tclTHEN assert_is_conv (apply t), id, itac
+     ty, tclTHEN assert_is_conv (apply t), id, itac_c
    | FwdHave, false, false ->
-     let t = interp (mkCCast loc ct cty) in pf_type_of gl t, apply t, id, itac
-   | _, true, true   -> mkArrow (interp_ty cty) concl, hint, itac, id
-   | _, false, true  -> mkArrow (interp_ty cty) concl, hint, id, itac
-   | _, false, false -> interp_ty cty, hint, id, itac
+     let t = interp (mkCCast loc ct cty) in pf_type_of gl t, apply t, id, itac_c
+   | _, true, true   -> mkArrow (interp_ty cty) concl, hint, itac, clr
+   | _, false, true  -> mkArrow (interp_ty cty) concl, hint, id, itac_c
+   | _, false, false -> interp_ty cty, hint, id, itac_c
    | _, true, false -> assert false in
- tclTHENS (cuttac cut) [ tclTHEN sol itac1; tclTHEN clear itac2 ] gl
+ tclTHENS (cuttac cut) [ tclTHEN sol itac1; itac2 ] gl
 
 TACTIC EXTEND ssrhave
 | [ "have" ssrhavefwdwbinders(fwd) ] ->
@@ -5444,7 +5487,7 @@ END
 
 let sufftac (clr, pats) (((_, c), ctx), hint) =
   let ist = get_ltacctx ctx in
-  let htac = tclTHEN (introstac pats ist) (hinttac ist true hint) in
+  let htac = tclTHEN (introstac ~ist pats) (hinttac ist true hint) in
   let ctac gl = basecuttac "ssr_suff" (pf_prod_ssrterm ist gl c) gl in
   tclTHENS ctac [htac; cleartac clr]
 
@@ -5495,7 +5538,7 @@ let wlogtac (clr0, pats) (gens, ((_, ct), ctx)) hint suff gl =
   let cl0 = if not suff then cl0 else let _,t,_ = destProd cl0 in t in
   let c = List.fold_right mkabs gens cl0 in
   let tac2clr = List.fold_right mkclr gens [cleartac clr0] in
-  let tac2ipat = introstac (List.fold_right mkpats gens pats) ist in
+  let tac2ipat = introstac ~ist (List.fold_right mkpats gens pats) in
   let tac2 = tclTHENLIST (List.rev (tac2ipat :: tac2clr)) in
   tclTHENS (basecuttac "ssr_wlog" c) [hinttac ist true hint; tac2] gl
 
