@@ -8,6 +8,7 @@ Import GroupScope.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 
 Section IdentitySubFunctorDefs.
 

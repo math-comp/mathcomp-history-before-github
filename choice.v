@@ -15,6 +15,7 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 
 (* Technical definitions about coding and decoding of  list. This results are*)
 (* useful for the definition of Canonical Structure of choice and countable  *)

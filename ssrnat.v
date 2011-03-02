@@ -90,6 +90,7 @@ Require Export Ring.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 
 (* Declare legacy Arith operators in new scope. *)
 

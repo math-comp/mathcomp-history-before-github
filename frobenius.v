@@ -40,6 +40,7 @@ Require Import cyclic center pgroup abelian.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 
 Import GroupScope.
 

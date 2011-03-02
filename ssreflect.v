@@ -13,6 +13,7 @@ Require Import Bool. (* For bool_scope delimiter 'bool'. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 
 Module SsrSyntax.
 

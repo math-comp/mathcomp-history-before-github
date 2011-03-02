@@ -12,6 +12,7 @@ Require Import cyclic gproduct commutator pgroup center nilpotent.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 
 Import GroupScope.
 

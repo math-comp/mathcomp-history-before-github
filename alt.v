@@ -13,6 +13,7 @@ Require Import quotient action cyclic pgroup gseries sylow primitive_action.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 
 Import GroupScope.
 

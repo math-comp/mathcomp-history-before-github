@@ -4,6 +4,7 @@ Require Import bigop ssralg finset fingroup zmodp zint.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 
 Local Open Scope ring_scope.
 Import GRing.Theory.

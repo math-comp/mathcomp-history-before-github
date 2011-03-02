@@ -13,6 +13,7 @@ Require Import BGsection1 BGappendixAB.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 
 Import GroupScope.
 

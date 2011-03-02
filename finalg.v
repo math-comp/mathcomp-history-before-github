@@ -31,6 +31,7 @@ Local Open Scope ring_scope.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 
 Module FinRing.
 

@@ -118,6 +118,7 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 
 Module Finite.
 

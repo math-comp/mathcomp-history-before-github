@@ -89,6 +89,7 @@ Require Import finfun path.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 
 Reserved Notation "\big [ op / idx ]_ i F"
   (at level 36, F at level 36, op, idx at level 10, i at level 0,

@@ -6,6 +6,7 @@ Import OrderedRing.Theory.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 
 Open Scope ring_scope.
 

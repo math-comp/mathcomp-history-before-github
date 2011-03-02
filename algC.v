@@ -4,6 +4,7 @@ Require Import prime ssralg.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 
 Import GRing.Theory.
 Local Open Scope ring_scope.

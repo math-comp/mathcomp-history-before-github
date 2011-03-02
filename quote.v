@@ -3,6 +3,7 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 
 Structure tProp := TProp {tProp_statement :> Prop; _ : tProp_statement}.
 Lemma claim : forall tP : tProp, tP. Proof. by case. Qed.

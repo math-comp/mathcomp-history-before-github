@@ -50,6 +50,7 @@ Require Import bigop finset fingroup morphism quotient action.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 
 Import GroupScope.
 

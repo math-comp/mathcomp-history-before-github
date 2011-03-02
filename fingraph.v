@@ -37,6 +37,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path fintype.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 
 (* Decidable connectivity in finite types.                                  *)
 

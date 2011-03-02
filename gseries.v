@@ -28,6 +28,7 @@ Require Import commutator center.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 
 Import GroupScope.
 

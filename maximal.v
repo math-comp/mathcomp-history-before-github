@@ -40,6 +40,7 @@ Require Import nilpotent sylow abelian finmodule.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 
 Import GroupScope.
 

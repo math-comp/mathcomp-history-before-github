@@ -17,6 +17,7 @@ Require Import BGsection1.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 
 Section BGsection2.
 

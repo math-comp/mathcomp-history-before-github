@@ -6,6 +6,7 @@ Require Import generic_quotient.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 
 Section EquivProps.
 

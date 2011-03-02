@@ -64,6 +64,7 @@ Require Import fingroup.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 
 Import GroupScope.
 

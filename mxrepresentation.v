@@ -257,6 +257,7 @@ Require Import commutator cyclic center pgroup matrix mxalgebra mxpoly.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 
 Import GroupScope GRing.Theory.
 Local Open Scope ring_scope.

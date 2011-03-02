@@ -66,6 +66,7 @@ Require Import pgroup gseries nilpotent sylow.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 
 Import GroupScope.
 

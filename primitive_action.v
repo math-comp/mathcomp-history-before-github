@@ -23,6 +23,7 @@ Require Import fingroup action gseries.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 
 Import GroupScope.
 

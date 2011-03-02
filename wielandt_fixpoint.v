@@ -16,6 +16,7 @@ Require Import matrix mxalgebra mxrepresentation mxabelem BGsection1 BGsection2.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 
 Local Open Scope ring_scope.
 Import GroupScope GRing.Theory.

@@ -72,6 +72,7 @@ Require Import finfun bigop.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 Section SetType.
 
 Variable T : finType.

@@ -210,6 +210,7 @@ Section Euclidean_division.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
+Unset Printing Defensive.
 
 Definition edivn_rec d := fix loop (m q : nat) {struct m} :=
   if m - d is m'.+1 then loop m' q.+1 else (q, m).
