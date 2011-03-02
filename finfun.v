@@ -28,7 +28,7 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype tuple.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Unset Printing Defensive.
+Unset Printing Implicit Defensive.
 
 Section Def.
 

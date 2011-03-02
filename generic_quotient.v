@@ -4,7 +4,7 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat choice seq.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Unset Printing Defensive.
+Unset Printing Implicit Defensive.
 
 Reserved Notation "\pi_ Q" (at level 0, format "\pi_ Q").
 Reserved Notation "\pi" (at level 0, format "\pi").

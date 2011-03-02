@@ -11,7 +11,7 @@ Require Import finfun ssralg matrix zmodp vector algebra.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Unset Printing Defensive.
+Unset Printing Implicit Defensive.
 Open Local Scope ring_scope.
 
 Import GRing.Theory.

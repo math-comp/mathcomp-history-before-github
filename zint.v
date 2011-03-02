@@ -3,7 +3,7 @@ Import GRing.Theory.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Unset Printing Defensive.
+Unset Printing Implicit Defensive.
 
 Delimit Scope zint_scope with Z.
 Open Scope zint_scope.

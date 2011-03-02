@@ -387,7 +387,7 @@ Require Import finfun bigop prime binomial.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Unset Printing Defensive.
+Unset Printing Implicit Defensive.
 
 Reserved Notation "+%R" (at level 0).
 Reserved Notation "-%R" (at level 0).

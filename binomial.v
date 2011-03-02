@@ -16,7 +16,7 @@ Require Import fintype tuple finfun bigop prime finset.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Unset Printing Defensive.
+Unset Printing Implicit Defensive.
 
 (** More properties of the factorial **)
 

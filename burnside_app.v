@@ -7,7 +7,7 @@ Require Import tuple finfun bigop finset fingroup action perm primitive_action.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Unset Printing Defensive.
+Unset Printing Implicit Defensive.
 
 Import GroupScope.
 

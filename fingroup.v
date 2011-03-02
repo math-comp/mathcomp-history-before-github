@@ -1,3 +1,4 @@
+Unset Printing Implicit Defensive.
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype.
 Require Import div path bigop prime finset.
@@ -126,7 +127,7 @@ Require Import div path bigop prime finset.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Unset Printing Defensive.
+Unset Printing Implicit Defensive.
 
 Delimit Scope group_scope with g.
 Delimit Scope subgroup_scope with G.

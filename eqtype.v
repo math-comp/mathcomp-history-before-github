@@ -83,7 +83,7 @@ Require Import ssreflect ssrfun ssrbool.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Unset Printing Defensive.
+Unset Printing Implicit Defensive.
 
 Module Equality.
 

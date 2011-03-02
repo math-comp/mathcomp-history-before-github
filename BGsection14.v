@@ -62,7 +62,7 @@ Require Import BGsection7 BGsection9 BGsection10 BGsection12 BGsection13.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Unset Printing Defensive.
+Unset Printing Implicit Defensive.
 
 Local Open Scope ring_scope.
 Local Open Scope nat_scope.

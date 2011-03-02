@@ -168,7 +168,7 @@ Require Export Bool.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Unset Printing Defensive.
+Unset Printing Implicit Defensive.
 
 Reserved Notation "~~ b" (at level 35, right associativity).
 Reserved Notation "b ==> c" (at level 55, right associativity).

@@ -20,7 +20,7 @@ Require Import BGsection7 BGsection10.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Unset Printing Defensive.
+Unset Printing Implicit Defensive.
 
 Import GroupScope.
 

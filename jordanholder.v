@@ -9,7 +9,7 @@ Import GroupScope.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Unset Printing Defensive.
+Unset Printing Implicit Defensive.
 
 (* Additional properties on maxnormal groups. To be  moved in maximal
 once generalised *)

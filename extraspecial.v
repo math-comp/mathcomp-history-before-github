@@ -38,7 +38,7 @@ Require Import nilpotent sylow abelian finmodule matrix maximal extremal.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Unset Printing Defensive.
+Unset Printing Implicit Defensive.
 
 Local Open Scope ring_scope.
 Import GroupScope GRing.Theory.

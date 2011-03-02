@@ -135,7 +135,7 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Unset Printing Defensive.
+Unset Printing Implicit Defensive.
 
 Delimit Scope seq_scope with SEQ.
 Open Scope seq_scope.

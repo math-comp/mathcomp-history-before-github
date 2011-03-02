@@ -18,7 +18,7 @@ Require Import binomial fingroup morphism automorphism quotient gfunctor.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Unset Printing Defensive.
+Unset Printing Implicit Defensive.
 
 Import GroupScope.
 

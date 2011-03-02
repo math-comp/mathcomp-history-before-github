@@ -9,7 +9,7 @@ Import OrderedRing.Theory.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Unset Printing Defensive.
+Unset Printing Implicit Defensive.
 
 Module Relative.
 

@@ -45,7 +45,7 @@ Require Import finfun bigop fingroup perm ssralg zmodp matrix mxalgebra poly.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Unset Printing Defensive.
+Unset Printing Implicit Defensive.
 
 Import GRing.Theory.
 Import Monoid.Theory.

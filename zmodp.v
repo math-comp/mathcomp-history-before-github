@@ -50,7 +50,7 @@ Require Import fintype bigop finset prime fingroup ssralg finalg.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Unset Printing Defensive.
+Unset Printing Implicit Defensive.
 
 Local Open Scope ring_scope.
 

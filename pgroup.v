@@ -46,7 +46,7 @@ Require Import gfunctor automorphism quotient action gproduct cyclic.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Unset Printing Defensive.
+Unset Printing Implicit Defensive.
 
 Import GroupScope.
 

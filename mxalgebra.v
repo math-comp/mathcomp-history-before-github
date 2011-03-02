@@ -126,7 +126,7 @@ Require Import perm zmodp matrix.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Unset Printing Defensive.
+Unset Printing Implicit Defensive.
 
 Import GroupScope.
 Import GRing.Theory.
