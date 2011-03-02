@@ -49,7 +49,6 @@ Require Import fingroup morphism.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
 
 Import GroupScope.
 

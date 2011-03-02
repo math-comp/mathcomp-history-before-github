@@ -3,7 +3,6 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
 
 (*****************************************************************************)
 (* Tuples, i.e., lists with a fixed (known) length. We define:               *)

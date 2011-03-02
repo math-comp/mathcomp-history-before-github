@@ -9,7 +9,6 @@ Import GroupScope.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
 
 (* Additional properties on maxnormal groups. To be  moved in maximal
 once generalised *)

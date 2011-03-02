@@ -40,7 +40,6 @@ Require Import div bigop.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
 
 (* The complexity of any arithmetic operation with the Peano representation *)
 (* is pretty dreadful, so using algorithms for "harder" problems such as    *)

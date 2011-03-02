@@ -90,7 +90,6 @@ Require Export Ring.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
 
 (* Declare legacy Arith operators in new scope. *)
 

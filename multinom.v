@@ -9,7 +9,6 @@ Require Import quotient.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
 
 
 Section EquivProps.

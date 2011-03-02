@@ -18,7 +18,6 @@ Require Import binomial fingroup morphism automorphism quotient gfunctor.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
 
 Import GroupScope.
 

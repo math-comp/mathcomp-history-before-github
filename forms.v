@@ -3,7 +3,6 @@ Require Import finfun tuple ssralg matrix zmodp vector.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
 Open Local Scope ring_scope.
 
 Import GRing.Theory.

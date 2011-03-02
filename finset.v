@@ -72,7 +72,6 @@ Require Import finfun bigop.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
 Section SetType.
 
 Variable T : finType.

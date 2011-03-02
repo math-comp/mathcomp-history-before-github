@@ -4,7 +4,6 @@ Require Import prime ssralg.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
 
 Import GRing.Theory.
 Local Open Scope ring_scope.

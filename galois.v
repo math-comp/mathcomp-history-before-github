@@ -32,7 +32,6 @@ Require Import fingroup perm finset matrix mxalgebra.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
 
 Open Local Scope ring_scope.
 

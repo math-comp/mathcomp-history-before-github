@@ -18,7 +18,6 @@ Require Import abelian maximal.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
 
 Import GroupScope.
 

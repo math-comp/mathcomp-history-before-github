@@ -8,7 +8,6 @@ Import GroupScope.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
 
 Section IdentitySubFunctorDefs.
 

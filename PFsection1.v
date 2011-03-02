@@ -7,7 +7,6 @@ Require Import mxrepresentation vector algC character.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
 
 Import GroupScope GRing.Theory.
 Local Open Scope ring_scope.

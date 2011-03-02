@@ -58,7 +58,6 @@ Require Import finalg action gproduct commutator cyclic.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
 
 Import GroupScope GRing.Theory FinRing.Theory.
 Local Open Scope ring_scope.

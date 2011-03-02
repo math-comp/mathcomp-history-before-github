@@ -33,7 +33,6 @@ Require Import finset fingroup morphism perm automorphism quotient finalg zmodp.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
 
 Import GroupScope GRing.Theory.
 

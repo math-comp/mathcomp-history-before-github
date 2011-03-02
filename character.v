@@ -7,7 +7,6 @@ Require Import mxpoly mxrepresentation vector algC.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
 
 Import GroupScope GRing.Theory.
 Local Open Scope ring_scope.
@@ -940,7 +939,7 @@ apply/cfunP=> g; rewrite !cfunE.
 case Ig: (_ \in _); last first.
   rewrite mul0r sum_cfunE cfunE big1 // => i _.
   by rewrite cfunE [_ g](cfun0 (char_of_repr_in_cfun _)) (mulr0,Ig).
-rewrite mul1r (mxtrace_regular _ (pGroupG _)) //; last by exact: groupC.
+rewrite mul1r (mxtrace_regular sG (pGroupG _)) //; last by exact: groupC.
 rewrite sum_cfunE cfunE.
 rewrite {1}(reindex socle_of_irr) /=; last by exists IrrClass=> [] [].
 by apply eq_bigr=> i _; rewrite irr_val1 !cfunE Ig mul1r // GRing.mulr_natl.

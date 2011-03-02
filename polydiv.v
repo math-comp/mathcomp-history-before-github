@@ -6,7 +6,6 @@ Import GRing.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
 
 Open Scope ring_scope.
 

@@ -52,7 +52,6 @@ Require Import finfun tuple ssralg matrix mxalgebra zmodp.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
 Open Local Scope ring_scope.
 
 Reserved Notation "{ 'vspace' T }" (at level 0, format "{ 'vspace'  T }").

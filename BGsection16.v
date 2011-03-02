@@ -62,7 +62,6 @@ Require Import BGsection13 BGsection14 BGsection15.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
 
 Import GroupScope.
 

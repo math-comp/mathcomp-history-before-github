@@ -118,7 +118,6 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
 
 Module Finite.
 

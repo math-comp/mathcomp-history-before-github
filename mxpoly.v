@@ -45,7 +45,6 @@ Require Import finfun bigop fingroup perm ssralg zmodp matrix mxalgebra poly.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
 
 Import GRing.Theory.
 Import Monoid.Theory.

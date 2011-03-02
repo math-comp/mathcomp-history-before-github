@@ -16,7 +16,6 @@ Require Import matrix vector galgebra algebra.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
 Open Local Scope ring_scope.
 
 Delimit Scope amodule_scope with aMS.

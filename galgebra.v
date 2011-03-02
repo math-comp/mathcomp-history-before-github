@@ -8,7 +8,6 @@ Require Import bigop seq ssrnat ssralg fingroup matrix vector algebra.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
 
 Reserved Notation "g %:FG"
   (at level 2, F at level 1, left associativity, format "g %:FG").

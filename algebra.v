@@ -18,7 +18,6 @@ Require Import finfun ssralg matrix zmodp tuple vector.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
 Open Local Scope ring_scope.
 
 Reserved Notation "{ 'algebra' T }" (at level 0, format "{ 'algebra'  T }").

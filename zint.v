@@ -3,7 +3,6 @@ Import GRing.Theory.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
 
 Delimit Scope zint_scope with Z.
 Open Scope zint_scope.

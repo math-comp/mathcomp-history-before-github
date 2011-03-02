@@ -42,7 +42,6 @@ Require Import maximal abelian matrix mxalgebra mxrepresentation.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
 
 Import GroupScope GRing.Theory.
 Local Open Scope ring_scope.
