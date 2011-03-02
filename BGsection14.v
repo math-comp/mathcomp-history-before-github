@@ -682,8 +682,8 @@ have have_d: part_d.
     apply/eqP; rewrite eq_sym eqEcard -{1}(Ohm1_id abelY) OhmS //= oY.
     rewrite (Ohm1_cyclic_pgroup_prime cycKp pKp) ?(subG1_contra sYKp) //=.
     exact: nt_pnElem EpY _.
-  rewrite sub_conjg -[X :^ _]defKp1 ?defKp1 // !inE sub_conjgV sXKg cardJg dimX.
-  by rewrite abelemJ abelX.
+  rewrite sub_conjg -[X :^ _]defKp1 ?(defKp1 X) //.
+  by rewrite !inE sub_conjgV sXKg abelemJ abelX cardJg dimX.
 split=> {part_a part_b part_c have_a have_b have_c}//; first split=> //.
 - move=> q; rewrite /Ks -(cent_semiprime prMsK sE1K ntE1) => picMsE1q.
   have sq := pnatPpi (pcore_pgroup _ M) (piSg (subsetIl _ _) picMsE1q).

@@ -254,8 +254,8 @@ move=> i t e; rewrite sub_capmx submxE !(sameP sub_kermxP eqP) /=.
 rewrite !mul_vec_lin !mxvec_eq0 /= -submxE -submx0 sumsmxMr.
 apply: (iffP andP) => [[->] | [-> Ve0]]; last first.
   by split=> //; apply/sumsmx_subP=> j ne_ji; rewrite Ve0.
-move/sumsmx_subP=> Ve0; split=> // j ne_ji; apply/eqP; rewrite -submx0.
-by rewrite -Vi_mod (Ve0 (inh j)) //= modn_mod.
+move/sumsmx_subP=> Ve0; split=> // j ne_ji; apply/eqP.
+by rewrite -submx0 -Vi_mod (Ve0 (inh j)) //= modn_mod.
 Qed.
 
 Let sumV := (\sum_(i < h) 'V_i)%MS.
