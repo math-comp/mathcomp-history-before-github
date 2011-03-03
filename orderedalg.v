@@ -1807,9 +1807,9 @@ Qed.
 Definition lter_iexpr2 := (ler_iexpr2, ltr_iexpr2).
 Definition lter_eexpr2 := (ler_eexpr2, ltr_eexpr2).
 
-Lemma ler_le_pexp2 : forall n x y,  0 <= x -> x <= y -> (x ^+ n.+1 <= y ^+ n.+1).
+Lemma ler_le_pexp2 : forall n x y,  0 <= x -> x <= y -> (x ^+ n <= y ^+ n).
 Proof.
-move=> n x y; case: ltrgtP=> hx _ //; last first.
+move=> [|n] x y; case: ltrgtP=> hx _ //; last first.
   by rewrite hx => hy; rewrite exprS mul0r exprn_ge0.
 move=> hxy; elim: n => [|n ihn] //.
 rewrite ![_ ^+ _.+2]exprS (@ler_trans _ (x * y ^+ n.+1)) //.
