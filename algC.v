@@ -12,12 +12,12 @@ Local Open Scope ring_scope.
 (**************************************************************************)
 (* This file deals is an axiomatic presentation of an algebraic closed    *)
 (* field over R                                                           *)
-(*    algC : the closed field                                                *)
+(*    algC : the closed field                                             *)
 (*    x^* = conjugate                                                     *)
 (*   0 <= x : x is a positive real                                        *)
 (*   x <= y : (y - x) is a positive real                                  *)
 (*    x < y : (y - x) is a real positive real                             *)
-(*   sqrC x : square root such that sqrt x^2 = x for 0 <= x               *)
+(*   sqrtC x : square root such that sqrt x^2 = x for 0 <= x              *)
 (*  normC x : norm of x i.e. sqrC(x * x^* )                               *)
 (*  isRatC  : test for rationality                                        *)
 (*  getRatC : the rational components,                                    *)
@@ -364,48 +364,48 @@ case c; [move/eqP-> |]; split; rewrite ?eqxx //; first exact: leC_refl.
 by move: H; rewrite ltCE eq_sym; case: eqP.
 Qed.
 
-Variable sqrC : algC -> algC.
-Axiom sqrCK : forall c, (sqrC c) ^+ 2 = c.
-Axiom repC_sqr : forall c, repC (sqrC c) = repC c.
-Axiom sqrC_mul : {morph sqrC: x y / x * y}.
+Variable sqrtC : algC -> algC.
+Axiom sqrtCK : forall c, (sqrtC c) ^+ 2 = c.
+Axiom repC_sqrt : forall c, repC (sqrtC c) = repC c.
+Axiom sqrtC_mul : {morph sqrtC: x y / x * y}.
 
-Lemma sqrC_sqr : forall c, (sqrC (c^+2) == c) || (sqrC (c^+2) == -c).
+Lemma sqrtC_sqr : forall c, (sqrtC (c^+2) == c) || (sqrtC (c^+2) == -c).
 Proof.
-move=> c; set sc := sqrC _.
+move=> c; set sc := sqrtC _.
 suff: (sc - c) * (sc + c) == 0.
   rewrite mulf_eq0; case/orP; first by rewrite subr_eq0=>->.
   by rewrite orbC -{1}[c]opprK subr_eq0=>->.
 rewrite mulr_addr !mulr_subl addrA [c * _]mulrC subrK subr_eq0.
-by rewrite -{2}[sc]expr1 -exprS sqrCK.
+by rewrite -{2}[sc]expr1 -exprS sqrtCK.
 Qed.
 
-Lemma sqrC0 : sqrC 0 = 0.
+Lemma sqrtC0 : sqrtC 0 = 0.
 Proof. 
-have:= sqrCK 0; rewrite exprS expr1.
+have:= sqrtCK 0; rewrite exprS expr1.
 by move/eqP; rewrite mulf_eq0; case/orP; move/eqP.
 Qed.
 
-Lemma sqrC_eq0 : forall c, (sqrC c == 0) = (c == 0).
+Lemma sqrtC_eq0 : forall c, (sqrtC c == 0) = (c == 0).
 Proof.
-move=> c; apply/eqP/eqP; last by move->; exact: sqrC0.
-by rewrite -{2}[c]sqrCK=>->; rewrite exprS mul0r.
+move=> c; apply/eqP/eqP; last by move->; exact: sqrtC0.
+by rewrite -{2}[c]sqrtCK=>->; rewrite exprS mul0r.
 Qed.
 
-Lemma sqrC_pos : forall c, (0 <= sqrC c) = (0 <= c).
-Proof. by move=> c; rewrite /leC !subr0 repC_sqr. Qed.
+Lemma sqrtC_pos : forall c, (0 <= sqrtC c) = (0 <= c).
+Proof. by move=> c; rewrite /leC !subr0 repC_sqrt. Qed.
 
-Lemma sqrC_sqr_pos : forall c, 0 <= c -> sqrC (c^+2) = c.
+Lemma sqrtC_sqr_pos : forall c, 0 <= c -> sqrtC (c^+2) = c.
 Proof.
-move=> c Hc; case/orP: (sqrC_sqr c)=>[|HH]; first by move/eqP.
-suff->: c = 0 by rewrite exprS mul0r sqrC0.
+move=> c Hc; case/orP: (sqrtC_sqr c)=>[|HH]; first by move/eqP.
+suff->: c = 0 by rewrite exprS mul0r sqrtC0.
 apply: leC_anti=> //; rewrite /leC sub0r.
-rewrite -(eqP HH) repC_sqr -[_^+_]subr0; by apply: posC_mul.
+rewrite -(eqP HH) repC_sqrt -[_^+_]subr0; by apply: posC_mul.
 Qed.
 
-Lemma sqrC1 : sqrC 1 = 1.
-Proof. by rewrite -{2}(sqrC_sqr_pos posC1) exprS mul1r. Qed. 
+Lemma sqrtC1 : sqrtC 1 = 1.
+Proof. by rewrite -{2}(sqrtC_sqr_pos posC1) exprS mul1r. Qed. 
  
-Definition normC x := sqrC (x * x^*).
+Definition normC x := sqrtC (x * x^*).
 
 Axiom normC_add : forall x y,  normC (x + y) <= normC x + normC y.
 Axiom normC_add_eq : forall x y : algC, 
@@ -414,11 +414,11 @@ Axiom normC_add_eq : forall x y : algC,
 
 Lemma posC_norm : forall x, 0 <= normC x.
 Proof. 
-move=> x; rewrite /leC !subr0 repC_sqr; exact: repC_pconj.
+move=> x; rewrite /leC !subr0 repC_sqrt; exact: repC_pconj.
 Qed.
 
 Lemma normC_pos : forall c, 0 <= c -> normC c = c.
-Proof. by move=> c Hc; rewrite /normC posC_conjK // (sqrC_sqr_pos Hc). Qed.
+Proof. by move=> c Hc; rewrite /normC posC_conjK // (sqrtC_sqr_pos Hc). Qed.
 
 Lemma normC_nat : forall n, normC n%:R = n%:R.
 Proof. by move=> n; apply: normC_pos; exact: posC_nat. Qed.
@@ -429,7 +429,7 @@ Proof. by rewrite normC_pos // leC_refl. Qed.
 Lemma normC_eq0 : forall c, (normC c == 0) = (c == 0).
 Proof.
 move=> c; apply/idP/eqP; last by move->; rewrite normC0.
-rewrite sqrC_eq0 mulf_eq0; case/orP; first by move/eqP.
+rewrite sqrtC_eq0 mulf_eq0; case/orP; first by move/eqP.
 by rewrite conjC_eq0; move/eqP.
 Qed.
 
@@ -438,8 +438,8 @@ Proof. by rewrite normC_pos // posC1. Qed.
 
 Lemma normC_mul :  {morph normC: x y / x * y}.
 Proof.
-move=> x y; rewrite /normC rmorphM -sqrC_mul -!mulrA; 
-by congr sqrC; congr (_ * _); rewrite mulrC -!mulrA [y * _]mulrC.
+move=> x y; rewrite /normC rmorphM -sqrtC_mul -!mulrA; 
+by congr sqrtC; congr (_ * _); rewrite mulrC -!mulrA [y * _]mulrC.
 Qed.
 
 Lemma normC_exp : forall x n, normC (x^+n) = normC x ^+ n.
@@ -466,7 +466,7 @@ move=> x; case: (x =P 0)=> [->|]; first by rewrite conjC0 mulr0 invr0.
 move/eqP=> Hx.
 have F1: normC x ^+ 2 != 0.
   by rewrite exprS expr1; apply: mulf_neq0; rewrite normC_eq0.
-apply: (mulfI F1); rewrite mulrA divff // mul1r sqrCK [x * _]mulrC.
+apply: (mulfI F1); rewrite mulrA divff // mul1r sqrtCK [x * _]mulrC.
 by rewrite -mulrA divff // mulr1.
 Qed.
 

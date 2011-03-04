@@ -22,20 +22,22 @@ Section Main.
 Variable (gT : finGroupType).
 
 (* This corresponds to 1.1 in PF *)
-Lemma odd_eq_conj_irr1 : forall (G : {group gT}) (i : irr G),
-  odd #|G| -> ((i^*)%CH == i) = (i == irr1 G).
+Lemma odd_eq_conj_irr1 : forall (G : {group gT}) (theta : irr G),
+  odd #|G| -> ((theta^*)%CH == theta) = (theta == irr1 G).
 Proof.
-move=> G i OG; apply/eqP/eqP=> [Hi|->]; last first.
+move=> G t OG; apply/eqP/eqP=> [Ht|->]; last first.
   by apply/cfunP=> g; rewrite cfunE irr1E conjC_nat.
 pose a := (@Zp1 1).
-have Aito: is_action <[a]> (fun (i : irr G) v => if v == a then irr_conjC i else i).
-  split=> [[[|[]]] //= _  j1 j2 Hj |j [[|[]]] // HH1 [[|[]]] // HH2 ] //=.
-    by rewrite -[j1]irr_conjCK Hj irr_conjCK.
+have Aito:
+    is_action <[a]> (fun (t : irr G) v => if v == a then irr_conjC t else t).
+  split=> [[[|[]]] //= _  t1 t2 Hj |j [[|[]]] // HH1 [[|[]]] // HH2 ] //=.
+    by rewrite -[t1]irr_conjCK Hj irr_conjCK.
   by rewrite irr_conjCK.
 pose ito := Action Aito.
-have Acto: is_action <[a]> (fun (c : {set gT}) v => if v == a then c^-1%g else c).
-  split=> [[[|[]]] //= _  j1 j2 Hj |j [[|[]]] // HH1 [[|[]]] // HH2 ] //=.
-    by rewrite -[j1]invgK Hj invgK.
+have Acto:
+    is_action <[a]> (fun (c : {set gT}) v => if v == a then c^-1%g else c).
+  split=> [[[|[]]] //= _  t1 t2 Hj |j [[|[]]] // HH1 [[|[]]] // HH2 ] //=.
+    by rewrite -[t1]invgK Hj invgK.
   by rewrite invgK.
 pose cto := Action Acto.
 have F1: [acts <[a]>, on (classes G) | cto].
@@ -44,9 +46,9 @@ have F1: [acts <[a]>, on (classes G) | cto].
   case/imsetP=> g GiG ->.
   by rewrite inE /=; case: (_ == _) => //;
      rewrite ?class_inv mem_classes // ?groupV.
-have F2:  forall c (i : irr G),  c \in classes G ->
-   i (repr c) = ito i a (repr (cto c a)).
-  move=> c j CiG /=.
+have F2:  forall c (t : irr G),  c \in classes G ->
+   t (repr c) = ito t a (repr (cto c a)).
+  move=> c t' CiG /=.
   rewrite irr_conjCE cfun_conjCE -character_inv /=.
   case/imsetP: CiG=> g GiG ->; rewrite class_inv.
   case: (repr_class G g)=> h1 H1iG ->.
@@ -74,7 +76,7 @@ have F3: forall c, c \in classes G -> c^-1%g = c -> c = 1%g.
   move: F6 (order_gt0 g) (order_dvdG GiG); rewrite -order_dvdn.
   move/(dvdn_leq (is_true_true: (0<2)%N)); case: #[_]=> // [[|[]]] //.
   by rewrite dvdn2 OG.
-apply/eqP; case: (boolP (i == irr1 G))=> // Hd.
+apply/eqP; case: (boolP (t == irr1 G))=> // Hd.
 move: (action_irr_class_card (cycle_id a) F1 F2).
 have->: #|'Fix_(classes G | cto)[a]| = 1%N.
   apply: (@eq_card1 _ 1%g)=> c; apply/idP/idP; rewrite !inE.
@@ -88,19 +90,19 @@ have->: irr1 G \in 'Fix_ito[a].
   apply/afixP=> b; rewrite !inE; move/eqP->; rewrite /=.
   apply: cfun_of_irr_inj; apply/cfunP=> g.
   by rewrite irr_conjCE cfun_conjCE !irr1E conjC_nat.
-rewrite (cardD1 i) //.
-suff->: i \in [predD1 'Fix_ito[a] & irr1 G] by [].
+rewrite (cardD1 t) //.
+suff->: t \in [predD1 'Fix_ito[a] & irr1 G] by [].
 rewrite inE /= Hd.
 apply/afixP=> b; rewrite !inE; move/eqP->; rewrite /=.
 apply: cfun_of_irr_inj; apply/cfunP=> g.
-by rewrite irr_conjCE Hi.
+by rewrite irr_conjCE Ht.
 Qed.
 
 (* This corresponds to 1.2 in PF *)
-Lemma not_in_ker_char0: forall (H G: {group gT}) (i : irr G) g,
-   g \in G -> H <| G -> ~(H \subset cker G i) -> 'C_H[g] = 1%g -> i g = 0.
+Lemma not_in_ker_char0: forall (H G: {group gT}) (theta : irr G) g, g \in G ->
+  H <| G -> ~(H \subset cker G theta) -> 'C_H[g] = 1%g -> theta g = 0.
 Proof.
-move=> H G i g InG NN NoN HC.
+move=> H G t g InG NN NoN HC.
 have: (#|'C_G[g]| <= #|'C_(G/H)[coset H g]|)%N.
   suff->: #|'C_G[g]| = #|'C_G[g] / H|%G.
     by apply: (subset_leq_card (quotient_subcent1 H G g)).
@@ -127,7 +129,7 @@ set S := \sum_(i | ~~ _) _; set S' := \sum_(i | _) _ => HH.
 have F2: 0 = S.
   apply: leC_anti; last by rewrite -(leC_add2l S') addr0.
   by apply: posC_sum=> j _; rewrite /leC subr0; exact: repC_pconj.
-apply/eqP;  have: i g * (i g)^* == 0.
+apply/eqP;  have: t g * (t g)^* == 0.
   apply/eqP; apply: (posC_sum_eq0 _ (sym_equal F2)).
     by move=> j _; rewrite /leC subr0; exact: repC_pconj.
   by move/negP: NoN->; rewrite  /index_enum -enumT mem_enum.
@@ -137,142 +139,146 @@ Qed.
 
 (* This is PF 1.5(a) *)
 Lemma induced_sum_rcosets : 
-  forall (G H : {group gT}) (i : irr H),  H <| G ->
-  'Res[H] ('Ind[G,H] i) = #|inertia G i : H|%:R *:
-       \sum_(j \in rcosets (inertia G i) G) (i ^ (repr j))%CH.
+  forall (G H : {group gT}) (theta : irr H),  H <| G ->
+  'Res[H] ('Ind[G,H] theta) = 
+     #|('I_(G)[theta])%CH : H|%:R *: \sum_(f <- cconjugates G theta) f.
 Proof.
-move=> G H i HnG; apply/cfunP=> h.
+move=> G H t HnG; apply/cfunP=> h.
+pose GI := ([group of 'I_(G)[t]])%CH.
+rewrite big_map big_filter.
 case: (boolP (h \in H))=> [HiH|HniH]; last first.
   rewrite cfunE (negPf HniH) mul0r cfunE sum_cfunE cfunE.
   rewrite big1 ?(scaler0,cfunE,mulr0) // => C1.
   case/rcosetsP=> h1 H1iG ->.
-  have RiG: repr (inertia_group G i :* h1) \in G.
-    case: (repr_rcosetP (inertia_group G i) h1)=> g GiI.
-    by rewrite groupM // (subsetP (inertia_sub G i)).
+  have RiG: repr (GI :* h1) \in G.
+    case: (repr_rcosetP GI h1)=> g GiI.
+    by rewrite groupM // (subsetP (inertia_sub G t)).
   by rewrite -(irr_conjE _ HnG RiG) (cfun0 _ HniH) // irr_in_cfun.
 rewrite crestrictE // !(sum_cfunE,cfunE).
 apply: (mulfI (neq0GC H)); rewrite !mulrA divff ?(neq0GC H) // mul1r.
-rewrite -natr_mul LaGrange ?subset_inertia //.
+rewrite -natr_mul LaGrange ?(subset_inertia, irr_in_cfun) //.
 rewrite -mulr_sumr.
 rewrite (reindex invg) /=; last by exists invg=> g; rewrite invgK.
-rewrite (eq_bigr (fun j => (cfun_conj i j h))); last first.
+rewrite (eq_bigr (fun j => (t ^ j)%CH h)); last first.
   by move=> g Hg; rewrite cfun_conjE.
 have F1: forall g : gT, g^-1%g \in G -> 
-  (inertia G i) :* g \in rcosets (inertia G i) G.
+  ('I_(G)[t])%CH :* g \in rcosets ('I_(G)[t]) G.
   move=> g; rewrite groupV // => GiG; apply/imsetP; exists g=> //.
   by rewrite rcosetE.
 rewrite {1}(partition_big _  _ F1) /=.
 apply: eq_bigr=> N; case/imsetP=> x XiG ->.
 set a := repr _.
-rewrite (eq_bigr (fun _ => cfun_conj i a h)); last first.
+rewrite (eq_bigr (fun _ => (t ^ a)%CH h)); last first.
   move=> i1; case/andP; rewrite groupV /a // => Hi1; move/eqP=> <-.
-  suff: cfun_conj i i1 == cfun_conj i (repr ((inertia G i) :* i1)).
-    by move/eqP<-.
-  rewrite (cfun_conj_eqE _ HnG) ?mem_repr_rcoset //.
-  have: inertia G i :* i1 \subset G.
-    apply/subsetP=> g; case/imset2P=> h1 h2.
-    rewrite /inertia HnG !inE.
+  suff: (t ^ i1 == t ^ (repr ('I_(G)[t] :* i1)))%CH by move/eqP<-.
+  rewrite (cfun_conj_eqE _ Hi1) ?mem_repr_rcoset //.
+  have: ('I_(G)[t])%CH :* i1 \subset G.
+    apply/subsetP=> g; case/imset2P=> h1 h2;rewrite !inE.
     by case/andP=> H1iG _ Eh2 ->; rewrite groupM // (eqP Eh2).
-  by move/subsetP; apply; apply: (mem_repr_rcoset (inertia_group G i) i1).
+  by move/subsetP; apply; apply: (mem_repr_rcoset [group of 'I_(G)[t]] i1).
 rewrite -(card_rcoset _ x) -sum1_card natr_sum -!mulr_suml.
 apply: eq_big=> [i1|i1]; last by rewrite mul1r.
 rewrite rcosetE; apply/andP/idP=>[|HH]; last first.
   split; last by apply/eqP; apply: rcoset_transl.
   case/rcosetP: HH=> h1 H1iI ->; rewrite groupV groupM //.
-  by apply: (subsetP (inertia_sub G i)).
+  by apply: (subsetP (inertia_sub G t)).
 case=> I1iG; move/eqP<-; apply/rcosetP.
-by exists 1%g; rewrite ?mul1g // ?(group1 (inertia_group G i)).
+by exists 1%g; rewrite ?mul1g // ?(group1 [group of 'I_(G)[t]]).
 Qed.
 
 (*  This 1.5b *)
 Lemma induced_prod_index : 
-  forall (G H : {group gT}) (i : irr H),  H <| G -> 
-    '['Ind[G,H] i,'Ind[G,H] i]_G = #|inertia G i : H|%:R.
+  forall (G H : {group gT}) (theta : irr H),  H <| G -> 
+    '['Ind[G,H] theta,'Ind[G,H] theta]_G = #|('I_(G)[theta])%CH : H|%:R.
 Proof.
-move=> G H i HnG; have CFi := irr_in_cfun i; have HsG := normal_sub HnG.
-rewrite -freciprocity ?induced_in_cfun //.
-have->: '[i, 'Res[H] ('Ind[G,H] i)]_H =
-  #|inertia G i : H|%:R *
-    '[i, \sum_(j \in rcosets (inertia G i) G) cfun_conj i (repr j)]_H.
+move=> G H t HnG; have CFi := irr_in_cfun t; have HsG := normal_sub HnG.
+rewrite -frobenius_reciprocity ?induced_in_cfun //.
+have->: '[t, 'Res[H] ('Ind[G,H] t)]_H =
+  #|('I_(G)[t])%CH : H|%:R * '[t, (\sum_(f <- cconjugates G t) f)]_H.
  rewrite !inner_prodE mulrA [_%:R * _]mulrC -mulrA -[_%:R * _]mulr_sumr.
  congr (_ * _); apply: eq_bigr=> h HiH.
  rewrite mulrA [_%:R * _]mulrC -mulrA; congr (_ * _).
  by rewrite (induced_sum_rcosets _ HnG) // !cfunE rmorphM conjC_nat.
-rewrite raddf_sum (bigD1 (inertia G i :* 1%g)) /=; last first.
+rewrite big_map big_filter.
+rewrite raddf_sum (bigD1 ('I_(G)[t] :* 1%g)%CH) /=; last first.
   by apply/rcosetsP; exists 1%g; rewrite ?group1.
-have F1: repr (inertia G i :* 1) \in inertia G i.
-  by rewrite -{2}[inertia G i]rcoset1 mem_repr_rcoset.
+have F1: (repr ('I_(G)[t] :* 1) \in 'I_(G)[t])%CH.
+  by rewrite -{2}[('I_(_)[_])%CH]rcoset1 mem_repr_rcoset.
 rewrite big1 ?addr0=> [|j].
-  by rewrite (is_irr_inner _ HnG) ?(F1,mulr1,subsetP (inertia_sub G i)).
+  by rewrite (is_irr_inner _ HnG) ?(F1,mulr1,subsetP (inertia_sub G t)).
 case/andP; case/rcosetsP=> g GiG -> Heq.
 rewrite (is_irr_inner _ HnG); last first.
-  have: inertia G i :* g \subset G.
+  have: ('I_(G)[t] :* g \subset G)%CH.
     apply/subsetP=> h; case/rcosetP=> k KiI ->.
-    by rewrite groupM // (subsetP (inertia_sub G i)).
+    by rewrite groupM // (subsetP (inertia_sub G t)).
   by move/subsetP; apply; apply: mem_repr_rcoset.
 case E1: (_ \in _)=> //; case/eqP: Heq.
 rewrite rcoset1 rcoset_id //.
-have: repr (inertia_group G i :* g) \in inertia G i by [].
+have: repr ([group of 'I_(G)[t]] :* g) \in 'I_(G)[t]%CH by [].
 by case: repr_rcosetP=> h HiI HGiH; rewrite -(groupMl _ HiI).
 Qed.
 
 (*  This 1.5c *)
-Lemma is_conjugate_irr_induced : 
-  forall (G H : {group gT}) (HnG : H <| G) (i j : irr H),
-    if is_conjugate G i j then 'Ind[G,H] i = 'Ind[G,H] j else
-      '['Ind[G,H] i, 'Ind[G,H] j]_G = 0.
+Lemma cconjugates_irr_induced : 
+  forall (G H : {group gT}) (HnG : H <| G) (theta1 theta2 : irr H),
+    if ((theta2 : cfun _ _) \in cconjugates G (theta1 : cfun _ _)) 
+    then 'Ind[G,H] theta1 = 'Ind[G,H] theta2 
+    else '['Ind[G,H] theta1, 'Ind[G,H] theta2]_G = 0.
 Proof.
-move=> G H HnG i j; case: (boolP (is_conjugate G i j))=> [IC|NiC].
-  by apply: is_conjugate_induced=> //; exact: irr_in_cfun.
-rewrite -freciprocity ?(normal_sub HnG,irr_in_cfun,induced_in_cfun) //.
-rewrite (induced_sum_rcosets _ HnG) inner_prodZ raddf_sum big1 ?mulr0 //=.
+move=> G H HnG t1 t2; case: (boolP (_ \in _))=> [IC|NiC].
+  by apply: cconjugates_induced=> //; exact: irr_in_cfun.
+rewrite -frobenius_reciprocity 
+        ?(normal_sub HnG,irr_in_cfun,induced_in_cfun) //.
+rewrite (induced_sum_rcosets _ HnG) inner_prodZ raddf_sum.
+rewrite big_map big_filter big1 ?mulr0 //=.
 move=> C1 HC1.
 have RiG: repr C1 \in G.
   case/rcosetsP: HC1=> g GiG ->.
-  have: inertia G j :* g \subset G.
+  have: ('I_(G)[t2])%CH :* g \subset G.
     apply/subsetP=> h; case/rcosetP=> k KiI ->.
-    by rewrite groupM // (subsetP (inertia_sub G j)).
+    by rewrite groupM // (subsetP (inertia_sub G t2)).
   by move/subsetP; apply; apply: mem_repr_rcoset.
-move: (irr_orthonormal i (irr_conj j HnG RiG)); rewrite irr_conjE => ->.
+move: (irr_orthonormal t1 (irr_conj t2 HnG RiG)); rewrite irr_conjE => ->.
 case: eqP=> // HH; case/negP: NiC; rewrite HH.
-apply/is_conjugateP; exists (repr C1)^-1%g; rewrite ?groupV //.
+apply/cconjugatesP; exists (repr C1)^-1%g; rewrite ?groupV //.
 by rewrite irr_conjE -cfun_conjM mulgV cfun_conj1.
 Qed.
 
 (* This is PF 1.5(d) *)
 Lemma induced_sum_rcosets1 : 
-  forall (G H : {group gT}) (i : irr H), H <| G ->
-  let chi :=  'Ind[G,H] i in
+  forall (G H : {group gT}) (theta : irr H), H <| G ->
+  let chi :=  'Ind[G,H] theta in
   (chi 1%g / '[chi,chi]_G) *: 'Res[H] chi  = #|G : H|%:R *:
-       \sum_(j \in rcosets (inertia G i) G)
-         (i ^ (repr j))%CH 1%g *: (i ^ (repr j))%CH.
+       (\sum_(j \in rcosets ('I_(G)[theta]) G)
+         (theta ^ (repr j)) 1%g *: (theta ^ (repr j)))%CH.
 Proof.
-move=> G H i HnG chi.
+move=> G H t HnG chi.
 rewrite (induced_sum_rcosets _ HnG) (induced_prod_index _ HnG) 
         induced1 ?(normal_sub) //.
 rewrite !scalerA -!mulrA mulVf ?(mulr1); last first.
-  rewrite -neq0N_neqC; move: (indexg_gt0 (inertia_group G i) H)=> /=.
+  rewrite -neq0N_neqC; move: (indexg_gt0 (inertia_group G t) H)=> /=.
   by case: #|_:_|.
-rewrite-scalerA scaler_sumr; congr (_ *: _); apply: eq_bigr=> C1 IC1.
+rewrite-scalerA scaler_sumr; congr (_ *: _).
+rewrite big_map big_filter; apply: eq_bigr=> C1 IC1.
 by rewrite cfun_conj_val1.
 Qed.
 
 (* This is PF 1.5(e) *)
 Lemma odd_induced_orthogonal : 
-  forall (G H : {group gT}) (i : irr H), H <| G ->
-  odd #|G| -> i != irr1 H -> '['Ind[G,H]i,('Ind[G,H]i)^*%CH]_G = 0. 
+  forall (G H : {group gT}) (theta : irr H), H <| G ->
+  odd #|G| -> theta != irr1 H -> '['Ind[G,H]theta,('Ind[G,H]theta)^*%CH]_G = 0. 
 Proof.
-move=> G H i HnG OG Dii1.
-move: (is_conjugate_irr_induced HnG i (irr_conjC i)).
-case: (boolP (is_conjugate G i (irr_conjC i))); last first.
+move=> G H t HnG OG Dii1.
+move: (cconjugates_irr_induced HnG t (irr_conjC t)).
+case: (boolP (_ \in _)); last first.
   rewrite induced_conjC => _ <-.
   rewrite !inner_prodE; congr (_ * _); apply: eq_bigr=> g GiG.
   by rewrite irr_conjCE.
-case/is_conjugateP=> g GiG; rewrite irr_conjCE=> HH.
+case/cconjugatesP=> g GiG; rewrite irr_conjCE=> HH.
 have OH: odd #|H|.
   by apply: (dvdn_odd _ OG); apply: cardSg; apply: normal_sub.
 case/negP: Dii1; rewrite -odd_eq_conj_irr1 // HH.
-have F1: (i ^ (g ^+ 2))%CH = i.
+have F1: (t ^ (g ^+ 2))%CH = t.
   by rewrite cfun_conjM -HH -cfun_conj_conjC -HH cfun_conjCK.
 suff->: g = ((g ^+ 2)^+ (#|G| %/2).+1)%g.
   elim: (_ %/2).+1=> [|n IH]; first by rewrite expg0 cfun_conj1.
@@ -297,7 +303,8 @@ case/is_comp_neq0=> i1 Hi1.
 pose Ir := irr_induced i1 CsG.
 have CIr: is_comp i Ir.
   rewrite /is_comp ncoord_inner_prod ?(induced_in_cfun, char_of_repr_in_cfun) //.
-  rewrite -freciprocity ?char_of_repr_in_cfun // (inner_prod_charC _ Cr).
+  rewrite -frobenius_reciprocity 
+          ?(char_of_repr_in_cfun,inner_prod_charC _ Cr) //.
   by rewrite  -ncoord_inner_prod // character_in_cfun.
 have BsKi : B \subset cker C i1.
   suff BsKri: B \subset cker C ('Res[C] i).
