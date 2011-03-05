@@ -7,7 +7,7 @@ Require Import mxrepresentation vector algC character.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Unset Printing Implicit Defensive.
+Import Prenex Implicits.
 
 Import GroupScope GRing.Theory.
 Local Open Scope ring_scope.
@@ -98,11 +98,13 @@ apply: cfun_of_irr_inj; apply/cfunP=> g.
 by rewrite irr_conjCE Ht.
 Qed.
 
+Variable (G H : {group gT}).
+
 (* This corresponds to 1.2 in PF *)
-Lemma not_in_ker_char0: forall (H G: {group gT}) (theta : irr G) g, g \in G ->
+Lemma not_in_ker_char0: forall (theta : irr G) g, g \in G ->
   H <| G -> ~(H \subset cker G theta) -> 'C_H[g] = 1%g -> theta g = 0.
 Proof.
-move=> H G t g InG NN NoN HC.
+move=> t g InG NN NoN HC.
 have: (#|'C_G[g]| <= #|'C_(G/H)[coset H g]|)%N.
   suff->: #|'C_G[g]| = #|'C_G[g] / H|%G.
     by apply: (subset_leq_card (quotient_subcent1 H G g)).
@@ -139,11 +141,11 @@ Qed.
 
 (* This is PF 1.5(a) *)
 Lemma induced_sum_rcosets : 
-  forall (G H : {group gT}) (theta : irr H),  H <| G ->
+  forall (theta : irr H),  H <| G ->
   'Res[H] ('Ind[G,H] theta) = 
      #|('I_(G)[theta])%CH : H|%:R *: \sum_(f <- cconjugates G theta) f.
 Proof.
-move=> G H t HnG; apply/cfunP=> h.
+move=> t HnG; apply/cfunP=> h.
 pose GI := ([group of 'I_(G)[t]])%CH.
 rewrite big_map big_filter.
 case: (boolP (h \in H))=> [HiH|HniH]; last first.
@@ -187,11 +189,10 @@ by exists 1%g; rewrite ?mul1g // ?(group1 [group of 'I_(G)[t]]).
 Qed.
 
 (*  This 1.5b *)
-Lemma induced_prod_index : 
-  forall (G H : {group gT}) (theta : irr H),  H <| G -> 
+Lemma induced_prod_index : forall (theta : irr H),  H <| G -> 
     '['Ind[G,H] theta,'Ind[G,H] theta]_G = #|('I_(G)[theta])%CH : H|%:R.
 Proof.
-move=> G H t HnG; have CFi := irr_in_cfun t; have HsG := normal_sub HnG.
+move=> t HnG; have CFi := irr_in_cfun t; have HsG := normal_sub HnG.
 rewrite -frobenius_reciprocity ?induced_in_cfun //.
 have->: '[t, 'Res[H] ('Ind[G,H] t)]_H =
   #|('I_(G)[t])%CH : H|%:R * '[t, (\sum_(f <- cconjugates G t) f)]_H.
@@ -220,12 +221,12 @@ Qed.
 
 (*  This 1.5c *)
 Lemma cconjugates_irr_induced : 
-  forall (G H : {group gT}) (HnG : H <| G) (theta1 theta2 : irr H),
-    if ((theta2 : cfun _ _) \in cconjugates G (theta1 : cfun _ _)) 
+  forall (theta1 theta2 : irr H), H <| G ->
+    if ((theta2 : cfun _ _) \in cconjugates G theta1) 
     then 'Ind[G,H] theta1 = 'Ind[G,H] theta2 
     else '['Ind[G,H] theta1, 'Ind[G,H] theta2]_G = 0.
 Proof.
-move=> G H HnG t1 t2; case: (boolP (_ \in _))=> [IC|NiC].
+move=> t1 t2 HnG; case: (boolP (_ \in _))=> [IC|NiC].
   by apply: cconjugates_induced=> //; exact: irr_in_cfun.
 rewrite -frobenius_reciprocity 
         ?(normal_sub HnG,irr_in_cfun,induced_in_cfun) //.
@@ -246,30 +247,28 @@ Qed.
 
 (* This is PF 1.5(d) *)
 Lemma induced_sum_rcosets1 : 
-  forall (G H : {group gT}) (theta : irr H), H <| G ->
+  forall (theta : irr H), H <| G ->
   let chi :=  'Ind[G,H] theta in
   (chi 1%g / '[chi,chi]_G) *: 'Res[H] chi  = #|G : H|%:R *:
-       (\sum_(j \in rcosets ('I_(G)[theta]) G)
-         (theta ^ (repr j)) 1%g *: (theta ^ (repr j)))%CH.
+       (\sum_(f <- cconjugates G theta) f 1%g *: f).
 Proof.
-move=> G H t HnG chi.
+move=> t HnG chi.
 rewrite (induced_sum_rcosets _ HnG) (induced_prod_index _ HnG) 
         induced1 ?(normal_sub) //.
 rewrite !scalerA -!mulrA mulVf ?(mulr1); last first.
   rewrite -neq0N_neqC; move: (indexg_gt0 (inertia_group G t) H)=> /=.
   by case: #|_:_|.
 rewrite-scalerA scaler_sumr; congr (_ *: _).
-rewrite big_map big_filter; apply: eq_bigr=> C1 IC1.
+rewrite !big_map !big_filter; apply: eq_bigr=> C1 IC1.
 by rewrite cfun_conj_val1.
 Qed.
 
 (* This is PF 1.5(e) *)
-Lemma odd_induced_orthogonal : 
-  forall (G H : {group gT}) (theta : irr H), H <| G ->
-  odd #|G| -> theta != irr1 H -> '['Ind[G,H]theta,('Ind[G,H]theta)^*%CH]_G = 0. 
+Lemma odd_induced_orthogonal :  forall (theta : irr H), H <| G -> odd #|G| -> 
+  theta != irr1 H -> '['Ind[G,H] theta,('Ind[G,H] theta)^*%CH]_G = 0. 
 Proof.
-move=> G H t HnG OG Dii1.
-move: (cconjugates_irr_induced HnG t (irr_conjC t)).
+move=> t HnG OG Dii1.
+move: (cconjugates_irr_induced t (irr_conjC t) HnG).
 case: (boolP (_ \in _)); last first.
   rewrite induced_conjC => _ <-.
   rewrite !inner_prodE; congr (_ * _); apply: eq_bigr=> g GiG.
@@ -290,11 +289,11 @@ by move: (order_dvdG GiG); rewrite order_dvdn; move/eqP->; rewrite mul1g.
 Qed.
 
 (* This is PF 1.8 *)
-Lemma irr1_bound_quo : forall (G B C D : {group gT}) (i : irr G),
+Lemma irr1_bound_quo : forall (B C D : {group gT}) (i : irr G),
   B <| C -> B \subset cker G i -> B \subset D -> D \subset C -> C \subset G ->
   (D/B \subset 'Z(C/B) -> (i 1)^+2 <= #|G|%:R^+2 * #|C|%:R^-1 * #|D|%:R^-1)%g.
 Proof.
-move=> G B C D i BnC BsK BsD DsC CsG QsZ.
+move=> B C D i BnC BsK BsD DsC CsG QsZ.
 pose Cr := irr_rest CsG i.
 case: (boolP (Cr == character0 C))=> [HH|].
   have: Cr 1%g = 0 by rewrite (eqP HH) cfunE.
