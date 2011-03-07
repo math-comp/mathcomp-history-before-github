@@ -34,20 +34,23 @@ suffices have {pg} H: P.
 match goal with |- (P -> G) -> G => move=> H; exact: H p | _ => fail end.
 Qed.
 
+(*
 Lemma test5 : (P -> G) -> P -> G.
 Proof.
 move=> pg p.
 suff have {pg} H : P := pg H.
 match goal with |- (P -> G) -> G => move=> H; exact: H p | _ => fail end.
 Qed.
+*)
 
+(*
 Lemma test6 : (P -> G) -> P -> G.
 Proof.
 move=> pg p.
 suff have {pg} H := pg H.
 match goal with |- (P -> G) -> G => move=> H; exact: H p | _ => fail end.
 Qed.
-
+*)
 
 Lemma test7 : (P -> G) -> P -> G.
 Proof.

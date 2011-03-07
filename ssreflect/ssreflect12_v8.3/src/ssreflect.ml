@@ -5417,8 +5417,8 @@ let havetac (clr, pats) ((((fk, _), t), ctx), hint) suff namefst gl =
    let ctx, c = decompose_lam_n n (pf_abs_cterm gl n c) in
    compose_prod ctx c in
  let interp t = pf_abs_ssrterm ist gl (mk_term ' ' t) in
- let name = match pats with [IpatId x] -> Name x | _ -> Anonymous in
- let mkFkC loc ct = mkCCast loc ct (CHole (loc, None)) in
+(*  let name = match pats with [IpatId x] -> Name x | _ -> Anonymous in *)
+(*  let mkFkC loc ct = mkCCast loc ct (CHole (loc, None)) in *)
  let ct, cty, loc =
    match t with
    | (_, (_, Some (CCast (loc, ct, CastConv (_, cty))))) -> ct, cty, loc
@@ -5427,8 +5427,11 @@ let havetac (clr, pats) ((((fk, _), t), ctx), hint) suff namefst gl =
  let cut, sol, itac1, itac2 =
    match fk, namefst, suff with
    | FwdHave, true, true ->
+     errorstrm (str"Suff have does not accept a proof term")
+(*
      let t = interp (mkCLambda loc name cty (mkFkC loc ct)) in
      pf_type_of gl t, apply t, id, clr
+*)
    | FwdHave, false, true ->
      let cty = mkCArrow loc cty (CHole(dummy_loc,None)) in
      let t = interp (mkCCast loc ct cty) in
