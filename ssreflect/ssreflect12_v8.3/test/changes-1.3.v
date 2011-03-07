@@ -14,7 +14,7 @@ Proof. by rewrite [ddouble _]/double !mulSn addnA addn0. Qed.
 Axiom f : nat -> nat -> nat. 
 Lemma ex2 x y z : (x + y).+1 + f (x + y).+1 (z + (x + y).+1) = 0.
 Proof.
-rewrite [(x + y).+1 in X in f _ X](addnC x.+1).
+rewrite [_.+1 in X in f _ X](addnC x.+1).
 match goal with |- ((x + y).+1 + f (x + y).+1 (z + (y + x.+1)) = 0) => admit end.
 Qed.
 

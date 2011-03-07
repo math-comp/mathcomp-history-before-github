@@ -181,3 +181,12 @@ elim/big_prop: _ => [| u v IHu IHv | [q e] /= mem_qe dv_p_qe].
 exists (q, e) => //=; case/mem_prime_decomp: mem_qe => pr_q _ _.
 by rewrite euclid_exp // dvdn_prime2 // in dv_p_qe; case: eqP dv_p_qe.
 Qed.
+
+Lemma sub_in_partn : forall pi1 pi2 n,
+  {in \pi(n), {subset pi1 <= pi2}} -> n`_pi1 %| n`_pi2.
+Proof.
+move=> pi1 pi2 n pi12; rewrite ![n`__]big_mkcond /=.
+elim/big_rel: _ => // [*|p _]; first exact: dvdn_mul.
+rewrite lognE -mem_primes; case: ifP => pi1p; last exact: dvd1n.
+by case: ifP => pr_p; [rewrite pi12 | rewrite if_same].
+Qed.

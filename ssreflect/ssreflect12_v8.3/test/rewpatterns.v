@@ -1,3 +1,4 @@
+
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
 
 Lemma test1 : forall x y (f : nat -> nat), f (x + y).+1 = f (y + x.+1).
@@ -47,7 +48,7 @@ Qed.
 
 Lemma test5 : forall x y f, x = y -> x + f (y + x) x + f (y + x) x = 
                                      x + f (x + y) x + f (y + x) x.
-by move=> x y f E; rewrite {1}[X in (f X _)]addnC. Show Proof.
+by move=> x y f E; rewrite {1}[X in (f X _)]addnC. 
 Qed.
 
 Lemma test3''' : forall x y f, x = y -> x + f (x + y) x + f (x + y) (x + y) = 
