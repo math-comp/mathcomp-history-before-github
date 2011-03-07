@@ -4,7 +4,7 @@ Author: The Mathematical Components Team
 Institution: INRIA - Microsoft Research Joint Centre 
 Author: Georges Gonthier
 Institution: Microsoft Corporation
-Date: November 2008
+Date: March 2011
 Description: This contribution includes an extension for the Coq
 system and a small set of libraries coming from the project of
 formalisation of the Feit-Thompson theorem.
