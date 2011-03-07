@@ -3658,6 +3658,7 @@ let analyze_eliminator elimty =
   | CastType (t, _) -> loop t
   | AtomicType (hd, args) when isRel hd -> 
       let len = Array.length args in
+      pp(lazy(str"elim_ty_concl=" ++ pr_constr t));
       let is_dep = len > 0 && eq_constr (mkRel 1) (Array.get args (len - 1)) in
       destRel hd, is_dep, len
   | _ -> assert false in
@@ -3795,7 +3796,6 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
           errorstrm (str "Unable to apply the eliminator to the term")
         | _ -> loop (n+1) in
         loop 0 in
-      let elim_is_dep = List.length deps < n_pred_args in
       let fs = fire_subst gl in
       fs c, fs elim, fs elimty, elim_args, n_elim_args, elim_is_dep, is_rec, pred, gl
     | None ->
@@ -3814,7 +3814,6 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
       let pred = List.assoc pred_id elim_args in
       let arg = List.assoc (n_elim_args - 1) elim_args in
       let gl = pf_unify_HO gl arg c in
-      let elim_is_dep = elim_is_dep && List.length deps < n_pred_args in
       let fs = fire_subst gl in
       fs c, fs elim, fs elimty, elim_args, n_elim_args, elim_is_dep, is_rec, pred, gl
   in
@@ -3822,13 +3821,13 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
   (* Patterns for the inductive types indexes to be bound in pred are computed
    * looking at the ones provided by the user and the inferred ones looking at
    * the type of the elimination principle *)
+  let pr_pat (_,t,_,_,_) = pr_constr_pat t in
   let patterns, clr, gl =
     let inf_deps = match kind_of_type elimty with
     | AtomicType (_, args) ->
       let pats = List.rev (Array.to_list args) in
       if elim_is_dep then List.tl pats else pats
     | _ -> assert false in
-    let deps = List.rev deps in
     let rec loop gl patterns clr i = function
       | [],[] -> patterns, clr, gl
       | ((oclr, occ), (xx ,_ as t)):: deps, inf_t :: inf_deps ->
@@ -3845,15 +3844,15 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
           loop gl (patterns@[i,t,inf_t,must,occ]) 
             (clr_t @ clr) (i+1) (deps,inf_deps)
       | [], c :: inf_deps -> 
+          pp(lazy(str"adding pattern " ++ pr_constr_pat c));
           loop gl (patterns@[i,c,c,false,[noindex]]) clr (i+1) ([],inf_deps)
       | _::_, [] -> errorstrm (str "Too many dependent abstractions") in
     let occ = if occ = [] then [noindex] else occ in
     let head_p = if elim_is_dep then [1,c,c,false,occ] else [] in
     let patterns, clr, gl = 
-      loop gl [] clr (List.length head_p+1) (deps, inf_deps) in
+      loop gl [] clr (List.length head_p+1) (List.rev deps, inf_deps) in
     head_p @ patterns, clr, gl
   in
-  let pr_pat (_,t,_,_,_) = pr_constr_pat t in
   pp(lazy(pp_concat (str"patterns=") (List.map pr_pat patterns)));
   pp(lazy(pp_concat (str"clr=") (List.map pr_hyp clr)));
   (* Predicate generation, and (if necessary) tactic to generalize the

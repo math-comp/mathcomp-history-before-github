@@ -52,3 +52,14 @@ Proof. by move=> /eqP /andP [/andP [_ ->] _]. Qed.
 Lemma ex8 (n := 3) : n = 3.
 Proof. by move: @n => m. Qed.
 
+Function plus (m n : nat) {struct n} : nat :=
+   match n with
+   | 0 => m
+   | S p => S (plus m p)
+   end.
+
+Lemma exF x y z: plus (plus x y) z = plus x (plus y z).
+Proof. by elim/plus_ind: z => //= _ z' _ ->. Qed.
+
+
+
