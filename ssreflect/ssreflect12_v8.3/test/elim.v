@@ -165,3 +165,19 @@ match goal with |- forall (cf2 cf3 : T) (t0 : seq T),
  exec cf0 cf2 (t0 ++ [:: cf3]) => admit | _ => fail end.
 Qed.
 
+Require Import seq div prime bigop.
+
+Lemma mem_primes : forall p n,
+  (p \in primes n) = [&& prime p, n > 0 & p %| n].
+Proof.
+move=> p n; rewrite andbCA; case: posnP => [-> // | /= n_gt0].
+apply/mapP/andP=> [[[q e]]|[pr_p]] /=.
+  case/mem_prime_decomp=> pr_q e_gt0; case/dvdnP=> u -> -> {p}.
+  by rewrite -(prednK e_gt0) expnS mulnCA dvdn_mulr.
+rewrite {1}(prod_prime_decomp n_gt0) big_cond_seq /=.
+elim/big_prop: _ => [| u v IHu IHv | [q e] /= mem_qe dv_p_qe].
+- by rewrite euclid1.
+- by rewrite euclid //; case/orP.
+exists (q, e) => //=; case/mem_prime_decomp: mem_qe => pr_q _ _.
+by rewrite euclid_exp // dvdn_prime2 // in dv_p_qe; case: eqP dv_p_qe.
+Qed.
