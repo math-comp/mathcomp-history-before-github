@@ -3,7 +3,7 @@ MAKEFLAGS := -r
 
 .SUFFIXES:
 
-.PHONY: clean all config tags install
+.PHONY: clean all tags install
 
 COQMAKEFILE := Makefile.coq
 COQMAKE := +$(MAKE) -f $(COQMAKEFILE)
@@ -13,8 +13,8 @@ all: $(COQMAKEFILE)
 	$(COQMAKE) all
 	$(MAKE) -C test/ all
 
-$(COQMAKEFILE) config:
-	$(COQBIN)coq_makefile -f Make  -o $(COQMAKEFILE)
+$(COQMAKEFILE): Make
+	$(COQBIN)coq_makefile -f Make  > $(COQMAKEFILE)
 
 clean: $(COQMAKEFILE)
 	$(COQMAKE) clean
@@ -27,5 +27,3 @@ install:
 	$(COQMAKE) install
 	/usr/bin/install bin/ssrcoq $(COQBIN)
 
-%: Makefile.coq
-	$(COQMAKE) $@
