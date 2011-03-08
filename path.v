@@ -412,8 +412,8 @@ Lemma path_sorted : forall x s, path leT x s -> sorted s.
 Proof. by move=> x [|y s] //=; case/andP. Qed.
 
 Lemma path_min_sorted : forall x s,
-  (forall y, leT x y) -> path leT x s = sorted s.
-Proof. by move=> x [|y s] //= ->. Qed.
+  (forall y, y \in s -> leT x y) -> path leT x s = sorted s.
+Proof. by move=> x [|y s] //= -> //; rewrite in_cons eqxx. Qed.
 
 Section Transitive.
 
