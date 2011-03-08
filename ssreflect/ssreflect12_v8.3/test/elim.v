@@ -190,3 +190,28 @@ elim/big_rel: _ => // [*|p _]; first exact: dvdn_mul.
 rewrite lognE -mem_primes; case: ifP => pi1p; last exact: dvd1n.
 by case: ifP => pr_p; [rewrite pi12 | rewrite if_same].
 Qed.
+
+Function plus (m n : nat) {struct n} : nat :=
+   match n with
+   | 0 => m
+   | S p => S (plus m p)
+   end.
+
+Lemma exF x y z: plus (plus x y) z = plus x (plus y z).
+elim/plus_ind: z / (plus _ z).
+match goal with |- forall n : nat, n = 0 -> plus x y = plus x (plus y 0) => idtac end.
+Undo 2. 
+elim/plus_ind: (plus _ z).
+match goal with |- forall n : nat, n = 0 -> plus x y = plus x (plus y 0) => idtac end.
+Undo 2.
+elim/plus_ind: {z}(plus _ z).
+match goal with |- forall n : nat, n = 0 -> plus x y = plus x (plus y 0) => idtac end.
+Undo 2.
+elim/plus_ind: {z}_.
+match goal with |- forall n : nat, n = 0 -> plus x y = plus x (plus y 0) => idtac end.
+Undo 2.
+elim/plus_ind: z / _.
+match goal with |- forall n : nat, n = 0 -> plus x y = plus x (plus y 0) => idtac end.
+ done.
+by move=> _ p _ ->.
+Qed.
