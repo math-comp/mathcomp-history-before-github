@@ -28,6 +28,10 @@ install:
 	$(COQMAKE) install
 	install bin/ssrcoq $(COQBIN)
 
+clean:
+	-$(COQMAKE) clean
+	rm -f $(COQMAKEFILE)
+
 dist:
 	rm -rf ssreflect-$(VERSION)
 	svn export . ssreflect-$(VERSION)
