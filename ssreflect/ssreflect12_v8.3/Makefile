@@ -5,11 +5,12 @@ MAKEFLAGS := -r
 
 .PHONY: clean all tags install
 
+VERSION := 1.3
 COQMAKEFILE := Makefile.coq
 COQMAKE := +$(MAKE) -f $(COQMAKEFILE)
 
 all: $(COQMAKEFILE)
-	/bin/mkdir -p bin
+	mkdir -p bin
 	$(COQMAKE) all
 	$(MAKE) -C test/ all
 
@@ -25,5 +26,15 @@ tags:
 
 install:
 	$(COQMAKE) install
-	/usr/bin/install bin/ssrcoq $(COQBIN)
+	install bin/ssrcoq $(COQBIN)
 
+dist:
+	rm -rf ssreflect-$(VERSION)
+	svn export . ssreflect-$(VERSION)
+	for X in ssreflect-$(VERSION)/theories/*.v; do\
+		if ! grep `basename $$X` ssreflect-$(VERSION)/Make; then\
+			rm $$X;\
+		fi;\
+	done
+	tar -cvzf ssreflect-$(VERSION).tar.gz ssreflect-$(VERSION)/
+	rm -rf ssreflect-$(VERSION)/
