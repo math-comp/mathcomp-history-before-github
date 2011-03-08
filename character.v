@@ -3668,6 +3668,11 @@ move/eqP->; apply: map_f.
 by rewrite /index_enum -enumT mem_enum.
 Qed.
 
+Lemma mem_cconjugates : forall f, f \in cconjugates G f.
+Proof.
+by move=> f; apply/cconjugatesP; exists 1%g=> //; rewrite cfun_conj1.
+Qed.
+
 Lemma unique_cconjugates : forall f, uniq (cconjugates G f).
 Proof.
 move=> f; rewrite map_inj_in_uniq.
@@ -3686,6 +3691,25 @@ have: (f ^ h1)%CH == (f ^ repr ('I_(G)[f] :* h1))%CH.
   by rewrite cfun_conj_eqE ?(mem_repr_rcoset,F1).
 move/eqP->.
 by rewrite HH eq_sym cfun_conj_eqE ?(mem_repr_rcoset,F1).
+Qed.
+
+Lemma cconjugates1 : H <| G -> cconjugates G (irr1 H) = [::(irr1 H : cfun _ _)].
+Proof.
+move=> HnG.
+have: forall f, f \in cconjugates G (irr1 H) -> f = irr1 H .
+  move=> f; case/cconjugatesP=> g GiG ->.
+  apply/cfunP=> h; rewrite cfunE !irr1E.
+  (case: (boolP (_ \in _))=> HH; case: (boolP (_ \in _)))=> // [|HH1]; 
+       [case/negP|case/negP:HH]; last first.
+      case/normalP: HnG=> _; move/(_ _ (groupVr GiG))<-. 
+      by apply/imsetP; exists h.
+  rewrite -[h]conjg1 -[1%g](mulKg g) mulg1 conjgM.
+  case/normalP: HnG=> _; move/(_ _ (GiG))<-. 
+  by apply/imsetP; exists (h^g^-1)%g.
+move: (mem_cconjugates (irr1 H)) (unique_cconjugates (irr1 H)).
+case: cconjugates=> // f1 [|f2 s]; first by rewrite inE; move/eqP->.
+move=> _ /=; case/andP=> HH _ HH1; case/negP: HH.
+by rewrite /= (HH1 f1) ?(inE,eqxx) // (HH1 f2) ?(inE,eqxx,orTb,orbT).
 Qed.
 
 Lemma cconjugates_sum : forall (R : Type) (idx : R) (op : Monoid.com_law idx) 
@@ -3712,7 +3736,7 @@ by rewrite /index_enum -enumT  mem_enum.
 Qed.
 
 (* This is Isaacs 6.2 *)
-Lemma is_comp_clifford_consistuent :  forall (chi : irr G) (theta : irr H),
+Lemma is_comp_clifford :  forall (chi : irr G) (theta : irr H),
    H <| G -> is_comp theta ('Res[H] chi) ->
   'Res[H] chi = '['Res[H] chi, theta]_H *: \sum_(f <- cconjugates G theta) f.
 Proof.
@@ -3772,6 +3796,45 @@ rewrite (inner_prod_charC cr) (frobenius_reciprocity (normal_sub HnG))
 by case/negP: HH2.
 Qed.
 
+(* This is Isaacs' 6.7 *)
+Lemma cker_is_comp1 : forall chi : irr G, 
+  H <| G -> is_comp (irr1 H) ('Res[H] chi) -> H \subset cker G chi.
+Proof.
+move=> chi HnG IC; apply/subsetP=> h HiH.
+rewrite irr_ckerE inE (subsetP (normal_sub HnG)) //.
+move: (is_comp_clifford HnG IC).
+rewrite cconjugates1 // big_cons big_nil addr0=> HH.
+move/cfunP: (HH); move/(_ 1%g).
+rewrite cfunE group1 mul1r.
+rewrite [fun_of_cfun (_ *: _) 1%g]cfunE irr1E group1 mulr1=> HH1.
+move/cfunP: HH; move/(_ h).
+rewrite -HH1 cfunE HiH mul1r => ->.
+by rewrite cfunE irr1E HiH mulr1 eqxx.
+Qed.
+
+(* This is Isaacs' 6.8 *)
+Lemma is_comp_val1_div : forall (chi : irr G) (theta : irr H), 
+  H <| G -> is_comp theta ('Res[H] chi) -> 
+    exists n: nat, chi 1%g = n%:R * theta 1%g.
+Proof.
+move=> chi theta HnG IC.
+exists (getNatC ('['Res[H] chi, theta ]_ H) * (size (cconjugates G theta)))%N.
+rewrite natr_mul.
+pose cr := character_rest (normal_sub HnG) (character_of_irr chi).
+move: (inner_prod_char_nat cr (character_of_irr theta)).
+rewrite getNatCP=> /=; move/eqP<-.
+have->: chi 1%g = ('Res[H] chi) 1%g by rewrite !cfunE !(group1,mul1r).
+rewrite {1}(is_comp_clifford HnG IC).
+rewrite cfunE -mulrA; congr (_ * _).
+rewrite sum_cfunE cfunE.
+have: forall f, f \in cconjugates G theta -> f 1%g = theta 1%g.
+  by move=> f; case/cconjugatesP=> g GiG ->; rewrite cfunE conj1g.
+elim: (cconjugates _ _)=> [|f l IH HF]; first by rewrite big_nil mul0r.
+rewrite big_cons HF ?(inE,eqxx) // IH=> [|f1 Hf1].
+  by rewrite /= -add1n natr_add mulr_addl mul1r.
+by rewrite HF // inE Hf1 orbT.
+Qed.
+
 Lemma cconjugates_induced : forall (f1 f2 : cfun gT algC),
    H <| G ->  f1 \in 'CF(H) -> f2 \in 'CF(H) -> f2 \in cconjugates G f1 ->  
    'Ind[G,H] f1 = 'Ind[G,H] f2.
@@ -3785,6 +3848,7 @@ rewrite (reindex (mulg^~ g^-1%g)); last first.
 apply: eq_big=> [|h1 H1iG]; last by rewrite cfun_conjE conjgM.
 by move=> h1 /=; rewrite groupMr // groupV.
 Qed.
+
 
 End Inertia.
 
