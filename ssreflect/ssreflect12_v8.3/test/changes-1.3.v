@@ -59,7 +59,7 @@ Function plus (m n : nat) {struct n} : nat :=
    end.
 
 Lemma exF x y z: plus (plus x y) z = plus x (plus y z).
-Proof. by elim/plus_ind: z => //= _ z' _ ->. Qed.
+Proof. by elim/plus_ind: z / _ => //= _ z' _ ->. Qed.
 
 
 
