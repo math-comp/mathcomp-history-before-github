@@ -17,10 +17,6 @@ all: $(COQMAKEFILE)
 $(COQMAKEFILE): Make
 	$(COQBIN)coq_makefile -f Make  > $(COQMAKEFILE)
 
-clean: $(COQMAKEFILE)
-	$(COQMAKE) clean
-	$(RM) -rf bin $(COQMAKEFILE)
-
 tags:
 	$(COQBIN)coqtags `find . -name \*.v`
 
