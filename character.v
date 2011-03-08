@@ -1271,6 +1271,15 @@ move=> g h gIn hIn; rewrite !cfunE groupJ //.
 by rewrite gIn (cfunJ fC) // (subsetP Hsub).
 Qed.
 
+Lemma crestrict_is_linear : forall (G : {group gT}), linear (crestrict G).
+Proof.
+move=> G c f1 f2; apply/cfunP=> g.
+by rewrite !cfunE mulr_addr mulrCA.
+Qed.
+
+Canonical Structure crestrit_linear G :=
+  Linear (crestrict_is_linear G).
+
 End Restrict.
 
 Notation "''Res[' G ]  f " := (crestrict G f) (at level 24).
@@ -2350,6 +2359,7 @@ Qed.
 End InnerProduct.
 
 Notation "'[ u , v  ]_ G":=  (inner_prod (val G) u v) (at level 10).
+Notation "'[ u , v  ]_ G":=  (inner_prod (gval G) u v) (at level 10).
 
 Section Kernel.
 
@@ -3676,6 +3686,90 @@ have: (f ^ h1)%CH == (f ^ repr ('I_(G)[f] :* h1))%CH.
   by rewrite cfun_conj_eqE ?(mem_repr_rcoset,F1).
 move/eqP->.
 by rewrite HH eq_sym cfun_conj_eqE ?(mem_repr_rcoset,F1).
+Qed.
+
+Lemma cconjugates_sum : forall (R : Type) (idx : R) (op : Monoid.com_law idx) 
+                              (F: _ -> R) (theta : irr H),
+   H <| G ->
+   \big[op/idx]_(i : irr H | ((i : cfun _ _) \in cconjugates G theta)) 
+       F (cfun_of_irr i) = 
+   \big[op/idx]_(i <- cconjugates G theta) F i.
+Proof.
+move=> R idx op F theta HnG.
+set u := \big[op/idx]_(i <- cconjugates G theta) F i.
+rewrite -big_map -big_filter.
+apply: eq_big_perm. 
+apply: uniq_perm_eq; try apply: unique_cconjugates.
+  apply: filter_uniq.
+  rewrite map_inj_uniq; last by exact: cfun_of_irr_inj.
+  by rewrite /index_enum -enumT enum_uniq.
+move=> i; apply/idP/idP; rewrite mem_filter; first by case/andP.
+move=> HH; apply/andP; split=> //.
+case/cconjugatesP: HH => g GiG->.
+rewrite -(irr_conjE _ HnG GiG).
+apply: map_f=> //.
+by rewrite /index_enum -enumT  mem_enum.
+Qed.
+
+(* This is Isaacs 6.2 *)
+Lemma is_comp_clifford_consistuent :  forall (chi : irr G) (theta : irr H),
+   H <| G -> is_comp theta ('Res[H] chi) ->
+  'Res[H] chi = '['Res[H] chi, theta]_H *: \sum_(f <- cconjugates G theta) f.
+Proof.
+move=> chi theta HnG IC.
+rewrite -cconjugates_sum //=.
+pose cr := character_rest (normal_sub HnG) (character_of_irr chi).
+have CFchi: 'Res[H] chi \in 'CF(H) by apply: (character_in_cfun cr).
+rewrite {1}(ncoord_sum CFchi).
+rewrite (bigID (fun i : irr H => (i : cfun _ _)  \in cconjugates G theta)) /=.
+rewrite [\sum_(i | _ \notin _)_]big1 ?addr0=> [|phi].
+  rewrite scaler_sumr; apply: eq_bigr=> phi Hp; congr (_ *: _).
+  rewrite (ncoord_inner_prod _ CFchi).
+  case/cconjugatesP: Hp => g GiG ->.
+  by apply: cfun_conj_inner_rest=> //; exact: character_in_cfun.
+move=> HH.
+have: '['Res[H] ('Ind[G,H] theta), phi]_H = 0.
+  have->: 'Res[H] ('Ind[G,H] theta) = 
+               #|H|%:R^-1 *: (\sum_(c \in G) (theta ^ c)%CH).
+    rewrite (reindex invg); last by exists invg=> g; rewrite invgK.
+    apply/cfunP=> h; rewrite !(cfunE,sum_cfunE).
+    case: (boolP (_ \in _))=> HiH; last first.
+      rewrite mul0r big1 ?(mulr0) // => h1 H1iG.
+      rewrite cfunE (cfun0 (irr_in_cfun _)) // invgK.
+      apply/negP=> HH1; case/negP: HiH.
+      rewrite -[h]conjg1 -[1%g](mulgK h1) mul1g conjgM.
+      move/normalP: {cr}HnG; case=> _; move/(_ _ H1iG) <-.
+      by apply/imsetP; exists (h^ h1)%g.
+    rewrite mul1r; congr (_ * _); apply: eq_big=> g1; first by rewrite groupV.
+    by rewrite !(cfunE,invgK).
+  rewrite -inner_prodbE linearZ linear_sum; rewrite big1 ?scaler0 // => g GiG.
+  rewrite /= inner_prodbE -(irr_conjE _ HnG GiG) irr_orthonormal.
+  case: eqP=> // HH1; case/negP: HH; rewrite -HH1 irr_conjE.
+  by apply/cconjugatesP; exists g.
+rewrite (ncoord_inner_prod _ CFchi).
+have CFInd: ('Ind[G, H] theta) \in 'CF(G).
+   by apply: (induced_in_cfun (normal_sub HnG)); exact: irr_in_cfun.
+rewrite {1}(ncoord_sum CFInd) linear_sum /=.
+rewrite -inner_prodbE linear_sum /= => HH1. 
+have: '['Res[H] (ncoord chi ('Ind[G, H] theta) *: (chi: cfun _ _)),phi]_H = 0.
+  apply: (posC_sum_eq0 _ HH1)=> [theta1 _|]; last first.
+    by rewrite /index_enum -enumT mem_enum.
+  apply: posC_isNatC.
+  pose ch1 := character_of_irr phi; set u := 'Res[_] _.
+  suff ICu: is_char H u.
+    by apply: (inner_prod_char_nat (Character ICu) ch1).
+  apply: (is_char_restrict (normal_sub HnG)).
+  pose cr1 := (character_induced (character_of_irr theta) (normal_sub HnG)).
+  case/isNatCP: (char_isNatC_ncoord theta1 cr1)=> /= n ->.
+  by rewrite scaler_nat is_char_scal // is_char_irr.
+rewrite linearZ /= -inner_prodbE linearZ /= inner_prodbE.
+move/eqP; rewrite mulf_eq0; case/orP; last first.
+  by move/eqP->; rewrite scale0r.
+move: IC.
+rewrite /is_comp (ncoord_inner_prod _ CFchi) (ncoord_inner_prod _ CFInd).
+rewrite (inner_prod_charC cr) (frobenius_reciprocity (normal_sub HnG))
+        ?character_in_cfun //= => HH2 HH3.
+by case/negP: HH2.
 Qed.
 
 Lemma cconjugates_induced : forall (f1 f2 : cfun gT algC),

@@ -139,6 +139,7 @@ rewrite mulf_eq0; case/orP=> //.
 by rewrite conjC_eq0.
 Qed.
 
+
 (* This is PF 1.5(a) *)
 Lemma induced_sum_rcosets : 
   forall (theta : irr H),  H <| G ->
