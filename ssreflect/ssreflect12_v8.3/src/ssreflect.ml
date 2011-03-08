@@ -3657,10 +3657,7 @@ let analyze_eliminator elimty =
   let rec loop t = match kind_of_type t with
   | CastType (t, _) -> loop t
   | AtomicType (hd, args) when isRel hd -> 
-      let len = Array.length args in
-      pp(lazy(str"elim_ty_concl=" ++ pr_constr t));
-      let is_dep = len > 0 && eq_constr (mkRel 1) (Array.get args (len - 1)) in
-      destRel hd, is_dep, len
+      destRel hd, not (noccurn 1 t), Array.length args
   | _ -> assert false in
   let pred_id, elim_is_dep, n_pred_args = loop concl in
   let n_elim_args = rel_context_length ctx in
@@ -3765,13 +3762,15 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
   let eq, protectC = build_coq_eq (), mkSsrConst "protect_term" in
   let fire_subst gl t = snd (nf_open_term (project gl) (project gl) t) in
   let is_undef_pat gl t = 
-    match kind_of_term (fire_subst gl t) with Evar _ -> true | _ -> false in
+    match kind_of_term (fire_subst gl(Reductionops.whd_beta(project gl) t)) with
+    | Evar _ -> true | _ -> false in
   let match_pat gl cl (occ, t) h =                
     (* t and cl live in gl, each occ of t in cl is replaced by Rel h *)
     let env, sigma, si = pf_env gl, project gl, sig_it gl in
     let t, orig_t = fire_subst gl t, t in
     let n, t = pf_abs_evars orig_gl (sigma, t) in  
     let t, _, _, sigma' = saturate env sigma t n in
+    pp(lazy(str"matching " ++ pr_constr_pat t));
     let sigma, t, cl, _ = pf_fill_occ env cl occ sigma t (sigma', t) all_ok h in
     cl, pf_unify_HO (re_sig si sigma) orig_t t in
   (* finds the eliminator applies it to evars and c saturated as needed  *)
@@ -3785,17 +3784,6 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
       let elim, elimty, elim_args, gl =
         pf_saturate ~beta:is_case gl elim ~ty:elimty n_elim_args in
       let pred = List.assoc pred_id elim_args in
-      let arg = List.assoc (n_elim_args - 1) elim_args in
-      let c, c_ty, gl = let rec loop n =
-        try
-          let c, c_ty, _, gl = pf_saturate gl c ~ty:c_ty n in
-          let gl = pf_unify_HO gl arg c in
-          c, c_ty, gl
-        with
-        | NotEnoughProducts ->
-          errorstrm (str "Unable to apply the eliminator to the term")
-        | _ -> loop (n+1) in
-        loop 0 in
       let fs = fire_subst gl in
       fs c, fs elim, fs elimty, elim_args, n_elim_args, elim_is_dep, is_rec, pred, gl
     | None ->
@@ -3812,22 +3800,48 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
       let elim, elimty, elim_args, gl =
         pf_saturate ~beta:is_case gl elim ~ty:elimty n_elim_args in
       let pred = List.assoc pred_id elim_args in
-      let arg = List.assoc (n_elim_args - 1) elim_args in
-      let gl = pf_unify_HO gl arg c in
       let fs = fire_subst gl in
       fs c, fs elim, fs elimty, elim_args, n_elim_args, elim_is_dep, is_rec, pred, gl
   in
+  let c_ty = pf_type_of gl c in
+  let inf_deps_r = match kind_of_type elimty with
+    | AtomicType (_, args) -> List.rev (Array.to_list args)
+    | _ -> assert false in
+  let saturate_until gl c c_ty f =
+    let rec loop n = try
+      let c, c_ty, _, gl = pf_saturate gl c ~ty:c_ty n in
+      let gl' = f c c_ty gl in
+      Some (c, c_ty, gl, gl')
+    with NotEnoughProducts -> None | _ -> loop (n+1) in loop 0 in
+  let elim_is_dep, c, gl =
+    let inf_arg = List.hd inf_deps_r in
+    let inf_arg_ty = pf_type_of gl inf_arg in
+    let error () = errorstrm (str"Unable to apply the eliminator to the term"++
+      spc()++pr_constr c++spc()++str"or to unify it's type with"++
+      pr_constr inf_arg_ty) in
+    if not elim_is_dep && not (isEvar c) then
+      let arg = List.assoc (n_elim_args - 1) elim_args in
+      let arg_ty = pf_type_of gl arg in
+      match saturate_until gl c c_ty (fun c c_ty gl ->
+        pf_unify_HO (pf_unify_HO gl c_ty arg_ty) arg c) with
+      | Some (c, _, _, gl) -> false, fire_subst gl c, gl
+      | None -> match saturate_until gl c c_ty (fun _ c_ty gl ->
+                  pf_unify_HO gl c_ty inf_arg_ty) with
+          | Some (c, _, _,gl) -> true, fire_subst gl c, gl
+          | None -> error ()
+    else match saturate_until gl c c_ty (fun _ c_ty gl ->
+                  pf_unify_HO gl c_ty inf_arg_ty) with
+          | Some (c, _, _,gl) -> true, fire_subst gl c, gl
+          | None -> error ()
+  in
+  pp(lazy(str"elim_is_dep=" ++ bool elim_is_dep));
+  pp(lazy(str"saturated_c=" ++ pr_constr_pat c));
   let predty = pf_type_of gl pred in
   (* Patterns for the inductive types indexes to be bound in pred are computed
    * looking at the ones provided by the user and the inferred ones looking at
    * the type of the elimination principle *)
   let pr_pat (_,t,_,_,_) = pr_constr_pat t in
   let patterns, clr, gl =
-    let inf_deps = match kind_of_type elimty with
-    | AtomicType (_, args) ->
-      let pats = List.rev (Array.to_list args) in
-      if elim_is_dep then List.tl pats else pats
-    | _ -> assert false in
     let rec loop gl patterns clr i = function
       | [],[] -> patterns, clr, gl
       | ((oclr, occ), (xx ,_ as t)):: deps, inf_t :: inf_deps ->
@@ -3848,9 +3862,11 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
           loop gl (patterns@[i,c,c,false,[noindex]]) clr (i+1) ([],inf_deps)
       | _::_, [] -> errorstrm (str "Too many dependent abstractions") in
     let occ = if occ = [] then [noindex] else occ in
-    let head_p = if elim_is_dep then [1,c,c,false,occ] else [] in
+    let head_p, inf_deps_r = if not elim_is_dep then [], inf_deps_r else
+      let inf_p, inf_deps_r = List.hd inf_deps_r, List.tl inf_deps_r in
+      [1,c,inf_p,false,occ], inf_deps_r in
     let patterns, clr, gl = 
-      loop gl [] clr (List.length head_p+1) (List.rev deps, inf_deps) in
+      loop gl [] clr (List.length head_p+1) (List.rev deps, inf_deps_r) in
     head_p @ patterns, clr, gl
   in
   pp(lazy(pp_concat (str"patterns=") (List.map pr_pat patterns)));
@@ -3858,18 +3874,24 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
   (* Predicate generation, and (if necessary) tactic to generalize the
    * equation asked by the user *)
   let elim_pred, gen_eq_tac, clr, gl = 
-    let match_or_postpone (cl, gl, post) (h, t, inf_t, must, occ as item) =
-      if is_undef_pat gl t then cl, gl, post @ [item] 
+    let error gl t inf_t = errorstrm (str"The given pattern matches the term"++
+      spc()++pp_term gl t++spc()++str"while the inferred pattern"++
+      spc()++pr_constr_pat inf_t++spc()++str"doesn't") in
+    let match_or_postpone (cl, gl, post) (h, t, inf_t, must, occ) =
+      let gl =
+        if is_undef_pat gl t then try pf_unify_HO gl inf_t t with _ -> gl
+        else gl in
+      if is_undef_pat gl t then
+        let () = pp(lazy(str"postponing " ++ pr_constr_pat t)) in
+        cl, gl, post @ [h, t, inf_t, must, occ]
       else try
         let cl, gl =  match_pat gl cl (occ, t) h in
-        let gl = 
-          try pf_unify_HO gl inf_t t 
-          with _ -> errorstrm (str"The given pattern matches the term"++
-            spc()++pp_term gl t++spc()++str"while the inferred pattern"++
-            spc()++pr_constr_pat inf_t++spc()++str"doesn't") in
+        let gl = try pf_unify_HO gl inf_t t with _ -> error gl t inf_t in
         cl, gl, post
       with 
-      | NoMatch when not must -> cl, gl, post 
+      | NoMatch when not must ->
+          let gl = try pf_unify_HO gl inf_t t with _ -> error gl t inf_t in
+          cl, gl, post
       | NoMatch -> 
           errorstrm (str "pattern "++pr_constr_pat t++spc()++str"didn't match")
     in        
@@ -3906,7 +3928,6 @@ let newssrelim ?(is_case=false) ist_deps (occ, c) ?elim eqid clr ipats gl =
       if eqid <> None && is_rec then mkProt (pf_type_of gl concl) concl 
       else concl in
     concl, gen_eq_tac, clr, gl in
-  pp(lazy(str"elim_is_dep=" ++ bool elim_is_dep));
   pp(lazy(str"elim_pred=" ++ pp_term gl elim_pred));
   let gl = pf_unify_HO gl pred elim_pred in
   (* check that the patterns do not contain non instantiated dependent metas *)
