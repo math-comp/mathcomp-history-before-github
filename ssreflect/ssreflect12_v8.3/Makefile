@@ -30,11 +30,14 @@ clean:
 	rm -rf ssreflect-$(VERSION) ssreflect-$(VERSION).tar.gz
 
 dist:
+	# VERSION is computed reading src/ssreflect.ml, line let ssrversion
 	rm -rf ssreflect-$(VERSION)
 	svn export . ssreflect-$(VERSION)
+	# files in the svn, but not meant to be part of the release
 	rm ssreflect-$(VERSION)/description 
 	rm ssreflect-$(VERSION)/src/Makefile
 	rm ssreflect-$(VERSION)/NOTICE
+	# checking for spurious or out of sync .v
 	for X in ssreflect-$(VERSION)/theories/*.v; do\
 	  if ! grep -q `basename $$X` ssreflect-$(VERSION)/Make; then\
 	    echo "warning: `basename $$X` not listed in Make: removing it";\
@@ -45,12 +48,14 @@ dist:
 	    	"differ";\
 	  fi;\
 	done
+	# handling of NOTICE: All rights reserved -> released under XYZ
 	for X in `find ssreflect-$(VERSION)/ -name \*.v -o -name \*.ml`; do\
 		( head -1 $$X | grep -q 'All rights reserved' ) || \
 			echo "warning: `basename $$X` with no reserved"\
 		       		"copyrights";\
 		sed -i -e '1rNOTICE' -e '/All rights reserved/D' $$X;\
 	done
+	# tarball + MANIFEST
 	tar -cvf ssreflect-$(VERSION).tar ssreflect-$(VERSION)/ | \
 	  sed 's/^[^\/]*\///' | grep -v '^$$' | grep -v '/$$' |\
 	       	sort > MANIFEST
