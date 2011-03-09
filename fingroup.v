@@ -1,4 +1,3 @@
-Unset Printing Implicit Defensive.
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice fintype.
 Require Import div path bigop prime finset.
