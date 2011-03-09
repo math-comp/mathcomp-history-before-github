@@ -45,7 +45,8 @@ dist:
 	done
 	tar -cvf ssreflect-$(VERSION).tar ssreflect-$(VERSION)/ | \
 	  sed 's/^[^\/]*\///' | grep -v '^$$' | grep -v '/$$' |\
-	       	sort > ssreflect-$(VERSION)/MANIFEST
+	       	sort > MANIFEST
+	mv MANIFEST ssreflect-$(VERSION)/MANIFEST
 	tar -f ssreflect-$(VERSION).tar -r ssreflect-$(VERSION)/MANIFEST
 	gzip -f9 ssreflect-$(VERSION).tar
 	rm -rf ssreflect-$(VERSION)/
