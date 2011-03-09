@@ -32,7 +32,9 @@ clean:
 dist:
 	rm -rf ssreflect-$(VERSION)
 	svn export . ssreflect-$(VERSION)
-	rm ssreflect-$(VERSION)/description ssreflect-$(VERSION)/src/Makefile
+	rm ssreflect-$(VERSION)/description 
+	rm ssreflect-$(VERSION)/src/Makefile
+	rm ssreflect-$(VERSION)/NOTICE
 	for X in ssreflect-$(VERSION)/theories/*.v; do\
 	  if ! grep -q `basename $$X` ssreflect-$(VERSION)/Make; then\
 	    echo "warning: `basename $$X` not listed in Make: removing it";\
@@ -42,6 +44,12 @@ dist:
 	    echo "warning: theories/`basename $$X` and ../../`basename $$X`" \
 	    	"differ";\
 	  fi;\
+	done
+	for X in `find ssreflect-$(VERSION)/ -name \*.v -o -name \*.ml`; do\
+		( head -1 $$X | grep -q 'All rights reserved' ) || \
+			echo "warning: `basename $$X` with no reserved"\
+		       		"copyrights";\
+		sed -i -e '1rNOTICE' -e '/All rights reserved/D' $$X;\
 	done
 	tar -cvf ssreflect-$(VERSION).tar ssreflect-$(VERSION)/ | \
 	  sed 's/^[^\/]*\///' | grep -v '^$$' | grep -v '/$$' |\
