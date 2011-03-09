@@ -154,7 +154,7 @@ Require Import ssreflect.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
+Unset Printing Implicit Defensive.
 
 Delimit Scope fun_scope with FUN.
 Open Scope fun_scope.

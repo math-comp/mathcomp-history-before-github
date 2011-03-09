@@ -126,7 +126,7 @@ Require Import div path bigop prime finset.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
+Unset Printing Implicit Defensive.
 
 Delimit Scope group_scope with g.
 Delimit Scope subgroup_scope with G.

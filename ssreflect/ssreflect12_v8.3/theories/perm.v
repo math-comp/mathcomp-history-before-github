@@ -29,7 +29,7 @@ Require Import finfun bigop finset binomial fingroup.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
+Unset Printing Implicit Defensive.
 
 Import GroupScope.
 

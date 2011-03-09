@@ -1,8 +1,8 @@
-Announcing Ssreflect version 1.2
+Announcing Ssreflect version 1.3
 
 We are pleased to announce the new release of the Ssreflect
 extension library for the Coq proof assistant, version
-8.2/8.2pl1. This release includes:
+8.3/8.3pl1. This release includes:
 - an update of the tactic language which complies with the new version
   of Coq;
 - an update of the combinatoric libraries distributed in the previous
@@ -52,11 +52,10 @@ Some features of the library:
 - Uses boolean functions to represent sets (i.e., comprehensions),
   rather than an ad hoc set algebra.
 
-The Ssreflect 1.2 distribution is available at
+The Ssreflect 1.3 distribution is available at
    http://www.msr-inria.inria.fr/Projects/math-components
-It is distributed under either one (your choice) of the CeCILL-B or CeCILL
-version 2 licences (the French equivalent of the BSD and GNU GPL licenses,
-respectively).
+It is distributed under the CeCILL-B licence (the French equivalent of 
+the BSD license).
     
 The tactic language is quite stable; we have been using it
 internally for three years essentially without change. We will support

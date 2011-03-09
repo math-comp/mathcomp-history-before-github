@@ -92,7 +92,7 @@ Require Import bigop ssralg binomial.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
+Unset Printing Implicit Defensive.
 
 Import GRing.Theory.
 Open Local Scope ring_scope.

@@ -116,7 +116,7 @@ Require Import bigop finset fingroup morphism perm automorphism quotient.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
+Unset Printing Implicit Defensive.
 
 Import GroupScope.
 

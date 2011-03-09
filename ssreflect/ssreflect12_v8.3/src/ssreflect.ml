@@ -1,5 +1,14 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 
+(* This line is read by the Makefile's dist target: do not remove. *)
+let ssrversion = "1.3";; 
+let () = if Flags.is_verbose () then begin
+  Printf.printf "\nSmall Scale Reflection version %s loaded.\n" ssrversion;
+  Printf.printf "Copyright 2005-2011 Microsoft Corporation and INRIA.\n";
+  Printf.printf "Distributed under the terms of the CeCILL-B license.\n\n"
+  end
+;;
+
 (*i camlp4use: "pa_extend.cmo" i*)
 (*i camlp4deps: "parsing/grammar.cma" i*)
 

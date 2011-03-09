@@ -126,7 +126,7 @@ Require Import perm zmodp matrix.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
-Import Prenex Implicits.
+Unset Printing Implicit Defensive.
 
 Import GroupScope.
 Import GRing.Theory.
@@ -1422,11 +1422,6 @@ case s1B: (1%:M <= B)%MS; rewrite !capmx_normP ?sub_capmx_gen sIA ?sIB //=.
 by rewrite submx_refl (submx_trans (submx1 _)).
 Qed.
 
-(*
-Lemma capmx_genE : forall m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)),
-  (<<(<<A>> :&: <<B>>)%MS>> =  <<A>> :&: <<B>>)%MS.
-*)
-
 Lemma capmxSl : forall m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)),
   (A :&: B <= A)%MS.
 Proof. by move=> m1 m2 n A B; rewrite capmxE submxMl. Qed.
@@ -2570,18 +2565,17 @@ Definition right_mx_ideal m1 m2 n (R1 : 'A_(m1, n)) (R2 : 'A_(m2, n)) :=
 Definition mx_ideal m1 m2 n (R1 : 'A_(m1, n)) (R2 : 'A_(m2, n)) :=
   left_mx_ideal R1 R2 && right_mx_ideal R1 R2.
 
-Definition mxring_id m n (R : 'M_(m, n ^2)) e :=
+Definition mxring_id m n (R : 'A_(m, n)) e :=
   [/\ e != 0,
       e \in R,
       forall A, A \in R -> e *m A = A
     & forall A, A \in R -> A *m e = A]%MS.
 
-Definition has_mxring_id m n (R : 'M[F]_(m , n ^ 2)) :=
+Definition has_mxring_id m n (R : 'A[F]_(m , n)) :=
   (R != 0) &&
   (row_mx 0 (row_mx (mxvec R) (mxvec R))
-    <= row_mx (cokermx R) (row_mx
-         (lin1_mx (mxvec \o mulmx R \o lin_mulmx \o vec_mx))
-         (lin1_mx (mxvec \o mulmx R \o lin_mulmxr \o vec_mx))))%MS.
+    <= row_mx (cokermx R) (row_mx (lin_mx (mulmx R \o lin_mulmx))
+                                  (lin_mx (mulmx R \o lin_mulmxr))))%MS.
 
 Definition mxring m n (R : 'A_(m, n)) :=
   left_mx_ideal R R && has_mxring_id R.

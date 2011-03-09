@@ -11,7 +11,7 @@ Require Import quotient action cyclic pgroup gseries sylow primitive_action.
 (*     'Alt_T == The alternating group over type T.                           *)
 (******************************************************************************)
 
-Import Prenex Implicits.
+Unset Printing Implicit Defensive.
 Set Implicit Arguments.
 Unset Strict Implicit.
 
