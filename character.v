@@ -526,7 +526,7 @@ apply: (iffP idP)=> [|[Hg Hc]].
   by rewrite (class_transl _ (memJ_class _ _)) // subrr.
 suff<-: \sum_(C \in (classes G)) 
            (f (repr C)) *: cfun_of_fun (fun x => (x \in C)%:R) = f.
-  apply: memv_sum=> i Hi.
+  apply: memv_suml=> i Hi.
   case: (boolP (f (repr i) == 0))=> [|Hr].
     by move/eqP->; rewrite scale0r mem0v.
   apply: memvZl; apply: memv_span.

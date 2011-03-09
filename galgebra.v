@@ -219,15 +219,15 @@ Proof.
 apply/andP; split.
   apply: has_aunit1.
   rewrite /gvspace (bigD1 (1)%g) //=.
-  apply: subsetv_trans (addvSl _ _).
+  apply: subv_trans (addvSl _ _).
   by apply/injvP; exists 1; rewrite scale1r.
 apply/prodvP=> u v Hu Hv.
 case/memv_sumP: Hu => u_ [Hu ->]; rewrite big_distrl /=.
-apply: memv_sum=> i Hi.
+apply: memv_suml=> i Hi.
 case/memv_sumP: Hv => v_ [Hv ->]; rewrite big_distrr /=.
-apply: memv_sum=> j Hj.
+apply: memv_suml=> j Hj.
 rewrite /gvspace (bigD1 (i*j)%g) /=; last by exact: groupM.
-apply: subsetv_trans (addvSl _ _).
+apply: subv_trans (addvSl _ _).
 case/injvP: (Hu _ Hi)=> k ->; case/injvP: (Hv _ Hj)=> l ->.
 apply/injvP; exists (k * l).
 by rewrite -scaler_mull -scaler_mulr scalerA injGM.
