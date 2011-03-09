@@ -5404,7 +5404,7 @@ END
 let trailing_id_to_binders pats bs =
   let rec loop pats = function
     | [] -> pats, bs
-    | (IpatId _ | IpatAnon _) as p :: tl ->
+    | (IpatId _ | IpatAnon) as p :: tl ->
         pats @ [p], List.map (function IpatId id ->
           let xloc, _ as x = bvar_lname (mkCVar dummy_loc id) in
           (FwdPose, [BFvar]),
