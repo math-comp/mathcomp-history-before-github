@@ -770,7 +770,7 @@ have piW1_X: \pi(W1).-group X by apply: pi_pgroup piW1p; case/andP: abelX.
 have sXM: X \subset M.
   apply: subset_trans (subset_trans sXU0 sU01) _.
   by case/sdprodP: defM1 => _ <- _ _; exact: mulG_subr.
-have nHM: M \subset 'N(H) by exact: bgFunc_norm.
+have nHM: M \subset 'N(H) by exact: gFnorm.
 have [regU0 solM] := (Frobenius_reg_ker frobU0, of_typeP_sol typeP_M).
 have [a Ma sXaW1] := Hall_Jsub solM (Hall_pi hallW1) sXM piW1_X.
 rewrite -subG1 -(conjs1g a) -(cent_semiregular regU0 sXU0 ntX) conjIg -centJ.
@@ -908,7 +908,7 @@ have [K1 | ntK] := eqsVneq K 1.
       rewrite norms_gen ?normsI ?normG //; apply/subsetP=> u Uu.
       rewrite inE sub_conjg; apply/bigcupsP=> x Msx.
       rewrite -sub_conjg -normJ conjg_set1 (bigcup_max (x ^ u)) //.
-      rewrite memJ_norm // normD1 (subsetP (bgFunc_norm _ _)) //.
+      rewrite memJ_norm // normD1 (subsetP (gFnorm _ _)) //.
       by rewrite (subsetP (pHall_sub hallU)).
     by rewrite sub_gen //= -/Ms -defH (bigcup_max x).
   have [|] := boolP (forallb y, (y \notin M) ==> ('F(M) :&: 'F(M) :^ y == 1)).

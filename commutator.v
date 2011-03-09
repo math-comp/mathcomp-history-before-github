@@ -364,17 +364,13 @@ End Commutator_properties.
 
 Implicit Arguments derG1P [gT G].
 
-Lemma der_cont : forall n, cont (derived_at n).
+Lemma der_cont : forall n, GFunctor.continuous (derived_at n).
 Proof. by move=> n aT rT G f; rewrite morphim_der. Qed.
 
-Canonical Structure bgFunc_der n :=
-  [bgFunc by fun gT => @der_sub gT n & der_cont n].
-Canonical Structure gFunc_der n := GFunc (der_cont n).
-Canonical Structure mgFunc_der n := MGFunc (fun _ => dergS n).
+Canonical Structure der_igFun n := [igFun by der_sub^~ n & der_cont n].
+Canonical Structure der_gFun n := [gFun by der_cont n].
+Canonical Structure der_mgFun n := [mgFun by dergS^~ n].
 
 Lemma isog_der : forall (aT rT : finGroupType) n,
   forall (G : {group aT}) (H : {group rT}), G \isog H -> G^`(n) \isog H^`(n).
-Proof.
-move=> aT rT G H n; case/isogP=> f injf <-; rewrite -morphim_der //.
-by rewrite sub_isog ?der_sub.
-Qed.
+Proof. move=> aT rT n; exact: gFisog. Qed.

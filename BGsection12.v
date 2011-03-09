@@ -134,7 +134,7 @@ Proof. by move=> p; rewrite /= (card_Hall hallE) pi_of_partn // !inE andbC. Qed.
 
 Lemma sdprod_sigma : M`_\sigma ><| E = M.
 Proof.
-rewrite sdprodE ?coprime_TIg ?(subset_trans sEM) ?bgFunc_norm //.
+rewrite sdprodE ?coprime_TIg ?(subset_trans sEM) ?gFnorm //.
 apply/eqP; rewrite eqEcard mul_subG ?pcore_sub ?coprime_cardMg //=.
 by rewrite (card_Hall (Msigma_Hall maxM)) (card_Hall hallE) partnC.
 Qed.
@@ -220,7 +220,7 @@ Qed.
 Lemma der1_sigma_compl_nil : nilpotent E^`(1).
 Proof.
 have sE'E := der_sub 1 E.
-have nMaE: E \subset 'N(M`_\alpha) by rewrite (subset_trans sEM) ?bgFunc_norm.
+have nMaE: E \subset 'N(M`_\alpha) by rewrite (subset_trans sEM) ?gFnorm.
 have tiMaE':  M`_\alpha :&: E^`(1) = 1.
   by apply/trivgP; rewrite -(coprime_TIg coMsE) setISS ?Malpha_sub_Msigma.
 rewrite (isog_nil (quotient_isog (subset_trans sE'E nMaE) tiMaE')).
@@ -282,7 +282,7 @@ have SylowE3: forall P,
     rewrite (odd_pgroup_rank1_cyclic pP) ?mFT_odd //.
     rewrite (tau3E maxM hallE) in t3p.
     by case/andP: t3p => _; move/eqP=> <-; rewrite p_rankS.
-  have nEp'E: E \subset 'N('O_p^'(E)) by exact: bgFunc_norm.
+  have nEp'E: E \subset 'N('O_p^'(E)) by exact: gFnorm.
   have nEp'P := subset_trans sPE nEp'E.
   have sylP_E := subHall_Sylow hallE3 t3p sylP.
   have nsEp'P_E: 'O_p^'(E) <*> P <| E.
@@ -352,7 +352,7 @@ have{groupE21} defE: E3 ><| (E2 ><| E1) = E.
   have nE21: E1 \subset 'N(E2).
     rewrite (subset_trans (joing_subr E2 E1)) ?sub_der1_norm ?joing_subl //.
     rewrite /= -{2}(mulg1 E2) -(setIidPr (der_sub 1 _)) /=.
-    rewrite -(coprime_mulG_setI_norm defE21) ?bgFunc_norm //.
+    rewrite -(coprime_mulG_setI_norm defE21) ?gFnorm //.
     by rewrite mulgSS ?subsetIl // -tiE'E1 setIC setSI ?dergS.
   rewrite (sdprodEY nE21) ?sdprodE ?coprime_TIg //=.
   apply/eqP; rewrite eqEcard mul_subG // coprime_cardMg //= -defE21.
@@ -445,7 +445,7 @@ have [sMp | sM'p] := boolP (p \in \sigma(M)).
   rewrite centsC (sameP commG1P trivgP).
   apply: subset_trans (cAp' _ _ _ (subsetIr _ _)) _.
   - exact: pi_p'group (pgroupS (subsetIl _ _) (pcore_pgroup _ _)) aM'p.
-  - by rewrite (normsI _ (normsG sAH)) // (subset_trans sAM) ?bgFunc_norm.
+  - by rewrite (normsI _ (normsG sAH)) // (subset_trans sAM) ?gFnorm.
   by rewrite setIAC; case/sigma_disjoint: notMGH => // -> _ _; exact: subsetIl.
 suffices cMaA: A \subset 'C(M`_\sigma :&: H).
   by rewrite !{1}(subset_trans cMaA) ?centS ?setSI // Malpha_sub_Msigma.
@@ -465,7 +465,7 @@ have [sHp | sH'p] := boolP (p \in \sigma(H)); last first.
     rewrite (pnat_coprime (pcore_pgroup _ _)) // (card_pnElem Ep2A).
     by rewrite pnat_exp ?orbF ?pnatE.
   rewrite commg_subI // subsetI ?joing_subr ?subsetIl. 
-    by rewrite (subset_trans sAM) ?bgFunc_norm.
+    by rewrite (subset_trans sAM) ?gFnorm.
   by rewrite setIC subIset ?nHsA_H.
 have sAHs: A \subset H`_\sigma.
   by rewrite (sub_Hall_pcore (Msigma_Hall maxH)) // (pi_pgroup pA).
@@ -487,7 +487,7 @@ have <-: H`_\alpha <*> S :&: M`_\sigma = 1.
   apply: sub_pgroup (pcore_pgroup _ _) => q aHq.
   by apply: contraFN (ti_aHsM q); rewrite inE /= aHq.
 rewrite commg_subI // subsetI ?subsetIl.
-  by rewrite (subset_trans sAS) ?joing_subr ?(subset_trans sAM) ?bgFunc_norm.
+  by rewrite (subset_trans sAS) ?joing_subr ?(subset_trans sAM) ?gFnorm.
 by rewrite setIC subIset 1?normal_norm.
 Qed.
 
@@ -540,7 +540,7 @@ have sMp: p \in \sigma(M).
   apply: contraFT (ltnn 1) => sM'p; rewrite -dimA -(rank_abelem abelA).
   suffices cMsA: A \subset 'C(M`_\sigma).
     by rewrite -(setIidPl cMsA) sub'cent_sigma_rank1 // (pi_pgroup pA).
-  have nMsA: A \subset 'N(M`_\sigma) by rewrite (subset_trans sAM) ?bgFunc_norm.
+  have nMsA: A \subset 'N(M`_\sigma) by rewrite (subset_trans sAM) ?gFnorm.
   rewrite centsC /= -(coprime_abelian_gen_cent1 _ _ nMsA) //; last first.
     exact: pnat_coprime (pcore_pgroup _ _) (pi_pnat pA _).
   rewrite gen_subG; apply/bigcupsP=> y; case/sCMkApCA=> _ sCMsyCA _.
@@ -567,7 +567,7 @@ have rPle2: 'r(P) <= 2.
 have aM'p: p \in \alpha(M)^'.
    by rewrite !inE -leqNgt -(p_rank_Sylow sylP) -rank_pgroup.
 have sMaCMA: M`_\alpha \subset 'C_M(A).
-have nMaA: A \subset 'N(M`_\alpha) by rewrite (subset_trans sAM) ?bgFunc_norm.
+have nMaA: A \subset 'N(M`_\alpha) by rewrite (subset_trans sAM) ?gFnorm.
   rewrite -(coprime_abelian_gen_cent1 _ _ nMaA) //; last first.
     exact: (pnat_coprime (pcore_pgroup _ _) (pi_pnat pA _)).
   rewrite gen_subG; apply/bigcupsP=> y; case/sCMkApCA=> _ _ sCMayCA.
@@ -651,7 +651,7 @@ have nPH: H \subset 'N(P).
 have coMsP: coprime #|M`_\sigma| #|P|.
   exact: pnat_coprime (pcore_pgroup _ _) (pi_pnat pP _).
 rewrite (sameP commG1P trivgP) -(coprime_TIg coMsP) commg_subI ?setIS //.
-by rewrite subsetI sAP (subset_trans sAM) ?bgFunc_norm.
+by rewrite subsetI sAP (subset_trans sAM) ?gFnorm.
 Qed.
 
 (* This is B & G, Corollary 12.6 (a, b, c & f) -- i.e., the assertions that   *)
@@ -840,7 +840,7 @@ have coMsA: coprime #|Ms| #|A|.
 have defMs: <<\bigcup_(X \in 'E_p^1(A)) 'C_Ms(X)>> = Ms.
   have ncycA: ~~ cyclic A by rewrite (abelem_cyclic abelA) dimA.
   have [sAM _ _] := pnElemP Ep2A_M.
-  have{sAM} nMsA: A \subset 'N(Ms) by rewrite (subset_trans sAM) ?bgFunc_norm.
+  have{sAM} nMsA: A \subset 'N(Ms) by rewrite (subset_trans sAM) ?gFnorm.
   apply/eqP; rewrite eqEsubset andbC gen_subG.
   rewrite -{1}[Ms](coprime_abelian_gen_cent1 cAA ncycA nMsA coMsA).
   rewrite genS; apply/bigcupsP=> x; rewrite ?subsetIl //; case/setD1P=> ntx Ax.
@@ -936,7 +936,7 @@ have defFM: Ms \x A0 = 'F(M).
       apply/implyP; rewrite implyNb /= -def_t2 orbC. 
       by rewrite (prime_class_mmax_norm maxM qQ).
     rewrite pcore_max ?(pi_p'group (pcore_pgroup _ _)) //.
-    rewrite /normal (subset_trans (Fitting_sub M)) ?bgFunc_norm //.
+    rewrite /normal (subset_trans (Fitting_sub M)) ?gFnorm //.
     rewrite Fitting_max ?pcore_normal ?(tau2_Msigma_nil _ t2Mp) //.
   rewrite p_core_Fitting defFp' centsC in defFM cFpp'.
   rewrite -defFM (centC cFpp'); congr (Ms * _).
@@ -973,11 +973,11 @@ have [P0 defP nP0E1]: exists2 P0 : {group gT}, A0 \x P0 = P & E1 \subset 'N(P0).
     rewrite -(quotientSGK (normal_norm (Phi_normal P))) //=; last first.
       by rewrite sub_gen // subsetU // sPhiP0 orbT.
     rewrite cent_joinEr ?(sub_abelian_cent2 cPP) //.
-    rewrite quotientMr //; last by rewrite (subset_trans sP0P) ?bgFunc_norm.
+    rewrite quotientMr //; last by rewrite (subset_trans sP0P) ?gFnorm.
     by rewrite -defP0b defPb.
   apply/trivgP; case/dprodP: dxCSA => _ _ _ <-.
   rewrite subsetI subsetIl (subset_trans _ (Phi_sub Y)) // -defPhiP.
-  rewrite -quotient_sub1 ?subIset ?(subset_trans sA0P) ?bgFunc_norm //.
+  rewrite -quotient_sub1 ?subIset ?(subset_trans sA0P) ?gFnorm //.
   by rewrite quotientIG // -defP0b tiAP0b.
 have nA0E := subset_trans _ (subset_trans sEM (normal_norm nsA0M)).
 have{defP} [_ defAP0 _ tiAP0] := dprodP defP.
@@ -1186,7 +1186,7 @@ have charK: K \char 'F(E).
 have{defFN} [eqNAS eqNSE2 eqNE2K eqNKF]:
   [/\ 'N(A) = 'N(S), 'N(S) = 'N(E2), 'N(E2) = 'N(K) & 'N(K) = 'N('F(E))].
   have: #|'N(A)| <= #|'N('F(E))|.
-    by rewrite subset_leq_card // -defFN bgFunc_norm.
+    by rewrite subset_leq_card // -defFN gFnorm.
   have leCN := subset_leqif_cards (@char_norms gT _ _ _).
   have trCN := leqif_trans (leCN _ _ _).
   have leq_KtoA := trCN _ _ _ _ charE2 (trCN _ _ _ _ charS (leCN _ _ charA)).
@@ -1572,7 +1572,7 @@ have part_b: forall H,
   have hallHb: \beta(H).-Hall(H) H`_\beta := Mbeta_Hall maxH.
   have nilH'b: nilpotent (H^`(1) / H`_\beta) := Mbeta_quo_nil maxH.
   have{nilH'b} sAQ_Hb: [~: A, Q] \subset H`_\beta.
-    rewrite -quotient_cents2 ?(subset_trans _ (bgFunc_norm _ _)) // centsC.
+    rewrite -quotient_cents2 ?(subset_trans _ (gFnorm _ _)) // centsC.
     rewrite (sub_nilpotent_cent2 nilH'b) ?quotientS ?coprime_morph //.
     rewrite (pnat_coprime (pi_pnat pA t2Mp) (pi_pnat qQ _)) ?tau2'1 //.
     by rewrite (pnatPpi t1CEAb) // mem_primes q_pr cardG_gt0.
@@ -2127,7 +2127,7 @@ suffices{A Ep2A} [ntMa nonuniqNZ]: M`_\alpha != 1 /\ 'M('N(Z)) != [set M].
 have coMaQ: coprime #|M`_\alpha| #|Q|.
   apply: pnat_coprime (pcore_pgroup _ _) (pi_pnat pQ _).
   by rewrite !inE -(p_rank_Sylow sylP_M) rpP.
-have nMaQ: Q \subset 'N(M`_\alpha) by rewrite (subset_trans sQM) ?bgFunc_norm.
+have nMaQ: Q \subset 'N(M`_\alpha) by rewrite (subset_trans sQM) ?gFnorm.
 have [coMaZ nMaZ] := (coprimegS sZQ coMaQ, subset_trans sZQ nMaQ).
 pose K := 'N_(M`_\alpha)(Z).
 have defKC: 'C_(M`_\alpha)(Z) = K by rewrite -coprime_norm_cent.

@@ -131,54 +131,43 @@ Qed.
 
 End FittingCore.
 
-Lemma Fcore_continuity : cont Fitting_core.
+Lemma morphim_Fcore : GFunctor.pcontinuous Fitting_core.
 Proof.
-move=> gT rT G f.
-apply: (Fcore_max (morphim_pHall f (Fcore_sub G) (Fcore_Hall G))).
-  by rewrite morphim_normal ?Fcore_normal.
-by rewrite morphim_nil ?Fcore_nil.
+move=> gT rT G D f; have nsGF_G := Fcore_normal G.
+suffices hall_fGF: \pi(G`_\F).-Hall(f @* (D :&: G)) (f @* (D :&: G`_\F)).
+  rewrite !morphimIdom in hall_fGF.
+  by rewrite (Fcore_max hall_fGF) ?morphim_normal // morphim_nil ?Fcore_nil.
+rewrite morphim_pHall ?subsetIl //= -{2}(setIidPr (Fcore_sub G)) setIA.
+by rewrite !(setIC (D :&: G)) (setI_normal_Hall nsGF_G) ?subsetIr ?Fcore_Hall.
 Qed.
 
-Lemma Fcore_hereditary : hereditary Fitting_core.
-Proof.
-move=> gT H G sHG; have nsGF_G := Fcore_normal G.
-apply: Fcore_max (setI_normal_Hall nsGF_G (Fcore_Hall G) sHG) _ _.
-  by rewrite /= setIC (normalGI sHG) //.
-exact: nilpotentS (subsetIl _ _) (Fcore_nil G).
-Qed.
-
-Canonical Structure bgFunc_Fcore := [bgFunc by Fcore_sub & Fcore_continuity].
-
-Canonical Structure gFunc_Fcore := GFunc Fcore_continuity.
-
-Canonical Structure hgFunc_Fcore := HGFunc Fcore_hereditary.
+Canonical Structure Fcore_igFun := [igFun by Fcore_sub & morphim_Fcore].
+Canonical Structure Fcore_gFun := [gFun by morphim_Fcore].
+Canonical Structure Fcore_pgFun := [pgFun by morphim_Fcore].
 
 Section MoreFittingCore.
 
 Variables (gT rT : finGroupType) (D : {group gT}) (f : {morphism D >-> rT}).
 Implicit Type M H : {group gT}.
 
-Lemma Fcore_char : forall M, M`_\F \char M. Proof. exact: bgFunc_char. Qed.
+Lemma Fcore_char : forall M, M`_\F \char M. Proof. exact: gFchar. Qed.
 
 Lemma FcoreJ : forall M x, (M :^ x)`_\F = M`_\F :^ x.
 Proof.
 move=> M x; rewrite -{1}(setTI M) -morphim_conj.
-by rewrite -bgFunc_ascont ?injm_conj ?subsetT // morphim_conj setTI.
+by rewrite -injmF ?injm_conj ?subsetT // morphim_conj setTI.
 Qed.
-
-Lemma morphim_Fcore : forall M, f @* M`_\F \subset (f @* M)`_\F.
-Proof. move=> M; exact: hgFunc_morphim. Qed.
 
 Lemma injm_Fcore : forall M,
   'injm f -> M \subset D -> f @* M`_\F = (f @* M)`_\F.
-Proof. by move=> M injf sMD; rewrite bgFunc_ascont. Qed.
+Proof. by move=> M injf sMD; rewrite injmF. Qed.
 
 Lemma isom_Fcore : forall M (R : {group rT}),
   isom M R f -> M \subset D -> isom M`_\F R`_\F f.
-Proof. by move=> M R isoMR sMD; exact: bgFunc_isom. Qed.
+Proof. by move=> M R isoMR sMD; exact: gFisom. Qed.
 
 Lemma isog_Fcore : forall M (R : {group rT}), M \isog R -> M`_\F \isog R`_\F.
-Proof. by move=> M R isoMR; exact: bgFunc_isog. Qed.
+Proof. by move=> M R isoMR; exact: gFisog. Qed.
 
 End MoreFittingCore.
 
@@ -1050,8 +1039,8 @@ have [eqMFs | neqMFs] := eqVneq M`_\F M`_\sigma.
     by rewrite /order -defMs -defY coprime_pcoreC.
   apply: abelianS (cyclic_abelian cycF).
   apply: subset_trans (cent_sub_Fitting (mmax_sol maxM)).
-  rewrite der1_min ?normsI ?normG ?norms_cent ?bgFunc_norm //=.
-  rewrite -ker_conj_aut (isog_abelian (first_isog_loc _ _)) ?bgFunc_norm //=.
+  rewrite der1_min ?normsI ?normG ?norms_cent ?gFnorm //=.
+  rewrite -ker_conj_aut (isog_abelian (first_isog_loc _ _)) ?gFnorm //=.
   exact: abelianS (Aut_conj_aut _ _) (Aut_cyclic_abelian cycF).
 have [D hallD] := Hall_exists #|Ks|^' (solvableS sMsM' solM').
 have [_] := Fcore_structure maxM; case/(_ K D)=> //=; rewrite -/Ks.
@@ -1329,7 +1318,7 @@ pose Ks := 'C_H(K); have prKs: prime #|Ks|.
   by rewrite inE P1maxM -defH; do 2!case.
 have sKsP: Ks \subset P.
   have sKsM'': Ks \subset M^`(2) by rewrite /Ks defH; case/Ptype_cyclics: hallK.
-  rewrite (subset_trans sKsM'') 1?der1_min //= -derg1 defM' ?bgFunc_norm //.
+  rewrite (subset_trans sKsM'') 1?der1_min //= -derg1 defM' ?gFnorm //.
   by rewrite -mulPHp' quotientMidl quotient_abelian.
 have oKs: #|Ks| = p.
   apply/eqP; apply: pnatPpi pP (piSg sKsP _).

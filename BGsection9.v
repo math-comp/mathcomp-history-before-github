@@ -45,9 +45,9 @@ have [] := and3P sylR; rewrite subsetI; case/andP=> sRH sRM pR _.
 have [P sylP sRP] := Sylow_superset sRM pR; have [sPM pP _] := and3P sylP.
 have sHp'M: 'O_p^'(H) \subset M.
   apply: subset_trans snbBp'_M; rewrite (bigcup_max 'O_p^'(H)%G) // inE -andbA.
-  by rewrite subsetT pcore_pgroup (subset_trans sBH) ?bgFunc_norm.
+  by rewrite subsetT pcore_pgroup (subset_trans sBH) ?gFnorm.
 have{snbBp'_M} defMp': <<\bigcup_(K \in |/|_G(P; p^')) K>> = 'O_p^'(M).
-  have nMp'M: M \subset 'N('O_p^'(M)) by exact: bgFunc_norm.
+  have nMp'M: M \subset 'N('O_p^'(M)) by exact: gFnorm.
   have nMp'P := subset_trans sPM nMp'M.
   apply/eqP; rewrite eqEsubset gen_subG sub_gen ?andbT; last first.
     by rewrite (bigcup_max 'O_p^'(M)%G) // inE -andbA subsetT pcore_pgroup.
@@ -63,7 +63,7 @@ have{snbBp'_M} defMp': <<\bigcup_(K \in |/|_G(P; p^')) K>> = 'O_p^'(M).
   apply: subset_trans (cent_sub_Fitting (quotient_sol _ solM)).
   rewrite subsetI quotientS //= (Fitting_eq_pcore (trivg_pcore_quotient _ _)).
   rewrite (sameP commG1P trivgP) /= -/Mp' -tiKp subsetI commg_subl commg_subr.
-  rewrite (subset_trans (quotientS _ sKM)) ?bgFunc_norm //=.
+  rewrite (subset_trans (quotientS _ sKM)) ?gFnorm //=.
   apply: subset_trans (pcore_sub_Hall (quotient_pHall nMp'P sylP)) _.
   by rewrite quotient_norms.
 have ntR: R :!=: 1.
@@ -102,7 +102,7 @@ have sFH_M: 'F(H) \subset M by rewrite (subset_trans sFH_RHp') ?mul_subG.
 case/(H :=P: M): neHM; case: (ltnP 2 'r('F(H))) => [le3r | ge2r].
   have [D uF_D] := uniq_mmaxP (Fitting_Uniqueness maxH le3r).
   by rewrite (eq_uniq_mmax uF_D maxM) // (eq_uniq_mmax uF_D maxH) ?Fitting_sub.
-have nHp'R: R \subset 'N('O_p^'(H)) by rewrite (subset_trans sRH) ?bgFunc_norm.
+have nHp'R: R \subset 'N('O_p^'(H)) by rewrite (subset_trans sRH) ?gFnorm.
 have nsRHp'H: R <*> 'O_p^'(H) <| H.
   rewrite sub_der1_normal //= ?join_subG ?sRH ?pcore_sub //.
   rewrite norm_joinEl // (subset_trans _ sFH_RHp') //.
@@ -236,7 +236,7 @@ have sNP_mCA: forall M, M \in 'M('C(A)) -> 'N(P) \subset M.
   have sNR_M: forall R, A \subset R -> R \subset P :&: M -> 'N(R) \subset M.
     move=> R sAR; rewrite subsetI; case/andP=> sRP sRM.
     pose q := if 'r(F) <= 2 then max_pdiv #|M| else s2val (rank_witness 'F(M)).
-    have nMqR: R \subset 'N('O_q(M)) := subset_trans sRM (bgFunc_norm _ _).
+    have nMqR: R \subset 'N('O_q(M)) := subset_trans sRM (gFnorm _ _).
     have{nMqR} [Q maxQ sMqQ] := max_normed_exists (pcore_pgroup _ _) nMqR.
     have [p'q sNQ_M]: q != p /\ 'N(Q) \subset M.
       case/mem_max_normed: maxQ sMqQ; rewrite {}/q.
@@ -298,7 +298,7 @@ have ntP0: P0 != 1.
   have ntGp': 'O_p^'(G) != 1.
     apply: contraL (mFT_pgroup_proper pP).
     by rewrite -{2}defG; move/eqP->; rewrite mul1g proper_irrefl.
-  by have:= mFT_norm_proper ntGp' prGp'; rewrite properE bgFunc_norm andbF.
+  by have:= mFT_norm_proper ntGp' prGp'; rewrite properE gFnorm andbF.
 have sP0P: P0 \subset P by rewrite commg_subl.
 have pP0: p.-group P0 := pgroupS sP0P pP.
 have uNP0_mCA: forall M, M \in 'M('C(A)) -> 'M('N(P0)) = [set M].
@@ -395,7 +395,7 @@ have uNP0_mCA: forall M, M \in 'M('C(A)) -> 'M('N(P0)) = [set M].
   rewrite (mmax_normal maxM) ?mmax_sup_id //.
   have sNP_M := sNP_mCA M mCA_M; have sPM := subset_trans (normG P) sNP_M.
   rewrite /normal comm_subG //= -/P0.
-  have nFP: P \subset 'N(F) by rewrite (subset_trans _ (bgFunc_norm _ _)).
+  have nFP: P \subset 'N(F) by rewrite (subset_trans _ (gFnorm _ _)).
   have <-: F <*> P * 'N_M(P) = M.
     apply: Frattini_arg (pHall_subl (joing_subr _ _) (subsetT _) sylP).
     rewrite -(quotientGK (Fitting_normal M)) /= norm_joinEr //= -/F.

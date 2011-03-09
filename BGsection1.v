@@ -292,7 +292,7 @@ apply/setIidPl; set C := 'C_A(G); rewrite -quotient_sub1 /= -/C; last first.
 apply: subset_trans (quotient_subcent _ _ _) _; rewrite /= -/C.
 have nCG: G \subset 'N(C) by rewrite cents_norm // centsC subsetIr.
 rewrite /= -(setIidPr (Fitting_sub _)) -[(G :&: _) / _](morphim_restrm nCG).
-rewrite bgFunc_ascont //=; last first.
+rewrite injmF //=; last first.
   by rewrite ker_restrm ker_coset setIA (coprime_TIg coGA) subIset ?subxx.
 rewrite morphim_restrm -quotientE setIid.
 rewrite coprime_trivg_cent_Fitting ?quotient_norms ?coprime_morph //=.
@@ -698,7 +698,8 @@ rewrite -[_ / _](morphim_restrm nK2N); set qK2 := restrm _ _.
 have{constrG} fqKp: 'ker (coset 'C_G(Q)) \subset 'ker qK2.
   by rewrite ker_restrm !ker_coset subsetI subcent_sub constrG.
 rewrite -(morphim_factm fqKp (subcent_norm _ _)) -(quotientE A _).
-apply: subset_trans {stabA}(morphimS _ stabA) (subset_trans (pcore_cont _ _) _).
+apply: subset_trans {stabA}(morphimS _ stabA) _.
+apply: subset_trans (morphim_pcore _ _ _) _.
 rewrite morphim_factm morphim_restrm setIid -quotientE.
 rewrite /= -quotientMidl /= -/K2 (Frattini_arg _ sylQ) ?pseries_normal //.
 by rewrite -quotient_pseries //= (pseries_rcons_id [::_]) trivg_quotient.
@@ -712,11 +713,11 @@ Proposition p'core_cent_pgroup : forall gT p (G R : {group gT}),
 Proof.
 move=> gT p G R; case/andP=> sRG pR solG.
 wlog p'G1: gT G R sRG pR solG / 'O_p^'(G) = 1.
-  have nOG_CR: 'C_G(R) \subset 'N('O_p^'(G)) by rewrite subIset ?bgFunc_norm.
+  have nOG_CR: 'C_G(R) \subset 'N('O_p^'(G)) by rewrite subIset ?gFnorm.
   move=> IH; rewrite -quotient_sub1 ?(subset_trans (pcore_sub _ _)) //.
-  apply: subset_trans (morphim_sFunctor _ _ nOG_CR) _; rewrite /= -quotientE.
+  apply: subset_trans (morphimF _ _ nOG_CR) _; rewrite /= -quotientE.
   rewrite -(coprime_subcent_quotient_pgroup pR) ?pcore_sub //; first 1 last.
-  - by rewrite (subset_trans sRG) ?bgFunc_norm.
+  - by rewrite (subset_trans sRG) ?gFnorm.
   - by rewrite coprime_sym (pnat_coprime _ (pcore_pgroup _ _)).
   have p'Gq1 : 'O_p^'(G / 'O_p^'(G)) = 1 := trivg_pcore_quotient p^' G.
   by rewrite -p'Gq1 IH ?morphimS ?morphim_pgroup ?morphim_sol.
@@ -724,17 +725,17 @@ set M := 'O_p^'('C_G(R)); pose T := 'O_p(G).
 have [sMG cMR]: M \subset G /\ M \subset 'C(R).
   by apply/andP; rewrite -subsetI pcore_sub.
 have [p'M pT]: p^'.-group M /\ p.-group T by rewrite !pcore_pgroup.
-have nRT: R \subset 'N(T) by rewrite (subset_trans sRG) ?bgFunc_norm.
+have nRT: R \subset 'N(T) by rewrite (subset_trans sRG) ?gFnorm.
 have pRT: p.-group (R <*> T).
   rewrite -(pquotient_pgroup pT) ?join_subG ?nRT ?normG //=.
   by rewrite norm_joinEl // quotientMidr morphim_pgroup.
 have nRT_M: M \subset 'N(R <*> T).
-  by rewrite normsY ?(cents_norm cMR) // (subset_trans sMG) ?bgFunc_norm.
+  by rewrite normsY ?(cents_norm cMR) // (subset_trans sMG) ?gFnorm.
 have coRT_M: coprime #|R <*> T| #|M| := pnat_coprime pRT p'M.
 have cMcR: 'C_(R <*> T)(R) \subset 'C(M).
   apply/commG1P; apply/trivgP; rewrite -(coprime_TIg coRT_M) subsetI commg_subr.
   rewrite (subset_trans (commSg _ (subsetIl _ _))) ?commg_subl //= -/M.
-  apply: subset_trans (bgFunc_norm _ _).
+  apply: subset_trans (gFnorm _ _).
   by rewrite setSI // join_subG sRG pcore_sub.
 have cRT_M: M \subset 'C(R <*> T).
   rewrite coprime_nil_faithful_cent_stab ?(pgroup_nil pRT) //= -/M.
@@ -931,7 +932,7 @@ case/(cyclic_pgroup_dprod_trivg pS cycS) => [[_ cSK]|[_ <-]]; last first.
 have cSN: 'N_G(S) \subset 'C(S).
   by rewrite -defN mulG_subG -abelianE cyclic_abelian // centsC -cSK subsetIr.
 case/sdprodP: (Burnside_normal_complement cSN) => _ /= defG _ _.
-set Q := 'O_p^'(G) in defG; have nQG: G \subset 'N(Q) := bgFunc_norm _ _.
+set Q := 'O_p^'(G) in defG; have nQG: G \subset 'N(Q) := gFnorm _ _.
 left; rewrite coprime_TIg ?(pnat_coprime pS) //.
 apply: pgroupS (pcore_pgroup _ G); rewrite /= -/Q.
 rewrite -quotient_sub1 ?(subset_trans (der_sub _ _)) ?quotientR //= -/Q.
@@ -951,12 +952,12 @@ apply/pgroupP=> p p_pr pG'; have [P sylP]:= Sylow_exists p G.
 have cycP: cyclic P by have:= forallP ZgG P; rewrite (p_Sylow sylP).
 case: (cyclic_Sylow_tiVsub_der1 sylP cycP) => [tiPG' | sPG'].
   have: p.-Sylow(G') (P :&: G').
-    by rewrite setIC (Sylow_setI_normal _ sylP) ?bgFunc_normal.
+    by rewrite setIC (Sylow_setI_normal _ sylP) ?gFnormal.
   move/card_Hall; move/eqP; rewrite /= tiPG' cards1 eq_sym.
   by rewrite partn_eq1 ?cardG_gt0 // p'natE ?pG'.
 rewrite inE /= mem_primes p_pr indexg_gt0 -?p'natE // -partn_eq1 //.
 have sylPq: p.-Sylow(G / G') (P / G') by rewrite morphim_pHall ?normsG.
-rewrite -card_quotient ?bgFunc_norm // -(card_Hall sylPq) -trivg_card1.
+rewrite -card_quotient ?gFnorm // -(card_Hall sylPq) -trivg_card1.
 by rewrite /= -quotientMidr mulSGid ?trivg_quotient.
 Qed.
 
@@ -1016,8 +1017,8 @@ Lemma plength1_pcore_quo_Sylow : forall G (Gb := G / 'O_p^'(G)),
   p.-length_1 G = p.-Sylow(Gb) 'O_p(Gb).
 Proof.
 move=> G; rewrite /plength_1 eqEsubset pseries_sub /=.
-rewrite (pseries_rcons _ [:: _; _]) -sub_quotient_pre ?bgFunc_norm //=.
-rewrite /pHall pcore_sub pcore_pgroup /= -card_quotient ?bgFunc_norm //=.
+rewrite (pseries_rcons _ [:: _; _]) -sub_quotient_pre ?gFnorm //=.
+rewrite /pHall pcore_sub pcore_pgroup /= -card_quotient ?gFnorm //=.
 rewrite -quotient_pseries2 /= -(pseries1 _ G).
 rewrite (card_isog (third_isog _ _ _)) ?pseries_normal ?pseries_sub_catl //.
 apply/idP/idP=> p'Gbb; last by rewrite (pcore_pgroup_id p'Gbb).
@@ -1037,7 +1038,7 @@ Lemma plength1_pseries2_quo : forall G,
   p.-length_1 G = p^'.-group (G / 'O_{p^', p}(G)).
 Proof.
 move=> G; rewrite /plength_1 eqEsubset pseries_sub lastI pseries_rcons /=.
-rewrite -sub_quotient_pre ?bgFunc_norm //.
+rewrite -sub_quotient_pre ?gFnorm //.
 by apply/idP/idP=> pl1G; rewrite ?pcore_pgroup_id ?(pgroupS pl1G) ?pcore_pgroup.
 Qed.
 
@@ -1064,8 +1065,7 @@ have nOG: 'O_{p^'}(G) <| G by exact: pseries_normal.
 rewrite -(quotientSGK (normal_norm nOG)) ?(pseries_sub_catl [:: _]) //.
 have [|f f_inj im_f] := third_isom _ nHG nOG.
   by rewrite /= pseries1 pcore_max.
-rewrite (quotient_pseries_cat [:: _]) -{}im_f //=.
-rewrite -bgFunc_ascont; try by move: pseries_cont pseries_sub.
+rewrite (quotient_pseries_cat [:: _]) -{}im_f //= -injmF //.
 rewrite {f f_inj}morphimS // pseries1 -pquotient_pcore // -pseries1 /=.
 by rewrite -quotient_pseries_cat /= (eqP pGH1).
 Qed.
@@ -1087,8 +1087,7 @@ have nOG: 'O_{p}(G) <| G by exact: pseries_normal.
 rewrite -(quotientSGK (normal_norm nOG)) ?(pseries_sub_catl [:: _]) //.
 have [|f f_inj im_f] := third_isom _ nHG nOG.
   by rewrite /= pseries1 pcore_max.
-rewrite (quotient_pseries [::_]) -{}im_f //=.
-rewrite -bgFunc_ascont; try by move: pcore_cont pcore_sub.
+rewrite (quotient_pseries [::_]) -{}im_f //= -injmF //.
 rewrite {f f_inj}morphimS // pseries1 -pquotient_pcore // -(pseries1 p) /=.
 by rewrite -quotient_pseries /= (eqP pGH1).
 Qed.
@@ -1309,29 +1308,28 @@ End PuigBasics.
 
 (* Functoriality of the Puig series. *)
 
-Lemma Puig_at_cont : forall n, acont (Puig_at n).
+Lemma Puig_at_cont : forall n, GFunctor.iso_continuous (Puig_at n).
 Proof.
 elim=> [|n IHn] aT rT G f injf; first by rewrite morphim1.
-have IHnS := Puig_at_sub n; pose func_n := [bgFunc by IHnS & !IHn].
+have IHnS := Puig_at_sub n; pose func_n := [igFun by IHnS & !IHn].
 rewrite !PuigS sub_morphim_pre ?Puig_succ_sub // gen_subG; apply/bigcupsP=> A.
 rewrite inE; case/and3P=> sAG nAL cAA; rewrite -sub_morphim_pre ?sub_gen //.
 rewrite -[f @* A]/(gval _) bigcup_sup // inE morphimS // /norm_abelian.
-rewrite morphim_abelian // -['L_{n}(_)](bgFunc_ascont func_n injf) //=.
+rewrite morphim_abelian // -['L_{n}(_)](injmF func_n injf) //=.
 by rewrite morphim_norms.
 Qed.
 
-Canonical Structure bgFunc_Puig_at n :=
-  [bgFunc by (@Puig_at_sub)^~ n & ! @Puig_at_cont n].
+Canonical Structure Puig_at_igFun n :=
+  [igFun by Puig_at_sub^~ n & !Puig_at_cont n].
 
-Lemma Puig_inf_cont : acont Puig_inf.
+Lemma Puig_inf_cont : GFunctor.iso_continuous Puig_inf.
 Proof.
 by move=> aT rT G f injf; rewrite /Puig_inf card_injm // Puig_at_cont.
 Qed.
 
-Canonical Structure bgFunc_Puig_inf :=
-  [bgFunc by Puig_inf_sub & !Puig_inf_cont].
+Canonical Structure Puig_inf_igFun := [igFun by Puig_inf_sub & !Puig_inf_cont].
 
-Lemma Puig_cont : acont Puig.
+Lemma Puig_cont : GFunctor.iso_continuous Puig.
 Proof. by move=> aT rT G f injf; rewrite /Puig card_injm // Puig_at_cont. Qed.
 
-Canonical Structure bgFunc_Puig := [bgFunc by Puig_sub & !Puig_cont].
+Canonical Structure Puig_igFun := [igFun by Puig_sub & !Puig_cont].

@@ -189,8 +189,8 @@ Qed.
 
 End Frattini.
 
-Canonical Structure bgFunc_Frattini := [bgFunc by Phi_sub & Frattini_cont].
-Canonical Structure gFunc_Frattini := GFunc Frattini_cont.
+Canonical Structure Frattini_igFun := [igFun by Phi_sub & Frattini_cont].
+Canonical Structure Frattini_gFun := [gFun by Frattini_cont].
 
 Section Frattini0.
 
@@ -199,18 +199,18 @@ Implicit Type rT : finGroupType.
 Implicit Types D G : {group gT}.
 
 Lemma Phi_char : forall G, 'Phi(G) \char G.
-Proof. exact: bgFunc_char. Qed.
+Proof. exact: gFchar. Qed.
 
 Lemma Phi_normal : forall G, 'Phi(G) <| G.
-Proof. exact: bgFunc_normal. Qed.
+Proof. exact: gFnormal. Qed.
 
 Lemma injm_Phi : forall rT D G (f : {morphism D >-> rT}),
   'injm f -> G \subset D -> f @* 'Phi(G) = 'Phi(f @* G).
-Proof. move=> rT D G f injf; exact: bgFunc_ascont. Qed.
+Proof. move=> rT D G f injf; exact: injmF. Qed.
 
 Lemma isog_Phi : forall rT G (H : {group rT}),
   G \isog H -> 'Phi(G) \isog 'Phi(H).
-Proof. by move=> rT G H; exact: bgFunc_isog. Qed.
+Proof. by move=> rT G H; exact: gFisog. Qed.
 
 Lemma PhiJ : forall G x, 'Phi(G :^ x) = 'Phi(G) :^ x.
 Proof.
@@ -300,7 +300,7 @@ apply/andP; split.
     by rewrite normsY // char_norm ?der_char ?Mho_char.
   rewrite -quotient_sub1 ?(subset_trans sPhiP) //=.
   suffices <-: 'Phi(P / (P^`(1) <*> 'Mho^1(P))) = 1.
-    exact: morphim_sFunctor.
+    exact: morphimF.
   apply/eqP; rewrite (trivg_Phi (morphim_pgroup _ pP)) /= -quotientE.
   apply/abelemP=> //; rewrite [abelian _]quotient_cents2 ?joing_subl //.
   split=> // Mx; case/morphimP=> x Nx Px ->{Mx} /=.
@@ -473,8 +473,7 @@ Section FittingFun.
 
 Implicit Types gT rT : finGroupType.
 
-Lemma morphim_Fitting : forall gT rT (G D : {group gT}),
-  forall f : {morphism D >-> rT}, f @* 'F(G) \subset 'F(f @* G).
+Lemma morphim_Fitting : GFunctor.pcontinuous Fitting.
 Proof.
 move=> gT rT G D f; apply: Fitting_max.
   by rewrite morphim_normal ?Fitting_normal.
@@ -495,30 +494,23 @@ rewrite (big_morph (conjugate^~ x) (fun A B => conjUg A B x) (imset0 _)).
 by apply: eq_bigr => p _; rewrite pcoreJ.
 Qed.
 
-Lemma Fitting_cont : forall gT rT (G : {group gT}) (f : {morphism G >-> rT}),
-  f @* 'F(G) \subset 'F(f @* G).
-Proof. move=> gT rT G f; exact: morphim_Fitting. Qed.
-
-Lemma Fitting_hereditary : hereditary Fitting.
-Proof. by move=> gT H G; move/FittingS; rewrite setIC. Qed.
-
 End FittingFun.
 
-Canonical Structure bgFunc_Fitting := [bgFunc by Fitting_sub & Fitting_cont].
-Canonical Structure gFunc_Fitting := GFunc Fitting_cont.
-Canonical Structure hgFunc_Fitting := HGFunc Fitting_hereditary.
+Canonical Structure Fitting_igFun := [igFun by Fitting_sub & morphim_Fitting].
+Canonical Structure Fitting_gFun := [gFun by morphim_Fitting].
+Canonical Structure Fitting_pgFun := [pgFun by morphim_Fitting].
 
 Section IsoFitting.
 
 Variables (gT rT : finGroupType) (G D : {group gT}) (f : {morphism D >-> rT}).
 
-Lemma Fitting_char : 'F(G) \char G. Proof. exact: bgFunc_char. Qed.
+Lemma Fitting_char : 'F(G) \char G. Proof. exact: gFchar. Qed.
 
 Lemma injm_Fitting : 'injm f -> G \subset D -> f @* 'F(G) = 'F(f @* G).
-Proof. exact: bgFunc_ascont. Qed.
+Proof. exact: injmF. Qed.
 
 Lemma isog_Fitting : forall H : {group rT}, G \isog H -> 'F(G) \isog 'F(H).
-Proof. by move=> H; exact: bgFunc_isog. Qed.
+Proof. by move=> H; exact: gFisog. Qed.
 
 End IsoFitting.
 

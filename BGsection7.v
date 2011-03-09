@@ -467,7 +467,7 @@ Remark normed_constrained_Hall : pi^'.-Hall('C(A)) K.
 Proof.
 have [_ ntA prA _] := cstrA; rewrite -[setT]/G in prA.
 rewrite /pHall pcore_pgroup pcore_sub pnatNK /=.
-rewrite -card_quotient ?bgFunc_norm //= -/K.
+rewrite -card_quotient ?gFnorm //= -/K.
 apply/pgroupP=> p p_pr; case/Cauchy=> // Kx; case/morphimP=> x Nx Cx ->{Kx}.
 rewrite /order -quotient_cycle //= -/K => def_p; apply/idPn=> pi'p.
 have [P sylP] := Sylow_exists p <[x]>; have [sPx pP _]:= and3P sylP.
@@ -925,7 +925,7 @@ wlog Zb: b X Y defX B'b p'Y nYA sYX / b \in Z.
       by rewrite coprime_sym coprime_morphr ?(pnat_coprime (pcore_pgroup _ _)).
     rewrite -quotient_sub1 ?comm_subG // -(coprime_TIg coYZK) subsetI.
     rewrite /= -quotient_pseries2 !quotientS ?commg_subl //.
-    by rewrite (subset_trans (commgSS sYX sZKp)) ?commg_subr //= bgFunc_norm.
+    by rewrite (subset_trans (commgSS sYX sZKp)) ?commg_subr //= gFnorm.
   have: 'O_p^'('C_X(Z)) \subset K.
     rewrite p'core_cent_pgroup // /psubgroup /pgroup oZ pnat_id //.
     by rewrite -defX (subset_trans sZA) ?cBA.
@@ -953,7 +953,7 @@ have cYAq: A / K \subset 'C_('O_p(X / K))(Y / K).
   rewrite subsetI -quotient_pseries2 quotientS //= (sameP commG1P trivgP).
   rewrite /= -quotientR // -(coprime_TIg coYZK) subsetI /= -quotient_pseries2.
   rewrite !quotientS ?commg_subr // (subset_trans (commgSS sAKb sYX)) //.
-  by rewrite commg_subl /= bgFunc_norm.
+  by rewrite commg_subl /= gFnorm.
 have cYKq: Y / K \subset 'C('O_p(X / K)).
   apply: coprime_nil_faithful_cent_stab => /=.
   - by rewrite (char_norm_trans (pcore_char _ _)) ?normsG ?quotientS.

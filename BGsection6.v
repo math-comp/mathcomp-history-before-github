@@ -52,7 +52,7 @@ Theorem Puig_center_p'core_normal : forall p G S,
 Proof.
 move=> p G S oddG solG sylS; rewrite -{2}(Puig_factorisation _ _ sylS) //.
 have sZL_G := subset_trans (char_sub (center_Puig_char S)) (pHall_sub sylS).
-rewrite -!quotientK ?(subset_trans _ (bgFunc_norm _ _)) ?subsetIl //.
+rewrite -!quotientK ?(subset_trans _ (gFnorm _ _)) ?subsetIl //.
 by rewrite cosetpre_normal quotient_normal // normalSG.
 Qed.
 
@@ -302,7 +302,7 @@ have tiSL: S :&: L = 1 := coprime_TIg coSL.
 have{solG} scSG: 'C_G(S) \subset S.
   by rewrite defS -Fitting_eq_pcore ?cent_sub_Fitting.
 rewrite Gp'1 -tiSL subsetIidr (subset_trans _ scSG) // subsetI sLG /=.
-have nSL: L \subset 'N(S) by rewrite (subset_trans sLG) // defS bgFunc_norm.
+have nSL: L \subset 'N(S) by rewrite (subset_trans sLG) // defS gFnorm.
 have cLE: L \subset 'C(E).
   by rewrite (sameP commG1P trivgP) -tiSL setIC commg_subI ?(introT subsetIP).
 have maxES: E \in 'E*_p(S) by rewrite (subsetP (pmaxElemS p sSG)) ?(maxE, inE).

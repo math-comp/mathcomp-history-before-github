@@ -512,7 +512,7 @@ have ntS: S :!=: 1 by rewrite -rank_gt0 (leq_trans _ rS).
 have [p_pr _ _] := pgroup_pdiv pS ntS; have p_gt1 := prime_gt1 p_pr.
 have{pl1G} defS: 'O_p(G) = S.
   by rewrite (eq_Hall_pcore _ sylS) -?plength1_pcore_Sylow.
-have nSG: G \subset 'N(S) by rewrite -defS bgFunc_norm.
+have nSG: G \subset 'N(S) by rewrite -defS gFnorm.
 pose fA := restrm nSG (conj_aut S); pose A := fA @* G.
 have AutA: A \subset Aut S by rewrite [A]im_restrm Aut_conj_aut.
 have [solA oddA]: solvable A /\ odd #|A| by rewrite morphim_sol ?morphim_odd.

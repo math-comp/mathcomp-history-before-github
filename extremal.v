@@ -1455,7 +1455,7 @@ split.
       by case/setUP: X't; case/imsetP=> z _ ->; rewrite orderJ ?oy ?oxy.
     rewrite eqEsubset Ohm_sub -{1}defXY mulG_subG !cycle_subG.
     by rewrite -(groupMr _ (sX'G2 y X'y)) !sX'G2.
-  rewrite eqEsubset andbC gen_subG class_sub_norm ?bgFunc_norm //.
+  rewrite eqEsubset andbC gen_subG class_sub_norm ?gFnorm //.
   rewrite (OhmE 1 pG) mem_gen ?inE ?Gy -?order_dvdn ?oy // gen_subG /= -/My.
   apply/subsetP=> t; rewrite !inE; case/andP=> Gt t2.
   have pX := pgroupS sXG pG.

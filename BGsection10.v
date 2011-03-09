@@ -305,7 +305,7 @@ have pl1L: p.-length_1 L.
   have [oddL]: odd #|L| /\ 'r_p(L) <= 2 by rewrite mFT_odd -(rank_Sylow sylP).
   by case/rank2_der1_complement; rewrite ?mFT_sol ?plength1_pseries2_quo.
 have [|u v nLPu Lp'_v ->] := imset2P (_ : t \in 'N_L(P) * 'O_p^'(L)).
-  by rewrite normC ?plength1_Frattini // subIset ?bgFunc_norm.
+  by rewrite normC ?plength1_Frattini // subIset ?gFnorm.
 rewrite actM (orbit_transr _ (mem_orbit _ _ _)); last first.
   have coLp'X: coprime #|'O_p^'(L)| #|X| := p'nat_coprime (pcore_pgroup _ _) pX.
   apply: subsetP Lp'_v; have [sLp'L nLp'L] := andP (pcore_normal p^' L).
@@ -1035,7 +1035,7 @@ have qQ: q.-group Q by case/mem_max_normed: maxQ.
 have ltNG: 'N(Q) \proper G by rewrite mFT_norm_proper // (mFT_pgroup_proper qQ).
 have{ltNG} qAutQ': q.-group AutQ^`(1).
   have qAutQq: q.-group 'O_q(AutQ) := pcore_pgroup _ _.
-  rewrite (pgroupS _ qAutQq) // der1_min ?bgFunc_norm //.
+  rewrite (pgroupS _ qAutQq) // der1_min ?gFnorm //.
   have solAutQ: solvable AutQ by rewrite morphim_sol -?mFT_sol_proper.
   have [oddQ oddAutQ]: odd #|Q| /\ odd #|AutQ| by rewrite morphim_odd mFT_odd.
   by case/(Aut_narrow qQ): (Aut_conj_aut Q 'N(Q)).
@@ -1075,7 +1075,7 @@ have defMK := def_uniq_mmax uniqK maxM (subset_trans sKE sEM).
 rewrite (subHall_Sylow hallE) // (sub_uniq_mmax defMK) //; last first.
   rewrite mFT_norm_proper ?(mFT_pgroup_proper (pcore_pgroup _ _)) //.
   by rewrite -cardG_gt1 (card_Hall sylP) p_part_gt1.
-by rewrite (subset_trans sKE) // bgFunc_norm.
+by rewrite (subset_trans sKE) // gFnorm.
 Qed.
 
 (* This is B & G, Proposition 10.11(b). *)
@@ -1148,7 +1148,7 @@ have rZle1: 'r(Z) <= 1.
   apply: leq_trans (rankS _) (sub'cent_sigma_rank1 sZM (pcore_pgroup _ _)).
   rewrite subsetI subxx (sameP commG1P trivgP) /=.
   rewrite -(TI_pcoreC \sigma(M) M 'F(M)) subsetI commg_subl commg_subr.
-  by rewrite (subset_trans sZM) ?bgFunc_norm ?(subset_trans (pcore_sub _ _)).
+  by rewrite (subset_trans sZM) ?gFnorm ?(subset_trans (pcore_sub _ _)).
 have{rZle1} cycZ: cyclic Z.
   have nilZ: nilpotent Z := nilpotentS (pcore_sub _ _) Fnil. 
   by rewrite nil_Zgroup_cyclic // odd_rank1_Zgroup // mFT_odd.
@@ -1397,7 +1397,7 @@ apply/eqP; rewrite eq_sym eqEcard; apply/andP; split.
   apply/subsetP=> A1x; case/imsetP=> x; case/setIP=> Px nAx ->{A1x}.
   rewrite 2!inE /E1A -(normP nAx) pnElemJ EpA1 andbT -val_eqE /=.
   have nZ0P: P \subset 'N(Z0).
-    by rewrite (char_norm_trans (Ohm_char 1 _)) // bgFunc_norm.
+    by rewrite (char_norm_trans (Ohm_char 1 _)) // gFnorm.
   by rewrite -(normsP nZ0P x Px) (inj_eq (@conjsg_inj _ x)).
 have pN: p.-group 'N_P(_) := pgroupS (subsetIl P _) pP.
 have defCPA: 'N_('N_P(A))(A1) = 'C_P(A).

@@ -263,7 +263,7 @@ Implicit Types D E : {set gT}.
 Implicit Type p : nat.
 
 Lemma Puig_char : forall G, 'L(G) \char G.
-Proof. by move=> G; exact: bgFunc_char. Qed.
+Proof. by move=> G; exact: gFchar. Qed.
 
 Lemma center_Puig_char : forall G, 'Z('L(G)) \char G.
 Proof. by move=> G; apply: char_trans (center_char _) (Puig_char _). Qed.
@@ -423,7 +423,7 @@ have sCT_L: 'C_T('L_{k.*2.+1}(T)) \subset 'L_{k.*2.+1}(T).
 have{sCT_L} sLT: 'L_{k.*2.+2}(S) \subset T.
   apply: odd_abelian_gen_constrained sCT_L => //.
   - exact: pgroupS (Puig_at_sub _ _) pT.
-  - by apply: char_normal_trans nsTG; exact: bgFunc_char.
+  - by apply: char_normal_trans nsTG; exact: gFchar.
   - exact: sL_ sSG.
   by rewrite norm_abgen_pgroup // (pgroupS _ pS) ?Puig_at_sub.
 have sL2: 'L_{k.*2.+2}(S) \subset 'L_{k.*2.+2}(T) by exact: Puig_max.
@@ -493,13 +493,13 @@ Hypotheses (oddG : odd #|G|) (solG : solvable G) (sylS : p.-Sylow(G) S).
 Theorem Puig_factorization : 'O_p^'(G) * 'N_G('Z('L(S))) = G.
 Proof.
 set D := 'O_p^'(G); set Z := 'Z(_); have [sSG pS _] := and3P sylS.
-have sSN: S \subset 'N(D) by rewrite (subset_trans sSG) ?bgFunc_norm.
+have sSN: S \subset 'N(D) by rewrite (subset_trans sSG) ?gFnorm.
 have p'D: p^'.-group D := pcore_pgroup _ _.
 have tiSD: S :&: D = 1 := coprime_TIg (pnat_coprime pS p'D).
 have def_Zq: Z / D = 'Z('L(S / D)).
   rewrite !quotientE -(setIid S) -(morphim_restrm sSN); set f := restrm _ _.
   have injf: 'injm f by rewrite ker_restrm ker_coset tiSD.
-  rewrite -!(bgFunc_ascont _ injf) ?Puig_sub //= morphim_restrm.
+  rewrite -!(injmF _ injf) ?Puig_sub //= morphim_restrm.
   by rewrite (setIidPr _) // subIset ?Puig_sub.
 have{def_Zq} nZq: Z / D <| G / D.
   have sylSq: p.-Sylow(G / D) (S / D) by exact: morphim_pHall.

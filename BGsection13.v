@@ -48,7 +48,7 @@ have [q sMq piH'q]: exists2 q, q \in \sigma(M) & q \in \pi(H^`(1)).
   exists q; last by rewrite mem_primes q_pr cardG_gt0 q_dv ?commgSS ?subsetIr.
   rewrite (pgroupP (pcore_pgroup _ M)) ?q_dv //.
   have sR_MsM: R \subset [~: M`_\sigma, M] by rewrite commgSS ?subsetIl.
-  by rewrite (subset_trans sR_MsM) // commg_subl bgFunc_norm.
+  by rewrite (subset_trans sR_MsM) // commg_subl gFnorm.
 have [Y sylY] := Sylow_exists q H^`(1); have [sYH' qY _] := and3P sylY.
 have nsHbH: H`_\beta <| H := pcore_normal _ _; have [_ nHbH] := andP nsHbH.
 have sYH := subset_trans sYH' (der_sub 1 H); have nHbY := subset_trans sYH nHbH.
@@ -117,7 +117,7 @@ have coHaS_Ms: coprime #|H`_\alpha <*> S| #|M`_\sigma|.
   have [|_ ti_aH_sM _] := sigma_disjoint maxH maxM; first by rewrite orbit_sym.
   by apply: contraFN (ti_aH_sM r) => sMr; exact/andP.
 rewrite (sameP commG1P trivgP) -(coprime_TIg coHaS_Ms) commg_subI ?setIS //.
-by rewrite subsetI sP_HaS (subset_trans sPM) ?bgFunc_norm.
+by rewrite subsetI sP_HaS (subset_trans sPM) ?gFnorm.
 Qed.
 
 (* This is B & G, Corollary 13.2. *)
@@ -252,7 +252,7 @@ pose ST := [set S | Sylow C (gval S) && (R \subset 'N(S))].
 have sST_CP: forall S, S \in ST -> S \subset C.
   by move=> S; case/setIdP; case/SylowP=> q _; case/andP.
 rewrite -{sST_CP}[C](Sylow_transversal_gen sST_CP)  => [|q _]; last first.
-  have nMzR: R \subset 'N(Mz) by rewrite (subset_trans sRM) // bgFunc_norm.
+  have nMzR: R \subset 'N(Mz) by rewrite (subset_trans sRM) // gFnorm.
   have{nMzR} nCR: R \subset 'N(C) by rewrite normsI // norms_cent // cents_norm.
   have solC := solvableS (subset_trans sCMs sMsM) (mmax_sol maxM).
   have [S sylS nSR] := coprime_Hall_exists q nCR coCR solC.
@@ -322,7 +322,7 @@ apply/commG1P; apply: three_subgroup; apply/commG1P.
   by rewrite commGC (commG1P _) ?sub1G ?subsetIr.
 apply: subset_trans (subsetIr Ma _); rewrite /= -symPR //.
   rewrite commg_subl normsI //; last by rewrite norms_cent // cents_norm.
-  by rewrite (subset_trans sSM) ?bgFunc_norm.
+  by rewrite (subset_trans sSM) ?gFnorm.
 apply: contraR aM'q => not_cRCaP; apply: pnatPpi (pgroupS sSMz _) piSq.
 by rewrite (negPf not_cRCaP) pcore_pgroup.
 Qed.

@@ -54,6 +54,14 @@ End Defs.
 Notation "''Z' ( A )" := (center A) : group_scope.
 Notation "''Z' ( H )" := (center_group H) : subgroup_scope.
 
+Lemma morphim_center : GFunctor.pcontinuous center.
+Proof. move=> gT rT G D f; exact: morphim_subcent. Qed.
+
+Canonical Structure center_igFun :=
+  [igFun by fun _ _ => subsetIl _ _ & morphim_center].
+Canonical Structure center_gFun := [gFun by morphim_center].
+Canonical Structure center_pgFun := [pgFun by morphim_center].
+
 Section Center.
 
 Variables gT : finGroupType.
@@ -99,16 +107,12 @@ Lemma centerC : forall A, {in A, centralised 'Z(A)}.
 Proof. by move=> A; apply/centsP; rewrite centsC subsetIr. Qed.
 
 Lemma center_normal : forall G, 'Z(G) <| G.
-Proof. by move=> G; rewrite -{2}(setIidPl (normG G)) subcent_normal. Qed.
+Proof. exact: gFnormal. Qed.
 
 Lemma sub_center_normal : forall H G, H \subset 'Z(G) -> H <| G.
 Proof.
 by move=> H G; rewrite subsetI centsC /normal; case/andP=> ->; move/cents_norm.
 Qed.
-
-Lemma morphim_center : forall rT A D (f : {morphism D >-> rT}),
-  f @* 'Z(A) \subset 'Z(f @* A).
-Proof. move=> rT A D f; exact: morphim_subcent. Qed.
 
 Lemma center_abelian : forall G, abelian 'Z(G).
 Proof.
@@ -116,10 +120,7 @@ by move=> P; rewrite /abelian subIset // centsC subIset // subxx orbT.
 Qed.
 
 Lemma center_char : forall G, 'Z(G) \char G.
-Proof.
-move=> G; apply/charP; split=> [|f injf Gf]; first exact: center_sub.
-by apply/morphim_fixP; rewrite ?subsetIl //= -{4}Gf morphim_center.
-Qed.
+Proof. exact: gFchar. Qed.
 
 Lemma center_idP : forall A, reflect ('Z(A) = A) (abelian A).
 Proof. by move=> A; exact: setIidPl. Qed.
@@ -171,21 +172,6 @@ have [f <-]:= homgP (homg_quotientS (nG _ sHZ) (nG _ (subxx _)) sHZ).
 exact: morphim_cyclic.
 Qed.
 
-(* Functoriality *)
-
-Lemma center_cont : cont center.
-Proof.
-move=> hT iT H phi /=; apply: (subset_trans (morphimI _ _ _ )).
-rewrite subsetI subsetIl /=; apply: subset_trans (subsetIr (phi @* H) _) _.
-exact: morphim_cent.
-Qed.
-
-Lemma center_hereditary : hereditary center.
-Proof.
-move=> hT H G sHG; rewrite setIC /center setIA (setIidPl sHG) setIS //.
-by rewrite (centsS sHG).
-Qed.
-
 Section Injm.
 
 Variables (rT : finGroupType) (D : {group gT}) (f : {morphism D >-> rT}).
@@ -201,16 +187,9 @@ End Center.
 
 Implicit Arguments center_idP [gT A].
 
-Canonical Structure bgFunc_center :=
-  [bgFunc by fun _ _ => center_sub _ & center_cont].
-
-Canonical Structure gFunc_center := GFunc center_cont.
-
-Canonical Structure hgFunc_center := HGFunc center_hereditary.
-
 Lemma isog_center : forall (aT rT : finGroupType),
   forall (G : {group aT}) (H : {group rT}), G \isog H -> 'Z(G) \isog 'Z(H).
-Proof. move=> aT rT G H; exact: bgFunc_isog. Qed.
+Proof. exact: gFisog. Qed.
 
 Section Product.
 

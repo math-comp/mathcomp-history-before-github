@@ -134,7 +134,6 @@ Lemma lcn2 : forall A, 'L_2(A) = A^`(1). Proof. by []. Qed.
 Lemma lcn_group_set : forall n G, group_set 'L_n(G).
 Proof. move=> n G; case: n; last elim=> *; exact: groupP. Qed.
 
-
 Canonical Structure lower_central_at_group n G := Group (lcn_group_set n G).
 
 Lemma lcn_char : forall n G, 'L_n(G) \char G.
@@ -290,55 +289,49 @@ End LowerCentral.
 
 Notation "''L_' n ( G )" := (lower_central_at_group n G) : subgroup_scope.
 
-Lemma lcn_cont : forall n, cont (lower_central_at n).
+Lemma lcn_cont : forall n, GFunctor.continuous (lower_central_at n).
 Proof.
 case=> //; elim=> // n IHn g0T h0T H phi.
 by rewrite !lcnSn morphimR ?lcn_sub // commSg ?IHn.
 Qed.
 
-Canonical Structure bgFunc_lcn n :=
-  [bgFunc by fun gT => @lcn_sub gT n & lcn_cont n].
-
-Canonical Structure gFunc_lcn n := GFunc (lcn_cont n).
-
-Canonical Structure mgFunc_lcn n := MGFunc (fun _ G H => @lcnS _ n G H).
+Canonical Structure lcn_igFun n := [igFun by lcn_sub^~ n & lcn_cont n].
+Canonical Structure lcn_gFun n := [gFun by lcn_cont n].
+Canonical Structure lcn_mgFun n := [mgFun by fun _ G H => @lcnS _ n G H].
 
 Section UpperCentralFunctor.
 
 Variable n : nat.
 Implicit Type gT : finGroupType.
 
-Lemma ucn_hgFunc : exists hZ : hgFunc, @upper_central_at n = hZ.
+Lemma ucn_pmap : exists hZ : GFunctor.pmap, @upper_central_at n = hZ.
 Proof.
-elim: n => [|n' [hZ defZ]]; first by exists hgFunc_triv.
-by exists [hgFunc of appmod center hZ]; rewrite /= -defZ.
+elim: n => [|n' [hZ defZ]]; first by exists trivGfun_pgFun.
+by exists [pgFun of center %% hZ]; rewrite /= -defZ.
 Qed.
 
 (* Now extract all the intermediate facts of the last proof. *)
 
 Lemma ucn_group_set : forall gT (G : {group gT}), group_set 'Z_n(G).
-Proof. by case: ucn_hgFunc => hZ ->; exact: bgFunc_groupset. Qed.
+Proof. by case: ucn_pmap => hZ -> gT G; exact: groupP. Qed.
 
 Canonical Structure upper_central_at_group gT G := Group (@ucn_group_set gT G).
 
 Lemma ucn_sub : forall gT (G : {group gT}), 'Z_n(G) \subset G.
-Proof. by case: ucn_hgFunc => hZ ->; exact: bgFunc_clos. Qed.
+Proof. by case: ucn_pmap => hZ ->; exact: gFsub. Qed.
 
-Lemma ucn_cont : cont (upper_central_at n).
-Proof. by case: ucn_hgFunc => hZ ->; exact: gFunc_cont. Qed.
+Lemma morphim_ucn : GFunctor.pcontinuous (upper_central_at n).
+Proof. by case: ucn_pmap => hZ ->; exact: pmorphimF. Qed.
 
-Lemma ucn_hereditary : hereditary (upper_central_at n).
-Proof. by case: ucn_hgFunc => hZ ->; exact: hgFunc_hereditary. Qed.
-
-Canonical Structure bgFunc_ucn := [bgFunc by ucn_sub & ucn_cont].
-Canonical Structure gFunc_ucn := GFunc ucn_cont.
-Canonical Structure hgFunc_ucn := HGFunc ucn_hereditary.
+Canonical Structure ucn_igFun := [igFun by ucn_sub & morphim_ucn].
+Canonical Structure ucn_gFun := [gFun by morphim_ucn].
+Canonical Structure ucn_pgFun := [pgFun by morphim_ucn].
 
 Variable (gT : finGroupType) (G : {group gT}).
 
-Lemma ucn_char : 'Z_n(G) \char G. Proof. exact: bgFunc_char. Qed.
-Lemma ucn_norm : G \subset 'N('Z_n(G)). Proof. exact: bgFunc_norm. Qed.
-Lemma ucn_normal : 'Z_n(G) <| G. Proof. exact: bgFunc_normal. Qed.
+Lemma ucn_char : 'Z_n(G) \char G. Proof. exact: gFchar. Qed.
+Lemma ucn_norm : G \subset 'N('Z_n(G)). Proof. exact: gFnorm. Qed.
+Lemma ucn_normal : 'Z_n(G) <| G. Proof. exact: gFnormal. Qed.
 
 End UpperCentralFunctor.
 
@@ -386,7 +379,7 @@ Qed.
 Lemma ucn1 : forall G, 'Z_1(G) = 'Z(G).
 Proof.
 move=> G; apply: (quotient_inj (normal1 _) (normal1 _)).
-by rewrite /= (ucn_central 0) -bgFunc_ascont ?norms1 ?coset1_injm.
+by rewrite /= (ucn_central 0) -injmF ?norms1 ?coset1_injm.
 Qed.
 
 Lemma ucnSnR : forall n G,
@@ -422,7 +415,7 @@ exact: eqP.
 Qed.
 
 Lemma ucn_id : forall n G, 'Z_n('Z_n(G)) = 'Z_n(G).
-Proof. by move=> n G; rewrite -{2}['Z_n(G)]hereditary_idem. Qed.
+Proof. by move=> n G; rewrite -{2}['Z_n(G)]gFid. Qed.
 
 Lemma ucn_nilpotent : forall n G, nilpotent 'Z_n(G). 
 Proof. by move=> n G; apply/ucnP; exists n; rewrite ucn_id. Qed.
@@ -443,12 +436,9 @@ case=> // n G sHG; elim: n => // n IHn.
 by rewrite !lcnSn -IHn morphimR // (subset_trans _ sHG) // lcn_sub.
 Qed.
 
-Lemma morphim_ucn : forall n G, f @* 'Z_n(G) \subset 'Z_n(f @* G).
-Proof. by move=> n G; exact: hgFunc_morphim. Qed.
-
 Lemma injm_ucn : forall n G,
   'injm f -> G \subset D -> f @* 'Z_n(G) = 'Z_n(f @* G).
-Proof. move=> n G; exact: injm_sFunctor. Qed.
+Proof. move=> n G; exact: injmF. Qed.
 
 Lemma morphim_nil : forall G, nilpotent G -> nilpotent (f @* G).
 Proof.

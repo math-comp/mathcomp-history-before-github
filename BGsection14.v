@@ -439,7 +439,7 @@ have regA: 'C_Ms(A) = 1.
   apply: contraNeq kM'p => nregA; unlock kappa; apply/andP; split=> //.
   by apply/exists_inP; exists [group of A]; rewrite ?p1ElemE // !inE sAM oA /=.
 have defMsA: Ms ><| A = Ms <*> A.
-  rewrite sdprodEY ?coprime_TIg ?(subset_trans sAM) ?bgFunc_norm // oA.
+  rewrite sdprodEY ?coprime_TIg ?(subset_trans sAM) ?gFnorm // oA.
   by rewrite (pnat_coprime (pcore_pgroup _ _)) ?pnatE.
 rewrite (prime_Frobenius_sol_kernel_nil defMsA) ?oA ?(pfactorK 1) //.
 by rewrite (solvableS _ (mmax_sol maxM)) // join_subG pcore_sub.
@@ -704,7 +704,7 @@ split=> {part_a part_b part_c have_a have_b have_c}//; first split=> //.
   by rewrite -rank_gt0 (rank_Sylow sylP) p_rank_gt0.
 - move=> Y sY ntYKs; have ntY: Y :!=:1 := subG1_contra (subsetIl _ _) ntYKs.
   have [[x sYxMs] _] := sigma_Jsub maxM sY ntY; rewrite sub_conjg in sYxMs.
-  suffices Mx': x^-1 \in M by rewrite (normsP _ _ Mx') ?bgFunc_norm in sYxMs.
+  suffices Mx': x^-1 \in M by rewrite (normsP _ _ Mx') ?gFnorm in sYxMs.
   rewrite -(setCK M) inE; apply: contra ntYKs => M'x'.
   rewrite setIC -(setIidPr sYxMs) -/Ms -[Ms](setIidPr (pcore_sub _ _)).
   by rewrite conjIg !setIA; have [-> // _] := have_d; rewrite !setI1g.
@@ -790,7 +790,7 @@ have defV: 'O_sk'(F) = V := normal_Hall_pcore hallV_F nsVF.
 have hallEsk': sk'.-Hall(E) 'O_sk'(E).
   by rewrite [E]defFa pcoreJ pHallJ2 /= defV.
 have defU: 'O_sk'(E) = U by rewrite (eq_Hall_pcore hallEsk' hallU_E).
-have nUE: E \subset 'N(U) by rewrite -defU bgFunc_norm.
+have nUE: E \subset 'N(U) by rewrite -defU gFnorm.
 have hallK_E: \kappa(M).-Hall(E) K := pHall_subl (joing_subr _ _) sEM hallK.
 have hallK_F: \kappa(M).-Hall(F) K := pHall_subl sKF sFM hallK.
 have hallKa_E: \kappa(M).-Hall(E) (K :^ a) by rewrite [E]defFa pHallJ2.
@@ -1010,7 +1010,7 @@ rewrite orbAC -2!andb_orr -(subnKC rpM) andbF /= => t2Mp.
 case/negP: ntX; rewrite -subG1 (subset_trans sXx) //.
 have [_ _ <- _ _] := tau2_context maxM t2Mp Ep2A.
 have [[sAM abelA _] [_ nAMN]] := (pnElemP Ep2A, andP nsAMN).
-rewrite -coprime_norm_cent ?(subset_trans sAM) ?bgFunc_norm //.
+rewrite -coprime_norm_cent ?(subset_trans sAM) ?gFnorm //.
   by rewrite cycle_subG inE Ms_x (subsetP nAMN).
 have [[sM'p _] [pA _]] := (andP t2Mp, andP abelA).
 exact: pnat_coprime (pcore_pgroup _ _) (pi_pgroup pA sM'p).
@@ -1797,9 +1797,9 @@ have hallKs: \sigma(M).-Hall(Mstar) Ks.
     apply: contraFN (sigma_partition maxM maxMstar notMGMstar q) => sMq.
     exact/andP.
   rewrite commg_subI //.
-    by rewrite subsetI sYMs (subset_trans sYMstar) ?bgFunc_norm.
+    by rewrite subsetI sYMs (subset_trans sYMstar) ?gFnorm.
   rewrite subsetI -{1}defKs_star subsetIl.
-  by rewrite (subset_trans (pHall_sub hallK)) ?bgFunc_norm.
+  by rewrite (subset_trans (pHall_sub hallK)) ?gFnorm.
 have oTGgt_g2: (g / 2%:R < #|TG|%:R)%R.
   rewrite oTG big_setU1 //= /n defMNX big_set1 cards1 mulrC mul1r.
   rewrite ltr_pmul2l ?(ltr_nat _ 0) ?cardG_gt0 //  /k_ K0 -defKs.
@@ -1859,7 +1859,7 @@ rewrite defZhat {1}defKs; split; first 2 [by split].
         exact: pgroupS (subsetIl _ _) (pcore_pgroup _ _).
       by rewrite subsetI subsetIl /= -/Ks defKs (pHall_sub hallKstar).
     have nKsMMstar: M :&: Mstar \subset 'N(Ks).
-      by rewrite -defMsMstar normsIG ?bgFunc_norm.
+      by rewrite -defMsMstar normsIG ?gFnorm.
     have [_ [defNKs _] _ _ _] := Ptype_structure PmaxMstar hallKstar.
     rewrite -(setIidPl nKsMMstar) -setIA defKs -defNKs defZstar.
     by rewrite -defZ setIA setIid.
@@ -2441,8 +2441,8 @@ have nregHsK: 'C_(H`_\sigma)(K) != 1.
     apply: contraFN (sigma_partition maxMst maxH notMstGH p) => piIp.
     rewrite inE /= (pnatPpi (pcore_pgroup _ _) (piSg (subsetIl _ _) piIp)).
     by rewrite (pnatPpi (pcore_pgroup _ _) (piSg (subsetIr _ _) piIp)).
-  rewrite commg_subI ?setIS ?bgFunc_norm // subsetI sKMsts.
-  by rewrite (subset_trans sKH) ?bgFunc_norm.
+  rewrite commg_subI ?setIS ?gFnorm // subsetI sKMsts.
+  by rewrite (subset_trans sKH) ?gFnorm.
 have t2Hq: q \in \tau2(H).
   have: q \in \pi(D) := piSg sKD piKq.
   rewrite (partition_pi_sigma_compl maxH hallD) orbCA; case/orP=> // t13Hq.

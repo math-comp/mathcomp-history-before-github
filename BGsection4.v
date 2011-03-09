@@ -397,7 +397,7 @@ elim: n gT => // n IHn gT in R pR dimR1 *; rewrite ltnS => leRn.
 apply/forall_inP; apply/idPn; rewrite negb_forall_in; move/existsP.
 case/ex_mingroup=> T; case/mingroupP; case/andP=> nsTR dimRb1 minT.
 have [sTR nTR] := andP nsTR; have pT: p.-group T := pgroupS sTR pR.
-pose card_iso_Ohm := card_isog (bgFunc_isog (bgFunc_Ohm 1) _).
+pose card_iso_Ohm := card_isog (gFisog [igFun of Ohm 1] _).
 have ntT: T :!=: 1; last have p_pr: prime p by have [] := pgroup_pdiv pT ntT.
   apply: contraNneq dimRb1 => ->.
   by rewrite -(card_iso_Ohm _ _ _ _ (quotient1_isog R)).
@@ -808,7 +808,7 @@ have rRb: 'r(R / 'Z(R)) <= 2.
 apply: IHn oab (leq_trans ltRbR leRn) => //.
 rewrite inE -!cycle_subG -defAb quotient_norms ?andbT //.
 apply: contra not_cRA => cRAb; rewrite (coprime_cent_Phi pR coRA) // defPhi.
-by rewrite commGC -quotient_cents2 ?bgFunc_norm.
+by rewrite commGC -quotient_cents2 ?gFnorm.
 Qed.
 
 (* B & G, Lemma 4.15 is covered by maximal/critical_extraspecial. *)
@@ -1133,7 +1133,7 @@ move=> gT p q G solG oddG rG; rewrite mem_primes; case/and3P=> pr_q _ /= q_dv_G.
 without loss Gp'1: gT G solG oddG rG q_dv_G / 'O_p^'(G) = 1.
   move/(_ _ (G / 'O_p^'(G))%G); rewrite quotient_odd ?quotient_sol //.
   rewrite trivg_pcore_quotient -(card_isog (quotient1_isog _)).
-  by rewrite p_rank_p'quotient ?pcore_pgroup ?bgFunc_norm //; exact.
+  by rewrite p_rank_p'quotient ?pcore_pgroup ?gFnorm //; exact.
 set R := 'O_p(G); have pR: p.-group R := pcore_pgroup p G.
 have [sRG nRG] := andP (pcore_normal p G : R <| G). 
 have oddR: odd #|R| := oddSg sRG oddG. 
@@ -1192,7 +1192,7 @@ Theorem rank2_min_p_complement : forall gT (G : {group gT}) (p := pdiv #|G|),
   solvable G -> odd #|G| -> 'r_p(G) <= 2 -> p^'.-Hall(G) 'O_p^'(G).
 Proof.
 move=> gT G p solG oddG rG; rewrite /pHall pcore_pgroup pcore_sub pnatNK /=.
-rewrite -card_quotient ?bgFunc_norm //; apply/pgroupP=> q q_pr q_dv_Gb.
+rewrite -card_quotient ?gFnorm //; apply/pgroupP=> q q_pr q_dv_Gb.
 rewrite inE /= eqn_leq (rank2_max_pdiv _ _ rG) ?mem_primes ?q_pr ?cardG_gt0 //.
 by rewrite pdiv_min_dvd ?prime_gt1 ?(dvdn_trans q_dv_Gb) ?dvdn_quotient.
 Qed.

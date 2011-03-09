@@ -195,7 +195,7 @@ have sA0gM: A0 :^ g \subset M.
   by rewrite (subset_trans _ sPM) // -(normP nPg) conjSg (subset_trans sA0A).
 have defF: Ms ><| A0 :^ g = F.
   rewrite sdprodEY ?coprime_TIg //.
-    by rewrite (subset_trans sA0gM) ?bgFunc_norm.
+    by rewrite (subset_trans sA0gM) ?gFnorm.
   by rewrite cardJg oA0 (pnat_coprime (pcore_pgroup _ _)) ?pnatE.
 have regA0g: 'C_Ms(A0 :^ g) = 1.
   case/exceptional_TI_MsigmaJ: notMg => //.
@@ -233,7 +233,7 @@ suffices cPP: abelian P.
   by move=> P1 sylP1; have [m _ ->] := Sylow_trans sylP sylP1; rewrite abelianJ.
 have [g nPg notMg] := subsetPn not_sNP_M.
 pose Ms := M`_\sigma; pose q := pdiv #|Ms|; have pP := pHall_pgroup sylP.
-have nMsP: P \subset 'N(Ms) by rewrite (subset_trans sPM) ?bgFunc_norm.
+have nMsP: P \subset 'N(Ms) by rewrite (subset_trans sPM) ?gFnorm.
 have coMsP: coprime #|Ms| #|P|.
   exact: pnat_coprime (pcore_pgroup _ _) (pi_pnat pP sM'p).
 have [Q1 sylQ1 nQ1P]:= sol_coprime_Sylow_exists q (pgroup_sol pP) nMsP coMsP.
@@ -336,7 +336,7 @@ have solE := solvableS sEM solM; have oddE := mFT_odd E.
 pose tau : nat_pred := [pred q | q > p]; pose K := 'O_tau(E).
 have hallK: tau.-Hall(E) K by rewrite rank2_ge_pcore_Hall.
 pose ptau : nat_pred := [pred q | q >= p]; pose KP := K <*> P.
-have nKP: P \subset 'N(K) by rewrite (subset_trans sPE) ?bgFunc_norm.
+have nKP: P \subset 'N(K) by rewrite (subset_trans sPE) ?gFnorm.
 have coKP: coprime #|K| #|P|.
   by rewrite (pnat_coprime (pcore_pgroup _ _)) ?(pi_pnat pP) //= !inE ltnn.
 have hallKP: ptau.-Hall(E) KP.
@@ -357,8 +357,8 @@ have [cKA | not_cKA]:= boolP (A \subset 'C(K)).
       exact: subset_trans (pHall_sub hallKP) sEM.
     rewrite -Ohm_id defA OhmS // pcore_max // /normal join_subG.
     rewrite (subset_trans sAP) ?joing_subr // cents_norm 1?centsC //=.
-    by rewrite -defA bgFunc_norm.
-  have nMsE: E \subset 'N(Ms) by rewrite (subset_trans sEM) ?bgFunc_norm.
+    by rewrite -defA gFnorm.
+  have nMsE: E \subset 'N(Ms) by rewrite (subset_trans sEM) ?gFnorm.
   have tiMsE: Ms :&: E = 1.
     by rewrite coprime_TIg ?(pnat_coprime (pcore_pgroup _ _)).
   have <-: Ms * E = M.
