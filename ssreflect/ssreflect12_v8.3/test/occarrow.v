@@ -1,3 +1,4 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect eqtype ssrnat.
 
 Lemma test1 : forall n m : nat, n = m -> m * m + n * n = n * n + n * n.

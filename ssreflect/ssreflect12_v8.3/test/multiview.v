@@ -1,3 +1,4 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrnat.
 
 Goal forall m n p, n <= p -> m <= n -> m <= p.

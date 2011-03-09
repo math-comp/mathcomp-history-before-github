@@ -1,3 +1,4 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool eqtype ssrnat fintype.
 
 Set Implicit Arguments.

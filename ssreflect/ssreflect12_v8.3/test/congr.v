@@ -1,3 +1,4 @@
+(* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool eqtype ssrnat.
 
 Lemma test1 : forall a b : nat, a == b -> a == 0 -> b == 0.
