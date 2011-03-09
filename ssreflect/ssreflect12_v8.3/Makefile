@@ -1,5 +1,6 @@
-
-MAKEFLAGS := -r -j2
+# -j2 causes a bug in caml compiler, I believe while accessing/creating the
+# same file in parallel 
+MAKEFLAGS := -r #-j2
 
 .SUFFIXES:
 
