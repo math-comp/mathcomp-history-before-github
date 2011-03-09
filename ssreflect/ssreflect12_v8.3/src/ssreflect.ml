@@ -2,7 +2,12 @@
 
 (* This line is read by the Makefile's dist target: do not remove. *)
 let ssrversion = "1.3";; 
-let () = if Flags.is_verbose () then begin
+let () = 
+  if Flags.is_verbose () && not !Flags.batch_mode && 
+     (* This is needed when the plugin is statically linked. 
+      * Command line args are processed later, thus flags are still unset *)
+     not (List.mem "-compile" (Array.to_list Sys.argv))
+  then begin
   Printf.printf "\nSmall Scale Reflection version %s loaded.\n" ssrversion;
   Printf.printf "Copyright 2005-2011 Microsoft Corporation and INRIA.\n";
   Printf.printf "Distributed under the terms of the CeCILL-B license.\n\n"
