@@ -139,8 +139,8 @@ Lemma memv_prod : forall vs1 vs2 a b, a \in vs1 -> b \in vs2 -> a * b \in (vs1 *
 Proof.
 move=> vs1 vs2 a b Hvs1 Hvs2.
 rewrite (coord_basis Hvs1) (coord_basis Hvs2).
-rewrite -mulr_suml; apply: memv_sum => [] [i Hi] _.  
-rewrite -mulr_sumr; apply: memv_sum => [] [j Hj] _.
+rewrite -mulr_suml; apply: memv_suml => [] [i Hi] _.  
+rewrite -mulr_sumr; apply: memv_suml => [] [j Hj] _.
 rewrite -scaler_mull -scaler_mulr scalerA memvZl //.
 by apply: memv_span; apply/allpairsP; exists ((vbasis vs1)`_i,(vbasis vs2)`_j);
    rewrite !mem_nth /=.
@@ -151,9 +151,9 @@ Lemma prodvP : forall vs1 vs2 vs3,
           (vs1 * vs2 <= vs3)%VS.
 Proof.
 move=> vs1 vs2 vs3; apply: (iffP idP).
-  move=> Hs a b Ha Hb; apply: subsetv_trans Hs; exact: memv_prod.
-move=> Ha; apply/subsetvP=> v.
-move/coord_span->; apply: memv_sum => [] [i /= Hi] _.
+  move=> Hs a b Ha Hb; apply: subv_trans Hs; exact: memv_prod.
+move=> Ha; apply/subvP=> v.
+move/coord_span->; apply: memv_suml => [] [i /= Hi] _.
 apply: memvZl; case/allpairsP: (mem_nth 0 Hi)=> [[x1 x2] [I1 I2 ->]].
 by apply Ha; apply: memv_basis.
 Qed.
@@ -161,7 +161,7 @@ Qed.
 Lemma prodv_inj : forall (x y : A), (x * y)%:VS = (x%:VS * y%:VS)%VS.
 Proof.
 move => x y.
-apply: subsetv_anti.
+apply: subv_anti.
 apply/andP; split.
  by apply: memv_prod; rewrite memv_inj.
 apply/prodvP => a b.
@@ -194,14 +194,14 @@ Qed.
 
 Lemma prod0v: left_zero (0%:VS) prodv.
 Proof.
-move=> vs; apply subsetv_anti; rewrite subset0v andbT.
+move=> vs; apply subv_anti; rewrite sub0v andbT.
 apply/prodvP=> a b; case/injvP=> k1 -> Hb.
 by rewrite scaler0 mul0r mem0v.
 Qed.
 
 Lemma prodv0: right_zero (0%:VS) prodv.
 Proof.
-move=> vs; apply subsetv_anti; rewrite subset0v andbT.
+move=> vs; apply subv_anti; rewrite sub0v andbT.
 apply/prodvP=> a b Ha; case/injvP=> k1 ->.
 by rewrite scaler0 mulr0 mem0v.
 Qed.
@@ -209,11 +209,11 @@ Qed.
 Lemma prod1v: left_id (1%:VS) prodv.
 Proof.
 case: vbasis1=> k [Hk He] /=.
-move=> vs; apply subsetv_anti; apply/andP; split.
+move=> vs; apply subv_anti; apply/andP; split.
   apply/prodvP=> a b; case/injvP=> k1 -> Hb.
   by rewrite -scaler_mull mul1r memvZl.
-apply/subsetvP=> v Hv.
-rewrite (coord_basis Hv); apply: memv_sum => [] [i Hi] _ /=. 
+apply/subvP=> v Hv.
+rewrite (coord_basis Hv); apply: memv_suml => [] [i Hi] _ /=. 
 rewrite memvZ -[_`_i]mul1r memv_prod ?(orbT, memv_inj) //.
 by apply: memv_basis; apply: mem_nth.
 Qed.
@@ -221,29 +221,29 @@ Qed.
 Lemma prodv1: right_id (1%:VS) prodv.
 Proof.
 case: vbasis1=> k [Hk He] /=.
-move=> vs; apply subsetv_anti; apply/andP; split.
+move=> vs; apply subv_anti; apply/andP; split.
   apply/prodvP=> a b Ha; case/injvP=> k1 ->.
   by rewrite -scaler_mulr mulr1 memvZl.
-apply/subsetvP=> v Hv; rewrite (coord_basis Hv).
-apply: memv_sum => [] [i Hi] _ /=.
+apply/subvP=> v Hv; rewrite (coord_basis Hv).
+apply: memv_suml => [] [i Hi] _ /=.
 rewrite memvZ -[_`_i]mulr1 memv_prod ?(orbT, memv_inj) //.
 by apply: memv_basis; apply: mem_nth.
 Qed.
 
 Lemma prodvA: associative prodv.
 Proof.
-move=> vs1 vs2 vs3; apply subsetv_anti; apply/andP.
+move=> vs1 vs2 vs3; apply subv_anti; apply/andP.
 split; apply/prodvP=> a b Ha Hb.
   rewrite (coord_basis Ha) -mulr_suml.
-  apply: memv_sum => [] [i Hi] _ /=.
+  apply: memv_suml => [] [i Hi] _ /=.
   move/coord_span: Hb->; rewrite -mulr_sumr.  
-  apply: memv_sum => [] [j Hj] _ /=.
+  apply: memv_suml => [] [j Hj] _ /=.
   rewrite -scaler_mull -scaler_mulr scalerA memvZl //.
   case/allpairsP: (mem_nth 0 Hj) => [[x1 x2] [I1 I2 ->]].
   by rewrite mulrA !memv_prod // ?memv_basis // mem_nth.
 move/coord_span: Ha->; rewrite (coord_basis Hb).
-rewrite -mulr_suml; apply: memv_sum => [] [i Hi] _ /=.  
-rewrite -mulr_sumr; apply: memv_sum => [] [j Hj] _ /=.
+rewrite -mulr_suml; apply: memv_suml => [] [i Hi] _ /=.  
+rewrite -mulr_sumr; apply: memv_suml => [] [j Hj] _ /=.
 rewrite -scaler_mull -scaler_mulr scalerA memvZl //.
 case/allpairsP: (mem_nth 0 Hi) => [[x1 x2] [I1 I2 ->]].
 by rewrite -mulrA !memv_prod // ?memv_basis // mem_nth.
@@ -252,35 +252,35 @@ Qed.
 Lemma prodv_monol : forall vs vs1 vs2, (vs1 <= vs2 -> vs1 * vs <= vs2 * vs)%VS.
 Proof.
 move=> vs vs1 vs2 Hvs; apply/prodvP=> a b Ha Hb; apply: memv_prod=> //.
-by apply: subsetv_trans Hvs.
+by apply: subv_trans Hvs.
 Qed.
 
 Lemma prodv_monor : forall vs vs1 vs2, (vs1 <= vs2 -> vs * vs1 <= vs * vs2)%VS.
 Proof.
 move=> vs vs1 vs2 Hvs; apply/prodvP=> a b Ha Hb; apply: memv_prod=> //.
-by apply: subsetv_trans Hvs.
+by apply: subv_trans Hvs.
 Qed.
 
 Lemma prodv_addl: left_distributive prodv addv.
 Proof.
-move=> vs1 vs2 vs3; apply subsetv_anti; apply/andP; split.
-  apply/prodvP=> a b;case/addv_memP=> v1 [v2 [Hv1 Hv2 ->]] Hb.
-  by rewrite mulr_addl; apply: addv_mem; apply: memv_prod.
-apply/subsetvP=> v;  case/addv_memP=> v1 [v2 [Hv1 Hv2 ->]].
+move=> vs1 vs2 vs3; apply subv_anti; apply/andP; split.
+  apply/prodvP=> a b;case/memv_addP=> v1 [v2 [Hv1 Hv2 ->]] Hb.
+  by rewrite mulr_addl; apply: memv_add; apply: memv_prod.
+apply/subvP=> v;  case/memv_addP=> v1 [v2 [Hv1 Hv2 ->]].
 apply: memvD.
-  move: v1 Hv1; apply/subsetvP; apply: prodv_monol; exact: addvSl.
-move: v2 Hv2; apply/subsetvP; apply: prodv_monol; exact: addvSr.
+  move: v1 Hv1; apply/subvP; apply: prodv_monol; exact: addvSl.
+move: v2 Hv2; apply/subvP; apply: prodv_monol; exact: addvSr.
 Qed.
 
 Lemma prodv_addr: right_distributive prodv addv.
 Proof.
-move=> vs1 vs2 vs3; apply subsetv_anti; apply/andP; split.
-  apply/prodvP=> a b Ha;case/addv_memP=> v1 [v2 [Hv1 Hv2 ->]].
-  by rewrite mulr_addr; apply: addv_mem; apply: memv_prod.
-apply/subsetvP=> v;  case/addv_memP=> v1 [v2 [Hv1 Hv2 ->]].
+move=> vs1 vs2 vs3; apply subv_anti; apply/andP; split.
+  apply/prodvP=> a b Ha;case/memv_addP=> v1 [v2 [Hv1 Hv2 ->]].
+  by rewrite mulr_addr; apply: memv_add; apply: memv_prod.
+apply/subvP=> v;  case/memv_addP=> v1 [v2 [Hv1 Hv2 ->]].
 apply: memvD.
-  move: v1 Hv1; apply/subsetvP; apply: prodv_monor; exact: addvSl.
-move: v2 Hv2; apply/subsetvP; apply: prodv_monor; exact: addvSr.
+  move: v1 Hv1; apply/subvP; apply: prodv_monor; exact: addvSl.
+move: v2 Hv2; apply/subvP; apply: prodv_monor; exact: addvSr.
 Qed.
 
 (* Building the predicate that checks is a vspace has a unit *)
@@ -461,7 +461,7 @@ Qed.
 
 Lemma aspace1_def: ((has_aunit (1%:VS)) && (1%:VS * 1%:VS <= 1%:VS))%VS.
 Proof. 
-rewrite prod1v subsetv_refl andbT.
+rewrite prod1v subv_refl andbT.
 apply/has_aunitP; exists 1; split; first by exact: memv_inj.
   exact: nonzero1r.
 by move=> x; rewrite mul1r mulr1.
@@ -469,12 +469,12 @@ Qed.
 
 Canonical Structure aspace1: {algebra A} := (ASpace aspace1_def).
 
-Lemma asubsetv : forall gs, (gs * gs <= gs)%VS.
+Lemma asubv : forall gs, (gs * gs <= gs)%VS.
 Proof. by case=> vs /=; case/andP. Qed.
 
 Lemma memv_mul : forall gs x y,
   x \in gs -> y \in gs -> x * y \in gs.
-Proof. by move => gs x y Hx Hy; move/prodvP: (asubsetv gs); apply. Qed.
+Proof. by move => gs x y Hx Hy; move/prodvP: (asubv gs); apply. Qed.
 
 Lemma aspace_cap_def : forall gs1 gs2, 
   aunit gs1 = aunit gs2 ->
@@ -486,13 +486,13 @@ move=> gs1 gs2 Ha; apply/andP; split.
   - by exact: anonzero1r.
   move=> x; rewrite  memv_cap; case/andP=> Hg _.
   by rewrite !(aunitl,aunitr). 
-rewrite sub_capv; apply/andP; split.
-  apply: (subsetv_trans (prodv_monol _ (capvSl _ _))).
-  apply: (subsetv_trans (prodv_monor _ (capvSl _ _))).
-  exact: asubsetv.
-apply: (subsetv_trans (prodv_monol _ (capvSr _ _))).
-apply: (subsetv_trans (prodv_monor _ (capvSr _ _))).
-exact: asubsetv.
+rewrite subv_cap; apply/andP; split.
+  apply: (subv_trans (prodv_monol _ (capvSl _ _))).
+  apply: (subv_trans (prodv_monor _ (capvSl _ _))).
+  exact: asubv.
+apply: (subv_trans (prodv_monol _ (capvSr _ _))).
+apply: (subv_trans (prodv_monor _ (capvSr _ _))).
+exact: asubv.
 Qed.
 
 Definition aspace_cap gs1 gs2 (u: aunit gs1 = aunit gs2): {algebra A} := 
@@ -576,14 +576,14 @@ Proof.
 pose v (r: 'rV_(size (vbasis als))) :=
   \sum_(i < size (vbasis als)) (r 0 i *: (vbasis als)`_i).
 have memv_vr: forall r, v r \in als.
-  move=> r; apply: memv_sum=> i _; apply: memvZl.
+  move=> r; apply: memv_suml=> i _; apply: memvZl.
   by apply: memv_basis; apply: mem_nth.
 exists (fun r => Suba (memv_vr r)).
   move=> v1; apply: val_inj; rewrite /suba_v2rv /v.
   have F1: sa_val v1 \in als by case v1.
   by rewrite /= {2}(coord_basis F1); apply: eq_big=> // i _; rewrite mxE.
 move=> v1; apply/rowP=> [] i.
-rewrite /subv_v2rv /v /=  mxE coord_sumE.
+rewrite /subvect_v2rv /v /=  mxE coord_sumE.
 rewrite (bigD1 i) //= linearZ ffunE
         (free_coordE _ _ (is_basis_free (is_basis_vbasis _)))
          eqxx /GRing.scale /= mulr1 big1 ?addr0 //.
@@ -598,7 +598,7 @@ Canonical Structure suba_vectType := VectType K suba_VectMixin.
 
 Definition suba_one := Suba (memv_unit als).
 Definition suba_mul u v := 
-  Suba (subsetv_trans (memv_prod (subaP u) (subaP v)) (asubsetv _)).
+  Suba (subv_trans (memv_prod (subaP u) (subaP v)) (asubv _)).
 
 Lemma suba_mulA : associative suba_mul.
 Proof. by move=> u v w; apply: val_inj; exact: mulrA. Qed.

@@ -267,7 +267,7 @@ apply: cyclic_center_factor_abelian.
 case: (eqVneq (P / Z) 1) => [-> |]; first exact: cyclic1.
 have pPq := quotient_pgroup 'Z(P) pP; case/(pgroup_pdiv pPq) => _ _ [j oPq].
 rewrite prime_cyclic // oPq; case: j oPq lePp2 => //= j.
-rewrite card_quotient ?gfunctor.bgFunc_norm //.
+rewrite card_quotient ?gfunctor.gFnorm //.
 by rewrite  -(LaGrange sZP) logn_mul // => ->; rewrite oZ !pfactorK ?addnS.
 Qed.
 

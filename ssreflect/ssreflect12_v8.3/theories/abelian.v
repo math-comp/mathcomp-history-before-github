@@ -1344,37 +1344,37 @@ Qed.
 
 End Generic.
 
-Canonical Structure bgFunc_Ohm i := [bgFunc by Ohm_sub i & Ohm_cont i].
-Canonical Structure gFunc_Ohm i := GFunc (Ohm_cont i).
-Canonical Structure mgFunc_Ohm i := MGFunc (OhmS i : monotonous (Ohm i)).
+Canonical Structure Ohm_igFun i := [igFun by Ohm_sub i & Ohm_cont i].
+Canonical Structure Ohm_gFun i := [gFun by Ohm_cont i].
+Canonical Structure Ohm_mgFun i := [mgFun by OhmS i].
 
-Canonical Structure bgFunc_Mho i := [bgFunc by Mho_sub i & Mho_cont i].
-Canonical Structure gFunc_Mho i := GFunc (Mho_cont i).
-Canonical Structure mgFunc_Mho i := MGFunc (MhoS i).
+Canonical Structure Mho_igFun i := [igFun by Mho_sub i & Mho_cont i].
+Canonical Structure Mho_gFun i := [gFun by Mho_cont i].
+Canonical Structure Mho_mgFun i := [mgFun by MhoS i].
 
 Section char.
 
 Variables (n : nat) (gT rT : finGroupType) (D G : {group gT}).
 
-Lemma Ohm_char : 'Ohm_n(G) \char G. Proof. exact: bgFunc_char. Qed.
-Lemma Ohm_normal : 'Ohm_n(G) <| G. Proof. exact: char_normal Ohm_char. Qed.
+Lemma Ohm_char : 'Ohm_n(G) \char G. Proof. exact: gFchar. Qed.
+Lemma Ohm_normal : 'Ohm_n(G) <| G. Proof. exact: gFnormal. Qed.
 
-Lemma Mho_char : 'Mho^n(G) \char G. Proof. exact: bgFunc_char. Qed.
-Lemma Mho_normal : 'Mho^n(G) <| G. Proof. exact: char_normal Mho_char. Qed.
+Lemma Mho_char : 'Mho^n(G) \char G. Proof. exact: gFchar. Qed.
+Lemma Mho_normal : 'Mho^n(G) <| G. Proof. exact: gFnormal. Qed.
 
 Lemma morphim_Ohm : forall f : {morphism D >-> rT},
   G \subset D -> f @* 'Ohm_n(G) \subset 'Ohm_n(f @* G).
-Proof. exact: morphim_sFunctor. Qed.
+Proof. exact: morphimF. Qed.
 
 Lemma injm_Ohm : forall f : {morphism D >-> rT},
   'injm f -> G \subset D -> f @* 'Ohm_n(G) = 'Ohm_n(f @* G).
-Proof. move=> f injf; exact: bgFunc_ascont. Qed.
+Proof. move=> f injf; exact: injmF. Qed.
 
 Lemma isog_Ohm : forall H : {group rT}, G \isog H -> 'Ohm_n(G) \isog 'Ohm_n(H).
-Proof. move=> H; exact: bgFunc_isog. Qed.
+Proof. move=> H; exact: gFisog. Qed.
 
 Lemma isog_Mho : forall H : {group rT}, G \isog H -> 'Mho^n(G) \isog 'Mho^n(H).
-Proof. move=> H; exact: bgFunc_isog. Qed.
+Proof. move=> H; exact: gFisog. Qed.
 
 End char.
 
@@ -1872,7 +1872,7 @@ move=> G cGG; apply/eqP; rewrite eqn_leq; apply/andP; split.
   by rewrite big_cons -joingE -joing_idr -IHb joing_idl joing_idr set_cons.
 have [p p_pr ->] := rank_witness G; pose K := 'Mho^1(G).
 have ->: 'r_p(G) = logn p #|G / K|.
-  rewrite p_rank_abelian // card_quotient /= ?bgFunc_norm // -divgS ?Mho_sub //.
+  rewrite p_rank_abelian // card_quotient /= ?gFnorm // -divgS ?Mho_sub //.
   by rewrite -(mul_card_Ohm_Mho_abelian 1 cGG) mulnK ?cardG_gt0.
 case: (grank_witness G) => B genB <-; rewrite -genB.
 have: <<B>> \subset G by rewrite genB.
@@ -1882,7 +1882,7 @@ case: (set_0Vmem B) => [-> | [x Bx]].
 rewrite (cardsD1 x) Bx -{2 3}(setD1K Bx); set B' := B :\ x => ltB'm.
 rewrite -joingE -joing_idl -joing_idr -/<[x]> join_subG.
 case/andP=> Gx sB'G; rewrite cent_joinEl ?(sub_abelian_cent2 cGG) //.
-have nKx: x \in 'N(K) by rewrite -cycle_subG (subset_trans Gx) ?bgFunc_norm.
+have nKx: x \in 'N(K) by rewrite -cycle_subG (subset_trans Gx) ?gFnorm.
 rewrite quotientMl ?cycle_subG // quotient_cycle //= -/K.
 have le_Kxp_1: logn p #[coset K x] <= 1.
   rewrite -(dvdn_Pexp2l _ _ (prime_gt1 p_pr)) -p_part -order_constt.
@@ -2030,7 +2030,7 @@ suffices nth_abty: forall gT (G : {group gT}) i,
   apply: (@eq_from_nth _ 1%N) => // i lt_i_G; rewrite !nth_abty // -?eq_sz //.
   rewrite /lni (card_isog isoGH); apply: eq_bigr => p _; congr (p ^ _)%N.
   apply: eq_bigl => e; rewrite /lnO -!divgS ?(Ohm_leq _ (leqnSn _)) //=.
-  by have:= card_isog (bgFunc_isog _ isoGH) => /= eqF; rewrite !eqF.
+  by have:= card_isog (gFisog _ isoGH) => /= eqF; rewrite !eqF.
 move=> gT G i cGG.
 have: forall p, path leq 0 (map (logn p) (rev (abelian_type G))).
   move=> p; case: (abelian_type_gt1 G) (abelian_type_dvdn_sorted G).
