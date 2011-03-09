@@ -25,6 +25,7 @@ install:
 	install bin/ssrcoq $(COQBIN)
 
 clean:
+	$(MAKE) -C test/ clean
 	-$(COQMAKE) clean
 	rm -f $(COQMAKEFILE)
 	rm -rf ssreflect-$(VERSION) ssreflect-$(VERSION).tar.gz
