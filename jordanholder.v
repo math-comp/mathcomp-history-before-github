@@ -10,6 +10,27 @@ Require Import gseries.
 (* composition series of a given group. The second one is stronger : this     *)
 (* uniqueness still holds for A-invariant composition series of a same finite *)
 (* group.                                                                     *)
+(*           mkSec G1 G2 == alias for the pair (G1, G2) of groups in the same *)
+(*                          finGroupType, coerced to the quotient G1 / G2.    *)
+(*                          We call this quotient a section of G1 and G2      *)
+(*        section_isog s == canonical representative of the isomorphism class *)
+(*                          of the section s.                                 *)
+(*         mksrepr G1 G2 == canonical representative of the isomorphism class *)
+(*                          of the section of G1 and G2.                      *)
+(*             comps G s == s is a composition series for G : s is a          *)
+(*                          decreasing sequence of sugroups of G maxnormal one*)
+(*                          in the other and the last element of s is 1.      *)
+(*JordanHolderUniqueness == two composition series of the same group have the *)
+(*                          same factors up to permutation and isomorphism.   *)
+(*         maxainv A B C == C is a maximal proper normal subgroup of B        *)
+(*                          invariant by the external action of A.            *)
+(*           asimple A B == the maximal proper normal subgroup of B is 1      *)
+(*          acomps A G s == s is an A-invariant composition series for G i.e  *)
+(*                          s is a decreasing sequence of subgroups of G      *)
+(*                          maximally A-invariant one in the other and the    *)
+(*                          last element of s is 1.                           *)
+(* StrongJordanHolderUniqueness == two A-invariant composition series of the  *)
+(*         same group have the same factors up to permutation and isomorphism.*)
 (******************************************************************************)
 
 Import GroupScope.
@@ -91,12 +112,9 @@ suff siso12 : (section_isog ^~ H1) =1 (section_isog ^~ H2) .
 by move=> x /=; apply:isog_transr.
 Qed.
 
-Definition maprepr (s : seq section) := map section_repr s.
 
-Notation gTg := {group gT}.
-
-Definition mkfactors (G : gTg) (s : seq gTg) :=
-  maprepr (pairmap mkSec G s).
+Definition mkfactors (G : {group gT}) (s : seq {group gT}) :=
+  map section_repr (pairmap mkSec G s).
 
 End Sections.
 
@@ -696,6 +714,18 @@ apply: perm_eq_trans i2; exact: perm_eq_refl.
 Qed.
 
 End StrongJordanHolder.
+
+(* In the current state of the library these canonical structure declarations *)
+(* are never used elsewhere in the library                                    *)
+
+Canonical Structure section_subType.
+Canonical Structure section_eqType.
+Canonical Structure section_choiceType.
+Canonical Structure section_countType.
+Canonical Structure section_subCountType.
+Canonical Structure section_finType.
+Canonical Structure section_subFinType.
+Canonical Structure section_group.
 
 
 
