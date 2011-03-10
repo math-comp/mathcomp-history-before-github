@@ -8,7 +8,7 @@ Compiling a Coqide interface for ssreflect
 
 REQUIREMENTS 
 ============ 
-- Coq version 8.3
+- Coq version 8.3 (or 8.3pl1)
 - Gnu make version 3.81 or later
 
 Note that the production of a Coqide interface requires the Lablgtk
@@ -73,17 +73,16 @@ Every Coq vernacular file processed by ssrcoq should import the
 ssreflect library with the line:
 	  Require Import ssreflect.
 
-The tactics described in the documentation doc/SsrDoc of the ssreflect
-distribution will not work properly if this library is not
-loaded. Obviously, the ssreflect.vo file created by the command line
-above also needs to be in the Coq library path.
+The tactics described in the documentation will not work properly if this
+library is not loaded. Obviously, the ssreflect.vo file created by the command
+line above also needs to be in the Coq library path.
 
 
 CUSTOMIZATION OF THE PROOF GENERAL EMACS INTERFACE
 ==================================================
 
 The ssreflect distribution comes with a small configuration file
-src/pg-ssr.el to extend ProofGeneral (PG), a generic interface for
+pg-ssr.el to extend ProofGeneral (PG), a generic interface for
 proof assistants based on the customizable text editor Emacs, to the
 syntax of ssreflect.
 
