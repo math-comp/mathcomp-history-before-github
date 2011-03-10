@@ -8,7 +8,6 @@ COQMAKEFILE := Makefile.coq
 COQMAKE := +$(MAKE) -f $(COQMAKEFILE)
 
 all: $(COQMAKEFILE)
-	/bin/mkdir -p bin
 	$(COQMAKE) all
 
 $(COQMAKEFILE) config:
@@ -16,7 +15,7 @@ $(COQMAKEFILE) config:
 
 clean: $(COQMAKEFILE)
 	$(COQMAKE) clean
-	$(RM) -rf bin $(COQMAKEFILE)
+	$(RM) -rf $(COQMAKEFILE)
 
 tags:
 	$(COQBIN)coqtags `find . -name \*.v`
