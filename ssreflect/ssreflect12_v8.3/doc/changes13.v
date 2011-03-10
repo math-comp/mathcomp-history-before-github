@@ -16,15 +16,10 @@ Axiom f : nat -> nat -> nat.
 Lemma ex2 x y z : (x.+1 + y) + f (x.+1 + y) (z + (x + y).+1) = 0.
 Proof.
 rewrite [in f _ _]addSn.
-match goal with |- (x.+1 + y) + f (x + y).+1 (z + (x + y).+1) = 0 => idtac end.
 rewrite addSn -[X in _ = X]addn0.
-match goal with |- (x + y).+1 + f (x + y).+1 (z + (x + y).+1) = 0 + 0 => idtac end.
 rewrite -{2}[in X in _ = X](addn0 0).
-match goal with |- (x + y).+1 + f (x + y).+1 (z + (x + y).+1) = 0 + (0 + 0) => idtac end.
 rewrite [_.+1 in X in f _ X](addnC x.+1).
-match goal with |- (x + y).+1 + f (x + y).+1 (z + (y + x.+1)) = 0 + (0 + 0) => idtac end.
 rewrite [x.+1 + y as X in f X _]addnC.
-match goal with |- (x + y).+1 + f (y + x.+1) (z + (y + x.+1)) = 0 + (0 + 0) => idtac end.
 Admitted.
 
 (* evars in rewrite *)
