@@ -2,7 +2,7 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype finfun.
 Require Import bigop finset prime binomial fingroup morphism perm automorphism.
 Require Import quotient action commutator gproduct gfunctor ssralg finalg.
-Require Import zmodp cyclic pgroup center gseries jordanholder.
+Require Import zmodp cyclic pgroup center gseries.
 Require Import nilpotent sylow abelian finmodule.
 
 (******************************************************************************)
