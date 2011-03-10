@@ -75,10 +75,19 @@ Lemma test7 : forall x y (f : nat -> nat), f (x + y).+1 = f (y + x.+1).
 by move=> x y f; rewrite [(x.+1 + y) as X in (f X)]addnC.
 Qed.
 
-Lemma manual : forall x y z (f : nat -> nat -> nat),
-  (x + y).+1 + f (x + y).+1 (z + (x + y).+1) = 0.
-by move=> x y z f; rewrite [(x + y).+1 in X in f _ X](addnC x.+1); admit.
-Qed.
+Lemma manual x y z (f : nat -> nat -> nat) : (x + y).+1 + f (x.+1 + y) (z + (x + y).+1) = 0.
+Proof.
+rewrite [in f _]addSn.
+match goal with |- (x + y).+1 + f (x + y).+1 (z + (x + y).+1) = 0 => idtac end.
+rewrite -[X in _ = X]addn0.
+match goal with |- (x + y).+1 + f (x + y).+1 (z + (x + y).+1) = 0 + 0 => idtac end.
+rewrite -{2}[in X in _ = X](addn0 0).
+match goal with |- (x + y).+1 + f (x + y).+1 (z + (x + y).+1) = 0 + (0 + 0) => idtac end.
+rewrite [_.+1 in X in f _ X](addnC x.+1).
+match goal with |- (x + y).+1 + f (x + y).+1 (z + (y + x.+1)) = 0 + (0 + 0) => idtac end.
+rewrite [x.+1 + y as X in f X _]addnC.
+match goal with |- (x + y).+1 + f (y + x.+1) (z + (y + x.+1)) = 0 + (0 + 0) => idtac end.
+Admitted.
 
 Require Import fintype ssrnat finset fingroup gproduct.
 

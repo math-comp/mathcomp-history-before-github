@@ -13,11 +13,19 @@ Proof. by rewrite [ddouble _]/double !mulSn addnA addn0. Qed.
 
 (* contextual rewrite patterns *)
 Axiom f : nat -> nat -> nat. 
-Lemma ex2 x y z : (x + y).+1 + f (x + y).+1 (z + (x + y).+1) = 0.
+Lemma ex2 x y z : (x.+1 + y) + f (x.+1 + y) (z + (x + y).+1) = 0.
 Proof.
+rewrite [in f _ _]addSn.
+match goal with |- (x.+1 + y) + f (x + y).+1 (z + (x + y).+1) = 0 => idtac end.
+rewrite addSn -[X in _ = X]addn0.
+match goal with |- (x + y).+1 + f (x + y).+1 (z + (x + y).+1) = 0 + 0 => idtac end.
+rewrite -{2}[in X in _ = X](addn0 0).
+match goal with |- (x + y).+1 + f (x + y).+1 (z + (x + y).+1) = 0 + (0 + 0) => idtac end.
 rewrite [_.+1 in X in f _ X](addnC x.+1).
-match goal with |- ((x + y).+1 + f (x + y).+1 (z + (y + x.+1)) = 0) => admit end.
-Qed.
+match goal with |- (x + y).+1 + f (x + y).+1 (z + (y + x.+1)) = 0 + (0 + 0) => idtac end.
+rewrite [x.+1 + y as X in f X _]addnC.
+match goal with |- (x + y).+1 + f (y + x.+1) (z + (y + x.+1)) = 0 + (0 + 0) => idtac end.
+Admitted.
 
 (* evars in rewrite *)
 Lemma ex3 (x : 'I_2) y (le_1 : y < 1) (E : val x = y) : Some x = insub y.
@@ -53,14 +61,18 @@ Proof. by move=> /eqP /andP [/andP [_ ->] _]. Qed.
 Lemma ex8 (n := 3) : n = 3.
 Proof. by move: @n => m. Qed.
 
+(* elim *)
 Function plus (m n : nat) {struct n} : nat :=
    match n with
    | 0 => m
    | S p => S (plus m p)
    end.
-
-Lemma exF x y z: plus (plus x y) z = plus x (plus y z).
-Proof. by elim/plus_ind: z / _ => //= _ z' _ ->. Qed.
+Lemma ex9  x y z: plus (plus x y) z = plus x (plus y z).
+Proof. by elim/plus_ind: {z}_ => //= _ z' _ ->. Qed.
+Lemma ex10 x y z: plus (plus x y) z = plus x (plus y z).
+Proof. by elim/plus_ind: {z}(plus _ _) => //= _ z' _ ->. Qed.
+Lemma ex11 x y z: plus (plus x y) z = plus x (plus y z).
+Proof. by elim/plus_ind: z / (plus _ z) => //= _ z' _ ->. Qed.
 
 
 
