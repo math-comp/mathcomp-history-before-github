@@ -364,6 +364,63 @@ Proof. by move=> x; rewrite /maximal_eq !eqEsubset !conjSg maximalJ. Qed.
 
 End QuoMax.
 
+Section MaxNormalProps.
+
+Variables (gT : finGroupType).
+
+Implicit Types A B C : {set gT}.
+Implicit Types G H K : {group gT}.
+
+Lemma maxnormal_normal : forall A B, maxnormal A B B -> A <| B.
+Proof.
+move=> A B; case/maxsetP; case/and3P; move/gen_set_id=> /= -> pAB nAB _.
+by rewrite /normal proper_sub.
+Qed.
+
+Lemma maxnormal_proper : forall A B C, maxnormal A B C -> A \proper B.
+Proof.
+move=> A B C; case/maxsetP; case/andP=> gA; case/andP=> pAB _ _.
+exact: (sub_proper_trans (subset_gen A)).
+Qed.
+
+Lemma maxnormal_sub : forall A B C, maxnormal A B C -> A \subset B.
+Proof.
+move=> A B C hmax; rewrite proper_sub //; exact: (maxnormal_proper hmax).
+Qed.
+
+Lemma ex_maxnormal_ntrivg : forall G,
+  G :!=: 1-> {N : {group gT} | maxnormal N G G}.
+Proof.
+move=> G ntG; apply: ex_maxgroup; exists [1 gT]%G; rewrite norm1 proper1G.
+by rewrite subsetT ntG.
+Qed.
+
+Lemma maxnormalM : forall G H K,
+  maxnormal H G G -> maxnormal K G G -> H :<>: K -> H * K = G.
+Proof.
+move=> G N1 N2 pmN1 pmN2 neN12.
+have cN12 : commute N1 N2.
+  apply: normC; apply: (subset_trans (maxnormal_sub pmN1)).
+  by rewrite normal_norm ?maxnormal_normal.
+wlog nsN21 : G N1 N2 pmN1 pmN2 neN12 cN12/ ~~(N1 \subset N2).
+  move/eqP: (neN12); rewrite eqEsubset negb_and; case/orP=> ns; first by apply.
+  by rewrite cN12; apply=> //; apply: sym_not_eq.
+have nP : N1 * N2 <| G by rewrite normalM ?maxnormal_normal.
+have sN2P : N2 \subset N1 * N2 by rewrite mulg_subr ?group1.
+case/maxgroupP: (pmN2); case/andP=> nN2G pN2G mN2.
+have contr : (N1 <*> N2) \proper G -> (N1 <*> N2) == N2.
+  move => ne; apply/eqP=> /=; apply: mN2 => //=; rewrite ?ne comm_joingE //.
+  by rewrite normal_norm.
+suff h: ~~ (N1 * N2 \proper G).
+  apply/eqP; rewrite eqEproper h.
+  by rewrite mul_subG // ?(maxnormal_sub pmN1) ?(maxnormal_sub pmN2).
+rewrite -comm_joingE //; apply: (contra contr).
+rewrite comm_joingE // eqEsubset negb_and sN2P orbF; apply/negP=> h.
+apply: (negP nsN21); apply: subset_trans h; apply: mulG_subl.
+Qed.
+
+End MaxNormalProps.
+
 Section Simple.
 
 Implicit Types gT rT : finGroupType.

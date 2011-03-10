@@ -3,7 +3,14 @@ Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq path choice fintype.
 Require Import bigop finset fingroup morphism automorphism quotient action.
 Require Import gseries.
 
-(* DOCUMENTATION TO DO !!! *)
+(******************************************************************************)
+(* This files establishes the proof of the Jordan-Hölder theorem for finite   *)
+(* groups. We give two versions of the result: the first one establishes the  *)
+(* uniqueness up to permutation and isomorphism of the lists of factors in    *)
+(* composition series of a given group. The second one is stronger : this     *)
+(* uniqueness still holds for A-invariant composition series of a same finite *)
+(* group.                                                                     *)
+(******************************************************************************)
 
 Import GroupScope.
 
@@ -11,84 +18,16 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-(* Additional properties on maxnormal groups. To be  moved in maximal
-once generalised *)
-
-Section MaxNormalProps.
-
-Variables (gT : finGroupType).
-
-Implicit Types A B C : {set gT}.
-Implicit Types G H K : {group gT}.
-
-Lemma maxnormal_sub_normal : forall A B C,
-  C \subset B -> maxnormal A C B -> A <| B.
-Proof.
-move=> A B C sCB; case/maxsetP; case/and3P; move/gen_set_id=> /= -> pAC sBN _.
-by rewrite /normal (subset_trans (proper_sub pAC)).
-Qed.
-
-Lemma maxnormal_normal : forall A B, maxnormal A B B -> A <| B.
-Proof. by move=> A B mABB; apply: (maxnormal_sub_normal (subxx B)). Qed.
-
-Lemma maxnormal_proper : forall A B C, maxnormal A B C -> A \proper B.
-Proof.
-move=> A B C; case/maxsetP; case/andP=> gA; case/andP=> pAB _ _.
-exact: (sub_proper_trans (subset_gen A)).
-Qed.
-
-Lemma maxnormal_sub : forall A B C, maxnormal A B C -> A \subset B.
-Proof.
-move=> A B C hmax; rewrite proper_sub //; exact: (maxnormal_proper hmax).
-Qed.
-
-Lemma ex_maxnormal_ntrivg : forall G,
-  G :!=: 1-> {N : {group gT} | maxnormal N G G}.
-Proof.
-move=> G ntG; apply: ex_maxgroup; exists [1 gT]%G; rewrite norm1 proper1G.
-by rewrite subsetT ntG.
-Qed.
-
-Lemma ex_maxnormal_normal : forall G H K,
-  K <| G -> K \proper G -> {H : {group gT} | maxnormal H G K}.
-Proof.
-move=> G H K nKG; case/andP=> _ pKG; apply: ex_maxgroup; exists K.
-by rewrite normG /proper andbT normal_sub.
-Qed.
-
-Lemma maxnormalM : forall G H K,
-  maxnormal H G G -> maxnormal K G G -> H :<>: K -> H * K = G.
-Proof.
-move=> G N1 N2 pmN1 pmN2 neN12.
-have cN12 : commute N1 N2.
-  apply: normC; apply: (subset_trans (maxnormal_sub pmN1)).
-  by rewrite normal_norm ?maxnormal_normal.
-wlog nsN21 : G N1 N2 pmN1 pmN2 neN12 cN12/ ~~(N1 \subset N2).
-  move/eqP: (neN12); rewrite eqEsubset negb_and; case/orP=> ns; first by apply.
-  by rewrite cN12; apply=> //; apply: sym_not_eq.
-have nP : N1 * N2 <| G by rewrite normalM ?maxnormal_normal.
-have sN2P : N2 \subset N1 * N2 by rewrite mulg_subr ?group1.
-case/maxgroupP: (pmN2); case/andP=> nN2G pN2G mN2.
-have contr : (N1 <*> N2) \proper G -> (N1 <*> N2) == N2.
-  move => ne; apply/eqP=> /=; apply: mN2 => //=; rewrite ?ne comm_joingE //.
-  by rewrite normal_norm.
-suff h: ~~ (N1 * N2 \proper G).
-  apply/eqP; rewrite eqEproper h.
-  by rewrite mul_subG // ?(maxnormal_sub pmN1) ?(maxnormal_sub pmN2).
-rewrite -comm_joingE //; apply: (contra contr).
-rewrite comm_joingE // eqEsubset negb_and sN2P orbF; apply/negP=> h.
-apply: (negP nsN21); apply: subset_trans h; apply: mulG_subl.
-Qed.
-
-End MaxNormalProps.
-
-(**************************************************************************)
-(* Group chains like composition series, normal series, chief series, are *)
-(* described in term of the associates series of quotients of adjacent    *)
-(* elements. To describe these quotients avoiding the heavy use of highly *)
-(* polymorphic lists, we represent the quotients by pairs of adjacent     *)
-(* elements in a chain. We call such a pair a section.                    *)
-(**************************************************************************)
+(******************************************************************************)
+(* Jordan Hölder describes properties of the series of quotients              *)
+(* associated with a composition series. To describe these quotients          *)
+(* and avoid the heavy use of highly polymorphic lists, we represent the      *)
+(* quotients by pairs of adjacent elements in a chain. We call such a pair    *)
+(* a section. Each section is associated with an isomorphism class. Since     *)
+(* all these object live in a finite universe we can pick representatives     *)
+(* of these isomorphism classes and compare lists of representative up to     *)
+(* permutation.                                                               *)
+(******************************************************************************)
 
 Section Sections.
 
@@ -156,15 +95,12 @@ Definition maprepr (s : seq section) := map section_repr s.
 
 Notation gTg := {group gT}.
 
-(*From a seq of groups to the associated seq of representatives of factors *)
 Definition mkfactors (G : gTg) (s : seq gTg) :=
   maprepr (pairmap mkSec G s).
 
 End Sections.
 
 Infix "/" := mkSec : section_scope.
-
-(*Prenex Implicits perm_eq.*)
 
 Section CompositionSeries.
 
@@ -176,15 +112,10 @@ Notation gTg := {group gT}.
 Implicit Type G : gTg.
 Implicit Type s : seq gTg.
 
-(*******************************************)
-(*  Composition series for G :             *)
-(* - successive proper maxnormal subgroups *)
-(* - starts with a proper max for G        *)
-(* - ends with 1                           *)
-(*******************************************)
 
-Definition comps G s :=
-  ((last G s) == 1%G) && path [rel x y : gTg | maxnormal y x x] G s.
+Local Notation compo := [rel x y : {set gT} | maxnormal y x x].
+
+Definition comps G s := ((last G s) == 1%G) && compo.-series G s.
 
 Lemma compsP : forall G s, reflect
   (last G s = 1%G /\  path [rel x y : gTg | maxnormal y x x] G s) (comps G s).
@@ -218,32 +149,27 @@ case/maxgroupP=> _; apply; rewrite ?sub1set //.
 by rewrite (maxnormal_proper mH) normal_norm // maxnormal_normal.
 Qed.
 
-
-(********************************************************)
-(* Existence of a composition serie for a finite group, *)
-(* by recursion on the cardinal.                        *)
-(********************************************************)
-
 Lemma exists_comps : forall G : gTg, exists s, comps G s.
 Proof.
 move=> G; elim: {G} #|G| {1 3}G (leqnn #|G|) => [G | n Hi G cG].
   by rewrite leqNgt cardG_gt0.
 case/orP: (orbN (simple G)) => [sG | nsG].
-  by exists [:: (1%G : gTg) ]; rewrite /comps eqxx /= -simple_maxnormal andbT.
+  exists [:: (1%G : gTg) ].
+  by rewrite /comps eqxx /=  -simple_maxnormal andbT.
 case/orP: (orbN (G :==: 1))=> [tG | ntG].
   by exists (Nil gTg); rewrite /comps /= andbT.
 case: (ex_maxnormal_ntrivg ntG)=> N pmN.
 have cN: #|N| <= n.
   by rewrite -ltnS (leq_trans _ cG) // proper_card // (maxnormal_proper pmN).
 case: (Hi _ cN)=> s; case/andP=> lasts ps; exists [:: N & s]; rewrite /comps.
-by rewrite last_cons lasts /= pmN.
+by rewrite last_cons lasts /=  pmN.
 Qed.
 
 
-(**************************************************************************)
-(* The factors associated to two composition series of the same group are *)
-(* the same up to isomorphism and permutation                             *)
-(**************************************************************************)
+(******************************************************************************)
+(* The factors associated to two composition series of the same group are     *)
+(* the same up to isomorphism and permutation                                 *)
+(******************************************************************************)
 
 Lemma JordanHolderUniqueness : forall (G : gTg) (s1 s2 : seq gTg),
   comps G s1 -> comps G s2 -> perm_eq (mkfactors G s1) (mkfactors G s2).
@@ -311,12 +237,17 @@ Qed.
 
 End CompositionSeries.
 
+(******************************************************************************)
+(* Helper lemmas for group actions. In the current state of the library, they *)
+(* did not proved useful elsewhere.                                           *) 
+(******************************************************************************)
 
 Section MoreGroupAction.
 
 Variables (aT rT : finGroupType).
 Variables (A : {group aT})(D : {group rT}).
 Variable to : groupAction A D.
+
 
 Lemma gactsP : forall G : {set rT}, 
   reflect {acts A, on G | to} [acts A, on G | to].
@@ -325,8 +256,6 @@ move=> G; apply: (iffP idP) => [nGA x|nGA]; first exact: acts_act.
 apply/subsetP=> a Aa; rewrite !inE; rewrite Aa.
 by  apply/subsetP=> x; rewrite inE nGA.
 Qed.
-
-
 
 Lemma gactsM : forall N1 N2 : {set rT}, 
   N1 \subset D -> N2 \subset D ->
@@ -344,7 +273,7 @@ Qed.
 Lemma gactsI : forall N1 N2 : {set rT}, 
   [acts A, on N1 | to] -> [acts A, on N2 | to] -> [acts A, on N1 :&: N2 | to].
 Proof.
-move=> N1 N2 (*sN1D sN2D*) aAN1 aAN2.
+move=> N1 N2 aAN1 aAN2.
 apply/subsetP=> x Ax; rewrite !inE Ax /=; apply/subsetP=> y Ny; rewrite inE.
 case/setIP: Ny=> N1y N2y; rewrite inE ?astabs_act  ?N1y ?N2y //.
 - by move/subsetP: aAN2; move/(_ x Ax).
@@ -362,6 +291,10 @@ Qed.
 
 End MoreGroupAction.
 
+(******************************************************************************)
+(* Helper lemmas for quotient actions. In the current state of the library,   *)
+(* they did not proved useful elsewhere.                                      *) 
+(******************************************************************************)
 
 Section MoreQuotientAction.
 
@@ -380,8 +313,8 @@ Lemma acts_qact_doms : forall H : {group rT}, H \subset D ->
 Proof.
 move=> H sHD aH; apply/eqP; rewrite eqEsubset; apply/andP. 
 split; first exact: qact_dom_doms.
-apply/subsetP=> x Ax; rewrite qact_domE //; apply/gastabsP=> //; move/gactsP: aH.
-by move/(_ x Ax).
+apply/subsetP=> x Ax; rewrite qact_domE //; apply/gastabsP=> //.
+by move/gactsP: aH; move/(_ x Ax).
 Qed.
 
 Lemma qacts_cosetpre : forall (H : {group rT})(K' : {group coset_groupType H}),
@@ -389,7 +322,7 @@ Lemma qacts_cosetpre : forall (H : {group rT})(K' : {group coset_groupType H}),
   [acts A, on (coset H @*^-1 K') | to].
 Proof.
 move=> H K' sHD aH aK'.
-apply/subsetP=> x Ax; move/subsetP: aK'. (* rewrite acts_qact_doms. ? *)
+apply/subsetP=> x Ax; move/subsetP: aK'.
 move: (Ax); rewrite -{1}(acts_qact_doms sHD aH)=> qdx; move/(_ x qdx) => nx.
 rewrite !inE Ax; apply/subsetP=> y; case/morphpreP=> Ny /= K'Hy; rewrite inE.
 apply/morphpreP; split; first by rewrite acts_qact_dom_norm.
@@ -410,7 +343,7 @@ Qed.
 
 End MoreQuotientAction.
 
-Section StrongJordanHolderAux.
+Section StableCompositionSeries.
 
 Variables (aT rT : finGroupType).
 Variables (D : {group rT})(A : {group aT}).
@@ -472,7 +405,7 @@ case/maxgroupP: (pmN2); case/andP=> nN2G pN2G mN2.
 case/andP: pN1G=> nsGN1 ha1; case/andP: pN2G=> nsGN2 ha2.
 case e : (G \subset N1 * N2).
   by apply/eqP; rewrite eqEsubset e mulG_subG !normal_sub.
-have: N1 <*> N2 = N2 by apply: mN2; rewrite /= ?comm_joingE // nP e gactsM.
+have: N1 <*> N2 = N2 by apply: mN2; rewrite /= ?comm_joingE // nP e /= gactsM.
 by rewrite comm_joingE // => h; move: nsN21; rewrite -h mulg_subl.
 Qed.
 
@@ -493,7 +426,7 @@ move=> K; apply: (iffP idP).
 case=> ntK h; apply/maxgroupP; split.
   move: ntK; rewrite eqEsubset sub1G andbT normal1; move->.
   apply/subsetP=> a Da; rewrite !inE Da /= sub1set !inE.
-  by rewrite /= -actmE // morph1 eqxx. (* redundant *)
+  by rewrite /= -actmE // morph1 eqxx.
 move=> H; case/andP=> nHK; case/andP=> nsKH ha _.
 case: (h _ nHK ha)=> //; move/eqP; rewrite eqEsubset.
 by rewrite (negbTE nsKH) andbF.
@@ -540,11 +473,6 @@ rewrite (maxainv_norm mH); case/andP: (maxainv_proper mH)=> _ ->.
 exact: (maxainv_ainvar mH).
 Qed.
 
-(*********************************************************)
-(* Existence of a composition series for a finite group, *)
-(* by recursion on the cardinal.                         *)
-(*********************************************************)
-
 Lemma exists_acomps : forall K : {group rT}, exists s, acomps K s.
 Proof.
 move=> K; elim: {K} #|K| {1 3}K (leqnn #|K|) => [K | n Hi K cK].
@@ -561,22 +489,18 @@ by rewrite last_cons lasts /= pmN.
 Qed.
 
 
-End StrongJordanHolderAux.
+End StableCompositionSeries.
 
 
 Section StrongJordanHolder.
 
 
-Section Aux.
+Section AuxiliaryLemmas.
 
 Variables (aT rT : finGroupType).
 Variables (A : {group aT})(D : {group rT}).
 Variable to : groupAction A D.
 
-(*
-very dirty. I probably don't use external action lib. properly. also should
-extract properties of quotient actions and combination of actions & morphisms 
-*)
 Lemma maxainv_asimple_quo : forall G H : {group rT},
    H \subset D -> maxainv to G H -> asimple (to / H) (G / H).
 Proof.
@@ -669,7 +593,7 @@ move: (second_isog nN21); rewrite setIC; move/card_isog->; rewrite -he.
 by move/card_isog: iHK=> <-; rewrite leqnn.
 Qed.
 
-End Aux.
+End AuxiliaryLemmas.
 
 
 
@@ -677,6 +601,10 @@ Variables (aT rT : finGroupType).
 Variables (A : {group aT})(D : {group rT}).
 Variable to : groupAction A D.
 
+(******************************************************************************)
+(* The factors associated to two A-stable composition series of the same      *)
+(* group are the same up to isomorphism and permutation                       *)
+(******************************************************************************)
 
 Lemma StrongJordanHolderUniqueness : 
   forall (G : {group rT}) (s1 s2 : seq {group rT}),
@@ -768,7 +696,6 @@ apply: perm_eq_trans i2; exact: perm_eq_refl.
 Qed.
 
 End StrongJordanHolder.
-
 
 
 
