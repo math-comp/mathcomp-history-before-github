@@ -14,8 +14,8 @@ REQUIREMENTS
 Note that the production of a Coqide interface requires the Lablgtk
 development files and the GTK libraries.
 
-PRODUCING THE SSRCOQ TOPLEVEL & THEORIES
-========================================
+PRODUCING THE SSRCOQ TOPLEVEL OR PLUGIN & THEORIES
+==================================================
 
 - We suppose that the Coq system, version 8.3 has been
 installed on your system, using a standard installation process. This
@@ -47,6 +47,11 @@ coq_makefile,...) accessible (by default they are put in
 - Go to the root of the ssreflect directory creating by the previous
   unpack.
 
+- By default the compilation will produce a dynamically loadable plugin.
+  If you prefer a statically linked toplevel, edit the Make file, comment out
+  the lines between the tags "<dynamic>" and uncomment the ones between the
+  tags "<static>".
+
 - Launch the compilation with the command:
   	 make
 
@@ -56,12 +61,21 @@ coq_makefile,...) accessible (by default they are put in
       	 make OCAMLOPT=ocamlopt.opt
 
 - This compilation should produce:
-  + a binary called ssrcoq, located in the bin/ subdirectory
+  + a binary called ssrcoq, located in the bin/ subdirectory or
+    a dynamically loadable plugin located in the src/ subdirectory
   + .vo compiled libraries in the theories/ subdirectory
 
-- You might want to add the path to this bin/ subdirectory to your
-  PATH variable, or to install the ssrcoq binary in a place already
-  stored in the PATH.
+- If you generated a dinamically lodable plugin, you may want to install it
+  scanned by the Coq system when a "Declare ML Module" directive is executed
+  typing:
+         make install
+  This command will also install .vo files in standard paths known to Coq.
+
+- If you generated a statically linked toplevel you may want to dd the path 
+  to this bin/ subdirectory to your PATH variable, or to install the ssrcoq 
+  binary in the same place where other Coq binaries are typing:
+         make install
+  This command will also install .vo files in standard paths known to Coq.
 
 - You can use this ssrcoq executable to compile vernacular .v files with
   the -compile flag (this also avoids the synchronization problems for

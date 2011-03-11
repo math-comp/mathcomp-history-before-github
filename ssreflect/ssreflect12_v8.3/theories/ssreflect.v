@@ -1,6 +1,8 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import Bool. (* For bool_scope delimiter 'bool'. *)
 
+Declare ML Module "ssreflect".
+
 (***************************************************************************)
 (* This file is the Gallina part of the ssreflect plugin implementation.   *)
 (* Files that use the ssreflect plugin should always Require ssreflect and *)

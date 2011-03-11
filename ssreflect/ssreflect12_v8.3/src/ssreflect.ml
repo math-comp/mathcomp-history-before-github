@@ -2,6 +2,7 @@
 
 (* This line is read by the Makefile's dist target: do not remove. *)
 let ssrversion = "1.3";; 
+let () = Mltop.add_known_module "ssreflect";;
 let () = 
   if Flags.is_verbose () && not !Flags.batch_mode && 
      (* This is needed when the plugin is statically linked. 
