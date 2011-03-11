@@ -86,6 +86,7 @@ qnum.v
 # polyorder.v
 # polyrcf.v
 # qe_rcf_th.v
+inertia.v
 PFsection1.v
 
 COQC = ssrcoq
