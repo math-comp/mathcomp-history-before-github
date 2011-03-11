@@ -1,8 +1,9 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
-Require Import fintype tuple finfun bigop prime ssralg poly finset.
+Require Import fintype tuple finfun bigop prime ssralg poly finset center.
 Require Import fingroup morphism perm automorphism quotient action zmodp.
-Require Import matrix mxalgebra mxrepresentation vector algC character inertia.
+Require Import matrix mxalgebra mxrepresentation cyclic.
+Require Import vector algC character inertia.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
