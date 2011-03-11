@@ -1262,7 +1262,7 @@ Local Notation "''Res[' G ]  f " := (crestrict G f) (at level 24).
 Lemma crestrictE : forall (G : {set gT}) f, {in G, 'Res[G] f =1 f}.
 Proof. by move=> G f g H; rewrite cfunE H mul1r. Qed.
  
-Lemma cfun_subset : forall f (G H : {group gT}), 
+Lemma crestrict_in_cfun : forall f (G H : {group gT}), 
   H \subset G -> f \in 'CF(G) -> 'Res[H] f \in 'CF(H).
 Proof.
 move=> f G H Hsub fC; apply/cfun_memP; split.
@@ -1279,6 +1279,15 @@ Qed.
 
 Canonical Structure crestrit_linear G :=
   Linear (crestrict_is_linear G).
+
+Lemma crestrict_subset : 
+  forall (G  H : {set gT}) (f : cfun gT algC),
+  H \subset G -> 'Res[H] ('Res[G] f) = 'Res[H] f.
+Proof.
+move=> G H f HsG; apply/cfunP=> g.
+by rewrite !cfunE; case: (boolP (_ \in _))=> [HH|]; 
+   rewrite ?mul0r // (subsetP HsG) // !mul1r.
+Qed.
 
 End Restrict.
 
@@ -1705,6 +1714,13 @@ Qed.
 Lemma posC_char1 : forall chi : character, 0 <= chi 1%g.
 Proof. by move=> chi; apply: posC_isNatC; apply: (isNatC_character1 _). Qed.
 
+Lemma irr1_posC: forall (theta : irr G), 0 < theta 1%g.
+Proof.
+move=> theta.
+case/isNatCP: (isNatC_character1 (character_of_irr theta)) (irr1_neq0 theta).
+by move=> n /= ->; rewrite /ltC => ->; exact: posC_nat.
+Qed.
+
 Lemma clinear_norm_scalar : 
   forall (chi : character) n (rG : mx_representation algC G n) g,
    g \in G -> 
@@ -1817,6 +1833,28 @@ Definition is_comp (theta : irr G) (f : cfun gT algC) :=
 Lemma is_compE : forall i f, is_comp i f = (ncoord i f != 0).
 Proof. by []. Qed.
 
+Lemma is_compP : forall (theta : irr(G)) (chi : character),
+  reflect (exists chi' : character, 
+             chi = (theta : cfun _ _) + chi' :> cfun _ _) 
+          (is_comp theta chi).
+Proof.
+move=> theta chi; apply: (iffP idP)=>[HH|[chi' ->]]; last first.
+  rewrite /is_comp linearD /= ncoord_irr eqxx.
+  case/isNatCP: (char_isNatC_ncoord theta chi')=> n ->.
+  by rewrite -natr_add -neq0N_neqC.
+suff is_charC : is_char G ((chi : cfun _ _) - (theta : cfun _ _)).
+  by exists (Character is_charC); rewrite addrC subrK.
+apply/andP; split; last by rewrite memv_sub // character_in_cfun.
+apply/allP=> /= t _.
+rewrite linearD linearN /= ncoord_irr.
+case: (_ =P _)=> [->|_]; last first.
+  by rewrite subr0 char_isNatC_ncoord.
+move: HH; rewrite /is_comp.
+case/isNatCP: (char_isNatC_ncoord theta chi)=>  [] [|n] ->.
+  by case/negP.
+by rewrite -addn1 natr_add addrK isNatC_nat.
+Qed.
+
 Lemma is_comp_neq0 : forall f : character,
  f != character0 -> exists i, is_comp i f.
 Proof.
@@ -1845,6 +1883,7 @@ rewrite cfunE posC_mul //; last first.
 by rewrite posC_isNatC // (char_isNatC_ncoord t chi).
 Qed.
 
+
 Lemma is_char_conjC : forall chi : character, is_char G (chi^*)%CH.
 Proof.
 move=> chi; case: (charRE chi)=> n [rG <-].
@@ -1871,13 +1910,14 @@ Section MoreCharacter.
 Variable (gT : finGroupType) (G H : {group gT}) 
          (HsG : H \subset G).
 
-Definition character_rest (chi : character G) :=
+Definition character_restrict (chi : character G) :=
   Character (is_char_restrict HsG (is_char_character chi)).
 
-Definition irr_rest (theta : irr G) := character_rest (character_of_irr theta).
+Definition irr_restrict (theta : irr G) := 
+  character_restrict (character_of_irr theta).
 
 Lemma character_restE : forall chi : character G,
-  character_rest chi = 'Res[H] chi :> cfun _ _.
+  character_restrict chi = 'Res[H] chi :> cfun _ _.
 Proof. by []. Qed.
   
 End MoreCharacter.
@@ -2202,6 +2242,20 @@ move=> f; apply: posC_mul; first by rewrite posC_inv posC_nat.
 by rewrite posC_sum // => i _; rewrite /leC subr0 repC_pconj.
 Qed.
 
+Lemma inner_prod0l : forall f, '[0,f] = 0.
+Proof.
+move=> f.
+rewrite inner_prodE big1 ?mulr0 // => i.
+by rewrite cfunE mul0r.
+Qed.
+
+Lemma inner_prod0r : forall f, '[f,0] = 0.
+Proof.
+move=> f.
+rewrite inner_prodE big1 ?mulr0 // => i.
+by rewrite cfunE conjC0 mulr0.
+Qed.
+
 Lemma inner_prod0 : forall f, f \in 'CF(G) -> ('[f, f] == 0) = (f == 0).
 Proof.
 move=> f Hf; apply/eqP/eqP=> Hp; last first.
@@ -2356,10 +2410,32 @@ Proof.
 by move=> i; apply: cfun_of_irr_inj; rewrite !irr_conjCE cfun_conjCK.
 Qed.
 
+
 End InnerProduct.
 
 Notation "'[ u , v  ]_ G":=  (inner_prod (val G) u v) (at level 10).
 Notation "'[ u , v  ]_ G":=  (inner_prod (gval G) u v) (at level 10).
+
+Section MoreInnerProd.
+
+Variable gT : finGroupType.
+
+Lemma is_comp_inner_prod_le : 
+  forall (G  H : {group gT}) (theta : irr H) (chi : irr G) (psi : character G),
+  H \subset G -> is_comp chi psi -> 
+    '['Res[H] chi, theta]_H <= '['Res[H] psi, theta]_H.
+Proof.
+move=> G H theta chi psi HsG; case/is_compP=> chi' ->.
+rewrite linearD -!inner_prodbE linearD /= !inner_prodbE.
+rewrite addrC -leC_sub addrK.
+apply: posC_isNatC.
+rewrite -ncoord_inner_prod.
+  apply: is_char_isNatC_ncoord.
+  by exact: (is_char_restrict _ (is_char_character _)).
+by apply: (crestrict_in_cfun _ (character_in_cfun _)).
+Qed.
+
+End MoreInnerProd.
 
 Section Kernel.
 
@@ -3393,13 +3469,13 @@ Section Induced.
 
 Variable (gT : finGroupType).
 
-Definition induced  (G H : {set gT}) (f : cfun gT algC) := cfun_of_fun
+Definition cinduced  (G H : {set gT}) (f : cfun gT algC) := cfun_of_fun
  (fun g =>  #|H|%:R^-1 * \sum_(c | c \in G) f (g ^ c)).
 
-Local Notation "'Ind[ G , H ] f" := (induced G H f) (at level 24).
+Local Notation "'Ind[ G , H ] f" := (cinduced G H f) (at level 24).
 Variable (G H : {group gT}).
 
-Lemma induced_in_cfun : forall (f : cfun gT algC),
+Lemma cinduced_in_cfun : forall (f : cfun gT algC),
   H \subset G -> f \in 'CF(H) -> 'Ind[G,H] f \in 'CF(G).
 Proof.
 move=> f HsG Hf; apply/cfun_memP; split=> [g Hg|g h GiG HiG].
@@ -3414,13 +3490,25 @@ apply: eq_big=> [l|l _]; first by rewrite groupMl // groupV.
 by rewrite -conjgM mulgA mulgV mul1g.
 Qed.
 
-Lemma induced1 : forall f, 
+Lemma cinduced1 : forall f, 
   H \subset G -> ('Ind[G,H] f) 1%g = #|G:H|%:R * f 1%g.
 Proof.
 move=> f HsG; rewrite cfunE (eq_bigr (fun _ => f 1%g)).
   rewrite sumr_const -[(f _) *+ _]mulr_natl mulrA -(LaGrange HsG).
   by rewrite natr_mul mulrA mulVf ?mul1r // neq0GC.
 by move=> i; rewrite conj1g.
+Qed.
+
+Lemma induced0: forall (chi : character H),
+  H \subset G -> ('Ind[G,H] chi == 0) = (chi == 0%CH).
+Proof.
+move=> chi HsG; apply/eqP/eqP=>[|->]; last first.
+  by apply/cfunP=> g; rewrite !cfunE big1 ?mulr0 // => h _; rewrite cfunE.
+move/cfunP; move/(_ 1%g); rewrite cinduced1 // cfunE.
+move/eqP; rewrite mulf_eq0; case/orP.
+  rewrite -(eqN_eqC _ 0).
+  by case: #|_:_| (indexg_gt0 G H).
+by rewrite -character0_eq0; move/eqP.
 Qed.
 
 (* Isaacs' 5.2 *)
@@ -3457,7 +3545,7 @@ apply: eq_big=> [g|g]; rewrite negbK.
 by case/andP=> _ GiH; rewrite crestrictE.
 Qed.
 
-Lemma induced_conjC : forall f, ('Ind[G,H] f)^*%CH = 'Ind[G,H] (f^*)%CH.
+Lemma cinduced_conjC : forall f, ('Ind[G,H] f)^*%CH = 'Ind[G,H] (f^*)%CH.
 Proof.
 move=> f; apply/cfunP=> g.
 rewrite !cfunE rmorphM conjC_inv conjC_nat; congr (_ * _).
@@ -3468,11 +3556,11 @@ Qed.
 Lemma is_char_induced : forall (chi : character H),
    H \subset G -> is_char G ('Ind[G,H] chi).
 Proof.
-move=> chi HsG; have IiC := induced_in_cfun HsG (character_in_cfun chi).
+move=> chi HsG; have IiC := cinduced_in_cfun HsG (character_in_cfun chi).
 apply/andP; split=> //; apply/allP=> t _.
 rewrite ncoord_inner_prod // -frobenius_reciprocity
         ?(character_in_cfun,irr_in_cfun) // 
-        (inner_prod_char chi (irr_rest HsG t)).
+        (inner_prod_char chi (irr_restrict HsG t)).
 by apply: isNatC_sum => j _; rewrite isNatC_mul // char_isNatC_ncoord.
 Qed.
 
@@ -3488,20 +3576,20 @@ Proof.
 move=> t HsG.
 case: (boolP (irr_induced t HsG == character0 G))=> [HH|].
   have: irr_induced t HsG 1%g == 0 by rewrite (eqP HH) cfunE.
-  rewrite /= (induced1 t HsG)=> /=.
+  rewrite /= (cinduced1 t HsG)=> /=.
   rewrite mulf_eq0 (negPf (irr1_neq0 _)) orbF -(eqN_eqC _ 0).
   by case: indexg (indexg_gt0 G H).
 case/is_comp_neq0=> j Hj; exists j.
-pose cr := irr_rest HsG j.
+pose cr := irr_restrict HsG j.
 rewrite is_compE  ncoord_inner_prod ?(character_in_cfun cr) //.
 rewrite (inner_prod_charC cr) /=.
 rewrite frobenius_reciprocity ?irr_in_cfun //.
-by rewrite -ncoord_inner_prod // ?induced_in_cfun // irr_in_cfun.
+by rewrite -ncoord_inner_prod // ?cinduced_in_cfun // irr_in_cfun.
 Qed.
 
 End Induced.
 
-Notation "''Ind[' G , H ]  f " := (induced G H f) (at level 24).
+Notation "''Ind[' G , H ]  f " := (cinduced G H f) (at level 24).
 
 Section Inertia.
 
@@ -3585,7 +3673,7 @@ by rewrite !cfun_conjE -!conjgM mulgV conjg1.
 Qed.
  
 (* Isaacs' 6.1.d *)
-Lemma cfun_conj_inner_rest : forall (f1 f2 : cfun _ _) (g : gT),
+Lemma cfun_conj_inner_restrict : forall (f1 f2 : cfun _ _) (g : gT),
  H <| G -> f1 \in 'CF(G) ->  g \in G -> 
    ('['Res[H] f1,f2^g]_H = '['Res[H] f1,f2]_H)%CH.
 Proof.
@@ -3742,7 +3830,7 @@ Lemma is_comp_clifford :  forall (chi : irr G) (theta : irr H),
 Proof.
 move=> chi theta HnG IC.
 rewrite -cconjugates_sum //=.
-pose cr := character_rest (normal_sub HnG) (character_of_irr chi).
+pose cr := character_restrict (normal_sub HnG) (character_of_irr chi).
 have CFchi: 'Res[H] chi \in 'CF(H) by apply: (character_in_cfun cr).
 rewrite {1}(ncoord_sum CFchi).
 rewrite (bigID (fun i : irr H => (i : cfun _ _)  \in cconjugates G theta)) /=.
@@ -3750,7 +3838,7 @@ rewrite [\sum_(i | _ \notin _)_]big1 ?addr0=> [|phi].
   rewrite scaler_sumr; apply: eq_bigr=> phi Hp; congr (_ *: _).
   rewrite (ncoord_inner_prod _ CFchi).
   case/cconjugatesP: Hp => g GiG ->.
-  by apply: cfun_conj_inner_rest=> //; exact: character_in_cfun.
+  by apply: cfun_conj_inner_restrict=> //; exact: character_in_cfun.
 move=> HH.
 have: '['Res[H] ('Ind[G,H] theta), phi]_H = 0.
   have->: 'Res[H] ('Ind[G,H] theta) = 
@@ -3772,7 +3860,7 @@ have: '['Res[H] ('Ind[G,H] theta), phi]_H = 0.
   by apply/cconjugatesP; exists g.
 rewrite (ncoord_inner_prod _ CFchi).
 have CFInd: ('Ind[G, H] theta) \in 'CF(G).
-   by apply: (induced_in_cfun (normal_sub HnG)); exact: irr_in_cfun.
+   by apply: (cinduced_in_cfun (normal_sub HnG)); exact: irr_in_cfun.
 rewrite {1}(ncoord_sum CFInd) linear_sum /=.
 rewrite -inner_prodbE linear_sum /= => HH1. 
 have: '['Res[H] (ncoord chi ('Ind[G, H] theta) *: (chi: cfun _ _)),phi]_H = 0.
@@ -3820,7 +3908,7 @@ Proof.
 move=> chi theta HnG IC.
 exists (getNatC ('['Res[H] chi, theta ]_ H) * (size (cconjugates G theta)))%N.
 rewrite natr_mul.
-pose cr := character_rest (normal_sub HnG) (character_of_irr chi).
+pose cr := character_restrict (normal_sub HnG) (character_of_irr chi).
 move: (inner_prod_char_nat cr (character_of_irr theta)).
 rewrite getNatCP=> /=; move/eqP<-.
 have->: chi 1%g = ('Res[H] chi) 1%g by rewrite !cfunE !(group1,mul1r).
@@ -3841,7 +3929,7 @@ Lemma cconjugates_induced : forall (f1 f2 : cfun gT algC),
 Proof.
 move=> f1 f2 HnG Cf1 Cf2 HH; case/cconjugatesP: HH Cf2=> g GiG -> Cf2.
 apply/cfunP=> h; case: (boolP (h \in G))=> [HiG| HniG]; last first.
-rewrite !(cfun0 (induced_in_cfun _ _)) ?(normal_sub HnG) //.
+rewrite !(cfun0 (cinduced_in_cfun _ _)) ?(normal_sub HnG) //.
 rewrite !cfunE; congr (_ * _).
 rewrite (reindex (mulg^~ g^-1%g)); last first.
   by exists (mulg^~ g)=> h1 _; rewrite -mulgA (mulgV,mulVg) mulg1.
@@ -3849,10 +3937,357 @@ apply: eq_big=> [|h1 H1iG]; last by rewrite cfun_conjE conjgM.
 by move=> h1 /=; rewrite groupMr // groupV.
 Qed.
 
+Lemma cconjugates_size : forall (theta : irr H), 
+  size (cconjugates G theta) =  #|G : ('I_(G)[theta])%CH|.
+Proof.
+move=> theta.
+suff->: size(cconjugates G theta) = 
+       \big[addn/0%N]_(i <- cconjugates G theta) 1%N.
+  rewrite big_map big_filter /=.
+  rewrite big_const /= /indexg.
+  by elim: #|_|=> //= n ->.
+elim: cconjugates=> [|f1 l /= ->]; first by rewrite big_nil.
+by rewrite big_cons.
+Qed.
 
 End Inertia.
 
 Notation "''I_(' G ) [ f ] " := (inertia G f) 
   (at level 8, format "''I_(' G ) [ f ]").
 
+Section MoreInertia.
 
+Variable gT : finGroupType.
+
+Lemma cconjugates_inertia : forall (G H : {group gT}) (theta : irr H),
+   cconjugates 'I_(G)[theta] theta = [::(theta : cfun _ _)].
+Proof.
+move=> G H theta.
+have: forall f, f \in cconjugates 'I_(G)[theta] theta -> f = theta.
+  move=> f; case/cconjugatesP=> g.
+  by rewrite inE; case/andP=> _; move/eqP->.
+pose IG := [group of 'I_(G)[theta]].
+move: (mem_cconjugates IG theta) (unique_cconjugates IG theta) => /=. 
+case: cconjugates=> // f1 [|f2 s]; first by rewrite inE; move/eqP->.
+move=> _ /=; case/andP=> HH _ HH1; case/negP: HH.
+by rewrite /= (HH1 f1) ?(inE,eqxx) // (HH1 f2) ?(inE,eqxx,orTb,orbT).
+Qed.
+
+End MoreInertia.
+
+Section S611.
+
+Variable (gT : finGroupType).
+
+Section S611A.
+
+Variable (H G : {group gT}).
+
+Variable theta : irr H.
+
+Let T := [group of 'I_(G)[theta]].
+
+Hypothesis HnG : H <| G.
+
+Let TsG := inertia_sub G theta.
+
+Let HsT : H \subset T.
+Proof.
+apply: subset_inertia=> //.
+by exact: irr_in_cfun.
+Qed.
+
+Let HnT : H <| T.
+apply: normalS (HnG).
+  apply: subset_inertia=> //.
+  by exact: irr_in_cfun.
+exact: inertia_sub.
+Qed.
+
+Section Chi.
+
+Variable psi : irr T.
+
+Hypothesis Hpsi : is_comp theta ('Res[H] psi).
+
+Variable chi : irr G.
+
+Hypothesis Hchi : is_comp chi ('Ind[G,T] psi).
+
+Let chir := character_restrict TsG (character_of_irr chi).
+
+Lemma is_comp_inertia_restrict_is_comp_i : is_comp psi chir.
+Proof.
+rewrite /is_comp ncoord_inner_prod; last first.
+  by apply: (crestrict_in_cfun _ (character_in_cfun _)).
+move: Hchi.
+rewrite /is_comp ncoord_inner_prod; last first.
+by apply cinduced_in_cfun=> //; apply: irr_in_cfun.
+rewrite -frobenius_reciprocity ?(irr_in_cfun, character_in_cfun) //.
+by rewrite (inner_prod_charC (character_of_irr psi) chir).
+Qed.
+
+Let psir :=  character_restrict HsT (character_of_irr psi).
+
+Let chir' :=  character_restrict (normal_sub HnG) (character_of_irr chi).
+
+Lemma is_comp_inertia_restrict_is_comp_g : is_comp theta ('Res[H] chi).
+Proof.
+move: (is_comp_inner_prod_le theta HsT is_comp_inertia_restrict_is_comp_i).
+rewrite crestrict_subset //.
+rewrite -!ncoord_inner_prod ?(character_in_cfun psir) //; last first.
+  exact: (character_in_cfun chir').
+move: Hpsi; rewrite /is_comp /=.
+case/isNatCP: (char_isNatC_ncoord theta psir)=> n ->.
+case/isNatCP: (char_isNatC_ncoord theta chir')=> m ->.
+by rewrite -!neq0N_neqC -leq_leC; case: m=> //; case: n.
+Qed.
+
+Let e := '['Res[H] chi, theta ]_ H.
+
+Let f := '['Res[H] psi, theta ]_ H.
+
+Let He : 'Res[H] chi = e *: (\sum_(f <- cconjugates G theta) f).
+Proof. exact: (is_comp_clifford HnG is_comp_inertia_restrict_is_comp_g). Qed.
+
+Let Hf  : 'Res[H] psi = f *: (theta : cfun _ _).
+Proof.
+move: (is_comp_clifford  HnT Hpsi).
+rewrite cconjugates_inertia.
+by rewrite big_cons big_nil addr0.
+Qed.
+
+Let He1 : chi 1%g = e * #|G : T|%:R * (theta 1%g).
+Proof.
+move/cfunP: He; move/(_ 1%g).
+rewrite cfunE group1 mul1r => ->.
+rewrite cfunE sum_cfunE cfunE -mulrA; congr (_ * _).
+rewrite -cconjugates_sum //=.
+rewrite (eq_bigr (fun (i: irr H) => theta 1%g))=> [|i]; last first.
+  case/cconjugatesP=> g GiG ->.
+  by rewrite cfun_conj_val1.
+rewrite (cconjugates_sum _ (fun i : cfun _ _ => theta 1%g)) //=.
+rewrite -cconjugates_size.
+elim: cconjugates=> [|f1 l IH].
+  by rewrite big_nil mul0r.
+by rewrite big_cons IH /= -add1n natr_add mulr_addl mul1r.
+Qed.
+
+Let Hpsi1  : ('Ind[G, T] psi) 1%g = f * #|G : T|%:R * (theta 1%g).
+Proof.
+pose psii := character_induced (character_of_irr psi) TsG.
+rewrite cfunE.
+rewrite (eq_bigr (fun (c : gT) => psi 1%g))=> [|g GiG]; last first.
+  by rewrite conj1g.
+rewrite sumr_const.
+move/cfunP: Hf; move/(_ 1%g).
+rewrite cfunE group1 mul1r => ->.
+rewrite [fun_of_cfun (_ *: _) _]cfunE.
+apply: (mulfI (neq0GC T)).
+rewrite mulrA mulfV ?neq0GC // mul1r. 
+rewrite mulrCA  mulrA -[_ *+ #|_|]mulr_natl mulrA; congr (_ * _).
+rewrite [_ * f]mulrC -[(f * _) * _]mulrA [#|_ : _|%:R * _]mulrC.
+by rewrite -natr_mul LaGrange.
+Qed.
+
+Lemma inner_prod_is_comp_inertia_is_comp : f = e.
+have F3 : f <= e.
+  move: (is_comp_inner_prod_le theta HsT is_comp_inertia_restrict_is_comp_i).
+  rewrite Hf /= crestrict_subset // He.
+  rewrite -!inner_prodbE linearZ [inner_prodb _ _ _]linearZ /= !inner_prodbE.
+  rewrite irr_orthonormal eqxx {1}/GRing.scale /= mulr1.
+  rewrite -cconjugates_sum //=.
+  rewrite (bigD1 theta) /=; last first.
+    apply/cconjugatesP; exists 1%g; first by exact: group1.
+    by rewrite cfun_conj1.
+  rewrite-!inner_prodbE linearD /= !inner_prodbE.
+  rewrite scaler_addr irr_orthonormal eqxx {1}/GRing.scale /= mulr1.
+  rewrite -!inner_prodbE linear_sum.
+  rewrite big1=> [|i Hi]; last first.
+    rewrite /= inner_prodbE irr_orthonormal.
+    by case/andP: Hi=> _; move/negPf->.    
+  by rewrite scaler0 addr0.
+apply: leC_anti=> //.
+have: 0 <  #|G : T|%:R * theta 1%g.
+  rewrite sposC_mul // ?irr1_posC //.
+  rewrite /ltC -neq0N_neqC posC_nat.
+  by case: #|_:_| (indexg_gt0 G T).
+move/leC_pmul2r=> <-.
+rewrite mulrA -He1 mulrA -Hpsi1.
+pose psii := character_induced (character_of_irr psi) TsG.
+have: is_comp chi psii by [].
+case/is_compP=> chi' /= ->.
+rewrite [fun_of_cfun (_ + _) 1%g]cfunE.
+rewrite addrC -leC_sub addrK.
+by apply: posC_isNatC; apply: isNatC_character1.
+Qed.
+
+Lemma is_comp_inertia_induced_is_comp : 'Ind[G, T] psi = chi.
+Proof.
+pose psii := character_induced (character_of_irr psi) TsG.
+have: is_comp chi psii by [].
+case/is_compP=> chi' /= Hchi'; rewrite Hchi'.
+move/cfunP: Hchi'; move/(_ 1%g).
+rewrite Hpsi1 inner_prod_is_comp_inertia_is_comp -He1.
+rewrite [fun_of_cfun (_ + _) _]cfunE -{1}[chi _]addr0; move/addrI.
+move/eqP; rewrite eq_sym -character0_eq0; move/eqP->.
+by rewrite addr0.
+Qed.
+
+End Chi.
+
+Variable psi : irr T.
+
+Hypothesis Hpsi : is_comp theta ('Res[H] psi).
+
+Let chi := (odflt (irr1 G) (pick ((@is_comp _ G)^~ ('Ind[G,T] psi)))).
+
+Let Hchi : is_comp chi ('Ind[G,T] psi).
+Proof.
+rewrite /chi; case: pickP=> // HH.
+have: 'Ind[G, T] psi == 0.
+  rewrite (ncoord_sum (cinduced_in_cfun _ _)) ?irr_in_cfun //.
+  rewrite big1 // => i _.
+  move: (HH i); rewrite /is_comp; move/idP; move/negP.
+  by rewrite negbK; move/eqP->; rewrite scale0r.
+rewrite (induced0 (character_of_irr psi) TsG).
+move/eqP; move/val_eqP=>/=; move/eqP; move/cfunP; move/(_ 1%g)=> HH1.
+by case/negP: (irr1_neq0 psi); rewrite HH1 cfunE.
+Qed.
+
+(* This is 6.11 (a) *)
+Lemma is_irr_is_comp_inertia : is_irr G ('Ind[G, 'I_(G)[theta]] psi).
+Proof.
+rewrite (is_comp_inertia_induced_is_comp Hpsi Hchi).
+by apply: is_irr_irr.
+Qed.
+
+(* This is 6.11 (d) *)
+Lemma inner_prod_is_comp_inertia : 
+ '['Res[H] psi, theta]_H = '['Res[H] ('Ind[G, 'I_(G)[theta]] psi), theta]_H.
+Proof. 
+rewrite (is_comp_inertia_induced_is_comp Hpsi Hchi).
+by rewrite (inner_prod_is_comp_inertia_is_comp Hpsi Hchi).
+Qed.
+
+Lemma is_comp_is_comp_inertia :
+  is_comp theta ('Res[H] ('Ind[G, 'I_(G)[theta]] psi)).
+Proof. 
+rewrite (is_comp_inertia_induced_is_comp Hpsi Hchi).
+by rewrite (is_comp_inertia_restrict_is_comp_g Hpsi Hchi).
+Qed.
+
+(* This is 6.11 c *)
+Lemma unique_is_comp_inertia : forall psi': irr T,
+   is_comp psi' ('Res['I_(G)[theta]] ('Ind[G, 'I_(G)[theta]] psi)) ->
+   is_comp theta ('Res[H] psi') -> psi' = psi.
+Proof.
+move=> psi'; rewrite (is_comp_inertia_induced_is_comp Hpsi Hchi)=> Cpsi' Ct.
+pose chir := character_restrict TsG (character_of_irr chi).
+have: is_comp psi' chir by [].
+case/is_compP=> chi1 Hchi1.
+apply/eqP; case: (_ =P _)=> //; move/eqP=> Dpsi.
+have: is_comp psi chi1.
+  have: is_comp psi chir.
+    by apply: is_comp_inertia_restrict_is_comp_i.
+  rewrite /is_comp !ncoord_inner_prod ?character_in_cfun //.
+  by rewrite Hchi1 -inner_prodbE linearD ![inner_prodb_linear _ _ _] /= 
+            !inner_prodbE irr_orthonormal (negPf Dpsi) add0r.
+case/is_compP=> chi2 Hchi2.
+have: '['Res[H] psi, theta]_H < '['Res[H] chir, theta]_H.
+  rewrite Hchi1 addrC Hchi2 2!linearD /=.
+  rewrite -!inner_prodbE 2!linearD /= !inner_prodbE.
+  rewrite -addrA addrC ltC_sub addrK sposC_addl //.
+    rewrite -ncoord_inner_prod //; last first.
+      by apply: (crestrict_in_cfun HsT (character_in_cfun _)).
+    apply: posC_isNatC; apply: is_char_isNatC_ncoord.
+    by apply: (is_char_restrict HsT (is_char_character _)).
+  move: Ct; rewrite /is_comp -ncoord_inner_prod //.
+    rewrite /ltC => ->.
+    apply: posC_isNatC; apply: is_char_isNatC_ncoord.
+    by apply: (is_char_restrict HsT (is_char_character _)).
+  by apply: (crestrict_in_cfun HsT (character_in_cfun _)).
+rewrite inner_prod_is_comp_inertia (is_comp_inertia_induced_is_comp Hpsi Hchi).
+by rewrite crestrict_subset // ltC_sub subrr /ltC eqxx.
+Qed.
+
+End S611A.
+
+Lemma injective_is_comp_inertia : forall (G H : {group gT}) (theta : irr H),
+ H <| G ->
+ {in [pred psi: irr [group of 'I_(G)[theta]] | is_comp theta ('Res[H] psi)] &,
+    injective (fun psi : irr [group of 'I_(G)[theta]] => 
+                  'Ind[G, 'I_(G)[theta]] psi)}.
+Proof.
+move=> G H theta HnG psi psi' Hpsi Hpsi' Heq.
+have TsG := inertia_sub G theta.
+apply: (unique_is_comp_inertia HnG Hpsi' _ Hpsi).
+rewrite -Heq /is_comp ncoord_inner_prod; last first.
+  apply: (crestrict_in_cfun TsG).
+  apply: (cinduced_in_cfun TsG).
+  by apply: irr_in_cfun.
+pose psii := character_induced (character_of_irr psi) TsG.
+pose psiir := character_restrict TsG psii.
+rewrite (inner_prod_charC psiir (character_of_irr psi)).
+rewrite character_restE.
+rewrite (frobenius_reciprocity TsG) ?character_in_cfun //.
+rewrite inner_prod0; last first.
+  by apply: cinduced_in_cfun=> //; exact: character_in_cfun.
+rewrite induced0 //.
+apply/negP; move/eqP; move/val_eqP; move/eqP; move/cfunP; move/(_ 1%g).
+rewrite /= [_ 0 _]cfunE=> HH.
+by case/eqP: (irr1_neq0 psi).
+Qed.
+
+Definition inertia_induced_inv (G H : {group gT})
+                (theta : irr H) (chi : cfun gT algC) :=
+  odflt (irr1 [group of 'I_(G)[theta]])
+           (pick [pred t : irr  [group of 'I_(G)[theta]] |
+                   is_comp theta ('Res[H] t) && 
+                   is_comp t ('Res['I_(G)[theta]] chi)]).
+
+Lemma inertia_induces_inv_is_comp_h :
+ forall (G H : {group gT}) (theta : irr H) (chi : irr G),
+    H <| G -> is_comp theta ('Res[H] chi) ->
+    is_comp theta ('Res[H] (inertia_induced_inv G theta chi)).
+Proof.
+move=> G H theta chi HnG Ct.
+rewrite /inertia_induced_inv; case: pickP=> [chi'| /= HH].
+  by case/andP.
+admit.
+Qed.
+
+Lemma inertia_induces_inv_is_comp_i :
+ forall (G H : {group gT}) (theta : irr H) (chi : irr G),
+    H <| G -> is_comp theta ('Res[H] chi) ->
+    is_comp (inertia_induced_inv G theta chi) ('Res['I_(G)[theta]] chi).
+Proof.
+move=> G H theta chi HnG Ct.
+rewrite /inertia_induced_inv; case: pickP=> [chi'| /= HH].
+  by case/andP.
+admit.
+Qed.
+
+Lemma inertia_induces_invE : 
+ forall (G H : {group gT}) (theta : irr H) (chi : irr G),
+    H <| G -> is_comp theta ('Res[H] chi) ->
+    'Ind[G,'I_(G)[theta]] (inertia_induced_inv G theta chi) = chi.
+Proof.
+move=> G H theta chi HnG Cchi.
+apply: is_comp_inertia_induced_is_comp=> //.
+  by apply: inertia_induces_inv_is_comp_h.
+rewrite /is_comp ncoord_inner_prod; last first.
+  apply: cinduced_in_cfun; last by apply: irr_in_cfun.
+  by apply:inertia_sub.
+rewrite -frobenius_reciprocity; first last.
+- by apply: irr_in_cfun.
+- by apply: irr_in_cfun.
+- by apply:inertia_sub.
+move: (inertia_induces_inv_is_comp_i HnG Cchi).
+rewrite /is_comp ncoord_inner_prod; last first.
+  by apply: (crestrict_in_cfun (inertia_sub _ _) (irr_in_cfun _)).
+pose chir := character_restrict (inertia_sub G theta) (character_of_irr chi).
+by rewrite (inner_prod_charC chir (character_of_irr _)) .
+Qed.
+
+End S611.

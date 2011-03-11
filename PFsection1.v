@@ -194,7 +194,7 @@ Lemma induced_prod_index : forall (theta : irr H),  H <| G ->
     '['Ind[G,H] theta,'Ind[G,H] theta]_G = #|('I_(G)[theta])%CH : H|%:R.
 Proof.
 move=> t HnG; have CFi := irr_in_cfun t; have HsG := normal_sub HnG.
-rewrite -frobenius_reciprocity ?induced_in_cfun //.
+rewrite -frobenius_reciprocity ?cinduced_in_cfun //.
 have->: '[t, 'Res[H] ('Ind[G,H] t)]_H =
   #|('I_(G)[t])%CH : H|%:R * '[t, (\sum_(f <- cconjugates G t) f)]_H.
  rewrite !inner_prodE mulrA [_%:R * _]mulrC -mulrA -[_%:R * _]mulr_sumr.
@@ -230,7 +230,7 @@ Proof.
 move=> t1 t2 HnG; case: (boolP (_ \in _))=> [IC|NiC].
   by apply: cconjugates_induced=> //; exact: irr_in_cfun.
 rewrite -frobenius_reciprocity 
-        ?(normal_sub HnG,irr_in_cfun,induced_in_cfun) //.
+        ?(normal_sub HnG,irr_in_cfun,cinduced_in_cfun) //.
 rewrite (induced_sum_rcosets _ HnG) inner_prodZ raddf_sum.
 rewrite big_map big_filter big1 ?mulr0 //=.
 move=> C1 HC1.
@@ -255,7 +255,7 @@ Lemma induced_sum_rcosets1 :
 Proof.
 move=> t HnG chi.
 rewrite (induced_sum_rcosets _ HnG) (induced_prod_index _ HnG) 
-        induced1 ?(normal_sub) //.
+        cinduced1 ?(normal_sub) //.
 rewrite !scalerA -!mulrA mulVf ?(mulr1); last first.
   rewrite -neq0N_neqC; move: (indexg_gt0 (inertia_group G t) H)=> /=.
   by case: #|_:_|.
@@ -271,7 +271,7 @@ Proof.
 move=> t HnG OG Dii1.
 move: (cconjugates_irr_induced t (irr_conjC t) HnG).
 case: (boolP (_ \in _)); last first.
-  rewrite induced_conjC => _ <-.
+  rewrite cinduced_conjC => _ <-.
   rewrite !inner_prodE; congr (_ * _); apply: eq_bigr=> g GiG.
   by rewrite irr_conjCE.
 case/cconjugatesP=> g GiG; rewrite irr_conjCE=> HH.
@@ -295,14 +295,15 @@ Lemma irr1_bound_quo : forall (B C D : {group gT}) (i : irr G),
   (D/B \subset 'Z(C/B) -> (i 1)^+2 <= #|G|%:R^+2 * #|C|%:R^-1 * #|D|%:R^-1)%g.
 Proof.
 move=> B C D i BnC BsK BsD DsC CsG QsZ.
-pose Cr := irr_rest CsG i.
+pose Cr := irr_restrict CsG i.
 case: (boolP (Cr == character0 C))=> [HH|].
   have: Cr 1%g = 0 by rewrite (eqP HH) cfunE.
   by rewrite crestrictE // => HH1; case/eqP: (irr1_neq0 i).
 case/is_comp_neq0=> i1 Hi1.
 pose Ir := irr_induced i1 CsG.
 have CIr: is_comp i Ir.
-  rewrite /is_comp ncoord_inner_prod ?(induced_in_cfun, char_of_repr_in_cfun) //.
+  rewrite /is_comp ncoord_inner_prod 
+          ?(cinduced_in_cfun, char_of_repr_in_cfun) //.
   rewrite -frobenius_reciprocity 
           ?(char_of_repr_in_cfun,inner_prod_charC _ Cr) //.
   by rewrite  -ncoord_inner_prod // character_in_cfun.
@@ -331,7 +332,7 @@ have I1B: i1 1%g ^+ 2 <= #|C:D|%:R.
   rewrite mulnA mulnAC LaGrange ?quotientS //.
   rewrite mulnC leq_pmul2l ?cardG_gt0 // subset_leq_card //.
   by apply: (subset_trans QsZ).
-move: (is_comp_irr1_char1 CIr); rewrite induced1 //= => HH1.
+move: (is_comp_irr1_char1 CIr); rewrite cinduced1 //= => HH1.
 apply: (leC_trans (leC_square (posC_char1 (character_of_irr i)) HH1)).
 rewrite commr_exp_mull; last by apply: mulrC.
 have F8: 0 < #|C|%:R^+2 by apply: sposC_mul; apply sposGC.
