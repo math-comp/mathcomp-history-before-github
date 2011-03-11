@@ -66,12 +66,12 @@ coq_makefile,...) accessible (by default they are put in
   + .vo compiled libraries in the theories/ subdirectory
 
 - If you generated a dinamically lodable plugin, you may want to install it
-  scanned by the Coq system when a "Declare ML Module" directive is executed
-  typing:
+  in a directory scanned by the Coq system when a "Declare ML Module" directive
+  is executed typing:
          make install
   This command will also install .vo files in standard paths known to Coq.
 
-- If you generated a statically linked toplevel you may want to dd the path 
+- If you generated a statically linked toplevel you may want to add the path 
   to this bin/ subdirectory to your PATH variable, or to install the ssrcoq 
   binary in the same place where other Coq binaries are typing:
          make install
