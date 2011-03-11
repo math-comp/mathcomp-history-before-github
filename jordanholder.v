@@ -4,33 +4,46 @@ Require Import bigop finset fingroup morphism automorphism quotient action.
 Require Import gseries.
 
 (******************************************************************************)
-(* This files establishes the proof of the Jordan-Hölder theorem for finite   *)
-(* groups. We give two versions of the result: the first one establishes the  *)
-(* uniqueness up to permutation and isomorphism of the lists of factors in    *)
-(* composition series of a given group. The second one is stronger : this     *)
-(* uniqueness still holds for A-invariant composition series of a same finite *)
-(* group.                                                                     *)
-(*           mkSec G1 G2 == alias for the pair (G1, G2) of groups in the same *)
-(*                          finGroupType, coerced to the quotient G1 / G2.    *)
-(*                          We call this quotient a section of G1 and G2      *)
-(*        section_isog s == canonical representative of the isomorphism class *)
+(* This files establishes Jordan-Hölder theorems for finite groups. These     *)
+(* theorems state the uniqueness up to permutation and isomorphism for the    *)
+(* series of quotient built from the successive elements of any composition   *)
+(* series of the same group. These quotients are also called factors of the   *)
+(* composition series. To avoid the heavy use of highly polymorphic lists     *)
+(* describing these quotient series, we introduce sections.                   *)
+(* This library defines:                                                      *)
+(*         (G1 / G2)%sec == alias for the pair (G1, G2) of groups in the same *)
+(*                          finGroupType, coerced to the actual quotient group*)
+(*                          G1 / G2. We call this pseudo-quotient a section of*)
+(*                          G1 and G2.                                        *)
+(*    section_isog s1 s2 == s1 and s2 respectively coerce to isomorphic       *)
+(*                          quotient groups.                                  *)
+(*        section_repr s == canonical representative of the isomorphism class *)
 (*                          of the section s.                                 *)
 (*         mksrepr G1 G2 == canonical representative of the isomorphism class *)
-(*                          of the section of G1 and G2.                      *)
-(*             comps G s == s is a composition series for G : s is a          *)
-(*                          decreasing sequence of sugroups of G maxnormal one*)
+(*                          of (G1 / G2)%sec.                                 *)
+(*         mkfactors G s == if s is [:: s1, s2, ..., sn], constructs the list *)
+(*                      [:: mksrepr G s1, mksrepr s1 s2, ..., mksrepr sn-1 sn]*)
+(*             comps G s == s is a composition series for G i.e. s is a       *)
+(*                          decreasing sequence of subgroups of G             *)
+(*                          in which two adjacent elements are maxnormal one  *)
 (*                          in the other and the last element of s is 1.      *)
-(*JordanHolderUniqueness == two composition series of the same group have the *)
-(*                          same factors up to permutation and isomorphism.   *)
-(*         maxainv A B C == C is a maximal proper normal subgroup of B        *)
-(*                          invariant by the external action of A.            *)
-(*           asimple A B == the maximal proper normal subgroup of B is 1      *)
-(*          acomps A G s == s is an A-invariant composition series for G i.e  *)
-(*                          s is a decreasing sequence of subgroups of G      *)
-(*                          maximally A-invariant one in the other and the    *)
+(* Given aT and rT two finGroupTypes, (D : {group rT}), (A : {group aT}) and  *)
+(* (to : groupAction A D) an external action.                                 *)
+(*        maxainv to B C == C is a maximal proper normal subgroup of B        *)
+(*                          invariant by (the external action of A via) to.   *)
+(*          asimple to B == the maximal proper normal subgroup of B invariant *)
+(*                          by the external action to is trivial.             *)
+(*         acomps to G s == s is a composition series for G invariant by to,  *)
+(*                          i.e. s is a decreasing sequence of subgroups of G *)
+(*                          in which two adjacent elements are maximally      *)
+(*                          invariant by to one in the other and the          *)
 (*                          last element of s is 1.                           *)
-(* StrongJordanHolderUniqueness == two A-invariant composition series of the  *)
-(*         same group have the same factors up to permutation and isomorphism.*)
+(* We prove two versions of the result:                                       *)
+(*    - JordanHolderUniqueness establishes the uniqueness up to permutation   *)
+(*       and isomorphism of the lists of factors in composition series of a   *)
+(*       given group.                                                         *)
+(*    - StrongJordanHolderUniqueness extends the result to composition series *)
+(*       invariant by an external group action.                               *)
 (******************************************************************************)
 
 Import GroupScope.
@@ -39,93 +52,88 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-(******************************************************************************)
-(* Jordan Hölder describes properties of the series of quotients              *)
-(* associated with a composition series. To describe these quotients          *)
-(* and avoid the heavy use of highly polymorphic lists, we represent the      *)
-(* quotients by pairs of adjacent elements in a chain. We call such a pair    *)
-(* a section. Each section is associated with an isomorphism class. Since     *)
-(* all these object live in a finite universe we can pick representatives     *)
-(* of these isomorphism classes and compare lists of representative up to     *)
-(* permutation.                                                               *)
-(******************************************************************************)
+
+Inductive section (gT : finGroupType) : Type := Sec of {group gT} * {group gT}.
+
+Delimit Scope section_scope with sec.
+Bind Scope section_scope with section.
+
+Definition mkSec (gT : finGroupType)(G1 G2 : {group gT}) := Sec (G1, G2).
+
+Infix "/" := mkSec : section_scope.
+
+Coercion pair_of_section gT (s : section gT) := let: Sec u := s in u.
+
+Coercion quotient_of_section gT (s : section gT) : GroupSet.sort _ := 
+  s.1 / s.2.
+
+Coercion section_group gT (s : section gT) : {group (coset_of s.2)} :=
+  Eval hnf in [group of s].
 
 Section Sections.
 
 Variables (gT : finGroupType).
 
-Inductive section : Type := Sec of {group gT} * {group gT}.
-
-Delimit Scope section_scope with sec.
-Bind Scope section_scope with section.
-
-Definition mkSec G H := Sec (G, H).
-
-Infix "/" := mkSec : section_scope.
-
-Coercion pair_of_section s := let: Sec u := s in u.
-Coercion quotient_of_section (u : section) : GroupSet.sort _ := u.1 / u.2.
+Implicit Types G : {group gT}.
+Implicit Types s : section gT.
 
 Canonical Structure section_subType :=
-  Eval hnf in [newType for pair_of_section by section_rect].
-Definition section_eqMixin := Eval hnf in [eqMixin of section by <:].
+  Eval hnf in [newType for (@pair_of_section _) by (@section_rect gT)].
+Definition section_eqMixin := Eval hnf in [eqMixin of (section _) by <:].
 Canonical Structure section_eqType :=
-  Eval hnf in EqType section section_eqMixin.
-Definition section_choiceMixin := [choiceMixin of section by <:].
+  Eval hnf in EqType (section _) section_eqMixin.
+Definition section_choiceMixin := [choiceMixin of (section _) by <:].
 Canonical Structure section_choiceType :=
-  Eval hnf in ChoiceType section section_choiceMixin.
-Definition section_countMixin := [countMixin of section by <:].
+  Eval hnf in ChoiceType (section _) section_choiceMixin.
+Definition section_countMixin := [countMixin of (section _) by <:].
 Canonical Structure section_countType :=
-   Eval hnf in CountType section section_countMixin.
+   Eval hnf in CountType (section _) section_countMixin.
 Canonical Structure section_subCountType :=
-  Eval hnf in [subCountType of section].
-Definition section_finMixin := [finMixin of section by <:].
+  Eval hnf in [subCountType of (section _)].
+Definition section_finMixin := [finMixin of (section _) by <:].
 Canonical Structure section_finType :=
-  Eval hnf in FinType section section_finMixin.
-Canonical Structure section_subFinType := Eval hnf in [subFinType of section].
-Canonical Structure section_group (u : section) : {group coset_of u.2} :=
-  Eval hnf in [group of u].
-
-Coercion section_group : section >-> group_of.
+  Eval hnf in FinType (section _) section_finMixin.
+Canonical Structure section_subFinType := 
+  Eval hnf in [subFinType of (section _)].
+Canonical Structure section_group.
 
 (* Isomorphic sections *)
-Definition section_isog := [rel x y : section | x \isog y].
+
+Definition section_isog := [rel x y : section gT | x \isog y].
 
 (* A witness of the isomorphism class of a section *)
-Definition section_repr (H : section) :=
-  if (pick (section_isog ^~ H)) is Some s then s else (mkSec 1 1)%sec.
+Definition section_repr s :=
+  if (pick (section_isog ^~ s)) is Some s then s else (mkSec 1 1)%sec.
 
 Definition mksrepr G1 G2 := section_repr (mkSec G1 G2).
 
-Lemma section_reprP : forall H : section, (section_repr H) \isog H.
+Lemma section_reprP : forall s, (section_repr s) \isog s.
 Proof.
 move=> H; rewrite /section_repr; case: pickP => //; move/(_ H).
 by rewrite /= isog_refl.
 Qed.
 
-Lemma section_repr_isog : forall H1 H2 : section,
-  H1 \isog H2 -> section_repr H1 = section_repr H2.
+Lemma section_repr_isog : forall s1 s2,
+  s1 \isog s2 -> section_repr s1 = section_repr s2.
 Proof.
-move=> H1 H2 iH12; rewrite /section_repr.
-suff siso12 : (section_isog ^~ H1) =1 (section_isog ^~ H2) .
+move=> s1 s2 is12; rewrite /section_repr.
+suff siso12 : (section_isog ^~ s1) =1 (section_isog ^~ s2) .
   by rewrite (eq_pick siso12).
 by move=> x /=; apply:isog_transr.
 Qed.
 
 
 Definition mkfactors (G : {group gT}) (s : seq {group gT}) :=
-  map section_repr (pairmap mkSec G s).
+  map section_repr (pairmap (@mkSec _) G s).
 
 End Sections.
 
-Infix "/" := mkSec : section_scope.
+
 
 Section CompositionSeries.
 
 Variables (gT : finGroupType).
-
-Notation gTsec := (section gT).
-Notation gTg := {group gT}.
+Local Notation gTg := {group gT}.
 
 Implicit Type G : gTg.
 Implicit Type s : seq gTg.
@@ -256,8 +264,7 @@ Qed.
 End CompositionSeries.
 
 (******************************************************************************)
-(* Helper lemmas for group actions. In the current state of the library, they *)
-(* did not proved useful elsewhere.                                           *) 
+(* Helper lemmas for group actions.                                           *) 
 (******************************************************************************)
 
 Section MoreGroupAction.
@@ -310,8 +317,7 @@ Qed.
 End MoreGroupAction.
 
 (******************************************************************************)
-(* Helper lemmas for quotient actions. In the current state of the library,   *)
-(* they did not proved useful elsewhere.                                      *) 
+(* Helper lemmas for quotient actions.                                        *)
 (******************************************************************************)
 
 Section MoreQuotientAction.
@@ -714,19 +720,6 @@ apply: perm_eq_trans i2; exact: perm_eq_refl.
 Qed.
 
 End StrongJordanHolder.
-
-(* In the current state of the library these canonical structure declarations *)
-(* are never used elsewhere in the library                                    *)
-
-Canonical Structure section_subType.
-Canonical Structure section_eqType.
-Canonical Structure section_choiceType.
-Canonical Structure section_countType.
-Canonical Structure section_subCountType.
-Canonical Structure section_finType.
-Canonical Structure section_subFinType.
-Canonical Structure section_group.
-
 
 
 
