@@ -5877,4 +5877,24 @@ case/predU1P=> [defG | ltGi]; first by rewrite -[G]enum_rankK defG.
 by apply: (extend_group_splitting_field f'); exact: splitF'.
 Qed.
 
+Lemma group_closure_closed_field : forall (F : closedFieldType) gT,
+  group_closure_field F gT.
+Proof.
+move=> F gT G [|n] rG irrG; first by case/mx_irrP: irrG.
+apply: cent_mx_scalar_abs_irr => //; rewrite leqNgt.
+apply/(has_non_scalar_mxP (scalar_mx_cent _ _)) => [[A cGA nscalA]].
+have [a]: exists a, eigenvalue A a.
+  pose P := mxminpoly A; pose d := degree_mxminpoly A.
+  have Pd1: P`_d = 1.
+    by rewrite -(eqP (mxminpoly_monic A)) /lead_coef size_mxminpoly.
+  have d_gt0: d > 0 := mxminpoly_nonconstant A.
+  have [a def_ad] := solve_monicpoly (nth 0 (- P)) d_gt0.
+  exists a; rewrite eigenvalue_root_min -/P /root -oppr_eq0 -horner_opp.
+  rewrite horner_coef size_opp size_mxminpoly -/d big_ord_recr -def_ad.
+  by rewrite coef_opp Pd1 mulN1r /= subrr.
+case/negP; rewrite kermx_eq0 row_free_unit (mx_Schur irrG) ?subr_eq0 //.
+  by rewrite -memmx_cent_envelop -raddfN linearD addmx_sub ?scalar_mx_cent.
+by apply: contraNneq nscalA => ->; exact: scalar_mx_is_scalar.
+Qed.
+
 End BuildSplittingField.

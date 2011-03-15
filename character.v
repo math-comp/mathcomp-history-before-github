@@ -270,7 +270,8 @@ Section AlgC.
 
 Variable (gT : finGroupType).
 
-Axiom groupC : group_closure_field algC gT.
+Lemma groupC : group_closure_field algC gT.
+Proof. exact: group_closure_closed_field. Qed.
 
 Lemma neq0GC : forall  (G : {group gT}), (#|G|)%:R != 0 :> algC.
 Proof. by move=> G; rewrite -neq0N_neqC (cardD1 1%g) group1. Qed.
