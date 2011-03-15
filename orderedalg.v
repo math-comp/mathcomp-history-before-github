@@ -1,6 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq div choice fintype.
-Require Import bigop ssralg finset fingroup zmodp zint.
+Require Import bigop ssralg finset fingroup zmodp zint poly.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -2406,7 +2406,7 @@ Qed.
 
 Definition midf_lte := (midf_le, midf_lt).
 
-Lemma natf_div : forall m d : nat, d %| m -> (m %/ d)%:R = m%:R / d%:R :> F.
+Lemma natf_div : forall m d : nat, (d %| m)%N -> (m %/ d)%:R = m%:R / d%:R :> F.
 Proof. exact: char0_natf_div (@charor F). Qed.
 
 Section FinGroup.
@@ -2425,86 +2425,89 @@ End FieldTheory.
 End FieldTheory.
 Include FieldTheory.
 
-(* Module RealClosedField. *)
+Module RealClosedField.
 
-(* Section ClassDef. *)
+Section ClassDef.
 
-(* Definition axiom (F : Field.type) := forall (p : {poly F}) (a b : F), a <= b  *)
-(*     -> p.[a] <= 0 <= p.[b] -> exists2 x, a <= x <= b & root p x. *)
+Definition axiom (F : Field.type) := forall (p : {poly F}) (a b : F), a <= b
+    -> p.[a] <= 0 <= p.[b] -> { x | a <= x <= b & root p x }.
 
-(* Record mixin_of (F : Field.type) := Mixin { *)
-(*   _ : axiom F *)
-(* }. *)
+Record mixin_of (F : Field.type) := Mixin {
+  _ : axiom F
+}.
 
-(* Record class_of (R : Type) : Type := Class { *)
-(*   base : Field.class_of R; *)
-(*   mixin : mixin_of (Field.Pack base R) *)
-(* }. *)
-(* Local Coercion base : class_of >-> Field.class_of. *)
+Record class_of (R : Type) : Type := Class {
+  base : Field.class_of R;
+  mixin : mixin_of (Field.Pack base R)
+}.
+Local Coercion base : class_of >-> Field.class_of.
 
-(* Structure type := Pack {sort; _ : class_of sort; _ : Type}. *)
-(* Local Coercion sort : type >-> Sortclass. *)
-(* Definition class cT := let: Pack _ c _ := cT return class_of cT in c. *)
-(* Definition clone T cT c of phant_id (class cT) c := @Pack T c T. *)
-(* Definition pack T b0 (m0 : mixin_of (@Field.Pack T b0 T)) := *)
-(*   fun bT b & phant_id (Field.class bT) b => *)
-(*   fun    m & phant_id m0 m => Pack (@Class T b m) T. *)
+Structure type := Pack {sort; _ : class_of sort; _ : Type}.
+Local Coercion sort : type >-> Sortclass.
+Definition class cT := let: Pack _ c _ := cT return class_of cT in c.
+Definition clone T cT c of phant_id (class cT) c := @Pack T c T.
+Definition pack T b0 (m0 : mixin_of (@Field.Pack T b0 T)) :=
+  fun bT b & phant_id (Field.class bT) b =>
+  fun    m & phant_id m0 m => Pack (@Class T b m) T.
 
-(* Definition eqType cT := Equality.Pack (class cT) cT. *)
-(* Definition choiceType cT := Choice.Pack (class cT) cT. *)
-(* Definition zmodType cT := GRing.Zmodule.Pack (class cT) cT. *)
-(* Definition ringType cT := GRing.Ring.Pack (class cT) cT. *)
-(* Definition comRingType cT := GRing.ComRing.Pack (class cT) cT. *)
-(* Definition unitRingType cT := GRing.UnitRing.Pack (class cT) cT. *)
-(* Definition comUnitRingType cT := GRing.ComUnitRing.Pack (class cT) cT. *)
-(* Definition idomainType cT := GRing.IntegralDomain.Pack (class cT) cT. *)
-(* Definition poIdomainType cT := PartialOrder.IntegralDomain.Pack (class cT) cT. *)
-(* Definition oIdomainType cT := IntegralDomain.Pack (class cT) cT. *)
-(* Definition fieldType cT := GRing.Field.Pack (class cT) cT. *)
-(* Definition poFieldType cT := PartialOrder.Field.Pack (class cT) cT. *)
-(* Definition oFieldType cT := Field.Pack (class cT) cT. *)
+Definition eqType cT := Equality.Pack (class cT) cT.
+Definition choiceType cT := Choice.Pack (class cT) cT.
+Definition zmodType cT := GRing.Zmodule.Pack (class cT) cT.
+Definition ringType cT := GRing.Ring.Pack (class cT) cT.
+Definition comRingType cT := GRing.ComRing.Pack (class cT) cT.
+Definition unitRingType cT := GRing.UnitRing.Pack (class cT) cT.
+Definition comUnitRingType cT := GRing.ComUnitRing.Pack (class cT) cT.
+Definition idomainType cT := GRing.IntegralDomain.Pack (class cT) cT.
+Definition poIdomainType cT := PartialOrder.IntegralDomain.Pack (class cT) cT.
+Definition oIdomainType cT := IntegralDomain.Pack (class cT) cT.
+Definition fieldType cT := GRing.Field.Pack (class cT) cT.
+Definition poFieldType cT := PartialOrder.Field.Pack (class cT) cT.
+Definition oFieldType cT := Field.Pack (class cT) cT.
 
-(* End ClassDef. *)
+End ClassDef.
 
-(* Module Exports. *)
-(* Coercion base : class_of >-> Field.class_of. *)
-(* Coercion sort : type >-> Sortclass. *)
-(* Bind Scope ring_scope with sort. *)
-(* Coercion eqType : type >-> Equality.type. *)
-(* Canonical Structure eqType. *)
-(* Coercion choiceType : type >-> Choice.type. *)
-(* Canonical Structure choiceType. *)
-(* Coercion zmodType : type >-> GRing.Zmodule.type. *)
-(* Canonical Structure zmodType. *)
-(* Coercion ringType : type >-> GRing.Ring.type. *)
-(* Canonical Structure ringType. *)
-(* Coercion comRingType : type >-> GRing.ComRing.type. *)
-(* Canonical Structure comRingType. *)
-(* Coercion unitRingType : type >-> GRing.UnitRing.type. *)
-(* Canonical Structure unitRingType. *)
-(* Coercion comUnitRingType : type >-> GRing.ComUnitRing.type. *)
-(* Canonical Structure comUnitRingType. *)
-(* Coercion idomainType : type >-> GRing.IntegralDomain.type. *)
-(* Canonical Structure idomainType. *)
-(* Coercion poIdomainType : type >-> PartialOrder.IntegralDomain.type. *)
-(* Canonical Structure oIdomainType. *)
-(* Coercion oIdomainType : type >-> IntegralDomain.type. *)
-(* Canonical Structure oIdomainType. *)
-(* Coercion fieldType : type >-> GRing.Field.type. *)
-(* Canonical Structure fieldType. *)
-(* Coercion poFieldType : type >-> PartialOrder.Field.type. *)
-(* Canonical Structure oFieldType. *)
-(* Coercion oFieldType : type >-> Field.type. *)
-(* Canonical Structure oFieldType. *)
-(* End Exports. *)
+Module Exports.
+Coercion base : class_of >-> Field.class_of.
+Coercion sort : type >-> Sortclass.
+Bind Scope ring_scope with sort.
+Coercion eqType : type >-> Equality.type.
+Canonical Structure eqType.
+Coercion choiceType : type >-> Choice.type.
+Canonical Structure choiceType.
+Coercion zmodType : type >-> GRing.Zmodule.type.
+Canonical Structure zmodType.
+Coercion ringType : type >-> GRing.Ring.type.
+Canonical Structure ringType.
+Coercion comRingType : type >-> GRing.ComRing.type.
+Canonical Structure comRingType.
+Coercion unitRingType : type >-> GRing.UnitRing.type.
+Canonical Structure unitRingType.
+Coercion comUnitRingType : type >-> GRing.ComUnitRing.type.
+Canonical Structure comUnitRingType.
+Coercion idomainType : type >-> GRing.IntegralDomain.type.
+Canonical Structure idomainType.
+Coercion poIdomainType : type >-> PartialOrder.IntegralDomain.type.
+Canonical Structure oIdomainType.
+Coercion oIdomainType : type >-> IntegralDomain.type.
+Canonical Structure oIdomainType.
+Coercion fieldType : type >-> GRing.Field.type.
+Canonical Structure fieldType.
+Coercion poFieldType : type >-> PartialOrder.Field.type.
+Canonical Structure oFieldType.
+Coercion oFieldType : type >-> Field.type.
+Canonical Structure oFieldType.
+End Exports.
 
-(* End RealClosedField. *)
-(* Import RealClosedField.Exports. *)
+End RealClosedField.
+Import RealClosedField.Exports.
 
-(* Module RealClosedFieldTheory. *)
-(* Definition poly_ivt := RealClosedField.axiom. *)
-(* End RealClosedFieldTheory. *)
-(* Include RealClosedFieldTheory. *)
+Module RealClosedFieldTheory.
+
+Lemma poly_ivt : forall R : RealClosedField.type, RealClosedField.axiom R.
+Proof. by move=> [? [? []]]. Qed.
+
+End RealClosedFieldTheory.
+Include RealClosedFieldTheory.
 
 End TotalOrder.
 
@@ -2513,7 +2516,7 @@ Export PartialOrder.IntegralDomainTheory.
 (* Export PartialOrder.FieldTheory. *)
 Export TotalOrder.IntegralDomainTheory.
 Export TotalOrder.FieldTheory.
-(* Export TotalOrder.RealClosedFieldTheory. *)
+Export TotalOrder.RealClosedFieldTheory.
 
 End Theory.
 
@@ -2523,7 +2526,7 @@ Export OrderedRing.PartialOrder.IntegralDomain.Exports.
 Export OrderedRing.PartialOrder.Field.Exports.
 Export OrderedRing.TotalOrder.IntegralDomain.Exports.
 Export OrderedRing.TotalOrder.Field.Exports.
-(* Export OrderedRing.TotalOrder.RealClosedField.Exports. *)
+Export OrderedRing.TotalOrder.RealClosedField.Exports.
 
 Notation PartialOrderMixin := OrderedRing.PartialOrder.Mixin.
 
@@ -2531,7 +2534,7 @@ Notation poIdomainType := OrderedRing.PartialOrder.IntegralDomain.type.
 Notation poFieldType := OrderedRing.PartialOrder.Field.type.
 Notation oIdomainType := OrderedRing.TotalOrder.IntegralDomain.type.
 Notation oFieldType := OrderedRing.TotalOrder.Field.type.
-(* Notation rFieldType := OrderedRing.TotalOrder.RealClosedField.type. *)
+Notation rcfType := OrderedRing.TotalOrder.RealClosedField.type.
 
 Notation POIdomainType T m :=
   (@OrderedRing.PartialOrder.IntegralDomain.pack T _ m _ _ id _ id).
@@ -2541,8 +2544,8 @@ Notation OIdomainType T m :=
   (@OrderedRing.TotalOrder.IntegralDomain.pack T _ m _ _ id _ id).
 Notation OFieldType T m :=
   (@OrderedRing.TotalOrder.Field.pack T _ m _ _ id _ id).
-(* Notation RFieldType T m := *)
-(*   (@OrderedRing.TotalOrder.RealClosedField.pack T _ m _ _ id _ id). *)
+Notation RcfType T m :=
+  (@OrderedRing.TotalOrder.RealClosedField.pack T _ m _ _ id _ id).
 
 Notation "[ 'poIdomainType' 'of' T ]" :=
     (@OrderedRing.PartialOrder.IntegralDomain.clone T _ _ id)
@@ -2556,10 +2559,11 @@ Notation "[ 'oIdomainType' 'of' T ]" :=
 Notation "[ 'oFieldType' 'of' T ]" :=
   (@OrderedRing.TotalOrder.Field.clone T _ _ id)
   (at level 0, format "[ 'oFieldType'  'of'  T ]") : form_scope.
-(* Notation "[ 'rFieldType' 'of' T ]" := *)
-(*   (@OrderedRing.TotalOrder.RealClosedField.clone T _ _ id) *)
-(*   (at level 0, format "[ 'rFieldType'  'of'  T ]") : form_scope. *)
+Notation "[ 'rcfType' 'of' T ]" :=
+  (@OrderedRing.TotalOrder.RealClosedField.clone T _ _ id)
+  (at level 0, format "[ 'rcfType'  'of'  T ]") : form_scope.
 
+Notation rcf_axiom := (@OrderedRing.TotalOrder.RealClosedField.axiom).
 Notation posr := (@OrderedRing.PartialOrder.OrderDef.posr _).
 
 Notation "<=%R" := (@OrderedRing.PartialOrder.OrderDef.ler _) : ring_scope.

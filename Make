@@ -83,6 +83,8 @@ zint.v
 orderedalg.v
 orderedzint.v
 qnum.v
+closed_field.v
+complex.v
 # polyorder.v
 # polyrcf.v
 # qe_rcf_th.v

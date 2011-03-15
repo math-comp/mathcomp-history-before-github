@@ -274,37 +274,35 @@ by rewrite -mulr_natl mulrAC -mulrA mulr_natl mulrC.
 Qed.
 
 
-Fixpoint edivp_rec_loopT (q : polyF) sq cq (k : term F * polyF * polyF -> fF)
-  (c : term F) (qq r : polyF) (n : nat) {struct n}:=
+Fixpoint edivp_rec_loopT (q : polyF) sq cq (k : nat * polyF * polyF -> fF)
+  (c : nat) (qq r : polyF) (n : nat) {struct n}:=
   sizeT (fun sr => 
     if sr < sq then k (c, qq, r) else 
       lead_coefT (fun lr =>
         let m := amulXnT lr (sr - sq) in
-        let c1 := Mul cq c in
         let qq1 := sumpT (mulpT qq [::cq]) m in
         let r1 := sumpT (mulpT r ([::cq])) (opppT (mulpT m q)) in
-        if n is n1.+1 then edivp_rec_loopT q sq cq k c1 qq1 r1 n1
-          else k (c1, qq1, r1)
+        if n is n1.+1 then edivp_rec_loopT q sq cq k c.+1 qq1 r1 n1
+          else k (c.+1, qq1, r1)
       ) r
   ) r.
   
 Fixpoint edivp_rec_loop (q : {poly F}) sq cq 
-  (n : nat) (c : F) (qq r : {poly F}) {struct n} :=
-    if size r < sq then (c, qq, r) else
+  (n : nat) (k : nat) (qq r : {poly F}) {struct n} :=
+    if size r < sq then (k, qq, r) else
     let m := (lead_coef r)%:P * 'X^(size r - sq) in
-    let c1 := cq * c in
     let qq1 := qq * cq%:P + m in
     let r1 := r * cq%:P - m * q in
-    if n is n1.+1 then edivp_rec_loop q sq cq n1 c1 qq1 r1 else (c1, qq1, r1).
+    if n is n1.+1 then edivp_rec_loop q sq cq n1 k.+1 qq1 r1 else (k.+1, qq1, r1).
 
 Lemma edivp_rec_loopTP : forall k,
   (forall c qq r e,  qf_eval e (k (c,qq,r)) 
-    = qf_eval e (k (Const (eval e c), lift (eval_poly e qq), lift (eval_poly e r))))
+    = qf_eval e (k (c, lift (eval_poly e qq), lift (eval_poly e r))))
   -> forall q sq cq c qq r n e 
     (d := edivp_rec_loop (eval_poly e q) sq (eval e cq) n
-      (eval e c) (eval_poly e qq) (eval_poly e r)),
+      c (eval_poly e qq) (eval_poly e r)),
     qf_eval e (edivp_rec_loopT q sq cq k c qq r n) 
-    = qf_eval e (k (Const d.1.1, lift d.1.2, lift d.2)).
+    = qf_eval e (k (d.1.1, lift d.1.2, lift d.2)).
 Proof.
 move=> k Pk q sq cq c qq r n e /=.
 elim: n c qq r k Pk e.
@@ -330,32 +328,32 @@ by rewrite ?(mul0r,add0r).
 Qed.
 
 Lemma edivp_rec_loopT_qf :  forall q sq cq k c qq r n,
-  (forall r, [&& rterm r.1.1, rpoly r.1.2 & rpoly r.2] -> qf (k r))
-  -> rpoly q -> rterm cq -> rterm c -> rpoly qq -> rpoly r
+  (forall r, [&& rpoly r.1.2 & rpoly r.2] -> qf (k r))
+  -> rpoly q -> rterm cq -> rpoly qq -> rpoly r
     -> qf (edivp_rec_loopT q sq cq k c qq r n).
 Proof.
 move=> q sq cq k c qq r n; move: q sq cq k c qq r.
-elim: n => [|n ihn] q sq cq k c qq r kP rq rcq rc rqq rr.
+elim: n => [|n ihn] q sq cq k c qq r kP rq rcq rqq rr.
   apply: sizeT_qf=> // n; case: (_ < _).
-    by apply: kP => //=; rewrite rc rqq rr.
+    by apply: kP => //=; rewrite  rqq rr.
   apply: lead_coefT_qf=> // l rl.
-  apply: kP; rewrite /= rcq rc /=.
+  apply: kP; rewrite /=. 
   by rewrite ?(rsumpT,rmulpT,ramulXnT,rpoly_map_mul) //= rcq.
 apply: sizeT_qf=> // m; case: (_ < _).
-  by apply: kP => //=; rewrite rc rqq rr.
+  by apply: kP => //=; rewrite rqq rr.
 apply: lead_coefT_qf=> // l rl.
-apply: ihn; rewrite //= ?(rcq,rc) //.
+apply: ihn; rewrite //= ?rcq //.
   by rewrite ?(rsumpT,rmulpT,ramulXnT,rpoly_map_mul) //= rcq.
 by rewrite ?(rsumpT,rmulpT,ramulXnT,rpoly_map_mul) //= rcq.
 Qed.
 
-Definition edivpT (p : polyF) (k : term F * polyF * polyF -> fF) (q : polyF) : fF :=
+Definition edivpT (p : polyF) (k : nat * polyF * polyF -> fF) (q : polyF) : fF :=
   isnull (fun b =>
-    if b then k (Const 1, [::Const 0], p) else
+    if b then k (0%N, [::Const 0], p) else
       sizeT (fun sq =>
         sizeT (fun sp =>
           lead_coefT (fun lq =>
-            edivp_rec_loopT q sq lq k 1 [::Const 0] p sp
+            edivp_rec_loopT q sq lq k 0 [::Const 0] p sp
           ) q
         ) p
       ) q
@@ -371,9 +369,9 @@ Qed.
 
 Lemma edivpTP : forall k,
   (forall c qq r e,  qf_eval e (k (c,qq,r)) 
-    = qf_eval e (k (Const (eval e c), lift (eval_poly e qq), lift (eval_poly e r))))
+    = qf_eval e (k (c, lift (eval_poly e qq), lift (eval_poly e r))))
   -> forall p q e (d := (edivp (eval_poly e p) (eval_poly e q))),
-    qf_eval e (edivpT p k q) = qf_eval e (k (Const d.1.1, lift d.1.2, lift d.2)).
+    qf_eval e (edivpT p k q) = qf_eval e (k (d.1.1, lift d.1.2, lift d.2)).
 Proof.
 move=> k Pk.
 move=> p q e /=.
@@ -386,7 +384,7 @@ by rewrite edivp_rec_loopP.
 Qed.
 
 Lemma edivpT_qf : forall p k q,
-  (forall r, [&& rterm r.1.1, rpoly r.1.2 & rpoly r.2] -> qf (k r))
+  (forall r, [&& rpoly r.1.2 & rpoly r.2] -> qf (k r))
   -> rpoly p -> rpoly q -> qf (edivpT p k q).
 Proof.
 move=> p k q kP rp rq; rewrite /edivpT.
@@ -402,7 +400,7 @@ Definition modpT (p : polyF) (k:polyF -> fF) (q : polyF) : fF :=
   edivpT p (fun d => k d.2) q.
 Definition divpT (p : polyF) (k:polyF -> fF) (q : polyF) : fF :=
   edivpT p (fun d => k d.1.2) q.
-Definition scalpT (p : polyF) (k:term F -> fF) (q : polyF) : fF :=
+Definition scalpT (p : polyF) (k: nat -> fF) (q : polyF) : fF :=
   edivpT p (fun d => k d.1.1) q.
 Definition dvdpT (p : polyF) (k:bool -> fF) (q : polyF) : fF :=
   modpT p (isnull k) q.
@@ -446,12 +444,12 @@ Lemma gcdp_loopT_qf : forall p k q n,
   -> rpoly p -> rpoly q -> qf (gcdp_loopT p k n q).
 move=> p k q n; move: p k q.
 elim: n=> [|n ihn] p k q kP rp rq.
-  apply: edivpT_qf=> // r; case/and3P=> _ _ rr.
+  apply: edivpT_qf=> // r; case/andP=> _ rr.
   apply: isnull_qf=> // [[]]; first exact: kP.
-  by apply: edivpT_qf=> // r'; case/and3P=> _ _ rr'; apply: kP.
-apply: edivpT_qf=> // r; case/and3P=> _ _ rr.
+  by apply: edivpT_qf=> // r'; case/andP=> _ rr'; apply: kP.
+apply: edivpT_qf=> // r; case/andP=> _ rr.
 apply: isnull_qf=> // [[]]; first exact: kP.
-by apply: edivpT_qf=> // r'; case/and3P=> _ _ rr'; apply: ihn.
+by apply: edivpT_qf=> // r'; case/andP=> _ rr'; apply: ihn.
 Qed.
 
   
@@ -546,7 +544,7 @@ apply: gcdpT_qf=> // g rg.
 apply: sizeT_qf=> // n'.
 case:(_ == _); first exact: kP.
 apply: gcdpT_qf=> // g' rg'.
-apply: edivpT_qf=> // r; case/and3P=> _ rr _.
+apply: edivpT_qf=> // r; case/andP=> rr _.
 exact: ihn.
 Qed.
 
