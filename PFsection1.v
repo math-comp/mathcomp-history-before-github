@@ -49,7 +49,7 @@ have F1: [acts <[a]>, on (classes G) | cto].
 have F2:  forall c (t : irr G),  c \in classes G ->
    t (repr c) = ito t a (repr (cto c a)).
   move=> c t' CiG /=.
-  rewrite irr_conjCE cfun_conjCE -character_inv /=.
+  rewrite irr_conjCE cfun_conjCE /= -(invg_is_char _ (is_char_irr t')).
   case/imsetP: CiG=> g GiG ->; rewrite class_inv.
   case: (repr_class G g)=> h1 H1iG ->.
   case: (repr_class G g^-1)=> h2 H2iG ->.
@@ -240,10 +240,11 @@ have RiG: repr C1 \in G.
     apply/subsetP=> h; case/rcosetP=> k KiI ->.
     by rewrite groupM // (subsetP (inertia_sub G t2)).
   by move/subsetP; apply; apply: mem_repr_rcoset.
-move: (irr_orthonormal t1 (irr_conj t2 HnG RiG)); rewrite irr_conjE => ->.
+move: (irr_orthonormal t1 (irr_conj t2 (repr C1))).
+rewrite (irr_conjE _ HnG) // => ->.
 case: eqP=> // HH; case/negP: NiC; rewrite HH.
 apply/cconjugatesP; exists (repr C1)^-1%g; rewrite ?groupV //.
-by rewrite irr_conjE -cfun_conjM mulgV cfun_conj1.
+by rewrite (irr_conjE _ HnG) // -cfun_conjM mulgV cfun_conj1.
 Qed.
 
 (* This is PF 1.5(d) *)
@@ -295,27 +296,26 @@ Lemma irr1_bound_quo : forall (B C D : {group gT}) (i : irr G),
   (D/B \subset 'Z(C/B) -> (i 1)^+2 <= #|G|%:R^+2 * #|C|%:R^-1 * #|D|%:R^-1)%g.
 Proof.
 move=> B C D i BnC BsK BsD DsC CsG QsZ.
-pose Cr := irr_restrict CsG i.
-case: (boolP (Cr == character0 C))=> [HH|].
-  have: Cr 1%g = 0 by rewrite (eqP HH) cfunE.
+case: (boolP ('Res[C] i == 0))=> [HH|].
+  have: ('Res[C] i) 1%g = 0 by rewrite (eqP HH) cfunE.
   by rewrite crestrictE // => HH1; case/eqP: (irr1_neq0 i).
-case/is_comp_neq0=> i1 Hi1.
-pose Ir := irr_induced i1 CsG.
-have CIr: is_comp i Ir.
+have IC := is_char_restrict CsG (is_char_irr i).
+case/(is_comp_neq0 (is_char_in_cfun IC))=> i1 Hi1.
+have CIr: is_comp i ('Ind[G,C] i1).
   rewrite /is_comp ncoord_inner_prod 
           ?(cinduced_in_cfun, char_of_repr_in_cfun) //.
-  rewrite -frobenius_reciprocity 
-          ?(char_of_repr_in_cfun,inner_prod_charC _ Cr) //.
-  by rewrite  -ncoord_inner_prod // character_in_cfun.
+  rewrite -frobenius_reciprocity ?irr_in_cfun //.
+  rewrite inner_prod_charC ?is_char_irr //.
+  by rewrite  -ncoord_inner_prod // is_char_in_cfun.
 have BsKi : B \subset cker C i1.
   suff BsKri: B \subset cker C ('Res[C] i).
-    by apply: (subset_trans BsKri); exact: (is_comp_cker Hi1).
+    by apply: (subset_trans BsKri); exact: (is_comp_cker _ Hi1).
   apply/subsetP=> g GiG.
   have F: g \in C by rewrite (subsetP (subset_trans BsD _)).
-  rewrite (char_ckerE Cr) inE F !crestrictE //.
-  by move: (subsetP BsK _ GiG); rewrite irr_ckerE inE (subsetP CsG) ?F.
+  rewrite cker_charE // inE F !crestrictE //.
+  by move: (subsetP BsK _ GiG); rewrite cker_irrE inE (subsetP CsG) ?F.
 pose i2 := qirrc B i1.
-have ZsC: 'Z(C/B)%g \subset  ccenter (C/B) i2.
+have ZsC: 'Z(C/B)%g \subset  ccenter (C/B)%G i2.
     by rewrite (center_bigcap (C/B)); apply: bigcap_inf.
 have CBsH: C :&: B \subset D.
     apply/subsetP=> g; rewrite inE; case/andP=> _ HH.
@@ -326,14 +326,16 @@ have I1B: i1 1%g ^+ 2 <= #|C:D|%:R.
     by rewrite qirrcE // -(coset_id (group1 B)) (qfuncE _ BnC) ?is_char_irr.
   move/leC_trans; apply.
   rewrite -leq_leC // -(index_quotient_eq CBsH) ?normal_norm //.
-  rewrite -(@leq_pmul2l #|ccenter (C / B) i2|) ?cardG_gt0 ?ccenter_sub //.
+  rewrite -(@leq_pmul2l #|ccenter (C / B)%G i2|) ?cardG_gt0 ?ccenter_sub //.
   rewrite  LaGrange ?quotientS ?ccenter_sub //.
   rewrite -(@leq_pmul2l #|(D/B)%g|) ?cardG_gt0 //.
   rewrite mulnA mulnAC LaGrange ?quotientS //.
   rewrite mulnC leq_pmul2l ?cardG_gt0 // subset_leq_card //.
   by apply: (subset_trans QsZ).
-move: (is_comp_irr1_char1 CIr); rewrite cinduced1 //= => HH1.
-apply: (leC_trans (leC_square (posC_char1 (character_of_irr i)) HH1)).
+have IC': is_char G ('Ind[G, C] i1).
+  by apply: is_char_induced=> //; exact: is_char_irr.
+move: (is_comp_irr1_char1 IC' CIr); rewrite cinduced1 //= => HH1.
+apply: (leC_trans (leC_square (posC_char1 (is_char_irr i)) HH1)).
 rewrite commr_exp_mull; last by apply: mulrC.
 have F8: 0 < #|C|%:R^+2 by apply: sposC_mul; apply sposGC.
 rewrite -(leC_pmul2l _ _ F8) mulrA -commr_exp_mull; last by apply: mulrC.
