@@ -181,14 +181,115 @@ Definition add_repr m n
   (rG1 : mx_representation R G m) (rG2 : mx_representation R G n)
   := MxRepresentation (add_mx_repr rG1 rG2).
 
+Lemma mx_rsim_dadd : forall n (rG : mx_representation R G n) (U V W : 'M_n),
+  forall (modU : mxmodule rG U) (modV : mxmodule rG V) (modW : mxmodule rG W),
+  forall nU nV (rU : mx_representation R G nU) (rV : mx_representation R G nV),
+  (U + V :=: W)%MS -> mxdirect (U + V) ->
+  mx_rsim (submod_repr modU) rU -> mx_rsim (submod_repr modV) rV ->
+  mx_rsim (submod_repr modW) (add_repr rU rV).
+Proof.
+move=> n rG U V W modU modV modW nU nV rU rV defW dxUV.
+have tiUV := mxdirect_addsP dxUV.
+move=> [fU def_nU]; rewrite -{nU}def_nU in rU fU * => inv_fU hom_fU.
+move=> [fV def_nV]; rewrite -{nV}def_nV in rV fV * => inv_fV hom_fV.
+pose pU := in_submod U (proj_mx U V) *m fU.
+pose pV := in_submod V (proj_mx V U) *m fV.
+exists (val_submod 1%:M *m row_mx pU pV) => [||g Gg].
+- by rewrite -defW (mxdirectP dxUV).
+- apply/row_freeP.
+  pose pU' := invmx fU *m val_submod 1%:M.
+  pose pV' := invmx fV *m val_submod 1%:M.
+  exists (in_submod _ (col_mx pU' pV')).
+  rewrite in_submodE mulmxA -in_submodE -mulmxA mul_row_col mulmx_addr.
+  rewrite -[pU *m _]mulmxA -[pV *m _]mulmxA !mulKVmx -?row_free_unit //.
+  rewrite addrC (in_submodE V) 2![val_submod 1%:M *m _]mulmxA -in_submodE.
+  rewrite addrC (in_submodE U) 2![val_submod 1%:M *m _]mulmxA -in_submodE.
+  rewrite -!val_submodE !in_submodK ?proj_mx_sub //.
+  by rewrite add_proj_mx ?val_submodK // val_submod1 defW.
+rewrite mulmxA -val_submodE -[submod_repr _ g]mul1mx val_submodJ //.
+rewrite -(mulmxA _ (rG g)) mul_mx_row -mulmxA mul_row_block !mulmx0 addr0 add0r.
+rewrite !mul_mx_row; set W' := val_submod 1%:M; congr (row_mx _ _).
+  rewrite 3!mulmxA in_submodE mulmxA.
+  have hom_pU: (W' <= dom_hom_mx rG (proj_mx U V))%MS.
+    by rewrite val_submod1 -defW proj_mx_hom.
+  rewrite (hom_mxP hom_pU) // -in_submodE (in_submodJ modU) ?proj_mx_sub //.
+  rewrite -(mulmxA _ _ fU) hom_fU // in_submodE -2!(mulmxA W') -in_submodE.
+  by rewrite -mulmxA (mulmxA _ fU).
+rewrite 3!mulmxA in_submodE mulmxA.
+have hom_pV: (W' <= dom_hom_mx rG (proj_mx V U))%MS.
+  by rewrite val_submod1 -defW addsmxC proj_mx_hom // capmxC.
+rewrite (hom_mxP hom_pV) // -in_submodE (in_submodJ modV) ?proj_mx_sub //.
+rewrite -(mulmxA _ _ fV) hom_fV // in_submodE -2!(mulmxA W') -in_submodE.
+by rewrite -mulmxA (mulmxA _ fV).
+Qed.
+
 Lemma mx_repr0 : mx_repr G (fun _ : gT => 1%:M : 'M[R]_0).
 Proof. by split=> // g h Hg Hx; rewrite mulmx1. Qed.
 
 Definition repr0 :=  MxRepresentation mx_repr0.
- 
+
+Lemma mx_rsim_dsum : forall n (rG : mx_representation R G n),
+  forall (I : finType) (P : pred I) (U : I -> 'M_n) (W : 'M_n),
+  forall (modU : forall i, mxmodule rG (U i)) (modW : mxmodule rG W),
+  forall rU : I -> {m : nat & mx_representation R G m},
+  let S := (\sum_(i | P i) U i)%MS in
+    (S :=: W)%MS -> mxdirect S -> 
+    (forall i, mx_rsim (submod_repr (modU i)) (tagged (rU i))) ->
+  let ar (r1 r2 : {m : nat & mx_representation R G m}) :=
+    Tagged (mx_representation R G) (add_repr (tagged r1) (tagged r2)) in
+  mx_rsim (submod_repr modW) (tagged (\big[ar/Tagged _ repr0]_(i | P i) rU i)).
+Proof.
+move=> n rG I P U W modU modW rU /= defW dxS rsimU.
+rewrite mxdirectE /= -!(big_filter _ P) in dxS defW *.
+elim: {P}(filter P _) => [|i e IHe] in W modW dxS defW *.
+  rewrite !big_nil /= in defW *.
+  by exists 0 => [||? _]; rewrite ?mul0mx ?mulmx0 // /row_free -defW !mxrank0.
+rewrite !big_cons /= in dxS defW *.
+rewrite 2!(big_nth i) !big_mkord /= in IHe dxS defW.
+set Wi := (\sum_i _)%MS in defW dxS IHe.
+rewrite -mxdirectE mxdirect_addsE !mxdirectE eqxx /= -/Wi in dxS.
+have modWi: mxmodule rG Wi by exact: sumsmx_module.
+case/andP: dxS; move/(IHe Wi modWi) {IHe}; move/(_ (eqmx_refl _))=> rsimWi.
+move/eqP; move/mxdirect_addsP=> dxUiWi.
+exact: mx_rsim_dadd (rsimU i) rsimWi.
+Qed.
+
+Definition natrepr m (rG : mx_representation R G m) k := 
+  let ar (r1 r2 : {n : nat & mx_representation R G n}) :=
+    Tagged (mx_representation R G) (add_repr (tagged r1) (tagged r2)) in
+  tagged (\big[ar/Tagged _ repr0]_(i < k) Tagged _ rG).
+
+Lemma mx_rsim_socle :
+  forall n (rG : mx_representation R G n) (sG : socleType rG) (W : sG),
+  forall m (rW : mx_representation R G m),
+  let modW : mxmodule rG W := component_mx_module _ _ in
+  mx_rsim (socle_repr W) rW ->
+  mx_rsim (submod_repr modW) (natrepr rW (socle_mult W)).
+Proof.
+move=> n rG sG W m rW modW rsimW0; pose W0 := socle_base W.
+have simW0: mxsimple rG W0 := socle_simple W.
+have [I /= U simU]: mxsemisimple rG W by exact: component_mx_semisimple.
+have bijI := onW_bij I (enum_val_bij I).
+rewrite mxdirectE /= !(reindex _ bijI) -mxdirectE /= => defW dxW.
+have rankW0_gt0: \rank W0 > 0 by rewrite lt0n mxrank_eq0; case simW0.
+have isoU: forall i : 'I_#|I|, mx_iso rG W0 (U (enum_val i)).
+  by move=> i; apply: component_mx_iso; rewrite ?simU // -defW (sumsmx_sup i).
+have ->: socle_mult W = #|I|.
+  symmetry; rewrite -(mulnK #|I| rankW0_gt0); congr (_ %/ _)%N.
+  rewrite -defW (mxdirectP dxW) /= -sum_nat_const (reindex _ bijI).
+  by apply: eq_bigr => i _; exact: mxrank_iso.
+have modU: forall i : 'I_#|I|, mxmodule rG (U (enum_val i)).
+  move=> i; exact: mxsimple_module.
+have rsimU: forall i, mx_rsim (submod_repr (modU i)) rW.
+  by move=> i; apply: mx_rsim_trans (mx_rsim_sym _) rsimW0; exact/mx_rsim_iso.
+by apply: mx_rsim_dsum defW dxW _; apply rsimU.
+Qed.
+
+(*
 Definition natrepr (m : nat) (rG : mx_representation R G m) := 
   fix iter (n : nat) : mx_representation R G (n * m) :=
-    if n is n1.+1 then add_repr rG (iter n1) else repr0.
+  if n is n1.+1 then add_repr rG (iter n1) else repr0.
+*)
 
 Variable (N : {group gT}) (n : nat) (rG : mx_representation R (G/N)%g n).
 Hypothesis NN: N <| G.
@@ -197,10 +298,11 @@ Definition coset_mx of N <| G := rG \o (coset N).
 
 Lemma coset_mx_repr : mx_repr G (coset_mx NN).
 Proof.
-split=> [|x y Hx Hy].
+  split=> [|x y Hx Hy].
   rewrite /coset_mx /= -(repr_mx1 rG); congr (rG _).
   by apply/val_eqP; rewrite /= (coset1 N) genGid.
-by rewrite /coset_mx /= !coset_morphM ?(repr_mxM,mem_quotient)//;
+  by rewrite /coset_mx /= !coset_morphM ?(repr_mxM,mem_quotient)//;
+
    apply: (subsetP (normal_norm NN)).
 Qed.
 
@@ -687,14 +789,26 @@ Proof.
 by apply/cfunP=> g; rewrite !cfunE mxtrace1 mulr0.
 Qed.
 
-Lemma char_of_repr_nat : forall m n (rG : mx_representation algC G m), 
-  char_of_repr G (natrepr rG n) = char_of_repr G rG *+n.
+Lemma char_of_sum_repr : forall (I : finType) (P : pred I),
+  forall rG : I -> {m : nat & mx_representation algC G m},
+  let ar (r1 r2 : {m : nat & mx_representation algC G m}) :=
+    Tagged (mx_representation algC G) (add_repr (tagged r1) (tagged r2)) in
+  char_of_repr G (tagged (\big[ar/Tagged _ (repr0 _ G)]_(i | P i) rG i)) =
+    \sum_(i | P i) char_of_repr G (tagged (rG i)).
 Proof.
-move=> m n rG; elim: n=> [|n IH].
-  by apply/cfunP=> g; rewrite !cfunE mxtrace1 mulr0.
-by rewrite /= char_of_repr_morph IH mulrS.
+move=> I P rG ar; rewrite -!(big_filter _ P).
+elim: {P}(filter _ _) => [|i e IHe]; first by rewrite !big_nil char_of_repr0.
+by rewrite !big_cons /= char_of_repr_morph IHe.
 Qed.
 
+Lemma char_of_repr_nat : forall m n (rG : mx_representation algC G m), 
+  char_of_repr G (natrepr rG n) = char_of_repr G rG *+ n.
+Proof.
+by move=> m n rG; rewrite char_of_sum_repr /= sumr_const card_ord.
+Qed.
+
+(* This proof needs to be later, because it requires the linear independence
+   of the irreducible characters *)
 (* !!!!!!!!!!! FOR THE MOMENT AN AXIOM !!!!!!!!!!!!!!!!!!! *)
 Lemma char_of_repr_rsimP : forall m n (rG1 : mx_representation algC G m)
                                       (rG2 : mx_representation algC G n),
@@ -706,7 +820,8 @@ move=> m n rG1 rG2; apply: (iffP eqP)=> HH; last first.
   by rewrite !mul1r; apply: mxtrace_rsim.
 admit.
 Qed.
-  
+
+ 
 Definition reg_cfun := char_of_repr G (regular_repr algC G).
 
 Lemma reg_cfunE : forall (g : gT),
@@ -792,6 +907,7 @@ Canonical Structure irr_subFinType :=
 Coercion cfun_of_irr theta := 
   char_of_repr G (irr_repr (@socle_of_irr theta)).
 
+(* GG: THIS IS WRONG!!! injectivity FOLLOWS from linear independance *)
 Lemma cfun_of_irr_inj : injective cfun_of_irr.
 Proof.
 move=> theta1 theta2; move/eqP; move/char_of_repr_rsimP.

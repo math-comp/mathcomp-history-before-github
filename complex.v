@@ -269,7 +269,7 @@ move=> [a b]; rewrite !lecE /= ![0 == _]eq_sym.
 rewrite -mulNr mulf_eq0 invr_eq0 addr_eq0 ?exprn_even_ge0 //.
 rewrite !expf_eq0 /= eqr_oppC oppr0 andKb; apply: andb_id2l.
 move/eqP->; rewrite [0 ^+ _]mulr0 addr0.
-case: (lerP 0 a)=> ha.
+case: (0 <= a) (a < 0) / (lerP 0 a) => ha.
   by rewrite mulr_ge0 // invr_ge0 exprSn_ge0.
 by rewrite lerNgt mulr_lt0_gt0 // invr_gt0 mulr_lt0.
 Qed.
@@ -347,7 +347,7 @@ move=> [a b] [c d] /=; simpc; rewrite !lecE !ltcE /=.
 case/andP; move/eqP<-=> ha; rewrite !mul0r addr0 subr0.
 rewrite eq_sym mulf_eq0 ltrNW //= [0 == _]eq_sym; apply: andb_id2l=> _.
 (* Todo : add this kind of lemma to orderedalg *)
-case: (lerP 0 c)=> hc; first by rewrite mulr_ge0 // ltrW.
+case: (0 <= c) (c < 0) / (lerP 0 c) => hc; first by rewrite mulr_ge0 // ltrW.
 by rewrite lerNgt mulr_gt0_lt0.
 Qed.
 
