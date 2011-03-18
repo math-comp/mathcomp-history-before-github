@@ -210,7 +210,7 @@ Lemma huppert_blackburn_5_9 : forall gT p (A X : {group gT}),
   exists2 s : {set {group gT}}, \big[dprod/1]_(B \in s) B = A
       & forall B, B \in s -> [/\ homocyclic B, X \subset 'N(B)
         & acts_irreducibly X (B / 'Phi(B)) 'Q].
-Proof.
+Proof. 
 move=> gT p A X; move: {2}_.+1 (ltnSn #|A|) => m.
 elim: m => // m IHm in gT A X *; rewrite ltnS => leAm cAA pA p'X nAX.
 have [n1 eA]: {n | exponent A = p ^ n}%N by apply p_natP; rewrite pnat_exponent.
@@ -400,6 +400,7 @@ rewrite (subsetP (char_norm_trans (Phi_char _) nKuX)) ?mem_quotient //=.
 apply/subsetP=> fy; case/morphimP=> y Dy Yy ->{fy}.
 by rewrite inE /= -act_f // morphimEsub // mem_imset // (acts_act actsXY).
 Qed.
+
 
 
 End HuppertBlackburn_5_9.
@@ -788,6 +789,7 @@ by rewrite -def_fv def_f invmK // im_f' im_f3.
 Qed.
 
 
+
 End HuppertBlackburn_12_3.
 
 (* Auxiliary lemma for the second part of the proof *)
@@ -807,6 +809,18 @@ suff h : (p ^ k).+1 <= p ^k.+1 by apply: leq_trans h.
 by rewrite expnS; apply: ltn_Pmull => //; apply: leq_trans hk.
 Qed.
 
+Lemma exprdiv_eq : forall p x y, p > 1 -> 
+  (forall n, n > 0 -> x = y %[mod p ^ n]) -> x = y.
+Proof.
+move=> p x y; wlog hwlog : x y / x <= y.
+  move=> hwlog lt1p hmod; case: (leqP x y) => hxy; first by exact: hwlog.
+  apply: sym_eq; apply: hwlog => // [| n lt0n]; first by rewrite ltnW.
+  by apply: sym_eq; apply: hmod.
+move=> lt1p hmod; apply/eqP; rewrite eqn_leq hwlog /= -subn_eq0; apply/eqP.
+apply: (expdiv_0 lt1p) => n lt0n; rewrite (divn_eq y (p ^ n)).
+by rewrite (divn_eq x (p ^ n)) (hmod _ lt0n) subn_add2r -muln_subl dvdn_mull.
+Qed.
+
 Theorem solvable_Wielandt_fixpoint : forall (I : finType) (gT : finGroupType),
     forall (A : I -> {group gT}) (n m : I -> nat) (G V : {group gT}),
     (forall i, m i + n i > 0 -> A i \subset G) ->
@@ -815,7 +829,7 @@ Theorem solvable_Wielandt_fixpoint : forall (I : finType) (gT : finGroupType),
   (\prod_i #|'C_V(A i)| ^ (m i * #|A i|)
     = \prod_i #|'C_V(A i)| ^ (n i * #|A i|))%N.
 Proof.
-move=> I gT A n m G V; move: {2}_.+1 (ltnSn #|V|) => k.
+move=> I gT A n m G V; move: {2}_.+1 (ltnSn #|V|) => c.
 rewrite (bigID (fun i => 0 < m i + n i)) /=.
 rewrite (big1 (fun i => ~~ (0 < m i + n i))); last first.
   move=> j; rewrite -eqn0Ngt addn_eq0; case/andP; move/eqP->.
@@ -825,7 +839,6 @@ rewrite (big1 (fun i => ~~ (0 < m i + n i))); last first.
   move=> j; rewrite -eqn0Ngt addn_eq0; case/andP=> _; move/eqP->.
   by rewrite mul0n expn0.    
 rewrite !muln1 => leVm sAiG nVG copVG solV hGA *.
-
 have {hGA} hGA : {in G, forall a : gT,
   (\sum_(i | (a \in A i) && (0 < m i + n i)) m i)%N = 
   (\sum_(i | (a \in A i) && (0 < m i + n i)) n i)%N}.
@@ -837,7 +850,7 @@ have {hGA} hGA : {in G, forall a : gT,
   rewrite (big1 (fun i => _ && ~~ (0 < m i + n i))) //. 
   by move=> j; case/andP=> _; rewrite -eqn0Ngt addn_eq0; case/andP=> _; move/eqP.
 move: leVm sAiG nVG copVG solV hGA.
-elim: k  => // k IHk in I gT A G V n m *;
+elim: c  => // c IHc in I gT A G V n m *;
  rewrite ltnS => leVm sAiG nVG copVG solV hGA *.
 have [V1 | ntV] := eqsVneq V 1.
   by rewrite V1 !big1 // => i _; rewrite setI1g set1gE cards1 exp1n.
@@ -848,7 +861,7 @@ have [nBP ntB abB] := minnormal_solvable minB sBV solV.
 move/joing_subP: nBP=> /= [nBV nBG].
 have solB := (solvableS sBV solV).
 have [BV | BVproper] := eqVproper sBV; last first.
-  have cardB : #|B| < k by apply: leq_trans leVm; exact: proper_card.
+  have cardB : #|B| < c by apply: leq_trans leVm; exact: proper_card.
   have copBG : coprime #|B| #|G| by exact: (coprimeSg sBV).
   have cardps : forall j : I, A j \subset G ->
  #|'C_V(A j)| = (#|'C_B(A j)| * #|'C_(V / B)(A j / B)|)%N.
@@ -871,14 +884,14 @@ have [BV | BVproper] := eqVproper sBV; last first.
     rewrite -(card_isog (quotient_isog _ _)) ?(coprime_TIg copBAj) // -expn_mull.
     by rewrite cardps.
   rewrite !(eq_bigr _ (hp _)) !big_split /=; congr (_ * _)%N.
-    exact: (IHk _ _ _ G).
-  have cardQ : #|V / B| < k by apply: leq_trans leVm; apply: ltn_quotient.
+    exact: (IHc _ _ _ G).
+  have cardQ : #|V / B| < c by apply: leq_trans leVm; apply: ltn_quotient.
   have sAQ : forall i : I, 0 < m i + n i -> A i / B \subset G / B.
     move=> i si; apply: quotientS; exact: sAiG.
   have nQ : G / B \subset 'N(V / B) by apply: quotient_norms.
   have copQ : coprime #|V / B| #|G / B| by exact: coprime_morph.
   have solQ : solvable (V / B) by exact: quotient_sol.
-  apply: (IHk _ _ _ (G / B)%G) => //.
+  apply: (IHc _ _ _ (G / B)%G) => //.
   move=> g; case/morphimP=> x /= Nx Gx ->.
   have hindex : forall i,
     (coset B x \in A i / B) && (0 < m i + n i)%N  = 
@@ -913,19 +926,19 @@ have [Phi1 | ntPhi] := eqsVneq 'Phi(V) 1; last first.
       rewrite card_quotient; first by rewrite LaGrangeI.
       by rewrite subIset ?(normal_norm (Phi_normal _)).
     rewrite !(eq_bigr _ (hp _)) {hp} !big_split /=; congr (_ * _)%N.
-    have cardPhi : #|'Phi(V)| < k.
+    have cardPhi : #|'Phi(V)| < c.
       apply: leq_trans leVm; apply: proper_card; exact: Phi_proper.
     have nPhiG: G \subset 'N('Phi(V)) by apply: (char_norm_trans (Phi_char _)).
     have copPhiG: coprime #|'Phi(V)| #|G| by rewrite (coprimeSg (Phi_sub _)).
-    apply: (IHk _ _ _ G); rewrite /= -?BV //; exact: (solvableS (Phi_sub _)).
-  have cardQ : #|V / 'Phi(V)| < k.
+    apply: (IHc _ _ _ G); rewrite /= -?BV //; exact: (solvableS (Phi_sub _)).
+  have cardQ : #|V / 'Phi(V)| < c.
     by apply: leq_trans leVm; apply: ltn_quotient; rewrite ?Phi_sub.
   have sAQ : forall i : I, 0 < m i + n i -> A i / 'Phi(V) \subset G / 'Phi(V).
     move=> i si; apply: quotientS; exact: sAiG.
   have nQ : G / 'Phi(V) \subset 'N(V / 'Phi(V)) by apply: quotient_norms.
   have copQ : coprime #|V / 'Phi(V)| #|G / 'Phi(V)| by exact: coprime_morph.
   have solQ : solvable (V / 'Phi(V)) by exact: quotient_sol.
-  apply: (IHk _ _ _ (G / 'Phi(V))%G) => //.
+  apply: (IHc _ _ _ (G / 'Phi(V))%G) => //.
   move=> g; case/morphimP=> x /= Nx Gx ->.
   have hindex : forall i,
     (coset 'Phi(V) x \in A i / 'Phi(V)) && (0 < m i + n i)%N  = 
@@ -961,4 +974,16 @@ have [B minB sBV]: {B : {group gT} | minnormal B G & B \subset V}.
   by apply: mingroup_exists; rewrite ntV nVG.
 have pabB : p.-abelem B by exact: (abelemS sBV).
 have hb123 := (huppert_blackburn_12_3 minB coppG pabB).
+apply: (exprdiv_eq (prime_gt1 primep)) => k lt0k.
+have {hb123} [fBW isomfBW [/= toW htoW]] := (hb123 _ lt0k).
+have toWlin g : linear (toW^~ (val (subg G g))).
+  move=> g z /= x y; rewrite gactM ?in_setT ?subgP //; congr (_ * _). 
+  by rewrite -(natr_Zp z) !scaler_nat gactX ?in_setT ?subgP.
+pose rW g := lin1_mx (Linear (toWlin g)).
+have is_action_rW : (mx_repr G rW).
+  split.
+    by apply/matrixP=> i j /=; rewrite mxE /= subgK // act1 !mxE eqxx eq_sym.
+  move=> x y Gx Gy /=; apply/row_matrixP=> i; rewrite row_mul mul_rV_lin1 /=.
+  by rewrite subgK // !rowK /= !subgK ?groupM // actMin. 
+have tr_rW_Ai : forall i x, x \in A i -> \tr (rW x) = inZp (f i).
 Admitted.
