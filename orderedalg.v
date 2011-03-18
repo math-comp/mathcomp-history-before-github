@@ -2487,13 +2487,13 @@ Canonical Structure comUnitRingType.
 Coercion idomainType : type >-> GRing.IntegralDomain.type.
 Canonical Structure idomainType.
 Coercion poIdomainType : type >-> PartialOrder.IntegralDomain.type.
-Canonical Structure oIdomainType.
+Canonical Structure poIdomainType.
 Coercion oIdomainType : type >-> IntegralDomain.type.
 Canonical Structure oIdomainType.
 Coercion fieldType : type >-> GRing.Field.type.
 Canonical Structure fieldType.
 Coercion poFieldType : type >-> PartialOrder.Field.type.
-Canonical Structure oFieldType.
+Canonical Structure poFieldType.
 Coercion oFieldType : type >-> Field.type.
 Canonical Structure oFieldType.
 End Exports.
