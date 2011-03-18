@@ -976,7 +976,7 @@ have pabB : p.-abelem B by exact: (abelemS sBV).
 have hb123 := (huppert_blackburn_12_3 minB coppG pabB).
 apply: (exprdiv_eq (prime_gt1 primep)) => k lt0k.
 have {hb123} [fBW isomfBW [/= toW htoW]] := (hb123 _ lt0k).
-have toWlin g : linear (toW^~ (val (subg G g))).
+have toWlin: forall g, linear (toW^~ (val (subg G g))).
   move=> g z /= x y; rewrite gactM ?in_setT ?subgP //; congr (_ * _). 
   by rewrite -(natr_Zp z) !scaler_nat gactX ?in_setT ?subgP.
 pose rW g := lin1_mx (Linear (toWlin g)).
