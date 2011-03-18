@@ -303,7 +303,7 @@ have IC := is_char_restrict CsG (is_char_irr i).
 case/(is_comp_neq0 (is_char_in_cfun IC))=> i1 Hi1.
 have CIr: is_comp i ('Ind[G,C] i1).
   rewrite /is_comp ncoord_inner_prod 
-          ?(cinduced_in_cfun, char_of_repr_in_cfun) //.
+          ?(cinduced_in_cfun, irr_in_cfun) //.
   rewrite -frobenius_reciprocity ?irr_in_cfun //.
   rewrite inner_prod_charC ?is_char_irr //.
   by rewrite  -ncoord_inner_prod // is_char_in_cfun.
