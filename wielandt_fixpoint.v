@@ -992,7 +992,8 @@ have is_action_rW : (mx_repr G rW).
     by apply/matrixP=> i j /=; rewrite mxE /= subgK // act1 !mxE eqxx eq_sym.
   move=> x y Gx Gy /=; apply/row_matrixP=> i; rewrite row_mul mul_rV_lin1 /=.
   by rewrite subgK // !rowK /= !subgK ?groupM // actMin. 
-suff tr_rW_Ai i : {in A i, forall x : gT, \tr (rW x) = (f i)%:R}.
+suff tr_rW_Ai : forall i, 0 < m i + n i  ->
+  {in A i, forall x : gT, \tr (rW x) = (f i)%:R}.
   pose gamma i := \sum_(x \in A i) rW x.
   have: \sum_(i | 0 < m i + n i) (gamma i) *+ m i = 
         \sum_(i | 0 < m i + n i) (gamma i) *+ n i.
@@ -1013,12 +1014,15 @@ suff tr_rW_Ai i : {in A i, forall x : gT, \tr (rW x) = (f i)%:R}.
     gamma i *+ mn i = \sum_(x \in A i) (rW x) *+ mn i. 
     by move=> mn i; rewrite sumr_muln.
   rewrite !(eq_bigr _ (hp _)); move/(f_equal mxtrace); rewrite !raddf_sum /=. 
- have {hp} hp : forall mn i, 0 < m i + n i -> 
+  have {hp} hp : forall mn i, 0 < m i + n i -> 
     \tr (\sum_(x \in A i) rW x *+ mn i) = (f i * mn i * #|A i|)%:R.
-    move=> mn i _; rewrite raddf_sum /= !natr_mul !mulr_natr.
+    move=> mn i hi; rewrite raddf_sum /= !natr_mul !mulr_natr.
     have hp' : forall x, x \in A i -> \tr (rW x *+ mn i) = ((f i)%:R) *+ mn i.
-      by move=> x Aix; rewrite raddfMn /= (tr_rW_Ai _ _ Aix).
+      by move=> x Aix; rewrite raddfMn /= (tr_rW_Ai _ hi _ Aix).
     by rewrite (eq_bigr _ hp') /= sumr_const. 
   rewrite !(eq_bigr _ (hp _)) !muln_sum; move/(f_equal (@nat_of_ord _)).
   by rewrite !val_Zp_nat // -(exp1n k) ltn_exp2r // prime_gt1.
+move=> i a Aia.
+have nBAi : A i \subset 'N(B).
+
 Admitted.
