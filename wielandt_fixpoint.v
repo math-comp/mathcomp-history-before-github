@@ -1002,7 +1002,7 @@ suff tr_rW_Ai : forall i, 0 < m i + n i  ->
       by move=> mn i _; rewrite sumr_muln.
     rewrite !(eq_bigr _ (hp _)). 
     have side : forall i j, 0 < m i + n i -> j \in A i -> j \in G.
-      move=> i j hmn; apply/subsetP; exact: sAiG.
+      by move=> i j hmn; apply: (subsetP (sAiG _ _)).
     rewrite !(exchange_big_dep (fun x => x \in G)) // {side} /=. 
     apply: eq_bigr => g Gg; rewrite !sumr_muln_r; congr (_ *+ _).
     transitivity (\sum_(i | (g \in A i) && (0 < m i + n i)) m i)%N.
@@ -1022,7 +1022,10 @@ suff tr_rW_Ai : forall i, 0 < m i + n i  ->
     by rewrite (eq_bigr _ hp') /= sumr_const. 
   rewrite !(eq_bigr _ (hp _)) !muln_sum; move/(f_equal (@nat_of_ord _)).
   by rewrite !val_Zp_nat // -(exp1n k) ltn_exp2r // prime_gt1.
-move=> i a Aia.
+move=> i hi a Aia.
 have nBAi : A i \subset 'N(B).
-
+  by apply: (subset_trans (sAiG _  hi)); case/mingroupP: minB; case/andP.
+have copAiB : coprime #|B| #|A i|.
+  by apply: (coprimegS (sAiG _ hi)); apply: (coprimeSg sBV).
+have eB := (coprime_abelian_cent_dprod nBAi copAiB (abelem_abelian pabB)).
 Admitted.
