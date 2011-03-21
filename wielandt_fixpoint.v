@@ -403,6 +403,7 @@ Qed.
 
 
 
+
 End HuppertBlackburn_5_9.
 
 Section HuppertBlackburn_12_3.
@@ -789,7 +790,6 @@ by rewrite -def_fv def_f invmK // im_f' im_f3.
 Qed.
 
 
-
 End HuppertBlackburn_12_3.
 
 (* Auxiliary lemma for the second part of the proof *)
@@ -819,6 +819,13 @@ move=> p x y; wlog hwlog : x y / x <= y.
 move=> lt1p hmod; apply/eqP; rewrite eqn_leq hwlog /= -subn_eq0; apply/eqP.
 apply: (expdiv_0 lt1p) => n lt0n; rewrite (divn_eq y (p ^ n)).
 by rewrite (divn_eq x (p ^ n)) (hmod _ lt0n) subn_add2r -muln_subl dvdn_mull.
+Qed.
+
+Lemma muln_sum :  forall (R : ringType) I r P (F : I -> nat),
+  \sum_(i <- r | P i) (F i)%:R  = (\sum_(i <- r | P i) F i)%:R :> R.
+Proof.
+move=> R I r P F; apply: sym_eq.
+exact: (big_morph _ (fun x1 y1 : nat => natr_add _ x1 y1) (refl_equal 0%:R)).
 Qed.
 
 Theorem solvable_Wielandt_fixpoint : forall (I : finType) (gT : finGroupType),
@@ -985,5 +992,33 @@ have is_action_rW : (mx_repr G rW).
     by apply/matrixP=> i j /=; rewrite mxE /= subgK // act1 !mxE eqxx eq_sym.
   move=> x y Gx Gy /=; apply/row_matrixP=> i; rewrite row_mul mul_rV_lin1 /=.
   by rewrite subgK // !rowK /= !subgK ?groupM // actMin. 
-have tr_rW_Ai : forall i x, x \in A i -> \tr (rW x) = inZp (f i).
+suff tr_rW_Ai i : {in A i, forall x : gT, \tr (rW x) = (f i)%:R}.
+  pose gamma i := \sum_(x \in A i) rW x.
+  have: \sum_(i | 0 < m i + n i) (gamma i) *+ m i = 
+        \sum_(i | 0 < m i + n i) (gamma i) *+ n i.
+    have hp : forall mn i, 0 < m i + n i -> 
+      gamma i *+ mn i = \sum_(x \in A i) (rW x) *+ mn i.
+      by move=> mn i _; rewrite sumr_muln.
+    rewrite !(eq_bigr _ (hp _)). 
+    have side : forall i j, 0 < m i + n i -> j \in A i -> j \in G.
+      move=> i j hmn; apply/subsetP; exact: sAiG.
+    rewrite !(exchange_big_dep (fun x => x \in G)) // {side} /=. 
+    apply: eq_bigr => g Gg; rewrite !sumr_muln_r; congr (_ *+ _).
+    transitivity (\sum_(i | (g \in A i) && (0 < m i + n i)) m i)%N.
+      by apply: eq_bigl => i; rewrite andbC.
+    transitivity (\sum_(i | (g \in A i) && (0 < m i + n i)) n i)%N.
+      exact: hGA.
+    by apply: eq_bigl => i; rewrite andbC.
+  have hp : forall mn i, 0 < m i + n i -> 
+    gamma i *+ mn i = \sum_(x \in A i) (rW x) *+ mn i. 
+    by move=> mn i; rewrite sumr_muln.
+  rewrite !(eq_bigr _ (hp _)); move/(f_equal mxtrace); rewrite !raddf_sum /=. 
+ have {hp} hp : forall mn i, 0 < m i + n i -> 
+    \tr (\sum_(x \in A i) rW x *+ mn i) = (f i * mn i * #|A i|)%:R.
+    move=> mn i _; rewrite raddf_sum /= !natr_mul !mulr_natr.
+    have hp' : forall x, x \in A i -> \tr (rW x *+ mn i) = ((f i)%:R) *+ mn i.
+      by move=> x Aix; rewrite raddfMn /= (tr_rW_Ai _ _ Aix).
+    by rewrite (eq_bigr _ hp') /= sumr_const. 
+  rewrite !(eq_bigr _ (hp _)) !muln_sum; move/(f_equal (@nat_of_ord _)).
+  by rewrite !val_Zp_nat // -(exp1n k) ltn_exp2r // prime_gt1.
 Admitted.
