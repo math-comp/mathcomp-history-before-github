@@ -600,6 +600,12 @@ move=> I; elim=> [|a r ihr] //= F arP; first by rewrite big_nil eqxx.
 by rewrite big_cons addr_eq0 ?ihr // sumr_ge0.
 Qed.
 
+Lemma ler_natmul : forall n x y, x <= y -> x *+ n <= y *+ n.
+Proof.
+elim=> [|n IH] x y lexy; rewrite ?lerr //.
+by rewrite !mulrS; apply: ler_add=> //; exact: IH.
+Qed.
+
 Lemma mulr_ge0 : forall x y, 0 <= x -> 0 <= y -> 0 <= (x * y).
 Proof. by move=> x y; rewrite -!posr_ge0=> px py; rewrite posr_mul. Qed.
 
@@ -1163,6 +1169,20 @@ Proof. by move=> m n; rewrite ltrNge ltnNge ler_nat. Qed.
 
 Lemma natr_gt0 : forall n : nat, (0 < n%:R :> R) = (0 < n)%N.
 Proof. exact: (ltr_nat 0). Qed.
+
+
+Lemma ler_natmul_eq : forall n x y, (x *+ n <= y *+ n) = ((n == 0%N) || (x <= y)).
+Proof.
+move=> n x y; apply/idP/idP; last first.
+  by case/orP; [move/eqP->; exact: lerr | exact: ler_natmul].
+elim: n=> // n IH.
+case: (boolP (x *+ n <= y *+ n)) IH=> [_|HH _].
+  move/(_ is_true_true); case/orP=>[|->]; last by rewrite orbT.
+  by move/eqP->; rewrite orFb !mulr1n.
+rewrite !mulrS=> HH1.
+rewrite -(ler_add2l (y *+ n)) (ler_trans _ HH1) ?orbT // ler_add2r.
+by apply: ltrW; rewrite ltrNge.
+Qed.
 
 Section FinGroup.
 

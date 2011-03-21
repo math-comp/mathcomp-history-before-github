@@ -208,6 +208,34 @@ Section CplxTheory.
 Variable R : oFieldType.
 Notation C := (cplx R).
 
+Lemma cplx_is_morphism : rmorphism (@cplx_of_R R).
+Proof.
+split; [|split=> //] => a b; simpc; first by rewrite subrr.
+by rewrite !mulr0 !mul0r addr0 subr0.
+Qed.
+
+Canonical Structure cplx_morphism := RMorphism cplx_is_morphism.
+
+Lemma Re_is_additive : additive (@Re R).
+Proof. by case=> a1 b1; case=> a2 b2. Qed.
+
+Canonical Structure Re_additive := Additive Re_is_additive.
+
+Lemma Im_is_additive : additive (@Im R).
+Proof. by case=> a1 b1; case=> a2 b2. Qed.
+
+Canonical Structure Im_additive := Additive Im_is_additive.
+
+Lemma ReiNIm : forall x : C, Re (x * 'i) = - Im x.
+Proof.
+by case=> a b; simpc; rewrite mulr0 mulr1 sub0r.
+Qed.
+
+Lemma ImiRe : forall x : C, Im (x * 'i) = Re x.
+Proof.
+by case=> a b; simpc; rewrite !mulr0 !mulr1 addr0.
+Qed.
+
 Lemma cplxI : injective (@cplx_of_R R). Proof. by move=> x y []. Qed.
 
 Lemma poscM : forall x : R, posr (x%:C) = posr x.
@@ -259,6 +287,27 @@ Proof. by rewrite -posr_ge0 posc1. Qed.
 
 Lemma ltc01 : 0 < 1 :> C.
 Proof. by rewrite ltr_neqAle lec01 eq_sym oner_eq0. Qed.
+
+Lemma Re_conj_add : forall x : C, Re x =  (x + x^*) / 2%:R :> C.
+Proof.
+case=> a b; simpc.
+rewrite subrr !mul0r !add0r !mul0r mulrN mulr0 addr0 subr0 oppr0.
+rewrite [0^+_]exprS mul0r addr0 -mulr2n -mulr_natr -mulrA.
+have<-: 2%:R = 1 + 1 :> R by [].
+rewrite [_ * (_ / _)]mulrA divff ?mulr1 //=.
+by rewrite mulf_neq0 // (mulSn1r_eq0 _ 1%N).
+Qed.
+
+Lemma Im_conj_sub : forall x : C, Im x =  (x^* - x) / 2%:R * 'i  :> C.
+Proof.
+case=> a b; simpc.
+rewrite !(subrr,add0r,addr0,mul0r,mulr0,mulr1,mulrN,opprK,oppr0).
+rewrite -oppr_add !mulNr opprK.
+rewrite [0^+_]exprS mul0r addr0 -mulr2n -mulr_natr -mulrA.
+have<-: 2%:R = 1 + 1 :> R by [].
+rewrite [_ * (_ / _)]mulrA divff ?mulr1 //=.
+by rewrite mulf_neq0 // (mulSn1r_eq0 _ 1%N).
+Qed.
 
 Lemma posc_is_real : forall x : C, 0 <= x -> Im x = 0.
 Proof. by move=> [a b]; rewrite lecE /=; case/andP; move/eqP<-. Qed.
@@ -462,7 +511,7 @@ Proof.
 by move=> a; rewrite /sqrtr; case: (_.2 _)=> x /=; case/andP.
 Qed.
 
-Lemma sqr_sqrtrE : forall a : R, 0 <= a -> (sqrtr a)^+2 = a.
+Lemma sqr_sqrtr : forall a : R, 0 <= a -> (sqrtr a)^+2 = a.
 Proof.
 move=> a; rewrite /sqrtr; case: (_.2 _)=> x /=; case/andP=> _ HH H1.
 by move: HH; rewrite H1; move/eqP.
@@ -475,7 +524,7 @@ have F1: 0 <= a * a.
   case: (boolP (0 <= a))=> pa; first by rewrite mulr_ge0.
   by rewrite -mulrNN mulr_ge0 // oppr_ge0 ltrW // ltrNge.
 have: sqrtr (a ^+ 2) ^+2 == (`|a|) ^+ 2.
-  by rewrite sqr_sqrtrE exprS expr1 // exprS expr1 -absr_mul ger0_abs.
+  by rewrite sqr_sqrtr exprS expr1 // exprS expr1 -absr_mul ger0_abs.
 rewrite -subr_eq0 subr_sqr mulf_eq0; case/orP.
   by rewrite subr_eq0; move/eqP.
 rewrite (addr_eq0 (sqrtr_ge0 _) (absr_ge0 _)).
@@ -510,8 +559,8 @@ Lemma sqrtrM : forall a b : R, 0 <= a -> 0 <= b ->
 Proof.
 move=> a b pa pb.
 have->: a * b = (sqrtr a * sqrtr b)^+2.
-  rewrite exprS expr1 mulrCA !mulrA -expr2 sqr_sqrtrE //.
-  by rewrite -mulrA -expr2 sqr_sqrtrE.
+  rewrite exprS expr1 mulrCA !mulrA -expr2 sqr_sqrtr //.
+  by rewrite -mulrA -expr2 sqr_sqrtr.
 by rewrite sqrtr_sqr ger0_abs // mulr_ge0 // sqrtr_ge0.
 Qed.
 
@@ -519,7 +568,7 @@ Lemma eqr_sqrt : forall a b : R, 0 <= a -> 0 <= b ->
   (sqrtr a == sqrtr b) = (a == b).
 Proof.
 move=> a b pa pb;apply/eqP/eqP=> [HS|->] //.
-by move: (sqr_sqrtrE pa); rewrite HS (sqr_sqrtrE pb).
+by move: (sqr_sqrtr pa); rewrite HS (sqr_sqrtr pb).
 Qed.
 
 Lemma sqrtr_monotone : forall a b : R, 
@@ -529,7 +578,7 @@ move=> a b aLb.
 case: (boolP (0 <= a))=> [pa|]; last first.
   rewrite -ltrNge; move/ltrW; rewrite -sqrtr_eq0; move/eqP->.
   by exact: sqrtr_ge0.
-by rewrite -(ler_pexp2 1) ?sqrtr_ge0 // !sqr_sqrtrE // (ler_trans pa).
+by rewrite -(ler_pexp2 1) ?sqrtr_ge0 // !sqr_sqrtr // (ler_trans pa).
 Qed.
 
 Lemma ler_sqrt : forall a b : R, 0 <= b -> 
@@ -541,7 +590,7 @@ move=> a b pb;apply/idP/idP=> HH; last first.
   by exact: sqrtr_ge0.
 case: (boolP (0 <= a))=> pa; last first.
    by apply: ler_trans pb; apply: ltrW; rewrite ltrNge.
-rewrite -(sqr_sqrtrE pa) -(sqr_sqrtrE pb) -subr_ge0.
+rewrite -(sqr_sqrtr pa) -(sqr_sqrtr pb) -subr_ge0.
 by rewrite subr_sqr mulr_ge0 ?subr_ge0 // addr_ge0 ?sqrtr_ge0.
 Qed.
 
@@ -554,7 +603,7 @@ move=> a b pb;apply/idP/idP=> HH; last first.
     by rewrite eqr_sqrt // ?ltrW //; case/andP: HH.
   rewrite -ltrNge; move/ltrW; rewrite -sqrtr_eq0; move/eqP->.
   apply/eqP=> HH1; move: (pb).
-  by rewrite -(sqr_sqrtrE (ltrW pb)) -HH1 exprS mul0r ltrr.
+  by rewrite -(sqr_sqrtr (ltrW pb)) -HH1 exprS mul0r ltrr.
 move: HH; rewrite !ltrNge=> HH; apply/negP=> HH1.
 by case/negP: HH; apply: sqrtr_monotone.
 Qed.
@@ -588,12 +637,12 @@ congr (_ +i _);  set u := if _ then _ else _.
   have->: (u * u) = 1.
     rewrite /u; case: (_ =P _); rewrite ?mul1r //.
     by move/eqP=> HH; rewrite mul_neq0ss. 
-  rewrite mulr1z -!sqr !sqr_sqrtrE //.
+  rewrite mulr1z -!sqr !sqr_sqrtr //.
   rewrite [_+a]addrC -mulr_subl oppr_add addrA addrK.
   by rewrite opprK -mulr2n -mulr_natl [_*a]mulrC mulfK.
 rewrite mulrzAl mulrzAr -mulrz_addr [sqrtr _ * _]mulrC.
 rewrite -mulr2n -sqrtrM // mulrAC !mulrA -subr_sqr.
-rewrite sqr_sqrtrE; last first.
+rewrite sqr_sqrtr; last first.
   by rewrite addr_ge0 // exprn_even_ge0.
 rewrite [_^+2 + _]addrC addrK -mulrA -expr2 sqrtrM ?exprn_even_ge0 //.
 rewrite !sqrtr_sqr -mulr_natr.
@@ -604,7 +653,7 @@ by rewrite -absr_sgP.
 Qed.
 
 Lemma sqrtc_sqrtr : 
-  forall (x : C), 0 <= x -> sqrtc x = (cplx_of_R (sqrtr (Re x))).
+  forall (x : C), 0 <= x -> sqrtc x = cplx_of_R (sqrtr (Re x)).
 Proof.
 move=> [a b]; case/andP; rewrite !subr0 posr_ge0 /sqrtc.
 move/eqP=> -> zLa.
@@ -640,57 +689,105 @@ move=> x; apply/eqP/eqP=> [eqs|->]; last by rewrite sqrtc0.
 by rewrite -[x]sqr_sqrtc eqs exprS mul0r.
 Qed.
 
-(* Which one will be good ? *)
-(* Definition normc (x : C) := Re (sqrt (x * x^* )). *)
-(* Definition normc (x : C) : R := sqrt (Re (x * x^* )). *)
+Notation R1 := (OrderedRing.TotalOrder.Field.sort R).
 
-(* Lemma normcE : forall x, (normc x) ^+ 2 = x * x^* :> C. *)
-(* Proof.  *)
-(* by move=> [a b]; rewrite /normc /=; simpc; rewrite !mulrN [a * b]mulrC addNr. *)
-(* Qed. *)
-(* (* *)
-(* Hypothesis normC_add: forall x y, *)
-(*   normC (x + y) <= normC x + normC y +  2%:R * (normC x * normC y). *)
-(* *) *)
+Definition normc (x : C) : R := 
+  let: a +i b := x in sqrtr (a^+2 + b^+2).
 
-(* Lemma normc_ge0 : forall x, 0 <= normc x. *)
-(* Proof. by move=> x; rewrite -lecM normcE mulc_conj_ge0. Qed. *)
+Lemma normc_ge0 : forall x, 0 <= normc x.
+Proof. by case=> a b; apply: sqrtr_ge0. Qed.
 
-(* Lemma normc0 : normc 0 = 0. Proof. by rewrite /normc mul0r. Qed. *)
+Lemma normc0 : normc 0 = 0.
+Proof. by rewrite /= exprS mul0r add0r sqrtr0. Qed.
 
-(* Lemma normc1 : normc 1 = 1. Proof. by rewrite /normc mul1r. Qed. *)
+Lemma normc1 : normc 1 = 1.
+Proof. by rewrite /= !(mul0r,mul1r,exprS) addr0 expr0 sqrtr1. Qed.
 
+Lemma normcE : forall x : C, (normc x: R1) = sqrtc (x * x^*) :> C.
+Proof. 
+case=> a b; rewrite /normc; simpc.
+rewrite !mulrN opprK [b * a]mulrC addNr sqrtc_sqrtr //.
+by rewrite -!expr2 lecM addr_ge0 // exprn_even_ge0.
+Qed.
 
-(* Lemma normc_mul :  {morph normc: x y / x * y}. *)
-(* Proof. *)
-(* move=> x y /=; apply: cplxI; rewrite !normcE. *)
-(* rewrite rmorphM -!mulrA /=. congr (_ * _)). *)
-(* by rewrite mulrc -!mulrA [y * _]mulrC. *)
-(* Qed. *)
+Lemma sqr_normc : forall x : C, ((normc x) ^+ 2 : R1) = x * x^* :> C.
+Proof.
+move=> x; move: (mulc_conj_ge0 x)=> Hx.
+by rewrite !rmorphM /= normcE -expr2 sqr_sqrtc.
+Qed.
 
-(* Lemma normc_exp : forall x n, normc (x^+n) = normc x ^+ n. *)
-(* Proof. *)
-(* move=> x; elim=> [|n IH]; first by rewrite !expr0 normc1. *)
-(* by rewrite exprS normc_mul IH exprS. *)
-(* Qed. *)
+Lemma normcM : multiplicative normc.
+Proof.
+split; last by exact: normc1.
+case=> a1 b1; case=> a2 b2; simpc.
+rewrite /normc -sqrtrM ?(addr_ge0,exprn_even_ge0) //.
+congr sqrtr; rewrite !expr2 !(mulr_addr,mulr_addl).
+rewrite -!addrA; congr (_ + _); first by rewrite mulrCA !mulrA.
+do 6 rewrite addrC -!addrA; congr (_ + _).
+  by rewrite mulrCA !mulrA.
+do 3 rewrite addrC -!addrA; congr (_ + _).
+  by rewrite mulrCA !mulrA.
+rewrite !mulrN !mulNr opprK.
+have->: b1 * a2 * (a1 * b2)  = a1 * a2 * (b1 * b2).
+  by rewrite [b1 * _]mulrC mulrCA !mulrA.
+have->: a1 * b2 * (b1 * a2)  = b1 * b2 * (a1 * a2).
+  by rewrite [a1 * _]mulrC mulrCA !mulrA.
+by rewrite !addrA addrK addrN add0r mulrCA !mulrA.
+Qed.
 
-(* Lemma normc_conj: forall x, normc (x^* ) = normc x. *)
-(* Proof. by move=> x; rewrite /normc conjcK mulrC. Qed. *)
+Lemma normcX : forall x n, normc (x^+n) = normc x ^+ n.
+Proof.
+by move=> x; elim=> [|n IH]; rewrite ?(exprS,expr0) // normcM // IH.
+Qed.
 
-(* Lemma normc_inv : forall x, x^-1 = (normc x)^-1 * x^*. *)
-(* Proof. *)
-(* move=> x; case: (x =P 0)=> [->|]. *)
-(*   by rewrite conjc0 mulr0 invr0. *)
-(* move/eqP=> Hx. *)
-(* rewrite /normc invr_mul ?(GRing.unitfE,conjC_eq0) //. *)
-(* by rewrite mulrC mulrA GRing.mulrV ?(GRing.unitfE,conjc_eq0) // div1r. *)
-(* Qed. *)
+Lemma normc_eq0: forall x, (normc x == 0) = (x == 0).
+Proof.
+case=> a b /=; rewrite sqrtr_eq0.
+apply/idP/and3P=>[HH|[]]; last first.
+  by move/eqP->; move/eqP->; rewrite exprS mul0r add0r lerr.
+split=> //.
+  suff: a ^+ 2 = 0.
+    by move/eqP; rewrite expf_eq0; case/andP.
+  apply: ler_anti; rewrite ?(andbT,exprn_even_ge0) //.
+  apply: ler_trans HH.
+  by rewrite -{1}[a ^+ 2]addr0 ler_add2r exprn_even_ge0.
+suff: b ^+ 2 = 0.
+  by move/eqP; rewrite expf_eq0; case/andP.
+apply: ler_anti; rewrite ?(andbT,exprn_even_ge0) //.
+apply: ler_trans HH.
+by rewrite -{1}[b ^+ 2]add0r ler_add2l exprn_even_ge0.
+Qed.
 
-(* Lemma normc_eq0: forall x, (normc x == 0) = (x == 0). *)
-(* Proof. *)
-(* move=> x; apply/eqP/eqP=> Hp; last first. *)
-(*   by rewrite Hp normc0. *)
-(* by apply/eqP; rewrite -invr_eq0 normc_inv Hp invr0 mul0r. *)
-(* Qed. *)
+Lemma normc_ge_Re : forall (x : C), `|Re x| <= normc x.
+Proof.
+case=> a b; rewrite -sqrtr_sqr sqrtr_monotone //.
+by rewrite -{1}[a^+2]addr0 ler_add2r exprn_even_ge0.
+Qed.
+
+Lemma normcJ : forall x, normc (x^* ) = normc x.
+Proof. by case=> a b; rewrite /= sqrrN. Qed.
+
+Lemma normC_add_le : forall x y : C,  normc (x + y) <= normc x + normc y.
+Proof.
+move=> x y; rewrite -(ler_pexp2 1)  ?(addr_ge0,normc_ge0) //.
+rewrite -lecM sqr_normc rmorphD /= mulr_addr !mulr_addl.
+rewrite sqrr_add -!sqr_normc !rmorphD -!addrA /=.
+rewrite ler_add2r !addrA ler_add2l -mulr2n.  
+suff->: y * x^* + x * y^* = cplx_of_R (Re(x * y^*)) *+2.
+  rewrite ler_natmul // -[normc y]normcJ -normcM.
+  by rewrite lecM (ler_trans _ (normc_ge_Re _)) // -maxrN ler_maxr lerr.
+rewrite addrC [y*_]mulrC Re_conj_add rmorphM /= conjcK -[_ *+ 2]mulr_natr.
+by rewrite divfK // (mulz1c_eq0 R 2).
+Qed.
+
+Lemma invc_norm : forall x : C, x^-1 = (cplx_of_R (normc x))^-2 * x^*.
+Proof.
+move=> x; case: (altP (x =P 0)) => [->|dx].
+  by rewrite rmorph0 mulr0 invr0.
+apply: (mulIf dx).
+rewrite mulrC divff // -mulrA [_^* * _]mulrC -(sqr_normc x) mulrC.
+rewrite !rmorphX /= divff // expf_neq0 //.
+by apply/negP; case/andP; rewrite normc_eq0 (negPf dx).
+Qed.
 
 End CplxClosed.
