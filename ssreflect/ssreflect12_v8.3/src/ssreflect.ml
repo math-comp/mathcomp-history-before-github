@@ -2617,6 +2617,19 @@ let tclDOTRY n tac =
     tclTRY (tclTHEN tac (loop (i + 1))) gl in
   loop 1
 
+let tclDO n tac =
+  let prefix i = str"At iteration " ++ int i ++ str": " in
+  let tac_err_at i gl =
+    try tac gl
+    with 
+    | UserError (l, s) -> raise (UserError (l, prefix i ++ s))
+    | Stdpp.Exc_located(loc, UserError (l, s))  -> 
+        raise (Stdpp.Exc_located(loc, UserError (l, prefix i ++ s))) in
+  let rec loop i gl =
+    if i = n then tac_err_at i gl else
+    (tclTHEN (tac_err_at i) (loop (i + 1))) gl in
+  loop 1
+
 let tclMULT = function
   | 0, May  -> tclREPEAT
   | 1, May  -> tclTRY
