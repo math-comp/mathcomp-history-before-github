@@ -1099,9 +1099,12 @@ ARGUMENT EXTEND ssr_search_item TYPED AS ssr_searchitem
       interp_search_notation loc s None ]
   | [ string(s) "%" preident(key) ] ->
     [ interp_search_notation loc s (Some key) ]
-  | [ constr_pattern(p) ] ->
-    [ let intern = Constrintern.intern_constr_pattern Evd.empty in
-      Search.GlobSearchSubPattern (snd (intern (Global.env()) p)) ]
+  | [ constr_pattern(p) ] -> 
+    [ try
+        let intern = Constrintern.intern_constr_pattern Evd.empty in
+        Search.GlobSearchSubPattern (snd (intern (Global.env()) p))
+      with e -> raise (Cerrors.process_vernac_interp_error e)
+  ]
 END
 
 let pr_ssr_search_arg _ _ _ =
