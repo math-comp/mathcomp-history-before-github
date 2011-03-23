@@ -9,7 +9,7 @@ split.
 Qed.
 
 Section Foo.
-Export ssreflect.SsrSyntax.
+Import ssreflect.SsrSyntax.
 
 Goal (forall a b, a + b = b + a).
 intros.
