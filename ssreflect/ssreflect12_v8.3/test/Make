@@ -13,6 +13,8 @@ have_view_idiom.v
 ipatalternation.v
 multiview.v
 occarrow.v
+ssrsyntax1.v
+ssrsyntax2.v
 rewpatterns.v
 testmx.v
 wlogletin.v

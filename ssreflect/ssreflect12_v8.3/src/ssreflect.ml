@@ -1,7 +1,7 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 
 (* This line is read by the Makefile's dist target: do not remove. *)
-let ssrversion = "1.3";; 
+let ssrversion = "1.3pl1";; 
 let () = Mltop.add_known_module "ssreflect";;
 let () = 
   if Flags.is_verbose () && not !Flags.batch_mode && 
@@ -208,7 +208,10 @@ let ssr_loaded =
   let env' = Global.env() in
   if env == env' then false else
   let nl_env' =
-    try ignore (mkSsrRef "protect_term"); None with _ -> Some env' in
+    try 
+      ignore (mkSsrRef "protect_term"); 
+      if Lexer.is_keyword("is") then None else Some env' 
+    with _ -> Some env' in
   nl_env := nl_env'; nl_env' = None
 
 (** Name generation *)
@@ -2314,32 +2317,52 @@ ARGUMENT EXTEND ssripats_ne TYPED AS ssripat PRINTED BY pr_ssripats
 END
 
 (* subsets of patterns *)
-let check_ssrhpats loc ipats =
+let check_ssrhpats loc w_binders ipats =
+  let err_loc s = user_err_loc (loc, "ssreflect", s) in
   let clr, ipats =
     let rec aux clr = function
       | IpatSimpl (cl, Nop) :: tl -> aux (clr @ cl) tl
       | IpatSimpl (cl, sim) :: tl -> clr @ cl, IpatSimpl ([], sim) :: tl
       | tl -> clr, tl
     in aux [] ipats in
-  let rec check = function
-    | [] -> ()
-    | ( IpatId _ | IpatAnon | IpatCase _ | IpatRw _ ) :: tl ->
-      if not (List.for_all
-        (function IpatId _ | IpatSimpl ([],_) -> true | _ -> false) tl)
-      then
-        user_err_loc(loc, "",str "Only binders allowed here: " ++ pr_ipats tl)
-    | _ :: tl -> check tl
-  in check ipats;
-  clr, ipats
+  let simpl, ipats = 
+    match List.rev ipats with
+    | IpatSimpl ([],_) as s :: tl -> [s], List.rev tl
+    | _ -> [],  ipats in
+  if simpl <> [] && not w_binders then
+    err_loc (str "No s-item allowed here: " ++ pr_ipats simpl);
+  let ipat, binders =
+    let rec loop ipat = function
+      | [] -> ipat, []
+      | ( IpatId _| IpatAnon| IpatCase _| IpatRw _ as i) :: tl -> 
+        if w_binders then
+          if simpl <> [] && tl <> [] then 
+            err_loc(str"binders XOR s-item allowed here: "++pr_ipats(tl@simpl))
+          else if not (List.for_all (function IpatId _ -> true | _ -> false) tl)
+          then err_loc (str "Only binders allowed here: " ++ pr_ipats tl)
+          else ipat @ [i], tl
+        else
+          if tl = [] then  ipat @ [i], []
+          else err_loc (str "No binder or s-item allowed here: " ++ pr_ipats tl)
+      | hd :: tl -> loop (ipat @ [hd]) tl
+    in loop [] ipats in
+  ((clr, ipat), binders), simpl
 
 let single loc =
   function [x] -> x | _ -> loc_error loc "Only one intro pattern is allowed"
 
-let pr_hpats (clr, ipat) = pr_clear mt clr ++ pr_ipats ipat
+let pr_hpats (((clr, ipat), binders), simpl) =
+   pr_clear mt clr ++ pr_ipats ipat ++ pr_ipats binders ++ pr_ipats simpl
 let pr_ssrhpats _ _ _ = pr_hpats
 
-ARGUMENT EXTEND ssrhpats TYPED AS ssrclear * ssripat PRINTED BY pr_ssrhpats
-  | [ ssripats(i) ] -> [ check_ssrhpats loc i ]
+ARGUMENT EXTEND ssrhpats TYPED AS ((ssrclear * ssripat) * ssripat) * ssripat
+PRINTED BY pr_ssrhpats
+  | [ ssripats(i) ] -> [ check_ssrhpats loc true i ]
+END
+
+ARGUMENT EXTEND ssrhpats_nobs 
+TYPED AS ((ssrclear * ssripat) * ssripat) * ssripat PRINTED BY pr_ssrhpats
+  | [ ssripats(i) ] -> [ check_ssrhpats loc false i ]
 END
 
 let check_ssrrpat loc = function IpatRw _ -> () | ip ->
@@ -5418,23 +5441,21 @@ ARGUMENT EXTEND ssrhavefwd TYPED AS ssrfwd * ssrhint PRINTED BY pr_ssrhavefwd
 | [ ":=" lconstr(c) ] -> [ mkFwdVal FwdHave c, nohint ]
 END
 
-let trailing_id_to_binders pats bs =
-  let rec loop pats = function
-    | [] -> pats, bs
-    | (IpatId _ | IpatAnon) as p :: tl ->
-        pats @ [p], List.map (function IpatId id ->
-          let xloc, _ as x = bvar_lname (mkCVar dummy_loc id) in
-          (FwdPose, [BFvar]),
-             CLambdaN (dummy_loc, [[x], Default Explicit, CHole (xloc, None)],
-		CHole (dummy_loc, None))
-        | _ -> errorstrm
-          (str"Only binders are allowed after the first identifier")
-        ) tl @ bs
-    | (IpatCase _ | IpatRw _) :: _ as rest ->
-        if bs = [] then pats @ rest, bs
-        else errorstrm (str"Binders must follow an identifier")
-    | p :: tl -> loop (pats @ [p]) tl
-  in loop [] pats
+let intro_id_to_binder = List.map (function 
+  | IpatId id ->
+      let xloc, _ as x = bvar_lname (mkCVar dummy_loc id) in
+      (FwdPose, [BFvar]),
+        CLambdaN (dummy_loc, [[x], Default Explicit, CHole (xloc, None)],
+          CHole (dummy_loc, None))
+  | _ -> anomaly "non-id accepted as binder")
+
+let binder_to_intro_id = List.map (function
+  | (FwdPose, [BFvar]), CLambdaN (_,[ids,_,_],_)
+  | (FwdPose, [BFdecl _]), CLambdaN (_,[ids,_,_],_) ->
+      List.map (function (_, Name id) -> IpatId id | _ -> IpatAnon) ids
+  | (FwdPose, [BFdef _]), CLetIn (_,(_,Name id),_,_) -> [IpatId id]
+  | (FwdPose, [BFdef _]), CLetIn (_,(_,Anonymous),_,_) -> [IpatAnon]
+  | _ -> anomaly "ssrbinder is not a binder")
 
 let pr_ssrhavefwdwbinders _ _ prt (hpats, (fwd, hint)) =
   pr_hpats hpats ++ pr_fwd fwd ++ pr_hint prt hint
@@ -5442,11 +5463,10 @@ let pr_ssrhavefwdwbinders _ _ prt (hpats, (fwd, hint)) =
 ARGUMENT EXTEND ssrhavefwdwbinders
   TYPED AS ssrhpats * (ssrfwd * ssrhint) PRINTED BY pr_ssrhavefwdwbinders
 | [ ssrhpats(pats) ssrbinder_list(bs) ssrhavefwd(fwd) ] ->
-  [ let clr, pats = pats in
-    let pats, bs = trailing_id_to_binders pats bs in
-    let fwd, hint = fwd in
-    let fwd = bind_fwd bs fwd in
-    (clr, pats), (fwd, hint) ]
+  [ let ((clr, pats), binders), simpl = pats in
+    let allbs = intro_id_to_binder binders @ bs in
+    let allbinders = binders @ List.flatten (binder_to_intro_id bs) in
+    (((clr, pats), allbinders), simpl), (bind_fwd allbs (fst fwd), snd fwd) ]
 END
 
 (* Tactic. *)
@@ -5457,10 +5477,13 @@ let havegentac ist t gl =
   let c = pf_abs_ssrterm ist gl t in
   apply_type (mkArrow (pf_type_of gl c) (pf_concl gl)) [c] gl
 
-let havetac (clr, pats) ((((fk, _), t), ctx), hint) suff namefst gl =
+let havetac ((((clr, pats), binders), simpl), ((((fk, _), t), ctx), hint))
+      suff namefst gl 
+=
  let ist, concl = get_ltacctx ctx, pf_concl gl in
  let itac_c = introstac ~ist (IpatSimpl(clr,Nop) :: pats) in
  let itac, id, clr = introstac ~ist pats, tclIDTAC, cleartac clr in
+ let binderstac, simpltac = introstac ~ist binders, introstac ~ist simpl in
  let hint = hinttac ist true hint in
  let cuttac t gl = basecuttac "ssr_have" t gl in
  let interp_ty ty =
@@ -5495,36 +5518,38 @@ let havetac (clr, pats) ((((fk, _), t), ctx), hint) suff namefst gl =
          pr_constr (mkArrow (mkVar (id_of_string "_")) concl)) in
      ty, tclTHEN assert_is_conv (apply t), id, itac_c
    | FwdHave, false, false ->
-     let t = interp (mkCCast loc ct cty) in pf_type_of gl t, apply t, id, itac_c
+     let t = interp (mkCCast loc ct cty) in 
+     pf_type_of gl t, apply t, id, tclTHEN itac_c simpltac
    | _, true, true   -> mkArrow (interp_ty cty) concl, hint, itac, clr
    | _, false, true  -> mkArrow (interp_ty cty) concl, hint, id, itac_c
-   | _, false, false -> interp_ty cty, hint, id, itac_c
+   | _, false, false -> 
+      interp_ty cty, tclTHEN binderstac hint, id, tclTHEN itac_c simpltac
    | _, true, false -> assert false in
  tclTHENS (cuttac cut) [ tclTHEN sol itac1; itac2 ] gl
 
 TACTIC EXTEND ssrhave
 | [ "have" ssrhavefwdwbinders(fwd) ] ->
-  [ let pats, fwd = fwd in havetac pats fwd false false ]
+  [ havetac fwd false false ]
 END
 
 TACTIC EXTEND ssrhavesuff
-| [ "have" "suff" ssrhpats(pats) ssrhavefwd(fwd) ] ->
-  [ havetac pats fwd true false ]
+| [ "have" "suff" ssrhpats_nobs(pats) ssrhavefwd(fwd) ] ->
+  [ havetac (pats, fwd) true false ]
 END
 
 TACTIC EXTEND ssrhavesuffices
-| [ "have" "suffices" ssrhpats(pats) ssrhavefwd(fwd) ] ->
-  [ havetac pats fwd true false ]
+| [ "have" "suffices" ssrhpats_nobs(pats) ssrhavefwd(fwd) ] ->
+  [ havetac (pats, fwd) true false ]
 END
 
 TACTIC EXTEND ssrsuffhave
-| [ "suff" "have" ssrhpats(pats) ssrhavefwd(fwd) ] ->
-  [ havetac pats fwd true true ]
+| [ "suff" "have" ssrhpats_nobs(pats) ssrhavefwd(fwd) ] ->
+  [ havetac (pats, fwd) true true ]
 END
 
 TACTIC EXTEND ssrsufficeshave
-| [ "suffices" "have" ssrhpats(pats) ssrhavefwd(fwd) ] ->
-  [ havetac pats fwd true true ]
+| [ "suffices" "have" ssrhpats_nobs(pats) ssrhavefwd(fwd) ] ->
+  [ havetac (pats, fwd) true true ]
 END
 
 (** The "suffice" tactic *)
@@ -5532,27 +5557,25 @@ END
 ARGUMENT EXTEND ssrsufffwd
   TYPED AS ssrhpats * (ssrfwd * ssrhint) PRINTED BY pr_ssrhavefwdwbinders
 | [ ssrhpats(pats) ssrbinder_list(bs)  ":" lconstr(t) ssrhint(hint) ] ->
-  [ let clr, pats = pats in
-    let pats, bs = trailing_id_to_binders pats bs in
+  [ let ((clr, pats), binders), simpl = pats in
+    let allbs = intro_id_to_binder binders @ bs in
+    let allbinders = binders @ List.flatten (binder_to_intro_id bs) in
     let fwd = mkFwdHint ":" t in
-    let fwd = bind_fwd bs fwd in
-    (clr, pats), (fwd, hint) ]
+    (((clr, pats), allbinders), simpl), (bind_fwd allbs fwd, hint) ]
 END
 
-let sufftac (clr, pats) (((_, c), ctx), hint) =
+let sufftac ((((clr, pats),binders),simpl), (((_, c), ctx), hint)) =
   let ist = get_ltacctx ctx in
   let htac = tclTHEN (introstac ~ist pats) (hinttac ist true hint) in
   let ctac gl = basecuttac "ssr_suff" (pf_prod_ssrterm ist gl c) gl in
-  tclTHENS ctac [htac; cleartac clr]
+  tclTHENS ctac [htac; tclTHEN (cleartac clr) (introstac ~ist (binders@simpl))]
 
 TACTIC EXTEND ssrsuff
-| [ "suff" ssrsufffwd(fwd) ] ->
-  [ let pats, fwd = fwd in sufftac pats fwd ]
+| [ "suff" ssrsufffwd(fwd) ] -> [ sufftac fwd ]
 END
 
 TACTIC EXTEND ssrsuffices
-| [ "suffices" ssrsufffwd(fwd) ] ->
-  [ let pats, fwd = fwd in sufftac pats fwd ]
+| [ "suffices" ssrsufffwd(fwd) ] -> [ sufftac fwd ]
 END
 
 (** The "wlog" (Without Loss Of Generality) tactic *)
@@ -5580,7 +5603,7 @@ ARGUMENT EXTEND ssrwlogfwd TYPED AS ssrwgen list * ssrfwd
 | [ ":" ssrwgen_list(gens) "/" lconstr(t) ] -> [ gens, mkFwdHint "/" t]
 END
 
-let wlogtac (clr0, pats) (gens, ((_, ct), ctx)) hint suff gl =
+let wlogtac (((clr0, pats),_),_) (gens, ((_, ct), ctx)) hint suff gl =
   let ist = get_ltacctx ctx in
   let mkabs (_, (SsrHyp (_, x), mode)) = match mode with
     | "@" -> mkNamedProd_or_LetIn (pf_get_hyp gl x)
@@ -5597,32 +5620,34 @@ let wlogtac (clr0, pats) (gens, ((_, ct), ctx)) hint suff gl =
   tclTHENS (basecuttac "ssr_wlog" c) [hinttac ist true hint; tac2] gl
 
 TACTIC EXTEND ssrwlog
-| [ "wlog" ssrhpats(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
+| [ "wlog" ssrhpats_nobs(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
   [ wlogtac pats fwd hint false ]
 END
 
 TACTIC EXTEND ssrwlogs
-| [ "wlog" "suff" ssrhpats(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
+| [ "wlog" "suff" ssrhpats_nobs(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
   [ wlogtac pats fwd hint true ]
 END
 
 TACTIC EXTEND ssrwlogss
-| [ "wlog" "suffices" ssrhpats(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
+| [ "wlog" "suffices" ssrhpats_nobs(pats) ssrwlogfwd(fwd) ssrhint(hint) ]->
   [ wlogtac pats fwd hint true ]
 END
 
 TACTIC EXTEND ssrwithoutloss
-| [ "without" "loss" ssrhpats(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
+| [ "without" "loss" ssrhpats_nobs(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
   [ wlogtac pats fwd hint false ]
 END
 
 TACTIC EXTEND ssrwithoutlosss
-| [ "without" "loss" "suff" ssrhpats(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
+| [ "without" "loss" "suff" 
+    ssrhpats_nobs(pats) ssrwlogfwd(fwd) ssrhint(hint) ] ->
   [ wlogtac pats fwd hint true ]
 END
 
 TACTIC EXTEND ssrwithoutlossss
-| [ "without" "loss" "suffices" ssrhpats(pats) ssrwlogfwd(fwd) ssrhint(hint) ]->
+| [ "without" "loss" "suffices" 
+    ssrhpats_nobs(pats) ssrwlogfwd(fwd) ssrhint(hint) ]->
   [ wlogtac pats fwd hint true ]
 END
 
