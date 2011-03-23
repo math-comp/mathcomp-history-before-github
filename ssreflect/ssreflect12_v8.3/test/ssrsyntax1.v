@@ -13,7 +13,13 @@ Import ssreflect.SsrSyntax.
 
 Goal (forall a b, a + b = b + a).
 intros.
-rewrite 2!plus_comm. 
+rewrite 2![_ + _]plus_comm. 
 split.
 Qed.
 End Foo.
+
+Goal (forall a b, a + b = b + a).
+intros.
+rewrite plus_comm, plus_comm.
+split.
+Qed.

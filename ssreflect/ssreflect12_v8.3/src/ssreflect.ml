@@ -201,18 +201,18 @@ let mkSsrConst name = constr_of_reference (mkSsrRef name)
 (* ssr_have would ultimately be a better choice.                        *)
 
 let ssr_loaded =
-  let nl_env = ref (Some Environ.empty_env) in
-  fun () -> match !nl_env with
-  | None -> true
-  | Some env ->
-  let env' = Global.env() in
-  if env == env' then false else
-  let nl_env' =
-    try 
-      ignore (mkSsrRef "protect_term"); 
-      if Lexer.is_keyword("is") then None else Some env' 
-    with _ -> Some env' in
-  nl_env := nl_env'; nl_env' = None
+  let cache = ref (Lib.current_command_label (), false) in
+  fun () ->
+    let new_lbl = Lib.current_command_label () in
+    match !cache with
+    | lbl, loaded when lbl = new_lbl -> loaded
+    | _ ->
+       let loaded =
+         try 
+           ignore (mkSsrRef "protect_term"); 
+           Lexer.is_keyword("is")
+         with _ -> false in
+       cache := new_lbl, loaded; loaded
 
 (** Name generation *)
 
