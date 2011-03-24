@@ -6,7 +6,7 @@ Goal (forall a b, a + b = b + a).
 intros.
 rewrite plus_comm, plus_comm.
 split.
-Qed.
+Abort.
 
 Section Foo.
 Import ssreflect.SsrSyntax.
@@ -15,11 +15,11 @@ Goal (forall a b, a + b = b + a).
 intros.
 rewrite 2![_ + _]plus_comm. 
 split.
-Qed.
+Abort.
 End Foo.
 
 Goal (forall a b, a + b = b + a).
 intros.
 rewrite plus_comm, plus_comm.
 split.
-Qed.
+Abort.
