@@ -204,14 +204,14 @@ let mkSsrConst name = constr_of_reference (mkSsrRef name)
 (* ssr_have would ultimately be a better choice.                        *)
 
 let ssr_loaded =
-  let cache = ref (Global.safe_env(), false) in
+  let cache = ref (Global.safe_env (), false) in
   fun () ->
+    Lexer.is_keyword "is" &&
     let new_lbl = Global.safe_env () in
     match !cache with
     | lbl, loaded when lbl == new_lbl -> loaded
     | _ ->
        let loaded =
-         Lexer.is_keyword "is" &&
          (try ignore (mkSsrRef "protect_term"); true with _ -> false) in
        cache := new_lbl, loaded; loaded
 
@@ -924,7 +924,6 @@ END
 
 (* Vernac grammar visibility patch *)
 
-let gallina_ext = Vernac_.gallina_ext in
 GEXTEND Gram
   GLOBAL: gallina_ext;
   gallina_ext:
