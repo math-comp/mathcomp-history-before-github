@@ -16,10 +16,17 @@ have ? (z : bool) : z = z.
 have ? (z w : bool) : z = z by exact: (@refl_equal _ z).
 have H w (a := 3) (_ := 4) : w && true = w.
   by rewrite andbT.
+Unset Automatic Introduction.
+have ? w (a := 3) (_ := 4) : w && true = w.
+  by move=> w _ _; rewrite andbT.
 exact I.
 Qed.
 
 Lemma test1 : True.
+suff (x : bool): x = x /\ True.
+  by move/(_ true); case=> _.
+move=> x; split; [ by [] | clear x].
+Set Automatic Introduction.
 suff (x : bool): x = x /\ True.
   by move/(_ true); case=> _.
 split; first by exact: (@refl_equal _ x).

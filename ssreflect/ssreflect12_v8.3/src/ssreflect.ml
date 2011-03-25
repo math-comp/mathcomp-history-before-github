@@ -5480,6 +5480,8 @@ let havegentac ist t gl =
 let havetac ((((clr, pats), binders), simpl), ((((fk, _), t), ctx), hint))
       suff namefst gl 
 =
+ (* honour automatic introduction flag *)
+ let binders = if Flags.is_auto_intros () then binders else [] in
  let ist, concl = get_ltacctx ctx, pf_concl gl in
  let itac_c = introstac ~ist (IpatSimpl(clr,Nop) :: pats) in
  let itac, id, clr = introstac ~ist pats, tclIDTAC, cleartac clr in
@@ -5565,6 +5567,8 @@ ARGUMENT EXTEND ssrsufffwd
 END
 
 let sufftac ((((clr, pats),binders),simpl), (((_, c), ctx), hint)) =
+  (* honour automatic introduction flag *)
+  let binders = if Flags.is_auto_intros () then binders else [] in
   let ist = get_ltacctx ctx in
   let htac = tclTHEN (introstac ~ist pats) (hinttac ist true hint) in
   let ctac gl = basecuttac "ssr_suff" (pf_prod_ssrterm ist gl c) gl in
