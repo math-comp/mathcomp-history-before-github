@@ -31,6 +31,7 @@ clean:
 	-$(COQMAKE) clean
 	rm -f $(COQMAKEFILE)
 	rm -rf ssreflect-$(VERSION) ssreflect-$(VERSION).tar.gz
+	rm -rf test-dist-static test-dist-dynamic
 
 dist:
 	# VERSION is computed reading src/ssreflect.ml, line let ssrversion
@@ -66,3 +67,14 @@ dist:
 	tar -f ssreflect-$(VERSION).tar -r ssreflect-$(VERSION)/MANIFEST
 	gzip -f9 ssreflect-$(VERSION).tar
 	rm -rf ssreflect-$(VERSION)/
+
+test-dist:
+	rm -rf test-dist-static test-dist-dynamic
+	mkdir test-dist-static
+	mkdir test-dist-dynamic
+	tar -xzf ssreflect-$(VERSION).tar.gz -C test-dist-static
+	tar -xzf ssreflect-$(VERSION).tar.gz -C test-dist-dynamic
+	sed -i 's/^#//' test-dist-static/ssreflect-$(VERSION)/Make
+	make -C test-dist-static/ssreflect-$(VERSION) all test
+	make -C test-dist-dynamic/ssreflect-$(VERSION) all test
+	rm -rf test-dist-static test-dist-dynamic
