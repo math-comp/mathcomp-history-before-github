@@ -90,6 +90,7 @@ complex.v
 # qe_rcf_th.v
 inertia.v
 PFsection1.v
+PFsection2.v
 
 COQC = ssrcoq
 COQFLAGS = "-q $(OPT) -dont-load-proofs $(COQLIBS) $(OTHERFLAGS) $(COQ_XML) -compile"
