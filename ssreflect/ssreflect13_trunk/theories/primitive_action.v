@@ -1,4 +1,5 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
+Add LoadPath "theories/" as Ssreflect.
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
 Require Import div seq fintype tuple finset.
 Require Import fingroup action gseries.
@@ -73,14 +74,16 @@ apply/forallP/maximal_eqP=> /= [primG | [_ maxCx] Q].
     rewrite oHG -(@ltn_pmul2l #|H|) ?LaGrange // -(card_orbit_stab to G x).
     by rewrite -(atransP trG x Sx) mulnC card_orbit ltn_pmul2r.
   - by apply/actsP=> a Ga Y; apply: orbit_transr; exact: mem_orbit.
+  -
   apply/and3P; split; last 1 first.
-  - rewrite orbit_sym; apply/imsetP=> [[a _]] /= defX.
+  + rewrite orbit_sym; apply/imsetP=> [[a _]] /= defX.
     by rewrite defX /setact imset0 inE in Xx.
-  - apply/eqP; apply/setP=> y; apply/bigcupP/idP=> [[Xa] | Sy].
+  + apply/eqP; apply/setP=> y; apply/bigcupP/idP=> [[Xa] | Sy].
       case/imsetP=> a Ga ->{Xa}; case/imsetP=> z; case/imsetP=> b Hb -> ->.
       by rewrite !(actsP (atrans_acts trG)) //; exact: subsetP Hb.
     case: (atransP2 trG Sx Sy) => a Ga ->.
     by exists ((to^*)%act X a); apply: mem_imset; rewrite // orbit_refl.
+  +
   apply/trivIsetP=> Y Z; case/imsetP=> a Ga ->; case/imsetP=> b Gb ->{Y Z}.
   case dab: [disjoint _ & _]; [by right | left].
   apply: (canRL (actKV _ _)); rewrite -actM; apply/astab1P.
@@ -91,6 +94,7 @@ apply/forallP/maximal_eqP=> /= [primG | [_ maxCx] Q].
   do 2!move/(canLR (actK _ _)); rewrite -!actM; move/astab1P => Cab.
   rewrite -(groupMr _ (groupVr Hb1)) -mulgA -(groupMl _ Ha1).
   by rewrite (subsetP sCH) // inE Cab !groupM ?groupV // (subsetP sHG).
+-
 apply/and3P=> [[]]; case/and3P; set sto := (to^*)%act.
 move/eqP=> defS tIQ ntQ actQ; rewrite !ltnNge -negb_or; case/orP.
 pose X := cover_at x Q; have Xx: x \in X by rewrite mem_cover_at defS.
@@ -108,10 +112,11 @@ have defQ: Q = orbit (to^*)%act G X.
   have [a Ga def_y] := atransP2 trG Sx Sy.
   by apply/imsetP; exists a; rewrite // (toX Y) // -def_y.
 rewrite defQ card_orbit; case: (maxCx 'C_G[X | sto]%G) => /= [||->|->].
-- apply/subsetP=> a; case/setIP=> Ga cxa; rewrite inE Ga /=.
++ apply/subsetP=> a; case/setIP=> Ga cxa; rewrite inE Ga /=.
   by apply/astab1P; rewrite (toX X) // (astab1P cxa).
-- exact: subsetIl.
-- by right; rewrite -card_orbit (atransP trG).
++ exact: subsetIl.
++ by right; rewrite -card_orbit (atransP trG).
++
 by left; rewrite indexgg.
 Qed.
 
@@ -129,6 +134,7 @@ case/(_ ('C_G[x | to] <*> H)%G) => /= [||cxH|]; first exact: joing_subl.
   apply/astabP=> y Sy; have [b Gb ->] := atransP2 trG Sx Sy.
   rewrite actCJV [to x (a ^ _)](astab1P _) ?(subsetP cxH) //.
   by rewrite -mem_conjg (normsP nHG).
+-
 rewrite norm_joinEl 1?subIset ?nHG //.
 by move/(subgroup_transitiveP Sx sHG trG); right.
 Qed.
@@ -253,6 +259,7 @@ have ext_t: forall t, t \in dtuple_on m S ->
   rewrite !inE; case/andP=> Ut1 St1 _; case/andP=> Ut _.
   have:= subset_trans St1 sSt; move/subset_leq_card.
   by rewrite !card_uniq_tuple // ltnn.
+-
 case/imsetP: (tr_m1); case/tupleP=> x t; rewrite dtuple_on_add.
 case/and3P=> Sx ntx dt; set xt := [tuple of _] => tr_xt.
 apply/imsetP; exists t => //.
@@ -348,6 +355,7 @@ have t_to_x: forall t, t \in m.+1.-dtuple(S) ->
   exists (n_act to t a); last by rewrite n_act_add toya !actK.
   move/(n_act_dtuple (subsetP (atrans_acts Gtr) a Ga)): St.
   by rewrite n_act_add -toya dtuple_on_add_D1; case/andP.
+-
 case: (imsetP Gntr) => t dt S_tG; pose xt := [tuple of x :: t].
 have dxt: xt \in m.+1.-dtuple(S) by rewrite dtuple_on_add_D1 Sx.
 apply/imsetP; exists xt => //; apply/setP=> t2.

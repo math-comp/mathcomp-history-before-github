@@ -1,4 +1,5 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
+Add LoadPath "theories/" as Ssreflect.
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat div seq choice fintype.
 Require Import finfun bigop.
 
@@ -1861,6 +1862,7 @@ move=> D; apply/and3P; split.
   rewrite /preim_at; case: (f x =P f y) => [->| fxy]; [by left | right].
   apply/existsP=> [[z]]; rewrite /= !inE andbCA; case/and3P=> -> /=.
   by move/eqP => ->; move/eqP.
+-
 apply/imsetP=> [[x Dx]]; move/eqP; rewrite eq_sym.
 by case/set0Pn; exists x; rewrite !inE Dx /=.
 Qed.
@@ -1924,7 +1926,7 @@ Lemma ex_minset : forall P, (exists A, P A) -> {A | minset P A}.
 Proof.
 move=> P exP; pose pS n := [pred B | P B && (#|B| == n)].
 pose p n := ~~ pred0b (pS n); have{exP}: exists n, p n.
-  by case: exP => A PA; exists #|A|; apply/existsP; exists A; rewrite PA /=.
+  by case: exP => A PA; exists #|A|; apply/existsP; exists A; rewrite /= PA /=.
 case/ex_minnP=> n; move/pred0P; case: (pickP (pS n)) => // A.
 case/andP=> PA; move/eqP=> <- {n} _ minA; exists A => //.
 apply/minsetP; split=> // B PB sBA; apply/eqP; rewrite eqEcard sBA.

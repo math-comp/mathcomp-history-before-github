@@ -91,6 +91,7 @@ suffices IHb:  reflect (exists2 x', x' \in b & dfs_path x' y a')
   exists y'; [ by rewrite -Db mem_enum | exists p'; auto ].
   rewrite disjoint_sym -Da' /= disjoint_cons Hp'x' /= disjoint_sym.
   apply: disjoint_trans Hpa; apply/subsetP=> z ?; apply: predU1r; exact: Hp'p.
+-
 elim: b a' Hya' Hna' {a x Da' Db Hy Hn Hx} => [|x b IHb] a Hy Hn /=.
   by rewrite Hy; right; case.
 have Ha := subset_dfs n a [ :: x ]; simpl in Ha.

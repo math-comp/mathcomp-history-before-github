@@ -1,5 +1,6 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice.
+Typeclasses Opaque eqfun.
 
 (**************************************************************************)
 (*    The Finite interface describes Types with finitely many elements,   *)

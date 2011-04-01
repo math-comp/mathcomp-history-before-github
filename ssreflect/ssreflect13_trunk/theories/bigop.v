@@ -1,4 +1,5 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
+Add LoadPath "theories/" as Ssreflect.
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div fintype.
 Require Import finfun path.
 
@@ -1197,6 +1198,7 @@ transitivity
     \big[*%M/1]_(j < n2 - m2 | Q (i + m1) (j + m2)) F (i + m1) (j + m2)).
 - rewrite -{1}[m1]add0n big_addn big_mkord; apply: eq_bigr => i _.
   by rewrite -{1}[m2]add0n big_addn big_mkord.
+- 
 rewrite (exchange_big_dep (fun j: 'I__ => xQ (j + m2))) => [|i j]; last first.
   by apply: PQxQ; rewrite leq_addl addnC -subn_gt0 -subn_sub subn_gt0 ltn_ord.
 symmetry; rewrite -{1}[m2]add0n big_addn big_mkord; apply: eq_bigr => j _.

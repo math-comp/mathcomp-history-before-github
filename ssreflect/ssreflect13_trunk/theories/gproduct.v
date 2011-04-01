@@ -1,4 +1,5 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
+Add LoadPath "theories/" as Ssreflect.
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq div choice fintype.
 Require Import bigop finset fingroup morphism quotient action.
 
@@ -149,6 +150,7 @@ rewrite /pprod => A B G; have Gnot0 := @group_not0 G; pose g1 := [1 gT]%G.
 do 2?case: eqP => [-> ->| _].
 - by rewrite mul1g norms1; split; first exists g1 G.
 - by rewrite mulg1 sub1G; split; first exists G g1.
+-
 by case: and3P => // [[gA gB ->]]; split; first exists (Group gA) (Group gB).
 Qed.
 
@@ -485,6 +487,7 @@ case cGH: (H \subset 'C(G)); case cHK: (K \subset 'C(H)); last first.
 - by rewrite group0.
 - by rewrite group0 /= mulG_subG cGH andbF.
 - by rewrite group0 /= centM subsetI cHK !andbF.
+-
 rewrite /= mulgA mulG_subG centM subsetI cGH cHK andbT -(cent_joinEr cHK).
 by rewrite -(cent_joinEr cGH) !groupP.
 Qed.
@@ -566,6 +569,7 @@ case trGH: (G :&: H \subset _); case trHK: (H :&: K \subset _); last first.
   by apply: subset_trans trG_HK; rewrite setIS ?joing_subl.
 - rewrite if_same; case: ifP => // trGH_K; case/negP: trHK.
   by apply: subset_trans trGH_K; rewrite setSI ?joing_subr.
+-
 do 2![case: ifP] => // trGH_K trG_HK; [case/negP: trGH_K | case/negP: trG_HK].
   apply: subset_trans trHK; rewrite subsetI subsetIr -{2}(mulg1 H) -mulGS.
   rewrite setIC group_modl ?joing_subr //= cent_joinEr // -eHK.

@@ -1,4 +1,5 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
+Add LoadPath "theories/" as Ssreflect.
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq path choice fintype.
 Require Import finfun bigop finset binomial fingroup.
 
@@ -279,6 +280,7 @@ pose fT (f : ffA) := [ffun x => if insub x is Some u then f u else x].
 pose pfT f := insubd (1 : {perm T}) (fT f).
 pose fA (p : {perm T}) : ffA := [ffun u => p (val u)].
 rewrite -!sum1dep_card -sum1_card (reindex_onto fA pfT) => [|f].
++
   apply: eq_bigl => p; rewrite andbC; apply/idP/and3P=> [onA | []]; first split.
   - apply/eqP; suffices fTAp: fT (fA p) = pval p.
       by apply/permP=> x; rewrite -!pvalE insubdK fTAp //; exact: (valP p).
@@ -286,8 +288,10 @@ rewrite -!sum1dep_card -sum1_card (reindex_onto fA pfT) => [|f].
     by case: insubP => [u _ <- |]; [rewrite ffunE | move/out_perm->].
   - by apply/forallP=> [[x Ax]]; rewrite ffunE /= [_ (p x)]perm_closed.
   - by apply/injectiveP=> u v; rewrite !ffunE; move/perm_inj; exact: val_inj.
+  -
   move/eqP=> <- _ _; apply/subsetP=> x; rewrite !inE -pvalE val_insubd fun_if.
   by rewrite if_arg ffunE; case: insubP; rewrite // pvalE perm1 if_same eqxx.
++
 case/andP; move/forallP=> onA; move/injectiveP=> f_inj.
 apply/ffunP=> u; rewrite ffunE -pvalE insubdK; first by rewrite ffunE valK.
 apply/injectiveP=> {u} x y; rewrite !ffunE.
