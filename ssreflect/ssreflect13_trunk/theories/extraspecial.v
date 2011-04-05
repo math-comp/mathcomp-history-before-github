@@ -169,9 +169,9 @@ apply/eqP; rewrite eqEsubset -{2}defH -genM_join gen_subG /= im_xsdprodm.
 have Hx: x \in H by rewrite -cycle_subG -defH joing_subl.
 have Hy: y \in H by rewrite -cycle_subG -defH joing_subr.
 rewrite mulG_subG -andbA; apply/and3P; split.
-- apply/subsetP=> u; case/morphimP=> [/= [i j] _ _ -> /=].
+  apply/subsetP=> u; case/morphimP=> [/= [i j] _ _ -> /=].
   by rewrite groupMl groupX ?groupR.
-- by apply/subsetP=> v; case/morphimP=> /= k _ _ ->; rewrite groupX.
+  by apply/subsetP=> v; case/morphimP=> /= k _ _ ->; rewrite groupX.
 rewrite mulgSS ?cycle_subG //= morphimEdom; apply/imsetP.
   by exists (0, 1)%R; rewrite ?inE //= mul1g.
 by exists 1%R; rewrite ?inE.
@@ -350,7 +350,7 @@ have{expG} oY': {in G :\: Y, forall u, #[u] = (p ^ 2)%N}.
 have isoMod3: forall M : {group gT},
     M \subset G -> ~~ abelian M -> ~~ (M \subset Y) -> #|M| = (p ^ 3)%N ->
   M \isog 'Mod_(p ^ 3).
-- move=> M sMG not_cMM; case/subsetPn=> u Mu notYu oM.
+  move=> M sMG not_cMM; case/subsetPn=> u Mu notYu oM.
   have pM := pgroupS sMG pG; have sUM: <[u]> \subset M by rewrite cycle_subG.
   have Y'u: u \in G :\: Y by rewrite inE notYu (subsetP sMG).
   have iUM: #|M : <[u]>| = p by rewrite -divgS // oM expnS -(oY' u) ?mulnK.
@@ -404,7 +404,7 @@ have iYG: #|G : Y| = p.
   by rewrite -divgS // oU oU1 mulnK // muln_gt0 p_gt0.
 have iC1U: forall (U : {group gT}) x,
   U \subset G -> x \in G :\: 'C(U) -> #|U : 'C_U[x]| = p.
-- move=> U x sUG; case/setDP=> Gx not_cUx; apply/prime_nt_dvdP=> //.
+  move=> U x sUG; case/setDP=> Gx not_cUx; apply/prime_nt_dvdP=> //.
     apply: contra not_cUx; rewrite -sub_cent1; move/eqP=> sUCx.
     by rewrite -(index1g _ sUCx) ?subsetIl ?subsetIr.
   rewrite -(@dvdn_pmul2l (#|U| * #|'C_G[x]|)) ?muln_gt0 ?cardG_gt0 //.
@@ -417,7 +417,7 @@ have iC1U: forall (U : {group gT}) x,
   by rewrite -norm_joinEl ?cardSg ?join_subG ?(subset_trans sUG).
 have oCG: forall U : {group gT},
   Z \subset U -> U \subset G -> #|'C_G(U)| = (p * #|G : U|)%N.
-- move=> U; elim: {U}_.+1 {-2}U (ltnSn #|U|) => // m IHm U leUm sZU sUG.
+  move=> U; elim: {U}_.+1 {-2}U (ltnSn #|U|) => // m IHm U leUm sZU sUG.
   have [<- | neZU] := eqVneq Z U.
     by rewrite -oZ LaGrange // (setIidPl _) // centsC subsetIr.
   have{neZU} [x Gx not_cUx]: exists2 x, x \in G & x \notin 'C(U).
@@ -722,8 +722,8 @@ have isoDn: Dn \isog 'D^n.
   rewrite defZE -defZR -{1}im_fR -injm_center // morphimS //.
   by rewrite -cpairg1_center morphimS // center_sub.
 right; case: DnQ_P => gz isoZ; rewrite (isog_cprod_by _ defG) //; first 1 last.
-- exact: Aut_extraspecial_full (pX1p2n_pgroup _ _) (pX1p2n_extraspecial _ _).
-- by rewrite isog_sym (isog_trans _ (sub_isog _ _)) ?subsetT // sub_isog.
+  exact: Aut_extraspecial_full (pX1p2n_pgroup _ _) (pX1p2n_extraspecial _ _).
+  by rewrite isog_sym (isog_trans _ (sub_isog _ _)) ?subsetT // sub_isog.
 rewrite /= -morphimIim; case/cprodP: defDn => _ defDn cDn1E.
 rewrite setICA setIA -defDn -group_modr ?morphimS ?subsetT //.
 rewrite /= im_fR (setIC R) ziER -center_prod // defZE -defZR.

@@ -259,6 +259,7 @@ have FF: forall H : {group _}, H <| 'Alt_T -> H :<>: 1 -> 20 %| #|H|.
     rewrite commuteX // mulgK {1}[expgn]lock expgS permM -lock.
     by move/perm_inj=> eqxhx; case/eqP: (diff_hnx_x 1%N tp tp); rewrite expg1.
   by rewrite (@gauss_inv 4 5) // F7.
+-
 apply/simpleP; split => [|H Hnorm]; first by rewrite trivg_card1 F1.
 case Hcard1: (#|H| == 1%N); move/eqP: Hcard1 => Hcard1.
   by left; apply: card1_trivg; rewrite Hcard1.
@@ -345,6 +346,7 @@ have HP0: forall p : {perm T},
   apply/permP => z; rewrite perm1.
   suff: z \in [set x | p x != x] = false; first by rewrite inE; move/eqP.
   by rewrite (card0_eq Hp).
+-
 move=> p; elim: #|_| {-2}p (leqnn #|[set x | p x != x]|) => {p}[| n Hrec] p Hp Hpx.
   by apply: HP0; move: Hp; case: card.
 case Ex: (pred0b (mem [set x | p x != x])); first by apply: HP0; move/eqnP: Ex.
@@ -365,16 +367,20 @@ have Hcp1: #|[set x | p1 x != x]| <= n.
   have F3: [set x | p1 x != x] \subset [predD1 [set x | p x != x] & x1].
     apply/subsetP => z; rewrite !inE permM.
     case tpermP => HH1 HH2.
-    - rewrite eq_sym HH1 andbb; apply/eqP=> dx1.
+    + rewrite eq_sym HH1 andbb; apply/eqP=> dx1.
       by rewrite dx1 HH1 dx1 eqxx in HH2.
-    - by rewrite (perm_inj HH1) eqxx in HH2.
+    + by rewrite (perm_inj HH1) eqxx in HH2.
+    +
     by move->; rewrite andbT; apply/eqP => HH3; rewrite HH3 in HH2.
++
   apply: (leq_trans (subset_leq_card F3)).
   by move: Hp; rewrite (cardD1 x1) inE Hx1.
++
 have ->: p = p1 * tperm x1 (p x1) by rewrite -mulgA tperm2 mulg1.
 rewrite odd_permM odd_tperm eq_sym Hx1 morphM; last 2 first.
-- by rewrite 2!inE; exact/astab1P.
-- by rewrite 2!inE; apply/astab1P; rewrite -{1}Hpx /= /aperm -permM.
+* by rewrite 2!inE; exact/astab1P.
+* by rewrite 2!inE; apply/astab1P; rewrite -{1}Hpx /= /aperm -permM.
+*
 rewrite odd_permM Hrec //=; congr (_ (+) _).
 pose x2 : T' := Sub x1 nx1x; pose px2 : T' := Sub (p x1) npx1x.
 suff ->: rfd (tperm x1 (p x1)) = tperm x2 px2.
@@ -515,6 +521,7 @@ case Ez: (pred0b
 - move: oT; rewrite /pred0b in Ez.
   rewrite (cardD1 x) (cardD1 (h x)) (cardD1 (g x)) (cardD1 ((h * g) x)).
   by rewrite (eqP Ez); do 3!case: (_ x \in _).
+-
 case/pred0Pn: Ez => z.
 case/and5P=> diff_hgx_z diff_gx_z diff_hx_z diff_x_z /= Hz.
 pose S1 := [tuple x; h x; g x; z].

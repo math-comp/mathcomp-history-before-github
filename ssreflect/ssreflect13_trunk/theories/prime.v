@@ -1,5 +1,4 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Add LoadPath "theories/" as Ssreflect.
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq path fintype.
 Require Import div bigop.
 

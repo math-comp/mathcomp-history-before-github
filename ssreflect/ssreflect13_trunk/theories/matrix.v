@@ -212,7 +212,7 @@ Definition mx_val A := let: Matrix g := A in g.
 Canonical Structure matrix_subType :=
   Eval hnf in [newType for mx_val by matrix_rect].
 
-Definition matrix_of_fun F := locked Matrix [ffun ij => F ij.1 ij.2].
+Definition matrix_of_fun := locked (fun F => Matrix [ffun ij => F ij.1 ij.2]).
 
 Definition fun_of_matrix A (i : 'I_m) (j : 'I_n) := mx_val A (i, j).
 

@@ -1,5 +1,4 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Add LoadPath "theories/" as Ssreflect.
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path fintype bigop.
 Require Import finset fingroup morphism automorphism quotient action.
 Require Import commutator center.

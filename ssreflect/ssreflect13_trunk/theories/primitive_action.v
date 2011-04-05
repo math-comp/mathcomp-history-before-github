@@ -1,5 +1,4 @@
 (* (c) Copyright Microsoft Corporation and Inria. All rights reserved. *)
-Add LoadPath "theories/" as Ssreflect.
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
 Require Import div seq fintype tuple finset.
 Require Import fingroup action gseries.

@@ -472,7 +472,7 @@ Qed.
 Lemma vs2mx_morph : {morph vs2mx : u v / (u + v)%VS >-> (u + v)%MS}.
 Proof.
 move=> u v.
-rewrite /= /addsmx; case: addsmx_key=> /=; rewrite /addsmx_def.
+rewrite /= /addsmx; case: addsmx_key=> /=; rewrite /addsmx_def /idfun.
 do 2 
   (case: eqP=> _; first by rewrite conform_mx_id; apply/eqP; apply: vspace_ax).
 apply: genmx_id.
@@ -584,6 +584,7 @@ exists (rv2v (lsubmx x *m vs2mx vs1)); exists (rv2v (rsubmx x *m vs2mx vs2));
   by exists(lsubmx x).
 - rewrite /in_mem /= /injv rv2vK /= /subsetv /= genmxE; apply/submxP.
   by exists(rsubmx x).
+-
 by rewrite -linearD -mul_row_col hsubmxK -Hx /= v2rvK.
 Qed.
 Implicit Arguments memv_addP [v vs1 vs2].
@@ -1480,9 +1481,10 @@ apply: addv_is_basis => //.
 - move: (memv_pick vs); rewrite /in_mem /= capvKr; move/eqP->.
   apply: is_basis_seq1; rewrite vpick0.
   by apply/eqP=> HH; rewrite HH dimv0 in Hs.
+-
 apply: Hrec.
 apply/eqP; rewrite -eqSS -Hs -(dimv_cap_compl vs (vpick vs)%:VS).
-- move: (memv_pick vs); rewrite /in_mem /= capvKr; move/eqP->.
+move: (memv_pick vs); rewrite /in_mem /= capvKr; move/eqP->.
 suff ->: \dim (vpick vs)%:VS = 1%N by done.
 rewrite dim_injv vpick0.
 by case: eqP=> // HH; move: Hs; rewrite HH dimv0.

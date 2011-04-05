@@ -850,9 +850,9 @@ have im_iphi: codom iphi =i ~: linS.
   by rewrite !inE /= (deg_phi i) in nlin_i0 *.
 split=> //; exists iphi; rewrite -/phi_.
 split=> // [i | ze | i].
-- have sim_i := rsim_irr_comp sS F'S (rphi_irr i).
+  have sim_i := rsim_irr_comp sS F'S (rphi_irr i).
   by rewrite -(mx_rsim_faithful sim_i) rphi_fful.
-- rewrite {1}defZ 2!inE andbC; case/andP.
+  rewrite {1}defZ 2!inE andbC; case/andP.
   case/cyclePmin=> e; rewrite ozp => lt_e_p ->{ze}.
   case: (posnP e) => [-> | e_gt0 _]; first by rewrite eqxx.
   exists (w ^+ e) => [|i]; first by rewrite prim_w ?e_gt0.
@@ -885,7 +885,7 @@ Lemma faithful_repr_extraspecial :
 Proof.
 suffices IH: forall V, mxsimple rS V -> mx_iso rZ U V ->
   [&& \rank U == (p ^ n)%N & mxsimple_iso rS U V].
-- split=> [|/= V simV isoUV].
+  split=> [|/= V simV isoUV].
     by case/andP: (IH U simU (mx_iso_refl _ _)); move/eqP.
   by case/andP: (IH V simV isoUV) => _; move/(mxsimple_isoP simU).
 move=> V simV isoUV; wlog sS: / irrType F S by exact: socle_exists.
@@ -919,8 +919,8 @@ have rsimUV: mx_rsim (subg_repr (phi jU) sZS) (subg_repr (phi jV) sZS).
   have modUZ := mxmodule_subg sZS modU; have modVZ := mxmodule_subg sZS modV.
   case/(mx_rsim_iso modUZ modVZ): isoUV => [bZ degZ bZfree bZhom].
   rewrite /phi !f_iinv; exists (bU *m bZ *m bV)=> [||x Zx].
-  - by rewrite -degU degZ degV.
-  - by rewrite /row_free !mxrankMfree.
+    by rewrite -degU degZ degV.
+    by rewrite /row_free !mxrankMfree.
   have Sx := subsetP sZS x Zx.
   by rewrite 2!mulmxA bUhom // -(mulmxA _ _ bZ) bZhom // -4!mulmxA bVhom.
 have{rsimUV} [B [B' _ homB]] := mx_rsim_def rsimUV.

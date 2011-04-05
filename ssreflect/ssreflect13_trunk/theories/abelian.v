@@ -611,6 +611,7 @@ apply/and3P; split; last 1 first.
   apply/bigcupP; exists <[x]>^#; last by rewrite !inE ntx cycle_id.
   apply/imsetP; exists <[x]>%G; rewrite ?p1ElemE // !inE cycle_subG Ex /=.
   by rewrite -orderE (abelem_order_p abelE).
+-
 apply/trivIsetP=> X' Y'; case/imsetP=> X EpX ->; case/imsetP=> Y EpY ->.
 apply/predU1P; rewrite (inj_eq groupD1_inj) -setI_eq0 -setDIl setD_eq0 subG1.
 by rewrite (sameP eqP (TIp1ElemP EpX EpY)) orbN.
@@ -1236,6 +1237,7 @@ move=> A B G; case/dprodP => [[H K -> ->{A B}]] <- cHK tiHK.
 rewrite dprodEY //; last first.
 - by apply/trivgP; rewrite -tiHK setISS ?Ohm_sub.
 - by rewrite (subset_trans (subset_trans _ cHK)) ?centS ?Ohm_sub.
+-
 apply/eqP; rewrite -(cent_joinEr cHK) eqEsubset join_subG /=.
 rewrite !OhmS ?joing_subl ?joing_subr //= cent_joinEr //=.
 rewrite -genM_join genS //; apply/subsetP=> xy; case/setIdP. 
@@ -1796,6 +1798,7 @@ have cnt_b: forall b, \big[dprod/1]_(x <- b) <[x]> = G ->
   rewrite eqn_leq !leq_exp2l ?prime_gt1 // -eqn_leq pfactorK // leqNgt.
   case: ltngtP => // _ {j}; rewrite leq_subS // add0n; elim: b => //= y b IHb.
   by rewrite leq_add // ltn_neqAle; case: (~~ _).
+-
 by rewrite !cnt_b // /cnt_p !(@count_logn_dprod_cycle _ _ _ G).
 Qed.
 
@@ -2031,6 +2034,7 @@ suffices nth_abty: forall gT (G : {group gT}) i,
   rewrite /lni (card_isog isoGH); apply: eq_bigr => p _; congr (p ^ _)%N.
   apply: eq_bigl => e; rewrite /lnO -!divgS ?(Ohm_leq _ (leqnSn _)) //=.
   by have:= card_isog (gFisog _ isoGH) => /= eqF; rewrite !eqF.
+-
 move=> gT G i cGG.
 have: forall p, path leq 0 (map (logn p) (rev (abelian_type G))).
   move=> p; case: (abelian_type_gt1 G) (abelian_type_dvdn_sorted G).

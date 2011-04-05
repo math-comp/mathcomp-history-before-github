@@ -617,9 +617,12 @@ case/predU1P=> [defG|]; last case/andP=> sMG sGM.
   by rewrite mul_subG // cents_norm // (subset_trans cHK) ?centS.
 have defG: <<\bigcup_(f \in Aut G) f @: H>> = G.
   have sXG: \bigcup_(f \in Aut G) f @: H \subset G.
+  +
     apply big_prop => [|A B sAG sBG|f Af]; first exact: sub0set.
     - by rewrite subUset sAG.
+    -
     by rewrite -(im_autm Af) morphimEdom imsetS.
+  +
   apply: simG.
     apply: contra ntH; rewrite -!subG1; apply: subset_trans.
     by rewrite sub_gen // (bigcup_max 1) ?group1 ?defH.
@@ -630,6 +633,7 @@ have defG: <<\bigcup_(f \in Aut G) f @: H>> = G.
   case/imsetP=> x Hx -> -> {gx fgx}; apply/bigcupP.
   exists (g * f); first exact: groupM.
   by apply/imsetP; exists x; rewrite // permM.
++
 have [f Af sfHM]: exists2 f, f \in Aut G & ~~ (f @: H \subset M).
   move: sGM; rewrite -{1}defG gen_subG; case/subsetPn=> x.
   by case/bigcupP=> f Af fHx Mx; exists f => //; apply/subsetPn; exists x.

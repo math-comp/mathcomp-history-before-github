@@ -138,6 +138,7 @@ have dvdpP: forall d m, d %| m -> exists f, m = d * f.
 have dvd_nz: forall d m, d %| m -> m != 0 -> d != 0.
   by move=> d m; case/dvdpP=> f ->; rewrite mulf_eq0; case/norP.
 apply/det0P/idP=> [[uv nz_uv] | r_nonC].
++
   have [p0 _ | p_nz] := eqVneq p 0.
     have: dq + dp > 0.
       by rewrite (leq_trans _ (rank_leq_col uv)) // lt0n mxrank_eq0.
@@ -149,6 +150,7 @@ apply/det0P/idP=> [[uv nz_uv] | r_nonC].
   rewrite !poly_rV_K ?(leq_trans (size_mul _ _)) // => [vq_up||]; first 1 last.
   - by rewrite -subn1 leq_sub_add addnCA leq_add ?leqSpred ?size_poly.
   - by rewrite -subn1 leq_sub_add addnC addnA leq_add ?leqSpred ?size_poly.
+  -
   have nz_v: v != 0.
     apply: contraNneq nz_uv => v0; apply/eqP.
     congr row_mx; apply: (can_inj (@rVpolyK _ _)); rewrite linear0 // -/u.
@@ -165,6 +167,7 @@ apply/det0P/idP=> [[uv nz_uv] | r_nonC].
   rewrite (leq_trans _ (size_dvdp r_nz w_r)) // -(ltn_add2l (size v)).
   rewrite addnC ltn_add_sub subn1 -size_mul_id // -vw.
   by rewrite (leq_trans lt_vp) // size_dvdp // vw mulf_neq0.
++
 have [[p' p'r] [q' q'r]] := (dvdpP _ _ r_p, dvdpP _ _ r_q).
 have def_r := subnKC r_nonC; have r_nz: r != 0 by rewrite -size_poly_eq0 -def_r.
 have le_p'_dp: size p' <= dp.
@@ -243,13 +246,16 @@ have{nt_s} [i nfix_i]: exists i, s i != i.
   apply/existsP; rewrite -negb_forall; apply: contra nt_s => s_1.
   by apply/eqP; apply/permP=> i; apply/eqP; rewrite perm1 (forallP s_1).
 apply: leq_trans (_ : #|[pred j | s j == j]|.+1 <= n.-1).
++
   rewrite -sum1_card (@big_mkcond nat) /= size_sign_mul.
   apply: (big_rel (fun p m => size p <= m.+1)) => [| p mp q mq IHp IHq | j _].
   - by rewrite size_poly1.
   - apply: leq_trans (size_mul _ _) _.
     by rewrite -subn1 -addnS leq_sub_add addnA leq_add.
+  -
   rewrite !mxE eq_sym !inE; case: (s j == j); first by rewrite seq_factor. 
   by rewrite sub0r size_opp size_polyC leq_b1.
++
 rewrite -{8}[n]card_ord -(cardC (pred2 (s i) i)) card2 nfix_i !ltnS.
 apply: subset_leq_card; apply/subsetP=> j; move/(_ =P j)=> fix_j.
 rewrite !inE -{1}fix_j (inj_eq (@perm_inj _ s)) orbb.
@@ -310,16 +316,19 @@ have coef_phi : forall A i j k, (phi A)`_k i j = (A i j)`_k.
   case: (ltnP k _) => le_m_k; rewrite mxE // nth_default //.
   apply: leq_trans (leq_trans (leq_bigmax i) le_m_k); exact: (leq_bigmax j).
 have phi_is_rmorphism : rmorphism phi.
++
   do 2?[split=> [A B|]]; apply/polyP=> k; apply/matrixP=> i j; last 1 first.
   - rewrite coef_phi mxE coef_natmul !coefC.
     by case: (k == _); rewrite ?mxE ?mul0rn.
   - by rewrite !(coef_phi, mxE, coef_add, coef_opp).
+  -
   rewrite !coef_phi !mxE !coef_mul summxE coef_sum.
   pose F k1 k2 := (A i k1)`_k2 * (B k1 j)`_(k - k2).
   transitivity (\sum_k1 \sum_(k2 < k.+1) F k1 k2); rewrite {}/F.
     by apply: eq_bigr=> k1 _; rewrite coef_mul.
   rewrite exchange_big /=; apply: eq_bigr => k2 _.
   by rewrite mxE; apply: eq_bigr => k1 _; rewrite !coef_phi.
++
 have bij_phi: bijective phi.
   exists (fun P : MR_X => \matrix_(i, j) \poly_(k < size P) P`_k i j) => [A|P].
     apply/matrixP=> i j; rewrite mxE; apply/polyP=> k.

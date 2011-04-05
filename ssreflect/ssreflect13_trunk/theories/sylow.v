@@ -297,6 +297,7 @@ move=> G; set T := [set P : {group gT} | Sylow G P].
 rewrite -{2}(@Sylow_transversal_gen T G) => [|P | q _].
 - by congr <<_>>; apply: eq_bigl => P; rewrite inE.
 - by rewrite inE; case/and3P.
+-
 case: (Sylow_exists q G) => P sylP; exists P => //.
 by rewrite inE (p_Sylow sylP).
 Qed.
@@ -643,15 +644,18 @@ case nDG: (G \subset 'N(D)).
   apply: subsetP Dx; rewrite -gen_subG pcore_max ?(pgroupS (genS _) pB) //.
   by rewrite /normal gen_subG sDG norms_gen.
 have{n leGn IHn nDG} pN: p.-group <<'N_E(D)>>.
++
   apply: pgroupS (pcore_pgroup p 'N_G(D)); rewrite gen_subG /=.
   apply/subsetP=> x1; case/setIP=> Ex1 Nx1; apply: IHn => [||y Ny].
   - apply: leq_trans leGn; rewrite proper_card // /proper subsetIl.
     by rewrite subsetI nDG andbF.
   - by rewrite inE Nx1 (subsetP sEG) ?mem_gen.
+  -
   have Ex1y: x1 ^ y \in E.
     by rewrite  -mem_conjgV (normsP nEG) // groupV; case/setIP: Ny.
   apply: pgroupS (genS _) (pE _ _ Ex1 Ex1y).
   by apply/subsetP=> u; rewrite !inE.
++
 have [y1 Ny1 Py1]: exists2 y1, y1 \in 'N_E(D) & y1 \notin P.
   case sNN: ('N_<<B>>('N_<<B>>(D)) \subset 'N_<<B>>(D)).
     exists y0 => //; have By0: y0 \in <<B>> by rewrite mem_gen ?setU11.

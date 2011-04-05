@@ -204,6 +204,7 @@ Lemma Frobenius_actionP : forall G H,
   reflect (has_Frobenius_action G H) [Frobenius G with complement H].
 Proof.
 move=> G H; apply: (iffP andP) => [[] | [sT S to [ffulG transG regG ntH]]].
++
   rewrite properEneq; case/andP=> neqHG sHG; case/andP=> tiHG; move/eqP=> snHG.
   suffices: Frobenius_action G H (rcosets H G) 'Rs by exact: HasFrobeniusAction.
   pose Hfix x := 'Fix_(rcosets H G | 'Rs)[x].
@@ -217,6 +218,7 @@ move=> G H; apply: (iffP andP) => [[] | [sT S to [ffulG transG regG ntH]]].
     rewrite !inE (canF_eq (actK _ _)) -actM /= rcosetE rcoset_id // -snHG.
     have [//| tiHyz] := TIconjP tiHG y z Gy Gz.
     by case/negP: nt_x; rewrite -in_set1 -[[set 1]]tiHyz inE cHyx.
+  -
   have ntH: H :!=: 1.
     by apply: contra neqHG; move/eqP=> H1; rewrite -snHG H1 norm1 setIT.
   split=> //; first 1 last; first exact: transRs_rcosets.
@@ -225,6 +227,7 @@ move=> G H; apply: (iffP andP) => [[] | [sT S to [ffulG transG regG ntH]]].
   rewrite (index1g sHG) //; apply/eqP; rewrite eqn_leq indexg_gt0 andbT.
   apply: leq_trans (regG y _); last by rewrite setDE 2!inE Gy nt_y /=.
   by rewrite /Hfix (setIidPl _) -1?astabC ?sub1set.
++
 case=> u Su defH; have sHG: H \subset G by rewrite defH subsetIl.
 rewrite properEneq sHG andbT; split.
   apply: contra ntH; move/eqP=> /= defG.
