@@ -27,7 +27,7 @@ Local Open Scope ring_scope.
 (*                                                                        *)
 (*  is_char G f : predicates that tells if the function f is a character  *)
 (*                                                                        *)
-(*  get_char G f : if is_irr G f is true returns the corresponding        *)
+(*  get_char G f : if is_char G f is true returns the corresponding       *)
 (*                 character                                              *)
 (*                                                                        *)
 (*  cker G f : the kernel of G i.e g \in G such that f g = f 1            *)
