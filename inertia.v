@@ -2,7 +2,8 @@
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop ssralg finset.
 Require Import fingroup morphism perm automorphism center.
-Require Import matrix mxalgebra mxrepresentation vector algC character.
+Require Import matrix mxalgebra mxrepresentation vector algC.
+Require Import classfun character.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

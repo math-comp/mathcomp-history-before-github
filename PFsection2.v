@@ -3,8 +3,8 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop prime ssralg poly finset center.
 Require Import fingroup morphism perm automorphism quotient action zmodp.
 Require Import gfunctor gproduct cyclic pgroup.
-Require Import matrix mxalgebra mxrepresentation vector algC character inertia.
-Require Import PFsection1.
+Require Import matrix mxalgebra mxrepresentation vector algC classfun character.
+Require Import inertia PFsection1.
 
 (******************************************************************************)
 (* This file covers Peterfalvi, Section 2: the Dade isometry                  *)

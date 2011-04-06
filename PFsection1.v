@@ -3,7 +3,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq path div choice.
 Require Import fintype tuple finfun bigop prime ssralg poly finset center.
 Require Import fingroup morphism perm automorphism quotient action zmodp.
 Require Import matrix mxalgebra mxrepresentation cyclic.
-Require Import vector algC character inertia.
+Require Import vector algC classfun character inertia.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
