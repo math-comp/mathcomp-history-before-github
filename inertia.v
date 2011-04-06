@@ -384,7 +384,7 @@ rewrite natr_mul.
 have IC1: is_char H ('Res[H] chi).
   by apply: is_char_restrict (normal_sub _) (is_char_irr _).
 move: (inner_prod_char_nat IC1 (is_char_irr theta)).
-rewrite getNatCP=> /=; move/eqP<-.
+rewrite /isNatC; move/eqP<-.
 have->: chi 1%g = ('Res[H] chi) 1%g by rewrite !cfunE !(group1,mul1r).
 rewrite {1}(is_comp_clifford HnG IC).
 rewrite cfunE -mulrA; congr (_ * _).

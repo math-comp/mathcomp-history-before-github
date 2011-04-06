@@ -27,9 +27,6 @@ Local Open Scope ring_scope.
 (*                                                                        *)
 (*  is_char G f : predicates that tells if the function f is a character  *)
 (*                                                                        *)
-(*  get_char G f : if is_char G f is true returns the corresponding       *)
-(*                 character                                              *)
-(*                                                                        *)
 (*  cker G f : the kernel of G i.e g \in G such that f g = f 1            *)
 (*                                                                        *)
 (* is_comp i f : the irreducible character i is a constituent of f        *)
@@ -851,17 +848,19 @@ Qed.
 Lemma cfun_of_irr_inj : injective (@cfun_of_irr _ G).
 Proof.
 pose l := enum (irr G); set f := @cfun_of_irr _ _.
-suff: {in l &, injective f}.
-  by move=>  HH u v Huv; apply: HH=> //; rewrite mem_enum.
+suff: uniq l /\ {in l &, injective f}.
+  case=> _ HH u v Huv.
+  by apply: HH=> //; rewrite mem_enum.
 move: (free_uniq free_base_irr); rewrite /base_irr -/l -/f.
-elim: l => [_|i l IH] //=.
-case/andP=> H1 H2; move: (IH H2)=> {H2} H3  u v;rewrite !inE.
+elim: l => [|i l IH] //=.
+case/andP=> H1 H2; case: (IH H2)=> H3 H4; split=> [|u v].
+  by rewrite H3 andbT; apply/negP=> HH; case/negP: H1; rewrite map_f.
+rewrite !inE.
 case/orP=> Hu; case/orP=> Hv; rewrite ?(eqP Hu) ?(eqP Hv) // => HH.
  - by case/negP: H1; rewrite HH map_f.
  - by case/negP: H1; rewrite -HH map_f.
-by apply: H3.
+by apply: H4.
 Qed.
-
 
 Lemma char_of_repr_inj : forall n1 n2,
   forall rG1 : mx_representation algC G n1,
@@ -1077,7 +1076,7 @@ pose n' (j : irr G) := getNatC (ncoord j f).
 have->: f = \sum_(j : irr G) (n' j)%:R *: (j : cfun _ _).
   move: (Hf); rewrite genGid=> Hf'.
   rewrite {1}(ncoord_sum Hf'); apply: eq_bigr=> i _.
-  congr (_ *: _); apply/eqP; rewrite -getNatCP; apply: Ha.
+  congr (_ *: _); apply/eqP; apply: Ha.
   by exact: mem_enum.
 elim: {n'}(\sum_j (n' j))%N {-2}n' (leqnn (\sum_j (n' j)))=> [| N IH] n' HS.
   exists 0%N; exists grepr0.
@@ -1185,7 +1184,7 @@ move=> f; apply: (iffP idP)=> [HH|[n ->]]; last first.
 exists (fun theta => getNatC (ncoord theta f)).
 rewrite {1}(ncoord_sum (is_char_in_cfun HH)).
 apply: eq_bigr=> theta _.
-by move/(@isNatC_ncoord_char theta): HH; rewrite getNatCP; move/eqP<-.
+by congr (_ *: _); apply/eqP; apply: isNatC_ncoord_char.
 Qed.
 
 Lemma is_char_indu : forall (P: cfun gT algC -> Prop), P 0 -> 
