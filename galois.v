@@ -1608,6 +1608,18 @@ apply/eqP/eqP => [->|].
   by rewrite perm1 col_mxEu mxE leqnn subnn.
  by rewrite mul_polyC !size_scaler ?expf_neq0 ?g0nz_subproof // ?lead_coef_eq0
             -?size_poly_eq0 ?szf0_subproof // size_polyXn.
+(* TODO: DELETE ME
+rewrite big_split_ord /=.
+set a := \prod_(i < n) M (lshift m i) (s (lshift m i)).
+case: (eqVneq a 0) => [->|aneq0]; first by rewrite mul0r size_poly0.
+set b := \prod_(i < m) M (rshift n i) (s (rshift n i)).
+have bneq: (b != 0).
+
+Show 2.
+
+rewrite 
+*)
+
 move => sz.
 have Misi : forall i, M i (s i) != 0.
  move => i.
