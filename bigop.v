@@ -1520,6 +1520,16 @@ rewrite !big_cons; case Pi: (P i) => //=.
 by apply: leqif_add; first exact: leE12.
 Qed.
 
+Lemma leq_sum : forall (I : finType) (P : pred I) (E1 E2 : I -> nat),
+  (forall i, P i -> E1 i <= E2 i) ->
+  \sum_(i | P i) E1 i <= \sum_(i | P i) E2 i.
+Proof.
+move=> I P E1 E2 leE12.
+elim: (index_enum _) => [|i r IHr]; first by rewrite !big_nil.
+rewrite !big_cons; case Pi: (P i) => //=.
+by apply: leq_add; first exact: leE12.
+Qed.
+
 Lemma sum_nat_eq0 : forall (I : finType) (P : pred I) (E : I -> nat),
   (\sum_(i | P i) E i == 0)%N = (forallb i, P i ==> (E i == 0))%N.
 Proof.

@@ -625,6 +625,37 @@ Lemma lead_coef_proper_mul : forall p q,
   let c := lead_coef p * lead_coef q in c != 0 -> lead_coef (p * q) = c.
 Proof. by move=> p q /= nz_c; rewrite -head_coef_mul -size_proper_mul. Qed.
 
+Lemma size_prod : forall I r (P : pred I) (F : I -> {poly R}),
+  size (\prod_(i <- r | P i) F i) <= 
+    (\sum_(i <- r | P i) size (F i)).+1 - size (filter P r).
+Proof.
+move => I r P F.
+rewrite -!(big_filter r).
+elim: (filter P r) => {r P} [|a r IH].
+ by rewrite !big_nil size_polyC GRing.nonzero1r.
+rewrite !big_cons /= subSS.
+case: (eqVneq (\prod_(j <- r) F j) 0) => [->|nProd0].
+ by rewrite mulr0 size_poly0.
+case: (eqVneq (F a) 0) => [->|neqFa0]; first by rewrite mul0r size_poly0.
+rewrite (leq_trans (size_mul _ _)) //.
+move/polySpred: neqFa0 ->.
+rewrite addSn /= addSnnS.
+suff/addn_subA: (size r <= (\sum_(j <- r) size (F j)).+1) => [<-|].
+ by apply: leq_add.
+apply: leqW.
+apply: contraNeq nProd0.
+rewrite eqb_id -ltnNge.
+elim: {IH a} r => [//|a r IH /=].
+rewrite !big_cons.
+case (eqVneq (F a) 0) => [->|]; first by rewrite mul0r.
+move/polySpred ->.
+rewrite addSn -addn1 -[(size r).+1]addn1 leq_add2r.
+move/(leq_ltn_trans (leq_addl _ _)).
+move/IH.
+move/eqP ->.
+by rewrite mulr0.
+Qed.
+
 Lemma size_exp : forall p n, size (p ^+ n) <= ((size p).-1 * n).+1.
 Proof.
 move=> p n; case: (poly0Vpos p) => [-> | nzp].

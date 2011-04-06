@@ -1561,30 +1561,19 @@ Lemma leq_size_prodM_subproof : forall s:'S_(n + m),
  (size (\prod_i M i (s i))) <= (n * m).+1.
 Proof.
 move => s.
-rewrite big_split_ord /=.
-have move_predn : forall a b, (a + b).-1 <= a.-1 + b.
- case => [|a] b //.
- apply: leq_pred.
-rewrite (leq_trans (size_mul _ _)) // (@leq_trans (1 + (n * m).+1).-1) //=
-        (leq_trans (move_predn _ _)) // -[_.+1]add0n leq_add //.
-  rewrite -subn1; apply: (@leq_sub2r 1 _ 1).
-  pose p := fun i => M (lshift m i) (s (lshift m i)).
-  rewrite -[\prod_(i < n) _]/(\prod_(i < n) p i).
-  have : forall i, size (p i) <= 1.
-    move => i.
-    by rewrite /p col_mxEu /Mg mxE !(fun_if, if_arg) size_polyC size_poly0
-              leq_b1 if_same.
-  elim: n p => [|n0 IH] p.
-    rewrite big_ord0 size_polyC.
-    by case: (1 != 0).
-  rewrite big_ord_recl => sz.
-  rewrite (leq_trans (size_mul _ _)) // (leq_trans (move_predn _ _)) //
-             -[1%N]/(0 + 1)%N leq_add ?IH //.
-  by rewrite -subn1; apply: (@leq_sub2r 1 _ 1).
+rewrite (leq_trans (size_prod _ _ _)) // filter_predT -{2}[index_enum _]enumT
+        size_enum_ord big_split_ord /= leq_sub_add addnS ltnS -addnA leq_add //.
+ pose p := fun i => M (lshift m i) (s (lshift m i)).
+ have : forall i, predT i -> size (p i) <= 1.
+  move => i _.
+  by rewrite /p col_mxEu /Mg mxE !(fun_if, if_arg) size_polyC size_poly0 
+             leq_b1 if_same.
+ move/leq_sum.
+ move/leq_trans => -> //.
+ by rewrite sum_nat_const eq_cardT // size_enum_ord muln1.
 pose p := fun i => M (rshift n i) (s (rshift n i)).
-rewrite -[\prod_(i < m) _]/(\prod_(i < m) p i).
-have : forall i, (size (p i)).-1 <= n.
- move => i.
+have : forall i, predT i -> (size (p i)) <= n.+1.
+ move => i _.
  rewrite /p col_mxEd /Mf mxE.
  case: ifP => [_|_]; last by rewrite size_poly0.
  set j := (_ - _)%N.
@@ -1593,12 +1582,9 @@ have : forall i, (size (p i)).-1 <= n.
  have [->|f0neq0] := (eqVneq f0`_j 0).
   by rewrite scale0r size_poly0.
  by rewrite size_scaler // size_polyXn -ltnS -szf0_subproof.
-elim: m p => [|m0 IH] p.
- rewrite big_ord0 size_polyC.
- by case: (1 != 0).
-rewrite big_ord_recl => sz.
-by rewrite (leq_trans (size_mul _ _)) // (leq_trans (move_predn _ _)) //
-             mulnS -addnS leq_add ?IH //.
+move/leq_sum.
+move/leq_trans => -> //.
+by rewrite sum_nat_const eq_cardT // size_enum_ord mulnS mulnC.
 Qed.
 
 (* Now that we know 0 < n, this proof should be simplified *)
