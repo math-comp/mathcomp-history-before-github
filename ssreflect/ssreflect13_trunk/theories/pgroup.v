@@ -1068,7 +1068,6 @@ suffices im_fact: forall H : {group gT}, F _ G \subset H -> H \subset G ->
 - rewrite -2?im_fact ?pcore_mod_sub ?gFsub //;
     try by rewrite -{1}[F _ G]ker_coset morphpreS ?sub1G.
   by rewrite quotient_pcore_mod morphim_pcore.
--
 move=> H sFH sHG; rewrite -(morphimIdom _ (H / _)) /= {2}morphim_restrm setIid.
 rewrite -morphimIG ?ker_coset //.
 rewrite -(morphim_restrm sDF) morphim_factm morphim_restrm.
@@ -1210,7 +1209,6 @@ apply: (@quotient_inj _ (pseries_group pis G)).
 - rewrite /= -(IHpi (pi :: pi2s)) cat_rcons /(_ <| _) pseries_norm2.
   by rewrite -cats1 pseries_sub_catl.
 - by rewrite /= /(_ <| _) pseries_norm2 -cats1 pseries_sub_catl.
--
 rewrite /= cat_rcons -(IHpi (pi :: pi2s)) {1}quotient_pseries IHpi.
 apply/eqP; rewrite quotient_pseries eqEsubset !pcore_max ?pcore_pgroup //=.
   rewrite -quotient_pseries morphim_normal // /(_ <| _) pseries_norm2.
@@ -1234,7 +1232,6 @@ have Epis: pseries pis (pseries (pi1s ++ rcons pis pi) G) = pseries pis G.
 apply: (@quotient_inj _ (pseries_group pis G)).
 - by rewrite /= -Epis /(_ <| _) pseries_norm2 -cats1 pseries_sub_catl.
 - by rewrite /= /(_ <| _) pseries_norm2 -cats1 pseries_sub_catl.
--
 rewrite /= -Epis {1}quotient_pseries Epis quotient_pseries.
 apply/eqP; rewrite eqEsubset !pcore_max ?pcore_pgroup //=.
   rewrite -quotient_pseries morphim_normal // /(_ <| _) pseries_norm2.
@@ -1337,7 +1334,6 @@ move=> pi rho G; apply/eqP; rewrite eqEsubset !pcore_max //.
   exact: pgroupS (pcore_sub _ _) (pcore_pgroup _ _).
 - exact: char_normal_trans (pcore_char _ _) (pcore_normal _ _).
 - by apply: sub_in_pnat (pcore_pgroup _ _) => p _; case/andP.
--
 apply/andP; split; first by apply: sub_pcore => p; case/andP.
 apply: subset_trans (pcore_sub _ _) (normal_norm _); exact: pcore_normal.
 Qed.
@@ -1353,7 +1349,6 @@ move=> pi G; apply/eqP; rewrite eqEsubset subsetI pcore_sub pcore_max /=.
   have ltqG: q < #|G|.+1 by rewrite ltnS dvdn_leq.
   rewrite (dvdn_trans qGpi') ?cardSg ?subIset //= orbC.
   by rewrite (bigcap_inf (Ordinal ltqG)).
--
 rewrite /normal subsetIl normsI ?normG //.
 apply big_prop => [|H K nHG nKG|p _]; rewrite ?normsI ?gFnorm //.
 by rewrite normsG // subsetT.

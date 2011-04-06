@@ -336,12 +336,10 @@ have cocycle_mu: {in G & &, forall x y z,
   rewrite -(actrH _ _ Gz) addrC fmvalA fmvalJ ?nHG ?GrH //.
   rewrite mulgA -(mulgA _ (rH z)) -conjgC mulgA -!rHmul ?groupM //.
   by rewrite mulgA -mulgA -2!(mulgA (rH x)) -!rHmul ?groupM.
--
 move: mu => mu in rHmul mu_Pmul cocycle_mu nu nu_Hmul.
 have{cocycle_mu} cocycle_nu : {in G &, forall y z,
   nu z + nu y ^@ z = mu y z *+ #|G : P| + nu (y * z)%g}%R.
-+
-  move=> y z Gy Gz; rewrite /= (actr_sum z) /=.
+- move=> y z Gy Gz; rewrite /= (actr_sum z) /=.
   have ->: (nu z = \sum_(Px \in rcosets P G) mu (repr Px * y)%g z)%R.
     rewrite /nu (reindex_acts _ (actsRs_rcosets P G) Gy) /=.
     apply: eq_bigr => Px; case/rcosetsP=> x Gx /= ->{Px}.
@@ -351,7 +349,6 @@ have{cocycle_mu} cocycle_nu : {in G &, forall y z,
   rewrite -sumr_const -!big_split /=; apply: eq_bigr => Px.
   case/rcosetsP=> x Gx ->{Px}; rewrite -cocycle_mu //.
   by case: repr_rcosetP=> p1 Pp1; rewrite groupMr // (subsetP sPG).
-+
 move: nu => nu in nu_Hmul cocycle_nu.
 pose f x := rH x * val (nu x *+ m)%R.
 have{cocycle_nu} fM: {in G &, {morph f : x y / x * y}}.
@@ -534,7 +531,6 @@ exists (r2 @: G); split=> [w z||].
   rewrite /r2; case/rcosetsP: (mem_r1 x Gx) => y; case/cycleP=> i ->{y} ->.
   rewrite -rcosetM; apply: subsetP (mem_repr_rcoset H _).
   by rewrite mul_subG // sub1set groupM ?groupX.
--
 apply/subsetP=> x Gx; case/rcosetsP: (mem_r1 x Gx) => y gy def_r1x.
 rewrite -[x](mulgK y) mem_mulg ?groupV // -sub1set -mulGS.
 by rewrite -rcoset_repr mulgS // sub1set rcosetM -def_r1x -/(r2 x) mem_imset.
@@ -583,7 +579,6 @@ have nth_traj : forall x j,
   j < n_ x -> nth (H :* x) (traj x) j = H :* (x * g ^+ j). 
 - move=> x j lt_j_x; rewrite nth_traject -?n_eq //.
   by rewrite  -permX -morphX ?inE // actpermE //= rcosetE rcosetM.
--
 have transX_mem : forall y, y \in G -> transX (H :* y) \in H :* y :&: repset.
   move=> y Gy; case/mulsgP: (subsetP sGHXg _ Gy)=> t g0.
   case/mulsgP=> h x Hh Xx ->{t} cycGg0 ->; rewrite -mulgA rcosetM rcoset_id //.
@@ -599,7 +594,7 @@ have coset_transversal_transX : coset_transversal transX.
   exact: (subsetP (subsetIl _ _) _ (transX_mem _ _)).
 have transXE : forall x i, 
     x \in X -> i < n_ x -> transX (H :* x :* g ^+ i) = x * g ^+ i.
-+ move=> x i Xx lt_i_x; rewrite -rcosetM.
+- move=> x i Xx lt_i_x; rewrite -rcosetM.
   have Gxgi : x * g ^+ i \in G by rewrite groupM ?(subsetP sXG x) // ?groupX. 
   case/setIP: (transX_mem _ Gxgi) => Hxgi_transX {Gxgi}.
   case/bigcupP=> x' Xx'; case/imsetP=> j Ij transX_eq; rewrite transX_eq.
@@ -614,7 +609,6 @@ have transXE : forall x i,
   apply/eqP; rewrite -(@nth_uniq _ (H :* x) (traj x)) ?size_traj //.
   apply/eqP; rewrite !nth_traj // -?size_traj //.
   by apply: rcoset_transl; rewrite {1}xx' -transX_eq.
-+
 rewrite (transfer_indep coset_transversal_transX Gg) /V.
 rewrite (partition_big_imset (orbit 'Rs <[g]>)) /=.
 rewrite -imHg_eq big_imset //=; apply eq_bigr=> x Xx.

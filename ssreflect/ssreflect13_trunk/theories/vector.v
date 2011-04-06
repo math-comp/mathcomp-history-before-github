@@ -584,7 +584,6 @@ exists (rv2v (lsubmx x *m vs2mx vs1)); exists (rv2v (rsubmx x *m vs2mx vs2));
   by exists(lsubmx x).
 - rewrite /in_mem /= /injv rv2vK /= /subsetv /= genmxE; apply/submxP.
   by exists(rsubmx x).
--
 by rewrite -linearD -mul_row_col hsubmxK -Hx /= v2rvK.
 Qed.
 Implicit Arguments memv_addP [v vs1 vs2].
@@ -1391,6 +1390,26 @@ case; rewrite /free size_cat.
 by rewrite span_cat (dimv_disjoint_sum Hd); move/eqP->; move/eqP->.
 Qed.
 
+Lemma free_uniq : forall l, free l -> uniq l.
+Proof.
+elim=> //= t s IH Hf.
+rewrite {}IH 1?(@free_catr [::t]) // andbT.
+elim: s Hf=> //= t1 s  IH Hf.
+apply/negP; rewrite inE; case/orP=> HH; last first.
+  suff: free (t :: s) by move/IH; case/negP.
+  apply (@free_catr [::t1]).
+  rewrite -(@free_perm_eq [::t,t1 & s]) //.
+  by rewrite (@perm_catCA _  [::t] [::t1]) perm_eq_refl.
+move/freeP: Hf.
+set u := 'I_ _.
+pose s1 := (fun i : u => if i == 0 then 1 else if i == 1 then (-1: K) else 0).
+move/(_ s1).
+rewrite( bigD1 (0:u)) // (bigD1 (1: u)) // big1 /s1 /=; last first.
+  by case=> [[|[|m]]] //=; rewrite scale0r.
+rewrite addr0 (eqP HH) -scaler_addl subrr scale0r.
+by move/(_ (refl_equal _) 0); rewrite eqxx; move/eqP; rewrite oner_eq0.
+Qed.
+
 (* Notion of is_basis *)
 Definition is_span vs l := span l == vs.
 
@@ -1481,10 +1500,9 @@ apply: addv_is_basis => //.
 - move: (memv_pick vs); rewrite /in_mem /= capvKr; move/eqP->.
   apply: is_basis_seq1; rewrite vpick0.
   by apply/eqP=> HH; rewrite HH dimv0 in Hs.
--
 apply: Hrec.
 apply/eqP; rewrite -eqSS -Hs -(dimv_cap_compl vs (vpick vs)%:VS).
-move: (memv_pick vs); rewrite /in_mem /= capvKr; move/eqP->.
+- move: (memv_pick vs); rewrite /in_mem /= capvKr; move/eqP->.
 suff ->: \dim (vpick vs)%:VS = 1%N by done.
 rewrite dim_injv vpick0.
 by case: eqP=> // HH; move: Hs; rewrite HH dimv0.

@@ -1081,6 +1081,8 @@ Coercion pred_of_mem_pred T mp := [pred x : T | in_mem x mp].
 Definition eq_mem T p1 p2 := forall x : T, in_mem x p1 = in_mem x p2.
 Definition sub_mem T p1 p2 := forall x : T, in_mem x p1 -> in_mem x p2.
 
+Typeclasses Opaque eq_mem.
+
 Notation "x \in A" := (in_mem x (mem A)) : bool_scope.
 Notation "x \in A" := (in_mem x (mem A)) : bool_scope.
 Notation "x \notin A" := (~~ (x \in A)) : bool_scope.

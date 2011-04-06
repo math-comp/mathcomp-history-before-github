@@ -363,6 +363,9 @@ Lemma rrefl : forall r, eqrel r r. Proof. by []. Qed.
 
 End ExtensionalEquality.
 
+Typeclasses Opaque eqfun.
+Typeclasses Opaque eqrel.
+
 Hint Resolve frefl rrefl.
 
 Notation "f1 =1 f2" := (eqfun f1 f2)

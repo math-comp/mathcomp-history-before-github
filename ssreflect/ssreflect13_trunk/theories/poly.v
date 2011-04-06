@@ -1275,14 +1275,12 @@ have Irec: forall m n p q, size q <= m -> size q <= n
   - rewrite leqn0 size_poly_eq0 => _; move/eqP=> ->.
     rewrite size_poly0 lt0n size_poly_eq0 modp0 => nzp.
     by rewrite (negPf nzp); case: m {Hrec} => [|m] /=; rewrite mod0p eqxx.
-  -
   case: ifP => Epq Sm Sn Sq //; rewrite ?Epq //.
   case: (eqVneq q 0) => [->|nzq].
     by case: n m {Sm Sn Hrec} => [|m] [|n] //=; rewrite mod0p eqxx.
   apply: Hrec; last exact: modp_spec.
     by rewrite -ltnS (leq_trans _ Sm) // modp_spec.
   by rewrite -ltnS (leq_trans _ Sn) // modp_spec.
-+
 move=> p q; case: (eqVneq p 0) => [-> | nzp].
   by rewrite mod0p modp0 gcd0p gcdp0 if_same.
 case: (eqVneq q 0) => [-> | nzq].
@@ -2642,7 +2640,6 @@ congr (_ + _); have ->: S
   = \sum_(i < n.+1) (p^`N(i).[x] * h ^+ i.+1 + p^`N(i.+1).[x] * x * h ^+ i.+1).
 - apply eq_big => // i _.
   by rewrite nderivn_amulX horner_add horner_mulX mulr_addl.
--
 rewrite big_split /= addrC.
 congr (_ + _); first by apply eq_big => // i _; rewrite exprSr mulrA.
 rewrite big_ord_recr /= Hd // horner0 !simp.

@@ -91,7 +91,6 @@ suffices IHb:  reflect (exists2 x', x' \in b & dfs_path x' y a')
   exists y'; [ by rewrite -Db mem_enum | exists p'; auto ].
   rewrite disjoint_sym -Da' /= disjoint_cons Hp'x' /= disjoint_sym.
   apply: disjoint_trans Hpa; apply/subsetP=> z ?; apply: predU1r; exact: Hp'p.
--
 elim: b a' Hya' Hna' {a x Da' Db Hy Hn Hx} => [|x b IHb] a Hy Hn /=.
   by rewrite Hy; right; case.
 have Ha := subset_dfs n a [ :: x ]; simpl in Ha.
@@ -118,9 +117,9 @@ case/(IHn _ _ _ Hn (negbT Hax'')): Hdfs_x'' => [q Hq Eq Hqa].
 case/splitPl: {p}Hpx'' Hp Ep Hpa => [p1 p2 Ep1].
 rewrite path_cat -cat_cons disjoint_cat last_cat Ep1.
 move/andP=> [Hp1 Hp2] Ep2; case/andP=> [Hp1a Hp2a]; exists (cat q p2).
-+ by rewrite path_cat Hq -Eq.
-+ by rewrite last_cat -Eq.
-+ by rewrite -cat_cons disjoint_cat Hqa.
+- by rewrite path_cat Hq -Eq.
+- by rewrite last_cat -Eq.
+by rewrite -cat_cons disjoint_cat Hqa.
 Qed.
 
 Lemma connectP : forall x y,
@@ -129,7 +128,6 @@ Proof.
 move=> x y; apply: (iffP (@dfsP _ x _ nil _ _)) => // [|[p]|[p]].
 - by rewrite card0 leqnn.
 - by exists p.
--
 by exists p; rewrite // disjoint_sym disjoint_has.
 Qed.
 

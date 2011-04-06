@@ -2114,7 +2114,6 @@ rewrite -(eqmx_eq0 (eqmx_scale _ nz_aij)).
 rewrite (uniqC (fun k => (a_ i - a_ k) *: u k)) => // [|k Pi'k|].
 - by rewrite -(uniqC (fun _ => 0)) ?big1 // => k Pi'k; exact: sub0mx.
 - by rewrite scalemx_sub ?Vi'u.
--
 rewrite -{1}(subrr (v *m g)) {1}def_vg def_v scaler_sumr mulmx_suml -sumr_sub.
 by apply: eq_bigr => k; move/Vi'u; move/eigenspaceP->; rewrite scaler_subl.
 Qed.
@@ -2585,7 +2584,6 @@ Lemma mxring_idP : forall m n (R : 'A_(m, n)),
   reflect (exists e, mxring_id R e) (has_mxring_id R).
 Proof.
 move=> m n R; apply: (iffP andP) => [[nzR] | [e [nz_e Re ideR idRe]]].
-+
   case/submxP=> v; rewrite -[v]vec_mxK; move/vec_mx: v => e.
   rewrite !mul_mx_row; case/eq_row_mx; move/eqP.
   rewrite eq_sym -submxE => Re.
@@ -2596,10 +2594,8 @@ move=> m n R; apply: (iffP andP) => [[nzR] | [e [nz_e Re ideR idRe]]].
   - by apply: contra nzR; rewrite ideR; move/eqP->; rewrite !linear0.
   - case/submxP=> a defA; rewrite -{2}[A]mxvecK defA idRe.
     by rewrite mulmxA mx_rV_lin -defA /= mxvecK.
-  -
   case/submxP=> a defA; rewrite -{2}[A]mxvecK defA ideR.
   by rewrite mulmxA mx_rV_lin -defA /= mxvecK.
-+
 split.
   apply: contra nz_e; move/eqP=> R0; rewrite R0 eqmx0 in Re.
   by rewrite (memmx0 Re).

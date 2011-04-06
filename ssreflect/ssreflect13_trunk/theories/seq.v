@@ -362,7 +362,7 @@ Proof.
 elim=> [|x s IHs] [|n] y //=.
 - by rewrite size_ncons addn1 maxn0.
 - by rewrite -add_sub_maxn subn1.
-- by rewrite IHs -add1n addn_maxr.
+by rewrite IHs -add1n addn_maxr.
 Qed.
 
 Lemma set_nth_nil : forall n y, set_nth [::] n y = ncons n x0 [:: y].
@@ -997,10 +997,8 @@ Proof.
 by move=> s1 s2; apply/(hasP _ s2)/(hasP _ s1) => [] [x]; exists x.
 Qed.
 
-Lemma has_pred1 : forall x s, has (pred1 x) s = (x \in s).
-Proof. 
-move=> x s; rewrite -(eq_has (mem_seq1^~ x)); admit. Qed. (*
-by move=> x s; rewrite -(eq_has (mem_seq1^~ x)) has_sym /= orbF. Qed.*)
+Lemma has_pred1 x s : has (pred1 x) s = (x \in s).
+Proof. by rewrite -(eq_has (mem_seq1^~ x)) (has_sym [:: x]) /= orbF. Qed.
 
 (* Constant sequences, i.e., the image of nseq. *)
 
@@ -1642,7 +1640,6 @@ move=> s1 s2; elim: s2 s1 => [|y s2 IHs2] [|x s1].
 - by left; exists [::].
 - by right; do 2!case.
 - by left; exists (nseq (size s2).+1 false); rewrite ?size_nseq //= mask_false.
--
 apply: {IHs2}(iffP (IHs2 _)) => [] [m sz_m def_s1].
   by exists ((x == y) :: m); rewrite /= ?sz_m // -def_s1; case: eqP => // ->.
 case: eqP => [_ | ne_xy]; last first.

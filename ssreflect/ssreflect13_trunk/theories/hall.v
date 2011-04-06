@@ -125,7 +125,6 @@ have oKM: forall K' : {group gT},
     by rewrite gen_subG subUset sK'G; case/andP: nMG.
   rewrite -divgS /=; last by rewrite -gen_subG genS ?subsetUr.
   by rewrite norm_joinEl ?nMsG // coprime_cardMg ?mulnK // oK' coprime_sym.
--
 have [xb]: exists2 xb, xb \in H / M & K1 / M = (K / M) :^ xb.
   apply: IHn; try by rewrite (quotient_sol, morphim_norms, oKM K) ?(oKM K1).
     by apply: leq_trans leHn; rewrite ltn_quotient.
@@ -141,10 +140,9 @@ have nMKM: M <| M <*> K1 by rewrite /(_ <| _) sMKM gen_subG subUset normG.
 have trMK1: M :&: K1 = 1 by rewrite coprime_TIg ?oK1K.
 have trMK2: M :&: K2 = 1 by rewrite coprime_TIg ?cardJg ?oK1K.
 apply: (Gaschutz_transitive nMKM _ sMKM) => //=; last 2 first.
-+ by rewrite inE trMK1 defMK !eqxx.
-+ by rewrite -!(setIC M) trMK1.
-+ by rewrite -divgS //= -defMK coprime_cardMg oK1K // mulKn.
-+
+- by rewrite inE trMK1 defMK !eqxx.
+- by rewrite -!(setIC M) trMK1.
+- by rewrite -divgS //= -defMK coprime_cardMg oK1K // mulKn.
 rewrite inE trMK2 eqxx eq_sym eqEcard /= -defMK andbC.
 by rewrite !coprime_cardMg ?cardJg ?oK1K ?leqnn //= mulGS -quotientSK -?eqK12.
 Qed.
@@ -174,7 +172,6 @@ have coBG: coprime #|B| #|G| by rewrite -oAB coprime_sym.
 have defBG: B * G = AG.
   by apply/eqP; rewrite eqEcard mul_subG ?sG_AG //= oAG oAB coprime_cardMg.
 case nMG: (G \subset 'N(M)).
-+
   have nsM_AG: M <| AG by rewrite /normal sM_AG join_subG nMA.
   have nMB: B \subset 'N(M) := subset_trans sB_AG (normal_norm nsM_AG).
   have sMB: M \subset B.
@@ -188,11 +185,9 @@ case nMG: (G \subset 'N(M)).
   case/IHn; rewrite ?morphim_sol ?quotient_norms ?coprime_morph //.
   - by rewrite -defAGq (leq_trans _ leAn) ?ltn_quotient.
   - by rewrite !card_quotient // -!divgS // oAB.
-  -
   move=> Mx; case/morphimP=> x Nx Gx ->{Mx} //; rewrite -quotientJ //= => defBq.
   exists x => //; apply: quotient_inj defBq; first by rewrite /normal sMB.
   by rewrite -(normsP nMG x Gx) /normal normJ !conjSg.
-+
 pose K := M <*> G; pose R := K :&: B; pose N := 'N_G(M).
 have defK: K = M * G by rewrite -norm_joinEl ?(subset_trans sMA).
 have oK: #|K| = (#|M| * #|G|)%N.
@@ -252,7 +247,6 @@ have{transHb} transH: forall K : {group gT},
   case/morphimP=> z Nz Hxz ->.
   rewrite val_coset //; case/rcosetP=> t Mt ->; rewrite groupMl //.
   by rewrite mem_conjg (subsetP sMH) // -mem_conjg (normP Nx).
--
 have{pi'Hb'} pi'H': pi^'.-nat #|G : H|.
   move: pi'Hb'; rewrite -!divgS // def_H !card_quotient //.
   by rewrite -(divn_pmul2l (cardG_gt0 M)) !LaGrange.
@@ -269,12 +263,10 @@ case: (ltnP #|H| #|G|) => [ltHG | leGH {n IHn leGn transH}].
     by rewrite mulKn // pnat_mul pi'H1'.
   case: (transH K sKG piK) => x Gx def_K.
   case: (transH1 (K :^ x^-1)%G) => [||y Hy def_K1].
-  + by rewrite sub_conjgV.
-  + by rewrite /pgroup cardJg.
-  +
+  - by rewrite sub_conjgV.
+  - by rewrite /pgroup cardJg.
   exists (y * x); first by rewrite groupMr // (subsetP sHG).
   by rewrite -(conjsgKV x K) conjsgM conjSg.
-+
 have{leGH Gb sHbGb sHG sMH pi'H'} eqHG: H = G.
   by apply/eqP; rewrite -val_eqE eqEcard sHG.
 have{H Hb def_H eqHG piHb nMH} hallM: pi^'.-Hall(G) M.
@@ -293,13 +285,13 @@ have sK1G1: K1 \subset M * K by rewrite defG1 subsetIr.
 have coMK: coprime #|M| #|K|.
   by rewrite coprime_sym (pnat_coprime piK) //; exact: (pHall_pgroup hallM).
 case: (SchurZassenhaus_trans_sol _ nMK sK1G1 coMK) => [||x Mx defK1].
-* exact: solvableS solG.
-* apply/eqP; rewrite -(eqn_pmul2l (cardG_gt0 M)) -TI_cardMg //; last first.
+- exact: solvableS solG.
+- apply/eqP; rewrite -(eqn_pmul2l (cardG_gt0 M)) -TI_cardMg //; last first.
     by apply/trivgP; rewrite -trMH /= setIA subsetIl.
   rewrite -coprime_cardMg // defG1; apply/eqP; congr #|(_ : {set _})|.
   rewrite group_modl; last by rewrite -defG1 mulG_subl.
   by apply/setIidPr;  rewrite defG gen_subG subUset sKG.
-* exists x^-1; first by rewrite groupV (subsetP sMG).
+exists x^-1; first by rewrite groupV (subsetP sMG).
 by rewrite -(_ : K1 :^ x^-1 = K) ?(conjSg, subsetIl) // defK1 conjsgK.
 Qed.
 
@@ -324,7 +316,6 @@ have conjH: forall K : {group gT},
   case: (transH K sKG piK) => x Gx sKH; exists x => //.
   apply/eqP; rewrite -val_eqE eqEcard sKH cardJg.
   by rewrite (card_Hall hallH) (card_Hall hallK) /=.
--
 case/conjH=> x1 Gx1 ->{H1}; case/conjH=> x2 Gx2 ->{H2}.
 exists (x2^-1 * x1); first by rewrite groupMl ?groupV.
 by apply: val_inj; rewrite /= conjsgM conjsgK.
@@ -628,17 +619,14 @@ case/orP: (orbN (p \in pi)) => pi_p.
   exists HM; split=> //; apply/and3P; split; rewrite /pgroup //.
   by rewrite -(LaGrange sMHM) pnat_mul -card_quotient // -defHM (pi_pnat pM).
 case: (ltnP #|HM| #|G|) => [ltHG | leGHM {n IHn leGn}].
-+
   case: (IHn _ A HM X (leq_trans ltHG leGn)) => // [||H [hallH nHA sXH]].
   - exact: coprimeSg coGA.
   - exact: solvableS solG.
-  - 
   case/and3P: hallH => sHHM piH pi'H'.
   have sHG: H \subset G by exact: subset_trans sHMG.
   exists H; split=> //; apply/and3P; split=> //.
   rewrite -divgS // -(LaGrange sHMG) -(LaGrange sHHM) -mulnA mulKn //.
   by rewrite pnat_mul pi'H'.
-+
 have{leGHM nHMA sHMG sMHM sXHM pi'HM'} eqHMG: HM = G.
   by apply/eqP; rewrite -val_eqE eqEcard sHMG.
 have pi'M: pi^'.-group M by rewrite /pgroup (pi_pnat pM).

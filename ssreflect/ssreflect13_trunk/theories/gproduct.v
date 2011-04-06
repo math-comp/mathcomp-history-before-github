@@ -40,10 +40,12 @@ Require Import bigop finset fingroup morphism quotient action.
 (*                        with to : groupAction K H,                          *)
 (*                        given fHKact : morph_act to 'J fH fK.               *)
 (* cprodm defG cAB fAB == the morphism extending fA and fB on G, when         *)
-(*                        defG : A \* B = G, cAB : fA @* A \subset fB @* B,   *)
+(*                        defG : A \* B = G,                                  *)
+(*                        cAB : fB @* B \subset 'C(fB @* A),                  *)
 (*                        and fAB : {in A :&: B, fA =1 fB}.                   *)
 (*     dprodm defG cAB == the morphism extending fA and fB on G, when         *)
-(*                        defG : A \x B = G and cAB : fA @* A \subset fB @* B *)
+(*                        defG : A \x B = G and                               *)
+(*                        cAB : fA @* B \subset 'C(fA @* A)                   *)
 (*        mulgm (x, y) == x * y; mulgm is an isomorphism from setX A B to G   *)
 (*                        iff A \x B = G .                                    *)
 (******************************************************************************)
@@ -149,7 +151,6 @@ rewrite /pprod => A B G; have Gnot0 := @group_not0 G; pose g1 := [1 gT]%G.
 do 2?case: eqP => [-> ->| _].
 - by rewrite mul1g norms1; split; first exists g1 G.
 - by rewrite mulg1 sub1G; split; first exists G g1.
--
 by case: and3P => // [[gA gB ->]]; split; first exists (Group gA) (Group gB).
 Qed.
 
@@ -486,7 +487,6 @@ case cGH: (H \subset 'C(G)); case cHK: (K \subset 'C(H)); last first.
 - by rewrite group0.
 - by rewrite group0 /= mulG_subG cGH andbF.
 - by rewrite group0 /= centM subsetI cHK !andbF.
--
 rewrite /= mulgA mulG_subG centM subsetI cGH cHK andbT -(cent_joinEr cHK).
 by rewrite -(cent_joinEr cGH) !groupP.
 Qed.
@@ -568,7 +568,6 @@ case trGH: (G :&: H \subset _); case trHK: (H :&: K \subset _); last first.
   by apply: subset_trans trG_HK; rewrite setIS ?joing_subl.
 - rewrite if_same; case: ifP => // trGH_K; case/negP: trHK.
   by apply: subset_trans trGH_K; rewrite setSI ?joing_subr.
--
 do 2![case: ifP] => // trGH_K trG_HK; [case/negP: trGH_K | case/negP: trG_HK].
   apply: subset_trans trHK; rewrite subsetI subsetIr -{2}(mulg1 H) -mulGS.
   rewrite setIC group_modl ?joing_subr //= cent_joinEr // -eHK.

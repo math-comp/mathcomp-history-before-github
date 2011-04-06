@@ -2774,7 +2774,6 @@ move=> e e' t; elim: t e e' => //=.
 - by move=> f1 IH1 f2 IH2 e e' eq_e f12; move/IH1: (same_env_sym eq_e); eauto.
 - by move=> f1 IH1 e e'; move/same_env_sym; move/IH1; tauto.
 - by move=> i f1 IH1 e e'; move/(eq_i i)=> eq_e [x f_ex]; exists x; eauto.
--
 by move=> i f1 IH1 e e'; move/(eq_i i); eauto.
 Qed.
 
@@ -2791,7 +2790,6 @@ move=> e f i v; elim: f e => //=; do [
     by split=> [] [x f_x]; exists x; rewrite set_set_nth eqxx in f_x *.
   split=> [] [x f_x]; exists x; move: f_x; rewrite set_set_nth eq_sym eq_ji;
      have:= IHf (set_nth 0 e j x); tauto.
--
 case eq_ji: (j == i); first rewrite (eqP eq_ji).
   by split=> [] f_ x; move: (f_ x); rewrite set_set_nth eqxx.
 split=> [] f_ x; move: (f_ x); rewrite set_set_nth eq_sym eq_ji;
@@ -2932,22 +2930,19 @@ suffices equal0_equiv : forall e t1 t2,
   + move=> f1 IHf1 e; move: (IHf1 e); tauto.
   + by move=> n f1 IHf1 e; split=> [] [x]; move/IHf1; exists x.
   + by move=> n f1 IHf1 e; split=> Hx x; apply/IHf1.
--
 move=> e t1 t2; rewrite -(add0r (eval e t2)) -(can2_eq (subrK _) (addrK _)).
 rewrite -/(eval e (t1 - t2)); move: (t1 - t2)%T => {t1 t2} t.
 have sub_var_tsubst: forall s t, s.1 >= ub_var t -> tsubst t s = t.
-+
   move=> s; elim=> //=.
-  * by move=> n; case: ltngtP.
-  * move=> t1 IHt1 t2 IHt2; rewrite leq_maxl.
+  - by move=> n; case: ltngtP.
+  - move=> t1 IHt1 t2 IHt2; rewrite leq_maxl.
     by case/andP; move/IHt1->; move/IHt2->.
-  * by move=> t1 IHt1; move/IHt1->.
-  * by move=> t1 IHt1 n; move/IHt1->.
-  * move=> t1 IHt1 t2 IHt2; rewrite leq_maxl.
+  - by move=> t1 IHt1; move/IHt1->.
+  - by move=> t1 IHt1 n; move/IHt1->.
+  - move=> t1 IHt1 t2 IHt2; rewrite leq_maxl.
     by case/andP; move/IHt1->; move/IHt2->.
-  * by move=> t1 IHt1; move/IHt1->.
-  * by move=> t1 IHt1 n; move/IHt1->.
-+
+  - by move=> t1 IHt1; move/IHt1->.
+  - by move=> t1 IHt1 n; move/IHt1->.
 pose fix rsub t' m r : term R :=
   if r is u :: r' then tsubst (rsub t' m.+1 r') (m, u^-1)%T else t'.
 pose fix ub_sub m r : Prop :=
@@ -2956,7 +2951,7 @@ suffices rsub_to_r: forall t0 r0 m, m >= ub_var t0 -> ub_sub m r0 ->
   let: (t', r) := to_rterm t0 r0 m in
   [/\ take (size r0) r = r0,
       ub_var t' <= m + size r, ub_sub m r & rsub t' m r = t0].
-* have:= rsub_to_r t [::] _ (leqnn _).
+- have:= rsub_to_r t [::] _ (leqnn _).
   rewrite /eq0_rform.
   case: (to_rterm _ _ _) => [t1' r1] [//|_ _ ub_r1 def_t].
   rewrite -{2}def_t {def_t}.
@@ -2978,7 +2973,6 @@ suffices rsub_to_r: forall t0 r0 m, m >= ub_var t0 -> ub_sub m r0 ->
   rewrite invr_out //; apply/unitrP=> [[z yz1]]; case: nUy; exists z.
   rewrite nth_set_nth /= eqxx -!(eval_tsubst _ _ (m, _%:T)%T).
   by rewrite !sub_var_tsubst.
-*
 have rsub_id : forall r t n, ub_var t <= n -> rsub t n r = t.
   by elim=> //= t0 r IHr t1 n hn; rewrite IHr ?sub_var_tsubst ?leqW.
 have rsub_acc : forall r s t1 m,
@@ -3048,7 +3042,6 @@ move=> e; elim=> //=; try by move=> *; exact: idP.
   by case/IHf2; [left; right | right; case].
 - move=> f1 IHf1 f2 IHf2 /=; case/andP; case/IHf1=> f1T; last by left.
   by case/IHf2; [left | right; move/(_ f1T)].
--
 by move=> f1 IHf1; case/IHf1; [right | left].
 Qed.
 
@@ -3103,7 +3096,7 @@ rewrite {}IH /= andb_orr; congr orb => {bcs2}.
 suffices aux: forall (l1 l2 : seq (term R)) g (redg := foldr (And \o g) True),
   qf_eval e (redg (l1 ++ l2)) = qf_eval e (redg l1 /\ redg l2)%T.
 + by rewrite 2!aux /= 2!andbA -andbA -andbCA andbA andbCA andbA.
-+ by elim=> [| ? ? IHl1] * //=; rewrite -andbA IHl1.
+by elim=> [| ? ? IHl1] * //=; rewrite -andbA IHl1.
 Qed.
 
 Lemma qf_to_dnfP : forall e,
@@ -3116,17 +3109,15 @@ move=> e qev; have qevT: forall f, qev f true = ~~ qev f false.
   - by rewrite and_dnfP cat_dnfP negb_and -IH1 -IH2.
   - by rewrite and_dnfP cat_dnfP negb_or -IH1 -IH2.
   - by rewrite and_dnfP cat_dnfP /= negb_or IH1 -IH2 negbK.
-  - by move=> t1 ->; rewrite negbK.
--
+  by move=> t1 ->; rewrite negbK.
 rewrite /qev; elim=> //=; first by case.
-+ by move=> t1 t2 _; rewrite subr_eq0 !andbT orbF.
-+ move=> f1 IH1 f2 IH2; rewrite andbCA -andbA andbCA andbA; case/andP.
+- by move=> t1 t2 _; rewrite subr_eq0 !andbT orbF.
+- move=> f1 IH1 f2 IH2; rewrite andbCA -andbA andbCA andbA; case/andP.
   by rewrite and_dnfP /=; move/IH1->; move/IH2->.
-+ move=> f1 IH1 f2 IH2; rewrite andbCA -andbA andbCA andbA; case/andP.
+- move=> f1 IH1 f2 IH2; rewrite andbCA -andbA andbCA andbA; case/andP.
   by rewrite cat_dnfP /=; move/IH1->; move/IH2->.
-+ move=> f1 IH1 f2 IH2; rewrite andbCA -andbA andbCA andbA; case/andP.
+- move=> f1 IH1 f2 IH2; rewrite andbCA -andbA andbCA andbA; case/andP.
   by rewrite cat_dnfP /= [qf_eval _ _]qevT -implybE; move/IH1 <-; move/IH2->.
-+
 by move=> f1 IH1; move/IH1 <-; rewrite -qevT.
 Qed.
 
@@ -3148,7 +3139,6 @@ have and_ok: forall bcs1 bcs2, ok bcs1 -> ok bcs2 -> ok (and_dnf bcs1 bcs2).
 elim=> //=; try by [move=> _ ? ? [] | move=> ? ? ? ? [] /=; case/andP; auto].
 - by do 2!case.
 - by rewrite /dnf_rterm => ? ? [] /= ->.
--
 by auto.
 Qed.
 
@@ -3709,7 +3699,7 @@ rewrite /sol => f1 f2; move/eq_sat=> eqf12 n.
 do 2![case: sol_subproof] => //= [f1s f2s | ns1 [s f2s] | [s f1s] []].
 - by apply: eq_xchoose => s; rewrite eqf12.
 - by case: ns1; exists s; rewrite -eqf12.
-- by exists s; rewrite eqf12.
+by exists s; rewrite eqf12.
 Qed.
 
 End DecidableFieldTheory.
@@ -3849,7 +3839,6 @@ suffices or_wf: forall fs (ofs := foldr Or False fs),
     exact: qf_to_dnf_rterm.
   elim=> [|bc bcs ihb] bcsr //=.
   by case/andP=> rbc rbcs; rewrite andbAC andbA wf_proj //= andbC ihb.
--
 elim=> //= g gs ihg; rewrite -andbA; case/and4P=> -> qgs -> rgs /=.
 by apply: ihg; rewrite qgs rgs.
 Qed.
@@ -3864,7 +3853,6 @@ have auxP: forall f e n, qf_form f && rformula f ->
   apply: (@iffP (rc e n (dnf_to_form bcs))); last first.
   - by case=> x; rewrite -qf_to_dnfP //; exists x.
   - by case=> x; rewrite qf_to_dnfP //; exists x.
-  -
   have: all dnf_rterm bcs by case/andP: cf => _; exact: qf_to_dnf_rterm.
   elim: {f cf}bcs => [|bc bcs IHbcs] /=; first by right; case.
   case/andP=> r_bc; move/IHbcs=> {IHbcs}bcsP.
@@ -3876,7 +3864,6 @@ have auxP: forall f e n, qf_form f && rformula f ->
     by exists x; rewrite /= bcs_x orbT.
   case/orP => [bc_x|]; last by exists x.
   by case: no_x; exists x; apply/(qf_evalP _ f_qf); rewrite /= bc_x.
-+
 move=> e f; elim: f e => //.
 - move=> b e _; exact: idP.
 - move=> t1 t2 e _; exact: eqP.
@@ -3889,7 +3876,6 @@ move=> e f; elim: f e => //.
 - by move=> f IHf e /=; case/IHf; [right | left].
 - move=> n f IHf e /= rf; have rqf := quantifier_elim_wf rf.
   by apply: (iffP (auxP _ _ _ rqf)) => [] [x]; exists x; exact/IHf.
--
 move=> n f IHf e /= rf; have rqf := quantifier_elim_wf rf.
 case: auxP => // [f_x|no_x]; first by right=> no_x; case: f_x => x; case/IHf.
 by left=> x; apply/IHf=> //; apply/idPn=> f_x; case: no_x; exists x.

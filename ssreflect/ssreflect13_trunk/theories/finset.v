@@ -1861,7 +1861,6 @@ move=> D; apply/and3P; split.
   rewrite /preim_at; case: (f x =P f y) => [->| fxy]; [by left | right].
   apply/existsP=> [[z]]; rewrite /= !inE andbCA; case/and3P=> -> /=.
   by move/eqP => ->; move/eqP.
--
 apply/imsetP=> [[x Dx]]; move/eqP; rewrite eq_sym.
 by case/set0Pn; exists x; rewrite !inE Dx /=.
 Qed.

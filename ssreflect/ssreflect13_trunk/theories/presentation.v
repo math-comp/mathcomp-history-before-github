@@ -198,7 +198,6 @@ Lemma homGrp_trans : forall rT gT (H : {set rT}) (G : {group gT}) p,
 Proof.
 move=> rT gT H G p; case/homgP=> h <-{H}; rewrite /hom; move: {p}(p _) => p.
 have evalG: forall e t, all (mem G) e -> eval (map h e) t = h (eval e t).
-+
   move=> e t Ge; apply: (@proj2 (eval e t \in G)); elim: t => /=.
   - move=> i; case: (leqP (size e) i) => [le_e_i | lt_i_e].
       by rewrite !nth_default ?size_map ?morph1.
@@ -208,9 +207,7 @@ have evalG: forall e t, all (mem G) e -> eval (map h e) t = h (eval e t).
   - by move=> t [Gt ->] n; rewrite groupX ?morphX.
   - by move=> t1 [Gt1 ->] t2 [Gt2 ->]; rewrite groupM ?morphM.
   - by move=> t1 [Gt1 ->] t2 [Gt2 ->]; rewrite groupJ ?morphJ.
--
   by move=> t1 [Gt1 ->] t2 [Gt2 ->]; rewrite groupR ?morphR.
-+
 have and_relE: forall x1 x2 r, and_rel x1 x2 r = (x1 == x2) && r :> bool.
   by move=> xT x1 x2 [|[yT y1 y2]] //=; rewrite andbT.
 have rsatG: forall e f, all (mem G) e -> rel e f NoRel -> rel (map h e) f NoRel.
@@ -223,7 +220,6 @@ have: forall v, let: Env A e := s v in
   A \subset G -> all (mem G) e /\ exists v', s' v' = Env (h @* A) (map h e).
 - move=> x; rewrite /= cycle_subG andbT => Gx; rewrite morphim_cycle //.
   by split; last exists (h x).
--
 elim: p 1%N vT vT' s s' => /= [p IHp | f] n vT vT' s s' Gs.
   apply: IHp => [[v x]] /=; case: (s v) {Gs}(Gs v) => A e /= Gs.
   rewrite join_subG cycle_subG; case/andP=> sAG Gx; rewrite Gx.

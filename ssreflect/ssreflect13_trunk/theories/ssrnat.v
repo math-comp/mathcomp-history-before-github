@@ -432,7 +432,7 @@ case: n1 / lemn1 def_n1 => [|n1 lemn1] def_n1 [|n2 lemn2] def_n2.
 - by rewrite [def_n2]eq_axiomK.
 - by move/leP: (lemn2); rewrite -{1}def_n2 ltnn.
 - by move/leP: (lemn1); rewrite {1}def_n2 ltnn.
-- case: def_n2 (def_n2) lemn2 => ->{n2} def_n2 lemn2.
+case: def_n2 (def_n2) lemn2 => ->{n2} def_n2 lemn2.
 rewrite [def_n2]eq_axiomK /=; congr le_S; exact: IHn.
 Qed.
 
@@ -1067,7 +1067,7 @@ Proof.
 move=> m n1 n2 Hm; elim: n1 n2 => [|n1 IHn] [|n2] //; last 1 first.
 - by rewrite !expnS leq_pmul2l ?IHn // ltnW.
 - by rewrite expn_gt0 ltnW.
-- by rewrite leqNgt (leq_trans Hm) // expnS leq_pmulr // expn_gt0 ltnW.
+by rewrite leqNgt (leq_trans Hm) // expnS leq_pmulr // expn_gt0 ltnW.
 Qed.
 
 Lemma ltn_exp2l : forall m n1 n2, 1 < m -> (m ^ n1 < m ^ n2) = (n1 < n2).

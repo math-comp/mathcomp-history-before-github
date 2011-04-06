@@ -51,6 +51,7 @@ open Printer
 let tactic_expr = Tactic.tactic_expr
 let gallina_ext = Vernac_.gallina_ext 
 let sprintf = Printf.sprintf
+let tactic_mode = G_vernac.tactic_mode
 
 (** 1. Utilities *)
 
@@ -1438,11 +1439,16 @@ set_pr_ssrtac "tclstar" 5 [ArgSep "- "; ArgSsr "tclarg"]
 let gen_tclarg = in_gen rawwit_ssrtclarg
 
 GEXTEND Gram
-  GLOBAL: tactic;
+  GLOBAL: tactic tactic_mode;
   tactic: [
     [ "+"; tac = ssrtclarg -> ssrtac_expr loc "tclplus" [gen_tclarg tac]
     | "-"; tac = ssrtclarg -> ssrtac_expr loc "tclminus" [gen_tclarg tac]
-    | "*"; tac = ssrtclarg -> ssrtac_expr loc "tclstar" [gen_tclarg tac]
+    | "*"; tac = ssrtclarg -> ssrtac_expr loc "tclstar" [gen_tclarg tac] 
+    ] ];
+  tactic_mode: [
+    [ "+"; tac = G_vernac.subgoal_command -> tac None None
+    | "-"; tac = G_vernac.subgoal_command -> tac None None
+    | "*"; tac = G_vernac.subgoal_command -> tac None None
     ] ];
 END
 
@@ -2979,7 +2985,7 @@ let nf_open_term sigma0 ise c =
 
 (* Workaround for Coq bug #2129. *)
 let is_unfiltered evi = List.for_all (fun b -> b) (Evd.evar_filter evi)
-
+(*
 let unif_end env sigma0 ise0 pt ok =
   let rec loop sigma ise m =
     if snd (extract_all_conv_pbs ise) != [] then
@@ -3006,10 +3012,12 @@ let unif_end env sigma0 ise0 pt ok =
       if not (ok ise2) then raise NoMatch else (* RW progress check *)
       if ise2 == ise1 then (s, t) else nf_open_term sigma0 ise2 t in
    loop sigma0 ise0 10
+   *)
 
 (* This a version of unif_end without retyping; it should replace the one
    above if/when evarconv and unification get fixed.
-let unif_end env sigma0 ise0 pt _ =
+*)
+let unif_end env sigma0 ise0 pt ok =
   let rec loop ise m =
     if snd (extract_all_conv_pbs ise) = [] then
       let s, t = nf_open_term sigma0 ise pt in
@@ -3018,11 +3026,9 @@ let unif_end env sigma0 ise0 pt _ =
       if not (ok ise2) then raise NoMatch else (* RW progress check *)
       if ise2 == ise1 then (s, t) else nf_open_term sigma0 ise2 t
     else if m = 0 then raise NoMatch
-    else match Evarconv.consider_remaining_unif_problems env ise with
-    | ise', true -> loop ise' (m - 1)
-    | _ -> raise NoMatch in
+    else let ise' = Evarconv.consider_remaining_unif_problems env ise in
+	loop ise' (m - 1) in
   loop ise0 10
-*)
 
 let pf_unif_HO gl sigma pt p c =
   let env = pf_env gl in

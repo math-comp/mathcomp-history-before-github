@@ -440,16 +440,13 @@ Lemma quotient_simple : forall gT (G H : {group gT}),
   H <| G -> simple (G / H) = maxnormal H G G.
 Proof.
 move=> gT G H nHG; apply/simpleP/maxgroupP=> [[ntG simG] | []].
-+
   rewrite andbAC andbC -(quotient_sub1 (normal_norm nHG)) subG1 ntG.
   split=> // N; do 2![case/andP] => sNG ntN nNG sHN.
   case: (simG (N / H)%G) => [|| /= eqNG].
   - apply: quotient_normal; exact/andP.
   - move/trivgP=> trNH; apply/eqP; rewrite eqEsubset sHN andbT.
     by rewrite -quotient_sub1 // (subset_trans sNG) ?normal_norm.
-  -
   by case/negP: ntN; rewrite -(quotientSGK _ sHN) ?normal_norm // eqNG.
-+
 rewrite andbAC -subG1 (quotient_sub1 (normal_norm nHG)).
 case/andP=> _ sGH simG; split=> // NH.
 case/(inv_quotientN _) => //= N ->{NH} sHN nNG.

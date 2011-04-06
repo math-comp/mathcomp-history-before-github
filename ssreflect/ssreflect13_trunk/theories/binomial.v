@@ -93,7 +93,6 @@ suffices [mod_fact]: toFp (p.-1)`! = Fpn1.
 rewrite dFact // (@big_morph _ _ _ Fp1 _ mFpM toFp) //; first last.
 - by apply: val_inj; rewrite /= modn_small.
 - by move=> i j; apply: val_inj; rewrite /= modn_mul2m.
--
 rewrite big_mkord (eq_bigr id) => [|i _]; last by apply: val_inj => /=.
 pose ltv i := vFp i < i; rewrite (bigID ltv) -/mFpM [mFpM _ _]mFpC.
 rewrite (bigD1 Fp1) -/mFpM; last by rewrite [ltv _]ltn_neqAle vFpId.
@@ -281,7 +280,7 @@ Proof.
 move=> m n [|k]; first by rewrite big_ord0.
 rewrite muln_subl !big_distrr big_ord_recl big_ord_recr /= subn0 muln1.
 rewrite subnn mul1n -!expnS -subn_sub; congr (_ - _).
-set F := fun _ => n * _; rewrite (eq_bigr F) ?addnK // {}/F => i _.
+set F := fun _ => n * _; rewrite (eq_bigr F) ?addnK {}/F // => i _.
 by rewrite [in X in _ = X]mulnCA -expnS mulnA -expnS -ltn_subS.
 Qed.
 

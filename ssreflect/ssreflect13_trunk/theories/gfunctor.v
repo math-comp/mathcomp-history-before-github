@@ -386,7 +386,6 @@ suffices im_fact: forall H : {group gT}, F2 _ G \subset H -> H \subset G ->
 - rewrite -2?im_fact ?gFmod_closed ?gFsub //.
     by rewrite cosetpreK morphimF /= ?morphim_restrm ?setIid.
   by rewrite -sub_quotient_pre ?normG //= trivg_quotient sub1G.
--
 move=> H sFH sHG; rewrite -(morphimIdom _ (H / _)) /= {2}morphim_restrm setIid.
 rewrite -morphimIG ?ker_coset // -(morphim_restrm sDF) morphim_factm.
 by rewrite morphim_restrm morphim_comp -quotientE morphimIdom.
