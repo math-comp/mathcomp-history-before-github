@@ -830,20 +830,6 @@ Qed.
 
 End StandardRepr.
 
-(* This proof needs to be later, because it requires the linear independence
-   of the irreducible characters *)
-(* !!!!!!!!!!! FOR THE MOMENT AN AXIOM !!!!!!!!!!!!!!!!!!! *)
-Lemma char_of_repr_rsimP : forall m n (rG1 : mx_representation algC G m)
-                                      (rG2 : mx_representation algC G n),
-   reflect (mx_rsim rG1 rG2) (char_of_repr G rG1 == char_of_repr G rG2).
-Proof.
-move=> m n rG1 rG2; apply: (iffP eqP)=> HH; last first.
-  apply/cfunP=> g; rewrite !cfunE.
-  case E1: (g \in G); last by rewrite !mul0r.
-  by rewrite !mul1r; apply: mxtrace_rsim.
-admit.
-Qed.
-
 Definition reg_cfun := char_of_repr G (regular_repr algC G).
 
 Lemma reg_cfunE : forall (g : gT),
@@ -954,16 +940,6 @@ have: exists i : DecSocleType (regular_repr algC <<G>>),
           theta = char_of_repr <<G>> (irr_repr i) :> cfun _ _.
   by exists (socle_of_irr theta).
 by rewrite !(genGidG,genGid).
-Qed.
-
-(* GG: THIS IS WRONG!!! injectivity FOLLOWS from linear independance *)
-Lemma cfun_of_irr_inj : injective (@cfun_of_irr G).
-Proof.
-move=> theta1 theta2.
-move/eqP; move/char_of_repr_rsimP.
-move/(irr_comp_rsim sG (pGroupG <<G>>)).
-rewrite !irr_reprK //; try exact: pGroupG.
-by case: theta1; case: theta2=>  u v /= ->.
 Qed.
 
 Lemma irr1E : forall g, irr1 G g = (g \in G)%:R.
@@ -1302,6 +1278,23 @@ move/eqP=> HH; case/negP: Hij.
 by move: HH; rewrite (bij_eq (enum_val_bij (irr_finType G))).
 Qed.
 
+Lemma cfun_of_irr_inj : injective (@cfun_of_irr _ G).
+Proof.
+pose l := enum (irr G); set f := @cfun_of_irr _ _.
+suff: uniq l /\ {in l &, injective f}.
+  case=> _ HH u v Huv.
+  by apply: HH=> //; rewrite mem_enum.
+move: (free_uniq free_base_irr); rewrite /base_irr -/l -/f.
+elim: l => [|i l IH] //=.
+case/andP=> H1 H2; case: (IH H2)=> H3 H4; split=> [|u v].
+  by rewrite H3 andbT; apply/negP=> HH; case/negP: H1; rewrite map_f.
+rewrite !inE.
+case/orP=> Hu; case/orP=> Hv; rewrite ?(eqP Hu) ?(eqP Hv) // => HH.
+ - by case/negP: H1; rewrite HH map_f.
+ - by case/negP: H1; rewrite -HH map_f.
+by apply: H4.
+Qed.
+
 Lemma char_of_repr_inj : forall n1 n2,
   forall rG1 : mx_representation algC G n1,
   forall rG2 : mx_representation algC G n2,
@@ -1327,6 +1320,16 @@ have id_irr: forall n rG xi (i := sg2bi xi),
   by rewrite (nth_map (bi2sg i)) -?cardE ?bi2sg_ord ?nth_enum_rank.
 rewrite !{id_irr}(eq_bigr _ (id_irr _ _)) -!char_of_standard_grepr.
 by rewrite -(char_of_repr_sim rsim1) -(char_of_repr_sim rsim2) eq_char12.
+Qed.
+
+Lemma char_of_repr_rsimP : forall m n (rG1 : mx_representation algC G m)
+                                      (rG2 : mx_representation algC G n),
+   reflect (mx_rsim rG1 rG2) (char_of_repr G rG1 == char_of_repr G rG2).
+Proof.
+move=> m n rG1 rG2; apply: (iffP eqP)=> HH; first by apply: char_of_repr_inj.
+apply/cfunP=> g; rewrite !cfunE.
+case E1: (g \in G); last by rewrite !mul0r.
+by rewrite !mul1r; apply: mxtrace_rsim.
 Qed.
 
 Lemma base_irr_basis : is_basis 'CF(G) (base_irr G).
@@ -1687,7 +1690,7 @@ Qed.
 
 Lemma isNatC_char1 : forall chi, is_char G chi -> isNatC (chi 1%g).
 Proof.
-apply is_char_indu=> {chi}[|theta chi IH HH].
+apply is_char_indu=> [|theta chi IH HH].
   by rewrite cfunE (isNatC_nat 0).
 by rewrite cfunE isNatC_add // irr_val1 isNatC_nat.
 Qed.

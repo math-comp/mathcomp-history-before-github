@@ -10,16 +10,16 @@ Unset Printing Implicit Defensive.
 
 Open Scope ring_scope.
 
-Reserved Notation "x +i y" (at level 40, left associativity, format "x  +i  y").
-Reserved Notation "x -i y" (at level 40, left associativity, format "x  -i  y").
+Reserved Notation "x [+i] y" (at level 40, left associativity, format "x  [+i]  y").
+Reserved Notation "x [-i] y" (at level 40, left associativity, format "x  [-i]  y").
 
 CoInductive cplx (R : oFieldType) : Type := Cplx { Re : R; Im : R }.
 Coercion cplx_of_R (F : oFieldType) (x : F) := Cplx x 0.
 Notation "x %:C" := (x : cplx _) 
   (at level 2, left associativity, format "x %:C")  : ring_scope.
-Notation "x +i y" := (Cplx x y) : ring_scope.
-Notation "x -i y" := (Cplx x (- y)) : ring_scope.
-Notation "x *i" := (Cplx 0 x) (at level 8, format "x *i") : ring_scope.
+Notation "x [+i] y" := (Cplx x y) : ring_scope.
+Notation "x [-i] y" := (Cplx x (- y)) : ring_scope.
+Notation "x [*i] " := (Cplx 0 x) (at level 8, format "x [*i]") : ring_scope.
 Notation "''i'" := (Cplx 0 1) : ring_scope.
 
 Module CplxEqChoice.
@@ -28,9 +28,9 @@ Section CplxEqChoice.
 Variable R : oFieldType.
 Notation C := (cplx R).
 
-Definition sqR_of_cplx (x : C) := let: a +i b := x in [::a;  b].
+Definition sqR_of_cplx (x : C) := let: a [+i] b := x in [::a;  b].
 Definition cplx_of_sqR (x : seq R) := 
-  if x is [:: a; b] then Some (a +i b) else None.
+  if x is [:: a; b] then Some (a [+i] b) else None.
 
 Lemma cplx_of_sqRK : pcancel sqR_of_cplx cplx_of_sqR.
 Proof. by case. Qed.
@@ -54,7 +54,7 @@ apply/eqP/andP; first by move=> [-> ->]; split.
 by case; move/eqP->; move/eqP->.
 Qed.
 
-Lemma cplxr0 : forall (R : oFieldType) (x : R), x +i 0 = x. Proof. by []. Qed.
+Lemma cplxr0 : forall (R : oFieldType) (x : R), x [+i] 0 = x. Proof. by []. Qed.
 
 Module CplxField.
 Section CplxField.
@@ -64,12 +64,12 @@ Local Notation C := (cplx R).
 Local Notation C0 := ((0 : R)%:C).
 Local Notation C1 := ((1 : R)%:C).
 
-Definition addc (x y : C) := let: a +i b := x in let: c +i d := y in 
-  (a + c) +i (b + d).
-Definition oppc (x : C) := let: a +i b := x in (- a) +i (- b).
+Definition addc (x y : C) := let: a [+i] b := x in let: c [+i] d := y in 
+  (a + c) [+i] (b + d).
+Definition oppc (x : C) := let: a [+i] b := x in (- a) [+i] (- b).
 
 Lemma addcC : commutative addc.
-Proof. by move=> [a b] [c d] /=; congr (_ +i _); rewrite addrC. Qed.
+Proof. by move=> [a b] [c d] /=; congr (_ [+i] _); rewrite addrC. Qed.
 Lemma addcA : associative addc.
 Proof. by move=> [a b] [c d] [e f] /=; rewrite !addrA. Qed.
 
@@ -82,8 +82,8 @@ Proof. by move=> [a b] /=; rewrite !addNr. Qed.
 Definition cplx_ZmodMixin := ZmodMixin addcA addcC add0c addNc.
 Canonical Structure cplx_ZmodType := ZmodType C cplx_ZmodMixin.
 
-Definition mulc (x y : C) := let: a +i b := x in let: c +i d := y in 
-  ((a * c) - (b * d)) +i ((a * d) + (b * c)).
+Definition mulc (x y : C) := let: a [+i] b := x in let: c [+i] d := y in 
+  ((a * c) - (b * d)) [+i] ((a * d) + (b * c)).
 
 Lemma mulcC : commutative mulc.
 Proof. 
@@ -95,12 +95,12 @@ Lemma mulcA : associative mulc.
 Proof.
 move=> [a b] [c d] [e f] /=.
 rewrite !mulr_addr !mulr_addl !mulrN !mulNr !mulrA !oppr_add -!addrA.
-by congr ((_ + _) +i (_ + _)); rewrite !addrA addrAC;
+by congr ((_ + _) [+i] (_ + _)); rewrite !addrA addrAC;
   congr (_ + _); rewrite addrC.
 Qed.
 
-Definition invc (x : C) := let: a +i b := x in let n2 := (a ^+ 2 + b ^+ 2) in
-  (a / n2) -i (b / n2).
+Definition invc (x : C) := let: a [+i] b := x in let n2 := (a ^+ 2 + b ^+ 2) in
+  (a / n2) [-i] (b / n2).
 
 Lemma mul1c : left_id C1 mulc.
 Proof. by move=> [a b] /=; rewrite !mul1r !mul0r subr0 addr0. Qed.
@@ -108,7 +108,7 @@ Proof. by move=> [a b] /=; rewrite !mul1r !mul0r subr0 addr0. Qed.
 Lemma mulc_addl : left_distributive mulc addc.
 Proof.
 move=> [a b] [c d] [e f] /=; rewrite !mulr_addl !oppr_add -!addrA.
-by congr ((_ + _) +i (_ + _)); rewrite addrCA.
+by congr ((_ + _) [+i] (_ + _)); rewrite addrCA.
 Qed.
 
 Lemma nonzero1c : C1 != C0. Proof. by rewrite eq_cplx /= oner_eq0. Qed.
@@ -140,7 +140,7 @@ Canonical Structure cplx_iDomain :=
   Eval hnf in IdomainType C (FieldIdomainMixin field_axiom).
 Canonical Structure cplx_fieldMixin := FieldType C field_axiom.
 
-Definition posc (x : C) := let: a +i b := x in (b == 0) && (posr a).
+Definition posc (x : C) := let: a [+i] b := x in (b == 0) && (posr a).
 
 Lemma posc0 : posc 0. Proof. by rewrite /= eqxx /= posr0. Qed.
 
@@ -194,14 +194,14 @@ Canonical Structure cplx_poIdomainType R :=
 Canonical Structure cplx_poFieldType R :=
   POFieldType (cplx R) (CplxField.cplx_POrderedMixin R).
 
-Definition conjc (R : oFieldType) (x : cplx R) := let: a +i b := x in a -i b.
+Definition conjc (R : oFieldType) (x : cplx R) := let: a [+i] b := x in a [-i] b.
 Notation "x ^*" := (conjc x) (at level 2, format "x ^*").
 
 Ltac simpc := do ?
-  [ rewrite -[(_ +i _) - (_ +i _)]/(_ +i _)
-  | rewrite -[(_ +i _) + (_ +i _)]/(_ +i _)
-  | rewrite -[(_ +i _) * (_ +i _)]/(_ +i _)
-  | rewrite -[(posr (_ +i _))]/(_ && _)].
+  [ rewrite -[(_ [+i] _) - (_ [+i] _)]/(_ [+i] _)
+  | rewrite -[(_ [+i] _) + (_ [+i] _)]/(_ [+i] _)
+  | rewrite -[(_ [+i] _) * (_ [+i] _)]/(_ [+i] _)
+  | rewrite -[(posr (_ [+i] _))]/(_ && _)].
 
 Section CplxTheory.
 
@@ -609,10 +609,10 @@ by case/negP: HH; apply: sqrtr_monotone.
 Qed.
 
 Definition sqrtc (x : C) : C := 
-  let: a +i b := x in
+  let: a [+i] b := x in
   let sgr1 b := if b == 0 then 1 else sgr b in
   let r := sqrtr (a^+2 + b^+2) in
-  (sqrtr ((r + a)/2%:R)) +i (sqrtr ((r - a)/2%:R) *~ sgr1 b).
+  (sqrtr ((r + a)/2%:R)) [+i] (sqrtr ((r - a)/2%:R) *~ sgr1 b).
 
 Lemma sqr_sqrtc : forall x, (sqrtc x) ^+ 2 = x.
 Proof.
@@ -632,7 +632,7 @@ have F3: 0 <= (sqrtr (a ^+ 2 + b ^+ 2) - a) / 2%:R.
 have F4: 0 <= (sqrtr (a ^+ 2 + b ^+ 2) + a) / 2%:R.
   rewrite mulr_ge0 // -{2}[a]opprK subr_ge0 (ler_trans _ F2) //.
   by rewrite -(maxrN a) ler_maxr lerr orbT.
-congr (_ +i _);  set u := if _ then _ else _.
+congr (_ [+i] _);  set u := if _ then _ else _.
   rewrite mulrzAl mulrzAr -mulrzA.
   have->: (u * u) = 1.
     rewrite /u; case: (_ =P _); rewrite ?mul1r //.
@@ -692,7 +692,7 @@ Qed.
 Notation R1 := (OrderedRing.TotalOrder.Field.sort R).
 
 Definition normc (x : C) : R := 
-  let: a +i b := x in sqrtr (a^+2 + b^+2).
+  let: a [+i] b := x in sqrtr (a^+2 + b^+2).
 
 Lemma normc_ge0 : forall x, 0 <= normc x.
 Proof. by case=> a b; apply: sqrtr_ge0. Qed.
