@@ -80,6 +80,7 @@ fieldext.v
 algC.v
 classfun.v
 character.v
+vcharacter.v
 zint.v
 orderedalg.v
 orderedzint.v
