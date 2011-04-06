@@ -1561,8 +1561,8 @@ Lemma leq_size_prodM_subproof : forall s:'S_(n + m),
  (size (\prod_i M i (s i))) <= (n * m).+1.
 Proof.
 move => s.
-rewrite (leq_trans (size_prod _ _ _)) // filter_predT -{2}[index_enum _]enumT
-        size_enum_ord big_split_ord /= leq_sub_add addnS ltnS -addnA leq_add //.
+rewrite (leq_trans (size_prod _ _)) // eq_cardT // size_enum_ord big_split_ord
+        /= leq_sub_add addnS ltnS -addnA leq_add //.
  pose p := fun i => M (lshift m i) (s (lshift m i)).
  have : forall i, predT i -> size (p i) <= 1.
   move => i _.
