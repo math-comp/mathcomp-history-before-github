@@ -215,11 +215,11 @@ Arguments Scope complmx [nat_scope nat_scope matrix_set_scope].
 Local Notation "A ^C" := (complmx A) : matrix_set_scope.
 
 Let mxopE : forall k opty (op : forall m : nat, opty m) m1,
-  (let f := let: tt := k in fun m => op m in f) m1 = op m1.
+  (let f := let: tt := k in idfun op in f) m1 = op m1.
 Proof. by case. Qed.
 
-Definition submx_def m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) :=
-  A *m cokermx B == 0.
+Definition submx_def := idfun (fun m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) =>
+  A *m cokermx B == 0).
 Fact submx_key : unit. Proof. by []. Qed.
 Definition submx := let: tt := submx_key in submx_def.
 Arguments Scope submx
@@ -279,8 +279,8 @@ Let equivmx_spec m n (A : 'M_(m, n)) idA (B : 'M_n) :=
   prod (B :=: A)%MS (qidmx B = idA).
 Definition genmx_witness m n (A : 'M_(m, n)) : 'M_n :=
   if row_full A then 1%:M else pid_mx (\rank A) *m row_ebase A.
-Definition genmx_def m n (A : 'M_(m, n)) : 'M_n :=
-  choose (equivmx A (row_full A)) (genmx_witness A).
+Definition genmx_def := idfun (fun m n (A : 'M_(m, n)) =>
+   choose (equivmx A (row_full A)) (genmx_witness A) : 'M_n).
 Fact genmx_key : unit. Proof. by []. Qed.
 Definition genmx := let: tt := genmx_key in genmx_def.
 Local Notation "<< A >>" := (genmx A) : matrix_set_scope.
@@ -289,9 +289,9 @@ Local Notation "<< A >>" := (genmx A) : matrix_set_scope.
 (* square matrices, because this lets us use the bigop component. As a result *)
 (* setwise sum is not quite strictly extensional.                             *)
 Let addsmx_nop m n (A : 'M_(m, n)) := conform_mx <<A>>%MS A.
-Definition addsmx_def m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) : 'M_n :=
+Definition addsmx_def := idfun (fun m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) =>
   if A == 0 then addsmx_nop B else if B == 0 then addsmx_nop A else
-  <<col_mx A B>>%MS.
+  <<col_mx A B>>%MS : 'M_n).
 Fact addsmx_key : unit. Proof. by []. Qed.
 Definition addsmx := let: tt := addsmx_key in addsmx_def.
 Arguments Scope addsmx
@@ -321,10 +321,10 @@ Let capmx_norm m n (A : 'M_(m, n)) :=
 Let capmx_nop m n (A : 'M_(m, n)) := conform_mx (capmx_norm A) A.
 Definition capmx_gen m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) :=
   lsubmx (kermx (col_mx A B)) *m A.
-Definition capmx_def m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) : 'M_n :=
+Definition capmx_def := idfun (fun m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) =>
   if qidmx A then capmx_nop B else
   if qidmx B then capmx_nop A else
-  if row_full B then capmx_norm A else capmx_norm (capmx_gen A B).
+  if row_full B then capmx_norm A else capmx_norm (capmx_gen A B) : 'M_n).
 Fact capmx_key : unit. Proof. by []. Qed.
 Definition capmx := let: tt := capmx_key in capmx_def.
 Arguments Scope capmx
@@ -334,8 +334,8 @@ Local Notation "A :&: B" := (capmx A B) : matrix_set_scope.
 Local Notation "\bigcap_ ( i | P ) B" := (\big[capmx/1%:M]_(i | P) B)
   : matrix_set_scope.
 
-Definition diffmx_def m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) : 'M_n :=
-  <<capmx_gen A (capmx_gen A B)^C>>%MS.
+Definition diffmx_def := idfun (fun m1 m2 n (A : 'M_(m1, n)) (B : 'M_(m2, n)) =>
+  <<capmx_gen A (capmx_gen A B)^C>>%MS : 'M_n).
 Fact diffmx_key : unit. Proof. by []. Qed.
 Definition diffmx := let: tt := diffmx_key in diffmx_def.
 Arguments Scope diffmx

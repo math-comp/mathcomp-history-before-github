@@ -321,7 +321,7 @@ Definition SimplFunDelta aT rT (f : aT -> aT -> rT) := [fun z => f z z].
 
 (* Shorthand for some basic equality lemmas. *)
 
-Definition erefl := refl_equal.
+Definition erefl := @refl_equal.
 Definition esym := sym_eq.
 Definition nesym := sym_not_eq.
 Definition etrans := trans_eq.
@@ -362,6 +362,9 @@ Proof. by move=> f g h eqfg eqgh x; rewrite eqfg. Qed.
 Lemma rrefl : forall r, eqrel r r. Proof. by []. Qed.
 
 End ExtensionalEquality.
+
+Typeclasses Opaque eqfun.
+Typeclasses Opaque eqrel.
 
 Hint Resolve frefl rrefl.
 

@@ -1924,7 +1924,7 @@ Lemma ex_minset : forall P, (exists A, P A) -> {A | minset P A}.
 Proof.
 move=> P exP; pose pS n := [pred B | P B && (#|B| == n)].
 pose p n := ~~ pred0b (pS n); have{exP}: exists n, p n.
-  by case: exP => A PA; exists #|A|; apply/existsP; exists A; rewrite PA /=.
+  by case: exP => A PA; exists #|A|; apply/existsP; exists A; rewrite /= PA /=.
 case/ex_minnP=> n; move/pred0P; case: (pickP (pS n)) => // A.
 case/andP=> PA; move/eqP=> <- {n} _ minA; exists A => //.
 apply/minsetP; split=> // B PB sBA; apply/eqP; rewrite eqEcard sBA.

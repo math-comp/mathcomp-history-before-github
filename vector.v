@@ -472,7 +472,7 @@ Qed.
 Lemma vs2mx_morph : {morph vs2mx : u v / (u + v)%VS >-> (u + v)%MS}.
 Proof.
 move=> u v.
-rewrite /= /addsmx; case: addsmx_key=> /=; rewrite /addsmx_def.
+rewrite /= /addsmx; case: addsmx_key=> /=; rewrite /addsmx_def /idfun.
 do 2 
   (case: eqP=> _; first by rewrite conform_mx_id; apply/eqP; apply: vspace_ax).
 apply: genmx_id.

@@ -3049,7 +3049,7 @@ have: N :&: 'Z(G) != 1%g.
     by rewrite expnS dvdn_mulr.
   move: Dp'; rewrite -(acts_sum_card_orbit Act).
   rewrite (bigID (fun S : {set _} => #|S| != 1%N)) dvdn_addr; last first.
-    apply big_prop=> [|x y Hx Hy|]; rewrite ?(dvdn0,dvdn_addr) //=.
+    elim/big_prop: _ => [|x y Hx Hy|]; rewrite ?(dvdn0,dvdn_addr) //=.
     by move=> i; case/andP; case/imsetP=> g GiG -> HH; exact: DOr.
   rewrite (bigD1 1%g) ?(cards1,andbT) //=; last first.
     by apply/imsetP; exists 1%g; rewrite ?group1 // orbitJ (class1g (group1 _)).

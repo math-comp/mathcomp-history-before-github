@@ -169,7 +169,7 @@ Lemma pair_of_tagK : cancel pair_of_tag tag_of_pair. Proof. by case. Qed.
 
 Definition opair_of_inj (s : T1 + T2) :=
   match s with inl x => (Some x, None) | inr y => (None, Some y) end.
-Definition inj_of_opair p := oapp (some \o @inr T1 T2) (omap (inl T2) p.1) p.2.
+Definition inj_of_opair p := oapp (some \o @inr T1 T2) (omap (@inl _ T2) p.1) p.2.
 Lemma opair_of_injK : pcancel opair_of_inj inj_of_opair. Proof. by case. Qed.
 
 End OtherEncodings.

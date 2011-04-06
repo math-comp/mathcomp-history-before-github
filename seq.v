@@ -997,8 +997,8 @@ Proof.
 by move=> s1 s2; apply/(hasP _ s2)/(hasP _ s1) => [] [x]; exists x.
 Qed.
 
-Lemma has_pred1 : forall x s, has (pred1 x) s = (x \in s).
-Proof. by move=> x s; rewrite -(eq_has (mem_seq1^~ x)) has_sym /= orbF. Qed.
+Lemma has_pred1 x s : has (pred1 x) s = (x \in s).
+Proof. by rewrite -(eq_has (mem_seq1^~ x)) (has_sym [:: x]) /= orbF. Qed.
 
 (* Constant sequences, i.e., the image of nseq. *)
 
