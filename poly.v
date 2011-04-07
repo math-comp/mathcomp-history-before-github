@@ -1932,6 +1932,28 @@ Canonical Structure poly_idomainType :=
 Canonical Structure polynomial_idomainType :=
   Eval hnf in [idomainType of polynomial R for poly_idomainType].
 
+Lemma size_prod_id :  forall I (r : seq I) (P : pred I) (F : I -> {poly R}),
+  all (fun i => P i ==> (F i != 0)) r ->
+  size (\prod_(i <- r | P i) F i) = 
+  ((\sum_(i <- r | P i) size (F i)).+1 - size (filter P r))%N.
+Proof.
+move=> I r P F.
+elim: r => [|i r IHr]; first by rewrite !big_nil size_poly1.
+rewrite !big_cons /=.
+case: (P i) => //=.
+case/andP => [Fine0 allne0].
+rewrite size_mul_id -?(prodf_neq0 r P F) // subSS IHr //.
+move/polySpred: Fine0 => ->.
+rewrite addSn /= addSnnS addn_subA //.
+clear -allne0.
+elim: r allne0 => [|i r IHr] /=; first by rewrite big_nil.
+move/andP => [Fine0 allne0].
+rewrite big_cons /=.
+case: (P i) Fine0 => /= Fine0; last by apply: IHr.
+rewrite -add1n -addnS leq_add //; last by apply: IHr.
+by rewrite lt0n size_poly_eq0.
+Qed.
+
 Lemma size_exp_id : forall p (n : nat),
   (size (p ^+ n)).-1 = ((size p).-1 * n)%N.
 Proof.

@@ -3297,8 +3297,28 @@ move=> x y; apply/eqP/idP; first by case: R x y => T [].
 by case/pred2P=> ->; rewrite (mulr0, mul0r).
 Qed.
 
+Lemma prodf_eq0 : forall I r (P : pred I) (F : I -> R),
+  (has (fun i => P i && (F i == 0)) r) = (\prod_(i <- r | P i) F i == 0).
+Proof.
+move=> I r P F.
+elim: r => [|i r IHr]; first by rewrite big_nil oner_eq0.
+rewrite big_cons /=.
+case: (P i) => //=.
+by rewrite mulf_eq0 IHr.
+Qed.
+
 Lemma mulf_neq0 : forall x y, x != 0 -> y != 0 -> x * y != 0.
 Proof. move=> x y x0 y0; rewrite mulf_eq0; exact/norP. Qed.
+
+Lemma prodf_neq0 : forall I r (P : pred I) (F : I -> R),
+  (all (fun i => P i ==> (F i != 0)) r) = (\prod_(i <- r | P i) F i != 0).
+Proof.
+move=> I r P F.
+apply: negb_inj.
+rewrite negb_involutive -has_predC -prodf_eq0.
+apply: eq_has => i /=.
+by rewrite negb_imply negb_involutive.
+Qed.
 
 Lemma expf_eq0 : forall x n, (x ^+ n == 0) = (n > 0) && (x == 0).
 Proof.
@@ -4164,7 +4184,9 @@ Definition eq_holds := eq_holds.
 Definition holds_fsubst := holds_fsubst.
 Definition unitr_mul := unitr_mul.
 Definition mulf_eq0 := mulf_eq0.
+Definition prodf_eq0 := prodf_eq0.
 Definition mulf_neq0 := mulf_neq0.
+Definition prodf_neq0 := prodf_neq0.
 Definition expf_eq0 := expf_eq0.
 Definition expf_neq0 := expf_neq0.
 Definition mulfI := mulfI.
