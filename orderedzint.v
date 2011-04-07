@@ -94,8 +94,8 @@ Section ZintOrdered.
 
 Lemma ltz_leSz : forall x y : zint, (x < y) = (x + 1 <= y).
 Proof.
-move=> x y; rewrite -![_ _ y]subr_gte0 oppr_add addrA subr_ge0.
-by case: (_ - _)=> n //; rewrite ?ltez_nat.
+move=> x y; rewrite -subr_gte0 -[_ <= _]subr_gte0 oppr_add addrA. 
+by case: (_ - _)=> n //; rewrite ?subr_gte0 ?ltez_nat.
 Qed.
 
 Lemma sgrn : forall (n: nat), sgr n%:Z = (n != 0%N). Proof. by case. Qed.
