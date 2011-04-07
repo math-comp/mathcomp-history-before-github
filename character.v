@@ -3083,10 +3083,10 @@ Variable (gT : finGroupType).
 
 Variable (G H : {group gT}).
 
-Lemma induced0: forall chi,
-  is_char H chi -> H \subset G -> ('Ind[G,H] chi == 0) = (chi == 0%CH).
+Lemma cinduced_eq0: forall chi,
+  H \subset G -> is_char H chi -> ('Ind[G,H] chi == 0) = (chi == 0%CH).
 Proof.
-move=> chi IC HsG; apply/eqP/eqP=>[|->]; last first.
+move=> chi HsG IC; apply/eqP/eqP=>[|->]; last first.
   by apply/cfunP=> g; rewrite !cfunE big1 ?mulr0 // => h _; rewrite cfunE.
 move/cfunP; move/(_ 1%g); rewrite cinduced1 // cfunE.
 move/eqP; rewrite mulf_eq0; case/orP.

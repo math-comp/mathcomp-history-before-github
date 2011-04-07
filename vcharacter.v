@@ -25,7 +25,7 @@ Section IsVChar.
 
 Variable (gT : finGroupType).
 
-Section IsCharDef.
+Section IsVCharDef.
 
 Variable G : {set gT}.
 
@@ -33,7 +33,7 @@ Definition is_vchar  (f : cfun gT algC) :=
   all (fun theta : irr G => isZC (ncoord theta f)) (enum (irr G)) &&
   (f \in 'CF[algC](<<G>>)).
 
-End IsCharDef.
+End IsVCharDef.
 
 Variable G : {group gT}.
 
@@ -148,3 +148,26 @@ by rewrite HH // inE eqxx andbT.
 Qed.
 
 End IsVChar.
+
+Section MoreIsVChar.
+
+Variable gT : finGroupType.
+Variable G H : {group gT}.
+
+Lemma is_vchar_restrict : forall f, 
+  H \subset G -> is_vchar G f -> is_vchar H ('Res[H] f).
+Proof.
+move=> f HsG; case/is_vcharP=> f1; case=> f2 [Hf1 Hf2 ->].
+by rewrite linearD linearN is_vchar_sub // is_vchar_char //
+           (is_char_restrict HsG).
+Qed.
+
+Lemma is_vchar_induced : forall chi,
+   H \subset G -> is_vchar H chi -> is_vchar G ('Ind[G,H] chi).
+Proof.
+move=> chi HsG; case/is_vcharP=> f1; case=> f2 [Hf1 Hf2 ->].
+by rewrite linearD linearN is_vchar_add ?is_vchar_opp //
+           is_vchar_char // is_char_induced.
+Qed.
+
+End MoreIsVChar.

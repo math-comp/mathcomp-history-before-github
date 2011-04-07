@@ -634,7 +634,7 @@ have: 'Ind[G, T] psi == 0.
   rewrite big1 // => i _.
   move: (HH i); rewrite /is_comp; move/idP; move/negP.
   by rewrite negbK; move/eqP->; rewrite scale0r.
-rewrite induced0 ?is_char_irr //.
+rewrite cinduced_eq0 ?is_char_irr //.
 move/eqP; move/cfunP; move/(_ 1%g)=> HH1.
 by case/negP: (irr1_neq0 psi); rewrite HH1 cfunE.
 Qed.
@@ -721,7 +721,7 @@ rewrite inner_prod_charC  ?is_char_irr //.
 rewrite (frobenius_reciprocity TsG) ?(is_char_in_cfun,is_char_irr) //.
 rewrite inner_prod0; last first.
   by apply: cinduced_in_cfun=> //; exact: irr_in_cfun.
-rewrite induced0 ?is_char_irr //.
+rewrite cinduced_eq0 ?is_char_irr //.
 apply/eqP; move/cfunP; move/(_ 1%g).
 rewrite /= [_ 0 _]cfunE=> HH.
 by case/eqP: (irr1_neq0 psi).

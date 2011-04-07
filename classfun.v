@@ -662,6 +662,17 @@ move=> f HsG; rewrite cfunE (eq_bigr (fun _ => f 1%g)).
 by move=> i; rewrite conj1g.
 Qed.
 
+Lemma cinduced_is_linear : linear (cinduced G H).
+Proof.
+move=> c f1 f2; apply/cfunP=> g.
+rewrite !cfunE mulrCA -mulr_addr.
+rewrite -[c * _]mulr_sumr -big_split; congr (_ * _).
+by apply: eq_bigr=> h HiG; rewrite !cfunE.
+Qed.
+
+Canonical Structure cinduced_linear :=
+  Linear cinduced_is_linear.
+
 (* Isaacs' 5.2 *)
 Lemma frobenius_reciprocity : 
   forall f1 f2, H \subset G -> f1 \in 'CF(H) -> f2 \in 'CF(G)->
