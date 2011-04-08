@@ -139,6 +139,41 @@ rewrite mulf_eq0; case/orP=> //.
 by rewrite conjC_eq0.
 Qed.
 
+(*
+
+Definition virtual_char_pred (S : seq (cfun gT algC)) (A : {set gT}) :
+  pred (cfun gT algC) :=
+  [pred x \in span S | (forallb i, isZC (coord S x i)) && has_support x A].
+
+Local Notation " 'Z[ S , A ]" := (virtual_char_pred S A) (format " ''Z[' S ,  A ]"). 
+
+Local Notation " 'Z[ 'Irr G , A ]" := (virtual_char_pred (base_irr G) A)
+                                       (format "''Z[' ''Irr'  G ,  A ]"). 
+
+Local Notation " 'Z[ 'Irr G ]" := (virtual_char_pred (base_irr G) G)
+                                       (format "''Z[' ''Irr'  G ]"). 
+
+Check (fun x G => x \in 'Z['Irr G]).
+
+(* This is PF 1.4 *)
+Lemma vchar_isometry_base: 
+  forall (Chi : {set (irr H)}) (tau : cfun _ _ -> cfun _ _), 
+    (1 < #|Chi|)%N  -> 
+    (forall chi1 chi2, chi1 \in Chi -> chi2 \in Chi -> chi1 1%g = chi2 1%g) ->
+    (forall f, is_myZ Chi H^# f -> is_myZ [set : irr G] G^# (tau f)) ->
+    (forall f1 f2, is_myZ Chi H^# f1 -> is_myZ Chi H^# f2 -> 
+                   '[tau f1, tau f2]_G = '[f1,f2]_H) ->
+    forall chi1 : irr H, chi1 \in Chi ->
+    exists mu : irr H -> irr G,
+    exists epsilon : bool,
+    forall chi2 : irr H, chi2 \in Chi ->
+        tau ((chi2 : cfun _ _) - (chi1 : cfun _ _)) = (-(1%R))^+epsilon *: ((mu chi2 : cfun _ _) - (mu chi1: cfun _ _)).
+ :> cfun _ _ .
+ - . 
+Proof. 
+is_myZ [set : irr G] G^# (tau f)) ->
+.
+*)
 
 (* This is PF 1.5(a) *)
 Lemma induced_sum_rcosets : 

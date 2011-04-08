@@ -1049,7 +1049,7 @@ Section IsCharDef.
 Variable G : {set gT}.
 
 Definition is_char  (f : cfun gT algC) :=
-  all (fun theta : irr G => isNatC (ncoord theta f)) (enum (irr G)) &&
+  (forallb theta : irr G, isNatC (ncoord theta f)) &&
   (f \in 'CF[algC](<<G>>)).
 
 End IsCharDef.
@@ -1067,16 +1067,15 @@ suff: reflect (exists n, exists rG : mx_representation algC <<G>> n,
               (is_char G f) by rewrite genGid.
 apply: (iffP andP); last first.
   case=> n [rG <-]; split; last exact: char_of_repr_in_cfun.
-  apply/allP=> chi _.
+  apply/forallP=> chi.
   move: rG; rewrite genGid=> rG.
   by exact: isNatC_ncoord_repr.
-case; move/allP=> Ha Hf.
+case; move/forallP=> Ha Hf.
 pose n' (j : irr G) := getNatC (ncoord j f).
 have->: f = \sum_(j : irr G) (n' j)%:R *: (j : cfun _ _).
   move: (Hf); rewrite genGid=> Hf'.
   rewrite {1}(ncoord_sum Hf'); apply: eq_bigr=> i _.
-  congr (_ *: _); apply/eqP; apply: Ha.
-  by exact: mem_enum.
+  by congr (_ *: _); apply/eqP; apply: Ha.
 elim: {n'}(\sum_j (n' j))%N {-2}n' (leqnn (\sum_j (n' j)))=> [| N IH] n' HS.
   exists 0%N; exists grepr0.
   apply/cfunP=> i; rewrite sum_cfunE !cfunE mxtrace1 mulr0 big1 // => j Hj.
@@ -1546,7 +1545,7 @@ move=> theta chi IC; apply: (iffP idP)=>[HH|[chi' IC' ->]]; last first.
 exists (chi - (theta : cfun _ _)); last by rewrite addrC subrK.
 apply/andP; split; last first.
   by rewrite memv_sub // genGid ?(is_char_in_cfun, is_char_irr).
-apply/allP=> /= t _.
+apply/forallP=> t.
 rewrite linearD linearN /= ncoord_irr.
 case: (_ =P _)=> [->|_]; last first.
   by rewrite subr0 isNatC_ncoord_char.
@@ -3098,7 +3097,7 @@ Lemma is_char_induced : forall chi,
    is_char H chi -> H \subset G -> is_char G ('Ind[G,H] chi).
 Proof.
 move=> chi IC HsG; have IiC := cinduced_in_cfun HsG (is_char_in_cfun IC).
-apply/andP; split; rewrite ?genGid //; apply/allP=> t _.
+apply/andP; split; rewrite ?genGid //; apply/forallP=> t.
 rewrite ncoord_inner_prod // -frobenius_reciprocity //
         ?(is_char_in_cfun, is_char_irr, irr_in_cfun) //.
 rewrite (inner_prod_char IC (is_char_restrict HsG (is_char_irr _))).

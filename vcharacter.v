@@ -23,30 +23,50 @@ Local Open Scope ring_scope.
 
 Section IsVChar.
 
-Variable (gT : finGroupType).
+Variable (gT : finGroupType) (G : {group gT}) (A : {set gT}).
 
-Section IsVCharDef.
+Definition virtual_char_pred (S : seq (cfun gT algC)) (A : {set gT}) :
+  pred (cfun gT algC) :=
+  [pred x \in span S | (forallb i, isZC (coord S x i)) && has_support x A].
 
-Variable G : {set gT}.
+Local Notation " 'Z[ S , A ]" := 
+  (virtual_char_pred S A) (format " ''Z[' S ,  A ]"). 
 
-Definition is_vchar  (f : cfun gT algC) :=
-  all (fun theta : irr G => isZC (ncoord theta f)) (enum (irr G)) &&
-  (f \in 'CF[algC](<<G>>)).
+Local Notation " 'Z[ 'Irr G , A ]" := 
+  (virtual_char_pred (base_irr G) A) (format "''Z[' ''Irr'  G ,  A ]"). 
 
-End IsVCharDef.
+Local Notation " 'Z[ 'Irr G ]" := 
+  (virtual_char_pred (base_irr G) G) (format "''Z[' ''Irr'  G ]"). 
 
-Variable G : {group gT}.
-
-Lemma is_vcharP : forall f,
+(*
+Lemma is_vcharP : forall f : cfun _ _,
   reflect (exists f1, exists f2, [/\ is_char G f1, is_char G f2 & f = f1 - f2])
-          (is_vchar G f).
+          (f \in 'Z['Irr G]).
 Proof.
 move=> f; apply: (iffP andP); last first.
-  case=> f1; case=> f2 [Hf1 Hf2 ->]; rewrite genGid; split; last first.
+  case=> f1; case=> f2 [Hf1 Hf2 ->]; split.
+    move: (base_irr_basis G); rewrite /is_basis /is_span.
+    case/andP; move/eqP=> -> _.
+    by apply: memv_sub; apply: is_char_in_cfun.
+  apply/andP; split.
+    apply/forallP=> x.
+    rewrite linearD linearN /= ffunE isZC_add //.
+      rewrite isZCE.
+      admit.
+    rewrite ffunE isZC_opp //.
+    admit.
+  admit.
+case=> Hs; case/andP; move/forallP=> Hc Hss.
+pose f1 := 
+  \sum_(i : 'I_(irr G) (if isNatC(ncoord i f) then ncoord i f else 0) *: (i : cfun _ _).
+ 
+
+    apply: isZC_sub.
+ last first.
     by apply:  memv_sub; exact: is_char_in_cfun.
-  apply/allP=> chi _.
+  apply/forallP=> chi.
   by rewrite linearD linearN isZC_sub // isZCE isNatC_ncoord_char.
-case; move/allP; rewrite genGid => HZ Hf.
+case; move/forallP; rewrite genGid => HZ Hf.
 pose f1 := 
   \sum_(i : irr G) (if isNatC(ncoord i f) then ncoord i f else 0) *: (i : cfun _ _).
 pose f2 := 
@@ -86,8 +106,7 @@ Qed.
 Lemma isZC_ncoord_vchar : forall (theta : irr G) (f : cfun _ _),
  is_vchar G f -> isZC (ncoord theta f).
 Proof.
-move=> theta f; case/andP; move/allP=> HH _; apply: HH.
-by rewrite mem_enum.
+by move=> theta f; case/andP; move/forallP=> HH _; apply: HH.
 Qed.
 
 Lemma is_vchar0 : is_vchar G 0.
@@ -146,9 +165,10 @@ have HF : is_vchar G (\sum_(i <- r | P i) F i).
 rewrite big_cons; case: (boolP (P a))=> HP //; rewrite is_vchar_add //.
 by rewrite HH // inE eqxx andbT.
 Qed.
-
+*)
 End IsVChar.
 
+(*
 Section MoreIsVChar.
 
 Variable gT : finGroupType.
@@ -171,3 +191,4 @@ by rewrite linearD linearN is_vchar_add ?is_vchar_opp //
 Qed.
 
 End MoreIsVChar.
+*)
