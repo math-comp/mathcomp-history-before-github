@@ -848,19 +848,18 @@ Qed.
 Lemma cfun_of_irr_inj : injective (@cfun_of_irr _ G).
 Proof.
 pose l := enum (irr G); set f := @cfun_of_irr _ _.
-suff: uniq l /\ {in l &, injective f}.
-  case=> _ HH u v Huv.
+suff: {in l &, injective f}.
+  move=> HH Hl u v .
   by apply: HH=> //; rewrite mem_enum.
 move: (free_uniq free_base_irr); rewrite /base_irr -/l -/f.
 elim: l => [|i l IH] //=.
-case/andP=> H1 H2; case: (IH H2)=> H3 H4; split=> [|u v].
-  by rewrite H3 andbT; apply/negP=> HH; case/negP: H1; rewrite map_f.
-rewrite !inE.
+case/andP=> H1 H2; move: (IH H2)=> H3 u v;rewrite !inE.
 case/orP=> Hu; case/orP=> Hv; rewrite ?(eqP Hu) ?(eqP Hv) // => HH.
  - by case/negP: H1; rewrite HH map_f.
  - by case/negP: H1; rewrite -HH map_f.
-by apply: H4.
+by apply: H3.
 Qed.
+
 
 Lemma char_of_repr_inj : forall n1 n2,
   forall rG1 : mx_representation algC G n1,
