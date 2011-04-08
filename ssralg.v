@@ -3301,15 +3301,11 @@ Qed.
 Lemma prodf_eq0 : forall (I : finType) (P : pred I) (F : I -> R),
   reflect (exists2 i, P i & (F i == 0)) (\prod_(i | P i) F i == 0).
 Proof.
-move=> I P F.
-apply: (iffP idP); last first.
- by case=> i Pi; move/eqP => Fi; rewrite (bigD1 i) //= Fi mul0r.
+move=> I P F; apply: (iffP idP) => [|[i Pi]]; last first.
+  by move/eqP=> Fi0; rewrite (bigD1 i) //= Fi0 mul0r.
 elim: (index_enum _) => [|i r IHr]; first by rewrite big_nil oner_eq0.
-rewrite big_cons /=.
-case Pi: (P i) => //=.
-rewrite mulf_eq0.
-case/orP => // Fi.
-by exists i.
+rewrite big_cons /=; have [Pi | _] := ifP; last exact: IHr.
+by rewrite mulf_eq0; case/orP=> // Fi0; exists i.
 Qed.
 
 Lemma mulf_neq0 : forall x y, x != 0 -> y != 0 -> x * y != 0.
@@ -3318,17 +3314,8 @@ Proof. move=> x y x0 y0; rewrite mulf_eq0; exact/norP. Qed.
 Lemma prodf_neq0 : forall (I : finType) (P : pred I) (F : I -> R),
   reflect (forall i, P i -> (F i != 0)) (\prod_(i | P i) F i != 0).
 Proof.
-move=> I P F.
-apply: (iffP idP).
- move=> prodne0.
- apply/forall_inP.
- rewrite -negb_exists_in.
- apply: contraNN prodne0.
- by move/exists_inP/prodf_eq0.
-move/forall_inP.
-rewrite -negb_exists_in.
-apply: contraNN.
-by move/prodf_eq0/exists_inP.
+move=> I P F; rewrite (sameP (prodf_eq0 _ _) exists_inP) negb_exists_in.
+exact: forall_inP.
 Qed.
 
 Lemma expf_eq0 : forall x n, (x ^+ n == 0) = (n > 0) && (x == 0).

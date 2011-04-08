@@ -1655,8 +1655,9 @@ apply: contraLR.
 rewrite -ltnNge neq_ltn => Hs.
 apply/orP; left.
 rewrite ltnS leq_sub_add -mulSn (bigD1 i) //= -addSn.
-move/(leq_ltn_trans (leq0n _))/prednK:(ltn_ord i) => Hm.
-rewrite -[m in (n.+1 * m)%N]Hm mulnS leq_add //.
+have Hm := ltn_predK (ltn_ord i).
+rewrite leqNgt -{1}Hm -leqNgt mulnS leq_add //.
+(* rewrite -[m in (n.+1 * m)%N]Hm mulnS leq_add //. *)
  move: Hs.
  rewrite col_mxEd mxE.
  case: ifP; last by rewrite size_poly0.
@@ -1667,10 +1668,11 @@ rewrite -[m in (n.+1 * m)%N]Hm mulnS leq_add //.
  by rewrite -{4 8}[n](prednK (elementDegreegt0 _ _)) -/n addSn !ltnS leq_sub_add
             [(n.-1 + _)%N]addnC.
 suff: forall i0, (i0 != i) -> size (M (rshift n i0) (s (rshift n i0))) <= n.+1.
- move/leq_sum/leq_trans; apply.
+ move/leq_sum; move/leq_trans; apply.
  move: (cardC (pred1 i)).
  rewrite sum_nat_const card_ord card1 => Hcard.
- by rewrite -[m in m.-1]Hcard add1n /= mulnC.
+ by rewrite leqNgt -{1}Hcard mulnC ltnn.
+ (* by rewrite -[m in m.-1]Hcard add1n /= mulnC. *)
 move => j _.
 rewrite col_mxEd mxE.
 case: ifP; last by rewrite size_poly0.

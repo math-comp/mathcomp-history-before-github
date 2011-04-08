@@ -526,19 +526,21 @@ have ->: LHS = #|'M(B)|%:R^-1 * \sum_(x \in calA g 'M(B)) 'aa_B (g ^ x).
   by case/andP=> _ notMgx; rewrite (cfun0 (CFaa_ dB)).
 have defMB := Dade_set_sdprod dB; have [_ mulHNB nHNB tiHNB] := sdprodP defMB.
 have [sHMB sNMB] := mulG_sub mulHNB.
-have [_ _ _ defCa coHL] := ddH.
-split=> [notHGg | a Hag].
-  have [sBA] := setIdP dB; case/set0Pn=> a Ba; have Aa := subsetP sBA a Ba.
-  rewrite big1 ?mulr0 // => x; case/setIdP=> Gx MBgx; rewrite cfunE MBgx.
-  set b := remgr _ _ _; have Nb: b \in 'N_L(B) by rewrite mem_remgr ?mulHNB.
+have [sAL1 _ _ defCa coHL] := ddH; have{sAL1} [sAL _] := subsetD1P sAL1.
+pose fBg x := remgr 'H(B) 'N_L(B) (g ^ x).
+pose supp_aBg := [pred b \in A | g \in Dade_support1 ddH b].
+have supp_aBgP: {in calA g 'M(B), forall x,
+  ~~ supp_aBg (fBg x) -> 'aa_B (g ^ x)%g = 0}.
+- move=> x; case/setIdP; set b := fBg x => Gx MBgx notHGx; rewrite cfunE MBgx. 
+  have Nb: b \in 'N_L(B) by rewrite mem_remgr ?mulHNB.
   have Cb: b \in 'C_L[b] by rewrite inE cent1id; have [-> _] := setIP Nb.
-  rewrite (cfunS0 CFaa) //; apply: contra notHGg => Ab.
+  rewrite (cfunS0 CFaa) // -/(fBg x) -/b; apply: contra notHGx => Ab.
   have nHb: b \in 'N_('M(B))('H(B)).
     by rewrite inE (subsetP sNMB) // (subsetP nHNB).
+  have [sBA] := setIdP dB; case/set0Pn=> a Ba; have Aa := subsetP sBA a Ba.
   have [|/= partHBb _] := partition_cent_rcoset sHMB nHb.
     rewrite (coprime_dvdr (order_dvdG Cb)) //= ['H(B)](bigD1 a) //=.
     by rewrite (coprimeSg (subsetIl _ _)) ?coHL. 
-  apply/bigcupP; exists b => //.
   have Hb_gx: g ^ x \in 'H(B) :* b by rewrite mem_rcoset mem_divgr ?mulHNB.
   have [defHBb _ _] := and3P partHBb; rewrite -(eqP defHBb) in Hb_gx.
   case/bigcupP: Hb_gx => Cy; case/imsetP=> y HBy ->{Cy} Cby_gx.
@@ -546,7 +548,7 @@ split=> [notHGg | a Hag].
   have sHBG: 'H(B) \subset G.
     apply: subset_trans sHBa _.
     by case/sdprodP: (defCa a Aa) => _; case/mulG_sub; case/subsetIP=> ->.
-  rewrite -(memJ_conjg _ x) class_supportGidr //  -(conjgKV y (g ^ x)).
+  rewrite Ab -(memJ_conjg _ x) class_supportGidr //  -(conjgKV y (g ^ x)).
   rewrite mem_imset2 // ?(subsetP sHBG) {HBy}// -mem_conjg.
   apply: subsetP Cby_gx; rewrite {y}conjSg mulSg //.
   pose pi := \pi('C_L[b]).
@@ -555,8 +557,29 @@ split=> [notHGg | a Hag].
   have [nsHbC _ defHbC _ _] := sdprod_context (defCa b Ab).
   have [hallHb _] := coprime_mulGp_Hall defHbC (pi'H _ Ab) (pgroup_pi _).
   rewrite (sub_normal_Hall hallHb) ?setSI // (pgroupS _ (pi'H a Aa)) //=.
-  by rewrite subIset ?sHBa.
-Admitted.
+  by rewrite subIset ?sHBa.  
+split=> [notHGg | a Aa Hag].
+  rewrite big1 ?mulr0 // => x; move/supp_aBgP; apply; set b := fBg x.
+  by apply: contra notHGg; case/andP=> Ab Hb_x; apply/bigcupP; exists b.
+rewrite -mulrA mulrCA; congr (_ * _); rewrite big_distrr /=.
+set nBaL := _ :&: _; rewrite (bigID [pred x | fBg x \in nBaL]) /= addrC.
+rewrite big1 ?add0r => [|x]; last first.
+  case/andP=> calAx not_nBaLx; apply: supp_aBgP => //; apply: contra not_nBaLx.
+  set b := fBg x; case/andP=> Ab Hb_g; have [Gx MBx] := setIdP calAx.
+  rewrite inE mem_remgr ?mulHNB //; apply/imsetP; apply: Dade_support1_TI => //.
+  by apply/pred0Pn; exists g; exact/andP.
+rewrite (partition_big fBg (mem nBaL)) /= => [|x]; last by case/andP.
+apply: eq_bigr => b; case/setIP=> Nb aLb; rewrite mulr_natr -sumr_const.
+apply: eq_big => x; rewrite ![x \in _]inE -!andbA.
+  apply: andb_id2l=> Gx; apply/and3P/idP=> [[Mgx _]|HBb_gx].
+    by move/eqP <-; rewrite ?andbF // mem_rcoset mem_divgr ?mulHNB.
+  suff ->: fBg x = b.
+    by rewrite inE Nb (subsetP _ _ HBb_gx) // -mulHNB mulgS ?sub1set.
+  by rewrite /fBg; have [h Hh ->] := rcosetP HBb_gx; exact: remgrMid.
+case/and4P=> _ Mgx _; move/eqP=> def_fx.
+rewrite cfunE Mgx -/(fBg x) def_fx; case/imsetP: aLb => y Ly ->.
+by rewrite (cfunJ CFaa) // (subsetP _ a Aa) //; case: ddH; case/subsetD1P.
+Qed.
 
 End DadeExpansion.
   
