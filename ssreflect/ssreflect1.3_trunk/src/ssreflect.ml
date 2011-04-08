@@ -60,6 +60,78 @@ let pp =
   try ignore(Sys.getenv "SSRDEBUG");fun s -> pperrnl (str"SSR: "++Lazy.force s)
   with Not_found -> fun _ -> ()
 
+type profiler = { 
+  profile : 'a 'b. ('a -> 'b) -> 'a -> 'b;
+  reset : unit -> unit;
+  print : unit -> unit }
+let profile_now = ref false
+let something_profiled = ref false
+let profilers = ref []
+let add_profiler f = profilers := f :: !profilers;;
+let _ =
+  Goptions.declare_bool_option
+    { Goptions.optsync  = false;
+      Goptions.optname  = "ssreflect profiling";
+      Goptions.optkey   = ["SsrProfiling"];
+      Goptions.optread  = (fun _ -> !profile_now);
+      Goptions.optwrite = (fun b -> 
+        profile_now := b;
+        if b then List.iter (fun f -> f.reset ()) !profilers;
+        if not b then List.iter (fun f -> f.print ()) !profilers) }
+let () =
+  let prof_total = 
+    let init = ref 0.0 in { 
+    profile = (fun f x -> assert false);
+    reset = (fun () -> init := Unix.gettimeofday ());
+    print = (fun () -> if !something_profiled then
+        prerr_endline 
+           (Printf.sprintf "!! %-39s %10d %9.4f %9.4f %9.4f"
+           "total" 0 (Unix.gettimeofday() -. !init) 0.0 0.0)) } in
+  let prof_legenda = {
+    profile = (fun f x -> assert false);
+    reset = (fun () -> ());
+    print = (fun () -> if !something_profiled then begin
+        prerr_endline 
+           (Printf.sprintf "!! %39s ---------- --------- --------- ---------" 
+           (String.make 39 '-'));
+        prerr_endline 
+           (Printf.sprintf "!! %-39s %10s %9s %9s %9s" 
+           "function" "#calls" "total" "max" "average") end) } in
+  add_profiler prof_legenda;
+  add_profiler prof_total
+;;
+
+let mk_profiler s =
+  let total, calls, max = ref 0.0, ref 0, ref 0.0 in
+  let reset () = total := 0.0; calls := 0; max := 0.0 in
+  let profile f x =
+    if not !profile_now then f x else
+    let before = Unix.gettimeofday () in
+    try
+      incr calls;
+      let res = f x in
+      let after = Unix.gettimeofday () in
+      let delta = after -. before in
+      total := !total +. delta;
+      if delta > !max then max := delta;
+      res
+    with exc ->
+      let after = Unix.gettimeofday () in
+      let delta = after -. before in
+      total := !total +. delta;
+      if delta > !max then max := delta;
+      raise exc in
+  let print () =
+     if !calls <> 0 then begin
+       something_profiled := true;
+       prerr_endline
+         (Printf.sprintf "!! %-39s %10d %9.4f %9.4f %9.4f" 
+         s !calls !total !max (!total /. (float_of_int !calls))) end in
+  let prof = { profile = profile; reset = reset; print = print } in
+  add_profiler prof;
+  prof
+;;
+
 (** Primitive parsing to avoid syntax conflicts with basic tactics. *)
 
 let accept_before_syms syms strm =
@@ -1324,6 +1396,9 @@ let donetac gl =
     with Not_found -> Util.error "The ssreflect library was not loaded" in
   let tacexpr = Tacexpr.Reference (ArgArg (dummy_loc, tacname)) in
   eval_tactic (Tacexpr.TacArg tacexpr) gl
+
+let prof_donetac = mk_profiler "donetac";;
+let donetac gl = prof_donetac.profile donetac gl;;
 
 let ssrautoprop gl =
   try 
@@ -2930,6 +3005,11 @@ let unif_EQ_args env sigma pa a =
   let rec loop i = (i = n) || unif_EQ env sigma pa.(i) a.(i) && loop (i + 1) in
   loop 0
 
+let prof_unif_eq_args = mk_profiler "unif_EQ_args";;
+let unif_EQ_args env sigma pa a =
+  prof_unif_eq_args.profile (unif_EQ_args env sigma pa) a 
+;;
+
 let pr_cargs a =
   str "[" ++ pr_list pr_spc pr_constr (Array.to_list a) ++ str "]"
 
@@ -3220,6 +3300,11 @@ let match_upats_FO upats env sigma0 ise =
   iter_constr_LR loop f; Array.iter loop a in
   fun c -> try loop c with Invalid_argument _ -> anomaly "IN FO"
 
+let prof_FO = mk_profiler "match_upats_FO";;
+let match_upats_FO upats env sigma0 ise c =
+  prof_FO.profile (match_upats_FO upats env sigma0) ise c
+;;
+
 let rec match_upats_HO upats env sigma0 ise c =
   let f, a = splay_app ise c in let i0 = ref (-1) in
   let fpats = List.fold_right (filter_upat i0 f (Array.length a)) upats [] in
@@ -3253,6 +3338,11 @@ let rec match_upats_HO upats env sigma0 ise c =
   done;
   iter_constr_LR (match_upats_HO upats env sigma0 ise) f;
   Array.iter (match_upats_HO upats env sigma0 ise) a
+
+let prof_HO = mk_profiler "match_upats_HO";;
+let match_upats_HO upats env sigma0 ise c =
+  prof_HO.profile (match_upats_HO upats env sigma0) ise c
+;;
 
 
 let fixed_upats = function
@@ -3691,7 +3781,9 @@ let pf_unify_HO gl t1 t2 =
 
 (* TASSI: given (c : ty), generates (c ??? : ty[???/...]) with m evars *)
 exception NotEnoughProducts
-let saturate ?(beta=false) env sigma c ?(ty=Typing.type_of env sigma c) m =
+let prof_saturate_whd = mk_profiler "saturate.whd";;
+let saturate ?(beta=false) env sigma c ?(ty=Retyping.get_type_of env sigma c) m 
+=
   let rec loop ty args sigma n = 
   if n = 0 then 
     let args = List.rev args in
@@ -3705,7 +3797,9 @@ let saturate ?(beta=false) env sigma c ?(ty=Typing.type_of env sigma c) m =
   | LetInType (_, v, _, t) -> loop (subst1 v t) args sigma n
   | SortType _ -> assert false
   | AtomicType _ ->
-      let ty = Reductionops.whd_betadeltaiota env sigma ty in
+      let ty = 
+        prof_saturate_whd.profile      
+        (Reductionops.whd_betadeltaiota env sigma) ty in
       match kind_of_type ty with
       | ProdType _ -> loop ty args sigma n
       | _ -> assert false
@@ -3772,13 +3866,18 @@ let dependent_apply_error =
  *
  * Refiner.refiner that does not handle metas with a non ground type but works
  * with dependently typed higher order metas. *)
+let prof_refine_with_refine = mk_profiler "refine_with.applyn.R.refine";;
+let prof_refine_with_refiner = mk_profiler "refine_with.applyn.R.refiner";;
+let prof_refine_with_saturate = mk_profiler "refine_with.applyn.saturate";;
 let applyn ~with_evars n t gl =
   if with_evars then
     let t, sigma = if n = 0 then t, project gl else
-      let t, _, _, gl = pf_saturate gl t n in (* saturate with evars *)
+      let t, _, _, gl = 
+        prof_refine_with_saturate.profile
+        (pf_saturate gl t) n in (* saturate with evars *)
       t, project gl in
     pp(lazy(str"Refine.refine " ++ pr_constr t));
-    Refine.refine (sigma, t) gl
+    prof_refine_with_refine.profile (Refine.refine (sigma, t)) gl
   else
     let t, gl = if n = 0 then t, gl else
       let sigma, si = project gl, sig_it gl in
@@ -3792,11 +3891,26 @@ let applyn ~with_evars n t gl =
           | _ -> assert false
       in loop sigma t [] n in
     pp(lazy(str"Refiner.refiner " ++ pr_constr t));
-    Refiner.refiner (Proof_type.Prim (Proof_type.Refine t)) gl
+    prof_refine_with_refiner.profile
+      (Refiner.refiner (Proof_type.Prim (Proof_type.Refine t))) gl
+
+let prof_refine_with_applyn = mk_profiler "refine_with.applyn";;
+let applyn ~with_evars n t gl =
+  prof_refine_with_applyn.profile (applyn ~with_evars n t) gl
+;;
+
+let prof_refine_with_abs_evars = mk_profiler "refine_with.abs_evars";;
 
 let refine_with ?(with_evars=true) oc gl =
+  let pf_abs_evars_pirrel gl oc = 
+    prof_refine_with_abs_evars.profile (pf_abs_evars_pirrel gl) oc in
   let n, oc = pf_abs_evars_pirrel gl oc in
   try applyn ~with_evars n oc gl with _ -> raise dependent_apply_error
+
+let prof_refine_with = mk_profiler "refine_with";;
+let refine_with ?with_evars oc gl =
+  prof_refine_with.profile (refine_with ?with_evars oc) gl
+;;
 
 (** The "case" and "elim" tactic *)
 
@@ -4199,12 +4313,15 @@ let mkRAppView ist gl rv gv =
   let nb_view_imps = interp_view_nbimps ist gl rv in
   mkRApp rv (mkRHoles (abs nb_view_imps))
 
+let prof_apply_interp_with = mk_profiler "ssrapplytac.interp_with";;
+
 let refine_interp_apply_view i ist gl gv =
   let pair i = List.map (fun x -> i, x) in
   let rv = pf_intern_term ist gl gv in
   let v = mkRAppView ist gl rv gv in
   let interp_with (i, hint) =
     interp_refine ist gl (mkRApp hint (v :: mkRHoles i)) in
+  let interp_with x = prof_apply_interp_with.profile interp_with x in
   let rec loop = function
   | [] -> (try apply_rconstr ~ist v gl with _ -> view_error "apply" gv)
   | h :: hs -> (try refine_with (interp_with h) gl with _ -> loop hs) in
@@ -4229,6 +4346,9 @@ let inner_ssrapplytac gviews ggenl gclr ist gl =
 
 let ssrapplytac (views, (_, ((gens, clr), intros))) =
   tclINTROS (inner_ssrapplytac views gens clr) intros
+
+let prof_ssrapplytac = mk_profiler "ssrapplytac";;
+let ssrapplytac arg gl = prof_ssrapplytac.profile (ssrapplytac arg) gl;;
 
 TACTIC EXTEND ssrapply
 | [ "apply" ssrapplyarg(arg) ] -> [ ssrapplytac arg ]
@@ -4776,8 +4896,9 @@ let pirrel_rewrite pred rdx rdx_ty new_rdx dir (sigma, c) c_ty gl =
     let c1' = Global.constant_of_delta (make_con mp dp l') in
     mkConst c1' in
   let proof = mkApp (elim, [| rdx_ty; new_rdx; pred; p; rdx; c |]) in
-  let proof_ty = Typing.type_of env sigma proof in
-  pp(lazy(str"pirrel_rewrite proof term of type: " ++ pr_constr proof_ty));
+  pp(lazy(
+    let proof_ty = Retyping.get_type_of env sigma proof in
+    str"pirrel_rewrite proof term of type: " ++ pr_constr proof_ty));
   refine_with ~with_evars:false (sigma, proof) gl
 ;;
 
@@ -4819,6 +4940,12 @@ let rwcltac cl rdx dir sr gl =
         ++ pf_pr_constr gl (mkNamedLambda pattern_id rdxt cl)) in
   tclTHEN cvtac' rwtac gl
 
+let prof_rwcltac = mk_profiler "rwrxtac.rwcltac";;
+let rwcltac cl rdx dir sr gl =
+  prof_rwcltac.profile (rwcltac cl rdx dir sr) gl
+;;
+
+
 let lz_coq_prod =
   let prod = lazy (build_prod ()) in fun () -> Lazy.force prod
 
@@ -4840,6 +4967,8 @@ let ssr_is_setoid env =
   fun sigma r args ->
     Rewrite.is_applied_rewrite_relation env 
       sigma [] (mkApp (r, args)) <> None
+
+let prof_rwxrtac_find_rule = mk_profiler "rwrxtac.find_rule";;
 
 let rwrxtac occ rdx_pat dir rule gl =
   let env = pf_env gl in
@@ -4917,6 +5046,7 @@ let rwrxtac occ rdx_pat dir rule gl =
           d, sr'
         with _ -> rwtac rs in
      rwtac rules in
+  let find_rule rdx = prof_rwxrtac_find_rule.profile find_rule rdx in
   let sigma0, env0, concl0 = project gl, pf_env gl, pf_concl gl in
   let closed0_check concl p = if closed0 concl then 
     errorstrm (str "No occurrence of redex " ++ pf_pr_constr gl p) in
@@ -4940,6 +5070,12 @@ let rwrxtac occ rdx_pat dir rule gl =
   let (d, r), rdx = conclude concl in
   rwcltac concl rdx d r gl
 ;;
+
+let prof_rwxrtac = mk_profiler "rwrxtac";;
+let rwrxtac occ rdx_pat dir rule gl =
+  prof_rwxrtac.profile (rwrxtac occ rdx_pat dir rule) gl
+;;
+
 
 (* Resolve forward reference *)
 let _ = 
@@ -5406,6 +5542,10 @@ END
 
 let ssrposetac (id, ((_, t), ctx)) gl =
   posetac id (pf_abs_ssrterm (get_ltacctx ctx) gl t) gl
+
+
+let prof_ssrposetac = mk_profiler "ssrposetac";;
+let ssrposetac arg gl = prof_ssrposetac.profile (ssrposetac arg) gl;;
   
 TACTIC EXTEND ssrpose
 | [ "pose" ssrfixfwd(ffwd) ] -> [ ssrposetac ffwd ]
@@ -5541,6 +5681,9 @@ let havetac ((((clr, pats), binders), simpl), ((((fk, _), t), ctx), hint))
       interp_ty cty, tclTHEN binderstac hint, id, tclTHEN itac_c simpltac
    | _, true, false -> assert false in
  tclTHENS (cuttac cut) [ tclTHEN sol itac1; itac2 ] gl
+
+let prof_havetac = mk_profiler "havetac";;
+let havetac arg a b gl = prof_havetac.profile (havetac arg a b) gl;;
 
 TACTIC EXTEND ssrhave
 | [ "have" ssrhavefwdwbinders(fwd) ] ->
