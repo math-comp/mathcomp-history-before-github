@@ -625,18 +625,18 @@ Lemma lead_coef_proper_mul : forall p q,
   let c := lead_coef p * lead_coef q in c != 0 -> lead_coef (p * q) = c.
 Proof. by move=> p q /= nz_c; rewrite -head_coef_mul -size_proper_mul. Qed.
 
-Lemma size_prod : forall I r (P : pred I) (F : I -> {poly R}),
-  size (\prod_(i <- r | P i) F i) <= 
-    (\sum_(i <- r | P i) size (F i)).+1 - size (filter P r).
+Lemma size_prod : forall (I : finType) (P : pred I) (F : I -> {poly R}),
+  size (\prod_(i | P i) F i) <= 
+    (\sum_(i | P i) size (F i)).+1 - #|P|.
 Proof.
-move => I r P F.
-rewrite -!(big_filter r).
-elim: (filter P r) => {r P} [|a r IH].
+move => I P F.
+rewrite cardE -filter_index_enum -!(big_filter _ P).
+elim: (filter P _) => {P} [|i r IH].
  by rewrite !big_nil size_polyC GRing.nonzero1r.
 rewrite !big_cons /= subSS.
 case: (eqVneq (\prod_(j <- r) F j) 0) => [->|nProd0].
  by rewrite mulr0 size_poly0.
-case: (eqVneq (F a) 0) => [->|neqFa0]; first by rewrite mul0r size_poly0.
+case: (eqVneq (F i) 0) => [->|neqFa0]; first by rewrite mul0r size_poly0.
 rewrite (leq_trans (size_mul _ _)) //.
 move/polySpred: neqFa0 ->.
 rewrite addSn /= addSnnS.
@@ -645,9 +645,9 @@ suff: (size r <= (\sum_(j <- r) size (F j)).+1).
 apply: leqW.
 apply: contraNeq nProd0.
 rewrite eqb_id -ltnNge.
-elim: {IH a} r => [//|a r IH /=].
+elim: {IH i} r => [//|i r IH /=].
 rewrite !big_cons.
-case (eqVneq (F a) 0) => [->|]; first by rewrite mul0r.
+case (eqVneq (F i) 0) => [->|]; first by rewrite mul0r.
 move/polySpred ->.
 rewrite addSn -addn1 -[(size r).+1]addn1 leq_add2r.
 move/(leq_ltn_trans (leq_addl _ _)).
@@ -1932,24 +1932,23 @@ Canonical Structure poly_idomainType :=
 Canonical Structure polynomial_idomainType :=
   Eval hnf in [idomainType of polynomial R for poly_idomainType].
 
-Lemma size_prod_id :  forall I (r : seq I) (P : pred I) (F : I -> {poly R}),
-  all (fun i => P i ==> (F i != 0)) r ->
-  size (\prod_(i <- r | P i) F i) = 
-  ((\sum_(i <- r | P i) size (F i)).+1 - size (filter P r))%N.
+Lemma size_prod_id :  forall (I : finType) (P : pred I) (F : I -> {poly R}),
+  (forall i, P i -> (F i != 0)) ->
+  size (\prod_(i | P i) F i) = ((\sum_(i | P i) size (F i)).+1 - #|P|)%N.
 Proof.
-move=> I r P F.
-elim: r => [|i r IHr]; first by rewrite !big_nil size_poly1.
-rewrite !big_cons /=.
-case: (P i) => //=.
-case/andP => [Fine0 allne0].
-rewrite size_mul_id -?(prodf_neq0 r P F) // subSS IHr //.
+move=> I P F.
+move/prodf_neq0.
+rewrite cardE -filter_index_enum -!(big_filter _ P).
+elim: (filter P _) => {P} [|i r IHr]; first by rewrite !big_nil size_poly1.
+rewrite !big_cons /= mulf_eq0 negb_orb.
+move/andP => [Fine0 allne0].
+rewrite size_mul_id -?(prodf_neq0 r) // subSS IHr //.
 move/polySpred: Fine0 => ->.
 rewrite addSn /= addSnnS addn_subA //.
 clear -allne0.
 elim: r allne0 => [|i r IHr] /=; first by rewrite big_nil.
+rewrite !big_cons /= mulf_eq0 negb_orb.
 move/andP => [Fine0 allne0].
-rewrite big_cons /=.
-case: (P i) Fine0 => /= Fine0; last by apply: IHr.
 rewrite -add1n -addnS leq_add //; last by apply: IHr.
 by rewrite lt0n size_poly_eq0.
 Qed.

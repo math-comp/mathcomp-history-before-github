@@ -725,6 +725,7 @@ Local Notation "x * y" := (mul x y) : ring_scope.
 Local Notation "x ^+ n" := (exp x n) : ring_scope.
 
 Local Notation "\prod_ ( i <- r | P ) F" := (\big[*%R/1]_(i <- r | P) F).
+Local Notation "\prod_ ( i | P ) F" := (\big[*%R/1]_(i | P) F).
 Local Notation "\prod_ ( i \in A ) F" := (\big[*%R/1]_(i \in A) F).
 
 Prenex Implicits comm.
@@ -3297,27 +3298,37 @@ move=> x y; apply/eqP/idP; first by case: R x y => T [].
 by case/pred2P=> ->; rewrite (mulr0, mul0r).
 Qed.
 
-Lemma prodf_eq0 : forall I r (P : pred I) (F : I -> R),
-  (has (fun i => P i && (F i == 0)) r) = (\prod_(i <- r | P i) F i == 0).
+Lemma prodf_eq0 : forall (I : finType) (P : pred I) (F : I -> R),
+  reflect (exists2 i, P i & (F i == 0)) (\prod_(i | P i) F i == 0).
 Proof.
-move=> I r P F.
-elim: r => [|i r IHr]; first by rewrite big_nil oner_eq0.
+move=> I P F.
+apply: (iffP idP); last first.
+ by case=> i Pi; move/eqP => Fi; rewrite (bigD1 i) //= Fi mul0r.
+elim: (index_enum _) => [|i r IHr]; first by rewrite big_nil oner_eq0.
 rewrite big_cons /=.
-case: (P i) => //=.
-by rewrite mulf_eq0 IHr.
+case Pi: (P i) => //=.
+rewrite mulf_eq0.
+case/orP => // Fi.
+by exists i.
 Qed.
 
 Lemma mulf_neq0 : forall x y, x != 0 -> y != 0 -> x * y != 0.
 Proof. move=> x y x0 y0; rewrite mulf_eq0; exact/norP. Qed.
 
-Lemma prodf_neq0 : forall I r (P : pred I) (F : I -> R),
-  (all (fun i => P i ==> (F i != 0)) r) = (\prod_(i <- r | P i) F i != 0).
+Lemma prodf_neq0 : forall (I : finType) (P : pred I) (F : I -> R),
+  reflect (forall i, P i -> (F i != 0)) (\prod_(i | P i) F i != 0).
 Proof.
-move=> I r P F.
-apply: negb_inj.
-rewrite negb_involutive -has_predC -prodf_eq0.
-apply: eq_has => i /=.
-by rewrite negb_imply negb_involutive.
+move=> I P F.
+apply: (iffP idP).
+ move=> prodne0.
+ apply/forall_inP.
+ rewrite -negb_exists_in.
+ apply: contraNN prodne0.
+ by move/exists_inP/prodf_eq0.
+move/forall_inP.
+rewrite -negb_exists_in.
+apply: contraNN.
+by move/prodf_eq0/exists_inP.
 Qed.
 
 Lemma expf_eq0 : forall x n, (x ^+ n == 0) = (n > 0) && (x == 0).

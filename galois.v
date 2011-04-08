@@ -282,7 +282,8 @@ Qed.
    derivation to be linear. *) 
 Definition Derivation (K:{algebra L}) (D : 'End(L)) : bool :=
  (D @: K <= K)%VS &&
- (all (fun v1 => all (fun v2 => D (v1 * v2) == D v1 * v2 + v1 * D v2) (vbasis K))
+ (all (fun v1 => all (fun v2 => D (v1 * v2) == D v1 * v2 + v1 * D v2) 
+                     (vbasis K))
       (vbasis K)).
 
 Lemma DerivationMul : forall E D, Derivation E D -> 
@@ -484,8 +485,8 @@ by rewrite -addn1 mulnC -[(2 * _)%N]/(\dim K + (\dim K + 0))%N
            leq_add2l addn0 -(dimv1 L) dimvS // sub1v.
 Qed.
 
-(* Give k*x^i return the k.  Used as a tool.  It would nicer to hide this definition
-   and it's assocated lemmas. *)
+(* Give k*x^i return the k.  Used as a tool.
+   It would nicer to hide this definition and it's assocated lemmas. *)
 Definition MinPoly_coef i v := 
   \sum_j coord (map (fun y => (y * x ^+ i)) (vbasis K)) v j *: (vbasis K)`_j.
 
@@ -502,7 +503,8 @@ Lemma memv_MinPoly_coef : forall i v, v \in (K * (x ^+ i)%:VS)%VS ->
  v = (MinPoly_coef i v) * x ^+ i.
 Proof.
 move => i v.
-rewrite (_ : (K * (x ^+ i)%:VS)%VS = span (map (fun y => (y * x ^+ i)) (vbasis K))).
+rewrite (_ : (K * (x ^+ i)%:VS)%VS = 
+             span (map (fun y => (y * x ^+ i)) (vbasis K))).
  move/(coord_span) => Hv.
  rewrite {1}Hv {Hv} /MinPoly_coef.
  rewrite -GRing.mulr_suml.
@@ -622,9 +624,9 @@ by rewrite addvSr.
 Qed.
 
 Definition poly_for_Fadjoin (v : L) := 
-  \sum_(i < elementDegree)
-   (MinPoly_coef i (sumv_pi (fun (i : 'I_elementDegree) => (K * (x ^+ i)%:VS)%VS)
-                            predT i v))%:P * 'X^i.
+  \sum_(i < elementDegree) (MinPoly_coef i (sumv_pi 
+     (fun (i : 'I_elementDegree) => (K * (x ^+ i)%:VS)%VS) predT i v))%:P *
+   'X^i.
 
 Lemma poly_for_polyOver : forall v, polyOver K (poly_for_Fadjoin v).
 Proof.
@@ -1514,7 +1516,8 @@ rewrite addrC size_addl // H ltnS (leq_trans (size_sum _ _ _)) //.
 apply/bigmax_leqP => i _.
 rewrite coef_map poly_mulC.
 have [->|nzpi] := (eqVneq p`_i 0); first by rewrite mulr0 size_poly0.
-by rewrite mulrC mul_polyC size_scaler // (leq_trans (size_exp _ _)) // Sa mul1n.
+by rewrite mulrC mul_polyC size_scaler // (leq_trans (size_exp _ _)) // Sa
+   mul1n.
 Qed.
 
 Lemma szf0_subproof : size f0 = n.+1.
@@ -1561,8 +1564,8 @@ Lemma leq_size_prodM_subproof : forall s:'S_(n + m),
  (size (\prod_i M i (s i))) <= (n * m).+1.
 Proof.
 move => s.
-rewrite (leq_trans (size_prod _ _ _)) // filter_predT -{2}[index_enum _]enumT
-        size_enum_ord big_split_ord /= leq_sub_add addnS ltnS -addnA leq_add //.
+rewrite (leq_trans (size_prod _ _)) // eq_cardT // size_enum_ord big_split_ord
+        /= leq_sub_add addnS ltnS -addnA leq_add //.
  pose p := fun i => M (lshift m i) (s (lshift m i)).
  have : forall i, predT i -> size (p i) <= 1.
   move => i _.
@@ -1587,7 +1590,6 @@ move/leq_trans => -> //.
 by rewrite sum_nat_const eq_cardT // size_enum_ord mulnS mulnC.
 Qed.
 
-(* Now that we know 0 < n, this proof should be simplified *)
 Lemma eq_size_prodM_subproof : forall s:'S_(n + m),
  (s == 1%g) = (size (\prod_i M i (s i)) == (n * m).+1).
 Proof.
@@ -1600,7 +1602,8 @@ apply/eqP/eqP => [->|].
    last by rewrite /GRing.comm mulrC.
   rewrite -[m]card_ord -prodr_const.
   apply: eq_bigr => i _.
-  by rewrite col_mxEd mxE perm1 leq_addl addnK lead_coefE szf0_subproof -mul_polyC.
+  by rewrite col_mxEd mxE perm1 leq_addl addnK lead_coefE szf0_subproof
+     -mul_polyC.
  set a := (\prod_(i < n) _).
  have -> : a = (g0`_0 ^+ n)%:P.
   rewrite rmorphX -[n]card_ord -prodr_const.
@@ -1608,7 +1611,6 @@ apply/eqP/eqP => [->|].
   by rewrite perm1 col_mxEu mxE leqnn subnn.
  by rewrite mul_polyC !size_scaler ?expf_neq0 ?g0nz_subproof // ?lead_coef_eq0
             -?size_poly_eq0 ?szf0_subproof // size_polyXn.
-(*
 rewrite big_split_ord /=.
 set a := \prod_(i < n) M (lshift m i) (s (lshift m i)).
 case: (eqVneq a 0) => [->|aneq0]; first by rewrite mul0r size_poly0.
@@ -1622,14 +1624,13 @@ have usize1: forall i, predT i -> size (M (lshift m i) (s (lshift m i))) = 1%N.
  rewrite col_mxEu mxE.
   by case: ifP; rewrite ?size_poly0 // size_polyC leq_b1.
  move: aneq0.
- rewrite lt0n size_poly_eq0 -prodf_neq0.
- move/allP.
- apply. (* Enrico, how do I use apply: here? *)
- by rewrite  /index_enum -enumT mem_enum.
+ rewrite lt0n size_poly_eq0.
+ move/prodf_neq0.
+ by apply.
 rewrite size_mul_id // size_prod_id; last first.
- by apply/allP => i _ /=; rewrite -size_poly_eq0 usize1.
-rewrite (eq_bigr _ usize1) /= sum_nat_const eq_cardT // filter_predT 
-        /index_enum -enumT size_enum_ord muln1 subSnn addSn /= add0n => sizeb.
+ by move => i _ /=; rewrite -size_poly_eq0 usize1.
+rewrite (eq_bigr _ usize1) /= sum_nat_const eq_cardT // size_enum_ord
+        muln1 subSnn addSn /= add0n => sizeb.
 suff: forall k : 'I_(n+m), k <= s k.
   move => Hs; apply/permP => i.
   apply/eqP; rewrite perm1 eq_sym.
@@ -1641,120 +1642,46 @@ suff: forall k : 'I_(n+m), k <= s k.
   by move/leqif_refl; move/forallP.
 move => i.
 rewrite -[i]splitK.
-case: (split i) => /=.
-*)
-move => sz.
-have Misi : forall i, M i (s i) != 0.
- move => i.
- apply/negP.
- move/eqP => eq0.
- suff: ((n * m).+1 == 0)%N => //.
- by rewrite -sz size_poly_eq0 (bigD1 i) //= eq0 mul0r.
-have szg : forall i : 'I_(n + m), i < n -> size (M i (s i)) = 1%N.
- move => i Hi.
- suff: (size (M i (s i)) <= 1).
-  rewrite leq_eqVlt ltnS leqn0; case/orP => [|]; first by move/eqP.
-  rewrite size_poly_eq0.
-  by move/negbTE: (Misi i) ->.
- rewrite mxE.
- case: (splitP i) Hi => // j Hij _.
- rewrite mxE.
- case: ifP => _; by rewrite ?size_poly0 // size_polyC leq_b1.
-have sz0 : (\sum_i (size (M i (s i))).-1)%N = (n * m)%N.
- apply: succn_inj.
- rewrite -sz.
- pose M0 := (fun i => M i (s i)).
- rewrite -[(\sum_i _)%N]/(\sum_i (size (M0 i)).-1)%N
-         -[\prod_i _]/(\prod_i (M0 i)).
- elim: (n + m)%N M0 (Misi:(forall i, M0 i != 0)) => [|z IH] p_ Hp_.
-  by rewrite !big_ord0 size_poly1.
- by rewrite !big_ord_recr /= size_mul_id // -?size_poly_eq0 -IH //= 
-            -{2}[size (p_ ord_max)]prednK // lt0n size_poly_eq0.
-have Hin : forall i : 'I_(n + m), ~~(i < n) -> i = s i :> nat.
- move => i Hi.
- apply/eqP.
- move/eqP: sz0.
- apply: contraLR => Hisi.
- rewrite (bigD1 i) //=.
- rewrite big_split_ord /=.
- rewrite big1; last first.
-  move => j _.
-  by rewrite szg /=.
- rewrite add0n.
- case: (eqVneq m 0%N) => [m0|].
-  move: (ltn_ord i).
-  rewrite {2}m0 addn0.
-  by move/negbTE: Hi ->.
- rewrite -lt0n.
- move/prednK => Hm.
- rewrite -{15}Hm mulnS neq_ltn -addSn.
- apply/orP;left.
- apply: leq_add.
-  move: Hi Hisi (Misi i).
-  rewrite mxE.
-  case: splitP => // k -> _ Hk.
-  rewrite mxE.
-  case: ifP => //; last by rewrite eq_refl.
-  case: (eqVneq (f0`_(s i - k)) 0) => [->|nz].
-   by rewrite scale0r eq_refl.
-  move => ksi _.
-  rewrite size_scaler // size_polyXn /=.
-  move: Hk.
-  rewrite -{1}(subnK ksi) eqn_addr neq_ltn.
-  case/orP => //.
-  move: (leq_coef_size nz).
-  by rewrite szf0_subproof ltnS ltnNge => ->.
- rewrite -big_filter.
- set sq := (filter _ _).
- suff: size sq = m.-1.
-  move <-.
-  elim: sq => [|c sq IH].
-   by rewrite muln0 big_nil.
-  rewrite big_cons /= mulnS leq_add // -ltnS.
-  move: (Misi (rshift n c)).
-  rewrite -size_poly_eq0 -lt0n.
-  move/prednK ->.
-  rewrite /M col_mxEd mxE.
-  case: ifP; last by rewrite size_poly0.
-  move => _.
-  case (eqVneq (f0`_(s (rshift n c) - c)) 0) => [->|nz].
-   by rewrite scale0r size_poly0.
-  by rewrite size_scaler // size_polyXn -szf0_subproof (leq_coef_size nz).
- rewrite -count_filter.
- apply: succn_inj.
- rewrite Hm -addn1 -{6}(size_enum_ord m).
- rewrite -[index_enum _]enumT.
- rewrite (_ : 1%N 
-          = count (predC (fun i0 : 'I_m => rshift n i0 != i)) (enum 'I_m))
-         ?count_predC //.
- rewrite -leqNgt in Hi.
- have ordj : (i - n < m)%N.
-  rewrite -(ltn_add2r n) (subnK Hi) [(m + n)%N]addnC.
-  by apply: ltn_ord.
- rewrite (_ : 1%N = count (pred1 (Ordinal ordj)) (enum 'I_m)).
-  apply: eq_count => j.
-  rewrite /= /eq_op /= negb_involutive.
-  by rewrite -(eqn_addr n) addnC (subnK Hi).
- by rewrite count_uniq_mem ?mem_enum // enum_uniq.
-suff: forall k : 'I_(n+m), k <= s k.
-  move => Hs; apply/permP => i.
-  apply/eqP; rewrite perm1 eq_sym.
-  move: i.
-  have Hs0 := (fun k => leqif_eq (Hs k)).
-  have Hs1 := (leqif_sum (fun i _ => (Hs0 i))).
-  move: (Hs1 predT) => /=.
-  rewrite (reindex_inj (@perm_inj _ s)) /=.
-  by move/leqif_refl; move/forallP.
-move => k.
-move: (Hin k) (szg k).
-rewrite mxE.
-case: (splitP k); move => j ->.
-  move => _.
-  move/(_ isT).
-  rewrite mxE.
-  case: ifP => //.
-  by rewrite size_poly0.
-by move/(_ isT) ->.
+case: (split i) => {i} /= i.
+ move: (usize1 i isT).
+ rewrite col_mxEu mxE.
+ case: ifP => //.
+ by rewrite size_poly0.
+move: sizeb.
+rewrite size_prod_id; last by apply/prodf_neq0.
+rewrite eq_cardT // size_enum_ord.
+move/eqP.
+apply: contraLR.
+rewrite -ltnNge neq_ltn => Hs.
+apply/orP; left.
+rewrite ltnS leq_sub_add -mulSn (bigD1 i) //= -addSn.
+move/(leq_ltn_trans (leq0n _))/prednK:(ltn_ord i) => Hm.
+rewrite -[m in (n.+1 * m)%N]Hm mulnS leq_add //.
+ move: Hs.
+ rewrite col_mxEd mxE.
+ case: ifP; last by rewrite size_poly0.
+  case: (eqVneq f0`_(s (rshift n i) - i) 0) => [->|].
+  by rewrite scale0r size_poly0.
+ move/size_scaler => -> _.
+ rewrite size_polyXn.
+ by rewrite -{4 8}[n](prednK (elementDegreegt0 _ _)) -/n addSn !ltnS leq_sub_add
+            [(n.-1 + _)%N]addnC.
+suff: forall i0, (i0 != i) -> size (M (rshift n i0) (s (rshift n i0))) <= n.+1.
+ move/leq_sum/leq_trans; apply.
+ move: (cardC (pred1 i)).
+ rewrite sum_nat_const card_ord card1 => Hcard.
+ by rewrite -[m in m.-1]Hcard add1n /= mulnC.
+move => j _.
+rewrite col_mxEd mxE.
+case: ifP; last by rewrite size_poly0.
+case: (eqVneq f0`_(s (rshift n j) - j) 0) => [->|Hf0].
+ by rewrite scale0r size_poly0.
+rewrite size_scaler // size_polyXn-szf0_subproof.
+apply: contraLR.
+rewrite -leqNgt.
+move/(nth_default 0) => H.
+move:H Hf0 ->.
+by rewrite eq_refl.
 Qed.
 
 Let size_detM : size (\det M) = (n * m).+1.
@@ -1776,7 +1703,8 @@ Qed.
 
 Let f1 t := f0 \Po (t *: 'X).
 
-Lemma root_det_coprime_subproof : forall t, ~~ coprimep (f1 t) g0 -> root (\det M) t.
+Lemma root_det_coprime_subproof :
+ forall t, ~~ coprimep (f1 t) g0 -> root (\det M) t.
 Proof.
 move => t.
 rewrite /root.
@@ -1888,7 +1816,8 @@ have -> : a = ((c2 *: r1) * g0)`_i.
     rewrite !mxE /horner_morph map_polyE map_id polyseqK ltnS.
     by case: (j <= i); rewrite hornerC // mulr0.
   rewrite -(big_mkord (fun j => true) (fun j =>  (c2 *: r1)`_j * g0`_(i - j)))
-          (big_cat_nat _ (fun j => true) (fun j =>  (c2 *: r1)`_j * g0`_(i - j)) (leq0n _) ilarge)
+          (big_cat_nat _ (fun j => true) (fun j =>  (c2 *: r1)`_j * g0`_(i - j))
+                         (leq0n _) ilarge)
           /=.
   have -> : \sum_(n <= i0 < i.+1) (c2 *: r1)`_i0 * g0`_(i - i0) = 0.
     apply: big1_seq => j /=.
@@ -1930,7 +1859,8 @@ have -> : b = ((c1 *: r2) * f1t)`_i.
   rewrite hornerC //.
   move/negbT.
   rewrite -ltnNge => Hij.
-  by rewrite coef_scaler nth_default ?mulr0 ?mul0r // (leq_trans _ Hij) // (leq_trans _ ilarge).
+  by rewrite coef_scaler nth_default ?mulr0 ?mul0r // (leq_trans _ Hij) // 
+             (leq_trans _ ilarge).
 by rewrite !scaler_swap Hr1 Hr2 mulrA [r1 * r2]mulrC -mulrA subrr.
 Qed.
 
@@ -1948,7 +1878,8 @@ Proof.
 apply/andP; split; last first.
  rewrite dvdp_gcd.
  apply/andP; split; rewrite -root_factor_theorem; last by rewrite root_minPoly.
- by rewrite /root /h horner_poly_comp ![_.[y]]horner_lin /z addrC subrK minPolyxx.
+ by rewrite /root /h horner_poly_comp ![_.[y]]horner_lin /z addrC subrK 
+            minPolyxx.
 rewrite /h /z polyC_add [x%:P + _]addrC polyC_opp polyC_mul -mul_polyC addrA 
         -mulr_subr mul_polyC.
 (*
@@ -2003,7 +1934,8 @@ have Hy : (y \in Fadjoin K z).
   rewrite gcdp_polyOver ?compose_polyOver //; 
    try solve [by rewrite (polyOver_subset (subsetKFadjoin _ _)) // minPolyOver].
   by rewrite addp_polyOver ?polyOverC ?memx_Fadjoin //
-             (polyOver_subset (subsetKFadjoin _ _)) // scalep_polyOver ?polyOverX.
+             (polyOver_subset (subsetKFadjoin _ _)) // scalep_polyOver 
+             ?polyOverX.
  move/polyOverP => HKz.
  rewrite (_ : y = (- (gcdp h g)`_0)/(gcdp h g)`_1).
    by rewrite polyOverC  // memv_mul -?memv_inv // memvN.
@@ -2023,10 +1955,12 @@ Qed.
 
 End InfiniteCase.
 
-(* :TODO: remove this unnecessary lemma. Just use PET_infiniteCase_subproof directly *)
+(* :TODO: remove this unnecessary lemma. 
+   Just use PET_infiniteCase_subproof directly *)
 Lemma abstract_PET_infiniteCase_subproof
      : { p : {poly L} | (* (polyOver K p) && *) (p != 0) & 
-        forall t : L, t \in K ->  ~~ root p t -> Fadjoin (Fadjoin K x) y = Fadjoin K (x - t * y)}.
+        forall t : L, t \in K ->  ~~ root p t ->
+                        Fadjoin (Fadjoin K x) y = Fadjoin K (x - t * y)}.
 Proof.
 exists (\det M).
  by rewrite -size_poly_eq0 size_detM.
