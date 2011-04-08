@@ -602,7 +602,7 @@ rewrite {1}(reindex (@socle_of_irr G)).
 pose reindex := (@reindex _ _ (GRing.add_comoid algC)).
 rewrite (reindex _  _ (@socle_of_irr G)) //=; last first.
   by exists (@irr_of_socle G)=> [] [].
-by apply/eq_bigr=> i _; rewrite irr_val1 !cfunE Ig mul1r // mulr_natl.
+by apply: eq_bigr => i _; rewrite irr_val1 !cfunE Ig mul1r // mulr_natl.
 Qed.
 
 Lemma xchar_is_linear : forall theta : irr G, linear (@xchar _ G theta).
@@ -846,20 +846,7 @@ by move: HH; rewrite (bij_eq (enum_val_bij (irr_finType G))).
 Qed.
 
 Lemma cfun_of_irr_inj : injective (@cfun_of_irr _ G).
-Proof.
-pose l := enum (irr G); set f := @cfun_of_irr _ _.
-suff: {in l &, injective f}.
-  move=> HH Hl u v .
-  by apply: HH=> //; rewrite mem_enum.
-move: (free_uniq free_base_irr); rewrite /base_irr -/l -/f.
-elim: l => [|i l IH] //=.
-case/andP=> H1 H2; move: (IH H2)=> H3 u v;rewrite !inE.
-case/orP=> Hu; case/orP=> Hv; rewrite ?(eqP Hu) ?(eqP Hv) // => HH.
- - by case/negP: H1; rewrite HH map_f.
- - by case/negP: H1; rewrite -HH map_f.
-by apply: H3.
-Qed.
-
+Proof. exact: injectiveP (free_uniq free_base_irr). Qed.
 
 Lemma char_of_repr_inj : forall n1 n2,
   forall rG1 : mx_representation algC G n1,

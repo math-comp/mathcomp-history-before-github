@@ -385,4 +385,180 @@ have [Ax | notAx] := boolP (x \in A); last by rewrite (cfunS0 CFalpha) ?mul0r.
 by rewrite cfunE Lx mul1r (Dade_isoE CFbeta Ax) // sub_supp ?rcoset_refl.
 Qed.
 
+Definition Dade_set_signalizer (B : {set gT}) := \bigcap_(a \in B) H a.
+Local Notation "''H' ( B )" := (Dade_set_signalizer B)
+  (at level 8, format "''H' ( B )") : group_scope.
+Canonical Structure Dade_set_signalizer_group B := [group of 'H(B)].
+Definition Dade_set_normalizer B := 'H(B) <*> 'N_L(B).
+Local Notation "''M' ( B )" := (Dade_set_normalizer B)
+  (at level 8, format "''M' ( B )") : group_scope.
+Canonical Structure Dade_set_normalizer_group B := [group of 'M(B)].
+
+Let domB := [set B : {set gT} | (B \subset A) && (B != set0)].
+
+(* This is Peterfalvi (2.8). *)
+Lemma Dade_set_sdprod : {in domB, forall B, 'H(B) ><| 'N_L(B) = 'M(B)}.
+Proof.
+move=> B; case/setIdP=> sBA notB0; apply: sdprodEY => /=.
+  apply/subsetP=> x; case/setIP=> Lx nBx; rewrite inE.
+  apply/bigcapsP=> a Ba; have Aa := subsetP sBA a Ba.
+  by rewrite sub_conjg -DadeJ ?groupV // bigcap_inf // memJ_norm ?groupV.
+have [a Ba] := set0Pn _ notB0; have Aa := subsetP sBA a Ba.
+have [_ sLN _ defCa _] := ddH; have [sLG _] := subsetIP sLN.
+have [_] := sdprodP (defCa a Aa); case/mulG_sub=> sHaC _ _ tiHaL.
+rewrite -(setIidPl sLG) -setIA setICA (setIidPl sHaC) in tiHaL.
+by rewrite setICA ['H(B)](bigD1 a) //= !setIA tiHaL !setI1g.
+Qed.
+
+Section DadeExpansion.
+
+Variables (aa : cfun gT algC).
+Hypothesis CFaa : aa \in 'CF(L, A).
+
+Definition Dade_cfun_restriction B :=
+  cfun_of_fun (fun x => if x \in 'M(B) then aa (remgr 'H(B) 'N_L(B) x) else 0).
+
+Local Notation "''aa_' B" := (Dade_cfun_restriction B)
+  (at level 3, B at level 2, format "''aa_' B") : ring_scope.
+
+Definition Dade_transversal :=
+  [set repr (B :^: L) | B <- [set B : {set gT} | (B \subset A) && (B != set0)]].
+Local Notation calB := Dade_transversal.
+
+Lemma Dade_restriction_classfun : {in domB, forall B, 'aa_B \in 'CF('M(B))}.
+Proof.
+move=> B; move/Dade_set_sdprod=> defMB.
+apply/cfun_memfP; split=> /= [x | x y Mx My].
+  by rewrite setIid cfunE -if_neg => ->.
+rewrite !cfunE groupJ ?Mx //=.
+have [nsHN _ mulHN _ _] := sdprod_context defMB.
+pose fB := Morphism (remgrM (sdprod_compl defMB) nsHN).
+rewrite -[remgr _ _ _]/(fB _) morphJ //.
+by rewrite (cfunJ CFaa) ?(subsetP (subsetIl L 'N(B))) ?mem_remgr ?mulHN.
+Qed.
+Local Notation CFaa_ := Dade_restriction_classfun.
+
+Lemma Dade_restriction_char :
+  is_char L aa -> {in domB, forall B, is_char 'M(B) 'aa_B}.
+Proof.
+case/is_charP=> d [rA def_aa] B; move/Dade_set_sdprod=> defMB.
+have [nsHN _ mulHN _ _] := sdprod_context defMB.
+pose fB := Morphism (remgrM (sdprod_compl defMB) nsHN).
+have subNL: fB @* 'M(B) \subset L.
+  apply/subsetP=> y; case/morphimP=> x /= _ Mx ->{y}.
+  by rewrite (subsetP (subsetIl L 'N(B))) ?mem_remgr ?mulHN.
+apply/is_charP; exists d; exists (morphim_repr (subg_repr rA subNL) (subxx _)).
+apply/cfunP=> x //=; rewrite !cfunE -def_aa cfunE.
+case Mx: (x \in _); last by rewrite mul0r.
+by rewrite (subsetP subNL) ?mul1r //; exact: mem_morphim.
+Qed.
+
+Lemma bigcapJ : forall I r (P : pred I) (B : I -> {set gT}) x,
+  \bigcap_(i <- r | P i) (B i :^ x) = (\bigcap_(i <- r | P i) B i) :^ x.
+Proof.
+move=> I r P B x; symmetry; apply: (big_morph (conjugate^~ x)) => [B1 B2|].
+  by rewrite conjIg.
+by apply/normP; rewrite inE subsetT.
+Qed.
+
+(* This is Peterfalvi (2.10.1) *)
+Lemma Dade_Ind_restr_J : {in L & domB, forall x B,
+  'Ind[G, 'M(B :^ x)] 'aa_(B :^ x) = 'Ind[G, 'M(B)] 'aa_B}.
+Proof.
+move=> x B Lx dB; have [defMB [sBA _]] := (Dade_set_sdprod dB, setIdP dB).
+have [_ sLN _ _ _] := ddH; have [sLG nAL] := subsetIP sLN.
+have dBx: B :^ x \in domB.
+  by rewrite !inE -{2}(normsP nAL x Lx) conjSg -!cards_eq0 cardJg in dB *.
+have defHBx: 'H(B :^ x) = 'H(B) :^ x.
+  rewrite /'H(_) (big_imset _ (in2W (conjg_inj x))) -bigcapJ /=.
+  by apply: eq_bigr => a Ba; rewrite DadeJ ?(subsetP sBA).
+have defNBx: 'N_L(B :^ x) = 'N_L(B) :^ x.
+  by rewrite conjIg -normJ (conjGid Lx).
+have [_ mulHNB _ tiHNB] := sdprodP defMB.
+have defMBx: 'M(B :^ x) = 'M(B) :^ x.
+  rewrite -mulHNB conjsMg -defHBx -defNBx.
+  by case/sdprodP: (Dade_set_sdprod dBx).
+have def_aa_x: forall y, 'aa_(B :^ x) (y ^ x) = 'aa_B y.
+  move=> y /=; rewrite !cfunE defMBx memJ_conjg -mulHNB /=.
+  have [[h z Hh Nz ->] | //] := altP mulsgP; have [Lz _] := setIP Nz.
+  rewrite defHBx defNBx conjMg !remgrMid ?(cfunJ CFaa) ?memJ_conjg //.
+  by rewrite -conjIg tiHNB conjs1g.
+apply/cfunP=> y; rewrite !cfunE defMBx cardJg; congr (_ * _).
+rewrite (reindex_astabs 'R x) ?astabsR ?(subsetP sLG) //=.
+by apply: eq_bigr => z _; rewrite conjgM def_aa_x.
+Qed.
+
+(* This is Peterfalvi (2.10.2) *)
+Lemma Dade_setU1 : {in domB & A, forall B a, 'H(a |: B) = 'C_('H(B))[a]}.
+Proof.
+move=> B a dB Aa; rewrite /'H(_) bigcap_setU big_set1 -/'H(B).
+pose pi := \pi('C_L[a]); have [_ _ _ defCa coH_L] := ddH.
+have{coH_L} pi'H: {in A, forall b, pi^'.-group(H b)}.
+  by move=> b Ab; rewrite /pgroup -coprime_pi' ?cardG_gt0 // coprime_sym coH_L.
+have [sHBG pi'HB]: 'H(B) \subset G /\ pi^'.-group('H(B)).
+  have [sBA] := setIdP dB; case/set0Pn=> b Bb; have Ab := subsetP sBA b Bb.
+  have sHBb: 'H(B) \subset H b by rewrite ['H(B)](bigD1 b) ?subsetIl.
+  rewrite (pgroupS sHBb) ?pi'H ?(subset_trans sHBb) //.
+  by case/sdprod_context: (defCa b Ab); case/andP; case/subsetIP.
+have{defCa} [nsHa _ defCa _ _] := sdprod_context (defCa a Aa).
+have [_ caH] := subsetIP (normal_sub nsHa).
+have [hallHa _] := coprime_mulGp_Hall defCa (pi'H a Aa) (pgroup_pi _).
+apply/eqP; rewrite setIC eqEsubset setIS // subsetI subsetIl /=.
+by rewrite (sub_normal_Hall hallHa) ?(pgroupS (subsetIl _ _)) ?setSI.
+Qed.
+
+Let calA g (X : {set gT}) := [set x \in G | g ^ x \in X]%g.
+
+(* This is Peterfalvi (2.10.3) *)
+Lemma Dade_Ind_expansion : forall B g,
+  B \in domB ->
+    [/\ g \notin Dade_support ddH -> ('Ind[G, 'M(B)] 'aa_B) g = 0
+      & {in A, forall a, g \in Dade_support1 ddH a ->
+         ('Ind[G, 'M(B)] 'aa_B) g =
+              (aa a / #|'M(B)|%:R) *
+                  \sum_(b \in 'N_L(B) :&: a ^: L) #|calA g ('H(B) :* b)|%:R}].
+Proof.
+move=> B g dB; set LHS := ('Ind[G, _] _) g.
+have ->: LHS = #|'M(B)|%:R^-1 * \sum_(x \in calA g 'M(B)) 'aa_B (g ^ x).
+  rewrite [LHS]cfunE; congr (_ * _); rewrite (bigID [pred x | g ^ x \in 'M(B)]).
+  rewrite /= addrC big1 ?add0r => [|x].
+    by apply: eq_bigl => x; rewrite inE.
+  by case/andP=> _ notMgx; rewrite (cfun0 (CFaa_ dB)).
+have defMB := Dade_set_sdprod dB; have [_ mulHNB nHNB tiHNB] := sdprodP defMB.
+have [sHMB sNMB] := mulG_sub mulHNB.
+have [_ _ _ defCa coHL] := ddH.
+split=> [notHGg | a Hag].
+  have [sBA] := setIdP dB; case/set0Pn=> a Ba; have Aa := subsetP sBA a Ba.
+  rewrite big1 ?mulr0 // => x; case/setIdP=> Gx MBgx; rewrite cfunE MBgx.
+  set b := remgr _ _ _; have Nb: b \in 'N_L(B) by rewrite mem_remgr ?mulHNB.
+  have Cb: b \in 'C_L[b] by rewrite inE cent1id; have [-> _] := setIP Nb.
+  rewrite (cfunS0 CFaa) //; apply: contra notHGg => Ab.
+  have nHb: b \in 'N_('M(B))('H(B)).
+    by rewrite inE (subsetP sNMB) // (subsetP nHNB).
+  have [|/= partHBb _] := partition_cent_rcoset sHMB nHb.
+    rewrite (coprime_dvdr (order_dvdG Cb)) //= ['H(B)](bigD1 a) //=.
+    by rewrite (coprimeSg (subsetIl _ _)) ?coHL. 
+  apply/bigcupP; exists b => //.
+  have Hb_gx: g ^ x \in 'H(B) :* b by rewrite mem_rcoset mem_divgr ?mulHNB.
+  have [defHBb _ _] := and3P partHBb; rewrite -(eqP defHBb) in Hb_gx.
+  case/bigcupP: Hb_gx => Cy; case/imsetP=> y HBy ->{Cy} Cby_gx.
+  have sHBa: 'H(B) \subset H a by rewrite bigcap_inf.
+  have sHBG: 'H(B) \subset G.
+    apply: subset_trans sHBa _.
+    by case/sdprodP: (defCa a Aa) => _; case/mulG_sub; case/subsetIP=> ->.
+  rewrite -(memJ_conjg _ x) class_supportGidr //  -(conjgKV y (g ^ x)).
+  rewrite mem_imset2 // ?(subsetP sHBG) {HBy}// -mem_conjg.
+  apply: subsetP Cby_gx; rewrite {y}conjSg mulSg //.
+  pose pi := \pi('C_L[b]).
+  have pi'H: {in A, forall c, pi^'.-group (H c)}.
+    by move=> c Ac; rewrite /pgroup -coprime_pi' ?cardG_gt0 // coprime_sym coHL.
+  have [nsHbC _ defHbC _ _] := sdprod_context (defCa b Ab).
+  have [hallHb _] := coprime_mulGp_Hall defHbC (pi'H _ Ab) (pgroup_pi _).
+  rewrite (sub_normal_Hall hallHb) ?setSI // (pgroupS _ (pi'H a Aa)) //=.
+  by rewrite subIset ?sHBa.
+Admitted.
+
+End DadeExpansion.
+  
+  
 End Two.

@@ -640,8 +640,8 @@ case: (eqVneq (F a) 0) => [->|neqFa0]; first by rewrite mul0r size_poly0.
 rewrite (leq_trans (size_mul _ _)) //.
 move/polySpred: neqFa0 ->.
 rewrite addSn /= addSnnS.
-suff/addn_subA: (size r <= (\sum_(j <- r) size (F j)).+1) => [<-|].
- by apply: leq_add.
+suff: (size r <= (\sum_(j <- r) size (F j)).+1).
+ by move/addn_subA <-; apply: leq_add.
 apply: leqW.
 apply: contraNeq nProd0.
 rewrite eqb_id -ltnNge.
