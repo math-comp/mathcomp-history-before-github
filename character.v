@@ -1670,7 +1670,7 @@ rewrite (eq_bigl (fun g => g \in <<G>>)); last first.
   by rewrite genGid.
 rewrite /r1 gring_row_mul.
 have F3: (e theta2 \in group_ring algC <<G>>)%MS.
-  apply (submx_trans (Wedderburn_id_mem _)).
+  apply: (submx_trans (Wedderburn_id_mem _)).
   by rewrite /Wedderburn_subring genmxE submxMl.
 rewrite -{1}(gring_rowK F3) mxE.
   (* This takes ages

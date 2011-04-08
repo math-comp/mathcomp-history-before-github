@@ -1152,7 +1152,7 @@ have [cycX b'p]: cyclic X /\ p \in \beta(M)^'.
   by rewrite (pnatPpi b'X2 (piSg sXX2 piXp)) (cyclicS sXX2).
 have b'H: \beta(M)^'.-group H.
   apply: sub_pgroup (pgroup_pi _) => r piHr; have [-> // | p'r] := eqVneq r p.
-  apply/existsP; exists 'O_r(M)%G; rewrite Fcore_pcore_Sylow // negbK.
+  apply/existsP; exists 'O_r(M)%G; rewrite /= Fcore_pcore_Sylow // negbK.
   apply/implyP; rewrite ltnNge -rank_pgroup ?pcore_pgroup ?(leq_trans _ rC1) //.
   rewrite rankS // subsetI /= -{1}(p_core_Fcore piHr) pcore_sub //.
   rewrite -p_core_Fitting (sub_nilpotent_cent2 (Fitting_nil M)) ?pcore_sub //.
