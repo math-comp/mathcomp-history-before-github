@@ -38,7 +38,7 @@ Local Notation " 'Z[ 'Irr G , A ]" :=
 Local Notation " 'Z[ 'Irr G ]" := 
   (virtual_char_pred (base_irr G) G) (format "''Z[' ''Irr'  G ]"). 
 
-(*
+
 Lemma is_vcharP : forall f : cfun _ _,
   reflect (exists f1, exists f2, [/\ is_char G f1, is_char G f2 & f = f1 - f2])
           (f \in 'Z['Irr G]).
@@ -51,16 +51,38 @@ move=> f; apply: (iffP andP); last first.
   apply/andP; split.
     apply/forallP=> x.
     rewrite linearD linearN /= ffunE isZC_add //.
-      rewrite isZCE.
-      admit.
-    rewrite ffunE isZC_opp //.
-    admit.
+      rewrite isZCE; apply/orP;left.
+      by move: (isNatC_ncoord_char ( bi2sg x) Hf1);rewrite /ncoord  bi2sgK //=.
+    rewrite ffunE isZC_opp //; rewrite isZCE; apply/orP;left.
+    by move: (isNatC_ncoord_char ( bi2sg x) Hf2);rewrite /ncoord  bi2sgK //=.
   admit.
-case=> Hs; case/andP; move/forallP=> Hc Hss.
+case=> Hs; case/andP; move/forallP => Hc Hss.
 pose f1 := 
-  \sum_(i : 'I_(irr G) (if isNatC(ncoord i f) then ncoord i f else 0) *: (i : cfun _ _).
- 
-
+  \sum_(i : irr G) (if isNatC(ncoord i f) then ncoord i f else 0) *: (i : cfun _ _).
+ pose f2 := 
+  \sum_(i : irr G) (if isNatC(-ncoord i f) then -ncoord i f else 0) *: (i : cfun _ _).
+exists f1; exists f2; split.
+- apply: is_char_sum=> i _.
+  case: (boolP (isNatC _)); last by rewrite scale0r is_char0.
+  by case/isNatCP=> n ->; rewrite scaler_nat is_char_scal // is_char_irr.
+- apply: is_char_sum=> i _.
+  case: (boolP (isNatC _)); last by rewrite scale0r is_char0.
+  by case/isNatCP=> n ->; rewrite scaler_nat is_char_scal // is_char_irr.
+rewrite -sumr_sub.
+have Hf : f \in 'CF(G).
+  admit.
+rewrite {1}(ncoord_sum Hf); apply: eq_bigr=> chi _.
+have: isZC (ncoord chi f) by apply: Hc; rewrite mem_enum.
+rewrite isZCE; case/orP=> HH; rewrite HH; case: (boolP (isNatC _))=> HH1.
+- suff->: (ncoord chi f) = 0 by rewrite oppr0 !scale0r subrr.
+  apply: leC_anti; last by apply posC_isNatC.
+  by rewrite -leC_sub sub0r posC_isNatC.
+- by rewrite scale0r subr0.
+- suff->: (ncoord chi f) = 0 by rewrite oppr0 !scale0r subrr.
+  apply: leC_anti; last by apply posC_isNatC.
+  by rewrite -leC_sub sub0r posC_isNatC.
+by rewrite scale0r sub0r scaleNr opprK.
+(*
     apply: isZC_sub.
  last first.
     by apply:  memv_sub; exact: is_char_in_cfun.
@@ -83,14 +105,15 @@ have: isZC (ncoord chi f) by apply: HZ; rewrite mem_enum.
 rewrite isZCE; case/orP=> HH; rewrite HH; case: (boolP (isNatC _))=> HH1.
 - suff->: (ncoord chi f) = 0 by rewrite oppr0 !scale0r subrr.
   apply: leC_anti; last by apply posC_isNatC.
-  by rewrite -leC_sub sub0r posC_isNatC.
+  by rewrite -leC_sub sub0r posC_isNatC.memv_sub
 - by rewrite scale0r subr0.
 - suff->: (ncoord chi f) = 0 by rewrite oppr0 !scale0r subrr.
   apply: leC_anti; last by apply posC_isNatC.
   by rewrite -leC_sub sub0r posC_isNatC.
-by rewrite scale0r sub0r scaleNr opprK.
+by rewrite scale0r sub0r scaleNr opprK.*)
 Qed.
 
+Definition  is_vchar G f  :=(f \in 'Z['Irr G]).
 Lemma is_vchar_char : forall f, is_char G f -> is_vchar G f.
 Proof.
 move=> f Hf; apply/is_vcharP; exists f; exists 0; split=> //.
@@ -106,7 +129,7 @@ Qed.
 Lemma isZC_ncoord_vchar : forall (theta : irr G) (f : cfun _ _),
  is_vchar G f -> isZC (ncoord theta f).
 Proof.
-by move=> theta f; case/andP; move/forallP=> HH _; apply: HH.
+by move=> theta f; case/andP => Hf; case/andP; move/forallP=> HH _; apply: HH.
 Qed.
 
 Lemma is_vchar0 : is_vchar G 0.
@@ -165,10 +188,10 @@ have HF : is_vchar G (\sum_(i <- r | P i) F i).
 rewrite big_cons; case: (boolP (P a))=> HP //; rewrite is_vchar_add //.
 by rewrite HH // inE eqxx andbT.
 Qed.
-*)
+
 End IsVChar.
 
-(*
+
 Section MoreIsVChar.
 
 Variable gT : finGroupType.
@@ -191,4 +214,3 @@ by rewrite linearD linearN is_vchar_add ?is_vchar_opp //
 Qed.
 
 End MoreIsVChar.
-*)

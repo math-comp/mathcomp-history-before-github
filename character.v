@@ -445,7 +445,7 @@ apply: (@etrans _ _
    (\sum_(i0 < #|G|) \tr(u 0 i0 *: rG (enum_val i0)))).
   by apply: eq_bigr=> j _; rewrite cfunE enum_valP mul1r mxtraceZ.
 rewrite -raddf_sum; congr (\tr _).
-apply/matrixP=> i1 j1; rewrite !mxE summxE; apply eq_bigr=> k1 _.
+apply/matrixP=> i1 j1; rewrite !mxE summxE; apply: eq_bigr=> k1 _.
 by rewrite !(mxvecE,mxE).
 Qed.
 
@@ -602,7 +602,7 @@ rewrite {1}(reindex (@socle_of_irr G)).
 pose reindex := (@reindex _ _ (GRing.add_comoid algC)).
 rewrite (reindex _  _ (@socle_of_irr G)) //=; last first.
   by exists (@irr_of_socle G)=> [] [].
-by apply eq_bigr=> i _; rewrite irr_val1 !cfunE Ig mul1r // mulr_natl.
+by apply/eq_bigr=> i _; rewrite irr_val1 !cfunE Ig mul1r // mulr_natl.
 Qed.
 
 Lemma xchar_is_linear : forall theta : irr G, linear (@xchar _ G theta).
@@ -1218,7 +1218,7 @@ Qed.
 
 Lemma isNatC_char1 : forall chi, is_char G chi -> isNatC (chi 1%g).
 Proof.
-apply is_char_indu=> [|theta chi IH HH].
+apply: is_char_indu=> [|theta chi IH HH].
   by rewrite cfunE (isNatC_nat 0).
 by rewrite cfunE isNatC_add // irr_val1 isNatC_nat.
 Qed.
@@ -2396,7 +2396,7 @@ Proof. by move=> *; rewrite /qirrc get_irrE // qfunc_irr. Qed.
 Lemma cirrqK : forall (G H : {group gT}),
   H <| G -> cancel (@cirrq G H) (@qirrc G H).
 Proof.
-move=> G H HnG theta; apply cfun_of_irr_inj.
+move=> G H HnG theta; apply: cfun_of_irr_inj.
 have F1 := is_char_irr theta.
 by rewrite qirrcE // cirrqE ?cker_cfunq // (cfunq_id F1).
 Qed.
@@ -2404,7 +2404,7 @@ Qed.
 Lemma qirrcK : forall (G H : {group gT}) (theta : irr G),
   H <| G ->  H \subset cker G theta -> cirrq (qirrc H theta) = theta.
 Proof.
-move=> G H theta HnG Hi; apply cfun_of_irr_inj.
+move=> G H theta HnG Hi; apply: cfun_of_irr_inj.
 have F1 := is_char_irr theta.
 by rewrite cirrqE // qirrcE // (qfunc_id F1).
 Qed.
