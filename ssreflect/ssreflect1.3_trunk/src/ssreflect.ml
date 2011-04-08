@@ -3782,7 +3782,7 @@ let pf_unify_HO gl t1 t2 =
 (* TASSI: given (c : ty), generates (c ??? : ty[???/...]) with m evars *)
 exception NotEnoughProducts
 let prof_saturate_whd = mk_profiler "saturate.whd";;
-let saturate ?(beta=false) env sigma c ?(ty=Retyping.get_type_of env sigma c) m 
+let saturate ?(beta=false) env sigma c ?(ty=Typing.type_of env sigma c) m 
 =
   let rec loop ty args sigma n = 
   if n = 0 then 
