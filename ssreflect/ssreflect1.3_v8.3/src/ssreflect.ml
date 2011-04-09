@@ -4763,9 +4763,8 @@ let pirrel_rewrite pred rdx rdx_ty new_rdx dir (sigma, c) c_ty gl =
     let c1' = Global.constant_of_delta (make_con mp dp l') in
     mkConst c1' in
   let proof = mkApp (elim, [| rdx_ty; new_rdx; pred; p; rdx; c |]) in
-  pp(lazy(
-    let proof_ty = Retyping.get_type_of env sigma proof in
-    str"pirrel_rewrite proof term of type: " ++ pr_constr proof_ty));
+  let proof_ty = Typing.type_of env sigma proof in
+  pp(lazy(str"pirrel_rewrite proof term of type: " ++ pr_constr proof_ty));
   refine_with ~with_evars:false (sigma, proof) gl
 ;;
 
