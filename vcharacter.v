@@ -55,7 +55,13 @@ move=> f; apply: (iffP andP); last first.
       by move: (isNatC_ncoord_char ( bi2sg x) Hf1);rewrite /ncoord  bi2sgK //=.
     rewrite ffunE isZC_opp //; rewrite isZCE; apply/orP;left.
     by move: (isNatC_ncoord_char ( bi2sg x) Hf2);rewrite /ncoord  bi2sgK //=.
-  admit.
+  apply/forallP=> x.
+  rewrite !cfunE; case:(boolP (x \in G)).
+    by move=> _;apply implybT.
+  move=> HxG; move/is_char_in_cfun: (Hf1);move/cfun_memP.
+  move=>[H _]; rewrite (H _ HxG).
+  move/is_char_in_cfun: (Hf2);move/cfun_memP; move=>[H2 _].
+  by rewrite (H2 _ HxG) subr0 implybF eqxx.
 case=> Hs; case/andP; move/forallP => Hc Hss.
 pose f1 := 
   \sum_(i : irr G) (if isNatC(ncoord i f) then ncoord i f else 0) *: (i : cfun _ _).
@@ -70,7 +76,8 @@ exists f1; exists f2; split.
   by case/isNatCP=> n ->; rewrite scaler_nat is_char_scal // is_char_irr.
 rewrite -sumr_sub.
 have Hf : f \in 'CF(G).
-  admit.
+   case/andP: (base_irr_basis G) Hs; rewrite /is_basis  /is_span.
+   by move/eqP => ->.
 rewrite {1}(ncoord_sum Hf); apply: eq_bigr=> chi _.
 have: isZC (ncoord chi f) by apply: Hc; rewrite mem_enum.
 rewrite isZCE; case/orP=> HH; rewrite HH; case: (boolP (isNatC _))=> HH1.
@@ -82,35 +89,6 @@ rewrite isZCE; case/orP=> HH; rewrite HH; case: (boolP (isNatC _))=> HH1.
   apply: leC_anti; last by apply posC_isNatC.
   by rewrite -leC_sub sub0r posC_isNatC.
 by rewrite scale0r sub0r scaleNr opprK.
-(*
-    apply: isZC_sub.
- last first.
-    by apply:  memv_sub; exact: is_char_in_cfun.
-  apply/forallP=> chi.
-  by rewrite linearD linearN isZC_sub // isZCE isNatC_ncoord_char.
-case; move/forallP; rewrite genGid => HZ Hf.
-pose f1 := 
-  \sum_(i : irr G) (if isNatC(ncoord i f) then ncoord i f else 0) *: (i : cfun _ _).
-pose f2 := 
-  \sum_(i : irr G) (if isNatC(-ncoord i f) then -ncoord i f else 0) *: (i : cfun _ _).
-exists f1; exists f2; split.
-- apply: is_char_sum=> i _.
-  case: (boolP (isNatC _)); last by rewrite scale0r is_char0.
-  by case/isNatCP=> n ->; rewrite scaler_nat is_char_scal // is_char_irr.
-- apply: is_char_sum=> i _.
-  case: (boolP (isNatC _)); last by rewrite scale0r is_char0.
-  by case/isNatCP=> n ->; rewrite scaler_nat is_char_scal // is_char_irr.
-rewrite -sumr_sub {1}(ncoord_sum Hf); apply: eq_bigr=> chi _.
-have: isZC (ncoord chi f) by apply: HZ; rewrite mem_enum.
-rewrite isZCE; case/orP=> HH; rewrite HH; case: (boolP (isNatC _))=> HH1.
-- suff->: (ncoord chi f) = 0 by rewrite oppr0 !scale0r subrr.
-  apply: leC_anti; last by apply posC_isNatC.
-  by rewrite -leC_sub sub0r posC_isNatC.memv_sub
-- by rewrite scale0r subr0.
-- suff->: (ncoord chi f) = 0 by rewrite oppr0 !scale0r subrr.
-  apply: leC_anti; last by apply posC_isNatC.
-  by rewrite -leC_sub sub0r posC_isNatC.
-by rewrite scale0r sub0r scaleNr opprK.*)
 Qed.
 
 Definition  is_vchar G f  :=(f \in 'Z['Irr G]).
