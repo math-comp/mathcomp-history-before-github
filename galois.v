@@ -1717,38 +1717,14 @@ have HMt : rmorphism (fun x => (map_poly id x).[t]).
 have -> : forall p : {poly L}, p.[t] = (map_poly id p).[t].
  by move => p; rewrite map_polyE map_id polyseqK.
 move: (det_map_mx (RMorphism HMt) M) => /= <-.
-have [->|tnz] := (eqVneq t 0).
- (* I believe this case can be simplified now since (f1 0) now must be 0 *)
-  rewrite /f1 scale0r poly_comp0.
-  have [f00|] := (eqVneq f0`_0 0).
-    move => ncoprime.
-    have ordm : 0 <  m.
-      move: ncoprime.
-      by rewrite /coprimep f00 gcd0p szg0_subproof eqSS lt0n.
-    rewrite (expand_det_row _ (rshift n (Ordinal ordm))).
-    apply/eqP; apply: big1 => i _; apply/eqP.
-    rewrite mulf_eq0; apply/orP; left.
-    rewrite mxE map_polyE map_id polyseqK col_mxEd mxE.
-    case: (Ordinal ordm <= i); last by rewrite horner0.
-    rewrite horner_scaler hornerXn.
-    have [->|] := (eqVneq (i - Ordinal ordm) 0)%N.
-      by rewrite f00 mul0r.
-    rewrite -lt0n; move/prednK <-.
-    by rewrite exprS mul0r mulr0.
-  rewrite eqp_polyC eqp1_dvd1 => f00.
-  case/negP.
-  apply/coprimepP => d Hd _.
-  by rewrite eqp1_dvd1 (dvdp_trans Hd f00).
 set f1t := f1 t.
 have f1tdef : f1t = \sum_(i < size f0) (f0`_i * t ^+ i) *: 'X ^+ i.
   rewrite /f1t /f1 /poly_comp horner_coef size_map_poly;  apply: eq_bigr => j _.
   rewrite -!mul_polyC commr_exp_mull; last by apply: mulrC.
-  by rewrite coef_map mulrA polyC_mul polyC_exp. 
-have szf1t : size f1t = n.+1.
-  rewrite f1tdef.
-  by rewrite -(poly_def (size f0) (fun i => f0`_i * t ^+ i)) size_poly_eq
-             -?lead_coefE ?szf0_subproof // mulf_neq0 // ?expf_neq0 // 
-             lead_coef_eq0 -size_poly_eq0 szf0_subproof.
+  by rewrite coef_map mulrA polyC_mul polyC_exp.
+have szf1t : size f1t <= n.+1.
+  by rewrite f1tdef -(poly_def (size f0) (fun i => f0`_i * t ^+ i))
+             szf0_subproof size_poly.
 have f1ti : forall i, f1t`_i = f0`_i * t ^+ i.
   move => i.
   rewrite f1tdef.
@@ -1761,15 +1737,11 @@ move/dvdpPc: (dvdp_gcdl f1t g0) => [c1 [r1 [c1nz Hr1]]].
 move/dvdpPc: (dvdp_gcdr f1t g0) => [c2 [r2 [c2nz Hr2]]].
 rewrite /coprimep neq_ltn ltnS leqn0.
 case/orP => [|szgcd].
-  by rewrite size_poly_eq0 gcdp_eq0 -{1}size_poly_eq0 szf1t.
+  rewrite size_poly_eq0 gcdp_eq0 -{1}size_poly_eq0.
+  case/andP => _; move/eqP => g00.
+  move: g0nz_subproof.
+  by rewrite g00 coef0 eq_refl.
 have szgcd0 : 0 < size (gcdp f1t g0) by apply (@leq_trans 2%N).
-have nzr1 : (0 < size r1).
-  rewrite lt0n.
-  move/eqP: Hr1.
-  apply: contraL.
-  rewrite size_poly_eq0.
-  move/eqP ->.
-  by rewrite mul0r scaler_eq0 negb_orb -size_poly_eq0 szf1t c1nz.
 have nzr2 : (0 < size r2).
   rewrite lt0n.
   move/eqP: Hr2.
@@ -1778,8 +1750,11 @@ have nzr2 : (0 < size r2).
   move/eqP ->.
   by rewrite mul0r scaler_eq0 negb_orb -size_poly_eq0 szg0_subproof c2nz.
 have r1small : size r1 <= n.
+  case (eqVneq (size r1) 0%N) => [->|] //.
+  rewrite -lt0n => nzr1.
   rewrite -(prednK szgcd0) ltnS in szgcd.
-  by rewrite -ltnS -szf1t -[size f1t](size_scaler _ c1nz) Hr1 size_mul_id
+  rewrite -ltnS (leq_trans _ szf1t) //.
+  by rewrite -[size f1t](size_scaler _ c1nz) Hr1 size_mul_id
              -?size_poly_eq0 -?lt0n // -(prednK szgcd0) addnS -(prednK szgcd) 
              addnS ltnS leq_addr.
 have r2small : size r2 <= m.
@@ -1791,18 +1766,18 @@ apply/det0P.
 exists (row_mx (\row_i ((c2 *: r1)`_i)) (-(\row_i ((c1 *: r2)`_i)))).
   apply/negP; move/eqP.
   rewrite -row_mx0.
-  case/eq_row_mx.
+  case/eq_row_mx => _.
   move/rowP.
-  have ordszr1 : (size r1).-1 < n.
-    by rewrite (prednK nzr1).
-  move/(_ (Ordinal ordszr1)).
+  have ordszr2 : (size r2).-1 < m.
+    by rewrite (prednK nzr2).
+  move/(_ (Ordinal ordszr2)).
   rewrite !mxE /=.
   move/eqP.
-  rewrite coef_scaler mulf_eq0.
-  move/negbTE: c2nz ->.
+  rewrite oppr_eq0 coef_scaler mulf_eq0.
+  move/negbTE: c1nz ->.
   rewrite -lead_coefE lead_coef_eq0 -size_poly_eq0 /=.
   move/eqP => impossible.
-  move: nzr1.
+  move: nzr2.
   by rewrite impossible.
 apply/rowP => i.
 rewrite /M map_col_mx mul_row_col mulNmx.
