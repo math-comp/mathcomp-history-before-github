@@ -1783,62 +1783,44 @@ apply/rowP => i.
 rewrite /M map_col_mx mul_row_col mulNmx.
 rewrite !mxE.
 apply/eqP.
-set a := (\sum_j _).
-have -> : a = ((c2 *: r1) * g0)`_i.
+have matrixPolyMul: forall (h r : {poly L}) k z c, size r <= k ->
+  (z = (map_mx (fun x0 : {poly L} => (map_poly id x0).[t])
+        (\matrix_(i, j) (if i <= j then (h`_(j - i))%:P else 0)))) ->
+  \sum_j
+   (\row_i0 (c *: r)`_i0) 0 (j:'I_k) * z j i = ((c *: r) * h)`_i.
+  move => h r k z c rsmall -> {z}.
+  set a := (\sum_j _).
   rewrite coef_mul.
-  case/orP: (leq_total i.+1 n) => [ismall|ilarge].
-    rewrite (big_ord_widen _ (fun j => (c2 *: r1)`_j * g0`_(i - j)) ismall).
+  case/orP: (leq_total i.+1 k) => [ismall|ilarge].
+    rewrite (big_ord_widen _ (fun j => (c *: r)`_j * h`_(i - j)) ismall).
     rewrite big_mkcond.
     apply: eq_bigr => j _.
     rewrite !mxE /horner_morph map_polyE map_id polyseqK ltnS.
     by case: (j <= i); rewrite hornerC // mulr0.
-  rewrite -(big_mkord (fun j => true) (fun j =>  (c2 *: r1)`_j * g0`_(i - j)))
-          (big_cat_nat _ (fun j => true) (fun j =>  (c2 *: r1)`_j * g0`_(i - j))
+  rewrite -(big_mkord (fun j => true) (fun j =>  (c *: r)`_j * h`_(i - j)))
+          (big_cat_nat _ (fun j => true) (fun j =>  (c *: r)`_j * h`_(i - j))
                          (leq0n _) ilarge)
           /=.
-  have -> : \sum_(n <= i0 < i.+1) (c2 *: r1)`_i0 * g0`_(i - i0) = 0.
+  have -> : \sum_(k <= i0 < i.+1) (c *: r)`_i0 * h`_(i - i0) = 0.
     apply: big1_seq => j /=.
     rewrite mem_index_iota.
     move/andP => [Hnj Hji].
-    by rewrite coef_scaler nth_default ?mulr0 ?mul0r // (leq_trans r1small).
+    by rewrite coef_scaler nth_default ?mulr0 ?mul0r // (leq_trans rsmall).
   rewrite addr0 big_mkord.
-  apply: eq_bigr => j _.    
+  apply: eq_bigr => j _.
   rewrite !mxE /horner_morph map_polyE map_id polyseqK.
   case: ifP; rewrite hornerC //.
   move/negbT.
   rewrite -ltnNge => Hij.
   by rewrite coef_scaler nth_default ?mulr0 ?mul0r // (leq_trans _ Hij) // 
              (leq_trans _ ilarge).
-set b := (\sum_j _).
-have -> : b = ((c1 *: r2) * f1t)`_i.
-  rewrite coef_mul.
-  case/orP: (leq_total i.+1 m) => [ismall|ilarge].
-    rewrite (big_ord_widen _ (fun j => (c1 *: r2)`_j * f1t`_(i - j)) ismall).
-    rewrite big_mkcond.
-    apply: eq_bigr => j _.
-    rewrite !mxE /horner_morph map_polyE map_id polyseqK ltnS.
-    case: (j <= i).
-      by rewrite horner_scaler hornerXn f1ti.
-    by rewrite horner0 mulr0.
-  rewrite -(big_mkord (fun j => true) (fun j =>  (c1 *: r2)`_j * f1t`_(i - j))).
-  rewrite (big_cat_nat _ (fun j => true) 
-          (fun j =>  (c1 *: r2)`_j * f1t`_(i - j)) (leq0n _) ilarge).
-  have -> : \sum_(m <= i0 < i.+1) (c1 *: r2)`_i0 * f1t`_(i - i0) = 0.
-    apply: big1_seq => j.
-    rewrite mem_index_iota.
-    case/andP => Hnj; case/andP => Hij _.
-    by rewrite coef_scaler nth_default ?mulr0 ?mul0r // (leq_trans r2small).
-  rewrite [GRing.add_monoid _ _ _]addr0 big_mkord.
-  apply: eq_bigr => j _.
-  rewrite !mxE /horner_morph map_polyE map_id polyseqK.
-  case: ifP.
-    by rewrite f1ti horner_scaler hornerXn.
-  rewrite hornerC //.
-  move/negbT.
-  rewrite -ltnNge => Hij.
-  by rewrite coef_scaler nth_default ?mulr0 ?mul0r // (leq_trans _ Hij) // 
-             (leq_trans _ ilarge).
-by rewrite !scaler_swap Hr1 Hr2 mulrA [r1 * r2]mulrC -mulrA subrr.
+rewrite (matrixPolyMul g0) //.
+rewrite (matrixPolyMul f1t) //.
+  by rewrite !scaler_swap Hr1 Hr2 mulrA [r1 * r2]mulrC -mulrA subrr.
+apply/matrixP => j k.
+rewrite !mxE.
+case: ifP => // _.
+by rewrite !map_polyE !map_id !polyseqK horner_scaler hornerXn hornerC f1ti.
 Qed.
 
 Section InfiniteCase.
