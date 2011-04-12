@@ -55,7 +55,7 @@ move=> f; apply: (iffP andP); last first.
     rewrite ffunE isZC_opp //; rewrite isZCE; apply/orP;left;
     by move: (isNatC_ncoord_char ( bi2sg x) Hf2);rewrite /ncoord  bi2sgK //=.
   apply/forallP=> x.
-  rewrite !cfunE; case:(boolP (x \in G)); first by move=> _; apply: implybT.
+  rewrite !cfunE; case: (boolP (_ \in G)); first by move=> _; apply: implybT.
   move=> HxG; move/is_char_in_cfun: (Hf1);move/cfun_memP.
   move=>[H _]; rewrite (H _ HxG).
   move/is_char_in_cfun: (Hf2);move/cfun_memP; move=>[H2 _].
@@ -128,7 +128,7 @@ Qed.
 Lemma cfun_support: forall (A B: {set gT}) f, has_support f A -> 
 f \in 'CF(G,B ) -> f \in 'CF(G, A).
 Proof.
-move=> A' B f Hss;move/cfun_memfP=> [H1 H2];apply/cfun_memfP; split=>// {H2}.
+move=> A' B f Hss;move/cfun_memfP=> [H1 H2];apply/cfun_memfP; split=> {H2}//.
 move=> x;rewrite inE negb_andb;case/orP.
   move/forallP:Hss; move/(_ x);rewrite implyNb;case/orP; first by move/eqP.
   by move ->.

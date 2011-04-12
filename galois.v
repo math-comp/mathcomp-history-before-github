@@ -1819,7 +1819,7 @@ rewrite (matrixPolyMul f1t) //.
   by rewrite !scaler_swap Hr1 Hr2 mulrA [r1 * r2]mulrC -mulrA subrr.
 apply/matrixP => j k.
 rewrite !mxE.
-case: ifP => // _.
+case: leqP => // _.
 by rewrite !map_polyE !map_id !polyseqK horner_scaler hornerXn hornerC f1ti.
 Qed.
 
