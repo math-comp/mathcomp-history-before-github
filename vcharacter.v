@@ -39,7 +39,7 @@ Local Notation " 'Z[ 'Irr G ]" :=
   (virtual_char_pred (base_irr G) G) (format "''Z[' ''Irr'  G ]"). 
 
 
-Lemma is_vcharP : forall f : cfun _ _,
+Lemma is_vcharP : forall  (f : cfun _ _),
   reflect (exists f1, exists f2, [/\ is_char G f1, is_char G f2 & f = f1 - f2])
           (f \in 'Z['Irr G]).
 Proof.
@@ -100,19 +100,46 @@ Proof.
 by move=> theta; apply: is_vchar_char; apply: is_char_irr.
 Qed.
 
-Lemma isZC_ncoord_vchar : forall (theta : irr G) (f : cfun _ _),
- f \in 'Z['Irr G] -> isZC (ncoord theta f).
+Lemma isZC_ncoord_gvchar : forall (A : {set gT})(theta : irr G) (f : cfun _ _),
+ f \in 'Z['Irr G, A] -> isZC (ncoord theta f).
 Proof.
-by move=> theta f; case/andP => Hf; case/andP; move/forallP=> HH _; apply: HH.
+by move=> B theta f; case/andP => Hf; case/andP; move/forallP=> HH _; apply: HH.
 Qed.
 
-Lemma is_vchar0 :  0 \in 'Z['Irr G].
-Proof. by rewrite is_vchar_char // is_char0. Qed.
+Lemma isZC_ncoord_vchar : forall (theta : irr G) (f : cfun _ _),
+ f \in 'Z['Irr G] -> isZC (ncoord theta f).
+Proof. by apply: isZC_ncoord_gvchar. Qed.
+
+Lemma is_vchar0 : forall A,  0 \in 'Z['Irr G, A].
+Proof. 
+move => B;rewrite !inE /=; apply/andP; split; first by apply: mem0v.
+apply/andP;split.
+  by rewrite linear0; apply/forallP=> i;rewrite ffunE (isZC_nat 0).
+by apply/forall_inP=> x; rewrite cfunE eqxx.
+Qed.
 
 Lemma is_vchar_in_cfun : forall f, f \in 'Z['Irr G]-> f \in 'CF(G).
 Proof. 
 move=> f; case/is_vcharP=> f1; case=> f2 [Hf1 Hf2 ->].
 by apply: memv_sub; apply: is_char_in_cfun.
+Qed.
+
+(* to move to classfun *)
+Lemma cfun_support: forall (A B: {set gT}) f, has_support f A -> 
+f \in 'CF(G,B ) -> f \in 'CF(G, A).
+Proof.
+move=> A' B f Hss;move/cfun_memfP=> [H1 H2];apply/cfun_memfP; split=>// {H2}.
+move=> x;rewrite inE negb_andb;case/orP.
+  move/forallP:Hss; move/(_ x);rewrite implyNb;case/orP; first by move/eqP.
+  by move ->.
+by move => Hx;apply:H1;rewrite inE negb_andb;apply/orP;right.
+Qed.
+
+Lemma is_gvchar_in_cfun : forall f, f \in 'Z['Irr G, A]-> f \in 'CF(G, A).
+Proof. 
+move=> f;case/andP=> Hs; case/andP; move/forallP => Hc Hss.
+case/andP: (base_irr_basis G) Hs. rewrite /is_span;move/eqP => -> _.
+exact: cfun_support. 
 Qed.
 
 Lemma is_vchar_opp : forall f, f \in 'Z['Irr G]-> (-f) \in 'Z['Irr G].
@@ -141,7 +168,8 @@ Qed.
 
 Lemma is_vchar_scal : forall f n, f \in 'Z['Irr G] -> (f *+ n) \in 'Z['Irr G].
 Proof.
-move=> f n Hf; elim: n=> [|n Hn]; first by rewrite mulr0n is_vchar0.
+move=> f n Hf; elim: n=> [|n Hn].
+rewrite mulr0n  is_vchar0 //.
 by rewrite mulrS is_vchar_add.
 Qed.
 
