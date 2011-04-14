@@ -123,6 +123,179 @@ Proof. move=> *; exact: row_is_linear. Qed.
 Canonical Structure gring_row_linear R gT G := 
   Linear (@gring_row_is_linear R gT G).
 
+Section Tensor.
+
+Variable (F : fieldType).
+
+Fixpoint trow  (n1 : nat) : forall (A : 'rV[F]_n1) m2 n2 (B : 'M[F]_(m2,n2)), 'M[F]_(m2,n1 * n2) :=
+  if n1 is n'1.+1 
+  then
+    fun (A : 'M[F]_(1,(1 + n'1))) m2 n2 (B : 'M[F]_(m2,n2)) =>
+       (row_mx (lsubmx A 0 0 *: B) (trow (rsubmx A) B))
+   else (fun _ _ _ _ => 0).
+
+Lemma trow0 : forall n1 m2 n2 B, @trow n1 0 m2 n2 B = 0.
+Proof.
+elim=> //= n1 IH m2 n2 B.
+rewrite !mxE scale0r linear0.
+rewrite IH //; apply/matrixP=> i j; rewrite !mxE.
+by case: split=> *; rewrite mxE.
+Qed.
+
+Definition trowb n1 m2 n2 B A :=  @trow n1 A m2 n2 B.
+
+Lemma trowbE : forall n1 m2 n2 A B, trowb B A = @trow n1 A m2 n2 B.
+Proof. by []. Qed.
+
+Lemma trowb_is_linear : 
+  forall n1 m2 n2 (B : 'M_(m2,n2)), linear (@trowb n1 m2 n2 B).
+Proof.
+elim=> [|n1 IH] //= m2 n2 B k A1 A2 /=.
+  by rewrite scaler0 add0r.
+rewrite linearD /= linearZ.
+apply/matrixP=> i j.
+rewrite !mxE.
+case: split=> a.
+  by rewrite !mxE mulr_addl mulrA.
+by rewrite linearD /= linearZ IH !mxE.
+Qed.
+
+Canonical Structure trowb_linear n1 m2 n2 B := 
+  Linear (@trowb_is_linear n1 m2 n2 B).
+  
+Lemma trow_is_linear : 
+  forall n1 m2 n2 (A : 'rV_n1), linear (@trow n1 A m2 n2).
+Proof.
+elim=> [|n1 IH] //= m2 n2 B k A1 A2 /=.
+  by rewrite scaler0 add0r.
+rewrite linearD /= linearZ /=.
+apply/matrixP=> i j.
+rewrite !mxE.
+case: split=> a; first by rewrite !mxE.
+by rewrite IH !mxE.
+Qed.
+
+Canonical Structure trow_linear n1 m2 n2 A := 
+  Linear (@trow_is_linear n1 m2 n2 A).
+
+Fixpoint tprod  (m1 : nat) : 
+  forall n1 (A : 'M[F]_(m1,n1)) m2 n2 (B : 'M[F]_(m2,n2)), 'M[F]_(m1 * m2,n1 * n2) :=
+  if m1 is m'1.+1 
+    return forall n1 (A : 'M[F]_(m1,n1)) m2 n2 (B : 'M[F]_(m2,n2)), 'M[F]_(m1 * m2,n1 * n2)
+  then
+    fun n1 (A : 'M[F]_(1 + m'1,n1)) m2 n2 B =>
+        (col_mx (trow (usubmx A) B) (tprod (dsubmx A) B))
+   else (fun _ _ _ _ _ => 0).
+
+Lemma dsumx_mul : forall m1 m2 n p A B,
+  dsubmx ((A *m B) : 'M[F]_(m1 + m2, n)) = dsubmx (A : 'M_(m1 + m2, p)) *m B.
+Proof.
+move=> m1 m2 n p A1 S2.
+apply/matrixP=> i j; rewrite !mxE; apply: eq_bigr=> k _.
+by rewrite !mxE.
+Qed.
+
+Lemma usumx_mul : forall m1 m2 n p A B,
+  usubmx ((A *m B) : 'M[F]_(m1 + m2, n)) = usubmx (A : 'M_(m1 + m2, p)) *m B.
+Proof.
+move=> m1 m2 n p A1 S2.
+apply/matrixP=> i j; rewrite !mxE; apply: eq_bigr=> k _.
+by rewrite !mxE.
+Qed.
+
+Let trow_mul :
+  forall (m1 m2 n2 p2 : nat) 
+         (A : 'rV_m1) (B1: 'M[F]_(m2,n2)) (B2 :'M[F]_(n2,p2)), 
+  trow A (B1 *m B2) = B1 *m trow A B2.
+Proof.
+move=> m1 m2 n2 p2 A B1 B2.
+elim: m1 A => [|m1 IH] A /=; first by rewrite mulmx0.
+by rewrite IH mul_mx_row -scalemxAr.
+Qed.
+
+Lemma tprodE : forall m1 n1 p1 (A1 :'M[F]_(m1,n1)) (A2 :'M[F]_(n1,p1))
+                      m2 n2 p2 (B1 :'M[F]_(m2,n2)) (B2 :'M[F]_(n2,p2)),
+  tprod (A1 *m A2) (B1 *m B2) = (tprod A1 B1) *m (tprod A2 B2).
+Proof.
+elim=> /= [|m1 IH]; first by move=> *; rewrite mul0mx.
+move=> n1 p1 A1 S2 m2 n2 p2 B1 B2.
+rewrite mul_col_mx -IH.
+congr col_mx; last by rewrite dsumx_mul.
+rewrite usumx_mul.
+elim: n1 {A1}(usubmx (A1: 'M_(1 + m1, n1))) p1 S2=> //= [u p1 S2|].
+  by rewrite [S2](flatmx0) !mulmx0 -trowbE linear0.
+move=> n1 IH1 A p1 S2 //=.
+set Al := lsubmx _; set Ar := rsubmx _.
+set Su := usubmx _; set Sd := dsubmx _.
+rewrite mul_row_col -IH1.
+rewrite -{1}(@hsubmxK F 1 1 n1 A).
+rewrite -{1}(@vsubmxK F 1 n1 p1 S2).
+rewrite (@mul_row_col F 1 1 n1 p1).
+rewrite -trowbE linearD /= trowbE -/Al.
+congr (_ + _).
+have{1}->: Al = (Al 0 0) *: 1.
+  apply/matrixP=> [] [[Hi|]] // [[Hj|]] //.
+  rewrite !mxE mulr1 //.
+  by congr fun_of_matrix=> //; apply/eqP.
+rewrite -!scalemxAl mul1mx -trowbE linearZ /= trowbE -/Su.
+by rewrite trow_mul.
+Qed.
+
+Let tprod_tr : forall m1 n1 (A :'M[F]_(m1, 1 + n1)) m2 n2 (B :'M[F]_(m2, n2)),
+  tprod A B =  row_mx (trow (lsubmx A)^T B^T)^T (tprod (rsubmx A) B).
+Proof.
+rewrite /=.
+elim=> [|m1 IH] n1 A m2 n2 B //=.
+  by rewrite trmx0 row_mx0.
+rewrite !IH.
+pose A1 := A :  'M_(1 + m1, 1 + n1).
+have F1: dsubmx (rsubmx A1) = rsubmx (dsubmx A1).
+  by apply/matrixP=> i j; rewrite !mxE.
+have F2: rsubmx (usubmx A1) = usubmx (rsubmx A1).
+  by apply/matrixP=> i j; rewrite !mxE.
+have F3: lsubmx (dsubmx A1) = dsubmx (lsubmx A1).
+  by apply/matrixP=> i j; rewrite !mxE.
+rewrite tr_row_mx -block_mxEv -block_mxEh !(F1,F2,F3); congr block_mx.
+- by rewrite !mxE linearZ /= trmxK.
+by rewrite -trmx_dsub.
+Qed.
+
+Lemma tprod1 : forall m n, 
+  tprod (1%:M : 'M[F]_(m,m)) (1%:M : 'M[F]_(n,n)) = 1%:M.
+Proof.
+elim=> [|m IH] n //=; first by rewrite [1%:M]flatmx0.
+rewrite tprod_tr.
+set u := rsubmx _; have->: u = 0.
+  apply/matrixP=> i j; rewrite !mxE.
+  by case: i; case: j=> /= j Hj; case.
+set v := lsubmx (dsubmx _); have->: v = 0.
+  apply/matrixP=> i j; rewrite !mxE.
+  by case: i; case: j; case.
+set w := rsubmx _; have->: w = 1%:M.
+  apply/matrixP=> i j; rewrite !mxE.
+  by case: i; case: j; case.
+rewrite IH -!trowbE !linear0.
+rewrite -block_mxEv.
+set z := (lsubmx _) 0 0; have->: z = 1.
+  by rewrite /z !mxE eqxx.
+by rewrite scale1r scalar_mx_block.
+Qed.
+
+Lemma mxtrace_prod : forall m n (A :'M[F]_(m)) (B :'M[F]_(n)),
+  \tr (tprod A B) =  \tr A * \tr B.
+Proof.
+elim=> [|m IH] n A B //=.
+  by rewrite [A]flatmx0 mxtrace0 mul0r.
+rewrite tprod_tr -block_mxEv mxtrace_block IH.
+rewrite linearZ /= -mulr_addl; congr (_ * _).
+rewrite -trace_mx11 .
+pose A1 := A : 'M_(1 + m).
+rewrite -{3}[A](@submxK _ 1 m 1 m A1).
+by rewrite (@mxtrace_block _ _ _ (ulsubmx A1)).
+Qed.
+
+End Tensor.
+
 (* This should be put in mxrepresentation *)
 
 Section MxR.
@@ -278,6 +451,21 @@ by case/morphimP=> x nNx Gx ->{Nx}; rewrite mul1mx mulmx1 quo_repr_coset.
 Qed.
 
 End CosetRepr.
+
+Section ProdRepr.
+
+Variable (m n : nat) (rG1 : mx_representation R G m)
+                     (rG2 : mx_representation R G n).
+
+Lemma prod_mx_repr : mx_repr G (fun g => tprod (rG1 g) (rG2 g)).
+Proof.
+split=>[|i j InG JnG]; first by rewrite !repr_mx1 tprod1.
+by rewrite !repr_mxM // tprodE.
+Qed.
+
+Definition prod_repr := MxRepresentation prod_mx_repr.
+
+End ProdRepr.
 
 End MxR.
 
@@ -536,6 +724,8 @@ move=> theta; rewrite irr_val1 -neq0N_neqC.
 by case: irr_degree (irr_degree_gt0 (socle_of_irr theta)).
 Qed.
 
+(* \sum_(i < #|classes G|) 'xi_i 1 ^+ 2 =  *)
+(* + irr G : #|classes G|.-tuple (cfun _ _) *) 
 Lemma irr_sum_square : \sum_(theta : irr G) (theta 1%g) ^+ 2 = #|G|%:R.
 Proof.
 rewrite -{6}[G]genGidG.
@@ -1158,6 +1348,23 @@ rewrite big_cons; case: (boolP (P a))=> HP //; rewrite is_char_add //.
 by rewrite HH // inE eqxx andbT.
 Qed.
 
+Lemma is_char_mul : forall f1 f2, 
+  is_char G f1 -> is_char G f2 -> is_char G (f1 * f2).
+Proof.
+move=> f1 f2; case/is_charP=> m [rG1 HrG1]; case/is_charP=> n [rG2 HrG2].
+apply/is_charP; exists (m * n)%N.
+exists (prod_repr rG1 rG2).
+apply/cfunP=> g; rewrite -HrG1 -HrG2 !cfunE /=.
+by rewrite mxtrace_prod; case: (_ \in _); rewrite !(mul1r,mul0r).
+Qed.
+
+Lemma is_char_exp : forall (n : nat) f,
+  is_char G f -> n != 0%N -> is_char G (f ^+ n).
+Proof.
+move=> n f ICf; elim: n=> [|[|n] IH] // _.
+by rewrite exprS is_char_mul // IH.
+Qed.
+
 Lemma is_char_cbP : forall f,
   reflect 
     (exists n, f = \sum_(theta : irr G) (n theta)%:R *: (theta : cfun _ _))
@@ -1220,7 +1427,6 @@ case/isNatCP: (isNatC_char1 (is_char_irr theta)) (irr1_neq0 theta).
 by move=> n /= ->; rewrite /ltC => ->; exact: posC_nat.
 Qed.
 
-
 Lemma is_irr_crestrict : forall (H : {group gT}) chi,
  is_char G chi -> H \subset G -> is_irr H ('Res[H] chi) -> is_irr G chi.
 Proof.
@@ -1244,6 +1450,7 @@ by apply: socle_irr.
 Qed.
 
 End IsChar.
+
 
 Section Linear.
 

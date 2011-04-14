@@ -1193,7 +1193,10 @@ Proof.
 by move=> l1 l2 H; apply: subv_anti; rewrite !span_subset // => i;
    rewrite ?H // -H.
 Qed.
-
+Tup
+(* forall n (t : n-tuple _), \dim (span t) <= n. 
+   s -> Tuple (eqxx (size s)).
+*)
 Lemma dim_span : forall l,  \dim (span l) <= size l.
 Proof.
 elim=> [|v l Hrec]; first by rewrite span_nil dimv0.
@@ -1323,6 +1326,7 @@ apply: v2rv_inj; rewrite rv2vK linear0.
 apply/sub_kermxP; apply: submx_trans Hv; apply: row_sub.
 Qed.
 
+(* forall j, coord l (\sum_(i < size l) s i *: l`_i) j =  s j *)
 Lemma free_coord : forall l i, 
   free l -> coord l (l`_i) = [ffun j : 'I_(size l) =>  (i == j)%:R].
 Proof.

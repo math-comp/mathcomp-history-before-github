@@ -112,6 +112,11 @@ Section Vectype.
 
 Variable (R : fieldType) (aT : finType).
 
+(* Dans vector.v
+   {ffun aT -> rT} avec rT : vectType R 
+   mxvec (\matrix_(i < #|aT|) v2rv (f (enum_val i)))
++ vectType pour R^o
+*)
 Definition ffun2rv (f : {ffun aT -> R^o}) :=  \row_(i < #|aT|) f (enum_val i).
 
 Lemma ffun2rv_is_linear : linear ffun2rv.
@@ -138,6 +143,7 @@ Section ClassFun.
 
 Variable (gT : finGroupType) (R : fieldType) (G : {group gT}).
 
+(* Un alias + phantom sur gT pas de R *) 
 Inductive cfun : predArgType := ClassFun of {ffun gT -> R}.
 
 Definition finfun_of_cfun A := let: ClassFun f := A in f.
@@ -292,12 +298,14 @@ Definition class_fun G  A := span (base_cfun G A).
 Local Notation "'CF( G , A )" := (class_fun G A).
 Local Notation "'CF( G )" := (class_fun G G).
 
+(* Definition 
+   forall x, x \notin A -> f x = 0 (ajouter A \subset G) 
+   forall x y, y \in G -> f (x ^ y) = f x)
+ *)
 Lemma cfun_memfP : forall (A : {set gT}) (f : cfun),
   reflect 
-    (   (forall x, x \notin (A :&: G) -> f x = 0) 
-     /\ 
-        (forall x y, x \in G -> y \in G -> f (x ^ y) = f x)
-    )
+    [/\ forall x, x \notin (A :&: G) -> f x = 0
+      & forall x y, x \in G -> y \in G -> f (x ^ y) = f x]
     (f \in 'CF(G, A)).
 Proof.
 move=> A f; pose bGA := base_cfun G A.
@@ -500,7 +508,8 @@ Proof. by rewrite invr_eq0 neq0GC. Qed.
 Definition inner_prod (G : {set gT}) (f g : cfun _ _) :=
   #|G|%:R^-1 * \sum_(i \in G) f i * (g i)^*.
 
-Local Notation "'[ u , v  ]_ G":=  (inner_prod G u v) (at level 10).
+Local Notation "'[ u , v ]_ G":=  (inner_prod G u v) (at level 10).
+(* format *)
 
 Lemma inner_prodE: forall (f g : cfun _ _),
   '[f,g]_G = #|G|%:R^-1 * \sum_(i \in G) f i * (g i)^*.
@@ -509,7 +518,7 @@ Proof. by []. Qed.
 Let card_conj : (#|G|%:R^-1)^* = #|G|%:R^-1.
 Proof. by rewrite posC_conjK // posC_inv posC_nat. Qed.
 
-Lemma inner_conj : forall f g, '[f,g]_G = ('[g,f]_G)^*.
+Lemma inner_conj : forall f g, '[f, g]_G = ('[g, f]_G)^*.
 Proof.
 move=> f g; rewrite /inner_prod rmorphM card_conj.
 congr (_ * _); rewrite rmorph_sum; apply: eq_bigr=> i _.
@@ -739,123 +748,3 @@ Lemma prod_in_cfun : forall (A : {set gT}) (f1 f2 : cfun gT algC) ,
 Proof. by move=> A f1 f2 Hf1 Hf2; rewrite -[A]setIid prod_in_cfunI. Qed.
 
 End Product.
-
-Section Tensor.
-
-Variable (F : fieldType).
-
-Fixpoint trow  (n1 : nat) : forall (A : 'rV[F]_n1) m2 n2 (B : 'M[F]_(m2,n2)), 'M[F]_(m2,n1 * n2) :=
-  if n1 is n'1.+1 
-  then
-    fun (A : 'M[F]_(1,(1 + n'1))) m2 n2 (B : 'M[F]_(m2,n2)) =>
-       (row_mx (lsubmx A 0 0 *: B) (trow (rsubmx A) B))
-   else (fun _ _ _ _ => 0).
-
-Lemma trow0 : forall n1 m2 n2 B, @trow n1 0 m2 n2 B = 0.
-Proof.
-elim=> //= n1 IH m2 n2 B.
-rewrite !mxE scale0r linear0.
-rewrite IH //; apply/matrixP=> i j; rewrite !mxE.
-by case: split=> *; rewrite mxE.
-Qed.
-
-Definition trowb n1 m2 n2 B A :=  @trow n1 A m2 n2 B.
-
-Lemma trowbE : forall n1 m2 n2 A B, trowb B A = @trow n1 A m2 n2 B.
-Proof. by []. Qed.
-
-Lemma trowb_is_linear : 
-  forall n1 m2 n2 (B : 'M_(m2,n2)), linear (@trowb n1 m2 n2 B).
-Proof.
-elim=> [|n1 IH] //= m2 n2 B k A1 A2 /=.
-  by rewrite scaler0 add0r.
-rewrite linearD /= linearZ.
-apply/matrixP=> i j.
-rewrite !mxE.
-case: split=> a.
-  by rewrite !mxE mulr_addl mulrA.
-by rewrite linearD /= linearZ IH !mxE.
-Qed.
-
-Canonical Structure trowb_linear n1 m2 n2 B := 
-  Linear (@trowb_is_linear n1 m2 n2 B).
-  
-Lemma trow_is_linear : 
-  forall n1 m2 n2 (A : 'rV_n1), linear (@trow n1 A m2 n2).
-Proof.
-elim=> [|n1 IH] //= m2 n2 B k A1 A2 /=.
-  by rewrite scaler0 add0r.
-rewrite linearD /= linearZ /=.
-apply/matrixP=> i j.
-rewrite !mxE.
-case: split=> a; first by rewrite !mxE.
-by rewrite IH !mxE.
-Qed.
-
-Canonical Structure trow_linear n1 m2 n2 A := 
-  Linear (@trow_is_linear n1 m2 n2 A).
-
-Fixpoint tprod  (m1 : nat) : 
-  forall n1 (A : 'M[F]_(m1,n1)) m2 n2 (B : 'M[F]_(m2,n2)), 'M[F]_(m1 * m2,n1 * n2) :=
-  if m1 is m'1.+1 
-    return forall n1 (A : 'M[F]_(m1,n1)) m2 n2 (B : 'M[F]_(m2,n2)), 'M[F]_(m1 * m2,n1 * n2)
-  then
-    fun n1 (A : 'M[F]_(1 + m'1,n1)) m2 n2 B =>
-        (col_mx (trow (usubmx A) B) (tprod (dsubmx A) B))
-   else (fun _ _ _ _ _ => 0).
-
-Lemma dsumx_mul : forall m1 m2 n p A B,
-  dsubmx ((A *m B) : 'M[F]_(m1 + m2, n)) = dsubmx (A : 'M_(m1 + m2, p)) *m B.
-Proof.
-move=> m1 m2 n p A1 S2.
-apply/matrixP=> i j; rewrite !mxE; apply: eq_bigr=> k _.
-by rewrite !mxE.
-Qed.
-
-Lemma usumx_mul : forall m1 m2 n p A B,
-  usubmx ((A *m B) : 'M[F]_(m1 + m2, n)) = usubmx (A : 'M_(m1 + m2, p)) *m B.
-Proof.
-move=> m1 m2 n p A1 S2.
-apply/matrixP=> i j; rewrite !mxE; apply: eq_bigr=> k _.
-by rewrite !mxE.
-Qed.
-
-Let trow_mul :
-  forall (m1 m2 n2 p2 : nat) 
-         (A : 'rV_m1) (B1: 'M[F]_(m2,n2)) (B2 :'M[F]_(n2,p2)), 
-  trow A (B1 *m B2) = B1 *m trow A B2.
-Proof.
-move=> m1 m2 n2 p2 A B1 B2.
-elim: m1 A => [|m1 IH] A /=; first by rewrite mulmx0.
-by rewrite IH mul_mx_row -scalemxAr.
-Qed.
-
-Lemma tprodE : forall m1 n1 p1 (A1 :'M[F]_(m1,n1)) (A2 :'M[F]_(n1,p1))
-                      m2 n2 p2 (B1 :'M[F]_(m2,n2)) (B2 :'M[F]_(n2,p2)),
-  tprod (A1 *m A2) (B1 *m B2) = (tprod A1 B1) *m (tprod A2 B2).
-Proof.
-elim=> /= [|m1 IH]; first by move=> *; rewrite mul0mx.
-move=> n1 p1 A1 S2 m2 n2 p2 B1 B2.
-rewrite mul_col_mx -IH.
-congr col_mx; last by rewrite dsumx_mul.
-rewrite usumx_mul.
-elim: n1 {A1}(usubmx (A1: 'M_(1 + m1, n1))) p1 S2=> //= [u p1 S2|].
-  by rewrite [S2](flatmx0) !mulmx0 -trowbE linear0.
-move=> n1 IH1 A p1 S2 //=.
-set Al := lsubmx _; set Ar := rsubmx _.
-set Su := usubmx _; set Sd := dsubmx _.
-rewrite mul_row_col -IH1.
-rewrite -{1}(@hsubmxK F 1 1 n1 A).
-rewrite -{1}(@vsubmxK F 1 n1 p1 S2).
-rewrite (@mul_row_col F 1 1 n1 p1).
-rewrite -trowbE linearD /= trowbE -/Al.
-congr (_ + _).
-have{1}->: Al = (Al 0 0) *: 1.
-  apply/matrixP=> [] [[Hi|]] // [[Hj|]] //.
-  rewrite !mxE mulr1 //.
-  by congr fun_of_matrix=> //; apply/eqP.
-rewrite -!scalemxAl mul1mx -trowbE linearZ /= trowbE -/Su.
-by rewrite trow_mul.
-Qed.
-
-End Tensor.
