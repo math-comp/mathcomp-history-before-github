@@ -1193,7 +1193,7 @@ Proof.
 by move=> l1 l2 H; apply: subv_anti; rewrite !span_subset // => i;
    rewrite ?H // -H.
 Qed.
-Tup
+
 (* forall n (t : n-tuple _), \dim (span t) <= n. 
    s -> Tuple (eqxx (size s)).
 *)
