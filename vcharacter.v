@@ -105,51 +105,21 @@ Lemma isZC_ncoord_gvchar0 : forall (A : {set gT})(theta : irr G) (f : cfun _ _),
 Proof.
 by move=> B theta f; case/and3P => Hf; move/forallP => HH _; apply: HH.
 Qed.
-(* to move to classfun *)
-Lemma cfun_supports: forall (A B: {set gT}) f, has_support f A -> 
-f \in 'CF(G,B ) -> f \in 'CF(G, A).
-Proof.
-move=> A' B f Hss;move/cfun_memfP=> [H1 H2];apply/cfun_memfP; split=> {H2}//.
-move=> x;rewrite inE negb_andb;case/orP.
-  move/forallP:Hss; move/(_ x);rewrite implyNb;case/orP; first by move/eqP.
-  by move ->.
-by move => Hx;apply:H1;rewrite inE negb_andb;apply/orP;right.
-Qed.
 
 Lemma is_gvchar_in_cfun : forall f B, f \in 'Z['Irr G, B]-> f \in 'CF(G, B).
 Proof. 
-move=> f B;case/andP=> Hs; case/andP; move/forallP => Hc Hss.
-case/andP: (base_irr_basis G) Hs. rewrite /is_span;move/eqP => -> _.
-exact: cfun_supports. 
+move=> f B;case/and3P=> Hs; move/forallP => Hc Hss.
+case/andP: (base_irr_basis G) Hs; rewrite /is_span;move/eqP => -> _.
+by apply: cfun_supportsAB.
 Qed.
-
-
-Lemma cfun_support: forall (f: cfun _ _) B , f \in 'CF( G ,B) -> has_support f B.
-Proof.
-move=> f B;move/cfun_memfP=> [H1 _];apply/forallP=> x.
-move: (H1 x); rewrite !inE negb_andb.
-case: (boolP (x \in B)); first by move=>*; apply implybT. 
-move=> _ /= ->; rewrite ?eqxx //.
-Qed.
-
-Lemma cfun_support_cfun: forall (f: cfun _ _) B , f \in 'CF( G ,B) -> f \in 'CF( G ).
-Proof.
-move=> f B;move/cfun_memfP=> [H1 H2];apply/cfun_memP;split=> //.
-move=> x Hx;move: (H1 x); rewrite !inE negb_andb.
-by rewrite Hx orbT =>-> //.
-Qed.
-
-Lemma cfun_supportG: forall (f:cfun _ _), f \in 'CF( G) -> has_support f G.
-Proof. by  move=> f; apply:cfun_support. Qed.
 
 Lemma isZC_ncoord_gvchar : forall (A : {set gT}) (f : cfun _ _),
  f \in 'Z['Irr G, A] = (forallb theta : irr G, isZC (ncoord theta f)) && (f \in 'CF(G, A)).
 Proof.
 move=> B f; apply/idP/andP.
-move=> H; move/is_gvchar_in_cfun: (H)=> Hfcf.
-case/and3P:H=> [Hf HH Hs]; split=> //.
-  by apply/forallP => x;move/forallP:HH;apply.
-move=> [Hf Hs]; apply/and3P;split; last by apply:cfun_support.
+move=>H;split; last by apply: is_gvchar_in_cfun.
+  by apply/forallP=> theta;rewrite (isZC_ncoord_gvchar0 _ H).
+move=> [Hf Hs]; apply/and3P;split;last by apply:(cfun_support Hs).
   case/andP: (base_irr_basis G); rewrite /is_basis /is_span; move/eqP => -> _.
   by apply: (cfun_support_cfun Hs).
 by apply/forallP=> i;move/forallP:Hf;move/(_ (bi2sg i)); rewrite /ncoord  bi2sgK.
@@ -170,7 +140,7 @@ by apply/forall_inP=> x; rewrite cfunE eqxx.
 Qed.
 
 
-
+(* ! supprimer cfun_memfP *)
 Lemma vchar_support:  forall f,
           f \in 'Z['Irr G, A] =  (f \in 'Z['Irr G]) && has_support f A.
 Proof.

@@ -435,6 +435,50 @@ move: (cfun_free G); rewrite /free; move/eqP->.
 by rewrite base_cfun_subset ?subxx // size_map -cardE card_ord.
 Qed.
 
+
+(* cfun and support *)
+
+Lemma support_subset: forall (A B: {set gT}) f, 
+       has_support f A -> A \subset B-> has_support f B.
+move=> A' B f; move/forall_inP=> Hss AsB.
+by apply/forall_inP=> x Hx; rewrite (subsetP AsB) // (Hss x Hx).
+Qed.
+
+Lemma cfun_support: forall f B , f \in 'CF( G ,B) -> has_support f B.
+Proof.
+move=> f B;move/cfun_memfP=> [H1 _];apply/forallP=> x.
+move: (H1 x); rewrite !inE negb_andb.
+case: (boolP (x \in B)); first by move=>*; apply implybT. 
+move=> _ /= ->; rewrite ?eqxx //.
+Qed.
+
+Lemma cfun_supports: forall (A B: {set gT}) f, (B :&: G) \subset  (A :&: G)-> 
+f \in 'CF(G,B ) -> f \in 'CF(G, A).
+Proof.
+move=> A' B f Hss;move/cfun_memfP=> [H1 H2];apply/cfun_memfP; split=> {H2}//.
+move=> x H. apply: H1.
+by apply/negP=> H1; apply/(negP H); apply:(subsetP Hss).
+Qed.
+
+
+(* is this useful ???*)
+Lemma cfun_supportsAB: forall (A B: {set gT}) f, has_support f A -> 
+f \in 'CF(G,B ) -> f \in 'CF(G, A).
+Proof.
+move=> A' B f Hss;move/cfun_memfP=> [H1 H2];apply/cfun_memfP; split=> {H2}//.
+move=> x;rewrite inE negb_andb;case/orP.
+move/forallP:Hss; move/(_ x);rewrite implyNb;case/orP; first by move/eqP.
+  by move ->.
+by move => Hx;apply:H1;rewrite inE negb_andb;apply/orP;right.
+Qed.
+
+Lemma cfun_support_cfun: forall f B , f \in 'CF( G ,B) -> f \in 'CF( G ).
+Proof.
+move=> f B;move/cfun_memfP=> [H1 H2];apply/cfun_memP;split=> //.
+move=> x Hx;move: (H1 x); rewrite !inE negb_andb.
+by rewrite Hx orbT =>-> //.
+Qed.
+
 End ClassFun.
 
 Notation "''CF[' R ] ( G , A ) " := (class_fun R G A).
