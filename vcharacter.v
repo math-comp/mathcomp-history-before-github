@@ -148,23 +148,15 @@ move => S B;rewrite !inE; apply/and3P;split; first by apply: mem0v.
 by apply/forall_inP=> x; rewrite cfunE eqxx.
 Qed.
 
-(* ! supprimer cfun_memfP *)
+
 Lemma vchar_support:  forall f,
           f \in 'Z['Irr G, A] =  (f \in 'Z['Irr G]) && has_support f A.
 Proof.
-move=> f; apply/idP/idP=> H.
-  move/is_gvchar_in_cfun: (H) => HCF.
-  rewrite (cfun_support HCF) andbT.
-  case/and3P: H=> irrGaa ZGaa Aaa.
-  move/cfun_memfP: HCF=> [H _].
-  apply/and3P; split=> //; apply/forall_inP=> x Hx.
-  move: (H x);rewrite inE; rewrite negb_andb.
-  case: (boolP (_ \in G)) =>//.
-  rewrite /= orbT=> _ Hf0.
-  by move: Hx ; rewrite Hf0 //  eqxx //.
-case/andP:H => H Hs;move/is_vchar_in_cfun: (H) => H3.
-case/and3P: H=> irrGaa ZGaa Aaa.
-apply/and3P; split=> //; apply/forall_inP=> x.
+move=> f; apply/idP/idP=>H.
+  move/is_gvchar_in_cfun : (H)=> HCF; rewrite (cfun_support HCF) andbT.
+  case/and3P: H=> irrGaa ZGaa Aaa; apply/and3P; split=> //.
+  by apply:(cfun_support (cfun_support_cfun HCF )).
+by case/andP:H; case/and3P=>irrGaa ZGaa Aaa Hs;apply/and3P.
 Qed.
 
 Lemma is_vchar_opp : forall S A f , f \in 'Z[S, A]-> (-f) \in 'Z[S, A].
