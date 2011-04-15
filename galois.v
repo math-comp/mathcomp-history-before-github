@@ -2,7 +2,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 Require Import fintype finfun bigop ssralg poly polydiv.
 Require Import zmodp vector algebra fieldext.
 Require Import fingroup perm finset matrix mxalgebra.
-
+Require Import gproduct cyclic.
 
 (******************************************************************************)
 (* This file is supposed to provide galois theory, however it is currently    *)
@@ -1483,7 +1483,7 @@ Variable N : nat.
 
 Let KisBig := exists l, [&& (all (mem K) l), uniq l & (N < size l)].
 
-Lemma cyclicOrBig : forall z:L, z != 0 -> KisBig \/ exists a, z^+(a.+1) = 1.
+Lemma cyclicOrBig : forall z:L, z != 0 -> KisBig \/ exists a, z ^+ (a.+1) = 1.
 Proof.
 move => z Hz.
 pose d := elementDegree K z.
@@ -1546,8 +1546,49 @@ rewrite /h !ffunE.
 by move/(f_equal val) => /=.
 Qed.
 
-End FiniteCase.
+(*
+Lemma PET_finiteCase_subproof : 
+  KisBig \/ exists z, Fadjoin (Fadjoin K x) y = Fadjoin K z.
+Proof.
+case (eqVneq x 0) => [->|].
+ right; exists y.
+ move: (mem0v K).
+ rewrite FadjoinxK.
+ by move/eqP ->.
+move/cyclicOrBig => [|[[|a] Hxa]]; first by left.
+ rewrite expr1 in Hxa.
+ right; exists y.
+ move: (memv1 K).
+ rewrite FadjoinxK Hxa.
+ by move/eqP ->.
+case (eqVneq y 0) => [->|].
+ right; exists x.
+ apply/eqP.
+ rewrite -FadjoinxK.
+ by apply: mem0v.
+move/cyclicOrBig => [|[[|b] Hyb]]; first by left.
+ rewrite expr1 in Hyb.
+ right; exists x.
+ apply/eqP.
+ rewrite -FadjoinxK Hyb.
+ by apply: memv1.
+right.
+set G := ('Z_a.+2 * 'Z_b.+2)%type.
+pose (h := fun (i:G) => x ^+ i.1 * y ^+ i.2).
+have Mh1: {in [set: G] &, {morph h : u v/ (u * v)%g >-> u * v}}.
+ move => [ix iy] [jx jy] _ _.
+ rewrite /h /=.
+ rewrite -mulrA [y ^+ iy * _]mulrA [y ^+ iy * _]mulrC -mulrA mulrA.
+ rewrite -!exprn_addr.
+ apply: f_equal2; by apply: exprn_mod.
+have Mh2: {in [set: G], forall x, h x = 1 <-> x = 1%g}.
+ move => [ix iy] _.
+ rewrite /h /=.
+ 
+move/field_mul_group_cyclic.
+*)
 
+End FiniteCase.
 
 Hypothesis sep : seperableElement K y.
 
