@@ -1470,13 +1470,86 @@ Section PrimitiveElementTheorem.
 
 Variable K : {algebra L}.
 Variable x y : L.
-Hypothesis sep : seperableElement K y.
 
 Let n := (elementDegree K x).
 Let m := (elementDegree K y).-1.
 
 Let f := minPoly K x.
 Let g := minPoly K y.
+
+Section FiniteCase.
+
+Variable N : nat.
+
+Let KisBig := exists l, [&& (all (mem K) l), uniq l & (N < size l)].
+
+Lemma cyclicOrBig : forall z:L, z != 0 -> KisBig \/ exists a, z^+(a.+1) = 1.
+Proof.
+move => z Hz.
+pose d := elementDegree K z.
+pose h0 := fun (i:'I_(N ^ d).+1) (j:'I_d) => (poly_for_Fadjoin K z (z^+i))`_j.
+pose l := allpairs h0 (ord_enum _) (ord_enum _).
+pose Cs := seq_sub_finType l.
+case: (leqP (#|Cs|) N) => [leN|ltN];last first;[left|right].
+ exists (map val (enum Cs)).
+ rewrite size_map -cardT ltN.
+ rewrite map_inj_in_uniq ?enum_uniq; last by move => ? ? _ _; apply: val_inj.
+ rewrite !andbT.
+ apply/allP => ?; case/mapP => w _ ->.
+ move: {w} (val w) (valP w) => w.
+ rewrite /l /h0.
+ case/allpairsP => [[i j] [_ _ ->]] /=.
+ by move/polyOverP: (poly_for_polyOver K z (z ^+ i)).
+have Hh0 : forall i j, h0 i j \in mem l.
+ rewrite mem_mem.
+ move => i j.
+ rewrite /l.
+ apply/allpairsP.
+ by exists (i,j); split; rewrite ?mem_ord_enum.
+pose h := fun i => finfun (fun j => (SeqSub (Hh0 i j):Cs)).
+have: #|h @: 'I_(N ^ d).+1| != #|'I_(N ^ d).+1|.
+ rewrite neq_ltn.
+ apply/orP; left.
+ rewrite card_ord ltnS (leq_trans (max_card _)) // card_ffun card_ord.
+ by rewrite leq_exp2r // elementDegreegt0.
+move/imset_injP => Hh.
+have: ~injective h by move => H; apply: Hh => i j _ _; apply: H.
+move/injectiveP/injectivePn => [a1 [a2 Ha Hha]].
+exists `|a1 - a2|.-1.
+rewrite prednK ?lt0n ?distn_eq0 // {Ha}.
+move: Hha.
+wlog Ha : a1 a2 / a1 <= a2.
+ move => HW.
+ case/orP: (leq_total a1 a2); first by apply: HW.
+ move => Ha Hha. (*why can't I do move/sym_eq*)
+ move: (sym_eq Hha).
+ rewrite distnC.
+ by apply: HW.
+move/ffunP.
+rewrite (distnEr Ha) => Hha.
+have Hza: (z ^+ a1 != 0) by apply expf_neq0.
+apply/eqP.
+rewrite -(can_eq (mulfK Hza)) -exprn_addr mul1r subnK //.
+apply/eqP; symmetry.
+have Hzi : forall i,  z ^+ i \in Fadjoin K z.
+ by move => i; apply/memv_exp/memx_Fadjoin.
+move/poly_for_eq:(Hzi a1) ->.
+move/poly_for_eq:(Hzi a2) ->.
+have Z:=(horner_coef_wide z (size_poly_for K z (z ^+ _))).
+(* Why is this so slow? rewrite (Z a1) (Z a2). *)
+etransitivity; first by apply (Z a1).
+etransitivity; last by symmetry; apply (Z a2).
+apply: eq_bigr => i _.
+apply: f_equal2; last done.
+move: (Hha i).
+rewrite /h !ffunE.
+by move/(f_equal val) => /=.
+Qed.
+
+End FiniteCase.
+
+
+Hypothesis sep : seperableElement K y.
 
 Let f0 := f \Po ('X + x%:P).
 Let g0 := (g \Po ('X + y%:P)) %/ ('X).
