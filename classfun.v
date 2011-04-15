@@ -438,6 +438,14 @@ Qed.
 
 (* cfun and support *)
 
+Lemma contra_support: forall f A , has_support f A <-> 
+                           forall x , x \notin A -> f x = 0.
+Proof.
+move=>f A';split.
+  by move/forall_inP=> H x Hx; move/contraR: (H x); move/(_ Hx);move/eqP.
+by move=> H; apply/forall_inP=> x; apply: contraR=> Hx; rewrite (H x Hx) //.
+Qed.
+
 Lemma support_subset: forall (A B: {set gT}) f, 
        has_support f A -> A \subset B-> has_support f B.
 move=> A' B f; move/forall_inP=> Hss AsB.
@@ -446,8 +454,8 @@ Qed.
 
 Lemma cfun_support: forall f B , f \in 'CF( G ,B) -> has_support f B.
 Proof.
-move=> f B;move/cfun_memfP=> [H1 _];apply/forall_inP=> x.
-by apply: contraR => notBx; rewrite H1 // inE negb_andb notBx.
+move=> f B;move/cfun_memfP=> [H1 _];apply/contra_support=> x Hx.
+by apply:H1;rewrite inE negb_andb Hx.
 Qed.
 
 Lemma cfun_supports: forall (A B: {set gT}) f,
