@@ -446,18 +446,15 @@ Qed.
 
 Lemma cfun_support: forall f B , f \in 'CF( G ,B) -> has_support f B.
 Proof.
-move=> f B;move/cfun_memfP=> [H1 _];apply/forallP=> x.
-move: (H1 x); rewrite !inE negb_andb.
-case: (boolP (x \in B)); first by move=>*; apply implybT. 
-move=> _ /= ->; rewrite ?eqxx //.
+move=> f B;move/cfun_memfP=> [H1 _];apply/forall_inP=> x.
+by apply: contraR => notBx; rewrite H1 // inE negb_andb notBx.
 Qed.
 
-Lemma cfun_supports: forall (A B: {set gT}) f, (B :&: G) \subset  (A :&: G)-> 
-f \in 'CF(G,B ) -> f \in 'CF(G, A).
+Lemma cfun_supports: forall (A B: {set gT}) f,
+ B :&: G \subset A :&: G -> f \in 'CF(G, B) -> f \in 'CF(G, A).
 Proof.
-move=> A' B f Hss;move/cfun_memfP=> [H1 H2];apply/cfun_memfP; split=> {H2}//.
-move=> x H. apply: H1.
-by apply/negP=> H1; apply/(negP H); apply:(subsetP Hss).
+move=> A' B f Hss; case/cfun_memfP=> H1 H2; apply/cfun_memfP; split=> {H2}// x.
+by move/(contra (subsetP Hss x)); exact: H1.
 Qed.
 
 

@@ -233,12 +233,8 @@ rewrite -{1}(@vsubmxK F 1 n1 p1 S2).
 rewrite (@mul_row_col F 1 1 n1 p1).
 rewrite -trowbE linearD /= trowbE -/Al.
 congr (_ + _).
-have{1}->: Al = (Al 0 0) *: 1.
-  apply/matrixP=> [] [[Hi|]] // [[Hj|]] //.
-  rewrite !mxE mulr1 //.
-  by congr fun_of_matrix=> //; apply/eqP.
-rewrite -!scalemxAl mul1mx -trowbE linearZ /= trowbE -/Su.
-by rewrite trow_mul.
+rewrite {1}[Al]mx11_scalar mul_scalar_mx.
+by rewrite -trowbE linearZ /= trowbE -/Su trow_mul scalemxAl.
 Qed.
 
 Let tprod_tr : forall m1 n1 (A :'M[F]_(m1, 1 + n1)) m2 n2 (B :'M[F]_(m2, n2)),
