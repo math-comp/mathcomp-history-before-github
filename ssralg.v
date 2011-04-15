@@ -4524,8 +4524,52 @@ Proof. by move=> f n x; elim: n => [|n IHn]; rewrite ?mulrS ffunE ?IHn. Qed.
 
 End FinFunZmod.
 
-(* As rings require 1 != 0 we cannot lift a ring structure over finfuns.      *)
-(* We would need evidence that the domain is non-empty.                       *)
+Section FinFunRing.
+
+(* As rings require 1 != 0 in order to lift a ring structure over finfuns     *)
+(* we need evidence that the domain is non-empty.                             *)
+
+Variable (aT : finType) (R : ringType) (a : aT).
+
+Definition ffun_one : {ffun aT -> R} := [ffun _ => 1].
+Definition ffun_mul (f g : {ffun aT -> R}) := [ffun x => f x * g x]. 
+
+Fact ffun_mulA : associative ffun_mul.
+Proof. by move=> f1 f2 f3; apply/ffunP=> i; rewrite !ffunE mulrA. Qed.
+Fact ffun_mul_1l : left_id ffun_one ffun_mul.
+Proof. by move=> f; apply/ffunP=> i; rewrite !ffunE mul1r. Qed.
+Fact ffun_mul_1r : right_id ffun_one ffun_mul.
+Proof. by move=> f; apply/ffunP=> i; rewrite !ffunE mulr1. Qed.
+Fact ffun_mul_addl :  left_distributive ffun_mul (@ffun_add _ _).
+Proof. by move=> f1 f2 f3; apply/ffunP=> i; rewrite !ffunE mulr_addl. Qed.
+Fact ffun_mul_addr :  right_distributive ffun_mul (@ffun_add _ _).
+Proof. by move=> f1 f2 f3; apply/ffunP=> i; rewrite !ffunE mulr_addr. Qed.
+Fact ffun1_nonzero : ffun_one != 0.
+Proof. 
+apply/eqP; move/ffunP; move/(_ a); rewrite !ffunE.
+by move/eqP; rewrite oner_eq0.
+Qed.
+
+Definition ffun_ringMixin :=
+  RingMixin ffun_mulA ffun_mul_1l ffun_mul_1r ffun_mul_addl ffun_mul_addr
+            ffun1_nonzero.
+Definition ffun_ringType :=
+  Eval hnf in RingType {ffun aT -> R} ffun_ringMixin.
+
+End FinFunRing.
+
+Section FinFunComRing.
+
+Variable (aT : finType) (R : comRingType) (a : aT).
+
+Fact ffun_mulC : commutative (@ffun_mul aT R).
+Proof. by move=> f1 f2; apply/ffunP=> i; rewrite !ffunE mulrC. Qed.
+
+Definition poly_comRingType :=
+  Eval hnf in ComRingType (ffun_ringType R a) ffun_mulC.
+
+End FinFunComRing.
+
 Section FinFunLmod.
 
 Variable (R : ringType) (aT : finType) (rT : lmodType R).
@@ -4550,5 +4594,3 @@ Canonical Structure ffun_lmodType :=
   Eval hnf in LmodType R {ffun aT -> rT} ffun_lmodMixin.
 
 End FinFunLmod.
-
-
