@@ -218,12 +218,22 @@ rewrite big_cons; case: (boolP (P a))=> HP //; rewrite is_vchar_add //.
 by rewrite HH // inE eqxx andbT.
 Qed.
 
-(*
-Lemma is_vchar_mul : forall S A f1 f2, 
-                      f1 \in 'Z[S, A]-> f2  \in 'Z[S, A]-> (f1 * f2) \in 'Z[S, A].
+Lemma is_vchar_mul : forall f g, 
+                      f \in 'Z['Irr G, A]-> g  \in 'Z['Irr G, A]-> 
+                        (f * g) \in 'Z['Irr G, A].
 Proof.
-admit.
-Qed.*)
+move=>  f g; rewrite ! vchar_support.
+case/andP=>Hf;move/contra_support=>Hsf;case/andP=>Hg;move/contra_support=>Hsg.
+apply/andP;split; last first.
+  by apply/contra_support=> x Hx; rewrite !cfunE Hsf // Hsg // mul0r.
+case/is_vcharP:Hf=>f1; case=> f2 [Hf1 Hf2 ->].
+case/is_vcharP:Hg=>g1; case=> g2 [Hg1 Hg2 ->].
+apply/is_vcharP;exists ((f1 * g1) + (f2 * g2));exists ((f1 * g2 ) + (f2 * g1)).
+split;rewrite ?(is_char_add, is_char_mul)//.
+rewrite !mulr_addl !mulr_subr -!addrA; congr  (_ + _).
+rewrite addrC -!addrA !mulNr opprK addrC -!addrA;congr (_ + _). 
+by rewrite oppr_add.
+Qed.
 
 End IsVChar.
 
