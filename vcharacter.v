@@ -54,12 +54,9 @@ move=> f; apply: (iffP andP); last first.
       by move: (isNatC_ncoord_char ( bi2sg x) Hf1);rewrite /ncoord  bi2sgK //=.
     rewrite ffunE isZC_opp //; rewrite isZCE; apply/orP;left;
     by move: (isNatC_ncoord_char ( bi2sg x) Hf2);rewrite /ncoord  bi2sgK //=.
-  apply/forallP=> x.
-  rewrite !cfunE; case: (boolP (_ \in G)); first by move=> _; apply: implybT.
-  move=> HxG; move/is_char_in_cfun: (Hf1);move/cfun_memP.
-  move=>[H _]; rewrite (H _ HxG).
-  move/is_char_in_cfun: (Hf2);move/cfun_memP; move=>[H2 _].
-  by rewrite (H2 _ HxG) subr0 implybF eqxx.
+  move/is_char_in_cfun:Hf1;move/cfun_support;move/contra_support => Hf1.
+  move/is_char_in_cfun:Hf2;move/cfun_support;move/contra_support => Hf2.
+  by apply/contra_support=> x Hx;rewrite !cfunE Hf1 // Hf2 // subr0.
 case=> Hs; case/andP; move/forallP => Hc Hss.
 pose f1 := \sum_(i : irr G) (if isNatC(ncoord i f) then ncoord i f else 0) 
                             *: (i : cfun _ _).
