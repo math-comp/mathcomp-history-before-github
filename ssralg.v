@@ -4531,7 +4531,7 @@ Section FinFunRing.
 
 Variable (aT : finType) (R : ringType) (a : aT).
 
-Definition ffun_one : {ffun aT -> R} := [ffun _ => 1].
+Definition ffun_one : {ffun aT -> R} := [ffun => 1].
 Definition ffun_mul (f g : {ffun aT -> R}) := [ffun x => f x * g x]. 
 
 Fact ffun_mulA : associative ffun_mul.

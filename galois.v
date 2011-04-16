@@ -1514,7 +1514,7 @@ have: #|h @: 'I_(N ^ d).+1| != #|'I_(N ^ d).+1|.
  by rewrite leq_exp2r // elementDegreegt0.
 move/imset_injP => Hh.
 have: ~injective h by move => H; apply: Hh => i j _ _; apply: H.
-move/injectiveP/injectivePn => [a1 [a2 Ha Hha]].
+move/injectiveP; move/injectivePn => [a1 [a2 Ha Hha]].
 exists `|a1 - a2|.-1.
 rewrite prednK ?lt0n ?distn_eq0 // {Ha}.
 move: Hha.
@@ -1527,18 +1527,17 @@ wlog Ha : a1 a2 / a1 <= a2.
  by apply: HW.
 move/ffunP.
 rewrite (distnEr Ha) => Hha.
-have Hza: (z ^+ a1 != 0) by apply expf_neq0.
+have Hza: (z ^+ a1 != 0) by exact: expf_neq0.
 apply/eqP.
 rewrite -(can_eq (mulfK Hza)) -exprn_addr mul1r subnK //.
 apply/eqP; symmetry.
 have Hzi : forall i,  z ^+ i \in Fadjoin K z.
- by move => i; apply/memv_exp/memx_Fadjoin.
+ by move => i; apply: memv_exp; exact: memx_Fadjoin.
 move/poly_for_eq:(Hzi a1) ->.
 move/poly_for_eq:(Hzi a2) ->.
 have Z:=(horner_coef_wide z (size_poly_for K z (z ^+ _))).
 (* Why is this so slow? rewrite (Z a1) (Z a2). *)
-etransitivity; first by apply (Z a1).
-etransitivity; last by symmetry; apply (Z a2).
+rewrite !{1}Z.
 apply: eq_bigr => i _.
 apply: f_equal2; last done.
 move: (Hha i).
