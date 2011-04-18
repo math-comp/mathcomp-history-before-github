@@ -2,7 +2,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 Require Import fintype finfun bigop ssralg poly polydiv.
 Require Import zmodp vector algebra fieldext.
 Require Import fingroup perm finset matrix mxalgebra.
-Require Import gproduct cyclic.
+Require Import div cyclic.
 
 (******************************************************************************)
 (* This file is supposed to provide galois theory, however it is currently    *)
@@ -1545,47 +1545,125 @@ rewrite /h !ffunE.
 by move/(f_equal val) => /=.
 Qed.
 
-(*
 Lemma PET_finiteCase_subproof : 
   KisBig \/ exists z, Fadjoin (Fadjoin K x) y = Fadjoin K z.
 Proof.
-case (eqVneq x 0) => [->|].
+case (eqVneq x 0) => [->|Hx0].
  right; exists y.
  move: (mem0v K).
  rewrite FadjoinxK.
  by move/eqP ->.
-move/cyclicOrBig => [|[[|a] Hxa]]; first by left.
+move/cyclicOrBig: (Hx0) => [|[[|a] Hxa]]; first by left.
  rewrite expr1 in Hxa.
  right; exists y.
  move: (memv1 K).
  rewrite FadjoinxK Hxa.
  by move/eqP ->.
-case (eqVneq y 0) => [->|].
+case (eqVneq y 0) => [->|Hy0].
  right; exists x.
  apply/eqP.
  rewrite -FadjoinxK.
  by apply: mem0v.
-move/cyclicOrBig => [|[[|b] Hyb]]; first by left.
+move/cyclicOrBig: (Hy0) => [|[[|b] Hyb]]; first by left.
  rewrite expr1 in Hyb.
  right; exists x.
  apply/eqP.
  rewrite -FadjoinxK Hyb.
  by apply: memv1.
 right.
-set G := ('Z_a.+2 * 'Z_b.+2)%type.
-pose (h := fun (i:G) => x ^+ i.1 * y ^+ i.2).
-have Mh1: {in [set: G] &, {morph h : u v/ (u * v)%g >-> u * v}}.
- move => [ix iy] [jx jy] _ _.
- rewrite /h /=.
+pose h0 := fun (i:'I_a.+2) (j:'I_b.+2) => x ^+ i * y ^+ j.
+pose l := allpairs h0 (ord_enum _) (ord_enum _).
+pose fT := seq_sub_finType l.
+have Hl : forall i j, x ^+ i * y ^+ j \in l.
+ move => i j.
+ rewrite (divn_eq i (a.+2)) (divn_eq j (b.+2)).
+ rewrite !exprn_addr ![(_ * _.+2)%N]mulnC !exprn_mulr.
+ rewrite Hxa Hyb !exp1rn !mul1r.
+ apply/allpairsP.
+ exists (Ordinal (@ltn_pmod i (a.+2) (ltn0Sn _))
+        ,Ordinal (@ltn_pmod j (b.+2) (ltn0Sn _)));
+  split; by rewrite ?mem_ord_enum.
+have HmulgT : forall (i j:fT), (val i) * (val j) \in l.
+ case => ? /=; move/allpairsP => [[ix iy] [_ _ ->]].
+ case => ? /=; move/allpairsP => [[jx jy] [_ _ ->]].
+ rewrite /h0 /=.
  rewrite -mulrA [y ^+ iy * _]mulrA [y ^+ iy * _]mulrC -mulrA mulrA.
- rewrite -!exprn_addr.
- apply: f_equal2; by apply: exprn_mod.
-have Mh2: {in [set: G], forall x, h x = 1 <-> x = 1%g}.
- move => [ix iy] _.
- rewrite /h /=.
- 
-move/field_mul_group_cyclic.
-*)
+ by rewrite -!exprn_addr.
+pose mulgT := fun (i j:fT) => SeqSub (HmulgT i j):fT.
+have HonegT : 1 \in l.
+ by rewrite -[1]mulr1 -{1}(expr0 x) -(expr0 y).
+pose onegT := SeqSub (HonegT):fT.
+have HinvT : forall i:fT, (val i)^-1 \in l.
+ case => ? /=; move/allpairsP => [[ix iy] [_ _ ->]].
+ rewrite /h0 /=.
+ rewrite invf_mul.
+ rewrite -[x ^- ix]mul1r -Hxa -{1}[a.+2](subnK (ltnW (ltn_ord ix))) 
+         exprn_addr mulfK ?expf_neq0 //.
+ by rewrite -[y ^- iy]mul1r -Hyb -{1}[b.+2](subnK (ltnW (ltn_ord iy)))
+            exprn_addr mulfK ?expf_neq0.
+pose invgT := fun i:fT => SeqSub (HinvT i):fT.
+have mulgTA : associative mulgT.
+ move => [i ?] [j ?] [k ?].
+ apply/val_inj => /=.
+ apply: mulrA.
+have mul1gT : left_id onegT mulgT.
+ move => [i ?].
+ apply/val_inj => /=.
+ apply: mul1r.
+have Hl0 : forall i, i \in l -> i != 0.
+ move => ?.
+ move/allpairsP => [[ix iy] [_ _ ->]].
+ by rewrite /h0 /= mulf_neq0 // expf_neq0.
+have mulVgT : left_inverse onegT invgT mulgT.
+ move => [i ?].
+ apply/val_inj => /=.
+ apply: mulVf.
+ by apply: Hl0.
+pose gT := @FinGroupType (BaseFinGroupType fT 
+              (FinGroup.Mixin mulgTA mul1gT mulVgT)) mulVgT.
+pose h := fun i:gT => (val i).
+have Mh1: {in [set: gT] &, {morph h : u v/ (u * v)%g >-> u * v}} by done.
+have Mh2: {in [set: gT], forall x, h x = 1 <-> x = 1%g}.
+ move => i _.
+ rewrite /h /= -[1]/(ssval onegT); split; last by move ->.
+ by move/val_inj ->.
+have: cyclic [set: gT] by apply: (field_mul_group_cyclic (f:=h)).
+move/cyclicP => [z Hz].
+exists (h z).
+
+apply/eqP.
+rewrite /eq_op /=.
+apply/eqP.
+apply:subv_anti.
+apply/andP;split;rewrite -subsetFadjoinE; last first.
+ rewrite (subv_trans (subsetKFadjoin K x) (subsetKFadjoin _ y)) /h /=.
+ case: z {Hz} => ? /=.
+ move/allpairsP => [[ix iy] [_ _ ->]].
+ rewrite /h0 /= memv_mul // memv_exp //; last by rewrite memx_Fadjoin.
+ move/subvP: (subsetKFadjoin (Fadjoin K x) y).
+ apply.
+ by rewrite memx_Fadjoin.
+rewrite -subsetFadjoinE subsetKFadjoin /=.
+have Hxl : x \in l.
+ apply/allpairsP.
+ exists (1,0).
+ by rewrite /h0 /= expr0 mulr1 modn_small // expr1 !mem_ord_enum.
+have Hyl : y \in l.
+ apply/allpairsP.
+ exists (0,1).
+ by rewrite /h0 /= expr0 mul1r modn_small // expr1 !mem_ord_enum.
+have: (SeqSub Hxl \in <[z]>)%g by rewrite -Hz in_setT.
+have Hhz : forall i, (h (z ^+ i)%g = h z ^+ i).
+ elim => [|i IH] //.
+ rewrite expgS exprS -IH.
+ by apply: Mh1.
+case/cycleP => i.
+move/(f_equal val) => /= ->.
+have: (SeqSub Hyl \in <[z]>)%g by rewrite -Hz in_setT.
+case/cycleP => j.
+move/(f_equal val) => /= ->.
+by rewrite ![ssval _]Hhz !memv_exp // memx_Fadjoin.
+Qed.
 
 End FiniteCase.
 
