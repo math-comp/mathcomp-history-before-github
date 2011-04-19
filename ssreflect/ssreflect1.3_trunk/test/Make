@@ -4,6 +4,7 @@ SSRCOQ = ../bin/ssrcoq
 -I ../src/
 absevarprop.v
 binders.v
+caseview.v
 congr.v
 deferclear.v
 elim.v
