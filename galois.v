@@ -2105,17 +2105,21 @@ Qed.
 
 End InfiniteCase.
 
-(* :TODO: remove this unnecessary lemma. 
-   Just use PET_infiniteCase_subproof directly *)
-Lemma abstract_PET_infiniteCase_subproof
-     : { p : {poly L} | (* (polyOver K p) && *) (p != 0) & 
-        forall t : L, t \in K ->  ~~ root p t ->
-                        Fadjoin (Fadjoin K x) y = Fadjoin K (x - t * y)}.
+Lemma PrimitiveElementTheorem : exists z, Fadjoin (Fadjoin K x) y = Fadjoin K z.
 Proof.
-exists (\det M).
+case: (PET_finiteCase_subproof (n * m)) => [[l]|//].
+case/and3P; move/allP => HKl Hl Hnml.
+have: ~~(all (root (\det M)) l).
+ move: Hnml.
+ rewrite -size_detM leqNgt.
+ apply: contra => HMl.
+ apply: max_poly_roots => //.
  by rewrite -size_poly_eq0 size_detM.
-apply: PET_infiniteCase_subproof.
-Defined.
+case/allPn => z Hzl HMz.
+exists (x - z * y).
+apply: PET_infiniteCase_subproof => //.
+by apply: HKl.
+Qed.
 
 End PrimitiveElementTheorem.
 
