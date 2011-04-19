@@ -1010,6 +1010,11 @@ Proof.
 by move: (subv_refl Fadjoin); rewrite -subsetFadjoinE; case/andP.
 Qed.
 
+Lemma memK_Fadjoin : forall y, y \in K -> y \in Fadjoin.
+Proof.
+by move/subvP: subsetKFadjoin.
+Qed.
+
 Lemma mempx_Fadjoin : forall p, polyOver K p -> p.[x] \in Fadjoin.
 Proof. move => p pK; apply/poly_Fadjoin; by exists p. Qed.
 
@@ -1022,8 +1027,7 @@ apply (@poly_Fadjoin_small_uniq K x).
   by apply: size_poly_for.
  by rewrite size_polyC (leq_trans (leq_b1 _)) // elementDegreegt0.
 rewrite hornerC -poly_for_eq //.
-move/subvP: subsetKFadjoin.
-by apply.
+by apply: memK_Fadjoin.
 Qed.
 
 Lemma poly_for_modp : forall p, polyOver K p ->
@@ -1162,6 +1166,16 @@ move/dvdpPc: (minPoly_dvdp fK rf) => [c [g [Hc Hg]]].
 move: (canRL (GRing.scalerK Hc) Hg) sf ->.
 rewrite (GRing.scaler_mull) seperable_mul.
 by case/and3P.
+Qed.
+
+Lemma seperableinK : x \in K -> seperableElement.
+Proof.
+move => Hx.
+apply/seperableElementP.
+exists ('X - x%:P); repeat split.
+  by rewrite addp_polyOver ?polyOverX // opp_polyOver // polyOverC.
+ by rewrite root_factor_theorem dvdpp.
+by rewrite /seperablePolynomial !derivCE subr0 coprimep1.
 Qed.
 
 Lemma seperable_nzdmp : seperableElement = (deriv (minPoly K x) != 0).
@@ -1630,7 +1644,6 @@ have Mh2: {in [set: gT], forall x, h x = 1 <-> x = 1%g}.
 have: cyclic [set: gT] by apply: (field_mul_group_cyclic (f:=h)).
 move/cyclicP => [z Hz].
 exists (h z).
-
 apply/eqP.
 rewrite /eq_op /=.
 apply/eqP.
@@ -1640,9 +1653,7 @@ apply/andP;split;rewrite -subsetFadjoinE; last first.
  case: z {Hz} => ? /=.
  move/allpairsP => [[ix iy] [_ _ ->]].
  rewrite /h0 /= memv_mul // memv_exp //; last by rewrite memx_Fadjoin.
- move/subvP: (subsetKFadjoin (Fadjoin K x) y).
- apply.
- by rewrite memx_Fadjoin.
+ by rewrite memK_Fadjoin // memx_Fadjoin.
 rewrite -subsetFadjoinE subsetKFadjoin /=.
 have Hxl : x \in l.
  apply/allpairsP.
@@ -2121,7 +2132,40 @@ apply: PET_infiniteCase_subproof => //.
 by apply: HKl.
 Qed.
 
+(* With more work the Primitive Element Theorem can be strengthened by weakining
+   the hypothesis (seperableElement K y) to (seperableElement (Fadjoin K x) y).
+   See VI.6.7 from "A Course in Constructive Algebra". *)
+
 End PrimitiveElementTheorem.
+(*
+Definition seperable (E K : {algebra L}) : bool :=
+ all (seperableElement K) (vbasis E).
+
+Lemma seperableP : forall (E K : {algebra L}),
+  reflect (forall y, y \in E -> seperableElement K y)
+          (seperable E K).
+Proof.
+move => E K.
+apply (iffP idP); last first.
+ move => HEK.
+ apply/allP => x; move/memv_basis => Hx.
+ by apply: HEK.
+move/allP => HEK y.
+pose EK := foldr (fun x K => Fadjoin K x) K (vbasis E).
+have/subvP HEEK : (E <= EK)%VS.
+ rewrite /EK.
+ apply/subvP => v.
+ move/coord_basis ->.
+ elim: (vbasis E) (fun_of_fin (coord (vbasis E) v)) => 
+       [|x xs IH] f /=; first by rewrite big_ord0 mem0v.
+ rewrite big_ord_recl memvD //; last by rewrite memK_Fadjoin.
+ by rewrite memvZl // memx_Fadjoin.
+move/HEEK.
+move: HEK.
+rewrite /EK.
+elim: (vbasis E) y => [|x xs IH] y /=; first by move => _; apply: seperableinK.
+move => Hsep.
+*)
 
 (*
 Section Eigenspace.
