@@ -1209,20 +1209,24 @@ rewrite seperable_nzdmp size_elementDegree.
 by rewrite (leq_trans (size_Poly _)) // size_mkseq size_minPoly leqnn.
 Qed.
 
-Lemma DerivationSeperable : forall D, Derivation Fadjoin D -> 
+Lemma DerivationSeperable : forall E D, Derivation E D ->
+ (Fadjoin <= E)%VS -> 
  seperableElement ->
  D x = - (map_poly D (minPoly K x)).[x] / ((minPoly K x)^`()).[x].
 Proof.
-move => D Dderiv.
+move => E D Dderiv.
+move/subvP => HE.
 move: seperableNrootdmp.
 rewrite negb_eqb addbC /root.
 move/addbP => <- Hroot.
 apply: (canRL (mulfK Hroot)).
 rewrite -sub0r.
 apply: (canRL (addrK _)).
-rewrite mulrC addrC -(DerivationPoly Dderiv) ?memx_Fadjoin //; last first.
- by apply: (polyOver_subset subsetKFadjoin (minPolyOver _ _)).
-by rewrite minPolyxx linear0.
+rewrite mulrC addrC -(DerivationPoly Dderiv) ?HE // ?memx_Fadjoin //.
+ by rewrite minPolyxx linear0.
+move/subvP/polyOver_subset: HE.
+apply.
+by apply: (polyOver_subset subsetKFadjoin (minPolyOver _ _)).
 Qed.
 
 Section DerivationExtend.
@@ -1357,8 +1361,9 @@ apply introP.
   apply/eqP.
   by rewrite (coef_map [linear of D]) ?linear0 //= coef0 -memv_ker K0.
  by rewrite memv_ker (DerivationPoly DD) ?memx_Fadjoin 
-         ?(polyOver_subset subsetKFadjoin Hp) // (DerivationSeperable DD sep)
-         /horner_morph !HD0 ?minPolyOver // horner0 oppr0 mul0r mulr0 addr0.
+         ?(polyOver_subset subsetKFadjoin Hp) // 
+         (DerivationSeperable DD (subv_refl _) sep) /horner_morph !HD0
+         ?minPolyOver // horner0 oppr0 mul0r mulr0 addr0.
 move => nsep.
 move: seperableNrootdmp (nsep).
 rewrite negb_eqb.
@@ -1476,8 +1481,8 @@ have hmD : forall t, polyOver K t ->
   by rewrite -memv_ker KD0.
  apply: (subv_trans _ (subsetKFadjoin _ _)).
  by apply: Ht.
-by rewrite (DerivationSeperable DED) // !hmD ?compose_polyOver ?minPolyOver //
-           oppr0 mul0r mulr0 addr0.
+by rewrite (DerivationSeperable DED (subv_refl _)) // !hmD ?compose_polyOver 
+           ?minPolyOver // oppr0 mul0r mulr0 addr0.
 Qed.
 
 Section PrimitiveElementTheorem.
