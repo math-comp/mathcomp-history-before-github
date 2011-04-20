@@ -281,16 +281,14 @@ Qed.
    deriviation I will use are going to be linear, so we just define a
    derivation to be linear. *) 
 Definition Derivation (K:{algebra L}) (D : 'End(L)) : bool :=
- (D @: K <= K)%VS &&
  (all (fun v1 => all (fun v2 => D (v1 * v2) == D v1 * v2 + v1 * D v2) 
                      (vbasis K))
       (vbasis K)).
 
 Lemma DerivationMul : forall E D, Derivation E D -> 
-forall u v, u \in E -> v \in E -> D (u * v) = D u * v + u * D v.
+  forall u v, u \in E -> v \in E -> D (u * v) = D u * v + u * D v.
 Proof.
 move => E D.
-case/andP => _.
 move/all_nthP => Dmult u v Hu Hv.
 have Hspan : (is_span E (vbasis E)) by rewrite is_basis_span ?is_basis_vbasis.
 rewrite (is_span_span Hspan Hu) (is_span_span Hspan Hv).
@@ -381,6 +379,17 @@ rewrite horner_amulX linearD /= (DerivationMul HD) ?(memv_horner Hp0)
 rewrite (IHp Hp0) deriv_amulX !horner_add !horner_mul !hornerX !hornerC.
 rewrite !mulr_addl -!addrA; congr (_ + _).
 by rewrite addrC [_ + D c]addrC -mulrA [_ * x]mulrC mulrA addrA.
+Qed.
+
+Lemma subvDerivation : forall (E K : {algebra L}) D, (K <= E)%VS ->
+  Derivation E D -> Derivation K D.
+Proof.
+move => E K D.
+move/subvP => HKE HED.
+apply/allP => x Hx.
+apply/allP => y Hy.
+apply/eqP.
+by rewrite (DerivationMul HED) // HKE // memv_basis.
 Qed.
 
 Section Fadjoin.
@@ -1209,24 +1218,20 @@ rewrite seperable_nzdmp size_elementDegree.
 by rewrite (leq_trans (size_Poly _)) // size_mkseq size_minPoly leqnn.
 Qed.
 
-Lemma DerivationSeperable : forall E D, Derivation E D ->
- (Fadjoin <= E)%VS -> 
+Lemma DerivationSeperable : forall D, Derivation Fadjoin D -> 
  seperableElement ->
  D x = - (map_poly D (minPoly K x)).[x] / ((minPoly K x)^`()).[x].
 Proof.
-move => E D Dderiv.
-move/subvP => HE.
+move => D Dderiv.
 move: seperableNrootdmp.
 rewrite negb_eqb addbC /root.
 move/addbP => <- Hroot.
 apply: (canRL (mulfK Hroot)).
 rewrite -sub0r.
 apply: (canRL (addrK _)).
-rewrite mulrC addrC -(DerivationPoly Dderiv) ?HE // ?memx_Fadjoin //.
- by rewrite minPolyxx linear0.
-move/subvP/polyOver_subset: HE.
-apply.
-by apply: (polyOver_subset subsetKFadjoin (minPolyOver _ _)).
+rewrite mulrC addrC -(DerivationPoly Dderiv) ?memx_Fadjoin //; last first.
+ by apply: (polyOver_subset subsetKFadjoin (minPolyOver _ _)).
+by rewrite minPolyxx linear0.
 Qed.
 
 Section DerivationExtend.
@@ -1300,34 +1305,6 @@ Lemma DerivationExtendDerivation :
  seperableElement -> Derivation Fadjoin DerivationExtend.
 Proof.
 move => sep.
-have polyOverMapD : forall p, polyOver K p -> polyOver K (map_poly D p).
- move => p pK.
- apply/polyOverP => i.
- case/andP: HD; move/subvP => HD1 _.
- rewrite (coef_map [linear of D]) ?linear0 // HD1 // memv_img //.
- by move: i; apply/polyOverP.
-apply/andP;split.
- apply/subvP => ?.
- move/memv_imgP => [v [Hv ->]].
- rewrite lapp_of_funK; last by apply: DerivationExtend_body_linear.
- rewrite /DerivationExtend_body /horner_morph.
- rewrite memvD //.
-  apply/poly_Fadjoin.
-  exists (map_poly D (poly_for_Fadjoin K x v)); split => //.
-  by rewrite polyOverMapD // poly_for_polyOver.
- rewrite memv_mul //.
-  apply/poly_Fadjoin.
-  exists ((poly_for_Fadjoin K x v)^`()); split => //.
-  by rewrite deriv_polyOver // poly_for_polyOver.
- rewrite memv_mul //.
-  rewrite memvN.
-  apply/poly_Fadjoin.
-  exists (map_poly D (minPoly K x)); split => //.
-  by rewrite polyOverMapD // minPolyOver.
- rewrite -memv_inv.
- apply/poly_Fadjoin.
- exists ((minPoly K x)^`()); split => //.
- by rewrite deriv_polyOver // minPolyOver.
 apply/allP => u; move/memv_basis => Hu.
 apply/allP => v; move/memv_basis => Hv.
 apply/eqP.
@@ -1361,9 +1338,8 @@ apply introP.
   apply/eqP.
   by rewrite (coef_map [linear of D]) ?linear0 //= coef0 -memv_ker K0.
  by rewrite memv_ker (DerivationPoly DD) ?memx_Fadjoin 
-         ?(polyOver_subset subsetKFadjoin Hp) // 
-         (DerivationSeperable DD (subv_refl _) sep) /horner_morph !HD0
-         ?minPolyOver // horner0 oppr0 mul0r mulr0 addr0.
+         ?(polyOver_subset subsetKFadjoin Hp) // (DerivationSeperable DD sep)
+         /horner_morph !HD0 ?minPolyOver // horner0 oppr0 mul0r mulr0 addr0.
 move => nsep.
 move: seperableNrootdmp (nsep).
 rewrite negb_eqb.
@@ -1380,11 +1356,6 @@ have DF : (K <= lker D)%VS.
  by rewrite memv_ker lapp_of_funK // /D //= /D_body poly_for_K // derivC 
             horner0.
 have DDeriv : Derivation Fadjoin D.
- apply/andP; split.
-  apply/subvP => ?.
-  move/memv_imgP => [v [Hv1 ->]].
-  by rewrite lapp_of_funK // /D //= /D_body mempx_Fadjoin // deriv_polyOver //
-             poly_for_polyOver.
  apply/allP => u; move/memv_basis => Hu.
  apply/allP => v; move/memv_basis => Hv.
  by rewrite !lapp_of_funK // /D //= /D_body {-2}(poly_for_eq Hu)
@@ -1481,8 +1452,8 @@ have hmD : forall t, polyOver K t ->
   by rewrite -memv_ker KD0.
  apply: (subv_trans _ (subsetKFadjoin _ _)).
  by apply: Ht.
-by rewrite (DerivationSeperable DED (subv_refl _)) // !hmD ?compose_polyOver 
-           ?minPolyOver // oppr0 mul0r mulr0 addr0.
+by rewrite (DerivationSeperable DED) // !hmD ?compose_polyOver ?minPolyOver //
+           oppr0 mul0r mulr0 addr0.
 Qed.
 
 Section PrimitiveElementTheorem.
@@ -1565,30 +1536,30 @@ by move/(f_equal val) => /=.
 Qed.
 
 Lemma PET_finiteCase_subproof : 
-  KisBig \/ exists z, Fadjoin (Fadjoin K x) y = Fadjoin K z.
+  KisBig \/ exists z, Fadjoin (Fadjoin K y) x = Fadjoin K z.
 Proof.
 case (eqVneq x 0) => [->|Hx0].
  right; exists y.
- move: (mem0v K).
- rewrite FadjoinxK.
- by move/eqP ->.
-move/cyclicOrBig: (Hx0) => [|[[|a] Hxa]]; first by left.
- rewrite expr1 in Hxa.
- right; exists y.
- move: (memv1 K).
- rewrite FadjoinxK Hxa.
- by move/eqP ->.
-case (eqVneq y 0) => [->|Hy0].
- right; exists x.
  apply/eqP.
  rewrite -FadjoinxK.
  by apply: mem0v.
+move/cyclicOrBig: (Hx0) => [|[[|a] Hxa]]; first by left.
+ rewrite expr1 in Hxa.
+ right; exists y.
+ apply/eqP.
+ rewrite -FadjoinxK Hxa.
+ by apply: memv1.
+case (eqVneq y 0) => [->|Hy0].
+ right; exists x.
+ move: (mem0v K).
+ rewrite FadjoinxK.
+ by move/eqP ->.
 move/cyclicOrBig: (Hy0) => [|[[|b] Hyb]]; first by left.
  rewrite expr1 in Hyb.
  right; exists x.
- apply/eqP.
- rewrite -FadjoinxK Hyb.
- by apply: memv1.
+ move: (memv1 K).
+ rewrite FadjoinxK Hyb.
+ by move/eqP ->.
 right.
 pose h0 := fun (i:'I_a.+2) (j:'I_b.+2) => x ^+ i * y ^+ j.
 pose l := allpairs h0 (ord_enum _) (ord_enum _).
@@ -1654,10 +1625,10 @@ rewrite /eq_op /=.
 apply/eqP.
 apply:subv_anti.
 apply/andP;split;rewrite -subsetFadjoinE; last first.
- rewrite (subv_trans (subsetKFadjoin K x) (subsetKFadjoin _ y)) /h /=.
+ rewrite (subv_trans (subsetKFadjoin K y) (subsetKFadjoin _ x)) /h /=.
  case: z {Hz} => ? /=.
  move/allpairsP => [[ix iy] [_ _ ->]].
- rewrite /h0 /= memv_mul // memv_exp //; last by rewrite memx_Fadjoin.
+ rewrite /h0 /= memv_mul // memv_exp //; first by rewrite memx_Fadjoin.
  by rewrite memK_Fadjoin // memx_Fadjoin.
 rewrite -subsetFadjoinE subsetKFadjoin /=.
 have Hxl : x \in l.
@@ -2074,19 +2045,18 @@ apply: contraR troot.
 apply: root_det_coprime_subproof.
 Qed.
 
-Lemma PET_infiniteCase_subproof : Fadjoin (Fadjoin K x) y = Fadjoin K z.
+Lemma PET_infiniteCase_subproof : Fadjoin (Fadjoin K y) x = Fadjoin K z.
 Proof.
 apply/eqP.
 rewrite /eq_op /=.
 apply/eqP.
 apply: subv_anti.
 apply/andP;split; rewrite -subsetFadjoinE; last first.
- rewrite (subv_trans (subsetKFadjoin K x) (subsetKFadjoin _ y)) /=.
- have -> : z = (x%:P - t *: 'X).[y] by rewrite !horner_lin.
- rewrite mempx_Fadjoin // addp_polyOver ?opp_polyOver ?polyOverC ?memx_Fadjoin
-         // scalep_polyOver ?polyOverX //.
- have -> : t = (t%:P).[x] by rewrite horner_lin.
- by rewrite mempx_Fadjoin // polyOverC.
+ rewrite (subv_trans (subsetKFadjoin K y) (subsetKFadjoin _ x)) /=.
+ have -> : z = ('X - t *: y%:P).[x] by rewrite !horner_lin.
+ rewrite mempx_Fadjoin // addp_polyOver ?opp_polyOver ?scalep_polyOver
+         ?polyOverC ?polyOverX //; last by rewrite memx_Fadjoin.
+ by rewrite memK_Fadjoin.
 rewrite -subsetFadjoinE.
 rewrite subsetKFadjoin /=.
 have Hy : (y \in Fadjoin K z).
@@ -2115,13 +2085,14 @@ have Hy : (y \in Fadjoin K z).
  apply (can_inj (mulKr c1nz)).
  by rewrite [y * _]mulrC mulrA mulrN -!coef_scaler Hc !coef_scaler !coef_add
             !coefX add0r !coef_opp !coefC subr0 mulr1 mulrN opprK.
-by rewrite Hy andbT -[x](subrK (t * y)) -/z memvD ?memv_mul 
-           ?[t \in _](subv_trans _ (subsetKFadjoin _ _)) // memx_Fadjoin.
+rewrite Hy /= -[x](subrK (t * y)) -/z memvD ?memv_mul //.
+ by rewrite memx_Fadjoin.
+by rewrite memK_Fadjoin.
 Qed.
 
 End InfiniteCase.
 
-Lemma PrimitiveElementTheorem : exists z, Fadjoin (Fadjoin K x) y = Fadjoin K z.
+Lemma PrimitiveElementTheorem : exists z, Fadjoin (Fadjoin K y) x = Fadjoin K z.
 Proof.
 case: (PET_finiteCase_subproof (n * m)) => [[l]|//].
 case/and3P; move/allP => HKl Hl Hnml.
@@ -2138,10 +2109,28 @@ by apply: HKl.
 Qed.
 
 (* With more work the Primitive Element Theorem can be strengthened by weakining
-   the hypothesis (seperableElement K y) to (seperableElement (Fadjoin K x) y).
+   the hypothesis (seperableElement K y) to (seperableElement (Fadjoin K y) x).
    See VI.6.7 from "A Course in Constructive Algebra". *)
 
+Lemma seperableFadjoinExtend : seperableElement (Fadjoin K y) x -> 
+  seperableElement K x.
+Proof.
+move/seperableDerivationP => sepx.
+move/seperableDerivationP: sep => sepy.
+case: PrimitiveElementTheorem => z Hz.
+suff/allSeperableElement : seperableElement K z.
+ by apply; rewrite -Hz memx_Fadjoin.
+apply/seperableDerivationP => D.
+rewrite -Hz => HDz.
+have HDy : Derivation (Fadjoin K y) D.
+ apply: (subvDerivation _ HDz).
+ by rewrite subsetKFadjoin.
+move/(sepy _ HDy).
+by apply: sepx.
+Qed.
+
 End PrimitiveElementTheorem.
+
 (*
 Definition seperable (E K : {algebra L}) : bool :=
  all (seperableElement K) (vbasis E).
