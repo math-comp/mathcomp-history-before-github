@@ -1,6 +1,6 @@
 Require Import ssreflect ssrbool ssrfun eqtype fintype finfun finset ssralg.
-Require Import bigop seq choice ssrnat prime ssralg fingroup pgroup zmodp.
-Require Import matrix vector galgebra algebra.
+Require Import bigop seq tuple choice ssrnat prime ssralg fingroup pgroup.
+Require Import zmodp matrix vector galgebra algebra.
 
 (*****************************************************************************)
 (*  * Module over an algebra                                                 *)
@@ -129,18 +129,22 @@ Qed.
 Implicit Types vs: {vspace M}.
 Implicit Types ws: {vspace A}.
 
-Definition eprodv vs ws := span (allpairs rmul (vbasis vs) (vbasis ws)).
+Lemma size_eprodv : forall vs ws,
+  size (allpairs rmul (vbasis vs) (vbasis ws)) == (\dim vs * \dim ws)%N.
+Proof. by move=> *; rewrite size_allpairs !size_tuple. Qed.
+
+Definition eprodv vs ws := span (Tuple (size_eprodv vs ws)).
 Local Notation "A :* B" := (eprodv A B) : vspace_scope.
 
 Lemma memv_eprod : forall vs ws a b , a \in vs -> b \in ws -> a :* b \in (vs :* ws)%VS.
 Proof. 
 move=> vs ws a b Ha Hb.
 rewrite (coord_basis Ha) (coord_basis Hb).
-rewrite linear_sum /=; apply: memv_suml => [] [j Hj] _.
-rewrite -rmul_sum; apply: memv_suml => [] [i Hi] _ /=.
+rewrite linear_sum /=; apply: memv_suml => j _.
+rewrite -rmul_sum; apply: memv_suml => i _ /=.
 rewrite linearZ memvZl //= rmulZ memvZl //=.
 apply: memv_span; apply/allpairsP; exists ((vbasis vs)`_i, (vbasis ws)`_j)=> //.
-by rewrite !mem_nth /=.
+by rewrite !mem_nth //= size_tuple.
 Qed.
 
 Lemma eprodvP : forall vs1 ws vs2,   reflect (forall a b, a \in vs1 -> b \in ws -> a :* b \in vs2)
@@ -150,9 +154,12 @@ move=> vs1 ws vs2; apply: (iffP idP).
   move=> Hs a b Ha Hb.
   by apply: subv_trans Hs; exact: memv_eprod.
 move=> Ha; apply/subvP=> v.
-move/coord_span->; apply: memv_suml=> [] [i /= Hi] _.
-apply: memvZl; move: (mem_nth 0 Hi); case/allpairsP=> p [I1 I2 ->].
-by rewrite Ha // memv_basis.
+move/coord_span->; apply: memv_suml=> i _ /=.
+apply: memvZl.
+set u := allpairs _ _ _.
+have: i < size u by rewrite (eqP (size_eprodv _ _)).
+move/(mem_nth 0); case/allpairsP=> [[x1 x2] [I1 I2 ->]].
+by apply Ha; apply: memv_basis.
 Qed.
 
 Lemma eprod0v: left_zero (0%:VS) eprodv.
@@ -179,7 +186,7 @@ apply/subvP=> v Hv.
 rewrite (coord_basis Hv); apply: memv_suml=> [] [i Hi] _ /=.  
 apply: memvZl.
 rewrite -[_`_i]rmul1; apply: memv_eprod; last by apply: memv_inj.
-by apply: memv_basis; apply: mem_nth.
+by apply: memv_basis; apply: mem_nth; rewrite size_tuple.
 Qed.
 
 Lemma eprodv_monol : forall ws vs1 vs2, (vs1 <= vs2 -> vs1 :* ws <= vs2 :* ws)%VS.
@@ -315,7 +322,7 @@ rewrite rmulZ !linearZ /= rmulZ; congr (_ *: _).
 set x1 := _`_ _; set y1 := _ `_ _.
 case: f H => f /=; move/allP; move/(_ (x1,y1))=> HH.
 apply/eqP; apply: HH; apply/allpairsP; exists (x1, y1).
-by rewrite !mem_nth /=.
+by rewrite !mem_nth //= size_tuple.
 Qed.
 
 Lemma modf_zero : forall ms al, modf 0 ms al.

@@ -4631,7 +4631,8 @@ Lemma cycle_repr_structure : forall x (sG : irrType G),
 Proof.
 move=> x sX defG; rewrite {defG}(group_inj defG) -/#[x] in sX *.
 move=> F'X splitF; have Xx := cycle_id x; have cXX := cycle_abelian x.
-have card_sX: #|sX| = #[x] by rewrite card_irr // card_classes_abelian.
+have card_sX: #|sX| = #[x].
+  by rewrite card_irr //; apply/eqP; rewrite -card_classes_abelian.
 have linX := irr_degree_abelian splitF cXX (_ : sX).
 pose r (W : sX) := irr_mode W x.
 have scalX: forall W, irr_repr W x = (r W)%:M.

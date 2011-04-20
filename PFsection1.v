@@ -26,7 +26,7 @@ Lemma odd_eq_conj_irr1 : forall (G : {group gT}) (theta : irr G),
   odd #|G| -> ((theta^*)%CH == theta) = (theta == irr1 G).
 Proof.
 move=> G t OG; apply/eqP/eqP=> [Ht|->]; last first.
-  by apply/cfunP=> g; rewrite cfunE irr1E conjC_nat.
+  by apply/ffunP=> g; rewrite ffunE irr1E conjC_nat.
 pose a := (@Zp1 1).
 have Aito:
     is_action <[a]> (fun (t : irr G) v => if v == a then irr_conjC t else t).
@@ -53,7 +53,7 @@ have F2:  forall c (t : irr G),  c \in classes G ->
   case/imsetP: CiG=> g GiG ->; rewrite class_inv.
   case: (repr_class G g)=> h1 H1iG ->.
   case: (repr_class G g^-1)=> h2 H2iG ->.
-  by rewrite conjVg invgK !(cfunJ (irr_in_cfun _)).
+  by rewrite conjVg invgK !(cfunJ _ (memc_irr _)).
 have F3: forall c, c \in classes G -> c^-1%g = c -> c = 1%g.
   move=> c; case/imsetP => g GiG ->; rewrite class_inv => Hg.
   move: (class_refl G g^-1); rewrite Hg; case/imsetP=> x XiG Hx.
@@ -74,7 +74,7 @@ have F3: forall c, c \in classes G -> c^-1%g = c -> c = 1%g.
   have F6: (g^+2 == 1)%g by rewrite expgS -{1}HH expg1 mulVg.
   suff: #[g] == 1%N by rewrite order_eq1; move/eqP->; apply: class1G.
   move: F6 (order_gt0 g) (order_dvdG GiG); rewrite -order_dvdn.
-  move/(dvdn_leq (is_true_true: (0<2)%N)); case: #[_]=> // [[|[]]] //.
+  move/(dvdn_leq (is_true_true: (0 < 2)%N)); case: #[_]=> // [[|[]]] //.
   by rewrite dvdn2 OG.
 apply/eqP; case: (boolP (t == irr1 G))=> // Hd.
 move: (action_irr_class_card (cycle_id a) F1 F2).
@@ -88,13 +88,13 @@ have->: #|'Fix_(classes G | cto)[a]| = 1%N.
 rewrite (cardD1 (irr1 G)).
 have->: irr1 G \in 'Fix_ito[a].
   apply/afixP=> b; rewrite !inE; move/eqP->; rewrite /=.
-  apply: cfun_of_irr_inj; apply/cfunP=> g.
+  apply: cfun_of_irr_inj; apply/ffunP=> g.
   by rewrite irr_conjCE cfun_conjCE !irr1E conjC_nat.
 rewrite (cardD1 t) //.
 suff->: t \in [predD1 'Fix_ito[a] & irr1 G] by [].
 rewrite inE /= Hd.
 apply/afixP=> b; rewrite !inE; move/eqP->; rewrite /=.
-apply: cfun_of_irr_inj; apply/cfunP=> g.
+apply: cfun_of_irr_inj; apply/ffunP=> g.
 by rewrite irr_conjCE Ht.
 Qed.
 
@@ -181,20 +181,20 @@ Lemma induced_sum_rcosets :
   'Res[H] ('Ind[G,H] theta) = 
      #|('I_(G)[theta])%CH : H|%:R *: \sum_(f <- cconjugates G theta) f.
 Proof.
-move=> t HnG; apply/cfunP=> h.
+move=> t HnG; apply/ffunP=> h.
 pose GI := ([group of 'I_(G)[t]])%CH.
 rewrite big_map big_filter.
 case: (boolP (h \in H))=> [HiH|HniH]; last first.
-  rewrite cfunE (negPf HniH) mul0r cfunE sum_cfunE cfunE.
-  rewrite big1 ?(scaler0,cfunE,mulr0) // => C1.
+  rewrite ffunE (negPf HniH) mul0r ffunE sum_ffunE ffunE.
+  rewrite big1 ?(scaler0,ffunE,mulr0) // => C1.
   case/rcosetsP=> h1 H1iG ->.
   have RiG: repr (GI :* h1) \in G.
     case: (repr_rcosetP GI h1)=> g GiI.
     by rewrite groupM // (subsetP (inertia_sub G t)).
-  by rewrite -(irr_conjE _ HnG RiG) (cfun0 _ HniH) // irr_in_cfun.
-rewrite crestrictE // !(sum_cfunE,cfunE).
+  by rewrite -(irr_conjE _ HnG RiG) (cfun0 _ HniH) // memc_irr.
+rewrite crestrictE // !(sum_ffunE,ffunE).
 apply: (mulfI (neq0GC H)); rewrite !mulrA divff ?(neq0GC H) // mul1r.
-rewrite -natr_mul LaGrange ?(subset_inertia, irr_in_cfun) //.
+rewrite -natr_mul LaGrange ?(subset_inertia, memc_irr) //.
 rewrite -mulr_sumr.
 rewrite (reindex invg) /=; last by exists invg=> g; rewrite invgK.
 rewrite (eq_bigr (fun j => (t ^ j)%CH h)); last first.
@@ -228,14 +228,14 @@ Qed.
 Lemma induced_prod_index : forall (theta : irr H),  H <| G -> 
     '['Ind[G,H] theta,'Ind[G,H] theta]_G = #|('I_(G)[theta])%CH : H|%:R.
 Proof.
-move=> t HnG; have CFi := irr_in_cfun t; have HsG := normal_sub HnG.
-rewrite -frobenius_reciprocity ?cinduced_in_cfun //.
+move=> t HnG; have CFi := memc_irr t; have HsG := normal_sub HnG.
+rewrite -frobenius_reciprocity ?memc_induced //.
 have->: '[t, 'Res[H] ('Ind[G,H] t)]_H =
   #|('I_(G)[t])%CH : H|%:R * '[t, (\sum_(f <- cconjugates G t) f)]_H.
  rewrite !inner_prodE mulrA [_%:R * _]mulrC -mulrA -[_%:R * _]mulr_sumr.
  congr (_ * _); apply: eq_bigr=> h HiH.
  rewrite mulrA [_%:R * _]mulrC -mulrA; congr (_ * _).
- by rewrite (induced_sum_rcosets _ HnG) // !cfunE rmorphM conjC_nat.
+ by rewrite (induced_sum_rcosets _ HnG) // !ffunE rmorphM conjC_nat.
 rewrite big_map big_filter.
 rewrite raddf_sum (bigD1 ('I_(G)[t] :* 1%g)%CH) /=; last first.
   by apply/rcosetsP; exists 1%g; rewrite ?group1.
@@ -258,14 +258,14 @@ Qed.
 (*  This 1.5c *)
 Lemma cconjugates_irr_induced : 
   forall (theta1 theta2 : irr H), H <| G ->
-    if ((theta2 : cfun _ _) \in cconjugates G theta1) 
+    if ((theta2 : {cfun _}) \in cconjugates G theta1) 
     then 'Ind[G,H] theta1 = 'Ind[G,H] theta2 
     else '['Ind[G,H] theta1, 'Ind[G,H] theta2]_G = 0.
 Proof.
 move=> t1 t2 HnG; case: (boolP (_ \in _))=> [IC|NiC].
-  by apply: cconjugates_induced=> //; exact: irr_in_cfun.
+  by apply: cconjugates_induced=> //; exact: memc_irr.
 rewrite -frobenius_reciprocity 
-        ?(normal_sub HnG,irr_in_cfun,cinduced_in_cfun) //.
+        ?(normal_sub HnG,memc_irr,memc_induced) //.
 rewrite (induced_sum_rcosets _ HnG) inner_prodZ raddf_sum.
 rewrite big_map big_filter big1 ?mulr0 //=.
 move=> C1 HC1.
@@ -332,16 +332,16 @@ Lemma irr1_bound_quo : forall (B C D : {group gT}) (i : irr G),
 Proof.
 move=> B C D i BnC BsK BsD DsC CsG QsZ.
 case: (boolP ('Res[C] i == 0))=> [HH|].
-  have: ('Res[C] i) 1%g = 0 by rewrite (eqP HH) cfunE.
+  have: ('Res[C] i) 1%g = 0 by rewrite (eqP HH) ffunE.
   by rewrite crestrictE // => HH1; case/eqP: (irr1_neq0 i).
 have IC := is_char_restrict CsG (is_char_irr i).
-case/(is_comp_neq0 (is_char_in_cfun IC))=> i1 Hi1.
+case/(is_comp_neq0 (memc_is_char IC))=> i1 Hi1.
 have CIr: is_comp i ('Ind[G,C] i1).
   rewrite /is_comp ncoord_inner_prod 
-          ?(cinduced_in_cfun, irr_in_cfun) //.
-  rewrite -frobenius_reciprocity ?irr_in_cfun //.
+          ?(memc_induced, memc_irr) //.
+  rewrite -frobenius_reciprocity ?memc_irr //.
   rewrite inner_prod_charC ?is_char_irr //.
-  by rewrite  -ncoord_inner_prod // is_char_in_cfun.
+  by rewrite  -ncoord_inner_prod // memc_is_char.
 have BsKi : B \subset cker C i1.
   suff BsKri: B \subset cker C ('Res[C] i).
     by apply: (subset_trans BsKri); exact: (is_comp_cker _ Hi1).

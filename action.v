@@ -2532,12 +2532,28 @@ have: x \in x ^: G by rewrite -{1}(conjg1 x) mem_imset.
 by move/mem_repr; case/imsetP=> y Gy ->; rewrite index_cent1 classGidl.
 Qed.
 
-Lemma card_classes_abelian : abelian G -> #|classes G| = #|G|.
+Lemma card_classes_abelian : abelian G = (#|classes G| == #|G|).
 Proof.
-move=> cGG; rewrite -sum_card_class -sum1_card; apply: eq_bigr => xG.
-case/imsetP=> x Gx ->; rewrite (@eq_card1 _ x) // => y.
-apply/idP/eqP=> [| ->]; last by rewrite class_refl.
-by case/imsetP=> z Gz ->; rewrite conjgE (centsP cGG x) ?mulKg.
+have AbP : reflect (forall i, i \in classes G -> #|i| = 1%N) (abelian G).
+  apply(iffP idP)=> [HH i| HH].
+    case/imsetP=> g InG ->; apply/eqP; apply/cards1P; exists g.
+    by apply/cent_classP; move/subsetP: HH->.
+  apply/subsetP=> g InG; apply/centP=> h InH.
+  move/eqP: (HH _ (mem_classes InG)); case/cards1P=> l H.
+  have:= class_refl G g; have:= memJ_class g InH.
+  rewrite H !inE; move/eqP=> H1; move/eqP=> H2.
+  by rewrite /commute {2}H2 -H1 mulgA mulgV mul1g.
+rewrite -sum_card_class; apply/idP/idP=>[|HH].
+  by move/AbP=> HH; rewrite (eq_bigr (fun _ => 1%N)) // sum_nat_const muln1.
+have Cpos: forall g, g \in G -> (0 < #|g ^: G|)%N.
+  by move=> g InG; rewrite (cardD1 g) class_refl.
+apply/AbP=> i; case/imsetP=> g InG ->; move: HH.
+rewrite (eq_bigr (fun  C : {set gT}  => #|C|.-1 + 1))%N; last first.
+  by move=> C; case/imsetP=> h InH->; rewrite addn1 prednK // Cpos.
+rewrite big_split sum_nat_const //= muln1 -{1}[#|_|]add0n eqn_addr.
+rewrite eq_sym sum_nat_eq0.
+move/forallP; move/(_ (g ^: G)); move/implyP; move/(_ (mem_classes InG)).
+by case: #|_| (Cpos _ InG)=> // [] [].
 Qed.
 
 End CardClass.

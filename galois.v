@@ -1,4 +1,4 @@
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq tuple.
 Require Import fintype finfun bigop ssralg poly polydiv.
 Require Import zmodp vector algebra fieldext.
 Require Import fingroup perm finset matrix mxalgebra.
@@ -281,15 +281,15 @@ Qed.
    deriviation I will use are going to be linear, so we just define a
    derivation to be linear. *) 
 Definition Derivation (K:{algebra L}) (D : 'End(L)) : bool :=
+ let s := vbasis K in
  (all (fun v1 => all (fun v2 => D (v1 * v2) == D v1 * v2 + v1 * D v2) 
-                     (vbasis K))
-      (vbasis K)).
+                     s) s).
 
 Lemma DerivationMul : forall E D, Derivation E D -> 
   forall u v, u \in E -> v \in E -> D (u * v) = D u * v + u * D v.
 Proof.
 move => E D.
-move/all_nthP => Dmult u v Hu Hv.
+move/all_nthP; rewrite size_tuple=> Dmult u v Hu Hv.
 have Hspan : (is_span E (vbasis E)) by rewrite is_basis_span ?is_basis_vbasis.
 rewrite (is_span_span Hspan Hu) (is_span_span Hspan Hv).
 rewrite !linear_sum -big_split /=.
@@ -297,7 +297,8 @@ apply: eq_bigr => j _.
 rewrite -!mulr_suml linear_sum /=  -big_split /=.
 apply: eq_bigr => i _.
 rewrite -scaler_mull linearZ /= -scaler_mulr linearZ /=.
-move/all_nthP : (Dmult 0 _ (ltn_ord i)); move/(_ 0_ (ltn_ord j)); move/eqP->.
+move/all_nthP : (Dmult 0 _ (ltn_ord i)); rewrite size_tuple.
+move/(_ 0_ (ltn_ord j)); move/eqP->.
 by rewrite ![D (_ *: _)]linearZ /= -!scaler_mull -!scaler_mulr !scaler_addr.
 Qed.
 
@@ -497,15 +498,13 @@ Qed.
 (* Give k*x^i return the k.  Used as a tool.
    It would nicer to hide this definition and it's assocated lemmas. *)
 Definition MinPoly_coef i v := 
-  \sum_j coord (map (fun y => (y * x ^+ i)) (vbasis K)) v j *: (vbasis K)`_j.
+  \sum_j coord [tuple of map (fun y => (y * x ^+ i)) (vbasis K)] v j *: (vbasis K)`_j.
 
 Lemma MinPoly_coefK : forall i v, MinPoly_coef i v \in K.
 Proof.
 move => i v.
 rewrite /MinPoly_coef /= memv_suml => // j _.
-rewrite memvZl // memv_basis // mem_nth //.
-move: j.
-by rewrite size_map.
+by rewrite memvZl // memv_basis // mem_nth // size_tuple.
 Qed.
 
 Lemma memv_MinPoly_coef : forall i v, v \in (K * (x ^+ i)%:VS)%VS ->
@@ -518,9 +517,7 @@ rewrite (_ : (K * (x ^+ i)%:VS)%VS =
  rewrite {1}Hv {Hv} /MinPoly_coef.
  rewrite -GRing.mulr_suml.
  apply: eq_bigr => j _.
- rewrite (nth_map 0) ?scaler_mull //.
- move: j.
- by rewrite size_map.
+ by rewrite (nth_map 0) ?scaler_mull // size_tuple.
 apply: subv_anti.
 rewrite -!span_subsetl.
 apply/andP; split; apply/allP; last first.
@@ -2149,14 +2146,15 @@ have/subvP HEEK : (E <= EK)%VS.
  rewrite /EK.
  apply/subvP => v.
  move/coord_basis ->.
- elim: (vbasis E) (fun_of_fin (coord (vbasis E) v)) => 
-       [|x xs IH] f /=; first by rewrite big_ord0 mem0v.
- rewrite big_ord_recl memvD //; last by rewrite memK_Fadjoin.
- by rewrite memvZl // memx_Fadjoin.
+ apply: memv_suml=> i _; apply: memvZl.
+  have: (vbasis E)`_i \in (tval (vbasis E)) by apply: mem_nth; rewrite size_tuple.
+ case: (vbasis _) (_`_i)=> /= s _; elim: s=> //= w s IH z; rewrite in_cons.
+ case/orP=>[|HH]; first by move/eqP->; exact: memx_Fadjoin.
+ by apply: memK_Fadjoin; apply: IH.
 move/HEEK/seperableinK.
 move: HEK.
 rewrite /seperable /EK.
-elim: (vbasis E) y => [|x xs IH] y; first done.
+set u := tval _; elim: u y => [|x xs IH] y; first done.
 case/andP => Hsepx Hsep HsepFold.
 apply: IH; first done.
 apply/(seperableFadjoinExtend _ HsepFold)/(subsetSeperable _ Hsepx).

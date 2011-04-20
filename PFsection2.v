@@ -148,14 +148,13 @@ Definition Dade_support1 H of Dade_hypothesis G L A H :=
 Definition Dade_support H ddH := \bigcup_(a \in A) @Dade_support1 H ddH a.
 
 (* This is Peterfalvi Definition (2.5). *)
-Definition Dade H ddH (alpha : cfun gT algC) :=
-  cfun_of_fun
-    (fun x => oapp alpha 0 [pick a \in A | x \in @Dade_support1 H ddH a]).
+Definition Dade H ddH (alpha : {cfun gT}) : {cfun _} :=
+  [ffun x => oapp alpha 0 [pick a \in A | x \in @Dade_support1 H ddH a]].
 
 Lemma Dade_is_linear : forall H ddH, linear (@Dade H ddH).
 Proof.
-move=> H ddH mu alpha beta; apply/cfunP=> x.
-by rewrite !cfunE; case: pickP => [a _ | _] /=; rewrite ?mulr0 ?addr0 ?cfunE.
+move=> H ddH mu alpha beta; apply/ffunP=> x.
+by rewrite !ffunE; case: pickP => [a _ | _] /=; rewrite ?scaler0 ?addr0 ?ffunE.
 Qed.
 
 Canonical Structure Dade_additive H ddH := Additive (@Dade_is_linear H ddH).
@@ -164,9 +163,11 @@ Canonical Structure Dade_linear H ddH := Linear (@Dade_is_linear H ddH).
 Lemma support_Dade : forall H ddH alpha,
   has_support (@Dade H ddH alpha) (Dade_support ddH).
 Proof.
-move=> H ddH alpha; apply/forall_inP=> x; rewrite cfunE.
+move=> H ddH alpha; apply/forall_inP=> x.
+rewrite ffunE.
 case: pickP => [a | _]; last by rewrite eqxx.
-by case/andP=> Aa Ha_x _; apply/bigcupP; exists a.
+case/andP=> Aa Ha_x; case/negP.
+by apply/bigcupP; exists a.
 Qed.
 
 Variable H : gT -> {group gT}.
@@ -261,12 +262,11 @@ Lemma DadeE : forall alpha a u,
     alpha \in 'CF(L, A) -> a \in A -> u \in Dade_support1 ddH a ->
   alpha^\tau u = alpha a.
 Proof.
-move=> alpha a u; case/cfun_memfP=> _ CFalpha Aa Ha_u; rewrite cfunE.
+move=> alpha a u; case/cfun_memfP=> _ CFalpha Aa Ha_u; rewrite ffunE.
 have [b /= | ] := pickP; last by move/(_ a); rewrite Aa Ha_u.
 case/andP=> Ab Hb_u; have [|x Lx ->] := Dade_support1_TI Aa Ab.
   by apply/pred0Pn; exists u; rewrite /= Ha_u.
-rewrite CFalpha // (subsetP _ a Aa) //.
-by have [sAL1 _ _ _ _] := ddH; exact: subset_trans sAL1 (subsetDl _ _).
+by rewrite CFalpha // (subsetP _ a Aa).
 Qed.
 
 Lemma Dade_support_sub : Dade_support ddH \subset G.
@@ -280,13 +280,14 @@ Qed.
 
 Lemma Dade_cfun : forall alpha, alpha \in 'CF(L, A) -> alpha^\tau \in 'CF(G).
 Proof.
-move=> alpha CFalpha; apply/cfun_memP; split=> [u | u y Gu Gy].
-  apply: contraNeq; move/(forall_inP (support_Dade ddH _)).
-  exact: (subsetP Dade_support_sub).
-rewrite [alpha^\tau u]cfunE.
+move=> alpha CFalpha; apply/cfun_memP; split=> [u UniG | u y Gy].
+  apply/eqP; apply: (forall_inP (support_Dade ddH alpha)).
+  by move: UniG; apply: contra; exact: (subsetP Dade_support_sub).
+rewrite [alpha^\tau u]ffunE.
 have [a /= | no_a /=] := pickP; last first.
-  apply/eqP; apply/idPn; move/(forall_inP (support_Dade ddH _)).
-  case/bigcupP=> a Aa; rewrite -mem_conjgV class_supportGidr ?groupV // => Ha_u.
+  apply/eqP; apply/(forall_inP (support_Dade ddH _)).
+  apply/negP; case/bigcupP=> a Aa.
+  rewrite -mem_conjgV class_supportGidr ?groupV // => Ha_u.
   by case/andP: (no_a a).
 case/andP=> Aa Ha_u; rewrite (DadeE CFalpha Aa) //.
 by rewrite -mem_conjgV class_supportGidr ?groupV.
@@ -311,7 +312,7 @@ move=> alpha xi psi CFalpha CFxi CFpsi psiA.
 rewrite inner_prodE (big_setID (Dade_support ddH)) /= addrC.
 rewrite (setIidPr Dade_support_sub) big1 ?add0r => [|x]; last first.
   case/setDP=> _ notHx.
-  by rewrite (contraNeq (forall_inP (support_Dade ddH _) _)) ?mul0r.
+  by rewrite (eqP (forall_inP (support_Dade ddH alpha) _ notHx)) ?mul0r.
 pose T := [set repr (a ^: L) | a <- A].
 have sTA: {subset T <= A}.
   move=> ax; case/imsetP=> a Aa ->; have [x Lx ->{ax}] := repr_class L a.
@@ -353,7 +354,7 @@ apply: canRL (mulKf (neq0GC G)) _; rewrite mulrA big_distrr /=.
 apply: eq_bigr => a; move/sTA=> {T sTA}Aa.
 have{defCa} [La defCa] := (subsetP sAL a Aa, defCa a Aa).
 rewrite !big_andT (eq_bigr (fun _ => alpha a * (psi a)^*)) => [|ax]; last first.
-  by case/imsetP=> x Lx ->{ax}; rewrite (cfunJ CFalpha) ?(cfunJ CFpsi).
+  by case/imsetP=> x Lx ->{ax}; rewrite (cfunJ _ CFalpha) ?(cfunJ _ CFpsi).
 rewrite sumr_const -index_cent1 mulrC -mulr_natr -!mulrA.
 rewrite (eq_bigr (fun xa => alpha a * (xi xa)^*)) => [|xa Fa_xa]; last first.
   by rewrite (DadeE CFalpha Aa).
@@ -365,8 +366,7 @@ rewrite -big_andT (set_partition_big _ (Dade_partition Aa)) /=.
 rewrite (eq_bigr (fun _ => \sum_(x \in H a) xi (x * a)%g)) => [|Vx]; last first.
   case/imsetP=> x Gx ->{Vx}; rewrite big_andT -rcosetE.
   rewrite (big_imset _ (in2W (conjg_inj x))) (big_imset _ (in2W (mulIg a))) /=.
-  apply: eq_bigr => u Hu; rewrite (cfunJ CFxi) ?groupM ?(subsetP sLG a) //.
-  by apply: subsetP Hu; case/sdprodP: defCa => _; case/mulG_sub; case/subsetIP.
+  by apply: eq_bigr => u Hu; rewrite (cfunJ _ CFxi) ?groupM ?(subsetP sLG a).
 rewrite sumr_const card_orbit astab1Js norm_Dade_cover //.
 by rewrite natr_mul -mulrA mulr_natl psiA // mulVKf ?neq0GC.
 Qed.
@@ -381,7 +381,7 @@ have [sAL1 sLN _ defCa _] := ddH.
 have [sAL [sLG nAL]] := (subset_trans sAL1 (subsetDl _ _), subsetIP sLN).
 move=> alpha xi CFalpha CFxi xiH.
 apply: general_Dade_reciprocity => // [|a Aa].
-  exact: crestrict_in_cfun CFxi.
+  exact: memc_restrict CFxi.
 rewrite crestrictE ?(subsetP sAL) // mulrC.
 rewrite (eq_bigr (fun _ => xi a)) ?sumr_const => [|u Hu]; last exact: xiH.
 by rewrite -[_ *+ _]mulr_natr mulfK ?neq0GC.
@@ -397,7 +397,7 @@ rewrite /= Dade_reciprocity ?Dade_cfun => // [|a Aa u Hu]; last first.
   by rewrite !(DadeE CFbeta Aa) ?sub_supp ?rcoset_refl // mem_rcoset mulgK.
 congr (_ * _); apply: eq_bigr => x Lx.
 have [Ax | notAx] := boolP (x \in A); last by rewrite (cfunS0 CFalpha) ?mul0r.
-by rewrite cfunE Lx mul1r (DadeE CFbeta Ax) // sub_supp ?rcoset_refl.
+by rewrite ffunE Lx mul1r (DadeE CFbeta Ax) // sub_supp ?rcoset_refl.
 Qed.
 
 Definition Dade_set_signalizer (B : {set gT}) := \bigcap_(a \in B) H a.
@@ -427,11 +427,11 @@ Qed.
 
 Section DadeExpansion.
 
-Variables (aa : cfun gT algC).
+Variables (aa : {cfun gT}).
 Hypothesis CFaa : aa \in 'CF(L, A).
 
-Definition Dade_cfun_restriction B :=
-  cfun_of_fun (fun x => if x \in 'M(B) then aa (remgr 'H(B) 'N_L(B) x) else 0).
+Definition Dade_cfun_restriction B : {cfun _} :=
+  [ffun x => if x \in 'M(B) then aa (remgr 'H(B) 'N_L(B) x) else 0].
 
 Local Notation "''aa_' B" := (Dade_cfun_restriction B)
   (at level 3, B at level 2, format "''aa_' B") : ring_scope.
@@ -443,13 +443,14 @@ Local Notation calB := Dade_transversal.
 Lemma Dade_restriction_classfun : {in domB, forall B, 'aa_B \in 'CF('M(B))}.
 Proof.
 move=> B; move/Dade_set_sdprod=> defMB.
-apply/cfun_memfP; split=> /= [x | x y Mx My].
-  by rewrite setIid cfunE -if_neg => ->.
-rewrite !cfunE groupJ ?Mx //=.
+apply/cfun_memP; split=> /= [x | x y My].
+  by rewrite ffunE -if_neg => ->.
+rewrite !ffunE (groupJr _ My) //=.
+case: (boolP (_ \in _))=> // Mx.
 have [nsHN _ mulHN _ _] := sdprod_context defMB.
 pose fB := Morphism (remgrM (sdprod_compl defMB) nsHN).
 rewrite -[remgr _ _ _]/(fB _) morphJ //.
-by rewrite (cfunJ CFaa) ?(subsetP (subsetIl L 'N(B))) ?mem_remgr ?mulHN.
+by rewrite (cfunJ _ CFaa) ?(subsetP (subsetIl L 'N(B))) ?mem_remgr ?mulHN.
 Qed.
 Local Notation CFaa_ := Dade_restriction_classfun.
 
@@ -463,7 +464,7 @@ have subNL: fB @* 'M(B) \subset L.
   apply/subsetP=> y; case/morphimP=> x /= _ Mx ->{y}.
   by rewrite (subsetP (subsetIl L 'N(B))) ?mem_remgr ?mulHN.
 apply/is_charP; exists d; exists (morphim_repr (subg_repr rA subNL) (subxx _)).
-apply/cfunP=> x //=; rewrite !cfunE -def_aa cfunE.
+apply/ffunP=> x //=; rewrite !ffunE -def_aa ffunE.
 case Mx: (x \in _); last by rewrite mul0r.
 by rewrite (subsetP subNL) ?mul1r //; exact: mem_morphim.
 Qed.
@@ -494,11 +495,11 @@ have defMBx: 'M(B :^ x) = 'M(B) :^ x.
   rewrite -mulHNB conjsMg -defHBx -defNBx.
   by case/sdprodP: (Dade_set_sdprod dBx).
 have def_aa_x: forall y, 'aa_(B :^ x) (y ^ x) = 'aa_B y.
-  move=> y /=; rewrite !cfunE defMBx memJ_conjg -mulHNB /=.
+  move=> y /=; rewrite !ffunE defMBx memJ_conjg -mulHNB /=.
   have [[h z Hh Nz ->] | //] := altP mulsgP; have [Lz _] := setIP Nz.
-  rewrite defHBx defNBx conjMg !remgrMid ?(cfunJ CFaa) ?memJ_conjg //.
+  rewrite defHBx defNBx conjMg !remgrMid ?(cfunJ _ CFaa) ?memJ_conjg //.
   by rewrite -conjIg tiHNB conjs1g.
-apply/cfunP=> y; rewrite !cfunE defMBx cardJg; congr (_ * _).
+apply/ffunP=> y; rewrite !ffunE defMBx cardJg; congr (_ * _).
 rewrite (reindex_astabs 'R x) ?astabsR ?(subsetP sLG) //=.
 by apply: eq_bigr => z _; rewrite conjgM def_aa_x.
 Qed.
@@ -535,7 +536,7 @@ Lemma Dade_Ind_expansion : forall B g,
 Proof.
 move=> B g dB; set LHS := ('Ind[G, _] _) g.
 have ->: LHS = #|'M(B)|%:R^-1 * \sum_(x \in calA g 'M(B)) 'aa_B (g ^ x).
-  rewrite [LHS]cfunE; congr (_ * _); rewrite (bigID [pred x | g ^ x \in 'M(B)]).
+  rewrite [LHS]ffunE; congr (_ * _); rewrite (bigID [pred x | g ^ x \in 'M(B)]).
   rewrite /= addrC big1 ?add0r => [|x].
     by apply: eq_bigl => x; rewrite inE.
   by case/andP=> _ notMgx; rewrite (cfun0 (CFaa_ dB)).
@@ -546,7 +547,7 @@ pose fBg x := remgr 'H(B) 'N_L(B) (g ^ x).
 pose supp_aBg := [pred b \in A | g \in Dade_support1 ddH b].
 have supp_aBgP: {in calA g 'M(B), forall x,
   ~~ supp_aBg (fBg x) -> 'aa_B (g ^ x)%g = 0}.
-- move=> x; case/setIdP; set b := fBg x => Gx MBgx notHGx; rewrite cfunE MBgx. 
+- move=> x; case/setIdP; set b := fBg x => Gx MBgx notHGx; rewrite ffunE MBgx. 
   have Nb: b \in 'N_L(B) by rewrite mem_remgr ?mulHNB.
   have Cb: b \in 'C_L[b] by rewrite inE cent1id; have [-> _] := setIP Nb.
   rewrite (cfunS0 CFaa) // -/(fBg x) -/b; apply: contra notHGx => Ab.
@@ -592,15 +593,15 @@ apply: eq_big => x; rewrite ![x \in _]inE -!andbA.
     by rewrite inE Nb (subsetP _ _ HBb_gx) // -mulHNB mulgS ?sub1set.
   by rewrite /fBg; have [h Hh ->] := rcosetP HBb_gx; exact: remgrMid.
 case/and4P=> _ Mgx _; move/eqP=> def_fx.
-rewrite cfunE Mgx -/(fBg x) def_fx; case/imsetP: aLb => y Ly ->.
-by rewrite (cfunJ CFaa) // (subsetP _ a Aa) //; case: ddH; case/subsetD1P.
+rewrite ffunE Mgx -/(fBg x) def_fx; case/imsetP: aLb => y Ly ->.
+by rewrite (cfunJ _ CFaa) // (subsetP _ a Aa) //; case: ddH; case/subsetD1P.
 Qed.
 
 (* This is Peterfalvi (2.10) *)
 Lemma Dade_expansion :
   aa^\tau = - \sum_(B \in calB) (- 1) ^+ #|B| *: 'Ind[G, 'M(B)] 'aa_B.
 Proof.
-apply/cfunP=> g; rewrite !cfunE sum_cfunE cfunE.
+apply/ffunP=> g; rewrite !ffunE sum_ffunE ffunE.
 have [sAL1 sLN _ defCa coHL] := ddH; have [sLG nAL] := subsetIP sLN.
 have{sAL1} [sAL _] := subsetD1P sAL1.
 pose n1 (B : {set gT}) : algC := (-1) ^+ #|B| / #|L : 'N_L(B)|%:R.
@@ -623,7 +624,7 @@ transitivity (- (\sum_(B \in domB) n1 B * aa1 B)); last first.
   rewrite (eq_bigr (fun _ => n1 B * aa1 B)) => [|Bx]; last first.
     case/imsetP=> x Lx ->{Bx}; rewrite /aa1 Dade_Ind_restr_J //; congr (_ * _).
     by rewrite /n1 cardJg -{1 2}(conjGid Lx) normJ -conjIg indexJg.
-  rewrite cfunE sumr_const -mulr_natr mulrAC card_orbit astab1Js divfK //.
+  rewrite ffunE sumr_const -mulr_natr mulrAC card_orbit astab1Js divfK //.
   by rewrite -neq0N_neqC -lt0n indexg_gt0.
 case: pickP => /= [a | notHAg]; last first.
   rewrite big1 ?oppr0 // /aa1 => B dB.
@@ -748,13 +749,9 @@ have [sAL1 sLN _ defCa _] := ddH; have{sAL1} [sAL _] := subsetD1P sAL1.
 have{sLN} [sLG nAL] := subsetIP sLN.
 move=> alpha; case/and3P=> irrLaa ZLaa Aaa.
 have{irrLaa ZLaa} ZLaa: alpha \in 'Z['Irr L].
-  apply/and3P; split=> //; apply/forall_inP=> x; move/(forall_inP Aaa).
-  exact: subsetP.
-have CFaa: alpha \in 'CF(L, A).
-  have [Laa CFaa] := cfun_memP _ _ (is_vchar_in_cfun ZLaa).
-  apply/cfun_memfP; split=> [x | //].
-  rewrite inE; case/nandP; last exact: Laa.
-  exact: contraNeq (forall_inP Aaa x).
+  by apply/and3P; split=> //; apply: support_subset sAL.
+have CFaa: alpha \in 'CF(L, A). 
+  by apply: memc_is_gvchar; rewrite vchar_support ZLaa. 
 rewrite Dade_expansion //; apply: is_vchar_opp; apply: is_vchar_sum => B.
 case/andP=> dB _; have{dB} dB: B \in domB.
   case/imsetP: dB => B0; case/setIdP=> sB0A notB00 defB.
@@ -771,7 +768,7 @@ apply: is_vchar_induced => /=.
 have [a1 [a2 [ch_a1 ch_a2 ->]]] := is_vcharP _ _ ZLaa.
 set rB := Dade_cfun_restriction.
 have ->: rB (a1 - a2) B = rB a1 B - rB a2 B.
-  by apply/cfunP=> x; rewrite !cfunE; case: (x \in 'M(B)) => //; rewrite subr0.
+  by apply/ffunP=> x; rewrite !ffunE; case: (x \in 'M(B)) => //; rewrite subr0.
 by apply: is_vchar_sub; apply: is_vchar_char; exact: Dade_restriction_char.
 Qed.
 
@@ -803,14 +800,11 @@ Definition restr_Dade := Dade (restr_Dade_hyp ddH sA1A nA1L).
 (* This is Peterfalvi (2.11), second part. *)
 Lemma restr_DadeE : {in 'CF(L, A1), restr_Dade =1 Dade ddH}.
 Proof.
-move=> aa CF1aa; apply/cfunP=> g; rewrite cfunE.
-have CFaa: aa \in 'CF(L, A).
-  have [A1aa CFaaL] := cfun_memfP _ _ _ CF1aa.
-  apply/cfun_memfP; split=> // x notALx; apply: A1aa; apply: contra notALx.
-  exact: subsetP (setSI _ _) x.
+move=> aa CF1aa; apply/ffunP=> g; rewrite ffunE.
+have CFaa: aa \in 'CF(L, A) by apply: memc_subset CF1aa.
 have [a /= | no_a /=] := pickP.
   by case/andP=> A1a Ha_g; rewrite (DadeE _ (subsetP sA1A a A1a)).
-rewrite cfunE; case: pickP => //= a; case/andP=> A1a Ha_g.
+rewrite ffunE; case: pickP => //= a; case/andP=> A1a Ha_g.
 by rewrite (cfunS0 CF1aa) //; apply: contraFN (no_a a) => ->.
 Qed.
 

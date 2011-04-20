@@ -30,41 +30,41 @@ Section Conj.
 
 Variable gT : finGroupType.
 
-Implicit Type f : cfun gT algC.
+Implicit Type f : {cfun gT}.
 
-Definition cfun_conj f (g : gT) :=
-  cfun_of_fun (fun h => f (h^(g^-1))).
+Definition cfun_conj f (g : gT) : {cfun _} :=
+  [ffun h => f (h^(g^-1))].
 
 Notation "f ^ g" := (cfun_conj f g) : character_scope.
 
 Lemma cfun_conjE : forall f g h, (f ^ g)%CH h = f (h^(g^-1)).
-Proof. by move=> f g h; rewrite cfunE. Qed.
+Proof. by move=> f g h; rewrite ffunE. Qed.
 
 (* Isaacs' 6.1.a *)
 Lemma cfun_conj_in_cfun : forall (G : {group gT}) f g,
   g \in G -> f \in 'CF(G) -> (f^g)%CH \in 'CF(G).
 Proof.
 move=> G f g GiG CFf.
-apply/cfun_memP; split=> [h HniG|h1 h2 H1iG H2iG].
-  rewrite cfunE (cfun0 CFf) //; apply/negP=> HGiG; case/negP: HniG.
+apply/cfun_memP; split=> [h HniG|h1 h2 H2iG].
+  rewrite ffunE (cfun0 CFf) //; apply/negP=> HGiG; case/negP: HniG.
   by rewrite -(groupJr h (groupVr GiG)).
-by rewrite !cfunE !(cfunJ CFf, groupV) // groupJ.
+by rewrite !ffunE !(cfunJ _ CFf, groupV) // groupJ.
 Qed.
 
 (* Isaacs' 6.1.b *)
 Lemma cfun_conjM : forall f (g h : gT),
   (f ^ (g * h) = (f ^ g) ^ h)%CH.
-Proof. by move=> f g h; apply/cfunP=> k; rewrite !cfun_conjE invMg conjgM. Qed.
+Proof. by move=> f g h; apply/ffunP=> k; rewrite !cfun_conjE invMg conjgM. Qed.
 
 Lemma cfun_conj1 : forall f, (f^1)%CH = f.
-Proof. by move=> f; apply/cfunP=> g; rewrite cfunE invg1 conjg1. Qed.
+Proof. by move=> f; apply/ffunP=> g; rewrite ffunE invg1 conjg1. Qed.
 
 Lemma cfun_conj_val1 : forall f g, (f^g)%CH 1%g = f 1%g.
-Proof. by move=> f g; rewrite cfunE conj1g. Qed.
+Proof. by move=> f g; rewrite ffunE conj1g. Qed.
 
 Lemma cfun_conj_conjC : forall f (g : gT),
   (f^g)^*%CH = (f^* ^ g)%CH.
-Proof. by move=> f g; apply/cfunP=> h; rewrite !cfunE. Qed.
+Proof. by move=> f g; apply/ffunP=> h; rewrite !ffunE. Qed.
 
 End Conj.
 
@@ -74,7 +74,7 @@ Section Inertia.
 
 Variable gT : finGroupType.
 
-Definition inertia (G : {set gT}) (f : cfun gT algC) :=  
+Definition inertia (G : {set gT}) (f : {cfun gT}) :=  
   [set g \in G | (f ^ g)%CH == f].
 
 Local Notation "'I_( G )[ f ]" := (inertia G f).
@@ -82,13 +82,13 @@ Local Notation "'I_( G )[ f ]" := (inertia G f).
 Lemma group_set_inertia : forall (G : {group gT}) f, group_set 'I_(G)[f].
 Proof.
 move=> G f; rewrite /inertia; apply/andP; split.
-  rewrite inE group1; apply/eqP; apply/cfunP=> g.
-  by rewrite cfunE invg1 conjg1.
+  rewrite inE group1; apply/eqP; apply/ffunP=> g.
+  by rewrite ffunE invg1 conjg1.
 apply/subsetP=> p; case/imset2P=> g1 g2; rewrite !inE.
 case/andP=> G1iG CF1; case/andP=> G2iG CF2 ->; rewrite groupM //.
-apply/eqP; apply/cfunP=> h; rewrite cfunE invMg conjgM.
-move/cfunP: (eqP CF1); move/(_ (h^(g2^-1))); rewrite cfunE => ->.
-by move/cfunP: (eqP CF2); move/(_ h); rewrite cfunE => ->.
+apply/eqP; apply/ffunP=> h; rewrite ffunE invMg conjgM.
+move/ffunP: (eqP CF1); move/(_ (h^(g2^-1))); rewrite ffunE => ->.
+by move/ffunP: (eqP CF2); move/(_ h); rewrite ffunE => ->.
 Qed.
 
 Canonical Structure inertia_group G f := Group (group_set_inertia G f).
@@ -107,12 +107,12 @@ Lemma cfun_conj_eqE : forall f (g h : gT),
 Proof.
 move=> f g h GiG HiG; apply/eqP/rcosetP=> [Hx|]; last first.
   case=> g'; rewrite inE; case/andP=> G'iG; move/eqP=> CCi ->.
-  apply/cfunP=> h'; rewrite cfunE -{1}CCi cfunE -conjgM.
+  apply/ffunP=> h'; rewrite ffunE -{1}CCi ffunE -conjgM.
   by rewrite cfun_conjE invMg.
 exists (h * g^-1)%g; last by rewrite -mulgA mulVg mulg1.
-rewrite inE !(groupM,groupV) //; apply/eqP; apply/cfunP=> g'.
-rewrite cfunE invMg invgK conjgM.
-move/cfunP: Hx; move/(_ (g'^g)); rewrite !cfun_conjE => <-.
+rewrite inE !(groupM,groupV) //; apply/eqP; apply/ffunP=> g'.
+rewrite ffunE invMg invgK conjgM.
+move/ffunP: Hx; move/(_ (g'^g)); rewrite !cfun_conjE => <-.
 by rewrite -conjgM mulgV conjg1.
 Qed.
 
@@ -121,7 +121,7 @@ Lemma inertia_center : forall f,
 Proof.
 move=> f FcF HnG.
 apply/subsetP=> g; case/centerP=> GiG Cg; rewrite inE GiG.
-apply/eqP; apply/cfunP=> h; rewrite cfunE.
+apply/eqP; apply/ffunP=> h; rewrite ffunE.
 case: (boolP (h \in H))=> [HiG|HniG].
   rewrite !conjgE invgK mulgA Cg ?(subsetP (normal_sub HnG)) //.
   by rewrite -mulgA mulgV mulg1.
@@ -133,16 +133,16 @@ Lemma subset_inertia : forall f, f \in 'CF(H) -> H <| G -> H \subset 'I_(G)[f].
 Proof.
 move=> f FcF HnG; apply/subsetP=> h1 H1iH.
 rewrite inE (subsetP (normal_sub HnG)) //.
-apply/eqP; apply/cfunP=> h2; case: (boolP (h2 \in H))=> [H2iH|H2niH].
-  by rewrite cfunE (cfunJ FcF) // groupV.
-rewrite cfunE !(cfun0 FcF) //.
+apply/eqP; apply/ffunP=> h2; case: (boolP (h2 \in H))=> [H2iH|H2niH].
+  by rewrite ffunE (cfunJ _ FcF) // groupV.
+rewrite ffunE !(cfun0 FcF) //.
 apply/negP=> HH; case/negP: H2niH.
 by rewrite -(groupJr _ (groupVr H1iH)).
 Qed.
 
 (* Isaacs' 6.1.c *)
-Lemma cfun_conj_inner : forall (f1 f2 : cfun gT algC) (g : gT),
- H <| G -> g \in G -> ('[f1^g,f2^g]_H = '[f1,f2]_H)%CH.
+Lemma cfun_conj_inner : forall (f1 f2 : {cfun gT}) (g : gT),
+ H <| G -> g \in G -> ('[f1 ^ g, f2 ^ g]_H = '[f1, f2]_H)%CH.
 Proof.
 move=> f1 f2 g HnG GiG; rewrite !inner_prodE.
 congr (_ * _).
@@ -154,16 +154,15 @@ by rewrite !cfun_conjE -!conjgM mulgV conjg1.
 Qed.
  
 (* Isaacs' 6.1.d *)
-Lemma cfun_conj_inner_restrict : forall (f1 f2 : cfun _ _) (g : gT),
+Lemma cfun_conj_inner_restrict : forall (f1 f2 : {cfun _}) (g : gT),
  H <| G -> f1 \in 'CF(G) ->  g \in G -> 
-   ('['Res[H] f1,f2^g]_H = '['Res[H] f1,f2]_H)%CH.
+   ('['Res[H] f1, f2 ^ g]_H = '['Res[H] f1, f2]_H)%CH.
 Proof.
 move=> f1 f2 g HnG CFf GiG.
 rewrite -['[_,f2]_H](cfun_conj_inner _ _ HnG GiG).
 rewrite !inner_prodE; congr (_ * _).
-apply: eq_bigr=> h HiH; congr (_ * _); rewrite !cfunE (cfunJ CFf) ?groupV //.
-  by rewrite memJ_norm // (subsetP (normal_norm HnG)) // groupV.
-by apply: (subsetP (normal_sub HnG)).
+apply: eq_bigr=> h HiH; congr (_ * _); rewrite !ffunE (cfunJ _ CFf) ?groupV //.
+by rewrite memJ_norm // (subsetP (normal_norm HnG)) // groupV.
 Qed.
 
 (* Isaac's 6.1.e *)
@@ -175,8 +174,8 @@ have mx_reprj: mx_repr H (fun x => rG (x^(g^-1%g))).
   split=> [|h1 h2 H1iH H2iH]; first by rewrite conj1g repr_mx1.
   by rewrite conjMg repr_mxM ?(memJ_norm, groupV, (subsetP (normal_norm HnG))).
 apply/is_charP; exists n; exists (MxRepresentation mx_reprj).
-apply/cfunP=> h.
-by rewrite !cfunE ?(memJ_norm, groupV, (subsetP (normal_norm HnG))).
+apply/ffunP=> h.
+by rewrite !ffunE ?(memJ_norm, groupV, (subsetP (normal_norm HnG))).
 Qed.
 
 Lemma is_irr_conj : forall  (theta : irr H) g,
@@ -190,7 +189,7 @@ Qed.
 Definition irr_conj (theta : irr H) g := get_irr H (theta^g)%CH.
 
 Lemma irr_conjE : forall (theta : irr H) g,
-  H <| G -> g \in G -> irr_conj theta g = (theta^g)%CH :> cfun _ _.
+  H <| G -> g \in G -> irr_conj theta g = (theta^g)%CH :> {cfun _}.
 Proof. by move=> t g HnG GiG; rewrite get_irrE // is_irr_conj. Qed.
 
 Lemma is_irr_inner : forall (theta : irr H) g,
@@ -203,13 +202,14 @@ apply/eqP/eqP=> HH; last by apply: cfun_of_irr_inj; rewrite irr_conjE.
 by rewrite -(irr_conjE t HnG GiG) HH.
 Qed.
 
-Definition cconjugates (G : {set gT}) (f : cfun gT algC) := 
+Definition cconjugates (G : {set gT}) (f : {cfun gT}) := 
  map (fun i => (f ^ (repr i))%CH)
   (filter (fun i => i \in (mem (rcosets 'I_(G)[f] G)))
    (index_enum (set_of_finType (FinGroup.finType gT)))).
 
 Lemma cconjugatesP : forall f1 f2,
-  reflect (exists2 g : gT, g \in G & f2 = (f1^g)%CH) (f2 \in cconjugates G f1).
+  reflect (exists2 g : gT, g \in G & f2 = (f1 ^ g)%CH) 
+          (f2 \in cconjugates G f1).
 Proof.
 move=> f1 f2.
 have F1: forall g, g \in G -> repr ('I_(G)[f1] :* g) \in G.
@@ -253,12 +253,13 @@ move/eqP->.
 by rewrite HH eq_sym cfun_conj_eqE ?(mem_repr_rcoset,F1).
 Qed.
 
-Lemma cconjugates1 : H <| G -> cconjugates G (irr1 H) = [::(irr1 H : cfun _ _)].
+Lemma cconjugates1 : H <| G -> 
+  cconjugates G (irr1 H) = [::(irr1 H : {cfun _})].
 Proof.
 move=> HnG.
 have: forall f, f \in cconjugates G (irr1 H) -> f = irr1 H .
   move=> f; case/cconjugatesP=> g GiG ->.
-  apply/cfunP=> h; rewrite cfunE !irr1E.
+  apply/ffunP=> h; rewrite ffunE !irr1E.
   (case: (boolP (_ \in _))=> HH; case: (boolP (_ \in _)))=> // [|HH1]; 
        [case/negP|case/negP:HH]; last first.
       case/normalP: HnG=> _; move/(_ _ (groupVr GiG))<-. 
@@ -275,7 +276,7 @@ Qed.
 Lemma cconjugates_sum : forall (R : Type) (idx : R) (op : Monoid.com_law idx) 
                               (F: _ -> R) (theta : irr H),
    H <| G ->
-   \big[op/idx]_(i : irr H | ((i : cfun _ _) \in cconjugates G theta)) 
+   \big[op/idx]_(i : irr H | ((i : {cfun _}) \in cconjugates G theta)) 
        F (cfun_of_irr i) = 
    \big[op/idx]_(i <- cconjugates G theta) F i.
 Proof.
@@ -298,45 +299,46 @@ Qed.
 (* This is Isaacs 6.2 *)
 Lemma is_comp_clifford :  forall (chi : irr G) (theta : irr H),
    H <| G -> is_comp theta ('Res[H] chi) ->
-  'Res[H] chi = '['Res[H] chi, theta]_H *: \sum_(f <- cconjugates G theta) f.
+  'Res[H] chi = 
+     '['Res[H] chi, theta]_H *: (\sum_(f <- cconjugates G theta) f).
 Proof.
 move=> chi theta HnG IC.
 rewrite -cconjugates_sum //=.
 have CFchi: 'Res[H] chi \in 'CF(H).
-  apply: is_char_in_cfun; apply: is_char_restrict (is_char_irr _).
+  apply: memc_is_char; apply: is_char_restrict (is_char_irr _).
   by apply: normal_sub.
 rewrite {1}(ncoord_sum CFchi).
-rewrite (bigID (fun i : irr H => (i : cfun _ _)  \in cconjugates G theta)) /=.
+rewrite (bigID (fun i : irr H => (i : {cfun _})  \in cconjugates G theta)) /=.
 rewrite [\sum_(i | _ \notin _)_]big1 ?addr0=> [|phi].
-  rewrite scaler_sumr; apply: eq_bigr=> phi Hp; congr (_ *: _).
+  rewrite scaler_sumr; apply: eq_bigr=> phi Hp.
   rewrite (ncoord_inner_prod _ CFchi).
   case/cconjugatesP: Hp => g GiG ->.
-  by apply: cfun_conj_inner_restrict (irr_in_cfun _) _.
+  by rewrite cfun_conj_inner_restrict //; exact: memc_irr.
 move=> HH.
 have: '['Res[H] ('Ind[G,H] theta), phi]_H = 0.
   have->: 'Res[H] ('Ind[G,H] theta) = 
-               #|H|%:R^-1 *: (\sum_(c \in G) (theta ^ c)%CH).
+               #|H|%:R^-1 *: ((\sum_(c \in G) (theta ^ c)%CH)).
     rewrite (reindex invg); last by exists invg=> g; rewrite invgK.
-    apply/cfunP=> h; rewrite !(cfunE,sum_cfunE).
+    apply/ffunP=> h; rewrite !(ffunE,sum_ffunE).
     case: (boolP (_ \in _))=> HiH; last first.
-      rewrite mul0r big1 ?(mulr0) // => h1 H1iG.
-      rewrite cfunE (cfun0 (irr_in_cfun _)) // invgK.
+      rewrite mul0r big1 ?(scaler0) // => h1 H1iG.
+      rewrite ffunE (cfun0 (memc_irr _)) // invgK.
       apply/negP=> HH1; case/negP: HiH.
       rewrite -[h]conjg1 -[1%g](mulgK h1) mul1g conjgM.
       move/normalP: HnG; case=> _; move/(_ _ H1iG) <-.
       by apply/imsetP; exists (h^ h1)%g.
     rewrite mul1r; congr (_ * _); apply: eq_big=> g1; first by rewrite groupV.
-    by rewrite !(cfunE,invgK).
+    by rewrite !(ffunE,invgK).
   rewrite -inner_prodbE linearZ linear_sum; rewrite big1 ?scaler0 // => g GiG.
   rewrite /= inner_prodbE -(irr_conjE _ HnG GiG) irr_orthonormal.
   case: eqP=> // HH1; case/negP: HH; rewrite -HH1 irr_conjE //.
   by apply/cconjugatesP; exists g.
 rewrite (ncoord_inner_prod _ CFchi).
 have CFInd: ('Ind[G, H] theta) \in 'CF(G).
-   by apply: (cinduced_in_cfun (normal_sub HnG)); exact: irr_in_cfun.
+   by apply: (memc_induced (normal_sub HnG)); exact: memc_irr.
 rewrite {1}(ncoord_sum CFInd) linear_sum /=.
 rewrite -inner_prodbE linear_sum /= => HH1. 
-have: '['Res[H] (ncoord chi ('Ind[G, H] theta) *: (chi: cfun _ _)),phi]_H = 0.
+have: '['Res[H] (ncoord chi ('Ind[G, H] theta) *: (chi: {cfun _})),phi]_H = 0.
   apply: (posC_sum_eq0 _ HH1)=> [theta1 _|]; last first.
     by rewrite /index_enum -enumT mem_enum.
   apply: posC_isNatC.
@@ -353,7 +355,7 @@ move/eqP; rewrite mulf_eq0; case/orP; last first.
 move: IC.
 rewrite /is_comp (ncoord_inner_prod _ CFchi) (ncoord_inner_prod _ CFInd).
 rewrite inner_prod_charC ?(is_char_restrict (normal_sub HnG), is_char_irr) //.
-rewrite (frobenius_reciprocity (normal_sub HnG)) ?irr_in_cfun // => HH2 HH3.
+rewrite (frobenius_reciprocity (normal_sub HnG)) ?memc_irr // => HH2 HH3.
 by case/negP: HH2.
 Qed.
 
@@ -365,12 +367,12 @@ move=> chi HnG IC; apply/subsetP=> h HiH.
 rewrite cker_irrE inE (subsetP (normal_sub HnG)) //.
 move: (is_comp_clifford HnG IC).
 rewrite cconjugates1 // big_cons big_nil addr0=> HH.
-move/cfunP: (HH); move/(_ 1%g).
-rewrite cfunE group1 mul1r.
-rewrite [fun_of_cfun (_ *: _) 1%g]cfunE irr1E group1 mulr1=> HH1.
-move/cfunP: HH; move/(_ h).
-rewrite -HH1 cfunE HiH mul1r => ->.
-by rewrite cfunE irr1E HiH mulr1 eqxx.
+move/ffunP: (HH); move/(_ 1%g).
+rewrite ffunE group1 mul1r.
+rewrite [X in _ = X]ffunE irr1E group1 [_ *: _]mulr1=> HH1.
+move/ffunP: HH; move/(_ h).
+rewrite -HH1 ffunE HiH mul1r => ->.
+by rewrite ffunE irr1E HiH [_ *: _]mulr1 eqxx.
 Qed.
 
 (* This is Isaacs' 6.8 *)
@@ -385,26 +387,26 @@ have IC1: is_char H ('Res[H] chi).
   by apply: is_char_restrict (normal_sub _) (is_char_irr _).
 move: (inner_prod_char_nat IC1 (is_char_irr theta)).
 rewrite /isNatC; move/eqP<-.
-have->: chi 1%g = ('Res[H] chi) 1%g by rewrite !cfunE !(group1,mul1r).
+have->: chi 1%g = ('Res[H] chi) 1%g by rewrite !ffunE !(group1,mul1r).
 rewrite {1}(is_comp_clifford HnG IC).
-rewrite cfunE -mulrA; congr (_ * _).
-rewrite sum_cfunE cfunE.
+rewrite ffunE -mulrA; congr (_ * _).
+rewrite sum_ffunE ffunE.
 have: forall f, f \in cconjugates G theta -> f 1%g = theta 1%g.
-  by move=> f; case/cconjugatesP=> g GiG ->; rewrite cfunE conj1g.
+  by move=> f; case/cconjugatesP=> g GiG ->; rewrite ffunE conj1g.
 elim: (cconjugates _ _)=> [|f l IH HF]; first by rewrite big_nil mul0r.
 rewrite big_cons HF ?(inE,eqxx) // IH=> [|f1 Hf1].
   by rewrite /= -add1n natr_add mulr_addl mul1r.
 by rewrite HF // inE Hf1 orbT.
 Qed.
 
-Lemma cconjugates_induced : forall (f1 f2 : cfun gT algC),
+Lemma cconjugates_induced : forall (f1 f2 : {cfun gT}),
    H <| G ->  f1 \in 'CF(H) -> f2 \in 'CF(H) -> f2 \in cconjugates G f1 ->  
    'Ind[G,H] f1 = 'Ind[G,H] f2.
 Proof.
 move=> f1 f2 HnG Cf1 Cf2 HH; case/cconjugatesP: HH Cf2=> g GiG -> Cf2.
-apply/cfunP=> h; case: (boolP (h \in G))=> [HiG| HniG]; last first.
-rewrite !(cfun0 (cinduced_in_cfun _ _)) ?(normal_sub HnG) //.
-rewrite !cfunE; congr (_ * _).
+apply/ffunP=> h; case: (boolP (h \in G))=> [HiG| HniG]; last first.
+rewrite !(cfun0 (memc_induced _ _)) ?(normal_sub HnG) //.
+rewrite !ffunE; congr (_ * _).
 rewrite (reindex (mulg^~ g^-1%g)); last first.
   by exists (mulg^~ g)=> h1 _; rewrite -mulgA (mulgV,mulVg) mulg1.
 apply: eq_big=> [|h1 H1iG]; last by rewrite cfun_conjE conjgM.
@@ -437,7 +439,7 @@ Section MoreInertia.
 Variable gT : finGroupType.
 
 Lemma cconjugates_inertia : forall (G H : {group gT}) (theta : irr H),
-   cconjugates 'I_(G)[theta] theta = [::(theta : cfun _ _)].
+   cconjugates 'I_(G)[theta] theta = [::(theta : {cfun _})].
 Proof.
 move=> G H theta.
 set T := 'I_(G)[theta]%G.
@@ -471,13 +473,13 @@ Let TsG := inertia_sub G theta.
 Let HsT : H \subset T.
 Proof.
 apply: subset_inertia=> //.
-by exact: irr_in_cfun.
+by exact: memc_irr.
 Qed.
 
 Let HnT : H <| T.
 apply: normalS (HnG).
   apply: subset_inertia=> //.
-  by exact: irr_in_cfun.
+  by exact: memc_irr.
 exact: inertia_sub.
 Qed.
 
@@ -506,11 +508,11 @@ Proof. by apply: (is_char_restrict _ (is_char_irr _)). Qed.
 Fact is_comp_inertia_restrict_is_comp_i : is_comp psi ('Res[T] chi).
 Proof.
 rewrite /is_comp ncoord_inner_prod; last first.
-  by apply: (crestrict_in_cfun TsG) (is_char_in_cfun (is_char_irr _)).
+  by apply: (memc_restrict TsG) (memc_is_char (is_char_irr _)).
 move: Hchi.
 rewrite /is_comp ncoord_inner_prod; last first.
-by apply cinduced_in_cfun=> //; apply: irr_in_cfun.
-rewrite -frobenius_reciprocity ?irr_in_cfun //.
+by apply memc_induced=> //; apply: memc_irr.
+rewrite -frobenius_reciprocity ?memc_irr //.
 by rewrite inner_prod_charC ?(is_char_restrict TsG,is_char_irr).
 Qed.
 
@@ -518,7 +520,7 @@ Fact is_comp_inertia_restrict_is_comp_g : is_comp theta ('Res[H] chi).
 Proof.
 have: '['Res[H] psi, theta ]_ H <= '['Res[H] ('Res[T] chi), theta ]_ H.
   by apply: is_comp_inner_prod_le is_comp_inertia_restrict_is_comp_i.
-rewrite crestrict_subset // -!ncoord_inner_prod ?is_char_in_cfun //.
+rewrite crestrict_subset // -!ncoord_inner_prod ?memc_is_char //.
 move: Hpsi; rewrite /is_comp /=.
 case/isNatCP: (isNatC_ncoord_char theta IHP)=> n ->.
 case/isNatCP: (isNatC_ncoord_char theta IHC)=> m ->.
@@ -529,10 +531,10 @@ Let e := '['Res[H] chi, theta ]_ H.
 
 Let f := '['Res[H] psi, theta ]_ H.
 
-Let He : 'Res[H] chi = e *: (\sum_(f <- cconjugates G theta) f).
+Let He : 'Res[H] chi = e *: ((\sum_(f <- cconjugates G theta) f)).
 Proof. exact: (is_comp_clifford HnG is_comp_inertia_restrict_is_comp_g). Qed.
 
-Let Hf  : 'Res[H] psi = f *: (theta : cfun _ _).
+Let Hf  : 'Res[H] psi = f *: (theta : {cfun _}).
 Proof.
 move: (is_comp_clifford  HnT Hpsi).
 rewrite cconjugates_inertia.
@@ -541,14 +543,14 @@ Qed.
 
 Let He1 : chi 1%g = e * #|G : T|%:R * (theta 1%g).
 Proof.
-move/cfunP: He; move/(_ 1%g).
-rewrite cfunE group1 mul1r => ->.
-rewrite cfunE sum_cfunE cfunE -mulrA; congr (_ * _).
+move/ffunP: He; move/(_ 1%g).
+rewrite ffunE group1 mul1r => ->.
+rewrite ffunE sum_ffunE ffunE -mulrA; congr (_ * _).
 rewrite -cconjugates_sum //=.
 rewrite (eq_bigr (fun (i: irr H) => theta 1%g))=> [|i]; last first.
   case/cconjugatesP=> g GiG ->.
   by rewrite cfun_conj_val1.
-rewrite (cconjugates_sum _ (fun i : cfun _ _ => theta 1%g)) //=.
+rewrite (cconjugates_sum _ (fun i : {cfun _} => theta 1%g)) //=.
 rewrite -cconjugates_size.
 elim: cconjugates=> [|f1 l IH].
   by rewrite big_nil mul0r.
@@ -559,13 +561,13 @@ Let Hpsi1  : ('Ind[G, T] psi) 1%g = f * #|G : T|%:R * (theta 1%g).
 Proof.
 have IGI: is_char G ('Ind[G,T] psi).
   by apply: is_char_induced=> //; exact: is_char_irr.
-rewrite cfunE.
+rewrite ffunE.
 rewrite (eq_bigr (fun (c : gT) => psi 1%g))=> [|g GiG]; last first.
   by rewrite conj1g.
 rewrite sumr_const.
-move/cfunP: Hf; move/(_ 1%g).
-rewrite cfunE group1 mul1r => ->.
-rewrite [fun_of_cfun (_ *: _) _]cfunE.
+move/ffunP: Hf; move/(_ 1%g).
+rewrite ffunE group1 mul1r => ->.
+rewrite ffunE.
 apply: (mulfI (neq0GC T)).
 rewrite mulrA mulfV ?neq0GC // mul1r. 
 rewrite mulrCA  mulrA -[_ *+ #|_|]mulr_natl mulrA; congr (_ * _).
@@ -601,7 +603,7 @@ rewrite mulrA -He1 mulrA -Hpsi1.
 have IIP: is_char G ('Ind[G, T] psi).
   by apply: is_char_induced=> //; exact: is_char_irr.
 case/(is_comp_charP _ IIP): Hchi=> chi' /= IC' ->.
-rewrite [fun_of_cfun (_ + _) 1%g]cfunE.
+rewrite [X in _ <= X]ffunE.
 rewrite addrC -leC_sub addrK.
 by apply: posC_isNatC; apply: isNatC_char1 IC'.
 Qed.
@@ -611,9 +613,9 @@ Proof.
 have ICI: is_char G ('Ind[G, T] psi).
   by apply: is_char_induced (is_char_irr _) _.
 case/(is_comp_charP _ ICI): Hchi => chi' IC' /= Hchi'.
-rewrite Hchi'; move/cfunP: Hchi'; move/(_ 1%g).
+rewrite Hchi'; move/ffunP: Hchi'; move/(_ 1%g).
 rewrite Hpsi1 inner_prod_is_comp_inertia_is_comp -He1.
-rewrite [fun_of_cfun (_ + _) _]cfunE -{1}[chi _]addr0; move/addrI.
+rewrite [X in _ = X]ffunE -{1}[chi _]addr0; move/addrI.
 move/eqP; rewrite eq_sym -(character0_eq0 IC'); move/eqP->.
 by rewrite addr0.
 Qed.
@@ -630,13 +632,13 @@ Let Hchi : is_comp chi ('Ind[G,T] psi).
 Proof.
 rewrite /chi; case: pickP=> // HH.
 have: 'Ind[G, T] psi == 0.
-  rewrite (ncoord_sum (cinduced_in_cfun _ _)) ?irr_in_cfun //.
+  rewrite (ncoord_sum (memc_induced _ _)) ?memc_irr //.
   rewrite big1 // => i _.
   move: (HH i); rewrite /is_comp; move/idP; move/negP.
   by rewrite negbK; move/eqP->; rewrite scale0r.
 rewrite cinduced_eq0 ?is_char_irr //.
-move/eqP; move/cfunP; move/(_ 1%g)=> HH1.
-by case/negP: (irr1_neq0 psi); rewrite HH1 cfunE.
+move/eqP; move/ffunP; move/(_ 1%g)=> HH1.
+by case/negP: (irr1_neq0 psi); rewrite HH1 ffunE.
 Qed.
 
 (* This is 6.11 (a) *)
@@ -675,7 +677,7 @@ apply/eqP; case: (_ =P _)=> //; move/eqP=> Dpsi.
 have: is_comp psi chi1.
   have: is_comp psi ('Res[T] chi).
     by apply: is_comp_inertia_restrict_is_comp_i.
-  rewrite /is_comp !ncoord_inner_prod ?is_char_in_cfun //.
+  rewrite /is_comp !ncoord_inner_prod ?memc_is_char //.
   by rewrite Hchi1 -inner_prodbE linearD ![inner_prodb_linear _ _ _] /= 
             !inner_prodbE irr_orthonormal (negPf Dpsi) add0r.
 case/(is_comp_charP _ IC1)=> chi2 IC2 Hchi2.
@@ -684,14 +686,14 @@ have: '['Res[H] psi, theta]_H < '['Res[H] ('Res[T] chi), theta]_H.
   rewrite -!inner_prodbE 2!linearD /= !inner_prodbE.
   rewrite -addrA addrC ltC_sub addrK sposC_addl //.
     rewrite -ncoord_inner_prod //; last first.
-      by apply: (crestrict_in_cfun HsT (is_char_in_cfun _)).
+      by apply: (memc_restrict HsT (memc_is_char _)).
     apply: posC_isNatC; apply: isNatC_ncoord_char.
     by apply: (is_char_restrict HsT).
   move: Ct; rewrite /is_comp -ncoord_inner_prod //.
     rewrite /ltC => ->.
     apply: posC_isNatC; apply: isNatC_ncoord_char.
     by apply: (is_char_restrict HsT); exact: is_char_irr.
-  by apply: (crestrict_in_cfun HsT (is_char_in_cfun _)); exact: is_char_irr.
+  by apply: (memc_restrict HsT (memc_is_char _)); exact: is_char_irr.
 rewrite inner_prod_is_comp_inertia (is_comp_inertia_induced_is_comp Hpsi Hchi).
 by rewrite crestrict_subset // ltC_sub subrr /ltC eqxx.
 Qed.
@@ -709,27 +711,27 @@ move=> G H theta HnG psi psi' Hpsi Hpsi' Heq.
 have TsG := inertia_sub G theta.
 apply: (unique_is_comp_inertia HnG Hpsi' _ Hpsi).
 rewrite -Heq /is_comp ncoord_inner_prod; last first.
-  apply: (crestrict_in_cfun TsG).
-  apply: (cinduced_in_cfun TsG).
-  by apply: irr_in_cfun.
+  apply: (memc_restrict TsG).
+  apply: (memc_induced TsG).
+  by apply: memc_irr.
 have IC1: is_char G ('Ind[G, 'I_(G)[theta]] psi).
   by apply: is_char_induced=> //; exact: is_char_irr.
 have IC2: is_char 'I_(G)[theta]
             ('Res['I_(G)[theta]] ('Ind[G, 'I_(G)[theta]] psi)).
   by apply: is_char_restrict TsG _.
 rewrite inner_prod_charC  ?is_char_irr //.
-rewrite (frobenius_reciprocity TsG) ?(is_char_in_cfun,is_char_irr) //.
+rewrite (frobenius_reciprocity TsG) ?(memc_is_char,is_char_irr) //.
 rewrite inner_prod0; last first.
-  by apply: cinduced_in_cfun=> //; exact: irr_in_cfun.
+  by apply: memc_induced=> //; exact: memc_irr.
 rewrite cinduced_eq0 ?is_char_irr //.
-apply/eqP; move/cfunP; move/(_ 1%g).
-rewrite /= [_ 0 _]cfunE=> HH.
+apply/eqP; move/ffunP; move/(_ 1%g).
+rewrite /= [_ 0 _]ffunE=> HH.
 by case/eqP: (irr1_neq0 psi).
 Qed.
 
 (* 6.11 b the inverse function *)
 Definition inertia_induced_inv (G H : {group gT})
-                (theta : irr H) (chi : cfun gT algC) :=
+                (theta : irr H) (chi : {cfun gT}) :=
   odflt (irr1 'I_(G)[theta])
            (pick [pred t : irr 'I_(G)[theta] |
                    is_comp theta ('Res[H] t) && 
@@ -745,13 +747,13 @@ Let inertia_ncoord :
 Proof.
 move=> G H theta chi HnG HH.
 rewrite ncoord_inner_prod; last first.
-  by apply: (crestrict_in_cfun (normal_sub HnG) (irr_in_cfun _)).
-have HsT := subset_inertia (irr_in_cfun theta) HnG.
+  by apply: (memc_restrict (normal_sub HnG) (memc_irr _)).
+have HsT := subset_inertia (memc_irr theta) HnG.
 rewrite -(crestrict_subset chi HsT).
-rewrite (ncoord_sum (crestrict_in_cfun (inertia_sub G theta) (irr_in_cfun _))) //.
+rewrite (ncoord_sum (memc_restrict (inertia_sub G theta) (memc_irr _))) //.
 rewrite linear_sum -inner_prodbE linear_sum big1 //= => chi1 _.
 rewrite inner_prodbE linearZ -inner_prodbE linearZ /= inner_prodbE.
-rewrite -ncoord_inner_prod ?(crestrict_in_cfun HsT, irr_in_cfun) //.
+rewrite -ncoord_inner_prod ?(memc_restrict HsT, memc_irr) //.
 move: (HH chi1); rewrite inE !is_compE.
 case: (_ =P _)=> [->|/= _]; first by rewrite scaler0.
 by move/eqP->; rewrite scale0r.
@@ -791,15 +793,15 @@ move=> G H theta chi HnG Cchi.
 apply: is_comp_inertia_induced_is_comp=> //.
   by apply: inertia_induces_inv_is_comp_h.
 rewrite /is_comp ncoord_inner_prod; last first.
-  apply: cinduced_in_cfun; last by apply: irr_in_cfun.
+  apply: memc_induced; last by apply: memc_irr.
   by apply:inertia_sub.
 rewrite -frobenius_reciprocity; first last.
-- by apply: irr_in_cfun.
-- by apply: irr_in_cfun.
+- by apply: memc_irr.
+- by apply: memc_irr.
 - by apply:inertia_sub.
 move: (inertia_induces_inv_is_comp_i HnG Cchi).
 rewrite /is_comp ncoord_inner_prod; last first.
-  by apply: (crestrict_in_cfun (inertia_sub _ _) (irr_in_cfun _)).
+  by apply: (memc_restrict (inertia_sub _ _) (memc_irr _)).
 rewrite inner_prod_charC ?is_char_irr //.
 apply: is_char_restrict (is_char_irr _).
 by apply: inertia_sub.
