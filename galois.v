@@ -2131,7 +2131,6 @@ Qed.
 
 End PrimitiveElementTheorem.
 
-(*
 Definition seperable (E K : {algebra L}) : bool :=
  all (seperableElement K) (vbasis E).
 
@@ -2144,7 +2143,7 @@ apply (iffP idP); last first.
  move => HEK.
  apply/allP => x; move/memv_basis => Hx.
  by apply: HEK.
-move/allP => HEK y.
+move => HEK y.
 pose EK := foldr (fun x K => Fadjoin K x) K (vbasis E).
 have/subvP HEEK : (E <= EK)%VS.
  rewrite /EK.
@@ -2154,12 +2153,17 @@ have/subvP HEEK : (E <= EK)%VS.
        [|x xs IH] f /=; first by rewrite big_ord0 mem0v.
  rewrite big_ord_recl memvD //; last by rewrite memK_Fadjoin.
  by rewrite memvZl // memx_Fadjoin.
-move/HEEK.
+move/HEEK/seperableinK.
 move: HEK.
-rewrite /EK.
-elim: (vbasis E) y => [|x xs IH] y /=; first by move => _; apply: seperableinK.
-move => Hsep.
-*)
+rewrite /seperable /EK.
+elim: (vbasis E) y => [|x xs IH] y; first done.
+case/andP => Hsepx Hsep HsepFold.
+apply: IH; first done.
+apply/(seperableFadjoinExtend _ HsepFold)/(subsetSeperable _ Hsepx).
+clear - xs.
+elim: xs => [|x xs IH]; first by apply: subv_refl.
+by rewrite (subv_trans IH) // subsetKFadjoin.
+Qed.
 
 (*
 Section Eigenspace.
