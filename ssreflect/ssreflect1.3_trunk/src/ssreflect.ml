@@ -717,10 +717,10 @@ let evars_for_FO ~hack env sigma0 (ise0:evar_map) c0 =
     | x, Some b, t -> d, mkNamedLetIn x (put b) (put t) c
     | x, None, t -> mkVar x :: d, mkNamedProd x (put t) c in
     let a, t =
-      Sign.fold_named_context_reverse abs_dc ~init:([], evi.evar_concl) dc in
+      Sign.fold_named_context_reverse abs_dc ~init:([], (put evi.evar_concl)) dc in
     let m = Evarutil.new_meta () in
     ise := meta_declare m t !ise;
-    sigma := Evd.define k (applist (mkMeta m, List.rev a)) !sigma;
+    sigma := Evd.define k (applist (mkMeta m, a)) !sigma;
     put (existential_value !sigma ex)
     end
   | _ -> map_constr put c in
@@ -3033,7 +3033,8 @@ let unif_HO_args env ise0 pa i ca =
 (* for HO evars, though hopefully Miller patterns can pick up some of     *)
 (* those cases, and HO matching will mop up the rest.                     *)
 let flags_FO = {Unification.default_no_delta_unify_flags with 
-                Unification.modulo_conv_on_closed_terms = None}
+                Unification.modulo_conv_on_closed_terms = None;
+		Unification.modulo_delta_types = full_transparent_state}
 
 let unif_FO env ise p c =
   Unification.w_unify false env Reduction.CONV ~flags:flags_FO p c ise
