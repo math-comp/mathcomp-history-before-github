@@ -54,10 +54,9 @@ move=> f; apply: (iffP andP); last first.
     rewrite ffunE isZC_opp //; rewrite isZCE; apply/orP;left;
     by move: (isNatC_ncoord_char (enum_val x) Hf2);rewrite /ncoord  enum_valK.
   apply/forall_inP=> x XniG; rewrite !ffunE.
-  move/memc_is_char:Hf1; move/support_memc; move/forall_inP.
-  move/(_ _ XniG); move/eqP->.
-  move/memc_is_char:Hf2; move/support_memc; move/forall_inP.
-  by move/(_ _ XniG); move/eqP->; rewrite subr0.
+  move/memc_is_char/support_memc/forall_inP:Hf1;move/(_ _ XniG); move/eqP->.
+  move/memc_is_char/support_memc/forall_inP:Hf2;move/(_ _ XniG); move/eqP->.
+  by rewrite subr0.
 case=> Hs; case/andP; move/forallP => Hc Hss.
 pose f1 := \sum_(i : irr G) (if isNatC(ncoord i f) then ncoord i f else 0) 
                             *: (i : {cfun _}).
@@ -88,21 +87,17 @@ Qed.
 
 Lemma is_vchar_char : forall f, is_char G f -> f \in 'Z['Irr G].
 Proof.
-move=> f Hf; apply/is_vcharP; exists f; exists 0; split=> //.
+move=> f Hf;apply/is_vcharP;exists f;exists 0;split=> //.
   by exact: is_char0.
 by rewrite subr0.
 Qed.
 
 Lemma is_vchar_irr : forall theta : irr G, (theta: {cfun _}) \in 'Z['Irr G].
-Proof.
-by move=> theta; apply: is_vchar_char; apply: is_char_irr.
-Qed.
+Proof. by move=> theta; apply: is_vchar_char; apply: is_char_irr. Qed.
 
 Lemma isZC_ncoord_vchar : forall (A : {set gT})(theta : irr G) (f : {cfun _}),
   f \in 'Z['Irr G, A] -> isZC (ncoord theta f).
-Proof.
-move=> B theta f; case/and3P=> _;move/forallP => HH _; apply: HH.
-Qed.
+Proof. move=> A theta f; case/and3P=> _;move/forallP => HH _; apply: HH. Qed.
 
 Lemma isZC_coord_vchar : forall m (S : m.-tuple _) A f i, 
   f \in 'Z[S, A] -> isZC (coord S f i).
@@ -116,22 +111,16 @@ Lemma span_vchar : forall m (S : m.-tuple _) A f,
   f \in 'Z[S, A] -> f \in span S.
 Proof. by move=> m S B f; case/and3P. Qed.
 
-Lemma memc_is_gvchar : forall f B, f \in 'Z['Irr G, B]-> f \in 'CF(G, B).
+Lemma memc_is_gvchar : forall f A, f \in 'Z['Irr G, A]-> f \in 'CF(G, A).
 Proof. 
-move=> f B;case/and3P=> Hspan; move/forallP => Hc Hsup.
+move=> f A;case/and3P=> Hspan; move/forallP => Hc Hsup.
 case/andP: (base_irr_basis G) Hspan; rewrite /is_span;move/eqP => -> _ HH.
 by rewrite memcE Hsup.
 Qed.
 
-Lemma memc_is_vchar : forall f, f \in 'Z['Irr G]-> f \in 'CF(G).
-Proof. 
-move=> f; case/is_vcharP=> f1; case=> f2 [Hf1 Hf2 ->].
-by apply: memv_sub; apply: memc_is_char.
-Qed.
-
 Lemma is_vchar0 :  forall m (S : m.-tuple _) A,  0 \in 'Z[S, A].
 Proof. 
-move => m S B;rewrite !inE; apply/and3P;split; first by apply: mem0v.
+move => m S A;rewrite !inE; apply/and3P;split; first by apply: mem0v.
   by apply/forallP=> i;rewrite linear0  ffunE (isZC_nat 0). 
 by apply/forall_inP=> x; rewrite ffunE eqxx.
 Qed.
