@@ -399,7 +399,7 @@ rewrite 2!inE /= qact_domE ?subsetT // astabsJ.
 rewrite (subsetP (char_norm_trans (Phi_char _) nKuX)) ?mem_quotient //=.
 apply/subsetP=> fy; case/morphimP=> y Dy Yy ->{fy}.
 by rewrite inE /= -act_f // morphimEsub // mem_imset // (acts_act actsXY).
-Time Qed.
+Qed.
 
 
 
