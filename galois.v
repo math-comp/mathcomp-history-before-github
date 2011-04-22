@@ -2,7 +2,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq tuple.
 Require Import fintype finfun bigop ssralg poly polydiv.
 Require Import zmodp vector algebra fieldext.
 Require Import fingroup perm finset matrix mxalgebra.
-Require Import div cyclic.
+Require Import div cyclic prime.
 
 (******************************************************************************)
 (* This file is supposed to provide galois theory, however it is currently    *)
@@ -90,6 +90,27 @@ Variable F0 : fieldType.
 Variable L : fieldExtType F0.
 
 Let F : {algebra L } := aspace1 _.
+
+(* this is a predicate that holds for all the powers of p where p is the
+   characteric of L.  If L is characteristic 0, then this predicate only holds
+   for 1 *)
+Definition powerOfP := [pred i | (0 < i) && all (fun p => p \in [char L]) (primes i)].
+
+Lemma powerOfP1gt0 : forall n, powerOfP n -> 0 < n.
+Proof. by move => [|n] //. Qed.
+
+Lemma powerOfP1 : forall p n, p \in [char L] -> powerOfP n -> powerOfP (p*n)%N.
+Proof.
+move => p n Hp.
+case/andP => Hn1; move/allP => Hn2.
+have H0p : (0 < p) by apply/prime_gt0/(@charf_prime L).
+rewrite /= muln_gt0 H0p Hn1. 
+apply/allP => i.
+rewrite primes_mul //.
+case/orP; last by apply: Hn2.
+rewrite primes_prime ?(@charf_prime L) // mem_seq1.
+by move/eqP ->.
+Qed.
 
 Lemma dim_prodvf : forall (K:{vspace L}) x, x != 0 -> \dim (K * x%:VS) = \dim K.
 Proof.
@@ -236,6 +257,15 @@ Lemma sump_polyOver : forall (I : finType) (P : pred I) (p_ : I -> {poly L}),
 Proof.
 move=> I P p_ Hp; apply big_prop => //; first by apply polyOver0.
 by exact: addp_polyOver.
+Qed.
+
+Lemma poly_polyOver : forall n (E : nat -> L),
+  (forall i, E i \in K) -> polyOver (\poly_(i < n) E i).
+Proof.
+move => n E HE.
+rewrite poly_def.
+apply: sump_polyOver => i _.
+by rewrite scalep_polyOver // exp_polyOver // polyOverX.
 Qed.
 
 Lemma compose_polyOver : forall p q : {poly L},
@@ -1207,12 +1237,13 @@ by rewrite size_minPoly ltnn.
 Qed.
 
 Lemma seperableNXp : 
-  reflect (exists2 p, p \in [char L] & exists g, (minPoly K x) = g \Po 'X^p)
+  reflect (exists2 p, p \in [char L] & 
+            exists2 g, (polyOver K g) & (minPoly K x) = g \Po 'X^p)
           (~~ seperableElement).
 Proof.
 rewrite seperable_nzdmp negb_involutive.
 apply: (iffP eqP); last first.
- move => [p Hp [g ->]].
+ move => [p Hp [g _ ->]].
  by rewrite deriv_poly_comp derivXn -scaler_nat (charf0 Hp) scale0r mulr0.
 move/eqP: (monic_minPoly K x).
 set (f := minPoly K x) => Hlead Hdf.
@@ -1229,6 +1260,10 @@ rewrite -(dvdn_charf Hp) in Hnz.
 move: (divnK Hnz).
 set r := ((size f).-1 %/ p)%N => Hrp.
 exists (\poly_(i < r.+1) f`_(i * p)).
+ rewrite poly_polyOver // => i.
+ move: (i * p)%N.
+ apply/polyOverP.
+ by apply: minPolyOver.
 rewrite poly_compE size_poly_eq; last by rewrite Hrp [f`_(_)]Hlead nonzero1r.
 apply/polyP => i.
 rewrite coef_sum.
@@ -1244,7 +1279,7 @@ case Hpi: (p %| i)%N ;last first.
  by rewrite (dvdn_mulr _ (dvdnn p)).
 move: (divnK Hpi) <-.
 set s := (i %/ p)%N.
-have Hp0 : 0 < p by apply/prime.prime_gt0/(@charf_prime L).
+have Hp0 : 0 < p by apply/prime_gt0/(@charf_prime L).
 case: (leqP r.+1 s) => Hrs.
  transitivity (0:L).
   apply: nth_default.
@@ -1456,6 +1491,35 @@ by apply: nonzero1r.
 Qed.
 
 End MoreFadjoin.
+
+(*
+Lemma seperablePower : forall (K : {algebra L}) x, 
+ exists2 n, powerOfP n & seperableElement K (x ^+ n).
+Proof.
+move => K x.
+move: {2}(elementDegree K x) (leqnn (elementDegree K x)) => n.
+elim: n x => [|n IHn] x.
+ by rewrite -(prednK (elementDegreegt0 K x)).
+move => Hdeg.
+case Hsep : (seperableElement K x); first by exists 1%N.
+case/negbT/seperableNXp : Hsep => p Hp [g HKg Hg].
+have: elementDegree K (x ^+ p) <= n.
+ rewrite -ltnS (leq_trans _ Hdeg) // -size_minPoly -ltnS -size_minPoly.
+ apply: (@leq_ltn_trans (size g)).
+  apply: size_dvdp; last first.
+   apply: minPoly_dvdp => //.
+   by rewrite /root -hornerXn -horner_poly_comp -Hg minPolyxx.
+  move/eqP: Hg.
+  apply: contraL.
+  move/eqP ->.
+  by rewrite poly_com0p -size_poly_eq0 size_minPoly.
+ 
+Focus 2.
+case/IHn => m Hm.
+rewrite -exprn_mulr => Hsepxpm.
+exists (p * m)%N; [by apply powerOfP1 | done].
+Qed.
+*)
 
 Lemma subsetSeperable : forall (K E : {algebra L}) x, (K <= E)%VS -> 
  seperableElement K x -> seperableElement E x.
