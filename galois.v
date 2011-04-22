@@ -1206,6 +1206,66 @@ move: (leq_trans Hsz (size_poly _ _)).
 by rewrite size_minPoly ltnn.
 Qed.
 
+Lemma seperableNXp : 
+  reflect (exists2 p, p \in [char L] & exists g, (minPoly K x) = g \Po 'X^p)
+          (~~ seperableElement).
+Proof.
+rewrite seperable_nzdmp negb_involutive.
+apply: (iffP eqP); last first.
+ move => [p Hp [g ->]].
+ by rewrite deriv_poly_comp derivXn -scaler_nat (charf0 Hp) scale0r mulr0.
+move/eqP: (monic_minPoly K x).
+set (f := minPoly K x) => Hlead Hdf.
+have/eqP Hnz : ((size f).-1)%:R = (0:L).
+ rewrite -(coef0 _ ((size f).-2)) -Hdf coef_deriv size_minPoly.
+ rewrite (prednK (elementDegreegt0 _ _)).
+ rewrite -[(elementDegree K x)]/((elementDegree K x).+1.-1) -size_minPoly.
+ by rewrite [f`_(_).-1]Hlead.
+move : (elementDegreegt0 K x).
+rewrite -[(elementDegree K x)]/((elementDegree K x).+1.-1) -size_minPoly.
+case/natf0_char/(_ Hnz) => p Hp.
+exists p; first done.
+rewrite -(dvdn_charf Hp) in Hnz.
+move: (divnK Hnz).
+set r := ((size f).-1 %/ p)%N => Hrp.
+exists (\poly_(i < r.+1) f`_(i * p)).
+rewrite poly_compE size_poly_eq; last by rewrite Hrp [f`_(_)]Hlead nonzero1r.
+apply/polyP => i.
+rewrite coef_sum.
+case Hpi: (p %| i)%N ;last first.
+ transitivity (0:L).
+  case: i Hpi => [|i Hpi]; first by rewrite dvdn0.
+  rewrite -{2}(mul0r ((i.+1)%:R ^-1)) -{2}(coef0 _ i) -Hdf coef_deriv.
+  by rewrite -mulr_natr mulfK // -(dvdn_charf Hp) Hpi.
+ symmetry.
+ apply: big1 => j _.
+ rewrite coef_scaler -exprn_mulr coef_Xn.
+ case: eqP Hpi => [->|]; last by rewrite mulr0.
+ by rewrite (dvdn_mulr _ (dvdnn p)).
+move: (divnK Hpi) <-.
+set s := (i %/ p)%N.
+have Hp0 : 0 < p by apply/prime.prime_gt0/(@charf_prime L).
+case: (leqP r.+1 s) => Hrs.
+ transitivity (0:L).
+  apply: nth_default.
+  rewrite -(@prednK (size f)); last by rewrite size_minPoly.
+  by rewrite -Hrp ltn_mul2r Hrs andbT.
+ symmetry.
+ apply: big1 => j _.
+ rewrite coef_scaler -exprn_mulr coef_Xn.
+ case: (eqVneq s j) => [Hsj|]; first by move: Hrs; rewrite Hsj ltnNge leq_ord.
+ rewrite mulnC eqn_mul2l.
+ move/negb_true_iff ->.
+ by rewrite eqn0Ngt Hp0 mulr0.
+pose (s' := Ordinal Hrs).
+rewrite (bigD1 s') // coef_scaler -exprn_mulr coef_Xn {2}mulnC eq_refl mulr1.
+rewrite coef_Poly nth_mkseq // mulnC big1 ?[_ _ 0]addr0 // => j.
+move/negb_true_iff.
+rewrite eq_sym => Hj.
+rewrite coef_scaler -exprn_mulr coef_Xn eqn_mul2l [(s == j)]Hj eqn0Ngt Hp0.
+by rewrite mulr0.
+Qed.
+
 Lemma seperableNrootdmp : 
   seperableElement != (root (deriv (minPoly K x)) x).
 Proof.
