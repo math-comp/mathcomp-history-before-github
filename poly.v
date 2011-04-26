@@ -2835,6 +2835,21 @@ rewrite big_ord_recl coef_mulX mul0r add0r -mulr_suml.
 by apply: eq_bigr=> i _; rewrite coef_mulX exprSr mulrA.
 Qed.
 
+Lemma size_poly_comp: forall p q, 
+  size (p \Po q) <= ((size p).-1 * (size q).-1).+1.
+Proof.
+move => p q.
+rewrite poly_compE (leq_trans (size_sum _ _ _)) //.
+apply/bigmax_leqP => i _.
+rewrite -mul_polyC (leq_trans (size_mul _ _)) //.
+apply: (@leq_trans (size (q ^+ i))).
+ rewrite size_polyC.
+ by case (_ != _); rewrite ?add1n // leq_pred.
+rewrite (leq_trans (size_exp _ _)) // ltnS mulnC leq_mul //.
+case: (size p) i => [[]|n]; first by case.
+by apply: leq_ord.
+Qed.
+
 End PolyCompose.
 
 Notation "p \Po q" := (poly_comp q p) (at level 50).
@@ -2883,6 +2898,51 @@ Qed.
 
 End ComPolyCompose.
 
+Section IdomainPolyCompose.
+
+Variable R : idomainType.
+Implicit Types x y : R.
+Implicit Types p q r : {poly R}.
+
+Lemma size_poly_comp_id: forall p q,
+  (size (p \Po q)).-1 = ((size p).-1 * (size q).-1)%N.
+Proof.
+move => p q.
+case (eqVneq p 0) => [->|Hp0].
+ by rewrite poly_com0p size_poly0.
+case (eqVneq q 0) => [->|Hq0].
+ apply/eqP.
+ by rewrite poly_comp0 size_polyC size_poly0 muln0 -subn1 subn_eq0 leq_b1.
+rewrite poly_compE.
+have: (0 < size p) by rewrite lt0n size_poly_eq0.
+move/prednK <-.
+have Hszq : 0 < size (q ^+ (size p).-1) by rewrite lt0n size_poly_eq0 expf_neq0.
+case (leqP (size q).-1 0) => [|Hszq0].
+ rewrite leqn0.
+ move/eqP => Hszq1.
+ rewrite Hszq1 muln0.
+ apply/eqP.
+ rewrite -subn1 subn_eq0 (leq_trans (size_sum _ _ _)) //.
+ apply/bigmax_leqP => i _.
+ move/eqP: Hszq1.
+ rewrite -subn1 subn_eq0.
+ move/size1_polyC ->.
+ by rewrite -polyC_exp -mul_polyC -polyC_mul size_polyC leq_b1.
+rewrite big_ord_recr /= addrC size_addl;
+ (rewrite size_scaler; last by rewrite -lead_coefE lead_coef_eq0 Hp0).
+ by move/prednK: Hszq <-; rewrite size_exp_id mulnC.
+apply: (leq_ltn_trans (size_sum _ _ _)).
+move/prednK: Hszq <-.
+rewrite size_exp_id ltnS.
+apply/bigmax_leqP => i _.
+case (eqVneq p`_i 0) => [->|]; first by rewrite scale0r size_poly0.
+move/size_scaler ->.
+have/prednK: 0 < size (q ^+ i) by rewrite lt0n size_poly_eq0 expf_neq0.
+move <-.
+by rewrite size_exp_id ltn_mul2l Hszq0 ltn_ord.
+Qed.
+
+End IdomainPolyCompose.
 
 Module UnityRootTheory.
 

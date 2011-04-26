@@ -94,7 +94,27 @@ Let F : {algebra L } := aspace1 _.
 (* this is a predicate that holds for all the powers of p where p is the
    characteric of L.  If L is characteristic 0, then this predicate only holds
    for 1 *)
-Definition powerOfP := [pred i | (0 < i) && all (fun p => p \in [char L]) (primes i)].
+Definition powerOfP :=
+  [pred i | (0 < i) && all (fun p => p \in [char L]) (primes i)].
+
+Lemma powerOfPP : forall n, 
+ reflect (forall p, prime p -> (p %| n)%N -> p \in [char L]) (powerOfP n).
+Proof.
+move => n.
+apply/(iffP andP).
+ case: n => [|n]; case => Hn //.
+ move/allP => Hchar p Hp Hpn.
+ move/and3P : (And3 Hp Hn Hpn).
+ rewrite -mem_primes.
+ by apply: Hchar.
+move => H; split.
+ case: n H => [|n] H //.
+ by move/charf_eq: (H 2 isT isT) (H 3 isT isT) ->.
+apply/allP => p.
+rewrite mem_primes.
+case/and3P => Hp _ Hpn.
+by apply H.
+Qed.
 
 Lemma powerOfP1gt0 : forall n, powerOfP n -> 0 < n.
 Proof. by move => [|n] //. Qed.
@@ -1492,7 +1512,6 @@ Qed.
 
 End MoreFadjoin.
 
-(*
 Lemma seperablePower : forall (K : {algebra L}) x, 
  exists2 n, powerOfP n & seperableElement K (x ^+ n).
 Proof.
@@ -1503,23 +1522,32 @@ elim: n x => [|n IHn] x.
 move => Hdeg.
 case Hsep : (seperableElement K x); first by exists 1%N.
 case/negbT/seperableNXp : Hsep => p Hp [g HKg Hg].
-have: elementDegree K (x ^+ p) <= n.
- rewrite -ltnS (leq_trans _ Hdeg) // -size_minPoly -ltnS -size_minPoly.
- apply: (@leq_ltn_trans (size g)).
-  apply: size_dvdp; last first.
-   apply: minPoly_dvdp => //.
-   by rewrite /root -hornerXn -horner_poly_comp -Hg minPolyxx.
-  move/eqP: Hg.
-  apply: contraL.
-  move/eqP ->.
-  by rewrite poly_com0p -size_poly_eq0 size_minPoly.
- 
-Focus 2.
-case/IHn => m Hm.
-rewrite -exprn_mulr => Hsepxpm.
-exists (p * m)%N; [by apply powerOfP1 | done].
+suff: elementDegree K (x ^+ p) <= n.
+ case/IHn => m Hm.
+ rewrite -exprn_mulr => Hsepxpm.
+ by exists (p * m)%N; [by apply powerOfP1 | done].
+rewrite -ltnS (leq_trans _ Hdeg) // -size_minPoly -ltnS -size_minPoly.
+apply: (@leq_ltn_trans (size g)).
+ apply: size_dvdp; last first.
+  apply: minPoly_dvdp => //.
+  by rewrite /root -hornerXn -horner_poly_comp -Hg minPolyxx.
+ move/eqP: Hg.
+ apply: contraL.
+ move/eqP ->.
+ by rewrite poly_com0p -size_poly_eq0 size_minPoly.
+rewrite -[size (minPoly K x)](prednK); last by rewrite size_minPoly.
+rewrite Hg size_poly_comp_id ltnS.
+rewrite size_polyXn.
+case: (leqP (size g) 1) Hg.
+ move/size1_polyC ->.
+ rewrite poly_compC => Hg.
+ have : size (minPoly K x) <= 1 by rewrite Hg size_polyC leq_b1.
+ by rewrite size_minPoly ltnS leqNgt elementDegreegt0.
+move => Hszg _.
+rewrite -{1}(prednK (ltnW Hszg)) -subn_gt0.
+rewrite -(prednK (prime_gt0 (charf_prime Hp))) mulnS addKn muln_gt0 -!subn1.
+by rewrite !subn_gt0 Hszg (prime_gt1 (charf_prime Hp)).
 Qed.
-*)
 
 Lemma subsetSeperable : forall (K E : {algebra L}) x, (K <= E)%VS -> 
  seperableElement K x -> seperableElement E x.
