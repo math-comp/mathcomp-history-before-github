@@ -18,13 +18,13 @@ Require Import div cyclic prime.
 (*                           dimension of K(x)/K                              *)
 (* poly_for_Fadjoin K x y == a polynomial p over K such that y = p.[x]        *)
 (*                                                                            *)
-(*  seperablePolynomial p == p has no repeated roots in any field extension   *)
-(*   seperableElement K x == the minimal polynomial for x is seperable        *)
+(*  separablePolynomial p == p has no repeated roots in any field extension   *)
+(*   separableElement K x == the minimal polynomial for x is separable        *)
 (*                                                                            *)
-(*  Derivations are only meant as a tool to prove allSeperableElement         *)
+(*  Derivations are only meant as a tool to prove allSeparableElement         *)
 (*         Derivation K D == D is a linear operator on K that satifies        *)
 (*                           Leibniz's product rule                           *)
-(* DerivationExtend K x D == Given a derivation D on K and a seperable        *)
+(* DerivationExtend K x D == Given a derivation D on K and a separable        *)
 (*                           element x over K, this function returns the      *)
 (*                           unique extension of D to K(x).                   *)
 (******************************************************************************)
@@ -38,21 +38,21 @@ Open Local Scope ring_scope.
 
 Import GRing.Theory.
 
-Section SeperablePoly.
+Section SeparablePoly.
 
 Variable (R: idomainType).
 Variable (p q : {poly R}).
 
-Definition seperablePolynomial (p:{poly R}) := coprimep p (deriv p).
+Definition separablePolynomial (p:{poly R}) := coprimep p (deriv p).
 
-Lemma seperable_mul : seperablePolynomial (p * q) = 
- [&& seperablePolynomial p, seperablePolynomial q & coprimep p q].
+Lemma separable_mul : separablePolynomial (p * q) = 
+ [&& separablePolynomial p, separablePolynomial q & coprimep p q].
 Proof.
 have dvdpR : forall (p q : {poly R}), p %| p * q.
  by move => p0 q0; rewrite dvdp_mulr // dvdpp.
 have dvdpL : forall (p q : {poly R}), q %| p * q.
  by move => p0 q0; rewrite dvdp_mull // dvdpp.
-rewrite /seperablePolynomial.
+rewrite /separablePolynomial.
 rewrite derivM.
 rewrite -!gcdp_eqp1 !eqp1_dvd1.
 have dvdp_or : forall (d n m : {poly R}), (d %| n) || (d %| m) -> d %| m * n.
@@ -82,7 +82,7 @@ by apply: dvdp_mul; first rewrite GRing.addrC GRing.mulrC;
  rewrite dvdp_gcdl.
 Qed.
 
-End SeperablePoly.
+End SeparablePoly.
 
 Section Galois.
 
@@ -1206,12 +1206,12 @@ case/negP: (root1n x).
 by rewrite -(eqp_root gcd_eq1) root_gcd rootp root_minPoly.
 Qed.
 
-Definition seperableElement := seperablePolynomial (minPoly K x).
+Definition separableElement := separablePolynomial (minPoly K x).
 
-Lemma seperableElementP :  
+Lemma separableElementP :  
   reflect 
-  (exists f, polyOver K f /\ root f x /\ seperablePolynomial f) 
-   seperableElement.
+  (exists f, polyOver K f /\ root f x /\ separablePolynomial f) 
+   separableElement.
 Proof.
 apply: (iffP idP).
  move => ?; exists (minPoly K x); do ! (split => //).
@@ -1220,23 +1220,23 @@ apply: (iffP idP).
 move => [f [fK [rf sf]]].
 move/dvdpPc: (minPoly_dvdp fK rf) => [c [g [Hc Hg]]].
 move: (canRL (GRing.scalerK Hc) Hg) sf ->.
-rewrite (GRing.scaler_mull) seperable_mul.
+rewrite (GRing.scaler_mull) separable_mul.
 by case/and3P.
 Qed.
 
-Lemma seperableinK : x \in K -> seperableElement.
+Lemma separableinK : x \in K -> separableElement.
 Proof.
 move => Hx.
-apply/seperableElementP.
+apply/separableElementP.
 exists ('X - x%:P); repeat split.
   by rewrite addp_polyOver ?polyOverX // opp_polyOver // polyOverC.
  by rewrite root_factor_theorem dvdpp.
-by rewrite /seperablePolynomial !derivCE subr0 coprimep1.
+by rewrite /separablePolynomial !derivCE subr0 coprimep1.
 Qed.
 
-Lemma seperable_nzdmp : seperableElement = (deriv (minPoly K x) != 0).
+Lemma separable_nzdmp : separableElement = (deriv (minPoly K x) != 0).
 Proof.
-rewrite /seperableElement /seperablePolynomial.
+rewrite /separableElement /separablePolynomial.
 apply/idP/idP.
  apply: contraL.
  move/eqP ->.
@@ -1256,12 +1256,12 @@ move: (leq_trans Hsz (size_poly _ _)).
 by rewrite size_minPoly ltnn.
 Qed.
 
-Lemma seperableNXp : 
+Lemma separableNXp : 
   reflect (exists2 p, p \in [char L] & 
             exists2 g, (polyOver K g) & (minPoly K x) = g \Po 'X^p)
-          (~~ seperableElement).
+          (~~ separableElement).
 Proof.
-rewrite seperable_nzdmp negb_involutive.
+rewrite separable_nzdmp negb_involutive.
 apply: (iffP eqP); last first.
  move => [p Hp [g _ ->]].
  by rewrite deriv_poly_comp derivXn -scaler_nat (charf0 Hp) scale0r mulr0.
@@ -1321,21 +1321,21 @@ rewrite coef_scaler -exprn_mulr coef_Xn eqn_mul2l [(s == j)]Hj eqn0Ngt Hp0.
 by rewrite mulr0.
 Qed.
 
-Lemma seperableNrootdmp : 
-  seperableElement != (root (deriv (minPoly K x)) x).
+Lemma separableNrootdmp : 
+  separableElement != (root (deriv (minPoly K x)) x).
 Proof.
-rewrite seperable_nzdmp size_elementDegree.
+rewrite separable_nzdmp size_elementDegree.
   by case: (_ == 0).
  by rewrite deriv_polyOver // minPolyOver.
 by rewrite (leq_trans (size_Poly _)) // size_mkseq size_minPoly leqnn.
 Qed.
 
-Lemma DerivationSeperable : forall D, Derivation Fadjoin D -> 
- seperableElement ->
+Lemma DerivationSeparable : forall D, Derivation Fadjoin D -> 
+ separableElement ->
  D x = - (map_poly D (minPoly K x)).[x] / ((minPoly K x)^`()).[x].
 Proof.
 move => D Dderiv.
-move: seperableNrootdmp.
+move: separableNrootdmp.
 rewrite negb_eqb addbC /root.
 move/addbP => <- Hroot.
 apply: (canRL (mulfK Hroot)).
@@ -1396,11 +1396,11 @@ by rewrite (coef_map [linear of D]) ?linear0 //= !coefC [D _]fun_if linear0.
 Qed.
 
 Lemma DerivationExtend_Poly : forall (p:{poly L}),
- polyOver K p -> seperableElement ->
+ polyOver K p -> separableElement ->
  DerivationExtend (p.[x]) = (map_poly D p).[x] + p^`().[x] * Dx.
 Proof.
 move => p Kp sep.
-move: seperableNrootdmp.
+move: separableNrootdmp.
 rewrite negb_eqb addbC /root sep addbT {sep} => sep.
 rewrite lapp_of_funK; last by apply: DerivationExtend_body_linear.
 rewrite {-1}(divp_mon_spec p (monic_minPoly K x)) /DerivationExtend_body.
@@ -1414,7 +1414,7 @@ Qed.
 
 
 Lemma DerivationExtendDerivation :
- seperableElement -> Derivation Fadjoin DerivationExtend.
+ separableElement -> Derivation Fadjoin DerivationExtend.
 Proof.
 move => sep.
 apply/allP => u; move/memv_basis => Hu.
@@ -1433,10 +1433,10 @@ End DerivationExtend.
 
 (* Reference: 
 http://www.math.uconn.edu/~kconrad/blurbs/galoistheory/separable2.pdf *)
-Lemma seperableDerivationP :
+Lemma separableDerivationP :
   reflect (forall D, Derivation Fadjoin D ->
                      (K <= lker D)%VS -> (Fadjoin <= lker D)%VS)
-          seperableElement.
+          separableElement.
 Proof.
 apply introP.
  move => sep D DD.
@@ -1450,10 +1450,10 @@ apply introP.
   apply/eqP.
   by rewrite (coef_map [linear of D]) ?linear0 //= coef0 -memv_ker K0.
  by rewrite memv_ker (DerivationPoly DD) ?memx_Fadjoin 
-         ?(polyOver_subset subsetKFadjoin Hp) // (DerivationSeperable DD sep)
+         ?(polyOver_subset subsetKFadjoin Hp) // (DerivationSeparable DD sep)
          /horner_morph !HD0 ?minPolyOver // horner0 oppr0 mul0r mulr0 addr0.
 move => nsep.
-move: seperableNrootdmp (nsep).
+move: separableNrootdmp (nsep).
 rewrite negb_eqb.
 move/addbP ->.
 rewrite /root; move/eqP => Hroot.
@@ -1485,7 +1485,7 @@ have Dx : D x = 1.
   rewrite size_polyX ltn_neqAle (elementDegreegt0 K x) andbT eq_sym.
   apply: contra nsep.
   move/eqP => eD.
-  rewrite seperable_nzdmp (_ : (minPoly K x)^`() = 1%:P)  ?nonzero1r //.
+  rewrite separable_nzdmp (_ : (minPoly K x)^`() = 1%:P)  ?nonzero1r //.
   apply/polyP => i.
   rewrite coef_deriv coefC.
   case: i => [|i].
@@ -1512,16 +1512,16 @@ Qed.
 
 End MoreFadjoin.
 
-Lemma seperablePower : forall (K : {algebra L}) x, 
- exists2 n, powerOfP n & seperableElement K (x ^+ n).
+Lemma separablePower : forall (K : {algebra L}) x, 
+ exists2 n, powerOfP n & separableElement K (x ^+ n).
 Proof.
 move => K x.
 move: {2}(elementDegree K x) (leqnn (elementDegree K x)) => n.
 elim: n x => [|n IHn] x.
  by rewrite -(prednK (elementDegreegt0 K x)).
 move => Hdeg.
-case Hsep : (seperableElement K x); first by exists 1%N.
-case/negbT/seperableNXp : Hsep => p Hp [g HKg Hg].
+case Hsep : (separableElement K x); first by exists 1%N.
+case/negbT/separableNXp : Hsep => p Hp [g HKg Hg].
 suff: elementDegree K (x ^+ p) <= n.
  case/IHn => m Hm.
  rewrite -exprn_mulr => Hsepxpm.
@@ -1549,31 +1549,31 @@ rewrite -(prednK (prime_gt0 (charf_prime Hp))) mulnS addKn muln_gt0 -!subn1.
 by rewrite !subn_gt0 Hszg (prime_gt1 (charf_prime Hp)).
 Qed.
 
-Lemma subsetSeperable : forall (K E : {algebra L}) x, (K <= E)%VS -> 
- seperableElement K x -> seperableElement E x.
+Lemma subsetSeparable : forall (K E : {algebra L}) x, (K <= E)%VS -> 
+ separableElement K x -> separableElement E x.
 Proof.
 move => K E x KE.
-move/seperableElementP => [f [fK [rootf sepf]]].
-apply/seperableElementP.
+move/separableElementP => [f [fK [rootf sepf]]].
+apply/separableElementP.
 exists f; split => //.
 by apply: (polyOver_subset KE).
 Qed.
 
-Lemma allSeperableElement : forall K x,
-  reflect (forall y, y \in Fadjoin K x -> seperableElement K y)
-          (seperableElement K x).
+Lemma allSeparableElement : forall K x,
+  reflect (forall y, y \in Fadjoin K x -> separableElement K y)
+          (separableElement K x).
 Proof.
 move => K x.
 apply (iffP idP); last by apply; apply memx_Fadjoin.
 move => sep ?.
 move/poly_Fadjoin => [q [Hq ->]].
-apply/seperableDerivationP => D DD.
+apply/separableDerivationP => D DD.
 move/subvP => KD0.
 apply/subvP => ?.
 move/poly_Fadjoin => [p [Hp ->]].
 rewrite memv_ker -(DerivationExtended x D (mempx_Fadjoin _ Hp)).
-have sepFyx : (seperableElement (Fadjoin K (q.[x])) x).
- by apply: (subsetSeperable (subsetKFadjoin _ _)).
+have sepFyx : (separableElement (Fadjoin K (q.[x])) x).
+ by apply: (subsetSeparable (subsetKFadjoin _ _)).
 have KyxEqKx : (Fadjoin (Fadjoin K (q.[x])) x = Fadjoin K x).
  apply/eqP.
  change (Fadjoin (Fadjoin K q.[x]) x == Fadjoin K x :> {vspace L}).
@@ -1601,7 +1601,7 @@ have hmD : forall t, polyOver K t ->
   by rewrite -memv_ker KD0.
  apply: (subv_trans _ (subsetKFadjoin _ _)).
  by apply: Ht.
-by rewrite (DerivationSeperable DED) // !hmD ?compose_polyOver ?minPolyOver //
+by rewrite (DerivationSeparable DED) // !hmD ?compose_polyOver ?minPolyOver //
            oppr0 mul0r mulr0 addr0.
 Qed.
 
@@ -1803,7 +1803,7 @@ Qed.
 
 End FiniteCase.
 
-Hypothesis sep : seperableElement K y.
+Hypothesis sep : separableElement K y.
 
 Let f0 := f \Po ('X + x%:P).
 Let g0 := (g \Po ('X + y%:P)) %/ ('X).
@@ -1860,7 +1860,7 @@ Qed.
 
 Lemma g0nz_subproof : g0`_0 != 0.
 Proof.
-move: (seperableNrootdmp K y).
+move: (separableNrootdmp K y).
 rewrite negb_eqb sep /root -/g.
 apply: contra.
 have <- : g0.[0] = g0`_0.
@@ -2258,18 +2258,18 @@ by apply: HKl.
 Qed.
 
 (* With more work the Primitive Element Theorem can be strengthened by weakining
-   the hypothesis (seperableElement K y) to (seperableElement (Fadjoin K y) x).
+   the hypothesis (separableElement K y) to (separableElement (Fadjoin K y) x).
    See VI.6.7 from "A Course in Constructive Algebra". *)
 
-Lemma seperableFadjoinExtend : seperableElement (Fadjoin K y) x -> 
-  seperableElement K x.
+Lemma separableFadjoinExtend : separableElement (Fadjoin K y) x -> 
+  separableElement K x.
 Proof.
-move/seperableDerivationP => sepx.
-move/seperableDerivationP: sep => sepy.
+move/separableDerivationP => sepx.
+move/separableDerivationP: sep => sepy.
 case: PrimitiveElementTheorem => z Hz.
-suff/allSeperableElement : seperableElement K z.
+suff/allSeparableElement : separableElement K z.
  by apply; rewrite -Hz memx_Fadjoin.
-apply/seperableDerivationP => D.
+apply/separableDerivationP => D.
 rewrite -Hz => HDz.
 have HDy : Derivation (Fadjoin K y) D.
  apply: (subvDerivation _ HDz).
@@ -2280,12 +2280,12 @@ Qed.
 
 End PrimitiveElementTheorem.
 
-Definition seperable (E K : {algebra L}) : bool :=
- all (seperableElement K) (vbasis E).
+Definition separable (E K : {algebra L}) : bool :=
+ all (separableElement K) (vbasis E).
 
-Lemma seperableP : forall (E K : {algebra L}),
-  reflect (forall y, y \in E -> seperableElement K y)
-          (seperable E K).
+Lemma separableP : forall (E K : {algebra L}),
+  reflect (forall y, y \in E -> separableElement K y)
+          (separable E K).
 Proof.
 move => E K.
 apply (iffP idP); last first.
@@ -2303,13 +2303,13 @@ have/subvP HEEK : (E <= EK)%VS.
  case: (vbasis _) (_`_i)=> /= s _; elim: s=> //= w s IH z; rewrite in_cons.
  case/orP=>[|HH]; first by move/eqP->; exact: memx_Fadjoin.
  by apply: memK_Fadjoin; apply: IH.
-move/HEEK/seperableinK.
+move/HEEK/separableinK.
 move: HEK.
-rewrite /seperable /EK.
+rewrite /separable /EK.
 set u := tval _; elim: u y => [|x xs IH] y; first done.
 case/andP => Hsepx Hsep HsepFold.
 apply: IH; first done.
-apply/(seperableFadjoinExtend _ HsepFold)/(subsetSeperable _ Hsepx).
+apply/(separableFadjoinExtend _ HsepFold)/(subsetSeparable _ Hsepx).
 clear - xs.
 elim: xs => [|x xs IH]; first by apply: subv_refl.
 by rewrite (subv_trans IH) // subsetKFadjoin.
