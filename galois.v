@@ -91,47 +91,6 @@ Variable L : fieldExtType F0.
 
 Let F : {algebra L } := aspace1 _.
 
-(* this is a predicate that holds for all the powers of p where p is the
-   characteric of L.  If L is characteristic 0, then this predicate only holds
-   for 1 *)
-Definition powerOfP :=
-  [pred i | (0 < i) && all (fun p => p \in [char L]) (primes i)].
-
-Lemma powerOfPP : forall n, 
- reflect (forall p, prime p -> (p %| n)%N -> p \in [char L]) (powerOfP n).
-Proof.
-move => n.
-apply/(iffP andP).
- case: n => [|n]; case => Hn //.
- move/allP => Hchar p Hp Hpn.
- move/and3P : (And3 Hp Hn Hpn).
- rewrite -mem_primes.
- by apply: Hchar.
-move => H; split.
- case: n H => [|n] H //.
- by move/charf_eq: (H 2 isT isT) (H 3 isT isT) ->.
-apply/allP => p.
-rewrite mem_primes.
-case/and3P => Hp _ Hpn.
-by apply H.
-Qed.
-
-Lemma powerOfP1gt0 : forall n, powerOfP n -> 0 < n.
-Proof. by move => [|n] //. Qed.
-
-Lemma powerOfP1 : forall p n, p \in [char L] -> powerOfP n -> powerOfP (p*n)%N.
-Proof.
-move => p n Hp.
-case/andP => Hn1; move/allP => Hn2.
-have H0p : (0 < p) by apply/prime_gt0/(@charf_prime L).
-rewrite /= muln_gt0 H0p Hn1. 
-apply/allP => i.
-rewrite primes_mul //.
-case/orP; last by apply: Hn2.
-rewrite primes_prime ?(@charf_prime L) // mem_seq1.
-by move/eqP ->.
-Qed.
-
 Lemma dim_prodvf : forall (K:{vspace L}) x, x != 0 -> \dim (K * x%:VS) = \dim K.
 Proof.
 have: forall (K:{vspace L}) x, x != 0 -> \dim (K * x%:VS) <= \dim K.
@@ -1513,7 +1472,7 @@ Qed.
 End MoreFadjoin.
 
 Lemma separablePower : forall (K : {algebra L}) x, 
- exists2 n, powerOfP n & separableElement K (x ^+ n).
+ exists2 n, [char L].-nat n & separableElement K (x ^+ n).
 Proof.
 move => K x.
 move: {2}(elementDegree K x) (leqnn (elementDegree K x)) => n.
@@ -1525,7 +1484,9 @@ case/negbT/separableNXp : Hsep => p Hp [g HKg Hg].
 suff: elementDegree K (x ^+ p) <= n.
  case/IHn => m Hm.
  rewrite -exprn_mulr => Hsepxpm.
- by exists (p * m)%N; [by apply powerOfP1 | done].
+ exists (p * m)%N => //.
+ rewrite pnat_mul pnatE ?Hp //.
+ apply: (charf_prime Hp).
 rewrite -ltnS (leq_trans _ Hdeg) // -size_minPoly -ltnS -size_minPoly.
 apply: (@leq_ltn_trans (size g)).
  apply: size_dvdp; last first.
