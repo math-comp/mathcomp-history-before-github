@@ -409,24 +409,24 @@ End HuppertBlackburn_5_9.
 
 Section HuppertBlackburn_12_3.
 
-Lemma exponent_mx_group :  forall n m q,
-  n > 0 -> m > 0 -> q > 1 -> exponent [set: 'M['Z_q]_(m, n)] = q.
+Implicit Types (gT : finGroupType) (m n p q : nat).
+
+Lemma exponent_mx_group m n q :
+  m > 0 -> n > 0 -> q > 1 -> exponent [set: 'M['Z_q]_(m, n)] = q.
 Proof.
-move=> n m q pn pm q_gt1.
-apply/eqP; rewrite eqn_dvd; apply/andP; split; last first.
-  pose cmx1 := const_mx 1%R : 'M['Z_q]_(m, n).
-  apply: dvdn_trans (dvdn_exponent (in_setT cmx1)). 
-  have := (expg_order cmx1); move/matrixP. 
-  move/(_ (Ordinal pm)); move/(_ (Ordinal pn)); rewrite mulmxnE; move/eqP. 
-  by rewrite !mxE -order_dvdn order_Zp1 Zp_cast.
-apply/exponentP=> x hx; apply/matrixP=> i j; rewrite mulmxnE !mxE.
-by rewrite -mulr_natr -Zp_nat_mod // modnn mulr0.
+move=> m_gt0 n_gt0 q_gt1; apply/eqP; rewrite eqn_dvd; apply/andP; split.
+  apply/exponentP=> x _; apply/matrixP=> i j; rewrite mulmxnE !mxE.
+  by rewrite -mulr_natr -Zp_nat_mod // modnn mulr0.
+pose cmx1 := const_mx 1%R : 'M['Z_q]_(m, n).
+apply: dvdn_trans (dvdn_exponent (in_setT cmx1)). 
+have/matrixP/(_ (Ordinal m_gt0))/(_ (Ordinal n_gt0))/eqP := expg_order cmx1.
+by rewrite mulmxnE !mxE -order_dvdn order_Zp1 Zp_cast.
 Qed.
 
-Lemma max_card_abelian : forall (gT : finGroupType) (G : {group gT}),
+Lemma max_card_abelian gT (G : {group gT}) :
   abelian G -> #|G| <= exponent G ^ 'r(G) ?= iff homocyclic G.
 Proof.
-move=> gT G cGG; have [b defG def_tG] := abelian_structure cGG.
+move=> cGG; have [b defG def_tG] := abelian_structure cGG.
 have Gb: all (mem G) b.
   apply/allP=> x b_x; rewrite -(bigdprodEY defG); have [b1 b2] := splitPr b_x.
   by rewrite big_cat big_cons /= mem_gen // setUCA inE cycle_id.
@@ -441,41 +441,48 @@ have:= leqif_mul (leqif_eq le_x_G) (IHb Gb).
 by rewrite -expnS expn_eq0 eqn0Ngt eGgt0.
 Qed.
 
-Lemma card_homocyclic : forall (gT : finGroupType) (G : {group gT}),
+Lemma card_homocyclic gT (G : {group gT}) :
   homocyclic G -> #|G| = (exponent G ^ 'r(G))%N.
 Proof.
-move=> gT G homG; have [cGG _] := andP homG.
-by apply/eqP; rewrite max_card_abelian.
+by move=> homG; have [cGG _] := andP homG; apply/eqP; rewrite max_card_abelian.
 Qed.
 
-Lemma rank_mx_group : forall n m q, 'r([set: 'M['Z_q]_(m, n)]) = (m * n)%N.
+Lemma rank_mx_group m n q : 'r([set: 'M['Z_q]_(m, n)]) = (m * n)%N.
 Proof.
-move=> n m q; wlog q_gt1: q / q > 1 by case: q => [|[|q -> //]]; move/(_ 2)->.
+wlog q_gt1: q / q > 1 by case: q => [|[|q -> //]] /(_ 2)->.
 set G := setT; have cGG: abelian G := zmod_abelian _.
 have [mn0 | ] := posnP (m * n).
   by rewrite [G](card1_trivg _) ?rank1 // cardsT card_matrix mn0.
-rewrite muln_gt0; case/andP=> m_gt0 n_gt0.
-have expG: exponent G = q := exponent_mx_group n_gt0 m_gt0 q_gt1.
+rewrite muln_gt0 => /andP[m_gt0 n_gt0].
+have expG: exponent G = q := exponent_mx_group m_gt0 n_gt0 q_gt1.
 apply/eqP; rewrite eqn_leq andbC -(leq_exp2l _ _ q_gt1) -{2}expG.
 have ->: (q ^ (m * n))%N = #|G| by rewrite cardsT card_matrix card_ord Zp_cast.
 rewrite max_card_abelian //= -grank_abelian //= -/G.
 pose B := [set (delta_mx ij.1 ij.2 : 'M['Z_q]_(m, n)) | ij <- {: 'I_m * 'I_n}].
-have ->: G = <<B>>.
-  apply/setP=> v; rewrite inE (matrix_sum_delta v).
-  rewrite group_prod // => i _; rewrite group_prod // => j _.
-  rewrite -[v i j]natr_Zp scaler_nat groupX // mem_gen //.
-  by apply/imsetP; exists (i, j).
-have ->: (m * n)%N = #|{: 'I_m * 'I_n}| by rewrite card_prod !card_ord. 
-exact: leq_trans (grank_min _) (leq_imset_card _ _).
+suffices ->: G = <<B>>.
+  have ->: (m * n)%N = #|{: 'I_m * 'I_n}| by rewrite card_prod !card_ord. 
+  exact: leq_trans (grank_min _) (leq_imset_card _ _).
+apply/setP=> v; rewrite inE (matrix_sum_delta v).
+rewrite group_prod // => i _; rewrite group_prod // => j _.
+rewrite -[v i j]natr_Zp scaler_nat groupX // mem_gen //.
+by apply/imsetP; exists (i, j).
 Qed.
 
-Lemma mx_group_homocyclic : forall n m q, homocyclic [set: 'M['Z_q]_(m, n)].
+Lemma mx_group_homocyclic m n q : homocyclic [set: 'M['Z_q]_(m, n)].
 Proof.
-move=> n m q; wlog q_gt1: q / q > 1 by case: q => [|[|q -> //]]; move/(_ 2)->.
+wlog q_gt1: q / q > 1 by case: q => [|[|q -> //]] /(_ 2)->.
 set G := setT; have cGG: abelian G := zmod_abelian _.
 rewrite -max_card_abelian //= rank_mx_group cardsT card_matrix card_ord -/G.
 rewrite {1}Zp_cast //; have [-> // | ] := posnP (m * n).
-by rewrite muln_gt0; case/andP=> m_gt0 n_gt0; rewrite exponent_mx_group.
+by rewrite muln_gt0 => /andP[m_gt0 n_gt0]; rewrite exponent_mx_group.
+Qed.
+
+Lemma abelian_type_mx_group m n q :
+  q > 1 -> abelian_type [set: 'M['Z_q]_(m, n)] = nseq (m * n) q.
+Proof.
+rewrite (abelian_type_homocyclic (mx_group_homocyclic m n q)) rank_mx_group.
+have [-> // | ] := posnP (m * n); rewrite muln_gt0 => /andP[m_gt0 n_gt0] q_gt1.
+by rewrite exponent_mx_group.
 Qed.
 
 (*
@@ -490,20 +497,17 @@ by rewrite abelemE // zmod_abelian exponent_mx_group ?prime_gt1 //=.
 Qed.
 *)
 
-Lemma exponent_dprod_homocyclic :
-  forall (gT : finGroupType) (p : nat) (K H G : {group gT}),
-    K \x H = G -> p.-group G -> homocyclic G -> K :!=: 1 ->
-  homocyclic K /\ exponent K = exponent G.
+Lemma abelian_type_dprod_homocyclic gT p (K H G : {group gT}) :
+    K \x H = G -> p.-group G -> homocyclic G ->
+     abelian_type K = nseq 'r(K) (exponent G)
+  /\ abelian_type H = nseq 'r(H) (exponent G).
 Proof.
-move=> gT p K H G defG pG homG ntK; have [cGG _] := andP homG.
-have [sKG sHG]: K \subset G /\ H \subset G by apply: mulG_sub; case/dprodP: defG.
-
+move=> defG pG homG; have [cGG _] := andP homG.
+have /mulG_sub[sKG sHG]: K * H = G by case/dprodP: defG.
 have [cKK cHH] := (abelianS sKG cGG, abelianS sHG cGG).
 suffices: all (pred1 (exponent G)) (abelian_type K ++ abelian_type H).
-  rewrite all_cat /homocyclic cKK; case/andP=> e_atK _.
-  split; first exact: all_pred1_constant e_atK.
-  apply/eqP; move: e_atK; rewrite /abelian_type -(prednK (cardG_gt0 K)) /=.
-  by rewrite {1 2 3}genGid cKK ntK; case/andP.
+  rewrite all_cat => /andP[/all_pred1P-> /all_pred1P->].
+  by rewrite !size_abelian_type.
 suffices def_atG: abelian_type K ++ abelian_type H =i abelian_type G.
   rewrite (eq_all_r def_atG); apply/all_pred1P.
   by rewrite size_abelian_type // -abelian_type_homocyclic.
@@ -516,17 +520,22 @@ have: all [pred m | m > 1] (map order (bK ++ bH)).
 by rewrite all_map (eq_all (@order_gt1 _)) all_predC has_pred1.
 Qed.
 
-Lemma homocyclic1 : forall gT : finGroupType, homocyclic [1 gT].
-Proof. move=> gT; exact: abelem_homocyclic (abelem1 _ 2). Qed.
+(*
+Lemma exponent_dprod_homocyclic gT p (K H G : {group gT}) :
+    K \x H = G -> p.-group G -> homocyclic G -> K :!=: 1 ->
+  homocyclic K /\ exponent K = exponent G.
+*)
 
-Lemma dprod_homocyclic : forall (gT : finGroupType) (p : nat) (K H G : {group gT}),
+Lemma homocyclic1 gT : homocyclic [1 gT].
+Proof. exact: abelem_homocyclic (abelem1 _ 2). Qed.
+
+Lemma dprod_homocyclic gT p (K H G : {group gT}) :
   K \x H = G -> p.-group G -> homocyclic G -> homocyclic K /\ homocyclic H.
 Proof.
-move=> gT p K H G defG pG homG; have:= defG; rewrite dprodC.
-have [-> | ntK] := eqsVneq K 1; first by rewrite dprodg1 homocyclic1 => ->.
-have [-> | ntH defG'] := eqsVneq H 1; first by rewrite dprod1g homocyclic1 => ->.
-split; first by case: (exponent_dprod_homocyclic defG pG). 
-by case: (exponent_dprod_homocyclic defG' pG).
+move=> defG pG homG; have [cGG _] := andP homG.
+have /mulG_sub[sKG sHG]: K * H = G by case/dprodP: defG.
+have [abtK abtH] := abelian_type_dprod_homocyclic defG pG homG.
+by rewrite /homocyclic !(abelianS _ cGG) // abtK abtH !constant_nseq.
 Qed.
 
 Section MxRepr.
@@ -536,8 +545,8 @@ Variables (G : {group gT}) (n : nat) (rG : mx_representation R G n).
 
 Definition mx_repr_act (u : 'rV_n) x := u *m rG (val (subg G x)).
 
-Lemma mx_repr_actE : forall u x, x \in G -> mx_repr_act u x = u *m rG x.
-Proof. by move=> u x Gx; rewrite /mx_repr_act /= subgK. Qed.
+Lemma mx_repr_actE u x : x \in G -> mx_repr_act u x = u *m rG x.
+Proof. by move=> Gx; rewrite /mx_repr_act /= subgK. Qed.
 
 Lemma mx_repr_is_action : is_action G mx_repr_act.
 Proof.
@@ -560,8 +569,7 @@ Notation "''MR' rG" := (mx_repr_action rG)
   (at level 10, rG at level 8) : action_scope.
 Local Notation "''MR' rG" := (mx_repr_groupAction rG) : groupAction_scope.
 
-Lemma huppert_blackburn_12_3 : forall (gT : finGroupType),
-  forall (V G : {group gT})(p m : nat),
+Lemma huppert_blackburn_12_3 gT (V G : {group gT}) p m :
   minnormal V G -> 
   coprime p #|G| ->
   p.-abelem V ->
@@ -572,7 +580,7 @@ Lemma huppert_blackburn_12_3 : forall (gT : finGroupType),
   & exists toW : groupAction G W,
     {in V & G, morph_act 'J (toW / 'Mho^1(W)) f (idm G)}.
 Proof.
-move=> gT V G p m minV copG abelV m_gt0; set q := (p ^ m)%N => W.
+move=> minV copG abelV m_gt0; set q := (p ^ m)%N => W.
 have [ntV nVG] := andP (mingroupp minV).
 have [p_pr pVdvdn [n Vpexpn]] := pgroup_pdiv (abelem_pgroup abelV) ntV.
 move/(abelem_mx_irrP abelV ntV nVG): (minV) => mx_irrV.
@@ -583,7 +591,8 @@ have p_dv_q: p %| q := dvdn_exp2l p m_gt0.
 pose rG := regular_repr [comUnitRingType of 'Z_q] G; pose MR_G := ('MR rG)%gact.
 pose L := (sdpair1 MR_G @* [set: 'rV['Z_q]_#|G|])%G.
 have cLL: abelian L by rewrite morphim_abelian // zmod_abelian.
-have pL: p.-group L by rewrite morphim_pgroup -?pnat_exponent ?exponent_mx_group.
+have pL: p.-group L.
+  by rewrite morphim_pgroup -?pnat_exponent ?exponent_mx_group.
 pose X := (sdpair2 MR_G @* G)%G.
 have{copG} p'G: p^'.-group G by rewrite /pgroup p'natE // -prime_coprime.
 have p'X: p^'.-group X by rewrite morphim_pgroup.
@@ -602,7 +611,7 @@ have gM: {in L &, {morph g : u v / u * v}}.
 have kerg: 'ker (Morphism gM) = 'Phi(L).
   rewrite (Phi_Mho pL cLL) (MhoEabelian 1 pL cLL).
   apply/setP=> u; apply/idP/imsetP=> [ | [v Lv ->{u}]]; last first.
-    rewrite !inE groupX //=; apply/eqP; apply/rowP=> i; apply: val_inj.
+    rewrite !inE groupX //=; apply/eqP/rowP=> i; apply: val_inj.
     rewrite !mxE morphX // mulmxnE Zp_mulrn /= val_Fp_nat //=.
     by move: {i}(_ i); rewrite Zp_cast // => vi; rewrite modn_dvdm // modn_mull.
   case/morphpreP; case/morphimP=> v _ _ ->{u}; move/set1P=> /=.
@@ -691,15 +700,13 @@ have{VK modVK defVK isoUV} [h dimU h_free hJ]: mx_rsim (submod_repr modU) rV.
   by apply: mx_rsim_trans (mx_rsim_sym defVK); exact/mx_rsim_iso.
 have [sUL isoWU]: U \subset L /\ isog W U.
   have [homU _ _] := im_S U S_U; have [cUU _] := andP homU.
-  rewrite eq_abelian_type_isog ?zmod_abelian //.
-  rewrite !abelian_type_homocyclic ?mx_group_homocyclic //.
+  rewrite eq_abelian_type_isog ?zmod_abelian // abelian_type_mx_group // mul1n.
   rewrite (big_setD1 U) //= in defL.
   have [[_ U' _ defU'] defUU' _ tiUU'] := dprodP defL.
   rewrite defU' in defL defUU' tiUU'.
   have{defUU'} sUL: U \subset L by case/mulG_sub: defUU'.
-  have ->: 'r(W) = 'r(U).
-    apply/eqP; rewrite rank_mx_group // mul1n -dimU.
-    rewrite -(eqn_exp2l _ _ (prime_gt1 p_pr)).
+  have ->: 'dim V = 'r(U).
+    apply/eqP; rewrite -dimU -(eqn_exp2l _ _ (prime_gt1 p_pr)).
     rewrite (rank_abelian_pgroup (pgroupS sUL pL) cUU).
     rewrite -(card_pgroup (pgroupS (Ohm_sub 1 U) (pgroupS sUL pL))).
     rewrite -{1}(card_Fp p_pr) -card_rowg stable_rowg_mxK; last first.
@@ -709,11 +716,10 @@ have [sUL isoWU]: U \subset L /\ isog W U.
     rewrite -(dprod_modl (Mho_dprod 1 defL) (Mho_sub 1 U)).
     rewrite [_ :&: _](trivgP _); last by rewrite -tiUU' setIC setSI ?Mho_sub.
     by rewrite dprodg1 -(mul_card_Ohm_Mho_abelian 1 cUU) mulnK ?cardG_gt0.
-  have [-> // | ntU] := posnP 'r(U); rewrite rank_gt0 in ntU.
   have isoL: isog L [set: 'rV['Z_q]_#|G|] by rewrite isog_sym sub_isog.
   have homL: homocyclic L by rewrite (isog_homocyclic isoL) mx_group_homocyclic.
-  have [_ ->] := exponent_dprod_homocyclic defL pL homL ntU.
-  by rewrite (exponent_isog isoL) // !exponent_mx_group.
+  have [-> _] := abelian_type_dprod_homocyclic defL pL homL.
+  by rewrite (exponent_isog isoL) // exponent_mx_group.
 have [f1 injf1 f1W] := isogP isoWU.
 have Uf1: f1 _ \in U by move=> w; rewrite -f1W mem_morphim ?inE.
 pose f3 w := rVabelem abelV ntV (in_submod _ (g (f1 w)) *m h).
@@ -1003,30 +1009,40 @@ have rCbar : 'r('C_Wbar(Aibar)) = f i.
   rewrite -['r('C_Wbar(_))]rank_Ohm1.
   have /rank_abelem -> : p.-abelem 'Ohm_1('C_Wbar(Aibar)).
     apply: Ohm1_abelem => //; rewrite (pgroupS (subsetIl _ _)) ?morphim_pgroup //.
-    (* this should be abstracted away *)
-    rewrite /pgroup cardsT card_matrix mul1n /= card_ord Zp_cast // -expn_mulr.
-    by rewrite pnat_exp pnat_id.
-  apply/f_equal => /=.
-  have -> : 
-    #|'Ohm_1(('C_Wbar(Aibar))%g)| =  #|'C_Wbar(Aibar) : 'Mho^1( 'C_Wbar(Aibar))|.
-   rewrite -divgI /= -/Wbar; have := (Mho_sub 1 ('C_(Wbar)(Aibar))%G).
-   move/setIidPr->; rewrite -(mul_card_Ohm_Mho_abelian 1 abelCbar) /= mulnK //.
-   exact: cardG_gt0.
-  have -> : 
-   #|'C_Wbar(Aibar) : 'Mho^1('C_Wbar(Aibar))| = #|'C_Wbar(Aibar) : 'Mho^1(Wbar)|.
-    rewrite -[#|_ : 'Mho^1(Wbar)|]indexgI [_ :&: 'Mho^1(Wbar)]setIC.
-  have hMho := (Mho_dprod 1 hcent_com); case/dprodP: hMho=> _ <- hC hI.
-  rewrite -(centC hC) -group_modl ?Mho_sub //. 
-  suff -> : 'Mho^1([~: Wbar, Aibar]) :&: ('C_Wbar(Aibar))%G = 1 by rewrite mulg1.
-  apply/eqP; rewrite -subG1 /=; apply: subset_trans (setSI _ (Mho_sub _ _)) _.
-  rewrite setICA coprime_abel_cent_TI /= ?setIg1 //.
-  - by apply: subset_trans (morphimS _ (sAiG _ hi)) _; rewrite im_sdpair_norm.
-  - rewrite (coprimegS (morphimS _ (sAiG _ hi))) // external_action_im_coprime //.
-    (* this should be abstracted away *)
-    rewrite /pgroup cardsT card_matrix mul1n /= card_ord Zp_cast // -expn_mulr. 
-    by rewrite coprime_expl.
-  - by rewrite morphim_abelian // zmod_abelian.
-  have -> : #|'C_Wbar(Aibar) : 'Mho^1(Wbar)| =
-    #|sdpair1 toW @* (sdpair1 toW @*^-1 'C(Aibar)) / 'Mho^1(Wbar)|.
-    rewrite -morphpreIim morphpreK ?card_quotient //=; last exact: subsetIl.
+    by rewrite -pnat_exponent exponent_mx_group // pnat_exp pnat_id.
+  congr (logn _ _); rewrite /= -(erefl (gval Wbar)).
+  transitivity #|'C_Wbar(Aibar) : 'Mho^1('C_Wbar(Aibar))|.
+    by rewrite -divgS ?Mho_sub // -(mul_card_Ohm_Mho_abelian 1 abelCbar) mulnK.
+  transitivity #|'C_Wbar(Aibar) : 'Mho^1(Wbar)|.
+    symmetry; rewrite -indexgI; congr #|_ : _|.
+    have /dprodP[_ /= <- _ _] := Mho_dprod 1 hcent_com.
+    rewrite -group_modr ?Mho_sub // [_ :&: _](trivgP _) ?mul1g //= setIC.
+    by have /dprodP[_ _ _ <-] := hcent_com; rewrite setSI ?Mho_sub.
+  have -> : 'C_Wbar(Aibar) = sdpair1 toW @* 'C_(|toW)(A i).
+    by rewrite gacentEsd -morphpreIim morphpreK ?subsetIl.
+  rewrite -morphim_Mho // index_injm ?injm_sdpair1 ?subsetT //=.
+  have{sAiG} sAiG: A i \subset G := sAiG i hi; set W1 := 'Mho^1(_).
+  transitivity #|'C_(|toW \ sAiG)(A i) / W1|.
+    by rewrite gacent_ract setIid card_quotient 1?subIset ?gfunctor.gFnorm.
+  have actsAi: [acts A i, on W1 | toW] by rewrite acts_char ?Mho_char.
+  have actsAi_r: [acts A i, on W1 | toW \ sAiG] by rewrite acts_ract subxx.
+  have cW1W1: abelian W1 := abelianS (Mho_sub _ _) (zmod_abelian _).
+  rewrite ext_coprime_quotient_cent ?subsetT ?abelian_sol //= -/W1; last first.
+    rewrite (coprimeSg (Mho_sub _ _)) // (coprimegS sAiG) //.
+    by rewrite cardsT card_matrix card_ord Zp_cast // !coprime_expl.
+  have /isomP[injf im_f] := isomfVW.
+  rewrite -(card_injm injf) ?subsetIl ?injmI // gacentE ?qact_domE ?Mho_sub //.
+  apply: eq_card => fv /=; rewrite 2!in_setI -{1}im_f.
+  apply: andb_id2l => fVfv; have /morphimP[v _ Vv def_fv] := fVfv.
+  have /morphimP[w nW1w Ww def_fv_w]: fv \in setT / _ by rewrite -im_f.
+  rewrite -(morphpre_invm injf) {2}def_fv 2![in X in _ = X]inE mem_morphim //=.
+  rewrite invmE // -afixJ.
+  apply/afixP/afixP=> cAv x Ax; have Gx := subsetP sAiG x Ax.
+    apply: (injmP _ injf); rewrite ?memJ_norm ?(subsetP nVG) // htoW //.
+    rewrite -def_fv -{2}(cAv x Ax) def_fv_w /= !qactE //.
+      by rewrite qact_domE ?Mho_sub // (subsetP actsAi_r).
+    by rewrite qact_domE ?Mho_sub // (subsetP actsAi).
+  rewrite {2}def_fv -(cAv x Ax) htoW // -def_fv def_fv_w !qactE //.
+    by rewrite qact_domE ?Mho_sub // (subsetP actsAi).
+  by rewrite qact_domE ?Mho_sub // (subsetP actsAi_r).
 Admitted.
