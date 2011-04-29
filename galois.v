@@ -2,7 +2,7 @@ Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq tuple.
 Require Import fintype finfun bigop ssralg poly polydiv.
 Require Import zmodp vector algebra fieldext.
 Require Import fingroup perm finset matrix mxalgebra.
-Require Import div cyclic prime.
+Require Import div cyclic prime binomial.
 
 (******************************************************************************)
 (* This file is supposed to provide galois theory, however it is currently    *)
@@ -1515,6 +1515,75 @@ Qed.
 Definition purelyInseparableElement x :=
   x ^+ (ex_minn (separablePower x)) \in K.
 
+(*
+Lemma purelyInseparableElementP_subproof : forall x p, p \in [char L] ->
+ separableElement K x -> x ^+ p \in K -> x \in K.
+Proof.
+move => x p Hp Hsep Hxp.
+rewrite elemDeg1.
+apply/eqP.
+apply: succn_inj.
+rewrite -size_minPoly.
+suff -> : minPoly K x = 'X - x%:P by apply: size_XMa.
+pose f := 'X^p - (x ^+ p)%:P.
+have : minPoly K x %| f.
+ apply minPoly_dvdp; last by rewrite /root /f !horner_lin hornerXn subrr.
+ rewrite /f addp_polyOver ?exp_polyOver ?polyOverX // opp_polyOver //.
+ by rewrite polyOverC.
+have Hp' : p \in [char {poly L}] by apply: (rmorph_char (polyC_rmorphism _)).
+have -> : f = ('X - x%:P) ^+ p.
+ rewrite -(Frobenius_autE Hp') Frobenius_aut_add_comm; last by apply: mulrC.
+ by rewrite Frobenius_aut_opp !Frobenius_autE -polyC_exp.
+move => HminPoly.
+have: exists n, minPoly K x = ('X - x%:P) ^+ n.
+ move/dvdMpP: HminPoly.
+ case/(_ (monic_minPoly _ _)) => g.
+ elim: {2}(size g) (leqnn (size g)) {Hp Hxp f Hp'} p.
+  rewrite leqn0 size_poly_eq0.
+  move/eqP => -> p.
+  rewrite mul0r.
+  move/eqP.
+  by rewrite expf_eq0 -size_poly_eq0 size_XMa andbF.
+ move => n IH Hg p.
+ 
+ 
+  
+
+
+have Hall : all (root (minPoly K x)) [:: x].
+ apply/allP => ?.
+ rewrite mem_seq1.
+ move/eqP ->.
+ by apply:root_minPoly.
+
+ rewrite /mem /=.
+ move/eqP.
+ 
+ 
+move: (minPoly_dvdp
+ 
+
+
+
+
+Lemma purelyInseparableElementP : forall x, reflect 
+ (exists2 n, [char L].-nat n & x ^+ n \in K)
+ (purelyInseparableElement x).
+Proof.
+move => x.
+rewrite /purelyInseparableElement.
+case: ex_minnP => n.
+case/andP => Hn Hsepn Hmin.
+apply: (iffP idP); first by move => Hx; exists n.
+case => m Hm Hxm.
+move/separableinK/(conj Hm)/andP/Hmin: (Hxm) => Hnm.
+
+
+move/andP: (conj Hm Hxm).
+move/Hmin.
+move/: (Hmin m).
+*)
+
 Lemma purelyInseparableElementP : forall x, reflect 
  (forall n, [char L].-nat n -> separableElement K (x ^+ n) -> x ^+ n \in K)
  (purelyInseparableElement x).
@@ -2314,6 +2383,76 @@ apply: (@big_prop L (separableElement K)).
  apply/separableinK/mem0v.
 apply: separable_add.
 Qed.
+
+(* MOVE THIS LEMMA *)
+Lemma leq_part : forall pi n, 0 < n -> n`_pi <= n.
+Proof. move => pi n Hn. rewrite -{2}[n](partnC pi) // leq_pmulr //. Qed.
+
+(* MOVE THIS LEMMA *)
+Lemma prime_dvd_bin_exp : forall k p n : nat, 
+  prime p -> 0 < k < p^n -> (p %| 'C(p ^ n, k))%N.
+Proof.
+move => k p [|n] Hp; first by do 2 case: k => //.
+case/andP; move/prednK <- => Hk.
+have HC : 0 < 'C((p ^ n.+1), k.-1.+1) by rewrite bin_gt0 ltnW.
+rewrite -[p]expn1 pfactor_dvdn //.
+rewrite -(ltn_add2l  (logn p k.-1.+1)) addn0 -logn_mul //.
+have Hpn : 0 < p ^ n.+1 by rewrite expn_gt0 prime_gt0.
+rewrite -(prednK Hpn) -mul_Sm_binm (prednK Hpn).
+rewrite logn_mul //; last by rewrite bin_gt0 -ltnS ltnW // (prednK Hpn).
+apply: (leq_trans _ (leq_addr _ _)).
+rewrite -(@ltn_exp2l p) ?prime_gt1 // -p_part pfactorK //.
+by apply: (leq_ltn_trans (@leq_part _ _ _)).
+Qed.
+
+(* MOVE THIS LEMMA *)
+Lemma bin_lt_charf_nat_0 : forall (R : ringType) (n : nat),
+  n \in [char R].-nat -> forall k : nat, 0 < k < n -> (('C(n, k))%:R:R) = 0.
+Proof.
+move => R n Hn k Hk.
+have H1n: 1 < n by case/andP: Hk => ? ?;  apply: (@leq_ltn_trans k).
+move/pnatP: (Hn).
+move/(_ (ltnW H1n) (pdiv n) (pdiv_prime _)).
+set (p := pdiv n).
+move/(_ H1n (pdiv_dvd _)) => Hchar.
+apply/eqP.
+rewrite -(dvdn_charf Hchar).
+move: Hn Hk.
+rewrite [_ \in _](eq_pnat _ (charf_eq Hchar)).
+move/part_pnat_id <-.
+rewrite p_part => Hk.
+by rewrite prime_dvd_bin_exp // (charf_prime Hchar).
+Qed.
+
+(* SIMPLIFY THIS LEMMA *)
+Lemma exprp_addl: forall (R : comRingType) (x y : R) (n : nat),
+  [char R].-nat n -> (x + y) ^+ n = x ^+ n + y ^+ n.
+Proof.
+move => R x y [|n] // Hn.
+rewrite exprn_addl big_ord_recl big_ord_recr /=.
+rewrite bin0 binn !mulr1n subn0 subnn !expr0 mulr1 mul1r.
+rewrite big1 ?add0r // => i _.
+by rewrite -mulr_natr bin_lt_charf_nat_0 ?mulr0 //= [bump _ _]add1n ltnS.
+Qed.
+
+(*
+Lemma inseparable_add : forall x y,
+  purelyInseparableElement K x -> purelyInseparableElement K y ->
+  purelyInseparableElement K (x + y).
+Proof.
+move => x y.
+move/purelyInseparableElementP => Hx.
+move/purelyInseparableElementP => Hy.
+rewrite /purelyInseparableElement.
+rewrite exprp_addl; last by case: ex_minnP => m; case/andP.
+
+apply: separable_add.
+rewrite ((x + y) ^+ n.+1 = x ^+ n.+1 + y ^+ n.+1)
+rewrite exprn_addl big_ord_recl big_ord_recr /=.
+rewrite bin0 binn !mulr1n subn0 subnn !expr0 mulr1 mul1r.
+rewrite (_ : (\sum_(i < n) _) = 0).
+ rewrite add0r.
+*)
 
 Variable (E : {algebra L}).
 
