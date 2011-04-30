@@ -38,6 +38,27 @@ Open Local Scope ring_scope.
 
 Import GRing.Theory.
 
+Lemma exprp_addl: forall (R : comRingType) (x y : R) (n : nat),
+  [char R].-nat n -> (x + y) ^+ n = x ^+ n + y ^+ n.
+Proof.
+move => R x y [|[|n]] // Hn.
+set (n' := n.+2) in *.
+set (p := pdiv n').
+have Hp : p \in [char R].
+ move/pnatP: (Hn).
+ by apply => //; rewrite ?pdiv_prime // pdiv_dvd.
+move: Hn.
+rewrite (eq_pnat _ (charf_eq Hp)).
+case/p_natP => e ->.
+set (f := Frobenius_aut Hp).
+have Hiter : forall z, z ^+ (p ^ e) = iter e f z.
+ elim: e => // e IH z.
+ by rewrite expnS mulnC exprn_mulr IH.
+rewrite !Hiter {Hiter}.
+elim: e => // e IH /=.
+by rewrite -rmorphD -IH.
+Qed.
+
 Section SeparablePoly.
 
 Variable (R: idomainType).
@@ -1470,6 +1491,62 @@ Qed.
 
 End MoreFadjoin.
 
+Lemma subsetSeparable : forall (K E : {algebra L}) x, (K <= E)%VS -> 
+ separableElement K x -> separableElement E x.
+Proof.
+move => K E x KE.
+move/separableElementP => [f [fK [rootf sepf]]].
+apply/separableElementP.
+exists f; split => //.
+by apply: (polyOver_subset KE).
+Qed.
+
+Lemma allSeparableElement : forall K x,
+  reflect (forall y, y \in Fadjoin K x -> separableElement K y)
+          (separableElement K x).
+Proof.
+move => K x.
+apply (iffP idP); last by apply; apply memx_Fadjoin.
+move => sep ?.
+move/poly_Fadjoin => [q [Hq ->]].
+apply/separableDerivationP => D DD.
+move/subvP => KD0.
+apply/subvP => ?.
+move/poly_Fadjoin => [p [Hp ->]].
+rewrite memv_ker -(DerivationExtended x D (mempx_Fadjoin _ Hp)).
+have sepFyx : (separableElement (Fadjoin K (q.[x])) x).
+ by apply: (subsetSeparable (subsetKFadjoin _ _)).
+have KyxEqKx : (Fadjoin (Fadjoin K (q.[x])) x = Fadjoin K x).
+ apply/eqP.
+ change (Fadjoin (Fadjoin K q.[x]) x == Fadjoin K x :> {vspace L}).
+ apply/eqP.
+ apply: subv_anti.
+ by rewrite -!{1}subsetFadjoinE mempx_Fadjoin //
+         (subv_trans _ (subsetKFadjoin (Fadjoin K _) _)) subsetKFadjoin 
+         // !{1}memx_Fadjoin.
+rewrite -horner_poly_comp.
+move: (DerivationExtendDerivation DD sepFyx).
+rewrite KyxEqKx => DED.
+rewrite (DerivationPoly DED); last first.
+  apply: memx_Fadjoin.
+ apply: (polyOver_subset (subsetKFadjoin _ _)).
+ by apply: compose_polyOver.
+have hmD : forall t, polyOver K t ->
+           (map_poly (DerivationExtend (Fadjoin K q.[x]) x D) t).[x] = 0.
+ move => t.
+ move/polyOverP => Ht.
+ rewrite /horner_morph (_ : map_poly _ _ = 0); first by rewrite horner0.
+ apply/polyP => i.
+ rewrite coef0 (coef_map [linear of (DerivationExtend _ _ _)]) 
+         ?linear0 //= DerivationExtended.
+  apply/eqP.
+  by rewrite -memv_ker KD0.
+ apply: (subv_trans _ (subsetKFadjoin _ _)).
+ by apply: Ht.
+by rewrite (DerivationSeparable DED) // !hmD ?compose_polyOver ?minPolyOver //
+           oppr0 mul0r mulr0 addr0.
+Qed.
+
 Section PurelyInseparableElement.
 
 Variable (K : {algebra L}).
@@ -1510,6 +1587,78 @@ move => Hszg _.
 rewrite -{1}(prednK (ltnW Hszg)) -subn_gt0.
 rewrite -(prednK (prime_gt0 (charf_prime Hp))) mulnS addKn muln_gt0 -!subn1.
 by rewrite !subn_gt0 Hszg (prime_gt1 (charf_prime Hp)).
+Qed.
+
+Lemma separableCharp : forall x e p, p \in [char L] ->
+ separableElement K x = (x \in Fadjoin K (x ^+ (p ^ e.+1))).
+Proof.
+move => x e p Hp.
+apply/idP/idP; last first.
+ move/poly_for_eq.
+ set (f := (poly_for_Fadjoin K (x ^+ (p ^ e.+1)) x)).
+ move => Hx.
+ apply/separableElementP.
+ exists ('X - (f \Po 'X^(p ^ e.+1))); split.
+  by rewrite addp_polyOver ?opp_polyOver ?compose_polyOver ?exp_polyOver
+             ?polyOverX ?poly_for_polyOver.
+ split.
+  by rewrite /root !horner_lin horner_poly_comp hornerXn -Hx subrr.
+ rewrite /separablePolynomial !(derivE, deriv_poly_comp).
+ have : (p %| p ^ e.+1)%N by rewrite dvdn_exp.
+ rewrite -mulr_natr (dvdn_charf Hp) -polyC_natmul.
+ move/eqP ->.
+ by rewrite polyC0 !mulr0 subr0 coprimep1.
+wlog: e x / e = 0%N.
+ move => H.
+ elim: e.+1; first by rewrite expr1 memx_Fadjoin.
+ move => {e} e IH Hsep.
+ rewrite expnS mulnC exprn_mulr -{2}[p]expn1.
+ have : (Fadjoin K (x ^+ (p ^ e)) <= Fadjoin K (x ^+ (p ^ e) ^+ (p ^ 1)))%VS.
+  move/allSeparableElement: Hsep => Hsep.
+  by rewrite -subsetFadjoinE subsetKFadjoin H ?Hsep ?memv_exp ?memx_Fadjoin.
+ move/subvP; apply.
+ by apply IH.
+move => -> {e}. (* Hsep.
+move: (separableNrootdmp K x).
+rewrite negb_eqb expn1.
+move: Hsep => -> /= Hsep. *)
+set (K' := Fadjoin K (x ^+ p)).
+set (g := 'X^p - (x ^+ p)%:P).
+have HK'g : polyOver K' g.
+ by rewrite addp_polyOver ?exp_polyOver ?polyOverX // opp_polyOver // polyOverC
+            // memx_Fadjoin.
+have rootg : root g x by rewrite /root !horner_lin hornerXn subrr.
+move/(subsetSeparable (subsetKFadjoin _ (x ^+ p))).
+move : (root_minPoly K' x) (minPoly_dvdp HK'g rootg) (minPolyOver K' x).
+rewrite root_factor_theorem /separableElement -/K'.
+move/(dvdMpP).
+case/(_ (monic_factor _)) => c -> Hcg HK'c.
+rewrite separable_mul.
+have Hp' : p \in [char {poly L}] by apply: (rmorph_char (polyC_rmorphism _)).
+case/and3P => _ _ Hc.
+ have : (coprimep c g).
+ rewrite /g polyC_exp -!(Frobenius_autE Hp') -rmorph_sub.
+ rewrite [_ (_ - _)]Frobenius_autE -(prednK (prime_gt0 (charf_prime Hp))).
+ elim: p.-1 => [|n]; first by rewrite expr1.
+ (* TODO: abstract out coprime p q -> coprime p r -> coprime p (q*r) *)
+ rewrite -gcdp_eqp1 => IH.
+ move: (egcdpPW c (('X - x%:P) ^+ n.+1)) => [s [t]].
+ rewrite (eqp_transr IH) -(@eqp_mul2r _ ('X - x%:P)); last first.
+  by rewrite monic_neq0 // monic_factor.
+ rewrite mul1r mulr_addl -[t * _ * _]mulrA -exprSr => Hcn.
+ apply/coprimepP => d Hdc Hdn.
+ move/coprimepP: Hc; apply; first done.
+ by rewrite -(eqp_dvdr _ Hcn) -mulrA dvdp_add // dvdp_mull // dvdp_mulr.
+move/coprimepP/(_ _ (dvdpp c))/(_ (dvdp_trans (dvdp_mulr _ (dvdpp c)) Hcg)).
+rewrite -size1_dvdp1.
+move/eqP => Hszc.
+move: HK'c (Hszc).
+rewrite (size1_polyC (eq_leq Hszc)) size_polyC mulr_addr -polyC_opp -polyC_mul.
+move/polyOverP => Hx.
+move: (Hx 1%N) (Hx 0%N).
+rewrite !coef_add !coef_mulX !coefC add0r addr0 => Hx1 Hx0.
+case Hc0 : (c`_0 != 0) => // _.
+by rewrite memvNl // -[(- x)](mulKf Hc0) memv_mul // -memv_inv.
 Qed.
 
 Definition purelyInseparableElement x :=
@@ -1624,62 +1773,6 @@ by apply: separableinK.
 Qed.
 
 End PurelyInseparableElement.
-
-Lemma subsetSeparable : forall (K E : {algebra L}) x, (K <= E)%VS -> 
- separableElement K x -> separableElement E x.
-Proof.
-move => K E x KE.
-move/separableElementP => [f [fK [rootf sepf]]].
-apply/separableElementP.
-exists f; split => //.
-by apply: (polyOver_subset KE).
-Qed.
-
-Lemma allSeparableElement : forall K x,
-  reflect (forall y, y \in Fadjoin K x -> separableElement K y)
-          (separableElement K x).
-Proof.
-move => K x.
-apply (iffP idP); last by apply; apply memx_Fadjoin.
-move => sep ?.
-move/poly_Fadjoin => [q [Hq ->]].
-apply/separableDerivationP => D DD.
-move/subvP => KD0.
-apply/subvP => ?.
-move/poly_Fadjoin => [p [Hp ->]].
-rewrite memv_ker -(DerivationExtended x D (mempx_Fadjoin _ Hp)).
-have sepFyx : (separableElement (Fadjoin K (q.[x])) x).
- by apply: (subsetSeparable (subsetKFadjoin _ _)).
-have KyxEqKx : (Fadjoin (Fadjoin K (q.[x])) x = Fadjoin K x).
- apply/eqP.
- change (Fadjoin (Fadjoin K q.[x]) x == Fadjoin K x :> {vspace L}).
- apply/eqP.
- apply: subv_anti.
- by rewrite -!{1}subsetFadjoinE mempx_Fadjoin //
-         (subv_trans _ (subsetKFadjoin (Fadjoin K _) _)) subsetKFadjoin 
-         // !{1}memx_Fadjoin.
-rewrite -horner_poly_comp.
-move: (DerivationExtendDerivation DD sepFyx).
-rewrite KyxEqKx => DED.
-rewrite (DerivationPoly DED); last first.
-  apply: memx_Fadjoin.
- apply: (polyOver_subset (subsetKFadjoin _ _)).
- by apply: compose_polyOver.
-have hmD : forall t, polyOver K t ->
-           (map_poly (DerivationExtend (Fadjoin K q.[x]) x D) t).[x] = 0.
- move => t.
- move/polyOverP => Ht.
- rewrite /horner_morph (_ : map_poly _ _ = 0); first by rewrite horner0.
- apply/polyP => i.
- rewrite coef0 (coef_map [linear of (DerivationExtend _ _ _)]) 
-         ?linear0 //= DerivationExtended.
-  apply/eqP.
-  by rewrite -memv_ker KD0.
- apply: (subv_trans _ (subsetKFadjoin _ _)).
- by apply: Ht.
-by rewrite (DerivationSeparable DED) // !hmD ?compose_polyOver ?minPolyOver //
-           oppr0 mul0r mulr0 addr0.
-Qed.
 
 Section PrimitiveElementTheorem.
 
@@ -2382,57 +2475,6 @@ Proof.
 apply: (@big_prop L (separableElement K)).
  apply/separableinK/mem0v.
 apply: separable_add.
-Qed.
-
-(* MOVE THIS LEMMA *)
-Lemma leq_part : forall pi n, 0 < n -> n`_pi <= n.
-Proof. move => pi n Hn. rewrite -{2}[n](partnC pi) // leq_pmulr //. Qed.
-
-(* MOVE THIS LEMMA *)
-Lemma prime_dvd_bin_exp : forall k p n : nat, 
-  prime p -> 0 < k < p^n -> (p %| 'C(p ^ n, k))%N.
-Proof.
-move => k p [|n] Hp; first by do 2 case: k => //.
-case/andP; move/prednK <- => Hk.
-have HC : 0 < 'C((p ^ n.+1), k.-1.+1) by rewrite bin_gt0 ltnW.
-rewrite -[p]expn1 pfactor_dvdn //.
-rewrite -(ltn_add2l  (logn p k.-1.+1)) addn0 -logn_mul //.
-have Hpn : 0 < p ^ n.+1 by rewrite expn_gt0 prime_gt0.
-rewrite -(prednK Hpn) -mul_Sm_binm (prednK Hpn).
-rewrite logn_mul //; last by rewrite bin_gt0 -ltnS ltnW // (prednK Hpn).
-apply: (leq_trans _ (leq_addr _ _)).
-rewrite -(@ltn_exp2l p) ?prime_gt1 // -p_part pfactorK //.
-by apply: (leq_ltn_trans (@leq_part _ _ _)).
-Qed.
-
-(* MOVE THIS LEMMA *)
-Lemma bin_lt_charf_nat_0 : forall (R : ringType) (n : nat),
-  n \in [char R].-nat -> forall k : nat, 0 < k < n -> (('C(n, k))%:R:R) = 0.
-Proof.
-move => R n Hn k Hk.
-have H1n: 1 < n by case/andP: Hk => ? ?;  apply: (@leq_ltn_trans k).
-move/pnatP: (Hn).
-move/(_ (ltnW H1n) (pdiv n) (pdiv_prime _)).
-set (p := pdiv n).
-move/(_ H1n (pdiv_dvd _)) => Hchar.
-apply/eqP.
-rewrite -(dvdn_charf Hchar).
-move: Hn Hk.
-rewrite [_ \in _](eq_pnat _ (charf_eq Hchar)).
-move/part_pnat_id <-.
-rewrite p_part => Hk.
-by rewrite prime_dvd_bin_exp // (charf_prime Hchar).
-Qed.
-
-(* SIMPLIFY THIS LEMMA *)
-Lemma exprp_addl: forall (R : comRingType) (x y : R) (n : nat),
-  [char R].-nat n -> (x + y) ^+ n = x ^+ n + y ^+ n.
-Proof.
-move => R x y [|n] // Hn.
-rewrite exprn_addl big_ord_recl big_ord_recr /=.
-rewrite bin0 binn !mulr1n subn0 subnn !expr0 mulr1 mul1r.
-rewrite big1 ?add0r // => i _.
-by rewrite -mulr_natr bin_lt_charf_nat_0 ?mulr0 //= [bump _ _]add1n ltnS.
 Qed.
 
 (*
