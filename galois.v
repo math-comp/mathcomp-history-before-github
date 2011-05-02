@@ -527,7 +527,8 @@ Qed.
 (* Give k*x^i return the k.  Used as a tool.
    It would nicer to hide this definition and it's assocated lemmas. *)
 Definition MinPoly_coef i v := 
-  \sum_j coord [tuple of map (fun y => (y * x ^+ i)) (vbasis K)] v j *: (vbasis K)`_j.
+  \sum_j coord [tuple of map (fun y => (y * x ^+ i))
+                (vbasis K)] v j *: (vbasis K)`_j.
 
 Lemma MinPoly_coefK : forall i v, MinPoly_coef i v \in K.
 Proof.
@@ -1618,10 +1619,7 @@ wlog: e x / e = 0%N.
   by rewrite -subsetFadjoinE subsetKFadjoin H ?Hsep ?memv_exp ?memx_Fadjoin.
  move/subvP; apply.
  by apply IH.
-move => -> {e}. (* Hsep.
-move: (separableNrootdmp K x).
-rewrite negb_eqb expn1.
-move: Hsep => -> /= Hsep. *)
+move => -> {e}.
 set (K' := Fadjoin K (x ^+ p)).
 set (g := 'X^p - (x ^+ p)%:P).
 have HK'g : polyOver K' g.
@@ -1664,57 +1662,6 @@ Qed.
 Definition purelyInseparableElement x :=
   x ^+ (ex_minn (separablePower x)) \in K.
 
-(*
-Lemma purelyInseparableElementP_subproof : forall x p, p \in [char L] ->
- separableElement K x -> x ^+ p \in K -> x \in K.
-Proof.
-move => x p Hp Hsep Hxp.
-rewrite elemDeg1.
-apply/eqP.
-apply: succn_inj.
-rewrite -size_minPoly.
-suff -> : minPoly K x = 'X - x%:P by apply: size_XMa.
-pose f := 'X^p - (x ^+ p)%:P.
-have : minPoly K x %| f.
- apply minPoly_dvdp; last by rewrite /root /f !horner_lin hornerXn subrr.
- rewrite /f addp_polyOver ?exp_polyOver ?polyOverX // opp_polyOver //.
- by rewrite polyOverC.
-have Hp' : p \in [char {poly L}] by apply: (rmorph_char (polyC_rmorphism _)).
-have -> : f = ('X - x%:P) ^+ p.
- rewrite -(Frobenius_autE Hp') Frobenius_aut_add_comm; last by apply: mulrC.
- by rewrite Frobenius_aut_opp !Frobenius_autE -polyC_exp.
-move => HminPoly.
-have: exists n, minPoly K x = ('X - x%:P) ^+ n.
- move/dvdMpP: HminPoly.
- case/(_ (monic_minPoly _ _)) => g.
- elim: {2}(size g) (leqnn (size g)) {Hp Hxp f Hp'} p.
-  rewrite leqn0 size_poly_eq0.
-  move/eqP => -> p.
-  rewrite mul0r.
-  move/eqP.
-  by rewrite expf_eq0 -size_poly_eq0 size_XMa andbF.
- move => n IH Hg p.
- 
- 
-  
-
-
-have Hall : all (root (minPoly K x)) [:: x].
- apply/allP => ?.
- rewrite mem_seq1.
- move/eqP ->.
- by apply:root_minPoly.
-
- rewrite /mem /=.
- move/eqP.
- 
- 
-move: (minPoly_dvdp
- 
-
-
-
-
 Lemma purelyInseparableElementP : forall x, reflect 
  (exists2 n, [char L].-nat n & x ^+ n \in K)
  (purelyInseparableElement x).
@@ -1725,14 +1672,28 @@ case: ex_minnP => n.
 case/andP => Hn Hsepn Hmin.
 apply: (iffP idP); first by move => Hx; exists n.
 case => m Hm Hxm.
-move/separableinK/(conj Hm)/andP/Hmin: (Hxm) => Hnm.
+move/separableinK/(conj Hm)/andP/Hmin: (Hxm).
+rewrite {Hmin} leq_eqVlt.
+case/orP => [|Hnm]; first by move/eqP ->.
+set (p := pdiv m).
+have Hp : p \in [char L].
+ move/pnatP: Hm; apply; rewrite ?pdiv_prime ?pdiv_dvd //.
+  by apply: (leq_trans _ Hnm).
+ apply: (leq_trans _ Hnm).
+ rewrite ltnS.
+ by case/andP: Hn.
+move: Hn Hm Hsepn Hnm Hxm.
+rewrite !(eq_pnat _ (charf_eq Hp)).
+case/p_natP => en ->.
+case/p_natP => em ->.
+rewrite (separableCharp _ (em - en.+1)%N Hp) => Hsepn.
+rewrite ltn_exp2l; last by apply/prime_gt1/(charf_prime Hp).
+move/subnKC <-.
+rewrite addSnnS expn_add exprn_mulr FadjoinxK.
+by move/eqP <-.
+Qed.
 
-
-move/andP: (conj Hm Hxm).
-move/Hmin.
-move/: (Hmin m).
-*)
-
+(*
 Lemma purelyInseparableElementP : forall x, reflect 
  (forall n, [char L].-nat n -> separableElement K (x ^+ n) -> x ^+ n \in K)
  (purelyInseparableElement x).
@@ -1752,8 +1713,9 @@ rewrite p_part pfactor_dvdn; [|by apply: (charf_prime Hp)|by case/andP: Hm].
 rewrite -(@leq_exp2l p); last by apply/prime_gt1/(charf_prime Hp).
 by rewrite -!p_part !part_pnat_id // -(eq_pnat _ (charf_eq Hp)).
 Qed.
+*)
 
-Lemma SeparablePurelyInseparableElement: forall x, 
+Lemma separableInseparableElement: forall x, 
  (x \in K) = separableElement K x && purelyInseparableElement x.
 Proof.
 move => x.
@@ -1771,6 +1733,9 @@ move:Hx.
 apply: contra.
 by apply: separableinK.
 Qed.
+
+Lemma inseparableinK : forall x, x \in K -> purelyInseparableElement x.
+Proof. move => x. rewrite separableInseparableElement. by case/andP. Qed.
 
 End PurelyInseparableElement.
 
@@ -2477,24 +2442,27 @@ apply: (@big_prop L (separableElement K)).
 apply: separable_add.
 Qed.
 
-(*
 Lemma inseparable_add : forall x y,
   purelyInseparableElement K x -> purelyInseparableElement K y ->
   purelyInseparableElement K (x + y).
 Proof.
 move => x y.
-move/purelyInseparableElementP => Hx.
-move/purelyInseparableElementP => Hy.
-rewrite /purelyInseparableElement.
-rewrite exprp_addl; last by case: ex_minnP => m; case/andP.
+case/purelyInseparableElementP => n Hn Hx.
+case/purelyInseparableElementP => m Hm Hy.
+apply/purelyInseparableElementP.
+have Hnm : [char L].-nat (n * m)%N by rewrite pnat_mul Hn Hm.
+exists (n * m)%N => //.
+by rewrite exprp_addl // {2}mulnC !exprn_mulr memvD // memv_exp.
+Qed.
 
-apply: separable_add.
-rewrite ((x + y) ^+ n.+1 = x ^+ n.+1 + y ^+ n.+1)
-rewrite exprn_addl big_ord_recl big_ord_recr /=.
-rewrite bin0 binn !mulr1n subn0 subnn !expr0 mulr1 mul1r.
-rewrite (_ : (\sum_(i < n) _) = 0).
- rewrite add0r.
-*)
+Lemma inseparable_sum : forall I r (P : pred I) (v_ : I -> L),
+  (forall i, P i -> purelyInseparableElement K (v_ i)) ->
+  purelyInseparableElement K (\sum_(i <- r | P i) v_ i).
+Proof.
+apply: (@big_prop L (purelyInseparableElement K)).
+ apply/inseparableinK/mem0v.
+apply: inseparable_add.
+Qed.
 
 Variable (E : {algebra L}).
 
@@ -2519,7 +2487,81 @@ apply.
 by rewrite memvZl // memx_Fadjoin.
 Qed.
 
+Definition purelyInseparable : bool :=
+ all (purelyInseparableElement K) (vbasis E).
+
+Lemma purelyInseparableP :
+  reflect (forall y, y \in E -> purelyInseparableElement K y)
+          purelyInseparable.
+Proof.
+apply (iffP idP); last first.
+ move => HEK.
+ apply/allP => x; move/memv_basis => Hx.
+ by apply: HEK.
+move/allP => HEK y.
+move/coord_basis ->.
+apply/inseparable_sum => i _.
+have : (vbasis E)`_i \in vbasis E.
+ rewrite mem_nth //.
+ case: (vbasis E) => /= ?.
+ by move/eqP ->.
+case/HEK/purelyInseparableElementP => n Hn HK.
+apply/purelyInseparableElementP.
+exists n => //.
+by rewrite scaler_exp memvZl.
+Qed.
+
 End SeparableAndInseparableExtensions.
+
+Lemma separableInseparableDecomposition : 
+ forall E K, exists2 x, separableElement K x & 
+                        purelyInseparable (Fadjoin K x) E.
+Proof.
+move => E K.
+set (f := fun i => 
+      (vbasis E)`_i ^+ ex_minn (separablePower K (vbasis E)`_i)).
+set (s := mkseq f (\dim E)).
+have Hsep : all (separableElement K) s.
+ apply/allP => x.
+ case/mapP => i _ ->.
+ rewrite /f.
+ by case ex_minnP => m; case/andP.
+set (K' := foldr (fun x y => Fadjoin y x) K s).
+have [x Hx HK'] : exists2 x, separableElement K x & K' = Fadjoin K x.
+ rewrite /K' {K'}.
+ elim: s Hsep => [|t s IH].
+  exists 0; first by rewrite separableinK // mem0v.
+  symmetry.
+  apply/eqP.
+  rewrite -FadjoinxK.
+  apply: mem0v.
+ case/andP => Ht.
+ case/IH => y /= Hy ->.
+ case: (PrimitiveElementTheorem t Hy) => x Hx.
+ exists x; last done.
+ apply/allSeparableElement => z.
+ rewrite -Hx => Hz.
+ apply: (separableFadjoinExtend Hy).
+ move/allSeparableElement: (subsetSeparable (subsetKFadjoin K y) Ht).
+ by apply.
+exists x => //.
+rewrite -HK'.
+apply/allP => y.
+case/(nthP 0) => i Hy <-.
+apply/purelyInseparableElementP.
+exists (ex_minn (separablePower K (vbasis E)`_i)).
+ by case: ex_minnP => ?; case/andP.
+rewrite /K' foldr_map -[_ ^+ _]/(f i).
+move: Hy.
+case: (vbasis E) => ? /=.
+move/eqP ->.
+rewrite -[_ < _]/(0 <= i < 0 + (\dim E)).
+rewrite -mem_iota.
+elim: (iota 0 (\dim E)) => [//|a b IH].
+case/orP; last by move => ?; apply/memK_Fadjoin/IH.
+move/eqP ->.
+by apply: memx_Fadjoin.
+Qed.
 
 (*
 Section Eigenspace.
