@@ -291,6 +291,16 @@ Qed.
 
 End SubAlgebra.
 
+(* TODO: this canonical structure doesn't work :( *)
+Section aspace_cap.
+
+Variable A B : {algebra L}.
+
+Canonical Structure fspace_cap : {algebra L} :=
+ Eval hnf in (aspace_cap (trans_eq (aunit_eq1 A) (sym_eq (aunit_eq1 B)))).
+
+End aspace_cap.
+
 Lemma polyOver_subset : forall (K E : {algebra L}) p, (K <= E)%VS ->
  polyOver K p -> polyOver E p.
 Proof.
@@ -1548,6 +1558,16 @@ by rewrite (DerivationSeparable DED) // !hmD ?compose_polyOver ?minPolyOver //
            oppr0 mul0r mulr0 addr0.
 Qed.
 
+Lemma subsetFadjoin : forall x (K E : {algebra L}), 
+  (K <= E)%VS -> (Fadjoin K x <= Fadjoin E x)%VS.
+Proof.
+move => x K E HKE.
+apply/subvP => y.
+case/poly_Fadjoin => p [Hp ->].
+apply: mempx_Fadjoin.
+by apply: (polyOver_subset HKE).
+Qed.
+
 Section PurelyInseparableElement.
 
 Variable (K : {algebra L}).
@@ -1738,6 +1758,18 @@ Lemma inseparableinK : forall x, x \in K -> purelyInseparableElement x.
 Proof. move => x. rewrite separableInseparableElement. by case/andP. Qed.
 
 End PurelyInseparableElement.
+
+Lemma subsetInseparable:
+  forall (K E : {algebra L}) (x : L),
+  (K <= E)%VS -> purelyInseparableElement K x -> purelyInseparableElement E x.
+Proof.
+move => K E x.
+move/subvP => HKE.
+case/purelyInseparableElementP => n Hn Hxn.
+apply/purelyInseparableElementP.
+exists n => //.
+by apply HKE.
+Qed.
 
 Section PrimitiveElementTheorem.
 
@@ -2514,10 +2546,21 @@ Qed.
 End SeparableAndInseparableExtensions.
 
 Lemma separableInseparableDecomposition : 
- forall E K, exists2 x, separableElement K x & 
-                        purelyInseparable (Fadjoin K x) E.
+ forall E K, exists x, [&& x \in E, separableElement K x & 
+                        purelyInseparable (Fadjoin K x) E].
 Proof.
 move => E K.
+wlog: K / (K <= E)%VS => [|HKE].
+ (* How do I get canonical structures to infer fsapce_cap for me? *)
+ case/(_ (fspace_cap K E) (capvSr K E)) => x.
+ case/and3P => HxE Hsep.
+ move/purelyInseparableP => Hinsep.
+ exists x.
+ apply/and3P; split; first done.
+  by apply/(subsetSeparable _ Hsep)/capvSl.
+ apply/purelyInseparableP => y Hy.
+ apply: subsetInseparable; last by apply Hinsep.
+ by apply/subsetFadjoin/capvSl.
 set (f := fun i => 
       (vbasis E)`_i ^+ ex_minn (separablePower K (vbasis E)`_i)).
 set (s := mkseq f (\dim E)).
@@ -2527,25 +2570,42 @@ have Hsep : all (separableElement K) s.
  rewrite /f.
  by case ex_minnP => m; case/andP.
 set (K' := foldr (fun x y => Fadjoin y x) K s).
-have [x Hx HK'] : exists2 x, separableElement K x & K' = Fadjoin K x.
+have: exists x, [&& x \in E, separableElement K x & K' == Fadjoin K x].
  rewrite /K' {K'}.
+ have: all (fun x => x \in E) s.
+  apply/allP => ?.
+  case/mapP => i.
+  rewrite mem_iota => Hi ->.
+  rewrite /f memv_exp // memv_basis // mem_nth //.
+  case: (vbasis E) => ? /=.
+  by move/eqP ->.
  elim: s Hsep => [|t s IH].
-  exists 0; first by rewrite separableinK // mem0v.
-  symmetry.
-  apply/eqP.
-  rewrite -FadjoinxK.
+  exists 0.
+  apply/and3P; split => //; first by rewrite mem0v.
+   by rewrite separableinK // mem0v.
+  rewrite eq_sym -FadjoinxK.
   apply: mem0v.
- case/andP => Ht.
- case/IH => y /= Hy ->.
- case: (PrimitiveElementTheorem t Hy) => x Hx.
- exists x; last done.
- apply/allSeparableElement => z.
- rewrite -Hx => Hz.
- apply: (separableFadjoinExtend Hy).
- move/allSeparableElement: (subsetSeparable (subsetKFadjoin K y) Ht).
- by apply.
-exists x => //.
-rewrite -HK'.
+ case/andP => Ht Hs.
+ case/andP => HtE HsE.
+ case: (IH Hs HsE) => y.
+ case/and3P => HyE Hsep Hy.
+ case: (PrimitiveElementTheorem t Hsep) => x Hx.
+ exists x.
+ apply/and3P; split.
+   suff: (Fadjoin K x <= E)%VS by move/subvP; apply; rewrite memx_Fadjoin.
+   by rewrite -Hx -!subsetFadjoinE HKE HyE.
+  apply/allSeparableElement => z.
+  rewrite -Hx => Hz.
+  apply: (separableFadjoinExtend Hsep).
+  move/allSeparableElement: (subsetSeparable (subsetKFadjoin K y) Ht).
+  by apply.
+ move/eqP: Hy => /= ->.
+ by apply/eqP.
+case => x.
+case/and3P => HxE Hsepx.
+move/eqP => HK'.
+exists x.
+rewrite -HK' HxE Hsepx.
 apply/allP => y.
 case/(nthP 0) => i Hy <-.
 apply/purelyInseparableElementP.
