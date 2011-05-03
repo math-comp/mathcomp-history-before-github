@@ -291,7 +291,6 @@ Qed.
 
 End SubAlgebra.
 
-(* TODO: this canonical structure doesn't work :( *)
 Section aspace_cap.
 
 Variable A B : {algebra L}.
@@ -1558,6 +1557,20 @@ by rewrite (DerivationSeparable DED) // !hmD ?compose_polyOver ?minPolyOver //
            oppr0 mul0r mulr0 addr0.
 Qed.
 
+Lemma FadjoinC : forall x y K,
+  Fadjoin (Fadjoin K x) y = Fadjoin (Fadjoin K y) x.
+Proof.
+suff : forall (x y : L) (K : {algebra L}),
+ (Fadjoin (Fadjoin K x) y <= Fadjoin (Fadjoin K y) x)%VS.
+ move => H x y K.
+ apply/eqP; rewrite /eq_op; apply/eqP.
+ apply:subv_anti.
+ by apply/andP; split.
+move => x y K.
+rewrite -!subsetFadjoinE memx_Fadjoin memK_Fadjoin ?memx_Fadjoin //.
+by rewrite (@subv_trans _ _ (Fadjoin K y)) // subsetKFadjoin.
+Qed.
+
 Lemma subsetFadjoin : forall x (K E : {algebra L}), 
   (K <= E)%VS -> (Fadjoin K x <= Fadjoin E x)%VS.
 Proof.
@@ -1677,6 +1690,24 @@ move: (Hx 1%N) (Hx 0%N).
 rewrite !coef_add !coef_mulX !coefC add0r addr0 => Hx1 Hx0.
 case Hc0 : (c`_0 != 0) => // _.
 by rewrite memvNl // -[(- x)](mulKf Hc0) memv_mul // -memv_inv.
+Qed.
+
+Lemma separableCharn : forall x n, n \in [char L].-nat ->
+ 1 < n -> separableElement K x = (x \in Fadjoin K (x ^+ n)).
+Proof.
+move => x n Hn H1n.
+set (p := pdiv n).
+have Hcharp : p \in [char L].
+ move/pnatP : Hn; apply; first by apply ltnW.
+  by rewrite pdiv_prime.
+ by rewrite pdiv_dvd.
+move/charf_eq/(eq_pnat n): (Hcharp) => Hp.
+have: p.-nat n by rewrite -Hp.
+case/p_natP => e He.
+move: (H1n).
+rewrite He -[1%N](expn0 p) ltn_exp2l // ?prime_gt1 // ?pdiv_prime //.
+move/prednK <-.
+by apply: separableCharp.
 Qed.
 
 Definition purelyInseparableElement x :=
@@ -2423,10 +2454,6 @@ apply: PET_infiniteCase_subproof => //.
 by apply: HKl.
 Qed.
 
-(* With more work the Primitive Element Theorem can be strengthened by weakining
-   the hypothesis (separableElement K y) to (separableElement (Fadjoin K y) x).
-   See VI.6.7 from "A Course in Constructive Algebra". *)
-
 Lemma separableFadjoinExtend : separableElement (Fadjoin K y) x -> 
   separableElement K x.
 Proof.
@@ -2445,6 +2472,28 @@ by apply: sepx.
 Qed.
 
 End PrimitiveElementTheorem.
+
+Lemma StrongPrimitiveElementTheorem
+     : forall (K : {algebra L}) (x y : L),
+       separableElement (Fadjoin K x) y ->
+       exists2 z : L, Fadjoin (Fadjoin K y) x = Fadjoin K z &
+                      separableElement K x -> separableElement K y.
+Proof.
+move => K x y Hsep.
+case: (separablePower K y) => n.
+case/andP => Hn.
+case/(PrimitiveElementTheorem x) => z Hz.
+exists z; last by move/separableFadjoinExtend; apply.
+case (eqVneq n 1%N) => Hn1; first by move: Hz; rewrite Hn1 expr1.
+have : (1 < n) by case: n Hz Hn Hn1 => [|[|n]].
+move => {Hn1} Hn1.
+rewrite -Hz ![Fadjoin (Fadjoin _ _) x]FadjoinC.
+apply/eqP; rewrite /eq_op; apply/eqP.
+apply: subv_anti.
+apply/andP; split; rewrite -subsetFadjoinE subsetKFadjoin.
+ by rewrite -separableCharn // Hsep.
+by rewrite memv_exp ?memx_Fadjoin.
+Qed.
 
 Section SeparableAndInseparableExtensions.
 
@@ -2545,14 +2594,13 @@ Qed.
 
 End SeparableAndInseparableExtensions.
 
-Lemma separableInseparableDecomposition : 
+Lemma separableInseparableDecomposition :
  forall E K, exists x, [&& x \in E, separableElement K x & 
                         purelyInseparable (Fadjoin K x) E].
 Proof.
 move => E K.
 wlog: K / (K <= E)%VS => [|HKE].
- (* How do I get canonical structures to infer fsapce_cap for me? *)
- case/(_ (fspace_cap K E) (capvSr K E)) => x.
+ case/(_ _ (capvSr K E)) => x.
  case/and3P => HxE Hsep.
  move/purelyInseparableP => Hinsep.
  exists x.
