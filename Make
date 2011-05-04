@@ -72,7 +72,7 @@ alt.v
 burnside_app.v
 vector.v
 fib.v
-galois.v
+separable.v
 amodule.v
 algebra.v
 galgebra.v
