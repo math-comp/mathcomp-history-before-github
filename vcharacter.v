@@ -16,8 +16,10 @@ Local Open Scope ring_scope.
 (*                                                                        *)
 (* This file contains the basic notions of virtual character theory       *)
 (*                                                                        *)
-(*  is_vchar G f : predicates that tells if the function f is a virtual   *)
-(*                 character                                              *)
+(* 'Z[T,A]       : integer combinations of elements of the tuple T        *)
+(*                 that have support in A                                 *)
+(* 'Z[T]         : integer combinations of elements of the tuple T        *)
+(*                                                                        *)
 (*                                                                        *)
 (**************************************************************************)
 
@@ -32,36 +34,28 @@ Definition virtual_char_pred m (S : m.-tuple {cfun gT}) (A : {set gT}) :
 Local Notation " 'Z[ S , A ]" := 
   (virtual_char_pred S A) (format " ''Z[' S ,  A ]"). 
 
-Local Notation " 'Z[ 'Irr G , A ]" := 
-  (virtual_char_pred (base_irr G) A) (format "''Z[' ''Irr'  G ,  A ]"). 
-
-Local Notation " 'Z[ 'Irr G ]" := 
-  (virtual_char_pred (base_irr G) G) (format "''Z[' ''Irr'  G ]"). 
+Local Notation " 'Z[ S ]" :=  (virtual_char_pred S setT) (format " ''Z[' S ]"). 
 
 Lemma is_vcharP : forall  (f : {cfun _}),
   reflect (exists f1, exists f2, [/\ is_char G f1, is_char G f2 & f = f1 - f2])
-          (f \in 'Z['Irr G]).
+          (f \in 'Z['Irr(G)]).
 Proof.
 move=> f; apply: (iffP andP); last first.
   case=> f1; case=> f2 [Hf1 Hf2 ->]; split.
     move: (base_irr_basis G); rewrite /is_basis /is_span.
     case/andP; move/eqP=> -> _.
     by apply: memv_sub; apply: memc_is_char.
-  apply/andP; split.
-    apply/forallP=> x; rewrite linearD linearN /= ffunE isZC_add //.
-      rewrite isZCE; apply/orP;left.
-     by  move: (isNatC_ncoord_char (enum_val x) Hf1);rewrite /ncoord enum_valK.
-    rewrite ffunE isZC_opp //; rewrite isZCE; apply/orP;left;
-    by move: (isNatC_ncoord_char (enum_val x) Hf2);rewrite /ncoord  enum_valK.
-  apply/forall_inP=> x XniG; rewrite !ffunE.
-  move/memc_is_char/support_memc/forall_inP:Hf1;move/(_ _ XniG); move/eqP->.
-  move/memc_is_char/support_memc/forall_inP:Hf2;move/(_ _ XniG); move/eqP->.
-  by rewrite subr0.
+  apply/andP; split; last by apply/forallP=> x; rewrite inE.
+  apply/forallP=> x; rewrite linearD linearN /= ffunE isZC_add //.
+    rewrite isZCE; apply/orP;left.
+    by  move: (isNatC_ncoord_char (enum_val x) Hf1);rewrite /ncoord enum_valK.
+  by rewrite ffunE isZC_opp //; rewrite isZCE; apply/orP;left;
+     move: (isNatC_ncoord_char (enum_val x) Hf2);rewrite /ncoord  enum_valK.
 case=> Hs; case/andP; move/forallP => Hc Hss.
-pose f1 := \sum_(i : irr G) (if isNatC(ncoord i f) then ncoord i f else 0) 
-                            *: (i : {cfun _}).
-pose f2 := \sum_(i : irr G) (if isNatC(-ncoord i f) then -ncoord i f else 0) 
-                            *: (i : {cfun _}).
+pose f1 := \sum_(i : irr G) 
+               (if isNatC(ncoord i f) then ncoord i f else 0) *: i%:CF.
+pose f2 := \sum_(i : irr G) 
+              (if isNatC(-ncoord i f) then -ncoord i f else 0) *: i%:CF.
 exists f1; exists f2; split.
 - apply: is_char_sum=> i _.
   case: (boolP (isNatC _)); last by rewrite scale0r is_char0.
@@ -85,18 +79,18 @@ rewrite isZCE; case/orP=> HH; rewrite HH; case: (boolP (isNatC _))=> HH1.
 by rewrite scale0r sub0r scaleNr opprK.
 Qed.
 
-Lemma is_vchar_char : forall f, is_char G f -> f \in 'Z['Irr G].
+Lemma is_vchar_char : forall f, is_char G f -> f \in 'Z['Irr(G)].
 Proof.
 move=> f Hf;apply/is_vcharP;exists f;exists 0;split=> //.
   by exact: is_char0.
 by rewrite subr0.
 Qed.
 
-Lemma is_vchar_irr : forall theta : irr G, (theta: {cfun _}) \in 'Z['Irr G].
+Lemma is_vchar_irr : forall theta : irr G, (theta: {cfun _}) \in 'Z['Irr(G)].
 Proof. by move=> theta; apply: is_vchar_char; apply: is_char_irr. Qed.
 
 Lemma isZC_ncoord_vchar : forall (A : {set gT})(theta : irr G) (f : {cfun _}),
-  f \in 'Z['Irr G, A] -> isZC (ncoord theta f).
+  f \in 'Z['Irr(G), A] -> isZC (ncoord theta f).
 Proof. move=> A theta f; case/and3P=> _;move/forallP => HH _; apply: HH. Qed.
 
 Lemma isZC_coord_vchar : forall m (S : m.-tuple _) A f i, 
@@ -111,7 +105,7 @@ Lemma span_vchar : forall m (S : m.-tuple _) A f,
   f \in 'Z[S, A] -> f \in span S.
 Proof. by move=> m S B f; case/and3P. Qed.
 
-Lemma memc_is_gvchar : forall f A, f \in 'Z['Irr G, A]-> f \in 'CF(G, A).
+Lemma memc_is_gvchar : forall f A, f \in 'Z['Irr(G), A]-> f \in 'CF(G, A).
 Proof. 
 move=> f A;case/and3P=> Hspan; move/forallP => Hc Hsup.
 case/andP: (base_irr_basis G) Hspan; rewrite /is_span;move/eqP => -> _ HH.
@@ -126,13 +120,13 @@ by apply/forall_inP=> x; rewrite ffunE eqxx.
 Qed.
 
 Lemma vchar_support:  forall f A,
-          f \in 'Z['Irr G, A] =  (f \in 'Z['Irr G]) && has_support f A.
+          f \in 'Z['Irr(G), A] =  (f \in 'Z['Irr(G)]) && has_support f A.
 Proof.
 move=> f A; apply/idP/idP=>H.
   move/memc_is_gvchar: (H); rewrite memcE; case/andP=> -> HCF.
   rewrite andbT.
   case/and3P: H=> irrGaa ZGaa Aaa; apply/and3P; split=> //.
-  by apply: support_memc HCF.
+  by apply/forallP=> x; rewrite inE.
 by case/andP:H; case/and3P=>irrGaa ZGaa Aaa Hs;apply/and3P.
 Qed.
 
@@ -191,8 +185,8 @@ by rewrite HH // inE eqxx andbT.
 Qed.
 
 Lemma is_vchar_mul : forall f g A, 
-                      f \in 'Z['Irr G, A]-> g  \in 'Z['Irr G, A]-> 
-                        (f * g) \in 'Z['Irr G, A].
+                      f \in 'Z['Irr(G), A]-> g  \in 'Z['Irr(G), A]-> 
+                        (f * g) \in 'Z['Irr(G), A].
 Proof.
 move=>  f g A; rewrite vchar_support; case/andP=> H1f H2f.
 rewrite vchar_support; case/andP=> H1g H2g.
@@ -210,23 +204,18 @@ Qed.
 
 End IsVChar.
 
+Notation " 'Z[ S , A ]" := 
+  (virtual_char_pred S A) (format " ''Z[' S ,  A ]"). 
+
+Notation " 'Z[ S ]" :=  (virtual_char_pred S setT) (format " ''Z[' S ]"). 
 
 Section MoreIsVChar.
 
 Variable gT : finGroupType.
 Variable G H : {group gT}.
 
-Local Notation " 'Z[ S , A ]" := 
-  (virtual_char_pred S A) (format " ''Z[' S ,  A ]"). 
-
-Local Notation " 'Z[ 'Irr G , A ]" := 
-  (virtual_char_pred (base_irr G) A) (format "''Z[' ''Irr'  G ,  A ]"). 
-
-Local Notation " 'Z[ 'Irr G ]" := 
-  (virtual_char_pred (base_irr G) G) (format "''Z[' ''Irr'  G ]"). 
-
 Lemma is_vchar_restrict : forall f, 
-  H \subset G -> f \in 'Z['Irr G] -> ('Res[H] f)\in 'Z['Irr H].
+  H \subset G -> f \in 'Z['Irr(G)] -> 'Res[H] f \in 'Z['Irr(H)].
 Proof.
 move=> f HsG; case/is_vcharP=> f1; case=> f2 [Hf1 Hf2 ->].
 by rewrite linearD linearN is_vchar_sub // is_vchar_char //
@@ -234,7 +223,7 @@ by rewrite linearD linearN is_vchar_sub // is_vchar_char //
 Qed.
 
 Lemma is_vchar_induced : forall chi,
-   H \subset G -> chi \in 'Z['Irr H] -> ('Ind[G,H] chi) \in 'Z['Irr G].
+   H \subset G -> chi \in 'Z['Irr(H)] -> 'Ind[G,H] chi \in 'Z['Irr(G)].
 Proof.
 move=> chi HsG; case/is_vcharP=> f1; case=> f2 [Hf1 Hf2 ->].
 by rewrite linearD linearN is_vchar_add ?is_vchar_opp //

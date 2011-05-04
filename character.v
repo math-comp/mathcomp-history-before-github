@@ -18,12 +18,13 @@ Local Open Scope ring_scope.
 (*                                                                        *)
 (*  irr G : irreducible character of G                                    *)
 (*                                                                        *)
-(*  is_irr G f :  predicates that tells if the function f is a character  *)
+(*  i%:CF : the {cfun gT} corresponding to the character i                *)
+(*          irr G coerces to {cfun gT} but sometimes the coercing must be *)
+(*          explicit so that Coq can figure out the vector space structure*)
+(*          of {cfun gT}                                                  *)
 (*                                                                        *)
-(*  get_irr G f : if is_irr G f is true returns the corresponding         *)
-(*                 irreducible character                                  *)
-(*                                                                        *)
-(*  char_of_repr G rG : turn the representation rG into a character       *)
+(* 'Irr(G) : the basis for characters, i.e the tuple of all irreducible   *)
+(*           characters as {cfun gT}                                      *)
 (*                                                                        *)
 (*  is_char G f : predicates that tells if the function f is a character  *)
 (*                                                                        *)
@@ -700,17 +701,19 @@ Definition get_irr f :=
 
 End IrrClassDef.
 
+Local Notation "i %:CF" := (cfun_of_irr i) (at level 8).
+
 Variable (G : {group gT}).
 
 Let sG := DecSocleType (regular_repr algC <<G>>).
 
 Lemma irr_reprE : forall (theta : irr G),
    exists i : DecSocleType (regular_repr algC G),
-   theta = char_of_repr G (irr_repr i) :> {cfun _}. 
+   theta%:CF = char_of_repr G (irr_repr i). 
 Proof.
 move=> theta.
 have: exists i : DecSocleType (regular_repr algC <<G>>),
-          theta = char_of_repr <<G>> (irr_repr i) :> {cfun _}.
+          theta%:CF = char_of_repr <<G>> (irr_repr i).
   by exists (socle_of_irr theta).
 by rewrite !(genGidG,genGid).
 Qed.
@@ -753,7 +756,7 @@ rewrite (reindex (@socle_of_irr G)); last by exists (@irr_of_socle G)=> [] [].
 by apply: eq_bigr=> theta _; rewrite irr_val1 natr_exp.
 Qed.
 
-Lemma memc_irr : forall theta : irr G, (theta : {cfun _}) \in 'CF(G).
+Lemma memc_irr : forall theta : irr G, theta%:CF \in 'CF(G).
 Proof.
 move=> theta; case: (irr_reprE theta)=> rG ->.
 by apply: memc_char_of_repr.
@@ -765,8 +768,8 @@ Definition is_irr (G : {set gT}) (f : {cfun _}) :=
 Lemma is_irr_irr: forall theta : irr G, is_irr G theta.
 Proof. by move=> theta; apply/existsP; exists theta. Qed.
 
-Lemma is_irrP : forall f, 
-  reflect (exists theta : irr G, f = theta :> {cfun _}) (is_irr G f).
+Lemma is_irrP : forall f : {cfun gT}, 
+  reflect (exists theta : irr G, f = theta) (is_irr G f).
 Proof.
 by move=> f; apply: (iffP (@existsP _ _))=>[[theta Ht]|[theta ->]];
    exists theta=> //; apply/eqP.
@@ -787,7 +790,7 @@ suff: forall i : DecSocleType (regular_repr algC <<G>>),
 by move=> i; apply/is_irrP; exists (irr_of_socle i).
 Qed.
 
-Lemma get_irrE : forall f, is_irr G f -> get_irr G f = f :> {cfun _}.
+Lemma get_irrE : forall f, is_irr G f -> (get_irr G f)%:CF = f.
 Proof.
 move=> f; case/is_irrP=> theta Ht; rewrite /get_irr; case: pickP=> /=.
   by move=> theta'; move/eqP.
@@ -795,7 +798,7 @@ by move/(_ theta); rewrite Ht eqxx.
 Qed.
  
 Lemma reg_cfun_sum : 
-  reg_cfun G = \sum_(theta : irr G) theta (1%g) *: (theta : {cfun _}).
+  reg_cfun G = \sum_(theta : irr G) theta (1%g) *: theta%:CF.
 Proof.
 apply/ffunP=> g; rewrite !ffunE.
 rewrite -{1}[G]genGidG.
@@ -972,7 +975,7 @@ oapp (fun x => socle_mult x) 0%N [pick j | s == to_socle (j: DecSocleType rG)].
 Lemma char_of_standard_grepr : forall n (rG : mx_representation algC <<G>> n),
   char_of_repr <<G>> (standard_grepr rG)
     = \sum_(theta : irr G)
-         (standard_irr_coef rG (val theta))%:R *: (theta : {cfun _}).
+         (standard_irr_coef rG (val theta))%:R *: theta%:CF.
 Proof.
 move=> n rG; rewrite char_of_dsum_grepr.
 rewrite (reindex (@IrrClass _)) /=; last by exists val => // [[]].
@@ -980,6 +983,8 @@ by apply: eq_bigr => i _; rewrite scaler_nat char_of_n_grepr.
 Qed.
 
 End IrrClass.
+
+Notation "i %:CF" := (cfun_of_irr i) (only parsing, at level 8).
 
 Section VectorSpace.
 
@@ -998,6 +1003,8 @@ Definition ncoord (i: irr G) c : algC^o := coord base_irr c (enum_rank i).
 
 End VectorSpaceDef.
 
+Local Notation "'Irr( G )" := (base_irr G) (at level 2).
+
 Variable (G : {group gT}).
 
 Local Notation "'E_" := 
@@ -1005,7 +1012,7 @@ Local Notation "'E_" :=
 Local Notation "'R_":= 
   ((@Wedderburn_subring _ _ _ _) \o (@socle_of_irr _ _)) (at level 0).
   
-Lemma free_base_irr : free (base_irr G).
+Lemma free_base_irr : free 'Irr(G).
 Proof.
 apply/freeP=> s; set ss := \sum_(i<_) _ => Hs j.
 pose j' := enum_val j.
@@ -1051,7 +1058,7 @@ move: (free_coords (c _ rG1) (enum_rank (IrrClass theta)) free_base_irr).
 rewrite /c /= enum_rankK /= => <-.
 suff charE : forall n (rG: mx_representation algC <<G>>%G n),
  char_of_repr <<G>> (standard_grepr rG) = 
-   \sum_(i < #|irr G|) c n rG i *: ((base_irr G)`_i : {cfun _}).
+   \sum_(i < #|irr G|) c n rG i *: 'Irr(G)`_i.
   rewrite -charE -(char_of_repr_sim rsim1) eq_char12 (char_of_repr_sim rsim2) charE.
   rewrite (free_coords (c _ rG2) (enum_rank (IrrClass theta)) free_base_irr).
   by rewrite /c /= enum_rankK.
@@ -1074,7 +1081,7 @@ case E1: (g \in G); last by rewrite !mul0r.
 by rewrite !mul1r; apply: mxtrace_rsim.
 Qed.
 
-Lemma base_irr_basis : is_basis 'CF(G) (base_irr G).
+Lemma base_irr_basis : is_basis 'CF(G) 'Irr(G).
 Proof.
 rewrite /is_basis free_base_irr andbT /is_span -dimv_leqif_eq.
   rewrite dim_cfun.
@@ -1085,17 +1092,17 @@ by rewrite -{2 3}genGid memc_char_of_repr.
 Qed.
 
 Lemma ncoord_sum : forall x : {cfun gT}, x \in 'CF(G) -> 
-  x = \sum_(theta : irr G) ncoord theta x *: (theta : {cfun _}).
+  x = \sum_(theta : irr G) ncoord theta x *: theta%:CF.
 Proof.
 move=> x Hx.
-have F2: x \in span (base_irr G).
+have F2: x \in span 'Irr(G).
   move: (is_basis_span base_irr_basis).
   by rewrite /is_span; move/eqP->.
 rewrite {1}(coord_span F2).
 rewrite (big_nth (irr1 G)) big_mkord -[index_enum (irr_finType _)]enumT -cardE.
 apply: eq_bigr=> i _.
 rewrite /ncoord -enum_val_nth enum_valK.
-suff ->: enum_val i = (map (@cfun_of_irr _ G) (enum (irr G)))`_i :> {cfun _}.
+suff ->: (enum_val i)%:CF = (map (@cfun_of_irr _ G) (enum (irr G)))`_i.
    by [].
 by rewrite (nth_map (irr1 G)) -?enum_val_nth // -cardE.
 Qed.
@@ -1107,12 +1114,12 @@ Canonical Structure ncoord_linear (theta : irr G) :=
   Linear (ncoord_is_linear theta).
 
 Lemma ncoordE : forall  (c : irr G -> algC) theta, 
-  ncoord theta (\sum_theta (c theta) *: (theta: {cfun _})) = c theta.
+  ncoord theta (\sum_theta (c theta) *: theta%:CF) = c theta.
 Proof.
 move=> c theta.
 rewrite (big_nth (irr1 G)) big_mkord.
 rewrite -[index_enum _]enumT -cardE.
-rewrite (eq_bigr (fun i => c (enum_val i) *: ((base_irr G)`_i : {cfun _}))).
+rewrite (eq_bigr (fun i => c (enum_val i) *: 'Irr(G)`_i)).
   rewrite /ncoord (free_coords (c \o enum_val) (enum_rank _) free_base_irr).
   by rewrite /= enum_rankK.
 move=> i _; rewrite  -enum_val_nth; congr (_ *: _).
@@ -1122,7 +1129,7 @@ Qed.
 Lemma ncoord0 : forall theta : irr G, ncoord theta 0 = 0.
 Proof.
 move=> theta.
-suff {1}<-: \sum_(theta : irr G) 0 *: (theta: {cfun _}) = 0 by rewrite ncoordE.
+suff {1}<-: \sum_(theta : irr G) 0 *: theta%:CF = 0 by rewrite ncoordE.
 by rewrite big1 // => j _; exact: scale0r.
 Qed.
 
@@ -1131,7 +1138,7 @@ Lemma ncoord_irr : forall theta1 theta2 : irr G,
 Proof.
 move=> theta1 theta2.
 suff {1}<-: 
-  \sum_(theta : irr G) (theta == theta2)%:R *: (theta : {cfun _}) = theta2.
+  \sum_(theta : irr G) (theta == theta2)%:R *: theta%:CF = theta2.
   by rewrite ncoordE.
 rewrite (bigD1 theta2) // big1 /= ?(addr0,eqxx,scale1r) // => theta.
 by rewrite eq_sym; case: (_ == _)=> //; rewrite scale0r.
@@ -1151,6 +1158,8 @@ by apply: isNatC_nat.
 Qed.
 
 End VectorSpace.
+
+Notation "'Irr( G )" := (base_irr G) (at level 2).
 
 Section Restrict.
 
@@ -1175,7 +1184,7 @@ Section IsCharDef.
 
 Variable G : {set gT}.
 
-Definition is_char  (f : {cfun gT}) :=
+Definition is_char (f : {cfun gT}) :=
   (forallb theta : irr G, isNatC (ncoord theta f)) &&
   (f \in 'CF(<<G>>)).
 
@@ -1199,7 +1208,7 @@ apply: (iffP andP); last first.
   by exact: isNatC_ncoord_repr.
 case; move/forallP=> Ha Hf.
 pose n' (j : irr G) := getNatC (ncoord j f).
-have->: f = \sum_(j : irr G) (n' j)%:R *: (j : {cfun _}).
+have->: f = \sum_(j : irr G) (n' j)%:R *: j%:CF.
   move: (Hf); rewrite genGid=> Hf'.
   rewrite {1}(ncoord_sum Hf'); apply: eq_bigr=> i _.
   by congr (_ *: _); apply/eqP; apply: Ha.
@@ -1218,8 +1227,7 @@ have F1: (\sum_j (n' j) = 1 + \sum_j n'' j)%N.
   rewrite (bigD1 k) //[(\sum_j n'' j)%N](bigD1 k) //.
   rewrite addnA /n'' eqxx add1n prednK; last by case: (n' k) Hk.
   by congr (_ + _)%N; apply: eq_bigr=> i; case: (i == k).
-have F2: \sum_j (n' j)%:R *: (j : {cfun _})  = 
-             (k : {cfun _}) + \sum_j (n'' j)%:R *: (j : {cfun _}).
+have F2: \sum_j (n' j)%:R *: j%:CF  = k%:CF + \sum_j (n'' j)%:R *: j%:CF.
   rewrite (bigD1 k) //[(\sum_j (n'' j)%:R *: _)](bigD1 k) // addrA; congr (_ + _).
     rewrite /n'' eqxx; case: (n' _) Hk=> //= n _.
     by rewrite -add1n natr_add scaler_addl scale1r.
@@ -1317,7 +1325,7 @@ Qed.
 
 Lemma is_char_cbP : forall f,
   reflect 
-    (exists n, f = \sum_(theta : irr G) (n theta)%:R *: (theta : {cfun _}))
+    (exists n, f = \sum_(theta : irr G) (n theta)%:R *: theta%:CF)
     (is_char G f).
 Proof.
 move=> f; apply: (iffP idP)=> [HH|[n ->]]; last first.
@@ -1331,7 +1339,7 @@ Qed.
 
 Lemma is_char_indu : forall (P: {cfun gT} -> Prop), P 0 -> 
   (forall (theta : irr G) chi, 
-      is_char G chi -> P chi -> P ((theta : {cfun _}) + chi)) ->
+      is_char G chi -> P chi -> P (theta%:CF + chi)) ->
   forall chi, is_char G chi -> P chi.
 Proof.
 move=> P P0 IH chi; case/is_char_cbP=> n ->.
@@ -1348,8 +1356,7 @@ have F1: (\sum_t (n t) = (\sum_t (n' t)).+1)%N.
   rewrite (bigD1 theta) // [(\sum_t n' t)%N](bigD1 theta) //= -add1n addnA.
   congr (_ + _)%N; first by rewrite /n' eqxx; case: (n theta) Nt0.
   by apply: eq_bigr=> j Hj; rewrite /n' (negPf Hj).
-have F2: \sum_t (n t)%:R *: (t : {cfun _ })  = 
-           (theta : {cfun _}) + \sum_t (n' t)%:R *: (t : {cfun _}).
+have F2: \sum_t (n t)%:R *: t%:CF  = theta%:CF + \sum_t (n' t)%:R *: t%:CF.
   rewrite  [X in _ + X](bigD1 theta) //= (bigD1 theta) //=.
   rewrite addrA; congr (_ + _).
     rewrite /n' eqxx; case: (n theta) Nt0=> // m' _.
@@ -1544,8 +1551,7 @@ have Hf: forall g1, g1 \in <[g]> ->
 rewrite !Hf ?(cycle_id,group1) // (ncoord_sum (memc_char_of_repr _)).
 rewrite !sum_ffunE 2!ffunE.
 pose nc (i: irr <[g]>) := ncoord i (char_of_repr <[g]> rG').
-suff->: \sum_i (nc i *: (i: {cfun _})) 1%g = 
-        \sum_i normC ((nc i *: (i: {cfun _})) g%g).
+suff->: \sum_i (nc i *: i%:CF) 1%g = \sum_i normC ((nc i *: i%:CF) g%g).
   by apply: normC_sum.
 have F2 := cycle_abelian g.
 apply: eq_bigr=> i _.
@@ -1580,9 +1586,9 @@ apply: is_char_indu=> [|theta chi IC IH] n.
    exists 0; first by rewrite eqxx normC0.
    by rewrite (flatmx0 (rG g)) (flatmx0 _%:M) .
 suff: forall (rG : mx_representation algC <<G>> n) (g : gT),
-       g \in G -> (theta : {cfun _}) + chi = char_of_repr <<G>> rG ->
+       g \in G -> theta%:CF + chi = char_of_repr <<G>> rG ->
        (forall theta : irr G, clinear G theta) ->
-       normC (((theta : {cfun _}) + chi) g) = ((theta : {cfun _}) + chi) 1%g ->
+       normC ((theta%:CF + chi) g) = (theta%:CF + chi) 1%g ->
        exists2 c : algC, normC c = (n != 0%N)%:R & rG g = c%:M.
   by rewrite genGid.
 move=> rG g GiG H0 CL; rewrite ffunE [_ 1%g]ffunE=> NN.
@@ -1678,15 +1684,14 @@ Proof. by []. Qed.
 
 Lemma is_comp_charP : forall (theta : irr G) chi,
   is_char G chi ->
-  reflect (exists2 chi', is_char G chi' &
-             chi = (theta : {cfun _}) + chi' :> {cfun _}) 
+  reflect (exists2 chi', is_char G chi' & chi = theta%:CF + chi') 
           (is_comp theta chi).
 Proof.
 move=> theta chi IC; apply: (iffP idP)=>[HH|[chi' IC' ->]]; last first.
   rewrite /is_comp linearD /= ncoord_irr eqxx.
   case/isNatCP: (isNatC_ncoord_char theta IC')=> n ->.
   by rewrite -natr_add -neq0N_neqC.
-exists (chi - (theta : {cfun _})); last by rewrite addrC subrK.
+exists (chi - theta%:CF); last by rewrite addrC subrK.
 apply/andP; split; last first.
   by apply: memv_sub; rewrite genGid ?(memc_is_char, is_char_irr).
 apply/forallP=> t.
@@ -2246,10 +2251,10 @@ rewrite NS !sum_ffunE !ffunE.
 move/eqP=> Hs t; rewrite cker_irrE // !inE InG.
 have->:
    [ffun x : gT => 
-                  \sum_(t:irr G) (ncoord t chi *: (t : {cfun _})) x] = chi.
+                  \sum_(t:irr G) (ncoord t chi *: t%:CF) x] = chi.
   by apply/ffunP=> x; rewrite ffunE {2}NS sum_ffunE ffunE.
 move=> Hd.
-pose c := ncoord t chi *: (t : {cfun _}). 
+pose c := ncoord t chi *: t%:CF. 
 have F: c g =  c 1%g.
   have F1: 0 <= ncoord t chi by apply: posC_isNatC; rewrite isNatC_ncoord_char.
   apply: (normC_sum_upper _ Hs)=> [t' Ht'|]; last first.
@@ -2797,7 +2802,7 @@ Qed.
 Lemma ccenter_restrict : forall chi,
   exists2 chi1,
      clinear  (ccenter G chi) chi1 & 
-     'Res[ccenter G chi] chi =  (chi 1%g) *: (chi1 : {cfun _}).
+     'Res[ccenter G chi] chi =  (chi 1%g) *: chi1.
 Proof.
 move=> chi.
 case: (boolP (is_char G chi))=> IC; last first.

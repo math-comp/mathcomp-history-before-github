@@ -189,7 +189,7 @@ Qed.
 Definition irr_conj (theta : irr H) g := get_irr H (theta^g)%CH.
 
 Lemma irr_conjE : forall (theta : irr H) g,
-  H <| G -> g \in G -> irr_conj theta g = (theta^g)%CH :> {cfun _}.
+  H <| G -> g \in G -> (irr_conj theta g)%:CF = (theta^g)%CH.
 Proof. by move=> t g HnG GiG; rewrite get_irrE // is_irr_conj. Qed.
 
 Lemma is_irr_inner : forall (theta : irr H) g,
@@ -254,7 +254,7 @@ by rewrite HH eq_sym cfun_conj_eqE ?(mem_repr_rcoset,F1).
 Qed.
 
 Lemma cconjugates1 : H <| G -> 
-  cconjugates G (irr1 H) = [::(irr1 H : {cfun _})].
+  cconjugates G (irr1 H) = [::(irr1 H)%:CF].
 Proof.
 move=> HnG.
 have: forall f, f \in cconjugates G (irr1 H) -> f = irr1 H .
@@ -276,7 +276,7 @@ Qed.
 Lemma cconjugates_sum : forall (R : Type) (idx : R) (op : Monoid.com_law idx) 
                               (F: _ -> R) (theta : irr H),
    H <| G ->
-   \big[op/idx]_(i : irr H | ((i : {cfun _}) \in cconjugates G theta)) 
+   \big[op/idx]_(i : irr H | i%:CF \in cconjugates G theta) 
        F (cfun_of_irr i) = 
    \big[op/idx]_(i <- cconjugates G theta) F i.
 Proof.
@@ -338,7 +338,7 @@ have CFInd: ('Ind[G, H] theta) \in 'CF(G).
    by apply: (memc_induced (normal_sub HnG)); exact: memc_irr.
 rewrite {1}(ncoord_sum CFInd) linear_sum /=.
 rewrite -inner_prodbE linear_sum /= => HH1. 
-have: '['Res[H] (ncoord chi ('Ind[G, H] theta) *: (chi: {cfun _})),phi]_H = 0.
+have: '['Res[H] (ncoord chi ('Ind[G, H] theta) *: chi%:CF),phi]_H = 0.
   apply: (posC_sum_eq0 _ HH1)=> [theta1 _|]; last first.
     by rewrite /index_enum -enumT mem_enum.
   apply: posC_isNatC.
@@ -439,7 +439,7 @@ Section MoreInertia.
 Variable gT : finGroupType.
 
 Lemma cconjugates_inertia : forall (G H : {group gT}) (theta : irr H),
-   cconjugates 'I_(G)[theta] theta = [::(theta : {cfun _})].
+   cconjugates 'I_(G)[theta] theta = [::theta%:CF].
 Proof.
 move=> G H theta.
 set T := 'I_(G)[theta]%G.
@@ -534,7 +534,7 @@ Let f := '['Res[H] psi, theta ]_ H.
 Let He : 'Res[H] chi = e *: ((\sum_(f <- cconjugates G theta) f)).
 Proof. exact: (is_comp_clifford HnG is_comp_inertia_restrict_is_comp_g). Qed.
 
-Let Hf  : 'Res[H] psi = f *: (theta : {cfun _}).
+Let Hf  : 'Res[H] psi = f *: theta%:CF.
 Proof.
 move: (is_comp_clifford  HnT Hpsi).
 rewrite cconjugates_inertia.
