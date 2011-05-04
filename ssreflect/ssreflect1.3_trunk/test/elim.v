@@ -216,3 +216,7 @@ match goal with |- forall n : nat, n = 0 -> plus x y = plus x (plus y 0) => idta
  done.
 by move=> _ p _ ->.
 Qed.
+
+(* BUG elim-False *)
+Lemma testeF : False -> 1 = 0.
+Proof. by elim. Qed.
