@@ -316,7 +316,9 @@ have->: f = ncoord e1 f *: e1%:CF + ncoord e2 f *: e2%:CF.
   case Ei: (h i) (HH1 _ Hi)=> //.
   by move/eqP: Ei; rewrite eqN_eqC Hh absC_eq0; move/eqP->; rewrite scale0r.
 rewrite ffunE [_ 1%g]ffunE [(_ (_ *: _)) 1%g]ffunE.
-have F: 0 < e1 1%g + e2 1%g by admit.
+have F: 0 < e1 1%g + e2 1%g.
+  by apply: sposC_addl; try apply: ltCW; apply/andP; split;
+     try exact:irr1_neq0; rewrite irr_val1 ; apply: posC_nat.
 move/eqP: E1; rewrite eqN_eqC Hh /absC; case: (_ <= _).
   move/eqP->.
   move/eqP: E2; rewrite eqN_eqC Hh /absC; case: (_ <= _).
@@ -329,19 +331,8 @@ move/eqP: E2; rewrite eqN_eqC Hh /absC; case: (_ <= _).
   move/eqP=> -> _.
   by exists e2; exists e1; rewrite addrC scaleNr !scale1r.
 rewrite -{2 3}[ncoord e2 f]opprK; move/eqP->.
-rewrite -mulr_addr.
- HH2.
-
- exists e1; exists e2; rewrite scaleNr !scale1r.
-
-
-
-
-
- congr (_ + _).
-  have: f \in 'CF(G).
-Check ncoordE.
-admit.
+rewrite /= -mulr_addr mulN1r=> HH2.
+by move: F; rewrite -[X in _ < X]opprK HH2 oppr0 -(ltn_ltC 0 0).
 Qed.
  
 (* This is PF 1.4 *)
