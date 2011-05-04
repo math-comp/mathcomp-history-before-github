@@ -21,6 +21,8 @@ Require Import div cyclic prime binomial.
 (*  separablePolynomial p == p has no repeated roots in any field extension   *)
 (*   separableElement K x == the minimal polynomial for x is separable        *)
 (*          separable K E == every member of E is separable over K            *)
+(* separableGenerator K E == some x \in E that generates the largest possible *)
+(*                           subfield K[x] that is separable over K           *)
 (* purelyInseparableElement K x == there is n \in [char L].-nat such that     *)
 (*                                 x ^+ n \in K                               *)
 (*  purelyInseparable K E == every member of E is purely inseparable over K   *)
@@ -109,7 +111,7 @@ Qed.
 
 End SeparablePoly.
 
-Section Galois.
+Section Separable.
 
 Variable F0 : fieldType.
 Variable L : fieldExtType F0.
@@ -2598,7 +2600,15 @@ Qed.
 
 End SeparableAndInseparableExtensions.
 
-Lemma separableInseparableDecomposition :
+Lemma separableSeparableExtension : forall K x,
+ separableElement K x -> separable K (Fadjoin K x).
+Proof.
+move => K x.
+move/allSeparableElement => Hsep.
+by apply/separableP.
+Qed.
+
+Lemma separableInseparableDecomposition_subproof :
  forall E K, exists x, [&& x \in E, separableElement K x & 
                         purelyInseparable (Fadjoin K x) E].
 Proof.
@@ -2673,6 +2683,52 @@ elim: (iota 0 (\dim E)) => [//|a b IH].
 case/orP; last by move => ?; apply/memK_Fadjoin/IH.
 move/eqP ->.
 by apply: memx_Fadjoin.
+Qed.
+
+Definition separableGenerator (K E:{algebra L}) : L:= 
+  choice.xchoose (separableInseparableDecomposition_subproof E K).
+
+Lemma separableGeneratorInE : forall E K, separableGenerator K E \in E.
+Proof.
+move => E K.
+by case/and3P: (choice.xchooseP 
+  (separableInseparableDecomposition_subproof E K)).
+Qed.
+
+Lemma separableGeneratorSep : forall E K, 
+ separableElement K (separableGenerator K E).
+Proof.
+move => E K.
+by case/and3P: (choice.xchooseP 
+  (separableInseparableDecomposition_subproof E K)).
+Qed.
+
+Lemma separableGeneratorMaximal : forall E K, 
+ purelyInseparable (Fadjoin K (separableGenerator K E)) E.
+Proof.
+move => E K.
+by case/and3P: (choice.xchooseP 
+  (separableInseparableDecomposition_subproof E K)).
+Qed.
+
+Lemma separableSeparableGeneratorEx : forall E K,
+ separable K E -> (E <= Fadjoin K (separableGenerator K E))%VS.
+Proof.
+move => E K.
+move/separableP => Hsep.
+apply/subvP => v Hv.
+rewrite separableInseparableElement.
+move/purelyInseparableP/(_ _ Hv): (separableGeneratorMaximal E K) ->.
+by rewrite (subsetSeparable _ (Hsep _ Hv)) // subsetKFadjoin.
+Qed.
+
+Lemma separableSeparableGenerator : forall E K,
+ separable K E -> (K <= E)%VS -> E = Fadjoin K (separableGenerator K E).
+Proof.
+move => E K Hsep HKE.
+apply/eqP; rewrite /eq_op; apply/eqP; apply: subv_anti.
+rewrite separableSeparableGeneratorEx //=.
+by rewrite -subsetFadjoinE HKE separableGeneratorInE.
 Qed.
 
 (*
@@ -2872,5 +2928,5 @@ by rewrite !GRing.scale1r.
 Qed.
 *)
 
-End Galois.
+End Separable.
 
