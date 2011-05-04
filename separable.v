@@ -130,6 +130,22 @@ by rewrite suff //= -{1}[K:{vspace L}]prodv1 -(mulfV Hx) prodv_inj prodvA
            suff // invr_neq0.
 Qed.
 
+Definition polyOver (K : {vspace L}) := [pred p : {poly L} | all (mem K) p].
+
+Lemma polyOverP : forall (K : {vspace L}) (p : {poly L}),
+  reflect (forall i, p`_i \in K) (polyOver K p).
+Proof.
+move => K p.
+apply: (iffP allP).
+ move => Hp i.
+ case E : (leq (size p) i); first by rewrite nth_default // mem0v.
+ apply: Hp.
+ by rewrite mem_nth // ltnNge E.
+move => hP x /=.
+move/(nth_index _).
+by move/(_ 0) <-.
+Qed.
+
 Section SubAlgebra.
 
 Variable K : {algebra L}.
@@ -175,28 +191,12 @@ Proof. move=> u v; apply: val_inj; exact: mulrC. Qed.
 Canonical Structure suba_comRingType :=
   Eval hnf in ComRingType (suba_of K) suba_mul_com.
 
-Definition polyOver := [pred p : {poly L} | all (mem K) p].
-
-Lemma polyOverP : forall p : {poly L},
-  reflect (forall i, p`_i \in K) (polyOver p).
-Proof.
-move => p.
-apply: (iffP allP).
- move => Hp i.
- case E : (leq (size p) i); first by rewrite nth_default // mem0v.
- apply: Hp.
- by rewrite mem_nth // ltnNge E.
-move => hP x /=.
-move/(nth_index _).
-by move/(_ 0) <-.
-Qed.
-
 Lemma polyOver_suba : forall p : {poly L},
   reflect (exists q : {poly (suba_of K)}, p = map_poly (@sa_val _ _ K) q)
-          (polyOver p).
+          (polyOver K p).
 Proof.
 move => p.
-apply: (iffP (polyOverP _)); last first.
+apply: (iffP (polyOverP _ _)); last first.
  by move => [q ->] i; rewrite coef_map // subaP.
 move => Hp.
 exists (\poly_(i < size p) (Suba (Hp i))).
@@ -210,63 +210,64 @@ by apply.
 Qed.
 
 Lemma addp_polyOver : forall p q : {poly L},
-  polyOver p -> polyOver q -> polyOver (p + q).
+  polyOver K p -> polyOver K q -> polyOver K (p + q).
 Proof.
 move => ? ?; move/polyOver_suba => [p ->]; move/polyOver_suba => [q ->].
 by apply/polyOver_suba; exists (p + q); rewrite rmorphD.
 Qed.
 
-Lemma opp_polyOver : forall p : {poly L}, polyOver p -> polyOver (- p).
+Lemma opp_polyOver : forall p : {poly L}, polyOver K p -> polyOver K (- p).
 Proof.
 move => ?; move/polyOver_suba => [p ->].
 by apply/polyOver_suba; exists (- p); rewrite rmorphN.
 Qed.
 
 Lemma mulp_polyOver : forall p q : {poly L},
-  polyOver p -> polyOver q -> polyOver (p * q).
+  polyOver K p -> polyOver K q -> polyOver K (p * q).
 Proof.
 move => ? ?; move/polyOver_suba => [p ->]; move/polyOver_suba => [q ->].
 by apply/polyOver_suba; exists (p * q); rewrite rmorphM.
 Qed.
 
-Lemma exp_polyOver : forall (p : {poly L}) n, polyOver p -> polyOver (p ^+ n).
+Lemma exp_polyOver : forall (p : {poly L}) n, polyOver K p ->
+  polyOver K (p ^+ n).
 Proof.
 move => ? n; move/polyOver_suba => [p ->].
 by apply/polyOver_suba; exists (p ^+ n); rewrite rmorphX.
 Qed.
 
 Lemma scalep_polyOver : forall (c : L) (q : {poly L}),
-  c \in K -> polyOver q -> polyOver (c *: q).
+  c \in K -> polyOver K q -> polyOver K (c *: q).
 Proof.
 move => ? ? cK; move/polyOver_suba => [q ->].
 apply/polyOver_suba; exists ((Suba cK) *: q).
 by rewrite -!mul_polyC rmorphM /= map_polyC.
 Qed.
 
-Lemma polyOver0 : polyOver 0.
+Lemma polyOver0 : polyOver K 0.
 Proof. by apply/polyOver_suba; exists 0; rewrite map_polyC. Qed.
 
-Lemma polyOverX : polyOver 'X.
+Lemma polyOverX : polyOver K 'X.
 Proof.
 apply/polyOverP => i.
 by rewrite coefX; case: (_ == _); [apply: memv1 | apply: mem0v].
 Qed.
 
-Lemma polyOverC : forall c, c \in K -> polyOver (c%:P).
+Lemma polyOverC : forall c, c \in K -> polyOver K (c%:P).
 Proof.
 move => c cK; apply/polyOverP => i.
 by rewrite coefC; case: (_ == _) => //; apply: mem0v.
 Qed.
 
 Lemma sump_polyOver : forall (I : finType) (P : pred I) (p_ : I -> {poly L}),
-  (forall i, P i -> polyOver (p_ i)) -> polyOver (\sum_(i | P i) p_ i).
+  (forall i, P i -> polyOver K (p_ i)) -> polyOver K (\sum_(i | P i) p_ i).
 Proof.
 move=> I P p_ Hp; apply big_prop => //; first by apply polyOver0.
 by exact: addp_polyOver.
 Qed.
 
 Lemma poly_polyOver : forall n (E : nat -> L),
-  (forall i, E i \in K) -> polyOver (\poly_(i < n) E i).
+  (forall i, E i \in K) -> polyOver K (\poly_(i < n) E i).
 Proof.
 move => n E HE.
 rewrite poly_def.
@@ -275,21 +276,14 @@ by rewrite scalep_polyOver // exp_polyOver // polyOverX.
 Qed.
 
 Lemma compose_polyOver : forall p q : {poly L},
-  polyOver p -> polyOver q -> polyOver (p \Po q).
+  polyOver K p -> polyOver K q -> polyOver K (p \Po q).
 Proof.
-move => p q; move/polyOverP => Hp; move/polyOverP => Hq.
-apply/polyOverP => i.
-rewrite /poly_comp horner_coef coef_sum memv_suml // => j _.
-rewrite coef_mul memv_suml // => k _.
-apply: memv_mul.
-   by rewrite coef_map coefC; case: eqP=> // _; exact: mem0v.
-elim: (j:nat) (i - k)%N => [|l IH] m.
- by rewrite coefC fun_if if_arg mem0v memv1 if_same.
-rewrite exprS coef_mul memv_suml // => n _.
-by rewrite memv_mul ?IH.
+move => p q; move/polyOverP => Hp Hq.
+rewrite poly_compE sump_polyOver // => i _.
+by rewrite scalep_polyOver // exp_polyOver.
 Qed.
 
-Lemma deriv_polyOver :  forall (p : {poly L}), polyOver p -> polyOver p^`().
+Lemma deriv_polyOver :  forall (p : {poly L}), polyOver K p -> polyOver K p^`().
 Proof.
 move => ?; move/polyOver_suba => [p ->].
 by apply/polyOver_suba; exists (p^`()); apply: deriv_map.
@@ -306,7 +300,7 @@ Canonical Structure fspace_cap : {algebra L} :=
 
 End aspace_cap.
 
-Lemma polyOver_subset : forall (K E : {algebra L}) p, (K <= E)%VS ->
+Lemma polyOver_subset : forall K E p, (K <= E)%VS ->
  polyOver K p -> polyOver E p.
 Proof.
 move => K E p; move/subvP => KE; move/polyOverP => Kp.
@@ -322,20 +316,25 @@ rewrite memv_mul //; last by rewrite memv_exp.
 by move/subvP : HE; apply.
 Qed.
 
+Section Derivation.
+
+Variables (K : {vspace L}) (D:'End(L)).
+
 (* A deriviation only needs to be additive and satify lebniz's law, but all the
    deriviation I will use are going to be linear, so we just define a
    derivation to be linear. *) 
-Definition Derivation (K:{algebra L}) (D : 'End(L)) : bool :=
+Definition Derivation : bool :=
  let s := vbasis K in
  (all (fun v1 => all (fun v2 => D (v1 * v2) == D v1 * v2 + v1 * D v2) 
                      s) s).
 
-Lemma DerivationMul : forall E D, Derivation E D -> 
-  forall u v, u \in E -> v \in E -> D (u * v) = D u * v + u * D v.
+Hypothesis (HD : Derivation).
+
+Lemma DerivationMul :
+  forall u v, u \in K -> v \in K -> D (u * v) = D u * v + u * D v.
 Proof.
-move => E D.
-move/all_nthP; rewrite size_tuple=> Dmult u v Hu Hv.
-have Hspan : (is_span E (vbasis E)) by rewrite is_basis_span ?is_basis_vbasis.
+move/all_nthP: HD; rewrite size_tuple=> Dmult u v Hu Hv.
+have Hspan : (is_span K (vbasis K)) by rewrite is_basis_span ?is_basis_vbasis.
 rewrite (is_span_span Hspan Hu) (is_span_span Hspan Hv).
 rewrite !linear_sum -big_split /=.
 apply: eq_bigr => j _.
@@ -347,66 +346,73 @@ move/(_ 0_ (ltn_ord j)); move/eqP->.
 by rewrite ![D (_ *: _)]linearZ /= -!scaler_mull -!scaler_mulr !scaler_addr.
 Qed.
 
-Lemma Derivation1 : forall E D, Derivation E D -> D 1 = 0.
+Lemma Derivation_addp : forall p q, polyOver K p -> polyOver K q ->
+ map_poly D (p + q) = map_poly D p + map_poly D q.
 Proof.
-move => E D HD.
+move => p q. move/polyOverP => ?; move/polyOverP => ?.
+by apply/polyP => i; rewrite !(coef_add,coef_map [linear of D]) /= linearD.
+Qed.
+
+Lemma Derivation_mulp : forall p q, polyOver K p -> polyOver K q ->
+ map_poly D (p * q) = map_poly D p * q + p * map_poly D q.
+Proof.
+move => p q; move/polyOverP => ?; move/polyOverP => ?.
+apply/polyP => i.
+rewrite coef_add (coef_map [linear of D]) /=  ?linear0 //.
+rewrite !coef_mul linear_sum /= -big_split; apply: eq_bigr => j _ /=.
+by rewrite !(coef_map [linear of D]) DerivationMul.
+Qed.
+
+End Derivation.
+
+Lemma subvDerivation : forall E K D, (K <= E)%VS -> Derivation E D ->
+  Derivation K D.
+Proof.
+move => E K D.
+move/subvP => HKE HD.
+apply/allP => x Hx.
+apply/allP => y Hy.
+apply/eqP.
+by rewrite (DerivationMul HD) // HKE // memv_basis.
+Qed.
+
+Section DerivationAlgebra.
+
+Variables (E : {algebra L}) (D:'End(L)).
+Hypothesis (HD : Derivation E D).
+
+Lemma Derivation1 : D 1 = 0.
+Proof.
 rewrite (@GRing.addIr _ (D 1) (D 1) 0) // GRing.add0r.
 by rewrite -{3}[1]mul1r (DerivationMul HD) ?memv1 // mulr1 mul1r.
 Qed.
 
-Lemma DerivationF : forall E D x, Derivation E D ->
- x \in F -> D x = 0.
+Lemma DerivationF : forall x, x \in F -> D x = 0.
 Proof.
-move => E D ? HD.
+move => ?.
 move/injvP => [x ->].
-by rewrite linearZ /= (Derivation1 HD) scaler0.
+by rewrite linearZ /= Derivation1 scaler0.
 Qed.
 
-Lemma Derivation_exp : forall E D, Derivation E D -> 
- forall x, x \in E -> forall m, D (x ^+ m) = x ^+ m.-1 *+ m * D x.
+Lemma Derivation_exp : forall x m, x \in E -> D (x ^+ m) = x ^+ m.-1 *+ m * D x.
 Proof.
-move => E D HD x Hx.
-case.
- by rewrite expr0 mulr0n mul0r (Derivation1 HD).
-elim.
- by rewrite expr1 expr0 mul1r.
+move => x m Hx.
+case: m; first by rewrite expr0 mulr0n mul0r Derivation1.
+elim; first by rewrite expr1 expr0 mul1r.
 move => m Hm.
-rewrite GRing.exprS (DerivationMul HD) //.
- rewrite Hm /=.
- rewrite [_ *+ m.+2]GRing.mulrS mulr_addl.
- rewrite {3}GRing.exprS mulrA -GRing.mulrnAr.
- congr (_ + _).
- elim: (m.+1).
-  by rewrite GRing.expr0 mulr1 mul1r.
- move => a Ha.
- by rewrite mulrC.
-by apply memv_exp.
+rewrite GRing.exprS (DerivationMul HD) //; last by apply: memv_exp.
+rewrite Hm /= [_ *+ m.+2]GRing.mulrS mulr_addl.
+rewrite {3}GRing.exprS mulrA -GRing.mulrnAr.
+congr (_ + _).
+elim: (m.+1); first by rewrite GRing.expr0 mulr1 mul1r.
+move => a Ha.
+by rewrite mulrC.
 Qed.
 
-Lemma Derivation_addp : forall E D p q, Derivation E D ->
- polyOver E p -> polyOver E q ->
- map_poly D (p + q) = map_poly D p + map_poly D q.
-Proof.
-move => E D p q ED; move/polyOverP => Ep; move/polyOverP => Eq.
-by apply/polyP => i; rewrite !(coef_add,coef_map [linear of D]) /= linearD.
-Qed.
-
-Lemma Derivation_mulp : forall E D p q, Derivation E D ->
- polyOver E p -> polyOver E q ->
- map_poly D (p * q) = map_poly D p * q + p * map_poly D q.
-Proof.
-move => E D p q ED; move/polyOverP => Ep; move/polyOverP => Eq.
-apply/polyP => i.
-rewrite coef_add (coef_map [linear of D]) /=  ?linear0 //.
-rewrite !coef_mul linear_sum /= -big_split; apply: eq_bigr => j _ /=.
-by rewrite !(coef_map [linear of D]) ?linear0 // (DerivationMul ED).
-Qed.
-
-Lemma DerivationPoly : forall E D p x, Derivation E D ->
- polyOver E p -> x \in E ->
+Lemma DerivationPoly : forall p x, polyOver E p -> x \in E ->
  D p.[x] = (map_poly D p).[x] + (deriv p).[x] * D x.
 Proof.
-move => E D p x HD Hp Hx.
+move => p x Hp Hx.
 (* Why do I have to move first? *)
 move: p Hp.
 apply: poly_ind => [|p c IHp].
@@ -426,16 +432,7 @@ rewrite !mulr_addl -!addrA; congr (_ + _).
 by rewrite addrC [_ + D c]addrC -mulrA [_ * x]mulrC mulrA addrA.
 Qed.
 
-Lemma subvDerivation : forall (E K : {algebra L}) D, (K <= E)%VS ->
-  Derivation E D -> Derivation K D.
-Proof.
-move => E K D.
-move/subvP => HKE HED.
-apply/allP => x Hx.
-apply/allP => y Hy.
-apply/eqP.
-by rewrite (DerivationMul HED) // HKE // memv_basis.
-Qed.
+End DerivationAlgebra.
 
 Section Fadjoin.
 
@@ -1399,14 +1396,13 @@ move: separableNrootdmp.
 rewrite negb_eqb addbC /root sep addbT {sep} => sep.
 rewrite lapp_of_funK; last by apply: DerivationExtend_body_linear.
 rewrite {-1}(divp_mon_spec p (monic_minPoly K x)) /DerivationExtend_body.
-rewrite poly_for_modp // /horner_morph (Derivation_addp HD);
-  rewrite ?(Derivation_mulp HD);
-  rewrite ?(mulp_polyOver, divp_polyOver, modp_polyOver, minPolyOver) //. 
+rewrite poly_for_modp // /horner_morph (@Derivation_addp K)
+        ?(Derivation_mulp HD)
+        ?(mulp_polyOver, divp_polyOver, modp_polyOver, minPolyOver) //.
 rewrite derivD derivM !horner_add !horner_mul minPolyxx !mulr0 !add0r.
 rewrite mulr_addl addrA [_ + (_ * _ * _)]addrC {2}/Dx /horner_morph -mulrA -/Dx.
 by rewrite [((minPoly K x)^`()).[x] * Dx]mulrC (mulfVK sep) mulrN addKr.
 Qed.
-
 
 Lemma DerivationExtendDerivation :
  separableElement -> Derivation Fadjoin DerivationExtend.
