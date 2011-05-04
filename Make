@@ -73,6 +73,7 @@ burnside_app.v
 vector.v
 fib.v
 separable.v
+galois.v
 amodule.v
 algebra.v
 galgebra.v
