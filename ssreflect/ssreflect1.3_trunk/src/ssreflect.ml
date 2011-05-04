@@ -3996,26 +3996,25 @@ let newssrelim ?(is_case=false) ?ist deps (occ, c) ?elim eqid clr ipats gl =
       Some (c, c_ty, gl, gl')
     with NotEnoughProducts -> None | _ -> loop (n+1) in loop 0 in
   let elim_is_dep, c, gl =
-    let inf_arg = List.hd inf_deps_r in
-    let inf_arg_ty = pf_type_of gl inf_arg in
-    let error () = errorstrm (str"Unable to apply the eliminator to the term"++
-      spc()++pr_constr c++spc()++str"or to unify it's type with"++
-      pr_constr inf_arg_ty) in
-    if not elim_is_dep && not (isEvar c) then
+    let res = 
+      if elim_is_dep || (isEvar c) then None else
       let arg = List.assoc (n_elim_args - 1) elim_args in
       let arg_ty = pf_type_of gl arg in
       match saturate_until gl c c_ty (fun c c_ty gl ->
         pf_unify_HO (pf_unify_HO gl c_ty arg_ty) arg c) with
-      | Some (c, _, _, gl) -> false, fire_subst gl c, gl
-      | None -> match saturate_until gl c c_ty (fun _ c_ty gl ->
-                  pf_unify_HO gl c_ty inf_arg_ty) with
-          | Some (c, _, _,gl) -> true, fire_subst gl c, gl
-          | None -> error ()
-    else match saturate_until gl c c_ty (fun _ c_ty gl ->
-                  pf_unify_HO gl c_ty inf_arg_ty) with
-          | Some (c, _, _,gl) -> true, fire_subst gl c, gl
-          | None -> error ()
-  in
+      | Some (c, _, _, gl) -> Some (false, fire_subst gl c, gl)
+      | None -> None in
+    match res with
+    | Some x -> x
+    | None ->
+      let inf_arg = List.hd inf_deps_r in
+      let inf_arg_ty = pf_type_of gl inf_arg in
+      match saturate_until gl c c_ty (fun _ c_ty gl ->
+              pf_unify_HO gl c_ty inf_arg_ty) with
+      | Some (c, _, _,gl) -> true, fire_subst gl c, gl
+      | None -> errorstrm (str"Unable to apply the eliminator to the term"++
+      spc()++pr_constr c++spc()++str"or to unify it's type with"++
+      pr_constr inf_arg_ty) in
   pp(lazy(str"elim_is_dep=" ++ bool elim_is_dep));
   pp(lazy(str"saturated_c=" ++ pr_constr_pat c));
   let predty = pf_type_of gl pred in
