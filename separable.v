@@ -1610,7 +1610,7 @@ apply: mempx_Fadjoin.
 by apply: (polyOver_subset HKE).
 Qed.
 
-Section PurelyInseparableElement.
+Section SeparableInCharP.
 
 Variable (K : {algebra L}).
 
@@ -1739,15 +1739,22 @@ move/prednK <-.
 by apply: separableCharp.
 Qed.
 
-Definition purelyInseparableElement x :=
-  x ^+ (ex_minn (separablePower x)) \in K.
+End SeparableInCharP.
+
+Definition purelyInseparableElement (K0 : {vspace L}) x :=
+  if insub K0 is Some K then x ^+ (ex_minn (separablePower K x)) \in K
+  else false.
+
+Section PurelyInseparableElement.
+
+Variable K : {algebra L}.
 
 Lemma purelyInseparableElementP : forall x, reflect 
  (exists2 n, [char L].-nat n & x ^+ n \in K)
- (purelyInseparableElement x).
+ (purelyInseparableElement K x).
 Proof.
 move => x.
-rewrite /purelyInseparableElement.
+rewrite /purelyInseparableElement valK.
 case: ex_minnP => n.
 case/andP => Hn Hsepn Hmin.
 apply: (iffP idP); first by move => Hx; exists n.
@@ -1766,7 +1773,7 @@ move: Hn Hm Hsepn Hnm Hxm.
 rewrite !(eq_pnat _ (charf_eq Hp)).
 case/p_natP => en ->.
 case/p_natP => em ->.
-rewrite (separableCharp _ (em - en.+1)%N Hp) => Hsepn.
+rewrite (separableCharp _ _ (em - en.+1)%N Hp) => Hsepn.
 rewrite ltn_exp2l; last by apply/prime_gt1/(charf_prime Hp).
 move/subnKC <-.
 rewrite addSnnS expn_add exprn_mulr FadjoinxK.
@@ -1796,10 +1803,10 @@ Qed.
 *)
 
 Lemma separableInseparableElement: forall x, 
- (x \in K) = separableElement K x && purelyInseparableElement x.
+ (x \in K) = separableElement K x && purelyInseparableElement K x.
 Proof.
 move => x.
-rewrite /purelyInseparableElement.
+rewrite /purelyInseparableElement valK.
 case: ex_minnP => [[//|[|m]]]; first by rewrite expr1; case/andP => _ ->.
 case/andP => Hm Hsep.
 move/(_ 1%N).
@@ -1814,7 +1821,7 @@ apply: contra.
 by apply: separableinK.
 Qed.
 
-Lemma inseparableinK : forall x, x \in K -> purelyInseparableElement x.
+Lemma inseparableinK : forall x, x \in K -> purelyInseparableElement K x.
 Proof. move => x. rewrite separableInseparableElement. by case/andP. Qed.
 
 End PurelyInseparableElement.
@@ -2529,6 +2536,9 @@ Section SeparableAndInseparableExtensions.
 Definition separable K E : bool :=
  all (separableElement K) (vbasis E).
 
+Definition purelyInseparable K E : bool :=
+ all (purelyInseparableElement K) (vbasis E).
+
 Variable (K : {algebra L}).
 
 Lemma separable_add : forall x y,
@@ -2597,12 +2607,9 @@ apply.
 by rewrite memvZl // memx_Fadjoin.
 Qed.
 
-Definition purelyInseparable : bool :=
- all (purelyInseparableElement K) (vbasis E).
-
 Lemma purelyInseparableP :
   reflect (forall y, y \in E -> purelyInseparableElement K y)
-          purelyInseparable.
+          (purelyInseparable K E).
 Proof.
 apply (iffP idP); last first.
  move => HEK.
