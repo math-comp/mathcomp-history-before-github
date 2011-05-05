@@ -1091,13 +1091,13 @@ rewrite -span_subsetl; apply/allP=> i; case/mapP=> j _ ->.
 by rewrite -{2 3}genGid memc_char_of_repr.
 Qed.
 
-Lemma ncoord_sum : forall x : {cfun gT}, x \in 'CF(G) -> 
+Lemma ncoord_sum : forall A (x : {cfun gT}), x \in 'CF(G,A) -> 
   x = \sum_(theta : irr G) ncoord theta x *: theta%:CF.
 Proof.
-move=> x Hx.
+move=> A x Hx.
 have F2: x \in span 'Irr(G).
   move: (is_basis_span base_irr_basis).
-  by rewrite /is_span; move/eqP->.
+  by rewrite /is_span; move/eqP->; exact: (memcW Hx).
 rewrite {1}(coord_span F2).
 rewrite (big_nth (irr1 G)) big_mkord -[index_enum (irr_finType _)]enumT -cardE.
 apply: eq_bigr=> i _.
@@ -1704,10 +1704,10 @@ case/isNatCP: (isNatC_ncoord_char theta IC)=>  [] [|n] ->.
 by rewrite -addn1 natr_add addrK isNatC_nat.
 Qed.
 
-Lemma is_comp_neq0 : forall f : {cfun _}, 
-  f \in 'CF(G) -> f != 0  -> exists i : irr G, is_comp i f.
+Lemma is_comp_neq0 : forall (A : {set gT}) (f : {cfun _}), 
+  f \in 'CF(G,A) -> f != 0  -> exists i : irr G, is_comp i f.
 Proof.
-move=> f FCF Nf0; case: (pickP ((@is_comp G)^~ f)) => [i Hi | HH].
+move=> A f FCF Nf0; case: (pickP ((@is_comp G)^~ f)) => [i Hi | HH].
   by exists i.
 case/eqP: Nf0; apply/val_eqP=> /=.
 move: (ncoord_sum FCF); rewrite big1=> [|i Hi]; first by move=> ->.
@@ -2056,14 +2056,26 @@ Lemma irr_orthonormal : forall (theta1 theta2: irr G),
    '[theta1,theta2]_G = (theta1 == theta2)%:R.
 Proof. by move=> *; rewrite -irr_first_orthogonal_relation. Qed.
 
-Lemma ncoord_inner_prod : forall (f : {cfun _}) (theta : irr G),
-   f \in 'CF(G) -> ncoord theta f = '[f,theta]_G.
+Lemma ncoord_inner_prod : forall A (f : {cfun _}) (theta : irr G),
+   f \in 'CF(G,A) -> ncoord theta f = '[f,theta]_G.
 Proof.
-move=> f theta FiC.
+move=> A f theta FiC.
 rewrite {2}(ncoord_sum FiC) -inner_prodbE linear_sum.
 by rewrite (bigD1 theta) // big1=> [|j Hj]; 
    rewrite /= ?addr0 linearZ /= inner_prodbE irr_orthonormal;
     [rewrite eqxx /GRing.scale /= mulr1|rewrite (negPf Hj) scaler0].
+Qed.
+
+Lemma inner_prod_cf : forall A (f1 f2 : {cfun gT}),
+   f1 \in 'CF(G,A)-> f2 \in  'CF(G,A)->
+   '[f1, f2]_G = \sum_(theta: irr G) ncoord theta f1 * (ncoord theta f2)^* .
+Proof.
+move=> A f1 f2; case/(ncoord_sum)=>{1}->;case/(ncoord_sum)=>{1}->.
+rewrite -inner_prodbE {1}linear_sum /=.
+apply: eq_bigr=> t _; rewrite linearZ /= inner_prodbE.
+rewrite raddf_sum  {1}(bigD1 t) // big1 //= ?addr0 => [|j Hj]; last first.
+  by rewrite inner_prodZ irr_orthonormal eq_sym (negPf Hj) mulr0.
+by rewrite inner_prodZ irr_orthonormal eqxx mulr1; congr (_ * _).
 Qed.
 
 Lemma inner_prod_char : forall chi1 chi2,  
@@ -2071,14 +2083,9 @@ Lemma inner_prod_char : forall chi1 chi2,
    '[chi1,chi2]_G = 
        \sum_(theta : irr G) (ncoord theta chi1) * (ncoord theta chi2).
 Proof.
-move=> chi1 chi2 IC1 IC2.
-move/memc_is_char: (IC1); case/(ncoord_sum)=> HH1; rewrite {1}HH1.
-move/memc_is_char: (IC2); case/(ncoord_sum)=> HH2; rewrite {1}HH2.
-rewrite -inner_prodbE {1}linear_sum /=.
-apply: eq_bigr=> t _; rewrite linearZ /= inner_prodbE.
-rewrite raddf_sum  {1}(bigD1 t) // big1 //= ?addr0 => [|j Hj]; last first.
-  by rewrite inner_prodZ irr_orthonormal eq_sym (negPf Hj) mulr0.
-congr (_ * _); rewrite inner_prodZ irr_orthonormal eqxx mulr1.
+move=> ch1 ch2 IC1 IC2.
+rewrite (inner_prod_cf (memc_is_char IC1) (memc_is_char IC2)).
+apply: eq_bigr=> t _.
 case/isNatCP: (isNatC_ncoord_char t IC2)=> n ->.
 by rewrite conjC_nat.
 Qed.
@@ -2162,10 +2169,9 @@ case/(is_comp_charP _ IC)=> chi' IC' ->.
 rewrite linearD -!inner_prodbE linearD /= !inner_prodbE.
 rewrite addrC -leC_sub addrK.
 apply: posC_isNatC.
-rewrite -ncoord_inner_prod.
-  apply: isNatC_ncoord_char.
-  by apply: (is_char_restrict HsG).
-by apply: (memc_restrict HsG (memc_is_char _)).
+have FF := memc_restrict HsG (memc_is_char IC').
+rewrite -(ncoord_inner_prod _  FF) isNatC_ncoord_char //.
+by apply: (is_char_restrict HsG).
 Qed.
 
 Lemma is_comp_restrict :
@@ -2175,15 +2181,15 @@ Lemma is_comp_restrict :
 Proof.
 move=> G H theta chi psi IC HsG Cchi Ctheta.
 have CC := is_comp_inner_prod_le theta IC HsG Cchi.
-rewrite is_compE ncoord_inner_prod; last first.
-  by apply: (memc_restrict HsG (memc_is_char _)).
+have FF := (memc_restrict HsG (memc_is_char IC)).
+rewrite is_compE (ncoord_inner_prod _ FF).
 have CF1 : 'Res[H] chi \in 'CF(H).
   by apply: (memc_restrict HsG (memc_irr _)).
 apply/negP=> HH.
 move: Ctheta.
-rewrite is_compE ncoord_inner_prod //.
+rewrite is_compE (ncoord_inner_prod _ CF1) //.
 case/eqP; apply: leC_anti; first by rewrite -(eqP HH) //.
-rewrite -ncoord_inner_prod // posC_isNatC // isNatC_ncoord_char //.
+rewrite -(ncoord_inner_prod _ CF1) // posC_isNatC // isNatC_ncoord_char //.
 by apply: is_char_restrict (is_char_irr _).
 Qed.
 
@@ -3249,7 +3255,7 @@ Lemma is_char_induced : forall chi,
 Proof.
 move=> chi IC HsG; have IiC := memc_induced HsG (memc_is_char IC).
 apply/andP; split; rewrite ?genGid //; apply/forallP=> t.
-rewrite ncoord_inner_prod // -frobenius_reciprocity //
+rewrite (ncoord_inner_prod _ IiC) // -frobenius_reciprocity //
         ?(memc_is_char, is_char_irr, memc_irr) //.
 rewrite (inner_prod_char IC (is_char_restrict HsG (is_char_irr _))).
 apply: isNatC_sum => j _; rewrite isNatC_mul // isNatC_ncoord_char //.
@@ -3268,11 +3274,12 @@ case: (boolP ('Ind[G, H] t == 0))=> [HH|].
 have ICI: is_char G ('Ind[G, H]t).
   by apply: is_char_induced=> //; exact: is_char_irr.
 case/(is_comp_neq0 (memc_is_char ICI))=> j Hj; exists j.
-rewrite is_compE  ncoord_inner_prod ?(memc_is_char) //; last first.
-  by apply: (is_char_restrict HsG); exact: is_char_irr.
+have FF := memc_is_char (is_char_restrict HsG (is_char_irr j)).
+rewrite is_compE  (ncoord_inner_prod _ FF).
 rewrite inner_prod_charC  // ?(is_char_restrict HsG, is_char_irr) //.
 rewrite (frobenius_reciprocity HsG) ?memc_irr //.
-by rewrite -ncoord_inner_prod // ?memc_induced // memc_irr.
+have FF1 := memc_induced HsG (memc_irr t).
+by rewrite -(ncoord_inner_prod _ FF1).
 Qed.
 
 End Induced.

@@ -139,137 +139,12 @@ rewrite mulf_eq0; case/orP=> //.
 by rewrite conjC_eq0.
 Qed.
 
-Lemma vchar_sub : forall m n (S1 : m.-tuple {cfun gT}) (S2 : n.-tuple _) A,
-  free S1 -> free S2 -> {subset S1 <= S2} -> {subset 'Z[S1,A] <= 'Z[S2,A]}.
-Proof.
-move=> m n S1 S2 A FS1 FS2 Hs f; case/and3P=> Hf Cf Sf; apply/and3P; split=> //.
-  by move/subvP: (span_subset Hs); apply.
-apply/forallP=> /= i.
-case: m S1 FS1 Hs Hf {Sf}Cf=> [|m S1 FS1 Hs Hf Cf].
-  (do 2 case)=> //= _ _ _ HH _; move: HH; rewrite span_nil.
-  case/injvP=> k; rewrite scaler0=> ->.
-  by rewrite linear0 ffunE (isZC_nat 0).
-case: n i S2 FS2 Hs=> [|n] i S2 FS2 Hs.
-  by move: (uniq_leq_size (free_uniq FS1) Hs); rewrite !size_tuple.
-pose g (i : 'I_n.+1) : 'I_m.+1 := locked (inZp (index S2`_i S1)).
-pose h (i : 'I_m.+1) : 'I_n.+1 := locked (inZp (index S1`_i S2)).
-pose c (i : 'I_n.+1) := if S2`_ i \in S1 then (coord S1 f) (g i) else 0.
-suff->: f = \sum_(i < n.+1) c i *: (S2`_i).
-  rewrite free_coords // /c /=; case: (boolP (_ \in _))=> Hi; last first.
-    by rewrite (isZC_nat 0).
-  by move/forallP: Cf; apply.
-rewrite (bigID (fun i : 'I_n.+1 =>  S2`_i \in S1)) /= [X in _ + X]big1 ?addr0.
-  have F0: forall j : 'I_m.+1, S1`_j \in S2.
-    by move=> j;  rewrite Hs // mem_nth // size_tuple.
-  have F1: forall j : 'I_m.+1,S2`_(h j) = S1`_j.
-    move=> j; rewrite /h; unlock; rewrite /= modn_small ?nth_index //.
-    by move: (F0 j); rewrite -index_mem size_tuple.
-  have F2: forall j : 'I_n.+1, S2`_j \in S1 -> S1`_(g j) = S2`_j.
-    move=> j FF; rewrite /g; unlock; rewrite /= modn_small ?nth_index //.
-    by move: FF; rewrite -index_mem size_tuple.
-  have F3: forall j, g (h j) = j. 
-    move=> j; rewrite /g; unlock; rewrite F1.
-    apply/val_eqP=> /= ; rewrite /= modn_small.
-      by rewrite index_uniq ?size_tuple // free_uniq.
-    by rewrite -{4}(size_tuple S1) index_mem // mem_nth // size_tuple.
-  rewrite (eq_bigr (fun i => (coord S1 f) (g i) *: S1`_(g i))); last first.
-     by move=> j SiS; rewrite /c SiS F2.
-  rewrite (reindex h) /=.
-    rewrite (coord_span Hf).
-    apply: eq_big=> /= [j|j _].
-      by rewrite F1 mem_nth // size_tuple.
-    by rewrite F3 free_coords.
-  exists g=> u; rewrite inE ? F3 //=.
-  move=> FF; rewrite /h; unlock; rewrite F2 //.
-  apply/val_eqP=> /= ; rewrite /= modn_small.
-   by rewrite index_uniq ?size_tuple // free_uniq.
-  by rewrite -{4}(size_tuple S2) index_mem // mem_nth // size_tuple.
-by move=> j; rewrite /c; move/negPf->; exact: scale0r.
-Qed.
-
-Lemma is_gvchar_split :  forall m (S : m.-tuple _) A (f : {cfun gT}), 
-          f \in 'Z[S, A] =  (f \in 'Z[S]) && has_support f A.
-Proof.
-(move=> m S A f; apply/and3P/andP; case)=> [H1 H2 H3|H1 H2]; split=> //.
-- apply/and3P; split=> //.
-  by apply/forall_inP=> i; rewrite inE.
-- by case/and3P: H1.
-by case/and3P: H1.
-Qed.
-
-Lemma memv_is_gvchar :  forall m (S : m.-tuple _) A (f : {cfun gT}), 
-          free S -> has_support f A -> f \in S -> f \in 'Z[S,A].
-Proof.
-move=> [|m] S A f HF HS FiS.
-  by case: {HF}S FiS; case.
-apply/and3P; split=> //; first by apply: memv_span.
-apply/forallP=> i.
-have->: f = S`_(inZp (index f S): 'I_m.+1).
-  by rewrite /= modn_small ?nth_index // -{2}(size_tuple S) index_mem.
-by rewrite (free_coordt _ _ HF) isZC_nat.
-Qed.
-
-Lemma inner_prod_cf :
-   forall (chi1 chi2 : {cfun gT}),
-   chi1 \in 'CF(G)-> chi2 \in  'CF(G)->
-   '[chi1, chi2]_G = \sum_(theta: irr G) ncoord theta chi1 * (ncoord theta chi2)^* .
-Proof.
-move=> chi1 chi2;case/(ncoord_sum)=>{1}->;case/(ncoord_sum)=>{1}->.
-rewrite -inner_prodbE {1}linear_sum /=.
-apply: eq_bigr=> t _; rewrite linearZ /= inner_prodbE.
-rewrite raddf_sum  {1}(bigD1 t) // big1 //= ?addr0 => [|j Hj]; last first.
-  by rewrite inner_prodZ irr_orthonormal eq_sym (negPf Hj) mulr0.
-by rewrite inner_prodZ irr_orthonormal eqxx mulr1; congr (_ * _).
-Qed.
-
-Lemma inner_prod_vchar :
-   forall A (chi1 chi2 : {cfun gT}),
-   chi1 \in 'Z['Irr(G),A] -> chi2 \in 'Z['Irr(G),A] ->
-   '[chi1, chi2]_G = \sum_(theta: irr G) ncoord theta chi1 * ncoord theta chi2.
-Proof.
-move=> A chi1 chi2 H1 H2.
-move/memc_is_gvchar: (H1)=>/memcW H1CF; move/memc_is_gvchar:(H2)=>/memcW H2CF.
-move: H1;rewrite is_gvchar_split; case/andP;case/and3P=> Hsp1 HZC1 _ _.
-move: H2;rewrite is_gvchar_split; case/andP;case/and3P=> Hsp2 HZC2 _ _.
-rewrite inner_prod_cf //.
-by apply: eq_bigr=> t _; rewrite isZC_conj //;move/forallP: HZC2=> ->. 
-Qed.
-
-Definition absC x := if 0 <= x then x else -x.
-
-Lemma absC_nat : forall n : nat, absC n%:R = n%:R.
-Proof. by move=> n; rewrite /absC posC_nat. Qed.
-
-Lemma absC_eq0 : forall x, (absC x == 0) = (x == 0).
-Proof.
-move=> x; rewrite /absC; case: (_ <= _)=> //.
-apply/eqP/eqP=>[|->]; last by rewrite oppr0.
-by rewrite -{2}[x]opprK=> ->; rewrite oppr0.
-Qed.
-
-Lemma isNatC_absC : forall z, isZC z -> isNatC (absC z).
-Proof.
-move=> z; rewrite isZCE /absC; case/orP; case/isNatCP=> n Hn.
-  by rewrite Hn posC_nat isNatC_nat.
-rewrite -{1 2}[z]opprK Hn.
-case: (boolP (0 <= _))=> HH; last by exact: isNatC_nat.
-rewrite -(leC_anti (posC_nat n)) ?(oppr0,(isNatC_nat 0)) //.
-by rewrite -leC_sub sub0r.
-Qed.
-
-Lemma isNatC_square : forall z, isZC z -> z * z = absC z * absC z.
-Proof.
-move=> z; rewrite isZCE /absC; case/orP; case/isNatCP=> n Hn.
-  rewrite Hn posC_nat // isNatC_nat.
-by case: (_ <= _)=> //; rewrite mulrNN.
-Qed.
-
 Let vchar_isometry_base2 : forall f, f \in 'Z['Irr(G),G^#] -> '[f,f]_G = 2%:R ->
    exists e1: irr G, exists e2: irr G, f = e1%:CF - e2%:CF.
 Proof.
 move=> f Hf.
 rewrite (inner_prod_vchar Hf) //.
-move/memc_is_gvchar: (Hf)=>/memcW F1.
+move/memc_vchar: (Hf)=>/memcW F1.
 have Ce: forall e : irr G, isZC (ncoord e f).
   move=> e; case/and3P: Hf=> _; move/forallP.
   by move/(_ (enum_rank e)).
@@ -281,7 +156,7 @@ have Hh: forall t, (h t)%:R = absC (ncoord t f).
 have: (\sum_t (h t) * h t = 2)%N.
   apply/eqP; rewrite eqN_eqC -HH natr_sum; apply/eqP.
   apply: eq_bigr=> i _; rewrite natr_mul.
-  by rewrite Hh -isNatC_square.
+  by rewrite Hh -absC_square.
 case: (boolP (forallb i : irr G, ncoord i f == 0)).
   move/forallP=> {HH}HH.
   rewrite big1=> // i _.
@@ -334,7 +209,6 @@ by move: F; rewrite -[X in _ < X]opprK HH2 oppr0 -(ltn_ltC 0 0).
 Qed.
  
 (* This is PF 1.4 *)
-
 Lemma vchar_isometry_base : 
   forall m (Chi : m.+2.-tuple {cfun gT}) (tau : 'End({cfun gT})) (chi1 := Chi`_0), 
     {subset Chi <= 'Irr(H)} -> free Chi ->
@@ -359,8 +233,8 @@ elim=> [[[|chi1 [|chi2[|]]]] // SChi tau /= SubC|].
   move: (free_uniq HF); rewrite /= inE andbT=> HD Hs Ho Him.
   pose d : {cfun _} := i2%:CF - i1%:CF.
   have iD : d \in 'Z[T,H^#].
-    rewrite is_gvchar_split; apply/andP; split.
-    apply: is_vchar_sub; apply:  memv_is_gvchar=> //.
+    rewrite vchar_split; apply/andP; split.
+    apply: vchar_sub; apply:  memv_vchar=> //.
     - by apply/forall_inP=> i; rewrite inE.
     - by rewrite /in_mem /= eqxx orbT.
     - by apply/forall_inP=> i; rewrite inE.
@@ -387,7 +261,6 @@ elim=> [[[|chi1 [|chi2[|]]]] // SChi tau /= SubC|].
   by rewrite /mu !eqxx eq_sym (negPf HD) Ht scale1r.
 admit.
 Qed.
-
 
 (* This is PF 1.5(a) *)
 Lemma induced_sum_rcosets : 
@@ -551,11 +424,10 @@ case: (boolP ('Res[C] i == 0))=> [HH|].
 have IC := is_char_restrict CsG (is_char_irr i).
 case/(is_comp_neq0 (memc_is_char IC))=> i1 Hi1.
 have CIr: is_comp i ('Ind[G,C] i1).
-  rewrite /is_comp ncoord_inner_prod 
-          ?(memc_induced, memc_irr) //.
+  rewrite /is_comp (ncoord_inner_prod _ (memc_induced _ (memc_irr _))) //.
   rewrite -frobenius_reciprocity ?memc_irr //.
   rewrite inner_prod_charC ?is_char_irr //.
-  by rewrite  -ncoord_inner_prod // memc_is_char.
+  by rewrite  -(ncoord_inner_prod _ (memc_is_char _)).
 have BsKi : B \subset cker C i1.
   suff BsKri: B \subset cker C ('Res[C] i).
     by apply: (subset_trans BsKri); exact: (is_comp_cker _ Hi1).

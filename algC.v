@@ -743,3 +743,32 @@ Proof.
 move=> c; rewrite isZCE; case/orP=> Hc; first exact: isNatC_conj.
 by rewrite -{1}[c]opprK rmorphN isNatC_conj // opprK.
 Qed.
+
+Definition absC x := if 0 <= x then x else -x.
+
+Lemma absC_nat : forall n : nat, absC n%:R = n%:R.
+Proof. by move=> n; rewrite /absC posC_nat. Qed.
+
+Lemma absC_eq0 : forall x, (absC x == 0) = (x == 0).
+Proof.
+move=> x; rewrite /absC; case: (_ <= _)=> //.
+apply/eqP/eqP=>[|->]; last by rewrite oppr0.
+by rewrite -{2}[x]opprK=> ->; rewrite oppr0.
+Qed.
+
+Lemma isNatC_absC : forall z, isZC z -> isNatC (absC z).
+Proof.
+move=> z; rewrite isZCE /absC; case/orP; case/isNatCP=> n Hn.
+  by rewrite Hn posC_nat isNatC_nat.
+rewrite -{1 2}[z]opprK Hn.
+case: (boolP (0 <= _))=> HH; last by exact: isNatC_nat.
+rewrite -(leC_anti (posC_nat n)) ?(oppr0,(isNatC_nat 0)) //.
+by rewrite -leC_sub sub0r.
+Qed.
+
+Lemma absC_square : forall z, isZC z -> z * z = absC z * absC z.
+Proof.
+move=> z; rewrite isZCE /absC; case/orP; case/isNatCP=> n Hn.
+  rewrite Hn posC_nat // isNatC_nat.
+by case: (_ <= _)=> //; rewrite mulrNN.
+Qed.

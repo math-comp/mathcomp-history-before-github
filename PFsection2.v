@@ -438,7 +438,7 @@ Proof.
 move=> trivH aa CFaaA; have CFaa := memcW CFaaA.
 have [CFaa1 CFaa2] := (Dade_cfun CFaaA, memc_induced sLG CFaa).
 rewrite (ncoord_sum CFaa1) (ncoord_sum CFaa2); apply: eq_bigr => xi _.
-rewrite !ncoord_inner_prod // -frobenius_reciprocity ?memc_irr //.
+rewrite !(@ncoord_inner_prod _ _ G) // -frobenius_reciprocity ?memc_irr //.
 rewrite -Dade_reciprocity ?memc_irr // => a Aa u.
 by rewrite trivH // => /set1P ->; rewrite mul1g.
 Qed.
@@ -756,33 +756,27 @@ Qed.
 
 End DadeExpansion.
 
-Local Notation " 'Z[ 'Irr G , A ]" := 
-  (virtual_char_pred (base_irr G) A) (format "''Z[' ''Irr'  G ,  A ]"). 
-
-Local Notation " 'Z[ 'Irr G ]" := 
-  (virtual_char_pred (base_irr G) G) (format "''Z[' ''Irr'  G ]").
-
 (* This is Peterfalvi (2.6)(b) *)
-Lemma Dade_vchar alpha : alpha \in 'Z['Irr L, A] -> alpha^\tau \in 'Z['Irr G].
+Lemma Dade_vchar alpha : alpha \in 'Z['Irr(L), A] -> alpha^\tau \in 'Z['Irr(G)].
 Proof.
-rewrite vchar_support => /andP[ZLaa Aaa].
-have CFaa: alpha \in 'CF(L, A) by rewrite memcE Aaa memc_is_gvchar.
-rewrite Dade_expansion // is_vchar_opp // is_vchar_sum // => B /andP[dB _].
+move=> VCaa; move: (VCaa); rewrite vchar_split; case/andP=> VCa _.
+have CFaa := memc_vchar VCaa.
+rewrite Dade_expansion // vchar_opp // vchar_sum // => B /andP[dB _].
 have{dB} dB: B \in calP.
   case/imsetP: dB => B0; case/setIdP=> sB0A notB00 defB.
   have [x Lx ->]: exists2 x, x \in L & B = B0 :^ x.
     by apply/imsetP; rewrite defB (mem_repr B0) ?orbit_refl.
   by rewrite inE -cards_eq0 cardJg cards_eq0 -(normsP nAL x Lx) conjSg sB0A.
-set aaBt := 'Ind[G, _] _; suff ZGaaBt: aaBt \in 'Z['Irr G].
-  by rewrite -signr_odd; case: odd; rewrite ?scale1r // scaleN1r is_vchar_opp.
-apply: is_vchar_induced => /=.
+set aaBt := 'Ind[G, _] _; suff ZGaaBt: aaBt \in 'Z['Irr(G)].
+  by rewrite -signr_odd; case: odd; rewrite ?scale1r // scaleN1r vchar_opp.
+apply: vchar_induced => /=.
   have [sBA /set0Pn[b Bb]] := setIdP dB; have Ab := subsetP sBA b Bb.
   by rewrite gen_subG subUset (bigcap_min b) ?sHG // subIset ?sLG.
-have [a1 [a2 [ch_a1 ch_a2 ->]]] := is_vcharP _ _ ZLaa.
+have [a1 [a2 [ch_a1 ch_a2 ->]]] := vcharP _ _ VCa.
 set rB := Dade_cfun_restriction.
 have ->: rB (a1 - a2) B = rB a1 B - rB a2 B.
   by apply/ffunP=> x; rewrite !ffunE; case: (x \in 'M(B)) => //; rewrite subr0.
-by rewrite is_vchar_sub ?is_vchar_char ?Dade_restriction_char.
+by rewrite vchar_sub ?vchar_char ?Dade_restriction_char.
 Qed.
 
 Variable A1 : {set gT}.

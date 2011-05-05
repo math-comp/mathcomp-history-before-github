@@ -507,11 +507,11 @@ Proof. by apply: (is_char_restrict _ (is_char_irr _)). Qed.
 
 Fact is_comp_inertia_restrict_is_comp_i : is_comp psi ('Res[T] chi).
 Proof.
-rewrite /is_comp ncoord_inner_prod; last first.
-  by apply: (memc_restrict TsG) (memc_is_char (is_char_irr _)).
+have FF := memc_restrict TsG (memc_is_char (is_char_irr chi)).
+rewrite /is_comp (ncoord_inner_prod _ FF).
 move: Hchi.
-rewrite /is_comp ncoord_inner_prod; last first.
-by apply memc_induced=> //; apply: memc_irr.
+have FF1 := memc_induced TsG (memc_irr psi).
+rewrite /is_comp (ncoord_inner_prod _ FF1).
 rewrite -frobenius_reciprocity ?memc_irr //.
 by rewrite inner_prod_charC ?(is_char_restrict TsG,is_char_irr).
 Qed.
@@ -520,7 +520,8 @@ Fact is_comp_inertia_restrict_is_comp_g : is_comp theta ('Res[H] chi).
 Proof.
 have: '['Res[H] psi, theta ]_ H <= '['Res[H] ('Res[T] chi), theta ]_ H.
   by apply: is_comp_inner_prod_le is_comp_inertia_restrict_is_comp_i.
-rewrite crestrict_subset // -!ncoord_inner_prod ?memc_is_char //.
+rewrite crestrict_subset //.
+rewrite -!(ncoord_inner_prod _ (memc_is_char _)) //.
 move: Hpsi; rewrite /is_comp /=.
 case/isNatCP: (isNatC_ncoord_char theta IHP)=> n ->.
 case/isNatCP: (isNatC_ncoord_char theta IHC)=> m ->.
@@ -677,7 +678,7 @@ apply/eqP; case: (_ =P _)=> //; move/eqP=> Dpsi.
 have: is_comp psi chi1.
   have: is_comp psi ('Res[T] chi).
     by apply: is_comp_inertia_restrict_is_comp_i.
-  rewrite /is_comp !ncoord_inner_prod ?memc_is_char //.
+  rewrite /is_comp !(ncoord_inner_prod _ (memc_is_char _)) //.
   by rewrite Hchi1 -inner_prodbE linearD ![inner_prodb_linear _ _ _] /= 
             !inner_prodbE irr_orthonormal (negPf Dpsi) add0r.
 case/(is_comp_charP _ IC1)=> chi2 IC2 Hchi2.
@@ -685,15 +686,15 @@ have: '['Res[H] psi, theta]_H < '['Res[H] ('Res[T] chi), theta]_H.
   rewrite Hchi1 addrC Hchi2 2!linearD /=.
   rewrite -!inner_prodbE 2!linearD /= !inner_prodbE.
   rewrite -addrA addrC ltC_sub addrK sposC_addl //.
-    rewrite -ncoord_inner_prod //; last first.
-      by apply: (memc_restrict HsT (memc_is_char _)).
+    have FF := memc_restrict HsT (memc_is_char IC2).
+    rewrite -(ncoord_inner_prod _ FF) //.
     apply: posC_isNatC; apply: isNatC_ncoord_char.
     by apply: (is_char_restrict HsT).
-  move: Ct; rewrite /is_comp -ncoord_inner_prod //.
-    rewrite /ltC => ->.
-    apply: posC_isNatC; apply: isNatC_ncoord_char.
-    by apply: (is_char_restrict HsT); exact: is_char_irr.
-  by apply: (memc_restrict HsT (memc_is_char _)); exact: is_char_irr.
+  have FF := memc_restrict HsT (memc_is_char (is_char_irr psi')).
+  move: Ct; rewrite /is_comp -(ncoord_inner_prod _ FF) //.
+  rewrite /ltC => ->.
+  apply: posC_isNatC; apply: isNatC_ncoord_char.
+  by apply: (is_char_restrict HsT); exact: is_char_irr.
 rewrite inner_prod_is_comp_inertia (is_comp_inertia_induced_is_comp Hpsi Hchi).
 by rewrite crestrict_subset // ltC_sub subrr /ltC eqxx.
 Qed.
@@ -710,10 +711,8 @@ Proof.
 move=> G H theta HnG psi psi' Hpsi Hpsi' Heq.
 have TsG := inertia_sub G theta.
 apply: (unique_is_comp_inertia HnG Hpsi' _ Hpsi).
-rewrite -Heq /is_comp ncoord_inner_prod; last first.
-  apply: (memc_restrict TsG).
-  apply: (memc_induced TsG).
-  by apply: memc_irr.
+have FF := memc_restrict TsG (memc_induced TsG (memc_irr psi)).
+rewrite -Heq /is_comp (ncoord_inner_prod _ FF).
 have IC1: is_char G ('Ind[G, 'I_(G)[theta]] psi).
   by apply: is_char_induced=> //; exact: is_char_irr.
 have IC2: is_char 'I_(G)[theta]
@@ -746,14 +745,15 @@ Let inertia_ncoord :
    ncoord theta ('Res[H] chi) == 0.
 Proof.
 move=> G H theta chi HnG HH.
-rewrite ncoord_inner_prod; last first.
-  by apply: (memc_restrict (normal_sub HnG) (memc_irr _)).
+have FF := memc_restrict (normal_sub HnG) (memc_irr chi).
+rewrite (ncoord_inner_prod _ FF).
 have HsT := subset_inertia (memc_irr theta) HnG.
 rewrite -(crestrict_subset chi HsT).
 rewrite (ncoord_sum (memc_restrict (inertia_sub G theta) (memc_irr _))) //.
 rewrite linear_sum -inner_prodbE linear_sum big1 //= => chi1 _.
 rewrite inner_prodbE linearZ -inner_prodbE linearZ /= inner_prodbE.
-rewrite -ncoord_inner_prod ?(memc_restrict HsT, memc_irr) //.
+have FF1 := memc_restrict HsT (memc_irr chi1).
+rewrite -(ncoord_inner_prod _ FF1).
 move: (HH chi1); rewrite inE !is_compE.
 case: (_ =P _)=> [->|/= _]; first by rewrite scaler0.
 by move/eqP->; rewrite scale0r.
@@ -792,16 +792,15 @@ Proof.
 move=> G H theta chi HnG Cchi.
 apply: is_comp_inertia_induced_is_comp=> //.
   by apply: inertia_induces_inv_is_comp_h.
-rewrite /is_comp ncoord_inner_prod; last first.
-  apply: memc_induced; last by apply: memc_irr.
-  by apply:inertia_sub.
+have FF := memc_induced (inertia_sub G theta) (memc_irr _).
+rewrite /is_comp (ncoord_inner_prod _ (FF _)).
 rewrite -frobenius_reciprocity; first last.
 - by apply: memc_irr.
 - by apply: memc_irr.
 - by apply:inertia_sub.
 move: (inertia_induces_inv_is_comp_i HnG Cchi).
-rewrite /is_comp ncoord_inner_prod; last first.
-  by apply: (memc_restrict (inertia_sub _ _) (memc_irr _)).
+have FF1 := memc_restrict (inertia_sub G theta) (memc_irr chi).
+rewrite /is_comp (ncoord_inner_prod _ FF1).
 rewrite inner_prod_charC ?is_char_irr //.
 apply: is_char_restrict (is_char_irr _).
 by apply: inertia_sub.
