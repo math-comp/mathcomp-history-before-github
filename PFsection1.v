@@ -209,29 +209,31 @@ have->: f = S`_(inZp (index f S): 'I_m.+1).
 by rewrite (free_coordt _ _ HF) isZC_nat.
 Qed.
 
+Lemma inner_prod_cf :
+   forall (chi1 chi2 : {cfun gT}),
+   chi1 \in 'CF(G)-> chi2 \in  'CF(G)->
+   '[chi1, chi2]_G = \sum_(theta: irr G) ncoord theta chi1 * (ncoord theta chi2)^* .
+Proof.
+move=> chi1 chi2;case/(ncoord_sum)=>{1}->;case/(ncoord_sum)=>{1}->.
+rewrite -inner_prodbE {1}linear_sum /=.
+apply: eq_bigr=> t _; rewrite linearZ /= inner_prodbE.
+rewrite raddf_sum  {1}(bigD1 t) // big1 //= ?addr0 => [|j Hj]; last first.
+  by rewrite inner_prodZ irr_orthonormal eq_sym (negPf Hj) mulr0.
+by rewrite inner_prodZ irr_orthonormal eqxx mulr1; congr (_ * _).
+Qed.
+
 Lemma inner_prod_vchar :
    forall A (chi1 chi2 : {cfun gT}),
    chi1 \in 'Z['Irr(G),A] -> chi2 \in 'Z['Irr(G),A] ->
    '[chi1, chi2]_G = \sum_(theta: irr G) ncoord theta chi1 * ncoord theta chi2.
 Proof.
-move=> A chi1 chi2 IC1 IC2.
-have: chi1 \in 'CF(G).
-  move: (IC1); rewrite is_gvchar_split; case/andP.
-  case/is_vcharP=> f1 [f2 []] Hf1 Hf2 -> _.
-  by apply: memv_sub; exact: memc_is_char.
-case/(ncoord_sum)=>{1}->.
-have: chi2 \in 'CF(G).
-  move: (IC2); rewrite is_gvchar_split; case/andP.
-  case/is_vcharP=> f1 [f2 []] Hf1 Hf2 -> _.
-  by apply: memv_sub; exact: memc_is_char.
-case/(ncoord_sum)=>{1}->.
-rewrite -inner_prodbE {1}linear_sum /=.
-apply: eq_bigr=> t _; rewrite linearZ /= inner_prodbE.
-rewrite raddf_sum  {1}(bigD1 t) // big1 //= ?addr0 => [|j Hj]; last first.
-  by rewrite inner_prodZ irr_orthonormal eq_sym (negPf Hj) mulr0.
-congr (_ * _); rewrite inner_prodZ irr_orthonormal eqxx mulr1.
-apply: isZC_conj.
-by case/and3P: IC2=> _; move/forallP; move/(_ (enum_rank t)).
+move=> A chi1 chi2.
+rewrite is_gvchar_split; case/andP;case/and3P=> Hsp1 HZC1 _ _.
+rewrite is_gvchar_split; case/andP;case/and3P=> Hsp2 HZC2 _ _.
+rewrite inner_prod_cf.
+    by apply: eq_bigr=> t _; rewrite isZC_conj //;move/forallP: HZC2=> ->. 
+  by case/andP: (base_irr_basis G) Hsp1; rewrite /is_span;move/eqP => ->.
+by case/andP: (base_irr_basis G) Hsp2; rewrite /is_span;move/eqP => ->.
 Qed.
 
 Definition absC x := if 0 <= x then x else -x.
@@ -336,6 +338,7 @@ by move: F; rewrite -[X in _ < X]opprK HH2 oppr0 -(ltn_ltC 0 0).
 Qed.
  
 (* This is PF 1.4 *)
+
 Lemma vchar_isometry_base : 
   forall m (Chi : m.+2.-tuple {cfun gT}) (tau : 'End({cfun gT})) (chi1 := Chi`_0), 
     {subset Chi <= 'Irr(H)} -> free Chi ->
@@ -388,6 +391,7 @@ elim=> [[[|chi1 [|chi2[|]]]] // SChi tau /= SubC|].
   by rewrite /mu !eqxx eq_sym (negPf HD) Ht scale1r.
 admit.
 Qed.
+
 
 (* This is PF 1.5(a) *)
 Lemma induced_sum_rcosets : 
