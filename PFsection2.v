@@ -352,7 +352,7 @@ pose T := [set repr (a ^: L) | a <- A].
 have sTA: {subset T <= A}.
   move=> ax; case/imsetP=> a Aa ->; have [x Lx ->{ax}] := repr_class L a.
   by rewrite memJ_norm ?(subsetP nAL).
-pose P_G := dd1 @: T.
+pose P_G := [set dd1 x | x <- T].
 have dd1_id: {in A, forall a, dd1 (repr (a ^: L)) = dd1 a}.
   by move=> a Aa /=; have [x Lx ->] := repr_class L a; exact: Dade_support1_id.
 have ->: Atau = cover P_G.
@@ -363,7 +363,7 @@ have [tiP_G inj_dd1]: trivIset P_G /\ {in T &, injective dd1}.
   apply: trivIimset => [_ _ /imsetP[a Aa ->] /imsetP[b Ab ->] |]; last first.
     apply/imsetP=> [[a]]; move/sTA=> Aa; move/esym; move/eqP; case/set0Pn.
     by exists (a ^ 1)%g; apply: mem_imset2; rewrite ?group1 ?rcoset_refl.
-  rewrite ![class_support _ G]dd1_id //; apply: contraR.
+  rewrite !dd1_id //; apply: contraR.
   by case/Dade_support1_TI=> // x Lx ->; rewrite classGidl.
 have big_andT := eq_bigl _ _ (fun _ => andbT _).
 rewrite add0r -big_andT big_trivIset //= big_imset {P_G tiP_G inj_dd1}//=.
