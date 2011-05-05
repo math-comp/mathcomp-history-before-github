@@ -207,7 +207,34 @@ rewrite -{2 3}[ncoord e2 f]opprK; move/eqP->.
 rewrite /= -mulr_addr mulN1r=> HH2.
 by move: F; rewrite -[X in _ < X]opprK HH2 oppr0 -(ltn_ltC 0 0).
 Qed.
- 
+
+Let vchar_isometry_base3 : forall f f', 
+  f \in 'Z['Irr(G),G^#] -> '[f,f]_G = 2%:R ->
+  f' \in 'Z['Irr(G),G^#] -> '[f',f']_G = 2%:R ->
+  '[f ,f']_G = 1%:R ->
+   exists es: (irr G * irr G * irr G), 
+   exists epsilon: bool,
+     [/\  f = (-(1%:R))^+epsilon *: (es.1.1%:CF - es.2%:CF) &
+          f' = (-(1%:R))^+epsilon *: (es.1.2%:CF - es.2%:CF)].
+Proof.
+move=> f f1 Hf.
+case/(vchar_isometry_base2 Hf)=> e1 [e2] {f Hf}-> Hf1.
+case/(vchar_isometry_base2 Hf1)=> e3 [e4] {f1 Hf1}->.
+rewrite raddf_sub /= -!inner_prodbE !linear_sub /= !inner_prodbE.
+rewrite !irr_orthonormal.
+case eqP=>[->|HH1]; case eqP=>[->|HH2]; case eqP=>[->|HH3]; 
+  try case eqP=>[->|HH4]; move/eqP;
+   rewrite ?(subrr,sub0r,subr0) -?(eqN_eqC 0) //.
+- by exists (e1,e1,e1); exists true; rewrite subrr scaler0.
+- by rewrite opprK -natr_add -eqN_eqC.
+- by exists (e2,e4,e3); exists true; rewrite expr1 !scaleNr !scale1r !oppr_sub.
+- by rewrite eq_sym -subr_eq0 opprK -natr_add -(eqN_eqC _ 0).
+- by rewrite eq_sym -subr_eq0 oppr_sub opprK -!natr_add -(eqN_eqC _ 0).
+- by rewrite eq_sym -subr_eq0 opprK -natr_add -(eqN_eqC _ 0).
+- by rewrite eq_sym -subr_eq0 opprK -natr_add -(eqN_eqC _ 0).
+by exists (e1,e3,e4); exists false; rewrite expr0 !scale1r.
+Qed.
+
 (* This is PF 1.4 *)
 Lemma vchar_isometry_base : 
   forall m (Chi : m.+2.-tuple {cfun gT}) (tau : 'End({cfun gT})) (chi1 := Chi`_0), 
