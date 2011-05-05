@@ -227,13 +227,12 @@ Lemma inner_prod_vchar :
    chi1 \in 'Z['Irr(G),A] -> chi2 \in 'Z['Irr(G),A] ->
    '[chi1, chi2]_G = \sum_(theta: irr G) ncoord theta chi1 * ncoord theta chi2.
 Proof.
-move=> A chi1 chi2.
-rewrite is_gvchar_split; case/andP;case/and3P=> Hsp1 HZC1 _ _.
-rewrite is_gvchar_split; case/andP;case/and3P=> Hsp2 HZC2 _ _.
-rewrite inner_prod_cf.
-    by apply: eq_bigr=> t _; rewrite isZC_conj //;move/forallP: HZC2=> ->. 
-  by case/andP: (base_irr_basis G) Hsp1; rewrite /is_span;move/eqP => ->.
-by case/andP: (base_irr_basis G) Hsp2; rewrite /is_span;move/eqP => ->.
+move=> A chi1 chi2 H1 H2.
+move/memc_is_gvchar: (H1)=>/memcW H1CF; move/memc_is_gvchar:(H2)=>/memcW H2CF.
+move: H1;rewrite is_gvchar_split; case/andP;case/and3P=> Hsp1 HZC1 _ _.
+move: H2;rewrite is_gvchar_split; case/andP;case/and3P=> Hsp2 HZC2 _ _.
+rewrite inner_prod_cf //.
+by apply: eq_bigr=> t _; rewrite isZC_conj //;move/forallP: HZC2=> ->. 
 Qed.
 
 Definition absC x := if 0 <= x then x else -x.
@@ -270,17 +269,14 @@ Let vchar_isometry_base2 : forall f, f \in 'Z['Irr(G),G^#] -> '[f,f]_G = 2%:R ->
 Proof.
 move=> f Hf.
 rewrite (inner_prod_vchar Hf) //.
-have F1: f \in 'CF(G).
-  move: Hf; rewrite is_gvchar_split; case/andP.
-  case/is_vcharP=> f1 [f2 []] Hf1 Hf2 -> _.
-  by apply: memv_sub; exact: memc_is_char.
+move/memc_is_gvchar: (Hf)=>/memcW F1.
 have Ce: forall e : irr G, isZC (ncoord e f).
   move=> e; case/and3P: Hf=> _; move/forallP.
   by move/(_ (enum_rank e)).
 move=> HH.
 pose h (t : irr G) := getNatC (absC (ncoord t f)).
 have Hh: forall t, (h t)%:R = absC (ncoord t f).
-move=> t; rewrite /h; case/isNatCP: (isNatC_absC (Ce t))=> n ->.
+  move=> t; rewrite /h; case/isNatCP: (isNatC_absC (Ce t))=> n ->.
   by rewrite getNatC_nat.
 have: (\sum_t (h t) * h t = 2)%N.
   apply/eqP; rewrite eqN_eqC -HH natr_sum; apply/eqP.
