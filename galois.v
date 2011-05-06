@@ -81,19 +81,16 @@ forall u v, u \in E -> v \in E -> f (u * v) = f u * f v.
 Proof.
 move => E f.
 case/and3P => _ _.
-move/all_nthP => fmult u v Hu Hv.
-have Hspan : (is_span E (vbasis E)) by rewrite is_basis_span ?is_basis_vbasis.
-rewrite (is_span_span Hspan Hu) (is_span_span Hspan Hv).
-rewrite !linear_sum /=; apply eq_bigr => j _.
-rewrite -!mulr_suml linear_sum /=.
+move/all_nthP => fmult u v.
+move/coord_basis => -> Hv.
+rewrite -mulr_suml !linear_sum -mulr_suml.
 apply: eq_bigr => i _.
-rewrite -scaler_mull linearZ /= -scaler_mulr linearZ /=.
-symmetry.
-rewrite ![f _]linearZ /=.
-rewrite -scaler_mull.
-rewrite -[f _ * _]scaler_mulr.
-repeat apply: f_equal.
-symmetry.
+move/coord_basis: Hv ->.
+rewrite -mulr_sumr !linear_sum.
+apply: eq_bigr => j _ /=.
+rewrite ![f (_ *: _)]linearZ -scaler_mull linearZ -scaler_mulr linearZ.
+rewrite -scaler_mull -scaler_mulr.
+do 2 apply: f_equal.
 apply/eqP.
 move: (ltn_ord i).
 rewrite -{2}(size_tuple (vbasis _)).
@@ -113,19 +110,7 @@ rewrite -(capfv (lker f)) -dimv_eq0 -(eqn_addr (\dim (f @: (fullv _)))).
 rewrite add0n limg_ker_dim -(addv_complf E) limg_add.
 move/eqP: Hf1 ->.
 rewrite (eigensubspaceImageEq _ Hf2) //.
-apply: GRing.nonzero1r.
-Qed.
-
-Lemma Automorph1 : forall E f, FieldAutomorphism E f -> f 1 = 1.
-Proof.
-move => E f Hf.
-case/and3P: (Hf).
-move/eqP => Hf1 _ _.
-have Hf10 : GRing.unit (f 1).
- by rewrite unitfE -memv_ker (AutomorphismIsUnit Hf) memv0 nonzero1r.
-apply: (can_inj (mulKr Hf10)).
-rewrite mulr1.
-by rewrite -(AutomorphMul Hf) ?memv1 // mulr1.
+apply: nonzero1r.
 Qed.
 
 Lemma idAutomorphism : forall E, FieldAutomorphism E \1%VS.
@@ -189,7 +174,12 @@ apply/andP; split.
  rewrite has_aunit1 // memv_cap.
  apply/andP; split.
   by apply: memv1.
- by rewrite eigenspaceIn (Automorph1 Hf) scale1r.
+ rewrite eigenspaceIn.
+ apply/eqP.
+ have Hf1 : f 1 != 0.
+  by rewrite -memv_ker (AutomorphismIsUnit Hf) memv0 nonzero1r.
+ apply: (mulfI Hf1).
+ by rewrite -(AutomorphMul Hf) ?memv1 // scale1r !mulr1.
 apply/prodvP => u v.
 rewrite !memv_cap !eigenspaceIn !scale1r.
 case/andP => uE; move/eqP => fu.
@@ -225,4 +215,3 @@ by rewrite !scale1r.
 Qed.
 
 End Galois.
-
