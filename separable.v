@@ -4,6 +4,10 @@ Require Import zmodp vector algebra fieldext.
 Require Import fingroup perm finset matrix mxalgebra.
 Require Import div cyclic prime binomial.
 
+Set Implicit Arguments.
+Unset Strict Implicit.
+Unset Printing Implicit Defensive.
+
 (******************************************************************************)
 (* This file is supposed to provide galois theory, however it is currently    *)
 (* almost entirely about field extentions and the contents should perahps be  *)
