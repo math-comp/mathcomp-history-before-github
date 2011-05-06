@@ -116,6 +116,9 @@ Section Separable.
 Variable F0 : fieldType.
 Variable L : fieldExtType F0.
 
+Lemma charLF : [char L] =i [char F0].
+Proof. apply: fmorph_char. apply: GRing.in_alg_rmorphism. Qed.
+
 Let F : {algebra L } := aspace1 _.
 
 Lemma dim_prodvf : forall (K:{vspace L}) x, x != 0 -> \dim (K * x%:VS) = \dim K.
@@ -1621,6 +1624,17 @@ rewrite -(prednK (prime_gt0 (charf_prime Hp))) mulnS addKn muln_gt0 -!subn1.
 by rewrite !subn_gt0 Hszg (prime_gt1 (charf_prime Hp)).
 Qed.
 
+Lemma separableChar0 : [char L] =i pred0 -> forall x, separableElement K x.
+Proof.
+move => Hchar x.
+case: (separablePower x) => n.
+rewrite (eq_pnat _ Hchar) {Hchar}.
+case/andP => Hchar.
+rewrite (pnat_1 Hchar); first by rewrite expr1.
+apply/pnatP => //.
+by case/andP: Hchar.
+Qed.
+
 Lemma separableCharp : forall x e p, p \in [char L] ->
  separableElement K x = (x \in Fadjoin K (x ^+ (p ^ e.+1))).
 Proof.
@@ -2611,7 +2625,7 @@ move/allSeparableElement => Hsep.
 by apply/separableP.
 Qed.
 
-Lemma separableInseparableDecomposition_subproof : forall E K ,
+Lemma separableInseparableDecomposition : forall E K ,
  exists x, [&& x \in E, separableElement K x & 
              purelyInseparable (Fadjoin K x) E].
 Proof.
@@ -2688,14 +2702,16 @@ move/eqP ->.
 by apply: memx_Fadjoin.
 Qed.
 
+(* Are these defintions not needed? *)
+
 Definition separableGenerator (K E:{algebra L}) : L:= 
-  choice.xchoose (separableInseparableDecomposition_subproof E K).
+  choice.xchoose (separableInseparableDecomposition E K).
 
 Lemma separableGeneratorInE : forall E K, separableGenerator K E \in E.
 Proof.
 move => E K.
 by case/and3P: (choice.xchooseP 
-  (separableInseparableDecomposition_subproof E K)).
+  (separableInseparableDecomposition E K)).
 Qed.
 
 Lemma separableGeneratorSep : forall E K, 
@@ -2703,7 +2719,7 @@ Lemma separableGeneratorSep : forall E K,
 Proof.
 move => E K.
 by case/and3P: (choice.xchooseP 
-  (separableInseparableDecomposition_subproof E K)).
+  (separableInseparableDecomposition E K)).
 Qed.
 
 Lemma separableGeneratorMaximal : forall E K, 
@@ -2711,7 +2727,7 @@ Lemma separableGeneratorMaximal : forall E K,
 Proof.
 move => E K.
 by case/and3P: (choice.xchooseP 
-  (separableInseparableDecomposition_subproof E K)).
+  (separableInseparableDecomposition E K)).
 Qed.
 
 Lemma separableSeparableGeneratorEx : forall E K,
@@ -2737,4 +2753,3 @@ Qed.
 End SeparableInseparableDecomposition.
 
 End Separable.
-
