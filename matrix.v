@@ -2730,6 +2730,76 @@ Notation "''GL_' n ( p )" := 'GL_n['F_p]
 Notation "''GL_' n [ R ]" := (GLgroup_group n (Phant R)) : subgroup_scope.
 Notation "''GL_' n ( p )" := (GLgroup_group n (Phant 'F_p)) : subgroup_scope.
 
+(*****************************************************************************)
+(********************** Matrices over a domain *******************************)
+(*****************************************************************************)
+
+Section MatrixDomain.
+
+Variable R : idomainType.
+
+Lemma scalemx_eq0 m n a (A : 'M[R]_(m, n)) :
+  (a *: A == 0) = (a == 0) || (A == 0).
+Proof.
+case nz_a: (a == 0) / eqP => [-> | _]; first by rewrite scale0r eqxx.
+apply/eqP/eqP=> [aA0 | ->]; last exact: scaler0.
+apply/matrixP=> i j; apply/eqP; move/matrixP/(_ i j)/eqP: aA0.
+by rewrite !mxE mulf_eq0 nz_a.
+Qed.
+
+Lemma scalemx_inj m n a :
+  a != 0 -> injective ( *:%R a : 'M[R]_(m, n) -> 'M[R]_(m, n)).
+Proof.
+move=> nz_a A B eq_aAB; apply: contraNeq nz_a.
+rewrite -[A == B]subr_eq0 -[a == 0]orbF => /negPf<-.
+by rewrite -scalemx_eq0 linear_sub subr_eq0 /= eq_aAB.
+Qed.
+
+Lemma det0P n (A : 'M[R]_n) :
+  reflect (exists2 v : 'rV[R]_n, v != 0 & v *m A = 0) (\det A == 0).
+Proof.
+apply: (iffP eqP) => [detA0 | [v n0v vA0]]; last first.
+  apply: contraNeq n0v => nz_detA; rewrite -(inj_eq (scalemx_inj nz_detA)).
+  by rewrite scaler0 -mul_mx_scalar -mul_mx_adj mulmxA vA0 mul0mx.
+elim: n => [|n IHn] in A detA0 *.
+  by case/idP: (oner_eq0 R); rewrite -detA0 [A]thinmx0 -(thinmx0 1%:M) det1.
+have [{detA0}A'0 | nzA'] := eqVneq (row 0 (\adj A)) 0; last first.
+  exists (row 0 (\adj A)) => //; rewrite rowE -mulmxA mul_adj_mx detA0.
+  by rewrite mul_mx_scalar scale0r.
+pose A' := col' 0 A; pose vA := col 0 A.
+have defA: A = row_mx vA A'.
+  apply/matrixP=> i j; rewrite !mxE.
+  case: splitP => j' def_j; rewrite mxE; congr (A i _); apply: val_inj => //=.
+  by rewrite def_j [j']ord1.
+have{IHn} w_ j : exists w : 'rV_n.+1, [/\ w != 0, w 0 j = 0 & w *m A' = 0].
+  have [|wj nzwj wjA'0] := IHn (row' j A').
+    by apply/eqP; move/rowP/(_ j)/eqP: A'0; rewrite !mxE mulf_eq0 signr_eq0.
+  exists (\row_k oapp (wj 0) 0 (unlift j k)).
+  rewrite !mxE unlift_none -wjA'0; split=> //.
+    apply: contraNneq nzwj => w0; apply/eqP/rowP=> k'.
+    by move/rowP/(_ (lift j k')): w0; rewrite !mxE liftK.
+  apply/rowP=> k; rewrite !mxE (bigD1 j) //= mxE unlift_none mul0r add0r.
+  rewrite (reindex_onto (lift j) (odflt k \o unlift j)) /= => [|k'].
+    by apply: eq_big => k'; rewrite ?mxE liftK eq_sym neq_lift eqxx.
+  by rewrite eq_sym; case/unlift_some=> ? ? ->.
+have [w0 [nz_w0 w00_0 w0A']] := w_ 0; pose a0 := (w0 *m vA) 0 0.
+have [j {nz_w0}/= nz_w0j | w00] := pickP [pred j | w0 0 j != 0]; last first.
+  by case/eqP: nz_w0; apply/rowP=> j; rewrite mxE; move/eqP: (w00 j).
+have{w_} [wj [nz_wj wj0_0 wjA']] := w_ j; pose aj := (wj *m vA) 0 0.
+have [aj0 | nz_aj] := eqVneq aj 0.
+  exists wj => //; rewrite defA (@mul_mx_row _ _ _ 1) [_ *m _]mx11_scalar -/aj.
+  by rewrite aj0 raddf0 wjA' row_mx0.
+exists (aj *: w0 - a0 *: wj).
+  apply: contraNneq nz_aj; move/rowP/(_ j)/eqP; rewrite !mxE wj0_0 mulr0 subr0.
+  by rewrite mulf_eq0 (negPf nz_w0j) orbF.
+rewrite defA (@mul_mx_row _ _ _ 1) !mulmx_subl -!scalemxAl w0A' wjA' !linear0.
+by rewrite -mul_mx_scalar -mul_scalar_mx -!mx11_scalar subrr addr0 row_mx0.
+Qed.
+
+End MatrixDomain.
+
+Implicit Arguments det0P [R n A].
+
 (* Parametricity at the field level (mx_is_scalar, unit and inverse are only *)
 (* mapped at this level).                                                    *)
 Section MapFieldMatrix.
@@ -2763,7 +2833,7 @@ Qed.
 
 Lemma map_mx_inv : forall n' (A : 'M_n'.+1), A^-1^f = A^f^-1.
 Proof. by move=> n'; exact: map_invmx. Qed.
-
+  
 Lemma map_mx_eq0 : forall m n (A : 'M_(m, n)), (A^f == 0) = (A == 0).
 Proof. by move=> m n A; rewrite -(inj_eq (@map_mx_inj m n)) raddf0. Qed.
 

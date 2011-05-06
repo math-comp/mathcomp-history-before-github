@@ -1278,17 +1278,6 @@ move=> p m n A B; apply: (iffP submxP) => [[D ->]|].
 by move/mulmxKV_ker; exists (B *m col_ebase A).
 Qed.
 
-Lemma det0P : forall n (A : 'M_n),
-  reflect (exists2 v : 'rV[F]_n, v != 0 & v *m A = 0) (\det A == 0).
-Proof.
-move=> n A; rewrite -[_ == _]negbK -unitfE -unitmxE.
-apply: (iffP idP) => [| [v n0v vA0]]; last first.
-  by apply: contra n0v => uA; rewrite -(mulmxK uA v) vA0 mul0mx.
-rewrite -row_free_unit /row_free eqn_leq rank_leq_row -subn_eq0.
-rewrite -mxrank_ker mxrank_eq0 -submx0; case/row_subPn=> i.
-by exists (row i (kermx A)); rewrite -?submx0 // -row_mul mulmx_ker row0.
-Qed.
-
 Lemma mulmx0_rank_max : forall m n p (A : 'M_(m, n)) (B : 'M_(n, p)),
   A *m B = 0 -> \rank A + \rank B <= n.
 Proof.
@@ -2144,7 +2133,6 @@ Implicit Arguments sumsmx_sup [F I P m n A B_].
 Implicit Arguments sumsmx_subP [F I P m n A_ B].
 Implicit Arguments sub_sumsmxP [F I P m n A B_].
 Implicit Arguments sub_kermxP [F p m n A B].
-Implicit Arguments det0P [F n A].
 Implicit Arguments capmx_idPr [F m1 m2 n A B].
 Implicit Arguments capmx_idPl [F m1 m2 n A B].
 Implicit Arguments bigcapmx_inf [F I P m n A_ B].

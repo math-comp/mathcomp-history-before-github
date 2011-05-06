@@ -108,39 +108,100 @@ Prenex Implicits rVpoly poly_rV.
 
 Section Resultant.
 
-Variables (F : fieldType) (p q : {poly F}).
-Implicit Types m d r : {poly F}.
+Variables (R : ringType) (p q : {poly R}).
 
-Let dp := (size p).-1.
-Let dq := (size q).-1.
-
+Let dS := ((size q).-1 + (size p).-1)%N.
 Local Notation band r := (lin1_mx (poly_rV \o r \o* rVpoly)).
 
-Definition Sylvester_mx : 'M[F]_(dq + dp) := col_mx (band p) (band q).
+Definition Sylvester_mx : 'M[R]_dS := col_mx (band p) (band q).
 
-Lemma Sylvester_mxE : forall i j : 'I_(dq + dp),
-    let S_ r k := r`_(j - k) *+ (k <= j) in
+Lemma Sylvester_mxE (i j : 'I_dS) :
+  let S_ r k := r`_(j - k) *+ (k <= j) in
   Sylvester_mx i j = match split i with inl k => S_ p k | inr k => S_ q k end.
 Proof.
-move=> i j S_; rewrite mxE; case: {i}(split i) => i; rewrite !mxE /=;
+move=> S_; rewrite mxE; case: {i}(split i) => i; rewrite !mxE /=;
   by rewrite rVpoly_delta coef_Xn_mul ltnNge if_neg -mulrb.
 Qed.
 
 Definition resultant := \det Sylvester_mx.
 
-Lemma resultant_eq0 : (resultant == 0) = (size (gcdp p q) > 1).
+End Resultant.
+
+Lemma resultant_in_ideal (R : comRingType) (p q : {poly R}) :
+    size p > 1 -> size q > 1 ->
+  {uv : {poly R} * {poly R} | size uv.1 < size q /\ size uv.2 < size p
+  & (resultant p q)%:P = uv.1 * p + uv.2 * q}.
+Proof.
+move=> p_nc q_nc; pose dp := (size p).-1; pose dq := (size q).-1.
+pose S := Sylvester_mx p q; pose dS := (dq + dp)%N.
+have dS_gt0: dS > 0 by rewrite /dS /dq -(subnKC q_nc).
+pose j0 := Ordinal dS_gt0. 
+pose Ss0 := col_mx (p *: \col_(i < dq) 'X^i) (q *: \col_(i < dp) 'X^i).
+pose Ss := \matrix_(i, j) (if j == j0 then Ss0 i 0 else (S i j)%:P).
+pose u ds s := \sum_(i < ds) cofactor Ss (s i) j0 * 'X^i.
+exists (u _ (lshift dp), u _ ((rshift dq) _)).
+  suffices sz_u ds s: ds > 1 -> size (u ds.-1 s) < ds by rewrite !sz_u.
+  move/ltn_predK=> {2}<-; apply: leq_trans (size_sum _ _ _) _.
+  apply/bigmax_leqP=> i _.
+  have ->: cofactor Ss (s i) j0 = (cofactor S (s i) j0)%:P.
+    rewrite rmorphM rmorph_sign -det_map_mx; congr (_ * \det _).
+    by apply/matrixP=> i' j'; rewrite !mxE.
+  apply: leq_trans (size_mul _ _) (leq_trans _ (valP i)).
+  by rewrite size_polyC size_polyXn addnS /= -add1n leq_add2r leq_b1.
+transitivity (\det Ss); last first.
+  rewrite (expand_det_col Ss j0) big_split_ord !big_distrl /=.
+  by congr (_ + _); apply: eq_bigr => i _;
+    rewrite mxE eqxx (col_mxEu, col_mxEd) !mxE mulrC mulrA mulrAC.
+pose S_ j1 := map_mx polyC (\matrix_(i, j) S i (if j == j0 then j1 else j)).
+pose Ss0_ i dj := \poly_(j < dj) S i (insubd j0 j).
+pose Ss_ dj := \matrix_(i, j) (if j == j0 then Ss0_ i dj else (S i j)%:P).
+have{Ss u} ->: Ss = Ss_ dS.
+  apply/matrixP=> i j; rewrite mxE [in X in _ = X]mxE; case: (j == j0) => {j}//.
+  apply/polyP=> k; rewrite coef_poly Sylvester_mxE mxE.
+  have [k_ge_dS | k_lt_dS] := leqP dS k.
+    case: (split i) => {i}i; rewrite !mxE coef_mulXn;
+      rewrite (contraNeq (@leq_coef_size _ _ _)) ?if_same // -leqNgt.
+    - rewrite -(ltn_predK p_nc) -/dp -ltn_add_sub (leq_trans _ k_ge_dS) //.
+      by rewrite ltn_add2r.
+    rewrite -(ltn_predK q_nc) -/dq -ltn_add_sub (leq_trans _ k_ge_dS) //.
+    by rewrite addnC ltn_add2l.
+  by rewrite insubdK //; case: (split i) => {i}i;
+     rewrite !mxE coef_mulXn; case: leqP.
+elim: {-2}dS (leqnn dS) (dS_gt0) => // dj IHj dj_lt_dS _.
+pose j1 := Ordinal dj_lt_dS; pose rj0T (A : 'M[{poly R}]_dS) := row j0 A^T.
+have: rj0T (Ss_ dj.+1) = 'X^dj *: rj0T (S_ j1) + 1 *: rj0T (Ss_ dj).
+  apply/rowP=> i; apply/polyP=> k; rewrite scale1r !(Sylvester_mxE, mxE) eqxx.
+  rewrite coef_add coef_Xn_mul coefC !coef_poly ltnS subn_eq0 ltn_neqAle andbC.
+  case: (leqP k dj) => [k_le_dj | k_gt_dj] /=; last by rewrite addr0.
+  rewrite Sylvester_mxE insubdK; last exact: leq_ltn_trans (dj_lt_dS).
+  by case: eqP => [-> | _]; rewrite (addr0, add0r).
+rewrite -det_tr => /determinant_multilinear->;
+  try by apply/matrixP=> i j; rewrite !mxE eq_sym (negPf (neq_lift _ _)).
+have [dj0 | dj_gt0] := posnP dj; rewrite ?dj0 !mul1r.
+  rewrite !det_tr det_map_mx addrC (expand_det_col _ j0) big1 => [|i _].
+    rewrite add0r; congr (\det _)%:P.
+    apply/matrixP=> i j; rewrite [in X in _ = X]mxE; case: eqP => // ->.
+    by congr (S i _); apply: val_inj.
+  by rewrite mxE /= [Ss0_ _ _]poly_def big_ord0 mul0r.
+have /determinant_alternate->: j1 != j0 by rewrite -val_eqE -lt0n.
+  by rewrite mulr0 add0r det_tr IHj // ltnW.
+by move=> i; rewrite !mxE if_same.
+Qed.
+
+Lemma resultant_eq0 (R : idomainType) (p q : {poly R}) :
+  (resultant p q == 0) = (size (gcdp p q) > 1).
 Proof.
 have dvdpp := dvdpp; set r := gcdp p q.
-have [r_p r_q]: r %| p /\ r %| q by apply/andP; rewrite -dvdp_gcd.
-have dvdpP: forall d m, d %| m -> exists f, m = d * f.
-  move=> d m; case/dvdpPc=> c [f [nz_c def_fd]].
-  by exists (c^-1 *: f); rewrite mulrC -scaler_mull -def_fd scalerK.
-have dvd_nz: forall d m, d %| m -> m != 0 -> d != 0.
-  by move=> d m; case/dvdpP=> f ->; rewrite mulf_eq0; case/norP.
+pose dp := (size p).-1; pose dq := (size q).-1.
+have /andP[r_p r_q]: (r %| p) && (r %| q) by rewrite -dvdp_gcd.
+have dvd_nz (d m : {poly R}): d %| m -> m != 0 -> d != 0.
+  case/dvdpPc=> c [f [nz_c def_cm]]; rewrite -size_poly_eq0.
+  by rewrite -(size_scaler _ nz_c) def_cm size_poly_eq0 mulf_eq0; case/norP.
 apply/det0P/idP=> [[uv nz_uv] | r_nonC].
   have [p0 _ | p_nz] := eqVneq p 0.
     have: dq + dp > 0.
-      by rewrite (leq_trans _ (rank_leq_col uv)) // lt0n mxrank_eq0.
+      rewrite lt0n; apply: contraNneq nz_uv => dqp0.
+      by rewrite dqp0 in uv *; rewrite [uv]thinmx0.
     by rewrite /dp /dq /r p0 size_poly0 addn0 gcd0p -subn1 subn_gt0.
   do [rewrite -[uv]hsubmxK -{1}row_mx0 mul_row_col !mul_rV_lin1 /=] in nz_uv *.
   set u := rVpoly _; set v := rVpoly _; pose m := gcdp (v * p) (v * q).
@@ -155,33 +216,40 @@ apply/det0P/idP=> [[uv nz_uv] | r_nonC].
     move/eqP: vq_up; apply: contraTeq => nz_u.
     by rewrite v0 mul0r addr0 eq_sym oppr_eq0 mulf_neq0.
   have r_nz: r != 0 := dvd_nz _ _ r_p p_nz.
-  have [|w vw] := dvdpP v m; first by rewrite dvdp_gcd !dvdp_mulr.
-  have m_wd: forall d, m %| v * d -> w %| d.
-    move=> d; case/dvdpP=> f; rewrite vw -mulrA; move/mulfI=> -> //.
-    exact: dvdp_mulr.
+  have /dvdpPc[c [/= w [nz_c wv]]]: v %| m by rewrite dvdp_gcd !dvdp_mulr.
+  have m_wd d: m %| v * d -> w %| d.
+    case/dvdpPc=> k [f [nz_k]]; move/(congr1 ( *:%R c)).
+    rewrite mulrC scalerA scaler_mull scaler_mulr wv mulrA.
+    move/(mulIf nz_v)=> def_fw; apply/dvdpPc; exists (c * k); exists f.
+    by rewrite mulf_neq0.
   have w_r: w %| r by rewrite dvdp_gcd !m_wd ?dvdp_gcdl ?dvdp_gcdr.
   have w_nz: w != 0 := dvd_nz _ _ w_r r_nz.
   have p_m: p %| m by rewrite dvdp_gcd vq_up addr0 -mulNr !dvdp_mull.
   rewrite (leq_trans _ (size_dvdp r_nz w_r)) // -(ltn_add2l (size v)).
-  rewrite addnC ltn_add_sub subn1 -size_mul_id // -vw.
-  by rewrite (leq_trans lt_vp) // size_dvdp // vw mulf_neq0.
-have [[p' p'r] [q' q'r]] := (dvdpP _ _ r_p, dvdpP _ _ r_q).
+  rewrite addnC ltn_add_sub subn1 -size_mul_id // mulrC -wv size_scaler //.
+  rewrite (leq_trans lt_vp) // size_dvdp // -size_poly_eq0.
+  by rewrite -(size_scaler _ nz_c) size_poly_eq0 wv mulf_neq0.
+have [c [p' [nz_c p'r]]] := dvdpPc _ _ r_p.
+have [k [q' [nz_k q'r]]] := dvdpPc _ _ r_q.
 have def_r := subnKC r_nonC; have r_nz: r != 0 by rewrite -size_poly_eq0 -def_r.
 have le_p'_dp: size p' <= dp.
   have [-> | nz_p'] := eqVneq p' 0; first by rewrite size_poly0.
-  by rewrite /dp p'r size_mul_id // -def_r leq_addl.
+  by rewrite /dp -(size_scaler p nz_c) p'r size_mul_id // addnC -def_r leq_addl.
 have le_q'_dq: size q' <= dq.
   have [-> | nz_q'] := eqVneq q' 0; first by rewrite size_poly0.
-  by rewrite /dq q'r size_mul_id // -def_r leq_addl.
-exists (row_mx (- poly_rV q') (poly_rV p')).
+  by rewrite /dq -(size_scaler q nz_k) q'r size_mul_id // addnC -def_r leq_addl.
+exists (row_mx (- c *: poly_rV q') (k *: poly_rV p')).
   apply: contraNneq r_nz; rewrite -row_mx0; case/eq_row_mx=> q0 p0.
-  rewrite /r p'r -(poly_rV_K le_p'_dp) p0 linear0 mulr0 gcd0p -oppr_eq0.
-  by rewrite q'r -(poly_rV_K le_q'_dq) -mulrN -linearN q0 linear0 mulr0.
-rewrite mul_row_col mulNmx !mul_rV_lin1 /= !poly_rV_K //.
-by rewrite  q'r {1}p'r mulrC -mulrA mulrCA addNr.
+  have{p0} p0: p = 0.
+    apply/eqP; rewrite -size_poly_eq0 -(size_scaler p nz_c) p'r.
+    rewrite -(size_scaler _ nz_k) scaler_mull -(poly_rV_K le_p'_dp) -linearZ p0.
+    by rewrite linear0 mul0r size_poly0.
+  rewrite /r p0 gcd0p -size_poly_eq0 -(size_scaler q nz_k) q'r.
+  rewrite -(size_scaler _ nz_c) scaler_mull -(poly_rV_K le_q'_dq) -linearZ.
+  by rewrite -[c]opprK scaleNr q0 !linear0 mul0r size_poly0.
+rewrite mul_row_col scaleNr mulNmx !mul_rV_lin1 /= !linearZ /= !poly_rV_K //.
+by rewrite !scaler_swap p'r q'r mulrCA addNr.
 Qed.
-
-End Resultant.
 
 Section HornerMx.
 
