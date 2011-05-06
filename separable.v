@@ -333,22 +333,17 @@ Definition elementDegree := ex_minn Pholds.
 
 Definition FadjoinVS := (\sum_(i < elementDegree) (K * (x ^+ i)%:VS))%VS.
 
-(* Give k*x^i return the k.  Used as a tool.
-   It would nicer to hide this definition and it's assocated lemmas. *)
 Definition MinPoly_coef i v := 
   \sum_j coord [tuple of map (fun y => (y * x ^+ i))
                 (vbasis K)] v j *: (vbasis K)`_j.
-
-Definition minPoly : {poly L} := 
-  'X^elementDegree - \sum_(i < elementDegree)
-   (MinPoly_coef i (sumv_pi (fun i : ordinal elementDegree => 
-                            K * (x ^+ i)%:VS)%VS predT i (x ^+ elementDegree)))
-    *: 'X^i.
 
 Definition poly_for_Fadjoin (v : L) := 
   \sum_(i < elementDegree) (MinPoly_coef i (sumv_pi 
      (fun (i : 'I_elementDegree) => (K * (x ^+ i)%:VS)%VS) predT i v))%:P *
    'X^i.
+
+Definition minPoly : {poly L} := 
+  'X^elementDegree - poly_for_Fadjoin (x ^+ elementDegree).
 
 Definition separableElement := separablePolynomial minPoly.
 
@@ -442,31 +437,6 @@ move: (coord _) => f.
 by rewrite !ffunE scaler_addl scalerA.
 Qed.
 
-Lemma size_minPoly : size minPoly = elementDegree.+1.
-Proof.
-rewrite /minPoly size_addl ?size_polyXn // size_opp ltnS.
-apply: (leq_trans (size_sum _ _ _)).
-apply/bigmax_leqP => i _.
-set c := (MinPoly_coef _ _).
-case E : (c == 0).
- by move/eqP: E ->; rewrite GRing.scale0r size_poly0.
-by rewrite size_scaler ?E // size_polyXn.
-Qed.
-
-Lemma monic_minPoly : monic minPoly.
-Proof.
-rewrite /monic /lead_coef size_minPoly /= /minPoly coef_sub coef_Xn eq_refl
-        -GRing.subr_eq0 GRing.addrC GRing.addrA GRing.addNr GRing.subr_eq
-        GRing.add0r coef_sum.
-apply/eqP.
-symmetry.
-apply: big1 => i _.
-rewrite coef_scaler coef_Xn (_ : (_ == _) = false) ?GRing.mulr0 //.
-apply: negbTE.
-rewrite neq_ltn.
-by apply/orP; right.
-Qed.
-
 Lemma poly_for_polyOver : forall v, polyOver K (poly_for_Fadjoin v).
 Proof.
 move => v.
@@ -520,6 +490,17 @@ rewrite /poly_for_Fadjoin scaler_sumr -big_split.
 apply eq_bigr => i _ /=.
 by rewrite linearP MinPoly_coef_linear rmorphD mulr_addl
            scaler_mull -mul_polyC -polyC_mul -scaler_mull mul1r.
+Qed.
+
+Lemma size_minPoly : size minPoly = elementDegree.+1.
+Proof.
+by rewrite /minPoly size_addl ?size_polyXn // size_opp ltnS size_poly_for.
+Qed.
+
+Lemma monic_minPoly : monic minPoly.
+Proof.
+rewrite /monic /lead_coef size_minPoly /= /minPoly coef_sub coef_Xn eq_refl.
+by rewrite nth_default ?subr0 // size_poly_for.
 Qed.
 
 Lemma root_minPoly_subproof : x ^+ elementDegree \in FadjoinVS ->
@@ -752,20 +733,8 @@ Qed.
 
 Lemma minPolyOver : polyOver K (minPoly K x).
 Proof.
-apply/polyOverP => i.
-case: (eqVneq i (elementDegree K x)).
- move ->.
- move: (monic_minPoly K x).
- rewrite /monic /lead_coef size_minPoly.
- move/eqP ->.
- apply: memv1.
-rewrite /minPoly coef_sub coef_Xn coef_sum.
-move/negbTE ->.
-rewrite add0r memvN // memv_suml // => j _.
-rewrite coef_scaler coef_Xn.
-case: eqP => _; last first.
- by rewrite mulr0 mem0v.
-by rewrite mulr1 MinPoly_coefK.
+rewrite /minPoly addp_polyOver ?exp_polyOver ?polyOverX // opp_polyOver //.
+by rewrite poly_for_polyOver.
 Qed.
 
 (* This lemma could be generalized if I instead defined elementDegree 0 x = 0 *)
