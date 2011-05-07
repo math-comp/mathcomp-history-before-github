@@ -111,6 +111,12 @@ case/andP: (base_irr_basis G) Hspan; rewrite /is_span;move/eqP => -> _ HH.
 by rewrite memcE Hsup.
 Qed.
 
+Lemma vcharW : forall f A, f \in 'Z['Irr(G), A]-> f \in 'Z['Irr(G)].
+Proof. 
+move=> f A;case/and3P=> Hspan Hc Hsup;apply/and3P;split => //.
+by apply/forallP=>x; rewrite inE.
+Qed.
+
 Lemma vchar0 :  forall m (S : m.-tuple _) A,  0 \in 'Z[S, A].
 Proof. 
 move => m S A;rewrite !inE; apply/and3P;split; first by apply: mem0v.
