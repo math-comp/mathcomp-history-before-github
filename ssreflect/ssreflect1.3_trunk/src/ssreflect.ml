@@ -4590,9 +4590,13 @@ let interp_redexmod ist gl = function
 (* calls do_subst on every sub-term identified by (redexmod,occ) *)
 let eval_redexmod env0 sigma0 concl0 redexmod occ do_subst =
   let fs sigma x = snd (nf_open_term sigma sigma x) in
-  let pop_evar sigma e =
+  let pop_evar sigma e p =
     let { Evd.evar_body = e_body } as e_def = Evd.find sigma e in
-    let e_body = match e_body with Evar_defined c -> c | _ -> assert false in
+    let e_body = match e_body with Evar_defined c -> c
+    | _ -> errorstrm (str "Matching the pattern " ++ pr_constr p ++
+          str " did not instantiate ?" ++ pr_int e ++ spc () ++
+          str "Does the variable bound by the \"in\" construct occur "++
+          str "in the pattern?") in
     let sigma = 
       Evd.add (Evd.remove sigma e) e {e_def with Evd.evar_body = Evar_empty} in
     sigma, e_body in
@@ -4621,7 +4625,7 @@ let eval_redexmod env0 sigma0 concl0 redexmod occ do_subst =
     let find_X, end_X = mk_pmatcher p_sigma occ holep in
     let concl = find_T env0 concl0 1 (fun env _ c h ->
       let p_sigma = unify_HO env (create_evar_defs p_sigma) c p in
-      let sigma, e_body = pop_evar p_sigma ex in
+      let sigma, e_body = pop_evar p_sigma ex p in
       fs p_sigma (find_X env (fs sigma p) h 
         (fun env _ _ -> do_subst env e_body))) in
     let _ = end_X () in let _ = end_T () in 
@@ -4636,7 +4640,7 @@ let eval_redexmod env0 sigma0 concl0 redexmod occ do_subst =
     let find_E, end_E = mk_pmatcher sigma0 occ re in
     let concl = find_T env0 concl0 1 (fun env _ c h ->
       let p_sigma = unify_HO env (create_evar_defs p_sigma) c p in
-      let sigma, e_body = pop_evar p_sigma ex in
+      let sigma, e_body = pop_evar p_sigma ex p in
       fs p_sigma (find_X env (fs sigma p) h (fun env _ c h ->
         find_E env e_body h (fun env _ -> do_subst env)))) in
     let _ = end_E () in let _ = end_X () in let _ = end_T () in
@@ -4652,7 +4656,7 @@ let eval_redexmod env0 sigma0 concl0 redexmod occ do_subst =
     let find_X, end_X = mk_pmatcher p_sigma occ holep in
     let concl = find_TE env0 concl0 1 (fun env _ c h ->
       let p_sigma = unify_HO env (create_evar_defs p_sigma) c p in
-      let sigma, e_body = pop_evar p_sigma ex in
+      let sigma, e_body = pop_evar p_sigma ex p in
       fs p_sigma (find_X env (fs sigma p) h (fun env _ c h ->
         let e_sigma = unify_HO env e_sigma e_body e in
         let e_body = fs e_sigma e in
