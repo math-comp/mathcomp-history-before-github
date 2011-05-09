@@ -1660,28 +1660,29 @@ let pr_clseq = function
 let wit_ssrclseq, globwit_ssrclseq, rawwit_ssrclseq =
   add_genarg "ssrclseq" pr_clseq
 
-(* type ssrahyps = (ssrhyp * string) list *)
+(* type ssrahyps = ssrhyp list * string list *)
 
-let ahyp_id (hyp, mode) = hyp_id hyp, mode
-let ahyps_ids = List.map ahyp_id
-let check_ahyps_uniq a b = check_hyps_uniq a (List.map fst b)
+let ahyps_ids (ids, flags) = List.map hyp_id ids, flags
+let check_ahyps_uniq a (b,_) = check_hyps_uniq a b
 
 let pr_ahyp (SsrHyp (_, id), mode) = match mode with 
   | "(" -> str "(" ++ pr_id id ++ str ")"
   | "@" -> str "@" ++ pr_id id
   | " " -> pr_id id
   | _ -> anomaly "pr_ahyp: wrong annotation for ssrhyp"
-let pr_ahyps = pr_list pr_spc pr_ahyp
+let pr_ahyps (a,b) = pr_list pr_spc pr_ahyp (List.combine a b)
 let pr_ssrahyps _ _ _ = pr_ahyps
 
 let wit_ssrahyps, globwit_ssrahyps, rawwit_ssrahyps =
   add_genarg "ssrahyps" pr_ahyps
 
 ARGUMENT EXTEND ssrclausehyps 
-TYPED AS ssrahyps PRINTED BY pr_ssrahyps
-  | [ ssrterm(hyp) "," ssrclausehyps(hyps) ] -> [ ssrhyp_of_ssrterm hyp :: hyps ]
-  | [ ssrterm(hyp) ssrclausehyps(hyps) ] -> [ ssrhyp_of_ssrterm hyp :: hyps ]
-  | [ ssrterm(hyp) ] -> [ [ssrhyp_of_ssrterm hyp] ]
+TYPED AS ssrhyps * string list PRINTED BY pr_ssrahyps
+| [ ssrterm(hyp) "," ssrclausehyps(hyps) ] ->
+  [ let hyp, flag = ssrhyp_of_ssrterm hyp in hyp :: fst hyps, flag :: snd hyps ]
+| [ ssrterm(hyp) ssrclausehyps(hyps) ] ->
+  [ let hyp, flag = ssrhyp_of_ssrterm hyp in hyp :: fst hyps, flag :: snd hyps ]
+| [ ssrterm(hyp) ] -> [ let hyp, flag = ssrhyp_of_ssrterm hyp in [hyp],[flag] ]
 END
 
 (* type ssrclauses = ssrahyps * ssrclseq *)
@@ -1691,18 +1692,18 @@ let pr_clauses (hyps, clseq) =
 let pr_ssrclauses _ _ _ = pr_clauses
 
 let mkclause hyps clseq = 
-  check_hyps_uniq [] (List.map fst hyps); (hyps, clseq)
+  check_hyps_uniq [] (fst hyps); (hyps, clseq)
 
-ARGUMENT EXTEND ssrclauses TYPED AS ssrahyps * ssrclseq
+ARGUMENT EXTEND ssrclauses TYPED AS (ssrhyps * string list) * ssrclseq
     PRINTED BY pr_ssrclauses
   | [ "in" ssrclausehyps(hyps) "|-" "*" ] -> [ mkclause hyps InHypsSeqGoal ]
   | [ "in" ssrclausehyps(hyps) "|-" ]     -> [ mkclause hyps InHypsSeq ]
   | [ "in" ssrclausehyps(hyps) "*" ]      -> [ mkclause hyps InHypsGoal ]
   | [ "in" ssrclausehyps(hyps) ]          -> [ mkclause hyps InHyps ]
-  | [ "in" "|-" "*" ]                     -> [ mkclause []   InSeqGoal ]
-  | [ "in" "*" ]                          -> [ mkclause []   InAll ]
-  | [ "in" "*" "|-" ]                     -> [ mkclause []   InAllHyps ]
-  | [ ]                                   -> [ mkclause []   InGoal ]
+  | [ "in" "|-" "*" ]                     -> [ mkclause ([],[]) InSeqGoal ]
+  | [ "in" "*" ]                          -> [ mkclause ([],[]) InAll ]
+  | [ "in" "*" "|-" ]                     -> [ mkclause ([],[]) InAllHyps ]
+  | [ ]                                   -> [ mkclause ([],[]) InGoal ]
 END
 
 let nohide = mkRel 0
@@ -1727,9 +1728,9 @@ let red_safe r e s c0 =
   | _ -> r e s c in
   red_to e c0 (safe_depth c0)
 
-let pf_clauseids gl clahyps clseq =
-  if clahyps <> [] then (check_ahyps_uniq [] clahyps; ahyps_ids clahyps) else
-  if clseq <> InAll && clseq <> InAllHyps then [] else
+let pf_clauseids gl (claids,_ as clahyps) clseq =
+  if claids <> [] then (check_ahyps_uniq [] clahyps; ahyps_ids clahyps) else
+  if clseq <> InAll && clseq <> InAllHyps then [],[] else
   (*let _ =*) error "assumptions should be named explicitly" (*in*)
 (*
   let dep_term var = mkNamedProd_or_LetIn (pf_get_hyp gl var) mkProp in
@@ -1792,11 +1793,12 @@ let tclCLAUSES tac (clahyps, clseq) gl =
   if clseq = InGoal || clseq = InSeqGoal then tac gl else
   let cl_ids = pf_clauseids gl clahyps clseq in
   let id_map = 
-    List.map (fun id, mode -> mk_discharged_id id, (id, mode)) cl_ids in
+    List.map (fun id, mode -> mk_discharged_id id, (id, mode))
+      (List.combine (fst cl_ids) (snd cl_ids)) in
   let gl_id = mk_anon_id hidden_goal_tag gl in
   let cl0 = pf_concl gl in
   let dtacs = 
-    List.map discharge_hyp (List.rev id_map) @ [clear (List.map fst cl_ids)] in
+    List.map discharge_hyp (List.rev id_map) @ [clear (fst cl_ids)] in
   let endtac = endclausestac id_map clseq gl_id cl0 in
   tclTHENLIST (hidetacs clseq gl_id cl0 @ dtacs @ [tac; endtac]) gl
 
