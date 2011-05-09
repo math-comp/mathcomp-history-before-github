@@ -1841,7 +1841,7 @@ by move=> f a x y; rewrite /fun_of_lapp linearP mulmx_addl
                         -scalemxAl linearP.
 Qed.
 Canonical Structure hom_linear f := Linear (hom_is_linear f).
-Canonical Structure additive f := Additive (hom_is_linear f).
+Canonical Structure hom_additive f := Additive (hom_is_linear f).
 
 Definition lapp_of_fun f := LinearApp (lin1_mx ((v2rv W) \o f \o (rv2v V))).
 
