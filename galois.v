@@ -14,6 +14,7 @@ Import GRing.Theory.
 (******************************************************************************)
 
 (* This should be moved to vector.v *)
+
 Section Eigenspace.
 
 Variable (K: fieldType) (V:vspaceType K) (f:'End(V)) (lambda:K).
@@ -65,8 +66,143 @@ Section Galois.
 Variable F0 : fieldType.
 Variable L : fieldExtType F0.
 
-Let F : {algebra L } := aspace1 _.
+Let F : {algebra L} := aspace1 _.
 
+(* Should I make this canonical by setting fixing (f @: E)^C ? *)
+Definition kHom (K E : {vspace L}) : pred 'End(L) :=
+fun f => (K <= eigenspace f 1)%VS &&
+  (all (fun v1 => all (fun v2 => f (v1 * v2) == f v1 * f v2) (vbasis E))
+       (vbasis E)).
+
+Lemma kHomP : forall (K E: {vspace L}) (f : 'End(L)),
+ reflect ((forall x, x \in K -> f x = x) /\
+          (forall x y, x \in E -> y \in E -> f (x * y) = f x * f y))
+ (kHom K E f).
+Proof.
+move => K E f.
+apply: (iffP andP); case; last first.
+ move => HK HE.
+ split.
+  apply/subvP => v Hv.
+  by rewrite eigenspaceIn scale1r HK.
+ apply/allP => x; move/memv_basis => Hx.
+ apply/allP => y; move/memv_basis => Hy.
+ apply/eqP.
+ by apply: HE.
+move/subvP => HK.
+move/all_nthP => HE.
+split.
+ move => x Hx.
+ apply/eqP.
+ by rewrite -{2}[x]scale1r -eigenspaceIn HK.
+move => x y.
+do 2 move/coord_basis ->.
+rewrite -mulr_suml ![f _]linear_sum -mulr_suml.
+apply: eq_bigr => i _ /=.
+rewrite -!mulr_sumr linear_sum.
+apply: eq_bigr => j _ /=.
+rewrite !linearZ /= -!scaler_mull linearZ.
+repeat apply: f_equal.
+apply/eqP.
+move: (ltn_ord i).
+rewrite -{2}(size_tuple (vbasis _)).
+move/(HE 0).
+move/all_nthP.
+apply.
+by rewrite (size_tuple (vbasis _)).
+Qed.
+
+Let kHomExtendF (E : {vspace L}) (f:'End(L)) (x y z: L) :=
+ (map_poly f (poly_for_Fadjoin E x z)).[y].
+
+Let kHomExtendF_linear : forall E f x y,
+ linear (kHomExtendF E f x y).
+Proof.
+move => E f x y k a b.
+rewrite /kHomExtendF poly_for_linear raddfD horner_lin.
+congr (_ + _).
+rewrite -[(map_poly f (poly_for_Fadjoin E x a)).[y]]mul1r.
+rewrite scaler_mull -horner_scaler.
+congr ((polyseq _).[_]).
+apply/polyP => i.
+rewrite !(coef_scaler, coef_map [linear of f]).
+by rewrite -!scaler_mull !mul1r /= linearZ.
+Qed.
+
+Definition kHomExtend E f x y := lapp_of_fun (kHomExtendF E f x y).
+
+Lemma kHomExtendE : forall E f x y z,
+ kHomExtend E f x y z = (map_poly f (poly_for_Fadjoin E x z)).[y].
+Proof. by move => E f x y z; rewrite lapp_of_funK. Qed.
+
+Section kHomExtend.
+
+Variables (K E : {algebra L}) (f : 'End(L)) (x y : L).
+Hypothesis HKE : (K <= E)%VS.
+Hypothesis Hf : kHom K E f.
+Hypothesis Hy : root (map_poly f (minPoly E x)) y.
+
+Lemma kHomExtend_poly : forall p,
+ polyOver E p -> kHomExtend E f x y (p.[x]) = (map_poly f p).[y].
+Proof.
+move => p Hp.
+rewrite kHomExtendE.
+move/(poly_for_modp x): (Hp) ->.
+case/kHomP: Hf => HK HE.
+have Hfmin : monic (map_poly f (minPoly E x)).
+ by rewrite /monic lead_coef_map_eq;
+  move/eqP: (monic_minPoly E x) ->;
+  rewrite /= HK ?memv1 // nonzero1r.
+rewrite (divp_mon_spec (map_poly f p) Hfmin) !horner_lin.
+move/eqP: Hy ->.
+rewrite mulr0 add0r.
+case/polyOver_suba: Hp => p' ->.
+case/polyOver_suba: (minPolyOver E x) => q' ->.
+rewrite -map_modp !map_polyE.
+have Hlast : forall q : {poly suba_of E},
+  (last (sa_val (1:suba_of E)) (map (sa_val_rmorphism E) q) != 0).
+ move => q.
+ rewrite last_map.
+ rewrite -[0]/(sa_val (0:suba_of E)).
+ apply/negP; move/eqP/suba_inj/eqP; apply/negP.
+ by case q.
+rewrite !(PolyK (Hlast _)) // -map_comp.
+have Hmorph : rmorphism (f \o (sa_val_rmorphism E)).
+ split; first by move => a b; rewrite /= linear_sub.
+ split; first by move => a b; rewrite /= HE // subaP.
+ by rewrite /= aunit_eq1 HK // memv1.
+rewrite -map_polyE.
+rewrite -[f \o sa_val_rmorphism E]/(GRing.RMorphism.apply (RMorphism Hmorph)).
+by rewrite map_modp !map_polyE /= 2![map (_ \o _) _]map_comp.
+Qed.
+
+(*
+Lemma kHomExtendkHom : forall (K E : {algebra L}) f x y,
+ (K <= E)%VS -> kHom K E f -> root (map_poly f (minPoly E x)) y ->
+ kHom K (Fadjoin E x) (kHomExtend E f x y).
+Proof.
+move => K E f x y.
+move/subvP => HKE.
+case/kHomP => HK HE Hy.
+apply/kHomP; split.
+ move => z Hz.
+ rewrite kHomExtendE.
+ move/HKE/poly_for_K: (Hz) ->.
+ by rewrite (map_polyC [linear of f]) hornerC /= HK.
+move => a b Ha Hb.
+have Hab : (a * b) \in Fadjoin E x by apply: memv_mul.
+rewrite !kHomExtendE -horner_mul.
+congr ((polyseq _).[_]).
+apply/polyP => i.
+
+rewrite -map_poly_mul.
+*)
+ 
+End kHomExtend.
+
+
+
+(*
 Definition FieldAutomorphism (E:{vspace L}) (f : 'End(L) ) : bool :=
  [&& (f @: E == E)%VS, (E^C <= eigenspace f 1)%VS &
  (all (fun v1 => all (fun v2 => f (v1 * v2) == f v1 * f v2) (vbasis E))
@@ -213,5 +349,5 @@ rewrite eigenspaceIn.
 move/eqP ->.
 by rewrite !scale1r.
 Qed.
-
+*)
 End Galois.
