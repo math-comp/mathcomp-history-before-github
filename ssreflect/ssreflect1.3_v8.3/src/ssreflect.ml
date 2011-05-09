@@ -5501,14 +5501,18 @@ let havetac ((((clr, pats), binders), simpl), ((((fk, _), t), ctx), hint))
  let ist, concl = get_ltacctx ctx, pf_concl gl in
  let itac_c = introstac ~ist (IpatSimpl(clr,Nop) :: pats) in
  let itac, id, clr = introstac ~ist pats, tclIDTAC, cleartac clr in
- let binderstac, simpltac = introstac ~ist binders, introstac ~ist simpl in
+ let binderstac n =
+   let rec aux = function 0 -> [] | n -> IpatAnon :: aux (n-1) in
+   tclTHEN (if binders <> [] then introstac ~ist (aux n) else tclIDTAC)
+     (introstac ~ist binders) in
+ let simpltac = introstac ~ist simpl in
  let hint = hinttac ist true hint in
  let cuttac t gl = basecuttac "ssr_have" t gl in
  let interp_ty ty =
    let ty = mk_term ' ' (mkCCast dummy_loc ty (mkCType dummy_loc)) in
    let n, c = pf_abs_evars gl (interp_term ist gl ty) in
    let ctx, c = decompose_lam_n n (pf_abs_cterm gl n c) in
-   compose_prod ctx c in
+   n, compose_prod ctx c in
  let interp t = pf_abs_ssrterm ist gl (mk_term ' ' t) in
 (*  let name = match pats with [IpatId x] -> Name x | _ -> Anonymous in *)
 (*  let mkFkC loc ct = mkCCast loc ct (CHole (loc, None)) in *)
@@ -5538,10 +5542,11 @@ let havetac ((((clr, pats), binders), simpl), ((((fk, _), t), ctx), hint))
    | FwdHave, false, false ->
      let t = interp (mkCCast loc ct cty) in 
      pf_type_of gl t, apply t, id, tclTHEN itac_c simpltac
-   | _, true, true   -> mkArrow (interp_ty cty) concl, hint, itac, clr
-   | _, false, true  -> mkArrow (interp_ty cty) concl, hint, id, itac_c
+   | _, true, true   -> mkArrow (snd(interp_ty cty)) concl, hint, itac, clr
+   | _, false, true  -> mkArrow (snd(interp_ty cty)) concl, hint, id, itac_c
    | _, false, false -> 
-      interp_ty cty, tclTHEN binderstac hint, id, tclTHEN itac_c simpltac
+     let n, cty = interp_ty cty in
+     cty, tclTHEN (binderstac n) hint, id, tclTHEN itac_c simpltac
    | _, true, false -> assert false in
  tclTHENS (cuttac cut) [ tclTHEN sol itac1; itac2 ] gl
 
