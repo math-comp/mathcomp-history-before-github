@@ -1,3 +1,4 @@
 Require Import ssreflect ssrnat.
 Goal 5 = 3.
-rewrite -(addnK _ 5).
+Fail (rewrite -(addnK _ 5)).
+Abort.

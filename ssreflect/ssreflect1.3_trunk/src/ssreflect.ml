@@ -1956,6 +1956,8 @@ let pr_rwdir = function L2R -> mt() | R2L -> str "-"
 
 let pr_dir_side = function L2R -> str "LHS" | R2L -> str "RHS"
 
+let inv_dir = function L2R -> R2L | R2L -> L2R
+
 let rewritetac dir c =
   (* Due to the new optional arg ?tac, application shouldn't be too partial *)
   Equality.general_rewrite (dir = L2R) all_occurrences false c
@@ -4881,6 +4883,9 @@ let rec strip_prod_assum c = match kind_of_term c with
 
 let rule_id = mk_internal_id "rewrite rule"
 
+exception PRtype_error
+exception PRindetermined_rhs of constr
+
 let pirrel_rewrite pred rdx rdx_ty new_rdx dir (sigma, c) c_ty gl =
   let env = pf_env gl in
   let beta = Reductionops.clos_norm_flags Closure.beta env sigma in
@@ -4900,9 +4905,12 @@ let pirrel_rewrite pred rdx rdx_ty new_rdx dir (sigma, c) c_ty gl =
     mkConst c1' in
   let proof = mkApp (elim, [| rdx_ty; new_rdx; pred; p; rdx; c |]) in
   (* We check the proof is well typed *)
-  let proof_ty = Typing.type_of env sigma proof in
+  let proof_ty =
+    try Typing.type_of env sigma proof with _ -> raise PRtype_error in
   pp(lazy(str"pirrel_rewrite proof term of type: " ++ pr_constr proof_ty));
-  refine_with ~with_evars:false (sigma, proof) gl
+  try refine_with ~with_evars:false (sigma, proof) gl
+  with _ -> raise (PRindetermined_rhs (Reductionops.clos_norm_flags
+    Closure.beta env sigma (snd (nf_open_term sigma sigma new_rdx))))
 ;;
 
 let rwcltac cl rdx dir sr gl =
@@ -4935,12 +4943,17 @@ let rwcltac cl rdx dir sr gl =
       (apply_type cl'' [rdx; compose_lam dc r3], tclTHENLIST (itacs @ rwtacs))
   in
   let cvtac' _ =
-    try cvtac gl with e -> 
-      pp(lazy(str"cvtac's exception: " ++ str(Printexc.to_string e)));
-      if occur_existential (pf_concl gl) 
+    try cvtac gl with
+    | PRtype_error ->
+      if occur_existential (pf_concl gl)
       then errorstrm (str "Rewriting impacts evars")
       else errorstrm (str "Dependent type error in rewrite of "
-        ++ pf_pr_constr gl (mkNamedLambda pattern_id rdxt cl)) in
+        ++ pf_pr_constr gl (mkNamedLambda pattern_id rdxt cl))
+    | PRindetermined_rhs t -> errorstrm (str "Indetermined " ++
+      pr_dir_side (inv_dir dir) ++ str". The term" ++ spc() ++ pr_constr t ++
+      spc() ++ str "contains evars.")
+    | e -> anomaly ("cvtac's exception: " ^ Printexc.to_string e);
+  in
   tclTHEN cvtac' rwtac gl
 
 let prof_rwcltac = mk_profiler "rwrxtac.rwcltac";;
