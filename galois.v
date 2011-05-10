@@ -68,18 +68,27 @@ Variable L : fieldExtType F0.
 
 Let F : {algebra L} := aspace1 _.
 
+Section Definitions.
+
+Variables (K E: {vspace L}) (f : 'End(L)).
+
+Definition normal : Prop :=
+ forall x, x \in E -> exists2 r, all (fun y => y \in E) r &
+                                 minPoly K x = \prod_(y <- r) ('X - y%:P).
+
+Definition galois : Prop := normal /\ separable K E.
+
 (* Should I make this canonical by setting fixing (f @: E)^C ? *)
-Definition kHom (K E : {vspace L}) : pred 'End(L) :=
+Definition kHom : pred 'End(L) :=
 fun f => (K <= eigenspace f 1)%VS &&
   (all (fun v1 => all (fun v2 => f (v1 * v2) == f v1 * f v2) (vbasis E))
        (vbasis E)).
 
-Lemma kHomP : forall (K E: {vspace L}) (f : 'End(L)),
+Lemma kHomP :
  reflect ((forall x, x \in K -> f x = x) /\
           (forall x y, x \in E -> y \in E -> f (x * y) = f x * f y))
- (kHom K E f).
+ (kHom f).
 Proof.
-move => K E f.
 apply: (iffP andP); case; last first.
  move => HK HE.
  split.
@@ -112,13 +121,24 @@ apply.
 by rewrite (size_tuple (vbasis _)).
 Qed.
 
-Let kHomExtendF (E : {vspace L}) (f:'End(L)) (x y z: L) :=
+Lemma kHomFixedPoly : forall p, kHom f -> (polyOver K p) -> map_poly f p = p.
+Proof.
+move => p.
+case/kHomP => HK _.
+move/polyOverP => Hp.
+apply/polyP => i.
+by rewrite coef_map /= HK.
+Qed.
+
+Definition kAut : pred 'End(L) := fun f =>  kHom f && (f @: E == E)%VS.
+
+Let kHomExtendF (x y z: L) :=
  (map_poly f (poly_for_Fadjoin E x z)).[y].
 
-Let kHomExtendF_linear : forall E f x y,
- linear (kHomExtendF E f x y).
+Let kHomExtendF_linear : forall x y,
+ linear (kHomExtendF x y).
 Proof.
-move => E f x y k a b.
+move => x y k a b.
 rewrite /kHomExtendF poly_for_linear raddfD horner_lin.
 congr (_ + _).
 rewrite -[(map_poly f (poly_for_Fadjoin E x a)).[y]]mul1r.
@@ -129,18 +149,83 @@ rewrite !(coef_scaler, coef_map [linear of f]).
 by rewrite -!scaler_mull !mul1r /= linearZ.
 Qed.
 
-Definition kHomExtend E f x y := lapp_of_fun (kHomExtendF E f x y).
+Definition kHomExtend x y := lapp_of_fun (kHomExtendF x y).
 
-Lemma kHomExtendE : forall E f x y z,
- kHomExtend E f x y z = (map_poly f (poly_for_Fadjoin E x z)).[y].
-Proof. by move => E f x y z; rewrite lapp_of_funK. Qed.
+Lemma kHomExtendE : forall x y z,
+ kHomExtend x y z = (map_poly f (poly_for_Fadjoin E x z)).[y].
+Proof. by move => x y z; rewrite lapp_of_funK. Qed.
+
+End Definitions.
+
+Lemma kHom_subv : forall K E0 E1 f, (E0 <= E1)%VS ->
+ kHom K E1 f -> kHom K E0 f.
+Proof.
+move => K E0 E1 f.
+move/subvP => HE.
+case/kHomP => HK HE1.
+apply/kHomP; split => // x y Hx Hy.
+by apply: HE1; apply: HE.
+Qed.
+
+Lemma map_poly_comp : forall (aR bR cR : ringType) 
+ (f : {additive bR -> cR}) (g : {additive aR -> bR}) (p : {poly aR}),
+ map_poly (f \o g) p = map_poly f (map_poly g p).
+Proof. by move => aR bR cR f g p; apply/polyP => i; rewrite !coef_map. Qed.
 
 Section kHomExtend.
 
-Variables (K E : {algebra L}) (f : 'End(L)) (x y : L).
+Variables (K E : {algebra L}) (f : 'End(L)).
+
+Lemma kHom_inv : kHom K E f -> forall x, x \in E -> f x^-1 = (f x)^-1.
+Proof.
+case/kHomP => HK HE.
+move => x Hx.
+case (eqVneq x 0) => [->|Hx0]; first by rewrite linear0 invr0 linear0.
+move: (Hx).
+rewrite memv_inv.
+move/(HE _ _ Hx).
+rewrite divff // HK ?memv1 // => H1.
+rewrite -[(f x)^-1]mulr1 H1 mulrA mulVf ?mul1r //.
+move/eqP: H1.
+apply: contraL.
+move/eqP ->.
+by rewrite mul0r nonzero1r.
+Qed.
+
+Lemma kHom_dim : kHom K E f -> \dim (f @: E) = \dim E.
+Proof.
+move => Hf.
+case/kHomP: (Hf) => HK HE.
+apply/limg_dim_eq/eqP.
+rewrite -subv0.
+apply/subvP => v.
+rewrite memv_cap memv0 memv_ker.
+case/andP => HvE.
+apply: contraLR => Hv.
+by rewrite -unitfE unitrE -kHom_inv // -HE -?memv_inv // mulfV // HK // memv1.
+Qed.
+
+Lemma kAutE : kAut K E f = kHom K E f && (f @: E <= E)%VS.
+Proof.
+apply/andP/andP; case => Hhom.
+ move/eqP ->; split => //.
+ by rewrite subv_refl.
+move => Hf; split => //.
+by rewrite -(dimv_leqif_eq Hf) kHom_dim.
+Qed.
+
+Variables (x y : L).
 Hypothesis HKE : (K <= E)%VS.
 Hypothesis Hf : kHom K E f.
 Hypothesis Hy : root (map_poly f (minPoly E x)) y.
+
+Lemma kHomRmorph_subproof : rmorphism (f \o (sa_val (als:=E))).
+Proof.
+case/kHomP: Hf => HK HE.
+split; first by move => a b; rewrite /= linear_sub.
+split; first by move => a b; rewrite /= HE // subaP.
+by rewrite /= aunit_eq1 HK // memv1.
+Qed.
 
 Lemma kHomExtend_poly : forall p,
  polyOver E p -> kHomExtend E f x y (p.[x]) = (map_poly f p).[y].
@@ -158,47 +243,94 @@ move/eqP: Hy ->.
 rewrite mulr0 add0r.
 case/polyOver_suba: Hp => p' ->.
 case/polyOver_suba: (minPolyOver E x) => q' ->.
-rewrite -map_modp !map_polyE.
-have Hlast : forall q : {poly suba_of E},
-  (last (sa_val (1:suba_of E)) (map (sa_val_rmorphism E) q) != 0).
- move => q.
- rewrite last_map.
- rewrite -[0]/(sa_val (0:suba_of E)).
- apply/negP; move/eqP/suba_inj/eqP; apply/negP.
- by case q.
-rewrite !(PolyK (Hlast _)) // -map_comp.
-have Hmorph : rmorphism (f \o (sa_val_rmorphism E)).
- split; first by move => a b; rewrite /= linear_sub.
- split; first by move => a b; rewrite /= HE // subaP.
- by rewrite /= aunit_eq1 HK // memv1.
-rewrite -map_polyE.
+rewrite -map_modp -!map_poly_comp /=.
+have Hmorph := kHomRmorph_subproof.
 rewrite -[f \o sa_val_rmorphism E]/(GRing.RMorphism.apply (RMorphism Hmorph)).
 by rewrite map_modp !map_polyE /= 2![map (_ \o _) _]map_comp.
 Qed.
 
-(*
-Lemma kHomExtendkHom : forall (K E : {algebra L}) f x y,
- (K <= E)%VS -> kHom K E f -> root (map_poly f (minPoly E x)) y ->
- kHom K (Fadjoin E x) (kHomExtend E f x y).
+Lemma kHomExtendkHom : kHom K (Fadjoin E x) (kHomExtend E f x y).
 Proof.
-move => K E f x y.
-move/subvP => HKE.
-case/kHomP => HK HE Hy.
+case/kHomP: Hf => HK HE.
+move/subvP: HKE => HKE'.
 apply/kHomP; split.
  move => z Hz.
  rewrite kHomExtendE.
- move/HKE/poly_for_K: (Hz) ->.
+ move/HKE'/poly_for_K: (Hz) ->.
  by rewrite (map_polyC [linear of f]) hornerC /= HK.
-move => a b Ha Hb.
-have Hab : (a * b) \in Fadjoin E x by apply: memv_mul.
-rewrite !kHomExtendE -horner_mul.
+move => a b.
+case/poly_Fadjoin => p [Hp ->].
+case/poly_Fadjoin => q [Hq ->].
+rewrite -horner_mul !kHomExtend_poly ?mulp_polyOver // -horner_mul.
 congr ((polyseq _).[_]).
 apply/polyP => i.
+rewrite coef_map !coef_mul /= linear_sum.
+apply: eq_bigr => j _.
+move/polyOverP: Hp => Hp.
+move/polyOverP: Hq => Hq.
+by rewrite !coef_map /= HE.
+Qed.
 
-rewrite -map_poly_mul.
-*)
- 
 End kHomExtend.
+
+Lemma kHomExtendAuto : forall (K E J : {algebra L}) f,
+  (K <= E)%VS -> (K <= J)%VS -> kHom K E f -> (f @: E <= J)%VS ->
+  normal K J -> exists g, kAut K J g && (E <= lker (g - f))%VS.
+Proof.
+move => K E J f.
+pose n := (\dim (J :\: E)%VS).
+move : {2}(n.+1) (ltnSn n) => m.
+rewrite /n {n}.
+elim: m E f => [//|m IH] E f.
+case (eqVneq (\dim (J :\: E)) 0%N).
+ move/eqP.
+ rewrite dimv_eq0 -subv_diffv0 => HJE _ _ _ Hf HfE _.
+ exists f.
+ rewrite kAutE subrr -lkerE lim0g eq_refl andbT (kHom_subv HJE) //=.
+ by rewrite (subv_trans _ HfE) // limg_monotone.
+move => Hdim Hm HKE HKJ Hf HfE HJ.
+have [x [Hx Hx0]] : exists x, x \in (J :\: E)%VS /\ x != 0.
+ exists (vpick (J :\: E)%VS); split; first by apply: memv_pick.
+ by rewrite vpick0 -dimv_eq0.
+move/subvP/(_ _ Hx): (diffvSl J E) => HxJ.
+have HxE : x \notin E.
+ move: Hx0.
+ apply: contra.
+ move/(conj Hx)/andP.
+ rewrite -memv_cap -memv0.
+ apply/subvP.
+ rewrite subv0.
+ apply/eqP.
+ by apply: capv_diff.
+have HminE : polyOver E (minPoly K x).
+ by rewrite (polyOver_subset HKE) // minPolyOver.
+move: (minPoly_dvdp HminE (root_minPoly K x)).
+case/polyOver_suba : HminE => p Hp.
+case/polyOver_suba : (minPolyOver E x) => q Hq.
+have Hmorph := (kHomRmorph_subproof Hf).
+rewrite Hp Hq dvdp_map -(dvdp_map (RMorphism Hmorph)) !map_poly_comp -Hp.
+rewrite /= [map_poly f (minPoly K x)](kHomFixedPoly Hf) -?Hq; last first.
+ by apply: minPolyOver.
+clear p Hp q Hq Hmorph.
+(* HERE *)
+case: (IH (Fadjoin E x) (kHomExtend E f x x)).
+- rewrite ltnS in Hm.
+  apply: (leq_trans _ Hm).
+  rewrite -(ltn_add2l (\dim (J :&: Fadjoin E x))) dimv_cap_compl addnC.
+  rewrite -(ltn_add2l (\dim (J :&: E))) addnA dimv_cap_compl addnC ltn_add2l.
+  rewrite ltnNge.
+  move: HxE.
+  apply: contra.
+  have: (J :&: E <= J :&: Fadjoin E x)%VS.
+   by rewrite subv_cap capvSl /= (subv_trans (capvSr _ _)) // subsetKFadjoin.
+  move/dimv_leqif_sup/geq_leqif ->.
+  move/subvP/(_ x).
+  rewrite !memv_cap memx_Fadjoin andbT.
+  by case/(_ HxJ)/andP.
+- by rewrite (subv_trans HKE) // subsetKFadjoin.
+- by done.
+- rewrite kHomExtendkHom //.
+
 
 
 
