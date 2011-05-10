@@ -273,6 +273,7 @@ Qed.
 
 End kHomExtend.
 
+(*
 Lemma kHomExtendAuto : forall (K E J : {algebra L}) f,
   (K <= E)%VS -> (K <= J)%VS -> kHom K E f -> (f @: E <= J)%VS ->
   normal K J -> exists g, kAut K J g && (E <= lker (g - f))%VS.
@@ -330,7 +331,7 @@ case: (IH (Fadjoin E x) (kHomExtend E f x x)).
 - by rewrite (subv_trans HKE) // subsetKFadjoin.
 - by done.
 - rewrite kHomExtendkHom //.
-
+*)
 
 
 
