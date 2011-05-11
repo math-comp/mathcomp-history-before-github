@@ -218,7 +218,7 @@ Structure base_type : Type := PackBase {
 (* of arg_sort. Care should be taken, however, to declare the     *)
 (* return type of functions and operators as FinGroup.sort gT     *)
 (* rather than gT, e.g., mulg : gT -> gT -> FinGroup.sort gT.     *)
-(* Note that since we do this here and in normal.v for all the    *)
+(* Note that since we do this here and in quotient.v for all the  *)
 (* basic functions, the inferred return type should generally be  *)
 (* correct.                                                       *)
 Definition arg_sort := sort.
