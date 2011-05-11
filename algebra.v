@@ -474,7 +474,18 @@ apply/has_aunitP; exists 1; split; first by exact: memv_inj.
 by move=> x; rewrite mul1r mulr1.
 Qed.
 
-Canonical Structure aspace1: {algebra A} := (ASpace aspace1_def).
+Canonical Structure aspace1 : {algebra A} := (ASpace aspace1_def).
+
+Lemma aspacef_def:
+   ((has_aunit (fullv A)) && ((fullv A) * (fullv A) <= (fullv A)))%VS.
+Proof. 
+rewrite subvf andbT.
+apply/has_aunitP; exists 1; split; first by exact: memvf.
+  by exact: nonzero1r.
+by move=> x; rewrite mul1r mulr1.
+Qed.
+
+Canonical Structure aspacef : {algebra A} := (ASpace aspacef_def).
 
 Lemma asubv : forall gs, (gs * gs <= gs)%VS.
 Proof. by case=> vs /=; case/andP. Qed.
