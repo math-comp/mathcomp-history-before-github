@@ -522,6 +522,14 @@ apply: eq_big=> [l|l _]; first by rewrite groupMl // groupV.
 by rewrite -conjgM mulgA mulgV mul1g.
 Qed.
 
+Lemma has_support_induced : forall f : {cfun gT},
+  f \in 'CF(H) -> H <| G -> has_support ('Ind[G,H] f) H.
+Proof.
+move=> f Cf HnG; apply/forall_inP=> h HniH.
+rewrite ffunE big1 ?mulr0 // => g GiG.
+by rewrite (cfun0 Cf) // memJ_norm // (subsetP (normal_norm HnG)).
+Qed.
+ 
 Lemma cinduced1 : forall f, 
   H \subset G -> ('Ind[G, H] f) 1%g = #|G : H|%:R * f 1%g.
 Proof.

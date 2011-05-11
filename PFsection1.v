@@ -21,18 +21,6 @@ Section Main.
 
 Variable (gT : finGroupType).
 
-Definition irrC (G : {set gT}) (i : Iirr G) :=
-  odflt 0 (pick (fun j : Iirr G =>  'xi_j == ('xi_i)^*)%CH).
-
-Lemma irrCE : forall (G : {group gT}) (i : Iirr G), 'xi_(irrC i) = ('xi_i)^*%CH.
-Proof.
-move=> G i; rewrite /irrC; case: pickP=> [j|]; first by move/eqP.
-by case/irrIP: (irr_conjC i)=> j <-; move/(_ j); rewrite eqxx.
-Qed.
-
-Lemma irrCK : forall (G : {group gT}), involutive (@irrC G).
-Proof. by move=> G i; apply: xi_inj; rewrite !irrCE cfun_conjCK. Qed.
-
 (* This corresponds to 1.1 in PF *)
 Lemma odd_eq_conj_irr1 : forall (G : {group gT}) t,
   odd #|G| -> ((('xi[G]_t)^*)%CH == 'xi_t) = ('xi_t == '1_G).
@@ -43,7 +31,7 @@ pose a := (@Zp1 1).
 have Aito:
     is_action <[a]> (fun (t : Iirr G) v => if v == a then irrC t else t).
   split=> [[[|[]]] //= _  t1 t2 Hj |j [[|[]]] // HH1 [[|[]]] // HH2 ] //=.
-    by apply: (inv_inj (@irrCK _)).
+    by apply: (inv_inj (@irrCK _ _)).
   by rewrite irrCK.
 pose ito := Action Aito.
 have Acto:
@@ -449,6 +437,113 @@ rewrite -expgn_mul -[(_%/_).+1]addn1 muln_addr muln1 -{3}addn1 addnA.
 move: (modn2 #|G|); rewrite {1}OG /= => HH1; rewrite -{3}HH1.
 rewrite [(2 * _)%N]mulnC -divn_eq expgn_add expg1.
 by move: (order_dvdG GiG); rewrite order_dvdn; move/eqP->; rewrite mul1g.
+Qed.
+
+(* This is PF 1.6a *)
+Lemma cker_induced_irr_sub : forall (A : {group gT}) t,
+  H <| G -> A <| G -> A \subset H ->
+  (A \subset cker H 'xi[H]_t) = (A \subset cker G ('Ind[G,H] 'xi_t)).
+Proof.
+move=> A t HnG AnG AsH; have HsG := (normal_sub HnG).
+have Cht := is_char_irr t; have Cit := is_char_induced Cht HsG.
+have Crt := is_char_restrict HsG Cit.
+apply/idP/idP=> [AsC|AsI].
+  apply /subsetP=> g GiA.
+  rewrite cker_charE ?inE //.
+  rewrite (subsetP HsG) ?(subsetP AsH) //=.
+  rewrite ffunE [X in _ == X]ffunE; apply/eqP.
+  congr (_ * _); apply: eq_bigr=> h HiG.
+  have: g ^h \in A.
+    by case/normalP: AnG=> _; move/(_ _ HiG)<-; apply/imsetP; exists g.
+  move/(subsetP AsC).
+  by rewrite conj1g cker_charE ?(inE) // => /andP [] _ /eqP.
+have: A \subset cker H ('Res[H] ('Ind[G, H] 'xi_t)).
+  apply/subsetP=> g GiG.
+  move: (subsetP AsI _ GiG).
+  rewrite !cker_charE ?inE // => /andP [] _ HH.
+  by rewrite !(subsetP AsH, crestrictE).
+move/subset_trans; apply.
+apply: is_comp_cker=> //.
+rewrite induced_sum_rcosets //.
+rewrite scaler_sumr -cconjugates_sum //=.
+rewrite big_mkcond /=.
+pose f (i : Iirr H) := 
+  (if 'xi_i \in cconjugates G 'xi_t
+       then #|'I_(G)['xi_t] : H|%:R else 0) *: 'xi_i.
+rewrite (eq_bigr f)=> [|i _]; last first.
+  by rewrite /f; case: (_ \in _); rewrite // scale0r.
+rewrite /is_comp ncoordE.
+have->: 'xi_t \in cconjugates G 'xi_t.
+  apply/cconjugatesP; exists 1%g; rewrite ?(group1, cfun_conj1) //.
+rewrite -(eqN_eqC _ 0).
+by case: #|_ : _| (indexg_gt0 'I_(G)['xi_t] H).
+Qed.
+ 
+(* This is PF 1.6b *)
+Lemma induced_quotientE : forall (A : {group gT}) t,
+  H <| G -> A <| G -> A \subset cker H 'xi[H]_t ->
+   'Ind[(G/A)%g,(H/A)%g] ('xi_t/A)%CH = ('Ind[G,H] 'xi_t/A)%CH.
+Proof.
+move=> A t HnG AnG AsK.
+have AsH := subset_trans AsK (cker_sub _ _).
+have HsG := normal_sub HnG.
+have AnH := normalS AsH HsG AnG.
+have HAnGA := quotient_normal A HnG.
+move: (AsK); rewrite (cker_induced_irr_sub t HnG)=> // AsKI.
+have CHt := is_char_irr t.
+have CHq := is_char_qfunc CHt AnH AsK.
+have CHi := is_char_induced CHt (normal_sub HnG).
+have CHiq := is_char_induced CHq (normal_sub HAnGA).
+have CHqi := is_char_qfunc CHi AnG AsKI.
+have CFiq := memc_is_char CHiq.
+have CFqi := memc_is_char CHqi.
+apply/ffunP=> /= h.
+apply: (mulfI (neq0GC H)).
+case: (boolP (h \in (G/A)%g))=> HiGA; last first. 
+  by rewrite (cfun0 CFiq HiGA) (cfun0 CFqi HiGA).
+case: (boolP (h \in (H/A)%g))=> HiHA; last first.
+  move/forall_inP: (has_support_induced (memc_is_char CHq) HAnGA).
+  move/(_ _ HiHA)=> /eqP ->.
+  case/imsetP: HiGA HiHA=> g; rewrite inE => /andP [] GiN GiG /= ->.
+  rewrite (qfuncE CHi) // => HH.
+  have GniH : g \notin H.
+    by apply: contra HH; exact: mem_quotient.
+  move/forall_inP: (has_support_induced (memc_is_char CHt) HnG).
+  by move/(_ _ GniH)=> /eqP ->; rewrite !mulr0.
+rewrite !ffunE !mulrA (divff ((neq0GC H))) mul1r.
+rewrite card_quotient ?normal_norm //.
+rewrite -(LaGrange AsH) natr_mul mulfK; last first.
+  by rewrite -(eqN_eqC _ 0); case: #|_:_| (indexg_gt0 H A).
+rewrite -mulr_sumr.
+rewrite {1}(partition_big _  _ (fun x => @mem_quotient _ A x G)) /=.
+apply: eq_bigr=> i.
+case/imsetP=> g; rewrite inE => /andP [] GiN GiG /= ->.
+rewrite (eq_bigl (fun x => x \in (coset A g)))=> [|g1]; last first.
+  apply/andP/idP=> [[] G1iG |].
+    move/eqP; move/rcoset_kercosetP.
+    rewrite val_coset //; apply=> //.
+    by apply: (subsetP (normal_norm AnG)).
+  rewrite val_coset //; case/rcosetP=> a AiA ->.
+  have AGiG: (a * g)%g \in G.
+    by rewrite groupM // (subsetP (normal_sub AnG)).
+  split=> //; apply/eqP; apply/rcoset_kercosetP=> //; last first.
+    by apply/rcosetP; exists a.
+  by apply: (subsetP (normal_norm AnG)).
+rewrite (eq_bigr (fun x => ('xi_t / A)%CH (h ^ coset A g))).
+  by rewrite sumr_const mulr_natl val_coset // card_rcoset.
+move=> g1 G1iC.
+have<-: coset A (repr h ^ g) = h ^ coset A g.
+  by rewrite morphJ /= ?coset_reprK // repr_coset_norm .
+have RiH: repr h \in H.
+  case/imsetP: HiHA=> h1; rewrite inE /= => /andP [] H1iN H1iH ->.
+  move: (mem_repr_coset (coset A h1)); rewrite val_coset //.
+  by case/rcosetP=> a AiA->; rewrite groupM // (subsetP AsH).
+have JiH : repr h ^ g \in H.
+  by rewrite memJ_norm // (subsetP (normal_norm HnG)).
+rewrite (qfuncE CHt) //.
+move: G1iC; rewrite val_coset //.
+rewrite norm_rlcoset //; case/lcosetP=> a AiA ->.
+by rewrite conjgM (char_ckerJ CHt) // (subsetP AsK).
 Qed.
 
 (* This is PF 1.8 *)

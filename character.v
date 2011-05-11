@@ -2108,6 +2108,18 @@ rewrite -conjC1; apply/eqP; congr (_^*); apply/eqP.
 by rewrite -irr_inner_prod_charE ?(irr_xi,is_char_irr).
 Qed.
 
+Definition irrC (G : {set gT}) (i : Iirr G) :=
+  odflt 0 (pick (fun j : Iirr G =>  'xi_j == ('xi_i)^*)%CH).
+
+Lemma irrCE : forall (i : Iirr G), 'xi_(irrC i) = ('xi_i)^*%CH.
+Proof.
+move=> i; rewrite /irrC; case: pickP=> [j|]; first by move/eqP.
+by case/irrIP: (irr_conjC i)=> j <-; move/(_ j); rewrite eqxx.
+Qed.
+
+Lemma irrCK : involutive (@irrC G).
+Proof. by move=> i; apply: xi_inj; rewrite !irrCE cfun_conjCK. Qed.
+
 End InnerProduct.
 
 Section MoreInnerProd.
@@ -2326,6 +2338,14 @@ have GiG: g \in G by apply: (subsetP (cker_sub (char_of_repr G rG))).
 rewrite !ffunE groupM ?YiG // repr_mxM //.
 move: GiC; rewrite char_rkerP // inE GiG mul1mx andTb; move/eqP->.
 by rewrite HiG mulmx1.
+Qed.
+
+Lemma char_ckerJ : forall chi g h,
+  is_char G chi -> g \in cker G chi -> h \in G -> chi (h ^ g)%g = chi h.
+Proof.
+move=> chi g h Cc GiG HiG.
+rewrite (char_ckerMr Cc) ?(groupV,groupM) ?(char_ckerMl Cc) //.
+by apply: (subsetP (cker_sub chi)).
 Qed.
 
 Lemma clinear_commutator : forall f,
